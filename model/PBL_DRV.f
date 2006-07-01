@@ -4,7 +4,7 @@
 #ifdef TRACERS_ON
       use tracer_com, only : ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
 #endif
 #endif
@@ -30,11 +30,11 @@ C**** Tracer input/output common block for PBL
 !@var gs_vel gravitational settling velocity (m/s)
       real*8, dimension(ntm) :: dep_vel,gs_vel
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke,wsubwd,
      &   wsubwm,dust_event1,dust_event2,wtrsh
 !@param npbl  no of pbl. layers
@@ -49,11 +49,11 @@ C**** Tracer input/output common block for PBL
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DMS_flux,ss1_flux,ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,zhat
      &     ,lmonin,dust_event1,dust_event2,wtrsh
 #endif
@@ -75,7 +75,7 @@ C**** Tracer input/output common block for PBL
         REAL*8 :: ustar,zgs
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,wsgcm,wspdf
 #endif
       end type t_pbl_args
@@ -109,10 +109,10 @@ C          ,UG,VG,WG,W2_1
 #ifdef TRACERS_ON
      *     ,tr
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,wsgcm,wspdf
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: PBLH
 #endif
 #endif
@@ -193,34 +193,34 @@ C        roughness lengths from Brutsaert for rough surfaces
       ! GCM LAYER (L) AT WHICH TO COMPUTE UG AND VG.
       ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
 
-        IF (TKV.GE.TGV) THEN
-          ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
-          ! DETERMINE VERTICAL LEVEL CORRESPONDING TO HEIGHT OF PBL:
-          ! WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT
-          ! KNOW THE INDEX OF THE LAYER.
-          ustar=ustar_pbl(i,j,itype)
-          DBL=min(0.3d0*USTAR/OMEGA2,dbl_max_stable)
-          if (dbl.le.ztop) then
-            dbl=ztop
-            L=1
-          else
-            ! FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND
-            ! COMPUTE Ug and Vg THERE:
-            zpbl=ztop
-            pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
-            tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
-            do l=2,ls1
-              pl=pmid(l,i,j)        !pij*sig(l)+ptop
-              tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
-              tbar=thbar(tl1,tl)
-              zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-              if (zpbl.ge.dbl) exit
-              pl1=pl
-              tl1=tl
-            end do
-          endif
+c       IF (TKV.GE.TGV) THEN
+c         ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
+c         ! DETERMINE VERTICAL LEVEL CORRESPONDING TO HEIGHT OF PBL:
+c         ! WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT
+c         ! KNOW THE INDEX OF THE LAYER.
+c         ustar=ustar_pbl(i,j,itype)
+c         DBL=min(0.3d0*USTAR/OMEGA2,dbl_max_stable)
+c         if (dbl.le.ztop) then
+c           dbl=ztop
+c           L=1
+c         else
+c           ! FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND
+c           ! COMPUTE Ug and Vg THERE:
+c           zpbl=ztop
+c           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
+c           tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
+c           do l=2,ls1
+c             pl=pmid(l,i,j)        !pij*sig(l)+ptop
+c             tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
+c             tbar=thbar(tl1,tl)
+c             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
+c             if (zpbl.ge.dbl) exit
+c             pl1=pl
+c             tl1=tl
+c           end do
+c         endif
 
-      ELSE
+c     ELSE
         ! ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND
         ! LDC IS THE LEVEL TO WHICH DRYCNV/ATURB MIXES.
         ! FIND DBL FROM LDC.  IF BOUNDARY
@@ -254,9 +254,10 @@ C        roughness lengths from Brutsaert for rough surfaces
           dbl=zpbl
         endif
 
-      ENDIF
+c     ENDIF
 
-#if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP)
       IF (ITYPE.eq.1) PBLH(I,J)=dbl
 #endif
   !    ppbl=pedn(l,i,j)  ! - not used anywhere ?
@@ -323,11 +324,11 @@ C        roughness lengths from Brutsaert for rough surfaces
 #if defined(TRACERS_DRYDEP)
      *     dep_vel,gs_vel,
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     DMS_flux,ss1_flux,ss2_flux,
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
      &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
 #endif

@@ -1,4 +1,26 @@
       subroutine OCEANS
+      use DOMAIN_DECOMP, only: AM_I_ROOT
+      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities
+      use hybrid_mpi_omp_coupler, only: startMultiThreaded
+      use hybrid_mpi_omp_coupler, only: startSingleThreaded
+
+      call gatherDistributedQuantities()
+      if (AM_I_ROOT()) then
+         call startMultiThreaded()
+
+        !---------------------
+        call OCEANS_internal
+        !---------------------
+
+        call startSingleThreaded()
+      end if
+      call scatterDistributedQuantities()
+
+      end subroutine OCEANS
+
+
+      subroutine OCEANS_internal
 c
 c --- ------------------------------
 c --- MICOM-based hybrid ocean model
@@ -82,14 +104,20 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
+      ! From FLUXES
+      USE hybrid_mpi_omp_coupler, only: e0,prec,eprec,evapor,flowo
+     . ,eflowo,dmua,dmva
      . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
      . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
      . ,gmelt,egmelt,solar
-      USE SEAICE_COM, only : rsi,msi
-      USE SEAICE, only : fsss,tfrez
+      ! From SEAICE_COM
+      USE hybrid_mpi_omp_coupler, only : rsi,msi
+      ! From SEAICE
+      USE hybrid_mpi_omp_coupler, only : fsss,tfrez
+      ! From MODEL_COM
+      USE hybrid_mpi_omp_coupler, only : focean
+
       USE GEOM, only : dxyp
-      USE MODEL_COM, only : focean
       USE CONSTANT, only : lhm,shi,shw
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
@@ -106,11 +134,10 @@ c
 c
       real sum,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
      .    ,sigocn,kappaf,check,apehyc,pechg_hyc_bolus
-     .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,tavini,dpini(kdm)
+     .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
-      common/sst/tavini
       external rename
       logical master,slave,diag_ape
       character util(idm*jdm+14)*2,charac(20)*1,string*20,
@@ -394,8 +421,8 @@ c
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
 c
+css   if (nstep.eq.1) diagno=.true.    ! initial condition
       diag_ape=diagno
-      if (nstep.eq.1) diag_ape=.true.
 c
       trcadv_time = 0.0
       if (dotrcr) then
@@ -678,7 +705,7 @@ c$OMP PARALLEL DO
         do 3 i=ifp(j,l),ilp(j,l)
  3      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
 c$OMP END PARALLEL DO
-      call overtn(mm)
+css   call overtn(mm)
 c
       write (lp,105) nstep
  105  format (' step',i9,' -- archiving completed --')
@@ -818,3 +845,22 @@ c> Apr. 2001 - eliminated stmt_funcs.h
 c> June 2001 - corrected sign error in diaflx
 c> July 2001 - replaced archiving statements by 'call archiv'
 c> Oct  2004 - map ice mass to agcm, and then calculate E
+
+
+!!! I am putting the following routine here as a hack, since it has to be
+!!! present somewhere among ocean routines
+!!! it may actually get filled with the real data when porting to ESMF
+!!! is complete.
+!!! If you think there is better place to put this routine, please move
+!!! it there - I.A.
+      SUBROUTINE ALLOC_OCEAN(grid)
+!@sum dummy routine for allocation of ocean arrays
+      USE DOMAIN_DECOMP, only : DIST_GRID
+      use hybrid_mpi_omp_coupler, only: init_hybrid_coupler
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+
+      call init_hybrid_coupler()
+
+      END SUBROUTINE ALLOC_OCEAN
+

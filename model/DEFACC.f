@@ -32,6 +32,7 @@ c-----------------------------------------------------------------------
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
       use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige,kocean,qcheck
       use DIAG_COM
+      use DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -776,15 +777,17 @@ c
       scale_j(k) = 1.
       ia_j(k) = ia_rad
 c
-      if (k .gt. kaj) then
-        write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
-        call stop_model( 'kaj too small', 255 )
+      if (AM_I_ROOT()) then
+         if (k .gt. kaj) then
+            write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
+            call stop_model( 'kaj too small', 255 )
+         end if
+         write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_j(kk))
+         end do
       end if
-      write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_j(kk))
-      end do
 
       return
       end subroutine j_defs
@@ -793,6 +796,7 @@ c
       use constant
       use MODEL_COM
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -1176,7 +1180,7 @@ c
 #ifdef CLD_AER_CDNC
       k=k+1
       IJ_3dNWM = k
-      lname_ij(k) = '3D Warm Moist Cnv CDNC '
+      lname_ij(k) = '2D Warm Moist Cnv CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNwm'
       ia_ij(k) = ia_src
@@ -1184,7 +1188,7 @@ c
 c
       k=k+1
       IJ_3dNIM = k
-      lname_ij(k) = '3D Cold Moist Cnv CDNC '
+      lname_ij(k) = '2D Cold Moist Cnv CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNim'
       ia_ij(k) = ia_src
@@ -1192,7 +1196,7 @@ c
 c
       k=k+1
       IJ_3dRWM = k
-      lname_ij(k) = '3D Warm Moist Conv Reff '
+      lname_ij(k) = '2D Warm Moist Conv Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRwm'
       ia_ij(k) = ia_src
@@ -1200,15 +1204,31 @@ c
 c
       k=k+1
       IJ_3dRIM = k
-      lname_ij(k) = '3D Cold Moist Conv Reff '
+      lname_ij(k) = '2D Cold Moist Conv Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRim'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 c
       k=k+1
+      IJ_3dLWM = k
+      lname_ij(k) = '2D Warm Moist Conv LWC  '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLwm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dLIM = k
+      lname_ij(k) = '2D Cold Moist Conv LWC  '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLim'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
       IJ_3dNWS = k
-      lname_ij(k) = '3D Warm Large-scale CDNC '
+      lname_ij(k) = '2D Warm Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNws'
       ia_ij(k) = ia_src
@@ -1216,7 +1236,7 @@ c
 c
       k=k+1
       IJ_3dNIS = k
-      lname_ij(k) = '3D Cold Large-scale CDNC '
+      lname_ij(k) = '2D Cold Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNis'
       ia_ij(k) = ia_src
@@ -1224,7 +1244,7 @@ c
 c
       k=k+1
       IJ_3dRWS = k
-      lname_ij(k) = '3D Warm Large-scale Reff '
+      lname_ij(k) = '2D Warm Large-scale Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRws'
       ia_ij(k) = ia_src
@@ -1232,9 +1252,25 @@ c
 c
       k=k+1
       IJ_3dRIS = k
-      lname_ij(k) = '3D Cold Large-scale Reff '
+      lname_ij(k) = '2D Cold Large-scale Reff '
       units_ij(k) = 'um'
       name_ij(k) = '3dRis'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dLWS = k
+      lname_ij(k) = '2D Warm Large-scale LWC '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLws'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dLIS = k
+      lname_ij(k) = '2D Cold Large-scale LWC '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = '3dLis'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 #endif
@@ -2050,6 +2086,27 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 10.
       ir_ij(k) = ir_0_18
+c
+#ifdef CLD_AER_CDNC
+c
+      k=k+1 !
+      IJ_WMCLWP = k ! MC LIQUID WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'MC LIQUID WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'mclwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
+      IJ_WMCTWP = k ! MC Total WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'MC TOTAL WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'mctwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+#endif
 c
       k=k+1 !
       IJ_QM = k ! ATMOSPHERIC WATER VAPOUR CONTENT (kg/m**2)             1 CL
@@ -3000,7 +3057,7 @@ c
       name_ij(k) = 'wsubwd'
       units_ij(k) = 'm/s'
       ia_ij(k) = ia_srf
-      k=k+1 
+      k=k+1
       IJ_wtke = k
       lname_ij(k) = 'TKE VELOCITY SCALE'
       name_ij(k) = 'wsubtke'
@@ -3014,23 +3071,26 @@ c
       ia_ij(k) = ia_srf
 #endif
 c
-      if (k .gt. kaij) then
-        write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
-        call stop_model( 'kaij too small', 255 )
+      if (AM_I_ROOT()) then
+         if (k .gt. kaij) then
+            write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
+            call stop_model( 'kaij too small', 255 )
+         end if
+         
+         write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
+         end do
       end if
 
-      write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
-      end do
       return
       end subroutine ij_defs
 
       subroutine il_defs
       USE CONSTANT, only : grav,rgas,by3,sha,bygrav
       USE MODEL_COM, only : dtsrc,jeq,qcheck
-      USE DOMAIN_DECOMP, only : grid,get
+      USE DOMAIN_DECOMP, only : grid,get, AM_I_ROOT
       USE GEOM, only : dxyp
       use DIAG_COM
       implicit none
@@ -3163,12 +3223,15 @@ c
       scale_il(k) = 0.5
       ia_il(k)    = ia_dga
 c
-      write (6,*) 'Number of IL diagnostics defined: kailmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_il(kk))
-      end do
-      return
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of IL diagnostics defined: kailmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_il(kk))
+         end do
+         return
+      end if
+
       end subroutine il_defs
 
 
@@ -3177,6 +3240,7 @@ c
       use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag,qcheck
       use GEOM, only : dlon
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -3260,7 +3324,7 @@ c
       lname_jl(k) = 'DTEMP/DT BY DYNAMICS'
       units_jl(k) = 'K/DAY'
       pow_jl(k) = -1
-      scale_jl(k) = SDAY*NIDYN/(FIM*7200.)
+      scale_jl(k) = SDAY*NIDYN/(2*dtsrc*FIM) ! 1/dt_lf(days)*(1/im)
       ia_jl(k) = ia_dga
       jgrid_jl(k) = 1
 c
@@ -3785,16 +3849,19 @@ c
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 
-      if (k .gt. kajl) then
-        write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k
-        call stop_model( 'kajl too small', 255 )
-      end if
 
-      write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
-      end do
+      if (AM_I_ROOT()) then
+         if (k .gt. kajl) then
+            write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k
+            call stop_model( 'kajl too small', 255 )
+         end if
+         
+         write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
+         end do
+      end if
       return
       end subroutine jl_defs
 
@@ -3802,6 +3869,7 @@ c
       use CONSTANT, only : grav,sday,sha,bygrav
       use MODEL_COM, only : byim,qcheck
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -3841,12 +3909,14 @@ c
       scale_sjl(k) = -100.D-2*GRAV*SDAY*BYIM/SHA
       ia_sjl(k) = ia_rad
 c
-      write (6,*) 'Number of ASJL diagnostics defined: kasjlmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_sjl(kk))
-      end do
-      return
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of ASJL diagnostics defined: kasjlmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_sjl(kk))
+         end do
+      end if
+         return
       end subroutine sjl_defs
 
       subroutine jk_defs
@@ -3854,6 +3924,7 @@ c
       use MODEL_COM, only : fim,byim,dt,qcheck
       use GEOM, only : dlon
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4275,11 +4346,13 @@ c
       scale_jk(k) = 1.
       jgrid_jk(k) = 1
 c
-      write (6,*) 'Number of AJK diagnostics defined: kajkmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_jk(kk))
-      end do
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of AJK diagnostics defined: kajkmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_jk(kk))
+         end do
+      end if
       return
       end subroutine jk_defs
 
@@ -4287,6 +4360,7 @@ c
       use CONSTANT, only : bygrav,tf
       use MODEL_COM, only : qcheck
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4430,11 +4504,109 @@ c
       scale_ijk(k) = 100.
       off_ijk(k)   = 0.
 c
-      write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
-      end do
+#ifdef CLD_AER_CDNC
+      k=k+1
+      IJL_REWM=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'rewm'
+      lname_ijk(k) = 'Warm C Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_REWS=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'rews'
+      lname_ijk(k) = 'Warm S Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDWM=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdwm'
+      lname_ijk(k) = 'Warm C CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDWS=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdws'
+      lname_ijk(k) = 'Warm S CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CWWM=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwwm'
+      lname_ijk(k) = 'Warm C LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CWWS=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwws'
+      lname_ijk(k) = 'Warm S LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_REIM=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'reim'
+      lname_ijk(k) = 'Cold C Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_REIS=k    ! exception - Reff is on model layers
+      name_ijk(k) = 'reis'
+      lname_ijk(k) = 'Cold S Reff'
+      units_ijk(k) = 'um'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDIM=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdim'
+      lname_ijk(k) = 'Cold C CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CDIS=k    ! exception - CDNC is on model layers
+      name_ijk(k) = 'cdis'
+      lname_ijk(k) = 'Cold S CDNC'
+      units_ijk(k) = 'cm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+      k=k+1
+      IJL_CWIM=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwim'
+      lname_ijk(k) = 'Cold C LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_CWIS=k    ! exception - LWC is on model layers
+      name_ijk(k) = 'cwis'
+      lname_ijk(k) = 'Cold S LWC'
+      units_ijk(k) = 'gm-3'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
+#endif
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
+         end do
+      end if
       return
       end subroutine ijk_defs
 
@@ -4442,6 +4614,7 @@ c
       subroutine wave_defs
       use DIAG_COM
       use MODEL_COM, only : qcheck
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4513,11 +4686,13 @@ c
       lname_wave(k) = 'unknown'
       units_wave(k) = 'unknown'
 c
-      write (6,*) 'Number of Wave diagnostics defined: kwavemax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(name_wave(kk))
-      end do
+      if (AM_I_ROOT()) then
+         write (6,*) 'Number of Wave diagnostics defined: kwavemax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(name_wave(kk))
+         end do
+      end if
       return
       end subroutine wave_defs
 
@@ -4595,6 +4770,7 @@ c
       use CONSTANT, only : sha,rgas,twopi,sday,grav
       use MODEL_COM, only : dtsrc,nisurf,qcheck
       use DIAG_COM
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -5012,30 +5188,30 @@ c
       k=k+1
       IDD_WD=k
       name_dd(k)='WD'
-      units_dd(k)='m/s'   
+      units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' WD'
 c
       k=k+1
       IDD_WM=k
       name_dd(k)='WM'
-      units_dd(k)='m/s'   
+      units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' WM'
-c 
-      k=k+1 
-      IDD_WSGCM=k 
-      name_dd(k)='WSGCM' 
-      units_dd(k)='m/s' 
-      scale_dd(k)=10. 
-      lname_dd(k)=' WSGCM*10' 
 c
-      k=k+1 
-      IDD_WSPDF=k 
-      name_dd(k)='WSPDF' 
-      units_dd(k)='m/s' 
-      scale_dd(k)=10. 
-      lname_dd(k)=' WSPDF*10' 
+      k=k+1
+      IDD_WSGCM=k
+      name_dd(k)='WSGCM'
+      units_dd(k)='m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' WSGCM*10'
+c
+      k=k+1
+      IDD_WSPDF=k
+      name_dd(k)='WSPDF'
+      units_dd(k)='m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' WSPDF*10'
 c
       k=k+1
       IDD_WTRSH=k
@@ -5057,80 +5233,80 @@ c
       lname_dd(k)=' U_L1'
 c
       k=k+1
-      IDD_U2=k   
-      name_dd(k)='U_L2'   
+      IDD_U2=k
+      name_dd(k)='U_L2'
       units_dd(k)='m/s'
       scale_dd(k)=1.
-      lname_dd(k)=' U_L2'   
-c     
+      lname_dd(k)=' U_L2'
+c
       k=k+1
       IDD_U3=k
       name_dd(k)='U_L3'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L3'
-c     
+c
       k=k+1
       IDD_U4=k
       name_dd(k)='U_L4'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L4'
-c     
+c
       k=k+1
       IDD_U5=k
       name_dd(k)='U_L5'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L5'
-c     
+c
       k=k+1
       IDD_U6=k
       name_dd(k)='U_L6'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L6'
-c     
+c
       k=k+1
       IDD_U7=k
       name_dd(k)='U_L7'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L7'
-c     
+c
       k=k+1
       IDD_U8=k
       name_dd(k)='U_L8'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L8'
-c     
+c
       k=k+1
       IDD_U9=k
       name_dd(k)='U_L9'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L9'
-c     
+c
       k=k+1
       IDD_U10=k
       name_dd(k)='U_L10'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L10'
-c     
+c
       k=k+1
       IDD_U11=k
       name_dd(k)='U_L11'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' U_L11'
-c     
+c
       k=k+1
       IDD_V1=k
       name_dd(k)='V_L1'
       units_dd(k)='m/s'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' V_L1'
 c
       k=k+1
@@ -5156,23 +5332,23 @@ c
 c
       k=k+1
       IDD_V5=k
-      name_dd(k)='V_L5'  
+      name_dd(k)='V_L5'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' V_L5'
 c
       k=k+1
       IDD_V6=k
-      name_dd(k)='V_L6'   
+      name_dd(k)='V_L6'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' V_L6'
-c     
+c
       k=k+1
       IDD_V7=k
       name_dd(k)='V_L7'
       units_dd(k)='m/s'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' V_L7'
 c
       k=k+1
@@ -5198,7 +5374,7 @@ c
 c
       k=k+1
       IDD_V11=k
-      name_dd(k)='V_L11'  
+      name_dd(k)='V_L11'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' V_L11'
@@ -5284,7 +5460,7 @@ c
       IDD_T1=k
       name_dd(k)='T_L1'
       units_dd(k)='K'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' T_L1'
 c
       k=k+1
@@ -5305,28 +5481,28 @@ c
       IDD_T4=k
       name_dd(k)='T_L4'
       units_dd(k)='K'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' T_L4'
 c
       k=k+1
       IDD_T5=k
       name_dd(k)='T_L5'
       units_dd(k)='K'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' T_L5'
 c
       k=k+1
       IDD_T6=k
       name_dd(k)='T_L6'
       units_dd(k)='K'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' T_L6'
 c
       k=k+1
       IDD_T7=k
       name_dd(k)='T_L7'
       units_dd(k)='K'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' T_L7'
 c
       k=k+1
@@ -5361,14 +5537,14 @@ c
       IDD_QQ1=k
       name_dd(k)='Q_L1'
       units_dd(k)='kg/kg'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' Q_L1'
 c
       k=k+1
       IDD_QQ2=k
       name_dd(k)='Q_L2'
       units_dd(k)='kg/kg'
-      scale_dd(k)=1.   
+      scale_dd(k)=1.
       lname_dd(k)=' Q_L2'
 c
       k=k+1
@@ -5392,7 +5568,7 @@ c
       scale_dd(k)=1.
       lname_dd(k)=' Q_L5'
 c
-      k=k+1   
+      k=k+1
       IDD_QQ6=k
       name_dd(k)='Q_L6'
       units_dd(k)='kg/kg'
@@ -5406,70 +5582,70 @@ c
       scale_dd(k)=1.
       lname_dd(k)=' Q_L7'
 c
-      k=k+1   
+      k=k+1
       IDD_QQ8=k
       name_dd(k)='Q_L8'
       units_dd(k)='kg/kg'
       scale_dd(k)=1.
       lname_dd(k)=' Q_L8'
 c
-      k=k+1   
+      k=k+1
       IDD_QQ9=k
       name_dd(k)='Q_L9'
       units_dd(k)='kg/kg'
       scale_dd(k)=1.
       lname_dd(k)=' Q_L9'
 c
-      k=k+1   
+      k=k+1
       IDD_QQ10=k
       name_dd(k)='Q_L10'
       units_dd(k)='kg/kg'
       scale_dd(k)=1.
       lname_dd(k)=' Q_L10'
 c
-      k=k+1   
+      k=k+1
       IDD_QQ11=k
       name_dd(k)='Q_L11'
       units_dd(k)='kg/kg'
       scale_dd(k)=1.
       lname_dd(k)=' Q_L11'
 c
-      k=k+1   
+      k=k+1
       IDD_P1=k
       name_dd(k)='P_L1'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L1'
 c
-      k=k+1   
+      k=k+1
       IDD_P2=k
       name_dd(k)='P_L2'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L2'
 c
-      k=k+1   
+      k=k+1
       IDD_P3=k
       name_dd(k)='P_L3'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L3'
 c
-      k=k+1   
+      k=k+1
       IDD_P4=k
       name_dd(k)='P_L4'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L4'
 c
-      k=k+1   
+      k=k+1
       IDD_P5=k
       name_dd(k)='P_L5'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L5'
 c
-      k=k+1   
+      k=k+1
       IDD_P6=k
       name_dd(k)='P_L6'
       units_dd(k)='100.*mb'
@@ -5483,28 +5659,28 @@ c
       scale_dd(k)=100.
       lname_dd(k)=' P_L7'
 c
-      k=k+1   
+      k=k+1
       IDD_P8=k
       name_dd(k)='P_L8'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L8'
 c
-      k=k+1   
+      k=k+1
       IDD_P9=k
       name_dd(k)='P_L9'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L9'
 c
-      k=k+1   
+      k=k+1
       IDD_P10=k
       name_dd(k)='P_L10'
       units_dd(k)='100.*mb'
       scale_dd(k)=100.
       lname_dd(k)=' P_L10'
 c
-      k=k+1   
+      k=k+1
       IDD_P11=k
       name_dd(k)='P_L11'
       units_dd(k)='100.*mb'
@@ -5553,35 +5729,35 @@ c
       scale_dd(k)=1.
       lname_dd(k)=' W_L6'
 c
-      k=k+1   
+      k=k+1
       IDD_W7=k
       name_dd(k)='W_L7'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' W_L7'
 c
-      k=k+1   
+      k=k+1
       IDD_W8=k
-      name_dd(k)='W_L8'  
+      name_dd(k)='W_L8'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' W_L8'
 c
-      k=k+1   
+      k=k+1
       IDD_W9=k
-      name_dd(k)='W_L9'  
+      name_dd(k)='W_L9'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' W_L9'
 c
-      k=k+1    
+      k=k+1
       IDD_W10=k
-      name_dd(k)='W_L10' 
+      name_dd(k)='W_L10'
       units_dd(k)='m/s'
       scale_dd(k)=1.
       lname_dd(k)=' W_L10'
 c
-      k=k+1   
+      k=k+1
       IDD_W11=k
       name_dd(k)='W_L11'
       units_dd(k)='m/s'
@@ -5665,76 +5841,76 @@ c
       scale_dd(k)=1.
       lname_dd(k)=' PHI_L11'
 c
-      k=k+1   
+      k=k+1
       IDD_LOAD1=k
       name_dd(k)='LOAD_L1'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L1'
-c     
+c
       k=k+1
       IDD_LOAD2=k
       name_dd(k)='LOAD_L2'
-      units_dd(k)='10^-5 kg/m**2'   
+      units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L2'
-c     
+c
       k=k+1
       IDD_LOAD3=k
       name_dd(k)='LOAD_L3'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L3'
-c     
+c
       k=k+1
       IDD_LOAD4=k
       name_dd(k)='LOAD_L4'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L4'
-c     
+c
       k=k+1
       IDD_LOAD5=k
       name_dd(k)='LOAD_L5'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L5'
-c     
+c
       k=k+1
       IDD_LOAD6=k
       name_dd(k)='LOAD_L6'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L6'
-c     
+c
       k=k+1
       IDD_LOAD7=k
       name_dd(k)='LOAD_L7'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L7'
-c     
+c
       k=k+1
       IDD_LOAD8=k
       name_dd(k)='LOAD_L8'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L8'
-c     
+c
       k=k+1
       IDD_LOAD9=k
       name_dd(k)='LOAD_L9'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.5
       lname_dd(k)=' LOAD_L9'
-c     
+c
       k=k+1
       IDD_LOAD10=k
       name_dd(k)='LOAD_L10'
       units_dd(k)='10^-5 kg/m**2'
       scale_dd(k)=1.e5
       lname_dd(k)=' LOAD_L10'
-c     
+c
       k=k+1
       IDD_LOAD11=k
       name_dd(k)='LOAD_L11'
@@ -5820,13 +5996,13 @@ c
       lname_dd(k)=' CONC_L11'
 c
       k=k+1
-      IDD_EMIS=k  
+      IDD_EMIS=k
       name_dd(k)='EMIS'
       units_dd(k)='10^-13 kg/m^2/s'
       scale_dd(k)=1.e13
       lname_dd(k)=' EMIS'
       k=k+1
-      IDD_EMIS2=k  
+      IDD_EMIS2=k
       name_dd(k)='EMIS2'
       units_dd(k)='10^-13 kg/m^2/s'
       scale_dd(k)=1.e13
@@ -5857,55 +6033,55 @@ c
       units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' TAU_L1'
-c     
+c
       k=k+1
-      IDD_TAU2=k  
-      name_dd(k)='TAU_L2' 
-      units_dd(k)='1.'     
+      IDD_TAU2=k
+      name_dd(k)='TAU_L2'
+      units_dd(k)='1.'
       scale_dd(k)=1.
-      lname_dd(k)=' TAU_L2' 
-c     
+      lname_dd(k)=' TAU_L2'
+c
       k=k+1
-      IDD_TAU3=k  
-      name_dd(k)='TAU_L3' 
-      units_dd(k)='1.'     
+      IDD_TAU3=k
+      name_dd(k)='TAU_L3'
+      units_dd(k)='1.'
       scale_dd(k)=1.
-      lname_dd(k)=' TAU_L3' 
-c     
+      lname_dd(k)=' TAU_L3'
+c
       k=k+1
-      IDD_TAU4=k  
-      name_dd(k)='TAU_L4' 
-      units_dd(k)='1.'     
+      IDD_TAU4=k
+      name_dd(k)='TAU_L4'
+      units_dd(k)='1.'
       scale_dd(k)=1.
-      lname_dd(k)=' TAU_L4' 
-c     
+      lname_dd(k)=' TAU_L4'
+c
       k=k+1
-      IDD_TAU5=k  
-      name_dd(k)='TAU_L5' 
-      units_dd(k)='1.'     
+      IDD_TAU5=k
+      name_dd(k)='TAU_L5'
+      units_dd(k)='1.'
       scale_dd(k)=1.
-      lname_dd(k)=' TAU_L5' 
-c     
+      lname_dd(k)=' TAU_L5'
+c
       k=k+1
-      IDD_TAU6=k  
-      name_dd(k)='TAU_L6' 
-      units_dd(k)='1.'     
+      IDD_TAU6=k
+      name_dd(k)='TAU_L6'
+      units_dd(k)='1.'
       scale_dd(k)=1.
-      lname_dd(k)=' TAU_L6' 
-c     
+      lname_dd(k)=' TAU_L6'
+c
       k=k+1
-      IDD_TAU7=k  
-      name_dd(k)='TAU_L7' 
-      units_dd(k)='1.'     
+      IDD_TAU7=k
+      name_dd(k)='TAU_L7'
+      units_dd(k)='1.'
       scale_dd(k)=1.
-      lname_dd(k)=' TAU_L7' 
-c     
+      lname_dd(k)=' TAU_L7'
+c
       k=k+1
-      IDD_TAU8=k  
-      name_dd(k)='TAU_L8' 
-      units_dd(k)='1.'     
+      IDD_TAU8=k
+      name_dd(k)='TAU_L8'
+      units_dd(k)='1.'
       scale_dd(k)=1.
-      lname_dd(k)=' TAU_L8' 
+      lname_dd(k)=' TAU_L8'
 c
       k=k+1
       IDD_TAU9=k
@@ -5938,28 +6114,28 @@ c
       k=k+1
       IDD_TAU_CS2=k
       name_dd(k)='TAU_CS_L2'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' TAU_CS_L2'
 c
       k=k+1
       IDD_TAU_CS3=k
       name_dd(k)='TAU_CS_L3'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' TAU_CS_L3'
 c
       k=k+1
       IDD_TAU_CS4=k
       name_dd(k)='TAU_CS_L4'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' TAU_CS_L4'
 c
       k=k+1
       IDD_TAU_CS5=k
       name_dd(k)='TAU_CS_L5'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' TAU_CS_L5'
 c
@@ -6174,14 +6350,14 @@ c
       lname_dd(k)=' USTAR'
 c
       k=k+1
-      IDD_US3=k 
+      IDD_US3=k
       name_dd(k)='USTAR3'
       units_dd(k)='m^3/s^3'
       scale_dd(k)=1.
       lname_dd(k)=' USTAR3'
 c
       k=k+1
-      IDD_STRESS=k   
+      IDD_STRESS=k
       name_dd(k)='WSTRESS'
       units_dd(k)='Nm^-2'
       scale_dd(k)=1.
@@ -6204,8 +6380,8 @@ c
       k=k+1
       IDD_ZPBL1=k
       name_dd(k)='ZPBL_L1'
-      units_dd(k)='m'  
-      scale_dd(k)=1.   
+      units_dd(k)='m'
+      scale_dd(k)=1.
       lname_dd(k)=' ZPBL_L1'
 c
       k=k+1
@@ -6249,7 +6425,7 @@ c
       units_dd(k)='m'
       scale_dd(k)=1.
       lname_dd(k)=' ZPBL_L7'
-c     
+c
       k=k+1
       IDD_ZPBL8=k
       name_dd(k)='ZPBL_L8'
@@ -6366,7 +6542,7 @@ c
       IDD_VABL8=k
       name_dd(k)='VABL_L8'
       units_dd(k)='m/s'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' VABL_L8'
 c
       k=k+1
@@ -6464,56 +6640,56 @@ c
       IDD_TABL6=k
       name_dd(k)='TABL_L6'
       units_dd(k)='K'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' TABL_L6'
 c
       k=k+1
       IDD_TABL7=k
       name_dd(k)='TABL_L7'
       units_dd(k)='K'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' TABL_L7'
 c
       k=k+1
       IDD_TABL8=k
       name_dd(k)='TABL_L8'
       units_dd(k)='K'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' TABL_L8'
 c
       k=k+1
       IDD_QABL1=k
       name_dd(k)='QABL_L1'
       units_dd(k)='kg/kg'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' QABL_L1'
 c
       k=k+1
       IDD_QABL2=k
       name_dd(k)='QABL_L2'
       units_dd(k)='kg/kg'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' QABL_L2'
 c
       k=k+1
       IDD_QABL3=k
       name_dd(k)='QABL_L3'
       units_dd(k)='kg/kg'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' QABL_L3'
 c
       k=k+1
       IDD_QABL4=k
       name_dd(k)='QABL_L4'
       units_dd(k)='kg/kg'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' QABL_L4'
 c
       k=k+1
       IDD_QABL5=k
       name_dd(k)='QABL_L5'
       units_dd(k)='kg/kg'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' QABL_L5'
 c
       k=k+1
@@ -6583,11 +6759,11 @@ c
       IDD_ZHAT7=k
       name_dd(k)='ZHAT_L7'
       units_dd(k)='m'
-      scale_dd(k)=1. 
+      scale_dd(k)=1.
       lname_dd(k)=' ZHAT_L7'
 c
       k=k+1
-      IDD_E1=k   
+      IDD_E1=k
       name_dd(k)='TKE_L1'
       units_dd(k)='m^2/s^2'
       scale_dd(k)=1.
@@ -6643,46 +6819,46 @@ c
       lname_dd(k)=' KM_L1'
 c
       k=k+1
-      IDD_KM2=k  
-      name_dd(k)='KM_L2'  
-      units_dd(k)='m^2/s' 
+      IDD_KM2=k
+      name_dd(k)='KM_L2'
+      units_dd(k)='m^2/s'
       scale_dd(k)=1.
-      lname_dd(k)=' KM_L2'  
+      lname_dd(k)=' KM_L2'
 c
       k=k+1
-      IDD_KM3=k  
-      name_dd(k)='KM_L3'  
-      units_dd(k)='m^2/s' 
+      IDD_KM3=k
+      name_dd(k)='KM_L3'
+      units_dd(k)='m^2/s'
       scale_dd(k)=1.
-      lname_dd(k)=' KM_L3'  
+      lname_dd(k)=' KM_L3'
 c
       k=k+1
-      IDD_KM4=k  
-      name_dd(k)='KM_L4'  
-      units_dd(k)='m^2/s' 
+      IDD_KM4=k
+      name_dd(k)='KM_L4'
+      units_dd(k)='m^2/s'
       scale_dd(k)=1.
-      lname_dd(k)=' KM_L4'  
+      lname_dd(k)=' KM_L4'
 c
       k=k+1
-      IDD_KM5=k  
-      name_dd(k)='KM_L5'  
-      units_dd(k)='m^2/s' 
+      IDD_KM5=k
+      name_dd(k)='KM_L5'
+      units_dd(k)='m^2/s'
       scale_dd(k)=1.
-      lname_dd(k)=' KM_L5'  
+      lname_dd(k)=' KM_L5'
 c
       k=k+1
-      IDD_KM6=k  
-      name_dd(k)='KM_L6'  
-      units_dd(k)='m^2/s' 
+      IDD_KM6=k
+      name_dd(k)='KM_L6'
+      units_dd(k)='m^2/s'
       scale_dd(k)=1.
-      lname_dd(k)=' KM_L6'  
+      lname_dd(k)=' KM_L6'
 c
       k=k+1
-      IDD_KM7=k  
-      name_dd(k)='KM_L7'  
-      units_dd(k)='m^2/s' 
+      IDD_KM7=k
+      name_dd(k)='KM_L7'
+      units_dd(k)='m^2/s'
       scale_dd(k)=1.
-      lname_dd(k)=' KM_L7'  
+      lname_dd(k)=' KM_L7'
 c
       k=k+1
       IDD_RI1=k
@@ -6690,62 +6866,64 @@ c
       units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' RI_L1'
-c     
+c
       k=k+1
       IDD_RI2=k
       name_dd(k)='RI_L2'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' RI_L2'
-c     
+c
       k=k+1
       IDD_RI3=k
       name_dd(k)='RI_L3'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' RI_L3'
-c     
+c
       k=k+1
       IDD_RI4=k
       name_dd(k)='RI_L4'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' RI_L4'
-c     
+c
       k=k+1
       IDD_RI5=k
       name_dd(k)='RI_L5'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' RI_L5'
-c     
+c
       k=k+1
       IDD_RI6=k
       name_dd(k)='RI_L6'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' RI_L6'
-c     
+c
       k=k+1
       IDD_RI7=k
       name_dd(k)='RI_L7'
-      units_dd(k)='1.'   
+      units_dd(k)='1.'
       scale_dd(k)=1.
       lname_dd(k)=' RI_L7'
 
       END IF
 #endif
 
-      if (k .gt. Ndiuvar) then
-        write (6,*) 'idd_defs: Increase Ndiuvar=',Ndiuvar,
-     &       ' to at least ',k
-        call stop_model( 'Ndiuvar too small', 255 )
+      if (AM_I_ROOT()) then
+         if (k .gt. Ndiuvar) then
+            write (6,*) 'idd_defs: Increase Ndiuvar=',Ndiuvar,
+     &           ' to at least ',k
+            call stop_model( 'Ndiuvar too small', 255 )
+         end if
+         
+         write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
+         if(.not.qcheck) return
+         do kk=1,k
+            write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
+         end do
       end if
-
-      write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
-      if(.not.qcheck) return
-      do kk=1,k
-        write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
-      end do
       return
       end subroutine diurn_defs

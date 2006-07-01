@@ -4,7 +4,8 @@ c --- set up model parameters related to geography
 c
 c --- hycom version 0.9 -- cyclic in j
       USE GEOM, only : dxyp
-      USE MODEL_COM, only : focean
+      ! from MODEL_COM
+      use hybrid_mpi_omp_coupler, only: focean
 c
       implicit none
       include 'dimensions.h'

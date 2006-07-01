@@ -11,8 +11,9 @@
       end interface
 
       integer, parameter :: TYPE_DOUBLE=0, TYPE_INT=1
-      integer, parameter :: max_num=140
-
+      integer, parameter :: max_num=170
+      real*8, public :: EPS=1.d-36
+      integer, public :: max_err=10
 
       type db_str
         character*32 name
@@ -116,7 +117,7 @@
       db(i)%km = dims(3)
       n = n/dims(3)
       if ( n<=1 ) return
-      db(i)%lm = dims(4)
+      db(i)%lm = n ! all other dimensions combined
 
       return
       end subroutine guess_dims
@@ -160,18 +161,18 @@
 
 
       subroutine do_compare
-      real*8, parameter :: EPS=1.d-36
+!     real*8, parameter :: EPS=1.d-36
       integer m, nerr, n
       real*8 err, rel_err, abs_val
       integer i,j,k,l,nn
       real*8 v1,v2
       integer*4 iv1(2), iv2(2)
       equivalence (v1,iv1(1)), (v2,iv2(1))
-      
+
 
       do m=1,num
         nerr = 0
-        print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points= ",i7)', &
+        print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points=",i8)', &
            db(m)%im, db(m)%jm, db(m)%km,  db(m)%lm, trim(db(m)%name), &
            db(m)%n
         do n=1,db(m)%n
@@ -186,11 +187,13 @@
             call stop_model("wrong type in DB",255)
           end select
           !if values are binary identical skip the rest of the test
-          !this should work also for NaN's 
+          !this should work also for NaN's
           if ( iv1(1) == iv2(1) .and. iv1(2) == iv2(2) ) cycle
           if ( isNaN(v1) .or. isNaN(v2) ) then
             !NaN
-            err = 1.d30 ; rel_err = 1.d30
+            err = 0 ; rel_err = 1.d30
+            if ( isNaN(v1) ) err = err + 10
+            if ( isNaN(v2) ) err = err +  2
           else
             !normal number
             err = v2 -v1
@@ -209,7 +212,7 @@
             print '(i6,": ",i6,3i4,"    ",4e24.16)', &
                n, i+1,j+1,k+1,l+1, v1,v2,err,rel_err
             nerr = nerr+1
-            if ( nerr > 10 ) exit
+            if ( max_err > 0 .and. nerr > max_err ) exit
           endif
         enddo
       enddo
@@ -253,14 +256,23 @@
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
       use rad_com, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
-           fsrdir,srvissurf,srdn,cfrac,rcld,salb,O3_rad_save, &
-           O3_trac=>O3_tracer_save
+           fsrdir,srvissurf,srdn,cfrac,rcld,salb
+#ifdef TRACERS_SPECIAL_Shindell
+      use rad_com, only : O3_trac=>O3_tracer_save, rad_to_chem
+#endif
+#ifdef TRACERS_DUST
+      use rad_com, only : srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
+#endif
       use icedyn_com, only : rsix,rsiy,usi,vsi,icij
       use icedyn, only : imic
       use diag_com, only : keynr,tsfrez,tdiurn,oa
       use diag_com, only : aj,areg,apj,ajl,asjl,aij,ail,energy,consrv &
            ,speca,atpe,adiurn,wave,ajk,aijk,aisccp,hdiurn
       use model_com, only : idacc
+
+#ifdef CHECK_OCEAN
+      use odiag, only: oij,oijl,ol,olnst
+#endif
 
 !ccc  include tracers data here
 #ifdef TRACERS_ON
@@ -277,14 +289,19 @@
       use icedyn_com, only : ticij
 #  endif
 
-#  ifdef TRACERS_SPECIAL_Shindell
-      use TRCHEM_Shindell_COM, only : &
-           yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
-           ,yAldehyde,yXO2N,yRXPAR,corrOx,ss &
-#  ifdef SHINDELL_STRAT_CHEM
-           ,SF3,pClOx,pClx,pOClOx,pBrOx
-#  endif
-#  endif
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3 &
+       ,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ
+#ifdef SHINDELL_STRAT_CHEM
+      use TRCHEM_Shindell_COM, only: &
+       SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4, &
+       HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod &
+       ,max_days,nra_ncep,nra_ch4,maxHR_ch4
+#endif
+#endif
 
 #  ifdef CHECK_OCEAN
 #    ifdef TRACERS_WATER
@@ -306,9 +323,9 @@
       character*120 file_name(2)
       integer fd,i
 
-      IF(IARGC().NE.2) then
+      IF(IARGC().le.1) then
          print *,"CMPE002 compares data in two restart files"
-         print *,"Usage: CMPE002 file_1 file_2"
+         print *,"Usage: CMPE002 file_1 file_2 tolerance(1.d-36) #_shown(10,0=all)"
          call stop_model("Incorrect arguments",255)
       endif
 
@@ -319,6 +336,15 @@
 !C****
 !C**** Read ReStartFiles
 !C****
+      if(IARGC().ge.3) then
+        call getarg ( 3, file_name(1) )
+        read(file_name(1),*) EPS
+      end if
+      if(IARGC().ge.4) then
+        call getarg ( 4, file_name(1) )
+        read(file_name(1),*) max_err
+      end if
+      write(*,*) 'listing differences >',eps
       call getarg ( 1, file_name(1) )
       call getarg ( 2, file_name(2) )
 
@@ -456,8 +482,16 @@
         check("srdn",srdn)
         check("cfrac",cfrac)
         check("rcld",rcld)
-        check("O3_rad_save",O3_rad_save)
+#ifdef TRACERS_SPECIAL_Shindell
+        check("rad_to_chem",rad_to_chem)
         check("O3_trac",O3_trac)
+#endif
+#ifdef TRACERS_DUST
+        check("srnflb_save",srnflb_save)
+        check("trnflb_save",trnflb_save)
+        check("ttausv_save",ttausv_save)
+        check("ttausv_cs_save",ttausv_cs_save)
+#endif
         ! icedyn
         if(imic.gt.0) then
           check("RSIX",RSIX)
@@ -496,6 +530,13 @@
         if(imic.gt.0) then
           check("ICIJ",ICIJ)
         end if
+
+#ifdef CHECK_OCEAN
+        check("oij",oij)
+        check("oijl",oijl)
+        check("ol",ol)
+        check("olnst",olnst)
+#endif
 
 !ccc    compare tracers data here
 #ifdef TRACERS_ON
@@ -537,14 +578,35 @@
         check("ss",ss)
 #  ifdef SHINDELL_STRAT_CHEM
         check("SF3",SF3)
+        check("SF2",SF2)
         check("pClOx",pClOx)
         check("pClx",pClx)
         check("pOClOx",pOClOx)
         check("pBrOx",pBrOx)
+        check("yCl2",yCl2)
+        check("yCl2O2",yCl2O2)
+#  endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+        check("day_ncep",day_ncep)
+        check("DRA_ch4",DRA_ch4)
+        check("sum_ncep",sum_ncep)
+        check("PRS_ch4",PRS_ch4)
+        check("HRA_ch4",HRA_ch4)
+        check("iday_ncep",iday_ncep)
+        check("i0_ncep",i0_ncep)
+        check("iHch4",iHch4)
+        check("iDch4",iDch4)
+        check("i0ch4",i0ch4)
+        check("first_ncep",first_ncep)
+        check("first_mod",first_mod)
 #  endif
 #  endif
 
 #  ifdef CHECK_OCEAN
+         check("oij",oij)
+         check("oijl",oijl)
+         check("ol",ol)
+         check("olnst",olnst)
 #    ifdef TRACERS_WATER
        check("trsist",trsist)
 #      ifdef TRACERS_OCEAN

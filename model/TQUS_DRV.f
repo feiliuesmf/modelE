@@ -168,7 +168,7 @@ c****
 C**** The MA array space is temporarily put to use in this section
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
       USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
-      USE DOMAIN_DECOMP, ONLY : NORTH, SOUTH
+      USE DOMAIN_DECOMP, ONLY : NORTH, SOUTH, AM_I_ROOT
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT
@@ -359,11 +359,15 @@ c               exit lloopx2 ! saves time in single-processor mode
       end do ! nc loop
 
       if(ncyc.ge.10) then
-        write(6,*) 'stop: ncyc=10 in AADVQ0'
-        call stop_model('AADVQ0: ncyc>=10',11)
+         if (AM_I_ROOT()) then
+            write(6,*) 'stop: ncyc=10 in AADVQ0'
+            call stop_model('AADVQ0: ncyc>=10',11)
+         end if
       end if
       enddo ! while(nbad.gt.0)
-      if(ncyc.gt.2) write(6,*) 'AADVQ0: ncyc>2',ncyc
+      if(ncyc.gt.2) then
+         if (AM_I_ROOT()) write(6,*) 'AADVQ0: ncyc>2',ncyc
+      end if
 C**** Divide the mass fluxes by the number of cycles
       byn = 1./ncyc
 ccc   mu(:,:,:)=mu(:,:,:)*byn

@@ -620,7 +620,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 
 
       SUBROUTINE GLOBALSUM_J(grd_dum, garr, gsum,
-     &                       hsum, istag, iskip, polefirst,all)
+     &                       hsum, istag, iskip, all)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: garr(grd_dum%jm_world)
@@ -628,7 +628,6 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2)
       INTEGER,OPTIONAL,  INTENT(IN) :: istag
       INTEGER,OPTIONAL,  INTENT(IN) :: iskip
-      LOGICAL,OPTIONAL,  INTENT(IN) :: polefirst
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
 
       INTEGER :: IM, JM, J, ier
@@ -648,34 +647,24 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
         If (iskip == 1) iskip_ = .true.
       End If
 
-
-      If (Present(polefirst)) Then
-        If (polefirst) Then
-          gsum = garr(1) + garr(JM)
-          DO J = 2, JM-1
-            gsum = gsum + garr(J)
-          END DO
-        End IF
+      If (istag_) then
+        gsum = sum(garr(2:JM),1)
+      ElseIf (iskip_) then
+        gsum = sum(garr(2:JM-1),1)
       Else
+        gsum = sum(garr(1:JM),1)
+      EndIf
+      If (Present(hsum)) then
         If (istag_) then
-          gsum = sum(garr(2:JM),1)
-        ElseIf (iskip_) then
-          gsum = sum(garr(2:JM-1),1)
+          hsum(1)   = Sum( garr(2     :JM/2),1   )
+          hsum(2)   = Sum( garr(2+JM/2:JM  ),1   )
+          hsum(1)   = hsum(1) + 0.5*garr(1+JM/2)
+          hsum(2)   = hsum(2) + 0.5*garr(1+JM/2)
         Else
-          gsum = sum(garr(1:JM),1)
+          hsum(1)   = Sum( garr(1     :JM/2),1   )
+          hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
         EndIf
-        If (Present(hsum)) then
-          If (istag_) then
-            hsum(1)   = Sum( garr(2     :JM/2),1   )
-            hsum(2)   = Sum( garr(2+JM/2:JM  ),1   )
-            hsum(1)   = hsum(1) + 0.5*garr(1+JM/2)
-            hsum(2)   = hsum(2) + 0.5*garr(1+JM/2)
-          Else
-            hsum(1)   = Sum( garr(1     :JM/2),1   )
-            hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
-          EndIf
-        EndIf
-      Endif
+      EndIf
 
       END SUBROUTINE GLOBALSUM_J
 
@@ -725,14 +714,14 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 !------------------------------------------------
 
 
-      subroutine print_diags(ipos)
+      subroutine print_diags(partial)
 !@sum print_diag prints out binary and ascii diag output.
 !@auth  Original Development Team
       USE MODEL_COM, only : itime,itimeI
       USE DIAG_COM, only : kdiag,keynr,keyct,isccp_diags
       IMPLICIT NONE
-!@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
-      INTEGER, INTENT(IN) :: ipos
+!@var partial : accum period is complete (if =0) or partial (if =1)
+      INTEGER, INTENT(IN) :: partial
 
       CALL DIAG_GATHER
 
@@ -745,7 +734,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       IF (KDIAG(3).LT.9) CALL DIAGIJ
       IF (KDIAG(9).LT.9) CALL DIAGCP
       IF (KDIAG(5).LT.9) CALL DIAG5P
-      IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD
+      IF (partial.eq.0 .and. KDIAG(6).LT.9) CALL DIAGDD  ! full period
 #ifndef TRACERS_DUST
 #ifndef TRACERS_MINERALS
 #ifndef TRACERS_QUARZHEM
@@ -758,7 +747,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       IF (KDIAG(12).LT.9) CALL diag_OCEAN
       IF (KDIAG(12).LT.9) CALL diag_ICEDYN
       IF (isccp_diags.eq.1) CALL diag_ISCCP
-      IF (ipos.ne.2 .or. Itime.LE.ItimeI+1) THEN
+      IF (partial.eq.0 .or. Itime.LE.ItimeI+1) THEN  ! full period or IC
         CALL DIAGKN
       ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
         KEYNR(1:42,KEYCT)=0
@@ -1187,13 +1176,15 @@ C****
 C****
 C**** PRODUCE REGIONAL STATISTICS
 C****
-      WRITE (6,901) XLABEL
-      WRITE (6,902) '   (REGIONS)    ',
-     *               JYEAR0,AMON0,JDATE0,JHOUR0,
-     *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
-      write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
-     *                              (/23*2/) )
-c      write(6,fmt=fmt918) NAMREG(1,1:23)
+      if (AM_I_ROOT()) then
+         WRITE (6,901) XLABEL
+         WRITE (6,902) '   (REGIONS)    ',
+     *        JYEAR0,AMON0,JDATE0,JHOUR0,
+     *        JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+         write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
+     *        (/23*2/) )
+c     write(6,fmt=fmt918) NAMREG(1,1:23)
+      END IF
       NDER=1
       KDER=1
       DO N=1,k_j_out
@@ -1269,7 +1260,7 @@ C****
 !@ver  1.0
       use filemanager
       USE CONSTANT, only : sday,bygrav,sha,lhe
-      USE MODEL_COM, only : byim,DTsrc
+      USE MODEL_COM, only : byim,DTsrc,fim
       USE BDjkjl
       USE DIAG_COM
       IMPLICIT NONE
@@ -1681,7 +1672,7 @@ c Check the count
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
-     &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR
+     &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR,kep
       USE GEOM, only : JRANGE_HEMI,
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
      &    ,BYDXYV,lat_dg
@@ -4109,6 +4100,12 @@ c
       lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
       units_ij(k) = 'C'
 
+      k = k + 1
+      ij_Tatm = k
+      name_ij(k) = 'Tatm'
+      lname_ij(k) = 'ATMOSPHERIC TEMPERATURE'
+      units_ij(k) = 'C'
+
 c Check the count
       if (k .gt. kaijx) then
         write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
@@ -4136,7 +4133,7 @@ c Check the count
      &     im,jm,fim,jeq,byim,DTsrc,ptop,
      &     IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
-     &     NDAY,Itime,Itime0,XLABEL,LRUNID,focean
+     &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE DIAG_COM
       USE BDIJ
 
@@ -4197,7 +4194,7 @@ c**** ratios (the denominators)
           else if (index(lname_ij(k),' x POCEAN') .gt. 0) then
             do j=1,jm      ! full ocean box (no lake)
             do i=1,im
-              adenom(i,j) = focean(i,j)
+              adenom(i,j) = wt_ij(i,j,2) ! focean_glob
             end do
             end do
           else if (index(lname_ij(k),' x POICE') .gt. 0) then
@@ -4445,6 +4442,15 @@ c**** precipitable water
         end do
         end do
         anum = anum*byiacc
+
+c**** column atmospheric temperature
+      else if (k.eq.ij_tatm) then
+        do j=2,jm
+        do i=1,im
+          anum(i,j) = .25*sum(aijk(i,j,1:lm,ijk_t))/
+     /                    sum(aijk(i,j,1:lm,ijk_dp)) - TF
+        end do
+        end do
 
       else  ! should not happen
         write (6,*) 'no field defined for ij_index',k
@@ -5735,6 +5741,9 @@ C**** IJL diags are done separately
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
      *     ,ijl_cf,ijk_w,ia_rad,ia_dga
+#ifdef CLD_AER_CDNC
+     *    ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
+#endif
       use filemanager
       IMPLICIT NONE
 
@@ -5885,6 +5894,147 @@ C****
       END DO
       CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
      *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+#ifdef CLD_AER_CDNC
+      k=ijl_rewm
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+c      if (AIJK(I,J,L,K).gt.5.d0)
+c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_rews
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cdws
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+     CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cdwm
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cwwm
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cwws
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+#endif
 C****
       call close_ijl
 C****
@@ -6176,6 +6326,8 @@ C****
       CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
       DEALLOCATE(tmp)
       DEALLOCATE(fract_vege)
+
+      call gather_odiags
 
       END SUBROUTINE DIAG_GATHER
 

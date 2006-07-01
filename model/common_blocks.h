@@ -140,14 +140,14 @@ c    .    ,pwall,swall,twall
       real freshw,diafor
 c
       common/varbls/time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3
-     .     ,area,avgbot,watcum,empcum,slfcum,sala2o
-     .     ,nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1,ls2,ls3
-     .     ,oddev
-c
+     .     ,area,avgbot,watcum,empcum,slfcum,sala2o,tavini
       real time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3,
-     .     area,avgbot,watcum,empcum,slfcum,sala2o
-      integer nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1,ls2,ls3
-     .       ,oddev
+     .     area,avgbot,watcum,empcum,slfcum,sala2o,tavini
+
+      common/varbl2/nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1
+     .             ,ls2,ls3,oddev
+      integer       nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1
+     .             ,ls2,ls3,oddev
 c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
@@ -176,13 +176,13 @@ c
       common/parms1/thbase,sigma(kdm),theta(kdm),baclin,batrop,thkdff,
      .              veldff,temdff,viscos,diapyc,vertmx,h1,slip,cbar,
      .              diagfq,wuv1,wuv2,wts1,wts2,acurcy,wbaro,thkmin,
-     .              thkbot,ekman,sigjmp,salmin(kdm),
-     .              trcfrq,ntracr,nhr
-c
+     .              thkbot,ekman,sigjmp,salmin(kdm)
       real sigma,theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
      .     diapyc,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,acurcy,
      .     wbaro,thkmin,thkbot,ekman,sigjmp,salmin
-      integer trcfrq,ntracr,nhr
+c
+      common/parms2/trcfrq,ntracr,nhr
+      integer       trcfrq,ntracr,nhr
 c
 c --- 'tenm,onem,...' = pressure thickness values corresponding to 10m,1m,...
 c --- 'g'      = gravity acceleration

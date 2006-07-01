@@ -310,7 +310,7 @@ C**** accumulate diagnostics
           CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ)
           call ESMF_BCAST(grid_MIC, it)
 #ifdef TRACERS_WATER
-          if ( AM_I_ROOT() ) then	
+          if ( AM_I_ROOT() ) then
             READ (kunit,err=10) TR_HEADER,TICIJ_GLOB,it
             IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TR_HEADER

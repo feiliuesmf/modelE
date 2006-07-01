@@ -8,7 +8,7 @@
       INTEGER, SAVE :: IX            !@var IX     random number seed
 
 ! Parameters used for "burning" sequences of random numbers
-#if defined( MACHINE_DEC )
+#if defined( MACHINE_DEC ) || ( MACHINE_Linux)
       INTEGER, PARAMETER :: A_linear = 69069
 #elif defined(MACHINE_SGI) \
  || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
@@ -77,7 +77,8 @@
       RETURN
       END SUBROUTINE RFINAL
 
-#if defined( MACHINE_DEC )
+#if defined( MACHINE_DEC ) \
+ || ( defined(MACHINE_Linux) && defined(COMPILER_Intel8) ) 
       SUBROUTINE BURN_RANDOM(n)
 !@sum  BURN_RANDOM burns a set number of random numbers. It is used to
 !                  maintain bit-wise correspondence on parallel runs.
@@ -121,45 +122,13 @@
 
       END MODULE RANDOM
 
-#if defined( MACHINE_SGI ) || defined( MACHINE_IBM ) \
- || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
-      SUBROUTINE GETTIME (MNOW)
-!@sum  GETTIME returns current CPU time
-!@auth Gary Russell
-!@ver  1.0 (SGI, IBM)
-      IMPLICIT NONE
-      INTEGER, INTENT(OUT) :: MNOW !@var MNOW current CPU time (.01 s)
-      INTEGER :: MCLOCK            !@var MCLOCK intrinsic function
-      MNOW = MCLOCK()
-      RETURN
-      END SUBROUTINE GETTIME
-#elif defined( MACHINE_Linux ) \
- || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
-      SUBROUTINE GETTIME (MNOW)
-!@sum  GETTIME returns current CPU time
-!@auth Gary Russell
-!@ver  1.0 (Absoft version)
-      IMPLICIT NONE
-      INTEGER, INTENT(OUT) :: MNOW !@var MNOW current CPU time (.01 s)
-      REAL*4 :: ETIME, TARR(2)       !@var ETIME intrinsic function
-      MNOW = NINT(ETIME(TARR)*100.)
-      RETURN
-      END SUBROUTINE GETTIME
-#elif defined( MACHINE_DEC )
-      SUBROUTINE GETTIME (MNOW)
-!@sum  GETTIME returns current CPU time
-!@auth RIck Healy
-!@ver  1.0 (DEC version)
-      IMPLICIT NONE
-      INTEGER, INTENT(OUT) :: MNOW !@var MNOW current CPU time (.01 s)
-      REAL*4 :: SECNDS             !@var SECNDS intrinsic function
-      MNOW = INT(100*SECNDS(0.0))
-      RETURN
-      END SUBROUTINE GETTIME
-#else
-      None of supported architectures was specified.
-      This will crash the compiling process.
-#endif
+      ! Use F90 system_clock for portable accuracy
+      subroutine GETTIME(counter)
+      implicit none
+      integer, intent(out) :: counter
+      call system_clock(counter)
+      end subroutine GETTIME
+
 
       SUBROUTINE exit_rc (code)
 !@sum  exit_rc stops the run and sets a return code

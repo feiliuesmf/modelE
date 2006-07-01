@@ -89,7 +89,7 @@ C****
 
 !@param USIFAC ratio of strait sea ice velocity to current
       REAL*8 :: USIFAC = 0.1d0   ! used to be 1. (too much)
-      
+
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
@@ -108,6 +108,7 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
       USE STRAITS
+      use domain_decomp, only : grid,am_i_root
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -138,6 +139,7 @@ C****
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
+        if (.not.am_i_root()) return
         WRITE (kunit,err=10) MODULE_HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
 #ifdef TRACERS_WATER
@@ -149,6 +151,7 @@ C****
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread,irerun,irsfic)    ! restarts
+         if (am_i_root()) then
           READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -167,7 +170,10 @@ C****
             GO TO 10
           END IF
 #endif
+         end if
+         call BCAST_straits(.false.) ! don't skip tracers
         CASE (irsficnt)    ! restarts (never any tracers)
+        if (am_i_root()) then
           READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -175,11 +181,44 @@ C****
      *           ,MODULE_HEADER
             GO TO 10
           END IF
+        end if
+        call BCAST_straits(.true.) ! skip tracers
         END SELECT
       END SELECT
 
       RETURN
  10   IOERR=1
       RETURN
-C****
       END SUBROUTINE io_straits
+
+      SUBROUTINE BCAST_straits (skip_tracers)
+      USE STRAITS
+      use domain_decomp, only : grid,ESMF_BCAST
+      IMPLICIT NONE
+      logical, intent(in) :: skip_tracers
+
+      CALL ESMF_BCAST(grid, MUST )
+      CALL ESMF_BCAST(grid, G0MST)
+      CALL ESMF_BCAST(grid, GXMST)
+      CALL ESMF_BCAST(grid, GZMST)
+      CALL ESMF_BCAST(grid, S0MST)
+      CALL ESMF_BCAST(grid, SXMST)
+      CALL ESMF_BCAST(grid, SZMST)
+      CALL ESMF_BCAST(grid, RSIST)
+      CALL ESMF_BCAST(grid, RSIXST)
+      CALL ESMF_BCAST(grid, MSIST)
+      CALL ESMF_BCAST(grid, HSIST)
+      CALL ESMF_BCAST(grid, SSIST)
+
+#ifdef TRACERS_WATER
+      if(skip_tracers) return
+
+      CALL ESMF_BCAST(grid, TRSIST)
+#ifdef TRACERS_OCEAN
+      CALL ESMF_BCAST(grid, TRMST)
+      CALL ESMF_BCAST(grid, TXMST)
+      CALL ESMF_BCAST(grid, TZMST)
+#endif
+#endif
+      return
+      end SUBROUTINE BCAST_straits

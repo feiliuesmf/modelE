@@ -5,8 +5,9 @@
 !@auth Gary Russell
 !@ver  1.0
       USE CONSTANT, only : grav,rrt12=>byrt12
-      USE OCEAN, only : lmo,lmm,mo,opress,g0m,gzmo,s0m,szmo,dxypo,hocean
-     *     ,dts
+      USE OCEAN, only : dts, lmo,lmm,   dxypo,hocean,
+     *   mo=>mo_glob, opress=>opress_glob,
+     *   g0m=>g0m_glob,gzmo=>gzmo_glob, s0m=>s0m_glob,szmo=>szmo_glob
       USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg
       IMPLICIT NONE
       INTEGER I,J,K,L,N
@@ -67,10 +68,12 @@ C****
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit
 #endif
-      USE OCEAN, only : dts,mo,dxypo,bydxypo,g0m,gxmo,gymo,gzmo,s0m,sxmo
-     *     ,symo,szmo
+      USE OCEAN, only : dts,dxypo,bydxypo,mo=>mo_glob
+     *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
+     *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
 #ifdef TRACERS_OCEAN
-     *     ,trmo,txmo,tymo,tzmo,ntm
+     *  ,ntm, trmo=>trmo_glob,
+     *        txmo=>txmo_glob, tymo=>tymo_glob, tzmo=>tzmo_glob
 #endif
       USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg,g0mst,s0mst
      *     ,gxmst,sxmst,gzmst,szmst,mmst
@@ -79,7 +82,7 @@ C****
 #endif
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
 #ifdef TRACERS_OCEAN
-     *     ,toijl,tlnst
+     *     ,tlnst
 #endif
       IMPLICIT NONE
       INTEGER I1,J1,I2,J2,N,L,ITR
@@ -179,9 +182,9 @@ c     *     3.*Y2*(FM2*MM2 - (RM(I2,J2,L)+X2*RXold)*AM)) / (MM2+AM)
       RY(I1,J1,L) = RY(I1,J1,L)*(1d0-A1)*(1d0-A1*Y1*Y1)
       RXST        = RXST*(1d0-2d0*A2) - FM1 + FM2
       RX(I2,J2,L) = RX(I2,J2,L) + X2*(FM2 - (RM(I2,J2,L)-X2*RX(I2,J2,L))
-     $     *AM/MM2) 
+     $     *AM/MM2)
       RY(I2,J2,L) = RY(I2,J2,L) + Y2*(FM2 - (RM(I2,J2,L)-Y2*RY(I2,J2,L))
-     $     *AM/MM2) 
+     $     *AM/MM2)
       GO TO 300
 C****
 C**** Water flux is moving from grid box 2 to grid box 1  (AM < 0)
@@ -291,11 +294,13 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only: twopi,radius
-      USE OCEAN, only : im,jm,lmo,ze,mo,s0m,sxmo,symo,szmo,g0m,gxmo,gymo
-     *     ,gzmo,dxypo
+      USE OCEAN, only : im,jm,lmo, ze, dxypo, mo=>mo_glob, gather_ocean
+     *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
+     *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
       USE STRAITS, only : dist,wist,nmst,distpg,rsist,rsixst,msist,hsist
      *     ,ssist,mmst,g0mst,s0mst,gxmst,sxmst,gzmst,szmst,must,lmst,ist
      *     ,jst,xst,yst
+      use domain_decomp, only: am_i_root
       IMPLICIT NONE
       INTEGER I,J,L,N,I1,J1,I2,J2
       REAL*8 DLON,DLAT,FLAT,DFLON,DFLAT,SLAT,DSLON,DSLAT,TLAT,DTLON
@@ -337,6 +342,9 @@ C****
 C**** Initialize the mass flux, potential heat, and salinity in
 C**** each strait
 C****
+      call gather_ocean(1) ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
+
+         if(am_I_root()) then
       DO N=1,NMST
       I1=IST(N,1)
       J1=JST(N,1)
@@ -379,6 +387,10 @@ C**** Initialize sea ice in straits
       MSIST=0.
       HSIST=0.
       SSIST=0.
+         end if  ! root-process only
+
+      call bcast_straits(.true.) ! skip tracers
+
       END IF
 C****
       RETURN

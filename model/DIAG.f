@@ -134,7 +134,7 @@ C**** Some local constants
       USE DOMAIN_DECOMP, only : AM_I_ROOT
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     GMEAN_part
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
@@ -352,7 +352,7 @@ C**** END AMIP
         END DO
       END DO
 C****          AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
-     
+
       CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:1),
      &    AREGSUM(1:size(AREG,1),1:1),ALL=.TRUE.)
       AREG(1:size(AREG,1),J_TX1)=AREG(1:size(AREG,1),J_TX1)
@@ -762,18 +762,18 @@ C****
       END DO
 
 
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
      &      jband=(/J5SUV,J5NUV/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_UEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_UEQ) =
      &       AIL(1:IM,1:LM,IL_UEQ)+gsum
-      CALL GLOBALSUM(grid, V(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, V(1:IM,:,1:LM), gsum,
      &       jband=(/J5SUV,J5NUV/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_VEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_VEQ) =
      &       AIL(1:IM,1:LM,IL_VEQ)+gsum
 
-      CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum, 
+      CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum,
      &       jband=(/J5S,J5N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_TEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_TEQ) =
      &       AIL(1:IM,1:LM,IL_TEQ)+gsum
       allocate(TMP(1:IM,
      &  grid%J_STRT_HALO:grid%J_STOP_HALO,1:LM))
@@ -784,17 +784,17 @@ C****
       END DO
       END DO
       END DO
-      CALL GLOBALSUM(grid, TMP(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, TMP(1:IM,:,1:LM), gsum,
      &       jband=(/J5S,J5N/))
       deallocate(TMP)
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_QEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_QEQ) =
      &       AIL(1:IM,1:LM,IL_QEQ)+gsum
 
       CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum,
      &       jband=(/J50N,J50N/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_T50N)=
      &       AIL(1:IM,1:LM,IL_T50N)+gsum
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
      &       jband =(/J50N,J50N+1/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_U50N)=
      &       AIL(1:IM,1:LM,IL_U50N)+gsum
@@ -803,7 +803,7 @@ C****
      &       jband=(/J70N,J70N/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_T70N)=
      &       AIL(1:IM,1:LM,IL_T70N)+gsum
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum, 
+      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
      &       jband =(/J70N,J70N+1/))
       IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_U70N)=
      &       AIL(1:IM,1:LM,IL_U70N)+gsum
@@ -821,17 +821,17 @@ C****
           END DO
         END DO
       END DO
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1), 
+      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
      &     jband=(/J5S,J5N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_WEQ) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_WEQ) =
      &    AIL(1:IM,1:LM-1,IL_WEQ)+gsum(1:IM,1:LM-1)
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1), 
+      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
      &     jband=(/J50N,J50N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W50N) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W50N) =
      &     AIL(1:IM,1:LM-1,IL_W50N)+gsum(1:IM,1:LM-1)
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1), 
+      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
      &     jband=(/J70N,J70N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W70N) = 
+      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W70N) =
      &     AIL(1:IM,1:LM-1,IL_W70N)+gsum(1:IM,1:LM-1)
 C****
 C**** ELIASSEN PALM FLUX
@@ -1215,7 +1215,7 @@ c***      END DO
       PS=SP+PTOP
       DO 286 L=1,LS1-1
   286 PL(L)=SP*SIGE(L)+PTOP
-      IF (PM(K+1).GE.PS) THEN 
+      IF (PM(K+1).GE.PS) THEN
         pm_ge_ps(i,j,k) = 1.
         UDX(I,J,K)=BIG
       ELSE
@@ -2037,7 +2037,7 @@ C****
       module DIAG
       contains
 
-      SUBROUTINE DIAGCD (M,UX,VX,DUT,DVT,DT1,PIT)
+      SUBROUTINE DIAGCD (grid,M,UX,VX,DUT,DVT,DT1,PIT)
 !@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
@@ -2046,7 +2046,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
       USE GEOM, only : cosv,radius,ravpn,ravps
       USE DIAG_COM, only : consrv=>consrv_loc
-      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, DIST_GRID
       USE DOMAIN_DECOMP, only : SOUTH
       IMPLICIT NONE
 C****
@@ -2058,6 +2058,7 @@ C****   4  AFTER STRATOS DRAG IN DYNAMICS
 C****   5  AFTER FLTRUV IN DYNAMICS
 C****   6  AFTER GRAVITY WAVE DRAG IN DYNAMICS
 C****
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 !@var M index denoting from where DIAGCD is called
       INTEGER, INTENT(IN) :: M
 !@var DT1 current time step
@@ -2756,7 +2757,7 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
           ENDIF
           IF(HAVE_SOUTH_POLE) THGSUM_part(1)  = FIM*THJSP(LUP)*DXYP(1)
           IF(HAVE_NORTH_POLE) THGSUM_part(JM) = FIM*THJNP(LUP)*DXYP(JM)
-          
+
           DO J=J_0S,J_1S
             THJSUM=0.
             DO I=1,IM
@@ -2764,10 +2765,10 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
             ENDDO
             THGSUM_part(J) = THJSUM*DXYP(J)
           ENDDO
-          
+
           CALL GLOBALSUM(grid, THGSUM_part, THGSUM, ALL=.TRUE.)
           THGM(LUP)=THGSUM/AREAG
-          
+
         End IF
 
         IF (LUP < 2) CYCLE
@@ -2785,15 +2786,15 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
           GMSUM(JM,L)=((THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
      *       (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
         END IF
-        
+
         DO J=J_0S,J_1S
-          
+
           IF (J < JEQ) THEN
             JHEMI = 1
           ELSE
             JHEMI = 2
           END IF
-          
+
           GMTMP = 0
           DO I=1,IM
             X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
@@ -2816,9 +2817,9 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
             END DO
           END IF
         END DO
-        
+
       END DO
-        
+
       CALL GLOBALSUM(grid, GMSUM, GMEAN)
       CALL GLOBALSUM(grid, VAR_part, VAR)
 
@@ -2986,7 +2987,7 @@ C****
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,lm,itime
-      USE FILEMANAGER, only : openunit, closeunits
+      USE FILEMANAGER, only : openunit, closeunits, nameunit
       USE DIAG_COM, only : kgz_max,pmname,P_acc
       USE PARAM
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
@@ -3003,7 +3004,7 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       USE TRACER_COM, only : n_SO4
 #ifdef TRACERS_HETCHEM
-     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_s1, n_SO4_s2
+     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -3202,8 +3203,12 @@ C****
 !@+                    D*          (HDO on any model level)
 !@+                    SO4
 #ifdef CLD_AER_CDNC
-!@+                    CTEM,CD3D,CL3D,CDN3D,CRE3D,CLWP
+!@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
+#endif
+#ifdef TRACERS_HETCHEM
+!@+                    SO4_d1,SO4_d2,SO4_d3,
+!@+                    Clay, Silt1, Silt2, Silt3
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -3226,7 +3231,7 @@ C****
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
 #ifdef CLD_AER_CDNC
-     *           ,ctem,cd3d,cl3d,cdn3d,cre3d,clwp
+     *           ,ctem,cd3d,ci3d,cl3d,cdn3d,cre3d,clwp
 #endif
       USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
@@ -3246,6 +3251,9 @@ C****
 #ifdef TRACERS_DUST
      &     ,dust_flux2_glob
 #endif
+#ifdef TRACERS_ON
+      USE TRACER_COM
+#endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
@@ -3253,7 +3261,7 @@ C****
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pmb
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GRID,GET,WRITEI_PARALLEL
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       INTEGER :: I,J,K,L,kp,kunit
@@ -3429,9 +3437,6 @@ c          data=sday*prec/dtsrc
      *               +trm(i,j,1,n_SO4_d1)
      *               +trm(i,j,1,n_SO4_d2)
      *               +trm(i,j,1,n_SO4_d3)
-     *               +trm(i,j,1,n_SO4_d4)
-     *               +trm(i,j,1,n_SO4_s1)
-     *               +trm(i,j,1,n_SO4_s2)
 #endif
 
           end do
@@ -3445,7 +3450,9 @@ C**** fix polar values
         IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
         IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-        call writei(iu_subdd(kunit),itime,data,im*jm)
+        !call writei(iu_subdd(kunit),itime,data,im*jm)
+        call writei_parallel(grid,
+     &       iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
         cycle
 
 C**** diags on fixed pressure levels or velocity
@@ -3474,7 +3481,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
@@ -3500,7 +3509,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3530,7 +3541,9 @@ C**** fix polar values
                 IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
               end select
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3554,7 +3567,9 @@ C**** fix polar values for W only (calculated on tracer points)
                 data(2:im,1) =data(1,1)
                 data(2:im,jm)=data(1,jm)
               end select
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
@@ -3573,7 +3588,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3596,7 +3613,9 @@ C**** fix polar values
               IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
               IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
@@ -3616,7 +3635,9 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             end do
             cycle
           end if
@@ -3639,100 +3660,318 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
 C**** write out
-              call writei(iu_subdd(kunit),itime,data,im*jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
               cycle
             end if
           end do
 #endif
         end select
-
-#ifdef CLD_AER_CDNC   !for 3 hrly diagnostics
-c          select case (namedd(k))  !(1:5))
-c            case ("CLWP")         !LWP (kg m-2) ?
-c            do j=J_0,J_1
-c               do i=1,imaxj(j)
-c                 data(i,j)=clwp(i,j)
-c       if(clwp(i,j).ne.0.) write(6,*)"CLWP",data(i,j),i,j,k,kunit
-c               end do
-c            end do
-c          kunit=kunit+1
-c           end select
-C**** fix polar values
-c             data(2:im,1) =data(1,1)
-c             data(2:im,jm)=data(1,jm)
-c**** write out
-c           call writei(iu_subdd(kunit),itime,data,im*jm)
-c           cycle
-
-#endif
-#ifdef CLD_AER_CDNC
+#ifdef TRACERS_HETCHEM
+            select case (namedd(k))
+        case ("SO2")
             kunit=kunit+1
             do l=1,lm
-              select case (namedd(k))
-              case ("CTEM")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                  data=ctem(:,:,l)     ! cld temp (K)
-c                 write(6,*)"CTEM",data,i,j,l,k,kunit
-                end do
-              end do
-              case ("CL3D")
               do j=1,jm
                 do i=1,imaxj(j)
-                 data=cl3d(:,:,l)     ! cld LWC (kg m-3)
+                 data(i,j)=trm(i,j,l,n_SO2)
                 end do
               end do
-              case ("CD3D")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                  data=cd3d(:,:,l)     ! cld thickness (m)
-                end do
-              end do
-              case ("CLDSS")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                  data=cldss(:,:,l)    ! Cld cover LS
-                end do
-              end do
-c             write(6,*)"CCSS",data,i,j,l,k,kunit
-              case ("CLDMC")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                 data=cldmc(:,:,l)    ! Cld cover MC
-                end do
-              end do
-              case ("CDN3D")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                 data=cdn3d(:,:,l)    ! cld CDNC (cm^-3)
-                end do
-              end do
-              case ("CRE3D")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                 data=cre3d(:,:,l)    ! cld Reff (um)
-                end do
-              end do
-              case ("TAUSS")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                 data=tauss(:,:,l)       ! LS cld tau
-                end do
-              end do
-              case ("TAUMC")
-              do j=J_0,J_1
-                do i=1,imaxj(j)
-                 data=taumc(:,:,l)       ! MC cld tau
-                end do
-              end do
-
 C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
-             end select
              call writei(iu_subdd(kunit),itime,data,im*jm)
-             cycle
+           end do
+        case ("SO4")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_SO4)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+        case ("SO4_d1")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_SO4_d1)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do        
+        case ("SO4_d2")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)= trm(i,j,l,n_SO4_d2)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+        case ("SO4_d3")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_SO4_d3)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do        
+        case ("Clay")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Clay)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do        
+        case ("Silt1")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Silt1)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do  
+        case ("Silt2")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Silt2)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+        case ("Silt3")  
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=trm(i,j,l,n_Silt3)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+             end select
+#endif
+#ifdef CLD_AER_CDNC   !for 3 hrly diagnostics
+            select case (namedd(k))
+              case ("CTEM")
+              kunit=kunit+1
+              do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=ctem(l,i,j)     ! cld temp (K) at cld top
+c                 write(6,*)"CTEM1",ctem(l,i,j),i,j,l,k
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+             end select
+
+             select case (namedd(k))
+              case ("CL3D")
+              kunit=kunit+1
+              do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=cl3d(l,i,j)     ! cld LWC (kg m-3)
+c                write(6,*)"CL3D",cl3d(l,i,j),i,j,l,k
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+             end select
+
+             select case (namedd(k))
+              case ("CI3D")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=ci3d(l,i,j)     ! cld IWC (kg m-3)
+c                write(6,*)"CI3D",ci3d(l,i,j),i,j,l,k
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+            end select
+
+            select case (namedd(k))
+             case ("CD3D")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=cd3d(l,i,j)     ! cld thickness (m)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+             end select
+
+             select case (namedd(k))
+              case ("CLDSS")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=100.d0*cldss(l,i,j)    ! Cld cover LS(%)
+c                 if(cldss(l,i,j).gt.0.d0)
+c    &            write(6,*)"CLDSS",cldss(l,i,j),i,j,l,k
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+             end select
+
+             select case (namedd(k))
+              case ("CLDMC")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=100.d0*cldmc(l,i,j)   ! Cld cover MC(%)
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+             end select
+
+             select case (namedd(k))
+              case ("CDN3D")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=cdn3d(l,i,j)    ! cld CDNC (cm^-3)
+c        if(cdn3d(l,i,j).gt.20.d0)write(6,*)"CDN",cdn3d(l,i,j),i,j,l,k
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+             end select
+
+             select case (namedd(k))
+              case ("CRE3D")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=1.d-6*cre3d(l,i,j)    ! cld Reff (m)
+c        if(cre3d(l,i,j).gt.2.d0)write(6,*)"CRe",cre3d(l,i,j),i,j,l,k
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+             end select
+
+             select case (namedd(k))
+              case ("TAUSS")
+            kunit=kunit+1
+            do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=tauss(l,i,j)       ! LS cld tau
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
+           end do
+             end select
+
+            select case (namedd(k))
+              case ("TAUMC")
+            kunit=kunit+1
+           do l=1,lm
+              do j=1,jm
+                do i=1,imaxj(j)
+                 data(i,j)=taumc(l,i,j)       ! MC cld tau
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+             call writei(iu_subdd(kunit),itime,data,im*jm)
           end do
+             end select
+
+           select case (namedd(k))  !(1:5))
+             case ("CLWP")         !LWP (kg m-2)
+            kunit=kunit+1
+             do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=clwp(i,j)
+c       if(clwp(i,j).ne.0.) write(6,*)"CLWP",data(i,j),i,j,k,kunit
+                end do
+             end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+C**** write out
+            call writei(iu_subdd(kunit),itime,data,im*jm)
+            end select
 #endif
 #ifdef TRACERS_DUST
         n_fidx=n_clay
@@ -3755,7 +3994,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
 #ifdef TRACERS_DUST
         CASE ('DUEMIS2')   ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
@@ -3765,7 +4006,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
 #endif
 #ifdef TRACERS_DRYDEP
@@ -3780,7 +4023,9 @@ C**** fix polar values
 C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
-              CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             END IF
           END DO
         CASE ('DUDEPGRAV')  ! Gravit. settling flux of dust tracers [kg/m^2/s]
@@ -3815,7 +4060,9 @@ C**** fix polar values
 C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
-              CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
 #ifdef TRACERS_WATER
             END IF
 #endif
@@ -3829,7 +4076,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
           CASE ('DULOAD')       ! Dust load [kg/m^2]
           kunit=kunit+1
@@ -3845,7 +4094,9 @@ C**** fix polar values
 C**** fix polar values
             data(2:im,1) =data(1,1)
             data(2:im,jm)=data(1,jm)
-            CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
         END SELECT
 #endif
@@ -3888,7 +4139,7 @@ c****
      *     ,idd_tr5,idd_tr6,idd_tr7,idd_tr8,idd_tr9,idd_tr10,idd_tr11
      *     ,idd_load1,idd_load2,idd_load3,idd_load4,idd_load5
      *     ,idd_load6,idd_load7,idd_load8,idd_load9,idd_load10
-     *     ,idd_load11,idd_conc1,idd_conc2,idd_conc3,idd_conc4   
+     *     ,idd_load11,idd_conc1,idd_conc2,idd_conc3,idd_conc4
      *     ,idd_conc5,idd_conc6,idd_conc7,idd_conc8,idd_conc9
      *     ,idd_conc10,idd_conc11
      *     ,idd_tau1,idd_tau2,idd_tau3,idd_tau4,idd_tau5,idd_tau6
@@ -3938,8 +4189,8 @@ C****
             adiurn(ih,idd_u11,kr)=adiurn(ih,idd_u11,kr)+u(i,j,11)
 
             adiurn(ih,idd_v1,kr)=adiurn(ih,idd_v1,kr)+v(i,j,1)
-            adiurn(ih,idd_v2,kr)=adiurn(ih,idd_v2,kr)+v(i,j,2)  
-            adiurn(ih,idd_v3,kr)=adiurn(ih,idd_v3,kr)+v(i,j,3)  
+            adiurn(ih,idd_v2,kr)=adiurn(ih,idd_v2,kr)+v(i,j,2)
+            adiurn(ih,idd_v3,kr)=adiurn(ih,idd_v3,kr)+v(i,j,3)
             adiurn(ih,idd_v4,kr)=adiurn(ih,idd_v4,kr)+v(i,j,4)
             adiurn(ih,idd_v5,kr)=adiurn(ih,idd_v5,kr)+v(i,j,5)
             adiurn(ih,idd_v6,kr)=adiurn(ih,idd_v6,kr)+v(i,j,6)
@@ -3971,7 +4222,7 @@ C****
      *           +sqrt( u(i,j,10)*u(i,j,10) + v(i,j,10)*v(i,j,10))
             adiurn(ih,idd_uv11,kr)=adiurn(ih,idd_uv11,kr)
      *           +sqrt( u(i,j,11)*u(i,j,11) + v(i,j,11)*v(i,j,11))
-          
+
             adiurn(ih,idd_t1,kr)=adiurn(ih,idd_t1,kr)+t(i,j,1)*psk
             adiurn(ih,idd_t2,kr)=adiurn(ih,idd_t2,kr)+t(i,j,2)*psk
             adiurn(ih,idd_t3,kr)=adiurn(ih,idd_t3,kr)+t(i,j,3)*psk
@@ -4019,9 +4270,9 @@ C****
             adiurn(ih,idd_p11,kr)=adiurn(ih,idd_p11,kr)
      *           +p(i,j)*sig(11)+ptop
 
-            adiurn(ih,idd_w1,kr)=adiurn(ih,idd_w1,kr)+wsave(i,j,1)      
+            adiurn(ih,idd_w1,kr)=adiurn(ih,idd_w1,kr)+wsave(i,j,1)
             adiurn(ih,idd_w2,kr)=adiurn(ih,idd_w2,kr)+wsave(i,j,2)
-            adiurn(ih,idd_w3,kr)=adiurn(ih,idd_w3,kr)+wsave(i,j,3)      
+            adiurn(ih,idd_w3,kr)=adiurn(ih,idd_w3,kr)+wsave(i,j,3)
             adiurn(ih,idd_w4,kr)=adiurn(ih,idd_w4,kr)+wsave(i,j,4)
             adiurn(ih,idd_w5,kr)=adiurn(ih,idd_w5,kr)+wsave(i,j,5)
             adiurn(ih,idd_w6,kr)=adiurn(ih,idd_w6,kr)+wsave(i,j,6)
@@ -4054,9 +4305,9 @@ C****
             adiurn(ih,idd_phi11,kr)=adiurn(ih,idd_phi11,kr)
      *           +phi(i,j,11)*bygrav
 
-            adiurn(ih,idd_sr1,kr)=adiurn(ih,idd_sr1,kr)  
+            adiurn(ih,idd_sr1,kr)=adiurn(ih,idd_sr1,kr)
      *           +srnflb_save(i,j,1)*cosz1(i,j)
-            adiurn(ih,idd_sr2,kr)=adiurn(ih,idd_sr2,kr)  
+            adiurn(ih,idd_sr2,kr)=adiurn(ih,idd_sr2,kr)
      *           +srnflb_save(i,j,2)*cosz1(i,j)
             adiurn(ih,idd_sr3,kr)=adiurn(ih,idd_sr3,kr)
      *           +srnflb_save(i,j,3)*cosz1(i,j)
@@ -4152,28 +4403,28 @@ C****
               adiurn(ih,idd_tau1,kr)=adiurn(ih,idd_tau1,kr)
      *             +ttausv_save(i,j,n1,1)
               adiurn(ih,idd_tau2,kr)=adiurn(ih,idd_tau2,kr)
-     *             +ttausv_save(i,j,n1,2)           
+     *             +ttausv_save(i,j,n1,2)
               adiurn(ih,idd_tau3,kr)=adiurn(ih,idd_tau3,kr)
-     *             +ttausv_save(i,j,n1,3)           
+     *             +ttausv_save(i,j,n1,3)
               adiurn(ih,idd_tau4,kr)=adiurn(ih,idd_tau4,kr)
-     *             +ttausv_save(i,j,n1,4)           
+     *             +ttausv_save(i,j,n1,4)
               adiurn(ih,idd_tau5,kr)=adiurn(ih,idd_tau5,kr)
-     *             +ttausv_save(i,j,n1,5)           
+     *             +ttausv_save(i,j,n1,5)
               adiurn(ih,idd_tau6,kr)=adiurn(ih,idd_tau6,kr)
-     *             +ttausv_save(i,j,n1,6)           
+     *             +ttausv_save(i,j,n1,6)
               adiurn(ih,idd_tau7,kr)=adiurn(ih,idd_tau7,kr)
-     *             +ttausv_save(i,j,n1,7)           
+     *             +ttausv_save(i,j,n1,7)
               adiurn(ih,idd_tau8,kr)=adiurn(ih,idd_tau8,kr)
-     *             +ttausv_save(i,j,n1,8)           
+     *             +ttausv_save(i,j,n1,8)
               adiurn(ih,idd_tau9,kr)=adiurn(ih,idd_tau9,kr)
-     *             +ttausv_save(i,j,n1,9)           
+     *             +ttausv_save(i,j,n1,9)
               adiurn(ih,idd_tau10,kr)=adiurn(ih,idd_tau10,kr)
-     *             +ttausv_save(i,j,n1,10)           
+     *             +ttausv_save(i,j,n1,10)
               adiurn(ih,idd_tau11,kr)=adiurn(ih,idd_tau11,kr)
-     *             +ttausv_save(i,j,n1,11)           
+     *             +ttausv_save(i,j,n1,11)
 
-              adiurn(ih,idd_tau_cs1,kr)=adiurn(ih,idd_tau_cs1,kr)    
-     *             +ttausv_cs_save(i,j,n1,1) 
+              adiurn(ih,idd_tau_cs1,kr)=adiurn(ih,idd_tau_cs1,kr)
+     *             +ttausv_cs_save(i,j,n1,1)
               adiurn(ih,idd_tau_cs2,kr)=adiurn(ih,idd_tau_cs2,kr)
      *             +ttausv_cs_save(i,j,n1,2)
               adiurn(ih,idd_tau_cs3,kr)=adiurn(ih,idd_tau_cs3,kr)
@@ -4208,7 +4459,7 @@ C****
       return
       end subroutine ahourly
 
-      SUBROUTINE init_DIAG(ISTART,num_acc_files)
+      SUBROUTINE init_DIAG(istart,num_acc_files)
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -4227,7 +4478,7 @@ C****
       USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
       USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
       USE DIAG_COM, only : TITLE_CON, PSPEC, LSTR, NSPHER, KLAYER
-      USE DIAG_COM, only : ISTRAT, kgz, pmb, kgz_max 
+      USE DIAG_COM, only : ISTRAT, kgz, pmb, kgz_max
       USE DIAG_COM, only : TF_DAY1, TF_LAST, TF_LKON, TF_LKOFF
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
@@ -4237,7 +4488,7 @@ C****
       USE FILEMANAGER
       USE DOMAIN_DECOMP, only: GRID,GET,WRITE_PARALLEL
       IMPLICIT NONE
-      integer, intent(in) :: ISTART,num_acc_files
+      integer, intent(in) :: istart,num_acc_files
       INTEGER I,J,L,K,KL,ioerr,months,years,mswitch,ldate,iu_AIC
      *     ,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
       REAL*8 PLE_tmp
@@ -4254,7 +4505,7 @@ C****
       call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
 
-      IF(ISTART.LT.0) THEN
+      IF(ISTART.LT.1) THEN  ! initialize for post-processing
         call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
      *       ,amon0)
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
@@ -4549,7 +4800,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
         if (isum.eq.1) return
         go to 100
       end if
-      AJ_loc=0    ; AREG=0 
+      AJ_loc=0    ; AREG=0
 
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL=0   ; ENERGY=0 ; CONSRV_loc=0
@@ -4570,7 +4821,10 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required
 
-      if (isum.eq.1) return
+      if (isum.eq.1) then ! prepare to add up acc-files
+         AJ=0 ; APJ=0 ; AJL=0 ; ASJL=0 ; AIJ=0 ; AJK=0 ; AIJK=0
+         return
+      end if
 
       AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 

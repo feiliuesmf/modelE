@@ -1,8 +1,10 @@
+#include "mpi_defs.h"
+
       MODULE DOMAIN_DECOMP
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
 !@+    for the message passing (ESMF) implementation.
 !@auth NCCS ASTG
- 
+
 #define FILL(N) IAND(USABLE_FROM,N)==N
 
 #ifdef USE_ESMF
@@ -41,7 +43,7 @@
 !@var DIST_GRID derived type to provide ESMF decomposition info
 !@+   public components are used to minimize overhead for accessing
 !@+   routine components
-      PUBLIC :: DIST_GRID 
+      PUBLIC :: DIST_GRID
 !@var  grid Default decomposition; globally accessible for convenience.
       PUBLIC :: grid, grid_TRANS
 !@var INIT_APP Initialize default decomposition
@@ -51,7 +53,7 @@
 !@var FINISH_APP Cleans up at the end of the run (closes debugging file)
       PUBLIC :: FINISH_APP
 !@var HALO_UPDATE Update data in halo for local domain using data from
-!@+   neighbouring processes       
+!@+   neighbouring processes
       PUBLIC :: HALO_UPDATE ! Communicate overlapping portions of subdomains
       PUBLIC :: HALO_UPDATEj ! jx
       PUBLIC :: HALO_UPDATE_COLUMN ! K, I, J
@@ -84,6 +86,7 @@
       PUBLIC :: READT_PARALLEL
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITE_PARALLEL
+      PUBLIC :: WRITEI_PARALLEL
       PUBLIC :: TRANSP
       PUBLIC :: TRANSPOSE_COLUMN
 !@var GLOBALMAX Generic wrapper for Real/integer
@@ -108,6 +111,7 @@
         MODULE PROCEDURE HALO_UPDATE_COLUMN_3D  ! M,I,J
         MODULE PROCEDURE INT_HALO_UPDATE_COLUMN_3D  ! M,I,J
         MODULE PROCEDURE HALO_UPDATE_COLUMN_4D  ! M,I,J,K
+        MODULE PROCEDURE HALO_UPDATE_COLUMN_7D  ! M1,M2,M3,M4,I,J
       END INTERFACE
 
       INTERFACE CHECKSUM
@@ -139,28 +143,29 @@
         MODULE PROCEDURE GLOBALSUM_IJ
         MODULE PROCEDURE GLOBALSUM_IJK
         MODULE PROCEDURE GLOBALSUM_IJK_IK
+        MODULE PROCEDURE GLOBALSUM_OTHER_IJK
         MODULE PROCEDURE GLOBALSUM_OTHER_IJK_IK
         MODULE PROCEDURE GLOBALSUM_JK
         MODULE PROCEDURE GLOBALSUM_XXXJ_XXX
       END INTERFACE
- 
+
       INTERFACE ARRAYSCATTER
         MODULE PROCEDURE ARRAYSCATTER_J
         MODULE PROCEDURE ARRAYSCATTER_IJ
         MODULE PROCEDURE IARRAYSCATTER_IJ
         MODULE PROCEDURE LARRAYSCATTER_IJ
-      END INTERFACE   
+      END INTERFACE
 
 #ifdef USE_ESMF
       INTERFACE xESMF_ARRAYGATHER
         MODULE PROCEDURE ESMF_ARRAYGATHER_J_int
         MODULE PROCEDURE ESMF_IARRAYGATHER_IJ
         MODULE PROCEDURE ESMF_LARRAYGATHER_IJ
-      END INTERFACE   
+      END INTERFACE
       INTERFACE xESMF_ARRAYSCATTER
         MODULE PROCEDURE ESMF_IARRAYSCATTER_IJ
         MODULE PROCEDURE ESMF_LARRAYSCATTER_IJ
-      END INTERFACE   
+      END INTERFACE
 #endif
 
       INTERFACE ARRAYGATHER
@@ -169,7 +174,7 @@
         MODULE PROCEDURE ARRAYGATHER_IJ
         MODULE PROCEDURE IARRAYGATHER_IJ
         MODULE PROCEDURE LARRAYGATHER_IJ
-      END INTERFACE   
+      END INTERFACE
 
       INTERFACE DREAD_PARALLEL
         MODULE PROCEDURE DREAD_PARALLEL_2D
@@ -202,18 +207,24 @@
 
       end interface
 
+      interface WRITEI_PARALLEL
+        module procedure WRITEI_PARALLEL_2D
+      end interface
+
 
       PUBLIC :: AM_I_ROOT
       interface AM_I_ROOT
          module procedure mpi_am_i_root
       end interface
 
-!@var PACK Generic routine to pack  a global array 
+!@var PACK Generic routine to pack  a global array
 !@+   with the data from the corresponding distributed array.
       PUBLIC :: PACK_DATA
       interface PACK_DATA
          module procedure PACK_1D       ! (i)
+         module procedure IPACK_1D      ! (i)
          module procedure PACK_2D       ! (i,j)
+         module procedure IPACK_2D      ! (i,j)
          module procedure LPACK_2D      ! (i,j)
          module procedure PACK_3D       ! (i,j,l)
          module procedure IPACK_3D      ! (i,j,l)
@@ -248,6 +259,7 @@
       interface UNPACK_DATA
          module procedure UNPACK_1D      ! (i)
          module procedure UNPACK_2D      ! (i,j)
+         module procedure IUNPACK_2D     ! (i,j)
          module procedure LUNPACK_2D     ! (i,j)
          module procedure UNPACK_3D      ! (i,j,l)
          module procedure IUNPACK_3D     ! (i,j,l)
@@ -283,8 +295,8 @@
 
 !@var PACK_BLOCK  Generic routine to pack  a global array
 !@+   with the data from the corresponding distributed array.
-      PUBLIC :: PACK_BLOCK 
-      interface PACK_BLOCK 
+      PUBLIC :: PACK_BLOCK
+      interface PACK_BLOCK
          module procedure IPACK_BLOCK_2D    ! (k,l,i,j  )
          module procedure  PACK_BLOCK_2D    ! (k,l,i,j  )
          module procedure  PACK_BLOCK_3D    ! (k,l,i,j,m)
@@ -292,8 +304,8 @@
 
 !@var UNPACK_BLOCK  Generic routine to unpack into a distributed
 !@+   array the data from the corresponding global array.
-      PUBLIC :: UNPACK_BLOCK 
-      interface UNPACK_BLOCK 
+      PUBLIC :: UNPACK_BLOCK
+      interface UNPACK_BLOCK
          module procedure IUNPACK_BLOCK_2D    ! (k,l,i,j  )
          module procedure  UNPACK_BLOCK_2D    ! (k,l,i,j  )
          module procedure  UNPACK_BLOCK_3D    ! (k,l,i,j,m)
@@ -329,7 +341,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
 
       INTEGER, PARAMETER :: HALO_WIDTH = 1
-      integer, parameter :: root=0
+      integer ::  root
 
       ! Local grid information
       TYPE DIST_GRID
@@ -417,6 +429,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Call Initialize_App(IM, JM, LM,rc=rc)
 
       Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
+      root = ROOT_ID
       compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
 
       ! The default layout is not what we want - it splits in the "I" direction.
@@ -433,7 +446,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       RANK_LON = 0
       RANK_LAT = 0
 #endif
-      
+
 #ifdef USE_ESMF
       call INIT_GRID(grd_dum,IM,JM,LM,vm=vm)
       Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
@@ -443,10 +456,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
 #endif
 
-
-
-      WRITE(*,*)'INIT_APP: ', IM, JM, NP_LON, NP_LAT, RANK_LON, RANK_LAT
-     &     ,'my_pet=',MY_PET
+      WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
+     &     RANK_LON
 
 #ifdef DEBUG_DECOMP
       IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
@@ -500,8 +511,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
 #ifdef USE_ESMF
       grd_dum%ESMF_GRID = ESMF_GridCreateHorzLatLonUni(counts=grid_size,
-     &     minGlobalCoordPerDim=range_min, 
-     &     maxGlobalCoordPerDim=range_max, 
+     &     minGlobalCoordPerDim=range_min,
+     &     maxGlobalCoordPerDim=range_max,
      &     horzStagger=ESMF_GRID_HORZ_STAGGER_A,
      &     name="source grid", rc=rc)
 
@@ -518,7 +529,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Call ESMF_VMGet(vm_, localPET = my_pet, petCount = NPES, rc=rc)
       ! The default layout is not what we want - it splits in the "I" direction.
       layout = ESMF_DELayoutCreate(vm_, deCountList = (/ 1, NPES /))
-      Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID, 
+      Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
      &     delayout = layout, rc=rc)
       call ESMF_GridGet(grd_dum%esmf_grid, delayout=layout, rc=rc)
       RANK_LON=0
@@ -560,8 +571,13 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
         grd_dum%J_STOP_SKP    = JM-1
       END IF
 
+#ifdef USE_ESMF
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
+#else
+      grd_dum%J_STRT_HALO   = 1
+      grd_dum%J_STOP_HALO   = JM
+#endif
 
       IF (RANK_LAT > 0) THEN
         grd_dum%J_STRT_STGR = J0_DUM
@@ -574,16 +590,16 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%HAVE_NORTH_POLE = (RANK_LAT == NP_LAT - 1)
 
       J_EQUATOR = JM/2
-      grd_dum%HAVE_EQUATOR    = 
+      grd_dum%HAVE_EQUATOR    =
      &      (J0_DUM <= J_EQUATOR) .AND. (J1_DUM >= J_EQUATOR)
 
       END SUBROUTINE INIT_GRID
 
-      SUBROUTINE GET(grd_dum, I_STRT, I_STOP, 
+      SUBROUTINE GET(grd_dum, I_STRT, I_STOP,
      &                        I_STRT_HALO, I_STOP_HALO,
      &                        J_STRT, J_STOP, J_STRT_HALO, J_STOP_HALO,
-     &                        J_STRT_SKP, J_STOP_SKP,      
-     &                        J_STRT_STGR, J_STOP_STGR,      
+     &                        J_STRT_SKP, J_STOP_SKP,
+     &                        J_STRT_STGR, J_STOP_STGR,
      &                        HAVE_SOUTH_POLE, HAVE_NORTH_POLE,
      &                        IM_WORLD, JM_WORLD )
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
@@ -601,16 +617,16 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       IF (PRESENT(I_STRT_HALO)) I_STRT_HALO = grd_dum%I_STRT_HALO
       IF (PRESENT(I_STOP_HALO)) I_STOP_HALO = grd_dum%I_STOP_HALO
-    
+
       IF (PRESENT(J_STRT)) J_STRT = grd_dum%J_STRT
       IF (PRESENT(J_STOP)) J_STOP = grd_dum%J_STOP
 
       IF (PRESENT(J_STRT_HALO)) J_STRT_HALO = grd_dum%J_STRT_HALO
       IF (PRESENT(J_STOP_HALO)) J_STOP_HALO = grd_dum%J_STOP_HALO
-    
+
       IF (PRESENT(J_STRT_SKP)) J_STRT_SKP = grd_dum%J_STRT_SKP
       IF (PRESENT(J_STOP_SKP)) J_STOP_SKP = grd_dum%J_STOP_SKP
-      
+
       IF (PRESENT(J_STRT_STGR)) J_STRT_STGR = grd_dum%J_STRT_STGR
       IF (PRESENT(J_STOP_STGR)) J_STOP_STGR = grd_dum%J_STOP_STGR
       
@@ -619,7 +635,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       
       IF (PRESENT(HAVE_SOUTH_POLE)) 
      &             HAVE_SOUTH_POLE= grd_dum%HAVE_SOUTH_POLE
-      IF (PRESENT(HAVE_NORTH_POLE)) 
+      IF (PRESENT(HAVE_NORTH_POLE))
      &             HAVE_NORTH_POLE= grd_dum%HAVE_NORTH_POLE
 
       END SUBROUTINE GET
@@ -627,7 +643,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE HALO_UPDATE_1D(grd_dum, arr, from)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(INOUT) :: 
+      REAL*8,            INTENT(INOUT) ::
      &                        arr(grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
@@ -640,7 +656,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE HALO_UPDATE_2D(grd_dum, arr, from)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(INOUT) :: 
+      REAL*8,            INTENT(INOUT) ::
      &                    arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
@@ -652,7 +668,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE HALO_UPDATEj_2D(grd_dum, arr, from)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(INOUT) :: 
+      REAL*8,            INTENT(INOUT) ::
      &                    arr(grd_dum%j_strt_halo:,:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
@@ -664,7 +680,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE HALO_UPDATE_3D(grd_dum, arr, from)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(INOUT) :: 
+      REAL*8,            INTENT(INOUT) ::
      &                 arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
@@ -679,7 +695,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE HALO_UPDATE_COLUMN_2D(grd_dum, arr, from)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(INOUT) :: 
+      REAL*8,            INTENT(INOUT) ::
      &                  arr(:,grd_dum%j_strt_halo:)
 
       INTEGER, OPTIONAL, INTENT(IN)    :: from
@@ -692,7 +708,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE HALO_UPDATE_COLUMN_3D(grd_dum, arr, from)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(INOUT) :: 
+      REAL*8,            INTENT(INOUT) ::
      &                  arr(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
@@ -734,10 +750,24 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_4D
 
+      SUBROUTINE HALO_UPDATE_COLUMN_7D(grd_dum, arr, from)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
+      REAL*8,            INTENT(INOUT) ::
+     &     arr(:,:,:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER, OPTIONAL, INTENT(IN)    :: from
+
+      INTEGER :: L
+
+#ifdef USE_ESMF
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 6, from)
+#endif
+      END SUBROUTINE HALO_UPDATE_COLUMN_7D
+
       SUBROUTINE CHECKSUM_1D(grd_dum, arr, line, file, unit, STGR, SKIP)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
-      REAL*8,            INTENT(IN) :: 
+      REAL*8,            INTENT(IN) ::
      &                arr(grd_dum%j_strt_halo:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
@@ -773,19 +803,19 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Call GLOBALSUM(grd_dum, t_arr, asum,istag=stgr_,iskip=skip_)
       t_arr(J_0:J_1) = ABS(t_arr(J_0:J_1))
       Call GLOBALSUM(grd_dum, t_arr, L1norm,istag=stgr_,iskip=skip_)
-      
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
+
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, asum, L1norm
 
 #endif
 
       END SUBROUTINE CHECKSUM_1D
 
-      SUBROUTINE CHECKSUM_2D(grd_dum, arr, line, file, unit, stgr, 
+      SUBROUTINE CHECKSUM_2D(grd_dum, arr, line, file, unit, stgr,
      &     skip)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
-      REAL*8,            INTENT(IN) :: 
+      REAL*8,            INTENT(IN) ::
      &                arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
@@ -796,7 +826,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: unit_
       REAL*8  :: asum, L1norm
       REAL*8  :: asum_glob, L1norm_glob
-      REAL*8 :: 
+      REAL*8 ::
      &  t_arr(size(arr,1),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
       INTEGER :: J_0, J_1, I,J
       INTEGER :: stgr_,skip_
@@ -823,7 +853,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
       Call GLOBALSUM(grd_dum,      t_arr,L1norm,istag=stgr_,iskip=skip_)
 
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, asum, L1norm
 
 #endif
@@ -833,7 +863,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE CHECKSUM_3D(grd_dum, arr, line, file, unit, stgr, skip)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
-      REAL*8,            INTENT(IN) :: 
+      REAL*8,            INTENT(IN) ::
      &                arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
@@ -846,7 +876,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: k
       REAL*8, DIMENSION(Size(arr,3))  :: asum, L1norm
 
-      REAL*8 :: 
+      REAL*8 ::
      &  t_arr(size(arr,1),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
       INTEGER :: J_0, J_1
       Integer :: stgr_,skip_
@@ -876,7 +906,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
         Call GLOBALSUM(grd_dum, t_arr,L1norm(k),istag=stgr_,iskip=skip_)
       End Do
       If (AM_I_ROOT()) Then
-        Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
+        Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &       file,line, Sum(asum), Sum(L1norm)
       End If
 
@@ -884,11 +914,11 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       END SUBROUTINE CHECKSUM_3D
 
-      SUBROUTINE CHECKSUMj_2D(grd_dum, arr, line, file, unit, stgr, 
+      SUBROUTINE CHECKSUMj_2D(grd_dum, arr, line, file, unit, stgr,
      &     skip)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
-      REAL*8,            INTENT(IN) :: 
+      REAL*8,            INTENT(IN) ::
      &                arr(grd_dum%j_strt_halo:,:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
@@ -899,7 +929,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: unit_
       REAL*8  :: asum, L1norm
       REAL*8  :: asum_glob, L1norm_glob
-      REAL*8 :: 
+      REAL*8 ::
      &  t_arr(size(arr,2),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
       INTEGER :: J_0, J_1
       INTEGER :: stgr_,skip_
@@ -925,8 +955,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Call GLOBALSUM(grd_dum,      t_arr,asum, istag=stgr_,iskip=skip_)
       t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
       Call GLOBALSUM(grd_dum,      t_arr,L1norm,istag=stgr_,iskip=skip_)
- 
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
+
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, asum, L1norm
 
 #endif
@@ -936,7 +966,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE CHECKSUMj_3D(grd_dum, arr, line, file, unit, stgr)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
-      REAL*8,            INTENT(IN) :: 
+      REAL*8,            INTENT(IN) ::
      &                arr(grd_dum%j_strt_halo:,:,:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
@@ -948,7 +978,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: k
       REAL*8, DIMENSION(Size(arr,3))  :: asum, L1norm
 
-      REAL*8 :: 
+      REAL*8 ::
      &  t_arr(size(arr,2),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
       INTEGER :: J_0, J_1
       Integer :: stgr_
@@ -972,7 +1002,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
          Call GLOBALSUM(grd_dum, t_arr, L1norm(k), istag=stgr_)
       End Do
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, Sum(asum), Sum(L1norm)
 
 #endif
@@ -983,7 +1013,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE CHECKSUM_COLUMN_2D(grd_dum,arr,line,file,unit,stgr)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
-      REAL*8,            INTENT(IN) :: 
+      REAL*8,            INTENT(IN) ::
      &                arr(:,grd_dum%j_strt_halo:)
       INTEGER,           INTENT(IN) :: line
       CHARACTER(LEN=*),  INTENT(IN) :: file
@@ -1009,7 +1039,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          Call GLOBALSUM(grd_dum, Abs(arr(k,:)), L1norm(k), istag=stgr_)
       END DO
 
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, Sum(asum), Sum(L1norm)
 
 #endif
@@ -1046,7 +1076,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       END DO
 
       If (AM_I_ROOT()) Then
-        Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
+        Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &       file,line, Sum(asum), Sum(L1norm)
         CALL SYS_FLUSH(unit_)
       End If
@@ -1069,7 +1099,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: k
       REAL*8, DIMENSION(Size(arr,1))  :: asum, L1norm
 
-      Call CHECKSUM_COLUMN(grd_dum, Real(arr,KIND=KIND(1.0D+0)), line, 
+      Call CHECKSUM_COLUMN(grd_dum, Real(arr,KIND=KIND(1.0D+0)), line,
      &     file, unit)
 
       END SUBROUTINE INT_CHECKSUM_COLUMN_3D
@@ -1139,7 +1169,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       CALL closeunit(grid%log_unit)
 #endif
 
-#ifdef USE_ESMF      
+#ifdef USE_ESMF
       CALL ESMF_FINALIZE(rc=ier)
 #endif
 
@@ -1159,9 +1189,9 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       all_ = .false.
       If (Present(all)) all_ = all
 
-#ifdef USE_ESMF      
+#ifdef USE_ESMF
       If (all_) Then
-         call MPI_Allreduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM, 
+         call MPI_Allreduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM,
      &        MPI_COMM_WORLD, status)
       Else
          call MPI_Reduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM, root,
@@ -1170,11 +1200,11 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #else
       isum = ivar
 #endif
-      
+
       END SUBROUTINE GLOBALSUM_INT_REDUCE
 
       SUBROUTINE GLOBALSUM_J(grd_dum, arr, gsum,
-     &                       hsum, istag, iskip, polefirst,all, jband)
+     &                       hsum, istag, iskip, all, jband)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: arr(grd_dum%j_strt_halo:)
@@ -1182,7 +1212,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       REAL*8, OPTIONAL,  INTENT(OUT):: hsum(2)
       INTEGER,OPTIONAL,  INTENT(IN) :: istag
       INTEGER,OPTIONAL,  INTENT(IN) :: iskip
-      LOGICAL,OPTIONAL,  INTENT(IN) :: polefirst
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
       INTEGER, OPTIONAL, INTENT(IN) :: jband(2)
 
@@ -1204,12 +1233,12 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       JM   = grd_dum%JM_WORLD
 
       istag_ = .false.
-      If (Present(istag)) Then 
+      If (Present(istag)) Then
         If (istag == 1) istag_ = .true.
       End If
 
       iskip_ = .false.
-      If (Present(iskip)) Then 
+      If (Present(iskip)) Then
         If (iskip == 1) iskip_ = .true.
       End If
 
@@ -1236,16 +1265,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #else
       garr = arr(j_0:j_1)
 #endif
-    
+
       If (AM_I_ROOT()) then
-         If (Present(polefirst)) Then
-            If (polefirst) Then
-               gsum = garr(1) + garr(JM)
-               DO J = 2, JM-1
-                  gsum = gsum + garr(J)
-               END DO
-            End IF
-         Else
          If (istag_) then
            gsum = sum(garr(2:JM),1)
          ElseIf (iskip_) then
@@ -1264,7 +1285,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
                hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
             EndIf
          EndIf
-         Endif
       EndIf
 
 #ifdef USE_ESMF
@@ -1314,12 +1334,12 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       j_1S  = grd_dum%j_stop_skp
 
       istag_ = .false.
-      If (Present(istag)) Then 
+      If (Present(istag)) Then
         If (istag == 1) istag_ = .true.
       End If
 
       iskip_ = .false.
-      If (Present(iskip)) Then 
+      If (Present(iskip)) Then
         If (iskip == 1) iskip_ = .true.
       End If
 
@@ -1405,12 +1425,12 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       JM   = grd_dum%JM_WORLD
 
       istag_ = .false.
-      If (Present(istag)) Then 
+      If (Present(istag)) Then
         If (istag == 1) istag_ = .true.
       End If
 
       iskip_ = .false.
-      If (Present(iskip)) Then 
+      If (Present(iskip)) Then
         If (iskip == 1) iskip_ = .true.
       End If
 
@@ -1451,17 +1471,63 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       END SUBROUTINE GLOBALSUM_IJK
 
+      SUBROUTINE GLOBALSUM_OTHER_IJK(grd_dum, arr, gsum, jband, all)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
+      REAL*8,             INTENT(IN) :: arr(:,grd_dum%j_strt_halo:)
+      REAL*8,             INTENT(OUT):: gsum(size(arr,1))
+      INTEGER,           INTENT(IN) :: jband(2)
+      Logical,OPTIONAL,   INTENT(IN) :: all
+
+      INTEGER :: k
+      INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
+      Logical :: all_
+      INTEGER :: ier
+#ifdef USE_ESMF
+      REAL*8  :: garr(size(arr,1),grd_dum%jm_world)
+#endif
+    ! now local
+#ifdef USE_ESMF
+      type (ESMF_Grid)                           :: GRID
+#endif
+
+      all_ = .false.
+      If (Present(all)) all_ = all
+
+      i_0  = grd_dum%i_strt
+      i_1  = grd_dum%i_stop
+      j_0  = grd_dum%j_strt
+      j_1  = grd_dum%j_stop
+      IM = SIZE(arr,1)
+      JM   = grd_dum%JM_WORLD
+
+      jb1 = jband(1)
+      jb2 = jband(2)
+
+#ifdef USE_ESMF
+      Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 2)
+      IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2),2)
+      If (all_) Then
+         call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
+     &        MPI_COMM_WORLD, ier)
+      End If
+#else
+      gsum = Sum(arr(:,jb1:jb2),2)
+#endif
+      END SUBROUTINE GLOBALSUM_OTHER_IJK
+
       SUBROUTINE GLOBALSUM_OTHER_IJK_IK(grd_dum, arr, gsum, jband, all)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
       REAL*8,             INTENT(IN) :: arr(:,grd_dum%j_strt_halo:,:)
       REAL*8,             INTENT(OUT):: gsum(size(arr,1), size(arr,3))
-      INTEGER,	          INTENT(IN) :: jband(2)
+      INTEGER,            INTENT(IN) :: jband(2)
       Logical,OPTIONAL,   INTENT(IN) :: all
 
       INTEGER :: k
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
-      Logical :: all_, ier
+      Logical :: all_
+      INTEGER :: ier
 #ifdef USE_ESMF
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
@@ -1503,7 +1569,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Logical,OPTIONAL,   INTENT(IN) :: all
 
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, LM
-      Logical :: all_, ier
+      Logical :: all_
+      INTEGER :: ier
 #ifdef USE_ESMF
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
@@ -1579,26 +1646,26 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          rdspl(p)=rdspl(p-1)+rcnts(p-1)
       End Do
 
-      Call MPI_AllToAllv(send_buf, scnts, sdspl, mpi_double_precision,
+      Call MPI_ALLTOALLV(send_buf, scnts, sdspl, mpi_double_precision,
      &             recv_buf, rcnts, rdspl, mpi_double_precision,
      &             mpi_comm_world, ier)
 
       tsum=sum(recv_buf,2)
-     
+
       rcnts=dik_map
       rdspl(0)=0
       Do p = 1, npes-1
          rdspl(p)=rdspl(p-1)+rcnts(p-1)
       End Do
 
-      Call MPI_Gatherv(tsum, dik, mpi_double_precision,
+      Call MPI_GatherV(tsum, dik, mpi_double_precision,
      & gsum, dik_map, rdspl, mpi_double_precision,
-     & 0, mpi_comm_world, ier)
+     & root, mpi_comm_world, ier)
 
       Deallocate(recv_buf)
       Deallocate(send_buf)
       Deallocate(tsum)
- 
+
       if (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
      &        MPI_COMM_WORLD, ier)
@@ -1632,7 +1699,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       IM   = grd_dum%IM_WORLD
       JM   = grd_dum%JM_WORLD
       istag_ = .false.
-      If (Present(istag)) Then 
+      If (Present(istag)) Then
         If (istag == 1) istag_ = .true.
       End If
 
@@ -1712,7 +1779,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE BACKSPACE_PARALLEL(IUNIT)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT
-    
+
       If (AM_I_ROOT()) backspace IUNIT
 
       END SUBROUTINE BACKSPACE_PARALLEL
@@ -1720,7 +1787,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE REWIND_PARALLEL(IUNIT)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT
-    
+
       If (AM_I_ROOT()) rewind IUNIT
 
       END SUBROUTINE REWIND_PARALLEL
@@ -1728,14 +1795,14 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE SKIP_PARALLEL(IUNIT)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: IUNIT
-    
+
       If (AM_I_ROOT()) read(IUNIT)
 
       END SUBROUTINE SKIP_PARALLEL
 
       SUBROUTINE DREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,AVAR)
-!@sum	DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
-!@auth	NCCS-ESMF Development Team
+!@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
@@ -1763,20 +1830,21 @@ C****  convert from real*4 to real*8
 #else
       AVAR(:,1:grd_dum%JM_WORLD)=AOUT
 #endif
-
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
-         call stop_model('DREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            call stop_model('DREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE DREAD_PARALLEL_2D
 
       SUBROUTINE DREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR)
-!@sum	DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
-!@auth	NCCS-ESMF Development Team
+!@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
@@ -1807,19 +1875,21 @@ C****  convert from real*4 to real*8
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
-         call stop_model('DREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            call stop_model('DREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE DREAD_PARALLEL_3D
 
       SUBROUTINE MREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,M,NSKIP,AVAR)
-!@sum	MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
-!@auth	NCCS-ESMF Development Team
+!@sum MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
@@ -1845,23 +1915,26 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+      CALL ESMF_BCAST(grd_dum, M   )
 #else
       AVAR=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
-         call stop_model('MREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            call stop_model('MREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE MREAD_PARALLEL_2D
 
       SUBROUTINE MREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,M,NSKIP,AVAR)
-!@sum	MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
-!@auth	NCCS-ESMF Development Team
+!@sum MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
@@ -1889,23 +1962,26 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+      CALL ESMF_BCAST(grd_dum, M   )
 #else
       AVAR=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
-         call stop_model('MREAD_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            call stop_model('MREAD_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE MREAD_PARALLEL_3D
 
       SUBROUTINE READT_PARALLEL_2D (grd_dum,IUNIT,NAME,NSKIP,AVAR,IPOS)
-!@sum	READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
-!@auth	NCCS-ESMF Development Team
+!@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
@@ -1940,20 +2016,22 @@ C****  convert from real*4 to real*8
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': ',
-     &                      TRIM(TITLE),' IOSTAT=',IERR
-         call stop_model('READT_PARALLEL: READ ERROR',255)
-      EndIf
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': ',
+     &           TRIM(TITLE),' IOSTAT=',IERR
+            call stop_model('READT_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE READT_PARALLEL_2D
 
       SUBROUTINE READT_PARALLEL_3D (grd_dum,IUNIT,NAME,NSKIP,AVAR,IPOS)
-!@sum	READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
-!@auth	NCCS-ESMF Development Team
+!@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
@@ -1988,16 +2066,53 @@ C****  convert from real*4 to real*8
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
 #endif
 
-      If (IERR==0) Then
-         WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-         RETURN
-      Else
-         WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': 
-     &                      ',TRIM(TITLE),' IOSTAT=',IERR
-         call stop_model('READT_PARALLEL: READ ERROR',255)
-      EndIf
+      if (am_i_root()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',IERR
+            call stop_model('READT_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
 
       END SUBROUTINE READT_PARALLEL_3D
+
+
+      SUBROUTINE WRITEI_PARALLEL_2D (grd_dum,IUNIT,NAME,buf,it)
+!@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      REAL*4,       INTENT(OUT) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
+      INTEGER,      INTENT(IN)  :: it       !@var  it iteration
+      REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
+      INTEGER :: IERR
+
+!!! not sure if it is implemented for real*4 ...
+#ifdef USE_ESMF
+c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
+      buf_glob = -99999999. ! not implemented
+#else
+      buf_glob = buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            call stop_model('WRITEI_PARALLEL: WRITE ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE WRITEI_PARALLEL_2D
+
 
       subroutine ESMF_IArrayScatter_IJ(egrid, local_array, global_array)
       integer      , dimension (:,:) :: local_array, global_array
@@ -2021,8 +2136,8 @@ C****  convert from real*4 to real*8
       integer      , allocatable                    :: var(:)
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
 
       allocate (sendcounts(NPES), displs(0:NPES), stat=status)
@@ -2047,7 +2162,7 @@ C****  convert from real*4 to real*8
         endif
         displs(I) = displs(J) + sendcounts(I)
         if (AM_I_ROOT()) then
-         
+
           var(displs(J):displs(I)-1) =
      &         RESHAPE(global_array(I1:IN,J1:JN),
      &         shape=(/sendcounts(I)/))
@@ -2091,8 +2206,8 @@ C****  convert from real*4 to real*8
       Logical      , allocatable                    :: var(:)
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
       allocate (sendcounts(NPES), displs(0:NPES), stat=status)
 
@@ -2117,8 +2232,8 @@ C****  convert from real*4 to real*8
         displs(I) = displs(J) + sendcounts(I)
         if (AM_I_ROOT()) then
 
-            
-          var(displs(J):displs(I)-1) = 
+
+          var(displs(J):displs(I)-1) =
      &         RESHAPE(global_array(I1:IN,J1:JN),
      &         shape=(/sendcounts(I)/))
 
@@ -2162,8 +2277,8 @@ C****  convert from real*4 to real*8
 
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
 
       allocate (recvcounts(NPES), displs(0:NPES), stat=status)
@@ -2200,8 +2315,8 @@ C****  convert from real*4 to real*8
 
           global_array(I1:IN,J1:JN) =
      &         RESHAPE(var(displs(J):displs(I)-1),
-     &         shape=(/size(local_array,1),
-     &         size(local_array,2)/))
+     &         shape=(/IN-I1+1,
+     &         JN-J1+1/))
         enddo
       endif
       deallocate(VAR, stat=status)
@@ -2231,8 +2346,8 @@ C****  convert from real*4 to real*8
       logical      , allocatable                    :: var(:)
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(e_grid, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(e_grid, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
       allocate (recvcounts(NPES), displs(0:NPES), stat=status)
 
@@ -2268,8 +2383,8 @@ C****  convert from real*4 to real*8
 
           global_array(I1:IN,J1:JN) =
      &         RESHAPE(var(displs(J):displs(I)-1),
-     &         shape=(/size(local_array,1),
-     &         size(local_array,2)/))
+     &         shape=(/IN-I1+1,
+     &         JN-J1+1/))
         enddo
       endif
 
@@ -2282,64 +2397,64 @@ C****  convert from real*4 to real*8
       subroutine Esmf_ArrayGather_J_int(grid, local_array, global_array)
       type (ESMF_Grid)      :: grid
       INTEGER, dimension (:) :: local_array, global_array
-      
+
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
 
-      integer, allocatable, dimension(:)            :: 
+      integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
       integer                                       :: nDEs
       integer                                       :: status
       integer                                       :: sendcount
-      
+
       integer                                       :: I,J
       integer                                       :: NY
       integer                                      :: J1, JN
-      
-      
+
+
       integer, allocatable                    :: var(:)
-      
-      
+
+
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
 
       allocate (recvcounts(NPES), displs(0:NPES), stat=status)
-      
+
       allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
-      
+
       displs(0) = 0
       do I = 1,NPES
         J = I - 1
         J1 = AI(I,2)%min
         JN = AI(I,2)%max
-        
+
         recvcounts(I) = (JN - J1 + 1)
         if (J == MY_PET) then
           sendcount = recvcounts(I)
         endif
         displs(I) = displs(J) + recvcounts(I)
       enddo
-      
-      
+
+
       call MPI_GatherV(local_array,sendcount,MPI_INTEGER,
-     &     var, recvcounts, displs, 
+     &     var, recvcounts, displs,
      &     MPI_INTEGER, root, MPI_COMM_WORLD, status)
-      
+
       if (AM_I_ROOT()) then
         do I = 1,NPES
           J = I - 1
           J1 = AI(I,2)%min
           JN = AI(I,2)%max
-          
+
           global_array(J1:JN) = var(displs(J):displs(I)-1)
         enddo
       endif
-      
+
       deallocate(VAR, stat=status)
       deallocate(recvcounts, displs, stat=status)
       Deallocate(AI)
-      
+
       end subroutine Esmf_ArrayGather_J_int
 
 #endif
@@ -2349,7 +2464,7 @@ C****  convert from real*4 to real*8
       type (DIST_GRID)      :: grd_dum
       real (kind=8), dimension (grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:)               :: global_array
-      
+
 #ifdef USE_ESMF
       Call Gather(grd_dum%ESMF_GRID, local_array, global_array,
      &     shape(local_array), 1)
@@ -2365,9 +2480,9 @@ C****  convert from real*4 to real*8
       type (DIST_GRID)      :: grd_dum
       INTEGER, dimension (grd_dum%J_STRT_HALO:) :: local_array
       INTEGER, dimension (:)               :: global_array
-      
+
 #ifdef USE_ESMF
-      call Esmf_ArrayGather_J_int(grd_dum%ESMF_GRID, 
+      call Esmf_ArrayGather_J_int(grd_dum%ESMF_GRID,
      &     local_array(grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
@@ -2382,7 +2497,7 @@ C****  convert from real*4 to real*8
       type (DIST_GRID)      :: grd_dum
       real (kind=8), dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:,:)               :: global_array
-      
+
 #ifdef USE_ESMF
       Call gather(grd_dum%ESMF_GRID, local_array, global_array,
      &     shape(local_array), 2)
@@ -2436,7 +2551,7 @@ C****  convert from real*4 to real*8
       type (DIST_GRID)      :: grd_dum
       real (kind=8), dimension (grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:)               :: global_array
-      
+
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, global_array, local_array,
      &     shape(local_array), 1)
@@ -2452,9 +2567,9 @@ C****  convert from real*4 to real*8
       type (DIST_GRID)      :: grd_dum
       real (kind=8), dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:,:)               :: global_array
-      
+
 #ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, global_array, local_array, 
+      Call scatter(grd_dum%ESMF_GRID, global_array, local_array,
      &     shape(local_array), 2)
 #else
       local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) = global_array
@@ -2502,13 +2617,13 @@ C****  convert from real*4 to real*8
       subroutine ESMF_GRID_PE_LAYOUT  (GRID, NX, NY)
         type (ESMF_Grid), intent(IN) :: grid
         integer, intent(OUT)         :: NX, NY
-   
+
 
     ! local vars
-   
+
         integer :: counts(2)
         integer :: status
-   
+
         NX = 1
         NY = NPES
 
@@ -2519,12 +2634,12 @@ C****  convert from real*4 to real*8
       subroutine ESMF_GRID_MY_PE_LOC  (GRID,NX0,NY0)
         type (ESMF_Grid), intent(IN) :: grid
         integer, intent(OUT)          :: NX0, NY0
-   
+
     ! local vars
         type (ESMF_DELayout) :: layout
-   
+
         integer :: status
-   
+
         call ESMF_GridGet(grid, delayout=layout, rc=status)
         NX0 = 0
         NY0 = my_pet
@@ -2534,16 +2649,26 @@ C****  convert from real*4 to real*8
     !---------------------------
 #endif
 
-      subroutine WRITE_PARALLEL_INTEGER_0 ( data, UNIT, format)
-        
+      subroutine WRITE_PARALLEL_INTEGER_0 ( data, UNIT, format, CRIT)
+
         INTEGER, intent(in   )            :: data
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: format
-        
-        character(len=ESMF_MAXSTR) :: FORMATTED
-        
+        logical,            intent(in   ), optional  :: CRIT
 
-        if (AM_I_ROOT()) then
+        character(len=ESMF_MAXSTR) :: FORMATTED
+
+        logical :: crit_,crit2_ ! local
+
+        crit_ = .false.
+        crit2_= .false.
+        if (present(CRIT)) then
+          crit_ = crit
+        else
+          crit2_ = AM_I_ROOT()
+        endif
+
+        if (crit_ .or. crit2_) then
            if (present(UNIT)) then
               inquire(unit=UNIT, formatted=FORMATTED)
               if   (FORMATTED == "YES") then
@@ -2558,22 +2683,31 @@ C****  convert from real*4 to real*8
               end if
            end if
         end if
-        
+
         return
-        
+
       end subroutine WRITE_PARALLEL_INTEGER_0
-    
+
     !---------------------------
-      subroutine WRITE_PARALLEL_INTEGER_1 ( data, UNIT, format)
-        
+      subroutine WRITE_PARALLEL_INTEGER_1 ( data, UNIT, format, CRIT)
+
         INTEGER, intent(in   )            :: data (:)
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: format
-        
+        logical,            intent(in   ),  optional :: CRIT
+
         character(len=ESMF_MAXSTR) :: FORMATTED
-        
-        
-        if (AM_I_ROOT()) then
+        logical :: crit_,crit2_ ! local
+
+        crit_ = .false.
+        crit2_= .false.
+        if (present(CRIT)) then
+          crit_ = crit
+        else
+          crit2_ = AM_I_ROOT()
+        endif
+
+        if (crit_ .or. crit2_) then
            if (present(UNIT)) then
               inquire(unit=UNIT, formatted=FORMATTED)
               if   (FORMATTED == "YES") then
@@ -2588,23 +2722,33 @@ C****  convert from real*4 to real*8
               end if
            end if
         end if
-        
+
         return
-        
+
       end subroutine WRITE_PARALLEL_INTEGER_1
-    
+
     !---------------------------
-    
-      subroutine WRITE_PARALLEL_REAL8_0 ( data, UNIT, format)
-        
-        REAL (KIND=8), intent(in   )            :: data 
+
+      subroutine WRITE_PARALLEL_REAL8_0 ( data, UNIT, format, CRIT)
+
+        REAL (KIND=8), intent(in   )            :: data
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: format
-        
+        logical,            intent(in   ),  optional :: CRIT
+
         character(len=ESMF_MAXSTR) :: FORMATTED
-        
-        
-        if (AM_I_ROOT()) then
+
+        logical :: crit_,crit2_ ! local
+
+        crit_ = .false.
+        crit2_= .false.
+        if (present(CRIT)) then
+          crit_ = crit
+        else
+          crit2_ = AM_I_ROOT()
+        endif
+
+        if (crit_ .or. crit2_) then
            if (present(UNIT)) then
               inquire(unit=UNIT, formatted=FORMATTED)
               if   (FORMATTED == "YES") then
@@ -2619,22 +2763,32 @@ C****  convert from real*4 to real*8
               end if
            end if
         end if
-        
+
         return
-        
+
       end subroutine WRITE_PARALLEL_REAL8_0
-    
+
     !---------------------------
-      subroutine WRITE_PARALLEL_REAL8_1 ( data, UNIT, format)
-        
+      subroutine WRITE_PARALLEL_REAL8_1 ( data, UNIT, format, CRIT)
+
         REAL (KIND=8), intent(in   )            :: data(:)
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: format
-        
+        logical,            intent(in   ), optional  :: CRIT
+
         character(len=ESMF_MAXSTR) :: FORMATTED
-        
-        
-        if (AM_I_ROOT()) then
+
+        logical :: crit_,crit2_ ! local
+
+        crit_ = .false.
+        crit2_= .false.
+        if (present(CRIT)) then
+          crit_ = crit
+        else
+          crit2_ = AM_I_ROOT()
+        endif
+
+        if (crit_ .or. crit2_) then
            if (present(UNIT)) then
               inquire(unit=UNIT, formatted=FORMATTED)
               if   (FORMATTED == "YES") then
@@ -2649,19 +2803,29 @@ C****  convert from real*4 to real*8
               end if
            end if
         end if
-        
+
         return
-        
+
       end subroutine WRITE_PARALLEL_REAL8_1
-    
+
     !---------------------------
-    
-      subroutine WRITE_PARALLEL_STRING_0 (STRING, FORMAT, UNIT)
+
+      subroutine WRITE_PARALLEL_STRING_0 (STRING, FORMAT, UNIT, CRIT)
         character(LEN=*), intent(in   )            :: STRING
         character(LEN=*), intent(in   ), optional  :: FORMAT
         integer,          intent(in   ),  optional :: UNIT
-    
-        if (AM_I_ROOT()) then
+        logical,          intent(in   ), optional  :: CRIT
+        logical :: crit_,crit2_ ! local
+
+        crit_ = .false.
+        crit2_= .false.
+        if (present(CRIT)) then
+          crit_ = crit
+        else
+          crit2_ = AM_I_ROOT()
+        endif
+
+        if (crit_ .or. crit2_) then
           if (present(UNIT)) then
             if (present(FORMAT)) then
               write(UNIT, FMT=FORMAT) STRING
@@ -2676,17 +2840,27 @@ C****  convert from real*4 to real*8
             endif
           end if
         end if
-        
+
       end subroutine WRITE_PARALLEL_STRING_0
 
     !---------------------------
-    
-      subroutine WRITE_PARALLEL_STRING_1 (STRING, FORMAT, UNIT)
+
+      subroutine WRITE_PARALLEL_STRING_1 (STRING, FORMAT, UNIT, CRIT)
         character(LEN=*), intent(in   )            :: STRING(:)
         character(LEN=*), intent(in   ), optional  :: FORMAT
         integer,          intent(in   ),  optional :: UNIT
-    
-        if (AM_I_ROOT()) then
+        logical,          intent(in   ), optional  :: CRIT
+        logical :: crit_,crit2_ ! local
+
+        crit_ = .false.
+        crit2_= .false.
+        if (present(CRIT)) then
+          crit_ = crit
+        else
+          crit2_ = AM_I_ROOT()
+        endif
+
+        if (crit_ .or. crit2_) then
           if (present(UNIT)) then
             if (present(FORMAT)) then
               write(UNIT, FMT=FORMAT) STRING
@@ -2701,13 +2875,13 @@ C****  convert from real*4 to real*8
             endif
           end if
         end if
-        
+
       end subroutine WRITE_PARALLEL_STRING_1
 
     !---------------------------
 
       subroutine READ_PARALLEL_INTEGER_0 ( DATA, UNIT, FORMAT)
-    ! Wrapper for ESMF_READ_PARALLEL_INTEGER_0    
+    ! Wrapper for ESMF_READ_PARALLEL_INTEGER_0
 
         integer, intent(out  )                       :: DATA
         integer,            intent(in   ),  optional :: UNIT
@@ -2723,31 +2897,31 @@ C****  convert from real*4 to real*8
 
     !---------------------------
       subroutine ESMF_READ_PARALLEL_INTEGER_0(layout,DATA,UNIT,FORMAT)
-    
+
         type (ESMF_DELayout)                         :: layout
         integer, intent(out  )                       :: DATA
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: FORMAT
-    
+
         character(len=ESMF_MAXSTR) :: FORMATTED
         character(LEN=ESMF_MAXSTR) :: FILENAME
         logical                :: IS_NAMED
         integer                :: IOSTAT
         integer                :: status
-    
+
         if (ESMF_AM_I_ROOT(layout)) then
            if (present(UNIT)) then
               inquire(unit=UNIT, formatted=FORMATTED)
               if   (FORMATTED == "YES") then
-                 if (present(FORMAT)) then 
+                 if (present(FORMAT)) then
                     read(UNIT, FORMAT, IOSTAT=IOSTAT) DATA
-                 else    
+                 else
                     read(UNIT, *, IOSTAT=IOSTAT) DATA
                  end if
-              elseif(FORMATTED == "NO") then 
+              elseif(FORMATTED == "NO") then
                  read(UNIT,       IOSTAT=IOSTAT) DATA
               end if
-    
+
               if (IOSTAT < 0) then
                  inquire(unit=UNIT, NAMED=IS_NAMED, NAME=FILENAME)
                  if (IS_NAMED) then
@@ -2764,22 +2938,22 @@ C****  convert from real*4 to real*8
               end if
            end if
         end if
-      
+
 #ifdef USE_ESMF
-        CALL MPI_BCAST(data, 1, MPI_INTEGER, root, 
+        CALL MPI_BCAST(data, 1, MPI_INTEGER, root,
      &       MPI_COMM_WORLD, status)
 #endif
-    
+
         return
  9999 continue
         call exit_rc(99)
       END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_0
 
     !---------------------------
-    
+
       subroutine READ_PARALLEL_INTEGER_1 ( DATA, UNIT, FORMAT)
-    ! Wrapper for ESMF_READ_PARALLEL_INTEGER_1    
-    
+    ! Wrapper for ESMF_READ_PARALLEL_INTEGER_1
+
         integer, intent(out  )                       :: DATA(:)
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: FORMAT
@@ -2794,31 +2968,31 @@ C****  convert from real*4 to real*8
 
     !---------------------------
       subroutine ESMF_READ_PARALLEL_INTEGER_1(layout,DATA,UNIT,FORMAT)
-    
+
         type (ESMF_DELayout)                         :: layout
         integer, intent(out  )                       :: DATA(:)
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: FORMAT
-    
+
         character(len=ESMF_MAXSTR) :: FORMATTED
         character(LEN=ESMF_MAXSTR) :: FILENAME
         logical                :: IS_NAMED
         integer                :: IOSTAT
         integer                :: status
-    
+
         if (ESMF_AM_I_ROOT(layout)) then
            if (present(UNIT)) then
               inquire(unit=UNIT, formatted=FORMATTED)
               if   (FORMATTED == "YES") then
-                 if (present(FORMAT)) then 
+                 if (present(FORMAT)) then
                     read(UNIT, FORMAT, IOSTAT=IOSTAT) DATA
-                 else    
+                 else
                     read(UNIT, *, IOSTAT=IOSTAT) DATA
                  end if
-              elseif(FORMATTED == "NO") then 
+              elseif(FORMATTED == "NO") then
                  read(UNIT,       IOSTAT=IOSTAT) DATA
               end if
-    
+
               if (IOSTAT < 0) then
                  inquire(unit=UNIT, NAMED=IS_NAMED, NAME=FILENAME)
                  if (IS_NAMED) then
@@ -2835,22 +3009,22 @@ C****  convert from real*4 to real*8
               end if
            end if
         end if
-      
+
 #ifdef USE_ESMF
-        CALL MPI_BCAST(data, size(data), MPI_INTEGER, root, 
+        CALL MPI_BCAST(data, size(data), MPI_INTEGER, root,
      &       MPI_COMM_WORLD, status)
 #endif
-    
+
         return
  9999 continue
         call exit_rc(99)
       END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_1
 
     !---------------------------
-    
+
       subroutine READ_PARALLEL_REAL8_1 ( DATA, UNIT, FORMAT)
     ! Wrapper for READ_PARALLEL_REAL8_1
-    
+
         real(kind=8),       intent(out  )            :: DATA(:)
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: FORMAT
@@ -2864,33 +3038,33 @@ C****  convert from real*4 to real*8
       END SUBROUTINE READ_PARALLEL_REAL8_1
 
     !---------------------------
-    
+
       subroutine ESMF_READ_PARALLEL_REAL8_1 (layout,DATA,UNIT,FORMAT)
-    
+
         type (ESMF_DELayout)                         :: layout
         real(kind=8),       intent(out  )            :: DATA(:)
         integer,            intent(in   ),  optional :: UNIT
         character(len=*),   intent(in   ),  optional :: FORMAT
-    
+
         character(len=ESMF_MAXSTR) :: FORMATTED
         character(LEN=ESMF_MAXSTR) :: FILENAME
         logical                :: IS_NAMED
         integer                :: IOSTAT
         integer                :: status
-    
+
         if (ESMF_AM_I_ROOT(layout)) then
            if (present(UNIT)) then
               inquire(unit=UNIT, formatted=FORMATTED)
               if   (FORMATTED == "YES") then
-                 if (present(FORMAT)) then 
+                 if (present(FORMAT)) then
                     read(UNIT, FORMAT, IOSTAT=IOSTAT) DATA
-                 else    
+                 else
                     read(UNIT, *, IOSTAT=IOSTAT) DATA
                  end if
-              elseif(FORMATTED == "NO") then 
+              elseif(FORMATTED == "NO") then
                  read(UNIT,       IOSTAT=IOSTAT) DATA
               end if
-    
+
               if (IOSTAT < 0) then
                  inquire(unit=UNIT, NAMED=IS_NAMED, NAME=FILENAME)
                  if (IS_NAMED) then
@@ -2907,12 +3081,12 @@ C****  convert from real*4 to real*8
               end if
            end if
         end if
-      
+
 #ifdef USE_ESMF
-        CALL MPI_BCAST(data, Size(data), MPI_DOUBLE_PRECISION, root, 
+        CALL MPI_BCAST(data, Size(data), MPI_DOUBLE_PRECISION, root,
      &       MPI_COMM_WORLD, status)
 #endif
-    
+
         return
  9999 continue
         call exit_rc(99)
@@ -2929,19 +3103,19 @@ C****  convert from real*4 to real*8
     ! local vars
         integer :: deId
         integer :: status
-   
+
         type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
 
         Allocate(AI(1:NPES,3))
-        call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, AI, 
-     &       horzRelLoc=ESMF_CELL_CENTER, 
+        call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, AI,
+     &       horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
         deId = ESMF_GRID_PE_NUM_FM_PE_LOC(grid%ESMF_GRID, X_LOC, Y_LOC)
-   
+
 
     ! AI uses 1-based index for deId
         deId = deId + 1
-   
+
         I1 = AI(deId,1)%min
         IN = AI(deId,1)%max
         J1 = AI(deId,2)%min
@@ -2991,9 +3165,9 @@ C****  convert from real*4 to real*8
 
     !---------------------------
 
-      function ESMF_GRID_PE_NUM_FM_PE_LOC ( 
-     &  GRID                              , 
-     &  X_LOC                             , 
+      function ESMF_GRID_PE_NUM_FM_PE_LOC (
+     &  GRID                              ,
+     &  X_LOC                             ,
      &  Y_LOC                             ) result (deId)
         type (ESMF_GRID), intent(in ) :: GRID
         integer           , intent(in ) :: X_LOC
@@ -3023,14 +3197,14 @@ C****  convert from real*4 to real*8
       subroutine ESMF_GRID_WORLD(GRID,IM_WORLD,JM_WORLD)
         type (ESMF_Grid), intent(IN) :: grid
         integer, intent(OUT)         :: IM_WORLD, JM_WORLD
-    
+
 ! local vars
         integer status
         integer, dimension(ESMF_MAXGRIDDIM) :: dims
 
         call ESMF_GridGet(grid, horzRelLoc=ESMF_CELL_CENTER,
      &     globalcellcountperdim=dims, rc=status)
-   
+
         IM_WORLD = dims(1)
         JM_WORLD = dims(2)
 
@@ -3044,7 +3218,7 @@ C****  convert from real*4 to real*8
       subroutine ESMF_DELayoutBarrier(layout, rc)
       type (ESMF_DELayout) :: layout
       integer, optional  :: rc
-      
+
       integer :: status
 
 #ifdef USE_ESMF
@@ -3053,7 +3227,7 @@ C****  convert from real*4 to real*8
          rc = ESMF_SUCCESS
       endif
 #endif
-      
+
       end subroutine ESMF_DELayoutBarrier
 
 #ifndef USE_ESMF
@@ -3081,17 +3255,17 @@ C****  convert from real*4 to real*8
          WRITE(CHECKSUM_UNIT,*)'HERE: ',file, line
          CALL SYS_FLUSH(CHECKSUM_UNIT)
        End If
-#ifdef USE_ESMF       
+#ifdef USE_ESMF
        ALLOCATE(lines(npes))
-       Call MPI_Allgather(line, 1, MPI_INTEGER, lines, 1, MPI_INTEGER, 
+       Call MPI_Allgather(line, 1, MPI_INTEGER, lines, 1, MPI_INTEGER,
      &      MPI_COMM_WORLD, ier)
-       If (Any(lines /= line)) 
+       If (Any(lines /= line))
      &      call stop_model('HERE: synchronization error -severe.',255)
        Deallocate(lines)
 #endif
 #endif
 #ifdef USE_ESMF
-      CALL MPI_Barrier(MPI_COMM_WORLD, ier)
+      CALL MPI_BARRIER(MPI_COMM_WORLD, ier)
 #endif
       END SUBROUTINE HERE
 
@@ -3139,12 +3313,12 @@ C****  convert from real*4 to real*8
       INTEGER  :: ier
 
 #ifdef USE_ESMF
-      CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 
+      CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION,MPI_MAX,
      &     MPI_COMM_WORLD, ier)
 #else
       val_max = val
 #endif
-        
+
       END SUBROUTINE
 
       SUBROUTINE GLOBALMAX_I(grd_dum, val, val_max)
@@ -3156,12 +3330,12 @@ C****  convert from real*4 to real*8
       INTEGER  :: ier
 
 #ifdef USE_ESMF
-      CALL MPI_Allreduce(val, val_max, 1, MPI_INTEGER, MPI_MAX, 
+      CALL MPI_Allreduce(val, val_max, 1, MPI_INTEGER, MPI_MAX,
      &     MPI_COMM_WORLD, ier)
 #else
       val_max = val
 #endif
-        
+
       END SUBROUTINE
 
       SUBROUTINE PACK_1D(grd_dum,ARR,ARR_GLOB)
@@ -3172,15 +3346,27 @@ C****  convert from real*4 to real*8
      &        ARR(grd_dum%j_strt_halo:)
       REAL*8, INTENT(OUT) :: ARR_GLOB(grd_dum%JM_WORLD)
 
-#ifdef USE_ESMF      
+#ifdef USE_ESMF
       Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 1)
 #else
       arr_glob = arr(grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
- 
+
       RETURN
       END SUBROUTINE PACK_1D
- 
+
+      SUBROUTINE IPACK_1D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) ::
+     &        ARR(grd_dum%j_strt_halo:)
+      INTEGER, INTENT(OUT) :: ARR_GLOB(grd_dum%JM_WORLD)
+
+      CALL ARRAYGATHER(grd_dum,ARR,ARR_GLOB)
+
+      RETURN
+      END SUBROUTINE IPACK_1D
 
       SUBROUTINE PACK_2D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
@@ -3198,6 +3384,19 @@ C****  convert from real*4 to real*8
 
       RETURN
       END SUBROUTINE PACK_2D
+
+      SUBROUTINE IPACK_2D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER, INTENT(INOUT) :: ARR_GLOB(:,:)
+
+      Call arrayGather(grd_dum, arr, arr_glob)
+
+      RETURN
+      END SUBROUTINE IPACK_2D
 
       SUBROUTINE LPACK_2D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
@@ -3335,7 +3534,7 @@ C****  convert from real*4 to real*8
      &        ARR(grd_dum%j_strt_halo:)
       INTEGER :: J_0, J_1
 
-#ifdef USE_ESMF 
+#ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 1)
 #else
       arr(grd_dum%J_STRT:grd_dum%J_STOP)=arr_glob
@@ -3343,7 +3542,7 @@ C****  convert from real*4 to real*8
 
       RETURN
       END SUBROUTINE UNPACK_1D
-      
+
 
       SUBROUTINE UNPACK_2D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
@@ -3361,8 +3560,33 @@ C****  convert from real*4 to real*8
       arr(:,grd_dum%J_STRT:grd_dum%J_STOP)=arr_glob
 #endif
 
-      RETURN 
+      RETURN
       END SUBROUTINE UNPACK_2D
+
+      SUBROUTINE IUNPACK_2D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) :: ARR_GLOB(:,:)
+      INTEGER, INTENT(OUT) ::
+     &        ARR(:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1
+      LOGICAL, OPTIONAL :: local
+
+      if (present(local)) then
+        if (local) then
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,J_0:J_1)=ARR_GLOB(:,J_0:J_1)
+        else
+            call arrayscatter(grd_dum, arr(:,:), arr_glob(:,:))
+        end if
+      else
+          call arrayscatter(grd_dum, arr(:,:), arr_glob(:,:))
+      end if
+
+      RETURN
+      END SUBROUTINE IUNPACK_2D
 
       SUBROUTINE LUNPACK_2D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
@@ -3476,7 +3700,7 @@ C****  convert from real*4 to real*8
      &        ARR(grd_dum%j_strt_halo:,:)
       INTEGER :: J_0, J_1
       LOGICAL, OPTIONAL :: local
-      
+
       LOGICAL :: local_
       INTEGER :: k
 
@@ -3486,7 +3710,7 @@ C****  convert from real*4 to real*8
       arr(grd_dum%J_STRT:grd_dum%J_STOP,:)=arr_glob
 #endif
 
-      RETURN 
+      RETURN
       END SUBROUTINE UNPACKj_2D
 
       SUBROUTINE UNPACKj_3D(grd_dum,ARR_GLOB,ARR,local)
@@ -3497,7 +3721,7 @@ C****  convert from real*4 to real*8
       REAL*8, INTENT(OUT) ::
      &        ARR(grd_dum%j_strt_halo:,:,:)
       LOGICAL, OPTIONAL :: local
-      
+
       INTEGER :: k
 
 #ifdef USE_ESMF
@@ -3506,7 +3730,7 @@ C****  convert from real*4 to real*8
       arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:)=arr_glob
 #endif
 
-      RETURN 
+      RETURN
       END SUBROUTINE UNPACKj_3D
 
       SUBROUTINE UNPACKj_4D(grd_dum,ARR_GLOB,ARR,local)
@@ -3517,7 +3741,7 @@ C****  convert from real*4 to real*8
       REAL*8, INTENT(OUT) ::
      &        ARR(grd_dum%j_strt_halo:,:,:,:)
       LOGICAL, OPTIONAL :: local
-      
+
       INTEGER :: k
 
 #ifdef USE_ESMF
@@ -3526,7 +3750,7 @@ C****  convert from real*4 to real*8
       arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=arr_glob
 #endif
 
-      RETURN 
+      RETURN
       END SUBROUTINE UNPACKj_4D
 
 C*** Overloaded PACK_COLUMN routines:
@@ -3545,10 +3769,10 @@ C------------------------------------
 #else
       arr_glob=arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
- 
+
       RETURN
       END SUBROUTINE PACK_COLUMN_1D
- 
+
 
       SUBROUTINE PACK_COLUMN_2D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
@@ -3600,7 +3824,7 @@ C------------------------------------
 #else
       arr_glob=arr(:,:,grd_dum%J_STRT:grd_dum%J_STOP,:)
 #endif
-      
+
       RETURN
       END SUBROUTINE PACK_COLUMN_3D
 
@@ -3615,7 +3839,7 @@ C--------------------------------------
      &        ARR(:,grd_dum%j_strt_halo:)
       INTEGER :: J_0, J_1, K
       LOGICAL, OPTIONAL :: local
- 
+
       if (present(local)) then
         if (local) then
           J_0=grd_dum%j_strt
@@ -3634,7 +3858,7 @@ C--------------------------------------
 
       RETURN
       END SUBROUTINE UNPACK_COLUMN_1D
-      
+
 
       SUBROUTINE UNPACK_COLUMN_2D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
@@ -3662,7 +3886,7 @@ C--------------------------------------
         end do
       end if
 
-      RETURN 
+      RETURN
       END SUBROUTINE UNPACK_COLUMN_2D
 
       SUBROUTINE IUNPACK_COLUMN_2D(grd_dum,ARR_GLOB,ARR,local)
@@ -3774,7 +3998,7 @@ C--------------------------------------
       REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:,:)
       INTEGER :: K,L,M
 
-      DO M=1,SIZE(ARR,5) 
+      DO M=1,SIZE(ARR,5)
         DO L=1,SIZE(ARR,2)
           DO K=1,SIZE(ARR,1)
             CALL ARRAYGATHER(grd_dum,ARR(K,L,:,:,M),ARR_GLOB(K,L,:,:,M))
@@ -4209,8 +4433,8 @@ C--------------------------------
       END DO
 
       ALLOCATE(AI(0:npes-1,3))
-      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
 
       DO p = 0, npes - 1
@@ -4239,7 +4463,7 @@ C--------------------------------
                   rbuf(icnt) = X_out(i,j,k)
                END DO
             END DO
-         ELSE            
+         ELSE
             DO j = J0(my_pet), J1(my_pet)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
@@ -4265,7 +4489,7 @@ C--------------------------------
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        MPI_COMM_WORLD, ier)
       End If
-      
+
       icnt = 0
       DO p = 0, npes - 1
         Do k = 1, nk
@@ -4286,7 +4510,7 @@ C--------------------------------
          End If
        END DO
       END DO
-         
+
       DEALLOCATE(sbuf)
       DEALLOCATE(rbuf)
 #endif
@@ -4328,7 +4552,7 @@ C--------------------------------
 
       ALLOCATE(AI(0:npes-1,3))
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
 
       DO p = 0, npes - 1
@@ -4365,8 +4589,8 @@ C--------------------------------
          END IF
          nip = I1(p) - I0(p) + 1
          njp = J1(p) - J0(p) + 1
-         scnts(p) = nj_loc * nip 
-         rcnts(p) = ni_loc * njp 
+         scnts(p) = nj_loc * nip
+         rcnts(p) = ni_loc * njp
          If (p > 0) sdspl(p) = sdspl(p-1) + scnts(p-1)
          If (p > 0) rdspl(p) = rdspl(p-1) + rcnts(p-1)
       END DO
@@ -4445,8 +4669,8 @@ C--------------------------------
       END DO
 
       ALLOCATE(AI(0:npes-1,3))
-      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
 
       DO p = 0, npes - 1
@@ -4476,7 +4700,7 @@ C--------------------------------
                   rbuf(:,icnt) = X_tr(:,i,j,k)
                END DO
             END DO
-         ELSE            
+         ELSE
             DO j = J0(my_pet), J1(my_pet)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
@@ -4502,7 +4726,7 @@ C--------------------------------
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        MPI_COMM_WORLD, ier)
       End If
-      
+
       icnt = 0
       DO p = 0, npes - 1
         Do k = 1, nk
@@ -4523,7 +4747,7 @@ C--------------------------------
          End If
        END DO
       END DO
-         
+
       DEALLOCATE(sbuf)
       DEALLOCATE(rbuf)
 #endif
@@ -4531,34 +4755,34 @@ C--------------------------------
       END SUBROUTINE TRANSPOSE_COLUMN
 
 #ifdef USE_ESMF
-      Function CreateDist_MPI_Type(base_type, counts, dist_idx) 
+      Function CreateDist_MPI_Type(base_type, counts, dist_idx)
      &     Result(new_type)
       Integer, Intent(In) :: base_type
       Integer, Intent(In) :: counts(:)
       Integer, Intent(In) :: dist_idx
       Integer :: new_type
-      
+
       Integer :: stride, n_blocks, blocklen
       Integer :: ext_lb
       Integer :: base_byte_len, new_len
       Integer :: vtype1, vtype2
       Integer :: ier
-      
+
       n_blocks = Product(counts(dist_idx+1:))
       blocklen = Product(counts(:dist_idx-1))
       stride = counts(dist_idx) * blocklen
-      
-      Call MPI_Type_vector(n_blocks, blocklen, stride, base_type, 
+
+      Call MPI_Type_vector(n_blocks, blocklen, stride, base_type,
      &     vtype1, ier)
       Call MPI_Type_extent(base_type, base_byte_len, ier)
       new_len = base_byte_len * blocklen
-      Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /), 
+      Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /),
      &     (/ vtype1, MPI_UB /), vtype2, ier)
       Call MPI_Type_Free(vtype1, ier)
 
       Call MPI_Type_Commit(vtype2, ier)
       new_type = vtype2
-      
+
       End Function CreateDist_MPI_Type
 
       Subroutine GetNeighbors(rank, npes, pe_south, pe_north)
@@ -4566,13 +4790,13 @@ C--------------------------------
       Integer, Intent(In)  :: npes
       Integer, Intent(Out) :: pe_south
       Integer, Intent(Out) :: pe_north
-      
+
       If (rank > 0) Then
         pe_south = rank - 1
       Else
         pe_south = MPI_PROC_NULL
       End If
-      
+
       If (rank < npes-1) Then
         pe_north = rank + 1
       Else
@@ -4607,7 +4831,7 @@ C--------------------------------
 
       ! Determine neigboring processes
       !-------------------------------
-      call ESMF_GRID_MY_PE_LOC(grid,  px,  py) 
+      call ESMF_GRID_MY_PE_LOC(grid,  px,  py)
       call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
       Call GetNeighbors(py, npy, pe_south, pe_north)
 
@@ -4657,8 +4881,8 @@ C--------------------------------
 
 
       Allocate(AI(NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
-     &     horzRelLoc=ESMF_CELL_CENTER, 
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=ier)
 
       allocate (rcounts(NPES), displs(NPES), stat=ier)
@@ -4685,15 +4909,15 @@ C--------------------------------
 
       Do i = 1, n_its
       If (all_) Then
-        Call MPI_AllGatherV(arr_loc(offset), scount, orig_type, 
-     &       arr_glob(1), rcounts, displs, new_type, 
+        Call MPI_AllGatherV(arr_loc(offset), scount, orig_type,
+     &       arr_glob(1), rcounts, displs, new_type,
      &       MPI_COMM_WORLD, ier)
       Else
-        Call MPI_GatherV(arr_loc(offset), scount, orig_type, 
-     &       arr_glob(1), rcounts, displs, new_type, 
+        Call MPI_GatherV(arr_loc(offset), scount, orig_type,
+     &       arr_glob(1), rcounts, displs, new_type,
      &       root, MPI_COMM_WORLD, ier)
       End If
-c***      print*,expensive(arr_loc(offset))
+
       End Do
 
       Call MPI_Type_Free(new_type, ier)
@@ -4702,20 +4926,6 @@ c***      print*,expensive(arr_loc(offset))
       Call MPI_Type_Free(orig_type, ier)
 
       End SUBROUTINE gather
-
-      Function expensive(x)
-      Real*8 :: x, expensive
-
-      Integer :: i
-      
-      Real*8 :: y,s
-      s = 0
-      Do i = 1, 3000
-        Call Random_Number(y)
-        s = s + y
-      End Do
-      expensive = s
-      End Function expensive
 
       Subroutine scatter(grid, arr_glob, arr_loc, shp, dist_idx)
       Type (Esmf_Grid) :: grid
@@ -4736,7 +4946,7 @@ c***      print*,expensive(arr_loc(offset))
 
 
       Allocate(AI(NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
      &   horzRelLoc=ESMF_CELL_CENTER, vertRelLoc=ESMF_CELL_CELL, rc=ier)
 
       allocate (scounts(NPES), displs(NPES), stat=ier)
@@ -4760,7 +4970,6 @@ c***      print*,expensive(arr_loc(offset))
       Call MPI_ScatterV(arr_glob(1), scounts, displs, orig_type,
      &     arr_loc(offset), rcount, new_type,
      &     root, MPI_COMM_WORLD, ier)
-c***      print*,expensive(arr_loc(offset))
 
       Call MPI_Type_Free(new_type, ier)
       Call MPI_Type_Free(orig_type, ier)

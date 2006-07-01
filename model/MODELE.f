@@ -32,7 +32,8 @@ CAOO   Just to test CVS
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
-     &     ,DISSIP,FILTER,CALC_AMPK
+     &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+     &     ,COMPUTE_WSAVE, getTotalEnergy, addEnergyAsDiffuseHeat
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -49,6 +50,7 @@ CAOO   Just to test CVS
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       integer :: iflag=1
       external sig_stop_model
+
 C**** Command line options
       LOGICAL :: qcrestart=.false.
       CHARACTER*32 :: ifile
@@ -59,6 +61,10 @@ C**** Command line options
       Type (FV_CORE) :: fv
 #endif
       integer :: tloopcurrent
+      integer :: L
+      integer :: c0, crate
+      real*8 :: time_rate
+      real*8 :: initialTotalEnergy, finalTotalEnergy
 
         call init_app(grid,im,jm,lm)
         call alloc_drv()
@@ -89,8 +95,11 @@ C****
 C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE.and.Kradia.le.0) then ! includes ISTART<1 case
-        call aPERIOD (JMON0,JYEAR0,months,1,0, acc_period,Ldate)
-        call print_diags(1)
+        if (ItimeE.gt.0) then
+          months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+          call aPERIOD (JMON0,JYEAR0,months,1,0, acc_period,Ldate)
+        end if
+        call print_diags(0)
         CALL stop_model ('The run has already completed',13)
         ! no output files are affected
       END IF
@@ -122,7 +131,8 @@ C**** INITIALIZE TIME PARAMETERS
       end if
       CALL UPDTYPE
 
-      WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
+      if (AM_I_ROOT())
+     *   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
      *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
      *   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
@@ -151,13 +161,18 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopcurrent)
-      tloopbegin=tloopcurrent/100.d0
+      call system_clock(c0, crate)
+      time_rate=crate
+      tloopbegin=tloopcurrent/time_rate
       DO WHILE (Itime.lt.ItimeE)
+
+c$$$         call test_save(__LINE__, itime)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternately onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
+         iu_RSF=-1
          IF (AM_I_ROOT())
      *        call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
          call io_rsf(iu_RSF,Itime,iowrite,ioerr)
@@ -165,7 +180,8 @@ C**** write restart information alternately onto 2 disk files
 #ifdef USE_FVCORE
          call Checkpoint(fv, clock)
 #endif
-         WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
+         if (AM_I_ROOT())
+     *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
          KDISK=3-KDISK
@@ -206,13 +222,43 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
-      CALL DYNAM
+
+      PTOLD = P ! save for clouds
+C**** Initialize mass fluxes used by tracers and Q
+      PS (:,:)   = P(:,:)
+
+C**** Initialise total energy (J/m^2)
+      initialTotalEnergy = getTotalEnergy()
+
 #ifndef USE_FVCORE
+      CALL DYNAM()
 #else
       ! Using FV instead
+         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
       CALL Run(fv, clock)
-
+         IF (MOD(Itime-ItimeI,NDAA).eq.0) THEN
+           CALL DIAGA
+           CALL DIAGB
+           CALL EPFLUX (U,V,T,P)
+         ENDIF
 #endif
+C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
+C**** Currently energy is put in uniformly weighted by mass
+      finalTotalEnergy = getTotalEnergy()
+      call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
+      call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
+      SD_CLOUDS(:,:,:) = CONV(:,:,:)
+      call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+C**** Scale WM mixing ratios to conserve liquid water
+!$OMP  PARALLEL DO PRIVATE (L)
+      DO L=1,LS1-1
+        WM(:,:,L)=WM(:,:,L)* (PTOLD/P)
+      END DO
+!$OMP  END PARALLEL DO
+
+
+
+
       CALL CHECKT ('DYNAM1')
       CALL QDYNAM  ! Advection of Q by integrated fluxes
       CALL CHECKT ('DYNAM2')
@@ -424,6 +470,7 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          END IF
          CALL TIMER (MNOW,MELSE)
       END IF
+
 C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****
@@ -431,7 +478,7 @@ C****
 C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
         acc_period='PARTIAL      '
-        call print_diags(2)
+        call print_diags(1)
         NIPRNT=NIPRNT-1
         call set_param( "NIPRNT", NIPRNT, 'o' )
       END IF
@@ -446,7 +493,7 @@ C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
       call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
       acc_period=aDATE(1:12)
       WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
-      if (kradia.le.0) call print_diags(3)
+      if (kradia.le.0) call print_diags(0)
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -484,11 +531,11 @@ C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (MNOW,MDIAG)
-        TOTALT=.01*(MNOW-MSTART)      ! in seconds
         DO M=1,NTIMEACC
-          PERCENT(M) = TIMING(M)/(TOTALT+.00001)
+          PERCENT(M) = 100d0*TIMING(M)/(MNOW-MSTART+.00001)
         END DO
-        DTIME = NDAY*TOTALT/(60.*(Itime-Itime0))  ! minutes/day
+        TOTALT=(MNOW-MSTART)/(60.*time_rate)      ! in minutes
+        DTIME = NDAY*TOTALT/(Itime-Itime0)        ! minutes/day
         WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         TIMING = 0
@@ -521,10 +568,15 @@ C**** Flag to continue run has been turned off
          EXIT
       END IF
 
+c$$$      call test_save(__LINE__, itime-1)
+
       END DO
+
       call gettime(tloopcurrent)
-      tloopend=tloopcurrent/100.d0
-      print *, "Time spent in the main loop in seconds:", tloopend
+      tloopend=tloopcurrent/time_rate
+      if (AM_I_ROOT())
+     *     write(*,*) "Time spent in the main loop in seconds:",
+     *     tloopend-tloopbegin
 C****
 C**** END OF MAIN LOOP
 C****
@@ -539,9 +591,11 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
 #ifdef USE_FVCORE
          call Finalize(fv, clock)
 #endif
+      if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
      *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+      end if
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       IF (AM_I_ROOT())
@@ -579,6 +633,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
      &     ,do_polefix
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
@@ -638,9 +693,11 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
          CSDRAGL(L) = C_SDRAG + max( 0.d0 , (X_SDRAG(1)-C_SDRAG) *
      *     LOG(P_CSDRAG/(PTOP+PSFMPT*SIG(L))) / LOG(P_CSDRAG/P_SDRAG) )
       END DO
-      WRITE(6,*) "Levels for  LSDRAG =",LSDRAG ,"->",LM
-      WRITE(6,*) "Levels for LPSDRAG =",LPSDRAG,"->",LM," near poles"
-      WRITE(6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)
+      if (AM_I_ROOT()) then
+         WRITE(6,*) "Levels for  LSDRAG =",LSDRAG ,"->",LM
+         WRITE(6,*) "Levels for LPSDRAG =",LPSDRAG,"->",LM," near poles"
+         WRITE(6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)
+      end if
 
 C**** Determine if FLTRUV is called.
       QUVfilter = .false.
@@ -706,15 +763,21 @@ C****
      *     ,mchem
 #endif
 #endif
+#ifdef TRACERS_AMP
+      USE AERO_CONFIG
+      USE AERO_COAG  
+      USE AERO_INIT  
+      USE AERO_SUBS  
+      USE AERO_NPF  
+#endif
       USE DIAG_COM, only : acc_period,monacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
      &  ,egcm,w2gcm,tgvavg,qgavg
       USE LAKES_COM, only : flake
-      USE FLUXES, only : gtemp   ! tmp. fix
       USE SOIL_DRV, only: init_gh
-      USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL
+      USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL, AM_I_ROOT
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
@@ -834,57 +897,66 @@ C****
 C**** Print Header and Label (2 lines) from rundeck
 C****
       call openunit(trim(ifile),iu_IFILE,.false.,.true.)
-      WRITE (6,'(A,40X,A/)') '0','GISS CLIMATE MODEL'
+      if (AM_I_ROOT()) WRITE (6,'(A,40X,A/)') '0','GISS CLIMATE MODEL'
       READ(iu_IFILE,'(A80)') XLABEL(1:80),NLREC
       NOFF=0
       IF (XLABEL(73:80).EQ.'        ') NOFF=8   ! for 72-column rundecks
       XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
-      WRITE (6,'(A,A/)') '0',XLABEL
+      if (AM_I_ROOT()) WRITE (6,'(A,A/)') '0',XLABEL
       RLABEL = XLABEL !@var RLABEL rundeck-label
+      IF(AM_I_ROOT()) THEN
 C****
 C**** Print preprocessing options (if any are defined)
 C****
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      write(6,*) 'This program includes tracer code'
+      if (AM_I_ROOT()) write(6,*) 'This program includes tracer code'
 #endif
 #ifdef TRACERS_WATER
-      write(6,*) '...and water tracer code'
+      if (AM_I_ROOT()) write(6,*) '...and water tracer code'
 #ifndef TRACERS_ON
       call stop_model(
      &    ' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
 #endif
 #endif
 #ifdef TRACERS_OCEAN
-      write(6,*) '...and ocean tracer code'
+      if (AM_I_ROOT()) write(6,*) '...and ocean tracer code'
 #endif
 #ifdef TRACERS_SPECIAL_O18
-      write(6,*) '...and water isotope code'
+      if (AM_I_ROOT()) write(6,*) '...and water isotope code'
 #ifndef TRACERS_WATER
       call stop_model('Water isotope tracers need TRACERS_WATER '//
      *     'as well as TRACERS_SPECIAL_O18',255)
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      write(6,*) '...and Jean/David tracers and chemistry'
+      if (AM_I_ROOT())
+     *     write(6,*) '...and Jean/David tracers and chemistry'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      write(6,*) '...and Drew Shindell tracers and chemistry'
+      if (AM_I_ROOT())
+     *     write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      write(6,*) '...and Dorothy Koch aerosols'
+      if (AM_I_ROOT()) write(6,*) '...and Dorothy Koch aerosols'
 #endif
 #ifdef TRACERS_DRYDEP
-      write(6,*) '...and tracer dry deposition'
+      if (AM_I_ROOT()) write(6,*) '...and tracer dry deposition'
 #endif
 #ifdef EDGAR_HYDE_SOURCES
-      write(6,*) '...and EDGAR HYDE sources instead of GISS'
+      if (AM_I_ROOT()) write(6,*)
+     *     '...and EDGAR HYDE sources instead of GISS'
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-      write(6,*) '...and Drew Shindell stratospheric chemistry'
+      if (AM_I_ROOT())
+     & write(6,*) '...and Drew Shindell stratospheric chemistry'
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+      write(6,*) '...and Drew Shindell extra strat tracers'
 #endif
 #ifdef regional_Ox_tracers
-      write(6,*) '...and regional Ox tracers'
+      if (AM_I_ROOT()) write(6,*) '...and regional Ox tracers'
 #endif
+      ENDIF ! AM_I_ROOT()
 C****
 C**** Read parameters from the rundeck to database and namelist
 C****
@@ -947,7 +1019,8 @@ C****
 
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (YearI.lt.0) then
-        WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
+        IF (AM_I_ROOT())
+     *   WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
         call stop_model('INPUT: yearI not provided',255)
       END IF
       IF (Iyear1.lt.0) Iyear1 = yearI
@@ -956,14 +1029,17 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       ITimeI = IhrI*NDAY/HR_IN_DAY ! internal clock counts DTsrc-steps
       Itime=ItimeI
       IF (IhrI.lt.0) then
-        WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;',
-     *     ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
+        IF (AM_I_ROOT())
+     *  WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;',
+     *  ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
         call stop_model(
      &       'INPUT: Improper start date or base year Iyear1',255)
       END IF
 C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
       IF (SIGE(LS1).ne.0.) then
-        write(6,*) 'bad vertical layering: ls1,sige(ls1)',ls1,sige(ls1)
+        if (AM_I_ROOT())
+     *       write(6,*) 'bad vertical layering: ls1,sige(ls1)',
+     &       ls1,sige(ls1)
         call stop_model('INPUT: ls1 incorrectly set in RES_',255)
       END IF
 C****
@@ -984,7 +1060,8 @@ C**** Read in ground initial conditions
         call io_soils  (iu_GIC,ioreadnt,ioerr)
         call io_landice(iu_GIC,ioreadnt,ioerr)
         if (ioerr.eq.1) then
-          WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
+          IF (AM_I_ROOT())
+     *          WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           call stop_model("INPUT: GIC READ IN ERROR",255)
         end if
         call closeunit (iu_GIC)
@@ -1164,12 +1241,14 @@ C****        tropospheric temperatures changed by at most 1 degree C
         END DO
         END DO
         END DO
-        WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
+        IF (AM_I_ROOT())
+     *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
 C**** Close "AIC" here if it was opened
       IF (ISTART.gt.1) call closeunit(iu_AIC)
 
-      WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
+      IF (AM_I_ROOT())
+     *     WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
      *  'ISTART =',ISTART,XLABEL(1:80)    ! report input file label
       XLABEL = RLABEL                     ! switch to rundeck label
@@ -1215,7 +1294,8 @@ C****        tropospheric temperatures are changed by at most 1 degree C
           END DO
           END DO
           END DO
-          WRITE(6,*) 'Current temperatures were perturbed !!',IRANDI
+          IF (AM_I_ROOT())
+     *         WRITE(6,*) 'Current temperatures were perturbed !!',IRANDI
         END IF
         TIMING = 0
         GO TO 500
@@ -1254,7 +1334,8 @@ C**** CHOOSE DATA SET TO RESTART ON
          ISTART=110
          go to 430
       end if
-      WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
+      if (AM_I_ROOT())
+     * WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *   KDISK,', Time=',Itime,' ',XLABEL(1:80)
 
 C**** Switch KDISK if the other file is (or may be) bad (istart>10)
@@ -1298,20 +1379,26 @@ C****
 C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/HR_IN_DAY
 
-C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
-C****
+C**** Check consistency of DTsrc (with NDAY) and dt (with NIdyn)
       if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
-        write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
+        if (AM_I_ROOT())
+     *        write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
-      DTsrc = SDAY/NDAY   ! currently 1 hour
+      DTsrc = SDAY/NDAY
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
+      NIdyn=nint(dtsrc/dt)
+#ifndef USE_FVCORE
+C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
+C****
       NIdyn = 2*nint(.5*dtsrc/dt)
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
-        write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
+        if (AM_I_ROOT())
+     *        write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
         call stop_model('INPUT: DT inappropriately set',255)
       end if
+#endif
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
 
@@ -1320,7 +1407,8 @@ C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
         write (6,*) 'NMONAV has to be 1,2,3,4,6 or 12, not',NMONAV
         call stop_model('INPUT: nmonav inappropriately set',255)
       end if
-      write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
+      if (AM_I_ROOT())
+     *     write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
 
 C**** Updating Parameters: If any of them changed beyond this line
 C**** use set_param(.., .., 'o') to update them in the database (DB)
@@ -1341,7 +1429,8 @@ C****
 C****   READ SPECIAL REGIONS FROM UNIT 29
         call openunit("REG",iu_REG,.true.,.true.)
         READ(iu_REG) TITREG,JREG,NAMREG
-        WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
+        IF (AM_I_ROOT())
+     &       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
 
@@ -1383,8 +1472,9 @@ C**** as residual terms. (deals with SP=>DP problem)
         IF (FOCEAN(I,J).gt.0) THEN
           FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
           IF (FLAKE(I,J).gt.0) THEN
-            WRITE(6,*) "Ocean and lake cannot co-exist in same grid box"
-     *           ,i,j,FOCEAN(I,J),FLAKE(I,J)
+           IF (AM_I_ROOT()) WRITE(6,*)
+     *            "Ocean and lake cannot co-exist in same grid box"
+     *       ,i,j,FOCEAN(I,J),FLAKE(I,J)
             FLAKE(I,J)=0
           END IF
         ELSEIF (FLAKE(I,J).gt.0) THEN
@@ -1426,11 +1516,13 @@ C****
         !CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
         !CALL init_module_ent(iniENT,grid,jday,dxyp)
         CALL init_RAD(istart)
-        if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
-        WRITE (6,INPUTZ)
-        call print_param( 6 )
-        WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
-        WRITE (6,*) "PLbot=",PLbot
+        if(istart.lt.0) CALL init_DIAG(0,num_acc_files) !post-processing
+        if (AM_I_ROOT()) Then
+           WRITE (6,INPUTZ)
+           call print_param( 6 )
+           WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
+           WRITE (6,*) "PLbot=",PLbot
+        end if
         if(istart.lt.0)
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
@@ -1444,24 +1536,37 @@ C**** Initialize the use of gravity wave drag diagnostics
 C****
       CALL init_GWDRAG
 C
-C**** Initialize nuding
+C**** Initialize nudging
 #ifdef NUDGE_ON
        CALL NUDGE_INIT
 #endif
+#ifdef TRACERS_AMP
+        CALL SETUP_CONFIG           
+        CALL SETUP_SPECIES_MAPS
+        CALL SETUP_AERO_MASS_MAP 
+        CALL SETUP_COAG_TENSORS
+        CALL SETUP_DP0     
+        CALL SETUP_KIJ   
+        CALL SETUP_EMIS  
+        CALL SETUP_KCI
+        CALL SETUP_NPFMASS
+#endif       
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
       CALL init_CLD
-      CALL init_DIAG(ISTART,num_acc_files)
+      CALL init_DIAG(istart,num_acc_files) ! initialize for accumulation
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(grid,im,jm,lm)
       if(istart.gt.0) CALL init_ATMDYN
       CALL init_RAD(istart)
-      WRITE (6,INPUTZ)
-      call print_param( 6 )
-      WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
-      WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
-      WRITE (6,*) "PLbot=",PLbot
+      if (AM_I_ROOT()) then
+         WRITE (6,INPUTZ)
+         call print_param( 6 )
+         WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
+         WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
+         WRITE (6,*) "PLbot=",PLbot
+      end if
 C****
       RETURN
 C****
@@ -1554,8 +1659,10 @@ C****   except if it was just done (restart from itime=itimei)
 
       CALL CALC_AMPK(LS1-1)
 
-      IF (ABS(DELTAP).gt.1d-6)
-     *     WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
+      if (AM_I_ROOT()) then
+         IF (ABS(DELTAP).gt.1d-6)
+     *      WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
+      end if
 
       IF (.not.end_of_day) RETURN
 
@@ -1615,7 +1722,7 @@ C**** CORRECTED.
       USE CONSTANT, only : tf
       USE MODEL_COM
       USE DYNAMICS, only : pk
-      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       IMPLICIT NONE
       INTEGER I,J,L
 !@var SUBR identifies where CHECK was called from
@@ -1712,6 +1819,7 @@ C**** check tracers
 !@ver 1.0
       USE MODEL_COM
       USE FILEMANAGER, only : openunit,closeunit
+      use DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: ItimeMax=-1, Itime1, Itime2, itm, ioerr1=-1, ioerr2=-1
       integer :: iu_rsf
@@ -1731,8 +1839,10 @@ C**** check tracers
 
       call getdte(
      &     ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-      write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
+      if (AM_I_ROOT())
+     &     write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
      &     ItimeMax*24/Nday, Jmon, Jdate, Jyear
 
       return
       end subroutine print_restart_info
+

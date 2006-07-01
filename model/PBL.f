@@ -20,7 +20,7 @@
      &     ,dodrydep
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
 #endif
 #ifdef TRACERS_DUST
@@ -71,7 +71,7 @@
      &         ,wsgcm,wspdf
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
+      real*8 :: rimax,ghmin,ghmax,gmmax0,gm_at_rimax,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s4,s5,s6,s7,s8,c1,c2,c3,c4,c5,b1,b123,b2,prt
 
       !for level 3 model only:
@@ -136,11 +136,11 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_DRYDEP)
      *     dep_vel,gs_vel,
 #endif
-#if defined(TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     DMS_flux, ss1_flux, ss2_flux,
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
      &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
 #endif
@@ -239,11 +239,11 @@ c  internals:
       real*8 , intent(out), dimension(ntm) :: dep_vel,gs_vel
       real*8 vgs
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       real*8, intent(out) :: DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
-      real*8 :: tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
+      real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
@@ -251,12 +251,13 @@ c  internals:
       real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1
       real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
+     *       ,eles
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 C****
       real*8 :: sig0,delt,wt,wmin,wmax
       integer :: icase
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       REAL*8,INTENT(IN) :: ptype
       REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),
      &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
@@ -324,18 +325,22 @@ c        call abort
         cqsave=cq
 #endif
 
-        call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
-     2                 ustar,dtime,n)
 
         !@var wstar the convection-induced wind according to
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
         if(t(2).lt.t(1)) then !convective
-          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
-          wstar2h = (wstar3fac*kh(1))**twoby3
+          wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
+          wstar2h = wstar3**twoby3
         else
+          wstar3=0.
           wstar2h = 0.
         endif
+
+        call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
+     2                 ustar,dtime,n)
+
+        call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
 
         wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
 
@@ -381,7 +386,7 @@ c**** the same as that used for q
 c      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
 #endif
 
@@ -391,7 +396,7 @@ C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
       CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),wsubtke,wsubwd,wsubwm)
       CALL get_wspdf(wsubtke,wsubwd,wsubwm,wsgcm,wspdf)
@@ -421,7 +426,7 @@ C**** for all dry deposited tracers
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsgcm,
      &   dust_event1,dust_event2,wtrsh)
 #endif
@@ -465,7 +470,7 @@ C****   get setling velocity
 #endif
 
 C****   4) tracers with interactive sources
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         select case (trname(ntix(itr)))
         case ('DMS')
           call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
@@ -476,6 +481,14 @@ C****   4) tracers with interactive sources
         case ('seasalt2')
           call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
           trcnst=ss2_flux *byrho
+#ifdef TRACERS_AMP
+        case ('M_SSA_SS')
+          call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
+          trcnst=ss1_flux*byrho
+        case ('M_SSC_SS')
+          call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
+          trcnst=ss2_flux *byrho
+#endif
         end select
 #endif
 
@@ -515,6 +528,26 @@ ccc dust emission from earth
           dust_flux(n1)=dsrcflx
           dust_flux2(n1)=dsrcflx2
         END SELECT
+#endif
+#ifdef TRACERS_AMP
+        SELECT CASE (trname(ntix(itr)))
+        case ('M_DD1_DU')
+         do n1=1,2!ntm_dust
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=dsrcflx*byrho
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+         enddo  
+        case ('M_DD2_DU')
+         do n1=3,ntm_dust
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=dsrcflx*byrho
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+         enddo  
+         END SELECT
 #endif
 
 C**** solve tracer transport equation
@@ -692,7 +725,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       integer :: i   !@var i  array dimension
       real*8 kz,l0,ls,lb,an2,an,dudz,dvdz,as2,qty,qturb,zeta
 
-      l0=.16d0*dbl ! Moeng and Sullivan 1994
+      l0=.3d0*dbl ! Moeng and Sullivan 1994
 
       if (l0.lt.zhat(1)) l0=zhat(1)
 
@@ -1085,7 +1118,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       implicit none
 
       ! temperary variable
-      real*8 :: del
+      real*8 :: del,aa,bb,cc,tmp
 
       prt=     0.82d0
       b1=     19.3d0
@@ -1128,6 +1161,19 @@ c     find rimax:
 
       rimax=(c2+sqrt(c2**2-4.*c1*c3))/(2.*c1)
       rimax=int(rimax*1000.)/1000.
+
+c     find gm_at_rimax
+
+      aa=c1*rimax*rimax-c2*rimax+c3
+      bb=c4*rimax+c5
+      cc=2.d0
+      if(abs(aa).lt.1d-8) then
+         gm_at_rimax= -cc/bb
+      else
+         tmp=bb*bb-4.*aa*cc
+         gm_at_rimax=(-bb-sqrt(tmp))/(2.*aa)
+      endif
+      ! rimax=.96,  gm_at_rimax=.1366285d6
 
 c     find ghmin,ghmax,gmmax0:
 
@@ -1343,6 +1389,53 @@ c     rhs(n-1)=0.
 
       Return
       end subroutine e_eqn
+
+      subroutine e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
+!@sum e_gcm finds e according to the parameterization of les data
+!@Ref Moeng and Sullivan 1994, J. Atmos. Sci., 51, 999-1022.
+!@Ref Cheng et al. 2002, J. Atmos. Sci., 59, 1550-1565.
+!@auth  Ye Cheng
+!@ver   1.0
+!@var (see subroutine k_gcm)
+      USE CONSTANT, only : by3
+
+      implicit none
+
+      integer, intent(in) :: n   !@var n  array dimension
+      real*8, intent(in) :: tstar,ustar,wstar3,dbl,lmonin
+      real*8, dimension(n), intent(in) :: zhat,lscale
+      real*8, dimension(n), intent(inout) :: e
+      real*8, parameter :: emin=1.d-6
+      real*8, dimension(n) :: eles
+      integer :: j !@var j loop variable
+      real*8 :: tvflx,ustar3,zj,kz,zeta,phi_m,eps,ej
+
+      tvflx=ustar*tstar
+      ustar3=ustar*ustar*ustar
+      do j=1,n-1   ! Dyer 1974
+        zj=zhat(j)
+        kz=kappa*zj
+        if(zj.le.dbl) then
+          zeta=zj/lmonin
+          if(zeta.ge.0.) then ! stable or neutral
+            if(zeta.le.1.) then
+              phi_m=1.+5.*zeta
+            else
+              phi_m=5.+zeta
+            endif
+          else                ! unstable
+            phi_m=(1.-15.*zeta)**(-.25d0)
+          endif
+          eps=.4d0*wstar3/dbl+ustar3*(1.-zj/dbl)*phi_m/kz
+          ej=.5d0*(24.d0*lscale(j)*eps)**(2.*by3)
+          ej=min(max(ej,emin),emax)
+        else
+          ej=0.
+        endif
+        e(j)=max(e(j),ej)
+      end do
+      return
+      end subroutine e_les
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
      &                ,ttop,dtime,n)
@@ -1945,7 +2038,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       real*8, dimension(n-1) :: zhat,xihat,dzh,lscale,esave
       real*8 :: lmonin,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test
-     *     ,wstar3fac,wstar3,wstar2h,usurfq,usurfh
+     *     ,wstar3,wstar2h,usurfq,usurfh
       integer, save :: iter_count=0
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
@@ -2032,11 +2125,13 @@ c Initialization for iteration:
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
         if(t(2).lt.t(1)) then
-          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
-          wstar2h = (wstar3fac*kh(1))**twoby3
+          wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
+          wstar2h = wstar3**twoby3
         else
+          wstar3=0.
           wstar2h = 0.
         endif
+
         usurfh  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
         usurfq  = usurfh
 
@@ -2610,7 +2705,7 @@ C**** Use approximate value for small sig and unresolved delta function
 !@auth Reha Cakmur/Jan Perlwitz
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
       USE tracer_com,ONLY : kim,kjm,table1,x11,x21
 
@@ -2696,7 +2791,7 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
       SUBROUTINE polint2dlin(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -2737,7 +2832,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint2dcub(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -2778,7 +2873,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polintpbl(xa,ya,n,x,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
       REAL*8, INTENT(OUT) :: y,dy
@@ -2828,7 +2923,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 !@sum locates parameters of integration in lookup table
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j

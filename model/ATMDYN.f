@@ -6,7 +6,11 @@
       private
 
       public init_ATMDYN, DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
-     &     ,DISSIP,FILTER,CALC_AMPK
+     &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
+     &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
+     &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
+     &     ,getTotalEnergy
+     &     ,addEnergyAsDiffuseHeat, addEnergyAsLocalHeat
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -27,10 +31,10 @@
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,QUVfilter,psf,ptop
      *     ,pmtop
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
-      USE SOMTQ_COM, only : tmom,qmom,mz
-      USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
-     &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,wsave,pedn
-      USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
+      USE SOMTQ_COM, only : tmom,mz
+      USE DYNAMICS, only : ptold,pu,pv,sd,phi,dut,dvt
+     &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,pedn
+      USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
@@ -49,9 +53,6 @@
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
       INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
-      REAL*8 ediff,TE0,TE,TE0_a,TE0_b
-      
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -67,17 +68,7 @@ c**** Extract domain decomposition info
       DTLF=2.*DT
       NS=0
       NSOLD=0                            ! strat
-      PTOLD(:,:) = P(:,:)
-C**** Initialise total energy (J/m^2)
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-!     TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
-      TE0 = (TE0_a + TE0_b)/AREAG
-C**** Initialize mass fluxes used by tracers and Q
-      PS (:,:)   = P(:,:)
+
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          PUA(:,:,L) = 0.
@@ -208,18 +199,79 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
          TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
       ENDDO
 !$OMP END PARALLEL DO
-CCC         DO L=1,LM
-CCC           AIJ(:,J_0STG:J_1STG,IJ_FMV)  = 
-CCC     &         AIJ(:,J_0STG:J_1STG,IJ_FMV )+PV(:,J_0STG:J_1STG,L)*DTLF
-CCC           If (HAVE_SOUTH_POLE) 
-CCC     &        AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
-CCC           If (HAVE_NORTH_POLE) 
-CCC     &        AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
-CCC           AIJ(:,J_0S:J_1S,IJ_FMU)=
-CCC     &        AIJ(:,J_0S:J_1S,IJ_FMU)+PU(:,J_0S:J_1S,L)*DTLF
-CCC         END DO
+
       CALL CALC_PIJL(LS1-1,PC,PIJL)
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
+
+      call compute_mass_flux_diags(PHI, PU, PV, dt)
+
+      CALL CALC_AMPK(LS1-1)
+      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
+      PC(:,:) = P(:,:)      ! LOAD P TO PC
+      CALL SDRAG (DTLF)
+         IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
+           CALL DIAGA
+           CALL DIAGB
+           CALL EPFLUX (U,V,T,P)
+         ENDIF
+C**** Restart after 8 steps due to divergence of solutions
+      IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
+      NSOLD=NS
+      IF (NS.LT.NIdyn) GO TO 300
+
+      RETURN
+      END SUBROUTINE DYNAM
+
+C**** Calculate 3D vertical velocity (take SDA which has units
+C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)
+C**** and convert to WSAVE, units of m/s):
+
+      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+      use CONSTANT, only: rgas, bygrav
+      !use MODEL_COM, only: NIdyn
+      use DOMAIN_DECOMP, only: grid, GET
+      use GEOM, only: bydxyp
+      use MODEL_COM, only: IM,JM,LM
+
+      real*8, dimension(:, grid%J_STRT_HALO:, :), intent(out) :: WSAVE
+      real*8, dimension(:, grid%J_STRT_HALO:, :), intent(in)  :: SDA, T
+      real*8, dimension(:, :, grid%J_STRT_HALO:), intent(in)  :: PK,PEDN
+      integer, intent(in) :: NIdyn
+
+      integer :: i, l
+      integer :: J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+
+!$OMP PARALLEL DO PRIVATE (l,i)
+      do l=1,lm-1
+        do i=1,im
+         wsave(i,J_0:J_1,l)=2.*sda(i,J_0:J_1,l)*bydxyp(J_0:J_1)*
+     &   rgas*0.5*(T(i,J_0:J_1,l)*pk(l,i,J_0:J_1)+T(i,J_0:J_1,l+1)*
+     &   pk(l+1,i,J_0:J_1))*bygrav/(NIdyn*pedn(l+1,i,J_0:J_1))
+        end do
+      end do
+!$OMP END PARALLEL DO
+
+      end subroutine COMPUTE_WSAVE
+
+      Subroutine compute_mass_flux_diags(PHI, PU, PV, dt)
+      use MODEL_COM, only: IM, LM
+      use DOMAIN_DECOMP, only: grid, halo_update, SOUTH, get
+      use DIAG_COM, only: AIJ => AIJ_loc, IJ_FGZU, IJ_FGZV
+
+      real*8, intent(inout) :: PHI(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: PU(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: PV(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: dt
+
+
+      integer :: J_0S, J_1S
+      integer :: J_0STG, J_1STG
+      integer :: I, IP1, L, J
+
+      call get(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
+     &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S)
 
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE (J,L,I,IP1)
@@ -244,27 +296,41 @@ CCC         END DO
       END DO
       END DO
 !$OMP  END PARALLEL DO
-      CALL CALC_AMPK(LS1-1)
-      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
-      PC(:,:) = P(:,:)      ! LOAD P TO PC
-      CALL SDRAG (DTLF)
-         IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
-           CALL DIAGA
-           CALL DIAGB
-           CALL EPFLUX (U,V,T,P)
-         ENDIF
-C**** Restart after 8 steps due to divergence of solutions
-      IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
-      NSOLD=NS
-      IF (NS.LT.NIdyn) GO TO 300
+
+      end subroutine compute_mass_flux_diags
+
+      subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS(
+     &    PUA, PVA, dt)
+      use CONSTANT,      only: BY3
+      use DOMAIN_DECOMP, only: grid, get, halo_update, SOUTH
+      use DIAG_COM, only: AIJ => AIJ_loc, 
+     &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
+      use MODEL_COM, only: IM,JM,LM
+
+      real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
+      real*8, intent(in) :: dt
+
+      integer :: I, IP1, J, L
+      integer :: J_0STG, J_1STG, J_0S, J_1S
+      logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      real*8 :: dtlf
+
+      dtlf = 2.*dt
+
+      call get(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
+     &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
 !$OMP  PARALLEL DO PRIVATE (J,L)
       do j=J_0STG,J_1STG
-      do l=1,lm
+      do L=1,LM
          AIJ(:,J,IJ_FMV)  = AIJ(:,J,IJ_FMV )+PVA(:,J,L)*DTLF
       enddo
       enddo
 !$OMP  END PARALLEL DO
+
 !$OMP  PARALLEL DO PRIVATE (J,L)
       do j=J_0S,J_1S
       do l=1,lm
@@ -272,6 +338,7 @@ C**** Restart after 8 steps due to divergence of solutions
       enddo
       enddo
 !$OMP  END PARALLEL DO
+
       if(HAVE_SOUTH_POLE) then
          do l=1,lm
             AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PUA(:, 1,L)*DTLF*BY3
@@ -282,48 +349,7 @@ C**** Restart after 8 steps due to divergence of solutions
             AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PUA(:,JM,L)*DTLF*BY3
          enddo
       endif
-
-C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
-C**** Currently energy is put in uniformly weighted by mass
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
-      TE = (TE0_a + TE0_b)/AREAG
-      ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
-!$OMP  PARALLEL DO PRIVATE (L)
-      do l=1,lm
-        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
-      end do
-!$OMP  END PARALLEL DO
-
-C**** Scale WM mixing ratios to conserve liquid water
-      PRAT(:,:)=PTOLD(:,:)/P(:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
-      DO L=1,LS1-1
-        WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
-      END DO
-!$OMP  END PARALLEL DO
-
-C**** Calculate 3D vertical velocity (take SDA which has units
-C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)
-C**** and convert to WSAVE, units of m/s):
-!$OMP PARALLEL DO PRIVATE (l,i)
-      do l=1,lm-1
-        do i=1,im
-         wsave(i,J_0:J_1,l)=2.*sda(i,J_0:J_1,l)*bydxyp(J_0:J_1)*
-     &   rgas*0.5*(T(i,J_0:J_1,l)*pk(l,i,J_0:J_1)+T(i,J_0:J_1,l+1)*
-     &   pk(l+1,i,J_0:J_1))*bygrav/(NIdyn*pedn(l+1,i,J_0:J_1))
-        end do
-      end do
-!$OMP END PARALLEL DO
-
-
-      RETURN
-      END SUBROUTINE DYNAM
-
+      end subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 
       SUBROUTINE QDYNAM
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method
@@ -332,7 +358,7 @@ C**** and convert to WSAVE, units of m/s):
 !@auth J. Lerner
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,q,dt,byim
-      USE SOMTQ_COM, only : tmom,qmom
+      USE SOMTQ_COM, only : qmom
       USE DIAG_COM, only: ajl=>ajl_loc,jl_totntlh,jl_zmfntlh,jl_totvtlh
      *     ,jl_zmfvtlh
       USE DYNAMICS, only: ps,mb,ma
@@ -755,14 +781,7 @@ C2440 CONTINUE
       DO 2450 I=2,IM
         IF (HAVE_SOUTH_POLE) SD(I,JJ(1),L)=SD(1,JJ(1),L)
  2450   IF (HAVE_NORTH_POLE) SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
-C**** temporary fix for CLOUDS module
-      SD_CLOUDS(:,:,1)    = PIT
-!$OMP PARALLEL DO PRIVATE (L)
-      DO L=2,LM
-        SD_CLOUDS(:,:,L) = SD(:,:,L-1)
-      END DO
-!$OMP END PARALLEL DO
-C****
+
       RETURN
       END SUBROUTINE AFLUX
 
@@ -1035,7 +1054,7 @@ C
 C**** CALL DIAGNOSTICS
       IF(MRCH.GT.0) THEN
          IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
-         CALL DIAGCD (3,U,V,DUT,DVT,DT1)
+         CALL DIAGCD (grid,3,U,V,DUT,DVT,DT1)
       ENDIF
 C****
 C****
@@ -1200,26 +1219,23 @@ C****
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *        POLD, PRAT
-      REAL*8 PSUMO,PSUMN,PDIF,AKAP,TE0,TE,ediff,TE0_a,TE0_b,TE_a,TE_b
+      REAL*8 PSUMO,PSUMN,PDIF,AKAP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
+      REAL*8 initialTotalEnergy, finalTotalEnergy
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C**** Initialise total energy (J/m^2)
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
-      TE0 = (TE0_a + TE0_b)/AREAG
+      initialTotalEnergy = getTotalEnergy()
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-!$OMP  PARALLEL DO PRIVATE(I,J)
+!$OMP  PARALLEL DO DEFAULT(SHARED) PRIVATE(I,J) 
       DO J=J_0S,J_1S
         DO I=1,IM
           POLD(I,J)=P(I,J)      ! Save old pressure
@@ -1293,18 +1309,8 @@ C**** But if n_air=0 this will cause problems...
       CALL CALC_AMPK(LS1-1)
 
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
-      call conserv_PE(PEJ)
-      call conserv_KE(KEJ)
-      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
-      CALL GLOBALSUM(grid, PEJ, TE_a,ALL=.true.)
-      CALL GLOBALSUM(grid, KEJ, TE_b, istag = 1,ALL=.true.)
-      TE = (TE_a + TE_b)/AREAG
-      ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
-!$OMP  PARALLEL DO PRIVATE (L)
-      do l=1,lm
-        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
-      end do
-!$OMP  END PARALLEL DO
+      finalTotalEnergy = getTotalEnergy()
+      call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
 
   200 IF (MFILTR.LT.2) RETURN
 C****
@@ -1370,7 +1376,7 @@ C**********************************************************************
       REAL*8 YV2,YVJ,YVJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8  ! NSHAP MUST BE EVEN
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
-      REAL*8 ediff,angm,dpt,D2V,D2U
+      REAL*8 angm,dpt,D2V,D2U
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -1606,24 +1612,8 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
 
 C**** Call diagnostics and KE dissipation only for even time step
       IF (MRCH.eq.2) THEN
-        CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
-        
-        CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
-
-C**** Add in dissipiated KE as heat locally
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-        DO L=1,LM
-          DO J=J_0,J_1
-            DO I=1,IMAXJ(J)
-              ediff=0.
-              DO K=1,KMAXJ(J)   ! loop over surrounding vel points
-                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-              END DO
-              T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
-            END DO
-          END DO
-        END DO
-!$OMP  END PARALLEL DO
+        CALL DIAGCD(grid,5,UT,VT,DUT,DVT,DT1)
+        call addEnergyAsLocalHeat(DKE, T, PK)
       END IF
 
       RETURN
@@ -2070,7 +2060,7 @@ C**** regime (but not above P_CSDRAG)
      *        ang_mom, sum_airm
 !@param wmax imposed limit for stratospheric winds (m/s)
       real*8, parameter :: wmax = 200.d0 , wmaxp = wmax*3.d0/4.d0
-      real*8 ediff,wmaxj,xjud
+      real*8 wmaxj,xjud
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2155,26 +2145,11 @@ C*
         end do
       end if
 
-      CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
-
-C***** Add in dissipiated KE as heat locally
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-      DO L=1,LM
-        DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
-            ediff=0.
-            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
-              ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-            END DO
-            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
-          END DO
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
+      call addEnergyAsLocalHeat(DKE, T, PK)
 
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
-      CALL DIAGCD (4,U,V,DUT,DVT,DT1)
+      CALL DIAGCD (grid,4,U,V,DUT,DVT,DT1)
       RETURN
       END SUBROUTINE SDRAG
 
@@ -2237,7 +2212,6 @@ C**** Find WMO Definition of Tropopause to Nearest L
       USE DOMAIN_DECOMP, Only : NORTH, SOUTH
       IMPLICIT NONE
       INTEGER I,J,L,K
-      REAL*8 ediff
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2249,21 +2223,7 @@ c**** Extract domain decomposition info
 
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
-      CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
-
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-      DO L=1,LM
-        DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
-            ediff=0.
-            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
-              ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-            END DO
-            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
-          END DO
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
+      call addEnergyAsLocalHeat(DKE, T, PK)
 
       END SUBROUTINE DISSIP
 
@@ -2420,5 +2380,99 @@ c****
 c****
       return
       end subroutine tropwmo
+
+      function getTotalEnergy() result(totalEnergy)
+!@sum  getTotalEnergy returns the sum of kinetic and potential energy.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use GEOM, only: DXYP, AREAG
+      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
+      REAL*8 :: totalEnergy
+
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::KEJ,PEJ,TEJ
+      REAL*8 :: totalPotentialEnergy
+      REAL*8 :: totalKineticEnergy
+      integer :: J_0, J_1
+      logical :: HAVE_SOUTH_POLE
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1, 
+     *     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+
+      call conserv_PE(PEJ)
+      call conserv_KE(KEJ)
+      if (HAVE_SOUTH_POLE) KEJ(1) = 0
+
+      TEJ(J_0:J_1)= (KEJ(J_0:J_1) + PEJ(J_0:J_1)*DXYP(J_0:J_1))/AREAG
+
+      CALL GLOBALSUM(grid, TEJ, totalEnergy, ALL=.true.)
+
+      end function getTotalEnergy
+
+      subroutine addEnergyAsDiffuseHeat(deltaEnergy)
+!@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use CONSTANT, only: sha, mb2kg
+      use MODEL_COM, only: T, PSF, PMTOP, LM
+      use DYNAMICS, only: PK
+      use DOMAIN_DECOMP, only: grid, get
+      real*8, intent(in) :: deltaEnergy
+
+      real*8 :: ediff
+      integer :: l
+      integer :: J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+
+      ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
+!$OMP  PARALLEL DO PRIVATE (L)
+      do l=1,lm
+        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
+      end do
+!$OMP  END PARALLEL DO
+
+      end subroutine addEnergyAsDiffuseHeat
+
+C***** Add in dissipiated KE as heat locally
+      subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)
+!@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use CONSTANT, only: SHA
+      use GEOM, only: IDIJ, IDJJ, RAPJ, IMAXJ, KMAXJ
+      use MODEL_COM, only: LM
+      use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
+      use DIAG_COM, only: ajl => ajl_loc
+      implicit none
+      real*8 :: deltaKE(:,grid%j_strt_halo:,:)
+      real*8 :: T(:,grid%j_strt_halo:,:)
+      real*8 :: PK(:,:,grid%j_strt_halo:)
+      integer, optional, intent(in) :: diagIndex
+
+      integer :: i, j, k, l
+      real*8 :: ediff
+      integer :: J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL HALO_UPDATE(grid, deltaKE, FROM=NORTH)
+
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+      DO L=1,LM
+        DO J=J_0,J_1
+          DO I=1,IMAXJ(J)
+            ediff=0.
+            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
+              ediff=ediff+deltaKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+            END DO
+            ediff = ediff / (SHA*PK(L,I,J))
+            T(I,J,L)=T(I,J,L)-ediff
+            if (present(diagIndex)) then
+              AJL(J,L,diagIndex) = AJL(J,L,diagIndex) - ediff
+            end if
+          END DO
+        END DO
+      END DO
+!$OMP  END PARALLEL DO
+      end subroutine addEnergyAsLocalHeat
 
       end module ATMDYN

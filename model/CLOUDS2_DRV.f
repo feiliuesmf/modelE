@@ -10,7 +10,7 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET
@@ -24,7 +24,7 @@
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
 #ifdef CLD_AER_CDNC
      *     ,oldno,oldnl,smfpm
-     *     ,ctem,cd3d,cl3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
+     *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
@@ -48,6 +48,11 @@
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
      *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
+     *     ,ij_3dlwm,ij_3dlws,ij_3dlim,ij_3dlis
+     *     ,aijk
+     *     ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
+     *     ,ij_wmclwp,ij_wmctwp
+     *     ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis
 #endif
 #ifdef TRACERS_DUST
      &     ,idd_wet
@@ -80,8 +85,17 @@
      *     ,itcon_ss
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec
-#ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud,taijs=>taijs_loc,ijts_aq
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
+    (defined TRACERS_AMP)
+     &     ,taijs=>taijs_loc
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+     *     ,jls_incloud,ijts_aq
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,jls_trdpmc,jls_trdpls,ijts_trdpmc,ijts_trdpls
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -93,8 +107,14 @@
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,dt_sulf_mc,dt_sulf_ss
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc
+     &     ,trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
+     &     ,diag_wetdep
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -114,10 +134,12 @@
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb,ncol
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
+     *     ,alwim,alwis,alwwm,alwws
      *     ,nlsw,nlsi,nmcw,nmci
      *     ,oldcdo,oldcdl,smfpml
      *     ,sme
-     *     ,cteml,cd3dl,cl3dl,cdn3dl,cre3dl,smlwp
+     *     ,cteml,cd3dl,cl3dl,ci3dl,cdn3dl,cre3dl,smlwp
+     *     ,wmclwp,wmctwp
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -141,8 +163,11 @@ C    *     ,egcm                       ! not needed
      &     ,trprec_dust
 #endif
 #endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only : AQsulfRATE
+#endif  
 #ifdef INTERACTIVE_WETLANDS_CH4
-      use tracer_sources, only : avg_modPT
+      use tracer_sources, only : n__prec
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -289,6 +314,9 @@ CRKF...FIX
 
 C**** Initialize
       AJEQIL(:,:,:)=0.
+#ifdef TRACERS_SPECIAL_Shindell
+      RNOx_lgt(:,:)=0.d0
+#endif
 #ifndef TRACERS_DUST
 #ifndef TRACERS_MINERALS
 #ifndef TRACERS_QUARZHEM
@@ -386,10 +414,6 @@ C**** Find the ntx active tracers ntix(1->ntx)
         ntix(nx) = n
       end do
       ntx = nx
-#ifdef TRACERS_SPECIAL_Shindell
-C**** Make sure the NOx from lightning is initialized:
-      RNOx_lgt=0.
-#endif
 #endif
 C****
 C**** MAIN J LOOP
@@ -506,6 +530,7 @@ C**** other fields where L is the leading index
 c       write(6,*)"CTEM_DRV",CTEML(L),CTEM(L,I,J)
         CD3DL(:) =CD3D(:,I,J)
         CL3DL(:) =CL3D(:,I,J)
+        CI3DL(:) =CI3D(:,I,J)
         CDN3DL(:)=CDN3D(:,I,J)
         CRE3DL(:)=CRE3D(:,I,J)
         SMLWP=CLWP(I,J)
@@ -626,6 +651,10 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         IF(CLDSLWIJ.GT.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
         IF(CLDDEPIJ.GT.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
+#ifdef CLD_AER_CDNC
+        AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
+        AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
+#endif
         HCNDMC=0.
         DO L=1,LMCMAX
           HCNDMC=HCNDMC+DGDSM(L)+DPHASE(L)
@@ -674,12 +703,25 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
         IF (NMCW.ge.1) then
          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)   !/NMCW
          AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)   !/NMCW
+         AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)   !/NMCW
+         AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)    !/NMCW
+         AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)   !/NMCW
+         AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)    !/NMC
+
          AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)   !/NMCW
         ENDIF
         IF (NMCI.ge.1) then
          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)    !/NMCI
          AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   !/NMCI
+         AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)   !/NMCI
          AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)   !/NMCI
+
+         AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)    !/NMCW
+         AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)   !/NMCW
+         AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)    !/NMCW
+c        write(6,*)"IJL_REIM",AIJK(I,J,L,IJL_REIM),I,J,L,
+c    *   AIJK(I,J,L,IJL_CDIM),AIJK(I,J,L,IJL_CWIM),ALWIM(L)
+
         ENDIF
         ENDDO
 #endif
@@ -1066,6 +1108,7 @@ C**** WRITE TO GLOBAL ARRAYS
          CTEM(:,I,J) =CTEML(:)
          CD3D(:,I,J) =CD3DL(:)
          CL3D(:,I,J) =CL3DL(:)
+         CI3D(:,I,J) =CI3DL(:)
          CDN3D(:,I,J)=CDN3DL(:)
          CRE3D(:,I,J)=CRE3DL(:)
          CLWP(I,J) = SMLWP
@@ -1083,7 +1126,7 @@ C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of precipitation (in mm/day):
-      call running_average(prcp*sday*byDTsrc,I,J,avg_modPT(I,J,1),1,1)
+      call running_average(prcp*sday*byDTsrc,I,J,1.d0,n__prec)
 #endif
 
       DO L=1,LM
@@ -1153,6 +1196,12 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
          IF (NLSW.ge.1) then
           AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) !/NLSW
           AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)  !/NLSW
+          AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)  !/NLSW
+
+          AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)    !/NMCW
+          AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)   !/NMCW
+          AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)    !/NMCW
+
           AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  !/NLSW
 c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS,NLSW,itime
@@ -1160,7 +1209,14 @@ c    * ,ACDNWS,NLSW,itime
         IF(NLSI.ge.1) then
          AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)!/NLSI
          AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)!/NLSI
+         AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)!/NLSI
+
          AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)!/NLSI
+
+         AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L)    !/NMCW
+         AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)   !/NMCW
+         AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)    !/NMCW
+
         ENDIF
 c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"ODRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS(L),L
@@ -1188,7 +1244,7 @@ C**** TRACERS: Use only the active ones
 #endif
           trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
           trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
@@ -1198,6 +1254,9 @@ C**** TRACERS: Use only the active ones
           if (ijts_aq(n).gt.0) then
             taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
+#ifdef TRACERS_AMP
+           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+#endif
           endif
           end if
 #endif
@@ -1212,6 +1271,66 @@ C**** diagnostics
      *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*bydxyp(j)
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
      *         trprec(n,i,j)*bydxyp(j)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+c     ..........
+c     accumulates special wet depo diagnostics
+c     ..........
+          IF (diag_wetdep == 1) THEN
+            DO l=1,lmcmax
+              IF (jls_trdpmc(1,n) > 0) tajls(j,l,jls_trdpmc(1,n))
+     &             =tajls(j,l,jls_trdpmc(1,n))+trcond_mc(l,nx)
+              IF (jls_trdpmc(2,n) > 0) tajls(j,l,jls_trdpmc(2,n))
+     &             =tajls(j,l,jls_trdpmc(2,n))+trdvap_mc(l,nx)
+              IF (jls_trdpmc(3,n) > 0) tajls(j,l,jls_trdpmc(3,n))
+     &             =tajls(j,l,jls_trdpmc(3,n))+trflcw_mc(l,nx)
+              IF (jls_trdpmc(4,n) > 0) tajls(j,l,jls_trdpmc(4,n))
+     &             =tajls(j,l,jls_trdpmc(4,n))+trprcp_mc(l,nx)
+              IF (jls_trdpmc(5,n) > 0) tajls(j,l,jls_trdpmc(5,n))
+     &             =tajls(j,l,jls_trdpmc(5,n))+trnvap_mc(l,nx)
+              IF (jls_trdpmc(6,n) > 0) tajls(j,l,jls_trdpmc(6,n))
+     &             =tajls(j,l,jls_trdpmc(6,n))+trwash_mc(l,nx)
+            END DO
+            IF (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n))
+     &          =taijs(i,j,ijts_trdpmc(1,n))+SUM(trcond_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(2,n) > 0) taijs(i,j,ijts_trdpmc(2,n))
+     &          =taijs(i,j,ijts_trdpmc(2,n))+SUM(trdvap_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(3,n) > 0) taijs(i,j,ijts_trdpmc(3,n))
+     &          =taijs(i,j,ijts_trdpmc(3,n))+SUM(trflcw_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(4,n) > 0) taijs(i,j,ijts_trdpmc(4,n))
+     &          =taijs(i,j,ijts_trdpmc(4,n))+SUM(trprcp_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(5,n) > 0) taijs(i,j,ijts_trdpmc(5,n))
+     &          =taijs(i,j,ijts_trdpmc(5,n))+SUM(trnvap_mc(1:lmcmax,nx))
+            IF (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n))
+     &          =taijs(i,j,ijts_trdpmc(6,n))+SUM(trwash_mc(1:lmcmax,nx))
+            DO l=1,lp50
+              IF (jls_trdpls(1,n) > 0) tajls(j,l,jls_trdpls(1,n))
+     &             =tajls(j,l,jls_trdpls(1,n))+trwash_ls(l,nx)
+              IF (jls_trdpls(2,n) > 0) tajls(j,l,jls_trdpls(2,n))
+     &             =tajls(j,l,jls_trdpls(2,n))+trprcp_ls(l,nx)
+              IF (jls_trdpls(3,n) > 0) tajls(j,l,jls_trdpls(3,n))
+     &             =tajls(j,l,jls_trdpls(3,n))+trclwc_ls(l,nx)
+              IF (jls_trdpls(4,n) > 0) tajls(j,l,jls_trdpls(4,n))
+     &             =tajls(j,l,jls_trdpls(4,n))+trevap_ls(l,nx)
+              IF (jls_trdpls(5,n) > 0) tajls(j,l,jls_trdpls(5,n))
+     &             =tajls(j,l,jls_trdpls(5,n))+trclwe_ls(l,nx)
+              IF (jls_trdpls(6,n) > 0) tajls(j,l,jls_trdpls(6,n))
+     &             =tajls(j,l,jls_trdpls(6,n))+trcond_ls(l,nx)
+            END DO
+            IF (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n))
+     &           =taijs(i,j,ijts_trdpls(1,n))+SUM(trwash_ls(1:lp50,nx))
+            IF (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n))
+     &           =taijs(i,j,ijts_trdpls(2,n))+SUM(trprcp_ls(1:lp50,nx))
+            IF (ijts_trdpls(3,n) > 0) taijs(i,j,ijts_trdpls(3,n))
+     &           =taijs(i,j,ijts_trdpls(3,n))+SUM(trclwc_ls(1:lp50,nx))
+            IF (ijts_trdpls(4,n) > 0) taijs(i,j,ijts_trdpls(4,n))
+     &           =taijs(i,j,ijts_trdpls(4,n))+SUM(trevap_ls(1:lp50,nx))
+            IF (ijts_trdpls(5,n) > 0) taijs(i,j,ijts_trdpls(5,n))
+     &           =taijs(i,j,ijts_trdpls(5,n))+SUM(trclwe_ls(1:lp50,nx))
+            IF (ijts_trdpls(6,n) > 0) taijs(i,j,ijts_trdpls(6,n))
+     &           =taijs(i,j,ijts_trdpls(6,n))+SUM(trcond_ls(1:lp50,nx))
+          END IF
+#endif
 #ifdef TRACERS_DUST
           IF (adiurn_dust == 1) THEN
             DO kr=1,Ndiupt
@@ -1543,7 +1662,7 @@ C**** and save changes in KE for addition as heat later
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
-      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
@@ -1583,7 +1702,8 @@ C**** SEARCH FOR THE 50 MB LEVEL
         PLE=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE.LT.50.) LP50=L
       END DO
-      write(6,*) "Maximum level for LSCOND calculations (50mb): ",LP50
+      if (AM_I_ROOT())  write(6,*) 
+     *     "Maximum level for LSCOND calculations (50mb): ",LP50
 
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       DO L=1,LM
@@ -1596,7 +1716,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       END DO
       LHI=LM
       IF (LMID+1.GT.LHI) LHI=LMID+1
-      WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
+      if (AM_I_ROOT()) WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
  47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 

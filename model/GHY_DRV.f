@@ -12,7 +12,7 @@ c******************   TRACERS             ******************************
      &     ,tr_name
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       use sle001,ONLY : aevap
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
@@ -28,7 +28,7 @@ c******************   TRACERS             ******************************
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,trname
 #endif
 #ifdef TRACERS_DUST
@@ -48,7 +48,7 @@ c******************   TRACERS             ******************************
      *     ,tij_evap,tij_grnd,tij_soil
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,tij_gsdep,itcon_dd
+     *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -68,7 +68,7 @@ c******************   TRACERS             ******************************
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,prec,pprec,pevap,dust_flux_glob,trs_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
@@ -79,7 +79,6 @@ c******************   TRACERS             ******************************
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
-      use tracers_DRYDEP, only : dtr_dd
 #endif
 
 #ifdef TRACERS_WATER
@@ -93,19 +92,17 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,wsubtke,wsubwd
      &     ,wsubwm,dust_event1,dust_event2,wtrsh
 #endif
-#ifdef INTERACTIVE_WETLANDS_CH4
-      use tracer_sources, only : avg_modPT
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only : EMIS_SOURCE
 #endif
-
-
 ccc extra stuff which was present in "earth" by default
 #ifdef TRACERS_WATER
       use ghy_com, only : ngm,nlsn
@@ -258,9 +255,14 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       end subroutine ghy_tracers_set_cell
 
 
-      subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf,rhosrf)
+      subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf,rhosrf
+#ifdef INTERACTIVE_WETLANDS_CH4
+     & ,ra_temp,ra_sat,ra_gwet
+#endif
+     & )
 !@sum tracers code to be called after the i,j cell is processed
-      use model_com, only : itime,qcheck
+      use model_com, only : itime,qcheck,nisurf
+      use ghy_com, only : tearth
       use somtq_com, only : mz
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
@@ -268,16 +270,23 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
       USE trdiag_com,ONLY : rts_save
 #endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      use constant, only : tf
+      use tracer_sources, only : n__temp,n__sat,n__gwet
+#endif
       implicit none
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf,rhosrf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      integer n1
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      integer :: n1
 #endif
       integer n,nx
 #ifdef TRACERS_DRYDEP
       real*8 tdryd,tdd,td1,rtsdt,rts
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      real*8, intent(IN) :: ra_temp,ra_sat,ra_gwet
 #endif
 
 ccc tracers
@@ -290,7 +299,7 @@ ccc tracers
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -313,7 +322,7 @@ ccc accumulate tracer evaporation and runoff
       DO nx=1,ntx
         n=ntix(nx)
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** technicallly these are ocean emissions, but if fixed datasets
 C**** are used, it can happen over land as well.
         select case (trname(n))
@@ -335,6 +344,16 @@ C**** are used, it can happen over land as well.
      &         ss2_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss2_flux*dxyp(j)*ptype*dtsurf
+#ifdef TRACERS_AMP
+        case ('M_SSA_SS')
+       EMIS_SOURCE(i,j,1,5)=EMIS_SOURCE(i,j,1,5)+ss1_flux*dxyp(j)*ptype
+       EMIS_SOURCE(i,j,1,6)=EMIS_SOURCE(i,j,1,6)+ss2_flux*dxyp(j)*ptype
+        case ('M_DD1_DU')
+       EMIS_SOURCE(i,j,1,7)=EMIS_SOURCE(i,j,1,7)
+     * +(dust_flux(1)+dust_flux(2))*dxyp(j)*ptype
+       EMIS_SOURCE(i,j,1,8)=EMIS_SOURCE(i,j,1,8)
+     * +(dust_flux(3)+dust_flux(4))*dxyp(j)*ptype
+#endif
         end select
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -496,10 +515,12 @@ c     ..........
 
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of ground temperature:
-      call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
+      call running_average(ra_temp,I,J,dble(nisurf),n__temp)
+      call running_average(ra_sat,I,J,dble(nisurf),n__sat)
+      call running_average(ra_gwet,I,J,dble(nisurf),n__gwet)
 #endif
       end subroutine ghy_tracers_save_cell
-      
+
       end module ghy_tracers
 #endif
 c******************   END   TRACERS             ************************
@@ -609,7 +630,7 @@ c****
       use sle001, only : advnc,evap_limits,
      &    pr,htpr,prs,htprs,w,snowd,tp,fice,
      &    fv,fb,ashg,alhg,
-     &    aevap,
+     &    aevap,abetad,
      &    aruns,arunu,aeruns,aerunu,
      &    tbcs,af0dt,af1dt,
      &    qm1,qs,
@@ -775,8 +796,8 @@ C**** halo update u and v for distributed parallelization
 #endif
 #endif
 
-       idx = 
-     &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg, 
+       idx =
+     &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg,
      &        idd_lwg, idd_sh,  idd_lh,  idd_hz0, idd_ug,
      &        idd_vg,  idd_wg,  idd_us,  idd_vs,  idd_ws,
      &        idd_cia, idd_cm,  idd_ch,  idd_cq,  idd_eds,
@@ -1049,7 +1070,11 @@ c****
 
 c**** update tracers
 #ifdef TRACERS_ON
-      call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf,rhosrf)
+      call ghy_tracers_save_cell(i,j,ptype,pbl_args%dtsurf,rhosrf
+#ifdef INTERACTIVE_WETLANDS_CH4
+     & ,tg1,ts-tf,1.d2*abetad/real(nisurf)
+#endif
+     & )
 #endif
 
       end do loop_i
@@ -1060,7 +1085,7 @@ c**** update tracers
       ih=1+jhour
       ihm = ih+(jdate-1)*24
 
-    
+
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX
           ivar = idx(ii)
@@ -1100,7 +1125,7 @@ c**** update tracers
         END DO
       END DO
 
-C***Initialize work array 
+C***Initialize work array
       areg_part(:,:,1:9) = 0.
 
       DO 825 J=J_0,J_1
@@ -1443,7 +1468,7 @@ c**** quantities accumulated hourly for diagDD
       if ( moddd == 0 ) then
         do kr=1,ndiupt
           if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
-            
+
             tmp(idd_ts)=+ts*ptype
             tmp(idd_tg1)=+(tg1+tf)*ptype
             tmp(idd_qs)=+qs*ptype
@@ -1541,25 +1566,25 @@ c**** quantities accumulated hourly for diagDD
      *             +            vabl(1,i,j,itype)*vabl(1,i,j,itype))
               tmp(idd_uvabl2)=
      *             +ptype*sqrt( uabl(2,i,j,itype)*uabl(2,i,j,itype)
-     *             +            vabl(2,i,j,itype)*vabl(2,i,j,itype)) 
+     *             +            vabl(2,i,j,itype)*vabl(2,i,j,itype))
               tmp(idd_uvabl3)=
      *             +ptype*sqrt( uabl(3,i,j,itype)*uabl(3,i,j,itype)
-     *             +            vabl(3,i,j,itype)*vabl(3,i,j,itype)) 
+     *             +            vabl(3,i,j,itype)*vabl(3,i,j,itype))
               tmp(idd_uvabl4)=
      *             +ptype*sqrt( uabl(4,i,j,itype)*uabl(4,i,j,itype)
-     *             +            vabl(4,i,j,itype)*vabl(4,i,j,itype)) 
+     *             +            vabl(4,i,j,itype)*vabl(4,i,j,itype))
               tmp(idd_uvabl5)=
      *             +ptype*sqrt( uabl(5,i,j,itype)*uabl(5,i,j,itype)
-     *             +            vabl(5,i,j,itype)*vabl(5,i,j,itype)) 
+     *             +            vabl(5,i,j,itype)*vabl(5,i,j,itype))
               tmp(idd_uvabl6)=
      *             +ptype*sqrt( uabl(6,i,j,itype)*uabl(6,i,j,itype)
-     *             +            vabl(6,i,j,itype)*vabl(6,i,j,itype)) 
+     *             +            vabl(6,i,j,itype)*vabl(6,i,j,itype))
               tmp(idd_uvabl7)=
      *             +ptype*sqrt( uabl(7,i,j,itype)*uabl(7,i,j,itype)
-     *             +            vabl(7,i,j,itype)*vabl(7,i,j,itype)) 
+     *             +            vabl(7,i,j,itype)*vabl(7,i,j,itype))
               tmp(idd_uvabl8)=
      *             +ptype*sqrt( uabl(8,i,j,itype)*uabl(8,i,j,itype)
-     *             +            vabl(8,i,j,itype)*vabl(8,i,j,itype)) 
+     *             +            vabl(8,i,j,itype)*vabl(8,i,j,itype))
 
               tmp(idd_tabl1)=+ptype*tabl(1,i,j,itype)
               tmp(idd_tabl2)=+ptype*tabl(2,i,j,itype)
@@ -1613,7 +1638,7 @@ c**** quantities accumulated hourly for diagDD
 
             END IF
 #endif
-            
+
             ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
      *           tmp(idx(:))
 #ifndef TRACERS_DUST
@@ -1728,7 +1753,7 @@ c**** 11*ngm+1           sl
       integer :: ghy_default_data = 0
 
        real*8 :: evap_max_ij_sum
-C****	define local grid
+C**** define local grid
       integer J_0, J_1
       integer J_0H, J_1H
 
@@ -1771,10 +1796,10 @@ c**** read soils parameters
         ALLOCATE(TEMP_LOCAL(IM,J_0H:J_1H,11*NGM+1))
         call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
         DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
-         Q_IJ(:,J_0:J_1,:,:) = RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM:) , 
+         Q_IJ(:,J_0:J_1,:,:) = RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM:) ,
      *                   (/im,J_1-J_0+1,imt,ngm/) )
-        QK_IJ(:,J_0:J_1,:,:) = 
-     *                 RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT:) , 
+        QK_IJ(:,J_0:J_1,:,:) =
+     *                 RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT:) ,
      *                   (/im,J_1-J_0+1,imt,ngm/) )
         SL_IJ(:,J_0:J_1)  = TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
         DEALLOCATE(TEMP_LOCAL)
@@ -1918,9 +1943,9 @@ C-BMP Global sum on evap_max_ij
 
 ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
 ccc to something more appropriate
-       
-       call globalsum(grid, evap_max_ij,evap_max_ij_sum, 
-     &                all=.true.) 
+
+       call globalsum(grid, evap_max_ij,evap_max_ij_sum,
+     &                all=.true.)
       if ( evap_max_ij_sum > im*jm-1.d0 ) then ! old default
         do j=J_0,J_1
           do i=1,im
@@ -2192,9 +2217,9 @@ c**** set up layers
       n=0
       do k=1,ngm
         if(dz(k).le.0.) exit
-        n=k                
+        n=k
       end do
-          
+
       if(n.le.0) then
          write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
          call stop_model('stopped in GHY_DRV.f',255)
@@ -2520,9 +2545,7 @@ c**** check for reasonable temperatures over earth
 C**** define local grid
       integer J_0, J_1
 
-C****
 C**** Extract useful local domain parameters from "grid"
-C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
@@ -2537,15 +2560,21 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       ! we don't use cond_scheme==1 any more, so call it always
       call updsur (0,jday)
 c****
+      !if(crops_yr.eq.0) call updveg(jyear,.true.)
+
 c**** find leaf-area index & water field capacity for ground layer 1
 c****
       !cosday=cos(twopi/edpery*jday)
       !sinday=sin(twopi/edpery*jday)
+      !if(cond_scheme.eq.2) call updsur (0,jday) ! Update vegn albedos
+            !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
+      !cosday=cos(twopi/edpery*jday)
+      !sinday=sin(twopi/edpery*jday)
       do j=J_0,J_1
         if(j.le.jm/2) then      !nyk added northsouth
-          northsouth=1.d0       !southern hemisphere
+          northsouth=1          !southern hemisphere
         else
-          northsouth=2.d0       !northern hemisphere
+          northsouth=2          !northern hemisphere
         end if
         do i=1,im
           wfcs(i,j)=24.
@@ -2686,7 +2715,7 @@ C**** Work array for regional diagnostic accumulation
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,6 )
      &        :: AREG_PART
 
-C****	define local grid
+C**** define local grid
       integer J_0, J_1, J_0H, J_1H
 
 C****
@@ -2757,7 +2786,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
           aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+wvege(k-1,i,j)
         end do
         aij(i,j,ij_g04)=aij(i,j,ij_g04)+wbare(6,i,j)
-        aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)        
+        aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
         aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
@@ -2770,19 +2799,19 @@ c****
       end do
       end do
 
-      call globalsum(grid,areg_part(1:size(areg,1),:,1:6), 
+      call globalsum(grid,areg_part(1:size(areg,1),:,1:6),
      &    areg_sum(1:size(areg,1),1:6), all=.true.)
-      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow) 
+      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow)
      &    + areg_sum(1:size(areg,1),1)
-      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow) 
+      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow)
      &    + areg_sum(1:size(areg,1),2)
-      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1) 
+      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1)
      &    + areg_sum(1:size(areg,1),3)
-      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1) 
+      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1)
      &    + areg_sum(1:size(areg,1),4)
-      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2) 
+      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2)
      &    + areg_sum(1:size(areg,1),5)
-      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2) 
+      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2)
      &    + areg_sum(1:size(areg,1),6)
 
 

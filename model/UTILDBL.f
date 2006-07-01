@@ -482,6 +482,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@auth G. Schmidt, J. Lerner
 C**** If a trailing ')' is supplied, it is assumed that a leading
 C****      '(' is required, so it is inserted
+      implicit none
       character*(*) ending,unit_string
       character*10 tpow
       integer pow10
@@ -504,6 +505,7 @@ C****      '(' is required, so it is inserted
 !@sum Aborts the execution of the program. Passes an error message and
 !@+ a return code to the calling script. Should be used instead of STOP
       USE PARAM
+      implicit none
 !@var message an error message (reason to stop)
       character*(*), intent (in) :: message
 !@var retcode return code to be passed to the calling script
@@ -512,9 +514,10 @@ C****      '(' is required, so it is inserted
       integer :: dump_core = 0
       integer, parameter :: iu_err = 9
       integer :: mpi_err
-#ifdef USE_ESMF
-      include 'mpif.h'
       integer :: rank
+#ifdef USE_ESMF
+#include "mpi_defs.h"
+#include "mpif.h"
 #endif
 
 c**** don't call sync_param if the error is in 'PARAM' to avoid loops
@@ -525,7 +528,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
         write (6,*) " Will use default dump_core = ", dump_core
       endif
 #ifdef USE_ESMF
-      call mpi_comm_rank(MPI_COMM_WORLD, rank, mpi_err)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, rank, mpi_err)
 #else
       rank =0
 #endif

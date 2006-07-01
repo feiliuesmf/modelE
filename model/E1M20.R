@@ -125,8 +125,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.59      ! increase U00ice to decrease albedo    goals: NetHtz0=0,plan.alb=30%
-U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                      for global annual mean
-!use  U00wtrX=1.39    for 1979 atmosphere/ocean
+U00wtrX=1.39    ! U00wtrX+.01=>nethtz0+.7                      for global annual mean
+!use  U00wtrX=1.38    for 1979 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 CO2X=1.
@@ -180,11 +180,11 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-   ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+   ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,TIMEE=1,
  /
 !for q-flux run, also replace the above namelist by
 ! &INPUTZ
 !   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
 !   YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-!   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,
+!   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,TIMEE=1,
 ! /

@@ -70,8 +70,8 @@ C**** accumulated in the routines contained herein
       USE PARAM
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,
-     *                          NORTH, SOUTH,
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,AM_I_ROOT,
+     *                          NORTH, SOUTH, PACK_DATA,
      *                          DREAD_PARALLEL,
      *                          READT_PARALLEL
       USE GEOM, only : areag,dxyv,dlat_dg
@@ -81,6 +81,7 @@ C**** accumulated in the routines contained herein
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,4)
+      REAL*8 :: EK_GLOB(JM)
       INTEGER I,J,L,iu_zvar
 
       INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
@@ -129,11 +130,13 @@ C**** need testing for other resolutions
         IF (PLEV.GE.200.) LDEFM=L
         IF (PLEV.GE.0.2d0) LD2=L
       END DO
+      if (AM_I_ROOT()) then
       WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PSFMPT
      *     *SIG(LDEF)+PTOP,' LDEFM=',LDEFM
       WRITE (*,*) ' LEVELS FOR WIND SHEAR GENERATION: LSHR,LD2= ',LSHR
      *     ,LD2
       WRITE (*,*) ' LBREAK=',LBREAK
+      end if
 C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
@@ -180,8 +183,11 @@ C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
       END DO
       EKS=EKS*IM/AREAG
       EK(3:NM,J_0:J_1)=EKS
-      WRITE (6,970) (J,EK(1,J),J=J_0STG,J_1STG)
-      WRITE (6,971) EKS
+      call PACK_DATA(grid, EK(1,:), EK_GLOB)
+      if (AM_I_ROOT()) then
+        WRITE (6,970) (J,EK_GLOB(J),J=2,JM)
+        WRITE (6,971) EKS
+      end if
   970 FORMAT ('0  J,EK:',9X,1P,7(I4,E12.2)/,9(1X,8(I4,E12.2)/))
   971 FORMAT ('   AVG EK: ',4X,E12.2)
 
@@ -210,6 +216,7 @@ C****
       USE STRAT, only : defrm,pk,ang_gwd
       USE DIAG, only : diagcd
       USE TRIDIAG_MOD, only :  TRIDIAG
+      USE ATMDYN, only: addEnergyAsLocalHeat
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
@@ -231,7 +238,7 @@ C****
       REAL*8, INTENT(INOUT),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, INTENT(IN) :: DT1
-      REAL*8 G2DT,PIJ,TPHYS,ediff,ANGM,DPT,DUANG
+      REAL*8 G2DT,PIJ,TPHYS,ANGM,DPT,DUANG
       INTEGER I,J,K,L,IP1,NDT,N,LMAX
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -265,7 +272,7 @@ C**** Calculate RHO(I,J,L)
       DO L=1,LS1-1
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
-        RHO(I,J,L)=   BYRGAS*(P(I,J)*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
+        RHO(I,J,L)=   BYRGAS*(P(I,J)*SIG(L)+PTOP)/(T(I,J,L)*PK(L,I,J))
       END DO
       END DO
       END DO
@@ -273,7 +280,7 @@ C**** Calculate RHO(I,J,L)
       DO L=LS1,LM
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
-        RHO(I,J,L)=   BYRGAS*(PSFMPT*SIG(L)+PTOP)/(T(I,J,L)*PK(I,J,L))
+        RHO(I,J,L)=   BYRGAS*(PSFMPT*SIG(L)+PTOP)/(T(I,J,L)*PK(L,I,J))
       END DO
       END DO
       END DO
@@ -407,26 +414,9 @@ C**** Save AM change and update U,V
   300 I=IP1
 C**** conservation diagnostic
       IF (MRCH.gt.0) THEN
-        CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
+        CALL DIAGCD (GRID,6,UT,VT,DUT,DVT,DT1)
 
-        CALL HALO_UPDATE(grid, DKE, from=NORTH)
-
-C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
-!$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
-        DO L=1,LM
-          DO J=J_0,J_1
-            DO I=1,IMAXJ(J)
-              ediff=0.
-              DO K=1,KMAXJ(J)   ! loop over surrounding vel points
-                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-              END DO
-              ediff=ediff/(SHA*PK(I,J,L))
-              T(I,J,L)=T(I,J,L)-ediff
-              AJL(J,L,JL_dTdtsdrg)=AJL(J,L,JL_dTdtsdrg)-ediff
-            END DO
-          END DO
-        END DO
-!$OMP  END PARALLEL DO
+        call addEnergyAsLocalHeat(DKE, T, PK, diagIndex=JL_dTdtsdrg)
       END IF
 
       RETURN
@@ -589,6 +579,7 @@ C****
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      *     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
       USE DIAG, only : diagcd
+      USE ATMDYN, only: addEnergyAsLocalHeat
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
@@ -622,7 +613,7 @@ C****
      *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,MDN
-     *     ,MUP,MUR,BVFSQ,ediff,ANGM,DPT,DUANG
+     *     ,MUP,MUR,BVFSQ,ANGM,DPT,DUANG
 
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -638,7 +629,7 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
-      DTHR=2./NIdyn
+      DTHR=2./NIdyn  ! = dt_dyn_leapfrog/dt_source=1/(#calls/phys.call)
       BYDT1 = 1./DT1
 
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
@@ -647,14 +638,14 @@ C****
 C**** P**KAPA IN THE STRATOSPHERE
           DO J=J_0,J_1
           DO I=1,IMAXJ(J)
-            PK(I,J,L)=PKS(L)
+            PK(L,I,J)=PKS(L)
           END DO
           END DO
         ELSE
 C**** P**KAPA IN THE TROPOSPHERE
           DO J=J_0,J_1
           DO I=1,IMAXJ(J)
-            PK(I,J,L)=(P(I,J)*SIG(L)+PTOP)**KAPA
+            PK(L,I,J)=(P(I,J)*SIG(L)+PTOP)**KAPA
           END DO
           END DO
         END IF
@@ -673,7 +664,7 @@ C****
          DO I=2,IM
             T(I,1,L)=T(1,1,L)
             SZ(I,1,L)=SZ(1,1,L)
-            PK(I,1,L)=PK(1,1,L)
+            PK(L,I,1)=PK(L,1,1)
          END DO
          END DO
       ENDIF
@@ -687,12 +678,12 @@ C****
          DO I=2,IM
             T(I,JM,L)=T(1,JM,L)
             SZ(I,JM,L)=SZ(1,JM,L)
-            PK(I,JM,L)=PK(1,JM,L)
+            PK(L,I,JM)=PK(L,1,JM)
          END DO
          END DO
       ENDIF
 
-      CALL HALO_UPDATE(GRID, PK    , from=SOUTH)
+      CALL HALO_UPDATE_COLUMN(GRID, PK    , from=SOUTH)
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
       CALL HALO_UPDATE(GRID, P     , from=SOUTH)
@@ -714,8 +705,8 @@ C****
       I=IM
       DO IP1=1,IM
          TLS(I,J,L) =
-     *    .25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
-     *     PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
+     *    .25*(PK(L,I,J-1)*T(I,J-1,L)+PK(L,IP1,J-1)*T(IP1,J-1,L)+
+     *     PK(L,I,J)*T(I,J,L)+PK(L,IP1,J)*T(IP1,J,L))
          THLS(I,J,L) =
      *    .25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
          BVS(I,J,L) =
@@ -1175,23 +1166,14 @@ C****
 
       IF (MRCH.EQ.2) THEN
 C**** conservation diagnostic
-        CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
+        CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
 
-        CALL HALO_UPDATE(grid, DKE, from=NORTH)
+        call addEnergyAsLocalHeat(DKE,T,PK, diagIndex=JL_dTdtsdrg)
 
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
-!$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,K)
         DO L=1,LM
           DO J=J_0,J_1
-            DO I=1,IMAXJ(J)
-              ediff=0.
-              DO K=1,KMAXJ(J)   ! loop over surrounding vel points
-                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-              END DO
-              ediff=ediff/(SHA*PK(I,J,L))
-              T(I,J,L)=T(I,J,L)-ediff
-              AJL(J,L,JL_dTdtsdrg)=AJL(J,L,JL_dTdtsdrg)-ediff
-            END DO
             AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(J,L)
           END DO
         END DO
@@ -1457,7 +1439,7 @@ C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       ALLOCATE(    DEFRM(im,J_0H:J_1H),
-     *                PK(im,J_0H:J_1H,lm),
+     *                PK(lm,im,J_0H:J_1H),
      *                EK(nm,J_0H:J_1H),
      *             ZVART(im,J_0H:J_1H),
      *             ZVARX(im,J_0H:J_1H),

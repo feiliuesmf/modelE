@@ -97,22 +97,27 @@ c**** check whether ground hydrology data exist at this point.
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       !Local variables
-      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: vegdata, laidata
-      real*8, dimension(N_COVERTYPES,1:2,N_BANDS) :: albedodata
-      real*8, dimension(N_COVERTYPES) :: hdata, nmdata, popdata
-      real*8, dimension(N_COVERTYPES,N_DEPTH) :: frootdata
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: vegdata !cohort
+      real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: laidata  !cohort
+      real*8, dimension(N_COVERTYPES) :: hdata    !cohort
+      real*8, dimension(N_COVERTYPES) :: nmdata    !cohort
+      real*8, dimension(N_COVERTYPES,N_DEPTH) :: frootdata !Root fraction of veg type.
+      real*8, dimension(N_COVERTYPES) :: popdata !Dummy population density:  0-bare soil, 1-vegetated
+      integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
+      real*8, dimension(N_SOIL_TYPES,I0:I1,J0:J1) :: soil_texture
       !-----Local---------
 
       !Read land surface parameters or use defaults
       !GISS data sets:
       call GISS_vegdata(jday, year, 
      &     im,jm,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
-     &     frootdata,popdata)
+     &     frootdata,popdata,soildata,soil_texture)
 
       !Translate gridded data to Entdata structure
       !GISS data:  a patch per vegetation cover fraction, one cohort per patch
-      call ent_cell_set(entcells, vegdata, laidata,
-     &     hdata, nmdata, frootdata, popdata)
+      call ent_cell_set(entcells, vegdata, popdata, laidata,
+     &     hdata, nmdata, frootdata, soildata, albedodata, soil_texture)
 
       end subroutine set_vegetation_data
 

@@ -284,10 +284,10 @@ $(BIN_DIR):
 ESMF_Interface=$(shell pwd)/ESMF_Interface
 export
 esmf_interface: $(wildcard ESMF_Interface/*.F90)
-	$(MAKE) -C $(ESMF_Interface) all
+	$(MAKE) -C $(ESMF_Interface) all RFLAGS=""
 
 ESMF_Interface/esmf_custom_mod.mod: ESMF_Interface/ESMF_CUSTOM_MOD.F90
-	$(MAKE) -C $(ESMF_Interface) all
+	$(MAKE) -C $(ESMF_Interface) all RFLAGS=""
 
 # Create an executable
 gcm: $(BIN_DIR)/$(RUN).exe
@@ -295,8 +295,8 @@ gcm: $(BIN_DIR)/$(RUN).exe
 #$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface fvdycore $(OBJS)
 $(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface modelsubdirs $(OBJS)
 	echo linking executable $(MSG)
-	$(F90) $(LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) $(OBJS_IN_SUBDIRS) \
-             $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
+             $(OBJS_IN_SUBDIRS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT
 	if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
 endif

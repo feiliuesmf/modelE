@@ -24,7 +24,7 @@
       INTEGER IT1,itm
 
       ioerr=-1
-      CALL REWIND_PARALLEL( kunit )
+      if (kunit.gt.0) CALL REWIND_PARALLEL( kunit )
 
 C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 C**** Particular values may produce variations in indiv. i/o routines

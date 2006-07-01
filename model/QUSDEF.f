@@ -221,10 +221,10 @@ c-----------------------------------------------------------------
       end subroutine adv1d
 c************************************************************************
 
-      subroutine advection_1D_custom(s,smom, f,fmom, mass,dm, nx, 
+      subroutine advection_1D_custom(s,smom, f,fmom, mass,dm, nx,
      *     nlev,idx, qlimit,stride,dir,ierr, err_loc)
 !@sum  advection_1d_custom is a parallel variant of adv1d which does not
-!@sum  include qlimits.  This increases locality such that global 
+!@sum  include qlimits.  This increases locality such that global
 !@sum  communication can be significantly reduced for advection along
 !@sum  longitudes.
 !@auth T. Clune
@@ -253,11 +253,10 @@ c--------------------------------------------------------------
       integer, intent(in) :: nx,nlev,stride
       logical, intent(in) :: idx(nlev)
       logical, intent(in) :: qlimit
-      REAL*8, dimension(stride,0:nx+1,nlev) :: dm, f
-      REAL*8, dimension(stride,0:nx+1,nlev) :: s
-      REAL*8, dimension(stride,0:nx+1,nlev) :: mass
-      REAL*8, dimension(nmom,stride,0:nx+1,nlev) :: smom
-      REAL*8, dimension(nmom,stride,0:nx+1,nlev) :: fmom
+      REAL*8, dimension(stride, grid%j_strt_halo:grid%j_stop_halo,
+     *  nlev) :: dm, f,  s,mass
+      REAL*8, dimension(nmom,stride, grid%j_strt_halo:grid%j_stop_halo,
+     *  nlev) :: fmom, smom
       integer, dimension(nmom) :: dir
       integer :: mx,my,mz,mxx,myy,mzz,mxy,myz,mzx
       integer :: n,np1,nm1,nn,ns
@@ -279,7 +278,7 @@ c--------------------------------------------------------------
 #define MASS(i,j) mass(i,j,l)
 #define SMOM(i,j,k) smom(i,j,k,l)
 #define FMOM(i,j,k) fmom(i,j,k,l)
-      
+
 
       ierr=0
       mx  = dir(1)
@@ -292,13 +291,9 @@ c--------------------------------------------------------------
       myz = dir(8)
       mzx = dir(9)
 
-      CALL GET(grid, J_STRT = J_0, J_STOP=J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP=J_1,
      &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
-      J_1  = J_1 - J_0 + 1
-      J_1S = J_1S- J_0 + 1
-      J_0S = J_0S- J_0 + 1
-      J_0 =  J_0 - J_0 + 1
 
       CALL HALO_UPDATE(grid, mass, FROM=NORTH)
       CALL HALO_UPDATE(grid, s,    FROM=NORTH)
@@ -315,7 +310,7 @@ c--------------------------------------------------------------
       CALL HALO_UPDATE_COLUMN(grid, fmom, FROM=NORTH+SOUTH)
 
       If (qlimit) Then
-         
+
         Call HALO_UPDATE(grid, f, FROM=NORTH+SOUTH)
         DO l=1,nlev
           if (.not. idx(l)) cycle
@@ -390,7 +385,7 @@ c-------------------------------------------------------------------
         End If
 
       End Function FluxFraction
-      
+
       Function MassFraction(dm, mass) Result (fracm)
         Real*8, Intent(In) :: dm
         Real*8, Intent(In) :: mass
@@ -401,9 +396,9 @@ c-------------------------------------------------------------------
         Else
           fracm = 0.d0
         End If
-        
+
       End Function MassFraction
-      
+
       Subroutine calc_tracer_mass_flux()
 
       Do n = J_0, J_1
@@ -473,7 +468,6 @@ c-------------------------------------------------------------------
            if (ierr.eq.2) return
          end if
          F(i,n)   = fn
-         F(i,n-1) = fnm1
          SMOM(mx,i,n) = sxn
          SMOM(mxx,i,n) = sxxn
       End If
@@ -548,20 +542,6 @@ c------------------------------------------------------------------
             S(i,n)=0.
             SMOM(:,i,n)=0.
          endif
-         if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
-           SMOM(mx,i,n)=
-     &          min(1.5*S(i,n),
-     &    max(-1.5*S(i,n),SMOM(mx,i,n)))
-           SMOM(mxx,i,n)=
-     &          min(2.*S(i,n)-abs(SMOM(mx,i,n))/3.,
-     &          max(abs(SMOM(mx,i,n))-S(i,n),
-     &          SMOM(mxx,i,n)))
-           SMOM(mxy,i,n)=min(S(i,n),
-     &    max(-S(i,n),SMOM(mxy,i,n)))
-           SMOM(mzx,i,n)=min(S(i,n),
-     &    max(-S(i,n),SMOM(mzx,i,n)))
-         end if
-
 c-----------------------------------------------------------------
          if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
            SMOM(mx,i,n)=

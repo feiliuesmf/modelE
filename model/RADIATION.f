@@ -1,117 +1,110 @@
-  
+        
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
 
       IMPLICIT NONE
 
-C-----------------------------------------
-C     Grid parameters: Vertical resolution
-C-----------------------------------------
+C--------------------------------------------------
+C     Grid parameters: Vertical resolution/profiles
+C--------------------------------------------------
 
-!@var LX max.number of vertical layer edges of the radiation (1D)-model
+!@var LX max.number of vertical layers of the radiation (1D)-model
 !@+
 !@+   The Radiation Model can accomodate  arbitrary vertical resolution,
 !@+              the number of layers may be time or location dependent,
-!@+              but it cannot exceed LX-1.
+!@+              but it cannot exceed LX.
 !@+   Since the GCM uses 3 radiative equilibrium layers on top of the
-!@+   model atmosphere, the number LM of GCM layers may be at most LX-4.
-      integer, parameter :: LX = 53+4
+!@+   model atmosphere, the number LM of GCM layers may be at most LX-3.
+      INTEGER, PARAMETER :: LX = 54+3
 
-!@var PTOPTR top of sigma layer part of vertical grid (mb), i.e.
-!@+          for purposes of repartitioning the prescribed constituents,
-!@+          the pressure levels above PTOPTR mb are assumed to be
-!@+          fixed in time and space, below PTOPTR mb the RATIOS of
-!@+          the layer thicknesses are fixed in time and space.
-!@+          (altern.: Use REPART to go from mean to current P-levels)
-      real*8 :: PTOPTR = 150.d0
+!     optional repartitioning of gases - OFFLINE use only
 !@var MRELAY if not 0, gases/aerosols are repartitioned to new layering
-!@+   KEEP10, RO3COL, NO3COL may be used to modify this repartitioning:
-!@+           if NO3COL=1, column amount of O3 is reset to RO3COL
-!@+   (for OFF-line use if number of layers is time-dependent only)
-      integer :: MRELAY=0, KEEP10=0, NO3COL=0 ; real*8 :: RO3COL=1.
+!@var KEEP10 if =10 N2 is kept, not repartitioned    (only if MRELAY>0)
+!@+           n=1-9 N2 not repartitioned and replaces gas n
+!@+         n=11-19 N2 not repartitioned and added to gas n-10
+!@var NO3COL if >0 ozone is rescaled before repartitioning if MRELAY>0
+!@var RO3COL = rescaled column amount of O3 if NO3COL>0   (if MRELAY>0)
+      INTEGER :: MRELAY=0, KEEP10=0, NO3COL=0 ; REAL*8 :: RO3COL=1.
 
-C-------------------------------------------     This should eventually
-C     Grid parameters: Horizontal resolution     be moved outside RADPAR
-C-------------------------------------------     into the driver
+!     temperature profile within a layer: TLB,TLM,TLT bottom,mid,top T
+!@var TLGRAD if >=0 tlt=tlm+dT*TLGRAD, tlb=tlm-dT*TLGRAD where
+!@+        dT is chosen to try to minimize discontinuities if TLGRAD=1
+!@+        if TLGRAD<0 tlt,tlm,tlb are all inputs        (OFFLINE use)
+!@var PTLISO tlt=tlb=tlm above PTLISO mb independent of TLGRAD
+      REAL*8 :: TLGRAD=1.             !     control param
+      REAL*8 :: PTLISO=2.5d0          ! GCM control param
+
+C-------------------------------------------
+C     Grid parameters: Horizontal resolution
+C-------------------------------------------
 
 !@var MLAT46,MLON72 horizontal grid dimensions referred to in this model
 !@+   The Radiation Model utilizes Data with 72x46 (lon,lat) resolution.
 !@+               For GCM resolution other than 72x46, set JLAT and ILON
 !@+               to appropriately Sample  (rather than interpolate) the
 !@+               72x46 aerosol, ozone, cloud heterogeneity data sets
-      integer, parameter ::  MLAT46=46,MLON72=72
+      INTEGER, PARAMETER ::  MLAT46=46,MLON72=72
 
 !@var JNORTH latitude index defining northern hemisphere : jlat>jnorth
-      integer, parameter ::  JNORTH=MLAT46/2
+      INTEGER, PARAMETER ::  JNORTH=MLAT46/2
 
+!     longitudes of box centers (degrees): -177.5,-172.5., ... ,177.5
 !@var DLAT46 latitudes of box centers (degrees)
-      real*8, parameter, dimension(46) :: DLAT46=(/
+      REAL*8, PARAMETER :: DLAT46(46)=(/
      A    -90.,-86.,-82.,-78.,-74.,-70.,-66.,-62.,-58.,-54.,-50.,-46.,
      B    -42.,-38.,-34.,-30.,-26.,-22.,-18.,-14.,-10., -6., -2.,  2.,
      C      6., 10., 14., 18., 22., 26., 30., 34., 38., 42., 46., 50.,
      D     54., 58., 62., 66., 70., 74., 78., 82., 86., 90./)
 
-!@var DLON72 longitude difference to date line (degrees)
-      real*8, parameter, dimension(72) :: DLON72=(/
-     A      0.,  5., 10., 15., 20., 25., 30., 35., 40., 45., 50., 55.,
-     B     60., 65., 70., 75., 80., 85., 90., 95.,100.,105.,110.,115.,
-     C    120.,125.,130.,135.,140.,145.,150.,155.,160.,165.,170.,175.,
-     D    180.,185.,190.,195.,200.,205.,210.,215.,220.,225.,230.,235.,
-     E    240.,245.,250.,255.,260.,265.,270.,275.,280.,285.,290.,295.,
-     F    300.,305.,310.,315.,320.,325.,330.,335.,340.,345.,350.,355./)
-
 C----------------
 C     Input data               for the 1-d radiation
 C----------------
 
-!@var LASTVC if not < zero, atmosph. and ground data are being set
-      integer :: LASTVC=-123456  ! for OFF-line use only (set_io)
+!@var LASTVC if >= 0 picks sample atmosph. and ground data, OFFLINE only
+      INTEGER :: LASTVC=-123456
 
 !@var COSZ          cosine of zenith angle  (1)
-      real*8 cosz
+      REAL*8 cosz
 !@var JLAT,ILON     lat,lon index  w.r.to 72x46 lon-lat grid
-!@var NL,NLP        number of rad. model layers, layer edges (NLP=NL+1)
+!@var NL,L1         highest and lowest above ground layer
 !@var LS1_loc       local tropopause level, used to limit H2O-scaling
-      integer   :: JLAT,ILON,NL,NLP, LS1_loc
+      INTEGER   :: JLAT,ILON, NL,L1=1, LS1_loc=1  ! Offline defaults
 !@var JYEAR,JDAY    current year, Julian date
-      integer :: JYEAR=1980, JDAY=1
+      INTEGER :: JYEAR=1980, JDAY=1
 
 !@var PLB           layer pressure (mb) at bottom of layer
 !@var HLB           height (km) at bottom of layer - currently NOT Used
 !@var TLm           mean layer temperature (K)
-!@var TLb,TLt       bottom,top layer temperature (K) - computed from TLm
-!@+                 except if TLGRAD<0 ; TLGRAD,PTLISO control T-profile
-      real*8 :: PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX)
-!@var       TLGRAD     0<TLGRAD<1 controls T-profile within a layer, but
-!@var       PTLISO     tlt=tlb=tlm above PTLISO mb independent of TLGRAD
-      real*8 :: TLGRAD=1.,  PTLISO=2.5d0 ! control param
+!@var TLb,TLt       bottom,top layer temperature (K) - derived from TLm
+!@+                                                    (unless TLGRAD<0)
+!@var SHL,RHL       layer specific,relative humidity (1)
+      REAL*8, dimension(LX+1) :: PLB,HLB,TLB
+      REAL*8, dimension(LX)   :: TLT,TLM,SHL,RHL
+!@var KEEPRH  if 0: find RH from SH, 1: find SH from RH, 2: keep both
+      INTEGER :: KEEPRH=2
 
-!@var ULGAS,U0GAS   gas amounts: curr.,ref.values (cm atm) (get/setgas)
+!@var ULGAS         current gas amounts, 13 types  (cm atm) (in getgas)
 !@var TAUWC,TAUIC   opt.depth of water,ice cloud layer (1)
 !@var SIZEWC,SIZEIC particle size of water,ice clouds (micron)
 !@var CLDEPS        cloud heterogeneity; is computed using KCLDEP,EPSCON
-      real*8 :: ULGAS(LX,13),TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX)
+      REAL*8 :: ULGAS(LX,13),TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX)
      *     ,CLDEPS(LX)
 !@var       EPSCON  cldeps=EPSCON if KCLDEP=1
 !@var       KCLDEP  KCLDEP=0->CLDEPS=0, 1->=EPSCON, 2->as is, 3,4->isccp
-      real*8 :: EPSCON=0. ; integer :: KCLDEP=4 ! control param
+      REAL*8 :: EPSCON=0. ; INTEGER :: KCLDEP=4 ! control param
 
-!@var SHL,RHL       layer specific,relative humidity (1)
-      real*8 :: SHL(LX),RHL(LX)
-!@var KEEPRH  if 0: find RH from SH, 1: find SH from RH, 2: keep both
-      integer :: KEEPRH=2       ! control param
 !@var KDELIQ Flag for dry(0) or wet(1) air deliquescence
-      integer :: KDELIQ(LX,4)
+      INTEGER :: KDELIQ(LX,4)
 !@var KRHDTK if 1, RHlevel for deliquescence is temperature dependent
-      integer :: KRHDTK=1    !  control parameter
+      INTEGER :: KRHDTK=1    !  control parameter
 
 !@var SRBALB,SRXALB diffuse,direct surface albedo (1); see KEEPAL
-      real*8 :: SRBALB(6),SRXALB(6),dalbsn ! prescr change in snowalbedo
+      REAL*8 :: SRBALB(6),SRXALB(6),dalbsn ! prescr change in snowalbedo
 !@var       KEEPAL  if 0, SRBALB,SRXALB are computed in SET/GETSUR
-      integer :: KEEPAL=0       ! control param
+      INTEGER :: KEEPAL=0       ! control param
 !@dbparm    KSIALB  sea ice albedo computation flag: 0=Hansen 1=Lacis
-      integer :: KSIALB=0
+      INTEGER :: KSIALB=0
 !@var PVT           frac. of surf.type (bareWhite+veg*8+bareDark+ocn)(1)
 !@var AGESN 1-3     age of snow    (over soil,oice,land ice) (days)
 !@var SNOWE,SNOWLI  amount of snow (over soil,land ice)   (kg/m^2)
@@ -126,10 +119,10 @@ C----------------
 !@var TGO           top layer water temperature (K) of ocean/lake
 !@var TGE,TGOI,TGLI top layer ground temperature (K) soil,seaice,landice
 !@var TSL           surface air temperature (K)
-      real*8 PVT(12),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG,POCEAN
+      REAL*8 PVT(12),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG,POCEAN
      *     ,PEARTH,POICE,PLICE,PLAKE,TGO,TGE,TGOI,TGLI,TSL
 !@var KZSNOW        =1 for snow/ice albedo zenith angle dependence
-      integer :: KZSNOW=1
+      INTEGER :: KZSNOW=1
 !     Additional info for Schramm/Schmidt/Hansen sea ice albedo KSIALB=0
 !@var ZSNWOI        depth of snow over ocean ice (m)
 !@var zoice         depth of ocean ice (m)
@@ -143,31 +136,31 @@ C----------------
       REAL*8 :: snoage_fac_max=.5d0
 
 !@var ITRMAX maximum number of optional tracers
-      integer, parameter :: ITRMAX=50
+      INTEGER, PARAMETER :: ITRMAX=50
 !@var TRACER array to add up to ITRMAX additional aerosol species
-      real*8    :: TRACER(LX,ITRMAX)
+      REAL*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
-      real*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
+      REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
 !@var O3_IN column variable for importing ozone field from rest of model
-!@var use_tracer_ozone =0 normal case, =1 means that
-!@+   RCOMPX will use O3_IN(L) for U0GAS(L,3) for GCM levels
-      real*8, dimension(lx) :: O3_IN
-      integer use_tracer_ozone
+!@var use_tracer_ozone: set U0GAS(L,3)=O3_IN(L), L=L1,use_tracer_ozone
+      REAL*8  O3_IN(LX)
+      INTEGER use_tracer_ozone
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
-     A              PLB,HLB,TLB,TLT,TLM,ULGAS
+     A              PLB,HLB,TLB,TLT,TLM,SHL,RHL,ULGAS
      B             ,TAUWC,TAUIC,SIZEWC,SIZEIC,CLDEPS
-     C             ,SHL,RHL,TRACER,SRBALB,SRXALB,dalbsn
+     C             ,TRACER,SRBALB,SRXALB,dalbsn
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
      F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX,O3_IN
      X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake,FTAUC
 C      integer variables start here, followed by logicals
-     Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags,use_tracer_ozone
+     Y             ,JLAT,ILON, L1,NL, LS1_loc, use_tracer_ozone, flags
      Z             ,KDELIQ                ! is updated by rad. after use
 !$OMP  THREADPRIVATE(/RADPAR_INPUT_IJDATA/)
 
+!@var U0GAS   reference gas amounts, 13 types  (cm atm)      (in setgas)
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS(LX,13)
       COMMON/RADPAR_hybrid/U0GAS
@@ -178,32 +171,44 @@ C--------------------------------------------------------
 C     Output data     (from RCOMPX)  grid point dependent
 C--------------------------------------------------------
 
-!@var TRDFLB,TRUFLB,TRNFLB  thrml down,up,net flux at layr bottom (W/m2)
-!@var SRDFLB,SRUFLB,SRNFLB  solar down,up,net flux at layr bottom (W/m2)
-!@var TRFCRL,SRFHRL         layer LW cooling rate,SW heating rate (W/m2)
-!@var etc etc
-!@var etc etc
+!@var TRDFLB,TRUFLB,TRNFLB  Thrml down,up,net Flux at Layr Bottom (W/m2)
+!@var SRDFLB,SRUFLB,SRNFLB  Solar down,up,net Flux at Layr Bottom (W/m2)
+!@var TRFCRL,SRFHRL         layer LW Cooling Rate,SW Heating Rate (W/m2)
+!@var SR.VIS,SR.NIR         SW fluxes in vis,near-IR domain       (W/m2)
+!@var PLA...,ALB...         planetary and surface albedos            (1)
+!@var TR...W,WINDZF            fluxes in the window region        (W/m2)
+!@var BTEMPW,WINDZT      Brightness temperature in the window region (K)
+!@var SK...,SRK...       Spectral breakdown of fluxes/heat.rates  (W/m2)
+!@var FSRNFG,FTRUFG      surface type fractions of SW,LW fluxes   (W/m2)
+!@var DTRUFG               not used                               (W/m2)
 !sl!@var FTAUSL,TAUSL,...  surface layer computations commented out: !sl
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
-!@var O3_OUT column variable for exporting ozone field to rest of model
+!@var chem_out column variable for exporting radiation code quantities
+!@    1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,5=CFC11+CFC12
 !@var TTAUSV saves special aerosol optical thickness for diagnostic
+!@var aesqex saves extinction aerosol optical thickness
+!@var aesqsc saves scattering aerosol optical thickness
+!@var aesqcb saves aerosol scattering asymmetry factor
 
-      real*8, dimension(lx) :: TRDFLB,TRUFLB,TRNFLB,TRFCRL,
-     *     SRDFLB,SRUFLB,SRNFLB,SRFHRL,O3_OUT
-      real*8 :: SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
-     *     SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
-     *     SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,
-     *     TRDFGW,TRUFGW,TRUFTW,BTEMPW,SRXVIS,SRXNIR
-      real*8, dimension(4) :: FSRNFG,FTRUFG,DTRUFG !,SRXATM
-      real*8 :: WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3),SRKINC(16),
-     *     SRKALB(16),SRKGAX(16,4),SRKGAD(16,4),SKDFLB(LX,17),
-     *     SKUFLB(LX,17),SKNFLB(LX,17),SKFHRL(LX,17)
-!sl  K             ,FTAUSL(33),TAUSL(33)    ! input rather than output ?
-!nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
-!sl  K             ,TRSLTS,TRSLTG,TRSLBS
-      real*8 TTAUSV(LX,ITRMAX)
+      REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
+      REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
+      REAL*8 chem_out(LX,5)
+      REAL*8 SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
+     *       SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
+     *       SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
+      REAL*8 TRDFGW,TRUFGW,TRUFTW,BTEMPW,SRXVIS,SRXNIR
+      REAL*8 WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3)
+      REAL*8 SRKINC(16),SRKALB(16),SRKGAX(16,4),SRKGAD(16,4)
+      REAL*8, dimension(LX,17) ::   SKFHRL
+      REAL*8, dimension(LX+1,17) :: SKDFLB,SKUFLB,SKNFLB
+      REAL*8 FSRNFG(4),FTRUFG(4),DTRUFG(4) ! ,SRXATM(4)
+!sl   REAL*8 FTAUSL(33),TAUSL(33)             ! surf.layer input data
+!nu  K      ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV  !nu = not (yet) used
+!sl  K      ,TRSLTS,TRSLTG,TRSLBS
+      REAL*8 TTAUSV(LX,ITRMAX),aesqex(lx,6,itrmax),aesqsc(lx,6,itrmax),
+     &     aesqcb(lx,6,itrmax)
 
-      integer :: LBOTCL,LTOPCL
+      INTEGER :: LBOTCL,LTOPCL
 
       COMMON/RADPAR_OUTPUT_IJDATA/
      A              TRDFLB,TRUFLB,TRNFLB,TRFCRL
@@ -218,36 +223,32 @@ C--------------------------------------------------------
 !sl  K             ,FTAUSL,TAUSL    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
-     K             ,O3_OUT,TTAUSV
+     K             ,TTAUSV,chem_out,aesqex,aesqsc,aesqcb
      L             ,LBOTCL,LTOPCL   ! integers last for alignment
 !$OMP THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
 !nu   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
 
 C----------------   scratch pad for temporary arrays that are passed to
-C     Work arrays   other routines while working on a lat/lon point; but
-C----------------   in multi-cpu mode, each cpu needs its own copy !!
+C     Work arrays   other routines while working on a lat/lon point;
+C----------------   but with openMP, each cpu needs its own copy !!
 
-      real*8, dimension(LX,6) ::
+      REAL*8, dimension(LX,6) ::
      *     SRAEXT,SRASCT,SRAGCB,SRBEXT,SRBSCT,SRBGCB,
      *     SRDEXT,SRDSCT,SRDGCB,SRVEXT,SRVSCT,SRVGCB,
-     *     SRCEXT,SRCSCT,SRCGCB,DBLEXT,DBLSCT,DBLGCB,DBLPI0,SRCPI0
-      real*8, dimension(LX,33) :: TRCALK,TRAALK,TRBALK,TRTAUK,TRDALK
-     *     ,TRVALK,TRGXLK,DFLB,UFLB,WFLB
-      real*8, dimension(33) :: TRCTCA,DFSL,UFSL,WFSL,CLPI0,TXCTPG,TSCTPG
+     *     SRCEXT,SRCSCT,SRCGCB,SRCPI0
+      REAL*8, dimension(LX+1,6) :: DBLEXT,DBLSCT,DBLGCB,DBLPI0
+      REAL*8, dimension(LX ,33) :: TRTAUK,TRGXLK
+     *        ,TRCALK,TRAALK,TRBALK,TRDALK,TRVALK
+      REAL*8 DFLB(LX+1,33),UFLB(LX+1,33)
+      REAL*8, dimension(33) :: TRCTCA,DFSL,UFSL,TXCTPG,TSCTPG
      *     ,TGCTPG,AVH2S,TRGALB,BGFEMT,BGFEMD
-      real*8, dimension(LX) :: PL,DPL,WTLB,WTLT
-     *     ,ENA,ENB,ENC,TRA,TRB,TRC,AERX1,AERS1,AERG1,TRAXNL,AERX2,AERS2
-     *     ,AERG2,UGAS0,UGASR,RNB,RNX,TNB,TNX,XNB,XNX,SRB,SRX,VRU,VRD
-     *     ,FAC,DNA,DNB,DNC,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X,O2FHRB,AO3D
-     *     ,AO3U,HTPROF
-      real*8 :: UXGAS(LX,9),TAUN(33*LX),BXA(7),PRNB(6,4),PRNX(6,4)
-     *     ,Q55H2S,RIJTCK(6,33),FDXTCK(3,33),ALBTCK(3,33),FEMTCK(3,33)
+      REAL*8, dimension(LX) :: PL,DPL,O2FHRL,SRAXNL,SRASNL,SRAGNL,O2FHRB
+      REAL*8 BXA(7),PRNB(6,4),PRNX(6,4),Q55H2S
      *     ,QVH2S(6),SVH2S(6),GVH2S(6),XTRU(LX,4),XTRD(LX,4)
-      integer, dimension(LX) :: ITLB,ITLT
+     *     ,DXAERU(LX,4,4,LX+4),DXAERD(LX,4,4,LX+4)
+      INTEGER IP24C9(LX)
 C**** local except for special radiative aerosol diagnostics aadiag
-      real*8  ATAULX(LX,6)
-      integer NRHNAN(LX,8)
 
       COMMON/WORKDATA/          !          Temp data generated by RCOMPX
      A              SRAEXT,SRASCT,SRAGCB,TRCALK
@@ -257,63 +258,55 @@ C**** local except for special radiative aerosol diagnostics aadiag
      E             ,DBLEXT,DBLSCT,DBLGCB,DBLPI0
      F             ,SRCEXT,SRCSCT,SRCGCB,SRCPI0
      G             ,TRDALK,TRVALK,TRGXLK,TRCTCA
-     H             ,DFLB,UFLB,WFLB,PL,DPL
-     I             ,TRGALB,BGFEMT,BGFEMD,WTLB,WTLT
-     J             ,ENA,ENB,ENC,TRA,TRB,TRC
-     K             ,DFSL,UFSL,WFSL
-     L             ,AERX1,AERS1,AERG1,TRAXNL
-     M             ,AERX2,AERS2,AERG2,UGAS0,UGASR
-     N             ,RNB,RNX,TNB,TNX,XNB,XNX
-     O             ,SRB,SRX,VRU,VRD,FAC
-     P             ,UXGAS,TAUN,BXA,PRNB,PRNX
-     Q             ,DNA,DNB,DNC,Q55H2S
-     R             ,RIJTCK,FDXTCK,ALBTCK,CLPI0
-     S             ,FEMTCK,TXCTPG,TSCTPG,TGCTPG
-     V             ,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X
-     W             ,O2FHRB,AO3D,AO3U
-     X             ,HTPROF,QVH2S,SVH2S,GVH2S,AVH2S
-     F             ,XTRU,XTRD,                  ATAULX
-     I             ,ITLB,ITLT,                  NRHNAN   ! integers last
+     H             ,DFLB,UFLB,PL,DPL
+     I             ,TRGALB,BGFEMT,BGFEMD
+     K             ,DFSL,UFSL
+     P             ,BXA,PRNB,PRNX
+     Q             ,Q55H2S
+     S             ,TXCTPG,TSCTPG,TGCTPG
+     V             ,O2FHRL,SRAXNL,SRASNL,SRAGNL
+     W             ,O2FHRB
+     X             ,QVH2S,SVH2S,GVH2S,AVH2S
+     F             ,XTRU,XTRD,DXAERU,DXAERD
+     I             ,IP24C9                     ! INTEGERs last
 !$OMP  THREADPRIVATE(/WORKDATA/)
 
-      real*8 ::                      !  Temp data used by WRITER, WRITET
-     A           SRCQPI(6,15),TRCQPI(33,15),
-     B           TRAQAB(33,11),TRBQAB(33,10),TRCQAB(33,15),TRDQAB(33,25)
-      integer :: NORDER(16),NMWAVA(16),NMWAVB(16)
+      REAL*8 ::  SRCQPI(6,15),TRCQPI(33,15)       !??? to setcld/getcld
+                 !  Temp data used by WRITER, WRITET
+      REAL*8  :: TRAQAB(33,11),TRBQAB(33,10),TRCQAB(33,15),TRDQAB(33,25)
+      INTEGER :: NORDER(16),NMWAVA(16),NMWAVB(16)
 
 C------------------------------------------
 C     Reference data, Tables, Climatologies
 C------------------------------------------
 
-      real*8, parameter, dimension(16) :: DKS0=(/
+      REAL*8, PARAMETER :: DKS0(16)=(/
      *           .010, .030, .040, .040, .040, .002, .004, .013,
      +           .002, .003, .003, .072, .200, .480, .050, .011/)
 
-      integer ::  NKSLAM=14
-      integer,parameter,dimension(16) ::
-     *     KSLAM=(/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/)
+      INTEGER ::  NKSLAM=14
+      INTEGER,parameter :: KSLAM(16)=(/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/)
 
-      real*8 ::                 !   Model parameters generated by RCOMP1
-     H              HLB0(LX),PLB0(LX),TLM0(LX),U0GAS3(LX)
+      REAL*8 ::                 !   Model parameters generated by RCOMP1
+     H              HLB0(LX+1),PLB0(LX+1),TLM0(LX),U0GAS3(LX)
      A             ,TKPFW(630),TKPFT(900),AO3(460)
      D             ,FPXCO2(LX),FPXOZO(LX) !nu ,PIAERO(10)
-     C             ,SRAX(LX,6,5),SRAS(LX,6,5),SRAC(LX,6,5),ZTABLE(LX,11)
-     E             ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8)
-     D             ,QDST55(8),TRAX(LX,33,5),DBLN(30),TCLMIN
+     E ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8),QDST55(8) !?DST
+     D             ,TRAX(LX,33,5),DBLN(30),TCLMIN
 
 C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
-      real*8 ::
-     A              TAUTBL(154000),PLANCK(8250),XKCFC(12,8,4)
-     B             ,TAUWV0(154000),H2OCN8(33,8,14),H2OCF8(33,8,5)
-     D             ,ULOX(285),DUX(285)
+      REAL*8 ::
+     A     TAUTBL(1008,8,19),PLANCK(124:373,33),XKCFC(12,8,16:19)
+     B    ,TAUWV0(1008,8,19),H2OCN8(33,8,14),H2OCF8(33,8,5)
+     D             ,ULOX(19,15),DUX(19,15)
      E
      F            ,XUCH4(9,15),XUN2O(9,15),XTRUP(24,3,15),XTRDN(24,3,15)
      G             ,CXUO3(7,15),CXUCO2(7,15),XTU0(24,3)
      H             ,XTD0(24,3),XUCH40(9),XUN2O0(9)
-      integer, parameter :: ITPFT0=123 ,ITNEXT=250 ! offsets for lookups
+      REAL*4 :: DXTRUA(24,3,4,13),DXTRDA(24,3,4,13),SAX(4,13)
 
 C            RADDAT_AERCLD_MIEPAR          read from            radfile3
-      real*8 ::
+      REAL*8 ::
      A              SRAQEX( 6,11),SRAQSC( 6,11),SRAQCB( 6,11),Q55A11(11)
      B             ,TRAQEX(33,11),TRAQSC(33,11),TRAQCB(33,11),REFA11(11)
      C             ,SRBQEX( 6,10),SRBQSC( 6,10),SRBQCB( 6,10),Q55B10(10)
@@ -333,8 +326,8 @@ C            RADDAT_AERCLD_MIEPAR          read from            radfile3
      Q             ,SRSQEX( 6,25),SRSQSC( 6,25),SRSQCB( 6,25),Q55S25(25)
      R             ,TRSQEX(33,25),TRSQSC(33,25),TRSQCB(33,25),REFS25(25)
 
-      real*8    SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
-      real*8    TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
+      REAL*8    SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
+      REAL*8    TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
       EQUIVALENCE (SRVQEX(1,1,6),SRQV(1,1)), (SRVQSC(1,1,6),SRSV(1,1))
       EQUIVALENCE (SRVQCB(1,1,6),SRGV(1,1)),   (Q55V20(1,6),Q55V(1))
       EQUIVALENCE (TRVQEX(1,1,6),TRQV(1,1)), (TRVQSC(1,1,6),TRSV(1,1))
@@ -342,13 +335,13 @@ C            RADDAT_AERCLD_MIEPAR          read from            radfile3
       EQUIVALENCE   (REFV20(1,6),REFV(1)),     (VEFV20(1,6),VEFV(1))
 
 C            RADDAT_CLDCOR_TRSCAT           read from           radfileE
-      real*8 :: RIJTPG(6,49,17,21),FDXTPG(3,49,17,21),FEMTPG(3,49,17,21)
+      REAL*8 :: RIJTPG(6,49,17,21),FDXTPG(3,49,17,21),FEMTPG(3,49,17,21)
 
 
 
-C--------------------------------------    This also should be moved out
-C     History files (+ control options)    of RADPAR, which should just
-C--------------------------------------    have to deal  1 point in time
+C--------------------------------------   This also should be moved out
+C     History files (+ control options)   of RADPAR, which should just
+C--------------------------------------   have to handle 1 point in time
 
 !     -------------------------------------------------------i/o control
 !@var MADxxx  Model Add-on Data of Extended Climatology Enable Parameter
@@ -362,8 +355,8 @@ C--------------------------------------    have to deal  1 point in time
 !@+   MADSUR   =  1   Reads  Vegetation,Topography data    RFILEC,RFILED
 !@+   MADBAK   if 1          Adds background aerosols
 !     ------------------------------------------------------------------
-      integer :: MADO3M=1,MADAER=1,MADDST=1,MADVOL=1,MADEPS=1,MADLUV=1
-      integer :: MADGHG=1,MADSUR=0,MADBAK=0 ! MADSUR=1 for OFF-line only
+      INTEGER :: MADO3M=1,MADAER=1,MADDST=1,MADVOL=1,MADEPS=1,MADLUV=1
+      INTEGER :: MADGHG=1,MADSUR=0,MADBAK=0 ! MADSUR=1 for OFF-line only
 
 !     ------------------------------------------------------time control
 !@var KYEARx,KJDAYx if both are 0   : data are updated to current yr/day
@@ -378,17 +371,17 @@ C--------------------------------------    have to deal  1 point in time
 !@+   KYEARV,KJDAYV: Volc.Aerosol Trend
 !@+   KYEARA,KJDAYA: trop.Aerosol Trend
 !     ------------------------------------------------------------------
-      integer ::                    KYEARS=0,KJDAYS=0, KYEARG=0,KJDAYG=0
+      INTEGER ::                    KYEARS=0,KJDAYS=0, KYEARG=0,KJDAYG=0
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
 
       INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
 !@var O3YR_max last year before O3 data repeat last ann. cycle
       INTEGER :: O3YR_max=1997
-      real*8 :: O3JDAY(NLO3,MLON72,MLAT46)
+      REAL*8 :: O3JDAY(NLO3,MLON72,MLAT46)
       COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-      REAL*8, DIMENSION(NLO3+1) :: PLBO3 = (/ ! plbo3(1) depends on plb0
+      REAL*8 :: PLBO3(NLO3+1) = (/ ! plbo3(1) depends on plb0  ! ??
      *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
      *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
      *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
@@ -398,44 +391,45 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
      *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
 
 !@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
-      real*8, parameter, dimension(10) :: PLBA09=(/
+      REAL*8, PARAMETER :: PLBA09(10)=(/
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
 C     Layer  1    2    3    4    5    6    7    8    9
-      integer, parameter :: La720=3 ! top low cloud level (aerosol-grid)
+      INTEGER, PARAMETER :: La720=3 ! top low cloud level (aerosol-grid)
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
-      real*4 TDUST(72,46,9,8,12)
-      real*8 DDJDAY(9,8,72,46)
+      REAL*4 TDUST(72,46,9,8,12)
+      REAL*8 DDJDAY(9,8,72,46)
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
-      real*8         V4TAUR(1800,24,5),FDATA(80),GDATA(80)
-     C              ,HTFLAT(49,4),SIZLAT(49) !nu ,TAULAT(49)
+      REAL*8 V4TAUR(1800,24,5),FDATA(80),GDATA(80)
+     C      ,HTFLAT(49,4),SIZLAT(49),TAULAT(49)
 
 C            RADMAD5_CLDEPS_3D_SEASONAL       (user SETCLD)     radfile8
-      real*4 EPLMHC(72,46,12,4)
-      real*8 EPLOW(72,46),EPMID(72,46),EPHIG(72,46),EPCOL(72,46)
+      REAL*4 EPLMHC(72,46,12,4)
+      REAL*8 EPLOW(72,46),EPMID(72,46),EPHIG(72,46),EPCOL(72,46)
 
 C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
 !@var iy1S0,MS0X first year, max.number of months for S0 history
 !@var icycs0,mcycs0 solar cycle in yrs,months used to extend S0 history
 !@var KSOLAR controls which data are used: <0 Thekaekara, else Lean:
 !@+          1: use monthly data, 2: use annual data, 0: constant data
-      integer :: KSOLAR=1       ! MADLUV=KSOLAR=0 only possible OFF-line
+!@+          9: use annual data from file but with Thekaekara bins
+      INTEGER :: KSOLAR=1       ! MADLUV=KSOLAR=0 only possible OFF-line
 
-      integer, parameter :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
-      integer, parameter :: icycs0=11,  mcycs0=icycs0*12
-      real*4 UVLEAN(Ms0X,190),yr1S0,yr2S0
-      real*8 TSI1(Ms0X),TSI2(Ms0X),FSLEAN(190),W1LEAN(190)
+      INTEGER, PARAMETER :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
+      INTEGER, PARAMETER :: icycs0=11,  mcycs0=icycs0*12
+      REAL*4 UVLEAN(Ms0X,190),yr1S0,yr2S0
+      REAL*8 TSI1(Ms0X),TSI2(Ms0X),FSLEAN(190),W1LEAN(190)
 
-      real*8 :: S00WM2=1366.2911d0, S0=1366.d0, RATLS0=1.
+      REAL*8 :: S00WM2=1366.2911d0, S0=1366.d0, RATLS0=1.
 
-      real*8 :: WSOLAR(190),FSOLAR(190)
+      REAL*8 :: WSOLAR(190),FSOLAR(190)
 
 C***  alternate sources to get WSOLAR,FSOLAR:
-      real*8, dimension(190) :: WSLEAN,DSLEAN,FRLEAN
+      REAL*8, dimension(190) :: WSLEAN,DSLEAN,FRLEAN
       common/LEAN1950/   WSLEAN,DSLEAN,FRLEAN              ! if MADLUV=0
 
-      real*8, parameter, dimension(190) :: WTHEK=(/        ! if KSOLAR<0
+      REAL*8, PARAMETER :: WTHEK(190)=(/        ! if KSOLAR<0
      *           .115,.120,.125,.130,.140,.150,.160,.170,.180,.190,.200,
      1 .210,.220,.225,.230,.235,.240,.245,.250,.255,.260,.265,.270,.275,
      2      .280,.285,.290,.295,.300,.305,.310,.315,.320,.325,.330,.335,
@@ -453,7 +447,7 @@ C***  alternate sources to get WSOLAR,FSOLAR:
      E 3.60,3.70,3.80,3.90,4.00,4.10,4.20,4.30,4.40,4.50,4.60,4.70,4.80,
      F  4.9, 5.0, 6.0, 7.0, 8.0, 9.0,10.0,11.0,12.0,13.0,14.0,15.00/)
 
-      real*8, parameter, dimension(190) :: FTHEK=(/
+      REAL*8, PARAMETER :: FTHEK(190)=(/
      *         .007,.900,.007,.007,.030,.070,.230,.630,1.25,2.71,10.7,
      1 22.9,57.5,64.9,66.7,59.3,63.0,72.3,70.4,104.,130.,185.,232.,204.,
      2    222.,315.,482.,584.,514.,603.,689.,764.,830.,975.,1059.,1081.,
@@ -476,10 +470,10 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 
 C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
 !nu   KRHAER(4) -1/0/1 flag to base aeros.sizes on 70%/0%/model rel.humi
-!nu   integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SSalt,NO3,OC
+!nu   INTEGER :: KRHAER(4)=(/1,1,1,1/) ! SO4,SSalt,NO3,OC
 !@var KRHTRA(ITRMAX) 0/1 to make tracer aerosols rel.humid dependent
-      integer, dimension(ITRMAX) :: KRHTRA= 1
-      real*8 ::
+      INTEGER :: KRHTRA(ITRMAX)= 1
+      REAL*8 ::
      A               SRHQEX(6,190,4),SRHQSC(6,190,4),SRHQCB( 6,190,4)
      B              ,TRHQAB(33,190,4),RHINFO(190,15,4),A6JDAY(9,6,72,46)
      C   ,SRTQEX(6,190,ITRMAX),SRTQSC(6,190,ITRMAX),SRTQCB(6,190,ITRMAX)
@@ -493,7 +487,7 @@ C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
 C     -----------------------
 C     Ozone absorption tables
 C     -----------------------
-      real*8, parameter, dimension(226) ::        XWAVO3=(/
+      REAL*8, PARAMETER ::        XWAVO3(226)=(/
      *            .2002,.2012,.2022,.2032,.2042,.2052,.2062,.2072,.2082,
      A.2092,.2102,.2112,.2122,.2132,.2142,.2152,.2162,.2172,.2182,.2192,
      B.2202,.2212,.2222,.2232,.2242,.2252,.2262,.2272,.2282,.2292,.2302,
@@ -516,8 +510,8 @@ C     -----------------------
      H.3499,.3501,.3506,.3514,.3521,.3523,.3546,.3550,.3554,.3556,.3561,
      I.3567,.3572,.3573,.3588,.3594,.3599,.3600,.3604,.3606,.3639,.3647,
      J.3650,.3654,.3660/)
-      real*8, dimension(226) ::  UVA
-      real*8, parameter, dimension(226) ::  FUVKO3=(/
+      REAL*8 ::  UVA(226)
+      REAL*8, PARAMETER ::  FUVKO3(226)=(/
      *             8.3,  8.3,  8.1,  8.3,  8.6,  9.0,  9.7, 10.8, 11.7,
      A 13.0, 14.3, 16.0, 18.0, 20.6, 23.0, 26.1, 29.3, 32.6, 36.9, 40.8,
      B 46.9, 51.4, 56.7, 63.4, 69.1, 76.6, 84.0, 91.4, 99.9,110.0,118.0,
@@ -547,8 +541,8 @@ C     ------------------------------------------------------------------
 C          NO2 Trace Gas Vertical Distribution and Concentration Profile
 C     ------------------------------------------------------------------
 
-      real*8, parameter, dimension(42) ::
-     *     CMANO2=(/            ! every 2 km starting at 0km
+      REAL*8, PARAMETER ::
+     *     CMANO2(42)=(/            ! every 2 km starting at 0km
      1  8.66E-06,5.15E-06,2.85E-06,1.50E-06,9.89E-07,6.91E-07,7.17E-07,
      2  8.96E-07,3.67E-06,4.85E-06,5.82E-06,6.72E-06,7.77E-06,8.63E-06,
      3  8.77E-06,8.14E-06,6.91E-06,5.45E-06,4.00E-06,2.67E-06,1.60E-06,
@@ -567,78 +561,68 @@ C-------------------------
 !@var FULGAS scales the various atmospheric constituents:
 !@+         H2O CO2 O3 O2 NO2 N2O CH4 F11 F12 N2C CFC11 CFC12 SO2
 !@+   Note: FULGAS(1) only acts in the stratosphere (unless LS1_loc=1)
-      real*8, dimension(13) :: FULGAS = (/    ! scales ULGAS
+      REAL*8 :: FULGAS(13) = (/    ! scales ULGAS
 
 C      H2O CO2  O3  O2 NO2 N2O CH4 F11 F12 N2C CFC11+ CFC12+ SO2
 C        1   2   3   4   5   6   7   8   9  10    11     12   13
      +   1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,   1.,    1.,  0./)
 
 !@var FGOLDH scales background aerosols for Glb Ocn Land Desert Haze
-      real*8, dimension(5) ::       ! used by setbak/getbak only
-C               GLOBAL  OCEAN   LAND  DESERT    HAZE
-C                    1      2      3       4       5
-     +   FGOLDH=(/ 1d0, .68d0, .32d0, 1.d-20, 1.d-20 /)
+C                         GLOBAL  OCEAN   LAND  DESERT    HAZE
+C     for setbak/getbak only   1      2      3       4       5
+      REAL*8 :: FGOLDH(5)=(/ 1d0, .68d0, .32d0, 1.d-20, 1.d-20 /)
 
-!@var FSXAER,FTXAER scales solar,thermal opt.depth for var. aerosols:
-!@+          1: total 2:background 3: AClim 4:dust 5:volcanic
-!g95      real*8, dimension(5) ::  FSXAER=(/1.,1.,1.,1.,1./)
-!g95      real*8, dimension(5) ::  FTXAER=(/1.,1.,1.,1.,1./)
-!g95      real*8 FSTAER,FSBAER,FSAAER,FSDAER,FSVAER
-!g95     *      ,FTTAER,FTBAER,FTAAER,FTDAER,FTVAER
-!g95      EQUIVALENCE (FSXAER(1),FSTAER),  (FTXAER(1),FTTAER)
-!g95      EQUIVALENCE (FSXAER(2),FSBAER),  (FTXAER(2),FTBAER)
-!g95      EQUIVALENCE (FSXAER(3),FSAAER),  (FTXAER(3),FTAAER)
-!g95      EQUIVALENCE (FSXAER(4),FSDAER),  (FTXAER(4),FTDAER)
-!g95      EQUIVALENCE (FSXAER(5),FSVAER),  (FTXAER(5),FTVAER)
-      real*8 :: FSTAER=1.,FSBAER=1.,FSAAER=1.,FSDAER=1.,FSVAER=1.
-     *      ,FTTAER=1.,FTBAER=1.,FTAAER=1.,FTDAER=1.,FTVAER=1.
+!@var FSxAER,FTxAER scales solar,thermal opt.depth for var. aerosols:
+!@+     x =    T:total B:background A:atmClim  D:dust  V:volcanic
+      REAL*8 :: FSTAER=1.,FSBAER=1.,FSAAER=1.,FSDAER=1.,FSVAER=1.
+     *         ,FTTAER=1.,FTBAER=1.,FTAAER=1.,FTDAER=1.,FTVAER=1.
 
 !@var FTAUC factor to control cloud optical depth in radiation calc.
 !@+   =1 for full expression, =0 for clear sky calculation.
-      real*8 :: FTAUC ! to be set in calling routine, thread-private !
+      REAL*8 :: FTAUC=1 ! to be set in calling routine, thread-private !
 
 !@var PIVMAX limits PI0 of volcanic aerosols
-      real*8 :: PIVMAX=1.0
+      REAL*8 :: PIVMAX=1.0
 !@var ECLTRA,KCLDEM scales,enables full cloud scattering correction
-      real*8 :: ECLTRA=1. ; integer :: KCLDEM=1
+      REAL*8 :: ECLTRA=1. ; INTEGER :: KCLDEM=1
 !@var FCLDTR,FCLDSR scales opt.depth of clouds - not used (yet)
 !@var FRAYLE        scales Rayleigh parameter
-      real*8 ::   FCLDTR=1.,  FCLDSR=1.,  FRAYLE=1.
+      REAL*8 ::   FCLDTR=1.,  FCLDSR=1.,  FRAYLE=1.
 
 !@var KUVFAC,UVFACT,UVWAVL,KSNORM rescale UV spectral flux distribution
-      integer :: KUVFAC=0,  KSNORM=0  ! no rescaling
-      real*8, dimension(3)  :: UVWAVL=(/0.0010,0.0020,0.0030/)
-      real*8, dimension(3)  :: UVFACT=(/1.0000,1.0000,1.0000/)
+      INTEGER :: KUVFAC=0,  KSNORM=0  ! no rescaling
+      REAL*8  :: UVWAVL(3)=(/0.0010, 0.0020, 0.0030/)
+      REAL*8  :: UVFACT(3)=(/1.0000, 1.0000, 1.0000/)
 
 !@var SRCGSF Scaling Factors for Cloud Asymmetry Parameter for
-!@+                                      Water    Ice    MieIce
-      real*8, dimension(3) ::  SRCGSF=(/ 1.000,  1.000,  1.000/)
+!@+                            Water    Ice    MieIce
+      REAL*8  ::  SRCGSF(3)=(/ 1.000,  1.000,  1.000/)
 
 !@var TAUWC0,TAUIC0 lower limits for water/ice cloud opt.depths
-      real*8 ::  TAUWC0=1d-3, TAUIC0=1d-3
+      REAL*8 ::  TAUWC0=1d-3, TAUIC0=1d-3
 
 !@var KPFCO2,KPFOZO if > 0 scale CO2,O3 to stand. vertical profile
-      integer :: KPFCO2=0,  KPFOZO=0
+      INTEGER :: KPFCO2=0,  KPFOZO=0
 
 !@var KANORM,KCNORM if > 0 renormalize aerosols,cloud albedos
-      integer :: KANORM=0, KCNORM=0
+      INTEGER :: KANORM=0, KCNORM=0
 
 !@var KWVCON        ON/OFF flag for water vapor continuum absorption
 !@var KUFH2O,KUFCO2 H2O,CO2 column absorb.scaling
 !@var KCSELF,KCFORN H2O_ContSelf-Broadening,CO2_ContForeign-Broadening
-      integer :: KWVCON=1, KUFH2O=1,  KUFCO2=1,  KCSELF=1,  KCFORN=1
+      INTEGER :: KWVCON=1, KUFH2O=1,  KUFCO2=1,  KCSELF=1,  KCFORN=1
 
 !@var ICE012 pick ice droplet type: 0 liquid, 1 ice non-spher, 2 ice Mie
-      integer :: ICE012=1
+      INTEGER :: ICE012=1
 
 !@var VEFF0 effective volc. aerosol size distribution variance
-      real*8  :: VEFF0=0.35d0,  REFF0=0.30d0      ! REFF0 not used
+      REAL*8  :: VEFF0=0.35d0,  REFF0=0.30d0      ! REFF0 not used
 
 !@var NORMS0 if =1, Incident (TOA) Solar flux is normalized to equal S0
-      integer :: NORMS0=1
+      INTEGER :: NORMS0=1
 
 !@var KORDER,KWTRAB controls WRITER-output (Mie-scattering info)
-      integer :: KWTRAB=0, KORDER=0
+      INTEGER :: KWTRAB=0, KORDER=0
 
 C-----------------------------------------------------------------------
 C      COMPOSITION & VERTICAL DISTRIBUTION FOR 5 SPECIFIED AEROSOL TYPES
@@ -652,21 +636,21 @@ C    5    TROPOSPHERIC   HAZE AEROSOL  A,B,C ARE  LOCAL AVERAGE VALUES
 
 C        1     2     3     4     5     6     7     8     9    10    11
 C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
-      real*8, dimension(11,5) :: AGOLDH=reshape( (/
+      REAL*8, dimension(11,5) :: AGOLDH=reshape( (/
      1 .005,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
      2   .0, .020, .010, .010, .005,   .0, .010,   .0,   .0, .005,   .0,
      3   .0,   .0,   .0, .020, .005,   .0, .010, .010,   .0,   .0, .015,
      4   .0,   .0,   .0,   .0,   .0,   .0,   .0, .020, .010,   .0,   .0,
      5   .0,   .0,   .0, .010,   .0,   .0,   .0,   .0,   .0,   .0, .005/
      *  ),(/11,5/) )
-      real*8, dimension(11,5) :: BGOLDH=reshape( (/
+      REAL*8, dimension(11,5) :: BGOLDH=reshape( (/
      1 20.0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
      2   .0, 1.00, 4.00, 1.00, 4.00, 1.00, 4.00,   .0,   .0, 1.00,   .0,
      3   .0,   .0,   .0, 0.00, 2.00,   .0, 4.00, 2.00,   .0,   .0, 0.00,
      4   .0,   .0,   .0,   .0,   .0,   .0,   .0, 2.00, 0.00,   .0,   .0,
      5   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0, 0.00/
      *  ),(/11,5/) )
-      real*8, dimension(11,5) :: CGOLDH=reshape( (/
+      REAL*8, dimension(11,5) :: CGOLDH=reshape( (/
      1 3.00,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
      2   .0, 1.00, 3.00, 2.00, 3.00, 1.00, 2.00,   .0,   .0, 1.00,   .0,
      3   .0,   .0,   .0, 1.00, 3.00,   .0, 1.00, 1.00,   .0,   .0, 1.00,
@@ -674,7 +658,7 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
      5   .0,   .0,   .0, 1.00,   .0,   .0,   .0,   .0,   .0,   .0, 1.00/
      *  ),(/11,5/) )
 
-!nu   real*8, dimension(11) :: PI0VIS=(/
+!nu   REAL*8, dimension(11) :: PI0VIS=(/
 !nu         1          2          3          4          5          6
 !nu       ACID1      SSALT      SLFT1      SLFT2      BSLT1      BSLT2
 !nu  1   1.00000,   1.00000,   1.00000,   1.00000,   0.98929,   0.95609,
@@ -683,7 +667,7 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
 !nu       DUST1      DUST2      DUST3      CARB1      CARB2
 !nu  2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/)
 
-      real*8, dimension(8) ::
+      REAL*8, dimension(8) ::
 C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
      *  REFDRY=(/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 1.000,1.000/)
@@ -703,14 +687,14 @@ CKoch   DRYM2G=(/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 1.000,1.000/)
      * ,DENAER=(/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 2.000,2.000/)
 
 C     TROP AEROSOL 1850 BACKGROUND, INDUSTRIAL & BIO-BURNING PARAMETERS
-      real*8, dimension(13) :: AERMIX=(/
+      REAL*8, dimension(13) :: AERMIX=(/
 C      Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
 C      ---------------------------------  ------------------  --------
 C       1    2    3    4    5    6    7    8    9   10   11   12   13
 C      SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
      + 1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/)
 
-      real*8, dimension(8) ::
+      REAL*8, dimension(8) ::
 C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
      *  FS8OPX=(/1.000, 1.000, 1.000, 1.000, 2.000, 2.000, 1.000, 1.00/)
@@ -723,7 +707,7 @@ C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
 
 !nu  * ,A8VEFF=(/ .200,  .200,  .200,  .200,  .200,  .200,  .200, .200/)
 
-      real*8, dimension(8) ::
+      REAL*8, dimension(8) ::
 C                          MINERAL DUST PARAMETERS
 C                         CLAY                  SILT
      *REDUST=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,2.773D0,5.545D0,
@@ -740,10 +724,10 @@ C-----------------------------------------------------------------------
 
 !@var KTREND if > 0 table GHG concentrations (Trend G) are used for
 !@+             yr/day KYEARG/KJDAYG; if KTREND=0, GHG are set to PPMVK0
-      integer :: KTREND=1
+      INTEGER :: KTREND=1
 
 !@var PPMV80  reference GHG concentrations (ppm)
-      real*8, dimension(13) ::
+      REAL*8, dimension(13) ::
 C     GAS NUMBER    1         2    3      4    5         6           7
 C                 H2O       CO2   O3     O2  NO2       N2O         CH4
      *   PPMV80=(/0d0, 337.90d0, 0d0,  21d4, 0d0,  .3012d0,   1.5470d0
@@ -752,7 +736,7 @@ C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
 C     GAS NUMBER    8         9   10        11          12          13
 
 !@var PPMVK0  user set  GHG concentrations (ppm), used if KTREND=0
-      real*8, dimension(12) ::
+      REAL*8, dimension(12) ::
 C     GAS  NUMBER   1         2    3      4    5         6           7
 C                 H2O       CO2   O3     O2  NO2       N2O         CH4
      *   PPMVK0=(/0d0, 337.90d0, 0d0, 21.d4, 0d0,  .3012d0,   1.5470d0
@@ -764,12 +748,12 @@ C     Makiko's GHG Trend Compilation  GHG.1850-2050.Dec1999 in GTREND
 C     ---------------------------------------------------------------
 !@var nghg nr. of well-mixed GHgases: CO2 N2O CH4 CFC-11 CFC-12 others
 !@var nyrsghg max.number of years of prescr. greenhouse gas history
-      integer, parameter :: nghg=6, nyrsghg=2050-1850+1
+      INTEGER, PARAMETER :: nghg=6, nyrsghg=2050-1850+1
 
 !@var ghgyr1,ghgyr2 first and last year of GHG history
-      integer ghgyr1,ghgyr2
+      INTEGER ghgyr1,ghgyr2
 !@var ghgam,xref,xnow     GHG-mixing ratios in ppm,ppm,ppm,ppb,ppb,ppb
-      real*8 GHGAM(nghg,nyrsghg),XREF(nghg+1),XNOW(nghg+1)
+      REAL*8 GHGAM(nghg,nyrsghg),XREF(nghg+1),XNOW(nghg+1)
       common/ghgcom/ghgyr1,ghgyr2,ghgam,xref,xnow
 
 C     GTREND:  1980.,  337.9,  .3012,  1.547,  .1666,  .3003,  .0978,
@@ -778,19 +762,19 @@ C     ---------------------------------------------------------------
 !@var KGGVDF,KPGRAD,KLATZ0 control parameters for vertical GHG profiles
 !@+   -----------------------------------------------------------------
 !@+   Minschwaner et al JGR (1998) CH4, N2O, CFC-12 Vertical profiles
-!@+   IF(KGGVDF.GT.0) Then:
+!@+   IF(KGGVDF > 0) Then:
 !@+      Gas decreases are linear with pressure, from unity at ground to
 !@+      the fractional value PPMVDF(NGAS) at the top of the atmosphere.
 !@+   Exponential decrease by EXP(-(Z-Z0)/H) is superimposed on this.
-!@+   IF(KLATZ0.GT.0) Then: Z0 depends on latitude, KGGVDF not used
+!@+   IF(KLATZ0 > 0) Then: Z0 depends on latitude, KGGVDF not used
 !@+   KPGRAD>0: Pole-to-Pole lat. gradient (PPGRAD) is also superimposed
 !@+   ------------------------------------------------------------------
 !@var Z0,ZH   scale heights used for vertical profile (km)
 !@var PPMVDF  frac. value at top of atmosphere (used if KGGVDF > 0)
 !@var PPGRAD  Pole-to-Pole latitud.gradient for GHG (used if KPGRAD > 0)
-      integer :: KGGVDF=0, KPGRAD=1, KLATZ0=1
+      INTEGER :: KGGVDF=0, KPGRAD=1, KLATZ0=1
 
-      real*8, dimension(12) ::
+      REAL*8, dimension(12) ::
 C     NUMBER   1    2    3    4  5    6    7    8     9   10   11  12
 C             H2O  CO2  O3   O2 NO2  N2O  CH4 CFC11 CFC12 N2 CF-Y  CF-Z
      *   Z0=(/0.0, 0.0,0.0, 0.0,0.0, 16., 16., 16., 16., 0.0, 16., 16./)
@@ -813,10 +797,10 @@ C     GAS  NUMBER         8         9   10        11        12
 C---------------------
 C     Optional Tracers    used via setbak/getbak
 C---------------------
-      integer, dimension(ITRMAX) :: ITR=1
-      integer :: NTRACE=0
+      INTEGER, dimension(ITRMAX) :: ITR=1
+      INTEGER :: NTRACE=0
 
-      real*8, dimension(ITRMAX) ::
+      REAL*8, dimension(ITRMAX) ::
 C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
      *  TRRDRY= .1d0
 !nu  * ,TRVEFF= .2d0
@@ -829,6 +813,7 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
       CONTAINS
 
       SUBROUTINE RCOMP1(NRFUN)
+      use DOMAIN_DECOMP, only: AM_I_ROOT
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -841,7 +826,7 @@ C     ------------------------------------------------------------------
 
 c     NRFUN is now set as an argument from calling routine so that unit
 c     numbers can be set automatically
-      INTEGER, DIMENSION(14) :: NRFUN
+      INTEGER :: NRFUN(14)
 C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
 !?    DATA NRFN0/71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84/
 
@@ -849,16 +834,16 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
       CHARACTER*80 EPSTAG,TITLE
 
       REAL*4 OZONLJ(44,46),R72X46(72,46),VTAUR4(1800,24)
-      REAL*8 :: EJMLAT(47),E20LAT(20)
+      REAL*8 :: EJMLAT(47),E20LAT(20),filler(784)
       INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,KK,NN,IYEAR,IMONTH,JJDAYS,JYEARS
-     *     ,JJDAYG,JYEARG
-      REAL*8 :: WAVNA,WAVNB,PFWI,TKOFPF,SUM,EPK,EPL,DEP,SFNORM,D,O,Q,S
+     *     ,JJDAYG,JYEARG,yr2S0i
+      REAL*8 :: WAVNA,WAVNB,PFWI,TKOFPF,SUMV,EPK,EPL,DEP,SFNORM,D,O,Q,S
      *     ,OCM,WCM
 !@var GTAU,TGDATA temporary array to read data and pass it to RAD_UTILS
       REAL*8 :: GTAU(51,11,143),TGDATA(122,13)
 
-!?    IF(LASTVC.GT.0) NRFUN=NRFN0
-      IF(IFIRST.LT.1) GO TO 9999
+!?    IF(LASTVC > 0) NRFUN=NRFN0
+      IF(IFIRST < 1) GO TO 9999
 
 C     ------------------------------------------------------------------
 C     Input data are read as specified in the first CALL RCOMP1 (NRFUN).
@@ -889,64 +874,30 @@ C     ------------------------------------------------------------------
 C              Initialize variables that might not otherwise get defined
 C              ---------------------------------------------------------
 
-      DO 110 L=1,LX
-      TAUWC(L)=0.D0
-      TAUIC(L)=0.D0
-      SIZEWC(L)=0.D0
-      SIZEIC(L)=0.D0
-      CLDEPS(L)=0.D0
-      FPXCO2(L)=1.D0
-      FPXOZO(L)=1.D0
-      TLB(L)=250.D0
-      TLT(L)=250.D0
-      TLM(L)=250.D0
-      SHL(L)=0.D0
-      RHL(L)=0.D0
-      DO 101 I=1,6
-      SRAEXT(L,I)=0.D0
-      SRASCT(L,I)=0.D0
-      SRAGCB(L,I)=0.D0
-      SRBEXT(L,I)=0.D0
-      SRBSCT(L,I)=0.D0
-      SRBGCB(L,I)=0.D0
-      SRDEXT(L,I)=0.D0
-      SRDSCT(L,I)=0.D0
-      SRDGCB(L,I)=0.D0
-      SRVEXT(L,I)=0.D0
-      SRVSCT(L,I)=0.D0
-      SRVGCB(L,I)=0.D0
-      DBLEXT(L,I)=0.D0
-      DBLSCT(L,I)=0.D0
-      DBLGCB(L,I)=0.D0
-      DBLPI0(L,I)=0.D0
-      SRCEXT(L,I)=0.D0
-      SRCSCT(L,I)=0.D0
-      SRCGCB(L,I)=0.D0
-      SRCPI0(L,I)=0.D0
-  101 CONTINUE
-      DO 102 I=1,33
-      TRAALK(L,I)=0.D0
-      TRBALK(L,I)=0.D0
-      TRDALK(L,I)=0.D0
-      TRVALK(L,I)=0.D0
-      TRCALK(L,I)=0.D0
-      TRGXLK(L,I)=0.D0
-  102 CONTINUE
-      DO 103 I=1,13
-      U0GAS(L,I)=0.D0
-      ULGAS(L,I)=0.D0
-  103 CONTINUE
-      DO 104 I=1,ITRMAX
-      TRACER(L,I)=0.D0
-  104 CONTINUE
-  110 CONTINUE
+       TAUWC(:) = 0  ;   TAUIC(:) = 0
+      SIZEWC(:) = 0  ;  SIZEIC(:) = 0
+      CLDEPS(:) = 0
+      FPXCO2(:) = 1  ;  FPXOZO(:) = 1
+       TLB(:) = 250  ;   TLT(:) = 250  ;   TLM(:) = 250
+       SHL(:) =   0  ;   RHL(:) =   0
+      SRAEXT(:,:) = 0  ;  SRASCT(:,:) = 0  ;  SRAGCB(:,:) = 0
+      SRBEXT(:,:) = 0  ;  SRBSCT(:,:) = 0  ;  SRBGCB(:,:) = 0
+      SRDEXT(:,:) = 0  ;  SRDSCT(:,:) = 0  ;  SRDGCB(:,:) = 0
+      SRVEXT(:,:) = 0  ;  SRVSCT(:,:) = 0  ;  SRVGCB(:,:) = 0
+      SRCEXT(:,:) = 0  ;  SRCSCT(:,:) = 0  ;  SRCGCB(:,:) = 0
+      SRCPI0(:,:) = 0  ;  DBLPI0(:,:) = 0
+      DBLEXT(:,:) = 0  ;  DBLSCT(:,:) = 0  ;  DBLGCB(:,:) = 0
+      TRAALK(:,:) = 0  ;  TRBALK(:,:) = 0  ;  TRDALK(:,:) = 0
+      TRVALK(:,:) = 0  ;  TRCALK(:,:) = 0  ;  TRGXLK(:,:) = 0
+       U0GAS(:,:) = 0  ;   ULGAS(:,:) = 0
+      TRACER(:,:) = 0
 
-      IF(LASTVC.GT.0) CALL SETATM
-      IF(NLP.GT.LX)   call stop_model('rcomp1: increase LX',255)
+      IF(LASTVC > 0) CALL SETATM
+      IF(NL+1 > LX)   call stop_model('rcomp1: increase LX',255)
 
 C**** Use (global mean) pressures to get standard mid-latitude summer
 C**** values for height, density, temperature, ozone, water vapor
-      DO 120 L=1,NLP
+      DO 120 L=1,NL+1
       PLB0(L)=PLB(L)
       CALL PHATMO(PLB0(L),HLB0(L),D,TLB(L),O,Q,S,OCM,WCM,1,2)
   120 CONTINUE
@@ -956,10 +907,8 @@ C**** values for height, density, temperature, ozone, water vapor
   121 CONTINUE
 
 !sl   De-activate surface layer computations
-!sl   DO I=1,33
-!sl      TAUSL(I)=0.0
-!sl      FTAUSL(I)=0.0
-!sl   END DO
+!sl   TAUSL(:)=0.0
+!sl   FTAUSL(:)=0.0
 
 C-----------------------------------------------------------------------
 CR(1) Reads GTAU Asymmetry Parameter Conversion Table used within SGPGXG
@@ -982,30 +931,21 @@ c                DUCH4,SDUCH4,DUN2O,SDUN2O,ULOX,DUX      used in TAUGAS)
 C       ----------------------------------------------------------------
 
       NRFU=NRFUN(2)
-      READ(NRFU) TAUTBL,TAUWV0,PLANCK,XKCFC,H2OCN8,H2OCF8, XUN2O,XUN2O0,
-     *  XUCH4,XUCH40, XTRUP,XTU0, XTRDN,XTD0, CXUCO2,CXUO3,ULOX,DUX
-
+      READ(NRFU) TAUTBL,filler,  TAUWV0,filler, PLANCK, XKCFC,
+     *            H2OCN8,H2OCF8, XUN2O,XUN2O0, XUCH4,XUCH40,
+     *            XTRUP,XTU0, XTRDN,XTD0, CXUCO2,CXUO3, ULOX,DUX
+      READ(NRFU) DXTRUA,DXTRDA,SAX
 
 C        Define Window Flux to Brightness Temperature Conversion Factors
 C        ---------------------------------------------------------------
 
-      WAVNA=850.D0
-      WAVNB=900.D0
-      DO I=1,630
-      PFWI=0.001D0*I
-      IF(I.GT.100) PFWI=(0.1D0+0.01D0*(I-100))
-      IF(I.GT.190) PFWI=(1.0D0+0.10D0*(I-190))
-      TKPFW(I)=TKOFPF(WAVNA,WAVNB,PFWI)
-      END DO
-      DO I=1,900
-      PFWI=I
-      TKPFT(I)=TKOFPF(0.D0,10000.D0,PFWI)
-      END DO
+      do i=1,100 ; TKPFW(i    ) = TKofPF(85d1,9d2,    .001d0*I) ; end do
+      do i=1, 90 ; TKPFW(i+100) = TKofPF(85d1,9d2,.1d0+.01d0*I) ; end do
+      do i=1,440 ; TKPFW(i+190) = TKofPF(85d1,9d2,1.d0+ .1d0*I) ; end do
+      do i=1,900 ; TKPFT(i    ) = TKofPF( 0d0,1d4,     dble(I)) ; end do
 
 C                            PLANCK Table interpolation limit parameters
 C                            -------------------------------------------
-C     ITPFT0=123
-C     ITNEXT=250
 C-----------------------------------------------------------------------
 CR(3)        Read Mie Scattering Parameters [Qext, Qscat, AsymParameter]
 C            (1) Tropospheric Aerosols [11 Background, 8 Trop8 Aerosols]
@@ -1045,7 +985,7 @@ C                               ----------------------------------------
 C                       GCM 9 (of 10) climatology aerosol Mie parameters
 C                       ------------------------------------------------
       DO 303 N=1,10
-      IF(N.EQ.6) GO TO 303
+      IF(N==6) GO TO 303
       READ (NRFU,3000) TITLE
       READ (NRFU,3001) (SRBQEX(K,N),K=1,6)
       READ (NRFU,3001) (SRBQSC(K,N),K=1,6)
@@ -1055,7 +995,7 @@ C                       ------------------------------------------------
       READ (NRFU,3003) (REFB10(N),N=1,5),(REFB10(N),N=7,10)
       READ (NRFU,3003) (VEFB10(N),N=1,5),(VEFB10(N),N=7,10)
       DO 304 N=1,10
-      IF(N.EQ.6) GO TO 304
+      IF(N==6) GO TO 304
       READ (NRFU,3000) TITLE
       READ (NRFU,3004) (TRBQEX(K,N),K=1,33)
       READ (NRFU,3005) (TRBQSC(K,N),K=1,33)
@@ -1110,7 +1050,7 @@ C                               ----------------------------------------
 C                               Volcanic aerosol Mie size, variance data
 C                               ----------------------------------------
       DO 313 M=1,5
-      IF(M.EQ.4) GO TO 313
+      IF(M==4) GO TO 313
       DO 311 N=1,20
       READ (NRFU,3001) (SRVQEX(K,N,M),K=1,6)
       READ (NRFU,3001) (SRVQSC(K,N,M),K=1,6)
@@ -1243,7 +1183,7 @@ CR(6) DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
 C                  Map: IJ=72x46,  Lay: L=1-9, Siz: S=1-8, Month: M=1-12
 C                  -----------------------------------------------------
 
-      IF(MADDST.LT.1) GO TO 699
+      IF(MADDST < 1) GO TO 699
       NRFU=NRFUN(6)
       READ (NRFU) TDUST
 
@@ -1252,23 +1192,23 @@ C                  -----------------------------------------------------
 C-----------------------------------------------------------------------
 CR(7)        Read Makiko's Stratospheric binary data made in April, 2002
 C                               (1800 months (1850-1999) x 24 latitudes)
-C                               ----------------------------------------
-
-      IF(MADVOL.LT.1) GO TO 799
+C              If KyearV<0 use the 1800-month mean as background aerosol
+C              ---------------------------------------------------------
+      IF(MADVOL < 1) GO TO 799
       NRFU=NRFUN(7)
       READ (NRFU) TITLE
-      IF(TITLE(1:13).eq.'Optical Depth')
+      IF(TITLE(1:13)=='Optical Depth')
      &     call stop_model('rcomp1: use new RADN7',255)
       REWIND (NRFU)
       DO K=1,5
         READ (NRFU) TITLE,VTAUR4
         DO J=1,24
-          SUM=0.
+          SUMV=0.
         DO I=1,1800
           V4TAUR(I,J,K)=VTAUR4(I,J)
-          SUM=SUM+VTAUR4(I,J)
+          SUMV=SUMV+VTAUR4(I,J)
         END DO
-          if(kyearv.lt.0) V4TAUR(1,J,K)=SUM/1800
+          if(kyearv < 0) V4TAUR(1,J,K)=SUMV/1800
         END DO
       END DO
 
@@ -1294,54 +1234,40 @@ C                     KCLDEP =  3  Uses: Column EPCOL(72,46) Climatology
 C                     KCLDEP =  4  Uses: Ht Dep EPLOW, EPMID, EPHIG Data
 C               --------------------------------------------------------
 
-      IF(MADEPS.LT.1) GO TO 899
+      IF(MADEPS < 1) GO TO 899
       NRFU=NRFUN(8)
       READ (NRFU) EPSTAG,EPLMHC
 
-      DO 811 N=1,4
+
+      DO 810 N=1,4
       DO 810 M=1,12
-      DO 809 I=1,72
-      L=0
-  801 CONTINUE
-      L=L+1
-      IF(EPLMHC(I,L,M,N).LT.0.0) GO TO 801
-      IF(L.GT.1) THEN
-      DO 802 J=1,L
-      EPLMHC(I,J,M,N)=EPLMHC(I,L,M,N)
-  802 CONTINUE
-      ENDIF
-      L=47
-  803 CONTINUE
-      L=L-1
-      IF(EPLMHC(I,L,M,N).LT.0.0) GO TO 803
-      IF(L.LT.46) THEN
-      DO 804 J=L,46
-      EPLMHC(I,J,M,N)=EPLMHC(I,L,M,N)
-  804 CONTINUE
-      ENDIF
-      J=0
-  805 CONTINUE
-      J=J+1
-      IF(J.GT.46) GO TO 808
-      IF(EPLMHC(I,J,M,N).GE.0.0) GO TO 805
+      DO 810 I=1,72
+!**** extend northern-most non-neg.value to N.Pole
+      J=46 ! MLAT46
+      do while (EPLMHC(I,J,M,N) < 0) ; J=J-1 ; end do
+      IF(J < 46) EPLMHC(I,J+1:46,M,N) = EPLMHC(I,J,M,N)
+!**** extend southern-most non-neg.value to S.Pole
+      J=1
+      do while (EPLMHC(I,J,M,N) < 0) ; J=J+1 ; end do
+      IF (J > 1) EPLMHC(I,1:J-1,M,N) = EPLMHC(I,J,M,N)
+      IF (J==46) GO TO 810
+!**** linearly interpolate across remaining intervals with EP<0
+  805 J=J+1                                    ! find start of interval:
+      do while (EPLMHC(I,J,M,N) >= 0)
+        J=J+1 ; IF (J > 46) GO TO 810
+      end do
       K=J-1
       EPK=EPLMHC(I,K,M,N)
-  806 CONTINUE
-      J=J+1
-      IF(J.GT.46) GO TO 808
-      IF(EPLMHC(I,J,M,N).LT.0.0) GO TO 806
+      J=J+1                                    ! find  end  of interval:
+      do while (EPLMHC(I,J,M,N) < 0) ; J=J+1 ; end do
       L=J
-      EPL=EPLMHC(I,L,M,N)
-      NN=L-K-1
+      EPL=EPLMHC(I,L,M,N)            ! EPk>=0, EPk+1,...,EPl-1<0, EPl>=0
       DEP=(EPL-EPK)/(L-K)
-      DO 807 L=1,NN
-      EPLMHC(I,K+L,M,N)=EPK+L*DEP
-  807 CONTINUE
-      GO TO 805
-  808 CONTINUE
-  809 CONTINUE
+      do NN=1,L-1-K                  ! replace EP(k+1)...EP(l-1)
+        EPLMHC(I,K+NN,M,N)=EPK+NN*DEP
+      end do
+      IF (J < 46) GO TO 805
   810 CONTINUE
-  811 CONTINUE
 
   899 CONTINUE
 
@@ -1363,67 +1289,62 @@ CR(9)         Read Judith Lean's Solar UV and Solar Constant Variability
 C                                      Monthly-Mean Solar UV (1882-1998)
 C                                      ---------------------------------
 
-      IF(KSOLAR.LT.0) GO TO 949
-      IF(MADLUV.LT.1) GO TO 909
+      IF(KSOLAR < 0) GO TO 949
+      IF(MADLUV < 1) THEN
+        WSLEAN(:)=WSLEAN(:)/1000.D0
+        DSLEAN(:)=DSLEAN(:)/1000.D0
+        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+        GO TO 949
+      END IF
       NRFU=NRFUN(9)
 
-      READ(NRFU,'(a80)') TITLE
-      if(ksolar.ge.2 .and. TITLE(1:3).ne.'ANN')
-     &     call stop_model('rcomp1: change RADN9 to ann.file',255)
-      if(ksolar.lt.2 .and. TITLE(1:3).eq.'ANN')
-     &     call stop_model('rcomp1: change RADN9 to monthly file',255)
-      READ(NRFU,'(5F14.2)') (WSLEAN(I),I=1,190)
-      READ(NRFU,'(a80)') TITLE
-      READ(NRFU,'(5E14.3)') (DSLEAN(I),I=1,190)
-      DO I=1,190
-        WSLEAN(I)=WSLEAN(I)/1000.D0
-        DSLEAN(I)=DSLEAN(I)/1000.D0
-        W1LEAN(I)=WSLEAN(I)-0.5D0*DSLEAN(I)
-      END DO
-      READ(NRFU,'(a80)') TITLE
-      READ(NRFU,'(a80)') TITLE
-      IF(KSOLAR.LT.2) THEN
+      IF(KSOLAR.ne.9) THEN
+        READ(NRFU,'(a80)') TITLE
+        if(ksolar >= 2 .and. TITLE(1:3).ne.'ANN')
+     &    call stop_model('rcomp1: change RADN9 to ann.file',255)
+        if(ksolar < 2 .and. TITLE(1:3)=='ANN')
+     &    call stop_model('rcomp1: change RADN9 to monthly file',255)
+        READ(NRFU,'(5F14.2)') WSLEAN   !  1:190
+        READ(NRFU,'(a80)') TITLE
+        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190
+
+        WSLEAN(:)=WSLEAN(:)/1000.D0
+        DSLEAN(:)=DSLEAN(:)/1000.D0
+        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+
+        READ(NRFU,'(a80)') TITLE
+        READ(NRFU,'(a80)') TITLE
+      END IF
+      IF(KSOLAR < 2) THEN
 C****   Read in monthly-mean data
         DO I=1,Ms0X
           READ(NRFU,'(2I6,3F17.6)') IYEAR,IMONTH,TSI1(I),TSI2(I)
-          READ(NRFU,'(5E14.6)')     (FSLEAN(K),K=1,190)
-          SUM=0.D0
-          DO K=1,190
-            SUM=SUM+FSLEAN(K)*DSLEAN(K)
-          END DO
-          SFNORM=TSI1(I)/SUM
-          DO K=1,190
-            UVLEAN(I,K)=FSLEAN(K)*SFNORM
-          END DO
+          READ(NRFU,'(5E14.6)')     FSLEAN    ! 1:190
+          SFNORM = TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
+          UVLEAN(I,:)=FSLEAN(:)*SFNORM
         END DO
       ELSE
 C****   Read in annual-mean data
         DO I=1,Ms0X
-          READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
-          if(I.eq.1) yr1S0 = yr2S0
-          READ(NRFU,'(5E14.6)')               (FSLEAN(K),K=1,190)
-          SUM=0.D0
-          DO K=1,190
-            SUM=SUM+FSLEAN(K)*DSLEAN(K)
-          END DO
-          SFNORM=TSI1(I)/SUM
-          DO K=1,190
-            UVLEAN(I,K)=FSLEAN(K)*SFNORM
-          END DO
+          IF(KSOLAR.ne.9) THEN
+            READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
+          ELSE
+            READ(NRFU,'(I6,2F17.6)',end=908) yr2S0i,TSI1(I),TSI2(I)
+            yr2S0=real(yr2S0i)+0.5
+          END IF
+          if(I==1) yr1S0 = yr2S0
+          IF(KSOLAR.ne.9) THEN
+            READ(NRFU,'(5E14.6)')   FSLEAN    ! 1:190
+            SFNORM=TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
+            UVLEAN(I,:)=FSLEAN(:)*SFNORM
+          ELSE ! ksolar=9
+            READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
+          ENDIF
         END DO
-  908   write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
+  908   if(Am_I_Root()) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
       END IF
-      GO TO 949
-
-  909 CONTINUE
-      DO I=1,190
-        WSLEAN(I)=WSLEAN(I)/1000.D0
-        DSLEAN(I)=DSLEAN(I)/1000.D0
-        W1LEAN(I)=WSLEAN(I)-0.5D0*DSLEAN(I)
-      END DO
 
   949 CONTINUE
-
 
 C-----------------------------------------------------------------------
 CR(C)     Read:    Elaine Mathews 10 Fractional Vegetation Distributions
@@ -1482,7 +1403,7 @@ C                V=0,1,..9  Vegetation  Sand,Tundra,Grass,Shrubs, etc
 C                C=0,1,..9  Cloud,R=10  Clim Cloud Tau in Layer(1,-9)
 C                ----------------------------------------------------
 
-      IF(LASTVC.GE.0) CALL SETATM
+      IF(LASTVC >= 0) CALL SETATM
 
 C             -------------------------------------------------------
 C             Set Solar Constant for Default Reference Time: Jan 1950
@@ -1491,8 +1412,8 @@ C             -------------------------------------------------------
 
       JJDAYS=1
       JYEARS=1950
-      IF(KJDAYS.GT.0)             JJDAYS=KJDAYS
-      IF(KYEARS.GT.0)             JYEARS=KYEARS
+      IF(KJDAYS > 0)             JJDAYS=KJDAYS
+      IF(KYEARS > 0)             JYEARS=KYEARS
 C----------------------------------------------
                       CALL SETSOL(JYEARS,JJDAYS)
 C----------------------------------------------
@@ -1508,8 +1429,8 @@ C             -------------------------------------------------------
 C----------------------------------------------
                       CALL SETGHG(JYEARG,JJDAYG)
 C----------------------------------------------
-      IF(KJDAYG.GT.0)             JJDAYG=KJDAYG
-      IF(KYEARG.GT.0)             JYEARG=KYEARG
+      IF(KJDAYG > 0)             JJDAYG=KJDAYG
+      IF(KYEARG > 0)             JYEARG=KYEARG
 C----------------------------------------------
                       CALL UPDGHG(JYEARG,JJDAYG)
 C----------------------------------------------
@@ -1517,9 +1438,9 @@ C----------------------------------------------
 C--------------------------------
                       CALL SETGAS
 C
-                                     CALL SETBAK
-      IF(MADAER.GT.0.or.NTRACE.gt.0) CALL SETAER
-      IF(MADDST.GT.0) CALL SETDST
+                                   CALL SETBAK
+      IF(MADAER > 0.or.NTRACE > 0) CALL SETAER
+      IF(MADDST > 0) CALL SETDST
 C--------------------------------
 
 
@@ -1530,7 +1451,7 @@ C                   (VEFF0=0.35 is value based on thermal ISAMS data)
 C                   -------------------------------------------------
 
 C----------------------------------------------
-      IF(MADVOL.GT.0) CALL SETVOL
+      IF(MADVOL > 0) CALL SETVOL
 C----------------------------------------------
 
 C--------------------------------
@@ -1594,65 +1515,65 @@ C                      -------------------------------------------------
 
       JJDAYS=JDAY
       JYEARS=JYEAR
-      IF(KJDAYS.GT.0)             JJDAYS=KJDAYS
-      IF(KYEARS.GT.0)             JYEARS=KYEARS
+      IF(KJDAYS > 0)             JJDAYS=KJDAYS
+      IF(KYEARS > 0)             JYEARS=KYEARS
 C----------------------------------------------
-      IF(MADLUV.GT.0) CALL UPDSOL(JYEARS,JJDAYS)
+      IF(MADLUV > 0) CALL UPDSOL(JYEARS,JJDAYS)
 C----------------------------------------------
 
       JJDAYG=JDAY
       JYEARG=JYEAR
-      IF(KJDAYG.GT.0)             JJDAYG=KJDAYG
-      IF(KYEARG.GT.0)             JYEARG=KYEARG
+      IF(KJDAYG > 0)             JJDAYG=KJDAYG
+      IF(KYEARG > 0)             JYEARG=KYEARG
 C----------------------------------------------
-      IF(MADGHG.GT.0) CALL UPDGHG(JYEARG,JJDAYG)
+      IF(MADGHG > 0) CALL UPDGHG(JYEARG,JJDAYG)
 C----------------------------------------------
 
 
       JJDAYO=JDAY
       JYEARO=JYEAR
-      IF(KJDAYO.NE.0)             JJDAYO=KJDAYO
-      IF(KYEARO.NE.0)             JYEARO=KYEARO
+      IF(KJDAYO.ne.0)             JJDAYO=KJDAYO
+      IF(KYEARO.ne.0)             JYEARO=KYEARO
 C----------------------------------------------
                       CALL UPDO3D(JYEARO,JJDAYO)
 C----------------------------------------------
 
       JJDAYA=JDAY
       JYEARA=JYEAR
-      IF(KJDAYA.GT.0)             JJDAYA=KJDAYA
-      IF(KYEARA.GT.0)             JYEARA=KYEARA
+      IF(KJDAYA > 0)             JJDAYA=KJDAYA
+      IF(KYEARA > 0)             JYEARA=KYEARA
 C----------------------------------------------
-      IF(MADAER.NE.0) CALL UPDAER(JYEARA,JJDAYA)
+      IF(MADAER.ne.0) CALL UPDAER(JYEARA,JJDAYA)
 C----------------------------------------------
 
       JJDAYD=JDAY
       JYEARD=JYEAR
-      IF(KJDAYD.GT.0)             JJDAYD=KJDAYD
-      IF(KYEARD.GT.0)             JYEARD=KYEARD
+      IF(KJDAYD > 0)             JJDAYD=KJDAYD
+      IF(KYEARD > 0)             JYEARD=KYEARD
 C----------------------------------------------
-      IF(MADDST.GT.0) CALL UPDDST(JYEARD,JJDAYD)
+      IF(MADDST > 0) CALL UPDDST(JYEARD,JJDAYD)
 C----------------------------------------------
 
       JJDAYV=JDAY
       JYEARV=JYEAR
-      IF(KJDAYV.GT.0)             JJDAYV=KJDAYV
-      IF(KYEARV.NE.0)             JYEARV=KYEARV
+      IF(KJDAYV > 0)             JJDAYV=KJDAYV
+      IF(KYEARV.ne.0)             JYEARV=KYEARV
 C----------------------------------------------
-      IF(MADVOL.GT.0) CALL UPDVOL(JYEARV,JJDAYV)
+      IF(MADVOL > 0) CALL UPDVOL(JYEARV,JJDAYV)
 C----------------------------------------------
 
       JJDAYE=JDAY
       JYEARE=JYEAR
-      IF(KJDAYE.GT.0)             JJDAYE=KJDAYE
-      IF(KYEARE.GT.0)             JYEARE=KYEARE
+      IF(KJDAYE > 0)             JJDAYE=KJDAYE
+      IF(KYEARE > 0)             JYEARE=KYEARE
 C----------------------------------------------
-      IF(MADEPS.GT.0) CALL UPDEPS(JYEARE,JJDAYE)
+      IF(MADEPS > 0) CALL UPDEPS(JYEARE,JJDAYE)
 C----------------------------------------------
 
       JJDAYR=JDAY
       JYEARR=JYEAR
-      IF(KJDAYR.GT.0)             JJDAYR=KJDAYR
-      IF(KYEARR.GT.0)             JYEARR=KYEARR
+      IF(KJDAYR > 0)             JJDAYR=KJDAYR
+      IF(KYEARR > 0)             JYEARR=KYEARR
 C----------------------------------------------
                       CALL UPDSUR(JYEARR,JJDAYR)
 C----------------------------------------------
@@ -1696,26 +1617,28 @@ C      -----------------------------------------------------------------
 
 
 C--------------------------------
-!!!                   CALL GETO3D(ILON,JLAT)
-      CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
-      O3_OUT(:)=U0GAS(:,3) ! to save 3D ozone field in SUBR. RADIA
-      if(use_tracer_ozone .eq. 1) U0GAS(1:NL-3,3)=O3_IN(1:NL-3)
-      ! The -3 in the line above is just a fudge for the 23-layer model.
-      ! Gavin said he'd think about how to do this properly.
+!!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
+      CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
+     *                      U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+      if(use_tracer_ozone > 0) then
+        U0GAS(1:use_tracer_ozone,3)=O3_IN(1:use_tracer_ozone)
+        FULGAS(3)=1.d0
+      endif
                       CALL GETGAS
 C--------------------------------
 
 
 C--------------------------------
       SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0.
-      IF(MADBAK.GT.0) CALL GETBAK
+      IF(MADBAK > 0) CALL GETBAK
 
-      IF(MADAER.NE.0.OR.NTRACE.GT.0) THEN ; CALL GETAER
+      IF(MADAER.ne.0.OR.NTRACE > 0) THEN ; CALL GETAER
        ELSE ; SRAEXT=0.     ; SRASCT=0. ; SRAGCB=0. ; TRAALK=0. ; END IF
-      IF(MADDST.GT.0) THEN ; CALL GETDST
+      IF(MADDST > 0) THEN ; CALL GETDST
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
-      IF(MADVOL.GT.0) THEN ; CALL GETVOL
+      IF(MADVOL > 0) THEN ; CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
+      chem_out(:,2)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
 C--------------------------------
 
 
@@ -1724,7 +1647,6 @@ C--------------------------------  (GETSUR sets albedo needed by GETCLD)
      i     snoage_fac_max,
      i     MLAT46,jnorth,KEEPAL,KSIALB,KZSNOW,MADSUR,
      i     COSZ,PLANCK,
-     i     ITNEXT,ITPFT0,
      i     ILON,JLAT,
      i     AGESN,POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
      i     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,zmp,
@@ -1809,6 +1731,8 @@ C     KSOLAR= 0  Uses Lean99 Solar Flux as set for Time= (JYEARS,JJDAYS)
 C     KSOLAR= 1  Sets Lean99 Solar Flux to Current Time= (JYEARS,JJDAYS)
 C     KSOLAR= 2  same as 1 but based on annual (not monthly) data
 C                (JJDAYS used to select the specified Monthly-Mean Flux)
+C     KSOLAR= 9  annual data for current time from file, but Thekaekhara
+C                wavelength bins
 C
 C-----------------------------------------------------------------------
 C
@@ -1846,85 +1770,90 @@ C-----------------------------------------------------------------------
 
       if ( present(UPDSOL_flag) ) goto 777
 
-      IF(KSOLAR.GE.0) THEN
+C                                          Thekaekhara Solar Flux Option
+C                                          -----------------------------
+      IF(KSOLAR < 0) THEN
+        WSOLAR(1:190)=WTHEK(1:190)
+        FSOLAR(1:190)=FTHEK(1:190)
+        S00WM2=1367.D0
+        LMOREF=-111
+        NWSUV=190
+        GO TO 130
+      END IF
 C                                           Lean99 Solar Flux, UV Option
 C                                           ----------------------------
-      if(Ksolar.lt.2) then    ! monthly data
+      if(Ksolar < 2) then    ! monthly data
         JMO=1+JJDAYS/30.5D0
-        IF(JMO.GT.12) JMO=12
+        IF(JMO > 12) JMO=12
         LMO=(JYEARS-iy1S0)*12+JMO
-        IF(LMO.GT.Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
-        IF(LMO.LT.1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
+        IF(LMO > Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
+        IF(LMO < 1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
       else                    ! annual data
         Is0x = nint( yr2s0-yr1s0+1 )
         lmo = nint( jyears - yr1s0 + 1.5 )
-        IF(LMO.GT.Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
-        IF(LMO.LT.1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
+        IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
+        IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
       end if
       LMOREF=LMO
 
-C                        IF(MADLUV.EQ.0) Default Option is then in force
+C                        IF(MADLUV==0) Default Option is then in force
 C                        Default (FRLEAN) = Lean 1950 Jan Solar, UV flux
 C                        CORFAC accounts for DSLEAN units in BLOCK DATA,
 C                        and TSI1/TSI2 normalization of Lean input data.
 C                        -----------------------------------------------
 
 c      CORFAC=1366.2911D0/1366.4487855D0
-      FLXSUM=0.D0
-      DO 110 K=1,190
-      IF(MADLUV.EQ.0) FLXSUM=FLXSUM+FRLEAN(K)*DSLEAN(K)*CORFAC
-      IF(MADLUV.GT.0) FLXSUM=FLXSUM+UVLEAN(LMO,K)*DSLEAN(K)
-  110 CONTINUE
-      S00WM2=FLXSUM
-
-      I=0
-      DO 120 K=1,50
-      I=I+1
-      WSOLAR(I)=W1LEAN(K)
-      IF(MADLUV.EQ.0) FSOLAR(I)=FRLEAN(K)
-      IF(MADLUV.GT.0) FSOLAR(I)=UVLEAN(LMO,K)
-      I=I+1
-      WSOLAR(I)=W1LEAN(K+1)
-      FSOLAR(I)=FSOLAR(I-1)
-  120 CONTINUE
-      NWSUV=100
-C                                          Thekaekhara Solar Flux Option
-C                                          -----------------------------
+      IF(KSOLAR.ne.9) THEN
+        IF(MADLUV == 0) S00WM2 = SUM(FRLEAN(:)*DSLEAN(:)*CORFAC)
+        IF(MADLUV >  0) S00WM2 = SUM(UVLEAN(LMO,:)*DSLEAN(:))
       ELSE
-      DO 130 I=1,190
-      WSOLAR(I)=WTHEK(I)
-      FSOLAR(I)=FTHEK(I)
-  130 CONTINUE
-      S00WM2=1367.D0
-      LMOREF=-111
-      NWSUV=190
-      ENDIF
+        S00WM2=TSI2(LMO)
+      END IF
+
+      IF(KSOLAR.ne.9) THEN
+        I=0
+        DO K=1,50
+          I=I+1
+          WSOLAR(I)=W1LEAN(K)
+          IF(MADLUV == 0) FSOLAR(I)=FRLEAN(K)
+          IF(MADLUV >  0) FSOLAR(I)=UVLEAN(LMO,K)
+          I=I+1
+          WSOLAR(I)=W1LEAN(K+1)
+          FSOLAR(I)=FSOLAR(I-1)
+        END DO
+        NWSUV=100
+      ELSE
+        IF(MADLUV==0)call stop_model("invalid MADLUV for KSOLAR=9",255)
+        WSOLAR(1:190)=WTHEK(1:190)
+        FSOLAR(1:190)=UVLEAN(LMO,1:190)
+        NWSUV=190
+      END IF
 
 C                                         Option to Modify Solar UV Flux
 C                                         ------------------------------
-      IF(KUVFAC.EQ.1) THEN
-      F1FLUX=0.D0
-      F2FLUX=0.D0
-      F3FLUX=0.D0
-      DO 160 I=1,NWSUV
-      IF(WSOLAR(I).GT.UVWAVL(1)) GO TO 140
-      F1FLUX=F1FLUX+FSOLAR(I)
-      FSOLAR(I)=FSOLAR(I)*UVFACT(1)
-      GO TO 160
-  140 CONTINUE
-      IF(WSOLAR(I).GT.UVWAVL(2)) GO TO 150
-      F2FLUX=F2FLUX+FSOLAR(I)
-      FSOLAR(I)=FSOLAR(I)*UVFACT(2)
-      GO TO 160
-  150 CONTINUE
-      IF(WSOLAR(I).GT.UVWAVL(3)) GO TO 170
-      F3FLUX=F3FLUX+FSOLAR(I)
-      FSOLAR(I)=FSOLAR(I)*UVFACT(3)
-  160 CONTINUE
-  170 CONTINUE
-      UVNORM=F1FLUX*(1.D0-UVFACT(1))+F2FLUX*(1.D0-UVFACT(2))
-     +      +F3FLUX*(1.D0-UVFACT(3))
-      IF(KSNORM.EQ.0) S00WM2=S00WM2-UVNORM
+  130 IF(KUVFAC==1) THEN
+        F1FLUX=0.D0
+        F2FLUX=0.D0
+        F3FLUX=0.D0
+        DO 160 I=1,NWSUV
+        IF(WSOLAR(I) > UVWAVL(1)) GO TO 140
+        F1FLUX=F1FLUX+FSOLAR(I)
+        FSOLAR(I)=FSOLAR(I)*UVFACT(1)
+        GO TO 160
+  140   CONTINUE
+        IF(WSOLAR(I) > UVWAVL(2)) GO TO 150
+        F2FLUX=F2FLUX+FSOLAR(I)
+        FSOLAR(I)=FSOLAR(I)*UVFACT(2)
+        GO TO 160
+  150   CONTINUE
+        IF(WSOLAR(I) > UVWAVL(3)) GO TO 170
+        F3FLUX=F3FLUX+FSOLAR(I)
+        FSOLAR(I)=FSOLAR(I)*UVFACT(3)
+  160   CONTINUE
+  170   CONTINUE
+        UVNORM=F1FLUX*(1.D0-UVFACT(1))+F2FLUX*(1.D0-UVFACT(2))
+     +        +F3FLUX*(1.D0-UVFACT(3))
+        IF(KSNORM==0) S00WM2=S00WM2-UVNORM
       ENDIF
 C                  -----------------------------------------------------
 C                  When KUVFAC=1 option multiplicative factors UVFACT(I)
@@ -1940,7 +1869,7 @@ C                  -----------------------------------------------------
       OCM=XX*10.D0**II
       DO 180 J=1,226
       TAUK=FUVKO3(J)*OCM
-      IF(TAUK.GT.35.D0) TAUK=35.D0
+      IF(TAUK > 35.D0) TAUK=35.D0
       UVA(J)=1.D0-EXP(-TAUK)
   180 CONTINUE
       UVWAVA=0.100D0
@@ -1964,79 +1893,76 @@ C--------------------------------
 C--------------------------------
  777  continue
 
-      IF(KSOLAR.LT.1) GO TO 300
-      IF(JYEARS.LT.1) GO TO 300
+      IF(KSOLAR < 1) RETURN   ! solar constant not time dependent
+      IF(JYEARS < 1) RETURN   ! solar constant not time dependent
 
-      if(Ksolar.lt.2) then    ! monthly data       ksolar=1
+      if(Ksolar == 1) then    ! monthly data
         JMO=1+JJDAYS/30.5D0
-        IF(JMO.GT.12) JMO=12
+        IF(JMO > 12) JMO=12
         LMO=(JYEARS-iy1S0)*12+JMO
-        IF(LMO.GT.Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
-        IF(LMO.LT.1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
-      else                    ! annual data        ksolar=2
+        IF(LMO > Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
+        IF(LMO < 1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
+      else                    ! annual data        ksolar=2,9
         Is0x = nint( yr2s0-yr1s0+1 )
         lmo = nint( jyears - yr1s0 + 1.5 )
-        IF(LMO.GT.Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
-        IF(LMO.LT.1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
+        IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
+        IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
       end if
 
-      IF(LMO.EQ.LMOREF) GO TO 300
+      IF(LMO==LMOREF) RETURN  ! solar constant up-to-date
       LMOREF=LMO
 
-      IF(KSOLAR.GE.0) THEN
 C                                               Select Lean99 Solar Flux
 C                                               ------------------------
-      FLXSUM=0.D0
-      DO 210 K=1,190
-      FLXSUM=FLXSUM+UVLEAN(LMO,K)*DSLEAN(K)
-  210 CONTINUE
+      IF(KSOLAR.ne.9)THEN
+        FLXSUM = SUM(UVLEAN(LMO,1:190)*DSLEAN(1:190))
+      ELSE
+        FLXSUM=TSI2(LMO)
+      END IF
 
-      I=0
-      DO 220 K=1,50
-      I=I+1
-      WSOLAR(I)=W1LEAN(K)
-      FSOLAR(I)=UVLEAN(LMO,K)
-      I=I+1
-      WSOLAR(I)=W1LEAN(K+1)
-      FSOLAR(I)=FSOLAR(I-1)
-  220 CONTINUE
-      NWSUV=100
+      IF(KSOLAR.ne.9) THEN
+        I=0
+        DO K=1,50
+          I=I+1
+          WSOLAR(I)=W1LEAN(K)
+          FSOLAR(I)=UVLEAN(LMO,K)
+          I=I+1
+          WSOLAR(I)=W1LEAN(K+1)
+          FSOLAR(I)=FSOLAR(I-1)
+        END DO
+        NWSUV=100
       ELSE
 C                                          Select Thekaekhara Solar Flux
 C                                          -----------------------------
-      DO 230 I=1,190
-      WSOLAR(I)=WTHEK(I)
-      FSOLAR(I)=FTHEK(I)
-  230 CONTINUE
-      FLXSUM=1367.D0
-      LMOREF=-111
-      NWSUV=190
-      ENDIF
+        WSOLAR(1:190)=WTHEK(1:190)
+        FSOLAR(1:190)=UVLEAN(LMO,1:190)
+        NWSUV=190
+      END IF
 C                                         Option to Modify Solar UV Flux
 C                                         ------------------------------
-      IF(KUVFAC.EQ.1) THEN
-      F1FLUX=0.D0
-      F2FLUX=0.D0
-      F3FLUX=0.D0
-      DO 260 I=1,NWSUV
-      IF(WSOLAR(I).GT.UVWAVL(1)) GO TO 240
-      F1FLUX=F1FLUX+FSOLAR(I)
-      FSOLAR(I)=FSOLAR(I)*UVFACT(1)
-      GO TO 260
-  240 CONTINUE
-      IF(WSOLAR(I).GT.UVWAVL(2)) GO TO 250
-      F2FLUX=F2FLUX+FSOLAR(I)
-      FSOLAR(I)=FSOLAR(I)*UVFACT(2)
-      GO TO 260
-  250 CONTINUE
-      IF(WSOLAR(I).GT.UVWAVL(3)) GO TO 270
-      F3FLUX=F3FLUX+FSOLAR(I)
-      FSOLAR(I)=FSOLAR(I)*UVFACT(3)
-  260 CONTINUE
-  270 CONTINUE
-      UVNORM=F1FLUX*(1.D0-UVFACT(1))+F2FLUX*(1.D0-UVFACT(2))
-     +      +F3FLUX*(1.D0-UVFACT(3))
-      IF(KSNORM.EQ.0) FLXSUM=FLXSUM-UVNORM
+      IF(KUVFAC==1) THEN
+        F1FLUX=0.D0
+        F2FLUX=0.D0
+        F3FLUX=0.D0
+        DO 260 I=1,NWSUV
+        IF(WSOLAR(I) > UVWAVL(1)) GO TO 240
+        F1FLUX=F1FLUX+FSOLAR(I)
+        FSOLAR(I)=FSOLAR(I)*UVFACT(1)
+        GO TO 260
+  240   CONTINUE
+        IF(WSOLAR(I) > UVWAVL(2)) GO TO 250
+        F2FLUX=F2FLUX+FSOLAR(I)
+        FSOLAR(I)=FSOLAR(I)*UVFACT(2)
+        GO TO 260
+  250   CONTINUE
+        IF(WSOLAR(I) > UVWAVL(3)) GO TO 270
+        F3FLUX=F3FLUX+FSOLAR(I)
+        FSOLAR(I)=FSOLAR(I)*UVFACT(3)
+  260   CONTINUE
+  270   CONTINUE
+        UVNORM=F1FLUX*(1.D0-UVFACT(1))+F2FLUX*(1.D0-UVFACT(2))
+     +        +F3FLUX*(1.D0-UVFACT(3))
+        IF(KSNORM==0) FLXSUM=FLXSUM-UVNORM
       ENDIF
 
       RATLS0=FLXSUM/S00WM2
@@ -2047,7 +1973,7 @@ C                                         ------------------------------
       OCM=XX*10.D0**II
       DO 280 J=1,226
       TAUK=FUVKO3(J)*OCM
-      IF(TAUK.GT.35.D0) TAUK=35.D0
+      IF(TAUK > 35.D0) TAUK=35.D0
       UVA(J)=1.D0-EXP(-TAUK)
   280 CONTINUE
       UVWAVA=0.100D0
@@ -2055,8 +1981,6 @@ C                                         ------------------------------
       CALL FXGINT(UVA,XWAVO3,226,FSOLAR,WSOLAR,NWSUV,UVWAVA,UVWAVB,AO33)
       AO3(I)=AO33/FLXSUM
   290 CONTINUE
-
-  300 CONTINUE
 
       RETURN
       END SUBROUTINE SETSOL
@@ -2081,7 +2005,7 @@ C     ---------------------------------------------------------------
 C
       TREF=JYEARG+(JJDAYG-0.999D0)/366.D0
 C
-      IF(KTREND.EQ.0) THEN
+      IF(KTREND==0) THEN
         XREF(1)=PPMV80(2)
         XREF(2)=PPMV80(6)
         XREF(3)=PPMV80(7)
@@ -2095,7 +2019,7 @@ C
       CALL GTREND(XREF,TREF)     ! finds xref 1-6 (yref11=xx6=xref(6))
       XREF(7)=1.D-13             ! ZREF12=1.D-13
       DO 120 I=1,NGHG
-      IF(XREF(I).LT.1.D-06) XREF(I)=1.D-06
+      IF(XREF(I) < 1.D-06) XREF(I)=1.D-06
   120 CONTINUE
       PPMV80(2)=XREF(1)
       PPMV80(6)=XREF(2)
@@ -2117,7 +2041,7 @@ C--------------------------------
 C
       TNOW=JYEARG+(JJDAYG-0.999D0)/366.D0
 C
-      IF(KTREND.EQ.0) THEN
+      IF(KTREND==0) THEN
         FULGAS(2)=PPMVK0(2)/XREF(1)
         FULGAS(6)=PPMVK0(6)/XREF(2)
         FULGAS(7)=PPMVK0(7)/XREF(3)
@@ -2143,31 +2067,31 @@ C
 
       SUBROUTINE UPDO3D(JYEARO,JJDAYO)
 
-!!!   use RADPAR, only : IM=>MLON72,JM=>MLAT46,NL,PLB0,U0GAS,MADO3M
+!!!   use RADPAR, only : MLON72,MLAT46,NL,PLB0,U0GAS,MADO3M
       USE FILEMANAGER, only : openunit,closeunit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       IMPLICIT NONE
-      integer, parameter :: im=mlon72,jm=mlat46
 
 !     In 2003, 9 decadal files and an ozone trend data file have been
 !     defined using 49-layer PLB pressure levels. Because of strange
 !     discontinuities in the stratosphere, they were replaced in 2004
 
-      integer, PARAMETER ::
+      INTEGER, PARAMETER ::
      *     NFO3x=9,      !  max. number of decadal ozone files used
 !!!  *     NLO3=49,      !  number of layers of ozone data files
      *     IYIO3=1850, IYEO3=2050, ! beg & end year of O3 trend file
      *     LMONTR=12*(IYEO3-IYIO3+1) ! length of O3 trend file
 
       REAL*4 O3YEAR(MLON72,MLAT46,NLO3,0:12),OTREND(MLAT46,NLO3,LMONTR)
-      REAL*4 O3ICMA(im,jm,NLO3,12),O3JCMA(im,jm,NLO3,12),A(im,jm)
-      INTEGER LJTTRO(jm)
-!!!   COMMON/O3JCOM/O3JDAY(NLO3,im,jm) ! to 'save' & for offline testing
+      REAL*4 O3ICMA(MLON72,MLAT46,NLO3,12),O3JCMA(MLON72,MLAT46,NLO3,12)
+      INTEGER LJTTRO(MLAT46)
+!!!   COMMON/O3JCOM/O3JDAY(NLO3,MLON72,MLAT46)   !  for offline testing
 
 C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
 C     -----------------------------------------------------------------
 
       CHARACTER*80 TITLE
-      logical, parameter :: qbinary=.true.   ; logical qexist
+      logical, PARAMETER :: qbinary=.true.   ; logical qexist
 
 C**** The data statements below are only used if  MADO3M > -1
       CHARACTER*40, DIMENSION(NFO3X) :: DDFILE = (/
@@ -2194,7 +2118,7 @@ C**** The data statements below are only used if  MADO3M > -1
 !!!  *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
 !!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
 !!!  *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
-C**** LJTTRO(jm) below layer 1+LJTTRO,  O3-interpolation is based on CH4
+C**** LJTTRO(MLAT46) below layer 1+LJTTRO,  O3-interp is based on CH4
       DATA LJTTRO/9*0,4*7,20*8,7*7,6*6/ ! does not work well near S.Pole
       INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
 
@@ -2207,69 +2131,62 @@ C**** LJTTRO(jm) below layer 1+LJTTRO,  O3-interpolation is based on CH4
       REAL*8 WTTI,WTTJ, WTSI,WTSJ,WTMJ,WTMI, XMI,DSO3
 
 C**** Deal with out-of-range years (incl. starts before 1850)
-      if(abs(jyearo).lt.abs(jyrnow)) jyearo=-jyrnow ! keep cycling
-      if(abs(jyearo).gt.O3YR_max) jyearo=-O3YR_max ! cycle thru O3YR_max
+      if(abs(jyearo) < abs(jyrnow)) jyearo=-jyrnow ! keep cycling
+      if(abs(jyearo) > O3YR_max) jyearo=-O3YR_max ! cycle thru O3YR_max
 
-      IF(IFIRST.EQ.1) THEN
+      IF(IFIRST==1) THEN
 
-      if(plbo3(1).lt.plb0(1)) plbo3(1)=plb0(1)
-      IF(MADO3M.lt.0) then
+      if(plbo3(1) < plb0(1)) plbo3(1)=plb0(1)                  ! ??
+      IF(MADO3M < 0) then
 C****   Find O3 data files and fill array IYEAR from title(1:4)
         nfo3=0
-        write(6,'(/a)') ' List of O3 files used:'
+        if (AM_I_ROOT()) write(6,'(/a)') ' List of O3 files used:'
         do n=1,nfo3X    !  files have the generic names O3file_01,....
           ddfile(n)=' '
           write (ddfile(n),'(a7,i2.2)') 'O3file_',n
-          inquire (file=ddfile(n),exist=qexist)
+          inquire (file=trim(ddfile(n)),exist=qexist)
           if(.not.qexist) go to 10 !  exit
           call openunit (ddfile(n),ifile,qbinary)
           read(ifile) title
           call closeunit (ifile)
-          write(6,'(a,a)') ' read O3 file, record 1: ',title
+          if (AM_I_ROOT())
+     *         write(6,'(a,a)') ' read O3 file, record 1: ',title
           read(title(1:4),*) IYEAR(n)
           nfo3=nfo3+1
         end do
 
    10   continue
-        if(nfo3.eq.1) JYEARO=-IYEAR(1)
-        if(nfo3.eq.0) call stop_model('updo3d: no Ozone files',255)
+        if(nfo3==1) JYEARO=-IYEAR(1)
+        if(nfo3==0) call stop_model('updo3d: no Ozone files',255)
         OTFILE='O3trend '
       END IF
 
 C**** Prior to first year of data, cycle through first year of data
-      if(abs(jyearo).lt.IYEAR(1)) jyearo=-IYEAR(1)
+      if(abs(jyearo) < IYEAR(1)) jyearo=-IYEAR(1)
 
       IY=0
-      IF(JYEARO.LT.0) THEN ! 1 year of O3 data is used in a cyclical way
+      IF(JYEARO < 0) THEN ! 1 year of O3 data is used in a cyclical way
         do n=1,nfo3        ! check whether we need the O3 trend array
-           if(IYEAR(n).eq.-JYEARO) IY=n
+           if(IYEAR(n)==-JYEARO) IY=n
         end do
       end if
 
-      if(IY.LE.1.and.nfo3.gt.1) then
+      if(IY <= 1.and.nfo3 > 1) then
                        ! READ strat O3 time trend for strat O3 interpol.
         call openunit (OTFILE,ifile,qbinary)
-        READ (IFILE) OTREND    ! strat O3 time-trend OTREND(JM,18,2412)
+        READ (IFILE) OTREND
         call closeunit (ifile)
-        if(MADO3M.lt.0) write(6,'(a,a)') ' read ',OTfile
+        if (AM_I_ROOT()) then
+           if(MADO3M < 0) write(6,'(a,a)') ' read ',OTfile
+        end if
       end if
 
-      if(IY.GT.0) then
+      if(IY > 0) then
         call openunit (ddfile(IY),ifile,qbinary)
-        DO 40 M=1,12
+        DO 30 M=1,12
         DO 30 L=1,NLO3
-        READ (IFILE) TITLE,A
-        DO 20 J=1,JM         ! (decadal climatology) O3YEAR(IM,JM,18,12)
-        DO 20 I=1,IM
-           O3YEAR(I,J,L,M)=A(I,J)
-   20   CONTINUE
-   30   CONTINUE
-   40   CONTINUE
-        DO 50 L=1,NLO3
-        DO 50 J=1,JM
-        DO 50 I=1,IM
-        O3YEAR(I,J,L,0)=O3YEAR(I,J,L,12)
-   50   CONTINUE
+   30   READ (IFILE) TITLE,O3YEAR(:,:,L,M)
+        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)
         call closeunit (ifile)
         JYRNOW=-JYEARO  ! insures that O3YEAR is no longer changed
       end if
@@ -2279,57 +2196,43 @@ C**** Prior to first year of data, cycle through first year of data
 
 C     To time input data READs, JYEARX is set ahead of JYEARO by 15 days
 C     ------------------------------------------------------------------
-      IF(JYEARO.LT.0) THEN    !              ... except in cyclical case
+      IF(JYEARO < 0) THEN    !              ... except in cyclical case
         JYEARX=-JYEARO        ! Use fixed-year decadal climatology
       ELSE
         JYEARX=MIN(JYEARO+(JJDAYO+15)/366,IYEO3+1) ! +1 for continuity
       END IF                                       !         at Dec 15
 
-      IF(JYEARX.EQ.JYRNOW) GO TO 500    ! Get O3JDAY from current O3YEAR
-      IF(JYRNOW.GT.O3YR_max) GO TO 500  ! cyclical case
+      IF(JYEARX==JYRNOW) GO TO 500    ! Get O3JDAY from current O3YEAR
+      IF(JYRNOW > O3YR_max) GO TO 500  ! cyclical case
 
 C****
 C**** Get 13 months of O3 data O3YEAR starting with the leading December
 C****
       do jy=1,nfo3                  ! nfo3 is at least 2, if we get here
-        if(iyear(jy).gt.JYEARx) go to 100
+        if(iyear(jy) > JYEARx) go to 100
       end do
       jy=nfo3
-  100 if(jy.le.1) jy=2
+  100 if(jy <= 1) jy=2
       iy=jy-1
       IYR=IYEAR(IY)
       JYR=IYEAR(JY)
 
 C**** Get first decadal file
       call openunit (ddfile(IY),ifile,qbinary)                     ! IYR
-      DO 140 M=1,12
-      DO 130 L=1,NLO3
-      READ (IFILE) TITLE,A
-      DO 120 J=1,JM
-      DO 110 I=1,IM
-      O3ICMA(I,J,L,M)=A(I,J)    !   IYR decadal data O3ICMA(IM,JM,18,12)
-  110 CONTINUE
-  120 CONTINUE
-  130 CONTINUE
-  140 CONTINUE
+      DO 110 M=1,12
+      DO 110 L=1,NLO3
+  110 READ (IFILE) TITLE,O3ICMA(:,:,L,M)
       call closeunit (ifile)
 
-      IF(JYEARX.EQ.IYR.AND.IYRDEC.NE.JYEARX-1 .AND. IY.GT.1 .AND.
-     *   JYEARO.GT.0.AND.JYEARX.LE.O3YR_max) THEN
+      IF(JYEARX == IYR.and.IYRDEC.ne.JYEARX-1 .and. IY > 1 .and.
+     *   JYEARO > 0.and.JYEARX <= O3YR_max) THEN
 C        READ and use prior decadal file to define prior year December
 C        (only when starting up with JYEARO=1890,1910,1930,...1980
 C         and only for non-cyclical cases)
       call openunit (ddfile(IY-1),ifile,qbinary)                   ! KYR
-      DO 240 M=1,12
-      DO 230 L=1,NLO3
-      READ(IFILE) TITLE,A
-      DO 220 J=1,JM
-      DO 210 I=1,IM
-      O3JCMA(I,J,L,M)=A(I,J)   !  (prior decade) KYR temporary data file
-  210 CONTINUE
-  220 CONTINUE
-  230 CONTINUE
-  240 CONTINUE
+      DO 210 M=1,12
+      DO 210 L=1,NLO3
+  210 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
       call closeunit (ifile)
 
 C     Tropospheric & stratospheric ozone timetrend interpolation weights
@@ -2340,75 +2243,60 @@ C     ------------------------------------------------------------------
       CALL O3_WTS (IYIO3,LMONTR, IYR,IYEAR(IY-1), JYEARX-1,12,     ! in
      *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)                 ! out
 
-      DO 290 J=1,JM
+      DO 290 J=1,MLAT46
       NLT=LJTTRO(J)     !      NLT=LJTTRO(J) is top layer of troposphere
-      DO 260 L=1,NLT
-      DO 250 I=1,IM
+      DO 250 L=1,NLT
+      DO 250 I=1,MLON72
       O3YEAR(I,J,L,0)=WTTI*O3ICMA(I,J,L,12)+WTTJ*O3JCMA(I,J,L,12)
-      IF(O3YEAR(I,J,L,0).LT.0.) O3YEAR(I,J,L,0)=0.
+      IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
   250 CONTINUE
-  260 CONTINUE
 
 C     DSO3 = add-on residual intra-decadal stratospheric O3 variability
 C     ------------------------------------------------------------------
-      DO 280 L=NLT+1,NLO3
+      DO 270 L=NLT+1,NLO3
       DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MJ)
-      DO 270 I=1,IM
+      DO 270 I=1,MLON72
       O3YEAR(I,J,L,0)=WTSI*O3ICMA(I,J,L,12)+WTSJ*O3JCMA(I,J,L,12)+ DSO3
-      IF(O3YEAR(I,J,L,0).LT.0.) O3YEAR(I,J,L,0)=0.
+      IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
   270 CONTINUE
-  280 CONTINUE
+
   290 CONTINUE
       IYRDEC=JYEARX    !   Set flag to indicate December data is current
       ENDIF
 
 C**** Get next  decadal file
       call openunit (ddfile(JY),ifile,qbinary)                    !  JYR
-      DO 340 M=1,12
-      DO 330 L=1,NLO3
-      READ(IFILE) TITLE,A
-      DO 320 J=1,JM
-      DO 310 I=1,IM
-      O3JCMA(I,J,L,M)=A(I,J)    !   JYR decadal data O3JCMA(IM,JM,18,12)
-  310 CONTINUE
-  320 CONTINUE
-  330 CONTINUE
-  340 CONTINUE
+      DO 310 M=1,12
+      DO 310 L=1,NLO3
+  310 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
       call closeunit (ifile)
 
-      IF(JYEARX.eq.IYRDEC) GO TO 410    ! done with prior December
+      IF(JYEARX==IYRDEC) GO TO 410    ! done with prior December
 
-      IF(JYEARX.eq.IYRDEC+1) THEN      ! copy data from M=12 -> M=0
-        DO L=1,NLO3                    ! normal non-start-up case
-        DO J=1,JM
-        DO I=1,IM
-        O3YEAR(I,J,L,0)=O3YEAR(I,J,L,12)      !     DEC from prior year
-        END DO
-        END DO
-        END DO
-        IF(JYEARX.GT.O3YR_max) JYEARX=O3YR_max
+      IF(JYEARX==IYRDEC+1) THEN      ! copy data from M=12 -> M=0
+        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)      !     DEC from prior year
+        IF(JYEARX > O3YR_max) JYEARX=O3YR_max
         IYRDEC=JYEARX   !  Set flag to indicate December data is current
-      ELSE IF(JYEARO.GT.IYEAR(1)) THEN
+      ELSE IF(JYEARO > IYEAR(1)) THEN
 C       Interpolate prior December from the decadal files - start-up
         CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX-1,12,        ! in
      *               WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
 
-        DO 400 J=1,JM
+        DO 400 J=1,MLAT46
         NLT=LJTTRO(J)     !    NLT=LJTTRO(J) is top layer of troposphere
-        DO L=1,NLT
-        DO I=1,IM
+        DO 360 L=1,NLT
+        DO 360 I=1,MLON72
         O3YEAR(I,J,L,0)=WTTI*O3ICMA(I,J,L,12)+WTTJ*O3JCMA(I,J,L,12)
-        IF(O3YEAR(I,J,L,0).LT.0.) O3YEAR(I,J,L,0)=0.
-        END DO
-        END DO
+        IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
+  360   CONTINUE
 
-        DO L=NLT+1,NLO3
+        DO 370 L=NLT+1,NLO3
         DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MJ)
-        DO I=1,IM
+        DO 370 I=1,MLON72
         O3YEAR(I,J,L,0)=WTSI*O3ICMA(I,J,L,12)+WTSJ*O3JCMA(I,J,L,12)+DSO3
-        IF(O3YEAR(I,J,L,0).LT.0.) O3YEAR(I,J,L,0)=0.
-        END DO
-        END DO
+        IF(O3YEAR(I,J,L,0) < 0.) O3YEAR(I,J,L,0)=0.
+  370   CONTINUE
+
   400   CONTINUE
         IYRDEC=JYEARX  !   Set flag to indicate December data is current
       END IF
@@ -2416,42 +2304,34 @@ C       Interpolate prior December from the decadal files - start-up
 C            Fill in a full year of O3 data by interpolation
 C            -----------------------------------------------
   410 CONTINUE
-      IF(JYEARX.GT.O3YR_max) JYEARX=O3YR_max
+      IF(JYEARX > O3YR_max) JYEARX=O3YR_max
       CALL O3_WTS (IYIO3,LMONTR, IYR,JYR, JYEARX,0,           ! in
      *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)            ! out
 
 C            Tropospheric O3 interpolation is in proportion to CH4 trend
 C                         ----------------------------------------------
       DO 490 M=1,12
-      DO 480 J=1,JM
+      DO 490 J=1,MLAT46
       NLT=LJTTRO(J)     !      NLT=LJTTRO(J) is top layer of troposphere
-      DO 450 L=1,NLT
-      DO 440 I=1,IM
+      DO 440 L=1,NLT
+      DO 440 I=1,MLON72
       O3YEAR(I,J,L,M)=WTTI*O3ICMA(I,J,L,M)+WTTJ*O3JCMA(I,J,L,M)
-      IF(O3YEAR(I,J,L,M).LT.0.) O3YEAR(I,J,L,M)=0.
+      IF(O3YEAR(I,J,L,M) < 0.) O3YEAR(I,J,L,M)=0.
   440 CONTINUE
-  450 CONTINUE
 
 C     DSO3 = add-on residual intra-decadal stratospheric O3 variability
 C     ------------------------------------------------------------------
-      DO 470 L=NLT+1,NLO3
+      DO 460 L=NLT+1,NLO3
       DSO3=OTREND(J,L,M+MN)-WTSI*OTREND(J,L,M+MI)-WTSJ*OTREND(J,L,M+MJ)
-      DO 460 I=1,IM
+      DO 460 I=1,MLON72
       O3YEAR(I,J,L,M)=WTSI*O3ICMA(I,J,L,M)+WTSJ*O3JCMA(I,J,L,M) + DSO3
-      IF(O3YEAR(I,J,L,M).LT.0.) O3YEAR(I,J,L,M)=0.
+      IF(O3YEAR(I,J,L,M) < 0.) O3YEAR(I,J,L,M)=0.
   460 CONTINUE
-  470 CONTINUE
-  480 CONTINUE
+
   490 CONTINUE
 
-      IF(JYEARX.NE.IYRDEC) THEN
-        DO L=1,NLO3                           ! cyclical start-up case
-        DO J=1,JM
-        DO I=1,IM
-        O3YEAR(I,J,L,0)=O3YEAR(I,J,L,12)      ! DEC from current year
-        END DO
-        END DO
-        END DO
+      IF(JYEARX.ne.IYRDEC) THEN               ! cyclical start-up case
+        O3YEAR(:,:,:,0)=O3YEAR(:,:,:,12)      ! DEC from current year
         IYRDEC=JYEARX   !  Set flag to indicate December data is current
       END IF
       JYRNOW=JYEARX
@@ -2466,15 +2346,12 @@ C     the formula below yields M near the middle of month M
       MI=XMI
       WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYO
       WTMI=1.D0-WTMJ
-      IF(MI.GT.11) MI=0
+      IF(MI > 11) MI=0
       MJ=MI+1
-      DO 530 J=1,JM
-      DO 520 I=1,IM
-      DO 510 L=1,NLO3
-      O3JDAY(L,I,J)=WTMI*O3YEAR(I,J,L,MI)+WTMJ*O3YEAR(I,J,L,MJ)
+      DO 510 J=1,MLAT46
+      DO 510 I=1,MLON72
+      O3JDAY(:,I,J)=WTMI*O3YEAR(I,J,:,MI)+WTMJ*O3YEAR(I,J,:,MJ)
   510 CONTINUE
-  520 CONTINUE
-  530 CONTINUE
       RETURN
 
 !!    ENTRY GETO3D (ILON,JLAT)
@@ -2490,15 +2367,15 @@ C
 !@sum O3_WTS finds the weights needed for Ozone interpolation
 !@auth A. Lacis/R. Ruedy
       implicit none
-      integer IYI,MONTHS  ! first year, length of O3-trend data - input
-      integer IY1,IY2     ! 2 distinct years with O3 data       - input
-      integer IYX,MON     ! current year and month              - input
-      integer MI, MJ, MN  ! indices for ozone trend array       - output
-      real*8  WTTI,WTTJ   ! tropospheric weights                - output
-      real*8  WTSI,WTSJ   ! stratospheric weights               - output
+      INTEGER IYI,MONTHS  ! first year, length of O3-trend data - input
+      INTEGER IY1,IY2     ! 2 distinct years with O3 data       - input
+      INTEGER IYX,MON     ! current year and month              - input
+      INTEGER MI, MJ, MN  ! indices for ozone trend array       - output
+      REAL*8  WTTI,WTTJ   ! tropospheric weights                - output
+      REAL*8  WTSI,WTSJ   ! stratospheric weights               - output
 
-      real*8  GHGAS(6)     ! greenhouse gas conentrations (3=CH4)
-      real*8  dYEAR,CH4IY1,CH4IY2,CH4NOW  ! dummies
+      REAL*8  GHGAS(6)     ! greenhouse gas conentrations (3=CH4)
+      REAL*8  dYEAR,CH4IY1,CH4IY2,CH4NOW  ! dummies
 
 C     Tropospheric O3 interpolation is in proportion to CH4 trend
 C                    GTREND returns mid-year (annual mean) values
@@ -2519,14 +2396,14 @@ C     Strat O3 interpolation uses relative monthly variability in OTREND
 C     ------------------------------------------------------------------
       DYEAR=IY2-IY1
       WTSI=(IY2-IYX)/DYEAR                      ! Strat O3 = time linear
-      IF(WTSI.LT.0.D0) WTSI=0.D0
-      IF(WTSI.GT.1.D0) WTSI=1.D0
+      IF(WTSI < 0.D0) WTSI=0.D0
+      IF(WTSI > 1.D0) WTSI=1.D0
       WTSJ=1.d0-WTSI
 
       MI=    (IY1-IYI)*12 + MON
       MJ=    (IY2-IYI)*12 + MON
       MN=MAX((IYX-IYI)*12,0)
-      IF(MN.GT.MONTHS-12) MN=MONTHS-12
+      IF(MN > MONTHS-12) MN=MONTHS-12
       MN=MN+MON
 c     write(0,*) 'IYI,MON,IY1,IY2,IYX,MON',IYI,MONTHS,IY1,IY2,IYX,MON
 c     write(0,*) 'MI,MJ,MN',MI,MJ,MN
@@ -2546,47 +2423,43 @@ c     write(0,*) 'WTTI,WTTJ, WTSI,WTSJ',WTTI,WTTJ, WTSI,WTSJ
 C-----------------------------------------------------------------------
 C     Global   U.S. (1976) Standard Atmosphere  P, T, Geo Ht  Parameters
 C-----------------------------------------------------------------------
-      integer, optional :: GETGAS_flag
-      REAL*8, PARAMETER, DIMENSION(36) ::
-     *     P36 = (/
-     $1.2000D+03, .9720D+03, .9445D+03, .9065D+03, .8515D+03, .7645D+03,
-     $ .6400D+03, .4975D+03, .3695D+03, .2795D+03, .2185D+03, .1710D+03,
-     $ .1250D+03, .8500D+02, .6000D+02, .4000D+02, .2500D+02, .1500D+02,
-     $ .7500D+01, .4000D+01, .2500D+01, .1500D+01, .7500D+00, .4000D+00,
-     $ .2500D+00, .1500D+00, .7810D-01, .4390D-01, .2470D-01, .1390D-01,
-     $ .7594D-02, .3623D-02, .1529D-02, .7030D-03, .2059D-03, .0D0/),
-     *     UFAC36 =(/
-     $     0.800d0,0.800d0,0.800d0,0.750d0,0.750d0,0.750d0,0.700d0,
-     *     0.750d0,0.846d0,0.779d0,0.892d0,0.886d0,0.881d0,0.875d0,
-     *     0.870d0,0.846d0,0.840d0,0.902d0,0.880d0,0.775d0,0.796d0,
-     *     0.842d0,0.866d0,0.861d0,0.821d0,0.903d0,1.264d0,1.732d0,
-     *     2.000d0,1.701d0,1.609d0,1.478d0,1.253d0,1.372d0,1.571d0,
-     *     1.571d0/)
+      INTEGER, optional :: GETGAS_flag
+      REAL*8, PARAMETER ::
+     * P36(36) = (/
+     *  1.2000D+3, .9720D+3, .9445D+3, .9065D+3, .8515D+3, .7645D+3,
+     *   .6400D+3, .4975D+3, .3695D+3, .2795D+3, .2185D+3, .1710D+3,
+     *   .1250D+3, .8500D+2, .6000D+2, .4000D+2, .2500D+2, .1500D+2,
+     *   .7500D+1, .4000D+1, .2500D+1, .1500D+1, .7500D+0, .4000D+0,
+     *   .2500D+0, .1500D+0, .7810D-1, .4390D-1, .2470D-1, .1390D-1,
+     *   .7594D-2, .3623D-2, .1529D-2, .7030D-3, .2059D-3, .0D0/),
+     * UFAC36(36) = (/
+     *  0.800d0,0.800d0,0.800d0,0.750d0,0.750d0,0.750d0,0.700d0,
+     *  0.750d0,0.846d0,0.779d0,0.892d0,0.886d0,0.881d0,0.875d0,
+     *  0.870d0,0.846d0,0.840d0,0.902d0,0.880d0,0.775d0,0.796d0,
+     *  0.842d0,0.866d0,0.861d0,0.821d0,0.903d0,1.264d0,1.732d0,
+     *  2.000d0,1.701d0,1.609d0,1.478d0,1.253d0,1.372d0,1.571d0,
+     *  1.571d0/)
 
       REAL*8, PARAMETER :: HPCON=34.16319d0,P0=1013.25d0,
      *     PI=3.141592653589793D0
       REAL*8, SAVE :: SINLAT(46)
-      INTEGER, SAVE :: IFIRST=1, NL0,NL1
+      INTEGER, SAVE :: IFIRST=1, NL0
       INTEGER I,NLAY,NATM,L,J,K,N
-      REAL*8 RADLAT,RHP,EST,FWB,FWT,PLT,DP,EQ,ES,ACM,HI,FI,HL,HJ,FJ,DH
+      REAL*8 RHP,EST,FWB,FWT,PLT,DP,EQ,ES,ACM,HI,FI,HL,HJ,FJ,DH
      *     ,FF,GGVDF,ZT,ZB,EXPZT,EXPZB,PARTTR,PARTTG,PTRO,DL,DLS,DLN
-     *     ,Z0LAT,SUMCOL,ULGASL
+     *     ,Z0LAT,SUMCOL,ULGASL,UGAS0(LX),UGASR(LX)
 
       if ( present(GETGAS_flag) ) goto 777
 
-      IF(IFIRST.EQ.1) THEN
-      DO 90 I=1,MLAT46
-      RADLAT=DLAT46(I)*PI/180.D0
-      SINLAT(I)=SIN(RADLAT)
-   90 CONTINUE
-      NL0=NL
-      IFIRST=0
+      IF(IFIRST==1) THEN
+        SINLAT(:) = SIN(DLAT46(:)*PI/180.D0)
+        NL0=NL
+        IFIRST=0
       ENDIF
 C                  -----------------------------------------------------
 C                  Use PLB to fix Standard Heights for Gas Distributions
 C                  -----------------------------------------------------
 
-      NL1=NL0+1
 !nu   PS0=PLB0(1)
 
       DO 100 L=1,NL0
@@ -2594,23 +2467,19 @@ C                  -----------------------------------------------------
       PL(L)=(PLB0(L)+PLB0(L+1))*0.5D0
 !nu   HLB(L)=HLB0(L)
   100 CONTINUE
-!nu   HLB(NL1)=HLB0(NL1)
+!nu   HLB(NL0+1)=HLB0(NL0+1)
       CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL0)
 cc    IUFAC=1
-cc    IF(IUFAC.EQ.0) THEN
-cc      DO I=1,NL
-cc        FPXCO2(I)=1.
-cc      END DO
-cc    ENDIF
+cc    IF(IUFAC==0) FPXCO2(:)=1
 
       NLAY=LASTVC/100000
       NATM=(LASTVC-NLAY*100000)/10000
-      IF(NATM.GT.0) GO TO 112
+      IF(NATM > 0) GO TO 112
 
 C     ----------------------------------------------------------------
 C     Define Default Global Mean Gas Amounts for Off-Line Use Purposes
 C
-C                                         Global Mean H2O Distribution
+C     IGAS=1                              Global Mean H2O Distribution
 C                                         ----------------------------
       RHP=0.77D0
       EST=10.D0**(9.4051D0-2353.D0/TLB(1))
@@ -2621,7 +2490,7 @@ C                                         ----------------------------
       RHP=0.77D0*(PLT/P0-0.02D0)/.98D0
       EST=10.D0**(9.4051D0-2353.D0/TLT(L))
       FWT=0.662D0*RHP*EST/(PLT-RHP*EST)
-      IF(FWT.GT.3.D-06) GO TO 110
+      IF(FWT > 3.D-06) GO TO 110
       FWT=3.D-06
       RHP=FWT*PLT/(EST*(FWT+0.662D0))
   110 CONTINUE
@@ -2636,7 +2505,7 @@ C                                         ----------------------------
   112 CONTINUE
 
 C                                         ----------------------------
-C                                         Global Mean NO2 Distribution
+C     IGAS=5                              Global Mean NO2 Distribution
 C                                         ----------------------------
       ACM=0.D0
       HI=0.D0
@@ -2646,12 +2515,12 @@ C                                         ----------------------------
       J=1
   130 CONTINUE
       J=J+1
-      IF(J.GT.42) GO TO 133
+      IF(J > 42) GO TO 133
       HJ=HI+2.D0
       FJ=CMANO2(J)
   131 CONTINUE
       DH=HJ-HI
-      IF(HJ.GT.HL) GO TO 132
+      IF(HJ > HL) GO TO 132
       ACM=ACM+(FI+FJ)*DH*0.5D0
       HI=HJ
       FI=FJ
@@ -2664,7 +2533,7 @@ C                                         ----------------------------
       ACM=0.D0
       HI=HL
       FI=FF
-      IF(L.EQ.NL0) GO TO 133
+      IF(L==NL0) GO TO 133
       L=L+1
       HL=HLB0(L+1)
       GO TO 131
@@ -2672,30 +2541,28 @@ C                                         ----------------------------
       U0GAS(L,5)=ACM
       ACM=0.D0
       L=L+1
-      IF(L.LT.NL1) GO TO 133
+      IF(L < NL0+1) GO TO 133
 C                            -----------------------------------------
-C                            (CO2,O2) Uniformly Mixed Gas Distribution
+C     IGAS=2 and 4           (CO2,O2) Uniformly Mixed Gas Distribution
 C                            -----------------------------------------
-      DO 141 K=2,4,2
-      DO 140 N=1,NL0
-      U0GAS(N,K)=PPMV80(K)*0.8D0*DPL(N)/P0
+      DO 140 K=2,4,2
+      U0GAS(1:NL0,K)=PPMV80(K)*0.8D0*DPL(1:NL0)/P0
   140 CONTINUE
-  141 CONTINUE
 C                -----------------------------------------------------
-C                (N20,CH4,F11,F12) Specified Vertical Gas Distribution
+C     IGAS=6-12  (N20,CH4,F11,F12) Specified Vertical Gas Distribution
 C                -----------------------------------------------------
       DO 151 K=6,12
-      IF(K.EQ.10) GO TO 151
+      IF(K==10) GO TO 151
       DO 150 N=1,NL0
       GGVDF=1.D0-(1.D0-PPMVDF(K))*(1.D0-PLB0(N)/PLB0(1))
-      IF(KGGVDF.LT.1) GGVDF=1.D0
+      IF(KGGVDF < 1) GGVDF=1.D0
       U0GAS(N,K)=PPMV80(K)*0.8D0*DPL(N)/P0*GGVDF
       ZT=(HLB0(N+1)-Z0(K))/ZH(K)
-      IF(ZT.LE.0.D0) GO TO 150
+      IF(ZT <= 0.D0) GO TO 150
       ZB=(HLB0(N)-Z0(K))/ZH(K)
       EXPZT=EXP(-ZT)
       EXPZB=EXP(-ZB)
-      IF(ZB.LT.0.D0) EXPZB=1.D0-ZB
+      IF(ZB < 0.D0) EXPZB=1.D0-ZB
       U0GAS(N,K)=U0GAS(N,K)*(EXPZB-EXPZT)/(ZT-ZB)
   150 CONTINUE
   151 CONTINUE
@@ -2703,43 +2570,26 @@ C                         --------------------------------------------
 C                         Specification of  FULGAS  Scaled Gas Amounts
 C                         --------------------------------------------
 
-      DO 230 L=1,NL0
-Cc*** Adjust all water levels
-cc    ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-c**** Only adjust stratospheric water levels (above LS1_loc)
-      IF (L.lt.LS1_loc) THEN
-        ULGAS(L,1)=U0GAS(L,1)
-      ELSE
-        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-      END IF
+Cc*** Adjust water vapor in ALL layers                        ! IGAS=1
+cc    ULGAS(1:NL0,1)=U0GAS(1:NL0,1)*FULGAS(1)
+c**** Only adjust stratospheric levels (above LS1_loc)
+      ULGAS(1:LS1_loc-1,1)=U0GAS(1:LS1_loc-1,1)
+      ULGAS(LS1_loc:NL0,1)=U0GAS(LS1_loc:NL0,1)*FULGAS(1)
 C****
-      ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
-!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5) ! redefined below
-  230 CONTINUE
+      ULGAS(1:NL0,3)=U0GAS(1:NL0,3)*FULGAS(3)                 ! IGAS=3
+      IF(KPFOZO==1) ULGAS(1:NL0,3)=ULGAS(1:NL0,3)*FPXOZO(1:NL0)
 
-      IF(KPFOZO.EQ.1) THEN
-      DO 235 L=1,NL0
-      ULGAS(L,3)=ULGAS(L,3)*FPXOZO(L)
-  235 CONTINUE
-      ENDIF
-
-      PARTTR=(PLB(1)-PTOPTR)/(PLB0(1)-PTOPTR)
-      DO 240 L=1,NL0
-      IF(PLB(L).LE.PTOPTR) PARTTR=1.D0
-      DO 239 K=2,12
-      IF(K.EQ.3) GO TO 239
-      PARTTG=PARTTR
-!nojl IF(KPGRAD.GT.0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
-      ULGAS(L,K)=U0GAS(L,K)*FULGAS(K)*PARTTG
-  239 CONTINUE
-      ULGAS(L,13)=U0GAS(L,13)*FULGAS(13)
+      DO 240 L=1,NL0                                     ! IGAS=2,4-13
+!!!   PARTTR = (PLB(L)-PLB(L+1)) / (PLB0(L)-PLB0(L+1))   ! PLB=PLB0 ??
+      DO 240 K=2,12
+      IF(K==3) GO TO 240
+!!!   PARTTG=PARTTR  ! next line not possible at this point (jlat=???)
+!!!   IF(KPGRAD > 0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
+      ULGAS(L,K)=U0GAS(L,K)*FULGAS(K) !!! *PARTTG
   240 CONTINUE
+      ULGAS(1:NL0,13)=U0GAS(1:NL0,13)*FULGAS(13)
 
-      IF(KPFCO2.EQ.1) THEN
-      DO 245 L=1,NL0
-      ULGAS(L,2)=ULGAS(L,2)*FPXCO2(L)
-  245 CONTINUE
-      ENDIF
+      IF(KPFCO2==1) ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
 
       RETURN
 
@@ -2756,125 +2606,94 @@ C                -----------------------------------------------------
 C                N20,CH4,F11,F12 Specified Latitudinal Z0 Distribution
 C                -----------------------------------------------------
 
-      IF(KLATZ0.GT.0) THEN
-      PTRO=100.D0
-      DL=DLAT46(JLAT)
-      DLS=-40.D0
-      DLN= 40.D0
-      IF(DL.LT.DLS) PTRO=189.D0-(DL+40.D0)*2.22D0
-      IF(DL.GT.DLN) PTRO=189.D0+(DL-40.D0)*2.22D0
-      DO 249 N=1,NL0
-      IF(PLB0(N).GE.PTRO) Z0LAT=HLB0(N)  ! hlb not hlb0
-  249 CONTINUE
-      DO 251 K=6,12
-      IF(K.EQ.10) GO TO 251
-      DO 250 N=1,NL0
-      U0GAS(N,K)=PPMV80(K)*0.8D0*(PLB0(N)-PLB0(N+1))/P0
-      ZT=(HLB0(N+1)-Z0LAT)/ZH(K)         ! hlb not hlb0
-      IF(ZT.LE.0.D0) GO TO 250
-      ZB=(HLB0(N)-Z0LAT)/ZH(K)           ! hlb not hlb0
-      EXPZT=EXP(-ZT)
-      EXPZB=EXP(-ZB)
-      IF(ZB.LT.0.D0) EXPZB=1.D0-ZB
-      U0GAS(N,K)=U0GAS(N,K)*(EXPZB-EXPZT)/(ZT-ZB)
-  250 CONTINUE
-  251 CONTINUE
+      IF(KLATZ0 > 0) THEN
+        PTRO=100.D0
+        DL=DLAT46(JLAT)
+        DLS=-40.D0
+        DLN= 40.D0
+        IF(DL < DLS) PTRO=189.D0-(DL+40.D0)*2.22D0
+        IF(DL > DLN) PTRO=189.D0+(DL-40.D0)*2.22D0
+        DO L=1,NL0
+          IF(PLB0(L) >= PTRO) Z0LAT=HLB0(L)  ! orig. hlb not hlb0
+        END DO
+        DO 251 K=6,12
+        IF(K==10) GO TO 251
+        DO 250 L=1,NL0
+        U0GAS(L,K)=PPMV80(K)*0.8D0*(PLB0(L)-PLB0(L+1))/P0
+        ZT=(HLB0(L+1)-Z0LAT)/ZH(K)           ! orig. hlb not hlb0
+        IF(ZT <= 0.D0) GO TO 250
+        ZB=(HLB0(L)-Z0LAT)/ZH(K)             ! orig. hlb not hlb0
+        EXPZT=EXP(-ZT)
+        EXPZB=EXP(-ZB)
+        IF(ZB < 0.D0) EXPZB=1.D0-ZB
+        U0GAS(L,K)=U0GAS(L,K)*(EXPZB-EXPZT)/(ZT-ZB)
+  250   CONTINUE
+  251   CONTINUE
       ENDIF
 
-      DO 300 L=1,NL
+      DO 300 L=L1,NL
       DPL(L)=PLB(L)-PLB(L+1)
       PL(L)=(PLB(L)+PLB(L+1))*0.5D0
   300 CONTINUE
 
-      IF(KEEPRH.EQ.2) GO TO 313
-      IF(KEEPRH.EQ.1) GO TO 311
-      DO 310 L=1,NL
+      IF(KEEPRH==2) GO TO 313                  ! keep RH,SH
+      IF(KEEPRH==1) GO TO 311                  ! find SH from RH
+      DO 310 L=L1,NL                           ! find RH from SH
       EQ=PL(L)*SHL(L)/(0.662D0+0.378D0*SHL(L))
       ES=10.D0**(9.4051D0-2353.D0/TLM(L))
       RHL(L)=EQ/ES
   310 CONTINUE
       GO TO 313
   311 CONTINUE
-      DO 312 L=1,NL
+      DO 312 L=L1,NL
       ES=10.D0**(9.4051D0-2353.D0/TLM(L))
       SHL(L)=0.622D0*(RHL(L)*ES)/(PL(L)-0.378D0*(RHL(L)*ES))
   312 CONTINUE
   313 CONTINUE
-      DO 314 L=1,NL
-      U0GAS(L,1)=1268.75D0*DPL(L)*SHL(L)/(1.D0-SHL(L))
-Cc*** Adjust ALL water levels
-cc    ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-c**** Only adjust stratospheric water levels (above LS1_loc)
-      IF (L.lt.LS1_loc) THEN
-        ULGAS(L,1)=U0GAS(L,1)
-      ELSE
-        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-      END IF
+
+      U0GAS(L1:NL,1)=1268.75d0*DPL(L1:NL)*SHL(L1:NL)/(1-SHL(L1:NL))
+Cc*** Adjust water vapor in ALL layers
+cc    ULGAS(L1:NL,1)=U0GAS(L1:NL,1)*FULGAS(1)
+c**** Only adjust stratospheric levels (above LS1_loc)
+      ULGAS(L1:LS1_loc-1,1)=U0GAS(L1:LS1_loc-1,1)
+      ULGAS(LS1_loc:NL,1)=U0GAS(LS1_loc:NL,1)*FULGAS(1)
 C****
-  314 CONTINUE
+      ULGAS(1:NL0,3)=U0GAS(1:NL0,3)*FULGAS(3)
+      IF(KPFOZO==1) ULGAS(1:NL0,3)=ULGAS(1:NL0,3)*FPXOZO(1:NL0)
 
-      DO 330 L=1,NL0
-      ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
-!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5) ! redefined below
-  330 CONTINUE
-
-      IF(KPFOZO.EQ.1) THEN
-      DO 335 L=1,NL0
-      ULGAS(L,3)=ULGAS(L,3)*FPXOZO(L)
-  335 CONTINUE
-      ENDIF
-
-      PARTTR=(PLB(1)-PTOPTR)/(PLB0(1)-PTOPTR)
-      DO 340 L=1,NL0
-      IF(PLB(L).LE.PTOPTR) PARTTR=1.D0
+      DO 340 L=L1,NL0   ! =L1,NL for GCM use, =1,NL0 for offline use
+      PARTTR = (PLB(L)-PLB(L+1)) / (PLB0(L)-PLB0(L+1))
       DO 339 K=2,12
-      IF(K.EQ.3) GO TO 339
+      IF(K==3) GO TO 339
       PARTTG=PARTTR
-      IF(KPGRAD.GT.0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
+      IF(KPGRAD > 0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
       ULGAS(L,K)=U0GAS(L,K)*FULGAS(K)*PARTTG
   339 CONTINUE
       ULGAS(L,13)=U0GAS(L,13)*FULGAS(13)
   340 CONTINUE
 
-      IF(KPFCO2.EQ.1) THEN
-      DO 345 L=1,NL0
-      ULGAS(L,2)=ULGAS(L,2)*FPXCO2(L)
-  345 CONTINUE
+      IF(KPFCO2==1) ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
+
+      IF(MRELAY > 0) THEN          ! for offline use only
+        IF(NO3COL > 0)             ! rescale ozone to col.amount RO3COL
+     *    ULGAS(1:NL0,3) = U0GAS(1:NL0,3)*RO3COL/SUM( U0GAS(1:NL0,3) )
+        DO 450 K=2,12                      ! repartition to new layering
+          IF(K==10.and.KEEP10 > 0) GO TO 450
+          UGAS0(1:NL0) = ULGAS(1:NL0,K)
+          CALL REPART(UGAS0,PLB0,NL0+1, UGASR,PLB,NL+1)
+          ULGAS(1:NL,K)=UGASR(1:NL)
+  450   CONTINUE
+        IF (KEEP10 > 0 .and. KEEP10 < 10)
+     *    ULGAS(1:NL,KEEP10) = ULGAS(1:NL,10)
+        IF (KEEP10 > 10)
+     *    ULGAS(1:NL,KEEP10-10)=ULGAS(1:NL,KEEP10-10)+ULGAS(L,10)
       ENDIF
 
-      IF(MRELAY.GT.0) THEN          ! for offline use only if NL changes
-        IF(NO3COL.GT.0) THEN        ! rescale ozone to col.amount RO3COL
-          SUMCOL=0.D0
-          DO L=1,NL0
-          SUMCOL=SUMCOL+U0GAS(L,3)
-          END DO
-          DO L=1,NL0
-          ULGAS(L,3)=U0GAS(L,3)*RO3COL/SUMCOL
-          END DO
-        ENDIF
-        DO 450 K=2,12                      ! repartition to new layering
-          IF(K.EQ.10.AND.KEEP10.GT.0) GO TO 450
-          DO L=1,NL0
-          UGAS0(L)=ULGAS(L,K)
-          END DO
-          CALL REPART(UGAS0,PLB0,NL1,UGASR,PLB,NLP)
-          DO L=1,NL
-          ULGAS(L,K)=UGASR(L)
-          END DO
-  450   CONTINUE
-        IF(KEEP10.GT.0) THEN
-          IF(KEEP10.LT.10) THEN
-            DO L=1,NL
-            ULGAS(L,KEEP10)=ULGAS(L,10)
-            END DO
-          ENDIF
-          IF(KEEP10.GT.10) THEN
-            DO L=1,NL
-            ULGAS(L,KEEP10-10)=ULGAS(L,KEEP10-10)+ULGAS(L,10)
-            END DO
-          ENDIF
-        ENDIF
-      ENDIF
+      chem_out(:,1)=ULGAS(:,3)              ! O3
+C     chem_out(:,2)= _________              ! set in RCOMPX
+      chem_out(:,3)=ULGAS(:,6)              ! N2O
+      chem_out(:,4)=ULGAS(:,7)              ! CH4
+      chem_out(:,5)=ULGAS(:,8)+ULGAS(:,9)   ! CFC11(+)   +  CFC12(+)
 
 C-----------------
       CALL  TAUGAS
@@ -2890,15 +2709,16 @@ C-----------------
 
       SUBROUTINE SETO2A( GETO2A_flag )
       IMPLICIT NONE
-      integer,optional :: GETO2A_flag
+      INTEGER,optional :: GETO2A_flag
 
+      INTEGER, PARAMETER :: NW=18, NZ=11, NKO2=6
       REAL*8, PARAMETER ::
-     *     SFWM2(18) = (/
-     A 2.196E-03, 0.817E-03, 1.163E-03, 1.331E-03, 1.735E-03, 1.310E-03,
-     B 1.311E-03, 2.584E-03, 2.864E-03, 4.162E-03, 5.044E-03, 6.922E-03,
-     C 6.906E-03,10.454E-03, 5.710E-03, 6.910E-03,14.130E-03,18.080E-03
-     *     /),
-     *     SIGMA(18,6) = RESHAPE( (/
+     *SFWM2(NW) = (/
+     A     2.196E-3, 0.817E-3, 1.163E-3, 1.331E-3, 1.735E-3, 1.310E-3,
+     B     1.311E-3, 2.584E-3, 2.864E-3, 4.162E-3, 5.044E-3, 6.922E-3,
+     C     6.906E-3,10.454E-3, 5.710E-3, 6.910E-3,14.130E-3,18.080E-3/),
+
+     *SIGMA(NW,NKO2) = RESHAPE( (/
      A     2.74E-19, 2.74E-19, 2.74E-19, 2.74E-19, 2.74E-19, 2.74E-19,
      B     4.33E-21, 4.89E-21, 6.63E-21, 1.60E-20, 7.20E-20, 1.59E-18,
      C     2.10E-21, 2.32E-21, 3.02E-21, 6.30E-21, 3.46E-20, 7.52E-19,
@@ -2917,39 +2737,31 @@ C-----------------
      P     1.76E-23, 1.76E-23, 1.76E-23, 1.76E-23, 1.76E-23, 3.50E-23,
      Q     1.71E-23, 1.71E-23, 1.71E-23, 1.71E-23, 1.71E-23, 2.68E-23,
      R     1.00E-23, 1.00E-23, 1.00E-23, 1.00E-23, 1.00E-23, 1.00E-23/)
-     *     , (/ 18, 6 /) )
+     *     , (/ NW, NKO2 /) ),
+     *WTKO2(NKO2) = (/0.05,0.20,0.25,0.25,0.20,0.05/),
+     *STPMOL=2.68714D+19
 
-      REAL*8, PARAMETER, DIMENSION(6) :: WTKO2 =
-     *     (/0.05,0.20,0.25,0.25,0.20,0.05/)
-      INTEGER, SAVE :: NL0,NL1
-
-      REAL*8, PARAMETER :: STPMOL=2.68714D+19
-      INTEGER, PARAMETER :: NW=18, NZ=11, NKO2=6
+      REAL*8 , SAVE :: ZTABLE(LX+1,11)
+      INTEGER, SAVE :: NL0
       INTEGER, SAVE :: IFIRST=1
       REAL*8 FSUM,SUMMOL,ZCOS,WSUM,TAU,DLFLUX,WTI,WTJ
       INTEGER I,J,K,L,JI,JJ,N,LL
 
       if ( present(GETO2A_flag) ) goto 777
 
-      IF(IFIRST.EQ.1) THEN
-      NL0=NL
-      DO 10 N=1,NL0
-      ULGAS(N,4)=PPMV80(4)*0.8D0*(PLB0(N)-PLB0(N+1))/PLB0(1)
-   10 CONTINUE
-      IFIRST=0
+      IF(IFIRST==1) THEN
+        NL0=NL
+        DO N=1,NL0
+          ULGAS(N,4)=PPMV80(4)*0.8D0*(PLB0(N)-PLB0(N+1))/PLB0(1)
+        END DO
+        IFIRST=0
       ENDIF
 
-      NL1=NL0+1
-      FSUM=0.0
-      DO 100 I=1,NW
-      FSUM=FSUM+SFWM2(I)
-  100 CONTINUE
-      DO 110 J=1,NZ
-      ZTABLE(NL1,J)=FSUM
-  110 CONTINUE
+      FSUM = SUM(SFWM2(:))
+      ZTABLE(NL0+1,:) = FSUM
+
       SUMMOL=0.D0
-      DO 150 N=1,NL0
-      L=NL1-N
+      DO 150 L=NL0,1,-1
       SUMMOL=SUMMOL+ULGAS(L,4)*STPMOL
       DO 140 J=1,NZ
       ZCOS=0.01D0*(1/J)+0.1D0*(J-1)
@@ -2957,8 +2769,7 @@ C-----------------
       DO 130 I=1,NW
       WSUM=0.D0
       DO 120 K=1,NKO2
-      TAU=SIGMA(I,K)*SUMMOL/ZCOS
-      IF(TAU.GT.30.D0) TAU=30.D0
+      TAU = SIGMA(I,K)*SUMMOL/ZCOS ; IF (TAU > 30) TAU=30
       WSUM=WSUM+WTKO2(K)*EXP(-TAU)
   120 CONTINUE
       FSUM=FSUM+WSUM*SFWM2(I)
@@ -2966,12 +2777,12 @@ C-----------------
       ZTABLE(L,J)=FSUM
   140 CONTINUE
   150 CONTINUE
-      DO 170 J=1,NZ
+      DO 160 J=1,NZ
       DO 160 L=1,NL0
       DLFLUX=ZTABLE(L+1,J)-ZTABLE(L,J)
       ZTABLE(L,J)=DLFLUX/1366.D0
   160 CONTINUE
-  170 CONTINUE
+
       RETURN
 
 C-----------------
@@ -2986,20 +2797,15 @@ C              normalized within SOLARM, dividing the GETO2A absorptions
 C              O2FHRL(L) and O2FHRB(L) by the fraction of the solar flux
 C              within the spectral interval DKS0(15), nominally by 0.05.
 C              ---------------------------------------------------------
-
+                          ! offline: may not yet work properly if NL>NL0
       ZCOS=1.D0+10.D0*COSZ
-      JI=ZCOS
-      IF(JI.GT.10) JI=10
+      JI=ZCOS ; IF (JI > 10) JI=10
       JJ=JI+1
       WTJ=ZCOS-JI
       WTI=1.0-WTJ
-      DO 200 LL=1,NL
-      L=NL1-LL
-      IF(L.LT.1) GO TO 210
-      O2FHRL(L)=(WTI*ZTABLE(L,JI)+WTJ*ZTABLE(L,JJ))
-      O2FHRB(L)=ZTABLE(L,6)
-  200 CONTINUE
-  210 CONTINUE
+      O2FHRL(L1:NL) = WTI*ZTABLE(L1:NL,JI) + WTJ*ZTABLE(L1:NL,JJ)
+      O2FHRB(L1:NL) =     ZTABLE(L1:NL,6)
+
       RETURN
       END SUBROUTINE SETO2A
 
@@ -3010,7 +2816,7 @@ C              ---------------------------------------------------------
 
       SUBROUTINE SETBAK( GETBAK_flag )
       IMPLICIT NONE
-      integer, optional :: GETBAK_flag
+      INTEGER, optional :: GETBAK_flag
 C     ------------------------------------------------------------------
 C     SETBAK,GETBAK  Initializes Background Aerosol Specification, i.e.,
 C                    Aerosol Composition and Distribution that is set in
@@ -3028,13 +2834,12 @@ C                        FTTAER    LW   (All-type) Aerosol Optical Depth
 C                        FSBAER    SW   SETBAKonly Aerosol Optical Depth
 C                        FTBAER    LW   SETBAKonly Aerosol Optical Depth
 C                        -----------------------------------------------
-      REAL*8, DIMENSION(5) :: SGOLDH,TGOLDH
 
+      REAL*8,  SAVE :: SRAX(LX,6,5),SRAS(LX,6,5),SRAC(LX,6,5)
       INTEGER, SAVE :: IFIRST=1
       INTEGER, SAVE :: NL0=0
 
-      REAL*8 C,BC,ABC,HXPB,HXPT,ABCD,SRAQX,SRAQS
-     *      ,SUMABS,EXTSUM,SCTSUM,COSSUM
+      REAL*8 SGOLDH(5),TGOLDH(5),C,BC,ABC,HXPB,HXPT,ABCD
       INTEGER I,J,K,L,JJ
 
       if ( present(GETBAK_flag) ) goto 777
@@ -3043,102 +2848,72 @@ C**** Background aerosols
 C     ------------------------------------------------------------------
 C     Thermal: Set (5) Aerosol Type Compositions & Vertical Distribution
 C     ------------------------------------------------------------------
-      IF(IFIRST.EQ.1) THEN
-      NL0=NL
-      IFIRST=0
+      IF(IFIRST==1) THEN
+        NL0=NL
+        IFIRST=0
       ENDIF
 
-      DO 100 J=1,5
-      DO 100 K=1,33
-      DO 100 L=1,NL0
-      TRAX(L,K,J)=0.D0
-  100 CONTINUE
+      TRAX(:,:,:)=0                          ! 1:NL0,1:NKBAND,1:5
 
       DO 105 I=1,11
       DO 103 J=1,5
-      IF(AGOLDH(I,J).LT.1.D-06) GO TO 103
+      IF(AGOLDH(I,J) < 1.D-06) GO TO 103
       C=CGOLDH(I,J)
       BC=EXP(-BGOLDH(I,J)/C)
       ABC=AGOLDH(I,J)*(1.D0+BC)
 
       HXPB=1.D0
       DO 102 L=1,NL0
-      HXPT=HLB0(L+1)/C
-      IF(HXPT.GT.80.D0) GO TO 102
+      HXPT=HLB0(L+1)/C                       ! orig. hlb not hlb0
+      IF(HXPT > 80.D0) GO TO 102 
       HXPT=EXP(HXPT)
       ABCD=ABC/(1.D0+BC*HXPB)
      +    -ABC/(1.D0+BC*HXPT)
       HXPB=HXPT
-      DO 101 K=1,33
-      TRAX(L,K,J)=TRAX(L,K,J)+ABCD*(TRAQEX(K,I)-TRAQSC(K,I))
-  101 CONTINUE
+      TRAX(L,:,J)=TRAX(L,:,J)+ABCD*(TRAQEX(:,I)-TRAQSC(:,I)) ! 1:NKBAND
   102 CONTINUE
   103 CONTINUE
-      DO 104 K=1,33
-      TRAQAB(K,I)=TRAQEX(K,I)-TRAQSC(K,I)
-  104 CONTINUE
+      TRAQAB(:,I)=TRAQEX(:,I)-TRAQSC(:,I)
   105 CONTINUE
 
-      DO 107 K=1,33
-      DO 106 L=1,NL0
-      TRBALK(L,K)=0.D0
-  106 CONTINUE
-  107 CONTINUE
+      TRBALK(:,:)=0                          ! 1:NL0,1:NKBAND
 
 C-----------------------------------------------------------------------
 C     SOLAR:   Set (5) Aerosol Type Compositions & Vertical Distribution
 C-----------------------------------------------------------------------
 
-      DO 110 J=1,5
-      DO 110 K=1,6
-      DO 110 L=1,NL0
-      SRAX(L,K,J)=1.D-20
-      SRAS(L,K,J)=1.D-30
-      SRAC(L,K,J)=0.D0
-  110 CONTINUE
+      SRAX(:,:,:) = 1.D-20                   ! 1:NL0,1:6,1:5
+      SRAS(:,:,:) = 1.D-30
+      SRAC(:,:,:) = 0
 
       DO 114 I=1,11
       DO 113 J=1,5
-      IF(AGOLDH(I,J).LT.1.D-06) GO TO 113
+      IF(AGOLDH(I,J) < 1.D-06) GO TO 113
       C=CGOLDH(I,J)
       BC=EXP(-BGOLDH(I,J)/C)
       ABC=AGOLDH(I,J)*(1.D0+BC)
 
       HXPB=1.D0
       DO 112 L=1,NL0
-      HXPT=HLB0(L+1)/C
-      IF(HXPT.GT.80.D0) GO TO 112
+      HXPT=HLB0(L+1)/C                       ! orig. hlb not hlb0
+      IF(HXPT > 80.D0) GO TO 112
       HXPT=EXP(HXPT)
       ABCD=ABC/(1.D0+BC*HXPB)
      +    -ABC/(1.D0+BC*HXPT)
       HXPB=HXPT
-      DO 111 K=1,6
-      SRAQX=SRAQEX(K,I)
-      SRAQS=SRAQSC(K,I)
-      SRAX(L,K,J)=SRAX(L,K,J)+ABCD*SRAQX
-      SRAS(L,K,J)=SRAS(L,K,J)+ABCD*SRAQS
-      SRAC(L,K,J)=SRAC(L,K,J)+ABCD*SRAQCB(K,I)*SRAQS
-  111 CONTINUE
+      SRAX(L,:,J) = SRAX(L,:,J) + ABCD*SRAQEX(:,I)
+      SRAS(L,:,J) = SRAS(L,:,J) + ABCD*SRAQSC(:,I)
+      SRAC(L,:,J) = SRAC(L,:,J) + ABCD*SRAQCB(:,I)*SRAQSC(:,I)
   112 CONTINUE
   113 CONTINUE
   114 CONTINUE
 
-      DO 117 J=1,5
-      DO 116 K=1,6
-      DO 115 L=1,NL0
-      SRAC(L,K,J)=SRAC(L,K,J)/SRAS(L,K,J)
-  115 CONTINUE
-  116 CONTINUE
-  117 CONTINUE
+      SRAC(:,:,:) = SRAC(:,:,:)/SRAS(:,:,:)  ! 1:NL0,1:6,1:5
 
-      DO 119 K=1,6
-      DO 118 L=1,NL0
-      SRBEXT(L,K)=1.D-20
-      SRBSCT(L,K)=0.D0
-      SRBGCB(L,K)=0.D0
-!nu   SRBPI0(L,K)=0.D0
-  118 CONTINUE
-  119 CONTINUE
+      SRBEXT(:,:) = 1.D-20                   ! 1:NL0,1:6
+      SRBSCT(:,:) = 0
+      SRBGCB(:,:) = 0
+!nu   SRBPI0(:,:) = 0
 
       RETURN
 
@@ -3154,41 +2929,24 @@ C
 C                    (2) Solar Radiation Coefficient Tables:
 C                        SRAEXT(L,K),SRASCT(L,K),SRAGCB(L,K) for (K=1,6)
 C                    ---------------------------------------------------
-
+C     Warning: MRELAY-section missing: not ready if NL.ne.NL0
 C                                                              (Thermal)
 C                                                              ---------
-      DO 200 J=1,5
-      TGOLDH(J)=FTTAER*FTBAER*FGOLDH(J)
-  200 CONTINUE
-      DO 203 L=1,NL0
+      TGOLDH(:)=FTTAER*FTBAER*FGOLDH(:)      ! 1:5
       DO 202 K=1,33
-      SUMABS=1.D-20
-      DO 201 J=1,5
-      SUMABS=SUMABS+TGOLDH(J)*TRAX(L,K,J)
-  201 CONTINUE
-      TRBALK(L,K)=SUMABS
+      DO 202 L=L1,NL0
+      TRBALK(L,K) = SUM( TGOLDH(:)*TRAX(L,K,:) ) + 1.D-20
   202 CONTINUE
-  203 CONTINUE
 
 C                                                                (Solar)
 C                                                                -------
 
-      DO 210 J=1,5
-      SGOLDH(J)=FSTAER*FSBAER*FGOLDH(J)
-  210 CONTINUE
+      SGOLDH(:)=FSTAER*FSBAER*FGOLDH(:)      ! 1:5
       DO 212 K=1,6
-      DO 212 L=1,NL0
-      EXTSUM=1.D-20
-      SCTSUM=1.D-30
-      COSSUM=0.D0
-      DO 211 J=1,5
-      EXTSUM=EXTSUM+SGOLDH(J)*SRAX(L,K,J)
-      SCTSUM=SCTSUM+SGOLDH(J)*SRAS(L,K,J)
-      COSSUM=COSSUM+SGOLDH(J)*SRAS(L,K,J)*SRAC(L,K,J)
-  211 CONTINUE
-      SRBEXT(L,K)=EXTSUM
-      SRBSCT(L,K)=SCTSUM
-      SRBGCB(L,K)=COSSUM/SCTSUM
+      DO 212 L=L1,NL0
+      SRBEXT(L,K) = SUM(SGOLDH(:)*SRAX(L,K,:)) + 1.D-20
+      SRBSCT(L,K) = SUM(SGOLDH(:)*SRAS(L,K,:)) + 1.D-30
+      SRBGCB(L,K) = SUM(SGOLDH(:)*SRAS(L,K,:)*SRAC(L,K,:)) / SRBSCT(L,K)
   212 CONTINUE
 
 
@@ -3203,7 +2961,7 @@ C                                                                -------
       SUBROUTINE SETAER( GETAER_flag )
 cc    INCLUDE  'rad00def.radCOMMON.f'
       IMPLICIT NONE
-      integer, optional :: GETAER_flag
+      INTEGER, optional :: GETAER_flag
 C     ---------------------------------------------------------------
 C     GISS MONTHLY-MEAN (1850-2050)  TROPOSPHERIC AEROSOL CLIMATOLOGY
 C     ---------------------------------------------------------------
@@ -3222,7 +2980,7 @@ C                        -----------------------------------------------
 !nu   DIMENSION ATAU09(9)
 cc    DIMENSION PLBA09(10)          !       Aerosol data pressure levels
 cc    DATA PLBA09/1010.,934.,854.,720.,550.,390.,255.,150.,70.,10./
-      real*8, parameter, dimension(4) ::
+      REAL*8, PARAMETER, dimension(4) ::
 C              Crystallization RH               Deliquescence RH
      *  RHC=(/.38d0,.47d0,.28d0,.38d0/), RHD=(/.80d0,.75d0,.62d0,.80d0/)
 
@@ -3237,19 +2995,19 @@ C          Set size ANT (NA=3) = Nitrate aerosol  (Nominal dry Reff=0.3)
 C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
-      REAL*8          TTAULX(LX,ITRMAX),   SRBGQL
-      INTEGER K,L,NA,N,NRH,M,KDREAD,NT
+      REAL*8 ATAULX(LX,6),TTAULX(LX,ITRMAX),SRBGQL,FAC
+      INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
-      if ( present(GETAER_flag) ) goto 777
+      if ( present(GETAER_flag) ) goto 200
 
-      IF(MADAER.LE.0) GO TO 150
+      IF(MADAER <= 0) GO TO 150
       DO 110 NA=1,4
       AREFF=REFDRY(NA)
-!nu   IF(KRHAER(NA).LT.0) AREFF=REFWET(NA)
+!nu   IF(KRHAER(NA) < 0) AREFF=REFWET(NA)
       CALL GETMIE(NA,AREFF,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
      +                    ,TRHQAB(1,1,NA),Q55DRY(NA))
       DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
-!nu   IF(KRHAER(NA).LT.0) DRYM2G(NA)=WETM2G(NA)
+!nu   IF(KRHAER(NA) < 0) DRYM2G(NA)=WETM2G(NA)
       RHINFO(1,1,NA)=0.D0                                     !  Rel Hum
       RHINFO(1,2,NA)=1.D0                                     !  TAUFAC
       RHINFO(1,3,NA)=AREFF                                    !  AerSize
@@ -3273,24 +3031,17 @@ C     ------------------------------------------------------------------
 
               !      Extend default dry aerosol coefficients for N=2,190
       DO 135 N=2,190
-      DO 134 NA=1,4
-      DO 131 K=1,6
-      SRHQEX(K,N,NA)=SRHQEX(K,1,NA)
-      SRHQSC(K,N,NA)=SRHQSC(K,1,NA)
-      SRHQCB(K,N,NA)=SRHQCB(K,1,NA)
-  131 CONTINUE
-      DO 132 K=1,33
-      TRHQAB(K,N,NA)=TRHQAB(K,1,NA)
-  132 CONTINUE
-      DO 133 M=1,9
-      RHINFO(N,M,NA)=RHINFO(1,M,NA)
-  133 CONTINUE
-  134 CONTINUE
+      DO 135 NA=1,4
+      SRHQEX(:,N,NA) = SRHQEX(:,1,NA)   !  1:6
+      SRHQSC(:,N,NA) = SRHQSC(:,1,NA)   !  1:6
+      SRHQCB(:,N,NA) = SRHQCB(:,1,NA)   !  1:6
+      TRHQAB(:,N,NA) = TRHQAB(:,1,NA)   !  1:33
+      RHINFO(N,1:9,NA) = RHINFO(1,1:9,NA)
   135 CONTINUE
-
-      KDREAD=71           !  Over-write dry coefficients if KRHAER(NA)=1
+                          !  Over-write dry coefficients if KRHAER(NA)=1
+      KDREAD=71           !  default unit number for offline use only
       DO 140 NA=1,4
-!nu   IF(KRHAER(NA).GT.0) THEN
+!nu   IF(KRHAER(NA) > 0) THEN
       CALL SETREL(REFDRY(NA),NA ,kdread
      A           ,SRUQEX,SRUQSC,SRUQCB
      B           ,TRUQEX,TRUQSC,TRUQCB
@@ -3302,7 +3053,7 @@ C     ------------------------------------------------------------------
   140 CONTINUE
 
   150 CONTINUE
-      IF(NTRACE.LE.0) RETURN
+      IF(NTRACE <= 0) RETURN
 
 C**** Optional Tracer aerosols initializations
       DO NT=1,NTRACE
@@ -3323,24 +3074,18 @@ C**** Optional Tracer aerosols initializations
             !      Define default dry aerosol coefficients for N=2,190
       DO N=2,190
       DO NT=1,NTRACE
-        DO K=1,6
-        SRTQEX(K,N,NT)=SRTQEX(K,1,NT)
-        SRTQSC(K,N,NT)=SRTQSC(K,1,NT)
-        SRTQCB(K,N,NT)=SRTQCB(K,1,NT)
-        END DO
-        DO K=1,33
-        TRTQAB(K,N,NT)=TRTQAB(K,1,NT)
-        END DO
-        DO M=1,9
-        RTINFO(N,M,NT)=RTINFO(1,M,NT)
-        END DO
+        SRTQEX(:,N,NT) = SRTQEX(:,1,NT)    ! 1:6
+        SRTQSC(:,N,NT) = SRTQSC(:,1,NT)    ! 1:6
+        SRTQCB(:,N,NT) = SRTQCB(:,1,NT)    ! 1:6
+        TRTQAB(:,N,NT) = TRTQAB(:,1,NT)    ! 1:33
+        RTINFO(N,1:9,NT) = RTINFO(1,1:9,NT)
       END DO
       END DO
-
-      KDREAD=71           !  Over-write dry coefficients if KRHTRA(NT)=1
+                          !  Over-write dry coefficients if KRHTRA(NT)=1
+      KDREAD=71           !  default unit number for offline use only
       DO NT=1,NTRACE
       NA=ITR(NT)
-      IF(KRHTRA(NT).GT.0.AND.NA.LE.4) THEN
+      IF (KRHTRA(NT) > 0 .and. NA <= 4) THEN
       CALL SETREL(TRRDRY(NT),NA,KDREAD
      A           ,SRUQEX,SRUQSC,SRUQCB
      B           ,TRUQEX,TRUQSC,TRUQCB
@@ -3357,65 +3102,59 @@ C**** Optional Tracer aerosols initializations
 C-----------------
 !      ENTRY GETAER
 C-----------------
- 777  continue
+  200 continue
 
       NRHNAN(:,:) = 1
-      DO 230 L=1,NL
-      IF(RHL(L).GT.0.9005D0) THEN
-      XRH=(RHL(L)-0.899499D0)*1000.D0
-      NRH=XRH+90
-      IF(NRH.GT.189) NRH=189
-      ELSE
-      XRH=RHL(L)*100.D0+0.5D0
-      NRH=XRH
-      IF(NRH.LT.0) NRH=0
-      ENDIF
+      DO 230 L=L1,NL
+      if (RHL(L) > 0.9005D0) then
+        XRH = (RHL(L)-0.899499D0)*1000.D0
+        NRH = XRH+90 ; if (NRH > 189) NRH=189
+      else
+        XRH=RHL(L)*100.D0+0.5D0
+        NRH=XRH  ;   if (NRH < 0) NRH=0
+      endif
       DO 220 NA=1,4
-      IF(KDELIQ(L,NA).EQ.0) THEN
-      RHDNA=RHD(NA)
-      IF(KRHDTK.eq.1) RHDNA=RHDTNA(TLM(L),NA)
-      IF(RHL(L).GT.RHDNA)   KDELIQ(L,NA)=1
-      ELSE
-      IF(RHL(L).LT.RHC(NA)) KDELIQ(L,NA)=0
-      ENDIF
+      if (KDELIQ(L,NA)==0) then
+        RHDNA = RHD(NA) ; if (KRHDTK==1) RHDNA = RHDTNA(TLM(L),NA)
+        if (RHL(L) > RHDNA)   KDELIQ(L,NA)=1
+      else
+        if (RHL(L) < RHC(NA)) KDELIQ(L,NA)=0
+      endif
       NRHNAN(L,NA)=NRH*KDELIQ(L,NA)+1
   220 CONTINUE
   230 CONTINUE
 
-      IF(MADAER.LE.0) GO TO 500
+      IF(MADAER <= 0) GO TO 500
 
       DO NA=1,6
-      CALL REPART(A6JDAY(1,NA,ILON,JLAT),PLBA09,10,ATAULX(1,NA),PLB,NLP)
+      CALL REPART (A6JDAY(1,NA,ILON,JLAT),PLBA09,10,    ! in
+     *             ATAULX(1,NA),PLB,NL+1)               ! out
       END DO
 
       FSXTAU=FSTAER*FSAAER+1.D-10
       FTXTAU=FTTAER*FTAAER
                            !            (Solar BCI,BCB components)
-      DO 250 L=1,NL
-      DO 240 K=1,6
-      SRAEXT(L,K)=SRBQEX(K,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)
-     +           +SRBQEX(K,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)
-      SRASCT(L,K)=SRBQSC(K,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)
-     +           +SRBQSC(K,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)
-      SRAGQL     =SRBQSC(K,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)*SRBQCB(K,5)
-     +           +SRBQSC(K,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)*SRBQCB(K,6)
-      SRAGCB(L,K)=SRAGQL/(SRASCT(L,K)+1.D-10)
-  240 CONTINUE
+      DO 250 L=L1,NL
+      SRAEXT(L,:)= SRBQEX(:,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)       ! 1:6
+     +            +SRBQEX(:,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)
+      SRASCT(L,:)= SRBQSC(:,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)
+     +            +SRBQSC(:,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)
+      SRAGCB(L,:)=(SRBQSC(:,5)*ATAULX(L,5)*FSXTAU*FS8OPX(5)*SRBQCB(:,5)
+     +            +SRBQSC(:,6)*ATAULX(L,6)*FSXTAU*FS8OPX(6)*SRBQCB(:,6))
+     /            /(SRASCT(L,:)+1.D-10)
   250 CONTINUE
                           !           (Thermal BCI,BCB components)
-      DO 270 L=1,NL
-      DO 260 K=1,33
-      TRAALK(L,K)=TRBQAB(K,5)*ATAULX(L,5)*FTXTAU*FT8OPX(5)
-     +           +TRBQAB(K,6)*ATAULX(L,6)*FTXTAU*FT8OPX(6)
-      IF(PLB(L).GT.10.D0) GO TO 260
-      TRAALK(L,K)=0.D0
+      DO 260 L=L1,NL
+      TRAALK(L,:) = TRBQAB(:,5)*ATAULX(L,5)*FTXTAU*FT8OPX(5) +   ! 1:33
+     +              TRBQAB(:,6)*ATAULX(L,6)*FTXTAU*FT8OPX(6)
+      IF(PLB(L) > 10) GO TO 260
+      TRAALK(L,:)=0
   260 CONTINUE
-  270 CONTINUE
 
-      DO 330 L=1,NL
-      DO 320 K=1,6
-      DO 310 NA=1,4
+      DO 330 NA=1,4
+      DO 330 L=L1,NL
       RHFTAU=RHINFO(NRHNAN(L,NA),2,NA)*ATAULX(L,NA)*FSXTAU*FS8OPX(NA)
+      DO 330 K=1,6
       SRAEXT(L,K)=SRAEXT(L,K)
      +        +SRHQEX(K,NRHNAN(L,NA),NA)*RHFTAU
       SRAGQL     =SRAGCB(L,K)*SRASCT(L,K)+SRHQCB(K,NRHNAN(L,NA),NA)
@@ -3423,22 +3162,16 @@ C-----------------
       SRASCT(L,K)=SRASCT(L,K)
      +        +SRHQSC(K,NRHNAN(L,NA),NA)*RHFTAU
       SRAGCB(L,K)=SRAGQL/(SRASCT(L,K)+1.D-10)
-  310 CONTINUE
-  320 CONTINUE
   330 CONTINUE
 
-      DO 360 L=1,NL
-      DO 350 K=1,33
-      DO 340 NA=1,4
+      DO 360 NA=1,4
+      DO 360 L=L1,NL
       RHFTAU=RHINFO(NRHNAN(L,NA),2,NA)*ATAULX(L,NA)*FTXTAU*FT8OPX(NA)
-      TRAALK(L,K)=TRAALK(L,K)
-     +        +TRHQAB(K,NRHNAN(L,NA),NA)*RHFTAU
-  340 CONTINUE
-  350 CONTINUE
+      TRAALK(L,:)=TRAALK(L,:)+TRHQAB(:,NRHNAN(L,NA),NA)*RHFTAU    ! 1:33
   360 CONTINUE
 
   500 CONTINUE
-      IF(NTRACE.LE.0) RETURN
+      IF(NTRACE <= 0) RETURN
 
 C     ------------------------------------------------------------------
 C     Option to add on Tracer Type aerosol thermal & solar contributions
@@ -3446,48 +3179,44 @@ C
 C     NOTE:  Aerosol carried as a tracer is assumed to be in kg/m2 units
 C     ------------------------------------------------------------------
 
-      DO L=1,NL
       DO NT=1,NTRACE
         IF (ITR(NT) == 7) THEN
-          TTAULX(L,NT)=TRACER(L,NT)*
-     *         1d3*.75d0/TRADEN(NT)*RTINFO(1,9,NT)/TRRDRY(NT)
+          FAC = 1d3*.75d0/TRADEN(NT)*RTINFO(1,9,NT)/TRRDRY(NT)
         ELSE
-          TTAULX(L,NT)=TRACER(L,NT)*
-     *         1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)
+          FAC = 1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)
         END IF
-      END DO
+        TTAULX(L1:NL,NT) = TRACER(L1:NL,NT) * FAC
       END DO
 
       FSXTAU=FSTAER*FSBAER+1.D-10
       FTXTAU=FTTAER*FTBAER
 
-      DO L=1,NL
-      DO K=1,6
-      DO NT=1,NTRACE
+      DO 700 NT=1,NTRACE
       NA=ITR(NT)
+      DO 700 L=L1,NL
       RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FSXTAU
-      IF (FSTOPX(NT).gt.0) THEN
-      RHFTAU=RHFTAU*FSTOPX(NT)
-      SRBEXT(L,K)=SRBEXT(L,K)+SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
-      SRBGQL     =SRBGCB(L,K)*SRBSCT(L,K)+SRTQCB(K,NRHNAN(L,NA),NT)
+      IF (FSTOPX(NT) > 0) THEN
+        RHFTAU=RHFTAU*FSTOPX(NT)
+        DO K=1,6
+          SRBEXT(L,K)=SRBEXT(L,K)+SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
+          SRBGQL =SRBGCB(L,K)*SRBSCT(L,K)+SRTQCB(K,NRHNAN(L,NA),NT)
      +           *SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
-      SRBSCT(L,K)=SRBSCT(L,K)+SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
-      SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
+          SRBSCT(L,K)=SRBSCT(L,K)+SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
+          SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
+        END DO
       END IF
-      if (K.EQ.6) TTAUSV(L,NT)=SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
-      END DO
-      END DO
-      END DO
+      TTAUSV(L,NT)=SRTQEX(6,NRHNAN(L,NA),NT)*RHFTAU
+      aesqex(L,:,nt)=srtqex(:,nrhnan(L,na),nt)*rhftau           ! 1:6
+      aesqsc(L,:,nt)=srtqsc(:,nrhnan(L,na),nt)*rhftau
+      aesqcb(L,:,nt)=srtqcb(:,nrhnan(L,na),nt)*aesqsc(L,:,nt)
+  700 CONTINUE
 
-      DO L=1,NL
-      DO K=1,33
-      DO NT=1,NTRACE
+      DO 750 NT=1,NTRACE
       NA=ITR(NT)
+      DO 750 L=L1,NL
       RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FTXTAU*FTTOPX(NT)
-      TRBALK(L,K)=TRBALK(L,K)+TRTQAB(K,NRHNAN(L,NA),NT)*RHFTAU
-      END DO
-      END DO
-      END DO
+      TRBALK(L,:)=TRBALK(L,:)+TRTQAB(:,NRHNAN(L,NA),NT)*RHFTAU ! 1:33
+  750 CONTINUE
 
       RETURN
       END SUBROUTINE SETAER
@@ -3506,22 +3235,22 @@ C     ------------------------------------------------------------------
       USE FILEMANAGER, only : openunit,closeunit
       implicit none
 
-      integer, intent(in) :: jyeara,jjdaya
+      INTEGER, intent(in) :: jyeara,jjdaya
       REAL*4 A6YEAR(72,46,9,0:12,6) !  ,mddust(72,46)
       REAL*4  PREDD(72,46,9,12,10),SUIDD(72,46,9,12,8)
-      REAL*4  OCIDD(72,46,9,12, 8),BCIDD(72,46,9,12,8),AMON(72,46,9)
+      REAL*4  OCIDD(72,46,9,12, 8),BCIDD(72,46,9,12,8)
       REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
       save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD,md1850,anfix ! ,mddust
 
       CHARACTER*80 XTITLE
-      CHARACTER*40, dimension(5) :: RDFILE = (/            !  Input data
+      CHARACTER*40 :: RDFILE(5) = (/                !  Input file names
      1            'sep2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850'
      2           ,'sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990'
      3           ,'sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990'
      4           ,'sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990'
      5           ,'low.dust.72x46.monthly.bin              '/)
 
-      CHARACTER*40, dimension(5) :: RDFGEN = (/          ! generic names
+      CHARACTER*40 :: RDFGEN(5) = (/                ! generic names
      * 'TAero_PRE','TAero_SUI','TAero_OCI','TAero_BCI','M_LowDust'/)
 
 C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
@@ -3582,14 +3311,14 @@ C         1850 Background Org Carbon OCX = 0.162 Natural + 0.838 BioBurn
 C         1850 Background Blk Carbon BCI = 0  (No Industrial BC in 1850)
 C         1850 Background Blk Carbon BCB = BBP,all of 1850 BC is BioBurn
 C     ------------------------------------------------------------------
-      logical, parameter :: qbinary=.true.   ; logical qexist
-      integer, save :: IFILE=11, IFIRST=1, JYRNOW=0
+      logical, PARAMETER :: qbinary=.true.   ; logical qexist
+      INTEGER, save :: IFILE=11, IFIRST=1, JYRNOW=0
 
-      integer ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
-      real*8 WTANI,WTOCB,WTBCB,wt75,swti,swtj,cwti,cwtj,xmi,wtmi,wtmj
-      real*8 , parameter :: Za720=2635. ! depth of low cloud region (m)
-      real*8 xsslt,byz ! ,xdust
-      IF(IFIRST.EQ.1) THEN
+      INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
+      REAL*8 WTANI,WTOCB,WTBCB,wt75,swti,swtj,cwti,cwtj,xmi,wtmi,wtmj
+      REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
+      REAL*8 xsslt,byz ! ,xdust
+      IF(IFIRST==1) THEN
 C                                       READ Input PRE,SUI,OCI,BCI Files
 C                                       --------------------------------
       inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
@@ -3597,57 +3326,54 @@ C                                       --------------------------------
       inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
       if(.not.qexist) call stop_model('updaer: no TropAero files',255)
 
-      DO 106 IA=1,4
-      call openunit (RDFILE(IA),ifile,qbinary)   ! unform.:qbinary=true
-      NDD=8
-      IF(IA.EQ.1) NDD=10
-      DO 105 IDD=1,NDD
-      DO 104 M=1,12
-      READ (IFILE) XTITLE,AMON
-      DO 103 L=1,9
-      DO 102 J=1,46
-      DO 101 I=1,72
-      IF(IA.EQ.1) PREDD(I,J,L,M,IDD)=AMON(I,J,L)
-      IF(IA.EQ.2) SUIDD(I,J,L,M,IDD)=AMON(I,J,L)
-      IF(IA.EQ.3) OCIDD(I,J,L,M,IDD)=AMON(I,J,L)
-      IF(IA.EQ.4) BCIDD(I,J,L,M,IDD)=AMON(I,J,L)
-  101 CONTINUE
-  102 CONTINUE
-  103 CONTINUE
-  104 CONTINUE
-  105 CONTINUE
+!**** Pre-industrial data
+      call openunit (RDFILE(1),ifile,qbinary)   ! unform.:qbinary=true
+      DO 101 IDD=1,10
+      DO 101 M=1,12
+  101 READ (IFILE) XTITLE,PREDD(:,:,:,M,IDD)
       call closeunit (ifile)
-  106 CONTINUE
+!**** Industrial Sulfates
+      call openunit (RDFILE(2),ifile,qbinary)
+      DO 102 IDD=1,8
+      DO 102 M=1,12
+  102 READ (IFILE) XTITLE,SUIDD(:,:,:,M,IDD)
+      call closeunit (ifile)
+!**** Industrial Organic Carbons
+      call openunit (RDFILE(3),ifile,qbinary)
+      DO 103 IDD=1,8
+      DO 103 M=1,12
+  103 READ (IFILE) XTITLE,OCIDD(:,:,:,M,IDD)
+      call closeunit (ifile)
+!**** Industrial Black Carbons
+      call openunit (RDFILE(4),ifile,qbinary)
+      DO 104 IDD=1,8
+      DO 104 M=1,12
+  104 READ (IFILE) XTITLE,BCIDD(:,:,:,M,IDD)
+      call closeunit (ifile)
 
 C**** Prepare for aerosol indirect effect parameterization:
-C     - Collect the monthly aerosol number densities for the time
-C       independent aerosols (desert dust and sea salt)  (/cm^3)
-C     - Save the monthly 1850 mass densities for the time dependent
-C       aerosols (Sulfates, Nitrates, Organic and Black Carbons) kg/cm3
+C     - Collect the monthly aerosol number densities (an) for the time
+C       independent aerosols (desert dust and sea salt)       an:  /cm^3
+C     - Save the monthly 1850 mass densities (md) for the time dependent
+C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 
 !!!   call openunit (RDFILE(5),ifile,qbinary)  ! disregard desert dust
-!!!   xdust=.33/(2000.*4.1888*(.40d-6)**3) ! f/[rho*4pi/3*r^3] (/kg)
+!!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
       xsslt=aermix(3)/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
       byz = 1d-6/za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
       DO M=1,12
 !!!     READ (IFILE) XTITLE,mddust
       DO J=1,46
       DO I=1,72
-          anfix(i,j,m) = 0. ! xdust*mddust(i,j) ! aerosol number (/cm^3)
-        do l=1,la720
-          anfix(i,j,m) = anfix(i,j,m) + xsslt*PREDD(I,J,L,M,3)*byz
-        end do
-        md1850(1:4,i,j,m)=0.                 ! mass density (kg/cm^3)
-        do l=1,la720
-          md1850(1,i,j,m) = md1850(1,i,j,m) +  byz*        ! SO4
-     *      (AERMIX(1)*PREDD(I,J,L,M,1) + AERMIX(2)*PREDD(I,J,L,M,2))
-          md1850(2,i,j,m) = md1850(2,i,j,m) +  byz*        ! NO3
-     *       AERMIX(4)*PREDD(I,J,L,M,4)
-          md1850(3,i,j,m) = md1850(3,i,j,m) +  byz*        ! OC
-     *      (AERMIX(5)*PREDD(I,J,L,M,5) + AERMIX(6)*PREDD(I,J,L,M,6))
-          md1850(4,i,j,m) = md1850(4,i,j,m) +  byz*        ! BCB
-     *       AERMIX(7)*PREDD(I,J,L,M,7)
-        end do
+        anfix(i,j,m) = 0. !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
+     +               +    byz * SUM(PREDD(I,J,1:la720,M,3)) * Xsslt
+C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
+        md1850(1,i,j,m) = byz * SUM(AERMIX(1)*PREDD(I,J,1:La720,M,1) +
+     +                              AERMIX(2)*PREDD(I,J,1:La720,M,2))
+        md1850(2,i,j,m) = byz * SUM(AERMIX(4)*PREDD(I,J,1:La720,M,4))
+        md1850(3,i,j,m) = byz * SUM(AERMIX(5)*PREDD(I,J,1:La720,M,5) +
+     +                              AERMIX(6)*PREDD(I,J,1:La720,M,6))
+        md1850(4,i,j,m) = byz * SUM(AERMIX(7)*PREDD(I,J,1:La720,M,7))
       end do
       end do
       end do
@@ -3662,114 +3388,75 @@ C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
 C     ------------------------------------------------------------------
       JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
 
-      IF(JYEARX.EQ.JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
+      IF(JYEARX==JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
 
 C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
       DO 114 M=1,12
-      DO 113 L=1,9
-      DO 112 J=1,46
-      DO 111 I=1,72
-      A6YEAR(I,J,L,M,1)=AERMIX(1)*PREDD(I,J,L,M,1)*1000.D0*DRYM2G(1)
-     +                 +AERMIX(2)*PREDD(I,J,L,M,2)*1000.D0*DRYM2G(1)
-      A6YEAR(I,J,L,M,2)=AERMIX(3)*PREDD(I,J,L,M,3)*1000.D0*DRYM2G(2)
-      A6YEAR(I,J,L,M,3)=AERMIX(4)*PREDD(I,J,L,M,4)*1000.D0*DRYM2G(3)
-      A6YEAR(I,J,L,M,4)=AERMIX(5)*PREDD(I,J,L,M,5)*1000.D0*DRYM2G(4)
-     +                 +AERMIX(6)*PREDD(I,J,L,M,6)*1000.D0*DRYM2G(4)
-      A6YEAR(I,J,L,M,5)=0.D0
-      A6YEAR(I,J,L,M,6)=AERMIX(7)*PREDD(I,J,L,M,7)*1000.D0*DRYM2G(6)
-  111 CONTINUE
-  112 CONTINUE
-  113 CONTINUE
+      A6YEAR(:,:,:,M,1) = AERMIX(1)*PREDD(:,:,:,M,1)*1000*DRYM2G(1)
+     +                   +AERMIX(2)*PREDD(:,:,:,M,2)*1000*DRYM2G(1)
+      A6YEAR(:,:,:,M,2) = AERMIX(3)*PREDD(:,:,:,M,3)*1000*DRYM2G(2)
+      A6YEAR(:,:,:,M,3) = AERMIX(4)*PREDD(:,:,:,M,4)*1000*DRYM2G(3)
+      A6YEAR(:,:,:,M,4) = AERMIX(5)*PREDD(:,:,:,M,5)*1000*DRYM2G(4)
+     +                   +AERMIX(6)*PREDD(:,:,:,M,6)*1000*DRYM2G(4)
+      A6YEAR(:,:,:,M,5) = 0
+      A6YEAR(:,:,:,M,6) = AERMIX(7)*PREDD(:,:,:,M,7)*1000*DRYM2G(6)
   114 CONTINUE
-      DO 117 L=1,9                !     Define 1849 Background  Dec data
-      DO 116 J=1,46
-      DO 115 I=1,72
-      A6YEAR(I,J,L,0,1)=A6YEAR(I,J,L,12,1)
-      A6YEAR(I,J,L,0,2)=A6YEAR(I,J,L,12,2)
-      A6YEAR(I,J,L,0,3)=A6YEAR(I,J,L,12,3)
-      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,12,4)
-      A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,12,5)
-      A6YEAR(I,J,L,0,6)=A6YEAR(I,J,L,12,6)
-  115 CONTINUE
-  116 CONTINUE
-  117 CONTINUE
+!****                                   Define 1849 Background  Dec data
+      DO N=1,6
+        A6YEAR(:,:,:,0,N)=A6YEAR(:,:,:,12,N)
+      END DO
 
-      IF(JYEARA.GT.1850) THEN                           !   (JYEAR>1850)
-      WTANI=GLOPOP(JYEARA)
-      WTOCB=min( 1d0 , (JYEARA-1850)/140.D0 )
-      WTBCB=min( 1d0 , (JYEARA-1850)/140.D0 )
-      DO 124 M=1,12              !  Add time dependent JYEAR ANI,OCB,BCB
-      DO 123 L=1,9
-      DO 122 J=1,46
-      DO 121 I=1,72
-      A6YEAR(I,J,L,M,3)=A6YEAR(I,J,L,M,3)+
-     +             AERMIX( 9)*WTANI*PREDD(I,J,L,M, 8)*1000.D0*DRYM2G(3)
-      A6YEAR(I,J,L,M,4)=A6YEAR(I,J,L,M,4)+
-     +             AERMIX(12)*WTOCB*PREDD(I,J,L,M, 9)*1000.D0*DRYM2G(4)
-      A6YEAR(I,J,L,M,6)=A6YEAR(I,J,L,M,6)+
-     +             AERMIX(13)*WTBCB*PREDD(I,J,L,M,10)*1000.D0*DRYM2G(6)
-  121 CONTINUE
-  122 CONTINUE
-  123 CONTINUE
-  124 CONTINUE
-      WTANI=GLOPOP(JYEARA-1)
-      WTOCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
-      WTBCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
-      M=12
-      DO 127 L=1,9    !  Add time dependent JYEAR-1 ANI,OCB,BCB Dec data
-      DO 126 J=1,46
-      DO 125 I=1,72
-      A6YEAR(I,J,L,0,3)=A6YEAR(I,J,L,0,3)+
-     +             AERMIX( 9)*WTANI*PREDD(I,J,L,M, 8)*1000.D0*DRYM2G(3)
-      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,0,4)+
-     +             AERMIX(12)*WTOCB*PREDD(I,J,L,M, 9)*1000.D0*DRYM2G(4)
-      A6YEAR(I,J,L,0,6)=A6YEAR(I,J,L,0,6)+
-     +             AERMIX(13)*WTBCB*PREDD(I,J,L,M,10)*1000.D0*DRYM2G(6)
-  125 CONTINUE
-  126 CONTINUE
-  127 CONTINUE
+      IF(JYEARA > 1850) THEN                           !   (JYEAR>1850)
+        WTANI=GLOPOP(JYEARA)
+        WTOCB=min( 1d0 , (JYEARA-1850)/140.D0 )
+        WTBCB=min( 1d0 , (JYEARA-1850)/140.D0 )
+        DO M=1,12            !  Add time dependent JYEAR ANI,OCB,BCB
+          A6YEAR(:,:,:,M,3) = A6YEAR(:,:,:,M,3)+
+     +        AERMIX( 9)*WTANI*PREDD(:,:,:,M, 8)*1000*DRYM2G(3)
+          A6YEAR(:,:,:,M,4) = A6YEAR(:,:,:,M,4)+
+     +        AERMIX(12)*WTOCB*PREDD(:,:,:,M, 9)*1000*DRYM2G(4)
+          A6YEAR(:,:,:,M,6) = A6YEAR(:,:,:,M,6)+
+     +        AERMIX(13)*WTBCB*PREDD(:,:,:,M,10)*1000*DRYM2G(6)
+        END DO
+        WTANI=GLOPOP(JYEARA-1)
+        WTOCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
+        WTBCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
+        M=12        !  Add time dependent JYEAR-1 ANI,OCB,BCB Dec data
+        A6YEAR(:,:,:,0,3) = A6YEAR(:,:,:,0,3)+
+     +      AERMIX( 9)*WTANI*PREDD(:,:,:,M, 8)*1000*DRYM2G(3)
+        A6YEAR(:,:,:,0,4) = A6YEAR(:,:,:,0,4)+
+     +      AERMIX(12)*WTOCB*PREDD(:,:,:,M, 9)*1000*DRYM2G(4)
+        A6YEAR(:,:,:,0,6) = A6YEAR(:,:,:,0,6)+
+     +      AERMIX(13)*WTBCB*PREDD(:,:,:,M,10)*1000*DRYM2G(6)
       ENDIF
 
-      IF(JYEARA.GT.1850.AND.JYEARA.LT.1876) THEN   !   (1850<JYEAR<1876)
-      WT75=(JYEARA-1850)/25.D0
-      DO 134 M=1,12            !    Add time dependent JYEAR SUI,OCI,BCI
-      DO 133 L=1,9
-      DO 132 J=1,46
-      DO 131 I=1,72
-      A6YEAR(I,J,L,M,1)=A6YEAR(I,J,L,M,1)+
-     +              WT75*SUIDD(I,J,L,M,1)*AERMIX( 8)*1000.D0*DRYM2G(1)
-      A6YEAR(I,J,L,M,4)=A6YEAR(I,J,L,M,4)+
-     +              WT75*OCIDD(I,J,L,M,1)*AERMIX(10)*1000.D0*DRYM2G(4)
-      A6YEAR(I,J,L,M,5)=A6YEAR(I,J,L,M,5)+
-     +              WT75*BCIDD(I,J,L,M,1)*AERMIX(11)*1000.D0*DRYM2G(5)
+      IF(JYEARA > 1850.and.JYEARA < 1876) THEN   !   (1850<JYEAR<1876)
+       WT75=(JYEARA-1850)/25.D0
+       DO M=1,12          !    Add time dependent JYEAR SUI,OCI,BCI
+       A6YEAR(:,:,:,M,1) = A6YEAR(:,:,:,M,1)+
+     +                 WT75*SUIDD(:,:,:,M,1)*AERMIX( 8)*1000*DRYM2G(1)
+       A6YEAR(:,:,:,M,4) = A6YEAR(:,:,:,M,4)+
+     +                 WT75*OCIDD(:,:,:,M,1)*AERMIX(10)*1000*DRYM2G(4)
+       A6YEAR(:,:,:,M,5) = A6YEAR(:,:,:,M,5)+
+     +                 WT75*BCIDD(:,:,:,M,1)*AERMIX(11)*1000*DRYM2G(5)
+       END DO
 
-  131 CONTINUE
-  132 CONTINUE
-  133 CONTINUE
-  134 CONTINUE
-      WT75=(JYEARA-1851)/25.D0
-      M=12            !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
-      DO 137 L=1,9
-      DO 136 J=1,46
-      DO 135 I=1,72
-      A6YEAR(I,J,L,0,1)=A6YEAR(I,J,L,0,1)+
-     +              WT75*SUIDD(I,J,L,M,1)*AERMIX( 8)*1000.D0*DRYM2G(1)
-      A6YEAR(I,J,L,0,4)=A6YEAR(I,J,L,0,4)+
-     +              WT75*OCIDD(I,J,L,M,1)*AERMIX(10)*1000.D0*DRYM2G(4)
-      A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,0,5)+
-     +              WT75*BCIDD(I,J,L,M,1)*AERMIX(11)*1000.D0*DRYM2G(5)
-  135 CONTINUE
-  136 CONTINUE
-  137 CONTINUE
+       WT75=(JYEARA-1851)/25.D0
+       M=12          !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
+       A6YEAR(:,:,:,0,1) = A6YEAR(:,:,:,0,1)+
+     +                 WT75*SUIDD(:,:,:,M,1)*AERMIX( 8)*1000*DRYM2G(1)
+       A6YEAR(:,:,:,0,4) = A6YEAR(:,:,:,0,4)+
+     +                 WT75*OCIDD(:,:,:,M,1)*AERMIX(10)*1000*DRYM2G(4)
+       A6YEAR(:,:,:,0,5) = A6YEAR(:,:,:,0,5)+
+     +                 WT75*BCIDD(:,:,:,M,1)*AERMIX(11)*1000*DRYM2G(5)
       ENDIF
 
-
-      IF(JYEARA.GT.1875) THEN                         !     (JYEAR>1875)
+      IF(JYEARA > 1875) THEN                         !     (JYEAR>1875)
       CALL STREND(JYEARA,IYS,JYS,SWTI,SWTJ)
       CALL CTREND(JYEARA,IYC,JYC,CWTI,CWTJ)
-      DO 144 M=1,12            !    Add time dependent JYEAR SUI,OCI,BCI
-      DO 143 L=1,9
-      DO 142 J=1,46
+      DO 141 M=1,12            !    Add time dependent JYEAR SUI,OCI,BCI
+      DO 141 L=1,9
+      DO 141 J=1,46
       DO 141 I=1,72
       A6YEAR(I,J,L,M,1)=A6YEAR(I,J,L,M,1)+AERMIX( 8)*1000.D0*DRYM2G(1)*
      +                 (SWTI*SUIDD(I,J,L,M,IYS)+SWTJ*SUIDD(I,J,L,M,JYS))
@@ -3777,18 +3464,16 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
      +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
       A6YEAR(I,J,L,M,5)=A6YEAR(I,J,L,M,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
      +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
-      IF(A6YEAR(I,J,L,M,1).LT.0.) A6YEAR(I,J,L,M,1)=0.
-      IF(A6YEAR(I,J,L,M,4).LT.0.) A6YEAR(I,J,L,M,4)=0.
-      IF(A6YEAR(I,J,L,M,5).LT.0.) A6YEAR(I,J,L,M,5)=0.
+      IF(A6YEAR(I,J,L,M,1) < 0.) A6YEAR(I,J,L,M,1)=0.
+      IF(A6YEAR(I,J,L,M,4) < 0.) A6YEAR(I,J,L,M,4)=0.
+      IF(A6YEAR(I,J,L,M,5) < 0.) A6YEAR(I,J,L,M,5)=0.
   141 CONTINUE
-  142 CONTINUE
-  143 CONTINUE
-  144 CONTINUE
+
       CALL STREND(JYEARA-1,IYS,JYS,SWTI,SWTJ)
       CALL CTREND(JYEARA-1,IYC,JYC,CWTI,CWTJ)
       M=12            !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
-      DO 147 L=1,9
-      DO 146 J=1,46
+      DO 145 L=1,9
+      DO 145 J=1,46
       DO 145 I=1,72
       A6YEAR(I,J,L,0,1)=A6YEAR(I,J,L,0,1)+AERMIX( 8)*1000.D0*DRYM2G(1)*
      +                 (SWTI*SUIDD(I,J,L,M,IYS)+SWTJ*SUIDD(I,J,L,M,JYS))
@@ -3796,12 +3481,10 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
      +                 (CWTI*OCIDD(I,J,L,M,IYC)+CWTJ*OCIDD(I,J,L,M,JYC))
       A6YEAR(I,J,L,0,5)=A6YEAR(I,J,L,0,5)+AERMIX(11)*1000.D0*DRYM2G(5)*
      +                 (CWTI*BCIDD(I,J,L,M,IYC)+CWTJ*BCIDD(I,J,L,M,JYC))
-      IF(A6YEAR(I,J,L,0,1).LT.0.) A6YEAR(I,J,L,0,1)=0.
-      IF(A6YEAR(I,J,L,0,4).LT.0.) A6YEAR(I,J,L,0,4)=0.
-      IF(A6YEAR(I,J,L,0,5).LT.0.) A6YEAR(I,J,L,0,5)=0.
+      IF(A6YEAR(I,J,L,0,1) < 0.) A6YEAR(I,J,L,0,1)=0.
+      IF(A6YEAR(I,J,L,0,4) < 0.) A6YEAR(I,J,L,0,4)=0.
+      IF(A6YEAR(I,J,L,0,5) < 0.) A6YEAR(I,J,L,0,5)=0.
   145 CONTINUE
-  146 CONTINUE
-  147 CONTINUE
       ENDIF
       JYRNOW=JYEARX
 
@@ -3814,33 +3497,28 @@ C      -----------------------------------------------------------------
       MI=XMI
       WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYA
       WTMI=1.D0-WTMJ
-      IF(MI.GT.11) MI=0
+      IF(MI > 11) MI=0
       MJ=MI+1
-      DO 540 J=1,46
-      DO 530 I=1,72
-      DO 520 N=1,6
+      DO 510 J=1,46
+      DO 510 I=1,72
+      DO 510 N=1,6
       DO 510 L=1,9
       A6JDAY(L,N,I,J)=WTMI*A6YEAR(I,J,L,MI,N)+WTMJ*A6YEAR(I,J,L,MJ,N)
   510 CONTINUE
-  520 CONTINUE
-  530 CONTINUE
-  540 CONTINUE
 
+C**** Needed for aerosol indirect effect parameterization in GCM
       byz=1d-9/za720
-      DO J=1,46
-      DO I=1,72
+      do j=1,46
+      do i=1,72
+C**** sea salt, desert dust
          anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
-        do n=1,4  !  SU4,NO3,OCX,BCB (no BCI)
-         mdpi(n,i,j) = WTMI*md1850(n,i,j,mi) + WTMJ*md1850(n,i,j,mj)
-        end do
-        mdcur(1:5,i,j)=0. ! mass density (kg/cm^3): SU4,NO3,OCX,BCB,BCI
-        do l=1,la720
-          mdcur(1,i,j) = mdcur(1,i,j) + byz*A6JDAY(L,1,I,J)/drym2g(1)
-          mdcur(2,i,j) = mdcur(2,i,j) + byz*A6JDAY(L,3,I,J)/drym2g(3)
-          mdcur(3,i,j) = mdcur(3,i,j) + byz*A6JDAY(L,4,I,J)/drym2g(4)
-          mdcur(4,i,j) = mdcur(4,i,j) + byz*A6JDAY(L,6,I,J)/drym2g(6)
-          mdcur(5,i,j) = mdcur(5,i,j) + byz*A6JDAY(L,5,I,J)/drym2g(5)
-        end do
+C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
+        mdpi(:,i,j) = WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
+        mdcur(1,i,j) = SUM (A6JDAY(1:La720,1,I,J)) * byz/drym2g(1)
+        mdcur(2,i,j) = SUM (A6JDAY(1:La720,3,I,J)) * byz/drym2g(3)
+        mdcur(3,i,j) = SUM (A6JDAY(1:La720,4,I,J)) * byz/drym2g(4)
+        mdcur(4,i,j) = SUM (A6JDAY(1:La720,6,I,J)) * byz/drym2g(6)
+        mdcur(5,i,j) = SUM (A6JDAY(1:La720,5,I,J)) * byz/drym2g(5)
       end do
       end do
 
@@ -3860,14 +3538,14 @@ C            = 1.000 for 1990
 C            = 1.658 for 2050 and later
 C     ----------------------------------------------------------------
 
-      integer, intent(in) :: jyear
-      real*8 :: GPNORM = 5.27-1.26 ,DNGPOP(21), GPOP(21) = (/
+      INTEGER, intent(in) :: jyear
+      REAL*8 :: GPNORM = 5.27-1.26 ,DNGPOP(21), GPOP(21) = (/
 C               1850                     1900                     1950
      A          1.26,1.33,1.41,1.49,1.57,1.65,1.75,1.86,2.07,2.30,2.52
 C                                        2000                     2050
      B              ,3.02,3.70,4.44,5.27,6.06,6.79,7.50,8.11,8.58,8.91/)
-      integer i,iy
-      real*8 xy,dy
+      INTEGER i,iy
+      REAL*8 xy,dy
 
       DO 110 I=1,21
       DNGPOP(I)=(GPOP(I)-GPOP(1))/GPNORM
@@ -3875,14 +3553,8 @@ C                                        2000                     2050
       XY=(JYEAR-1840)/10.D0
       IY=XY
       DY=XY-IY
-      IF(IY.LT.1) THEN
-      IY=1
-      DY=0.D0
-      ENDIF
-      IF(IY.GT.20) THEN
-      IY=20
-      DY=1.D0
-      ENDIF
+      if (IY <  1) then ; IY =  1 ; DY = 0 ; endif
+      if (IY > 20) then ; IY = 20 ; DY = 1 ; endif
       GLOPOP=DNGPOP(IY)+DY*(DNGPOP(IY+1)-DNGPOP(IY))
       RETURN
       END FUNCTION GLOPOP
@@ -3913,7 +3585,7 @@ C                        -----------------------------------------------
 C     Select Desert Dust (NA=7) Mie scattering parameters for REDUST(N)
 !nu   REAL*8 TAUCON(8),pidust(8)
       !INTEGER, INTENT(IN) :: JYEARD,JJDAYD
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX,8)
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
       INTEGER I,J,K,L,N,MI,MJ
 
       DO 110 N=1,8
@@ -3931,7 +3603,7 @@ C--------------------------------
 C--------------------------------
       subroutine UPDDST(JYEARD,JJDAYD)
       INTEGER, INTENT(IN) :: JYEARD,JJDAYD
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX,8)
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
       INTEGER I,J,K,L,N,MI,MJ
 C     ------------------------------------------------------------------
 C     Makes DDJDAY(9,8,72,46) from TDUST(72,46,9,8,12) read in in RCOMP1
@@ -3945,19 +3617,16 @@ C      -----------------------------------------------------------------
       MI=XMI
       WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYD
       WTMI=1.D0-WTMJ
-      IF(MI.LT.1) MI=12
-      IF(MI.GT.12) MI=1
+      IF(MI < 1) MI=12
+      IF(MI > 12) MI=1
       MJ=MI+1
-      IF(MJ.GT.12) MJ=1
-      DO 540 J=1,46
-      DO 530 I=1,72
-      DO 520 N=1,8
+      IF(MJ > 12) MJ=1
+      DO 510 J=1,46
+      DO 510 I=1,72
+      DO 510 N=1,8
       DO 510 L=1,9
       DDJDAY(L,N,I,J)=WTMI*TDUST(I,J,L,N,MI)+WTMJ*TDUST(I,J,L,N,MJ)
   510 CONTINUE
-  520 CONTINUE
-  530 CONTINUE
-  540 CONTINUE
       RETURN        !  DDJDAY(9,8,72,46) is used in GETDST via ILON,JLAT
       end subroutine UPDDST
 
@@ -3965,11 +3634,11 @@ C-----------------
 !      ENTRY GETDST
 C-----------------
       subroutine GETDST
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX,8)
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
       INTEGER I,J,K,L,N,MI,MJ
 
       DO 200 N=1,8
-      CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NLP)
+      CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NL+1)
   200 CONTINUE
 
 C                     Apply Solar/Thermal Optical Depth Scaling Factors
@@ -3981,20 +3650,14 @@ C                              ----------------------------------------
       FTXTAU=FTTAER*FTDAER
 
       DO 220 K=1,6
-      DO 210 L=1,NL
+      DO 210 L=L1,NL
       SRDEXT(L,K)=2.D-10
       SRDSCT(L,K)=1.D-10
       SRDGCB(L,K)=0.D0
   210 CONTINUE
   220 CONTINUE
 
-      DO 240 K=1,33
-      DO 230 L=1,NL
-      TRDALK(L,K)=0.D0
-  230 CONTINUE
-  240 CONTINUE
-
-      DO 270 L=1,NL
+      DO 270 L=L1,NL
       DO 260 K=1,6
       SRDGQL=0.
       DO 250 N=1,8
@@ -4007,13 +3670,10 @@ C                              ----------------------------------------
   260 CONTINUE
   270 CONTINUE
 
-      DO 300 L=1,NL
-      DO 290 K=1,33
-      DO 280 N=1,8
-      TRDALK(L,K)=TRDALK(L,K)+ATDUST(K,N)*DTAULX(L,N)*FTXTAU*FT8OPX(7)
+      DO 280 L=L1,NL
+      DO 280 K=1,33
+      TRDALK(L,K)= sum (ATDUST(K,:)*DTAULX(L,:)*FTXTAU*FT8OPX(7)) ! 1:8
   280 CONTINUE
-  290 CONTINUE
-  300 CONTINUE
 
       RETURN
       end subroutine GETDST
@@ -4032,16 +3692,16 @@ C                              ----------------------------------------
       IMPLICIT NONE
 
       REAL*8, SAVE :: E24LAT(25),EJMLAT(47)
-      REAL*8  HLATTF(4)
+      REAL*8  HLATTF(4),HTPROF(LX+1)
       REAL*8, PARAMETER :: HLATKM(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
 cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
 
-!nu   real*8, parameter :: htplim=1.d-3
+!nu   REAL*8, PARAMETER :: htplim=1.d-3
       REAL*8, SAVE :: FSXTAU,FTXTAU
       INTEGER, SAVE :: NJ25,NJJM
       INTEGER, INTENT(IN), optional :: JYEARV,JDAYVA,GETVOL_flag
       INTEGER J,L,MI,MJ,K
-      REAL*8 XYYEAR,XYI,WMI,WMJ,SUM,SIZVOL !nu ,SUMHTF
+      REAL*8 XYYEAR,XYI,WMI,WMJ,SIZVOL !nu ,SUMHTF
 
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
@@ -4081,9 +3741,7 @@ C                   ---------------------------------------------------
       EJMLAT(   1)=-90.D0
       EJMLAT(NJJM)= 90.D0
 
-      DO 150 L=1,NL
-      HTPROF(L)=0.D0
-  150 CONTINUE
+      HTPROF(:)=0
 
 C                       -----------------------------------------------
 C                       Initialize H2SO4 Q,S,C,A Tables for Input VEFF0
@@ -4103,9 +3761,9 @@ C--------------------------------
 C                                          (Makiko's 1850-1999 data)
 C                                          -------------------------
       XYYEAR=JYEARV+JDAYVA/366.D0
-      IF(XYYEAR.LT.1850.D0) XYYEAR=1850.D0
+      IF(XYYEAR < 1850.D0) XYYEAR=1850.D0
       XYI=(XYYEAR-1850.D0)*12.D0+1.D0
-      IF(XYI.GT.1799.999D0) XYI=1799.999D0
+      IF(XYI > 1799.999D0) XYI=1799.999D0
       MI=XYI
       WMJ=XYI-MI
       WMI=1.D0-WMJ
@@ -4121,11 +3779,7 @@ C                                          -------------------------
       CALL RETERP(FDATA,E24LAT,NJ25,HTFLAT(1,K),EJMLAT,NJJM)
   270 CONTINUE
 !nu   DO J=1,46
-!nu   SUM=0
-!nu   DO K=1,4
-!nu   SUM=SUM+HTFLAT(J,K)
-!nu   END DO
-!nu   TAULAT(J)=SUM
+      TAULAT(J) = SUM (HTFLAT(J,:))
 !nu   END DO
 
       RETURN
@@ -4135,27 +3789,25 @@ C-----------------
 !      ENTRY GETVOL
 C-----------------
  778   continue
-cx    IF(MRELAY.GT.0)    GO TO 300
-cx    IF(JLAT.EQ.LATVOL) GO TO 350  ! not ok for grids finer than 72x46
+cx    IF(MRELAY > 0)    GO TO 300
+cx    IF(JLAT==LATVOL) GO TO 350  ! not ok for grids finer than 72x46
 
 C                      Set JLAT Dependent Aerosol Distribution and Size
 C                      ------------------------------------------------
 cx300 CONTINUE
 
-      DO 310 K=1,4
-      HLATTF(K)=HTFLAT(JLAT,K)
-  310 CONTINUE
-      CALL REPART(HLATTF,HLATKM,5,HTPROF,HLB0,NLP)
+      HLATTF(1:4)=HTFLAT(JLAT,1:4)
+      CALL REPART(HLATTF,HLATKM,5,HTPROF,HLB0,NL+1)
 !nu   LHPMAX=0       ! not used
 !nu   LHPMIN=NL      ! not used
-!nu   DO L=1,NL
-!nu   N=NLP-L
-!nu   IF(HTPROF(L).GE.HTPLIM) LHPMAX=L
-!nu   IF(HTPROF(N).GE.HTPLIM) LHPMIN=N
+!nu   DO L=L1,NL
+!nu     N=NL+1-L
+!nu     IF(HTPROF(L) >= HTPLIM) LHPMAX=L
+!nu     IF(HTPROF(N) >= HTPLIM) LHPMIN=N
 !nu   END DO
 !nu   SUMHTF=1.D-10
-      DO 330 L=1,NL
-      IF(HTPROF(L).LT.0.) HTPROF(L)=0.D0
+      DO 330 L=L1,NL
+      IF(HTPROF(L) < 0.) HTPROF(L)=0.D0
 !nu   SUMHTF=SUMHTF+HTPROF(L)
   330 CONTINUE
 
@@ -4174,20 +3826,16 @@ C                                  ------------------------------------
 C                                  H2SO4 Thermal Contribution in TRVALK
 C                                  ------------------------------------
       DO 420 K=1,33
-      DO 410 L=1,NL
-      TRVALK(L,K)=HTPROF(L)*AVH2S(K)*FTXTAU*FT8OPX(8)
-  410 CONTINUE
+      TRVALK(L1:NL,K)=HTPROF(L1:NL)*AVH2S(K)*FTXTAU*FT8OPX(8)
   420 CONTINUE
 
 C                      H2SO4 Solar Contribution in SRVEXT,SRVSCT,SRVGCB
 C                      ------------------------------------------------
 
       DO 440 K=1,6
-      DO 430 L=1,NL
-      SRVEXT(L,K)=QVH2S(K)*HTPROF(L)*FSXTAU*FS8OPX(8)
-      SRVSCT(L,K)=SVH2S(K)*HTPROF(L)*FSXTAU*PIVMAX*FS8OPX(8)
-      SRVGCB(L,K)=GVH2S(K)
-  430 CONTINUE
+      SRVEXT(L1:NL,K)=QVH2S(K)*HTPROF(L1:NL)*FSXTAU*FS8OPX(8)
+      SRVSCT(L1:NL,K)=SVH2S(K)*HTPROF(L1:NL)*FSXTAU*PIVMAX*FS8OPX(8)
+      SRVGCB(L1:NL,K)=GVH2S(K)
   440 CONTINUE
 
       RETURN
@@ -4209,8 +3857,7 @@ C     ------------------------------------------------------------------
 ceq   REAL*8 SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
 ceq   REAL*8 TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
       REAL*8 TRAB(33,20),Q5(5),RV20(20),QV20(20)
-      REAL*8, PARAMETER, DIMENSION(5) ::
-     *     V5=(/0.1D0,0.2D0,0.3D0,0.4D0,0.5D0/)
+      REAL*8, PARAMETER ::  V5(5)=(/ .1d0, .2d0, .3d0, .4d0, .5d0/)
       SAVE TRAB
 
 C     ------------------------------------------------------------------
@@ -4228,101 +3875,68 @@ C     ------------------------------------------------------------------
       RV20(N)=REFV20(N,1)
       VEFV(N)=VEFF
       REFV(N)=N/10.D0
-      DO 110 I=1,5
-      Q5(I)=Q55V20(N,I)
-  110 CONTINUE
+      Q5(:) = Q55V20(N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,Q55V(N),1.D0,1.D0,1)
       DO 115 K=1,6
-      DO 111 I=1,5
-      Q5(I)=SRVQEX(K,N,I)
-  111 CONTINUE
+      Q5(:) = SRVQEX(K,N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,SRQV(K,N),1.D0,1.D0,1)
-      DO 112 I=1,5
-      Q5(I)=SRVQSC(K,N,I)
-  112 CONTINUE
+      Q5(:) = SRVQSC(K,N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,SRSV(K,N),1.D0,1.D0,1)
-      DO 113 I=1,5
-      Q5(I)=SRVQCB(K,N,I)
-  113 CONTINUE
+      Q5(:) = SRVQCB(K,N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,SRGV(K,N),1.D0,1.D0,1)
   115 CONTINUE
       DO 120 K=1,33
-      DO 116 I=1,5
-      Q5(I)=TRVQEX(K,N,I)
-  116 CONTINUE
+      Q5(:) = TRVQEX(K,N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,TRQV(K,N),1.D0,1.D0,1)
-      DO 117 I=1,5
-      Q5(I)=TRVQSC(K,N,I)
-  117 CONTINUE
+      Q5(:) = TRVQSC(K,N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,TRSV(K,N),1.D0,1.D0,1)
-      DO 118 I=1,5
-      Q5(I)=TRVQCB(K,N,I)
-  118 CONTINUE
+      Q5(:) = TRVQCB(K,N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,TRGV(K,N),1.D0,1.D0,1)
-      DO 119 I=1,5
-      Q5(I)=TRVQAL(K,N,I)
-  119 CONTINUE
+      Q5(:) = TRVQAL(K,N,:5)
       CALL SPLINE(V5,Q5,5,VEFF,TRAV(K,N),1.D0,1.D0,1)
   120 CONTINUE
-      DO 125 K=1,33
-      TRAB(K,N)=TRQV(K,N)-TRSV(K,N)
-  125 CONTINUE
+      TRAB(:,N) = TRQV(:,N)-TRSV(:,N)    ! 1:33
   130 CONTINUE
-      DO 131 N=1,20
-      QV20(N)=Q55V(N)
-  131 CONTINUE
+
+      QV20(:) = Q55V(:)                  ! 1:20
       DO 132 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,Q55V(N),1.D0,1.D0,1)
   132 CONTINUE
       DO 140 K=1,6
-      DO 133 N=1,20
-      QV20(N)=SRQV(K,N)
-  133 CONTINUE
+      QV20(:) = SRQV(K,:)
       DO 134 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,SRQV(K,N),1.D0,1.D0,1)
   134 CONTINUE
-      DO 135 N=1,20
-      QV20(N)=SRSV(K,N)
-  135 CONTINUE
+      QV20(:) = SRSV(K,:)
       DO 136 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,SRSV(K,N),1.D0,1.D0,1)
   136 CONTINUE
-      DO 137 N=1,20
-      QV20(N)=SRGV(K,N)
-  137 CONTINUE
+      QV20(:) = SRGV(K,:)
       DO 138 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,SRGV(K,N),1.D0,1.D0,1)
   138 CONTINUE
   140 CONTINUE
       DO 150 K=1,33
-      DO 141 N=1,20
-      QV20(N)=TRQV(K,N)
-  141 CONTINUE
+      QV20(:) = TRQV(K,:)
       DO 142 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,TRQV(K,N),1.D0,1.D0,1)
   142 CONTINUE
-      DO 143 N=1,20
-      QV20(N)=TRSV(K,N)
-  143 CONTINUE
+      QV20(:) = TRSV(K,:)
       DO 144 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,TRSV(K,N),1.D0,1.D0,1)
   144 CONTINUE
-      DO 145 N=1,20
-      QV20(N)=TRGV(K,N)
-  145 CONTINUE
+      QV20(:) = TRGV(K,:)
       DO 146 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,TRGV(K,N),1.D0,1.D0,1)
   146 CONTINUE
-      DO 147 N=1,20
-      QV20(N)=TRAV(K,N)
-  147 CONTINUE
+      QV20(:) = TRAV(K,:)
       DO 148 N=9,20
       REFN=REFV(N)
       CALL SPLINE(RV20,QV20,20,REFN,TRAV(K,N),1.D0,1.D0,1)
@@ -4343,24 +3957,20 @@ C     Volcanic Aerosol sizes have effective range of  0.1 - 2.0 microns.
 C     ------------------------------------------------------------------
 
       RADX=SIZVOL*10.D0
-      IF(RADX.LT.1.000001D0) RADX=1.000001D0
-      IF(RADX.GT.19.99999D0) RADX=19.99999D0
+      IF(RADX < 1.000001D0) RADX=1.000001D0
+      IF(RADX > 19.99999D0) RADX=19.99999D0
       JRXLO=RADX
       WTJHI=RADX-JRXLO
       WTJLO=1.D0-WTJHI
       JRXHI=JRXLO+1
 
-      DO 210 I=1,6
-      QVH2S(I)=WTJLO*SRQV(I,JRXLO)+WTJHI*SRQV(I,JRXHI)
-      SVH2S(I)=WTJLO*SRSV(I,JRXLO)+WTJHI*SRSV(I,JRXHI)
-      GVH2S(I)=WTJLO*SRGV(I,JRXLO)+WTJHI*SRGV(I,JRXHI)
-  210 CONTINUE
+      QVH2S(:) = WTJLO*SRQV(:,JRXLO) + WTJHI*SRQV(:,JRXHI)   ! 1:6
+      SVH2S(:) = WTJLO*SRSV(:,JRXLO) + WTJHI*SRSV(:,JRXHI)
+      GVH2S(:) = WTJLO*SRGV(:,JRXLO) + WTJHI*SRGV(:,JRXHI)
 
       Q55H2S=WTJLO*Q55V(JRXLO)+WTJHI*Q55V(JRXHI)
 
-      DO 220 I=1,33
-      AVH2S(I)=WTJLO*TRAB(I,JRXLO)+WTJHI*TRAB(I,JRXHI)
-  220 CONTINUE
+      AVH2S(:) = WTJLO*TRAB(:,JRXLO) + WTJHI*TRAB(:,JRXHI)   ! 1:33
 
       RETURN
       END SUBROUTINE SETQVA
@@ -4401,34 +4011,18 @@ C-----------------------------------------------------------------------
      *     ,WTMJ,WTMI
       INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
 
-      DO 120 N=1,15
-      DO 110 K=1,33
-      TRCQAB(K,N)=TRCQEX(K,N)-TRCQSC(K,N)
-      TRCQPI(K,N)=TRCQSC(K,N)/TRCQEX(K,N)
-  110 CONTINUE
-  120 CONTINUE
+      TRCQAB(:,:)=TRCQEX(:,:)-TRCQSC(:,:)   ! 1:33,1:15
+      TRCQPI(:,:)=TRCQSC(:,:)/TRCQEX(:,:)
 
-      DO 140 N=1,15
-      DO 130 K=1,6
-      SRCQPI(K,N)=SRCQSC(K,N)/SRCQEX(K,N)
-  130 CONTINUE
-  140 CONTINUE
+      SRCQPI(:,:)=SRCQSC(:,:)/SRCQEX(:,:)   ! 1:6,1:15
 
 C                          Initialize  GETCLD Output Parameters to Zero
 C                          --------------------------------------------
-      DO 150 K=1,33
-      TRCTCA(K)=0.D0
-  150 CONTINUE
-      DO 180 L=1,NL
-      DO 160 K=1,33
-      TRCALK(L,K)=0.D0
-  160 CONTINUE
-      DO 170 K=1,6
-      SRCEXT(L,K)=1.D-20
-      SRCSCT(L,K)=0.D0
-      SRCGCB(L,K)=0.D0
-  170 CONTINUE
-  180 CONTINUE
+      TRCTCA(:)=0          ! 1:33
+      TRCALK(:,:)=0        ! 1:NL,1:33
+      SRCEXT(:,:)=1.D-20   ! 1:NL,1:6
+      SRCSCT(:,:)=0
+      SRCGCB(:,:)=0
 
       RETURN
       end SUBROUTINE SETCLD
@@ -4466,32 +4060,26 @@ C-----------------------------------------------------------------------
       LTOPCW=0
       LBOTCI=0
       LTOPCI=0
-      DO 210 K=1,33
-      TRCTCA(K)=0.D0
-  210 CONTINUE
-      DO 280 L=1,NL
-      DO 220 K=1,33
-      TRCALK(L,K)=0.D0
-  220 CONTINUE
-      DO 230 K=1,6
-      SRCEXT(L,K)=1.D-20
-      SRCSCT(L,K)=1.D-30
-      SRCGCB(L,K)=0.D0
-      SRCPI0(L,K)=0.D0
-  230 CONTINUE
+      TRCTCA(:)=0              ! 1:33
+      DO 280 L=L1,NL
+      TRCALK(L,:)=0
+      SRCEXT(L,:)=1.D-20       ! 1:6
+      SRCSCT(L,:)=1.D-30
+      SRCGCB(L,:)=0
+      SRCPI0(L,:)=0
 C                                         Water Cloud Size Interpolation
 C                                         ------------------------------
 
-      IF(FTAUC*TAUWC(L).GT.TAUWC0) THEN
+      IF(FTAUC*TAUWC(L) > TAUWC0) THEN
       SIZWCL=SIZEWC(L)
       LTOPCW=L
-      IF(LBOTCW.EQ.0) LBOTCW=L
-      IF(SIZWCL.LT.15.D0) THEN
-      IF(SIZWCL.LT.3.0D0) SIZWCL=3.0D0
+      IF(LBOTCW==0) LBOTCW=L
+      IF(SIZWCL < 15.D0) THEN
+      IF(SIZWCL < 3.0D0) SIZWCL=3.0D0
       IRWAT=2
       XRW=SIZWCL/10.0D0-1.00D0
       ELSE
-      IF(SIZWCL.GT.25.D0) SIZWCL=25.D0
+      IF(SIZWCL > 25.D0) SIZWCL=25.D0
       IRWAT=4
       XRW=SIZWCL/10.0D0-2.00D0
       ENDIF
@@ -4529,16 +4117,16 @@ C                                         ------------------------------
       ENDIF
 C                                           Ice Cloud Size Interpolation
 C                                           ----------------------------
-      IF(FTAUC*TAUIC(L).GT.TAUIC0) THEN
+      IF(FTAUC*TAUIC(L) > TAUIC0) THEN
       SIZICL=SIZEIC(L)
       LTOPCI=L
-      IF(LBOTCI.EQ.0) LBOTCI=L
-      IF(SIZICL.LT.25.D0) THEN
-      IF(SIZICL.LT.3.0D0) SIZICL=3.0D0
+      IF(LBOTCI==0) LBOTCI=L
+      IF(SIZICL < 25.D0) THEN
+      IF(SIZICL < 3.0D0) SIZICL=3.0D0
       IRICE=2+ICE012*5
       XRI=SIZICL/20.D0-0.75D0
       ELSE
-      IF(SIZICL.GT.75.D0) SIZICL=75.D0
+      IF(SIZICL > 75.D0) SIZICL=75.D0
       IRICE=4+ICE012*5
       XRI=SIZICL/50.D0-1.00D0
       ENDIF
@@ -4558,7 +4146,7 @@ C                                           ----------------------------
   260 CONTINUE
 
       SRCGFC=SRCGSF(2)
-      IF(ICE012.EQ.2) SRCGFC=SRCGSF(3)
+      IF(ICE012==2) SRCGFC=SRCGSF(3)
       DO 270 K=1,6
       QXICEK=XMI*XPI*SRCQEX(K,IRICE)
      +      -XMI*XRI*SRCQEX(K,IRICE-1)+XPI*XRI*SRCQEX(K,IRICE+1)
@@ -4594,8 +4182,8 @@ C              (KCLDEM correction is computed in THRMAL at LTOPCL level)
 C     ------------------------------------------------------------------
 
       LTOPCL=LTOPCI
-      IF(LTOPCI.GT.LTOPCW) GO TO 330
-      IF(LTOPCW.LT.1) GO TO 350
+      IF(LTOPCI > LTOPCW) GO TO 330
+      IF(LTOPCW < 1) GO TO 350
       LTOPCL=LTOPCW
       TCTAUW=FTAUC*TAUWC(LTOPCL)
       DO 310 K=1,33
@@ -4613,9 +4201,9 @@ C     ------------------------------------------------------------------
       TGCTPG(K)=QGWATK
   310 CONTINUE
       LBOTCL=LBOTCW
-      IF(LBOTCI.LT.1) GO TO 360
-      IF(LBOTCI.LE.LBOTCW) LBOTCL=LBOTCI
-      IF(LTOPCI.EQ.LTOPCW) THEN
+      IF(LBOTCI < 1) GO TO 360
+      IF(LBOTCI <= LBOTCW) LBOTCL=LBOTCI
+      IF(LTOPCI==LTOPCW) THEN
       TCTAUW=FTAUC*TAUWC(LTOPCL)
       TCTAUC=FTAUC*TAUIC(LTOPCL)
       WTI=TAUIC(LTOPCL)/(TAUIC(LTOPCL)+TAUWC(LTOPCL))
@@ -4656,7 +4244,7 @@ C     ------------------------------------------------------------------
       TGCTPG(K)=QGICEK
   340 CONTINUE
       LBOTCL=LBOTCI
-      IF(LBOTCW.EQ.0) GO TO 360
+      IF(LBOTCW==0) GO TO 360
       LBOTCL=LBOTCW
       GO TO 360
   350 CONTINUE
@@ -4686,18 +4274,14 @@ C                 ------------------------------------------------------
       MI=XMO
       WTMJ=XMO-MI
       WTMI=1.D0-WTMJ
-      IF(MI.LT.1) MI=12
+      IF(MI < 1) MI=12
       MJ=MI+1
-      IF(MJ.GT.12) MJ=1
+      IF(MJ > 12) MJ=1
 
-      DO 420 J=1,46
-      DO 410 I=1,72
-      EPLOW(I,J)=WTMI*EPLMHC(I,J,MI,1)+WTMJ*EPLMHC(I,J,MJ,1)
-      EPMID(I,J)=WTMI*EPLMHC(I,J,MI,2)+WTMJ*EPLMHC(I,J,MJ,2)
-      EPHIG(I,J)=WTMI*EPLMHC(I,J,MI,3)+WTMJ*EPLMHC(I,J,MJ,3)
-      EPCOL(I,J)=WTMI*EPLMHC(I,J,MI,4)+WTMJ*EPLMHC(I,J,MJ,4)
-  410 CONTINUE
-  420 CONTINUE
+      EPLOW(:,:) = WTMI*EPLMHC(:,:,MI,1) + WTMJ*EPLMHC(:,:,MJ,1) ! 72,46
+      EPMID(:,:) = WTMI*EPLMHC(:,:,MI,2) + WTMJ*EPLMHC(:,:,MJ,2)
+      EPHIG(:,:) = WTMI*EPLMHC(:,:,MI,3) + WTMJ*EPLMHC(:,:,MJ,3)
+      EPCOL(:,:) = WTMI*EPLMHC(:,:,MI,4) + WTMJ*EPLMHC(:,:,MJ,4)
 
       RETURN
       end subroutine UPDEPS
@@ -4723,29 +4307,15 @@ C                     --------------------------------------------------
      *     ,WTMJ,WTMI
       INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
 
-      IF(KCLDEP.EQ.0) THEN
-      DO 510 L=1,NL
-      CLDEPS(L)=0.D0
-  510 CONTINUE
-      ENDIF
-      IF(KCLDEP.EQ.1) THEN
-      DO 520 L=1,NL
-      CLDEPS(L)=EPSCON
-  520 CONTINUE
-      ENDIF
-      I=ILON
-      J=JLAT
-      IF(KCLDEP.EQ.3) THEN
-      DO 530 L=1,NL
-      CLDEPS(L)=EPCOL(I,J)
-  530 CONTINUE
-      ENDIF
-      IF(KCLDEP.EQ.4) THEN
-      DO 540 L=1,NL
-      CLDEPS(L)=EPMID(I,J)
-      IF(PLB(L).GT.750.D0) CLDEPS(L)=EPLOW(I,J)
-      IF(PLB(L).LT.430.D0) CLDEPS(L)=EPHIG(I,J)
-  540 CONTINUE
+      IF(KCLDEP == 0)  CLDEPS(L1:NL) = 0
+      IF(KCLDEP == 1)  CLDEPS(L1:NL) = EPSCON
+      IF(KCLDEP == 3)  CLDEPS(L1:NL) = EPCOL(ILON,JLAT)
+      IF(KCLDEP == 4)  then
+        DO L=L1,NL
+          CLDEPS(L) = EPMID(ILON,JLAT)
+          IF(PLB(L) > 750)  CLDEPS(L) = EPLOW(ILON,JLAT)
+          IF(PLB(L) < 430)  CLDEPS(L) = EPHIG(ILON,JLAT)
+        END DO
       ENDIF
 
       RETURN
@@ -4755,16 +4325,17 @@ C                     --------------------------------------------------
       SUBROUTINE TAUGAS
       IMPLICIT NONE
 C     ----------------------------------------------------------
-C     TAUGAS INPUT REQUIRES:  NL,PL,DPL,TLM,ULGAS
+C     TAUGAS INPUT REQUIRES:  L1,NL,PL,DPL,TLM,ULGAS
 C                             TAUTBL,TAUWV0,XKCFC,H2OCN8,H2OCF8
 C                             XUCH4,XUCH40,XUN2O,XUN2O0,ULOX,DUX
 C                             XTRUP,XTU0,XTRDN,XTD0,CXUCO2,CXUO3
-C     TAUGAS OUTPUT DATA IS:  TRGXLK,XTRU,XTRD
+C                             DXTRUA,DXTRDA
+C     TAUGAS OUTPUT DATA IS:  TRGXLK,XTRU/D,DXAERU/D,IP24C9
 C     ----------------------------------------------------------
 
 C     To achieve a particular amount of forcing, the amounts of
-C     CO2,CH4,CFC11,CFC12,CFC.. are scaled by xxgas  H2O    CO2   O3
-      REAL*8, PARAMETER, dimension(13) :: xxgas = (/ 1d0, .75d0, 1d0,
+C     CO2,CH4,CFC11,CFC12,CFC.. are scaled by XXGAS: H2O    CO2   O3
+      REAL*8, PARAMETER ::     XXGAS(13)        = (/ 1d0, .75d0, 1d0,
 C        O2  NO2  N2O    CH4     F11     F12  N2C    F11+  F12+  SO2
      *  1d0, 1d0, 1d0, .65d0,  1.5d0,  1.1d0, 1d0, 1.5d0,  1d0,  1d0/)
 
@@ -4772,25 +4343,25 @@ C        O2  NO2  N2O    CH4     F11     F12  N2C    F11+  F12+  SO2
      *     NPU=5
       REAL*8, PARAMETER :: TLOX=181.d0, DTX=23.d0, P0=1013.25d0
 
-      REAL*8, PARAMETER :: PX(19)= (/1d3,750d0,5d2,3d2,2d2,1d2,5d1
-     *     ,2d1,1d1,5d0,2d0,1d0,.5d0,.2d0,.1d0,.03d0,.01d0,.003d0,.001d0
-     *     /)
+      REAL*8, PARAMETER :: PX(NPX)= (/1000d0, 750d0, 500d0, 300d0,
+     *        200d0, 100d0, 50d0, 20d0, 10d0,   5d0,   2d0,   1d0,
+     *         .5d0,  .2d0, .1d0,.03d0,.01d0,.003d0,.001d0/)
 
-      INTEGER, PARAMETER :: NGX(4) = (/12,12,08,33/),
-     *     IG1X(4) = (/2,14,26,1/)
-      REAL*8, PARAMETER :: PDPU2(14) = (/1.D4,1.D5,2.D5,5.D5,1.D6,2.D6,
-     *     5.D6,1.D7,2.D7,5.D7,1.D8,2.D8,5.D8,1.D9/)
-      REAL*8, PARAMETER ::  PU(5) = (/  50.,200.,800.,3200.,12800./)
+      INTEGER, PARAMETER :: NGX(4) = (/12,12, 8,33/),
+     *                     IG1X(4) = (/ 2,14,26, 1/)
+      REAL*8, PARAMETER :: PDPU2(NPU2) = (/1.d4, 1.d5,2.d5,5.d5,
+     *           1.d6,2.d6,5.d6, 1.d7,2.d7,5.d7, 1.d8,2.d8,5.d8, 1.d9/)
+      REAL*8, PARAMETER ::  PU(NPU) = (/  50.,200.,800.,3200.,12800./)
       INTEGER, PARAMETER :: IGASX(20) = (/ 1, 2, 3, 1, 1, 2, 2, 3, 3, 6,
      *     6, 6, 7,13,13, 8, 8, 9, 9, 1/)
-      INTEGER, PARAMETER :: KGX(20) = (/ 1, 2, 3, 2, 3, 1, 3, 1, 2, 1, 2
-     *     , 3, 1, 1,3, 2, 3, 2, 3, 4/)
+      INTEGER, PARAMETER :: KGX(20) =   (/ 1, 2, 3, 2, 3, 1, 3, 1, 2, 1,
+     *     2, 3, 1, 1, 3, 2, 3, 2, 3, 4/)
       INTEGER, PARAMETER :: NUX(15) = (/25, 9, 9, 9, 9, 5, 5, 5, 5, 2, 2
      *     , 2, 2, 2,2/)
       INTEGER, PARAMETER :: IGUX(15) = (/ 0,300,408,480,588,660,720,760
      *     ,820,880,904,928,944,968,992/)
 
-      REAL*8, PARAMETER, DIMENSION(8,2) ::  XKCFCW = RESHAPE( (/
+      REAL*8, PARAMETER ::  XKCFCW(8,2) = RESHAPE( (/
      + 12.4414,11.7842,11.3630,10.8109,10.3200, 9.8900, 9.3916, 8.8933,
      +  5.3994, 5.6429, 5.8793, 6.1687, 6.2300, 6.5200, 6.8650, 7.2100/)
      *     , (/8,2/) )
@@ -4809,384 +4380,316 @@ C        O2  NO2  N2O    CH4     F11     F12  N2C    F11+  F12+  SO2
      *     ULMNO3=-1.393d0, ULMNCO= 1.529d0
       REAL*8 XTU(24,3),XTD(24,3),XUCH(9),XUN2(9),CXUO(7),CXUC(7)
       INTEGER MLGAS(20)
-      INTEGER I,K,L,IP,IM,IULOW,IU1,IU2,IU,II,IPX,IAA,IBA,ITX,ITX1
-     *     ,ITX2,IPXM1,IGAS,NG,KK,IK0,IKF,IPU,IPUI,IPU1,IK,IGCFC,NU,IUA
-     *     ,IUB,IAAA,IAAB,IABA,IABB,IBAA,IBAB,IBBA,IBBB,IH2O0,IG
-      REAL*8 UH2O,UCO2,UO3,UCH4,UN2O,UH2OL,UCO2L,UO3LL,UCH4L,UN2OL,CXCO2
-     *     ,CXO3,DUH2,DU1,DU2,DUCO,DUO3,DUCH,XCH4,DUN2,XN2O,PLI,DENO
-     *     ,ANUM,DELP24,PRAT,XTR0,WPB,WTB,WBB,WBA,WAB,WAA,UGAS,XF
-     *     ,FPL,U,PU2,WTPU,TAUT1,TAUT2,TAUHCN,UP,TAUHFB,XA,XB,XK,TAUCF
-     *     ,XUA,XUB,QAA,QAB,QBA,QBB,FNU1,UAB,UBB,UAA,UBA,WAAA,WAAB,WABA
-     *     ,WABB,WBAA,WBAB,WBBA,WBBB,TAUIPG,TAUSUM,TAU11,TAU12
+      INTEGER I,L,LL,IP,IULOW,IU,IPX,IAA,ITX
+     *     ,IGAS,NG,KK,IK1,IK2,IPU,IK,NU,IUA
+     *     ,IUB,IH2O0,IG
+     *     ,IA,I24,IPP,ISKIPU,ISKIPD,IP24C(LX)
+      REAL*8 UH2OL,UCO2L,UO3LL,UCH4L,UN2OL, CXCO2,CXO3,XCH4,XN2O
+     *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
+     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PRAT,PRATT,PU2, U,UP,UGAS, FNU1
+     *     ,UAA,UAB,UBA,UBB, WPB, WT,WTB,WTPU, XA,XB,XK,XUA,XUB, DU
+     *     ,WAA,WAB,WBA,WBB,WAAA,WAAB,WABA,WABB,WBAA,WBAB,WBBA,WBBB
 
-      DO 100 K=1,33
-      DO 100 L=1,NL
-      TRGXLK(L,K)=0.D0
-  100 CONTINUE
 C                          MLGAS DEF.
 C                          ----------
 C     H2O: 1,4,5   CO2: 2,6,7   O3: 3,8,9   N2O: 10,11,12   CH4: 13
 C     SO2: 14,15   CFC: 16-19   WVCON: 20
 
-      DO 110 I=1,20
-      MLGAS(I)=1
-  110 CONTINUE
+      MLGAS(:)=1  !  1:20
 
 C              KWVCON = ON/OFF flag for water vapor continuum absorption
 C              ---------------------------------------------------------
-      IF(KWVCON.LT.1) MLGAS(20)=0
+      IF(KWVCON < 1) MLGAS(20)=0
 
-      UH2O=1.D-10
-      UCO2=1.D-10
-      UO3=1.D-10
-      UCH4=1.D-10
-      UN2O=1.D-10
-      DO 120 IP=1,NL
-      UH2O=UH2O+ULGAS(IP,1)*xxgas(1)
-      UCO2=UCO2+ULGAS(IP,2)*xxgas(2)
-      UO3=UO3+ULGAS(IP,3)*xxgas(3)
-      UCH4=UCH4+ULGAS(IP,7)*xxgas(7)
-      UN2O=UN2O+ULGAS(IP,6)*xxgas(6)
-  120 CONTINUE
-      UH2OL=LOG10(UH2O)
-      UCO2L=LOG10(UCO2)
-      UO3LL=LOG10(UO3)
-      UCH4L=LOG10(UCH4)
-      UN2OL=LOG10(UN2O)
+      UH2OL = LOG10 (1d-10 + XXGAS(1) * SUM(ULGAS(L1:NL,1)))
+      UCO2L = LOG10 (1d-10 + XXGAS(2) * SUM(ULGAS(L1:NL,2)))
+      UO3LL = LOG10 (1d-10 + XXGAS(3) * SUM(ULGAS(L1:NL,3)))
+      UCH4L = LOG10 (1d-10 + XXGAS(7) * SUM(ULGAS(L1:NL,7)))
+      UN2OL = LOG10 (1d-10 + XXGAS(6) * SUM(ULGAS(L1:NL,6)))
 
-      IULOW=0
-      IF(UH2O.LT.1.1D-10) THEN
-      IULOW=1
-      DO 130 IU=1,9
-      XUCH(IU)=XUCH40(IU)
-      XUN2(IU)=XUN2O0(IU)
-  130 CONTINUE
-      DO 140 IM=1,3
-      DO 140 I=1,24
-      XTU(I,IM)=XTU0(I,IM)
-      XTD(I,IM)=XTD0(I,IM)
-  140 CONTINUE
-      CXCO2=0.D0
-      CXO3=0.D0
-      GO TO 180
-      ENDIF
-
-      DUH2=UH2OL-ULMNH2
-      IF(DUH2.LT.0.) DUH2=0.D0
-      IU1=DUH2/DLSQ2+1.D0
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.14) IU1=14
-      IU2=IU1+1
-      DU1=DUH2-(IU1-1)*DLSQ2
-      DU2=DLSQ2-DU1
-
-      DO 160 IM=1,3
-      DO 150 I=1,24
-      XTU(I,IM)=(XTRUP(I,IM,IU2)*DU1+XTRUP(I,IM,IU1)*DU2)/DLSQ2
-      XTD(I,IM)=(XTRDN(I,IM,IU2)*DU1+XTRDN(I,IM,IU1)*DU2)/DLSQ2
-  150 CONTINUE
-  160 CONTINUE
-      DO 170 IU=1,9
-      XUCH(IU)=(XUCH4(IU,IU2)*DU1+XUCH4(IU,IU1)*DU2)/DLSQ2
-      XUN2(IU)=(XUN2O(IU,IU2)*DU1+XUN2O(IU,IU1)*DU2)/DLSQ2
-      IF(IU.GT.7) GO TO 170
-      CXUO(IU)=(CXUO3(IU,IU2)*DU1+CXUO3(IU,IU1)*DU2)/DLSQ2
-      CXUC(IU)=(CXUCO2(IU,IU2)*DU1+CXUCO2(IU,IU1)*DU2)/DLSQ2
-  170 CONTINUE
-
-      DUCO=UCO2L-ULMNCO
-      IF(DUCO.LT.0.) DUCO=0.
-      IU1=DUCO/DLOG2+1
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.6) IU1=6
-      IU2=IU1+1
-      DU1=DUCO-(IU1-1)*DLOG2
-      DU2=DLOG2-DU1
-      CXCO2=(CXUC(IU2)*DU1+CXUC(IU1)*DU2)/DLOG2
-
-      DUO3=UO3LL-ULMNO3
-      IF(DUO3.LT.0.) DUO3=0.D0
-      IU1=DUO3/DLOG2+1
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.6) IU1=6
-      IU2=IU1+1
-      DU1=DUO3-(IU1-1)*DLOG2
-      DU2=DLOG2-DU1
-      CXO3=(CXUO(IU2)*DU1+CXUO(IU1)*DU2)/DLOG2
-
-  180 CONTINUE
-
-      DUCH=UCH4L-ULMNCH
-      IF(DUCH.LT.0.) DUCH=0.D0
-      IU1=DUCH/DLOG2+1
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.8) IU1=8
-      IU2=IU1+1
-      DU1=DUCH-(IU1-1)*DLOG2
-      DU2=DLOG2-DU1
-      XCH4=(XUCH(IU2)*DU1+XUCH(IU1)*DU2)/DLOG2
-
-      DUN2=UN2OL-ULMNN2
-      IF(DUN2.LT.0.) DUN2=0.D0
-      IU1=DUN2/DLOG2+1
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.8) IU1=8
-      IU2=IU1+1
-      DU1=DUN2-(IU1-1)*DLOG2
-      DU2=DLOG2-DU1
-      XN2O=(XUN2(IU2)*DU1+XUN2(IU1)*DU2)/DLOG2
-
-      DO 190 I=1,NL
-      XTRU(I,1)=1.D0
-      XTRD(I,1)=1.D0
-  190 CONTINUE
-
-      IP=2
-      DO 230 I=1,NL
-      PLI=PL(I)
-      IF(PLI.GE.P24(1)) THEN
-      DO 200 IM=1,3
-      XTRU(I,IM+1)=1.D0-(1.D0-XTU(1,IM))*DPL(I)/DP24(1)
-      XTRD(I,IM+1)=1.D0-(1.D0-XTD(1,IM))*DPL(I)/DP24(1)
-  200 CONTINUE
-      GO TO 230
-      ENDIF
-  210 IF(PLI.GE.P24(IP)) THEN
-      DENO=P24(IP)-P24(IP-1)
-      ANUM=DP24(IP-1)*(P24(IP)-PLI)+DP24(IP)*(PLI-P24(IP-1))
-      DELP24=ANUM/DENO
-      PRAT=DPL(I)/DELP24
-      DO 220 IM=1,3
-      ANUM=XTU(IP-1,IM)*(P24(IP)-PLI)+XTU(IP,IM)*(PLI-P24(IP-1))
-      XTR0=ANUM/DENO
-      XTRU(I,IM+1)=1.D0-(1.D0-XTR0)*PRAT
-      ANUM=XTD(IP-1,IM)*(P24(IP)-PLI)+XTD(IP,IM)*(PLI-P24(IP-1))
-      XTR0=(ANUM/DENO)
-      XTRD(I,IM+1)=1.D0-(1.D0-XTR0)*PRAT
-  220 CONTINUE
+      IF (UH2OL < -9.958607315d0) THEN  !  if UH2O<1.1d-10 (low wtr vpr)
+        IULOW=1
+        XTU(:,:)=XTU0(:,:)                                    ! 1:24,1:3
+        XTD(:,:)=XTD0(:,:)                                    ! 1:24,1:3
+        XUCH(:)=XUCH40(:)                                     ! 1:9
+        XUN2(:)=XUN2O0(:)                                     ! 1:9
+        CXCO2=0.D0
+        CXO3=0.D0
       ELSE
-      IP=IP+1
-      IF(IP.GT.24) GO TO 240
-      GO TO 210
-      ENDIF
-  230 CONTINUE
-      GO TO 260
-  240 CONTINUE
-      DO 250 IM=1,3
-      DO 250 II=I,NL
-      XTRU(II,IM+1)=XTU(24,IM)
-      XTRD(II,IM+1)=XTD(24,IM)
-  250 CONTINUE
-  260 CONTINUE
-      DO 270 IM=2,4
-      XTRD(NL,IM)=1.D0
-  270 CONTINUE
+        IULOW=0
+           du = UH2OL-ULMNH2 ; if (du<0) du=0
+           I  = 1 + du/DLSQ2 ; if (I>14) I=14
+           WT = I - du/DLSQ2
+        XTU(:,:) = XTRUP(:,:,I+1)*(1-WT) + XTRUP(:,:,I)*WT    ! 1:24,1:3
+        XTD(:,:) = XTRDN(:,:,I+1)*(1-WT) + XTRDN(:,:,I)*WT    ! 1:24,1:3
+        XUCH(:)  = XUCH4(:,I+1)*(1-WT) + XUCH4(:,I)*WT        ! 1:9
+        XUN2(:)  = XUN2O(:,I+1)*(1-WT) + XUN2O(:,I)*WT        ! 1:9
+           cxuc(:)  = CXUCO2(:,I+1)*(1-WT) + CXUCO2(:,I)*WT   ! 1:7
+           cxuo(:)  = CXUO3 (:,I+1)*(1-WT) + CXUO3 (:,I)*WT   ! 1:7
+           du = UCO2L-ULMNCO ; if (du<0) du=0
+           I  = 1 + du/DLOG2 ; if (I>6) I=6
+           WT = I - du/DLOG2
+        CXCO2 = CXUC(I+1)*(1-WT) + CXUC(I)*WT
+           du = UO3LL-ULMNO3 ; if (du<0) du=0
+           I  = 1 + du/DLOG2 ; if (I>6) I=6
+           WT = I - du/DLOG2
+        CXO3  = CXUO(I+1)*(1-WT) + CXUO(I)*WT
+      END IF
+           du = UCH4L-ULMNCH ; if (du<0) du=0
+           I  = 1 + du/DLOG2 ; if (I>8) I=8
+           WT = I - du/DLOG2
+      XCH4 = XUCH(I+1)*(1-WT) + XUCH(I)*WT
+           du = UN2OL-ULMNN2 ; if (du<0) du=0
+           I  = 1 + du/DLOG2 ; if (I>8) I=8
+           WT = I - du/DLOG2
+      XN2O = XUN2(I+1)*(1-WT) + XUN2(I)*WT
 
+C**** Find XTRU and XTRD from XTU and XTD
+      XTRU(L1:NL,1:4)=1. ; XTRD(L1:NL,1:4)=1.            ! defaults
+      IP=2
+      DO 100 L=L1,NL
+      PLL=PL(L)
+      IF(PLL >= P24(1)) THEN                             ! PLL>P24_bot
+        PRAT = DPL(L)/DP24(1)
+        XTRU(L,2:4)=1-PRAT*(1 - XTU(1,1:3))
+        XTRD(L,2:4)=1-PRAT*(1 - XTD(1,1:3))
+        GO TO 100
+      ENDIF
+      DO WHILE (PLL < P24(IP))
+        IP=IP+1
+        IF(IP > 24) GO TO 200                 ! deflts for PLL<P24_top
+      END DO                                     ! P24(IP)<PLL<P24(IP-1)
+      WT = (P24(IP) - PLL) / (P24(IP) - P24(IP-1))
+      PRAT        = DPL(L) / (DP24(IP-1)*WT + DP24(IP)*(1-WT))
+      XTRU(L,2:4) = 1-PRAT*(1 - (XTU(IP-1,1:3)*WT + XTU(IP,1:3)*(1-WT)))
+      XTRD(L,2:4) = 1-PRAT*(1 - (XTD(IP-1,1:3)*WT + XTD(IP,1:3)*(1-WT)))
+  100 CONTINUE
+      XTRD(NL,2:4)= 1
+
+C**** Find IP24C s.t. P24(IP24C(L)) is closest to PL(L)
+  200 I24=1
+      DO L=L1,NL
+        do while (P24(I24)>=PL(L) .and. I24<24) ; I24=I24+1 ; end do
+        IP24C(L)=I24  ; if (I24 == 1) go to 270
+        if (P24(I24-1)-PL(L) <= PL(L)-P24(I24)) IP24C(L)=I24-1
+  270   IP24C9(L) = MIN( IP24C(L) , 9 )
+      END DO
+
+C**** Compute the correction terms DXAERU, DXAERD
+      DXAERU(L1:NL,1:4,1:4,1:NL+4)=0.
+      DXAERD(L1:NL,1:4,1:4,1:NL+4)=0.
+
+      DO 275 L=L1,NL
+      IP=IP24C(L)
+      PRAT=DPL(L)/DP24(IP)
+C**** For each L, collect terms from all cloud levels and 4 aerosols
+      DO 275 IAA=1,NL+4
+      ISKIPU=0
+      ISKIPD=0
+      IPP=IP
+      PRATT=PRAT
+      IF (IAA > NL ) THEN
+        IA = IAA-NL+9                    ! IA=10-13 for aerosols
+      ELSE
+        IA = IP24C9(IAA)                 ! IA= 1- 9 for clouds
+        IF (L < IAA) ISKIPU=1
+        IF (L > IAA) ISKIPD=1
+        IF (L > IAA .AND. IPP == IA) IPP=MIN(IPP+1,24)
+        IF (L < IAA .AND. IPP == IA) IPP=MAX(IPP-1, 1)
+        PRATT = DPL(L)/DP24(IPP)
+      END IF
+
+      IF (ISKIPU==1) GO TO 274
+      DO IU=1,4
+        DXAERU(L,2:4,IU,IAA) = 1 - XTRU(L,2:4) -
+     -   ( 1 - (XTU(IPP,1:3) + DXTRUA(IPP,1:3,IU,IA)) )*PRATT
+      END DO
+      IF (ISKIPD==1) GO TO 275
+  274 DO IU=1,4
+        DXAERD(L,2:4,IU,IAA) = MAX(0.D0, 1 - XTRD(L,2:4) -
+     -   ( 1 - (XTD(IPP,1:3) + MIN(1.,DXTRDA(IPP,1:3,IU,IA))) )*PRATT)
+      END DO
+  275 CONTINUE
+
+C**** Find TRGXLK
+      TRGXLK(L1:NL,1:33)=0.D0
       IPX=2
-      DO 600 IP=1,NL
+      DO 600 L=L1,NL
+C**** Locate model layer pressure between IPX and IPX-1
   280 CONTINUE
-      WPB = (PL(IP)-PX(IPX))/(PX(IPX-1)-PX(IPX))
-      IF(WPB.GE.0.D0.OR.IPX.GE.NPX) GO TO 290
+      WPB = (PL(L)-PX(IPX))/(PX(IPX-1)-PX(IPX))
+      IF(WPB >= 0 .or. IPX >= NPX) GO TO 290
       IPX = IPX+1
       GO TO 280
+C**** Locate model layer temperature between ITX and ITX+1
   290 CONTINUE
-      WTB = (TLM(IP)-TLOX)/DTX
-      ITX = MIN(MAX(INT(WTB),0),NTX-2)
-      WTB = WTB-FLOAT(ITX)
+      WTB = (TLM(L)-TLOX)/DTX + 1
+      ITX = WTB  ;  IF(ITX < 1) ITX=1  ;  IF(ITX >= NTX) ITX=NTX-1
+      WTB = WTB-ITX
 
       WBB = WPB*WTB
       WBA = WPB-WBB
       WAB = WTB-WBB
-      WAA = 1.D0-(WBB+WBA+WAB)
-
-      IAA = NGUX*(ITX+NTX*(IPX-1))
-      IBA = IAA-NGUX*NTX
-
-      ITX1=ITX+1
-      ITX2=ITX+2
-      IPXM1=IPX-1
+      WAA = 1 - (WBB+WBA+WAB)
 
       DO 500 IGAS=1,20
-      IF(MLGAS(IGAS).LT.1) GO TO 500
-      NG = NGX(KGX(IGAS))
-      UGAS = ULGAS(IP,IGASX(IGAS))*xxgas(igasx(igas))
-      IF(IGAS.EQ.16.OR.IGAS.EQ.17) UGAS=UGAS+ULGAS(IP,11)*xxgas(11)
-      KK=IG1X(KGX(IGAS))
+      IF(MLGAS(IGAS) < 1) GO TO 500
+      KK   = IG1X(KGX(IGAS))
+      NG   = NGX (KGX(IGAS))
+      UGAS = ULGAS(L,IGASX(IGAS))*XXGAS(IGASX(IGAS))
+      IF(IGAS == 16.OR.IGAS == 17) UGAS = UGAS + ULGAS(L,11)*XXGAS(11)
+
 C                       Apply absorber scaling for H2O in CO2 & O3 bands
 C                       ------------------------------------------------
-      IF(IGAS.EQ.4) THEN
-      IF(PL(IP).GT.350.D0) THEN
-      XF=1.D0+CXCO2*(PL(IP)-350.D0)
-      IF(XF.LT.0.D0) XF=0.D0
-      UGAS=UGAS*XF
-      ENDIF
-      ENDIF
-
-      IF(IGAS.EQ.5) THEN
-      IF(PL(IP).GT.350.D0) THEN
-      XF=1.D0+CXO3*(PL(IP)-350.D0)
-      IF(XF.LT.0.D0) XF=0.D0
-      UGAS=UGAS*XF
-      ENDIF
-      ENDIF
+      IF (IGAS == 4 .and. PL(L) > 350)
+     *  UGAS = UGAS * MAX( 0.d0 , 1 + CXCO2*(PL(L)-350) )
+      IF (IGAS == 5 .and. PL(L) > 350)
+     *  UGAS = UGAS * MAX( 0.d0 , 1 + CXO3*(PL(L)-350) )
 
 C                                         Modified scaling for CH4 & N2O
 C                                         ------------------------------
-      IF(PL(IP).GT.100.D0) THEN
-      FPL=MIN((PL(IP)-100.D0)/300.D0,1.D0)
-      IF(IGAS.EQ.13) UGAS=UGAS*(1.D0+FPL*(XCH4-1.D0))
-      IF(IGAS.GT.9.AND.IGAS.LT.13)
-     +               UGAS=UGAS*(1.D0+FPL*(XN2O-1.D0))
+      IF(PL(L) > 100) THEN
+        FPL=MIN( (PL(L)-100)/300 , 1.D0)
+        IF (IGAS==13)             UGAS=UGAS*(1+FPL*(XCH4-1))
+        IF (IGAS>9 .AND. IGAS<13) UGAS=UGAS*(1+FPL*(XN2O-1))
       ENDIF
 
 C                                               Absorber scaling for SO2
 C                                               ------------------------
-      IF(IGAS.EQ.14.AND.IULOW.EQ.0) UGAS=UGAS*3.
-      IF(IGAS.EQ.14.AND.IULOW.EQ.1) UGAS=UGAS*2.
-      IF(IGAS.EQ.15) UGAS=UGAS*1.3
+      IF(IGAS==14.AND.IULOW==0) UGAS=UGAS*3.
+      IF(IGAS==14.AND.IULOW==1) UGAS=UGAS*2.
+      IF(IGAS==15) UGAS=UGAS*1.3
 
-C                                 Apply water vapor continuum absorption
-C                                 --------------------------------------
-      IF(IGAS.EQ.20) THEN
+      IF(IGAS < 20) GO TO 375
 
-C                  KWSELF = ON/FF flag for H2O self broadening continuum
+C     IGAS = 20                   Apply water vapor continuum absorption
+C     ---------                   --------------------------------------
+C                  KCSELF = ON/FF flag for H2O self broadening continuum
 C                  -----------------------------------------------------
-      IF(KCSELF.GT.0) THEN
-      U=UGAS*1.15D0
-      IK0=1
-      IKF=1
-      DO 330 I=1,2
-      IF(I.EQ.2) THEN
-      U=UGAS
-      IK0=2
-      IKF=33
-      ENDIF
-      PU2=PL(IP)/DPL(IP)*U**2
-      IF(PU2.GT.PDPU2(1)) THEN
-      DO 300 IPU=2,NPU2
-      IPUI=IPU
-      IF(PU2.LE.PDPU2(IPU)) GO TO 310
-  300 CONTINUE
-  310 CONTINUE
-      IPU=IPUI
-      IPU1=IPU-1
-      WTPU=(PU2-PDPU2(IPU1))/(PDPU2(IPU)-PDPU2(IPU1))
-      ELSE
-      WTPU=PU2/PDPU2(1)
-      ENDIF
+      IF(KCSELF <= 0) GO TO 335
 
-      DO 320 IK=IK0,IKF
-      IF(PU2.GT.PDPU2(1)) THEN
-      TAUT1=WTPU*(H2OCN8(IK,ITX1,IPU)-H2OCN8(IK,ITX1,IPU1))+
-     $      H2OCN8(IK,ITX1,IPU1)
-      TAUT2=WTPU*(H2OCN8(IK,ITX2,IPU)-H2OCN8(IK,ITX2,IPU1))+
-     $      H2OCN8(IK,ITX2,IPU1)
+      DO 330 IK1=1,2
+      if (IK1==1) then
+        U=UGAS*1.15d0 ; IK2=1                 ! thermal K-domain 1(-1)
+      else      ! IK1=2
+        U=UGAS ;  IK2=33                      ! thermal K-domain 2-33
+      end if
+      PU2 = PL(L)/DPL(L) * U**2
+      IF (PU2 > PDPU2(1)) THEN
+        IPU=2
+        do while (PU2>PDPU2(IPU) .and. IPU<NPU2) ; IPU=IPU+1 ; end do
+        WTPU   = (PU2-PDPU2(IPU-1))/(PDPU2(IPU)-PDPU2(IPU-1))
+        DO IK=IK1,IK2
+          TAUT1 = WTPU*(H2OCN8(IK,ITX,IPU)-H2OCN8(IK,ITX,IPU-1))+
+     +            H2OCN8(IK,ITX,IPU-1)
+          TAUT2 = WTPU*(H2OCN8(IK,ITX+1,IPU)-H2OCN8(IK,ITX+1,IPU-1))+
+     +            H2OCN8(IK,ITX+1,IPU-1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
       ELSE
-      TAUT1=WTPU*H2OCN8(IK,ITX1,1)
-      TAUT2=WTPU*H2OCN8(IK,ITX2,1)
-      ENDIF
-
-      TAUHCN=WTB*(TAUT2-TAUT1)+TAUT1
-      TRGXLK(IP,KK)=TRGXLK(IP,KK)+TAUHCN
-      KK=KK+1
-  320 CONTINUE
+        WTPU   = PU2/PDPU2(1)
+        DO IK=IK1,IK2
+          TAUT1 = WTPU*H2OCN8(IK,ITX,1)
+          TAUT2 = WTPU*H2OCN8(IK,ITX+1,1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
+      END IF
   330 CONTINUE
-      ENDIF
-C               KWFORN = ON/FF flag for H2O foreign broadening continuum
-C               --------------------------------------------------------
 
-      IF(KCFORN.LT.1) GO TO 500
+C               KCFORN = ON/FF flag for H2O foreign broadening continuum
+C               --------------------------------------------------------
+  335 IF(KCFORN < 1) GO TO 500
       KK=IG1X(KGX(IGAS))
-      U=UGAS*1.15D0
-      IK0=1
-      IKF=1
-      DO 370 I=1,2
-      IF(I.EQ.2) THEN
-      U=UGAS
-      IK0=2
-      IKF=33
-      ENDIF
-      UP=PL(IP)/P0*U
-      IF(UP.GT.PU(1)) THEN
-      DO 340 IPU=2,NPU
-      IPUI=IPU
-      IF(UP.LE.PU(IPU)) GO TO 350
-  340 CONTINUE
-  350 CONTINUE
-      IPU=IPUI
-      IPU1=IPU-1
-      WTPU=(UP-PU(IPU1))/(PU(IPU)-PU(IPU1))
+      DO 370 IK1=1,2
+      if(IK1==1) then
+        U=UGAS*1.15d0 ; IK2=1
+      else      ! IK1=2
+        U=UGAS ;  IK2=33
+      end if
+      UP=PL(L)/P0*U
+      IF(UP > PU(1)) THEN
+        IPU=2
+        DO WHILE (UP>PU(IPU) .and. IPU<NPU) ; IPU=IPU+1 ; END DO
+        WTPU=(UP-PU(IPU-1))/(PU(IPU)-PU(IPU-1))
+        DO IK=IK1,IK2
+          TAUT1=WTPU*(H2OCF8(IK,ITX,IPU)-H2OCF8(IK,ITX,IPU-1))+
+     +          H2OCF8(IK,ITX,IPU-1)
+          TAUT2=WTPU*(H2OCF8(IK,ITX+1,IPU)-H2OCF8(IK,ITX+1,IPU-1))+
+     +          H2OCF8(IK,ITX+1,IPU-1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
       ELSE
-      WTPU=UP/PU(1)
-      ENDIF
-      DO 360 IK=IK0,IKF
-      IF(UP.GT.PU(1)) THEN
-      TAUT1=WTPU*(H2OCF8(IK,ITX1,IPU)-H2OCF8(IK,ITX1,IPU1))+
-     +      H2OCF8(IK,ITX1,IPU1)
-      TAUT2=WTPU*(H2OCF8(IK,ITX2,IPU)-H2OCF8(IK,ITX2,IPU1))+
-     +      H2OCF8(IK,ITX2,IPU1)
-      ELSE
-      TAUT1=WTPU*H2OCF8(IK,ITX1,1)
-      TAUT2=WTPU*H2OCF8(IK,ITX2,1)
-      ENDIF
-      TAUHFB=WTB*(TAUT2-TAUT1)+TAUT1
-      TRGXLK(IP,KK)=TRGXLK(IP,KK)+TAUHFB
-      KK=KK+1
-  360 CONTINUE
+        DO IK=IK1,IK2
+          WTPU=UP/PU(1)
+          TAUT1=WTPU*H2OCF8(IK,ITX,1)
+          TAUT2=WTPU*H2OCF8(IK,ITX+1,1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
+      END IF
   370 CONTINUE
       GO TO 500
-      ENDIF
 
-      IF(IGAS.GT.15) THEN
-      IGCFC=IGAS-15
+  375 IF(IGAS < 16) GO TO 385
+C                               IGAS=16-19       Chloro Fluoro Carbons
+C                               ----------       ---------------------
       UGAS=UGAS*1.85
-      DO 380 IK=1,NG
-      XA=WTB*(XKCFC(IK,ITX2,IGCFC)-XKCFC(IK,ITX1,IGCFC))+
-     $ XKCFC(IK,ITX1,IGCFC)
-      XB=WTB*(XKCFC(IK,ITX2,IGCFC)-XKCFC(IK,ITX1,IGCFC))+
-     $ XKCFC(IK,ITX1,IGCFC)
-      XK=WPB*(XA-XB)+XB
-      TAUCF=XK*UGAS
-      TRGXLK(IP,KK)=TRGXLK(IP,KK)+TAUCF
-      KK=KK+1
-  380 CONTINUE
+      DO IK=1,NG
+        XA=WTB*(XKCFC(IK,ITX+1,IGAS)-XKCFC(IK,ITX,IGAS))+
+     +     XKCFC(IK,ITX,IGAS)
+        XB=WTB*(XKCFC(IK,ITX+1,IGAS)-XKCFC(IK,ITX,IGAS))+
+     +     XKCFC(IK,ITX,IGAS)
+        XK=WPB*(XA-XB)+XB
+        TAUCF=XK*UGAS
+        TRGXLK(L,KK)=TRGXLK(L,KK)+TAUCF
+        KK=KK+1
+      END DO
       GO TO 500
-      ENDIF
-      IU = IPX + NPUX*(IGAS-1)
-      NU = NUX(IGAS)
-      IF(NU.GT.1) GO TO 390
-      XUA = 0.D0
-      XUB = 0.D0
-      GO TO 400
-  390 CONTINUE
-      XUA = (UGAS-ULOX(IU))/DUX(IU)
-      XUB = (UGAS-ULOX(IU-1))/DUX(IU-1)
-  400 CONTINUE
-      IUA = INT(XUA)
-      IUB = INT(XUB)
 
-      QAA = 1.D0
-      QAB = 1.D0
-      IF(XUA.GT.0.D0.AND.IUA.LT.NU-1) GO TO 410
-      FNU1=NU-1
-      XUA = MIN(MAX(XUA,0.D0),FNU1)
-      IUA = MIN(INT(XUA),NU-2)
-      QAA = UGAS/(ULOX(IU)+DUX(IU)*FLOAT(IUA))
-      QAB = UGAS/(ULOX(IU)+DUX(IU)*FLOAT(IUA+1))
-  410 CONTINUE
-      QBA = 1.D0
-      QBB = 1.D0
-      IF(XUB.GT.0.D0.AND.IUB.LT.NU-1) GO TO 420
-      FNU1=NU-1
-      XUB = MIN(MAX(XUB,0.D0),FNU1)
-      IUB = MIN(INT(XUB),NU-2)
-      QBA = UGAS/(ULOX(IU-1)+DUX(IU-1)*FLOAT(IUB))
-      QBB = UGAS/(ULOX(IU-1)+DUX(IU-1)*FLOAT(IUB+1))
-  420 CONTINUE
-      UAB = XUA-FLOAT(IUA)
-      UBB = XUB-FLOAT(IUB)
-      UAA = 1.D0-UAB
-      UBA = 1.D0-UBB
+  385 CONTINUE               !  IGAS=1-15        H2O,CO2,O3,N2O,CH4,SO2
+C                               ---------        ----------------------
+      NU = NUX(IGAS)
+      XUA = (UGAS-ULOX(IPX  ,IGAS)) / DUX(IPX  ,IGAS)
+      XUB = (UGAS-ULOX(IPX-1,IGAS)) / DUX(IPX-1,IGAS)
+C     IF(NU <= 1) then  ;  XUA = 0  ;  XUB = 0  ;  endif
+      IUA = XUA
+      IUB = XUB
+
+      QAA = 1
+      QAB = 1
+      IF(XUA <= 0)  then
+         XUA = 0
+         IUA = 0
+         QAA = UGAS /  ULOX(IPX,IGAS)
+         QAB = UGAS / (ULOX(IPX,IGAS)+DUX(IPX,IGAS))
+      endif
+      IF(XUA >= NU-1)  then
+         XUA = NU-1
+         IUA = NU-2
+         QAA = UGAS / (ULOX(IPX,IGAS)+DUX(IPX,IGAS)*(NU-2))
+         QAB = UGAS / (ULOX(IPX,IGAS)+DUX(IPX,IGAS)*(NU-1))
+      endif
+      QBA = 1
+      QBB = 1
+      IF(XUB <= 0)  then
+         XUB = 0
+         IUB = 0
+         QBA = UGAS /  ULOX(IPX-1,IGAS)
+         QBB = UGAS / (ULOX(IPX-1,IGAS)+DUX(IPX-1,IGAS))
+      endif
+      IF(XUB >= NU-1)  then
+         XUB = NU-1
+         IUB = NU-2
+         QBA = UGAS / (ULOX(IPX-1,IGAS)+DUX(IPX-1,IGAS)*(NU-2))
+         QBB = UGAS / (ULOX(IPX-1,IGAS)+DUX(IPX-1,IGAS)*(NU-1))
+      endif
+      UAB = XUA-IUA
+      UBB = XUB-IUB
+      UAA = 1-UAB
+      UBA = 1-UBB
 
       WAAA = WAA*UAA*QAA
       WAAB = WAA*UAB*QAB
@@ -5197,68 +4700,53 @@ C               --------------------------------------------------------
       WBBA = WBB*UBA*QBA
       WBBB = WBB*UBB*QBB
 
-      IAAA = IAA+IGUX(IGAS) + NG*IUA
-      IAAB = IAAA+NG
-      IABA = IAAA+NGUX
-      IABB = IABA+NG
-      IBAA = IBA+IGUX(IGAS) + NG*IUB
-      IBAB = IBAA+NG
-      IBBA = IBAA+NGUX
-      IBBB = IBBA+NG
-
       IH2O0=0
-      IF(IGAS.EQ.6.OR.IGAS.EQ.8.OR.IGAS.EQ.10.OR.IGAS.EQ.13.OR.
-     +   IGAS.EQ.14) THEN
-      IF(IULOW.EQ.1) IH2O0=1
-      ENDIF
+      IF( (IGAS==6.OR.IGAS==8.OR.IGAS==10.OR.IGAS==13.OR.IGAS==14)
+     +   .and. IULOW == 1 ) IH2O0=1
 
       DO 430 IG=1,NG
-      IF(IH2O0.EQ.0) THEN
-      TAUIPG=
-     +       WAAA*TAUTBL(IAAA+IG)
-     +     + WAAB*TAUTBL(IAAB+IG)
-     +     + WABA*TAUTBL(IABA+IG)
-     +     + WABB*TAUTBL(IABB+IG)
-     +     + WBAA*TAUTBL(IBAA+IG)
-     +     + WBAB*TAUTBL(IBAB+IG)
-     +     + WBBA*TAUTBL(IBBA+IG)
-     +     + WBBB*TAUTBL(IBBB+IG)
+      IF(IH2O0 == 0) THEN
+      TAUIPG = WAAA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX)
+     +       + WAAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
       ELSE
-      TAUIPG=
-     +       WAAA*TAUWV0(IAAA+IG)
-     +     + WAAB*TAUWV0(IAAB+IG)
-     +     + WABA*TAUWV0(IABA+IG)
-     +     + WABB*TAUWV0(IABB+IG)
-     +     + WBAA*TAUWV0(IBAA+IG)
-     +     + WBAB*TAUWV0(IBAB+IG)
-     +     + WBBA*TAUWV0(IBBA+IG)
-     +     + WBBB*TAUWV0(IBBB+IG)
+      TAUIPG = WAAA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX)  ! low WV
+     +       + WAAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
       ENDIF
 
-      TAUSUM=TRGXLK(IP,KK)+TAUIPG
-      IF(TAUSUM.GT.0.D0) TRGXLK(IP,KK)=TAUSUM
+      TAUSUM=TRGXLK(L,KK)+TAUIPG
+      IF(TAUSUM > 0) TRGXLK(L,KK)=TAUSUM
       KK=KK+1
   430 CONTINUE
   500 CONTINUE
 C                               CFC11 and CFC12 Window Absorption (1997)
 C                               ----------------------------------------
 
-      IF(MLGAS(16).EQ.1.OR.MLGAS(17).EQ.1) THEN
-      XK=WTB*(XKCFCW(ITX2,1)-XKCFCW(ITX1,1))+XKCFCW(ITX1,1)
-      TAU11=XK*(ULGAS(IP,8)*xxgas(8)+ULGAS(IP,11)*xxgas(11))
-      TRGXLK(IP,1)=TRGXLK(IP,1)+TAU11
+      IF(MLGAS(16) == 1.OR.MLGAS(17) == 1) THEN
+        XK=WTB*(XKCFCW(ITX+1,1)-XKCFCW(ITX,1))+XKCFCW(ITX,1)
+        TAU11=XK*(ULGAS(L,8)*XXGAS(8)+ULGAS(L,11)*XXGAS(11))
+        TRGXLK(L,1)=TRGXLK(L,1)+TAU11
       ENDIF
-      IF(MLGAS(18).EQ.1.OR.MLGAS(19).EQ.1) THEN
-      XK=WTB*(XKCFCW(ITX2,2)-XKCFCW(ITX1,2))+XKCFCW(ITX1,2)
-      TAU12=XK*ULGAS(IP,9)*xxgas(9)
-      TRGXLK(IP,1)=TRGXLK(IP,1)+TAU12
+      IF(MLGAS(18) == 1.OR.MLGAS(19) == 1) THEN
+        XK=WTB*(XKCFCW(ITX+1,2)-XKCFCW(ITX,2))+XKCFCW(ITX,2)
+        TAU12=XK*ULGAS(L,9)*XXGAS(9)
+        TRGXLK(L,1)=TRGXLK(L,1)+TAU12
       ENDIF
   600 CONTINUE
 
       RETURN
       END SUBROUTINE TAUGAS
-
-
 
       SUBROUTINE THERML
       IMPLICIT NONE
@@ -5302,80 +4790,87 @@ C     ------------------------------------------------------------------
       REAL*8, PARAMETER :: A=0.3825D0,B=0.5742D0,C=0.0433D0
 
       REAL*8 TA,TB,TC,P1,P2,P3,P4,DT1CPT,DTHALF,CLTAUX,CLTAUS,CLCOSB
-     *     ,CLPI0K,CTX,DT2,DT1,CTG,DG2,DG1,WT1,WT2,WT3,WT4,WT5,WT6,WT7
+     *     ,CTX,DT2,DT1,CTG,DG2,DG1,WT1,WT2,WT3,WT4,WT5,WT6,WT7
      *     ,WT8,BG,DNACUM,DNBCUM,DNCCUM,TAUAG,TAUAP,TAUBP,TAUCP,TAUAX
      *     ,TAUBX,TAUCX,XTRDL,BTOP,BBOT,BBAR,TX,PLBN,F,TAUA,TAUB,TAUC
-     *     ,BDIF,BBTA,BBTB,BBTC,TAUA2,TRANA,TAUB2,TRANB,TAUC2,TRANC,DEC
+     *     ,BDIF,BBTA,BBTB,BBTC,TRANA,TRANB,TRANC,DEC
      *     ,DEB,DEA,COALB1,COALB2,COALB3,FDNABC,UNA,UNB,UNC,FUNABC
      *     ,PFW,DPF,CTP,DP1,DP2,TAUBG,TAUCG,DDFLUX,XTRUL
-      INTEGER K,L,N,II,ITL,ICT,IT1,IT2,IP1,IP2,ICG,IG1,IG2,ITK0,IMOL
-     *     ,IPF,ICP
+      REAL*8 ENA(LX),ENB(LX),ENC(LX), TRA(LX),TRB(LX),TRC(LX)
+      REAL*8 DNA(LX),DNB(LX),DNC(LX), WTLB(LX),WTLT(LX)
+      REAL*8 RIJTCK(6,33), FDXTCK(3,33),FEMTCK(3,33),ALBTCK(3,33)
+      REAL*8 CLPI0(33),CLPI0K
+      REAL*8 SUMA(LX+4),DXTUA(LX,4),DXTDA(LX,4),CSUM
+      INTEGER K,L,LL,II,ITL,ICT,IT1,IT2,IP1,IP2,ICG,IG1,IG2,IMOL
+     *     ,IPF,ICP,ITLT(LX),ITLB(LX)
+     *     ,LCL(LX),ia,iaa,ic,iu,lvlo,lvhi,lskip,lcbot,nclds,icomb
 
-      IF(TLGRAD.LT.0.D0) GO TO 130
-      TA=TLM(1)
-      TB=TLM(2)
-      P1=PLB(1)
-      P2=PLB(2)
-      P3=PLB(3)
-      DT1CPT=0.5D0*TA*(PLB(1)**0.286D0-PLB(2)**0.286D0)/PL(1)**0.286D0
-      DTHALF=(TA-TB)*(P1-P2)/(P1-P3)
-      IF(DTHALF.GT.DT1CPT) DTHALF=DT1CPT
-      TLB(1)=TA+DTHALF*TLGRAD
-      TLT(1)=TA-DTHALF*TLGRAD
-      DO 110 L=3,NL
-      TC=TLM(L)
-      P4=PLB(L+1)
-      DTHALF=0.5D0*((TA-TB)/(P1-P3)+(TB-TC)/(P2-P4))*(P2-P3)*TLGRAD
-      TLB(L-1)=TB+DTHALF
-      TLT(L-1)=TB-DTHALF
-      TA=TB
-      TB=TC
-      P1=P2
-      P2=P3
-      P3=P4
-  110 CONTINUE
-      DTHALF=(TA-TB)*(P2-P3)/(P1-P3)*TLGRAD
-      TLB(NL)=TC+DTHALF
-      TLT(NL)=TC-DTHALF
-      DO 120 L=NL,1,-1
-      IF(PLB(L).GT.PTLISO) GO TO 130
-      TLT(L)=TLM(L)
-      TLB(L)=TLM(L)
-  120 CONTINUE
+C-----------------------------------------------------------------------
+C                                   Layer edge temperature interpolation
+C-----------------------------------------------------------------------
+      if (TLGRAD < 0.D0) GO TO 130
+      TA = TLM(L1)
+      TB = TLM(L1+1)
+      P1 = PLB(L1)
+      P2 = PLB(L1+1)
+      P3 = PLB(L1+2)
+      DT1CPT = .5*TA*(P1**.286d0-P2**.286d0) / PL(L1)**.286d0
+      DTHALF = (TA-TB)*(P1-P2)/(P1-P3)
+      if (DTHALF > DT1CPT) DTHALF = DT1CPT
+      TLB(L1) = TA+DTHALF*TLGRAD
+      TLT(L1) = TA-DTHALF*TLGRAD
+      DO L = L1+1,NL-1
+        TC = TLM(L+1)
+        P4 = PLB(L+2)
+        DTHALF = .5*((TA-TB)/(P1-P3)+(TB-TC)/(P2-P4))*(P2-P3)*TLGRAD
+        TLB(L) = TB+DTHALF
+        TLT(L) = TB-DTHALF
+        TA = TB
+        TB = TC
+        P1 = P2
+        P2 = P3
+        P3 = P4
+      END DO
+      DTHALF = (TA-TB)*(P2-P3)/(P1-P3)*TLGRAD
+      TLB(NL) = TC+DTHALF
+      TLT(NL) = TC-DTHALF
+      DO L = NL,L1,-1
+        if (PLB(L) > PTLISO) GO TO 130
+        TLT(L) = TLM(L)
+        TLB(L) = TLM(L)
+      END DO
   130 CONTINUE
-      TLB(NLP)=TLT(NL)
+      TLB(NL+1) = TLT(NL)
 
 C     ------------------------------------------------------------------
-C                   WEIGHT ASSIGNMENTS FOR PLANCK FUNCTION INTERPOLATION
-C                    (Effective range is from TK = 123 K to TK = 373 K)
+C                   weight assignments for Planck function interpolation
+C                    (Effective range is from TK = 124 K to TK = 373 K)
 C     ------------------------------------------------------------------
 
-      DO 140 L=1,NL
-      ITL=TLB(L)
-      WTLB(L)=TLB(L)-ITL
-      ITLB(L)=ITL-ITPFT0
-      IF(ITLB(L).LT.1) ITLB(L)=1
-      IF(ITLB(L).GT.249) ITLB(L)=249
-      ITL=TLT(L)
-      WTLT(L)=TLT(L)-ITL
-      ITLT(L)=ITL-ITPFT0
-      IF(ITLT(L).LT.1) ITLT(L)=1
-      IF(ITLT(L).GT.249) ITLT(L)=249
+      DO 140 L=L1,NL
+      ITLB(L) = TLB(L)
+      WTLB(L) = TLB(L)-ITLB(L)
+      if (ITLB(L) < 124) ITLB(L) = 124
+      if (ITLB(L) > 372) ITLB(L) = 372
+      ITLT(L) = TLT(L)
+      WTLT(L) = TLT(L)-ITLT(L)
+      if (ITLT(L) < 124) ITLT(L) = 124
+      if (ITLT(L) > 372) ITLT(L) = 372
   140 CONTINUE
 
-      DO 180 L=1,NL
-      IF(L.EQ.LTOPCL) THEN
+      if (LTOPCL==0) GO TO 180
+
       DO 170 K=1,33
-      CLTAUX=TXCTPG(K)+TRGXLK(L,K)+1.D-10
+      CLTAUX=TXCTPG(K)+TRGXLK(LTOPCL,K)+1d-10
       CLTAUS=TSCTPG(K)
       CLCOSB=TGCTPG(K)
       CLPI0K=CLTAUS*ECLTRA/CLTAUX
       CLPI0(K)=CLPI0K
       CTX=CLTAUX*10.D0
-      IF(CLTAUX.GE.3.D0) THEN
-      CTX=CLTAUX*2.D0+24.D0
-      IF(CTX.GT.47.999999D0) CTX=47.999999D0
-      ENDIF
+      if (CLTAUX >= 3.D0) then
+        CTX=CLTAUX*2 + 24
+        if (CTX > 47.999999D0) CTX=47.999999D0
+      end if
       ICT=CTX
       DT2=CTX-ICT
       DT1=1.D0-DT2
@@ -5401,58 +4896,124 @@ C     ------------------------------------------------------------------
       WT6=DT2*DP1*DG2
       WT7=DT2*DP2*DG2
       WT8=DT1*DP2*DG2
-      DO 150 II=1,6
-      RIJTCK(II,K)=WT1*RIJTPG(II,IT1,IP1,IG1)+WT2*RIJTPG(II,IT2,IP1,IG1)
-     +            +WT3*RIJTPG(II,IT2,IP2,IG1)+WT4*RIJTPG(II,IT1,IP2,IG1)
-     +            +WT5*RIJTPG(II,IT1,IP1,IG2)+WT6*RIJTPG(II,IT2,IP1,IG2)
-     +            +WT7*RIJTPG(II,IT2,IP2,IG2)+WT8*RIJTPG(II,IT1,IP2,IG2)
-  150 CONTINUE
-      DO 160 II=1,3
-      FEMTCK(II,K)=WT1*FEMTPG(II,IT1,IP1,IG1)+WT2*FEMTPG(II,IT2,IP1,IG1)
-     +            +WT3*FEMTPG(II,IT2,IP2,IG1)+WT4*FEMTPG(II,IT1,IP2,IG1)
-     +            +WT5*FEMTPG(II,IT1,IP1,IG2)+WT6*FEMTPG(II,IT2,IP1,IG2)
-     +            +WT7*FEMTPG(II,IT2,IP2,IG2)+WT8*FEMTPG(II,IT1,IP2,IG2)
-      FDXTCK(II,K)=WT1*FDXTPG(II,IT1,IP1,IG1)+WT2*FDXTPG(II,IT2,IP1,IG1)
-     +            +WT3*FDXTPG(II,IT2,IP2,IG1)+WT4*FDXTPG(II,IT1,IP2,IG1)
-     +            +WT5*FDXTPG(II,IT1,IP1,IG2)+WT6*FDXTPG(II,IT2,IP1,IG2)
-     +            +WT7*FDXTPG(II,IT2,IP2,IG2)+WT8*FDXTPG(II,IT1,IP2,IG2)
-  160 CONTINUE
+      RIJTCK(:,K)=WT1*RIJTPG(:,IT1,IP1,IG1)+WT2*RIJTPG(:,IT2,IP1,IG1) ! 1:6
+     +           +WT3*RIJTPG(:,IT2,IP2,IG1)+WT4*RIJTPG(:,IT1,IP2,IG1)
+     +           +WT5*RIJTPG(:,IT1,IP1,IG2)+WT6*RIJTPG(:,IT2,IP1,IG2)
+     +           +WT7*RIJTPG(:,IT2,IP2,IG2)+WT8*RIJTPG(:,IT1,IP2,IG2)
+      FEMTCK(:,K)=WT1*FEMTPG(:,IT1,IP1,IG1)+WT2*FEMTPG(:,IT2,IP1,IG1) ! 1:3
+     +           +WT3*FEMTPG(:,IT2,IP2,IG1)+WT4*FEMTPG(:,IT1,IP2,IG1)
+     +           +WT5*FEMTPG(:,IT1,IP1,IG2)+WT6*FEMTPG(:,IT2,IP1,IG2)
+     +           +WT7*FEMTPG(:,IT2,IP2,IG2)+WT8*FEMTPG(:,IT1,IP2,IG2)
+      FDXTCK(:,K)=WT1*FDXTPG(:,IT1,IP1,IG1)+WT2*FDXTPG(:,IT2,IP1,IG1)
+     +           +WT3*FDXTPG(:,IT2,IP2,IG1)+WT4*FDXTPG(:,IT1,IP2,IG1)
+     +           +WT5*FDXTPG(:,IT1,IP1,IG2)+WT6*FDXTPG(:,IT2,IP1,IG2)
+     +           +WT7*FDXTPG(:,IT2,IP2,IG2)+WT8*FDXTPG(:,IT1,IP2,IG2)
   170 CONTINUE
-      ENDIF
+
   180 CONTINUE
-      DO 190 L=1,NLP
-      TRDFLB(L)=0.D0
-      TRUFLB(L)=0.D0
-  190 CONTINUE
+      TRDFLB(:)=0.D0
+      TRUFLB(:)=0.D0
 
       BG=BGFEMT(1)
-      TOTLZF(1)=0.D0
-      TOTLZF(2)=0.D0
-      TOTLZF(3)=0.D0
+      TOTLZF(1:3)=0.D0
 !sl   TRSLTS=0.D0
 !sl   TRSLTG=0.D0
 !sl   TRSLBS=0.D0
 
+C**** Collect cloud and aerosol LW-absorption and cloud levels
+      LSKIP=0
+      SUMA(:)=0.         ! LW-abs. from aeros and cloud layers
+      LVLO=0 ; LVHI=0    ! range of layers with volc. aerosols
+      CSUM=0             ! cloud LW-absorption - column amount
+      NCLDS=0            ! number of layers containing clouds
+      LCL(:)=0           ! cloud levels top->bottom
+      DO L=NL,L1,-1
+        if (TRCALK(L,1) > 1.E-2) then              ! Clouds
+          SUMA(L)=TRCALK(L,1)
+          CSUM=CSUM+SUMA(L)
+          NCLDS=NCLDS+1
+          LCL(NCLDS)=L
+          IF (PL(L)<50 .and. CSUM>PL(L)*.005 .and. LSKIP==0) LSKIP=L
+          IF (               CSUM>.69        .and. LSKIP==0) LSKIP=L
+        end if
+        SUMA(NL+1)=SUMA(NL+1)+TRAALK(L,1)          ! atm.aerosols
+        SUMA(NL+2)=SUMA(NL+2)+TRBALK(L,1)          ! bkground aerosols
+        SUMA(NL+3)=SUMA(NL+3)+TRDALK(L,1)          ! dust aerosols
+        if (TRVALK(L,1) > 1.E-4) then              ! volc.aerosols
+          SUMA(NL+4)=SUMA(NL+4)+TRVALK(L,1)
+          if (LVLO==0) LVHI=L
+          LVLO=L
+        end if
+      END DO
+
+C**** Modify XTRD if clouds are present
+      LCBOT=0
+      if (NCLDS > 0) then
+        LCBOT=LCL(NCLDS)                   ! LCTOP=LCL(1)
+        XTRD(LCBOT/2 + 1:LSKIP,2:4) = 1
+      end if
+
+C**** Find flux corrections DXTUA,DXTDA  from DXAERU,DXAERD
+      DXTUA(:,:)=0. ; DXTDA(:,:)=0.
+      IC=0
+      DO 195 IAA=NL+4,L1,-1
+      IF (IAA <= NL) then                  ! Clouds
+        IF (SUMA(IAA) < 1.E-2) GO TO 195
+        IA=IP24C9(IAA)                     ! IA=1-9
+        IC=IC+1
+      ELSE                                 ! aerosols
+        if (SUMA(IAA) < 1.E-4) GO TO 195
+        IA=IAA-NL+9                        ! IA=10-13 (13=volc.aeros)
+      ENDIF
+!         Try for SAX(IU-1)<SUMA<SAX(IU) IU=2 or 3(or 4 if volc.aeros)
+      IU=3
+      IF (IA==13 .and. SUMA(IAA) > SAX(3,IA)) IU=4
+      IF (SUMA(IAA) <= SAX(2,IA)) IU=2
+      WT1=(SUMA(IAA)-SAX(IU-1,IA))/(SAX(IU,IA)-SAX(IU-1,IA))
+
+      if (WT1 > 1) WT1=1            ! no extrapolation for large taus
+      WT2=1-WT1
+      WT3=WT1 ; WT4=WT2             ! 2 extrapolations for small taus
+      IF (WT1 < 0) THEN
+        WT1=0        ; WT2 = SUMA(IAA)/SAX(1,IA)  ! up
+        WT3=.5*WT3   ; WT4 = .5*(WT4 + WT2)       ! down
+      END IF
+
+      DO 194 L=L1,NL
+      IF (IA==13 .and. L<LVLO) GO TO 193
+      DXTUA(L,2:4) = DXTUA(L,2:4) +
+     +  (DXAERU(L,2:4,IU,IAA)*WT1 + DXAERU(L,2:4,IU-1,IAA)*WT2)
+      IF (IA==13 .and. L>LVHI) GO TO 194
+  193 CONTINUE
+      IF (L <= LCL(IC+1) .and. IC .ne. NCLDS) GO TO 194
+      IF (L <= LSKIP .and. L > LCBOT/2) GO TO 194
+      DXTDA(L,2:4) = DXTDA(L,2:4) +
+     +  (DXAERD(L,2:4,IU,IAA)*WT3 + DXAERD(L,2:4,IU-1,IAA)*WT4)
+  194 CONTINUE
+  195 CONTINUE
+
+C     ------------------------------------------------------------------
+C                                                      LOOP OVER K-BANDS
+C     ------------------------------------------------------------------
       K=0
       IMOL=0
   200 CONTINUE
-      ITK0=K*ITNEXT
       K=K+1
-      IF(K.GT.33) GO TO 300
+      if (K > 33) GO TO 300
       BG=BGFEMT(K)
-      IF(K.GT.1.AND.K.LT.14) IMOL=1
-      IF(K.GT.13.AND.K.LT.26) IMOL=2
-      IF(K.GT.25) IMOL=3
-      DFLB(NLP,K)=0.D0
+      if (K > 1 .and. K < 14) IMOL=1
+      if (K > 13 .and. K < 26) IMOL=2
+      if (K > 25) IMOL=3
+      DFLB(NL+1,K)=0.D0
       DNACUM=0.D0
       DNBCUM=0.D0
       DNCCUM=0.D0
-      L=NL
-  205 CONTINUE
+C**** Find top layer with absorbers: L=Ltop
+      DO 210 L=NL,L1,-1
       TAUAG=TRGXLK(L,K)
       TAUAP=TRCALK(L,K)+TRAALK(L,K)+TRBALK(L,K)+TRDALK(L,K)+TRVALK(L,K)
       TAUAX=TAUAG+TAUAP
-      IF(TAUAX.GT.1.D-06) GO TO 215
+      if (TAUAX > 1.D-06) GO TO 216
       DFLB(L,K)=0.D0
       ENA(L)=0.D0
       DNA(L)=0.D0
@@ -5463,176 +5024,161 @@ C     ------------------------------------------------------------------
       ENC(L)=0.D0
       DNC(L)=0.D0
       TRC(L)=1.D0
-      L=L-1
-      IF(L.GT.0) GO TO 205
   210 CONTINUE
-      L=L+1
-      UFLB(L,K)=BG
-      TRUFLB(L)=TRUFLB(L)+BG
-      IF(L.LT.NLP) GO TO 210
+      UFLB(L1:NL,K)=BG                 ! no absorbers in whole column
+      TRUFLB(L1:NL)=TRUFLB(L1:NL)+BG
       TOTLZF(1)=TOTLZF(1)+BG
       TOTLZF(2)=TOTLZF(2)+BG
       TOTLZF(3)=TOTLZF(3)+BG
-      GO TO 200
-  215 CONTINUE
-  220 CONTINUE
-      XTRDL=XTRD(L,IMOL+1)
+      GO TO 200                        ! next K
 
-      ITL=ITLT(L)+ITK0
-      BTOP=PLANCK(ITL)-(PLANCK(ITL)-PLANCK(ITL+1))*WTLT(L)
-      ITL=ITLB(L)+ITK0
-      BBOT=PLANCK(ITL)-(PLANCK(ITL)-PLANCK(ITL+1))*WTLB(L)
+C     ------------------------------------------------------------------
+C                                              DOWNWARD FLUX COMPUTATION
+C     ------------------------------------------------------------------
+  215 CONTINUE                   ! loop over layers L=Ltop,Ltop-1,...,L1
       TAUAG=TRGXLK(L,K)
       TAUAP=TRCALK(L,K)+TRAALK(L,K)+TRBALK(L,K)+TRDALK(L,K)+TRVALK(L,K)
       TAUAX=TAUAG+TAUAP
 
+  216 XTRDL=XTRD(L,IMOL+1)+DXTDA(L,IMOL+1)
+      BTOP = PLANCK(ITLT(L),K)-
+     -      (PLANCK(ITLT(L),K)-PLANCK(ITLT(L)+1,K))*WTLT(L)
+      BBOT = PLANCK(ITLB(L),K)-
+     -      (PLANCK(ITLB(L),K)-PLANCK(ITLB(L)+1,K))*WTLB(L)
+
 C               Optically thin limit emission/transmission approximation
 C               --------------------------------------------------------
 
-      IF(TAUAX.LT.1.D-04) THEN
+      IF (TAUAX >= 1.D-04) GO TO 220
       TAUBX=TAUAX+TAUAX
       TAUCX=10.D0*TAUAX
       BBAR=0.5D0*(BTOP+BBOT)
       TRA(L)=1.D0-TAUAX
       ENA(L)=BBAR*TAUAX
       DNA(L)=ENA(L)
-      TX=TRA(L)*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRA(L)*XTRDL ; if (TX > 1) TX=1
       DNACUM=DNACUM*TX+DNA(L)
       TRB(L)=1.D0-TAUBX
       ENB(L)=BBAR*TAUBX
       DNB(L)=ENB(L)
-      TX=TRB(L)*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRB(L)*XTRDL ; if (TX > 1) TX=1
       DNBCUM=DNBCUM*TX+DNB(L)
       TRC(L)=1.D0-TAUCX
       ENC(L)=BBAR*TAUCX
       DNC(L)=ENC(L)
-      TX=TRC(L)*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRC(L)*XTRDL ; if (TX > 1) TX=1
       DNCCUM=DNCCUM*TX+DNC(L)
       GO TO 230
-      ENDIF
 
 C                     TAUB absorber-dependent extinction path adjustment
 C                     --------------------------------------------------
 
-      PLBN=PLB(L)
+  220 PLBN=PLB(L)
+      ICOMB=0
+      IF (TAUAG > TAUAP) THEN
+        ICOMB=1
+        TAUAG=TAUAX
+      END IF
       TAUBG=TAUAG+TAUAG
       TAUCG=10.D0*TAUAG
 
-       IF(IMOL.EQ.3.AND.PLBN.GT.500.D0) THEN
-       IF(TAUAG.GT..05D0.AND.TAUAG.LT..25D0) THEN
-      F=23.71D0*TAUAG**2-7.113D0*TAUAG+1.296D0
-      TAUBG=TAUBG*F
-      GO TO 221
-       ENDIF
-       ENDIF
+      F=1
+      if (IMOL==3 .and. PLBN>500 .and. TAUAG>.05d0 .and. TAUAG<.25) then
+        F=23.71D0*TAUAG**2-7.113D0*TAUAG+1.296D0
+        GO TO 221
+      end if
 
-      IF(TAUAG.GT..1D0) THEN
-         IF(IMOL.EQ.1) THEN
-         IF(PLBN.GT.250.D0) THEN
-      F=.761D0
-      IF(TAUAG.LT.3.D0) F=.92D0-.053D0*TAUAG
-      IF(TAUAG.LT..2D0) F=1.091D0-.906D0*TAUAG
-      TAUBG=TAUBG*F
-         ELSE
-      F=.718D0
-      IF(TAUAG.LT.2.5D0) F=.90D0-.073D0*TAUAG
-      IF(TAUAG.LT..2D0) F=1.115D0-1.146D0*TAUAG
-      TAUBG=TAUBG*F
-      ENDIF
-      ENDIF
-         IF(IMOL.EQ.2) THEN
-         IF(PLBN.GT.250.D0) THEN
-      F=.590D0
-      IF(TAUAG.LT.3.5D0) F=.93D0-.097D0*TAUAG
-      IF(TAUAG.LT..2D0) F=1.089D0-.894D0*TAUAG
-      TAUBG=TAUBG*F
-         ELSE
-      F=.703D0
-      IF(TAUAG.LT.3.5D0) F=.92D0-.062D0*TAUAG
-      IF(TAUAG.LT..2D0) F=1.092D0-.924D0*TAUAG
-      TAUBG=TAUBG*F
-      ENDIF
-      ENDIF
-         IF(IMOL.EQ.3) THEN
-         IF(PLBN.GT.250.D0) THEN
-      F=.982D0
-      IF(TAUAG.LT..5D0) F=.99D0-.016D0*TAUAG
-      IF(TAUAG.LT..2D0) F=1.013D0-.132D0*TAUAG
-      TAUBG=TAUBG*F
-         ELSE
-      F=.748D0
-      IF(TAUAG.LT.3.7D0) F=.97D0-.060D0*TAUAG
-      IF(TAUAG.LT..2D0) F=1.042D0-.420D0*TAUAG
-      TAUBG=TAUBG*F
-      ENDIF
-      ENDIF
-      ENDIF
+      if (TAUAG > .1D0) then
+        if      (IMOL==1) then
+          if (PLBN > 250.D0) then
+            F=.761D0
+            if (TAUAG < 3.D0) F=.92D0-.053D0*TAUAG
+            if (TAUAG < .2D0) F=1.091D0-.906D0*TAUAG
+          else
+            F=.718D0
+            if (TAUAG < 2.5D0) F=.90D0-.073D0*TAUAG
+            if (TAUAG < .2D0) F=1.115D0-1.146D0*TAUAG
+          end if
+        else if (IMOL==2) then
+          if (PLBN > 250.D0) then
+            F=.590D0
+            if (TAUAG < 3.5D0) F=.93D0-.097D0*TAUAG
+            if (TAUAG < .2D0) F=1.089D0-.894D0*TAUAG
+          else
+            F=.703D0
+            if (TAUAG < 3.5D0) F=.92D0-.062D0*TAUAG
+            if (TAUAG < .2D0) F=1.092D0-.924D0*TAUAG
+          end if
+        else if (IMOL==3) then
+          if (PLBN > 250.D0) then
+            F=.982D0
+            if (TAUAG < .5D0) F=.99D0-.016D0*TAUAG
+            if (TAUAG < .2D0) F=1.013D0-.132D0*TAUAG
+          else
+            F=.748D0
+            if (TAUAG < 3.7D0) F=.97D0-.060D0*TAUAG
+            if (TAUAG < .2D0) F=1.042D0-.420D0*TAUAG
+          end if
+        end if
+      end if
+  221 TAUBG=TAUBG*F
 
 C                     TAUC absorber-dependent extinction path adjustment
 C                     --------------------------------------------------
-  221 CONTINUE
+      F=1
+      if (IMOL==3 .and. PLBN>500 .and. TAUAG>.01d0 .and. TAUAG<.25) then
+        F=26.14D0*TAUAG**2-6.796D0*TAUAG+1.065D0
+        GO TO 222
+      end if
 
-       IF(IMOL.EQ.3.AND.PLBN.GT.500.D0) THEN
-       IF(TAUAG.GT..01D0.AND.TAUAG.LT..25D0) THEN
-      F=26.14D0*TAUAG**2-6.796D0*TAUAG+1.065D0
-      TAUCG=TAUCG*F
-      GO TO 222
-       ENDIF
-       ENDIF
+      if (TAUAG > .01D0) then
+        if      (IMOL==1) then
+          if (PLBN > 250.D0) then
+            F=.712D0
+            if (TAUAG < .37D0) F=.96D0-.67D0*TAUAG
+            if (TAUAG < .02D0) F=1.053D0-5.34D0*TAUAG
+          else
+            F=.536D0
+            if (TAUAG < .47D0) F=.87D0-.71D0*TAUAG
+            if (TAUAG < .02D0) F=1.144D0-14.42D0*TAUAG
+          end if
+        else if (IMOL==2) then
+          if (PLBN > 250.D0) then
+            F=.710D0
+            if (TAUAG < .75D0) F=.95D0-.32D0*TAUAG
+            if (TAUAG < .02D0) F=1.056D0-5.64D0*TAUAG
+          else
+            F=.487D0
+            if (TAUAG < .70D0) F=.90D0-.59D0*TAUAG
+            if (TAUAG < .02D0) F=1.112D0-11.18D0*TAUAG
+          end if
+        else if (IMOL==3) then
+          if (PLBN > 250.D0) then
+            F=.961D0
+            if (TAUAG < .5D0) F=.98D0-.039D0*TAUAG
+            if (TAUAG < .02D0) F=1.021D0-2.08D0*TAUAG
+          else
+            F=.777D0
+            if (TAUAG < .70D0) F=.98D0-.29D0*TAUAG
+            if (TAUAG < .02D0) F=1.026D0-2.58D0*TAUAG
+          end if
+        end if
+      end if
+  222 TAUCG=TAUCG*F
 
-      IF(TAUAG.GT..01D0) THEN
-         IF(IMOL.EQ.1) THEN
-         IF(PLBN.GT.250.D0) THEN
-      F=.712D0
-      IF(TAUAG.LT..37D0) F=.96D0-.67D0*TAUAG
-      IF(TAUAG.LT..02D0) F=1.053D0-5.34D0*TAUAG
-      TAUCG=TAUCG*F
-         ELSE
-      F=.536D0
-      IF(TAUAG.LT..47D0) F=.87D0-.71D0*TAUAG
-      IF(TAUAG.LT..02D0) F=1.144D0-14.42D0*TAUAG
-      TAUCG=TAUCG*F
-      ENDIF
-      ENDIF
-         IF(IMOL.EQ.2) THEN
-         IF(PLBN.GT.250.D0) THEN
-      F=.710D0
-      IF(TAUAG.LT..75D0) F=.95D0-.32D0*TAUAG
-      IF(TAUAG.LT..02D0) F=1.056D0-5.64D0*TAUAG
-      TAUCG=TAUCG*F
-         ELSE
-      F=.487D0
-      IF(TAUAG.LT..70D0) F=.90D0-.59D0*TAUAG
-      IF(TAUAG.LT..02D0) F=1.112D0-11.18D0*TAUAG
-      TAUCG=TAUCG*F
-      ENDIF
-      ENDIF
-         IF(IMOL.EQ.3) THEN
-         IF(PLBN.GT.250.D0) THEN
-      F=.961D0
-      IF(TAUAG.LT..5D0) F=.98D0-.039D0*TAUAG
-      IF(TAUAG.LT..02D0) F=1.021D0-2.08D0*TAUAG
-      TAUCG=TAUCG*F
-         ELSE
-      F=.777D0
-      IF(TAUAG.LT..70D0) F=.98D0-.29D0*TAUAG
-      IF(TAUAG.LT..02D0) F=1.026D0-2.58D0*TAUAG
-      TAUCG=TAUCG*F
-      ENDIF
-      ENDIF
-      ENDIF
-  222 CONTINUE
+      IF (ICOMB==0) THEN
+        TAUBP=TAUAP+TAUAP
+        TAUCP=10.D0*TAUAP
+        TAUA=TAUAG+TAUAP
+        TAUB=TAUBG+TAUBP
+        TAUC=TAUCG+TAUCP
+      ELSE
+        TAUA=TAUAG
+        TAUB=TAUBG
+        TAUC=TAUCG
+      END IF
 
-      TAUBP=TAUAP+TAUAP
-      TAUCP=10.D0*TAUAP
-      TAUA=TAUAG+TAUAP
-      TAUB=TAUBG+TAUBP
-      TAUC=TAUCG+TAUCP
-
-      IF(L.EQ.LTOPCL.AND.KCLDEM.EQ.1) GO TO 225
+      if (L==LTOPCL .and. KCLDEM==1) GO TO 225
 
       BDIF=BBOT-BTOP
       BBTA=BDIF/TAUA
@@ -5642,58 +5188,52 @@ C                     --------------------------------------------------
 C            Optically thick limit non-scattering emission approximation
 C            -----------------------------------------------------------
 
-      IF(TAUA.GT.9.D0) THEN
-      TRA(L)=0.D0
-      TRB(L)=0.D0
-      TRC(L)=0.D0
-      ENA(L)=BTOP+BBTA
-      ENB(L)=BTOP+BBTB
-      ENC(L)=BTOP+BBTC
-      DNA(L)=BBOT-BBTA
-      DNB(L)=BBOT-BBTB
-      DNC(L)=BBOT-BBTC
-      DNACUM=BBOT-BBTA
-      DNBCUM=BBOT-BBTB
-      DNCCUM=BBOT-BBTC
-      GO TO 230
-      ENDIF
+      if (TAUA > 9.D0) then
+        TRA(L)=0.D0
+        TRB(L)=0.D0
+        TRC(L)=0.D0
+        ENA(L)=BTOP+BBTA
+        ENB(L)=BTOP+BBTB
+        ENC(L)=BTOP+BBTC
+        DNA(L)=BBOT-BBTA
+        DNB(L)=BBOT-BBTB
+        DNC(L)=BBOT-BBTC
+        DNACUM=BBOT-BBTA
+        DNBCUM=BBOT-BBTB
+        DNCCUM=BBOT-BBTC
+        GO TO 230
+      end if
 
-      IF(TAUA.LT.0.5D0) THEN
-      TAUA2=TAUA*TAUA
-      TRANA=1.D0-TAUA+(0.5D0-R6*TAUA+R24*TAUA2)*TAUA2
-      ELSE
-      TRANA=EXP(-TAUA)
-      ENDIF
-      IF(TAUB.LT.0.5D0) THEN
-      TAUB2=TAUB*TAUB
-      TRANB=1.D0-TAUB+(0.5D0-R6*TAUB+R24*TAUB2)*TAUB2
-      ELSE
-      TRANB=EXP(-TAUB)
-      ENDIF
-      IF(TAUC.LT.0.5D0) THEN
-      TAUC2=TAUC*TAUC
-      TRANC=1.D0-TAUC+(0.5D0-R6*TAUC+R24*TAUC2)*TAUC2
-      ELSE
-      TRANC=EXP(-TAUC)
-      ENDIF
+      if (TAUA < 0.5D0) then
+        TRANA = 1 - TAUA + (.5 - R6*TAUA + R24*(TAUA*TAUA))*(TAUA*TAUA)
+      else
+        TRANA = EXP(-TAUA)
+      end if
+      if (TAUB < 0.5D0) then
+        TRANB = 1 - TAUB + (.5 - R6*TAUB + R24*(TAUB*TAUB))*(TAUB*TAUB)
+      else
+        TRANB = EXP(-TAUB)
+      end if
+      if (TAUC < 0.5D0) then
+        TRANC = 1 - TAUC + (.5 - R6*TAUC + R24*(TAUC*TAUC))*(TAUC*TAUC)
+      else
+        TRANC = EXP(-TAUC)
+      end if
 
       TRA(L)=TRANA
       ENA(L)=BTOP+BBTA-(BBOT+BBTA)*TRANA
       DNA(L)=BBOT-BBTA-(BTOP-BBTA)*TRANA
-      TX=TRANA*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRANA*XTRDL ; if (TX > 1) TX=1
       DNACUM=DNACUM*TX+DNA(L)
       TRB(L)=TRANB
       ENB(L)=BTOP+BBTB-(BBOT+BBTB)*TRANB
       DNB(L)=BBOT-BBTB-(BTOP-BBTB)*TRANB
-      TX=TRANB*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRANB*XTRDL ; if (TX > 1) TX=1
       DNBCUM=DNBCUM*TX+DNB(L)
       TRC(L)=TRANC
       ENC(L)=BTOP+BBTC-(BBOT+BBTC)*TRANC
       DNC(L)=BBOT-BBTC-(BTOP-BBTC)*TRANC
-      TX=TRANC*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRANC*XTRDL ; if (TX > 1) TX=1
       DNCCUM=DNCCUM*TX+DNC(L)
       GO TO 230
 
@@ -5704,6 +5244,13 @@ C                          and fluxes at the top-cloud (L=LTOPCL) level.
 C                          ---------------------------------------------
 
   225 CONTINUE
+      IF (ICOMB==1) THEN
+        TAUBP=TAUAP*(TAUBG/TAUAG)
+        TAUCP=TAUAP*(TAUCG/TAUAG)
+        TAUBG=TRGXLK(L,K)*(TAUBG/TAUAG)
+        TAUCG=TRGXLK(L,K)*(TAUCG/TAUAG)
+        TAUAG=TAUAG-TAUAP
+      END IF
       TRA(L)=EXP(-TAUAG-TAUAP*FDXTCK(3,K))
       TRB(L)=EXP(-TAUBG-TAUBP*FDXTCK(2,K))
       TRC(L)=EXP(-TAUCG-TAUCP*FDXTCK(1,K))
@@ -5728,18 +5275,15 @@ C                          ---------------------------------------------
       BBTC=BDIF/TAUC
       ENA(L)=(BTOP+BBTA-(BBOT+BBTA)*TRANA)*COALB3
       DNA(L)=(BBOT-BBTA-(BTOP-BBTA)*TRANA)*COALB3
-      TX=TRA(L)*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRA(L)*XTRDL ; if (TX > 1) TX=1
       DNACUM=DNACUM*TX+DNA(L)
       ENB(L)=(BTOP+BBTB-(BBOT+BBTB)*TRANB)*COALB2
       DNB(L)=(BBOT-BBTB-(BTOP-BBTB)*TRANB)*COALB2
-      TX=TRB(L)*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRB(L)*XTRDL ; if (TX > 1) TX=1
       DNBCUM=DNBCUM*TX+DNB(L)
       ENC(L)=(BTOP+BBTC-(BBOT+BBTC)*TRANC)*COALB1
       DNC(L)=(BBOT-BBTC-(BTOP-BBTC)*TRANC)*COALB1
-      TX=TRC(L)*XTRDL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRC(L)*XTRDL ; if (TX > 1) TX=1
       DNCCUM=DNCCUM*TX+DNC(L)
       ENC(L)=ENC(L)+DEC
       ENB(L)=ENB(L)+DEB
@@ -5749,40 +5293,36 @@ C                          ---------------------------------------------
       TRDFLB(L)=TRDFLB(L)+FDNABC
       DFLB(L,K)=FDNABC
       L=L-1
-      IF(L.GT.0) GO TO 220
+      if (L >= L1) GO TO 215
 
 C             Old form of scattering correction is skipped when KCLDEM=1
 C             ----------------------------------------------------------
 
-      IF(KCLDEM.EQ.1) GO TO 235
-      IF(LTOPCL.LT.1) GO TO 235
-      ENA(LTOPCL)=ENA(LTOPCL)*(1.0-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
-      ENB(LTOPCL)=ENB(LTOPCL)*(1.0-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
-      ENC(LTOPCL)=ENC(LTOPCL)*(1.0-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
-  235 CONTINUE
+      if (KCLDEM==0 .and. LTOPCL > 0) then
+        ENA(LTOPCL)=ENA(LTOPCL)*(1-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
+        ENB(LTOPCL)=ENB(LTOPCL)*(1-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
+        ENC(LTOPCL)=ENC(LTOPCL)*(1-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
+      end if
 
 !sl   ------------------------------------------------------------------
 !sl                                       SURFACE LAYER FLUX COMPUTATION
 !sl   with TAUSL,FTAUSL=0 defaults, surface layer calculation is skipped
 !sl   ------------------------------------------------------------------
 
-      L=1
       DFSL(K)=FDNABC
 !sl   TAUA=TAUSL(K)+FTAUSL(K)
-!sl   IF(TAUA.GT.1.D-06) GO TO 240
+!sl   if (TAUA > 1.D-06) GO TO 24
       BG=BG+FDNABC*TRGALB(K)
       UNA=BG
       UNB=BG
       UNC=BG
       FUNABC=BG
 !sl   GO TO 245
-  240 CONTINUE
+!sl24 CONTINUE
 !sl   ITS=TSL
 !sl   WTS=TSL-ITS
-!sl   WTS1=1.D0-WTS
-!sl   ITS=ITS-ITPFT0
-!sl   ITS=ITS+(K-1)*ITNEXT
-!sl   BS=PLANCK(ITS)*WTS1+PLANCK(ITS+1)*WTS
+!sl   WTS1=1-WTS
+!sl   BS = PLANCK(ITS,K)*WTS1 + PLANCK(ITS+1,K)*WTS
 !sl   TA=EXP(-TAUA)
 !sl   TB=TA*TA
 !sl   TC=(TB*TB*TA)**2
@@ -5795,8 +5335,8 @@ C             ----------------------------------------------------------
 !sl   UNB=(BG-BS)*TB+BS
 !sl   UNC=(BG-BS)*TC+BS
 !sl   FUNABC=A*UNA+B*UNB+C*UNC
-!sl   BSP=PLANCK(ITS+1)*WTS1+PLANCK(ITS+2)*WTS
-!sl   BSM=PLANCK(ITS-1)*WTS1+PLANCK(ITS  )*WTS
+!sl   BSP = PLANCK(ITS+1,K)*WTS1 + PLANCK(ITS+2,K)*WTS
+!sl   BSM = PLANCK(ITS-1,K)*WTS1 + PLANCK(ITS  ,K)*WTS
 !sl   SLABS=1.D0-A*TA-B*TB-C*TC
 !sl   TRSLTS=TRSLTS+(BSP-BSM)*SLABS
 !sl   TRSLTG=TRSLTG+BGFEMD(K)*SLABS
@@ -5806,128 +5346,97 @@ C     ------------------------------------------------------------------
 C                                                UPWARD FLUX COMPUTATION
 C     ------------------------------------------------------------------
 
-  245 CONTINUE
+  245 DO 260 L=L1,NL
       TRUFLB(L)=TRUFLB(L)+FUNABC
       UFLB(L,K)=FUNABC
 
 C       ----------------------------------------------------------------
-C       At top-cloud level, compute component of upwelling flux relected
+C       At top-cloud level, find  component of  upwelling flux reflected
 C       downward by cloud bottom and add to downwelling flux below cloud
 C       ----------------------------------------------------------------
 
-      IF(L.EQ.LTOPCL.AND.KCLDEM.EQ.1) THEN
-      DEC=C*UNC*RIJTCK(1,K)+B*UNB*RIJTCK(2,K)+A*UNA*RIJTCK(3,K)
-      DEB=C*UNC*RIJTCK(2,K)+B*UNB*RIJTCK(4,K)+A*UNA*RIJTCK(5,K)
-      DEA=C*UNC*RIJTCK(3,K)+B*UNB*RIJTCK(5,K)+A*UNA*RIJTCK(6,K)
-      N=L
-  250 CONTINUE
-      DNA(N)=DNA(N)+DEA
-      DNB(N)=DNB(N)+DEB
-      DNC(N)=DNC(N)+DEC
-      DDFLUX=A*DEA+B*DEB+C*DEC
-      TRDFLB(N)=TRDFLB(N)+DDFLUX
-      DFLB(N,K)=DFLB(N,K)+DDFLUX
-      IF(N.LT.2) GO TO 255
-      N=N-1
-      DEA=DEA*TRA(N)
-      DEB=DEB*TRB(N)
-      DEC=DEC*TRC(N)
-      GO TO 250
-  255 CONTINUE
-      ENDIF
-      XTRUL=XTRU(L,IMOL+1)
-      TX=TRA(L)*XTRUL
-      IF(TX.GT.1.D0) TX=1.D0
+      if (L==LTOPCL .and. KCLDEM==1) then
+        DEC=C*UNC*RIJTCK(1,K)+B*UNB*RIJTCK(2,K)+A*UNA*RIJTCK(3,K)
+        DEB=C*UNC*RIJTCK(2,K)+B*UNB*RIJTCK(4,K)+A*UNA*RIJTCK(5,K)
+        DEA=C*UNC*RIJTCK(3,K)+B*UNB*RIJTCK(5,K)+A*UNA*RIJTCK(6,K)
+        DO LL=L,L1,-1
+          DNA(LL)=DNA(LL)+DEA
+          DNB(LL)=DNB(LL)+DEB
+          DNC(LL)=DNC(LL)+DEC
+          DDFLUX=A*DEA+B*DEB+C*DEC
+          TRDFLB(LL)=TRDFLB(LL)+DDFLUX
+          DFLB(LL,K)=DFLB(LL,K)+DDFLUX
+          if (LL == L1) exit ! LL-loop
+          DEA=DEA*TRA(LL-1)
+          DEB=DEB*TRB(LL-1)
+          DEC=DEC*TRC(LL-1)
+        END DO
+      end if
+      XTRUL=XTRU(L,IMOL+1)+DXTUA(L,IMOL+1)
+      TX=TRA(L)*XTRUL ; if (TX > 1) TX=1
       UNA=UNA*TX+ENA(L)
-      TX=TRB(L)*XTRUL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRB(L)*XTRUL ; if (TX > 1) TX=1
       UNB=UNB*TX+ENB(L)
-      TX=TRC(L)*XTRUL
-      IF(TX.GT.1.D0) TX=1.D0
+      TX=TRC(L)*XTRUL ; if (TX > 1) TX=1
       UNC=UNC*TX+ENC(L)
       FUNABC=A*UNA+B*UNB+C*UNC
+  260 CONTINUE
 
-      L=L+1
-      IF(L.LT.NLP) GO TO 245
-      IF(K.EQ.1) THEN
-      TRUFTW=FUNABC
-      TRDFGW=TRDFLB(1)
-      TRUFGW=BG
-      WINDZF(1)=UNA
-      WINDZF(2)=UNB
-      WINDZF(3)=UNC
-      ENDIF
+      if (K==1) then
+        TRUFTW=FUNABC
+        TRDFGW=TRDFLB(1)
+        TRUFGW=BG
+        WINDZF(1)=UNA
+        WINDZF(2)=UNB
+        WINDZF(3)=UNC
+      end if
 
-      TRUFLB(NLP)=TRUFLB(NLP)+FUNABC
-      UFLB(NLP,K)=FUNABC
+      TRUFLB(NL+1)=TRUFLB(NL+1)+FUNABC
+      UFLB(NL+1,K)=FUNABC
       UFSL(K)=UFLB(1,K)
       TOTLZF(1)=TOTLZF(1)+UNA
       TOTLZF(2)=TOTLZF(2)+UNB
       TOTLZF(3)=TOTLZF(3)+UNC
 
-      GO TO 200
+      GO TO 200  !  next K
   300 CONTINUE
 
-      DO 310 L=1,NLP
-      TRNFLB(L)=TRUFLB(L)-TRDFLB(L)
-  310 CONTINUE
-      DO 320 L=1,NL
-      TRFCRL(L)=TRNFLB(L+1)-TRNFLB(L)
-  320 CONTINUE
+      TRNFLB(L1:NL+1) = TRUFLB(L1:NL+1) - TRDFLB(L1:NL+1)
+      TRFCRL(L1:NL)   = TRNFLB(L1+1:NL+1) - TRNFLB(L1:NL)
 
 C**** Window region and spectr. integrated total flux diagnostics
-      PFW=max( 1.0001d-2, 10.D0*TRUFTW )
-      IF(PFW.GT.719.999d0) PFW=719.999d0
-      IPF=PFW
-      DPF=0.  ! initialise?
-      IF(IPF.LT.10) GO TO 330
-      DPF=PFW-IPF
-      IPF=IPF+180
-      GO TO 350
-  330 CONTINUE
-      PFW=10.D0*PFW
-      IPF=PFW
-      IF(IPF.LT.10) GO TO 340
-      DPF=PFW-IPF
-      IPF=IPF+90
-      GO TO 350
-  340 CONTINUE
-      PFW=10.D0*PFW
-      IPF=PFW
-C     IF(IPF.LT.1) IPF=1
-  350 CONTINUE
-      BTEMPW=TKPFW(IPF)+DPF*(TKPFW(IPF+1)-TKPFW(IPF))
+      DO 390 II=0,3
+      if (II > 0) then
+        PFW = TOTLZF(II) ; IF (PFW < 1) PFW=1
+        if (PFW > 899.999d0) PFW=899.999d0
+        IPF=PFW
+        TOTLZT(II) = TKPFT(IPF) + (PFW-IPF)*(TKPFT(IPF+1)-TKPFT(IPF))
 
-      DO 390 II=1,3
-      PFW=max( 1.d0, TOTLZF(II) )
-      IF(PFW.GT.899.999d0) PFW=899.999d0
-      IPF=PFW
-      DPF=PFW-IPF
-C     IF(IPF.LT.1) IPF=1
-C     IF(IPF.GT.899) IPF=899
-      TOTLZT(II)=TKPFT(IPF)+DPF*(TKPFT(IPF+1)-TKPFT(IPF))
-
-      PFW=max( 1.0001d-2, 10.D0*WINDZF(II) )
-      IF(PFW.GT.719.999d0) PFW=719.999d0
-      IPF=PFW
-      DPF=0.    ! initialise?
-      IF(IPF.LT.10) GO TO 360
-      DPF=PFW-IPF
-      IPF=IPF+180
-      GO TO 380
-  360 CONTINUE
-      PFW=10.D0*PFW
-      IPF=PFW
-      IF(IPF.LT.10) GO TO 370
-      DPF=PFW-IPF
-      IPF=IPF+90
-      GO TO 380
-  370 CONTINUE
-      PFW=10.D0*PFW
-      IPF=PFW
-  380 CONTINUE
-      WINDZT(II)=TKPFW(IPF)+DPF*(TKPFW(IPF+1)-TKPFW(IPF))
+        PFW = 10*WINDZF(II)
+      else
+        PFW = 10*TRUFTW
+      end if
+        IF (PFW < 1.0001d-2) PFW=1.0001d-2
+        IF (PFW > 719.999d0) PFW=719.999d0
+        IPF=PFW
+        IF (PFW < 1) THEN
+          PFW = 100.*PFW
+          IPF = PFW ; DPF = PFW-IPF         ! IPF=  1- 99
+        ELSE IF (PFW < 10) THEN
+          PFW = 10.*PFW
+          IPF = PFW ; DPF = PFW-IPF
+          IPF = IPF + 90                    ! IPF=100-189
+        ELSE
+          IPF = PFW ; DPF = PFW-IPF
+          IPF = IPF + 180                   ! IPF=190-899
+        END IF
+      if (II > 0) then
+        WINDZT(II) = TKPFW(IPF) + DPF*(TKPFW(IPF+1)-TKPFW(IPF))
+      else
+        BTEMPW     = TKPFW(IPF) + DPF*(TKPFW(IPF+1)-TKPFW(IPF))
+      end if
   390 CONTINUE
+
       RETURN
       END SUBROUTINE THERML
 
@@ -5941,16 +5450,13 @@ C     IF(IPF.GT.899) IPF=899
      *     13, 12, 4, 3, 2, 1, 11, 10, 9,16/)
       INTEGER N2,I
 
-      N2=1
-      DO 1 I=1,30
-      N2=N2*2
-      DBLN(I)=N2
-    1 CONTINUE
-      DO 2 I=1,16
-      NORDER(I)=LORDER(I)
-      NMWAVA(I)=NMKWAV(I)
-      NMWAVB(I)=NMKWAV(I+1)
-    2 CONTINUE
+      DO I=1,30
+        DBLN(I) = 2**I
+      END DO
+
+      NORDER(1:16)=LORDER(1:16)
+      NMWAVA(1:16)=NMKWAV(1:16)
+      NMWAVB(1:16)=NMKWAV(2:17)
 
       TCLMIN=MIN(TAUIC0,TAUWC0)
 
@@ -6051,6 +5557,9 @@ C                            NO2, O3 Chappuis Band, Rayleigh, parameters
 C                            -------------------------------------------
       REAL*8, PARAMETER :: XCMNO2=5.465d0, XCMO3=.0399623d0,
      *     TOTRAY=0.000155d0
+      REAL*8 RNB(LX),RNX(LX), TNB(LX),TNX(LX), XNB(LX),XNX(LX)
+      REAL*8 SRB(LX),SRX(LX), VRU(LX+1),VRD(LX+1),FAC(LX+1)
+      REAL*8 AO3D(LX),AO3U(LX),AO3X(LX)
       REAL*8 S0COSZ,COSMAG,SECZ,TAURAY,RTAU,SUMEXT,SUMCST,SUMCGB,COLPFG
      *     ,SURFBB,TAUSBB,ALLTAU,TAULAY,GCBLAY,RTAUL,DKS0X,RBNB,RBNX
      *     ,RCNB,RCNX,TLN,PLN,ULN,TERMA,TERMB,TAU1,TAU,PIZERO,PR,PT,DBLS
@@ -6062,23 +5571,18 @@ C                            -------------------------------------------
      *     ,SUMH,SGPG
       INTEGER I,K,KK,L,M,N,NN,KLAM,NDBLS
 
-      S0COSZ=S0
-      IF(NORMS0.EQ.0) S0COSZ=S0*COSZ
+      S0COSZ=S0 ; IF (NORMS0==0) S0COSZ=S0*COSZ
 
-      DO 10 N=1,NLP
-      SRNFLB(N)=0.D0
-      SRDFLB(N)=0.D0
-      SRUFLB(N)=0.D0
-      SRFHRL(N)=0.D0
-      SKDFLB(N,16)=0.D0
-      SKUFLB(N,16)=0.D0
-   10 CONTINUE
-      DO N=1,16
-        SRKALB(N)=0.D0          ! for WRITER only
-      END DO
+      SRDFLB(L1:NL+1)=0    ; SRUFLB(L1:NL+1)=0  ;  SRNFLB(L1:NL+1)=0
+      SRFHRL(L1:NL )=0
+
+      SKDFLB(L1:NL+1,16)=0 ; SKUFLB(L1:NL+1,16)=0
+
+      SRKALB(1:16)=0.D0                             ! for WRITER only
       dblext=0. ; dblsct=0. ; dblgcb=0. ; dblpi0=0. ! for writer only
       skdflb=0. ; sknflb=0. ; skuflb=0.             ! for writer only
       skfhrl=0. ; srkgax=0. ; srkgad=0.             ! for writer only
+
 C                     TOA solar flux VIS/NIR subdivision
 C                     (incident, outgoing, plane albedo)
 C                     ----------------------------------
@@ -6113,12 +5617,9 @@ C                     ----------------------------------------------
 C                     Ground surface absorbed solar flux subdivision
 C                     according to 4 fractional surface-type albedos
 C                     ----------------------------------------------
-      FSRNFG(1)=0.D0
-      FSRNFG(2)=0.D0
-      FSRNFG(3)=0.D0
-      FSRNFG(4)=0.D0
+      FSRNFG(1:4)=0
 
-      IF(COSZ.LT.0.001D0) RETURN
+      IF(COSZ < 0.001D0) RETURN
       COSMAG=35.D0/SQRT(1224.D0*COSZ*COSZ+1.D0)
       SECZ=1.D0/COSZ
 
@@ -6126,11 +5627,11 @@ C                     ----------------------------------------------
 
       DO 90 K=1,6
       RTAU=1.D-10
-      IF(K.EQ.6) RTAU=TAURAY
+      IF(K==6) RTAU=TAURAY
       COLEXT(K)=0.D0
       COLSCT(K)=0.D0
       COLGCB(K)=0.D0
-      DO 30 L=1,NL
+      DO 30 L=L1,NL
       RTAUL=RTAU*(PLB(L)-PLB(L+1))
       SUMEXT=RTAUL+SRCEXT(L,K)+SRAEXT(L,K)+SRBEXT(L,K)
      +                        +SRDEXT(L,K)+SRVEXT(L,K)
@@ -6149,7 +5650,7 @@ C                     ----------------------------------------------
    30 CONTINUE
       COLGCB(K)=COLGCB(K)/(COLSCT(K)+1.D-10)
 
-      IF(KANORM.GT.0) THEN
+      IF(KANORM > 0) THEN
 C     -----------------------------------------------------------------
 C     KANORM (default = 0)  Option to renormalize aerosol column albedo
 C                           to make column albedo less dependent on the
@@ -6163,17 +5664,15 @@ C                                     ---------------------------------
       COLPFG=COLGCB(K)
       SURFBB=SRBALB(K)
       TAUSBB=0.D0
-      IF(KANORM.GT.1) CALL GTSALB(XXG,XXT,SURX,SURFBB,COLPFG,TAUSBB,2)
-      DBLEXT(NLP,K)=TAUSBB
+      IF(KANORM > 1) CALL GTSALB(XXG,XXT,SURX,SURFBB,COLPFG,TAUSBB,2)
+      DBLEXT(NL+1,K)=TAUSBB
       ALLTAU=TAUSBB+COLEXT(K)
       CALL SGPGXG(COSZ,ALLTAU,COLPFG,SGPG)
 cc    ALLGCB(K)=SGPG
-      DO 40 L=1,NL
-      DBLGCB(L,K)=SGPG
-   40 CONTINUE
+      DBLGCB(L1:NL,K)=SGPG
       ELSE
 
-      DO 50 L=1,NL
+      DO 50 L=L1,NL
       TAULAY=DBLEXT(L,K)
       GCBLAY=DBLGCB(L,K)
       CALL SGPGXG(COSZ,TAULAY,GCBLAY,SGPG)
@@ -6181,14 +5680,14 @@ cc    ALLGCB(K)=SGPG
    50 CONTINUE
       ENDIF
 
-      IF(LTOPCL.LT.1) GO TO 90
+      IF(LTOPCL == 0) GO TO 90
       RTAU=1.D-10
-      IF(K.EQ.6) RTAU=TAURAY
+      IF(K==6) RTAU=TAURAY
       COLEXT(K)=0.D0
       COLSCT(K)=0.D0
       COLGCB(K)=0.D0
-      DO 60 L=1,NL
-      IF(SRCEXT(L,K).LT.TCLMIN) GO TO 60
+      DO 60 L=L1,NL
+      IF(SRCEXT(L,K) < TCLMIN) GO TO 60
       RTAUL=RTAU*(PLB(L)-PLB(L+1))
       SUMEXT=RTAUL+SRCEXT(L,K)+SRAEXT(L,K)+SRBEXT(L,K)
      +                        +SRDEXT(L,K)+SRVEXT(L,K)
@@ -6207,7 +5706,6 @@ cc    ALLGCB(K)=SGPG
    60 CONTINUE
       COLGCB(K)=COLGCB(K)/(COLSCT(K)+1.D-10)
 
-      IF(KCNORM.GT.0) THEN
 C     -----------------------------------------------------------------
 C     KCNORM (default = 0)  Option to renormalize  cloud  column albedo
 C                           to make column albedo less dependent on the
@@ -6218,31 +5716,32 @@ C
 C                           KCNORM=2    cloud plus ground is normalized
 C                                     with Tau equivalent ground albedo
 C                                     ---------------------------------
-      COLPFG=COLGCB(K)
-      SURFBB=SRBALB(K)
-      TAUSBB=0.D0
-      IF(KCNORM.GT.1) CALL GTSALB(XXG,XXT,SURX,SURFBB,COLPFG,TAUSBB,2)
-      DBLEXT(NLP,K)=TAUSBB
-      ALLTAU=TAUSBB+COLEXT(K)
-      CALL SGPGXG(COSZ,ALLTAU,COLPFG,SGPG)
-cc    ALLGCB(K)=SGPG
-      DO 70 L=1,NL
-      IF(SRCEXT(L,K).LT.TCLMIN) GO TO 70
-      DBLGCB(L,K)=SGPG
-   70 CONTINUE
+      IF(KCNORM > 0) THEN
+        COLPFG=COLGCB(K)
+        SURFBB=SRBALB(K)
+        TAUSBB=0.D0
+        IF(KCNORM > 1) CALL GTSALB(XXG,XXT,SURX,SURFBB,COLPFG,TAUSBB,2)
+        DBLEXT(NL+1,K)=TAUSBB
+        ALLTAU=TAUSBB+COLEXT(K)
+        CALL SGPGXG(COSZ,ALLTAU,COLPFG,SGPG)
+cc      ALLGCB(K)=SGPG
+        DO 70 L=L1,NL
+        IF(SRCEXT(L,K) < TCLMIN) GO TO 70
+        DBLGCB(L,K)=SGPG
+   70   CONTINUE
       ELSE
-      DO 80 L=1,NL
-      IF(SRCEXT(L,K).LT.TCLMIN) GO TO 80
-      TAULAY=DBLEXT(L,K)
-      GCBLAY=DBLGCB(L,K)
-      CALL SGPGXG(COSZ,TAULAY,GCBLAY,SGPG)
-      DBLGCB(L,K)=SGPG
-   80 CONTINUE
+        DO 80 L=L1,NL
+        IF(SRCEXT(L,K) < TCLMIN) GO TO 80
+        TAULAY=DBLEXT(L,K)
+        GCBLAY=DBLGCB(L,K)
+        CALL SGPGXG(COSZ,TAULAY,GCBLAY,SGPG)
+        DBLGCB(L,K)=SGPG
+   80   CONTINUE
       ENDIF
    90 CONTINUE
 
       K = 0
-  300 CONTINUE
+  300 CONTINUE    !   DO K=1,NKSLAM
       K = K+1
 
       KLAM=KSLAM(K)
@@ -6253,9 +5752,7 @@ cc    ALLGCB(K)=SGPG
       RCNX=0.D0
       SRKINC(K)=DKS0X
 
-      N = 0
-  200 CONTINUE
-      N = N+1
+      DO 200 N=L1,NL
 
       SRB(N)=RBNB
       SRX(N)=RBNX
@@ -6266,117 +5763,114 @@ cc    ALLGCB(K)=SGPG
 C     Select parameterized k-distribution gas absorption by H2O, O2, CO2
 C     ------------------------------------------------------------------
 
-      GO TO (101,102,103,104,105,106,107,108,109,110,111,112,113,114),K
- 101  CONTINUE
+      SELECT CASE (K)
+      CASE (1)
 C--------K=6-------H2O       DS0=.01
       TERMA=(35.66+TLN*(.0416-.0004622*TLN+.001057*PLN))*(1.+.04286*PLN)
       TERMB=(1.+.00171*ULN)*(1.+PLN*(189.088+.1316*PLN))
       TAU1 =TERMA/TERMB
-      IF(TAU1.GT.0.02343) TAU1=0.02343
+      IF(TAU1 > 0.02343) TAU1=0.02343
       TAU=TAU1*ULN
-      GO TO 120
- 102  CONTINUE
+
+      CASE (2)
 C--------K=5-------H2O       DS0=.03
       TERMA=(2.792+TLN*(.0914-.0002848*TLN+.0003395*PLN))
      +     *(1.+.02964*PLN)
       TERMB=(1.0+.000657*ULN)*(1.+PLN*(240.70+.13847*PLN))
       TAU1 =TERMA/TERMB
-      IF(TAU1.GT.0.00520) TAU1=0.00520
+      IF(TAU1 > 0.00520) TAU1=0.00520
       TAU=TAU1*ULN
-      GO TO 120
- 103  CONTINUE
+
+      CASE (3)
 C--------K=4-------H2O       DS0=.04
       TERMA=(.4768+.467E-04*PLN*TLN)*(1.+TLN*(.00191-.719E-05*TLN))
       TERMB=(1.+.717E-04*ULN)*(1.+PLN*(130.56+.0876*PLN))/(1.+.0266*PLN)
       TAU1 =TERMA/TERMB
-      IF(TAU1.GT.0.00150) TAU1=0.0015
+      IF(TAU1 > 0.00150) TAU1=0.0015
       TAU=TAU1*ULN
-      GO TO 120
- 104  CONTINUE
+
+      CASE (4)
 C--------K=3-------H2O       DS0=.04
       TERMA=(.000247*TLN-.091+PLN*(.00035+.78E-06*TLN))*(1.+.2847*PLN)
       TERMB=(1.+.2066E-04*ULN)*(1.+PLN*(137.17+.16132*PLN))
       TAU  =(TERMA/TERMB)*ULN
-      GO TO 120
- 105  CONTINUE
+
+      CASE (5)
 C--------K=2-------H2O       DS0=.04
       TERMA=(PLN*(1.974/TLN+.0001117*TLN)-10.713)*(1.+.005788*TLN)
      +     *(1.+.001517*PLN)
       TERMB=(1.+.3218E-04*ULN)*(1.+PLN*(863.44+.2048*PLN))
       TAU  =(TERMA/TERMB)*ULN
-      GO TO 120
- 106  CONTINUE
+
+      CASE (6)
 C--------K=4-------O2        DS0=.002
       ULN=ULGAS(N,4)
       TERMA=(.2236E-05-.1181E-09*TLN)*(1.+PLN*(.6364E-05*PLN+.001168))
       TERMB=1.+.1521E-05*ULN
       TAU  =(TERMA/TERMB)*ULN
-      GO TO 120
- 107  CONTINUE
+
+      CASE (7)
 C--------K=3-------O2        DS0=.004
       ULN=ULGAS(N,4)
       TERMA=(.3179E-06-.9263E-11*TLN)*(1.+PLN*(.8832E-05*PLN+.0005292))
       TERMB=1.+.1968E-06*ULN
       TAU  =(TERMA/TERMB)*ULN
-      GO TO 120
- 108  CONTINUE
+
+      CASE (8)
 C--------K=2-------O2        DS0=.013
       ULN=ULGAS(N,4)
       TERMA=(.2801E-07-.1638E-12*TLN)*(1.+PLN*(.1683E-04*PLN-.001721))
       TERMB=1.+.8097E-07*ULN
       TAU  =(TERMA/TERMB)*ULN
-      GO TO 120
- 109  CONTINUE
+
+      CASE (9)
 C--------K=4-------CO2       DS0=.002
       ULN=ULGAS(N,2)
       TERMA=(50.73-.03155*TLN-PLN*(.5543+.00091*TLN))*(1.-.1004*PLN)
       TERMB=(1.+.006468*ULN)*(1.+PLN*(49.51+.8285*PLN))
       TAU  =(TERMA/TERMB)*ULN
-      IF(PLN.LT.175.0) TAU=(.00018*PLN+0.00001)*ULN
-      GO TO 120
- 110  CONTINUE
+      IF(PLN < 175.0) TAU=(.00018*PLN+0.00001)*ULN
+
+      CASE (10)
 C--------K=3-------CO2       DS0=.003
       ULN=ULGAS(N,2)
       TERMA=(1.+.01319*TLN)*(PLN*(.008001*ULN+.4589E-03)-.8396*ULN)
       TERMB=ULN*(PLN+295.7+1.967*ULN)+.15126*PLN
       TAU  =(TERMA/TERMB)*ULN
-      GO TO 120
- 111  CONTINUE
+
+      CASE (11)
 C--------K=2-------CO2       DS0=.003
       ULN=ULGAS(N,2)
       TERMA=(1.+.02257*TLN)*(PLN*(.002295*ULN-.5489E-04)-.7571*ULN)
       TERMB=ULN*(PLN+803.9+2.477*ULN)-.09899*PLN
       TAU  =(TERMA/TERMB)*ULN
-      GO TO 120
- 112  CONTINUE
-      TAU=0.D0
-      GO TO 120
- 113  CONTINUE
-      TAU=0.D0
-      GO TO 120
- 114  CONTINUE
-      TAU=XCMNO2*ULGAS(N,5)+XCMO3*ULGAS(N,3)
- 120  CONTINUE
+
+      CASE (12,13)
+        TAU=0.D0
+
+      CASE (14)
+        TAU=XCMNO2*ULGAS(N,5)+XCMO3*ULGAS(N,3)
+      END SELECT
 
 C     With 10 doublings to get to Tau=1.0, maximum seed tau is < 1/1024.
 C     ------------------------------------------------------------------
 
-      IF(TAU.LT.0.D0) TAU=0.D0
+      IF(TAU < 0.D0) TAU=0.D0
 
       TAU=TAU+DBLEXT(N,KLAM)
-      IF(TAU.LT.1.D-06) GO TO 180
+      IF(TAU < 1.D-06) GO TO 180
       PIZERO=DBLSCT(N,KLAM)/TAU
-      IF(PIZERO.LT.0.001D0) GO TO 180
+      IF(PIZERO < 0.001D0) GO TO 180
 
       PFF=DBLGCB(N,KLAM)
 
       NDBLS=0
       PR=1.D0-PFF
       PT=1.D0+PFF
-      IF(TAU.GT.0.0019531D0) THEN
-      DBLS=10.D0+1.44269D0*LOG(TAU)
-      NDBLS=DBLS
-      TAU=TAU/DBLN(NDBLS)
+      IF(TAU > 0.0019531D0) THEN
+        DBLS=10.D0+1.44269D0*LOG(TAU)
+        NDBLS=DBLS
+        TAU=TAU/DBLN(NDBLS)
       ENDIF
 
 C     Set optically thin limit values of R,T,X using PI0 renormalization
@@ -6402,7 +5896,7 @@ C     ------------------------------------------------------------------
 C     Compute and record R,T,X atmospheric layer doubling/adding results
 C     ------------------------------------------------------------------
 
-      IF(NDBLS.LT.1) GO TO 170
+      IF(NDBLS < 1) GO TO 170
       DO 160 NN=1,NDBLS
       RARB=RASB*RASB
       RARX=XANX*RASX
@@ -6454,17 +5948,17 @@ C     ------------------------------------------------------------------
       TNX(N)=TANX
       XNB(N)=XANB
       XNX(N)=XANX
-      IF(N.LT.NL) GO TO 200
+  200 CONTINUE
 
 C     Record fluxes, spectral components at TOA, & top-layer bottom edge
 C     ------------------------------------------------------------------
 
-      SRDFLB(NLP)=SRDFLB(NLP)+DKS0X
-      SRUFLB(NLP)=SRUFLB(NLP)+DKS0X*RBNX
+      SRDFLB(NL+1)=SRDFLB(NL+1)+DKS0X
+      SRUFLB(NL+1)=SRUFLB(NL+1)+DKS0X*RBNX
       SRDFLB(NL)=SRDFLB(NL)+DKS0X*(XANX+DX)
       SRUFLB(NL)=SRUFLB(NL)+DKS0X*UX
-      SKDFLB(NLP,K)=DKS0X
-      SKUFLB(NLP,K)=DKS0X*RBNX
+      SKDFLB(NL+1,K)=DKS0X
+      SKUFLB(NL+1,K)=DKS0X*RBNX
       SKDFLB(NL,K)=DKS0X*(XANX+DX)
       SKUFLB(NL,K)=DKS0X*UX
       RBXTOA=RBNX
@@ -6473,12 +5967,11 @@ C     ------------------------------------------------------------------
 C     Add successively layer N (at bottom) to form upper composite layer
 C     ------------------------------------------------------------------
 
-      DO 230 M=2,NL
-      N=NLP-M
+      DO 230 N=NL-1,L1,-1
       XBNB=XNB(N)
       XBNX=XNX(N)
       RBNX=RNX(N)
-      IF(RBNX.GT.1.D-05) GO TO 210
+      IF(RBNX > 1.D-05) GO TO 210
       RASB=RASB*XBNB*XBNB
       TANX=TANX*XBNB
       GO TO 220
@@ -6506,12 +5999,10 @@ C     ------------------------------------------------------------------
 C     Record absorbed spectral flux at ground for surface type fractions
 C     ------------------------------------------------------------------
 
-      DO 231 I=1,4
-      SRKGAX(K,I)=DKS0X*XANX*(1.D0-PRNX(KLAM,I))
-      SRKGAD(K,I)=DKS0X*  DX*(1.D0-PRNB(KLAM,I))
-  231 CONTINUE
+      SRKGAX(K,1:4)=DKS0X*XANX*(1.D0-PRNX(KLAM,1:4))
+      SRKGAD(K,1:4)=DKS0X*  DX*(1.D0-PRNB(KLAM,1:4))
 
-      IF(K.EQ.NKSLAM) GO TO 301
+      IF(K==NKSLAM) GO TO 301
       SRINIR=SRINIR+DKS0X
       SRONIR=SRONIR+DKS0X*RBXTOA
       SRDNIR=SRDNIR+SKDFLB(1,K)
@@ -6538,7 +6029,7 @@ C     ------------------------------------------------------------------
       DKS0X=DKS0(K)*S0COSZ
       SRKINC(K)=DKS0X
 
-      N=NLP
+      N=NL+1
       ATOPX=0.D0
       ATOPD=0.D0
       O3CMX=0.D0
@@ -6553,7 +6044,7 @@ C     ------------------------------------------------------------------
       AO3D(N)=(ABOTD-ATOPD)/DKS0(15)
       ATOPX=ABOTX
       ATOPD=ABOTD
-      IF(N.GT.1) GO TO 302
+      IF(N > L1) GO TO 302
   303 CONTINUE
       O3CMX=O3CMX+1.90D0*ULGAS(N,3)
       O3CMD=O3CMD+1.90D0*ULGAS(N,3)
@@ -6565,7 +6056,7 @@ C     ------------------------------------------------------------------
       ABOTX=ATOPX
       ABOTD=ATOPD
       N=N+1
-      IF(N.LT.NLP) GO TO 303
+      IF(N < NL+1) GO TO 303
       RBNB=SRBALB(KLAM)
       RBNX=SRXALB(KLAM)
       RCNB=0.D0
@@ -6581,7 +6072,7 @@ C                 Add Layers from Ground up. Retain Composite RBNB, RBNX
 C             R,T,X of "A" (above) layer are corrected for O3 absorption
 C             ----------------------------------------------------------
 
-      DO 304 N=1,NL
+      DO 304 N=L1,NL
       O2FHRL(N)=O2FHRL(N)/DKS0(15)*FULGAS(4)
       O2FHRB(N)=O2FHRB(N)/DKS0(15)*FULGAS(4)
       SRB(N)=RBNB
@@ -6608,8 +6099,8 @@ C             ----------------------------------------------------------
       RCNX=RASX+(XANX*RCNX+TANX*RCNB)*XATC
       RCNB=RASB+RCNB*XATB*XATC
   304 CONTINUE
-      VRD(NLP)=1.D0
-      VRU(NLP)=RBNX
+      VRD(NL+1)=1.D0
+      VRU(NL+1)=RBNX
       SRKALB(15)=RBNX
       N=NL
       VRD(N)=XANX+DX
@@ -6642,23 +6133,21 @@ C     ------------------------------------------------------------------
       UX=RBNX*XANX+RBNB*DX
       VRD(N)=XANX+DX
       VRU(N)=UX
-      IF(N.GT.1) GO TO 310
-      DO 321 I=1,4
-      SRKGAX(15,I)=DKS0X*XANX*(1.D0-PRNX(6,I))
-      SRKGAD(15,I)=DKS0X*  DX*(1.D0-PRNB(6,I))
-  321 CONTINUE
+      IF(N > 1) GO TO 310
+      SRKGAX(15,1:4)=DKS0X*XANX*(1-PRNX(6,1:4))
+      SRKGAD(15,1:4)=DKS0X*  DX*(1-PRNB(6,1:4))
 
-      DO 325 N=1,NLP
+      DO 325 N=L1,NL+1
       VRD(N)=VRD(N)*DKS0X
       VRU(N)=VRU(N)*DKS0X
       SKDFLB(N,K)=VRD(N)
       SKUFLB(N,K)=VRU(N)
   325 CONTINUE
-      SRIVIS=SRIVIS+VRD(NLP)
-      SROVIS=SROVIS+VRU(NLP)
+      SRIVIS=SRIVIS+VRD(NL+1)
+      SROVIS=SROVIS+VRU(NL+1)
       PLAVIS=SROVIS/SRIVIS
-      SRDVIS=SRDVIS+VRD(1)
-      SRUVIS=SRUVIS+VRU(1)
+      SRDVIS=SRDVIS+VRD(L1)
+      SRUVIS=SRUVIS+VRU(L1)
       ALBVIS=SRUVIS/(SRDVIS+1.D-10)
       SRRVIS=SRRVIS+DKS0X*RCNX
       SRTVIS=SRTVIS+DKS0X*(TANX+XANX)
@@ -6672,37 +6161,33 @@ C     ------------------------------------------------------------------
       DKS0X=DKS0(16)*S0COSZ
       SRKINC(16)=DKS0X
       SRKA16=0.D0
-      DO 344 I=1,4
-      SRKGAX(16,I)=0.D0
-      SRKGAD(16,I)=0.D0
-  344 CONTINUE
+      SRKGAX(16,1:4)=0.D0
+      SRKGAD(16,1:4)=0.D0
       DO 345 KK=1,3
-      IF(KK.EQ.1) DKS0XX=DKS0X*0.002D0/0.011D0
-      IF(KK.EQ.2) DKS0XX=DKS0X*0.008D0/0.011D0
-      IF(KK.EQ.3) DKS0XX=DKS0X*0.001D0/0.011D0
-      N=NLP
+      IF(KK==1) DKS0XX=DKS0X*0.002D0/0.011D0
+      IF(KK==2) DKS0XX=DKS0X*0.008D0/0.011D0
+      IF(KK==3) DKS0XX=DKS0X*0.001D0/0.011D0
       TRNC=1.D0
-      DO 330 M=1,NL
-      N=N-1
+      DO 330 N=NL,L1,-1
       PLN=PL(N)
       CLX=DBLEXT(N,1)-DBLSCT(N,1)
 
 C--------K=5-------CO2       DS0=.002
-      IF(KK.EQ.1) THEN
+      IF(KK==1) THEN
       TRN1=0.D0
       ULN=ULGAS(N,2)*SECZ
-      IF(ULN.GT.7.D0) ULN=7.D0
+      IF(ULN > 7.D0) ULN=7.D0
       TERMA=.003488*PLN*(1.+39.59*EXP(-8.769*ULN/(1.+4.419*ULN)))
      +     *(1.+ULN*(.001938*PLN-.00503*ULN))
       TERMB=(1.+.04712*PLN*(1.+.4877*ULN))
       TAUG=TERMA/TERMB*ULN
       TAU1=TAUG+CLX*SECZ
-      IF(TAU1.LT.10.0) TRN1=EXP(-TAU1)
+      IF(TAU1 < 10.0) TRN1=EXP(-TAU1)
       FAC(N)=TRN1
       ENDIF
 
 C--------K=7-------H2O       DS0=.008
-      IF(KK.EQ.2) THEN
+      IF(KK==2) THEN
       TRN2=0.D0
       ULN=ULGAS(N,1)*SECZ
       TERMA=.001582*PLN*(1.+6.769*EXP(-9.59*ULN/(1.+5.026*ULN)))
@@ -6710,19 +6195,19 @@ C--------K=7-------H2O       DS0=.008
       TERMB=(1.+.003683*PLN*(1.+1.187*ULN))
       TAUG=TERMA/TERMB*ULN
       TAU2=TAUG+CLX*SECZ
-      IF(TAU2.LT.10.0) TRN2=EXP(-TAU2)
+      IF(TAU2 < 10.0) TRN2=EXP(-TAU2)
       FAC(N)=TRN2
       ENDIF
 
 C--------K=5-------O2        DS0=.001
-      IF(KK.EQ.3) THEN
+      IF(KK==3) THEN
       TRN3=0.D0
       ULN=ULGAS(N,4)*SECZ
       TERMA=(.1366E-03-.2203E-07*TLN)*(1.+PLN*(.1497E-06*ULN+.001261))
       TERMB=(1.+.3867E-03*ULN)/(1.+.2075E-04*ULN)
       TAUG=TERMA/TERMB*ULN
       TAU3=TAUG+CLX*SECZ
-      IF(TAU3.LT.10.0) TRN3=EXP(-TAU3)
+      IF(TAU3 < 10.0) TRN3=EXP(-TAU3)
       FAC(N)=TRN3
       ENDIF
 
@@ -6730,42 +6215,36 @@ C--------K=5-------O2        DS0=.001
       SRDFLB(N)=SRDFLB(N)+DKS0XX*TRNC
       SKDFLB(N,K)=SKDFLB(N,K)+DKS0XX*TRNC
   330 CONTINUE
-      SRDFLB(NLP)=SRDFLB(NLP)+DKS0XX
-      SRUFLB(1)=SRUFLB(1)+DKS0XX*TRNC*SRXALB(1)
-      SKDFLB(NLP,K)=SKDFLB(NLP,K)+DKS0XX
-      SKUFLB(1,K)=SKUFLB(1,K)+DKS0XX*TRNC*SRXALB(1)
+      SRDFLB(NL+1)=SRDFLB(NL+1)+DKS0XX
+      SRUFLB(L1)=SRUFLB(L1)+DKS0XX*TRNC*SRXALB(1)
+      SKDFLB(NL+1,K)=SKDFLB(NL+1,K)+DKS0XX
+      SKUFLB(L1,K)=SKUFLB(L1,K)+DKS0XX*TRNC*SRXALB(1)
 
 C     For completeness, any incident flux at ground is relflected upward
 C     ------------------------------------------------------------------
 
       TRNU=TRNC
-      DO 340 N=2,NLP
+      DO 340 N=L1+1,NL+1
       TRNU=TRNU*FAC(N-1)
       SRUFLB(N)=SRUFLB(N)+DKS0XX*TRNC*SRXALB(1)*TRNU
       SKUFLB(N,K)=SKUFLB(N,K)+DKS0XX*TRNC*SRXALB(1)*TRNU
   340 CONTINUE
-      DO 341 I=1,4
-      SRKGAX(16,I)=SRKGAX(16,I)+DKS0XX*TRNC*(1.D0-PRNX(1,I))
-  341 CONTINUE
+      SRKGAX(16,1:4)=SRKGAX(16,1:4)+DKS0XX*TRNC*(1-PRNX(1,1:4))
       SRKA16=SRKA16+TRNU*SRXALB(1)
 
       SRINIR=SRINIR+DKS0XX
       SRONIR=SRONIR+DKS0XX*TRNU*SRXALB(1)
-      SRDNIR=SRDNIR+SKDFLB(1,K)
-      SRUNIR=SRUNIR+SKUFLB(1,K)
+      SRDNIR=SRDNIR+SKDFLB(L1,K)
+      SRUNIR=SRUNIR+SKUFLB(L1,K)
   345 CONTINUE
       PLANIR=SRONIR/SRINIR
       ALBNIR=SRUNIR/(SRDNIR+1.D-10)
       SRKALB(16)=SRKA16/DKS0X
 
-      DO 350 N=1,NLP
-      SRDFLB(N)=SRDFLB(N)+VRD(N)
-      SRUFLB(N)=SRUFLB(N)+VRU(N)
-      SRNFLB(N)=SRDFLB(N)-SRUFLB(N)
-  350 CONTINUE
-      DO 360 N=1,NL
-      SRFHRL(N)=SRNFLB(N+1)-SRNFLB(N)
-  360 CONTINUE
+      SRDFLB(L1:NL+1) = SRDFLB(L1:NL+1) + VRD(L1:NL+1)
+      SRUFLB(L1:NL+1) = SRUFLB(L1:NL+1) + VRU(L1:NL+1)
+      SRNFLB(L1:NL+1) = SRDFLB(L1:NL+1) - SRUFLB(L1:NL+1)
+      SRFHRL(L1:NL)   = SRNFLB(L1+1:NL+1) - SRNFLB(L1:NL)
       SRRNIR=SRRNIR+DKS0X*RCNX
       SRTNIR=SRTNIR+DKS0X*(TANX+XANX)
       SRXNIR=SRXNIR+DKS0X*XANX
@@ -6796,43 +6275,23 @@ C              is computed with that surface-type albedo set equal to 0.
 C              ---------------------------------------------------------
 
       DO 420 I=1,4
-      SUMX=0.D0
-      SUMD=0.D0
-      DO 410 K=1,16
-      SUMX=SUMX+SRKGAX(K,I)
-      SUMD=SUMD+SRKGAD(K,I)
-  410 CONTINUE
-      FSRNFG(I)=SUMX+SUMD
+      FSRNFG(I) = sum(SRKGAX(1:16,I)) + sum(SRKGAD(1:16,I))
   420 CONTINUE
 
 
-      DO 520 L=1,NLP
       DO 510 K=1,16
-      SKNFLB(L,K)=SKDFLB(L,K)-SKUFLB(L,K)
+      SKNFLB(L1:NL+1,K)=SKDFLB(L1:NL+1,K)-SKUFLB(L1:NL+1,K)
   510 CONTINUE
-  520 CONTINUE
 
-      DO 540 L=1,NL
       DO 530 K=1,16
-      SKFHRL(L,K)=SKNFLB(L+1,K)-SKNFLB(L,K)
+      SKFHRL(L1:NL,K)=SKNFLB(L1+1:NL+1,K)-SKNFLB(L1:NL,K)
   530 CONTINUE
-  540 CONTINUE
 
-      DO 560 L=1,NLP
-      SUMD=0.D0
-      SUMU=0.D0
-      SUMN=0.D0
-      SUMH=0.D0
-      DO 550 K=1,16
-      SUMD=SUMD+SKDFLB(L,K)
-      SUMU=SUMU+SKUFLB(L,K)
-      SUMN=SUMN+SKNFLB(L,K)
-      SUMH=SUMH+SKFHRL(L,K)
-  550 CONTINUE
-      SKDFLB(L,17)=SUMD
-      SKUFLB(L,17)=SUMU
-      SKNFLB(L,17)=SUMN
-      SKFHRL(L,17)=SUMH
+      DO 560 L=L1,NL+1
+      SKDFLB(L,17) = sum (SKDFLB(L,1:16))
+      SKUFLB(L,17) = sum (SKUFLB(L,1:16))
+      SKNFLB(L,17) = sum (SKNFLB(L,1:16))
+      SKFHRL(L,17) = sum (SKFHRL(L,1:16))
   560 CONTINUE
 
       RETURN
@@ -6927,33 +6386,31 @@ C     REAL*8, PARAMETER :: PRE50 =50.D0
       REAL*8 XDEC,DYEAR,DDEC,DELTAY,DELDEC,BCED,BCEY,RATYD
       SAVE EYEAR,BCEHC,BCEBC,BCEDI,BCTOT,BCE
 
-      IF(IFIRST.EQ.1) THEN
-      DO 110 I=1,45
-      EYEAR(I)=BCE(1,I)+1900.D0
-      BCEHC(I)=BCE(2,I)
-      BCEBC(I)=BCE(3,I)
-      BCEDI(I)=BCE(4,I)
-      BCTOT(I)=BCE(5,I)
-  110 CONTINUE
+      IF(IFIRST==1) THEN
+        EYEAR(1:45)=BCE(1,1:45)+1900.D0
+        BCEHC(1:45)=BCE(2,1:45)
+        BCEBC(1:45)=BCE(3,1:45)
+        BCEDI(1:45)=BCE(4,1:45)
+        BCTOT(1:45)=BCE(5,1:45)
       IFIRST=0
       ENDIF
 
-      IF(XJYEAR.LT.1950.D0) THEN
+      IF(XJYEAR < 1950.D0) THEN
 C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
         XDEC=(XJYEAR-1850.d0)/25.d0
-        IF (XDEC.lt.0.) Xdec=0.
+        IF (XDEC < 0.) Xdec=0.
         IDEC=XDEC
         DDEC=XDEC-IDEC
         BCWTID=1.-DDEC
         JDEC=IDEC+1
         BCWTJD=DDEC
-        IF(IDEC.LT.1) THEN
+        IF(IDEC < 1) THEN
           IDEC=1
           JDEC=1
           BCWTID=XDEC
           BCWTJD=0.
         END IF
-      ELSE IF(XJYEAR.GE.1990.D0) THEN
+      ELSE IF(XJYEAR >= 1990.D0) THEN
 C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
 C**** Actually we will use no reduction after 1990
         DYEAR=XJYEAR-1990.D0
@@ -7067,31 +6524,29 @@ C     REAL*8, PARAMETER :: PRE50=50.D0
       REAL*8 XDEC,DDEC,DYEAR,SUED,SUEY,RATYD,DELDEC,DELTAY
       INTEGER I,IYEAR,IYDI,IYDJ,IYYI,IYYJ
 
-      IF(IFIRST.EQ.1) THEN
-      DO 110 I=1,41
-      EYEAR(I)=SUE(1,I)
-      SUANT(I)=SUE(2,I)
-      SUNAT(I)=SUE(3,I)
-  110 CONTINUE
-      IFIRST=0
+      IF(IFIRST==1) THEN
+        EYEAR(1:41)=SUE(1,1:41)
+        SUANT(1:41)=SUE(2,1:41)
+        SUNAT(1:41)=SUE(3,1:41)
+        IFIRST=0
       ENDIF
 
-      IF(XJYEAR.LT.1950.D0) THEN
+      IF(XJYEAR < 1950.D0) THEN
 C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
         XDEC=(XJYEAR-1850.d0)/25.d0
-        IF (XDEC.lt.0.) Xdec=0.
+        IF (XDEC < 0.) Xdec=0.
         IDEC=XDEC
         DDEC=XDEC-IDEC
         SUWTID=1.-DDEC
         JDEC=IDEC+1
         SUWTJD=DDEC
-        IF(IDEC.LT.1) THEN
+        IF(IDEC < 1) THEN
           IDEC=1
           JDEC=1
           SUWTID=XDEC
           SUWTJD=0.
         END IF
-      ELSE IF(XJYEAR.GE.1990.D0) THEN
+      ELSE IF(XJYEAR >= 1990.D0) THEN
 C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
 C**** Actually we will use no reduction after 1990
         DYEAR=XJYEAR-1990.D0
@@ -7128,125 +6583,113 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
 c     INCLUDE 'rad00def.radCOMMON.f'
 
       INTEGER, INTENT(IN) :: NA
-      real*8,  intent(in) :: areff
-      real*8   SQEX(6),SQSC(6),SQCB(6),TQEX(33),TQSC(33),TQAB(33),Q55
-      real*8   QXAERN(25),QSAERN(25),QGAERN(25),Q55AER(25)
+      REAL*8,  intent(in) :: areff
+      REAL*8   SQEX(6),SQSC(6),SQCB(6),TQEX(33),TQSC(33),TQAB(33),Q55
+      REAL*8   QXAERN(25),QSAERN(25),QGAERN(25),Q55AER(25)
 
-      real*8 wts,wta,QGAERX,pi,vreff
-      integer n0,k,n,nn
-                          !                               1   2   3   4
-      IF(NA.LT.5) THEN    !    NA : Aerosol compositions SO4,SEA,ANT,OCX
-      N0=0
-      IF(NA.EQ.2) N0=22
-      IF(NA.EQ.3) N0=44
-      IF(NA.EQ.4) N0=88
-      DO 112 K=1,6
-      DO 111 N=1,22
-      NN=N0+N
-      WTS=FRSULF(NA)
-      WTA=1.D0-WTS
-      QXAERN(N)=SRUQEX(K,NN)*WTA+SRUQEX(K,N)*WTS
-      QSAERN(N)=SRUQSC(K,NN)*WTA+SRUQSC(K,N)*WTS
-      QGAERX=SRUQCB(K,NN)*SRUQSC(K,NN)*WTA+SRUQCB(K,N)*SRUQSC(K,N)*WTS
-      QGAERN(N)=QGAERX/QSAERN(N)
-  111 CONTINUE
-      CALL SPLINE(REFU22,QXAERN,22,AREFF,SQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFU22,QSAERN,22,AREFF,SQSC(K),1.D0,1.D0,1)
-      CALL SPLINE(REFU22,QGAERN,22,AREFF,SQCB(K),1.D0,1.D0,1)
+      REAL*8 wts,wta,QGAERX,pi,vreff
+      INTEGER n0,k,n,nn
+                         !                               1   2   3   4
+      IF(NA < 5) THEN    !    NA : Aerosol compositions SO4,SEA,ANT,OCX
+        N0=0
+        IF(NA==2) N0=22
+        IF(NA==3) N0=44
+        IF(NA==4) N0=88
+        DO 112 K=1,6
+        DO 111 N=1,22
+        NN=N0+N
+        WTS=FRSULF(NA)
+        WTA=1.D0-WTS
+        QXAERN(N)=SRUQEX(K,NN)*WTA+SRUQEX(K,N)*WTS
+        QSAERN(N)=SRUQSC(K,NN)*WTA+SRUQSC(K,N)*WTS
+        QGAERX=SRUQCB(K,NN)*SRUQSC(K,NN)*WTA+SRUQCB(K,N)*SRUQSC(K,N)*WTS
+        QGAERN(N)=QGAERX/QSAERN(N)
+  111   CONTINUE
+        CALL SPLINE(REFU22,QXAERN,22,AREFF,SQEX(K),1.D0,1.D0,1)
+        CALL SPLINE(REFU22,QSAERN,22,AREFF,SQSC(K),1.D0,1.D0,1)
+        CALL SPLINE(REFU22,QGAERN,22,AREFF,SQCB(K),1.D0,1.D0,1)
 
-      PI=SQSC(K)/SQEX(K)
-      IF(PI.GT.PI0MAX(NA)) SQSC(K)=SQSC(K)*PI0MAX(NA)/PI
-  112 CONTINUE
-      DO 114 K=1,33
-      DO 113 N=1,22
-      NN=N0+N
-      WTS=FRSULF(NA)
-      WTA=1.D0-WTS
-      QXAERN(N)=TRUQEX(K,NN)*WTA+TRUQEX(K,N)*WTS
-      QSAERN(N)=TRUQSC(K,NN)*WTA+TRUQSC(K,N)*WTS
-      QGAERX=TRUQCB(K,NN)*TRUQSC(K,NN)*WTA+TRUQCB(K,N)*TRUQSC(K,N)*WTS
-      QGAERN(N)=QGAERX/(QSAERN(N)+1.d-20)
-  113 CONTINUE
-      CALL SPLINE(REFU22,QXAERN,22,AREFF,TQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFU22,QSAERN,22,AREFF,TQSC(K),1.D0,1.D0,1)
-      TQAB(K)=TQEX(K)-TQSC(K)
-  114 CONTINUE
-      DO 115 N=1,22
-      NN=N0+N
-      WTS=FRSULF(NA)
-      WTA=1.D0-WTS
-      Q55AER(N)=Q55U22(NN)*WTA+Q55U22(N)*WTS
-  115 CONTINUE
-      CALL SPLINE(REFU22,Q55U22,22,AREFF,Q55,1.D0,1.D0,1)
+        PI=SQSC(K)/SQEX(K)
+        IF(PI > PI0MAX(NA)) SQSC(K)=SQSC(K)*PI0MAX(NA)/PI
+  112   CONTINUE
+        DO 114 K=1,33
+        DO 113 N=1,22
+        NN=N0+N
+        WTS=FRSULF(NA)
+        WTA=1.D0-WTS
+        QXAERN(N)=TRUQEX(K,NN)*WTA+TRUQEX(K,N)*WTS
+        QSAERN(N)=TRUQSC(K,NN)*WTA+TRUQSC(K,N)*WTS
+        QGAERX=TRUQCB(K,NN)*TRUQSC(K,NN)*WTA+TRUQCB(K,N)*TRUQSC(K,N)*WTS
+        QGAERN(N)=QGAERX/(QSAERN(N)+1.d-20)
+  113   CONTINUE
+        CALL SPLINE(REFU22,QXAERN,22,AREFF,TQEX(K),1.D0,1.D0,1)
+        CALL SPLINE(REFU22,QSAERN,22,AREFF,TQSC(K),1.D0,1.D0,1)
+        TQAB(K)=TQEX(K)-TQSC(K)
+  114   CONTINUE
+        DO 115 N=1,22
+        NN=N0+N
+        WTS=FRSULF(NA)
+        WTA=1.D0-WTS
+        Q55AER(N)=Q55U22(NN)*WTA+Q55U22(N)*WTS
+  115   CONTINUE
+        CALL SPLINE(REFU22,Q55U22,22,AREFF,Q55,1.D0,1.D0,1)
       ENDIF
 
-                                   !                              5   6
-      IF(NA.EQ.5.OR.NA.EQ.6) THEN  !   NA : Aerosol compositions BIC,BCB
-cc    AREFF=REFDRY(NA)
-      DO 122 K=1,6
-      DO 121 N=1,25
-      QXAERN(N)=SRSQEX(K,N)
-      QSAERN(N)=SRSQSC(K,N)
-      QGAERN(N)=SRSQCB(K,N)
-  121 CONTINUE
-      CALL SPLINE(REFS25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
-  122 CONTINUE
-      DO 124 K=1,33
-      DO 123 N=1,25
-      QXAERN(N)=TRSQEX(K,N)
-      QSAERN(N)=TRSQSC(K,N)
-      QGAERN(N)=TRSQCB(K,N)
-  123 CONTINUE
-      CALL SPLINE(REFS25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
-      TQAB(K)=TQEX(K)-TQSC(K)
-  124 CONTINUE
-      CALL SPLINE(REFS25,Q55S25,25,AREFF,Q55,1.D0,1.D0,1)
+                               !                              5   6
+      IF(NA==5.OR.NA==6) THEN  !   NA : Aerosol compositions BIC,BCB
+cc      AREFF=REFDRY(NA)
+        DO 122 K=1,6
+        QXAERN(:)=SRSQEX(K,:)    ! 1:25
+        QSAERN(:)=SRSQSC(K,:)    ! 1:25
+        QGAERN(:)=SRSQCB(K,:)    ! 1:25
+        CALL SPLINE(REFS25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
+        CALL SPLINE(REFS25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
+        CALL SPLINE(REFS25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
+  122   CONTINUE
+        DO 124 K=1,33
+        QXAERN(:)=TRSQEX(K,:)    ! 1:25
+        QSAERN(:)=TRSQSC(K,:)    ! 1:25
+        QGAERN(:)=TRSQCB(K,:)    ! 1:25
+        CALL SPLINE(REFS25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
+        CALL SPLINE(REFS25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
+        TQAB(K)=TQEX(K)-TQSC(K)
+  124   CONTINUE
+        CALL SPLINE(REFS25,Q55S25,25,AREFF,Q55,1.D0,1.D0,1)
       ENDIF
 
-                                        !                             7
-      IF(NA.EQ.7) THEN                  !   NA : Aerosol composition DST
-cc    AREFF=REFDRY(NA)
-      DO 132 K=1,6
-      DO 131 N=1,25
-      QXAERN(N)=SRDQEX(K,N)
-      QSAERN(N)=SRDQSC(K,N)
-      QGAERN(N)=SRDQCB(K,N)
-  131 CONTINUE
-      CALL SPLINE(REFD25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFD25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
-      CALL SPLINE(REFD25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
-  132 CONTINUE
-      DO 134 K=1,33
-      DO 133 N=1,25
-      QXAERN(N)=TRDQEX(K,N)
-      QSAERN(N)=TRDQSC(K,N)
-      QGAERN(N)=TRDQCB(K,N)
-  133 CONTINUE
-      CALL SPLINE(REFD25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFD25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
-      TQAB(K)=TQEX(K)-TQSC(K)
-  134 CONTINUE
-      CALL SPLINE(REFD25,Q55D25,25,AREFF,Q55,1.D0,1.D0,1)
+                                      !                             7
+      IF(NA==7) THEN                  !   NA : Aerosol composition DST
+cc      AREFF=REFDRY(NA)
+        DO 132 K=1,6
+        QXAERN(:)=SRDQEX(K,:)    ! 1:25
+        QSAERN(:)=SRDQSC(K,:)    ! 1:25
+        QGAERN(:)=SRDQCB(K,:)    ! 1:25
+        CALL SPLINE(REFD25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
+        CALL SPLINE(REFD25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
+        CALL SPLINE(REFD25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
+  132   CONTINUE
+        DO 134 K=1,33
+        QXAERN(:)=TRDQEX(K,:)    ! 1:25
+        QSAERN(:)=TRDQSC(K,:)    ! 1:25
+        QGAERN(:)=TRDQCB(K,:)    ! 1:25
+        CALL SPLINE(REFD25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
+        CALL SPLINE(REFD25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
+        TQAB(K)=TQEX(K)-TQSC(K)
+  134   CONTINUE
+        CALL SPLINE(REFD25,Q55D25,25,AREFF,Q55,1.D0,1.D0,1)
       ENDIF
 
-                               !                                      8
-      IF(NA.EQ.8) THEN         !     NA : Aerosol composition(H2SO4) VOL
-      VREFF=AREFF
-      IF(VREFF.LT.0.1D0) VREFF=0.1D0
-      IF(VREFF.GT.2.0D0) VREFF=2.0D0
-      CALL GETQVA(VREFF)
-      DO 141 K=1,6
-      SQEX(K)=QVH2S(K)
-      SQSC(K)=SVH2S(K)
-      SQCB(K)=GVH2S(K)
-  141 CONTINUE
-      DO 142 K=1,33
-      TQAB(K)=AVH2S(K)
-  142 CONTINUE
-      Q55=Q55H2S
+                             !                                      8
+      IF(NA==8) THEN         !     NA : Aerosol composition(H2SO4) VOL
+        VREFF=AREFF
+        IF(VREFF < 0.1D0) VREFF=0.1D0
+        IF(VREFF > 2.0D0) VREFF=2.0D0
+        CALL GETQVA(VREFF)
+        SQEX(:)=QVH2S(:)       ! 1:6
+        SQSC(:)=SVH2S(:)       ! 1:6
+        SQCB(:)=GVH2S(:)       ! 1:6
+        TQAB(:)=AVH2S(:)       ! 1:33
+        Q55=Q55H2S
       ENDIF
       RETURN
       END SUBROUTINE GETMIE
@@ -7269,18 +6712,18 @@ C              ---------------------------------------------------------
       IP=0
       XX=OCM*1.D+04
       IX=XX
-      IF(IX.GT.99) GO TO 110
-      IF(IX.LT.1 ) GO TO 130
+      IF(IX > 99) GO TO 110
+      IF(IX < 1 ) GO TO 130
       GO TO 120
   110 CONTINUE
       IP=IP+90
       XX=XX*0.1D0
       IX=XX
-      IF(IX.GT.99) GO TO 110
+      IF(IX > 99) GO TO 110
   120 CONTINUE
       DX=XX-IX
       IX=IX+IP
-      IF(IX.GT.459) GO TO 140
+      IF(IX > 459) GO TO 140
       O3ABS=AO3(IX)+DX*(AO3(IX+1)-AO3(IX))
       GO TO 140
   130 CONTINUE
@@ -7296,6 +6739,7 @@ c      USE SURF_ALBEDO, only : AVSCAT, ANSCAT, AVFOAM, ANFOAM,
 c     *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
 c     *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF
       USE SURF_ALBEDO, only : get_albedo_data
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       IMPLICIT NONE
 C
 C     ------------------------------------------------------------------
@@ -7342,11 +6786,11 @@ C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
       INTEGER, INTENT(IN) :: INDEX
-      real*8 AVSCAT, ANSCAT, AVFOAM, ANFOAM,
+      REAL*8 AVSCAT, ANSCAT, AVFOAM, ANFOAM,
      *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
      *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA,
      &     AGEXPF(3,2), ALBDIF(3,2)
-      real*8, dimension(10) ::       ! no longer needed except in writer
+      REAL*8, dimension(10) ::       ! no longer needed except in writer
 C!nu               TROPOSPHERIC AEROSOL effective radius
 C!nu               BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
      *   REAERO=(/ 0.1, 0.3, 0.3, 2.0, 0.3,   1.0, 0.3, 0.3, 0.2, 0.5/)
@@ -7360,23 +6804,22 @@ C!nu               BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
       DATA TRAXSG/'QAB','QEX','QSC','QCB','PI0'/
 
       REAL*8 TKEFF(3),TRPI0K(25)
-
-      REAL*8, DIMENSION(33) :: BGFLUX,BGFRAC,TAUSUM
-      REAL*8 SUM0(20),SUM1(LX),SUM2(LX),SUM3(LX)
+      REAL*8 WFLB(LX,33),WFSL(33),UXGAS(LX,9)
+      REAL*8 BGFLUX(33),BGFRAC(33),TAUSUM(33)
+      REAL*8 SUM0(20),SUM1(LX+1),SUM2(LX+1),SUM3(LX+1)
       REAL*8, DIMENSION(LX,6) :: WSREXT,WSRSCT,WSRGCB,WSRPI0
-      REAL*8, DIMENSION(17) :: FSR1,FSR2
+      REAL*8 FSR1(17),FSR2(17)
       INTEGER :: ISR1(16), KWRU
-      INTEGER, PARAMETER, DIMENSION(16) ::
-     *     KSLAMW=(/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/),
-     *     IORDER=(/12,11,10, 9, 6, 5, 4, 3,15,14,13, 8, 7, 2, 1,16/)
+      INTEGER, PARAMETER ::
+     *  KSLAMW(16) = (/ 1, 1, 2, 2, 5, 5, 5, 5, 1, 1, 1, 3, 4, 6, 6, 1/)
+     * ,IORDER(16) = (/12,11,10, 9, 6, 5, 4, 3,15,14,13, 8, 7, 2, 1,16/)
 
-      character*1,parameter,dimension(4) :: AUXGAS = (/'0','L','X','X'/)
-      REAL*8, PARAMETER :: P0=1013.25,SIGMA=5.6697D-08,
-     *     xxxxxx=0. ! dummy for obsolete variables
+      character*1,parameter :: AUXGAS(4) = (/'0','L','X','X'/)
+      REAL*8, PARAMETER :: P0=1013.25,SIGMA=5.6697D-08
       REAL*8 ACOLX,BCOLX,DCOLX,VCOLX,TCOLX,FACTOR,PPMCO2,PPMO2
      *     ,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12,EPS,TAER,HLM,TLAPS
      *     ,TAU55,TGMEAN,PSUM,SRALB,STNFLB,CRHRF,STFHR,TRDCR,SRDHR,STDHR
-     *     ,PFW,DPF,FRACSL,SUM,SIGT4,WTG,SUMK,SUMT,SUMK1,SUMK2
+     *     ,PFW,DPF,FRACSL,SIGT4,WTG,SUMK,SUMT,SUMK1,SUMK2
      *     ,ASUM1,BSUM1,CSUM1,DSUM1,ESUM1,FSUM1,ASUM2,BSUM2,CSUM2,DSUM2
      *     ,ESUM2,FSUM2,ASUM3,BSUM3,CSUM3,DSUM3,ESUM3,FSUM3,SUML,SUMA
      *     ,SUMB,SUMC,SUMD,SUME,SUMF
@@ -7387,52 +6830,51 @@ C!nu               BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
      *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
      *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF )
 
-      DO 20 K=1,6
-      DO 10 L=1,NL
-      WSREXT(L,K)=SRAEXT(L,K)+SRBEXT(L,K)
-     +           +SRDEXT(L,K)+SRVEXT(L,K)
-      WSRSCT(L,K)=SRASCT(L,K)+SRBSCT(L,K)
-     +           +SRDSCT(L,K)+SRVSCT(L,K)
-      WSRGCB(L,K)=SRASCT(L,K)*SRAGCB(L,K)+SRBSCT(L,K)*SRBGCB(L,K)
-     +           +SRDSCT(L,K)*SRDGCB(L,K)+SRVSCT(L,K)*SRVGCB(L,K)
-      WSRPI0(L,K)=WSRSCT(L,K)/(WSREXT(L,K)+1.E-10)
-      WSRGCB(L,K)=WSRGCB(L,K)/(WSRSCT(L,K)+1.D-10)
-   10 CONTINUE
-   20 CONTINUE
-C
-      ACOLX=0.0
-      BCOLX=0.0
-      DCOLX=0.0
-      VCOLX=0.0
-      DO 30 L=1,NL
-      ACOLX=ACOLX+SRAEXT(L,6)
-      BCOLX=BCOLX+SRBEXT(L,6)
-      DCOLX=DCOLX+SRDEXT(L,6)
-      VCOLX=VCOLX+SRVEXT(L,6)
-   30 CONTINUE
-      TCOLX=ACOLX+BCOLX+DCOLX+VCOLX
-C
       KW=KWRU
       INDJ=MOD(INDEX,10)
-      IF(INDJ.LT.1.and.INDEX.gt.0) INDJ=10
+      IF(INDJ < 1.and.INDEX > 0) INDJ=10
       INDI=1
-      IF(INDEX.GT.20.or.INDEX.eq.0) INDI=0
-      IF(INDEX.LT.11) INDI=INDJ
-      DO 9999 INDX=INDI,INDJ
+      IF(INDEX > 20.or.INDEX==0) INDI=0
+      IF(INDEX < 11) INDI=INDJ
+
+      if (INDJ > 0) then
+        DO K=1,6
+        DO L=L1,NL
+          WSREXT(L,K)=SRAEXT(L,K)+SRBEXT(L,K)
+     +               +SRDEXT(L,K)+SRVEXT(L,K)
+          WSRSCT(L,K)=SRASCT(L,K)+SRBSCT(L,K)
+     +               +SRDSCT(L,K)+SRVSCT(L,K)
+          WSRGCB(L,K)=SRASCT(L,K)*SRAGCB(L,K)+SRBSCT(L,K)*SRBGCB(L,K)
+     +               +SRDSCT(L,K)*SRDGCB(L,K)+SRVSCT(L,K)*SRVGCB(L,K)
+          WSRPI0(L,K)=WSRSCT(L,K)/(WSREXT(L,K)+1.E-10)
+          WSRGCB(L,K)=WSRGCB(L,K)/(WSRSCT(L,K)+1.D-10)
+        END DO
+        END DO
 C
+        ACOLX = sum (SRAEXT(L1:NL,6))
+        BCOLX = sum (SRBEXT(L1:NL,6))
+        DCOLX = sum (SRDEXT(L1:NL,6))
+        VCOLX = sum (SRVEXT(L1:NL,6))
+        TCOLX = ACOLX+BCOLX+DCOLX+VCOLX
+      end if
+
+      DO 9999 INDX=INDI,INDJ
+
       KPAGE=1
-      IF(INDX.EQ.0) GO TO 90
+      IF(INDX==0) GO TO 90
+
       GO TO (100,200,300,400,500,600,700,800,900,1000),INDX
 C
 C-------------
    90 CONTINUE
 C-------------
-C
-      WRITE(KW,6000)
+      IF (AM_I_ROOT()) THEN
+        WRITE(KW,6000)
  6000 FORMAT(' CALL WRITER(KW,0) :',2X,'PAGE 1/2  '
      +          ,'CONTROL PARAMS   DEFINITIONS'/
      +      /' CONTROL PARAMTER      DEFAULT  PARAMETER DESCRIPTION')
-      WRITE(KW,6001)                              KUVFAC,KSNORM
+
+       WRITE(KW,6001)                              KUVFAC,KSNORM
      + ,KWTRAB,KGGVDF,KPGRAD,KLATZ0,KCLDEM,KANORM,KPFCO2,KPFOZO,KSIALB
      + ,KORDER,KUFH2O,KUFCO2,KCSELF,KCFORN
  6001 FORMAT( ! 7X,'   KVRAER = ',I1,'     1      Repartition Aer VDist'
@@ -7478,10 +6920,8 @@ C
 C
       WRITE(KW,6006)
  6006 FORMAT('0CONTROL PARAMTER    VALUE',16X,' DEFAULT')
-      WRITE(KW,6007) PTOPTR,REFF0 ,VEFF0
-     +              ,AVSCAT,ANSCAT,AVFOAM,ANFOAM
- 6007 FORMAT(7X,'   PTOPTR = ',F7.1,6X,'TropTop (SIGMA lev) Pressure'
-     A      /7X,'   REFF0  = ',F7.3,'                 0.300         '
+      WRITE(KW,6007) REFF0,VEFF0, AVSCAT,ANSCAT,AVFOAM,ANFOAM
+ 6007 FORMAT(7X,'   REFF0  = ',F7.3,'                 0.300         '
      B      /7X,'   VEFF0  = ',F7.3,'                 0.350         '
      H      /7X,'   AVSCAT = ',F7.5,'                 0.01560       '
      I      /7X,'   ANSCAT = ',F7.5,'                 0.00020       '
@@ -7513,6 +6953,7 @@ C
  6019 FORMAT(/'  GHGAS',9X,'PPMVK0    PPMVDF    PPGRAD')
       WRITE(KW,6020) (ghg(I),PPMVK0(I),PPMVDF(I),PPGRAD(I),I=1,12)
  6020 FORMAT(1X,a6,' ',F15.7,F10.5,F10.5)
+      END IF
       GO TO 9999
 C
 C-------------
@@ -7520,30 +6961,30 @@ C-------------
 C-------------
 C
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6101)
       WRITE(KW,6102)
-      FACTOR=P0/(PLB(1)-PLB(2))*1.25
-      PPMCO2=ULGAS(1,2)*FACTOR
-      PPMO2 =ULGAS(1,4)*FACTOR
-      PPMN2O=ULGAS(1,6)*FACTOR
-      PPMCH4=ULGAS(1,7)*FACTOR
-      PPMF11=ULGAS(1,8)*FACTOR
-      PPMF12=ULGAS(1,9)*FACTOR
-      PPMY11=ULGAS(1,11)*FACTOR
-      PPMZ12=ULGAS(1,12)*FACTOR
+      FACTOR=P0/(PLB(L1)-PLB(L1+1))*1.25
+      PPMCO2=ULGAS(L1,2)*FACTOR
+      PPMO2 =ULGAS(L1,4)*FACTOR
+      PPMN2O=ULGAS(L1,6)*FACTOR
+      PPMCH4=ULGAS(L1,7)*FACTOR
+      PPMF11=ULGAS(L1,8)*FACTOR
+      PPMF12=ULGAS(L1,9)*FACTOR
+      PPMY11=ULGAS(L1,11)*FACTOR
+      PPMZ12=ULGAS(L1,12)*FACTOR
       WRITE(KW,6103) (FULGAS(I),I=1,3),(FULGAS(I),I=6,9)
      +              ,FULGAS(11),FULGAS(12),    (FGOLDH(I),I=1,5)
-C     IF(KGASSR.GT.0)
+C     IF(KGASSR > 0)
 C    +WRITE(KW,6104) (FULGAS(I+9),I=1,2),(FULGAS(I+9),I=4,9)
 C    +              ,FULGAS(11),FULGAS(12),   (FGOLDH(I+9),I=1,5)
       WRITE(KW,6105) PPMCO2,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12
      +             ,(FSTOPX(I),I=1,4),PPMV80(2),(PPMV80(I),I=6,9)
      +             ,(PPMV80(I),I=11,12),KTREND,JYEAR,JDAY,LASTVC
       WRITE(KW,6106) TAUWC0,FCLDTR,EOCTRA,ZOCSRA,KZSNOW,KCLDEM,NTRACE
-     +             ,FSAAER,FTTAER,MADO3M,KCLDEP,NL
+     +             ,FSAAER,FTTAER,MADO3M,KCLDEP,L1
       WRITE(KW,6107) TAUIC0,FCLDSR,ESNTRA,ZSNSRA,WETTRA,KSIALB,ITR(1)
-     +             ,ITR(5),FSBAER,FTBAER,MADO3M,KEEPAL,NLP
+     +             ,ITR(5),FSBAER,FTBAER,MADO3M,KEEPAL,NL
       WRITE(KW,6108)       FRAYLE,EICTRA,ZICSRA,WETSRA,KCNORM,ITR(2)
      +             ,ITR(6),FSAAER,FTAAER,       KEEP10,MLAT46
       WRITE(KW,6109) TLGRAD,ECLTRA,EDSTRA,ZDSSRA,KANORM,KPGRAD,ITR(3)
@@ -7570,11 +7011,11 @@ C    +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
  6106 FORMAT(1X,'TAUWC0=',1P,E6.0,' FCLDTR=',0P,F4.2,' EOCTRA=',F3.1
      +      ,1X,'ZOCSRA=',   F3.1,' KZSNOW=',     I4,' KCLDEM=',  I3
      +      ,1X,'NTRACE=',    I3,2X,'FSTAER=',  F3.1,' FTTAER=',F3.1
-     +      ,1X,'MADO3M=',    I1,1X,'KCLDEP=',    I1,'     NL=',  I2)
+     +      ,1X,'MADO3M=',    I1,1X,'KCLDEP=',    I1,'    L1=',  I3)
  6107 FORMAT(1X,'TAUIC0=',1P,E6.0,' FCLDSR=',0P,F4.2,' ESNTRA=',F3.1
      +      ,1X,'ZSNSRA=',  F3.1,1X,'WETTRA=',  F4.2,' KSIALB=',  I3
      +      ,1X,'ITR(1)=',    2I2,1X,'FSBAER=', F3.1,' FTBAER=',F3.1
-     +      ,1X,'K03LON=',    I1,1X,'KEEPAL=',    I1,'    NLP=',  I2)
+     +      ,1X,'K03LON=',    I1,1X,'KEEPAL=',    I1,'    NL=',  I3)
  6108 FORMAT(1X,'       ',  6X ,  ' FRAYLE=',0P,F4.1,' EICTRA=',F3.1
      +      ,1X,'ZICSRA=',  F3.1,1X,'WETSRA=',  F4.2,' KCNORM=',  I3
      +      ,1X,'ITR(2)=',    2I2,1X,'FSAAER=', F3.1,' FTAAER=',F3.1
@@ -7595,21 +7036,21 @@ C-------------
 C
       NPAGE=0
       LUXGAS=0
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6201) AUXGAS(LUXGAS+1),S00WM2,S0,COSZ
       DO 202 K=1,9
-      DO 201 L=1,NL
+      DO 201 L=L1,NL
       UXGAS(L,K)=ULGAS(L,K)
   201 CONTINUE
   202 CONTINUE
-      IF(LUXGAS.LT.2) GO TO 205
+      IF(LUXGAS < 2) GO TO 205
       LGS=(LUXGAS-2)*9
-      DO 203 L=1,NL
+      DO 203 L=L1,NL
       UXGAS(L,1)=U0GAS(L,1)*FULGAS(1+LGS)
       UXGAS(L,3)=U0GAS(L,3)*FULGAS(3+LGS)
   203 UXGAS(L,5)=U0GAS(L,5)*FULGAS(5+LGS)
 C
-      DO 204 L=1,NL
+      DO 204 L=L1,NL
       UXGAS(L,2)=U0GAS(L,2)*FULGAS(2+LGS)
       UXGAS(L,4)=U0GAS(L,4)*FULGAS(4+LGS)
       UXGAS(L,6)=U0GAS(L,6)*FULGAS(6+LGS)
@@ -7617,20 +7058,20 @@ C
       UXGAS(L,8)=U0GAS(L,8)*FULGAS(8+LGS)
   204 UXGAS(L,9)=U0GAS(L,9)*FULGAS(9+LGS)
   205 CONTINUE
-      DO 206 L=NL,1,-1
+      DO 206 L=NL,L1,-1
       EPS=CLDEPS(L)
       TAER=WSREXT(L,6)
       IPI0=WSRPI0(L,6)*1000.D0+1.D-05
       HLM=0.5D0*(HLB0(L+1)+HLB0(L))
       TLAPS=(TLT(L)-TLB(L))/(HLB0(L+1)-HLB0(L))
       IRHL=RHL(L)*100.0
-      IF(PL(L).LT.1.D0) THEN
+      IF(PL(L) < 1.D0) THEN
       WRITE(KW,6212) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL
      +       ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
      +       ,SIZEWC(L),SIZEIC(L),FTAUC*TAUWC(L),FTAUC*TAUIC(L),EPS,TAER
      *       ,IPI0
       ELSE
-      IF(UXGAS(L,1).GE.1.D0) THEN
+      IF(UXGAS(L,1) >= 1.D0) THEN
       WRITE(KW,6202) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL
      +       ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
      +       ,SIZEWC(L),SIZEIC(L),FTAUC*TAUWC(L),FTAUC*TAUIC(L),EPS,TAER
@@ -7645,7 +7086,7 @@ C
   206 CONTINUE
       DO 207 I=1,16
   207 SUM0(I)=0.
-      DO 210 L=1,NL
+      DO 210 L=L1,NL
       DO 208 I=1,9
       SUM0(I)=SUM0(I)+ULGAS(L,I)
   208 CONTINUE
@@ -7657,7 +7098,7 @@ C
       SUM0(11)=SUM0(11)+FTAUC*TAUIC(L)
   210 CONTINUE
       TAU55=0.0
-      DO 211 L=1,NL
+      DO 211 L=L1,NL
       TAU55=TAU55+WSREXT(L,6)
   211 CONTINUE
       SUM0(12)=TAU55
@@ -7734,17 +7175,16 @@ C-------------
 C-------------
 C
       NPAGE=0
-      IF(INDEX.LT.11) NPAGE=KPAGE
-      IF(NL.GT.13) NPAGE=1
-      L=NLP
+      IF(INDEX < 11) NPAGE=KPAGE
+      IF(NL > 13) NPAGE=1
+      L=NL+1
       SRALB =SRUFLB(L)/(SRDFLB(L)+1.E-10)
       STNFLB=SRNFLB(L)-TRNFLB(L)
       WRITE(KW,6301) NORMS0
       WRITE(KW,6302) L,PLB(L),HLB0(L),TLT(L-1) ! TLB(LN+1) unused/set
      +             ,TRDFLB(L),TRUFLB(L),TRNFLB(L)
      +             ,SRDFLB(L),SRUFLB(L),SRNFLB(L),STNFLB,SRALB
-      DO 301 N=1,NL
-      L=NLP-N
+      DO 301 L=NL,L1,-1
       CRHRF=8.4167/(PLB(L)-PLB(L+1))
       STNFLB=SRNFLB(L)-TRNFLB(L)
       STFHR =SRFHRL(L)-TRFCRL(L)
@@ -7754,7 +7194,7 @@ C
       SRALB =SRUFLB(L)/(SRDFLB(L)+1.E-10)
 !eq   SRXVIS=SRXATM(1)
 !eq   SRXNIR=SRXATM(2)
-      IF(PLB(L).LT.1.D0) THEN
+      IF(PLB(L) < 1.D0) THEN
       WRITE(KW,6313) L,PLB(L),HLB0(L),TLB(L),TLT(L)
      +             ,TRDFLB(L),TRUFLB(L),TRNFLB(L),TRFCRL(L)
      +             ,SRDFLB(L),SRUFLB(L),SRNFLB(L),SRFHRL(L)
@@ -7768,28 +7208,28 @@ C
   301 CONTINUE
 C
       DO 302 II=1,3
-      PFW=TRDFLB(1)
-      IF(II.EQ.2) PFW=TRUFLB(1)
-      IF(II.EQ.3) PFW=TRUFLB(NLP)
+      PFW=TRDFLB(L1)
+      IF(II==2) PFW=TRUFLB(L1)
+      IF(II==3) PFW=TRUFLB(NL+1)
       IPF=PFW
       DPF=PFW-IPF
-      IF(IPF.LT.1) IPF=1
-      IF(IPF.GT.899) IPF=899
+      IF(IPF < 1) IPF=1
+      IF(IPF > 899) IPF=899
   302 TKEFF(II)=TKPFT(IPF)+DPF*(TKPFT(IPF+1)-TKPFT(IPF))
 C
       WRITE(KW,6304) WINDZF(1),WINDZT(1),TOTLZF(1),TOTLZT(1),
      +              (FSRNFG(I),I=1,4),LTOPCL,JLAT,JYEAR
       WRITE(KW,6305) WINDZF(2),WINDZT(2),TOTLZF(2),TOTLZT(2),
      +              (FTRUFG(I),I=1,4),LBOTCL,ILON,JDAY
-      IF(KORDER.EQ.0) WRITE(KW,6306) WINDZF(3),WINDZT(3),TOTLZF(3)
+      IF(KORDER==0) WRITE(KW,6306) WINDZF(3),WINDZT(3),TOTLZF(3)
      +              ,TOTLZT(3),(I,I=1,16)
-      IF(KORDER.EQ.1) WRITE(KW,6307) WINDZF(3),WINDZT(3),TOTLZF(3)
+      IF(KORDER==1) WRITE(KW,6307) WINDZF(3),WINDZT(3),TOTLZF(3)
      +              ,TOTLZT(3),(I,I=1,16)
       FRACSL=0.D0
-      IF(KORDER.EQ.0) WRITE(KW,6308) TKEFF(1),TKEFF(2),TKEFF(3)
+      IF(KORDER==0) WRITE(KW,6308) TKEFF(1),TKEFF(2),TKEFF(3)
      +               ,(SRKALB(NORDER(I)),I=1,16),BTEMPW,TRUFTW,SRIVIS
      +               ,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR
-      IF(KORDER.EQ.1) WRITE(KW,6308) TKEFF(1),TKEFF(2),TKEFF(3)
+      IF(KORDER==1) WRITE(KW,6308) TKEFF(1),TKEFF(2),TKEFF(3)
      +               ,(SRKALB(I),I=1,16),BTEMPW,TRUFTW,SRIVIS
      +               ,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR
       WRITE(KW,6309) TRDFGW,TRUFGW,SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR
@@ -7838,13 +7278,13 @@ C
 C                                (4A)  Total Aerosol Qx, Qs, g, Pi0
 C                                ----------------------------------
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6401)
       DO 402 K=1,6
       SUM1(K)=0.
       SUM2(K)=0.
       SUM3(K)=0.
-      DO 401 L=1,NL
+      DO 401 L=L1,NL
       SUM1(K)=SUM1(K)+WSREXT(L,K)
       SUM2(K)=SUM2(K)+WSRSCT(L,K)
       SUM3(K)=SUM3(K)+WSRSCT(L,K)*WSRGCB(L,K)
@@ -7853,18 +7293,16 @@ C                                ----------------------------------
       SUM0(K)=SUM2(K)/(SUM1(K)+1.D-10)
   402 CONTINUE
       WRITE(KW,6402) (K,K=1,6),(K,K=1,6)
-      DO 403 N=1,NL
-      L=NLP-N
+      DO 403 L=NL,L1,-1
       WRITE(KW,6403) L,PLB(L),HLB0(L)
      +              ,(WSREXT(L,J),J=1,6),(WSRSCT(L,J),J=1,6)
   403 CONTINUE
       WRITE(KW,6404) (SUM1(K),K=1,6),(SUM2(K),K=1,6)
       NPAGE=0
-      IF(NL.GT.13) NPAGE=1
+      IF(NL > 13) NPAGE=1
       WRITE(KW,6405) KANORM
       WRITE(KW,6406) (K,K=1,6),(K,K=1,6)
-      DO 404 N=1,NL
-      L=NLP-N
+      DO 404 L=NL,L1,-1
       WRITE(KW,6407) L,PL(L),DPL(L)
      +              ,(WSRGCB(L,J),J=1,6),(WSRPI0(L,J),J=1,6)
   404 CONTINUE
@@ -7872,14 +7310,14 @@ C                                ----------------------------------
 C     WRITE(KW,6420) (SRBALB(K),K=1,6)
 C     WRITE(KW,6421) (SRXALB(K),K=1,6)
 C     WRITE(KW,6422)
-      SUM=0.
+      SUMT=0.
       DO 406 J=1,5
       TAU55=0.
       DO 405 I=1,11  !  NAERO
   405 TAU55=TAU55+AGOLDH(I,J)*FGOLDH(J)
       WRITE(KW,6423) J,FGOLDH(J),TAU55
-  406 SUM=SUM+TAU55
-      WRITE(KW,6438) SUM
+  406 SUMT=SUMT+TAU55
+      WRITE(KW,6438) SUMT
       WRITE(KW,6424) BCOLX,ACOLX,DCOLX,VCOLX,TCOLX
       DO 407 I=1,8
       WRITE(KW,6425)
@@ -7888,13 +7326,13 @@ C
 C                                (4B)  Water/Ice Cloud Qx, Qs, g, Pi0
 C                                ------------------------------------
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6411)
       DO 412 K=1,6
       SUM1(K)=0.
       SUM2(K)=0.
       SUM3(K)=0.
-      DO 411 L=1,NL
+      DO 411 L=L1,NL
       SUM1(K)=SUM1(K)+SRCEXT(L,K)
       SUM2(K)=SUM2(K)+SRCSCT(L,K)
       SUM3(K)=SUM3(K)+SRCSCT(L,K)*SRCGCB(L,K)
@@ -7903,18 +7341,16 @@ C                                ------------------------------------
       SUM0(K)=SUM2(K)/(SUM1(K)+1.D-10)
   412 CONTINUE
       WRITE(KW,6412) (K,K=1,6),(K,K=1,6)
-      DO 413 N=1,NL
-      L=NLP-N
+      DO 413 L=NL,L1,-1
       WRITE(KW,6413) L,PLB(L),HLB0(L)
      +              ,(SRCEXT(L,J),J=1,6),(SRCSCT(L,J),J=1,6)
   413 CONTINUE
       WRITE(KW,6414) (SUM1(K),K=1,6),(SUM2(K),K=1,6)
       NPAGE=0
-      IF(NL.GT.13) NPAGE=1
+      IF(NL > 13) NPAGE=1
       WRITE(KW,6415) KANORM
       WRITE(KW,6416) (K,K=1,6),(K,K=1,6)
-      DO 414 N=1,NL
-      L=NLP-N
+      DO 414 L=NL,L1,-1
       WRITE(KW,6417) L,PL(L),DPL(L)
      +              ,(SRCGCB(L,J),J=1,6),(SRCPI0(L,J),J=1,6)
   414 CONTINUE
@@ -7922,14 +7358,14 @@ C                                ------------------------------------
       WRITE(KW,6420) (SRBALB(K),K=1,6)
       WRITE(KW,6421) (SRXALB(K),K=1,6)
       WRITE(KW,6422)
-      SUM=0.
+      SUMT=0.
       DO 416 J=1,5
       TAU55=0.
       DO 415 I=1,11  !  NAERO
   415 TAU55=TAU55+AGOLDH(I,J)*FGOLDH(J)
       WRITE(KW,6423) J,FGOLDH(J),TAU55
-  416 SUM=SUM+TAU55
-      WRITE(KW,6438) SUM
+  416 SUMT=SUMT+TAU55
+      WRITE(KW,6438) SUMT
       DO 417 I=1,2
       WRITE(KW,6425)
   417 CONTINUE
@@ -7937,13 +7373,13 @@ C
 C                                (4C)  Aerosol + Cloud Qx, Qs, g, Pi0
 C                                ------------------------------------
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6426)
       DO 419 K=1,6
       SUM1(K)=0.
       SUM2(K)=0.
       SUM3(K)=0.
-      DO 418 L=1,NL
+      DO 418 L=L1,NL
       SUM1(K)=SUM1(K)+DBLEXT(L,K)
       SUM2(K)=SUM2(K)+DBLSCT(L,K)
       SUM3(K)=SUM3(K)+DBLSCT(L,K)*DBLGCB(L,K)
@@ -7952,18 +7388,16 @@ C                                ------------------------------------
       SUM0(K)=SUM2(K)/(SUM1(K)+1.E-10)
   419 CONTINUE
       WRITE(KW,6427) (K,K=1,6),(K,K=1,6)
-      DO 420 N=1,NL
-      L=NLP-N
+      DO 420 L=NL,L1,-1
       WRITE(KW,6428) L,PLB(L),HLB0(L)
      +              ,(DBLEXT(L,J),J=1,6),(DBLSCT(L,J),J=1,6)
   420 CONTINUE
       WRITE(KW,6429) (SUM1(K),K=1,6),(SUM2(K),K=1,6)
       NPAGE=0
-      IF(NL.GT.13) NPAGE=1
+      IF(NL > 13) NPAGE=1
       WRITE(KW,6430) KANORM
       WRITE(KW,6431) (K,K=1,6),(K,K=1,6)
-      DO 421 N=1,NL
-      L=NLP-N
+      DO 421 L=NL,L1,-1
       WRITE(KW,6432) L,PL(L),DPL(L)
      +              ,(DBLGCB(L,J),J=1,6),(DBLPI0(L,J),J=1,6)
   421 CONTINUE
@@ -7971,14 +7405,14 @@ C                                ------------------------------------
       WRITE(KW,6434) (SRBALB(K),K=1,6)
       WRITE(KW,6435) (SRXALB(K),K=1,6)
       WRITE(KW,6436)
-      SUM=0.
+      SUMT=0.
       DO 423 J=1,5
       TAU55=0.
       DO 422 I=1,11  !  NAERO
   422 TAU55=TAU55+AGOLDH(I,J)*FGOLDH(J)
       WRITE(KW,6437) J,FGOLDH(J),TAU55
-  423 SUM=SUM+TAU55
-      WRITE(KW,6438) SUM
+  423 SUMT=SUMT+TAU55
+      WRITE(KW,6438) SUMT
       DO 424 I=1,2
       WRITE(KW,6439)
   424 CONTINUE
@@ -7986,7 +7420,7 @@ C
 C                                (4D)  11-Comp Aerosol Qx, Qs, g, Pi0
 C                                ------------------------------------
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6440)  KWTRAB,(N,N=1,11)
       WRITE(KW,6441)
       DO 425 K=1,6
@@ -8002,11 +7436,11 @@ C                                ------------------------------------
   427 CONTINUE
       WRITE(KW,6445) TRABCD(1),TRAXSG(KWTRAB+1)
       DO 428 K=1,33
-      IF(KWTRAB.EQ.0) WRITE(KW,6442) K,(TRAQAB(K,N),N=1,11)
-      IF(KWTRAB.EQ.1) WRITE(KW,6442) K,(TRAQEX(K,N),N=1,11)
-      IF(KWTRAB.EQ.2) WRITE(KW,6442) K,(TRAQSC(K,N),N=1,11)
-      IF(KWTRAB.EQ.3) WRITE(KW,6442) K,(TRAQCB(K,N),N=1,11)
-      IF(KWTRAB.EQ.4) THEN
+      IF(KWTRAB==0) WRITE(KW,6442) K,(TRAQAB(K,N),N=1,11)
+      IF(KWTRAB==1) WRITE(KW,6442) K,(TRAQEX(K,N),N=1,11)
+      IF(KWTRAB==2) WRITE(KW,6442) K,(TRAQSC(K,N),N=1,11)
+      IF(KWTRAB==3) WRITE(KW,6442) K,(TRAQCB(K,N),N=1,11)
+      IF(KWTRAB==4) THEN
       DO N=1,11
       TRPI0K(N)=TRAQSC(K,N)/(1.D-10+TRAQEX(K,N))
       END DO
@@ -8035,15 +7469,15 @@ C                                ------------------------------------
   437 CONTINUE
       WRITE(KW,6455) TRABCD(2),TRAXSG(1) !obs TRAXSG(KWTRAB+1)
       DO 438 K=1,33
-      IF(KWTRAB.EQ.0) WRITE(KW,6442) K,(TRHQAB(K,1,N),N=1, 4),
+      IF(KWTRAB==0) WRITE(KW,6442) K,(TRHQAB(K,1,N),N=1, 4),
      *                                 (TRBQAB(K,N),N=5, 6)
-!obs  IF(KWTRAB.EQ.1) WRITE(KW,6442) K,(TRHQEX(K,1,N),N=1, 4),
+!obs  IF(KWTRAB==1) WRITE(KW,6442) K,(TRHQEX(K,1,N),N=1, 4),
 !obs *                                 (TRBQEX(K,N),N=5, 6)
-!obs  IF(KWTRAB.EQ.2) WRITE(KW,6442) K,(TRHQSC(K,1,N),N=1, 4),
+!obs  IF(KWTRAB==2) WRITE(KW,6442) K,(TRHQSC(K,1,N),N=1, 4),
 !obs *                                 (TRBQSC(K,N),N=5, 6)
-!obs  IF(KWTRAB.EQ.3) WRITE(KW,6442) K,(TRHQCB(K,1,N),N=1, 4),
+!obs  IF(KWTRAB==3) WRITE(KW,6442) K,(TRHQCB(K,1,N),N=1, 4),
 !obs *                                 (TRBQCB(K,N),N=5, 6)
-!obs  IF(KWTRAB.EQ.4) THEN
+!obs  IF(KWTRAB==4) THEN
 !obs  DO N=1,4
 !obs  TRPI0K(N)=TRHQCB(K,1,N)/(1.D-10+TRHQEX(K,1,N))
 !obs  END DO
@@ -8060,7 +7494,7 @@ C
 C                             (4F  8-size Dust Aerosol Qx, Qs, g, Pi0
 C                             ---------------------------------------
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6460) KWTRAB,(N,N=1,8),(REDUST(N),N=1,8)
       WRITE(KW,6461)
       DO 445 K=1,6
@@ -8076,11 +7510,11 @@ C                             ---------------------------------------
   447 CONTINUE
       WRITE(KW,6465) TRABCD(4),TRAXSG(KWTRAB+1)
       DO 448 K=1,33
-      IF(KWTRAB.EQ.0) WRITE(KW,6442) K,(TRDQAB(K,N),N=1,8)
-      IF(KWTRAB.EQ.1) WRITE(KW,6442) K,(TRDQEX(K,N),N=1,8)
-      IF(KWTRAB.EQ.2) WRITE(KW,6442) K,(TRDQSC(K,N),N=1,8)
-      IF(KWTRAB.EQ.3) WRITE(KW,6442) K,(TRDQCB(K,N),N=1,8)
-      IF(KWTRAB.EQ.4) THEN
+      IF(KWTRAB==0) WRITE(KW,6442) K,(TRDQAB(K,N),N=1,8)
+      IF(KWTRAB==1) WRITE(KW,6442) K,(TRDQEX(K,N),N=1,8)
+      IF(KWTRAB==2) WRITE(KW,6442) K,(TRDQSC(K,N),N=1,8)
+      IF(KWTRAB==3) WRITE(KW,6442) K,(TRDQCB(K,N),N=1,8)
+      IF(KWTRAB==4) THEN
       DO N=1,8
       TRPI0K(N)=TRDQSC(K,N)/(1.D-10+TRDQEX(K,N))
       END DO
@@ -8094,7 +7528,7 @@ C
 C                           (4G  15-Size/phase Cloud Qx, Qs, g, Pi0
 C                           ---------------------------------------
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6470) KWTRAB,(N,N=1,15)
       WRITE(KW,6471)
       DO 430 K=1,6
@@ -8110,11 +7544,11 @@ C                           ---------------------------------------
   432 CONTINUE
       WRITE(KW,6475) TRABCD(3),TRAXSG(KWTRAB+1)
       DO 433 K=1,33
-      IF(KWTRAB.EQ.0) WRITE(KW,6472) K,(TRCQAB(K,N),N=1,15)
-      IF(KWTRAB.EQ.1) WRITE(KW,6472) K,(TRCQEX(K,N),N=1,15)
-      IF(KWTRAB.EQ.2) WRITE(KW,6472) K,(TRCQSC(K,N),N=1,15)
-      IF(KWTRAB.EQ.3) WRITE(KW,6472) K,(TRCQCB(K,N),N=1,15)
-      IF(KWTRAB.EQ.4) THEN
+      IF(KWTRAB==0) WRITE(KW,6472) K,(TRCQAB(K,N),N=1,15)
+      IF(KWTRAB==1) WRITE(KW,6472) K,(TRCQEX(K,N),N=1,15)
+      IF(KWTRAB==2) WRITE(KW,6472) K,(TRCQSC(K,N),N=1,15)
+      IF(KWTRAB==3) WRITE(KW,6472) K,(TRCQCB(K,N),N=1,15)
+      IF(KWTRAB==4) THEN
       DO N=1,15
       TRPI0K(N)=TRCQSC(K,N)/(1.D-10+TRCQEX(K,N))
       END DO
@@ -8246,7 +7680,7 @@ C-------------
 C-------------
 C
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
 c      SIGMA=5.6697D-08
       TGMEAN=POCEAN*TGO**4+PEARTH*TGE**4+PLICE*TGLI**4+POICE*TGOI**4
       TGMEAN=SQRT(TGMEAN)
@@ -8254,26 +7688,23 @@ c      SIGMA=5.6697D-08
       SIGT4=SIGMA*TGMEAN**4
       ITG=TGMEAN
       WTG=TGMEAN-ITG
-      ITG=ITG-ITPFT0
       SUMK=0.0
       DO 501 K=1,33
-      BGFLUX(K)=PLANCK(ITG)-(PLANCK(ITG)-PLANCK(ITG+1))*WTG
+      BGFLUX(K) = PLANCK(ITG,K) - (PLANCK(ITG,K)-PLANCK(ITG+1,K))*WTG
       BGFRAC(K)=BGFLUX(K)/SIGT4
       SUMK=SUMK+BGFLUX(K)
-      ITG=ITG+ITNEXT
   501 CONTINUE
       LK=0
       DO 503 K=1,33
       TAUSUM(K)=0. !!sl TAUSL(K)
-      DO 502 L=1,NL
+      DO 502 L=L1,NL
       TRTAUK(L,K)=TRGXLK(L,K)+TRCALK(L,K)+TRAALK(L,K)
       TAUSUM(K)=TAUSUM(K)+TRGXLK(L,K)+TRCALK(L,K)+TRAALK(L,K)
   502 CONTINUE
   503 CONTINUE
       WRITE(KW,6501)
       WRITE(KW,6502) (K,K=1,13)
-      DO 504 N=1,NL
-      L=NLP-N
+      DO 504 L=NL,L1,-1
       WRITE(KW,6503) L,PL(L),TLM(L),(TRTAUK(L,K),K=1,13)
   504 CONTINUE
 !sl   WRITE(KW,6504) (TAUSL(K),K=1,13)
@@ -8281,11 +7712,10 @@ c      SIGMA=5.6697D-08
       WRITE(KW,6506) SUMK,(BGFLUX(K),K=1,13)
       WRITE(KW,6507) TGMEAN,SIGT4,(BGFRAC(K),K=1,13)
       NPAGE=0
-      IF(NL.GT.13)  NPAGE=1
+      IF(NL > 13)  NPAGE=1
       WRITE(KW,6508) NPAGE
       WRITE(KW,6509) (K,K=14,33)
-      DO 505 N=1,NL
-      L=NLP-N
+      DO 505 L=NL,L1,-1
       WRITE(KW,6510) L,(TRTAUK(L,K),K=14,33)
   505 CONTINUE
 !sl   WRITE(KW,6511) ( TAUSL(K),K=14,33)
@@ -8325,7 +7755,7 @@ C-------------
 C-------------
 C
       NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
+      IF(INDEX < 11) NPAGE=KPAGE
 c      SIGMA=5.6697D-08
       TGMEAN=POCEAN*TGO**4+PEARTH*TGE**4+PLICE*TGLI**4+POICE*TGOI**4
       TGMEAN=SQRT(TGMEAN)
@@ -8333,24 +7763,21 @@ c      SIGMA=5.6697D-08
       SIGT4=SIGMA*TGMEAN**4
       ITG=TGMEAN
       WTG=TGMEAN-ITG
-      ITG=ITG-ITPFT0
       SUMK=0.0
       DO 601 K=1,33
-      BGFLUX(K)=PLANCK(ITG)-(PLANCK(ITG)-PLANCK(ITG+1))*WTG
+      BGFLUX(K) = PLANCK(ITG,K) - (PLANCK(ITG,K)-PLANCK(ITG+1,K))*WTG
       BGFRAC(K)=BGFLUX(K)/SIGT4
       SUMK=SUMK+BGFLUX(K)
-      ITG=ITG+ITNEXT
   601 CONTINUE
       WRITE(KW,6601)
       WRITE(KW,6602) (K,K=1,13)
-      DO 602 N=1,NL
-      L=NLP-N
+      DO 602 L=NL,L1,-1
       WRITE(KW,6603) L,PL(L),TLM(L),(TRGXLK(L,K),K=1,13)
   602 CONTINUE
       LK=0
       DO 604 K=1,33
       TAUSUM(K)=0. !!sl  TAUSL(K)
-      DO 603 L=1,NL
+      DO 603 L=L1,NL
   603 TAUSUM(K)=TAUSUM(K)+TRGXLK(L,K)
   604 CONTINUE
 !sl   WRITE(KW,6604) (TAUSL(K),K=1,13)
@@ -8358,11 +7785,10 @@ c      SIGMA=5.6697D-08
       WRITE(KW,6606) SUMK,(BGFLUX(K),K=1,13)
       WRITE(KW,6607) TGMEAN,SIGT4,(BGFRAC(K),K=1,13)
       NPAGE=0
-      IF(NL.GT.13)  NPAGE=1
+      IF(NL > 13)  NPAGE=1
       WRITE(KW,6608)
       WRITE(KW,6609) (K,K=14,33)
-      DO 605 N=1,NL
-      L=NLP-N
+      DO 605 L=NL,L1,-1
       WRITE(KW,6610) L,(TRGXLK(L,K),K=14,33)
   605 CONTINUE
 !sl   WRITE(KW,6611) ( TAUSL(K),K=14,33)
@@ -8408,24 +7834,21 @@ c      SIGMA=5.6697D-08
       SIGT4=SIGMA*TGMEAN**4
       ITG=TGMEAN
       WTG=TGMEAN-ITG
-      ITG=ITG-ITPFT0
       SUMK=0.0
       DO 701 K=1,33
-      BGFLUX(K)=PLANCK(ITG)-(PLANCK(ITG)-PLANCK(ITG+1))*WTG
+      BGFLUX(K) = PLANCK(ITG,K) - (PLANCK(ITG,K)-PLANCK(ITG+1,K))*WTG
       BGFRAC(K)=BGFLUX(K)/SIGT4
       SUMK=SUMK+BGFLUX(K)
-      ITG=ITG+ITNEXT
   701 CONTINUE
       WRITE(KW,6701)
       WRITE(KW,6702) (K,K=1,13)
-      DO 702 N=1,NL
-      L=NLP-N
+      DO 702 L=NL,L1,-1
       WRITE(KW,6703) L,PL(L),TLM(L),(TRCALK(L,K),K=1,13)
   702 CONTINUE
       LK=0
       DO 704 K=1,33
       TAUSUM(K)=0.0
-      DO 703 L=1,NL
+      DO 703 L=L1,NL
       LK=LK+1
   703 TAUSUM(K)=TAUSUM(K)+TRCALK(L,K)
   704 CONTINUE
@@ -8436,8 +7859,7 @@ c      SIGMA=5.6697D-08
 C
       WRITE(KW,6708)
       WRITE(KW,6709) (K,K=14,33)
-      DO 705 N=1,NL
-      L=NLP-N
+      DO 705 L=NL,L1,-1
       WRITE(KW,6710) L,(TRCALK(L,K),K=14,33)
   705 CONTINUE
       WRITE(KW,6711) (TAUSUM(K),K=14,33),(TRCTCA(K),K=14,33)
@@ -8454,23 +7876,20 @@ c      SIGMA=5.6697D-08
       SIGT4=SIGMA*TGMEAN**4
       ITG=TGMEAN
       WTG=TGMEAN-ITG
-      ITG=ITG-ITPFT0
       SUMK=0.0
       DO 711 K=1,33
-      BGFLUX(K)=PLANCK(ITG)-(PLANCK(ITG)-PLANCK(ITG+1))*WTG
+      BGFLUX(K) = PLANCK(ITG,K) - (PLANCK(ITG,K)-PLANCK(ITG+1,K))*WTG
       BGFRAC(K)=BGFLUX(K)/SIGT4
       SUMK=SUMK+BGFLUX(K)
-      ITG=ITG+ITNEXT
   711 CONTINUE
       WRITE(KW,6721)
       WRITE(KW,6722) (K,K=1,13)
-      DO 712 N=1,NL
-      L=NLP-N
+      DO 712 L=NL,L1,-1
       WRITE(KW,6723) L,PL(L),TLM(L),(TRAALK(L,K),K=1,13)
   712 CONTINUE
       DO 714 K=1,33
       TAUSUM(K)=0.0
-      DO 713 L=1,NL
+      DO 713 L=L1,NL
   713 TAUSUM(K)=TAUSUM(K)+TRAALK(L,K)
   714 CONTINUE
       WRITE(KW,6724) (TAUSUM(K),K=1,13)
@@ -8478,11 +7897,10 @@ c      SIGMA=5.6697D-08
       WRITE(KW,6726)         SUMK,(BGFLUX(K),K=1,13)
       WRITE(KW,6727) TGMEAN,SIGT4,(BGFRAC(K),K=1,13)
       NPAGE=0
-      IF(NL.GT.13)  NPAGE=1
+      IF(NL > 13)  NPAGE=1
       WRITE(KW,6728) NPAGE
       WRITE(KW,6729) (K,K=14,33)
-      DO 715 N=1,NL
-      L=NLP-N
+      DO 715 L=NL,L1,-1
       WRITE(KW,6730) L,(TRAALK(L,K),K=14,33)
   715 CONTINUE
       WRITE(KW,6731) (TAUSUM(K),K=14,33)
@@ -8546,40 +7964,39 @@ C
       WRITE(KW,6800)
       DO 801 K=1,16
       ISR1(K)=NORDER(K)
-      IF(KORDER.EQ.1) ISR1(K)=K
+      IF(KORDER==1) ISR1(K)=K
   801 CONTINUE
       WRITE(KW,6801) (ISR1(K),K=1,16)
       SUMK=0.0
       DO 802 K=1,16
       FSR1(K)=DKS0(NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=DKS0(K)
+      IF(KORDER==1) FSR1(K)=DKS0(K)
       SUMK=SUMK+FSR1(K)
   802 CONTINUE
       FSR1(17)=SUMK
       WRITE(KW,6802) (FSR1(K),K=1,17)
       DO 803 K=1,16
       ISR1(K)=NMWAVA(K)
-      IF(KORDER.EQ.1) ISR1(K)=NMWAVA(IORDER(K))
+      IF(KORDER==1) ISR1(K)=NMWAVA(IORDER(K))
   803 CONTINUE
       WRITE(KW,6803) (ISR1(K),K=1,16)
       DO 804 K=1,16
       ISR1(K)=NMWAVB(K)
-      IF(KORDER.EQ.1) ISR1(K)=NMWAVB(IORDER(K))
+      IF(KORDER==1) ISR1(K)=NMWAVB(IORDER(K))
   804 CONTINUE
       WRITE(KW,6804) (ISR1(K),K=1,16)
-      IF(KORDER.EQ.0) WRITE(KW,6805)
-      IF(KORDER.EQ.1) WRITE(KW,6806)
+      IF(KORDER==0) WRITE(KW,6805)
+      IF(KORDER==1) WRITE(KW,6806)
       DO 805 K=1,16
       ISR1(K)=K
-      IF(KORDER.EQ.1)ISR1(K)=IORDER(K)
+      IF(KORDER==1)ISR1(K)=IORDER(K)
   805 CONTINUE
       WRITE(KW,6807) (ISR1(K),K=1,16)
-      DO 807 N=1,NLP
-      L=NLP+1-N
+      DO 807 L=NL+1,L1,-1
       SUMK=0.0
       DO 806 K=1,16
       FSR1(K)=SKDFLB(L,NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=SKDFLB(L,K)
+      IF(KORDER==1) FSR1(K)=SKDFLB(L,K)
       SUMK=SUMK+FSR1(K)
   806 CONTINUE
       FSR1(17)=SUMK
@@ -8587,15 +8004,14 @@ C
   807 CONTINUE
       DO 808 K=1,16
       ISR1(K)=K
-      IF(KORDER.EQ.1) ISR1(K)=IORDER(K)
+      IF(KORDER==1) ISR1(K)=IORDER(K)
   808 CONTINUE
       WRITE(KW,6809) (ISR1(K),K=1,16)
-      DO 810 N=1,NLP
-      L=NLP+1-N
+      DO 810 L=NL+1,L1,-1
       SUMK=0.0
       DO 809 K=1,16
       FSR1(K)=SKUFLB(L,NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=SKUFLB(L,K)
+      IF(KORDER==1) FSR1(K)=SKUFLB(L,K)
       SUMK=SUMK+FSR1(K)
   809 CONTINUE
       FSR1(17)=SUMK
@@ -8603,7 +8019,7 @@ C
   810 CONTINUE
       DO 811 K=1,16
       ISR1(K)=K
-      IF(KORDER.EQ.1) ISR1(K)=IORDER(K)
+      IF(KORDER==1) ISR1(K)=IORDER(K)
   811 CONTINUE
       WRITE(KW,6811) (ISR1(K),K=1,16)
       SUMT=0.D0
@@ -8611,8 +8027,8 @@ C
       DO 812 K=1,16
       FSR1(K)=SRKALB(NORDER(K))
       FSR2(K)=DKS0(NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=SRKALB(K)
-      IF(KORDER.EQ.1) FSR2(K)=DKS0(K)
+      IF(KORDER==1) FSR1(K)=SRKALB(K)
+      IF(KORDER==1) FSR2(K)=DKS0(K)
       SUMK=SUMK+FSR1(K)*FSR2(K)
   812 CONTINUE
       FSR1(17)=SUMK
@@ -8621,10 +8037,10 @@ C
       SUMK1=0.D0
       SUMK2=0.D0
       DO 813 K=1,16
-      FSR1(K)=SKNFLB(NLP,NORDER(K))-SKNFLB(1,NORDER(K))
-      FSR2(K)=SKDFLB(NLP,NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=SKNFLB(NLP,K)-SKNFLB(1,K)
-      IF(KORDER.EQ.1) FSR2(K)=SKDFLB(NLP,K)
+      FSR1(K)=SKNFLB(NL+1,NORDER(K))-SKNFLB(L1,NORDER(K))
+      FSR2(K)=SKDFLB(NL+1,NORDER(K))
+      IF(KORDER==1) FSR1(K)=SKNFLB(NL+1,K)-SKNFLB(L1,K)
+      IF(KORDER==1) FSR2(K)=SKDFLB(NL+1,K)
       SUMK1=SUMK1+FSR1(K)
       SUMK2=SUMK2+FSR2(K)
       FSR1(K)=FSR1(K)/(FSR2(K)+1.d-20)
@@ -8635,10 +8051,10 @@ C
       SUMK1=0.D0
       SUMK2=0.D0
       DO 814 K=1,16
-      FSR1(K)=SKNFLB(1,NORDER(K))
-      FSR2(K)=SKDFLB(NLP,NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=SKNFLB(1,K)
-      IF(KORDER.EQ.1) FSR2(K)=SKDFLB(NLP,K)
+      FSR1(K)=SKNFLB(L1,NORDER(K))
+      FSR2(K)=SKDFLB(NL+1,NORDER(K))
+      IF(KORDER==1) FSR1(K)=SKNFLB(L1,K)
+      IF(KORDER==1) FSR2(K)=SKDFLB(NL+1,K)
       SUMK1=SUMK1+FSR1(K)
       SUMK2=SUMK2+FSR2(K)
       FSR1(K)=FSR1(K)/(FSR2(K)+1.d-20)
@@ -8648,13 +8064,13 @@ C
       SUMT=SUMT+FSR1(17)
       DO 815 K=1,16
       ISR1(K)=KSLAMW(NORDER(K))
-      IF(KORDER.EQ.1) ISR1(K)=KSLAMW(K)
+      IF(KORDER==1) ISR1(K)=KSLAMW(K)
   815 CONTINUE
       WRITE(KW,6815) SUMT,(ISR1(K),K=1,16)
       SUMK=0.D0
       DO 816 K=1,16
       KK=KSLAMW(NORDER(K))
-      IF(KORDER.EQ.1) KK=KSLAMW(K)
+      IF(KORDER==1) KK=KSLAMW(K)
       FSR1(K)=SRBALB(KK)
       FSR2(K)=SRXALB(KK)
   816 CONTINUE
@@ -8665,36 +8081,35 @@ C
      +                            ,SRUNIR,ALBNIR
       WRITE(KW,6820) SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
       DO 817 I=1,1
-      IF(KORDER.EQ.1) WRITE(KW,6821)
+      IF(KORDER==1) WRITE(KW,6821)
   817 CONTINUE
 C
       WRITE(KW,6840)
       DO 821 K=1,16
       ISR1(K)=NORDER(K)
-      IF(KORDER.EQ.1) ISR1(K)=K
+      IF(KORDER==1) ISR1(K)=K
   821 CONTINUE
       WRITE(KW,6841) (ISR1(K),K=1,16)
       SUMK=0.0
       DO 822 K=1,16
       FSR1(K)=DKS0(NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=DKS0(K)
+      IF(KORDER==1) FSR1(K)=DKS0(K)
       SUMK=SUMK+FSR1(K)
   822 CONTINUE
       FSR1(17)=SUMK
       WRITE(KW,6842) (FSR1(K),K=1,17)
-      IF(KORDER.EQ.0) WRITE(KW,6843)
-      IF(KORDER.EQ.1) WRITE(KW,6844)
+      IF(KORDER==0) WRITE(KW,6843)
+      IF(KORDER==1) WRITE(KW,6844)
       DO 825 K=1,16
       ISR1(K)=K
-      IF(KORDER.EQ.1)ISR1(K)=IORDER(K)
+      IF(KORDER==1)ISR1(K)=IORDER(K)
   825 CONTINUE
       WRITE(KW,6845) (ISR1(K),K=1,16)
-      DO 827 N=1,NLP
-      L=NLP+1-N
+      DO 827 L=NL+1,L1,-1
       SUMK=0.0
       DO 826 K=1,16
       FSR1(K)=SKNFLB(L,NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=SKNFLB(L,K)
+      IF(KORDER==1) FSR1(K)=SKNFLB(L,K)
       SUMK=SUMK+FSR1(K)
   826 CONTINUE
       FSR1(17)=SUMK
@@ -8702,15 +8117,14 @@ C
   827 CONTINUE
       DO 828 K=1,16
       ISR1(K)=K
-      IF(KORDER.EQ.1) ISR1(K)=IORDER(K)
+      IF(KORDER==1) ISR1(K)=IORDER(K)
   828 CONTINUE
       WRITE(KW,6847) (ISR1(K),K=1,16)
-      DO 830 N=1,NL
-      L=NL+1-N
+      DO 830 L=NL,L1,-1
       SUMK=0.0
       DO 829 K=1,16
       FSR1(K)=SKFHRL(L,NORDER(K))
-      IF(KORDER.EQ.1) FSR1(K)=SKFHRL(L,K)
+      IF(KORDER==1) FSR1(K)=SKFHRL(L,K)
       SUMK=SUMK+FSR1(K)
   829 CONTINUE
       FSR1(17)=SUMK
@@ -8718,29 +8132,29 @@ C
   830 CONTINUE
       DO 831 K=1,16
       ISR1(K)=K
-      IF(KORDER.EQ.1)ISR1(K)=IORDER(K)
+      IF(KORDER==1)ISR1(K)=IORDER(K)
   831 CONTINUE
       WRITE(KW,6849) (ISR1(K),K=1,16)
       DO 833 N=1,4
       SUMK=0.0
       DO 832 K=1,16
       FSR1(K)=SRKGAX(NORDER(K),N)
-      IF(KORDER.EQ.1) FSR1(K)=SRKGAX(K,N)
+      IF(KORDER==1) FSR1(K)=SRKGAX(K,N)
       SUMK=SUMK+FSR1(K)
   832 CONTINUE
       FSR1(17)=SUMK
-      WRITE(KW,6850) L,(FSR1(K),K=1,17)
+      WRITE(KW,6850) 0,(FSR1(K),K=1,17)
   833 CONTINUE
       DO 834 K=1,16
       ISR1(K)=K
-      IF(KORDER.EQ.1)ISR1(K)=IORDER(K)
+      IF(KORDER==1)ISR1(K)=IORDER(K)
   834 CONTINUE
       WRITE(KW,6851)
       DO 836 N=1,4
       SUMK=0.0
       DO 835 K=1,16
       FSR1(K)=SRKGAD(NORDER(K),N)
-      IF(KORDER.EQ.1) FSR1(K)=SRKGAD(K,N)
+      IF(KORDER==1) FSR1(K)=SRKGAD(K,N)
       SUMK=SUMK+FSR1(K)
   835 CONTINUE
       FSR1(17)=SUMK
@@ -8752,15 +8166,15 @@ C
       DO 837 K=1,16
       FSR1(K)=SRKGAX(NORDER(K),N)
       FSR2(K)=SRKGAD(NORDER(K),N)
-      IF(KORDER.EQ.1) FSR1(K)=SRKGAX(K,N)
-      IF(KORDER.EQ.1) FSR2(K)=SRKGAD(K,N)
+      IF(KORDER==1) FSR1(K)=SRKGAX(K,N)
+      IF(KORDER==1) FSR2(K)=SRKGAD(K,N)
       FSR1(K)=FSR1(K)+FSR2(K)
       SUMK=SUMK+FSR1(K)
   837 CONTINUE
       FSR1(17)=SUMK
       WRITE(KW,6854) N,(FSR1(K),K=1,17)
   838 CONTINUE
-      WRITE(KW,6855) SRNFLB(1),POCEAN,FSRNFG(1),PEARTH,FSRNFG(2)
+      WRITE(KW,6855)SRNFLB(L1),POCEAN,FSRNFG(1),PEARTH,FSRNFG(2)
      +                        ,POICE ,FSRNFG(3),PLICE ,FSRNFG(4)
 C
  6800 FORMAT(' (8A)     SPECTRAL/k-DISTRIBUTION COMPONENT BREAKDOWN'
@@ -8850,39 +8264,37 @@ c      SIGMA=5.6697D-08
       SIGT4=SIGMA*TGMEAN**4
       ITG=TGMEAN
       WTG=TGMEAN-ITG
-      ITG=ITG-ITPFT0
       DO 901 K=1,33
-      BGFLUX(K)=PLANCK(ITG)-(PLANCK(ITG)-PLANCK(ITG+1))*WTG
+      BGFLUX(K) = PLANCK(ITG,K) - (PLANCK(ITG,K)-PLANCK(ITG+1,K))*WTG
       BGFRAC(K)=BGFLUX(K)/SIGT4
-      ITG=ITG+ITNEXT
   901 CONTINUE
       DO 910 NW=1,5
       DO 903 K=1,33
-      DO 902 L=1,NLP
-      IF(NW.EQ.1) WFLB(L,K)=DFLB(L,K)
-      IF(NW.EQ.2) WFLB(L,K)=UFLB(L,K)
-      IF(NW.EQ.3) WFLB(L,K)=UFLB(L,K)-DFLB(L,K)
-      IF(NW.GT.3.AND.L.GT.NL) GO TO 902
-      IF(NW.EQ.4) WFLB(L,K)=WFLB(L+1,K)-WFLB(L,K)
-      IF(NW.EQ.5.AND.ABS(TRFCRL(L)).LT.1.E-10) WFLB(L,K)=1.E-30
-      IF(NW.EQ.5) WFLB(L,K)=WFLB(L,K)/(ABS(TRFCRL(L))+1.E-10)
+      DO 902 L=L1,NL+1
+      IF(NW==1) WFLB(L,K)=DFLB(L,K)
+      IF(NW==2) WFLB(L,K)=UFLB(L,K)
+      IF(NW==3) WFLB(L,K)=UFLB(L,K)-DFLB(L,K)
+      IF(NW > 3.and.L > NL) GO TO 902
+      IF(NW==4) WFLB(L,K)=WFLB(L+1,K)-WFLB(L,K)
+      IF(NW==5.and.ABS(TRFCRL(L)) < 1.E-10) WFLB(L,K)=1.E-30
+      IF(NW==5) WFLB(L,K)=WFLB(L,K)/(ABS(TRFCRL(L))+1.E-10)
   902 CONTINUE
-      IF(NW.EQ.1) WFSL(K)=DFSL(K)
-      IF(NW.EQ.2) WFSL(K)=UFSL(K)
-      IF(NW.EQ.3) WFSL(K)=UFSL(K)-DFSL(K)
-      IF(NW.EQ.4) WFSL(K)=WFSL(K)-UFLB(1,K)+DFLB(1,K)
-!sl   IF(NW.EQ.5.AND.ABS(TRSLCR).LT.1.E-10) WFSL(K)=1.E-30
-      IF(NW.EQ.5) WFSL(K)=0.   !nu =WFSL(K)/(ABS(TRSLCR)+1.E-10)
+      IF(NW==1) WFSL(K)=DFSL(K)
+      IF(NW==2) WFSL(K)=UFSL(K)
+      IF(NW==3) WFSL(K)=UFSL(K)-DFSL(K)
+      IF(NW==4) WFSL(K)=WFSL(K)-UFLB(L1,K)+DFLB(L1,K)
+!sl   IF(NW==5.and.ABS(TRSLCR) < 1.E-10) WFSL(K)=1.E-30
+      IF(NW==5) WFSL(K)=0.   !nu =WFSL(K)/(ABS(TRSLCR)+1.E-10)
   903 CONTINUE
-      DO 907 L=1,NLP
-      IF(L.GT.NL.AND.NW.GT.3) GO TO 907
+      DO 907 L=L1,NL+1
+      IF(L > NL .and. NW > 3) GO TO 907
       ASUM1=0.
       BSUM1=0.
       CSUM1=0.
       DSUM1=0.
       ESUM1=0.
       FSUM1=0.
-      SUM=0.
+      SUMF=0.
       DO 904 K=2,13
       ASUM1=ASUM1+  WFSL(K)
       BSUM1=BSUM1+BGFEMT(K)
@@ -8890,15 +8302,15 @@ c      SIGMA=5.6697D-08
       DSUM1=DSUM1+BGFRAC(K)
       ESUM1=ESUM1+TRCTCA(K)
       FSUM1=FSUM1+TRGALB(K)
-  904 SUM=SUM+WFLB(L,K)
-      SUM1(L)=SUM
+  904 SUMF=SUMF+WFLB(L,K)
+      SUM1(L)=SUMF
       ASUM2=0.
       BSUM2=0.
       CSUM2=0.
       DSUM2=0.
       ESUM2=0.
       FSUM2=0.
-      SUM=0.
+      SUMF=0.
       DO 905 K=14,25
       ASUM2=ASUM2+  WFSL(K)
       BSUM2=BSUM2+BGFEMT(K)
@@ -8906,15 +8318,15 @@ c      SIGMA=5.6697D-08
       DSUM2=DSUM2+BGFRAC(K)
       ESUM2=ESUM2+TRCTCA(K)
       FSUM2=FSUM2+TRGALB(K)
-  905 SUM=SUM+WFLB(L,K)
-      SUM2(L)=SUM
+  905 SUMF=SUMF+WFLB(L,K)
+      SUM2(L)=SUMF
       ASUM3=0.
       BSUM3=0.
       CSUM3=0.
       DSUM3=0.
       ESUM3=0.
       FSUM3=0.
-      SUM=0.
+      SUMF=0.
       DO 906 K=26,33
       ASUM3=ASUM3+  WFSL(K)
       BSUM3=BSUM3+BGFEMT(K)
@@ -8922,16 +8334,15 @@ c      SIGMA=5.6697D-08
       DSUM3=DSUM3+BGFRAC(K)
       ESUM3=ESUM3+TRCTCA(K)
       FSUM3=FSUM3+TRGALB(K)
-  906 SUM=SUM+WFLB(L,K)
-      SUM3(L)=SUM
+  906 SUMF=SUMF+WFLB(L,K)
+      SUM3(L)=SUMF
   907 CONTINUE
 C
       NPAGE=1
       WRITE(KW,6901) NW,FTYPE(NW)
       WRITE(KW,6902) (K,K=1,13)
-      DO 908 N=1,NLP
-      L=NLP+1-N
-      IF(L.GT.NL.AND.NW.GT.3) GO TO 908
+      DO 908 L=NL+1,L1,-1
+      IF(L > NL .and. NW > 3) GO TO 908
       SUML=SUM1(L)+SUM2(L)+SUM3(L)+WFLB(L,1)
       WRITE(KW,6903) L,PL(L),SUML,SUM1(L),SUM2(L),SUM3(L)
      +               ,(WFLB(L,K),K=1,13)
@@ -8951,9 +8362,8 @@ C
       NPAGE=0
       WRITE(KW,6910) NPAGE
       WRITE(KW,6911) (K,K=14,33)
-      DO 909 N=1,NLP
-      L=NLP+1-N
-      IF(L.GT.NL.AND.NW.GT.3) GO TO 909
+      DO 909 L=NL+1,L1,-1
+      IF(L > NL.and.NW > 3) GO TO 909
       WRITE(KW,6912) L,(WFLB(L,K),K=14,33)
   909 CONTINUE
       WRITE(KW,6913) (  WFSL(K),K=14,33)
@@ -8963,7 +8373,7 @@ C
       WRITE(KW,6917) (TRCTCA(K),K=14,33)
       WRITE(KW,6918) (TRGALB(K),K=14,33)
       LINFIL=2
-      IF(NW.GT.3) LINFIL=4
+      IF(NW > 3) LINFIL=4
       DO 911 I=1,LINFIL
       WRITE(KW,6919)
   911 CONTINUE
@@ -9056,7 +8466,7 @@ C
 C
       INTEGER, PARAMETER :: NSW1=24, NSW2=32, NSW3=40, NSW4=48
 C
-      CHARACTER*32, DIMENSION(4), PARAMETER :: CHAER =(/
+      CHARACTER*32, PARAMETER :: CHAER(4) = (/
      *     'Tropospheric Climatology Aerosol',
      +     'Tropospheric Desert Dust Aerosol',
      +     'Stratospheric (Volcanic) Aerosol',
@@ -9067,14 +8477,14 @@ C
      *     ,QPGL,QGSH,QGNH,QGGL
       INTEGER KW,INDJ,INDI,INDX,KINDEX,I,JJDAYG,JYEARG,KWSKIP,J,IYEAR
      *     ,NSPACE,LMO,K,mavg,iyr1,lmax,icyc,JYEARS,M,JJDAYO,L,JJ,N,N1
-     *     ,N2,II,KAEROS,L1,KA,JJDAY
+     *     ,N2,II,KAEROS,LL1,KA,JJDAY
 C
       KW=KWRU
       INDJ=MOD(INDEX,10)
-      IF(INDJ.LT.1) INDJ=10
+      IF(INDJ < 1) INDJ=10
       INDI=1
-      IF(INDEX.EQ.0)  INDJ=1
-      IF(INDEX.LT.11) INDI=INDJ
+      IF(INDEX==0)  INDJ=1
+      IF(INDEX < 11) INDI=INDJ
       DO 9999 INDX=INDI,INDJ
 C
       GO TO (100,100,300,400,500,600,600,600,600,1000),INDX
@@ -9099,7 +8509,7 @@ C
 C
       JJDAYG=184
 C
-      IF(KINDEX.EQ.1) THEN
+      IF(KINDEX==1) THEN
       WRITE(KW,6101) JJDAYG
  6101 FORMAT(/1X,'(1)=INDEX'
      +      ,T12,'JDAY=',I3,'   RCM RAD EQUIL NO-FEEDBACK DT0'
@@ -9112,7 +8522,7 @@ C
      +         ,         '   FULCO2  FULN2O  FULCH4  FULF11  FULF12')
       ENDIF
 C
-      IF(KINDEX.EQ.2) THEN
+      IF(KINDEX==2) THEN
       WRITE(KW,6201) JJDAYG
  6201 FORMAT(/1X,'(2)=INDEX'
      +      ,T12,'JDAY=',I3,'   RCM EQ NO-FEEDBACK DFLUX W/M2'
@@ -9134,30 +8544,30 @@ C
 C
       DO 230 J=JYRREF,JYRNOW
       KWSKIP=0
-      IF(J.GT.JYRREF) KWSKIP=KLIMIT
-      IF(J.EQ.1980)   KWSKIP=0
-      IF(J.EQ.JYRNOW) KWSKIP=0
+      IF(J > JYRREF) KWSKIP=KLIMIT
+      IF(J==1980)   KWSKIP=0
+      IF(J==JYRNOW) KWSKIP=0
       JYEARG=J
       CALL UPDGHG(JYEARG,JJDAYG)
       DO 220 I=1,5
       XRAT(I)=(XNOW(I)-WDAT(I))/(1.D-10+WDAT(I))
-      IF(XRAT(I).GT.9.9999) XRAT(I)=9.9999
+      IF(XRAT(I) > 9.9999) XRAT(I)=9.9999
       WDAT(I)=XNOW(I)
   220 CONTINUE
       IYEAR=JYEARG
-      IF(KINDEX.EQ.1) THEN
-      IF(KWSKIP.EQ.0)
+      IF(KINDEX==1) THEN
+      IF(KWSKIP==0)
      +WRITE(KW,6103) IYEAR,(XNOW(I),I=1,5),FULGAS(2),(FULGAS(I),I=6,9)
  6103 FORMAT(1X,I4,1X,F8.2,4F8.4,1X,5F8.4)
       ENDIF
-      IF(KINDEX.EQ.2) THEN
-      IF(KWSKIP.EQ.0)
+      IF(KINDEX==2) THEN
+      IF(KWSKIP==0)
      +WRITE(KW,6203) IYEAR,(XNOW(I),I=1,5),(XRAT(I),I=1,5)
  6203 FORMAT(1X,I4,1X,F8.2,4F8.4,1X,5F8.4)
       ENDIF
       NSPACE=IYEAR-(IYEAR/10)*10
-      IF(KLIMIT.GT.0) GO TO 230
-      IF(NSPACE.EQ.0) WRITE(KW,6104)
+      IF(KLIMIT > 0) GO TO 230
+      IF(NSPACE==0) WRITE(KW,6104)
  6104 FORMAT(' ')
   230 CONTINUE
       GO TO 9999
@@ -9166,23 +8576,23 @@ C-------------
   300 CONTINUE
 C-------------
 C
-      if(ksolar.lt.0) go to 9999
+      if(ksolar < 0) go to 9999
       LMO=(1950-iy1S0)*12+1
-      if(ksolar.gt.1) LMO=nint(1950 - yr1s0 + 1.5)
+      if(ksolar > 1) LMO=nint(1950 - yr1s0 + 1.5)
       DO 310 I=1,5
       SFL0(I)=0.D0
   310 CONTINUE
       DO 320 K=1,190
-      IF(K.LE.NSW1)              SFL0(1)=SFL0(1)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K.GT.NSW1.AND.K.LE.NSW2)SFL0(2)=SFL0(2)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K.GT.NSW2.AND.K.LE.NSW3)SFL0(3)=SFL0(3)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K.GT.NSW3.AND.K.LE.NSW4)SFL0(4)=SFL0(4)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K <= NSW1)              SFL0(1)=SFL0(1)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K > NSW1.and.K <= NSW2)SFL0(2)=SFL0(2)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K > NSW2.and.K <= NSW3)SFL0(3)=SFL0(3)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K > NSW3.and.K <= NSW4)SFL0(4)=SFL0(4)+UVLEAN(LMO,K)*DSLEAN(K)
                                  SFL0(5)=SFL0(5)+UVLEAN(LMO,K)*DSLEAN(K)
   320 CONTINUE
 C
-      if(ksolar.eq.2)
+      if(ksolar==2.or.ksolar==9)
      *   WRITE(KW,6299) int(yr1s0),int(yr2s0),JYRREF,JYRNOW,SFL0(5)
-      if(ksolar.lt.2) WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
+      if(ksolar < 2) WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
  6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from J.Lean annual'
      +      ,I6,'-',I4,' data) for JYRREF=',I4,' to JYRNOW=',I4,'  mid'
      +      ,' 1950 Ref S00WM2=',F9.4/12X,'Solar UV Spectral Flux W/m2'
@@ -9200,7 +8610,7 @@ C
      +      ,6X,'0-280 280-320 320-360 360-400   Total '
      +      ,4X,'0-280 280-320 320-360 360-400   Total ')
 C
-      if(ksolar.lt.2) then
+      if(ksolar < 2) then
         mavg = 12
         iyr1 = iy1s0
         lmax = ms0x
@@ -9213,8 +8623,8 @@ C
       end if
       DO 370 J=JYRREF,JYRNOW
       KWSKIP=0
-      IF(J.GT.JYRREF) KWSKIP=KLIMIT
-      IF(J.EQ.JYRNOW) KWSKIP=0
+      IF(J > JYRREF) KWSKIP=KLIMIT
+      IF(J==JYRNOW) KWSKIP=0
       JYEARS=J
       DO 330 I=1,5
       SFLX(I)=0.D0
@@ -9222,13 +8632,13 @@ C
       LMO=(JYEARS-iyr1)*mavg
       DO 350 M=1,mavg
       LMO=LMO+1
-      IF(LMO.GT.lmax) LMO=LMO-icyc*((LMO-lmax+icyc-1)/icyc)
-      IF(LMO.LT.1) LMO=LMO+icyc*((icyc-LMO)/icyc)
+      IF(LMO > lmax) LMO=LMO-icyc*((LMO-lmax+icyc-1)/icyc)
+      IF(LMO < 1) LMO=LMO+icyc*((icyc-LMO)/icyc)
       DO 340 K=1,190
-      IF(K.LE.NSW1)              SFLX(1)=SFLX(1)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K.GT.NSW1.AND.K.LE.NSW2)SFLX(2)=SFLX(2)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K.GT.NSW2.AND.K.LE.NSW3)SFLX(3)=SFLX(3)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K.GT.NSW3.AND.K.LE.NSW4)SFLX(4)=SFLX(4)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K <= NSW1)              SFLX(1)=SFLX(1)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K > NSW1.and.K <= NSW2)SFLX(2)=SFLX(2)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K > NSW2.and.K <= NSW3)SFLX(3)=SFLX(3)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K > NSW3.and.K <= NSW4)SFLX(4)=SFLX(4)+UVLEAN(LMO,K)*DSLEAN(K)
                                  SFLX(5)=SFLX(5)+UVLEAN(LMO,K)*DSLEAN(K)
   340 CONTINUE
   350 CONTINUE
@@ -9237,13 +8647,13 @@ C
       DFLX(I)=SFLX(I)-SFL0(I)
       RFLX(I)=SFLX(I)/SFL0(I)
   360 CONTINUE
-      IF(KWSKIP.EQ.0)
+      IF(KWSKIP==0)
      +WRITE(KW,6301) JYEARS,(SFLX(I),I=1,5),(DFLX(I),I=1,5)
      +                     ,(RFLX(I),I=1,5)
  6301 FORMAT(2X,I4,1X,4F8.4,F10.4,2X,5F8.4,2X,5F8.5)
       NSPACE=JYEARS-(JYEARS/10)*10
-      IF(KLIMIT.GT.0) GO TO 370
-      IF(NSPACE.EQ.0) WRITE(KW,6302)
+      IF(KLIMIT > 0) GO TO 370
+      IF(NSPACE==0) WRITE(KW,6302)
  6302 FORMAT(' ')
   370 CONTINUE
       GO TO 9999
@@ -9253,7 +8663,7 @@ C-------------
 C-------------
 C
       JJDAYO=JMONTH*30-15
-      IF(JMONTH.LT.1) JJDAYO=JDAY
+      IF(JMONTH < 1) JJDAYO=JDAY
       CALL UPDO3D(JYRREF,JJDAYO)
       DO 450 J=1,46
       DO 410 L=1,NL
@@ -9289,16 +8699,16 @@ C
       O3(49,L)=QOGL
   460 CONTINUE
 C
-      IF(KLIMIT.GT.0)
+      IF(KLIMIT > 0)
      +WRITE(KW,6400) JYRREF,JJDAYO,JMONTH,MADO3M,(L,L=2,NL)
  6400 FORMAT(/' (4)=INDEX  JYRREF=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone: Zonal-mean Vertical Distribution (cmSTP)'
      +      ,T126,'MADO3=',I2/'  JLAT DLAT46   COLUMN  L =   1',14I7/
      +    I31,14I7)
-      IF(KLIMIT.LT.1)
+      IF(KLIMIT < 1)
      +WRITE(KW,7400) JYRREF,JJDAYO,JMONTH,MADO3M
      +      ,(PLB0(I),I=1,15),(L,L=2,15)
-      IF(KLIMIT.LT.1.and.nl.gt.15) then
+      IF(KLIMIT < 1.and.nl > 15) then
         write(KW,'(F33.2,14F7.2)') (PLB0(I),I=16,NL)
         write(KW,'(I31,14I7)') (L,L=16,NL)
       END IF
@@ -9309,18 +8719,18 @@ C
 C
       DO 470 JJ=1,46
       J=47-JJ
-      IF(KLIMIT.GT.0) GO TO 470
+      IF(KLIMIT > 0) GO TO 470
       WRITE(KW,6401) J,DLAT46(J),O3COL(J),(O3(J,L),L=1,NL)
  6401 FORMAT(I5,F8.2,F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
   470 CONTINUE
-      IF(KLIMIT.LT.1) WRITE(KW,6402)
+      IF(KLIMIT < 1) WRITE(KW,6402)
  6402 FORMAT(' ')
       WRITE(KW,6403) O3COL(48),(O3(48,L),L=1,NL)
  6403 FORMAT(11X,'NH',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
-      IF(KLIMIT.LT.1) WRITE(KW,6402)
+      IF(KLIMIT < 1) WRITE(KW,6402)
       WRITE(KW,6404) O3COL(47),(O3(47,L),L=1,NL)
  6404 FORMAT(11X,'SH',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
-      IF(KLIMIT.LT.1) WRITE(KW,6402)
+      IF(KLIMIT < 1) WRITE(KW,6402)
       WRITE(KW,6405) O3COL(49),(O3(49,L),L=1,NL)
  6405 FORMAT( 7X,'GLOBAL',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
       GO TO 9999
@@ -9331,13 +8741,13 @@ C-------------
 C-------------
 C
       JJDAYO=JMONTH*30-15
-      IF(JMONTH.LT.1) JJDAYO=JDAY
+      IF(JMONTH < 1) JJDAYO=JDAY
       CALL UPDO3D(JYRREF,JJDAYO)
       DO 590 N=1,3
       N1=1
       N2=8
-      IF(N.EQ.2) N1=9
-      IF(N.GT.1) N2=NL
+      IF(N==2) N1=9
+      IF(N > 1) N2=NL
       DO 530 J=1,46
       JLAT=J
       DO 520 I=1,72
@@ -9361,39 +8771,39 @@ C
   550 CONTINUE
   560 CONTINUE
 C
-      IF(N.EQ.1)
+      IF(N==1)
      +WRITE(KW,6510) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6510 FORMAT(/'  5A=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Troposphere'
      +      ,' (Wang-Jacobs) Surf to 150 mb',T126,'MADO3=',I2
      +      /'  J LON=0',31I4)
-      IF(N.EQ.2)
+      IF(N==2)
      +WRITE(KW,6520) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6520 FORMAT(/'  5B=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Stratosphere'
      +      ,' (London-NCAR) 150 mb to TOA',T126,'MADO3=',I2
      +      /'  J LON=0',31I4)
-      IF(N.EQ.3.AND.KLIMIT.LT.1)
+      IF(N==3.and.KLIMIT < 1)
      +WRITE(KW,6530) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6530 FORMAT(/'  5C=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Total Column'
      +      ,' (W-J/London) Surface to TOA',T126,'MADO3=',I2
      +      /'  J LON=0',31I4)
-      IF(KLIMIT.LT.1) WRITE(KW,6540)
+      IF(KLIMIT < 1) WRITE(KW,6540)
  6540 FORMAT(' ')
 C
-      IF(N.EQ.3.AND.KLIMIT.GT.0) GO TO 590
+      IF(N==3.and.KLIMIT > 0) GO TO 590
       DO 580 JJ=1,46
       J=47-JJ
       KWSKIP=KLIMIT
-      IF(J.EQ.36) KWSKIP=0
-      IF(J.EQ.24) KWSKIP=0
-      IF(J.EQ.12) KWSKIP=0
+      IF(J==36) KWSKIP=0
+      IF(J==24) KWSKIP=0
+      IF(J==12) KWSKIP=0
       DO 570 I=1,36
       II=I*2-1
       LO3(I)=O3L(J,II)*100.D0+0.5D0
   570 CONTINUE
-      IF(KWSKIP.EQ.0)
+      IF(KWSKIP==0)
      +WRITE(KW,6501) J,(LO3(I),I=1,32)
  6501 FORMAT(I4,1X,36I4)
   580 CONTINUE
@@ -9406,17 +8816,17 @@ C-------------
 C-------------
 C
       KAEROS=4
-      IF(INDX.EQ.6) KAEROS=1
-      IF(INDX.EQ.7) KAEROS=2
-      IF(INDX.EQ.8) KAEROS=3
-      L1=1
-      IF(INDX.EQ.8.and.NL.gt.15) L1=NL-14
+      IF(INDX==6) KAEROS=1
+      IF(INDX==7) KAEROS=2
+      IF(INDX==8) KAEROS=3
+      LL1=1
+      IF(INDX==8 .and. NL > 15) LL1=NL-14
       JJDAY=JMONTH*30-15
-      IF(JMONTH.LT.1) JJDAY=JDAY
+      IF(JMONTH < 1) JJDAY=JDAY
       K=6
-      IF(KAEROS.EQ.1.OR.KAEROS.GT.3) CALL UPDAER(JYRREF,JJDAY)
-      IF(KAEROS.EQ.2.OR.KAEROS.GT.3) CALL UPDDST(JYRREF,JJDAY)
-      IF(KAEROS.EQ.3.OR.KAEROS.GT.3) CALL UPDVOL(JYRREF,JJDAY)
+      IF(KAEROS==1.OR.KAEROS > 3) CALL UPDAER(JYRREF,JJDAY)
+      IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST(JYRREF,JJDAY)
+      IF(KAEROS==3.OR.KAEROS > 3) CALL UPDVOL(JYRREF,JJDAY)
 C
       DO 650 J=1,46
       DO 610 L=1,NL
@@ -9427,21 +8837,21 @@ C
       JLAT=J
       DO 630 I=1,72
       ILON=I
-      IF(KAEROS.EQ.1.OR.KAEROS.GT.3) CALL GETAER
-      IF(KAEROS.EQ.2.OR.KAEROS.GT.3) CALL GETDST
-      IF(KAEROS.EQ.3.OR.KAEROS.GT.3) CALL GETVOL
+      IF(KAEROS==1.OR.KAEROS > 3) CALL GETAER
+      IF(KAEROS==2.OR.KAEROS > 3) CALL GETDST
+      IF(KAEROS==3.OR.KAEROS > 3) CALL GETVOL
       DO 620 L=1,NL
-      IF(KAEROS.EQ.1.OR.KAEROS.GT.3) QX(J,L)=QX(J,L)+SRAEXT(L,K)/72.D0
-      IF(KAEROS.EQ.2.OR.KAEROS.GT.3) QX(J,L)=QX(J,L)+SRDEXT(L,K)/72.D0
-      IF(KAEROS.EQ.3.OR.KAEROS.GT.3) QX(J,L)=QX(J,L)+SRVEXT(L,K)/72.D0
-      IF(KAEROS.EQ.1.OR.KAEROS.GT.3) QS(J,L)=QS(J,L)+SRASCT(L,K)/72.D0
-      IF(KAEROS.EQ.2.OR.KAEROS.GT.3) QS(J,L)=QS(J,L)+SRDSCT(L,K)/72.D0
-      IF(KAEROS.EQ.3.OR.KAEROS.GT.3) QS(J,L)=QS(J,L)+SRVSCT(L,K)/72.D0
-      IF(KAEROS.EQ.1.OR.KAEROS.GT.3) QG(J,L)=QG(J,L)+SRAGCB(L,K)
+      IF(KAEROS==1.OR.KAEROS > 3) QX(J,L)=QX(J,L)+SRAEXT(L,K)/72.D0
+      IF(KAEROS==2.OR.KAEROS > 3) QX(J,L)=QX(J,L)+SRDEXT(L,K)/72.D0
+      IF(KAEROS==3.OR.KAEROS > 3) QX(J,L)=QX(J,L)+SRVEXT(L,K)/72.D0
+      IF(KAEROS==1.OR.KAEROS > 3) QS(J,L)=QS(J,L)+SRASCT(L,K)/72.D0
+      IF(KAEROS==2.OR.KAEROS > 3) QS(J,L)=QS(J,L)+SRDSCT(L,K)/72.D0
+      IF(KAEROS==3.OR.KAEROS > 3) QS(J,L)=QS(J,L)+SRVSCT(L,K)/72.D0
+      IF(KAEROS==1.OR.KAEROS > 3) QG(J,L)=QG(J,L)+SRAGCB(L,K)
      +                                              *SRASCT(L,K)/72.D0
-      IF(KAEROS.EQ.2.OR.KAEROS.GT.3) QG(J,L)=QG(J,L)+SRDGCB(L,K)
+      IF(KAEROS==2.OR.KAEROS > 3) QG(J,L)=QG(J,L)+SRDGCB(L,K)
      +                                              *SRDSCT(L,K)/72.D0
-      IF(KAEROS.EQ.3.OR.KAEROS.GT.3) QG(J,L)=QG(J,L)+SRVGCB(L,K)
+      IF(KAEROS==3.OR.KAEROS > 3) QG(J,L)=QG(J,L)+SRVGCB(L,K)
      +                                              *SRVSCT(L,K)/72.D0
   620 CONTINUE
   630 CONTINUE
@@ -9454,7 +8864,7 @@ C
       SUMGL=SUMGL+QG(J,L)
       QG(J,L)=(1.D-20+QG(J,L))/(1.D-10+QS(J,L))
       QP(J,L)=(1.D-20+QS(J,L))/(1.D-10+QX(J,L))
-      IF(QP(J,L).GT.0.99999D0) QP(J,L)=0.99999D0
+      IF(QP(J,L) > 0.99999D0) QP(J,L)=0.99999D0
   640 CONTINUE
       QXCOL(J)=SUMXL
       QSCOL(J)=SUMSL
@@ -9513,44 +8923,44 @@ C
   660 CONTINUE
 C
       KA=KAEROS
-      IF(KLIMIT.GT.0)
-     +WRITE(KW,6600) INDX,JYRREF,JJDAY,JMONTH,CHAER(KA),(L,L=L1,L1+14)
+      IF(KLIMIT > 0)
+     +WRITE(KW,6600) INDX,JYRREF,JJDAY,JMONTH,CHAER(KA),(L,L=LL1,LL1+14)
  6600 FORMAT(/I3,'A=INDEX JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' ZONAL MEAN AEROSOL OPTICAL DEPTH',T100,A32
      +      /'  JLAT DLAT46   COLUMN  L =',I4,14I7)
-      IF(KLIMIT.LT.1)
+      IF(KLIMIT < 1)
      +WRITE(KW,7600) INDX,JYRREF,JJDAY,JMONTH,CHAER(KA)
-     +              ,(PLB0(I),I=L1,L1+14),(L,L=L1,L1+14)
+     +              ,(PLB0(I),I=LL1,LL1+14),(L,L=LL1,LL1+14)
  7600 FORMAT(/I3,'A=INDEX JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' ZONAL MEAN AEROSOL OPTICAL DEPTH',T100,A32
      +      //21X,'PLB0 =',F6.1,9F7.1,5F7.2
      +      /'  JLAT DLAT46   COLUMN  L =',I4,14I7)
 C
-      IF(KLIMIT.LT.1) THEN
+      IF(KLIMIT < 1) THEN
       DO 670 JJ=1,46
       J=47-JJ
-      WRITE(KW,6601) J,DLAT46(J),QXCOL(J),(QX(J,L),L=L1,L1+14)
+      WRITE(KW,6601) J,DLAT46(J),QXCOL(J),(QX(J,L),L=LL1,LL1+14)
  6601 FORMAT(I5,F8.2,F9.5,4X,15F7.5)
   670 CONTINUE
-      WRITE(KW,6602) QXCOL(48),(QX(48,L),L=L1,L1+14)
+      WRITE(KW,6602) QXCOL(48),(QX(48,L),L=LL1,LL1+14)
  6602 FORMAT(/11X,'NH',F9.5,4X,15F7.5)
-      WRITE(KW,6603) QXCOL(47),(QX(47,L),L=L1,L1+14)
+      WRITE(KW,6603) QXCOL(47),(QX(47,L),L=LL1,LL1+14)
  6603 FORMAT(/11X,'SH',F9.5,4X,15F7.5)
-      WRITE(KW,6604) QXCOL(49),(QX(49,L),L=L1,L1+14)
+      WRITE(KW,6604) QXCOL(49),(QX(49,L),L=LL1,LL1+14)
  6604 FORMAT(/7X,'GLOBAL',F9.5,4X,15F7.5)
       ENDIF
-      IF(KLIMIT.GT.0) THEN
-      WRITE(KW,6605) QXCOL(48),(QX(48,L),L=L1,L1+14)
+      IF(KLIMIT > 0) THEN
+      WRITE(KW,6605) QXCOL(48),(QX(48,L),L=LL1,LL1+14)
  6605 FORMAT( 11X,'NH',F9.5,4X,15F7.5)
-      WRITE(KW,6606) QXCOL(47),(QX(47,L),L=L1,L1+14)
+      WRITE(KW,6606) QXCOL(47),(QX(47,L),L=LL1,LL1+14)
  6606 FORMAT( 11X,'SH',F9.5,4X,15F7.5)
-      WRITE(KW,6607) QXCOL(49),(QX(49,L),L=L1,L1+14)
+      WRITE(KW,6607) QXCOL(49),(QX(49,L),L=LL1,LL1+14)
  6607 FORMAT( 7X,'GLOBAL',F9.5,4X,15F7.5)
       ENDIF
 C
-      IF(KLIMIT.GT.0) GO TO 699
+      IF(KLIMIT > 0) GO TO 699
       WRITE(KW,6610) INDX,JYRREF,JJDAY,JMONTH,CHAER(KA)
-     +              ,(PLB0(I),I=L1,L1+14),(L,L=L1,L1+14)
+     +              ,(PLB0(I),I=LL1,LL1+14),(L,L=LL1,LL1+14)
  6610 FORMAT(/I3,'B=INDEX JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' ZONAL MEAN AEROSOL SINGLE SCATTERING ALBEDO'
      +      ,T100,A32//21X,'PLB0 =',F6.1,9F7.1,5F7.2
@@ -9558,18 +8968,18 @@ C
 C
       DO 680 JJ=1,46
       J=47-JJ
-      WRITE(KW,6611) J,DLAT46(J),QPCOL(J),(QP(J,L),L=L1,L1+14)
+      WRITE(KW,6611) J,DLAT46(J),QPCOL(J),(QP(J,L),L=LL1,LL1+14)
  6611 FORMAT(I5,F8.2,F9.5,4X,15F7.5)
   680 CONTINUE
-      WRITE(KW,6612) QPCOL(48),(QP(48,L),L=L1,L1+14)
+      WRITE(KW,6612) QPCOL(48),(QP(48,L),L=LL1,LL1+14)
  6612 FORMAT(/11X,'NH',F9.5,4X,15F7.5)
-      WRITE(KW,6613) QPCOL(47),(QP(47,L),L=L1,L1+14)
+      WRITE(KW,6613) QPCOL(47),(QP(47,L),L=LL1,LL1+14)
  6613 FORMAT(/11X,'SH',F9.5,4X,15F7.5)
-      WRITE(KW,6614) QPCOL(49),(QP(49,L),L=L1,L1+14)
+      WRITE(KW,6614) QPCOL(49),(QP(49,L),L=LL1,LL1+14)
  6614 FORMAT(/7X,'GLOBAL',F9.5,4X,15F7.5)
 C
       WRITE(KW,6620) INDX,JYRREF,JJDAY,JMONTH,CHAER(KA)
-     +              ,(PLB0(I),I=L1,L1+14),(L,L=L1,L1+14)
+     +              ,(PLB0(I),I=LL1,LL1+14),(L,L=LL1,LL1+14)
  6620 FORMAT(/I3,'C=INDEX JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' ZONAL MEAN AEROSOL ASYMMETRY PARAMETER'
      +      ,T100,A32//21X,'PLB0 =',F6.1,9F7.1,5F7.2
@@ -9577,14 +8987,14 @@ C
 C
       DO 690 JJ=1,46
       J=47-JJ
-      WRITE(KW,6621) J,DLAT46(J),QGCOL(J),(QG(J,L),L=L1,L1+14)
+      WRITE(KW,6621) J,DLAT46(J),QGCOL(J),(QG(J,L),L=LL1,LL1+14)
  6621 FORMAT(I5,F8.2,F9.5,4X,15F7.5)
   690 CONTINUE
-      WRITE(KW,6622) QGCOL(48),(QG(48,L),L=L1,L1+14)
+      WRITE(KW,6622) QGCOL(48),(QG(48,L),L=LL1,LL1+14)
  6622 FORMAT(/11X,'NH',F9.5,4X,15F7.5)
-      WRITE(KW,6623) QGCOL(47),(QG(47,L),L=L1,L1+14)
+      WRITE(KW,6623) QGCOL(47),(QG(47,L),L=LL1,LL1+14)
  6623 FORMAT(/11X,'SH',F9.5,4X,15F7.5)
-      WRITE(KW,6624) QGCOL(49),(QG(49,L),L=L1,L1+14)
+      WRITE(KW,6624) QGCOL(49),(QG(49,L),L=LL1,LL1+14)
  6624 FORMAT(/7X,'GLOBAL',F9.5,4X,15F7.5)
   699 CONTINUE
       GO TO 9999
@@ -9602,8 +9012,8 @@ C
 C
       USE RADPAR, only: nghg,ghgyr1,ghgyr2,ghgam
       IMPLICIT NONE
-      real*8 xnow(nghg),tnow,year,dy,frac
-      integer iy,n
+      REAL*8 xnow(nghg),tnow,year,dy,frac
+      INTEGER iy,n
 C
 C-------------------------------------------------------------
 C        Makiko's GHG Trend Compilation  GHG.1850-2050.Dec1999
@@ -9616,8 +9026,8 @@ C-------------------------------------------------------------
 C     Read from external file - outside table: use value from
 C                                      years ghgyr1 or ghgyr2
       YEAR=TNOW
-      IF(TNOW.LE.ghgyr1+.5D0) YEAR=ghgyr1+.5D0
-      IF(TNOW.gE.ghgyr2+.49999D0) YEAR=ghgyr2+.49999D0
+      IF(TNOW <= ghgyr1+.5D0) YEAR=ghgyr1+.5D0
+      IF(TNOW >= ghgyr2+.49999D0) YEAR=ghgyr2+.49999D0
       DY=YEAR-(ghgyr1+.5D0)
       IY=DY
       frac=DY-IY

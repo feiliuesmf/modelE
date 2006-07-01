@@ -13,6 +13,12 @@
 # -listing  - create listings (.L)
 EXTRA_FFLAGS =
 
+# EXTRA_LFLAGS specifies some extra flags you want to pass 
+# to linker. Currently needed as a hack to compile hybrid MPI/OpenMP
+# code to pass "-openmp" to linker
+EXTRA_LFLAGS =
+
+
 # CPPFLAGS specifies some pre-processor directives you want to pass 
 # to Fortarn compiler, like
 # -DCOMPILER=Absoft    - compile code that is specific to Absoft
@@ -40,6 +46,7 @@ endif
 NO_COMMAND = echo Requested target is not supported on $(UNAME); exit 1;
 F90 = $(NO_COMMAND)
 FMAKEDEP = $(NO_COMMAND)
+CMP_MOD = $(NO_COMMAND)
 F =  $(NO_COMMAND)
 U = $(NO_COMMAND)
 SETUP = $(SCRIPTS_DIR)/setup_e.pl
@@ -61,12 +68,13 @@ MACHINE = SGI
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler MIPSPRO-f90-on-IRIX64
 F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 #FFLAGS = -ftpp -macro_expand -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 
-FFLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52
-F90FLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 -freeform
+FFLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 -I.
+F90FLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 -freeform -I.
 LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 ifeq ($(MP),YES)
 FFLAGS += -mp
@@ -128,11 +136,12 @@ endif
 ifeq ($(COMPILER),Intel)
 F90 = efc
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifc-on-LINUX
 FFLAGS = -fpp -Wp,-P -O2 -w95 -w90 -cm -tpp2 -common_args
 F90FLAGS = -fpp -Wp,-P -O2 -FR -w95 -w90 -cm -tpp2 -common_args
 LFLAGS = -O2 -w95 -w90 -tpp2 -common_args -Vaxlib
 CPP = /lib/cpp -P -traditional
-CPPFLAGS = -DMACHINE_Linux
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel
 F90_VERSION = $(shell $(F90) -V 2>&1 | grep Build)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
@@ -151,11 +160,12 @@ endif
 ifeq ($(COMPILER),Intel8)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-FFLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian 
-F90FLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -free 
-LFLAGS = -O2 -tpp2 
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-9-0-on-LINUX
+FFLAGS = -fpp -O2 -Wp,-P  -convert big_endian 
+F90FLAGS = -fpp -O2 -Wp,-P  -convert big_endian -free 
+LFLAGS = -O2
 CPP = /lib/cpp -P -traditional
-CPPFLAGS = -DMACHINE_Linux
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel8
 F90_VERSION = $(shell $(F90) -v 2>&1)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
@@ -174,8 +184,9 @@ endif
 ifeq ($(COMPILER),Lahey)
 F90 = lf95
 CPP = /usr/bin/cpp -P -traditional
-FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend 
-CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler LAHEY-lf95-on-LINUX
+CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux -DCOMPILER_Lahey
 FFLAGS = -O -Cpp
 LFLAGS = 
 F90_VERSION = $(shell $(F90) --version | grep Release)
@@ -197,7 +208,8 @@ ifeq ($(COMPILER),Absoft)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
-CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler ABSOFT-f95-on-LINUX
+CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux -DCOMPILER_Absoft
 FFLAGS = -O2
 F90FLAGS = -O2 -f free
 LFLAGS = -lf90math -lV77 -lU77
@@ -214,7 +226,7 @@ ifeq ($(COMPILER),PGI)
 F90 = pgf90 -Mbyteswapio
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-CPPFLAGS = -DMACHINE_Linux
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_PGI
 FFLAGS = -O2
 LFLAGS = 
 ifeq ($(MP),YES)   # edit for PGI OpenMP compatability???
@@ -229,12 +241,12 @@ endif
 
 ## This is for the G95 GNU compiler
 ifeq ($(COMPILER),G95)
-F90 = /tmp/g95-install/bin/i686-pc-linux-gnu-g95
+F90 = g95
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_G95
-FFLAGS = -O0 # -cpp
-F90FLAGS = -O0 -f free
+FFLAGS = -fno-second-underscore -O0 -fendian=big
+F90FLAGS = -fno-second-underscore -O0 -ffree-form -fendian=big
 LFLAGS =
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
@@ -251,6 +263,7 @@ MACHINE = IBM
 F90 = xlf90_r
 CPP = /lib/cpp -P
 FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler IBM-xlf90-on-AIX
 # ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
 CPPFLAGS =
 FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
@@ -267,6 +280,7 @@ MACHINE = DEC
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler DEC-f90-on-OSF1
 # CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
 # FFLAGS = -O2 -cpp
 # LFLAGS = -O2
@@ -298,6 +312,7 @@ ifeq ($(COMPILER),Absoft)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler ABSOFT-f95-on-DARWIN
 CPPFLAGS = -DMACHINE_MAC -DCOMPILER_ABSOFT
 FFLAGS = -O2
 F90FLAGS = -O2 -f free
@@ -368,10 +383,52 @@ ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/Linux.intel.64.default
 ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.intel.64.default
 
 CPPFLAGS += -DUSE_ESMF
-LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf  -lmpi -lmpi++  -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -threads -lnetcdf_stubs
+ifeq ($(MPIDISTR),LAM)
+LIBS += -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf   -llammpi++ -lmpi \
+-llam -llamf77mpi  -lpthread -lnetcdf_stubs -lrt -lc \
+/usr/lib64/libstdc++.so.6
+CPPFLAGS += -DMPILIB_DOUBLE_UNDERSCORE
+else
+LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf  -lmpi \
+-lmpi++  -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -threads \
+-lnetcdf_stubs
+endif
 FFLAGS += -I${ESMFINCLUDEDIR}
 INCS += -I ${ESMFINCLUDEDIR}
 endif
+
+ifeq ($(UNAME),IRIX64)
+ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/IRIX64.default.64.default
+ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/IRIX64.default.64.default
+CPPFLAGS += -DUSE_ESMF
+FFLAGS += -I${ESMFINCLUDEDIR}
+F90FLAGS += -I${ESMFINCLUDEDIR}
+LIBS += -L${ESMFLIBDIR} -lesmf  -lnetcdf_stubs -rpath . -lC -lCio -lc -lmpi++ -lmpi -lpthread
+endif
+
+ifeq ($(COMPILER),G95)
+ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/Linux.g95.64.default
+ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.g95.64.default
+
+CPPFLAGS += -DUSE_ESMF
+
+ifeq ($(MPIDISTR),LAM)
+# these libs work on desktop with default LAM
+LIBS += -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf   -llammpi++ -lmpi \
+-llam -llamf77mpi  -lpthread -lnetcdf_stubs -lrt -lc /usr/lib64/libstdc++.so.6
+# default LAM distribution has double underscores
+CPPFLAGS += -DMPILIB_DOUBLE_UNDERSCORE
+else
+# these libs are supposed to work on "palm"
+LIBS += -L${ESMFLIBDIR} -L${MPIDIR}/lib  -lesmf  -lmpi -lmpi++ \
+-lstdc++  -lpthread -lnetcdf_stubs -lrt -lc
+endif
+
+
+FFLAGS += -I${ESMFINCLUDEDIR} -I${MPIDIR}/include
+INCS += -I ${ESMFINCLUDEDIR} -I${MPIDIR}/include
+endif
+
 endif
 
 ifeq ($(FVCORE),YES)
@@ -474,9 +531,21 @@ endif
 endif
 endif
 endif
-	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+ifeq ($(COMPARE_MODULES_HACK),YES)
+	if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
-	  echo $@ > $$i.sig; fi; done; fi 
+	  echo $@ > $$i.sig; \
+	  if [ -f $$i.old ] && $(CMP_MOD) $$i $$i.old; then \
+	    touch -r $$i.old $$i; \
+	    else \
+	    cp -f $$i $$i.old; \
+	    fi; \
+	 fi; done; fi 
+else
+	@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
+	  echo $@ > $$i.sig; fi; done; fi
+endif
 	@touch -r .timestamp $@
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
 ifdef COMP_OUTPUT

@@ -43,8 +43,11 @@
       REAL*8 :: SSS0=34.7d0
 
 !@var OTA,OTB,OTC ocean heat transport coefficients
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OTA,OTB
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OTC
+!allocREAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OTA,OTB
+!allocREAL*8, ALLOCATABLE, DIMENSION(:,:) :: OTC
+!alloc  Currently the fixed arrays OTA,OTB,OTC are not subdivided -
+!alloc  if they ever are, change the way they are read in below
+      REAL*8  OTA(im,jm,4),OTB(im,jm,4),OTC(im,jm)  ! non_alloc
 !@var SINANG,COSANG Fourier coefficients for heat transports
       REAL*8 :: SINANG,SN2ANG,SN3ANG,SN4ANG,
      *          COSANG,CS2ANG,CS3ANG,CS4ANG
@@ -139,7 +142,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       USE DOMAIN_DECOMP, ONLY : GLOBALSUM,AM_I_ROOT
       IMPLICIT NONE
 
-C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
+C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL, INTENT(IN) :: end_of_day
 
       INTEGER n,J,I,LSTMON,K,m,m1,JR
@@ -205,7 +208,8 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
             CALL BACKSPACE_PARALLEL( iu_OSST )
             CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),m,IM*JM,EOST0)
-            WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
+            IF (AM_I_ROOT())
+     *      WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
             IF(M.NE.LSTMON)
      &         call stop_model('Read error: ocean data',255)
           end if
@@ -221,7 +225,8 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST), m,IM*JM,EOST0)
           CALL MREAD_PARALLEL
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,IM*JM,ERSI0)
-          WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
+          IF (AM_I_ROOT())
+     *    WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
           IF(M.NE.M1.OR.M.NE.LSTMON)
      &         call stop_model('Read error: ocean data',255)
         end if
@@ -252,7 +257,8 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
           AOST  = TEMP_LOCAL(:,:,1)
           EOST1 = TEMP_LOCAL(:,:,2)
-          WRITE(6,*) 'Read in ocean data for month',JMON,M
+          IF (AM_I_ROOT())
+     *    WRITE(6,*) 'Read in ocean data for month',JMON,M
           IF(JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
         end if
@@ -265,7 +271,8 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M1,0,TEMP_LOCAL)
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
-        WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
+        IF (AM_I_ROOT())
+     *  WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
         IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
       end if
@@ -462,7 +469,8 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
         Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-          WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+          IF (AM_I_ROOT())
+     *    WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
  602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
           Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
           IF (Z1OMIN.GT.Z12O(I,J)) THEN
@@ -503,11 +511,11 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
@@ -601,7 +609,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       END MODULE STATIC_OCEAN
 
-      SUBROUTINE ALLOC_STATIC_OCEAN(grid)
+      SUBROUTINE ALLOC_OCEAN(grid)
       USE MODEL_COM, only : im
       USE STATIC_OCEAN, only  : TOCEAN,OTA,OTB,OTC,Z1O,Z1OOLD,Z12O,
      &                          DM,AOST,EOST1,EOST0,BOST,
@@ -616,12 +624,12 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       ALLOCATE(TOCEAN(3,IM,J_0H:J_1H),
      &    STAT=IER)
-      ALLOCATE(OTA(IM,J_0H:J_1H,4),
-     &         OTB(IM,J_0H:J_1H,4),
-     &    STAT=IER)
+!allocALLOCATE(OTA(IM,J_0H:J_1H,4),
+!all &         OTB(IM,J_0H:J_1H,4),
+!all &    STAT=IER)
       ALLOCATE(KRSI(IM,J_0H:J_1H),
      &    STAT=IER)
-      ALLOCATE(OTC(IM,J_0H:J_1H),
+      ALLOCATE(   !alloc OTC(IM,J_0H:J_1H),
      &         Z1O(IM,J_0H:J_1H),
      &         Z1OOLD(IM,J_0H:J_1H),
      &         Z12O(IM,J_0H:J_1H),
@@ -639,7 +647,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      &         XZO(IM,J_0H:J_1H),
      &         XZN(IM,J_0H:J_1H),
      &    STAT=IER)
-      END SUBROUTINE ALLOC_STATIC_OCEAN
+      END SUBROUTINE ALLOC_OCEAN
 
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
@@ -648,7 +656,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@ver  1.0
       USE FILEMANAGER
       USE PARAM
-      USE DOMAIN_DECOMP, only : GRID, GET,
+      USE DOMAIN_DECOMP, only : GRID, GET, am_I_root,
      *                          DREAD_PARALLEL,
      *                          MREAD_PARALLEL,
      *                          READT_PARALLEL,
@@ -688,7 +696,7 @@ C****   set conservation diagnostic for ocean heat
      *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
       end if
 
-      if (istart.le.0) then 
+      if (istart.le.0) then
         if(kocean.ge.1) call init_ODEEP(.false.)
         return
       end if
@@ -714,7 +722,7 @@ C**** if starting from AIC/GIC files need additional read for ocean
 C****   set up unit numbers for ocean climatologies
         call openunit("OSST",iu_OSST,.true.,.true.)
         call openunit("SICE",iu_SICE,.true.,.true.)
-        if (ocn_cycl.ne.1) then
+        if (ocn_cycl.ne.1 .and. am_I_root()) then
           write(6,*) '********************************************'
           write(6,*) '* Make sure that IYEAR1 is consistent with *'
           write(6,*) '*    the ocean data files OSST and SICE    *'
@@ -729,8 +737,9 @@ C****   Read in constant factor relating RSI to MSI from sea ice clim.
 C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C****   read in ocean heat transport coefficients
         call openunit("OHT",iu_OHT,.true.,.true.)
+calloc  if OTA,OTB,OTC are made allocatable, modify the next line
         READ (iu_OHT) OTA,OTB,OTC,z12o_max
-        WRITE(6,*) "Read ocean heat transports from OHT"
+        if(am_I_root()) WRITE(6,*) "Read ocean heat transports from OHT"
         call closeunit (iu_OHT)
 
 C****   Set up unit number of observed mixed layer depth data
@@ -751,7 +760,8 @@ ccc     the above line could substitute for next 3 lines w/o any change
           end do
         end do
         CALL REWIND_PARALLEL( iu_OCNML )
-        write(6,*) 'Mixed Layer Depths limited to',z12o_max
+        IF (AM_I_ROOT())
+     *     write(6,*)'Mixed Layer Depths limited to',z12o_max
 
 C****   initialise deep ocean arrays if required
         call init_ODEEP(iniOCEAN)
@@ -929,11 +939,11 @@ C**** Additional mass (precip) is balanced by deep removal
         END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
@@ -981,7 +991,7 @@ C**** output from OSOURC
       INTEGER :: J_0,J_1
       REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
       REAL*8 :: gsum(NREG,1)
-     
+
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       areg_part = 0
@@ -1061,11 +1071,11 @@ C**** store surface temperatures
         END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
@@ -1118,7 +1128,8 @@ C**** Ensure that we don't run out of ocean if ice gets too thick
             Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
             IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-              WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+              IF (AM_I_ROOT())
+     *        WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
  602          FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
               Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
               IF (Z1OMIN.GT.Z12O(I,J)) THEN
@@ -1169,11 +1180,11 @@ C**** regional diagnostics
         END IF
       END DO
       END DO
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
      &  gsum(1:NREG,1)
-      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
      &  gsum(1:NREG,1:1))
       IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
      &  gsum(1:NREG,1)
@@ -1268,3 +1279,8 @@ C****
       return
       end subroutine tracer_ic_ocean
 #endif
+
+      subroutine gather_odiags
+C     nothing to gather - ocean prescribed
+      return
+      end subroutine gather_odiags

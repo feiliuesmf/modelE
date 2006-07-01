@@ -10,7 +10,7 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE,GRID,GET
@@ -24,7 +24,7 @@
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
 #ifdef CLD_AER_CDNC
      *     ,oldno,oldnl,smfpm
-     *     ,ctem,cd3d,cl3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
+     *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
       USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc,
@@ -42,6 +42,11 @@
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
      *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
+     *     ,ij_3dlwm,ij_3dlws,ij_3dlim,ij_3dlis
+     *     ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
+     *     ,ij_wmclwp,ij_wmctwp
+     *     ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis
+
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
@@ -55,7 +60,7 @@
      *     ,itcon_ss
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec  !use trdiag_com
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jls_incloud,ijts_aq,taijs=>taijs_loc                 !use trdiag_com
 #endif
 #endif
@@ -63,7 +68,7 @@
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,dt_sulf_mc,dt_sulf_ss
 #endif
 #endif
@@ -78,10 +83,12 @@
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,pland,debug,ddmflx,ncol
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
+     *     ,alwim,alwis,alwwm,alwws
      *     ,nlsw,nlsi,nmcw,nmci
      *     ,oldcdo,oldcdl,smfpml
      *     ,sme
-     *     ,cteml,cd3dl,cl3dl,cdn3dl,cre3dl,smlwp
+     *     ,cteml,cd3dl,cl3dl,ci3dl,cdn3dl,cre3dl,smlwp
+     *     ,wmclwp,wmctwp
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
 #ifdef CLD_AER_CDNC
@@ -96,6 +103,9 @@
 #ifdef TRACERS_WATER
      *     ,trprec
 #endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only : AQsulfRATE
+#endif  
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer rc
@@ -383,6 +393,7 @@ C**** other fields where L is the leading index
 c       write(6,*)"CTEM_DRV",CTEML(L),CTEM(L,I,J)
         CD3DL(:) =CD3D(:,I,J)
         CL3DL(:) =CL3D(:,I,J)
+        CI3DL(:) =CI3D(:,I,J)
         CDN3DL(:)=CDN3D(:,I,J)
         CRE3DL(:)=CRE3D(:,I,J)
         SMLWP=CLWP(I,J)
@@ -487,6 +498,10 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         IF(CLDSLWIJ.GT.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
         IF(CLDDEPIJ.GT.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
+#ifdef CLD_AER_CDNC
+        AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
+        AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
+#endif
         HCNDMC=0.
         DO L=1,LMCMAX
           HCNDMC=HCNDMC+DGDSM(L)+DPHASE(L)
@@ -529,12 +544,25 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
         IF (NMCW.ge.1) then
          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)   !/NMCW
          AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)   !/NMCW
+         AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)   !/NMCW
+         AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)    !/NMCW
+         AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)   !/NMCW
+         AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)    !/NMC
+
          AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)   !/NMCW
         ENDIF
         IF (NMCI.ge.1) then
          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)    !/NMCI
          AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   !/NMCI
+         AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)   !/NMCI
          AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)   !/NMCI
+
+         AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)    !/NMCW
+         AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)   !/NMCW
+         AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)    !/NMCW
+c        write(6,*)"IJL_REIM",AIJK(I,J,L,IJL_REIM),I,J,L,
+c    *   AIJK(I,J,L,IJL_CDIM),AIJK(I,J,L,IJL_CWIM),ALWIM(L)
+
         ENDIF
         ENDDO
 #endif
@@ -863,6 +891,7 @@ C**** WRITE TO GLOBAL ARRAYS
          CTEM(:,I,J) =CTEML(:)
          CD3D(:,I,J) =CD3DL(:)
          CL3D(:,I,J) =CL3DL(:)
+         CI3D(:,I,J) =CI3DL(:)
          CDN3D(:,I,J)=CDN3DL(:)
          CRE3D(:,I,J)=CRE3DL(:)
          CLWP(I,J) = SMLWP
@@ -924,6 +953,12 @@ CCC     ENDDO
          IF (NLSW.ge.1) then
           AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) !/NLSW
           AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)  !/NLSW
+          AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)  !/NLSW
+
+          AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)    !/NMCW
+          AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)   !/NMCW
+          AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)    !/NMCW
+
           AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  !/NLSW
 c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS,NLSW,itime
@@ -931,7 +966,13 @@ c    * ,ACDNWS,NLSW,itime
         IF(NLSI.ge.1) then
          AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)!/NLSI
          AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)!/NLSI
+         AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)!/NLSI
+
          AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)!/NLSI
+
+         AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L)    !/NMCW
+         AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)   !/NMCW
+         AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)    !/NMCW
         ENDIF
 c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"ODRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS(L),L
@@ -954,7 +995,7 @@ C**** TRACERS: Use only the active ones
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
@@ -964,6 +1005,9 @@ C**** TRACERS: Use only the active ones
           if (ijts_aq(n).gt.0) then
            taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+#ifdef TRACERS_AMP
+           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+#endif
           end if
           end if
 #endif
@@ -1196,7 +1240,7 @@ C**** and save changes in KE for addition as heat later
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
-      USE DOMAIN_DECOMP, only : GRID
+      USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
@@ -1236,7 +1280,8 @@ C**** SEARCH FOR THE 50 MB LEVEL
         PLE=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE.LT.50.) LP50=L
       END DO
-      write(6,*) "Maximum level for LSCOND calculations (50mb): ",LP50
+      if (AM_I_ROOT()) write(6,*)
+     *     "Maximum level for LSCOND calculations (50mb): ",LP50
 
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       DO L=1,LM
@@ -1249,7 +1294,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       END DO
       LHI=LM
       IF (LMID+1.GT.LHI) LHI=LMID+1
-      WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
+      IF (AM_I_ROOT()) WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
  47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 

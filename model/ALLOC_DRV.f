@@ -24,15 +24,24 @@ c set-up for MPI implementation
       call alloc_landice_com(grid)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call alloc_tracer_com(grid)
+#ifdef TRACERS_DRYDEP
+      call alloc_trdrydep(grid)
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
       call alloc_tracer_special_lerner_com(grid)
       call alloc_linoz_chem_com(grid)
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call alloc_trchem_shindell_com(grid)
+      call alloc_tracer_sources(grid)
+      call alloc_lightning(grid)
 #endif
 #endif
       call alloc_tracer_adv(grid)
 !!! should be done in init_module_ent
       call alloc_ent_com(grid)
-      call alloc_static_ocean(grid)
+      !call alloc_veg_com(grid)
+      call alloc_ocean(grid)
 #ifdef TRACERS_ON
       call alloc_trdiag_com
 #endif

@@ -30,7 +30,11 @@ c --- check if ogcm date matches agcm date
         stop 'mismatching archive date'
       endif
 c
-      write(flnm,'(a3,i4.4,2a)') amon,Jyear,'.out',xlabel(1:lrunid)
+      if (nstep.eq.1) then
+        write(flnm,'(a3,i4.4,2a)') amon,0,'.out',xlabel(1:lrunid)
+      else
+        write(flnm,'(a3,i4.4,2a)') amon,Jyear,'.out',xlabel(1:lrunid)
+      endif
 c
       write (lp,*) 'shown below: sea surface height'
       call zebra(srfhgt,idm,ii1,jj)
@@ -42,7 +46,8 @@ c
       no=4096 
       inquire (iolength=irecl)  real4(1,1) ! length of an unformatted real*4  
                                            ! irecl=1 on COMPAQ, irecl=4 on SGI
-      length=irecl*((idm*jdm+no+15)/no)*no   
+css   length=irecl*((idm*jdm+no+15)/no)*no   
+      length=((irecl*idm*jdm+no+15)/no)*no
 c
       write (lp,'(a/9x,a)') 'storing history data in',flnm
 c

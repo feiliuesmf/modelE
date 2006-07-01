@@ -19,17 +19,17 @@
      *     ,XANX,TANB,TANX,RASB,RASX,BNORM,XNORM,RARB,RARX,XATB,DENOM,DB
      *     ,DX,UB,UX,DRBRAT,RBBOUT
 
-      IF(RBSNO.LT.0.05D0) THEN
+      IF(RBSNO < 0.05D0) THEN
         RXSNO=RBSNO
         RETURN
       ENDIF
       XXG=0.D0
       XXT=0.D0
       GGSN=GGSNO
-      IF(GGSNO.GT.0.9D0) GGSN=0.9D0
+      IF(GGSNO > 0.9D0) GGSN=0.9D0
       RBSN=RBSNO
       FRTOP=1.D0
-      IF(RBSNO.GT.0.5D0) THEN
+      IF(RBSNO > 0.5D0) THEN
         RBSN=0.5D0
         FRTOP=((1.D0-RBSNO)/0.5D0)**2
       ENDIF
@@ -99,7 +99,7 @@ CCC   SUBROUTINE GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
      *     .60,.65,.70,.75,.80,.85,.90,.95,1./)
       REAL*8 CWM,CWE,TIJ,RBBI,RBB,BTAU,CUSPWM,CUSPWE,G,TAU,EG,DELTAU,TI
      *     ,WTJ,WTI,GI,WGI,WGJ,F1,F2,F3,F4,F21,F32,F43,F3221,F4332,A,B,C
-     *     ,D,XF,FFCUSP,XE,XEXM,CUSPWT,FFLINR,RB2,RB3,TBB,TB2,TB3,XG,XM
+     *     ,D,XF,FFCUSP,XEXM,CUSPWT,FFLINR,RB2,RB3,TBB,TB2,TB3,XG,XM
      *     ,XP,RBBB,RI,WRJ,WRI,EI,WEI,WEJ,DELALB,X1,X2,X3,X4,XX,BB,DTAU
       INTEGER I,J,K,KTERPL,IT,JT,IG,JG,ITERPL,IGM,JGP,KG,IR,JR,IE,JE,IEM
      *     ,JEP
@@ -108,28 +108,28 @@ CCC   SUBROUTINE GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
 
       DO 100 I=1,122
       TAUTGD(I)=(I-1)*0.1D0
-      IF(I.GT.24) TAUTGD(I)=(I-24)*0.2D0+2.2D0
-      IF(I.GT.48) TAUTGD(I)=(I-48)*0.5D0+7.0D0
-      IF(I.GT.72) TAUTGD(I)=(I-72)+19.0D0
-      IF(I.GT.96) TAUTGD(I)=(I-96)*5.0D0+40.0D0
-      IF(I.GT.112) TAUTGD(I)=(I-112)*100.0D0+100.0D0
-      IF(I.EQ.121) TAUTGD(I)=9999.99D0
-      IF(I.EQ.122) TAUTGD(I)=12000.0D0
+      IF(I > 24) TAUTGD(I)=(I-24)*0.2D0+2.2D0
+      IF(I > 48) TAUTGD(I)=(I-48)*0.5D0+7.0D0
+      IF(I > 72) TAUTGD(I)=(I-72)+19.0D0
+      IF(I > 96) TAUTGD(I)=(I-96)*5.0D0+40.0D0
+      IF(I > 112) TAUTGD(I)=(I-112)*100.0D0+100.0D0
+      IF(I == 121) TAUTGD(I)=9999.99D0
+      IF(I == 122) TAUTGD(I)=12000.0D0
   100 CONTINUE
 
       DO 110 I=1,768
-      IF(I.LT.602) TAUTGS(I)=(I-1)*0.05D0
-      IF(I.GT.601) TAUTGS(I)=(I-601)*0.50D0+30.0D0
-      IF(I.GT.741) TAUTGS(I)=(I-741)*50.0D0+100.D0
-      IF(I.GT.758) TAUTGS(I)=(I-758)*1000.D0
+      IF(I < 602) TAUTGS(I)=(I-1)*0.05D0
+      IF(I > 601) TAUTGS(I)=(I-601)*0.50D0+30.0D0
+      IF(I > 741) TAUTGS(I)=(I-741)*50.0D0+100.D0
+      IF(I > 758) TAUTGS(I)=(I-758)*1000.D0
   110 CONTINUE
 
       DO 130 J=1,13
       DO 120 I=1,768
       CWM=0.5
       CWE=0.5
-      IF(I.GT.759) CWM=0.0
-      IF(I.GT.759) CWE=0.0
+      IF(I > 759) CWM=0.0
+      IF(I > 759) CWE=0.0
       TIJ=TAUTGS(I)
       CALL SPLINE(TAUTGD,TGDATA(1,J),122,TIJ,RBBI,CWM,CWE,0)
       SALBTG(I,J)=RBBI
@@ -144,19 +144,12 @@ CCC   SUBROUTINE GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
       TAUGSA(I,J)=BTAU
   140 CONTINUE
   150 CONTINUE
-      DO 160 J=1,14
-      SALBTG(1,J)=0.D0
-      TAUGSA(1,J)=0.D0
-      TAUGSA(1001,J)=10000.D0
-  160 CONTINUE
+      SALBTG(1,:) = 0                                ! 1:14
+      TAUGSA(1,:) = 0
+      TAUGSA(1001,:) = 10000
 
-      DO 170 I=1,768
-      SALBTG(I,14)=SALBTG(I,13)*2.D0-SALBTG(I,12)
-  170 CONTINUE
-      DO 180 I=1,1001
-!nu   SALBI=(I-1)*0.001D0
-      TAUGSA(I,14)=TAUGSA(I,13)*2.D0-TAUGSA(I,12)
-  180 CONTINUE
+      SALBTG(:,14) = SALBTG(:,13)*2 - SALBTG(:,12)   ! 1:768
+      TAUGSA(:,14) = TAUGSA(:,13)*2 - TAUGSA(:,12)   ! 1:1001
       RETURN
 
       ENTRY GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
@@ -179,14 +172,14 @@ C                                           0.50 ON (30.0 < TAU < 100.)
 C                                           50.0 ON (100. < TAU < 1000)
 C                                           ---------------------------
 
-      IF(KGTAUR.EQ.2) GO TO 300
+      IF(KGTAUR == 2) GO TO 300
 
   200 CONTINUE
 
       DELTAU=0.05D0
       TI=TAU/DELTAU
       IT=TI
-      IF(IT.GT.599) GO TO 210
+      IF(IT > 599) GO TO 210
       WTJ=TI-IT
       WTI=1.D0-WTJ
       IT=IT+1
@@ -195,7 +188,7 @@ C                                           ---------------------------
       DELTAU=0.50D0
       TI=TAU/DELTAU
       IT=TI
-      IF(IT.GT.199) GO TO 220
+      IF(IT > 199) GO TO 220
       WTJ=TI-IT
       WTI=1.0-WTJ
       IT=IT+541
@@ -204,7 +197,7 @@ C                                           ---------------------------
       DELTAU=50.0D0
       TI=TAU/DELTAU
       IT=TI
-      IF(IT.GT.19) GO TO 230
+      IF(IT > 19) GO TO 230
       WTJ=TI-IT
       WTI=1.0-WTJ
       IT=IT+649
@@ -227,7 +220,7 @@ C                                    LINEAR EXTRAP FOR (.95 < G < 1.0)
 C                                    ---------------------------------
 
       GI=G*20.D0
-      IF(GI.GT.10.0) GO TO 250
+      IF(GI > 10.0) GO TO 250
       IG=2
       JG=3
       ITERPL=1
@@ -239,7 +232,7 @@ C                                    ---------------------------------
       WGJ=GI-IG
       WGI=1.D0-WGJ
       IG=IG-6
-      IF(IG.GT.12) THEN
+      IF(IG > 12) THEN
       ITERPL=2
       IG=12
       ENDIF
@@ -257,7 +250,7 @@ C                                    ---------------------------------
       F2=SALBTG(IT  ,KG)
       F3=SALBTG(JT  ,KG)
       F4=SALBTG(JT+1,KG)
-      IF(IT.EQ.1) F1=-F3
+      IF(IT == 1) F1=-F3
       F21=(F2-F1)
       F32=(F3-F2)
       F43=(F4-F3)
@@ -269,9 +262,7 @@ C                                    ---------------------------------
       D=(F3221+F4332-F32-F32)
       XF=WTJ
       FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=1.D0-XF-XF
-      IF(XE.LT.0.0) XE=-XE
-      XEXM=XE**2
+      XEXM = (1-2*XF)**2  ! = XE**2
       CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
       FFLINR=A+XF*F32
       FFKG(K,1)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
@@ -279,7 +270,7 @@ C                                    ---------------------------------
       FFKG(K,3)=F3
   270 CONTINUE
 
-      IF(ITERPL.LT.4) GO TO 290
+      IF(ITERPL < 4) GO TO 290
 
       DO 280 K=1,3
       F1=FFKG(1,K)
@@ -297,9 +288,7 @@ C                                    ---------------------------------
       D=(F3221+F4332-F32-F32)
       XF=WGJ
       FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=1.D0-XF-XF
-      IF(XE.LT.0.0) XE=-XE
-      XEXM=XE**2
+      XEXM = (1-2*XF)**2  ! = XE**2
       CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
       FFLINR=A+XF*F32
       RBBK(K)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
@@ -310,21 +299,21 @@ C                                    ---------------------------------
       TBB=TAU
       TB2=TAUTGS(IT)
       TB3=TAUTGS(JT)
-      IF(KGTAUR.EQ.1) RETURN
-      IF(KTERPL.EQ.1) GO TO 400
+      IF(KGTAUR == 1) RETURN
+      IF(KTERPL == 1) GO TO 400
       GO TO 300
 
   290 CONTINUE
       XG=G*2.D0-0.5D0
-      IF(ITERPL.EQ.2) XG=G*10.D0-9.D0
+      IF(ITERPL == 2) XG=G*10.D0-9.D0
       XM=1.D0-XG-XG
       XP=1.D0+XG+XG
       RBB=XM*XP*FFKG(ITERPL+1,1)-XG*XM*FFKG(ITERPL,1)+XG*XP*FFKG(4,1)
       RB2=XM*XP*FFKG(ITERPL+1,2)-XG*XM*FFKG(ITERPL,2)+XG*XP*FFKG(4,2)
       RB3=XM*XP*FFKG(ITERPL+1,3)-XG*XM*FFKG(ITERPL,3)+XG*XP*FFKG(4,3)
 
-      IF(KGTAUR.EQ.1) RETURN
-      IF(KTERPL.EQ.1) GO TO 400
+      IF(KGTAUR == 1) RETURN
+      IF(KTERPL == 1) GO TO 400
 
   300 CONTINUE
       RBBB=RBB
@@ -337,7 +326,7 @@ C                                    ---------------------------------
       JR=IR+1
 
       EI=EG*20.D0
-      IF(EI.GT.10.0) GO TO 310
+      IF(EI > 10.0) GO TO 310
       IE=2
       JE=3
       ITERPL=1
@@ -349,7 +338,7 @@ C                                    ---------------------------------
       WEJ=EI-IE
       WEI=1.D0-WEJ
       IE=IE-6
-      IF(IE.GT.12) THEN
+      IF(IE > 12) THEN
       ITERPL=2
       IE=12
       ENDIF
@@ -366,7 +355,7 @@ C                                    ---------------------------------
       F2=TAUGSA(IR  ,KG)
       F3=TAUGSA(JR  ,KG)
       F4=TAUGSA(JR+1,KG)
-      IF(IR.EQ.1) F1=-F3
+      IF(IR == 1) F1=-F3
       F21=(F2-F1)
       F32=(F3-F2)
       F43=(F4-F3)
@@ -378,9 +367,7 @@ C                                    ---------------------------------
       D=(F3221+F4332-F32-F32)
       XF=WRJ
       FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=1.D0-XF-XF
-      IF(XE.LT.0.0) XE=-XE
-      XEXM=XE**2
+      XEXM = (1-2*XF)**2  ! = XE**2
       CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
       FFLINR=A+XF*F32
       FFKG(K,1)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
@@ -392,7 +379,7 @@ C                                    ---------------------------------
       X3=GVALUE(JE  )
       X4=GVALUE(JE+1)
       XX=WEJ
-      IF(ITERPL.LT.4) GO TO 350
+      IF(ITERPL < 4) GO TO 350
 
       DO 340 K=1,3
       F1=FFKG(1,K)
@@ -410,9 +397,7 @@ C                                    ---------------------------------
       D=(F3221+F4332-F32-F32)
       XF=WEJ
       FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=1.D0-XF-XF
-      IF(XE.LT.0.0) XE=-XE
-      XEXM=XE**2
+      XEXM = (1-2*XF)**2  ! = XE**2
       CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
       FFLINR=A+XF*F32
       RBBK(K)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
@@ -421,31 +406,31 @@ C                                    ---------------------------------
       TB2=RBBK(2)
       TB3=RBBK(3)
 
-      IF(KTERPL.EQ.1) GO TO 400
+      IF(KTERPL == 1) GO TO 400
       GO TO 390
 
   350 CONTINUE
       XG=EG*2.D0-0.5D0
-      IF(ITERPL.EQ.2) XG=G*10.D0-9.D0
+      IF(ITERPL == 2) XG=G*10.D0-9.D0
       XM=1.D0-XG-XG
       XP=1.D0+XG+XG
       TBB=XM*XP*FFKG(ITERPL+1,1)-XG*XM*FFKG(ITERPL,1)+XG*XP*FFKG(4,1)
       TB2=XM*XP*FFKG(ITERPL+1,2)-XG*XM*FFKG(ITERPL,2)+XG*XP*FFKG(4,2)
       TB3=XM*XP*FFKG(ITERPL+1,3)-XG*XM*FFKG(ITERPL,3)+XG*XP*FFKG(4,3)
-      IF(KTERPL.EQ.1) GO TO 400
+      IF(KTERPL == 1) GO TO 400
   390 CONTINUE
       KTERPL=1
       TAU=TBB
       G=EGIN
       GO TO 200
   400 CONTINUE
-      IF(ABS(WTI*WTJ).LT.0.1D0) DTAU=(RBBB-RB2)/(RB3-RB2)
-      IF(ABS(WTI*WTJ).GE.0.1D0) THEN
+      IF(ABS(WTI*WTJ) < 0.1D0) DTAU=(RBBB-RB2)/(RB3-RB2)
+      IF(ABS(WTI*WTJ) >= 0.1D0) THEN
       C=(RB3-RBB)/WTI-(RBB-RB2)/WTJ
       B=(RBB-RB2)/WTJ-WTJ*C
       A=RB2
       BB=B*B+4.D0*C*(RBBB-A)
-      IF(BB.GT.0.D0) DTAU=(SQRT(BB)-B)/(C+C)
+      IF(BB > 0.D0) DTAU=(SQRT(BB)-B)/(C+C)
       ENDIF
       TAUOUT=(IT-1+DTAU)*DELTAU
       RBBOUT=RBBB
@@ -505,25 +490,25 @@ C                                            134          143
 C                            1000 ON [     , 1000 < TAU < 10000,     ]
 C                            -----------------------------------------
 
-      IF(TAU.LT.6.D0) THEN
+      IF(TAU < 6.D0) THEN
       TI=TAU*10.D0+1.
       IT=TI
       WTJ=TI-IT
       IT0=0
 
-      ELSEIF(TAU.LT.20.D0) THEN
+      ELSEIF(TAU < 20.D0) THEN
       TI=(TAU-6.D0)*2.00D0+2.D0
       IT=TI
       WTJ=TI-IT
       IT0=62
 
-      ELSEIF(TAU.LT.100.D0) THEN
+      ELSEIF(TAU < 100.D0) THEN
       TI=(TAU-20.D0)*0.20D0+2.D0
       IT=TI
       WTJ=TI-IT
       IT0=93
 
-      ELSEIF(TAU.LT.1000.D0) THEN
+      ELSEIF(TAU < 1000.D0) THEN
       TI=(TAU-100.D0)*0.02D0+2.D0
       IT=TI
       WTJ=TI-IT
@@ -533,7 +518,7 @@ C                            -----------------------------------------
       TI=TAU*0.001D0+1.D-6
       IT=TI
       WTJ=TI-IT
-      IF(IT.GT.9) IT=9
+      IF(IT > 9) IT=9
       IT0=133
       ENDIF
 
@@ -557,9 +542,9 @@ C                            -----------------------------------------
       SUBROUTINE SPLINE(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
       IMPLICIT NONE
 
-      integer, intent(in)  :: NXF,              KXTRAP
-      real*8 , intent(in)  :: X(NXF),F(NXF),XX, CUSPWM,CUSPWE
-      real*8 , intent(out) :: FF
+      INTEGER, intent(in)  :: NXF,              KXTRAP
+      REAL*8 , intent(in)  :: X(NXF),F(NXF),XX, CUSPWM,CUSPWE
+      REAL*8 , intent(out) :: FF
 
 C---------------------------------------------------------------------
 C
@@ -608,13 +593,13 @@ C---------------------------------------------------------------------
       X2=X(K)
       X3=X(NXF-1)
       BETW=(XX-X2)*(X3-XX)
-      IF(BETW.LE.0.D0) GO TO 120
+      IF(BETW <= 0.D0) GO TO 120
 
   100 CONTINUE
       K=K+1
       X3=X(K)
       BETW=(XX-X2)*(X3-XX)
-      IF(BETW.GE.0.D0) GO TO 110
+      IF(BETW >= 0.D0) GO TO 110
       X2=X3
       GO TO 100
 
@@ -647,7 +632,7 @@ C                             -----------------------------------------
 
       FFCUSP=A+XF*(B+XF*(C+XF*D))
       XE=(X3+X2-XX-XX)/X32
-      IF(XE.LT.0.D0) XE=-XE
+      IF(XE < 0.D0) XE=-XE
       XEXM=XE**2
       CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
 
@@ -661,7 +646,7 @@ C                Edge Point Interval Interpolation and/or Extrapolation
 C                ------------------------------------------------------
   120 CONTINUE
       BETW=(X2-XX)*(X3-X2)
-      IF(BETW.LT.0.D0) GO TO 140
+      IF(BETW < 0.D0) GO TO 140
 
 C                          X(1),X(2)  Edge Point Interval Interpolation
 C                          --------------------------------------------
@@ -672,7 +657,7 @@ C                          --------------------------------------------
       F21=(F2-F1)/X21
       XF=XX-X1
       BETW=(X2-XX)*XF
-      IF(BETW.LT.0.D0) GO TO 130
+      IF(BETW < 0.D0) GO TO 130
       F3=F(3)
       X3=X(3)
       X32=X3-X2
@@ -683,7 +668,7 @@ C                          --------------------------------------------
       FFCUSP=A+XF*(B+XF*C)
       FFLINR=A+XF*F21
       XE=1.D0-2.D0*XF/X21
-      IF(XE.LT.0.D0) XE=-XE
+      IF(XE < 0.D0) XE=-XE
       XEXM=XE**2
       CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
       FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
@@ -692,13 +677,13 @@ C                          --------------------------------------------
   130 CONTINUE
 C                  Extrapolation for XX Outside of Interval X(1) - X(2)
 C                  ----------------------------------------------------
-C                  IF(KXTRAP.EQ.0)  (No Extrapolation:  sets F(XX)=0.0)
-C                  IF(KXTRAP.EQ.1)  (Extrapolation at Fixed Edge Value)
-C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
+C                  IF(KXTRAP == 0)  (No Extrapolation:  sets F(XX)=0.0)
+C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
 
-      IF(KXTRAP.EQ.0) FF=0.D0
-      IF(KXTRAP.EQ.1) FF=F1
-      IF(KXTRAP.EQ.2) FF=F1+XF*F21
+      IF(KXTRAP == 0) FF=0.D0
+      IF(KXTRAP == 1) FF=F1
+      IF(KXTRAP == 2) FF=F1+XF*F21
       GO TO 160
 
   140 CONTINUE
@@ -712,7 +697,7 @@ C                    --------------------------------------------------
       F32=(F3-F2)/X32
       XF=XX-X3
       BETW=(X2-XX)*(XX-X3)
-      IF(BETW.LT.0.D0) GO TO 150
+      IF(BETW < 0.D0) GO TO 150
       F1=F(NXF-2)
       X1=X(NXF-2)
       X21=X2-X1
@@ -735,7 +720,7 @@ C                        ----------------------------------------------
       FFCUSP=A+XF*(B+XF*C)
       FFLINR=A+XF*F32
       XE=1.D0-2.D0*XF/X32
-      IF(XE.LT.0.D0) XE=-XE
+      IF(XE < 0.D0) XE=-XE
       XEXM=XE**2
       CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
       FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
@@ -744,13 +729,13 @@ C                        ----------------------------------------------
   150 CONTINUE
 C              Extrapolation for X Outside of Interval  X(NXF-1)-X(NXF)
 C              --------------------------------------------------------
-C                  IF(KXTRAP.EQ.0)  (No Extrapolation:  sets F(XX)=0.0)
-C                  IF(KXTRAP.EQ.1)  (Extrapolation at Fixed Edge Value)
-C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
+C                  IF(KXTRAP == 0)  (No Extrapolation:  sets F(XX)=0.0)
+C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
 
-      IF(KXTRAP.EQ.0) FF=0.D0
-      IF(KXTRAP.EQ.1) FF=F3
-      IF(KXTRAP.EQ.2) FF=F3+XF*(F3-F2)/(X3-X2)
+      IF(KXTRAP == 0) FF=0.D0
+      IF(KXTRAP == 1) FF=F3
+      IF(KXTRAP == 2) FF=F3+XF*(F3-F2)/(X3-X2)
 
   160 CONTINUE
       RETURN
@@ -758,7 +743,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
 
 
 ccc the following subroutines were just moved from RADIATION.f to
-ccc reduce its size. Only MODULE RADPAR subroutines or those theat
+ccc reduce its size. Only MODULE RADPAR subroutines or those that
 ccc USE RADPAR module were left.
 
       SUBROUTINE BOXAV1(DEGLAT,TAULAT,NLAT,JALIM,JBLIM,TAU)
@@ -789,12 +774,12 @@ C
       PI=ACOS(-1.D0)
       RADIAN=180.D0/PI
       J1=JALIM-1
-      IF(J1.LT.1) J1=1
+      IF(J1 < 1) J1=1
       RLAT1=(0.5D0*(DEGLAT(J1)+DEGLAT(JALIM))+90.D0)/RADIAN
       ALAT1=SIN(RLAT1)
       DO 110 J=JALIM,JBLIM
       J2=J+1
-      IF(J2.GT.NLAT) J2=NLAT
+      IF(J2 > NLAT) J2=NLAT
       RLAT2=(0.5D0*(DEGLAT(J)+DEGLAT(J2))+90.D0)/RADIAN
       ALAT2=SIN(RLAT2)
       ALATJ=0.5D0*(ALAT1+ALAT2)/(RLAT2-RLAT1)
@@ -836,12 +821,12 @@ C
       PI=ACOS(-1.D0)
       RADIAN=180.D0/PI
       J1=JALIM-1
-      IF(J1.LT.1) J1=1
+      IF(J1 < 1) J1=1
       RLAT1=(0.5D0*(DEGLAT(J1)+DEGLAT(JALIM))+90.D0)/RADIAN
       ALAT1=SIN(RLAT1)
       DO 110 J=JALIM,JBLIM
       J2=J+1
-      IF(J2.GT.NLAT) J2=NLAT
+      IF(J2 > NLAT) J2=NLAT
       RLAT2=(0.5D0*(DEGLAT(J)+DEGLAT(J2))+90.D0)/RADIAN
       ALAT2=SIN(RLAT2)
       ALATJ=0.5D0*(ALAT1+ALAT2)/(RLAT2-RLAT1)
@@ -1136,20 +1121,20 @@ C----------------------------------------------------------------------
       REAL*8 :: XX,XI,XJ,DELTA,RAT,PI,PJ,DI,DJ,DP,ES,RS,OI,OJ,QI,QJ
       INTEGER :: I,J,K,N
 
-      IF(NATM.GT.0) GO TO 200
+      IF(NATM > 0) GO TO 200
       O=1.E-10
       Q=1.E-10
       S=1.E-10
       OCM=1.E-10
       WCM=1.E-10
-      IF(NPHD.LT.2) GO TO 150
+      IF(NPHD < 2) GO TO 150
       DO 110 N=2,8
-      IF(H.LT.SHLB(N)) GO TO 120
+      IF(H < SHLB(N)) GO TO 120
   110 CONTINUE
       N=9
   120 CONTINUE
       N=N-1
-      IF(ABS(SDLB(N)).LT.1.E-04) GO TO 130
+      IF(ABS(SDLB(N)) < 1.E-04) GO TO 130
       P=SPLB(N)*(1.+SDLB(N)/STLB(N)*(H-SHLB(N)))**(-HPCON/SDLB(N))
       GO TO 140
   130 CONTINUE
@@ -1161,12 +1146,12 @@ C----------------------------------------------------------------------
 
   150 CONTINUE
       DO 160 N=2,8
-      IF(P.GT.SPLB(N)) GO TO 170
+      IF(P > SPLB(N)) GO TO 170
   160 CONTINUE
       N=9
   170 CONTINUE
       N=N-1
-      IF(ABS(SDLB(N)).LT.1.E-04) GO TO 180
+      IF(ABS(SDLB(N)) < 1.E-04) GO TO 180
       H=SHLB(N)+STLB(N)/SDLB(N)*((SPLB(N)/P)**(SDLB(N)/HPCON)-1.)
       GO TO 190
   180 CONTINUE
@@ -1177,35 +1162,35 @@ C----------------------------------------------------------------------
       RETURN
 
  200  CONTINUE
-      IF(NPHD.EQ.1) GO TO 240
-      IF(NPHD.EQ.2) GO TO 220
+      IF(NPHD == 1) GO TO 240
+      IF(NPHD == 2) GO TO 220
       XX=D
       XI=DENS(1,NATM)
-      IF(D.GT.XI) XX=XI
-      IF(D.LT.5.0E-04) GO TO 280
+      IF(D > XI) XX=XI
+      IF(D < 5.0E-04) GO TO 280
       DO 210 J=2,33
       XJ=DENS(J,NATM)
-      IF(XX.GT.XJ) GO TO 260
+      IF(XX > XJ) GO TO 260
       XI=XJ
   210 CONTINUE
   220 CONTINUE
       XX=H
       XI=HTKM(1)
-      IF(H.LT.XI) XX=XI
-      IF(H.GT.99.9) GO TO 280
+      IF(H < XI) XX=XI
+      IF(H > 99.9) GO TO 280
       DO 230 J=2,33
       XJ=HTKM(J)
-      IF(XX.LT.XJ) GO TO 260
+      IF(XX < XJ) GO TO 260
       XI=XJ
   230 CONTINUE
   240 CONTINUE
       XX=P
       XI=PRES(1,NATM)
-      IF(P.GT.XI) XX=XI
-      IF(P.LT.3.0E-04) GO TO 280
+      IF(P > XI) XX=XI
+      IF(P < 3.0E-04) GO TO 280
       DO 250 J=2,33
       XJ=PRES(J,NATM)
-      IF(XX.GT.XJ) GO TO 260
+      IF(XX > XJ) GO TO 260
       XI=XJ
   250 CONTINUE
   260 CONTINUE
@@ -1220,9 +1205,9 @@ C----------------------------------------------------------------------
       PJ=PRES(J,NATM)
       DI=DENS(I,NATM)
       DJ=DENS(J,NATM)
-      IF(NPHD.EQ.1) D=DI+DELTA*(DJ-DI)
-      IF(NPHD.EQ.3) P=PI+DELTA*(PJ-PI)
-      IF(NPHD.EQ.2) THEN
+      IF(NPHD == 1) D=DI+DELTA*(DJ-DI)
+      IF(NPHD == 3) P=PI+DELTA*(PJ-PI)
+      IF(NPHD == 2) THEN
       P=PI*(PJ/PI)**DELTA
       D=DI*(DJ/DI)**DELTA
       T=TEMP(I,NATM)+DELTA*(TEMP(J,NATM)-TEMP(I,NATM))
@@ -1230,10 +1215,10 @@ C----------------------------------------------------------------------
       O=OZON(I,NATM)/DI+DELTA*(OZON(J,NATM)/DJ-OZON(I,NATM)/DI)
       Q=WVAP(I,NATM)/DI+DELTA*(WVAP(J,NATM)/DJ-WVAP(I,NATM)/DI)
       ES=10.D0**(9.4051D0-2353.D0/T)
-      IF(P.LT.PI) PI=P
+      IF(P < PI) PI=P
       S=1.D+06
       RS=(PI-ES+0.622*ES)/(0.622*ES)
-      IF(RS.GT.1.E-06) S=1./RS
+      IF(RS > 1.E-06) S=1./RS
       OI=O
       QI=Q
       OCM=0.D0
@@ -1255,7 +1240,7 @@ C----------------------------------------------------------------------
       RETURN
   280 CONTINUE
       T=210.D0
-      IF(NATM.EQ.6) T=186.87
+      IF(NATM == 6) T=186.87
       O=1.D-10
       Q=1.D-10
       S=1.D-10
@@ -1267,7 +1252,7 @@ C----------------------------------------------------------------------
       RETURN
       END SUBROUTINE PHATMO
 
-      REAL*8 FUNCTION PFOFTK(WAVNA,WAVNB,TK)
+      REAL*8 FUNCTION PFofTK(WAVNA,WAVNB,TK)
 C     ------------------------------------------------------------------
 C
 C        INPUT DATA
@@ -1277,11 +1262,11 @@ C
 C                  TK           ABSOLUTE TEMPERATURE IN DEGREES KELVIN
 C
 C       OUTPUT DATA
-C                  PFOFTK       PLANCK FLUX (W/M**2)
+C                  PFofTK       PLANCK FLUX (W/m^2)
 C
 C
 C           REMARKS
-C                   PLANCK INTENSITY (W/M**2/STER) IS GIVEN BY PFOFTK/PI
+C                   PLANCK INTENSITY (W/m^2*STER) IS GIVEN BY PFofTK/PI
 C
 C     ------------------------------------------------------------------
       IMPLICIT NONE
@@ -1303,12 +1288,12 @@ C     REAL*8, PARAMETER :: PI =3.141592653589793D0
      *     ,XNF,XNX
       INTEGER II,NB,NNB,N
 
-      PFOFTK=0D0
-      IF(TK.LT.1D-06) RETURN
+      PFofTK=0D0
+      IF(TK < 1D-06) RETURN
       DO 160 II=1,2
-      IF(II.EQ.1) X=HCK*WAVNA/TK
-      IF(II.EQ.2) X=HCK*WAVNB/TK
-      IF(X.GT.2.3D0) GO TO 120
+      IF(II == 1) X=HCK*WAVNA/TK
+      IF(II == 2) X=HCK*WAVNB/TK
+      IF(X > 2.3D0) GO TO 120
       XX=X*X
       GSUM=1D0/3D0-X/8D0+XX/60D0
       NB=3
@@ -1323,7 +1308,7 @@ C     REAL*8, PARAMETER :: PI =3.141592653589793D0
       DG=B/XN3*XNF
       GSUM=GSUM+DG
       DGB=DG
-      IF(ABS(DG).LT.DGXLIM) GO TO 110
+      IF(ABS(DG) < DGXLIM) GO TO 110
   100 CONTINUE
   110 CONTINUE
       GX=GSUM*XX*X
@@ -1335,33 +1320,33 @@ C     REAL*8, PARAMETER :: PI =3.141592653589793D0
       XN=N
       XNN=XN*XN
       XNX=XN*X
-      IF(XNX.GT.100.D0) GO TO 140
+      IF(XNX > 100.D0) GO TO 140
       GTERM=(X*X*(3.D0+XNX)+6.D0*(1.D0+XNX)/XNN)/XNN
       DG=GTERM*EXP(-XNX)
       GSUM=GSUM-DG
       DGB=DG
-      IF(DG.LT.DGXLIM) GO TO 140
+      IF(DG < DGXLIM) GO TO 140
   130 CONTINUE
   140 CONTINUE
       GX=GSUM
   150 CONTINUE
-      IF(II.EQ.1) GXA=GX
-      IF(II.EQ.2) GXB=GX
+      IF(II == 1) GXA=GX
+      IF(II == 2) GXB=GX
   160 CONTINUE
       PNORM=15.D0/PI4
-      PFOFTK=ABS(GXB-GXA)*PNORM
-      PFOFTK=PFOFTK*5.6692D-08*TK**4
+      PFofTK=ABS(GXB-GXA)*PNORM
+      PFofTK=PFofTK*5.6692D-08*TK**4
       RETURN
-      END FUNCTION PFOFTK
+      END FUNCTION PFofTK
 
-      REAL*8 FUNCTION TKOFPF(WAVNA,WAVNB,FLUXAB)
+      REAL*8 FUNCTION TKofPF(WAVNA,WAVNB,FLUXAB)
 C     ------------------------------------------------------------------
 C
 C        INPUT DATA
 C------------------
 C                  WAVNA,WAVNB  SPECTRAL INTERVAL IN WAVENUMBERS
 C                               (ORDER OF WAVNA,WAVNB NOT IMPORTANT)
-C                  FLUXAB       PLANCK FLUX (W/M**2) IN INTERVAL
+C                  FLUXAB       PLANCK FLUX (W/m^2) IN INTERVAL
 C                                                       (WAVNA,WAVNB)
 C
 C       OUTPUT DATA
@@ -1371,10 +1356,10 @@ C
 C
 C           REMARKS
 C------------------
-C                   TKOFPF IS INVERSE FUNCTION OF PFOFTK(WAVNA,WAVNB,TK)
-C                   THE OUTPUT OF TKOFPF SATISFIES THE IDENTITY
-C                                 FLUXAB=PFOFTK(WAVNA,WAVNB,TK)
-C                   (UNITS FOR FLUXAB AND PFOFTK MUST BE IDENTICAL)
+C                   TKofPF IS INVERSE FUNCTION OF PFofTK(WAVNA,WAVNB,TK)
+C                   THE OUTPUT OF TKofPF SATISFIES THE IDENTITY
+C                                 FLUXAB=PFofTK(WAVNA,WAVNB,TK)
+C                   (UNITS FOR FLUXAB AND PFofTK MUST BE IDENTICAL)
 C
 C     ------------------------------------------------------------------
       IMPLICIT NONE
@@ -1383,23 +1368,23 @@ C     ------------------------------------------------------------------
       INTEGER, PARAMETER :: NMAX=20
       REAL*8, INTENT(IN) :: WAVNA,WAVNB,FLUXAB
       REAL*8 XA,YA,XB,YB,XX,YY,XC,YC,XBA,XCA,XBC,YBA,YCA,YBC,YXBA,YXCA,A
-     *     ,B,C,ROOT,PF,PFOFTK
+     *     ,B,C,ROOT,PF,PFofTK
       INTEGER NFIT
 
-      IF(FLUXAB.LE.0.D0) RETURN
+      IF(FLUXAB <= 0.D0) RETURN
       LOGFIT=.FALSE.
       NFIT=0
       PF=FLUXAB
       XA=0.D0
       YA=0.D0
       XB=250.D0
-      YB=PFOFTK(WAVNA,WAVNB,XB)
+      YB=PFofTK(WAVNA,WAVNB,XB)
       XX=PF*XB/YB
-      YY=PFOFTK(WAVNA,WAVNB,XX)
-      IF(ABS(YY-PF).LT.DELFIT) GO TO 200
-      IF((YY/PF).LT.0.5D0) GO TO 150
-      IF((YY/PF).GT.2.0D0) GO TO 170
-      IF(XX.GT.XB) GO TO 110
+      YY=PFofTK(WAVNA,WAVNB,XX)
+      IF(ABS(YY-PF) < DELFIT) GO TO 200
+      IF((YY/PF) < 0.5D0) GO TO 150
+      IF((YY/PF) > 2.0D0) GO TO 170
+      IF(XX > XB) GO TO 110
       XC=XB
       YC=YB
       XB=XX
@@ -1416,7 +1401,7 @@ C     ------------------------------------------------------------------
       YCA=YC-YA
       YBC=YB-YC
       NFIT=NFIT+1
-      IF(NFIT.GT.NMAX) GO TO 200
+      IF(NFIT > NMAX) GO TO 200
       YXBA=YBA/XBA
       YXCA=YCA/XCA
       C=(YXBA-YXCA)/XBC
@@ -1424,11 +1409,11 @@ C     ------------------------------------------------------------------
       A=YA-XA*(B+XA*C)
       ROOT=SQRT(B*B+4.D0*C*(PF-A))
       XX=0.5D0*(ROOT-B)/C
-      IF(XX.LT.XA.OR.XX.GT.XC) XX=-0.5D0*(ROOT+B)/C
-      YY=PFOFTK(WAVNA,WAVNB,XX)
+      IF(XX < XA.or.XX > XC) XX=-0.5D0*(ROOT+B)/C
+      YY=PFofTK(WAVNA,WAVNB,XX)
       IF(LOGFIT) YY=LOG(YY)
-      IF(ABS(YY-PF).LT.DELFIT) GO TO 200
-      IF(XX.GT.XB) GO TO 130
+      IF(ABS(YY-PF) < DELFIT) GO TO 200
+      IF(XX > XB) GO TO 130
       XC=XB
       YC=YB
       GO TO 140
@@ -1446,9 +1431,9 @@ C     ------------------------------------------------------------------
       XC=XB
       YC=YB
       XB=XB/2.D0
-      YB=PFOFTK(WAVNA,WAVNB,XB)
-      IF(YB.LT.YA) GO TO 190
-      IF(YB.GT.PF) GO TO 160
+      YB=PFofTK(WAVNA,WAVNB,XB)
+      IF(YB < YA) GO TO 190
+      IF(YB > PF) GO TO 160
       XA=XB
       YA=YB
       GO TO 190
@@ -1459,16 +1444,16 @@ C     ------------------------------------------------------------------
       XA=XB
       YA=YB
       XB=XB*2.D0
-      YB=PFOFTK(WAVNA,WAVNB,XB)
-      IF(YB.GT.YC) GO TO 190
-      IF(YB.LT.PF) GO TO 180
+      YB=PFofTK(WAVNA,WAVNB,XB)
+      IF(YB > YC) GO TO 190
+      IF(YB < PF) GO TO 180
       XC=XB
       YC=YB
   190 CONTINUE
       XB=XA+(PF-YA)*(XC-XA)/(YC-YA)
-      YB=PFOFTK(WAVNA,WAVNB,XB)
+      YB=PFofTK(WAVNA,WAVNB,XB)
       XX=XB
-      IF(ABS(YB-PF).LT.DELFIT) GO TO 200
+      IF(ABS(YB-PF) < DELFIT) GO TO 200
       PF=LOG(PF)
       YA=LOG(YA)
       YB=LOG(YB)
@@ -1476,10 +1461,9 @@ C     ------------------------------------------------------------------
       LOGFIT=.TRUE.
       GO TO 120
   200 CONTINUE
-      TKOFPF=XX
+      TKofPF=XX
       RETURN
-      END FUNCTION TKOFPF
-
+      END FUNCTION TKofPF
 
       SUBROUTINE REPART(FXL,XLB,NXB,GYL,YLB,NYB)
       IMPLICIT NONE
@@ -1505,8 +1489,8 @@ C              to to XLB and YLB (layer bottom edge and top edge) limits
 C
 C     ------------------------------------------------------------------
       INTEGER, INTENT(IN) :: NXB,NYB
-      REAL*8, INTENT(IN) :: FXL(NXB),XLB(NXB),YLB(NYB)
-      REAL*8, INTENT(OUT) :: GYL(NYB)
+      REAL*8, INTENT(IN) :: FXL(NXB-1),XLB(NXB),YLB(NYB)
+      REAL*8, INTENT(OUT) :: GYL(NYB-1)
       INTEGER NXF,NYG
       REAL*8 SUMG,SUMY,XA,YA,XB,YB,XAYA,PART
       INTEGER I,J
@@ -1523,32 +1507,32 @@ C     ------------------------------------------------------------------
       J=1
       YA=YLB(J)
       XB=XLB(I+1)
-      IF(XB.LT.XA) GO TO 200
+      IF(XB < XA) GO TO 200
   100 CONTINUE
       YB=YLB(J+1)
-      IF(YB.GT.XA) GO TO 110
+      IF(YB > XA) GO TO 110
       GYL(J)=0.D0
       J=J+1
-      IF(J.GT.NYG) GO TO 160
+      IF(J > NYG) GO TO 160
       YA=YB
       GO TO 100
   110 CONTINUE
       XB=XLB(I+1)
-      IF(XB.GT.YA) GO TO 120
+      IF(XB > YA) GO TO 120
       I=I+1
-      IF(I.GT.NXF) GO TO 160
+      IF(I > NXF) GO TO 160
       XA=XB
       GO TO 110
   120 CONTINUE
       XAYA=XA
-      IF(YA.GT.XA) XAYA=YA
-      IF(YB.GT.XB) GO TO 130
+      IF(YA > XA) XAYA=YA
+      IF(YB > XB) GO TO 130
       PART=(YB-XAYA)/(XB-XA)
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       GYL(J)=SUMG
       J=J+1
-      IF(J.GT.NYG) GO TO 160
+      IF(J > NYG) GO TO 160
       SUMG=0.D0
       SUMY=0.D0
       YA=YB
@@ -1559,7 +1543,7 @@ C     ------------------------------------------------------------------
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       I=I+1
-      IF(I.GT.NXF) GO TO 140
+      IF(I > NXF) GO TO 140
       XA=XB
       XB=XLB(I+1)
       GO TO 120
@@ -1567,7 +1551,7 @@ C     ------------------------------------------------------------------
       GYL(J)=SUMG
   150 CONTINUE
       J=J+1
-      IF(J.GT.NYG) GO TO 160
+      IF(J > NYG) GO TO 160
       GYL(J)=0.D0
       GO TO 150
   160 CONTINUE
@@ -1575,29 +1559,29 @@ C     ------------------------------------------------------------------
 
   200 CONTINUE
       YB=YLB(J+1)
-      IF(YB.LT.XA) GO TO 210
+      IF(YB < XA) GO TO 210
       GYL(J)=0.D0
       J=J+1
-      IF(J.GT.NYG) GO TO 260
+      IF(J > NYG) GO TO 260
       YA=YB
       GO TO 200
   210 CONTINUE
       XB=XLB(I+1)
-      IF(XB.LT.YA) GO TO 220
+      IF(XB < YA) GO TO 220
       I=I+1
-      IF(I.GT.NXF) GO TO 260
+      IF(I > NXF) GO TO 260
       XA=XB
       GO TO 210
   220 CONTINUE
       XAYA=XA
-      IF(YA.LT.XA) XAYA=YA
-      IF(YB.LT.XB) GO TO 230
+      IF(YA < XA) XAYA=YA
+      IF(YB < XB) GO TO 230
       PART=(YB-XAYA)/(XB-XA)
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       GYL(J)=SUMG
       J=J+1
-      IF(J.GT.NYG) GO TO 260
+      IF(J > NYG) GO TO 260
       SUMG=0.D0
       SUMY=0.D0
       YA=YB
@@ -1608,7 +1592,7 @@ C     ------------------------------------------------------------------
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       I=I+1
-      IF(I.GT.NXF) GO TO 240
+      IF(I > NXF) GO TO 240
       XA=XB
       XB=XLB(I+1)
       GO TO 220
@@ -1616,7 +1600,7 @@ C     ------------------------------------------------------------------
       GYL(J)=SUMG
   250 CONTINUE
       J=J+1
-      IF(J.GT.NYG) GO TO 260
+      IF(J > NYG) GO TO 260
       GYL(J)=0.D0
       GO TO 250
   260 CONTINUE
@@ -1644,8 +1628,8 @@ C              values assumed to be constant between YLB(N) and YLB(N+1)
 C
 C     ------------------------------------------------------------------
       INTEGER, INTENT(IN) :: NXB,NYB
-      REAL*8, INTENT(IN) :: FXL(NXB),XLB(NXB),YLB(NYB)
-      REAL*8, INTENT(OUT) :: GYL(NYB)
+      REAL*8, INTENT(IN) :: FXL(NXB-1),XLB(NXB),YLB(NYB)
+      REAL*8, INTENT(OUT) :: GYL(NYB-1)
       INTEGER NXF,NYG
       REAL*8 SUMG,SUMY,XA,YA,XB,YB,XAYA,PART
       INTEGER I,J
@@ -1662,32 +1646,32 @@ C     ------------------------------------------------------------------
       J=1
       YA=YLB(J)
       XB=XLB(I+1)
-      IF(XB.LT.XA) GO TO 200
+      IF(XB < XA) GO TO 200
   100 CONTINUE
       YB=YLB(J+1)
-      IF(YB.GT.XA) GO TO 110
+      IF(YB > XA) GO TO 110
       GYL(J)=0.D0
       J=J+1
-      IF(J.GT.NYG) GO TO 160
+      IF(J > NYG) GO TO 160
       YA=YB
       GO TO 100
   110 CONTINUE
       XB=XLB(I+1)
-      IF(XB.GT.YA) GO TO 120
+      IF(XB > YA) GO TO 120
       I=I+1
-      IF(I.GT.NXF) GO TO 160
+      IF(I > NXF) GO TO 160
       XA=XB
       GO TO 110
   120 CONTINUE
       XAYA=XA
-      IF(YA.GT.XA) XAYA=YA
-      IF(YB.GT.XB) GO TO 130
+      IF(YA > XA) XAYA=YA
+      IF(YB > XB) GO TO 130
       PART=(YB-XAYA)/(XB-XA)
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       GYL(J)=SUMG/SUMY
       J=J+1
-      IF(J.GT.NYG) GO TO 160
+      IF(J > NYG) GO TO 160
       SUMG=0.D0
       SUMY=0.D0
       YA=YB
@@ -1698,7 +1682,7 @@ C     ------------------------------------------------------------------
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       I=I+1
-      IF(I.GT.NXF) GO TO 140
+      IF(I > NXF) GO TO 140
       XA=XB
       XB=XLB(I+1)
       GO TO 120
@@ -1706,7 +1690,7 @@ C     ------------------------------------------------------------------
       GYL(J)=SUMG/SUMY
   150 CONTINUE
       J=J+1
-      IF(J.GT.NYG) GO TO 160
+      IF(J > NYG) GO TO 160
       GYL(J)=0.D0
       GO TO 150
   160 CONTINUE
@@ -1714,29 +1698,29 @@ C     ------------------------------------------------------------------
 
   200 CONTINUE
       YB=YLB(J+1)
-      IF(YB.LT.XA) GO TO 210
+      IF(YB < XA) GO TO 210
       GYL(J)=0.D0
       J=J+1
-      IF(J.GT.NYG) GO TO 260
+      IF(J > NYG) GO TO 260
       YA=YB
       GO TO 200
   210 CONTINUE
       XB=XLB(I+1)
-      IF(XB.LT.YA) GO TO 220
+      IF(XB < YA) GO TO 220
       I=I+1
-      IF(I.GT.NXF) GO TO 260
+      IF(I > NXF) GO TO 260
       XA=XB
       GO TO 210
   220 CONTINUE
       XAYA=XA
-      IF(YA.LT.XA) XAYA=YA
-      IF(YB.LT.XB) GO TO 230
+      IF(YA < XA) XAYA=YA
+      IF(YB < XB) GO TO 230
       PART=(YB-XAYA)/(XB-XA)
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       GYL(J)=SUMG/SUMY
       J=J+1
-      IF(J.GT.NYG) GO TO 260
+      IF(J > NYG) GO TO 260
       SUMG=0.D0
       SUMY=0.D0
       YA=YB
@@ -1747,7 +1731,7 @@ C     ------------------------------------------------------------------
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
       I=I+1
-      IF(I.GT.NXF) GO TO 240
+      IF(I > NXF) GO TO 240
       XA=XB
       XB=XLB(I+1)
       GO TO 220
@@ -1755,7 +1739,7 @@ C     ------------------------------------------------------------------
       GYL(J)=SUMG/SUMY
   250 CONTINUE
       J=J+1
-      IF(J.GT.NYG) GO TO 260
+      IF(J > NYG) GO TO 260
       GYL(J)=0.D0
       GO TO 250
   260 CONTINUE
@@ -1789,23 +1773,23 @@ C     ------------------------------------------------------------------
       XA=X(JX)
       XB=X(NX)
       XX=XA
-      IF(XB.GT.XA) GO TO 120
+      IF(XB > XA) GO TO 120
       XA=XB
       XB=XX
       JX=NX
       KX=-1
  120  XMIN=XA
       XMAX=XB
-      IF(XMIN.GE.BLIM) RETURN
-      IF(XMAX.LE.ALIM) RETURN
-      IF(XMIN.LT.ALIM) XMIN=ALIM
-      IF(XMAX.GT.BLIM) XMAX=BLIM
+      IF(XMIN >= BLIM) RETURN
+      IF(XMAX <= ALIM) RETURN
+      IF(XMIN < ALIM) XMIN=ALIM
+      IF(XMAX > BLIM) XMAX=BLIM
  130  JX=JX+KX
       XJ=X(JX)
-      IF(XJ.LE.XMIN) GO TO 130
+      IF(XJ <= XMIN) GO TO 130
       IX=JX-KX
       XI=X(IX)
-      IF((XJ-XI).LT.DELTA) GO TO 130
+      IF((XJ-XI) < DELTA) GO TO 130
       FI=F(IX)
       FJ=F(JX)
       BF=(FJ-FI)/(XJ-XI)
@@ -1813,18 +1797,18 @@ C     ------------------------------------------------------------------
       X2=XMIN
  160  X1=X2
       X2=XJ
-      IF(X2.GT.XMAX) X2=XMAX
+      IF(X2 > XMAX) X2=XMAX
       DINT=AF*(X2-X1)+BF*(X2**2-X1**2)/2.D0
       ABINT=ABINT+DINT
-      IF(DABS(X2-XMAX).LT.DELTA) RETURN
-      IF((XJ-X2).GT.DELTA) GO TO 160
+      IF(DABS(X2-XMAX) < DELTA) RETURN
+      IF((XJ-X2) > DELTA) GO TO 160
  170  XI=XJ
       FI=FJ
       IX=JX
       JX=JX+KX
       XJ=X(JX)
       FJ=F(JX)
-      IF(DABS(XJ-XI).LT.DELTA) GO TO 170
+      IF(DABS(XJ-XI) < DELTA) GO TO 170
       BF=(FJ-FI)/(XJ-XI)
       AF=FJ-BF*XJ
       GO TO 160
@@ -1867,39 +1851,39 @@ C     ------------------------------------------------------------------
       XB=X(NX)
       YB=Y(NY)
       XX=XA
-      IF(XB.GT.XA) GO TO 100
+      IF(XB > XA) GO TO 100
       XA=XB
       XB=XX
       JX=NX
       KX=-1
  100  XX=YA
-      IF(YB.GT.YA) GO TO 120
+      IF(YB > YA) GO TO 120
       YA=YB
       YB=XX
       JY=NY
       KY=-1
  120  XMIN=MAX(XA,YA)
       XMAX=MIN(XB,YB)
-      IF(XMIN.GE.BLIM) RETURN
-      IF(XMAX.LE.ALIM) RETURN
-      IF(XMIN.LT.ALIM) XMIN=ALIM
-      IF(XMAX.GT.BLIM) XMAX=BLIM
+      IF(XMIN >= BLIM) RETURN
+      IF(XMAX <= ALIM) RETURN
+      IF(XMIN < ALIM) XMIN=ALIM
+      IF(XMAX > BLIM) XMAX=BLIM
  130  JX=JX+KX
       XJ=X(JX)
-      IF(XJ.LE.XMIN) GO TO 130
+      IF(XJ <= XMIN) GO TO 130
       IX=JX-KX
       XI=X(IX)
-      IF((XJ-XI).LT.DELTA) GO TO 130
+      IF((XJ-XI) < DELTA) GO TO 130
       FI=F(IX)
       FJ=F(JX)
       BF=(FJ-FI)/(XJ-XI)
       AF=FJ-BF*XJ
  140  JY=JY+KY
       YJ=Y(JY)
-      IF(YJ.LE.XMIN) GO TO 140
+      IF(YJ <= XMIN) GO TO 140
       IY=JY-KY
       YI=Y(IY)
-      IF((YJ-YI).LT.DELTA) GO TO 140
+      IF((YJ-YI) < DELTA) GO TO 140
       GI=G(IY)
       GJ=G(JY)
       BG=(GJ-GI)/(YJ-YI)
@@ -1907,31 +1891,31 @@ C     ------------------------------------------------------------------
       X2=XMIN
  160  X1=X2
       X2=MIN(XJ,YJ)
-      IF(X2.GT.XMAX) X2=XMAX
+      IF(X2 > XMAX) X2=XMAX
       DINT=(AF*AG)*(X2-X1)
      *    +(AF*BG+BF*AG)*(X2**2-X1**2)/2.D0
      *    +(BF*BG)*(X2**3-X1**3)/3.D0
       ABINT=ABINT+DINT
-      IF(DABS(X2-XMAX).LT.DELTA) RETURN
-      IF((XJ-X2).GT.DELTA) GO TO 180
+      IF(DABS(X2-XMAX) < DELTA) RETURN
+      IF((XJ-X2) > DELTA) GO TO 180
  170  XI=XJ
       FI=FJ
       IX=JX
       JX=JX+KX
       XJ=X(JX)
       FJ=F(JX)
-      IF(DABS(XJ-XI).LT.DELTA) GO TO 170
+      IF(DABS(XJ-XI) < DELTA) GO TO 170
       BF=(FJ-FI)/(XJ-XI)
       AF=FJ-BF*XJ
  180  CONTINUE
-      IF(YJ.GT.X2) GO TO 160
+      IF(YJ > X2) GO TO 160
       YI=YJ
       GI=GJ
       IY=JY
       JY=JY+KY
       YJ=Y(JY)
       GJ=G(JY)
-      IF(DABS(YJ-YI).LT.DELTA) GO TO 180
+      IF(DABS(YJ-YI) < DELTA) GO TO 180
       BG=(GJ-GI)/(YJ-YI)
       AG=GJ-BG*YJ
       GO TO 160
@@ -1971,7 +1955,7 @@ C-------------------------------------------------------------------
 
 C    Global Annual Emissions of BC U   Emission (Mt/yr)
 
-      real*8, parameter, dimension(5,45) :: BCE = RESHAPE( (/
+      REAL*8, parameter, dimension(5,45) :: BCE = RESHAPE( (/
 C      Year    Hard_Coal    Brown_Coal      Diesel        Total
      A 50.0, 2.280581713, 0.4449132979, 0.1599090248, 2.885536671,
      B 51.0, 2.443193913, 0.4855868816, 0.1884280443, 3.117194653,
@@ -2020,19 +2004,19 @@ C      Year    Hard_Coal    Brown_Coal      Diesel        Total
      G 94.0, 7.515841007, 1.2333894970, 1.4780857560, 10.22745800
      *   /), (/5,45/) )
 
-      real*8 XDEC
-      integer IBCDEC,JBCDEC,IJYEAR
+      REAL*8 XDEC
+      INTEGER IBCDEC,JBCDEC,IJYEAR
 
-      IF(JYEAR.LT.1876) THEN
+      IF(JYEAR < 1876) THEN
       CWTJ=(JYEAR-1850)/25.D0
-      IF(CWTJ.LT.0.D0) CWTJ=0.D0
+      IF(CWTJ < 0.D0) CWTJ=0.D0
       CWTI=0.D0
       IDEC=1
       JDEC=1
       GO TO 100
       ENDIF
 
-      IF(JYEAR.LT.1950) THEN
+      IF(JYEAR < 1950) THEN
       XDEC=(JYEAR-1850)/25.D0
       IDEC=XDEC
       JDEC=IDEC+1
@@ -2041,7 +2025,7 @@ C      Year    Hard_Coal    Brown_Coal      Diesel        Total
       GO TO 100
       ENDIF
 
-      IF(JYEAR.LT.1990) THEN
+      IF(JYEAR < 1990) THEN
       IDEC=(JYEAR-1910)/10
       JDEC=IDEC+1
       IBCDEC=1+(IDEC-4)*10
@@ -2053,11 +2037,11 @@ C      Year    Hard_Coal    Brown_Coal      Diesel        Total
       GO TO 100
       ENDIF
 
-      IF(JYEAR.GT.1989) THEN
+      IF(JYEAR > 1989) THEN
       IDEC=7
       JDEC=8
       IJYEAR=JYEAR-1949
-      IF(IJYEAR.GT.45) IJYEAR=45
+      IF(IJYEAR > 45) IJYEAR=45
       CWTJ=BCE(5,IJYEAR)/BCE(5,41)
       CWTI=0.D0
       ENDIF
@@ -2099,7 +2083,7 @@ C     Global Emission of Sulfate
 
 C     Emission (Mt/yr)
 C               year      Anthropogenic_Sulfate Natural_Sulfate
-      real*8, parameter, dimension(3,41) :: SUE = reshape( (/
+      REAL*8, parameter, dimension(3,41) :: SUE = reshape( (/
      A          1950.0,     30.46669769,           14.4,
      B          1951.0,     32.38347244,           14.4,
      C          1952.0,     32.18632889,           14.4,
@@ -2143,19 +2127,19 @@ C               year      Anthropogenic_Sulfate Natural_Sulfate
      C          1990.0,     71.29174805,           14.4
      *              /), (/3,41/) )
 
-      real*8 xdec
-      integer ISUDEC,JSUDEC,IJYEAR
+      REAL*8 xdec
+      INTEGER ISUDEC,JSUDEC,IJYEAR
 
-      IF(JYEAR.LT.1876) THEN
+      IF(JYEAR < 1876) THEN
       SWTJ=(JYEAR-1850)/25.D0
-      IF(SWTJ.LT.0.D0) SWTJ=0.D0
+      IF(SWTJ < 0.D0) SWTJ=0.D0
       SWTI=0.D0
       IDEC=1
       JDEC=1
       GO TO 100
       ENDIF
 
-      IF(JYEAR.LT.1950) THEN
+      IF(JYEAR < 1950) THEN
       XDEC=(JYEAR-1850)/25.D0
       IDEC=XDEC
       JDEC=IDEC+1
@@ -2164,7 +2148,7 @@ C               year      Anthropogenic_Sulfate Natural_Sulfate
       GO TO 100
       ENDIF
 
-      IF(JYEAR.LT.1990) THEN
+      IF(JYEAR < 1990) THEN
       IDEC=(JYEAR-1910)/10
       JDEC=IDEC+1
       ISUDEC=1+(IDEC-4)*10
@@ -2176,11 +2160,11 @@ C               year      Anthropogenic_Sulfate Natural_Sulfate
       GO TO 100
       ENDIF
 
-      IF(JYEAR.GT.1989) THEN
+      IF(JYEAR > 1989) THEN
       IDEC=7
       JDEC=8
       IJYEAR=JYEAR-1949
-      IF(IJYEAR.GT.41) IJYEAR=41
+      IF(IJYEAR > 41) IJYEAR=41
       SWTJ=SUE(2,IJYEAR)/SUE(2,41)
       SWTI=0.D0
       ENDIF
@@ -2192,9 +2176,9 @@ C               year      Anthropogenic_Sulfate Natural_Sulfate
       SUBROUTINE SPLINV(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
       IMPLICIT NONE
 
-      integer, intent(in)  :: NXF,              KXTRAP
-      real*8 , intent(in)  :: X(NXF),F(NXF),FF, CUSPWM,CUSPWE
-      real*8 , intent(out) :: XX
+      INTEGER, intent(in)  :: NXF,              KXTRAP
+      REAL*8 , intent(in)  :: X(NXF),F(NXF),FF, CUSPWM,CUSPWE
+      REAL*8 , intent(out) :: XX
 
 C---------------------------------------------------------------------
 C    Inverse spline:
@@ -2243,18 +2227,18 @@ C------------------------------------------------------------------
       REAL*8 x1,x2,x3,x4, x21,x32,x43,x31,x42, BETW,FFCUSP,FFLINR,CUSPWT
       REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332, a,b,c,d, xf,xe,xexm
       REAL*8 DX,gg,xg,xy,deltx,slopec,slopel,slopes
-      integer k,kk
+      INTEGER k,kk
 
       BETW=(F(2)-FF)*(F(NXF)-F(1))
-      IF(BETW.GT.0.D0) GO TO 120
+      IF(BETW > 0.D0) GO TO 120
       BETW=(FF-F(NXF-1))*(F(NXF)-F(1))
-      IF(BETW.GT.0.D0) GO TO 140
+      IF(BETW > 0.D0) GO TO 140
 
       DO 100 K=3,NXF-1
       BETW=(FF-F(K-1))*(F(K)-FF)
       DX=(FF-F(K-1))/(F(K)-F(K-1))
       XX=X(K-1)+DX*(X(K)-X(K-1))
-      IF(BETW.GE.0.D0) GO TO 110
+      IF(BETW >= 0.D0) GO TO 110
   100 CONTINUE
 
   110 CONTINUE
@@ -2288,7 +2272,7 @@ C                             -----------------------------------------
 
       FFCUSP=A+XF*(B+XF*(C+XF*D))
       XE=(X3+X2-XX-XX)/X32
-      IF(XE.LT.0.D0) XE=-XE
+      IF(XE < 0.D0) XE=-XE
       XEXM=XE**2
       CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
 
@@ -2310,7 +2294,7 @@ C                Edge Point Interval Interpolation and/or Extrapolation
 C                ------------------------------------------------------
   120 CONTINUE
       BETW=(F(1)-FF)*(F(NXF)-F(1))
-      IF(BETW.GT.0.D0) GO TO 130
+      IF(BETW > 0.D0) GO TO 130
 
 C                          F(1),F(2)  Edge Point Interval Interpolation
 C                          --------------------------------------------
@@ -2348,18 +2332,18 @@ C                          --------------------------------------------
   130 CONTINUE
 C                  Extrapolation for FF Outside of Interval F(1) - F(2)
 C                  ----------------------------------------------------
-C                  IF(KXTRAP.EQ.0)  (No Extrapolation:   sets XX = 0.0)
-C                  IF(KXTRAP.EQ.1)  (Extrapolation at Fixed Edge Value)
-C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
+C                  IF(KXTRAP == 0)  (No Extrapolation:   sets XX = 0.0)
+C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
 
-      IF(KXTRAP.EQ.0) XX=0.D0
-      IF(KXTRAP.EQ.1) XX=X(1)
-      IF(KXTRAP.EQ.2) XX=X(1)-(F(1)-FF)/(F(2)-F(1))*(X(2)-X(1))
+      IF(KXTRAP == 0) XX=0.D0
+      IF(KXTRAP == 1) XX=X(1)
+      IF(KXTRAP == 2) XX=X(1)-(F(1)-FF)/(F(2)-F(1))*(X(2)-X(1))
       GO TO 160
 
   140 CONTINUE
       BETW=(FF-F(NXF))*(F(NXF)-F(1))
-      IF(BETW.GT.0.D0) GO TO 150
+      IF(BETW > 0.D0) GO TO 150
 
 C                    F(NXF-1),F(NXF)  Edge Point Interval Interpolation
 C                    --------------------------------------------------
@@ -2393,7 +2377,7 @@ C                        ----------------------------------------------
       FFCUSP=A+XF*(B+XF*C)
       FFLINR=A+XF*F32
       XE=1.D0-2.D0*XF/X32
-      IF(XE.LT.0.D0) XE=-XE
+      IF(XE < 0.D0) XE=-XE
       XEXM=XE**2
       CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
       GG=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
@@ -2409,13 +2393,13 @@ C                        ----------------------------------------------
   150 CONTINUE
 C              Extrapolation for F Outside of Interval  F(NXF-1)-F(NXF)
 C              --------------------------------------------------------
-C                  IF(KXTRAP.EQ.0)  (No Extrapolation:   sets XX = 0.0)
-C                  IF(KXTRAP.EQ.1)  (Extrapolation at Fixed Edge Value)
-C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
+C                  IF(KXTRAP == 0)  (No Extrapolation:   sets XX = 0.0)
+C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
 
-      IF(KXTRAP.EQ.0) XX=0.D0
-      IF(KXTRAP.EQ.1) XX=X(NXF)
-      IF(KXTRAP.EQ.2) XX=X(NXF)
+      IF(KXTRAP == 0) XX=0.D0
+      IF(KXTRAP == 1) XX=X(NXF)
+      IF(KXTRAP == 2) XX=X(NXF)
      +                  -(F(NXF)-FF)/(F(NXF-1)-F(NXF))*(X(NXF-1)-X(NXF))
 
   160 CONTINUE
@@ -2425,14 +2409,14 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       SUBROUTINE SPLN44(Q,NI,NJ,IR,DR,JN,DN,QQ)
       IMPLICIT NONE
 
-      integer, intent(in)  ::   NI,NJ,  IR, JN
-      real*8,  intent(in)  :: Q(NI,NJ), DR, DN
-      real*8,  intent(out) :: QQ
+      INTEGER, intent(in)  ::   NI,NJ,  IR, JN
+      REAL*8,  intent(in)  :: Q(NI,NJ), DR, DN
+      REAL*8,  intent(out) :: QQ
 
-!nu   real*8,save :: CUSPWM=1., CUSPWE=1. ,CUSPWT,fflinr
-      real*8 QK(4),  ffcusp,a,b,c,d,xf,xe,xexm
+!nu   REAL*8,save :: CUSPWM=1., CUSPWE=1. ,CUSPWT,fflinr
+      REAL*8 QK(4),  ffcusp,a,b,c,d,xf,xe,xexm
       REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332
-      integer k,kr,irm,irp
+      INTEGER k,kr,irm,irp
 
       K=0
       IRM=IR-1
@@ -2455,7 +2439,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       XF=DN
       FFCUSP=A+XF*(B+XF*(C+XF*D))
       XE=1.D0-XF-XF
-      IF(XE.LT.0.0) XE=-XE
+      IF(XE < 0.0) XE=-XE
       XEXM=XE**2
 !=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
 !nu   FFLINR=A+XF*F32
@@ -2477,7 +2461,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       XF=DR
       FFCUSP=A+XF*(B+XF*(C+XF*D))
       XE=1.D0-XF-XF
-      IF(XE.LT.0.0) XE=-XE
+      IF(XE < 0.0) XE=-XE
       XEXM=XE**2
 !=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
 !nu   FFLINR=A+XF*F32
@@ -2488,12 +2472,12 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       SUBROUTINE SPLNI4(Q,NI,NJ,IR,JN,DN,QQ)
       IMPLICIT NONE
 
-      integer, intent(in)  ::   NI,NJ,  IR, JN
-      real*8,  intent(in)  :: Q(NI,NJ),     DN
-      real*8,  intent(out) :: QQ
+      INTEGER, intent(in)  ::   NI,NJ,  IR, JN
+      REAL*8,  intent(in)  :: Q(NI,NJ),     DN
+      REAL*8,  intent(out) :: QQ
 
-!nu   real*8,save :: CUSPWM=1., CUSPWE=1. ,CUSPWT,fflinr
-      real*8 ffcusp,a,b,c,d,xf,xe,xexm
+!nu   REAL*8,save :: CUSPWM=1., CUSPWE=1. ,CUSPWT,fflinr
+      REAL*8 ffcusp,a,b,c,d,xf,xe,xexm
       REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332
 
       F1=Q(IR,JN-1)
@@ -2512,7 +2496,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       XF=DN
       FFCUSP=A+XF*(B+XF*(C+XF*D))
       XE=1.D0-XF-XF
-      IF(XE.LT.0.0) XE=-XE
+      IF(XE < 0.0) XE=-XE
       XEXM=XE**2
 !=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
 !nu   FFLINR=A+XF*F32
@@ -2533,11 +2517,11 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
 
-      integer NAER,KDREAD
-      real*8 REFF0,SRUQEX( 6,110),SRUQSC( 6,110),SRUQCB( 6,110)
+      INTEGER NAER,KDREAD
+      REAL*8 REFF0,SRUQEX( 6,110),SRUQSC( 6,110),SRUQCB( 6,110)
      A            ,TRUQEX(33,110),TRUQSC(33,110),TRUQCB(33,110)
      B            ,REFU22(110),Q55U22(110),FRSULF(8)
-      real*8 SRHQEX(6,190),SRHQSC(6,190),SRHQCB( 6,190)
+      REAL*8 SRHQEX(6,190),SRHQSC(6,190),SRHQCB( 6,190)
      A            ,TRHQAB(33,190),RHDATA(190,15)
 
 C     ------------------------------------------------------------------
@@ -2555,14 +2539,14 @@ C     ------------------------------------------------------------------
 
       character*40, save :: dtfile='oct2003.relhum.nr.Q633G633.table'
       logical, parameter :: qbinary=.false.  ; logical qexist
-      integer i,j,j1,k,k1,in1,ir1,jdry,jwet,jhimax,khimax,maxdry,maxwet
-      integer n,n0,n1,nn,np,nrhn1
-      real*8 x,xx,xi,xn0,xn1,xr1,ff,fi,gi,gd1,gd2,gw1,gw2,grh,qrh,rrh
-      real*8 rh,rhi,rr0,rd1,rd2,rw1,rw2,dwr,qd1,qd2,qw1,qw2,xdry,sdry
-      real*8 xwet,swet,qqdmax,qqwmax,rqdmax,rqwmax,q55dry,q63dry,dwn
-      real*8 aermas,ddry,dwet,reffi,rhrhi,sum,sumw,vd1,vd2,vw1,vw2
-      real*8 w1,w2,w3,w4,wd1,wd2,ww1,ww2,wtx,wty,wtz,wts,wta,xfdry
-      real*8 q55rh1,q55rh2,q55rh3,q55rh4,q550,q633,qgaerx,qscqcb
+      INTEGER i,j,j1,k,k1,in1,ir1,jdry,jwet,jhimax,khimax,maxdry,maxwet
+      INTEGER n,n0,n1,nn,np,nrhn1
+      REAL*8 x,xx,xi,xn0,xn1,xr1,ff,fi,gi,gd1,gd2,gw1,gw2,grh,qrh,rrh
+      REAL*8 rh,rhi,rr0,rd1,rd2,rw1,rw2,dwr,qd1,qd2,qw1,qw2,xdry,sdry
+      REAL*8 xwet,swet,qqdmax,qqwmax,rqdmax,rqwmax,q55dry,q63dry,dwn
+      REAL*8 aermas,ddry,dwet,reffi,rhrhi,sum,sumw,vd1,vd2,vw1,vw2
+      REAL*8 w1,w2,w3,w4,wd1,wd2,ww1,ww2,wtx,wty,wtz,wts,wta,xfdry
+      REAL*8 q55rh1,q55rh2,q55rh3,q55rh4,q550,q633,qgaerx,qscqcb
 
 C     Output variables (RHDATA/RHINFO)
 
@@ -2622,7 +2606,7 @@ C     Local variables
      H         ,TR4QEX(33),TR4QSC(33),TR4QCB(33)
      I         ,TRHQEX(33),TRHQSC(33),TRHQCB(33)
 
-      integer, parameter, dimension(4) :: NRHCRY=(/38,47,28,38/)
+      INTEGER, parameter, dimension(4) :: NRHCRY=(/38,47,28,38/)
 
       CHARACTER*8 AERTYP(4)
       DATA AERTYP/'Sulfate ','SeaSalt ','Nitrate ','Organic '/
@@ -2720,8 +2704,8 @@ C     ------------------------------------------------------------------
 
       J=880
       DO 104 K=299,305
-      IF(K.EQ.300) GO TO 104
-      IF(K.EQ.302) GO TO 104
+      IF(K == 300) GO TO 104
+      IF(K == 302) GO TO 104
       J=J+1
       R633NR(J)=R633NR(K)
       DO 103 I=1,31
@@ -2730,8 +2714,8 @@ C     ------------------------------------------------------------------
   103 CONTINUE
   104 CONTINUE
       DO 106 K=600,606
-      IF(K.EQ.601) GO TO 106
-      IF(K.EQ.603) GO TO 106
+      IF(K == 601) GO TO 106
+      IF(K == 603) GO TO 106
       J=J+1
       R633NR(J)=R633NR(K)
       DO 105 I=1,31
@@ -2754,7 +2738,7 @@ C     ------------------------------------------------------------------
       END DO
       DO J=250,880
       J1=J-2
-      IF(SMOOTH(J).GE.SMOOTH(J-1)) GO TO 107
+      IF(SMOOTH(J) >= SMOOTH(J-1)) GO TO 107
       END DO
   107 CONTINUE
       DO 108 J=J1,880
@@ -2770,7 +2754,7 @@ C                                     Set relative humidity RHRHRH scale
 C                                     ----------------------------------
       DO 110 I=1,190
       RHRHRH(I)=(I-1)/100.D0
-      IF(I.GT.91) RHRHRH(I)=0.90D0+(I-91)/1000.D0
+      IF(I > 91) RHRHRH(I)=0.90D0+(I-91)/1000.D0
   110 CONTINUE
 
 C         Define RH (=AW), RO, BX, RX as functions of X for NAER aerosol
@@ -2780,28 +2764,28 @@ C         --------------------------------------------------------------
       RHI=RHRHRH(I)
       RR0RHX(I)=1.D0
       RHXMFX(I)=1.D0
-      IF(NAER.EQ.1) THEN       !    Dry Sulfate refrac index and density
+      IF(NAER == 1) THEN       !    Dry Sulfate refrac index and density
       XNRRHX(I)=1.526
       RHDENS(I)=1.760
-      IF(I.LT.NRHN1) DNRX(I)=DRDSO4(RHI)
-      IF(I.GE.NRHN1) DNRX(I)=DRWSO4(RHI)
+      IF(I < NRHN1) DNRX(I)=DRDSO4(RHI)
+      IF(I >= NRHN1) DNRX(I)=DRWSO4(RHI)
       ENDIF
-      IF(NAER.EQ.2) THEN       !    Dry SeaSalt refrac index and density
+      IF(NAER == 2) THEN       !    Dry SeaSalt refrac index and density
       XNRRHX(I)=1.490
       RHDENS(I)=2.165
-      IF(I.LT.NRHN1) DNRX(I)=DRDSEA(RHI)
-      IF(I.GE.NRHN1) DNRX(I)=DRWSEA(RHI)
+      IF(I < NRHN1) DNRX(I)=DRDSEA(RHI)
+      IF(I >= NRHN1) DNRX(I)=DRWSEA(RHI)
       ENDIF
-      IF(NAER.EQ.3) THEN       !    Dry Nitrate refrac index and density
+      IF(NAER == 3) THEN       !    Dry Nitrate refrac index and density
       XNRRHX(I)=1.554
       RHDENS(I)=1.725
       DNRX(I)=DRXNO3(RHRHRH(I))
       ENDIF
-      IF(NAER.EQ.4) THEN       !    Dry Organic refrac index and density
+      IF(NAER == 4) THEN       !    Dry Organic refrac index and density
       XNRRHX(I)=1.526          !                  (representative value)
       RHDENS(I)=1.5            !                  (representative value)
-      IF(I.LT.NRHN1) DNRX(I)=DRDOCX(RHI)
-      IF(I.GE.NRHN1) DNRX(I)=DRWOCX(RHI)
+      IF(I < NRHN1) DNRX(I)=DRDOCX(RHI)
+      IF(I >= NRHN1) DNRX(I)=DRWOCX(RHI)
       ENDIF
   111 CONTINUE
 
@@ -2810,10 +2794,10 @@ C            -----------------------------------------------------------
       I=191
       FF=1.D0
       XX=0.D0
-      IF(NAER.EQ.1) GI=DWSO4(XX)
-      IF(NAER.EQ.2) GI=DWSEA(XX)
-      IF(NAER.EQ.3) GI=DWNO3(XX)
-      IF(NAER.EQ.4) THEN
+      IF(NAER == 1) GI=DWSO4(XX)
+      IF(NAER == 2) GI=DWSEA(XX)
+      IF(NAER == 3) GI=DWNO3(XX)
+      IF(NAER == 4) THEN
         FF=.9995d0
         XX=(1d0-FF)**.125d0
         GI=DWOCX(XX)
@@ -2822,41 +2806,41 @@ C            -----------------------------------------------------------
       FI=RHRHRH(I)
       DO 113 K=1,5
       XI=XX-(FF-FI)/GI
-      IF(NAER.EQ.1) FF=AWSO4(XI)
-      IF(NAER.EQ.2) FF=AWSEA(XI)
-      IF(NAER.EQ.3) FF=AWNO3(XI)
-      IF(NAER.EQ.4) FF=AWOCX(XI)
-      IF(I.GT.0) THEN
+      IF(NAER == 1) FF=AWSO4(XI)
+      IF(NAER == 2) FF=AWSEA(XI)
+      IF(NAER == 3) FF=AWNO3(XI)
+      IF(NAER == 4) FF=AWOCX(XI)
+      IF(I > 0) THEN
       ENDIF
       XX=XI
-      IF(NAER.EQ.1) GI=DWSO4(XX)
-      IF(NAER.EQ.2) GI=DWSEA(XX)
-      IF(NAER.EQ.3) GI=DWNO3(XX)
-      IF(NAER.EQ.4) GI=DWOCX(XX)
+      IF(NAER == 1) GI=DWSO4(XX)
+      IF(NAER == 2) GI=DWSEA(XX)
+      IF(NAER == 3) GI=DWNO3(XX)
+      IF(NAER == 4) GI=DWOCX(XX)
   113 CONTINUE
       RHXMFX(I)=XX
-      IF(NAER.EQ.1) THEN          !       RH dependent Sulfate X,R,NR,RO
+      IF(NAER == 1) THEN          !       RH dependent Sulfate X,R,NR,RO
       RHDENS(I)=ROSO4(XX)
       RR0RHX(I)=BXSO4(XX)
       XNRRHX(I)=RXSO4(XX)
       ENDIF
-      IF(NAER.EQ.2) THEN          !       RH dependent SeaSalt X,R,NR,RO
+      IF(NAER == 2) THEN          !       RH dependent SeaSalt X,R,NR,RO
       RHDENS(I)=ROSEA(XX)
       RR0RHX(I)=BXSEA(XX)
       XNRRHX(I)=RXSEA(XX)
       ENDIF
-      IF(NAER.EQ.3) THEN          !       RH dependent Nitrate X,R,NR,RO
+      IF(NAER == 3) THEN          !       RH dependent Nitrate X,R,NR,RO
       RHDENS(I)=RONO3(XX)
       RR0RHX(I)=BXNO3(XX)
       XNRRHX(I)=R1NO3(XX)
-      IF(XX.GT.0.205D0) XNRRHX(I)=R2NO3(XX)
+      IF(XX > 0.205D0) XNRRHX(I)=R2NO3(XX)
       ENDIF
-      IF(NAER.EQ.4) THEN          !       RH dependent Organic X,R,NR,RO
+      IF(NAER == 4) THEN          !       RH dependent Organic X,R,NR,RO
       RHDENS(I)=ROOCX(XX)
       RR0RHX(I)=BXOCX(XX)
       XNRRHX(I)=RXOCX(XX)
       ENDIF
-      IF(I.GT.NRHN1) GO TO 112
+      IF(I > NRHN1) GO TO 112
 
 C     ------------------------------------------------------------------
 C     Find Qdry(r),gdry(r) from Q(m,r),g(m,r) maps for each aerosol type
@@ -2870,7 +2854,7 @@ C     ------------------------------------------------------------------
       QQDMAX=0.D0
       QQWMAX=0.D0
       XDRY=XNRRHX(1)
-C     IF(MCRYON.EQ.1) XDRY=XNRRHX(NRHN1) ! If "dry" = RHC reference line
+C     IF(MCRYON == 1) XDRY=XNRRHX(NRHN1) ! If "dry" = RHC reference line
       SDRY=XDRY*100.D0-129
       JDRY=SDRY
       DDRY=SDRY-JDRY
@@ -2883,11 +2867,11 @@ C     IF(MCRYON.EQ.1) XDRY=XNRRHX(NRHN1) ! If "dry" = RHC reference line
       CALL SPLNI4(G633NR,890,31,I,JDRY,DDRY,G880M1(I))
       CALL SPLNI4(Q633NR,890,31,I,JWET,DWET,Q880M0(I))
       CALL SPLNI4(G633NR,890,31,I,JWET,DWET,G880M0(I))
-      IF(Q880M1(I).GT.QQDMAX) THEN
+      IF(Q880M1(I) > QQDMAX) THEN
       QQDMAX=Q880M1(I)
       MAXDRY=I
       ENDIF
-      IF(Q880M0(I).GT.QQWMAX) THEN
+      IF(Q880M0(I) > QQWMAX) THEN
       QQWMAX=Q880M0(I)
       MAXWET=I
       ENDIF
@@ -2899,7 +2883,7 @@ C     Define:  Qdry(r) and Qwet(r) at the reference wavelength of 550 nm
 C              using refractive index off-set and size parameter scaling
 C     ------------------------------------------------------------------
       XDRY=XNRRHX(1)*DNRX(1)             !      Dry aerosol Nr at 550 nm
-C     IF(MCRYON.EQ.1) XDRY=XNRRHX(NRHN1) ! If "dry" = RHC reference line
+C     IF(MCRYON == 1) XDRY=XNRRHX(NRHN1) ! If "dry" = RHC reference line
       SDRY=XDRY*100.D0-129
       JDRY=SDRY
       DDRY=SDRY-JDRY
@@ -2924,14 +2908,14 @@ C     ------------------------------------------------------------------
       IN1=XN1
       DWN=XN1-IN1
       RR0=REFF0*RR0RHX(I)
-      IF(RR0.LT.0.01) RR0=0.01
-      IF(RR0.LE.3.00D0) XR1=RR0*100.D0+1
-      IF(RR0.GT.3.00D0.AND.RR0.LT.3.04D0) XR1=RR0*50.0D0+732
-      IF(RR0.GE.3.04D0.AND.RR0.LE.9.00D0) XR1=RR0*50.0D0+152
-      IF(RR0.GT.9.00D0.AND.RR0.LT.9.08D0) XR1=RR0*25.0D0+662
-      IF(RR0.GE.9.08D0) THEN
+      IF(RR0 < 0.01) RR0=0.01
+      IF(RR0 <= 3.00D0) XR1=RR0*100.D0+1
+      IF(RR0 > 3.00D0.and.RR0 < 3.04D0) XR1=RR0*50.0D0+732
+      IF(RR0 >= 3.04D0.and.RR0 <= 9.00D0) XR1=RR0*50.0D0+152
+      IF(RR0 > 9.00D0.and.RR0 < 9.08D0) XR1=RR0*25.0D0+662
+      IF(RR0 >= 9.08D0) THEN
       XR1=RR0*25.0D0+378
-      IF(XR1.GT.877.9999D0) XR1=877.9999D0
+      IF(XR1 > 877.9999D0) XR1=877.9999D0
       ENDIF
       IR1=XR1
       DWR=XR1-IR1
@@ -2948,14 +2932,14 @@ C     ------------------------------------------------------------------
       IN1=XN1
       DWN=XN1-IN1
       RR0=REFF0*RR0RHX(I)*(0.633D0/0.550D0)
-      IF(RR0.LT.0.01) RR0=0.01
-      IF(RR0.LE.3.00D0) XR1=RR0*100.D0+1
-      IF(RR0.GT.3.00D0.AND.RR0.LT.3.04D0) XR1=RR0*50.0D0+732
-      IF(RR0.GE.3.04D0.AND.RR0.LE.9.00D0) XR1=RR0*50.0D0+152
-      IF(RR0.GT.9.00D0.AND.RR0.LT.9.08D0) XR1=RR0*25.0D0+662
-      IF(RR0.GE.9.08D0) THEN
+      IF(RR0 < 0.01) RR0=0.01
+      IF(RR0 <= 3.00D0) XR1=RR0*100.D0+1
+      IF(RR0 > 3.00D0.and.RR0 < 3.04D0) XR1=RR0*50.0D0+732
+      IF(RR0 >= 3.04D0.and.RR0 <= 9.00D0) XR1=RR0*50.0D0+152
+      IF(RR0 > 9.00D0.and.RR0 < 9.08D0) XR1=RR0*25.0D0+662
+      IF(RR0 >= 9.08D0) THEN
       XR1=RR0*25.0D0+378
-      IF(XR1.GT.877.9999D0) XR1=877.9999D0
+      IF(XR1 > 877.9999D0) XR1=877.9999D0
       ENDIF
       IR1=XR1
       DWR=XR1-IR1
@@ -2998,13 +2982,13 @@ C     ------------------------------------------------------------------
       QD2=QRH
       QW1=QRH
       QW2=QRH
-      IF(QW1.GT.QQWMAX) QW1=QQWMAX
-      IF(QW2.GT.QQWMAX) QW2=QQWMAX
+      IF(QW1 > QQWMAX) QW1=QQWMAX
+      IF(QW2 > QQWMAX) QW2=QQWMAX
       CALL SPLINV(R633NR    ,Q880M0    ,MAXWET,RW1,QW1,1.D0,1.D0,1)
       CALL SPLINV(R633NR(J1),Q880M0(J1),JHIMAX,RW2,QW2,1.D0,1.D0,1)
       CALL SPLINE(R633NR,G880M0,880,RW1,GW1,1.D0,1.D0,1)
       CALL SPLINE(R633NR,G880M0,880,RW2,GW2,1.D0,1.D0,1)
-      IF(I.GE.NRHN1.AND.QRH.GT.QQWMAX) THEN
+      IF(I >= NRHN1.and.QRH > QQWMAX) THEN
       QD1=QQWMAX+(QRH-QQWMAX)/XFDRY ! QD1 such that  QRH=X*QD1+(1-X)*QW1
       QD2=2.3D0                     ! 2 dry sizes are used if QD1>QQWMAX
       ENDIF
@@ -3013,18 +2997,18 @@ C     ------------------------------------------------------------------
       CALL SPLINE(R633NR,G880M1,880,RD1,GD1,1.D0,1.D0,1)
       CALL SPLINE(R633NR,G880M1,880,RD2,GD2,1.D0,1.D0,1)
 
-      IF(I.LT.NRHN1) THEN         !          Pure dry aerosol region (1)
+      IF(I < NRHN1) THEN         !          Pure dry aerosol region (1)
       WTX=1.D0
       WTY=1.D0
-      IF(REFF0.GT.RQDMAX) WTY=0.D0
+      IF(REFF0 > RQDMAX) WTY=0.D0
       WTZ=1.D0
       ELSE            !         Dry/wet weighted average regions (2)-(4)
-      IF(QRH.LE.QQWMAX.AND.REFFI.LT.RW1) THEN  !   Small-size region (2)
+      IF(QRH <= QQWMAX.and.REFFI < RW1) THEN  !   Small-size region (2)
       WTZ=1.D0
       WTY=1.D0
       WTX=(GRH-GW1)/(GD1-GW1)
       ENDIF
-      IF(QRH.GT.QQWMAX) THEN                   !  Medium-size region (3)
+      IF(QRH > QQWMAX) THEN                   !  Medium-size region (3)
 C     Fit form: QRH=X*(Y*QD1+(1-Y)*QD2)+(1-X)*QWmax & QRH=/QD1=/QD2=/QW1
       WTZ=1.D0
       WTY=((GRH-GD2)*QRH*QD2+(GD2-GW1)*QD2*QW1+(GW1-GRH)*QRH*QW1)
@@ -3032,13 +3016,13 @@ C     Fit form: QRH=X*(Y*QD1+(1-Y)*QD2)+(1-X)*QWmax & QRH=/QD1=/QD2=/QW1
      +    +(GD2-GW1)*QD2*QW1)
       WTX=(QRH-QW1)/(WTY*(QD1-QD2)+(QD2-QW1))
       ENDIF
-      IF(QRH.LE.QQWMAX.AND.REFFI.GT.RW1) THEN   !  Large size region (4)
+      IF(QRH <= QQWMAX.and.REFFI > RW1) THEN   !  Large size region (4)
       WTY=0.D0
       WTZ=0.D0
       WTX=(GRH-GW2)/(GD2-GW2)
       ENDIF
       ENDIF
-      IF(REFFI.GT.RQWMAX.AND.RHRHI.GT.0.995) THEN   ! High RH region (5)
+      IF(REFFI > RQWMAX.and.RHRHI > 0.995) THEN   ! High RH region (5)
       WTY=0.D0
       WTX=XFDRY
       WTZ=((GRH-GW2)-(GD2-GW2)*WTX)/((1.D0-WTX)*(GW1-GW2))
@@ -3082,9 +3066,9 @@ C     parameters for sizes matching the relative humidity dependent Q(r)
 C     ------------------------------------------------------------------
 
       N0=0                      !      Select Mie parameters for Sulfate
-      IF(NAER.EQ.2) N0=22       !      Select Mie parameters for SeaSalt
-      IF(NAER.EQ.3) N0=44       !      Select Mie parameters for Nitrate
-      IF(NAER.EQ.4) N0=88       !      Select Mie parameters for Organic
+      IF(NAER == 2) N0=22       !      Select Mie parameters for SeaSalt
+      IF(NAER == 3) N0=44       !      Select Mie parameters for Nitrate
+      IF(NAER == 4) N0=88       !      Select Mie parameters for Organic
       N1=N0+1
       DO 122 K=1,6                            !   SW dry sizes RD1 & RD2
       DO 121 N=1,22
@@ -3189,10 +3173,10 @@ C              Transfer EQUIVALENCEd SETREL output information to RHDATA
 C                                                      Diagnostic output
       If (AM_I_ROOT()) THEN
       DO 150 I=1,190
-      IF(I.EQ.  1) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
-      IF(I.EQ. 82) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
-      IF(I.EQ.137) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
-      IF(I.LT.27) GO TO 150
+      IF(I ==   1) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
+      IF(I ==  82) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
+      IF(I == 137) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
+      IF(I < 27) GO TO 150
       WRITE(99,6100) I,(RHINFO(I,N),N=1,15)
      +                ,SRHQEX(6,I),SRHQEX(5,I),SRHQEX(1,I),TRHQAB(1,I)
  6100 FORMAT(I3,F5.3,18F8.4)
@@ -3209,19 +3193,19 @@ C                                                      Diagnostic output
       REAL*8 FUNCTION RHDTNA(TK,NA)
       IMPLICIT NONE
 
-      integer, intent(in) :: NA
-      real*8,  intent(in) :: TK
+      INTEGER, intent(in) :: NA
+      REAL*8,  intent(in) :: TK
 C     functions
-      real*8 RHDSO4,RHDSEA,RHDNO3,RHDOCX
+      REAL*8 RHDSO4,RHDSEA,RHDNO3,RHDOCX
 
       RHDSO4(TK)=MIN(1.D0,0.80D0*EXP( 25.D0*(298.0D0-TK)/(298.0D0*TK)))
       RHDSEA(TK)=MIN(1.D0,0.75D0*EXP( 80.D0*(298.0D0-TK)/(298.0D0*TK)))
       RHDNO3(TK)=MIN(1.D0,0.62D0*EXP(852.D0*(298.0D0-TK)/(298.0D0*TK)))
       RHDOCX(TK)=MIN(1.D0,0.80D0*EXP( 25.D0*(298.0D0-TK)/(298.0D0*TK)))
 
-      IF(NA.EQ.1) RHDTNA=RHDSO4(TK)
-      IF(NA.EQ.2) RHDTNA=RHDSEA(TK)
-      IF(NA.EQ.3) RHDTNA=RHDNO3(TK)
-      IF(NA.EQ.4) RHDTNA=RHDOCX(TK)
+      IF(NA == 1) RHDTNA=RHDSO4(TK)
+      IF(NA == 2) RHDTNA=RHDSEA(TK)
+      IF(NA == 3) RHDTNA=RHDNO3(TK)
+      IF(NA == 4) RHDTNA=RHDOCX(TK)
       RETURN
       END  FUNCTION RHDTNA

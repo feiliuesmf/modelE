@@ -77,6 +77,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 C**** Prather stratospheric chemistry
       USE FILEMANAGER, only: openunit,closeunit
       USE PRATHER_CHEM_COM, only: set_prather_constants
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
 !     nsc = n_MPtable(n)
       integer nsc,j,k,m,iu
@@ -90,7 +91,7 @@ C**** Prather stratospheric chemistry
       filein = trim(tname)//'_TABLE'
       call openunit(filein,iu,.false.,.true.)
       read (iu,'(a)')   titlch
-      write(6,'(1x,a)') titlch
+      if (AM_I_ROOT()) write(6,'(1x,a)') titlch
       do m=1,12
         do j=1,18
           read(iu,'(20x,6e10.3/(8e10.3))')
@@ -98,7 +99,8 @@ C**** Prather stratospheric chemistry
         end do
       end do
       call closeunit(iu)
-      write(6,'(2A)') ' STRATCHEM TABLES READ for ',tname
+      if (AM_I_ROOT()) 
+     *     write(6,'(2A)') ' STRATCHEM TABLES READ for ',tname
 
       call set_prather_constants
 
@@ -318,8 +320,9 @@ C**** Read chemical loss rate dataset (5-day frequency)
 c       IF (itime+ 60..gt.tauy+120.) go to 510
         IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
         IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
-          write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,
-     &    JYEAR
+          if (AM_I_ROOT()) 
+     &       write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,
+     &       JYEAR
           call stop_model(
      &       'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4',255)
         end if
@@ -332,7 +335,7 @@ C**** FOR END OF YEAR, USE FIRST RECORD
         rewind (FRQfile)
         tauy = nint(taux)+(jyear-1950)*8760.
   518   continue
-        WRITE(6,'(2A,2F10.0,2I10)')
+        if (AM_I_ROOT()) WRITE(6,'(2A,2F10.0,2I10)')
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
@@ -401,6 +404,7 @@ C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
       SUBROUTINE LINOZ_SETUP(n_O3)
 C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer iu,j,k,l,m,n,n_O3,nl
       character*80 titlch
@@ -408,10 +412,10 @@ C**** Needed for linoz chemistry
 
       call openunit('LINOZ_TABLE',iu,.false.,.true.)
       read (iu,'(a)')   titlch
-      write(6,'(1x,a)') titlch
+      if (AM_I_ROOT()) write(6,'(1x,a)') titlch
       do n=1,nctable
         read (iu,'(a)')   titlch
-        write(6,'(1x,a)') titlch
+        if (AM_I_ROOT()) write(6,'(1x,a)') titlch
         do m=1,12
           do j=1,18
             read(iu,'(20x,6e10.3/(8e10.3))')
@@ -419,14 +423,14 @@ C**** Needed for linoz chemistry
           end do
         end do
       end do
-      write(6,'(a)') ' linoz tables read'
+      if (AM_I_ROOT()) write(6,'(a)') ' linoz tables read'
       call closeunit(iu)
 
 C**** Calculate level for tropophere ozone chem
       do l=1,lm
         if (psfmpt*sige(l+1)+ptop .le. 900.)then
           lbc = l
-          write(6,'(a,i3,f8.1)')
+          if (AM_I_ROOT()) write(6,'(a,i3,f8.1)')
      *     ' Top layer for tropo O3 chem is ',lbc, psfmpt*sige(l)+ptop
           exit
         end if
@@ -821,7 +825,7 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel
+      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
       USE LAKES_COM, only: flake
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
@@ -916,7 +920,8 @@ C****
         src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)
       end do
       jdlast = jday
-      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      if (AM_I_ROOT())
+     *  write(6,*) trname(nt),'Sources interpolated to current day',frac
       call sys_flush(6)
 C****
 C**** Zonal adjustment for combined wetlands and tundra
@@ -944,7 +949,7 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname
       USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
@@ -1011,7 +1016,8 @@ C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
         src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)
       end do
       jdlast = jday
-      write(6,*) trname(nt),'Sources interpolated to current day',frac
+      if (AM_I_ROOT())
+     *  write(6,*) trname(nt),'Sources interpolated to current day',frac
       call sys_flush(6)
 C****
       return
@@ -1397,7 +1403,7 @@ C****    But what WOULD be correct???
 C**** Input data are from Wofsy
 C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop,jmon0
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
@@ -1439,7 +1445,8 @@ C**** process
         read(iu,*) xj,t,(GASx(3,l),l=1,62) !north
         read(iu,*) xj,t,(GASx(1,l),l=1,62) !south
       end do
-      write(6,'(a,i3,2f9.2)') ' Read Wofsy data at month', jmon0,xj,t
+      if (AM_I_ROOT()) 
+     *   write(6,'(a,i3,2f9.2)') ' Read Wofsy data at month', jmon0,xj,t
       call closeunit(iu)
 C**** Scale to a particular value (in this case, 1)
       scale = 1.

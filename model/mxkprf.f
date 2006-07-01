@@ -2770,17 +2770,17 @@ c --- check conservation of column integrals
       tndcys=tosaln-tosalo
       totemn=10.*pbot(i,j)
       tosaln=35.*pbot(i,j)
-      if (abs(tndcyt).gt.acurcy*totemn) write (lp,101) i,j,
-     .  '  mxkprf - bad temp.intgl.',totemo,tndcyt,tndcyt/totemn
-      if (abs(tndcys).gt.acurcy*tosaln) write (lp,101) i,j,
-     .  '  mxkprf - bad saln.intgl.',tosalo,tndcys,tndcys/tosaln
+!TNL  if (abs(tndcyt).gt.acurcy*totemn) write (lp,101) i,j,
+!TNL .  '  mxkprf - bad temp.intgl.',totemo,tndcyt,tndcyt/totemn
+!TNL  if (abs(tndcys).gt.acurcy*tosaln) write (lp,101) i,j,
+!TNL .  '  mxkprf - bad saln.intgl.',tosalo,tndcys,tndcys/tosaln
       if (dotrcr) then
         do ktr=1,ntrcr
           tndcyt=totrcn(ktr)-totrco(ktr)
           if (abs(tndcyt).lt.1.e-199) tndcyt=0.
           totemn=trscal(ktr)*pbot(i,j)
-          if (abs(tndcyt).gt.acurcy*totemn) write (lp,101) i,j,
-     .    '  mxkprf - bad trcr.intgl.',totrco(ktr),tndcyt,tndcyt/totemn
+!TNL        if (abs(tndcyt).gt.acurcy*totemn) write (lp,101) i,j,
+!TNL .    '  mxkprf - bad trcr.intgl.',totrco(ktr),tndcyt,tndcyt/totemn
         end do
       end if
  101  format (2i5,a,1p,2e16.8,e9.1)

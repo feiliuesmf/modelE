@@ -7,7 +7,13 @@
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
      *  ,twopi
+#ifdef CLD_AER_CDNC
+     *,kapa
+#endif
       USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
+#ifdef CLD_AER_CDNC
+     * ,ptop,psf,ls1,sig,sige
+#endif
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname
@@ -129,8 +135,10 @@ C**** new arrays must be set to model arrays in driver (after MSTCNV)
 !@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
       REAL*8, DIMENSION(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
 !@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
-!@var CTTEM,CD3DL,CL3DL,SMLWP are cld temp, cld LWC, cld thickness, LWP
-      REAL*8, DIMENSION(LM) ::CTEML,CD3DL,CL3DL,CDN3DL,CRE3DL
+      REAL*8, DIMENSION(LM) :: ALWWS,ALWIS,ALWWM,ALWIM  ! for diag
+!@var ALWWM and ALWIM  etc are liquid water contents
+!@var CTTEM,CD3DL,CL3DL,CI3DL,SMLWP are cld temp, cld thickness,cld water,LWP
+      REAL*8, DIMENSION(LM) ::CTEML,CD3DL,CL3DL,CI3DL,CDN3DL,CRE3DL
       REAL*8 SMLWP
 !@var SME is the TKE in 1 D from e(l) = egcm(l,i,j)  (m^2/s^2)
       REAL*8, DIMENSION(LM)::SME
@@ -169,9 +177,30 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
       REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@dbparam diag_wetdep switches on/off special diags for wet deposition
+      INTEGER :: diag_wetdep=0 ! =off (default) (on: 1)
+!@var trcond_mc saves condensed tracer in MC clouds [kg]
+!@var trdvap_mc saves tracers evaporated in downdraft of MC clouds [kg]
+!@var trflcw_mc saves tracers condensed in cloud water of MC clouds [kg]
+!@var trprcp_mc saves tracer precipitated by MC clouds [kg]
+!@var trnvap_mc saves reevaporated tracer of MC clouds precip [kg]
+!@var trwash_mc saves tracers washed out below MC clouds [kg]
+      REAL*8,DIMENSION(Lm,Ntm) :: trcond_mc,trdvap_mc,trflcw_mc,
+     &     trprcp_mc,trnvap_mc,trwash_mc
+!@var trwash_ls saves tracers washed out below LS clouds [kg]
+!@var trprcp_ls saves tracers precipitation from LS clouds [kg]
+!@var trclwc_ls saves tracers condensed in cloud water of LS clouds [kg]
+!@var trevap_ls saves reevaporated tracers of LS cloud precip [kg]
+!@var trclwe_ls saves tracers evaporates from cloud water of LS clouds [kg]
+!@var trcond_ls saves tracers condensed in LS clouds [kg]
+      REAL*8,DIMENSION(Lm,Ntm) :: trwash_ls,trevap_ls,trclwc_ls,
+     &     trprcp_ls,trclwe_ls,trcond_ls
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -186,8 +215,13 @@ c for diagnostics
 #endif
 #ifdef TRACERS_WATER
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DT_SULF_MC,DT_SULF_SS
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc
+     &     ,trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -221,6 +255,10 @@ C**** output variables
 !@var PRCPSS precip due to large-scale condensation
 !@var HCNDSS heating due to large-scale condensation
 !@var WMSUM cloud liquid water path
+#ifdef CLD_AER_CDNC
+      REAL*8 :: WMCLWP,WMCTWP
+!@var WMCLWP , WMCTWP moist convective LWP and total water path
+#endif
       REAL*8 :: CLDSLWIJ,CLDDEPIJ
 !@var CLDSLWIJ shallow convective cloud cover
 !@var CLDDEPIJ deep convective cloud cover
@@ -255,10 +293,11 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
 #ifdef CLD_AER_CDNC
      *  ,ACDNWM,ACDNIM,ACDNWS,ACDNIS
-     *  ,AREWM,AREIM,AREWS,AREIS
+     *  ,AREWM,AREIM,AREWS,AREIS,ALWIM,ALWWM
      *  ,OLDCDL,OLDCDO,SMFPML
      *  ,SME
-     *  ,CTEML,CD3DL,CL3DL,SMLWP,CDN3DL,CRE3DL
+     *  ,CTEML,CD3DL,CL3DL,CI3DL,SMLWP,CDN3DL,CRE3DL
+     *  ,WMCLWP,WMCTWP
 #endif
      *  ,FSUB,FCONV,FSSL,FMCL,WTURB
 #ifdef CLD_AER_CDNC
@@ -336,7 +375,7 @@ c for tracers in general, added by Koch
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       REAL*8 TMP_SUL(LM,NTM)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -349,6 +388,9 @@ c for sulfur chemistry
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM,CONDP
+#ifdef CLD_AER_CDNC
+     *     ,CONDPC
+#endif
       REAL*8 :: CONDGP,CONDIP
 !@var DM change in air mass
 !@var COND,CONDGP,CONDIP condensate
@@ -366,6 +408,9 @@ c for sulfur chemistry
 !@var IERRT,LERRT error reports from advection
       INTEGER :: IERRT,LERRT,LLOW,LHIGH
       INTEGER, INTENT(IN) :: i_debug,j_debug
+#ifdef CLD_AER_CDNC
+      INTEGER, PARAMETER :: SNTM=12  !for tracers for CDNC
+#endif
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
 !@var LDRAFT the layer the downdraft orginates
@@ -395,6 +440,11 @@ c for sulfur chemistry
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
      *     ,FCONV_tmp,FSUB_tmp,FSSL_tmp
      *     , MNdO,MNdL,MNdI,MCDNCW,MCDNCI   !Menon
+#ifdef CLD_AER_CDNC
+     *     ,MCDNO1,MCDNL1,CDNCB,fcnv,ATEMP,VVEL
+     *     ,DSGL(LM,SNTM),DSS(SNTM)
+     *     ,Repsis,Repsi,Rbeta,RCLD_C
+#endif
 !@var TERM1 contribution to non-entraining convective cloud
 !@var FMP0 non-entraining convective mass
 !@var SMO1,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE dummy variables
@@ -455,6 +505,10 @@ c for sulfur chemistry
 !@param PN tuning exponential for computing WV
 !@param AIRM0 air mass used to compute convective cloud cover
       REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0,AIRM0=100.d0
+#ifdef CLD_AER_CDNC
+      REAL*8 RHO   ! air density
+!CN0 is the No parameter in the Marshall-Palmer distribution
+#endif
       REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
       INTEGER,  PARAMETER :: ITMAX=50
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
@@ -511,6 +565,17 @@ C**** initiallise arrays of computed ouput
       trsvwml = 0.
       TRPRCP = 0.
       TRPRMC = 0.
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (diag_wetdep == 1) THEN
+        trcond_mc=0.D0
+        trdvap_mc=0.D0
+        trflcw_mc=0.D0
+        trprcp_mc=0.D0
+        trnvap_mc=0.D0
+        trwash_mc=0.D0
+      END IF
+#endif
 #endif
 C**** zero out diagnostics
          MCFLX =0.
@@ -541,7 +606,7 @@ C**** SAVE ORIG PROFILES
 #ifdef TRACERS_ON
       TMOLD(:,1:NTX) = TM(:,1:NTX)
       TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DT_SULF_MC(1:NTM,:)=0.
 #endif
 #endif
@@ -1040,6 +1105,98 @@ C**** save plume temperature after possible condensation
       FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
+#ifdef CLD_AER_CDNC
+C** Here we change convective precip due to aerosols
+C#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+!@auth Menon  saving aerosols mass for CDNC prediction
+      DO N=1,NTX
+       select case (trname(ntix(n)))
+        case('SO4')
+        DSGL(L,1)=tm(l,n)  !n=19
+        DSS(1) = DSGL(L,1)
+        case('seasalt1')
+        DSGL(L,2)=tm(l,n)  !n=21
+        DSS(2) = DSGL(L,2)
+        case('seasalt2')
+        DSGL(L,3)=tm(l,n)  !n=22
+        DSS(3) = DSGL(L,3)
+        case('OCIA')
+        DSGL(L,4)=tm(l,n)    !n=27
+        DSS(4) = DSGL(L,4)
+        case('OCB')
+        DSGL(L,5)=tm(l,n)  !n=28
+        DSS(5) = DSGL(L,5)
+        case('BCIA')
+        DSGL(L,6)=tm(l,n)  !n=24
+        DSS(6) = DSGL(L,6)
+        case('BCB')
+        DSGL(L,7)=tm(l,n)  !n=25
+        DSS(7) = DSGL(L,7)
+        case('OCII')
+        DSGL(L,8)=tm(l,n)  !n=26
+        DSS(8) = DSGL(L,8)
+        case('BCII')
+        DSGL(L,9)=tm(l,n)  !n=23
+        DSS(9) = DSGL(L,9)
+       DSGL(L,10)=1.d-30
+       DSGL(L,11)=1.d-30
+       DSGL(L,12)=1.d-30
+       DSS(10) = DSGL(L,10)
+       DSS(11) = DSGL(L,11)
+       DSS(12) = DSGL(L,12)
+#ifdef TRACERS_HETCHEM
+C*** Here are dust particles coated with sulfate
+       case('SO4_d1')
+       DSGL(L,10)=tm(l,n)  !n=20
+       DSS(10) = DSGL(L,10)
+       case('SO4_d2')
+       DSGL(L,11)=tm(l,n)  !n=21
+       DSS(11) = DSGL(L,11)
+       case('SO4_d3')
+       DSGL(L,12)=tm(l,n)  !n=22
+       DSS(12) = DSGL(L,12)
+#endif
+       end select
+      END DO      !end of n loop for tracers
+c     if(DSS(5).lt.0.d0)write(6,*)"SO4c1",DSS(1),DSS(4),DSS(5),DSS(6),l
+#endif
+C**** COMPUTE VERTICAL VELOCITY IN CM/S
+c     ATEMP=100.*RGAS*TL(L)/(PL(L)*GRAV)
+c     IF(L.EQ.1)  THEN
+c        VVEL=-SDL(L+1)*ATEMP
+c     ELSE IF(L.EQ.LM)  THEN
+c        VVEL=-SDL(L)*ATEMP
+c     ELSE
+c        VVEL=-.5*(SDL(L)+SDL(L+1))*ATEMP
+c     END IF
+      CALL GET_CC_CDNC(L,AIRM(L),DXYPJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
+      MNdO=MCDNO1
+      MNdL=MCDNL1
+      MNdI = 0.06417127d0
+      MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
+      MCDNCI=MNdI
+      if (MCDNCW.le.20.d0) MCDNCW=20.d0     !set min CDNC, sensitivity test
+      if (MCDNCW.ge.8000.d0) MCDNCW=8000.d0     !set max CDNC, sensitivity test
+c     write(6,*)"CCONV",MCDNCW,MNdO,MNdL,L,LMIN
+c     IF(SVLATL(L).EQ.LHE)  THEN
+!        RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+c        RCLD=100.d0*((CONDMU+teeny)/(2.d0*BY3*TWOPI*MCDNCW))**BY3
+c     ELSE
+!        RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
+c        RCLD=100.d0*((CONDMU+teeny)/(2.d0*BY3*TWOPI*MCDNCI))**BY3
+c    *         *(1.+pl(l)*xRICld)
+c     ENDIF
+C** Using the Liu and Daum paramet, Nature, 2002, Oct 10, Vol 419
+C** for spectral dispersion effects on droplet size distribution
+C** central value of 0.003 for alfa:Rotstayn&Daum, J.Clim,2003,16,21, Nov 2003.
+      Repsi=1.d0 - 0.7d0*exp(-0.003d0*MCDNCW)
+      Repsis=Repsi*Repsi
+      Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**by3)
+c     RCLDE =RCLD*Rbeta
+      RCLD_C=14.d0/Rbeta       !set Reff to threshold size =14 um (Rosenfeld)
+#endif
+
       IF (TP.GE.TF) THEN ! water phase
         DDCW=6d-3/FITMAX
         IF(PLAND.LT..5) DDCW=1.5d-3/FITMAX
@@ -1054,6 +1211,25 @@ C**** save plume temperature after possible condensation
         CONDP(L)=RHOW*(PI*by6)*CN0*EXP(-FLAMW*DCW)*
      *     (DCW*DCW*DCW/FLAMW+3.*DCW*DCW/(FLAMW*FLAMW)+
      *     6.*DCW/(FLAMW*FLAMW*FLAMW)+6./FLAMW**4)
+#ifdef CLD_AER_CDNC
+        RHO=1d2*PL(L)/(RGAS*TL(L)) !air density in kg/m3
+C** Here we calculate condensate converted to precip
+C** only if drop size (Reff) exceeds 14 um
+C** Conver Rvol to m and CDNC to m from um and cm, respectively
+C** Precip condensate is simply the LWC
+        CONDPC(L)=4.d0*by3*PI*RHOW*((RCLD_C*1.d-6)**3)*1.d6*MCDNCW/RHO
+c       IF (RCLDE.gt.18.d0) then
+        IF(CONDMU.gt.CONDPC(L))  then
+          CONDP(L)=CONDMU-CONDPC(L) !
+        ELSE
+          CONDP(L)=0.d0
+        ENDIF
+c      if (DCW.gt.1.d-6)
+c     write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
+c     if (CONDP(L).lt.0.d0)
+c    *write(6,*)"Mup",CONDP(L),CONDPC(L),CONDMU,DCW,MCDNCW,RCLD_C,L
+c      write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
+#endif
       ELSE IF (TP.LE.TI) THEN ! pure ice phase
         CONDP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
@@ -1074,7 +1250,7 @@ c convert condp to the same units as cond
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
       DO N=1,NTX
       select case (trname(ntix(n)))
@@ -1099,7 +1275,7 @@ C**** CONDENSING TRACERS
      *     DT_SULF_MC(1,L),CLDSAVT)
 #endif
       DO N=1,NTX
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
@@ -1122,6 +1298,11 @@ c formation of sulfate
      *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
      *       ,CLDSAVT)
         TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1)
+     &     trcond_mc(l,n)=trcond_mc(l,n)+fqcondt*tmp(n)
+#endif
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
       END DO
@@ -1219,11 +1400,21 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       DO N=1,NTX
         IF(FQEVP.eq.1.) THEN                 ! total evaporation
           TMDN(N)     = TMDN(N) + TRCOND(N,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (diag_wetdep == 1)
+     &         trdvap_mc(l,n)=trdvap_mc(l,n)+trcond(n,l)
+#endif
           TRCOND(N,L) = 0.d0
         ELSE ! otherwise, tracers evaporate dependent on type of tracer
           CALL GET_EVAP_FACTOR(N,TNX,LHX,.FALSE.,1d0,FQEVP,FQEVPT,ntix)
           TMDN(N)     = TMDN(N)     + FQEVPT * TRCOND(N,L)
           TRCOND(N,L) = TRCOND(N,L) - FQEVPT * TRCOND(N,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (diag_wetdep == 1)
+     &         trdvap_mc(l,n)=trdvap_mc(l,n)+fqevpt*trcond(n,l)
+#endif
         END IF
       END DO
 #endif
@@ -1410,6 +1601,11 @@ C**** Apportion cloud tracers and condensation
 C**** Note that TRSVWML is in mass units unlike SVWMX
           TRSVWML(1:NTX,L) = TRSVWML(1:NTX,L) + FCLW*TRCOND(1:NTX,L)
      *         *FMC1
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (diag_wetdep == 1)
+     &        trflcw_mc(l,1:ntx)=trflcw_mc(l,1:ntx)+fclw*trcond(1:ntx,l)
+#endif
           TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
 #endif
         END DO
@@ -1424,6 +1620,12 @@ C**** Tracer precipitation
 C Note that all of the tracers that condensed do not precipitate here,
 C since a fraction (FCLW) of TRCOND was removed above.
       TRPRCP(1:NTX) = TRCOND(1:NTX,LMAX)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (diag_wetdep == 1)
+     &     trprcp_mc(lmax,1:ntx)=trprcp_mc(lmax,1:ntx)
+     &     +trcond(1:ntx,lmax)
+#endif
 #endif
          DPHASE(LMAX)=DPHASE(LMAX)+(CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+
      *                CDHM)*FMC1
@@ -1507,6 +1709,11 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
 c         if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
 c     *         *FEVAP
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (diag_wetdep == 1)
+     &         trnvap_mc(l,n)=trnvap_mc(l,n)+trprcp(n)
+#endif
           TRPRCP(N) = 0.d0
         END DO
       ELSE ! otherwise, tracers evaporate dependent on type of tracer
@@ -1525,21 +1732,57 @@ C**** estimate effective humidity
 c          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
 c     *         ,FPRCPT,TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (diag_wetdep == 1)
+     &         trnvap_mc(l,n)=trnvap_mc(l,n)+fprcpt*trprcp(n)
+#endif
         END DO
       END IF
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (.NOT. below_cloud .AND. prcp > teeny) THEN
+        wmxtr=prcp*byam(l)
+        precip_mm=prcp*100.*bygrav
+        b_beta_DT=fplume
+        DO n=1,ntx
+          SELECT CASE(trname(ntix(n)))
+          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tnx,lhx,
+     &         wmxtr,fplume,l,tm,trprcp,thlaw,pl(l),ntix)
+            trprcp(n)=fwasht*tm(l,n)+trprcp(n)+thlaw
+            IF (diag_wetdep == 1)
+     &           trwash_mc(l,n)=trwash_mc(l,n)+fwasht*tm(l,n)+thlaw
+            IF (tm(l,n) > teeny) THEN
+              tmfac=thlaw/tm(l,n)
+            ELSE
+              tmfac=0.
+            ENDIF
+            tm(l,n)=tm(l,n)*(1.-fwasht)-thlaw
+            tmom(xymoms,l,n)=tmom(xymoms,l,n)*(1.-fwasht-tmfac)
+          END SELECT
+        END DO
 C**** WASHOUT of TRACERS BELOW CLOUD
+      ELSE IF (below_cloud .AND. prcp > teeny) THEN
+#else
       IF(BELOW_CLOUD.and.PRCP.gt.teeny) THEN ! BELOW CLOUD
+#endif
         WMXTR = PRCP*BYAM(L)
         precip_mm = PRCP*100.*bygrav
         b_beta_DT = FPLUME
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         WA_VOL= precip_mm*DXYPJ
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
 #endif
         DO N=1,NTX
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 402
@@ -1560,6 +1803,11 @@ cdmk GET_WASH now has gas dissolution, extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
      *         ,TNX,LHX,WMXTR,FPLUME,L,TM,TRPRCP,THLAW,pl(l),ntix)
           TRPRCP(N) = FWASHT*TM(L,N)+TRPRCP(N)+THLAW
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (diag_wetdep == 1)
+     &         trwash_mc(l,n)=trwash_mc(l,n)+fwasht*tm(l,n)+thlaw
+#endif
           IF (TM(L,N).GT.teeny) THEN
             TMFAC=THLAW/TM(L,N)
           ELSE
@@ -1582,6 +1830,11 @@ C**** ADD PRECIPITATION AND LATENT HEAT BELOW
       PRCP=PRCP+COND(L)
 #ifdef TRACERS_WATER
       TRPRCP(1:NTX) = TRPRCP(1:NTX) + TRCOND(1:NTX,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (diag_wetdep == 1)
+     &     trprcp_mc(l,1:ntx)=trprcp_mc(l,1:ntx)+trcond(1:ntx,l)
+#endif
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotopic equilibration of liquid precip with water vapour
       IF (LHX.eq.LHE .and. PRCP.gt.0) THEN
@@ -1637,10 +1890,14 @@ C**** CALCULATE OPTICAL THICKNESS
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
       WMSUM=0.
 #ifdef CLD_AER_CDNC
+      WMCLWP=0.
+      WMCTWP=0.
       ACDNWM=0.
       ACDNIM=0.
       AREWM=0.
       AREIM=0.
+      ALWWM=0.
+      ALWIM=0.
       NMCW=0
       NMCI=0
 #endif
@@ -1648,6 +1905,10 @@ C**** CALCULATE OPTICAL THICKNESS
          TL(L)=(SM(L)*BYAM(L))*PLK(L)
          TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
          IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
+#ifdef CLD_AER_CDNC
+         WMCTWP=WMCTWP+TEMWM
+         IF(TL(L).GE.TF) WMCLWP=WMCLWP+TEMWM
+#endif
          IF(CLDMCL(L).GT.0.) THEN
                TAUMCL(L)=AIRM(L)*COETAU
             IF(L.EQ.LMCMAX .AND. PLE(LMCMIN)-PLE(LMCMAX+1).LT.450.)
@@ -1673,6 +1934,10 @@ C**   Set CDNC for moist conv. clds (const at present)
               MNdO = 59.68d0/(RWCLDOX**3)
               MNdL = 174.d0
               MNdI = 0.06417127d0
+#ifdef CLD_AER_CDNC
+             MNdO=MCDNO1
+             MNdL=MCDNL1
+#endif
               MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
               MCDNCI=MNdI
             IF(SVLATL(L).EQ.LHE)  THEN
@@ -1684,15 +1949,27 @@ C**   Set CDNC for moist conv. clds (const at present)
      *              *(1.+pl(l)*xRICld)
             END IF
             RCLDE=RCLD/BYBR   !  effective droplet radius in anvil
+#ifdef CLD_AER_CDNC
+C** Using the Liu and Daum paramet, Nature, 2002, Oct 10, Vol 419
+C** for spectral dispersion effects on droplet size distribution
+C** central value of 0.003 for alfa:Rotstayn&Daum, J.Clim,2003,16,21, Nov 2003.
+      Repsi=1.d0 - 0.7d0*exp(-0.003d0*MCDNCW)
+      Repsis=Repsi*Repsi
+      Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**by3)
+      RCLDE=RCLD*Rbeta
+c     write(6,*)"RCLD",RCLDE,RCLD,Rbeta,WTEM,L,MCDNCW
+#endif
             CSIZEL(L)=RCLDE   !  effective droplet radius in anvil
 #ifdef CLD_AER_CDNC
-            if (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
+            if (FCLD.gt.1.d-5.and.SVLATL(L).eq.LHE) then
               ACDNWM(L)= MCDNCW
               AREWM(L) = RCLDE
+              ALWWM(L)= WTEM   ! cld water density in g m-3
               NMCW  = NMCW+1
-            elseif(FCLD.gt.1.d-5.and.LHX.eq.LHS) then
+            elseif(FCLD.gt.1.d-5.and.SVLATL(L).eq.LHS) then
               ACDNIM(L)= MCDNCI
               AREIM(L) = RCLDE
+              ALWIM(L) = WTEM
               NMCI  = NMCI+1
             ENDIF
 #endif
@@ -1700,6 +1977,19 @@ C**   Set CDNC for moist conv. clds (const at present)
             IF(TAUMCL(L).GT.100.) TAUMCL(L)=100.
          END IF
          IF(TAUMCL(L).LT.0..and.CLDMCL(L).le.0.) TAUMCL(L)=0.
+#ifdef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+         IF (diag_wetdep == 1) THEN
+           trcond_mc(l,1:ntx)=trcond_mc(l,1:ntx)*fmc1
+           trdvap_mc(l,1:ntx)=trdvap_mc(l,1:ntx)*fmc1
+           trflcw_mc(l,1:ntx)=trflcw_mc(l,1:ntx)*fmc1
+           trprcp_mc(l,1:ntx)=trprcp_mc(l,1:ntx)*fmc1
+           trnvap_mc(l,1:ntx)=trnvap_mc(l,1:ntx)*fmc1
+           trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)*fmc1
+         END IF
+#endif
+#endif
       END DO
 
       RETURN
@@ -1710,6 +2000,9 @@ C**   Set CDNC for moist conv. clds (const at present)
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
+#ifdef CLD_AER_CDNC
+      USE RANDOM, only : randu
+#endif
       IMPLICIT NONE
 
 !@var IERR,WMERR,LERR error reporting
@@ -1798,7 +2091,9 @@ c for tracers in general, added by Koch
 !@var THWASH Henry's Law for below cloud dissolution
 !@var TMFAC,TMFAC2 used to adjust tracer moments
 !@var CLDSAVT is present cloud fraction, saved for tracer use
-#ifdef TRACERS_AEROSOLS_Koch
+!@var cldprec cloud fraction at lowest precipitating level
+      REAL*8 :: cldprec
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
       REAL*8 WA_VOL
@@ -1820,10 +2115,13 @@ c for sulfur chemistry
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-       real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(9),QCRIT
-       real*8 dynvis(LM),DSGL(LM,9),DSS(9)
-       real*8 DPP,TEMPR,RHODK,SMLWP,PPRES,PRS  ! for 3 hrly diag
-       real*8 D3DL(LM)                         ! for 3 hrly diag
+       integer, PARAMETER :: SNTM=12
+       real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(SNTM),QCRIT
+       real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
+       real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
+       real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
+       real*8 AERTAU(LM),AERTAUMC,AERTAUSS,THOLD,SUMTAU,xx
+       integer IFLAG,AAA,ILTOP
 #endif
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
 !@var SMN12,SMO12 dummy variables
@@ -1914,7 +2212,7 @@ C**** initialise vertical arrays
       TRPRBAR = 0.
       BELOW_CLOUD=.false.
       CLOUD_YET=.false.
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DT_SULF_SS(1:NTM,:)=0.
 #endif
 #endif
@@ -1922,10 +2220,12 @@ C**** initialise vertical arrays
        CTEML=0.
        CD3DL=0.
        CL3DL=0.
+       CI3DL=0.
        CDN3DL=0.
        CRE3DL=0.
        SMLWP=0.
-       DSGL(1:9,:)=0.
+       AERTAU=0.
+       DSGL(:,1:SNTM)=0.
 #endif
       DO L=1,LP50
         CAREA(L)=1.-CLDSAVL(L)
@@ -2074,7 +2374,9 @@ C**** is ice and temperatures after ice melt would still be below TFrez
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
      *     +teeny)) LHP(L)=LHP(L+1)
 #ifdef CLD_AER_CDNC
-#ifdef TRACERS_AEROSOLS_Koch
+C**#ifdef TRACERS_AEROSOLS_Koch
+C**#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,NTX
        select case (trname(ntix(n)))
@@ -2111,9 +2413,31 @@ c     if(tm(l,12).gt.1.d6)write(6,*)"CL1",tm(l,12),l,n,DSS(4),DSGL(L,4)
        DSGL(L,9)=tm(l,n)  !n=8
        DSS(9) = DSGL(L,9)
 
+       DSGL(L,10)=1.d-30
+       DSGL(L,11)=1.d-30
+       DSGL(L,12)=1.d-30
+       DSS(10) = DSGL(L,10)
+       DSS(11) = DSGL(L,11)
+       DSS(12) = DSGL(L,12)
+#ifdef TRACERS_HETCHEM
+C*** Here are dust particles coated with sulfate
+       case('SO4_d1')
+       DSGL(L,10)=tm(l,n)  !n=20
+       DSS(10) = DSGL(L,10)
+c      if(DSS(10).gt.0.1d0)write(6,*)"Sd1",DSS(10),l
+       case('SO4_d2')
+       DSGL(L,11)=tm(l,n)  !n=21
+       DSS(11) = DSGL(L,11)
+c      if(DSS(11).gt.0.1d0)write(6,*)"Sd1",DSS(11),l
+       case('SO4_d3')
+       DSGL(L,12)=tm(l,n)  !n=22
+       DSS(12) = DSGL(L,12)
+c      if(DSS(12).gt.0.1d0)write(6,*)"Sd1",DSS(12),l
+#endif
         end select
 
-c     if(tm(l,12).gt.1.d6)write(6,*)"CL2",tm(l,12),l,n,DSS(4),DSGL(L,4)
+c     if(DSS(5).lt.0.d0)write(6,*)"SO4d1",DSS(1),DSS(4),DSS(5),DSS(6),l
+c       write(6,*)"TRACER",tm(l,n),l,n
       END DO      !end of n loop for tracers
 #endif
 #endif
@@ -2123,8 +2447,8 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPJ,
-     *FCLD,CAREA(L),CLDSAVL(L),DSS,SMFPML(L),OLDCDO(L),OLDCDL(L),
-     *VVEL,SME(L),DSU,CDNL1,CDNO1)
+     *FCLD,CAREA(L),CLDSAVL(L),DSS,SMFPML(L),PL(L),TL(L),OLDCDO(L),
+     *OLDCDL(L),VVEL,SME(L),DSU,CDNL1,CDNO1)
       SNdO=CDNO1
       SNdL=CDNL1
 #endif
@@ -2144,20 +2468,32 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         CM1=CM0
         IF(BANDF) CM1=CM0*CBF
         IF(LHX.EQ.LHS) CM1=CM0
-#ifdef CLD_AER_CDNC
-!routine to get the autoconversion rate
-!     CALL GET_QAUT(L,TL(L),FCLD,WMX(L),SCDNCW,RHO,QCRIT,QAUT)
-!     if ((WMX(L)/(FCLD+1.d-20)).GT.QCRIT) then
-!       CM=QAUT/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
-!    *     PRECNVL(L+1)*BYDTsrc)
-!     else
-!       CM=0.d0
-!     endif
-!end routine for QAUT as a function of N,LWC  check how to integrate
-!and comment out CM below at next stage
-#endif
         CM=CM1*(1.-1./EXP(TEM*TEM))+100.*(PREBAR(L+1)+
      *       PRECNVL(L+1)*BYDTsrc)
+#ifdef CLD_AER_CDNC
+!routine to get the autoconversion rate
+          WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
+          IF(LHX.EQ.LHE)  THEN
+            RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+          ELSE
+            RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+     *         *(1.+pl(l)*xRICld)
+          END IF
+       CALL GET_QAUT(L,PL(L),TL(L),FCLD,WMX(L),SCDNCW,RCLD,RHOW,
+     *r6,r6c,QCRIT,QAUT)
+!     CALL GET_QAUT(L,TL(L),FCLD,WMX(L),SCDNCW,RHO,QCRIT,QAUT)
+!      CALL GET_QAUT(L,FCLD,WMX(L),SCDNCW,RHO,QAUT)
+!     if ((WMX(L)/(FCLD+1.d-20)).GT.QCRIT) then
+C*** If 6th moment of DSD is greater than critical radius r6c start QAUT
+c     if (r6.gt.r6c) then
+      if ((WMX(L)/(FCLD+teeny)).GT.QCRIT) then
+        CM=QAUT/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
+     *     PRECNVL(L+1)*BYDTsrc)
+      else
+        CM=0.d0
+      endif
+!end routine for QAUT as a function of N,LWC
+#endif
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
 #ifdef CLD_AER_CDNC
@@ -2334,7 +2670,7 @@ c CLDSAVT is current FCLD
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
         IF (WMX(L).LE.0.) CLDSAVT=0.
         CLDSAVT=CLDSAVT*FSSL(L)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=0.
       IF (WMNEW.GT.teeny) THEN
         WA_VOL=WMNEW*AIRM(L)*1.D2*BYGRAV*DXYPJ
@@ -2385,7 +2721,7 @@ c precip. tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT,ntix)
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
         TR_LEF=1.D0
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 404
@@ -2404,12 +2740,31 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *     ,TEMP,LHX,WMXTR,CLDSAVT,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
+     *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          SELECT CASE(trname(ntix(n)))
+          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            precip_mm = prebar(l+1)*100.*dtsrc
+            wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
+            IF (precip_mm < 0.) precip_mm=0.
+            IF (wmxtr < 0.) wmxtr=0.
+            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+     &         wmxtr,cldprec,l,tm,trprbar(1,l),thwash,pl(l),ntix) !washout
+          END SELECT
+#endif
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-          b_beta_DT = FCLD*CM*dtsrc
+          b_beta_DT = cldsavt*CM*dtsrc
+c         saves cloud fraction at lowest precipitating level for washout
+          cldprec=cldsavt
            CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
      *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix,CLDSAVT)
 cdmk added arguments above; THLAW added below (no way to factor this)
@@ -2423,13 +2778,39 @@ cdmk added arguments above; THLAW added below (no way to factor this)
         ENDIF
         CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
 c ---------------------- calculate fluxes ------------------------
-        DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
         DTPRT = FPRT  *TRWML(N,L)
         DTQWT =
      &  FQTOWT*TR_LEF*(TM(L,N)+DTERT)-FWTOQT*TRWML(N,L)*(1.-FPRT)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        SELECT CASE(trname(ntix(n)))
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          dtwrt=fwasht*(tm(l,n)-dtqwt)
+        CASE DEFAULT
+#endif
+          dtwrt=fwasht*tm(l,n)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        END SELECT
+#endif
 c ---------------------- apply fluxes ------------------------
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1) THEN
+          trevap_ls(l,n)=dtert
+          trwash_ls(l,n)=dtwrt+thwash
+          trclwc_ls(l,n)=fqtowt*tr_lef*(tm(l,n)+dtert)+thlaw
+          trprcp_ls(l,n)=dtprt
+          trclwe_ls(l,n)=fwtoqt*trwml(n,l)*(1.-fprt)
+        END IF
+#endif
         TM(L,N)    = TM(L,N)  + DTERT - DTWRT - DTQWT - THLAW - THWASH
         TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT) + DTPRT+DTWRT+THWASH
         IF (PREBAR(L).eq.0) TRPRBAR(N,L)=0.  ! remove round off error
@@ -2483,7 +2864,7 @@ C    * QL QSAT=',L,TL(L),RH(L),RH1(L),RHW,QL(L),QSATE
       IF(DQSUM.GT.0.) THEN
       WMX(L)=WMX(L)+DQSUM*FSSL(L)
       FCOND=DQSUM/QNEW
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=0.
       IF (WMX(L).GT.teeny) THEN
         WA_VOL=WMX(L)*AIRM(L)*1.D2*BYGRAV*DXYPJ
@@ -2502,14 +2883,14 @@ C**** CONDENSING MORE TRACERS
         CLDSAVT=CLDSAVT*FSSL(L)
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
      *     DT_SULF_SS(1,L),FCLD)
 #endif
       DO N=1,NTX
         TR_LEF=1.
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 405
@@ -2538,6 +2919,11 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
         TRWML(N,L)  =TRWML(N,L)+ FQCONDT*TM(L,N)+THLAW
         TM(L,N)     =TM(L,N)    *(1.-FQCONDT)   -THLAW
         TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT - TMFAC)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1)
+     &       trcond_ls(l,n)=fqcondt*tm(l,n)+thlaw
+#endif
       END DO
 #endif
       ELSE
@@ -2559,6 +2945,11 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1)
+     &       trprcp_ls(l,1:ntx)=trprcp_ls(l,1:ntx)+trwml(1:ntx,l)
+#endif
         TRWML(1:NTX,L) = 0.
 #endif
         PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
@@ -2739,6 +3130,11 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         WMX(L+1)=0.
 #ifdef TRACERS_WATER
         TM(L+1,1:NTX)=TM(L+1,1:NTX)+TRWML(1:NTX,L+1)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1)
+     &       trclwe_ls(l+1,1:ntx)=trclwe_ls(l+1,1:ntx)+trwml(1:ntx,l+1)
+#endif
         TRWML(1:NTX,L+1)=0.
 #endif
         IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
@@ -2765,6 +3161,8 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
       ACDNIS=0.
       AREWS=0.
       AREIS=0.
+      ALWWS=0.
+      ALWIS=0.
       NLSW = 0
       NLSI = 0
 #endif
@@ -2809,39 +3207,47 @@ c     If (SCDNCW.ge.1400.d0) SCDNCW=1400.d0   !set max CDNC sensitivity test
           RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
      *         *(1.+pl(l)*xRICld)
         ENDIF
+        RCLDE=RCLD/BYBR
 #ifdef CLD_AER_CDNC
 C** Using the Liu and Daum paramet
 C** for spectral dispersion effects on droplet size distribution
-!     Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
-!     Repsis=Repsi*Repsi
-!     Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
+      Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
+      Repsis=Repsi*Repsi
+      Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
 !     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
-!     RCLDE=RCLD*Rbeta
+      RCLDE=RCLD*Rbeta
 !@auth Menon    end of addition  comment out the RCLDE definition below
 #endif
-        RCLDE=RCLD/BYBR
         CSIZEL(L)=RCLDE
 #ifdef CLD_AER_CDNC  !save for diag purposes
         IF (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
             ACDNWS(L)= SCDNCW
             AREWS(L) = RCLDE
+            ALWWS(L) = WTEM
+            CDN3DL(L)=SCDNCW
+            CRE3DL(L)=RCLDE
             NLSW  = NLSW + 1
-c      if(NLSW.ge.1.and.l.eq.1) write(6,*)"INCLD",ACDNWS(L),
-c    * SCDNCW,NLSW
+c      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
+c    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
         elseif(FCLD.gt.1.d-5.and.LHX.eq.LHS) then
             ACDNIS(L)= SCDNCI
             AREIS(L) = RCLDE
+            ALWIS(L) = WTEM
+            CDN3DL(L)=SCDNCI
+            CRE3DL(L)=RCLDE
             NLSI  = NLSI + 1
+c      if(ACDNIS(L).gt.0.d0)    write(6,*)"INICLD",ACDNIS(L),
+c    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
         ENDIF
 #endif
         TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
         TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
         IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
         IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
-      END DO
 #ifdef CLD_AER_CDNC
         SMLWP=WMSUM
 #endif
+      END DO
 
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LP50
@@ -2864,13 +3270,41 @@ C**** CALCULATE OPTICAL THICKNESS
 
 #ifdef CLD_AER_CDNC
 !Save variables for 3 hrly diagnostics
+      AAA=1
+      DO L=LP50,1,-1
+        if (CLDSSL(L).gt.0.d0.and.CLDMCL(L).gt.0.d0) then
+         if (TAUSSL(L).gt.0.d0.and.TAUMCL(L).gt.0.d0) then
+          if (CLDSSL(L).LE.randu(xx))GO TO 7
+           AERTAUSS=TAUSSL(L)
+           AERTAU(L)=AERTAUSS
+    7     if (CLDMCL(L).LE.randu(xx))GO TO 8
+           AERTAUMC=TAUMCL(L)
+           IF(AERTAUMC.GT.AERTAU(L)) AERTAU(L)=AERTAUMC
+    8      SUMTAU=SUMTAU+AERTAU(L)
+C**
+C**   DETECT AT WHAT LAYER SUMTAU (COLUMN OPTICAL THICKNESS)
+C**   IS ABOVE THOLD (THRESHOLD SET AT .1 TAU)
+C**   THIS LAYER BECOMES CLOUD TOP LAYER (ILTOP)
+C**
+          THOLD=(.1)
+          IF(SUMTAU.GT.THOLD)THEN
+          IFLAG=(AAA)
+            IF(IFLAG.EQ.1)THEN
+              ILTOP=L
+              AAA=0
+            ENDIF
+          ENDIF
+         ENDIF
+        ENDIF
+      ENDDO
+
       DO L=1,LP50
 
-       IF(LHX.EQ.LHE) CDN3DL=SCDNCW
-       IF(LHX.EQ.LHE) CRE3DL=RCLDE
-       IF(LHX.EQ.LHS) CRE3DL=RCLDE
-       PRS = (PL(1)-PTOP)/SIG(1)
+c      CDN3DL(L)=SCDNCW
+c      CRE3DL(L)=RCLDE !CSIZEL(L)
+c      IF(LHX.EQ.LHS) CRE3DL(L)=RCLDE
 
+       PRS = (PL(1)-PTOP)/SIG(1)
        IF (L.GE.ls1) THEN
          PPRES = (SIG(L)*(PSF-PTOP)+PTOP)*9.869d-4 !in atm
          DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)*9.869d-4
@@ -2882,14 +3316,28 @@ C**** CALCULATE OPTICAL THICKNESS
        ENDIF
 
        RHODK=PPRES/.082d0/TEMPR*28.97d0
-       IF (CLDSSL(L).GT.0.d0) CL3DL(L)=WMX(L)*RHODK/CLDSSL(L)
-       CTEML(L)=TEMPR
+c      IF (CLDSSL(L).GT.0.d0) then    !divide by CLDSSL for in-cld value
+c        IF (LHX.EQ.LHE) CL3DL(L) = WMX(L)*RHODK !/CLDSSL(L)   ! cld water
+c        IF (LHX.EQ.LHS) CI3DL(L) = WMX(L)*RHODK !/CLDSSL(L)   ! ice water
+c      ENDIF
+c      if(L.eq.ILTOP) then
+          CTEML(L)=TEMPR
+c         write(6,*)"ILTOP",L,CTEML(L),ILTOP
+c      else
+c         CTEML(L)=-1.d0
+c      endif
        D3DL(L)=DPP/PPRES*TEMPR/GRAV*0.082d0*101325.d0/1000.d0/0.029d0
        IF(CLDSSL(L).GT.0.d0) CD3DL(L)=-1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
-c      write(6,*)"CT",D3DL(l),CD3DL(l),CLDSAVL(L),CLDSSL(L),L,DPP,
-c    * PPRES,TEMPR,GRAV
+c      IF (CLDSSL(L).GT.0.d0) then    !divide by CLDSSL for in-cld value
+       IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHODK*CD3DL(L)  !cld water kg m-2
+       IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHODK*CD3DL(L)! ice water kg m-2
+c      ENDIF
+c      if(l.eq.1)
+c    *write(6,*)"CT",WMX(L),SVLHXL(L),LHX,LHE,LHS,CD3DL(l),CLDSSL(L),
+c    *CTEML(L),"CDNC=",CDN3DL(L),"Reff=",CRE3DL(L),CL3dL(L),CI3DL(L),L
 
-c      if(CTEML(L).gt.290.)write(6,*)"CE",CTEML(L),CD3Dl(L),CL3DL(L),L
+c      if(LHX.eq.LHE) write(6,*)"CE",CTEML(L),CD3Dl(L),CL3DL(L),
+c    * CDN3DL(L),CRE3DL(L),L
 
       END DO
 

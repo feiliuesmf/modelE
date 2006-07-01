@@ -9,26 +9,51 @@
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit,ntm
       USE OCEAN, only : trmo,txmo,tymo,tzmo
+C?*** For serial GM/straits computations, pack data into global arrays
+      USE OCEAN, only : trmo_glob,txmo_glob,tymo_glob,tzmo_glob
 #endif
-      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
-     *     symo,szmo,dts,dtofs,dto,dtolf,bydxypo,mdyno,msgso
+      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo
+     *     ,s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso
      *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj
-      USE ODIAG, only : oijl,oij,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx
-     *     ,ijl_sflx,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl,ij_ssh
-     *     ,ij_pb
+C?*** For serial GM/straits computations, pack data into global arrays
+      USE OCEAN, only : S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+      USE OCEAN, only : G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
+
+      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
+     *     ,oijl_glob=>oijl        ! for serial gm ?
+     *     ,ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx
+     *     ,ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
 #ifdef TRACERS_OCEAN
-     *     ,toijl,toijl_conc,toijl_tflx,toijl_gmfl
+     *     ,toijl=>toijl_loc, toijl_conc,toijl_tflx,toijl_gmfl
+     *     ,toijl_glob=>toijl      ! for serial gm ?
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
+      USE DOMAIN_DECOMP, only : grid,get
+
+C?*** For serial ODIF/GM/straits computations:
+      USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
+      USE OCEAN, only : scatter_ocean, gather_ocean
+      USE OCEAN_DYN, only : scatter_ocndyn, gather_ocndyn ! odiff/gm ?
+      use kpp_com, only: kpl,kpl_glob  ! for serial gm ?
+
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
-     *     UM1=0,VM1=0
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
+     *     MM0,MM1,MMX,UM0,VM0,UM1,VM1
       INTEGER NS,I,J,L,mnow,n
+
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0H
+      integer, save :: ifirst = 1
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
+      if (ifirst.eq.1) then
+        ifirst=0
+        MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
+      end if
+
 C****
 C**** Integrate Ocean Dynamics terms
 C****
       OGEOZ_SV=OGEOZ
-
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
@@ -41,6 +66,7 @@ C**** Apply ice/ocean and air/ocean stress to ocean
 
 C**** Calculate vertical diffusion
       CALL OCONV
+
          CALL CHECKO('OCONV ')
          CALL TIMER (MNOW,MSGSO)
 
@@ -100,12 +126,15 @@ C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
       END DO
 !$OMP END PARALLEL DO
 C**** Advection of Potential Enthalpy and Salt
-      CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.,OIJL(1,1,1,IJL_GFLX))
-      CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.,OIJL(1,1,1,IJL_SFLX))
+      CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
+     *        ,OIJL(1,J_0H,1,IJL_GFLX))
+      CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.
+     *        ,OIJL(1,J_0H,1,IJL_SFLX))
 #ifdef TRACERS_OCEAN
       DO N=1,NTM
-        CALL OADVT(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
-     *       TZMO(1,1,1,N),DTOLF,t_qlimit(n),TOIJL(1,1,1,TOIJL_TFLX,N))
+        CALL OADVT(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
+     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),DTOLF,t_qlimit(n)
+     *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
       END DO
 #endif
         CALL CHECKO ('OADVT ')
@@ -116,7 +145,7 @@ C**** Advection of Potential Enthalpy and Salt
           OIJL(:,:,L,IJL_S0M) = OIJL(:,:,L,IJL_S0M) + S0M(:,:,L)
         END DO
 !$OMP END PARALLEL DO
-        DO J=1,JM
+        DO J=J_0,J_1
           DO I=1,IMAXJ(J)
             OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
             OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  + (OPBOT(I,J)-ZE(LMM(I,J))
@@ -137,17 +166,44 @@ C**** Advection of Potential Enthalpy and Salt
         CALL TIMER (MNOW,MDYNO)
 
         IF (MODD5S.EQ.0) CALL DIAGCA (12)
+
+c????          Non-parallelized parts : ODIFF, GM, straits
+c     ODIFF:   mo,uo,vo (ocean), dh (ocean_dyn)
+c     GM:      mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO (ocean)
+c              dh,vbar (ocean_dyn), kpl (kpp_com), (t)oijl (odiag)
+c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
+
+      call gather_ocean (2)
+      call gather_ocndyn
+      call pack_data (grid, kpl, kpl_glob)
+      call pack_data (grid, OIJL(:,:,:,IJL_GGMFL:IJL_GGMFL+2) ,
+     *                      OIJL_glob(:,:,:,IJL_GGMFL:IJL_GGMFL+2))
+      call pack_data (grid, OIJL(:,:,:,IJL_SGMFL:IJL_SGMFL+2) ,
+     *                      OIJL_glob(:,:,:,IJL_SGMFL:IJL_SGMFL+2))
+#ifdef TRACERS_OCEAN
+      do n=1,ntm
+        call pack_data (grid, TOIJL(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N),
+     *                   TOIJL_glob(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N))
+      end do
+#endif
+      IF(AM_I_ROOT()) THEN
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
-      CALL ODIFF(DTS)
-        CALL CHECKO ('ODIFF ')
+        CALL ODIFF(DTS)
+          CALL CHECKO ('ODIFF ')
 C**** Apply GM + Redi tracer fluxes
-      CALL GMKDIF
-      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,1,1,IJL_GGMFL))
-      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE.,OIJL(1,1,1,IJL_SGMFL))
+        CALL GMKDIF
+        CALL GMFEXP(G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
+     *            .FALSE.,OIJL_glob(1,1,1,IJL_GGMFL))
+        CALL GMFEXP(S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
+     *            .TRUE., OIJL_glob(1,1,1,IJL_SGMFL))
+!mpi  CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
+!mpi  CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM
-        CALL GMFEXP(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
-     *       TZMO(1,1,1,N),t_qlimit(n),TOIJL(1,1,1,TOIJL_GMFL,N))
+        CALL GMFEXP(TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob,
+     *            t_qlimit(n),TOIJL_glob(1,1,1,TOIJL_GMFL,N))
+!mpi    CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
+!mpi *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
       END DO
 #endif
         CALL CHECKO ('GMDIFF')
@@ -155,11 +211,29 @@ C**** Apply GM + Redi tracer fluxes
 C****
 C**** Acceleration and advection of tracers through ocean straits
 C****
-      CALL STPGF
-      CALL STCONV
-      CALL STBDRA
-        CALL CHECKO ('STBDRA')
-      CALL STADV
+        CALL STPGF
+        CALL STCONV
+        CALL STBDRA
+          CALL CHECKO ('STBDRA')
+        CALL STADV
+      END IF
+
+      call scatter_ocean (2)
+      call scatter_ocndyn
+      call unpack_data (grid, kpl_glob, kpl)
+      call BCAST_straits (0)
+      call unpack_data (grid, OIJL_glob(:,:,:,IJL_GGMFL:IJL_GGMFL+2),
+     *                  OIJL(:,:,:,IJL_GGMFL:IJL_GGMFL+2))
+      call unpack_data (grid, OIJL_glob(:,:,:,IJL_SGMFL:IJL_SGMFL+2),
+     *                  OIJL(:,:,:,IJL_SGMFL:IJL_SGMFL+2))
+#ifdef TRACERS_OCEAN
+      do n=1,ntm
+        call unpack_data (grid,
+     *                   TOIJL_glob(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N),
+     *                   TOIJL(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N))
+      end do
+#endif
+c????      end of serialized part
         CALL CHECKO ('STADV ')
 C**** remove STADVI since it is not really consistent with ICEDYN
 c      CALL STADVI
@@ -169,8 +243,8 @@ c        CALL CHECKO ('STADVI')
 #endif
         CALL TIMER (MNOW,MSGSO)
       CALL TOC2SST
-
       RETURN
+
       END SUBROUTINE OCEANS
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
@@ -185,10 +259,13 @@ c        CALL CHECKO ('STADVI')
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
-     *     ,ndyno,imaxj,bydxypo,ogeoz_sv,bydts,lmo_min
+     *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
+
+      USE DOMAIN_DECOMP, only : grid,get
+
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
      *     ,iu_TOPO
@@ -197,6 +274,14 @@ c        CALL CHECKO ('STADVI')
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER, INTENT(IN) :: istart
+
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1
+     *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
+     *      ,HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C****
 C**** Check that KOCEAN is set correctly
 C****
@@ -255,7 +340,7 @@ C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 
 C**** Calculate LMM and modify HOCEAN
       call sync_param("LMO_min",LMO_min)
-      DO 170 J=1,JM
+      DO 170 J=1,JM    ! global arrays (fixed from now on)
       DO 170 I=1,IM
       LMM(I,J) =0
       IF(FOCEAN(I,J).LE.0.)  GO TO 170
@@ -267,23 +352,24 @@ C     L=LMO
   170 CONTINUE
 C**** Calculate LMU
       I=IM
-      DO 180 J=1,JM
+      DO 180 J=1,JM    ! global arrays (fixed from now on)
       DO 180 IP1=1,IM
       LMU(I,J) = MIN(LMM(I,J),LMM(IP1,J))
   180 I=IP1
 C**** Calculate LMV
-      DO 190 J=1,JM-1
+      DO 190 J=1,JM-1  ! global arrays (fixed from now on)
       DO 190 I=1,IM
   190 LMV(I,J) = MIN(LMM(I,J),LMM(I,J+1))
 C****
       IF(iniOCEAN) THEN
 C**** Initialize a run from ocean initial conditions
+C???? For starters, let all processes read the IC
       CALL openunit("OIC",iu_OIC,.TRUE.,.TRUE.)
       READ  (iu_OIC,ERR=820) TITLE,MO4,G0M4,GZM4,S0M4,SZM4
       call closeunit(iu_OIC)
       WRITE (6,*) 'OIC read from unit ',iu_OIC,': ',TITLE
 C**** Calculate layer mass from column mass and check for consistency
-      DO 313 J=1,JM
+      DO 313 J=J_0,J_1
       DO 313 I=1,IM
       LMIJ=LMM(I,J)
       DO 311 L=1,LMIJ
@@ -298,24 +384,28 @@ C**** Initialize velocity field to zero
       VO=0
 C**** Define mean value of mass, potential heat, and salinity at poles
       DO 370 L=1,LMO
-      J=JM
-      SM  = 0.
-      SG0 = 0.
-      SGZ = 0.
-      SS0 = 0.
-      SSZ = 0.
-      DO 331 I=1,IM
-      SM  = SM  +   MO(I,J,L)
-      SG0 = SG0 + G0M4(I,J,L)
-      SGZ = SGZ + GZM4(I,J,L)
-      SS0 = SS0 + S0M4(I,J,L)
-  331 SSZ = SSZ + SZM4(I,J,L)
-      DO 332 I=1,IM
-      MO(I,J,L)   = SM /IM
-      G0M4(I,J,L) = SG0/IM
-      GZM4(I,J,L) = SGZ/IM
-      S0M4(I,J,L) = SS0/IM
-  332 SZM4(I,J,L) = SSZ/IM
+      if(HAVE_NORTH_POLE) then ! average polar ocean fields
+        J=JM
+        SM  = 0.
+        SG0 = 0.
+        SGZ = 0.
+        SS0 = 0.
+        SSZ = 0.
+        DO I=1,IM
+          SM  = SM  +   MO(I,J,L)
+          SG0 = SG0 + G0M4(I,J,L)
+          SGZ = SGZ + GZM4(I,J,L)
+          SS0 = SS0 + S0M4(I,J,L)
+          SSZ = SSZ + SZM4(I,J,L)
+        end do
+        DO I=1,IM
+          MO(I,J,L)   = SM /IM
+          G0M4(I,J,L) = SG0/IM
+          GZM4(I,J,L) = SGZ/IM
+          S0M4(I,J,L) = SS0/IM
+          SZM4(I,J,L) = SSZ/IM
+        end do
+      end if
 C**** Define East-West horizontal gradients
       GXMO=0
       GYMO=0
@@ -323,7 +413,7 @@ C**** Define East-West horizontal gradients
       SYMO=0
       IM1=IM-1
       I=IM
-      DO 345 J=2,JM-1
+      DO 345 J=J_0S,J_1S
       DO 345 IP1=1,IM
       IF(LMM(I  ,J).LT.L)  GO TO 344
       IF(LMM(IM1,J).GE.L)  GO TO 342
@@ -340,7 +430,7 @@ C**** Define East-West horizontal gradients
   344 IM1=I
   345 I=IP1
 C**** Define North-South horizontal gradients
-      DO 354 J=2,JM-1
+      DO 354 J=J_0S,J_1S
       DO 354 I=1,IM
       IF(LMM(I,J  ).LT.L)  GO TO 354
       IF(LMM(I,J-1).GE.L)  GO TO 352
@@ -356,7 +446,7 @@ C**** Define North-South horizontal gradients
       SYMO(I,J,L) = .25*(S0M4(I,J+1,L)-S0M4(I,J-1,L))
   354 CONTINUE
 C**** Multiply specific quantities by mass
-      DO 360 J=1,JM
+      DO 360 J=J_0,J_1
       DO 360 I=1,IM
       G0M(I,J,L)  = G0M4(I,J,L)*(MO(I,J,L)*DXYPO(J))
       GXMO(I,J,L) = GXMO(I,J,L)*(MO(I,J,L)*DXYPO(J))
@@ -375,7 +465,7 @@ C**** Initiallise geopotential field (needed by KPP)
 
 C**** Extend ocean data to added layers at bottom if necessary
       if (istart.gt.0 .and. lmo_min .gt. 1) then
-        do j=2,jm-1
+        do j=j_0s,j_1s
         do i=1,im
           if (lmm(i,j).eq.lmo_min .and. MO(i,j,lmo_min).eq.0.) then
             do l=2,lmo_min
@@ -476,6 +566,9 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
       USE OCEAN
+
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
+
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -497,40 +590,58 @@ C****
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO
-     *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
+        call gather_ocean(0) ! mo,uo,vo,g0m,gx-z,s0m,sx-z,ogz's,tr
+        if(AM_I_ROOT()) then
+          WRITE (kunit,err=10) MODULE_HEADER,MO_glob,UO_glob,VO_glob
+     *     ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
+     *     ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+     *     ,OGEOZ_glob,OGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
-       WRITE (kunit,err=10) TRMODULE_HEADER,TRMO,TXMO,TYMO,TZMO
+          WRITE (kunit,err=10) TRMODULE_HEADER
+     *     ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
 #endif
+        end if
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
           CASE (IRSFICNO)   ! initial conditions (no ocean data)
             READ (kunit)
           CASE (ioread,irerun,irsfic) ! restarts
-            READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
-     *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
+           if(AM_I_ROOT()) then
+            READ (kunit,err=10) HEADER,MO_glob,UO_glob,VO_glob
+     *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
+     *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+     *        ,OGEOZ_glob,OGEOZ_SV_glob
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
               GO TO 10
             END IF
 #ifdef TRACERS_OCEAN
-            READ (kunit,err=10) TRHEADER,TRMO,TXMO,TYMO,TZMO
+            READ (kunit,err=10) TRHEADER
+     *        ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
             IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRHEADER
      *             ,TRMODULE_HEADER
               GO TO 10
             END IF
 #endif
+           end if
+           call scatter_ocean (0)  ! mo,uo,vo,g0m,x-z,s0m,x-z,ogz's,tr
           CASE (irsficnt) ! restarts (never any tracer data)
-            READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
-     *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
+           if(AM_I_ROOT()) then
+            READ (kunit,err=10) HEADER,MO_glob,UO_glob,VO_glob
+     *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
+     *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+     *        ,OGEOZ_glob,OGEOZ_SV_glob
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
               GO TO 10
             END IF
-          END SELECT
+           end if
+           call scatter_ocean (-1) ! mo,uo,vo,g0m,gx-z,s0m,sx-z,ogz's
+           return
+        END SELECT
       END SELECT
 
       RETURN
@@ -541,6 +652,8 @@ C****
 
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean variables are reasonable
+!@&    ESMF: It should only be called from a serial region.
+!@$          It is NOT parallelized
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byrt3,teeny
@@ -550,6 +663,7 @@ C****
 #endif
       USE SEAICE_COM, only : rsi
       USE OCEAN
+      USE DOMAIN_DECOMP, only : grid, GET
       IMPLICIT NONE
       REAL*8 SALIM,GO1,SO1,relerr,errmax,temgs
       LOGICAL QCHECKO
@@ -557,29 +671,35 @@ C****
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
+c**** Extract domain decomposition info
+      INTEGER :: J_0S, J_1, J_0H, J_1H, JM_loc
+      CALL GET(grid, J_STRT_SKP = J_0S, J_STOP = J_1,
+     *   J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+
 C**** Check for NaN/INF in ocean data
       IF (QCHECK) THEN
-      CALL CHECK3(MO  ,IM,JM,LMO,SUBR,'mo ')
-      CALL CHECK3(G0M ,IM,JM,LMO,SUBR,'g0m')
-      CALL CHECK3(GXMO,IM,JM,LMO,SUBR,'gxm')
-      CALL CHECK3(GYMO,IM,JM,LMO,SUBR,'gym')
-      CALL CHECK3(GZMO,IM,JM,LMO,SUBR,'gzm')
-      CALL CHECK3(S0M ,IM,JM,LMO,SUBR,'s0m')
-      CALL CHECK3(SXMO,IM,JM,LMO,SUBR,'sxm')
-      CALL CHECK3(SYMO,IM,JM,LMO,SUBR,'sym')
-      CALL CHECK3(SZMO,IM,JM,LMO,SUBR,'szm')
-      CALL CHECK3(UO  ,IM,JM,LMO,SUBR,'uo ')
-      CALL CHECK3(VO  ,IM,JM,LMO,SUBR,'vo ')
+      JM_loc = J_1H - J_0H + 1
+      CALL CHECK3(MO  ,IM,JM_loc,LMO,SUBR,'mo ')
+      CALL CHECK3(G0M ,IM,JM_loc,LMO,SUBR,'g0m')
+      CALL CHECK3(GXMO,IM,JM_loc,LMO,SUBR,'gxm')
+      CALL CHECK3(GYMO,IM,JM_loc,LMO,SUBR,'gym')
+      CALL CHECK3(GZMO,IM,JM_loc,LMO,SUBR,'gzm')
+      CALL CHECK3(S0M ,IM,JM_loc,LMO,SUBR,'s0m')
+      CALL CHECK3(SXMO,IM,JM_loc,LMO,SUBR,'sxm')
+      CALL CHECK3(SYMO,IM,JM_loc,LMO,SUBR,'sym')
+      CALL CHECK3(SZMO,IM,JM_loc,LMO,SUBR,'szm')
+      CALL CHECK3(UO  ,IM,JM_loc,LMO,SUBR,'uo ')
+      CALL CHECK3(VO  ,IM,JM_loc,LMO,SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK3(TRMO,IM,JM,LMO*NTM,SUBR,'trm')
-      CALL CHECK3(TXMO,IM,JM,LMO*NTM,SUBR,'txm')
-      CALL CHECK3(TYMO,IM,JM,LMO*NTM,SUBR,'tym')
-      CALL CHECK3(TZMO,IM,JM,LMO*NTM,SUBR,'tzm')
+      CALL CHECK3(TRMO,IM,JM_loc,LMO*NTM,SUBR,'trm')
+      CALL CHECK3(TXMO,IM,JM_loc,LMO*NTM,SUBR,'txm')
+      CALL CHECK3(TYMO,IM,JM_loc,LMO*NTM,SUBR,'tym')
+      CALL CHECK3(TZMO,IM,JM_loc,LMO*NTM,SUBR,'tzm')
 #endif
 
-C**** Check for varaibles out of bounds
+C**** Check for variables out of bounds
       QCHECKO=.FALSE.
-      DO J=2,JM
+      DO J=J_0S,J_1
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).gt.0.) THEN
 C**** Check potential specific enthalpy/salinity
@@ -633,7 +753,7 @@ C**** Check ocean salinity in each eighth box for the first layer
 C**** Check for negative tracers
         if (t_qlimit(n)) then
         do l=1,lmo
-        do j=1,jm
+        do j=j_0,j_1
         do i=1,imaxj(j)
           if (l.le.lmm(i,j)) then
             if (trmo(i,j,l,n).lt.0) then
@@ -650,7 +770,7 @@ C**** Check conservation of water tracers in ocean
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1 ; lmax=1
           do l=1,lmo
-          do j=1,jm
+          do j=j_0,j_1
           do i=1,imaxj(j)
             if (l.le.lmm(i,j)) then
               relerr=max(
@@ -691,14 +811,22 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shw
       USE OCEAN, only : im,jm,lmo,fim,imaxj,focean,mo,uo,vo,lmm
+      USE DOMAIN_DECOMP, only : GRID, GET, SOUTH, HALO_UPDATE
       IMPLICIT NONE
 !@var OKE zonal ocean kinetic energy per unit area (J/m**2)
-      REAL*8, DIMENSION(JM) :: OKE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OKE
       INTEGER I,J,L,IP1
       REAL*8 OKEIN
 
+      INTEGER :: J_0S, J_1S
+      LOGICAL :: HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      CALL HALO_UPDATE(grid, VO, FROM=SOUTH)
       OKE=0.
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         I=IM
         DO IP1=1,IM
           DO L=1,LMM(I,J)
@@ -709,6 +837,7 @@ C****
         END DO
         OKE(J)=OKE(J)*0.25
       END DO
+      if(HAVE_NORTH_POLE) then
       DO L=1,LMO
         OKEIN = UO(1,JM,L)*UO(1,JM,L)*IM
         DO I=1,IM
@@ -717,6 +846,7 @@ C****
         OKE(JM)= OKE(JM)+ OKEIN*MO(1,JM,L)
       END DO
       OKE(JM)= OKE(JM)*0.5
+      end if
 C****
       RETURN
       END SUBROUTINE conserv_OKE
@@ -728,12 +858,19 @@ C****
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
       USE STRAITS, only : nmst,jst,g0mst
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 !@var OCEANE zonal ocean potential enthalpy (J/m^2)
-      REAL*8, DIMENSION(JM) :: OCEANE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OCEANE
       INTEGER I,J,L,N
 
-      DO J=1,JM
+      INTEGER :: J_0, J_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
+     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      DO J=J_0,J_1
         OCEANE(J)=0
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
@@ -741,11 +878,12 @@ C****
           END DO
         END DO
       END DO
-      OCEANE(1) =FIM*OCEANE(1)
-      OCEANE(JM)=FIM*OCEANE(JM)
+      if(HAVE_SOUTH_POLE) OCEANE(1) =FIM*OCEANE(1)
+      if(HAVE_NORTH_POLE) OCEANE(JM)=FIM*OCEANE(JM)
 C**** include straits variables
       DO N=1,NMST
         J=JST(N,1)
+       if(j.lt.j_0 .or. j.gt.j_1) cycle
         OCEANE(J)=OCEANE(J)+SUM(G0MST(:,N))*BYDXYP(J)
       END DO
 C****
@@ -759,13 +897,21 @@ C****
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
       USE STRAITS, only : nmst,jst,mmst
+      USE DOMAIN_DECOMP, only : GRID, GET, pack_data
       IMPLICIT NONE
 !@var OMASS zonal ocean mass (kg/m^2)
-      REAL*8, DIMENSION(JM) :: OMASS,OMSSV
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OMASS
+      REAL*8, DIMENSION(JM) :: OMSSV
       COMMON /OCCONS/OMSSV
       INTEGER I,J,L,N
 
-      DO J=1,JM
+      INTEGER :: J_0, J_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
+     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      DO J=J_0,J_1
         OMASS(J)=0
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
@@ -774,15 +920,16 @@ C****
         END DO
         OMASS(J)=OMASS(J)*DXYPO(J)*BYDXYP(J)
       END DO
-      OMASS(1) =FIM*OMASS(1)
-      OMASS(JM)=FIM*OMASS(JM)
+      if (HAVE_SOUTH_POLE) OMASS(1) =FIM*OMASS(1)
+      if (HAVE_NORTH_POLE) OMASS(JM)=FIM*OMASS(JM)
 C**** include straits variables
       DO N=1,NMST
         J=JST(N,1)
+        if(j.lt.j_0 .or. j.gt.j_1) cycle
         OMASS(J)=OMASS(J)+SUM(MMST(:,N))*BYDXYP(J)
       END DO
 C**** save mass for AM calculation
-      OMSSV=OMASS
+      OMSSV(J_0:J_1) = OMASS(J_0:J_1)
 C****
       RETURN
       END SUBROUTINE conserv_OMS
@@ -793,15 +940,22 @@ C****
 !@ver  1.0
       USE CONSTANT, only : radius,omega
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,uo,cosvo,cospo,lmu
+      USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
 !@var OAM ocean angular momentum divided by area (kg/s)
-      REAL*8, DIMENSION(JM) :: OAM,OMSSV
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OAM
+      REAL*8, DIMENSION(JM) :: OMSSV
       COMMON /OCCONS/OMSSV
       INTEGER I,J,L,IP1
       REAL*8 UMIL
 
+      INTEGER :: J_0S, J_1S
+      LOGICAL :: HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       OAM=0
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         UMIL = 0.
         I=IM
         DO IP1=1,IM
@@ -814,6 +968,8 @@ C****
      *       *COSVO(J-1)+COSVO(J)*COSVO(J))
         OAM(J)=0.5*RADIUS*OAM(J)
       END DO
+
+      if (HAVE_NORTH_POLE) then
       UMIL = 0.
       DO L=1,LMU(1,JM)
         UMIL = UMIL + UO(1,JM,L)*MO(1,JM,L)
@@ -821,6 +977,7 @@ C****
       OAM(JM) = UMIL*COSPO(JM)*IM*2. +OMSSV(JM)*RADIUS*OMEGA
      *     *COSVO(JM-1)*COSVO(JM-1)
       OAM(JM)=0.5*RADIUS*OAM(JM)
+      end if
 C****
       RETURN
       END SUBROUTINE conserv_OAM
@@ -832,12 +989,19 @@ C****
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
       USE STRAITS, only : nmst,jst,s0mst
+      USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
 !@var OSALT zonal ocean salt (kg/m^2)
-      REAL*8, DIMENSION(JM) :: OSALT
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OSALT
       INTEGER I,J,L,N
 
-      DO J=1,JM
+      INTEGER :: J_0, J_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
+     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      DO J=J_0,J_1
         OSALT(J)=0
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
@@ -845,11 +1009,12 @@ C****
           END DO
         END DO
       END DO
-      OSALT(1) =FIM*OSALT(1)
-      OSALT(JM)=FIM*OSALT(JM)
+      if (HAVE_SOUTH_POLE) OSALT(1) =FIM*OSALT(1)
+      if (HAVE_NORTH_POLE) OSALT(JM)=FIM*OSALT(JM)
 C**** include straits variables
       DO N=1,NMST
         J=JST(N,1)
+        if(j.lt.j_0 .or. j.gt.j_1) cycle
         OSALT(J)=OSALT(J)+SUM(S0MST(:,N))*BYDXYP(J)
       END DO
 C****
@@ -862,30 +1027,43 @@ C****
 !@ver  1.0
 C**** Input:  M (kg/m**2), U (m/s), V (m/s)
       USE OCEAN, only : im,jm,lmo,dxyp=>dxypo,mo,uo,vo
+      USE DOMAIN_DECOMP, only : grid, GET, halo_update, north
       IMPLICIT NONE
 C**** Output: MM (kg), UM (kg*m/s), VM (kg*m/s)
-      REAL*8, INTENT(OUT) :: MM(IM,JM,LMO),UM(IM,JM,LMO),VM(IM,JM,LMO)
+      REAL*8, INTENT(OUT),
+     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: MM,UM,VM
       INTEGER I,J,L,IP1
 
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      call halo_update(grid, MO, from=north)
       DO 70 L=1,LMO
 C**** Convert density to mass
-      DO 10 J=1,JM
+      DO 10 J=J_0,min(JM,J_1+1)
       DO 10 I=1,IM
       MM(I,J,L) = MO(I,J,L)*DXYP(J)
    10 CONTINUE
 C**** Convert U velocity to U momentum
       I=IM
-      DO 40 J=2,JM-1
+      DO 40 J=J_0S,J_1S
       DO 40 IP1=1,IM
       UM(I, J,L) = UO(I, J,L)*(MM(I,J,L)+MM(IP1,J,L))*5d-1
    40 I=IP1
-C     UM(IM,1,L) = UO(IM,1,L)*MM(IM,1,L)*IM
-      UM(1,JM,L) = UO(1,JM,L)*MM(1,JM,L)*IM
+C     if (HAVE_SOUTH_POLE) UM(IM,1,L) = UO(IM,1,L)*MM(IM,1,L)*IM
+      if (HAVE_NORTH_POLE) UM(1,JM,L) = UO(1,JM,L)*MM(1,JM,L)*IM
 C**** Convert V velocity to V momentum
       DO 60 I=1,IM
-C     VM(I, 1  ,L) = VO(I, 1  ,L)*(MM(1, 1,L)+5d-1*MM(I, 2  ,L))
-      VM(I,JM-1,L) = VO(I,JM-1,L)*(MM(1,JM,L)+5d-1*MM(I,JM-1,L))
-      DO 60 J=2,JM-2
+C     if (HAVE_SOUTH_POLE)
+C    *  VM(I, 1  ,L) = VO(I, 1  ,L)*(MM(1, 1,L)+5d-1*MM(I, 2  ,L))
+      if (HAVE_NORTH_POLE)
+     *  VM(I,JM-1,L) = VO(I,JM-1,L)*(MM(1,JM,L)+5d-1*MM(I,JM-1,L))
+      DO 60 J=J_0S,min(J_1S,JM-2)
    60 VM(I,J,L) = VO(I,J,L)*(MM(I,J,L)+MM(I,J+1,L))*5d-1
    70 CONTINUE
       RETURN
@@ -898,34 +1076,47 @@ C     VM(I, 1  ,L) = VO(I, 1  ,L)*(MM(1, 1,L)+5d-1*MM(I, 2  ,L))
 C**** Output: M (kg/m**2), U (m/s), V (m/s)
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,lmm,lmu,lmv,
      *     dxyp=>dxypo,bydxyp=>bydxypo
+      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE,NORTH
       IMPLICIT NONE
 C**** Input:  MM (kg), UM (kg*m/s), VM (kg*m/s)
-      REAL*8, INTENT(IN) :: MM(IM,JM,LMO),UM(IM,JM,LMO),VM(IM,JM,LMO)
+      REAL*8, !!! INTENT(IN), (except for halo_updates)
+     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: MM,UM,VM
       INTEGER I,J,L
       REAL*8 BYD
 
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &         J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S,
+C    &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+        CALL HALO_UPDATE(grid, MM, FROM=NORTH)
 !$OMP PARALLEL DO  PRIVATE(I,J,L,BYD)
       DO L=1,LMO
 C**** Convert mass to density
-        DO J=1,JM
+        DO J=J_0,J_1
           BYD = BYDXYP(J)
           DO I=1,IM
             IF (L.LE.LMM(I,J)) MO(I,J,L) = MM(I,J,L)*BYD
           END DO
         END DO
 C**** Convert V momentum to V velocity
-        DO J=2,JM-2
+        DO J=J_0S,min(J_1S,JM-2)
           DO I=1,IM
             IF (L.LE.LMV(I,J)) VO(I,J,L) = VM(I,J,L)*2d0/
      *         (MM(I,J,L) + MM(I,J+1,L))
           END DO
         END DO
+        if (HAVE_NORTH_POLE) then
         DO I=1,IM
           IF (L.LE.LMV(I,JM-1)) VO(I,JM-1,L) = VM(I,JM-1,L)/
      *       (MM(I,JM,L)+5d-1*MM(I,JM-1,L))
         END DO
+        end if
 C**** Convert U momentum to U velocity
-        DO J=2,JM-1
+        DO J=J_0S,J_1S
           DO I=1,IM-1
             IF (L.LE.LMU(I,J)) UO(I,J,L) = UM(I,J,L)*2d0/
      *         (MM(I,J,L) + MM(I+1,J,L))
@@ -935,13 +1126,15 @@ C**** Convert U momentum to U velocity
         END DO
       END DO
 !$OMP END PARALLEL DO
-C     UO(IM,1,L) = UM(IM,1,L)/(MM(IM,1,L)*IM)
+C     if (HAVE_SOUTH_POLE) UO(IM,1,L) = UM(IM,1,L)/(MM(IM,1,L)*IM)
+      if (HAVE_NORTH_POLE) then
       DO L=1,LMU(1,JM)
         UO(1,JM,L) = UM(1,JM,L)/(MM(1,JM,L)*IM)
         DO I=2,IM
            UO(I,JM,L) = UO(1,JM,L)
         END DO
       END DO
+      end if
       RETURN
       END SUBROUTINE OMTOV
 
@@ -959,14 +1152,29 @@ C****
      *     ,dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv=>dxvo,dyv=>dyvo,dsigo
      *     ,sigeo,mo
       USE OCEAN_DYN, only : smu,smv,smw,mu,mv,mw,conv
+      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE,NORTH,SOUTH
       IMPLICIT NONE
       REAL*8, PARAMETER :: CHI=.125d0, BY12CHI= 2d0/(1d0-2d0*CHI)
       LOGICAL, INTENT(IN) :: QSAVE
       INTEGER, INTENT(IN) :: NS
-      REAL*8, INTENT(IN) :: MM(IM,JM,LMO)
+      REAL*8, INTENT(IN),
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MM
       INTEGER I,J,L,LMIJ,IMIN,IMAX
       REAL*8, DIMENSION(IM) :: DMVS,DMVN
       REAL*8 BYNSDTO,MUS,MUN,MVS,MVN,ADMVS,ADMVN,SCONV,SMM,BYSIGEO
+
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &         J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      J_0H = max(1,J_0-1) ; J_1H = min(JM,J_1+1) ! trimmed halo
+
+      CALL HALO_UPDATE(grid, MO, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, UO, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, VO, FROM=SOUTH)
 C****
       BYNSDTO=1d0/(NS*DTO)
 C**** Compute fluid fluxes for the C grid
@@ -974,76 +1182,77 @@ C****
 C**** Smooth the West-East velocity near the poles
 !$OMP PARALLEL DO  PRIVATE(I,J,L)
       DO L=1,LMO
-        DO J=2,JM-1
+        DO J=J_0H,J_1H   ! trimmed halo
           DO I=1,IM
             MU(I,J,L) = UO(I,J,L)
           END DO
         END DO
       END DO
 !$OMP END PARALLEL DO
-      CALL OPFIL (MU,LMO)
+      CALL OPFIL (MU,LMO)   ! extends to trimmed halo
 C**** Compute MU, the West-East mass flux, at non-polar points
 !$OMP PARALLEL DO  PRIVATE(I,J,L, MUS,MUN,MVS,MVN, DMVS,DMVN,
 !$OMP&                     ADMVS,ADMVN)
       DO 220 L=1,LMO
-      DO J=2,JM-1
+      DO J=J_0H,J_1H   ! trimmed halo
         DO I=1,IM-1
           MU(I,J,L) = 5d-1*DYP(J)*MU(I,J,L)*(MO(I,J,L)+MO(I+1,J,L))
         END DO
         MU(IM,J,L) = 5d-1*DYP(J)*MU(IM,J,L)*(MO(IM,J,L)+MO(1,J,L))
       END DO
 C**** Compute MV, the South-North mass flux
-      DO 130 J=1,JM-1
+      DO 130 J=J_0H,min(jm-1,J_1)
       DO 130 I=1,IM
   130   MV(I,J,L) = 5d-1*DXV(J)*VO(I,J,L)*(MO(I,J,L)+MO(I,J+1,L))
-C**** Compute MU*2/(1-2*CHI) at the poles
-      MUS = DYP( 1)*UO(1, 1,L)*MO(1, 1,L)
-      MUN = DYP(JM)*UO(1,JM,L)*MO(1,JM,L)
-      MVS = 0.
-      MVN = 0.
-      DO 140 I=1,IM
-        MVS = MVS + MV(I, 1  ,L)
-  140   MVN = MVN + MV(I,JM-1,L)
-      MVS = MVS*BYIM
-      MVN = MVN*BYIM
-      DMVS(1) = 0.
-      DMVN(1) = 0.
-      DO 150 I=2,IM
-        DMVS(I) = DMVS(I-1) + (MV(I, 1  ,L)-MVS)
-  150   DMVN(I) = DMVN(I-1) + (MV(I,JM-1,L)-MVN)
-      ADMVS = 0.
-      ADMVN = 0.
-      DO 160 I=1,IM
-        ADMVS = ADMVS + DMVS(I)
-  160   ADMVN = ADMVN + DMVN(I)
-      ADMVS = ADMVS*BYIM
-      ADMVN = ADMVN*BYIM
-      DO 170 I=1,IM
-        MU(I, 1,L) = (ADMVS-DMVS(I) + MUS)*BY12CHI
-  170   MU(I,JM,L) = (DMVN(I)-ADMVN + MUN)*BY12CHI
+C**** Compute MU*2/(1-2*CHI) and hor. fluid convergence at the poles
+      if (HAVE_SOUTH_POLE) then
+        MUS = DYP( 1)*UO(1, 1,L)*MO(1, 1,L)
+        MVS = SUM(MV(:, 1  ,L))*BYIM
+        DMVS(1) = 0.
+        DO I=2,IM
+          DMVS(I) = DMVS(I-1) + (MV(I, 1  ,L)-MVS)
+        END DO
+        ADMVS = SUM(DMVS(:))*BYIM
+        DO I=1,IM
+          MU(I, 1,L) = (ADMVS-DMVS(I) + MUS)*BY12CHI
+        END DO
+        CONV(IM,1,L) = -MVS
+      end if
+
+      if (HAVE_NORTH_POLE) then
+        MUN = DYP(JM)*UO(1,JM,L)*MO(1,JM,L)
+        MVN = SUM(MV(:,JM-1,L))*BYIM
+        DMVN(1) = 0.
+        DO I=2,IM
+          DMVN(I) = DMVN(I-1) + (MV(I,JM-1,L)-MVN)
+        END DO
+        ADMVN = SUM(DMVN(:))*BYIM
+        DO I=1,IM
+          MU(I,JM,L) = (DMVN(I)-ADMVN + MUN)*BY12CHI
+        END DO
+        CONV(1,JM,L) =  MVN
+      end if
 C****
-C**** Compute horizontal fluid convergence
+C**** Compute horizontal fluid convergence at non-polar points
 C****
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         CONV(1,J,L) = MU(IM,J,L)-MU(1,J,L) + (MV(1,J-1,L)-MV(1,J,L))
         DO I=2,IM
           CONV(I,J,L) = MU(I-1,J,L)-MU(I,J,L) + (MV(I,J-1,L)-MV(I,J,L))
         END DO
       END DO
-      CONV(IM,1,L) = -MVS
-      CONV(1,JM,L) =  MVN
   220 CONTINUE
 !$OMP END PARALLEL DO
 C****
 C**** Compute vertically integrated column convergence and mass
 C****
 !$OMP PARALLEL DO  PRIVATE(I,J,L,IMIN,IMAX,LMIJ,SCONV,SMM,BYSIGEO)
-      DO J=1,JM
+      DO J=J_0,J_1
         IMIN=1
         IMAX=IM
         IF (J.EQ.1) IMIN=IM
         IF (J.EQ.JM) IMAX=1
-        DO I=IMIN,IMAX
+      DO I=IMIN,IMAX
       LMIJ=1
       IF(LMM(I,J).LE.1)  GO TO 420
       LMIJ=LMM(I,J)
@@ -1085,7 +1294,7 @@ C****
       END SUBROUTINE OFLUX
 
       SUBROUTINE OPFIL (X,LMAX)
-!@sum  OPFIL smoothes X in zonal direction
+!@sum  OPFIL smoothes X in zonal direction  - extends to trimmed halo
 !@auth Gary Russell
 !@ver  1.0
 C****
@@ -1097,10 +1306,13 @@ C****            Now AVR4X5LD.Z12.gas1
       USE OCEAN, only : im,jm,lmo,dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv
      *     =>dxvo,dyv=>dyvo,j40s
       USE FILEMANAGER, only : openunit, closeunit
+      USE DOMAIN_DECOMP, only : grid, GET
+
       IMPLICIT NONE
       REAL*8, PARAMETER :: DLON=TWOPI/IM
       INTEGER, INTENT(IN) :: LMAX
-      REAL*8, INTENT(INOUT) :: X(IM,JM,LMO)
+      REAL*8, INTENT(INOUT) ::
+     *   X(IM,grid%j_strt_halo:grid%j_stop_halo,LMO)
       INTEGER, PARAMETER :: NMAX=IM/2
       INTEGER, SAVE :: NSEGM,INDM, JXMAX, JNOF
       INTEGER*2, SAVE, DIMENSION(:,:), ALLOCATABLE :: NSEG
@@ -1113,6 +1325,11 @@ C****            Now AVR4X5LD.Z12.gas1
       INTEGER I,J,L,N,JA,JX,NS,I0,IL,IND,K,iu_AVR,IN
       REAL*8 :: REDUC,DRATM,SM
       CHARACTER*80 TITLE
+
+      INTEGER :: J_0H, J_1H
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      J_0H=max(1,J_0H) ; J_1H=min(JM-1,J_1H)     ! trimmed halo
+
 C****
       IF (IFIRST.EQ.1) THEN
       IFIRST=0
@@ -1148,11 +1365,18 @@ C**** Loop over J and L.  J = latitude, JA = absolute latitude.
 C****
 !$OMP PARALLEL DO  PRIVATE(I,J,JA,JX,K,L,N,NS,I0,IL,IND,Y,REDUC,
 !$OMP&                     AN,BN,DRATM,SM)
-  100 DO 330 JX=4,JXMAX
-      J =JX
-      JA=JX
-      IF(JX.GT.J40S)  J =JNOF+JX
-      IF(JX.GT.J40S)  JA=2*J40S+1-JX
+  100 DO 330 J=max(4,J_0H),J_1H       ! trimmed halo
+      if (J .le. J40S) then
+         JA = J      ; JX = J
+      else       ! skip latitudes J40S+1,..,J40S+JNOF
+         JA = JM+1-J ; JX = J-JNOF
+         if (JX .le. J40S) cycle
+      end if
+cccc  DO 330 JX=4,JXMAX
+cccc  J =JX
+cccc  JA=JX
+cccc  IF(JX.GT.J40S)  J =JNOF+JX
+cccc  IF(JX.GT.J40S)  JA=2*J40S+1-JX
       DO 330 L=1,LMAX
       IF(ILEN(1,L,JX).GE.IM)  GO TO 300
 C****
@@ -1222,17 +1446,25 @@ C**** Output: MM2 (kg) = MM0 + DT*DM*DSIGO
 C****
       USE OCEAN, only : im,jm,lmo,lmm
       USE OCEAN_DYN, only : mu,mv,mw,conv
+      USE DOMAIN_DECOMP, only : grid, GET
       IMPLICIT NONE
 
-      REAL*8, INTENT(OUT) :: MM2(IM,JM,LMO)
-      REAL*8, INTENT(IN)  :: MM0(IM,JM,LMO)
-      REAL*8, INTENT(IN)  :: DT
+      REAL*8,INTENT(OUT):: MM2(IM,grid%j_strt_halo:grid%j_stop_halo,LMO)
+      REAL*8,INTENT(IN) :: MM0(IM,grid%j_strt_halo:grid%j_stop_halo,LMO)
+      REAL*8,INTENT(IN) :: DT
       INTEGER I,J,L,LMIJ,IMIN,IMAX
+
+      INTEGER :: J_0, J_1
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+
+      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
+     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 C****
 C**** Compute the new mass MM2
 C****
 !$OMP PARALLEL DO  PRIVATE(I,J,IMIN,IMAX,LMIJ)
-      DO J=1,JM
+      DO J=J_0,J_1
         IMIN=1
         IMAX=IM
         IF (J.EQ.1) IMIN=IM
@@ -1250,10 +1482,16 @@ C****
       END DO
 !$OMP END PARALLEL DO
 C**** Fill in values at the poles
-      DO 80 L=1,LMO
-      DO 80 I=1,IM
-C     MM2(I, 1,L) = MM2(IM,1,L)
-   80 MM2(I,JM,L) = MM2(1,JM,L)
+      if (HAVE_NORTH_POLE) then
+        DO L=1,LMO
+          MM2(2:IM  ,JM,L) = MM2(1,JM,L)
+        end do
+      end if
+C     if (HAVE_SOUTH_POLE) then
+C       DO L=1,LMO
+C         MM2(1:IM-1, 1,L) = MM2(IM,1,L)
+C       end do
+C     end if
       RETURN
       END SUBROUTINE OADVM
 
@@ -1272,24 +1510,38 @@ C****
      *     dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv=>dxvo,dyv=>dyvo,
      *     cosv=>cosvo,cosp=>cospo
       USE OCEAN_DYN, only : mu,mv,mw
+      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE,NORTH,SOUTH
+
       IMPLICIT NONE
       REAL*8, PARAMETER :: CHI=.125d0
-      REAL*8, INTENT(OUT), DIMENSION(IM,JM,LMO) :: UM2,VM2
-      REAL*8, INTENT(IN),  DIMENSION(IM,JM,LMO) :: UM0,VM0
+      REAL*8, INTENT(OUT),
+     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: UM2,VM2
+      REAL*8, INTENT(IN),
+     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: UM0,VM0
       REAL*8, INTENT(IN) :: DT1
       REAL*8, SAVE, DIMENSION(JM) :: DCOSP,TANP
-      REAL*8, DIMENSION(IM,JM,LMO) :: DUM,DVM
+      REAL*8,
+     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: DUM,DVM
       REAL*8, DIMENSION(0:JM) :: GX,GXUY,DGDUDN,DGDUUP
       REAL*8, DIMENSION(IM) :: UDCOSY,UYUTAY
-      REAL*8, DIMENSION(IM,JM,LMO-1) :: FLUXA
+      REAL*8,
+     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO-1) :: FLUXA
       LOGICAL*4 :: QFIRST = .TRUE.
       INTEGER I,J,L
       REAL*8 DT2,DT4,DTC2,DTD4,UMUX,VMVY,VMUNE,VMUSE,UMVX,VMUY,UMUNE
-     *     ,UMUNW,DUMS,DUMN,UMVNE,UMVNW
+     *     ,UMUNW,UMVNE,UMVNW
+
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     *              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 C****
       IF (QFIRST) THEN
         QFIRST = .FALSE.
-        DO J=1,JM
+        DO J=1,JM  ! These arrays are not distributed
           DCOSP(J) = COSV(J-1)-COSV(J)
           TANP(J)  = DCOSP(J)/COSP(J)
         END DO
@@ -1305,10 +1557,16 @@ C**** Zero out momentum changes
 C****
 C**** Horizontal advection of momentum
 C****
+      CALL HALO_UPDATE(grid, MV, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, VO, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, MU, FROM=NORTH)
+      CALL HALO_UPDATE(grid, MO, FROM=NORTH)
+      CALL HALO_UPDATE(grid, MW, FROM=NORTH)
+      CALL HALO_UPDATE(grid, UO, FROM=NORTH+SOUTH)
 !$OMP PARALLEL DO  PRIVATE(I,J,L, UMUX,VMVY,VMUNE,VMUSE,
 !$OMP&  UMVX,UMVNE,UMVNW,VMUY, GX,GXUY,DGDUDN,DGDUUP,UDCOSY,UYUTAY)
       DO 480 L=1,LMO
-        DO J=2,JM-1
+        DO J=J_0S,J_1S
 C**** Contribution of West-East flux to U wind
 C**** Contribution of South-North and corner fluxes to V wind
 C**** (split into first then rest)
@@ -1337,10 +1595,47 @@ C**** (split into first then rest)
             DVM(I-1,J  ,L) = DVM(I-1,J  ,L) - (VMUSE-VMVY)
           END DO
         END DO
+c****   account for contributions from band north of the of current band
+        if (.not.HAVE_NORTH_POLE) then
+          j=J_1S+1     ! date line first
+          VMVY  = DT4 * (MV(IM,J-1,L)+MV(IM,J,L))*
+     *                  (VO(IM,J-1,L)+VO(IM,J,L))
+          VMUNE = DTC2* MU(IM,J,L) * (VO(IM,J-1,L) + VO(1,J  ,L))
+          VMUSE = DTC2* MU(IM,J,L) * (VO(IM,J  ,L) + VO(1,J-1,L))
+          DVM(IM,J-1,L) = DVM(IM,J-1,L) - (VMUNE+VMVY)
+          DVM(1 ,J-1,L) = DVM(1 ,J-1,L) +  VMUSE
+          DO I=2,IM     ! off the date line
+            VMVY  = DT4* (MV(I-1,J-1,L)+MV(I-1,J,L))*
+     *                   (VO(I-1,J-1,L)+VO(I-1,J,L))
+            VMUNE = DTC2* MU(I-1,J,L) * (VO(I-1,J-1,L) + VO(I,J  ,L))
+            VMUSE = DTC2* MU(I-1,J,L) * (VO(I-1,J  ,L) + VO(I,J-1,L))
+            DVM(I  ,J-1,L) = DVM(I  ,J-1,L) +  VMUSE
+            DVM(I-1,J-1,L) = DVM(I-1,J-1,L) - (VMUNE+VMVY)
+          END DO
+        end if
+
 C**** Contribution of South-North and corner fluxes to U wind
 C**** Contribution of West-East flux to V wind
 C**** (split into first then rest)
-      DO J=1,JM-1
+
+c**** account for contributions from band south of the of current band
+      if (.not.HAVE_SOUTH_POLE) then
+        J=J_0-1
+        UMVX  = DTD4*(MV(IM,J,L)+MV(1,J,L))*(UO(IM,J,L)+UO(IM,J+1,L))
+        UMVNE = DTC2* MV(1,J,L)*(UO(IM,J,L)+UO(1 ,J+1,L))
+        UMVNW = DTC2* MV(1,J,L)*(UO(1 ,J,L)+UO(IM,J+1,L))
+        DUM(IM,J+1,L) = DUM(IM,J+1,L) + (UMVNW+UMVX)
+        DUM(1 ,J+1,L) = DUM(1 ,J+1,L) +  UMVNE
+        DO I=2,IM
+          UMVX=DTD4*(MV(I-1,J,L)+MV(I,J,L))*(UO(I-1,J,L)+UO(I-1,J+1,L))
+          UMVNE = DTC2* MV(I,J,L)*(UO(I-1,J,L)+UO(I  ,J+1,L))
+          UMVNW = DTC2* MV(I,J,L)*(UO(I  ,J,L)+UO(I-1,J+1,L))
+          DUM(I  ,J+1,L) = DUM(I  ,J+1,L) +  UMVNE
+          DUM(I-1,J+1,L) = DUM(I-1,J+1,L) + (UMVNW+UMVX)
+        END DO
+      end if
+
+      DO J=J_0,J_1S
         UMVX  = DTD4*(MV(IM,J,L)+MV(1,J,L))*(UO(IM,J,L)+UO(IM,J+1,L))
         UMVNE = DTC2* MV(1,J,L)*(UO(IM,J,L)+UO(1 ,J+1,L))
         UMVNW = DTC2* MV(1,J,L)*(UO(1 ,J,L)+UO(IM,J+1,L))
@@ -1376,7 +1671,7 @@ C**** U component
       DGDUDN(JM) = 0.d0
       DGDUUP(JM) = 0.d0
 C**** First I=1,then I=2,IM-1 then I=IM
-      DO J=1,JM-1
+      DO J=max(1,J_0-1),J_1S
         GX(J)   =  MV(1,J,L)+MV(2,J,L)
         GXUY(J) = (MV(1,J,L)+MV(2,J,L))*(UO(1,J,L)+UO(1,J+1,L))
         DGDUDN(J) = MV(1,J,L)*(UO(IM,J  ,L)-UO(1,J  ,L)) -
@@ -1384,13 +1679,13 @@ C**** First I=1,then I=2,IM-1 then I=IM
         DGDUUP(J) = MV(1,J,L)*(UO(IM,J+1,L)-UO(1,J+1,L)) -
      *              MV(2,J,L)*(UO(1 ,J+1,L)-UO(2,J+1,L))
       END DO
-      DO J=1,JM
+      DO J=J_0,J_1
         DUM(1,J,L) = DUM(1,J,L) +
      *    DT2*(OMEGA*RADIUS*(GX(J-1)+GX(J))*DCOSP(J) + TANP(J)*
      *    (2.5d-1*(GXUY(J-1)+GXUY(J))+5d-1*CHI*(DGDUDN(J-1)+DGDUUP(J))))
       END DO
       DO I=2,IM-1
-        DO J=1,JM-1
+        DO J=max(1,J_0-1),J_1S
           GX(J)   =  MV(I,J,L)+MV(I+1,J,L)
           GXUY(J) = (MV(I,J,L)+MV(I+1,J,L))*(UO(I,J,L)+UO(I,J+1,L))
           DGDUDN(J) = MV(I  ,J,L)*(UO(I-1,J  ,L)-UO(I  ,J  ,L)) -
@@ -1398,13 +1693,13 @@ C**** First I=1,then I=2,IM-1 then I=IM
           DGDUUP(J) = MV(I  ,J,L)*(UO(I-1,J+1,L)-UO(I  ,J+1,L)) -
      *                MV(I+1,J,L)*(UO(I  ,J+1,L)-UO(I+1,J+1,L))
         END DO
-        DO J=1,JM
+        DO J=J_0,J_1
           DUM(I,J,L) = DUM(I,J,L) +
      *    DT2*(OMEGA*RADIUS*(GX(J-1)+GX(J))*DCOSP(J) + TANP(J)*
      *    (2.5d-1*(GXUY(J-1)+GXUY(J))+5d-1*CHI*(DGDUDN(J-1)+DGDUUP(J))))
         END DO
       END DO
-      DO J=1,JM-1
+      DO J=max(1,J_0-1),J_1S
         GX(J)   =  MV(IM,J,L)+MV(1,J,L)
         GXUY(J) = (MV(IM,J,L)+MV(1,J,L))*(UO(IM,J,L)+UO(IM,J+1,L))
         DGDUDN(J) = MV(IM,J,L)*(UO(IM-1,J  ,L)-UO(IM,J  ,L)) -
@@ -1412,13 +1707,13 @@ C**** First I=1,then I=2,IM-1 then I=IM
         DGDUUP(J) = MV(IM,J,L)*(UO(IM-1,J+1,L)-UO(IM,J+1,L)) -
      *              MV(1 ,J,L)*(UO(IM  ,J+1,L)-UO(1 ,J+1,L))
       END DO
-      DO J=1,JM
+      DO J=J_0,J_1
         DUM(IM,J,L) = DUM(IM,J,L) +
      *    DT2*(OMEGA*RADIUS*(GX(J-1)+GX(J))*DCOSP(J) + TANP(J)*
      *    (2.5d-1*(GXUY(J-1)+GXUY(J))+5d-1*CHI*(DGDUDN(J-1)+DGDUUP(J))))
       END DO
 C**** V component
-      DO J=1,JM-1
+      DO J=J_0,J_1S
         DO I=1,IM
           UDCOSY(I) =  UO(I,J,L)*DCOSP(J) + UO(I,J+1,L)*DCOSP(J+1)
           UYUTAY(I) = (UO(I,J,L)* TANP(J) + UO(I,J+1,L)* TANP(J+1))*
@@ -1442,7 +1737,7 @@ C**** Vertical advection of momentum
 C****
 !$OMP PARALLEL DO  PRIVATE(I,J,L)
       DO L=1,LMO-1
-        DO J=2,JM-1
+        DO J=J_0S,J_1S
           DO I=1,IM-1
             FLUXA(I,J,L) =
      *           DT4*(MW(I,J,L)+MW(I+1,J,L))*(UO(I,J,L)+UO(I,J,L+1))
@@ -1450,23 +1745,24 @@ C****
           FLUXA(IM,J,L) =
      *         DT4*(MW(IM,J,L)+MW(1,J,L))*(UO(IM,J,L)+UO(IM,J,L+1))
         END DO
-        FLUXA(1,JM,L) = DT2*MW(1,JM,L)*IM*(UO(1,JM,L)+UO(1,JM,L+1))
+        if (have_north_pole)
+     *  FLUXA(1,JM,L) = DT2*MW(1,JM,L)*IM*(UO(1,JM,L)+UO(1,JM,L+1))
       END DO
 !$OMP END PARALLEL DO
 C
 !$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
         IF(L.EQ.1)  THEN
-          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
-          DUM(1,JM,L)     = DUM(1,JM,L) - FLUXA(1,JM,L)
+          DUM(:,J_0S:J_1S,L) = DUM(:,J_0S:J_1S,L) - FLUXA(:,J_0S:J_1S,L)
+          if (have_north_pole) DUM(1,JM,L) = DUM(1,JM,L) - FLUXA(1,JM,L)
         ELSE IF(L.LT.LMO)  THEN
-          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
-          DUM(1,JM,L)     = DUM(1,JM,L) + FLUXA(1,JM,L-1)
-          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
-          DUM(1,JM,L)     = DUM(1,JM,L) - FLUXA(1,JM,L)
+          DUM(:,J_0S:J_1S,L)=DUM(:,J_0S:J_1S,L) + FLUXA(:,J_0S:J_1S,L-1)
+          if(have_north_pole)DUM(1,JM,L) = DUM(1,JM,L) + FLUXA(1,JM,L-1)
+          DUM(:,J_0S:J_1S,L) = DUM(:,J_0S:J_1S,L) - FLUXA(:,J_0S:J_1S,L)
+          if (have_north_pole) DUM(1,JM,L) = DUM(1,JM,L) - FLUXA(1,JM,L)
         ELSE IF(L.EQ.LMO)  THEN
-          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
-          DUM(1,JM,L)     = DUM(1,JM,L) + FLUXA(1,JM,L-1)
+          DUM(:,J_0S:J_1S,L)=DUM(:,J_0S:J_1S,L) + FLUXA(:,J_0S:J_1S,L-1)
+          if (have_north_pole) DUM(1,JM,L)=DUM(1,JM,L) + FLUXA(1,JM,L-1)
         END IF
       END DO
 !$OMP END PARALLEL DO
@@ -1475,55 +1771,52 @@ C**** V component
 C
 !$OMP PARALLEL DO  PRIVATE(I,J,L)
       DO L=1,LMO-1
-        DO J=2,JM-2
+        DO J=J_0S,min(JM-2,J_1S)
           DO I=1,IM
             FLUXA(I,J,L) =
      *           DT4*(MW(I,J,L)+MW(I,J+1,L))*(VO(I,J,L)+VO(I,J,L+1))
           END DO
         END DO
-        DO I=1,IM
-          FLUXA(I,JM-1,L) = DT4*(MW(I,JM-1,L)+2.*MW(1,JM,L))*
+        if (have_north_pole) then
+          DO I=1,IM
+            FLUXA(I,JM-1,L) = DT4*(MW(I,JM-1,L)+2.*MW(1,JM,L))*
      *         (VO(I,JM-1,L)+VO(I,JM-1,L+1))
-        END DO
+          END DO
+        end if
       END DO
 !$OMP END PARALLEL DO
 C
 !$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
         IF(L.EQ.1)  THEN
-          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
+          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L) - FLUXA(:,J_0S:J_1S,L)
         ELSE IF(L.LT.LMO)  THEN
-          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
-          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
+          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L)+FLUXA(:,J_0S:J_1S,L-1)
+          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L)-FLUXA(:,J_0S:J_1S,L)
         ELSE IF(L.EQ.LMO)  THEN
-          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
+          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L)+FLUXA(:,J_0S:J_1S,L-1)
         END IF
       END DO
 !$OMP END PARALLEL DO
 C****
 C**** Add changes to momentum
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,L,DUMS,DUMN)
+!$OMP PARALLEL DO  PRIVATE(I,J,L)
       DO L=1,LMO
 C**** U component
-        DO J=2,JM-1
+        DO J=J_0S,J_1S
         DO I=1,IM
           UM2(I,J,L) = UM0(I,J,L) + DUM(I,J,L)
         END DO
         END DO
-        DUMS = 0.
-        DUMN = 0.
-        DO 620 I=1,IM
-          DUMS = DUMS + DUM(I, 1,L)
-  620     DUMN = DUMN + DUM(I,JM,L)
-        UM2(IM,1,L) = UM0(IM,1,L) + DUMS
-        UM2(1,JM,L) = UM0(1,JM,L) + DUMN
+        if(have_south_pole) UM2(IM,1,L) = UM0(IM,1,L) + sum(DUM(:,1,L))
+        if(have_north_pole) UM2(1,JM,L) = UM0(1,JM,L) + sum(DUM(:,JM,L))
 C**** V component
-      DO J=1,JM-1
+        DO J=J_0,J_1S
         DO I=1,IM
           VM2(I,J,L) = VM0(I,J,L) + DVM(I,J,L)
         END DO
-      END DO
+        END DO
       END DO
 !$OMP END PARALLEL DO
       RETURN
@@ -1537,18 +1830,30 @@ C**** V component
       USE OCEAN, only : im,jm,lmo,g0m,gzmo,szmo,mo,hocean,lmm,lmu,lmv
      *     ,focean,dypo,dxvo,opress,ogeoz,imaxj
       USE OCEAN_DYN, only : po,phi,dh,dzgdp,vbar
+      use domain_decomp, only : grid, get, halo_update, north
+
       IMPLICIT NONE
 C****
 C**** Input: G0M (J), GZMO, S0M (kg), SZMO, DT (s), MO (kg/m**2)
 C**** Output: UM (kg*m/s) = UM - DT*(DH*D(P)+MO*D(PHI))*DYP
 C****         VM (kg*m/s) = VM - DT*(DH*D(P)+MO*D(PHI))*DXV
 C****
-      REAL*8, INTENT(OUT), DIMENSION(IM,JM,LMO) :: UM,VM
+      REAL*8, INTENT(OUT),
+     *   DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: UM,VM
       REAL*8, INTENT(IN) :: DT1
-      REAL*8, DIMENSION(IM,JM,LMO) :: DUM,DVM
+      REAL*8,
+     *   DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: DUM,DVM
       INTEGER I,J,L,IP1
       REAL*8, SAVE :: PHIE
       REAL*8 DT2
+
+      integer :: j_0,j_1, j_0s,j_1s
+      logical :: have_north_pole
+
+      call get (grid, j_strt=j_0, j_stop=j_1,
+     *  j_strt_skp=j_0s, j_stop_skp=j_1s,
+     *  have_north_pole=have_north_pole)
+
 C****
 C**** SURFCB  OPRESS  Atmospheric and sea ice pressure (Pa-101325)
 C****         OGEOZ  Ocean surface geopotential (m^2/s^2)
@@ -1559,7 +1864,7 @@ C**** Calculate the mass weighted pressure P (Pa),
 C**** geopotential PHI (m**2/s**2), and layer thickness DH (m)
 C****
 !$OMP PARALLEL DO  PRIVATE(I,J,L,PHIE)
-      DO J=1,JM
+      DO J=j_0,j_1
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).GT.0.) THEN
 C**** Calculate pressure by integrating from the top down
@@ -1580,37 +1885,48 @@ C**** Calculate geopotential by integrating from the bottom up
       END DO
 !$OMP END PARALLEL DO
 C**** Define polar values at all latitudes
-      DO L=1,LMM(1,JM)
-C        PO(2:IM, 1,L) =  PO(1,IM,L)
-C       PHI(2:IM, 1,L) = PHI(1,IM,L)
-C        DH(2:IM, 1,L) =  DH(1,IM,L)
-         PO(2:IM,JM,L) =  PO(1,JM,L)
-        PHI(2:IM,JM,L) = PHI(1,JM,L)
-         DH(2:IM,JM,L) =  DH(1,JM,L)
-      END DO
-C      OGEOZ(2:IM, 1) = OGEOZ(1,1)
-      OGEOZ(2:IM,JM) = OGEOZ(1,JM)
+C     if (have_south_pole) then
+C       DO L=1,LMM(1,JM)
+C          PO(2:IM, 1,L) =  PO(1,IM,L)
+C         PHI(2:IM, 1,L) = PHI(1,IM,L)
+C          DH(2:IM, 1,L) =  DH(1,IM,L)
+C        END DO
+C        OGEOZ(2:IM, 1) = OGEOZ(1,1)
+C     end if
+      if (have_north_pole) then
+        DO L=1,LMM(1,JM)
+           PO(2:IM,JM,L) =  PO(1,JM,L)
+          PHI(2:IM,JM,L) = PHI(1,JM,L)
+           DH(2:IM,JM,L) =  DH(1,JM,L)
+        END DO
+        OGEOZ(2:IM,JM) = OGEOZ(1,JM)
+      end if
 C****
 C**** Calculate smoothed East-West Pressure Gradient Force
 C****
+      dum = 0.
 !$OMP PARALLEL DO  PRIVATE(I,IP1,J,L)
-      DO 230 J=2,JM-1
+      DO 230 J=j_0s,j_1s
       I=IM
       DO 230 IP1=1,IM
       DO 210 L=1,LMU(I,J)
   210 DUM(I,J,L) = -DT2*DYPO(J)*
      *  (( DH(IP1,J,L)+ DH(I,J,L))*( PO(IP1,J,L)- PO(I,J,L)) +
      +   (PHI(IP1,J,L)-PHI(I,J,L))*(MO(IP1,J,L)+MO(I,J,L)))
-      DO 220 L=LMU(I,J)+1,LMO
-  220 DUM(I,J,L) = 0.
+c     DO 220 L=LMU(I,J)+1,LMO
+c 220 DUM(I,J,L) = 0.
   230 I=IP1
 !$OMP END PARALLEL DO
-      CALL OPFIL (DUM,LMO)
+      CALL OPFIL (DUM,LMO)  ! extends to trimmed halo
 C****
 C**** Calculate North-South Pressure Gradient Force
 C****
+      CALL HALO_UPDATE(grid, DH,FROM=NORTH)
+      CALL HALO_UPDATE(grid, PO,FROM=NORTH)
+      CALL HALO_UPDATE(grid,PHI,FROM=NORTH)
+      CALL HALO_UPDATE(grid, MO,FROM=NORTH)
 !$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO 310 J=1,JM-1
+      DO 310 J=j_0,j_1s
       DO 310 I=1,IM
       DO 310 L=1,LMV(I,J)
   310 DVM(I,J,L) = -DT2*DXVO(J)*
@@ -1621,7 +1937,7 @@ C****
 C**** Add pressure gradient force to momentum
 C****
 !$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO J=2,JM-1
+      DO J=j_0s,j_1s
         DO I=1,IM
       DO 610 L=1,LMU(I,J)
   610 UM(I,J,L) = UM(I,J,L) + DUM(I,J,L)
@@ -1629,7 +1945,7 @@ C****
       END DO
 !$OMP END PARALLEL DO
 !$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO J=1,JM-1
+      DO J=j_0,j_1s
         DO I=1,IM
       DO 630 L=1,LMV(I,J)
   630 VM(I,J,L) = VM(I,J,L) + DVM(I,J,L)
@@ -1653,15 +1969,21 @@ C****
       USE OCEAN, only : im,jm,lmo,g0m,gzmo,s0m,szmo,mo,opress,lmm
      *     ,bydxypo,imaxj,opbot
       USE OCEAN_DYN, only : dzgdp,vbar,mmi
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
       INTEGER I,J,L
       REAL*8, SAVE :: PE
       REAL*8 PUP,PDN,GUP,GDN,SUP,SDN,VUP,VDN,PBAR,BYMMI
       REAL*8 VOLGSP
 
+      integer :: j_0,j_1
+
+      call get (grid, j_strt=j_0, j_stop=j_1)
+
 !$OMP PARALLEL DO  PRIVATE(I,J,L,PE,BYMMI,PBAR,PUP,PDN,GUP,GDN,
 !$OMP&                     SUP,SDN,VUP,VDN)
-      DO J=1,JM
+      DO J=j_0,j_1
       DO I=1,IMAXJ(J)
         PE = OPRESS(I,J)
         DO L=1,LMM(I,J)
@@ -1686,7 +2008,7 @@ C****
       RETURN
       END SUBROUTINE OPGF0
 
-      SUBROUTINE OADVT (RM,RX,RY,RZ,DT,QLIMIT,OIJL)
+      SUBROUTINE OADVT (RM,RX,RY,RZ,DT,QLIMIT, OIJL)
 !@sum  OADVT advects tracers using the linear upstream scheme.
 !@auth Gary Russell
 !@ver  1.0
@@ -1703,13 +2025,24 @@ C****       OIJL (kg) = diagnostic accumulation of tracer mass flux
 C****
       USE OCEAN, only : im,jm,lmo
       USE OCEAN_DYN, only : mb=>mmi,smu,smv,smw
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: RM,RX,RY,RZ
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO,3) :: OIJL
-      REAL*8, DIMENSION(IM,JM,LMO) :: MA
-      INTEGER I,J,L
+      REAL*8, INTENT(INOUT),     DIMENSION
+     *     (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: RM,RX,RY,RZ
+      REAL*8, INTENT(INOUT),
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,3) :: OIJL
+      REAL*8,
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MA
+      INTEGER I,J,L, J_0H
       LOGICAL, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
+
+      logical :: HAVE_NORTH_POLE  ! ,HAVE_SOUTH_POLE
+         call get (grid, J_STRT_HALO=J_0H)
+         call get (grid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+C        call get (grid, HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+
 C****
 C**** Load mass after advection from mass before advection
 C****
@@ -1717,17 +2050,24 @@ C****
 C****
 C**** Advect the tracer using the Slopes Scheme
 C****
-      CALL OADVTX (RM,RX,RY,RZ,MA,SMU,5d-1*DT,QLIMIT,OIJL)
-      CALL OADVTY (RM,RX,RY,RZ,MA,SMV,     DT,QLIMIT,OIJL(1,1,1,2))
-      CALL OADVTZ (RM,RX,RY,RZ,MA,SMW,     DT,QLIMIT,OIJL(1,1,1,3))
-      CALL OADVTX (RM,RX,RY,RZ,MA,SMU,5d-1*DT,QLIMIT,OIJL)
+      CALL OADVTX (RM,RX,RY,RZ,MA,SMU,5d-1*DT,QLIMIT,OIJL(1,J_0H,1,1))
+      CALL OADVTY (RM,RX,RY,RZ,MA,SMV,     DT,QLIMIT,OIJL(1,J_0H,1,2))
+      CALL OADVTZ (RM,RX,RY,RZ,MA,SMW,     DT,QLIMIT,OIJL(1,J_0H,1,3))
+      CALL OADVTX (RM,RX,RY,RZ,MA,SMU,5d-1*DT,QLIMIT,OIJL(1,J_0H,1,1))
 C**** Fill in values at the poles
+      if (HAVE_NORTH_POLE) then
       DO 20 L=1,LMO
       DO 20 I=1,IM
-C     RM(I, 1,L) = RM(IM,1,L)
-C     RZ(I, 1,L) = RZ(IM,1,L)
       RM(I,JM,L) = RM(1,JM,L)
    20 RZ(I,JM,L) = RZ(1,JM,L)
+      end if
+C     if (HAVE_SOUTH_POLE) then
+C     DO 30 L=1,LMO
+C     DO 30 I=1,IM
+C     RM(I, 1,L) = RM(IM,1,L)
+C  30 RZ(I, 1,L) = RZ(IM,1,L)
+C     end if
+
       RETURN
       END SUBROUTINE OADVT
 
@@ -1746,23 +2086,30 @@ C****             RX,RY,RZ (kg) = first moments of tracer mass
 C****                    M (kg) = ocean mass
 C****
       USE OCEAN, only : im,jm,lmo,lmm,focean
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: RM,RX,RY,RZ
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: OIJL
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: MO
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LMO) :: MU
+      REAL*8, INTENT(INOUT),
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
+     *  RM,RX,RY,RZ, OIJL, MO
+      REAL*8, INTENT(IN),
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MU
       LOGICAL*4, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(IM) :: AM,A,FM,FX,FY,FZ
       REAL*8 RXY
       INTEGER I,J,L,IM1,IP1,ICKERR
 
+      INTEGER :: J_0S,J_1S
+
+      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S)
+
 C**** Loop over layers and latitudes
       ICKERR=0
 !$OMP PARALLEL DO  PRIVATE(I,J,L,IP1,IM1,A,AM,FM,FX,FY,FZ,RXY)
 !$OMP&             REDUCTION(+:ICKERR)
       DO 320 L=1,LMO
-      DO 320 J=2,JM-1
+      DO 320 J=J_0S,J_1S
 C****
 C**** Calculate FM (kg), FX (kg**2), FY (kg) and FZ (kg)
 C****
@@ -1881,7 +2228,7 @@ C****
 C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       IF(ICKERR.EQ.0)  RETURN
       DO 440 L=1,LMO
-      DO 440 J=2,JM-1
+      DO 440 J=J_0S,J_1S
       DO 440 I=1,IM
          IF(FOCEAN(I,J).gt.0 .and. MO(I,J,L).LE.0.)  GO TO 800
          IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
@@ -1895,249 +2242,466 @@ c      WRITE (6,*) 'A=',(I,A(I),I=1,IM)
       call stop_model("OADVTX",255)
       END SUBROUTINE OADVTX
 
-      SUBROUTINE OADVTY (RM,RX,RY,RZ,MO,MV,DT,QLIMIT,OIJL)
-C****
-C**** OADVTY advects tracers in the south to north direction using the
-C**** linear upstream scheme.  If QLIMIT is true, the gradients are
-C**** limited to prevent the mean tracer from becoming negative.
-C****
-C**** Input: DT (s) = time step
-C****     MV (kg/s) = south to north mass flux
-C****        QLIMIT = whether slope limitations should be used
-C**** Input and Output: RM (kg) = tracer mass
-C****             RX,RY,RZ (kg) = first moments of tracer mass
-C****                    M (kg) = ocean mass
-C****
-      USE OCEAN, only : im,jm,lmo,lmm,focean
-      IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: RM,RX,RY,RZ
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: OIJL
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: MO
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LMO) :: MV
-      LOGICAL*4, INTENT(IN) :: QLIMIT
-      REAL*8, INTENT(IN) :: DT
-      REAL*8, DIMENSION(JM) :: BM,B,FM,FX,FY,FZ
-      INTEGER I,J,L,ICKERR
-      REAL*8 SBMN,SFMN,SFZN,RXY
+      subroutine oadvty (rm,rx,ry,rz,mo,mv,dt,qlimit,oijl)
+!@sum  OADVTY advection driver for y-direction
+!@auth Gary Russell, modified by T.Clune, R. Ruedy
+c****
+c**** oadvty advects tracers in the south to north direction using the
+c**** linear upstream scheme.  if qlimit is true, the moments are
+c**** limited to prevent the mean tracer from becoming negative.
+c****
+c**** input:
+c****     mv (kg/s) = north-south mo flux, positive northward
+c****        qlimit = whether slope limitations should be used
+c****
+c**** input/output:
+c****     rm     (kg) = tracer mass
+c****   rx,ry,rz (kg) = 1st moments of tracer mass
+c****     mo     (kg) = ocean mass
+c****
+      use DOMAIN_DECOMP, only : grid, get, halo_update
+      use DOMAIN_DECOMP, only : halo_update_column
+      use DOMAIN_DECOMP, only : NORTH, SOUTH, AM_I_ROOT
+      use OCEAN, only : im,jm,lmo,lmm,focean
+      implicit none
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &                  rm, rx,ry,rz, mo,mv, oijl
+      real*8, intent(in) :: dt
+      logical, intent(in) ::  qlimit
 
-C**** Loop over layers and longitudes
+      REAL*8, dimension(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
+     &        BM, fm,fx,fy,fz
+      integer :: i,j,L,ierr,ICKERR, err_loc(3)
+      REAL*8, DIMENSION(LMO) ::
+     &     m_np,rm_np,rzm_np ! ,m_sp,rm_sp,rzm_sp
+
+c****Get relevant local distributed parameters
+      INTEGER J_0,J_1,J_0H,J_1H,J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0,
+     &               J_STOP = J_1, J_STOP_SKP=J_1S,
+     &               J_STRT_HALO = J_0H,
+     &               J_STOP_HALO = J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+c**** loop over layers
       ICKERR=0
-!$OMP PARALLEL DO  PRIVATE(I,J,L, SBMN,SFMN,SFZN, B,BM,FM,FX,FY,FZ,RXY),
-!$OMP&             REDUCTION(+:ICKERR)
-      DO 350 L=1,LMO
-C     SBMS = 0.
-C     SFMS = 0.
-C     SFZS = 0.
-      SBMN = 0.
-      SFMN = 0.
-      SFZN = 0.
-      DO 330 I=1,IM
-C****
-C**** Calculate FM (kg), FX (kg), FY (kg**2) and FZ (kg) near South Pole
-C****
-      BM(1) = DT*MV(I,1,L)
-C     IF(BM(1)) 101,102,103
-C**** Ocean mass flux is negative
-C 101 B(1)  = BM(1)/MO(I,2,L)
-C     IF(B(1).LT.-1d0)  WRITE (6,*) 'B<-1:',I,1,L,B(1),MO(1,2,L)
-C     FM(1) = B(1)*(RM(I,2,L)-(1d0+B(1))*RY(I,2,L))
-C     FX(1) = B(1)*RX(I,2,L)
-C     FY(1) = BM(1)*(B(1)*B(1)*RY(I,2,L)-3d0*FM(1))
-C     FZ(1) = B(1)*RZ(I,2,L)
-C     GO TO 110
-C**** Ocean mass flux is zero
-  102 B(1)  = 0.
-      FM(1) = 0.
-      FX(1) = 0.
-      FY(1) = 0.
-      FZ(1) = 0.
-C     GO TO 110
-C**** Ocean mass flux is positive
-C 103 B(1)  = BM(1)/MO(IM,1,L)
-C     IF(B(1).GT.1d0)  WRITE (6,*) 'B>1:',I,1,L,B(1),MO(IM,1,L)
-C     FM(1) = B(1)*RM(IM,1,L)
-C     FX(1) = 0.
-C     FY(1) = -3d0*BM(1)*FM(1)
-C     FZ(1) = B(1)*RZ(IM,1,L)
-C****
-C**** Calculate FM (kg), FX (kg), FY (kg**2) and FZ (kg) in the interior
-C****
-  110 DO 114 J=2,JM-2
-      BM(J) = DT*MV(I,J,L)
-      IF(BM(J)) 111,112,113
-C**** Ocean mass flux is negative
-  111 B(J)  = BM(J)/MO(I,J+1,L)
-      IF(B(J).LT.-1d0)  WRITE (6,*) 'B<-1:',I,J,L,B(J),MO(I,J+1,L)
-      FM(J) = B(J)*(RM(I,J+1,L)-(1d0+B(J))*RY(I,J+1,L))
-      FX(J) = B(J)*RX(I,J+1,L)
-      FY(J) = BM(J)*(B(J)*B(J)*RY(I,J+1,L)-3d0*FM(J))
-      FZ(J) = B(J)*RZ(I,J+1,L)
-      GO TO 114
-C**** Ocean mass flux is zero
-  112 B(J)  = 0.
-      FM(J) = 0.
-      FX(J) = 0.
-      FY(J) = 0.
-      FZ(J) = 0.
-      GO TO 114
-C**** Ocean mass flux is positive
-  113 B(J)  = BM(J)/MO(I,J,L)
-      IF(B(J).GT.1d0)  WRITE (6,*) 'B>1:',I,J,L,B(J),MO(I,J,L)
-      FM(J) = B(J)*(RM(I,J,L)+(1d0-B(J))*RY(I,J,L))
-      FX(J) = B(J)*RX(I,J,L)
-      FY(J) = BM(J)*(B(J)*B(J)*RY(I,J,L)-3d0*FM(J))
-      FZ(J) = B(J)*RZ(I,J,L)
-  114 CONTINUE
-C****
-C**** Calculate FM (kg), FX (kg), FY (kg**2) and FZ (kg) near North Pole
-C****
-      BM(JM-1) = DT*MV(I,JM-1,L)
-      IF(BM(JM-1)) 121,122,123
-C**** Ocean mass flux is negative
-  121 B(JM-1)  = BM(JM-1)/MO(1,JM,L)
-      IF(B(JM-1).LT.-1d0) WRITE(6,*) 'B<-1:',I,JM-1,L,B(JM-1),MO(1,JM,L)
-      FM(JM-1) = B(JM-1)*RM(1,JM,L)
-      FX(JM-1) = 0.
-      FY(JM-1) = -3d0*BM(JM-1)*FM(JM-1)
-      FZ(JM-1) = B(JM-1)*RZ(1,JM,L)
-      GO TO 200
-C**** Ocean mass flux is zero
-  122 B(JM-1)  = 0.
-      FM(JM-1) = 0.
-      FX(JM-1) = 0.
-      FY(JM-1) = 0.
-      FZ(JM-1) = 0.
-      GO TO 200
-C**** Ocean mass flux is positive
-  123 B(JM-1)  = BM(JM-1)/MO(I,JM-1,L)
-      IF(B(JM-1).GT.1d0) WRITE(6,*) 'B>1:',I,JM-1,L,B(JM-1),MO(1,JM-1,L)
-      FM(JM-1) = B(JM-1)*(RM(I,JM-1,L)+(1d0-B(JM-1))*RY(I,JM-1,L))
-      FX(JM-1) = B(JM-1)*RX(I,JM-1,L)
-      FY(JM-1) = BM(JM-1)*(B(JM-1)*B(JM-1)*RY(I,JM-1,L)-3d0*FM(JM-1))
-      FZ(JM-1) = B(JM-1)*RZ(I,JM-1,L)
-C****
-C**** Modify the tracer moments so that the tracer mass in each
-C**** division is non-negative
-C****
-  200 IF(.NOT.QLIMIT)  GO TO 300
-      DO 290 J=2,JM-1
-      IF(B(J-1).GE.0.)  GO TO 240
-C**** Water is leaving through the south edge: 2 or 3 divisions
-      IF(FM(J-1).LE.0.)  GO TO 210
-C**** South most division is negative, RMS = -FM(J-1) < 0: Case 2 or 4
-      RY(I,J,L) = RM(I,J,L)/(1d0+B(J-1))
-      FM(J-1) = 0.
-      FY(J-1) = BM(J-1)*B(J-1)*B(J-1)*RY(I,J,L)
-      IF(B(J).LE.0.)  GO TO 290
-      FM(J) = B(J)*(RM(I,J,L)+(1d0-B(J))*RY(I,J,L))
-      FY(J) = BM(J)*(B(J)*B(J)*RY(I,J,L)-3d0*FM(J))
-      GO TO 290
-C**** South most division is non-negative, RMS = -FM(J-1) > 0:
-C**** Case 1, 3 or 5
-  210 IF(B(J).LE.0.)  GO TO 230
-C**** Water is leaving through the north edge: 3 divisions
-      IF(FM(J).GE.0.)  GO TO 290
-C**** North most division is negative, RMN = FM(J) < 0: Case 3 or 5
-  220 RY(I,J,L) = -RM(I,J,L)/(1d0-B(J))
-      FM(J) = 0.
-      FY(J) = BM(J)*B(J)*B(J)*RY(I,J,L)
-      FM(J-1) = B(J-1)*(RM(I,J,L)-(1d0+B(J-1))*RY(I,J,L))
-      FY(J-1) = BM(J-1)*(B(J-1)*B(J-1)*RY(I,J,L)-3d0*FM(J-1))
-      GO TO 290
-C**** No water is leaving through the north edge: 2 divisions
-  230 IF(RM(I,J,L)+FM(J-1).GE.0.)  GO TO 290
-C**** North most division is negative, RMN = RM(I,J)+FM(J-1) < 0: Case 3
-      RY(I,J,L) = RM(I,J,L)/B(J-1)
-      FM(J-1) = -RM(I,J,L)
-      FY(J-1) = BM(J-1)*(B(J-1)+3d0)*RM(I,J,L)
-      GO TO 290
-C**** No water is leaving through the south edge: 1 or 2 divisions
-  240 IF(B(J).LE.0.)  GO TO 290
-C**** Water is leaving through the north edge: 2 divisions
-      IF(FM(J).GE.0.)  GO TO 250
-C**** North most division is negative, RMN = FM(J) < 0: Case 3
-      RY(I,J,L) = -RM(I,J,L)/(1d0-B(J))
-      FM(J) = 0.
-      FY(J) = BM(J)*B(J)*B(J)*RY(I,J,L)
-      GO TO 290
-C**** North most division is non-negative, RMN = FM(J) > 0: Case 1 or 2
-  250 IF(RM(I,J,L)-FM(J).GE.0.)  GO TO 290
-C**** South most division is negative, RMS = RM(I,J)-FM(J) < 0: Case 2
-      RY(I,J,L) = RM(I,J,L)/B(J)
-      FM(J) = RM(I,J,L)
-      FY(J) = BM(J)*(B(J)-3d0)*RM(I,J,L)
-C****
-  290 CONTINUE
-C 300 SBMS = SBMS + BM(1)
-C     SFMS = SFMS + FM(1)
-C     SFZS = SFZS + FZ(1)
-  300 SBMN = SBMN + BM(JM-1)
-      SFMN = SFMN + FM(JM-1)
-      SFZN = SFZN + FZ(JM-1)
-C****
-C**** Calculate new tracer mass and first moments of tracer mass
-C****
-      DO 310 J=2,JM-1
-      IF(L.GT.LMM(I,J))  GO TO 310
-      RM(I,J,L) = RM(I,J,L) + (FM(J-1)-FM(J))
-      RX(I,J,L) = RX(I,J,L) + (FX(J-1)-FX(J))
-      RY(I,J,L) = (RY(I,J,L)*MO(I,J,L) + (FY(J-1)-FY(J))
-     *  + 3d0*((BM(J-1)+BM(J))*RM(I,J,L)-MO(I,J,L)*(FM(J-1)+FM(J))))
-     *  / (MO(I,J,L)+BM(J-1)-BM(J))
-      RZ(I,J,L) = RZ(I,J,L) + (FZ(J-1)-FZ(J))
-C****
-      if ( QLIMIT ) then ! limit tracer gradients
-        RXY = abs(RX(I,J,L)) + abs(RY(I,J,L))
-        if ( RXY > RM(I,J,L) ) then
-          RX(I,J,L) = RX(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
-          RY(I,J,L) = RY(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
+!$OMP  PARALLEL DO PRIVATE(I,J,L) DEFAULT(SHARED)
+!!! !$OMP* SHARED(JM,im)
+      do L=1,lmo
+
+c****   fill in and save polar values
+c       if (HAVE_SOUTH_POLE) then
+c         m_sp(L) = mo(1,1,L)
+c         mo(2:im,1,L) = mo(1,1,L)
+c         rm_sp(L) = rm(1,1,L)
+c         rm(2:im,1,L) = rm(1,1,L)
+c         rzm_sp(L)  = rz(1,1,L)
+c         rz(2:im,1,L)  = rz(1,1,L)
+c       end if                       !SOUTH POLE
+
+        if (HAVE_NORTH_POLE) then
+          m_np(L) = mo(1,jm,L)
+          mo(2:im,jm,L) = mo(1,jm,L)
+          rm_np(L) = rm(1,jm,l)
+          rm(2:im,jm,L) = rm(1,jm,L)
+          rzm_np(L)  = rz(1,jm,l)
+          rz(2:im,jm,L)  = rz(1,jm,L)
+        end if                       !NORTH POLE
+c****
+c****   convert flux to water mass moving north (if >0)
+        do j=j_0,j_1
+        do i=1,im
+          if(focean(i,j).gt.0. .and. L.le.lmm(i,j)) then
+            bm(i,j,L)=dt*mv(i,j,L)
+          else
+            bm(i,j,L)=0.
+            mo(i,j,L)=0.
+          end if
+        end do
+        end do
+
+c****   POLES: set horiz. moments to zero
+        IF (HAVE_SOUTH_POLE) THEN
+          rx(:,1,L) = 0. ; ry(:,1,L) = 0.
         end if
-        if ( abs(RZ(I,J,L)) > RM(I,J,L) )
-     *       RZ(I,J,L) = sign(RM(I,J,L), RZ(I,J,L)+0d0)
-      end if
-C****
-      MO(I,J,L) = MO(I,J,L) +  BM(J-1)-BM(J)
-         IF(MO(I,J,L).LE.0.)             ICKERR=ICKERR+1
-         IF(QLIMIT.AND.RM(I,J,L).LT.0.)  ICKERR=ICKERR+1
-  310 CONTINUE
-         DO 320 J=1,JM-1
-  320    OIJL(I,J,L) = OIJL(I,J,L) + FM(J)
-  330    CONTINUE
-C     IF(L.GT.LMM(IM,1))  GO TO 340
-C     RM(IM,1,L) = RM(IM,1,L) - SFMS/IM
-C     RZ(IM,1,L) = RZ(IM,1,L) - SFZS/IM
-C     MO(IM,1,L) =  MO(IM,1,L) - SBMS/IM
-C        IF(MO(IM,1,L).LE.0.)  GO TO 800
-C        IF(QLIMIT.AND.RM(IM,1,L).LT.0.)  GO TO 810
-  340 IF(L.GT.LMM(1,JM))  GO TO 350
-      RM(1,JM,L) = RM(1,JM,L) + SFMN/IM
-      RZ(1,JM,L) = RZ(1,JM,L) + SFZN/IM
-      MO(1,JM,L) = MO(1,JM,L) + SBMN/IM
-         IF(MO(1,JM,L).LE.0.)             ICKERR=ICKERR+1
-         IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  ICKERR=ICKERR+1
-  350 CONTINUE
+        IF (HAVE_NORTH_POLE) THEN
+          bm(:,jm,L) = 0.
+          rx(:,jm,L) = 0. ; ry(:,jm,L) = 0.
+        END IF
+      end do   ! loop over layers
 !$OMP END PARALLEL DO
 
-C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
-      IF(ICKERR.EQ.0)  RETURN
-      DO L=1,LMO
-        DO J=2,JM-1
-          DO I=1,IM
-            IF(FOCEAN(I,J).gt.0 .and. MO(I,J,L).LE.0.)  GO TO 800
-            IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
-          END DO
-        END DO
-        IF(FOCEAN(1,JM).gt.0 .and. MO(1,JM,L).LE.0.)  GO TO 800
-        IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  GO TO 810
-      END DO
-      WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTY ',ICKERR
-      call stop_model("OADVTY",255)
+c****
+c**** call 1-d advection routine
+c****
+        call advec_lin_1D_custom(
+     &     rm(1,j_0h,1), rx(1,j_0h,1),ry(1,j_0h,1),rz(1,j_0h,1),
+     &     fm(1,j_0h,1), fx(1,j_0h,1),fy(1,j_0h,1),fz(1,j_0h,1),
+     &     mo(1,j_0h,1), bm(1,j_0h,1),
+     &     qlimit,ierr,err_loc)
 
-  800 WRITE (6,*) 'MO<0 in OADVTY:',I,J,L,MO(I,J,L)
-  810 WRITE (6,*) 'RM in OADVTY:',I,J,L,RM(I,J,L)
-c      WRITE (6,*) 'B=',(J,B(J),J=1,JM-1)
-      call stop_model("OADVTY",255)
-      END SUBROUTINE OADVTY
+        if (ierr.gt.0) then
+          write(6,*) "Error in oadvty: i,j,l=",err_loc
+          if (ierr.eq.2) then
+ccc         write(0,*) "Error in qlimit: abs(b) > 1"
+ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
+            ICKERR=ICKERR+1
+          endif
+        end if
+! horizontal moments are zero at pole
+c       IF (HAVE_SOUTH_POLE) then
+c          rx(:,1, :) = 0  ; ry(:,1, :) = 0
+c       end if
+        IF (HAVE_NORTH_POLE) then
+           rx(:,jm,:) = 0. ; ry(:,jm,:) = 0.
+        end if
+
+!$OMP  PARALLEL DO PRIVATE(I,L) DEFAULT(SHARED)
+!!! !$OMP* SHARED(JM,IM)
+      do l=1,lmo
+
+c****   average and update polar boxes
+c       if (HAVE_SOUTH_POLE) then
+c         mo(:,1 ,l) = (m_sp(l) + sum(mo(:,1 ,l)-m_sp(l)))/im
+c         rm(:,1 ,l) = (rm_sp(l) + sum(rm(:,1 ,l)-rm_sp(l)))/im
+c         rz(:,1 ,l) = (rzm_sp(l) + sum(rz(:,1 ,l)-rzm_sp(l) ))/im
+c       end if   !SOUTH POLE
+
+        if (HAVE_NORTH_POLE .and. L.le.lmm(1,jm)) then
+          mo(1,jm,l) = m_np(l)   + sum(bm(:,jm-1,l))/im
+          rm(1,jm,l) = rm_np(l)  + sum(fm(:,jm-1,l))/im
+          rz(1,jm,l) = rzm_np(l) + sum(fz(:,jm-1,l))/im
+          if(mo(1,jm,l)<0. .or. (qlimit.and.rm(1,jm,l)<0.)) then
+            ICKERR=1
+            write(0,*) 'oadvty: mo or salt<0 at North Pole layer',
+     *      L,mo(1,jm,L),rm(1,jm,L)
+          endif
+          mo(2:im,jm,l)=mo(1,jm,l)
+          rm(2:im,jm,l)=rm(1,jm,l)
+          rz(2:im,jm,l)=rz(1,jm,l)
+        end if  !NORTH POLE
+
+      enddo ! end loop over levels
+!$OMP  END PARALLEL DO
+c
+c**** sum into oijl
+c
+!$OMP  PARALLEL DO PRIVATE(J,L)
+      do l=1,lmo ; do j=J_0,J_1S
+          oijl(:,j,l)  = oijl(:,j,l) + fm(:,j,l)
+      enddo ; enddo
+!$OMP  END PARALLEL DO
+C
+      IF(ICKERR.GT.0)  CALL stop_model('Stopped in oadvty',11)
+C
+      return
+c****
+      end subroutine oadvty
+
+      subroutine advec_lin_1D_custom(s,sx,sy,sz, f,fx,fy,fz, mass,dm,
+     *     qlimit,ierr, err_loc)
+!@sum  advec_lin_1d_custom is a parallel variant of adv1d but for a
+!@sum  linear upstream scheme.
+!@auth T. Clune, R. Ruedy
+c--------------------------------------------------------------
+c adv1d advects tracers in j-direction using the lin ups scheme
+c--------------------------------------------------------------
+      use ocean, only: im,jm,lmo,lmm,focean
+      USE DOMAIN_DECOMP, only: grid, GET
+      USE DOMAIN_DECOMP, only: NORTH, SOUTH
+      USE DOMAIN_DECOMP, only: HALO_UPDATE, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP, only: CHECKSUM
+      implicit none
+      !
+!@var s mean tracer amount (kg or J)
+!@var sx,sy,sz lin tracer moments (kg or J)
+!@var f tracer flux (diagnostic output) (kg or J)
+!@var fx,fy,fz tracer moment flux (diagnostic output) (kg or J)
+!@var mass mass field (kg)
+!@var dm mass flux (kg)
+!@var qlimit true if negative tracer is to be avoided
+!@var ierr, nerr error codes
+      logical, intent(in) :: qlimit
+      REAL*8, dimension(im, grid%j_strt_halo:grid%j_stop_halo,lmo)
+     *  :: s,sx,sy,sz, f,fx,fy,fz, mass,dm
+      integer :: n,np1,nm1,nn,ns
+      integer,intent(out) :: ierr,err_loc(3) ! 3 dimensions
+      REAL*8 :: fracm,frac1,mnew
+      INTEGER :: i
+      INTEGER :: l
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE
+      ! qlimit variables
+      REAL*8 :: an, anm1, fn, fnm1, sn, syn, sxy
+      !
+
+      ierr=0
+
+      CALL GET(grid, J_STRT = J_0, J_STOP=J_1,
+     & J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     & HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+
+      CALL HALO_UPDATE(grid, mass, FROM=NORTH)
+      CALL HALO_UPDATE(grid, s, FROM=NORTH)
+      CALL HALO_UPDATE(grid, sx, FROM=NORTH)
+      CALL HALO_UPDATE(grid, sy, FROM=NORTH)
+      CALL HALO_UPDATE(grid, sz, FROM=NORTH)
+
+      DO l=1,lmo
+        Do i=1, im
+          Call calc_tracer_mass_flux() ! f from s,sy,mass,dm
+        End Do                         ! temp. store dm/mass in fy
+      end do
+
+      CALL HALO_UPDATE(grid, fy, FROM=NORTH+SOUTH) ! still holding dm/m
+      ! Limit fluxes to maintain positive mean values?
+      If (qlimit) Then
+
+        Call HALO_UPDATE(grid, f, FROM=NORTH+SOUTH)
+        DO l=1,lmo
+          Do i=1, im
+            Call apply_limiter() ! adjusting f,sy
+          End Do
+        end do
+        Call HALO_UPDATE(grid, f, FROM=NORTH+SOUTH)
+      End If
+c--------------------------------------------------------------------
+         ! calculate tracer fluxes of slopes fx,fy,fz
+c--------------------------------------------------------------------
+      DO l=1,lmo
+        Do i=1, im
+          Call tracer_slopes()
+        end do
+      end do
+c-------------------------------------------------------------------
+c update tracer mass, moments of tracer mass, air mass distribution
+c-------------------------------------------------------------------
+      CALL HALO_UPDATE(grid, f,  FROM=SOUTH)
+      CALL HALO_UPDATE(grid, dm, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, fx, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, fy, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, fz, FROM=SOUTH)
+
+      DO l=1,lmo
+        DO i = 1, im
+          Call update_tracer_mass() ! s also: sx,sy,sz, mass
+        end do
+      enddo
+
+      return
+
+      Contains
+
+      Integer Function NeighborByFlux(n, dm)
+        Integer, Intent(In) :: n
+        Real*8, Intent(In) :: dm
+
+        Integer :: nn
+
+        If (dm < 0) Then ! air mass flux is negative
+          nn=n+1
+        else ! air mass flux is positive
+          nn=n
+        endif
+        NeighborByFlux = nn
+      End Function NeighborByFlux
+
+      Function FluxFraction(dm) Result(frac)
+        Real*8, Intent(In) :: dm
+        Real*8 :: frac
+
+        If (dm < 0 ) Then
+          frac = +1.
+        Else ! Flux non negative
+          frac = -1.
+        End If
+      End Function FluxFraction
+
+      Function MassFraction(dm, mass) Result (fracm)
+        Real*8, Intent(In) :: dm
+        Real*8, Intent(In) :: mass
+        Real*8 :: fracm
+
+        If (mass > 0.0d0) Then
+          fracm = dm / mass
+        Else
+          fracm = 0.d0
+        End If
+      End Function MassFraction
+
+      Subroutine calc_tracer_mass_flux()
+
+      Do n = J_0, J_1
+
+        nn = NeighborByFlux(n, dm(i,n,l))
+        fracm = MassFraction(dm(i,n,l), mass(i,nn,l))
+
+        frac1 = fracm + FluxFraction(dm(i,n,l))
+
+        f(i,n,l)=fracm*(s(i,nn,l)-frac1*sy(i,nn,l))
+      ! temporary storage of fracm in fy, to be used below
+        fy(i,n,l)=fracm
+      !
+      enddo
+      End Subroutine calc_tracer_mass_flux
+
+      Subroutine tracer_slopes()
+
+      Do n = J_0, J_1
+
+        nn = NeighborByFlux(n, dm(i,n,l))
+      ! retrieving fracm, which was stored in fy
+        fracm=fy(i,n,l)
+      !
+        fy(i,n,l)=
+     &     dm(i,n,l)*(fracm*fracm*sy(i,nn,l)-3.*f(i,n,l))
+      ! cross moments
+        fx(i,n,l)=fracm*sx(i,nn,l)
+        fz(i,n,l)=fracm*sz(i,nn,l)
+      enddo
+      End Subroutine tracer_slopes
+
+      Subroutine apply_limiter
+c     If (HAVE_SOUTH_POLE) Then
+c        n = J_0
+c        an = fy(i,n,l) ! reading fracm which was stored in fx
+c        anm1 = 0
+c        fn = f(i,n,l)
+c        fnm1 = 0
+c        sn = s(i,n,l)
+c        syn = sy(i,n,l)
+c        call limitq_lin(anm1,an,fnm1,fn,sn,syn)
+c        f(i,n,l) = fn
+c        f(i,n-1,l) = fnm1
+c        sy(i,n,l) = syn
+c     End If
+
+      DO n = J_0S, J_1S+1
+
+         an = fy(i,n,l) ! reading fracm which was stored in fy
+         anm1 = fy(i,n-1,l)
+         fn = f(i,n,l)
+         fnm1 = f(i,n-1,l)
+         sn = s(i,n,l)
+         syn = sy(i,n,l)
+         call limitq_lin(anm1,an,fnm1,fn,sn,syn)
+         f(i,n,l) = fn
+         f(i,n-1,l) = fnm1
+         sy(i,n,l) = syn
+
+      enddo
+      End Subroutine apply_limiter
+
+      Subroutine update_tracer_mass() ! non-polar only
+
+      Do n=J_0S,J_1S
+
+         if(focean(i,n).le.0. .or. l.gt.lmm(i,n)) cycle
+         mnew=mass(i,n,l) + dm(i,n-1,l)-dm(i,n,l)
+
+         s(i,n,l)=s(i,n,l) + (f(i,n-1,l)-f(i,n,l))
+
+         sy(i,n,l)=( sy(i,n,l)*mass(i,n,l) + (fy(i,n-1,l)-fy(i,n,l))
+     &              + 3.*( (dm(i,n-1,l)+dm(i,n,l))*s(i,n,l)
+     &                     -mass(i,n,l)*(f(i,n-1,l)+f(i,n,l)) ) )/mnew
+      ! cross moments
+         sx(i,n,l) = sx(i,n,l) + (fx(i,n-1,l)-fx(i,n,l))
+         sz(i,n,l) = sz(i,n,l) + (fz(i,n-1,l)-fz(i,n,l))
+      !
+         if (qlimit) then ! limit tracer gradients
+           sxy = abs(sx(i,n,l)) + abs(sy(i,n,l))
+           if ( sxy > s(i,n,l) ) then
+             sx(i,n,l) = sx(i,n,l)*( s(i,n,l)/(sxy + tiny(sxy)) )
+             sy(i,n,l) = sy(i,n,l)*( s(i,n,l)/(sxy + tiny(sxy)) )
+           end if
+           if ( abs(sz(i,n,l)) > s(i,n,l) )
+     *       sz(i,n,l) = sign(s(i,n,l),sz(i,n,l)+0.d0)
+         end if
+c------------------------------------------------------------------
+         mass(i,n,l) = mnew
+         if(mass(i,n,l).le.0. .or. (qlimit.and.s(i,n,l).lt.0.)) then
+            ierr=2
+            err_loc=(/ i, n, l /)
+            write(0,*) 'oadvty: mo or salt<0 at',err_loc,mnew,s(i,n,l)
+            return
+         endif
+c-----------------------------------------------------------------
+
+      enddo
+      End Subroutine Update_Tracer_Mass
+
+      end subroutine advec_lin_1D_custom
+
+      subroutine limitq_lin(anm1,an,fnm1,fn,sn,sx)
+!@sum  limitq adjusts moments to maintain non-neg. tracer means/fluxes
+!@auth G. Russell, modified by Maxwell Kelley
+        implicit none
+        REAL*8 :: anm1,an,fnm1,fn,sn,sx
+c local variables
+        REAL*8 :: sl,sc,sr, frl,frl1, frr,frr1, gamma,g13ab,
+     &       fr,fr1, fsign,su,sd
+c****
+c**** modify the tracer moments so that the tracer mass in each
+c**** division is non-negative
+c****
+c**** no water leaving the box
+        if(anm1.ge.0. .and. an.le.0.) return
+c**** water is leaving through both the left and right edges
+        if(anm1.lt.0. .and. an.gt.0.) then
+           sl = -fnm1
+           sr = +fn
+c**** all divisions are non-negative
+           if(sl.ge.0. .and. sr.ge.0.) return
+c**** at least one division is negative
+           frl = anm1
+           frl1 = frl+1.
+           frr = an
+           frr1 = frr-1.
+           if(sl.lt.0.) then           ! leftmost division
+              sx = sn/frl1
+              sr = frr*(sn-frr1*sx)
+              sl = 0.
+           else                        ! rightmost division
+              sx = sn/frr1
+              sl = -frl*(sn-frl1*sx)
+              sr = 0.
+           endif
+           fnm1 = -sl
+           fn   = +sr
+        else
+c**** water is leaving only through one edge
+           if(an.gt.0.)  then ! right edge
+              fr=an
+              sd=fn
+              fsign=-1.
+           else                  ! left edge
+              fr=anm1
+              sd=-fnm1
+              fsign=1.
+           endif
+           su = sn-sd
+           if(sd.ge.0. .and. su.ge.0.) return
+           fr1=fr+fsign
+           if(sd.lt.0.)  then
+c**** downstream division is negative
+              sx = sn/fr1
+              su = sn
+           else
+c**** upstream division is negative
+              sx = sn/fr
+              su = 0.
+           endif
+           sd = sn - su
+           if(an.gt.0.) then
+              fn=sd
+           else
+              fnm1=-sd
+           endif
+        endif
+        return
+      end subroutine limitq_lin
 
       SUBROUTINE OADVTZ (RM,RX,RY,RZ,MO,MW,DT,QLIMIT,OIJL)
 C****
@@ -2153,22 +2717,30 @@ C****             RX,RY,RZ (kg) = first moments of tracer mass
 C****                    M (kg) = ocean mass
 C****
       USE OCEAN, only : im,jm,lmo,lmm,focean
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: RM,RX,RY,RZ
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: OIJL
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LMO) :: MO
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LMO-1) :: MW
+      REAL*8, INTENT(INOUT),
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
+     *  RM,RX,RY,RZ, OIJL, MO
+      REAL*8, INTENT(IN),
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO-1) :: MW
       LOGICAL*4, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(0:LMO) :: CM,C,FM,FX,FY,FZ
       INTEGER I,J,L,LMIJ,ICKERR,IMIN,IMAX
       REAL*8 SBMN,SFMN,SFZN,RXY
+
+      INTEGER :: J_0,J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 C****
 C**** Loop over latitudes and longitudes
       ICKERR=0
 !$OMP PARALLEL DO  PRIVATE(I,IMIN,IMAX,J,L,LMIJ, C,CM, FM,FX,FY,FZ,RXY)
 !$OMP&             REDUCTION(+:ICKERR)
-      DO J=1,JM
+      DO J=J_0,J_1
         IMIN=1
         IMAX=IM
         IF (J.EQ.1) IMIN=IM
@@ -2233,7 +2805,7 @@ C**** Case 1, 3 or 5
 C**** Water is leaving through the top edge: 3 divisions
       IF(FM(L).GE.0.)  GO TO 290
 C**** Top most division is negative, RMT = FM(L) < 0: Case 3 or 5
-  220 RZ(I,J,L) = -RM(I,J,L)/(1d0-C(L))
+      RZ(I,J,L) = -RM(I,J,L)/(1d0-C(L))
       FM(L) = 0.
       FZ(L) = CM(L)*C(L)*C(L)*RZ(I,J,L)
       FM(L-1) = C(L-1)*(RM(I,J,L)-(1d0+C(L-1))*RZ(I,J,L))
@@ -2297,7 +2869,7 @@ C****
 
 C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       IF(ICKERR.EQ.0)  RETURN
-      DO J=1,JM
+      DO J=J_0,J_1
         IMIN=1
         IMAX=IM
         IF (J.EQ.1) IMIN=IM
@@ -2324,16 +2896,26 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 !@auth Gary Russell
 !@ver  1.0
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,lmu,lmv,dts
+      use domain_decomp, only : grid, get, halo_update, north, south
+
       IMPLICIT NONE
       INTEGER, PARAMETER :: IQ1=1+IM/4, IQ2=IQ1+IM/4, IQ3=IQ2+IM/4
       REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1
-      REAL*8, DIMENSION(IM,JM,LMO) :: UT,VT
+      REAL*8,DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO):: UT,VT
       INTEGER I,J,L,IP1,JV,IM1
       REAL*8 WSQ
+
+      INTEGER :: J_0, J_0S,J_1S  ; logical :: have_north_pole
+
+      CALL GET(grid, J_STRT=J_0, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     *               have_north_pole=have_north_pole)
 C****
 C**** UO = UO*(1-x/y)  is approximated by  UO*y/(y+x)  for stability
 C****
 C**** Save UO,VO into UT,VT which will be unchanged
+      call halo_update (grid, mo, FROM=NORTH)
+      call halo_update (grid, uo, FROM=NORTH)
+      call halo_update (grid, vo, FROM=SOUTH)
 !$OMP PARALLEL DO  PRIVATE(L)
       DO 10 L=1,LMO
         UT(:,:,L) = UO(:,:,L)
@@ -2344,7 +2926,7 @@ C**** Reduce West-East ocean current
 C****
 C**** Bottom drag in the interior
       I=IM
-      DO 120 J=2,JM-1
+      DO 120 J=J_0S,J_1S
       DO 110 IP1=1,IM
       IF(LMU(I,J).LE.0)  GO TO 110
       L=LMU(I,J)
@@ -2356,6 +2938,7 @@ C**** Bottom drag in the interior
   110 I=IP1
   120 CONTINUE
 C**** Bottom drag at the poles
+      if (have_north_pole) then
       J=JM
       JV=JM-1
 C     IF(LMU(1,J).LE.0)  GO TO
@@ -2367,11 +2950,12 @@ C     IF(LMU(1,J).LE.0)  GO TO
      *           (MO(1,J,L) + DTS*BDRAGX*SQRT(WSQ))
       DO 130 I=2,IM
   130 UO(I,J,L) = UO(1,J,L)
+      end if
 C****
 C**** Reduce South-North ocean current
 C****
       IM1=IM
-      DO 220 J=1,JM-1
+      DO 220 J=J_0,J_1S  ! J_0S ???
       DO 210 I=1,IM
       IF(LMV(I,J).LE.0)  GO TO 210
       L=LMV(I,J)
@@ -2396,15 +2980,22 @@ C****
 #ifdef TRACERS_OCEAN
      *     ,ntm,txmo,tymo
 #endif
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
       INTEGER I,IM1,IP1,J,LMIN,L,N
       REAL*8 REDUCE
+
+      integer :: J_0S, J_1S
+
+      call get (grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+
 
       REDUCE = 1d0 - DTS/(SDAY*2d1)
 C**** Reduce West-East gradient of tracers
       IM1=IM-1
       I=IM
-      DO 120 J=2,JM-1
+      DO 120 J=J_0S,J_1S
       DO 120 IP1=1,IM
       LMIN = MIN(LMM(IM1,J),LMM(IP1,J)) + 1
       DO 110 L=LMIN,LMM(I,J)
@@ -2419,7 +3010,7 @@ C**** Reduce West-East gradient of tracers
       IM1=I
   120 I=IP1
 C**** Reduce South-North gradient of tracers
-      DO 220 J=2,JM-1
+      DO 220 J=J_0S,J_1S
       DO 220 I=1,IM
       LMIN = MIN(LMM(I,J-1),LMM(I,J+1)) + 1
       DO 210 L=LMIN,LMM(I,J)
@@ -2443,6 +3034,8 @@ C**** Reduce South-North gradient of tracers
       USE OCEAN, only : im,jm,uo,vo,mo,dxyso,dxyno,dxyvo,lmu,lmv,cosic
      *     ,sinic,ratoc
       USE FLUXES, only : dmua,dmva,dmui,dmvi
+      use domain_decomp, only : grid, get, halo_update, north
+
       IMPLICIT NONE
       INTEGER I,J,IP1
 C****
@@ -2453,8 +3046,14 @@ C****         DMUA(2,JM,1)  polar atmo. mass slowed to zero (kg/m**2)
 C****         DMUI     U momentum downward from sea ice (kg/m*s)
 C****         DMVI     V momentum downward from sea ice (kg/m*s)
 
+      integer :: J_0, J_1, J_0S, J_1S  ; logical :: have_north_pole
+
+      call get (grid, J_STRT=J_0, J_STOP=J_1,
+     *                J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     *                have_north_pole=have_north_pole)
+
 C**** Scale stresses for ocean area
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IM
           DMUA(I,J,1)=RATOC(J)*DMUA(I,J,1)
           DMVA(I,J,1)=RATOC(J)*DMVA(I,J,1)
@@ -2466,7 +3065,7 @@ C****
 C**** Surface stress is applied to U component
 C****
       I=IM
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
       DO IP1=1,IM
         IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
      *       (DMUA(I,J,1) + DMUA(IP1,J,1) + 2d0*DMUI(I,J)) /
@@ -2474,11 +3073,14 @@ C****
         I=IP1
       END DO
       END DO
-      UO(1,JM,1) = UO(1,JM,1)*(1d0 - DMUA(2,JM,1)/MO(1,JM,1))
+      if (have_north_pole)
+     *  UO(1,JM,1) = UO(1,JM,1)*(1d0 - DMUA(2,JM,1)/MO(1,JM,1))
 C****
 C**** Surface stress is applied to V component
 C****
-      DO J=2,JM-2
+      call halo_update(grid, dmva, from=north)
+      call halo_update(grid,   mo, from=north)
+      DO J=J_0S,min(J_1S,JM-2)
       DO I=1,IM
         IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
      *       (DMVA(I,J  ,1)*DXYNO(J) + DMVA(I,J+1,1)*DXYSO(J+1)
@@ -2487,6 +3089,7 @@ C****
       END DO
       END DO
 C**** Surface stress is applied to V component at the North Pole
+      if (have_north_pole) then
       DO I=1,IM
         VO(I,JM-1,1) = VO(I,JM-1,1) +
      *       (DMVA(I,JM-1,1)*DXYNO(JM-1)+
@@ -2494,6 +3097,7 @@ C**** Surface stress is applied to V component at the North Pole
      *       + 2d0*DMVI(I,JM-1)*DXYVO(JM-1)) /
      *  (MO(I,JM-1,1)*DXYNO(JM-1) + MO(I,JM,1)*DXYSO(JM))
       END DO
+      end if
       RETURN
       END SUBROUTINE OSTRES
 
@@ -2520,6 +3124,8 @@ C**** Surface stress is applied to V component at the North Pole
      *     ,dtrsi
 #endif
       USE SEAICE_COM, only : rsi
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
@@ -2528,10 +3134,18 @@ C**** Surface stress is applied to V component at the North Pole
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1
 #endif
+
+      integer ::  J_1, J_0S
+      logical :: have_south_pole, have_north_pole
+
+      call get (grid, J_STOP=J_1, J_STRT_SKP=J_0S,
+     *                have_north_pole=have_north_pole,
+     *                have_south_pole=have_south_pole)
+
 C****
 C**** Add surface source of fresh water and heat
 C****
-      DO J=2,JM
+      DO J=J_0S,J_1
         DXYPJ=DXYPO(J)
         BYDXYPJ=BYDXYPO(J)
       DO I=1,IMAXJ(J)
@@ -2609,8 +3223,8 @@ C**** is consistent for OGEOZ calculation).
       END DO
       END DO
 
-      OPRESS(2:IM,1)  = OPRESS(1,1)
-      OPRESS(2:IM,JM) = OPRESS(1,JM)
+      if(have_south_pole) OPRESS(2:IM,1)  = OPRESS(1,1)
+      if(have_north_pole) OPRESS(2:IM,JM) = OPRESS(1,JM)
 C****
       RETURN
       END SUBROUTINE GROUND_OC
@@ -2761,12 +3375,20 @@ C****
      *     ,trmo,dxypo
 #endif
       USE SEAICE_COM, only : rsia=>rsi
+      USE DOMAIN_DECOMP, only : grid,get
+
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM) :: PREC,EPREC,RUNPSI,RSI,SRUNPSI
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *   PREC,EPREC,RUNPSI,RSI,SRUNPSI
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM,IM,JM) :: trprec,trunpsi
+      REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *   trprec,trunpsi
 #endif
       INTEGER I,J
+
+      integer :: J_0, J_1
+
+      call get (grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** save surface variables before any fluxes are added
       CALL KVINIT
@@ -2775,7 +3397,7 @@ C**** Convert fluxes on atmospheric grid to oceanic grid
 C**** build in enough code to allow a different ocean grid.
 C**** Since the geometry differs on B and C grids, some processing
 C**** of fluxes is necessary anyway
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           PREC   (I,J)=PRECA   (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
           EPREC  (I,J)=EPRECA  (I,J)*DXYP(J)             ! J
@@ -2793,7 +3415,7 @@ C**** of fluxes is necessary anyway
         END DO
       END DO
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF(FOCEAN(I,J).gt.0. .and. PREC(I,J).gt.0.)  THEN
             MO (I,J,1)= MO(I,J,1) + ((1d0-RSI(I,J))*PREC(I,J) +
@@ -2815,6 +3437,7 @@ C**** Convert ocean surface temp to atmospheric SST array
       END SUBROUTINE PRECIP_OC
 
       SUBROUTINE ODIFF (DTDIFF)
+C???? ESMF-exception - ODIFF currently works with global arrays
 !@sum  ODIFF applies Wasjowicz horizontal viscosity to velocities
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -2828,9 +3451,11 @@ C**** FSLIP = 0 implies no slip conditions, = 1 implies free slip
 C**** Mass variation is included
 C****
       USE CONSTANT, only :twopi,rhows,omega,radius
-      USE OCEAN, only : im,jm,lmo,mo,uo,vo,cospo,cosvo,rlat,lmu,lmv
-     *     ,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
-      USE OCEAN_DYN, only : dh
+!mpi  USE OCEAN, only : im,jm,lmo,mo,uo,vo,   ! ???
+      USE OCEAN, only : im,jm,lmo,mo=>mo_glob,uo=>uo_glob,vo=>vo_glob,
+     *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
+!mpi  USE OCEAN_DYN, only : dh  ! ???
+      USE OCEAN_DYN, only : dh=>dh_glob
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
       REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
@@ -2852,6 +3477,7 @@ C**** Local variables
       REAL*8 DSV,DSP,VLAT,DLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
       INTEGER I,J,L,IP1,IM1,II
 C****
+
       IF(IFIRST.ne.0)  THEN
       IFIRST = 0
       DO J=2,JM-1
@@ -3269,13 +3895,21 @@ C**** Done!
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
+      use domain_decomp, only : grid, get
+
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
+      integer :: j_0,j_1
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      call get (grid, j_strt=j_0, j_stop=j_1,
+     * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 C****
 C**** Note that currently everything is on same grid
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0.) THEN
             GO= G0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
@@ -3306,6 +3940,7 @@ C****
         END DO
       END DO
 C**** do poles
+      if (HAVE_NORTH_POLE) then
       IF (FOCEAN(1,JM).gt.0) THEN
         VOSURF(1,JM)=0.
         DO I=2,IM
@@ -3320,6 +3955,9 @@ C**** do poles
 #endif
         END DO
       END IF
+      end if
+
+      if (HAVE_SOUTH_POLE) then
       IF (FOCEAN(1,1).gt.0) THEN
         DO I=2,IM
           GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
@@ -3333,6 +3971,7 @@ C**** do poles
 #endif
         END DO
       END IF
+      end if
       RETURN
 C****
       END SUBROUTINE TOC2SST
@@ -3353,8 +3992,11 @@ C****
 !@sum  AT2OT interpolates Atm Tracer grid to Ocean Tracer grid
 !@auth Gavin Schmidt
 !@ver  1.0
+c GISS-ESMF EXCEPTIONAL CASE - AT2OT not needed yet - nothing done yet
       USE MODEL_COM, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm,imaxj,ratoc
+      use domain_decomp, only : grid,get
+
       IMPLICIT NONE
 !@var QCONSERV true if integrated field must be conserved
       LOGICAL, INTENT(IN) :: QCONSERV
@@ -3386,6 +4028,7 @@ C****
       END SUBROUTINE AT2OT
 
       SUBROUTINE OT2AT(FIELDO,FIELDA,NF,QCONSERV)
+c GISS-ESMF EXCEPTIONAL CASE - OT2AT not needed yet - nothing done yet
 !@sum  OT2AT interpolates Ocean Tracer grid to Atm Tracer grid
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -3424,9 +4067,10 @@ C****
       END SUBROUTINE OT2AT
 
       SUBROUTINE AT2OV(FIELDA,FIELDO,NF,QCONSERV,QU)
-!@sum  OT2AT interpolates Atm Tracer grid to Ocean Velocity grid
+!@sum  AT2OV interpolates Atm Tracer grid to Ocean Velocity grid
 !@auth Gavin Schmidt
 !@ver  1.0
+c GISS-ESMF EXCEPTIONAL CASE - AT2OV not needed yet - nothing done yet
       USE MODEL_COM, only : ima=>im,jma=>jm
       USE GEOM, only : imaxj
       USE OCEAN, only : imo=>im,jmo=>jm,ramvn,ramvs,ratoc
@@ -3505,6 +4149,8 @@ C****
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
 #endif
+      use domain_decomp, only : grid,get
+
       IMPLICIT NONE
 !@var MAXL number of ocean levels over which GMELT is applied
       INTEGER, PARAMETER :: MAXL=5
@@ -3512,10 +4158,14 @@ C****
       REAL*8 DZ
       INTEGER I,J,L
 
+      integer :: j_0,j_1
+
+      call get (grid, J_STRT=j_0, J_STOP=j_1)
+
       DO L=1,MAXL
 C**** divide over depth and scale for time step
         DZ=DT*(ZE(L)-ZE(L-1))/(DTsrc*ZE(MAXL))
-        DO J=1,JM
+        DO J=j_0,j_1
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).GT.0. .and. GMELT(I,J).gt.0) THEN
               MO(I,J,L) = MO(I,J,L)+GMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))

@@ -1677,7 +1677,8 @@ c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       !use vegetation, only: update_veg_locals
-      use ent_mod
+      use ent_mod, only: entcelltype_public, ent_set_forcings,
+     &     ent_get_exports, ent_fast_processes
 !@var longi,latj corresponding coordinate of the cell
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
@@ -1749,7 +1750,7 @@ ccc accm0 was not called here in older version - check
      &       canopy_air_humidity=qsat(tp(0,2),lhe,pres),
      &       surf_pressure=pres,
      &       surf_CO2=Ca,
-     &       precip=pr,
+ !    &       precip=pr,
      &       heat_transfer_coef=ch,
      &       wind_speed=vsm,
      &       total_visible_rad=vis_rad,
