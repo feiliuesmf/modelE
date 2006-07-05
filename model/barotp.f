@@ -3,9 +3,9 @@ c
 c --- version 2.8.2
       implicit none
 c
-#include "dimensions.h"
-#include "dimension2.h"
-#include "common_blocks.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
+      include 'common_blocks.h'
 c
       real q,utndcy,vtndcy,damp,uglue,vglue,
      .     u_ja,u_jb,v_ia,v_ib,dpu_ja,dpu_jb,dpv_ia,dpv_ib,hfharm
@@ -13,7 +13,7 @@ c
       integer lll,ml,nl,mn,ll,kan,jcyc
       logical vthenu,mxing
       character text*20
-      data damp/1.e-6/                        !  newtonian damping
+      data damp/1.e-6/			!  newtonian damping
 c
 c --- ------------------------------------------------------------------------
 c --- advance barotropic equations from baroclinic time level -m- to level -n-
@@ -31,7 +31,7 @@ c
       mxing=.false.
 ccc      if (mod(4*lll,lstep).eq.0) mxing=.true.
       if (mod(2*lll,lstep).eq.0) mxing=.true.
-ccc      mxing=.true.                                !  mix every time step
+ccc      mxing=.true.				!  mix every time step
 c
 c --- continuity equation
 c
@@ -92,7 +92,11 @@ c --- lateral turb. momentum flux (at vorticity points)
      .            *scq2(i,jb)*2./(scuy(i,j)+scuy(i,jb))
  822  continue
 c$OMP END PARALLEL DO
-      end if                                !  mxing = .true.
+c
+      call cpy_p(uflux1)
+      end if				!  mxing = .true.
+c
+      call cpy_p(pbavg(1,1,nl))
 c
 c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue)
       do 841 j=1,jj
@@ -103,14 +107,19 @@ c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue)
      .+(vbavg(i  ,j,mn)*depthv(i  ,j)+vbavg(i  ,jb ,mn)*depthv(i  ,jb )
      . +vbavg(i-1,j,mn)*depthv(i-1,j)+vbavg(i-1,jb ,mn)*depthv(i-1,jb ))
      . *(pvtrop(i,j)+pvtrop(i,jb ))*.125
-      util1(i,j)=damp*(glue(i,j)+glue(i-1,j)-2.0)*ubavg(i,j,ml)
+      util1(i,j)=(damp*(glue(i,j)+glue(i-1,j)-2.0)+dampu(i,j))
+     . *ubavg(i,j,ml)
       if (mxing) util1(i,j)=util1(i,j)
      . +veldff*(uflux1(i,j)-uflux1(i-1,j)+uflux3(i,j)-uflux2(i,j))/
      .  (scu2(i,j)*depthu(i,j)) * (1.+10.*(glue(i,j)+glue(i-1,j)-2.0))
-c
  841  ubavg(i,j,nl)=(1.-wbaro)*ubavg(i,j,ml)+wbaro*ubavg(i,j,nl)
      . +(1.+wbaro)*dlt*(utndcy+utotn(i,j)-util1(i,j))
 c$OMP END PARALLEL DO
+c
+      if (abs(ubavg(ipacs,jpac,nl)+ubavg(iatln,jatl,nl)).gt.
+     .    abs(ubavg(ipacs,jpac,nl)-ubavg(iatln,jatl,nl))*1.e-12)
+     .  write(*,'(2i4,a,1p,2e15.7)') nstep,lll,' barotp WRONG ubavg_nl '
+     .  ,ubavg(ipacs,jpac,nl),ubavg(iatln,jatl,nl)
 c
 cdiag write (lp,100) nstep
 cdiag do jcyc=jtest,jtest+1
@@ -175,7 +184,7 @@ c --- lateral turb. momentum flux (at vorticity points)
      .            *scq2(ib,j)*2./(scvx(i,j)+scvx(ib,j))
  823  continue
 c$OMP END PARALLEL DO
-      end if                                !  mxing = .true.
+      end if				!  mxing = .true.
 c
 c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue)
       do 842 j=1,jj
@@ -186,7 +195,8 @@ c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue)
      .-(ubavg(i,j  ,mn)*depthu(i,j  )+ubavg(i+1,j  ,mn)*depthu(i+1,j  )
      . +ubavg(i,ja ,mn)*depthu(i,ja )+ubavg(i+1,ja ,mn)*depthu(i+1,ja ))
      . *(pvtrop(i,j)+pvtrop(i+1,j))*.125
-      util2(i,j)=damp*(glue(i,j)+glue(i,ja )-2.0)*vbavg(i,j,ml)
+      util2(i,j)=(damp*(glue(i,j)+glue(i,ja )-2.0)+dampv(i,j))
+     . *vbavg(i,j,ml)
       if (mxing) util2(i,j)=util2(i,j)
      . +veldff*(vflux1(i,j)-vflux1(i,ja )+vflux3(i,j)-vflux2(i,j))/
      .  (scv2(i,j)*depthv(i,j)) * (1.+10.*(glue(i,j)+glue(i,ja )-2.0))
@@ -197,6 +207,7 @@ c$OMP END PARALLEL DO
 c
 cdiag write (lp,101) nstep
 cdiag do jcyc=jtest,jtest+1
+cdiag ja=mod(jcyc-2+jj,jj)+1
 cdiag j =mod(jcyc-1+jj,jj)+1
 cdiag jb=mod(jcyc     ,jj)+1
 cdiag do i=itest,itest+1
@@ -238,4 +249,3 @@ c> Aug. 1997 - transferred loops preceding loop 840 to momeq2.f
 c> May  2000 - modified j-1,j+1 to accomodate both channel & closed basin b.c.
 c> Oct. 2000 - added regional viscosity enhancement ('glue(i,j)')
 c> Oct. 2002 - added lateral mixing terms to the momentum equations
-c> Sep. 2005 - referenced to dampu/dampv eliminated

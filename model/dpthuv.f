@@ -5,15 +5,17 @@ c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
       implicit none
 c
-#include "dimensions.h"
-#include "dimension2.h"
-#include "common_blocks.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
+      include 'common_blocks.h'
 c
       real uvdep,a,b,damp
-      data damp/5.e-6/                !  inverse time scale for coastal wave damping
+      data damp/5.e-6/		!  inverse time scale for coastal wave damping
 c
 c --- function for determining depth at u,v points
       uvdep(a,b)=min(a,b)
+c
+      call cpy_p(pbot)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb)
       do j=1,jj
@@ -56,3 +58,4 @@ c> May  2000 - changed i/j loop nesting to j/i
 c> May  2000 - modified j-1,j+1 to accomodate both channel & closed basin b.c.
 c> Sep. 2000 - made sure loop 153 is executed after loops 151/152 are finished
 c> Oct. 2000 - added calc. of damping factors simulating coastal wave breaking 
+c> Mar. 2006 - added bering strait exchange logic

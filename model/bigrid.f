@@ -8,8 +8,8 @@ c --- this version works for both cyclic and noncyclic domains.
 c --- land barrier at i=ii and/or j=jj signals closed-basin conditions
 c
       implicit none
-#include "dimensions.h"
-#include "dimension2.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
 c
       real depth(idm,jdm)
       integer nfill,nzero,jsec,jfrst,jlast
@@ -25,6 +25,7 @@ c$OMP PARALLEL DO
  17   iv(i,j)=0
 c$OMP END PARALLEL DO
 c
+      go to 888    ! no change in topo after weights are done
 c --- fill single-width inlets
  16   nfill=0
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib,nzero) REDUCTION(+:nfill)
@@ -51,6 +52,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib,nzero) REDUCTION(+:nfill)
 c$OMP END PARALLEL DO
       if (nfill.gt.0) go to 16
 c
+ 888  continue
 c --- mass points are defined where water depth is greater than zero
 c$OMP PARALLEL DO
       do 2 j=1,jj
@@ -133,8 +135,8 @@ c --- il(j,k) gives row index of last point
 c --- is(j) gives number of sections in column j (maximum: ms)
 c
       implicit none
-#include "dimensions.h"
-#include "dimension2.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
 c
       integer ipt(idm,jdm),if(jdm,ms),il(jdm,ms),is(jdm)
       do 1 j=1,jj
@@ -179,8 +181,8 @@ c --- jl(i,k) gives column index of last point
 c --- js(i) gives number of sections in row i (maximum: ms)
 c
       implicit none
-#include "dimensions.h"
-#include "dimension2.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
 c
       integer jpt(idm,jdm),jf(idm,ms),jl(idm,ms),js(idm)
       do 1 i=1,ii
@@ -219,3 +221,4 @@ c
 c> Revision history:
 c>
 c> May  2000 - routine generalized to accomodate cyclic & noncyclic b.c.
+c> Mar. 2006 - added bering strait exchange logic

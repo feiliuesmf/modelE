@@ -254,7 +254,7 @@ c
       write (lp,99009) agcm_time,' sec for AGCM bfor ocn step ',nstep
 99009 format (f12.3,a,i8)
 c
-      if (nstep.eq.0 .or.nstep.eq.nstep0) then
+      if (nstep.eq.0 .or. nstep.eq.nstep0) then
 c
 c$OMP PARALLEL SHARED(mo0)
 c$    mo0=OMP_GET_NUM_THREADS()
@@ -280,13 +280,13 @@ c
 css     stop
       end if
 c --- reference: t= 0.0, s=34.0, p=0 bar,kap(4.5,34.5,1.e7)=  0.11954594
-      check=.11954594
-      check=0.
-      if (abs(kappaf(4.5,34.5,1.e7)-check).gt..00001) then
-        write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
-     .  '  should be',check,', not',kappaf(4.5,34.5,1.e7)
-        stop
-      end if
+c     check=.11954594
+c     check=0.
+c     if (abs(kappaf(4.5,34.5,1.e7)-check).gt..00001) then
+c       write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
+c    .  '  should be',check,', not',kappaf(4.5,34.5,1.e7)
+css     stop
+c     end if
 c
       write (lp,109) thkdff,temdff,veldff,viscos,diapyc,vertmx
  109  format (' turb. flux parameters:',1p/
@@ -340,7 +340,6 @@ c
      . ,iyear1,jyear,(nstep0+nstepi-1)*baclin/3600.,itime*24/nday
       endif
 c
-c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
       if(abs(int((nstep0+nstepi-1)*baclin/3600)-itime*24/nday).gt.0)
      .                                                        then
         write (lp,'(a,f16.8,i10,f16.8)')'mismatch date found '
@@ -362,7 +361,7 @@ c
  19   dpini(k)=dp(itest,jtest,k)+dp(itest,jtest,k+kk)
 c
       else
-        write (lp,'(/(a,i9))') 'chk model starts at steps',nstep0
+        write (lp,'(/(a,i9))') 'chk model starts at steps',nstep
       endif
 c
 c$OMP PARALLEL DO
@@ -371,11 +370,13 @@ c$OMP PARALLEL DO
       osst(i,j)=0.
       osss(i,j)=0.
       osiav(i,j)=0.
+      usf(i,j)=0.
+      vsf(i,j)=0.
       enddo
       enddo
 c$OMP END PARALLEL DO
 c
-      endif       ! if (nstep.eq.0 .or.nstep.eq.nstep0) 
+      endif       ! if (nstep=0 or nstep=nstep0) 
 c
       if (nstepi.le.0) stop 'wrong nstepi'
 c
@@ -421,7 +422,6 @@ c
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
 c
-css   if (nstep.eq.1) diagno=.true.    ! initial condition
       diag_ape=diagno
 c
       trcadv_time = 0.0
@@ -456,6 +456,7 @@ c
       call system_clock(after)
       cnuity_time = real(after-before)/real(rate)
 c     call sstbud(0,'  initialization',temp(1,1,k1n))
+c     call bugger('aft cnu',2)
 c
 ccc      write (string,'(a12,i8)') 'cnuity, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
@@ -479,10 +480,12 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape) q=hyc_pechg1(dp(1,1,k1m),th3d(1,1,k1m),32)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
+c     call bugger('bef ts',2)
       before = after
       call tsadvc(m,n,mm,nn,k1m,k1n)
       call system_clock(after)
       tsadvc_time = real(after-before)/real(rate)
+c
 c     call sstbud(1,' horiz.advection',temp(1,1,k1n))
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
@@ -649,14 +652,14 @@ c --- find the largest distance from a tencm layer from bottom
  709    continue
  708    continue
  707    continue
+c
 c       call findmx(ip,util2,idm,ii,jj,'lowest')
-
-c       call findmx(ipa,aflxa2o,iia,iia,jja,'aflxa2o')
 c       call findmx(ip,osst,ii,ii,jj,'osst')
 c       call findmx(ip,osss,ii,ii,jj,'osss')
-c       call findmx(ip,usf,ii,ii,jj,'u_ocn')
-c       call findmx(ip,vsf,ii,ii,jj,'v_ocn')
+c       call findmx(iu,usf,ii,ii,jj,'u_ocn')
+c       call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
+c       call findmx(ipa,aflxa2o,iia,iia,jja,'aflxa2o')
 c       call findmx(ipa,asst,iia,iia,jja,'asst')
 c       call findmx(ipa,sss,iia,iia,jja,'osss')
 c       call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
@@ -765,6 +768,7 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c
       nsaveo=nsaveo+1
+      delt1=baclin+baclin
  15   continue
       if (nsaveo*baclin.ne.nhr*3600) then
             print *, ' ogcm saved over hr=',nsaveo*baclin/3600.
@@ -773,20 +777,16 @@ c
       nsaveo=0
 c
 c$OMP PARALLEL DO
-      do 87 j=1,jj
-      do 86 i=1,ii
-      usf(i,j)=0.
-      vsf(i,j)=0.
- 86   continue
+      do 88 j=1,jj
       do 87 l=1,isu(j)
       do 87 i=ifu(j,l),ilu(j,l)
- 87   usf(i,j)=u(i,j,k1n)
+ 87   usf(i,j)=u(i,j,k1n)+ubavg(i,j,n)
+c
+      do 88 l=1,isv(j)
+      do 88 i=ifv(j,l),ilv(j,l)
+ 88   vsf(i,j)=v(i,j,k1n)+vbavg(i,j,n)
 c$OMP END PARALLEL DO
 c
-      do 88 i=1,ii
-      do 88 l=1,jsv(i)
-      do 88 j=jfv(i,l),jlv(i,l)
- 88   vsf(i,j)=v(i,j,k1n)
 c
       call ssto2a(osst,asst)
       call ssto2a(osss,sss)
@@ -794,16 +794,6 @@ css   call iceo2a(omlhc,mlhc)
       call ssto2a(oogeoza,ogeoza)
       call ssto2a(osiav,utila)                 !kg/m*m per agcm time step
       call veco2a(usf,vsf,uosurf,vosurf)
-c
-c       call findmx(ip,osst,ii,ii,jj,'osst')
-c       call findmx(ip,osss,ii,ii,jj,'osss')
-c       call findmx(ip,usf,ii,ii,jj,'u_ocn')
-c       call findmx(ip,vsf,ii,ii,jj,'v_ocn')
-c
-c       call findmx(ipa,asst,iia,iia,jja,'asst')
-c       call findmx(ipa,sss,iia,iia,jja,'osss')
-c       call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
-c       call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
 c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ia=1,iia

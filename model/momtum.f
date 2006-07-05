@@ -12,7 +12,7 @@ c
      .     wgtia(idm,jdm),wgtib(idm,jdm),wgtja(idm,jdm),wgtjb(idm,jdm),
      .     dpxy,dpia,dpib,dpja,dpjb,visca,viscb,ptopl,pbotl,cutoff,q,
      .     dt1inv,phi,plo,ubot,vbot,thkbop,thk,thka,thkb,avg,slab,
-     .     olda,oldb,botvel,drcoef
+     .     olda,oldb,botvel,drcoef,dmontg,dthstr
       real dl2u(idm,jdm),dl2uja(idm,jdm),dl2ujb(idm,jdm),
      .     dl2v(idm,jdm),dl2via(idm,jdm),dl2vib(idm,jdm)
       integer kan,jcyc
@@ -25,7 +25,7 @@ c --- --------------------
 c --- hydrostatic equation
 c --- --------------------
 c
-c$OMP PARALLEL DO PRIVATE(km)
+c$OMP PARALLEL DO PRIVATE(km) SHARED(kapref)
       do 81 j=1,jj
       do 81 l=1,isp(j)
 c
@@ -36,7 +36,20 @@ c
 c --- use upper interface pressure in converting sigma to sigma-star.
 c --- this is to avoid density variations in layers intersected by sea floor
 c
-      thstar(i,j,k)=th3d(i,j,km)+thermb(i,j,km)
+      if (kapref.ne.0) then !thermobaric
+        if (kapref.gt.0) then
+          thstar(i,j,k)=th3d(i,j,km)
+     .     +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),kapref)
+        else
+          thstar(i,j,k)=th3d(i,j,km)
+     .     +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),2)
+          thstar(i,j,k+kk)=th3d(i,j,km)
+     .     +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),kapi(i,j))
+        endif
+      else  !non-thermobaric
+        thstar(i,j,k)=th3d(i,j,km)
+      endif  !thermobaric:else
+c
  82   p(i,j,k+1)=p(i,j,k)+dp(i,j,km)
 c
       do 80 i=ifp(j,l),ilp(j,l)
@@ -45,19 +58,25 @@ c --- store (1+eta) (= p_total/p_prime) in -oneta-
       oneta(i,j)=1.+pbavg(i,j,m)/p(i,j,kk+1)
 c
 c --- m_prime in lowest layer:
- 80   montg(i,j,kk)=psikk(i,j)+(p(i,j,kk+1)*(thkk(i,j)-thstar(i,j,kk))
-     .              -pbavg(i,j,m)*(thstar(i,j,kk)+thbase))*thref**2
+      montg(i,j,kk)=psikk(i,j,1)+(p(i,j,kk+1)
+     .      *(thkk(i,j,1)-thstar(i,j,kk))
+     .      -pbavg(i,j,m)*(thstar(i,j,kk)+thbase))*thref**2
+      if (kapref.eq.-1)
+     .montg(i,j,2*kk)=psikk(i,j,2)+(p(i,j,kk+1)
+     .      *(thkk(i,j,2)-thstar(i,j,2*kk))
+     .      -pbavg(i,j,m)*(thstar(i,j,2*kk)+thbase))*thref**2
+ 80   continue
 c
 c --- m_prime in remaining layers:
       do 81 k=kk-1,1,-1
       km=k+mm
       do 81 i=ifp(j,l),ilp(j,l)
-c
-c --- optional: force thstar to be single-valued in the vertical
-      thstar(i,j,k)=min(thstar(i,j,k),thstar(i,j,k+1))
-c
- 81   montg(i,j,k)=montg(i,j,k+1)+p(i,j,k+1)*oneta(i,j)
+      montg(i,j,k)=montg(i,j,k+1)+p(i,j,k+1)*oneta(i,j)
      .          *(thstar(i,j,k+1)-thstar(i,j,k))*thref**2
+      if (kapref.eq.-1)
+     .montg(i,j,kk+k)=montg(i,j,kk+k+1)+p(i,j,k+1)*oneta(i,j)
+     .          *(thstar(i,j,kk+k+1)-thstar(i,j,kk+k))*thref**2
+ 81   continue
 c$OMP END PARALLEL DO
 c
 cdiag do j=jtest-1,jtest+1
@@ -420,13 +439,22 @@ c
 c --- pressure force in x direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SHARED(k,kapref) PRIVATE(dmontg,dthstr)
       do 96 j=1,jj
       do 96 l=1,isu(j)
       do 96 i=ifu(j,l),ilu(j,l)
       util1(i,j)=max(0.,min(depthu(i,j)-pu(i,j,k),h1))
- 96   pgfx(i,j)=util1(i,j)*
-     .    (montg(i,j,k)-montg(i-1,j,k)+(thstar(i,j,k)-thstar(i-1,j,k))
+      if (kapref.ne.-1) then
+        dmontg=montg( i,j,k)-montg( i-1,j,k)
+        dthstr=thstar(i,j,k)-thstar(i-1,j,k)
+      else !2 thermobaric reference states
+        q=0.5*(skap(i,j)+skap(i-1,j))
+        dmontg=     q *(montg( i,j,k   )-montg( i-1,j,k   ))+
+     .         (1.0-q)*(montg( i,j,kk+k)-montg( i-1,j,kk+k))
+        dthstr=     q *(thstar(i,j,k   )-thstar(i-1,j,k   ))+
+     .         (1.0-q)*(thstar(i,j,kk+k)-thstar(i-1,j,kk+k))
+      endif
+ 96   pgfx(i,j)=util1(i,j)*(dmontg+dthstr
      .      *(p(i,j,k+1)*p(i-1,j,k+1)-p(i,j,k)*p(i-1,j,k))*thref**2
      .      /(dp(i,j,km)+dp(i-1,j,km)+epsil))
 c$OMP END PARALLEL DO
@@ -484,6 +512,10 @@ c
      .-(uflux1(i,j)-uflux1(i-1,j)
      . +uflux3(i,j)-uflux2(i,j))/(scu2(i,j)*max(dpu(i,j,km),onemm)))
 c$OMP END PARALLEL DO
+c
+c --- set baroclinic velocity to zero one point away from bering strait seam
+      u(ipacs,jpac,kn)=0.
+      u(iatln,jatl,kn)=0.
 c
 cdiag write (lp,100) nstep
 cdiag do jcyc=jtest-1,jtest+1
@@ -595,14 +627,23 @@ c
 c --- pressure force in y direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO SHARED(ja,kapref) PRIVATE(dmontg,dthstr)
       do 97 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 97 l=1,isv(j)
       do 97 i=ifv(j,l),ilv(j,l)
       util2(i,j)=max(0.,min(depthv(i,j)-pv(i,j,k),h1))
- 97   pgfy(i,j)=util2(i,j)*
-     .    (montg(i,j,k)-montg(i,ja ,k)+(thstar(i,j,k)-thstar(i,ja ,k))
+      if (kapref.ne.-1) then
+        dmontg=montg( i,j,k)-montg( i,ja,k)
+        dthstr=thstar(i,j,k)-thstar(i,ja,k)
+      else !2 thermobaric reference states
+        q=0.5*(skap(i,j)+skap(i,ja))
+        dmontg=     q *(montg( i,j,k   )-montg( i,ja,k   ))+
+     .         (1.0-q)*(montg( i,j,kk+k)-montg( i,ja,kk+k))
+        dthstr=     q *(thstar(i,j,k   )-thstar(i,ja,k   ))+
+     .         (1.0-q)*(thstar(i,j,kk+k)-thstar(i,ja,kk+k))
+      endif
+ 97   pgfy(i,j)=util2(i,j)*(dmontg+dthstr
      .      *(p(i,j,k+1)*p(i,ja ,k+1)-p(i,j,k)*p(i,ja ,k))*thref**2
      .      /(dp(i,j,km)+dp(i,ja ,km)+epsil))
 c$OMP END PARALLEL DO

@@ -145,9 +145,6 @@ css  .  slfcum*365.*86400.*g/onem
       write (lp,'(i9,a,3f9.3)') nstep,' mean surf. sig,temp,saln:',
      .    rmean/area+thbase,tmean/area,smean/area
 c
-      end if                                !  diagno = .true.
-c
-      if (nstep.eq.nstep0+1 .or. diagno) then
       rmean=0.
       smean=0.
       tmean=0.

@@ -1,5 +1,5 @@
       integer nwgta2o,nwgto2a,nwgta2o2
-      parameter (nwgta2o=18,nwgto2a=29,nwgta2o2=18)
+      parameter (nwgta2o=18,nwgto2a=39,nwgta2o2=18)
 c
       real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o2)
      .    ,wlisto2a(iia,jja,nwgto2a),ofrac(iia,jja),agcmgdsz(jja)

@@ -36,8 +36,8 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- specify segment of -u- points representing Indonesian throughflow
 c     data indoi/118/,indoj1,indoj2/54,70/                !  2.0 deg (ieq=115)
 c     data idrk1,jdrk1/148,147/,idrk2,jdrk2/158,149/        !  2.0 deg (ieq=115)
-      data indoi/129/,indoj1,indoj2/53,70/                !  2.0 deg (ieq=122)
-      data idrk1,jdrk1/162,147/,idrk2,jdrk2/172,149/        !  2.0 deg (ieq=122)
+      data indoi/131/,indoj1,indoj2/59,69/                !  2.0 deg (ieq=122)
+      data idrk1,jdrk1/161,147/,idrk2,jdrk2/173,148/        !  2.0 deg (ieq=122)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       iof(i)=2*i-2
       reviof(x)=.5*(x+2.)

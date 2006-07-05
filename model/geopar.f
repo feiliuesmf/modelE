@@ -42,11 +42,10 @@ c$OMP PARALLEL DO
  9    depths(i,j)=real4(i,j)
 c$OMP END PARALLEL DO
 c
-c --- set minimum depth to be 30m - done in advance
 cccc$OMP PARALLEL DO
 c     do 7 j=1,jj
 c     do 7 i=1,ii
-c7    if (depths(i,j).gt.0.) depths(i,j)=max(30.,depths(i,j))
+c7    if (depths(i,j).gt.0.) depths(i,j)=max(botmin.,depths(i,j))
 cccc$OMP END PARALLEL DO
 c
 c --- reset the Denmark Strait - done in advance
@@ -100,10 +99,10 @@ c$OMP PARALLEL DO PRIVATE(n)
  8    lonij(i,j,n)=lon4(i,j,n)
 c$OMP end PARALLEL DO
 c
-c     write (lp,*) 'shown below: latitude of vorticity points'
-c     call zebra(latij(1,1,4),idm,ii,jj)
-c     write (lp,*) 'shown below: longitude of vorticity points'
-c     call zebra(lonij(1,1,4),idm,ii,jj)
+      write (lp,*) 'shown below: latitude of vorticity points'
+      call zebra(latij(1,1,4),idm,ii,jj)
+      write (lp,*) 'shown below: longitude of vorticity points'
+      call zebra(lonij(1,1,4),idm,ii,jj)
 c
 c --- define coriolis parameter and grid size
 c$OMP PARALLEL DO PRIVATE(ja,jb)
@@ -154,9 +153,27 @@ c
       scq2i(i,j)=1./scq2(i,j)
       end if
 c
+      if (i.eq.71.and.j.eq.91) write(*,*)i,j,' scp=',scp2(i,j)
+      if (i.eq.65.and.j.eq.136) write(*,*)i,j,' scp=',scp2(i,j)
  56   continue
 c$OMP END PARALLEL DO
 c
+      if (beropn .and. scu2(ipacs,jpac).ne.scu2(iatln,jatl))
+     .  write(*,'(a,6f13.5)') ' chk WRONG scu2'
+     . ,scu2(ipacs,jpac),scu2(iatln,jatl)
+c
+      if ( latij(ipacs,jpac,3).ne.latij(iatls,jatl,3)
+     . .or.latij(ipacn,jpac,3).ne.latij(iatln,jatl,3)
+     . .or.lonij(ipacs,jpac,3).ne.lonij(iatls,jatl,3)
+     . .or.lonij(ipacn,jpac,3).ne.lonij(iatln,jatl,3))
+     .  write(*,'(a,8f9.2)') ' chk WRONG lat/lon '
+     .,latij(ipacs,jpac,3),latij(iatls,jatl,3)
+     .,latij(ipacn,jpac,3),latij(iatln,jatl,3)
+     .,lonij(ipacs,jpac,3),lonij(iatls,jatl,3)
+     .,lonij(ipacn,jpac,3),lonij(iatln,jatl,3)
+c
+      write(*,'(a,2f8.2)') 'lat/lon of Bering Strait:'
+     .   ,latij(ipacs,jpac,3),lonij(ipacs,jpac,3)
 c     write (lp,'('' shown below: coriolis parameter'')')
 c     call zebra(corio,idm,ii,jj)
 c     write (lp,'('' shown below: grid cell size'')')
@@ -177,7 +194,7 @@ c
 c
 c --- initialize some arrays
 c
-      if (nstep0.eq.0) then
+css   if (nstep0.eq.0) then
       write (lp,*) 'laying out arrays in memory ...'
 c$OMP PARALLEL DO
       do 209 j=1,jj
@@ -413,7 +430,7 @@ c
       v(i,j,k   )=0.
  168  v(i,j,k+kk)=0.
       write (lp,*) '... array layout completed'
-      endif                    ! end of nstep=0
+css   endif                    ! end of nstep=0
 c
 c --- set 'glue' to values > 1 in regions where extra viscosity is needed
 c
@@ -443,8 +460,7 @@ c --- add glue to mediterranean:
      .        glue(i,j)=glufac
 c
       else if (jdm.eq.180) then         !  2.0 deg, equator at i=115:
-        if ((i.ge.  91 .and. i.le.  98 .and. j.le.  18)
-     . .or. (i .ge. 95 .and. i.le.  96 .and. j .ge.178))
+        if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
      .        glue(i,j)=glufac
       else
         write (lp,*) 'unable to determine location of Medterranean'
@@ -454,7 +470,83 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  154  continue
 c$OMP END PARALLEL DO
 c
-c --- readin all weights
+c --- initialize thermobaric reference state arrays.
+c
+      if (kapref.ne.-1) then
+        kapnum=1
+      else
+        kapnum=2
+      endif
+c
+      if (kapref.eq.-1) then
+c ---   input field is between 1.0 and 3.0 and indicates the
+c ---   relative strength of the two nearest reference states,
+c ---     e.g. 1.7 is 70% ref2 and 30% ref1
+c ---     and  2.3 is 70% ref2 and 30% ref3.
+c
+      open (34,file=flnmkap,form='unformatted',status='old')
+      read (34) iz,jz,real4
+      close (unit=34)
+      if (iz.ne.idm.and.jz.ne.jdm) stop 'wrong flnmkap'
+c
+      do j=1,jdm
+      do i=1,idm
+      util1(i,j)=real4(i,j)
+      if     (ip(i,j).eq.0) then
+        util1(i,j) = 1.0 !land
+      endif
+      enddo
+      enddo
+c
+c       kapi is the 2nd reference state (1st is always 2)
+c       skap is the scale factor (0.0-1.0) for the 1st reference state
+c
+c       assumes that reference states 1 and 3 are never next to each other.
+c
+        do 155 j=1,jj
+        ja=mod(j-2+jj,jj)+1
+        jb=mod(j     ,jj)+1
+        do 155 l=1,isp(j)
+        do 155 i=ifp(j,l),ilp(j,l)+1
+        ia=mod(i-2+ii,ii)+1
+        ib=mod(i     ,ii)+1
+c
+c           if     (max(util1(i, j),
+c    &                  util1(ia,j),
+c    &                  util1(ib,j),
+c    &                  util1(i,ja),
+c    &                  util1(i,jb) ).gt.2.0) then
+        if (util1(i,j).gt.2.0) then
+              util2(i,j) = 3.0              !kapi
+               skap(i,j) = 3.0 - util1(i,j)
+            else
+              util2(i,j) = 1.0              !kapi
+               skap(i,j) = util1(i,j) - 1.0
+            endif
+        if (skap(i,j).lt.0. .or. skap(i,j).gt.1.) then
+          write(*,'(2i4,3(a,f5.1),a,i2)')i,j,' skap=',skap(i,j)
+     . ,' util2=',util2(i,j),' read in kapi=',util1(i,j),' ip=',ip(i,j)
+          stop 'wrong skap'
+        endif
+ 155    continue
+        kapi(:,:) = util2(:,:)
+c
+        write(*,'(a)') 'chk skap'
+        write (*,'(45i2)') ((int(skap(i,j)*10),j=  1, 45),i=1,idm)
+        write (*,*)
+        write (*,'(45i2)') ((int(skap(i,j)*10),j= 46, 90),i=1,idm)
+        write (*,*)
+        write (*,'(45i2)') ((int(skap(i,j)*10),j= 91,135),i=1,idm)
+        write (*,*)
+        write (*,'(45i2)') ((int(skap(i,j)*10),j=136,jdm),i=1,idm)
+c
+      else
+        skap(:,:) = 1.0     !for diagnostics only
+        kapi(:,:) = kapref  !for diagnostics only
+      endif !kapref.eq.-1:else
+c
+c
+c --- read in all weights
 c
 c$OMP PARALLEL DO
       do 11 ja=1,jjo
@@ -462,18 +554,13 @@ c$OMP PARALLEL DO
 11    ocellsz(ia,ja)=scp2(ia,ja)
 c$OMP END PARALLEL DO
 c
-      print *,' focean'
-      call zebra(focean,iia,iia,jja)
-c     print *,' ogcmocn'
-c     call zebra(ocellsz,iio,iio,jjo)
-c
 c     open(301,file='agcmgdsz.8bin',status='unknown',form='unformatted')
 c     write(301)dxyp
 c     close(301)
 c
       if (iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.10249200 .or.
      .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.10249200 .or.
-     .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.1550016 ) then
+     .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.2079936 ) then
         print *,' wrong coupler=',iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
      .  ,iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8)
      .  ,iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8)
@@ -503,25 +590,25 @@ c
         stop '(wrong iz/jz in cososino.8bin)'
       endif
 c
-c     open(23,file=flnmcosa,form='unformatted',status='old')
-c     read(23) iz,jz,cosa,sina
-c     close(23)
-c     if (iz.ne.iia .or. jz.ne.jja) then
-c       print *,' iz,jz=',iz,jz
-c       stop '(wrong iz/jz in cosasina.8bin)'
-c     endif
-c
-c     write (lp,*) 'shown below: cosa '
-c     call zebra(cosa,iia,iia,jja)
-c     write (lp,*) 'shown below: sina '
-c     call zebra(sina,iia,iia,jja)
-c     write (lp,*) 'shown below: ijuo2a(1) '
-c     call zebra(ijuo2a(1,1,1),iia,iia,jja)
-c     write (lp,*) 'shown below: ijuo2a(2)'
-c     call zebra(ijuo2a(1,1,2),iia,iia,jja)
       return
       end
 c
+      function sphdis(x1,y1,x2,y2)
+c --- dist.(m) between 2 points on sphere, lat/lon (x1,y1) and lat/lon (x2,y2)
+      implicit none
+      real x1,y1,x2,y2,sphdis,ang,radius,radian
+      data radius/6375.e3/,radian/57.2957795/
+c
+      ang=mod(y2-y1+540.,360.)-180.
+      sphdis=radius*acos(min(1.,cosd(90.-x1)*cosd(90.-x2)
+     .                         +sind(90.-x1)*sind(90.-x2)*cosd(ang)))
+      if (sphdis.eq.0.) 
+     .  sphdis=radius*sqrt((x2-x1)**2+(ang*cosd(.5*(x1+x2)))**2)/radian
+cdiag if (sphdis.eq.0.) write (*,'(a,2f8.3,2x,2f8.3)')
+cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
+      sphdis=max(sphdis,1.)
+      return
+      end
 c
 c> Revision history
 c>

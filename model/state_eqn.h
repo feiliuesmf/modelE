@@ -1,6 +1,8 @@
 c-----------------------------------------------------------------------------
-      real c1,c2,c3,c4,c5,c6,c7,c8,c9,qttt,qtt,qt,qs,qst,qpt,qpst,qptt
-     .    ,pref,sclkap,reftem,refsal,refprs
+      real c1,c2,c3,c4,c5,c6,c7,c8,c9
+css  .  ,qttt,qtt,qt,qs,qst,qpt,qpst,qptt
+css  .  ,pref,sclkap,reftem,refsal,refprs
+     .  ,pref,sclkap
 c
 ccc      data c1,c2,c3,c4,c5,c6,c7/
 c --- coefficients for sigma-0 (based on Brydon & Sun fit)
@@ -18,6 +20,7 @@ c    .  3.524143E-06/
      .  9.893322E+00,-1.500683E-02, 7.823698E-01,-6.630868E-03,
      . -2.936529E-03, 3.068372E-05, 3.343679E-05, 1.135806E-04,
      .  3.620535E-06/
+      data pref/2.e7/
 c
 c --- sub-coefficients for locally referenced sigma
 c --- a fit towards Jackett & McDougall (1995)
@@ -38,11 +41,30 @@ c
 c --- coefficients for kappa^(theta) (revised Sun et al. 1999):
 c
       data sclkap/1.e-11/                                      !  SI units
-      data qttt,qtt,qt,qs,qst,qpt,qpst,qptt,reftem,refsal/
+c     data qttt,qtt,qt,qs,qst,qpt,qpst,qptt,reftem,refsal/
 c --- reference: t= 1.0, s=34.0, p=0 bar,kap(4.5,34.5,1.e7)=  0.09265729
-     . -3.03869352E-05, 4.47509519E-03,-2.80147157E-01,-1.07490547E-01,
-     .  7.82551293E-04, 1.04449450E-09, 1.44433359E-11,-1.31383707E-11,
-     .   1.0, 34.0/
+c    . -3.03869352E-05, 4.47509519E-03,-2.80147157E-01,-1.07490547E-01,
+c    .  7.82551293E-04, 1.04449450E-09, 1.44433359E-11,-1.31383707E-11,
+c    .   1.0, 34.0/
+c --- reference: t= 0.0, s=34.5, p=0 pascal, kap_t(4.5,34.5,1.e7)=  0.11411243
+c    . -3.03869354E-05, 4.56625601E-03,-2.88801209E-01,-1.08670290E-01,
+c    .  7.90503772E-04, 1.07813750E-09, 1.41541548E-11,-1.31383708E-11,
+c    .   0.0, 34.5/
+c
+c --- coefficients for kappa^(theta)
+c --- new values (w.r.t. t-toff,s-soff,prs) from Shan Sun, Sep.2004
+c --- 1=Arctic/Antarctic; 2=Atlantic; 3=Mediterranean
+      real, parameter, dimension(3) ::
+     &  toff = (/  0.0,             3.0,            13.0 /)
+     & ,soff = (/ 34.5,            35.0,            38.5 /)
+     & ,qttt = (/ -3.03869354E-05, -3.03869352E-05, -3.03869353E-05 /)
+     & ,qtt  = (/  4.56625601E-03,  4.29277358E-03,  3.38116552E-03 /)
+     & ,qt   = (/ -2.88801209E-01, -2.61828868E-01, -1.81335007E-01 /)
+     & ,qs   = (/ -1.08670290E-01, -1.05131061E-01, -9.33336309E-02 /)
+     & ,qst  = (/  7.90503772E-04,  7.71096940E-04,  1.07270585E-03 /)
+     & ,qpt  = (/  1.07813750E-09,  1.00638435E-09,  7.57239852E-10 /)
+     & ,qpst = (/  1.41541548E-11,  1.48598578E-11,  3.89226107E-12 /)
+     & ,qptt = (/ -1.31383708E-11, -1.31383707E-11, -1.31383708E-11 /)
 c
 c> Revision history:
 c>

@@ -39,6 +39,8 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- compute low-order and antidiffusive (high-minus-low order) fluxes
 c
+      call cpy_p(fld)
+c
 c$OMP PARALLEL DO PRIVATE(ja,jaa,jb,q)
       do 3 j=1,jj
       ja=mod(j-2+jj,jj)+1
@@ -53,9 +55,9 @@ c
         q=fld(i  ,j)
       end if
       flx(i,j)=u(i,j)*q
-      q=fld(i,j)+fld(i-1,j)                                !  2nd order
+      q=fld(i,j)+fld(i-1,j)				!  2nd order
       if (ip(i+1,j)+iu(i-1,j).eq.2)
-     .  q=1.125*q-.125*(fld(i+1,j)+fld(i-2,j))                !  4th order
+     .  q=1.125*q-.125*(fld(i+1,j)+fld(i-2,j))		!  4th order
  2    uan(i,j)=.5*q*u(i,j)-flx(i,j)
 c
       do 3 l=1,isv(j)
@@ -66,9 +68,9 @@ c
         q=fld(i,j  )
       end if
       fly(i,j)=v(i,j)*q
-      q=fld(i,ja )+fld(i,j)                                !  2nd order
+      q=fld(i,ja )+fld(i,j)				!  2nd order
       if (ip(i,jb )+iv(i,ja).eq.2)
-     .  q=1.125*q-.125*(fld(i,jb )+fld(i,jaa))                !  4th order
+     .  q=1.125*q-.125*(fld(i,jb )+fld(i,jaa))		!  4th order
  3    van(i,j)=.5*q*v(i,j)-fly(i,j)
 c$OMP END PARALLEL DO
 c
@@ -84,7 +86,7 @@ c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO PRIVATE(j,wrap)
       do 33 i=1,ii1
-      wrap=jfv(i,1).eq.1        ! true if j=1 and j=jj are both water points
+      wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
       j=jfp(i,l)
       if (j.gt.1 .or. .not.wrap) then
@@ -162,6 +164,9 @@ c
 c$OMP END PARALLEL DO
 c
 c---- limit antidiffusive fluxes
+c
+      call cpy_p(flp)
+      call cpy_p(fln)
 c
 c$OMP PARALLEL DO PRIVATE(ja,clip)
       do 8 j=1,jj
@@ -253,3 +258,4 @@ c> Apr. 2000 - changed i/j loop nesting to j/i
 c> May  2000 - modified j-1,j+1 to accomodate both channel & closed basin b.c.
 c> Sep. 2000 - fixed cyclicity problem in loop 33
 c> Nov. 2004 - switched from mpdata to fct
+c> Mar. 2006 - added bering strait exchange logic

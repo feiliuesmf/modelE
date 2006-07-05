@@ -17,7 +17,7 @@ c
       include 'a2o.h'
       include 'cpl.h'
 c
-      integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni,ipo(idm,jdm)
+      integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni,ipo(idm,jdm),kkap
       character text*24,preambl(5)*79
       real tofsig,kappaf,sigocn,cold,temavg,vol,sst,sofsig,spval
       external tofsig,kappaf,sigocn,sofsig
@@ -34,7 +34,8 @@ c
       do 14 k=1,kk
  14   theta(k)=sigma(k)-thbase
 c
-      if (nstep0.le.0) then                ! start from Levitus
+      if (nstep0.eq.0) then                ! start from Levitus
+        call geopar
         delt1=baclin
 c --- -------------------------
 c --- mass field initialization
@@ -134,7 +135,6 @@ cdiag write (text,'(''intf.pressure (m), k='',i3)') k+1
 cdiag call prtmsk(ip,p(1,1,k+1),util1,idm,ii1,jj,0.,1./onem,text)
 cdiag end do
 c
-      call dpthuv
 c     call convec(1,1,0,0,1,1)
 c
 c$OMP PARALLEL DO
@@ -151,15 +151,23 @@ css      tracer(i,j,k)=0.                 ! moved to hycom.f temperarily
       th3d(i,j,k+kk)=th3d(i,j,k)
       temp(i,j,k+kk)=temp(i,j,k)
       saln(i,j,k+kk)=saln(i,j,k)
-      thermb(i,j,k)=kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k))
-css  .             *(1000.+th3d(i,j,k)+thbase)
-      thermb(i,j,k+kk)=thermb(i,j,k)
-      thstar(i,j,k)=th3d(i,j,k)+thermb(i,j,k)
+c
+      if (kapref.eq.0) then !not thermobaric
+        thstar(i,j,k)=th3d(i,j,k)
+      elseif (kapref.gt.0) then
+        thstar(i,j,k)=th3d(i,j,k)
+     .   +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),kapref)
+      else !variable kapref
+        thstar(i,j,k)=th3d(i,j,k)
+     .    +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),2)
+        thstar(i,j,k+kk)=th3d(i,j,k)
+     .    +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),kapi(i,j))
+      endif
 c
       if (i.eq.itest.and.j.eq.jtest)
      . write (lp,'(2i5,i3,a,3f7.3,3x,2f7.3,f8.1)')
      .  i,j,k,'  dens,thstar,kappa=',th3d(i,j,k)+thbase,thstar(i,j,k)
-     .   +thbase,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k)),
+     .   +thbase,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),2),
      .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
 c
       if (k.gt.1 .and. thstar(i,j,k).lt.thstar(i,j,k-1))
@@ -197,13 +205,16 @@ c$OMP PARALLEL DO
       do 50 l=1,isp(j)
       do 50 i=ifp(j,l),ilp(j,l)
       montg(i,j,1)=0.
+      montg(i,j,1+kk)=0.
 c
+      do 50 kkap=1,kapnum
       do 52 k=1,kk-1
- 52   montg(i,j,k+1)=montg(i,j,k)-p(i,j,k+1)*(thstar(i,j,k+1)-
-     .                                        thstar(i,j,k  ))*thref**2
+ 52   montg(i,j,k+1+(kkap-1)*kk)=montg(i,j,k+(kkap-1)*kk)
+     .   -p(i,j,k+1)*(thstar(i,j,k+1+(kkap-1)*kk)-
+     .                thstar(i,j,k  +(kkap-1)*kk))*thref**2
 c
-      thkk(i,j)=thstar(i,j,kk)
- 50   psikk(i,j)=montg(i,j,kk)
+      thkk(i,j,kkap)=thstar(i,j,kk+(kkap-1)*kk)
+ 50   psikk(i,j,kkap)=montg(i,j,kk+(kkap-1)*kk)
 c$OMP END PARALLEL DO
 c
 cc$OMP PARALLEL DO
@@ -222,14 +233,16 @@ c     call ssto2a(omlhc,mlhc)
 c
       call findmx(ip,temp,ii,ii,jj,'ini sst')
       call findmx(ip,saln,ii,ii,jj,'ini sss')
+      print *,'below: focean'
+      call zebra(focean,iia,iia,jja)
 c$OMP PARALLEL DO
       do 22 ja=1,jja
       do 22 ia=1,iia
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
         if (sss(ia,ja).le.20.) then
-          write(*,'(a,2i3,a,f6.1)')
-     .     'chk low saln at agcm ',ia,ja,' sss=',sss(ia,ja)
+          write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja
+     . ,' sss=',sss(ia,ja),' sst=',asst(ia,ja),' focean=',focean(ia,ja)
           stop 'wrong sss in agcm'
         endif
       endif
@@ -244,8 +257,27 @@ c
  111  format (9x,'chk time step in restart file -',i9,5x,' day ',f9.2)
 c
       delt1=baclin+baclin
+css   call newbot
 c
-      call newbot
+      do 21 j=1,jj
+      do 21 k=1,kk
+      do 21 l=1,isp(j)
+      do 21 i=ifp(j,l),ilp(j,l)
+      if (kapref.eq.0) then !not thermobaric
+        thstar(i,j,k)=th3d(i,j,k)
+      elseif (kapref.gt.0) then
+        thstar(i,j,k)=th3d(i,j,k)
+     .   +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),kapref)
+      else !variable kapref
+        thstar(i,j,k)=th3d(i,j,k)
+     .    +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),2)
+        thstar(i,j,k+kk)=th3d(i,j,k)
+     .    +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),kapi(i,j))
+      endif
+ 21   continue
+
+      end if                                !  nstep0 > 0  or  = 0
+c
       call dpthuv
 c
       do 16 m=1,2
@@ -262,7 +294,8 @@ c
       call dpudpv(mm)
  16   continue
 c
-      end if                                !  nstep0 > 0  or  = 0
+      print *,' focean'
+      call zebra(focean,iia,iia,jja)
 c
       print *,'chk ini. gtemp at nstep=',nstep0
       call zebra(asst,iia,iia,jja)

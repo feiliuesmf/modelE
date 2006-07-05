@@ -8,7 +8,6 @@
 
       integer istart
 
-
       call gatherDistributedQuantities()
 
       if (AM_I_ROOT()) then
@@ -35,11 +34,9 @@
 #include "dimensions.h"
 #include "dimension2.h"
 #include "cpl.h"
-
-      call geopar                             ! hycom
       call inicon
 c
-      if (istart.gt.2) then
+      if (istart.gt.2) then               !istart=2 has done this in inirfn
       DO J=1,JM
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0.) THEN
@@ -130,11 +127,11 @@ c
 #ifdef TRACERS_OCEAN
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN02"
-
+c
       write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
      *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
 #endif
-
+c
 css   write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
 css  *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
 c
@@ -146,8 +143,8 @@ c
 css     WRITE (kunit,err=10) MODULE_HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO
 css  *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
         WRITE (kunit,err=10) MODULE_HEADER,nstep,time
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk
-     . ,thkk,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
+     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
@@ -161,9 +158,11 @@ css  *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
           CASE (ioread,irerun,irsfic) ! restarts
 css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
+c
+            call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk
-     . ,thkk,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
+     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
@@ -186,9 +185,11 @@ css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
           CASE (irsficnt) ! restarts (never any tracer data)
 css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
+c
+            call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk
-     . ,thkk,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
+     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid

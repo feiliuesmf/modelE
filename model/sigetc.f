@@ -188,8 +188,25 @@ c
       dsiglocds=c3p(prs)+t*(c5p(prs)+t*c7p(prs))
       return
       end
-
 c
+      subroutine cpy_p(field)
+c
+c --- exchange information across bering strait seam
+c
+      implicit none
+      include 'dimensions.h'
+      include 'bering.h'
+c
+      real field(idm,jdm),sign
+c
+c --- exchange p-point values (half grid size away from seam)
+      if (beropn) then
+        field(iatls,jatl)=field(ipacs,jpac)
+        field(ipacn,jpac)=field(iatln,jatl)
+      end if
+c
+      return
+      end
 c
 c> Revision history:
 c>

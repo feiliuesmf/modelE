@@ -7,11 +7,15 @@ c --- ----------------------------------
 c --- define layer depth at  u,v  points
 c --- ----------------------------------
 c
-#include "dimensions.h"
-#include "dimension2.h"
-#include "common_blocks.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
+      include 'common_blocks.h'
 c
       integer mmnn,kmn
+c
+      do k=1,kk
+        call cpy_p(p(1,1,k+1))
+      end do
 c
 c$OMP PARALLEL DO PRIVATE(ja,kmn)
       do j=1,jj
@@ -40,4 +44,5 @@ c
 c
 c> Revision history:
 c>
-c> Sept. 2000 - (dpu,dpv,depthu,depthv,p) no longer passed as arguments
+c> Sep. 2000 - (dpu,dpv,depthu,depthv,p) no longer passed as arguments
+c> Mar. 2006 - added bering strait exchange logic

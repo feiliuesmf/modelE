@@ -1,4 +1,6 @@
-c-----------------------------------------------------------------------------
+c   -----------------------------------------------------------------------------
+      include 'bering.h'
+c
       c o m m o n
      . u(idm,jdm,2*kdm),v(idm,jdm,2*kdm)      ! velocity components
      .,dp(idm,jdm,2*kdm),dpold(idm,jdm,kdm)   ! layer thickness
@@ -11,10 +13,10 @@ c-----------------------------------------------------------------------------
      .,temp(idm,jdm,2*kdm)                    ! temperature
      .,saln(idm,jdm,2*kdm)                    ! salinity
      .,th3d(idm,jdm,2*kdm)                    ! potential density
-     .,thstar(idm,jdm,kdm)                    ! virtual potential density
+     .,thstar(idm,jdm,2*kdm)                  ! virtual potential density
      .,thermb(idm,jdm,2*kdm)                  ! difference thstar - th3d
-     .,psikk(idm,jdm)                         ! init.montg.pot. in bottom layer
-     .,thkk(idm,jdm)                          ! init.thstar in bottom layer
+     .,psikk(idm,jdm,2)                       ! init.montg.pot. in bottom layer
+     .,thkk(idm,jdm,2)                        ! init.thstar in bottom layer
      .,dpmixl(idm,jdm)                        ! Kraus-Turner mixed layer depth
      .,srfhgt(idm,jdm)                        ! sea surface height
 c
@@ -22,7 +24,7 @@ c
      .     temp,saln,th3d,thstar,thermb,psikk,thkk,dpmixl,srfhgt
 c
       c o m m o n
-     . montg(idm,jdm,kdm)                     ! montgomery potential
+     . montg(idm,jdm,2*kdm)                   ! montgomery potential
      .,defor1(idm,jdm),defor2(idm,jdm)        ! deformation components
      .,ubavg(idm,jdm,3),vbavg(idm,jdm,3)      ! barotropic velocity
      .,pbavg(idm,jdm,3)                       ! barotropic pressure
@@ -34,10 +36,11 @@ c
      .,uflux2(idm,jdm),vflux2(idm,jdm)        ! more mass fluxes
      .,uflux3(idm,jdm),vflux3(idm,jdm)        ! more mass fluxes
      .,uflx(idm,jdm,kdm),vflx(idm,jdm,kdm)    ! more mass fluxes
+     .,bolusu(idm,jdm,kdm),bolusv(idm,jdm,kdm)  ! thickness (bolus) fluxes
 c
       real montg,defor1,defor2,ubavg,vbavg,pbavg,ubrhs,vbrhs,utotm,
      .     vtotm,utotn,vtotn,uflux,vflux,uflux1,vflux1,uflux2,vflux2,
-     .     uflux3,vflux3,uflx,vflx
+     .     uflux3,vflux3,uflx,vflx,bolusu,bolusv
 c
       c o m m o n /timav/                ! fields needed for time-averaging
      .   uav(idm,jdm,kdm),  vav(idm,jdm,kdm)
@@ -99,13 +102,21 @@ c    .,odhsi(idm,jdm)                         ! heat borrowed from frozen
      .,odmsi(idm,jdm)                         ! newly formed ice
      .,omlhc(idm,jdm)
      .,dmfz(idm,jdm)                          ! ice mass due to freezing
-     .,klist(idm,jdm)                         ! k-index of layer below mixl'r
+     .,skap(idm,jdm)        ! thermobaric scale factor between reference states
 c
       real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
 c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
-     .   ,odmsi,omlhc,dmfz
-      integer klist
+     .   ,odmsi,omlhc,dmfz,skap
 c
+      integer, dimension (idm,jdm) ::
+     .  klist         !k-index of layer below mixl'r
+     . ,kapi          !thermobaric reference state index (1 or 3)
+      integer ::
+     . kapref         !thermobaric reference state (-1=input,0=none,1,2,3=const)
+     .,kapnum         !number of thermobaric reference states (1 or 2)
+c
+      common/int1/klist,kapi,kapref,kapnum
+
 c ---  s w i t c h e s    (if set to .true., then...)
 c --- diagno      output model fields and diagnostic messages
 c --- thermo      use thermodynamic forcing functions
@@ -167,6 +178,7 @@ c --- 'wts1/2' = weights for time smoothing of t,s field
 c --- 'wbaro'  = weight for time smoothing of barotropic u,v,p field
 c --- 'thkmin' = minimum mixed-layer thickness
 c --- 'thkbot' = thickness of bottom boundary layer
+c --- 'botmin' = minimum topo depth
 c --- 'ekman'  = thickness of ekman layer
 c --- 'sigjmp' = minimum density jump at mixed-layer bottom
 c ---' salmin' = minimum salinity allowed in an isopycnic layer
@@ -176,13 +188,13 @@ c
       common/parms1/thbase,sigma(kdm),theta(kdm),baclin,batrop,thkdff,
      .              veldff,temdff,viscos,diapyc,vertmx,h1,slip,cbar,
      .              diagfq,wuv1,wuv2,wts1,wts2,acurcy,wbaro,thkmin,
-     .              thkbot,ekman,sigjmp,salmin(kdm)
+     .              thkbot,botmin,ekman,sigjmp,salmin(kdm)
       real sigma,theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
      .     diapyc,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,acurcy,
-     .     wbaro,thkmin,thkbot,ekman,sigjmp,salmin
+     .     wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
 c
-      common/parms2/trcfrq,ntracr,nhr
-      integer       trcfrq,ntracr,nhr
+      common/parms2/trcfrq,ntracr,nhr,mixfrq
+      integer       trcfrq,ntracr,nhr,mixfrq
 c
 c --- 'tenm,onem,...' = pressure thickness values corresponding to 10m,1m,...
 c --- 'g'      = gravity acceleration
@@ -212,13 +224,12 @@ c
 c
       character*60 flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
-     .            ,flnminp,flnmint,flnmins
-     .            ,flnmcoso,flnmcosa,flnmijuv
-      character*60 flnma2o,flnma2o_tau,flnmo2a
+     .            ,flnminp,flnmint,flnmins,flnmkap
+     .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
       common/iovars/flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
-     .            ,flnminp,flnmint,flnmins,flnma2o,flnma2o_tau,flnmo2a
-     .            ,flnmcoso,flnmcosa,flnmijuv
+     .            ,flnminp,flnmint,flnmins,flnmkap
+     .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
 c
 c> Revision history:
 c>

@@ -24,7 +24,7 @@ c
  1    p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
 c
       do 2 i=ifp(j,l),ilp(j,l)
-      pbot(i,j)=max(pbot(i,j),30.*onem)    ! 30m minimum
+      pbot(i,j)=max(pbot(i,j),botmin*onem)    ! botmin: minimum water depth
       if (abs(p(i,j,kk+1)-pbot(i,j)).gt.onem)
      .  write (lp,'(2i5,a,2f9.1)') i,j,
      .   '  old/new bottom depth:',p(i,j,kk+1)/onem,pbot(i,j)/onem
@@ -38,8 +38,10 @@ c
         dp(i,j,k+kk)=dp(i,j,k+kk)*factor
 c
         if (k.gt.1) then
-          psikk(i,j)=psikk(i,j)-p(i,j,k)*(factor-1.)*
+          psikk(i,j,1)=psikk(i,j,1)-p(i,j,k)*(factor-1.)*
      .     (thstar(i,j,k)-thstar(i,j,k-1))*thref
+          psikk(i,j,2)=psikk(i,j,2)-p(i,j,k)*(factor-1.)*
+     .     (thstar(i,j,kk+k)-thstar(i,j,kk+k-1))*thref
         end if
       end if
  3    continue

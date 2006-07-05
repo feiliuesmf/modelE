@@ -361,4 +361,50 @@ c
 ccc      if (1.gt.0) stop '(stencl)'                !  optional
       return
       end
-
+c
+      subroutine prt9x9(array,iz,jz,offset,scale,what)
+c
+c --- write 9 x 9 point cluster of 'array' values centered on (iz,jz).
+c --- the printed numbers actually represent (array(i,j) + offset) * scale
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real array(idm,jdm),scale,offset
+      character what*12
+      integer iz,jz,jwrap
+      jwrap(j)=mod(j-1+jj,jj)+1		!  for use in cyclic domain
+c
+ 100  format(a10,2x,9i7)
+ 101  format(i10,3x,9f7.1)
+c
+      write (lp,100) what,(jwrap(j),j=jz-4,jz+4)
+      write (lp,101) (i,(scale*(array(i,jwrap(j))+offset),
+     .   j=jz-4,jz+4),i=iz-4,iz+4)
+c
+      return
+      end
+c
+      subroutine prt7x7(array,iz,jz,what)
+c
+c --- write 7 x 7 point cluster of 'array' values centered on (iz,jz).
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real array(idm,jdm),scale,offset
+      character what*12
+      integer iz,jz,jwrap
+      jwrap(j)=mod(j-1+jj,jj)+1		!  for use in cyclic domain
+c
+ 100  format(a10,2x,7i9)
+ 101  format(i10,3x,1p,7e9.1)
+c
+      write (lp,100) what,(jwrap(j),j=jz-3,jz+3)
+      write (lp,101) (i,(array(i,jwrap(j)),
+     .   j=jz-3,jz+3),i=iz-3,iz+3)
+c
+      return
+      end

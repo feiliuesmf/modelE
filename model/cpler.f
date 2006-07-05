@@ -4,10 +4,12 @@ c
 c --- fldo:  input field from ogcm grid
 c     flda: output field onto agcm grid
 c
+      implicit none
 #include "dimensions.h"
 #include "dimension2.h"
 #include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
+      integer io,jo
 c
 cdiag tta=0.
 cdiag tto=0.
@@ -136,9 +138,9 @@ c
 #include "dimensions.h"
 #include "dimension2.h"
 #include "a2o.h"
-      integer io,jo
       real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
      .      ,nward(iio,jjo),eward(iio,jjo),tta,tto,sin
+      integer io,jo
 c
 c$OMP PARALLEL DO
       do 10 j=1,jj
@@ -148,17 +150,19 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c
 c --- rotate taux/tauy to n/e orientation at local p point on panam grid
-c --- average to p point for rotation
+c --- check velocity bounds
 c$OMP PARALLEL DO PRIVATE(jb,sin)
       do 12 j=1,jj
       jb=mod(j,jj)+1
       do 12 l=1,isp(j)           
       do 12 i=ifp(j,l),ilp(j,l)
+      if (iv(i,j)+iv(i,jb)+iu(i,j)+iu(i+1,j).eq.4) then
       sin=sino(i,j)*sino(i,j)+coso(i,j)*coso(i,j)
-      nward(i,j)=((tauyo(i,j)+tauyo(i  ,jb))*sino(i,j)
-     .           -(tauxo(i,j)+tauxo(i+1,jb))*coso(i,j))/(2.*sin)
-      eward(i,j)=((tauyo(i,j)+tauyo(i  ,jb))*coso(i,j)
-     .           +(tauxo(i,j)+tauxo(i+1,jb))*sino(i,j))/(2.*sin)
+      nward(i,j)=((tauyo(i,j)+tauyo(i ,jb))*sino(i,j)
+     .           -(tauxo(i,j)+tauxo(i+1,j))*coso(i,j))/(2.*sin)
+      eward(i,j)=((tauyo(i,j)+tauyo(i ,jb))*coso(i,j)
+     .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sin)
+      endif
  12   continue
 c$OMP END PARALLEL DO           
 c
