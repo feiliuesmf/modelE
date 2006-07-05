@@ -9,12 +9,14 @@ c
 c
       integer iz,jz,kp
       real flxdiv,spcoef,offset,factor,q,pold,pmid,pnew,snew,tnew,
-     .     corrt,corrs,vlume,tscnsv,tdfcit(jdm),sdfcit(jdm),vlumej(jdm),
-     .     aux(idm,jdm)
+ccc     .     cortmj(jdm),corsmj(jdm),vlummj(jdm),corrtm,corrsm,vlumm,
+     .     cortnj(jdm),corsnj(jdm),vlumnj(jdm),corrtn,corrsn,vlumn,
+     .     wlist1(idm,jdm),wlist2(idm,jdm),aux(idm,jdm),tscnsv
       real uflxn(idm,jdm,kdm),vflxn(idm,jdm,kdm),sign(idm,jdm,kdm),
-     .     pn(idm,jdm,kdm+1),spice(idm,jdm)
-      real sigocn,hfharm,tofsig,tofspi,fac0
+     .     pn(idm,jdm,kdm+1),spice(idm,jdm,2)
+      real sigocn,hfharm,tofsig,tofspi
       external sigocn,hfharm,tofsig,tofspi
+      character text*24
       data spcoef/0.13/		!  spiciness coeff.
       logical globcor
       data globcor/.true./		!  transport error correction switch
@@ -33,6 +35,8 @@ c
       km=k+mm
       kn=k+nn
       kp=min(k+1,kk)
+c
+      call cpy_p(dp(1,1,kn))
 c
 c --- smooth mass fluxes in lateral direction
 c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb)
@@ -67,25 +71,35 @@ c --- advection of thermodynamic variable(s)
 c --- --------------------------------------
 c
 c$OMP PARALLEL DO PRIVATE(jb,pold,pmid,flxdiv,offset,iz,jz)
-c$OMP. SHARED(nn,spcoef)
+c$OMP. SHARED(spcoef)
       do 2 j=1,jj
       jb=mod(j     ,jj)+1
-c
+ccc      corsmj(j)=0.
+ccc      cortmj(j)=0.
+      corsnj(j)=0.
+      cortnj(j)=0.
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
+c
+      if (globcor) then
+ccc        cortmj(j)=cortmj(j)+temp(i,j,km)*dp(i,j,km)*scp2(i,j)
+ccc        corsmj(j)=corsmj(j)+saln(i,j,km)*dp(i,j,km)*scp2(i,j)
+        cortnj(j)=cortnj(j)+temp(i,j,kn)*dpold(i,j,k)*scp2(i,j)
+        corsnj(j)=corsnj(j)+saln(i,j,kn)*dpold(i,j,k)*scp2(i,j)
+      end if
+c
+c --- define 2nd thermodyn.variable (to be advected together with density)
+      spice(i,j,m)=saln(i,j,km)+spcoef*temp(i,j,km)
+      spice(i,j,n)=saln(i,j,kn)+spcoef*temp(i,j,kn)
+      util3(i,j)=th3d(i,j,kn)
 c
 c --- time smoothing of thermodynamic variable(s) (part 1)
       pold=max(0.,dpold(i,j,k))
       pmid=max(0.,dp(i,j,km))
       th3d(i,j,km)=th3d(i,j,km)*(wts1*pmid+epsil)+
      .             th3d(i,j,kn)* wts2*pold
-      saln(i,j,km)=saln(i,j,km)*(wts1*pmid+epsil)+
-     .             saln(i,j,kn)* wts2*pold
-      temp(i,j,km)=temp(i,j,km)*(wts1*pmid+epsil)+
-     .             temp(i,j,kn)* wts2*pold
-c
-c --- define 2nd thermodyn.variable (to be advected together with density)
-      spice(i,j)=saln(i,j,kn)+spcoef*temp(i,j,kn)
+      spice(i,j,m)=spice(i,j,m)*(wts1*pmid+epsil)+
+     .             spice(i,j,n)* wts2*pold
 c
 c --- before calling 'advfct', make sure mass fluxes are consistent
 c --- with layer thickness change
@@ -96,11 +110,6 @@ c --- with layer thickness change
       offset=min(0.,util1(i,j),util2(i,j))
       util2(i,j)=util2(i,j)-offset
       util1(i,j)=util1(i,j)-offset
-c
-      if (globcor) then
-        util3(i,j)=temp(i,j,kn)*dpold(i,j,k)
-        util4(i,j)=saln(i,j,kn)*dpold(i,j,k)
-      end if
  2    continue
 c$OMP END PARALLEL DO
 c
@@ -113,73 +122,20 @@ c
       call advfct(2,th3d(1,1,kn),uflux,vflux,scp2,scp2i,
      .            delt1,util1,util2)
 c
-      call advfct(2,spice       ,uflux,vflux,scp2,scp2i,
+      call advfct(2,spice(1,1,n),uflux,vflux,scp2,scp2i,
      .            delt1,util1,util2)
 c
-c$OMP PARALLEL DO 
+c$OMP PARALLEL DO PRIVATE(pold,pmid,pnew,snew,tnew) SHARED(k)
       do 3 j=1,jj
       do 3 l=1,isp(j)
       do 3 i=ifp(j,l),ilp(j,l)
-      if (dp(i,j,kn).gt.onemm) then
-        temp(i,j,kn)=tofspi(th3d(i,j,kn)+thbase,spice(i,j),spcoef)
-        saln(i,j,kn)=spice(i,j)-spcoef*temp(i,j,kn)
-c
-        if (temp(i,j,kn).lt.-5.) write (lp,'(2i5,i3,a,4f8.2)') i,j,k,
-     .   ' bad th,t,s,dp combination ',th3d(i,j,kn)+thbase,
-     .    temp(i,j,kn),saln(i,j,kn),dp(i,j,kn)
-      end if
- 3    continue
-c$OMP END PARALLEL DO 
-c
-      if (globcor) then
-c --- do global correction on advected fields
-c
-c$OMP PARALLEL DO
-        do 15 j=1,jj
-        sdfcit(j)=0.
-        tdfcit(j)=0.
-        vlumej(j)=0.
-        do 15 l=1,isp(j)
-        do 15 i=ifp(j,l),ilp(j,l)
-        tdfcit(j)=tdfcit(j)+(temp(i,j,kn)*dp(i,j,kn)
-     .    -util3(i,j))*scp2(i,j)
-        sdfcit(j)=sdfcit(j)+(saln(i,j,kn)*dp(i,j,kn)
-     .    -util4(i,j))*scp2(i,j)
- 15     vlumej(j)=vlumej(j)+dp(i,j,kn)*scp2(i,j)
-c$OMP END PARALLEL DO
-c
-        corrt=0.
-        corrs=0.
-        vlume=0.
-        do 16 j=1,jj
-        corrt=corrt+tdfcit(j)
-        corrs=corrs+sdfcit(j)
- 16     vlume=vlume+vlumej(j)
-c
-        if (vlume.gt.area*onecm) then
-          corrt=corrt/vlume
-          corrs=corrs/vlume
-        else
-          corrt=0.
-          corrs=0.
-        end if
-      end if				!  globcor = .true.
-c
-c$OMP PARALLEL DO PRIVATE(pold,pmid,pnew)
-      do 4 j=1,jj
-c
-      do 5 l=1,isp(j)
-      do 5 i=ifp(j,l),ilp(j,l)
-      if (globcor) then
-        temp(i,j,kn)=temp(i,j,kn)-corrt
-        saln(i,j,kn)=saln(i,j,kn)-corrs
-      end if
 c
 c --- time smoothing of thickness field
       pold=max(0.,dpold(i,j,k))
       pmid=max(0.,dp(i,j,km))
       pnew=max(0.,dp(i,j,kn))
       dp(i,j,km)=pmid*wts1+(pold+pnew)*wts2
+      p(i,j,k+1)=p(i,j,k)+dp(i,j,km)			!  neded in reflux
       aux(i,j)=aux(i,j)+(dp(i,j,km)-pmid)			! diapyc.flux
       diaflx(i,j,k )=diaflx(i,j,k )+aux(i,j)			! diapyc.flux
       diaflx(i,j,kp)=diaflx(i,j,kp)-aux(i,j)			! diapyc.flux
@@ -188,18 +144,34 @@ c --- time smoothing of thermodynamic variable(s) (part 2)
       pmid=max(0.,dp(i,j,km))
       th3d(i,j,km)=(th3d(i,j,km)+th3d(i,j,kn)*wts2*pnew)/
      .   (pmid+epsil)
-      saln(i,j,km)=(saln(i,j,km)+saln(i,j,kn)*wts2*pnew)/
+      spice(i,j,m)=(spice(i,j,m)+spice(i,j,n)*wts2*pnew)/
      .   (pmid+epsil)
-      temp(i,j,km)=(temp(i,j,km)+temp(i,j,kn)*wts2*pnew)/
-     .   (pmid+epsil)
+c
+c --- recover t/s from density/spiciness
+      if (dp(i,j,km).gt.onemm) then
+        temp(i,j,km)=tofspi(th3d(i,j,km)+thbase,spice(i,j,m),spcoef)
+        saln(i,j,km)=spice(i,j,m)-spcoef*temp(i,j,km)
+      end if
+      if (dp(i,j,kn).gt.onemm) then
+        tnew=tofspi(th3d(i,j,kn)+thbase,spice(i,j,n),spcoef)
+        snew=spice(i,j,n)-spcoef*tnew
+        if (tnew.lt.-9. and. dp(i,j,kn).gt.onecm)
+     .   write (lp,'(2i5,i3,a,4f8.2/36x,a,4f8.2)') i,j,k,
+     .    ' bad th,t,s,dp combo   old:',util3(i,j)+thbase,
+     .     temp(i,j,kn),saln(i,j,kn),dpold(i,j,k)/onem,'new:',
+     .      th3d(i,j,kn)+thbase,tnew,snew,dp(i,j,kn)/onem
+        temp(i,j,kn)=tnew
+        saln(i,j,kn)=snew
+      end if
+c
 c --- build up time integral of mass field variables
+      pmid=max(0.,dp(i,j,km))
       dpav (i,j,k)=dpav (i,j,k)+pmid
       temav(i,j,k)=temav(i,j,k)+temp(i,j,km)*pmid
       salav(i,j,k)=salav(i,j,k)+saln(i,j,km)*pmid
- 5    th3av(i,j,k)=th3av(i,j,k)+th3d(i,j,km)*pmid
-c
- 4    continue
-c$OMP END PARALLEL DO
+      th3av(i,j,k)=th3av(i,j,k)+th3d(i,j,km)*pmid
+ 3    continue
+c$OMP END PARALLEL DO 
 c
 cdiag if (itest.gt.0.and.jtest.gt.0)
 cdiag. write (lp,101) nstep,itest,jtest,k,' th,t,s,dp after advec ',
@@ -209,6 +181,10 @@ c
 c --- --------------------------------------
 c --- diffusion of thermodynamic variable(s)
 c --- --------------------------------------
+c
+      call cpy_p(temp(1,1,kn))
+      call cpy_p(saln(1,1,kn))
+      call cpy_p(th3d(1,1,kn))
 c
 c$OMP PARALLEL DO PRIVATE(ja,factor)
       do 145 j=1,jj
@@ -231,7 +207,22 @@ c
  145  vflux3(i,j)=factor*(th3d(i,ja ,kn)-th3d(i,j,kn))
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(jb,factor)
+      if (beropn) then
+        if (abs(uflux (ipacs,jpac)+uflux (iatln,jatl)).gt.
+     .  max(abs(uflux (ipacs,jpac)-uflux (iatln,jatl))*acurcy,1.))
+     .    write(*,'(i4,a,1p,2e15.7)') nstep,
+     .   ' tsadvc WRONG uflux ',uflux (ipacs,jpac),uflux (iatln,jatl)
+        if (abs(uflux2(ipacs,jpac)+uflux2(iatln,jatl)).gt.
+     .  max(abs(uflux2(ipacs,jpac)+uflux2(iatln,jatl))*acurcy,1.))
+     .    write(*,'(i4,a,1p,2e15.7)') nstep,
+     .   ' tsadvc WRONG uflux2',uflux2(ipacs,jpac),uflux2(iatln,jatl)
+        if(abs(uflux3(ipacs,jpac)+uflux3(iatln,jatl)).gt.
+     .  max(abs(uflux3(ipacs,jpac)+uflux3(iatln,jatl))*acurcy,1.))
+     .    write(*,'(i4,a,1p,2e15.7)') nstep,
+     .   ' tsadvc WRONG uflux3',uflux3(ipacs,jpac),uflux3(iatln,jatl)
+      end if
+
+c$OMP PARALLEL DO PRIVATE(jb,factor,pmid)
       do 146 j=1,jj
       jb=mod(j     ,jj)+1
       do 146 l=1,isp(j)
@@ -250,8 +241,7 @@ c --- reconcile -temp- and -th3d-
      .          +(1.-tscnsv)*th3d(i,j,kn)
       if (tscnsv.lt.1.)
      .  temp(i,j,kn)=tofsig(th3d(i,j,kn)+thbase,saln(i,j,kn))
-c
- 146  p(i,j,k+1)=p(i,j,k)+dp(i,j,km)			!  neded in reflux
+ 146  continue
 c$OMP END PARALLEL DO
 c
 cdiag if (itest.gt.0.and.jtest.gt.0)
@@ -259,7 +249,68 @@ cdiag. write (lp,101) nstep,itest,jtest,k,' th,t,s,dp after mixing',
 cdiag.  th3d(itest,jtest,kn)+thbase,temp(itest,jtest,kn),
 cdiag.   saln(itest,jtest,kn),dp(itest,jtest,kn)/onem
 c
- 1    continue
+      if (globcor) then
+c --- do global correction on advected fields
+c
+c$OMP PARALLEL DO
+        do 15 j=1,jj
+ccc        vlummj(j)=0.
+        vlumnj(j)=0.
+        do 15 l=1,isp(j)
+        do 15 i=ifp(j,l),ilp(j,l)
+ccc        cortmj(j)=cortmj(j)-temp(i,j,km)*dp(i,j,km)*scp2(i,j)
+ccc        corsmj(j)=corsmj(j)-saln(i,j,km)*dp(i,j,km)*scp2(i,j)
+ccc        vlummj(j)=vlummj(j)+dp(i,j,km)*scp2(i,j)
+        cortnj(j)=cortnj(j)-temp(i,j,kn)*dp(i,j,kn)*scp2(i,j)
+        corsnj(j)=corsnj(j)-saln(i,j,kn)*dp(i,j,kn)*scp2(i,j)
+ 15     vlumnj(j)=vlumnj(j)+dp(i,j,kn)*scp2(i,j)
+c$OMP END PARALLEL DO
+c
+ccc        corrtm=0.
+ccc        corrsm=0.
+ccc        vlumm=0.
+        corrtn=0.
+        corrsn=0.
+        vlumn=0.
+        do 16 j=1,jj
+ccc        corrtm=corrtm+cortmj(j)
+ccc        corrsm=corrsm+corsmj(j)
+ccc        vlumm=vlumm+vlummj(j)
+        corrtn=corrtn+cortnj(j)
+        corrsn=corrsn+corsnj(j)
+ 16     vlumn=vlumn+vlumnj(j)
+c
+        if (vlumn.gt.area*onecm) then
+ccc          corrtm=corrtm/vlumm
+ccc          corrsm=corrsm/vlumm
+          corrtn=corrtn/vlumn
+          corrsn=corrsn/vlumn
+        else
+ccc          corrtm=0.
+ccc          corrsm=0.
+          corrtn=0.
+          corrsn=0.
+        end if
+c
+c$OMP PARALLEL DO
+        do 17 j=1,jj
+        do 17 l=1,isp(j)
+        do 17 i=ifp(j,l),ilp(j,l)
+ccc        temp(i,j,km)=temp(i,j,km)+corrtm
+ccc        saln(i,j,km)=saln(i,j,km)+corrsm
+ccc        th3d(i,j,km)=sig(temp(i,j,km),saln(i,j,km))-thbase
+        temp(i,j,kn)=temp(i,j,kn)+corrtn
+        saln(i,j,kn)=saln(i,j,kn)+corrsn
+ 17     th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))-thbase
+c$OMP END PARALLEL DO
+c
+      end if				!  globcor = .true.
+c
+      call cpy_p(temp(1,1,km))
+      call cpy_p(temp(1,1,kn))
+      call cpy_p(saln(1,1,km))
+      call cpy_p(saln(1,1,kn))
+ 1    continue				!  k loop
 c
 c --- convert mass fluxes to density coord. prior to time integration
 c
@@ -278,7 +329,6 @@ ccc      end do
 ccc      end do
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      fac0=.5*delt1/baclin
 c$OMP PARALLEL DO PRIVATE(ja)
       do 155 j=1,jj
       ja=mod(j-2+jj,jj)+1
@@ -287,15 +337,13 @@ c
       do 154 l=1,isu(j)
       do 154 i=ifu(j,l),ilu(j,l)
       uflxav(i,j,k)=uflxav(i,j,k)+uflxn(i,j,k)		!  uflx time integral
-css  .   *.5*min(nstep,2)
-     .   *fac0
+     .   *.5*min(nstep,2)
  154  continue
 c
       do 155 l=1,isv(j)
       do 155 i=ifv(j,l),ilv(j,l)
       vflxav(i,j,k)=vflxav(i,j,k)+vflxn(i,j,k)		!  vflx time integral
-css  .   *.5*min(nstep,2)
-     .   *fac0
+     .   *.5*min(nstep,2)
  155  continue
 c$OMP END PARALLEL DO
 c
@@ -316,10 +364,10 @@ c
 c
       include 'state_eqn.h'
 c
-c     q=1./(c6-coeff*c7)
-c     a0=(c1         +c3*spice)*q
-c     a1=(c2-coeff*c3+c5*spice)*q
-c     a2=(c4-coeff*c5+c7*spice)*q
+ccc      q=1./(c6-coeff*c7)
+ccc      a0=(c1         +c3*spice)*q
+ccc      a1=(c2-coeff*c3+c5*spice)*q
+ccc      a2=(c4-coeff*c5+c7*spice)*q
 c
       q=1./(c6-coeff*(c7-                        coeff*c9))
       a0=(c1+spice*(c3+   spice*c8)                       )*q
@@ -338,7 +386,7 @@ c
       cubrl=sqq*cos(cuban)
       cubim=sqq*sin(cuban)
       tofspi=-cubrl+sqrt(3.)*cubim-athird*a2
-      salin=spice-coeff*tofspi
+cdiag salin=spice-coeff*tofspi
 cdiag if (abs(sigocn(tofspi,salin)-sigm).gt.1.e-9) write (*,100)
 cdiag. tofspi,salin,sigm,sigocn(tofspi,salin)
  100  format ('tofspi,sal,old/new sig =',4f11.6)
@@ -363,3 +411,5 @@ c> Sep. 2003 - removed tracer advection (now in trcadv.f)
 c> Oct. 2003 - choice between T/S and rho/S conservation during lat. mixing
 c> Dec. 2004 - replaced salinity by spiciness as advected variable
 c> Dec. 2004 - switched global correction ('globcor') from rho/spice to T/S
+c> Jan. 2005 - replaced salinity by spiciness as time-smoothed variable
+c> Mar. 2006 - added bering strait exchange logic

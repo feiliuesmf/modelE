@@ -99,7 +99,12 @@ c
       end if
 c
 c --- compute horizontal flux divergence (units: per transport time step)
-c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv,ka,verdiv)
+c
+      do k=1,kk
+        ufxcum(iatls,jatl,k)=-ufxcum(ipacn,jpac,k)
+      end do
+c
+c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv)
       do 9 j=1,jj
       jb=mod(j,jj)+1
       do 9 l=1,isp(j)
@@ -144,7 +149,7 @@ c
       ka=max(1,k-1)
       do 16 i=ifp(j,l),ilp(j,l)
       verdiv=(dpinit(i,j,k)-dp(i,j,k+nn))-hordiv(i,j,k)
- 16   vertfx(i,j,k)=vertfx(i,j,ka)+verdiv        !  flx thru botm of lyr k
+ 16   vertfx(i,j,k)=vertfx(i,j,ka)+verdiv	!  flx thru botm of lyr k
  9    continue
 c$OMP END PARALLEL DO
 c
@@ -189,14 +194,25 @@ cdiag     write (string,'(a,i2,a,i3)') 'trcr',nt,' aftr adv',k
 cdiag     call findmx(ip,tracer(1,1,k,nt),idm,ii1,jj,string)
 cdiag   end do
 c
+        do k=1,kk
+          call cpy_p(tracer(1,1,k,nt))
+        end do
       end do
 c
 cdiag call totals(dp(1,1,1+nn),tracer(1,1,1,1),
 cdiag.            dp(1,1,1+nn),tracer(1,1,1,2),'after fct3d')
 c
       write (lp,'(a)') 'tracer transport done'
+c
       return
       end
+c
+c
+c> Revision history:
+c>
+c> Dec. 2004 - made code cyclic in both -i- and -j- direction
+c> Feb. 2005 - added multiple tracer capability
+c> Mar. 2006 - added bering strait exchange logic
 c
       subroutine fct3d(iord,fld,u,v,w,scal,scali,fco,fc)
 c
@@ -212,6 +228,7 @@ c
       implicit none
       include 'dimensions.h'
       include 'dimension2.h'
+      include 'bering.h'
 c
       real fld(idm,jdm,kdm),u(idm,jdm,kdm),v(idm,jdm,kdm),
      .     w(idm,jdm,kdm),fco(idm,jdm,kdm),fc(idm,jdm,kdm),
@@ -352,7 +369,7 @@ c --- apex at x=+.5
             c(k)=3.*(fld(i,j,k)-yr)
             b(k)=-c(k)
           end if
-        else                        !  -1/6 < x < +1/6
+        else			!  -1/6 < x < +1/6
 c --- moving apex won't help. replace parabola by constant.
           a(k)=fld(i,j,k)
           b(k)=0.
@@ -364,7 +381,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       do 23 k=1,kk-1
       slab=onemu
-      if (w(i,j,k).lt.0.) then                        ! interface moves down
+      if (w(i,j,k).lt.0.) then			! interface moves down
         amount=slab*fld(i,j,k+1)
         kp=k
  24     kp=kp+1
@@ -374,13 +391,13 @@ c
      .         -min(slab            ,-w(i,j,k))
           dx=dslab/fco(i,j,kp)
           fcdx=a(kp)
-     .        +b(kp)*.5*(dx-1.)                        !  not needed in pcm
-     .        +c(kp)*(.25-dx*(.5-dx*athird))        !  not needed in pcm,plm
+     .        +b(kp)*.5*(dx-1.)			!  not needed in pcm
+     .        +c(kp)*(.25-dx*(.5-dx*athird))	!  not needed in pcm,plm
           amount=amount+fcdx*dslab
           slab=slab+dslab
         end if
         if (kp.lt.kk) go to 24
-      else if (w(i,j,k).gt.0.) then                ! interface moves up
+      else if (w(i,j,k).gt.0.) then		! interface moves up
         amount=slab*fld(i,j,k)
         kp=k+1
  25     kp=kp-1
@@ -390,8 +407,8 @@ c
      .         -min(slab            , w(i,j,k))
           dx=dslab/fco(i,j,kp)
           fcdx=a(kp)
-     .        +b(kp)*.5*(1.-dx)                        !  not needed in pcm
-     .        +c(kp)*(.25-dx*(.5-dx*athird))        !  not needed in pcm,plm
+     .        +b(kp)*.5*(1.-dx)			!  not needed in pcm
+     .        +c(kp)*(.25-dx*(.5-dx*athird))	!  not needed in pcm,plm
           amount=amount+fcdx*dslab
           slab=slab+dslab
         end if
@@ -399,7 +416,7 @@ c
       end if
  23   vertfx(i,j,k)=w(i,j,k)*amount/slab
 c
-      vertfx(i,j,kk)=0.                        !  don't allow flux through bottom
+      vertfx(i,j,kk)=0.			!  don't allow flux through bottom
       vertdv(i,j,1)=vertfx(i,j,1)
       do 26 k=2,kk
       vertdv(i,j,k)=vertfx(i,j,k)-vertfx(i,j,k-1)
@@ -412,6 +429,11 @@ c
 c
       do 4 k=1,kk
 c
+      if (beropn) then
+        fld(ipacn,jpac,k)=0.
+        fld(iatls,jatl,k)=0.
+      end if
+c
 c$OMP PARALLEL DO SHARED(k)
       do 14 j=1,jj
       bforej(j)=0.
@@ -421,6 +443,8 @@ c$OMP PARALLEL DO SHARED(k)
 c$OMP END PARALLEL DO
 c
 c --- compute antidiffusive (high- minus low-order) fluxes
+c
+      call cpy_p(fld(1,1,k))
 c
 c$OMP PARALLEL DO PRIVATE(ja,jaa,jb,q,ia,ib) SHARED(k)
       do 11 j=1,jj
@@ -436,9 +460,9 @@ c
         q=fld(i  ,j,k)
       end if
       flx(i,j)=u(i,j,k)*q
-      q=fld(i,j,k)+fld(i-1,j,k)                                !  2nd order
+      q=fld(i,j,k)+fld(i-1,j,k)				!  2nd order
       if (ip(i+1,j)+iu(i-1,j).eq.2)
-     .  q=1.125*q-.125*(fld(i+1,j,k)+fld(i-2,j,k))        !  4th order
+     .  q=1.125*q-.125*(fld(i+1,j,k)+fld(i-2,j,k))	!  4th order
  2    uan(i,j)=.5*q*u(i,j,k)-flx(i,j)
 c
       do 3 l=1,isv(j)
@@ -449,9 +473,9 @@ c
         q=fld(i,j  ,k)
       end if
       fly(i,j)=v(i,j,k)*q
-      q=fld(i,ja ,k)+fld(i,j,k)                                !  2nd order
+      q=fld(i,ja ,k)+fld(i,j,k)				!  2nd order
       if (ip(i,jb )+iv(i,ja).eq.2)
-     .  q=1.125*q-.125*(fld(i,jb ,k)+fld(i,jaa,k))        !  4th order
+     .  q=1.125*q-.125*(fld(i,jb ,k)+fld(i,jaa,k))	!  4th order
  3    van(i,j)=.5*q*v(i,j,k)-fly(i,j)
 c
       do 11 l=1,isp(j)
@@ -500,7 +524,7 @@ c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO PRIVATE(j,wrap)
       do 33 i=1,ii1
-      wrap=jfv(i,1).eq.1        ! true if j=1 and j=jj are both water points
+      wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
       j=jfp(i,l)
       if (j.gt.1 .or. .not.wrap) then
@@ -569,6 +593,9 @@ c$OMP END PARALLEL DO
 c
 c---- limit antidiffusive fluxes
 c
+      call cpy_p(flp)
+      call cpy_p(fln)
+c
 c$OMP PARALLEL DO PRIVATE(ja,clip)
       do 8 j=1,jj
       ja=mod(j-2+jj,jj)+1
@@ -636,6 +663,11 @@ c$OMP END PARALLEL DO
         end if
       end if
 c
+      if (beropn) then
+        fld(ipacn,jpac,k)=0.
+        fld(iatls,jatl,k)=0.
+      end if
+c
 c$OMP PARALLEL DO SHARED(k)
       do 15 j=1,jj
       afterj(j)=0.
@@ -673,8 +705,4 @@ c
 c> Revision history:
 c>
 c> Feb. 2005 - added plm,ppm options to vertical flux calc'n (so far: pcm)
-c
-c> Revision history:
-c>
-c> Dec. 2004 - made code cyclic in both -i- and -j- direction
-c> Feb. 2005 - added multiple tracer capability
+c> Mar. 2006 - added bering strait exchange logic
