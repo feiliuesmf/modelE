@@ -435,7 +435,7 @@ C****
           select case(k)
           case(nanns+1); PIfact=PIratio_bburn
           case(nanns+2); PIfact=PIratio_indus ! rice
-#ifdef INTERACTIVE_WETLANDS_CH4
+#ifndef INTERACTIVE_WETLANDS_CH4
           case(nanns+3); PIfact=1.1d0         ! wetlands
 #endif
           case default; PIfact=1.d0
@@ -528,15 +528,25 @@ C         UPDATE RUNNING AVERAGE:
 C
 C Don't alter source until enough statistics are built up:
       do m=1,nra_ncep; if(first_ncep(m)==1) RETURN; end do
-      do j=J_0,J_1; do i=1,IMAXJ(j); do m=1,nra_ch4 
-        if(first_mod(i,j,m) == 1)  RETURN
-      end do      ; end do         ; end do
+      do j=J_0,J_1
+        if(j == 1 .or. j==jm) cycle
+        if(fearth(i,j) <= 0.) cycle
+        do i=1,IMAXJ(j); do m=1,nra_ch4 
+          if(first_mod(i,j,m) == 1) return
+        end do         ; end do
+      end do
 
 C Otherwise, apply the magnitude adjustments:
       do m=1,nra_ncep
-        CH4_src(:,J_0:J_1,kwet) = CH4_src(:,J_0:J_1,kwet) +
-     &  PTBA(:,J_0:J_1,m+nra_ncep) * (fact_ncep(m)*
-     &  avg_model(:,J_0:J_1,m) - avg_ncep(:,J_0:J_1,m))
+        loop_j: do j=J_0,J_1
+          if(j == 1 .or. j==jm) cycle loop_j
+          loop_i: do i=1,imaxj(j)
+            if(fearth(i,j) <= 0.) cycle loop_i
+            CH4_src(i,j,kwet) = CH4_src(i,j,kwet) +
+     &      PTBA(i,j,m+nra_ncep) * (fact_ncep(m)*
+     &      avg_model(i,j,m) - avg_ncep(i,j,m))
+          end do loop_i
+        end do loop_j
       end do
   
 C Now, determine the distribution (spatial) adjustments:
@@ -547,7 +557,10 @@ C First, determine if there are new wetlands for given point:
 ! and ground wetness, and either (1) the exclusion of U.S. and E.U.
 ! wetlands is turned off or (2) the point is outside those regions, 
 ! AND this box has some land in it.
-       do j=J_0,J_1; do i=1,im
+       do j=J_0,J_1
+       if(j == 1 .or. j==jm) cycle
+       if(fearth(i,j) <= 0.) cycle
+       do i=1,imaxj(j)
         if(exclude_us_eu == 0 .OR. .NOT.((lon_dg(i,1)
      &   >= -122.5.and.lon_dg(i,1) <= -72.5.and.lat_dg(j,1) >= 34.0
      &  .and.lat_dg(j,1) <= 46.5).or.(lon_dg(i,1) >= -12.5.and.
@@ -600,7 +613,8 @@ C First, determine if there are new wetlands for given point:
           CH4_src(i,j,kwet)=0.d0
          end if           ! end wetlands criteria
         end if            ! end U.S./E.U./land criteria
-       end do   ; end do  ! i and j loops
+       end do             ! i loop
+       end do             ! j loop
       end if              ! Consider interactive welands distrbution?
       
 C Limit wetlands source to be positive:
