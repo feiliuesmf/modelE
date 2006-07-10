@@ -906,52 +906,54 @@ C****
 C**** Print preprocessing options (if any are defined)
 C****
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      if (AM_I_ROOT()) write(6,*) 'This program includes tracer code'
+      write(6,*) 'This program includes tracer code'
 #endif
 #ifdef TRACERS_WATER
-      if (AM_I_ROOT()) write(6,*) '...and water tracer code'
+      write(6,*) '...and water tracer code'
 #ifndef TRACERS_ON
       call stop_model(
-     &    ' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
+     &' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
 #endif
 #endif
 #ifdef TRACERS_OCEAN
-      if (AM_I_ROOT()) write(6,*) '...and ocean tracer code'
+      write(6,*) '...and ocean tracer code'
 #endif
 #ifdef TRACERS_SPECIAL_O18
-      if (AM_I_ROOT()) write(6,*) '...and water isotope code'
+      write(6,*) '...and water isotope code'
 #ifndef TRACERS_WATER
       call stop_model('Water isotope tracers need TRACERS_WATER '//
-     *     'as well as TRACERS_SPECIAL_O18',255)
+     *'as well as TRACERS_SPECIAL_O18',255)
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      if (AM_I_ROOT())
-     *     write(6,*) '...and Jean/David tracers and chemistry'
+      write(6,*) '...and Jean/David tracers and chemistry'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      if (AM_I_ROOT())
-     *     write(6,*) '...and Drew Shindell tracers and chemistry'
+      write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      if (AM_I_ROOT()) write(6,*) '...and Dorothy Koch aerosols'
+      write(6,*) '...and Dorothy Koch aerosols'
 #endif
 #ifdef TRACERS_DRYDEP
-      if (AM_I_ROOT()) write(6,*) '...and tracer dry deposition'
+      write(6,*) '...and tracer dry deposition'
 #endif
 #ifdef EDGAR_HYDE_SOURCES
-      if (AM_I_ROOT()) write(6,*)
-     *     '...and EDGAR HYDE sources instead of GISS'
+      write(6,*) '...and EDGAR HYDE sources instead of GISS'
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-      if (AM_I_ROOT())
-     & write(6,*) '...and Drew Shindell stratospheric chemistry'
+      write(6,*) '...and Drew Shindell stratospheric chemistry'
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
       write(6,*) '...and Drew Shindell extra strat tracers'
 #endif
 #ifdef regional_Ox_tracers
-      if (AM_I_ROOT()) write(6,*) '...and regional Ox tracers'
+      write(6,*) '...and regional Ox tracers'
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      write(6,*) '...and interactive CH4 wetlands emissions'
+#endif
+#ifdef NUDGE_ON
+      write(6,*) '...and nudging of meteorology'
 #endif
       ENDIF ! AM_I_ROOT()
 C****
