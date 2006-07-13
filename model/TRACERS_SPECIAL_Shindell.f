@@ -620,10 +620,11 @@ C First, determine if there are new wetlands for given point:
 C Limit wetlands source to be positive:
       CH4_src(:,J_0:J_1,kwet)=max(CH4_src(:,J_0:J_1,kwet),0.d0) 
 C No emissions over glacier latitudes if desired:
-      do j=J_0,J_1
-        if(ice_age /= 0 .and. j >= ice_age)
-     &  CH4_src(:,j,kwet)=0.d0 
-      enddo
+      if(ice_age /= 0) then
+        do j=MAX(J_0,ice_age),MIN(J_1,JM)
+          CH4_src(:,j,kwet)=0.d0
+        enddo
+      endif
 #endif
       return
       end subroutine read_CH4_sources
