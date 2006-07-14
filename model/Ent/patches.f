@@ -1,10 +1,8 @@
       module patches
 !@sum Routines to organize patches in an entcell.
 
-      use ent_const
       use ent_types
-      use ent_pfts
-      
+
       implicit none
 
 
@@ -76,7 +74,6 @@
       type(cohort),pointer :: scop, cop
       integer :: nc  !#individuals
       integer :: ia  !array index
-      integer :: pft
 
       scop => pp%sumcohort
 
@@ -86,17 +83,14 @@
       scop%n = nc
       if ( .not. associated(pp%tallest) ) return ! no cohorts in this patch
 
-      !Zero some patch variables that must be summarized from cohorts.
       do ia=1,N_COVERTYPES
         pp%LAI(ia) = 0.d0
-        pp%Tpool(:,:) = 0.d0
       end do
 
+      scop%pft = pp%tallest%pft
 
       cop => pp%tallest
       do while(ASSOCIATED(cop))
-        scop%pft = pp%tallest%pft
-        pft = scop%pft
         nc = nc + cop%n  !Number of individuals summed for wtd avg.
         !* PFT PARAMETERS
         ! Only need to index array of pftypes.
@@ -105,14 +99,7 @@
         scop%nm = scop%nm + cop%nm*cop%n  !wtd avg
         scop%Ntot = scop%Ntot + cop%Ntot  !Total
         scop%LAI = scop%LAI + cop%LAI  !Total
-        pp%LAI(pft) = pp%LAI(pft) + cop%LAI
-        pp%Tpool(CARBON,LEAF) = pp%Tpool(CARBON,LEAF)
-     &       + cop%LAI / pfpar(pft)%sla   !kg-C/m^2-ground
-!        pp%Tpool(CARBON,FROOT,pft) = pp%Tpool(CARBON,FROOT,pft)
-!     &       + cop%LAI * 
-!        pp%Tpool(CARBON,WOOD,pft) = pp%Tpool(CARBON,WOOD,pft)
-!     &       + cop%LAI * 
-        !* Tpool(NITROGEN,:,:) gets updated in casa_bgfluxes.f
+        pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
@@ -149,7 +136,7 @@
         scop%N_up = scop%N_up + cop%N_up
         scop%C_litter = scop%C_litter + cop%C_litter
         scop%N_litter = scop%N_litter + cop%N_litter  
-        scop%C_to_Nfix = scop%C_to_Nfix + cop%C_to_Nfix 
+        scop%C_to_Nfix = scop%C_to_Nfix + cop%C_to_Nfix
 
          !* REPRODUCTION
          !scop%------        ! ASK PAUL
@@ -228,7 +215,7 @@
             pp%betadl = 0.d0
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
-            pp%Soilmoist(:) = 0.0 !## Get GISS soil moisture layers ##!
+            pp%Soilmoist = 0.0 !## Get GISS soil moisture layers ##!
             pp%N_deposit = 0.d0
 
             !* Variables for biophysics and biogeochemistry
@@ -251,10 +238,14 @@
             pp%C_froot = 0.d0
 
             !* Soil type
-            pp%soil_type = 0    ! set to undefined soil type (maybe use -1?)
+!            pp%soil_type = 0    ! set to undefined soil type (maybe use -1?)
+!            pp%clayfrac = 0.d0   ***constants -- should be initialized at beginning of run
+!            pp%sandfrac = 0.d0
 
-            !* Carbon pools for CASA
-            pp%Tpool(:,:) = 0.d0
+            !* Soil vars for CASA -PK
+            pp%soilmoist = 0.d0
+!            pp%soiltemp = 0.d0  !move to entcells (didn't compile) -PK 6/15/06
+            pp%soil_resp = 0.d0
 
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
@@ -285,7 +276,7 @@
             !* Activity diagnostics - can be summed by month, year, etc.
             pp%GPP = 0.d0 !## Dummy ##!
             pp%NPP = 0.d0 !## Dummy ##!
-            pp%Soil_resp = 0.d0 !## Dummy ##!
+!            pp%Soil_resp = 0.d0 !## Dummy ##! !moved to fluxes -PK 6/14/06
 
       end subroutine zero_patch
 
@@ -357,7 +348,7 @@
 
       ! allocate memory
       allocate( pp )
-      allocate( pp%Soilmoist(N_DEPTH) )
+!      allocate( pp%Soilmoist(N_DEPTH) )  !remove -- have made into scalar -PK 6/28/06
       allocate( pp%betadl(N_DEPTH) )
 !      allocate( pp%LAI(N_COVERTYPES))
 
@@ -402,7 +393,7 @@
       !nullify(pp%shortest)
 
       ! deallocate memory
-      deallocate( pp%Soilmoist )
+!      deallocate( pp%Soilmoist )
       deallocate( pp )
       nullify( pp )
 
@@ -428,9 +419,10 @@
       do n=1,N_BANDS
         print '(a,"      ",f10.7)',prefix,pp%albedo(n)
       enddo
-      do n=1,N_DEPTH
-        print '(a,"      ",f10.7)',prefix,pp%Soilmoist(n)
-      enddo
+      print '(a,"      ",f10.7)',prefix,pp%Soilmoist
+!      do n=1,N_DEPTH
+!        print '(a,"      ",f10.7)',prefix,pp%Soilmoist(n)
+!      enddo
       print '(a,a," = ",i7)',prefix,"soil type",pp%soil_type
       print '(a,"cohorts:")',prefix
 
