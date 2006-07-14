@@ -176,9 +176,11 @@
          real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8,pointer :: betadl(:) !Water stress in layers.
+         real*8 :: soil_resp       !soil resp flux (umol C/m2/s) -PK 6/14/06
          
          !* Variables calculated by GCM/EWB - downscaled from grid cell
-         real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
+!         real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
+         real*8 :: Soilmoist !Soil moisture (volumetric fraction, avg top 30 cm) -PK 6/28/06
          real*8 :: N_deposit          !N deposition (kgN/m2)
 
          !* Variables for biophysics and biogeochemistry
@@ -221,7 +223,7 @@
          !* Activity diagnostics - can be summed by month, year, etc.
          real*8 :: GPP               !Gross primary productivity (kgC/m2/day)
          real*8 :: NPP               !Net primary productivity (kgC/m2/day)
-         real*8 :: Soil_resp         !Soil heterotrophic respiration (kgC/m2/day)
+!         real*8 :: Soil_resp         !Soil heterotrophic respiration (kgC/m2/day) !moved to fluxes -PK 6/14/06
       end type patch
 
 !****************************************************************************
@@ -276,12 +278,17 @@
          real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
-         real*8,pointer :: Soilmoist(:) !May be an array by depth (units TBA)
+          !CASA needs next 2 only for top 30 cm (top 2 = 27 cm; plus 3/dzsoi of lyr 3) -PK
+         real*8 :: Soilmoist !Soil moisture (volumetric fraction)
+         real*8 :: Soiltemp  !Soil temperature (Celsius)
          real*8,pointer :: Soilmp(:) !Soil matric potential (m)
-         real*8,pointer :: Soiltemp(:) !Soil temperature (Celsius)
          real*8,pointer :: fice(:) !Fraction of soil layer that is ice
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
+	  !Soil textures for CASA -PK
+          !use siltfrac = 1-(clayfrac+sandfrac)?? (R&A scheme has loam/peat!) -PK 
+         real*8 clayfrac  !fractional clay content (passed from GHY.f)
+         real*8 sandfrac  !fractional sand content (also from GHY.f)
 
          !Radiation - IMPORT STATE VARIABLES
          !may later be broken down into hyperspectral increments.
