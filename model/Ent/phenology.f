@@ -62,10 +62,16 @@
       Clossacc(:,:) = 0.d0
 
       !* Calculate fresh litter from each cohort *!
-      cop = pp%tallest
+      cop => pp%tallest  !changed to => (!) -PK 7/11/06
       do while(ASSOCIATED(cop)) 
         !*## NOTE:  betad should eventually be defined at cohort level!!##
         pft = cop%pft
+!        Closs(CARBON,LEAF) = Closs(CARBON,LEAF) + 
+!     &       pp%Tpool(CARBON,LEAF) * (annK(pft,LEAF)-pp%betad)*dtsec !* x tune factor
+!        Closs(CARBON,FROOT) = Closs(CARBON,FROOT) + 
+!     &       pp%Tpool(CARBON,FROOT) * annK(pft,FROOT)*dtsec
+!        Closs(CARBON,WOOD) = Closs(CARBON,WOOD) + 
+!     &       pp%Tpool(CARBON,WOOD) * 
 
         !* NLIVE POOLS *!
         Closs(CARBON,LEAF) = 
@@ -94,14 +100,10 @@
      &       + Closs(CARBON,FROOT) * (1-solubfract(pft))
         Clossacc(CARBON,CWD) = Clossacc(CARBON,CWD) 
      &       + Closs(CARBON,WOOD)
+     
+        cop => cop%shorter  !added -PK 7/12/06
       end do
 
-      !* Patch summary of Tpool *!
-      !* Don't let NLIVE Tpools go below zero. In CASA, bound is LeafMin *!
-      do n = 1,NLIVE
-        pp%Tpool(CARBON,n) = 
-     &       max(0.d0,pp%Tpool(CARBON,n)-Clossacc(CARBON,n))
-      end do
       !* NDEAD POOLS *!
       pp%Tpool(CARBON,SURFMET) = pp%Tpool(CARBON,SURFMET) 
      &     + Clossacc(CARBON,LEAF)
