@@ -753,7 +753,9 @@ cddd      call zero_entcell(entcell%entcell)
      &     total_visible_rad,
      &     direct_visible_rad,
      &     solar_zenith_angle,
-     &     soil_water,
+     &     soil_temp30cm,       !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
+     &     soil_moist30cm,
+!     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
@@ -768,9 +770,11 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle
+     &     solar_zenith_angle,
+     &     soil_temp30cm,        
+     &     soil_moist30cm
       real*8, dimension(:), intent(in) ::
-     &     soil_water,
+!     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
       !----------
@@ -785,8 +789,9 @@ cddd      call zero_entcell(entcell%entcell)
       entcell%entcell%IPARdif = total_visible_rad-direct_visible_rad
       entcell%entcell%IPARdir = direct_visible_rad
       entcell%entcell%Solarzen = solar_zenith_angle
+      entcell%entcell%Soiltemp = soil_temp30cm  !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
+      entcell%entcell%Soilmoist = soil_moist30cm
       do n=1,N_DEPTH
-        entcell%entcell%Soilmoist(n) = soil_water(n)
         entcell%entcell%Soilmp(n) = soil_matric_pot(n)
         entcell%entcell%fice(n) = soil_ice_fraction(n)
       enddo
@@ -804,7 +809,9 @@ cddd      call zero_entcell(entcell%entcell)
      &     total_visible_rad,
      &     direct_visible_rad,
      &     solar_zenith_angle,
-     &     soil_water,
+     &     soil_temp30cm,       !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
+     &     soil_moist30cm,
+!     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
@@ -819,9 +826,11 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle
+     &     solar_zenith_angle,
+     &     soil_temp30cm,       
+     &     soil_moist30cm
       real*8, dimension(:,:), intent(in) ::
-     &     soil_water,
+!     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
       !----------
@@ -841,8 +850,9 @@ cddd      call zero_entcell(entcell%entcell)
      &       direct_visible_rad(i)
         entcell(i)%entcell%IPARdir = direct_visible_rad(i)
         entcell(i)%entcell%Solarzen = solar_zenith_angle(i)
+        entcell(i)%entcell%Soiltemp = soil_temp30cm(i)  !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
+        entcell(i)%entcell%Soilmoist = soil_moist30cm(i)
         do n=1,N_DEPTH
-          entcell(i)%entcell%Soilmoist(n) = soil_water(n,i)
           entcell(i)%entcell%Soilmp(n) = soil_matric_pot(n,i)
           entcell(i)%entcell%fice(n) = soil_ice_fraction(n,i)
         enddo
@@ -861,7 +871,9 @@ cddd      call zero_entcell(entcell%entcell)
      &     total_visible_rad,
      &     direct_visible_rad,
      &     solar_zenith_angle,
-     &     soil_water,
+     &     soil_temp30cm,
+     &     soil_moist30cm,
+!     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
@@ -876,9 +888,11 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle
+     &     solar_zenith_angle,
+     &     soil_temp30cm,
+     &     soil_moist30cm
       real*8, dimension(:,:,:), intent(in) ::
-     &     soil_water,
+!     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
       !----------
@@ -900,8 +914,9 @@ cddd      call zero_entcell(entcell%entcell)
      &       direct_visible_rad(i,j)
           entcell(i,j)%entcell%IPARdir = direct_visible_rad(i,j)
           entcell(i,j)%entcell%Solarzen = solar_zenith_angle(i,j)
+          entcell(i,j)%entcell%Soiltemp = soil_temp30cm(i,j)
+          entcell(i,j)%entcell%Soilmoist = soil_moist30cm(i,j)
           do n=1,N_DEPTH
-            entcell(i,j)%entcell%Soilmoist(n) = soil_water(n,i,j)
             entcell(i,j)%entcell%Soilmp(n) = soil_matric_pot(n,i,j)
             entcell(i,j)%entcell%fice(n) = soil_ice_fraction(n,i,j)
           enddo
@@ -1143,7 +1158,7 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_conductance) )
      &     canopy_conductance(i,j) = 
      &       entcell(i,j)%entcell%sumpatch%GCANOPY
-      print *,"Got here in ent_get_exports."
+!      print *,"Got here in ent_get_exports."  !removed for now -PK 7/11/06
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = 
