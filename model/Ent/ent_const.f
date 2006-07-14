@@ -70,6 +70,7 @@
       !************************************************************************
        !* ASTRONOMICAL CONSTANTS
       real*8,parameter :: sday = 86400.! sec per day (s)
+!      real*8,parameter :: secpy = 3.154d7 !sec per yr (for CASA) -PK !now above -PK
 
       !************************************************************************
       !********************
@@ -112,6 +113,9 @@
       integer,parameter :: PTRACE = 2 !Trace elements in Tpools, C and N
       integer,parameter :: Carbon = 1
       integer,parameter :: Nitrogen = 2
+!      integer,parameter :: ptrace = 2  !num. nutrient pools used in CASA resp. routine -PK
+      integer,parameter :: nresp_pools = 14  !num. pools used in CASA resp. routine -PK
+      real*8,parameter :: Q10 = 2.        !Q10 used in belowground calculations --> value from lit -PK 5/25/06
 
       !* Live pool array indices
       integer,parameter :: LEAF = 1  !Array index
@@ -148,5 +152,7 @@
       real*8,dimension(N_PFT,NPOOLS) :: annK !CASA turnover times
       !real*8,dimension(N_PFT,NPOOLS) :: kdt !CASA turnover times for wood & dead
       real*8,dimension(N_PFT) :: solubfract !Soluble ("metabolic") fraction of litter 
-
+      real*8,dimension(N_PFT) :: structurallignin !fraction of structural C from lignin -PK 7/5/06 
+      real*8,dimension(N_PFT) :: lignineffect !effect of lignin on decomp -PK 7/5/06
+      real*8,parameter :: woodligninfract = 0.40 !amt lignin in wood C -PK 7/5/06
       end module ent_const
