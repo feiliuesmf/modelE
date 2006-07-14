@@ -71,8 +71,8 @@
 !      ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.0           !Atmospheric pressure (mb)
       ecp%Ca = 0.0               !@Atmos CO2 conc at surface height (mol/m3).
-      ecp%Soilmoist(:) = 0.0 !May be an array by depth (m)
-      ecp%Soiltemp(:) = 0.0  !May be an array by depth (Celsius)
+      ecp%Soilmoist = 0.0 !Soil moisture avg top 30 cm (volumetric fraction) -PK 6/28/06
+      ecp%Soiltemp = 0.0  !Soil temp avg top 30 cm (Celsius)
       ecp%fice = 0.0             !Fraction of soil layer that is ice
       ecp%Ch = 0.0               !Ground to surface heat transfer coefficient 
       ecp%U = 0.0                !Surface layer wind speed (m s-1)
@@ -134,10 +134,11 @@
         spp%CO2flux = spp%CO2flux + pp%CO2flux*pp%area
         spp%Ci = spp%Ci + pp%Ci*pp%area
         spp%betad = spp%betad + pp%betad*pp%area
-
+        spp%soil_resp = spp%soil_resp + pp%soil_resp*pp%area     !added soil resp (umolC/m2/s) -PK 6/14/06
+        spp%Tpool = spp%Tpool + pp%Tpool*pp%area                                                
         !* Variables calculated by GCM/EWB - downscaled from grid cell
+        spp%Soilmoist = spp%Soilmoist + pp%Soilmoist*pp%area
         do ia=1,N_DEPTH
-          spp%Soilmoist(ia) = spp%Soilmoist(ia)+pp%Soilmoist(ia)*pp%area
           spp%betadl(ia) = spp%betadl(ia) + pp%betadl(ia)*pp%area
         end do
         !spp%N_deposit     !N deposition (kgN/m2)
@@ -172,7 +173,7 @@
         !* Activity diagnostics - can be summed by month, year, etc.
         spp%GPP = spp%GPP + pp%GPP*pp%area
         !spp%NPP                 !Net primary productivity (kgC/m2/day)
-        !spp%Soil_resp           !Soil heterotrophic respiration (kgC/m2/day)
+        !spp%Soil_resp           !Soil heterotrophic respiration (kgC/m2/day) !moved to fluxes -PK 6/14/06
 
         pp => pp%younger
       end do
@@ -198,10 +199,12 @@
         spp%CO2flux = spp%CO2flux/spp%area
         spp%Ci = spp%Ci/spp%area
         spp%betad = spp%betad/spp%area
+        spp%soil_resp = spp%soil_resp/spp%area     !added soil resp (umolC/m2/s) -PK 6/14/06
+        spp%Tpool = spp%Tpool/spp%area       
 
         !* Variables calculated by GCM/EWB - downscaled from grid cell
+        spp%Soilmoist = spp%Soilmoist/spp%area
         do ia=1,N_DEPTH
-          spp%Soilmoist(ia) = spp%Soilmoist(ia)/spp%area
           spp%betadl(ia) = spp%betadl(ia)/spp%area
         end do
         !spp%N_deposit     !N deposition (kgN/m2)
@@ -333,9 +336,9 @@
       allocate( ecp )
 !      allocate( ecp%froot(N_DEPTH) )
 !      allocate( ecp%betadl(N_DEPTH) )
-      allocate( ecp%Soilmoist(N_DEPTH) )
+!      allocate( ecp%Soilmoist(N_DEPTH) ) !no longer depth-variant -PK 6/29/06
       allocate( ecp%Soilmp(N_DEPTH) )
-      allocate( ecp%Soiltemp(N_DEPTH) )
+!      allocate( ecp%Soiltemp(N_DEPTH) )  !no longer depth-variant -PK 6/29/06
       allocate( ecp%fice(N_DEPTH) )
 
       ! set pointers
