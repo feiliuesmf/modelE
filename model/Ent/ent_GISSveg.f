@@ -68,10 +68,16 @@
       enddo
 
       !* solubfrac - Soluble fraction of litter*!
+      !structurallignin, lignineffect - frac of structural C from lignin, effect of lignin on decomp -PK 6/29/06 
       do n = 1,N_PFT
         lnscl = pfpar(n)%lit_C2N * pfpar(n)%lignin * 2.22 !lignin:nitrogen scalar        
         solubfract(n) = 0.85 - (0.018 * lnscl)
+        structurallignin(n) = (pfpar(n)%lignin * 0.65 * 2.22) 
+     &                      / (1. - solubfract(n))
+        lignineffect(n) = exp(-3.0 * structuralLignin(n))
       end do
+      print *,'from GISS_calcconst (ent_GISSveg): lignineffect[n_pft]='
+     &       ,lignineffect
 
 
       !*******************************************************************
@@ -631,7 +637,10 @@ c**** calculate root fraction afr averaged over vegetation types
 
       do j=J0,J1
         do i=I0,I1
-          print *, soil_texture(:,i,j) , sum(soil_texture(:,i,j))
+          print *,'from GISS_get_soiltypes (in ent_GISSveg):' 
+!          print *, soil_texture(:,i,j) , sum(soil_texture(:,i,j))
+          print *,'soiltexture=',soil_texture(:,i,j)
+     &           ,'sum(soiltextures)=',sum(soil_texture(:,i,j))
         enddo
       enddo
       end subroutine GISS_get_soil_types
