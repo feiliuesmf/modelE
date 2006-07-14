@@ -96,7 +96,7 @@
 
       !***GISS version:  pass in ecp%sumpatch
       !pp = ecp%sumpatch
-      pp = ecp%oldest
+      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp) !Dummy
@@ -104,7 +104,7 @@
         call soil_bgc(dtsec, pp)
         pp%age = pp%age + dtsec
         call summarize_patch(pp)
-        pp = pp%younger
+        pp => pp%younger  !changed to => (!) -PK 7/11/06
       end do
       call summarize_entcell(ecp)
 
@@ -134,7 +134,7 @@
       type(patch),pointer :: pp
 
       !* Loop through patches
-      pp = ecp%oldest
+      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp) !?
@@ -142,7 +142,7 @@
         call soil_bgc(dtsec, pp)
         pp%age = pp%age + dtsec
         call summarize_patch(pp)
-        pp = pp%younger
+        pp => pp%younger  !changed to => (!) -PK 7/11/06
       end do 
 
       call summarize_entcell(ecp)
