@@ -233,8 +233,6 @@ c     call ssto2a(omlhc,mlhc)
 c
       call findmx(ip,temp,ii,ii,jj,'ini sst')
       call findmx(ip,saln,ii,ii,jj,'ini sss')
-      print *,'below: focean'
-      call zebra(focean,iia,iia,jja)
 c$OMP PARALLEL DO
       do 22 ja=1,jja
       do 22 ia=1,iia
