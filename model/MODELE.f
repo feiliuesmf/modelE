@@ -224,7 +224,7 @@ C****
 
 
       PTOLD = P ! save for clouds
-C**** Initialize mass fluxes used by tracers and Q
+C**** Initialize pressure for mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
 
 C**** Initialise total energy (J/m^2)
@@ -1599,7 +1599,7 @@ C****
       USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM, AM_I_ROOT
       USE ATMDYN, only : CALC_AMPK
       IMPLICIT NONE
-      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4
+      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,EDPY,VEDAY
       REAL*8 :: SPRESS(grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER i,j,l,iy
       LOGICAL, INTENT(IN) :: end_of_day
@@ -1622,9 +1622,19 @@ C****
       call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
-C**** This is for noon (GMT) for new day.
-      CALL ORBIT (OBLIQ,ECCN,OMEGT,REAL(JDAY,KIND=8)-.5,RSDIST,
-     *     SIND,COSD,LAM)
+C**** This is for noon (GMT) for new day. 
+
+C**** The orbital calculation will need to vary depending on the kind
+C**** of calendar adopted (i.e. a generic 365 day year, or a transient
+C**** calendar including leap years etc.).  For transient calendars the
+C**** JDAY passed to orbit needs to be adjusted to represent the number
+C**** of days from Jan 1 2000AD.
+c      EDPY=365.2425d0, VEDAY=79.3125d0  ! YR 2000AD
+c      JDAY => JDAY + 365 * (IYEAR-2000) + appropriate number of leaps
+C**** Default calculation (no leap, VE=Mar 21 hr 0)
+      EDPY=365d0 ; VEDAY=79d0           ! Generic year
+      CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
+     *     ,RSDIST,SIND,COSD,LAM)
 
       IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
 
