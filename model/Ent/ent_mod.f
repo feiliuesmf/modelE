@@ -21,6 +21,7 @@
       public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
       public ent_cell_set
       public ent_prescribe_vegupdate
+      public ent_cell_print
 
       type entcelltype_public
         private
@@ -79,6 +80,12 @@
         module procedure ent_vegcover_update_single
         module procedure ent_vegcover_update_array_1d
         module procedure ent_vegcover_update_array_2d
+      end interface
+
+      interface ent_cell_print
+        module procedure ent_cell_print_single
+        module procedure ent_cell_print_array_1d
+        module procedure ent_cell_print_array_2d
       end interface
 
 
@@ -1143,7 +1150,7 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_conductance) )
      &     canopy_conductance(i,j) = 
      &       entcell(i,j)%entcell%sumpatch%GCANOPY
-      print *,"Got here in ent_get_exports."
+      !print *,"Got here in ent_get_exports."
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = 
@@ -1201,6 +1208,43 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine ent_get_exports_array_2d
 
+
+      subroutine ent_cell_print_single(entcell)
+      use entcells, only : entcell_destruct
+      type(entcelltype_public), intent(inout) :: entcell
+
+      call entcell_print( entcell%entcell )
+
+      end subroutine ent_cell_print_single
+
+
+      subroutine ent_cell_print_array_1d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer n, nc
+
+      nc = size(entcell)
+
+      do n=1,nc
+        call ent_cell_print_single( entcell(n) )
+      enddo
+
+      end subroutine ent_cell_print_array_1d
+
+
+      subroutine ent_cell_print_array_2d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          call ent_cell_print_single( entcell(i,j) )
+        enddo
+      enddo
+
+      end subroutine ent_cell_print_array_2d
 
 
 
