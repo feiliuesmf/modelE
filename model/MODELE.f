@@ -1630,7 +1630,7 @@ C**** calendar including leap years etc.).  For transient calendars the
 C**** JDAY passed to orbit needs to be adjusted to represent the number
 C**** of days from Jan 1 2000AD.
 c      EDPY=365.2425d0, VEDAY=79.3125d0  ! YR 2000AD
-c      JDAY => JDAY + 365 * (IYEAR-2000) + appropriate number of leaps
+c      JDAY => JDAY + 365 * (JYEAR-2000) + appropriate number of leaps
 C**** Default calculation (no leap, VE=Mar 21 hr 0)
       EDPY=365d0 ; VEDAY=79d0           ! Generic year
       CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
