@@ -106,6 +106,7 @@
 
       !call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
       ecp%LAI = 0.d0 !Re-zero
+      ecp%fv = 0.d0
       call zero_patch(ecp%sumpatch)
       spp => ecp%sumpatch
 
@@ -114,7 +115,9 @@
       do while (ASSOCIATED(pp)) 
         ip = ip + 1
         spp%age = spp%age + pp%age
-        spp%area = spp%area + pp%area 
+        spp%area = spp%area + pp%area
+
+        if ( associated( pp%tallest ) ) ecp%fv = ecp%fv + pp%area
         
         spp%nm = spp%nm + pp%nm*pp%area
 

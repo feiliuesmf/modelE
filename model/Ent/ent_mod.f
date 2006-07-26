@@ -981,10 +981,11 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
         !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
-        ! compute it here ?
+        fraction_of_vegetated_soil = entcell%entcell%fv
       endif
 
       if ( present(beta_soil_layers) ) then
@@ -1003,6 +1004,7 @@ cddd      call zero_entcell(entcell%entcell)
         do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
+          call stop_model("not implemmented yet",255)
         enddo
       endif
 
@@ -1073,10 +1075,12 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
         !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(beta_soil_layers) ) then
@@ -1101,6 +1105,7 @@ cddd      call zero_entcell(entcell%entcell)
         do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
+          call stop_model("not implemmented yet",255)
         enddo
       endif
       enddo
@@ -1178,10 +1183,12 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
         !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(beta_soil_layers) ) then
@@ -1201,6 +1208,7 @@ cddd      call zero_entcell(entcell%entcell)
         do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
+          call stop_model("not implemmented yet",255)
         enddo
       endif
       enddo
