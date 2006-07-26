@@ -178,7 +178,7 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
       REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
 #endif
@@ -216,7 +216,7 @@ c for diagnostics
 #endif
 #ifdef TRACERS_WATER
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DT_SULF_MC,DT_SULF_SS
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -376,7 +376,7 @@ c for tracers in general, added by Koch
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       REAL*8 TMP_SUL(LM,NTM)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -611,7 +611,7 @@ C**** SAVE ORIG PROFILES
 #ifdef TRACERS_ON
       TMOLD(:,1:NTX) = TM(:,1:NTX)
       TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DT_SULF_MC(1:NTM,:)=0.
 #endif
 #endif
@@ -1121,7 +1121,7 @@ c     RCLDE =RCLD*Rbeta
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
       DO N=1,NTX
       select case (trname(ntix(n)))
@@ -1146,7 +1146,7 @@ C**** CONDENSING TRACERS
      *     DT_SULF_MC(1,L),CLDSAVT)
 #endif
       DO N=1,NTX
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
@@ -1354,9 +1354,9 @@ C**** Tracers at top of plume
       LMAX = LMAX + 1
       IF(WCU(L).LT.0.D0) GO TO 340
 C     WV=WMAX                                    ! old specification of WV
-C     IF(PL(L).GT.700..AND.PLE(1).GT.700.)               
-C    *  WV=WMAX*(PLE(1)-PL(L))/(PLE(1)-700.)             
-C     IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN   
+C     IF(PL(L).GT.700..AND.PLE(1).GT.700.)
+C    *  WV=WMAX*(PLE(1)-PL(L))/(PLE(1)-700.)
+C     IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN
       WV=WCU(L)               ! apply the calculated cumulus updraft speed
       DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
       DCG=MIN(DCG,1.D-2)
@@ -1415,7 +1415,7 @@ c convert condp to the same units as cond
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
 C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
   340 IF(LMIN.EQ.LMAX) GO TO 600
-      IF(MC1.AND.MCCONT.GT.1) THEN           
+      IF(MC1.AND.MCCONT.GT.1) THEN
         IF (.NOT.RFMC1) GO TO 160
       END IF
 C     IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
@@ -1840,19 +1840,50 @@ c     *         ,FPRCPT,TRPRCP(N)
 #endif
         END DO
       END IF
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (.NOT. below_cloud .AND. prcp > teeny) THEN
+        wmxtr=prcp*byam(l)
+        precip_mm=prcp*100.*bygrav
+        b_beta_DT=fplume
+        DO n=1,ntx
+          SELECT CASE(trname(ntix(n)))
+          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tnx,lhx,
+     &         wmxtr,fplume,l,tm,trprcp,thlaw,pl(l),ntix)
+            trprcp(n)=fwasht*tm(l,n)+trprcp(n)+thlaw
+            IF (diag_wetdep == 1)
+     &           trwash_mc(l,n)=trwash_mc(l,n)+fwasht*tm(l,n)+thlaw
+            IF (tm(l,n) > teeny) THEN
+              tmfac=thlaw/tm(l,n)
+            ELSE
+              tmfac=0.
+            ENDIF
+            tm(l,n)=tm(l,n)*(1.-fwasht)-thlaw
+            tmom(xymoms,l,n)=tmom(xymoms,l,n)*(1.-fwasht-tmfac)
+          END SELECT
+        END DO
 C**** WASHOUT of TRACERS BELOW CLOUD
+      ELSE IF (below_cloud .AND. prcp > teeny) THEN
+#else
       IF(BELOW_CLOUD.and.PRCP.gt.teeny) THEN ! BELOW CLOUD
+#endif
         WMXTR = PRCP*BYAM(L)
         precip_mm = PRCP*100.*bygrav
         b_beta_DT = FPLUME
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         WA_VOL= precip_mm*DXYPJ
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
 #endif
         DO N=1,NTX
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 402
@@ -2163,7 +2194,7 @@ c for tracers in general, added by Koch
 !@var CLDSAVT is present cloud fraction, saved for tracer use
 !@var cldprec cloud fraction at lowest precipitating level
       REAL*8 :: cldprec
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
       REAL*8 WA_VOL
@@ -2282,7 +2313,7 @@ C**** initialise vertical arrays
       TRPRBAR = 0.
       BELOW_CLOUD=.false.
       CLOUD_YET=.false.
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DT_SULF_SS(1:NTM,:)=0.
 #endif
 #endif
@@ -2740,7 +2771,7 @@ c CLDSAVT is current FCLD
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
         IF (WMX(L).LE.0.) CLDSAVT=0.
         CLDSAVT=CLDSAVT*FSSL(L)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=0.
       IF (WMNEW.GT.teeny) THEN
         WA_VOL=WMNEW*AIRM(L)*1.D2*BYGRAV*DXYPJ
@@ -2791,7 +2822,7 @@ c precip. tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT,ntix)
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
         TR_LEF=1.D0
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 404
@@ -2812,6 +2843,23 @@ cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
      *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          SELECT CASE(trname(ntix(n)))
+          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            precip_mm = prebar(l+1)*100.*dtsrc
+            wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
+            IF (precip_mm < 0.) precip_mm=0.
+            IF (wmxtr < 0.) wmxtr=0.
+            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+     &         wmxtr,cldprec,l,tm,trprbar(1,l),thwash,pl(l),ntix) !washout
+          END SELECT
+#endif
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
@@ -2831,11 +2879,27 @@ cdmk added arguments above; THLAW added below (no way to factor this)
         ENDIF
         CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
 c ---------------------- calculate fluxes ------------------------
-        DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
         DTPRT = FPRT  *TRWML(N,L)
         DTQWT =
      &  FQTOWT*TR_LEF*(TM(L,N)+DTERT)-FWTOQT*TRWML(N,L)*(1.-FPRT)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        SELECT CASE(trname(ntix(n)))
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
+     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          dtwrt=fwasht*(tm(l,n)-dtqwt)
+        CASE DEFAULT
+#endif
+          dtwrt=fwasht*tm(l,n)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        END SELECT
+#endif
 c ---------------------- apply fluxes ------------------------
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -2901,7 +2965,7 @@ C    * QL QSAT=',L,TL(L),RH(L),RH1(L),RHW,QL(L),QSATE
       IF(DQSUM.GT.0.) THEN
       WMX(L)=WMX(L)+DQSUM*FSSL(L)
       FCOND=DQSUM/QNEW
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=0.
       IF (WMX(L).GT.teeny) THEN
         WA_VOL=WMX(L)*AIRM(L)*1.D2*BYGRAV*DXYPJ
@@ -2920,14 +2984,14 @@ C**** CONDENSING MORE TRACERS
         CLDSAVT=CLDSAVT*FSSL(L)
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
      *     DT_SULF_SS(1,L),FCLD)
 #endif
       DO N=1,NTX
         TR_LEF=1.
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 405
