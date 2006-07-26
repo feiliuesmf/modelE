@@ -91,7 +91,8 @@ C**** input variables
       REAL*8, DIMENSION(LM+1) :: PLE,LHP
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
-     *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB
+     *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL
+     *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -177,7 +178,7 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
       REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
 c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
 #endif
@@ -215,7 +216,7 @@ c for diagnostics
 #endif
 #ifdef TRACERS_WATER
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
      *     ,DT_SULF_MC,DT_SULF_SS
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -338,7 +339,7 @@ C**** functions
 !@var UMDN,VMDN dummy variables
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
       REAL*8, DIMENSION(LM) ::
-     * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR
+     * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR,WCU,ENT,DET,BUOY
 !@var SMOLD,QMOLD profiles prior to any moist convection
       REAL*8, DIMENSION(LM) :: F,CMNEG
       REAL*8, DIMENSION(NMOM,LM) :: FMOM
@@ -375,7 +376,7 @@ c for tracers in general, added by Koch
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       REAL*8 TMP_SUL(LM,NTM)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -428,7 +429,7 @@ c for sulfur chemistry
      *     ,SVUP,WMEDG,SVEDG,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
      *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,GAMA,DQSUM,TNX,TNX1
      *     ,DQ,DMSE1,FCTYPE,BETAU,ALPHAU
-     *     ,CDHDRT,DDRAFT,DELTA
+     *     ,CDHDRT,DDRAFT,DELTA,MPOLD,FPOLD
      *     ,ALPHA,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
      *     ,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA,FEVAP,FLEFT
@@ -436,7 +437,7 @@ c for sulfur chemistry
      *     ,PRCP
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
-     *     ,SUMDP,DDRUP,EDRAFT
+     *     ,SUMDP,DDRUP,EDRAFT,CONTCE,HDEP,TVP,W2TEM
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
      *     ,FCONV_tmp,FSUB_tmp,FSSL_tmp
      *     , MNdO,MNdL,MNdI,MCDNCW,MCDNCI   !Menon
@@ -561,6 +562,10 @@ C**** initiallise arrays of computed ouput
       PRCPMC=0.
       TPSAV=0
       CSIZEL=RWCLDOX*10.*(1.-PEARTH)+10.*PEARTH ! droplet rad in stem
+      SAVWL=0.
+      SAVWL1=0.
+      SAVE1L=0.
+      SAVE2L=0.
 #ifdef TRACERS_WATER
       trsvwml = 0.
       TRPRCP = 0.
@@ -606,7 +611,7 @@ C**** SAVE ORIG PROFILES
 #ifdef TRACERS_ON
       TMOLD(:,1:NTX) = TM(:,1:NTX)
       TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       DT_SULF_MC(1:NTM,:)=0.
 #endif
 #endif
@@ -729,6 +734,10 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
         DMR(L)=0.
         CCM(L)=0.
         DDM(L)=0.
+        ENT(L)=0.
+        DET(L)=0.
+        BUOY(L)=0.
+        WCU(L)=0.
       END DO
       DUM(1:KMAX,:)=0.
       DVM(1:KMAX,:)=0.
@@ -817,6 +826,10 @@ C        MC1=.FALSE.
         DMR(L)=0.
         CCM(L)=0.
         DDM(L)=0.
+        ENT(L)=0.
+        DET(L)=0.
+        BUOY(L)=0.
+        WCU(L)=0.
       END DO
       DUM(1:KMAX,:)=0.
       DVM(1:KMAX,:)=0.
@@ -889,7 +902,14 @@ C****
       DDRAFT=0.
       LFRZ=0
       LMAX=LMIN
+      CONTCE=.3
+      IF(IC.EQ.2) CONTCE=.6
+      WCU(LMIN)=MAX(.5D0,WTURB(LMIN))
+      IF(IC.EQ.1) WCU(LMIN)=MAX(.5D0,2.D0*WTURB(LMIN))
+C     WCU(LMIN)=MAX(.5D0,SQRT(W2L(LMIN)))
+C     IF(IC.EQ.1) WCU(LMIN)=MAX(.5D0,2.D0*SQRT(W2L(LMIN)))
  220  L=LMAX+1
+      HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
 C**** TEST FOR SUFFICIENT AIR, MOIST STATIC STABILITY AND ENERGY
 C     IF(L.GT.LMIN+1.AND.SDL(L).GT.0.) GO TO 340
       IF(MPLUME.LE..001*AIRM(L)) GO TO 340
@@ -909,7 +929,7 @@ C     IF(L.GT.LMIN+1.AND.SDL(L).GT.0.) GO TO 340
       LHX=LHE
       DMSE=(SVUP-SVEDG)*PLK(L)+(SVEDG-SVDN)*PLK(L-1)+
      *  SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QDN)
-      IF(DMSE.GT.-1d-10) GO TO 340
+C     IF(DMSE.GT.-1d-10) GO TO 340      ! condition not applied
       END IF
       IF(PLK(L-1)*(SVUP-SVDN)+SLHE*(QUP-QDN).GE.0.) GO TO 340
 C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
@@ -974,109 +994,10 @@ C****
 C     SMP=SMP-WORK
       DSM(L-1)=DSM(L-1)-WORK
       CCM(L-1)=MPLUME
-      WV=WMAX
-      IF(PL(L).GT.700..AND.PLE(1).GT.700.)
-     *  WV=WMAX*(PLE(1)-PL(L))/(PLE(1)-700.)
-      IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN
-      DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
-      DCG=MIN(DCG,1.D-2)
-      DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
-      DCI=MIN(DCI,1.D-2)
-C****
-C**** ENTRAINMENT
-C****
-      IF(IC.EQ.2.OR.(IC.EQ.1.AND.PL(L).GE.800.)) THEN
-      FENTR=ETAL(L)*FPLUME
-      IF(FENTR+FPLUME.GT.1.) FENTR=1.-FPLUME
-      IF(FENTR.LT.teeny) GO TO 293
-      ETAL1=FENTR/(FPLUME+teeny)
-      FPLUME=FPLUME+FENTR
-      EPLUME=MPLUME*ETAL1
-C**** Reduce EPLUME so that mass flux is less than mass in box
-      IF (EPLUME.GT.AIRM(L)*0.975d0-MPLUME) THEN
-        EPLUME=AIRM(L)*0.975d0-MPLUME
-      END IF
-      MPLUME=MPLUME+EPLUME
-      FENTRA = EPLUME*BYAM(L)
-      DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
-      DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
-      DQMR(L)=DQMR(L)-EPLUME*QUP        ! = DQM(L)-QM(L)*FENTRA
-      DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
-      DMR(L)=DMR(L)-EPLUME
-      SMP=SMP+EPLUME*SUP
-      SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
-      QMP=QMP+EPLUME*QUP
-      QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
-#ifdef TRACERS_ON
-      DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA
-      DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
-      TMP(1:NTX) = TMP(1:NTX)+TM(L,1:NTX)*FENTRA
-      TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)+TMOM(xymoms,L,1:NTX)
-     *     *FENTRA
-#endif
-      DO K=1,KMAX
-         UMP(K)=UMP(K)+U_0(K,L)*EPLUME
-         DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME
-         VMP(K)=VMP(K)+V_0(K,L)*EPLUME
-         DVM(K,L)=DVM(K,L)-V_0(K,L)*EPLUME
-      ENDDO
-  293 CONTINUE
-      END IF
-C****
-C**** CHECK THE DOWNDRAFT POSSIBILITY
-C****
-      IF(L-LMIN.LE.1) GO TO 291
-      IF(ETADN.GT.1d-10) GO TO 291
-      SMIX=.5*(SUP+SMP/MPLUME)
-      QMIX=.5*(QUP+QMP/MPLUME)
-C     WMIX=.5*(WMUP+WMDN)
-C     SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
-C     DMMIX=(SVUP-SVMIX)*PLK(L)+
-C    *  SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
-C     IF(DMMIX.LT.1d-10) GO TO 291
-      IF(SMIX.GE.SUP) GO TO 291
-      IF(PL(L).GT.700.) GO TO 291
-      LDRAFT=L
-      ETADN=BY3
-      FLEFT=1.-.5*ETADN
-      DDRAFT=ETADN*MPLUME
-      FDDP = .5*DDRAFT/MPLUME
-      FDDL = .5*DDRAFT*BYAM(L)
-      MPLUME=FLEFT*MPLUME
-      SMDN=DDRAFT*SMIX         ! = SM(L)*FDDL +  SMP*FDDP
-      SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
-      SMP=FLEFT*SMP
-      SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
-      QMDN=DDRAFT*QMIX         ! = QM(L)*FDDL +  QMP*FDDP
-      QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
-      QMP=FLEFT*QMP
-      QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
-      DMR(L) = DMR(L)-.5*DDRAFT
-      DSMR(L)=DSMR(L)-.5*DDRAFT*SUP        ! = DSM(L)-SM(L)*FDDL
-      DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
-      DQMR(L)=DQMR(L)-.5*DDRAFT*QUP        ! = DQM(L)-QM(L)*FDDL
-      DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
-#ifdef TRACERS_ON
-      Tmdn(1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
-      tmomdn(xymoms,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
-     *     tmomp(xymoms,  1:NTX)*fddp
-      dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm    (l,1:NTX)
-      dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
-      Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
-      tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
-#endif
-      DO K=1,KMAX
-         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
-         UMP(K)=UMP(K)*FLEFT
-         DUM(K,L)=DUM(K,L)-.5*DDRAFT*U_0(K,L)
-         VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
-         VMP(K)=VMP(K)*FLEFT
-         DVM(K,L)=DVM(K,L)-.5*DDRAFT*V_0(K,L)
-      ENDDO
 C****
 C**** CONDENSE VAPOR IN THE PLUME AND ADD LATENT HEAT
 C****
-  291 DQSUM=0.
+      DQSUM=0.                     !!!  291 DQSUM=0.
       SMPT=SMP
       QMPT=QMP
       DO 292 N=1,3
@@ -1197,6 +1118,250 @@ c     RCLDE =RCLD*Rbeta
       RCLD_C=14.d0/Rbeta       !set Reff to threshold size =14 um (Rosenfeld)
 #endif
 
+#ifdef TRACERS_WATER
+C**** CONDENSING TRACERS
+      WMXTR=DQSUM*BYAM(L)
+#ifdef TRACERS_AEROSOLS_Koch
+      WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
+      DO N=1,NTX
+      select case (trname(ntix(n)))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 400
+      if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
+
+        IF (FPLUME.GT.teeny) then
+          TMP_SUL(L,N)=TMP(N)/FPLUME
+        else
+          TMP_SUL(L,N)=0.
+        ENDIF
+
+ 400   CONTINUE
+
+      end select
+
+      END DO
+      CALL GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN,
+     *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L),
+     *     AIRM,LHX,
+     *     DT_SULF_MC(1,L),CLDSAVT)
+#endif
+      DO N=1,NTX
+#ifdef TRACERS_AEROSOLS_Koch
+      select case (trname(ntix(n)))
+      case('SO2','SO4','H2O2_s','H2O2')
+      if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
+      if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
+
+c first apply chemistry
+c removal of precursers
+        TMP(N)=TMP(N)*(1.+SULFIN(N))
+        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
+c formation of sulfate
+        TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
+
+ 401    CONTINUE
+
+      end select
+
+#endif
+        TR_LEF=1.D0
+       CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
+     *       ,CLDSAVT)
+        TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (diag_wetdep == 1)
+     &     trcond_mc(l,n)=trcond_mc(l,n)+fqcondt*tmp(n)
+#endif
+        TMP(N)         = TMP(N)         *(1.-FQCONDT)
+        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
+      END DO
+#endif
+      TAUMCL(L)=TAUMCL(L)+DQSUM*FMC1
+      CDHEAT(L)=SLH*COND(L)
+      CDHSUM=CDHSUM+CDHEAT(L)
+      IF(ETADN.GT.1d-10) CDHDRT=CDHDRT+SLH*COND(L)
+C****
+C**** ENTRAINMENT
+C****
+C     IF(IC.EQ.2.OR.(IC.EQ.1.AND.PL(L).GE.800.)) THEN
+      TVP=(SMP/MPLUME)*PLK(L)*(1.+DELTX*QMP/MPLUME)
+      BUOY(L)=(TVP-TVL(L))/TVL(L)-COND(L)/AIRM(L)
+      ENT(L)=.16667D0*CONTCE*GRAV*BUOY(L)/(WCU(L-1)*WCU(L-1)+teeny)
+      IF (ENT(L).LT.0.D0) THEN
+        DET(L)=-ENT(L)
+        ENT(L)=0.D0
+      ENDIF
+      IF(ENT(L).GT.0.D0) THEN
+      FENTR=1000.D0*ENT(L)*GZL(L)*FPLUME
+C     FENTR=ETAL(L)*FPLUME
+      IF(FENTR+FPLUME.GT.1.) FENTR=1.-FPLUME
+      IF(FENTR.LT.teeny) GO TO 293
+      MPOLD=MPLUME
+      FPOLD=FPLUME
+      ETAL1=FENTR/(FPLUME+teeny)
+      FPLUME=FPLUME+FENTR
+      EPLUME=MPLUME*ETAL1
+C**** Reduce EPLUME so that mass flux is less than mass in box
+      IF (EPLUME.GT.AIRM(L)*0.975d0-MPLUME) THEN
+        EPLUME=AIRM(L)*0.975d0-MPLUME
+      END IF
+      MPLUME=MPLUME+EPLUME
+      ETAL1=EPLUME/MPOLD
+      FENTR=ETAL1*FPOLD
+      ENT(L)=0.001d0*FENTR/(GZL(L)*FPLUME)
+      FENTRA = EPLUME*BYAM(L)
+      DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
+      DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
+      DQMR(L)=DQMR(L)-EPLUME*QUP        ! = DQM(L)-QM(L)*FENTRA
+      DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
+      DMR(L)=DMR(L)-EPLUME
+      SMP=SMP+EPLUME*SUP
+      SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
+      QMP=QMP+EPLUME*QUP
+      QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
+#ifdef TRACERS_ON
+      DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA
+      DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
+      TMP(1:NTX) = TMP(1:NTX)+TM(L,1:NTX)*FENTRA
+      TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)+TMOM(xymoms,L,1:NTX)
+     *     *FENTRA
+#endif
+      DO K=1,KMAX
+         UMP(K)=UMP(K)+U_0(K,L)*EPLUME
+         DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME
+         VMP(K)=VMP(K)+V_0(K,L)*EPLUME
+         DVM(K,L)=DVM(K,L)-V_0(K,L)*EPLUME
+      ENDDO
+  293 CONTINUE
+      END IF
+C****
+C**** DETRAINMENT
+C****
+      IF(DET(L).GT.0.D0) THEN
+        DELTA=1000.D0*DET(L)*GZL(L)
+        IF(DELTA.GT..95D0) THEN
+          DELTA=.95d0
+          DET(L)=.001d0*DELTA/GZL(L)
+        ENDIF
+        DM(L)=DM(L)+DELTA*MPLUME
+        MPLUME=MPLUME*(1.D0-DELTA)
+        DSM(L)=  DSM(L)+DELTA*SMP
+        SMP = SMP  *(1.-DELTA)
+        DSMOM(xymoms,L)=DSMOM(xymoms,L)+DELTA*SMOMP(xymoms)
+        SMOMP(xymoms) = SMOMP(xymoms)*(1.-DELTA)
+        DQM(L)=  DQM(L)+DELTA*QMP
+        QMP = QMP  *(1.-DELTA)
+        DQMOM(xymoms,L)=DQMOM(xymoms,L)+DELTA*QMOMP(xymoms)
+        QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
+        DO K=1,KMAX
+          DUM(K,L)=DUM(K,L)+UMP(K)*DELTA
+          DVM(K,L)=DVM(K,L)+VMP(K)*DELTA
+          UMP(K)=UMP(K)-UMP(K)*DELTA
+          VMP(K)=VMP(K)-VMP(K)*DELTA
+        ENDDO
+
+#ifdef TRACERS_ON
+        DTM(L,1:NTX) = DTM(L,1:NTX)+DELTA*TMP(1:NTX)
+        DTMOM(xymoms,L,1:NTX)=DTMOM(xymoms,L,1:NTX)+DELTA
+     *        *TMOMP(xymoms,1:NTX)
+        TMP(1:NTX) = TMP(1:NTX)*(1.-DELTA)
+        TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
+#endif
+      ENDIF
+C****
+C**** CHECK THE DOWNDRAFT POSSIBILITY
+C****
+      IF(L-LMIN.LE.1) GO TO 291
+      IF(ETADN.GT.1d-10) GO TO 291
+      SMIX=.5*(SUP+SMP/MPLUME)
+      QMIX=.5*(QUP+QMP/MPLUME)
+C     WMIX=.5*(WMUP+WMDN)
+C     SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
+C     DMMIX=(SVUP-SVMIX)*PLK(L)+
+C    *  SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
+C     IF(DMMIX.LT.1d-10) GO TO 291
+      IF(SMIX.GE.SUP) GO TO 291
+      IF(PL(L).GT.700.) GO TO 291
+      LDRAFT=L
+      ETADN=BY3
+      FLEFT=1.-.5*ETADN
+      DDRAFT=ETADN*MPLUME
+      FDDP = .5*DDRAFT/MPLUME
+      FDDL = .5*DDRAFT*BYAM(L)
+      MPLUME=FLEFT*MPLUME
+      SMDN=DDRAFT*SMIX         ! = SM(L)*FDDL +  SMP*FDDP
+      SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
+      SMP=FLEFT*SMP
+      SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
+      QMDN=DDRAFT*QMIX         ! = QM(L)*FDDL +  QMP*FDDP
+      QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
+      QMP=FLEFT*QMP
+      QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
+      DMR(L) = DMR(L)-.5*DDRAFT
+      DSMR(L)=DSMR(L)-.5*DDRAFT*SUP        ! = DSM(L)-SM(L)*FDDL
+      DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
+      DQMR(L)=DQMR(L)-.5*DDRAFT*QUP        ! = DQM(L)-QM(L)*FDDL
+      DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
+#ifdef TRACERS_ON
+      Tmdn(1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
+      tmomdn(xymoms,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
+     *     tmomp(xymoms,  1:NTX)*fddp
+      dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm    (l,1:NTX)
+      dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
+      Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
+      tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
+#endif
+      DO K=1,KMAX
+         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
+         UMP(K)=UMP(K)*FLEFT
+         DUM(K,L)=DUM(K,L)-.5*DDRAFT*U_0(K,L)
+         VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
+         VMP(K)=VMP(K)*FLEFT
+         DVM(K,L)=DVM(K,L)-.5*DDRAFT*V_0(K,L)
+      ENDDO
+C****
+C**** COMPUTE CUMULUS V. VELOCITY
+C****
+C 291 DET(L)=0.D0
+  291 W2TEM=.16667D0*GRAV*BUOY(L)/(WCU(L-1)+teeny)-WCU(L-1)*
+     *      (.66667D0*DET(L)+ENT(L))
+      WCU(L)=WCU(L-1)+HDEP*W2TEM
+      IF (WCU(L).GE.0.D0) WCU(L)=MIN(50.D0,WCU(L))
+      IF (WCU(L).LT.0.D0) WCU(L)=MAX(-50.D0,WCU(L))
+C     WRITE (6,342) L,LMIN,IC,WCU(L-1),WCU(L),ENT(L),DET(L),
+C    *  BUOY(L),COND(L),TVL(L),TVP
+C 342 FORMAT(1X,'L LMIN IC WCU1 WCU ENT DET BUOY COND,TVL TVP=',
+C    *  3I4,8E15.4)
+C****
+C**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
+C****
+C     MCCONT=MCCONT+1
+C     IF(MCCONT.EQ.1) MC1=.TRUE.
+C     IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
+      SVLATL(L)=VLAT(L)
+      SMPMAX=SMP
+      SMOMPMAX(xymoms) =  SMOMP(xymoms)
+      QMPMAX=QMP
+      QMOMPMAX(xymoms) =  QMOMP(xymoms)
+#ifdef TRACERS_ON
+C**** Tracers at top of plume
+      TMPMAX(1:NTX) = TMP(1:NTX)
+      TMOMPMAX(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)
+#endif
+      MPMAX=MPLUME
+      LMAX = LMAX + 1
+      IF(WCU(L).LT.0.D0) GO TO 340
+C     WV=WMAX                                    ! old specification of WV
+C     IF(PL(L).GT.700..AND.PLE(1).GT.700.)               
+C    *  WV=WMAX*(PLE(1)-PL(L))/(PLE(1)-700.)             
+C     IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN   
+      WV=WCU(L)               ! apply the calculated cumulus updraft speed
+      DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
+      DCG=MIN(DCG,1.D-2)
+      DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
+      DCI=MIN(DCI,1.D-2)
       IF (TP.GE.TF) THEN ! water phase
         DDCW=6d-3/FITMAX
         IF(PLAND.LT..5) DDCW=1.5d-3/FITMAX
@@ -1247,94 +1412,30 @@ c      write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
       ENDIF
 c convert condp to the same units as cond
       CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
-#ifdef TRACERS_WATER
-C**** CONDENSING TRACERS
-      WMXTR=DQSUM*BYAM(L)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
-      DO N=1,NTX
-      select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 400
-      if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
-
-        IF (FPLUME.GT.teeny) then
-          TMP_SUL(L,N)=TMP(N)/FPLUME
-        else
-          TMP_SUL(L,N)=0.
-        ENDIF
-
- 400   CONTINUE
-
-      end select
-
-      END DO
-      CALL GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN,
-     *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L),
-     *     AIRM,LHX,
-     *     DT_SULF_MC(1,L),CLDSAVT)
-#endif
-      DO N=1,NTX
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
-      if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
-
-c first apply chemistry
-c removal of precursers
-        TMP(N)=TMP(N)*(1.+SULFIN(N))
-        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
-c formation of sulfate
-        TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
-
- 401    CONTINUE
-
-      end select
-
-#endif
-        TR_LEF=1.D0
-       CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
-     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
-     *       ,CLDSAVT)
-        TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        IF (diag_wetdep == 1)
-     &     trcond_mc(l,n)=trcond_mc(l,n)+fqcondt*tmp(n)
-#endif
-        TMP(N)         = TMP(N)         *(1.-FQCONDT)
-        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
-      END DO
-#endif
-      TAUMCL(L)=TAUMCL(L)+DQSUM*FMC1
-      CDHEAT(L)=SLH*COND(L)
-      CDHSUM=CDHSUM+CDHEAT(L)
-      IF(ETADN.GT.1d-10) CDHDRT=CDHDRT+SLH*COND(L)
-C****
-C**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
-C****
-C     MCCONT=MCCONT+1
-C     IF(MCCONT.EQ.1) MC1=.TRUE.
-C     IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
-      SVLATL(L)=VLAT(L)
-      SMPMAX=SMP
-      SMOMPMAX(xymoms) =  SMOMP(xymoms)
-      QMPMAX=QMP
-      QMOMPMAX(xymoms) =  QMOMP(xymoms)
-#ifdef TRACERS_ON
-C**** Tracers at top of plume
-      TMPMAX(1:NTX) = TMP(1:NTX)
-      TMOMPMAX(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)
-#endif
-      MPMAX=MPLUME
-      LMAX = LMAX + 1
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
 C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
   340 IF(LMIN.EQ.LMAX) GO TO 600
-      IF(MC1.AND.MCCONT.GT.1) THEN ! GO TO 160
+      IF(MC1.AND.MCCONT.GT.1) THEN           
         IF (.NOT.RFMC1) GO TO 160
       END IF
+C     IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+C       DO L=LMIN,LMAX                 ! for checking WCU and ENT
+C       IF(IC.EQ.1) THEN
+C         SAVWL(L)=WCU(L)
+C         SAVE1L(L)=ENT(L)
+C       ELSE
+C         SAVWL1(L)=WCU(L)
+C         SAVE2L(L)=ENT(L)
+C       END IF
+C       END DO
+C     ENDIF
+C     WRITE(6,198) IC,LMIN,LMAX
+CCC   WRITE(6,199) SAVWL(5),SAVWL1(5),SAVE1L(5),SAVE2L(5)
+CCC   WRITE(6,199) SAVWL1
+CCC   WRITE(6,199) SAVE1L
+CCC   WRITE(6,199) SAVE2L
+C 198 FORMAT(1X,'WCU WCU5 ENT1 ENT2 FOR IC LMIN LMAX=',3I8)
+C 199 FORMAT(1X,12E15.3)
       IF(TPSAV(LMAX).GE.TF) LFRZ=LMAX
       DM(LMAX)=DM(LMAX)+MPMAX
       DSM(LMAX)=DSM(LMAX)+SMPMAX
@@ -1739,50 +1840,19 @@ c     *         ,FPRCPT,TRPRCP(N)
 #endif
         END DO
       END IF
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      IF (.NOT. below_cloud .AND. prcp > teeny) THEN
-        wmxtr=prcp*byam(l)
-        precip_mm=prcp*100.*bygrav
-        b_beta_DT=fplume
-        DO n=1,ntx
-          SELECT CASE(trname(ntix(n)))
-          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
-     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tnx,lhx,
-     &         wmxtr,fplume,l,tm,trprcp,thlaw,pl(l),ntix)
-            trprcp(n)=fwasht*tm(l,n)+trprcp(n)+thlaw
-            IF (diag_wetdep == 1)
-     &           trwash_mc(l,n)=trwash_mc(l,n)+fwasht*tm(l,n)+thlaw
-            IF (tm(l,n) > teeny) THEN
-              tmfac=thlaw/tm(l,n)
-            ELSE
-              tmfac=0.
-            ENDIF
-            tm(l,n)=tm(l,n)*(1.-fwasht)-thlaw
-            tmom(xymoms,l,n)=tmom(xymoms,l,n)*(1.-fwasht-tmfac)
-          END SELECT
-        END DO
 C**** WASHOUT of TRACERS BELOW CLOUD
-      ELSE IF (below_cloud .AND. prcp > teeny) THEN
-#else
       IF(BELOW_CLOUD.and.PRCP.gt.teeny) THEN ! BELOW CLOUD
-#endif
         WMXTR = PRCP*BYAM(L)
         precip_mm = PRCP*100.*bygrav
         b_beta_DT = FPLUME
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
         WA_VOL= precip_mm*DXYPJ
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
 #endif
         DO N=1,NTX
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 402
@@ -2093,7 +2163,7 @@ c for tracers in general, added by Koch
 !@var CLDSAVT is present cloud fraction, saved for tracer use
 !@var cldprec cloud fraction at lowest precipitating level
       REAL*8 :: cldprec
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
       REAL*8 WA_VOL
@@ -2212,7 +2282,7 @@ C**** initialise vertical arrays
       TRPRBAR = 0.
       BELOW_CLOUD=.false.
       CLOUD_YET=.false.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       DT_SULF_SS(1:NTM,:)=0.
 #endif
 #endif
@@ -2670,7 +2740,7 @@ c CLDSAVT is current FCLD
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
         IF (WMX(L).LE.0.) CLDSAVT=0.
         CLDSAVT=CLDSAVT*FSSL(L)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=0.
       IF (WMNEW.GT.teeny) THEN
         WA_VOL=WMNEW*AIRM(L)*1.D2*BYGRAV*DXYPJ
@@ -2721,7 +2791,7 @@ c precip. tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT,ntix)
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
         TR_LEF=1.D0
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 404
@@ -2742,23 +2812,6 @@ cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
      *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-          SELECT CASE(trname(ntix(n)))
-          CASE('Clay','Silt1','Silt2','Silt3','Silt4',
-     &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-            precip_mm = prebar(l+1)*100.*dtsrc
-            wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
-            IF (precip_mm < 0.) precip_mm=0.
-            IF (wmxtr < 0.) wmxtr=0.
-            CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
-     &         wmxtr,cldprec,l,tm,trprbar(1,l),thwash,pl(l),ntix) !washout
-          END SELECT
-#endif
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
@@ -2778,27 +2831,11 @@ cdmk added arguments above; THLAW added below (no way to factor this)
         ENDIF
         CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
 c ---------------------- calculate fluxes ------------------------
+        DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
         DTPRT = FPRT  *TRWML(N,L)
         DTQWT =
      &  FQTOWT*TR_LEF*(TM(L,N)+DTERT)-FWTOQT*TRWML(N,L)*(1.-FPRT)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        SELECT CASE(trname(ntix(n)))
-        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
-     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          dtwrt=fwasht*(tm(l,n)-dtqwt)
-        CASE DEFAULT
-#endif
-          dtwrt=fwasht*tm(l,n)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        END SELECT
-#endif
 c ---------------------- apply fluxes ------------------------
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -2864,7 +2901,7 @@ C    * QL QSAT=',L,TL(L),RH(L),RH1(L),RHW,QL(L),QSATE
       IF(DQSUM.GT.0.) THEN
       WMX(L)=WMX(L)+DQSUM*FSSL(L)
       FCOND=DQSUM/QNEW
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=0.
       IF (WMX(L).GT.teeny) THEN
         WA_VOL=WMX(L)*AIRM(L)*1.D2*BYGRAV*DXYPJ
@@ -2883,14 +2920,14 @@ C**** CONDENSING MORE TRACERS
         CLDSAVT=CLDSAVT*FSSL(L)
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
      *     DT_SULF_SS(1,L),FCLD)
 #endif
       DO N=1,NTX
         TR_LEF=1.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 405
@@ -3017,7 +3054,7 @@ C****
         CKM=(1.+SLHE*DQSDT)*(1.+(1.-DELTX)*TL(L)/SLHE)/
      *       (2.+(1.+BYMRAT*TL(L)/SLHE)*SLHE*DQSDT)
         CKR=TL(L)/(BETA*SLHE)
-        CK=DSE/(SLHE*DWM)
+        CK=DSE/(SLHE*DWM+teeny)
         SIGK=0.
         IF(CKR.GT.CKM) CYCLE
         IF(CK.GT.CKR) SIGK=COESIG*((CK-CKR)/(CKM-CKR+teeny))**5

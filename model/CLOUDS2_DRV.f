@@ -10,7 +10,7 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET
@@ -86,11 +86,10 @@
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,taijs=>taijs_loc
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
      *     ,jls_incloud,ijts_aq
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -107,7 +106,7 @@
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
      *     ,dt_sulf_mc,dt_sulf_ss
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -132,6 +131,7 @@
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb,ncol
+     *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws
@@ -146,6 +146,7 @@
      *     ,prebar1
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
+     *  ,w2gcm
 #ifdef CLD_AER_CDNC
 C    *     ,egcm                       ! not needed
 #endif
@@ -163,9 +164,6 @@ C    *     ,egcm                       ! not needed
      &     ,trprec_dust
 #endif
 #endif
-#ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only : AQsulfRATE
-#endif  
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : n__prec
 #endif
@@ -258,6 +256,8 @@ CRKF...FIX
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+      REAL*4 WCU500(IM,16),SAVWCU(IM,16,LM),SAVEN1(IM,16,LM),
+     *  SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
@@ -361,6 +361,13 @@ C     Do not bother to save random numbers for isccp_clouds
 
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
+      WCU500=0.
+      SAVWCU=0.
+      SAVWC1=0.
+      SAVEN1=0.
+      SAVEN2=0.
+      W500P1=0.
+      ENTJ=0.
 C
 C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
       CALL HALO_UPDATE(grid, U, from= NORTH)
@@ -554,15 +561,25 @@ Cred    QMOM(:,L) =Q3MOM(:,I,J,L)*AIRM(L)
         QMOMLS(:,L) =QMOM(:,L)
 Cred    WML(L)=WM(I,J,L)
         WML(L)=WMIL(I,L)
+        QL(L) =Q(I,J,L)
 C**** others
 Cred    SDL(L)=SD_CLOUDS(I,J,L)*BYDXYP(J)
         SDL(L)=SD_CLDIL(I,L)*BYDXYP(J)
+        TVL(L)=TL(L)*(1.+DELTX*QL(L))
+        W2L(L)=W2GCM(L,I,J)
+        SAVWL(L)=0.
+        SAVWL1(L)=0.
+        SAVE1L(L)=0.
+        SAVE2L(L)=0.
         IF(L.LE.LM-2)
 Cred *    ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*1.d-3*BYGRAV
      *    ETAL(L+1)=.5*ENTCON*(GZIL(I,L+2)-GZIL(I,L))*1.d-3*BYGRAV
+        IF(L.LE.LM-2) GZL(L+1)=ETAL(L+1)/ENTCON
       END DO
       ETAL(LM)=ETAL(LM-1)
       ETAL(1)=0.     ! not used
+      GZL(LM)=GZL(LM-1)
+      GZL(1)=0.
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
@@ -765,6 +782,20 @@ CCC         V(IDI(K),IDJ(K),L)=(1.-FSSL(L))*VMC(IDI(K),IDJ(K),L)+
 CCC  *                   FSSL(L)*VLS(IDI(K),IDJ(K),L)
           END DO
         END DO
+C       IF(I.EQ.05.AND.J.GE.16.AND.J.LE.31)
+C    *  WRITE(6,199) I,J,SAVWL(5),SAVWL1(5),SAVE1L(5),SAVE2L(5)
+C 199   FORMAT(1X,2I3,12E15.3)
+C       IF(J.GE.16.AND.J.LE.31) THEN  ! for checking WCU and ENT
+C         DO L=1,LM
+C           SAVWCU(I,J-15,L)=SAVWL(L)
+C           SAVWC1(I,J-15,L)=SAVWL1(L)
+C           SAVEN1(I,J-15,L)=SAVE1L(L)
+C           SAVEN2(I,J-15,L)=SAVE2L(L)
+C           IF(L.EQ.5) WCU500(I,J-15)=SAVWL1(L)
+C           IF(I.EQ.21.AND.L.EQ.5) W500P1(J-15)=SAVWL(L)
+C           IF(I.EQ.21.AND.L.EQ.5) ENTJ(J-15)=SAVE1L(L)*1000.
+C         END DO
+C       END IF
         CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
         FSS(:,I,J)=FSSL(:)
         AIRX(I,J) = AIRXL*DXYP(J)
@@ -1244,7 +1275,7 @@ C**** TRACERS: Use only the active ones
 #endif
           trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
           trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
@@ -1254,9 +1285,6 @@ C**** TRACERS: Use only the active ones
           if (ijts_aq(n).gt.0) then
             taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
-#ifdef TRACERS_AMP
-           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
-#endif
           endif
           end if
 #endif
@@ -1653,6 +1681,11 @@ C**** and save changes in KE for addition as heat later
 
       if (isccp_diags.eq.1) CALL RINIT(seed) ! reset random number sequ.
 
+CCC   WRITE(6,415) ITIME,W500P1
+  415 FORMAT(1X,'W500 AT I=21 L=5 TIME= ',I10/,1X,10F8.3/,1X,10F8.3)
+CCC   WRITE(6,420) ENTJ
+  420 FORMAT(1X,'ENT  AT I=21 L=5'/,1X,10F8.2/,1X,10F8.2)
+C     WRITE(195) ITIME,SAVWCU,SAVWC1,SAVEN1,SAVEN2,FOCEAN
       RETURN
       END SUBROUTINE CONDSE
 
@@ -1702,7 +1735,7 @@ C**** SEARCH FOR THE 50 MB LEVEL
         PLE=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE.LT.50.) LP50=L
       END DO
-      if (AM_I_ROOT())  write(6,*) 
+      if (AM_I_ROOT())  write(6,*)
      *     "Maximum level for LSCOND calculations (50mb): ",LP50
 
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
