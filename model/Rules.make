@@ -379,8 +379,8 @@ CPPFLAGS += -DUSE_ESMF
 LIBS += -lesmf -lmpi
 endif
 ifeq ($(COMPILER),Intel8)
-ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/Linux.intel.64.default
-ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.intel.64.default
+ESMFINCLUDEDIR = ${BASELIBDIR}/include/esmf
+ESMFLIBDIR = ${BASELIBDIR}/lib
 
 CPPFLAGS += -DUSE_ESMF
 ifeq ($(MPIDISTR),LAM)
@@ -437,11 +437,9 @@ ifeq ($(FVCORE),YES)
   endif
   CPPFLAGS += -DUSE_FVCORE
   FVINC = -I$(FVCORE_ROOT)/$(UNAME)/include
-#  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I/unsipp/trayanov/esmf/esmf_2_0_0/mod/modg/OSF1.default.64.default
-#  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L/unsipp/trayanov/esmf/esmf_2_0_0/lib/libg/OSF1.default.64.default
-
-  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASEDIR)/mod/modg/OSF1.default.64.default
-  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L$(BASEDIR)/lib/libg/OSF1.default.64.default
+  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASELIBDIR)/include
+  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L$(BASLIBEDIR)/lib
+  LIBS += -L${BASELIBDIR} -lesmf  -lmpi -lmpi++ -lstdc++  -lpthread -lnetcdf_stubs -lrt -lc
 endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
