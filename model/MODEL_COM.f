@@ -6,9 +6,9 @@
      *     psf,pmtop,ptop,psfmpt,pstrat,plbot
 !      USE DOMAIN_DECOMP, only : grid
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: FIELD
-#ifdef USE_FVCORE
-      USE ESMF_MOD, only: esmf_clock
-#endif
+c$$$#ifdef USE_FVCORE
+c$$$      USE ESMF_MOD, only: esmf_clock
+c$$$#endif
       IMPLICIT NONE
 ! just to make all compilers happy (should check later)
 #if ! defined(COMPILER_G95)
@@ -113,9 +113,9 @@ C**** (Simplified) Calendar Related Terms
       INTEGER :: ItimeI,ItimeE,   Itime0,JMON0,JDATE0,JYEAR0,JHOUR0
 
 !@var ESMF clock required for some interfaces
-#ifdef USE_FVCORE
-      Type (ESMF_CLOCK) :: clock
-#endif
+c$$$#ifdef USE_FVCORE
+c$$$      Type (ESMF_CLOCK) :: clock
+c$$$#endif
 !@dbparam DTSRC source time step (s)   = 1 ITU
       REAL*8 :: DTsrc = 3600.
 !@dbparam DT (atmospheric) dynamics time step (s)
