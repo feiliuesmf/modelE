@@ -396,6 +396,8 @@
 
 !**************************************************************************
       subroutine GISS_phenology(jday,hemi, pp)
+      !* Calculate new LAI and albedo for given jday, for GISS vegetation. *!
+      !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
       use ent_types
       use ent_pfts
       implicit none
