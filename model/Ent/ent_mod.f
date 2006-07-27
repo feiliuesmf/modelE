@@ -92,14 +92,17 @@
 
       contains
 
-!---- interfaces to run the model one time step ----
-      subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year,
-     &     update_crops)
+!*************************************************************************
+!---- interfaces to run the model one time step --------------------------
+      subroutine ent_prescribe_vegupdate(dtsec,entcell,hemi,jday,year,
+     &     update_crops, update_soil)
       use ent_GISSveg, only:  ent_GISS_vegupdate
+      real*8,intent(in) :: dtsec
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       integer, intent(in) :: hemi(:,:)
       integer,intent(in) :: jday,year
       logical, intent(in) :: update_crops
+      logical, intent(in) :: update_soil
       !---
       integer i, ic, j, jc
 
@@ -108,43 +111,46 @@
 
       do j=1,jc
         do i=1,ic      
-          call ent_GISS_vegupdate(entcell(i,j)%entcell, hemi(i,j),
-     &         jday, year, update_crops)
+          call ent_GISS_vegupdate(dtsec,entcell(i,j)%entcell, hemi(i,j),
+     &         jday, year, update_crops, update_soil)
         enddo
       enddo
 
       end subroutine ent_prescribe_vegupdate
       
+!*************************************************************************
 
-
-      subroutine ent_fast_processes_single(entcell, dt)
+      subroutine ent_fast_processes_single(entcell, dt, do_soilresp)
       use ent, only : ent_biophysics
       type(entcelltype_public), intent(inout) :: entcell
       real*8, intent(in) :: dt
+      logical, intent(in) :: do_soilresp
       !---
       
-      call ent_biophysics(dt, entcell%entcell)
+      call ent_biophysics(dt, entcell%entcell, do_soilresp)
 
       end subroutine ent_fast_processes_single
 
 
-      subroutine ent_fast_processes_array_1d(entcell, dt)
+      subroutine ent_fast_processes_array_1d(entcell, dt, do_soilresp)
       type(entcelltype_public), intent(inout) :: entcell(:)
       real*8, intent(in) :: dt
+      logical, intent(in) :: do_soilresp
       !---
       integer n, nc
 
       nc = size(entcell)
       do n=1,nc
-        call ent_fast_processes_single( entcell(n), dt )
+        call ent_fast_processes_single( entcell(n), dt, do_soilresp )
       enddo
 
       end subroutine ent_fast_processes_array_1d
 
 
-      subroutine ent_fast_processes_array_2d(entcell, dt)
+      subroutine ent_fast_processes_array_2d(entcell, dt, do_soilresp)
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       real*8, intent(in) :: dt
+      logical, intent(in) :: do_soilresp
       !---
       integer i, ic, j, jc
 
@@ -153,12 +159,13 @@
 
       do j=1,jc
         do i=1,ic
-          call ent_fast_processes_single( entcell(i,j), dt )
+          call ent_fast_processes_single( entcell(i,j),dt, do_soilresp)
         enddo
       enddo
 
       end subroutine ent_fast_processes_array_2d
 
+!*************************************************************************
 
       subroutine ent_seasonal_update_single(entcell,
      &     dt
@@ -218,6 +225,7 @@
 
       end subroutine ent_seasonal_update_array_2d
 
+!*************************************************************************
 
       subroutine ent_vegcover_update_single(entcell,
      $     jday,
@@ -264,9 +272,10 @@
       end subroutine ent_vegcover_update_array_2d
 
 !---- END interfaces to run the model one time step ----
+!*************************************************************************
 
 
-!---- Constructor / Destructor -----
+!---- Constructor / Destructor -------------------------------------------
 
       subroutine ent_cell_construct_single(entcell)
       use entcells, only : entcell_construct
@@ -324,6 +333,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine ent_cell_construct_array_2d
 
+!*************************************************************************
 
       subroutine ent_cell_destruct_single(entcell)
       use entcells, only : entcell_destruct
@@ -364,6 +374,7 @@ cddd      call zero_entcell(entcell%entcell)
 
 
 !---- END of  Constructor / Destructor -----
+!*************************************************************************
 
       
       subroutine ent_cell_set_single(entcell,
@@ -371,6 +382,9 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_population_density,
      &     leaf_area_index,
      &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
      &     pft_nmdata,
      &     pft_froots,
      &     pft_soil_type,
@@ -383,8 +397,11 @@ cddd      call zero_entcell(entcell%entcell)
      &     leaf_area_index
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
      &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
      &     pft_nmdata,
      &     pft_population_density
+      real*8, dimension(:,:) :: pft_cpool !Carbon pools in individuals
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
@@ -393,8 +410,8 @@ cddd      call zero_entcell(entcell%entcell)
 
       call init_simple_entcell( entcell%entcell,
      &     veg_fraction, pft_population_density, leaf_area_index,
-     &     pft_heights, pft_nmdata, pft_froots,
-     &     pft_soil_type, vegalbedo, soil_texture)
+     &     pft_heights, pft_dbh,pft_crad,pft_cpool, pft_nmdata, 
+     &     pft_froots, pft_soil_type, vegalbedo, soil_texture)
       
       end subroutine ent_cell_set_single
 
@@ -404,6 +421,9 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_population_density,
      &     leaf_area_index,
      &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
      &     pft_nmdata,
      &     pft_froots,
      &     pft_soil_type,
@@ -416,8 +436,11 @@ cddd      call zero_entcell(entcell%entcell)
      &     leaf_area_index
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
      &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
      &     pft_nmdata,
      &     pft_population_density
+      real*8, dimension(:,:) :: pft_cpool !Carbon pools in individuals
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
@@ -431,8 +454,8 @@ cddd      call zero_entcell(entcell%entcell)
       do n=1,nc
         call init_simple_entcell( entcell(n)%entcell,
      &       veg_fraction(:,n), pft_population_density,
-     &       leaf_area_index(:,n),
-     &       pft_heights, pft_nmdata, pft_froots,
+     &       leaf_area_index(:,n), pft_heights, pft_dbh, pft_crad, 
+     &       pft_cpool, pft_nmdata, pft_froots, 
      &       pft_soil_type, vegalbedo(:,:,n), soil_texture(:,n))
       enddo
       
@@ -444,6 +467,9 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_population_density,
      &     leaf_area_index,
      &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
      &     pft_nmdata,
      &     pft_froots,
      &     pft_soil_type,
@@ -456,8 +482,11 @@ cddd      call zero_entcell(entcell%entcell)
      &     leaf_area_index
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
      &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
      &     pft_nmdata,
      &     pft_population_density
+      real*8, dimension(:,:) :: pft_cpool !Carbon pools in individuals
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
@@ -474,14 +503,15 @@ cddd      call zero_entcell(entcell%entcell)
           call init_simple_entcell( entcell(i,j)%entcell,
      &         veg_fraction(:,i,j),pft_population_density,
      &         leaf_area_index(:,i,j),
-     &         pft_heights,pft_nmdata,pft_froots,
+     &         pft_heights,pft_dbh,pft_crad,pft_cpool,pft_nmdata,
+     &         pft_froots,
      &         pft_soil_type,vegalbedo(:,:,i,j), soil_texture(:,i,j))
         enddo
       enddo
       
       end subroutine ent_cell_set_array_2d
 
-
+!*************************************************************************
 
       subroutine ent_cell_pack(dbuf, entcell)
 !@sum allocate two linear arrays ibuf, dbuf and pack contents of
@@ -557,6 +587,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine ent_cell_pack
 
+!*************************************************************************
 
       subroutine ent_cell_unpack(dbuf, entcell)
 ! this program is not finished yet: have to assign all the pointers
@@ -627,6 +658,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine ent_cell_unpack
 
+!*************************************************************************
 
       subroutine copy_vars_single( buf, n, var, flag )
 !@copy variable to/from buffer
@@ -682,6 +714,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine copy_vars_array
 
+!*************************************************************************
 
 !**************************************************************
 !   the following two functions are all that user has to modify
@@ -739,9 +772,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine copy_cohort_vars
 
-
 !******************************************************************
-
 
       subroutine ent_set_forcings_single( entcell,
      &     canopy_temperature,
@@ -925,8 +956,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine ent_set_forcings_array_2d
 
-
-
+!******************************************************************
 
       subroutine ent_get_exports_single( entcell,
      &     canopy_conductance,
@@ -1158,7 +1188,9 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_conductance) )
      &     canopy_conductance(i,j) = 
      &       entcell(i,j)%entcell%sumpatch%GCANOPY
-!      print *,"Got here in ent_get_exports."  !removed for now -PK 7/11/06
+
+      print*,'Nancys compiler needs print stmt in ent_mod here, argh.'
+
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = 
@@ -1216,8 +1248,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine ent_get_exports_array_2d
 
-
-
+!******************************************************************
 
 
       end module ent_mod

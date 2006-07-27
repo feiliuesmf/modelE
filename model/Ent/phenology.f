@@ -29,16 +29,12 @@
       
       subroutine phenology_update(dtsec, tt, pp)
 !@sum Update phenology for a patch.
-      !use ent_GISSveg, only : GISS_phenology
       real*8 :: dtsec           !dt in seconds
       type(timestruct) :: tt  !Greenwich Mean Time
       !integer,intent(in) :: latj !j index for latitude of entcell
       type(patch),pointer :: pp
 
       !---------------------------------------------------------------
-      !* GISS VERSION:  JUST UPDATES LAI USING MATTHEWS PRESCRIPTION
-      !* Prescribed phenology is passed in.
-      !call GISS_phenology(tt%jday,latj, pp)
       !* Prognostic phenology is calculated here.
 
       end subroutine phenology_update
@@ -46,8 +42,8 @@
 
       !*********************************************************************
       subroutine litter(dtsec, pp)
-      !* Update pp%Tpool
-      !* This is imitating CASA casa_litterfall.F.
+      !* Determine litter from live carbon pools and update Tpool.
+      !* After CASA. - NYK 7/27/06
 
       real*8 :: dtsec           !dt in seconds
       !type(timestruct) :: tt    !Greenwich Mean Time
@@ -56,7 +52,7 @@
       type(cohort),pointer :: cop
       real*8 :: Closs(PTRACE,NPOOLS) !Litter per cohort.
       real*8 :: Clossacc(PTRACE,NPOOLS) !Litter accumulator.
-      integer :: n,pft
+      integer :: pft
 
       Closs(:,:) = 0.d0
       Clossacc(:,:) = 0.d0
@@ -66,22 +62,24 @@
       do while(ASSOCIATED(cop)) 
         !*## NOTE:  betad should eventually be defined at cohort level!!##
         pft = cop%pft
-!        Closs(CARBON,LEAF) = Closs(CARBON,LEAF) + 
-!     &       pp%Tpool(CARBON,LEAF) * (annK(pft,LEAF)-pp%betad)*dtsec !* x tune factor
-!        Closs(CARBON,FROOT) = Closs(CARBON,FROOT) + 
-!     &       pp%Tpool(CARBON,FROOT) * annK(pft,FROOT)*dtsec
-!        Closs(CARBON,WOOD) = Closs(CARBON,WOOD) + 
-!     &       pp%Tpool(CARBON,WOOD) * 
 
-        !* NLIVE POOLS *!
+        !* NLIVE POOLS *! !* betad/SECPY to replace stressCD is temporary HACK ##
         Closs(CARBON,LEAF) = 
-     &       pp%Tpool(CARBON,LEAF) * (annK(pft,LEAF)-pp%betad)*dtsec !* x tune factor
+     &       cop%C_fol * cop%n * (annK(pft,LEAF)+pp%betad/SECPY)*dtsec !* x tune factor
         Closs(CARBON,FROOT) = 
-     &       pp%Tpool(CARBON,FROOT) * annK(pft,FROOT)*dtsec
+     &       cop%C_froot * cop%n * annK(pft,FROOT)*dtsec
         Closs(CARBON,WOOD) = 
-     &       pp%Tpool(CARBON,WOOD) * 
-     &       (1.d0-exp(-annK(pft,WOOD)*dtsec)) !* expr is kdt; x tune factor
+     &       cop%C_hw * cop%n
+     &       *(1.d0-exp(-annK(pft,WOOD)*dtsec)) !* expr is kdt; x tune factor
 
+!        write(98,*) 'In litter: ',dtsec
+!        write(98,*) cop%pft, cop%C_fol, cop%n, annK(pft,LEAF),pp%betad
+!        write(98,*) cop%pft, cop%C_froot, cop%n, annK(pft,FROOT)
+!        write(98,*) cop%pft, cop%C_hw, cop%n, annK(pft,WOOD)
+!        write(98,*) 'solubfract(pft)', solubfract(pft)
+!        write(98,*) 'Closs(CARBON,LEAF)',Closs(CARBON,LEAF)
+!        write(98,*) 'Closs(CARBON,FROOT)',Closs(CARBON,FROOT)
+        
         Clossacc(CARBON,LEAF) = Clossacc(CARBON,LEAF)
      &       + Closs(CARBON,LEAF)
         Clossacc(CARBON,FROOT) = Clossacc(CARBON,FROOT) 
@@ -106,15 +104,15 @@
 
       !* NDEAD POOLS *!
       pp%Tpool(CARBON,SURFMET) = pp%Tpool(CARBON,SURFMET) 
-     &     + Clossacc(CARBON,LEAF)
+     &     + Clossacc(CARBON,SURFMET)
       pp%Tpool(CARBON,SOILMET) = pp%Tpool(CARBON,SOILMET) 
-     &     + Clossacc(CARBON,FROOT)
+     &     + Clossacc(CARBON,SOILMET)
       pp%Tpool(CARBON,SURFSTR) = pp%Tpool(CARBON,SURFSTR)
-     &     + Clossacc(CARBON,LEAF)
+     &     + Clossacc(CARBON,SURFSTR)
       pp%Tpool(CARBON,SOILSTR) = pp%Tpool(CARBON,SOILSTR) 
-     &     + Clossacc(CARBON,FROOT)
+     &     + Clossacc(CARBON,SOILSTR)
       pp%Tpool(CARBON,CWD) = pp%Tpool(CARBON,CWD) 
-     &     + Clossacc(CARBON,WOOD)
+     &     + Clossacc(CARBON,CWD)
       
       end subroutine litter
       !*********************************************************************

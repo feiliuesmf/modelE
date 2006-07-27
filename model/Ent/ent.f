@@ -75,7 +75,7 @@
 
       !*********************************************************************
       subroutine ent_integrate_GISS(ecp, dtsec)
-!@sum Ent biophysics/biogeochemistry
+!@sum Ent biophysics/biogeochemistry - THIS SUBROUTINE WILL NOT BE NEEDED.
       use reproduction
       use cohorts
       use patches
@@ -138,6 +138,7 @@
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp) !?
+        !call growth(...)
         call litter(dtsec, pp) 
         call soil_bgc(dtsec, pp)
         pp%age = pp%age + dtsec
@@ -160,27 +161,42 @@
 
 
       !*********************************************************************
-      subroutine ent_biophysics(dtsec, ecp)
+      subroutine ent_biophysics(dtsec, ecp, do_soilresp)
+!@sum  Photosynthesis CO2 uptake.
+!@sum  If do_soilresp, then also  soil respiration for net CO2 fluxes.
       use biophysics, only : photosynth_cond
+      use soilbgc, only : soil_bgc
       use patches, only : summarize_patch
       use entcells, only : summarize_entcell, entcell_print
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
-      !-----local--------
+      logical, intent(in) :: do_soilresp
+      !---Local--------
       type(patch),pointer :: pp
 
 
       pp => ecp%oldest
       do while(ASSOCIATED(pp))
+        print*,'NEXT PATCH'
+        print*,'Calling photosynth_cond'
         call photosynth_cond(dtsec, pp)
+        if (do_soilresp) then 
+          print*,'Calling soil_bgc'
+          call soil_bgc(dtsec,pp)
+          pp%CO2flux = -pp%NPP + pp%soil_resp
+          write(99,*) 'pft, pp%NPP, pp%soil_resp,pp%CO2flux',
+     &         pp%sumcohort%pft,pp%NPP,pp%soil_resp,pp%CO2flux
+        else 
+          pp%CO2flux = UNDEF
+        endif
         pp%age = pp%age + dtsec
-        call summarize_patch(pp)
-        !write(92,*) pp%GCANOPY
-        !write(93,*) pp%Ci
+        !call summarize_patch(pp)
         pp => pp%younger
+
       end do
       call summarize_entcell(ecp)
+      write(99,*) 'CO2flux (umol m-2 s-1)',ecp%sumpatch%CO2flux
 
 #ifdef DEBUG      !# DEBUG
       print *,"End of ent_biophysics"

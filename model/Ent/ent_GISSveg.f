@@ -1,7 +1,6 @@
       module ent_GISSveg
 
-      use ent_const, only : pi, N_COVERTYPES, N_DEPTH
-     &     
+      use ent_const
       use ent_types
       use ent_pfts
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
@@ -16,12 +15,22 @@
      &     GISS_get_vdata, GISS_get_laidata, 
      &     GISS_get_hdata, GISS_get_initnm,
      &     GISS_update_vegcrops, GISS_phenology,
-     &     GISS_veg_albedo,GISS_calc_froot,
+     &     GISS_veg_albedo,GISS_calc_rootprof,
      &     GISS_calcconst
 !     &     GCM_get_grid, GCM_get_time, GCM_getdrv_cell, GCM_EWB,
 
 
-      !*********************************************************************
+!*********************************************************************
+!--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
+      real*8, parameter :: alamax(N_COVERTYPES) =
+     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
+     &     ,0.d0, 0.d0, 2.d0 /)
+      real*8, parameter :: alamin(N_COVERTYPES) =
+     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+     &     ,0.d0, 0.d0, 1.d0 /)
+      integer, parameter :: laday(N_COVERTYPES) =
+     $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
+     &     ,0, 0, 196 /)
 
       real*8,parameter :: EDPERY=365. !GISS CONST.f
 
@@ -31,41 +40,59 @@
       !*********************************************************************
       !*********************************************************************
       !*********************************************************************
-      !*********************************************************************
-      !*    SUBROUTINE TO CALCULATE CONSTANT ARRAYS                     
+
+!***************************************************************************
       subroutine GISS_calcconst() 
+      !*    SUBROUTINE TO CALCULATE CONSTANT ARRAYS                     
       use ent_const
       !--Local------
       integer :: n
-      real*8, DIMENSION(N_PFT) :: lrage, woodage
       real*8 :: lnscl
 
       !* annK - Turnover time of litter and soil carbon *!
       do n = 1, N_PFT
-        if(lrage(n).gt.0.0)then
-          annK(n,LEAF)  = (1.0/(lrage(n)*secpy))
-          annK(n,FROOT) = (1.0/(lrage(n)*secpy))
+        if(pfpar(n)%lrage.gt.0.0d0)then
+          annK(n,LEAF)  = (1.0d0/(pfpar(n)%lrage*secpy))
+          annK(n,FROOT) = (1.0d0/(pfpar(n)%lrage*secpy))
         else
           annK(n,LEAF)  = 1.0d-40  !CASA originally 1.0e-40
           annK(n,FROOT) = 1.0d-40
         end if
 
-        if(woodage(n).gt.0.0)then
-          annK(n,WOOD)  = 1.0/(woodage(n)*secpy)
+        if(pfpar(n)%woodage.gt.0.0d0)then
+          annK(n,WOOD)  = 1.0d0/(pfpar(n)%woodage*secpy)
         else
           annK(n,WOOD)  = 1.0d-40
         end if
        !* iyf: 1/(turnover times) for dead pools.  Want annK in sec-1.
-        annK(n,SURFMET)    = 14.8  /secpy
-        annK(n,SURFMIC)    = 6.0   /secpy
-        annK(n,SURFSTR)    = 3.9   /secpy
-        annK(n,SOILMET)    = 18.5  /secpy
-        annK(n,SOILMIC)    = 7.3   /secpy
-        annK(n,SOILSTR)    = 4.9   /secpy        ! 4.8 in casa v3.0
-        annK(n,CWD)        = 0.2424/secpy
-        annK(n,SLOW)       = 0.2   /secpy
-        annK(n,PASSIVE)    = 0.1 * 0.02  /secpy
+        annK(n,SURFMET)    = 14.8d0  /secpy
+        annK(n,SURFMIC)    = 6.0d0   /secpy
+        annK(n,SURFSTR)    = 3.9d0   /secpy
+        annK(n,SOILMET)    = 18.5d0  /secpy
+        annK(n,SOILMIC)    = 7.3d0   /secpy
+        annK(n,SOILSTR)    = 4.9d0   /secpy        ! 4.8 in casa v3.0
+        annK(n,CWD)        = 0.2424d0/secpy
+        annK(n,SLOW)       = 0.2d0   /secpy
+        annK(n,PASSIVE)    = 0.1d0 * 0.02d0  /secpy
       enddo
+
+#ifdef DEBUG
+      do n = 1,N_PFT
+        write(98,*) 'pft',n
+        write(98,*) 'annK(n,LEAF)',annK(n,LEAF)
+        write(98,*) 'annK(n,FROOT)',annK(n,FROOT)
+        write(98,*) 'annK(n,WOOD)' ,annK(n,WOOD) 
+        write(98,*) 'annK(n,SURFMET)',annK(n,SURFMET)
+        write(98,*) 'annK(n,SURFMIC)',annK(n,SURFMIC)
+        write(98,*) 'annK(n,SURFSTR)',annK(n,SURFSTR)
+        write(98,*) 'annK(n,SOILMET)',annK(n,SOILMET)
+        write(98,*) 'annK(n,SOILMIC)',annK(n,SOILMIC)
+        write(98,*) 'annK(n,SOILSTR)',annK(n,SOILSTR)
+        write(98,*) 'annK(n,CWD)',annK(n,CWD)    
+        write(98,*) 'annK(n,SLOW)',annK(n,SLOW)   
+        write(98,*) 'annK(n,PASSIVE)',annK(n,PASSIVE)
+      enddo
+#endif
 
       !* solubfrac - Soluble fraction of litter*!
       !structurallignin, lignineffect - frac of structural C from lignin, effect of lignin on decomp -PK 6/29/06 
@@ -79,11 +106,6 @@
       print *,'from GISS_calcconst (ent_GISSveg): lignineffect[n_pft]='
      &       ,lignineffect
 
-
-      !*******************************************************************
-      !* INSERT CALCULATION OF SOIL TEXTURE PARAMETER FOR MICROBE TURNOVER
-      !*******************************************************************
-
       end subroutine GISS_calcconst
 
       !*********************************************************************
@@ -91,9 +113,10 @@
       !*    SUBROUTINES TO READ IN GISS VEGETATION DATA SETS 
       !*********************************************************************
 
+!***************************************************************************
       subroutine GISS_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
-     &     vegdata,albedodata,laidata,hdata,nmdata,frootdata,
-     &     popdata,soil_color,soil_texture)
+     &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
+     &     craddata,cpooldata,rootprofdata,soil_color,soil_texture)
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
@@ -101,11 +124,13 @@
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
-      real*8,intent(out) :: frootdata(N_COVERTYPES,N_DEPTH)
+      real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH)
       real*8,intent(out) :: popdata(N_COVERTYPES)
+      real*8,intent(out) :: dbhdata(N_COVERTYPES)
+      real*8,intent(out) :: craddata(N_COVERTYPES)
+      real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
       integer,intent(out) :: soil_color(N_COVERTYPES)
       real*8,intent(out) :: soil_texture(N_SOIL_TYPES,I0:I1,J0:J1)
- 
       !-----Local------
 
       call GISS_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
@@ -115,44 +140,73 @@
 
       call GISS_get_hdata(hdata) !height
       call GISS_get_initnm(nmdata) !nm
-      call GISS_get_froot(frootdata)
-      call GISS_get_pop(popdata)
+      call GISS_get_rootprof(rootprofdata)
+      call GISS_get_woodydiameter(hdata,dbhdata)
+      call GISS_get_pop(dbhdata,popdata)
+      call GISS_get_crownrad(popdata,craddata)
+      call GISS_get_carbonplant(IM,JM,I0,I1,J0,J1,
+     &     laidata,hdata,dbhdata,popdata,cpooldata)
       call GISS_get_soil_types(IM,JM,I0,I1,J0,J1,
      &     soil_color,soil_texture)
 
+      print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
+      print*,'hdata',hdata
+      print*,'nmdata',nmdata
+      print*,'dbhdata',dbhdata
+      print*,'popdata',popdata
+      print*,'craddata',craddata
+      print*,'cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)',
+     &     cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)
+      print*,'cpooldata(SHRUB+COVEROFFSET,:,I1,J1)',
+     &     cpooldata(SHRUB+COVEROFFSET,:,I1,J1)
+      print*,'cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)',
+     &     cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)
+      print*,'soil_color',soil_color
+
       end subroutine GISS_vegdata
 
-      !*********************************************************************
-      subroutine ent_GISS_vegupdate(entcell,hemi,jday,year,update_crops)
+!***************************************************************************
+      subroutine ent_GISS_vegupdate(dt,entcell,hemi,jday,year,
+     &     update_crops, update_soil)
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell
+      use phenology,only : litter !### Igor won't like this here.
+
+      real*8,intent(in) :: dt
       type(entcelltype) :: entcell
       integer,intent(in) :: jday,year,hemi
       logical,intent(in) :: update_crops
+      logical,intent(in) :: update_soil
       !----Local------
       type(patch),pointer :: pp
+      type(cohort),pointer :: cop
 
       pp => entcell%oldest
+      cop => pp%tallest
       do while (ASSOCIATED(pp))
-        call GISS_phenology(jday,hemi, pp)
+        !* Soil *!
+        if (update_soil)  call litter(dt,pp) !###Dependency tree?
+
+        !* LAI, ALBEDO *!
+        call GISS_phenology(jday,hemi, pp)  !## SHOULD HAVE update_crops here
+        if (update_crops) then
+        ! re-read crops data and update the vegetation
+      ! this function is located up in the dependency tree
+      ! can't be called here ... IA
+        endif  
+
         call summarize_patch(pp)
         pp => pp%younger
       end do
 
       call summarize_entcell(entcell)
 
-      if (update_crops) then
-        ! re-read crops data and update the vegetation
-      endif
-
-      ! this function is located up in the dependency tree
-      ! can't be called here ... IA
       !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
       
       end subroutine ent_GISS_vegupdate
-      !*********************************************************************
 
+!***************************************************************************
       subroutine GISS_get_vdata(im,jm,I0,I1,J0,J1,vdata)
       !* This version reads in vegetation structure from GISS data set.
       use FILEMANAGER, only : openunit,closeunit,nameunit
@@ -166,7 +220,7 @@
       integer :: iu_VEG
       integer :: k
 
-      ! make sure that unused fractions are set to 0
+      ! Make sure that unused fractions are set to 0
       vdata(:,:,:) = 0.d0
       call openunit("VEG",iu_VEG,.true.,.true.)
 
@@ -179,8 +233,8 @@
 
       call closeunit(iu_VEG)
       end subroutine GISS_get_vdata
-!**************************************************************************
 
+!**************************************************************************
       subroutine GISS_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata)
       !* This version reads in crop distribution from GISS data set.
       !* And calculates crop fraction for given year.
@@ -279,7 +333,7 @@
       integer, intent(in) :: JM,I0,I1,J0,J1
       real*8 :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
       !----------
-      integer :: pft !@var pft vegetation type
+      integer :: n !@var cover type
       integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
       integer i,j,jeq
 
@@ -289,8 +343,8 @@
         hemi = 1
         if (j <= jeq) hemi = -1
         do i=I0,I1
-          do pft=1,N_COVERTYPES
-            laidata(pft,i,j) = GISS_calc_lai(pft,jday,hemi)
+          do n=1,N_COVERTYPES
+            laidata(n,i,j) = GISS_calc_lai(n,jday,hemi)
           enddo
         enddo
       enddo
@@ -305,20 +359,10 @@
 !@+   and hemisphere
       use ent_const
       !real*8, intent(out) :: lai !@var lai leaf area index - returned
-      integer, intent(in) :: pnum !@var pnum vegetation type
+      integer, intent(in) :: pnum !@var pnum cover type
       integer, intent(in) :: jday !@var jday julian day
       integer, intent(in) :: hemi !@var hemi =1 in N. hemisphere, =-1 S.hemi
       !-----Local variables------
- !--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
-      real*8, parameter :: alamax(N_COVERTYPES) =
-     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
-     &     ,0.d0, 0.d0, 2.d0 /)
-      real*8, parameter :: alamin(N_COVERTYPES) =
-     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
-     &     ,0.d0, 0.d0, 1.d0 /)
-      integer, parameter :: laday(N_COVERTYPES) =
-     $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
-     &     ,0, 0, 196 /)
       real*8 dphi
 
       dphi = 0
@@ -333,6 +377,24 @@
 
 
 !**************************************************************************
+      real*8 function GISS_calc_shoot(pnum,hdata,dbhdata) Result(Bshoot)
+!@sum Returns GISS GCM veg shoot kg-C per plant for given vegetation type.
+!@+   From Moorcroft, et al. (2001), who takes allometry data from
+!@+   Saldarriaga et al. (1998).
+      integer,intent(in) :: pnum !@var pnum vegetation type
+      real*8,intent(in) :: hdata(N_COVERTYPES), dbhdata(N_COVERTYPES)
+      !-----Local-------
+      real*8 :: wooddens
+      integer :: n !covertypes index
+
+      n = pnum + COVEROFFSET
+      wooddens = wooddensity_gcm3(pnum)
+      Bshoot = 0.069 * (hdata(n))**0.572
+     &     * (dbhdata(n))**1.94 * (wooddens**0.931)
+
+      end function GISS_calc_shoot
+
+!**************************************************************************
       subroutine GISS_phenology(jday,hemi, pp)
       use ent_types
       use ent_pfts
@@ -342,22 +404,18 @@
       type(patch),pointer :: pp
       !-------local-----
       type(cohort),pointer :: cop
-      real*8 :: coplaiprev
+      real*8 :: laipatch
 
-      real*8 :: laip  !patch-level summary of LAI
-!      real*8 :: laig  !entcell grid-level summary of LAI
       if (ASSOCIATED(pp)) then
-        laip = 0.0
+        laipatch = 0.0 !Initialize for summing.
         cop => pp%tallest
         do while (ASSOCIATED(cop))
-          coplaiprev = cop%lai
           cop%lai = GISS_calc_lai(cop%pft, jday, hemi)
-          !call GISS_calc_litter(cop, OUT POOLS HERE)
-          laip = laip + cop%LAI
+          laipatch = laipatch + cop%lai
           cop => cop%shorter
         end do
-        pp%sumcohort%LAI = laip
-      call GISS_veg_albedo(hemi, pp%sumcohort%pft, 
+        pp%sumcohort%LAI = laipatch
+        call GISS_veg_albedo(hemi, pp%sumcohort%pft, 
      &       jday, pp%albedo)
       endif
       end subroutine GISS_phenology
@@ -385,6 +443,7 @@
       enddo
 
       end subroutine GISS_veg_albedodata
+
 !**************************************************************************
 
       subroutine GISS_veg_albedo(hemi, pft, jday, albedo)
@@ -492,10 +551,10 @@ c
       end subroutine GISS_veg_albedo
 
 !**************************************************************************
-      subroutine GISS_calc_froot(froot, pnum)
-      !Return array froot of fractions of roots in soil layer
+      subroutine GISS_calc_rootprof(rootprof, pnum)
+      !Return array rootprof of fractions of roots in soil layer
       !Cohort/patch level.
-      real*8 :: froot(:)
+      real*8 :: rootprof(:)
       integer :: pnum !plant functional type
       !-----Local variables------------------
       real*8,parameter :: dz_soil(1:6)=  !N_DEPTH
@@ -515,7 +574,7 @@ c
 c**** calculate root fraction afr averaged over vegetation types
       !Initialize zero
       do l=1,N_DEPTH
-        froot(l) = 0.0
+        rootprof(l) = 0.0
       end do
       do n=1,N_DEPTH
         if (dz_soil(n) <= 0.0) exit !Get last layer w/roots in it.
@@ -529,23 +588,23 @@ c**** calculate root fraction afr averaged over vegetation types
         !frdn=min(frdn,one)
         frdn=min(frdn,1d0)
         if(l.eq.n)frdn=1.
-        froot(l) = frdn-frup
+        rootprof(l) = frdn-frup
         frup=frdn
       end do
-      !Return froot(:)
-      end subroutine GISS_calc_froot
+      !Return rootprof(:)
+      end subroutine GISS_calc_rootprof
 !**************************************************************************
-      subroutine GISS_get_froot(frootdata)
-      real*8,intent(out) :: frootdata(N_COVERTYPES,N_DEPTH) 
+      subroutine GISS_get_rootprof(rootprofdata)
+      real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH) 
       !---Local--------
       integer :: pnum !plant functional type      
 
       do pnum=1,N_COVERTYPES
-        call GISS_calc_froot(frootdata(pnum,:), pnum)
-        !Return array froot of fractions of roots in soil layer
+        call GISS_calc_rootprof(rootprofdata(pnum,:), pnum)
+        !Return array rootprof of fractions of roots in soil layer
         !by vegetation type.
       end do
-      end subroutine GISS_get_froot
+      end subroutine GISS_get_rootprof
 
 !**************************************************************************
 
@@ -554,7 +613,7 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 :: hdata(N_COVERTYPES) 
       !------
       real*8, parameter :: vhght(N_COVERTYPES) =
-      !* bsand tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+      !* bsand tundrv  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
      $     (/0.d0, 0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
      &     ,0.d0, 0.d0, 1.5d0 /)
 
@@ -568,6 +627,7 @@ c**** calculate root fraction afr averaged over vegetation types
       !* Return hdata heights for all vegetation types
       hdata = vhght
       end subroutine GISS_get_hdata
+
 !**************************************************************************
       subroutine GISS_get_initnm(nmdata)
 !@sum  Mean canopy nitrogen (nmv; g/m2[leaf])
@@ -582,30 +642,138 @@ c**** calculate root fraction afr averaged over vegetation types
       end subroutine GISS_get_initnm
 
 !*************************************************************************
-      subroutine GISS_get_pop(popdata)
-      !* Return array parameter of GISS vegetation heights.
-      real*8 :: popdata(N_COVERTYPES) 
-      !------
-      real*8, parameter :: popdens(N_COVERTYPES) =
-      !* xx tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
-     $     (/0.d0, 1.0d0, 1.0d0,  1.0d0, 1.0d0,  1.0d0, 1.0d0, 1.0d0
-     &     ,1.0d0 ,0.d0, 0.d0, 1.0d0 /)
+      subroutine GISS_get_pop(dbhdata,popdata)
+      !* Return array of GISS vegetation population density (#/m2)
+      !* Derived from Moorcroft, et al. (2001)
+      real*8,intent(in) :: dbhdata(N_COVERTYPES)
+      real*8,intent(out) :: popdata(N_COVERTYPES)
+      !---Local-----------
+      integer :: n,pft
+      real*8 :: Blmax, wooddens
 
-      ! For GISS Model E replication, don't need to fill in an
-      ! i,j array of vegetation density, but just can use
-      ! constant arry for each vegetation pft type.
-      ! For full-fledged Ent, will need to read in a file entdata
-      ! containing vegetation density.
-
-      !* Return popdata population density for all vegetation types
-      popdata = popdens
+      popdata(:) = 0.0 !Zero initialize, and zero bare soil.
+      do pft=1,N_PFT
+        n = pft + COVEROFFSET
+        if (pft.eq.GRASSC3) then
+          popdata(n) = 1.0      !Grass is just a large ensemble
+        else
+          wooddens = wooddensity_gcm3(pft)
+          Blmax = 0.0419 * ((dbhdata(n))**1.56) * (wooddens**0.55)
+          popdata(n) = (alamax(n)/pfpar(pft)%sla)/Blmax
+          !print*,'pft,wooddens,Blmax,popd',pft,wooddens,Blmax,popdata(n)
+        endif
+      enddo
 
       end subroutine GISS_get_pop
+
+!*************************************************************************
+      subroutine GISS_get_woodydiameter(hdata, wddata)
+      !* Return array of woody plant diameters at breast height (dbh, cm)
+      real*8,intent(in) :: hdata(N_COVERTYPES)
+      real*8,intent(out) :: wddata(N_COVERTYPES)
+      !----Local---------
+      integer :: n,pft
+
+      wddata(:) = 0.0 !Zero initialize.
+      do pft = 1,N_PFT
+        n = pft + COVEROFFSET
+        if (pft.ne.GRASSC3) then !Woody
+          if (pft.eq.TUNDRA) then
+            wddata(n) = ED_woodydiameter(pft,hdata(n)) * 20 !FUDGE UNTIL HAVE MIXED CANOPIES
+          else                  !Most trees
+            wddata(n) = ED_woodydiameter(pft,hdata(n))
+          end if
+        endif
+      enddo
+      end subroutine GISS_get_woodydiameter
+!*************************************************************************
+      real*8 function ED_woodydiameter(pft,h) Result(dbh)
+      !* Return woody plant diameter (m).
+      !* From Moorcroft, et al. (2001)
+      integer,intent(in) :: pft !plant functional type
+      real*8,intent(in) ::  h !height (m)
+      !real*8,intent(out) :: dbh !(cm)
+
+      if (pft.eq.SAVANNA) then
+        dbh = 30.0 !Estimate from Tonzi Ranch, NYK
+      else
+        dbh = ((1/2.34)*h)**(1/0.64)
+      endif
+      
+      end function ED_woodydiameter
+!*************************************************************************
+      subroutine GISS_get_crownrad(popdata,craddata)
+      real*8,intent(in) :: popdata(N_COVERTYPES)
+      real*8,intent(out) :: craddata(N_COVERTYPES)
+      !---Local----
+      integer :: n, pft
+
+      craddata(:) = 0.0 !Zero initialize.
+      do pft=1,N_PFT
+        n = pft + COVEROFFSET
+        craddata(n) = 0.5*sqrt(1/popdata(n))
+      end do
+
+      end subroutine GISS_get_crownrad
+
+!*************************************************************************
+      subroutine GISS_get_carbonplant(IM,JM,I0,I1,J0,J1,
+     &     laidata, hdata, dbhdata, popdata, cpooldata)
+      !*  Calculate per plant carbon pools (kg-C/plant).
+      !*  After Moorcroft, et al. (2001).
+
+      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8,intent(in) :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
+      real*8,intent(in) :: hdata(N_COVERTYPES)
+      real*8,intent(in) :: dbhdata(N_COVERTYPES)
+      real*8,intent(in) :: popdata(N_COVERTYPES) 
+      real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
+      !Array: 1-foliage, 2-sapwood, 3-hardwood, 4-labile,5-fine root, 6-coarse root
+      !----Local----
+      integer :: n,pft !@var pft vegetation type
+      integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
+      integer i,j,jeq
+      real*8 :: wooddens
+
+      jeq = JM/2
+
+      cpooldata(:,:,:,:) = 0.0  !Zero initialize
+      do j=J0,J1
+        hemi = 1
+        if (j <= jeq) hemi = -1
+        do i=I0,I1
+          do pft=1,N_PFT
+            n = pft + COVEROFFSET
+            cpooldata(n,FOL,i,j) = laidata(n,i,j)/pfpar(pft)%sla
+     &           /popdata(n)    !Bl
+            cpooldata(n,FR,i,j) = cpooldata(n,FOL,i,j) !Br
+            cpooldata(n,LABILE,i,j) = 0.0 !Dummy
+            if (pft.ne.GRASSC3) then !Woody
+              wooddens = wooddensity_gcm3(pft)
+              cpooldata(n,SW,i,j) = 0.00128*pfpar(pft)%sla*
+     &             cpooldata(n,FOL,i,j)*hdata(n) !Bsw
+              cpooldata(n,HW,i,j) = 0.069 * (hdata(n))**0.572
+     &             * (dbhdata(n))**1.94 * wooddens !Bs
+              cpooldata(n,CR,i,j) = 0.0 !Dummy
+            end if
+          enddo
+        enddo
+      enddo
+      
+      end subroutine GISS_get_carbonplant
+!*************************************************************************
+      real*8 function wooddensity_gcm3(pft) Result(wooddens)
+      integer,intent(in) :: pft
+      !* Wood density (g cm-3). Moorcroft et al. (2001).
+
+      wooddens = max(0.5d0, 0.5d0 + 0.2d0*(pfpar(pft)%lrage-1.d0))
+
+      end function wooddensity_gcm3
 !*************************************************************************
 
       subroutine GISS_get_soil_types(im,jm,I0,I1,J0,J1,
      &     soil_color,soil_texture)
-      !* Return array parameter of GISS vegetation heights.
+      !* Return arrays of GISS soil color and texture.
       use FILEMANAGER, only : openunit,closeunit
       integer, intent(in) :: im,jm,I0,I1,J0,J1
       integer, intent(out) :: soil_color(N_COVERTYPES)
@@ -617,14 +785,8 @@ c**** calculate root fraction afr averaged over vegetation types
      &     ,2, 2, 2, 2 /)
       real*8 :: buf(im,jm,N_SOIL_TYPES)
       integer :: iu_SOIL
-      integer k,i,j
-      ! For GISS Model E replication, don't need to fill in an
-      ! i,j array of vegetation density, but just can use
-      ! constant arry for each vegetation pft type.
-      ! For full-fledged Ent, will need to read in a file entdata
-      ! containing vegetation density.
+      integer k
 
-      !* Return popdata population density for all vegetation types
       soil_color(:) = soil_color_prescribed(:)
 
       call openunit("soil_textures",iu_SOIL,.true.,.true.)
@@ -635,14 +797,14 @@ c**** calculate root fraction afr averaged over vegetation types
         soil_texture(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1,k)
       enddo
 
-      do j=J0,J1
-        do i=I0,I1
-          print *,'from GISS_get_soiltypes (in ent_GISSveg):' 
+!      do j=J0,J1
+!        do i=I0,I1
+!          print *,'from GISS_get_soiltypes (in ent_GISSveg):' 
 !          print *, soil_texture(:,i,j) , sum(soil_texture(:,i,j))
-          print *,'soiltexture=',soil_texture(:,i,j)
-     &           ,'sum(soiltextures)=',sum(soil_texture(:,i,j))
-        enddo
-      enddo
+!          print *,'soiltexture=',soil_texture(:,i,j)
+!     &           ,'sum(soiltextures)=',sum(soil_texture(:,i,j))
+!        enddo
+!      enddo
       end subroutine GISS_get_soil_types
 !*************************************************************************
       end module ent_GISSveg

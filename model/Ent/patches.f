@@ -72,15 +72,18 @@
       type(patch),pointer :: pp
       !-----Local variables-------
       type(cohort),pointer :: scop, cop
-      integer :: nc  !#individuals
+      real*8 :: nc  !density sum
       integer :: ia  !array index
+      integer :: pft
 
       scop => pp%sumcohort
 
       !* Zero out summary variables *!
       call zero_cohort(scop)
-      nc = 0
+      nc = 0.d0
       scop%n = nc
+      pp%Tpool(:,1:NLIVE) = 0.d0 !###
+
       if ( .not. associated(pp%tallest) ) return ! no cohorts in this patch
 
       do ia=1,N_COVERTYPES
@@ -91,6 +94,7 @@
 
       cop => pp%tallest
       do while(ASSOCIATED(cop))
+        pft = cop%pft
         nc = nc + cop%n  !Number of individuals summed for wtd avg.
         !* PFT PARAMETERS
         ! Only need to index array of pftypes.
@@ -98,7 +102,16 @@
         !* NITROGEN status - CANOPY*/
         scop%nm = scop%nm + cop%nm*cop%n  !wtd avg
         scop%Ntot = scop%Ntot + cop%Ntot  !Total
+
         scop%LAI = scop%LAI + cop%LAI  !Total
+        pp%LAI(pft) = pp%LAI(pft) + cop%LAI
+        pp%Tpool(CARBON,LEAF) = pp%Tpool(CARBON,LEAF)
+     &       + cop%C_fol * cop%n    !kg-C/m^2-ground
+        pp%Tpool(CARBON,FROOT) = pp%Tpool(CARBON,FROOT)
+     &       + cop%C_froot * cop%n  
+        pp%Tpool(CARBON,WOOD) = pp%Tpool(CARBON,WOOD)
+     &       + (cop%C_hw + cop%C_croot) * cop%n
+        !* Tpool(NITROGEN,:,:) gets updated in casa_bgfluxes.f
         pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
@@ -113,7 +126,7 @@
         !* Do froot(:) outside this loop, below.
 
          !* BIOMASS POOLS - TOTALS
-        scop%LMA = scop%LMA + cop%LMA*cop%n !wtd avg
+        !scop%LMA = scop%LMA + cop%LMA*cop%n !wtd avg
         scop%C_fol = scop%C_fol + cop%C_fol !Total
         scop%N_fol = scop%N_fol + cop%N_fol
         scop%C_sw = scop%C_sw + cop%C_sw    
@@ -140,11 +153,14 @@
 
          !* REPRODUCTION
          !scop%------        ! ASK PAUL
-        
+
         cop => cop%shorter
       end do
 
       !* ------- DO AVERAGES ----------------------------------------------*!
+
+      !** ## CHECK IF NC = 0.D0 ## **!
+
       !* NITROGEN status */
       scop%nm = scop%nm/nc
       
@@ -159,10 +175,14 @@
       CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
       
       !* BIOMASS POOLS - TOTALS
-      scop%LMA = scop%LMA/nc
-
+      !scop%LMA = scop%LMA/nc
+      !pp%Tpool(CARBON,LEAF) = pp%Tpool(CARBON,LEAF)/pp%area !m-2 basis - NYK
+      !pp%Tpool(CARBON,FROOT) = pp%Tpool(CARBON,FROOT)/pp%area
+      !pp%Tpool(CARBON,WOOD) = pp%Tpool(CARBON,WOOD)/pp%area
+      
       !* Total individuals *!
       scop%n = nc
+
 
       !* ------- DO PATCH-LEVEL SUMMARIES OF scop ------------------------*!
       !* Structural variables
@@ -173,7 +193,6 @@
       !##### call get_patchalbedo(jday,pp)######
       !##### Calculate TRANS_SW ################
       !pp%GCANOPY      !Calculated by biophysics
-      !pp%CO2flux      !Calculate by biophysics
 
       !* Variables calculated by GCM/EWB - downscaled from grid cell
       !Soilmoist(:)        !Calculated by GCM/EWB
@@ -202,20 +221,21 @@
             pp%area = 0.d0
 
             !* Structural variables *!
-            pp%nm = 0.0
+            pp%nm = 0.0d0
 
             !* Flux variables for GCM/EWB - patch total
-            pp%z0 = 0.0    !## Get GISS z0 ######!
-            pp%albedo = 0.0!## Get GISS albveg ##!
-            pp%TRANS_SW = 0.0 !## Calculate ##!
+            pp%z0 = 0.0d0    !## Get GISS z0 ######!
+            pp%albedo = 0.0d0!## Get GISS albveg ##!
+            pp%TRANS_SW = 0.0d0 !## Calculate ##!
             pp%GCANOPY = 0.d0 !Will be updated in biophysics.f
             pp%CO2flux = 0.d0 
             pp%Ci = 0.0127D0  !Initial value not zero.
             pp%betad = 0.d0
             pp%betadl = 0.d0
+            pp%soil_resp = 0.d0
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
-            pp%Soilmoist = 0.0 !## Get GISS soil moisture layers ##!
+            pp%Soilmoist = 0.0d0 !## Get GISS soil moisture layers ##!
             pp%N_deposit = 0.d0
 
             !* Variables for biophysics and biogeochemistry
@@ -236,16 +256,13 @@
             !* Biomass pools - patch total
             pp%LAI(:) = 0.d0
             pp%C_froot = 0.d0
+            pp%Tpool(:,:) = 0.d0
 
             !* Soil type
-!            pp%soil_type = 0    ! set to undefined soil type (maybe use -1?)
-!            pp%clayfrac = 0.d0   ***constants -- should be initialized at beginning of run
-!            pp%sandfrac = 0.d0
+            pp%soil_type = UNDEF    ! set to undefined soil type (maybe use -1?)
 
             !* Soil vars for CASA -PK
-            pp%soilmoist = 0.d0
-!            pp%soiltemp = 0.d0  !move to entcells (didn't compile) -PK 6/15/06
-            pp%soil_resp = 0.d0
+            pp%Soilmoist = 0.d0
 
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
@@ -441,4 +458,23 @@
 
       end subroutine patch_print
 
+!**************************************************************************
+
+      subroutine print_Tpool(Tpool)
+      real*8 :: Tpool(PTRACE,NPOOLS)
+      print*,'Tpool(CARBON,LEAF)',Tpool(CARBON,LEAF)
+      print*,'Tpool(CARBON,FROOT)',Tpool(CARBON,FROOT)
+      print*,'Tpool(CARBON,WOOD)',Tpool(CARBON,WOOD)
+      print*,'Tpool(CARBON,SURFMET)',Tpool(CARBON,SURFMET)
+      print*,'Tpool(CARBON,SURFSTR)',Tpool(CARBON,SURFSTR)
+      print*,'Tpool(CARBON,SOILMET)',Tpool(CARBON,SOILMET)
+      print*,'Tpool(CARBON,SOILSTR)',Tpool(CARBON,SOILSTR)
+      print*,'Tpool(CARBON,CWD)',Tpool(CARBON,CWD)
+      print*,'Tpool(CARBON,SOILMIC)',Tpool(CARBON,SOILMIC)
+      print*,'Tpool(CARBON,SLOW)',Tpool(CARBON,SLOW)
+      print*,'Tpool(CARBON,PASSIVE)',Tpool(CARBON,PASSIVE)
+      end subroutine print_Tpool
+
+!**************************************************************************
+  
       end module patches

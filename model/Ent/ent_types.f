@@ -78,7 +78,7 @@
 !****************************************************************************
       type cohort
          integer :: pft           !* PFT number
-         real*8 :: n              ! Number of individuals in cohort
+         real*8 :: n              ! Density of individuals in cohort (#/m^2)
          type(entcelltype),pointer :: cellptr !Pointer to ent grid cell
          type(patch),pointer :: pptr    !Pointer to patch
          type(cohort),pointer :: taller !Pointer to next tallest cohort
@@ -96,6 +96,8 @@
          real*8 Ntot
          !@var LAI Total cohort leaf area index (m2[leaf]/m2[ground])
          real*8 LAI               !*
+         !@var LMA Leaf mass per leaf area (gC/m2)
+         real*8 LMA
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
@@ -110,7 +112,6 @@
          real*8,pointer :: froot(:) ! Fraction of roots in soil layer
 
          !* BIOMASS POOLS (SHOULD CONVERT TO PER INDIVIDUAL LATER)
-         real*8 :: LMA            ! Leaf mass per leaf area (kgC/m2-leaf)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
          real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
          real*8 :: C_sw           ! Sapwood carbon (=rho_wood*sw_vol) (units?)
@@ -249,8 +250,12 @@
          real*8 :: root_Phi     !Infiltration factor promoted by roots (units?)
 
          !SOIL - CONSTANTS
+         !Soil textures for CASA -PK
+         !use siltfrac = 1-(clayfrac+sandfrac)?? (R&A scheme has loam/peat!) -PK 
          real*8 :: soil_texture(N_SOIL_TYPES) ! fractions of soil textures
                                               ! in upper 30 cm of soil
+!         real*8 clayfrac  !fractional clay content (passed from GHY.f)
+!         real*8 sandfrac  !fractional sand content (also from GHY.f)
 
          !VEGETATION - EXPORT STATE
          real*8 :: z0           !Roughness length (m)
@@ -285,10 +290,7 @@
          real*8,pointer :: fice(:) !Fraction of soil layer that is ice
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
-	  !Soil textures for CASA -PK
-          !use siltfrac = 1-(clayfrac+sandfrac)?? (R&A scheme has loam/peat!) -PK 
-         real*8 clayfrac  !fractional clay content (passed from GHY.f)
-         real*8 sandfrac  !fractional sand content (also from GHY.f)
+
 
          !Radiation - IMPORT STATE VARIABLES
          !may later be broken down into hyperspectral increments.

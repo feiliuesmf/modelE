@@ -10,7 +10,6 @@
       !*            GISS VEGETATION TYPES                *
       !***************************************************
       !Types: These are GISS GCM types until we get full data sets for Ent.
-      !       In addition, boreal forest from BOREAS SOBS is added.
       !1-tundra, 2-grassland, 3-shrubland, 4-savanna, 5-deciduous forest,
       !6-evergreen needleleaf forest, 7-tropical rainforest, 8-crops
       !**** Correspondence to CASA/LSM vegetation types for sla from 
@@ -25,6 +24,17 @@
       !6-evergreen needleleaf = needleleaf evergreen
       !7-tropical rainforest = deciduous broadleaf = LSM tropical seasonal tree 
       !8-crops = crops
+
+      integer, parameter :: COVEROFFSET = 1 !SAND in first position in GISS array
+      integer, parameter :: TUNDRA = 1
+      integer, parameter :: GRASSC3 = 2
+      integer, parameter :: SHRUB = 3
+      integer, parameter :: SAVANNA = 4
+      integer, parameter :: DECIDFOREST = 5
+      integer, parameter :: EVERGRNEEDLE = 6
+      integer, parameter :: TROPRAINF = 7
+      integer, parameter :: CROPS = 8
+
       !*-----------------------------------------
       !* Veg types correspondence between models:
 *       LSM:   1  2    3  4  5  6  7  8  9 10 11 12 13 14^M
@@ -56,21 +66,21 @@
      &!        pst,hwilt,sstar,swilt,nf,sla, lrage,woodage,lit_C2N,lignin ! 
      &     (/
      &     pftype(1,   -100.d0,  .50d0, .30d0,  1.4d0,
-     &     22.5d0, 2.8d0, 5.5d0, 50.0d0,0.0d0),
+     &     22.5d0, 2.8d0, 5.5d0, 50.0d0,0.15d0),
      &     pftype(2,   -100.d0,  .45d0, .27d0,  1.5d0,
-     &     37.5d0, 1.5d0, 0.d0, 50.0d0, 0.0d0),
+     &     37.5d0, 1.5d0, UNDEF, 50.0d0, 0.1d0),
      &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0,
-     &     32.5d0, 1.25d0, 5.5d0, 57.5d0, 0.0d0),
+     &     32.5d0, 1.25d0, 5.5d0, 57.5d0, 0.15d0),
      &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0,
-     &     32.5d0, 1.8d0, 25.d0, 50.0d0, 0.0d0),
+     &     32.5d0, 1.8d0, 25.d0, 50.0d0, 0.15d0),
      &     pftype(1,   -100.d0,  .55d0, .29d0,  1.5d0,
-     &     30.d0, 1.5d0, 42.5d0, 50.0d0, 0.0d0),
+     &     30.d0, 1.5d0, 42.5d0, 50.0d0, 0.2d0),
      &     pftype(1,   -100.d0,  .60d0, .25d0,  0.9d0,
-     &     10.d0, 5.d0,42.0d0, 80.0d0,0.0d0),
+     &     10.d0, 5.d0,42.0d0, 80.0d0,0.25d0),
      &     pftype(1,   -100.d0,  .55d0, .26d0,  1.1d0,
-     &     25.d0, 1.8d0, 41.0d0, 40.0d0, 0.0d0),
+     &     25.d0, 1.8d0, 41.0d0, 40.0d0, 0.2d0),
      &     pftype(2,   -100.d0,  .45d0, .27d0,  1.3d0,
-     &     60.d0, 1.1d0, 58.0d0, 52.5d0, 0.0d0)
+     &     60.d0, 1.1d0, 58.0d0, 52.5d0, 0.16d0)
 !     &     pftype(1,   -100.d0,  .50d0, .30d0,  0.76d0)&
 !     &     0.0d0,0.0d0,0.0d0,0.0d0)
      &     /)

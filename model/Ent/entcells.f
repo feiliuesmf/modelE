@@ -6,6 +6,7 @@
       !Ent MODULES TO USE
       use ent_const
       use ent_types
+      use ent_pfts
       use patches
       use cohorts
 
@@ -25,7 +26,7 @@
       type(entcelltype) :: ecp
 
       ecp%area = 0.0
-
+      
       !Cell-level summary values - PHYSICAL
       !EXPORT - from radiative transfer
 !      do n = 1,N_BANDS
@@ -260,7 +261,8 @@
 !**************************************************************************
 
       subroutine init_simple_entcell( ecp,
-     i     vegdata,popdens,laidata,hdata,nmdata,
+     i     vegdata,popdens,laidata,hdata,dbhdata,craddata,
+     i     cpooldata,nmdata,
      i     frootdata,soildata,albedodata,soil_texture)
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
@@ -269,13 +271,16 @@
       real*8,intent(in) :: popdens(N_COVERTYPES) !Veg population density
       real*8,intent(in) :: laidata(N_COVERTYPES) !LAI
       real*8,intent(in) :: hdata(N_COVERTYPES) !Height
+      real*8,intent(in) :: dbhdata(N_COVERTYPES) !Woody plant diameter (cm)
+      real*8,intent(in) :: craddata(N_COVERTYPES)
+      real*8,intent(in) :: cpooldata(N_COVERTYPES,N_BPOOLS)
       real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
       real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
       integer,intent(in) :: soildata(N_COVERTYPES)
       real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
       real*8,intent(in) :: soil_texture(N_SOIL_TYPES) !Veg cover fractions.
       !-----Local---------
-      integer :: pnum
+      integer :: ncov, pft
       type(patch),pointer :: pp, pp_tmp
 
       ! destroy all existing patches since we are going to 
@@ -289,30 +294,33 @@
       nullify(ecp%oldest)
       nullify(ecp%youngest)
 
-      do pnum=1,N_PFT           !One patch with one cohort per pft
-
+!      do ncov=1,N_PFT           !One patch with one cohort per pft or bare
+      do ncov=1,N_COVERTYPES           !One patch with one cohort per pft
+        pft = ncov - COVEROFFSET
         !### Get from GISS GCM ## vfraction of grid cell and area.
 
-        if (vegdata(pnum)>0.0) then
+        if (vegdata(ncov)>0.0) then
           !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
-          call insert_patch(ecp,vegdata(pnum),soildata(pnum))
+          call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
-          if ( popdens(pnum) > EPS ) then 
-            call insert_cohort(pp,pnum,popdens(pnum),hdata(pnum),
-     &           nmdata(pnum),
-     &           0.d0,0.d0,0.d0,0.d0,laidata(pnum),0.d0,
-     &           frootdata(pnum,:),
-     &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+          if ( popdens(ncov) > EPS ) then 
+            call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
+     &           nmdata(ncov),
+     &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,laidata(ncov),
+     &           0.d0, frootdata(ncov,:),
+     &           0.d0,cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
+     &           cpooldata(ncov,HW),0.d0,
+     &           cpooldata(ncov,LABILE),0.d0,
+     &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
      &           0.d0,0.d0,0.d0,0.d0,0.d0,
      &           0.d0,0.d0,0.d0,0.d0)
           endif
           call summarize_patch(pp)
 
           !CALL CALC_ALBEDO HERE
-          pp%albedo = albedodata(:,pnum) !##GISS HACK
+          pp%albedo = albedodata(:,ncov) !##GISS HACK
         end if
       end do
 
@@ -334,16 +342,13 @@
 
       ! allocate memory
       allocate( ecp )
-!      allocate( ecp%froot(N_DEPTH) )
-!      allocate( ecp%betadl(N_DEPTH) )
-!      allocate( ecp%Soilmoist(N_DEPTH) ) !no longer depth-variant -PK 6/29/06
       allocate( ecp%Soilmp(N_DEPTH) )
-!      allocate( ecp%Soiltemp(N_DEPTH) )  !no longer depth-variant -PK 6/29/06
       allocate( ecp%fice(N_DEPTH) )
 
       ! set pointers
       nullify( ecp%youngest )
       nullify( ecp%oldest   )
+      nullify( ecp%sumpatch )
 
       ! for now set all values to zero or defaults
       call zero_entcell(ecp)

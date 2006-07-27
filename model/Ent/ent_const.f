@@ -16,9 +16,8 @@
       integer,parameter :: T_SUB=12  !Number of sub-time steps in a year
       !************************************************************************
       !* NUMERICAL CONSTANTS
-      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
+      real*8,parameter :: PI = 3.1415926535897932d0 !@param pi    pi
       real*8,parameter :: zero = 0d0
-      real*8,parameter :: secpy = 31536000
 
       !************************************************************************
       !* PHYSICAL CONSTANTS
@@ -26,6 +25,7 @@
       real*8,parameter :: lhe = 2.5d6 !Latent heat evap (2.5008d6 J/kg)
       real*8,parameter :: rhow = 1d3  !Density of pure water (1000 kg/m^3)
       real*8,parameter :: tfrz = 273.16d0 !freezing pt of H2O at 1 atm (Kelvin)
+      real*8,parameter :: KELVIN = tfrz
       real*8,parameter :: gasc = 8.314510d0 !gas constant (8.314510 J/mol K)
       real*8,parameter :: Avogadro=6.023d23 !Avogadro's constant (atmos/mole)
       real*8,parameter :: cp=1012. !Heat capacity of dry air (J kg-1 K-1)
@@ -70,7 +70,7 @@
       !************************************************************************
        !* ASTRONOMICAL CONSTANTS
       real*8,parameter :: sday = 86400.! sec per day (s)
-!      real*8,parameter :: secpy = 3.154d7 !sec per yr (for CASA) -PK !now above -PK
+      real*8,parameter :: SECPY = 31536000  ! sec per year (s)
 
       !************************************************************************
       !********************
@@ -100,6 +100,16 @@
       integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
       integer,parameter :: N_OTHER = 2 ! algae, c4 grass
       integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
+
+      !************************************************************************
+      !* COHORT Biomass pools
+      integer,parameter :: N_BPOOLS = 6 !foliage,sapwood,hardwood,labile, fine root,coarse root
+      integer,parameter :: FOL = 1   !FOLIAGE Array indices for array(N_BPOOLS)
+      integer,parameter :: SW = 2    !SAPWOOD
+      integer,parameter :: HW = 3    !HARDWOOD
+      integer,parameter :: LABILE = 4 !LABILE
+      integer,parameter :: FR = 5    !FINE ROOT
+      integer,parameter :: CR = 6    !COARSE ROOT
 
       !************************************************************************
       !* CASA SOIL CONSTANTS
@@ -149,8 +159,8 @@
      b            12.5,       ! C:N ratio of slow pool
      c             8.5/       ! C:N ratio of passive pool
 
-      real*8,dimension(N_PFT,NPOOLS) :: annK !CASA turnover times
-      !real*8,dimension(N_PFT,NPOOLS) :: kdt !CASA turnover times for wood & dead
+      real*8,dimension(N_PFT,NPOOLS) :: annK !CASA turnover times (sec-1)
+      !real*8,dimension(N_PFT,NPOOLS) :: kdt !CASA turnover times for wood & dead (yr-1)
       real*8,dimension(N_PFT) :: solubfract !Soluble ("metabolic") fraction of litter 
       real*8,dimension(N_PFT) :: structurallignin !fraction of structural C from lignin -PK 7/5/06 
       real*8,dimension(N_PFT) :: lignineffect !effect of lignin on decomp -PK 7/5/06

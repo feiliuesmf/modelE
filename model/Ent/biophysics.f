@@ -210,7 +210,7 @@
 
       integer :: pft
       real*8 :: TcanopyC,P_mbar,Ch,U,Solarzen,Ca,betad,Qf
-      real*8 :: GCANOPY,Ci,TRANS_SW,GPP,NPP
+      real*8 :: GCANOPY,Ci,TRANS_SW,GPP !,NPP
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       type(veg_par_type) :: vegpar !Vegetation parameters
@@ -266,22 +266,11 @@
       !vegpar
       GCANOPY = pp%GCANOPY
       Ci = pp%Ci
-      TRANS_SW = pp%TRANS_SW
-      GPP =  pp%GPP
-      NPP =  pp%NPP
+      !TRANS_SW = pp%TRANS_SW
+      !GPP =  pp%GPP
+      !NPP =  pp%NPP
 
 !      print *,"Calling veg..."
-!      call veg(
-!     i     dtsec, pp%sumcohort%pft,
-!     i     pp%cellptr%TcanopyC,
-!     i     pp%cellptr%P_mbar,pp%cellptr%Ch,pp%cellptr%U,
-!     i     IPAR,fdir,pp%cellptr%Solarzen,
-!      i     pp%cellptr%Ca,
-!     i     pp%betad,
-!     i     pp%cellptr%Qf, 
-!     &     vegpar,
-!     &     pp%GCANOPY, pp%Ci, 
-!     o     pp%TRANS_SW, pp%GPP, pp%NPP )
       call veg(
      i     dtsec, pft,
      i     TcanopyC,
@@ -292,7 +281,7 @@
      i     Qf, 
      &     vegpar,
      &     GCANOPY, Ci, 
-     o     TRANS_SW, GPP, NPP )
+     o     TRANS_SW, GPP)  !, NPP )
 
       !OUTPUT VARIABLES
       !vegpar
@@ -300,7 +289,9 @@
       pp%Ci = Ci
       pp%TRANS_SW = TRANS_SW
       pp%GPP = GPP
-      pp%NPP = NPP
+      pp%NPP = GPP - Canopy_respir(vegpar%Ntot, TcanopyC+KELVIN)
+     &     - Root_respir(TcanopyC,pp%Tpool(CARBON,FROOT)*1e-3) !kg-C/m2/s
+
       !betad, betadl
 
       !OUTPUTS FROM ENT TO GCM/EWB
@@ -375,11 +366,11 @@
 
       subroutine veg(
      i     dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
-     i     betad,
+     i     betad, 
      i     Qf_IN, 
      &     vegpar,
      &     CNC_INOUT, Ci_INOUT, 
-     o     TRANS_SW_OUT, GPP_OUT, NPP_OUT )
+     o     TRANS_SW_OUT, GPP_OUT)    !, NPP_OUT )
 
 !----------------------------------------------------------------------!
 ! Vegetation dynamics routine (adf, nyk). (May 2004)
@@ -428,7 +419,7 @@
 !@var GPP_OUT  Gross primary productivity (kg[C]/m2/s).
       real*8, intent(out) :: GPP_OUT
 !@var NPP_OUT Net primary productivity (kg[C]/m2/s)
-      real*8, intent(out) :: NPP_OUT
+!      real*8, intent(out) :: NPP_OUT
 !----Local------------------------
 !var ps  Photosynthetic parameters (nyk)
       type(photosynth_par_type) :: ps
@@ -490,7 +481,7 @@
      i     Qf_IN, 
      &     vegpar,
      &     CNC_INOUT, Ci_INOUT, 
-     o     TRANS_SW_OUT, GPP_OUT, NPP_OUT 
+     o     TRANS_SW_OUT, GPP_OUT !, NPP_OUT 
 #endif
 
       N = 0
@@ -555,7 +546,8 @@
       call qsimp(vegpar,ps,Amax,sbeta,I0dr,I0df,CiPa,tk,prpa)
 !----------------------------------------------------------------------!
 ! Canopy mitochondrial respiration (umol/m[ground]2/s).
-      Rcan=0.20D0*vegpar%Ntot*exp(18.72D0-46.39D3/(gasc*tk))
+!      Rcan=0.20D0*vegpar%Ntot*exp(18.72D0-46.39D3/(gasc*tk))
+      Rcan = Canopy_Respir(vegpar%Ntot, tk)
 ! Net canopy photosynthesis (umol/m[ground]2/s).
       Anet=Acan-Rcan
 ! Net canopy photosynthesis at saturating CiPa (umol/m[ground]2/s).
@@ -654,7 +646,8 @@
       !write(*,*) parinc, GPP, Acan
 ! Net primary productivity (kg[C]/m2/s).  Not available yet.
 !     NPP = GPP - 0.012D-6*(Rcan + BoleRespir + RootRespir)
-      NPP_OUT = 0.0
+!      NPP_OUT = 0.012D06*Anet
+!     &     - Root_respir(Tcan, pp%sumcohort%Tpool(CARBON,FROOT)*1e-3)
 ! Net ecosystem exchange (kg[C]/m2/s).  Not available yet.
 !     NEE = NPP - 0.012D-6* SoilRespir
 ! Updata canopy conductance for next timestep (m/s).
@@ -665,7 +658,325 @@
       return
       end subroutine veg
 
+!***********************************************************************
+      subroutine veg_C4(
+     i     dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+     i     betad,
+     i     Qf_IN,
+     &     vegpar,
+     &     CNC_INOUT, Ci_INOUT,
+     o     TRANS_SW_OUT, GPP_OUT)  !, NPP_OUT )
+
 !----------------------------------------------------------------------!
+! Vegetation dynamics routine (adf, nyk). (May 2004, July 2006).
+! For C4 vegetation.
+! Calculates canopy stomatal conductance (CNC, m/s) using a
+! biologically-based formulation, along with canopy CO2 fluxes (GPP;
+! kg[C]/m2/s).  Vegetation structure and meteorological drivers for the
+! grid cell should be previously set.  (Eventually should pass these in
+! as data structures).
+!----------------------------------------------------------------------!
+      implicit none
+!----------------------------------------------------------------------!
+!@var dt  Time step (seconds)
+      real*8, intent(in) :: dt
+!@var pft Plant functional type number
+      integer, intent(in) :: pft
+!@var tcan   Canopy temperature (Celsius)
+      real*8, intent(in) :: tcan
+!@var pres  Surface air pressure (mbar)
+      real*8, intent(in) :: pres  !Atmospheric pressure (mb)
+!@var ch   Ground to surface heat transfer coefficient
+      real*8, intent(in) :: ch
+!@var U  Surface layer wind speed (m s-1)
+      real*8, intent(in) :: U
+!@var parinc Incident photosynthetically active (visible solar, dir+dif)
+!@+   radiation on the surface (W/m2) (nyk)
+      real*8, intent(in) :: parinc
+!@var fdir Fraction of surface visible radiation that is direct (adf)
+      real*8, intent(in) :: fdir
+!@var solarzen Solar zenith angle (rad).
+      real*8, intent(in) :: solarzen
+!@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
+      real*8, intent(in) :: Ca
+!@var betad  Vegetation water stress (0-1, 1=unstressed)
+      real*8, intent(in) :: betad
+
+!var Qf_IN Foliage surface H2O vapor mixing ratio (kg[H2O]/kg[air])
+      real*8, intent(in) :: Qf_IN
+      type(veg_par_type) :: vegpar
+!---OUTPUT VARIABLES--------------
+!@var TRANS_SW_OUT  Transmittance of shortwave through canopy to soil surface.
+      real*8, intent(out) :: TRANS_SW_OUT
+!var CNC_inout  Canopy conductance of water vapor (m s-1).
+      real*8, intent(inout) :: CNC_INOUT
+!var Ci_INOUT Internal foliage CO2 concentration (mol/m3)
+      real*8, intent(inout) :: Ci_INOUT
+!@var GPP_OUT  Gross primary productivity (kg[C]/m2/s).
+      real*8, intent(out) :: GPP_OUT
+!@var NPP_OUT Net primary productivity (kg[C]/m2/s)
+!      real*8, intent(out) :: NPP_OUT
+!----Local------------------------
+!var ps  Photosynthetic parameters (nyk)
+      type(photosynth_par_type) :: ps
+
+!################## RADIATIVE TRANSFER ########################################
+!@var PAR Incident photosynthetically active radiation (umol/m2/s).
+!      real*8 PAR
+!@var I0dr Direct beam PAR incident on canopy (umol/m2/s).
+      real*8 I0dr
+!@var I0df Diffuse PAR incident on canopy (umol/m2/s).
+      real*8 I0df
+!@var rho Canopy reflectivity (?unitless).
+!      real*8 rhor
+!@var kbl Canopy extinction coeff. for direct radiation (unitless).
+!      real*8 kbl
+!#############################################################################
+!@var tk Canopy temperature (K).
+      real*8 tk
+!@var prpa Atmospheric pressure (Pa).
+      real*8 prpa
+!@var CiPa Internal foliage CO2 partial pressure (Pa).
+      real*8 CiPa
+!@var Acan Canopy A (umol[CO2]/m[ground]2/s).
+      real*8 Acan
+!@var Anet Canopy net A (umol[CO2]/m[ground]2/s).
+!
+!@var Anet Canopy net A (umol[CO2]/m[ground]2/s).
+      real*8 Anet
+!@var Amax Canopy A at saturating CiPa (umol[CO2]/m[ground]2/s).
+      real*8 Amax
+!@var Acan Canopy net A at saturating CiPa (umol[CO2]/m[ground]2/s).
+      real*8 Anet_max
+!@var Rcan Canopy mitochondrial respiration (umol/m2/s).
+      real*8 Rcan
+!@var dqs Humidity deficit across canopy surface (kg/kg).
+      real*8 dQs
+!@var CNCN New equilibrium canopy conductance to water (m/s).
+      real*8 CNCN
+!nu@var dCNC Change in canopy conductance to reach equilibrium (m/s).
+      real*8 dCNC
+!nu@var dCNC_max Maximum possible change in CNC over timestep (m/s).
+      real*8 dCNC_max
+!@var gt Conductance from inside foliage to surface height at 30m (m/s).
+! NOTE:  Should be changed to surface height at 10 m with new PBL.
+      real*8 gt
+!----------------------------------------------------------------------------
+      real*8 :: sbeta  !Gets sin(solarzen)
+!@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
+      real*8 :: qvsat
+      real*8 :: Ci_old, Ci
+      real*8 :: dts,dtt
+      integer :: N
+
+!hack!!!
+      !Ci_INOUT = 0.02d0
+
+!## DEBUG  ##!
+#ifdef DEBUG
+      write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+     i     betad,
+     i     Qf_IN,
+     &     vegpar,
+     &     CNC_INOUT, Ci_INOUT,
+     o     TRANS_SW_OUT, GPP_OUT)  !, NPP_OUT
+#endif
+
+      N = 0
+      dts = dt
+      dtt = 0.d0
+      Ci = Ci_INOUT
+      Ci_old = Ci_INOUT
+!----------------------------------------------------------------------------
+! Make sure there is some leaf area (m2/m2).
+      if(vegpar%alai.le.EPS) vegpar%alai=EPS
+! Convert canopy temperature from oC to K.
+      tk=tcan+tfrz
+! Convert atmospheric pressure from mbar to Pa.
+      prpa=100.0D0*pres
+! Internal foliage CO2 partial pressure from concentration (Pa).
+!      CiPa=Ci_INOUT*(gasc*tk)
+ 10   CiPa=Ci*(gasc*tk)
+      ps%Oi = 20.9D0
+      ps%k = 0.11D0
+
+!################## RADIATIVE TRANSFER########################################
+      !Get incident diffuse and direction PAR radiation 
+      !and set up canopy radiative transfer parameters.
+      sbeta = sin(solarzen)
+      call canopy_rad_setup(sbeta, fdir, parinc,
+     o     vegpar,I0df, I0dr)
+!#############################################################################
+
+! Photorespiratory compensation point (Pa).
+      ps%pcp=exp(19.02D0-37.83D3/(gasc*tk))*prpa/1.0D6
+! Rubisco Michaelis-Menten constant for CO2 (Pa).
+      ps%Kc=exp(38.05D0-79.43D3/(gasc*tk))*prpa/1.0D6
+! Rubisco Michaelis-Menten constant for O2 (Pa).
+      ps%Ko=exp(20.30D0-36.38D3/(gasc*tk))*prpa/1.0D6
+! Proportionality coefficient between Jmax and N (umol[CO2]/mmol[N]/s).
+      ps%n1=pfpar(pft)%nf*0.12D0*0.95D+14*exp(-79.5D3/(gasc*tk))/
+     1    (1.0D0+exp((650.0D0*tk-199.0D3)/(gasc*tk)))
+! Proportionality coefficient between Vcmax and N (umol[CO2]/mmol[N]/s).
+      ps%n2=pfpar(pft)%nf*0.23D0*exp(26.35D0-65.33D3/(gasc*tk))
+! CO2 dependence of light-limited photosynthesis (?units).
+      ps%m1=CiPa/(CiPa+2.0D0*ps%pcp)
+! CO2 dependence of light-saturated photosynthesis (?units).
+      ps%m2=CiPa/(CiPa+ps%kc*(1.0D0+ps%Oi/ps%ko))
+! Nitrogen dependence of photosynthesis (?units).
+      ps%msat=min(ps%m1*ps%n1,ps%m2*ps%n2)
+! Total canopy nitrogen (g/m[ground]2).
+      vegpar%Ntot=vegpar%nm*vegpar%alai
+! Top of canopy nitrogen (mmol/m[foliage]2).
+      ps%N0=(1000.0D0/14.0D0)*ps%k*vegpar%Ntot/
+     &     (1.0D0-exp(-ps%k*vegpar%alai))
+! Canopy photosynthesis (Acan: umol/m2/s).
+      call qsimp(vegpar,ps,Acan,sbeta,I0dr,I0df,CiPa,tk,prpa)
+! Saturating Ci to calculate canopy conductance (mol/m3).
+      !CiPa=1.0D6 ! C3
+      CiPa = 1.5D3 !### CHECK UNITS, MAGNITUDE
+! CO2 dependence of light-limited photosynthesis (?units).
+      ps%m1=CiPa/(CiPa+2.0D0*ps%pcp)
+! CO2 dependence of light-saturated photosynthesis (?units).
+      ps%m2=CiPa/(CiPa+ps%kc*(1.0D0+ps%Oi/ps%ko))
+! Nitrogen dependence of photosynthesis (?units).
+      ps%msat=min(ps%m1*ps%n1,ps%m2*ps%n2)
+! Canopy photosynthesis at saturating CiPa (Amax: umol/m[ground]2/s).
+      call qsimp(vegpar,ps,Amax,sbeta,I0dr,I0df,CiPa,tk,prpa)
+!----------------------------------------------------------------------!
+! Canopy mitochondrial respiration (umol/m[ground]2/s).- C4
+      Rcan=0.33D0*vegpar%Ntot*exp(18.72D0-46.39D3/(gasc*tk))
+! Net canopy photosynthesis (umol/m[ground]2/s).
+      Anet=Acan-Rcan
+! Net canopy photosynthesis at saturating CiPa (umol/m[ground]2/s).
+      Anet_max=max(Amax-Rcan,0.d0)
+!----------------------------------------------------------------------!
+! Humidity deficit across canopy surface (kg/kg).
+      qvsat = QSAT(tk,2500800.-2360.*tk*(101325./prpa)**(gasc/cp),pres)
+      dQs=qvsat-Qf_IN
+      if(dQs.lt.zero)dQs=zero
+!----------------------------------------------------------------------!
+! New equilibrium canopy conductance to moisture (m/s).
+      CNCN=betad*(1.0D0-0.0075D0*vegpar%vh)*650.0D-6*Anet_max*
+     &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
+! Required change in canopy conductance to reach equilibrium (m/s).
+      dCNC=CNCN-CNC_INOUT
+#ifdef DEBUG      !## DEBUG ##
+      write(94,*) betad, vegpar%vh, Ci,dQs,CNCN,dCNC,CNC_INOUT
+#endif
+!nu Limit CNC change over timestep because of guard cell mechanics (m/s)
+!      dCNC_max=dt*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
+ 20   N = N + 1
+      dCNC_max=dts*vegpar%alai*(0.006D0-0.00006D0)/1800.0D0
+      if( dCNC.gt.dCNC_max)CNCN=CNC_INOUT+dCNC_max
+      IF(-dCNC.gt.dCNC_max)CNCN=CNC_INOUT-dCNC_max
+! Biological limits of absolute CNC (m/s).
+      if(CNCN.gt.0.006*vegpar%alai)CNCN=0.006*vegpar%alai
+!NOTE:  Water balance issue due to not modeling canopy water content
+!       explicitly.  This needs to be considered at some point. -nyk
+      if(CNCN.lt.0.00006*vegpar%alai)CNCN=0.00006*vegpar%alai
+
+!----------------------------------------------------------------------!
+! Update Ci for next time step:
+! Total conductance from inside foliage to surface height at 30m (m/s),
+! where CO2 is assumed at Ca.
+      gt=1.0D0/(1.42D0/CNCN+1.65D0/(ch*U+EPS))
+! Ci update.
+      Ci=Ca-1.0D-6*Anet/gt !(mol/m3)
+
+! Limit Cin to physical realism (mol/m3). It is possible that
+! oscillations could occur due to the Ci<>CNC feedback. Also, something
+! to watch out for is that setting Ci like this does not conserve CO2.
+!#ifdef DEBUG
+      !* Iterate to match Ci and CNCN
+!      if ((Ci.lt.(0.5*Ca)).AND.(dts.gt.1.d0)) then
+!      if ((abs(Ci-Ci_old)/Ci_old.gt.(0.5*Ci_old)).AND.
+!      if ((Ci.lt.EPS).AND.(dts.gt.1.d0)) then
+      if ((Ci.lt.EPS).AND.(N.lt.50)) then
+        dts = 0.5*dts
+        Ci = Ci_old !Reduce time step until new Ci remains positive.
+!        dtt = dtt + dts
+        go to 20
+      else
+        if(Ci.lt.EPS) Ci=EPS
+        Ci_old = Ci
+      end if
+
+!#ifdef DEBUG
+!      write(94,*) dts,Ci_old,Ci, CNCN, dCNC, dCNC_max,gt,
+!     &     Rcan,Acan,Amax, betad,vegpar%vh, dQs,Ca
+!#endif
+
+      if ((dtt<dt).AND.(N.lt.50)) then
+        dtt = dtt + dts
+        dts = dts + dts
+!        dts = max(dts, (dt-dtt)/20.d0)
+        go to 10  !Recalculate Acan with new Ci
+      end if
+!#endif
+
+      if(Ci.lt.EPS) Ci=EPS  
+!        if ((I0df+I0dr).gt.50.d0) then
+!          write(101,*) "1",Anet, Ci, CNCN, gt
+!          Anet = Anet - (EPS-Ci)*CNCN/1.42d0
+!          Ci = EPS
+!          CNCN=1.42d0/((Ca-Ci)/(1.0d-6*Anet) - 1.65d0/(ch*U+EPS))
+!          write(101,*) "2",Anet, Ci, CNCN, gt
+!        else
+!          Ci = EPS 
+!        end if
+!      end if 
+!      Ci = 0.7*Ca  !## DEBUG HACK 
+!......................................................................
+! NOTE:  Land surface ground hydrology module must update Qf immediately
+!        following this subroutine call, because Qf requires evap_tot 
+!        calculated by ground hydrology.  Therefore updated by driver through
+!        update_veg_locals (GISS GCM).
+!......................................................................
+! Transmission of shortwave through canopy.
+      call canopy_transmittance(TRANS_SW_OUT,sbeta,fdir,vegpar)
+      if ( TRANS_SW_OUT < 0.d0 .or. TRANS_SW_OUT > 1.d0 ) then
+        write(99,*)"veg: unphysical TRANS_SW_OUT", TRANS_SW_OUT
+      endif 
+!......................................................................
+! Gross primary productivity (kg[C]/m2/s). 
+      GPP_OUT=0.012D-6*Acan
+      !write(*,*) parinc, GPP, Acan
+! Net primary productivity (kg[C]/m2/s).  Not available yet.
+!     NPP = GPP - 0.012D-6*(Rcan + BoleRespir + RootRespir)
+!      NPP_OUT = 0.012D-6*Anet
+!     &     - Root_respir(tcan, pp%sumcohort%Tpool(CARBON,FROOT)*1e-3) !kg-C/m2/s
+! Updata canopy conductance for next timestep (m/s).
+      CNC_INOUT=CNCN 
+! Updata leaf CO2 concentration for next timestep (mol/m3).
+      Ci_INOUT=Ci
+!----------------------------------------------------------------------!
+      return
+      end subroutine veg_C4
+
+!---------------------------------------------------------------------!
+      real*8 function Canopy_respir(N_gm2, T_kelvin) Result(CanResp)
+      real*8 :: N_gm2 !Canopy foliage nitrogen (g-N/m2-ground)
+      real*8 :: T_kelvin !Canopy temperature (Kelvin)
+
+      CanResp=0.20D0*N_gm2*exp(18.72D0-46.39D3/(gasc*T_kelvin))
+      end function Canopy_respir
+!---------------------------------------------------------------------!
+      real*8 function Root_respir(Tcelsius,froot_kgCm2) Result(Rootresp)
+!@sum Frootresp = fine root respiration (kgC/m2/s)
+      real*8 :: Tcelsius, froot_kgCm2
+      
+      Rootresp = OptCurve(Tcelsius,1.0d0,3000d0) * froot_kgCm2/SECPY
+
+      end function Root_respir
+!---------------------------------------------------------------------!
+      real*8 function OptCurve(Tcelsius,x,y) Result(OptCurveResult)
+!@sum Optimum curve, where OptCurveResult=x at 15 Celsius.
+      real*8 :: Tcelsius, x, y
+      
+      OptCurveResult = x * exp(y*(1/288.15 + 1/(Tcelsius+KELVIN)))
+      end function OptCurve
+!---------------------------------------------------------------------!
       function water_stress(nlayers, soilmp, froot, fice,
      &     hwilt, betadl) Result(betad)
       !1. Rosensweig & Abramopoulos water stress fn.
