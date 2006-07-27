@@ -518,10 +518,16 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       Allocate(grd_dum%dj_map(0:npes-1))
 
-      deltaZ = 1.0d0
-      call ESMF_GridAddVertHeight(grd_dum%ESMF_GRID,
-     &     delta=(/(deltaZ, L=1,LM) /),
-     &     rc=rc)
+      if (LM > 1) then
+         deltaZ = 1.0d0
+         call ESMF_GridAddVertHeight(grd_dum%ESMF_GRID,
+     &         delta=(/(deltaZ, L=1,LM) /),           
+     &    vertStagger=ESMF_GRID_VERT_STAGGER_TOP,
+     &    rc=rc)
+         if (rc /= ESMF_SUCCESS)
+     &        call stop_model('Failure when adding vert grid cooords.',
+     &        255)
+      end if
 
       vm_ => modelE_vm
       If (Present(vm)) vm_ => vm
