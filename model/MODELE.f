@@ -28,7 +28,8 @@ CAOO   Just to test CVS
       USE FV_INTERFACE_MOD, only: Finalize
       USE FV_INTERFACE_MOD, only: Compute_Tendencies
       USE FV_INTERFACE_MOD, only: init_app_clock
-      USE MODEL_COM, only: clock
+c$$$      USE MODEL_COM, only: clock
+      USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
@@ -59,6 +60,7 @@ C**** Command line options
 #ifdef USE_FVCORE
       Character(Len=*), Parameter :: fv_config = 'fv_config.rc'
       Type (FV_CORE) :: fv
+      Type (ESMF_CLOCK) :: clock
 #endif
       integer :: tloopcurrent
       integer :: L
@@ -81,7 +83,11 @@ C**** INITIALIZATIONS
 C****
          CALL TIMER (MNOW,MDUM)
 
+#ifdef USE_FVCORE
+      CALL INPUT (istart,ifile,clock)
+#else
       CALL INPUT (istart,ifile)
+#endif
 
 C****
 C**** Initialize FV dynamical core (ESMF component) if requested
@@ -731,8 +737,11 @@ c     endif
 C****
       end subroutine init_Model
 
-
+#ifdef USE_FVCORE
+      SUBROUTINE INPUT (istart,ifile,clock)
+#else
       SUBROUTINE INPUT (istart,ifile)
+#endif
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
@@ -781,7 +790,8 @@ C****
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
-      USE MODEL_COM, only: clock
+c$$$      USE MODEL_COM, only: clock
+      USE ESMF_MOD, only: ESMF_Clock
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
       USE DVEG_COUPLER, only : init_dveg
@@ -808,7 +818,9 @@ C****
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
      &           ,iniOCEAN = .FALSE.
-
+#ifdef USE_FVCORE
+      type (ESMF_Clock) :: clock
+#endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
      *     ,IWRITE,JWRITE,ITWRITE,QCHECK,QDIAG,KDIAG,QDIAG_RATIOS
