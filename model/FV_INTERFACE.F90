@@ -1,6 +1,9 @@
 #define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
 #define RETURN_(status) If (Present(rc)) rc=status; return
 
+! special macro to deal with the fact that SD and PIT are defined via F90 slices:
+#define JJ(J) (J)-J_0H+1
+
 !#define NO_FORCING
 
 
@@ -372,7 +375,6 @@ contains
     ! Run dycore
     NIdyn_fv = NIdyn/2 ! no leapfrog
     do istep = 1, NIdyn_fv
-       write(*,*)'FV phase : ', istep, NIdyn_fv
        call ESMF_GridCompRun ( fv%gc, fv%import, fv%export, clock, rc )
        call accumulate_mass_fluxes(fv)
        TMOM = 0 ! for now
@@ -546,7 +548,7 @@ contains
       write(*,*)'Calling ComputeRestartVelocities()'
       Call ComputeRestartVelocities(unit, grid, U, V, U_d, V_d)
 
-      call set_zonal_flow(U_d, V_d, j_0, j_1)
+!!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
       
       Call GEOS_VarWrite(unit, grid%ESMF_GRID, U_d(:,J_0:J_1,:))
       Call GEOS_VarWrite(unit, grid%ESMF_GRID, V_d(:,J_0:J_1,:))
@@ -1306,10 +1308,14 @@ contains
     real*4, Dimension(:,:,:), Pointer :: mfx_X, mfx_Y, mfx_Z
     integer :: J_0, J_1
     integer :: J_0S, J_1S
+    integer :: J_0H, J_1H
     integer :: i,im1,j,l
     integer :: rc
+    logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-    Call Get(grid, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+    Call Get(grid, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
+         & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
+         & HAVE_NORTH_POLE = HAVE_NORTH_POLE, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
     ! Horizontal and Vertical mass fluxes
     !---------------
@@ -1327,35 +1333,41 @@ contains
 
     PU(:,J_0:J_1,:) = mfx_X
     PV(:,J_0:J_1,:) = mfx_Y
-    SD(:,J_0:J_1,1:LM-1) = mfx_Z(:,:,2:LM) ! SD only goes up to LM-1
-    print*,'shape mfx_z: ', shape(mfx_z)
+    SD(:,JJ(J_0):JJ(J_1),1:LM-1) = mfx_Z(:,:,2:LM) ! SD only goes up to LM-1
 
     PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)
     PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)
-!!$    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SDA(:,J_0:J_1,1:LM-1)
 
-    call halo_update(grid, pv, FROM=NORTH)
-    do L = 1, LM
-       Do j = j_0s, j_1s
-          im1 = im
-          do i = 1, im
-             conv(i,j,l) = (pu(im1,j,l) - pu(i,j,l) + pv(i,j,l) - pv(i,j+1,l))
-             im1=i
-          end do
-       end do
-    end do
-    do l = lm-1, 1, -1
-       PIT(:,:) = PIT(:,:) + SD(:,:,L)
-    end do
+!!$    call halo_update(grid, pv, FROM=NORTH)
+!!$    do L = 1, LM
+!!$       Do j = j_0s, j_1s
+!!$          im1 = im
+!!$          do i = 1, im
+!!$             conv(i,j,l) = (pu(im1,j,l) - pu(i,j,l) + pv(i,j,l) - pv(i,j+1,l))
+!!$             im1=i
+!!$          end do
+!!$       end do
+!!$      If (HAVE_SOUTH_POLE) CONV(1,1,L)=-SUM(PV(:,2,L)
+!!$      If (HAVE_NORTH_POLE) CONV(1,JM,L)=SUM(PV(:,JM,L))
+!!$    end do
+!!$    do l = lm-1, 1, -1
+!!$       PIT(:,:) = PIT(:,:) + SD(:,:,L)
+!!$    end do
+!!$
+!!$    do L = LM-2, LS1-1, -1
+!!$       SD(:,:,L) = SD(:,:,L+1) + SD(:,:,L)
+!!$    end do
+!!$    do L = LS1-2,1,-1
+!!$       SD(:,:,L) = SD(:,:,L+1) + SD(:,:,L)-DSIG(L+1)*PIT(:,:)
+!!$    end do
+!!$    DO L=1,LM-1
+!!$       DO I=2,IM
+!!$          IF (HAVE_SOUTH_POLE) SD(I,JJ(1),L)=SD(1,JJ(1),L)
+!!$          IF (HAVE_NORTH_POLE) SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
+!!$       end do
+!!$    end do
 
-    do L = LM-2, LS1-1, -1
-       SD(:,:,L) = SD(:,:,L+1) + SD(:,:,L)
-    end do
-    do L = LS1-2,1,-1
-       SD(:,:,L) = SD(:,:,L+1) + SD(:,:,L)-DSIG(L+1)*PIT(:,:)
-    end do
-
-    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)
+    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,JJ(J_0):JJ(J_1),1:LM-1)
 
 
   end subroutine accumulate_mass_fluxes
