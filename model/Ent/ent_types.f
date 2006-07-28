@@ -127,13 +127,13 @@
 
          !* FLUXES
          real*8 :: gcanopy        ! Conductance of water vapor/plant (kg/s)
-         real*8 :: GPP            ! GPP flux/plant over time step
-         real*8 :: NPP            ! NPP flux/plant over time step
-         real*8 :: R_growth       ! Growth respiration/plant over time step
-         real*8 :: R_maint        ! Maintenance respir/plant over time step
-         real*8 :: N_up           ! N uptake from soil over time step
-         real*8 :: C_litter       ! C in litterfall
-         real*8 :: N_litter       ! N in litterfall
+         real*8 :: GPP            ! GPP flux/plant over time step (kg-C/m2/s)
+         real*8 :: NPP            ! NPP flux/plant over time step (kg-C/m2/s)
+         real*8 :: R_growth       ! Growth respiration/plant over time step (kg-C/m2/s)
+         real*8 :: R_maint        ! Maintenance respir/plant over time step (kg-C/m2/s)
+         real*8 :: N_up           ! N uptake from soil over time step (kg-N/m2/s)
+!         real*8 :: C_litter       ! C in litterfall
+!         real*8 :: N_litter       ! N in litterfall
          real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts
 
          !* REPRODUCTION
@@ -173,12 +173,14 @@
          real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
          real*8 :: TRANS_SW     !Transmittance of shortwave radiation to the ground (fraction)
          real*8 :: GCANOPY         !Canopy conductance of water vapor (mm/s)
-         real*8 :: CO2flux         !Net CO2 flux up (umol-CO2/m2-gnd/s)
+         real*8 :: CO2flux         !Net CO2 flux up (kg-C/m2-gnd/s)
          real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8,pointer :: betadl(:) !Water stress in layers.
-         real*8 :: soil_resp       !soil resp flux (umol C/m2/s) -PK 6/14/06
-         
+         real*8 :: Soil_resp       !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
+         real*8 :: R_can  !Canopy respiration. Temporary hack (kg-C/m2/s) -NYK 7/28/06 ## Will go in sumcohort.
+         real*8 :: R_root !Root respiration. Temporary hack (kg-C/m2/s) -NYK 7/28/06 ## Will go in sumcohort.
+
          !* Variables calculated by GCM/EWB - downscaled from grid cell
 !         real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
          real*8 :: Soilmoist !Soil moisture (volumetric fraction, avg top 30 cm) -PK 6/28/06
@@ -222,9 +224,9 @@
          real*8 :: dwdt              !Rate of change of available soil water
 #endif
          !* Activity diagnostics - can be summed by month, year, etc.
-         real*8 :: GPP               !Gross primary productivity (kgC/m2/day)
-         real*8 :: NPP               !Net primary productivity (kgC/m2/day)
-!         real*8 :: Soil_resp         !Soil heterotrophic respiration (kgC/m2/day) !moved to fluxes -PK 6/14/06
+         real*8 :: GPP               !Gross primary productivity (kgC/m2/s)
+         real*8 :: NPP               !Net primary productivity (kgC/m2/s)
+!         real*8 :: Soil_resp         !Soil heterotrophic respiration (kgC/m2/s) !moved to fluxes -PK 6/14/06
       end type patch
 
 !****************************************************************************

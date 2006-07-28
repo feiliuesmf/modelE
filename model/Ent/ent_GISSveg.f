@@ -407,18 +407,35 @@
       !-------local-----
       type(cohort),pointer :: cop
       real*8 :: laipatch
+      real*8 :: cpool(N_BPOOLS)
 
       if (ASSOCIATED(pp)) then
-        laipatch = 0.0 !Initialize for summing.
+
+        !* LAI *AND* BIOMASS - carbon pools *!
+        laipatch = 0.d0 !Initialize for summing
+        cpool(:) = 0.d0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
-          cop%lai = GISS_calc_lai(cop%pft, jday, hemi)
+          cop%lai = GISS_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
           laipatch = laipatch + cop%lai
+
+          call GISS_plant_cpools(cop%pft, cop%lai, cop%h, 
+     &         cop%dbh, cop%n, cpool )
+          cop%C_fol = cpool(FOL)
+          cop%C_sw = cpool(SW)
+          cop%C_hw = cpool(HW)
+          cop%C_lab = cpool(LABILE)
+          cop%C_froot = cpool(FR)
+          cop%C_croot = cpool(CR)
+
           cop => cop%shorter
         end do
         pp%sumcohort%LAI = laipatch
+
+        !* ALBEDO *!
         call GISS_veg_albedo(hemi, pp%sumcohort%pft, 
      &       jday, pp%albedo)
+
       endif
       end subroutine GISS_phenology
 
@@ -721,7 +738,7 @@ c**** calculate root fraction afr averaged over vegetation types
 !*************************************************************************
       subroutine GISS_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &     laidata, hdata, dbhdata, popdata, cpooldata)
-      !*  Calculate per plant carbon pools (kg-C/plant).
+      !*  Calculate per plant carbon pools (g-C/plant).
       !*  After Moorcroft, et al. (2001).
 
       integer,intent(in) :: IM,JM,I0,I1,J0,J1
@@ -735,7 +752,6 @@ c**** calculate root fraction afr averaged over vegetation types
       integer :: n,pft !@var pft vegetation type
       integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
       integer i,j,jeq
-      real*8 :: wooddens
 
       jeq = JM/2
 
@@ -746,23 +762,39 @@ c**** calculate root fraction afr averaged over vegetation types
         do i=I0,I1
           do pft=1,N_PFT
             n = pft + COVEROFFSET
-            cpooldata(n,FOL,i,j) = laidata(n,i,j)/pfpar(pft)%sla
-     &           /popdata(n)    !Bl
-            cpooldata(n,FR,i,j) = cpooldata(n,FOL,i,j) !Br
-            cpooldata(n,LABILE,i,j) = 0.0 !Dummy
-            if (pft.ne.GRASSC3) then !Woody
-              wooddens = wooddensity_gcm3(pft)
-              cpooldata(n,SW,i,j) = 0.00128*pfpar(pft)%sla*
-     &             cpooldata(n,FOL,i,j)*hdata(n) !Bsw
-              cpooldata(n,HW,i,j) = 0.069 * (hdata(n))**0.572
-     &             * (dbhdata(n))**1.94 * wooddens !Bs
-              cpooldata(n,CR,i,j) = 0.0 !Dummy
-            end if
+            call GISS_plant_cpools(pft,laidata(n,i,j),hdata(n),
+     &           dbhdata(n), popdata(n),cpooldata(n,:,i,j))
           enddo
         enddo
       enddo
       
       end subroutine GISS_get_carbonplant
+
+!*************************************************************************
+
+      subroutine GISS_plant_cpools(pft, lai, h, dbh, popdens, cpool )
+      !* Calculate plant carbon pools for single plant (g-C/plant)
+      !* After Moorcroft, et al. (2001).
+      integer,intent(in) :: pft !plant functional type
+      real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
+      real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
+      !----Local------
+      
+      cpool(FOL) = lai/pfpar(pft)%sla/popdens *1e3!Bl
+      cpool(FR) = cpool(FOL)   !Br
+      cpool(LABILE) = 0.d0      !dummy
+      if (pft.ne.GRASSC3) then  !Woody
+        cpool(SW) = 0.00128 * pfpar(pft)%sla * cpool(FR) * h *1e3 !Bsw
+        cpool(HW) = 0.069*(h**0.572)*(dbh**1.94) * wooddensity_gcm3(pft)
+     &       *1e3
+        cpool(CR) = 0.d0        !dummy
+      else
+        cpool(SW) = 0.d0
+        cpool(HW) = 0.d0
+        cpool(CR) = 0.d0
+      endif
+      !write(97,*) pft, lai, h, dbh, popdens, cpool
+      end subroutine GISS_plant_cpools
 !*************************************************************************
       real*8 function wooddensity_gcm3(pft) Result(wooddens)
       integer,intent(in) :: pft

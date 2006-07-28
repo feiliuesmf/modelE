@@ -147,8 +147,8 @@
         scop%R_growth = scop%R_growth + cop%R_growth
         scop%R_maint = scop%R_maint + cop%R_maint 
         scop%N_up = scop%N_up + cop%N_up
-        scop%C_litter = scop%C_litter + cop%C_litter
-        scop%N_litter = scop%N_litter + cop%N_litter  
+!        scop%C_litter = scop%C_litter + cop%C_litter
+!        scop%N_litter = scop%N_litter + cop%N_litter  
         scop%C_to_Nfix = scop%C_to_Nfix + cop%C_to_Nfix
 
          !* REPRODUCTION
@@ -232,7 +232,9 @@
             pp%Ci = 0.0127D0  !Initial value not zero.
             pp%betad = 0.d0
             pp%betadl = 0.d0
-            pp%soil_resp = 0.d0
+            pp%Soil_resp = 0.d0
+            pp%R_can = 0.d0  !##Temporary hack. Belongs in sumcohort.
+            pp%R_root = 0.d0  !##Temporary hack. Belongs in sumcohort.
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
             pp%Soilmoist = 0.0d0 !## Get GISS soil moisture layers ##!

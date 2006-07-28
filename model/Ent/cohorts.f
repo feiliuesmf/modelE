@@ -15,7 +15,7 @@
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter,C_to_Nfix)
+     &     N_up, C_to_Nfix)
 
       type(patch),pointer :: pp
       integer :: pft
@@ -25,7 +25,7 @@
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter,C_to_Nfix
+     &     N_up, C_to_Nfix
       !------------------
       type(cohort),pointer :: cop, csp, newc
 
@@ -42,7 +42,7 @@
      &       LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       GCANOPY, GPP, NPP, R_growth,R_maint,
-     &       N_up, C_litter,N_litter,C_to_Nfix,froot)
+     &       N_up, C_to_Nfix,froot)
 
         newc%Ntot = nm*LAI
 
@@ -127,7 +127,7 @@
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter,C_to_Nfix, froot)
+     &     N_up, C_to_Nfix, froot)
       !Given cohort's characteristics, assign to cohort data variable.
 
       type(cohort) :: cop
@@ -138,7 +138,7 @@
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     GCANOPY, GPP, NPP, R_growth,R_maint,
-     &     N_up, C_litter,N_litter, C_to_Nfix, froot(:)
+     &     N_up, C_to_Nfix, froot(:)
 
       cop%pft = pft
       cop%n = n
@@ -169,7 +169,8 @@
       cop%R_growth = R_growth
       cop%R_maint = R_maint
       cop%N_up =  N_up 
-      cop%N_litter = N_litter
+!      cop%C_litter = C_litter
+!      cop%N_litter = N_litter
       cop%C_to_Nfix = C_to_Nfix
       cop%froot(:) = froot(:)
 
@@ -232,8 +233,8 @@ cddd      end subroutine init_cohort_defaults
       cop%R_growth = 0.0
       cop%R_maint = 0.0
       cop%N_up = 0.0
-      cop%C_litter = 0.0
-      cop%N_litter = 0.0
+!      cop%C_litter = 0.0
+!      cop%N_litter = 0.0
       cop%C_to_Nfix = 0.0
 
       !* REPRODUCTION *!

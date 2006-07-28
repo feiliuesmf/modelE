@@ -289,8 +289,11 @@
       pp%Ci = Ci
       pp%TRANS_SW = TRANS_SW
       pp%GPP = GPP
-      pp%NPP = GPP - Canopy_respir(vegpar%Ntot, TcanopyC+KELVIN)
-     &     - Root_respir(TcanopyC,pp%Tpool(CARBON,FROOT)*1e-3) !kg-C/m2/s
+      pp%R_can =  
+     &     Canopy_respir(vegpar%Ntot, TcanopyC+KELVIN)*0.012D-6 !kg-C/m2/s
+      pp%R_root = 
+     &     Root_respir(TcanopyC, pp%Tpool(CARBON,FROOT)*1e-3) !kg-C/m2/s
+      pp%NPP = GPP - pp%R_can - pp%R_root
 
       !betad, betadl
 
@@ -963,10 +966,12 @@
       end function Canopy_respir
 !---------------------------------------------------------------------!
       real*8 function Root_respir(Tcelsius,froot_kgCm2) Result(Rootresp)
-!@sum Frootresp = fine root respiration (kgC/m2/s)
+!@sum Frootresp = fine root respiration (kgC/s/m2)
       real*8 :: Tcelsius, froot_kgCm2
       
-      Rootresp = OptCurve(Tcelsius,1.0d0,3000d0) * froot_kgCm2/SECPY
+      Rootresp = OptCurve(Tcelsius,1.0d0,3000.d0) * froot_kgCm2/SECPY
+     &     /((1.d0 + exp(0.4*(5.0-Tcelsius)))
+     &     *(1.d0 + exp(0.4*(Tcelsius-45.d0))))
 
       end function Root_respir
 !---------------------------------------------------------------------!
@@ -974,7 +979,7 @@
 !@sum Optimum curve, where OptCurveResult=x at 15 Celsius.
       real*8 :: Tcelsius, x, y
       
-      OptCurveResult = x * exp(y*(1/288.15 + 1/(Tcelsius+KELVIN)))
+      OptCurveResult = x * exp(y*(1/288.15d0 - 1/(Tcelsius+KELVIN)))
       end function OptCurve
 !---------------------------------------------------------------------!
       function water_stress(nlayers, soilmp, froot, fice,

@@ -51,7 +51,6 @@
       print *,'casa inputs: dt= ',dtsec,'soilmoist=',soilmoist     !-PK 7/13/06
      &       ,'ivt=',ivt,'lai=',lai,'soiltemp=',soiltemp !Got rid of fnpp -NK 7/24/06
      &       ,'clay=',clayfrac,'sand=',sandfrac,'silt=',siltfrac
-!     &       ,'Tpool(in)=',Tpool
       call print_Tpool(Tpool)
 !#endif
      
@@ -59,17 +58,18 @@
       call casa (dtsec, soilmoist, ivt !Got rid of fnpp -NK 7/26/06
      &                 ,lai, soiltemp, clayfrac, sandfrac, siltfrac  
      &                 ,Tpool,Cflux)
+
       !* Convert Cflux from gC/m2/s to umol C/m2/s -PK 6/14/06
+      !* Changed to kgC/m2/s - NK 7/28/06
       !* and assign soil_resp per patch
-      pp%soil_resp = Cflux*1.d6/12.  
-      !assign Tpool, CO2flux per patch to Tpool, fco2 from casa -PK 7/7/06
+      pp%Soil_resp = Cflux*1.d-3 
+      !assign Tpool, -PK 7/7/06
       pp%Tpool = Tpool
 
-!      pp%CO2flux = fco2 
-      
       print *,'casa outputs: soil_resp(umol m-2 s-1)=',pp%soil_resp
-!     &     ,'Tpool(out)=',Tpool  !,'CO2flux(~fco2)=',fco2 
-      call print_Tpool(Tpool)
+!#ifdef DEBUG
+!      call print_Tpool(Tpool)
+!#endif
 
       end subroutine soil_bgc
 

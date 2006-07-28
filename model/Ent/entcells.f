@@ -315,7 +315,7 @@
      &           cpooldata(ncov,LABILE),0.d0,
      &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
      &           0.d0,0.d0,0.d0,0.d0,0.d0,
-     &           0.d0,0.d0,0.d0,0.d0)
+     &           0.d0,0.d0)
           endif
           call summarize_patch(pp)
 

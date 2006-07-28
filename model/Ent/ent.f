@@ -184,9 +184,14 @@
         if (do_soilresp) then 
           print*,'Calling soil_bgc'
           call soil_bgc(dtsec,pp)
-          pp%CO2flux = -pp%NPP + pp%soil_resp
-          write(99,*) 'pft, pp%NPP, pp%soil_resp,pp%CO2flux',
-     &         pp%sumcohort%pft,pp%NPP,pp%soil_resp,pp%CO2flux
+          pp%CO2flux = -pp%NPP + pp%Soil_resp
+          
+          !*********** DIAGNOSTICS FOR PLOTTING ********************!
+          write(99,*)  !Fluxes are positive up.
+     &         pp%sumcohort%pft,pp%sumcohort%lai, pp%Tpool(CARBON,:), 
+     &         -pp%GPP,pp%R_can, pp%R_root,pp%Soil_resp,
+     &         -pp%NPP,pp%CO2flux
+          !*********************************************************!
         else 
           pp%CO2flux = UNDEF
         endif
@@ -196,7 +201,6 @@
 
       end do
       call summarize_entcell(ecp)
-      write(99,*) 'CO2flux (umol m-2 s-1)',ecp%sumpatch%CO2flux
 
 #ifdef DEBUG      !# DEBUG
       print *,"End of ent_biophysics"
