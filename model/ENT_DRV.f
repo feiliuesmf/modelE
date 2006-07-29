@@ -16,15 +16,16 @@
 
 
 
-      subroutine init_module_ent(iniENT, Jday, Jyear)
+      subroutine init_module_ent(iniENT, Jday, Jyear, fearth)
 !@sum initializes vegetation
       use param
       use ent_com, only : entcells
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT
+      real*8, intent(in) :: fearth(:,:)
       !---
-      integer I_0, I_1, J_0, J_1
+      integer I_0, I_1, J_0, J_1, i, j
       ! the following are rundeck parameters which need to be
       ! passed to ent (and used there)
       integer cond_scheme, vegCO2X_off, crops_yr, read_c4_grass
@@ -43,8 +44,22 @@
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
       ! ask Max if OK
 
+      ! initialize ent cells to something meaningful
+      do j=J_0,J_1
+        do i=I_0,I_1
+          if (fearth(i,j).gt.0) then
+            call ent_cell_construct( entcells(i,j) )
+          end if
+        enddo
+      enddo
+
+
+      print *,'init_module_ent printing cells 1'
+      call ent_cell_print(entcells)
+      print *,'init_module_ent end printing cells 1'
+
       if (iniENT ) then
-        call set_vegetation_data( entcells(I_0:I_1,J_0:J_1),
+        call set_vegetation_data( entcells,  ! (I_0:I_1,J_0:J_1),
      &       IM, JM, I_0, I_1, J_0, J_1, jday, jyear )
       endif
 
@@ -107,6 +122,20 @@ c**** check whether ground hydrology data exist at this point.
       integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
       real*8, dimension(N_SOIL_TYPES,I0:I1,J0:J1) :: soil_texture
       !-----Local---------
+      integer i,j
+
+
+      do j=j0,j1
+        do i=i0,i1
+          print *,'set_vegetation_data i,j = ',i,j
+          call ent_cell_print( entcells(i,j) )
+        enddo
+      enddo
+
+!      print *,'set_vegetation_data printing cells 1'
+!      call ent_cell_print(entcells)
+!      print *,'set_vegetation_data end printing cells 1'
+
 
       !Read land surface parameters or use defaults
       !GISS data sets:

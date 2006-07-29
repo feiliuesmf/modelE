@@ -155,7 +155,8 @@ C****
       ALLOCATE(    entcells(im,J_0H:J_1H),
      *         STAT=IER)
       ! initialize ent cells to something meaningful
-      call ent_cell_construct( entcells )
+      !call ent_cell_construct( entcells ) ! moved to init_module_ent
+      call ent_cell_nullify( entcells )
 
 
       ALLOCATE(    vdata(im,J_0H:J_1H,12),

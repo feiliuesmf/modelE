@@ -2238,9 +2238,9 @@ c**** fb,fv: bare, vegetated fraction (1=fb+fv)
 !      fb=afb(i0,j0)
 !      fv=1.-fb
       !call ent_get_value( i0, j0, fraction_of_vegetated_soil=fv )
-      call ent_get_exports( entcells(i0,j0),
-     &     fraction_of_vegetated_soil=fv )
-      fb = 1. - fv
+ !     call ent_get_exports( entcells(i0,j0),
+ !    &     fraction_of_vegetated_soil=fv )
+ !     fb = 1. - fv
 c****
       do ibv=1,2
         do k=1,n

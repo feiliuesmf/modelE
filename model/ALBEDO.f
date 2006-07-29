@@ -263,6 +263,7 @@ C
 
       DO K=1,NV
       DO L=1,6
+        print *,'KKKKKKKKKKKKK= ',k
 C     -------------------
 C     Southern Hemisphere
 C     -------------------
