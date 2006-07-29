@@ -15,6 +15,7 @@
 
       public zero_entcell, summarize_entcell, entcell_print
       public init_simple_entcell, entcell_construct, entcell_destruct
+      public entcell_extract_pfts
 
 
       contains
@@ -278,6 +279,11 @@
       integer :: pnum
       type(patch),pointer :: pp, pp_tmp
 
+      print *,"entered init_simple_entcell"
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+      call entcell_print(ecp)
+
       ! destroy all existing patches since we are going to 
       ! re-initialize the cell
       pp => ecp%oldest      
@@ -321,8 +327,8 @@
 
       call summarize_entcell(ecp)
 
-      !print *,"In init_simple_entcell:"
-      !call entcell_print(ecp)
+      print *,"leaving init_simple_entcell:"
+      call entcell_print(ecp)
 
       end subroutine init_simple_entcell
 
@@ -409,6 +415,26 @@
       call patch_print(ecp%sumpatch,prefix//"s       ")
 
       end subroutine entcell_print
+
+ !*********************************************************************
+
+      subroutine entcell_extract_pfts(ecp, vdata)
+      use patches, only : patch_print
+      type(entcelltype) :: ecp
+      real*8 :: vdata(:)
+      !---
+      type(patch), pointer :: pp
+      real*8 :: vdata_patch(size(vdata))
+
+      vdata(:) = 0.d0
+      pp => ecp%oldest
+      do while( associated(pp) )
+        call patch_extract_pfts(pp, vdata_patch)
+        vdata(:) = vdata(:) + vdata_patch(:)*pp%area
+        pp => pp%younger
+      enddo
+
+      end subroutine entcell_extract_pfts
 
  !*********************************************************************
       end module entcells

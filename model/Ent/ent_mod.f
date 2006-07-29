@@ -17,7 +17,7 @@
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
-      public ent_cell_construct, ent_cell_destruct
+      public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
       public ent_cell_set
       public ent_prescribe_vegupdate
@@ -41,6 +41,12 @@
         module procedure ent_cell_destruct_single
         module procedure ent_cell_destruct_array_1d
         module procedure ent_cell_destruct_array_2d
+      end interface
+
+      interface ent_cell_nullify
+        module procedure ent_cell_nullify_single
+        module procedure ent_cell_nullify_array_1d
+        module procedure ent_cell_nullify_array_2d
       end interface
 
       !--- passing initial data to ent cells ---
@@ -295,7 +301,9 @@ cddd      nullify( entcell%entcell%sumpatch )
 cddd      ! for now set all values o zero or defaults
 cddd      call zero_entcell(entcell%entcell)
 
+      print *,"ent_cell_constr"
       call entcell_construct(entcell%entcell)
+      call entcell_print(entcell%entcell)
 
       end subroutine ent_cell_construct_single
 
@@ -368,6 +376,44 @@ cddd      call zero_entcell(entcell%entcell)
       enddo
 
       end subroutine ent_cell_destruct_array_2d
+
+
+      subroutine ent_cell_nullify_single(entcell)
+      use entcells, only : entcell_destruct
+      type(entcelltype_public), intent(inout) :: entcell
+
+      nullify( entcell%entcell )
+
+      end subroutine ent_cell_nullify_single
+
+
+      subroutine ent_cell_nullify_array_1d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer n, nc
+
+      nc = size(entcell)
+
+      do n=1,nc
+        nullify( entcell(n)%entcell )
+      enddo
+
+      end subroutine ent_cell_nullify_array_1d
+
+
+      subroutine ent_cell_nullify_array_2d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          nullify( entcell(i,j)%entcell )
+        enddo
+      enddo
+
+      end subroutine ent_cell_nullify_array_2d
 
 
 !---- END of  Constructor / Destructor -----
@@ -478,6 +524,12 @@ cddd      call zero_entcell(entcell%entcell)
 
       do j=1,jc
         do i=1,ic
+          print *,"ent_cell_set_array_2d i,j=",i,j
+          if ( .not. associated(entcell(i,j)%entcell) ) cycle
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+          call entcell_print(entcell(i,j)%entcell)
+
           call init_simple_entcell( entcell(i,j)%entcell,
      &         veg_fraction(:,i,j),pft_population_density,
      &         leaf_area_index(:,i,j),
@@ -1001,11 +1053,12 @@ cddd      call zero_entcell(entcell%entcell)
       endif
 
       if ( present(vegetation_fractions) ) then
-        do n=1,N_COVERTYPES
+        !do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
-          call stop_model("not implemmented yet",255)
-        enddo
+        !  call stop_model("not implemmented yet",255)
+        !enddo
+        call entcell_extract_pfts(entcell%entcell, vegetation_fractions)
       endif
 
       end subroutine ent_get_exports_single
@@ -1220,6 +1273,11 @@ cddd      call zero_entcell(entcell%entcell)
       subroutine ent_cell_print_single(entcell)
       use entcells, only : entcell_destruct
       type(entcelltype_public), intent(inout) :: entcell
+
+      if ( .not. associated(entcell%entcell) ) then
+        print *, "ent_cell_print_single: Empty entcell"
+        return
+      endif
 
       call entcell_print( entcell%entcell )
 
