@@ -557,6 +557,13 @@ cddd      call zero_entcell(entcell%entcell)
 
       nullify(NULL)
 
+      ! return "-1" for not associated cells
+      if ( .not. associated(entcell%entcell) ) then
+        allocate( dbuf(1) )
+        dbuf(1) = -1.d0;
+        return
+      endif
+
       ! first compute number of patches and cohorts in the cell
       ! this actually can be save in the cell structure 
       ! for optimization ...
@@ -634,6 +641,8 @@ cddd      call zero_entcell(entcell%entcell)
 
       ! doesn't seem that we need to restore anything for the cell
       np = nint( dbuf(dc) ); dc = dc + 1
+      if ( np == -1 ) return  ! no data for this cell
+
       allocate( nc(np) )
       nc(1:np) = nint( dbuf(dc:dc+np-1) ); dc = dc + np
 
