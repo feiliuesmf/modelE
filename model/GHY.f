@@ -1745,35 +1745,47 @@ ccc accm0 was not called here in older version - check
 !!!
 !!!! insert new canopy conductance here (call to Ent)
 
-        call ent_set_forcings( entcell,
-     &       canopy_temperature=tp(0,2),
-     &       canopy_air_humidity=qsat(tp(0,2),lhe,pres),
-     &       surf_pressure=pres,
-     &       surf_CO2=Ca,
+        if ( process_vege ) then
+
+          call ent_set_forcings( entcell,
+     &         canopy_temperature=tp(0,2),
+     &         canopy_air_humidity=qsat(tp(0,2),lhe,pres),
+     &         surf_pressure=pres,
+     &         surf_CO2=Ca,
  !    &       precip=pr,
-     &       heat_transfer_coef=ch,
-     &       wind_speed=vsm,
-     &       total_visible_rad=vis_rad,
-     &       direct_visible_rad=direct_vis_rad,
-     &       solar_zenith_angle=cosz1,
-     &       soil_water=w(1:ngm,2),
-     &       soil_matric_pot=h(1:ngm,2),
-     &       soil_ice_fraction=fice(1:ngm,2) 
-     &       )
+     &         heat_transfer_coef=ch,
+     &         wind_speed=vsm,
+     &         total_visible_rad=vis_rad,
+     &         direct_visible_rad=direct_vis_rad,
+     &         solar_zenith_angle=cosz1,
+     &         soil_water=w(1:ngm,2),
+     &         soil_matric_pot=h(1:ngm,2),
+     &         soil_ice_fraction=fice(1:ngm,2) 
+     &         )
 
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
-        call ent_fast_processes( entcell, dt )
+          call ent_fast_processes( entcell, dt )
 
 ccc unpack necessary data
-        call ent_get_exports( entcell,
-     &       canopy_conductance=cnc,
-     &       beta_soil_layers=betadl,
-     &       shortwave_transmit=TRANS_SW,
-     &       foliage_CO2=Ci,
-     &       foliage_humidity=Qf,
-     &       canopy_gpp=GPP
-     &     )
+          call ent_get_exports( entcell,
+     &         canopy_conductance=cnc,
+     &         beta_soil_layers=betadl,
+     &         shortwave_transmit=TRANS_SW,
+     &         foliage_CO2=Ci,
+     &         foliage_humidity=Qf,
+     &         canopy_gpp=GPP
+     &         )
+
+        else
+          cnc = 0.d0
+          betadl = 0.d0
+          TRANS_SW = 1.d0
+          Ci = 0.d0
+          Qf = 0.d0
+          GPP = 0.d0
+        endif
+
         call evap_limits( .true., dum1, dum2 )
         call sensible_heat
 !debug debug!

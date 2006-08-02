@@ -1553,8 +1553,12 @@ C****
       !  PVT(K)=VDATA(I,J,K)
       !END DO
       !call ent_get_value( i, j, vegetation_fractions=PVT )
-      call ent_get_exports( entcells(i,j),
-     &     vegetation_fractions=PVT )
+      if ( fearth(i,j) > 0.d0 ) then
+        call ent_get_exports( entcells(i,j),
+     &       vegetation_fractions=PVT )
+      else
+        PVT(:) = 0.d0  ! actually PVT is not supposed to be used in this case
+      endif
 
       WMAG=WSAVG(I,J)
 C****
