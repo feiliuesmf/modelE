@@ -120,7 +120,9 @@
       jc = size(entcell,2)
 
       do j=1,jc
-        do i=1,ic      
+        do i=1,ic
+          ! skip uninitialized cells (no land)
+          if ( .not. associated(entcell(i,j)%entcell) ) cycle
           call ent_GISS_vegupdate(entcell(i,j)%entcell, hemi(i,j),
      &         jday, year, update_crops)
         enddo
@@ -1041,8 +1043,8 @@ cddd      call zero_entcell(entcell%entcell)
 
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
-        !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
-        call stop_model("not implemmented yet",255)
+        canopy_heat_capacity=entcell%entcell%heat_capacity
+        !call stop_model("not implemmented yet",255)
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
@@ -1250,7 +1252,9 @@ cddd      call zero_entcell(entcell%entcell)
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
-        call stop_model("not implemmented yet",255)
+        !call stop_model("not implemmented yet",255)
+        fraction_of_vegetated_soil(i,j) =
+     &       entcell(i,j)%entcell%fv
       endif
 
       if ( present(beta_soil_layers) ) then

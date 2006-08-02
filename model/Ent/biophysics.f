@@ -220,6 +220,9 @@
       !call patch_print(pp," ")
 #endif
 
+      if ( pp%sumcohort%pft < 2 .or. pp%sumcohort%pft > 9 )
+     &     call stop_model("photosynth_cond: wrong pft",255)
+
       pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
      i     ,pp%sumcohort%froot(:)
      i     ,pp%cellptr%fice(:), pfpar(pp%sumcohort%pft)%hwilt

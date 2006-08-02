@@ -29,6 +29,8 @@
       real*8,parameter :: gasc = 8.314510d0 !gas constant (8.314510 J/mol K)
       real*8,parameter :: Avogadro=6.023d23 !Avogadro's constant (atmos/mole)
       real*8,parameter :: cp=1012. !Heat capacity of dry air (J kg-1 K-1)
+!@param shw heat capacity of water (at 20 C) (4185 J/kg C)
+      real*8,parameter :: shw  = 4185.
 
       !************************************************************************
       !* CONSTANTS FROM GISS CONST.f

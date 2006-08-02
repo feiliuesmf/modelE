@@ -50,7 +50,9 @@
       !ecp%VOCflux = 0.0     !Other kind of fluxes, aerosols from fire, etc.
       !Cell-level diagnostic values - BIOLOGICAL
       !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
+      ecp%fv = 0.d0
       ecp%LAI= 0.d0
+      ecp%heat_capacity = 0.d0
 !      ecp%betad = 0.0          !Water stress #CALC FROM Soilmoist & SSTAR by PFT
 !      do n=1,N_DEPTH           !Water stress in layers
 !        ecp%betadl(n) = 0.0
@@ -104,6 +106,7 @@
       !real*8 :: froot(N_DEPTH)
       integer :: ip             !#patches
       integer :: ia             !counter variable
+      real*8 lai
 
       !call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
       ecp%LAI = 0.d0 !Re-zero
@@ -217,6 +220,10 @@
         spp%fuel = spp%fuel/spp%area
         spp%ignition_rate = spp%ignition_rate/spp%area
       end if
+
+      ! use original formula for canopy heat cpacity
+      lai = ecp%LAI
+      ecp%heat_capacity=(.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
 
       end subroutine summarize_entcell
 !**************************************************************************
