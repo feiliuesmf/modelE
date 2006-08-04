@@ -379,8 +379,13 @@ CPPFLAGS += -DUSE_ESMF
 LIBS += -lesmf -lmpi
 endif
 ifeq ($(COMPILER),Intel8)
+ifeq ($(ESMF_DIR),)
 ESMFINCLUDEDIR = ${BASELIBDIR}/include/esmf
 ESMFLIBDIR = ${BASELIBDIR}/lib
+else
+ESMFINCLUDEDIR = ${ESMF_DIR}/mod/mod${ESMF_BOPT}/Linux.intel.64.default
+ESMFLIBDIR = ${ESMF_DIR}/lib/lib${ESMF_BOPT}/Linux.intel.64.default
+endif
 
 CPPFLAGS += -DUSE_ESMF
 ifeq ($(MPIDISTR),LAM)
