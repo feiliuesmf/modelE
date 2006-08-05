@@ -1253,8 +1253,12 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
         !call stop_model("not implemmented yet",255)
-        fraction_of_vegetated_soil(i,j) =
-     &       entcell(i,j)%entcell%fv
+        if ( associated(entcell(i,j)%entcell) ) then
+          fraction_of_vegetated_soil(i,j) =
+     &         entcell(i,j)%entcell%fv
+        else
+          fraction_of_vegetated_soil(i,j) = 0.d0
+        endif
       endif
 
       if ( present(beta_soil_layers) ) then
