@@ -16,6 +16,7 @@
 
       public zero_entcell, summarize_entcell, entcell_print
       public init_simple_entcell, entcell_construct, entcell_destruct
+      public entcell_extract_pfts
 
 
       contains
@@ -50,7 +51,9 @@
       !ecp%VOCflux = 0.0     !Other kind of fluxes, aerosols from fire, etc.
       !Cell-level diagnostic values - BIOLOGICAL
       !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
+      ecp%fv = 0.d0
       ecp%LAI= 0.d0
+      ecp%heat_capacity = 0.d0
 !      ecp%betad = 0.0          !Water stress #CALC FROM Soilmoist & SSTAR by PFT
 !      do n=1,N_DEPTH           !Water stress in layers
 !        ecp%betadl(n) = 0.0
@@ -104,9 +107,11 @@
       !real*8 :: froot(N_DEPTH)
       integer :: ip             !#patches
       integer :: ia             !counter variable
+      real*8 lai
 
       !call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
       ecp%LAI = 0.d0 !Re-zero
+      ecp%fv = 0.d0
       call zero_patch(ecp%sumpatch)
       spp => ecp%sumpatch
 
@@ -115,7 +120,9 @@
       do while (ASSOCIATED(pp)) 
         ip = ip + 1
         spp%age = spp%age + pp%age
-        spp%area = spp%area + pp%area 
+        spp%area = spp%area + pp%area
+
+        if ( associated( pp%tallest ) ) ecp%fv = ecp%fv + pp%area
         
         spp%nm = spp%nm + pp%nm*pp%area
 
@@ -218,6 +225,10 @@
         spp%ignition_rate = spp%ignition_rate/spp%area
       end if
 
+      ! use original formula for canopy heat cpacity
+      lai = ecp%LAI
+      ecp%heat_capacity=(.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+
       end subroutine summarize_entcell
 !**************************************************************************
 !**************************************************************************
@@ -283,6 +294,11 @@
       integer :: ncov, pft
       type(patch),pointer :: pp, pp_tmp
 
+      print *,"entered init_simple_entcell"
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+      call entcell_print(ecp)
+
       ! destroy all existing patches since we are going to 
       ! re-initialize the cell
       pp => ecp%oldest      
@@ -300,12 +316,17 @@
         !### Get from GISS GCM ## vfraction of grid cell and area.
 
         if (vegdata(ncov)>0.0) then
-          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
+         !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(ncov) > EPS ) then 
+            if ( pft < 1 .or. pft > N_PFT ) then
+              print *,"init_simple_entcell: wrong pft:", pft
+              call patch_print(pp,"ERROR ")
+              call stop_model("init_simple_entcell: wrong pft",255)
+            endif
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
      &           nmdata(ncov),
      &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,laidata(ncov),
@@ -329,8 +350,8 @@
 
       call summarize_entcell(ecp)
 
-      !print *,"In init_simple_entcell:"
-      !call entcell_print(ecp)
+      print *,"leaving init_simple_entcell:"
+      call entcell_print(ecp)
 
       end subroutine init_simple_entcell
 
@@ -414,6 +435,26 @@
       call patch_print(ecp%sumpatch,prefix//"s       ")
 
       end subroutine entcell_print
+
+ !*********************************************************************
+
+      subroutine entcell_extract_pfts(ecp, vdata)
+      use patches, only : patch_print
+      type(entcelltype) :: ecp
+      real*8 :: vdata(:)
+      !---
+      type(patch), pointer :: pp
+      real*8 :: vdata_patch(size(vdata))
+
+      vdata(:) = 0.d0
+      pp => ecp%oldest
+      do while( associated(pp) )
+        call patch_extract_pfts(pp, vdata_patch)
+        vdata(:) = vdata(:) + vdata_patch(:)*pp%area
+        pp => pp%younger
+      enddo
+
+      end subroutine entcell_extract_pfts
 
  !*********************************************************************
       end module entcells

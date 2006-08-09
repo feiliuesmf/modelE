@@ -365,6 +365,7 @@
       integer, intent(in) :: soil_type
       !---
 
+      if ( area > 1.d0 ) call stop_model("patch_construct: area >1",255)
       ! allocate memory
       allocate( pp )
 !      allocate( pp%Soilmoist(N_DEPTH) )  !remove -- have made into scalar -PK 6/28/06
@@ -457,8 +458,30 @@
       print '(a,"sumcohort:")',prefix
       call cohort_print(pp%sumcohort,prefix//"s       ")
 
-
       end subroutine patch_print
+
+
+      subroutine patch_extract_pfts(pp, vdata)
+      use cohorts, only : cohort_print
+      type(patch) :: pp
+      real*8 :: vdata(:)
+      !---
+      type(cohort),pointer :: cop
+      real*8 :: density
+
+      vdata(:) = 0.d0
+      density = 0.d0
+      cop => pp%tallest
+      do while( associated(cop) )
+        vdata( cop%pft ) = vdata( cop%pft ) + cop%n
+        density = density + cop%n
+        cop => cop%shorter
+      enddo
+
+      if ( density>0.d0 ) vdata(:) = vdata(:)/density
+
+      end subroutine patch_extract_pfts
+     
 
 !**************************************************************************
 

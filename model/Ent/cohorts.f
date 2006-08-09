@@ -219,6 +219,8 @@ cddd      end subroutine init_cohort_defaults
       cop%N_fol = 0.0
       cop%C_sw = 0.0
       cop%N_sw = 0.0
+      cop%C_hw = 0.0
+      cop%N_hw = 0.0
       cop%C_lab = 0.0
       cop%N_lab = 0.0
       cop%C_froot = 1.0         !Dummy

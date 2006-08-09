@@ -269,7 +269,9 @@
          !Cell-level diagnostic values - BIOLOGICAL
          !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
 !         real*8 :: LAI(N_COVERTYPES)
+         real*8 :: fv  ! vegetation fractionls
          real*8 :: LAI  !Total LAI
+         real*8 :: heat_capacity ! total veg. heat capacity
 !         real*8,pointer :: froot(:) !Fraction of roots in soil layer
 !         real*8 :: C_froot      !Carbon in fine roots
 !         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT

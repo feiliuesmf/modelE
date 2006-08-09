@@ -6,6 +6,7 @@
       use ent_types, only : entcelltype, patch, cohort, timestruct,
      &     MAX_PATCHES, MAX_COHORTS
       use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
+     &     , N_BPOOLS
       !use ent_GISSveg
       use entcells
       implicit none
@@ -13,14 +14,15 @@
       private
 
       !--- public constants ---
-      public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
+      public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES, N_BPOOLS
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
-      public ent_cell_construct, ent_cell_destruct
+      public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
       public ent_cell_set
       public ent_prescribe_vegupdate
+      public ent_cell_print
 
       type entcelltype_public
         private
@@ -40,6 +42,12 @@
         module procedure ent_cell_destruct_single
         module procedure ent_cell_destruct_array_1d
         module procedure ent_cell_destruct_array_2d
+      end interface
+
+      interface ent_cell_nullify
+        module procedure ent_cell_nullify_single
+        module procedure ent_cell_nullify_array_1d
+        module procedure ent_cell_nullify_array_2d
       end interface
 
       !--- passing initial data to ent cells ---
@@ -81,6 +89,12 @@
         module procedure ent_vegcover_update_array_2d
       end interface
 
+      interface ent_cell_print
+        module procedure ent_cell_print_single
+        module procedure ent_cell_print_array_1d
+        module procedure ent_cell_print_array_2d
+      end interface
+
 
 !!! do we need 1d and 2d array interfaces for pack/unpack ?
 
@@ -110,7 +124,9 @@
       jc = size(entcell,2)
 
       do j=1,jc
-        do i=1,ic      
+        do i=1,ic
+          ! skip uninitialized cells (no land)
+          if ( .not. associated(entcell(i,j)%entcell) ) cycle
           call ent_GISS_vegupdate(dtsec,entcell(i,j)%entcell, hemi(i,j),
      &         jday, year, update_crops, update_soil)
         enddo
@@ -297,7 +313,9 @@ cddd      nullify( entcell%entcell%sumpatch )
 cddd      ! for now set all values o zero or defaults
 cddd      call zero_entcell(entcell%entcell)
 
+      print *,"ent_cell_constr"
       call entcell_construct(entcell%entcell)
+      call entcell_print(entcell%entcell)
 
       end subroutine ent_cell_construct_single
 
@@ -373,6 +391,44 @@ cddd      call zero_entcell(entcell%entcell)
       end subroutine ent_cell_destruct_array_2d
 
 
+      subroutine ent_cell_nullify_single(entcell)
+      use entcells, only : entcell_destruct
+      type(entcelltype_public), intent(inout) :: entcell
+
+      nullify( entcell%entcell )
+
+      end subroutine ent_cell_nullify_single
+
+
+      subroutine ent_cell_nullify_array_1d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer n, nc
+
+      nc = size(entcell)
+
+      do n=1,nc
+        nullify( entcell(n)%entcell )
+      enddo
+
+      end subroutine ent_cell_nullify_array_1d
+
+
+      subroutine ent_cell_nullify_array_2d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          nullify( entcell(i,j)%entcell )
+        enddo
+      enddo
+
+      end subroutine ent_cell_nullify_array_2d
+
+
 !---- END of  Constructor / Destructor -----
 !*************************************************************************
 
@@ -440,7 +496,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_crad,
      &     pft_nmdata,
      &     pft_population_density
-      real*8, dimension(:,:) :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:,:) :: pft_cpool !Carbon pools in individuals
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
@@ -455,7 +511,7 @@ cddd      call zero_entcell(entcell%entcell)
         call init_simple_entcell( entcell(n)%entcell,
      &       veg_fraction(:,n), pft_population_density,
      &       leaf_area_index(:,n), pft_heights, pft_dbh, pft_crad, 
-     &       pft_cpool, pft_nmdata, pft_froots, 
+     &       pft_cpool(:,:,n), pft_nmdata, pft_froots, 
      &       pft_soil_type, vegalbedo(:,:,n), soil_texture(:,n))
       enddo
       
@@ -486,7 +542,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_crad,
      &     pft_nmdata,
      &     pft_population_density
-      real*8, dimension(:,:) :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:,:,:) :: pft_cpool !Carbon pools in individuals
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
@@ -500,10 +556,17 @@ cddd      call zero_entcell(entcell%entcell)
 
       do j=1,jc
         do i=1,ic
+          print *,"ent_cell_set_array_2d i,j=",i,j
+          if ( .not. associated(entcell(i,j)%entcell) ) cycle
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+          call entcell_print(entcell(i,j)%entcell)
+
           call init_simple_entcell( entcell(i,j)%entcell,
      &         veg_fraction(:,i,j),pft_population_density,
      &         leaf_area_index(:,i,j),
-     &         pft_heights,pft_dbh,pft_crad,pft_cpool,pft_nmdata,
+     &         pft_heights,pft_dbh,pft_crad,pft_cpool(:,:,i,j),
+     &         pft_nmdata,
      &         pft_froots,
      &         pft_soil_type,vegalbedo(:,:,i,j), soil_texture(:,i,j))
         enddo
@@ -527,6 +590,13 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, pointer :: NULL(:) !@var NULL dummy pointer
 
       nullify(NULL)
+
+      ! return "-1" for not associated cells
+      if ( .not. associated(entcell%entcell) ) then
+        allocate( dbuf(1) )
+        dbuf(1) = -1.d0;
+        return
+      endif
 
       ! first compute number of patches and cohorts in the cell
       ! this actually can be save in the cell structure 
@@ -606,6 +676,8 @@ cddd      call zero_entcell(entcell%entcell)
 
       ! doesn't seem that we need to restore anything for the cell
       np = nint( dbuf(dc) ); dc = dc + 1
+      if ( np == -1 ) return  ! no data for this cell
+
       allocate( nc(np) )
       nc(1:np) = nint( dbuf(dc:dc+np-1) ); dc = dc + np
 
@@ -1018,11 +1090,12 @@ cddd      call zero_entcell(entcell%entcell)
 
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
-        !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+        canopy_heat_capacity=entcell%entcell%heat_capacity
+        !call stop_model("not implemmented yet",255)
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
-        ! compute it here ?
+        fraction_of_vegetated_soil = entcell%entcell%fv
       endif
 
       if ( present(beta_soil_layers) ) then
@@ -1038,10 +1111,12 @@ cddd      call zero_entcell(entcell%entcell)
       endif
 
       if ( present(vegetation_fractions) ) then
-        do n=1,N_COVERTYPES
+        !do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
-        enddo
+        !  call stop_model("not implemmented yet",255)
+        !enddo
+        call entcell_extract_pfts(entcell%entcell, vegetation_fractions)
       endif
 
       end subroutine ent_get_exports_single
@@ -1111,10 +1186,12 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
         !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(beta_soil_layers) ) then
@@ -1139,6 +1216,7 @@ cddd      call zero_entcell(entcell%entcell)
         do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
+          call stop_model("not implemmented yet",255)
         enddo
       endif
       enddo
@@ -1218,10 +1296,18 @@ cddd      call zero_entcell(entcell%entcell)
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
         !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+        call stop_model("not implemmented yet",255)
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
         ! compute it here ?
+        !call stop_model("not implemmented yet",255)
+        if ( associated(entcell(i,j)%entcell) ) then
+          fraction_of_vegetated_soil(i,j) =
+     &         entcell(i,j)%entcell%fv
+        else
+          fraction_of_vegetated_soil(i,j) = 0.d0
+        endif
       endif
 
       if ( present(beta_soil_layers) ) then
@@ -1241,6 +1327,7 @@ cddd      call zero_entcell(entcell%entcell)
         do n=1,N_COVERTYPES
         ! extract those here ?
         !vegetation_fractions(:) = vdata(i,j,:)
+          call stop_model("not implemmented yet",255)
         enddo
       endif
       enddo
@@ -1249,6 +1336,48 @@ cddd      call zero_entcell(entcell%entcell)
       end subroutine ent_get_exports_array_2d
 
 !******************************************************************
+
+      subroutine ent_cell_print_single(entcell)
+      use entcells, only : entcell_destruct
+      type(entcelltype_public), intent(inout) :: entcell
+
+      if ( .not. associated(entcell%entcell) ) then
+        print *, "ent_cell_print_single: Empty entcell"
+        return
+      endif
+
+      call entcell_print( entcell%entcell )
+
+      end subroutine ent_cell_print_single
+
+
+      subroutine ent_cell_print_array_1d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer n, nc
+
+      nc = size(entcell)
+
+      do n=1,nc
+        call ent_cell_print_single( entcell(n) )
+      enddo
+
+      end subroutine ent_cell_print_array_1d
+
+
+      subroutine ent_cell_print_array_2d(entcell)
+      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      integer i, ic, j, jc
+
+      ic = size(entcell,1)
+      jc = size(entcell,2)
+
+      do j=1,jc
+        do i=1,ic
+          call ent_cell_print_single( entcell(i,j) )
+        enddo
+      enddo
+
+      end subroutine ent_cell_print_array_2d
 
 
       end module ent_mod

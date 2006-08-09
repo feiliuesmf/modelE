@@ -220,6 +220,21 @@
       !call patch_print(pp," ")
 #endif
 
+      if ( pp%sumcohort%pft == -1 ) then ! bare soil
+        pp%GCANOPY = 0.d0
+        pp%Ci = 0.d0
+        pp%TRANS_SW = 1.d0
+        pp%GPP = 0.d0
+        pp%NPP = 0.d0
+        return
+      endif
+
+      if ( pp%sumcohort%pft < 1 .or. pp%sumcohort%pft > N_PFT ) then
+        print *,"photosynth_cond: wrong pft = ", pp%sumcohort%pft
+        call patch_print(pp,"ERROR ")
+        call stop_model("photosynth_cond: wrong pft",255)
+      endif
+
       pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
      i     ,pp%sumcohort%froot(:)
      i     ,pp%cellptr%fice(:), pfpar(pp%sumcohort%pft)%hwilt
