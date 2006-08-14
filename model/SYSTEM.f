@@ -13,7 +13,7 @@
 #elif defined(MACHINE_SGI) \
  || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
-! don't know how RAN() is implemented, so bun
+! don't know how RAN() is implemented, so burn
 #else
       INTEGER, PARAMETER :: A_linear = 65539
 #endif
@@ -126,7 +126,9 @@
       subroutine GETTIME(counter)
       implicit none
       integer, intent(out) :: counter
-      call system_clock(counter)
+      integer :: count_rate
+      call system_clock(counter,count_rate)
+      counter=counter*100/count_rate  ! force 100ths of seconds
       end subroutine GETTIME
 
 
