@@ -3352,7 +3352,7 @@ cBMP      ASUM(jmby2+1)=ASUM(jmby2+1)/J1
      &     sname(1:7).eq.'phi_pha' .or.
      &     sname.eq.'wcod' .or. sname.eq.'icod' ) return
       WRITE (6,903) WORD(IWORD),GSUM,HSUM(2),HSUM(1),
-     *  (NINT(ASUM(J)*SUMFAC),J=JM,J1,-INC)
+     *  (NINT(MIN(1d5,MAX(-1d5,ASUM(J)*SUMFAC))),J=JM,J1,-INC)
       RETURN
 C****
 !      ENTRY JLMAPS(LNAME,SNAME,UNITS,POW10P,

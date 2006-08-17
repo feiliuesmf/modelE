@@ -34,9 +34,9 @@
       type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
       !---
-      integer, parameter :: MAX_BUFFER=100000 ! need realistic estimate
-      real*8 buffer(MAX_BUFFER)
-      integer ic, jc, i, j
+      !integer, parameter :: MAX_BUFFER=100000 ! need realistic estimate
+      real*8, allocatable ::  buffer(:)
+      integer ic, jc, i, j, nbuf
 
       ic = size(entcells,1)
       jc = size(entcells,2)
@@ -44,9 +44,17 @@
       !call openunit('ent_state',iu_entstate,.true.,.true.)
       do j=1,jc
         do i=1,ic
+          read(kunit) nbuf
+          allocate( buffer(nbuf) )
           read(kunit) buffer
-          ! check length of buffer : if( buffer(1) > MAX_BUFFER ) ??
-          call ent_cell_unpack(buffer, entcells(i,j))
+          print *, "ent_read_state: i, j ", i, j
+          print *, buffer
+         ! check length of buffer : if( buffer(1) > MAX_BUFFER ) ??
+          if ( buffer(1) > 0.d0 ) then ! the cell is present
+            call ent_cell_construct( entcells(i,j) )
+            call ent_cell_unpack(buffer, entcells(i,j))
+          endif
+          deallocate( buffer )
         enddo
       enddo
 
@@ -68,6 +76,9 @@
       do j=1,jc
         do i=1,ic
           call ent_cell_pack(buffer, entcells(i,j))
+          print *, "ent_write_state: i, j ", i, j
+          print *, buffer
+          write(kunit) size(buffer)
           write(kunit) buffer
           deallocate(buffer)
         enddo

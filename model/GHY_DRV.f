@@ -832,7 +832,8 @@ C**** halo update u and v for distributed parallelization
       !--- at the moment update vegetation every time step
       hemi(:,JEQUATOR+1:J_1) = 1
       hemi(:,J_0:JEQUATOR) = -1
-      call ent_prescribe_vegupdate(entcells,hemi,jday,jyear,.false.)
+      call ent_prescribe_vegupdate(dtsrc/nisurf,entcells,
+     &     hemi,jday,jyear,.false.,.false.)
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
@@ -978,8 +979,9 @@ c     call qsbal
 ccc stuff needed for dynamic vegetation
       Ca = CO2X*CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
       if (vegCO2X_off==0) Ca = Ca * CO2X
-      vis_rad        = SRVISSURF(i,j)
-      direct_vis_rad = SRVISSURF(i,j) * FSRDIR(i,j)
+!!      vis_rad        = SRVISSURF(i,j)
+      vis_rad        = SRVISSURF(i,j)*cosz1(i,j)*.82
+      direct_vis_rad = vis_rad * FSRDIR(i,j)
       cos_zen_angle = cosz1(i,j)
 
       call ghinij (i,j)
@@ -2551,11 +2553,14 @@ C**** Extract useful local domain parameters from "grid"
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       ! if(crops_yr.eq.0) - should be checked inside Ent
       !call ent_update_crops(jyear)
-      if (jday==1) then ! i guess we need to call it only once per year
-        hemi(:,JEQUATOR+1:J_1) = 1
-        hemi(:,J_0:JEQUATOR) = -1
-        call ent_prescribe_vegupdate(entcells,hemi,jday,jyear, .true.)
-      endif
+
+! the following is probably not needed since we update vegetation
+! on every time step
+ !     if (jday==1) then ! i guess we need to call it only once per year
+ !       hemi(:,JEQUATOR+1:J_1) = 1
+ !       hemi(:,J_0:JEQUATOR) = -1
+ !       call ent_prescribe_vegupdate(entcells,hemi,jday,jyear, .true.)
+ !     endif
       !if(cond_scheme.eq.2) call updsur (0,jday)
       ! we don't use cond_scheme==1 any more, so call it always
       call updsur (0,jday)

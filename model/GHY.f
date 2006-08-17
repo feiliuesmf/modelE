@@ -1685,6 +1685,7 @@ c**** soils28   common block     9/25/90
       real*8 dtm,tb0,tc0,dtr,tot_w1
       integer limit,nit
       real*8 dum1, dum2, dumrad
+      real*8 :: no_data = -1.d30
 
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
@@ -1758,14 +1759,16 @@ ccc accm0 was not called here in older version - check
      &         total_visible_rad=vis_rad,
      &         direct_visible_rad=direct_vis_rad,
      &         solar_zenith_angle=cosz1,
-     &         soil_water=w(1:ngm,2),
+ !    &         soil_water=w(1:ngm,2),
+     &         soil_temp30cm=no_data,
+     &         soil_moist30cm=no_data,
      &         soil_matric_pot=h(1:ngm,2),
      &         soil_ice_fraction=fice(1:ngm,2) 
      &         )
 
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
-          call ent_fast_processes( entcell, dt )
+          call ent_fast_processes( entcell, dt, .false. )
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
@@ -1785,6 +1788,10 @@ ccc unpack necessary data
           Qf = 0.d0
           GPP = 0.d0
         endif
+
+!        print *,"HGY_COND: ",ijdebug, cnc, betadl, Ci, Qf
+!        print *,"GHY_FORCINGS: ", ijdebug, tp(0,2),
+!     &       vis_rad, direct_vis_rad, cosz1
 
         call evap_limits( .true., dum1, dum2 )
         call sensible_heat

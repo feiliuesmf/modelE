@@ -44,22 +44,21 @@
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
       ! ask Max if OK
 
-      ! initialize ent cells to something meaningful
-      do j=J_0,J_1
-        do i=I_0,I_1
-          if (fearth(i,j).gt.0) then
-            call ent_cell_construct( entcells(i,j) )
-          end if
-        enddo
-      enddo
-
-
-      print *,'init_module_ent printing cells 1'
-      call ent_cell_print(entcells)
-      print *,'init_module_ent end printing cells 1'
-
       if (iniENT ) then
-        call set_vegetation_data( entcells,  ! (I_0:I_1,J_0:J_1),
+      ! initialize ent cells to something meaningful
+        do j=J_0,J_1
+          do i=I_0,I_1
+            if (fearth(i,j).gt.0) then
+              call ent_cell_construct( entcells(i,j) )
+            end if
+          enddo
+        enddo
+
+        print *,'init_module_ent printing cells 1'
+        call ent_cell_print(entcells)
+        print *,'init_module_ent end printing cells 1'
+
+        call set_vegetation_data( entcells, ! (I_0:I_1,J_0:J_1),
      &       IM, JM, I_0, I_1, J_0, J_1, jday, jyear )
       endif
 
@@ -117,8 +116,11 @@ c**** check whether ground hydrology data exist at this point.
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: laidata  !cohort
       real*8, dimension(N_COVERTYPES) :: hdata    !cohort
       real*8, dimension(N_COVERTYPES) :: nmdata    !cohort
-      real*8, dimension(N_COVERTYPES,N_DEPTH) :: frootdata !Root fraction of veg type.
+      real*8, dimension(N_COVERTYPES,N_DEPTH) :: rootprofdata !Root fraction of veg type.
       real*8, dimension(N_COVERTYPES) :: popdata !Dummy population density:  0-bare soil, 1-vegetated
+      real*8, dimension(N_COVERTYPES) :: dbhdata !Diameter at breast height for woody veg.(cm)
+      real*8, dimension(N_COVERTYPES) :: craddata !Crown radius (m)
+      real*8, dimension(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1) :: cpooldata !Carbon pools in individuals
       integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
       real*8, dimension(N_SOIL_TYPES,I0:I1,J0:J1) :: soil_texture
       !-----Local---------
@@ -139,14 +141,30 @@ c**** check whether ground hydrology data exist at this point.
 
       !Read land surface parameters or use defaults
       !GISS data sets:
+!      call GISS_vegdata(jday, year, 
+!     &     im,jm,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
+!     &     frootdata,popdata,soildata,soil_texture)
+
+      !Translate gridded data to Entdata structure
+      !GISS data:  a patch per vegetation cover fraction, one cohort per patch
+!      call ent_cell_set(entcells, vegdata, popdata, laidata,
+!     &     hdata, nmdata, frootdata, soildata, albedodata, soil_texture)
+
       call GISS_vegdata(jday, year, 
-     &     im,jm,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
-     &     frootdata,popdata,soildata,soil_texture)
+     &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
+     &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
+     &     soildata,soil_texture)
+      !print *,"popdata in ent_GISS_init: ",popdata
+      !vegdata(1:2,:,:) = 0.0
+      !vegdata(3,:,:) = 1.0
+      !vegdata(4:N_COVERTYPES,:,:) = 0.0
 
       !Translate gridded data to Entdata structure
       !GISS data:  a patch per vegetation cover fraction, one cohort per patch
       call ent_cell_set(entcells, vegdata, popdata, laidata,
-     &     hdata, nmdata, frootdata, soildata, albedodata, soil_texture)
+     &     hdata, dbhdata, craddata, cpooldata, nmdata, rootprofdata, 
+     &     soildata, albedodata, soil_texture)
+
 
       end subroutine set_vegetation_data
 

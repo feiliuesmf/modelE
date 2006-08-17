@@ -808,7 +808,7 @@ C****
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
-     &           ,iniOCEAN = .FALSE., iniENT = .TRUE. 
+     &           ,iniOCEAN = .FALSE., iniENT = .FALSE. 
 !!! set iniENT = .FALSE. later for restart from rsf files
 
       CHARACTER NLREC*80,filenm*100,RLABEL*132
@@ -1050,6 +1050,7 @@ C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
+        iniENT = .TRUE.
         if (istart.eq.1) redogh=.true.
 C**** Read in ground initial conditions
         call openunit("GIC",iu_GIC,.true.,.true.)
