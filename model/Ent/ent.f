@@ -178,11 +178,11 @@
 
       pp => ecp%oldest
       do while(ASSOCIATED(pp))
-        print*,'NEXT PATCH'
-        print*,'Calling photosynth_cond'
+        !print*,'NEXT PATCH'
+        !print*,'Calling photosynth_cond'
         call photosynth_cond(dtsec, pp)
         if (do_soilresp) then 
-          print*,'Calling soil_bgc'
+          !print*,'Calling soil_bgc'
           call soil_bgc(dtsec,pp)
           pp%CO2flux = -pp%NPP + pp%Soil_resp
           
