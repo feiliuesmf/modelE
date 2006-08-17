@@ -102,6 +102,8 @@
       interface copy_vars
         module procedure copy_vars_single
         module procedure copy_vars_array
+        module procedure copy_vars_i_single
+        module procedure copy_vars_i_array
       end interface
 
       contains
@@ -627,7 +629,9 @@ cddd      call zero_entcell(entcell%entcell)
       allocate( dbuf(0:ndbuf-1+1+np) ) !i.e. num reals + num int's
       dc = 0
       dbuf(dc) = real( np, kind(0d0) );               dc = dc + 1
-      dbuf(dc:dc+np-1) = real( nc(1:np), kind(0d0) ); dc = dc + 1
+      print *,"pack ", np, dbuf(0)
+      dbuf(dc:dc+np-1) = real( nc(1:np), kind(0d0) ); dc = dc + np
+      print *,"pack1 ", nc(1:np), dbuf(1:dc-1) 
 
       ! now do the real saving
       ! no need to count patches and cohorts again, but leaving it here
@@ -649,7 +653,7 @@ cddd      call zero_entcell(entcell%entcell)
           if ( nc(np) > MAX_COHORTS )
      &         call stop_model("ent_cell_pack: too many cohorts",255)
           !save cohort
-          call copy_cohort_vars(dbuf, nn, c, -1); dc = dc + nn
+          call copy_cohort_vars(dbuf(dc:), nn, c, -1); dc = dc + nn
          c => c%shorter
         enddo
         p => p%younger
@@ -661,6 +665,8 @@ cddd      call zero_entcell(entcell%entcell)
 
       subroutine ent_cell_unpack(dbuf, entcell)
 ! this program is not finished yet: have to assign all the pointers
+      use cohorts, only : cohort_construct
+      use patches, only : patch_construct
       real*8, intent(inout) :: dbuf(0:)
       type(entcelltype_public), intent(out) :: entcell ! pointer ?
       !---
@@ -685,17 +691,19 @@ cddd      call zero_entcell(entcell%entcell)
 
       nullify( pprev )
       do i=1,np
-        allocate( p )
+        !allocate( p )
+        call patch_construct(p, entcell%entcell, 0.d0, -1)
         call copy_patch_vars(dbuf(dc:), nn, p, 1); dc = dc + nn
         p%older => pprev
         nullify( cprev)
         do j=1,nc(i)
-          allocate( c )
-          call copy_cohort_vars(dbuf, nn, c, 1); dc = dc + nn
+          !allocate( c )
+          call cohort_construct(c, p)
+          call copy_cohort_vars(dbuf(dc:), nn, c, 1); dc = dc + nn
           c%taller => cprev
           cprev => c
         enddo
-        p%shortest => c
+        p%shortest => cprev
         pprev => p
       enddo
       entcell%entcell%youngest => p
@@ -706,6 +714,7 @@ cddd      call zero_entcell(entcell%entcell)
       p => entcell%entcell%youngest
       do while ( associated(p) )
         p%younger => pprev
+        p%cellptr => entcell%entcell
         npdebug = npdebug + 1
         if ( npdebug > np )
      &       call stop_model("ent_cell_unpack: broken struct: np",255)
@@ -714,8 +723,10 @@ cddd      call zero_entcell(entcell%entcell)
         c => p%shortest
         do while ( associated(c) )
           c%shorter => cprev
+          c%pptr => p
+          c%cellptr => entcell%entcell
           ncdebug = ncdebug + 1
-          if ( ncdebug > nc(npdebug) )
+          if ( ncdebug > nc(np-npdebug+1) )
      &         call stop_model("ent_cell_unpack: broken struct: nc",255)
           cprev => c
           c => c%taller
@@ -786,6 +797,60 @@ cddd      call zero_entcell(entcell%entcell)
 
       end subroutine copy_vars_array
 
+      subroutine copy_vars_i_single( buf, n, var, flag )
+!@copy variable to/from buffer
+!@+   !!! may need to write similar for arrays and create an interface
+!@+   !!! in that case "n" will have non-triial value
+      real*8, intent(inout) :: buf(:)
+      integer, intent(out) :: n
+      integer, intent(inout):: var
+!@var flag defines the actual action:
+!@+     -1 copy from var to buffer
+!@+      1 copy from buffer to var
+!@+      0 do nothing - just return the number of fields
+      integer, intent(in) :: flag
+      !---
+      
+      n = 1
+      if ( flag == 0 ) return
+
+      if ( flag == -1 ) then
+        buf(1) = real( var, kind(0d0) )
+      else if ( flag == 1 ) then
+        var = nint( buf(1) )
+      else
+        call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
+      endif
+
+      end subroutine copy_vars_i_single
+
+      subroutine copy_vars_i_array( buf, n, var, flag )
+!@copy variable to/from buffer
+!@+   !!! may need to write similar for arrays and create an interface
+!@+   !!! in that case "n" will have non-triial value
+      real*8, intent(inout) :: buf(:)
+      integer, intent(out) :: n
+      integer, intent(inout):: var(:)
+!@var flag defines the actual action:
+!@+     -1 copy from var to buffer
+!@+      1 copy from buffer to var
+!@+      0 do nothing - just return the number of fields
+      integer, intent(in) :: flag
+      !---
+      
+      n = size(var)
+      if ( flag == 0 ) return
+
+      if ( flag == -1 ) then
+        buf(1:n) = real( var(1:n), kind(0d0) )
+      else if ( flag == 1 ) then
+        var(1:n) = nint( buf(1:n) )
+      else
+        call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
+      endif
+
+      end subroutine copy_vars_i_array
+
 !*************************************************************************
 
 !**************************************************************
@@ -837,6 +902,8 @@ cddd      call zero_entcell(entcell%entcell)
       dc = 0
 
       ! include all cohort variables that need i/o
+      call copy_vars( buf(dc:), nn,  c%pft,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%n,    flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%lai,  flag ); dc = dc + nn
 !      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
 
