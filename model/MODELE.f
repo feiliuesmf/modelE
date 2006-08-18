@@ -751,7 +751,7 @@ C****
       USE PARAM
       USE PARSER
       USE CONSTANT, only : grav,kapa,sday,by3
-      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
+      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth0,fland
      *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia
      *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
@@ -1455,7 +1455,7 @@ C**** Actual array is set from restart file.
       call openunit("TOPO",iu_TOPO,.true.,.true.)
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) ! Ocean fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) ! Orig. Lake fraction
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH,1) ! Earth frac. (no LI)
+      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) ! Earth frac. (no LI)
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLICE ,1) ! Land ice fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO ,1) ! Topography
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE ,2) ! Lake Depths
@@ -1496,20 +1496,20 @@ C**** as residual terms. (deals with SP=>DP problem)
 C**** Ensure that no round off error effects land with ice and earth
         IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN
           FLICE(I,J)=FLAND(I,J)
-          FEARTH(I,J)=0.
+          FEARTH0(I,J)=0.
         ELSE
-          FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
+          FEARTH0(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
         END IF
       END DO
       END DO
       If (HAVE_SOUTH_POLE) Then
          FLAND(2:IM,1)=FLAND(1,1)
-         FEARTH(2:IM,1)=FEARTH(1,1)
+         FEARTH0(2:IM,1)=FEARTH0(1,1)
          FLICE(2:IM,1)=FLICE(1,1)
       End If
       If (HAVE_NORTH_POLE) Then
          FLAND(2:IM,JM)=FLAND(1,JM)
-         FEARTH(2:IM,JM)=FEARTH(1,JM)
+         FEARTH0(2:IM,JM)=FEARTH0(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
 C****

@@ -7,7 +7,7 @@
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
      *     ,teeny,sday
-      USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
+      USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -154,7 +154,7 @@ C    *     ,egcm                       ! not needed
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
       USE SEAICE_COM, only : rsi
-      USE GHY_COM, only : snoage
+      USE GHY_COM, only : snoage,fearth
       USE LAKES_COM, only : flake
       USE FLUXES, only : prec,eprec,precss,gtemp
 #ifdef TRACERS_WATER

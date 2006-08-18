@@ -613,8 +613,7 @@ c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,jdate
-     *     ,jday,jhour,nday,itime,jeq,fearth
-     *     ,u,v
+     *     ,jday,jhour,nday,itime,jeq,u,v
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
       use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
@@ -637,7 +636,7 @@ c****
 
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
-      use ghy_com, only : snowbv,
+      use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
@@ -1200,7 +1199,7 @@ c***********************************************************************
      &     ,grav
 #endif
       use model_com, only : dtsrc,nisurf,jdate
-     *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
+     *     ,jday,jhour,nday,itime,jeq,modrd,itearth
       use DOMAIN_DECOMP, only : grid
       use geom, only : dxyp
       use rad_com, only : trhr,fsf, cosz1
@@ -1216,7 +1215,7 @@ c***********************************************************************
      &    ,aepc,aepb,aepp,zw,tbcs
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
 
-      use ghy_com, only : gdeep
+      use ghy_com, only : gdeep, fearth
 
  !     USE SOCPBL, only : dtsurf         ! zgs,     ! global
  !    &     ,us,vs,ws,wsm,psi,dbl    ! ,edvisc=>kms
@@ -1678,7 +1677,7 @@ c**** modifications needed for split of bare soils into 2 types
       use DOMAIN_DECOMP, only : GET,READT_PARALLEL, DREAD_PARALLEL
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
       use DOMAIN_DECOMP, only : GLOBALSUM
-      use model_com, only : fearth,itime,nday,jeq,jyear
+      use model_com, only : fearth0,itime,nday,jeq,jyear
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
 #ifdef TRACERS_WATER
@@ -1723,7 +1722,7 @@ c**** 11*ngm+1           sl
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
 
-       real*8 :: evap_max_ij_sum
+      real*8 :: evap_max_ij_sum
 C**** define local grid
       integer J_0, J_1
       integer J_0H, J_1H
@@ -1733,6 +1732,8 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      FEARTH = FEARTH0   ! this is only here until FEARTH is variable
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -2401,10 +2402,10 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
 !@sum  checke checks whether arrays are reasonable over earth
 !@auth original development team
 !@ver  1.0
-      use model_com, only : fearth,itime,wfcs
+      use model_com, only : itime,wfcs
       use geom, only : imaxj
       use ghy_com, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
-     *     ,htvege,snowbv,ngm
+     *     ,htvege,snowbv,ngm,fearth
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       implicit none
 
@@ -2463,13 +2464,13 @@ c**** check for reasonable temperatures over earth
 !@ver  1.0
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
-      use model_com, only : nday,nisurf,jday,jyear,fearth,wfcs
+      use model_com, only : nday,nisurf,jday,jyear,wfcs
       use veg_com, only : vdata                 !nyk
       use geom, only : imaxj
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghy_com, only : snoage, snoage_def
+      use ghy_com, only : snoage, snoage_def,fearth
       use veg_com, only : almass,aalbveg       !nyk
       use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
       use surf_albedo, only: albvnh, updsur  !nyk
@@ -2599,12 +2600,13 @@ c****
 !@sum  ground_e driver for applying surface fluxes to land fraction
 !@auth original development team
 !@ver  1.0
-      use model_com, only : fearth,itearth
+      use model_com, only : itearth
       use geom, only : imaxj,dxyp
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use DOMAIN_DECOMP, only : GLOBALSUM
       use ghy_com, only : snowe, tearth,wearth,aiearth,wbare,wvege
-     *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij
+     *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij,
+     *     fearth 
       use veg_com, only : afb
       use diag_com, only : aj=>aj_loc,areg,aij=>aij_loc
      *     ,jreg,ij_evap,ij_f0e,ij_evape
@@ -2728,9 +2730,9 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : fim,fearth
+      use model_com, only : fim
       use geom, only : imaxj
-      use ghy_com, only : ngm,wbare,wvege,snowbv
+      use ghy_com, only : ngm,wbare,wvege,snowbv,fearth
       use veg_com, only : afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
@@ -2774,9 +2776,10 @@ c****
 !@sum  conserv_htg calculates zonal ground energy incl. snow energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      use model_com, only : fim,fearth
+      use model_com, only : fim
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
+     *     ,fearth 
       use veg_com, only : afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
@@ -2826,10 +2829,11 @@ ccc debugging program: cam be put at the beginning and at the end
 ccc of the 'surface' to check water conservation
       use constant, only : rhow
       use geom, only : imaxj
-      use model_com, only : im,jm,fearth
+      use model_com, only : im,jm
       use DOMAIN_DECOMP, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
       use ghy_com, only : ngm,wbare,wvege,htbare,htvege,snowbv,dz_ij
+     *     ,fearth 
       use veg_com, only : afb
       implicit none
       integer flag

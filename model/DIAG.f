@@ -3221,7 +3221,7 @@ C****
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
      *     ,lhe,rhow,undef,stbo
-      USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean,fearth
+      USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean
      *     ,flice,nday
       USE GEOM, only : imaxj,dxyp
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -3257,7 +3257,7 @@ C****
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
-      USE GHY_COM, only : snowe
+      USE GHY_COM, only : snowe,fearth
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pmb
@@ -4843,10 +4843,11 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : undef
-      USE MODEL_COM, only : im,jm,jday,fearth,focean
+      USE MODEL_COM, only : im,jm,jday,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
+      USE GHY_COM, only : fearth
       USE DIAG_COM, only : aij=>aij_loc
      *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
@@ -5057,11 +5058,12 @@ C****
       SUBROUTINE UPDTYPE
 !@sum UPDTYPE updates FTYPE array to ensure correct budget diagnostics
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,focean,fearth,flice,itocean
+      USE MODEL_COM, only : im,jm,focean,flice,itocean
      *     ,itoice,itlandi,itearth,itlake,itlkice,ftype
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
+      USE GHY_COM, only : fearth
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J

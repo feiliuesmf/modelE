@@ -35,7 +35,8 @@
       use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL, AM_I_ROOT
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
-      use model_com, only : fearth,jyear
+      use model_com, only : jyear
+      use ghy_com, only : fearth
 
       implicit none
 
@@ -143,9 +144,9 @@ c**** check whether ground hydrology data exist at this point.
 !@sum initializes (or re-initializes) the vegetation data
       use constant, only : twopi,one
       use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
-      use model_com, only : fearth,jeq
+      use model_com, only : jeq
       use veg_com !, only : vdata,Cint,Qfol
-      use ghy_com, only : ngm
+      use ghy_com, only : ngm,fearth
       use ghy_com, only : dz_ij
 !      use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
 

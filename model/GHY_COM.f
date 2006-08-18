@@ -16,8 +16,11 @@
 ccc dimensions of the GHY arrays
       integer, parameter, public :: ngm=6, imt=5, nlsn=3
 
-C bare/veg not in merged array because WBARE does not contain
-C 0 index for legacy reasons
+ccc variable earth fraction
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FEARTH
+
+ccc bare/veg not in merged array because WBARE does not contain
+ccc 0 index for legacy reasons
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WBARE
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WVEGE
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HTBARE
@@ -105,7 +108,10 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE(     WBARE(  NGM,IM,J_0H:J_1H),
+      ALLOCATE(     FEARTH(IM,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(      WBARE(  NGM,IM,J_0H:J_1H),
      *               WVEGE(0:NGM,IM,J_0H:J_1H),
      *              HTBARE(0:NGM,IM,J_0H:J_1H),
      *              HTVEGE(0:NGM,IM,J_0H:J_1H),
@@ -139,7 +145,7 @@ C****
       ALLOCATE(     GDEEP(IM,J_0H:J_1H,3),
      *         STAT=IER)
 
-        ALLOCATE(    TOP_INDEX_IJ(IM,J_0H:J_1H),
+      ALLOCATE(      TOP_INDEX_IJ(IM,J_0H:J_1H),
      *                 top_dev_ij(IM,J_0H:J_1H),
      *                evap_max_ij(IM,J_0H:J_1H),
      *                  fr_sat_ij(IM,J_0H:J_1H),
@@ -194,18 +200,18 @@ C**** Initialize to zero
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH01" ! "EARTH02"
 
       REAL*8, DIMENSION(IM,JM) :: SNOWE_glob, TEARTH_glob, WEARTH_glob,
      &                            AIEARTH_GLOB,evap_max_ij_glob, 
-     &                            fr_sat_ij_glob, qg_ij_glob
+     &                            fr_sat_ij_glob, qg_ij_glob,
+     *                            FEARTH_glob
       REAL*8 :: SNOAGE_glob(3,IM,JM)
       INTEGER :: J_0, J_1
 
-
       MODULE_HEADER(lhead+1:80) =
      *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
-
+!     *     //',fe'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -217,10 +223,12 @@ C**** Initialize to zero
         CALL PACK_DATA(grid, fr_sat_ij   , fr_sat_ij_glob)
         CALL PACK_DATA(grid, qg_ij       , qg_ij_glob)
         CALL PACK_COLUMN(grid, SNOAGE    , SNOAGE_glob)
+        CALL PACK_DATA(grid, FEARTH      , FEARTH_glob)
         IF (AM_I_ROOT())
      *     WRITE (kunit,err=10) MODULE_HEADER,SNOWE_glob,TEARTH_glob
      *       ,WEARTH_glob,AIEARTH_glob
      *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob,qg_ij_glob
+     *       ,FEARTH_glob
       CASE (IOREAD:)            ! input from restart file
 cgsfc        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
 cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
@@ -228,6 +236,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &    READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob,WEARTH_glob
      &       ,AIEARTH_glob,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob
      &       ,qg_ij_glob
+!    *       ,FEARTH_glob ! temporarily not included for backwards compatibility
 
         CALL UNPACK_DATA(grid, SNOWE_glob       , SNOWE      )     
         CALL UNPACK_DATA(grid, TEARTH_glob      , TEARTH     )     
@@ -236,6 +245,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL UNPACK_DATA(grid, evap_max_ij_glob , evap_max_ij)     
         CALL UNPACK_DATA(grid, fr_sat_ij_glob   , fr_sat_ij  )     
         CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )     
+c        CALL UNPACK_DATA(grid, FEARTH_glob      , FEARTH     )     
         CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )     
 
         if (AM_I_ROOT() .and.

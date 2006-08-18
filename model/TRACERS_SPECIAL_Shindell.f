@@ -273,7 +273,7 @@ C****
 C**** There are 3 monthly sources and 11 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth,NIsurf
+      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,NIsurf
      &                     ,DTsrc,fland,itimei
       USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, pack_data,
      &                         unpack_data, am_i_root, write_parallel
@@ -288,7 +288,7 @@ C**** Monthly sources are interpolated each day
      &       ,max_days,int_wet_dist,topo_lim,sat_lim,gw_ulim,gw_llim
      &       ,SW_lim,exclude_us_eu,nra_ch4,first_mod,n__temp,n__sw
      &       ,n__gwet,n__SAT,nn_or_zon,nday_ch4,ice_age
-      use ghy_com, only : top_dev_ij
+      use ghy_com, only : top_dev_ij,fearth
       use GEOM, only : lat_dg, lon_dg, imaxj
 #endif
       USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn

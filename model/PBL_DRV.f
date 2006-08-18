@@ -432,6 +432,7 @@ c -------------------------------------------------------------
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
       USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+      USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP, only : GRID, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE,CHECKSUM,NORTH

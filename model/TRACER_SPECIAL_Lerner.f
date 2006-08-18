@@ -824,10 +824,9 @@ C**** There are 3 monthly sources and 11 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth
+      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth0,flake0
       USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
-      USE LAKES_COM, only: flake
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE FILEMANAGER, only: nameunit
       USE CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
@@ -899,9 +898,9 @@ C****
           k = k+1
           src(:,:,k) = focean(:,:)*adj(k)/(sday*JDperY)
           k = k+1
-          src(:,:,k) =  flake(:,:)*adj(k)/(sday*JDperY)
+          src(:,:,k) =  flake0(:,:)*adj(k)/(sday*JDperY)
           k = k+1
-          src(:,:,k) = fearth(:,:)*adj(k)/(sday*JDperY)
+          src(:,:,k) = fearth0(:,:)*adj(k)/(sday*JDperY)
 
       call openunits(mon_files,mon_units,mon_bins,nmons)
       endif

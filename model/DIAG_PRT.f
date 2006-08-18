@@ -6241,9 +6241,10 @@ C****
 
       SUBROUTINE DIAG_GATHER
       USE MODEL_COM, only : IM
-      USE MODEL_COM, only : FLAND, FOCEAN, FLICE, FEARTH
+      USE MODEL_COM, only : FLAND, FOCEAN, FLICE
       USE MODEL_COM, only : ZATMO
       USE LAKES_COM, only : FLAKE
+      USE GHY_COM,   only : FEARTH
       USE VEG_COM,   only : vdata
       USE DIAG_COM, only : AIJ,  AIJ_loc
       USE DIAG_COM, only : AJ,   AJ_loc

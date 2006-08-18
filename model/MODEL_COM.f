@@ -188,7 +188,7 @@ C**** slightly larger, to sample all points within the cycle
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: WM
 
 !**** Boundary condition arrays:
-!@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
+!@var ZATMO,HLAKE Topography arrays: elevation (m), lake sill depth (m)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: ZATMO
       REAL*8, ALLOCATABLE,  DIMENSION(:,:)   :: HLAKE
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
@@ -196,9 +196,9 @@ C**** slightly larger, to sample all points within the cycle
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FOCEAN
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLICE
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAKE0
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FEARTH
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FEARTH0
 
-!@var WFCS water field capacity of first ground layer (kg/m2)  ???
+!@var WFCS water field capacity of first ground layer (kg/m2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: WFCS
 
 !@var P surface pressure (hecto-Pascals - PTOP)
@@ -241,7 +241,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       USE RESOLUTION, ONLY : IM,JM,LM
       USE MODEL_COM, ONLY : NTYPE
       USE MODEL_COM, ONLY : ZATMO,HLAKE,FLAND,FOCEAN,FLICE,FLAKE0,
-     *                      FEARTH,WFCS,P,U,V,T,Q,WM,FTYPE
+     *                      FEARTH0,WFCS,P,U,V,T,Q,WM,FTYPE
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: modelE_grid
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_SFACE
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_CENTER
@@ -271,7 +271,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 
       ALLOCATE(FLAKE0(IM,J_0H:J_1H), STAT = IER)
 
-      ALLOCATE(FEARTH(IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE(FEARTH0(IM,J_0H:J_1H), STAT = IER)
 
       ALLOCATE(WFCS(IM,J_0H:J_1H), STAT = IER)
 

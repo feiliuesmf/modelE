@@ -8451,7 +8451,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      * ,dtsrc
 #endif
 #ifdef TRACERS_WATER
-     *  ,q,wm,flice,fearth
+     *  ,q,wm,flice
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -8482,7 +8482,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
       USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij,wbare,wvege
-     &     ,wsn_ij,nsn_ij,fr_snow_ij
+     &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
       USE FLUXES, only : gtracer
 #endif
       USE GEOM, only: dxyp,bydxyp,lat_dg
@@ -9896,7 +9896,7 @@ C**** at the start of any day
       SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop,jmpery
+      USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc,jmon
       USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, write_parallel
 
@@ -9906,6 +9906,7 @@ C**** at the start of any day
       USE TRACER_COM
       USE FLUXES, only: trsource
       USE SEAICE_COM, only: rsi
+      USE GHY_COM, only : fearth
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair
       USE PBLCOM, only: tsavg
 #ifdef TRACERS_SPECIAL_Lerner
@@ -9919,14 +9920,14 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
-       USE AEROSOL_SOURCES, only: SO2_src,BCI_src,OCI_src,BCB_src,
-     * OCB_src,OCT_src
+      USE AEROSOL_SOURCES, only: SO2_src,BCI_src,OCI_src,BCB_src,
+     *   OCB_src,OCT_src
 #endif
 #ifdef TRACERS_COSMO
-       USE COSMO_SOURCES, only: rn_src
+      USE COSMO_SOURCES, only: rn_src
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
-       USE NITRATE_AEROSOL
+      USE NITRATE_AEROSOL
       USE apply3d, only : apply_tracer_3Dsource
       USE RAD_COM,  only : cosz1
 #endif

@@ -15,7 +15,7 @@
      *                          READT_PARALLEL,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
-      USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice
+      USE MODEL_COM, only : im,jm,lm,focean,fland,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
       USE GEOM
@@ -663,7 +663,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
-     *     ,fearth,iyear1,ioreadnt,jmpery
+     *     ,iyear1,ioreadnt,jmpery
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer

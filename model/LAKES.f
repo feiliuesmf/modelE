@@ -389,7 +389,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
-     *     ,focean,fearth,jday
+     *     ,focean,jday
       USE DOMAIN_DECOMP, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
@@ -403,6 +403,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE PBLCOM, only : tsavg
       USE LAKES
       USE LAKES_COM
+      USE GHY_COM, only : fearth
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       USE PARAM
       IMPLICIT NONE
@@ -1130,7 +1131,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,hlake,fearth,qcheck
+      USE MODEL_COM, only : im,jm,hlake,qcheck
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
       USE GEOM, only : dxyp,imaxj
 #ifdef TRACERS_WATER
@@ -1138,6 +1139,7 @@ C****
 #endif
       USE LAKES
       USE LAKES_COM
+      USE GHY_COM, only : fearth
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
       INTEGER I,J,N !@var I,J loop variables
@@ -1389,7 +1391,7 @@ C****
 !@calls
       USE CONSTANT, only : rhow,shw,teeny
       USE MODEL_COM, only : im,jm,flice,fland,hlake
-     *     ,fearth,dtsrc,itlake,itlkice
+     *     ,dtsrc,itlake,itlkice
       USE DOMAIN_DECOMP, only : GRID, GET,GLOBALSUM, HALO_UPDATE,
      *    NORTH,SOUTH
 
@@ -1411,6 +1413,7 @@ C****
       USE TRDIAG_COM,only: taijn=>taijn_loc , tij_lk1,tij_lk2
 #endif
       USE LAKES, only : lkmix,lksourc,byzeta,minmld
+      USE GHY_COM, only : fearth
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 ROICE, POLAKE, PLKICE, PEARTH, PLICE
@@ -1659,7 +1662,7 @@ C****
 !@sum  conserv_LKM calculates zonal lake mass
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fland,fearth,fim
+      USE MODEL_COM, only : im,jm,fland,fim
       USE DOMAIN_DECOMP, only : GRID, GET
       USE GEOM, only : imaxj,bydxyp
       USE LAKES_COM, only : mwl,flake
@@ -1694,7 +1697,7 @@ C****
 !@sum  conserv_LKE calculates zonal lake energy
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,zatmo,fim,fland,fearth
+      USE MODEL_COM, only : im,jm,zatmo,fim,fland
       USE DOMAIN_DECOMP, only : GRID, GET
       USE GEOM, only : imaxj,bydxyp
       USE LAKES_COM, only : gml,mwl,flake
