@@ -359,7 +359,7 @@ C****
 
       END MODULE LAKES
 
-       SUBROUTINE ALLOC_LAKES (GRID)
+      SUBROUTINE ALLOC_LAKES (GRID)
 C23456789012345678901234567890123456789012345678901234567890123456789012
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
@@ -1305,7 +1305,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trunpsi,trunoli,trprec,gtracer,trmelti
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,j_run
+      USE DIAG_COM, only : aj=>aj_loc,j_run,aij=>aij_loc,ij_lk
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
@@ -1376,6 +1376,9 @@ C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
           AJ(J,J_RUN,ITLAKE) =AJ(J,J_RUN,ITLAKE)-PLICE*RUNOLI(I,J)
         END IF
+
+C**** save area diag
+        AIJ(I,J,IJ_LK) = AIJ(I,J,IJ_LK) + FLAKE(I,J)
 
       END IF
       END DO

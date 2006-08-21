@@ -4204,9 +4204,19 @@ c**** ratios (the denominators)
             end do
             end do
           else if (index(lname_ij(k),' x PLICE') .gt. 0) then
-            adenom = flice_glob
+            do j=1,jm      ! land ice-covered only
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_li)/(idacc(ia_ij(ij_li))+teeny)
+            end do
+            end do
           else if (index(lname_ij(k),' x PSOIL') .gt. 0) then
-            adenom = fearth_glob
+            do j=1,jm      ! earth only (fland - flake - flice)
+            do i=1,im
+              adenom(i,j)=fland_glob(i,j)
+     *             - aij(i,j,ij_lk)/(idacc(ia_ij(ij_lk))+teeny)
+     *             - aij(i,j,ij_li)/(idacc(ia_ij(ij_li))+teeny)
+            end do
+            end do
           else if (index(lname_ij(k),' x TOTAL CLOUD') .gt. 0) then
             do j=1,jm
             do i=1,im
@@ -4655,7 +4665,6 @@ C**** Fill in maplet indices for geoptential heights and thickness T's
 
 C**** Add the full-page maps (nmaps)
       iord(nmaplets+1:nmaplets+nmaps) = (/ij_slp,ij_ts/)
-
 c**** always skip unused fields
       Qk = .true.
       do k=1,kaijx

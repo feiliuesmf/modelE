@@ -1440,6 +1440,22 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_LI = k ! PLICE                                       4 DA
+      lname_ij(k) = 'LAND ICE FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'landicefr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_LK = k ! PLAKE                                       4 DA
+      lname_ij(k) = 'LAKE FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'lakefr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
       IJ_TDSL = k ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT) .5*9 MN
       lname_ij(k) = 'DIURNAL SURF AIR TEMP RANGE OVER SOIL'
       units_ij(k) = 'K'
@@ -1498,12 +1514,12 @@ c
 c
       k=k+1 !
       IJ_RUNLI = k ! RUN1 OVER LAND ICE  (KG/m**2) (NO PRT)    1 PG
-      lname_ij(k) = 'SURFACE RUNOFF OVER LAND ICE'
+      lname_ij(k) = 'SURFACE RUNOFF OVER LAND ICE x PLICE'
       units_ij(k) = 'mm/day'
       name_ij(k) = 'runoff_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m1_3
 c
       k=k+1 !
@@ -1962,12 +1978,12 @@ c     iw built-in
 c
       k=k+1 !
       IJ_F0LI = k ! F0DT, NET HEAT AT Z0 OVER LAND ICE  (J/m**2) 1 GD
-      lname_ij(k) = 'NET HEAT INTO LAND ICE'
+      lname_ij(k) = 'NET HEAT INTO LAND ICE x PLICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'netht_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m530_190
 c
       k=k+1 !
@@ -1982,12 +1998,12 @@ c
 c
       k=k+1 !
       IJ_F1LI = k ! F1DT OVER LAND ICE  (J/m**2)             1 PG
-      lname_ij(k) = 'CONDUCTION AT LYR 1 BOTTOM OVER LAND ICE'
+      lname_ij(k) = 'CONDUCTION AT LYR 1 BOTTOM OVER LAND ICE x PLICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'F1LI'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m530_190
 c
       k=k+1 !
@@ -2001,52 +2017,52 @@ c
 c
       k=k+1 !
       IJ_TSLI = k ! SURF AIR TEMP OVER LAND ICE  (C)  NISURF*1 SF
-      lname_ij(k) = 'SURF AIR TEMP OVER LAND ICE'
+      lname_ij(k) = 'SURF AIR TEMP OVER LAND ICE x PLICE'
       units_ij(k) = 'C'
       name_ij(k) = 'tsurf_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d0/NIsurf
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m80_28
 c
       k=k+1 !
       IJ_ERUN2 = k ! F2DT OVER LAND ICE  (J/m**2)            1 PG
-      lname_ij(k) = 'TRANSPORT OF ENERGY AT LYR 2 BOTTOM OVER LAND ICE'
+      lname_ij(k) = 'BASAL ENERGY FLUX OVER LAND ICE x PLICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'ERUN2'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m80_28
 c
       k=k+1 !
       IJ_SHDTLI = k ! SHDT OVER LAND ICE  (J/m**2)           1 SF
-      lname_ij(k) = 'SENS HEAT FLUX OVER LAND ICE'
+      lname_ij(k) = 'SENS HEAT FLUX OVER LAND ICE x PLICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'sensht_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m38_106
 c
       k=k+1 !
       IJ_EVHDT = k ! EVHDT OVER LAND ICE  (J/m**2)           1 SF
-      lname_ij(k) = 'LATENT HEAT FLUX OVER LAND ICE'
+      lname_ij(k) = 'LATENT HEAT FLUX OVER LAND ICE x PLICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'latht_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m38_106
 c
       k=k+1 !
       IJ_TRHDT = k ! TRHDT OVER LAND ICE  (J/m**2)           1 SF
-      lname_ij(k) = 'NET THERMAL RADIATION INTO LAND ICE'
+      lname_ij(k) = 'NET THERMAL RADIATION INTO LAND ICE x PLICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'trht_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      iw_ij(k) = iw_lice
+c      iw_ij(k) = iw_lice
       ir_ij(k) = ir_m38_106
 c
       k=k+1 !

@@ -252,7 +252,7 @@ C**** Initialize work array
         TRSNOW(:)=TRSNOWLI(:,I,J)
         TRPRCP(:)=TRPREC(:,I,J)*BYDXYP(J)
 #endif
-        AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
+        AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP*PLICE
 
         CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,
 #ifdef TRACERS_WATER
@@ -287,9 +287,9 @@ C       AJ(J,J_ERUN ,ITLANDI)=AJ(J,J_ERUN ,ITLANDI)+ERUN0*PLICE ! (Tg=0)
 c       AREG_PART(JR,J,2)=AREG_PART(JR,J,2)+ERUN0*PLICE*DXYPJ ! (Tg=0)
         AREG_PART(JR,J,3)=AREG_PART(JR,J,3)+DIFS *PLICE*DXYPJ
         AREG_PART(JR,J,4)=AREG_PART(JR,J,4)+ERUN2*PLICE*DXYPJ
-        AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS
-        AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2
-        AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
+        AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS*PLICE
+        AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2*PLICE
+        AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
       END IF
       END DO
       END DO
@@ -319,7 +319,7 @@ C**** Finish summing and store total accumulations into AREG.
      *     ,jreg,ij_runli,ij_f1li,ij_erun2
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
-     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc
+     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc,ij_li
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0
@@ -421,6 +421,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
         AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
         AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
+        AIJ(I,J,IJ_LI)  =AIJ(I,J,IJ_LI)  +PLICE
         AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+PLICE*SNOW/RHOS
 
         AJ(J,J_RUN,ITLANDI)  =AJ(J,J_RUN,ITLANDI)  +RUN0 *PLICE
@@ -437,9 +438,9 @@ C**** ACCUMULATE DIAGNOSTICS
         AREG_PART(JR,J,6) =AREG_PART(JR,J,6) +EDIFS *PLICE*DXYPJ
         AREG_PART(JR,J,7) =AREG_PART(JR,J,7) +DIFS  *PLICE*DXYPJ
 
-        AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS+F1DT
-        AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
-        AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+EDIFS
+        AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +(EDIFS+F1DT)*PLICE
+        AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
+        AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+EDIFS*PLICE
       END IF
 
 C**** Accumulate diagnostics related to iceberg flux here also
