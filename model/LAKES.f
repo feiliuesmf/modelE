@@ -389,7 +389,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
-     *     ,focean,jday
+     *     ,focean,jday,fearth0
       USE DOMAIN_DECOMP, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
@@ -403,7 +403,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE PBLCOM, only : tsavg
       USE LAKES
       USE LAKES_COM
-      USE GHY_COM, only : fearth
+      !USE GHY_COM, only : fearth
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       USE PARAM
       IMPLICIT NONE
@@ -552,7 +552,7 @@ C**** read in named rivers (if any)
 
 
 C**** Create integral direction array KDIREC from CDIREC
-      CALL HALO_UPDATE(GRID, FEARTH, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FEARTH0, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FLICE,  FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)
@@ -563,10 +563,10 @@ C**** Create integral direction array KDIREC from CDIREC
 C**** KD: -16 = blank, 0-8 directions >8 named rivers
         KD= ICHAR(CDIREC(I,J)) - 48
 C**** If land but no ocean, and no direction, print warning
-        IF ((FEARTH(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
+        IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
      *       FOCEAN(I,J).le.0 .and. (KD.gt.8 .or. KD.lt.0)) THEN
           WRITE(6,*) "Land box has no river direction I,J: ",I,J
-     *     ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH(I,J)
+     *     ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
         END IF
 C**** Default direction is down (if ocean box), or no outlet (if not)
 C**** Also ensure that all ocean boxes are done properly
@@ -581,7 +581,7 @@ C**** Check for specified river mouths
             WRITE(6,*)
      *       "Warning: Named river outlet must be in ocean",i
      *           ,j,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J)
-     *           ,FEARTH(I,J)
+     *           ,FEARTH0(I,J)
           END IF
         END IF
       END DO
