@@ -735,13 +735,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       IF (KDIAG(9).LT.9) CALL DIAGCP
       IF (KDIAG(5).LT.9) CALL DIAG5P
       IF (partial.eq.0 .and. KDIAG(6).LT.9) CALL DIAGDD  ! full period
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
       IF (KDIAG(13).LT.9) CALL DIAGDH
-#endif
-#endif
-#endif
       IF (KDIAG(4).LT.9) CALL DIAG4
       IF (KDIAG(11).LT.9) CALL diag_RIVER
       IF (KDIAG(12).LT.9) CALL diag_OCEAN
@@ -5469,9 +5463,7 @@ C****
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
 !@ver  1.0
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month
@@ -5535,8 +5527,6 @@ C**** RATIO OF TWO QUANTITIES
      *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_MONTH,KP)
       END DO
       IF (QDIAG) call close_hdiurn
-#endif
-#endif
 #endif
       RETURN
 C****

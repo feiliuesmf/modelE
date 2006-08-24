@@ -273,26 +273,18 @@ CRKF...FIX
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
      &        :: AREG_part
 
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
-#endif
-#endif
 #endif
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
       INTEGER, PARAMETER :: n_idx1 = 5
       INTEGER, PARAMETER :: n_idx2 = 3
       INTEGER, PARAMETER :: n_idx3 = 6
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: hdiurn_temp
-#endif
-#endif
 #endif
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
@@ -321,12 +313,8 @@ C**** Initialize
 #ifdef TRACERS_SPECIAL_Shindell
       RNOx_lgt(:,:)=0.d0
 #endif
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       hdiurn_part = 0
-#endif
-#endif
 #endif
       adiurn_part = 0
       AISCCP_part = 0
@@ -707,13 +695,9 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
             tmp(IDD_MCP) =+PRCPMC
             tmp(IDD_DMC) =+CLDDEPIJ
             tmp(IDD_SMC) =+CLDSLWIJ
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
             hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
-#endif
-#endif
 #endif
             adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
@@ -974,13 +958,9 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
              tmp(IDD_PR)  =+PRCPSS
              tmp(IDD_ECND)=+HCNDSS
              tmp(IDD_SSP) =+PRCPSS
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
              hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
-#endif
-#endif
 #endif
              adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
@@ -1553,36 +1533,24 @@ C    identical results regardless of number of distributed processes used.
         DO ii = 1, N_IDX3
           ivar = idx3(ii)
           ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
           HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
-#endif
-#endif
 #endif
         END DO
       END DO
       CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX3,:,1:ndiupt),
      &    ADIURNSUM(1:N_IDX3,1:ndiupt))
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX3,:,1:ndiupt),
      &    HDIURNSUM(1:N_IDX3,1:ndiupt))
-#endif
-#endif
 #endif
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX3
           ivar = idx3(ii)
           IF (AM_I_ROOT()) THEN
             ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
             HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
-#endif
-#endif
 #endif
           END IF
         END DO

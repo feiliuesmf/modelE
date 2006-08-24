@@ -1271,12 +1271,8 @@ C****
 
       IF (AM_I_ROOT()) THEN
          ADIURN(ih,idx4,:)=ADIURN(ih,idx4,:)   + DIURNSUM
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
          HDIURN(ihm,idx4,:)=HDIURN(ihm,idx4,:) + DIURNSUM
-#endif
-#endif
 #endif
       END IF
       
@@ -1359,12 +1355,8 @@ C**** For distributed implementation - ensure point is on local process.
 
        IF (AM_I_ROOT()) THEN
           ADIURN(ih,idx3,:)=ADIURN(ih,idx3,:)   + DIURNSUMb
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
           HDIURN(ihm,idx3,:)=HDIURN(ihm,idx3,:) + DIURNSUMb
-#endif
-#endif
 #endif
        END IF
 

@@ -189,14 +189,10 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT), public :: ADIURN
 !@param HR_IN_MONTH hours in month
       INTEGER, PARAMETER, public :: HR_IN_MONTH=HR_IN_DAY*31
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
       REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT), public :: HDIURN
-#endif
-#endif
 #endif
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
@@ -819,12 +815,8 @@ c idacc-indices of various processes
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
      *     + HR_IN_MONTH*NDIUVAR*NDIUPT
-#endif
-#endif
 #endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       REAL*4 AJ4(JM,KAJ,NTYPE),AREG4(NREG,KAJ),APJ4(JM,KAPJ)
@@ -835,12 +827,8 @@ c idacc-indices of various processes
       REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
       REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
       REAL*4 AISCCP4(ntau,npres,nisccp)
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       REAL*4 HDIURN4(HR_IN_MONTH,NDIUVAR,NDIUPT)
-#endif
-#endif
 #endif
       REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       integer monac1(12),i_ida,i_xtra,it_check
@@ -1100,12 +1088,8 @@ C**** The regular model (Kradia le 0)
         CALL ESMF_BCAST(grid, ADIURN)
         CALL ESMF_BCAST(grid, WAVE  )
         CALL ESMF_BCAST(grid, AISCCP)
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
         CALL ESMF_BCAST(grid, HDIURN)
-#endif
-#endif
 #endif
         CALL ESMF_BCAST(grid, it    )
       End Subroutine BCAST_Scalars

@@ -718,23 +718,15 @@ C**** Work array for regional diagnostic accumulation
 
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
 #endif
-#endif
-#endif
       REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: hdiurn_temp
-#endif
-#endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -778,12 +770,8 @@ C**** halo update u and v for distributed parallelization
        call halo_update(grid, V, from=NORTH)
 
        adiurn_part = 0
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
        hdiurn_part = 0
-#endif
-#endif
 #endif
 
        idx =
@@ -1031,12 +1019,8 @@ c****
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij, pbl_args, pbl_args%dtsurf
      &     ,adiurn_part
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
      &     ,hdiurn_part
-#endif
-#endif
 #endif
      &     ,idx)
 
@@ -1062,36 +1046,24 @@ c**** update tracers
         DO ii = 1, N_IDX
           ivar = idx(ii)
           ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
           HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
-#endif
-#endif
 #endif
         END DO
       END DO
       CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX,:,1:ndiupt),
      &    ADIURNSUM(1:N_IDX,1:ndiupt))
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX,:,1:ndiupt),
      &    HDIURNSUM(1:N_IDX,1:ndiupt))
-#endif
-#endif
 #endif
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX
           ivar = idx(ii)
           IF (AM_I_ROOT()) THEN
             ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
             HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
-#endif
-#endif
 #endif
           END IF
         END DO
@@ -1163,12 +1135,8 @@ c***********************************************************************
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij, pbl_args, dtsurf
      &     ,adiurn_part
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
      &     ,hdiurn_part
-#endif
-#endif
 #endif
      &     ,idx)
 
@@ -1244,13 +1212,9 @@ c***********************************************************************
       real*8, intent(in) :: dtsurf
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
-#endif
-#endif
 #endif
       INTEGER, INTENT(IN) :: idx(:)
 
@@ -1613,13 +1577,9 @@ c**** quantities accumulated hourly for diagDD
 
             ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
      *           tmp(idx(:))
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
             HDIURN_part(J,idx(:),kr)=HDIURN_part(J,idx(:),kr) +
      *           tmp(idx(:))
-#endif
-#endif
 #endif
 
           end if

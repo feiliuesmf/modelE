@@ -2022,14 +2022,10 @@ C****
          IH=IHM
          IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          ADIURN(IH,idx,:) = ADIURN(IH,idx,:) + DIURNSUM
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
          IHM = IHM+(JDATE-1)*HR_IN_DAY
          IF(IHM.GT.HR_IN_MONTH) CYCLE
          HDIURN(IHM,idx,:) = HDIURN(IHM,idx,:) + DIURNSUM
-#endif
-#endif
 #endif
       END DO
 
@@ -2366,14 +2362,10 @@ c longwave forcing at surface (if required)
          IH=IHM
          IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          ADIURN(IH,idxb,:) = ADIURN(IH,idxb,:) + DIURNSUMb
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
          IHM = IHM+(JDATE-1)*HR_IN_DAY
          IF(IHM.GT.HR_IN_MONTH) CYCLE
          HDIURN(IHM,idxb,:) = HDIURN(IHM,idxb,:) + DIURNSUMb
-#endif
-#endif
 #endif
       End Do
 
@@ -2483,13 +2475,9 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
      &    DIURNSUMc(1:1,1:NDIUPT), ALL=.TRUE.)
       ADIURN(IH,IDD_ISW,1:NDIUPT)=ADIURN(IH,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
-#ifndef TRACERS_DUST
-#ifndef TRACERS_MINERALS
-#ifndef TRACERS_QUARZHEM
+#ifndef NO_HDIURN
       HDIURN(IHM,IDD_ISW,1:NDIUPT)=HDIURN(IHM,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
-#endif
-#endif
 #endif
 
       RETURN
