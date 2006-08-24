@@ -36,11 +36,9 @@
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas,
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
      *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,
-#else
-     *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
+#ifndef NO_HDIURN
+     *     hdiurn,
 #endif
      *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
      *     ij_fwoc,p_acc,ndiuvar,nisccp,adiurn_dust

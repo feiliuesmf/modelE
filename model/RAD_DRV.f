@@ -894,11 +894,9 @@ C     OUTPUT DATA
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
       USE DIAG_COM, only : aj=>aj_loc,areg,jreg,aij=>aij_loc,
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
      *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
-#else
-     *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,hdiurn,
+#ifndef NO_HDIURN
+     *     hdiurn,
 #endif
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
@@ -1914,28 +1912,8 @@ C****
 
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
-        srnflb_save(i,j,1)=srnflb(1)
-        srnflb_save(i,j,2)=srnflb(2)
-        srnflb_save(i,j,3)=srnflb(3)
-        srnflb_save(i,j,4)=srnflb(4)
-        srnflb_save(i,j,5)=srnflb(5)
-        srnflb_save(i,j,6)=srnflb(6)
-        srnflb_save(i,j,7)=srnflb(7)
-        srnflb_save(i,j,8)=srnflb(8)
-        srnflb_save(i,j,9)=srnflb(9)
-        srnflb_save(i,j,10)=srnflb(10)
-        srnflb_save(i,j,11)=srnflb(11)
-        trnflb_save(i,j,1)=trnflb(1)
-        trnflb_save(i,j,2)=trnflb(2)
-        trnflb_save(i,j,3)=trnflb(3)
-        trnflb_save(i,j,4)=trnflb(4)
-        trnflb_save(i,j,5)=trnflb(5)
-        trnflb_save(i,j,6)=trnflb(6)
-        trnflb_save(i,j,7)=trnflb(7)
-        trnflb_save(i,j,8)=trnflb(8)
-        trnflb_save(i,j,9)=trnflb(9)
-        trnflb_save(i,j,10)=trnflb(10)
-        trnflb_save(i,j,11)=trnflb(11)
+        srnflb_save(i,j,1:11)=srnflb(1:11)
+        trnflb_save(i,j,1:11)=trnflb(1:11)
       END IF
 #endif
 

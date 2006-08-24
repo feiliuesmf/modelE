@@ -161,6 +161,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@+                    default=1 (on)
       INTEGER, public :: adiurn_dust=1
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
+!@+       defaults set in DIAG_RES (depending on resolution)
       INTEGER, DIMENSION(2,NDIUPT), public :: IJDD
       CHARACTER*4, DIMENSION(NDIUPT), public :: NAMDD
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -185,6 +186,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       DATA        IJDD    /  63,17,  17,34,  37,27,  13,23 /
       DATA        NAMDD   / 'AUSD', 'MWST', 'SAHL', 'EPAC' /
 #endif
+
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
       REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT), public :: ADIURN
 !@param HR_IN_MONTH hours in month
@@ -335,7 +337,7 @@ C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
-      INTEGER, PARAMETER, public :: KOA = 13  ! 12
+      INTEGER, PARAMETER, public :: KOA = 13 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: OA
 
 C****
@@ -936,11 +938,9 @@ C**** The regular model (Kradia le 0)
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,
      *     AIL, ENERGY,CONSRV,
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
      *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
-#else
-     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
+#ifndef NO_HDIURN
+     *     HDIURN,
 #endif
      *     TDIURN_glob,OA_glob,it
         END IF
@@ -967,12 +967,9 @@ C**** The regular model (Kradia le 0)
      *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
      *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
      *     REAL(WAVE,KIND=4),REAL(AJK,KIND=4),
-     *     REAL(AIJK,KIND=4),
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *     REAL(AISCCP,KIND=4),
-#else
-     *     REAL(AISCCP,KIND=4),REAL(HDIURN,KIND=4),
+     *     REAL(AIJK,KIND=4),REAL(AISCCP,KIND=4),
+#ifndef NO_HDIURN
+     *     REAL(HDIURN,KIND=4),
 #endif
      *     monacc,it
         END IF
@@ -987,12 +984,9 @@ C**** The regular model (Kradia le 0)
         if (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *       idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
-     *       ENERGY,CONSRV,
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
-#else
-     *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
+     *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
+#ifndef NO_HDIURN
+     *       HDIURN,
 #endif
      *       TDIURN_glob,OA_glob,it
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -1008,11 +1002,9 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
      *       idac1, AJ4,AREG4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4,CONSRV4,
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
      *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
-#else
-     *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,HDIURN4,
+#ifndef NO_HDIURN
+     *       HDIURN4,
 #endif
      *       monac1,it_check
           if(it.ne.it_check) then
@@ -1027,11 +1019,9 @@ C**** The regular model (Kradia le 0)
           ENERGY=ENERGY+ENERGY4
           SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
           WAVE=WAVE+WAVE4
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
           AISCCP=AISCCP+AISCCP4
-#else
-          AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
+#ifndef NO_HDIURN
+          HDIURN=HDIURN+HDIURN4
 #endif
           ! Now for the distributed arrays
           TSFREZ= TSFREZ4

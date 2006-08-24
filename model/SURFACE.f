@@ -77,11 +77,9 @@ C**** Interface to PBL
      *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
      *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG
-#else
-     *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht,ndiuvar,NREG
+#ifndef NO_HDIURN
+     *     ,hdiurn
 #endif
      &     ,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh,adiurn_dust
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

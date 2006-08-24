@@ -4500,6 +4500,7 @@ C****
       character(len=300) :: out_line
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+
       call sync_param( "NAMDD", NAMDD, NDIUPT )
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
       call sync_param( "isccp_diags",isccp_diags)
@@ -4804,12 +4805,9 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL=0   ; ENERGY=0 ; CONSRV_loc=0
-      SPECA=0 ; ATPE=0 ; WAVE=0
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      AJK_loc=0   ; AIJK_loc=0
-#else
-      AJK_loc=0   ; AIJK_loc=0 ; HDIURN=0
+      SPECA=0 ; ATPE=0 ; WAVE=0 ; AJK_loc=0   ; AIJK_loc=0
+#ifndef NO_HDIURN
+      HDIURN=0
 #endif
       AISCCP=0
 #ifdef TRACERS_ON

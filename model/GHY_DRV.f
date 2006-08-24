@@ -657,11 +657,9 @@ c****
 
       use diag_com , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
      &     ,j_tsrf,j_tg1,j_tg2,areg,jreg,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
      &     ,adiurn,NDIUPT
-#else
-     &     ,adiurn,hdiurn,NDIUPT
+#ifndef NO_HDIURN
+     &     hdiurn
 #endif
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
