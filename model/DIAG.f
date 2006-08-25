@@ -4500,6 +4500,8 @@ C****
       character(len=300) :: out_line
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+C**** Initialise resolution dependent diagnostic parameters
+      call diag_res  
 
       call sync_param( "NAMDD", NAMDD, NDIUPT )
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )

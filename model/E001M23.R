@@ -35,6 +35,7 @@ SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
+DIAG_RES_M                          ! diagnostics (resolution dependent)
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 

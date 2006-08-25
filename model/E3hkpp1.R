@@ -44,6 +44,7 @@ stencl|-r8| thermf|-r8| tsadvf|-r8|  zebra|-r8|                  !ocean model
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRVnnn RADIATIONnn         ! radiation modules
 DIAG_COM DIAGnn DEFACC DIAG_PRT       ! diagnostics
+DIAG_RES_M                          ! diagnostics (resolution dependent)
 CONST FFT72 UTILDBLn SYSTEM          ! utilities
 POUT                                ! post-processing output
 
