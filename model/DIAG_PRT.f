@@ -5352,59 +5352,40 @@ C****
       REAL*8, DIMENSION(HR_IN_DAY+1) :: XHOUR
       INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
       REAL*8 :: AVE,AVED,AVEN,BYIDAC
-      INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS,ndiu
+      INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS,KF
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR) :: FHOUR
-
-      INTEGER :: ipout,modkr,mpout
-      LOGICAL :: qsplit=.FALSE.
-      CHARACTER :: cpout*1
+      CHARACTER :: CPOUT*2
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
       BYIDAC=24./(NDAY*NDAYS)
-C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-#ifndef TRACERS_DUST
-      IF (QDIAG)  call open_diurn
-     &  (trim(acc_period)//'.diurn'//XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
-#endif
 C****
-C**** KP packs the quantities for postprocessing (skipping unused)
       IREGF=1
       IREGL=NDIUPT-KDIAG(6)       ! kd6=KDIAG(6)>0: skip last kd6 points
       IF (KDIAG(6).LT.0.AND.KDIAG(6).GE.-NDIUPT) IREGF=-KDIAG(6)
       IF (KDIAG(6).LT.0) IREGL=IREGF       ! kd6<0: show only point -kd6
-#ifdef TRACERS_DUST
-      ndiu=0
-      DO kq=1,Ndiuvar
-        IF (lname_dd(kq).EQ."unused") CYCLE
-        ndiu=ndiu+1
-      END DO
-      mpout=INT(2000/ndiu)
-      IF (ndiu*iregl > 2000) qsplit=.TRUE. ! 2000 netcdf variables maximum
-      ipout=0
-#endif
-      DO KR=IREGF,IREGL
-#ifdef TRACERS_DUST
-        modkr=MOD(kr,mpout)
-        IF (qsplit .AND. modkr == 1) THEN
-          ipout=ipout+1
-          IF (ipout <= 9) THEN
-            WRITE(cpout,'(I1)') ipout
+C**** for netcdf limits, loop in steps of 2000
+      DO KF=1,1+(IREGL-IREGF-1)/2000
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF (QDIAG) THEN
+        IF ((IREGL-IREGF-1)/2000.gt.0) THEN ! more than one file
+          IF (KF <= 9) THEN
+            WRITE(CPOUT(1:1),'(I1)') KF
           ELSE
-            WRITE(cpout,'(I2)') ipout
+            WRITE(CPOUT(1:2),'(I2)') KF
           END IF
-          IF (qdiag) CALL open_diurn
-     &         (trim(acc_period)//'.diurn'//cpout
-     &         //XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
-        ELSE IF (.NOT. qsplit .AND. modkr == 1) THEN
-          IF (qdiag) CALL open_diurn
-     &         (trim(acc_period)//'.diurn'
-     &         //XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
+        ELSE
+          CPOUT=""
         END IF
-#endif
+        call open_diurn (trim(acc_period)//'.diurn'//trim(cpout)
+     *       //XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
+      END IF
+C**** LOOP OVER EACH BLOCK OF DIAGS
+      DO KR=IREGF+(KF-1)*2000,MIN(IREGL,IREGF+KF*2000-1)
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903) NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
+C**** KP packs the quantities for postprocessing (skipping unused)
         KP = 0
         DO KQ=1,NDIUVAR
           IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
@@ -5442,13 +5423,10 @@ C**** RATIO OF TWO QUANTITIES
         END DO
         IF (QDIAG) CALL POUT_DIURN(SNAMEO,LNAMEO,UNITSO,FHOUR,
      *       NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_DAY,KP)
-#ifdef TRACERS_DUST
-        IF ((modkr == 0 .OR. kr == iregl) .AND. qdiag) CALL close_diurn
-#endif
       END DO
-#ifndef TRACERS_DUST
       IF (QDIAG) call close_diurn
-#endif
+      END DO
+
       RETURN
 C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
