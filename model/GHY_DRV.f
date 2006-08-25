@@ -659,7 +659,7 @@ c****
      &     ,j_tsrf,j_tg1,j_tg2,areg,jreg,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,adiurn,NDIUPT
 #ifndef NO_HDIURN
-     &     hdiurn
+     &     ,hdiurn
 #endif
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
