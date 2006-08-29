@@ -302,7 +302,7 @@ ccc checking if the model conserves energy (part 2) (for debugging)
       total_water = total_water
      &     - (pr - evaporation - water_to_ground)*dt
       if ( abs(total_water)/dt .gt. 1.d-15 ) then
-        print*, "water cons error",i_earth, j_earth, total_water/dt
+c        print*, "water cons error",i_earth, j_earth, total_water/dt
         if ( abs(total_water)/dt .gt. 1.d-10 )
      &    call stop_model('snow_adv: water conservation error',255)
       end if
