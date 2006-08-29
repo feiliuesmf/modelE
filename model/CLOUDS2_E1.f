@@ -79,7 +79,8 @@ C**** input variables
       REAL*8, DIMENSION(LM+1) :: PLE,LHP
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
-     *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB
+     *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL
+     *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
