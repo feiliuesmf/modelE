@@ -799,6 +799,10 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       REAL*8 FMSI(NTRICE,IM),SFMSI(NTRICE),AMSI(NTRICE)
       REAL*8 FMSJ(IM,NTRICE,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 BYFOA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,cmsi1(grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,cmsi2(grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,cssi1(grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,cssi2(grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER I,J,L,IM1,IP1,K
       REAL*8 SFASI,DMHSI,ASI,YRSI,XRSI,FRSI,SICE,TMP
 !@var MHS mass/heat/salt content of sea ice
@@ -843,8 +847,11 @@ C**** Regularise ice concentration gradients to prevent advection errors
       END DO
       END DO
 
+C**** update RSISAVE for diagnostics 
+      RSISAVE(:,:)=RSI(:,:)
+
 C**** set up local MHS array to contain all advected quantities
-C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
+C**** MHS(1:2) = MASS, MHS(3:2+LMI) = HEAT, MHS(3+LMI:2+2*LMI)=SALT
 C**** Currently this is on atmospheric grid
       MHS(1,:,J_0:J_1) = ACE1I + SNOWI(:,J_0:J_1)
       MHS(2,:,J_0:J_1) = MSI(:,J_0:J_1)
@@ -1254,10 +1261,11 @@ C**** set global variables from local array
 C**** Currently on atmospheric grid, so no interpolation necessary
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)
+            IF (FOCEAN(I,J).gt.0) THEN
 C**** Fresh water sea ice mass convergence (needed for qflux model)
             MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)-SUM(MHS(3
      *           +LMI:2*LMI+2,I,J))) - RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
-     *           +MSI(I,J)-SUM(SSI(:,I,J)))
+     *           +MSI(I,J)-SUM(SSI(1:LMI,I,J)))
 C**** sea ice prognostic variables
             SNOWI(I,J)= MAX(0d0,MHS(1,I,J) - ACE1I)
             MSI(I,J)  = MHS(2,I,J)
@@ -1298,6 +1306,7 @@ C**** reconstruct tracer arrays
 #endif
             FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-
      *           SUM(SSI(1:LMI,I,J)))
+            END IF
           END DO
         END DO
 C**** Set atmospheric arrays
@@ -1317,15 +1326,16 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
           END DO
         END DO
         IF (HAVE_NORTH_POLE) THEN
-          DO I=2,IM             ! North pole
-            APRESS(I,JM)=APRESS(1,JM)
-            GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
+          IF (FOCEAN(1,JM).gt.0) THEN
+            DO I=2,IM           ! North pole
+              APRESS(I,JM)=APRESS(1,JM)
+              GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
 #ifdef TRACERS_WATER
-          GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
+              GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
 #endif
-          END DO
+            END DO
+          END IF
         END IF
-
       ELSE          ! fixed SST case, save implied heat convergence
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)

@@ -69,9 +69,6 @@ C     *     ,CRSI,KRSI
 !@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
       INTEGER iu_OSST,iu_SICE,iu_OCNML
 
-!@dbparam qflux_fix an energy leak (default=0; no fix for continuity)
-      INTEGER :: qflux_fix=0
-
 !@dbparam qfluxX multiplying factor for qfluxes
       REAL*8 :: qfluxX=1.
 
@@ -462,7 +459,7 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
       areg_part = 0
 
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=1,IMAXJ(J)
       Z1O(I,J)=min( z12o(i,j) , FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J) )
 
       IF (RSI(I,J)*FOCEAN(I,J).GT.0.and.off_line) THEN
@@ -479,11 +476,7 @@ C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
             MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
      *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
-            HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
-            SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
-#ifdef TRACERS_WATER
-            TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
-#endif
+C**** save diagnostics
             AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*(MSINEW-MSI(I,J))
             AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
@@ -503,6 +496,12 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
             AREG_part(JR,J,J_IMPLH)=AREG_part(JR,J,J_IMPLH)-
      *           FOCEAN(I,J)*RSI(I,J)
      *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYP(J)
+C**** update heat and salt
+            HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
+            SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
+#ifdef TRACERS_WATER
+            TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
+#endif
             MSI(I,J)=MSINEW
             FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
      *           ,I,J)))
@@ -554,7 +553,7 @@ C**** Calculate previous ice mass (before fluxes applied)
 C**** Calculate extra mass flux to ocean, balanced by deep removal
       RUN4O=-EVAPO+RVRRUN  ! open ocean
       RUN4I=-EVAPI+RVRRUN  ! under ice
-! force energy consveration
+! force energy conservation
       ERUN4O=0. ! RUN4O*TGW*SHW ! corresponding heat flux at bottom (open)
       ERUN4I=0. ! RUN4I*TGW*SHW !                              (under ice)
 
@@ -664,6 +663,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          BACKSPACE_PARALLEL
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
      *     ,iyear1,ioreadnt,jmpery
+      USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -672,7 +672,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix, osurf_tilt
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
-     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qflux_fix,qfluxX
+     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX
       USE DIAG_COM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -700,8 +700,6 @@ C****   set conservation diagnostic for ocean heat
         if(kocean.ge.1) call init_ODEEP(.false.)
         return
       end if
-
-      call sync_param( "qflux_fix",qflux_fix)
 
       call sync_param( "qfluxX"   ,qfluxX)
 
@@ -769,7 +767,7 @@ C****   initialise deep ocean arrays if required
       END IF
 C**** Set fluxed arrays for oceans
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=1,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           SSS(I,J) = SSS0
@@ -802,6 +800,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : twopi,edpery,shw,rhows
       USE MODEL_COM, only : im,jm,kocean,focean,jday
+      USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_toc2,ij_tgo2
       USE FLUXES, only : gtemp,mlhc,fwsim
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
@@ -834,7 +833,7 @@ C**** Set fourier coefficients for heat transport calculations
 C**** Only do this at end of the day
       IF (KOCEAN.ge.1.and.end_of_day) THEN
         DO J=J_0,J_1
-          DO I=1,IM
+          DO I=1,IMAXJ(J)
             AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
             AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+TOCEAN(3,I,J)
           END DO
@@ -847,7 +846,7 @@ C**** RESTRUCTURE THE OCEAN LAYERS
 
 C**** set gtemp array for ocean temperature
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=1,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
           MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
@@ -913,7 +912,7 @@ C**** Calculate effect of lateral melt of sea ice
 
 C**** Additional mass (precip) is balanced by deep removal
             RUN4=PRCP
-            ERUN4=0. ! RUN4*TGW*SHW ! force energy consveration
+            ERUN4=0. ! RUN4*TGW*SHW ! force energy conservation
 
             IF (POICE.LE.0.) THEN
               ENRGW=TGW*WTRO*SHW + ENRGP - ERUN4
@@ -1122,7 +1121,7 @@ C****
         IF (FOCEAN(I,J).gt.0) THEN
           TGW  = TOCEAN(1,I,J)
           RUN4  = MSICNV(I,J)
-          ERUN4 = 0.  ! TGW*SHW*RUN4 ! force energy consveration
+          ERUN4 = 0.  ! TGW*SHW*RUN4 ! force energy conservation
 C**** Ensure that we don't run out of ocean if ice gets too thick
           IF (POICE.GT.0) THEN
             Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
@@ -1138,11 +1137,7 @@ C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
                 MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
      *               -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
-                HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
-                SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
-#ifdef TRACERS_WATER
-                TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
-#endif
+C**** save diagnostics 
                 AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*(MSINEW-MSI(I,J))
                 AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
@@ -1161,6 +1156,12 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
                 AREG_part(JR,J,J_IMPLH)=AREG_part(JR,J,J_IMPLH)-
      *               FOCEAN(I,J)*RSI(I,J)
      *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPJ
+C**** update heat and salt
+                HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
+                SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
+#ifdef TRACERS_WATER
+                TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
+#endif
                 MSI(I,J)=MSINEW
                 FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)
      *               -SUM(SSI(1:LMI,I,J)))
