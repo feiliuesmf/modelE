@@ -767,7 +767,7 @@ C****   initialise deep ocean arrays if required
       END IF
 C**** Set fluxed arrays for oceans
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           SSS(I,J) = SSS0
