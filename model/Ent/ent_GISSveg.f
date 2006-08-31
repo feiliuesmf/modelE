@@ -169,7 +169,7 @@
       subroutine ent_GISS_vegupdate(dt,entcell,hemi,jday,year,
      &     update_crops, update_soil)
       use patches, only : summarize_patch
-      use entcells,only : summarize_entcell
+      use entcells,only : summarize_entcell,entcell_extract_pfts
       use phenology,only : litter !### Igor won't like this here.
 
       real*8,intent(in) :: dt
@@ -180,6 +180,7 @@
       !----Local------
       type(patch),pointer :: pp
       type(cohort),pointer :: cop
+      real*8 vdata(N_COVERTYPES) ! needed for a hack to compute canopy
 
       pp => entcell%oldest
       cop => pp%tallest
@@ -200,6 +201,10 @@
       end do
 
       call summarize_entcell(entcell)
+
+      vdata(:) = 0.d0
+      call entcell_extract_pfts(entcell, vdata(2:) )
+      entcell%heat_capacity=GISS_calc_shc(vdata)
 
       !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
@@ -374,6 +379,31 @@
      $     * cos( 2d0*pi*(laday(pnum)-jday)/dble(EDPERY) + dphi )
 
       end function GISS_calc_lai
+
+
+!**************************************************************************
+      
+      real*8 function GISS_calc_shc(vdata) RESULT(shc)
+!@sum Returns GISS GCM specific heat capacity for canopy
+      use ent_const
+      real*8, intent(in) :: vdata(:) !@var pnum cover type
+      !-----Local variables------
+      real*8 lai, fsum
+      integer pnum
+
+      lai = 0.d0
+      fsum = 0.d0
+
+      do pnum=COVEROFFSET+1,COVEROFFSET+N_PFT
+        lai = lai + .5d0 * (alamax(pnum) + alamin(pnum))*vdata(pnum)
+        fsum = fsum + vdata(pnum)
+      enddo
+
+      if ( fsum > EPS ) lai = lai/fsum
+
+      shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+
+      end function GISS_calc_shc
 
 
 !**************************************************************************

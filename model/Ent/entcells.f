@@ -108,6 +108,8 @@
       integer :: ip             !#patches
       integer :: ia             !counter variable
       real*8 lai
+      real*8 vdata(N_COVERTYPES) ! needed for a hack to compute canopy
+                                 ! heat capacity exactly as in GISS GCM
 
       !call init_patch(ecp%sumpatch,ecp,0.d0) !Summary patch reset to zero area.
       ecp%LAI = 0.d0 !Re-zero
@@ -226,8 +228,12 @@
       end if
 
       ! use original formula for canopy heat cpacity
-      lai = ecp%LAI
-      ecp%heat_capacity=(.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+      !lai = ecp%LAI
+      !ecp%heat_capacity=(.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+      !extract vdata exactly like in GISS GCM
+      !!vdata(:) = 0.d0
+      !!call entcell_extract_pfts(ecp, vdata(2:) )
+      !!ecp%heat_capacity=GISS_calc_shc(vdata)
 
       end subroutine summarize_entcell
 !**************************************************************************
