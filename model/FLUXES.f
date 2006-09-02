@@ -108,6 +108,8 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var MSICNV fresh water sea ice mass convergence after advsi (kg/m^2)
 !@+   (used for qflux model)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MSICNV
+!@var DMWLDF water deficit over land surface (kg/m^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DMWLDF
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
@@ -260,6 +262,7 @@ C**** sea ice melt and iceberg/glacial melt.
      &          APRESS  ( I_0H:I_1H , J_0H:J_1H ),
      &          FWSIM   ( I_0H:I_1H , J_0H:J_1H ),
      &          MSICNV  ( I_0H:I_1H , J_0H:J_1H ),
+     &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT=IER)
 
 

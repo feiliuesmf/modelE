@@ -1947,6 +1947,9 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
         enddo
       enddo
 
+      ! land water deficit for changing lake fractions
+      call compute_water_deficit(jday)
+
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
       do j=J_0,J_1
@@ -2547,6 +2550,10 @@ c****
         end do
         end do
       end if
+
+      ! land water deficit for changing lake fractions
+      call compute_water_deficit(jday)
+
 #ifdef TRACERS_DRYDEP
       CALL RDLAI ! read leaf area indices for tracer dry deposition
 #endif
@@ -2857,4 +2864,79 @@ ccc just checking ...
       end do
 
       end subroutine check_ghy_conservation
+
+
+      subroutine compute_water_deficit(jday)
+      use constant, only : twopi,edpery,rhow
+      use ghy_com, only : ngm,imt,dz_ij,q_ij
+     &     ,wbare,wvege,fearth
+      use veg_com, only : ala,afb
+      use model_com, only : focean
+      use sle001, only : thm
+      use fluxes, only : DMWLDF
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
+
+      implicit none
+      integer, intent(in) :: jday
+      !---
+      integer i,j,I_0,I_1,J_0,J_1
+      integer k,ibv,m
+      real*8 :: w_tot(2),w_stor(2)
+      real*8 :: w(0:ngm,2),dz(ngm),q(imt,ngm)
+      real*8 :: cosday,sinday,alai
+      real*8 :: fb,fv
+
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+      cosday=cos(twopi/edpery*jday)
+      sinday=sin(twopi/edpery*jday)
+
+      DMWLDF(:,:) = 0.d0
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+
+          !if( focean(i,j) >= 1.d0 ) then
+          ! this condition should be switched to focean(i,j) >= 1.d0
+          ! once all ground arrays are properly initialized for focean(i,j)<1
+          if( fearth(i,j) <= 0.d0 ) then
+            DMWLDF(i,j) = 0.d0
+            cycle
+          endif
+
+          w(1:ngm,1) =  wbare(1:ngm,i,j)
+          w(0:ngm,2) =  wvege(0:ngm,i,j)
+          dz(1:ngm) = dz_ij(i,j,1:ngm)
+          q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
+
+          fb = afb(i,j)
+          fv=1.-fb
+
+          w_stor(:) = 0.d0
+          w_tot(:) = 0.d0
+          do ibv=1,2
+            do k=1,ngm
+              do m=1,imt-1
+                w_stor(ibv) = w_stor(ibv) + q(m,k)*thm(0,m)*dz(k)
+              end do
+              w_tot(ibv) = w_tot(ibv) + w(k,ibv)
+            end do
+          end do
+
+          ! include canopy water here
+          alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
+          alai=max(alai,1.d0)
+          w_stor(2) = w_stor(2) + .0001d0*alai
+          w_tot(2) = w_tot(2) + w(0,2)
+
+          ! total water deficit on kg/m^2
+          DMWLDF(i,j) = fb*(w_stor(1) - w_tot(1))
+     &         + fv*(w_stor(2) - w_tot(2))
+        enddo
+      enddo
+
+
+      !print *,"DMWLDF=",DMWLDF
+
+      end subroutine compute_water_deficit
 

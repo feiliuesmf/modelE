@@ -96,6 +96,8 @@ ccc   rundeck parameters  5/1/03 nyk
 
       ! call stop_model("veg_conductance called",255)
 
+      !print *, "VVV ", parinc, fdir*parinc, sbeta
+
       betad = betad_in
       tcan = tcan_in
       qv = qv_in

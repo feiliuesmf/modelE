@@ -791,6 +791,9 @@ c     Get canopy conductivity cnc and gpp
      &       ,dts
      &       )
 
+        !print *,"HGY_COND: ",ijdebug, cnc, betadl
+        !print *,"GHY_FORCINGS: ", ijdebug, tp(0,2)
+
 !!!! test
  !!!       trans_sw = .1d0
  !!!       print *,'trans_sw = ', trans_sw
