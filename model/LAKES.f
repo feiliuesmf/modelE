@@ -50,6 +50,12 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 
 !@dbparam river_fac Factor to multiply runoff by to balance sea level
       REAL*8 :: river_fac=1.    ! default = 1
+!@dbparam init_flake used to make sure FLAKE is properly initialised
+!@+       when using older restart files
+      INTEGER :: init_flake=1   ! default = 1
+!@dbparam variable_lk 1 if lakes are to be variable
+!@+       (temporary variable for development purposes) 
+      INTEGER :: variable_lk=0    ! default = 0
 
       CONTAINS
 
@@ -441,28 +447,32 @@ C****         TANLK    Lake slope (tan(alpha)) (1)
 C****
 C**** FIXDCB  FLAKE0    Original Lake fraction (1)
 C****
-      FLAKE = FLAKE0   ! this is only here until FLAKE is variable
+
+C**** Get parameters from rundeck
+      call sync_param("river_fac",river_fac)
+      call sync_param("init_flake",init_flake)
+      call sync_param("variable_lk",variable_lk)
+
+C**** initialise FLAKE if requested (i.e. from older restart files)
+      if (init_flake.eq.1.and.istart.lt.10) FLAKE = FLAKE0
 
 C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       DO J=J_0, J_1
         DO I=1,IM
-          IF (FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
-            print*,"Warning: Fixing HLAKE",i,j,FLAKE(I,J),HLAKE(I,J)
+          IF (FLAKE0(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
+            print*,"Warning: Fixing HLAKE",i,j,FLAKE0(I,J),HLAKE(I,J)
      *           ,"--> 1m"
             HLAKE(I,J)=1.
           END IF
         END DO
       END DO
 
-C**** Get parameters from rundeck
-      call sync_param("river_fac",river_fac)
-
       IF (INILAKE) THEN
 C**** Set lake variables from surface temperature
 C**** This is just an estimate for the initiallisation
         DO J=J_0, J_1
           DO I=1,IM
-c            FLAKE(I,J) = FLAKE0(I,J)
+            FLAKE(I,J) = FLAKE0(I,J)
             IF (FLAKE(I,J).gt.0) THEN
               IF (HLAKE(I,J).lt.1.) print*,
      *             "HLAKE too small for lake fraction",i,j,HLAKE(I,J)
@@ -490,7 +500,7 @@ c            FLAKE(I,J) = FLAKE0(I,J)
         END DO
       END IF
 
-C**** Set geometric variables
+C**** Set fixed geometric variables
 C**** TANLK=TAN(ALPHA) = R/H for a conical lake of equivalent volume
       DO J=J_0, J_1
         DO I=1,IM
@@ -725,12 +735,12 @@ C****
 !@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0 (based on LB265)
-      USE CONSTANT, only : grav,shw,rhow,teeny
+      USE CONSTANT, only : shw,rhow,teeny,bygrav
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,itocean,itoice,fland
+     *     ,itocean,itoice,fland,dtsrc
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
      *        GLOBALSUM, HALO_UPDATE_COLUMN
-      USE GEOM, only : dxyp,bydxyp
+      USE GEOM, only : dxyp,bydxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,
      *        ij_ervr,ij_mrvr,ij_f0oc,aj=>aj_loc,areg,jreg,
      *        j_rvrd,j_ervr,ij_fwoc
@@ -748,24 +758,24 @@ C****
       IMPLICIT NONE
 
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
-      REAL*8 MWLSILL,DMM,DGM,HLK1,DPE
+      REAL*8 MWLSILL,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
       REAL*8,
      & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
      & :: AREG_part
       REAL*8 :: AREGSUM(size(areg,1),2)
+!@var URATE upstream fractional rate of river flow per time step
+!@+         (only for special case)
+      REAL*8 :: URATE = 1d-6  ! roughly 10 day e-folding time
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
       REAL*8, DIMENSION(NTM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      * :: TRFLOW
 #endif
-
-      INTEGER :: J_start, J_stop
-      integer rc
+      LOGICAL :: rvrfl
 
 C****
 C**** LAKECB  MWL  Liquid lake mass  (kg)
@@ -776,9 +786,7 @@ C**** Calculate net mass and energy changes due to river flow
 C****
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP =J_0S, J_STOP_SKP =J_1S,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       FLOW = 0. ; EFLOW = 0.
       FLOWO = 0. ; EFLOWO = 0.
@@ -787,61 +795,112 @@ C****
       TRFLOWO = 0.
 #endif
 
-      CALL HALO_UPDATE(GRID,FLAND,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FLAND,FROM=NORTH+SOUTH) ! fixed
       CALL HALO_UPDATE(GRID,FOCEAN,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(GRID,HLAKE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,    FLAKE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,    MWL,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,  TLAKE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,  RATE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,   FLOW,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,  EFLOW,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, ZATMO,FROM=NORTH+SOUTH) ! fixed
+      CALL HALO_UPDATE(GRID, HLAKE,FROM=NORTH+SOUTH) ! fixed
+      CALL HALO_UPDATE(grid, FLAKE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,   MWL,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, TLAKE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  RATE,FROM=NORTH+SOUTH) ! fixed
+      CALL HALO_UPDATE(grid,  FLOW,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, EFLOW,FROM=NORTH+SOUTH)
 #ifdef TRACERS_WATER
       CALL HALO_UPDATE_COLUMN(grid,  GTRACER(:,1,:,:),NORTH+SOUTH)
       CALL HALO_UPDATE_COLUMN(grid,  TRLAKE(:,1,:,:),NORTH+SOUTH)
       CALL HALO_UPDATE(grid,  TAIJN(:,:,TIJ_RVR,:),FROM=NORTH+SOUTH)
 #endif
 
-        AREG_part = 0.
-        j_start=Max(2,J_0H)
-        j_stop =Min(JM-1,J_1H)
+      AREG_part = 0.
 
-        DO JU=J_start,J_stop
-        DO IU=1,IM
+C**** Calculate fluxes downstream if lake mass is above sill height (HLAKE (m))
 C**** Also allow flow into ocean fraction of same box if KDIREC=0
+C**** SPECIAL CASE: If the downstream box has FLAKE=1 and KDIREC=0 (i.e.
+C**** no outlet) then the only way to prevent excess water build up is
+C**** to allow a back-flux. Take account of mean topography change as
+C**** well. This is mainly an issue for the Caspian and Aral Seas.
+C**** Loop now includes polar boxes
+      DO JU=J_0H,J_1H
+        DO IU=1,IMAXJ(JU)
           IF (KDIREC(IU,JU).gt.0 .or.
      *       (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))  THEN
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
-C**** Only overflow if lake mass is above sill height (HLAKE (m))
-            MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
-            IF(MWL(IU,JU).gt.MWLSILL) THEN
+C**** MWLSILL/D mass associated with full lake (and downstream)
+            MWLSILL = RHOW*MAX(HLAKE(IU,JU),1d0)*FLAKE(IU,JU)*DXYP(JU)
+            rvrfl=.false.
+C**** Check for special case:
+            IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).eq.1) THEN
+              MWLSILLD = RHOW*(HLAKE(ID,JD)+BYGRAV*MAX(ZATMO(IU,JU)
+     *             -ZATMO(ID,JD),0d0))*DXYP(JD)
+              IF (MWL(ID,JD)-MWLSILLD.gt.0) THEN  ! potential back flux
+              IF (FLAKE(IU,JU).gt.0) THEN
+                IF (MWL(ID,JD)-MWLSILLD+DXYP(JD)*(MWL(IU,JU)-MWLSILL)
+     *               /(FLAKE(IU,JU)*DXYP(JU)).gt.0) THEN
+                  DMM=-(MWL(ID,JD)-MWLSILLD+DXYP(JD)*(MWL(IU,JU)-MWLSILL 
+     *                 )/(FLAKE(IU,JU)*DXYP(JU)))*URATE*DTsrc ! <0
+                  rvrfl=.true.
+                END IF
+              ELSE
+                DMM=-(MWL(ID,JD)-MWLSILLD)*URATE*DTsrc ! <0
+                rvrfl=.true.
+              END IF
+              if (rvrfl) then
+                DGM=TLAKE(ID,JD)*DMM*SHW ! TLAKE always defined
+#ifdef TRACERS_WATER
+                DTM(:) = DMM*TRLAKE(:,1,ID,JD)/MWL(ID,JD)
+#endif
+              end if
+              END IF
+            END IF
+C**** Normal downstream flow
+            IF(.not.rvrfl .and. MWL(IU,JU).gt.MWLSILL) THEN
+              rvrfl=.true.
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
               IF (MWL(IU,JU)-DMM.lt.1d-20) DMM=MWL(IU,JU)
+              DMM=MIN(DMM,0.5d0*RHOW*DXYP(JU)) ! minimise 'flood' events!
 c              IF (FLAKE(IU,JU).gt.0) THEN
 c                MLM=RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
 c                DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
 c              END IF
               DGM=TLAKE(IU,JU)*DMM*SHW  ! TLAKE always defined
-              FLOW(IU,JU) =  FLOW(IU,JU) - DMM
-              EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
 #ifdef TRACERS_WATER
               if (flake(iu,ju).gt.0) then
                 DTM(:) = DMM*GTRACER(:,1,IU,JU)
               else
                 DTM(:) = DMM*TRLAKE(:,1,IU,JU)/MWL(IU,JU)
               end if
+#endif
+            END IF
+
+            IF (rvrfl) THEN              
+
+              FLOW(IU,JU) =  FLOW(IU,JU) - DMM
+              EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
+#ifdef TRACERS_WATER
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
 #endif
+
               IF (JD < J_0 .or. JD > J_1) Cycle ! contributes in other pe domain
+
+C**** calculate adjustments for poles
+              IF (JU.eq.1 .or. JU.eq.JM) THEN 
+                FLFAC=IM        ! pole exception upstream
+              ELSEIF (JD.eq.1 .or. JD.eq.JM) THEN 
+                FLFAC=1d0/real(IM) ! pole exception downstream
+              ELSE
+                FLFAC=1.        ! default
+              END IF
 
               IF(FOCEAN(ID,JD).le.0.) THEN
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
-                FLOW(ID,JD) =  FLOW(ID,JD) + DMM
-                EFLOW(ID,JD) = EFLOW(ID,JD) + DGM+DPE
+
+                FLOW(ID,JD) =  FLOW(ID,JD) + DMM*FLFAC
+                EFLOW(ID,JD) = EFLOW(ID,JD) + (DGM+DPE)*FLFAC
 #ifdef TRACERS_WATER
-                TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + DTM(:)
+                TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + DTM(:)*FLFAC
 #endif
+
               ELSE ! Save river mouth flow to for output to oceans
 C**** DPE: also add potential energy change to ocean.
 C**** Normally ocean is at sea level (Duh!), but in some boxes ZATMO
@@ -852,11 +911,11 @@ C**** in atmosphere as well. Otherwise, there is an energy imbalance.
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
 C**** possibly adjust mass (not heat) to allow for balancing of sea level
                 DMM=river_fac*DMM
-                FLOWO(ID,JD)=FLOWO(ID,JD)+DMM
-                EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM+DPE
+                FLOWO(ID,JD)=FLOWO(ID,JD)+DMM*FLFAC
+                EFLOWO(ID,JD)=EFLOWO(ID,JD)+(DGM+DPE)*FLFAC
 #ifdef TRACERS_WATER
                 DTM(:)=river_fac*DTM(:)
-                TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)
+                TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)*FLFAC
 #endif
 C**** accumulate river runoff diags (moved from ground)
                 AJ(JD,J_RVRD,ITOCEAN)=AJ(JD,J_RVRD,ITOCEAN)+
@@ -894,52 +953,10 @@ C****              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
      &      AREGSUM(1:SIZE(AREG,1),2)
 
 C****
-C**** Calculate river flow at the South Pole
-C****
-      IF (HAVE_SOUTH_POLE) THEN
-       FLOW(1,1) =  FLOW(1,1)/IM
-      EFLOW(1,1) = EFLOW(1,1)/IM
-#ifdef TRACERS_WATER
-      TRFLOW(:,1,1) = TRFLOW(:,1,1)/IM
-#endif
-C**** Only overflow if lake mass is above sill height (HLAKE (m))
-      MWLSILL = RHOW*HLAKE(1,1)*FLAKE(1,1)*DXYP(1)
-      JD=JFLOW(1,1)
-      ID=IFLOW(1,1)
-      IF(MWL(1,1).gt.MWLSILL) THEN
-        DMM = (MWL(1,1)-MWLSILL)*RATE(1,1)
-c        IF (FLAKE(1,1).gt.0) THEN
-c         MLM=RHOW*MLDLK(1,1)*FLAKE(1,1)*DXYP(1)
-c         DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
-c        END IF
-        DGM=TLAKE(1,1)*DMM*SHW ! TLAKE always defined
-        DPE=0.  ! DMM*(ZATMO(1,1)-ZATMO(ID,JD))
-        FLOW(1,1) =  FLOW(1,1) - DMM
-        EFLOW(1,1) = EFLOW(1,1) - DGM
-#ifdef TRACERS_WATER
-        if (flake(1,1).gt.0) then
-          DTM(:) = DMM*GTRACER(:,1,1,1)
-        else
-          DTM(:) = DMM*TRLAKE(:,1,1,1)/(MWL(1,1)+teeny)
-        end if
-        TRFLOW(:,1,1) = TRFLOW(:,1,1) - DTM(:)
-        TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:) +
-     *       DTM(:)*BYDXYP(JD)
-#endif
-        AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
-        AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
-         FLOW(ID,JD) =  FLOW(ID,JD) + IM*DMM
-        EFLOW(ID,JD) = EFLOW(ID,JD) + IM*(DGM+DPE)
-#ifdef TRACERS_WATER
-        TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + IM*DTM(:)
-#endif
-      END IF
-      END IF ! HAVE_SOUTH_POLE
-C****
 C**** Apply net river flow to continental reservoirs
 C****
-        DO J=J_0S, J_1S
-        DO I=1,IM
+        DO J=J_0, J_1
+        DO I=1,IMAXJ(J)
           IF(FLAND(I,J)+FLAKE(I,J).gt.0.) THEN
             MWL(I,J) = MWL(I,J) +  FLOW(I,J)
             GML(I,J) = GML(I,J) + EFLOW(I,J)
@@ -979,39 +996,6 @@ C**** accounting fix to ensure river flow with no lakes is counted
           END IF
         END DO
       END DO
-      IF (HAVE_SOUTH_POLE) THEN
-        MWL(1,1) = MWL(1,1) +  FLOW(1,1)
-        GML(1,1) = GML(1,1) + EFLOW(1,1)
-#ifdef TRACERS_WATER
-        TRLAKE(:,1,1,1) = TRLAKE(:,1,1,1) + TRFLOW(:,1,1)
-#endif
-        IF (MWL(1,1).lt.1d-20) THEN
-          MWL(1,1)=0.
-          GML(1,1)=0.
-#ifdef TRACERS_WATER
-          TRLAKE(:,1:2,1,1) = 0.
-#endif
-        END IF
-      IF (FLAKE(1,1).gt.0) THEN
-        HLK1=(MLDLK(1,1)*RHOW)*TLAKE(1,1)*SHW
-        MLDLK(1,1)=MLDLK(1,1)+FLOW(1,1)/(RHOW*FLAKE(1,1)*DXYP(1))
-        TLAKE(1,1)=(HLK1*FLAKE(1,1)*DXYP(1)+EFLOW(1,1))
-     *       /(MLDLK(1,1)*RHOW*FLAKE(1,1)*DXYP(1)*SHW)
-C**** accumulate some diagnostics
-        AJ(1,J_RVRD,ITLAKE) =AJ(1,J_RVRD,ITLAKE) + FLOW(1,1)*
-     *             BYDXYP(1)*(1.-RSI(1,1))
-        AJ(1,J_ERVR,ITLAKE) =AJ(1,J_ERVR,ITLAKE) +EFLOW(1,1)*
-     *       BYDXYP(1)*(1.-RSI(1,1))
-        AJ(1,J_RVRD,ITLKICE)=AJ(1,J_RVRD,ITLKICE)+ FLOW(1,1)*
-     *       BYDXYP(1)*RSI(1,1)
-        AJ(1,J_ERVR,ITLKICE)=AJ(1,J_ERVR,ITLKICE)+EFLOW(1,1)*
-     *       BYDXYP(1)*RSI(1,1)
-      ELSE
-        TLAKE(1,1)=GML(1,1)/(SHW*MWL(1,1)+teeny)
-        AJ(1,J_RVRD,ITLAKE)=AJ(1,J_RVRD,ITLAKE)+ FLOW(1,1)*BYDXYP(1)
-        AJ(1,J_ERVR,ITLAKE)=AJ(1,J_ERVR,ITLAKE)+EFLOW(1,1)*BYDXYP(1)
-      END IF
-      END IF ! HAVE_SOUTH_POLE
 
       CALL PRINTLK("RV")
 C**** Set GTEMP array for lakes
@@ -1260,31 +1244,234 @@ C****
 !@sum  daily_LAKE does lake things at the beginning of every day
 !@auth G. Schmidt
 !@ver  1.0
+      USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny
+      USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice
+      USE LAKES, only : kdirec,minmld,variable_lk
+      USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
+#ifdef TRACERS_WATER
+     *     ,trlake,ntm
+#endif 
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi
+#ifdef TRACERS_WATER
+     *     ,trsi
+#endif
+      USE SEAICE, only : ace1i,xsi,ac2oim
+      USE GEOM, only : dxyp,imaxj,bydxyp
+      USE GHY_COM, only : fearth
+      USE FLUXES, only : dmwldf,dgml
+#ifdef TRACERS_WATER
+     *     ,dtrl
+#endif
+      USE DIAG_COM, only : aj=>aj_loc,j_run,j_erun,j_imelt,j_hmelt,areg
+     *     ,jreg
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH,
+     *     GLOBALSUM
       IMPLICIT NONE
+      integer i,j,J_0,J_1,jr
+      real*8 new_flake,sumh,msinew,snownew,frac,itm,fmsi2,fmsi3
+     *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk
+#ifdef TRACERS_WATER
+     *     ,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(2,ntm)
+#endif
+C****Work array for regional diagnostic accumulation
+      REAL*8 :: AREG_SUM(size(AREG,1),2)
+      REAL*8, DIMENSION(
+     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,2)
+     &       :: AREG_part
 
-C**** Experimental code: not yet functional
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+C**** Initialize work array
+      AREG_part(:,J_0:J_1,1:2) = 0.
+
+C**** Experimental code: not yet fully functional
 C**** Update lake fraction as a function of lake mass at end of day
 C**** Assume lake is conical
 C****   => A = pi*(h*tanlk)^2, M=(1/3)*pi*rho*h*(h*tanlk)^2
 C****
-c        PRINT*,"TEST FLAKE CHANGE"
-c        DO J=1,JM
-c        DO I=1,IMAXJ(J)
-c          IF (FLAKE(I,J).gt.0) THEN
-c            PRINT*,"tan(a)",I,J,TANLK(I,J)
-c            PRINT*,FLAKE(I,J),(9d0*PI*(TANLK(I,J)*MWL(I,J)/RHOW)**2)
-c     *           **BY3/DXYP(J)
-C**** remove lakes that are too small ??
-c            IF (FLAKE(I,J).lt.0.005) THEN
-c          PRINT*,"Lake->0 (too small)",I,J,MWL(I,J),GML(I,J),MLDLK(I,J)
-c          MLDLK(I,J)=MIN(MLDLK(I,J),MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)))
-c              FLAKE(I,J) = 0.
-c          END IF
-c        END DO
-c        END DO
-C****
+      SVFLAKE=FLAKE  ! save for ghy purposes
+      if (variable_lk) then
+
+      DO J=J_0, J_1
+        DO I=1,IMAXJ(J)
+          JR=JREG(I,J)
+          IF (FLAND(I,J).gt.FLICE(I,J).and.FOCEAN(I,J).eq.0) THEN
+            PLAKE=FLAKE(I,J)*(1.-RSI(I,J))
+            PLKIC=FLAKE(I,J)*    RSI(I,J)
+            new_flake=min(0.95d0*(FLAKE(I,J)+FEARTH(I,J)),(9d0*PI
+     *           *(TANLK(I,J)*MWL(I,J)/RHOW)**2)**BY3/DXYP(J))
+            hlk=0.
+            if (new_flake.gt.0) hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))
+            if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
+              IF (new_flake.gt.0 .and. hlk.gt.0.4) THEN ! new or surviving lake
+c                IF (FLAKE(I,J).gt.0.) THEN
+c                  if (abs(new_flake-FLAKE(I,J)).gt.0.0001) PRINT*,
+c     *                 "lk chge",i,j,FLAKE(I,J),new_flake
+c                ELSE
+c                  print*,"lk new ",i,j,new_flake,hlk,tlake(i,j),kdirec(i
+c     *                 ,j)
+c                END IF
+C**** adjust for fearth changes
+                IF (new_flake.gt.FLAKE(I,J)) THEN ! some water used to saturate
+                  if (MWL(I,J).gt.DMWLDF(I,J)*(new_flake
+     *                 -FLAKE(I,J))*DXYP(J)) THEN
+                    MWL(I,J)=MWL(I,J)-DMWLDF(I,J)*(new_flake-FLAKE(I,J))
+     *                   *DXYP(J)
+C**** calculate associated energy/tracer transfer
+                    DGML(I,J)=DMWLDF(I,J)*(new_flake-FLAKE(I,J))
+     *                   *DXYP(J)*GML(I,J)/MWL(I,J)
+                    GML(I,J)=GML(I,J)-DGML(I,J)
+#ifdef TRACERS_WATER
+                    DTR(:,:)=DMWLDF(I,J)*(new_flake-FLAKE(I,J))
+     *                   *DXYP(J)*TRLAKE(:,:,I,J)/MWL(I,J)
+                    TRLAKE(:,:.I,J)=TRLAKE(:,:,I,J)-DTR(:,:)
+                    DTRL(:,I,J) = DTR(1,:)+DTR(2,:)
+#endif
+C**** save some diags
+                    AJ(J, J_RUN,ITLAKE) =AJ(J, J_RUN,ITLAKE) +PLAKE*
+     *                   DMWLDF(I,J)*(new_flake-FLAKE(I,J))
+                    AJ(J, J_RUN,ITLKICE)=AJ(J, J_RUN,ITLKICE)+PLKIC*
+     *                   DMWLDF(I,J)*(new_flake-FLAKE(I,J))
+                    AJ(J,J_ERUN,ITLAKE) =AJ(J,J_ERUN,ITLAKE) +PLAKE*
+     *                   DGML(I,J)*BYDXYP(J)
+                    AJ(J,J_ERUN,ITLKICE)=AJ(J,J_ERUN,ITLKICE)+PLKIC*
+     *                   DGML(I,J)*BYDXYP(J)
+                  else
+C**** this is just here to see whether this ever happens.
+                    print*,"dont saturate",i,j,(DMWLDF(I,J)*(new_flake
+     *                   -FLAKE(I,J))*DXYP(J))/MWL(I,J),MWL(I,J)
+     *                   ,(DMWLDF(I,J)*(new_flake-FLAKE(I,J))*DXYP(J))
+     *                   ,(new_flake-FLAKE(I,J))
+                    call stop_model('Not enough water for saturation'
+     *                   ,255)
+                  end if
+                END IF
+C**** conserve lake ice
+                IF (RSI(I,J)*FLAKE(I,J).gt.new_flake) THEN ! crunch ice up
+                  SUMH=PLKIC*SUM(HSI(:,I,J))
+                  FRAC=PLKIC/new_flake
+                  SNOWNEW=SNOWI(I,J)*FRAC
+                  MSINEW=(MSI(I,J)+ACE1I)*FRAC-ACE1I
+                  RSI(I,J)=1.
+C**** all tracers --> tracer*FRAC, then adjust layering
+                  FMSI3=ACE1I*(FRAC-1d0) ! kg/m2 flux over new fraction
+                  FMSI2=FMSI3*XSI(1)
+                  FMSI4=FMSI3*XSI(4)
+                  
+                  FHSI2=FMSI2*HSI(1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J)))
+                  IF (FMSI3.LT.FRAC*XSI(2)*(ACE1I+SNOWI(I,J))) THEN
+                    FHSI3=FMSI3*HSI(2,I,J)/(XSI(2)*(ACE1I+SNOWI(I,J)))
+                  ELSE
+                    FHSI3=HSI(2,I,J)*FRAC+(FMSI3-FRAC*XSI(2)*(ACE1I
+     *                   +SNOWI(I,J)))*HSI(1,I,J)/(XSI(1)*(ACE1I
+     *                   +SNOWI(I,J)))
+                  END IF
+                  IF (FMSI4.LT.FRAC*XSI(3)*MSI(I,J)) THEN
+                    FHSI4=FMSI4*HSI(3,I,J)/(XSI(3)*MSI(I,J))
+                  ELSE
+                    FHSI4=HSI(3,I,J)*FRAC+(FMSI4-FRAC*XSI(3)*MSI(I,J)) 
+     *                   *FHSI3/FMSI3
+                  END IF
+                  
+                  HSI(1,I,J)=HSI(1,I,J)*(ACE1I+SNOWNEW)/
+     *                 (ACE1I+SNOWI(I,J))
+                  HSI(2,I,J)=HSI(2,I,J)*FRAC+FHSI2-FHSI3
+                  HSI(3,I,J)=HSI(3,I,J)*FRAC+FHSI3-FHSI4
+                  HSI(4,I,J)=HSI(4,I,J)*FRAC      +FHSI4
+                  
+#ifdef TRACERS_WATER
+                  sumt=rsi(i,j)*flake(I,j)*sum(trsi(1,:,i,j))
+                  FTSI2(:)=FMSI2*TRSI(:,1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J)
+     *                 ))
+                  IF (FMSI3.LT.FRAC*XSI(2)*(ACE1I+SNOWI(I,J))) THEN
+                    FTSI3(:)=FMSI3*TRSI(:,2,I,J)/(XSI(2)*(ACE1I+SNOWI(I
+     *                   ,J)))
+                  ELSE
+                    FTSI3(:)=TRSI(:,2,I,J)*FRAC+(FMSI3-FRAC*XSI(2)
+     *                   *(ACE1I+SNOWI(I,J)))*TRSI(:,1,I,J)/(XSI(1)
+     *                   *(ACE1I+SNOWI(I,J)))
+                  END IF
+                  IF (FMSI4.LT.FRAC*XSI(3)*MSI(I,J)) THEN
+                    FTSI4(:)=FMSI4*TRSI(:,3,I,J)/(XSI(3)*MSI(I,J))
+                  ELSE
+                    FTSI4(:)=TRSI(:,3,I,J)*FRAC+(FMSI4-FRAC*XSI(3)*MSI(I
+     *                   ,J))*FTSI3(:)/FMSI3
+                  END IF
+                  
+                  TRSI(:,1,I,J)=TRSI(:,1,I,J)*(ACE1I+SNOWNEW)/
+     *                 (ACE1I+SNOWI(I,J))
+                  TRSI(:,2,I,J)=TRSI(:,2,I,J)*FRAC+FTSI2(:)-FTSI3(:)
+                  TRSI(:,3,I,J)=TRSI(:,3,I,J)*FRAC+FTSI3(:)-FTSI4(:)
+                  TRSI(:,4,I,J)=TRSI(:,4,I,J)*FRAC         +FTSI4(:)
+#endif
+                  MSI(I,J)=MSINEW
+                  SNOWI(I,J)=SNOWNEW
+                ELSE
+                  RSI(I,J)=PLKIC/new_flake
+                END IF
+                IF (MLDLK(I,J)*FLAKE(I,J).lt.new_flake*MINMLD) THEN
+                  MLDLK(I,J)=MIN(MINMLD,MWL(I,J)/(RHOW*DXYP(J)*new_flake
+     *                 ))
+                ELSE
+                  MLDLK(I,J)=MLDLK(I,J)*FLAKE(I,J)/new_flake
+                END IF
+                FLAKE(I,J)=new_flake
+                FLAND(I,J)=1.-FLAKE(I,J)
+                FEARTH(I,J)=FLAND(I,J)-FLICE(I,J)
+              ELSE
+C**** remove/do not create lakes that are too small
+                IF (FLAKE(I,J).gt.0) THEN
+c                  PRINT*,"lk gone",I,J,FLAKE(I,j),new_flake,MWL(I,J)
+c     *                 /(RHOW*DXYP(J)*FLAKE(I,J))
+C**** transfer lake ice mass/energy for accounting purposes
+                  IMLT=ACE1I+MSI(I,J)+SNOWI(I,J)
+                  HMLT=SUM(HSI(:,I,J))
+                  MWL(I,J)=MWL(I,J)+PLKIC*IMLT*DXYP(J)
+                  GML(I,J)=GML(I,J)+PLKIC*HMLT*DXYP(J)
+#ifdef TRACERS_WATER
+                  DO ITM=1,NTM
+                    TRLAKE(ITM,1,I,J)=TRLAKE(ITM,1,I,J)+TRLAKE(ITM,2,I,J
+     *                   )+RSI(I,J)*FLAKE(I,J)*SUM(TRSI(ITM,:,I,J))
+     *                   *DXYP(J)
+                    TRSI(ITM,:,I,J)=0.
+                  END DO
+#endif
+C**** save some diags
+                  AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*IMLT
+                  AJ(J,J_HMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*HMLT
+C**** Accumulate regional diagnostics
+                  AREG_part(JR,J,1)=AREG_part(JR,J,1)+PLKIC*IMLT*DXYP(J)
+                  AREG_part(JR,J,2)=AREG_part(JR,J,2)+PLKIC*HMLT*DXYP(J)
+C**** 
+                  RSI(I,J)=0.
+                  SNOWI(I,J)=0.
+                  HSI(1:2,I,J)=-LHM*XSI(1:2)*ACE1I
+                  HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
+                  MSI(I,J)=AC2OIM
+                  
+                  TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
+                  MLDLK(I,J)=MINMLD
+                  FLAKE(I,J)=0.
+                  FLAND(I,J)=1.
+                  FEARTH(I,J)=FLAND(I,J)-FLICE(I,J)
+                END IF
+              END IF
+            END IF
+          END IF
+        END DO
+      END DO
+      
+C**** Finish accumulation of regional diagnostics (...sum along j)
+      CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
+     &     AREG_SUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
+      AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+     &     AREG_SUM(1:SIZE(AREG,1),1)
+      AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
+     &     AREG_SUM(1:SIZE(AREG,1),2)
+      
+      end if
+C**** 
       CALL PRINTLK("DY")
-C****
+C**** 
       RETURN
       END SUBROUTINE daily_LAKE
 
@@ -1632,8 +1819,8 @@ C****
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=1
       INTEGER I,J,N
-      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/46/),
-     *                             JDIAG = (/32/)
+      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/36/),
+     *                             JDIAG = (/26/)
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
@@ -1641,6 +1828,7 @@ C****
       DO N=1,NDIAG
         I=IDIAG(N)
         J=JDIAG(N)
+        IF (FLAKE(I,J).gt.0) THEN
         HLK2 = MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)) - MLDLK(I,J)
         IF (HLK2.gt.0) THEN
         TLK2 = (GML(I,J)/(SHW*RHOW*FLAKE(I,J)*DXYP(J)) -
@@ -1656,6 +1844,7 @@ C****
         END IF
         WRITE(99,*) STR,I,J,FLAKE(I,J),TLAKE(I,J),TLK2,MLDLK(I,J),HLK2
      *       ,RSI(I,J),MSI(I,J)/RHOI,SNOWI(I,J)/RHOW,TSIL(1:4)
+        END IF
       END DO
 
       RETURN

@@ -23,6 +23,8 @@
       REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: FLAKE
 !@var TANLK tan(alpha) = slope for conical lake (1)
       REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: TANLK
+!@var SVFLAKE previous lake fraction (1)
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: SVFLAKE
 
 #ifdef TRACERS_WATER
 !@var TRLAKE tracer amount in each lake level (kg)      
@@ -41,7 +43,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@ver  1.0
       USE DOMAIN_DECOMP, only: DIST_GRID, GET
       USE MODEL_COM, only : IM, JM
-      USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK
+      USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK, SVFLAKE
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
       USE LAKES_COM, ONLY:  TRLAKE
@@ -61,6 +63,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
      *           MLDLK(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *           FLAKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *           TANLK(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *           SVFLAKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *           STAT=IER
      *            )
       RETURN
@@ -72,7 +75,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@ver  1.0
       USE DOMAIN_DECOMP, only : AM_I_ROOT, grid
       USE DOMAIN_DECOMP, only : PACK_DATA  , PACK_BLOCK
-      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_BLOCK
+      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_BLOCK,
+     *     BACKSPACE_PARALLEL
       USE LAKES_COM
       IMPLICIT NONE
       INTEGER kunit   !@var kunit unit number of read/write
@@ -80,8 +84,9 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "LAKE01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "LAKE02"
       REAL*8, DIMENSION(IM,JM):: MLDLK_glob,MWL_glob,TLAKE_glob,GML_glob
+     *     ,FLAKE_glob
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRLAK01"
@@ -91,7 +96,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
      *     ,'(a7,i3,a)')'R8 dim(',NTM,',2,im,jm):TRLAKE'
 #endif
 
-      MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm):MixLD,MWtr,Tlk,Enth'
+      MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm):MixLD,MWtr,Tlk,Enth,Fl'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -99,29 +104,38 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
         CALL PACK_DATA(grid, MWL  ,   MWL_GLOB)
         CALL PACK_DATA(grid, TLAKE, TLAKE_GLOB)
         CALL PACK_DATA(grid, GML  ,   GML_GLOB)
+        CALL PACK_DATA(grid, FLAKE, FLAKE_GLOB)
 #ifdef TRACERS_WATER
-          CALL PACK_BLOCK(grid, TRLAKE, TRLAKE_glob)
+        CALL PACK_BLOCK(grid, TRLAKE, TRLAKE_glob)
 #endif
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,MLDLK_glob,MWL_glob,
-     &                         TLAKE_glob,GML_glob !,FLAKE
+     &                         TLAKE_glob,GML_glob,FLAKE_glob
 #ifdef TRACERS_WATER
           WRITE (kunit,err=10) TRMODULE_HEADER,TRLAKE_glob
 #endif
         END IF
       CASE (IOREAD:)            ! input from restart file
         if ( AM_I_ROOT() ) then
-          READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
-     &                        GML_glob   !,FLAKE
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
+          READ (kunit,err=10) HEADER
+          CALL BACKSPACE_PARALLEL(kunit)
+          if (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
+     &           GML_glob       ! no FLAKE
+          else
+            READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
+     &           GML_glob,FLAKE_glob
+
+c          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+c            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+c            GO TO 10
           END IF
         end if
         CALL UNPACK_DATA(grid,  MLDLK_GLOB, MLDLK)
         CALL UNPACK_DATA(grid,    MWL_GLOB, MWL  )
         CALL UNPACK_DATA(grid,  TLAKE_GLOB, TLAKE)
         CALL UNPACK_DATA(grid,    GML_GLOB, GML  )
+        CALL UNPACK_DATA(grid,  FLAKE_GLOB, FLAKE)
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)

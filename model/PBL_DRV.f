@@ -644,7 +644,7 @@ c For ITYPE=1 (ocean; melted ocean ice since last time step):
 c  If there was no computation made for ocean at the last time step,
 c  this time step may start from ocean ice result. If there was no
 c  ocean nor ocean ice computation at the last time step, nothing
-c  need be done.
+c  need be done. Also deals with newly created lake (from land)
 c
 c For ITYPE=2 (ocean ice; frozen from ocean since last time step):
 c  If there was no computation made for ocean ice at the last time step,
@@ -656,13 +656,13 @@ c For ITYPE=3 (land ice; frozen on land since last time step):
 c  If there was no computation made for land ice at the last time step,
 c  this time step may start from land result. If there was no
 c  land ice nor land computation at the last time step, nothing
-c  need be done.
+c  need be done. 
 c
 c For ITYPE=4 (land; melted land ice since last time step):
 c  If there was no computation made for land at the last time step,
 c  this time step may start from land ice result. If there was no
 c  land nor land ice computation at the last time step, nothing
-c  need be done.
+c  need be done. Also deal with newly created earth (from lake)
 c
 c In the current version of the GCM, there is no need to check the
 c  land or land ice components of the grid box for ice formation and
@@ -673,14 +673,10 @@ c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
-     *     ,ipbl,ustar_pbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
+      USE PBLCOM, only : ipbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
-#ifdef TRACERS_ON
-     *     ,trabl
-#endif
       IMPLICIT NONE
-      integer i,j,iter,lpbl  !@var i,j,iter,lpbl loop variable
+      integer i,j  !@var i,j loop variable
 
       integer :: J_1, J_0
 C****
@@ -689,105 +685,37 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       do j=J_0,J_1
-      do i=1,imaxj(j)
+        do i=1,imaxj(j)
 
 c ******* itype=1: Ocean
 
           if (ipbl(i,j,1).eq.0) then
             if (ipbl(i,j,2).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,1)=uabl(lpbl,i,j,2)
-                 vabl(lpbl,i,j,1)=vabl(lpbl,i,j,2)
-                 tabl(lpbl,i,j,1)=tabl(lpbl,i,j,2)
-                 qabl(lpbl,i,j,1)=qabl(lpbl,i,j,2)
-                 eabl(lpbl,i,j,1)=eabl(lpbl,i,j,2)
-              end do
-              uabl(npbl,i,j,1)=uabl(npbl,i,j,2)
-              vabl(npbl,i,j,1)=vabl(npbl,i,j,2)
-              tabl(npbl,i,j,1)=tabl(npbl,i,j,2)
-              qabl(npbl,i,j,1)=qabl(npbl,i,j,2)
-#ifdef TRACERS_ON
-              trabl(:,:,i,j,1)=trabl(:,:,i,j,2)
-#endif
-              cmgs(i,j,1)=cmgs(i,j,2)
-              chgs(i,j,1)=chgs(i,j,2)
-              cqgs(i,j,1)=cqgs(i,j,2)
-              ustar_pbl(i,j,1)=ustar_pbl(i,j,2)
+              call setbl(2,1,i,j)
+            elseif (ipbl(i,j,4).eq.1) then ! initialise from land
+              call setbl(4,1,i,j)
             endif
           endif
 
 c ******* itype=2: Ocean ice
 
           if (ipbl(i,j,2).eq.0) then
-            if (ipbl(i,j,1).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,2)=uabl(lpbl,i,j,1)
-                 vabl(lpbl,i,j,2)=vabl(lpbl,i,j,1)
-                 tabl(lpbl,i,j,2)=tabl(lpbl,i,j,1)
-                 qabl(lpbl,i,j,2)=qabl(lpbl,i,j,1)
-                 eabl(lpbl,i,j,2)=eabl(lpbl,i,j,1)
-              end do
-              uabl(npbl,i,j,2)=uabl(npbl,i,j,1)
-              vabl(npbl,i,j,2)=vabl(npbl,i,j,1)
-              tabl(npbl,i,j,2)=tabl(npbl,i,j,1)
-              qabl(npbl,i,j,2)=qabl(npbl,i,j,1)
-#ifdef TRACERS_ON
-              trabl(:,:,i,j,2)=trabl(:,:,i,j,1)
-#endif
-              cmgs(i,j,2)=cmgs(i,j,1)
-              chgs(i,j,2)=chgs(i,j,1)
-              cqgs(i,j,2)=cqgs(i,j,1)
-              ustar_pbl(i,j,2)=ustar_pbl(i,j,1)
-            endif
+            if (ipbl(i,j,1).eq.1) call setbl(1,2,i,j)
           endif
 
 c ******* itype=3: Land ice
 
           if (ipbl(i,j,3).eq.0) then
-            if (ipbl(i,j,4).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,3)=uabl(lpbl,i,j,4)
-                 vabl(lpbl,i,j,3)=vabl(lpbl,i,j,4)
-                 tabl(lpbl,i,j,3)=tabl(lpbl,i,j,4)
-                 qabl(lpbl,i,j,3)=qabl(lpbl,i,j,4)
-                 eabl(lpbl,i,j,3)=eabl(lpbl,i,j,4)
-              end do
-              uabl(npbl,i,j,3)=uabl(npbl,i,j,4)
-              vabl(npbl,i,j,3)=vabl(npbl,i,j,4)
-              tabl(npbl,i,j,3)=tabl(npbl,i,j,4)
-              qabl(npbl,i,j,3)=qabl(npbl,i,j,4)
-#ifdef TRACERS_ON
-              trabl(:,:,i,j,3)=trabl(:,:,i,j,4)
-#endif
-              cmgs(i,j,3)=cmgs(i,j,4)
-              chgs(i,j,3)=chgs(i,j,4)
-              cqgs(i,j,3)=cqgs(i,j,4)
-              ustar_pbl(i,j,3)=ustar_pbl(i,j,4)
-            endif
+            if (ipbl(i,j,4).eq.1) call setbl(4,3,i,j)
           endif
 
 c ******* itype=4: Land
 
           if (ipbl(i,j,4).eq.0) then
             if (ipbl(i,j,3).eq.1) then
-              do lpbl=1,npbl-1
-                 uabl(lpbl,i,j,4)=uabl(lpbl,i,j,3)
-                 vabl(lpbl,i,j,4)=vabl(lpbl,i,j,3)
-                 tabl(lpbl,i,j,4)=tabl(lpbl,i,j,3)
-                 qabl(lpbl,i,j,4)=qabl(lpbl,i,j,3)
-                 eabl(lpbl,i,j,4)=eabl(lpbl,i,j,3)
-              end do
-              uabl(npbl,i,j,4)=uabl(npbl,i,j,3)
-              vabl(npbl,i,j,4)=vabl(npbl,i,j,3)
-              tabl(npbl,i,j,4)=tabl(npbl,i,j,3)
-              qabl(npbl,i,j,4)=qabl(npbl,i,j,3)
-#ifdef TRACERS_ON
-              trabl(:,:,i,j,4)=trabl(:,:,i,j,3)
-#endif
-              cmgs(i,j,4)=cmgs(i,j,3)
-              chgs(i,j,4)=chgs(i,j,3)
-              cqgs(i,j,4)=cqgs(i,j,3)
-              ustar_pbl(i,j,4)=ustar_pbl(i,j,3)
+              call setbl(3,4,i,j)
+            elseif (ipbl(i,j,1).eq.1) then
+              call setbl(1,4,i,j)
             endif
           endif
 
@@ -808,13 +736,47 @@ C**** initialise some pbl common variables
           qflux(I,J)=0.
 
 ccc???
-         ipbl(i,j,:) = 0 ! - will be set to 1s when pbl is called
+          ipbl(i,j,:) = 0       ! - will be set to 1s when pbl is called
 
-      end do
+        end do
       end do
 
       return
       end subroutine loadbl
+
+      subroutine setbl(itype_in,itype_out,i,j)
+!@sum setbl initiallise bl from another surface type for one grid box
+!@auth Ye Cheng
+      USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
+     *     ,ipbl,ustar_pbl
+#ifdef TRACERS_ON
+     *     ,trabl
+#endif
+      IMPLICIT NONE
+      integer, INTENT(IN) :: itype_in,itype_out,i,j
+      integer lpbl  !@var lpbl loop variable
+
+      do lpbl=1,npbl-1
+        uabl(lpbl,i,j,itype_out)=uabl(lpbl,i,j,itype_in)
+        vabl(lpbl,i,j,itype_out)=vabl(lpbl,i,j,itype_in)
+        tabl(lpbl,i,j,itype_out)=tabl(lpbl,i,j,itype_in)
+        qabl(lpbl,i,j,itype_out)=qabl(lpbl,i,j,itype_in)
+        eabl(lpbl,i,j,itype_out)=eabl(lpbl,i,j,itype_in)
+      end do
+      uabl(npbl,i,j,itype_out)=uabl(npbl,i,j,itype_in)
+      vabl(npbl,i,j,itype_out)=vabl(npbl,i,j,itype_in)
+      tabl(npbl,i,j,itype_out)=tabl(npbl,i,j,itype_in)
+      qabl(npbl,i,j,itype_out)=qabl(npbl,i,j,itype_in)
+#ifdef TRACERS_ON
+      trabl(:,:,i,j,itype_out)=trabl(:,:,i,j,itype_in)
+#endif
+      cmgs(i,j,itype_out)=cmgs(i,j,itype_in)
+      chgs(i,j,itype_out)=chgs(i,j,itype_in)
+      cqgs(i,j,itype_out)=cqgs(i,j,itype_in)
+      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)      
+
+      return
+      end subroutine setbl
 
       subroutine getztop(zgs,ztop)
 !@sum  getztop computes the value of ztop which is the height in meters
