@@ -62,14 +62,11 @@ C**** Command line options
       Type (FV_CORE) :: fv
       Type (ESMF_CLOCK) :: clock
 #endif
-      integer :: tloopcurrent
       integer :: L
-      integer :: c0, crate
-      real*8 :: time_rate
       real*8 :: initialTotalEnergy, finalTotalEnergy
 
-        call init_app(grid,im,jm,lm)
-        call alloc_drv()
+      call init_app(grid,im,jm,lm)
+      call alloc_drv()
 C****
 C**** Processing command line options
 C****
@@ -166,10 +163,8 @@ C**** space-separated string segments in SUBDD & SUBDD1 in the rundeck
 C****
 C**** MAIN LOOP
 C****
-      call gettime(tloopcurrent)
-      call system_clock(c0, crate)
-      time_rate=crate
-      tloopbegin=tloopcurrent/time_rate
+      call gettime(tloopbegin)
+
       DO WHILE (Itime.lt.ItimeE)
 
 c$$$         call test_save(__LINE__, itime)
@@ -540,7 +535,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         DO M=1,NTIMEACC
           PERCENT(M) = 100d0*TIMING(M)/(MNOW-MSTART+.00001)
         END DO
-        TOTALT=(MNOW-MSTART)/(60.*time_rate)      ! in minutes
+        TOTALT=(MNOW-MSTART)/(60.*100.)           ! in minutes
         DTIME = NDAY*TOTALT/(Itime-Itime0)        ! minutes/day
         WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
@@ -578,8 +573,7 @@ c$$$      call test_save(__LINE__, itime-1)
 
       END DO
 
-      call gettime(tloopcurrent)
-      tloopend=tloopcurrent/time_rate
+      call gettime(tloopend)
       if (AM_I_ROOT())
      *     write(*,*) "Time spent in the main loop in seconds:",
      *     tloopend-tloopbegin

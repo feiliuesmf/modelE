@@ -351,10 +351,12 @@ C****
       INTEGER, INTENT(INOUT) :: MSUM !@var MSUM index for running total
       INTEGER :: MINC                !@var MINC time since last call
       INTEGER, SAVE :: MLAST = 0     !@var MLAST  last CPU time
+      INTEGER :: CRATE               !@var CRATE count rate
 
-      CALL GETTIME(MNOW)
+      CALL GETTIME(MNOW,CRATE)
       MINC  = MNOW - MLAST
-      if(minc.lt.0) minc=minc+huge(minc) ! system_clock reset
+      print*,MNOW,MLAST,CRATE,MSUM
+      if(minc.lt.0) minc=minc+huge(minc)/crate ! system_clock reset
       TIMING(MSUM)  = TIMING(MSUM) + MINC
       MLAST = MNOW
       RETURN
@@ -372,10 +374,11 @@ C****
       INTEGER, INTENT(INOUT) :: MOUT !@var MOUT index to be taken from
       INTEGER :: MINC                !@var MINC time since MBEGIN
       INTEGER :: MNOW                !@var MNOW current CPU time (.01 s)
+      INTEGER :: CRATE               !@var CRATE count rate
 
-      CALL GETTIME(MNOW)
+      CALL GETTIME(MNOW, CRATE)
       MINC  = MNOW - MBEGIN
-      if(minc.lt.0) minc=minc+huge(minc) ! system_clock reset
+      if(minc.lt.0) minc=minc+huge(minc)/CRATE ! system_clock reset
       TIMING(MIN)  = TIMING(MIN)  + MINC
       TIMING(MOUT) = TIMING(MOUT) - MINC
       RETURN
