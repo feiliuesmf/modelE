@@ -1255,6 +1255,18 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAKE=FLAKE(I,J)
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
+
+C**** CHECK SURFACE TEMPERATURES
+      DO IT=1,4
+        IF(GTEMP(1,IT,I,J)+TF.LT.124..OR.GTEMP(1,IT,I,J)+TF.GT.370.)
+     *       THEN
+          WRITE(6,*) 'In Radia: Time,I,J,L,IT,TL',ITime,I,J,L,IT
+     *         ,GTEMP(1,L,I,J)
+          WRITE(6,*) 'GTEMP:',GTEMP(:,:,I,J)
+CCC       STOP 'In Radia: Grnd Temp out of range'
+          ICKERR=ICKERR+1
+        END IF
+      END DO
 C****
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
       kdeliq=0   ! initialize mainly for l>lm

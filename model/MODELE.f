@@ -785,6 +785,7 @@ C****
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
      &  ,egcm,w2gcm,tgvavg,qgavg
       USE LAKES_COM, only : flake
+      USE GHY_COM, only : fearth
       USE SOIL_DRV, only: init_gh
       USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL, AM_I_ROOT
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
@@ -1496,20 +1497,20 @@ C**** as residual terms. (deals with SP=>DP problem)
 C**** Ensure that no round off error effects land with ice and earth
         IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN
           FLICE(I,J)=FLAND(I,J)
-          FEARTH0(I,J)=0.
+          FEARTH(I,J)=0.
         ELSE
-          FEARTH0(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
+          FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
         END IF
       END DO
       END DO
       If (HAVE_SOUTH_POLE) Then
          FLAND(2:IM,1)=FLAND(1,1)
-         FEARTH0(2:IM,1)=FEARTH0(1,1)
+         FEARTH(2:IM,1)=FEARTH(1,1)
          FLICE(2:IM,1)=FLICE(1,1)
       End If
       If (HAVE_NORTH_POLE) Then
          FLAND(2:IM,JM)=FLAND(1,JM)
-         FEARTH0(2:IM,JM)=FEARTH0(1,JM)
+         FEARTH(2:IM,JM)=FEARTH(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
 C****
@@ -1542,18 +1543,18 @@ C****
 C
 C**** Initialize nudging
 #ifdef NUDGE_ON
-       CALL NUDGE_INIT
+      CALL NUDGE_INIT
 #endif
 #ifdef TRACERS_AMP
-        CALL SETUP_CONFIG           
-        CALL SETUP_SPECIES_MAPS
-        CALL SETUP_AERO_MASS_MAP 
-        CALL SETUP_COAG_TENSORS
-        CALL SETUP_DP0     
-        CALL SETUP_KIJ   
-        CALL SETUP_EMIS  
-        CALL SETUP_KCI
-        CALL SETUP_NPFMASS
+      CALL SETUP_CONFIG           
+      CALL SETUP_SPECIES_MAPS
+      CALL SETUP_AERO_MASS_MAP 
+      CALL SETUP_COAG_TENSORS
+      CALL SETUP_DP0     
+      CALL SETUP_KIJ   
+      CALL SETUP_EMIS  
+      CALL SETUP_KCI
+      CALL SETUP_NPFMASS
 #endif       
 C****
       if(istart.gt.0) CALL RINIT (IRAND)

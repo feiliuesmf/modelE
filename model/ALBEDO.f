@@ -445,7 +445,7 @@ C
 C
       ITOC=TGO
       WTOC=TGO-ITOC
-      IF(ITOC < 124) ITOC=124
+c     IF(ITOC < 124) ITOC=124   ! if this is necessary than something bad has happened!
       BOCSUM=0
       BOCM=0
       BOCP=0

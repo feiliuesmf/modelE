@@ -1635,7 +1635,8 @@ c**** modifications needed for split of bare soils into 2 types
       use DOMAIN_DECOMP, only : GET,READT_PARALLEL, DREAD_PARALLEL
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
       use DOMAIN_DECOMP, only : GLOBALSUM
-      use model_com, only : fearth0,itime,nday,jeq,jyear
+      use model_com, only : fearth0,itime,nday,jeq,jyear,fland,flice
+      use lakes_com, only : flake
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
 #ifdef TRACERS_WATER
@@ -1690,8 +1691,6 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-
-      FEARTH = FEARTH0   ! this is only here until FEARTH is variable
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0

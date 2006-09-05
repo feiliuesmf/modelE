@@ -24,7 +24,7 @@
      *     ,ntm,trsi
 #endif
       USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
-     *     ,jreg,ij_f0oi,ij_erun2,j_imelt,j_smelt
+     *     ,jreg,ij_f0oi,j_imelt,j_smelt
      &     ,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET, GLOBALSUM
@@ -465,7 +465,7 @@ C****
 #endif
       USE LAKES_COM, only : mwl,gml,flake
       USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
-     *     ,jreg,ij_erun2,ij_rsoi,ij_msi
+     *     ,jreg,ij_rsoi,ij_msi
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP, only : GRID

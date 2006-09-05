@@ -128,7 +128,7 @@
       integer, intent(out) :: counter
       integer :: count_rate
       call system_clock(counter,count_rate)
-      counter=counter*100/count_rate  ! force 100ths of seconds
+      counter=nint(counter*100./real(count_rate))  ! force 100ths of seconds
       end subroutine GETTIME
 
 
