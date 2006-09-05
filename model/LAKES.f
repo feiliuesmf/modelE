@@ -1323,7 +1323,7 @@ C**** calculate associated energy/tracer transfer
 #ifdef TRACERS_WATER
                     DTR(:,:)=DMWLDF(I,J)*(new_flake-FLAKE(I,J))
      *                   *DXYP(J)*TRLAKE(:,:,I,J)/MWL(I,J)
-                    TRLAKE(:,:.I,J)=TRLAKE(:,:,I,J)-DTR(:,:)
+                    TRLAKE(:,:,I,J)=TRLAKE(:,:,I,J)-DTR(:,:)
                     DTRL(:,I,J) = DTR(1,:)+DTR(2,:)
 #endif
 C**** save some diags
