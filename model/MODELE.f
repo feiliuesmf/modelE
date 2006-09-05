@@ -576,7 +576,7 @@ c$$$      call test_save(__LINE__, itime-1)
       call gettime(tloopend)
       if (AM_I_ROOT())
      *     write(*,*) "Time spent in the main loop in seconds:",
-     *     tloopend-tloopbegin
+     *     .01*(tloopend-tloopbegin)
 C****
 C**** END OF MAIN LOOP
 C****
@@ -768,10 +768,10 @@ C****
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG
-      USE AERO_COAG  
-      USE AERO_INIT  
-      USE AERO_SUBS  
-      USE AERO_NPF  
+      USE AERO_COAG
+      USE AERO_INIT
+      USE AERO_SUBS
+      USE AERO_NPF
 #endif
       USE DIAG_COM, only : acc_period,monacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
@@ -1540,16 +1540,16 @@ C**** Initialize nudging
       CALL NUDGE_INIT
 #endif
 #ifdef TRACERS_AMP
-      CALL SETUP_CONFIG           
+      CALL SETUP_CONFIG
       CALL SETUP_SPECIES_MAPS
-      CALL SETUP_AERO_MASS_MAP 
+      CALL SETUP_AERO_MASS_MAP
       CALL SETUP_COAG_TENSORS
-      CALL SETUP_DP0     
-      CALL SETUP_KIJ   
-      CALL SETUP_EMIS  
+      CALL SETUP_DP0
+      CALL SETUP_KIJ
+      CALL SETUP_EMIS
       CALL SETUP_KCI
       CALL SETUP_NPFMASS
-#endif       
+#endif
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
@@ -1629,7 +1629,7 @@ C****
       call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
-C**** This is for noon (GMT) for new day. 
+C**** This is for noon (GMT) for new day.
 
 C**** The orbital calculation will need to vary depending on the kind
 C**** of calendar adopted (i.e. a generic 365 day year, or a transient
