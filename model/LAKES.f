@@ -1289,7 +1289,7 @@ C**** Assume lake is conical
 C****   => A = pi*(h*tanlk)^2, M=(1/3)*pi*rho*h*(h*tanlk)^2
 C****
       SVFLAKE=FLAKE  ! save for ghy purposes
-      if (variable_lk) then
+      if (variable_lk .ne. 0) then
 
       DO J=J_0, J_1
         DO I=1,IMAXJ(J)
