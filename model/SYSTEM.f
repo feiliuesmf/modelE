@@ -123,6 +123,8 @@
       END MODULE RANDOM
 
       ! Use F90 system_clock for portable accuracy
+      module GETTIME_MOD
+      contains
       subroutine GETTIME(counter, count_rate_out)
       implicit none
       integer, intent(out) :: counter
@@ -132,6 +134,7 @@
       if( present(count_rate_out) ) count_rate_out = count_rate
       counter=100*(counter/count_rate)  ! force 100ths of seconds
       end subroutine GETTIME
+      end module GETTIME_MOD
 
 
       SUBROUTINE exit_rc (code)

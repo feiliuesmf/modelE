@@ -346,6 +346,7 @@ C****
 !@auth Gary Russell
 !@ver  1.0
       USE TIMINGS
+      USE GETTIME_MOD
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: MNOW   !@var MNOW current CPU time (.01 s)
       INTEGER, INTENT(INOUT) :: MSUM !@var MSUM index for running total
@@ -367,6 +368,7 @@ C****
 !@auth Gary Russell
 !@ver  1.0
       USE TIMINGS
+      USE GETTIME_MOD
       IMPLICIT NONE
 !@var MBEGIN CPU time start of section (.01 s)
       INTEGER, INTENT(IN) :: MBEGIN

@@ -31,6 +31,7 @@ CAOO   Just to test CVS
 c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
+      USE GETTIME_MOD
 #endif
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
