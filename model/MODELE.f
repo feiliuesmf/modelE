@@ -13,6 +13,7 @@ CAOO   Just to test CVS
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
       USE RANDOM
+      USE GETTIME_MOD
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: mtrace
 #endif
@@ -31,7 +32,6 @@ CAOO   Just to test CVS
 c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
-      USE GETTIME_MOD
 #endif
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
@@ -57,7 +57,7 @@ C**** Command line options
       LOGICAL :: qcrestart=.false.
       CHARACTER*32 :: ifile
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
-      real*8 :: tloopbegin, tloopend
+      integer :: tloopbegin, tloopend
 #ifdef USE_FVCORE
       Character(Len=*), Parameter :: fv_config = 'fv_config.rc'
       Type (FV_CORE) :: fv
