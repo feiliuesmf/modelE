@@ -8440,26 +8440,11 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 !@auth Jean Lerner
       USE DOMAIN_DECOMP, only: AM_I_ROOT
 #ifdef TRACERS_ON
-      USE CONSTANT, only: mair,rhow
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
-     *,sday
-#endif
+      USE CONSTANT, only: mair,rhow,sday
       USE MODEL_COM, only: itime,im,jm,lm,ls1,jday,JEQ,ptop,psf,sig
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
-     * ,dtsrc
-#endif
-#ifdef TRACERS_WATER
-     *  ,q,wm,flice
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,JMperY,JDperY
-#endif
-     &  ,jyear
+     *     ,dtsrc,q,wm,flice,JMperY,JDperY,jyear
       USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_COLUMN,
-     & write_parallel
+     &     write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm,rnsrc
@@ -8487,10 +8472,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
       USE GEOM, only: dxyp,bydxyp,lat_dg
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
-      USE PBLCOM, only: npbl,trabl
-#ifdef TRACERS_WATER
-     *  ,qabl
-#endif
+      USE PBLCOM, only: npbl,trabl,qabl
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc

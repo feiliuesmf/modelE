@@ -1953,6 +1953,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 ccc still not quite correct (assumes fw=1)
       do j=J_0,J_1
         do i=1,im
+          gtracer(:,4,i,j)=0.  ! default
           if (fearth(i,j).le.0.d0) cycle
           fb=afb(i,j) ; fv=1.-fb
           fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
