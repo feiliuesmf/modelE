@@ -1236,14 +1236,20 @@ C****
       SUBROUTINE daily_ice
 !@sum daily_ice performs ice processes that are needed everyday
 !@auth Gavin Schmidt
+      USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : jm,jday
       USE GEOM, only : imaxj
-      USE SEAICE_COM, only : flag_dsws,pond_melt
+      USE SEAICE_COM, only : flag_dsws,pond_melt,msi,hsi,ssi,rsi,snowi
+#ifdef TRACERS_WATER
+     *     ,trsi
+#endif
+      USE SEAICE, only : ace1i,xsi,lmi
+      USE FLUXES, only : gtemp,gtracer,fwsim
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
-      INTEGER I,J
-      integer :: J_0, J_1
+      INTEGER I,J, J_0, J_1
+      REAL*8 MSI1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -1265,6 +1271,15 @@ C**** otherwise pond_melt is zero
      *         then
           pond_melt(i,j)=0.
         end if
+
+C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
+        MSI1=SNOWI(I,J)+ACE1I
+        GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
+     *       (XSI(1:2)*MSI1)+LHM)*BYSHI
+#ifdef TRACERS_WATER
+        GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
+#endif
+        FWSIM(I,J) = RSI(I,J)*(MSI1+MSI(I,J)-SUM(SSI(1:LMI,I,J)))
       END DO
       END DO
 

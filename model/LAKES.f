@@ -1258,9 +1258,9 @@ C****
       USE SEAICE, only : ace1i,xsi,ac2oim
       USE GEOM, only : dxyp,imaxj,bydxyp
       USE GHY_COM, only : fearth
-      USE FLUXES, only : dmwldf,dgml
+      USE FLUXES, only : dmwldf,dgml,gtemp,mlhc
 #ifdef TRACERS_WATER
-     *     ,dtrl
+     *     ,dtrl,gtracer
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_run,j_erun,j_imelt,j_hmelt,areg
      *     ,jreg
@@ -1269,9 +1269,10 @@ C****
       IMPLICIT NONE
       integer i,j,J_0,J_1,jr
       real*8 new_flake,sumh,msinew,snownew,frac,itm,fmsi2,fmsi3
-     *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk
+     *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk,newmld
+     *     ,frsat,hlk2
 #ifdef TRACERS_WATER
-     *     ,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(2,ntm)
+     *     ,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm),tottr(ntm)
 #endif
 C****Work array for regional diagnostic accumulation
       REAL*8 :: AREG_SUM(size(AREG,1),2)
@@ -1303,29 +1304,22 @@ C****
             if (new_flake.gt.0) hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
               IF (new_flake.gt.0 .and. hlk.gt.0.4) THEN ! new or surviving lake
-c                IF (FLAKE(I,J).gt.0.) THEN
-c                  if (abs(new_flake-FLAKE(I,J)).gt.0.0001) PRINT*,
-c     *                 "lk chge",i,j,FLAKE(I,J),new_flake
-c                ELSE
-c                  print*,"lk new ",i,j,new_flake,hlk,tlake(i,j),kdirec(i
-c     *                 ,j)
-c                END IF
 C**** adjust for fearth changes
+                FRSAT=0.
                 IF (new_flake.gt.FLAKE(I,J)) THEN ! some water used to saturate
                   if (MWL(I,J).gt.DMWLDF(I,J)*(new_flake
      *                 -FLAKE(I,J))*DXYP(J)) THEN
-                    MWL(I,J)=MWL(I,J)-DMWLDF(I,J)*(new_flake-FLAKE(I,J))
-     *                   *DXYP(J)
+                    FRSAT=DMWLDF(I,J)*(new_flake-FLAKE(I,J))*DXYP(J)
+     *                   /MWL(I,J)
+                    MWL(I,J)=MWL(I,J)*(1.-FRSAT)
 C**** calculate associated energy/tracer transfer
-                    DGML(I,J)=DMWLDF(I,J)*(new_flake-FLAKE(I,J))
-     *                   *DXYP(J)*GML(I,J)/MWL(I,J)
-                    GML(I,J)=GML(I,J)-DGML(I,J)
+                    DGML(I,J)=FRSAT*GML(I,J)
+                    GML(I,J)=GML(I,J)*(1.-FRSAT)
 #ifdef TRACERS_WATER
-                    DTR(:,:)=DMWLDF(I,J)*(new_flake-FLAKE(I,J))
-     *                   *DXYP(J)*TRLAKE(:,:,I,J)/MWL(I,J)
-                    TRLAKE(:,:,I,J)=TRLAKE(:,:,I,J)-DTR(:,:)
-                    DTRL(:,I,J) = DTR(1,:)+DTR(2,:)
+                    DTRL(:,I,J)=FRSAT*(TRLAKE(:,1,I,J)+TRLAKE(:,2,I,J))
+                    TRLAKE(:,:,I,J)=TRLAKE(:,:,I,J)*(1.-FRSAT)
 #endif
+                    MLDLK(I,J)=MLDLK(I,J)*(1.-FRSAT)
 C**** save some diags
                     AJ(J, J_RUN,ITLAKE) =AJ(J, J_RUN,ITLAKE) +PLAKE*
      *                   DMWLDF(I,J)*(new_flake-FLAKE(I,J))
@@ -1408,20 +1402,39 @@ C**** all tracers --> tracer*FRAC, then adjust layering
                 ELSE
                   RSI(I,J)=PLKIC/new_flake
                 END IF
+C**** adjust layering if necessary
+                HLK=MWL(I,J)/(RHOW*new_flake*DXYP(J))
                 IF (MLDLK(I,J)*FLAKE(I,J).lt.new_flake*MINMLD) THEN
-                  MLDLK(I,J)=MIN(MINMLD,MWL(I,J)/(RHOW*DXYP(J)*new_flake
-     *                 ))
+                  IF (FLAKE(I,J).eq.0 .or. HLK.lt.MINMLD) THEN ! new or shallow lake
+                    MLDLK(I,J)=MIN(MINMLD,HLK)
+#ifdef TRACERS_WATER
+                    TOTTR(:)=TRLAKE(:,1,I,J)+TRLAKE(:,2,I,J)
+                    TRLAKE(:,2,I,J)=TOTTR(:)*(HLK-MLDLK(I,J))/HLK
+                    TRLAKE(:,1,I,J)=TOTTR(:)*     MLDLK(I,J) /HLK
+#endif
+                  ELSE  
+#ifdef TRACERS_WATER
+                    HLK2=HLK-MLDLK(I,J)*FLAKE(I,J)/new_flake
+                    IF (HLK2.gt.1d-20) THEN
+                      DTR(:)=TRLAKE(:,2,I,J)*(new_flake*MINMLD-MLDLK(I,J
+     *                     )*FLAKE(I,J))/(HLK*new_flake-MLDLK(I,J)
+     *                     *FLAKE(I,J))
+                      TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DTR(:)
+                      TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)-DTR(:)
+                    END IF
+#endif
+                    MLDLK(I,J)=MINMLD
+                  END IF
                 ELSE
                   MLDLK(I,J)=MLDLK(I,J)*FLAKE(I,J)/new_flake
                 END IF
+C**** adjust land surface fractions
                 FLAKE(I,J)=new_flake
                 FLAND(I,J)=1.-FLAKE(I,J)
                 FEARTH(I,J)=FLAND(I,J)-FLICE(I,J)
               ELSE
 C**** remove/do not create lakes that are too small
                 IF (FLAKE(I,J).gt.0) THEN
-c                  PRINT*,"lk gone",I,J,FLAKE(I,j),new_flake,MWL(I,J)
-c     *                 /(RHOW*DXYP(J)*FLAKE(I,J))
 C**** transfer lake ice mass/energy for accounting purposes
                   IMLT=ACE1I+MSI(I,J)+SNOWI(I,J)
                   HMLT=SUM(HSI(:,I,J))
@@ -1471,6 +1484,20 @@ C**** Finish accumulation of regional diagnostics (...sum along j)
       end if
 C**** 
       CALL PRINTLK("DY")
+
+C**** Set GTEMP array for lakes
+      DO J=J_0, J_1
+        DO I=1,IMAXJ(J)
+          IF (FLAKE(I,J).gt.0) THEN
+            GTEMP(1,1,I,J)=TLAKE(I,J)
+#ifdef TRACERS_WATER
+            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
+     *           *DXYP(J))
+#endif
+            MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
+          END IF
+        END DO
+      END DO
 C**** 
       RETURN
       END SUBROUTINE daily_LAKE
