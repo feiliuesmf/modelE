@@ -102,10 +102,10 @@
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
-         real*8 :: h              !* Height (m)
+         real*8 :: h  !<<<            !* Height (m)
          real*8 :: crown_dx       ! Crown horizontal axis length (m)
          real*8 :: crown_dy       ! Crown vertical axis length (m)
-         real*8 :: dbh            ! Stem diameter at breast height (m)
+         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
          !real*8 :: LA            ! Leaf area (m2[leaf])
          real*8 :: clump          ! Leaf clumping parameter (TBA)
@@ -174,7 +174,7 @@
          real*8 :: TRANS_SW     !Transmittance of shortwave radiation to the ground (fraction)
          real*8 :: GCANOPY         !Canopy conductance of water vapor (mm/s)
          real*8 :: CO2flux         !Net CO2 flux up (kg-C/m2-gnd/s)
-         real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
+         real*8 :: Ci   !<<<        !*Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8,pointer :: betadl(:) !Water stress in layers.
          real*8 :: Soil_resp       !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
@@ -206,7 +206,7 @@
 
          !* CASA carbon pools *!
          !"live" & "dead"
-         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
+         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !<<< !(g-C/m^2, CASA Tpools, single cell)
 
 #ifdef NEWDIAG
          !* Soil pools - patch total

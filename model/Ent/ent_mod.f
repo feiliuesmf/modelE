@@ -881,6 +881,9 @@ cddd      call zero_entcell(entcell%entcell)
       ! include all patch variables that need i/o
       call copy_vars( buf(dc:), nn,  p%age,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  p%area, flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%Ci,   flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%Tpool(1,:),flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%Tpool(2,:),flag ); dc = dc + nn
 
       n = dc
 
@@ -904,7 +907,10 @@ cddd      call zero_entcell(entcell%entcell)
       ! include all cohort variables that need i/o
       call copy_vars( buf(dc:), nn,  c%pft,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%n,    flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%nm,   flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%lai,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%h,    flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%dbh,  flag ); dc = dc + nn
 !      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
 
       n = dc
