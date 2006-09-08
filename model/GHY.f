@@ -808,7 +808,7 @@ c     Get canopy conductivity cnc and gpp
 !        agpp=gpp                !nyk 4/25/03.  Put in subroutine accm.
         pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
         evap_max_dry(ibv) = 0.d0
-        if ( betad > 0.d0 ) then
+        if ( betad > 0.d0 .and. pot_evap_can.gt.0 ) then
           do k=1,n
             evap_max_dry(ibv) = evap_max_dry(ibv)
      &           +  min( pot_evap_can*betadl(k)/betad,
@@ -838,7 +838,6 @@ c     Get canopy conductivity cnc and gpp
 ccc set variables for output
       evap_max_out = evap_max_nsat
       fr_sat_out = fr_sat
-
 ccc not sure if all this should be in one subroutine, but otherwise
 ccc one has to pass all these flux limits
 

@@ -447,8 +447,8 @@ C**** Water tracers need to multiply trsfac and trconstflx by cq*Usurf
           trsf=trsfac(itr)*cqsave*wsh
 #ifdef TRACERS_SPECIAL_O18
 C**** get fractionation for isotopes
-          call get_frac(itype,wsm,tg1,q(1),qgrnd,trname(ntix(itr)),trc1
-     *         ,trs1)
+          call get_frac(itype,wsm,tg1,q(1),qgrnd_sat,trname(ntix(itr))
+     *         ,trc1,trs1)
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
 #endif
@@ -557,6 +557,7 @@ C**** solve tracer transport equation
      *       tr_evap_max(itr),fr_sat,
 #endif
      *       dtime,n)
+
 
 #ifdef TRACERS_DRYDEP
 C**** put in a check to prevent unphysical solutions. If too much
