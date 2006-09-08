@@ -109,6 +109,12 @@ C**** sea ice melt and iceberg/glacial melt.
 !@+   (used for qflux model)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MSICNV
 
+C**** fluxes associated with variable lake fractions
+!@var DMWLDF  water deficit over land surface (kg/m^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DMWLDF
+!@var DGML energy associated with DMWLDF (J)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DGML
+
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
@@ -137,6 +143,11 @@ C**** sea ice melt and iceberg/glacial melt.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRFLOWO
 !@var TRMELTI tracer from simelt into ocean (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMELTI
+
+C**** fluxes associated with variable lake fractions
+!@var DTRL tracers associate with DMWLDF (kg)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DTRL
+
 #ifdef TRACERS_OCEAN
 !@var TRGMELT tracer from glacial melt into ocean (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRGMELT
@@ -260,6 +271,8 @@ C**** sea ice melt and iceberg/glacial melt.
      &          APRESS  ( I_0H:I_1H , J_0H:J_1H ),
      &          FWSIM   ( I_0H:I_1H , J_0H:J_1H ),
      &          MSICNV  ( I_0H:I_1H , J_0H:J_1H ),
+     &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
+     &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT=IER)
 
 
@@ -322,6 +335,7 @@ C**** sea ice melt and iceberg/glacial melt.
      &           TRFLOWO ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &           TRMELTI ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &           ftrsi_io( NTM , I_0H:I_1H , J_0H:J_1H ),
+     &           DTRL    ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 #ifdef TRACERS_OCEAN
        ALLOCATE( TRGMELT ( NTM , I_0H:I_1H , J_0H:J_1H ),

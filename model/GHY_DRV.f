@@ -3019,3 +3019,68 @@ ccc just checking ...
 
       end subroutine check_ghy_conservation
 
+
+      subroutine compute_water_deficit(jday)
+      use constant, only : twopi,edpery,rhow
+      use ghy_com, only : ngm,imt,dz_ij,q_ij
+     &     ,wbare,wvege
+      !use veg_com, only : ala,afb
+      use sle001, only : thm
+      use fluxes, only : DMWLDF
+      use ent_mod, only: entcelltype_public, ent_get_exports
+      use ent_com, only : entcells
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
+
+      implicit none
+      integer, intent(in) :: jday
+      !---
+      integer i,j,I_0,I_1,J_0,J_1
+      integer k,ibv,m
+      real*8 :: w_tot(2),w_stor(2),ws_can
+      real*8 :: w(ngm,2),dz(ngm),q(imt,ngm)
+      real*8 :: cosday,sinday,alai
+      real*8 :: fb,fv
+
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+      cosday=cos(twopi/edpery*jday)
+      sinday=sin(twopi/edpery*jday)
+
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+          w(1:ngm,1) =  wbare(1:ngm,i,j)
+          w(0:ngm,2) =  wvege(0:ngm,i,j)
+          dz(1:ngm) = dz_ij(i,j,1:ngm)
+          q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
+
+          call ent_get_exports( entcells(i,j),
+     &         canopy_max_H2O=ws_can,
+     &         fraction_of_vegetated_soil=fv
+     &     )
+
+          fb = 1.-fv
+
+          w_stor(:) = 0.d0
+          w_tot(:) = 0.d0
+          do ibv=1,2
+            do k=1,ngm
+              do m=1,imt-1
+                w_stor(ibv) = w_stor(ibv) + q(m,k)*thm(0,m)*dz(k)
+              end do
+              w_tot(ibv) = w_tot(ibv) + w(k,ibv)
+            end do
+          end do
+
+          ! include canopy water here
+          w_stor(2) = w_stor(2) + ws_can
+          w_tot(2) = w_tot(2) + w(0,2)
+
+          ! total water deficit on kg/m^2
+          DMWLDF(i,j) = fb*(w_stor(1) - w_tot(1))
+     &         + fv*(w_stor(2) - w_tot(2))
+        enddo
+      enddo
+
+      end subroutine compute_water_deficit
+
