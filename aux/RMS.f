@@ -6,7 +6,8 @@ C**** If you want to add a target, increase NDIAG and LMAX, enter
 C**** the TITLE for the diagnostic, and set up a releavnt OBS line that
 C**** describes the observations.
 C**** Now includes the Arcsin Mielke skill score
-      USE MODEL_COM, only : im,jm,fearth
+      USE MODEL_COM, only : im,jm
+      USE GHY_COM, only : fearth
       USE GEOM, only : geom_b
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
@@ -270,7 +271,8 @@ C****
 C**** Input: M = 1 for January, 2 for July
 C****      UM,VM data arrays
       USE CONSTANT, only : SKIP=>undef,pi
-      USE MODEL_COM, only : im,jm,fearth
+      USE MODEL_COM, only : im,jm
+      USE GHY_COM,  only : fearth
       USE GEOM,only : dxyp,imaxj
       IMPLICIT NONE
       REAL*4, PARAMETER :: SKIPOBS=-999999.
