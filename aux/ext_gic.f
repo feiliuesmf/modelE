@@ -10,8 +10,8 @@ C**** must be compiled after the model
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
      *     ,ioread,iowrite,ioreadnt
 !     USE SOMTQ_COM
-      USE GHY_COM, only : snowe,tearth,wearth,aiearth,wbare,wvege
-     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
+      USE GHY_COM, only : snowe,tearth,wearth,aiearth,w_ij
+     *     ,ht_ij,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
 !     USE RAD_COM, only : rqt,lm_req
 !     USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 !     USE DIAG_COM, only : keynr,tsfrez
@@ -96,10 +96,8 @@ C**** extending ground hydrology
               tearth(i,j)=tearth(i0,j0)
               wearth(i,j)=wearth(i0,j0)
               aiearth(i,j)=aiearth(i0,j0)
-              wbare(:,i,j) = wbare(:,i0,j0)
-              wvege(:,i,j) = wvege(:,i0,j0)
-              htbare(:,i,j)= htbare(:,i0,j0)
-              htvege(:,i,j)= htvege(:,i0,j0)
+              w_ij(:,:,i,j) = w_ij(:,:,i0,j0)
+              ht_ij(:,:,i,j)= ht_ij(:,:,i0,j0)
               snowbv(:,i,j)= snowbv(:,i0,j0)
             endif
           end do

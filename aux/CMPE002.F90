@@ -246,7 +246,7 @@
       use seaice_com, only : rsi,hsi,snowi,msi,ssi,pond_melt,flag_dsws
       use ghy_com, only : snowe,tearth,wearth,aiearth,snoage &
            ,evap_max_ij,fr_sat_ij,qg_ij
-      use ghy_com, only : wbare,wvege,htbare,htvege,snowbv, &
+      use ghy_com, only : w_ij,ht_ij,snowbv, &
         nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
       use veg_com, only : Cint,Qfol,cnc_ij
       use landice_com, only : snowli,tlandi
@@ -420,10 +420,8 @@
         check("fr_sat_ij",fr_sat_ij)
         check("qg_ij",qg_ij)
         ! ground hydrology data from ghy_com
-        check("wbare",wbare)
-        check("wvege",wvege)
-        check("htbare",htbare)
-        check("htvege",htvege)
+        check("w_ij",w_ij)
+        check("ht_ij",ht_ij)
         check("snowbv",snowbv)
         check("Cint",Cint)
         check("Qfol",Qfol)
