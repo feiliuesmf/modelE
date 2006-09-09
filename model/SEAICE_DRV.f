@@ -1244,7 +1244,10 @@ C****
      *     ,trsi
 #endif
       USE SEAICE, only : ace1i,xsi,lmi
-      USE FLUXES, only : gtemp,gtracer,fwsim
+      USE FLUXES, only : gtemp,fwsim
+#ifdef TRACERS_WATER
+     &     ,gtracer
+#endif
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
