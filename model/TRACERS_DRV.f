@@ -8466,7 +8466,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE SEAICE, only : xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
-      USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij,wbare,wvege
+      USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
       USE FLUXES, only : gtracer
 #endif
@@ -8882,8 +8882,8 @@ c**** landice
 c**** earth
             if (fearth(i,j).gt.0) then
               conv=rhow         ! convert from m to kg/m^2
-              tr_wbare  (n,:,i,j)=trw0(n)*wbare (:,i,j)*conv
-              tr_wvege  (n,:,i,j)=trw0(n)*wvege (:,i,j)*conv
+              tr_wbare  (n,:,i,j)=trw0(n)*w_ij (:,1,i,j)*conv
+              tr_wvege  (n,:,i,j)=trw0(n)*w_ij (:,2,i,j)*conv
               tr_wsn_ij(n,1:nsn_ij(1,i,j),1,i,j)=
      &             trw0(n)*wsn_ij(1:nsn_ij(1,i,j),1,i,j)
      &             *fr_snow_ij(1,i,j)*conv

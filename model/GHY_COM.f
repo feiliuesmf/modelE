@@ -16,15 +16,20 @@
 ccc dimensions of the GHY arrays
       integer, parameter, public :: ngm=6, imt=5, nlsn=3
 
+!@var LS_NFRAC number of land surface fractions
+      integer, parameter, public :: LS_NFRAC=2
+
 ccc variable earth fraction
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FEARTH
 
 ccc bare/veg not in merged array because WBARE does not contain
 ccc 0 index for legacy reasons
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WBARE
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WVEGE
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HTBARE
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HTVEGE
+      !REAL*8, POINTER, DIMENSION(:,:,:) :: WBARE
+      !REAL*8, POINTER, DIMENSION(:,:,:) :: WVEGE
+      !REAL*8, POINTER, DIMENSION(:,:,:) :: HTBARE
+      !REAL*8, POINTER, DIMENSION(:,:,:) :: HTVEGE
+      REAL*8, ALLOCATABLE, TARGET, DIMENSION(:,:,:,:) :: W_IJ
+      REAL*8, ALLOCATABLE, TARGET, DIMENSION(:,:,:,:) :: HT_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOWBV
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: DZ_IJ
@@ -111,12 +116,22 @@ C****
       ALLOCATE(     FEARTH(IM,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(      WBARE(  NGM,IM,J_0H:J_1H),
-     *               WVEGE(0:NGM,IM,J_0H:J_1H),
-     *              HTBARE(0:NGM,IM,J_0H:J_1H),
-     *              HTVEGE(0:NGM,IM,J_0H:J_1H),
-     *              SNOWBV(    2,IM,J_0H:J_1H),
+cddd      ALLOCATE(      WBARE(  NGM,IM,J_0H:J_1H),
+cddd     *               WVEGE(0:NGM,IM,J_0H:J_1H),
+cddd     *              HTBARE(0:NGM,IM,J_0H:J_1H),
+cddd     *              HTVEGE(0:NGM,IM,J_0H:J_1H),
+cddd     *              SNOWBV(    2,IM,J_0H:J_1H),
+cddd     *         STAT=IER)
+
+      ALLOCATE(      W_IJ(0:NGM,LS_NFRAC,IM,J_0H:J_1H),
+     *              HT_IJ(0:NGM,LS_NFRAC,IM,J_0H:J_1H),
+     *              SNOWBV(     LS_NFRAC,IM,J_0H:J_1H),
      *         STAT=IER)
+
+      !WBARE => W_IJ(1:,1,1:,1:)
+      !WVEGE => W_IJ(1:,1,1:,1:)
+      !HTBARE => HT_IJ(1:,1,1:,1:)
+      !HTVEGE => HT_IJ(1:,1,1:,1:)
 
       ALLOCATE(     DZ_IJ(IM,J_0H:J_1H,NGM),
      *               Q_IJ(IM,J_0H:J_1H,IMT,NGM),
@@ -263,7 +278,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       USE DOMAIN_DECOMP, ONLY: GRID, GET, CHECKSUM_COLUMN
       USE DOMAIN_DECOMP, ONLY: PACK_DATA, PACK_COLUMN, AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY: PACK_BLOCK, UNPACK_BLOCK
-      USE DOMAIN_DECOMP, ONLY:  UNPACK_COLUMN
+      USE DOMAIN_DECOMP, ONLY:  UNPACK_COLUMN, grid, get
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -278,7 +293,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       REAL*8, DIMENSION(0:NGM,IM,JM)::WVEGE_GLOB,HTBARE_GLOB,HTVEGE_GLOB
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS02"
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0H, J_1H
 
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
@@ -292,16 +307,18 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      *     ,'),TRSNOWBV(',ntm,'2)'
 #endif
 
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
       write(MODULE_HEADER(lhead+1:80),'(a6,i1,a11,i1,a,a)') 'R8 Wb(',
      *   ngm,',ijm), dim(',ngm+1,',ijm):Wv,HTb,HTv, SNWbv(2,ijm),'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_COLUMN(grid  , WBARE ,  WBARE_GLOB)
+        CALL PACK_COLUMN(grid,W_IJ(1:NGM,1,1:IM,J_0H:J_1H) , WBARE_GLOB)
         CALL PACK_COLUMN(grid, SNOWBV, SNOWBV_GLOB)
-        CALL PACK_COLUMN(grid, WVEGE ,  WVEGE_GLOB)
-        CALL PACK_COLUMN(grid, HTBARE, HTBARE_GLOB)
-        CALL PACK_COLUMN(grid, HTVEGE, HTVEGE_GLOB)
+        CALL PACK_COLUMN(grid,W_IJ(0:NGM,2,1:IM,J_0H:J_1H) , WVEGE_GLOB)
+        CALL PACK_COLUMN(grid,HT_IJ(0:NGM,1,1:IM,J_0H:J_1H),HTBARE_GLOB)
+        CALL PACK_COLUMN(grid,HT_IJ(0:NGM,2,1:IM,J_0H:J_1H),HTVEGE_GLOB)
 #ifdef TRACERS_WATER
         CALL PACK_BLOCK(grid, TR_WBARE , TR_WBARE_GLOB)
         CALL PACK_BLOCK(grid, TR_WVEGE , TR_WVEGE_GLOB)
@@ -326,10 +343,14 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
         END IF
         end if    !...am_i_root
 
-        call unpack_column(grid, wbare_glob ,  wbare)
-        call unpack_column(grid, wvege_glob ,  wvege)
-        call unpack_column(grid, htbare_glob, htbare)
-        call unpack_column(grid, htvege_glob, htvege)
+        call unpack_column(grid, wbare_glob,
+     &       w_ij(1:NGM,1,1:IM,J_0H:J_1H))
+        call unpack_column(grid, wvege_glob,
+     &       w_ij(0:NGM,2,1:IM,J_0H:J_1H))
+        call unpack_column(grid, htbare_glob,
+     &       ht_ij(0:NGM,1,1:IM,J_0H:J_1H))
+        call unpack_column(grid, htvege_glob,
+     &       ht_ij(0:NGM,2,1:IM,J_0H:J_1H))
         call unpack_column(grid, snowbv_glob, snowbv)
 
 #ifdef TRACERS_WATER

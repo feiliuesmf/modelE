@@ -108,7 +108,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
-      use ghy_com, only : ngm, imt, nlsn
+      use ghy_com, only : ngm, imt, nlsn, LS_NFRAC
 
 
       implicit none
@@ -171,7 +171,7 @@ ccc   input bc''s
 ccc   soil prognostic variables
 !!!      integer, parameter, public :: ngm=6, ng=ngm+1, imt=5
       integer, parameter, public :: ng=ngm+1
-      real*8, public :: w(0:ngm,2),ht(0:ngm,2),dz(ngm)
+      real*8, public :: w(0:ngm,LS_NFRAC),ht(0:ngm,LS_NFRAC),dz(ngm)
 
 ccc   soil properties which need to be passed in:
       real*8, public :: q(imt,ngm),qk(imt,ngm),sl,fv,fb
@@ -808,7 +808,7 @@ c     Get canopy conductivity cnc and gpp
 !        agpp=gpp                !nyk 4/25/03.  Put in subroutine accm.
         pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
         evap_max_dry(ibv) = 0.d0
-        if ( betad > 0.d0 .and. pot_evap_can.gt.0 ) then
+        if ( betad > 0.d0 .and. pot_evap_can > 0.d0 ) then
           do k=1,n
             evap_max_dry(ibv) = evap_max_dry(ibv)
      &           +  min( pot_evap_can*betadl(k)/betad,

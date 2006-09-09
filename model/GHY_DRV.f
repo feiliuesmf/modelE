@@ -1772,9 +1772,9 @@ c**** check whether ground hydrology data exist at this point.
               print *, "No soil data: i,j=",i,j,dz_ij(i,j,1:ngm)
               ghy_data_missing = .true.
             endif
-            if (wbare(1,i,j) < 1.d-10 .and. wvege(1,i,j) < 1.d-10) then
+            if (w_ij(1,1,i,j)<1.d-10 .and. w_ij(1,2,i,j)<1.d-10) then
               print*,"No gh data in restart file: i,j=",i,j,
-     &             wbare(:,i,j),wvege(:,i,j)
+     &             w_ij(:,1,i,j),w_ij(:,2,i,j)
               ghy_data_missing = .true.
             endif
           end if
@@ -1813,18 +1813,18 @@ c**** recompute ground hydrology data if necessary (new soils data)
           pearth=fearth(i,j)
           if(pearth.le.0.) then
 
-            wbare(:,i,j)=0.
-            wvege(:,i,j)=0.
-            htbare(:,i,j)=0.
-            htvege(:,i,j)=0.
+            w_ij(:,:,i,j)=0.
+            ht_ij(:,:,i,j)=0.
             snowbv(:,i,j)=0.
 
           else
 ccc   ??? remove next 5 lines? -check the old version
-            w(1:ngm,1) =   wbare(1:ngm,i,j)
-            w(0:ngm,2) =   wvege(0:ngm,i,j)
-            ht(0:ngm,1) = htbare(0:ngm,i,j)
-            ht(0:ngm,2) = htvege(0:ngm,i,j)
+            !w(1:ngm,1) =   wbare(1:ngm,i,j)
+            !w(0:ngm,2) =   wvege(0:ngm,i,j)
+            !ht(0:ngm,1) = htbare(0:ngm,i,j)
+            !ht(0:ngm,2) = htvege(0:ngm,i,j)
+            w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
+            ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i,j)
             snowd(1:2) =  snowbv(1:2,i,j)
 
 c**** compute soil heat capacity and ground water saturation gws
@@ -1843,10 +1843,8 @@ c           tg2 =gdata(i,j,8)
             call ghinht (snowdp, tg1,tg2, wtr1,wtr2, ace1,ace2)
 
 c**** copy soils prognostic quantities to model variables
-            wbare(1:ngm,i,j) = w(1:ngm,1)
-            wvege(0:ngm,i,j) = w(0:ngm,2)
-            htbare(0:ngm,i,j) = ht(0:ngm,1)
-            htvege(0:ngm,i,j) = ht(0:ngm,2)
+            w_ij(0:ngm,1:LS_NFRAC,i,j) = w(0:ngm,1:LS_NFRAC)
+            ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
             snowbv(1:2,i,j)   = snowd(1:2)
           end if
         end do
@@ -1903,10 +1901,12 @@ ccc!!! restart file (without snow model data)
             cosday=cos(twopi/edpery*jday)
             sinday=sin(twopi/edpery*jday)
 
-            w(1:ngm,1) =   wbare(1:ngm,i,j)
-            w(0:ngm,2) =   wvege(0:ngm,i,j)
-            ht(0:ngm,1) = htbare(0:ngm,i,j)
-            ht(0:ngm,2) = htvege(0:ngm,i,j)
+            !w(1:ngm,1) =   wbare(1:ngm,i,j)
+            !w(0:ngm,2) =   wvege(0:ngm,i,j)
+            !ht(0:ngm,1) = htbare(0:ngm,i,j)
+            !ht(0:ngm,2) = htvege(0:ngm,i,j)
+            w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
+            ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i,j)
             snowd(1:2) =  snowbv(1:2,i,j)
 
             call ghinij (i,j)
@@ -1920,10 +1920,12 @@ ccc!!! restart file (without snow model data)
             fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 
 c****     copy soils prognostic quantities to model variables
-             wbare(1:ngm,i,j) = w(1:ngm,1)
-             wvege(0:ngm,i,j) = w(0:ngm,2)
-            htbare(0:ngm,i,j) = ht(0:ngm,1)
-            htvege(0:ngm,i,j) = ht(0:ngm,2)
+            ! wbare(1:ngm,i,j) = w(1:ngm,1)
+            ! wvege(0:ngm,i,j) = w(0:ngm,2)
+            !htbare(0:ngm,i,j) = ht(0:ngm,1)
+            !htvege(0:ngm,i,j) = ht(0:ngm,2)
+            w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
+            ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
             snowbv(1:2,i,j)   = snowd(1:2)
 
           end if
@@ -1958,9 +1960,9 @@ ccc still not quite correct (assumes fw=1)
           fb=afb(i,j) ; fv=1.-fb
           fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
           if ( fm < 1.d-3 ) fm=0.d0
-          wsoil_tot=fb*( wbare(1,i,j)*(1.d0-fr_snow_ij(1,i,j))
+          wsoil_tot=fb*( w_ij(1,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
      &     + wsn_ij(1,1,i,j)*fr_snow_ij(1,i,j) )
-     &     + fv*( wvege(0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))   !*1.d0
+     &     + fv*( w_ij(0,2,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))   !*1.d0
      &     + wsn_ij(1,2,i,j)*fm*fr_snow_ij(2,i,j) )
           do n=1,ntm
             if (itime_tr0(n).gt.itime) cycle
@@ -2044,16 +2046,16 @@ ccc ugly, should fix later
       tearth(i,j)= -0.12476520d+00
       wearth(i,j)=  0.29203081d+02
       aiearth(i,j)=  0.93720329d-01
-      wbare(:,i,j) = (/  0.17837750d-01,  0.40924843d-01,
+      w_ij(:,1,i,j) = (/0.d0,  0.17837750d-01,  0.40924843d-01,
      &     0.77932012d-01,  0.11919649d+00,  0.57237469d-01,
      &     0.10000000d-11 /)
-      wvege(:,i,j) = (/  0.10000000d-11,  0.29362259d-01,
+      w_ij(:,2,i,j) = (/  0.10000000d-11,  0.29362259d-01,
      &     0.50065177d-01,  0.82533140d-01,  0.10383620d+00,
      &     0.31552459d-01,  0.10000000d-11 /)
-      htbare(:,i,j)= (/  0.00000000d+00, -0.15487181d+07,
+      ht_ij(:,1,i,j)= (/  0.00000000d+00, -0.15487181d+07,
      &     -0.50720067d+07,  0.18917623d+07,  0.77174974d+07,
      &     0.21716040d+08,  0.44723067d+08 /)
-      htvege(:,i,j)= (/ -0.13991376d+05, -0.53165599d+05,
+      ht_ij(:,2,i,j)= (/ -0.13991376d+05, -0.53165599d+05,
      &     0.65443775d+06,  0.29276050d+07,  0.81455096d+07,
      &     0.21575081d+08,  0.45952255d+08 /)
       snowbv(:,i,j)= (/  0.00000000d+00,  0.65458111d-04 /)
@@ -2080,9 +2082,9 @@ c****
      *     ,htpr
      *     ,top_index,top_stdev
      &     ,w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-      use ghy_com, only : ngm,imt,nlsn,dz_ij,sl_ij,q_ij,qk_ij
+      use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
-     &     ,wbare,wvege,htbare,htvege,snowbv,nsn_ij,dzsn_ij,wsn_ij
+     &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
      &     ,hsn_ij,fr_snow_ij
       use veg_com, only: afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET
@@ -2102,10 +2104,12 @@ c****
       j_earth = j0
 
 ccc extracting ghy prognostic vars
-      w(1:ngm,1) =  wbare(1:ngm,i0,j0)
-      w(0:ngm,2) =  wvege(0:ngm,i0,j0)
-      ht(0:ngm,1) = htbare(0:ngm,i0,j0)
-      ht(0:ngm,2) = htvege(0:ngm,i0,j0)
+      !w(1:ngm,1) =  wbare(1:ngm,i0,j0)
+      !w(0:ngm,2) =  wvege(0:ngm,i0,j0)
+      !ht(0:ngm,1) = htbare(0:ngm,i0,j0)
+      !ht(0:ngm,2) = htvege(0:ngm,i0,j0)
+      w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i0,j0)
+      ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i0,j0)
       snowd(1:2)  = snowbv(1:2,i0,j0)
 ccc extracting snow variables
       nsn(1:2)          = nsn_ij    (1:2, i0, j0)
@@ -2196,16 +2200,18 @@ c****
 
       subroutine ghy_save_cell(i,j)
       use sle001, only : w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-      use ghy_com, only : ngm,nlsn
-     &     ,dz_ij,wbare,wvege,htbare,htvege,snowbv
+      use ghy_com, only : ngm,nlsn,LS_NFRAC
+     &     ,dz_ij,w_ij,ht_ij,snowbv
      &     ,nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
       implicit none
       integer, intent(in) :: i,j
 
-      wbare(1:ngm,i,j) = w(1:ngm,1)
-      wvege(0:ngm,i,j) = w(0:ngm,2)
-      htbare(0:ngm,i,j) = ht(0:ngm,1)
-      htvege(0:ngm,i,j) = ht(0:ngm,2)
+      !wbare(1:ngm,i,j) = w(1:ngm,1)
+      !wvege(0:ngm,i,j) = w(0:ngm,2)
+      !htbare(0:ngm,i,j) = ht(0:ngm,1)
+      !htvege(0:ngm,i,j) = ht(0:ngm,2)
+      w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
+      ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
       snowbv(1:2,i,j)   = snowd(1:2)
 ccc copy snow variables back to storage
       nsn_ij    (1:2, i, j)         = nsn(1:2)
@@ -2365,8 +2371,8 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
 !@ver  1.0
       use model_com, only : itime,wfcs
       use geom, only : imaxj
-      use ghy_com, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
-     *     ,htvege,snowbv,ngm,fearth
+      use ghy_com, only : tearth,wearth,aiearth,snowe,w_ij,ht_ij
+     *     ,snowbv,ngm,fearth
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       implicit none
 
@@ -2385,13 +2391,13 @@ C****
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
 c**** check for nan/inf in earth data
-      call check3(wbare(1:ngm,I_0:I_1,J_0:J_1) ,ngm  ,
+      call check3(w_ij(1:ngm,1,I_0:I_1,J_0:J_1) ,ngm  ,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wb')
-      call check3(wvege(0:ngm,I_0:I_1,J_0:J_1) ,ngm+1,
+      call check3(w_ij(0:ngm,2,I_0:I_1,J_0:J_1) ,ngm+1,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wv')
-      call check3(htbare(0:ngm,I_0:I_1,J_0:J_1),ngm+1,
+      call check3(ht_ij(0:ngm,1,I_0:I_1,J_0:J_1),ngm+1,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hb')
-      call check3(htvege(0:ngm,I_0:I_1,J_0:J_1),ngm+1,
+      call check3(ht_ij(0:ngm,2,I_0:I_1,J_0:J_1),ngm+1,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hv')
       call check3(snowbv(1:ngm,I_0:I_1,J_0:J_1),2    ,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'sn')
@@ -2569,7 +2575,7 @@ c****
       use geom, only : imaxj,dxyp
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use DOMAIN_DECOMP, only : GLOBALSUM
-      use ghy_com, only : snowe, tearth,wearth,aiearth,wbare,wvege
+      use ghy_com, only : snowe, tearth,wearth,aiearth,w_ij
      *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij,
      *     fearth 
       use veg_com, only : afb
@@ -2655,11 +2661,11 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
         do k=1,3
-          aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+wbare(k,i,j)
-          aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+wvege(k-1,i,j)
+          aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+w_ij(k,1,i,j)
+          aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+w_ij(k-1,2,i,j)
         end do
-        aij(i,j,ij_g04)=aij(i,j,ij_g04)+wbare(6,i,j)
-        aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)
+        aij(i,j,ij_g04)=aij(i,j,ij_g04)+w_ij(6,1,i,j)
+        aij(i,j,ij_g10)=aij(i,j,ij_g10)+w_ij(6,2,i,j)
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
         aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
@@ -2697,7 +2703,7 @@ c****
       use constant, only : rhow
       use model_com, only : fim
       use geom, only : imaxj
-      use ghy_com, only : ngm,wbare,wvege,snowbv,fearth
+      use ghy_com, only : ngm,w_ij,snowbv,fearth
       use veg_com, only : afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
@@ -2724,9 +2730,9 @@ C****
         do i=1,imaxj(j)
           if (fearth(i,j).gt.0) then
             fb=afb(i,j)
-            wij=fb*snowbv(1,i,j)+(1.-fb)*(wvege(0,i,j)+snowbv(2,i,j))
+            wij=fb*snowbv(1,i,j)+(1.-fb)*(w_ij(0,2,i,j)+snowbv(2,i,j))
             do n=1,ngm
-              wij=wij+fb*wbare(n,i,j)+(1.-fb)*wvege(n,i,j)
+              wij=wij+fb*w_ij(n,1,i,j)+(1.-fb)*w_ij(n,2,i,j)
             end do
             waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
           end if
@@ -2743,7 +2749,7 @@ c****
 !@ver  1.0
       use model_com, only : fim
       use geom, only : imaxj, dxyp
-      use ghy_com, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
+      use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth 
       use veg_com, only : afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
@@ -2771,8 +2777,8 @@ C****
           if (fearth(i,j).le.0) cycle
           fb=afb(i,j)
           fv=(1.d0-fb)
-          hij=fb*sum( htbare(1:ngm,i,j) )
-     &       +  fv*sum( htvege(0:ngm,i,j) )
+          hij=fb*sum( ht_ij(1:ngm,1,i,j) )
+     &       +  fv*sum( ht_ij(0:ngm,2,i,j) )
      &       +  fb*fr_snow_ij(1,i,j)*sum( hsn_ij(1:nsn_ij(1,i,j),1,i,j))
      &       +  fv*fr_snow_ij(2,i,j)*sum( hsn_ij(1:nsn_ij(2,i,j),2,i,j))
           heatg(j)=heatg(j)+fearth(i,j)*hij
@@ -2797,7 +2803,7 @@ ccc of the 'surface' to check water conservation
       use model_com, only : im,jm
       use DOMAIN_DECOMP, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
-      use ghy_com, only : ngm,wbare,wvege,htbare,htvege,snowbv,dz_ij
+      use ghy_com, only : ngm,w_ij,ht_ij,snowbv,dz_ij
      *     ,fearth 
       use veg_com, only : afb
       implicit none
@@ -2830,8 +2836,8 @@ ccc just checking ...
 
           fb = afb(i,j)
           fv = 1.d0 - fb
-          total_water(i,j) = fb*sum( wbare(1:ngm,i,j) )
-     &         + fv*sum( wvege(0:ngm,i,j) )
+          total_water(i,j) = fb*sum( w_ij(1:ngm,1,i,j) )
+     &         + fv*sum( w_ij(0:ngm,2,i,j) )
      &         + fb*snowbv(1,i,j) + fv*snowbv(2,i,j)
         end do
       end do
@@ -2868,8 +2874,8 @@ ccc just checking ...
 
       subroutine compute_water_deficit(jday)
       use constant, only : twopi,edpery,rhow
-      use ghy_com, only : ngm,imt,dz_ij,q_ij
-     &     ,wbare,wvege,fearth
+      use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
+     &     ,w_ij,fearth
       use veg_com, only : ala,afb
       use model_com, only : focean
       use sle001, only : thm
@@ -2904,8 +2910,7 @@ ccc just checking ...
             cycle
           endif
 
-          w(1:ngm,1) =  wbare(1:ngm,i,j)
-          w(0:ngm,2) =  wvege(0:ngm,i,j)
+          w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
           dz(1:ngm) = dz_ij(i,j,1:ngm)
           q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
 
