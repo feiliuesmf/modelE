@@ -82,7 +82,7 @@ c******************   TRACERS             ******************************
 #endif
 
 #ifdef TRACERS_WATER
-      use ghy_com, only : tr_wbare,tr_wvege,tr_wsn_ij
+      use ghy_com, only : tr_w_ij,tr_wsn_ij
 #endif
 
       use pbl_drv, only : trtop,trs,trsfac,trconstflx,ntx,ntix
@@ -187,8 +187,8 @@ ccc tracers variables
         n = ntixw(nx)
         ! prognostic vars
         tr_w(nx,0,1) = 0.d0
-        tr_w(nx,1:ngm,1) = tr_wbare(n,1:ngm,i,j)
-        tr_w(nx,0:ngm,2) = tr_wvege(n,0:ngm,i,j)
+        tr_w(nx,1:ngm,1) = tr_w_ij(n,1:ngm,1,i,j)
+        tr_w(nx,0:ngm,2) = tr_w_ij(n,0:ngm,2,i,j)
         tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
         ! flux in
         trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s
@@ -293,8 +293,8 @@ ccc tracers
 #ifdef TRACERS_WATER
       do nx=1,ntg
         n = ntixw(nx)
-        tr_wbare(n,1:ngm,i,j) = tr_w(nx,1:ngm,1)
-        tr_wvege(n,0:ngm,i,j) = tr_w(nx,0:ngm,2)
+        tr_w_ij(n,1:ngm,1,i,j) = tr_w(nx,1:ngm,1)
+        tr_w_ij(n,0:ngm,2,i,j) = tr_w(nx,0:ngm,2)
         tr_wsn_ij(n,1:nlsn, 1:2, i, j) = tr_wsn(nx,1:nlsn,1:2)
       enddo
 #endif
@@ -1970,9 +1970,9 @@ ccc still not quite correct (assumes fw=1)
             ! should also restrict to TYPE=nWATER ?
             if ( wsoil_tot > 1.d-30 ) then
             gtracer(n,4,i,j) = (
-     &           fb*( tr_wbare(n,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
+     &           fb*( tr_w_ij(n,1,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
      &           + tr_wsn_ij(n,1,1,i,j) )         !*fr_snow_ij(1,i,j)
-     &           + fv*( tr_wvege(n,0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))
+     &           + fv*( tr_w_ij(n,0,2,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))
      &           + tr_wsn_ij(n,1,2,i,j)*fm ) )    !*fr_snow_ij(2,i,j)
      &           /(rhow*wsoil_tot)
             else
@@ -2910,7 +2910,7 @@ ccc just checking ...
             cycle
           endif
 
-          w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
+          w(0:ngm,1:2) = w_ij(0:ngm,1:2,i,j)
           dz(1:ngm) = dz_ij(i,j,1:ngm)
           q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
 
@@ -2945,3 +2945,65 @@ ccc just checking ...
 
       end subroutine compute_water_deficit
 
+
+      subroutine init_underwater_soil(jday)
+
+!!!! UNFINISHED
+      use constant, only : twopi,edpery,rhow
+      use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
+     &     ,w_ij,ht_ij,fearth
+      use veg_com, only : ala,afb
+      use model_com, only : focean
+      use sle001, only : thm
+      use fluxes, only : DMWLDF
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
+
+      implicit none
+      integer, intent(in) :: jday
+      !---
+      integer i,j,I_0,I_1,J_0,J_1
+      integer k,ibv,m
+      real*8 :: w_stor(0:ngm)
+      real*8 :: w(0:ngm,2),dz(ngm),q(imt,ngm)
+      real*8 :: cosday,sinday,alai
+      real*8 :: fb,fv
+
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+ 
+      cosday=cos(twopi/edpery*jday)
+      sinday=sin(twopi/edpery*jday)
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+
+          if( focean(i,j) >= 1.d0 ) then
+            w_ij (0:ngm,1:2,i,j) = 0.d0
+            ht_ij(0:ngm,1:2,i,j) = 0.d0
+            cycle
+          endif
+
+          
+          !w(0:ngm,1:2) = w_ij(0:ngm,1:2,i,j)
+          dz(1:ngm) = dz_ij(i,j,1:ngm)
+          q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
+
+          fb = afb(i,j)
+          fv=1.-fb
+
+          do k=1,ngm
+            w_stor(k) = 0.d0
+            do m=1,imt-1
+              w_stor(k) = w_stor(k) + q(m,k)*thm(0,m)*dz(k)
+            enddo
+          enddo
+
+          ! include canopy water here
+          alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
+          alai=max(alai,1.d0)
+          w_stor(0) = .0001d0*alai*fv
+ 
+        enddo
+      enddo
+
+      end subroutine init_underwater_soil

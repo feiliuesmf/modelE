@@ -8466,7 +8466,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE SEAICE, only : xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
-      USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij,w_ij
+      USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
       USE FLUXES, only : gtracer
 #endif
@@ -8605,8 +8605,7 @@ C**** set some defaults for water tracers
       trsi(n,:,:,J_0:J_1)=0.
       trlndi(n,:,J_0:J_1)=0.
       trsnowli(n,:,J_0:J_1)=0.
-      tr_wbare(n,:,:,J_0:J_1)=0.
-      tr_wvege(n,:,:,J_0:J_1)=0.
+      tr_w_ij(n,:,:,:,J_0:J_1)=0.
       tr_wsn_ij(n,:,:,:,J_0:J_1)=0.
 #endif
       select case (trname(n))
@@ -8882,8 +8881,7 @@ c**** landice
 c**** earth
             if (fearth(i,j).gt.0) then
               conv=rhow         ! convert from m to kg/m^2
-              tr_wbare  (n,:,i,j)=trw0(n)*w_ij (:,1,i,j)*conv
-              tr_wvege  (n,:,i,j)=trw0(n)*w_ij (:,2,i,j)*conv
+              tr_w_ij  (n,:,:,i,j)=trw0(n)*w_ij (:,:,i,j)*conv
               tr_wsn_ij(n,1:nsn_ij(1,i,j),1,i,j)=
      &             trw0(n)*wsn_ij(1:nsn_ij(1,i,j),1,i,j)
      &             *fr_snow_ij(1,i,j)*conv
@@ -8893,8 +8891,7 @@ c**** earth
               !trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
               gtracer (n,4,i,j)=trw0(n)
             else
-              tr_wbare  (n,:,i,j)=0.
-              tr_wvege  (n,:,i,j)=0.
+              tr_w_ij  (n,:,1:2,i,j)=0.
               tr_wsn_ij(n,:,:,i,j)=0.
               !trsnowbv(n,1,i,j)=0.
               !trsnowbv(n,2,i,j)=0.

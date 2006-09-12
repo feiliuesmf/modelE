@@ -569,7 +569,7 @@ C****
       USE SEAICE_COM, only : trsi
       USE LAKES_COM, only : trlake
       USE LANDICE_COM, only : trlndi,trsnowli
-      USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij
+      USE GHY_COM, only : tr_w_ij,tr_wsn_ij
 #endif
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_decay,itcon_decay
       USE DOMAIN_DECOMP, only : GRID, GET
@@ -613,8 +613,7 @@ C**** Decay sea ice tracers
 C**** ...lake tracers
           trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
 C**** ...land surface tracers
-          tr_wbare(n,:,:,:) = expdec(n)*tr_wbare(n,:,:,:)
-          tr_wvege(n,:,:,:) = expdec(n)*tr_wvege(n,:,:,:)
+          tr_w_ij(n,:,:,:,:) = expdec(n)*tr_w_ij(n,:,:,:,:)
           tr_wsn_ij(n,:,:,:,:)= expdec(n)*tr_wsn_ij(n,:,:,:,:)
           trsnowli(n,:,:) = expdec(n)*trsnowli(n,:,:)
           trlndi(n,:,:)   = expdec(n)*trlndi(n,:,:)

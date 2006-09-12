@@ -82,11 +82,13 @@ C**** What is the prognostic variable for snow here?
 #ifdef TRACERS_WATER
 ccc new tracers
       !integer, parameter :: NTM = 3
-!@var TR_WBARE tracers in bare soil fraction (kg/m^2)
-!@var TR_WVEGE tracers in vegetated soil fraction (kg/m^2)
+!!!@var TR_WBARE tracers in bare soil fraction (kg/m^2)
+!!!@var TR_WVEGE tracers in vegetated soil fraction (kg/m^2)
+!@var TR_W_IJ water tracers in soil (kg/m^2)
 !@var TR_WSN_IJ tracer amount in snow (multiplied by fr_snow) (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TR_WBARE
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TR_WVEGE
+      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TR_WBARE
+      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TR_WVEGE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: TR_W_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: TR_WSN_IJ
 ccc TRSNOWBV is not used
 !@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
@@ -186,14 +188,16 @@ ccc init snow arrays to prevent addressing uninitialized vars
      *         STAT=IER)
 #endif
 #ifdef TRACERS_WATER
-      ALLOCATE(     TR_WBARE(NTM,  NGM,IM,J_0H:J_1H),
-     *              TR_WVEGE(NTM,0:NGM,IM,J_0H:J_1H),
-     *             TR_WSN_IJ(NTM,NLSN,2,IM,J_0H:J_1H),
-     *             TRSNOWBV0(NTM,2,IM,J_0H:J_1H),
+cddd      ALLOCATE(     TR_WBARE(NTM,  NGM,IM,J_0H:J_1H),
+cddd     *              TR_WVEGE(NTM,0:NGM,IM,J_0H:J_1H),
+      ALLOCATE(      TR_W_IJ(NTM,0:NGM,LS_NFRAC,IM,J_0H:J_1H),
+     *             TR_WSN_IJ(NTM,NLSN,        2,IM,J_0H:J_1H),
+     *             TRSNOWBV0(NTM,      LS_NFRAC,IM,J_0H:J_1H),
      *         STAT=IER)
 C**** Initialize to zero
-      TR_WBARE(:,:,:,J_0H:J_1H)=0.d0
-      TR_WVEGE(:,:,:,J_0H:J_1H)=0.d0
+      !TR_WBARE(:,:,:,J_0H:J_1H)=0.d0
+      !TR_WVEGE(:,:,:,J_0H:J_1H)=0.d0
+      TR_W_IJ(:,:,:,:,J_0H:J_1H)=0.d0
       TR_WSN_IJ(:,:,:,:,J_0H:J_1H)=0.d0
 #endif
 
@@ -320,8 +324,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL PACK_COLUMN(grid,HT_IJ(0:NGM,1,1:IM,J_0H:J_1H),HTBARE_GLOB)
         CALL PACK_COLUMN(grid,HT_IJ(0:NGM,2,1:IM,J_0H:J_1H),HTVEGE_GLOB)
 #ifdef TRACERS_WATER
-        CALL PACK_BLOCK(grid, TR_WBARE , TR_WBARE_GLOB)
-        CALL PACK_BLOCK(grid, TR_WVEGE , TR_WVEGE_GLOB)
+        CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,1:NGM,1,1:IM,J_0H:J_1H),
+     &       TR_WBARE_GLOB)
+        CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,0:NGM,1,1:IM,J_0H:J_1H),
+     &       TR_WVEGE_GLOB)
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
         IF (AM_I_ROOT()) THEN 
@@ -365,8 +371,10 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
               GO TO 10
             END IF
           end if
-          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,TR_WBARE )
-          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,TR_WVEGE )
+          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,
+     &         TR_W_IJ(1:NTM,1:NGM,1,1:IM,J_0H:J_1H) )
+          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,
+     &         TR_W_IJ(1:NTM,0:NGM,1,1:IM,J_0H:J_1H) )
           CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 
         END SELECT
