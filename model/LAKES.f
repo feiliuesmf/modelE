@@ -744,6 +744,7 @@ C****
       USE DIAG_COM, only : aij=>aij_loc,
      *        ij_ervr,ij_mrvr,ij_f0oc,aj=>aj_loc,areg,jreg,
      *        j_rvrd,j_ervr,ij_fwoc
+      USE GHY_COM, only : fearth
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr
       USE FLUXES, only : trflowo,gtracer
@@ -830,8 +831,8 @@ C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*MAX(HLAKE(IU,JU),1d0)*FLAKE(IU,JU)*DXYP(JU)
             rvrfl=.false.
 C**** Check for special case:
-            IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).ge.0.95d*(FLAKE(ID
-     *           ,JD)+FEARTH(ID,JD))) THEN
+            IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).ge.
+     &           0.95d0*(FLAKE(ID,JD)+FEARTH(ID,JD))) THEN
               MWLSILLD = RHOW*(HLAKE(ID,JD)+BYGRAV*MAX(ZATMO(IU,JU)
      *             -ZATMO(ID,JD),0d0))*DXYP(JD)
               IF (MWL(ID,JD)-MWLSILLD.gt.0) THEN  ! potential back flux
