@@ -5,7 +5,7 @@
       implicit none
       private
 
-      public init_ATMDYN, DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
+      public init_ATMDYN, DYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
      &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
@@ -350,71 +350,6 @@ C**** and convert to WSAVE, units of m/s):
          enddo
       endif
       end subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-
-      SUBROUTINE QDYNAM
-!@sum  QDYNAM is the driver to integrate dynamic terms by the method
-!@+          of pre-computing Courant limits using mean fluxes
-!@+    It replaces CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
-!@auth J. Lerner
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,q,dt,byim
-      USE SOMTQ_COM, only : qmom
-      USE DIAG_COM, only: ajl=>ajl_loc,jl_totntlh,jl_zmfntlh,jl_totvtlh
-     *     ,jl_zmfvtlh
-      USE DYNAMICS, only: ps,mb,ma
-      USE TRACER_ADV, only:
-     *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP, only : grid, GET
-      IMPLICIT NONE
-      REAL*8 DTLF,byncyc,byma
-      INTEGER I,J,L   !@var I,J,L loop variables
-
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
-
-
-      DTLF=2.*DT
-      CALL CALC_AMP(PS,MB)
-      CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
-C****
-C**** convert from concentration to mass units
-C****
-!$OMP PARALLEL DO PRIVATE (L,J,I)
-      DO L=1,LM
-      DO J=J_0,J_1
-      DO I=1,IM
-        Q(I,J,L)=Q(I,J,L)*MB(I,J,L)
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*MB(I,J,L)
-      enddo; enddo; enddo
-!$OMP END PARALLEL DO
-C**** ADVECT
-        sfbm = 0.; sbm = 0.; sbf = 0.
-        sfcm = 0.; scm = 0.; scf = 0.
-      CALL AADVQ (Q,QMOM, .TRUE. ,'q       ')
-        byncyc = 1./ncyc
-        AJL(:,:,jl_totntlh) = AJL(:,:,jl_totntlh) + sbf(:,:)
-        AJL(:,:,jl_zmfntlh) = AJL(:,:,jl_zmfntlh)
-     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
-        AJL(:,:,jl_totvtlh) = AJL(:,:,jl_totvtlh) + scf(:,:)
-        AJL(:,:,jl_zmfvtlh)  = AJL(:,:,jl_zmfvtlh)
-     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
-C****
-C**** convert from mass to concentration units (using updated MA)
-C****
-!$OMP PARALLEL DO PRIVATE (L,I,J,BYMA)
-      DO L=1,LM
-      DO J=J_0,J_1
-      DO I=1,IM
-        BYMA = 1.D0/MA(I,J,L)
-        Q(I,J,L)=Q(I,J,L)*BYMA
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
-      enddo; enddo; enddo
-!$OMP END PARALLEL DO
-
-      RETURN
-      END SUBROUTINE QDYNAM
 
 
 #ifdef TRACERS_ON
@@ -2476,3 +2411,80 @@ C***** Add in dissipiated KE as heat locally
       end subroutine addEnergyAsLocalHeat
 
       end module ATMDYN
+
+      module ATMDYN_QDYNAM
+      USE ATMDYN
+      implicit none
+      private
+
+      public QDYNAM
+
+      contains
+
+      SUBROUTINE QDYNAM
+!@sum  QDYNAM is the driver to integrate dynamic terms by the method
+!@+          of pre-computing Courant limits using mean fluxes
+!@+    It replaces CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
+!@auth J. Lerner
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm,q,dt,byim
+      USE SOMTQ_COM, only : qmom
+      USE DIAG_COM, only: ajl=>ajl_loc,jl_totntlh,jl_zmfntlh,jl_totvtlh
+     *     ,jl_zmfvtlh
+      USE DYNAMICS, only: ps,mb,ma
+      USE TRACER_ADV, only:
+     *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
+      USE DOMAIN_DECOMP, only : grid, GET
+      IMPLICIT NONE
+      REAL*8 DTLF,byncyc,byma
+      INTEGER I,J,L   !@var I,J,L loop variables
+
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0STG, J_1STG
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
+
+
+      DTLF=2.*DT
+      CALL CALC_AMP(PS,MB)
+      CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
+C****
+C**** convert from concentration to mass units
+C****
+!$OMP PARALLEL DO PRIVATE (L,J,I)
+      DO L=1,LM
+      DO J=J_0,J_1
+      DO I=1,IM
+        Q(I,J,L)=Q(I,J,L)*MB(I,J,L)
+        QMOM(:,I,J,L)=QMOM(:,I,J,L)*MB(I,J,L)
+      enddo; enddo; enddo
+!$OMP END PARALLEL DO
+C**** ADVECT
+        sfbm = 0.; sbm = 0.; sbf = 0.
+        sfcm = 0.; scm = 0.; scf = 0.
+      CALL AADVQ (Q,QMOM, .TRUE. ,'q       ')
+        byncyc = 1./ncyc
+        AJL(:,:,jl_totntlh) = AJL(:,:,jl_totntlh) + sbf(:,:)
+        AJL(:,:,jl_zmfntlh) = AJL(:,:,jl_zmfntlh)
+     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
+        AJL(:,:,jl_totvtlh) = AJL(:,:,jl_totvtlh) + scf(:,:)
+        AJL(:,:,jl_zmfvtlh)  = AJL(:,:,jl_zmfvtlh)
+     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
+C****
+C**** convert from mass to concentration units (using updated MA)
+C****
+!$OMP PARALLEL DO PRIVATE (L,I,J,BYMA)
+      DO L=1,LM
+      DO J=J_0,J_1
+      DO I=1,IM
+        BYMA = 1.D0/MA(I,J,L)
+        Q(I,J,L)=Q(I,J,L)*BYMA
+        QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
+      enddo; enddo; enddo
+!$OMP END PARALLEL DO
+
+      RETURN
+      END SUBROUTINE QDYNAM
+
+
+      end module ATMDYN_QDYNAM

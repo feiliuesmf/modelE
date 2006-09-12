@@ -33,12 +33,13 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
-      USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
+      USE ATMDYN, only : DYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
      &     ,COMPUTE_WSAVE, getTotalEnergy, addEnergyAsDiffuseHeat
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
+      USE ATMDYN_QDYNAM, only : QDYNAM
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
