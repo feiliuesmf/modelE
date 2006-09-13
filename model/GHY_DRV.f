@@ -1636,6 +1636,7 @@ c**** modifications needed for split of bare soils into 2 types
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
       use DOMAIN_DECOMP, only : GLOBALSUM
       use model_com, only : fearth0,itime,nday,jeq,jyear,fland,flice
+     &     ,focean
       use lakes_com, only : flake
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
@@ -1764,6 +1765,7 @@ c**** check whether ground hydrology data exist at this point.
       do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).gt.0) then
+          !if (focean(i,j) < 1.d0) then
             if ( top_index_ij(i,j).eq.-1. ) then
               print *,"No top_index data: i,j=",i,j,top_index_ij(i,j)
               ghy_data_missing = .true.
@@ -2085,7 +2087,7 @@ c****
       use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
      &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
-     &     ,hsn_ij,fr_snow_ij
+     &     ,hsn_ij,fr_snow_ij,shc_soil_texture
       use veg_com, only: afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET
 !      use veg_drv, only : veg_set_cell
@@ -2096,7 +2098,7 @@ c****
       integer k,ibv,i
       real*8 shtpr
 !----------------------------------------------------------------------!
-      real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
+      !real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
 
       ijdebug=i0*1000+j0
@@ -2177,7 +2179,7 @@ c****
         do k=1,n
           shc(k,ibv)=0.
           do i=1,imt
-            shc(k,ibv)=shc(k,ibv)+q(i,k)*shcap(i)
+            shc(k,ibv)=shc(k,ibv)+q(i,k)*shc_soil_texture(i)
           end do
           shc(k,ibv)=(1.-thets(k,ibv))*shc(k,ibv)*dz(k)
         end do
@@ -2949,9 +2951,9 @@ ccc just checking ...
       subroutine init_underwater_soil(jday)
 
 !!!! UNFINISHED
-      use constant, only : twopi,edpery,rhow
+      use constant, only : twopi,edpery,rhow,shw_kg=>shw
       use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
-     &     ,w_ij,ht_ij,fearth
+     &     ,w_ij,ht_ij,fearth,shc_soil_texture
       use veg_com, only : ala,afb
       use model_com, only : focean
       use sle001, only : thm
@@ -2963,10 +2965,11 @@ ccc just checking ...
       !---
       integer i,j,I_0,I_1,J_0,J_1
       integer k,ibv,m
-      real*8 :: w_stor(0:ngm)
+      real*8 :: w_stor(0:ngm), ht_cap(0:ngm)
       real*8 :: w(0:ngm,2),dz(ngm),q(imt,ngm)
       real*8 :: cosday,sinday,alai
       real*8 :: fb,fv
+      real*8 shc_layer, aa, tp, tpb, tpv, ficeb, ficev, fice
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
@@ -2978,12 +2981,11 @@ ccc just checking ...
         do i=I_0,I_1
 
           if( focean(i,j) >= 1.d0 ) then
-            w_ij (0:ngm,1:2,i,j) = 0.d0
-            ht_ij(0:ngm,1:2,i,j) = 0.d0
+            w_ij (0:ngm,3,i,j) = 0.d0
+            ht_ij(0:ngm,3,i,j) = 0.d0
             cycle
           endif
 
-          
           !w(0:ngm,1:2) = w_ij(0:ngm,1:2,i,j)
           dz(1:ngm) = dz_ij(i,j,1:ngm)
           q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
@@ -2991,19 +2993,83 @@ ccc just checking ...
           fb = afb(i,j)
           fv=1.-fb
 
+          ! compute max water storage and heat capacity
           do k=1,ngm
             w_stor(k) = 0.d0
+            shc_layer = 0.d0
             do m=1,imt-1
               w_stor(k) = w_stor(k) + q(m,k)*thm(0,m)*dz(k)
+              shc_layer = shc_layer + q(i,k)*shc_soil_texture(i)
             enddo
+            ht_cap(k) = (dz(k)-w_stor(k)) * shc_layer
           enddo
 
           ! include canopy water here
           alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
           alai=max(alai,1.d0)
           w_stor(0) = .0001d0*alai*fv
- 
+          aa=ala(1,i,j)
+          ht_cap(0)=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
+
+          ! we will use as a reference average temperature of the 
+          ! lowest layer
+          call heat_to_temperature( tpb, ficeb,
+     &         ht_ij(ngm,1,i,j), w_ij(ngm,1,i,j), ht_cap(ngm) )
+          call heat_to_temperature( tpv, ficev,
+     &         ht_ij(ngm,1,i,j), w_ij(ngm,1,i,j), ht_cap(ngm) )
+          tp   = fb*tpb + fv*tpv
+          fice = fb*ficeb + fv*ficev
+
+          ! set underground fraction to tp, fice and saturated water
+          do k=0,ngm
+            w_ij(k,3,i,j) = w_stor(k)
+            call temperature_to_heat( ht_ij(k,3,i,j),
+     &           tp, fice, w_ij(k,3,i,j), ht_cap(k) )
+          enddo
+
         enddo
       enddo
 
       end subroutine init_underwater_soil
+
+
+      subroutine heat_to_temperature(tp, fice, ht, w, ht_cap)
+      use constant, only : rhow, lhm, shw_kg=>shw, shi_kg=>shi
+      real*8, intent(out) :: tp, fice
+      real*8, intent(in) :: ht, w, ht_cap
+      ! volumetric quantities
+      real*8, parameter :: lhmv=lhm*rhow, shwv=shw_kg*rhow,
+     &     shiv=shi_kg*rhow
+
+      fice = 0.d0
+      if( lhmv*w+ht < 0.d0 ) then ! all frozen
+        tp = ( ht + w*lhmv )/( ht_cap + w*shiv )
+        fice = 1.d0
+      else if( ht > 0.d0 ) then ! all melted
+        tp = ht /( ht_cap + w*shwv )
+      else  ! part frozen
+        tp = 0.d0
+        if( w > 1d-12 ) fice = -ht /( lhmv*w )
+      endif
+
+      end subroutine heat_to_temperature
+
+
+      subroutine temperature_to_heat(ht, tp, fice, w, ht_cap)
+      use constant, only : rhow, lhm, shw_kg=>shw, shi_kg=>shi
+      real*8, intent(in) :: tp, fice, w, ht_cap
+      real*8, intent(out) :: ht
+      ! volumetric quantities
+      real*8, parameter :: lhmv=lhm*rhow, shwv=shw_kg*rhow,
+     &     shiv=shi_kg*rhow
+      real*8 lht_ice
+
+      lht_ice = fice*w*lhmv
+
+      if( tp > 0.d0 ) then
+        ht = tp*( ht_cap + w*shwv ) - lht_ice
+      else
+        ht = tp*( ht_cap + w*shiv ) - lht_ice
+      endif
+
+      end subroutine temperature_to_heat

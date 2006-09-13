@@ -13,11 +13,22 @@
 
       IMPLICIT NONE
       SAVE
+
+ccc CONSTANTS
+
 ccc dimensions of the GHY arrays
+!@var ngm number of soil layers
+!@var imt number of soil textures
+!@var nlsn max number of snow layers
       integer, parameter, public :: ngm=6, imt=5, nlsn=3
 
 !@var LS_NFRAC number of land surface fractions
       integer, parameter, public :: LS_NFRAC=2
+
+!@var shc_soil_texture specific heat capacity of soil texture (J/K/M^3)
+      real*8, parameter,public :: shc_soil_texture(imt)
+     &     = (/2d6,2d6,2d6,2.5d6,2.4d6/)
+
 
 ccc variable earth fraction
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FEARTH
@@ -374,6 +385,9 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
           CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,
      &         TR_W_IJ(1:NTM,1:NGM,1,1:IM,J_0H:J_1H) )
           CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,
+
+
+
      &         TR_W_IJ(1:NTM,0:NGM,1,1:IM,J_0H:J_1H) )
           CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 
