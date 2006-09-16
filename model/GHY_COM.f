@@ -23,7 +23,7 @@ ccc dimensions of the GHY arrays
       integer, parameter, public :: ngm=6, imt=5, nlsn=3
 
 !@var LS_NFRAC number of land surface fractions
-      integer, parameter, public :: LS_NFRAC=2
+      integer, parameter, public :: LS_NFRAC=3
 
 !@var shc_soil_texture specific heat capacity of soil texture (J/K/M^3)
       real*8, parameter,public :: shc_soil_texture(imt)

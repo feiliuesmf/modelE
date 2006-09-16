@@ -592,6 +592,8 @@ c***********************************************************************
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
 
+      integer variable_lk
+
       ! Indexes used for adiurn and hdiurn
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       INTEGER,PARAMETER :: n_idx=28
@@ -751,6 +753,11 @@ C****
 
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
+
+      ! update water and heat in land surface fractions if
+      ! lake fraction changed
+ !!!     if ( variable_lk > 0 ) call update_land_fractions(jday)
+
 c****
 c**** outside loop over time steps, executed nisurf times every hour
 c****
@@ -1686,6 +1693,8 @@ c**** 11*ngm+1           sl
 C**** define local grid
       integer J_0, J_1
       integer J_0H, J_1H
+      logical present_land
+      integer init_flake
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -1712,6 +1721,8 @@ c**** read rundeck parameters
       call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "ghy_default_data", ghy_default_data )
+      call  get_param( "variable_lk", variable_lk )
+      call  get_param( "init_flake", init_flake )
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
@@ -1764,8 +1775,13 @@ c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
       do j=J_0,J_1
         do i=1,im
-          if (fearth(i,j).gt.0) then
-          !if (focean(i,j) < 1.d0) then
+          present_land = .false.
+          if (variable_lk==0) then
+            if ( fearth(i,j) > 0.d0 ) present_land = .true.
+          else
+            if ( focean(i,j) < 1.d0 ) present_land = .true.
+          endif
+          if ( present_land ) then
             if ( top_index_ij(i,j).eq.-1. ) then
               print *,"No top_index data: i,j=",i,j,top_index_ij(i,j)
               ghy_data_missing = .true.
@@ -1949,6 +1965,11 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
           endif
         enddo
       enddo
+
+      jday=1+mod(itime/nday,365)
+      ! initialize underwater fraction foe variable lakes
+      if ( init_flake > 0 .and. variable_lk > 0 )
+     &     call init_underwater_soil(jday)
 
       ! land water deficit for changing lake fractions
       call compute_water_deficit(jday)
@@ -2996,10 +3017,12 @@ ccc just checking ...
           ! compute max water storage and heat capacity
           do k=1,ngm
             w_stor(k) = 0.d0
-            shc_layer = 0.d0
             do m=1,imt-1
               w_stor(k) = w_stor(k) + q(m,k)*thm(0,m)*dz(k)
-              shc_layer = shc_layer + q(i,k)*shc_soil_texture(i)
+            enddo
+            shc_layer = 0.d0
+            do m=1,imt
+              shc_layer = shc_layer + q(m,k)*shc_soil_texture(m)
             enddo
             ht_cap(k) = (dz(k)-w_stor(k)) * shc_layer
           enddo
@@ -3016,7 +3039,7 @@ ccc just checking ...
           call heat_to_temperature( tpb, ficeb,
      &         ht_ij(ngm,1,i,j), w_ij(ngm,1,i,j), ht_cap(ngm) )
           call heat_to_temperature( tpv, ficev,
-     &         ht_ij(ngm,1,i,j), w_ij(ngm,1,i,j), ht_cap(ngm) )
+     &         ht_ij(ngm,2,i,j), w_ij(ngm,2,i,j), ht_cap(ngm) )
           tp   = fb*tpb + fv*tpv
           fice = fb*ficeb + fv*ficev
 
@@ -3073,3 +3096,156 @@ ccc just checking ...
       endif
 
       end subroutine temperature_to_heat
+
+
+      subroutine update_land_fractions(jday)
+
+!!!! UNFINISHED
+      use constant, only : twopi,edpery,rhow,shw_kg=>shw
+      use ghy_com, only : ngm,imt,dz_ij,q_ij
+     &     ,w_ij,ht_ij,fr_snow_ij,fearth
+      use veg_com, only : ala,afb
+      use model_com, only : focean
+      use LAKES_COM, only : flake, svflake
+      use sle001, only : thm
+      use fluxes, only : DMWLDF, DGML
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
+
+      implicit none
+      integer, intent(in) :: jday
+      !---
+      integer i,j,I_0,I_1,J_0,J_1
+      integer k,m
+      real*8 :: w_stor(0:ngm)
+      real*8 :: dz(ngm),q(imt,ngm)
+      real*8 :: cosday,sinday,alai
+      real*8 :: fb,fv
+      real*8 :: dw, dw_soil, dw_lake, dht, dht_soil, dht_lake
+      real*8 :: sum_water, ht_per_m3
+
+      real*8 dfrac
+
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+ 
+      cosday=cos(twopi/edpery*jday)
+      sinday=sin(twopi/edpery*jday)
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+
+          if( focean(i,j) >= 1.d0 ) cycle
+
+          if ( svflake(i,j) == flake(i,j) ) cycle
+
+          fb = afb(i,j)
+          fv=1.-fb
+
+          if ( flake(i,j) < svflake(i,j) ) then ! lake shrinked
+            ! no external fluxes, just part of underwater fraction
+            ! is transformed into a land fraction
+
+            ! no changes to underwater fraction
+            ! just redistribute added quantities over lan fractions
+
+            dfrac = svflake(i,j) - flake(i,j)
+            do k=1,ngm
+              dw  = dfrac*w_ij(k,3,i,j)
+              dht = dfrac*ht_ij(k,3,i,j)
+              w_ij(k,1:2,i,j) =
+     &             (w_ij(k,1:2,i,j)*(fearth(i,j)-dfrac) + dw)
+     &             / fearth(i,j)
+              ht_ij(k,1:2,i,j) =
+     &             (ht_ij(k,1:2,i,j)*(fearth(i,j)-dfrac) + dw)
+     &             / fearth(i,j)
+            enddo
+            !vegetation:
+            if ( fv > 0.d0 ) then
+              w_ij(0,2,i,j) =
+     &             (w_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dw/fv)
+     &             / fearth(i,j)
+              ht_ij(0,2,i,j) =
+     &             (ht_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dw/fv)
+     &             / fearth(i,j)
+            endif
+
+            ! change snow fraction
+            fr_snow_ij(1:2,i,j) =
+     &           fr_snow_ij(1:2,i,j)*(1.d0-dfrac/fearth(i,j))
+
+          else if ( flake(i,j) > svflake(i,j) ) then ! lake expanded
+
+            ! no need to change land values
+            ! for underwater fraction:
+
+            dz(1:ngm) = dz_ij(i,j,1:ngm)
+            q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
+
+            ! compute max water storage and heat capacity
+            do k=1,ngm
+              w_stor(k) = 0.d0
+              do m=1,imt-1
+                w_stor(k) = w_stor(k) + q(m,k)*thm(0,m)*dz(k)
+              enddo
+            enddo
+            ! include canopy water here
+            alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
+            alai=max(alai,1.d0)
+            w_stor(0) = .0001d0*alai*fv
+
+            dfrac = flake(i,j) - svflake(i,j)
+            print *,"flake(i,j),svflake(i,j)", flake(i,j),svflake(i,j)
+            print *,"WLDF(i,j),dfrac/", i,j,DMWLDF(i,j),dfrac
+            sum_water = DMWLDF(i,j)*dfrac/rhow
+            if ( sum_water > 1.d-30 ) then
+              ht_per_m3 = DGML(i,j)/sum_water
+            else
+              ht_per_m3 = 0.d0
+            endif
+            do k=0,ngm
+              ! dw, dht - total amounts of water and heat added to
+              ! underwater fraction
+              dw  = dfrac*w_stor(k)
+              dw_soil = dfrac*( fb*w_ij(k,1,i,j) + fv*w_ij(k,2,i,j) )
+              dw_lake = dw - dw_soil
+              dht_soil = dfrac*( fb*ht_ij(k,1,i,j) + fv*ht_ij(k,2,i,j) )
+              dht_lake = dw_lake*ht_per_m3
+              dht = dht_soil + dht_lake
+              sum_water = sum_water - dw_lake
+
+              w_ij(k,3,i,j) =
+     &             (w_ij(k,3,i,j)*svflake(i,j) + dw)/flake(i,j)
+              ht_ij(k,3,i,j) =
+     &             (ht_ij(k,3,i,j)*svflake(i,j) + dht)/flake(i,j)
+            enddo
+            ! add (or subtract) waterver is left to vegetation layer
+              w_ij(0,3,i,j) =
+     &             (w_ij(0,3,i,j)*svflake(i,j) + sum_water)/flake(i,j)
+              ht_ij(0,3,i,j) =
+     &             (ht_ij(0,3,i,j)*svflake(i,j)
+     &             + sum_water*ht_per_m3)/flake(i,j)
+
+            ! change snow fraction
+            if ( fearth(i,j) <= 0.d0 )
+     &           call stop_model("update_land_fractions: fearth<=0",255)
+
+            print *,"FR_SNOW before",i,j,fr_snow_ij(1:2,i,j)
+
+            fr_snow_ij(1:2,i,j) =
+     &           fr_snow_ij(1:2,i,j)*(1.d0+dfrac/fearth(i,j))
+
+            print *,"FR_SNOW  after" ,i,j,fr_snow_ij(1:2,i,j)
+            if ( fr_snow_ij(1,i,j) > 1.d0 .or.
+     &           fr_snow_ij(2,i,j) > 1.d0 ) call stop_model(
+     &           "update_land_fractions: fr_snow_ij > 1",255)
+
+          endif
+
+          ! reset "FLUXES" arrays
+          svflake(i,j) = flake(i,j)
+          DMWLDF(i,j) = 0.d0
+          DGML(i,j) = 0.d0
+        enddo
+      enddo
+
+      end subroutine update_land_fractions
