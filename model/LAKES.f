@@ -764,6 +764,10 @@ C****
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
+! part arrays to deal with sums across latitude
+      REAL*8, DIMENSION(IM,GRID%J_STRT:GRID%J_STOP
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *     FLOW_part, EFLOW_part, FLOWO_part, EFLOWO_part
       REAL*8,
      & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
      & :: AREG_part
@@ -775,6 +779,8 @@ C****
       REAL*8, DIMENSION(NTM) :: DTM
       REAL*8, DIMENSION(NTM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      * :: TRFLOW
+      REAL*8, DIMENSION(NTM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,
+     *     GRID%J_STRT:GRID%J_STOP):: TRFLOW_part, TRFLOWO_part
 #endif
       LOGICAL :: rvrfl
 
@@ -791,9 +797,16 @@ C****
 
       FLOW = 0. ; EFLOW = 0.
       FLOWO = 0. ; EFLOWO = 0.
+
+      FLOW_part = 0. ; EFLOW_part = 0.
+      FLOWO_part = 0. ; EFLOWO_part = 0.
+
 #ifdef TRACERS_WATER
       TRFLOW = 0.
       TRFLOWO = 0.
+
+      TRFLOW_part = 0.
+      TRFLOWO_part = 0.
 #endif
 
       CALL HALO_UPDATE(GRID, FLAND,FROM=NORTH+SOUTH) ! fixed
@@ -804,8 +817,6 @@ C****
       CALL HALO_UPDATE(grid,   MWL,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, TLAKE,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid,  RATE,FROM=NORTH+SOUTH) ! fixed
-      CALL HALO_UPDATE(grid,  FLOW,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, EFLOW,FROM=NORTH+SOUTH)
 #ifdef TRACERS_WATER
       CALL HALO_UPDATE_COLUMN(grid,  GTRACER(:,1,:,:),NORTH+SOUTH)
       CALL HALO_UPDATE_COLUMN(grid,  TRLAKE(:,1,:,:),NORTH+SOUTH)
@@ -821,7 +832,13 @@ C**** no outlet) then the only way to prevent excess water build up is
 C**** to allow a back-flux. Take account of mean topography change as
 C**** well. This is mainly an issue for the Caspian and Aral Seas.
 C**** Loop now includes polar boxes
-      DO JU=J_0H,J_1H
+
+! note on MPI fixes: since different PEs can influence the downstream 
+! accumulation of FLOW etc, partial arrays of FLOW and associated fields
+! are saved and then summed. This allows the loop to be made on the 
+! upstream box with no halo.
+
+      DO JU=J_0,J_1
         DO IU=1,IMAXJ(JU)
           IF (KDIREC(IU,JU).gt.0 .or.
      *       (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))  THEN
@@ -877,13 +894,11 @@ c              END IF
 
             IF (rvrfl) THEN              
 
-              FLOW(IU,JU) =  FLOW(IU,JU) - DMM
-              EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
+              FLOW_part(IU,JU,JU) =  FLOW_part(IU,JU,JU) - DMM
+              EFLOW_part(IU,JU,JU) = EFLOW_part(IU,JU,JU) - DGM
 #ifdef TRACERS_WATER
-              TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
+              TRFLOW_part(:,IU,JU,JU)=TRFLOW_part(:,IU,JU,JU)-DTM(:)
 #endif
-
-              IF (JD < J_0 .or. JD > J_1) Cycle ! contributes in other pe domain
 
 C**** calculate adjustments for poles
               IF (JU.eq.1 .or. JU.eq.JM) THEN 
@@ -897,10 +912,12 @@ C**** calculate adjustments for poles
               IF(FOCEAN(ID,JD).le.0.) THEN
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
 
-                FLOW(ID,JD) =  FLOW(ID,JD) + DMM*FLFAC
-                EFLOW(ID,JD) = EFLOW(ID,JD) + (DGM+DPE)*FLFAC
+                FLOW_part(ID,Ju,Jd) = FLOW_part(ID,Ju,Jd)+ DMM*FLFAC
+                EFLOW_part(ID,Ju,Jd)=EFLOW_part(ID,Ju,Jd)+(DGM+DPE)
+     *               *FLFAC
 #ifdef TRACERS_WATER
-                TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + DTM(:)*FLFAC
+                TRFLOW_part(:,ID,JD,JU)=TRFLOW_part(:,ID,JD,JU)+DTM(:)
+     *               *FLFAC
 #endif
 
               ELSE ! Save river mouth flow to for output to oceans
@@ -913,11 +930,13 @@ C**** in atmosphere as well. Otherwise, there is an energy imbalance.
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
 C**** possibly adjust mass (not heat) to allow for balancing of sea level
                 DMM=river_fac*DMM
-                FLOWO(ID,JD)=FLOWO(ID,JD)+DMM*FLFAC
-                EFLOWO(ID,JD)=EFLOWO(ID,JD)+(DGM+DPE)*FLFAC
+                FLOWO_part(ID,Ju,Jd)=FLOWO_part(ID,Ju,Jd)+DMM*FLFAC
+                EFLOWO_part(ID,Ju,Jd)=EFLOWO_part(ID,Ju,Jd)+(DGM+DPE)
+     *               *FLFAC
 #ifdef TRACERS_WATER
                 DTM(:)=river_fac*DTM(:)
-                TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)*FLFAC
+                TRFLOWO_part(:,ID,JD,JU)=TRFLOWO_part(:,ID,JD,JU)+DTM(:)
+     *               *FLFAC
 #endif
 C**** accumulate river runoff diags (moved from ground)
                 AJ(JD,J_RVRD,ITOCEAN)=AJ(JD,J_RVRD,ITOCEAN)+
@@ -947,6 +966,20 @@ C****              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
           END IF
         END DO
       END DO
+! sum arrays over domains
+      CALL GLOBALSUM(GRID, FLOW_part(1:IM,:,:), FLOW(1:IM,:),ALL=.TRUE.)
+      CALL GLOBALSUM(GRID,EFLOW_part(1:IM,:,:),EFLOW(1:IM,:),ALL=.TRUE.)
+      CALL GLOBALSUM(GRID, FLOWO_part(1:IM,:,:), FLOWO(1:IM,:),
+     *     ALL=.TRUE.)
+      CALL GLOBALSUM(GRID,EFLOWO_part(1:IM,:,:),EFLOWO(1:IM,:),
+     *     ALL=.TRUE.)
+#ifdef TRACERS_WATER
+      CALL GLOBALSUM(GRID, TRFLOW_part(:,1:IM,:,:), TRFLOW(:,1:IM,:),
+     *     ALL=.TRUE.)
+      CALL GLOBALSUM(GRID,TRFLOWO_part(:,1:IM,:,:),TRFLOWO(:,1:IM,:),
+     *     ALL=.TRUE.)
+#endif
+
       CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
      &     AREGSUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
       AREG(1:SIZE(AREG,1),J_RVRD)=AREG(1:SIZE(AREG,1),J_RVRD)+
@@ -965,6 +998,7 @@ C****
 #ifdef TRACERS_WATER
             TRLAKE(:,1,I,J) = TRLAKE(:,1,I,J) + TRFLOW(:,I,J)
 #endif
+
 C**** remove pathologically small values
             IF (MWL(I,J).lt.1d-20) THEN
               MWL(I,J)=0.
