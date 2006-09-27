@@ -828,7 +828,7 @@ C**** Loop now includes polar boxes
 ! If downstream box is outside the interior, cycle - this is dealt with on
 ! a separate PE
  
-      DO JU=MIN(1,J_0H),MAX(JM,J_1H)
+      DO JU=MAX(1,J_0H),MIN(JM,J_1H)
         DO IU=1,IMAXJ(JU)
           IF (KDIREC(IU,JU).gt.0 .or.
      *       (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))  THEN
