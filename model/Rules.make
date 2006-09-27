@@ -161,9 +161,9 @@ ifeq ($(COMPILER),Intel8)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-9-0-on-LINUX
-FFLAGS = -fpp -O2         -convert big_endian 
-F90FLAGS = -fpp -O2         -convert big_endian -free 
-LFLAGS = -O2
+FFLAGS = -fpp -O2 -ftz -mp -convert big_endian 
+F90FLAGS = -fpp -O2 -ftz -mp -convert big_endian -free 
+LFLAGS = -O2 -ftz -mp
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel8
 F90_VERSION = $(shell $(F90) -v 2>&1)
