@@ -392,7 +392,6 @@ c use these for Rutgers runs
 c     integer, parameter :: ntm=4
 c     character*8, parameter :: trname(ntm)=(/
 c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
-s
 #else
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
