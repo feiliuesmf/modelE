@@ -111,7 +111,8 @@ C****
 !@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_colh2o !,ij_msu2,ij_msu3,ij_msu4
+     *  ij_fland, ij_dzt1, ij_albgv, ij_colh2o, ij_msu2,ij_msu3,ij_msu4,
+     *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
 
 !@var SENTDSE stand.eddy northw. transport of dry static energy * 16
 !@var TENTDSE trans.eddy northw. transport of dry static energy * 16
@@ -4100,6 +4101,24 @@ c
       lname_ij(k) = 'ATMOSPHERIC TEMPERATURE'
       units_ij(k) = 'C'
 
+      K = K+1
+      IJ_RTSE = K
+       NAME_IJ(K) = 'RTSE'
+      LNAME_IJ(K) = 'THERMAL RADIATION EMITTED by SURFACE'
+      UNITS_IJ(K) = 'W/m^2'
+
+      K = K+1
+      IJ_HWV = K
+       NAME_IJ(K) = 'HWV'
+      LNAME_IJ(K) = 'LATENT HEAT FLUX'
+      UNITS_IJ(K) = 'W/m^2'
+
+      K = K+1
+      IJ_PVS = K
+       NAME_IJ(K) = 'PVS'
+      LNAME_IJ(K) = 'SURFACE VAPOR PRESSURE'
+      UNITS_IJ(K) = 'mb'
+
 c Check the count
       if (k .gt. kaijx) then
         write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
@@ -4436,7 +4455,7 @@ c**** length of growing season   (not quite right ???)
 c**** precipitable water
       else if (k.eq.ij_colh2o) then
         igrid = 2; jgrid = 2; irange = ir_ij(ij_prec)
-        byiacc = .1*.25*100.*bygrav/idacc(ia_dga)
+        byiacc = .1*.25*100.*bygrav/(idacc(ia_dga)+teeny)
         anum = 0.
         do l=1,lm
         do j=1,jm
@@ -4455,6 +4474,21 @@ c**** column atmospheric temperature
      /                    sum(aijk(i,j,1:lm,ijk_dp)) - TF
         end do
         end do
+
+C**** Thermal Radiation Emitted by Surface (W/m^2)
+      elseif (K == IJ_RTSE) then
+        ANUM(:,:) = (AIJ(:,:,IJ_TRSUP) - AIJ(:,:,IJ_TRSDN)) /
+     /              IDACC(IA_IJ(IJ_TRSUP))
+
+C**** Water Vapor (latent) Heat flux (W/m^2)
+      elseif (K == IJ_HWV) then
+        ANUM(:,:) = AIJ(:,:,IJ_EVAP) * 2500000 /
+     /              (IDACC(IA_IJ(IJ_EVAP)) * DTsrc)
+
+C**** Surface Vapor Pressure (mb)
+      elseif (K == IJ_PVS) then
+        ANUM(:,:) = (AIJ(:,:,IJ_PRES) / IDACC(IA_IJ(IJ_PRES)) + PTOP) *
+     *              (AIJ(:,:,IJ_QS  ) / IDACC(IA_IJ(IJ_QS  )))
 
       else  ! should not happen
         write (6,*) 'no field defined for ij_index',k

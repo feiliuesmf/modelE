@@ -98,7 +98,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       REAL*8 ::                                      ! tuning parameters
      *     AVSCAT=.0156d0, ANSCAT=0d0, AVFOAM=.2197d0, ANFOAM=.1514d0
 
-!@var ASNALB snow albedo for new snow
+!@var ASNALB snow albedo for old snow
 !@var AOIALB seaice albedo                            (original version)
 !@var ALIALB land ice albedo
       REAL*8 ::

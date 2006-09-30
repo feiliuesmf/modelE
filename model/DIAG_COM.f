@@ -315,7 +315,7 @@ C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
-      INTEGER, PARAMETER, public :: KOA = 13 
+      INTEGER, PARAMETER, public :: KOA = 13
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: OA
 
 C****
@@ -389,14 +389,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
-     *     IJ_SSI1,IJ_SSI2,IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4,
+     *     IJ_SSI1,IJ_SSI2,IJ_SMFX,     ! IJ_MSU2,IJ_MSU2R,
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF,
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
      *     IJ_HTSOIL, IJ_HTSNOW, IJ_AINTRCP,
      *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,
      *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
-     *     IJ_FWIO, IJ_HTIO, IJ_STIO, IJ_Tatm,
+     *     IJ_FWIO, IJ_HTIO, IJ_STIO,
      *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
      *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK
 #ifdef CLD_AER_CDNC
