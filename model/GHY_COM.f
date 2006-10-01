@@ -330,7 +330,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         CALL PACK_COLUMN(grid,W_IJ(1:NGM,1,1:IM,J_0H:J_1H) , WBARE_GLOB)
-        CALL PACK_COLUMN(grid, SNOWBV, SNOWBV_GLOB)
+        CALL PACK_COLUMN(grid, SNOWBV(1:2,1:IM,J_0H:J_1H), SNOWBV_GLOB)
         CALL PACK_COLUMN(grid,W_IJ(0:NGM,2,1:IM,J_0H:J_1H) , WVEGE_GLOB)
         CALL PACK_COLUMN(grid,HT_IJ(0:NGM,1,1:IM,J_0H:J_1H),HTBARE_GLOB)
         CALL PACK_COLUMN(grid,HT_IJ(0:NGM,2,1:IM,J_0H:J_1H),HTVEGE_GLOB)
@@ -368,7 +368,8 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
      &       ht_ij(0:NGM,1,1:IM,J_0H:J_1H))
         call unpack_column(grid, htvege_glob,
      &       ht_ij(0:NGM,2,1:IM,J_0H:J_1H))
-        call unpack_column(grid, snowbv_glob, snowbv)
+        call unpack_column(grid, snowbv_glob, 
+     &       snowbv(1:2,1:IM,J_0H:J_1H))
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
