@@ -836,7 +836,7 @@ C**** Loop now includes polar boxes
             ID=IFLOW(IU,JU)
 
 ! only calculate for downstream interior boxes.
-           ! IF (JD.gt.J_1 .or. JD.lt.J_0 ) CYCLE 
+            IF (JD.gt.J_1 .or. JD.lt.J_0 ) CYCLE 
 
 C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*MAX(HLAKE(IU,JU),1d0)*FLAKE(IU,JU)*DXYP(JU)
@@ -893,7 +893,7 @@ c              END IF
 #ifdef TRACERS_WATER
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
 #endif
-              IF (JD < J_0 .or. JD > J_1) Cycle ! contributes in other pe domain
+
 C**** calculate adjustments for poles
               IF (JU.eq.1 .or. JU.eq.JM) THEN 
                 FLFAC=IM        ! pole exception upstream
