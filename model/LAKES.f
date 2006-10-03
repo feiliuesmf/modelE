@@ -836,7 +836,7 @@ C**** Loop now includes polar boxes
             ID=IFLOW(IU,JU)
 
 ! only calculate for downstream interior boxes.
-            IF (JD.gt.J_1 .or. JD.lt.J_0 ) CYCLE 
+            IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE 
 
 C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*MAX(HLAKE(IU,JU),1d0)*FLAKE(IU,JU)*DXYP(JU)
