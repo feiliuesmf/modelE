@@ -96,10 +96,10 @@ setup_script:
 	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
 ifndef NPES
-	@$(SETUP) -omp $(NPROC) $(RUN)
+	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)
 else
 	echo PRUN
-	@$(SETUP) -mpi $(NPES) $(RUN) 
+	@$(SETUP) $(SETUP_FLAGS) -mpi $(NPES) $(RUN) 
 endif
 
 $(SETUP_GFDL):
