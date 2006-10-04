@@ -28,6 +28,7 @@ $MIN_STACK=0;
 $omp=0;
 $mpi=0;
 $nproc=1;
+$flag_wait=0;
 
 ## if $HOME/.modelErc is present get settings from there
 
@@ -62,6 +63,7 @@ while ($_ = $ARGV[0], /^-/) {
     last if /^--$/;
     if (/^-omp/) { $omp = 1; $nproc = shift; next;}
     if (/^-mpi/) { $mpi = 1; $nproc = shift; next;}
+    if (/^-wait/) { $flag_wait = 1; next;}
     print "setup: unknown option $_ \n"; exit 1;
 }
 
@@ -290,7 +292,7 @@ print "starting the execution \n";
 print "current dir is ", `pwd`;
 
 ## Switching to background
-if ($pid = fork) {
+if ( (!$flag_wait) && ($pid = fork) ) {
     print "Starting 1st hour in the background.\n\n";
     exit 0;
 }
@@ -388,4 +390,7 @@ chmod 0777 & $umask_inv, $runID;
 
 ## overwrite RUNID.I omitting ISTART=.. line.
 `umask $umask_str; grep -v "ISTART=" I > I.tmp; mv -f I.tmp I`;
+
+## setup finished normally
+exit 0 ;
 
