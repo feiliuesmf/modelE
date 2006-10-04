@@ -521,7 +521,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       if (LM > 1) then
          deltaZ = 1.0d0
          call ESMF_GridAddVertHeight(grd_dum%ESMF_GRID,
-     &         delta=(/(deltaZ, L=1,LM) /),           
+     &         delta=(/(deltaZ, L=1,LM) /),
      &    vertStagger=ESMF_GRID_VERT_STAGGER_TOP,
      &    rc=rc)
          if (rc /= ESMF_SUCCESS)
@@ -2947,7 +2947,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
         return
  9999 continue
-        call exit_rc(99)
+        call stop_model('ESMF_READ_PARALLEL: READ ERROR',255)
       END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_0
 
     !---------------------------
@@ -3018,7 +3018,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
         return
  9999 continue
-        call exit_rc(99)
+        call stop_model('ESMF_READ_PARALLEL: READ ERROR',255)
       END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_1
 
     !---------------------------
@@ -3090,7 +3090,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
         return
  9999 continue
-        call exit_rc(99)
+        call stop_model('ESMF_READ_PARALLEL: READ ERROR',255)
       END SUBROUTINE ESMF_READ_PARALLEL_REAL8_1
 
     !---------------------------

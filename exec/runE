@@ -32,6 +32,19 @@
      exit 1
    fi
 
+## check if this run is already finished
+   if [ -f $CMRUNDIR/$RUNID/end_of_run ] ; then
+      if [ end_of_run -nt I ] ; then
+        echo "            **********************                "
+        echo "$RUNID seems to have already finished"
+        echo "Update $CMRUNDIR/$RUNID/I to continue the run or"
+        echo "remove $CMRUNDIR/$RUNID/end_of_run to print the"
+        echo "  final diagnostics"
+        echo "            **********************                "
+        exit 1
+      fi
+   fi
+
    nproc=1  ; nptxt=''
    if echo $2 | grep '^[0-9][0-9]*$' > /dev/null ; then
    nproc=$2 ; nptxt="using up to $nproc processor(s)" ; fi
@@ -41,5 +54,5 @@
    cd "$CMRUNDIR/$RUNID"
    nohup nice -19 ./$RUNID $OPTS &
    echo "$RUNID started $nptxt"
-   if echo $OPTS | grep -e '-q' > /dev/null; then 
+   if echo $OPTS | grep -e '-q' > /dev/null; then
      echo "printout will not be saved"; fi

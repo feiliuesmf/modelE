@@ -574,15 +574,20 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
         write (6,*) ' >>  ', message, '  <<'
         write (6,'(/2(" ",132("*")/))')
 
-        if ( retcode .ne. 12 .and. retcode .ne. 13 ) then
-          open( iu_err, file='error_message',
-     &       form='FORMATTED', status='REPLACE', ERR=10 )
-          write ( iu_err, *, ERR=10 ) message
+        if ( retcode .ne. 12 ) then
+           if ( retcode .eq. 13 ) then
+             open( iu_err, file='end_of_run',
+     &          form='FORMATTED', status='REPLACE', ERR=10 )
+           else
+             open( iu_err, file='error_message',
+     &          form='FORMATTED', status='REPLACE', ERR=10 )
+           end if
+          write ( iu_err, *, ERR=10 ) retcode, message
           close( iu_err )
           goto 11
  10       continue
           write( 0, * ) "Can't write to the error_message file"
-          write( 0, * ) "ERROR:", message 
+          write( 0, * ) "ERROR:", message
  11       continue
         endif
       endif
@@ -595,15 +600,15 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
 #else
         if ( dump_core > 0 ) then
           call sys_abort
-        else 
-          call exit_rc ( retcode )
+        else
+          stop
         endif
 #endif
       else
 #ifdef USE_ESMF
         call mpi_finalize(mpi_err)
 #endif
-        call exit_rc ( retcode )
+        stop
       endif
 
       end subroutine stop_model

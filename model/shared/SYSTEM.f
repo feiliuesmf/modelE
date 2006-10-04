@@ -78,7 +78,7 @@
       END SUBROUTINE RFINAL
 
 #if defined( MACHINE_DEC ) \
- || ( defined(MACHINE_Linux) && defined(COMPILER_Intel8) ) 
+ || ( defined(MACHINE_Linux) && defined(COMPILER_Intel8) )
       SUBROUTINE BURN_RANDOM(n)
 !@sum  BURN_RANDOM burns a set number of random numbers. It is used to
 !                  maintain bit-wise correspondence on parallel runs.
@@ -118,7 +118,7 @@
       End Do
 
       End Subroutine burn_random
-#endif 
+#endif
 
       END MODULE RANDOM
 
@@ -136,35 +136,12 @@
       end subroutine GETTIME
       end module GETTIME_MOD
 
-
-      SUBROUTINE exit_rc (code)
-!@sum  exit_rc stops the run and sets a return code
-!@auth Reto A Ruedy
-!@ver  1.0 (SGI,IBM,Linux,DEC)
-#if ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
-      use f90_unix_proc
-#endif
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: code !@var code return code set by user
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
- || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
-      call exit(code) !!! should check if it works for Absoft and DEC
-#elif defined( MACHINE_IBM ) \
- || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
-      call exit_(code)
-#else
-      None of supported architectures was specified.
-      This will crash the compiling process.
-#endif
-      RETURN
-      END SUBROUTINE exit_rc
-
       SUBROUTINE sys_flush (unit)
 !@sum system call to flush corresponding I/O unit
 !@auth I. Aleinov
 !@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: unit !@var unit 
+      INTEGER, INTENT(IN) :: unit !@var unit
       INTEGER status
 #if defined(MACHINE_SGI)
       call flush(unit,status)
@@ -194,7 +171,7 @@
  || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
  || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
-      call signal( sig, prog, -1 ) 
+      call signal( sig, prog, -1 )
 #elif defined( MACHINE_IBM ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       call signal( sig, prog )

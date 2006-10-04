@@ -370,14 +370,25 @@ print RUNID <<EOF;
       esac
     done
     umask $umask_str
+
+    if [ -f end_of_run ] ; then
+      if [ end_of_run -nt I ] ; then
+        echo 'run seems finished' ; exit 1 ; fi
+      rm -f end_of_run ; fi
+
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
+
     rm -f error_message 2> /dev/null
     . ./runtime_opts
     ./${runID}ln
     $run_command ./${runID}.exe -i ./\$IFILE > \$PRTFILE
-    rc=\$?
+
+    rc=12
+    if [ -f end_of_run ] ; then rc=13 ; fi
+    if [ -f error_message ] ; then read rc msg < error_message ; fi
+
     ./${runID}uln
     rm -f lock
     if [ \$RESTART -ge 1 ] ; then exit \$rc ; fi
