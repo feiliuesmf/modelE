@@ -41,20 +41,20 @@ DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_RES_M                          ! ESMF
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
-hycom |-r8 -O2 | OCEAN_hycom|-r8 -O2 -| ! ocean driver
+hycom |-r8 -O2 | OCEAN_hycom|-r8 -O2 | ! ocean driver
 advfct|-r8 -O2 |                         ! advection
 archyb|-r8 -O2 |                         ! continuity eqn. 
 barotp|-r8 -O2 |                         ! barotropic eqn. 
 bigrid|-r8 -O2 |                         ! basin grid
-blkd10|-r8 -O2 | blkpp2|-r8 -O2 -|       ! block data
+blkd10|-r8 -O2 | blkpp2|-r8 -O2 |       ! block data
 cnuitb|-r8 -O2 |                         ! continuity eqn.
 cpler |-r8 -O2 |                         ! coupler
-dpthuv|-r8 -O2 | dpudpv|-r8 -O2 -| ! off-center depth  
+dpthuv|-r8 -O2 | dpudpv|-r8 -O2 | ! off-center depth  
 eic8  |-r8 -O2 |                         ! ice forming
 geopar|-r8 -O2 |                         ! geography related parameters
 hybg05|-r8 -O2 |                         ! grid generator 
-inirfn|-r8 -O2 | inigis|-r8 -O2 -| inikpp|-r8 -O2 -| ! initial conditions
-matinv|-r8 -O2 | mxkprf|-r8 -O2 -| ! KPP mixing scheme
+inirfn|-r8 -O2 | inigis|-r8 -O2 | inikpp|-r8 -O2 | ! initial conditions
+matinv|-r8 -O2 | mxkprf|-r8 -O2 | ! KPP mixing scheme
 momtum|-r8 -O2 |                         ! momemtum Eqn.
 prtetc|-r8 -O2 |                         ! print routines, etc.
 reflux|-r8 -O1 |                         ! flux conversion
