@@ -315,11 +315,11 @@ print <<`EOC`;
     umask $umask_str
     touch lock
     . ./runtime_opts
-    rm -f error_message 2> /dev/null
+    rm -f run_status 2> /dev/null
     ./"$runID"ln
     NP=$nproc
     $run_command ./"$runID".exe -i I >> ${runID}.PRT
-    rc=\$?
+    rc=`head -1 run_status`
     rm -f AIC GIC OIC
     ./"$runID"uln
     rm -f lock
@@ -328,9 +328,13 @@ EOC
 
 $rcode = $? >> 8;
 # mpirun returns 0 on success...
-if ( $rcode != 13 && $rcode != 12  && $rcode != 0 ) {
-    print " Problem encountered while running hour 1 :\n"; 
-    $error_message = `cat error_message`; chop $error_message;
+if ( $rcode != 13 && $rcode != 12 ) {
+    print " Problem encountered while running hour 1 :\n";
+    if ( $rcode != 1 ) {
+	$error_message = `tail -1 run_status`; chop $error_message;
+    } else {
+	$error_message = "Unknown reason (Segmentation fault?)";
+    }
     print " >>> $error_message <<<\n";
     exit 4 ;
 } else {
@@ -370,25 +374,18 @@ print RUNID <<EOF;
       esac
     done
     umask $umask_str
-
-    if [ -f end_of_run ] ; then
-      if [ end_of_run -nt I ] ; then
-        echo 'run seems finished' ; exit 1 ; fi
-      rm -f end_of_run ; fi
-
+    if [ `head -1 run_status` -eq 13 ] ; then
+      if [ run_status -nt I ] ; then
+        echo 'run seems to have finished'
+      exit 1; fi; fi
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
-
-    rm -f error_message 2> /dev/null
+    rm -f run_status 2> /dev/null
     . ./runtime_opts
     ./${runID}ln
     $run_command ./${runID}.exe -i ./\$IFILE > \$PRTFILE
-
-    rc=12
-    if [ -f end_of_run ] ; then rc=13 ; fi
-    if [ -f error_message ] ; then read rc msg < error_message ; fi
-
+    rc=`head -1 run_status`
     ./${runID}uln
     rm -f lock
     if [ \$RESTART -ge 1 ] ; then exit \$rc ; fi

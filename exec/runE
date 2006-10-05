@@ -33,8 +33,8 @@
    fi
 
 ## check if this run is already finished
-   if [ -f $CMRUNDIR/$RUNID/end_of_run ] ; then
-      if [ end_of_run -nt I ] ; then
+   if [ `head -1 $CMRUNDIR/$RUNID/run_status` -eq 13 ] ; then
+      if [ $CMRUNDIR/$RUNID/run_status -nt $CMRUNDIR/$RUNID/I ] ; then
         echo "            **********************                "
         echo "$RUNID seems to have already finished"
         echo "Update $CMRUNDIR/$RUNID/I to continue the run or"
