@@ -97,7 +97,7 @@ c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ccc     .   +kappaf(ttem(k),ssal(k),pres(k))
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      trac(k)=tracer(i,j,k)
+      trac(k)=tracer(i,j,k,1)
       delp(k)=dp(i,j,kn)
  12   pres(k+1)=pres(k)+delp(k)
 c
@@ -183,7 +183,7 @@ c
       temp(i,j,kn)=ttem(k)
       saln(i,j,kn)=ssal(k)
       th3d(i,j,kn)=dens(k)
-      tracer(i,j,k)=trac(k)
+      tracer(i,j,k,1)=trac(k)
 c
  1    continue
 c$OMP END PARALLEL DO

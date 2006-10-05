@@ -105,6 +105,7 @@ c ---    bottom  layer needs +tri(nlayer,1)*diff(nlayer+1)*yo(nlayer+1))/bet
 c
       include 'dimensions.h'
       include 'dimension2.h'
+      common/testpt/itest,jtest
 c
 c --- input
       real tcu (kdm),     ! upper coeff. for (k-1) on k line of tridmatrix
@@ -130,7 +131,7 @@ c --- solve tridiagonal matrix.
       if(bet.eq.0.) then
         write(lp,*) 
         write(lp,*) '** algorithm for solving tridiagonal matrix fails'
-        write(lp,*) '** bet=',bet
+        write(lp,*) '** bet=',bet,itest,jtest
         write(lp,*) '** k=',k,' tcc=',tcc(k),' tcu=',tcu(k),
      &              ' gam=',gam(k)
         call flush(lp)

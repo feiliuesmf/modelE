@@ -70,8 +70,13 @@ c
       odmsi(i,j)=0.
       salflx2(i,j)=0.
       tmxl=temp(i,j,k1n)+surflx(i,j)*delt1*g/(spcifh*dpth) 
-      tmelt=tfrez(saln(i,j,k1n),0.)
+c 
+      if (saln(i,j,k1n).lt.0.) then
+        write(*,'(i8,a,2i4,f8.4)')nstep,' neg s=',i,j,saln(i,j,k1n)
+        saln(i,j,k1n)=0.
+      endif
 c
+      tmelt=tfrez(saln(i,j,k1n),0.)
       if (tmxl.lt.tmelt) then
         borrow=min((tmelt-tmxl)*spcifh*dpth/(delt1*g),
      .           rate*fusion*rhoice)			! > 0 W/m^2
@@ -81,7 +86,7 @@ c
         surflx(i,j)=surflx(i,j)+borrow
         odmsi(i,j)=-borrow/                      ! odmsi: kg/m2/sec
      .          (tmelt*shi-lhm*(1.-0.001*fsss*saln(i,j,k1n))) ! > 0
-        salflx2(i,j)=                   ! salflx: g/m2/sec fresh WT + salt flux
+        salflx2(i,j)=                            ! salflx: g/m2/sec 
      .               odmsi(i,j)*saln(i,j,k1n)*(1.-fsss)
 c
 c       if (i.eq.itest .and. j.eq.jtest) then
@@ -93,11 +98,11 @@ c       endif
       endif
 c
 c --- build up time integrals of surface fluxes
-      eminpav(i,j)=eminpav(i,j)-(salflx(i,j)+salflx2(i,j))
-     .                               *thref/saln(i,j,k1n)
-      surflav(i,j)=surflav(i,j)+surflx(i,j)
-      tauxav(i,j)=tauxav(i,j)+taux(i,j)
-      tauyav(i,j)=tauyav(i,j)+tauy(i,j)
+      eminpav(i,j)=eminpav(i,j)+oemnp(i,j)              !m/s
+      surflav(i,j)=surflav(i,j)+surflx(i,j)             !W/m2
+      sflxav(i,j)=sflxav(i,j)+salflx(i,j)+salflx2(i,j)  !g/m2/s
+      brineav(i,j)=brineav(i,j)+osalt(i,j)*1.e3         !g/m2/s 
+     .                 -odmsi(i,j)*saln(i,j,k1n)*fsss   ! ocn salt gain is +
 c
 c --- deposit brine from brntop to brnbot
 c

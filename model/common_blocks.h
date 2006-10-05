@@ -50,12 +50,13 @@ c
      .,ubavav(idm,jdm),vbavav(idm,jdm),pbavav(idm,jdm),sfhtav(idm,jdm)
      .,uflxav(idm,jdm,kdm),vflxav(idm,jdm,kdm)
      .,diaflx(idm,jdm,kdm)                    ! time integral of diapyc.flux
-     .,tauxav(idm,jdm),tauyav(idm,jdm),eminpav(idm,jdm),surflav(idm,jdm)
+     .,sflxav(idm,jdm),brineav(idm,jdm),eminpav(idm,jdm)
+     .,surflav(idm,jdm)
      .,ufxcum(idm,jdm,kdm),vfxcum(idm,jdm,kdm),dpinit(idm,jdm,kdm)
      .,dpmxav(idm,jdm),oiceav(idm,jdm)
 c
       real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav
-     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,tauxav,tauyav,eminpav
+     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,sflxav,brineav,eminpav
      .    ,surflav,ufxcum,vfxcum,dpinit
      .    ,dpmxav,oiceav
 c
@@ -224,11 +225,11 @@ c
 c
       character*60 flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
-     .            ,flnminp,flnmint,flnmins,flnmkap
+     .            ,flnminp,flnmint,flnmins
      .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
       common/iovars/flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
-     .            ,flnminp,flnmint,flnmins,flnmkap
+     .            ,flnminp,flnmint,flnmins
      .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
 c
 c> Revision history:

@@ -16,7 +16,7 @@ c
 c
       real sigref,delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,
      .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,scalt,scals,
-     .     tup,sup,tem,sal,thhat,s_hat,t_hat,p_hat,q,q1,q2,slak,
+     .     tup,sup,tem,sal,thhat,s_hat,t_hat,p_hat,q,q1,q2,slak,tapr,
      .     torho,totem,tosal,totrc,totuv,tndrho,tndtem,tndsal,tndtrc,
      .     tdcyuv,scale,displ(kdm+1)
       real targt(kdm+1),dens(kdm),ttem(kdm),ssal(kdm),pres(kdm+1),
@@ -35,13 +35,16 @@ c
       character info*16
       data uvscl/0.02/			!  2 cm/s
       data scalt,scals/30.,10./
+ccc   parameter (slak=.5/86400.)	! intfc nudging time scale: 2 days
       parameter (slak=1./86400.)	! intfc nudging time scale: 1 day
-ccc   parameter (slak=1.e6)		! intfc nudging time scale: 1 microsec
 c
       data (dplist(k),k=1,kdm)/
  
-     .   15.0, 5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,14.9,15.0
-     .  ,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0/
+     .    5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,14.9,15.0,15.0,
+     .   15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0/	!  275.5 total
+c
+c --- linear taper function for slak
+      tapr(q)=1.+9.*max(0.,1.-.02e-4*q)		!  q = pressure (Pa)
 c
       sigref=1000.*thref
 c
@@ -271,13 +274,13 @@ c --- maintain constant thickness in layer 1
         if (p_hat.gt.pres(2)) then
 c --- layer 1 is too thin. entrain water from layers below
           p_hat=min(p_hat,pres(2)+
-     .          max(onecm,10.*slak*delt1*(p_hat-pres(2))))
+     .          max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(2))))
           info='layer too thin  '
           go to 5
         else if (p_hat.lt.pres(2)) then
 c --- layer 1 is too thick. expell layer 1 water into layer 2
           p_hat=max(p_hat,pres(2)+
-     .          min(-onecm,10.*slak*delt1*(p_hat-pres(2))))
+     .          min(-onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(2))))
           info='layer too thick '
 c
           if (vrbos) write (lp,105)
@@ -312,15 +315,18 @@ c --- is lower intfc too close to the surface?
       p_hat=dpsum
       if (k.lt.kk .and. p_hat.gt.pres(k+1)) then
         p_hat=min(p_hat,pres(k+1)+
-     .        max(onecm,slak*delt1*(p_hat-pres(k+1))))
+     .        max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k+1))))
         info='too close to srf'
         go to 5
       end if
 c
 c --- is density noticeably different from target value?
-      if (abs(dens(k)-targt(k)).lt..1*sigjmp) go to 8
+      if (abs(dens(k)-targt(k)).lt..1*sigjmp) then
+        if (vrbos) write (lp,'(2i5,i3,a)') i,j,k,'  layer on target'
+        go to 8
+      end if
 c
-      if (dens(k).le.targt(k)) go to 7		!  layer too light
+      if (dens(k).lt.targt(k)) go to 7          !  layer too light
 c
 c --- water in layer k is too  d e n s e . dilute with water from layer k-1
 c                              ^^^^^^^^^
@@ -330,26 +336,32 @@ c                              ^^^^^^^^^
 c
 c --- maintain minimum layer thickess of layer k-1
       p_hat=pres(k-1)+cushn(p_hat-pres(k-1),dp0abv)
+      if (p_hat.gt.pres(k)) then
+        if (vrbos) write (lp,'(2i5,i3,a)') i,j,k,
+     .   '  layer too dense, but layer above is at min.thknss'
+        go to 8
+      end if
       p_hat=min(p_hat,.5*(pres(k-1)+pres(k+1)))
       info='layer too dense '
 c
       if (vrbos) write (lp,105)
      . i,j,k,info,'upper intfc',pres(k)/onem,'=>',p_hat/onem
 c
-      if (p_hat.lt.pres(k)) then
+      if (p_hat.lt.pres(k)-onemm) then
 c
 c --- upper intfc moves up. entrain layer k-1 water into layer k
 c
         p_hat=max(p_hat,pres(k-1),pres(k)+
-     .        min(-onecm,slak*delt1*(p_hat-pres(k))))
+     .        min(-onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k))))
         if (useppm .and. 
      .    abs(dens(k-1)-targt(k-1)).gt..1*sigjmp) then		!  use ppm
           displ(1)=0.
           displ(2)=0.
           displ(3)=p_hat-pres(k)
           displ(4)=0.
-          if (vrbos)
-     .    write (lp,'(2i5,i3,a)') i,j,k,'  entrain from layer above'
+          if (vrbos) write (lp,107) i,j,k,
+     .     '  entrain',-displ(3)/onem,' m from layer above'
+ 107      format (2i5,i3,a,f7.3,a)
           call ppmad3(pres(k-2),displ,ssal(k-2),ssal(k-2),vrbos)
           if (tscnsv) then
             call ppmad3(pres(k-2),displ,ttem(k-2),ttem(k-2),vrbos)
@@ -385,7 +397,7 @@ c --- layer k-1 is too thin for allowing upper intfc to move up.  instead,
 c --- move upper interface down and entrain layer k water into layer k-1
 c
         p_hat=min(p_hat,pres(k+1),pres(k)+
-     .        max(onecm,slak*delt1*(p_hat-pres(k))))
+     .        max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k))))
         if (useppm .and. k.lt.kk) then				!  use ppm
           if (vrbos)
      .    write (lp,'(2i5,i3,a)') i,j,k,'  detrain into layer above'
@@ -429,22 +441,27 @@ c
       if (k.lt.kk .and. pres(k+1).lt.pres(kk+1)-onemm .and.
      .    pres(k+1).lt.p_hat) then
         p_hat=min(p_hat,pres(k+1)+
-     .        max(onecm,slak*delt1*(p_hat-pres(k+1))))
+     .        max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k+1))))
         go to 5
       end if
       go to 8
 c
 c --- water in layer k is too  l i g h t . dilute with water from layer k+1
 c                              ^^^^^^^^^
- 7    if (k.ge.kk .or. pres(k+1).gt.pres(kk+1)-onemm) go to 8
+ 7    if (k.ge.kk .or. pres(k+1).gt.pres(kk+1)-onemm) then
+        if (vrbos) write (lp,'(2i5,i3,a)') i,j,k,
+     .   '  layer too light, but no water below to entrain'
+        go to 8
+      end if
 c
       q=(dens(k)-targt(k))/max(dens(k+1)-targt(k),sigjmp*10.)
       p_hat=pres(k+1)*(1.-q)+pres(k)*q
 c
 c --- curtail downward growth of layers (esp. lowest hybrid layer)
-      p_hat=max(pres(k+1),min(p_hat,.5*(pres(k)+pres(k+2))))
+      if (dens(k-1).gt.targt(k-1)+.1*sigjmp)
+     .  p_hat=max(pres(k+1),min(p_hat,.5*(pres(k)+pres(k+2))))
       p_hat=min(p_hat,pres(k+1)+
-     .      max(onecm,slak*delt1*(p_hat-pres(k+1))))
+     .      max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k+1))))
       info='layer too light '
 c
  5    p_hat=min(p_hat,pres(k+2))
@@ -455,8 +472,8 @@ c
 c
         if (useppm .and. k.lt.kk-1 .and.
      .    abs(dens(k+1)-targt(k+1)).gt..1*sigjmp) then		!  use ppm
-          if (vrbos)
-     .    write (lp,'(2i5,i3,a)') i,j,k,'  entrain from layer below'
+          if (vrbos) write (lp,107) i,j,k,
+     .     '  entrain',displ(2)/onem,' m from layer below'
           displ(1)=0.
           displ(2)=p_hat-pres(k+1)
           displ(3)=0.
@@ -1129,3 +1146,5 @@ c> Dec. 2004 - added code to update dpu/dpv(n) (loop 9 and dpudpv call)
 c> Apr. 2005 - changed sigjmp to 10*sigjmp in formulae computing p_hat
 c> May  2005 - ppmadv: bounded wdth by 1 (loop 4)
 c> Mar. 2006 - changed pres(k) to pres(k+1) in p_hat calc'n after stmt label 6
+c> June 2006 - if layer 1 touches sea floor, don't split it to restore target
+c> July 2006 - introduced depth-dependent tapering function for 'slak'

@@ -179,45 +179,6 @@ c
       return
       end
 c
-      subroutine psmoo(alist,blist)
-c
-c --- ragged boundary version of basic 1-2-1 smoothing routine
-c --- alist is smoothed array, blist is work array
-c --- this routine is set up to smooth data carried at -p- points
-c
-c --- this version works for both cyclic-in-j and noncyclic domains
-c
-      implicit none
-#include "dimensions.h"
-#include "dimension2.h"
-c
-      real alist(idm,jdm),blist(idm,jdm),wgt
-      parameter (wgt=.25)
-c
-c$OMP PARALLEL DO PRIVATE(ja,jb)
-      do 1 j=1,jj
-      do 1 l=1,isp(j)
-      do 1 i=ifp(j,l),ilp(j,l)
-      ja=mod(j-2+jj,jj)+1
-      if (ip(i,ja).eq.0) ja=j
-      jb=mod(j     ,jj)+1
-      if (ip(i,jb).eq.0) jb=j
- 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
-c
-c$OMP PARALLEL DO PRIVATE(ia,ib)
-      do 2 j=1,jj
-      do 2 l=1,isp(j)
-      do 2 i=ifp(j,l),ilp(j,l)
-      ia=max( 1,i-1)
-      if (ip(ia,j).eq.0) ia=i
-      ib=min(ii,i+1)
-      if (ip(ib,j).eq.0) ib=i
- 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
-      return
-      end
-c
       subroutine findmx(mask,array,idm,ii,jj,name)
 c
 c --- find maximum and minimum in 'array'. only check points where mask > 0
@@ -406,5 +367,516 @@ c
       write (lp,101) (i,(array(i,jwrap(j)),
      .   j=jz-3,jz+3),i=iz-3,iz+3)
 c
+      return
+      end
+c
+      subroutine psmo1(alist,pbot)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at points where ip > 0
+c
+c --- psmo1 is specially set up for interface smoothing.
+c --- it only alters -alist- values that don't coincide with -pbot-.
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real,intent(INOUT) :: alist(idm,jdm)
+      real,intent(IN)    :: pbot(idm,jdm)
+      real blist(idm,jdm),flxlo,flxhi
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ia)
+      do 1 j=1,jj
+      do 1 l=1,isp(j)
+      do 1 i=ifp(j,l),ilp(j,l)
+      ia=mod(i-2+ii,ii)+1
+      if (ip(ia,j).gt.0) then
+        flxhi= .25*(pbot(i ,j)-alist(i ,j))
+        flxlo=-.25*(pbot(ia,j)-alist(ia,j))
+        blist(i,j)=min(flxhi,max(flxlo,wgt*(alist(ia,j)-alist(i,j))))
+      else
+        blist(i,j)=0.
+      end if
+ 1    continue
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ib)
+      do 2 j=1,jj
+      do 2 l=1,isp(j)
+      do 2 i=ifp(j,l),ilp(j,l)
+      ib=mod(i,ii)+1
+      if (ip(ib,j).eq.0) blist(ib,j)=0.
+      alist(i,j)=alist(i,j)-(blist(ib,j)-blist(i,j))
+ 2    continue
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ja)
+      do 3 j=1,jj
+      do 3 l=1,isp(j)
+      do 3 i=ifp(j,l),ilp(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (ip(i,ja).gt.0) then
+        flxhi= .25*(pbot(i,j )-alist(i,j ))
+        flxlo=-.25*(pbot(i,ja)-alist(i,ja))
+        blist(i,j)=min(flxhi,max(flxlo,wgt*(alist(i,ja)-alist(i,j))))
+      else
+        blist(i,j)=0.
+      end if
+ 3    continue
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(jb)
+      do 4 j=1,jj
+      do 4 l=1,isp(j)
+      do 4 i=ifp(j,l),ilp(j,l)
+      jb=mod(j,jj)+1
+      if (ip(i,jb).eq.0) blist(i,jb)=0.
+      alist(i,j)=alist(i,j)-(blist(i,jb)-blist(i,j))
+ 4    continue
+c$OMP END PARALLEL DO
+c
+      return
+      end
+c
+c
+      subroutine psmoo(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at points where ip > 0
+c --- this routine is set up to smooth data carried at -p- points
+c
+c --- this version works for both cyclic-in-j and noncyclic domains
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real,intent(INOUT) :: alist(idm,jdm)
+      real blist(idm,jdm)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 1 j=1,jj
+      do 1 l=1,isp(j)
+      do 1 i=ifp(j,l),ilp(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (ip(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (ip(i,jb).eq.0) jb=j
+ 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 2 j=1,jj
+      do 2 l=1,isp(j)
+      do 2 i=ifp(j,l),ilp(j,l)
+      ia=max( 1,i-1)
+      if (ip(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (ip(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+      return
+      end
+c
+c
+      subroutine usmoo(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at points where iu > 0
+c --- this routine is set up to smooth data carried at -u- points
+c
+c --- this version works for both cyclic-in-j and noncyclic domains
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real,intent(INOUT) :: alist(idm,jdm)
+      real blist(idm,jdm)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 1 j=1,jj
+      do 1 l=1,isu(j)
+      do 1 i=ifu(j,l),ilu(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (iu(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (iu(i,jb).eq.0) jb=j
+ 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 2 j=1,jj
+      do 2 l=1,isu(j)
+      do 2 i=ifu(j,l),ilu(j,l)
+      ia=max( 1,i-1)
+      if (iu(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (iu(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+      return
+      end
+c
+c
+      subroutine vsmoo(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at poins where iv > 0
+c --- this routine is set up to smooth data carried at -v- points
+c
+c --- this version works for both cyclic-in-j and noncyclic domains
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real,intent(INOUT) :: alist(idm,jdm)
+      real blist(idm,jdm)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 1 j=1,jj
+      do 1 l=1,isv(j)
+      do 1 i=ifv(j,l),ilv(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (iv(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (iv(i,jb).eq.0) jb=j
+ 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 2 j=1,jj
+      do 2 l=1,isv(j)
+      do 2 i=ifv(j,l),ilv(j,l)
+      ia=max( 1,i-1)
+      if (iv(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (iv(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+      return
+      end
+c
+      subroutine psmooo(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- alist is smoothed array, blist is work array
+c --- this routine is set up to smooth data carried at -p- points
+c
+c --- this version works for both cyclic-in-j and noncyclic domains
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real,intent(INOUT) :: alist(idm,jdm)
+      real blist(idm,jdm)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 1 j=1,jj
+      do 1 l=1,isp(j)
+      do 1 i=ifp(j,l),ilp(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (ip(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (ip(i,jb).eq.0) jb=j
+      blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+ 1    continue
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 2 j=1,jj
+      do 2 l=1,isp(j)
+      do 2 i=ifp(j,l),ilp(j,l)
+      ia=max( 1,i-1)
+      if (ip(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (ip(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 3 j=1,jj
+      do 3 l=1,isp(j)
+      do 3 i=ifp(j,l),ilp(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (ip(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (ip(i,jb).eq.0) jb=j
+      blist(i,j)=2.*wgt*(alist(i,ja)+alist(i,jb))
+ 3    continue
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 4 j=1,jj
+      do 4 l=1,isp(j)
+      do 4 i=ifp(j,l),ilp(j,l)
+      ia=max( 1,i-1)
+      if (ip(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (ip(ib,j).eq.0) ib=i
+      alist(i,j)=2.*wgt*(blist(ia,j)+blist(ib,j))
+ 4    continue
+c$OMP END PARALLEL DO
+c
+      return
+      end
+c
+c
+      subroutine psmoo4(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at points where ip > 0
+c --- this routine is set up to smooth data carried at -p- points
+c 
+c --- this version works for both cyclic-in-j and noncyclic domains
+c 
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real*4,intent(INOUT) :: alist(idm,jdm)
+      real*4 blist(idm,jdm)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 1 j=1,jj
+      do 1 l=1,isp(j)
+      do 1 i=ifp(j,l),ilp(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (ip(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (ip(i,jb).eq.0) jb=j
+ 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 2 j=1,jj
+      do 2 l=1,isp(j)
+      do 2 i=ifp(j,l),ilp(j,l)
+      ia=max( 1,i-1)
+      if (ip(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (ip(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+      return
+      end
+c
+c
+      subroutine usmoo4(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at points where iu > 0
+c --- this routine is set up to smooth data carried at -u- points
+c
+c --- this version works for both cyclic-in-j and noncyclic domains
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real*4,intent(INOUT) :: alist(idm,jdm)
+      real*4 blist(idm,jdm)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 1 j=1,jj
+      do 1 l=1,isu(j)
+      do 1 i=ifu(j,l),ilu(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (iu(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (iu(i,jb).eq.0) jb=j
+ 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 2 j=1,jj
+      do 2 l=1,isu(j)
+      do 2 i=ifu(j,l),ilu(j,l)
+      ia=max( 1,i-1)
+      if (iu(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (iu(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+      return
+      end
+c
+c
+      subroutine vsmoo4(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at poins where iv > 0
+c --- this routine is set up to smooth data carried at -v- points
+c 
+c --- this version works for both cyclic-in-j and noncyclic domains
+c
+      implicit none
+      include 'dimensions.h'
+      include 'dimension2.h'
+c
+      real*4,intent(INOUT) :: alist(idm,jdm)
+      real*4 blist(idm,jdm)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb)
+      do 1 j=1,jj
+      do 1 l=1,isv(j)
+      do 1 i=ifv(j,l),ilv(j,l)
+      ja=mod(j-2+jj,jj)+1
+      if (iv(i,ja).eq.0) ja=j
+      jb=mod(j     ,jj)+1
+      if (iv(i,jb).eq.0) jb=j
+ 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib)
+      do 2 j=1,jj
+      do 2 l=1,isv(j)
+      do 2 i=ifv(j,l),ilv(j,l)
+      ia=max( 1,i-1)
+      if (iv(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (iv(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+      return
+      end
+c
+c
+      subroutine zebra(array,idim,ii,jj)
+c
+c --- find nice contour interval resulting in 7 to 10 contour lines and
+c --- draw contours on line printer through the following set of grid points:
+c
+c         array( 1, 1) . . . . . . . . .  array( 1,jj)
+c              .                               .
+c              .                               .          (plot will appear
+c              .                               .          on paper as shown,
+c              .                               .          i down, j across)
+c              .                               .
+c         array(ii,jj) . . . . . . . . .  array(ii,jj)
+c
+c --- ii  may be smaller than  idim, the first (row) dimension of 'array'
+c --- in the calling program. thus, plotting of partial arrays is possible.
+c
+      implicit none
+      integer lgth,idim,ii,jj,i,j
+      parameter (lgth=1600)
+      integer lp,imn,imx,jmn,jmx,
+     .        imnj(lgth),imxj(lgth),jmnj(lgth),jmxj(lgth)
+      real sqrt2,contur,q,ratio,amn,amx,amnj(lgth),amxj(lgth)
+      common/linepr/lp
+      real array(idim,jj)
+      data sqrt2/1.414/
+c
+      write (lp,'(a,3i6)') 'ZEBRA call with arguments',idim,ii,jj
+      if (jj.gt.lgth) stop '(insuff. workspace in zebra: increase lgth)'
+c
+c$OMP PARALLEL DO
+      do 1 j=1,jj
+      amxj(j)=-1.e33
+      amnj(j)= 1.e33
+      imnj(j)=-1
+      imxj(j)=-1
+      do 1 i=1,ii
+      if (amxj(j).lt.array(i,j)) then
+        amxj(j)=array(i,j)
+        imxj(j)=i
+        jmxj(j)=j
+      end if
+      if (amnj(j).gt.array(i,j)) then
+        amnj(j)=array(i,j)
+        imnj(j)=i
+        jmnj(j)=j
+      end if
+ 1    continue
+c$OMP END PARALLEL DO
+c
+      amx=-1.e33
+      amn= 1.e33
+      imn=-1
+      imx=-1
+      jmn=-1
+      jmx=-1
+      do 2 j=1,jj
+      if (amx.lt.amxj(j)) then
+        amx=amxj(j)
+        imx=imxj(j)
+        jmx=jmxj(j)
+      end if
+      if (amn.gt.amnj(j)) then
+        amn=amnj(j)
+        imn=imnj(j)
+        jmn=jmnj(j)
+      end if
+ 2    continue
+c
+      if (amx.gt.amn) go to 3
+      write (lp,100) array(1,1)
+ 100  format (//' field to be contoured is constant ...',1pe15.5/)
+      return
+c
+ 3    contur=(amx-amn)/6.
+      q=10.**int(log10(contur))
+      if (contur.lt.1.) q=q/10.
+      ratio=contur/q
+      if (ratio.gt.sqrt2*5.)  contur=q*10.
+      if (ratio.le.sqrt2*5.)  contur=q*5.
+      if (ratio.le.sqrt2*2.)  contur=q*2.
+      if (ratio.le.sqrt2)     contur=q
+      write (lp,101) contur,amn,imn,jmn,amx,imx,jmx
+ 101  format ('contour interval in plot below is',1pe9.1,
+     . 6x,'min =',e11.3,'  at',2i5/48x,'max =',e11.3,'  at',2i5)
+      call digplt(array,idim,ii,jj,contur)
+c
+      return
+      end
+c
+c
+      subroutine digplt(array,idim,ii,jj,dec)
+c
+c --- simulate a contour line plot on the printer
+c
+      common/linepr/lp
+c
+      real array(idim,jj)
+      character*1 digit(130),dig(20)
+      data dig/'0',' ','1',' ','2',' ','3',' ','4',' ',
+     .         '5',' ','6',' ','7',' ','8',' ','9',' '/
+c
+c     nchar = number of character increments in 'j' direction
+c     ratio = character width / line spacing
+c
+      data nchar/74/,ratio/.58/
+      xinc=float(jj-1)/(float(nchar)*ratio)
+      yinc=float(jj-1)/ float(nchar)
+      k=float(nchar)*ratio*float(ii-1)/float(jj-1)+1.00001
+      do 1 i=1,k
+      x=1.+float(i-1)*xinc
+      ia=min(ii-1,int(x))
+      dx=x-float(ia)
+      do 2 j=1,nchar+1
+      y=1.+float(j-1)*yinc
+      ja=min(jj-1,int(y))
+      dy=y-float(ja)
+      dxdy=dx*dy
+      value=array(ia,ja)*(1.-dx-dy+dxdy)
+     .     +array(ia+1,ja)*(dx-dxdy)
+     .     +array(ia,ja+1)*(dy-dxdy)
+     .     +array(ia+1,ja+1)*dxdy
+      n=mod(mod(int(2.*value/dec+sign(.5,value)),20)+20,20)+1
+ 2    digit(j)=dig(n)
+ 1    write (lp,100) 'i',' ',(digit(j),j=1,nchar+1),' ','i'
+ 100  format(1x,130a1)
       return
       end

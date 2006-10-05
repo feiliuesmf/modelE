@@ -53,13 +53,13 @@ c
 c --- optional spatial smoothing of viscosity and diffusivities on interior
 c --- interfaces.
 c
-ccc      if(difsmo) then
-ccc        do k=2,kk
-ccc          call psmooth_max(vcty(1,1,k), 1)
-ccc          call psmooth_max(dift(1,1,k), 0)
-ccc          call psmooth_max(difs(1,1,k), 0)
-ccc        enddo
-ccc      endif
+      if(difsmo) then
+        do k=2,kk
+          call psmoo(vcty(1,1,k))
+          call psmoo(dift(1,1,k))
+          call psmoo(difs(1,1,k))
+        enddo
+      endif
 c
 c ---   final mixing of variables at p points
 c
@@ -526,7 +526,11 @@ cdiag       endif
 c
 c --- modify t and s
         temp(i,j,kn)=temp(i,j,kn)+dtemp
-        saln(i,j,kn)=saln(i,j,kn)+dsaln
+        if (saln(i,j,kn).lt.0.) 
+     . write(*,'(i8,a,2i4,f8.4)')nstep,' neg s=',i,j,kn,saln(i,j,kn)
+c
+css     saln(i,j,kn)=saln(i,j,kn)+dsaln
+        saln(i,j,kn)=max(0.,saln(i,j,kn)+dsaln)
         th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))-thbase
 c
       enddo
@@ -2770,17 +2774,20 @@ c --- check conservation of column integrals
       tndcys=tosaln-tosalo
       totemn=10.*pbot(i,j)
       tosaln=35.*pbot(i,j)
-!TNL  if (abs(tndcyt).gt.acurcy*totemn) write (lp,101) i,j,
-!TNL .  '  mxkprf - bad temp.intgl.',totemo,tndcyt,tndcyt/totemn
-!TNL  if (abs(tndcys).gt.acurcy*tosaln) write (lp,101) i,j,
-!TNL .  '  mxkprf - bad saln.intgl.',tosalo,tndcys,tndcys/tosaln
+c     if (abs(tndcyt).gt.1000.*acurcy*totemn) write (lp,101) i,j,
+      if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+     .  '  mxkprf - bad temp.intgl.',totemo,tndcyt,tndcyt/totemn
+c     if (abs(tndcys).gt.1000.*acurcy*tosaln) write (lp,101) i,j,
+      if (abs(tndcys).gt.1.e-6*tosaln) write (lp,101) i,j,
+     .  '  mxkprf - bad saln.intgl.',tosalo,tndcys,tndcys/tosaln
       if (dotrcr) then
         do ktr=1,ntrcr
           tndcyt=totrcn(ktr)-totrco(ktr)
           if (abs(tndcyt).lt.1.e-199) tndcyt=0.
           totemn=trscal(ktr)*pbot(i,j)
-!TNL        if (abs(tndcyt).gt.acurcy*totemn) write (lp,101) i,j,
-!TNL .    '  mxkprf - bad trcr.intgl.',totrco(ktr),tndcyt,tndcyt/totemn
+c         if (abs(tndcyt).gt.1000.*acurcy*totemn) write (lp,101) i,j,
+          if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+     .    '  mxkprf - bad trcr.intgl.',totrco(ktr),tndcyt,tndcyt/totemn
         end do
       end if
  101  format (2i5,a,1p,2e16.8,e9.1)
@@ -2895,7 +2902,8 @@ c --- check conservation of column integrals
       end do
       tndcy=totn-toto
       totn=0.1*pbot(i,j)
-      if (abs(tndcy).gt.acurcy*totn) write (lp,101) i,j,
+c     if (abs(tndcy).gt.1000.*acurcy*totn) write (lp,101) i,j,
+      if (abs(tndcy).gt.1.e-6*totn) write (lp,101) i,j,
      .  '  mxkprf - bad u intgl.',toto,tndcy,tndcy/totn
  101  format (2i5,a,1p,2e16.8,e9.1)
 c
@@ -3004,7 +3012,8 @@ c --- check conservation of column integrals
       end do
       tndcy=totn-toto
       totn=0.1*pbot(i,j)
-      if (abs(tndcy).gt.acurcy*totn) write (lp,101) i,j,
+c     if (abs(tndcy).gt.1000.*acurcy*totn) write (lp,101) i,j,
+      if (abs(tndcy).gt.1.e-6*totn) write (lp,101) i,j,
      .  '  mxkprf - bad v intgl.',toto,tndcy,tndcy/totn
  101  format (2i5,a,1p,2e16.8,e9.1)
 c

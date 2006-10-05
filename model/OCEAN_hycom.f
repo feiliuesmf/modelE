@@ -30,7 +30,6 @@
       ! From FLUXES
       use hybrid_mpi_omp_coupler, only: gtemp
       integer istart
-
 #include "dimensions.h"
 #include "dimension2.h"
 #include "cpl.h"
@@ -72,6 +71,7 @@ css   entry io_ocean(iu_GIC,ioread,ioerr)
 css   entry CHECKO(SUBR)
 c
       ENTRY ADVSI_DIAG
+!     entry alloc_ocean           ! TNL
 c --- not calling ice dynamics
 css      ENTRY DYNSI
 css      ENTRY ADVSI
@@ -146,7 +146,7 @@ css  *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
+     . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 #ifdef TRACERS_OCEAN
        WRITE (kunit,err=10) TRMODULE_HEADER,tracer
@@ -164,8 +164,9 @@ c
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
+     . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
+      nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
             nstep=nstep0
             time=time0
@@ -191,8 +192,9 @@ c
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,tauxav,tauyav,dpmxav,oiceav
+     . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
+      nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
@@ -256,12 +258,6 @@ c
 C****
       RETURN
       END SUBROUTINE daily_OCEAN
-
-      subroutine gather_odiags
-C     nothing to gather yet      ! TNL
-      return
-      end subroutine gather_odiags
-
 c
 css   REAL*8 FUNCTION TFREZS (SIN)
 C****
@@ -286,3 +282,8 @@ css      S32 = S*DSQRT(S)
 css      TFREZS = (A01 + A02*S)*S + A03*S32
 css      RETURN
 css      END
+c
+      subroutine gather_odiags
+C     nothing to gather - not ready yet
+      return
+      end subroutine gather_odiags

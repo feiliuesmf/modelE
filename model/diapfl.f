@@ -60,7 +60,7 @@ c
         ttem(k)=temp(i,j,kn)
         dens(k)=th3d(i,j,kn)
         virt(k)=dens(k)+thermb(i,j,kn)
-        trac(k)=tracer(i,j,k)
+        trac(k)=tracer(i,j,k,1)
         pres(k+1)=pres(k)+delp(k)
       end if
  1    continue
@@ -202,7 +202,7 @@ c
       kn=k+nn
       dp(i,j,kn)=delp(k)
       saln(i,j,kn)=ssal(k)
- 2    tracer(i,j,k)=trac(k)
+ 2    tracer(i,j,k,1)=trac(k)
 c
       clip=clip/pbot(i,j)
 c

@@ -170,8 +170,10 @@ c
      .   +thbase,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),2),
      .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
 c
-      if (k.gt.1 .and. thstar(i,j,k).lt.thstar(i,j,k-1))
-     .   totlj(j,k-1)=totlj(j,k-1)+1
+      if (k.gt.1) then
+        if (thstar(i,j,k).lt.thstar(i,j,k-1))
+     .    totlj(j,k-1)=totlj(j,k-1)+1
+      endif
  11   continue
 c$OMP END PARALLEL DO
 c
@@ -238,7 +240,7 @@ c$OMP PARALLEL DO
       do 22 ia=1,iia
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
-        if (sss(ia,ja).le.20.) then
+        if (sss(ia,ja).le.10.) then
           write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja
      . ,' sss=',sss(ia,ja),' sst=',asst(ia,ja),' focean=',focean(ia,ja)
           stop 'wrong sss in agcm'
@@ -378,6 +380,12 @@ ccc      parameter (numfin=16)
 ccc      real coord(0:numfin),xnorm(0:numfin-1)
 ccc      data coord/0., 0.28, 0.56, 0.84, 1.12, 1.40, 1.68, 1.96, 2.24,
 ccc     .               2.52, 2.84, 3.24, 3.76, 4.40, 5.16, 6.04, 7.00/
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ccc      parameter (numfin=25)
+ccc      real coord(0:numfin)
+ccc      data coord/0.00, 0.30, 0.60, 0.90, 1.20, 1.50, 1.80, 2.10, 2.40,
+ccc     .           2.70, 3.00, 3.30, 3.60, 3.90, 4.20, 4.50, 4.82, 5.18,
+ccc     .           5.60, 6.10, 6.70, 7.40, 8.20, 9.08,10.02,11.00/
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       numcrs=coord(numfin)

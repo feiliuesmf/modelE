@@ -1,6 +1,6 @@
-E3hyc01_hybrid.R GISS Model E  coupled version      rar   8/31/2005
+E3r20p0.R GISS Model E  coupled version      ssun   8/30/2006
 
-E3hyc01_hybrid: E3AoM20A + hycom kpp refinement + topo_20w
+E3r20p0: E3AoM20A + hycom kpp refinement + topo_20w
 
 modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 1880
@@ -24,46 +24,43 @@ DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global dist
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
+CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
-PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB                               ! turbulence in whole atmosphere
+PBL_COM PBL_DRV PBL_E1              ! atmospheric pbl
+ATURB_E1                            ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_COM RAD_DRV RADIATION_E1        ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_RES_M                          ! ESMF
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
-hycom |-r8 -O2 -openmp| OCEAN_hycom|-r8 -O2 -openmp| ! ocean driver
-advfct|-r8 -O2 -openmp|                         ! advection
-archyb|-r8 -O2 -openmp|                         ! continuity eqn. 
-barotp|-r8 -O2 -openmp|                         ! barotropic eqn. 
-bigrid|-r8 -O2 -openmp|                         ! basin grid
-blkd10|-r8 -O2 -openmp| blkpp2|-r8 -O2 -openmp| ! block data
-cnuitb|-r8 -O2 -openmp|                         ! continuity eqn.
-cpler |-r8 -O2 -openmp|                         ! coupler
-dpthuv|-r8 -O2 -openmp| dpudpv|-r8 -O2 -openmp| ! off-center depth  
-eic8  |-r8 -O2 -openmp|                         ! ice forming
-geopar|-r8 -O2 -openmp|                         ! geography related parameters
-hybg05|-r8 -O2 -openmp|                         ! grid generator 
-inirfn|-r8 -O2 -openmp| inigis|-r8 -O2 -openmp| inikpp|-r8 -O2 -openmp| ! initial conditions
-matinv|-r8 -O2 -openmp| mxkprf|-r8 -O2 -openmp| ! KPP mixing scheme
-momtum|-r8 -O2 -openmp|                         ! momemtum Eqn.
-prtetc|-r8 -O2 -openmp|                         ! print routines, etc.
-reflux|-r8 -O1 -openmp|                         ! flux conversion
-sigetc|-r8 -O2 -openmp|                         ! eqn.of state, etc.
-thermf|-r8 -O2 -openmp|                         ! thermal forcing
-trcadv|-r8 -O2 -openmp|                         ! tracer advection 
-tsadvc|-r8 -O2 -openmp|                         ! T/S advection 
-hybrid_mpi_omp_renamer|-O2 -openmp|            ! ESMF
-hybrid_mpi_omp_coupler|-O2 -openmp|            ! ESMF
+hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
+advfct|-r8|                         ! advection
+archyb|-r8|                         ! continuity eqn. 
+barotp|-r8|                         ! barotropic eqn. 
+bigrid|-r8|                         ! basin grid
+blkd10|-r8| blkpp2|-r8|             ! block data
+cnuitb|-r8|                         ! continuity eqn.
+cpler |-r8|                         ! coupler
+dpthuv|-r8| dpudpv|-r8|             ! off-center depth  
+eic8  |-r8|                         ! ice forming
+geopar|-r8|                         ! geography related parameters
+hybg05|-r8|                         ! grid generator 
+inirfn|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
+matinv|-r8| mxkprf|-r8|             ! KPP mixing scheme
+momtum|-r8|                         ! momemtum Eqn.
+prtetc|-r8|                         ! print routines, etc.
+reflux|-r8|                         ! flux conversion
+sigetc|-r8|                         ! eqn.of state, etc.
+thermf|-r8|                         ! thermal forcing
+trcadv|-r8|                         ! tracer advection 
+tsadvc|-r8|                         ! T/S advection 
 
 Data input files:
 AIC=AIC.RES_M20A.D771201    !initial conditions (atm.) needs GIC,OIC ISTART=2
@@ -106,7 +103,7 @@ TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-E3hyc01_hybrid (bihar=.1,hybgn1_5m,pump[20:200],full kpp)
+E3r20p0 (bihar=.1,hybgn1_5m,pump[20:200],full kpp)
 
 DTFIX=300
 &&PARAMETERS
@@ -181,7 +178,7 @@ SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1   ! use =0 to save cpu time if isccp-diags are not essential
-! cloud_rad_forc=0 ! use =1 to activate this diagnostic (doubles radiation calls !)
+cloud_rad_forc=0 ! use =1 to activate this diagnostic (doubles radiation calls !)
 nda5d=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
 nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
 ndaa=13
@@ -190,8 +187,8 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1800,MONTHI=01,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
-   YEARE=1800,MONTHE=01,DATEE=3,HOURE=0, KDIAG=13*9,
-   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=01,DATEE=3,HOURE=0, KDIAG=13*9, 
+   YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
+   YEARE=2101,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
+   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END
 link_20w

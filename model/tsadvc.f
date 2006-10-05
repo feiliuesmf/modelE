@@ -385,7 +385,7 @@ c
       sqq=sqrt(-cubq)
       cubrl=sqq*cos(cuban)
       cubim=sqq*sin(cuban)
-      tofspi=-cubrl+sqrt(3.)*cubim-athird*a2
+      tofspi=max(-3.,-cubrl+sqrt(3.)*cubim-athird*a2)
 cdiag salin=spice-coeff*tofspi
 cdiag if (abs(sigocn(tofspi,salin)-sigm).gt.1.e-9) write (*,100)
 cdiag. tofspi,salin,sigm,sigocn(tofspi,salin)
@@ -413,3 +413,4 @@ c> Dec. 2004 - replaced salinity by spiciness as advected variable
 c> Dec. 2004 - switched global correction ('globcor') from rho/spice to T/S
 c> Jan. 2005 - replaced salinity by spiciness as time-smoothed variable
 c> Mar. 2006 - added bering strait exchange logic
+c> Aug. 2006 - limit tofspi -3 minimum

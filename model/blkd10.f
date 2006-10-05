@@ -27,8 +27,7 @@ c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
-c     data baclin,batrop/3600.,120./,diagfq/365./          ! 2deg full global
-      data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
+      data baclin,batrop/3600.,120./,diagfq/365./          ! 2deg full global
 c
 c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (m/s) for momentum dissipation
@@ -36,7 +35,7 @@ c --- 'temdff' = diffusion velocity (m/s) for temp/salin. mixing
 c --- 'viscos' is nondimensional, used in deformation-dependent viscosity
 c --- 'vertmx' = scale velocity for vertical momentum mixing (m/s)
 c     data thkdff/.005/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
-      data thkdff/.05/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
+      data thkdff/.10/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
 c
 c --- 'diapyc' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
@@ -77,7 +76,7 @@ c --- 'epsil'  = small nonzero number used to prevent division by zero
       data airdns/1.2/,evaplh/2.47e6/,thref/1.e-3/,epsil/1.e-11/
 c
 c --- 'itest,jtest' = grid point where detailed diagnostics are desired
-      data itest,jtest/122,100/
+      data itest,jtest/174,41/
 c
 c ---      equatn   --  the i index of the equator
 c

@@ -3,9 +3,7 @@ c
 c --- set up model parameters related to geography
 c
 c --- hycom version 0.9 -- cyclic in j
-!TNL  USE GEOM, only : dxyp
-      ! from MODEL_COM
-!TNL  use hybrid_mpi_omp_coupler, only: focean
+css   USE GEOM, only : dxyp
 c
       implicit none
       include 'dimensions.h'
@@ -74,7 +72,7 @@ ccc 5    write (lp,'('' j='',i3,'' ifp,ilp='',7(1x,2i5))') j,
 ccc     . (ifp(j,l),ilp(j,l),l=1,isp(j))
 c
 c --- smooth bottom topography (optional)
-ccc      call psmoo(depths,util1)
+ccc      call psmoo(depths)
 c
 c     call prtmsk(ip,depths,util1,idm,ii1,jj,0.,1.,
 c    .     'bottom depth (m)')
@@ -251,8 +249,8 @@ c
       oiceav(i,j)=zero
       eminpav(i,j)=zero
       surflav(i,j)=zero
-      tauxav(i,j)=zero
-      tauyav(i,j)=zero
+      sflxav(i,j)=zero
+      brineav(i,j)=zero
 c
       do 209 k=1,kk
       u  (i,j,k   )=huge
@@ -484,18 +482,50 @@ c ---   relative strength of the two nearest reference states,
 c ---     e.g. 1.7 is 70% ref2 and 30% ref1
 c ---     and  2.3 is 70% ref2 and 30% ref3.
 c
-      open (34,file=flnmkap,form='unformatted',status='old')
-      read (34) iz,jz,real4
-      close (unit=34)
-      if (iz.ne.idm.and.jz.ne.jdm) stop 'wrong flnmkap'
-c
-      do j=1,jdm
-      do i=1,idm
-      util1(i,j)=real4(i,j)
-      if     (ip(i,j).eq.0) then
-        util1(i,j) = 1.0 !land
-      endif
+      open (34,file=flnmbas,form='formatted',status='old')
+      do n=1,2
+      read(34,*)
+      read(34,'(90i1)') ((ip(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
       enddo
+      close(34)
+c
+      do 3 i=1,idm
+      do 3 j=1,jdm 
+      util1(i,j)=1.             !land
+c
+      if (    ip(i,j).eq.1 .or. ip(i,j).eq.2) then  ! N.S. of AT
+        util1(i,j)=2
+      elseif (ip(i,j).eq.3 .or. ip(i,j).eq.4) then  ! N.S. of IN
+        util1(i,j)=1.6
+        util1(i,j)=2.           ! Alan's choice
+      elseif (ip(i,j).eq.5 .or. ip(i,j).eq.6) then  ! N.S. of PA
+        util1(i,j)=1.3
+        util1(i,j)=2.           ! Alan's choice
+      elseif (ip(i,j).eq.7 .or. ip(i,j).eq.8) then
+        util1(i,j)=1                               ! Arctic/Antarctic
+      elseif (ip(i,j).eq.9)  then
+        util1(i,j)=3                               ! Med
+      endif
+c     if (ip(i,j).gt.0) util1(i,j)=2               ! Arctic/Antarctic
+ 3    continue
+c
+      call findmx(iu,util1,ii,ii,jj,'kap1')
+      write(*,'(a)') 'chk kap1'
+      do n=1,4
+      write (*,'(45i2)') ((int(util1(i,j)*10),j=(n-1)*jj/4+1,n*jj/4)
+     .                                        ,i=1,idm)
+      write (*,*)
+      enddo
+c
+      do m=1,10
+      call psmooo(util1)
+      enddo
+      call findmx(iu,util1,ii,ii,jj,'kap2')
+      write(*,'(a)') 'chk kap2'
+      do n=1,4
+      write (*,'(45i2)') ((int(util1(i,j)*10),j=(n-1)*jj/4+1,n*jj/4)
+     .                                                     ,i=1,idm)
+      write (*,*)
       enddo
 c
 c       kapi is the 2nd reference state (1st is always 2)
@@ -532,13 +562,11 @@ c    &                  util1(i,jb) ).gt.2.0) then
         kapi(:,:) = util2(:,:)
 c
         write(*,'(a)') 'chk skap'
-        write (*,'(45i2)') ((int(skap(i,j)*10),j=  1, 45),i=1,idm)
+        do n=1,4
+        write (*,'(45i2)') ((int(skap(i,j)*10),j=(n-1)*jj/4+1,n*jj/4)
+     .                                                     ,i=1,idm)
         write (*,*)
-        write (*,'(45i2)') ((int(skap(i,j)*10),j= 46, 90),i=1,idm)
-        write (*,*)
-        write (*,'(45i2)') ((int(skap(i,j)*10),j= 91,135),i=1,idm)
-        write (*,*)
-        write (*,'(45i2)') ((int(skap(i,j)*10),j=136,jdm),i=1,idm)
+        enddo
 c
       else
         skap(:,:) = 1.0     !for diagnostics only

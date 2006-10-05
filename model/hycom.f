@@ -264,8 +264,8 @@ ccc   call OMP_SET_NUM_THREADS(max(mo0,16))
 c$OMP PARALLEL SHARED(mo1)
 ccc   mo1=OMP_GET_NUM_THREADS()
 c$OMP END PARALLEL
-c     write (lp,'(2(a,i5))') ' hycom thread count',mo0
-c     write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
+c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0
+c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
 ccc     . ,' =======  number of threads:',mo1,' ======='
 c
       lp=6
@@ -303,6 +303,7 @@ c
       nstepi=real(nhr)*3600./baclin + .0001
       write (lp,'(i4,'' barotropic steps per baroclinic time step'')')
      .  lstep
+      write (lp,*) "time0/nstep0=",time0,nstep0
       write (lp,'(''ogcm exchange w. agcm every step,hr'',2i5)')
      .  nstepi,nhr
 c
@@ -340,6 +341,7 @@ c
      . ,iyear1,jyear,(nstep0+nstepi-1)*baclin/3600.,itime*24/nday
       endif
 c
+c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
       if(abs(int((nstep0+nstepi-1)*baclin/3600)-itime*24/nday).gt.0)
      .                                                        then
         write (lp,'(a,f16.8,i10,f16.8)')'mismatch date found '
@@ -422,6 +424,7 @@ c
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
 c
+      if (nstep.eq.1) diagno=.true.
       diag_ape=diagno
 c
       trcadv_time = 0.0
@@ -622,10 +625,10 @@ ccc     if (k.eq.kk-(kk-1)*nflip) index=1
         do 706 i=ifp(j,l),ilp(j,l)
         totl=totl+oice(i,j)*scp2(i,j)
  706    sum=sum+dp(i,j,k+nn)*scp2(i,j)
-        call linout(sum/(area*onem),charac(k),index)
+css     call linout(sum/(area*onem),charac(k),index)
  705    index=0
 c --- add ice extend (%) to plot
-        call linout(100.*totl/area,'I',1)
+css     call linout(100.*totl/area,'I',1)
 c
 c --- diagnose mean sea surface height
         sum=0.
@@ -654,16 +657,14 @@ c --- find the largest distance from a tencm layer from bottom
  707    continue
 c
 c       call findmx(ip,util2,idm,ii,jj,'lowest')
-c       call findmx(ip,osst,ii,ii,jj,'osst')
-c       call findmx(ip,osss,ii,ii,jj,'osss')
 c       call findmx(iu,usf,ii,ii,jj,'u_ocn')
 c       call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
-c       call findmx(ipa,aflxa2o,iia,iia,jja,'aflxa2o')
-c       call findmx(ipa,asst,iia,iia,jja,'asst')
-c       call findmx(ipa,sss,iia,iia,jja,'osss')
-c       call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
-c       call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
+        call findmx(ipa,aflxa2o,iia,iia,jja,'aflxa2o')
+        call findmx(ipa,asst,iia,iia,jja,'asst')
+        call findmx(ipa,sss,iia,iia,jja,'asss')
+        call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
+        call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
       end if                      ! once a day
 c
@@ -708,7 +709,7 @@ c$OMP PARALLEL DO
         do 3 i=ifp(j,l),ilp(j,l)
  3      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
 c$OMP END PARALLEL DO
-css   call overtn(mm)
+c     call overtn(mm)
 c
       write (lp,105) nstep
  105  format (' step',i9,' -- archiving completed --')
@@ -739,13 +740,15 @@ ccc     .     'mx.lay. salin. (.01 mil)')
       do 77 j=1,jj1
       do 77 l=1,isu(j)
       do 77 i=ifu(j,l),ilu(j,l)
- 77   util1(i,j)=u(i,j,k1n)+ubavg(i,j,n)
+c77   util1(i,j)=u(i,j,k1n)+ubavg(i,j,n)
+ 77   util1(i,j)=u(i,j,k1n)
 ccc      call prtmsk(iu,util1,util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'u vel. (mm/s), layer 1')
       do 78 i=1,ii1
       do 78 l=1,jsv(i)
       do 78 j=jfv(i,l),jlv(i,l)
- 78   util2(i,j)=v(i,j,k1n)+vbavg(i,j,n)
+c78   util2(i,j)=v(i,j,k1n)+vbavg(i,j,n)
+ 78   util2(i,j)=v(i,j,k1n)
 ccc      call prtmsk(iv,util2,util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'v vel. (mm/s), layer 1')
 ccc      call prtmsk(iu,ubavg(1,1,n),util3,idm,ii1,jj1,0.,1000.,
@@ -753,7 +756,7 @@ ccc     .     'barotrop. u vel. (mm/s)')
 ccc      call prtmsk(iv,vbavg(1,1,n),util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'barotrop. v vel. (mm/s)')
  23   continue
-
+c
 c --- accumulate fields for agcm
 c$OMP PARALLEL DO
       do 201 j=1,jj
@@ -780,11 +783,13 @@ c$OMP PARALLEL DO
       do 88 j=1,jj
       do 87 l=1,isu(j)
       do 87 i=ifu(j,l),ilu(j,l)
- 87   usf(i,j)=u(i,j,k1n)+ubavg(i,j,n)
+c87   usf(i,j)=u(i,j,k1n)+ubavg(i,j,n)
+ 87   usf(i,j)=u(i,j,k1n)
 c
       do 88 l=1,isv(j)
       do 88 i=ifv(j,l),ilv(j,l)
- 88   vsf(i,j)=v(i,j,k1n)+vbavg(i,j,n)
+c88   vsf(i,j)=v(i,j,k1n)+vbavg(i,j,n)
+ 88   vsf(i,j)=v(i,j,k1n)
 c$OMP END PARALLEL DO
 c
 c
@@ -794,6 +799,15 @@ css   call iceo2a(omlhc,mlhc)
       call ssto2a(oogeoza,ogeoza)
       call ssto2a(osiav,utila)                 !kg/m*m per agcm time step
       call veco2a(usf,vsf,uosurf,vosurf)
+c
+      call findmx(ip,osst,ii,ii,jj,'osst')
+      call findmx(ip,osss,ii,ii,jj,'osss')
+c     call findmx(iu,usf,ii,ii,jj,'u_ocn')
+c     call findmx(iv,vsf,ii,ii,jj,'v_ocn')
+c     call findmx(ipa,asst,iia,iia,jja,'asst')
+c     call findmx(ipa,sss,iia,iia,jja,'asss')
+c     call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
+c     call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
 c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ia=1,iia
@@ -835,7 +849,6 @@ c> Apr. 2001 - eliminated stmt_funcs.h
 c> June 2001 - corrected sign error in diaflx
 c> July 2001 - replaced archiving statements by 'call archiv'
 c> Oct  2004 - map ice mass to agcm, and then calculate E
-
 
 !!! I am putting the following routine here as a hack, since it has to be
 !!! present somewhere among ocean routines
