@@ -42,8 +42,8 @@ if ( $rcode == 13 ) {
 #chdir "$CMRUNDIR/$runID" or die "$CMRUNDIR/$runID not found\n";
 
 ## getting an error message
-if ( -f "error_message" ) {
-    $error_message = `cat error_message`; chop $error_message;
+if ( -f "run_status" ) {
+    $error_message = `tail -1 run_status`; chop $error_message;
 } else { # trying "nohup.out" for older runs
     $error_message = `cat nohup.out | tail -1`; chop $error_message;
 }
@@ -104,7 +104,8 @@ seek I,0,0;
 open IX, ">Ix" or die "can't open 'Ix' for writing\n";
 while(<I>) {
   print IX " DT=$dt.,\n Ndisk=24,\n" if /^ *&&END_PARAMETERS/i;
-  print IX " ISTART=99,IHOURE=$taun,\n" if /^ *&end/i;
+  print IX " ISTART=99,IHOURE=$taun,\n" if /^ *&end/i; # old style
+  print IX " ISTART=99,IHOURE=$taun,\n" if /^ *\/ *$/i;
   print IX;
 }
 
@@ -137,7 +138,7 @@ EOC
 $rcode = $? >> 8;
 
 if ( $rcode == 13 ) {
-  touch I ; exec "$EXECDIR/runE $runID $MP_SET_NUMTHREADS";
+  `touch I` ; exec "$EXECDIR/runE $runID $MP_SET_NUMTHREADS";
 } else {
   if ( -f "run_status" ) {
     $error_message = `tail -1 run_status`; chop $error_message;
