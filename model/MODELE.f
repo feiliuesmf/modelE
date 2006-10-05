@@ -67,6 +67,9 @@ C**** Command line options
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
 
+C**** Set run_status to "run in progress"
+      call write_run_status("Run in progress...",1)
+
       call init_app(grid,im,jm,lm)
       call alloc_drv()
 C****

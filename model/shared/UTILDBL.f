@@ -569,47 +569,60 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       rank =0
 #endif
       if (rank == 0) then
+        call write_run_status( message, retcode )
         write (6,'(//2(" ",132("*")/))')
         write (6,*) ' Program terminated due to the following reason:'
         write (6,*) ' >>  ', message, '  <<'
         write (6,'(/2(" ",132("*")/))')
-
-        if ( retcode .ne. 12 ) then
-           if ( retcode .eq. 13 ) then
-             open( iu_err, file='end_of_run',
-     &          form='FORMATTED', status='REPLACE', ERR=10 )
-           else
-             open( iu_err, file='error_message',
-     &          form='FORMATTED', status='REPLACE', ERR=10 )
-           end if
-          write ( iu_err, *, ERR=10 ) retcode, message
-          close( iu_err )
-          goto 11
- 10       continue
-          write( 0, * ) "Can't write to the error_message file"
-          write( 0, * ) "ERROR:", message
- 11       continue
-        endif
       endif
 
       call sys_flush(6)
 
-      if ( retcode > 13 ) then
+      if ( retcode > 13 .and. dump_core > 0  ) then
 #ifdef USE_ESMF
         call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
 #else
-        if ( dump_core > 0 ) then
-          call sys_abort
-        else
-          stop
-        endif
+        call sys_abort
 #endif
-      else
+      else 
 #ifdef USE_ESMF
         call mpi_finalize(mpi_err)
+#else
+        call exit_rc (0)
 #endif
-        stop
       endif
 
       end subroutine stop_model
 
+
+      subroutine write_run_status( message, retcode )
+      implicit none
+      character*(*), intent (in) :: message
+      integer, intent(in) :: retcode
+      integer, parameter :: iu_status = 9
+      character*10 :: form_str
+      integer num_digits
+
+      ! construct format string in such a way that retcode is printed
+      ! at the beginning of the line with no extra spaces
+      if ( retcode .ne. 0 ) then
+        num_digits = log10( real( abs(retcode), kind(1.d0) ) ) + 1
+      else
+        num_digits = 1
+      endif
+      if ( retcode < 0 ) num_digits = num_digits + 1
+
+      write(form_str,"('(I',I1,')')") num_digits
+      
+      open( iu_status, file='run_status', form='FORMATTED',
+     &     status='REPLACE', ERR=10 )
+      write( iu_status, form_str, ERR=10 ) retcode
+      write( iu_status, '(A)', ERR=10 ) message
+      close( iu_status )
+
+      return
+ 10   continue
+      write( 0, * ) "ERROR: Can't write to the run_status file"
+      write( 0, * ) "STATUS:", message      
+      end subroutine write_run_status
+      
