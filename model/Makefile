@@ -117,7 +117,7 @@ OBJ_LIST_O = $(shell [ -s $(RUNDECK) ] && perl \
 
 # stripping options from OBJ_LIST_O
 OBJ_LIST = $(shell perl \
-	-e '$$_="$(OBJ_LIST_O)"; s/\|[^|]*\|//g; print;' \
+	-e '$$_="$(OBJ_LIST_O)"; s/ *\|[^|]*\|//g; print;' \
 	)
 
 # RFLAGS returns rundeck options for the current object (i.e. for $*)
