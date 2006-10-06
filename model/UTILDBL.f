@@ -587,9 +587,8 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       else 
 #ifdef USE_ESMF
         call mpi_finalize(mpi_err)
-#else
-        call exit_rc (0)
 #endif
+        call exit_rc (0)
       endif
 
       end subroutine stop_model
