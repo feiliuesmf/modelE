@@ -122,6 +122,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
           if (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
      &           GML_glob       ! no FLAKE
+            FLAKE_glob = 0.d0
           else
             READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
      &           GML_glob,FLAKE_glob
