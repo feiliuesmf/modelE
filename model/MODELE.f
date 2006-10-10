@@ -405,7 +405,6 @@ C**** Tracer radioactive decay (and possible source)
 C**** Calculate 3D tracers sources and sinks
 
       call tracer_3Dsource
-
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
          CALL TIMER (MNOW,MTRACE)
@@ -500,7 +499,6 @@ C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
       acc_period=aDATE(1:12)
       WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
       if (kradia.le.0) call print_diags(0)
-
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
@@ -575,7 +573,6 @@ C**** Flag to continue run has been turned off
       END IF
 
 c$$$      call test_save(__LINE__, itime-1)
-
       END DO
 
       call gettime(tloopend)
@@ -1547,6 +1544,7 @@ C**** Initialize nudging
 #ifdef TRACERS_AMP
       CALL SETUP_CONFIG
       CALL SETUP_SPECIES_MAPS
+      CALL SETUP_DP0
       CALL SETUP_AERO_MASS_MAP
       CALL SETUP_COAG_TENSORS
       CALL SETUP_DP0
