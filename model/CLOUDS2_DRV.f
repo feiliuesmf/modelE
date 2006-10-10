@@ -286,11 +286,10 @@ CRKF...FIX
 #endif
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+
       REAL*8, DIMENSION(N_IDX3, NDIUPT) :: ADIURNSUM
-#else
-      REAL*8, DIMENSION(N_IDX3, NDIUPT) :: HDIURNSUM, ADIURNSUM
+#ifndef NO_HDIURN
+     &     ,HDIURNSUM
 #endif
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
       REAL*8 :: tmp(NDIUVAR)
