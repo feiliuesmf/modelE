@@ -728,11 +728,9 @@ C**** Work array for regional diagnostic accumulation
       REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: hdiurn_temp
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
       REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM
-#else
-      REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM, HDIURNSUM
+#ifndef NO_HDIURN
+     *     ,HDIURNSUM
 #endif
       INTEGER :: ih, ihm, ii, ivar, kr
       INTEGER :: idx(n_idx)
