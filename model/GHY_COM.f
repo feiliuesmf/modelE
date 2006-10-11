@@ -337,7 +337,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #ifdef TRACERS_WATER
         CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,1:NGM,1,1:IM,J_0H:J_1H),
      &       TR_WBARE_GLOB)
-        CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,0:NGM,1,1:IM,J_0H:J_1H),
+        CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,0:NGM,2,1:IM,J_0H:J_1H),
      &       TR_WVEGE_GLOB)
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
@@ -386,10 +386,7 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
           CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,
      &         TR_W_IJ(1:NTM,1:NGM,1,1:IM,J_0H:J_1H) )
           CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,
-
-
-
-     &         TR_W_IJ(1:NTM,0:NGM,1,1:IM,J_0H:J_1H) )
+     &         TR_W_IJ(1:NTM,0:NGM,2,1:IM,J_0H:J_1H) )
           CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 
         END SELECT
