@@ -9,10 +9,7 @@
      *     ,teeny,sday
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
-     *     ,ntype,itime,fim,focean,fland,flice
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     *     ,jyear,jmon
-#endif
+     *     ,ntype,itime,fim,focean,fland,flice,jyear,jmon
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET
       USE DOMAIN_DECOMP, only : CHECKSUM, NORTH,SOUTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
@@ -80,14 +77,9 @@
       USE LIGHTNING, only : RNOx_lgt
 #endif
       USE TRDIAG_COM,only: tajln=>tajln_loc,jlnt_mc,jlnt_lscond,itcon_mc
-     *     ,itcon_ss
+     *     ,itcon_ss,taijn=>taijn_loc,tajls=>tajls_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
-     *     ,jls_prec,taijn=>taijn_loc,tajls=>tajls_loc,tij_prec
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_AMP)
-     &     ,taijs=>taijs_loc
-#endif
+     *     ,jls_prec,tij_prec
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jls_incloud,ijts_aq
 #endif
@@ -98,7 +90,7 @@
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,jls_wet,ijts_wet,taijs=>taijs_loc,tajls=>tajls_loc,itcon_wt
+     &     ,jls_wet,ijts_wet,itcon_wt
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
@@ -286,7 +278,6 @@ CRKF...FIX
 #endif
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
-
       REAL*8, DIMENSION(N_IDX3, NDIUPT) :: ADIURNSUM
 #ifndef NO_HDIURN
      &     ,HDIURNSUM
