@@ -1280,8 +1280,8 @@ C****
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH,
      *     GLOBALSUM
       IMPLICIT NONE
-      integer i,j,J_0,J_1,jr
-      real*8 new_flake,sumh,msinew,snownew,frac,itm,fmsi2,fmsi3
+      integer i,j,J_0,J_1,jr,itm
+      real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
      *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk,newmld
      *     ,frsat,hlk2
 #ifdef TRACERS_WATER

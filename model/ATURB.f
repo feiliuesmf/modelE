@@ -163,7 +163,7 @@ C****
             q(l)=q_3d(i,j,l)
 cc            qmomij(:,l)=qmom(:,i,j,l)
 cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
-            if(q(l).lt.qmin) q(l)=qmin
+c            if(q(l).lt.qmin) q(l)=qmin
             e(l)=e_3d(l,i,j) !e_3d was called egcM
             p(l)=pmid(l,i,j)
             ! t2(l)=t2_3d(l,i,j)  ! not in use
@@ -344,9 +344,9 @@ C**** Does this ever happen for q? (put this in just in case)
 
           call de_solver_main(q,q0,kh,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.true.)
-          do l=1,lm
-              if(q(l).lt.qmin) q(l)=qmin
-          end do
+c          do l=1,lm
+c              if(q(l).lt.qmin) q(l)=qmin
+c          end do
 
 C**** also diffuse moments
 cc        call diff_mom(qmomij)
