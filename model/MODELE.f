@@ -262,24 +262,16 @@ C**** Scale WM mixing ratios to conserve liquid water
       END DO
 !$OMP  END PARALLEL DO
 
-
-
-
-      CALL CHECKT ('DYNAM1')
       CALL QDYNAM  ! Advection of Q by integrated fluxes
-      CALL CHECKT ('DYNAM2')
          CALL TIMER (MNOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
-      CALL CHECKT ('DYNAM3')
          CALL TIMER (MNOW,MTRACE)
 #endif
 C****
 C**** Calculate tropopause level and pressure
 C****
       CALL CALC_TROP
-      CALL CHECKT ('DYNAM4')
-
 C**** calculate some dynamic variables for the PBL
       CALL PGRAD_PBL
 
@@ -448,6 +440,7 @@ C****
         call daily_LAKE
         call daily_OCEAN(.true.)           ! end_of_day
         call daily_ICE
+        call daily_LI
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
         call daily_tracer(1)
            CALL TIMER (MNOW,MTRACE)
@@ -1471,7 +1464,7 @@ C****  KOCEAN = 0 => RSI/MSI factor
 C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
-      CALL init_LI
+      CALL init_LI(istart)
 
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
