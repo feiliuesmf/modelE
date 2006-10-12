@@ -3,7 +3,7 @@ C****
 !@sum  GEOMO Calculates the spherical geometry for the C grid
 !@auth Gary Russell
 !@ver  1.0  
-      USE CONSTANT, only : twopi,radius,omega
+      USE CONSTANT, only : twopi,radius,omega,pi
       USE GEOM, only : dxyp,bydxyp
       USE OCEAN
       IMPLICIT NONE
@@ -12,7 +12,7 @@ C****
 
       DLON   = TWOPI/IM
       IF (JM.eq.46) DLAT = NINT(180./(JM-1))*TWOPI/360. ! half polar box
-      IF (JM.eq.90) DLAT = 180./JM    ! even spacing (2x2.5)
+      IF (JM.eq.90) DLAT = PI/REAL(JM)    ! even spacing (2x2.5)
 C**** Geometric parameters defined at secondary latitudes
       FJEQ    = .5*(1+JM)
       RLAT(1) = -TWOPI/4.
