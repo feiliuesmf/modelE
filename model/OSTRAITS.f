@@ -772,3 +772,125 @@ c     *         -ssist(3:4,nmax)
       END IF
 C****
       END SUBROUTINE CHECKOST
+
+      SUBROUTINE io_straits(kunit,iaction,ioerr)
+!@sum  io_straits reads and writes ocean straits arrays to file
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
+     *     ,irerun,lhead
+      USE STRAITS
+      use domain_decomp, only : grid,am_i_root
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCSTR01"
+#ifdef TRACERS_WATER
+!@var TRHEADER Character string label for individual records
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCSTR01"
+
+#ifndef TRACERS_OCEAN
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
+     *     ,',',lmi,',',nmst,')'
+#else
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
+     *     ,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
+     *     ,'):TRMST,TXST,TZST'
+#endif
+#endif
+
+      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
+     *     i2,a1,i2,a)') 'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
+     *     'RSI(',nmst,',2),ms(2,',nmst,'),E+S(',lmi,',',nmst,',2)'
+
+      SELECT CASE (IACTION)
+      CASE (:IOWRITE)            ! output to standard restart file
+        if (.not.am_i_root()) return
+        WRITE (kunit,err=10) MODULE_HEADER,MUST,G0MST,GXMST,GZMST,S0MST
+     *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
+#ifdef TRACERS_WATER
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRSIST
+#ifdef TRACERS_OCEAN
+     *       ,TRMST,TXMST,TZMST
+#endif
+#endif
+      CASE (IOREAD:)            ! input from restart file
+        SELECT CASE (IACTION)
+        CASE (ioread,irerun,irsfic)    ! restarts
+         if (am_i_root()) then
+          READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
+     *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER
+     *           ,MODULE_HEADER
+            GO TO 10
+          END IF
+#ifdef TRACERS_WATER
+          READ (kunit,err=10) TRHEADER,TRSIST
+#ifdef TRACERS_OCEAN
+     *       ,TRMST,TXMST,TZMST
+#endif
+          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",TRHEADER
+     *           ,TRMODULE_HEADER
+            GO TO 10
+          END IF
+#endif
+         end if
+         call BCAST_straits(.false.) ! don't skip tracers
+        CASE (irsficnt)    ! restarts (never any tracers)
+        if (am_i_root()) then
+          READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
+     *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER
+     *           ,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
+        call BCAST_straits(.true.) ! skip tracers
+        END SELECT
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_straits
+
+      SUBROUTINE BCAST_straits (skip_tracers)
+      USE STRAITS
+      use domain_decomp, only : grid,ESMF_BCAST
+      IMPLICIT NONE
+      logical, intent(in) :: skip_tracers
+
+      CALL ESMF_BCAST(grid, MUST )
+      CALL ESMF_BCAST(grid, G0MST)
+      CALL ESMF_BCAST(grid, GXMST)
+      CALL ESMF_BCAST(grid, GZMST)
+      CALL ESMF_BCAST(grid, S0MST)
+      CALL ESMF_BCAST(grid, SXMST)
+      CALL ESMF_BCAST(grid, SZMST)
+      CALL ESMF_BCAST(grid, RSIST)
+      CALL ESMF_BCAST(grid, RSIXST)
+      CALL ESMF_BCAST(grid, MSIST)
+      CALL ESMF_BCAST(grid, HSIST)
+      CALL ESMF_BCAST(grid, SSIST)
+
+#ifdef TRACERS_WATER
+      if(skip_tracers) return
+
+      CALL ESMF_BCAST(grid, TRSIST)
+#ifdef TRACERS_OCEAN
+      CALL ESMF_BCAST(grid, TRMST)
+      CALL ESMF_BCAST(grid, TXMST)
+      CALL ESMF_BCAST(grid, TZMST)
+#endif
+#endif
+      return
+      end SUBROUTINE BCAST_straits

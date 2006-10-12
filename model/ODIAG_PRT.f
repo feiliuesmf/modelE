@@ -1075,32 +1075,34 @@ C  430 SF(J,L,3) = SF(J,L,3) - FLOW
 C****
 C**** Add strait flow from to the Stream Function
 C****
-C**** Fury & Hecla: (19,42) to (20,40)
-      SF(41,L,1) = SF(41,L,1) - OLNST(L+1,1)*FACST
-      SF(40,L,1) = SF(40,L,1) - OLNST(L+1,1)*FACST
-C**** Nares: (22,43) to (24,44)
-      SF(43,L,1) = SF(43,L,1) + OLNST(L+1,2)*FACST
-C**** Gibralter: (35,32) to (37,33)
-      SF(32,L,1) = SF(32,L,1) + OLNST(L+1,3)*FACST
-C**** English: (36,36) to (37,37)
-      SF(36,L,1) = SF(36,L,1) + OLNST(L+1,4)*FACST
-C**** Bosporous: (42,33) to (43,34)
-      SF(33,L,1) = SF(33,L,1) + OLNST(L+1,6)*FACST
-C**** Red Sea: (44,29) to (45,28)
-      SF(28,L,3) = SF(28,L,3) - OLNST(L+1,7)*FACST
-C**** Bab-al-Mandab: (45,28) to (46,27)
-      SF(27,L,3) = SF(27,L,3) - OLNST(L+1,8)*FACST
-C**** Hormuz: (47,30) to (49,29)
-      SF(29,L,3) = SF(29,L,3) - OLNST(L+1,9)*FACST
-C**** Korea: (62,32) to (63,33)
-      SF(32,L,2) = SF(32,L,2) + OLNST(L+1,11)*FACST
-C**** Soya: (64,34) to (65,35)
-      SF(34,L,2) = SF(34,L,2) + OLNST(L+1,12)*FACST
-C**** Malacca: (56,25) to (58,24), from Indian Ocean to Pacific Ocean
-      SF(24,L,2) = SF(24,L,2) - OLNST(L+1,10)*FACST  !*.5
-c      DO 510 J=1,23
-c      SF(J,L,2) = SF(J,L,2) - OLNST(L+1,10)*FACST*.5
-c  510 SF(J,L,3) = SF(J,L,3) + OLNST(L+1,10)*FACST*.5
+      CALL STRMJL_STRAITS(L,SF,OLNST,FACST)
+
+cC**** Fury & Hecla: (19,42) to (20,40)
+c      SF(41,L,1) = SF(41,L,1) - OLNST(L+1,1)*FACST
+c      SF(40,L,1) = SF(40,L,1) - OLNST(L+1,1)*FACST
+cC**** Nares: (22,43) to (24,44)
+c      SF(43,L,1) = SF(43,L,1) + OLNST(L+1,2)*FACST
+cC**** Gibralter: (35,32) to (37,33)
+c      SF(32,L,1) = SF(32,L,1) + OLNST(L+1,3)*FACST
+cC**** English: (36,36) to (37,37)
+c      SF(36,L,1) = SF(36,L,1) + OLNST(L+1,4)*FACST
+cC**** Bosporous: (42,33) to (43,34)
+c      SF(33,L,1) = SF(33,L,1) + OLNST(L+1,6)*FACST
+cC**** Red Sea: (44,29) to (45,28)
+c      SF(28,L,3) = SF(28,L,3) - OLNST(L+1,7)*FACST
+cC**** Bab-al-Mandab: (45,28) to (46,27)
+c      SF(27,L,3) = SF(27,L,3) - OLNST(L+1,8)*FACST
+cC**** Hormuz: (47,30) to (49,29)
+c      SF(29,L,3) = SF(29,L,3) - OLNST(L+1,9)*FACST
+cC**** Korea: (62,32) to (63,33)
+c      SF(32,L,2) = SF(32,L,2) + OLNST(L+1,11)*FACST
+cC**** Soya: (64,34) to (65,35)
+c      SF(34,L,2) = SF(34,L,2) + OLNST(L+1,12)*FACST
+cC**** Malacca: (56,25) to (58,24), from Indian Ocean to Pacific Ocean
+c      SF(24,L,2) = SF(24,L,2) - OLNST(L+1,10)*FACST  !*.5
+cc      DO 510 J=1,23
+cc      SF(J,L,2) = SF(J,L,2) - OLNST(L+1,10)*FACST*.5
+cc  510 SF(J,L,3) = SF(J,L,3) + OLNST(L+1,10)*FACST*.5
       END DO
 C****
 C**** Calculate global Stream Function by summing it over 3 oceans
@@ -1145,7 +1147,7 @@ C****
       IMPLICIT NONE
       CHARACTER TITLE*72, CBASIN(IM,JM)
       CHARACTER*6 :: FILEIN="KBASIN"
-      INTEGER J,I,iu_KB
+      INTEGER J,I,iu_KB,I72
 C****
 C**** read in basin data
       call openunit(FILEIN,iu_KB,.false.,.true.)
@@ -1153,8 +1155,10 @@ C**** read in basin data
       READ  (iu_KB,900) TITLE
       WRITE (6,*) 'Read on unit ',iu_KB,': ',TITLE
       READ  (iu_KB,900)
-      DO J=JM,1,-1
-        READ  (iu_KB,901) (CBASIN(I,J),I=1,72)
+      DO I72=1,1+(IM-1)/72
+        DO J=JM,1,-1
+          READ (iu_KB,901) (CBASIN(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
+        END DO
       END DO
       call closeunit(iu_KB)
 
@@ -1218,39 +1222,41 @@ C****
 C****
 C**** Add strait flow from to the Stream Function
 C****
-C**** Fury & Hecla: (19,42) to (20,40)
-      IF (J.eq.41) SF(19,41) = SF(19,41) + SUM(OLNST(1:LMST(1),1))*FACST
-C**** Nares: (22,43) to (24,44)
-      IF (J.eq.44) SF(22,44) = SF(22,44) + SUM(OLNST(1:LMST(2),2))*FACST
-      IF (J.eq.44) SF(23,44) = SF(23,44) + SUM(OLNST(1:LMST(2),2))*FACST
-C**** Gibrater: (35,32) to (37,33)
-      IF (J.eq.33) SF(35,33) = SF(35,33) + SUM(OLNST(1:LMST(3),3))*FACST
-      IF (J.eq.33) SF(36,33) = SF(36,33) + SUM(OLNST(1:LMST(3),3))*FACST
-C**** Engish: (36,36) to (37,37)
-      IF (J.eq.37) SF(36,37) = SF(36,37) + SUM(OLNST(1:LMST(4),4))*FACST
-C**** Bosporous: (42,33) to (43,34)
-      IF (J.eq.34) SF(42,34) = SF(42,34) + SUM(OLNST(1:LMST(6),6))*FACST
-C**** Red Sea: (44,29) to (45,28)
-      IF (J.eq.29) SF(44,29) = SF(44,29) + SUM(OLNST(1:LMST(7),7))*FACST
-C**** Bab-al-Mandab: (45,28) to (46,27)
-      IF (J.eq.28) SF(45,28) = SF(45,28) + SUM(OLNST(1:LMST(8),8))*FACST
-C**** Hormuz: (47,30) to (49,29)
-      IF (J.eq.30) SF(47,30) = SF(47,30) + SUM(OLNST(1:LMST(9),9))*FACST
-      IF (J.eq.30) SF(48,30) = SF(48,30) + SUM(OLNST(1:LMST(9),9))*FACST
-C**** Korea: (62,32) to (63,33)
-      IF (J.eq.33) SF(62,33) = SF(62,33)+SUM(OLNST(1:LMST(11),11))*FACST
-C**** Soya: (64,34) to (65,35)
-      IF (J.eq.35) SF(64,35) = SF(64,35)+SUM(OLNST(1:LMST(12),12))*FACST
-C**** Malacca: (56,25) to (58,24),
-      IF (J.eq.25) SF(56,25) = SF(56,25)+SUM(OLNST(1:LMST(10),10))*FACST
-      IF (J.eq.25) SF(57,25) = SF(57,25)+SUM(OLNST(1:LMST(10),10))*FACST
+      CALL STRMIJ_STRAITS(J,SF,OLNST,FACST)
+
+cC**** Fury & Hecla: (19,42) to (20,40)
+c      IF (J.eq.41) SF(19,41) = SF(19,41) + SUM(OLNST(1:LMST(1),1))*FACST
+cC**** Nares: (22,43) to (24,44)
+c      IF (J.eq.44) SF(22,44) = SF(22,44) + SUM(OLNST(1:LMST(2),2))*FACST
+c      IF (J.eq.44) SF(23,44) = SF(23,44) + SUM(OLNST(1:LMST(2),2))*FACST
+cC**** Gibrater: (35,32) to (37,33)
+c      IF (J.eq.33) SF(35,33) = SF(35,33) + SUM(OLNST(1:LMST(3),3))*FACST
+c      IF (J.eq.33) SF(36,33) = SF(36,33) + SUM(OLNST(1:LMST(3),3))*FACST
+cC**** Engish: (36,36) to (37,37)
+c      IF (J.eq.37) SF(36,37) = SF(36,37) + SUM(OLNST(1:LMST(4),4))*FACST
+cC**** Bosporous: (42,33) to (43,34)
+c      IF (J.eq.34) SF(42,34) = SF(42,34) + SUM(OLNST(1:LMST(6),6))*FACST
+cC**** Red Sea: (44,29) to (45,28)
+c      IF (J.eq.29) SF(44,29) = SF(44,29) + SUM(OLNST(1:LMST(7),7))*FACST
+cC**** Bab-al-Mandab: (45,28) to (46,27)
+c      IF (J.eq.28) SF(45,28) = SF(45,28) + SUM(OLNST(1:LMST(8),8))*FACST
+cC**** Hormuz: (47,30) to (49,29)
+c      IF (J.eq.30) SF(47,30) = SF(47,30) + SUM(OLNST(1:LMST(9),9))*FACST
+c      IF (J.eq.30) SF(48,30) = SF(48,30) + SUM(OLNST(1:LMST(9),9))*FACST
+cC**** Korea: (62,32) to (63,33)
+c      IF (J.eq.33) SF(62,33) = SF(62,33)+SUM(OLNST(1:LMST(11),11))*FACST
+cC**** Soya: (64,34) to (65,35)
+c      IF (J.eq.35) SF(64,35) = SF(64,35)+SUM(OLNST(1:LMST(12),12))*FACST
+cC**** Malacca: (56,25) to (58,24),
+c      IF (J.eq.25) SF(56,25) = SF(56,25)+SUM(OLNST(1:LMST(10),10))*FACST
+c      IF (J.eq.25) SF(57,25) = SF(57,25)+SUM(OLNST(1:LMST(10),10))*FACST
       END DO
 C**** Correct SF for mean E-W drift (SF over topography --> 0)
-      TSUM=0
-      DO I=14,17   ! (mid N. America as example)
-        TSUM=TSUM+SF(I,34)
-      END DO
-      TSUM=TSUM/4.
+C**** by setting SF to be zero over mid N. America
+C**** This is a horrible resolution-dependent hack!
+      TSUM=0.
+      IF (JM.eq.46) TSUM=SUM(SF(14:17,34))/4.   ! 4x5
+      IF (JM.eq.90) TSUM=SUM(SF(28:34,65))/7.   ! 2x2.5
       DO J=1,JM-1
         DO I=1,IM
           SF(I,J)=SF(I,J)-TSUM
@@ -1873,47 +1879,51 @@ C****
       SOLNST(NS) = 0.
       DO 400 L=1,LMO
   400 SOLNST(NS) = SOLNST(NS) + OLNST(L,NS,NOLNST)
-C**** Fury & Hecla: (19,42) to (20,40)
-      X(40,1,KQ) = X(40,1,KQ) - SOLNST(1)*SCALES(KQ)
-      X(40,4,KQ) = X(40,4,KQ) - SOLNST(1)*SCALES(KQ)
-      X(41,1,KQ) = X(41,1,KQ) - SOLNST(1)*SCALES(KQ)
-      X(41,4,KQ) = X(41,4,KQ) - SOLNST(1)*SCALES(KQ)
-C**** Nares: (22,43) to (24,44)
-      X(43,1,KQ) = X(43,1,KQ) + SOLNST(2)*SCALES(KQ)
-      X(43,4,KQ) = X(43,4,KQ) + SOLNST(2)*SCALES(KQ)
-C**** Gibralter: (35,32) to (37,33)
-      X(32,1,KQ) = X(32,1,KQ) + SOLNST(3)*SCALES(KQ)
-      X(32,4,KQ) = X(32,4,KQ) + SOLNST(3)*SCALES(KQ)
-C**** English: (36,36) to (37,37)
-      X(36,1,KQ) = X(36,1,KQ) + SOLNST(4)*SCALES(KQ)
-      X(36,4,KQ) = X(36,4,KQ) + SOLNST(4)*SCALES(KQ)
-C**** Bosporous: (42,33) to (43,34)
-      X(33,1,KQ) = X(33,1,KQ) + SOLNST(6)*SCALES(KQ)
-      X(33,4,KQ) = X(33,4,KQ) + SOLNST(6)*SCALES(KQ)
-C**** Red Sea: (44,29) to (45,28)
-      X(28,3,KQ) = X(28,3,KQ) - SOLNST(7)*SCALES(KQ)
-      X(28,4,KQ) = X(28,4,KQ) - SOLNST(7)*SCALES(KQ)
-C**** Bab-al-Mandab: (45,28) to (46,27)
-      X(27,3,KQ) = X(27,3,KQ) - SOLNST(8)*SCALES(KQ)
-      X(27,4,KQ) = X(27,4,KQ) - SOLNST(8)*SCALES(KQ)
-C**** Hormuz: (47,30) to (49,29)
-      X(29,3,KQ) = X(29,3,KQ) - SOLNST(9)*SCALES(KQ)
-      X(29,4,KQ) = X(29,4,KQ) - SOLNST(9)*SCALES(KQ)
-C**** Korea: (62,32) to (63,33)
-      X(32,2,KQ) = X(32,2,KQ) + SOLNST(11)*SCALES(KQ)
-      X(32,4,KQ) = X(32,4,KQ) + SOLNST(11)*SCALES(KQ)
-C**** Soya: (64,34) to (65,35)
-      X(34,2,KQ) = X(34,2,KQ) + SOLNST(12)*SCALES(KQ)
-      X(34,4,KQ) = X(34,4,KQ) + SOLNST(12)*SCALES(KQ)
-C****
-C**** Calculate transport through straits from one basin to another
-C****
-C**** Malacca: (56,25) to (58,24)
-c      DO 510 J=1,23
-c      X( J,2,KQ) = X( J,2,KQ) + SOLNST(10)*SCALES(KQ)
-c  510 X( J,3,KQ) = X( J,3,KQ) - SOLNST(10)*SCALES(KQ)
-      X(24,3,KQ) = X(24,3,KQ) - SOLNST(10)*SCALES(KQ)
-      X(24,4,KQ) = X(24,4,KQ) - SOLNST(10)*SCALES(KQ)
+
+      CALL OTJ_STRAITS(X,SOLNST,SCALES(KQ),KQ)
+
+cC**** Fury & Hecla: (19,42) to (20,40)
+c      X(40,1,KQ) = X(40,1,KQ) - SOLNST(1)*SCALES(KQ)
+c      X(40,4,KQ) = X(40,4,KQ) - SOLNST(1)*SCALES(KQ)
+c      X(41,1,KQ) = X(41,1,KQ) - SOLNST(1)*SCALES(KQ)
+c      X(41,4,KQ) = X(41,4,KQ) - SOLNST(1)*SCALES(KQ)
+cC**** Nares: (22,43) to (24,44)
+c      X(43,1,KQ) = X(43,1,KQ) + SOLNST(2)*SCALES(KQ)
+c      X(43,4,KQ) = X(43,4,KQ) + SOLNST(2)*SCALES(KQ)
+cC**** Gibralter: (35,32) to (37,33)
+c      X(32,1,KQ) = X(32,1,KQ) + SOLNST(3)*SCALES(KQ)
+c      X(32,4,KQ) = X(32,4,KQ) + SOLNST(3)*SCALES(KQ)
+cC**** English: (36,36) to (37,37)
+c      X(36,1,KQ) = X(36,1,KQ) + SOLNST(4)*SCALES(KQ)
+c      X(36,4,KQ) = X(36,4,KQ) + SOLNST(4)*SCALES(KQ)
+cC**** Bosporous: (42,33) to (43,34)
+c      X(33,1,KQ) = X(33,1,KQ) + SOLNST(6)*SCALES(KQ)
+c      X(33,4,KQ) = X(33,4,KQ) + SOLNST(6)*SCALES(KQ)
+cC**** Red Sea: (44,29) to (45,28)
+c      X(28,3,KQ) = X(28,3,KQ) - SOLNST(7)*SCALES(KQ)
+c      X(28,4,KQ) = X(28,4,KQ) - SOLNST(7)*SCALES(KQ)
+cC**** Bab-al-Mandab: (45,28) to (46,27)
+c      X(27,3,KQ) = X(27,3,KQ) - SOLNST(8)*SCALES(KQ)
+c      X(27,4,KQ) = X(27,4,KQ) - SOLNST(8)*SCALES(KQ)
+cC**** Hormuz: (47,30) to (49,29)
+c      X(29,3,KQ) = X(29,3,KQ) - SOLNST(9)*SCALES(KQ)
+c      X(29,4,KQ) = X(29,4,KQ) - SOLNST(9)*SCALES(KQ)
+cC**** Korea: (62,32) to (63,33)
+c      X(32,2,KQ) = X(32,2,KQ) + SOLNST(11)*SCALES(KQ)
+c      X(32,4,KQ) = X(32,4,KQ) + SOLNST(11)*SCALES(KQ)
+cC**** Soya: (64,34) to (65,35)
+c      X(34,2,KQ) = X(34,2,KQ) + SOLNST(12)*SCALES(KQ)
+c      X(34,4,KQ) = X(34,4,KQ) + SOLNST(12)*SCALES(KQ)
+cC****
+cC**** Calculate transport through straits from one basin to another
+cC****
+cC**** Malacca: (56,25) to (58,24)
+cc      DO 510 J=1,23
+cc      X( J,2,KQ) = X( J,2,KQ) + SOLNST(10)*SCALES(KQ)
+cc  510 X( J,3,KQ) = X( J,3,KQ) - SOLNST(10)*SCALES(KQ)
+c      X(24,3,KQ) = X(24,3,KQ) - SOLNST(10)*SCALES(KQ)
+c      X(24,4,KQ) = X(24,4,KQ) - SOLNST(10)*SCALES(KQ)
+
 C**** Fill in south polar value
       DO 610 KB=1,4
   610 X(0,KB,KQ)  = X(1,KB,KQ)

@@ -11,7 +11,8 @@ C****
       REAL*8 FJEQ,DLON,DLAT,VLATS,SINVS,VLATN,SINVN
 
       DLON   = TWOPI/IM
-      DLAT   = NINT(180./(JM-1))*TWOPI/360.
+      IF (JM.eq.46) DLAT = NINT(180./(JM-1))*TWOPI/360. ! half polar box
+      IF (JM.eq.90) DLAT = 180./JM    ! even spacing (2x2.5)
 C**** Geometric parameters defined at secondary latitudes
       FJEQ    = .5*(1+JM)
       RLAT(1) = -TWOPI/4.

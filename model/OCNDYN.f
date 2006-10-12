@@ -268,7 +268,7 @@ c        CALL CHECKO ('STADVI')
 
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
-     *     ,iu_TOPO
+     *     ,iu_TOPO,II,JJ
       REAL*4, DIMENSION(IM,JM,LMO):: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
@@ -376,8 +376,36 @@ C**** Calculate layer mass from column mass and check for consistency
   311 MO(I,J,L) = MO4(I,J,L)
       DO 312 L=LMIJ+1,LMO
   312 MO(I,J,L) = 0.
-      IF((LMM(I,J).GT.0).AND.(ABS(MO(I,J,1)/ZE(1)-1d3).GT.5d1))
-     *  WRITE (6,931) I,J,LMIJ,MO(I,J,1),ZE(1)
+C**** if there is a problem try nearest neighbour
+      IF((LMM(I,J).GT.0).AND.(ABS(MO(I,J,1)/ZE(1)-1d3).GT.5d1)) THEN
+        WRITE (6,931) I,J,LMIJ,MO(I,J,1),ZE(1)
+        II=0 ; JJ=0
+        IF (MO(I,J+1,1).gt.0 .and. LMM(I,J+1).ge.LMM(I,J)) THEN
+          II=I ; JJ=J+1
+        ELSEIF (MO(I+1,J,1).gt.0 .and. LMM(I+1,J).ge.LMM(I,J)) THEN
+          II=I+1 ; JJ=J
+        ELSEIF (MO(I,J-1,1).gt.0 .and. LMM(I,J-1).ge.LMM(I,J)) THEN
+          II=I ; JJ=J-1
+        ELSEIF (MO(I-1,J,1).gt.0 .and. LMM(I-1,J).ge.LMM(I,J)) THEN
+          II=I-1 ; JJ=J
+        ELSEIF (MO(I+1,J+1,1).gt.0 .and. LMM(I+1,J+1).ge.LMM(I,J)) THEN
+          II=I+1 ; JJ=J+1
+        ELSEIF (MO(I-1,J+1,1).gt.0 .and. LMM(I-1,J+1).ge.LMM(I,J)) THEN
+          II=I-1 ; JJ=J+1
+        ELSEIF (MO(I+1,J-1,1).gt.0 .and. LMM(I+1,J-1).ge.LMM(I,J)) THEN
+          II=I+1 ; JJ=J-1
+        ELSEIF (MO(I-1,J-1,1).gt.0 .and. LMM(I-1,J-1).ge.LMM(I,J)) THEN
+          II=I-1 ; JJ=J-1
+        END IF
+        IF (II.ne.0) THEN
+          MO(I,J,1:LMM(I,J))=MO(II,JJ,1:LMM(I,J))
+          G0M4(I,J,1:LMM(I,J))=G0M4(II,JJ,1:LMM(I,J))
+          S0M4(I,J,1:LMM(I,J))=S0M4(II,JJ,1:LMM(I,J))
+          GZM4(I,J,1:LMM(I,J))=GZM4(II,JJ,1:LMM(I,J))
+          SZM4(I,J,1:LMM(I,J))=SZM4(II,JJ,1:LMM(I,J))
+          WRITE (6,*) "Inconsistency at ",I,J,"fixed from :",II,JJ
+        END IF
+      END IF
   313 CONTINUE
 C**** Initialize velocity field to zero
       UO=0

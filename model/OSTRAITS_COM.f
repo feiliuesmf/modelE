@@ -1,7 +1,8 @@
 #include "rundeck_opts.h"
 
       MODULE STRAITS
-!@sum  STRAITS ocean strait related variables
+!@sum  STRAITS ocean strait related variables 
+!@+    RESOLUTION DEPENDENT: This version is for 72x46 - M
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
@@ -101,124 +102,136 @@ C****
 
       END MODULE STRAITS
 
-      SUBROUTINE io_straits(kunit,iaction,ioerr)
-!@sum  io_straits reads and writes ocean straits arrays to file
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
-     *     ,irerun,lhead
-      USE STRAITS
-      use domain_decomp, only : grid,am_i_root
+C**** Resolution dependent strait diagnostic routines
+C**** Called from routines in ocean diagnostics
+
+      SUBROUTINE STRMJL_STRAITS(L,SF,OLNST,FACST)
+!@sum Add strait flow from to the Stream Function (from STRMJL)
+      USE OCEAN, only : jm,lmo
+      USE STRAITS, only : nmst
       IMPLICIT NONE
+      REAL*8 SF(JM-1,0:LMO,0:4),FACST,OLNST(LMO,NMST)
+      INTEGER :: L
 
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCSTR01"
-#ifdef TRACERS_WATER
-!@var TRHEADER Character string label for individual records
-      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCSTR01"
+C**** Fury & Hecla: (19,42) to (20,40)
+      SF(41,L,1) = SF(41,L,1) - OLNST(L+1,1)*FACST
+      SF(40,L,1) = SF(40,L,1) - OLNST(L+1,1)*FACST
+C**** Nares: (22,43) to (24,44)
+      SF(43,L,1) = SF(43,L,1) + OLNST(L+1,2)*FACST
+C**** Gibralter: (35,32) to (37,33)
+      SF(32,L,1) = SF(32,L,1) + OLNST(L+1,3)*FACST
+C**** English: (36,36) to (37,37)
+      SF(36,L,1) = SF(36,L,1) + OLNST(L+1,4)*FACST
+C**** Bosporous: (42,33) to (43,34)
+      SF(33,L,1) = SF(33,L,1) + OLNST(L+1,6)*FACST
+C**** Red Sea: (44,29) to (45,28)
+      SF(28,L,3) = SF(28,L,3) - OLNST(L+1,7)*FACST
+C**** Bab-al-Mandab: (45,28) to (46,27)
+      SF(27,L,3) = SF(27,L,3) - OLNST(L+1,8)*FACST
+C**** Hormuz: (47,30) to (49,29)
+      SF(29,L,3) = SF(29,L,3) - OLNST(L+1,9)*FACST
+C**** Korea: (62,32) to (63,33)
+      SF(32,L,2) = SF(32,L,2) + OLNST(L+1,11)*FACST
+C**** Soya: (64,34) to (65,35)
+      SF(34,L,2) = SF(34,L,2) + OLNST(L+1,12)*FACST
+C**** Malacca: (56,25) to (58,24), from Indian Ocean to Pacific Ocean
+      SF(24,L,2) = SF(24,L,2) - OLNST(L+1,10)*FACST  !*.5
+c      DO 510 J=1,23
+c      SF(J,L,2) = SF(J,L,2) - OLNST(L+1,10)*FACST*.5
+c  510 SF(J,L,3) = SF(J,L,3) + OLNST(L+1,10)*FACST*.5
+C****
+      RETURN
+      END
 
-#ifndef TRACERS_OCEAN
-      write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
-     *     ,',',lmi,',',nmst,')'
-#else
-      write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
-     *     ,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
-     *     ,'):TRMST,TXST,TZST'
-#endif
-#endif
+      SUBROUTINE STRMIJ_STRAITS(J,SF,OLNST,FACST)
+!@sum Add strait flow from to the Stream Function (from STRMIJ)
+      USE OCEAN, only : im,jm,lmo
+      USE STRAITS, only : nmst,lmst
+      IMPLICIT NONE
+      REAL*8 SF(IM,JM),FACST,OLNST(LMO,NMST)
+      INTEGER :: J
 
-      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
-     *     i2,a1,i2,a)') 'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
-     *     'RSI(',nmst,',2),ms(2,',nmst,'),E+S(',lmi,',',nmst,',2)'
+C**** Fury & Hecla: (19,42) to (20,40)
+      IF (J.eq.41) SF(19,41) = SF(19,41) + SUM(OLNST(1:LMST(1),1))*FACST
+C**** Nares: (22,43) to (24,44)
+      IF (J.eq.44) SF(22,44) = SF(22,44) + SUM(OLNST(1:LMST(2),2))*FACST
+      IF (J.eq.44) SF(23,44) = SF(23,44) + SUM(OLNST(1:LMST(2),2))*FACST
+C**** Gibrater: (35,32) to (37,33)
+      IF (J.eq.33) SF(35,33) = SF(35,33) + SUM(OLNST(1:LMST(3),3))*FACST
+      IF (J.eq.33) SF(36,33) = SF(36,33) + SUM(OLNST(1:LMST(3),3))*FACST
+C**** Engish: (36,36) to (37,37)
+      IF (J.eq.37) SF(36,37) = SF(36,37) + SUM(OLNST(1:LMST(4),4))*FACST
+C**** Bosporous: (42,33) to (43,34)
+      IF (J.eq.34) SF(42,34) = SF(42,34) + SUM(OLNST(1:LMST(6),6))*FACST
+C**** Red Sea: (44,29) to (45,28)
+      IF (J.eq.29) SF(44,29) = SF(44,29) + SUM(OLNST(1:LMST(7),7))*FACST
+C**** Bab-al-Mandab: (45,28) to (46,27)
+      IF (J.eq.28) SF(45,28) = SF(45,28) + SUM(OLNST(1:LMST(8),8))*FACST
+C**** Hormuz: (47,30) to (49,29)
+      IF (J.eq.30) SF(47,30) = SF(47,30) + SUM(OLNST(1:LMST(9),9))*FACST
+      IF (J.eq.30) SF(48,30) = SF(48,30) + SUM(OLNST(1:LMST(9),9))*FACST
+C**** Korea: (62,32) to (63,33)
+      IF (J.eq.33) SF(62,33) = SF(62,33)+SUM(OLNST(1:LMST(11),11))*FACST
+C**** Soya: (64,34) to (65,35)
+      IF (J.eq.35) SF(64,35) = SF(64,35)+SUM(OLNST(1:LMST(12),12))*FACST
+C**** Malacca: (56,25) to (58,24),
+      IF (J.eq.25) SF(56,25) = SF(56,25)+SUM(OLNST(1:LMST(10),10))*FACST
+      IF (J.eq.25) SF(57,25) = SF(57,25)+SUM(OLNST(1:LMST(10),10))*FACST
+C****
+      RETURN
+      END
 
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
-        if (.not.am_i_root()) return
-        WRITE (kunit,err=10) MODULE_HEADER,MUST,G0MST,GXMST,GZMST,S0MST
-     *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
-#ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TRSIST
-#ifdef TRACERS_OCEAN
-     *       ,TRMST,TXMST,TZMST
-#endif
-#endif
-      CASE (IOREAD:)            ! input from restart file
-        SELECT CASE (IACTION)
-        CASE (ioread,irerun,irsfic)    ! restarts
-         if (am_i_root()) then
-          READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
-     *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-            GO TO 10
-          END IF
-#ifdef TRACERS_WATER
-          READ (kunit,err=10) TRHEADER,TRSIST
-#ifdef TRACERS_OCEAN
-     *       ,TRMST,TXMST,TZMST
-#endif
-          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",TRHEADER
-     *           ,TRMODULE_HEADER
-            GO TO 10
-          END IF
-#endif
-         end if
-         call BCAST_straits(.false.) ! don't skip tracers
-        CASE (irsficnt)    ! restarts (never any tracers)
-        if (am_i_root()) then
-          READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
-     *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-            GO TO 10
-          END IF
-        end if
-        call BCAST_straits(.true.) ! skip tracers
-        END SELECT
-      END SELECT
+      SUBROUTINE OTJ_STRAITS(X,SOLNST,SCALE,KQ)
+!@sum Calculate transport through straits from latitude to another
+!@+   within the same basin (from OTJOUT)
+      USE OCEAN, only : jm
+      USE STRAITS, only : nmst
+      IMPLICIT NONE
+      REAL*8, INTENT(INOUT) :: X(0:JM,4,6)
+      REAL*8, INTENT(IN) :: SCALE,SOLNST(NMST)
+      INTEGER, INTENT(IN) ::  KQ
+
+C**** Fury & Hecla: (19,42) to (20,40)
+      X(40,1,KQ) = X(40,1,KQ) - SOLNST(1)*SCALE
+      X(40,4,KQ) = X(40,4,KQ) - SOLNST(1)*SCALE
+      X(41,1,KQ) = X(41,1,KQ) - SOLNST(1)*SCALE
+      X(41,4,KQ) = X(41,4,KQ) - SOLNST(1)*SCALE
+C**** Nares: (22,43) to (24,44)
+      X(43,1,KQ) = X(43,1,KQ) + SOLNST(2)*SCALE
+      X(43,4,KQ) = X(43,4,KQ) + SOLNST(2)*SCALE
+C**** Gibralter: (35,32) to (37,33)
+      X(32,1,KQ) = X(32,1,KQ) + SOLNST(3)*SCALE
+      X(32,4,KQ) = X(32,4,KQ) + SOLNST(3)*SCALE
+C**** English: (36,36) to (37,37)
+      X(36,1,KQ) = X(36,1,KQ) + SOLNST(4)*SCALE
+      X(36,4,KQ) = X(36,4,KQ) + SOLNST(4)*SCALE
+C**** Bosporous: (42,33) to (43,34)
+      X(33,1,KQ) = X(33,1,KQ) + SOLNST(6)*SCALE
+      X(33,4,KQ) = X(33,4,KQ) + SOLNST(6)*SCALE
+C**** Red Sea: (44,29) to (45,28)
+      X(28,3,KQ) = X(28,3,KQ) - SOLNST(7)*SCALE
+      X(28,4,KQ) = X(28,4,KQ) - SOLNST(7)*SCALE
+C**** Bab-al-Mandab: (45,28) to (46,27)
+      X(27,3,KQ) = X(27,3,KQ) - SOLNST(8)*SCALE
+      X(27,4,KQ) = X(27,4,KQ) - SOLNST(8)*SCALE
+C**** Hormuz: (47,30) to (49,29)
+      X(29,3,KQ) = X(29,3,KQ) - SOLNST(9)*SCALE
+      X(29,4,KQ) = X(29,4,KQ) - SOLNST(9)*SCALE
+C**** Korea: (62,32) to (63,33)
+      X(32,2,KQ) = X(32,2,KQ) + SOLNST(11)*SCALE
+      X(32,4,KQ) = X(32,4,KQ) + SOLNST(11)*SCALE
+C**** Soya: (64,34) to (65,35)
+      X(34,2,KQ) = X(34,2,KQ) + SOLNST(12)*SCALE
+      X(34,4,KQ) = X(34,4,KQ) + SOLNST(12)*SCALE
+C****
+C**** Calculate transport through straits from one basin to another
+C****
+C**** Malacca: (56,25) to (58,24)
+c      DO 510 J=1,23
+c      X( J,2,KQ) = X( J,2,KQ) + SOLNST(10)*SCALE
+c  510 X( J,3,KQ) = X( J,3,KQ) - SOLNST(10)*SCALE
+      X(24,2,KQ) = X(24,2,KQ) - SOLNST(10)*SCALE
+      X(24,4,KQ) = X(24,4,KQ) - SOLNST(10)*SCALE
 
       RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_straits
-
-      SUBROUTINE BCAST_straits (skip_tracers)
-      USE STRAITS
-      use domain_decomp, only : grid,ESMF_BCAST
-      IMPLICIT NONE
-      logical, intent(in) :: skip_tracers
-
-      CALL ESMF_BCAST(grid, MUST )
-      CALL ESMF_BCAST(grid, G0MST)
-      CALL ESMF_BCAST(grid, GXMST)
-      CALL ESMF_BCAST(grid, GZMST)
-      CALL ESMF_BCAST(grid, S0MST)
-      CALL ESMF_BCAST(grid, SXMST)
-      CALL ESMF_BCAST(grid, SZMST)
-      CALL ESMF_BCAST(grid, RSIST)
-      CALL ESMF_BCAST(grid, RSIXST)
-      CALL ESMF_BCAST(grid, MSIST)
-      CALL ESMF_BCAST(grid, HSIST)
-      CALL ESMF_BCAST(grid, SSIST)
-
-#ifdef TRACERS_WATER
-      if(skip_tracers) return
-
-      CALL ESMF_BCAST(grid, TRSIST)
-#ifdef TRACERS_OCEAN
-      CALL ESMF_BCAST(grid, TRMST)
-      CALL ESMF_BCAST(grid, TXMST)
-      CALL ESMF_BCAST(grid, TZMST)
-#endif
-#endif
-      return
-      end SUBROUTINE BCAST_straits
+      END
