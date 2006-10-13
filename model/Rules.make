@@ -373,6 +373,20 @@ endif
 
 # end of machine - specific options
 
+#
+# Check for extra options specified in modelErc
+#
+
+ifdef NETCDFHOME
+ifeq ($(MACHINE),SGI)
+  LIBS += -L$(NETCDFHOME)/lib64 -lnetcdf
+else
+  LIBS += -L$(NETCDFHOME)/lib -lnetcdf
+endif
+  FFLAGS += -I$(NETCDFHOME)/include
+  INCS += -I$(NETCDFHOME)/include
+endif
+
 ifeq ($(ESMF),YES)
 ifeq ($(UNAME),OSF1)
 CPPFLAGS += -DUSE_ESMF
@@ -448,19 +462,6 @@ ifeq ($(FVCORE),YES)
 endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
-endif
-#
-# Check for extra options specified in modelErc
-#
-
-ifdef NETCDFHOME
-ifeq ($(MACHINE),SGI)
-  LIBS += -L$(NETCDFHOME)/lib64 -lnetcdf
-else
-  LIBS += -L$(NETCDFHOME)/lib -lnetcdf
-endif
-  FFLAGS += -I$(NETCDFHOME)/include
-  INCS += -I$(NETCDFHOME)/include
 endif
 
 # access new interfaces in sub-directory.
