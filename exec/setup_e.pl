@@ -375,7 +375,7 @@ print RUNID <<EOF;
     done
     umask $umask_str
     if [ `head -1 run_status` -eq 13 ] ; then
-      if [ run_status -nt I ] ; then
+      if [ `find run_status -newer I` ] ; then
         echo 'run seems to have finished'
       exit 1; fi; fi
     if [ -f lock ] ; then
