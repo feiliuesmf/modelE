@@ -471,9 +471,15 @@ endif
 endif
 
 # access new interfaces in sub-directory.
+ifeq ($(COMPILER),Absoft)
+FFLAGS+= -p$(ESMF_Interface)
+F90FLAGS+= -p$(ESMF_Interface)
+FFLAGSF += -p$(ESMF_Interface) $(INCS)
+else
 FFLAGS+= -I$(ESMF_Interface)
 F90FLAGS+= -I$(ESMF_Interface)
 FFLAGSF += -I$(ESMF_Interface) $(INCS)
+endif
 CPPFLAGS+=$(INCS)
 
 #
