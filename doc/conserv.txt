@@ -25,6 +25,9 @@ LKfrac = lake fraction         (~ 0.006)
 LIfrac = land ice fraction     (~ 0.03)
 GRfrac = ground/earth fraction (~ 0.25)
  
+These fractions will depend on the land mask and climate and so must
+be checked against the "SURF TYPE FRAC" diagnostic.
+
 Conservation of Salt
 --------------------
 
@@ -110,6 +113,20 @@ Ocean: Sum of Changes of OCN MASS (10^-8 kg/s*m^2)  =
  (  Open Ocean: [Precip - Evap] * OOfrac
  + Total Ocean: [Rvr Disch + Ice melt] * OCfrac)/ .000864
 
+Land Water Budget
+-----------------
+
+SUM OF CHANGES (10^-9 kg/m^2/s) 
+ [ LKICE MS + LAK MS + GRND WTR + LAND ICE ] * 0.0000864 =
+ Land: [Precip-Evap] * GRfrac + 
+ Lakes: [Precip-Evap] * LKfrac + 
+ Land Ice: [Precip-Evap - Dwn Imp Wt Flx] * LIfrac - 
+ Oceans: [Rvr Disch] * OCfrac - Global: [Rvr Disch]
+ 
+Global river discharge takes into account the glacial calving flux -
+in a perfect world Land Ice: [Dwn Imp Wt Flx] * LIfrac would equal
+Global: [Rvr Disch].
+ 
 Total Water Budget
 ------------------
 
@@ -120,17 +137,26 @@ error.
 
 1) Fixed SST models
 
-SUM OF CHANGES (10^9 kg/m^2/s) 
- [ ATM WAT *10 + LKICE MS + LAK MS + OICE MAS - OICE SLT/1000 + GRND WTR] = 
- Open Ocean: [Precip-Evap] * OOfrac +
- Oceans: [Dwn Imp Wt Flux + Rvr Disch + Ice Melt - Salt Melt/1000] * OCfrac +
+SUM OF CHANGES (10^-9 kg/m^2/s) 
+ [ ATM WAT *10 + LKICE MS + LAK MS + OICE MAS - OICE SLT/1000 + 
+ GRND WTR + LAND ICE ] * 0.0000864 = 
+ Global: [Rvr Disch] - 
+ Open Ocean: [Precip-Evap] * OOfrac - 
+ Oceans: [Dwn Imp Wt Flux + Rvr Disch + Ice Melt - Salt Melt/1000] * OCfrac -
  Land Ice: [Dwn Imp Mass] * LIfrac 
-  
+
+The implicit water flux term for the oceans compensates for the ice
+melt/formation flux that has nothing to do with the atmospheric
+cycle. The residual is the flux of snow into the ocean.
+
 2) Qflux models
 
-SUM OF CHANGES (10^9 kg/m^2/s) 
- [ ATM WAT *10 + LKICE MS + LAK MS + OICE MAS - OICE SLT/1000 + GRND WTR] = 
- Oceans: [Dwn Imp Mass] * OCfrac + Land Ice: [Dwn Imp Mass] * LIfrac 
+SUM OF CHANGES (10^-9 kg/m^2/s) 
+ [ ATM WAT *10 + LKICE MS + LAK MS + OICE MAS - OICE SLT/1000 + 
+ GRND WTR + LAND ICE] * 0.0000864 = 
+ Global: [Rvr Disch] -
+ Oceans: [Dwn Imp Wt Flx] * OCfrac -
+ Land Ice: [Dwn Imp Mass] * LIfrac 
 
 Conservation of Energy fluxes
 -----------------------------
