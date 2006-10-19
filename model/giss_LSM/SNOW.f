@@ -126,8 +126,9 @@ c!!!                may be ice*max_fract_water ??
 
       dz_aver = sum(dz(1:nl))*fract_cover + fresh_snow
 
-      fract_cover_new = min( 1.d0, dz_aver/MIN_SNOW_THICKNESS )
-      !fract_cover_new = min( .95d0, dz_aver/MIN_SNOW_THICKNESS )
+      !!fract_cover_new = min( 1.d0, dz_aver/MIN_SNOW_THICKNESS )
+      !! changing max snow fraction to 95%
+      fract_cover_new = min( .95d0, dz_aver/MIN_SNOW_THICKNESS )
       if ( fract_cover_new < MIN_FRACT_COVER ) fract_cover_new = 0.d0
 
       return

@@ -176,7 +176,9 @@ ccc update fluxes that could have been changed by snow model
       fresh_snow = rho_water/rho_fresh_snow * prsnow*dt
       dz_aver = max( sum(dz(1:nl))*fract_snow_old + fresh_snow, 0.d0 )
 
-      fract_snow = min( 1.d0, dz_aver/MIN_SNOW_THICKNESS )
+      !!fract_snow = min( 1.d0, dz_aver/MIN_SNOW_THICKNESS )
+      !! changing max snow fraction to 95%
+      fract_snow = min( .95d0, dz_aver/MIN_SNOW_THICKNESS )
 
       ! using formula from the paper by A. Roesch et al
       ! (Climate Dynamics (2001), 17: 933-946)
