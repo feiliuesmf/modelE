@@ -725,6 +725,9 @@ C**** Set conservation diagnostics for Lake mass and energy
       CALL SET_CON(QCON,CONPT,"LAK ENRG","(10**3 J/M^2) ",
      *     "(10**-3 W/M^2)  ",1d-3,1d3,icon_LKE)
 
+C**** assume that at the start GHY is in balance with LAKES
+      SVFLAKE = FLAKE
+
       RETURN
 C****
  910  FORMAT (A72)
