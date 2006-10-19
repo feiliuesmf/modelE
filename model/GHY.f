@@ -2126,7 +2126,7 @@ cc    write(ichn,1021)
       write(ichn,1030)
       write(ichn,1031)
       k=0
-      write(ichn,1049)k,theta(k,2),tp(k,2),fice(k,2),rnff(k,2),f(k,2),
+      write(ichn,1049)k,theta(k,2),tp(k,2),fice(k,2),     0.d0,f(k,2),
      & w(k,2),ws(k,2),shc(k,2),fh(k,2),ht(k,2)
       do 200 k=1,n
       write(ichn,1040)k,theta(k,2),tp(k,2),fice(k,2),rnff(k,2),f(k,2),
