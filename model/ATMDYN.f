@@ -1139,7 +1139,7 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
-      USE CONSTANT, only : bbyg,gbyrb,kapa,sha,mb2kg
+      USE CONSTANT, only : bygrav,kapa,sha,mb2kg
       USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
      *     ,byim,sig,itime,psf,pmtop
       USE GEOM, only : areag,dxyp
@@ -1154,7 +1154,7 @@ C****
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *        POLD, PRAT
-      REAL*8 PSUMO,PSUMN,PDIF,AKAP
+      REAL*8 PSUMO,PSUMN,PDIF,AKAP,PS,ZS,SLP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
 c**** Extract domain decomposition info
@@ -1174,8 +1174,10 @@ C****
       DO J=J_0S,J_1S
         DO I=1,IM
           POLD(I,J)=P(I,J)      ! Save old pressure
-          Y(I,J)=(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
-          X(I,J)=(P(I,J)+PTOP)*Y(I,J)
+          PS=P(I,J)+PTOP
+          ZS=ZATMO(I,J)*BYGRAV
+          X(I,J)=SLP(PS,TSAVG(I,J),ZS)
+          Y(I,J)=X(I,J)/PS
         END DO
       END DO
 !$OMP  END PARALLEL DO

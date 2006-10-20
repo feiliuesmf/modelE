@@ -72,6 +72,36 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
       RETURN
       END
 
+      FUNCTION SLP(PS,TAS,ZS)
+!@sum SLP estimates sea level pressure in the presence of topography 
+!@+   for better match to reanalyses.
+      USE CONSTANT, only: bmoist, grav, rgas, by3
+      IMPLICIT NONE
+!@var PS surface pressure (mb)
+!@var TAS surface temperature (K)
+!@var ZS surface elevation (m)
+      REAL*8, INTENT(IN) :: PS, TAS, ZS
+      REAL*8 :: SLP, TSL, BETA, BZBYT, GBYRB, TASn
+
+      IF (ZS.ne.0.) THEN
+        TSL= TAS+BMOIST*ZS
+        TASn=TAS
+        BETA=BMOIST
+        IF (TAS < 290.5 .and. TSL > 290.5) BETA= (290.5d0 - TAS)/ZS
+        IF (TAS > 290.5 .and. TSL > 290.5) TASn = 0.5*(290.5d0 + TAS)
+        IF (TAS < 255) TASn = 0.5*(255d0 + TAS)
+        BZBYT=BETA*ZS/TASn
+        GBYRB=GRAV/(RGAS*BETA)
+        IF (BETA > 1d-6 ) THEN
+          SLP=PS*(1.+BZBYT)**GBYRB
+        ELSE
+          SLP=PS*EXP((1.-0.5*BZBYT+BZBYT**(2.*by3))*GBYRB*BZBYT)
+        END IF
+      ELSE 
+        SLP=PS
+      END IF
+      RETURN
+      END FUNCTION SLP
 
       MODULE FILEMANAGER
 !@sum  FILEMANAGER keeps data concerning the files and unit numbers

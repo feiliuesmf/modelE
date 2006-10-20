@@ -103,7 +103,7 @@ C**** Some local constants
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
+      USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
@@ -177,7 +177,7 @@ C**** Some local constants
      *     I110W = IM*(180-110)/360+1, ! WEST EDGE OF 110 WEST
      *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
 
-      REAL*8 QSAT
+      REAL*8 QSAT, SLP, PS, ZS
       REAL*8 :: gsum(IM, LM)
       REAL*8, dimension(:,:,:), allocatable :: TMP
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
@@ -274,8 +274,9 @@ C****         AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
           AREG_part(JR,J,1)=AREG_part(JR,J,1)+(TX(I,J,1)-TF)*DXYPJ
           PI(J)=PI(J)+P(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
-          AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG
-     *         *ZATMO(I,J)/TSAVG(I,J))**GBYRB-P1000)
+          PS=P(I,J)+PTOP
+          ZS=BYGRAV*ZATMO(I,J)
+          AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TSAVG(I,J),ZS)-P1000
           AIJ(I,J,IJ_RH1)=AIJ(I,J,IJ_RH1)+Q(I,J,1)/QSAT(TX(I,J,1),LHE,
      *        PMID(1,I,J))
         END DO
@@ -3097,47 +3098,13 @@ C**** make array of names
         read(subddt,*) namedd(1:kdd)
 
 C**** open units and position
-C**** Some names have more than one unit associated (i.e. "ZALL")
-        kunit=0
-        do k=1,kdd
-          if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
-     *         "ALL") then
-            select case (namedd(k)(1:1))
-            case ("U", "V", "W", "C")! velocities/cloud opt depth on layers
-              kunit=kunit+1
-              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
-              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-              call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-            case ("Z", "T", "R", "Q")! heights, temps, rel/spec hum,PMB levels
-              do kk=1,kgz_max
-                kunit=kunit+1
-                call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
-     *               aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
-                call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-              end do
-#ifdef TRACERS_SPECIAL_Shindell
-            case ("O")  ! Ox tracer
-              kunit=kunit+1
-              write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
-              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-              call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-#endif
-#ifdef TRACERS_SPECIAL_O18
-            case ("D")  ! HDO tracer
-              kunit=kunit+1
-              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
-              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-              call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-#endif
-            end select
-          else                  ! single file per name
-            kunit=kunit+1
-            call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(kunit),
-     *           .true.,.false.)
-            call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
-          endif
+        call open_subdd(aDATE)
+
+C**** position correctly
+        do kunit=1,kddunit
+          call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
         end do
-        kddunit=kunit
+
       end if
 C**** initialise special subdd accumulation
       P_acc=0.
@@ -3145,51 +3112,65 @@ C**** initialise special subdd accumulation
       return
       end subroutine init_subdd
 
-      subroutine reset_subdd(aDATE)
-!@sum reset_subdd resets sub daily diag files
+      subroutine open_subdd(aDATE)
+!@sum open_subdd opens sub daily diag files
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
       character*12 name
       integer :: k,kunit,kk
 
+      kunit=0
+      do k=1,kdd
+C**** Some names have more than one unit associated (i.e. "ZALL")
+        if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
+     *       "ALL") then
+          select case (namedd(k)(1:1))
+          case ("U", "V", "W", "C") ! velocities on model layers
+            kunit=kunit+1
+            write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
+            call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+          case ("Z", "T", "R", "Q") ! heights, temps, rel/spec hum PMB levels
+            do kk=1,kgz_max
+              kunit=kunit+1
+              call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
+     *             aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
+            end do
+#ifdef TRACERS_SPECIAL_Shindell
+          case ("O")                ! Ox tracer
+            kunit=kunit+1
+            write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
+            call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+#endif
+#ifdef TRACERS_SPECIAL_O18
+          case ("D")                ! HDO tracer
+            kunit=kunit+1
+            write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
+            call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+#endif
+          end select
+        else                    ! single file per name
+          kunit=kunit+1
+          call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(kunit),
+     *         .true.,.false.)
+        endif
+      end do
+      kddunit=kunit
+C****
+      return
+      end subroutine open_subdd
+
+      subroutine reset_subdd(aDATE)
+!@sum reset_subdd resets sub daily diag files
+!@auth Gavin Schmidt
+      implicit none
+      character*14, intent(in) :: adate
+      character*12 name
+
       if (nsubdd.ne.0) then
 C**** close and re-open units
         call closeunits ( iu_SUBDD, kddunit )
-        kunit=0
-        do k=1,kdd
-          if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
-     *         "ALL") then
-            select case (namedd(k)(1:1))
-            case ("U", "V", "W", "C")! velocities on model layers
-              kunit=kunit+1
-              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
-              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-            case ("Z", "T", "R", "Q")! heights, temps, rel/spec hum PMB levels
-              do kk=1,kgz_max
-                kunit=kunit+1
-                call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
-     *               aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
-              end do
-#ifdef TRACERS_SPECIAL_Shindell
-            case ("O")  ! Ox tracer
-              kunit=kunit+1
-              write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
-              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-#endif
-#ifdef TRACERS_SPECIAL_O18
-            case ("D")  ! HDO tracer
-              kunit=kunit+1
-              write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
-              call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-#endif
-            end select
-          else                  ! single file per name
-            kunit=kunit+1
-            call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(kunit),
-     *           .true.,.false.)
-          endif
-        end do
+        call open_subdd( aDATE )
       end if
 C****
       return
@@ -3207,21 +3188,13 @@ C****
 !@+                    Ox*         (on any model level with chemistry)
 !@+                    D*          (HDO on any model level)
 !@+                    SO4
-#ifdef CLD_AER_CDNC
-!@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP
+!@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP  ! aerosol
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
-#endif
-#ifdef TRACERS_HETCHEM
-!@+                    SO4_d1,SO4_d2,SO4_d3,
-!@+                    Clay, Silt1, Silt2, Silt3
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+!@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
+!@+                    Clay, Silt1, Silt2, Silt3  ! dust
 !@+                    DUEMIS,DUDEPTURB,DUDEPGRAV,DUDEPWET,DUTRS,DULOAD
-#endif
-#ifdef TRACERS_DUST
 !@+                    DUEMIS2
-#endif
+!@+
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
@@ -3275,7 +3248,7 @@ C****
      &     ,n,n1,n_fidx
 #endif
       CHARACTER namel*3
-      REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT
+      REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
@@ -3291,8 +3264,9 @@ C**** simple diags
         case ("SLP")            ! sea level pressure (mb)
           do j=J_0,J_1
           do i=1,imaxj(j)
-            data(i,j)=(p(i,j)+ptop)*(1.+bbyg*zatmo(i,j)/tsavg(i,j))
-     *           **gbyrb
+            ps=(p(i,j)+ptop)
+            zs=bygrav*zatmo(i,j)
+            data(i,j)=slp(ps,tsavg(i,j),zs)
           end do
           end do
         case ("PS")             ! surface pressure (mb)
