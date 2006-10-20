@@ -40,6 +40,7 @@ c$$$      USE MODEL_COM, only: clock
      &     ,trdynam
 #endif
       USE ATMDYN_QDYNAM, only : QDYNAM
+      use soil_drv, only : conserv_wtg, conserv_htg
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -66,6 +67,9 @@ C**** Command line options
 #endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
+      ! tmp arrays
+      real*8 w_ghy_j_2(jm),w_ghy_j_1(jm), w_lake_j_2(jm),w_lake_j_1(jm)
+      real*8 h_ghy_j_2(jm),h_ghy_j_1(jm), h_lake_j_2(jm),h_lake_j_1(jm)
 
 C**** Set run_status to "run in progress"
       call write_run_status("Run in progress...",1)
@@ -436,8 +440,33 @@ C****
         CALL daily_RAD(.true.)
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
            CALL TIMER (MNOW,MELSE)
-        call daily_EARTH(.true.)           ! end_of_day
+cddd           call conserv_wtg(w_ghy_j_1)
+cddd           call conserv_LKM(w_lake_j_1)
+cddd           call conserv_htg(h_ghy_j_1)
+cddd           call conserv_LKE(h_lake_j_1)
         call daily_LAKE
+        call daily_EARTH(.true.)           ! end_of_day
+cddd           call conserv_wtg(w_ghy_j_2)
+cddd           call conserv_LKM(w_lake_j_2)
+cddd           call conserv_htg(h_ghy_j_2)
+cddd           call conserv_LKE(h_lake_j_2)
+cddd           print *,"GHY_LAKE_CONSERV:",
+cddd     &          sum( w_ghy_j_1+w_lake_j_1 ),
+cddd     &          sum( w_ghy_j_2-w_ghy_j_1+w_lake_j_2-w_lake_j_1 ),
+cddd     &          sum( h_ghy_j_1+h_lake_j_1 ),
+cddd     &          sum( h_ghy_j_2-h_ghy_j_1+h_lake_j_2-h_lake_j_1 )
+cddd            print *,"GHY_LAKE tot hgy, tot lake, d ghy, d lake",
+cddd     &          sum( w_ghy_j_1 ), sum( w_lake_j_1 ),
+cddd     &          sum( w_ghy_j_2-w_ghy_j_1 ),
+cddd     &          sum( w_lake_j_2-w_lake_j_1 )
+cddd  !          print *,"GHY_LAKE errors:",
+cddd  !   &           w_ghy_j_2-w_ghy_j_1+w_lake_j_2-w_lake_j_1 
+cddd            print *,"GHY_LAKE_E tot hgy, tot lake, d ghy, d lake",
+cddd     &          sum( h_ghy_j_1 ), sum( h_lake_j_1 ),
+cddd     &          sum( h_ghy_j_2-h_ghy_j_1 ),
+cddd     &          sum( h_lake_j_2-h_lake_j_1 )
+cddd            print *,"GHY_LAKE errors:",
+cddd     &           h_ghy_j_2-h_ghy_j_1+h_lake_j_2-h_lake_j_1 
         call daily_OCEAN(.true.)           ! end_of_day
         call daily_ICE
         call daily_LI
