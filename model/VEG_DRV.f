@@ -35,7 +35,7 @@
       use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL, AM_I_ROOT
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
-      use model_com, only : jyear
+      use model_com, only : jyear,focean
       use ghy_com, only : fearth
 
       implicit none
@@ -54,6 +54,7 @@
       real*8, allocatable :: veg_c4(:,:)
       real*8 :: vc4
       integer :: read_c4_grass = 0
+      integer variable_lk
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -70,6 +71,7 @@ c**** read rundeck parameters
       call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
       call sync_param( "crops_yr", crops_yr)
       call sync_param( "read_c4_grass", read_c4_grass)
+      call  get_param( "variable_lk", variable_lk )
 
 c**** read land surface parameters or use defaults
       call openunit("VEG",iu_VEG,.true.,.true.)
@@ -119,11 +121,14 @@ c**** check whether ground hydrology data exist at this point.
       veg_data_missing = .false.
       do j=J_0,J_1
         do i=1,im
-          if (fearth(i,j).gt.0) then
-            if ( sum(vdata(i,j,1:12)).eq.0 ) then
-              print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:12)
-              veg_data_missing = .true.
-            end if
+          if (variable_lk==0) then
+            if ( fearth(i,j) <= 0.d0 ) cycle
+          else
+            if ( focean(i,j) >= 1.d0 ) cycle
+          endif
+          if ( sum(vdata(i,j,1:12)).eq.0 ) then
+            print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:12)
+            veg_data_missing = .true.
           end if
         enddo
       enddo
@@ -143,8 +148,9 @@ c**** check whether ground hydrology data exist at this point.
       subroutine upd_gh
 !@sum initializes (or re-initializes) the vegetation data
       use constant, only : twopi,one
+      use param
       use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
-      use model_com, only : jeq
+      use model_com, only : jeq,focean
       use veg_com !, only : vdata,Cint,Qfol
       use ghy_com, only : ngm,fearth
       use ghy_com, only : dz_ij
@@ -154,7 +160,7 @@ c**** check whether ground hydrology data exist at this point.
 
 !---  local vars
       integer i, j
-      real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
+      real*8 dif,frdn,frup,phase,scs0,scsim,scsre,sfv,sla0
       real*8 almass0, almassre, almassim  !nyk
 !      real*8 sla0f, slimf, slref !nyk
       real*8 slim,slre,svh,z
@@ -235,6 +241,7 @@ c****
 !@dbparam ghy_default_data if == 1 reset all GHY data to defaults
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
+      integer variable_lk
 
       INTEGER :: I_0, I_1, J_1, J_0, J_1H, J_0H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -249,6 +256,8 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      call  get_param( "variable_lk", variable_lk )
 c****
 c**** set the global arrays  ala, acs, afb, afr, anm, anf
 c****
@@ -271,10 +280,15 @@ c****
         else
         end if
         do i=1,im
-          pearth=fearth(i,j)
           afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
           if(afb(i,j).gt..999) afb(i,j)=1.
-          if(pearth.le.0..or.afb(i,j).ge.1.) cycle
+
+          if (variable_lk==0) then
+            if ( fearth(i,j) <= 0.d0 .or. afb(i,j) >= 1.d0 ) cycle
+          else
+            if ( focean(i,j) >= 1.d0 .or. afb(i,j) >= 1.d0 ) cycle
+          endif
+          !if(focean(i,j) >= 1.d0 .or. afb(i,j) >= 1.d0) cycle
 c**** calculate lai, cs coefficicents
           sfv=0.d0
           sla0=0.     !For calculating sla
