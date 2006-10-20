@@ -3201,11 +3201,7 @@ C****
      *     ,lhe,rhow,undef,stbo
       USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean
      *     ,flice,nday
-      USE GEOM, only : imaxj,dxyp
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,bydxyp
-#endif
+      USE GEOM, only : imaxj,dxyp,bydxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
 #ifdef CLD_AER_CDNC
@@ -3242,11 +3238,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID,GET,WRITEI_PARALLEL
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
-      INTEGER :: I,J,K,L,kp,kunit
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,n,n1,n_fidx
-#endif
+      INTEGER :: I,J,K,L,kp,kunit,n,n1,n_fidx
       CHARACTER namel*3
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1
@@ -3255,6 +3247,19 @@ C****
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+#ifdef TRACERS_DUST
+      n_fidx=n_clay
+#else
+#ifdef TRACERS_MINERALS
+      n_fidx=n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+      n_fidx=n_sil1quhe
+#endif
+#endif
+#endif
+
       kunit=0
 C**** depending on namedd string choose what variables to output
       do k=1,kdd
@@ -3543,8 +3548,8 @@ C**** get model level
               case ("W")        ! W velocity
                 data=wsave(:,:,l)
 C**** fix polar values for W only (calculated on tracer points)
-                data(2:im,1) =data(1,1)
-                data(2:im,jm)=data(1,jm)
+                IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+                IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
               end select
               !call writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
@@ -3611,8 +3616,8 @@ C**** write out
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
               !call writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
@@ -3636,8 +3641,8 @@ C**** get model level
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
               !call writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
@@ -3647,344 +3652,352 @@ C**** write out
           end do
 #endif
         end select
+C**** Additional diags
+        select case (namedd(k))
+
 #ifdef TRACERS_HETCHEM
-            select case (namedd(k))
         case ("SO2")
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_SO2)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
         case ("SO4")
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_SO4)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
         case ("SO4_d1")
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_SO4_d1)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do        
         case ("SO4_d2")
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)= trm(i,j,l,n_SO4_d2)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
         case ("SO4_d3")  
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_SO4_d3)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do        
         case ("Clay")  
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_Clay)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do        
         case ("Silt1")
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_Silt1)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do  
         case ("Silt2")  
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_Silt2)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
         case ("Silt3")  
             kunit=kunit+1
             do l=1,lm
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                  data(i,j)=trm(i,j,l,n_Silt3)
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
-             end select
 #endif
 #ifdef CLD_AER_CDNC   !for 3 hrly diagnostics
-            select case (namedd(k))
-              case ("CTEM")
-              kunit=kunit+1
-              do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=ctem(l,i,j)     ! cld temp (K) at cld top
+        case ("CTEM")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=ctem(l,i,j) ! cld temp (K) at cld top
 c                 write(6,*)"CTEM1",ctem(l,i,j),i,j,l,k
-                end do
               end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
-             end select
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
 
-             select case (namedd(k))
-              case ("CL3D")
-              kunit=kunit+1
-              do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=cl3d(l,i,j)     ! cld LWC (kg m-3)
-c                write(6,*)"CL3D",cl3d(l,i,j),i,j,l,k
-                end do
+        case ("CL3D")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=cl3d(l,i,j) ! cld LWC (kg m-3)
+c               write(6,*)"CL3D",cl3d(l,i,j),i,j,l,k
               end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
-             end select
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
 
-             select case (namedd(k))
-              case ("CI3D")
-            kunit=kunit+1
-            do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=ci3d(l,i,j)     ! cld IWC (kg m-3)
-c                write(6,*)"CI3D",ci3d(l,i,j),i,j,l,k
-                end do
+        case ("CI3D")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=ci3d(l,i,j) ! cld IWC (kg m-3)
+c               write(6,*)"CI3D",ci3d(l,i,j),i,j,l,k
               end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
-            end select
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
 
-            select case (namedd(k))
-             case ("CD3D")
-            kunit=kunit+1
-            do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                  data(i,j)=cd3d(l,i,j)     ! cld thickness (m)
-                end do
+        case ("CD3D")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=cd3d(l,i,j) ! cld thickness (m)
               end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
-             end select
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
 
-             select case (namedd(k))
-              case ("CLDSS")
-            kunit=kunit+1
-            do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                  data(i,j)=100.d0*cldss(l,i,j)    ! Cld cover LS(%)
+        case ("CLDSS")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=100.d0*cldss(l,i,j) ! Cld cover LS(%)
 c                 if(cldss(l,i,j).gt.0.d0)
 c    &            write(6,*)"CLDSS",cldss(l,i,j),i,j,l,k
-                end do
               end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
-           end do
-             end select
-
-             select case (namedd(k))
-              case ("CLDMC")
-            kunit=kunit+1
-            do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=100.d0*cldmc(l,i,j)   ! Cld cover MC(%)
-                end do
-              end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
-           end do
-             end select
-
-             select case (namedd(k))
-              case ("CDN3D")
-            kunit=kunit+1
-            do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=cdn3d(l,i,j)    ! cld CDNC (cm^-3)
-c        if(cdn3d(l,i,j).gt.20.d0)write(6,*)"CDN",cdn3d(l,i,j),i,j,l,k
-                end do
-              end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
-             end select
-
-             select case (namedd(k))
-              case ("CRE3D")
-            kunit=kunit+1
-            do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=1.d-6*cre3d(l,i,j)    ! cld Reff (m)
-c        if(cre3d(l,i,j).gt.2.d0)write(6,*)"CRe",cre3d(l,i,j),i,j,l,k
-                end do
-              end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
-            end do
-             end select
-
-             select case (namedd(k))
-              case ("TAUSS")
-            kunit=kunit+1
-            do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=tauss(l,i,j)       ! LS cld tau
-                end do
-              end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
-           end do
-             end select
-
-            select case (namedd(k))
-              case ("TAUMC")
-            kunit=kunit+1
-           do l=1,lm
-              do j=1,jm
-                do i=1,imaxj(j)
-                 data(i,j)=taumc(l,i,j)       ! MC cld tau
-                end do
-              end do
-C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-             call writei(iu_subdd(kunit),itime,data,im*jm)
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           end do
-             end select
 
-           select case (namedd(k))  !(1:5))
-             case ("CLWP")         !LWP (kg m-2)
-            kunit=kunit+1
-             do j=1,jm
-                do i=1,imaxj(j)
-                  data(i,j)=clwp(i,j)
-c       if(clwp(i,j).ne.0.) write(6,*)"CLWP",data(i,j),i,j,k,kunit
-                end do
-             end do
+        case ("CLDMC")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=100.d0*cldmc(l,i,j) ! Cld cover MC(%)
+              end do
+            end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
+
+        case ("CDN3D")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=cdn3d(l,i,j) ! cld CDNC (cm^-3)
+c        if(cdn3d(l,i,j).gt.20.d0)write(6,*)"CDN",cdn3d(l,i,j),i,j,l,k
+              end do
+            end do
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
+
+        case ("CRE3D")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=1.d-6*cre3d(l,i,j) ! cld Reff (m)
+c     if(cre3d(l,i,j).gt.2.d0)write(6,*)"CRe",cre3d(l,i,j),i,j,l,k
+              end do
+            end do
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
+
+        case ("TAUSS")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=tauss(l,i,j) ! LS cld tau
+              end do
+            end do
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
+
+        case ("TAUMC")
+          kunit=kunit+1
+          do l=1,lm
+            do j=J_0,J_1
+              do i=1,imaxj(j)
+                data(i,j)=taumc(l,i,j) ! MC cld tau
+              end do
+            end do
+C**** fix polar values
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+            !call writei(iu_subdd(kunit),itime,data,im*jm)
+            call writei_parallel(grid,
+     &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+          end do
+
+        case ("CLWP")           !LWP (kg m-2)
+          kunit=kunit+1
+          do j=J_0,J_1
+            do i=1,imaxj(j)
+              data(i,j)=clwp(i,j)
+c     if(clwp(i,j).ne.0.) write(6,*)"CLWP",data(i,j),i,j,k,kunit
+            end do
+          end do
+C**** fix polar values
+          IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+          IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
-            call writei(iu_subdd(kunit),itime,data,im*jm)
-            end select
+          !call writei(iu_subdd(kunit),itime,data,im*jm)
+          call writei_parallel(grid,
+     &         iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
 #endif
-#ifdef TRACERS_DUST
-        n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-        n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-        n_fidx=n_sil1quhe
-#endif
-#endif
-#endif
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-        SELECT CASE (namedd(k))
-        CASE ('DUEMIS')       ! Dust emission flux [kg/m^2/s]
+        CASE ('DUEMIS')           ! Dust emission flux [kg/m^2/s]
           kunit=kunit+1
           DO n=1,Ntm_dust
             data(:,:)=dust_flux_glob(:,:,n)
 C**** fix polar values
-            data(2:im,1) =data(1,1)
-            data(2:im,jm)=data(1,jm)
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
             !CALL writei(iu_subdd(kunit),itime,data,im*jm)
             call writei_parallel(grid,
      &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
 #ifdef TRACERS_DUST
-        CASE ('DUEMIS2')   ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
+        CASE ('DUEMIS2')          ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
           kunit=kunit+1
           DO n=1,Ntm_dust
             data(:,:)=dust_flux2_glob(:,:,n)
 C**** fix polar values
-            data(2:im,1) =data(1,1)
-            data(2:im,jm)=data(1,jm)
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
             !CALL writei(iu_subdd(kunit),itime,data,im*jm)
             call writei_parallel(grid,
      &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
@@ -4000,14 +4013,14 @@ C**** fix polar values
      &             depo_turb_glob(:,:,2,n1)+depo_turb_glob(:,:,3,n1)
      &             +depo_turb_glob(:,:,4,n1)
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
               !CALL writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             END IF
           END DO
-        CASE ('DUDEPGRAV')  ! Gravit. settling flux of dust tracers [kg/m^2/s]
+        CASE ('DUDEPGRAV')      ! Gravit. settling flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           DO n=1,Ntm_dust
             n1=n_fidx+n-1
@@ -4016,29 +4029,31 @@ C**** fix polar values
      &             +depo_grav_glob(:,:,2,n1)+depo_grav_glob(:,:,3,n1)
      &             +depo_grav_glob(:,:,4,n1)
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
-              CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+              !CALL writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
             END IF
           END DO
 #endif
-          CASE ('DUDEPWET')   ! Wet deposition flux of dust tracers [kg/m^2/s]
+        CASE ('DUDEPWET')   ! Wet deposition flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           DO n=1,Ntm_dust
 #ifdef TRACERS_WATER
             n1=n_fidx+n-1
             IF (dowetdep(n1)) THEN
-              DO j=1,Jm
+              DO j=J_0,J_1
                 data(:,j)=trprec(n1,:,j)*bydxyp(j)/Dtsrc
               END DO
 #else
-              DO j=1,Jm
+              DO j=J_0,J_1
                 data(:,j)=trprec_dust(n,:,j)*bydxyp(j)/Dtsrc
               END DO
 #endif
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
               !CALL writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
@@ -4053,32 +4068,33 @@ C**** fix polar values
             data(:,:)=trs_glob(:,:,1,n1)+trs_glob(:,:,2,n1)
      &           +trs_glob(:,:,3,n1)+trs_glob(:,:,4,n1)
 C**** fix polar values
-            data(2:im,1) =data(1,1)
-            data(2:im,jm)=data(1,jm)
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
             !CALL writei(iu_subdd(kunit),itime,data,im*jm)
             call writei_parallel(grid,
      &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
-          CASE ('DULOAD')       ! Dust load [kg/m^2]
+        CASE ('DULOAD')       ! Dust load [kg/m^2]
           kunit=kunit+1
           DO n=1,Ntm_dust
             n1=n_fidx+n-1
             data(:,:)=0.D0
-            DO j=1,Jm
+            DO j=J_0,J_1
               DO l=1,LmaxSUBDD
                 data(:,j)=data(:,j)+trm(:,j,l,n1)
               END DO
               data(:,j)=data(:,j)*bydxyp(j)
             END DO
 C**** fix polar values
-            data(2:im,1) =data(1,1)
-            data(2:im,jm)=data(1,jm)
+            IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+            IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
             !CALL writei(iu_subdd(kunit),itime,data,im*jm)
             call writei_parallel(grid,
      &           iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
           END DO
-        END SELECT
 #endif
+        end select
+
       end do ! end of  k=1,kdd loop
 c****
       return
