@@ -582,6 +582,7 @@ c***********************************************************************
       public earth
       public conserv_wtg
       public conserv_htg
+      public conserv_wtg_1
 
       !real*8 cosday,sinday
       !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
@@ -751,10 +752,6 @@ C****
 
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
-
-      ! update water and heat in land surface fractions if
-      ! lake fraction changed
- !!!     if ( variable_lk > 0 ) call update_land_fractions(jday)
 
 c****
 c**** outside loop over time steps, executed nisurf times every hour
@@ -1039,6 +1036,9 @@ c**** update tracers
       end do loop_i
       end do loop_j
 !$OMP  END PARALLEL DO
+
+      ! land water deficit for changing lake fractions
+      call compute_water_deficit
 
 ! Accumulate contributions to ADIURN and HDIURN
       ih=1+jhour
@@ -1967,10 +1967,10 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       jday=1+mod(itime/nday,365)
       ! initialize underwater fraction foe variable lakes
       if ( init_flake > 0 .and. variable_lk > 0 )
-     &     call init_underwater_soil(jday)
+     &     call init_underwater_soil
 
       ! land water deficit for changing lake fractions
-      call compute_water_deficit(jday)
+      call compute_water_deficit
 
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
@@ -2452,7 +2452,7 @@ c**** check for reasonable temperatures over earth
 !@ver  1.0
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
-      use model_com, only : nday,nisurf,jday,jyear,wfcs
+      use model_com, only : nday,nisurf,jday,jyear,wfcs,focean
       use veg_com, only : vdata                 !nyk
       use geom, only : imaxj
       use diag_com, only : aij=>aij_loc
@@ -2472,12 +2472,21 @@ c**** check for reasonable temperatures over earth
       integer i,j,itype
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
+      integer variable_lk
 
 C**** define local grid
       integer J_0, J_1
 
 C**** Extract useful local domain parameters from "grid"
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      ! update water and heat in land surface fractions if
+      ! lake fraction changed
+      if ( variable_lk > 0 ) call update_land_fractions
+
+!!! testing
+!!!      aalbveg(:,:) = 0.08D0
+!!!      return
 
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       if(crops_yr.eq.0) call updveg(jyear,.true.)
@@ -2495,7 +2504,13 @@ c**** find leaf-area index & water field capacity for ground layer 1
         end if
         do i=1,im
           wfcs(i,j)=24.
-          if (fearth(i,j).gt.0.) then
+          ! if (fearth(i,j).gt.0.) then
+          !if (focean(i,j) < 1.d0 ) then
+          if (variable_lk==0) then
+            if ( fearth(i,j) <= 0.d0 ) cycle
+          else
+            if ( focean(i,j) >= 1.d0 ) cycle
+          endif
             if (cond_scheme.eq.2) then
               aalbveg0 = 0.d0
               sfv=0.d0
@@ -2535,7 +2550,7 @@ c**** find leaf-area index & water field capacity for ground layer 1
             aij(i,j,ij_dleaf)=adlmass  !accumulate just instant. value
             !PRINT '(F4.4)',adlmass                            !DEBUG
             !call stop_model('Just did adlmass',255)           !DEBUG
-          end if
+          !end if
         end do
       end do
 
@@ -2578,8 +2593,6 @@ c****
         end do
       end if
 
-      ! land water deficit for changing lake fractions
-      call compute_water_deficit(jday)
 
 #ifdef TRACERS_DRYDEP
       CALL RDLAI ! read leaf area indices for tracer dry deposition
@@ -2722,10 +2735,11 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : fim
+      use model_com, only : fim, focean
       use geom, only : imaxj
-      use ghy_com, only : ngm,w_ij,snowbv,fearth
+      use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       use veg_com, only : afb
+      use LAKES_COM, only : flake
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var waterg zonal ground water (kg/m^2)
@@ -2733,7 +2747,7 @@ c****
      &     waterg
 
       integer i,j,n
-      real*8 wij,fb
+      real*8 wij,fb,fv
 
 C**** define local grid
       integer :: J_0, J_1
@@ -2749,30 +2763,91 @@ C****
       do j=J_0,J_1
         waterg(j)=0
         do i=1,imaxj(j)
-          if (fearth(i,j).gt.0) then
+          !if (fearth(i,j).gt.0) then
+          if( focean(i,j) < 1.d0 ) then
             fb=afb(i,j)
-            wij=fb*snowbv(1,i,j)+(1.-fb)*(w_ij(0,2,i,j)+snowbv(2,i,j))
-            do n=1,ngm
-              wij=wij+fb*w_ij(n,1,i,j)+(1.-fb)*w_ij(n,2,i,j)
-            end do
+            fv=(1.d0-fb)
+            wij=fb*sum( w_ij(1:ngm,1,i,j) )
+     &       +  fv*sum( w_ij(0:ngm,2,i,j) )
+     &       +  fb*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1,i,j))
+     &       +  fv*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2,i,j),2,i,j))
             waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
+     &           + flake(i,j)*sum( w_ij(0:ngm,3,i,j) )*rhow
           end if
-        end do
+       end do
       end do
       if (HAVE_SOUTH_POLE) waterg(1) =fim*waterg(1)
       if (HAVE_NORTH_POLE) waterg(jm)=fim*waterg(jm)
 c****
       end subroutine conserv_wtg
 
+
+      subroutine conserv_wtg_1(waterg,fearth,flake)
+!@sum  conserv_wtg calculates zonal ground water incl snow
+!@auth Gavin Schmidt
+!@ver  1.0
+      use constant, only : rhow
+      use model_com, only : fim, focean, im
+      use geom, only : imaxj
+      use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
+      use veg_com, only : afb
+      !use LAKES_COM, only : flake
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
+      implicit none
+      real*8,dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &     intent(in) :: fearth, flake
+!@var waterg zonal ground water (kg/m^2)
+      real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO),intent(out)::
+     &     waterg
+
+      integer i,j,n
+      real*8 wij,fb,fv
+
+C**** define local grid
+      integer :: J_0, J_1
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      do j=J_0,J_1
+        waterg(j)=0
+        do i=1,imaxj(j)
+          !if (fearth(i,j).gt.0) then
+          if( focean(i,j) < 1.d0 ) then
+            fb=afb(i,j)
+            fv=(1.d0-fb)
+            wij=fb*sum( w_ij(1:ngm,1,i,j) )
+     &       +  fv*sum( w_ij(0:ngm,2,i,j) )
+     &       +  fb*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1,i,j))
+     &       +  fv*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2,i,j),2,i,j))
+            waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
+     &           + flake(i,j)*sum( w_ij(0:ngm,3,i,j) )*rhow
+          end if
+       end do
+      end do
+
+      if (HAVE_SOUTH_POLE) waterg(1) =fim*waterg(1)
+      if (HAVE_NORTH_POLE) waterg(jm)=fim*waterg(jm)
+c****
+      end subroutine conserv_wtg_1
+
+
+
       subroutine conserv_htg(heatg)
 !@sum  conserv_htg calculates zonal ground energy incl. snow energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      use model_com, only : fim
+      use model_com, only : fim, focean
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth 
       use veg_com, only : afb
+      use LAKES_COM, only : flake
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var heatg zonal ground heat (J/m^2)
@@ -2795,7 +2870,8 @@ C****
       do j=J_0,J_1
         heatg(j)=0
         do i=1,imaxj(j)
-          if (fearth(i,j).le.0) cycle
+          !if (fearth(i,j).le.0) cycle
+          if ( focean(i,j) >= 1.d0 ) cycle
           fb=afb(i,j)
           fv=(1.d0-fb)
           hij=fb*sum( ht_ij(1:ngm,1,i,j) )
@@ -2803,6 +2879,7 @@ C****
      &       +  fb*fr_snow_ij(1,i,j)*sum( hsn_ij(1:nsn_ij(1,i,j),1,i,j))
      &       +  fv*fr_snow_ij(2,i,j)*sum( hsn_ij(1:nsn_ij(2,i,j),2,i,j))
           heatg(j)=heatg(j)+fearth(i,j)*hij
+     &           + flake(i,j)*sum( ht_ij(0:ngm,3,i,j) )
         end do
       end do
       if (HAVE_SOUTH_POLE) heatg(1) =fim*heatg(1)
@@ -2893,7 +2970,7 @@ ccc just checking ...
       end subroutine check_ghy_conservation
 
 
-      subroutine compute_water_deficit(jday)
+      subroutine compute_water_deficit
       use constant, only : twopi,edpery,rhow
       use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
      &     ,w_ij,fearth
@@ -2904,19 +2981,19 @@ ccc just checking ...
       USE DOMAIN_DECOMP, ONLY : GRID, GET
 
       implicit none
-      integer, intent(in) :: jday
+cddd      integer, intent(in) :: jday
       !---
       integer i,j,I_0,I_1,J_0,J_1
       integer k,ibv,m
       real*8 :: w_tot(2),w_stor(2)
       real*8 :: w(0:ngm,2),dz(ngm),q(imt,ngm)
-      real*8 :: cosday,sinday,alai
+cddd      real*8 :: cosday,sinday,alai
       real*8 :: fb,fv
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
-      cosday=cos(twopi/edpery*jday)
-      sinday=sin(twopi/edpery*jday)
+cddd      cosday=cos(twopi/edpery*jday)
+cddd      sinday=sin(twopi/edpery*jday)
 
       DMWLDF(:,:) = 0.d0
 
@@ -2950,14 +3027,15 @@ ccc just checking ...
           end do
 
           ! include canopy water here
-          alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
-          alai=max(alai,1.d0)
-          w_stor(2) = w_stor(2) + .0001d0*alai
+cddd          alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
+cddd          alai=max(alai,1.d0)
+cddd          w_stor(2) = w_stor(2) + .0001d0*alai
           w_tot(2) = w_tot(2) + w(0,2)
 
           ! total water deficit on kg/m^2
           DMWLDF(i,j) = fb*(w_stor(1) - w_tot(1))
      &         + fv*(w_stor(2) - w_tot(2))
+          DMWLDF(i,j) = max( DMWLDF(i,j), 0.d0 )
         enddo
       enddo
 
@@ -2967,7 +3045,7 @@ ccc just checking ...
       end subroutine compute_water_deficit
 
 
-      subroutine init_underwater_soil(jday)
+      subroutine init_underwater_soil
 
 !!!! UNFINISHED
       use constant, only : twopi,edpery,rhow,shw_kg=>shw
@@ -2980,21 +3058,21 @@ ccc just checking ...
       USE DOMAIN_DECOMP, ONLY : GRID, GET
 
       implicit none
-      integer, intent(in) :: jday
+cddd      integer, intent(in) :: jday
       !---
       integer i,j,I_0,I_1,J_0,J_1
       integer k,ibv,m
       real*8 :: w_stor(0:ngm), ht_cap(0:ngm)
       real*8 :: w(0:ngm,2),dz(ngm),q(imt,ngm)
-      real*8 :: cosday,sinday,alai
+      !!real*8 :: cosday,sinday,alai
       real*8 :: fb,fv
       real*8 shc_layer, aa, tp, tpb, tpv, ficeb, ficev, fice
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
  
-      cosday=cos(twopi/edpery*jday)
-      sinday=sin(twopi/edpery*jday)
+cddd      cosday=cos(twopi/edpery*jday)
+cddd      sinday=sin(twopi/edpery*jday)
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -3026,9 +3104,10 @@ ccc just checking ...
           enddo
 
           ! include canopy water here
-          alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
-          alai=max(alai,1.d0)
-          w_stor(0) = .0001d0*alai*fv
+          !!alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
+          !!alai=max(alai,1.d0)
+          !!w_stor(0) = .0001d0*alai*fv
+          w_stor(0) = 0.d0
           aa=ala(1,i,j)
           ht_cap(0)=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
 
@@ -3042,7 +3121,10 @@ ccc just checking ...
           fice = fb*ficeb + fv*ficev
 
           ! set underground fraction to tp, fice and saturated water
-          do k=0,ngm
+          !! nothing in canopy layer (ie. temp = 0C)
+          w_ij(0,3,i,j) = 0.d0
+          ht_ij(0,3,i,j) = 0.d0
+          do k=1,ngm
             w_ij(k,3,i,j) = w_stor(k)
             call temperature_to_heat( ht_ij(k,3,i,j),
      &           tp, fice, w_ij(k,3,i,j), ht_cap(k) )
@@ -3096,38 +3178,56 @@ ccc just checking ...
       end subroutine temperature_to_heat
 
 
-      subroutine update_land_fractions(jday)
+      subroutine update_land_fractions !(jday)
 
 !!!! UNFINISHED
       use constant, only : twopi,edpery,rhow,shw_kg=>shw
       use ghy_com, only : ngm,imt,dz_ij,q_ij
      &     ,w_ij,ht_ij,fr_snow_ij,fearth
       use veg_com, only : ala,afb
-      use model_com, only : focean
+      use model_com, only : focean,im
       use LAKES_COM, only : flake, svflake
       use sle001, only : thm
       use fluxes, only : DMWLDF, DGML
+      use GEOM, only : BYDXYP
       USE DOMAIN_DECOMP, ONLY : GRID, GET
+      use soil_drv, only : conserv_wtg_1
 
       implicit none
-      integer, intent(in) :: jday
+      !! integer, intent(in) :: jday
       !---
       integer i,j,I_0,I_1,J_0,J_1
       integer k,m
       real*8 :: w_stor(0:ngm)
       real*8 :: dz(ngm),q(imt,ngm)
-      real*8 :: cosday,sinday,alai
+      !!real*8 :: cosday,sinday,alai
       real*8 :: fb,fv
       real*8 :: dw, dw_soil, dw_lake, dht, dht_soil, dht_lake
       real*8 :: sum_water, ht_per_m3
 
       real*8 dfrac
 
+      real*8 tmp_before(0:ngm), tmp_after(0:ngm)
+      real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     w_before_j, w_after_j
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     fearth_old
+
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
  
-      cosday=cos(twopi/edpery*jday)
-      sinday=sin(twopi/edpery*jday)
+cddd      cosday=cos(twopi/edpery*jday)
+cddd      sinday=sin(twopi/edpery*jday)
+
+!!!   testing
+!!!      w_ij(0:ngm,3,:,:) = 0.d0
+
+!!! testing
+!!!      DGML(:,:) = 0.d0
+
+      fearth_old = fearth + (flake - svflake)
+
+      ! call conserv_wtg_1(w_before_j,fearth_old,svflake)
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -3137,7 +3237,10 @@ ccc just checking ...
           if ( svflake(i,j) == flake(i,j) ) cycle
 
           fb = afb(i,j)
-          fv=1.-fb
+          fv=1.d0-fb
+
+          !print *,"UPDATING FRACTIONS: i,j= ",i,j
+          !print *,"fb, fv = ", fb, fv
 
           if ( flake(i,j) < svflake(i,j) ) then ! lake shrinked
             ! no external fluxes, just part of underwater fraction
@@ -3146,32 +3249,70 @@ ccc just checking ...
             ! no changes to underwater fraction
             ! just redistribute added quantities over lan fractions
 
+
             dfrac = svflake(i,j) - flake(i,j)
+
+            tmp_before = ( ht_ij(0:ngm,3,i,j) )*svflake(i,j) +
+     &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)-dfrac) +
+     &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j)-dfrac)
+
+            !print *,"before", sum(tmp_before)
+!     &           ,fr_snow_ij(1,i,j)*fb*fearth(i,j) +
+!     &           fr_snow_ij(2,i,j)*fv*fearth(i,j)
+
+            !print *,"shrinkrd"
+            !print *,"flake(i,j),svflake(i,j)", flake(i,j),svflake(i,j)
             do k=1,ngm
               dw  = dfrac*w_ij(k,3,i,j)
               dht = dfrac*ht_ij(k,3,i,j)
+              !print *,"w3", w_ij(k,3,i,j)
+              !print *,"ht3", ht_ij(k,3,i,j)
+              !print *,"w before", w_ij(k,1:2,i,j)
+              !print *,"ht before", ht_ij(k,1:2,i,j)
               w_ij(k,1:2,i,j) =
      &             (w_ij(k,1:2,i,j)*(fearth(i,j)-dfrac) + dw)
      &             / fearth(i,j)
               ht_ij(k,1:2,i,j) =
-     &             (ht_ij(k,1:2,i,j)*(fearth(i,j)-dfrac) + dw)
+     &             (ht_ij(k,1:2,i,j)*(fearth(i,j)-dfrac) + dht)
      &             / fearth(i,j)
+              !print *,"w after", w_ij(k,1:2,i,j)
+              !print *,"ht after", ht_ij(k,1:2,i,j)
             enddo
             !vegetation:
-            if ( fv > 0.d0 ) then
+cddd            if ( fv > 0.d0 ) then
+cddd              print *,"w3", w_ij(0,3,i,j)
+cddd              print *,"ht3", ht_ij(0,3,i,j)
+cddd              print *,"w before", w_ij(0,1:2,i,j)
+cddd              print *,"ht before", ht_ij(0,1:2,i,j)
+cddd              w_ij(0,2,i,j) =
+cddd     &             (w_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dw/fv)
+cddd     &             / fearth(i,j)
+cddd              ht_ij(0,2,i,j) =
+cddd     &             (ht_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dht/fv)
+cddd     &             / fearth(i,j)
+cddd              print *,"w after", w_ij(0,1:2,i,j)
+cddd              print *,"ht after", ht_ij(0,1:2,i,j)
+cddd            endif
               w_ij(0,2,i,j) =
-     &             (w_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dw/fv)
+     &             (w_ij(0,2,i,j)*(fearth(i,j)-dfrac))
      &             / fearth(i,j)
               ht_ij(0,2,i,j) =
-     &             (ht_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dw/fv)
+     &             (ht_ij(0,2,i,j)*(fearth(i,j)-dfrac))
      &             / fearth(i,j)
-            endif
 
             ! change snow fraction
             fr_snow_ij(1:2,i,j) =
      &           fr_snow_ij(1:2,i,j)*(1.d0-dfrac/fearth(i,j))
 
+            tmp_after = ( ht_ij(0:ngm,3,i,j) )*flake(i,j) +
+     &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)) +
+     &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j))
+            !print *,"after", (tmp_after), (tmp_after-tmp_before)
+
           else if ( flake(i,j) > svflake(i,j) ) then ! lake expanded
+          !else if ( .false. ) then ! comment out for now
+
+            !print *,"expanded"
 
             ! no need to change land values
             ! for underwater fraction:
@@ -3187,52 +3328,90 @@ ccc just checking ...
               enddo
             enddo
             ! include canopy water here
-            alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
-            alai=max(alai,1.d0)
-            w_stor(0) = .0001d0*alai*fv
+!!!cddd            alai=ala(1,i,j)+cosday*ala(2,i,j)+sinday*ala(3,i,j)
+!!!cddd            alai=max(alai,1.d0)
+!!!cddd            w_stor(0) = .0001d0*alai*fv
+            ! no uderlake water in canopy
+            w_stor(0) = 0.d0
+            ! allow any amount of water in upper soil layer
+            w_stor(1) = 1.d30
 
             dfrac = flake(i,j) - svflake(i,j)
-            print *,"flake(i,j),svflake(i,j)", flake(i,j),svflake(i,j)
-            print *,"WLDF(i,j),dfrac/", i,j,DMWLDF(i,j),dfrac
+
+            tmp_before = ( ht_ij(0:ngm,3,i,j) )*svflake(i,j) +
+     &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)+dfrac) +
+     &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j)+dfrac)
+
+            !print *,"exp_before", sum(tmp_before)
+
+            !print *,"flake(i,j),svflake(i,j)", flake(i,j),svflake(i,j)
+            !print *,"WLDF(i,j),dfrac/", i,j,DMWLDF(i,j),dfrac
             sum_water = DMWLDF(i,j)*dfrac/rhow
+            !!!!test sum_water = 0.d0
             if ( sum_water > 1.d-30 ) then
-              ht_per_m3 = DGML(i,j)/sum_water
+              ht_per_m3 = DGML(i,j)*BYDXYP(J)/sum_water
             else
               ht_per_m3 = 0.d0
             endif
-            do k=0,ngm
+            !print *,"DGML, sum_water, ht_per_m3 ",
+   !  &           DGML(i,j),sum_water,ht_per_m3
+            do k=ngm,1,-1  ! do not loop over canopy
               ! dw, dht - total amounts of water and heat added to
               ! underwater fraction
-              dw  = dfrac*w_stor(k)
               dw_soil = dfrac*( fb*w_ij(k,1,i,j) + fv*w_ij(k,2,i,j) )
+              dw  = min( dfrac*w_stor(k), sum_water + dw_soil )
               dw_lake = dw - dw_soil
+              !print *,"dw, dw_soil, dw_lake", dw, dw_soil, dw_lake
               dht_soil = dfrac*( fb*ht_ij(k,1,i,j) + fv*ht_ij(k,2,i,j) )
               dht_lake = dw_lake*ht_per_m3
               dht = dht_soil + dht_lake
+              !print *,"dht_soil, dht_lake, dht", dht_soil, dht_lake, dht
               sum_water = sum_water - dw_lake
+              !print *,"w before", w_ij(k,3,i,j)
+              !print *,"ht before", ht_ij(k,3,i,j)
 
               w_ij(k,3,i,j) =
      &             (w_ij(k,3,i,j)*svflake(i,j) + dw)/flake(i,j)
               ht_ij(k,3,i,j) =
      &             (ht_ij(k,3,i,j)*svflake(i,j) + dht)/flake(i,j)
+              !print *,"w after", w_ij(k,3,i,j)
+              !print *,"ht after", ht_ij(k,3,i,j)
             enddo
-            ! add (or subtract) waterver is left to vegetation layer
-              w_ij(0,3,i,j) =
-     &             (w_ij(0,3,i,j)*svflake(i,j) + sum_water)/flake(i,j)
-              ht_ij(0,3,i,j) =
-     &             (ht_ij(0,3,i,j)*svflake(i,j)
-     &             + sum_water*ht_per_m3)/flake(i,j)
+
+            ! dump canopy water into first layer (underwater canopy is 0C)
+            dw = dfrac*( fv*w_ij(0,2,i,j) )
+            dht = dfrac*( fv*ht_ij(k,2,i,j) )
+              w_ij(1,3,i,j) =
+     &             w_ij(1,3,i,j) + dw/flake(i,j)
+              ht_ij(1,3,i,j) =
+     &             ht_ij(1,3,i,j) + dht/flake(i,j)
+
+            tmp_after = ( ht_ij(0:ngm,3,i,j) )*flake(i,j) +
+     &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)) +
+     &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j))
+            !print *,"exp_after",(tmp_after),(tmp_after-tmp_before)
+
+
 
             ! change snow fraction
-            if ( fearth(i,j) <= 0.d0 )
-     &           call stop_model("update_land_fractions: fearth<=0",255)
+            if ( fearth(i,j) <= 0.d0 ) then
+              print *, "farctions:",i,j,
+     &             focean(i,j), fearth(i,j), flake(i,j), svflake(i,j)
+              call stop_model("update_land_fractions: fearth<=0",255)
+            endif
 
-            print *,"FR_SNOW before",i,j,fr_snow_ij(1:2,i,j)
+            !print *,"FR_SNOW before",i,j,fr_snow_ij(1:2,i,j)
 
             fr_snow_ij(1:2,i,j) =
      &           fr_snow_ij(1:2,i,j)*(1.d0+dfrac/fearth(i,j))
 
-            print *,"FR_SNOW  after" ,i,j,fr_snow_ij(1:2,i,j)
+            ! hack to deal with snow in empty fractions (fb, fv)
+            if( fb <= 0.d0 )
+     &           fr_snow_ij(1,i,j) = min( .95d0, fr_snow_ij(1,i,j) )
+            if( fv <= 0.d0 )
+     &           fr_snow_ij(2,i,j) = min( .95d0, fr_snow_ij(2,i,j) )
+
+            !print *,"FR_SNOW  after" ,i,j,fr_snow_ij(1:2,i,j)
             if ( fr_snow_ij(1,i,j) > 1.d0 .or.
      &           fr_snow_ij(2,i,j) > 1.d0 ) call stop_model(
      &           "update_land_fractions: fr_snow_ij > 1",255)
@@ -3246,4 +3425,86 @@ ccc just checking ...
         enddo
       enddo
 
+      !call conserv_wtg_1(w_after_j,fearth,flake)
+
+      !print *,"UPDATE_LF CONS_WTRG ", w_after_j-w_before_j
+
+
       end subroutine update_land_fractions
+
+
+      subroutine remove_exrtra_snow
+      use constant, only : rhow
+      use ghy_com, only : nsn_ij, dzsn_ij, wsn_ij, hsn_ij,
+     &     fr_snow_ij,fearth
+#ifdef TRACERS_WATER
+     &     ,tr_wsn_ij
+#endif
+      use veg_com, only : afb
+      use LANDICE_COM, only : MDWNIMP, EDWNIMP
+#ifdef TRACERS_WATER
+     &     ,TRDWNIMP
+#endif
+      use GEOM, only : DXYP
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      
+      implicit none
+      !! integer, intent(in) :: jday
+      !---
+      real*8, parameter :: WSN_MAX = 2.d0 ! 2 m of water equivalent
+      integer i,j,I_0,I_1,J_0,J_1
+      real*8 fbv(2),wsn(3),hsn(3),dzsn(3),fr_snow,wsn_tot,d_wsn,eta
+      integer ibv,nsn
+
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+
+          if( fearth(i,j) <= 0.d0 ) cycle
+
+          fbv(1) = afb(i,j)
+          fbv(2) =1.d0 - fbv(1)
+
+          do ibv=1,2
+            if ( fbv(ibv) <= 0.d0 ) cycle
+
+            nsn = nsn_ij(ibv, i, j)
+            wsn = 0 ; hsn = 0 ; dzsn = 0
+            wsn(1:nsn) = wsn_ij(1:nsn, ibv, i, j)
+            hsn(1:nsn) = hsn_ij(1:nsn, ibv, i, j)
+            dzsn(1:nsn) = dzsn_ij(1:nsn, ibv, i, j)
+            fr_snow = fr_snow_ij(ibv, i, j)
+            wsn_tot = sum( wsn(1:nsn) )
+            if ( wsn_tot > WSN_MAX ) then
+              ! check if snow structure ok for thick snow
+              if ( nsn < 3)
+     &             call stop_model("remove_exrtra_snow: nsn<3",255)
+              d_wsn = wsn_tot - WSN_MAX
+              ! fraction of snow to be removed:
+              eta = d_wsn/(wsn(2)+wsn(3))
+              wsn_ij(2:3, ibv, i, j)  = eta*wsn(2:3)
+              hsn_ij(2:3, ibv, i, j)  = eta*hsn(2:3)
+              dzsn_ij(2:3, ibv, i, j) = eta*dzsn(2:3)
+              ! extra water and energy
+              MDWNIMP(i,j) = MDWNIMP(i,j) +
+     &           (1.d0-eta)*(wsn(2)+wsn(3))*fr_snow*fbv(ibv)*fearth(i,j)
+     &             *rhow*DXYP(j)
+              EDWNIMP(i,j) = EDWNIMP(i,j) +
+     &           (1.d0-eta)*(hsn(2)+hsn(3))*fr_snow*fbv(ibv)*fearth(i,j)
+     &             *DXYP(j)
+#ifdef TRACERS_WATER
+              TRDWNIMP(1:ntm,i,j) = TRDWNIMP(1:ntm,i,j) +
+     &             (1.d0-eta)*(
+     &             tr_wsn_ij(1:ntm,2,ibv,i,j)+tr_wsn_ij(1:ntm,3,ibv,i,j)
+     &             )*fbv(ibv)*fearth(i,j)*DXYP(j)
+              tr_wsn_ij(1:ntm,2:3,ibv,i,j) =
+     &             eta*tr_wsn_ij(1:ntm,2:3,ibv,i,j) 
+#endif
+            endif
+          enddo
+
+        enddo
+      enddo
+
+      end subroutine remove_exrtra_snow
