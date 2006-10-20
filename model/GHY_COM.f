@@ -310,6 +310,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS03"
       INTEGER :: J_0H, J_1H
+      integer m
 
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
@@ -318,7 +319,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       REAL*8 :: TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,IM,JM)
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a21,i3,a1,i2,a1,i2,a11,i3,a2)')
-     *     'R8 dim(im,jm) TR_W(',NTM,',',NGM,','LS_NFRAC,
+     *     'R8 dim(im,jm) TR_W(',NTM,',',NGM,',',LS_NFRAC
      *     ,'),TRSNOWBV(',ntm,'2)'
 #endif
 
@@ -333,8 +334,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL PACK_BLOCK(grid, HT_IJ(0:NGM,:,1:IM,J_0H:J_1H),HT_GLOB)
         CALL PACK_COLUMN(grid, SNOWBV(1:2,1:IM,J_0H:J_1H), SNOWBV_GLOB)
 #ifdef TRACERS_WATER
-        CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,1:NGM,:,1:IM,J_0H:J_1H),
-     &       TR_W_GLOB)
+        do m=1,LS_NFRAC
+          CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,0:NGM,m,1:IM,J_0H:J_1H),
+     &         TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM))
+        enddo
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
         IF (AM_I_ROOT()) THEN 
@@ -381,8 +384,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
               GO TO 10
             END IF
           end if
-          CALL UNPACK_BLOCK(grid,TR_W_GLOB ,
-     &         TR_W_IJ(1:NTM,1:NGM,:,1:IM,J_0H:J_1H) )
+          do m=1,LS_NFRAC
+            CALL UNPACK_BLOCK(grid,TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM),
+     &           TR_W_IJ(1:NTM,0:NGM,m,1:IM,J_0H:J_1H) )
+          enddo
           CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 
         END SELECT
@@ -394,120 +399,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       RETURN
       END SUBROUTINE io_soils
 
-
-
-      SUBROUTINE io_soils_02(kunit,iaction,ioerr)
-!@sum  io_soils reads and writes soil arrays to file
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP, ONLY: GRID, GET, CHECKSUM_COLUMN
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA, PACK_COLUMN, AM_I_ROOT
-      USE DOMAIN_DECOMP, ONLY: PACK_BLOCK, UNPACK_BLOCK
-      USE DOMAIN_DECOMP, ONLY: UNPACK_COLUMN
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
-#endif
-      USE GHY_COM
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-      REAL*8 WBARE_GLOB(NGM,IM,JM), SNOWBV_GLOB(2,IM,JM)
-      REAL*8, DIMENSION(0:NGM,IM,JM)::WVEGE_GLOB,HTBARE_GLOB,HTVEGE_GLOB
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS02"
-      INTEGER :: J_0H, J_1H
-
-#ifdef TRACERS_WATER
-!@var TRHEADER Character string label for individual records
-      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS01"
-      REAL*8 :: TRSNOWBV0_GLOB(NTM,2,IM,JM)
-      REAL*8 :: TR_WBARE_GLOB (NTM,  NGM,IM,JM)
-      REAL*8 :: TR_WVEGE_GLOB  (NTM,0:NGM,IM,JM)
-      write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a21,i3,a1,i2,a9,i3,a1,i2,a11,i3,a2)')
-     *     'R8 dim(im,jm) TRBARE(',NTM,',',NGM,'),TRVEGE(',NTM,',',NGM+1
-     *     ,'),TRSNOWBV(',ntm,'2)'
-#endif
-
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-
-      write(MODULE_HEADER(lhead+1:80),'(a6,i1,a11,i1,a,a)') 'R8 Wb(',
-     *   ngm,',ijm), dim(',ngm+1,',ijm):Wv,HTb,HTv, SNWbv(2,ijm),'
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_COLUMN(grid,W_IJ(1:NGM,1,1:IM,J_0H:J_1H) , WBARE_GLOB)
-        CALL PACK_COLUMN(grid, SNOWBV(1:2,1:IM,J_0H:J_1H), SNOWBV_GLOB)
-        CALL PACK_COLUMN(grid,W_IJ(0:NGM,2,1:IM,J_0H:J_1H) , WVEGE_GLOB)
-        CALL PACK_COLUMN(grid,HT_IJ(0:NGM,1,1:IM,J_0H:J_1H),HTBARE_GLOB)
-        CALL PACK_COLUMN(grid,HT_IJ(0:NGM,2,1:IM,J_0H:J_1H),HTVEGE_GLOB)
-#ifdef TRACERS_WATER
-        CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,1:NGM,1,1:IM,J_0H:J_1H),
-     &       TR_WBARE_GLOB)
-        CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,0:NGM,2,1:IM,J_0H:J_1H),
-     &       TR_WVEGE_GLOB)
-        CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
-#endif
-        IF (AM_I_ROOT()) THEN 
-          WRITE (kunit,err=10) MODULE_HEADER,wbare_glob,wvege_glob,
-     *       htbare_glob,htvege_glob ,snowbv_glob
-#ifdef TRACERS_WATER
-          WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE_GLOB
-     &       ,TR_WVEGE_GLOB,TRSNOWBV0_GLOB
-#endif
-        END IF
-      CASE (IOREAD:)            ! input from restart file
-        if (AM_I_ROOT()) then
-        READ(kunit,err=10) HEADER,wbare_glob,wvege_glob,htbare_glob,
-     &                            htvege_glob,snowbv_glob
-cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
-        IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
-        end if    !...am_i_root
-
-        call unpack_column(grid, wbare_glob,
-     &       w_ij(1:NGM,1,1:IM,J_0H:J_1H))
-        call unpack_column(grid, wvege_glob,
-     &       w_ij(0:NGM,2,1:IM,J_0H:J_1H))
-        call unpack_column(grid, htbare_glob,
-     &       ht_ij(0:NGM,1,1:IM,J_0H:J_1H))
-        call unpack_column(grid, htvege_glob,
-     &       ht_ij(0:NGM,2,1:IM,J_0H:J_1H))
-        call unpack_column(grid, snowbv_glob, 
-     &       snowbv(1:2,1:IM,J_0H:J_1H))
-
-#ifdef TRACERS_WATER
-        SELECT CASE (IACTION)
-        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)  ! reruns/restarts
-          if (AM_I_ROOT()) then
-            READ (kunit,err=10) TRHEADER, TR_WBARE_GLOB
-     &         ,TR_WVEGE_GLOB,TRSNOWBV0_GLOB
-            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRHEADER
-     *             ,TRMODULE_HEADER
-              GO TO 10
-            END IF
-          end if
-          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,
-     &         TR_W_IJ(1:NTM,1:NGM,1,1:IM,J_0H:J_1H) )
-          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,
-     &         TR_W_IJ(1:NTM,0:NGM,2,1:IM,J_0H:J_1H) )
-          CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
-
-        END SELECT
-#endif
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_soils_02
 
       SUBROUTINE io_snow(kunit,iaction,ioerr)
 !@sum  io_snow reads and writes snow model arrays to file
