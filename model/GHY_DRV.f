@@ -2472,7 +2472,6 @@ c**** check for reasonable temperatures over earth
       integer i,j,itype
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
-      integer variable_lk
 
 C**** define local grid
       integer J_0, J_1
