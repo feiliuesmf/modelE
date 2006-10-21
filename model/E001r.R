@@ -46,7 +46,7 @@ CDN=CD4X500S    ! surf.drag coefficient
 VEG=V72X46.1.cor2_no_crops CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD4X525.RVR.2                   ! river direction file
+RVR=RD_modelE_M.RVR                   ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv2

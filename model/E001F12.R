@@ -50,7 +50,7 @@ SICE=SICE_144x90.B.1946_55avg.Hadl1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=VEG144X90M
 SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5_CAFE     ! special regions-diag
-RVR=RD144X90.RVR      ! river direction file
+RVR=RD_modelE_F.RVR      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv2
