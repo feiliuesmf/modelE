@@ -3443,6 +3443,7 @@ cddd            endif
       use LANDICE_COM, only : MDWNIMP, EDWNIMP
 #ifdef TRACERS_WATER
      &     ,TRDWNIMP
+      USE tracer_com,ONLY : Ntm
 #endif
       use GEOM, only : DXYP
       USE DOMAIN_DECOMP, ONLY : GRID, GET
