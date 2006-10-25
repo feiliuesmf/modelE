@@ -255,7 +255,8 @@ C**** output variables
       REAL*8 AIRXL,PRHEAT
 !@var RNDSSL stored random number sequences
       REAL*8  RNDSSL(3,LM)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 !@var prebar1 copy of variable prebar
       REAL*8 prebar1(Lm+1)
 #endif
@@ -287,7 +288,8 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
 #ifdef CLD_AER_CDNC
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
-#if (defined TRACERS_DUST) || (defined TRACESR_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACESR_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *  ,prebar1
 #endif
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
