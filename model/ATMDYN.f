@@ -1154,7 +1154,8 @@ C****
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *        POLD, PRAT
-      REAL*8 PSUMO,PSUMN,PDIF,AKAP,PS,ZS,SLP
+      REAL*8 PSUMO,PSUMN,PDIF,AKAP,PS,ZS
+      REAL*8, EXTERNAL :: SLP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
 c**** Extract domain decomposition info
@@ -1170,7 +1171,7 @@ C**** Initialise total energy (J/m^2)
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-!$OMP  PARALLEL DO DEFAULT(SHARED) PRIVATE(I,J) 
+!$OMP  PARALLEL DO DEFAULT(SHARED) PRIVATE(I,J,PS,ZS) 
       DO J=J_0S,J_1S
         DO I=1,IM
           POLD(I,J)=P(I,J)      ! Save old pressure
