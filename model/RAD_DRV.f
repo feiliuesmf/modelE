@@ -842,7 +842,7 @@ C**** Define CO2 (ppm) for rest of model
 !@ver  1.0
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
-     *     ,kapa
+     *     ,kapa,bysha
       USE MODEL_COM
       USE GEOM
       USE RADPAR
