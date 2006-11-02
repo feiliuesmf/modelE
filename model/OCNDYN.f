@@ -3853,7 +3853,7 @@ C**** Minor complication due to singular nature of polar box
             RU(II) = UO(I,J,L) + DTU*(UXA(I,J,L)*UO(IM1,J,L)
      *           +UXB(I,J,L)*UO(I,J,L) + UXC(I,J,L)*UO(IP1,J,L))
 C**** Make properly tridiagonal by making explicit polar terms
-            IF (J.lt.JM-1) RU(II)=RU(II) + DTU*UYC(I,J,L)*UO(1,JM,L)
+            IF (J.eq.JM-1) RU(II)=RU(II) + DTU*UYC(I,J,L)*UO(1,JM,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
