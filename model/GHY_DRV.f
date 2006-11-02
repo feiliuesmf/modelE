@@ -615,7 +615,7 @@ c***********************************************************************
 c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx
-      use model_com, only : t,p,q,dtsrc,nisurf,dsig,jdate
+      use model_com, only : t,p,q,dtsrc,nisurf,jdate
      *     ,jday,jhour,nday,itime,jeq,u,v
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
@@ -675,7 +675,7 @@ c****
       real*8 shdt,evhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
      *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij
-     *     ,spring,zs1co,q1
+     *     ,spring,q1
 
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
@@ -747,8 +747,6 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       ! dtsurf=dtsrc/nisurf
-
-      zs1co=.5*dsig(1)*rgas/grav
 
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
@@ -873,8 +871,8 @@ ccc tracers variables
 c****
 c**** boundary layer interaction
 c****
-      pbl_args%zs1=zs1co*pbl_args%tkv*pij/pmid(1,i,j)
-  !    zs1=zs1co*tkv*pij/pmid(1,i,j)
+      pbl_args%zs1=.5d-2*rgas*pbl_args%tkv*ma1/pmid(1,i,j)
+  !    zs1=.5d-2*rgas*tkv*ma1/pmid(1,i,j)
 
 c**** loop over ground time steps
       tg=tg1+tf

@@ -325,7 +325,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
-      USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
+      USE MODEL_COM, only : jm,lm,ls1,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
       USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
       USE GEOM, only : dlat,lat_dg
@@ -342,7 +342,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE RADPAR, only : rcomp1, writer, writet
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
+     *     ,lm_req,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
@@ -357,7 +357,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       IMPLICIT NONE
 
       INTEGER J,L,LR,n1,istart ! LONR,LATR
-      REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
+      REAL*8 SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
@@ -488,9 +488,7 @@ C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
 C****
       LMR=LM+LM_REQ
-      COEX=1d-2*GRAV*BYSHA
       DO L=1,LM
-        COE(L)=DTsrc*COEX/DSIG(L)
         PLB(L)=SIGE(L)*PSFMPT+PTOP
         PLBx(L)=PLB(L)           ! needed for CH4 prod. H2O
       END DO
@@ -499,18 +497,10 @@ C****
       PLB(LMR)=.2d0*PLB(LM+1)
       PLB(LMR+1)=1d-5
       DO LR=LM+1,LMR
-        COE(LR)=DTsrc*NRAD*COEX/(PLB(LR)-PLB(LR+1))
         PLB0(LR-LM) = PLB(LR+1)
       END DO
       call reterp(vcdnc,pcdnc,7, cdncl,plb,llow+2)
-      if (kradia.gt.1) then
-        do l=1,ls1-1
-          COE(L)=DTsrc*nrad*COEX/DSIG(L)
-        end do
-        do l=ls1,lm
-          COE(L)=DTsrc*NRAD*COEX/(PLB(L)-PLB(L+1))
-        end do
-      end if
+
       KTREND=1   !  GHgas trends are determined by input file
 !note KTREND=0 is a possible but virtually obsolete option
 C****
@@ -880,7 +870,7 @@ C     OUTPUT DATA
      &          ,aesqex,aesqsc,aesqcb
       USE RADPAR, only : writer,rcompx
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
+     *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
@@ -915,7 +905,7 @@ C     OUTPUT DATA
      *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
      &     ,adiurn_dust
-      USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
+      USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -1081,6 +1071,7 @@ C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
           call stop_model('RADIA: input file bad or too short',255)
         end if
 C****   Find arrays derived from P : PEdn and PK (forcing experiments)
+C        call call_ampk(lm)  ! why not? 
         do j=j_0,j_1
         do i=1,imaxj(j)
           pedn(LM+1,i,j) = SIGE(LM+1)*PSFMPT+PTOP
@@ -1857,13 +1848,9 @@ C**** Save optical depth diags
           AFLX_ST(LM+4,I,J,5)=AFLX_ST(LM+4,I,J,5)+taugcb
           cycle
         end if
-        do l=LS1_loc,ls1-1
+        do l=LS1_loc,lm+lm_req
           tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
-     +      (-trfcrl(l)-trhra(l,i,j)) ) * coe(l)/p(i,j)
-        end do
-        do l=max(ls1,LS1_loc),lm+lm_req
-          tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
-     +      (-trfcrl(l)-trhra(l,i,j)) ) * coe(l)
+     +      (-trfcrl(l)-trhra(l,i,j)) )*nrad*DTsrc*bysha*byam(l,i,j)
         end do
         cycle
       else if (kradia.lt.0) then ! save i/o data for frc.runs
@@ -2333,7 +2320,8 @@ c longwave forcing at surface (if required)
 
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      /        (ALB(I,J,1)+1.D-20))
-         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
+c move this diag outside rad time step for improved averaging
+c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
 
@@ -2430,7 +2418,7 @@ C****
         DO I=1,IMAXJ(J)
           DO LR=1,LM_REQ
             RQT(LR,I,J)=RQT(LR,I,J)+(SRHRS(LR,I,J)*COSZ2(I,J)
-     &           +TRHRS(LR,I,J))*COE(LR+LM)
+     &           +TRHRS(LR,I,J))*NRAD*DTsrc*bysha*byam(lr+lm,i,j)
           END DO
         END DO
       END DO
@@ -2441,10 +2429,12 @@ C****
         DO I=1,IMAXJ(J)
           DO L=1,LM
             T(I,J,L)=T(I,J,L)+(SRHR(L,I,J)*COSZ1(I,J)+TRHR(L,I,J))*
-     *           COE(L)/(PLIJ(L,I,J)*PK(L,I,J))
+     *           DTsrc*bysha*byam(l,i,j)/PK(L,I,J)
           END DO
+          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ1(I,J))
         END DO
       END DO
+
 C**** daily diagnostics
       DIURN_part=0.
       IH=1+JHOUR

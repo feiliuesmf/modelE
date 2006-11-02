@@ -1342,12 +1342,12 @@ c
       ir_ij(k) = ir_0_710
 c
       k=k+1 !
-      IJ_SRINCP0 = k ! SRINCP0 (W/m**2)                        2 RD
+      IJ_SRINCP0 = k ! SRINCP0 (W/m**2)                        3 SR
       lname_ij(k) = 'INCIDENT SOLAR RADIATION, TOA'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'incsw_toa'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1
       ir_ij(k) = ir_0_710
 c
       k=k+1 !

@@ -13,7 +13,7 @@
      &     ,grav
 #endif
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
-     *     ,idacc,dsig,ndasf,fland,flice,focean
+     *     ,idacc,ndasf,fland,flice,focean
      *     ,nday,modrd,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
@@ -579,7 +579,7 @@ C****
 C**** BOUNDARY LAYER INTERACTION
 C****
   !    TKV=THV1*PSK  ! TKV is referenced to the surface pressure
-  !    pbl_args%ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PMID(1,I,J)
+  !    pbl_args%ZS1=.5d-2*RGAS*TKV*MA1/PMID(1,I,J)
       SHDT=0.
       EVHDT=0.
       TRHDT=0.
@@ -644,7 +644,7 @@ C**** Now send kg/m^2/s to PBL, and dived by rho there.
 C =====================================================================
       pbl_args%dtsurf = dtsurf
       pbl_args%TKV=THV1*PSK     ! TKV is referenced to the surface pressure
-      pbl_args%ZS1=.5*DSIG(1)*RGAS*BYGRAV* pbl_args%TKV*PIJ/PMID(1,I,J)
+      pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*MA1/PMID(1,I,J)
       pbl_args%qg_sat = qg_sat
       pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
       pbl_args%hemi = hemi
@@ -1305,8 +1305,8 @@ C****
         ENDIF
 c****   retrieve fluxes
         P1K=PK(1,I,J)
-        tflux1(i,j)=dth1(i,j)*(-AM(1,I,J)*P1K)/(dtsurf)
-        qflux1(i,j)=dq1(i,j)*(-AM(1,I,J))/(dtsurf)
+        tflux1(i,j)=-dth1(i,j)*MA1*P1K/(dtsurf)
+        qflux1(i,j)=-dq1(i,j)*MA1/(dtsurf)
 C**** Diurnal cycle of temperature diagnostics
         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
