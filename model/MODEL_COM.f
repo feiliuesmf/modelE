@@ -249,8 +249,6 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: rc
-      Integer, Parameter :: hwidth=1
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
 

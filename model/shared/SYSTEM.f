@@ -165,8 +165,8 @@
 !@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: unit !@var unit 
-      INTEGER status
 #if defined(MACHINE_SGI)
+      INTEGER status
       call flush(unit,status)
 #elif defined(MACHINE_Linux) || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )

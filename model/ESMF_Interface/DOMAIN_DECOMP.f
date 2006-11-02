@@ -2082,15 +2082,16 @@ C****  convert from real*4 to real*8
 
 
       SUBROUTINE WRITEI_PARALLEL_2D (grd_dum,IUNIT,NAME,buf,it)
-!@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
+!@sum WRITEI_PARALLEL  Parallel version of UTILDBL.f:WRITEI for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
       CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
-      REAL*4,       INTENT(OUT) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
+      REAL*4,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
       INTEGER,      INTENT(IN)  :: it       !@var  it iteration
-      REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
+!@var buf_glob real*4 array
+      REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD) 
       INTEGER :: IERR
 
 !!! not sure if it is implemented for real*4 ...
