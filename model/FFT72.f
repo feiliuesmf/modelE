@@ -36,7 +36,7 @@ C****
 !@ver  1.0
       USE FFT72
       IMPLICIT NONE
-      INTEGER IQ,N !@var IQ,N loop variables
+      INTEGER N !@var N loop variables
       INTEGER, INTENT(IN) :: IM    !@var IM size of arrays (must=KM)
 C
       IF(IM.NE.KM)  GO TO 100
@@ -89,7 +89,7 @@ C****
       REAL*8, INTENT(IN) :: F(KM)      !@var F input gridpoint array
       REAL*8, INTENT(OUT) :: A(0:KM/2) !@var A fourier coeffs. (cos)
       REAL*8, INTENT(OUT) :: B(0:KM/2) !@var B fourier coeffs. (sin)
-      INTEGER IQ,N !@var IQ,N loop variables
+      INTEGER N !@var N loop variables
 
       CALL DOCALC(F)
 
@@ -262,7 +262,7 @@ C****
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: F(KM)       !@var F input gridpoint array
       REAL*8, INTENT(OUT) :: E(0:KM/2)  !@var E spectral energy
-      INTEGER IQ,N !@var IQ,N loop variables
+      INTEGER N !@var N loop variables
 
       CALL DOCALC(F)
 C****

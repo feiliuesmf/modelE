@@ -456,7 +456,7 @@ C**** ignore ocean currents for initialisation.
      *                                                      tgvdat
 
       integer :: itype  !@var itype surface type
-      integer i,j,k,iter,lpbl !@var i,j,k,iter loop variable
+      integer i,j,k,lpbl !@var i,j,k loop variable
       real*8 pland,pwater,plice,psoil,poice,pocean,
      *     ztop,elhx,coriol,tgrndv,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar

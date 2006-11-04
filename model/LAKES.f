@@ -413,8 +413,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       USE PARAM
       IMPLICIT NONE
-      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
-      INTEGER :: rc
+      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 c***      Type (ESMF_HaloDirection) :: direction
@@ -1285,10 +1284,10 @@ C****
       IMPLICIT NONE
       integer i,j,J_0,J_1,jr,itm
       real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
-     *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk,newmld
-     *     ,frsat,hlk2
+     *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk
+     *     ,frsat
 #ifdef TRACERS_WATER
-     *     ,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm),tottr(ntm)
+     *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm),tottr(ntm)
 #endif
 C****Work array for regional diagnostic accumulation
       REAL*8 :: AREG_SUM(size(AREG,1),2)
@@ -1938,8 +1937,6 @@ C****
       USE LAKES_COM, only : gml,mwl,flake
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKE
-
-      REAL*8 AREA
       INTEGER :: I,J
       INTEGER :: FROM,J_0,J_1,J_0S,J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE

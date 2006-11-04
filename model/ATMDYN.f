@@ -9,7 +9,7 @@
      &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
      &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
-     &     ,getTotalEnergy,CALC_VERT_AMP
+     &     ,getTotalEnergy
      &     ,addEnergyAsDiffuseHeat, addEnergyAsLocalHeat
 #ifdef TRACERS_ON
      &     ,trdynam
@@ -1750,54 +1750,6 @@ C****
       enddo
       return
       end subroutine calc_pijl
-
-      SUBROUTINE CALC_VERT_AMP(P0,LMAX,PL,AM,PDSIG,PEDN,PMID)
-!@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays
-!@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : bygrav
-      USE MODEL_COM, only : lm,ls1,dsig,sig,sige,ptop,psfmpt,lm_req
-     *     ,req_fac
-      IMPLICIT NONE
-
-      REAL*8, INTENT(IN) :: P0 !@var P0 surface pressure (-PTOP) (mb)
-      INTEGER, INTENT(IN) :: LMAX !@var LMAX max level for calculation 
-!@var AM mass at each level (kg/m2) 
-!@var PDSIG pressure interval at each level (mb) 
-!@var PMID mid-point pressure (mb) 
-      REAL*8, INTENT(OUT), DIMENSION(LMAX) :: AM,PDSIG,PMID,PL
-!@var PEDN edge pressure (top of box) (mb) 
-      REAL*8, INTENT(OUT), DIMENSION(LMAX+1) :: PEDN
-      INTEGER :: L  !@var L  loop variables
-
-C**** Calculate air mass, layer pressures
-C**** Note that only layers LS1 and below vary as a function of surface
-C**** pressure. 
-C**** Note Air mass is calculated in (kg/m^2)
-
-      DO L=1,LS1-1
-        PL(L)   = P0
-        PDSIG(L)= P0*DSIG(L)
-        PMID(L) = SIG(L)*P0+PTOP
-        PEDN(L) = SIGE(L)*P0+PTOP
-        AM  (L) = PDSIG(L)*1d2*BYGRAV
-      END DO
-      DO L=LS1,MIN(LMAX,LM)
-        PL(L)   = PSFMPT
-        PDSIG(L)= PSFMPT*DSIG(L)
-        PMID(L) = SIG(L)*PSFMPT+PTOP
-        PEDN(L) = SIGE(L)*PSFMPT+PTOP
-        AM  (L) = PDSIG(L)*1d2*BYGRAV
-      END DO
-      IF (LMAX.ge.LM) PEDN(LM+1) = SIGE(LM+1)*PSFMPT+PTOP
-C**** Rad. equ. layers if necessary (only PEDN)
-      IF (LMAX.eq.LM+LM_REQ) THEN
-        PEDN(LM+2:LM+LM_REQ) = REQ_FAC(1:LM_REQ-1)*PEDN(LM+1)
-        PEDN(LM+LM_REQ+1)=1d-5
-      END IF
-
-      RETURN
-      END SUBROUTINE CALC_VERT_AMP
 
       SUBROUTINE CALC_AMPK(LMAX)
 !@sum  CALC_AMPK calculate air mass and pressure arrays

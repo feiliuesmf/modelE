@@ -126,7 +126,6 @@ C**** Some local constants
      *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst,plm
      *     ,ij_p1000,ij_p925,ij_p700,ij_p600,ij_p500
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn,am
-      USE ATMDYN, only : calc_vert_amp
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE,
@@ -160,12 +159,12 @@ C**** Some local constants
      &        THGM_part
       REAL*8, DIMENSION(LM):: THGM,PI0,AMI,DPI,PLEI,PMI
       REAL*8 ::
-     &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
+     &     BBYGV,BYSDSG,DLNP,DLNP12,DLNP23,DBYSD,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,
-     *     ESEPS,FPHI,GAMC,GAMM,GAMX,GMEANL,P1,P4,P4I,
-     &     PDN,PE,PEQ,PEQM1,PEQM2,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
-     *     PKE,PL,PRT,PU4I,PUP,PUV4I,PV4I,PVTHP,
-     *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THMN,TPIL,
+     *     ESEPS,FPHI,GAMC,GAMM,GAMX,GMEANL,P4,P4I,
+     &     PDN,PE,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
+     *     PKE,PL,PRT,PU4I,PUV4I,PV4I,PVTHP,
+     *     ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THMN,TPIL,
      *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI,TIJK,QIJK
       LOGICAL qpress,qabove
       INTEGER nT,nQ,nRH
@@ -980,7 +979,6 @@ C****
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
       USE DYNAMICS, only : phi,dut,dvt,plij,sd,pmid,pedn
-      USE ATMDYN, only : calc_vert_amp
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP, only : HALO_UPDATEj
@@ -1009,7 +1007,7 @@ c      REAL*8 :: ADIURNSUM,HDIURNSUM
      &     LUP,MBEGIN,N,NM,KM
 
       REAL*8 ::
-     &     BYDP,BYFIM,DP,DPDN,DPDX,DPDY,
+     &     BYDP,BYFIM,DP,DPDN,
      &     DPE,DPI,DPK,DPSQI,DPUP,DPUV,DUTI,DUTK,DVTI,DVTK,FIMI,
      &     PAI,PAK,PDN,PHIPI,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
      &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
@@ -1877,7 +1875,6 @@ C****
       USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
       USE DIAG_LOC, only : ldex
       USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM
-      USE ATMDYN, only : calc_vert_amp
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
@@ -1890,8 +1887,8 @@ C****
      &     PMB=(/922.,700.,500.,300.,100.,10./),
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
       REAL*8, DIMENSION(LM) :: P00,AML,PDSIGL,PEDNL,PMIDL
-      REAL*8 :: PIJ50N,PL,PLE,PLM1,SLOPE
-      INTEGER I,IDACC9,JLK,K,KQ,L,LX,MNOW,N
+      REAL*8 :: PIJ50N,PL,PLM1,SLOPE
+      INTEGER I,IDACC9,K,KQ,L,MNOW,N
       INTEGER :: J_0, J_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
@@ -2625,7 +2622,6 @@ C****
       REAL*8, DIMENSION(IMH+1,4,LM) :: VAR
       REAL*8, DIMENSION(IMH+1,4,LM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      &     :: VAR_part
-      REAL*8 :: VARSUM
       REAL*8, DIMENSION(2) :: TPE
       REAL*8               :: TPE_sum
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: TPE_psum
@@ -2966,20 +2962,13 @@ c      COMMON/WORK7/FCUVA,FCUVB
 C****
 C**** THIS ROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
-      USE MODEL_COM, only : im,jm,lm,
-     &     IDACC,JEQ,LS1,ISTRAT          !! ,SKIPSE
-      USE GEOM, only : DXYV
-      USE DIAG_COM, only : energy,speca,ajk=>ajk_loc
-     &     ,aijk=>aijk_loc,ijk_u,ijk_v,ijk_dp,ned
+      USE MODEL_COM, only : im,istrat,IDACC
+      USE DIAG_COM, only : energy,speca,ned
       IMPLICIT NONE
 
-      INTEGER ::
-     &     I,IDACC5,J,KS,L,N,NM
-      REAL*8 ::
-     &     BYIADA,PU4TI,PV4TI,SEKE,SKE4I
+      INTEGER :: I,IDACC5,N,NM
 
       IF (IDACC(4).LE.0.OR.IDACC(7).LE.0) RETURN
-C      JEQ=2.+.5*(JM-1.)
       NM=1+IM/2
 C****
 C**** LOAD ENERGIES INTO TIME HISTORY ARRAY
@@ -4502,7 +4491,6 @@ C****
       INTEGER I,J,L,K,KL,ioerr,months,years,mswitch,ldate,iu_AIC
      *     ,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
       REAL*8 PLE_tmp
-      CHARACTER FILENM*100
       CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER :: J_0,J_1

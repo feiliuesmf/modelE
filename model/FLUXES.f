@@ -221,9 +221,6 @@ C**** fluxes associated with variable lake fractions
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
 
-      INTEGER :: I,J,L
-
-
       I_0H = grd_dum%I_STRT_HALO
       I_1H = grd_dum%I_STOP_HALO
       J_0H = grd_dum%J_STRT_HALO

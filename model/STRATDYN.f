@@ -215,7 +215,7 @@ C****
       USE STRAT, only : defrm,pk,pmid,ang_gwd
       USE DIAG, only : diagcd
       USE TRIDIAG_MOD, only :  TRIDIAG
-      USE ATMDYN, only: addEnergyAsLocalHeat,calc_vert_amp
+      USE ATMDYN, only: addEnergyAsLocalHeat
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
@@ -574,7 +574,7 @@ C****
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      *     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
       USE DIAG, only : diagcd
-      USE ATMDYN, only: addEnergyAsLocalHeat,calc_vert_amp
+      USE ATMDYN, only: addEnergyAsLocalHeat
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)

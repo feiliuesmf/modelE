@@ -371,7 +371,7 @@ ccc    of (MAX_NL) to force the allocation on a stack (for OpenMP) ?
       real*8 flux_in_deriv, flux_corr
       real*8 delta_tsn_impl ! shft of temperature due to implicit method
       integer n, nl_o
-      real*8 dz_he(MAX_NL+1)
+c      real*8 dz_he(MAX_NL+1)
 
 ccc!!!  check if lat_evap shoud be replaced by heat of sublimation
 

@@ -814,7 +814,7 @@ C****
 c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
 #endif
-      USE ATMDYN, only : init_ATMDYN,CALC_AMPK,calc_vert_amp
+      USE ATMDYN, only : init_ATMDYN,CALC_AMPK
       USE DVEG_COUPLER, only : init_dveg
       IMPLICIT NONE
       CHARACTER(*) :: ifile
