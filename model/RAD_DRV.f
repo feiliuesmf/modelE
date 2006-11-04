@@ -326,7 +326,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,ls1,sige,psfmpt,ptop,dtsrc,nrad
-     *     ,kradia
+     *     ,kradia,lm_req,pednl00
       USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
@@ -342,7 +342,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE RADPAR, only : rcomp1, writer, writet
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,lm_req,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
+     *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
@@ -488,14 +488,11 @@ C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
 C****
       LMR=LM+LM_REQ
+      PLB(1:LMR+1)=PEDNL00(1:LMR+1)
       DO L=1,LM
-        PLB(L)=SIGE(L)*PSFMPT+PTOP
         PLBx(L)=PLB(L)           ! needed for CH4 prod. H2O
       END DO
-      PLB(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
-      PLB(LM+2)=.5*PLB(LM+1)
-      PLB(LMR)=.2d0*PLB(LM+1)
-      PLB(LMR+1)=1d-5
+      PLBx(LM+1)=0.
       DO LR=LM+1,LMR
         PLB0(LR-LM) = PLB(LR+1)
       END DO
@@ -633,45 +630,31 @@ C**** should also work if other aerosols are not used
 c tracer 7 is dust
       ITR(n1:NTRACE) = 7
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for dust
-C**** effective radii for dust
-c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+
       SELECT CASE (ntm_dust)
       CASE (4)
+C**** effective radii for dust
         TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,
      &       2.773D0,5.545D0/)
+C**** Particle density of dust
+        TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,
+     &       2.65D0/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics. Adjust if number of dust tracers changes.
+        NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
+     &       n_silt3/)
+C**** define weighting for different clays
+        WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,1D0,1D0,1D0/)
       CASE (5)
         TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,
      &       2.773D0,5.545D0,11.090D0/)
-      END SELECT
-
-C**** Particle density of dust
-      SELECT CASE (ntm_dust)
-      CASE (4)
-        TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,
-     &       2.65D0/)
-      CASE (5)
         TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,
      &       2.65D0,2.65D0/)
-      END SELECT
-C**** Define indices to map model tracer arrays to radiation arrays
-C**** for the diagnostics. Adjust if number of dust tracers changes.
-      SELECT CASE (ntm_dust)
-      CASE (4)
-        NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
-     &       n_silt3/)
-      CASE (5)
         NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
      &       n_silt3,n_silt4/)
-      END SELECT
-C**** define weighting for different clays
-      SELECT CASE (ntm_dust)
-      CASE (4)
-        WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,1D0,1D0,1D0/)
-      CASE (5)
         WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,1D0,1D0,1D0,
      &       1D0/)
       END SELECT
-C**** If some tracers are not being used reduce NTRACE accordingly
 #else
 #ifdef TRACERS_MINERALS
 C**** add minerals optionally to radiatively active aerosol tracers
@@ -714,7 +697,6 @@ C**** define weighting for different clays
      &     0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,0.009D0,
      &     0.081D0,0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,1D0,
      &     1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0/)
-C**** If some tracers are not being used reduce NTRACE accordingly
 #endif
 #ifdef TRACERS_QUARZHEM
 C**** add quartz/hematite to radiatively active aerosol tracers
@@ -737,7 +719,6 @@ C**** for the diagnostics. Adjust if number of dust tracers changes.
       NTRIX(n1:NTRACE)=(/n_sil1quhe,n_sil2quhe,n_sil3quhe/)
 C**** define weighting
       WTTR(n1:NTRACE)=(/1.D0,1.D0,1.D0/)
-C**** If some tracers are not being used reduce NTRACE accordingly
 #endif
 #endif
 
@@ -869,7 +850,7 @@ C     OUTPUT DATA
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
       USE RADPAR, only : writer,rcompx
-      USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
+      USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
@@ -2520,7 +2501,7 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       use domain_decomp, only : grid,get,write_parallel
       implicit none
       integer, parameter:: jma=18,lma=24
-      integer m,iu,jm,lm,j,j1,j2j,j2,l,ll,ldn(lm),lup(lm)
+      integer m,iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
       real*8 PLB(lm+1),dH2O(grid%j_strt_halo:grid%j_stop_halo,lm,12)
      &     ,dglat(jm)
       real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(0:lma)
@@ -2528,7 +2509,7 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       real*4 pdn,pup,w1,w2,dh,fracl
       integer :: j_0,j_1
       character(len=300) :: out_line
-
+      print*,'qma',plb(:)
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** read headers/latitudes
@@ -3009,8 +2990,8 @@ C****
       REAL*8, INTENT(IN) :: DOBLIQ,ECCEN,DOMEGVP,DAY,VEDAY,EDPY
       REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,EQTIME
 
-      REAL*8 MA,OMEGVP,OBLIQ,PERIHE,EA,DEA,BSEMI,COSEA
-     *     ,SINEA,TAofVE,EAofVE,MAofVE,SINDD,SUNDIS,TA,SUNX,SUNY,SLNORO
+      REAL*8 MA,OMEGVP,OBLIQ,EA,DEA,BSEMI
+     *     ,TAofVE,EAofVE,MAofVE,SUNDIS,TA,SUNX,SUNY,SLNORO
      *     ,VEQLON,ROTATE,SUNLON,SUNLAT,SLMEAN
 c      REAL*8, PARAMETER :: EDAYzY=365.2425d0, VE2000=79.3125d0
 c      REAL*8, PARAMETER :: EDAYzY=365d0, VE2000=79d0  ! original parameters

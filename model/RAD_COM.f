@@ -3,7 +3,7 @@
 !@sum  RAD_COM Model radiation arrays and parameters
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
+      USE MODEL_COM, only : im,jm,lm,lm_req
       USE DOMAIN_DECOMP, only : grid
       USE RADPAR, only : S0,ITRMAX
 !@var S0 solar 'constant' needs to be saved between calls to radiation
@@ -35,8 +35,6 @@ C**** exactly the same as the default values.
 !@dbparam paleo_orb_yr is paleo year (BP) for orbital calc
       real*8 :: paleo_orb_yr = -50.  ! (i.e. 2000AD)
 
-!@var LM_REQ Extra number of radiative equilibrium layers
-      INTEGER, PARAMETER :: LM_REQ=3
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs
       INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+23)
 !@var RQT Radiative equilibrium temperatures above model top
@@ -146,11 +144,11 @@ C**** using the rad_forc_lev parameter.
 !@dbparam cloud_rad_forc = 1 for calculation of cloud radiative forcing
       INTEGER :: cloud_rad_forc = 0
 
-!     @var co2ppm Current CO2 level as seen by radiation 
+!@var co2ppm Current CO2 level as seen by radiation 
       REAL*8 :: co2ppm = 280.    ! set a resaonable default value
 
 C**** Local variables initialised in init_RAD
-!@var PLE0,QL0 global parts of local arrays (to avoid OMP-copyin)
+!@var PLB0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
 !@var SINJ,COSJ sines and cosines for zenith angle calculation
       REAL*8, ALLOCATABLE, DIMENSION(:) :: SINJ,COSJ
@@ -172,11 +170,10 @@ C**** Local variables initialised in init_RAD
 
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
-      USE MODEL_COM, ONLY : IM, JM, LM
+      USE MODEL_COM, ONLY : IM, JM, LM, LM_REQ
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
 #endif
-      USE RAD_COM, ONLY : LM_REQ
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,
      *     SRDN, CFRAC, RCLD, O3_tracer_save,rad_to_chem,rad_to_file,
      *     KLIQ, COSZ1, dH2O, ALB, SALB, SINJ, COSJ, 

@@ -461,8 +461,8 @@ C****
 !@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid,psfmpt
-     &   ,sige,ptop,bydsig,dsig,ls1
+      USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid
+     &   ,dsig,ls1
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
@@ -532,20 +532,25 @@ C**** INITIALIZE CERTAIN QUANTITIES
 C****
       call JLt_TITLEX
 
-      do l=1,lm
-        pm(l)=psfmpt*sige(l+1)+ptop
+      do l=1,lm  ! one level offset? why?
+        pm(l)=pednl00(l+1)  !psfmpt*sige(l+1)+ptop
       end do
       onespo(1:JM)  = 1.d0
       onespo(1)  = fim
       onespo(jm) = fim
       ones(:) = 1.d0
       byapo(1:JM)=bydxyp(1:JM)*onespo(1:JM)/fim
+!     do j=1,jm
+!       ap=onespo(j)*APJ(j,1)/(fim*IDACC(ia_dga)+teeny)
+!       call CALC_VERT_AMP(ap,lm,PL,AM,PDSIG,PEDN,PMID)
+!       pdsigjl(j,l)=PDSIG(l)
+!     end do
       do L=1,LS1-1
         pdsigjl(1:JM,L)=dsig(l)*onespo(1:JM)*APJ(1:JM,1)/
      *     (fim*IDACC(ia_dga)+teeny)
       end do
       do L=LS1,LM
-        pdsigjl(1:JM,L)=psfmpt*dsig(l)
+        pdsigjl(1:JM,L)=pdsigl00(l)   ! psfmpt*dsig(l)
       end do
 
       linect = 65

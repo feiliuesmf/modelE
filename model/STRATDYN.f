@@ -37,7 +37,7 @@ C**** momentum passes through model top.
 !@var DEFRM deformation field
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DEFRM
 !@var LDEF,LDEFM deformation levels
-      INTEGER LDEF,LDEFM
+      INTEGER LDEF ! ,LDEFM
 !@var LBREAK,LSHR,LD2 levels for various GW drag terms
       INTEGER :: LBREAK,LSHR,LD2 = LM   ! need default for LD2
 
@@ -50,13 +50,13 @@ C**** momentum passes through model top.
 !@dbparam ang_gwd =1 ang mom. lost by GWDRAG is added in below PTOP
       INTEGER :: ang_gwd = 1 ! default: GWDRAG does conserve AM
 
-!@var PK local P**Kapa array - should be done by DYNAMICS?
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
+!@var PK,PMID local P**Kapa, pmid arrays 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK, PMID
 !@param NM number of gravity wave drag sources
       INTEGER, PARAMETER :: NM=9
 !@var Arrays needed for GWDRAG
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EK
-      REAL*8 :: PKS(LM)
+c      REAL*8 :: PKS(LM)
 
       END MODULE
 
@@ -69,14 +69,14 @@ C**** accumulated in the routines contained herein
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : twopi,kapa
-      USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
+      USE MODEL_COM, only : im,jm,lm,do_gwdrag,pednl00,pmidl00 
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,AM_I_ROOT,
      *                          NORTH, SOUTH, PACK_DATA,
      *                          DREAD_PARALLEL,
      *                          READT_PARALLEL
       USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
-     *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn
+     *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ek, cmtn
      *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
@@ -84,7 +84,7 @@ C**** accumulated in the routines contained herein
       REAL*8 :: EK_GLOB(JM)
       INTEGER I,J,L,iu_zvar
 
-      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -122,17 +122,17 @@ C**** Calculate levels for deformation etc.
 C**** Note: these levels work for the 23 layer model, but may
 C**** need testing for other resolutions
       DO L=1,LM
-        PLEV=PSFMPT*SIG(L)+PTOP
-        PLEVE=PSFMPT*SIGE(L)+PTOP
+        PLEV =PMIDL00(L)  ! PSFMPT*SIG(L)+PTOP
+        PLEVE=PEDNL00(L) ! PSFMPT*SIGE(L)+PTOP
         IF (PLEV.GE.700) LDEF=L
         IF (PLEVE.GE.PBREAK) LBREAK=L+1
         IF (PLEVE.GE.300.) LSHR=L
-        IF (PLEV.GE.200.) LDEFM=L
+c        IF (PLEV.GE.200.) LDEFM=L
         IF (PLEV.GE.0.2d0) LD2=L
       END DO
       if (AM_I_ROOT()) then
-      WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PSFMPT
-     *     *SIG(LDEF)+PTOP,' LDEFM=',LDEFM
+      WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,
+     *       PMIDL00(LDEF)  ! ,' LDEFM=',LDEFM
       WRITE (*,*) ' LEVELS FOR WIND SHEAR GENERATION: LSHR,LD2= ',LSHR
      *     ,LD2
       WRITE (*,*) ' LBREAK=',LBREAK
@@ -161,9 +161,9 @@ C****
         ZWT(I,J+1)=ZWT(I,J)
       END DO
       END DO
-      DO L=LS1,LM
-        PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
-      END DO
+c      DO L=LS1,LM
+c        PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
+c      END DO
 
 C**** define wave number array EK for GWDRAG
 C**** EKX is the mean wave number for wave lengths between a 1x1 degree
@@ -204,8 +204,7 @@ C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
-      USE MODEL_COM, only : im,jm,lm,psfmpt,sig,ptop,ls1
-     *     ,sige,mrch
+      USE MODEL_COM, only : im,jm,lm,ptop,ls1,mrch
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
@@ -213,10 +212,10 @@ C****
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif,JL_dTdtsdrg
-      USE STRAT, only : defrm,pk,ang_gwd
+      USE STRAT, only : defrm,pk,pmid,ang_gwd
       USE DIAG, only : diagcd
       USE TRIDIAG_MOD, only :  TRIDIAG
-      USE ATMDYN, only: addEnergyAsLocalHeat
+      USE ATMDYN, only: addEnergyAsLocalHeat,calc_vert_amp
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
@@ -225,9 +224,8 @@ C****
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                             RHO, DUT, DVT, DKE
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
-      REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,DTEMP,DQ
-      REAL*8, DIMENSION(LDIFM+1) :: TE,PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
-     *     ,LMEDGE,LHEDGE
+      REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,P00,AML
+      REAL*8, DIMENSION(LDIFM+1) :: PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
       REAL*8, PARAMETER :: MU=1.
       REAL*8, INTENT(INOUT),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
@@ -239,9 +237,9 @@ C****
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS,ANGM,DPT,DUANG
-      INTEGER I,J,K,L,IP1,NDT,N,LMAX
+      INTEGER I,J,L,IP1,NDT,N,LMAX
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -269,21 +267,14 @@ C**** Fill in USURF,VSURF at poles (Shouldn't this be done already?)
          END DO
       ENDIF
 C**** Calculate RHO(I,J,L)
-      DO L=1,LS1-1
+      DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
-        RHO(I,J,L)=   BYRGAS*(P(I,J)*SIG(L)+PTOP)/(T(I,J,L)*PK(L,I,J))
+        RHO(I,J,L)=   BYRGAS*PMID(L,I,J)/(T(I,J,L)*PK(L,I,J))
       END DO
       END DO
       END DO
 
-      DO L=LS1,LM
-      DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
-        RHO(I,J,L)=   BYRGAS*(PSFMPT*SIG(L)+PTOP)/(T(I,J,L)*PK(L,I,J))
-      END DO
-      END DO
-      END DO
 C**** Fill in T,RHO at poles (again shouldn't this be done already?)
       IF (HAVE_SOUTH_POLE) THEN
          DO L=1,LM
@@ -321,6 +312,9 @@ C****
 C**** Surface values are used for F(0)
 C**** Note area weighting for four point means
       PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
+
+      CALL CALC_VERT_AMP(PIJ,LM,P00,AML,AIRM,PLE,PL(1))
+
       PL(0)=(PIJ+PTOP)
       UL(0)=(USURF(I  ,J-1) + USURF(IP1,J-1))*RAPVN(J-1) +
      *      (USURF(I  ,J)   + USURF(IP1,J  ))*RAPVS(J)
@@ -331,25 +325,26 @@ C**** Note area weighting for four point means
       TL(0)=TPHYS*PL(0)**KAPA
       RHOL(0)=PL(0)/(RGAS*TPHYS)
       DO L=1,MIN(LDIFM+1,LM)
-        IF (L.GE.LS1) PIJ=PSFMPT
-        PL(L)=PIJ*SIG(L)+PTOP
+c        IF (L.GE.LS1) PIJ=PSFMPT
+c        PL(L)=PIJ*SIG(L)+PTOP
         UL(L)=U(I,J,L)
         VL(L)=V(I,J,L)
         RHOL(L)=(RHO(I,J-1,L)+RHO(IP1,J-1,L))*RAPVN(J-1)+
      *          (RHO(I,J  ,L)+RHO(IP1,J  ,L))*RAPVS(J)
-        PLE(L)=PIJ*SIGE(L)+PTOP
+c        PLE(L)=PIJ*SIGE(L)+PTOP
       END DO
 C**** Edge values at LM+1 don't matter since diffusiv flx=F(L)-F(L-1)=0
-      IF (L.EQ.LM+1) THEN
-         PL(L)   =PIJ*SIGE(L)+PTOP
+      IF (L.EQ.LM+1) THEN   ! this is terribly coded!
+c         PL(L)   =PIJ*SIGE(L)+PTOP
+         PL(L) = PLE(L)   ! can this be correct?
          UL(L)   =UL(L-1)
          VL(L)   =VL(L-1)
          RHOL(L) =RHOL(L-1)
-         PLE(L)  =PIJ*SIGE(L)+PTOP
+c         PLE(L)  =PIJ*SIGE(L)+PTOP
        ENDIF
-      DO L=1,LDIFM
-        AIRM(L)  =PLE(L)-PLE(L+1)
-      END DO
+c      DO L=1,LDIFM
+c        AIRM(L)  =PLE(L)-PLE(L+1)
+c      END DO
       DO L=1,LDIFM+1
         KMEDGE(L)=VKEDDY(I,J,L)
         KHEDGE(L)=VKEDDY(I,J,L)
@@ -470,7 +465,7 @@ C****
       INTEGER I,J,L,IP1
       REAL*8 US1,VS1,DELV2
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -563,23 +558,23 @@ C**** 3-8 Convective waves
 C**** 9   Deformation wave
 C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
-      USE MODEL_COM, only : im,jm,lm,byim,nidyn,sig,sige
-     *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
+      USE MODEL_COM, only : im,jm,lm,byim,nidyn
+     *     ,ls1,mrch,zatmo
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
       USE CLOUDS_COM, only : airx,lmc
-      USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
-     *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
+      USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef
+     *     ,lbreak,ld2,lshr,pk,pmid, ek,qgwmtn, qgwshr, qgwdef, qgwcnv
      *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
-      USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
+      USE GEOM, only : dxyv,bydxyv,fcor,imaxj,rapvn,rapvs
      *     ,kmaxj,rapj,idij,idjj
       USE DIAG_COM, only : aij=>aij_loc
      *     ,ajl=>ajl_loc,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      *     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
       USE DIAG, only : diagcd
-      USE ATMDYN, only: addEnergyAsLocalHeat
+      USE ATMDYN, only: addEnergyAsLocalHeat,calc_vert_amp
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
@@ -599,23 +594,24 @@ C****
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     *                                    DUT3,DVT3,DKE,TLS,THLS,BVS
+     *     DUT3,DVT3,DKE,TLS,THLS,BVS
+      REAL*8, DIMENSION(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *     PDSIG
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: DUJL
       REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,UL,VL,DL,DUT,DVT,
-     *     DQT,DTT,RDI,DFTL,DFM,DFR,WMC,UEDGE,VEDGE,BYFACS,CN
+     *     DFTL,DFM,DFR,WMC,UEDGE,VEDGE,BYFACS,CN,P00,AML
       REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM)
-     *     ,VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM)
       REAL*8 :: DTHR,BYDT1
       INTEGER LD(NM)
-      INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,LMAX
-      REAL*8 FCORU,PIJ,SP,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
+      INTEGER I,J,L,N,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,LMAX
+      REAL*8 FCORU,PIJ,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
      *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,MDN
      *     ,MUP,MUR,BVFSQ,ANGM,DPT,DUANG
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -632,25 +628,19 @@ C****
       DTHR=2./NIdyn  ! = dt_dyn_leapfrog/dt_source=1/(#calls/phys.call)
       BYDT1 = 1./DT1
 
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
-      DO L=1,LM
-        IF (L.GE.LS1) THEN
-C**** P**KAPA IN THE STRATOSPHERE
-          DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
-            PK(L,I,J)=PKS(L)
+!$OMP PARALLEL DO PRIVATE(I,J,L,P00,AML,DP,PLE,PL)
+      DO J=J_0,J_1
+        DO I=1,IMAXJ(J)
+          CALL CALC_VERT_AMP(P(I,J),LM,P00,AML,DP,PLE,PL)
+          DO L=1,LM
+            PK(L,I,J)=PL(L)**KAPA
+            PDSIG(L,I,J)=DP(L)
+            PMID(L,I,J)=PL(L)
           END DO
-          END DO
-        ELSE
-C**** P**KAPA IN THE TROPOSPHERE
-          DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
-            PK(L,I,J)=(P(I,J)*SIG(L)+PTOP)**KAPA
-          END DO
-          END DO
-        END IF
+        END DO 
       END DO
-!$OMP  END PARALLEL DO
+!$OMP END PARALLEL DO
+
 C****
 C**** FILL IN QUANTITIES AT POLES
 C****
@@ -665,6 +655,8 @@ C****
             T(I,1,L)=T(1,1,L)
             SZ(I,1,L)=SZ(1,1,L)
             PK(L,I,1)=PK(L,1,1)
+            PDSIG(L,I,1)=PDSIG(L,1,1)
+            PMID(L,I,1)=PMID(L,1,1)
          END DO
          END DO
       ENDIF
@@ -679,6 +671,8 @@ C****
             T(I,JM,L)=T(1,JM,L)
             SZ(I,JM,L)=SZ(1,JM,L)
             PK(L,I,JM)=PK(L,1,JM)
+            PDSIG(L,I,JM)=PDSIG(L,1,JM)
+            PMID(L,I,JM)=PMID(L,1,JM)
          END DO
          END DO
       ENDIF
@@ -687,13 +681,14 @@ C****
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
       CALL HALO_UPDATE(GRID, P     , from=SOUTH)
+      CALL HALO_UPDATE(GRID, PDSIG , from=SOUTH)
       CALL HALO_UPDATE(GRID, AIRX  , from=SOUTH)
       CALL HALO_UPDATE_COLUMN(GRID, LMC   , from=SOUTH)
 
 C****
 C**** DEFORMATION
 C****
-      IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
+      IF(MRCH.EQ.0)  CALL DEFORM (PDSIG,U,V)
 !$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
         DUT3(:,:,L)=0. ; DVT3(:,:,L)=0. ; DUJL(:,L)=0.; DKE(:,:,L) = 0.
@@ -723,10 +718,10 @@ C****
 !$OMP*  CN,CU,DL,DP,DPT,DUT,DVT,DU,DV,DW,DFM,DFR,DFT,DFMAX,DFTL,DWT,
 !$OMP*  DUTN,DUANG,DX,DLIMIT,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,
 !$OMP*  FLUXVD,I,IP1,J,L,LD,LD1,LMC0,LMC1,LN,LDRAG,LTOP,LMAX, MU,MUB,
-!$OMP*  MDN,MUP,MUR,N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,SP,TL,THL,TEDGE,
+!$OMP*  MDN,MUP,MUR,N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,TL,THL,TEDGE,
 !$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, W0,WSRC,WCHECK,
 !$OMP*  WMCE,WMC, XDIFF, YDN,YUP, ZVAR,WTX,WT,AIRXS,CLDDEP,CLDHT,FPLUME,
-!$OMP*  UIL,VIL, TLIL,THIL,BVIL)
+!$OMP*  UIL,VIL, TLIL,THIL,BVIL,P00,AML)
       DO J=J_0STG,J_1STG
 C**** parallel reductions
          UIL(:,:)=U(:,J,:)
@@ -743,17 +738,19 @@ C****
 C**** CALCULATE VERTICAL ARRAYS
 C****
       PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
-      SP=PIJ
+c      SP=PIJ
+      CALL CALC_VERT_AMP(PIJ,LM,P00,AML,DP,PLE,PL)
+
       DO L=1,LM
-      IF (L.GE.LS1) PIJ=PSFMPT
+c      IF (L.GE.LS1) PIJ=PSFMPT
 c      TL(L)=.25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
 c     *  PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
 c      THL(L)=.25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
       TL(L)=TLIL(I,L)
       THL(L)=THIL(I,L)
-      PLE(L)=PIJ*SIGE(L)+PTOP
-      PL(L)=PIJ*SIG(L)+PTOP
-      DP(L)=PIJ*DSIG(L)
+c      PLE(L)=PIJ*SIGE(L)+PTOP
+c      PL(L)=PIJ*SIG(L)+PTOP
+c      DP(L)=PIJ*DSIG(L)
       RHO(L)=PL(L)/(RGAS*TL(L))
 c      BVFSQ=.5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))/
 c     *  (DP(L)*THL(L))*GRAV*GRAV*RHO(L)
@@ -770,8 +767,8 @@ CRAD  RDI(L)=960.*960./(TL(L)*TL(L))*EXP(-960./TL(L))
       UL(L)=UIL(I,L)   ! U(I,J,L)
       VL(L)=VIL(I,L)   ! V(I,J,L)
       END DO
-      PLE(LM+1)=PIJ*SIGE(LM+1)+PTOP
-      PIJ=SP
+c      PLE(LM+1)=PIJ*SIGE(LM+1)+PTOP
+c      PIJ=SP
 C****
 C**** INITIALIZE THE MOMENTUM FLUX FOR VARIOUS WAVES
 C****
@@ -783,18 +780,18 @@ C****
 C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
       IF (QGWMTN.eq.1) THEN
         LD(1)=LBREAK
-        U0=(UL(1)*DSIG(1)+UL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
-        V0=(VL(1)*DSIG(1)+VL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
+        U0=(UL(1)*DP(1)+UL(2)*DP(2))/(DP(1)+DP(2))
+        V0=(VL(1)*DP(1)+VL(2)*DP(2))/(DP(1)+DP(2))
         W0=SQRT(U0*U0+V0*V0)
         UR(1)=U0/(W0+ ERR)
         VR(1)=V0/(W0+ ERR)
-        BV0=(BVF(1)*DSIG(1)+BVF(2)*DSIG(2))/(SIGE(1)-SIGE(3))
+        BV0=(BVF(1)*DP(1)+BVF(2)*DP(2))/(DP(1)+DP(2))
         ZVAR=ABS(UR(1))*ZVARX(I,J)+ABS(VR(1))*ZVARY(I,J)
         IF(ZVAR.LT.XCDNST(1)*XCDNST(1)) ZVAR=0.
 C.... if Froude number (U0/BV0*ZSD) > 1
 C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
         IF (ZVAR.GT.(XFROUD*W0/BV0)**2) ZVAR=(XFROUD*W0/BV0)**2
-        P0=(SIG(1)*DSIG(1)+SIG(2)*DSIG(2))/(SIGE(1)-SIGE(3))*PIJ+PTOP
+        P0=(PL(1)*DP(1)+PL(2)*DP(2))/(DP(1)+DP(2)) 
         WT(1)=ZWT(I,J)
         MU(1)=-CMTN*EK(1,J)/(H0*ROTK)*P0*BV0*W0*ZVAR
         IF(MU(1)*(UL(LBREAK)*UR(1)+VL(LBREAK)*VR(1)).GE.0.) MU(1)=0.
@@ -838,8 +835,8 @@ C**** NOTE:  NM LE 2, NM EQ 4, NM GE 8  ARE ALLOWED FOR MC DRAG
       IF (QGWCNV.eq.1) THEN
         VSRC=0.
         AIRX4=AIRX(I,J-1)+AIRX(IP1,J-1)+AIRX(I,J)+AIRX(IP1,J)
-        AIRXS= ((AIRX(I,J-1)+AIRX(IP1,J-1))*RAVPN(J-1)
-     *       +  (AIRX(I,J)+AIRX(IP1,J))*RAVPS(J))
+        AIRXS= ((AIRX(I,J-1)+AIRX(IP1,J-1))*RAPVN(J-1)
+     *       +  (AIRX(I,J  )+AIRX(IP1,J  ))*RAPVS(J))
         IF (AIRX4.LE.0.) GO TO 200
         LMC0=.5+(LMC(1,I,J-1)*AIRX(I,J-1)+LMC(1,IP1,J-1)*AIRX(IP1,J-1)+
      *       LMC(1,I,J)*AIRX(I,J)+LMC(1,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
@@ -849,18 +846,18 @@ C**** Note: LMC1 was defined in CB245M31 as LMAX+1
 C**** Do nothing for shallow convection (below 800 mb)
         IF (PLE(LMC1-1).gt.800.) GO TO 200
         NMX=4
-CCC     CLDDEP=PIJ*(SIGE(LMC0)-SIGE(LMC1))
-CCC     FPLUME=AIRXS/(DXYV(J)*CLDDEP)
-CCC     CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PIJ*SIGE(LMC1)+PTOP))
-        IF(LMC1.LT.LS1)  THEN
-           CLDDEP=PIJ*(SIGE(LMC0)-SIGE(LMC1))
-           FPLUME=AIRXS/(DXYV(J)*CLDDEP)
-           CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PIJ*SIGE(LMC1)+PTOP))
-         ELSE
-           CLDDEP=PIJ*SIGE(LMC0) - PSFMPT*SIGE(LMC1)
-           FPLUME=AIRXS/(DXYV(J)*CLDDEP)
-           CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PSFMPT*SIGE(LMC1)+PTOP))
-        END IF
+        CLDDEP=PLE(LMC0)-PLE(LMC1)
+        FPLUME=AIRXS/(DXYV(J)*CLDDEP)
+        CLDHT=H0*LOG(PLE(LMC0)/PLE(LMC1))
+c        IF(LMC1.LT.LS1)  THEN
+c           CLDDEP=PIJ*(SIGE(LMC0)-SIGE(LMC1))
+c           FPLUME=AIRXS/(DXYV(J)*CLDDEP)
+c           CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PIJ*SIGE(LMC1)+PTOP))
+c         ELSE
+c           CLDDEP=PIJ*SIGE(LMC0) - PSFMPT*SIGE(LMC1)
+c           FPLUME=AIRXS/(DXYV(J)*CLDDEP)
+c           CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PSFMPT*SIGE(LMC1)+PTOP))
+c        END IF
         WTX=FPLUME
         IF (WTX.GT.1. OR. WTX.LT.0.) THEN
           PRINT *, 'WARNING IN GWDRAG, WTX INCORRECT',WTX,FPLUME,CLDDEP
@@ -1199,7 +1196,7 @@ C****
 C****
       END SUBROUTINE GWDRAG
 
-      SUBROUTINE DEFORM (P,U,V)
+      SUBROUTINE DEFORM (PDSIG,U,V)
 !@sum  DEFORM calculate defomation terms
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
@@ -1209,25 +1206,25 @@ C**** For spherical coordinates, we are treating DEFRM1 like DIV
 C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
-      USE MODEL_COM, only : im,jm,lm,psfmpt,ptop,sig,dsig
+      USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE DYNAMICS, only : pu,pv
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
-      USE STRAT, only : ldef,ldefm,defrm
+      USE STRAT, only : ldef,defrm
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U,V
+     *     DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U,V
       REAL*8, INTENT(INOUT),
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
+     *     DIMENSION(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PDSIG
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *                                      DEFRM1,DEFRM2,DEF1A,DEF2A
-      CHARACTER*80 TITLE
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     *     DEFRM1,DEFRM2  ! ,DEF1A,DEF2A
+!      CHARACTER*80 TITLE
       INTEGER I,J,L,IP1,IM1
       REAL*8 UDXN
 
-      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -1318,13 +1315,14 @@ C**** Convert to UV-grid
       DUMS1(I)=DUMN1(I)
       DUMS2(I)=DUMN2(I)
   110 CONTINUE
-      CALL HALO_UPDATE(GRID, P,FROM=SOUTH)
+      CALL HALO_UPDATE(GRID, PDSIG, FROM=SOUTH)
 
       DO 120 J=J_0STG,J_1STG
       I=IM
       DO 120 IP1=1,IM
       DEFRM1(I,J)=DEFRM1(I,J)/
-     *   (DXYV(J)*DSIG(L)*(P(I,J)+P(IP1,J)+P(I,J-1)+P(IP1,J-1)))
+     *       (DXYV(J)*(PDSIG(L,I,J)+PDSIG(L,IP1,J)+PDSIG(L,I,J-1)
+     *       +PDSIG(L,IP1,J-1)))
       DEFRM2(I,J)=.25*DEFRM2(I,J)*BYDXYV(J)
       DEFRM(I,J)=SQRT(DEFRM1(I,J)**2+DEFRM2(I,J)**2)
   120 I=IP1
@@ -1440,6 +1438,7 @@ C****
 
       ALLOCATE(    DEFRM(im,J_0H:J_1H),
      *                PK(lm,im,J_0H:J_1H),
+     *              PMID(lm,im,J_0H:J_1H),
      *                EK(nm,J_0H:J_1H),
      *             ZVART(im,J_0H:J_1H),
      *             ZVARX(im,J_0H:J_1H),

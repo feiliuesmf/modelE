@@ -107,10 +107,10 @@ C**** Some local constants
      *     ,rvap,gamd,teeny,undef
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
-     *     ,u,v,t,p,q
+     *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
-     *     ,imaxj,ravpn,ravps,sinp,bydxyv
-      USE RAD_COM, only : rqt,lm_req
+     *     ,imaxj,sinp,bydxyv,rapvn,rapvs
+      USE RAD_COM, only : rqt
       USE DIAG_COM, only : aj=>aj_loc,areg,jreg,apj=>apj_loc
      *     ,ajl=>ajl_loc,asjl=>asjl_loc,ail,j50n,j70n,j5nuv
      *     ,j5suv,j5s,j5n,aij=>aij_loc
@@ -126,6 +126,7 @@ C**** Some local constants
      *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst,plm
      *     ,ij_p1000,ij_p925,ij_p700,ij_p600,ij_p500
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn,am
+      USE ATMDYN, only : calc_vert_amp
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE,
@@ -143,24 +144,21 @@ C**** Some local constants
      &        SPTYPE
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        THJL,THSQJL,SPI,PHIPI,TPI
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM-1) ::
-     &        SDMEAN
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
-      REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
+      REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP
       REAL*8,
      & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
      & :: AREG_part
       REAL*8 :: AREGSUM(size(areg,1),2)
-      CHARACTER*16 TITLE
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        THGM_part
-      REAL*8, DIMENSION(LM):: THGM
+      REAL*8, DIMENSION(LM):: THGM,PI0,AMI,DPI,PLEI,PMI
       REAL*8 ::
      &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,
@@ -195,8 +193,8 @@ C**** Some local constants
       IDACC(4)=IDACC(4)+1
 
       BYSDSG=1./(1.-SIGE(LM+1))
-      DLNP12=LOG(.75/.35)
-      DLNP23=LOG(.35/.1)
+      DLNP12=LOG(REQ_FAC_M(1)/REQ_FAC_M(2))  ! LOG(.75/.35)
+      DLNP23=LOG(REQ_FAC_M(2)/REQ_FAC_M(3))  ! LOG(.35/.1)
 C****
 C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
 C****
@@ -250,8 +248,8 @@ C****
       DO J=J_0STG,J_1STG
         I=IM
         DO IP1=1,IM
-          PUV(I,J)=RAVPN(J-1)*(P(I,J-1)+P(IP1,J-1))+
-     *             RAVPS(  J)*(P(I,  J)+P(IP1,  J))
+          PUV(I,J)=RAPVN(J-1)*(P(I,J-1)+P(IP1,J-1))+
+     *             RAPVS(  J)*(P(I,  J)+P(IP1,  J))
           I=IP1
         END DO
       END DO
@@ -469,7 +467,7 @@ C****
       PHIRI=0.
       DO I=1,IMAXJ(J)
         PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(1,I,J))
-     *       *LOG((SIG(LM)*PSFMPT+PTOP)/PLM(LM+1)))
+     *       *LOG(pmidl00(lm)/PLM(LM+1)))
       END DO
       ASJL(J,1,2)=ASJL(J,1,2)+PHIRI
       PHIRI=PHIRI+RGAS*.5*(TRI(1)+TRI(2))*DLNP12
@@ -505,7 +503,9 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
 
       DO J=J_0S,J_1S
         PIBYIM=PI(J)*BYIM
-        DLNP=LOG((SIG(1)*PIBYIM+PTOP)/(SIG(LS1-1)*PIBYIM+PTOP))
+        call calc_vert_amp(PIBYIM,LS1-1,PI0,AMI,DPI,PLEI,PMI)
+
+        DLNP=LOG(PMI(1)/PMI(LS1-1))
         DLNS=LOG(SPI(J,LS1-1)/SPI(J,1))
         DS=SPI(J,LS1-1)-SPI(J,1)
         EL(J)=SQRT(DLNS/DLNP)
@@ -552,7 +552,7 @@ C**** the different model tops
 
       DO J=J_0S,J_1S
         PIBYIM=PI(J)*BYIM
-        DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/(SIG(LSTR)*PSFMPT+PTOP))
+        DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/pmidl00(LSTR))
         DLNS=LOG(SPI(J,LSTR)/SPI(J,LS1-1))
         DS=SPI(J,LSTR)-SPI(J,LS1-1)
         EL(J)=SQRT(DLNS/DLNP)
@@ -846,9 +846,8 @@ C**** NORTHWARD TRANSPORT
       DO 868 J=J_0STG,J_1STG
       I=IM
       DO 862 IP1=1,IM
-      PDA(I)=.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+P(IP1,J-1))*
-     *  DXYN(J-1))
-      PSEC(I)=PDA(I)*BYDXYV(J)
+      PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
+     *        (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
   862 I=IP1
       DO 868 L=1,LM
       DUDP=0.
@@ -960,9 +959,9 @@ C****   See ijks_defs for contents
 C****
       USE CONSTANT, only : lhe,omega,sha,tf,teeny
       USE MODEL_COM, only :
-     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,jdate,
+     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,jdate,
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
-      USE GEOM, only : bydxyp,
+      USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DIAG_COM, only : ajk=>ajk_loc,aijk=>aijk_loc,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
@@ -980,7 +979,8 @@ C****
      &      JK_DUDTTEM,JK_DTDTTEM,JK_EPFLXNCP,JK_EPFLXVCP,
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
-      USE DYNAMICS, only : phi,dut,dvt,plij,sd
+      USE DYNAMICS, only : phi,dut,dvt,plij,sd,pmid,pedn
+      USE ATMDYN, only : calc_vert_amp
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP, only : HALO_UPDATEj
@@ -996,7 +996,7 @@ C****
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
       REAL*8, DIMENSION(IM) :: PSEC,X1
-      REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH
+      REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH,P00,AML,PDSIGL,PEDNL,PMIDL
 c      REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),
 c     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ADIURN_part
 c      REAL*8, DIMENSION(size(hdiurn,1),size(hdiurn,3),
@@ -1015,7 +1015,7 @@ c      REAL*8 :: ADIURNSUM,HDIURNSUM
      &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
      &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
      &     PZV4I,QK,QKI,QLH,QPI,QSATL,RHPI,SDK,
-     &     SMALL,SP,SP2,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
+     &     SMALL,SP,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
      &     UDUTI,    UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
      &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
@@ -1055,24 +1055,26 @@ C****
       DO 160 I=1,IMAXJ(J)
 C**** FIND L=L(K) AND LUP=L(K+1) S.T. P(LUP).GT.P(K+1)
       SP=PLIJ(K,I,J)
+      call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
+
       PS=SP+PTOP
       IF (PM(K+1).GE.PS) GO TO 160
       L=1
       PDN=PS
       IF (PM(K).GE.PS) GO TO 120
       PDN=PM(K)
-  110 IF (PM(K).GT.SP*SIGE(L+1)+PTOP) GO TO 120
+  110 IF (PM(K).GT.PEDNL(L+1)) GO TO 120
       L=L+1
       GO TO 110
   120 LUP=L
-  130 IF (PM(K+1).GE.SP*SIGE(LUP+1)+PTOP) GO TO 140
+  130 IF (PM(K+1).GE.PEDNL(LUP+1)) GO TO 140
       LUP=LUP+1
       GO TO 130
   140 CONTINUE
 C**** ACCUMULATE HERE
       DPI=DPI+PDN-PM(K+1)
       FIMI=FIMI+1.
-  150 PUP=SP*SIGE(L+1)+PTOP
+  150 PUP=PEDNL(L+1)
       IF (LUP.EQ.L) PUP=PM(K+1)
       DP=PDN-PUP
       TPI=TPI+(TX(I,J,L)-TF)*DP
@@ -1082,12 +1084,12 @@ C**** ACCUMULATE HERE
 CW       IF(WMPI.GT.1.E-3) WRITE(6,169) I,J,L,DP,WM(I,J,L),WMPI
 CW169 FORMAT(1X,'1616--',3I5,3E15.2)
       THPI=THPI+T(I,J,L)*DP
-      QSATL=QSAT(TX(I,J,L),QLH,SIG(L)*SP+PTOP)
+      QSATL=QSAT(TX(I,J,L),QLH,PMIDL(L))
       IF (QSATL.GT.1.) QSATL=1.
       RHPI=RHPI+Q(I,J,L)*DP/QSATL
       IF (L.EQ.LUP) GO TO 160
       L=L+1
-      PDN=SP*SIGE(L)+PTOP
+      PDN=PEDNL(L)
       GO TO 150
   160 CONTINUE
       AJK(J,K,JK_NPTSAVG1)=AJK(J,K,JK_NPTSAVG1)+FIMI
@@ -1108,11 +1110,12 @@ C****
       DO 230 J=J_0,J_1
       I=IMAXJ(J)
       DO 230 IP1=1,IMAXJ(J)
-      SP2=P(I,J)+P(IP1,J)
-      SP=.5*SP2
+      SP=.5*(P(I,J)+P(IP1,J))
+      call calc_vert_amp(SP,LS1-1,P00,AML,PDSIGL,PEDNL,PMIDL)
+
       DO 175 L=1,LS1-1
-      PLO(L)=SP*SIG(L)+PTOP
-  175 PL(L)=SP*SIGE(L)+PTOP
+      PLO(L)=PMIDL(L)
+  175 PL(L)=PEDNL(L)
       DO 180 L=1,LM-1
       DTH(L)=(T(I,J,L)+T(IP1,J,L)-T(I,J,L+1)-T(IP1,J,L+1))/
      *  (2.*(PLO(L)-PLO(L+1)))
@@ -1180,16 +1183,23 @@ c***      END DO
       DO 390 J=J_0STG,J_1STG
       I=IM
       DO 280 IP1=1,IM
-      PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
+      PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
+     *        (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
+      call calc_vert_amp(PSEC(I),LM,P00,AML,PDSIGL,PEDNL,PMIDL)
+
       DO  K=1,KM
         UDX(I,J,K)=0.
       END DO
-      DO 275 L=1,LS1-1
-      DUT(I,J,L)=DUT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
-  275 DVT(I,J,L)=DVT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
-      DO 276 L=LS1,LM
-      DUT(I,J,L)=DUT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
-  276 DVT(I,J,L)=DVT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
+      DO L=1,LM
+        DUT(I,J,L)=DUT(I,J,L)/(PDSIGL(L)*DXYV(J))
+        DVT(I,J,L)=DVT(I,J,L)/(PDSIGL(L)*DXYV(J))
+      END DO
+c      DO 275 L=1,LS1-1
+c      DUT(I,J,L)=DUT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
+c  275 DVT(I,J,L)=DVT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
+c      DO 276 L=LS1,LM
+c      DUT(I,J,L)=DUT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
+c  276 DVT(I,J,L)=DVT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
   280 I=IP1
       DO 350 K=1,KM
       DPI=0.
@@ -1215,9 +1225,10 @@ c***      END DO
       I=IM
       DO 340 IP1=1,IM
       SP=PSEC(I)
+      call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
       PS=SP+PTOP
       DO 286 L=1,LS1-1
-  286 PL(L)=SP*SIGE(L)+PTOP
+  286 PL(L)=PEDNL(L)
       IF (PM(K+1).GE.PS) THEN
         pm_ge_ps(i,j,k) = 1.
         UDX(I,J,K)=BIG
@@ -1390,7 +1401,7 @@ C**** interpolate SD to constant pressure
             SDK=0.
             SP=P(I,J)
             DO L=1,LS1-1
-              PL(L)=SP*SIGE(L)+PTOP
+              PL(L)=PEDN(L,I,J)   ! SP*SIGE(L)+PTOP
             END DO
             IF (PM(K+1).GE.SP+PTOP) GO TO 860
             L=1
@@ -1480,7 +1491,7 @@ C****
       DO 600 I=1,IMAXJ(J)
       SP=P(I,J)
       DO 569 L=1,LS1-1
-  569 PLO(L)=SP*SIG(L)+PTOP
+  569 PLO(L)=PMID(L,I,J)    ! SP*SIG(L)+PTOP
       IF (PM(K).GE.SP+PTOP) GO TO 600
       L=1
       IF (PM(K).GE.PLO(1)) GO TO 580
@@ -1540,7 +1551,7 @@ C****
       DO 626 I=1,IMAXJ(J)
       SP=P(I,J)
       DO 611 L=1,LS1-1
-  611 PL(L)=SP*SIGE(L)+PTOP
+  611 PL(L)=PEDN(L,I,J)    ! SP*SIGE(L)+PTOP
       PS=SP+PTOP
       IF (PM(K+1).GE.PS) GO TO 626
       L=1
@@ -1644,7 +1655,7 @@ C**** MERIDIONAL AVERAGING
       FIMI=FIMI+1.
   700 I=IP1
       BYFIM=1./(FIMI+teeny)
-         WUJK(J,K)=.25*(WU4I-W4I*UKI*BYFIM)*BYFIM/DXYV(J)
+         WUJK(J,K)=.25*(WU4I-W4I*UKI*BYFIM)*BYFIM*BYDXYV(J)
       AJK(J,K-1,JK_TOTVTKE)=AJK(J,K-1,JK_TOTVTKE)+WKE4I
       AJK(J,K-1,JK_VTAMEDDY)=AJK(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
   710 AJK(J,K-1,JK_TOTVTAM)=AJK(J,K-1,JK_TOTVTAM)+WU4I   !+W4I*UEARTH
@@ -1774,7 +1785,8 @@ C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
       DO J=J_0STG,J_1STG
         I=IM
         DO IP1=1,IM
-          PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
+          PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
+     *            (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
           I=IP1
         ENDDO
         DO K=1,KM
@@ -1784,9 +1796,10 @@ C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
             DO I=1,IM
               DPUV=0.
               SP=PSEC(I)
+              call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
               DO 2025 L=1,LS1-1
-              PLO(L)=SP*SIG(L)+PTOP                       ! PL or PLO ??
- 2025         PL(L)=SP*SIGE(L)+PTOP                       ! PLE or PL ??
+              PLO(L)=PMIDL(L)   !SP*SIG(L)+PTOP                       ! PL or PLO ??
+ 2025         PL(L)=PEDNL(L)    !SP*SIGE(L)+PTOP                       ! PLE or PL ??
               PS=SP+PTOP
               IF (PM(K+1).GE.PLO(1)) GO TO 2090           ! really ?? not PL?
               L=1
@@ -1859,11 +1872,12 @@ C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
 C****
       USE CONSTANT, only : grav,bygrav
       USE MODEL_COM, only : im,imh,jm,lm,
-     &     IDACC,JEQ,LS1,MDIAG,P,PTOP,PSFMPT,SIG,SIGE,U,V
+     &     IDACC,JEQ,LS1,MDIAG,P,U,V
       USE DYNAMICS, only : PHI
       USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
       USE DIAG_LOC, only : ldex
       USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM
+      USE ATMDYN, only : calc_vert_amp
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
@@ -1875,6 +1889,7 @@ C****
       REAL*8, DIMENSION(KM), PARAMETER ::
      &     PMB=(/922.,700.,500.,300.,100.,10./),
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
+      REAL*8, DIMENSION(LM) :: P00,AML,PDSIGL,PEDNL,PMIDL
       REAL*8 :: PIJ50N,PL,PLE,PLM1,SLOPE
       INTEGER I,IDACC9,JLK,K,KQ,L,LX,MNOW,N
       INTEGER :: J_0, J_1
@@ -1910,13 +1925,14 @@ C****
       IF(J_0 <= J50N .and. J50N <= J_1) THEN
         DO 150 I=1,IM
           PIJ50N=P(I,J50N)
+          call calc_vert_amp(PIJ50N,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
           K=1
           L=1
-          PL=SIG(1)*P(I,J50N)+PTOP
+          PL=PMIDL(1)    ! SIG(1)*P(I,J50N)+PTOP
  130      L=L+1
-          IF(L.GE.LS1) PIJ50N=PSFMPT
+c          IF(L.GE.LS1) PIJ50N=PSFMPT
           PLM1=PL
-          PL=SIG(L)*PIJ50N+PTOP
+          PL=PMIDL(L)    ! SIG(L)*PIJ50N+PTOP
           IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
 C**** ASSUME THAT PHI IS LINEAR IN LOG P
           SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
@@ -4459,11 +4475,10 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sday,kapa,undef
-      USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,ptop
-     *     ,pmtop,psfmpt,nfiltr,jhour,jdate,jmon,amon,jyear
-     *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
-     *     ,xlabel,iowrite_single,iyear1,nday,dtsrc,dt,nmonav
-     *     ,ItimeE,lrunid,focean
+      USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,pmtop,nfiltr,jhour
+     *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
+     *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
+     *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,req_fac_m,lm_req
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
@@ -4552,13 +4567,12 @@ C****          write(6,*) XLABEL
 
 C**** Initialize certain arrays used by more than one print routine
       DO L=1,LM
-        PLE(L)=SIGE(L+1)*PSFMPT+PTOP
-        PLE_DN(L)=SIGE(L)*PSFMPT+PTOP
-        PLM(L)=SIG(L)*PSFMPT+PTOP
+        PLE(L)   =pednl00(l+1)
+        PLE_DN(L)=pednl00(l)  
+        PLM(L)   =pmidl00(l)  
       END DO
-      PLM(LM+1)=.75d0*PMTOP
-      PLM(LM+2)=.35d0*PMTOP
-      PLM(LM+3)=.1d0*PMTOP
+      PLM(LM+1:LM+LM_REQ)=REQ_FAC_M(:)*PMTOP
+
       p1000k=1000.0**kapa
 
 C**** Initialise some local constants (replaces IFIRST constructions)
@@ -4570,14 +4584,14 @@ C**** From DIAGA:
       LDNA(1)=1
       LUPA(LM)=LM
 
-C**** From DIAGB
-      PM(1)=1200.
+C**** From DIAGB (PM, PMO are fixed, PL,PLO will vary)
+      PM(1)=1200.   ! ensures below surface for extrapolation
       DO L=2,LM+1
-        PL(L)=PSFMPT*SIGE(L)+PTOP
-        PM(L)=PSFMPT*SIGE(L)+PTOP
+        PL(L)=pednl00(l)
+        PM(L)=pednl00(l)
       END DO
       DO L=1,LM
-        PLO(L)=PSFMPT*SIG(L)+PTOP
+        PLO(L)=pmidl00(l)
         PMO(L)=.5*(PM(L)+PM(L+1))
       END DO
 
@@ -4586,7 +4600,7 @@ C**** From DIAG7A
       L300=LM
       L50=LM
       DO L=LM-1,1,-1
-        PLE_tmp=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
+        PLE_tmp=.25*(PEDNL00(L)+2.*PEDNL00(L+1)+PEDNL00(L+2))
         IF (PLE_tmp.LT.850.) L850=L
         IF (PLE_tmp.LT.300.) L300=L
         IF (PLE_tmp.LT.250.) JET=L
@@ -4704,8 +4718,8 @@ C**** Initialize layering for spectral diagnostics
 C**** add in epsilon=1d-5 to avoid roundoff mistakes
       KL=1
       DO L=1,LM
-        IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.PSPEC(KL) .and.
-     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PSPEC(KL)) THEN
+        IF (PEDNL00(L+1)+1d-5.lt.PSPEC(KL) .and.
+     *      PEDNL00(L)  +1d-5.gt.PSPEC(KL)) THEN
           IF (KL.eq.2) LSTR = L  ! approx. 10mb height
           KL=KL+1
         END IF

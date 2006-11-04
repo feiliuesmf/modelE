@@ -794,14 +794,14 @@ ccc???
 !@+   Corresponds to averaged height of the middle of first model layer.
 
       USE CONSTANT, only : rgas,grav
-      USE MODEL_COM, only : sige,psf,psfmpt
+      USE MODEL_COM, only : pednl00,psf
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: ZGS
       REAL*8, INTENT(OUT) :: ZTOP
       real*8, parameter :: theta=269.0727251d0
 
-      ztop=zgs+0.5d0*(1.-sige(2))*psfmpt*rgas*theta/(grav*psf)
+      ztop=zgs+0.5d0*(pednl00(1)-pednl00(2))*rgas*theta/(grav*psf)
 
       return
       end subroutine getztop

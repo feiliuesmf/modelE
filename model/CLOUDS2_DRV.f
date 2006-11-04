@@ -1657,7 +1657,7 @@ C     WRITE(195) ITIME,SAVWCU,SAVWC1,SAVEN1,SAVEN2,FOCEAN
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
-      USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
+      USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
       USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
@@ -1695,7 +1695,7 @@ C     WRITE(195) ITIME,SAVWCU,SAVWC1,SAVEN1,SAVEN2,FOCEAN
 C**** SEARCH FOR THE 50 MB LEVEL
       LP50=LM
       DO L=LM-1,1,-1
-        PLE=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
+        PLE=.25*(PEDNL00(L)+2.*PEDNL00(L+1)+PEDNL00(L+2))
         IF (PLE.LT.50.) LP50=L
       END DO
       if (AM_I_ROOT())  write(6,*)

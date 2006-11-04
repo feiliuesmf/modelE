@@ -9,7 +9,7 @@
      &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
      &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
-     &     ,getTotalEnergy
+     &     ,getTotalEnergy,CALC_VERT_AMP
      &     ,addEnergyAsDiffuseHeat, addEnergyAsLocalHeat
 #ifdef TRACERS_ON
      &     ,trdynam
@@ -27,9 +27,8 @@
 !@auth Original development team
 !@ver  1.0
       USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
-      USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,QUVfilter,psf,ptop
-     *     ,pmtop
+      USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,NIdyn,dt,MODD5K
+     *     ,NSTEP,NDA5K,ndaa,mrch,ls1,byim,QUVfilter
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
       USE DYNAMICS, only : ptold,pu,pv,sd,phi,dut,dvt
@@ -44,7 +43,7 @@
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     PRAT, PA, PB, PC, FPEU, FPEV
+     &     PA, PB, PC, FPEU, FPEV
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     UT,VT,TT,TZ,TZT,MA,
      &     UX,VX,PIJL
@@ -394,9 +393,8 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 !@+            SPA
 !@auth Original development team
 !@ver  1.0
-      USE MODEL_COM, only : im,imh,jm,lm,ls1,psfmpt,dsig,bydsig,byim
-     &     ,zatmo,sige
-     &     ,do_polefix
+      USE MODEL_COM, only : im,imh,jm,lm,ls1,dsig,bydsig,byim
+     &     ,zatmo,sige,do_polefix
       USE GEOM
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       USE DOMAIN_DECOMP, only : grid, GET
@@ -1753,18 +1751,68 @@ C****
       return
       end subroutine calc_pijl
 
+      SUBROUTINE CALC_VERT_AMP(P0,LMAX,PL,AM,PDSIG,PEDN,PMID)
+!@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays
+!@auth Jean Lerner/Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : bygrav
+      USE MODEL_COM, only : lm,ls1,dsig,sig,sige,ptop,psfmpt,lm_req
+     *     ,req_fac
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: P0 !@var P0 surface pressure (-PTOP) (mb)
+      INTEGER, INTENT(IN) :: LMAX !@var LMAX max level for calculation 
+!@var AM mass at each level (kg/m2) 
+!@var PDSIG pressure interval at each level (mb) 
+!@var PMID mid-point pressure (mb) 
+      REAL*8, INTENT(OUT), DIMENSION(LMAX) :: AM,PDSIG,PMID,PL
+!@var PEDN edge pressure (top of box) (mb) 
+      REAL*8, INTENT(OUT), DIMENSION(LMAX+1) :: PEDN
+      INTEGER :: L  !@var L  loop variables
+
+C**** Calculate air mass, layer pressures
+C**** Note that only layers LS1 and below vary as a function of surface
+C**** pressure. 
+C**** Note Air mass is calculated in (kg/m^2)
+
+      DO L=1,LS1-1
+        PL(L)   = P0
+        PDSIG(L)= P0*DSIG(L)
+        PMID(L) = SIG(L)*P0+PTOP
+        PEDN(L) = SIGE(L)*P0+PTOP
+        AM  (L) = PDSIG(L)*1d2*BYGRAV
+      END DO
+      DO L=LS1,MIN(LMAX,LM)
+        PL(L)   = PSFMPT
+        PDSIG(L)= PSFMPT*DSIG(L)
+        PMID(L) = SIG(L)*PSFMPT+PTOP
+        PEDN(L) = SIGE(L)*PSFMPT+PTOP
+        AM  (L) = PDSIG(L)*1d2*BYGRAV
+      END DO
+      IF (LMAX.ge.LM) PEDN(LM+1) = SIGE(LM+1)*PSFMPT+PTOP
+C**** Rad. equ. layers if necessary (only PEDN)
+      IF (LMAX.eq.LM+LM_REQ) THEN
+        PEDN(LM+2:LM+LM_REQ) = REQ_FAC(1:LM_REQ-1)*PEDN(LM+1)
+        PEDN(LM+LM_REQ+1)=1d-5
+      END IF
+
+      RETURN
+      END SUBROUTINE CALC_VERT_AMP
+
       SUBROUTINE CALC_AMPK(LMAX)
-!@sum  CALC_AMPK calculate air mass and pressure functions
+!@sum  CALC_AMPK calculate air mass and pressure arrays
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : bygrav,kapa
-      USE MODEL_COM, only : im,jm,lm,ls1,p,dsig,sig,sige,ptop,psfmpt
+      USE MODEL_COM, only : im,jm,lm,ls1,p
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
       USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, SOUTH
       IMPLICIT NONE
 
       INTEGER :: I,J,L  !@var I,J,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
+      REAL*8, DIMENSION(LMAX) :: PL,AML,PDSIGL,PMIDL
+      REAL*8, DIMENSION(LMAX+1) :: PEDNL
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -1785,32 +1833,26 @@ C**** Fill in polar boxes
       IF (HAVE_NORTH_POLE) P(2:IM,JM)= P(1,JM)
       Call HALO_UPDATE(grid, P, FROM=SOUTH)
 
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
       DO J=J_0H,J_1 ! filling halo for P is faster than PDSIG
         DO I=1,IM
-          DO L=1,LS1-1
-            PLIJ(L,I,J) = P(I,J)
-            PDSIG(L,I,J) = P(I,J)*DSIG(L)
-            PMID(L,I,J) = SIG(L)*P(I,J)+PTOP
-            PK  (L,I,J) = PMID(L,I,J)**KAPA
-            PEDN(L,I,J) = SIGE(L)*P(I,J)+PTOP
-            PEK (L,I,J) = PEDN(L,I,J)**KAPA
-            AM  (L,I,J) = P(I,J)*DSIG(L)*1d2*BYGRAV
-            BYAM(L,I,J) = 1./AM(L,I,J)
+
+          CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
+
+          DO L=1,MIN(LMAX,LM)
+            PLIJ (L,I,J) = PL    (L)
+            PDSIG(L,I,J) = PDSIGL(L)
+            PMID (L,I,J) = PMIDL (L)
+            PEDN (L,I,J) = PEDNL (L)
+            AM   (L,I,J) = AML   (L)
+            PK   (L,I,J) = PMIDL (L)**KAPA
+            PEK  (L,I,J) = PEDNL (L)**KAPA
+            BYAM (L,I,J) = 1./AM(L,I,J)
           END DO
-          DO L=LS1,LMAX
-            PLIJ(L,I,J) = PSFMPT
-            PDSIG(L,I,J) = PSFMPT*DSIG(L)
-            PMID(L,I,J) = SIG(L)*PSFMPT+PTOP
-            PK  (L,I,J) = PMID(L,I,J)**KAPA
-            PEDN(L,I,J) = SIGE(L)*PSFMPT+PTOP
-            PEK (L,I,J) = PEDN(L,I,J)**KAPA
-            AM  (L,I,J) = PSFMPT*DSIG(L)*1d2*BYGRAV
-            BYAM(L,I,J) = 1./AM(L,I,J)
-          END DO
-          IF (LMAX.eq.LM) THEN
-            PEDN(LM+1,I,J) = SIGE(LM+1)*PSFMPT+PTOP
-            PEK (LM+1,I,J) = PEDN(LM+1,I,J)**KAPA
+
+          IF (LMAX.ge.LM) THEN
+            PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1) 
+            PEK (LM+1:LMAX+1,I,J) = PEDN(LM+1:LMAX+1,I,J)**KAPA
           END IF
           SQRTP(I,J) = SQRT(P(I,J))
         END DO
@@ -1969,12 +2011,12 @@ C**** to be used in the PBL, at the promary grids
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,sha
-      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,u,v,sige,bydsig,ptop,t
-     *  ,q,x_sdrag,csdragl,lsdrag,lpsdrag,ang_sdrag,itime
-     *  ,Wc_Jdrag
-      USE GEOM, only : cosv,dxyn,dxys,imaxj,kmaxj,idij,idjj,rapj
+      USE MODEL_COM, only : im,jm,lm,ls1,u,v,t,q,x_sdrag,csdragl,lsdrag
+     *     ,lpsdrag,ang_sdrag,itime,Wc_Jdrag
+      USE GEOM, only : cosv,imaxj,kmaxj,idij,idjj,rapj,dxyv,dxyn,dxys
+     *     ,rapvs,rapvn
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtsdrg
-      USE DYNAMICS, only : pk,pdsig
+      USE DYNAMICS, only : pk,pdsig,pedn
       USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, HALO_UPDATE_COLUMN
@@ -1986,7 +2028,7 @@ C**** to be used in the PBL, at the promary grids
 !@var L(P)SDRAG lowest level at which SDRAG_lin is applied (near poles)
 C**** SDRAG_const is applied above PTOP (150 mb) and below the SDRAG_lin
 C**** regime (but not above P_CSDRAG)
-      REAL*8 WL,TL,RHO,CDN,X,BYPIJU,DP,DPL(LM),du
+      REAL*8 WL,TL,RHO,CDN,X,DP,DPL(LM),du,dps
 !@var DUT,DVT change in momentum (mb m^3/s)
 !@var DKE change in kinetic energy (m^2/s^2)
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -2010,7 +2052,6 @@ c**** Extract domain decomposition info
 
       ang_mom=0. ;  sum_airm=0. ; dke=0. ; dut=0.
 C*
-      BYPIJU=1./PSFMPT
       DUT=0. ; DVT=0.
 c***  The following halo is not needed because PDSIG halo is up to date
 c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
@@ -2023,13 +2064,13 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
       if(COSV(J).LE..15) wmaxj=wmaxp
       I=IM
       DO IP1=1,IM
-        TL=T(I,J,L)*PK(L,I,J)
+        TL=T(I,J,L)*PK(L,I,J)   ! not quite correct - should be on UV grid
 C**** check T to make sure it stayed within physical bounds
         if (TL.lt.100..or.TL.gt.373.) then
           write(99,*) 'SDRAG:',itime,i,j,l,'T,U,V=',TL,U(I,J,L),V(I,J,L)
           call stop_model('Stopped in ATMDYN::SDRAG',11)
         end if
-        RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*TL)
+        RHO=PEDN(L+1,I,J)/(RGAS*TL)   ! not quite correct - should be on UV grid
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         xjud=1.
         if(Wc_JDRAG.gt.0.) xjud=(Wc_JDRAG/(Wc_JDRAG+min(WL,wmaxj)))**2
@@ -2038,12 +2079,13 @@ C**** the following is equivalent to first reducing (U,V), if necessary,
 C**** then finding the drag and applying it to the reduced winds
                     CDN=CSDRAGl(l)*xjud
         IF (cd_lin) CDN=(X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj))*xjud
-        X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*BYDSIG(L)*BYPIJU
+        DPS= (PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*RAPVN(J-1)+
+     *       (PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*RAPVS(J)
+        X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV/DPS
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
         AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
-        DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
-     *         +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+        DP=DPS*DXYV(J)
         ang_mom(i,j) = ang_mom(i,j)+U(I,J,L)*X*DP
         DUT(I,J,L)=-X*U(I,J,L)*DP
         DVT(I,J,L)=-X*V(I,J,L)*DP
@@ -2142,23 +2184,9 @@ C**** Find WMO Definition of Tropopause to Nearest L
       SUBROUTINE DISSIP
 !@sum DISSIP adds in dissipated KE as heat locally
 !@auth Gavin Schmidt
-      USE CONSTANT, only : sha
-      USE MODEL_COM, only : jm,lm,t
-      USE GEOM, only : imaxj,kmaxj,idij,idjj,rapj
+      USE MODEL_COM, only : t
       USE DYNAMICS, only : dke,pk
-      USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE
-      USE DOMAIN_DECOMP, Only : NORTH, SOUTH
       IMPLICIT NONE
-      INTEGER I,J,L,K
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
       call addEnergyAsLocalHeat(DKE, T, PK)

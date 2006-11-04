@@ -259,17 +259,12 @@ C**** 40 MAX. NORTH. TRANS. OF ANGULAR MOMENTUM BY EDDIES
 C**** 41 MAX. TOTAL NORTH. TRANS. OF ANGULAR MOMENTUM
 C**** 42 LATITUDE CORRESPONDING TO 41
 C****
-      USE CONSTANT, only :
-     &     twopi
-      USE MODEL_COM, only :
-     &     jm,lm,jeq, JHOUR,JHOUR0,
+      USE CONSTANT, only : twopi
+      USE MODEL_COM, only : jm,lm,jeq, JHOUR,JHOUR0,
      &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
-     &     Itime,ItimeI,Itime0,PTOP,SIG,XLABEL,
-     &     PSFMPT,AMONTH,nday
-      USE GEOM, only :
-     &     DLAT,DXYP,LAT_DG
-      USE DIAG_COM, only :
-     &     keyct,keynr,ned,nkeynr
+     &     Itime,ItimeI,Itime0,XLABEL,AMONTH,nday,pmidl00
+      USE GEOM, only : DLAT,DXYP,LAT_DG
+      USE DIAG_COM, only : keyct,keynr,ned,nkeynr
       USE PARAM
       IMPLICIT NONE
       PRIVATE
@@ -372,13 +367,14 @@ C      JEQ=2.+.5*(JM-1.)
       end subroutine KEYJKT
 C****
 !      ENTRY KEYJKJ (L,FLAT)
+
       subroutine KEYJKJ (L,FLAT)
       integer L
       REAL*8, DIMENSION(JM) :: FLAT
 C**** JET STREAMS
       IF (L.LT.LM) GO TO 220
       DO 216 LL=1,LM
-      IF (PSFMPT*SIG(LL)+PTOP.LT.200.) GO TO 218
+      IF (pmidl00(ll).LT.200.) GO TO 218
   216 CONTINUE
   218 LMAX=LL-1
   220 IF (L.GT.LMAX) RETURN
@@ -1665,9 +1661,9 @@ c Check the count
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf,teeny
       USE DOMAIN_DECOMP, only : GRID
       USE MODEL_COM, only :
-     &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,
+     &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,lm_req,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
-     &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR,kep
+     &     PMTOP,PSFMPT,JHOUR,kep,req_fac_d,req_fac_m
       USE GEOM, only : JRANGE_HEMI,
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
      &    ,BYDXYV,lat_dg
@@ -1732,21 +1728,18 @@ C**** INITIALIZE CERTAIN QUANTITIES
       call JKJL_TITLEX
 
       KM=LM
-      DO 30 L=1,LM
-      PKM(L)=PLM(L)**KAPA
-      PME(L)=PSFMPT*SIGE(L)+PTOP
-   30 PM(L)=PSFMPT*SIGE(L+1)+PTOP
-      BYDPS(1)=1./(.5*PMTOP)
-      BYDPS(2)=1./(.3*PMTOP)
-      BYDPS(3)=1./(.2*PMTOP)
-      BYPKS(1)=1./(.75*PMTOP)**KAPA
-      BYPKS(2)=1./(.35*PMTOP)**KAPA
-      BYPKS(3)=1./(.1*PMTOP)**KAPA
+      DO L=1,LM
+        PKM(L)=PLM(L)**KAPA
+        PME(L)=PLE_DN(L)
+        PM(L)=PLE(L)
+      END DO
+      BYDPS(1:LM_REQ)=1./(REQ_FAC_D(:)*PMTOP)
+      BYPKS(1:LM_REQ)=1./(REQ_FAC_M(:)*PMTOP)**KAPA
+
       ONES=1.
       DO 40 J=1,JM
       DXYPPO(J)=DXYP(J)
       ONESPO(J)=1.
-c      BYDXYP(J)=1./DXYP(J)
       BYDAPO(J)=BYDXYP(J)
       BYDASQR(J)=BYDXYP(J)*BYDXYP(J)
    40 CONTINUE
@@ -5743,11 +5736,8 @@ C**** Note that since many IJK diags are weighted w.r.t pressure, all
 C**** diagnostics must be divided by the accumulated pressure
 C**** All titles/names etc. implicitly assume that this will be done.
 C**** IJL diags are done separately
-      USE CONSTANT, only :
-     &     grav,sha,undef
-      USE MODEL_COM, only :
-     &     im,jm,lm,
-     &     PTOP,SIG,PSFMPT,XLABEL,LRUNID,idacc
+      USE CONSTANT, only : grav,sha,undef
+      USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
       USE DIAG_COM, only : kdiag,jgrid_ijk,
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
@@ -5803,8 +5793,7 @@ C****
 C**** Complete 3D-field titles
 C****
       DO L=1,LM
-        PRESS = PTOP+PSFMPT*SIG(L)
-        WRITE(CPRESS(L),'(F8.3)') PRESS
+        WRITE(CPRESS(L),'(F8.3)') pmidl00(l) 
       END DO
 
 C**** Select fields

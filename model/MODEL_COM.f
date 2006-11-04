@@ -26,6 +26,15 @@ c$$$#endif
       INTEGER :: LRUNID    !@var Run name stored in XLABEL(1:LRUNID)
       INTEGER :: LHEAD=15  !@var length of crucial beg of module_headers
 
+!@var LM_REQ Extra number of radiative equilibrium layers
+      INTEGER, PARAMETER :: LM_REQ=3
+!@var REQ_FAC/REQ_FAC_M factors for REQ layer pressures 
+      REAL*8, PARAMETER, DIMENSION(LM_REQ-1) ::
+     *     REQ_FAC=(/ .5d0, .2d0 /)               ! edge
+      REAL*8, PARAMETER, DIMENSION(LM_REQ) ::
+     *     REQ_FAC_M=(/ .75d0, .35d0, .1d0 /),    ! mid-points
+     *     REQ_FAC_D=(/ .5d0,  .3d0,  .2d0 /)     ! delta
+
 !**** Vertical resolution dependent variables (set in INPUT)
 !@var SIGE sigma levels at layer interfaces (1)
 !!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm+1)=-pstrat/psfmpt
@@ -35,6 +44,12 @@ c$$$#endif
      &     SIG,    ! = (sige(1:lm)+sige(2:lm+1))*0.5d0,
      &     DSIG,   ! =  sige(1:lm)-sige(2:lm+1),
      &     byDSIG  ! =  1./DSIG
+
+!@var PL00, PMIDL00, PDSIGL00, AML00 press (mb), mid-pressure (mb),
+!@+        mass (kg/m2) for mean profile
+!@var PEDNL00 edge pressure for mean profile (mb)
+      REAL*8, DIMENSION(LM+LM_REQ) :: PL00, PMIDL00, PDSIGL00, AML00   
+      REAL*8, DIMENSION(LM+LM_REQ+1) :: PEDNL00
 
 !**** Model control parameters:
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean

@@ -651,12 +651,12 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 !@+   value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : JM,LM,NIPRNT,MFILTR,NFILTR,NRAD
      *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
-     *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
-     $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
+     *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,NIsurf,iyear1
+     $     ,LS1,IRAND,ItimeI,PSTRAT,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
-     &     ,do_polefix
+     &     ,do_polefix,pednl00,pmidl00
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE PARAM
       implicit none
@@ -706,16 +706,16 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
 
       LSDRAG=LM ; LPSDRAG=LM ; LCSDRAG=LM ; CSDRAGL=C_SDRAG
       DO L=1,LM
-        IF (PTOP+PSFMPT*SIGE(L+1)-1d-5.lt.P_SDRAG .and.
-     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_SDRAG)         LSDRAG=L
-        IF (PTOP+PSFMPT*SIGE(L+1)-1d-5.lt.PP_SDRAG .and.
-     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PP_SDRAG)        LPSDRAG=L
-        IF (PTOP+PSFMPT*SIGE(L+1)-1d-5.lt.P_CSDRAG .and.
-     *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_CSDRAG)        LCSDRAG=L
+        IF (PEDNL00(L+1)-1d-5.lt.P_SDRAG .and.
+     *      PEDNL00(L)  +1d-5.gt.P_SDRAG)         LSDRAG=L
+        IF (PEDNL00(L+1)-1d-5.lt.PP_SDRAG .and.
+     *      PEDNL00(L)  +1d-5.gt.PP_SDRAG)        LPSDRAG=L
+        IF (PEDNL00(L+1)-1d-5.lt.P_CSDRAG .and.
+     *      PEDNL00(L)  +1d-5.gt.P_CSDRAG)        LCSDRAG=L
       END DO
       DO L=LCSDRAG,LSDRAG-1
          CSDRAGL(L) = C_SDRAG + max( 0.d0 , (X_SDRAG(1)-C_SDRAG) *
-     *     LOG(P_CSDRAG/(PTOP+PSFMPT*SIG(L))) / LOG(P_CSDRAG/P_SDRAG) )
+     *     LOG(P_CSDRAG/(PMIDL00(L))) / LOG(P_CSDRAG/P_SDRAG) )
       END DO
       if (AM_I_ROOT()) then
          WRITE(6,*) "Levels for  LSDRAG =",LSDRAG ,"->",LM
@@ -771,18 +771,20 @@ C****
       USE CONSTANT, only : grav,kapa,sday,by3
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth0,fland
      *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia
-     *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
+     *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
      *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
-     *     ,Jhour0,rsf_file_name
+     *     ,Jhour0,rsf_file_name,lm_req
+     *     ,pl00,aml00,pednl00,pdsigl00,pmidl00
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
-      USE RAD_COM, only : rqt,lm_req,cloud_rad_forc
+      USE RAD_COM, only : rqt,cloud_rad_forc
+      USE DYNAMICS, only : pk
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
@@ -812,7 +814,7 @@ C****
 c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
 #endif
-      USE ATMDYN, only : init_ATMDYN,CALC_AMPK
+      USE ATMDYN, only : init_ATMDYN,CALC_AMPK,calc_vert_amp
       USE DVEG_COUPLER, only : init_dveg
       IMPLICIT NONE
       CHARACTER(*) :: ifile
@@ -829,7 +831,7 @@ c$$$      USE MODEL_COM, only: clock
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
      *             ISTART, IRANDI=0
       REAL*8 TIJL,CDM,TEMP,X
-      INTEGER Itime1,Itime2,ItimeX,IhrX,iargc
+      INTEGER Itime1,Itime2,ItimeX,IhrX, LMR
 
 !@ egcm_init_max maximum initial vaule of egcm
       real*8, parameter :: egcm_init_max=0.5d0
@@ -871,6 +873,9 @@ C****
       byDSIG  =  1./DSIG
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
+C**** Calculate default vertical arrays
+      LMR=LM+LM_REQ
+      CALL CALC_VERT_AMP(PSFMPT,LMR,PL00,AML00,PDSIGL00,PEDNL00,PMIDL00)
 C****
 C**** default settings for prog. variables etc
 C****
@@ -1154,6 +1159,9 @@ C****                                                    currently
         END DO
         END DO
         CDM=.001d0
+
+        CALL CALC_AMPK(LM)
+
         DO J=J_0,J_1
         DO I=1,IM
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
@@ -1169,13 +1177,8 @@ C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
             RQT(K,I,J)=T(I,J,LM)
           END DO
 C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
-          DO L=1,LS1-1
-            T(I,J,L)=T(I,J,L)/(SIG(L)*P(I,J)+PTOP)**KAPA
-          END DO
-          DO L=LS1,LM
-            T(I,J,L)=T(I,J,L)/((SIG(L)*(PSF-PTOP)+PTOP)**KAPA)
-          END DO
           DO L=1,LM
+            T(I,J,L)=T(I,J,L)/PK(L,I,J)
             TTOLD(L,I,J)=T(I,J,L)
             QTOLD(L,I,J)=Q(I,J,L)
           END DO
@@ -1257,6 +1260,8 @@ C**** Check consistency of starting time
       END IF
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
+
+      CALL CALC_AMPK(LM)
 C****
 !**** IRANDI seed for random perturbation of initial conditions (if/=0):
 C****        tropospheric temperatures changed by at most 1 degree C
@@ -1266,8 +1271,8 @@ C****        tropospheric temperatures changed by at most 1 degree C
         call burn_random(n=im*(j_0-1))
         DO J=J_0,J_1
         DO I=1,IM
-           TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
-           T(I,J,L)=TIJL/(P(I,J)*SIG(L)+PTOP)**KAPA
+           TIJL=T(I,J,L)*PK(L,I,J)-1.+2*RANDU(X)
+           T(I,J,L)=TIJL/PK(L,I,J)
         END DO
         END DO
         END DO
@@ -1311,6 +1316,8 @@ C****        mainly used for REPEATS and delayed EXTENSIONS
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
      *    ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
         XLABEL = RLABEL                        ! switch to rundeck label
+
+        CALL CALC_AMPK(LM)
 C****
 !**** IRANDI seed for random perturbation of current state (if/=0)
 C****        tropospheric temperatures are changed by at most 1 degree C
@@ -1319,8 +1326,8 @@ C****        tropospheric temperatures are changed by at most 1 degree C
           DO L=1,LS1-1
           DO J=J_0,J_1
           DO I=1,IM
-             TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
-             T(I,J,L)=TIJL/(P(I,J)*SIG(L)+PTOP)**KAPA
+             TIJL=T(I,J,L)*PK(L,I,J)-1.+2*RANDU(X)
+             T(I,J,L)=TIJL/PK(L,I,J)
           END DO
           END DO
           END DO

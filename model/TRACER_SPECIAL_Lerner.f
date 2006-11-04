@@ -13,7 +13,7 @@ C**** These variables are used by both ozone and strat chem routines
 
       contains
       subroutine set_prather_constants
-      USE MODEL_COM, only: jm,lm,psfmpt,sige,ptop
+      USE MODEL_COM, only: jm,lm,pednl00 ! ,psfmpt,sige,ptop
       USE DOMAIN_DECOMP, only : GRID, GET
       implicit none
       real*8 yedge(GRID%J_STRT_HALO:GRID%J_STOP_HALO+1)
@@ -44,7 +44,7 @@ c GISS-ESMF EXCEPTIONAL CASE
 C---just calculate average P(mbar) at edge of each level
 C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
       do lr=1,lm+1
-        p0l(lr) = sige(lm+2-lr)*psfmpt+ptop
+        p0l(lr) = pednl00(lm+2-lr) ! sige(lm+2-lr)*psfmpt+ptop
       end do
       return
 
@@ -384,7 +384,7 @@ C     n_O3=tracer number for linoz O3
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE CONSTANT, only: mair
-      USE MODEL_COM, only: im,jm,lm,ptop,psfmpt,sige,dtsrc
+      USE MODEL_COM, only: im,jm,lm,pednl00 
       USE TRACER_COM, only: ntm,tr_mm
       USE PRATHER_CHEM_COM, only: set_prather_constants
       implicit none
@@ -428,10 +428,10 @@ C**** Needed for linoz chemistry
 
 C**** Calculate level for tropophere ozone chem
       do l=1,lm
-        if (psfmpt*sige(l+1)+ptop .le. 900.)then
+        if (pednl00(l+1) .le. 900.)then
           lbc = l
           if (AM_I_ROOT()) write(6,'(a,i3,f8.1)')
-     *     ' Top layer for tropo O3 chem is ',lbc, psfmpt*sige(l)+ptop
+     *     ' Top layer for tropo O3 chem is ',lbc, pednl00(l)
           exit
         end if
       end do
@@ -1105,6 +1105,7 @@ C**** psf, ptrop, pdn ..... in pascals (mb*100)
       PSUM = 0.
       CSUM = 0.
       if (l.eq.ls1) psurf = psf*100.
+!     PUP = pedn(l+1)*100  No?
       PUP  =  SIGE(L+1)*(psurf-ptrop)+ptrop
   410 IF(P(K).LE.PUP)  GO TO 420
       PSUM = PSUM +  PDN-P(K)
@@ -1283,7 +1284,7 @@ C****  Input: CLIM.RUN.OHCH4.FRQ
 C**** Output: temporary file for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
 C****    CHECK IT with checkfile=.true.!!!
-      USE MODEL_COM, only: im,jm,lm,ptop,psf,psfmpt,sige,sig
+      USE MODEL_COM, only: im,jm,lm,psf
       USE DOMAIN_DECOMP, only: GRID, GET
       USE FILEMANAGER, only: openunit,closeunit
       USE lhntr_com, only: LHNTR,LHNTR0
@@ -1307,7 +1308,7 @@ C****
 
 !     initialize
       pold(:) = sigo(:)*(psf-10.)+10.
-      pnew(:) = sig(:)*psfmpt+ptop
+      pnew(:) = pmidl00(:)    ! sig(:)*psfmpt+ptop
       wta = 1.
 !     find a top for the output data (a drop sloppy!)
       do 5 l=1,lm
@@ -1500,13 +1501,14 @@ C****
       GASJL = 0.
       DO 440 J=J_0,J_1
       PDN = pedn(1,1,j)
-      psurf = psf
+      psurf = psf           ! is this correct? should be pdn, no?
       CDN = GASJK(J,0)
       K=1
       DO 430 L=1,lm
       PSUM = 0.
       CSUM = 0.
       if (l.eq.ls1) psurf = psf
+!     PUP  = pedn(l+1)  or pednl00(l+1), but then PDN above should be pednl00(1,i,j) also?
       PUP  = (psurf-ptop)*SIGE(L+1)+ptop
   410 IF(P(K).LE.PUP)  GO TO 420
       PSUM = PSUM +  PDN-P(K)

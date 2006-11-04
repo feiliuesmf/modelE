@@ -27,7 +27,7 @@ C****                (L=1 is ground level)
 C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
-      USE MODEL_COM, only : im,jm,lm,sig,dsig,sige,psfmpt,byim
+      USE MODEL_COM, only : im,jm,lm,byim,pdsigl00
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
      *                          SOUTH, NORTH, ESMF_BCAST
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
@@ -373,12 +373,12 @@ C**** WR(J,L) ........
 C****
       DO L=1,LM-1
       DO J=J_0STG,J_1STG
-        VR(J,L)=VI(J,L)+(RX(J,L+1)-RX(J,L))/
-     *       (PSFMPT*DSIG(L))
+        VR(J,L)=VI(J,L)+(RX(J,L+1)-RX(J,L))/PDSIGL00(L)
+!     *       (PSFMPT*DSIG(L))
       END DO
       END DO
       DO J=J_0STG,J_1STG
-        VR(J,LM)=VI(J,LM)-RX(J,LM)/(PSFMPT*DSIG(LM))
+        VR(J,LM)=VI(J,LM)-RX(J,LM)/PDSIGL00(LM) !(PSFMPT*DSIG(LM))
       END DO
       DO L=1,LM
       DO J=J_0S,J_1S
@@ -453,7 +453,8 @@ C****
         FEYR(J,LM)=0.
         DO L=2,LM-1
           UCT=(UI(J+1,L+1)*DXV(J+1)+UCL(L+1))
-          FEYR(J,L) = .125d0/(COSP(J)*PSFMPT*DSIG(L))
+c          FEYR(J,L) = .125d0/(COSP(J)*PSFMPT*DSIG(L))
+          FEYR(J,L) = .125d0/(COSP(J)*PDSIGL00(L))
      *         *    ((RX(J+1,L)*COSV(J+1)+RXCL(L))*(UCM-UCB)
      *         +    (RX(J+1,L+1)*COSV(J+1)+RXCL(L+1))*(UCT-UCM))
           UCB=UCM
@@ -570,8 +571,8 @@ C****        COR(j,l),CORR(j,l) - same as above   m3 s-2
 C****        ER1,ER2 - error terms 1 and 2   m s-2
 C****   DUD(j,l),DUR - Delta U by Eulerian and transf. circulation  m s-2
 C****
-      USE MODEL_COM, only : im,jm,lm,sig,dsig,dtsrce=>dtsrc,psfmpt,fim
-     *     ,idacc,ndaa,ls1,ptop
+      USE MODEL_COM, only : im,jm,lm,dsig,dtsrce=>dtsrc,fim
+     *     ,idacc,ndaa,ls1,pmidl00,pdsigl00
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       USE DIAG_COM, only : ajl,kajl,kep,apj
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
@@ -636,9 +637,14 @@ c GISS-ESMF EXCEPTIONAL CASE
         ONES(JL)=1.
       END DO
       DO L=1,LM
-        DP(L)  = PSFMPT*DSIG(L)
-        PMO(L) = PSFMPT*SIG(L)+PTOP
+        DP(L)  = PDSIGL00(L) ! PSFMPT*DSIG(L)
+        PMO(L) = PMIDL00(L)  ! PSFMPT*SIG(L)+PTOP
       END DO
+!     do j=2,jm
+!       ap=0.25*APJ(J,2)/(FIM*IDACC(4)+teeny)
+!       call calc_vert_amp(ap,lm,PL,AML,PDSIGL,PEDNL,PMIDL)
+!       BYDPJL(J,1:LM)=1./PDSIGL(1:LM)
+!     end do
       DO L=1,LS1-1
       DO J=2,JM
         BYDPJL(J,L)=(FIM*IDACC(4))/(0.25*DSIG(L)*APJ(J,2)+1.D-20)
