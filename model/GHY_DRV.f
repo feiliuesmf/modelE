@@ -3048,6 +3048,11 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
       use constant, only : twopi,edpery,rhow,shw_kg=>shw
       use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
      &     ,w_ij,ht_ij,fearth,shc_soil_texture
+#ifdef TRACERS_WATER
+     &     ,tr_w_ij
+      use TRACER_COM, only : ntm,needtrs,itime_tr0
+      use model_com, only : itime
+#endif
       use veg_com, only : ala,afb
       use model_com, only : focean
       use sle001, only : thm
@@ -3064,6 +3069,10 @@ cddd      integer, intent(in) :: jday
       !!real*8 :: cosday,sinday,alai
       real*8 :: fb,fv
       real*8 shc_layer, aa, tp, tpb, tpv, ficeb, ficev, fice
+#ifdef TRACERS_WATER
+      integer n
+      real*8 wsoil_tot
+#endif
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
@@ -3127,6 +3136,24 @@ cddd      sinday=sin(twopi/edpery*jday)
      &           tp, fice, w_ij(k,3,i,j), ht_cap(k) )
           enddo
 
+#ifdef TRACERS_WATER
+      ! set underwater tracers to average land tracers (ignore canopy)
+          do k=1,ngm
+            wsoil_tot = fb*w_ij(k,1,i,j) + fv*w_ij(k,2,i,j)
+            do n=1,ntm
+              if (itime_tr0(n).gt.itime) cycle
+              if ( .not. needtrs(n) ) cycle
+              tr_w_ij(n,k,3,i,j) = 0.d0
+              if ( wsoil_tot > 1.d-30 ) then
+                tr_w_ij(n,k,3,i,j) = (
+     &               fb*tr_w_ij(n,k,1,i,j) + fv*tr_w_ij(n,k,2,i,j)
+     &               ) / (wsoil_tot) * w_ij(k,3,i,j) !!! removed /rhow
+              end if
+            enddo
+          enddo
+#endif
+
+
         enddo
       enddo
 
@@ -3181,11 +3208,18 @@ cddd      sinday=sin(twopi/edpery*jday)
       use constant, only : twopi,edpery,rhow,shw_kg=>shw
       use ghy_com, only : ngm,imt,dz_ij,q_ij
      &     ,w_ij,ht_ij,fr_snow_ij,fearth
+#ifdef TRACERS_WATER
+     &     ,tr_w_ij,tr_wsn_ij
+      use TRACER_COM, only : ntm
+#endif
       use veg_com, only : ala,afb
       use model_com, only : focean,im
       use LAKES_COM, only : flake, svflake
       use sle001, only : thm
       use fluxes, only : DMWLDF, DGML
+#ifdef TRACERS_WATER
+     &     ,DTRL
+#endif
       use GEOM, only : BYDXYP
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use soil_drv, only : conserv_wtg_1
@@ -3203,7 +3237,10 @@ cddd      sinday=sin(twopi/edpery*jday)
       real*8 :: sum_water, ht_per_m3
 
       real*8 dfrac
-
+#ifdef TRACERS_WATER
+      real*8 dtr_soil(ntm),dtr_lake(ntm),dtr(ntm),tr_per_m3(ntm)
+      integer ibv
+#endif
       real*8 tmp_before(0:ngm), tmp_after(0:ngm)
       real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     w_before_j, w_after_j
@@ -3274,6 +3311,14 @@ cddd      sinday=sin(twopi/edpery*jday)
      &             / fearth(i,j)
               !print *,"w after", w_ij(k,1:2,i,j)
               !print *,"ht after", ht_ij(k,1:2,i,j)
+#ifdef TRACERS_WATER
+              dtr(:) = dfrac*tr_w_ij(:,k,3,i,j)
+              do ibv=1,2
+                tr_w_ij(:,k,ibv,i,j) =
+     &               (tr_w_ij(:,k,ibv,i,j)*(fearth(i,j)-dfrac) + dtr(:))
+     &               / fearth(i,j)
+              enddo
+#endif
             enddo
             !vegetation:
 cddd            if ( fv > 0.d0 ) then
@@ -3296,10 +3341,20 @@ cddd            endif
               ht_ij(0,2,i,j) =
      &             (ht_ij(0,2,i,j)*(fearth(i,j)-dfrac))
      &             / fearth(i,j)
+#ifdef TRACERS_WATER
+              tr_w_ij(:,0,2,i,j) =
+     &             (tr_w_ij(:,0,2,i,j)*(fearth(i,j)-dfrac))
+     &             / fearth(i,j)
+#endif
 
             ! change snow fraction
             fr_snow_ij(1:2,i,j) =
      &           fr_snow_ij(1:2,i,j)*(1.d0-dfrac/fearth(i,j))
+#ifdef TRACERS_WATER
+            ! tr_wsn is spreaf over entire cell (i.e. *fr_snow)
+            tr_wsn_ij(:,:,1:2,i,j) = tr_wsn_ij(:,:,1:2,i,j) * 
+     &           (1.d0 - dfrac/fearth(i,j))
+#endif
 
             tmp_after = ( ht_ij(0:ngm,3,i,j) )*flake(i,j) +
      &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)) +
@@ -3350,6 +3405,13 @@ cddd            endif
             else
               ht_per_m3 = 0.d0
             endif
+#ifdef TRACERS_WATER
+            if ( sum_water > 1.d-30 ) then
+              tr_per_m3(:) = DTRL(:,i,j)*BYDXYP(J)/sum_water
+            else
+              tr_per_m3(:) = 0.d0
+            endif
+#endif
             !print *,"DGML, sum_water, ht_per_m3 ",
    !  &           DGML(i,j),sum_water,ht_per_m3
             do k=ngm,1,-1  ! do not loop over canopy
@@ -3373,16 +3435,28 @@ cddd            endif
      &             (ht_ij(k,3,i,j)*svflake(i,j) + dht)/flake(i,j)
               !print *,"w after", w_ij(k,3,i,j)
               !print *,"ht after", ht_ij(k,3,i,j)
+#ifdef TRACERS_WATER
+              dtr_soil(:) =
+     &             dfrac*(fb*tr_w_ij(:,k,1,i,j) + fv*tr_w_ij(:,k,2,i,j))
+              dtr_lake(:) = dw_lake*tr_per_m3(:)
+              dtr(:) = dtr_soil(:) + dtr_lake(:)
+              tr_w_ij(:,k,3,i,j) =
+     &             (tr_w_ij(:,k,3,i,j)*svflake(i,j) + dtr(:))/flake(i,j)
+#endif
             enddo
 
             ! dump canopy water into first layer (underwater canopy is 0C)
             dw = dfrac*( fv*w_ij(0,2,i,j) )
-            dht = dfrac*( fv*ht_ij(k,2,i,j) )
+            dht = dfrac*( fv*ht_ij(0,2,i,j) )
               w_ij(1,3,i,j) =
      &             w_ij(1,3,i,j) + dw/flake(i,j)
               ht_ij(1,3,i,j) =
      &             ht_ij(1,3,i,j) + dht/flake(i,j)
-
+#ifdef TRACERS_WATER
+            dtr(:) = dfrac*( fv*tr_w_ij(:,0,2,i,j) )
+            tr_w_ij(:,1,3,i,j) =
+     &             tr_w_ij(:,1,3,i,j) + dtr(:)/flake(i,j)
+#endif
             tmp_after = ( ht_ij(0:ngm,3,i,j) )*flake(i,j) +
      &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)) +
      &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j))
@@ -3401,6 +3475,12 @@ cddd            endif
 
             fr_snow_ij(1:2,i,j) =
      &           fr_snow_ij(1:2,i,j)*(1.d0+dfrac/fearth(i,j))
+#ifdef TRACERS_WATER
+            ! tr_wsn is spreaf over entire cell (i.e. *fr_snow)
+            tr_wsn_ij(:,:,1:2,i,j) = tr_wsn_ij(:,:,1:2,i,j) *
+     &           (1.d0 + dfrac/fearth(i,j))
+#endif
+
 
             ! hack to deal with snow in empty fractions (fb, fv)
             if( fb <= 0.d0 )
@@ -3414,6 +3494,8 @@ cddd            endif
      &           "update_land_fractions: fr_snow_ij > 1",255)
 
           endif
+
+          call set_new_ghy_cells_outputs
 
           ! reset "FLUXES" arrays
           svflake(i,j) = flake(i,j)
@@ -3430,12 +3512,127 @@ cddd            endif
       end subroutine update_land_fractions
 
 
+      subroutine set_new_ghy_cells_outputs
+!@sum set output data for newly created earth cells (when lake shrinks)
+      use constant, only : rhow,tf,lhe,lhs
+      use ghy_com, only : ngm,imt,dz_ij,q_ij
+     &     ,w_ij,ht_ij,fr_snow_ij,fearth,qg_ij,fr_snow_rad_ij
+     &     ,shc_soil_texture,canopy_temp_ij,snowe,tearth,wearth,aiearth
+#ifdef TRACERS_WATER
+     &     ,tr_w_ij
+      use TRACER_COM, only : ntm,needtrs,itime_tr0
+      use model_com, only : itime
+#endif
+      use FLUXES, only : gtemp
+#ifdef TRACERS_WATER
+     &     ,gtracer
+#endif
+      use veg_com, only : afb
+      use sle001, only : thm
+      use LAKES_COM, only : flake, svflake
+      use dynamics, only : pedn
+      USE DOMAIN_DECOMP, ONLY : GRID, GET
+
+      implicit none
+      !---
+      real*8, external :: qsat
+      real*8 :: EPS=1.d-12
+      integer i,j,I_0,I_1,J_0,J_1
+      real*8 :: dz(ngm), q(imt,ngm), w_stor(ngm), ht_cap(ngm)
+      real*8 tg1, fice, fb, fv, tpb, tpv, ficeb, ficev, shc_layer
+      real*8 dfrac, elhx, ps
+      integer k, m
+#ifdef TRACERS_WATER
+      integer n
+      real*8 wsoil_tot
+#endif
+
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+
+          dfrac = svflake(i,j) - flake(i,j) 
+          if ( fearth(i,j) < EPS .or. fearth(i,j)-dfrac > EPS ) cycle
+      
+          dz(1:ngm) = dz_ij(i,j,1:ngm)
+          q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
+
+          fb = afb(i,j)
+          fv=1.-fb
+
+      ! compute max water storage and heat capacity
+          do k=1,ngm
+            w_stor(k) = 0.d0
+            do m=1,imt-1
+              w_stor(k) = w_stor(k) + q(m,k)*thm(0,m)*dz(k)
+            enddo
+            shc_layer = 0.d0
+            do m=1,imt
+              shc_layer = shc_layer + q(m,k)*shc_soil_texture(m)
+            enddo
+            ht_cap(k) = (dz(k)-w_stor(k)) * shc_layer
+          enddo
+
+          call heat_to_temperature( tpb, ficeb,
+     &         ht_ij(1,1,i,j), w_ij(1,1,i,j), ht_cap(ngm) )
+          call heat_to_temperature( tpv, ficev,
+     &         ht_ij(1,2,i,j), w_ij(1,2,i,j), ht_cap(ngm) )
+          tg1   = fb*tpb + fv*tpv
+          fice = fb*ficeb + fv*ficev
+
+          elhx=lhe
+          if(tg1.lt.0.)  elhx=lhs
+          ps=pedn(1,i,j)
+      ! ground humidity to be used on next time step
+          qg_ij(i,j) = qsat(tg1+tf,elhx,ps) ! all saturated
+      ! snow fraction same as in snow model
+          fr_snow_rad_ij(:,i,j) = 0.d0 ! no snow in new cell
+      ! canopy_temp_ij is not used so far... do we need it?
+          canopy_temp_ij(i,j) = 0.d0 ! canopy at 0C
+
+c**** snowe used in RADIATION
+          snowe(i,j) = 1000.*0.d0
+c**** tearth used only internaly in GHY_DRV
+          tearth(i,j)=tg1
+c**** wearth+aiearth are used in radiation only
+          wearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*(1.-ficeb) +
+     &         fv*(w_ij(1,2,i,j)*(1.-ficev)) )
+          aiearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*ficeb +
+     &         fv*w_ij(1,2,i,j)*ficev )
+          gtemp(1,4,i,j)=tearth(i,j)
+
+#ifdef TRACERS_WATER
+      ! I use vegetated ground insted of canopy since canopy has 0 H2O
+          wsoil_tot = fb*w_ij(1,1,i,j) + fv*w_ij(1,2,i,j)
+          do n=1,ntm
+            if (itime_tr0(n).gt.itime) cycle
+            if ( .not. needtrs(n) ) cycle
+            ! should also restrict to TYPE=nWATER ?
+            if ( wsoil_tot > 1.d-30 ) then
+              gtracer(n,4,i,j) = (
+     &             fb*tr_w_ij(n,1,1,i,j) + fv*tr_w_ij(n,1,2,i,j)
+     &             ) / (rhow*wsoil_tot)
+            else
+              gtracer(n,4,i,j) = 0.
+            end if
+         !!! test 
+            gtracer(n,4,i,j) = 1.d0
+          enddo
+#endif
+        enddo
+      enddo
+
+      end subroutine set_new_ghy_cells_outputs
+
+
       subroutine remove_exrtra_snow
       use constant, only : rhow
       use ghy_com, only : nsn_ij, dzsn_ij, wsn_ij, hsn_ij,
      &     fr_snow_ij,fearth
 #ifdef TRACERS_WATER
      &     ,tr_wsn_ij
+      use TRACER_COM, only : ntm
 #endif
       use veg_com, only : afb
       use LANDICE_COM, only : MDWNIMP, EDWNIMP
