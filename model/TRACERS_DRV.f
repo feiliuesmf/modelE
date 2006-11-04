@@ -8443,6 +8443,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE CONSTANT, only: mair,rhow,sday
       USE MODEL_COM, only: itime,im,jm,lm,ls1,jday,JEQ,ptop,psf,sig
      *     ,dtsrc,q,wm,flice,JMperY,JDperY,jyear
+#ifdef TRACERS_WATER
+     &     ,focean
+#endif
       USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_COLUMN,
      &     write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
@@ -8879,7 +8882,8 @@ c**** landice
               gtracer(n,3,i,j)=0.
             end if
 c**** earth
-            if (fearth(i,j).gt.0) then
+            !!!if (fearth(i,j).gt.0) then
+            if (focean(i,j) < 1.d0) then
               conv=rhow         ! convert from m to kg/m^2
               tr_w_ij  (n,:,:,i,j)=trw0(n)*w_ij (:,:,i,j)*conv
               tr_wsn_ij(n,1:nsn_ij(1,i,j),1,i,j)=
