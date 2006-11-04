@@ -203,7 +203,7 @@ cddd      ALLOCATE(     TR_WBARE(NTM,  NGM,IM,J_0H:J_1H),
 cddd     *              TR_WVEGE(NTM,0:NGM,IM,J_0H:J_1H),
       ALLOCATE(      TR_W_IJ(NTM,0:NGM,LS_NFRAC,IM,J_0H:J_1H),
      *             TR_WSN_IJ(NTM,NLSN,        2,IM,J_0H:J_1H),
-     *             TRSNOWBV0(NTM,      LS_NFRAC,IM,J_0H:J_1H),
+     *             TRSNOWBV0(NTM,             2,IM,J_0H:J_1H),
      *         STAT=IER)
 C**** Initialize to zero
       !TR_WBARE(:,:,:,J_0H:J_1H)=0.d0
