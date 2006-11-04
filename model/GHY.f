@@ -1324,6 +1324,17 @@ ccc    if -1d-12 < rnf < 0. put it to 0 to avoid possible problems
 ccc    actually for ground hydrology it is not necessary
         rnf(ibv) = max ( rnf(ibv), 0.d0 )
       enddo
+
+!!! hack to prevent taking water from empty layers
+!!! this is probably not quite correct so it is disabled by default
+cddd      do ibv=i_bare,i_vege
+cddd        do k=n,1,-1
+cddd          if ( f(k,ibv) > 0.d0 .and. w(k,ibv) < 1.d-16 ) then
+cddd            print *,"GHY: corrected flux->0 ",k,ibv,f(k,ibv)
+cddd            f(k,ibv) = 0.d0
+cddd          endif
+cddd        enddo
+cddd      enddo
       return
       end subroutine fllmt
 
@@ -1791,12 +1802,15 @@ C**** finalise surface tracer concentration here
      &       + wsn(1,1)*fr_snow(1) )
      &       + fv*( w(0,2)*(1.d0-fm*fr_snow(2))
      &       + wsn(1,2)*fm*fr_snow(2) )
+     &       + fv*w(1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
         if ( tot_w1 > 1.d-30 ) then
           atr_g(:ntg) =         ! instantaneous
      &         ( fb*( tr_w(:ntg,1,1)*(1.d0-fr_snow(1))
      &         + tr_wsn(:ntg,1,1) ) !*fr_snow(1)
      &         + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))
-     &         + tr_wsn(:ntg,1,2)*fm ) ) / !*fr_snow(2)
+     &         + tr_wsn(:ntg,1,2)*fm )
+     &         + fv*tr_w(:ntg,1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
+     &         ) /              !*fr_snow(2)
      &         (rhow * tot_w1)  ! * dts
         endif
 #endif
@@ -2442,8 +2456,10 @@ ccc (to make the data compatible with snow model)
       !wc = 1000.d0
       !return
 
-      if ( abs(wc-1000.d0) > 1.d-2 )
-     &     call stop_model("GHY: wc != 1000",255)
+      if ( abs(wc-1000.d0) > 1.d-3 ) then
+        print *,"GHYTR: wc= ", wc, (wc-1000.d0)/1000.d0
+        !call stop_model("GHY: wc != 1000",255)
+      endif
 
       end subroutine check_wc
 
@@ -2530,6 +2546,13 @@ ccc set internal vars
         wi(0:n,ibv) = w(0:n,ibv)
         wsni(1:nlsn,ibv) = wsn_for_tr(1:nlsn,ibv) ! *fr_snow(ibv)
         flux_snow_tot(0:nlsn,ibv) = flux_snow(0:nlsn,ibv)*fr_snow(ibv)
+!!! hack
+!!! snow doesnt suck water from ground
+       if ( flux_snow_tot(nlsn,ibv) < 0.d0 ) then
+         flux_snow_tot(0:nlsn-1,ibv) = flux_snow_tot(0:nlsn-1,ibv) 
+     &     - flux_snow_tot(nlsn,ibv)
+         flux_snow_tot(nlsn,ibv) = 0.d0
+       endif
       enddo
 
 ccc reset accumulators to 0
@@ -2538,8 +2561,8 @@ ccc reset accumulators to 0
 
 ccc canopy
       tr_wcc(:m,:) = 0.d0
- !test
- !>     tr_wcc(:m,:) = 1000.d0
+ !!!test
+ !!!     tr_wcc(:m,:) = 1000.d0
 
       if ( process_vege ) then
       ! +precip
@@ -2580,8 +2603,8 @@ ccc loops...
 ccc end canopy
 
 ccc snow
-  !>>    tr_wsnc(:m,:,:) = 0.d0 !!! was 0
-  !>    tr_wsnc(:m,:,:) = 1000.d0 !!! was 0
+  !!!>>    tr_wsnc(:m,:,:) = 0.d0 !!! was 0
+      tr_wsnc(:m,:,:) = 0.d0 !!! was 1000
 
       ! dew
       if ( process_bare .and. evapbs < 0.d0 ) then
@@ -2649,8 +2672,11 @@ ccc snow
               wsni(i+1,ibv) = wsni(i+1,ibv) - flux_dt   ! extra?
             endif
           enddo
-          flux_dt = flmlt(ibv)*fr_snow(ibv)*dts
-          !flux_dt = flux_snow_tot(nlsn,ibv)*dts
+          !!!flux_dt = flmlt(ibv)*fr_snow(ibv)*dts
+          flux_dt = flux_snow_tot(nlsn,ibv)*dts
+          if ( abs(flux_dt-flmlt(ibv)*fr_snow(ibv)*dts) > 1.d-12 )
+     &         print *,"GHYTR: tracers flux_snow_tot problem",
+     &         flux_dt-flmlt(ibv)*fr_snow(ibv)*dts
           tr_w(:m,1,ibv) = tr_w(:m,1,ibv)
      &         + tr_wsnc(:m,nlsn,ibv)*flux_dt
           wi(1,ibv) = wi(1,ibv) + flux_dt
@@ -2816,6 +2842,18 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
         if ( abs( err ) > 1.d-10 ) !-10  ! was -16
      &       call stop_model("ghy tracers not conserved",255)
       enddo
+
+!!! hack
+!!! get rid of possible garbage
+      do ibv=i_bare,i_vege
+        do i=1,nlsn
+          if ( wsni(i,ibv) < 1.d-14 ) then
+            wsni(i,ibv) = 0.d0
+            tr_wsn(:m,i,ibv) = 0.d0
+          endif
+        enddo
+      enddo
+
 
       end subroutine ghy_tracers
 #endif
