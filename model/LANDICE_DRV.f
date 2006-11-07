@@ -289,13 +289,13 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         RUNOLI(I,J)  =RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
 C**** accumulate implicit fluxes for setting ocean balance
-        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *DXYPJ
-        EDWNIMP(I,J)=EDWNIMP(I,J)+ERUN2*DXYPJ
+        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
+        EDWNIMP(I,J)=EDWNIMP(I,J)+ERUN2*PLICE*DXYPJ
 #ifdef TRACERS_WATER
         TRLNDI(:,I,J)=TRLI(:)
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
-        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*DXYPJ
+        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPJ
         IF (SNOW.gt.1d-5) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
@@ -303,7 +303,7 @@ C**** accumulate implicit fluxes for setting ocean balance
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
-c        AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
+c       AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
         AJ(J,J_RUN,  ITLANDI)=AJ(J,J_RUN,  ITLANDI)+RUN0 *PLICE
 C       AJ(J,J_ERUN ,ITLANDI)=AJ(J,J_ERUN ,ITLANDI)+ERUN0*PLICE ! (Tg=0)
         AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS *PLICE
@@ -429,13 +429,13 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         RUNOLI(I,J) = RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
 C**** accumulate implicit fluxes for setting ocean balance
-        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *DXYPJ
-        EDWNIMP(I,J)=EDWNIMP(I,J)+EDIFS*DXYPJ
+        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
+        EDWNIMP(I,J)=EDWNIMP(I,J)+EDIFS*PLICE*DXYPJ
 #ifdef TRACERS_WATER
         TRLNDI(:,I,J)=TRLI(:)
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
-        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*DXYPJ
+        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPJ
         IF (SNOW.gt.1d-5) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
