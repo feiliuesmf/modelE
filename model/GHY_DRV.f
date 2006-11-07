@@ -2481,6 +2481,8 @@ C**** Extract useful local domain parameters from "grid"
       ! lake fraction changed
       if ( variable_lk > 0 ) call update_land_fractions
 
+      call remove_extra_snow
+
 !!! testing
 !!!      aalbveg(:,:) = 0.08D0
 !!!      return
@@ -3626,7 +3628,7 @@ c**** wearth+aiearth are used in radiation only
       end subroutine set_new_ghy_cells_outputs
 
 
-      subroutine remove_exrtra_snow
+      subroutine remove_extra_snow
       use constant, only : rhow
       use ghy_com, only : nsn_ij, dzsn_ij, wsn_ij, hsn_ij,
      &     fr_snow_ij,fearth
@@ -3641,22 +3643,36 @@ c**** wearth+aiearth are used in radiation only
       USE tracer_com,ONLY : Ntm
 #endif
       use GEOM, only : DXYP
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      use MODEL_COM, only : ITEARTH
+      USE DIAG_COM, only : aj=>aj_loc,areg,j_implh,j_implm,JREG
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
       
       implicit none
       !! integer, intent(in) :: jday
       !---
       real*8, parameter :: WSN_MAX = 2.d0 ! 2 m of water equivalent
-      integer i,j,I_0,I_1,J_0,J_1
+!!!      real*8, parameter :: WSN_MAX = .2d0 ! 2 m of water equivalent
+      integer i,j,I_0,I_1,J_0,J_1,J_0H,J_1H
       real*8 fbv(2),wsn(3),hsn(3),dzsn(3),fr_snow,wsn_tot,d_wsn,eta
-      integer ibv,nsn
+      real*8 dw,dh
+      integer ibv,nsn,JR
+      REAL*8  :: AREG_SUM(size(AREG,1),2)
+      REAL*8, DIMENSION(
+     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,2 )
+     &        :: AREG_PART
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1
+     &        ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+
+C**** Initialize work array
+      AREG_PART(:,J_0H:J_1H,1:2) = 0.
 
       do j=J_0,J_1
         do i=I_0,I_1
 
           if( fearth(i,j) <= 0.d0 ) cycle
+
+          JR=JREG(I,J)
 
           fbv(1) = afb(i,j)
           fbv(2) =1.d0 - fbv(1)
@@ -3674,7 +3690,7 @@ c**** wearth+aiearth are used in radiation only
             if ( wsn_tot > WSN_MAX ) then
               ! check if snow structure ok for thick snow
               if ( nsn < 3)
-     &             call stop_model("remove_exrtra_snow: nsn<3",255)
+     &             call stop_model("remove_extra_snow: nsn<3",255)
               d_wsn = wsn_tot - WSN_MAX
               ! fraction of snow to be removed:
               eta = d_wsn/(wsn(2)+wsn(3))
@@ -3682,12 +3698,10 @@ c**** wearth+aiearth are used in radiation only
               hsn_ij(2:3, ibv, i, j)  = eta*hsn(2:3)
               dzsn_ij(2:3, ibv, i, j) = eta*dzsn(2:3)
               ! extra water and energy
-              MDWNIMP(i,j) = MDWNIMP(i,j) +
-     &           (1.d0-eta)*(wsn(2)+wsn(3))*fr_snow*fbv(ibv)*fearth(i,j)
-     &             *rhow*DXYP(j)
-              EDWNIMP(i,j) = EDWNIMP(i,j) +
-     &           (1.d0-eta)*(hsn(2)+hsn(3))*fr_snow*fbv(ibv)*fearth(i,j)
-     &             *DXYP(j)
+              dw = (1.d0-eta)*(wsn(2)+wsn(3))*fr_snow*fbv(ibv)*rhow
+              MDWNIMP(i,j) = MDWNIMP(i,j) + dw*fearth(i,j)*DXYP(j)
+              dh = (1.d0-eta)*(hsn(2)+hsn(3))*fr_snow*fbv(ibv)
+              EDWNIMP(i,j) = EDWNIMP(i,j) + dh*fearth(i,j)*DXYP(j)
 #ifdef TRACERS_WATER
               TRDWNIMP(1:ntm,i,j) = TRDWNIMP(1:ntm,i,j) +
      &             (1.d0-eta)*(
@@ -3696,10 +3710,28 @@ c**** wearth+aiearth are used in radiation only
               tr_wsn_ij(1:ntm,2:3,ibv,i,j) =
      &             eta*tr_wsn_ij(1:ntm,2:3,ibv,i,j) 
 #endif
+              AJ(J,J_IMPLH,ITEARTH) =
+     &             AJ(J,J_IMPLH,ITEARTH) + dh*fearth(i,j)
+              AJ(J,J_IMPLM,ITEARTH) =
+     &             AJ(J,J_IMPLM,ITEARTH) + dw*fearth(i,j)
+              AREG_PART(JR,J,1) =
+     &             AREG_PART(JR,J,1) + dh*fearth(i,j)*DXYP(j)
+              AREG_PART(JR,J,2) =
+     &             AREG_PART(JR,J,2) + dw*fearth(i,j)*DXYP(j)
+
             endif
           enddo
 
         enddo
       enddo
 
-      end subroutine remove_exrtra_snow
+      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:2),
+     &  AREG_SUM(1:SIZE(AREG,1),1:2), ALL=.TRUE.)
+
+      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
+     &   + AREG_SUM(1:SIZE(AREG,1),1)          
+      AREG(1:SIZE(AREG,1),J_IMPLM)  =AREG(1:SIZE(AREG,1),J_IMPLM)  
+     &   + AREG_SUM(1:SIZE(AREG,1),2)          
+
+
+      end subroutine remove_extra_snow
