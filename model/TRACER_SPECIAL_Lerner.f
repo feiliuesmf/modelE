@@ -384,7 +384,7 @@ C     n_O3=tracer number for linoz O3
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE CONSTANT, only: mair
-      USE MODEL_COM, only: im,jm,lm,pednl00 
+      USE MODEL_COM, only: im,jm,lm,pednl00,dtsrc
       USE TRACER_COM, only: ntm,tr_mm
       USE PRATHER_CHEM_COM, only: set_prather_constants
       implicit none
@@ -1284,7 +1284,7 @@ C****  Input: CLIM.RUN.OHCH4.FRQ
 C**** Output: temporary file for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
 C****    CHECK IT with checkfile=.true.!!!
-      USE MODEL_COM, only: im,jm,lm,psf
+      USE MODEL_COM, only: im,jm,lm,psf,pmidl00
       USE DOMAIN_DECOMP, only: GRID, GET
       USE FILEMANAGER, only: openunit,closeunit
       USE lhntr_com, only: LHNTR,LHNTR0
@@ -1308,7 +1308,8 @@ C****
 
 !     initialize
       pold(:) = sigo(:)*(psf-10.)+10.
-      pnew(:) = pmidl00(:)    ! sig(:)*psfmpt+ptop
+!!! not sure if my fix to next line is correct, can somebody check? I.A.
+      pnew(:) = pmidl00(1:lm)    ! sig(:)*psfmpt+ptop
       wta = 1.
 !     find a top for the output data (a drop sloppy!)
       do 5 l=1,lm

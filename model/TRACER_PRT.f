@@ -462,7 +462,7 @@ C****
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid
-     &   ,dsig,ls1
+     &   ,dsig,ls1,pednl00,pdsigl00
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga

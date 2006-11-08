@@ -1287,7 +1287,8 @@ C****
      *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk
      *     ,frsat
 #ifdef TRACERS_WATER
-     *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm),tottr(ntm)
+     *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
+     &     ,tottr(ntm)
 #endif
 C****Work array for regional diagnostic accumulation
       REAL*8 :: AREG_SUM(size(AREG,1),2)
