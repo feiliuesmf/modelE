@@ -45,9 +45,7 @@ C**** Interface to PBL
   !   &     ,UG,VG,WG !,WINT
 
       USE PBLCOM, only : tsavg,dclev
-#ifdef TRACERS_DUST
      &     ,eabl,uabl,vabl,tabl,qabl
-#endif
       USE PBL_DRV, only : pbl, t_pbl_args
   !   &     ,evap_max,fr_sat,uocean,vocean,psurf,trhr0
 #ifdef TRACERS_ON
@@ -505,7 +503,7 @@ C****
         uocean = 0. ; vocean = 0. ! no dynamic ice for lakes
       ELSE
         IDTYPE=ITOICE
-        if (UOdrag.eq.1) then ! use ice velcoities in drag calculation
+        if (UOdrag.eq.1) then ! use ice velocities in drag calculation
 C**** Convert UISURF,VISURF from C grid to A grid
 C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
           if (pole) then

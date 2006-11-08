@@ -409,7 +409,7 @@ C****
        JCKERR=0
 
        ! Burn random numbers for earlier latitudes here.
-       ! Actuall generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
+       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
       if (isccp_diags.eq.1) then
         CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*NCOL*(LM+1))
       end if
