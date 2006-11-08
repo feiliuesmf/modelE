@@ -1303,8 +1303,8 @@ C****
         ENDIF
 c****   retrieve fluxes
         P1K=PK(1,I,J)
-        tflux1(i,j)=-dth1(i,j)*MA1*P1K/(dtsurf)
-        qflux1(i,j)=-dq1(i,j)*MA1/(dtsurf)
+        tflux1(i,j)=-dth1(i,j)*AM(1,I,J)*P1K/(dtsurf)
+        qflux1(i,j)=-dq1(i,j)*AM(1,I,J)/(dtsurf)
 C**** Diurnal cycle of temperature diagnostics
         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
