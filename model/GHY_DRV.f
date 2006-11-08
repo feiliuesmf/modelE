@@ -3694,21 +3694,21 @@ C**** Initialize work array
               d_wsn = wsn_tot - WSN_MAX
               ! fraction of snow to be removed:
               eta = d_wsn/(wsn(2)+wsn(3))
-              wsn_ij(2:3, ibv, i, j)  = eta*wsn(2:3)
-              hsn_ij(2:3, ibv, i, j)  = eta*hsn(2:3)
-              dzsn_ij(2:3, ibv, i, j) = eta*dzsn(2:3)
+              wsn_ij(2:3, ibv, i, j)  = (1.d0-eta)*wsn(2:3)
+              hsn_ij(2:3, ibv, i, j)  = (1.d0-eta)*hsn(2:3)
+              dzsn_ij(2:3, ibv, i, j) = (1.d0-eta)*dzsn(2:3)
               ! extra water and energy
-              dw = (1.d0-eta)*(wsn(2)+wsn(3))*fr_snow*fbv(ibv)*rhow
+              dw = eta*(wsn(2)+wsn(3))*fr_snow*fbv(ibv)*rhow
               MDWNIMP(i,j) = MDWNIMP(i,j) + dw*fearth(i,j)*DXYP(j)
-              dh = (1.d0-eta)*(hsn(2)+hsn(3))*fr_snow*fbv(ibv)
+              dh = eta*(hsn(2)+hsn(3))*fr_snow*fbv(ibv)
               EDWNIMP(i,j) = EDWNIMP(i,j) + dh*fearth(i,j)*DXYP(j)
 #ifdef TRACERS_WATER
               TRDWNIMP(1:ntm,i,j) = TRDWNIMP(1:ntm,i,j) +
-     &             (1.d0-eta)*(
+     &             eta*(
      &             tr_wsn_ij(1:ntm,2,ibv,i,j)+tr_wsn_ij(1:ntm,3,ibv,i,j)
      &             )*fbv(ibv)*fearth(i,j)*DXYP(j)
               tr_wsn_ij(1:ntm,2:3,ibv,i,j) =
-     &             eta*tr_wsn_ij(1:ntm,2:3,ibv,i,j) 
+     &             (1.d0-eta)*tr_wsn_ij(1:ntm,2:3,ibv,i,j) 
 #endif
               AJ(J,J_IMPLH,ITEARTH) =
      &             AJ(J,J_IMPLH,ITEARTH) + dh*fearth(i,j)
@@ -3718,6 +3718,8 @@ C**** Initialize work array
      &             AREG_PART(JR,J,1) + dh*fearth(i,j)*DXYP(j)
               AREG_PART(JR,J,2) =
      &             AREG_PART(JR,J,2) + dw*fearth(i,j)*DXYP(j)
+
+              print *,"remove_extra_snow", i,j,ibv,eta,dw,dh
 
             endif
           enddo
