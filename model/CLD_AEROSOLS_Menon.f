@@ -11,12 +11,13 @@
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSMAL,SSMAO,SSML,SSMO
       real*8 SSMD1,SSMD2,SSMD3
-      integer, PARAMETER :: nt=12
+      integer, PARAMETER :: nt=17
       real*8,dimension(nt)::DSS,DSU
       integer L,n
 
       do n = 1,nt
-        DSU(n)=0.d0                         
+        DSU(n)=1.d-10                         
+c       write(6,*)"In SM ROUTIN",DSS(n),n
       end do
       SSMAL=0.d0
       SSMAO=0.d0
@@ -33,7 +34,7 @@ C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
         DSU(n) =DSS(n)*tams
 C** Special case if not including dust-sulfate hetchem reactions
         if (n.gt.9) then
-          if (DSS(n).eq.1.d-30) DSU(n)=0.d0
+          if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
       enddo
 
@@ -47,9 +48,9 @@ c assumed lognormal distribution for carbonaceous aerosols.
       SSM2=(DSU(2)/2169.d0)/(0.004189d0*(.44d0**3)   ) !seasalt 0.1-1 um range
       SSM4 = 1.21d11*((DSU(4))+ DSU(6))                !OCI,BCI: aged (1 day efolding time)
       SSM5 = 1.21d11*((0.8*DSU(5))+(0.6*DSU(7)))       !OCB,BCB: 80% and 60% as hydrophillic) 
-c     SSMD1=(DSU(10)/2.5d3)/(0.004189d0*(0.75d0**3.))  !dust(clay) coated w/ sulf
-c     SSMD2=(DSU(11)/2.65d3)/(0.004189d0*(2.2d0**3.))  !dust(silt1) coated w/ sulfate
-c     SSMD3=(DSU(12)/2.65d3)/(0.004189d0*(4.4d0**3.))  !dust(silt2) coated w/ sulfate
+!     SSMD1=(DSU(10)/2.5d3)/(0.004189d0*(0.75d0**3.))  !dust(clay) coated w/ sulf
+!     SSMD2=(DSU(11)/2.65d3)/(0.004189d0*(2.2d0**3.))  !dust(silt1) coated w/ sulfate
+!     SSMD3=(DSU(12)/2.65d3)/(0.004189d0*(4.4d0**3.))  !dust(silt2) coated w/ sulfate
 
 C*** Old way of getting Na in cm-3 as from Lohmann et al. 1999, JGR
 c     SSM1=DSU(1)/1769.d0                           !sulfate
@@ -72,6 +73,7 @@ C** Ocean Na (cm-3) is from sulfate+OC+BC+Seasalt and is SSMAO
 C** We use data from Texas based on Segal et al. 2004 from Leon R.
       MCDNL1 = 174.8d0 + (1.51d0*SSMAL**0.886d0)
       MCDNO1 = -29.6d0 + (4.917d0*SSMAO**0.694d0)
+c     write(6,*)"CDNC for MC Clds",MCDNL1,MCDNO1,SSMAL,SSMAO,L
 c     if (MCDNL1.gt.6000.d0.or.MCDNO1.gt.6000.d0)
 c    *write(6,*) "Nc1st",MCDNL1,MCDNO1,DSU(1),DSU(2),DSU(4),DSU(5),
 c    *DSU(6),DSU(7),L,SSMAL,SSMAO,SSM1,SSM2,SSM4,SSM5
@@ -89,7 +91,7 @@ c    *DSU(6),DSU(7),L,SSMAL,SSMAO,SSM1,SSM2,SSM4,SSM5
       real*8 CAREA,CLDSAVL,AIRM,WMX,SMFPML,OLDCDO,OLDCDL,VVEL
      *,SME,rho,PL,TL
 
-      integer, PARAMETER :: nt=12
+      integer, PARAMETER :: nt=17
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNO,WCDNL,CDNO0,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,CDNO1,amass,tams,smalphaf
@@ -100,7 +102,8 @@ c    *DSU(6),DSU(7),L,SSMAL,SSMAO,SSM1,SSM2,SSM4,SSM5
       integer L,n
 
       do n = 1,nt
-        DSU(n)=0.d0                         
+        DSU(n)=1.d-10                       
+c       write(6,*)"In SM LSS ROUTIN",DSS(n),n
       end do
       SSMAL=0.d0
       SSMAO=0.d0
@@ -116,7 +119,7 @@ C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
          DSU(n) =DSS(n)*tams
 C** Special case if not including dust-sulfate hetchem reactions
         if (n.gt.9) then
-          if (DSS(n).eq.1.d-30) DSU(n)=0.d0
+          if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
       enddo
 
@@ -188,7 +191,7 @@ C** If previous time step is cloudy then depending on cld frac change
       IF (CDNL1.le.10.d0) CDNL1=10.d0
       IF (CDNO1.le.10.d0) CDNO1=10.d0
 c     if(CDNL1.gt.2000.d0.or.CDNO1.gt.2000.d0) 
-c    *write(6,*) "Nc1st_ST",CDNL1,CDNO1,DSU(1),DSU(2),DSU(4),DSU(5),
+c     write(6,*) "Nc1st_ST",CDNL1,CDNO1,DSU(1),DSU(2),DSU(4),DSU(5),
 c    *DSU(6),DSU(7),L,SSMAL,SSMAO,SSM1,SSM2,SSM4,SSM5,smalphaf 
 c    *,EXPO,EXPL,dfn,DCLD,CCLD0,CDNL0,CDNO0 
 c     STOP "CLD_AEROSOLS_Menon_TC"
@@ -247,7 +250,7 @@ C** Units of kg m^-3 s^-1
        QAUT=QAU/rho     ! QAUT is in s-1
 C*** In main CLOUDS2.f if qc is gt. qcri start Qaut otherwise it is 0        
 c     if (RCLD.gt.5.d0)
-c    &write(6,*)"QAUT",r6c,r6,RCLD,cwc,WMX,FCLD,SCDNCW,QCRIT,QAUT
+c     write(6,*)"QAUT",r6c,r6,RCLD,cwc,WMX,FCLD,SCDNCW,QCRIT,QAUT
       RETURN
     
       END SUBROUTINE GET_QAUT
@@ -263,7 +266,7 @@ c    &write(6,*)"QAUT",r6c,r6,RCLD,cwc,WMX,FCLD,SCDNCW,QCRIT,QAUT
       real*8 EXPL,EXPO,WCDNO,WCDNL,CDNO0,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,CDNO1,smalfaf,FCLD
      *,LHX,WMUI,WCONST
-      integer, PARAMETER :: nt=12
+      integer, PARAMETER :: nt=17
       real*8,dimension(nt)::DSU
 
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSMAL,SSMAO,SSML,SSMO
@@ -340,8 +343,8 @@ C** If previous time step is cloudy then depending on cld frac change
         CDNO1 = (((CDNO0*CCLD0)+(WCDNO*DCLD))/CCLD1) - dfn*CDNO0
       endif
 c     if(CDNL1.gt.1600.d0.or.CDNO1.gt.1600.d0) 
-c    *write(6,*) "Nc2nd",CDNL1,CDNO1,DSU(1),DSU(2),DSU(4),DSU(5),
-c    *DSU(6),DSU(7),L,SSML,SSMO,SSM1,SSM2,SSM4,SSM5,smalfaf 
+c     write(6,*) "Nc2nd",CDNL1,CDNO1,DSU(1),DSU(2),DSU(4),DSU(5),
+c    *DSU(6),DSU(7),L,SSMAL,SSMAO,SSM1,SSM2,SSM4,SSM5,smalfaf 
 c    *,EXPO,EXPL,dfn,DCLD,CCLD0,CDNL0,CDNO0 
 c     STOP "CLD_AEROSOLS_Menonc"
       IF (CDNL1.le.10.d0) CDNL1=10.d0

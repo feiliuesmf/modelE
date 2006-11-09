@@ -138,9 +138,6 @@
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
-#ifdef CLD_AER_CDNC
-C    *     ,egcm                       ! not needed
-#endif
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
       USE SEAICE_COM, only : rsi
@@ -278,6 +275,7 @@ CRKF...FIX
 #endif
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: adiurn_temp
+
       REAL*8, DIMENSION(N_IDX3, NDIUPT) :: ADIURNSUM
 #ifndef NO_HDIURN
      &     ,HDIURNSUM
@@ -502,6 +500,9 @@ C**** PRESSURES, AND PRESSURE TO THE KAPA
       AIRM(:)=PDSIG(:,I,J)
       BYAM(:)=1./AIRM(:)
       WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
+#ifdef CLD_ER_CDNC
+        SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
+#endif
 C**** other fields where L is the leading index
       SVLHXL(:)=SVLHX(:,I,J)
       TTOLDL(:)=TTOLD(:,I,J)
@@ -512,9 +513,9 @@ C**** other fields where L is the leading index
         OLDCDL(:)=OLDNL(:,I,J)
         OLDCDO(:)=OLDNO(:,I,J)  ! OLDN is for rsf save
         SMFPML(:)=SMFPM(:,I,J)
-        SME(:)  =egcm(:,I,J)  !saving 3D TKE value
+c       SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
         CTEML(:) =CTEM(:,I,J)
-c       write(6,*)"CTEM_DRV",CTEML(L),CTEM(L,I,J)
+c       if(l.eq.2)write(6,*)"CTEM_DRV",CTEML(L),SME(L),OLDCDL(L)
         CD3DL(:) =CD3D(:,I,J)
         CL3DL(:) =CL3D(:,I,J)
         CI3DL(:) =CI3D(:,I,J)
@@ -694,28 +695,29 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
 #ifdef CLD_AER_CDNC
         DO L =1,LM
         IF (NMCW.ge.1) then
-         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)   !/NMCW
-         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)   !/NMCW
-         AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)   !/NMCW
-         AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)    !/NMCW
-         AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)   !/NMCW
-         AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)    !/NMC
-
-         AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)   !/NMCW
+         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L) 
+         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L) 
+         AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)
+         AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)   
+         AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L) 
+         AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L) 
+         AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)
+c        write(6,*)"IJL_REWM",AIJK(I,J,L,IJL_REWM),I,J,L,
+c    *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
         ENDIF
-        IF (NMCI.ge.1) then
-         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)    !/NMCI
-         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   !/NMCI
-         AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)   !/NMCI
-         AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)   !/NMCI
 
-         AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)    !/NMCW
-         AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)   !/NMCW
-         AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)    !/NMCW
+        IF (NMCI.ge.1) then
+         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)   
+         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   
+         AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)  
+         AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)
+         AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)   
+         AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L) 
+         AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L) 
 c        write(6,*)"IJL_REIM",AIJK(I,J,L,IJL_REIM),I,J,L,
 c    *   AIJK(I,J,L,IJL_CDIM),AIJK(I,J,L,IJL_CWIM),ALWIM(L)
-
         ENDIF
+
         ENDDO
 #endif
 C**** ACCUMULATE PRECIP
@@ -1107,7 +1109,7 @@ C**** WRITE TO GLOBAL ARRAYS
          OLDNL(:,I,J)=OLDCDL(:)
          OLDNO(:,I,J)=OLDCDO(:)
          SMFPM(:,I,J)=SMFPML(:)
-         egcm(:,I,J) = SME(:)
+c        EGCM(:,I,J) =SME(:)
          CTEM(:,I,J) =CTEML(:)
          CD3D(:,I,J) =CD3DL(:)
          CL3D(:,I,J) =CL3DL(:)
@@ -1197,34 +1199,30 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
 #ifdef CLD_AER_CDNC
         DO L=1,LM
          IF (NLSW.ge.1) then
-          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) !/NLSW
-          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)  !/NLSW
-          AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)  !/NLSW
-
-          AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)    !/NMCW
-          AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)   !/NMCW
-          AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)    !/NMCW
-
-          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  !/NLSW
-c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
-c    * ,ACDNWS,NLSW,itime
+          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) 
+          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L) 
+          AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L) 
+          AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)  
+          AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)  
+          AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)  
+          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  
+c     if(AIJ(I,J,IJ_3dNWS).gt.0.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
+c    * ,ACDNWS(L),NLSW,itime,l
          ENDIF
+
         IF(NLSI.ge.1) then
-         AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)!/NLSI
-         AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)!/NLSI
-         AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)!/NLSI
-
-         AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)!/NLSI
-
-         AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L)    !/NMCW
-         AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)   !/NMCW
-         AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)    !/NMCW
-
+         AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)
+         AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)
+         AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)
+         AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)
+         AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L) 
+         AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)
+         AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)   
         ENDIF
-c     if(AIJ(I,J,IJ_3dNWS).gt.1500.)write(6,*)"ODRV",AIJ(I,J,IJ_3dNWS)
-c    * ,ACDNWS(L),L
 c       STOP "CLOUDS2_DRV_F26"
+
         ENDDO
+
 #endif
 cECON      q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
 cECON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100

@@ -8,7 +8,7 @@
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
      *  ,twopi
 #ifdef CLD_AER_CDNC
-     *,kapa
+     *,kapa,mair,gasc
 #endif
       USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
 #ifdef CLD_AER_CDNC
@@ -411,7 +411,7 @@ c for sulfur chemistry
       INTEGER :: IERRT,LERRT,LLOW,LHIGH
       INTEGER, INTENT(IN) :: i_debug,j_debug
 #ifdef CLD_AER_CDNC
-      INTEGER, PARAMETER :: SNTM=12  !for tracers for CDNC
+      INTEGER, PARAMETER :: SNTM=17  !for tracers for CDNC
 #endif
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
@@ -1028,10 +1028,14 @@ C**** save plume temperature after possible condensation
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
 #ifdef CLD_AER_CDNC
-C** Here we change convective precip due to aerosols
-C#ifdef TRACERS_AEROSOLS_Koch
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !@auth Menon  saving aerosols mass for CDNC prediction
+      DO N=1,SNTM
+        DSS(N)=1.d-10
+        DSGL(L,N)=1.d-10
+      ENDDO
+C** Here we change convective precip due to aerosols
+#ifdef TRACERS_AEROSOLS_Koch
+c#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
       DO N=1,NTX
        select case (trname(ntix(n)))
         case('SO4')
@@ -1061,37 +1065,41 @@ C#ifdef TRACERS_AEROSOLS_Koch
         case('BCII')
         DSGL(L,9)=tm(l,n)  !n=23
         DSS(9) = DSGL(L,9)
-       DSGL(L,10)=1.d-30
-       DSGL(L,11)=1.d-30
-       DSGL(L,12)=1.d-30
-       DSS(10) = DSGL(L,10)
-       DSS(11) = DSGL(L,11)
-       DSS(12) = DSGL(L,12)
+#endif
+#ifdef TRACERS_DUST
+         case('Clay')
+         DSGL(L,10)=tm(l,n)  !n=23
+         DSS(10) = DSGL(L,10)
+         case('Silt1')
+         DSGL(L,11)=tm(l,n)  !n=23
+         DSS(11) = DSGL(L,11)
+         case('Silt2')
+         DSGL(L,12)=tm(l,n)  !n=23
+         DSS(12) = DSGL(L,12)
+         case('Silt3')
+         DSGL(L,13)=tm(l,n)  !n=23
+         DSS(13) = DSGL(L,13)
+#endif
+#ifdef TRACERS_NITRATE
+         case('NO3p')
+         DSGL(L,14)=tm(l,n)  !n=23
+         DSS(14) = DSGL(L,14)
+#endif
 #ifdef TRACERS_HETCHEM
 C*** Here are dust particles coated with sulfate
        case('SO4_d1')
-       DSGL(L,10)=tm(l,n)  !n=20
-       DSS(10) = DSGL(L,10)
+       DSGL(L,15)=tm(l,n)  !n=20
+       DSS(15) = DSGL(L,15)
        case('SO4_d2')
-       DSGL(L,11)=tm(l,n)  !n=21
-       DSS(11) = DSGL(L,11)
+       DSGL(L,16)=tm(l,n)  !n=21
+       DSS(16) = DSGL(L,16)
        case('SO4_d3')
-       DSGL(L,12)=tm(l,n)  !n=22
-       DSS(12) = DSGL(L,12)
+       DSGL(L,17)=tm(l,n)  !n=22
+       DSS(17) = DSGL(L,17)
 #endif
        end select
       END DO      !end of n loop for tracers
 c     if(DSS(5).lt.0.d0)write(6,*)"SO4c1",DSS(1),DSS(4),DSS(5),DSS(6),l
-#endif
-C**** COMPUTE VERTICAL VELOCITY IN CM/S
-c     ATEMP=100.*RGAS*TL(L)/(PL(L)*GRAV)
-c     IF(L.EQ.1)  THEN
-c        VVEL=-SDL(L+1)*ATEMP
-c     ELSE IF(L.EQ.LM)  THEN
-c        VVEL=-SDL(L)*ATEMP
-c     ELSE
-c        VVEL=-.5*(SDL(L)+SDL(L+1))*ATEMP
-c     END IF
       CALL GET_CC_CDNC(L,AIRM(L),DXYPJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
       MNdO=MCDNO1
       MNdL=MCDNL1
@@ -1101,21 +1109,12 @@ c     END IF
       if (MCDNCW.le.20.d0) MCDNCW=20.d0     !set min CDNC, sensitivity test
       if (MCDNCW.ge.8000.d0) MCDNCW=8000.d0     !set max CDNC, sensitivity test
 c     write(6,*)"CCONV",MCDNCW,MNdO,MNdL,L,LMIN
-c     IF(SVLATL(L).EQ.LHE)  THEN
-!        RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-c        RCLD=100.d0*((CONDMU+teeny)/(2.d0*BY3*TWOPI*MCDNCW))**BY3
-c     ELSE
-!        RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-c        RCLD=100.d0*((CONDMU+teeny)/(2.d0*BY3*TWOPI*MCDNCI))**BY3
-c    *         *(1.+pl(l)*xRICld)
-c     ENDIF
 C** Using the Liu and Daum paramet, Nature, 2002, Oct 10, Vol 419
 C** for spectral dispersion effects on droplet size distribution
 C** central value of 0.003 for alfa:Rotstayn&Daum, J.Clim,2003,16,21, Nov 2003.
       Repsi=1.d0 - 0.7d0*exp(-0.003d0*MCDNCW)
       Repsis=Repsi*Repsi
       Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**by3)
-c     RCLDE =RCLD*Rbeta
       RCLD_C=14.d0/Rbeta       !set Reff to threshold size =14 um (Rosenfeld)
 #endif
 
@@ -1384,14 +1383,11 @@ C** only if drop size (Reff) exceeds 14 um
 C** Conver Rvol to m and CDNC to m from um and cm, respectively
 C** Precip condensate is simply the LWC
         CONDPC(L)=4.d0*by3*PI*RHOW*((RCLD_C*1.d-6)**3)*1.d6*MCDNCW/RHO
-c       IF (RCLDE.gt.18.d0) then
         IF(CONDMU.gt.CONDPC(L))  then
           CONDP(L)=CONDMU-CONDPC(L) !
         ELSE
           CONDP(L)=0.d0
         ENDIF
-c      if (DCW.gt.1.d-6)
-c     write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
 c     if (CONDP(L).lt.0.d0)
 c    *write(6,*)"Mup",CONDP(L),CONDPC(L),CONDMU,DCW,MCDNCW,RCLD_C,L
 c      write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
@@ -2102,9 +2098,6 @@ c     write(6,*)"RCLD",RCLDE,RCLD,Rbeta,WTEM,L,MCDNCW
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
-#ifdef CLD_AER_CDNC
-      USE RANDOM, only : randu
-#endif
       IMPLICIT NONE
 
 !@var IERR,WMERR,LERR error reporting
@@ -2217,13 +2210,13 @@ c for sulfur chemistry
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-       integer, PARAMETER :: SNTM=12
+       integer, PARAMETER :: SNTM=17
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(SNTM),QCRIT
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
        real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
        real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
-       real*8 AERTAU(LM),AERTAUMC,AERTAUSS,THOLD,SUMTAU,xx
-       integer IFLAG,AAA,ILTOP
+c      real*8 AERTAU(LM),AERTAUMC,AERTAUSS,THOLD,SUMTAU,xx
+c      integer IFLAG,AAA,ILTOP
 #endif
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
 !@var SMN12,SMO12 dummy variables
@@ -2326,7 +2319,7 @@ C**** initialise vertical arrays
        CDN3DL=0.
        CRE3DL=0.
        SMLWP=0.
-       AERTAU=0.
+c      AERTAU=0.
        DSGL(:,1:SNTM)=0.
 #endif
       DO L=1,LP50
@@ -2476,23 +2469,25 @@ C**** is ice and temperatures after ice melt would still be below TFrez
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
      *     +teeny)) LHP(L)=LHP(L+1)
 #ifdef CLD_AER_CDNC
-C**#ifdef TRACERS_AEROSOLS_Koch
-C**#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !@auth Menon  saving aerosols mass for CDNC prediction
+      DO N=1,SNTM
+        DSS(N)=1.d-10
+        DSGL(L,N)=1.d-10
+      ENDDO
+#ifdef TRACERS_AEROSOLS_Koch
+C**#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+C**#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
       DO N=1,NTX
        select case (trname(ntix(n)))
        case('SO4')
        DSGL(L,1)=tm(l,n)  !n=4
        DSS(1) = DSGL(L,1)
-
        case('seasalt1')
        DSGL(L,2)=tm(l,n)  !n=6
        DSS(2) = DSGL(L,2)
        case('seasalt2')
        DSGL(L,3)=tm(l,n)  !n=7
        DSS(3) = DSGL(L,3)
-
        case('OCIA')
        DSGL(L,4)=tm(l,n)    !n=12
        DSS(4) = DSGL(L,4)
@@ -2500,48 +2495,56 @@ c     if(tm(l,12).gt.1.d6)write(6,*)"CL1",tm(l,12),l,n,DSS(4),DSGL(L,4)
        case('OCB')
        DSGL(L,5)=tm(l,n)  !n=13
        DSS(5) = DSGL(L,5)
-
        case('BCIA')
        DSGL(L,6)=tm(l,n)  !n=9
        DSS(6) = DSGL(L,6)
        case('BCB')
        DSGL(L,7)=tm(l,n)  !n=10
        DSS(7) = DSGL(L,7)
-
        case('OCII')
        DSGL(L,8)=tm(l,n)  !n=11
        DSS(8) = DSGL(L,8)
        case('BCII')
        DSGL(L,9)=tm(l,n)  !n=8
        DSS(9) = DSGL(L,9)
-
-       DSGL(L,10)=1.d-30
-       DSGL(L,11)=1.d-30
-       DSGL(L,12)=1.d-30
-       DSS(10) = DSGL(L,10)
-       DSS(11) = DSGL(L,11)
-       DSS(12) = DSGL(L,12)
+#endif
+#ifdef TRACERS_DUST
+        case('Clay')
+        DSGL(L,10)=tm(l,n)  !n=23
+        DSS(10) = DSGL(L,10)
+        case('Silt1')
+        DSGL(L,11)=tm(l,n)  !n=23
+        DSS(11) = DSGL(L,11)
+        case('Silt2')
+        DSGL(L,12)=tm(l,n)  !n=23
+        DSS(12) = DSGL(L,12)
+        case('Silt3')
+        DSGL(L,13)=tm(l,n)  !n=23
+        DSS(13) = DSGL(L,13)
+#endif
+#ifdef TRACERS_NITRATE
+        case('NO3p')
+        DSGL(L,14)=tm(l,n)  !n=23
+        DSS(14) = DSGL(L,14)
+#endif
 #ifdef TRACERS_HETCHEM
 C*** Here are dust particles coated with sulfate
        case('SO4_d1')
-       DSGL(L,10)=tm(l,n)  !n=20
-       DSS(10) = DSGL(L,10)
-c      if(DSS(10).gt.0.1d0)write(6,*)"Sd1",DSS(10),l
+       DSGL(L,15)=tm(l,n)  !n=20
+       DSS(15) = DSGL(L,15)
+c      if(DSS(15).gt.0.1d0)write(6,*)"Sd1",DSS(10),l
        case('SO4_d2')
-       DSGL(L,11)=tm(l,n)  !n=21
-       DSS(11) = DSGL(L,11)
-c      if(DSS(11).gt.0.1d0)write(6,*)"Sd1",DSS(11),l
+       DSGL(L,16)=tm(l,n)  !n=21
+       DSS(16) = DSGL(L,16)
        case('SO4_d3')
-       DSGL(L,12)=tm(l,n)  !n=22
-       DSS(12) = DSGL(L,12)
-c      if(DSS(12).gt.0.1d0)write(6,*)"Sd1",DSS(12),l
+       DSGL(L,17)=tm(l,n)  !n=22
+       DSS(17) = DSGL(L,17)
 #endif
         end select
 
 c     if(DSS(5).lt.0.d0)write(6,*)"SO4d1",DSS(1),DSS(4),DSS(5),DSS(6),l
 c       write(6,*)"TRACER",tm(l,n),l,n
       END DO      !end of n loop for tracers
-#endif
 #endif
 C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdO = 59.68d0/(RWCLDOX**3)
@@ -3372,74 +3375,55 @@ C**** CALCULATE OPTICAL THICKNESS
 
 #ifdef CLD_AER_CDNC
 !Save variables for 3 hrly diagnostics
-      AAA=1
-      DO L=LP50,1,-1
-        if (CLDSSL(L).gt.0.d0.and.CLDMCL(L).gt.0.d0) then
-         if (TAUSSL(L).gt.0.d0.and.TAUMCL(L).gt.0.d0) then
-          if (CLDSSL(L).LE.randu(xx))GO TO 7
-           AERTAUSS=TAUSSL(L)
-           AERTAU(L)=AERTAUSS
-    7     if (CLDMCL(L).LE.randu(xx))GO TO 8
-           AERTAUMC=TAUMCL(L)
-           IF(AERTAUMC.GT.AERTAU(L)) AERTAU(L)=AERTAUMC
-    8      SUMTAU=SUMTAU+AERTAU(L)
+c     AAA=1
+c     DO L=LP50,1,-1
+c       if (CLDSSL(L).gt.0.d0.and.CLDMCL(L).gt.0.d0) then
+c        if (TAUSSL(L).gt.0.d0.and.TAUMCL(L).gt.0.d0) then
+c         if (CLDSSL(L).LE.randu(xx))GO TO 7
+c          AERTAUSS=TAUSSL(L)
+c          AERTAU(L)=AERTAUSS
+c   7     if (CLDMCL(L).LE.randu(xx))GO TO 8
+c          AERTAUMC=TAUMCL(L)
+c          IF(AERTAUMC.GT.AERTAU(L)) AERTAU(L)=AERTAUMC
+c   8      SUMTAU=SUMTAU+AERTAU(L)
 C**
 C**   DETECT AT WHAT LAYER SUMTAU (COLUMN OPTICAL THICKNESS)
 C**   IS ABOVE THOLD (THRESHOLD SET AT .1 TAU)
 C**   THIS LAYER BECOMES CLOUD TOP LAYER (ILTOP)
 C**
-          THOLD=(.1)
-          IF(SUMTAU.GT.THOLD)THEN
-          IFLAG=(AAA)
-            IF(IFLAG.EQ.1)THEN
-              ILTOP=L
-              AAA=0
-            ENDIF
-          ENDIF
-         ENDIF
-        ENDIF
-      ENDDO
+c         THOLD=(.1)
+c         IF(SUMTAU.GT.THOLD)THEN
+c         IFLAG=(AAA)
+c           IF(IFLAG.EQ.1)THEN
+c             ILTOP=L
+c             AAA=0
+c           ENDIF
+c         ENDIF
+c        ENDIF
+c       ENDIF
+c     ENDDO
 
       DO L=1,LP50
 
-c      CDN3DL(L)=SCDNCW
-c      CRE3DL(L)=RCLDE !CSIZEL(L)
-c      IF(LHX.EQ.LHS) CRE3DL(L)=RCLDE
-
        PRS = (PL(1)-PTOP)/SIG(1)
+
        IF (L.GE.ls1) THEN
-         PPRES = (SIG(L)*(PSF-PTOP)+PTOP)*9.869d-4 !in atm
-         DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)*9.869d-4
+         PPRES = (SIG(L)*(PSF-PTOP)+PTOP)         !in hPa 
+         DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)      !in hPa 
          TEMPR=(TL(L)/PLK(L))*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA
        ELSE
-         PPRES = (SIG(L)*PRS+PTOP)*9.869d-4 !in atm
-         DPP= (SIGE(L+1)-SIGE(L))*PRS*9.869d-4
+         PPRES= (SIG(L)*PRS+PTOP)
+         DPP= (SIGE(L+1)-SIGE(L))*PRS
          TEMPR=(TL(L)/PLK(L))*(SIG(L)*PRS+PTOP)**KAPA
        ENDIF
 
-       RHODK=PPRES/.082d0/TEMPR*28.97d0
-c      IF (CLDSSL(L).GT.0.d0) then    !divide by CLDSSL for in-cld value
-c        IF (LHX.EQ.LHE) CL3DL(L) = WMX(L)*RHODK !/CLDSSL(L)   ! cld water
-c        IF (LHX.EQ.LHS) CI3DL(L) = WMX(L)*RHODK !/CLDSSL(L)   ! ice water
-c      ENDIF
-c      if(L.eq.ILTOP) then
-          CTEML(L)=TEMPR
-c         write(6,*)"ILTOP",L,CTEML(L),ILTOP
-c      else
-c         CTEML(L)=-1.d0
-c      endif
-       D3DL(L)=DPP/PPRES*TEMPR/GRAV*0.082d0*101325.d0/1000.d0/0.029d0
+       CTEML(L)=TEMPR                                        ! Cloud temperature(K)
+       D3DL(L)=DPP/PPRES*TEMPR/GRAV*(gasc*1.d03)/mair        ! For Cloud thickness (m)
        IF(CLDSSL(L).GT.0.d0) CD3DL(L)=-1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
-c      IF (CLDSSL(L).GT.0.d0) then    !divide by CLDSSL for in-cld value
-       IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHODK*CD3DL(L)  !cld water kg m-2
-       IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHODK*CD3DL(L)! ice water kg m-2
-c      ENDIF
-c      if(l.eq.1)
-c    *write(6,*)"CT",WMX(L),SVLHXL(L),LHX,LHE,LHS,CD3DL(l),CLDSSL(L),
-c    *CTEML(L),"CDNC=",CDN3DL(L),"Reff=",CRE3DL(L),CL3dL(L),CI3DL(L),L
-
-c      if(LHX.eq.LHE) write(6,*)"CE",CTEML(L),CD3Dl(L),CL3DL(L),
-c    * CDN3DL(L),CRE3DL(L),L
+       RHODK=100.d0*PPRES/(gasc*1.d03)/TEMPR*mair
+       IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHODK*CD3DL(L) ! cld water kg m-2
+       IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHODK*CD3DL(L) ! ice water kg m-2
+c      write(6,*)"CT",L,WMX(L),CD3DL(l),CL3DL(L),CI3DL(L)
 
       END DO
 

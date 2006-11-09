@@ -4,8 +4,9 @@
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat,LM_REQ
+      USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat
       USE GEOM, only : dlon
+      USE RAD_COM, only : LM_REQ
 
       IMPLICIT NONE
       SAVE
@@ -181,7 +182,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJK_loc
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER, public :: KAIJK=22, kaijkx=kaijk+400
+      INTEGER, PARAMETER, public :: KAIJK=28, kaijkx=kaijk+400
 !@var KAIJK lat/lon constant pressure diagnostics
       REAL*8, DIMENSION(IM,JM,LM,KAIJK), public :: AIJK
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK_loc
@@ -402,7 +403,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
-     *     ,ij_ssprec,ij_mcprec
+     *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -574,6 +575,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJK_VV, IJK_TT
 #ifdef CLD_AER_CDNC
      *    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
+     *    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
 #endif
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJKx), public :: SCALE_IJK
@@ -719,9 +721,10 @@ c idacc-indices of various processes
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
       USE RESOLUTION, ONLY : IM,LM
-      USE MODEL_COM, ONLY : NTYPE,LM_REQ
+      USE MODEL_COM, ONLY : NTYPE
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD
+      USE RAD_COM, only : LM_REQ
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,APJ_loc,AJL_loc,ASJL_loc
      *     ,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc
      *     ,AFLX_ST,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc
