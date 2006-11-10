@@ -308,8 +308,8 @@ endif
 	echo '---------    executable $(RUN).exe was created     ---------'
 	echo '--------------------------------------------------------------'
 
-gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJSA)
-	ar rcs $(RUN).a $(OBJSA)
+gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) modelsubdirs $(OBJSA)
+	ar rcs $(RUN).a $(OBJSA) $(OBJS_IN_SUBDIRS)
 	if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).a $(BIN_DIR)
 
