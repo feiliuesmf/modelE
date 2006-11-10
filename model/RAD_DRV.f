@@ -325,7 +325,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
-      USE MODEL_COM, only : jm,lm,ls1,sige,psfmpt,ptop,dtsrc,nrad
+      USE MODEL_COM, only : jm,lm,dtsrc,nrad
      *     ,kradia,lm_req,pednl00
       USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
       USE GEOM, only : dlat,lat_dg
@@ -823,9 +823,10 @@ C**** Define CO2 (ppm) for rest of model
 !@ver  1.0
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
-     *     ,kapa,bysha
+     *     ,bysha
       USE MODEL_COM
       USE GEOM
+      USE ATMDYN, only : CALC_AMPK
       USE RADPAR
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
@@ -1052,17 +1053,7 @@ C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
           call stop_model('RADIA: input file bad or too short',255)
         end if
 C****   Find arrays derived from P : PEdn and PK (forcing experiments)
-C        call call_ampk(lm)  ! why not? 
-        do j=j_0,j_1
-        do i=1,imaxj(j)
-          pedn(LM+1,i,j) = SIGE(LM+1)*PSFMPT+PTOP
-        do l=lm,1,-1
-          pij=p(i,j)
-          if(l.ge.ls1) pij=psfmpt
-          pedn(l,i,j) = SIGE(L)*PIJ+PTOP
-          pmid(l,i,j) = .5d0*(pedn(l,i,j)+pedn(l+1,i,j))
-          pk(l,i,j)   = (SIG(L)*PIJ+PTOP)**KAPA
-        end do ; end do ; end do
+        call calc_ampk(lm)
       end if
 
       IF (MODRD.NE.0) GO TO 900
@@ -2919,7 +2910,7 @@ C****
       END SUBROUTINE ORBPAR
 
       SUBROUTINE ORBIT (DOBLIQ,ECCEN,DOMEGVP,VEDAY,EDPY, DAY,
-     *                  SDIST,SIND,COSD,EQTIME) 
+     *                  SDIST,SIND,COSD,EQTIME)
 C****
 C**** ORBIT receives orbital parameters and time of year, and returns
 C**** distance from Sun, declination angle, and Sun's overhead position.
@@ -2938,11 +2929,11 @@ C****               = spatial angle from vernal equinox to perihelion
 C****                 with Sun as angle vertex
 C****        DAY    = days measured since 2000 January 1, hour 0
 C****
-C****        EDPY  = Earth days per year 
+C****        EDPY  = Earth days per year
 C****                tropical year = 365.2425 (Gregorgian Calendar)
 C****                tropical year = 365      (Generic Year)
 C****        VEDAY = Vernal equinox
-C****                79.0 (Generic year Mar 21 hour 0) 
+C****                79.0 (Generic year Mar 21 hour 0)
 C****                79.3125d0 for days from 2000 January 1, hour 0 till vernal
 C****                     equinox of year 2000 = 31 + 29 + 19 + 7.5/24
 C****
