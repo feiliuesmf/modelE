@@ -50,6 +50,11 @@
         module procedure ent_cell_nullify_array_2d
       end interface
 
+      interface ent_cell_pack
+      module procedure ent_cell_pack
+      module procedure ent_cell_pack_2d
+      end interface
+
       !--- passing initial data to ent cells ---
       interface ent_cell_set
         module procedure ent_cell_set_single
@@ -578,9 +583,65 @@ cddd      call zero_entcell(entcell%entcell)
 
 !*************************************************************************
 
+      subroutine ent_cell_pack_2d(dbuf, entcell)
+!@sum allocate single linear arrays dbuf and pack contents of
+!@+   entcells(i,j) into it
+      real*8, pointer :: dbuf(:)
+      type(entcelltype_public), intent(in) :: entcell(:,:)
+      !---
+      type real8_ptr
+        real*8, pointer :: ptr(:)
+      end type real8_ptr
+      type(real8_ptr), dimension(:,:), allocatable :: buf2d
+      integer i, j, ic, jc, dc, dcc, lsize
+
+      ic = size(entcell, 1)
+      jc = size(entcell, 2)
+
+      allocate( buf2d(ic,jc) )
+      
+      dc = 0
+      do j=1,jc
+        do i=1,ic
+          !print *,"ent_cell_pack_2d i,j=",i,j
+          nullify( buf2d(i,j)%ptr )
+          if ( .not. associated(entcell(i,j)%entcell) ) cycle
+
+          call ent_cell_pack(buf2d(i,j)%ptr, entcell(i,j))
+          dc = dc + size(buf2d(i,j)%ptr, 1) + 3 ! 3 =: i,j,size
+          
+        enddo
+      enddo
+
+      allocate( dbuf(dc) )
+      dcc = 1
+      do j=1,jc
+        do i=1,ic
+          if ( .not. associated( buf2d(i,j).ptr ) ) cycle
+
+          print *,"ent_cell_pack_2d i,j,dcc,lsize=",i,j,dcc,lsize
+          print *,buf2d(i,j)%ptr(1:lsize)
+          lsize = size(buf2d(i,j)%ptr, 1)
+          dbuf(dcc) = i; dcc = dcc+1
+          dbuf(dcc) = j; dcc = dcc+1
+          dbuf(dcc) = lsize; dcc = dcc+1
+          dbuf(dcc:dcc+lsize-1) = buf2d(i,j)%ptr(1:lsize)
+          dcc = dcc+lsize
+          deallocate( buf2d(i,j)%ptr )
+
+        enddo
+      enddo
+
+      if ( dcc-1 .ne. dc ) call stop_model("ent_cell_pack_2d: dcc",255)
+     
+      deallocate( buf2d )
+
+      end subroutine ent_cell_pack_2d
+
+
       subroutine ent_cell_pack(dbuf, entcell)
-!@sum allocate two linear arrays ibuf, dbuf and pack contents of
-!@+   entcell into them
+!@sum allocate single linear arrays dbuf and pack contents of
+!@+   entcell into it
       real*8, pointer :: dbuf(:)
       type(entcelltype_public), intent(in) :: entcell ! pointer ?
       !---
@@ -626,12 +687,12 @@ cddd      call zero_entcell(entcell%entcell)
         p => p%younger
       enddo
 
-      allocate( dbuf(0:ndbuf-1+1+np) ) !i.e. num reals + num int's
+      allocate( dbuf(ndbuf+1+np) ) !i.e. num reals + num int's
       dc = 0
-      dbuf(dc) = real( np, kind(0d0) );               dc = dc + 1
-      print *,"pack ", np, dbuf(0)
-      dbuf(dc:dc+np-1) = real( nc(1:np), kind(0d0) ); dc = dc + np
-      print *,"pack1 ", nc(1:np), dbuf(1:dc-1) 
+      dbuf(dc+1) = real( np, kind(0d0) );               dc = dc + 1
+      print *,"pack ", np, dbuf(1)
+      dbuf(dc+1:dc+np) = real( nc(1:np), kind(0d0) ); dc = dc + np
+      print *,"pack1 ", nc(1:np), dbuf(2:dc) 
 
       ! now do the real saving
       ! no need to count patches and cohorts again, but leaving it here
@@ -645,7 +706,7 @@ cddd      call zero_entcell(entcell%entcell)
         if ( np > MAX_PATCHES )
      &       call stop_model("ent_cell_pack: too many patches",255)
         !save patch
-        call copy_patch_vars(dbuf(dc:), nn, p, -1); dc = dc + nn
+        call copy_patch_vars(dbuf(dc+1:), nn, p, -1); dc = dc + nn
         nc(np) = 0
         c => p%tallest
         do while ( associated(c) )
@@ -653,11 +714,15 @@ cddd      call zero_entcell(entcell%entcell)
           if ( nc(np) > MAX_COHORTS )
      &         call stop_model("ent_cell_pack: too many cohorts",255)
           !save cohort
-          call copy_cohort_vars(dbuf(dc:), nn, c, -1); dc = dc + nn
+          call copy_cohort_vars(dbuf(dc+1:), nn, c, -1); dc = dc + nn
          c => c%shorter
         enddo
         p => p%younger
       enddo
+
+      if ( dbuf(1) .ne. np ) then
+        print *,"GGGGGGGGGGG", np, nc(1:np), "XX", dbuf
+      endif
 
       end subroutine ent_cell_pack
 
