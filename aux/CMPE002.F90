@@ -222,6 +222,25 @@
       end module CMP
 
 
+      module ent_data_for_cmp
+
+      private
+      public ent_data, get_ent_data_for_cmp
+      real*8, pointer :: ent_data(:)
+
+      contains
+
+      subroutine get_ent_data_for_cmp
+      use ent_com, only : entcells
+      use ent_mod
+
+      call ent_cell_pack( ent_data, entcells )
+
+      end subroutine get_ent_data_for_cmp
+
+      end module ent_data_for_cmp
+
+
 #define check(y,x) call store(i,y,pack(x,tt),size(x)); \
                    call guess_dims(i,y,shape(x))
 
@@ -248,7 +267,7 @@
            ,evap_max_ij,fr_sat_ij,qg_ij
       use ghy_com, only : wbare,wvege,htbare,htvege,snowbv, &
         nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
-      use veg_com, only : Cint,Qfol,cnc_ij
+      !use veg_com, only : Cint,Qfol,cnc_ij
       use landice_com, only : snowli,tlandi
       use pblcom, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg, &
            ustar_pbl,egcm,w2gcm,tgvavg,qgavg
@@ -314,6 +333,7 @@
 #  endif
 
 #endif
+      use ent_data_for_cmp, only : ent_data, get_ent_data_for_cmp
 
       implicit none
       logical, parameter :: tt=.true.
@@ -359,6 +379,8 @@
            ! stop
         endif
         print *,"read file: ", trim(file_name(i)),"  time= ",Itime(i)
+        ! get Ent data
+        call get_ent_data_for_cmp
         ! data from model_com
         check("u",u)
         check("v",v)
@@ -425,9 +447,10 @@
         check("htbare",htbare)
         check("htvege",htvege)
         check("snowbv",snowbv)
-        check("Cint",Cint)
-        check("Qfol",Qfol)
-        check("cnc_ij",cnc_ij)
+        check("ent_data",ent_data)
+        !check("Cint",Cint)
+        !check("Qfol",Qfol)
+        !check("cnc_ij",cnc_ij)
         check("nsn_ij",nsn_ij)
         check("dzsn_ij",dzsn_ij)
         check("wsn_ij",wsn_ij)
