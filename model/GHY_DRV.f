@@ -2479,9 +2479,9 @@ C**** Extract useful local domain parameters from "grid"
 
       ! update water and heat in land surface fractions if
       ! lake fraction changed
-      if ( variable_lk > 0 ) call update_land_fractions
+      if (end_of_day .and. variable_lk > 0) call update_land_fractions
 
-      call remove_extra_snow
+      if (end_of_day) call remove_extra_snow
 
 !!! testing
 !!!      aalbveg(:,:) = 0.08D0
@@ -2735,10 +2735,11 @@ c****
 !@ver  1.0
       use constant, only : rhow
       use model_com, only : fim, focean
-      use geom, only : imaxj
+      use geom, only : imaxj,DXYP
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       use veg_com, only : afb
       use LAKES_COM, only : flake
+      use LANDICE_COM,only : MDWNIMP
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var waterg zonal ground water (kg/m^2)
@@ -2772,6 +2773,8 @@ C****
      &       +  fv*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2,i,j),2,i,j))
             waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
      &           + flake(i,j)*sum( w_ij(0:ngm,3,i,j) )*rhow
+!!! hack to check remove_extra_snow
+!!!            waterg(j)=waterg(j)+MDWNIMP(i,j)/DXYP(j)
           end if
        end do
       end do
@@ -3719,7 +3722,7 @@ C**** Initialize work array
               AREG_PART(JR,J,2) =
      &             AREG_PART(JR,J,2) + dw*fearth(i,j)*DXYP(j)
 
-              print *,"remove_extra_snow", i,j,ibv,eta,dw,dh
+              !print *,"remove_extra_snow", i,j,ibv,wsn_tot,eta,dw,dh
 
             endif
           enddo
