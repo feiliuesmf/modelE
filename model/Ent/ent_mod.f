@@ -322,7 +322,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       print *,"ent_cell_constr"
       call entcell_construct(entcell%entcell)
-      call entcell_print(entcell%entcell)
+      call entcell_print(6, entcell%entcell)
 
       end subroutine ent_cell_construct_single
 
@@ -567,7 +567,7 @@ cddd      call zero_entcell(entcell%entcell)
           if ( .not. associated(entcell(i,j)%entcell) ) cycle
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("init_simple_entcell 1",255)
-          call entcell_print(entcell(i,j)%entcell)
+          call entcell_print(6,entcell(i,j)%entcell)
 
           call init_simple_entcell( entcell(i,j)%entcell,
      &         veg_fraction(:,i,j),pft_population_density,
@@ -803,6 +803,8 @@ cddd      call zero_entcell(entcell%entcell)
       entcell%entcell%oldest => pprev
 
       deallocate( nc )
+
+      call summarize_entcell(entcell%entcell)
 
       end subroutine ent_cell_unpack
 
@@ -1475,35 +1477,38 @@ cddd      call zero_entcell(entcell%entcell)
 
 !******************************************************************
 
-      subroutine ent_cell_print_single(entcell)
+      subroutine ent_cell_print_single(iu, entcell)
       use entcells, only : entcell_destruct
-      type(entcelltype_public), intent(inout) :: entcell
+      integer, intent(in) :: iu
+      type(entcelltype_public), intent(in) :: entcell
 
       if ( .not. associated(entcell%entcell) ) then
         print *, "ent_cell_print_single: Empty entcell"
         return
       endif
 
-      call entcell_print( entcell%entcell )
+      call entcell_print( iu, entcell%entcell )
 
       end subroutine ent_cell_print_single
 
 
-      subroutine ent_cell_print_array_1d(entcell)
-      type(entcelltype_public), intent(inout) :: entcell(:)
+      subroutine ent_cell_print_array_1d(iu, entcell)
+      integer, intent(in) :: iu
+      type(entcelltype_public), intent(in) :: entcell(:)
       integer n, nc
 
       nc = size(entcell)
 
       do n=1,nc
-        call ent_cell_print_single( entcell(n) )
+        call ent_cell_print_single( iu, entcell(n) )
       enddo
 
       end subroutine ent_cell_print_array_1d
 
 
-      subroutine ent_cell_print_array_2d(entcell)
-      type(entcelltype_public), intent(inout) :: entcell(:,:)
+      subroutine ent_cell_print_array_2d(iu, entcell)
+      integer, intent(in) :: iu
+      type(entcelltype_public), intent(in) :: entcell(:,:)
       integer i, ic, j, jc
 
       ic = size(entcell,1)
@@ -1511,7 +1516,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       do j=1,jc
         do i=1,ic
-          call ent_cell_print_single( entcell(i,j) )
+          call ent_cell_print_single( iu, entcell(i,j) )
         enddo
       enddo
 

@@ -311,22 +311,26 @@ cddd      end subroutine init_cohort_defaults
       end subroutine cohort_destruct
 
 
-      subroutine cohort_print(cop, prefix)
-      type(cohort) :: cop
-      character*(*), optional :: prefix
+      subroutine cohort_print(iu, cop, prefix)
+      integer, intent(in) :: iu
+      type(cohort), intent(in) :: cop
+      character*(*), optional, intent(in) :: prefix
+      !---
       integer n
 
-      print '(a,a," = ",i7)',prefix,"pft ",cop%pft
-      print '(a,a," = ",f10.7)',prefix,"n   ",cop%n
-      print '(a,a," = ",f10.7)',prefix,"nm  ",cop%nm
-      print '(a,a," = ",f10.7)',prefix,"Ntot",cop%Ntot
-      print '(a,a," = ",f10.7)',prefix,"LAI ",cop%LAI
-      print '(a,"froot = " )',prefix
+      write(iu, '(a,a," = ",i7)') prefix,"pft ",cop%pft
+      write(iu, '(a,a," = ",f10.7)') prefix,"n   ",cop%n
+      write(iu, '(a,a," = ",f10.7)') prefix,"nm  ",cop%nm
+      write(iu, '(a,a," = ",f10.7)') prefix,"Ntot",cop%Ntot
+      write(iu, '(a,a," = ",f10.7)') prefix,"LAI ",cop%LAI
+      write(iu, '(a,a," = ",f10.7)') prefix,"h   ",cop%h
+      write(iu, '(a,a," = ",f10.7)') prefix,"dbh ",cop%dbh
+      write(iu, '(a,"froot = " )') prefix
       do n=1,N_DEPTH
-        print '(a,"      ",f10.7)',prefix,cop%froot(n)
+        write(iu, '(a,"      ",f10.7)') prefix,cop%froot(n)
       enddo
-      print '(a,a," = ",f10.7)',prefix,"Gcan",cop%gcanopy
-      print '(a,a," = ",f10.7)',prefix,"GPP ",cop%GPP
+      write(iu, '(a,a," = ",f10.7)') prefix,"Gcan",cop%gcanopy
+      write(iu, '(a,a," = ",f10.7)') prefix,"GPP ",cop%GPP
 
 
       end subroutine cohort_print

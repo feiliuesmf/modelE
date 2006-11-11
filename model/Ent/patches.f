@@ -261,7 +261,7 @@
             pp%Tpool(:,:) = 0.d0
 
             !* Soil type
-            pp%soil_type = UNDEF    ! set to undefined soil type (maybe use -1?)
+            pp%soil_type = -1    ! set to undefined soil type (maybe use -1?)
 
             !* Soil vars for CASA -PK
             pp%Soilmoist = 0.d0
@@ -420,43 +420,49 @@
       end subroutine patch_destruct
 
 
-      subroutine patch_print(pp,prefix)
+      subroutine patch_print(iu,pp,prefix)
       use cohorts, only : cohort_print
-      type(patch) :: pp
-      character*(*), optional :: prefix
-      integer n, nc
+      integer, intent(in) :: iu
+      type(patch), intent(in) :: pp
+      character*(*), optional, intent(in) :: prefix
+      !---
+      integer n, nc, m
       type(cohort),pointer :: cop
       character*8 prefix_c
 
       prefix_c = "        "
 
-      print '(a,a," = ",f10.7)',prefix,"area",pp%area
-      print '(a,a," = ",f10.2)',prefix,"age ",pp%age
-      print '(a,a," = ",f10.7)',prefix,"GCANOPY ",pp%GCANOPY
-      print '(a,a," = ",f10.7)',prefix,"Ci ",pp%Ci
-      print '(a,a," = ",f10.7)',prefix,"nm ",pp%nm
-      print '(a,"soil moisture:")',prefix
+      write(iu,'(a,a," = ",f10.7)') prefix,"area",pp%area
+      write(iu,'(a,a," = ",f10.2)') prefix,"age ",pp%age
+      write(iu,'(a,a," = ",f10.7)') prefix,"GCANOPY ",pp%GCANOPY
+      write(iu,'(a,a," = ",f10.7)') prefix,"Ci ",pp%Ci
+      write(iu,'(a,a," = ",f10.7)') prefix,"nm ",pp%nm
+      write(iu,'(a,a," = ",f10.7)') prefix,"soil H2O ",pp%Soilmoist
+      write(iu,'(a,"albedo:")') prefix
       do n=1,N_BANDS
-        print '(a,"      ",f10.7)',prefix,pp%albedo(n)
+        write(iu,'(a,"      ",f10.7)') prefix,pp%albedo(n)
       enddo
-      print '(a,"      ",f10.7)',prefix,pp%Soilmoist
-!      do n=1,N_DEPTH
-!        print '(a,"      ",f10.7)',prefix,pp%Soilmoist(n)
-!      enddo
-      print '(a,a," = ",i7)',prefix,"soil type",pp%soil_type
-      print '(a,"cohorts:")',prefix
+      write(iu,'(a,"Tpool:")') prefix
+      do m=1,PTRACE
+        do n=1,NPOOLS,3
+          write(iu,'(a,"      ",i1,"  ",e12.4,e12.4,e12.4)') prefix,m
+     &         ,pp%Tpool(m,n),pp%Tpool(m,n+1),pp%Tpool(m,n+2)
+        enddo
+      enddo
+      write(iu,'(a,a," = ",i7)') prefix,"soil type",pp%soil_type
+      write(iu,'(a,"cohorts:")') prefix
 
       cop => pp%tallest
       nc = 0
       do while( associated(cop) )
         nc = nc + 1
         write( prefix_c, '(i2,"      ")' ) nc
-        call cohort_print(cop,prefix//prefix_c)
+        call cohort_print(iu, cop, prefix//prefix_c)
         cop => cop%shorter
       enddo
 
-      print '(a,"sumcohort:")',prefix
-      call cohort_print(pp%sumcohort,prefix//"s       ")
+      write(iu,'(a,"sumcohort:")') prefix
+      call cohort_print(iu, pp%sumcohort, prefix//"s       ")
 
       end subroutine patch_print
 

@@ -150,7 +150,7 @@
 
 #ifdef DEBUG      !# DEBUG
       print *,"End of ent_biophysics"
-      call entcell_print(ecp)
+      call entcell_print(6, ecp)
       print *,"*"
       !write(90,*) ecp%GCANOPY
       !write(90,*) ecp%sumpatch%GCANOPY
@@ -204,7 +204,7 @@
 
 #ifdef DEBUG      !# DEBUG
       print *,"End of ent_biophysics"
-      call entcell_print(ecp)
+      call entcell_print(6, ecp)
       print *,"*"
       !write(90,*) ecp%GCANOPY
       !write(90,*) ecp%sumpatch%GCANOPY

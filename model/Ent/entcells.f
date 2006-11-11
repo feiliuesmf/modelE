@@ -303,7 +303,7 @@
       print *,"entered init_simple_entcell"
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("init_simple_entcell 1",255)
-      call entcell_print(ecp)
+      call entcell_print(6,ecp)
 
       ! destroy all existing patches since we are going to 
       ! re-initialize the cell
@@ -330,7 +330,7 @@
           if ( popdens(ncov) > EPS ) then 
             if ( pft < 1 .or. pft > N_PFT ) then
               print *,"init_simple_entcell: wrong pft:", pft
-              call patch_print(pp,"ERROR ")
+              call patch_print(6,pp,"ERROR ")
               call stop_model("init_simple_entcell: wrong pft",255)
             endif
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
@@ -357,7 +357,7 @@
       call summarize_entcell(ecp)
 
       print *,"leaving init_simple_entcell:"
-      call entcell_print(ecp)
+      call entcell_print(6,ecp)
 
       end subroutine init_simple_entcell
 
@@ -416,36 +416,37 @@
 
  !*********************************************************************
       
-      subroutine entcell_print(ecp)
+      subroutine entcell_print(iu, ecp)
       use patches, only : patch_print
-      type(entcelltype) :: ecp
+      integer, intent(in) :: iu
+      type(entcelltype), intent(in) :: ecp
+      !---
       type(patch), pointer :: pp
       character*1 :: prefix=" "
       character*8 prefix_p
       integer np
 
-      print '(a,"entcell:")',prefix
+      write(iu, '(a,"entcell:")') prefix
       !print '(a," = ",f10.7)',"GCANOPY ",ecp%GCANOPY
 
-      print '(a,"patches:")',prefix
+      write(iu, '(a,"patches:")') prefix
       pp => ecp%oldest
       np = 0
       do while( associated(pp) )
         np = np + 1
         write( prefix_p, '(i2,"      ")' ) np
-        call patch_print(pp,prefix//prefix_p)
+        call patch_print(iu, pp, prefix//prefix_p)
         pp => pp%younger
       enddo
 
-      print '(a,"sumpatch:")',prefix
-      call patch_print(ecp%sumpatch,prefix//"s       ")
+      write(iu, '(a,"sumpatch:")') prefix
+      call patch_print(iu, ecp%sumpatch, prefix//"s       ")
 
       end subroutine entcell_print
 
  !*********************************************************************
 
       subroutine entcell_extract_pfts(ecp, vdata)
-      use patches, only : patch_print
       type(entcelltype) :: ecp
       real*8 :: vdata(:)
       !---

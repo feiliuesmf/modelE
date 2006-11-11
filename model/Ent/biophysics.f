@@ -217,7 +217,7 @@
 
 #ifdef DEBUG
       print *,"Started photosynth_cond" ! with patch:"
-      !call patch_print(pp," ")
+      !call patch_print(6,pp," ")
 #endif
 
       if ( pp%sumcohort%pft == -1 ) then ! bare soil
@@ -231,7 +231,7 @@
 
       if ( pp%sumcohort%pft < 1 .or. pp%sumcohort%pft > N_PFT ) then
         print *,"photosynth_cond: wrong pft = ", pp%sumcohort%pft
-        call patch_print(pp,"ERROR ")
+        call patch_print(6,pp,"ERROR ")
         call stop_model("photosynth_cond: wrong pft",255)
       endif
 
