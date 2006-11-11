@@ -482,7 +482,7 @@
 ! NOTE:  Should be changed to surface height at 10 m with new PBL.
       real*8 gt
 !----------------------------------------------------------------------------
-      real*8 :: sbeta  !Gets sin(solarzen)
+      real*8 :: sbeta  !Gets cos(solarzen)
 !@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
       real*8 :: qvsat
       real*8 :: Ci_old, Ci
@@ -523,7 +523,7 @@
 !################## RADIATIVE TRANSFER########################################
       !Get incident diffuse and direction PAR radiation 
       !and set up canopy radiative transfer parameters.
-      sbeta = sin(solarzen)
+      sbeta = cos(solarzen)
       call canopy_rad_setup(sbeta, fdir, parinc,
      o     vegpar,I0df, I0dr)
 !#############################################################################
@@ -780,7 +780,7 @@
 ! NOTE:  Should be changed to surface height at 10 m with new PBL.
       real*8 gt
 !----------------------------------------------------------------------------
-      real*8 :: sbeta  !Gets sin(solarzen)
+      real*8 :: sbeta  !Gets cos(solarzen)
 !@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
       real*8 :: qvsat
       real*8 :: Ci_old, Ci
@@ -821,7 +821,7 @@
 !################## RADIATIVE TRANSFER########################################
       !Get incident diffuse and direction PAR radiation 
       !and set up canopy radiative transfer parameters.
-      sbeta = sin(solarzen)
+      sbeta = cos(solarzen)
       call canopy_rad_setup(sbeta, fdir, parinc,
      o     vegpar,I0df, I0dr)
 !#############################################################################
@@ -1335,7 +1335,7 @@
 
 !-----------------------------------------------------------------------------
       subroutine canopy_rad(
-     i     sbeta,               !sine of solar zenith angle
+     i     sbeta,               !cos of solar zenith angle
      i     Lc,                  !Cumulative LAI at layer from top of canopy
      i     I0df,                !Incident diffuse PAR, top of layer Lc
      i     I0dr,                !Incident direct PAR, top of layer Lc
@@ -1405,7 +1405,7 @@
 !Parameters -------------------------------------------------------------
 !@var trans_sw Total canopy transmittance of shortwave (fraction)
       real*8, intent(out) :: TRANS_SW  
-!@var sbeta Sine of solar zenith angle (rad).
+!@var sbeta Cos of solar zenith angle (rad).
       real*8, intent(in) :: sbeta
 !@var fdir Fraction of surface visible radiation that is direct
       real*8, intent(in) :: fdir
