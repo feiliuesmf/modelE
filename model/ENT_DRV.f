@@ -55,7 +55,7 @@
         enddo
 
         print *,'init_module_ent printing cells 1'
-        call ent_cell_print(entcells)
+        call ent_cell_print(6, entcells)
         print *,'init_module_ent end printing cells 1'
 
         call set_vegetation_data( entcells, ! (I_0:I_1,J_0:J_1),
@@ -130,7 +130,7 @@ c**** check whether ground hydrology data exist at this point.
       do j=j0,j1
         do i=i0,i1
           print *,'set_vegetation_data i,j = ',i,j
-          call ent_cell_print( entcells(i,j) )
+          call ent_cell_print( 6, entcells(i,j) )
         enddo
       enddo
 

@@ -55,6 +55,9 @@
             call ent_cell_unpack(buffer, entcells(i,j))
           endif
           deallocate( buffer )
+
+          call ent_cell_print(998,entcells(i,j))
+
         enddo
       enddo
 
@@ -78,6 +81,7 @@
           call ent_cell_pack(buffer, entcells(i,j))
           print *, "ent_write_state: i, j ", i, j
           print *, buffer
+          call ent_cell_print(999,entcells(i,j))
           write(kunit) size(buffer)
           write(kunit) buffer
           deallocate(buffer)
