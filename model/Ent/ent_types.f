@@ -304,7 +304,7 @@
 !         real*8 :: IPAR         !Incident PAR 400-700 nm (W m-2)
          real*8 :: IPARdir        !Incident direct PAR (W m-2)
          real*8 :: IPARdif        !Incident diffuse PAR (W m-2)
-         real*8 :: Solarzen     !Solar zenith angle
+         real*8 :: CosZen     !Solar zenith angle
 
       end type entcelltype
 

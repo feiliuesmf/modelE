@@ -147,8 +147,8 @@
       real*8 :: parinc
 !@var fdir Fraction of surface visible radiation that is direct (adf)
       real*8 :: fdir
-!@var solarzen Solar zenith angle (rad).
-      real*8 :: solarzen
+!@var CosZen cos of Solar zenith angle
+      real*8 :: CosZen
 !@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
       real*8 :: Ca 
 !@var betad  Vegetation water stress (0-1, 1=unstressed)
@@ -209,7 +209,7 @@
       !-----Local----------!
 
       integer :: pft
-      real*8 :: TcanopyC,P_mbar,Ch,U,Solarzen,Ca,betad,Qf
+      real*8 :: TcanopyC,P_mbar,Ch,U,CosZen,Ca,betad,Qf
       real*8 :: GCANOPY,Ci,TRANS_SW,GPP !,NPP
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
@@ -247,10 +247,10 @@
         fdir = pp%cellptr%IPARdir / IPAR
       endif
 !      write(98,*) pp%cellptr%IPARdif,pp%cellptr%IPARdir,fdir
-!      IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%Solarzen
+!      IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%CosZen
 !      if ( pp%cellptr%Ivis > 1.e-30 )
 !     &     fdir = pp%cellptr%Idir / pp%cellptr%Ivis
-!      Solarzen = pp%cellptr%Solarzen
+!      CosZen = pp%cellptr%CosZen
 
       !* Assign vegpar
       !** GISS replication test hack:  grid cell average patch properties
@@ -274,7 +274,7 @@
       Ch = pp%cellptr%Ch
       U = pp%cellptr%U
       !IPAR,fdir
-      Solarzen = pp%cellptr%Solarzen
+      CosZen = pp%cellptr%CosZen
       Ca = pp%cellptr%Ca
       betad = pp%betad
       Qf = pp%cellptr%Qf
@@ -290,7 +290,7 @@
      i     dtsec, pft,
      i     TcanopyC,
      i     P_mbar,Ch,U,
-     i     IPAR,fdir,Solarzen,
+     i     IPAR,fdir,CosZen,
      i     Ca,
      i     betad,
      i     Qf, 
@@ -383,7 +383,7 @@
       !************************************************************************
 
       subroutine veg(
-     i     dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+     i     dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
      i     betad, 
      i     Qf_IN, 
      &     vegpar,
@@ -417,8 +417,8 @@
       real*8, intent(in) :: parinc
 !@var fdir Fraction of surface visible radiation that is direct (adf)
       real*8, intent(in) :: fdir
-!@var solarzen Solar zenith angle (rad).
-      real*8, intent(in) :: solarzen
+!@var CosZen cos of Solar zenith angle
+      real*8, intent(in) :: CosZen
 !@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
       real*8, intent(in) :: Ca 
 !@var betad  Vegetation water stress (0-1, 1=unstressed)
@@ -482,7 +482,7 @@
 ! NOTE:  Should be changed to surface height at 10 m with new PBL.
       real*8 gt
 !----------------------------------------------------------------------------
-      real*8 :: sbeta  !Gets cos(solarzen)
+      real*8 :: sbeta  !Gets cos zenith angle
 !@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
       real*8 :: qvsat
       real*8 :: Ci_old, Ci
@@ -494,7 +494,7 @@
 
 !## DEBUG  ##!
 #ifdef DEBUG
-      write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+      write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
      i     betad,
      i     Qf_IN, 
      &     vegpar,
@@ -523,7 +523,7 @@
 !################## RADIATIVE TRANSFER########################################
       !Get incident diffuse and direction PAR radiation 
       !and set up canopy radiative transfer parameters.
-      sbeta = cos(solarzen)
+      sbeta = CosZen
       call canopy_rad_setup(sbeta, fdir, parinc,
      o     vegpar,I0df, I0dr)
 !#############################################################################
@@ -678,7 +678,7 @@
 
 !***********************************************************************
       subroutine veg_C4(
-     i     dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+     i     dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
      i     betad,
      i     Qf_IN,
      &     vegpar,
@@ -713,8 +713,8 @@
       real*8, intent(in) :: parinc
 !@var fdir Fraction of surface visible radiation that is direct (adf)
       real*8, intent(in) :: fdir
-!@var solarzen Solar zenith angle (rad).
-      real*8, intent(in) :: solarzen
+!@var CosZen cos of Solar zenith angle
+      real*8, intent(in) :: CosZen
 !@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
       real*8, intent(in) :: Ca
 !@var betad  Vegetation water stress (0-1, 1=unstressed)
@@ -780,7 +780,7 @@
 ! NOTE:  Should be changed to surface height at 10 m with new PBL.
       real*8 gt
 !----------------------------------------------------------------------------
-      real*8 :: sbeta  !Gets cos(solarzen)
+      real*8 :: sbeta  !Gets cos zenith angle
 !@var qv  Canopy saturated specific humidity (kg vapor/ kg air)
       real*8 :: qvsat
       real*8 :: Ci_old, Ci
@@ -792,7 +792,7 @@
 
 !## DEBUG  ##!
 #ifdef DEBUG
-      write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,solarzen,Ca,
+      write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
      i     betad,
      i     Qf_IN,
      &     vegpar,
@@ -821,7 +821,7 @@
 !################## RADIATIVE TRANSFER########################################
       !Get incident diffuse and direction PAR radiation 
       !and set up canopy radiative transfer parameters.
-      sbeta = cos(solarzen)
+      sbeta = CosZen
       call canopy_rad_setup(sbeta, fdir, parinc,
      o     vegpar,I0df, I0dr)
 !#############################################################################
@@ -1405,7 +1405,7 @@
 !Parameters -------------------------------------------------------------
 !@var trans_sw Total canopy transmittance of shortwave (fraction)
       real*8, intent(out) :: TRANS_SW  
-!@var sbeta Cos of solar zenith angle (rad).
+!@var sbeta Cos of solar zenith angle
       real*8, intent(in) :: sbeta
 !@var fdir Fraction of surface visible radiation that is direct
       real*8, intent(in) :: fdir

@@ -995,7 +995,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,               
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle,
+     &     cos_solar_zenith_angle,
      &     soil_temp30cm,       !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
      &     soil_moist30cm,
 !     &     soil_water,
@@ -1013,7 +1013,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle,
+     &     cos_solar_zenith_angle,
      &     soil_temp30cm,        
      &     soil_moist30cm
       real*8, dimension(:), intent(in) ::
@@ -1031,7 +1031,7 @@ cddd      call zero_entcell(entcell%entcell)
       entcell%entcell%U = wind_speed
       entcell%entcell%IPARdif = total_visible_rad-direct_visible_rad
       entcell%entcell%IPARdir = direct_visible_rad
-      entcell%entcell%Solarzen = solar_zenith_angle
+      entcell%entcell%CosZen = cos_solar_zenith_angle
       entcell%entcell%Soiltemp = soil_temp30cm  !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
       entcell%entcell%Soilmoist = soil_moist30cm
       do n=1,N_DEPTH
@@ -1051,7 +1051,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,               
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle,
+     &     cos_solar_zenith_angle,
      &     soil_temp30cm,       !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
      &     soil_moist30cm,
 !     &     soil_water,
@@ -1069,7 +1069,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle,
+     &     cos_solar_zenith_angle,
      &     soil_temp30cm,       
      &     soil_moist30cm
       real*8, dimension(:,:), intent(in) ::
@@ -1092,7 +1092,7 @@ cddd      call zero_entcell(entcell%entcell)
         entcell(i)%entcell%IPARdif = total_visible_rad(i)-
      &       direct_visible_rad(i)
         entcell(i)%entcell%IPARdir = direct_visible_rad(i)
-        entcell(i)%entcell%Solarzen = solar_zenith_angle(i)
+        entcell(i)%entcell%CosZen = cos_solar_zenith_angle(i)
         entcell(i)%entcell%Soiltemp = soil_temp30cm(i)  !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
         entcell(i)%entcell%Soilmoist = soil_moist30cm(i)
         do n=1,N_DEPTH
@@ -1113,7 +1113,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,               
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle,
+     &     cos_solar_zenith_angle,
      &     soil_temp30cm,
      &     soil_moist30cm,
 !     &     soil_water,
@@ -1131,7 +1131,7 @@ cddd      call zero_entcell(entcell%entcell)
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     solar_zenith_angle,
+     &     cos_solar_zenith_angle,
      &     soil_temp30cm,
      &     soil_moist30cm
       real*8, dimension(:,:,:), intent(in) ::
@@ -1156,7 +1156,7 @@ cddd      call zero_entcell(entcell%entcell)
           entcell(i,j)%entcell%IPARdif = total_visible_rad(i,j)-
      &       direct_visible_rad(i,j)
           entcell(i,j)%entcell%IPARdir = direct_visible_rad(i,j)
-          entcell(i,j)%entcell%Solarzen = solar_zenith_angle(i,j)
+          entcell(i,j)%entcell%CosZen = cos_solar_zenith_angle(i,j)
           entcell(i,j)%entcell%Soiltemp = soil_temp30cm(i,j)
           entcell(i,j)%entcell%Soilmoist = soil_moist30cm(i,j)
           do n=1,N_DEPTH

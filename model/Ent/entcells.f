@@ -86,7 +86,7 @@
       ! in an array
       ecp%IPARdif = 0.0         !Incident diffuse PAR 400-700 nm (W m-2)
       ecp%IPARdir = 0.0         !Incident direct PAR 400-700 nm (W m-2)
-      ecp%Solarzen = 0.0         !Solar zenith angle
+      ecp%CosZen = 0.0         !Solar zenith angle
 !!! probably shoud remove next line and also remove fdir from structure
 !!      ecp%fdir = 0.0             !Fraction of surface vis rad that is direct 
 
