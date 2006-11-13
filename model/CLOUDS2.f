@@ -3399,7 +3399,7 @@ c     ENDDO
       DO L=1,LP50
        CTEML(L)=TL(L)                            ! Cloud temperature(K)
        D3DL(L)=AIRM(L)*TL(L)*bygrav*rgas/PL(L)   ! For Cloud thickness (m)
-       IF(CLDSSL(L).GT.0.d0) CD3DL(L)=-1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
+       IF(CLDSSL(L).GT.0.d0) CD3DL(L)= 1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
        RHO=1d2*PL(L)/(RGAS*TL(L))
        IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHO*CD3DL(L) ! cld water kg m-2
        IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHO*CD3DL(L) ! ice water kg m-2
