@@ -5,15 +5,8 @@
 !@auth M.S.Yao/A. Del Genio (modifications by Gavin Schmidt)
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
-     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
-     *  ,twopi
-#ifdef CLD_AER_CDNC
-     *,kapa,mair,gasc
-#endif
+     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
       USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
-#ifdef CLD_AER_CDNC
-     * ,ptop,psf,ls1,sig,sige
-#endif
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname
@@ -2213,7 +2206,6 @@ c for sulfur chemistry
        integer, PARAMETER :: SNTM=17
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(SNTM),QCRIT
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
-       real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
        real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
 c      real*8 AERTAU(LM),AERTAUMC,AERTAUSS,THOLD,SUMTAU,xx
 c      integer IFLAG,AAA,ILTOP
@@ -3373,7 +3365,7 @@ C**** CALCULATE OPTICAL THICKNESS
         END IF
       END DO
 
-#ifdef CLD_AER_CDNC
+
 !Save variables for 3 hrly diagnostics
 c     AAA=1
 c     DO L=LP50,1,-1
@@ -3403,30 +3395,16 @@ c        ENDIF
 c       ENDIF
 c     ENDDO
 
+#ifdef CLD_AER_CDNC
       DO L=1,LP50
-
-       PRS = (PL(1)-PTOP)/SIG(1)
-
-       IF (L.GE.ls1) THEN
-         PPRES = (SIG(L)*(PSF-PTOP)+PTOP)         !in hPa 
-         DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)      !in hPa 
-         TEMPR=(TL(L)/PLK(L))*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA
-       ELSE
-         PPRES= (SIG(L)*PRS+PTOP)
-         DPP= (SIGE(L+1)-SIGE(L))*PRS
-         TEMPR=(TL(L)/PLK(L))*(SIG(L)*PRS+PTOP)**KAPA
-       ENDIF
-
-       CTEML(L)=TEMPR                                        ! Cloud temperature(K)
-       D3DL(L)=DPP/PPRES*TEMPR/GRAV*(gasc*1.d03)/mair        ! For Cloud thickness (m)
+       CTEML(L)=TL(L)                            ! Cloud temperature(K)
+       D3DL(L)=AIRM(L)*TL(L)*bygrav*rgas/PL(L)   ! For Cloud thickness (m)
        IF(CLDSSL(L).GT.0.d0) CD3DL(L)=-1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
-       RHODK=100.d0*PPRES/(gasc*1.d03)/TEMPR*mair
-       IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHODK*CD3DL(L) ! cld water kg m-2
-       IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHODK*CD3DL(L) ! ice water kg m-2
+       RHO=1d2*PL(L)/(RGAS*TL(L))
+       IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHO*CD3DL(L) ! cld water kg m-2
+       IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHO*CD3DL(L) ! ice water kg m-2
 c      write(6,*)"CT",L,WMX(L),CD3DL(l),CL3DL(L),CI3DL(L)
-
       END DO
-
 #endif
 
       RETURN
