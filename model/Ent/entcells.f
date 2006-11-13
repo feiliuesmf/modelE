@@ -121,6 +121,8 @@
       pp => ecp%oldest
       do while (ASSOCIATED(pp)) 
         ip = ip + 1
+
+        call summarize_patch(pp) ! make sure patch is summarized
         spp%age = spp%age + pp%age
         spp%area = spp%area + pp%area
 

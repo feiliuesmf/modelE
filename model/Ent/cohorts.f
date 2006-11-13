@@ -321,7 +321,8 @@ cddd      end subroutine init_cohort_defaults
       write(iu, '(a,a," = ",i7)') prefix,"pft ",cop%pft
       write(iu, '(a,a," = ",f10.7)') prefix,"n   ",cop%n
       write(iu, '(a,a," = ",f10.7)') prefix,"nm  ",cop%nm
-      write(iu, '(a,a," = ",f10.7)') prefix,"Ntot",cop%Ntot
+! Ntot doesn't seem terribly important ( always LAI*nm? )
+      !write(iu, '(a,a," = ",f10.7)') prefix,"Ntot",cop%Ntot
       write(iu, '(a,a," = ",f10.7)') prefix,"LAI ",cop%LAI
       write(iu, '(a,a," = ",f10.7)') prefix,"h   ",cop%h
       write(iu, '(a,a," = ",f10.7)') prefix,"dbh ",cop%dbh

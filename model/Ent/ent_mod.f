@@ -951,6 +951,11 @@ cddd      call zero_entcell(entcell%entcell)
       call copy_vars( buf(dc:), nn,  p%Ci,   flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  p%Tpool(1,:),flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  p%Tpool(2,:),flag ); dc = dc + nn
+      ! not sure about the following, probably can be restored from 
+      ! other data...
+      call copy_vars( buf(dc:), nn,  p%soil_type, flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%GCANOPY, flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%albedo, flag ); dc = dc + nn
 
       n = dc
 
@@ -979,6 +984,14 @@ cddd      call zero_entcell(entcell%entcell)
       call copy_vars( buf(dc:), nn,  c%h,    flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%dbh,  flag ); dc = dc + nn
 !      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
+      ! data for Tpool, do we need these?
+      call copy_vars( buf(dc:), nn,  c%C_fol,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_froot,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_hw,  flag ); dc = dc + nn
+      ! I guess froot is also needed ...
+      call copy_vars( buf(dc:), nn,  c%froot,  flag ); dc = dc + nn
+      
+      
 
       n = dc
 
