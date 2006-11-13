@@ -1758,7 +1758,7 @@ ccc accm0 was not called here in older version - check
      &         wind_speed=vsm,
      &         total_visible_rad=vis_rad,
      &         direct_visible_rad=direct_vis_rad,
-     &         solar_zenith_angle=cosz1,
+     &         cos_solar_zenith_angle=cosz1,
  !    &         soil_water=w(1:ngm,2),
      &         soil_temp30cm=no_data,
      &         soil_moist30cm=no_data,
@@ -1779,6 +1779,11 @@ ccc unpack necessary data
      &         foliage_humidity=Qf,
      &         canopy_gpp=GPP
      &         )
+
+!!! test
+!!!          cnc = 0.d0
+!!!          TRANS_SW = 1.d0
+!!!          betadl = .1d0
 
         else
           cnc = 0.d0
