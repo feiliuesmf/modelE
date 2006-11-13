@@ -56,7 +56,7 @@
           endif
           deallocate( buffer )
 
-          call ent_cell_print(998,entcells(i,j))
+          call ent_cell_print(999,entcells(i,j))
 
         enddo
       enddo
@@ -71,9 +71,12 @@
       !---
       real*8, pointer :: buffer(:)
       integer ic, jc, i, j
+      integer, save :: counter=0
 
       ic = size(entcells,1)
       jc = size(entcells,2)
+
+      counter = mod(counter+1,2)
 
       !call openunit('ent_state_new',iu_entstate,.true.,.false.)
       do j=1,jc
@@ -81,7 +84,7 @@
           call ent_cell_pack(buffer, entcells(i,j))
           print *, "ent_write_state: i, j ", i, j
           print *, buffer
-          call ent_cell_print(999,entcells(i,j))
+          call ent_cell_print(990+counter,entcells(i,j))
           write(kunit) size(buffer)
           write(kunit) buffer
           deallocate(buffer)
