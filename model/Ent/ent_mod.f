@@ -6,21 +6,24 @@
       use ent_types, only : entcelltype, patch, cohort, timestruct,
      &     MAX_PATCHES, MAX_COHORTS
       use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
-     &     , N_BPOOLS
+     &     , N_BPOOLS, N_PFT
       !use ent_GISSveg
       use entcells
+
+      !use GISS_veg ! just for compilation purposes
       implicit none
 
       private
 
       !--- public constants ---
       public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES, N_BPOOLS
+      public N_PFT
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
-      public ent_cell_set
+      public ent_cell_set, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
 
@@ -61,6 +64,11 @@
         module procedure ent_cell_set_array_1d
         module procedure ent_cell_set_array_2d
       end interface
+
+      !--- passing updated prescribed data to ent cells ---
+      interface ent_cell_update
+        module procedure ent_cell_update_single
+      end interface ent_cell_update
 
       !--- set forcings / get exports ---
       interface ent_set_forcings
@@ -580,6 +588,73 @@ cddd      call zero_entcell(entcell%entcell)
       enddo
       
       end subroutine ent_cell_set_array_2d
+
+!*************************************************************************
+
+      subroutine ent_cell_update_single(entcell,
+     &     pft_population_density,
+     &     pft_leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
+     &     pft_nmdata,
+     &     pft_froots,
+     &     pft_vegalbedo,
+     &     heat_capacity
+     &     )
+      type(entcelltype_public), intent(out) :: entcell
+      real*8, dimension(:), optional  ::   ! dim=N_PFT
+     &     pft_leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_nmdata,
+     &     pft_population_density
+      real*8, dimension(:,:), optional :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:), optional :: pft_froots
+      real*8, dimension(:,:), optional ::  pft_vegalbedo ! dim=N_BANDS,N_PFT
+      ! the following is needed for a hack to set GISS canopy heat capacity
+      real*8, optional :: heat_capacity
+
+      ! if cell is not initialized (no land) do nothing
+      if ( .not. associated(entcell%entcell) ) return
+
+      if ( present(pft_leaf_area_index) ) then
+        call entcell_update_lai( entcell%entcell, pft_leaf_area_index )
+      endif
+
+      if ( present(pft_vegalbedo) ) then
+        call entcell_update_albedo( entcell%entcell, pft_vegalbedo )
+      endif
+
+      !!! hack, should be replaced with computation of heat capacity
+      !!! inside ent
+      if ( present(heat_capacity) ) then
+        entcell%entcell%heat_capacity = heat_capacity
+      endif
+
+      !!!! subroutine litter(dtsec, pp) is not called here !!!
+      !!!! should be called somewhere else
+     
+
+      if ( present(pft_population_density)
+     &     .or. present(pft_heights)
+     &     .or. present(pft_dbh)
+     &     .or. present(pft_crad)
+     &     .or. present(pft_cpool)
+     &     .or. present(pft_nmdata)
+     &     .or. present(pft_froots)
+     &      ) then
+        call stop_model("ent_cell_update: var not supported yet", 255)
+      endif
+      
+      ! just in case, maybe we don't need to summarize if all updates
+      ! also update summarized values
+      call summarize_entcell(entcell%entcell)
+
+      end subroutine ent_cell_update_single
+
 
 !*************************************************************************
 

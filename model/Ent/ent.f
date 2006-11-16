@@ -69,7 +69,7 @@
         call calc_cell_disturbance_rates(dtsec,tt,ecp)
       end if
 
-      call summarize_entcell(ecp)
+       call summarize_entcell(ecp)
 
       end subroutine ent_ecosystem_dynamics
 
@@ -163,7 +163,7 @@
       !*********************************************************************
       subroutine ent_biophysics(dtsec, ecp, do_soilresp)
 !@sum  Photosynthesis CO2 uptake.
-!@sum  If do_soilresp, then also  soil respiration for net CO2 fluxes.
+!@+    If do_soilresp, then also  soil respiration for net CO2 fluxes.
       use biophysics, only : photosynth_cond
       use soilbgc, only : soil_bgc
       use patches, only : summarize_patch

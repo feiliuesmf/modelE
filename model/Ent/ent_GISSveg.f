@@ -18,6 +18,7 @@
      &     GISS_veg_albedo,GISS_calc_rootprof,
      &     GISS_calcconst
 !     &     GCM_get_grid, GCM_get_time, GCM_getdrv_cell, GCM_EWB,
+      public GISS_calc_shc,GISS_veg_albedodata,GISS_plant_cpools
 
 
 !*********************************************************************

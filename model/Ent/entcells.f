@@ -17,7 +17,7 @@
       public zero_entcell, summarize_entcell, entcell_print
       public init_simple_entcell, entcell_construct, entcell_destruct
       public entcell_extract_pfts
-
+      public entcell_update_lai, entcell_update_albedo
 
       contains
 !**************************************************************************
@@ -362,6 +362,70 @@
       call entcell_print(6,ecp)
 
       end subroutine init_simple_entcell
+
+ !*********************************************************************
+
+
+      subroutine entcell_update_lai( ecp,
+     i    laidata)
+!@sum sets prescribed LAI over the cell
+      !use ent_GISSveg, only : GISS_plant_cpools
+      type(entcelltype) :: ecp
+      real*8,intent(in) :: laidata(N_PFT) !@var LAI for all PFT's 
+      !-----Local---------
+      type(patch), pointer :: pp  !@var p current patch
+      type(cohort), pointer :: cop !@var current cohort
+      real*8 laipatch
+      real*8 :: cpool(N_BPOOLS)
+
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+        laipatch = 0.d0
+        cop => pp%tallest
+        do while ( associated(cop) )
+          cop%lai = laidata(cop%pft)
+          laipatch = laipatch + cop%lai
+          !!! this is hack, but don't know what to do with it at the moment...
+cddd          call GISS_plant_cpools(cop%pft, cop%lai, cop%h, 
+cddd     &         cop%dbh, cop%n, cpool )
+cddd          cop%C_fol = cpool(FOL)
+cddd          cop%C_sw = cpool(SW)
+cddd          cop%C_hw = cpool(HW)
+cddd          cop%C_lab = cpool(LABILE)
+cddd          cop%C_froot = cpool(FR)
+cddd          cop%C_croot = cpool(CR)
+
+          cop => cop%shorter
+        enddo
+        pp%sumcohort%LAI = laipatch
+        pp => pp%younger
+      enddo
+
+      end subroutine entcell_update_lai
+ 
+
+      subroutine entcell_update_albedo( ecp,
+     i    albedodata)
+!@sum sets prescribed albedo in vegetated patches of the cell (skips bare soil)
+!@+   This subroutine assumes one cohort per patch !!!
+      type(entcelltype) :: ecp
+      real*8,intent(in) :: albedodata(N_BANDS,N_PFT) !@var albedo for all PFTs 
+      !-----Local---------
+      type(patch), pointer :: pp  !@var p current patch
+
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+        ! update albedo of vegetated patches only
+        if ( associated(pp%tallest) ) then ! have vegetation
+          if ( pp%sumcohort%pft > N_PFT .or.  pp%sumcohort%pft < 1 )
+     &         call stop_model("entcell_update_albedo: bad pft",255)
+          pp%albedo(1:N_BANDS) = albedodata(1:N_BANDS, pp%sumcohort%pft)
+        endif
+        pp => pp%younger
+      enddo
+
+      end subroutine entcell_update_albedo
+     
 
  !*********************************************************************
 
