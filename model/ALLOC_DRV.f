@@ -36,6 +36,10 @@ c set-up for MPI implementation
       call alloc_tracer_sources(grid)
       call alloc_lightning(grid)
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      CALL alloc_dust(grid)
+#endif
 #endif
       call alloc_tracer_adv(grid)
       call alloc_veg_com(grid)

@@ -8441,13 +8441,12 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE DOMAIN_DECOMP, only: AM_I_ROOT
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday
-      USE MODEL_COM, only: itime,im,jm,lm,ls1,jday,JEQ,ptop,psf,sig
-     *     ,dtsrc,q,wm,flice,JMperY,JDperY,jyear
+      USE resolution,ONLY : Im,Jm,Lm,Ls1,Psf,Ptop
+      USE MODEL_COM, only: itime,jday,JEQ,sig,dtsrc,q,wm,flice,jyear
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_COLUMN,
-     &     write_parallel
+      USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_COLUMN, write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm,rnsrc
@@ -8457,10 +8456,6 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #ifdef regional_Ox_tracers
      *   ,NregOx,n_Ox
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &   ,imDUST,kjm,table1,x11,x21
 #endif
 #ifdef TRACERS_WATER
      *  ,trwm,trw0,tr_wd_TYPE,nWATER
@@ -8510,11 +8505,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE tracers_dust,ONLY : hbaij,ricntd,dryhr,frclay,frsilt,vtrsh,
-     &     ers_data,gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-     &     ,Mtrac,minfr
-#endif
+      USE tracers_dust,ONLY : hbaij,ricntd
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
       USE NITRATE_AEROSOL
@@ -8551,9 +8542,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       REAL*8 byNregOx
 #endif
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)  ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       include 'netcdf.inc'
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
@@ -8565,15 +8554,6 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       real*8 carbstuff,ccnv,carb(8)
       real*4 :: craft(im,jm,lm)
       character*56 titleg
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) ||  (defined TRACERS_AMP)
-      INTEGER :: io_data,k
-      INTEGER startd(3),countd(3),statusd
-      INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
-      REAL*4 :: work(Im,Jm)
-      REAL*8 :: sum
-      LOGICAL,SAVE :: ifirst=.TRUE.
 #endif
 
       INTEGER J_0, J_1
@@ -9581,141 +9561,8 @@ c Industrial
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      IF (ifirst) THEN
-
-c     read in lookup table for calculation of mean surface wind speed from PDF
-        CALL openunit('LKTAB1',io_data,.true.,.true.)
-        READ (io_data) table1
-        CALL closeunit(io_data)
-c     index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
-        sum=0.d0
-        DO j=1,kjm
-          IF (j <= 30) THEN
-            sum=sum+0.0001d0+float(j-1)*0.00008d0
-            x21(j)=sum
-          ELSE IF (j > 30) THEN
-            sum=sum-0.055254d0+0.005471d0*float(j)-
-     &           1.938365d-4*float(j)**2.d0+
-     &           3.109634d-6*float(j)**3.d0-
-     &           2.126684d-8*float(j)**4.d0+
-     &           5.128648d-11*float(j)**5.d0
-            x21(j)=sum
-          END IF
-        END DO
-c     index of table for GCM surface wind speed from 0.0001 to 50 m/s
-        x11(:)=x21(:)
-c     prescribed AEROCOM dust emissions
-        IF (imDust == 1) THEN
-          statusd=NF_OPEN('dust_bin1',NCNOWRIT,ncidd1)
-          statusd=NF_OPEN('dust_bin2',NCNOWRIT,ncidd2)
-          statusd=NF_OPEN('dust_bin3',NCNOWRIT,ncidd3)
-          statusd=NF_OPEN('dust_bin4',NCNOWRIT,ncidd4)
-
-          statusd=NF_INQ_VARID(ncidd1,'dust',idd1)
-          statusd=NF_INQ_VARID(ncidd2,'dust',idd2)
-          statusd=NF_INQ_VARID(ncidd3,'dust',idd3)
-          statusd=NF_INQ_VARID(ncidd4,'dust',idd4)
-
-          startd(1)=1
-          startd(2)=1
-
-          countd(1)=Im
-          countd(2)=Jm
-          countd(3)=1
-
-          d_dust=0.D0
-
-          DO k=1,JDperY
-
-            IF (k > 59) THEN
-              startd(3)=k+1
-            ELSE
-              startd(3)=k
-            END IF
-
-            statusd=NF_GET_VARA_REAL(ncidd1,idd1,startd,countd,work)
-            d_dust(:,:,1,k)=DBLE(work(:,:))
-            statusd=NF_GET_VARA_REAL(ncidd2,idd2,startd,countd,work)
-            d_dust(:,:,2,k)=DBLE(work(:,:))
-            statusd=NF_GET_VARA_REAL(ncidd3,idd3,startd,countd,work)
-            d_dust(:,:,3,k)=DBLE(work(:,:))
-            statusd=NF_GET_VARA_REAL(ncidd4,idd4,startd,countd,work)
-            d_dust(:,:,4,k)=DBLE(work(:,:))
-
-          END DO
-
-          statusd=NF_CLOSE('dust_bin1',NCNOWRIT,ncidd1)
-          statusd=NF_CLOSE('dust_bin2',NCNOWRIT,ncidd2)
-          statusd=NF_CLOSE('dust_bin3',NCNOWRIT,ncidd3)
-          statusd=NF_CLOSE('dust_bin4',NCNOWRIT,ncidd4)
-
-        ELSE IF (imDUST == 0) THEN
-c     interactive dust emissions
-c**** Read input: threshold speed
-          CALL openunit('VTRSH',io_data,.true.,.true.)
-          READ (io_data) vtrsh
-          CALL closeunit(io_data)
-c**** Read input: fraction clay
-          CALL openunit('FRCLAY',io_data,.true.,.true.)
-          READ (io_data) frclay
-          CALL closeunit(io_data)
-c**** Read input: fraction silt
-          CALL openunit('FRSILT',io_data,.true.,.true.)
-          READ (io_data) frsilt
-          CALL closeunit(io_data)
-c**** Read input: prec-evap data
-          CALL openunit('DRYHR',io_data,.true.,.true.)
-          READ (io_data) dryhr
-          CALL closeunit(io_data)
-c**** Read input: ERS data
-          call openunit('ERS',io_data,.true.,.true.)
-          DO k=1,JMperY
-            READ(io_data) ((ers_data(i,j,k),i=1,im),j=1,jm)
-          END DO
-          call closeunit(io_data)
-c**** Read input: GINOUX data
-          call openunit('GIN',io_data,.true.,.true.)
-          read (io_data) gin_data
-          call closeunit(io_data)
-c**** Read input: EMISSION LOOKUP TABLE data
-          call openunit('LKTAB',io_data,.true.,.true.)
-          DO k=1,lkm
-            READ(io_data) ((table(i,j,k),i=1,lim),j=1,ljm)
-          END DO
-          call closeunit(io_data)
-c index of table for threshold velocity from 6.5 to 17 m/s
-          DO k=1,lkm
-            x3(k)=6.d0+0.5d0*k
-          END DO
-c index of table for sub grid scale velocity (sigma) from .0001 to 30 m/s
-          sum=0.d0
-          DO j=1,ljm
-            IF (j <= 30) THEN
-              sum=sum+0.0001d0+float(j-1)*0.00008d0
-              x2(j)=sum
-            ELSE IF (j > 30) THEN
-              sum=sum-0.055254d0+0.005471d0*float(j)-
-     &             1.938365d-4*float(j)**2.d0+
-     &             3.109634d-6*float(j)**3.d0-
-     &             2.126684d-8*float(j)**4.d0+
-     &             5.128648d-11*float(j)**5.d0
-              x2(j)=sum
-            END IF
-          END DO
-c index of table for GCM surface wind speed from 0.0001 to 30 m/s
-          x1(:)=x2(:)
-        ELSE
-          CALL stop_model
-     &     ('Stopped in tracer_IC: parameter imDUST must be 0 or 1',255)
-        END IF
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-        CALL openunit('MINFR',io_data,.true.,.true.)
-        READ(io_data) (((minfr(i,j,k),i=1,Im),j=1,Jm),k=1,Mtrac)
-        CALL closeunit(io_data)
-#endif
-        ifirst=.FALSE.
-      END IF
-
+c **** reads in files for dust/mineral tracers
+      CALL init_dust
 #endif
 
       end subroutine tracer_IC

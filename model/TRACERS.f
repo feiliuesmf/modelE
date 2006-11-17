@@ -959,7 +959,7 @@ C**** check whether air mass is conserved
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      USE fluxes,ONLY : pprec,pevap
+      USE fluxes,ONLY : nstype,pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
       IMPLICIT NONE
@@ -993,6 +993,11 @@ C**** check whether air mass is conserved
      &                                     i0ch4_glob,first_mod_glob
 #endif
 #endif     
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      REAL*8,DIMENSION(Im,Jm) :: pprec_glob,ricntd_glob,hbaij_glob
+      REAL*8,DIMENSION(Im,Jm,Nstype) :: pevap_glob
+#endif
       INTEGER :: ITM,ITM1,ITM2
 #ifdef TRACERS_WATER
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACERW01"
@@ -1067,6 +1072,13 @@ C**** check whether air mass is conserved
        CALL PACK_DATA(grid,i0ch4(:,:,:),i0ch4_glob(:,:,:)) !integer
        CALL PACK_DATA(grid,first_mod(:,:,:),first_mod_glob(:,:,:)) !integer
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+       CALL pack_data(grid,pprec,pprec_glob)
+       CALL pack_data(grid,pevap,pevap_glob)
+       CALL pack_data(grid,hbaij,hbaij_glob)
+       CALL pack_data(grid,ricntd,ricntd_glob)
+#endif
 #endif
         DO ITM=1,NTM
           CALL PACK_DATA(grid, TRM(:,:,:,ITM), TRM_GLOB(:,:,:,ITM))
@@ -1097,7 +1109,7 @@ C**** check whether air mass is conserved
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,hbaij,ricntd,pprec,pevap
+     &     ,hbaij_glob,ricntd_glob,pprec_glob,pevap_glob
 #endif
        END IF     !only root processor writes
 
@@ -1125,7 +1137,7 @@ C**** check whether air mass is conserved
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,hbaij,ricntd,pprec,pevap
+     &     ,hbaij_glob,ricntd_glob,pprec_glob,pevap_glob
 #endif
             IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
               PRINT*,"Discrepancy in module version ",HEADER,
@@ -1200,14 +1212,14 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
        CALL UNPACK_DATA(grid,first_mod_glob(:,:,:),first_mod(:,:,:)) !integer
 #endif
 #endif
-C**** ESMF: Broadcast all non-distributed read arrays.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-        call ESMF_BCAST( grid, hbaij )
-        call ESMF_BCAST( grid, ricntd )
-        call ESMF_BCAST( grid, pprec )
-        call ESMF_BCAST( grid, pevap )
+        CALL unpack_data(grid,hbaij_glob,hbaij)
+        CALL unpack_data(grid,ricntd_glob,ricntd)
+        CALL unpack_data(grid,pprec_glob,pprec)
+        CALL unpack_data(grid,pevap_glob,pevap)
 #endif
+C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef INTERACTIVE_WETLANDS_CH4
         call ESMF_BCAST( grid, iday_ncep )
         call ESMF_BCAST( grid, i0_ncep   )

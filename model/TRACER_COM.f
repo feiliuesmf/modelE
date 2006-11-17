@@ -620,13 +620,15 @@ c  2 Bond/Streets past, present, future using sector inputs; 3 historic
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 !@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
       INTEGER :: imDUST=0
-!@param lim dimension 1 of lookup table for mean surface wind speed integration
-!@param ljm dimension 2 of lookup table for mean surface wind speed integration
+!@param kim dimension 1 of lookup table for mean surface wind speed integration
+!@param kjm dimension 2 of lookup table for mean surface wind speed integration
       INTEGER,PARAMETER :: kim=234,kjm=234
 !@var table1 array for lookup table for calculation of mean surface wind speed
+!@+          local to each grid box
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: table1
 !@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
 !@var x21 index of table1 for sub grid scale velocity scale (sigma)
-      REAL*8 :: table1(kim,kjm),x11(kim),x21(kjm)
+      REAL*8 :: x11(kim),x21(kjm)
 #endif
 #ifdef TRACERS_ON
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
@@ -777,6 +779,11 @@ C****
     (defined TRACERS_AMP)
       ALLOCATE(  rsulf1(IM,J_0H:J_1H,LM),rsulf2(IM,J_0H:J_1H,LM),
      *           rsulf3(IM,J_0H:J_1H,LM),rsulf4(IM,J_0H:J_1H,LM) )
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      ALLOCATE(table1(Kim,Kjm),STAT=ier)
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
