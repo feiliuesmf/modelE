@@ -692,7 +692,7 @@ cddd      call zero_entcell(entcell%entcell)
       dcc = 1
       do j=1,jc
         do i=1,ic
-          if ( .not. associated( buf2d(i,j).ptr ) ) cycle
+          if ( .not. associated( buf2d(i,j)%ptr ) ) cycle
 
           print *,"ent_cell_pack_2d i,j,dcc,lsize=",i,j,dcc,lsize
           print *,buf2d(i,j)%ptr(1:lsize)
