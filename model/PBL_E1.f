@@ -14,7 +14,9 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname,trradius
      &     ,tr_wd_TYPE, nWATER
+#ifdef TRACERS_DRYDEP
      &     ,dodrydep
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
