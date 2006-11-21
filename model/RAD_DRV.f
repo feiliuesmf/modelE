@@ -317,6 +317,24 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 
       end module RAD_COSZ0
 
+      SUBROUTINE CALC_ZENITH_ANGLE
+!@sum calculate zenith angle for current time step
+!@auth Gavin Schmidt (from RADIA)
+      USE CONSTANT, only : twopi,sday
+      USE MODEL_COM, only : itime,nday,dtsrc
+      USE RAD_COM, only : cosz1
+      USE RAD_COSZ0, only : coszt
+      IMPLICIT NONE
+      INTEGER JTIME
+      REAL*8 ROT1,ROT2
+
+      JTIME=MOD(ITIME,NDAY)
+      ROT1=(TWOPI*JTIME)/NDAY
+      ROT2=ROT1+TWOPI*DTsrc/SDAY
+      CALL COSZT (ROT1,ROT2,COSZ1)
+
+      END SUBROUTINE CALC_ZENITH_ANGLE
+
       SUBROUTINE init_RAD(istart)
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
@@ -1019,8 +1037,9 @@ C**** limit optical cloud depth from below: taulim
 C**** Calculate mean cosine of zenith angle for the current physics step
       JTIME=MOD(ITIME,NDAY)
       ROT1=(TWOPI*JTIME)/NDAY
-      ROT2=ROT1+TWOPI*DTsrc/SDAY
-      CALL COSZT (ROT1,ROT2,COSZ1)
+c      ROT2=ROT1+TWOPI*DTsrc/SDAY
+c      CALL COSZT (ROT1,ROT2,COSZ1)
+      CALL CALC_ZENITH_ANGLE   ! moved to main loop
 
       if (kradia.gt.0) then    ! read in all rad. input data (frc.runs)
         iend = 1
@@ -1820,9 +1839,13 @@ C**** Save optical depth diags
           AFLX_ST(LM+4,I,J,5)=AFLX_ST(LM+4,I,J,5)+taugcb
           cycle
         end if
-        do l=LS1_loc,lm+lm_req
+        do l=LS1_loc,lm
           tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
      +      (-trfcrl(l)-trhra(l,i,j)) )*nrad*DTsrc*bysha*byam(l,i,j)
+        end do
+        do l=lm+1,lm+lm_req
+          tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
+     +      (-trfcrl(l)-trhra(l,i,j)) )*nrad*DTsrc*bysha*byaml00(l)
         end do
         cycle
       else if (kradia.lt.0) then ! save i/o data for frc.runs
@@ -2390,7 +2413,7 @@ C****
         DO I=1,IMAXJ(J)
           DO LR=1,LM_REQ
             RQT(LR,I,J)=RQT(LR,I,J)+(SRHRS(LR,I,J)*COSZ2(I,J)
-     &           +TRHRS(LR,I,J))*NRAD*DTsrc*bysha*byam(lr+lm,i,j)
+     &           +TRHRS(LR,I,J))*NRAD*DTsrc*bysha*byaml00(lr+lm)
           END DO
         END DO
       END DO
@@ -2500,7 +2523,6 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       real*4 pdn,pup,w1,w2,dh,fracl
       integer :: j_0,j_1
       character(len=300) :: out_line
-      print*,'qma',plb(:)
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** read headers/latitudes

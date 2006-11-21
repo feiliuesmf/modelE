@@ -278,6 +278,8 @@ C****
       CALL CALC_TROP
 C**** calculate some dynamic variables for the PBL
       CALL PGRAD_PBL
+C**** calculate zenith angle for current time step
+      CALL CALC_ZENITH_ANGLE
 
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MSURF)
@@ -779,7 +781,7 @@ C****
      *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
-     *     ,pl00,aml00,pednl00,pdsigl00,pmidl00
+     *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
@@ -873,9 +875,10 @@ C****
       byDSIG  =  1./DSIG
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
-C**** Calculate default vertical arrays
+C**** Calculate default vertical arrays (including rad. eq. layers)
       LMR=LM+LM_REQ
       CALL CALC_VERT_AMP(PSFMPT,LMR,PL00,AML00,PDSIGL00,PEDNL00,PMIDL00)
+      BYAML00(:)=1./AML00(:)
 C****
 C**** default settings for prog. variables etc
 C****

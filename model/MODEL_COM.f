@@ -48,7 +48,8 @@ c$$$#endif
 !@var PL00, PMIDL00, PDSIGL00, AML00 press (mb), mid-pressure (mb),
 !@+        mass (kg/m2) for mean profile
 !@var PEDNL00 edge pressure for mean profile (mb)
-      REAL*8, DIMENSION(LM+LM_REQ) :: PL00, PMIDL00, PDSIGL00, AML00   
+      REAL*8, DIMENSION(LM+LM_REQ) :: PL00, PMIDL00, PDSIGL00, AML00,
+     *     BYAML00
       REAL*8, DIMENSION(LM+LM_REQ+1) :: PEDNL00
 
 !**** Model control parameters:
@@ -570,7 +571,7 @@ C**** keep track of min/max time over the combined diagnostic period
 !@ver  1.0
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : lm,ls1,dsig,sig,sige,ptop,psfmpt,lm_req
-     *     ,req_fac
+     *     ,req_fac,req_fac_m,req_fac_d,pmtop
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: P0 !@var P0 surface pressure (-PTOP) (mb)
@@ -603,10 +604,12 @@ C**** Note Air mass is calculated in (kg/m^2)
         AM  (L) = PDSIG(L)*1d2*BYGRAV
       END DO
       IF (LMAX.ge.LM) PEDN(LM+1) = SIGE(LM+1)*PSFMPT+PTOP
-C**** Rad. equ. layers if necessary (only PEDN)
+C**** Rad. equ. layers if necessary (only PEDN,AM,PMID)
       IF (LMAX.eq.LM+LM_REQ) THEN
+        PMID(LM+1:LM+LM_REQ) = REQ_FAC_M(1:LM_REQ)*PMTOP
+          AM(LM+1:LM+LM_REQ) = REQ_FAC_D(1:LM_REQ)*PMTOP*1d2*BYGRAV
         PEDN(LM+2:LM+LM_REQ) = REQ_FAC(1:LM_REQ-1)*PEDN(LM+1)
-        PEDN(LM+LM_REQ+1)=1d-5
+        PEDN(LM+LM_REQ+1)=0.    ! 1d-5  ! why not zero?
       END IF
 
       RETURN

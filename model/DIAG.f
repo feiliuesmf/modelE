@@ -4470,7 +4470,7 @@ C****
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,pmtop,nfiltr,jhour
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
-     *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,req_fac_m,lm_req
+     *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
@@ -4562,7 +4562,7 @@ C**** Initialize certain arrays used by more than one print routine
         PLE_DN(L)=pednl00(l)  
         PLM(L)   =pmidl00(l)  
       END DO
-      PLM(LM+1:LM+LM_REQ)=REQ_FAC_M(:)*PMTOP
+      PLM(LM+1:LM+LM_REQ)=pmidl00(lm+1:lm+lm_req)
 
       p1000k=1000.0**kapa
 
