@@ -1261,7 +1261,7 @@ C**** set dimensions
 !@sum  OPEN_ISCCP opens the binary output file of ISCCP histograms
 !@auth M. Kelley
 !@ver  1.0
-      USE DIAG_COM, only : isccp_press,isccp_tau,isccp_lat
+      USE DIAG_COM, only : isccp_press,isccp_taum,isccp_lat
       USE NCOUT, only : im,jm,lm,iu_isccp,set_dim_out,def_dim_out,
      &     out_fid,outfile,units,long_name,ndims_out,open_out
      &     ,var_name
@@ -1292,8 +1292,8 @@ C**** set dimensions
 
       dim_name='tau'; call set_dim_out(dim_name,1)
       units='1'
-      long_name='lower bound of optical depth for each tau category'
-      var_name='tau';call wrtdarr(isccp_tau)
+      long_name='mid-point of optical depth for each tau category'
+      var_name='tau';call wrtdarr(isccp_taum)
 
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
@@ -1321,7 +1321,7 @@ C**** set dimensions
       return
       end subroutine close_isccp
 
-      subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS_IN,XIJK)
+      subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS_IN,XIJK,TAUM,PRES)
 !@sum  POUT_ISCCP outputs tau-height-lat binary output file of ISCCP histograms
 !@auth M. Kelley
 !@ver  1.0
@@ -1337,6 +1337,7 @@ C**** set dimensions
       CHARACTER, INTENT(IN) :: UNITS_IN*50
 !@var XIJK tau/height/lat output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
+      REAL*8, INTENT(IN) :: taum(IM), pres(JM)
 
       character(len=30) :: dim_name
 

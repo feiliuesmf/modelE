@@ -561,7 +561,7 @@ C**** set dimensions
       return
       end subroutine close_isccp
 
-      subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS,XIJK)
+      subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS,XIJK,TAUM,PRES)
 !@sum  POUT_ISCCP outputs tau-height-lat binary output file of ISCCP histograms
 !@auth M. Kelley
 !@ver  1.0
@@ -577,22 +577,21 @@ C**** set dimensions
       CHARACTER, INTENT(IN) :: UNITS*50
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
+      REAL*8, INTENT(IN) :: taum(im), pres(jm)
       INTEGER :: K
       CHARACTER*16, PARAMETER ::
      &     CX = 'OPTICAL DEPTH   ',
      &     CY = 'PRESSURE        ',
      &     CBLANK = '                '
       do k=1,lm
-c restore commented lines for "GISS 4D format"
-c add isccp_tau, isccp_press to subroutine argument list
-c (remember to also alter POUT_netcdf.f et al.)
-         write(iu_isccp) title(k)
-c             ,im,jm,1,1,
+c restored "GISS 4D format"
+        write(iu_isccp) title(k),im,jm,1,1
      &       ,real(xijk(:,:,k),kind=4)
-c     &       ,real(isccp_tau,kind=4)
-c     &       ,real(isccp_press,kind=4)
-c     &       ,real(1.,kind=4),real(1.,kind=4)
-c     &       ,cx,cy,cblank,cblank,'NASAGISS'
+     &       ,real(taum(1:im),kind=4)
+     &       ,real(pres(1:jm),kind=4)
+     &       ,real(1.,kind=4),real(1.,kind=4)
+     &       ,cx,cy,cblank,cblank,'NASAGISS'
+
       enddo
       return
       end subroutine POUT_ISCCP

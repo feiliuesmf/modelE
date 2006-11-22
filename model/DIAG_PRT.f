@@ -948,7 +948,6 @@ C**** weighting functions for surface types
       logical, save :: Qbp(0:NTYPE_OUT)
       INTEGER, SAVE :: IFIRST = 1
 
-      CHARACTER*200    :: out_line
       CHARACTER*200    :: fmt903
       CHARACTER*200    :: fmt918
 
@@ -1258,7 +1257,6 @@ C****
       INTEGER :: K,kk,iu_Ijk
       LOGICAL qIjk,Ql(KAJLx),Qk(KAJKx)
       character*80 line
-      CHARACTER*200    :: out_line
 c
 c derived JL-arrays
 c
@@ -1712,10 +1710,6 @@ Cbmp - ADDED
      &     PUTI,PVTI,SCALES,SCALET,SDDP,SKEI,
      &     SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,
      &     SZNELG,THETA,TX,UDXN,UDXS,UX,WTKP1
-
-
-      CHARACTER*200    :: out_line
-
 
 C**** avoid printing out diagnostics that are not yet defined
       if (IDACC(ia_dga).eq.0) RETURN
@@ -3011,7 +3005,6 @@ C****
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 
-      CHARACTER*200 :: out_line
       optional :: ARQX,SCALER,SCALJR,SCALLR
 
       if ( present(ARQX) ) goto 777
@@ -4265,6 +4258,13 @@ c**** ratios (the denominators)
      *             +teeny)
             end do
             end do
+          else if (index(lname_ij(k),' x SUNLIT ISCCP') .gt. 0) then
+            do j=1,jm
+            do i=1,im
+              adenom(i,j)=aij(i,j,ij_scldi)/(idacc(ia_ij(ij_scldi))
+     *             +teeny)
+            end do
+            end do
           else if (index(lname_ij(k),' x P1000') .gt. 0) then
             do j=1,jm
             do i=1,im
@@ -4651,8 +4651,8 @@ C**** standard printout
 
 C**** include ISCCP diags if requested
       if (isccp_diags.eq.1) then
-        iord(kmaplets+1:kmaplets+6) = (/ij_lcldi,ij_mcldi,ij_hcldi,
-     *                                  ij_tcldi,ij_taui,ij_ctpi/)
+        iord(kmaplets+1:kmaplets+6) = (/ij_taui,ij_ctpi,ij_lcldi,
+     *                                  ij_mcldi,ij_hcldi,ij_tcldi/)
         kmaplets=kmaplets+6
       else
         lname_ij(ij_lcldi)='unused'
@@ -5751,7 +5751,7 @@ C**** IJL diags are done separately
       CHARACTER XLB*24,TITLEX*56
       CHARACTER*80 TITLEL(LM)
       REAL*8 SMAP(IM,JM,LM),SMAPJK(JM,LM),SMAPK(LM)
-      REAL*8 flat,press,dp
+      REAL*8 flat,dp
       CHARACTER*8 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni,k,iu_Iij
       logical, dimension (kaijkx) :: Qk
@@ -6054,50 +6054,56 @@ C****
       subroutine diag_isccp
 !@sum diag_isccp prints out binary and prt output for isccp histograms
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc
+      USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc,im
       USE GEOM, only : dxyp
       USE DIAG_COM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
-     *     ,qdiag,ia_src,isccp_tau,isccp_press
+     *     ,qdiag,ia_src,isccp_press,isccp_taum,aij,ij_tcldi,ij_scldi
       IMPLICIT NONE
 
       CHARACTER*80 :: TITLE(nisccp) = (/
-     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 60S-30S",
-     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30S-15S",
-     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15S-15N",
-     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15N-30N",
-     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30N-60N" /)
-      REAL*8 area(nisccp)
-      REAL*8 AX(ntau,npres,nisccp)
-      INTEGER N,ITAU,IPRESS,J
+     *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 60S-30S",
+     *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30S-15S",
+     *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15S-15N",
+     *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15N-30N",
+     *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30N-60N" /)
+      REAL*8 AX(ntau-1,npres,nisccp),wisccp(nisccp)
+      INTEGER N,ITAU,IPRESS,J,I
 
       character*30 :: sname
       character*50 :: lname,units
 
-C**** calculate area weightings
-      area(:)=0.
+C**** calculate area weightings (including fraction of time that clouds
+C**** could be observed).
+      wisccp(:)=0.
       do j=1,jm
         n=isccp_reg(j)
-        if (n.gt.0) area(n)=area(n)+dxyp(j)
+        if (n.gt.0) then
+          do i=1,im
+            wisccp(n)=wisccp(n)+aij(i,j,ij_scldi)*dxyp(j)
+          end do
+        end if
       end do
 
 C**** write out scaled results
       do n=nisccp,1,-1   ! north to south
         title(n)(61:72) = acc_period
         write(6,100) title(n)
-        AX(:,:,n)=100.*AISCCP(:,:,n)/(fim*idacc(ia_src)*area(n))
+        AX(1:ntau-1,:,n) = 100.*AISCCP(2:ntau,:,n)/wisccp(n)
         do ipress=1,npres
-        write(6,101) isccp_press(ipress),(AX(itau,ipress,n),itau=2,ntau)
+          write(6,101) isccp_press(ipress),(AX(itau,ipress,n),itau=1
+     *         ,ntau-1)
         end do
         write(6,*)
       end do
 C**** write the binary file
       if (qdiag) then
-         call open_isccp(trim(acc_period)//'.isccp'//
-     *        XLABEL(1:LRUNID),ntau,npres,nisccp)
+        call open_isccp(trim(acc_period)//'.isccp'//
+     *       XLABEL(1:LRUNID),ntau-1,npres,nisccp)
          sname='pcld'
          lname='cloud cover histogram'
          units='%'
-         call pout_isccp(title,sname,lname,units,ax)
+         call pout_isccp(title,sname,lname,units,ax,isccp_taum
+     *        ,real(isccp_press,kind=8))
          call close_isccp
       endif
       RETURN

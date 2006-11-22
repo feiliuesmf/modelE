@@ -2689,7 +2689,7 @@ c
 
       k=k+1 !
       IJ_LCLDI = k
-      lname_ij(k) = 'LOW LEVEL CLOUDINESS (ISCCP)'
+      lname_ij(k) = 'LOW LEVEL CLOUDINESS (ISCCP) x SUNLIT ISCCP CLOUD'
       units_ij(k) = '%'
       name_ij(k) = 'pcldl_isccp'
       ia_ij(k) = ia_src
@@ -2697,7 +2697,8 @@ c
 c
       k=k+1 !
       IJ_MCLDI = k
-      lname_ij(k) = 'MIDDLE LEVEL CLOUDINESS (ISCCP)'
+      lname_ij(k) =
+     *     'MIDDLE LEVEL CLOUDINESS (ISCCP) x SUNLIT ISCCP CLOUD'
       units_ij(k) = '%'
       name_ij(k) = 'pcldm_isccp'
       ia_ij(k) = ia_src
@@ -2705,22 +2706,32 @@ c
 c
       k=k+1 !
       IJ_HCLDI = k
-      lname_ij(k) = 'HIGH LEVEL CLOUDINESS (ISCCP)'
+      lname_ij(k) = 'HIGH LEVEL CLOUDINESS (ISCCP) x SUNLIT ISCCP CLOUD'
       units_ij(k) = '%'
       name_ij(k) = 'pcldh_isccp'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
-C**** Note this diagnostic is NOT the total cloud cover (that is got by
+C**** Note these two diagnostics are NOT the total cloud cover (that is got by
 C**** summing the low+ mid+high diagnostics). Instead, this is the
 C**** fraction of time that a cloud appears in the grid box (which may
-C**** well cover less than 100% of the box). This is needed for
-C**** weighting the cloud top pressure and optical depth
+C**** well cover less than 100% of the box) and the amount of time that
+C**** clouds could be detected. TCLDI is needed for weighting the cloud
+C**** top pressure and optical depth, and SCLDI is needed for weighting
+C**** frequency diags.
       k=k+1 !
       IJ_TCLDI = k
       lname_ij(k) = 'FRACTION OF TIME FOR ISCCP CLOUD'
       units_ij(k) = '%'
       name_ij(k) = 'pcldt_isccp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_SCLDI = k
+      lname_ij(k) = 'FRACTION OF SUNLIT FOR ISCCP CLOUD'
+      units_ij(k) = '%'
+      name_ij(k) = 'pclds_isccp'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c

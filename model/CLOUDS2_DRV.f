@@ -18,6 +18,7 @@
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE RANDOM
+      USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
 #ifdef CLD_AER_CDNC
      *     ,oldno,oldnl,smfpm
@@ -33,7 +34,7 @@
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas,
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
      *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
-     *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,
+     *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,ij_scldi,
 #ifndef NO_HDIURN
      *     hdiurn,
 #endif
@@ -230,7 +231,7 @@ C**** parameters and variables for isccp diags
       real*8 pfull(lm),at(lm),cc(lm),dtau_s(lm),dtau_c(lm)
       real*8 dem_s(lm),dem_c(lm),phalf(lm+1)
       real*8 fq_isccp(ntau,npres),ctp,tauopt
-      integer itau,itrop,nbox
+      integer itau,itrop,nbox,sunlit,ipres
 C****
 
 C
@@ -254,8 +255,6 @@ CRKF...FIX
       REAL*8  :: AJEQIL_SUM(IM,LM)
       REAL*8, DIMENSION(
      &        size(AREG,1), 3)  :: AREG_SUM
-      INTEGER :: ibox
-      REAL*8  :: randxx
       REAL*8, DIMENSION(
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
      &        :: AREG_part
@@ -418,7 +417,7 @@ C****
 !$OMP*  tmp,ALPHAS,ALPHA1,ALPHA2,AT,BYDH1S,BYDH12, CC,CONV,CTP,
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
-!$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
+!$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,IPRES,
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
 #endif
@@ -431,7 +430,7 @@ C****
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,q0,q1,q2,WM1,WMI)
+!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,q0,q1,q2,WM1,WMI,sunlit)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
@@ -1052,32 +1051,29 @@ c          skt=tf+tg1(i,j)
         end do
         phalf(lm+1)=ple(1)*100.
         itrop = LM+1-LTROPO(I,J)
+        sunlit=0
+        if (cosz1(i,j).gt.0) sunlit=1
 
-        call ISCCP_CLOUD_TYPES(pfull,phalf,qv,
+        call ISCCP_CLOUD_TYPES(sunlit,pfull,phalf,qv,
      &       cc,conv,dtau_s,dtau_c,skt,
      &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
         if(jerr.ne.0) jckerr = jckerr + 1
 C**** set ISCCP diagnostics
-        if (nbox.gt.0) then
+        AIJ(I,J,IJ_SCLDI) = AIJ(I,J,IJ_SCLDI) + sunlit
+        if (nbox.gt.0.and.sunlit.gt.0) then
           AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp
           AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt
           AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1.
-        end if
-C**** note LOW CLOUDS:       ipres=6,7, MID-LEVEL CLOUDS: ipres=4,5 ,
+C**** note LOW CLOUDS:       ipres=6,7 
+C****      MID-LEVEL CLOUDS: ipres=4,5
 C****      HIGH CLOUDS:      ipres=1,2,3
 C**** Sum over itau=2,ntau (itau=1 is no cloud)
-        do itau=2,ntau
-          AIJ(I,J,IJ_LCLDI)= AIJ(I,J,IJ_LCLDI) + fq_isccp(itau,6)
-     *         + fq_isccp(itau,7)
-          AIJ(I,J,IJ_MCLDI)= AIJ(I,J,IJ_MCLDI) + fq_isccp(itau,4)
-     *         + fq_isccp(itau,5)
-          AIJ(I,J,IJ_HCLDI)= AIJ(I,J,IJ_HCLDI) + fq_isccp(itau,1)
-     *         + fq_isccp(itau,2) + fq_isccp(itau,3)
-        end do
+          AIJ(I,J,IJ_LCLDI)=AIJ(I,J,IJ_LCLDI)+sum(fq_isccp(2:ntau,6:7))
+          AIJ(I,J,IJ_MCLDI)=AIJ(I,J,IJ_MCLDI)+sum(fq_isccp(2:ntau,4:5))
+          AIJ(I,J,IJ_HCLDI)=AIJ(I,J,IJ_HCLDI)+sum(fq_isccp(2:ntau,1:3))
 C**** Save area weighted isccp histograms
-        n=isccp_reg(j)
-        if (n.gt.0) then
-          AISCCP_part(:,:,n,J) = AISCCP_part(:,:,n,J) +
+          n=isccp_reg(j)
+          if (n.gt.0) AISCCP_part(:,:,n,J) = AISCCP_part(:,:,n,J) +
      &         fq_isccp(:,:)*DXYP(j)
         end if
       end if
@@ -1485,10 +1481,9 @@ C Third: Store the accumulations into AIL:
       END IF
 C**** Accumulate AISCCP array
       CALL GLOBALSUM(grid,AISCCP_part(1:ntau,1:npres,1:nisccp,:),
-     &   AISCCPSUM(1:ntau,1:npres,1:nisccp))
-      AISCCP(1:ntau,1:npres,1:nisccp)=
-     &   AISCCP(1:ntau,1:npres,1:nisccp) +
-     &   AISCCPSUM(1:ntau,1:npres,1:nisccp)
+     &     AISCCPSUM(1:ntau,1:npres,1:nisccp))
+      AISCCP(1:ntau,1:npres,1:nisccp) = AISCCP(1:ntau,1:npres,1:nisccp)
+     *     +AISCCPSUM(1:ntau,1:npres,1:nisccp)
 
 C****Accumulate diagnostigs into AREG in a way that insures bitwise
 C    identical results regardless of number of distributed processes used.
@@ -1659,15 +1654,17 @@ C     WRITE(195) ITIME,SAVWCU,SAVWC1,SAVEN1,SAVEN2,FOCEAN
       USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
-     *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
+     *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau
       USE CLOUDS_COM, only : llow,lmid,lhi
       USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
       USE PARAM
+      USE FILEMANAGER, only : openunit, closeunit
 
       IMPLICIT NONE
       REAL*8 PLE
-      INTEGER L,J,n
+      INTEGER L,J,n,iu_ISCCP
       INTEGER :: J_0,J_1
+      CHARACTER TITLE*80
 
       J_0 =GRID%J_STRT
       J_1 =GRID%J_STOP
@@ -1699,14 +1696,14 @@ C**** SEARCH FOR THE 50 MB LEVEL
       if (AM_I_ROOT())  write(6,*)
      *     "Maximum level for LSCOND calculations (50mb): ",LP50
 
-C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
+C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS (MATCHES ISCCP DEFNs)
       DO L=1,LM
         LLOW=L
-        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.750.) EXIT ! was 786. 4/16/97
+        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.680.) EXIT 
       END DO
       DO L=LLOW+1,LM
         LMID=L
-        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.430.) EXIT
+        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.440.) EXIT
       END DO
       LHI=LM
       IF (LMID+1.GT.LHI) LHI=LMID+1
@@ -1726,4 +1723,9 @@ C**** Define regions for ISCCP diagnostics
         enddo
       end do
 
+C**** Read in tau/invtau tables for ISCCP calculations
+      call openunit("ISCCP",iu_ISCCP,.true.,.true.)
+      read(iu_ISCCP) title,tautab,invtau
+      if (AM_I_ROOT())  write(6,*) "Read ISCCP:",trim(title)
+      call closeunit(iu_ISCCP)
       END SUBROUTINE init_CLD

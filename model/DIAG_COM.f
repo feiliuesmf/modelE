@@ -212,6 +212,9 @@ C**** parameters and variables for ISCCP diags
       REAL*8, PARAMETER, public ::
      &     isccp_tau(ntau) = (/ 0d0,.1d0,1.3d0,3.6d0,
      *     9.4d0,23d0,60d0 /)
+!@var isccp_taum mid point of optical depth for each isccp tau category
+      REAL*8, PARAMETER, public :: isccp_taum(ntau-1) = (/ .05d0,0.7d0,2
+     *     .95d0,6.5d0,16.2d0,41.5d0 /)
 !@var isccp_late edge latitudes for each isccp lat category (region)
 !@var isccp_lat midpoint latitudes for each isccp lat category (region)
 ! calculation of midpoints is hard-coded until all fortran compilers
@@ -421,7 +424,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,IJ_GW9
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER, public ::
-     &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI
+     &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI
 
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(25), PARAMETER, public :: LEGEND=(/ !
