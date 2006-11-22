@@ -65,6 +65,7 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux     ! need KSOLAR=2
 RADNE=topcld.trscat8
+ISCCP=ISCCP.tautables
 ! new ozone files (minimum 1, maximum 9 files)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890

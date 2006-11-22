@@ -104,6 +104,7 @@ RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
 ! RADN9=Solar_spectrum.1500-2004_gsf ! need KSOLAR=9
 RADNE=topcld.trscat8
+ISCCP=ISCCP.tautables
 ! ozone files (minimum 1, maximum 9 files)
 ! warning: I know there are newer ones of these:
 O3file_01=jan2004_o3_shindelltrop_72x46x49x12_1850
