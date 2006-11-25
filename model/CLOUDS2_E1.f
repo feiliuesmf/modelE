@@ -75,6 +75,12 @@ C**** Set-able variables
       integer, dimension(ntm) :: ntix
       integer ntx
 #endif
+C**** ISCCP diag related variables
+      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
+!@var tautab look-up table to convert count value to optical thickness
+!@var invtau look-up table to convert optical thickness to count value
+      real*8 :: tautab(0:255)
+      integer :: invtau(-20:45000)     
 
 C**** input variables
       LOGICAL DEBUG
@@ -307,7 +313,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
 #endif
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
-      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
+
       CONTAINS
 
       SUBROUTINE MSTCNV(IERR,LERR,i_debug,j_debug)
@@ -3214,7 +3220,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.6 2006/11/22 22:32:39 gavin Exp $
+!$Id: CLOUDS2_E1.f,v 1.7 2006/11/25 17:31:19 jan Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
