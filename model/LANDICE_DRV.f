@@ -672,21 +672,23 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
           write(6,*) "Mass (after): ",accpda,accpdg 
           write(6,*) "Temp (after): ",(eaccpda/accpda+lhm)/shi,
      *         (eaccpdg/accpdg+lhm)/shi
-          call ESMF_BCAST(grid,  ACCPDA)
-          call ESMF_BCAST(grid,  ACCPDG)
-          call ESMF_BCAST(grid, EACCPDA)
-          call ESMF_BCAST(grid, EACCPDG)
+        END IF
+        call ESMF_BCAST(grid,  ACCPDA)
+        call ESMF_BCAST(grid,  ACCPDG)
+        call ESMF_BCAST(grid, EACCPDA)
+        call ESMF_BCAST(grid, EACCPDG)
 
 #ifdef TRACERS_OCEAN
+        if (AM_I_ROOT()) THEN
           traccpda(:)=traccpda(:)+gm_relax*(trdwnimp_SH(:)-traccpda(:))
           traccpdg(:)=traccpdg(:)+gm_relax*(trdwnimp_NH(:)-traccpdg(:))
 
           write(6,*),"Tracers (after)",1000*(traccpda(:)/accpda/trw0(:)
      *         -1.)
-          call ESMF_BCAST(grid, TRACCPDG)
-          call ESMF_BCAST(grid, TRACCPDG)
+        ENDIF
+        call ESMF_BCAST(grid, TRACCPDG)
+        call ESMF_BCAST(grid, TRACCPDG)
 #endif
-      end if
 ! accumulation (kg per source time step) per water column
       FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH) 
       FAC_NH=DTsrc/(EDPERY*SDAY*FWAREA_NH)
