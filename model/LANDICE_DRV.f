@@ -686,7 +686,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
           write(6,*),"Tracers (after)",1000*(traccpda(:)/accpda/trw0(:)
      *         -1.)
         ENDIF
-        call ESMF_BCAST(grid, TRACCPDG)
+        call ESMF_BCAST(grid, TRACCPDA)
         call ESMF_BCAST(grid, TRACCPDG)
 #endif
 ! accumulation (kg per source time step) per water column
