@@ -698,6 +698,8 @@ C****
       real*8, dimension(ntm) :: tr_DHD
 !@var fq_aer fraction of aerosol that condenses
       real*8 fq_aer(ntm)
+!@var rc_washt aerosol washout rate
+      REAL*8 :: rc_washt(Ntm)=1.D-1
 !@param nChemistry index for tracer chemistry 3D source
 !@param nStratwrite index for tracer stratosphic overwrite 3D source
 !@param nLightning index for tracer lightning 3D source

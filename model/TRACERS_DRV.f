@@ -1074,7 +1074,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=0.46D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Silt1')
@@ -1084,7 +1085,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Silt2')
@@ -1094,7 +1096,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Silt3')
@@ -1104,7 +1107,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Silt4')
@@ -1114,7 +1118,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=11.77D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
 #else
@@ -1126,7 +1131,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=0.46D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('ClayKaol')       ! http://www.webmineral.com/data/Kaolinite.shtml
@@ -1136,7 +1142,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=0.46D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('ClaySmec')       ! http://www.webmineral.com/data/Rectorite.shtml
@@ -1146,7 +1153,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=0.46D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('ClayCalc')       ! http://www.webmineral.com/data/Calcite.shtml
@@ -1156,7 +1164,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=0.46D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('ClayQuar')       ! http://www.webmineral.com/data/Quartz.shtml
@@ -1166,7 +1175,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=0.46D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil1Quar')       ! http://www.webmineral.com/data/Quartz.shtml
@@ -1176,7 +1186,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil1Feld')       ! http://www.mindat.org/min-1624.html
@@ -1186,7 +1197,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil1Calc')       ! http://www.webmineral.com/data/Calcite.shtml
@@ -1196,7 +1208,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil1Hema')       ! http://www.webmineral.com/data/Hematite.shtml
@@ -1206,7 +1219,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil1Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
@@ -1216,7 +1230,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil2Quar')       ! http://www.webmineral.com/data/Quartz.shtml
@@ -1226,7 +1241,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil2Feld')       ! http://www.mindat.org/min-1624.html
@@ -1236,7 +1252,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil2Calc')       ! http://www.webmineral.com/data/Calcite.shtml
@@ -1246,7 +1263,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil2Hema')       ! http://www.webmineral.com/data/Hematite.shtml
@@ -1256,7 +1274,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil2Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
@@ -1266,7 +1285,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil3Quar')       ! http://www.webmineral.com/data/Quartz.shtml
@@ -1276,7 +1296,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil3Feld')       ! http://www.mindat.org/min-1624.html
@@ -1286,7 +1307,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil3Calc')       ! http://www.webmineral.com/data/Calcite.shtml
@@ -1296,7 +1318,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil3Hema')       ! http://www.webmineral.com/data/Hematite.shtml
@@ -1306,7 +1329,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil3Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
@@ -1316,7 +1340,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
 #endif
@@ -1328,7 +1353,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=1.47D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil2QuHe')
@@ -1338,7 +1364,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=2.94D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
       CASE('Sil3QuHe')
@@ -1348,7 +1375,8 @@ CCC#endif
 #ifdef TRACERS_DRYDEP
           trradius(n)=5.88D-06
 #endif
-          fq_aer(n)=0.
+          fq_aer(n)=5.D-1
+          rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
 #endif
@@ -10783,7 +10811,7 @@ c
 c
 C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
-     * tr_RKD,tr_DHD,LM,NTM
+     * tr_RKD,tr_DHD,LM,NTM,rc_washt
 #ifdef TRACERS_AEROSOLS_Koch
      * ,trname,n_seasalt1,n_seasalt2
 c     USE PBLCOM, only: wsavg
@@ -10838,7 +10866,7 @@ C
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
     (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP)
-          fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
+          fq = -b_beta_DT*(EXP(-PREC*rc_washt(ntix(n)))-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0
 c         if (wsavg(i,j).gt.10.and.PREC.gt.0.and.l.eq.1) then
