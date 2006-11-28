@@ -23,13 +23,13 @@ DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global dist
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS2n CLOUDS2_DRV CLOUDS_COM        ! clouds modules
-SURFACEn FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRVn GHY                 ! land surface and soils
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
+SURFACE FLUXES                      ! surface calculation and fluxes
+GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
-LAKES_COM LAKES_Jun08               ! lake modules
+LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
@@ -42,10 +42,10 @@ momtum|-r8|  mxkpp|-r8| newbot|-r8| overtn|-r8|   pipe|-r8|      !ocean model
 prtmsk|-r8| reflux|-r8| sigetc|-r8| sphdis|-r8| sstbud|-r8|      !ocean model
 stencl|-r8| thermf|-r8| tsadvf|-r8|  zebra|-r8|                  !ocean model
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRVnnn RADIATIONnn         ! radiation modules
-DIAG_COM DIAGnn DEFACC DIAG_PRT       ! diagnostics
+RAD_COM RAD_DRV RADIATION           ! radiation modules
+DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_RES_M                          ! diagnostics (resolution dependent)
-CONST FFT72 UTILDBLn SYSTEM          ! utilities
+CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
@@ -53,7 +53,7 @@ Data input files:
 !GIC=GIC.E046D3M20A.1DEC1955 ! initial conditions (ground) and 300 year spin-up
 AIC=1JAN1800.rsfE3hy091      ! full IC (GIC,OIC not needed) ISTART=8
 CDN=CD4X500S.ext
-VEG=V72X46.1.cor2_no_crops.ext 
+VEG=V72X46.1.cor2_no_crops.ext
 CROPS=CROPS_72X46N.cor4.ext  ! veg. fractions, crops history
 SOIL=S4X50093.ext TOPO=Z72X46N.2deghycom.lake              !!! hycom
 REG=REG4X5           ! special regions-diag
