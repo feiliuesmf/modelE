@@ -156,12 +156,12 @@
       print*,'dbhdata',dbhdata
       print*,'popdata',popdata
       print*,'craddata',craddata
-      print*,'cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)',
-     &     cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)
-      print*,'cpooldata(SHRUB+COVEROFFSET,:,I1,J1)',
-     &     cpooldata(SHRUB+COVEROFFSET,:,I1,J1)
-      print*,'cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)',
-     &     cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)
+!      print*,'cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)',
+!     &     cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)
+!      print*,'cpooldata(SHRUB+COVEROFFSET,:,I1,J1)',
+!     &     cpooldata(SHRUB+COVEROFFSET,:,I1,J1)
+!      print*,'cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)',
+!     &     cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)
       print*,'soil_color',soil_color
 
       end subroutine GISS_vegdata

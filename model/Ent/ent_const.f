@@ -93,15 +93,27 @@
       !***********************
       integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
 
+      !************************************************
+      !*  ENT PLANT FUNCTIONAL TYPE CONSTANTS         *
+      !************************************************
+!      integer,parameter :: N_PFT = 13
+!      integer,parameter :: N_OTHER = 0
 
-      !************************************************************************
-      !*  GISS VEGETATION CONSTANTS
-      !integer :: JEQUATOR !Will get calculated in ent_init.
 
+      !************************************************
+      !*  GISS VEGETATION CONSTANTS                   *
+      !************************************************
       integer,parameter :: N_PFT = 8
-      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
       integer,parameter :: N_OTHER = 2 ! algae, c4 grass
-      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
+
+
+      !************************************************
+      !*  GISS SOIL CONSTANTS                         *
+      !************************************************
+      
+      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
+       integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
+
 
       !************************************************************************
       !* COHORT Biomass pools
@@ -167,4 +179,6 @@
       real*8,dimension(N_PFT) :: structurallignin !fraction of structural C from lignin -PK 7/5/06 
       real*8,dimension(N_PFT) :: lignineffect !effect of lignin on decomp -PK 7/5/06
       real*8,parameter :: woodligninfract = 0.40 !amt lignin in wood C -PK 7/5/06
+
+      !************************************************************************
       end module ent_const
