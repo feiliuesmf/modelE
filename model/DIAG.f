@@ -3800,7 +3800,8 @@ C**** fix polar values
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
 #endif
-#ifdef CLD_AER_CDNC   !for 3 hrly diagnostics
+#ifdef CLD_AER_CDNC
+!for 3 hrly diagnostics
         case ("CTEM")
           kunit=kunit+1
           do l=1,lm
