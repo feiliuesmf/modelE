@@ -23,7 +23,7 @@
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
-      public ent_cell_set, ent_cell_update
+      public ent_cell_set !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
 
@@ -66,9 +66,9 @@
       end interface
 
       !--- passing updated prescribed data to ent cells ---
-      interface ent_cell_update
-        module procedure ent_cell_update_single
-      end interface ent_cell_update
+cddd      interface ent_cell_update
+cddd        module procedure ent_cell_update_single
+cddd      end interface ent_cell_update
 
       !--- set forcings / get exports ---
       interface ent_set_forcings
@@ -123,27 +123,53 @@
 
 !*************************************************************************
 !---- interfaces to run the model one time step --------------------------
-      subroutine ent_prescribe_vegupdate(dtsec,entcell,hemi,jday,year,
-     &     update_crops, update_soil)
-      use ent_GISSveg, only:  ent_GISS_vegupdate
-      real*8,intent(in) :: dtsec
+      subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year,
+     &     update_crops, do_giss_phenology,
+     &     laidata, albedodata, cropsdata)
+      use ent_prescribed_updates, only:  entcell_vegupdate
       type(entcelltype_public), intent(inout) :: entcell(:,:)
-      integer, intent(in) :: hemi(:,:)
-      integer,intent(in) :: jday,year
-      logical, intent(in) :: update_crops
-      logical, intent(in) :: update_soil
+      integer, intent(in), optional, target :: hemi(:,:)
+      integer,intent(in), optional :: jday,year
+      logical, intent(in), optional :: update_crops
+      logical, intent(in), optional :: do_giss_phenology
+      real*8, intent(in), optional, target :: laidata(:,:,:)
+      real*8, intent(in), optional, target :: albedodata(:,:,:,:)
+      real*8, intent(in), optional, target :: cropsdata(:,:)
       !---
+      real*8, allocatable :: cropsdata_loc(:,:)
+      real*8, pointer :: laidata_1(:), albedodata_1(:,:), cropsdata_1
+      integer, pointer :: hemi_1
       integer i, ic, j, jc
 
       ic = size(entcell,1)
       jc = size(entcell,2)
 
+      if ( present(update_crops) ) then
+        if ( update_crops ) then
+          if ( .not. present(year) )
+     &         call stop_model("ent_prescribe_vegupdate: need year",255)
+          allocate ( cropsdata_loc(ic,jc) )
+          ! insert call to get_crops here
+          ! maybe we can avoid it ? I mean could we always
+          ! pass cropdata from the driver?
+        endif
+      endif
+
+      nullify( laidata_1, albedodata_1, cropsdata_1, hemi_1 )
+
       do j=1,jc
         do i=1,ic
           ! skip uninitialized cells (no land)
           if ( .not. associated(entcell(i,j)%entcell) ) cycle
-          call ent_GISS_vegupdate(dtsec,entcell(i,j)%entcell, hemi(i,j),
-     &         jday, year, update_crops, update_soil)
+
+          if ( present(laidata) ) laidata_1 => laidata(:,i,j)
+          if ( present(albedodata) ) albedodata_1 => albedodata(:,:,i,j)
+          if ( present(cropsdata) ) cropsdata_1 => cropsdata(i,j)
+          if ( present(hemi) ) hemi_1 => hemi(i,j)
+          
+          call entcell_vegupdate(entcell(i,j)%entcell, hemi_1,
+     &         jday, do_giss_phenology,
+     &         laidata_1, albedodata_1, cropsdata_1)
         enddo
       enddo
 
@@ -330,7 +356,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       print *,"ent_cell_constr"
       call entcell_construct(entcell%entcell)
-      call entcell_print(6, entcell%entcell)
+      !call entcell_print(6, entcell%entcell)
 
       end subroutine ent_cell_construct_single
 
@@ -575,7 +601,7 @@ cddd      call zero_entcell(entcell%entcell)
           if ( .not. associated(entcell(i,j)%entcell) ) cycle
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("init_simple_entcell 1",255)
-          call entcell_print(6,entcell(i,j)%entcell)
+          !call entcell_print(6,entcell(i,j)%entcell)
 
           call init_simple_entcell( entcell(i,j)%entcell,
      &         veg_fraction(:,i,j),pft_population_density,
@@ -591,69 +617,77 @@ cddd      call zero_entcell(entcell%entcell)
 
 !*************************************************************************
 
-      subroutine ent_cell_update_single(entcell,
-     &     pft_population_density,
-     &     pft_leaf_area_index,
-     &     pft_heights,
-     &     pft_dbh,
-     &     pft_crad,
-     &     pft_cpool,
-     &     pft_nmdata,
-     &     pft_froots,
-     &     pft_vegalbedo,
-     &     heat_capacity
-     &     )
-      type(entcelltype_public), intent(out) :: entcell
-      real*8, dimension(:), optional  ::   ! dim=N_PFT
-     &     pft_leaf_area_index,
-     &     pft_heights,
-     &     pft_dbh,
-     &     pft_crad,
-     &     pft_nmdata,
-     &     pft_population_density
-      real*8, dimension(:,:), optional :: pft_cpool !Carbon pools in individuals
-      real*8, dimension(:,:), optional :: pft_froots
-      real*8, dimension(:,:), optional ::  pft_vegalbedo ! dim=N_BANDS,N_PFT
-      ! the following is needed for a hack to set GISS canopy heat capacity
-      real*8, optional :: heat_capacity
-
-      ! if cell is not initialized (no land) do nothing
-      if ( .not. associated(entcell%entcell) ) return
-
-      if ( present(pft_leaf_area_index) ) then
-        call entcell_update_lai( entcell%entcell, pft_leaf_area_index )
-      endif
-
-      if ( present(pft_vegalbedo) ) then
-        call entcell_update_albedo( entcell%entcell, pft_vegalbedo )
-      endif
-
-      !!! hack, should be replaced with computation of heat capacity
-      !!! inside ent
-      if ( present(heat_capacity) ) then
-        entcell%entcell%heat_capacity = heat_capacity
-      endif
-
-      !!!! subroutine litter(dtsec, pp) is not called here !!!
-      !!!! should be called somewhere else
-     
-
-      if ( present(pft_population_density)
-     &     .or. present(pft_heights)
-     &     .or. present(pft_dbh)
-     &     .or. present(pft_crad)
-     &     .or. present(pft_cpool)
-     &     .or. present(pft_nmdata)
-     &     .or. present(pft_froots)
-     &      ) then
-        call stop_model("ent_cell_update: var not supported yet", 255)
-      endif
-      
-      ! just in case, maybe we don't need to summarize if all updates
-      ! also update summarized values
-      call summarize_entcell(entcell%entcell)
-
-      end subroutine ent_cell_update_single
+cddd      subroutine ent_cell_update_single(entcell,
+cddd     &     pft_population_density,
+cddd     &     pft_leaf_area_index,
+cddd     &     pft_heights,
+cddd     &     pft_dbh,
+cddd     &     pft_crad,
+cddd     &     pft_cpool,
+cddd     &     pft_nmdata,
+cddd     &     pft_froots,
+cddd     &     pft_vegalbedo,
+cddd     &     heat_capacity
+cddd     &     )
+cddd      use ent_prescribed_updates, only : entcell_update_lai,
+cddd     &     entcell_update_albedo, entcell_update_shc
+cddd      type(entcelltype_public), intent(out) :: entcell
+cddd      real*8, dimension(:), optional  ::   ! dim=N_PFT
+cddd     &     pft_leaf_area_index,
+cddd     &     pft_heights,
+cddd     &     pft_dbh,
+cddd     &     pft_crad,
+cddd     &     pft_nmdata,
+cddd     &     pft_population_density
+cddd      real*8, dimension(:,:), optional :: pft_cpool !Carbon pools in individuals
+cddd      real*8, dimension(:,:), optional :: pft_froots
+cddd      real*8, dimension(:,:), optional ::  pft_vegalbedo ! dim=N_BANDS,N_PFT
+cddd      ! the following is needed for a hack to set GISS canopy heat capacity
+cddd      real*8, optional :: heat_capacity
+cddd
+cddd      ! if cell is not initialized (no land) do nothing
+cddd      if ( .not. associated(entcell%entcell) ) return
+cddd
+cddd      if ( present(pft_leaf_area_index) ) then
+cddd        call entcell_update_lai( entcell%entcell, pft_leaf_area_index )
+cddd      endif
+cddd
+cddd      if ( present(pft_vegalbedo) ) then
+cddd        call entcell_update_albedo( entcell%entcell, pft_vegalbedo )
+cddd      endif
+cddd
+cddd      !!! hack, should be replaced with computation of heat capacity
+cddd      !!! inside ent
+cddd      if ( present(heat_capacity) ) then
+cddd        entcell%entcell%heat_capacity = heat_capacity
+cddd      endif
+cddd
+cddd      !!!! subroutine litter(dtsec, pp) is not called here !!!
+cddd      !!!! should be called somewhere else
+cddd     
+cddd
+cddd      if ( present(pft_population_density)
+cddd     &     .or. present(pft_heights)
+cddd     &     .or. present(pft_dbh)
+cddd     &     .or. present(pft_crad)
+cddd     &     .or. present(pft_cpool)
+cddd     &     .or. present(pft_nmdata)
+cddd     &     .or. present(pft_froots)
+cddd     &      ) then
+cddd        call stop_model("ent_cell_update: var not supported yet", 255)
+cddd      endif
+cddd      
+cddd      ! just in case, maybe we don't need to summarize if all updates
+cddd      ! also update summarized values
+cddd      call summarize_entcell(entcell%entcell)
+cddd
+cddd      ! make sure heat capacity of canopy is up-to-date
+cddd      if ( present(pft_leaf_area_index) ) then ! i.e. LAI changed
+cddd        call entcell_update_shc( entcell%entcell )
+cddd      endif
+cddd
+cddd
+cddd      end subroutine ent_cell_update_single
 
 
 !*************************************************************************

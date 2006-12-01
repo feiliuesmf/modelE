@@ -1,7 +1,6 @@
       module ent_GISSveg
 
       use ent_const
-      use ent_types
       use ent_pfts
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
 
@@ -11,14 +10,15 @@
 
 
       public 
-     &     GISS_vegdata,ent_GISS_vegupdate,
+     &     GISS_vegdata,
      &     GISS_get_vdata, GISS_get_laidata, 
      &     GISS_get_hdata, GISS_get_initnm,
-     &     GISS_update_vegcrops, GISS_phenology,
+     &     GISS_update_vegcrops,
      &     GISS_veg_albedo,GISS_calc_rootprof,
-     &     GISS_calcconst
+     &     GISS_calcconst, GISS_calc_lai
 !     &     GCM_get_grid, GCM_get_time, GCM_getdrv_cell, GCM_EWB,
       public GISS_calc_shc,GISS_veg_albedodata,GISS_plant_cpools
+
 
 
 !*********************************************************************
@@ -166,51 +166,6 @@
 
       end subroutine GISS_vegdata
 
-!***************************************************************************
-      subroutine ent_GISS_vegupdate(dt,entcell,hemi,jday,year,
-     &     update_crops, update_soil)
-      use patches, only : summarize_patch
-      use entcells,only : summarize_entcell,entcell_extract_pfts
-      use phenology,only : litter !### Igor won't like this here.
-
-      real*8,intent(in) :: dt
-      type(entcelltype) :: entcell
-      integer,intent(in) :: jday,year,hemi
-      logical,intent(in) :: update_crops
-      logical,intent(in) :: update_soil
-      !----Local------
-      type(patch),pointer :: pp
-      type(cohort),pointer :: cop
-      real*8 vdata(N_COVERTYPES) ! needed for a hack to compute canopy
-
-      pp => entcell%oldest
-      cop => pp%tallest
-      do while (ASSOCIATED(pp))
-        !* Soil *!
-        if (update_soil)  call litter(dt,pp) !###Dependency tree?
-
-        !* LAI, ALBEDO *!
-        call GISS_phenology(jday,hemi, pp)  !## SHOULD HAVE update_crops here
-        if (update_crops) then
-        ! re-read crops data and update the vegetation
-      ! this function is located up in the dependency tree
-      ! can't be called here ... IA
-        endif  
-
-        call summarize_patch(pp)
-        pp => pp%younger
-      end do
-
-      call summarize_entcell(entcell)
-
-      vdata(:) = 0.d0
-      call entcell_extract_pfts(entcell, vdata(2:) )
-      entcell%heat_capacity=GISS_calc_shc(vdata)
-
-      !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
-      !!!### REORGANIZE WTIH ent_prog.f ####!!!
-      
-      end subroutine ent_GISS_vegupdate
 
 !***************************************************************************
       subroutine GISS_get_vdata(im,jm,I0,I1,J0,J1,vdata)
@@ -424,51 +379,6 @@
      &     * (dbhdata(n))**1.94 * (wooddens**0.931)
 
       end function GISS_calc_shoot
-
-!**************************************************************************
-      subroutine GISS_phenology(jday,hemi, pp)
-      !* Calculate new LAI and albedo for given jday, for GISS vegetation. *!
-      !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
-      use ent_types
-      use ent_pfts
-      implicit none
-      integer,intent(in) :: jday !Day of year.
-      integer,intent(in) :: hemi !@var hemi -1: S.hemisphere, 1: N.hemisphere
-      type(patch),pointer :: pp
-      !-------local-----
-      type(cohort),pointer :: cop
-      real*8 :: laipatch
-      real*8 :: cpool(N_BPOOLS)
-
-      if (ASSOCIATED(pp)) then
-
-        !* LAI *AND* BIOMASS - carbon pools *!
-        laipatch = 0.d0 !Initialize for summing
-        cpool(:) = 0.d0
-        cop => pp%tallest
-        do while (ASSOCIATED(cop))
-          cop%lai = GISS_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
-          laipatch = laipatch + cop%lai
-
-          call GISS_plant_cpools(cop%pft, cop%lai, cop%h, 
-     &         cop%dbh, cop%n, cpool )
-          cop%C_fol = cpool(FOL)
-          cop%C_sw = cpool(SW)
-          cop%C_hw = cpool(HW)
-          cop%C_lab = cpool(LABILE)
-          cop%C_froot = cpool(FR)
-          cop%C_croot = cpool(CR)
-
-          cop => cop%shorter
-        end do
-        pp%sumcohort%LAI = laipatch
-
-        !* ALBEDO *!
-        call GISS_veg_albedo(hemi, pp%sumcohort%pft, 
-     &       jday, pp%albedo)
-
-      endif
-      end subroutine GISS_phenology
 
 !**************************************************************************
       subroutine GISS_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)

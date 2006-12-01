@@ -168,6 +168,7 @@
       use soilbgc, only : soil_bgc
       use patches, only : summarize_patch
       use entcells, only : summarize_entcell, entcell_print
+      use phenology,only : litter !### Igor won't like this here.
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
@@ -195,6 +196,9 @@
         else 
           pp%CO2flux = UNDEF
         endif
+        ! litter is updated here since it is an integration over time
+        ! is do_soilresp flag ok or different flag is needed ?
+        if ( do_soilresp ) call litter(dtsec,pp)
         pp%age = pp%age + dtsec
         !call summarize_patch(pp)
         pp => pp%younger
