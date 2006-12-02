@@ -72,21 +72,21 @@ C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
       call sync_param("glmelt_fac_sh",glmelt_fac_sh)
 
 C**** Note these parameters are highly resolution dependent!
-C**** Around Antarctica, fresh water is added from 78S to 62S 
+C**** Around Antarctica, fresh water is added from 78S to 62S
 C**** and from 0-60W and 135W to 165E
 C**** Around Greenland the freshwater is added to both the east and
 C**** west coasts in the one grid box closest to the coast which is
 C**** determined by the direction in the river flow file.
 C**** This information could be read in from a file.
       IF (JM.eq.46) THEN        ! 4x5
-        JML=4 ; JMU=8 ; IML1=24 ; IMU1=36  
-        IML2=69 ; IMU2=11 ; NBOX=10 
+        JML=4 ; JMU=8 ; IML1=24 ; IMU1=36
+        IML2=69 ; IMU2=11 ; NBOX=10
         IFW(1:NBOX) = (/26,25,25,25,29,29,30,31,32,33/)
         JFW(1:NBOX) = (/39,40,41,42,39,40,40,40,41,42/)
         do_glmelt=.true.
       ELSEIF (JM.eq.90) THEN    ! 2x2.5
-        JML=7 ; JMU=11 ; IML1=48 ; IMU1=69 
-        IML2=136 ; IMU2=18 ; NBOX=18 
+        JML=7 ; JMU=11 ; IML1=48 ; IMU1=69
+        IML2=136 ; IMU2=18 ; NBOX=18
         IFW(1:NBOX) = (/50,50,51,51,51,52,53,56,56,57,58,59,60,61,62,63
      *       ,64,64/)
         JFW(1:NBOX) = (/82,81,80,79,78,77,76,76,77,78,78,78,79,79,79,80
@@ -95,7 +95,7 @@ C**** This information could be read in from a file.
       ELSEIF (JM.eq.24) THEN    ! 8x10 (do nothing)
         do_glmelt=.false.
       ELSE  ! unknown resolution
-        WRITE(*,*) "Glacial Melt flux: unknown resolution JM=",JM 
+        WRITE(*,*) "Glacial Melt flux: unknown resolution JM=",JM
         WRITE(*,*) "Please edit init_LI if glacial melt is required."
         do_glmelt=.false.
       END IF
@@ -140,8 +140,8 @@ C****  Possibly this should be a function of in-situ freezing temp?
 C****
 C**** gmelt_fac_nh/sh should be used to match accumulation in control
 C**** run so that global mean sea level is nearly constant. We can't
-C**** get perfect values, but the drift should hopefully be less 
-C**** than 1 mm/year. This will minimise shock once interactive values 
+C**** get perfect values, but the drift should hopefully be less
+C**** than 1 mm/year. This will minimise shock once interactive values
 C**** are calculated.
 C****
 C**** Initial average mass fluxes for Antarctica/Greenland
@@ -164,11 +164,11 @@ C**** not used until at least one full year has passed)
       EDWNIMP=0.
 #ifdef TRACERS_WATER
       TRDWNIMP=0.
-#endif      
+#endif
       end if
 
 ! accumulation (kg per source time step) per water column
-      FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH) 
+      FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH)
       FAC_NH=DTsrc/(EDPERY*SDAY*FWAREA_NH)
 
 C**** Set GL MELT arrays
@@ -320,14 +320,14 @@ c       AREG_PART(JR,J,2)=AREG_PART(JR,J,2)+ERUN0*PLICE*DXYPJ ! (Tg=0)
       END DO
 
 C**** Finish summing and store total accumulations into AREG.
-      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:4), 
+      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:4),
      &   AREG_SUM(1:SIZE(AREG,1),1:4), ALL=.TRUE.)
-      AREG(1:SIZE(AREG,1),J_RUN  )=AREG(1:SIZE(AREG,1),J_RUN) 
+      AREG(1:SIZE(AREG,1),J_RUN  )=AREG(1:SIZE(AREG,1),J_RUN)
      &   + AREG_SUM(1:SIZE(AREG,1),1)
-      AREG(1:SIZE(AREG,1),J_IMPLM)=AREG(1:SIZE(AREG,1),J_IMPLM) 
-     &   + AREG_SUM(1:SIZE(AREG,1),3) 
-      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH) 
-     &   + AREG_SUM(1:SIZE(AREG,1),4) 
+      AREG(1:SIZE(AREG,1),J_IMPLM)=AREG(1:SIZE(AREG,1),J_IMPLM)
+     &   + AREG_SUM(1:SIZE(AREG,1),3)
+      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
+     &   + AREG_SUM(1:SIZE(AREG,1),4)
 
       END SUBROUTINE PRECIP_LI
 
@@ -387,7 +387,7 @@ C**** Finish summing and store total accumulations into AREG.
       INTEGER I,J,JR
       INTEGER :: J_0,J_1, J_0H, J_1H
 
-      CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1 
+      CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1
      &             ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
 C**** Initialize work array
@@ -483,7 +483,7 @@ C**** Accumulate diagnostics related to iceberg flux here also
      *     *EGMELT(I,J)*BYDXYP(J)
       AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*BYDXYP(J)
       AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*BYDXYP(J)
-      
+
       AREG_PART(JR,J,8)   = AREG_PART(JR,J,8) +  GMELT(I,J)
       AREG_PART(JR,J,9)   = AREG_PART(JR,J,9) + EGMELT(I,J)
       AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
@@ -500,23 +500,23 @@ C****
      &  AREG_SUM(1:SIZE(AREG,1),1:9), ALL=.TRUE.)
 
       AREG(1:SIZE(AREG,1),J_RSNOW)=AREG(1:SIZE(AREG,1),J_RSNOW)
-     &   + AREG_SUM(1:SIZE(AREG,1),1)          
-      AREG(1:SIZE(AREG,1),J_RUN)  =AREG(1:SIZE(AREG,1),J_RUN)  
-     &   + AREG_SUM(1:SIZE(AREG,1),2)          
-      AREG(1:SIZE(AREG,1),J_SNOW) =AREG(1:SIZE(AREG,1),J_SNOW) 
-     &   + AREG_SUM(1:SIZE(AREG,1),3)          
-      AREG(1:SIZE(AREG,1),J_ACE1) =AREG(1:SIZE(AREG,1),J_ACE1) 
-     &   + AREG_SUM(1:SIZE(AREG,1),4)          
-      AREG(1:SIZE(AREG,1),J_ACE2) =AREG(1:SIZE(AREG,1),J_ACE2) 
-     &   + AREG_SUM(1:SIZE(AREG,1),5)          
+     &   + AREG_SUM(1:SIZE(AREG,1),1)
+      AREG(1:SIZE(AREG,1),J_RUN)  =AREG(1:SIZE(AREG,1),J_RUN)
+     &   + AREG_SUM(1:SIZE(AREG,1),2)
+      AREG(1:SIZE(AREG,1),J_SNOW) =AREG(1:SIZE(AREG,1),J_SNOW)
+     &   + AREG_SUM(1:SIZE(AREG,1),3)
+      AREG(1:SIZE(AREG,1),J_ACE1) =AREG(1:SIZE(AREG,1),J_ACE1)
+     &   + AREG_SUM(1:SIZE(AREG,1),4)
+      AREG(1:SIZE(AREG,1),J_ACE2) =AREG(1:SIZE(AREG,1),J_ACE2)
+     &   + AREG_SUM(1:SIZE(AREG,1),5)
       AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
-     &   + AREG_SUM(1:SIZE(AREG,1),6)          
+     &   + AREG_SUM(1:SIZE(AREG,1),6)
       AREG(1:SIZE(AREG,1),J_IMPLM)=AREG(1:SIZE(AREG,1),J_IMPLM)
-     &   + AREG_SUM(1:SIZE(AREG,1),7)          
+     &   + AREG_SUM(1:SIZE(AREG,1),7)
       AREG(1:SIZE(AREG,1),J_RVRD) = AREG(1:SIZE(AREG,1),J_RVRD)
-     &   + AREG_SUM(1:SIZE(AREG,1),8)          
+     &   + AREG_SUM(1:SIZE(AREG,1),8)
       AREG(1:SIZE(AREG,1),J_ERVR) = AREG(1:SIZE(AREG,1),J_ERVR)
-     &   + AREG_SUM(1:SIZE(AREG,1),9)          
+     &   + AREG_SUM(1:SIZE(AREG,1),9)
 
 
       END SUBROUTINE GROUND_LI
@@ -554,7 +554,7 @@ C****
       END SUBROUTINE conserv_MLI
 
       SUBROUTINE conserv_HLI(EICE)
-!@sum  conserv_HLI calculates total land ice energy 
+!@sum  conserv_HLI calculates total land ice energy
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shi,lhm
@@ -593,11 +593,12 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm,shi
-      USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear,iyear1
+      USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
+     *     ,itime,itimei,nday,JDperY
       USE GEOM, only : dxyp,imaxj
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
-     *     ,eaccpdg 
+     *     ,eaccpdg
 #ifdef TRACERS_OCEAN
      *     ,traccpda,traccpdg
 #endif
@@ -638,7 +639,7 @@ C**** we aren't getting that right anyway.
       IF (JDAY.eq.1) THEN   ! Jan 1. only
 
 ! only adjust after at least one full year
-        IF (JYEAR.ge.IYEAR1+2) THEN
+        IF (itime.ge.itimei+JDperY*nday) THEN
 
 ! mass and energy (kg, J)
           CALL GLOBALSUM(grid, MDWNIMP, gsum, hsum ,ALL=.TRUE.)
@@ -664,12 +665,12 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
 #ifdef TRACERS_OCEAN
           write(6,*),"Tracers (before)",1000*(traccpda(:)/accpda/trw0(:)
      *         -1.)
-#endif          
+#endif
            accpda =  accpda + gm_relax*(mdwnimp_SH -  accpda)
            accpdg =  accpdg + gm_relax*(mdwnimp_NH -  accpdg)
           eaccpda = eaccpda + gm_relax*(edwnimp_SH - eaccpda)
           eaccpdg = eaccpdg + gm_relax*(edwnimp_NH - eaccpdg)
-          write(6,*) "Mass (after): ",accpda,accpdg 
+          write(6,*) "Mass (after): ",accpda,accpdg
           write(6,*) "Temp (after): ",(eaccpda/accpda+lhm)/shi,
      *         (eaccpdg/accpdg+lhm)/shi
         END IF
@@ -690,7 +691,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
         call ESMF_BCAST(grid, TRACCPDG)
 #endif
 ! accumulation (kg per source time step) per water column
-      FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH) 
+      FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH)
       FAC_NH=DTsrc/(EDPERY*SDAY*FWAREA_NH)
 
 C**** Set GL MELT arrays
@@ -720,7 +721,7 @@ C**** reset implicit accumulators
       EDWNIMP=0.
 #ifdef TRACERS_WATER
       TRDWNIMP=0.
-#endif      
+#endif
 
       END IF
 
