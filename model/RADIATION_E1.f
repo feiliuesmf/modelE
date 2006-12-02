@@ -69,7 +69,7 @@ C----------------
 !@var JLAT,ILON     lat,lon index  w.r.to 72x46 lon-lat grid
 !@var NL,L1         highest and lowest above ground layer
 !@var LS1_loc       local tropopause level, used to limit H2O-scaling
-      INTEGER   :: JLAT,ILON, NL,L1=1, LS1_loc=1  ! Offline defaults
+      INTEGER   :: JLAT,ILON, NL,L1, LS1_loc  ! Offline deflts L1=LS1_loc=1
 !@var JYEAR,JDAY    current year, Julian date
       INTEGER :: JYEAR=1980, JDAY=1
 
@@ -579,7 +579,7 @@ C     for setbak/getbak only   1      2      3       4       5
 
 !@var FTAUC factor to control cloud optical depth in radiation calc.
 !@+   =1 for full expression, =0 for clear sky calculation.
-      REAL*8 :: FTAUC=1 ! to be set in calling routine, thread-private !
+      REAL*8 :: FTAUC ! to be set in calling routine, thread-private ! deflt=1
 
 !@var PIVMAX limits PI0 of volcanic aerosols
       REAL*8 :: PIVMAX=1.0
