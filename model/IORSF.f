@@ -72,7 +72,6 @@ C**** Calls to individual i/o routines
       END IF
       if (ioerr.eq.1) WRITE(6,*) "I/O ERROR IN RESTART FILE: KUNIT="
      *     ,kunit
-      close (kunit)
 
 C**** return maximum time
       it=itm
