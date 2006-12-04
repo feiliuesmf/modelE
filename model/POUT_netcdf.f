@@ -1362,14 +1362,15 @@ C**** set dimensions
       return
       end subroutine pout_isccp
 
-      subroutine open_diurn(filename,hr_in_period,NDIUVAR_gcm)
+      subroutine open_diurn(filename,hr_in_period,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_DIURN opens the average diurnal cycle netcdf output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DIAG_COM, only : ndiupt,namdd,ijdd
+      USE DIAG_COM, only : namdd,ijdd
       USE NCOUT, only : im,jm,lm,im_data,iu_diurn,set_dim_out
      &   ,def_dim_out,out_fid,outfile,units,long_name,ndims_out,open_out
       IMPLICIT NONE
+      INTEGER,INTENT(IN) :: kr1,kr2
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
       INTEGER, INTENT(IN) :: hr_in_period,NDIUVAR_gcm
@@ -1394,7 +1395,7 @@ C**** set dimensions
 
 ! write the names and i,j indices of diagnostic locations
       loc_info=''
-      do n=1,ndiupt
+      do n=kr1,kr2
          write(istr,'(i3)') ijdd(1,n)
          istr = adjustl(istr)
          write(jstr,'(i3)') ijdd(2,n)
@@ -1460,7 +1461,7 @@ c      var_name='hour';call wrtdarr(hours)
       return
       end subroutine POUT_diurn
 
-      subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm)
+      subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_HDIURN opens the hour-by-hour history netcdf output file
 !@auth M. Kelley
 !@ver  1.0
@@ -1471,6 +1472,7 @@ c      var_name='hour';call wrtdarr(hours)
       use MODEL_COM, only : idacc ! get # of hours in this month
       use DIAG_COM, only : ia_12hr,hr_in_day
       IMPLICIT NONE
+      INTEGER,INTENT(IN) :: kr1,kr2
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
       INTEGER, INTENT(IN) :: hr_in_month,NDIUVAR_gcm
@@ -1482,7 +1484,7 @@ c      var_name='hour';call wrtdarr(hours)
 !
       nhrs = min(hr_in_month,hr_in_day*(idacc(ia_12hr)/2))
       im_data = hr_in_month ! input arrays always dimensioned the same
-      call open_diurn(filename,nhrs,NDIUVAR_gcm)
+      call open_diurn(filename,nhrs,NDIUVAR_gcm,kr1,kr2)
 
       att_name='note'
       att_str=nl//

@@ -607,13 +607,14 @@ c restored "GISS 4D format"
       return
       end subroutine close_diurn
 
-      subroutine open_diurn(filename,hr_in_day,NDIUVAR_gcm)
+      subroutine open_diurn(filename,hr_in_day,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_DIURN opens the hourly diurnal_cycle ascii output file
 !@auth J. Lerner     
 !@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
+      INTEGER,INTENT(IN) :: kr1,kr2 ! dummy variables
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
       INTEGER, INTENT(IN) :: hr_in_day,NDIUVAR_gcm
@@ -679,13 +680,14 @@ C**** output daily mean
       return
       end subroutine close_hdiurn
 
-      subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm)
+      subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_HDIURN opens the hourly diurnal_cycle ascii output file
 !@auth J. Lerner
 !@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
+      INTEGER,INTENT(IN) :: kr1,kr2 ! dummy variables
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
       INTEGER, INTENT(IN) :: hr_in_month,NDIUVAR_gcm

@@ -5379,7 +5379,7 @@ C****
       REAL*8, DIMENSION(HR_IN_DAY+1) :: XHOUR
       INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
       REAL*8 :: AVE,AVED,AVEN,BYIDAC
-      INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS,KF
+      INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS,KF,KNDIU,KR1,KR2
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR) :: FHOUR
       CHARACTER :: CPOUT*2
@@ -5393,23 +5393,29 @@ C****
       IF (KDIAG(6).LT.0.AND.KDIAG(6).GE.-NDIUPT) IREGF=-KDIAG(6)
       IF (KDIAG(6).LT.0) IREGL=IREGF       ! kd6<0: show only point -kd6
 C**** for netcdf limits, loop in steps of 2000
-      DO KF=1,1+(IREGL-IREGF-1)/2000
+      KNDIU=0
+      DO KQ=1,NDIUVAR
+        IF (LNAME_DD(KQ) == "unused") CYCLE
+        KNDIU=KNDIU+1
+      END DO
+      DO KF=1,1+(KNDIU*(IREGL-IREGF+1)-1)/2000
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      KR1=IREGF+(KF-1)*INT(2000/KNDIU)
+      KR2=MIN(IREGL,IREGF+KF*INT(2000/KNDIU)-1)
       IF (QDIAG) THEN
-        IF ((IREGL-IREGF-1)/2000.gt.0) THEN ! more than one file
+        CPOUT=""
+        IF (KNDIU*(IREGL-IREGF+1)/2000 > 1) THEN ! more than one file
           IF (KF <= 9) THEN
             WRITE(CPOUT(1:1),'(I1)') KF
           ELSE
             WRITE(CPOUT(1:2),'(I2)') KF
           END IF
-        ELSE
-          CPOUT=""
         END IF
         call open_diurn (trim(acc_period)//'.diurn'//trim(cpout)
-     *       //XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
+     *      //XLABEL(1:LRUNID),hr_in_day,KNDIU,KR1,KR2)
       END IF
 C**** LOOP OVER EACH BLOCK OF DIAGS
-      DO KR=IREGF+(KF-1)*2000,MIN(IREGL,IREGF+KF*2000-1)
+      DO KR=KR1,KR2
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903) NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
 C**** KP packs the quantities for postprocessing (skipping unused)
@@ -5477,16 +5483,14 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
       INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
-      INTEGER :: I,IH,IH0,IREGF,IREGL,IS,JD,jdayofm,K,KP,KQ,KR,NDAYS
+      INTEGER :: I,IH,IH0,IREGF,IREGL,IS,JD,jdayofm,K,KP,KQ,KR,NDAYS,KF,
+     &     KNDIU,KR1,KR2
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR) :: FHOUR
+      CHARACTER :: CPOUT*2
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
-C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF (QDIAG)  call open_hdiurn
-     &     (trim(acc_period)//'.hdiurn'//XLABEL(1:LRUNID),
-     &     hr_in_month,NDIUVAR)
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
       jdayofM = JDendOfM(jmon)-JDendOfM(jmon-1)
@@ -5494,9 +5498,33 @@ C**** KP packs the quantities for postprocessing (skipping unused)
       IREGL=NDIUPT-KDIAG(13)      ! kd13=KDIAG(13)>0: skip last kd13 pts
       IF (KDIAG(13).LT.0.AND.KDIAG(13).GE.-NDIUPT) IREGF=-KDIAG(13)
       IF (KDIAG(13).LT.0) IREGL=IREGF       ! kd13<0: show only pt -kd13
-      DO KR=IREGF,IREGL
+C**** for netcdf limits, loop in steps of 2000
+      KNDIU=0
+      DO KQ=1,NDIUVAR
+        IF (LNAME_DD(KQ) == "unused") CYCLE
+        KNDIU=KNDIU+1
+      END DO
+      DO KF=1,1+(KNDIU*(IREGL-IREGF+1)-1)/2000
+      KR1=IREGF+(KF-1)*INT(2000/KNDIU)
+      KR2=MIN(IREGL,IREGF+KF*INT(2000/KNDIU)-1)
+      IF (QDIAG) THEN
+        CPOUT=""
+        IF (KNDIU*(IREGL-IREGF+1)/2000 > 1) THEN ! more than one file
+          IF (KF <= 9) THEN
+            WRITE(CPOUT(1:1),'(I1)') KF
+          ELSE
+            WRITE(CPOUT(1:2),'(I2)') KF
+          END IF
+        END IF
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+        call open_hdiurn (trim(acc_period)//'.hdiurn'//trim(cpout)
+     &       //XLABEL(1:LRUNID),hr_in_month,KNDIU,KR1,KR2)
+      END IF
+C**** LOOP OVER EACH BLOCK OF DIAGS
+      DO KR=KR1,KR2
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903)NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
+C**** KP packs the quantities for postprocessing (skipping unused)
         KP = 0
         DO KQ=1,NDIUVAR
           IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
@@ -5532,6 +5560,7 @@ C**** RATIO OF TWO QUANTITIES
      *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_MONTH,KP)
       END DO
       IF (QDIAG) call close_hdiurn
+      END DO
 #endif
       RETURN
 C****
