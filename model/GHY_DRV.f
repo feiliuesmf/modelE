@@ -673,7 +673,8 @@ c****
      &     ghy_tracers_save_cell
 #endif
       use ent_com, only : entcells
-      use ent_mod, only : ent_prescribe_vegupdate
+      !use ent_mod, only : ent_prescribe_vegupdate
+      use ent_drv, only : update_vegetation_data
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -832,8 +833,11 @@ C**** halo update u and v for distributed parallelization
       !--- at the moment update vegetation every time step
       hemi(:,JEQUATOR+1:J_1) = 1
       hemi(:,J_0:JEQUATOR) = -1
-      call ent_prescribe_vegupdate(dtsrc/nisurf,entcells,
-     &     hemi,jday,jyear,.false.,.false.)
+  !    call ent_prescribe_vegupdate(dtsrc/nisurf,entcells,
+  !   &     hemi,jday,jyear,.false.,.false.)
+
+      call update_vegetation_data( entcells,
+     &     im, jm, 1, im, J_0, J_1, jday, jyear )
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
@@ -2532,7 +2536,7 @@ c**** check for reasonable temperatures over earth
       use sle001, only : ws
       !use veg_drv, only : veg_set_cell
       use ent_com, only : entcells
-      use ent_mod, only : ent_get_exports, ent_prescribe_vegupdate
+      use ent_mod, only : ent_get_exports
 
       implicit none
       real*8 tsavg,wfc1

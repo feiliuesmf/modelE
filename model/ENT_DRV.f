@@ -10,7 +10,7 @@
       private
       save
 
-      public init_module_ent
+      public init_module_ent, update_vegetation_data
 
       contains
 
@@ -54,9 +54,9 @@
           enddo
         enddo
 
-        print *,'init_module_ent printing cells 1'
-        call ent_cell_print(6, entcells)
-        print *,'init_module_ent end printing cells 1'
+        !print *,'init_module_ent printing cells 1'
+        !call ent_cell_print(6, entcells)
+        !print *,'init_module_ent end printing cells 1'
 
         call set_vegetation_data( entcells, ! (I_0:I_1,J_0:J_1),
      &       IM, JM, I_0, I_1, J_0, J_1, jday, jyear )
@@ -107,7 +107,7 @@ c**** check whether ground hydrology data exist at this point.
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
-      use ent_GISSveg, only : GISS_vegdata
+      use ent_GISSveg, only : GISS_vegdata, GISS_calc_shc
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       !Local variables
@@ -125,6 +125,7 @@ c**** check whether ground hydrology data exist at this point.
       real*8, dimension(N_SOIL_TYPES,I0:I1,J0:J1) :: soil_texture
       !-----Local---------
       integer i,j
+      real*8 heat_capacity
 
 
       do j=j0,j1
@@ -165,8 +166,56 @@ c**** check whether ground hydrology data exist at this point.
      &     hdata, dbhdata, craddata, cpooldata, nmdata, rootprofdata, 
      &     soildata, albedodata, soil_texture)
 
+      !!! hack to set constant heat capacity
+cddd      do j=j0,j1
+cddd        do i=i0,i1
+cddd          heat_capacity = GISS_calc_shc( vegdata(1:N_COVERTYPES,i,j ) )
+cddd          call ent_cell_update(entcells(i,j),
+cddd     &         heat_capacity=heat_capacity
+cddd     &         )
+cddd        enddo
+cddd      enddo
+      
+      ! just in case, do nothing, just set heat capacities
+      call ent_prescribe_vegupdate(entcells)
+
 
       end subroutine set_vegetation_data
+
+
+      subroutine update_vegetation_data( entcells,
+     &     im, jm, i0, i1, j0, j1, jday, year )
+!@sum read standard GISS vegetation BC's and pass them to Ent for
+!@+   initialization of Ent cells. Halo cells ignored, i.e.
+!@+   entcells should be a slice without halo
+      use ent_GISSveg, only : GISS_get_laidata, GISS_veg_albedodata
+      type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
+      integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
+      !Local variables
+      real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: laidata  !cohort
+      !-----Local---------
+      integer i,j
+
+
+      call GISS_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
+      call GISS_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+
+cddd      do j=j0,j1
+cddd        do i=i0,i1
+cddd          call ent_cell_update(entcells(i,j),
+cddd     &         pft_leaf_area_index=laidata(2:2+N_PFT-1,i,j),
+cddd     &         pft_vegalbedo=albedodata(:,2:2+N_PFT-1,i,j)
+cddd     &         )
+cddd        enddo
+cddd      enddo
+
+      call ent_prescribe_vegupdate(entcells
+     &     ,laidata=laidata(2:2+N_PFT-1,:,:)
+     &     ,albedodata=albedodata(:,2:2+N_PFT-1,:,:)
+     &     )
+
+      end subroutine update_vegetation_data
 
 
       end module ent_drv
