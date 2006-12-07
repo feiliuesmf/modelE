@@ -317,5 +317,14 @@
 !        type (entcelltype),pointer :: grid(:,:)
 !      end type entdatatype
 
+!****************************************************************************
+      type ent_config
+      ! this type should contain all parameters that describe the run
+      ! i.e. flags, array dimensions etc. They assumed to be constant
+      ! during the run but may change from run to run
+        logical do_soilresp       ! do soil respiration
+
+      end type ent_config
+
 
       end module ent_types

@@ -161,7 +161,7 @@
 
 
       !*********************************************************************
-      subroutine ent_biophysics(dtsec, ecp, do_soilresp)
+      subroutine ent_biophysics(dtsec, ecp, config)
 !@sum  Photosynthesis CO2 uptake.
 !@+    If do_soilresp, then also  soil respiration for net CO2 fluxes.
       use biophysics, only : photosynth_cond
@@ -172,7 +172,7 @@
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
-      logical, intent(in) :: do_soilresp
+      type(ent_config) :: config
       !---Local--------
       type(patch),pointer :: pp
 
@@ -182,7 +182,7 @@
         !print*,'NEXT PATCH'
         !print*,'Calling photosynth_cond'
         call photosynth_cond(dtsec, pp)
-        if (do_soilresp) then 
+        if (config%do_soilresp) then 
           !print*,'Calling soil_bgc'
           call soil_bgc(dtsec,pp)
           pp%CO2flux = -pp%NPP + pp%Soil_resp
@@ -198,7 +198,7 @@
         endif
         ! litter is updated here since it is an integration over time
         ! is do_soilresp flag ok or different flag is needed ?
-        if ( do_soilresp ) call litter(dtsec,pp)
+        if ( config%do_soilresp ) call litter(dtsec,pp)
         pp%age = pp%age + dtsec
         !call summarize_patch(pp)
         pp => pp%younger

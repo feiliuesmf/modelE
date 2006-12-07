@@ -4,7 +4,7 @@
  
       ! need to know about internal structure of Ent types
       use ent_types, only : entcelltype, patch, cohort, timestruct,
-     &     MAX_PATCHES, MAX_COHORTS
+     &     MAX_PATCHES, MAX_COHORTS, ent_config
       use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
      &     , N_BPOOLS, N_PFT
       !use ent_GISSveg
@@ -26,6 +26,7 @@
       public ent_cell_set !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
+      public ent_initialize
 
       type entcelltype_public
         private
@@ -119,13 +120,37 @@ cddd      end interface ent_cell_update
         module procedure copy_vars_i_array
       end interface
 
+
+      !---- global data ----
+      type(ent_config) config
+
       contains
+
+!*************************************************************************
+      subroutine ent_initialize(
+     &     do_soilresp
+     &     )
+!@sum initializes Ent module. This subroutine should set all the flags
+!@+   and all the variables that are constant during the run.
+      logical, optional :: do_soilresp
+
+      ! first set some defaults:
+      config%do_soilresp = .false.
+
+      ! now overwrite defaults with explicitly passed values
+      if ( present(do_soilresp) ) config%do_soilresp = do_soilresp
+
+      end subroutine ent_initialize
 
 !*************************************************************************
 !---- interfaces to run the model one time step --------------------------
       subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year,
      &     update_crops, do_giss_phenology,
      &     laidata, albedodata, cropsdata)
+!@sum updates prescribed vegatation parameters. This parameters can
+!@+   be passed directly in form of arrays like laidata or one can
+!@+   set a flag requesting certain action like do_giss_phenology.
+!@+   All arguments except entcell are optional.
       use ent_prescribed_updates, only:  entcell_vegupdate
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       integer, intent(in), optional, target :: hemi(:,:)
@@ -177,37 +202,34 @@ cddd      end interface ent_cell_update
       
 !*************************************************************************
 
-      subroutine ent_fast_processes_single(entcell, dt, do_soilresp)
+      subroutine ent_fast_processes_single(entcell, dt)
       use ent, only : ent_biophysics
       type(entcelltype_public), intent(inout) :: entcell
       real*8, intent(in) :: dt
-      logical, intent(in) :: do_soilresp
       !---
       
-      call ent_biophysics(dt, entcell%entcell, do_soilresp)
+      call ent_biophysics(dt, entcell%entcell, config)
 
       end subroutine ent_fast_processes_single
 
 
-      subroutine ent_fast_processes_array_1d(entcell, dt, do_soilresp)
+      subroutine ent_fast_processes_array_1d(entcell, dt)
       type(entcelltype_public), intent(inout) :: entcell(:)
       real*8, intent(in) :: dt
-      logical, intent(in) :: do_soilresp
       !---
       integer n, nc
 
       nc = size(entcell)
       do n=1,nc
-        call ent_fast_processes_single( entcell(n), dt, do_soilresp )
+        call ent_fast_processes_single( entcell(n), dt )
       enddo
 
       end subroutine ent_fast_processes_array_1d
 
 
-      subroutine ent_fast_processes_array_2d(entcell, dt, do_soilresp)
+      subroutine ent_fast_processes_array_2d(entcell, dt )
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       real*8, intent(in) :: dt
-      logical, intent(in) :: do_soilresp
       !---
       integer i, ic, j, jc
 
@@ -216,7 +238,7 @@ cddd      end interface ent_cell_update
 
       do j=1,jc
         do i=1,ic
-          call ent_fast_processes_single( entcell(i,j),dt, do_soilresp)
+          call ent_fast_processes_single( entcell(i,j),dt )
         enddo
       enddo
 
