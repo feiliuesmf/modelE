@@ -271,7 +271,7 @@ ciyf (only need to track limits on inventories)
 ! casa_respire determines amount of C transferred from each "donor" pool and 
 ! where it goes ("receiver" pool), in addition to total C respired (Resp-->Cflux) -PK 6/15/06
       call casa_respire(ivt ,eff ,frac_donor
-     &                 ,Closs, Tpool, Resp)
+     &                 ,Closs, Resp, Tpool)
      
 *---Step 2-----------------------------------------------------------
 * CALCULATE NITROGEN POOLS !***keep this for future use*** -PK 8/23/06                                 
