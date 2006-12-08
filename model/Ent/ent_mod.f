@@ -7,10 +7,10 @@
      &     MAX_PATCHES, MAX_COHORTS, ent_config
       use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
      &     , N_BPOOLS, N_PFT
-      !use ent_GISSveg
+      !use ent_prescrveg
       use entcells
 
-      !use GISS_veg ! just for compilation purposes
+      !use prescr_veg ! just for compilation purposes
       implicit none
 
       private

@@ -15,7 +15,7 @@
       subroutine entcell_update_lai( ecp,
      i    laidata)
 !@sum sets prescribed LAI over the cell
-      !use ent_GISSveg, only : GISS_plant_cpools
+      !use ent_prescrveg, only : prescr_plant_cpools
       type(entcelltype) :: ecp
       real*8,intent(in) :: laidata(N_PFT) !@var LAI for all PFT's 
       !-----Local---------
@@ -32,7 +32,7 @@
           cop%lai = laidata(cop%pft)
           laipatch = laipatch + cop%lai
           !!! this is hack, but don't know what to do with it at the moment...
-cddd          call GISS_plant_cpools(cop%pft, cop%lai, cop%h, 
+cddd          call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
 cddd     &         cop%dbh, cop%n, cpool )
 cddd          cop%C_fol = cpool(FOL)
 cddd          cop%C_sw = cpool(SW)
@@ -86,7 +86,7 @@ cddd          cop%C_croot = cpool(CR)
 
 
       subroutine entcell_update_shc( ecp )
-      use ent_GISSveg, only : GISS_calc_shc
+      use ent_prescr_veg, only : prescr_calc_shc
       use entcells, only : entcell_extract_pfts
       type(entcelltype) :: ecp
       !-----Local---------
@@ -94,7 +94,7 @@ cddd          cop%C_croot = cpool(CR)
 
       vdata(:) = 0.d0
       call entcell_extract_pfts( ecp, vdata(2:) )
-      ecp%heat_capacity=GISS_calc_shc(vdata)
+      ecp%heat_capacity=prescr_calc_shc(vdata)
 
       end subroutine entcell_update_shc
      
@@ -109,7 +109,7 @@ cddd          cop%C_croot = cpool(CR)
 !@+   (see how it is used in ent_prescribe_vegupdate)
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell!,entcell_extract_pfts
-      use ent_GISSveg, only : GISS_calc_shc
+      use ent_prescr_veg, only : prescr_calc_shc
 
       type(entcelltype) :: entcell
       integer,intent(in), optional :: jday
@@ -131,7 +131,7 @@ cddd          cop%C_croot = cpool(CR)
           pp => entcell%oldest
           do while (ASSOCIATED(pp))
           !* LAI, ALBEDO *!
-            call GISS_phenology(jday,hemi, pp)
+            call prescr_phenology(jday,hemi, pp)
             call summarize_patch(pp)
             pp => pp%younger
           end do
@@ -166,12 +166,12 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       end subroutine entcell_vegupdate
 
 
-      subroutine GISS_phenology(jday,hemi, pp)
-      !* Calculate new LAI and albedo for given jday, for GISS vegetation. *!
+      subroutine prescr_phenology(jday,hemi, pp)
+      !* Calculate new LAI and albedo for given jday, for prescr vegetation. *!
       !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
       use ent_pfts
-      use ent_GISSveg, only : GISS_calc_lai,GISS_plant_cpools,
-     &     GISS_veg_albedo
+      use ent_prescr_veg, only : prescr_calc_lai,prescr_plant_cpools,
+     &     prescr_veg_albedo
       implicit none
       integer,intent(in) :: jday !Day of year.
       integer,intent(in) :: hemi !@var hemi -1: S.hemisphere, 1: N.hemisphere
@@ -188,10 +188,10 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         cpool(:) = 0.d0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
-          cop%lai = GISS_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
+          cop%lai = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
           laipatch = laipatch + cop%lai
 
-          call GISS_plant_cpools(cop%pft, cop%lai, cop%h, 
+          call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
      &         cop%dbh, cop%n, cpool )
           cop%C_fol = cpool(FOL)
           cop%C_sw = cpool(SW)
@@ -205,11 +205,11 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         pp%sumcohort%LAI = laipatch
 
         !* ALBEDO *!
-        call GISS_veg_albedo(hemi, pp%sumcohort%pft, 
+        call prescr_veg_albedo(hemi, pp%sumcohort%pft, 
      &       jday, pp%albedo)
 
       endif
-      end subroutine GISS_phenology
+      end subroutine prescr_phenology
 
 
       end module ent_prescribed_updates

@@ -93,19 +93,19 @@
       !***********************
       integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
 
+#ifdef PFT_MODEL_ENT
       !************************************************
       !*  ENT PLANT FUNCTIONAL TYPE CONSTANTS         *
       !************************************************
-      !integer,parameter :: N_PFT = 13
-      !integer,parameter :: N_OTHER = 0
-
-
+      integer,parameter :: N_PFT = 13
+       integer,parameter :: N_OTHER = 0
+#else
       !************************************************
       !*  GISS VEGETATION CONSTANTS                   *
       !************************************************
       integer,parameter :: N_PFT = 8
       integer,parameter :: N_OTHER = 2 ! algae, c4 grass
-
+#endif
 
       !************************************************
       !*  GISS SOIL CONSTANTS                         *
