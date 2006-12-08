@@ -2090,14 +2090,20 @@ C****  convert from real*4 to real*8
       CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
       REAL*4,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
       INTEGER,      INTENT(IN)  :: it       !@var  it iteration
+      REAL*8 :: buf8(grd_dum%IM_WORLD,
+     &     grd_dum%J_STRT_HALO:grd_dum%J_STOP_HALO)
 !@var buf_glob real*4 array
       REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD) 
+      REAL*8 :: buf_glob8(grd_dum%IM_WORLD,grd_dum%JM_WORLD) 
       INTEGER :: IERR
 
 !!! not sure if it is implemented for real*4 ...
 #ifdef USE_ESMF
 c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
-      buf_glob = -99999999. ! not implemented
+      !buf_glob = -99999999. ! not implemented
+      buf8 = buf
+      Call gather(grd_dum%ESMF_GRID, buf8, buf_glob8, shape(buf), 2)
+      buf_glob = buf_glob8
 #else
       buf_glob = buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
