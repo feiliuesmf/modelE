@@ -31,6 +31,7 @@
       USE MODEL_COM, only : im,imh,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
      &     ,do_polefix
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET
+      USE DOMAIN_DECOMP, only : haveLatitude
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv
@@ -155,13 +156,14 @@ c
 c interpolate polar velocities to the appropriate latitude
 c
       do ipole=1,2
-      if(grid%have_south_pole .and. ipole.eq.1) then
-         jv = J_0S ! why not staggered grid
-         jvs = J_0S ! jvs is the southernmost velocity row
+      if((haveLatitude(grid,J=2) .or. haveLatitude(grid,J=3)) .and. 
+     &        ipole.eq.1) then
+         jv = 2 ! why not staggered grid
+         jvs = 2 ! jvs is the southernmost velocity row
          jvn = jvs + 1 ! jvs is the northernmost velocity row
          wts = polwt
-      else if(grid%have_north_pole .and. ipole.eq.2) then
-         jv = J_1 ! why not staggered grid
+      else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
+         jv = JM ! why not staggered grid
          jvs = jv - 1
          jvn = jvs + 1
          wts = 1.-polwt
@@ -188,7 +190,7 @@ C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
       DVT(IP1,J,L)=DVT(IP1,J,L)+FLUXV
   210 DVT(I,J,L)  =DVT(I,J,L)  -FLUXV
 
-      IF (HAVE_SOUTH_POLE) THEN ! No southern contribution off boundary.
+      IF (haveLatitude(grid, J=1)) THEN ! No southern contribution off boundary.
         FLUXU_N_S  =0.
         FLUXV_N_S  =0.
         FLUXU_SW_NE=0.
@@ -260,10 +262,11 @@ C**** CONTRIBUTION FROM THE SOUTHEAST-NORTHWEST MASS FLUX
 
 c restore uninterpolated values of u,v at the pole
       do ipole=1,2
-      if(grid%have_south_pole .and. ipole.eq.1) then
-         jv = J_0S ! why not staggered grid
-      else if(grid%have_north_pole .and. ipole.eq.2) then
-         jv = J_1 ! why not staggered grid
+      if((haveLatitude(grid,J=2) .or. haveLatitude(grid,J=3)) .and. 
+     &        ipole.eq.1) then
+         jv = 2 ! why not staggered grid
+      else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
+         jv = JM ! why not staggered grid
       else
          cycle
       endif
@@ -284,27 +287,30 @@ c are discarded since they produce erroneous tendencies at the pole
 c in models with a polar half-box.
 c Explicit cross-polar advection will be ignored until issues with
 c corner fluxes and spherical geometry can be resolved.
-
-      do ipole=1,2
-      if(grid%have_south_pole .and. ipole.eq.1) then
-         hemi = -1
-         jpo = J_0
-         jns = jpo + 1
-         jv = J_0S ! why not staggered grid
-         jvs = J_0S ! jvs is the southernmost velocity row
-         jvn = jvs + 1 ! jvs is the northernmost velocity row
-         wts = polwt
-      else if(grid%have_north_pole .and. ipole.eq.2) then
-         hemi = +1
-         jpo = J_1
-         jns = jpo - 1
-         jv = J_1 ! why not staggered grid
-         jvs = jv - 1
-         jvn = jvs + 1
-         wts = 1.-polwt
-      else
-         cycle
-      endif
+       
+        do ipole=1,2
+          if((haveLatitude(grid, J=2) .or. haveLatitude(grid,J=3)) .and. 
+     &          ipole.eq.1) then
+            hemi = -1
+            jpo = 1
+            jns = jpo + 1
+            jv = 2           ! why not staggered grid
+            jvs = 2          ! jvs is the southernmost velocity row
+            jvn = jvs + 1       ! jvs is the northernmost velocity row
+            wts = polwt
+          else if(
+     &    (haveLatitude(grid, J=JM).or.haveLatitude(grid,J=JM-1)) .and.
+     &      ipole.eq.2) then
+            hemi = +1
+            jpo = JM
+            jns = jpo - 1
+            jv = JM            ! why not staggered grid
+            jvs = jv - 1
+            jvn = jvs + 1
+            wts = 1.-polwt
+          else
+            cycle
+         endif
 c loop over layers
       do l=1,lm
 c
@@ -452,7 +458,7 @@ C**** CALL DIAGNOSTICS
 C****
 C**** CORIOLIS FORCE
 C****
-        CALL HALO_UPDATE(GRID,P ,FROM=SOUTH)
+        CALL HALO_UPDATE(GRID,P ,FROM=SOUTH+NORTH)
 !$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FD,PDT4,ALPH)
       DO L=1,LM
         IM1=IM
@@ -460,14 +466,14 @@ C****
 C         FD(I,1)=FCOR(1)*2.  -.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
 C         FD(I,JM)=FCOR(JM)*2.+.5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
 C****     Set the Coriolis term to zero at the Poles:
-          IF(GRID%HAVE_SOUTH_POLE)
-     *    FD(I,J_0)= -.5*(SPA(IM1,J_0,L)+
-     *                 SPA(I,J_0,L))*
-     *                 DXV(J_0+1)
-          IF(GRID%HAVE_NORTH_POLE)
-     *    FD(I,J_1)=  .5*(SPA(IM1,J_1,L)+
-     *                 SPA(I,J_1,L))*
-     *                 DXV(J_1)
+          IF(haveLatitude(grid,J=1))
+     *    FD(I,1)= -.5*(SPA(IM1,1,L)+
+     *                 SPA(I,1,L))*
+     *                 DXV(2)
+          IF(haveLatitude(grid,J=JM))
+     *    FD(I,JM)=  .5*(SPA(IM1,JM,L)+
+     *                 SPA(I,JM,L))*
+     *                 DXV(JM)
           IM1=I
         END DO
 
@@ -500,14 +506,14 @@ C****     Set the Coriolis term to zero at the Poles:
 c apply the full coriolis force at the pole and ignore the metric term
 c which has already been included in advective form
          do ipole=1,2
-            if(grid%have_south_pole .and. ipole.eq.1) then
-               jpo = J_0
+            if(haveLatitude(grid,J=2) .and. ipole.eq.1) then
+               jpo = 1
                jns = jpo + 1
-               j = J_0S!STG ! why not staggered grid index?
-            else if(grid%have_north_pole .and. ipole.eq.2) then
-               jpo = J_1
+               j = 2
+            else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
+               jpo = JM
                jns = jpo - 1
-               j = J_1!STG ! why not staggered grid index?
+               j = JM 
             else
                cycle
             endif

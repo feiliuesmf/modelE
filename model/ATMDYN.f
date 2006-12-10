@@ -38,7 +38,7 @@
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE DOMAIN_DECOMP, only : LOG_PARALLEL
-
+      USE DOMAIN_DECOMP, only : haveLatitude
       USE MOMENTS, only : advecv
       IMPLICIT NONE
 
@@ -302,6 +302,7 @@ C**** and convert to WSAVE, units of m/s):
      &    PUA, PVA, dt)
       use CONSTANT,      only: BY3
       use DOMAIN_DECOMP, only: grid, get, halo_update, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
       use DIAG_COM, only: AIJ => AIJ_loc, 
      &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
       use MODEL_COM, only: IM,JM,LM
@@ -338,12 +339,12 @@ C**** and convert to WSAVE, units of m/s):
       enddo
 !$OMP  END PARALLEL DO
 
-      if(HAVE_SOUTH_POLE) then
+      if (haveLatitude(grid, J=1)) then
          do l=1,lm
             AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PUA(:, 1,L)*DTLF*BY3
          enddo
       endif
-      if(HAVE_NORTH_POLE) then
+      if(haveLatitude(grid, J=JM)) then
          do l=1,lm
             AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PUA(:,JM,L)*DTLF*BY3
          enddo
@@ -400,6 +401,7 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
       IMPLICIT NONE
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 !@var U,V input velocities (m/s)
@@ -412,7 +414,7 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       INTEGER I,J,L,IP1,IM1,IPOLE
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN
       REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx,twoby3
-      real*8, dimension(im,2) :: usv0,vsv0
+      real*8, dimension(im,2,LM) :: usv0,vsv0
       integer :: jvs,jvn,jv
       real*8 :: wts
 c**** Extract domain decomposition info
@@ -428,34 +430,33 @@ c**** Extract domain decomposition info
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
-      CALL HALO_UPDATE(grid, U,FROM=NORTH)
-
-!$OMP  PARALLEL DO PRIVATE (I,J,L,IM1,IP1,DXDSIG,DYDSIG,DUMMYS,DUMMYN,
-!$OMP*                      PUS,PUN,PVS,PVN,PBS,PBN,
-!$OMP*                      IPOLE,JV,JVS,JVN,WTS,USV0,VSV0)
-      DO 2000 L=1,LM
+      CALL HALO_UPDATE(grid, U,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, V,FROM=NORTH+SOUTH)
 
 c
 c interpolate polar velocities to the appropriate latitude
 c
       do ipole=1,2
-      if(grid%have_south_pole .and. ipole.eq.1) then
-         jv = J_0S ! why not staggered grid
-         jvs = J_0S ! jvs is the southernmost velocity row
-         jvn = jvs + 1 ! jvs is the northernmost velocity row
-         wts = polwt
-      else if(grid%have_north_pole .and. ipole.eq.2) then
-         jv = J_1 ! why not staggered grid
-         jvs = jv - 1
-         jvn = jvs + 1
-         wts = 1.-polwt
-      else
-         cycle
-      endif
-      usv0(:,ipole) = u(:,jv,l)
-      vsv0(:,ipole) = v(:,jv,l)
-      u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
-      v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
+        if (haveLatitude(grid, J=2) .and. ipole == 1) then
+          jv  = 2     
+          jvs = 2          ! jvs is the southernmost velocity row
+          jvn = jvs+1      ! jvs is the northernmost velocity row
+          wts = polwt
+        else if(haveLatitude(grid,JM) .and. ipole == 2) then
+          jv = JM
+          jvs = jv - 1
+          jvn = jvs + 1
+          wts = 1.-polwt
+        else
+          cycle
+        endif
+
+        do L = 1, LM
+          usv0(:,ipole,l) = u(:,jv,l)
+          vsv0(:,ipole,l) = v(:,jv,l)
+          u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
+          v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
+        end do
       enddo
 
 C****
@@ -463,7 +464,7 @@ C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
 C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
 C****
 C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
-
+      do L = 1, LM
       DO 2154 J=J_0S,J_1S
       DO 2154 I=1,IM
  2154 SPA(I,J,L)=U(I,J,L)+U(I,J+1,L)
@@ -475,8 +476,10 @@ C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
       PU(I,J,L)=DYDSIG*SPA(I,J,L)*(PIJL(I,J,L)+PIJL(IP1,J,L))
  2165 I=IP1
  2166 CONTINUE
+      end do
 C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
-      CALL HALO_UPDATE(grid, PIJL(:,:,L), FROM=SOUTH)
+      CALL HALO_UPDATE(grid, PIJL, FROM=SOUTH)
+      do L = 1, LM
       IM1=IM
       DO 2172 J=J_0STG, J_1STG
       DXDSIG = 0.25D0*DXV(J)*DSIG(L)
@@ -485,22 +488,26 @@ C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
 
  2170 IM1=I
  2172 CONTINUE
+      end do
 
 c restore uninterpolated values of u,v at the pole
       do ipole=1,2
-      if(grid%have_south_pole .and. ipole.eq.1) then
-         jv = J_0S ! why not staggered grid
-      else if(grid%have_north_pole .and. ipole.eq.2) then
-         jv = J_1 ! why not staggered grid
-      else
-         cycle
-      endif
-      u(:,jv,l) = usv0(:,ipole)
-      v(:,jv,l) = vsv0(:,ipole)
+        if (haveLatitude(grid, J=2) .and. ipole == 1) then
+          jv = 2           ! why not staggered grid
+        else if(haveLatitude(grid, J=JM) .and. ipole.eq.2) then
+          jv = JM            ! why not staggered grid
+        else
+          cycle
+        endif
+        do L = 1, LM
+          u(:,jv,l) = usv0(:,ipole,l)
+          v(:,jv,l) = vsv0(:,ipole,l)
+        end do
       enddo
 
 C**** COMPUTE PU*3 AT THE POLES
-      IF (HAVE_SOUTH_POLE) THEN
+      IF (haveLatitude(grid, J=1)) Then
+        do L = 1, LM
         PUS=0.
         PVS=0.
         DO I=1,IM
@@ -518,15 +525,17 @@ C**** COMPUTE PU*3 AT THE POLES
         PBN=0.
         DO I=1,IM
           PBS=PBS+DUMMYS(I)
-        END DO
+v        END DO
         PBS=PBS*BYIM
         DO I=1,IM
           SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*PIJL(1,1,L))
           PU(I,1,L)=3.*(PBS-DUMMYS(I)+PUS)*DSIG(L)
         END DO
+        end do
       END IF
 
-      IF (HAVE_NORTH_POLE) THEN
+      IF (haveLatitude(grid, J=JM)) THEN
+        do L = 1,LM
         PUN=0.
         PVN=0.
         DO I=1,IM
@@ -549,6 +558,7 @@ C**** COMPUTE PU*3 AT THE POLES
           SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*PIJL(1,JM,L))
           PU(I,JM,L)=3.*(DUMMYN(I)-PBN+PUN)*DSIG(L)
         END DO
+        END DO
       END IF
 C****
 C**** CONTINUITY EQUATION
@@ -562,18 +572,16 @@ c     CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
 c1510 IM1=I
 c     IF (HAVE_SOUTH_POLE) CONV(1,1,L)=-PVS
 c     IF (HAVE_NORTH_POLE) CONV(1,JM,L)=PVN
- 2000 CONTINUE
-!$OMP  END PARALLEL DO
 
       if(do_polefix.eq.1) then
 c To maintain consistency with subroutine ADVECV,
 c adjust pu at the pole if no corner fluxes are used there
 c in ADVECV.
       do ipole=1,2
-        if(grid%have_south_pole .and. ipole.eq.1) then
-          j = J_0
-        else if(grid%have_north_pole .and. ipole.eq.2) then
-          j = J_1
+        if(haveLatitude(grid,J=1) .and. ipole.eq.1) then
+          j = 1
+        else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
+          j = JM
         else
           cycle
         endif
@@ -652,8 +660,8 @@ C
       DO 1510 I=1,IM
       CONV(I,J,L)=(PU(IM1,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
  1510 IM1=I
-      IF (HAVE_SOUTH_POLE) CONV(1,1,L)=-PVSA(L)
-      If (HAVE_NORTH_POLE) CONV(1,JM,L)=PVNA(L)
+      IF (haveLatitude(grid,J=1)) CONV(1,1,L)=-PVSA(L)
+      If (haveLatitude(grid,J=JM)) CONV(1,JM,L)=PVNA(L)
  2400 CONTINUE
 !$OMP  END PARALLEL DO
 C
@@ -712,8 +720,8 @@ C2440 CONTINUE
 !$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
-        IF (HAVE_SOUTH_POLE) SD(I,JJ(1),L)=SD(1,JJ(1),L)
- 2450   IF (HAVE_NORTH_POLE) SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
+        IF (haveLatitude(grid,J=1)) SD(I,JJ(1),L)=SD(1,JJ(1),L)
+ 2450   IF (haveLatitude(grid,J=JM)) SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
 
       RETURN
       END SUBROUTINE AFLUX
@@ -729,6 +737,7 @@ C2440 CONTINUE
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: P(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8, INTENT(OUT) :: PA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -783,8 +792,8 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
         END DO
       END IF
 
-      IF (HAVE_SOUTH_POLE) PA(2:IM, 1)=PA(1,1)
-      IF (HAVE_NORTH_POLE) PA(2:IM,JM)=PA(1,JM)
+      IF (haveLatitude(grid, J=1)) PA(2:IM, 1)=PA(1,1)
+      IF (haveLatitude(grid, J=JM)) PA(2:IM,JM)=PA(1,JM)
 
 C****
       RETURN
@@ -810,6 +819,7 @@ C****
       USE DOMAIN_DECOMP, Only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM):: U,V,T
@@ -899,13 +909,13 @@ C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
       END DO
 !$OMP END PARALLEL DO
 C**** SET POLAR VALUES FROM THOSE AT I=1
-      IF (HAVE_SOUTH_POLE) THEN
+      IF (haveLatitude(grid, J=1)) THEN
         DO L=1,LM
           SPA(2:IM,1,L)=SPA(1,1,L)
           PHI(2:IM,1,L)=PHI(1,1,L)
         END DO
       END IF
-      IF (HAVE_NORTH_POLE) THEN
+      IF (haveLatitude(grid, J=JM)) THEN
         DO L=1,LM
           SPA(2:IM,JM,L)=SPA(1,JM,L)
           PHI(2:IM,JM,L)=PHI(1,JM,L)
@@ -946,8 +956,8 @@ C of PHI, SPA, and P enable implementation without the additional halo.
 C
 !$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
       DO L=1,LM
-        IF (HAVE_SOUTH_POLE) PU(:,1,L)=0.
-        IF (HAVE_NORTH_POLE) PU(:,JM,L)=0.
+        IF (haveLatitude(grid, J=1)) PU(:,1,L)=0.
+        IF (haveLatitude(grid, J=JM)) PU(:,JM,L)=0.
         I=IM
 
         DO J=Max(2,J_0STG-1),J_1STG
@@ -972,10 +982,10 @@ C
 c correct for erroneous dxyv at the poles
       if(do_polefix.eq.1) then
          do ipole=1,2
-            if(grid%have_south_pole .and. ipole.eq.1) then
-               j = J_0STG
-            else if(grid%have_north_pole .and. ipole.eq.2) then
-               j = J_1STG
+            if(haveLatitude(grid,J=2) .and. ipole.eq.1) then
+               j = 2
+            else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
+               j = JM
             else
                cycle
             endif
@@ -996,14 +1006,14 @@ C****
       DO 3410 J=J_0STG,J_1STG
       DO 3410 I=1,IM
  3410 FD(I,J)=PB(I,J)*DXYP(J)
-      IF (HAVE_SOUTH_POLE) THEN
+      IF (haveLatitude(grid, J=1)) THEN
         FDSP=PB(1, 1)*DXYP( 1)
         FDSP=FDSP+FDSP
         DO I=1,IM
           FD(I, 1)=FDSP
         END DO
       END IF
-      IF (HAVE_NORTH_POLE) THEN
+      IF (haveLatitude(grid, J=JM)) THEN
         FDNP=PB(1,JM)*DXYP(JM)
         FDNP=FDNP+FDNP
         DO I=1,IM
@@ -1298,6 +1308,7 @@ C**********************************************************************
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      *     INTENT(INOUT) :: U,V
@@ -1376,8 +1387,8 @@ C****
       IF (DT_YVfilter.gt.0.) THEN
       YVby4toN = (DT/DT_YVfilter)*by4toN
 C**** Filter V component of velocity
-
-      IF (HAVE_SOUTH_POLE) THEN
+      call halo_update(grid, V, from=NORTH)
+      IF (haveLatitude(grid,J=2)) THEN
         J = 2
         DO L = 1, LM
           DO I = 1, IM/2
@@ -1388,7 +1399,7 @@ C**** Filter V component of velocity
           END DO
         END DO
       END IF
-      IF (HAVE_NORTH_POLE) THEN
+      IF (haveLatitude(grid,J=JM)) THEN
         J = JM
         DO L = 1, LM
           DO I = 1, IM/2
@@ -1447,7 +1458,8 @@ C****   be re-thought for others.
       YUby4toN = (DT/DT_YUfilter)*by4toN
 C**** Filter U component of velocity
 
-      IF (HAVE_SOUTH_POLE) THEN
+      CALL HALO_UPDATE(grid, U, FROM=SOUTH+NORTH)
+      IF (haveLatitude(grid, J=2)) THEN
         J = 2
         DO L = 1, LM
           DO I = 1, IM/2
@@ -1458,7 +1470,7 @@ C**** Filter U component of velocity
           END DO
         END DO
       END IF
-      IF (HAVE_NORTH_POLE) THEN
+      IF (haveLatitude(grid,J=JM)) THEN
         J = JM
         DO L = 1, LM
           DO I = 1, IM/2
@@ -1759,6 +1771,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,ls1,p
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
       USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
       IMPLICIT NONE
 
       INTEGER :: I,J,L  !@var I,J,L  loop variables
@@ -1781,8 +1794,8 @@ C**** subsequentaly with LMAX=LS1-1
 C**** Note Air mass is calculated in (kg/m^2)
 
 C**** Fill in polar boxes
-      IF (HAVE_SOUTH_POLE) P(2:IM,1) = P(1,1)
-      IF (HAVE_NORTH_POLE) P(2:IM,JM)= P(1,JM)
+      IF (haveLatitude(grid, J=1)) P(2:IM,1) = P(1,1)
+      IF (haveLatitude(grid, J=JM)) P(2:IM,JM)= P(1,JM)
       Call HALO_UPDATE(grid, P, FROM=SOUTH)
 
 !$OMP  PARALLEL DO PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
@@ -1868,6 +1881,7 @@ C**** SPA and PU directly from the dynamics. (Future work).
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
       IMPLICIT NONE
       REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
       INTEGER I,J,K,IP1,IM1,J1
@@ -1916,7 +1930,7 @@ C**** to be used in the PBL, at the promary grids
 
       ! at poles
 
-      IF (HAVE_SOUTH_POLE) THEN
+      IF (haveLatitude(grid, J=1)) THEN
         hemi = -1.; J1 = 2
         dpx1=0. ; dpy1=0.
         dpx0=0. ; dpy0=0.
@@ -1936,7 +1950,7 @@ C**** to be used in the PBL, at the promary grids
         DPDY_BY_RHO_0(1,1)=dpy0*BYIM
       END IF
 
-      If (HAVE_NORTH_POLE) THEN
+      If (haveLatitude(grid, J=JM)) THEN
           hemi= 1.; J1=JM-1
         dpx1=0. ; dpy1=0.
         dpx0=0. ; dpy0=0.
@@ -2094,6 +2108,7 @@ C**** (technically we should use U,V from before but this is ok)
       USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
       USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP, only : haveLatitude
       IMPLICIT NONE
       INTEGER I,J,L,IERR
       REAL*8, DIMENSION(LM) :: TL
@@ -2122,11 +2137,11 @@ C**** Find WMO Definition of Tropopause to Nearest L
       end do
       end do
 !$OMP  END PARALLEL DO
-      IF (HAVE_SOUTH_POLE) THEN
+      IF (haveLatitude(grid, J=1)) THEN
         PTROPO(2:IM,1) = PTROPO(1,1)
         LTROPO(2:IM,1) = LTROPO(1,1)
       END IF
-      IF (HAVE_NORTH_POLE) THEN
+      IF (haveLatitude(grid,J=JM)) THEN
         PTROPO(2:IM,JM)= PTROPO(1,JM)
         LTROPO(2:IM,JM)= LTROPO(1,JM)
       END IF
@@ -2305,6 +2320,7 @@ c****
 !@ver  1.0
       use GEOM, only: DXYP, AREAG
       use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
+      USE DOMAIN_DECOMP, only : haveLatitude
       REAL*8 :: totalEnergy
 
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::KEJ,PEJ,TEJ
@@ -2318,7 +2334,7 @@ c****
 
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
-      if (HAVE_SOUTH_POLE) KEJ(1) = 0
+      if (haveLatitude(grid, J=1)) KEJ(1) = 0
 
       TEJ(J_0:J_1)= (KEJ(J_0:J_1) + PEJ(J_0:J_1)*DXYP(J_0:J_1))/AREAG
 
