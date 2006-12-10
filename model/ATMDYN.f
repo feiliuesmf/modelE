@@ -525,7 +525,7 @@ C**** COMPUTE PU*3 AT THE POLES
         PBN=0.
         DO I=1,IM
           PBS=PBS+DUMMYS(I)
-v        END DO
+        END DO
         PBS=PBS*BYIM
         DO I=1,IM
           SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*PIJL(1,1,L))
