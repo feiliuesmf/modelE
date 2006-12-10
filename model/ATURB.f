@@ -1222,7 +1222,7 @@ c**** J_1 box
       USE MODEL_COM, only : im,jm
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj
       USE DOMAIN_DECOMP, only : grid,get,NORTH,SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
 
       implicit none
 
@@ -1349,12 +1349,6 @@ C**** Use halo values of S1 -- S5 from southern neighbor to complete that
 C     neighbor's updates of SB1 -- SB5  in this process (i.e. using S[n]
 C     contribution at J_0 -1 to finish accumulation into SB[n](:,:,J_0) )
 C**** Halo updates from the south
-        CALL CHECKSUM_COLUMN(grid, SB1,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB2,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB3,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB4,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB5,  __LINE__, __FILE__)
-
 
       return
       end subroutine ave_s_to_bgrid

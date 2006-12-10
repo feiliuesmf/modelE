@@ -374,12 +374,12 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
          INTEGER, DIMENSION(:), POINTER :: DJ_MAP
          INTEGER :: DJ
-#ifdef DEBUG_DECOMP
          INTEGER :: log_unit ! for debugging
-#endif
       END TYPE DIST_GRID
 
       TYPE (DIST_GRID) :: GRID, GRID_TRANS
+
+      public :: haveLatitude
 
 ! Remaining variables are private to the module.
 
@@ -832,7 +832,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: J_0, J_1, I,J
       INTEGER :: stgr_,skip_
 
-#ifdef DEBUG_DECOMP
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
 
@@ -857,7 +856,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, asum, L1norm
 
-#endif
 
       END SUBROUTINE CHECKSUM_2D
 
@@ -882,7 +880,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: J_0, J_1
       Integer :: stgr_,skip_
 
-#ifdef DEBUG_DECOMP
 
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
@@ -911,8 +908,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
      &       file,line, Sum(asum), Sum(L1norm)
       End If
 
-#endif
-
       END SUBROUTINE CHECKSUM_3D
 
       SUBROUTINE CHECKSUMj_2D(grd_dum, arr, line, file, unit, stgr,
@@ -935,7 +930,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: J_0, J_1
       INTEGER :: stgr_,skip_
 
-#ifdef DEBUG_DECOMP
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
 
@@ -960,7 +954,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, asum, L1norm
 
-#endif
 
       END SUBROUTINE CHECKSUMj_2D
 
@@ -984,7 +977,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: J_0, J_1
       Integer :: stgr_
 
-#ifdef DEBUG_DECOMP
 
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
@@ -1006,7 +998,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, Sum(asum), Sum(L1norm)
 
-#endif
 
       END SUBROUTINE CHECKSUMj_3D
 
@@ -1027,7 +1018,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       REAL*8, DIMENSION(SIZE(arr,1))  :: asum, L1norm
       INTEGER :: stgr_
 
-#ifdef DEBUG_DECOMP
       unit_ = CHECKSUM_UNIT ! default
       If (Present(unit)) unit_ = unit
       stgr_ = 0
@@ -1043,7 +1033,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &     file,line, Sum(asum), Sum(L1norm)
 
-#endif
 
       END SUBROUTINE CHECKSUM_COLUMN_2D
 
@@ -1063,7 +1052,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       REAL*8, DIMENSION(Size(arr,1))  :: asum, L1norm
       INTEGER :: stgr_
 
-#ifdef DEBUG_DECOMP
       unit_ = CHECKSUM_UNIT ! default
       If (Present(unit)) unit_ = unit
       stgr_ = 0
@@ -1081,8 +1069,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
      &       file,line, Sum(asum), Sum(L1norm)
         CALL SYS_FLUSH(unit_)
       End If
-
-#endif
 
       END SUBROUTINE CHECKSUM_COLUMN_3D
 
@@ -1123,7 +1109,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       REAL*8, DIMENSION(Size(arr,1),Size(arr,4)) :: asum, L1norm
       Integer :: stgr_,skip_
 
-#ifdef DEBUG_DECOMP
       unit_ = CHECKSUM_UNIT ! default
       If (Present(unit)) unit_ = unit
 
@@ -1153,8 +1138,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
         Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &       file,line, SUM(asum), SUM(L1norm)
       End If
-
-#endif
 
       END SUBROUTINE CHECKSUM_COLUMN_4D
 
@@ -4987,6 +4970,14 @@ C--------------------------------
 
       End SUBROUTINE scatter
 #endif
+
+      logical function haveLatitude(grd_dum, j)
+      type (DIST_GRID), intent(in) :: grd_dum
+      integer, intent(in) :: j
+
+      haveLatitude = (j >= grd_dum%J_STRT .and. j <= grd_dum%J_STOP)
+
+      end function haveLatitude
 
       END MODULE DOMAIN_DECOMP
 

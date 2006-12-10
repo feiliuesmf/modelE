@@ -435,7 +435,7 @@ c -------------------------------------------------------------
       USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE,CHECKSUM,NORTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,NORTH
       USE DOMAIN_DECOMP, only : READT_PARALLEL
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -540,9 +540,7 @@ C**** fix roughness length for ocean ice that turned to land ice
           elhx=lhs
         endif
 C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION 
-        call CHECKSUM   (grid, u, __LINE__, __FILE__)
         call HALO_UPDATE(grid, u, from=NORTH)
-        call CHECKSUM   (grid, v, __LINE__, __FILE__)
         call HALO_UPDATE(grid, v, from=NORTH)
         do j=J_0,J_1
           jlat=j
