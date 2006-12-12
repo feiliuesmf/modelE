@@ -303,7 +303,7 @@ C**** and convert to WSAVE, units of m/s):
       use CONSTANT,      only: BY3
       use DOMAIN_DECOMP, only: grid, get, halo_update, SOUTH
       USE DOMAIN_DECOMP, only : haveLatitude
-      use DIAG_COM, only: AIJ => AIJ_loc, 
+      use DIAG_COM, only: AIJ => AIJ_loc,
      &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
       use MODEL_COM, only: IM,JM,LM
 
@@ -406,9 +406,9 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 !@var U,V input velocities (m/s)
 !@var PIJL input 3-D pressure field (mb) (no DSIG)
-      REAL*8, INTENT(INOUT),    
+      REAL*8, INTENT(INOUT),
      &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: U,V
-      REAL*8, INTENT(INOUT), 
+      REAL*8, INTENT(INOUT),
      &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: PIJL
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
       INTEGER I,J,L,IP1,IM1,IPOLE
@@ -438,7 +438,7 @@ c interpolate polar velocities to the appropriate latitude
 c
       do ipole=1,2
         if (haveLatitude(grid, J=2) .and. ipole == 1) then
-          jv  = 2     
+          jv  = 2
           jvs = 2          ! jvs is the southernmost velocity row
           jvn = jvs+1      ! jvs is the northernmost velocity row
           wts = polwt
@@ -720,8 +720,10 @@ C2440 CONTINUE
 !$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
-        IF (haveLatitude(grid,J=1)) SD(I,JJ(1),L)=SD(1,JJ(1),L)
- 2450   IF (haveLatitude(grid,J=JM)) SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
+        IF (haveLatitude(grid,J=1)) 
+     *     SD(I,JJ(1),L)=SD(1,JJ(1),L)
+ 2450   IF (haveLatitude(grid,J=JM))
+     *     SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
 
       RETURN
       END SUBROUTINE AFLUX
@@ -763,14 +765,14 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
           PA(I,J)=P(I,J)+(DT1*PIT(I,JJ(J))*BYDXYP(J))
           IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
             n_exception = n_exception + 1
-            IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.) 
+            IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)
      *           Exit outer_loop
           End If
         END DO
       END DO outer_loop
 
       Call GLOBALSUM(grid, n_exception, n_exception_all, all=.true.)
-      IF (n_exception_all > 0) Then ! need halos 
+      IF (n_exception_all > 0) Then ! need halos
         CALL HALO_UPDATE(grid, U, FROM=NORTH)
         CALL HALO_UPDATE(grid, V, FROM=NORTH)
       END IF
@@ -842,7 +844,7 @@ c**** Extract domain decomposition info
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 C****
       DT4=DT1/4.
@@ -1076,7 +1078,7 @@ c**** Extract domain decomposition info
 
       if ( present(X) ) goto 1000
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 C
@@ -1122,7 +1124,7 @@ C****
         j0=J_0S
         j1=J_1S
       End If
-        
+
       DO J=j0,j1
         IF (DRAT(J).GT.1) CYCLE
         CALL FFT (X(1,J),AN,BN)
@@ -1179,7 +1181,7 @@ C**** Initialise total energy (J/m^2)
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-!$OMP  PARALLEL DO DEFAULT(SHARED) PRIVATE(I,J,PS,ZS) 
+!$OMP  PARALLEL DO DEFAULT(SHARED) PRIVATE(I,J,PS,ZS)
       DO J=J_0S,J_1S
         DO I=1,IM
           POLD(I,J)=P(I,J)      ! Save old pressure
@@ -1328,7 +1330,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       INTEGER :: II
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1393,7 +1395,7 @@ C**** Filter V component of velocity
         DO L = 1, LM
           DO I = 1, IM/2
             II = I + IM/2
-            D2V = V(I,J+1,L) - V(I,J,L) - V(I,J,L) - V(II,J,L) 
+            D2V = V(I,J+1,L) - V(I,J,L) - V(I,J,L) - V(II,J,L)
             V(I, J,L) = V(I, J,L) - YVby4toN * D2V
             V(II,J,L) = V(II,J,L) - YVby4toN * D2V
           END DO
@@ -1404,7 +1406,7 @@ C**** Filter V component of velocity
         DO L = 1, LM
           DO I = 1, IM/2
             II = I + IM/2
-            D2V = -V(II,J-1,L) - V(I,J,L) - V(I,J,L) + V(I,J,L) 
+            D2V = -V(II,J-1,L) - V(I,J,L) - V(I,J,L) + V(I,J,L)
             V(I, J,L) = V(I, J,L) - YVby4toN * D2V
             V(II,J,L) = V(II,J,L) - YVby4toN * D2V
           END DO
@@ -1464,7 +1466,7 @@ C**** Filter U component of velocity
         DO L = 1, LM
           DO I = 1, IM/2
             II = I + IM/2
-            D2U = U(I,J+1,L) - U(I,J,L) - U(I,J,L) - U(II,J,L) 
+            D2U = U(I,J+1,L) - U(I,J,L) - U(I,J,L) - U(II,J,L)
             U(I, J,L) = U(I, J,L) - YUby4toN * D2U
             U(II,J,L) = U(II,J,L) - YUby4toN * D2U
           END DO
@@ -1475,7 +1477,7 @@ C**** Filter U component of velocity
         DO L = 1, LM
           DO I = 1, IM/2
             II = I + IM/2
-            D2U = -U(II,J-1,L) - U(I,J,L) - U(I,J,L) + U(I,J,L) 
+            D2U = -U(II,J-1,L) - U(I,J,L) - U(I,J,L) + U(I,J,L)
             U(I, J,L) = U(I, J,L) - YUby4toN * D2U
             U(II,J,L) = U(II,J,L) - YUby4toN * D2U
           END DO
@@ -1619,7 +1621,7 @@ c compute xy velocities
             va(i) = cosi(i)*v(i,j,l)+hemi*sini(i)*u(i,j,l)
           enddo
 c filter the xy velocities
-          
+
           k = maxval(abs(u(:,j,l)))*2.*dt/dxv(j)
           if(k.lt.0.5) then
             k = klo
@@ -1816,7 +1818,7 @@ C**** Fill in polar boxes
           END DO
 
           IF (LMAX.ge.LM) THEN
-            PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1) 
+            PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)
             PEK (LM+1:LMAX+1,I,J) = PEDN(LM+1:LMAX+1,I,J)**KAPA
           END IF
           SQRTP(I,J) = SQRT(P(I,J))
@@ -2329,7 +2331,7 @@ c****
       integer :: J_0, J_1
       logical :: HAVE_SOUTH_POLE
 
-      call get(grid, J_STRT=J_0, J_STOP=J_1, 
+      call get(grid, J_STRT=J_0, J_STOP=J_1,
      *     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 
       call conserv_PE(PEJ)
