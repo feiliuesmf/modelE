@@ -681,7 +681,7 @@ C****
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
       CALL HALO_UPDATE(GRID, P     , from=SOUTH)
-      CALL HALO_UPDATE(GRID, PDSIG , from=SOUTH)
+      CALL HALO_UPDATE_COLUMN(GRID, PDSIG , from=SOUTH)
       CALL HALO_UPDATE(GRID, AIRX  , from=SOUTH)
       CALL HALO_UPDATE_COLUMN(GRID, LMC   , from=SOUTH)
 
@@ -1208,7 +1208,7 @@ C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
-     *                          NORTH, SOUTH
+     *                          NORTH, SOUTH, HALO_UPDATE_COLUMN
       USE DYNAMICS, only : pu,pv
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,defrm
@@ -1315,7 +1315,7 @@ C**** Convert to UV-grid
       DUMS1(I)=DUMN1(I)
       DUMS2(I)=DUMN2(I)
   110 CONTINUE
-      CALL HALO_UPDATE(GRID, PDSIG, FROM=SOUTH)
+      CALL HALO_UPDATE_COLUMN(GRID, PDSIG, FROM=SOUTH)
 
       DO 120 J=J_0STG,J_1STG
       I=IM
