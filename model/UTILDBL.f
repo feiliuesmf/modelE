@@ -73,7 +73,7 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
       END
 
       FUNCTION SLP(PS,TAS,ZS)
-!@sum SLP estimates sea level pressure in the presence of topography 
+!@sum SLP estimates sea level pressure in the presence of topography
 !@+   for better match to reanalyses.
       USE CONSTANT, only: bmoist, grav, rgas, by3
       IMPLICIT NONE
@@ -97,7 +97,7 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
         ELSE
           SLP=PS*EXP((1.-0.5*BZBYT+BZBYT**(2.*by3))*GBYRB*BZBYT)
         END IF
-      ELSE 
+      ELSE
         SLP=PS
       END IF
       RETURN
@@ -451,18 +451,21 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       INTEGER :: N              !@var  N      loop variable
 
       read (iunit,end=10,err=50) it1,(it2,n=1,len4+1)
-      if(it.ge.it1) go to 30
+      if(it1 .le. it) go to 30
    10 write(6,*) "Starting a new file ",TRIM(NAME(IUNIT)),", time=",it
       rewind iunit
       return
 
-   20 read (iunit,end=40,err=50) it1,(it2,n=1,len4+1)
+   20 read (iunit,end=35,err=50) it1,(it2,n=1,len4+1)
    30 if (it2 .ne. it1) then
         write(6,*) 'file ',TRIM(NAME(IUNIT)),' damaged: it/it1/it2=',
      *    it,it1,it2
         call stop_model('io_POS: damaged file',255)
       end if
-      if (it .ge. it1+itdif) go to 20
+      if (it1 .le. it) go to 20
+      it1=it1-itdif
+   35 backspace iunit
+      if (it1+itdif .le. it) go to 40
       write (6,*) "positioned ",TRIM(NAME(IUNIT)),", it1/itime=",it1,it
       return
    40 write (6,*) "file ",TRIM(NAME(IUNIT))," too short, it1/it=",it1,it
@@ -614,7 +617,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
 #else
         call sys_abort
 #endif
-      else 
+      else
 #ifdef USE_ESMF
         call mpi_finalize(mpi_err)
 #endif
@@ -642,7 +645,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       if ( retcode < 0 ) num_digits = num_digits + 1
 
       write(form_str,"('(I',I1,')')") num_digits
-      
+
       open( iu_status, file='run_status', form='FORMATTED',
      &     status='REPLACE', ERR=10 )
       write( iu_status, form_str, ERR=10 ) retcode
@@ -652,6 +655,6 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       return
  10   continue
       write( 0, * ) "ERROR: Can't write to the run_status file"
-      write( 0, * ) "STATUS:", message      
+      write( 0, * ) "STATUS:", message
       end subroutine write_run_status
-      
+
