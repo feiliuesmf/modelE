@@ -36,7 +36,7 @@ cddd      END subroutine init_MOM
       USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, only : grid, NORTH, SOUTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, GET
-      USE DOMAIN_DECOMP, only : HERE
+      USE DOMAIN_DECOMP, only : haveLatitude
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
 
@@ -69,16 +69,13 @@ cgsfc      REAL*8, ALLOCATABLE:: FLUXU2(:,:,:), FLUXV2(:,:,:)
       INTEGER :: I_0, I_1, J_0, J_1
       INTEGER :: J_0S, J_1S, J_0SG, J_1SG, J_0H, J_1H
       INTEGER :: J_START, J_STP   !@var J_START, J_STP exceptional loop indices (esmf)
-      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       INTEGER, SAVE :: ALLOCATED = 1
       INTEGER, SAVE :: iunit_hang
 
       Call GET(grid, J_STRT=J_0, J_STOP=J_1, 
      &         J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &         J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,      
-     &         J_STRT_STGR=J_0SG, J_STOP_STGR=J_1SG,      
-     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+     &         J_STRT_STGR=J_0SG, J_STOP_STGR=J_1SG)
 
 
 cgsfc      allocate (FLUXU(IM, J_0H:J_1H, LM)) 
@@ -94,8 +91,8 @@ cgsfc      allocate (FLUXV(IM, J_0H:J_1H, LM))
 C****
          IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
 
-      IF (HAVE_NORTH_POLE) then
-        J_STP = J_1 + 1
+      IF (haveLatitude(grid, J=JM)) then
+        J_STP = JM + 1
       ELSE
         J_STP = J_1
       END IF
@@ -115,11 +112,11 @@ C****
           END DO
         END DO
 
-        if (HAVE_SOUTH_POLE) then
+        if (haveLatitude(grid, J=1)) then
           FD(:,0)    = 0.
           FD(:,1)    = 2.*PSFMPT*DXYP(1)
         endif
-        if (HAVE_NORTH_POLE) then
+        if (haveLatitude(grid, J=JM)) then
           FD(:,JM)   = 2.*PSFMPT*DXYP(JM)
           FD(:,JM+1) = 0.
         endif
@@ -176,11 +173,11 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
           FD(I,J)   = PA(I,J)*DXYP(J)
         END DO
       END DO
-      IF (HAVE_SOUTH_POLE) then
+      if (haveLatitude(grid, J=1)) then
         FD(:,0)     = 0.
         FD(:,1)     = 2.*PA(1,1)*DXYP(1)
       ENDIF
-      IF (HAVE_NORTH_POLE) then
+      if (haveLatitude(grid, J=JM)) then
         FD(:,JM)    = 2.*PA(1,JM)*DXYP(JM)
         FD(:,JM+1)  = 0.
       ENDIF
@@ -225,7 +222,7 @@ C     DUT=0.
 C     DVT=0.
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
-        If (HAVE_SOUTH_POLE) THEN
+        If (haveLatitude(grid, J=1)) THEN
           DUT(:,1,L)=0.
           DVT(:,1,L)=0.
         END IF
@@ -261,13 +258,13 @@ C****
       GY(I,J)=.5*(PV(I,J,L)+PV(I,J+1,L))
   180 CONTINUE
 C**** ASSUME FLUXES PU AND PV ARE ZERO BEYOND POLE
-      if (HAVE_SOUTH_POLE) then
+      if (haveLatitude(grid, J=1)) then
       DO 185 I=1,IM
       GY(I,1)=.5*PV(I,2,L)
       FX(I,0)=0.
   185 CONTINUE
       ENDIF
-      if (HAVE_NORTH_POLE) then
+      if (haveLatitude(grid, J=JM)) then
       DO 186 I=1,IM
       GY(I,JM)=.5*PV(I,JM,L)
       FX(I,JM+1)=0.
@@ -317,7 +314,7 @@ C**** Contribution from the West-East mass flux
       CALL HALO_UPDATE(grid, U(:,:,L), from=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, V(:,:,L), from=NORTH+SOUTH)
 
-      If (.not. HAVE_SOUTH_POLE) THEN
+      If (.not. haveLatitude(grid, J=1)) THEN
         J=J_0-1
         I = IM
         DO IP1=1,IM
@@ -414,11 +411,7 @@ C**** ESMF: First, make sure all needed halo data is in place
       CALL HALO_UPDATE(grid, FLUX_V, from=NORTH+SOUTH)
 
 C**** ESMF: update latitutudes ahead (j+1) first.
-      IF (HAVE_SOUTH_POLE) THEN
-        J_START=3
-      ELSE
-        J_START=J_0H
-      END IF
+      J_START = max(3, J_0H)
  
       DO J=J_START,J_1S
         DO I=1,IM
@@ -428,11 +421,7 @@ C**** ESMF: update latitutudes ahead (j+1) first.
       END DO
 
 C**** ESMF: update latitudes "behind" (j-1) next.
-      IF (HAVE_NORTH_POLE) THEN
-        J_STP=JM-1
-      ELSE
-        J_STP=J_1H
-      END IF
+      J_STP = min(J_1+1,JM-1)
 
       DO J=J_0S+1,J_STP
         DO I=1,IM
@@ -526,9 +515,9 @@ C****
 C     FD(I,1)=FCOR(1)*2.-.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
 C     FD(I,JM)=FCOR(JM)*2.+.5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
 C**** Set the Coriolis term to zero at the Poles:
-        If (HAVE_SOUTH_POLE)
+        If (haveLatitude(grid, J=1))
      &       FD(I,1) = -.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
-        If (HAVE_NORTH_POLE)
+        If (haveLatitude(grid, J=JM))
      &       FD(I,JM)=  .5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
   405 IM1=I
       DO 410 J = J_0S, J_1S
@@ -576,14 +565,14 @@ C****
       J_START = J_0
       J_STP   = J_1
 
-      IF (HAVE_SOUTH_POLE) then
+      IF (haveLatitude(grid, J=1)) then
         FD(:,0)     = 0.
         FD(:,1)     = 2.*PB(1,1)*DXYP(1)
       ENDIF
-      IF (HAVE_NORTH_POLE) then
+      IF (haveLatitude(grid, J=JM)) then
         FD(:,JM)    = 2.*PB(1,JM)*DXYP(JM)
         FD(:,JM+1)  = 0.
-        J_STP = J_1 + 1
+        J_STP = JM + 1
       ENDIF
 
       call HALO_UPDATE( grid, FD(:,J_0H:J_1H), from=SOUTH )
@@ -626,7 +615,7 @@ C     DUT=0.
 C     DVT=0.
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
-        If (HAVE_SOUTH_POLE) THEN
+        If (haveLatitude(grid, J=1)) THEN
           DUT(:,1,L)=0.
           DVT(:,1,L)=0.
         End If
