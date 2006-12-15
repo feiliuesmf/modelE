@@ -25,7 +25,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
       USE DOMAIN_DECOMP, ONLY : halo_update_column
-      USE DOMAIN_DECOMP, ONLY : halo_update       
+      USE DOMAIN_DECOMP, ONLY : halo_update
       USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc
      *     ,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
@@ -55,12 +55,12 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,w2,uw,vw,wt,wq
       real*8, dimension(lm+1) :: ze
 
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     u_3d_old,rho_3d,rhoe_3d,dz_3d
      &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
      &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
      &    ,wt_3d,v_3d_old
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     tvsurf,uflux_bgrid,vflux_bgrid
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
@@ -360,7 +360,7 @@ C**** calculate possible energy loss
           tpe0=-tflux1(i,j)*dtime*sha
           tpe1=0.
           do l=1,lm
-            tpe0=tpe0+t_3d(i,j,l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg    
+            tpe0=tpe0+t_3d(i,j,l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg
             tpe1=tpe1+t(l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg/(1.d0+deltx
      *           *q(l))
           end do
@@ -471,15 +471,15 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
       CALL HALO_UPDATE(grid, u_3d, from=NORTH)
 
 C**** Use halo values of plij from southern neighbor to complete that
-C     neighbor's update of AJL in this process (i.e. using PLIJ 
+C     neighbor's update of AJL in this process (i.e. using PLIJ
 C     contribution at J_0-1 to finish accumulation into AJL(J_0,:,:) )
         CALL HALO_UPDATE_COLUMN(grid, PLIJ, from=SOUTH)
- 
+
 ! ACCUMULATE DIAGNOSTICS for u and v
 C*** Adapt  use of idjj stencil to do correct calculation in distributed
 C    parallel version.
 
-C Contribution at southern border        
+C Contribution at southern border
       IF (HAVE_SOUTH_POLE) THEN
         J=1
       ELSE
@@ -517,7 +517,7 @@ C Contribution at southern border
 C**** J_1 computation (add only k=1,2 contributions to ajl when j_1 is
 C     NOT the north pole -- k=3,4 contr. to be added by southern neighbor).
       if (HAVE_NORTH_POLE) THEN
-        J=JM 
+        J=JM
         KMAX=KMAXJ(J)
         DO I=1,IMAXJ(J)
           DO L=1,LM
@@ -607,11 +607,11 @@ C**** Save additional changes in KE for addition as heat later
       implicit none
 
       integer, intent(in) :: lm
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(in) :: tvsurf
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(in) :: tv
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(out) :: rho,rhoe,dz,dze
 
       real*8 :: temp0,temp1,temp1e,pl1,pl,pl1e,ple,plm1e
@@ -706,7 +706,7 @@ C****
 
       implicit none
 
-      integer, intent(in) :: ldbl,i,j,n 
+      integer, intent(in) :: ldbl,i,j,n
       real*8, dimension(n), intent(in) ::
      &   dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
      &   ,wt_nl,wq_nl,kh,km,e,lscale
@@ -801,7 +801,7 @@ C****
       real*8, dimension(n) :: sub,dia,sup,rhs
       real*8 :: alpha
       integer :: j  !@var j loop variable
-      logical, intent(in) :: qlimit 
+      logical, intent(in) :: qlimit
 
       !sub(j)*x_jm1_kp1+dia(j)*x_j_kp1+sup(j)*x_jp1_kp1 = rhs(j)
       !k refers to time step, j refers to main grid
@@ -825,7 +825,7 @@ c calls to this routine.
       ! wt(2)=-p1(2)*(T(2)-T(1))/dz(1)+wt_nl(2)
       ! wt(1)=-tvflx, therefore,flux_bot(the quantity used below)
       !       flux_bot=rhoe(1)*tvflx+rhoe(2)*wt_nl(2)
-      
+
       alpha=dtime*p1(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
       sup(1)=-alpha
@@ -927,7 +927,7 @@ c calls to this routine.
       integer, intent(in) :: lm
       real*8, dimension(im, grid%j_strt_halo:grid%j_stop_halo,lm),
      &                  intent(inout) ::  u,v
-      real*8, dimension(lm,im, grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im, grid%j_strt_halo:grid%j_stop_halo),
      &                  intent(out) :: u_a,v_a
 
       real*8, dimension(im) :: ra
@@ -943,7 +943,7 @@ c calls to this routine.
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
 !     polar boxes
 
-C**** Update halos of U and V 
+C**** Update halos of U and V
       CALL HALO_UPDATE(grid,u, from=NORTH)
       CALL HALO_UPDATE(grid,v, from=NORTH)
 
@@ -1046,7 +1046,7 @@ C****
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP, only : grid, get
       USE DOMAIN_DECOMP, only : halo_update_column
-      USE DOMAIN_DECOMP, only : halo_update       
+      USE DOMAIN_DECOMP, only : halo_update
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj,cosiv,siniv
 
@@ -1055,14 +1055,14 @@ C****
       integer, intent(in) :: lm
       real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo)  ::
      &          u_a,v_a
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm), 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm),
      &        intent(out) :: u,v
 
       real*8, dimension(im) :: ra
       integer, dimension(im) :: idj
       real*8 :: HEMI,rak,ck,sk,uk,vk
       integer :: i,j,l,k,idik,idjk,kmax
-      integer :: j_0, j_1, j_0s, j_1S  
+      integer :: j_0, j_1, j_0s, j_1S
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       call get(grid, J_STRT=J_0,   J_STOP=J_1,
@@ -1133,7 +1133,7 @@ C****
         END DO
         END DO
         END DO
-      end if     !north pole     
+      end if     !north pole
 
 !     non polar boxes (skip J_1 box --> computed below)
       DO J=J_0S,J_1-1
@@ -1190,14 +1190,14 @@ c**** J_1 box
       USE MODEL_COM, only : im,jm
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj
       USE DOMAIN_DECOMP, only : grid,get,NORTH,SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
 
       implicit none
 
       integer, intent(in) :: lm
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo)
      &         ::  s1,s2,s3,s4,s5
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(out) :: sb1,sb2,sb3,sb4,sb5
 
       real*8, dimension(im) :: ra
@@ -1245,7 +1245,7 @@ C   ......first skip j_1 (do later below)
             END DO
           END DO
         END DO
-      End If        
+      End If
 
       DO j=J_0,J_1-1
         KMAX=KMAXJ(J)
@@ -1317,11 +1317,6 @@ C**** Use halo values of S1 -- S5 from southern neighbor to complete that
 C     neighbor's updates of SB1 -- SB5  in this process (i.e. using S[n]
 C     contribution at J_0 -1 to finish accumulation into SB[n](:,:,J_0) )
 C**** Halo updates from the south
-        CALL CHECKSUM_COLUMN(grid, SB1,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB2,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB3,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB4,  __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, SB5,  __LINE__, __FILE__)
 
 
       return
@@ -1455,7 +1450,7 @@ c calls to this routine.
       real*8 :: tmp0,tmp,tau,gm,gh,gmmax,byden,sm,sh
      &    ,ustar2,wstar3,zzi,tau_pt,w2j
       integer :: j  !@var j loop variable
-      
+
       !@ Ref: Holtslag and Moeng 1991, JAS, 48, 1690-1698.
       ustar2=ustar*ustar
       wstar3=wstar*wstar*wstar
@@ -1605,6 +1600,6 @@ c calls to this routine.
       ldbl=l-1
       dbl=.5d0*(ze(l-1)+ze(l))  ! dbl is at main layer (l-1)
       dbl=min(dbl,dbl_max)
-    
+
       return
       end subroutine find_pbl_top
