@@ -312,6 +312,9 @@
 
       !betad, betadl
 
+      !* Accumulate uptake. ## HACK FOR ONE COHORT PER PATCH ##
+      pp%older%C_lab = pp%older%C_lab + GPP*dtsec  !(kg/m2) ###Eventually need to convert to kg/individual.
+
       !OUTPUTS FROM ENT TO GCM/EWB
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
       !pp%cellptr%GCANOPY = GCANOPY
@@ -1515,8 +1518,8 @@
       !----------------------------------------------------------------
 
 
-      subroutine veg_accm
-      !Accumulate GPP
+      subroutine veg_accum
+      !Accumulate GPP, R_growth, R_maint, R_root, Soil_resp
       !---------------------------------------------------------------!
       implicit none
       !---------------------------------------------------------------!
@@ -1527,7 +1530,7 @@
       !agpp=0.d0   ! new accumulator, nyk 4/25/03
       
 
-      end subroutine veg_accm
+      end subroutine veg_accum
 
 
 
