@@ -462,7 +462,7 @@ c**** calculate root fraction afr averaged over vegetation types
       
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1e3!Bl
       cpool(FR) = cpool(FOL)   !Br
-      cpool(LABILE) = 0.d0      !dummy
+      !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
       if (pft.ne.GRASSC3) then  !Woody
         cpool(SW) = 0.00128 * pfpar(pft)%sla * cpool(FR) * h *1e3 !Bsw
         cpool(HW) = 0.069*(h**0.572)*(dbh**1.94) * wooddensity_gcm3(pft)
