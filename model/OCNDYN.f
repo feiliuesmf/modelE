@@ -700,8 +700,8 @@ C****
       CHARACTER*6, INTENT(IN) :: SUBR
 
 c**** Extract domain decomposition info
-      INTEGER :: J_0S, J_1, J_0H, J_1H, JM_loc
-      CALL GET(grid, J_STRT_SKP = J_0S, J_STOP = J_1,
+      INTEGER :: J_0S, J_0, J_1, J_0H, J_1H, JM_loc
+      CALL GET(grid, J_STRT_SKP = J_0S, J_STRT  = J_0, J_STOP = J_1,
      *   J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
 C**** Check for NaN/INF in ocean data

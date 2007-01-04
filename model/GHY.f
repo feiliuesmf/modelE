@@ -2549,7 +2549,7 @@ ccc set internal vars
 !!! hack
 !!! snow doesnt suck water from ground
        if ( flux_snow_tot(nlsn,ibv) < 0.d0 ) then
-         flux_snow_tot(0:nlsn-1,ibv) = flux_snow_tot(0:nlsn-1,ibv) 
+         flux_snow_tot(0:nlsn-1,ibv) = flux_snow_tot(0:nlsn-1,ibv)
      &     - flux_snow_tot(nlsn,ibv)
          flux_snow_tot(nlsn,ibv) = 0.d0
        endif
@@ -2840,7 +2840,8 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
      &       - tr_evap(1,ibv)*dts - tr_rnff(1,ibv)*dts
         !print *,'err ', err
         if ( abs( err ) > 1.d-10 ) !-10  ! was -16
-     &       call stop_model("ghy tracers not conserved",255)
+     &   write(0,*) 'ghy tracers not conserved at',ijdebug,' err=',err
+!!!  &       call stop_model("ghy tracers not conserved",255)
       enddo
 
 !!! hack

@@ -229,6 +229,7 @@
          module procedure PACK_3D       ! (i,j,l)
          module procedure IPACK_3D      ! (i,j,l)
          module procedure PACK_4D       ! (i,j,l,m)
+         module procedure PACK_5D       ! (i,j,l,m,n)
       end interface
 
       PUBLIC :: PACK_DATAj
@@ -264,6 +265,7 @@
          module procedure UNPACK_3D      ! (i,j,l)
          module procedure IUNPACK_3D     ! (i,j,l)
          module procedure UNPACK_4D      ! (i,j,l,m)
+         module procedure UNPACK_5D      ! (i,j,l,m,n)
       end interface
 
       PUBLIC :: UNPACK_DATAj
@@ -2076,8 +2078,8 @@ C****  convert from real*4 to real*8
       REAL*8 :: buf8(grd_dum%IM_WORLD,
      &     grd_dum%J_STRT_HALO:grd_dum%J_STOP_HALO)
 !@var buf_glob real*4 array
-      REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD) 
-      REAL*8 :: buf_glob8(grd_dum%IM_WORLD,grd_dum%JM_WORLD) 
+      REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)
+      REAL*8 :: buf_glob8(grd_dum%IM_WORLD,grd_dum%JM_WORLD)
       INTEGER :: IERR
 
 !!! not sure if it is implemented for real*4 ...
@@ -3459,6 +3461,24 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       RETURN
       END SUBROUTINE PACK_4D
 
+      SUBROUTINE PACK_5D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) ::
+     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:,:,:)
+      REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:,:)
+      INTEGER :: l,m
+
+#ifdef USE_ESMF
+      Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
+#else
+      arr_glob = arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
+#endif
+
+      RETURN
+      END SUBROUTINE PACK_5D
+
       SUBROUTINE PACKj_2D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
@@ -3681,6 +3701,25 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       RETURN
       END SUBROUTINE UNPACK_4D
+
+      SUBROUTINE UNPACK_5D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:,:)
+      REAL*8, INTENT(OUT) ::
+     &        ARR(:,grd_dum%j_strt_halo:,:,:,:)
+      INTEGER :: J_0, J_1, L,M
+      LOGICAL, OPTIONAL :: local
+
+#ifdef USE_ESMF
+      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 2)
+#else
+      arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=arr_glob
+#endif
+
+      RETURN
+      END SUBROUTINE UNPACK_5D
 
       SUBROUTINE UNPACKj_2D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE

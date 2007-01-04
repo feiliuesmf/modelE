@@ -2610,7 +2610,7 @@ c****
       use DOMAIN_DECOMP, only : GLOBALSUM
       use ghy_com, only : snowe, tearth,wearth,aiearth,w_ij
      *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij,
-     *     fearth 
+     *     fearth
       use veg_com, only : afb
       use diag_com, only : aj=>aj_loc,areg,aij=>aij_loc
      *     ,jreg,ij_evap,ij_f0e,ij_evape
@@ -2847,7 +2847,7 @@ c****
       use model_com, only : fim, focean
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
-     *     ,fearth 
+     *     ,fearth
       use veg_com, only : afb
       use LAKES_COM, only : flake
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
@@ -2904,7 +2904,7 @@ ccc of the 'surface' to check water conservation
       use DOMAIN_DECOMP, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
       use ghy_com, only : ngm,w_ij,ht_ij,snowbv,dz_ij
-     *     ,fearth 
+     *     ,fearth
       use veg_com, only : afb
       implicit none
       integer flag
@@ -3081,7 +3081,7 @@ cddd      integer, intent(in) :: jday
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
- 
+
 cddd      cosday=cos(twopi/edpery*jday)
 cddd      sinday=sin(twopi/edpery*jday)
 
@@ -3122,7 +3122,7 @@ cddd      sinday=sin(twopi/edpery*jday)
           aa=ala(1,i,j)
           ht_cap(0)=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
 
-          ! we will use as a reference average temperature of the 
+          ! we will use as a reference average temperature of the
           ! lowest layer
           call heat_to_temperature( tpb, ficeb,
      &         ht_ij(ngm,1,i,j), w_ij(ngm,1,i,j), ht_cap(ngm) )
@@ -3254,7 +3254,7 @@ cddd      sinday=sin(twopi/edpery*jday)
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
- 
+
 cddd      cosday=cos(twopi/edpery*jday)
 cddd      sinday=sin(twopi/edpery*jday)
 
@@ -3357,7 +3357,7 @@ cddd            endif
      &           fr_snow_ij(1:2,i,j)*(1.d0-dfrac/fearth(i,j))
 #ifdef TRACERS_WATER
             ! tr_wsn is spreaf over entire cell (i.e. *fr_snow)
-            tr_wsn_ij(:,:,1:2,i,j) = tr_wsn_ij(:,:,1:2,i,j) * 
+            tr_wsn_ij(:,:,1:2,i,j) = tr_wsn_ij(:,:,1:2,i,j) *
      &           (1.d0 - dfrac/fearth(i,j))
 #endif
 
@@ -3557,9 +3557,9 @@ cddd            endif
       do j=J_0,J_1
         do i=I_0,I_1
 
-          dfrac = svflake(i,j) - flake(i,j) 
+          dfrac = svflake(i,j) - flake(i,j)
           if ( fearth(i,j) < EPS .or. fearth(i,j)-dfrac > EPS ) cycle
-      
+
           dz(1:ngm) = dz_ij(i,j,1:ngm)
           q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
 
@@ -3621,7 +3621,7 @@ c**** wearth+aiearth are used in radiation only
             else
               gtracer(n,4,i,j) = 0.
             end if
-         !!! test 
+         !!! test
             gtracer(n,4,i,j) = 1.d0
           enddo
 #endif
@@ -3643,13 +3643,12 @@ c**** wearth+aiearth are used in radiation only
       use LANDICE_COM, only : MDWNIMP, EDWNIMP
 #ifdef TRACERS_WATER
      &     ,TRDWNIMP
-      USE tracer_com,ONLY : Ntm
 #endif
       use GEOM, only : DXYP
       use MODEL_COM, only : ITEARTH
       USE DIAG_COM, only : aj=>aj_loc,areg,j_implh,j_implm,JREG
       USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
-      
+
       implicit none
       !! integer, intent(in) :: jday
       !---
@@ -3711,7 +3710,7 @@ C**** Initialize work array
      &             tr_wsn_ij(1:ntm,2,ibv,i,j)+tr_wsn_ij(1:ntm,3,ibv,i,j)
      &             )*fbv(ibv)*fearth(i,j)*DXYP(j)
               tr_wsn_ij(1:ntm,2:3,ibv,i,j) =
-     &             (1.d0-eta)*tr_wsn_ij(1:ntm,2:3,ibv,i,j) 
+     &             (1.d0-eta)*tr_wsn_ij(1:ntm,2:3,ibv,i,j)
 #endif
               AJ(J,J_IMPLH,ITEARTH) =
      &             AJ(J,J_IMPLH,ITEARTH) + dh*fearth(i,j)
@@ -3734,9 +3733,9 @@ C**** Initialize work array
      &  AREG_SUM(1:SIZE(AREG,1),1:2), ALL=.TRUE.)
 
       AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
-     &   + AREG_SUM(1:SIZE(AREG,1),1)          
-      AREG(1:SIZE(AREG,1),J_IMPLM)  =AREG(1:SIZE(AREG,1),J_IMPLM)  
-     &   + AREG_SUM(1:SIZE(AREG,1),2)          
+     &   + AREG_SUM(1:SIZE(AREG,1),1)
+      AREG(1:SIZE(AREG,1),J_IMPLM)  =AREG(1:SIZE(AREG,1),J_IMPLM)
+     &   + AREG_SUM(1:SIZE(AREG,1),2)
 
 
       end subroutine remove_extra_snow
