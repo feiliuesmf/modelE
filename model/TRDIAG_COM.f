@@ -181,7 +181,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_MINERALS
       INTEGER,PARAMETER :: ktaijs=1063
 #else
-      integer, parameter :: ktaijs= 364
+      INTEGER,PARAMETER :: ktaijs= 572
 #endif
 #endif
 #endif
@@ -272,8 +272,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
-!@var ijts_MAPemis tracer idependent array for MAP emission
-      INTEGER ijts_MAPemis(ntm)
+!@var ijts_AMPemis tracer idependent array for AMP emission
+      INTEGER ijts_AMPemis(Ntm)
+!@var ijts_AMPp tracer idependent array for AMP processes
+      INTEGER ijts_AMPp(10,Ntm)
 #ifdef TRACERS_WATER
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
       INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
@@ -521,6 +523,10 @@ C**** include some extra troposphere only ones
       INTEGER, DIMENSION(ntmxcon) :: itcon_mc
 !@var itcon_ss Index array for large-scale condensation conserv. diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_ss
+!@var itcon_amp Index array for microphysical processes diags
+      INTEGER, DIMENSION(10,ntmxcon) :: itcon_amp
+!@var itcon_ampe Index array for emissions into modes microphysical  diags
+      INTEGER, DIMENSION(ntmxcon) :: itcon_ampe
 #ifdef TRACERS_DRYDEP
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd

@@ -845,7 +845,7 @@ c if after Feb 28 skip the leapyear day
 !@auth Dorothy Koch
       USE TRACER_COM
       USE TRDIAG_COM, only : tajls,taijs
-#ifdef TRACERS_AEROSOLS_Koch  
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) 
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -925,7 +925,7 @@ C**** initialise source arrays
         end if
       end do
 !$OMP END PARALLEL DO
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
 !$OMP PARALLEL DO PRIVATE (L)
@@ -1041,7 +1041,7 @@ c       ociage=3.D-7*trm(i,j,l,n)
         ociage=4.3D-6*trm(i,j,l,n)
         tr3Dsource(i,j,l,2,n)=-ociage
         tr3Dsource(i,j,l,1,n_OCA3)=ociage
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
@@ -1124,7 +1124,7 @@ cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
 #ifdef TRACERS_HETCHEM
       o3mc = o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYDXYP(J)*BYAM(L,I,J)
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       do 33 n=1,ntm
         select case (trname(n))
         case ('SO2')

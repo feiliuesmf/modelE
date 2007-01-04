@@ -3725,29 +3725,12 @@ C**** Defaults for ijts (sources, sinks, etc.)
       ijts_fc(:,:)=0
       ijts_3Dsource(:,:)=0
       ijts_aq(:)=0
-      ijts_MAPemis(:)=0 
+      ijts_AMPemis(:)=0 
+      ijts_AMPp(:,:)=0 
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
       do n=1,ntm
       select case (trname(n))
-#ifdef TRACERS_AMP
-c       do n=1,ntm
-c       select case(trname(n))
-       CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC','M_DD1_DU',
-     *      'M_SSA_SS','M_SSC_SS','M_BOC_BC','M_BOC_OC','M_DD2_DU')
-       k = k + 1
-         ijts_MAPemis(n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Emission_'//trim(trname(n))
-         sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -11.
-         units_ijts(k) = unit_string(ijts_power(k),' ')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      
-c      end select
-c      end do
-#endif
       case ('SF6')
       k = k+1
         ijts_source(1,n) = k
@@ -6023,6 +6006,110 @@ c NO3 clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c#endif
+#ifdef TRACERS_AMP
+        case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',   
+     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
+     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
+     *    'M_SSA_SS','N_SSA_1 ','M_SSC_SU','M_SSC_SS','N_SSC_1 ',   
+     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',
+     *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',   
+     *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
+     *    'M_OCS_OC','N_OCS_1 ')
+       k = k + 1
+         ijts_AMPp(1,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_1_'//trim(trname(n))
+         sname_ijts(k) = 'Production_1_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(2,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_2_'//trim(trname(n))
+         sname_ijts(k) = 'Production_2_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(3,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_3_'//trim(trname(n))
+         sname_ijts(k) = 'Production_3_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(4,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_4_'//trim(trname(n))
+         sname_ijts(k) = 'Production_4_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(5,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_5_'//trim(trname(n))
+         sname_ijts(k) = 'Production_5_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(6,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_6_'//trim(trname(n))
+         sname_ijts(k) = 'Production_6_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(7,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_7_'//trim(trname(n))
+         sname_ijts(k) = 'Production_7_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(8,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_8_'//trim(trname(n))
+         sname_ijts(k) = 'Production_8_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(9,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_9_'//trim(trname(n))
+         sname_ijts(k) = 'Production_9_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+       k = k + 1
+         ijts_AMPp(10,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Production_10_'//trim(trname(n))
+         sname_ijts(k) = 'Production_10_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+#endif TRACERS_AMP
 #ifdef TRACERS_HETCHEM
       case ('SO4_d1')
 c chemical production of SO4 from SO2 on dust
@@ -7236,7 +7323,23 @@ c     end do
 c     end select
 c     end do
 #endif
-
+#ifdef TRACERS_AMP
+       do n=1,ntm
+       select case(trname(n))
+       CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC','M_DD1_DU',
+     *      'M_SSA_SS','M_SSC_SS','M_BOC_BC','M_BOC_OC','M_DD2_DU')
+       k = k + 1
+         ijts_AMPemis(n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Emission_'//trim(trname(n))
+         sname_ijts(k) = 'Emission_'//trim(trname(n))
+         ijts_power(k) = -11.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end select
+      end do
+#endif
       if (k .gt. ktaijs) then
        if (AM_I_ROOT())
      *  write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k
@@ -7272,6 +7375,8 @@ C**** First 12 are standard for all tracers and GCM
 
 C**** set some defaults
       itcon_mc(:)=0
+      itcon_amp(:,:)=0
+      itcon_ampe(:)=0
       itcon_ss(:)=0
       itcon_surf(:,:)=0
       itcon_3Dsrc(:,:)=0
@@ -8422,6 +8527,40 @@ c#endif
         qsum(itcon_dd(n,2)) = .false.
       end if
 #endif
+        itcon_ampe(n)=18
+        qcon(itcon_ampe(n)) = .true. ; conpts(6) = 'Emission'
+        qsum(itcon_ampe(n)) = .false.
+        itcon_amp(1,n)=19
+        qcon(itcon_amp(1,n)) = .true. ; conpts(7) = 'EQSAM 1st call'
+        qsum(itcon_amp(1,n)) = .false.
+        itcon_amp(2,n)=20
+        qcon(itcon_amp(2,n)) = .true. ; conpts(8) = 'UD Number Conc'
+        qsum(itcon_amp(2,n)) = .false.
+        itcon_amp(3,n)=21
+        qcon(itcon_amp(3,n)) = .true. ; conpts(9) = 'UD Mass Conc'
+        qsum(itcon_amp(3,n)) = .false.
+        itcon_amp(4,n)=22
+        qcon(itcon_amp(4,n)) = .true. ; conpts(10) = 'EQSAM 2nd call'
+        qsum(itcon_amp(4,n)) = .false.
+        itcon_amp(5,n)=23
+        qcon(itcon_amp(5,n)) = .true. ; conpts(11) = 'Trans.bw Modes'
+        qsum(itcon_amp(5,n)) = .false.
+        itcon_amp(6,n)=24
+        qcon(itcon_amp(6,n)) = .true.;conpts(12) ='Intermod Transf.'
+        qsum(itcon_amp(6,n)) = .false.
+        itcon_amp(7,n)=25
+        qcon(itcon_amp(7,n)) = .true. ; conpts(13) = 'Low Numb Limit'
+        qsum(itcon_amp(7,n)) = .false.
+c        itcon_amp(8,n)=26
+c        qcon(itcon_amp(8,n)) = .true. ; conpts(14) = 'P8'
+c        qsum(itcon_amp(8,n)) = .false.
+c        itcon_amp(9,n)=27
+c        qcon(itcon_amp(9,n)) = .true. ; conpts(15) = 'P9'
+c        qsum(itcon_amp(9,n)) = .false.
+c        itcon_amp(10,n)=28
+c        qcon(itcon_amp(10,n)) = .true. ; conpts(16) = 'P10'
+c        qsum(itcon_amp(10,n)) = .false.
+
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -10129,9 +10268,10 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
 #ifdef TRACERS_AMP
          do j=J_0,J_1
           EMIS_SOURCE(:,j,1,1) = EMIS_SOURCE(:,j,1,1)+BCI_src(:,j)
-         do l=1,8
-          EMIS_SOURCE(:,j,l,3) = EMIS_SOURCE(:,j,l,3)+OCI_src(:,j,l)
-         end do
+c         do l=1,8
+c          EMIS_SOURCE(:,j,l,3) = EMIS_SOURCE(:,j,l,3)+OCI_src(:,j,l)
+c         end do
+          EMIS_SOURCE(:,j,1,3) = EMIS_SOURCE(:,j,1,3)+OCI_src(:,j,1)
           EMIS_SOURCE(:,j,1,3) = EMIS_SOURCE(:,j,1,3)+OCT_src(:,j,jmon)
          end do
 #endif
