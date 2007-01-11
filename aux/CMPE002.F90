@@ -283,7 +283,7 @@
 #  ifdef TRACERS_WATER
       use lakes_com, only : trlake
       use seaice_com, only : trsi
-      use ghy_com, only : tr_wbare, tr_wvege, tr_wsn_ij
+      use ghy_com, only : tr_w_ij, tr_wsn_ij, trsnowbv0
       use landice_com, only : trsnowli,trlndi
       use tracer_com, only : trwm
       use icedyn_com, only : ticij
@@ -550,9 +550,9 @@
 #  ifdef TRACERS_WATER
         check("trlake",trlake)
         check("trsi",trsi)
-        check("tr_wbare",tr_wbare)
-        check("tr_wvege",tr_wvege)
+        check("tr_w_ij",tr_w_ij)
         check("tr_wsn_ij",tr_wsn_ij)
+        check("trsnowbv0",trsnowbv0)
         check("trsnowli",trsnowli)
         check("trlndi",trlndi)
         check("trabl",trabl)
