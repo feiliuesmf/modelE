@@ -421,7 +421,7 @@ C********* Load data into distributed arrays
           CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI)
           CALL UNPACK_COLUMN(GRID, TRDWNIMP_GLOB, TRDWNIMP)
 #ifdef TRACERS_OCEAN
-          call ESMF_BCAST(grid, TRACCPDG)
+          call ESMF_BCAST(grid, TRACCPDA)
           call ESMF_BCAST(grid, TRACCPDG)
 #endif
         END SELECT
