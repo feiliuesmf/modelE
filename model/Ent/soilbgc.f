@@ -18,11 +18,8 @@
       real*8, intent(in) :: dtsec  !main ent time step (s)
       type(patch),pointer :: pp
       !----Local----------
-!      real*8 livefr(nlive)   !fractions of plant C
       real*8 soilmoist       !soil moisture avg over top 30 cm
-!      real*8 fnpp            !npp (input kgC/m2/d --> convert to gC/m2/s) 
       integer ivt            !ivt = pft (see above)
-!      real*8 lai             !total leaf area, unadjusted for burying by snow
       real*8 soiltemp        !soil temperature avg over top 30 cm
       real*8 clayfrac        !fractional clay content in soil
       real*8 sandfrac        !fractional clay content in soil
@@ -33,9 +30,7 @@
       type(cohort),pointer :: scop
 
       scop => pp%sumcohort
-      ! pass NPP and LAI to CASA as fnpp, lai (using patch summ. values)
-      !**don't need to pass these anymore** -PK 8/20/06
-      !lai = scop%LAI                !total lai
+      
       ivt = scop%pft     
       soilmoist = pp%Soilmoist    !soil moist varies by patch
       soiltemp = pp%cellptr%Soiltemp  !soil temp, texture vary by cell
@@ -45,30 +40,26 @@
       siltfrac = 0.4*pp%cellptr%soil_texture(2)  !**hack** -PK
       Tpool = pp%Tpool !Added - NYK 7/27/06
       
-!#ifdef DEBUG
-      print *,'casa inputs: dt= ',dtsec,'soilmoist=',soilmoist     !-PK 7/13/06
-     &       ,'ivt=',ivt,'soiltemp=',soiltemp !Got rid of fnpp -NK 7/24/06 !and lai -PK 8/20/06
+#ifdef DEBUG
+      print *,'casa inputs: dt= ',dtsec,'soilmoist=',soilmoist     
+     &       ,'ivt=',ivt,'soiltemp=',soiltemp 
      &       ,'clay=',clayfrac,'sand=',sandfrac,'silt=',siltfrac
       call print_Tpool(Tpool)
-!#endif
+#endif
      
-! call bgfluxes routine directly -PK 8/20/06
-!      print*, 'calling casa (soil_bgc)'
       call casa_bgfluxes(dtsec, soilmoist,  ivt    
      &                 , soiltemp, clayfrac, sandfrac, siltfrac
      &                 , Tpool, Cflux)
      
-      !* Convert Cflux from gC/m2/s to umol C/m2/s -PK 6/14/06
-      !* Changed to kgC/m2/s - NK 7/28/06
-      !* and assign soil_resp per patch
+      !* Convert Cflux from gC/m2/s to kgC/m2/s 
+      !* and assign patch soil_resp, Tpool 
       pp%Soil_resp = Cflux*1.d-3 
-      !assign Tpool, -PK 7/7/06
       pp%Tpool = Tpool
 
+#ifdef DEBUG
+      call print_Tpool(Tpool)
       print *,'casa outputs: soil_resp(kgC/m2/s)=',pp%soil_resp
-!#ifdef DEBUG
-!      call print_Tpool(Tpool)
-!#endif
+#endif
 
       end subroutine soil_bgc
 
@@ -77,9 +68,6 @@
      &                 ,soiltemp, clayfrac, sandfrac, siltfrac 
      &                 ,Tpool,Cflux)
 
-!      use ent_const
-!      use ent_types
-!      use ent_pfts
       implicit none
 
 ! ------------------------ input/output variables -----------------
@@ -111,7 +99,7 @@
       real*8 kdt(N_PFT,NPOOLS)
 !met variables and functions
       real*8 atmp, bgmoist, bgtemp
-      real*8 wlim    !water limitation function for CASA (func of next 2)
+      real*8 Wlim    !water limitation function for CASA (func of next 2)
       real*8 watopt  !"optimal" water content for ET
       real*8 watdry  !water content when ET stops (~wilting point)
       !watopt, watdry are funcs of next 3 (which are funcs of clayfrac,sandfrac -- see lsmtci.F) 
@@ -124,8 +112,8 @@
       real*8 poolsum                 !accumulates Resp
 
       
-! define fact_soilmic, fact_slow, fact_passive (from casatci.F) -PK 5/25/06
-        if(ivt.eq.CROPS)then      !slightly higher for crops -PK 6/14/06,const NYK 7/27/06
+! define rate coefs fact_soilmic, fact_slow, fact_passive (from casatci.F) -PK 5/25/06
+        if(ivt.eq.CROPS)then      
           fact_soilmic(ivt) = 1.25d0
           fact_slow(ivt)    = 1.5d0
           fact_passive(ivt) = 1.5d0
@@ -152,7 +140,6 @@
 
 ** NOTE: kdt will be used for WOOD and dead pools only
 **       so no need to worry about adding stressCD to annK here
-      !still needed?? -PK 7/13/06
       do n = 1, NPOOLS
         do m = 1, N_PFT    
           kdt(m,n)= 1.d0 - (exp(-annK(m,n)*dtsec))
@@ -165,17 +152,10 @@ C.. Initialize respiration fluxes each timestep
 C.. Note: these should be over dead pools only (see resp_pool_index)
 *iyf:  Resp in unit of gC/m2/timestep
 
-!         do n = 1,NPOOLS
-!            do m = 1, PTRACE
-!               Resp(m,n)=0.
-!            enddo  !C,N
-!         enddo    !all 12 pools 
-      !Shorter way to do this: -NK
       Resp(:,:) = 0.d0
 
 *---Step 1a: TEMPERATURE AND MOISTURE CONSTRAINTS ON DECOMP 
 ! temperature dependence
-            !soiltemp = 30.  **reading in soiltemp** -PK 6/26/06
             bgtemp = (Q10 ** ((soiltemp - 30.d0) / 10.d0))
 
 ! moisture dependence 
@@ -188,13 +168,11 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
             watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
             watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
 !! 03/11/21 note: there are no limits on Wlim, except if soiltemp < 0
-!!Wlim ultimately usedto get total Closs, i.e.
-!!total C loss per pool, to both atm and other pools (see step 1b below) -PK 6/8/06
+!!Wlim ultimately used to get total C loss per pool,  
+!!to both atm and other pools (see step 1b below) -PK 6/8/06
             if (soiltemp .gt. 0.d0) then
-               Wlim = 1.d0 ! assume no water limitation for now -PK 5/25/06
-!***need to decide when to incorporate water limitation (Wlim)*** -PK 8/23/06
-!               Wlim = min( max(soilmoist-watdry,0.) /
-!     &                   (watopt-watdry), 1.)
+               Wlim = min( max(soilmoist-watdry,0.d0) /
+     &                   (watopt-watdry), 1.d0)
             else
                Wlim = 0.01d0
             end if
@@ -205,7 +183,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 *---Step 1b: DETERMINE loss of C FROM EACH DEAD POOL (donor) PER TIMESTEP
 *iyf:  Closs is the amount of carbon each pool loses in gC/m2/timestep.
 *iyf:  A fraction of Closs is transferred to another pool (receiver pool), 
-*iyf:  the remainder to the atm (resp).
+*iyf:  the remainder to the atm (Resp).
 *iyf:  The distribution of Closs is done in subroutine casa_respire, Step 1c. 
             do n = 1, NDEAD
                ipool = NLIVE + n
@@ -289,16 +267,10 @@ ciyf (only need to track limits on inventories)
            enddo  !over dead pools -PK
            Cflux=poolsum/dtsec           !total C flux to atm (gC/m2/s)
 
-C.. mod 02/07/17 change resp to be g/m2/sec instead of g/m2/timestep
-!**seems unnecessary, so commenting it out** -PK 8/23/06
-!           do n = NLIVE+1,NPOOLS
-!              Resp(Carbon,n)=Resp(Carbon,n)/dtsec
-!           enddo  !over dead pools
-
 C.. mod 03/03/11 change closs/nloss to be g/m2/sec instead of g/m2/timestep
            do n = 1,NPOOLS
               Closs(Carbon,n)=Closs(Carbon,n)/dtsec
-c             Closs(Nitrogen,n)=Closs(Nitrogen,n)/dtsec  ! not used 
+!             Closs(Nitrogen,n)=Closs(Nitrogen,n)/dtsec  !not used (yet) -PK  
            enddo  !over all pools
 
       return
@@ -308,7 +280,6 @@ c             Closs(Nitrogen,n)=Closs(Nitrogen,n)/dtsec  ! not used
       subroutine casa_respire(ivt ,eff ,frac_donor
      &                       ,Closs, Resp, Tpool)
 
-!      use ent_const
       implicit none
 
 ! ------------------------ input/output variables -----------------
@@ -356,7 +327,6 @@ c             Closs(Nitrogen,n)=Closs(Nitrogen,n)/dtsec  ! not used
          donor_pool = resp_pool_index(1,irtype)
          recvr_pool = resp_pool_index(2,irtype)
          Out  = Closs(Carbon,donor_pool) * frac_donor(irtype)
-!	      print*,'resp: out=',out
          Tpool(Carbon,donor_pool) = Tpool(Carbon,donor_pool)
      &                                   - Out
          Tpool(Carbon,recvr_pool) = Tpool(Carbon,recvr_pool)  
