@@ -17,6 +17,8 @@ c$$$#endif
 
 !@param IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
+!@param IVNP,IVSP V at north/south pole is stored in U(IVNP,JM)/U(IVSP,1)
+      INTEGER, PARAMETER :: IVNP = IM/4 , IVSP = 3*IM/4
 !@param FIM,BYIM real values related to number of long. grid boxes
       REAL*8, PARAMETER :: FIM=IM, BYIM=1./FIM
 !@param JEQ grid box zone around or immediately north of the equator
@@ -28,7 +30,7 @@ c$$$#endif
 
 !@var LM_REQ Extra number of radiative equilibrium layers
       INTEGER, PARAMETER :: LM_REQ=3
-!@var REQ_FAC/REQ_FAC_M factors for REQ layer pressures 
+!@var REQ_FAC/REQ_FAC_M factors for REQ layer pressures
       REAL*8, PARAMETER, DIMENSION(LM_REQ-1) ::
      *     REQ_FAC=(/ .5d0, .2d0 /)               ! edge
       REAL*8, PARAMETER, DIMENSION(LM_REQ) ::
@@ -575,18 +577,18 @@ C**** keep track of min/max time over the combined diagnostic period
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: P0 !@var P0 surface pressure (-PTOP) (mb)
-      INTEGER, INTENT(IN) :: LMAX !@var LMAX max level for calculation 
-!@var AM mass at each level (kg/m2) 
-!@var PDSIG pressure interval at each level (mb) 
-!@var PMID mid-point pressure (mb) 
+      INTEGER, INTENT(IN) :: LMAX !@var LMAX max level for calculation
+!@var AM mass at each level (kg/m2)
+!@var PDSIG pressure interval at each level (mb)
+!@var PMID mid-point pressure (mb)
       REAL*8, INTENT(OUT), DIMENSION(LMAX) :: AM,PDSIG,PMID,PL
-!@var PEDN edge pressure (top of box) (mb) 
+!@var PEDN edge pressure (top of box) (mb)
       REAL*8, INTENT(OUT), DIMENSION(LMAX+1) :: PEDN
       INTEGER :: L  !@var L  loop variables
 
 C**** Calculate air mass, layer pressures
 C**** Note that only layers LS1 and below vary as a function of surface
-C**** pressure. 
+C**** pressure.
 C**** Note Air mass is calculated in (kg/m^2)
 
       DO L=1,LS1-1

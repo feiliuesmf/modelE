@@ -14,7 +14,7 @@ C?*** For serial GM/straits computations, pack data into global arrays
 #endif
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo
      *     ,s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso
-     *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj
+     *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP !,VOSP,IVSP
 C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
@@ -45,7 +45,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H
       integer, save :: ifirst = 1
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
-      if (ifirst.eq.1) then
+      if (ifirst == 1) then
         ifirst=0
         MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
       end if
@@ -53,7 +53,8 @@ c**** Extract domain decomposition info
 C****
 C**** Integrate Ocean Dynamics terms
 C****
-      OGEOZ_SV=OGEOZ
+      OGEOZ_SV(:,:)=OGEOZ(:,:)
+
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
@@ -62,16 +63,22 @@ C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
          CALL TIMER (MNOW,MSURF)
-         IF (MODD5S.EQ.0) CALL DIAGCA (11)
+         IF (MODD5S == 0) CALL DIAGCA (11)
 
 C**** Calculate vertical diffusion
       CALL OCONV
-
          CALL CHECKO('OCONV ')
+C**** Apply bottom and coastal drags
+      CALL OBDRAG
+      CALL OCOAST
          CALL TIMER (MNOW,MSGSO)
 
       IDACC(11) = IDACC(11) + 1
 
+C****
+C**** Integrate Ocean Dynamics
+C****
+C**** initialize summed mass fluxes
 !$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
         SMU(:,:,L) = 0. ; SMV(:,:,L) = 0. ; SMW(:,:,L) = 0.
@@ -84,40 +91,51 @@ C**** Calculate vertical diffusion
 C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
       CALL OFLUX  (NS,MMI,.FALSE.)
       CALL OADVM (MM1,MMI,DTOFS)
+C     CALL STADVM(MM1,MUST,DTOFS,.False.)
       CALL OADVV (UM1,VM1,UM0,VM0,DTOFS)
       CALL OPGF  (UM1,VM1,DTOFS)
+C     CALL STPGF (MUST1,MUST,DTOFS)
       CALL OMTOV (MM1,UM1,VM1)
 C**** Initial Backward step,  QM1 = QM0 + DT*F(Q0)
       CALL OFLUX  (NS,MMI,.FALSE.)
       CALL OADVM (MM1,MMI,DTO)
+C     CALL STADVM(MM1,MUST,DTO,.False.)
       CALL OADVV (UM1,VM1,UM0,VM0,DTO)
       CALL OPGF  (UM1,VM1,DTO)
+C     CALL STPGF (MUST1,MUST,DTO)
       CALL OMTOV (MM1,UM1,VM1)
 C**** First even leap frog step,  Q2 = Q0 + 2*DT*F(Q1)
-      CALL OPGF0
       CALL OFLUX  (NS,MMI,.TRUE.)
       CALL OADVM (MM0,MMI,DTOLF)
+C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
       CALL OADVV (UM0,VM0,UM0,VM0,DTOLF)
       CALL OPGF  (UM0,VM0,DTOLF)
+C     CALL STPGF (MUST,MUST,DTOLF)
       CALL OMTOV (MM0,UM0,VM0)
       NS=NS-1
 C**** Odd leap frog step,  Q3 = Q1 + 2*DT*F(Q2)
-  420 CALL OPGF0
+  420 Continue
       CALL OFLUX  (NS,MM1,.FALSE.)
       CALL OADVM (MM1,MM1,DTOLF)
+C     CALL STADVM(MM1,MUST,DTOLF,.False.)
       CALL OADVV (UM1,VM1,UM1,VM1,DTOLF)
       CALL OPGF  (UM1,VM1,DTOLF)
+C     CALL STPGF (MUST1,MUST1,DTOLF)
       CALL OMTOV (MM1,UM1,VM1)
       NS=NS-1
 C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
-      CALL OPGF0
       CALL OFLUX  (NS,MM0,.TRUE.)
       CALL OADVM (MM0,MM0,DTOLF)
+C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
       CALL OADVV (UM0,VM0,UM0,VM0,DTOLF)
       CALL OPGF  (UM0,VM0,DTOLF)
+C     CALL STPGF (MUST,MUST,DTOLF)
       CALL OMTOV (MM0,UM0,VM0)
+C**** Check for end of leap frog time scheme
       NS=NS-1
       IF(NS.GT.1)  GO TO 420
+C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
+      if(j_1 == JM) UO(IVNP,JM,:) = VONP(:) ! not needed if Mod(IM,4)=0
 !$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
         OIJL(:,:,L,IJL_MFU) = OIJL(:,:,L,IJL_MFU) + SMU(:,:,L)
@@ -165,7 +183,7 @@ C**** Advection of Potential Enthalpy and Salt
 #endif
         CALL TIMER (MNOW,MDYNO)
 
-        IF (MODD5S.EQ.0) CALL DIAGCA (12)
+        IF (MODD5S == 0) CALL DIAGCA (12)
 
 c????          Non-parallelized parts : ODIFF, GM, straits
 c     ODIFF:   mo,uo,vo (ocean), dh (ocean_dyn)
@@ -257,9 +275,9 @@ c        CALL CHECKO ('STADVI')
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
-     *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
+     *     ,lmu,lmv,hatmo,hocean,ze,dZO,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
-     *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min
+     *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
@@ -285,7 +303,7 @@ c**** Extract domain decomposition info
 C****
 C**** Check that KOCEAN is set correctly
 C****
-      IF (KOCEAN.eq.0) THEN
+      IF (KOCEAN == 0) THEN
         call stop_model(
      &       "Must have KOCEAN > 0 for interactive ocean runs",255)
       END IF
@@ -314,7 +332,8 @@ C**** Calculate ZE, SIGEO, DSIGO and SIGO
       DO 120 L=1,LMO
       SIGEO(L) = ZE(L)/ZE(LMO)
       DSIGO(L) = SIGEO(L) - SIGEO(L-1)
-  120 SIGO(L) = (SIGEO(L) + SIGEO(L-1))*5d-1
+      SIGO(L) = (SIGEO(L) + SIGEO(L-1))*5d-1
+  120 dZO(L) = ZE(L) - ZE(L-1)
 C**** Read in table function for specific volume
       CALL openunit("OFTAB",iu_OFTAB,.TRUE.,.TRUE.)
       READ  (iu_OFTAB) TITLE,VGSP
@@ -337,6 +356,11 @@ C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
       CALL READT (iu_TOPO,0,HATMO ,IM*JM,HATMO ,4) ! Atmo. Topography
       CALL READT (iu_TOPO,0,HOCEAN,IM*JM,HOCEAN,1) ! Ocean depths
       call closeunit(iu_TOPO)
+
+C**** Calculate J1O = least J with some ocean
+      Do 130 J=1,JM
+  130 If (Sum(FOCEAN(:,J)) > 0)  GoTo 140
+  140 J1O = J
 
 C**** Calculate LMM and modify HOCEAN
       call sync_param("LMO_min",LMO_min)
@@ -495,9 +519,9 @@ C**** Extend ocean data to added layers at bottom if necessary
       if (istart.gt.0 .and. lmo_min .gt. 1) then
         do j=j_0s,j_1s
         do i=1,im
-          if (lmm(i,j).eq.lmo_min .and. MO(i,j,lmo_min).eq.0.) then
+          if (lmm(i,j) == lmo_min .and. MO(i,j,lmo_min) == 0.) then
             do l=2,lmo_min
-              if (MO(i,j,l).eq.0.) then
+              if (MO(i,j,l) == 0.) then
                 MO(i,j,l)   = (ZE(L)-ZE(L-1))*RHOW*
      *                     (1.+S0M(i,j,l-1)/(MO(i,j,l-1)*DXYPO(J)))
                 G0M(i,j,l)  = G0M(i,j,l-1) *(MO(i,j,l)/MO(i,j,l-1))
@@ -701,7 +725,7 @@ C****
 
 c**** Extract domain decomposition info
       INTEGER :: J_0S, J_0, J_1, J_0H, J_1H, JM_loc
-      CALL GET(grid, J_STRT_SKP = J_0S, J_STRT  = J_0, J_STOP = J_1,
+      CALL GET(grid, J_STRT_SKP = J_0S, J_STRT = J_0, J_STOP = J_1,
      *   J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
 C**** Check for NaN/INF in ocean data
@@ -741,8 +765,8 @@ C**** Check potential specific enthalpy/salinity
           END IF
           IF(SO1.gt.0.045 .or. SO1.lt.0.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,SO=',I,J,L,1d3*SO1
-            IF ((SO1.gt.0.05 .or. SO1.lt.0.) .and. .not. (I.eq.47.and.
-     *           J.eq.30)) QCHECKO=.TRUE.
+            IF ((SO1.gt.0.05 .or. SO1.lt.0.) .and. .not. (I == 47.and.
+     *           J == 30)) QCHECKO=.TRUE.
           END IF
           END DO
 C**** Check all ocean currents
@@ -755,13 +779,13 @@ C**** Check all ocean currents
           END DO
 C**** Check first layer ocean mass
           IF(MO(I,J,1).lt.2000. .or. MO(I,J,1).gt.20000.) THEN
-            IF (I.eq.47.and.(J.eq.33.or.J.eq.34)) GOTO 230 ! not Caspian
+            IF (I == 47.and.(J == 33.or.J == 34)) GOTO 230 ! not Caspian
             WRITE (6,*) 'After ',SUBR,': I,J,MO=',I,J,MO(I,J,1)
             QCHECKO=.TRUE.
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
  230      SALIM = .043
-          IF(I.eq.47 .and. J.eq.30) GOTO 240 ! not Persian Gulf   !.048
+          IF(I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
           IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
      *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
      *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
@@ -795,7 +819,7 @@ C**** Check for negative tracers
         end do
         end if
 C**** Check conservation of water tracers in ocean
-        if (trname(n).eq.'Water') then
+        if (trname(n) == 'Water') then
           errmax = 0. ; imax=1 ; jmax=1 ; lmax=1
           do l=1,lmo
           do j=j_0,j_1
@@ -838,13 +862,12 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shw
-      USE OCEAN, only : im,jm,lmo,fim,imaxj,focean,mo,uo,vo,lmm
+      USE OCEAN, only : im,jm,lmo,ivnp,fim,imaxj,focean,mo,uo,vo,lmm
       USE DOMAIN_DECOMP, only : GRID, GET, SOUTH, HALO_UPDATE
       IMPLICIT NONE
 !@var OKE zonal ocean kinetic energy per unit area (J/m**2)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OKE
       INTEGER I,J,L,IP1
-      REAL*8 OKEIN
 
       INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_NORTH_POLE
@@ -866,14 +889,12 @@ C****
         OKE(J)=OKE(J)*0.25
       END DO
       if(HAVE_NORTH_POLE) then
-      DO L=1,LMO
-        OKEIN = UO(1,JM,L)*UO(1,JM,L)*IM
-        DO I=1,IM
-          OKEIN  = OKEIN  + VO(I,JM-1,L)*VO(I,JM-1,L)
+        DO L=1,LMM(1,JM)
+          OKE(JM) = OKE(JM) +
+     +      MO(1,JM,L) * (1.5*IM*(UO(IM,JM,L)**2 + UO(IVNP,JM,L)**2) +
+     +                    Sum(VO(:,JM-1,L)*VO(:,JM-1,L)) )
         END DO
-        OKE(JM)= OKE(JM)+ OKEIN*MO(1,JM,L)
-      END DO
-      OKE(JM)= OKE(JM)*0.5
+        OKE(JM)= OKE(JM)*0.25
       end if
 C****
       RETURN
@@ -967,7 +988,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : radius,omega
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,uo,cosvo,cospo,lmu
+      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,uo,cosm,cosq,lmu
       USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
 !@var OAM ocean angular momentum divided by area (kg/s)
@@ -975,7 +996,7 @@ C****
       REAL*8, DIMENSION(JM) :: OMSSV
       COMMON /OCCONS/OMSSV
       INTEGER I,J,L,IP1
-      REAL*8 UMIL
+      REAL*8 UMILx2
 
       INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_NORTH_POLE
@@ -984,28 +1005,29 @@ C****
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       OAM=0
       DO J=J_0S,J_1S
-        UMIL = 0.
+        UMILx2 = 0.
         I=IM
         DO IP1=1,IM
           DO L=1,LMU(I,J)
-            UMIL = UMIL + UO(I,J,L)*(MO(I,J,L)+MO(IP1,J,L))
+            UMILx2 = UMILx2 + UO(I,J,L)*(MO(I,J,L)+MO(IP1,J,L))
           END DO
           I=IP1
         END DO
-        OAM(J) = UMIL*COSPO(J) + OMSSV(J)*RADIUS*OMEGA*(COSVO(J-1)
-     *       *COSVO(J-1)+COSVO(J)*COSVO(J))
-        OAM(J)=0.5*RADIUS*OAM(J)
+c       OAM(J) = UMIL*COSPO(J) + OMSSV(J)*RADIUS*OMEGA*(COSVO(J-1)
+c    *       *COSVO(J-1)+COSVO(J)*COSVO(J))
+c       OAM(J)=0.5*RADIUS*OAM(J)
+        OAM(J) = RADIUS*(OMSSV(J)*RADIUS*OMEGA*COSQ(J) +
+     +                   .5*UMILx2*COSM(J))
       END DO
 
-      if (HAVE_NORTH_POLE) then
-      UMIL = 0.
-      DO L=1,LMU(1,JM)
-        UMIL = UMIL + UO(1,JM,L)*MO(1,JM,L)
-      END DO
-      OAM(JM) = UMIL*COSPO(JM)*IM*2. +OMSSV(JM)*RADIUS*OMEGA
-     *     *COSVO(JM-1)*COSVO(JM-1)
-      OAM(JM)=0.5*RADIUS*OAM(JM)
-      end if
+      if (HAVE_NORTH_POLE)
+     *  OAM(JM) = RADIUS*OMSSV(JM)*RADIUS*OMEGA*COSQ(JM)
+c     DO L=1,LMU(1,JM)
+c       UMIL = UMIL + UO(1,JM,L)*MO(1,JM,L)
+c     END DO
+c     OAM(JM) = UMIL*COSPO(JM)*IM*2. +OMSSV(JM)*RADIUS*OMEGA
+c    *     *COSVO(JM-1)*COSVO(JM-1)
+c     OAM(JM)=0.5*RADIUS*OAM(JM)
 C****
       RETURN
       END SUBROUTINE conserv_OAM
@@ -1049,992 +1071,912 @@ C****
       RETURN
       END SUBROUTINE conserv_OSL
 
-      SUBROUTINE OVTOM (MM,UM,VM)
-!@sum  OVTOM converts rho/u/v to mass/momentum in mass units
-!@auth Gary Russell
-!@ver  1.0
-C**** Input:  M (kg/m**2), U (m/s), V (m/s)
-      USE OCEAN, only : im,jm,lmo,dxyp=>dxypo,mo,uo,vo
-      USE DOMAIN_DECOMP, only : grid, GET, halo_update, north
-      IMPLICIT NONE
+      Subroutine OVtoM (MM,UM,VM)
+C****
+C**** OVtoM converts density and velocity in concentration units
+C**** to mass and momentum in mass units
+C**** Input:  MO (kg/m^2), UO (m/s), VO (m/s)
+C**** Define: VOSP from UO(IVSP,1), VONP from UO(IVNP,JM)
 C**** Output: MM (kg), UM (kg*m/s), VM (kg*m/s)
-      REAL*8, INTENT(OUT),
-     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: MM,UM,VM
-      INTEGER I,J,L,IP1
-
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-      call halo_update(grid, MO, from=north)
-      DO 70 L=1,LMO
+C****
+      Use OCEAN, Only: IM,JM,LMO, IVSP,IVNP, DXYP=>DXYPO, COSU,SINU,
+     *                 COSI=>COSIC,SINI=>SINIC, MO,UO,VO, VONP
+      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Implicit None
+      Real*8,Intent(Out),
+     *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: MM,UM,VM
+      Integer*4 I,J,L, J1,JN,J1P,JNP,JNQ,JNR
+      Logical*4 QSP,QNP
+C****
+C**** Extract domain decomposition band parameters
+C**** ASSUME THAT J1 NEVER EQUALS 2 AND JN NEVER EQUALS JM-1
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      J1P = Max(J1,2)       !    2      5     JM-3   Exclude SP
+      JNP = Min(JN,JM-1)    !    4      8     JM-1   Exclude NP
+      JNQ = Min(JN,JM-2)    !    4      8     JM-2   Exclude NP,NP-1
+      JNR = Min(JN+1,JM-1)  !    5      9     JM-1   Halo, Exclude NP
+C     QSP = J1==1           !    T      F      F
+      QNP = JN==JM          !    F      F      T
+C****
+      Call HALO_UPDATE (GRID, MO, FROM=NORTH)
+C****
+!$OMP ParallelDo   Private (I,J,L)
+      DO 50 L=1,LMO
+C**** Define VOSP and VONP
+C     If (QSP)  VOSP(L) = UO(IVSP,1 ,L)
+      If (QNP)  VONP(L) = UO(IVNP,JM,L)
 C**** Convert density to mass
-      DO 10 J=J_0,min(JM,J_1+1)
-      DO 10 I=1,IM
-      MM(I,J,L) = MO(I,J,L)*DXYP(J)
-   10 CONTINUE
+      DO 10 J=J1,JNR
+   10 MM(:,J,L) = MO(:,J,L)*DXYP(J)
+C     If (QSP)  MM(1,1 ,L) = MO(1,1 ,L)*DXYP(1)
+      If (QNP)  MM(1,JM,L) = MO(1,JM,L)*DXYP(JM)
 C**** Convert U velocity to U momentum
-      I=IM
-      DO 40 J=J_0S,J_1S
-      DO 40 IP1=1,IM
-      UM(I, J,L) = UO(I, J,L)*(MM(I,J,L)+MM(IP1,J,L))*5d-1
-   40 I=IP1
-C     if (HAVE_SOUTH_POLE) UM(IM,1,L) = UO(IM,1,L)*MM(IM,1,L)*IM
-      if (HAVE_NORTH_POLE) UM(1,JM,L) = UO(1,JM,L)*MM(1,JM,L)*IM
+      DO 30 J=J1P,JNP
+      DO 20 I=1,IM-1
+   20 UM(I ,J,L) = UO(I ,J,L)*(MM(I,J,L)+MM(I+1,J,L))*.5
+   30 UM(IM,J,L) = UO(IM,J,L)*(MM(1,J,L)+MM(IM ,J,L))*.5
 C**** Convert V velocity to V momentum
-      DO 60 I=1,IM
-C     if (HAVE_SOUTH_POLE)
-C    *  VM(I, 1  ,L) = VO(I, 1  ,L)*(MM(1, 1,L)+5d-1*MM(I, 2  ,L))
-      if (HAVE_NORTH_POLE)
-     *  VM(I,JM-1,L) = VO(I,JM-1,L)*(MM(1,JM,L)+5d-1*MM(I,JM-1,L))
-      DO 60 J=J_0S,min(J_1S,JM-2)
-   60 VM(I,J,L) = VO(I,J,L)*(MM(I,J,L)+MM(I,J+1,L))*5d-1
-   70 CONTINUE
-      RETURN
-      END SUBROUTINE OVTOM
+      DO 40 J=J1P,JNQ
+   40 VM(:,J,L) = VO(:,J,L)*(MM(:,J,L)+MM(:,J+1,L))*.5
+C     If (QSP)  VM(:, 1  ,L) = VO(:, 1  ,L)*(MM(:, 2  ,L)+MM(1, 1,L))*.5
+      If (QNP)  VM(:,JM-1,L) = VO(:,JM-1,L)*(MM(:,JM-1,L)+MM(1,JM,L))*.5
+C**** Convert U and V velocity to U and V momentum at poles
+C     If (QSP)  UM(IM,1 ,L) = UO(IM,1 ,L)*MM(1,1 ,L)
+      If (QNP)  UM(IM,JM,L) = UO(IM,JM,L)*MM(1,JM,L)
+C     If (QSP)  UM(IVSP,1 ,L) =   VOSP(L)*MM(1,1 ,L)
+      If (QNP)  UM(IVNP,JM,L) =   VONP(L)*MM(1,JM,L)
+C**** Define MO, UO and VO at poles
+C     If (QSP)  Then
+C       MO(:,1 ,L) = MO(1 ,1 ,L)
+C       UO(:,1 ,L) = UO(IM,1 ,L)*COSU(:) - VOSP(L)*SINU(:)
+C       VO(:,0 ,L) = VOSP(L)*COSI(:) + UO(IM,1 ,L)*SINI(:)  ;  EndIf
+      If (QNP)  Then
+        MO(:,JM,L) = MO(1 ,JM,L)
+        UO(:,JM,L) = UO(IM,JM,L)*COSU(:) + VONP(L)*SINU(:)
+        VO(:,JM,L) = VONP(L)*COSI(:) - UO(IM,JM,L)*SINI(:)  ;  EndIf
+   50 Continue
+      Return
+      EndSubroutine OVtoM
 
-      SUBROUTINE OMTOV (MM,UM,VM)
-!@sum  OMTOV converts mass/momentum in mass units to rho/u/v
-!@auth Gary Russell
-!@ver  1.0
-C**** Output: M (kg/m**2), U (m/s), V (m/s)
-      USE OCEAN, only : im,jm,lmo,mo,uo,vo,lmm,lmu,lmv,
-     *     dxyp=>dxypo,bydxyp=>bydxypo
-      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE,NORTH
-      IMPLICIT NONE
+      Subroutine OMtoV (MM,UM,VM)
+C****
+C**** OMtov converts mass and momentum in mass units
+C**** to density and velocity in concentration units
 C**** Input:  MM (kg), UM (kg*m/s), VM (kg*m/s)
-      REAL*8, !!! INTENT(IN), (except for halo_updates)
-     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: MM,UM,VM
-      INTEGER I,J,L
-      REAL*8 BYD
-
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &         J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S,
-C    &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-        CALL HALO_UPDATE(grid, MM, FROM=NORTH)
-!$OMP PARALLEL DO  PRIVATE(I,J,L,BYD)
-      DO L=1,LMO
+C**** Output: MO (kg/m^2), UO (m/s), VO (m/s)
+C**** Define: VOSP from UM(IVSP,1)/MM, VONP from UM(IVNP,JM)/MM
+C****
+      Use OCEAN, Only: IM,JM,LMO,IVSP,IVNP,
+     *                  LMOM=>LMM, LMOU=>LMU, LMOV=>LMV,
+     *                  COSU,SINU, COSI=>COSIC,SINI=>SINIC,
+     *                  zDXYP=>BYDXYPO, MO,UO,VO, VONP
+      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Implicit None
+      Real*8, !!! Intent(IN), (except for HALO_UPDATEs)
+     *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: MM,UM,VM
+      Integer*4 I,J,L, J1,JN,J1P,JNP,JNQ
+      Logical*4 QSP,QNP
+C****
+C**** Extract domain decomposition band parameters
+C**** ASSUME THAT J1 NEVER EQUALS 2 AND JN NEVER EQUALS JM-1
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      J1P = Max(J1,2)       !    2      5     JM-3   Exclude SP
+      JNP = Min(JN,JM-1)    !    4      8     JM-1   Exclude NP
+      JNQ = Min(JN,JM-2)    !    4      8     JM-2   Exclude NP,NP-1
+C     QSP = J1==1           !    T      F      F
+      QNP = JN==JM          !    F      F      T
+C****
+      Call HALO_UPDATE (GRID, MM, FROM=NORTH)
 C**** Convert mass to density
-        DO J=J_0,J_1
-          BYD = BYDXYP(J)
-          DO I=1,IM
-            IF (L.LE.LMM(I,J)) MO(I,J,L) = MM(I,J,L)*BYD
-          END DO
-        END DO
-C**** Convert V momentum to V velocity
-        DO J=J_0S,min(J_1S,JM-2)
-          DO I=1,IM
-            IF (L.LE.LMV(I,J)) VO(I,J,L) = VM(I,J,L)*2d0/
-     *         (MM(I,J,L) + MM(I,J+1,L))
-          END DO
-        END DO
-        if (HAVE_NORTH_POLE) then
-        DO I=1,IM
-          IF (L.LE.LMV(I,JM-1)) VO(I,JM-1,L) = VM(I,JM-1,L)/
-     *       (MM(I,JM,L)+5d-1*MM(I,JM-1,L))
-        END DO
-        end if
+!$OMP ParallelDo   Private (I,J,L)
+      Do 10 J=J1P,JNP
+      Do 10 I=1,IM
+      Do 10 L=1,LMOM(I,J)
+   10 MO(I,J,L) = MM(I,J,L)*zDXYP(J)
+C     If (QSP)  Then
+C       Do L=1,LMOM(1,1)
+C  11   MO(:,1,L) = MM(1,1,L)*zDXYP(1)  ;  EndIf
+      If (QNP)  Then
+        Do 12 L=1,LMOM(1,JM)
+   12   MO(:,JM,L) = MM(1,JM,L)*zDXYP(JM)  ;  EndIf
 C**** Convert U momentum to U velocity
-        DO J=J_0S,J_1S
-          DO I=1,IM-1
-            IF (L.LE.LMU(I,J)) UO(I,J,L) = UM(I,J,L)*2d0/
-     *         (MM(I,J,L) + MM(I+1,J,L))
-          END DO
-          IF (L.LE.LMU(IM,J)) UO(IM,J,L) = UM(IM,J,L)*2d0/
-     *         (MM(IM,J,L) + MM(1,J,L))
-        END DO
-      END DO
-!$OMP END PARALLEL DO
-C     if (HAVE_SOUTH_POLE) UO(IM,1,L) = UM(IM,1,L)/(MM(IM,1,L)*IM)
-      if (HAVE_NORTH_POLE) then
-      DO L=1,LMU(1,JM)
-        UO(1,JM,L) = UM(1,JM,L)/(MM(1,JM,L)*IM)
-        DO I=2,IM
-           UO(I,JM,L) = UO(1,JM,L)
-        END DO
-      END DO
-      end if
-      RETURN
-      END SUBROUTINE OMTOV
+!$OMP ParallelDo   Private (I,J,L)
+      Do 30 J=J1P,JNP
+      Do 20 I=1,IM-1
+      Do 20 L=1,LMOU(I,J)
+   20 UO(I,J,L) = UM(I,J,L)*2/(MM(I,J,L)+MM(I+1,J,L))
+      Do 30 L=1,LMOU(IM,J)
+   30 UO(IM,J,L) = UM(IM,J,L)*2/(MM(IM,J,L)+MM(1,J,L))
+C**** Convert V momentum to V velocity
+!$OMP ParallelDo   Private (I,J,L)
+      Do 40 J=J1P,JNQ
+      Do 40 I=1,IM
+      Do 40 L=1,LMOV(I,J)
+   40 VO(I,J,L) = VM(I,J,L)*2/(MM(I,J,L)+MM(I,J+1,L))
+C     If (QSP)  Then
+C       Do 41 I=1,IM
+C       Do 41 L=1,LMOV(I,1)
+C  41   VO(I,1,L) = VM(I,1,L)*2/(MM(1,1,L)+MM(I,2,L))  ;  EndIf
+      If (QNP)  Then
+        Do 42 I=1,IM
+        Do 42 L=1,LMOV(I,JM-1)
+   42   VO(I,JM-1,L) = VM(I,JM-1,L)*2/(MM(1,JM,L)+MM(I,JM-1,L))  ; EndIf
+C**** Convert momentum to velocity at south pole, define UO and VO
+C     If (QSP)  Then
+C       Do 50 L=1,LMOM(1,1)
+C       UO(IM,1,L) = UM(IM,1,L)/MM(1,1,L)
+C       VOSP(L)  = UM(IVSP,1,L)/MM(1,1,L)
+C       UO(:,1,L) = UO(IM,1,L)*COSU(:) - VOSP(L)*SINU(:)
+C       VO(:,0,L) = VOSP(L)*COSI(:) + UO(IM,1,L)*SINI(:)
+C  50   Continue  ;  EndIf
+C**** Convert momentum to velocity at north pole, define UO and VO
+      If (QNP)  Then
+        Do 60 L=1,LMOM(1,JM)
+        UO(IM,JM,L) = UM(IM,JM,L)/MM(1,JM,L)
+        VONP(L)   = UM(IVNP,JM,L)/MM(1,JM,L)
+        UO(:,JM,L) = UO(IM,JM,L)*COSU(:) + VONP(L)*SINU(:)
+        VO(:,JM,L) = VONP(L)*COSI(:) - UO(IM,JM,L)*SINI(:)
+   60   Continue  ;  EndIf
+      Return
+      EndSubroutine OMtoV
 
-      SUBROUTINE OFLUX (NS,MM,QSAVE)
-!@sum OFLUX calculates the fluid fluxes
-!@auth Gary Russell
-!@ver  1.0
+      Subroutine OFLUX (NS,MM,QEVEN)
+C****
+C**** OFLUX calculates the fluid fluxes
 C**** Input:  M (kg/m^2), U (m/s), V (m/s)
 C**** Output: MU (kg/s) = DY * U * M
 C****         MV (kg/s) = DX * V * M
-C****         MW (kg/s) = MW(L-1) + CONV-SCONV*DSIGO + (MM-SMM*DSIGO)
-C****       CONV (kg/s) = MU-MU+MV-MV
+C****         MW (kg/s) = MW(L-1) + CONV-CONVs*dZO/ZOE + MM-MMs*dZO/ZOE
+C****       CONV (kg/s) = MU-MU + MV-MV
 C****
-      USE OCEAN, only : im,jm,lmo,byim,uo,vo,dts,dto,lmm,lmu,lmv
-     *     ,dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv=>dxvo,dyv=>dyvo,dsigo
-     *     ,sigeo,mo
-      USE OCEAN_DYN, only : smu,smv,smw,mu,mv,mw,conv
-      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE,NORTH,SOUTH
-      IMPLICIT NONE
-      REAL*8, PARAMETER :: CHI=.125d0, BY12CHI= 2d0/(1d0-2d0*CHI)
-      LOGICAL, INTENT(IN) :: QSAVE
-      INTEGER, INTENT(IN) :: NS
-      REAL*8, INTENT(IN),
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MM
-      INTEGER I,J,L,LMIJ,IMIN,IMAX
-      REAL*8, DIMENSION(IM) :: DMVS,DMVN
-      REAL*8 BYNSDTO,MUS,MUN,MVS,MVN,ADMVS,ADMVN,SCONV,SMM,BYSIGEO
-
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &         J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-      J_0H = max(1,J_0-1) ; J_1H = min(JM,J_1+1) ! trimmed halo
-
-      CALL HALO_UPDATE(grid, MO, FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, UO, FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, VO, FROM=SOUTH)
+      Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM, ZOE=>ZE,dZO, DTO,
+     *                 DXYP=>DXYPO,DYP=>DYPO,DXV=>DXVO, MO,UO,VO
+      Use OCEAN_DYN, Only: MU,MV,MW, SMU,SMV,SMW, CONV
+      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+      Implicit None
+      Integer*4,Intent(In) :: NS     !  decrementing leap-frog step
+      Logical*4,Intent(In) :: QEVEN  !  whether called from even step
+      Real*8   ,Intent(In),
+     *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: MM
 C****
-      BYNSDTO=1d0/(NS*DTO)
+      Real*8    zNSxDTO, MVS,dMVS(IM),dMVSm, MVN,dMVN(IM),dMVNm,
+     *          CONVs,MMs
+      Integer*4 I,J,L,LM,IMAX, J1,JN,J1P,J1H,JNP,JNQ
+      Logical*4 QSP,QNP
+C****
+C**** Extract domain decomposition band parameters
+C**** ASSUME THAT J1 NEVER EQUALS 2 AND JN NEVER EQUALS JM-1
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      J1P = Max(J1,2)       !    2      5     JM-3   Exclude SP
+      J1H = Max(J1-1,1)     !    1      4     JM-4   Halo minimum
+      JNP = Min(JN,JM-1)    !    4      8     JM-1   Exclude NP
+      JNQ = Min(JN,JM-2)    !    4      8     JM-2   Exclude NP,NP-1
+C     QSP = J1==1           !    T      F      F
+      QNP = JN==JM          !    F      F      T
+C****
+      Call HALO_UPDATE (GRID, MO, FROM=NORTH+SOUTH)
+      Call HALO_UPDATE (GRID, VO, FROM=SOUTH)
+      zNSxDTO = 1 / (NS*DTO)
+C****
 C**** Compute fluid fluxes for the C grid
 C****
 C**** Smooth the West-East velocity near the poles
-!$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO L=1,LMO
-        DO J=J_0H,J_1H   ! trimmed halo
-          DO I=1,IM
-            MU(I,J,L) = UO(I,J,L)
-          END DO
-        END DO
-      END DO
-!$OMP END PARALLEL DO
-      CALL OPFIL (MU,LMO)   ! extends to trimmed halo
+!$OMP ParallelDo   Private (J,L)
+      Do 110 L=1,LMO
+      Do 110 J=J1P,JNP
+  110 MU(:,J,L) = UO(:,J,L)
+      Call OPFIL (MU)
 C**** Compute MU, the West-East mass flux, at non-polar points
-!$OMP PARALLEL DO  PRIVATE(I,J,L, MUS,MUN,MVS,MVN, DMVS,DMVN,
-!$OMP&                     ADMVS,ADMVN)
-      DO 220 L=1,LMO
-      DO J=J_0H,J_1H   ! trimmed halo
-        DO I=1,IM-1
-          MU(I,J,L) = 5d-1*DYP(J)*MU(I,J,L)*(MO(I,J,L)+MO(I+1,J,L))
-        END DO
-        MU(IM,J,L) = 5d-1*DYP(J)*MU(IM,J,L)*(MO(IM,J,L)+MO(1,J,L))
-      END DO
+!$OMP ParallelDo   Private (I,J,L, MVS,dMVS,dMVSm, MVN,dMVN,dMVNm)
+      DO 430 L=1,LMO
+      DO 130 J=J1P,JNP
+      DO 120 I=1,IM-1
+  120 MU(I ,J,L) = .5*DYP(J)*MU(I ,J,L)*(MO(I,J,L)+MO(I+1,J,L))
+  130 MU(IM,J,L) = .5*DYP(J)*MU(IM,J,L)*(MO(1,J,L)+MO(IM ,J,L))
 C**** Compute MV, the South-North mass flux
-      DO 130 J=J_0H,min(jm-1,J_1)
-      DO 130 I=1,IM
-  130   MV(I,J,L) = 5d-1*DXV(J)*VO(I,J,L)*(MO(I,J,L)+MO(I,J+1,L))
-C**** Compute MU*2/(1-2*CHI) and hor. fluid convergence at the poles
-      if (HAVE_SOUTH_POLE) then
-        MUS = DYP( 1)*UO(1, 1,L)*MO(1, 1,L)
-        MVS = SUM(MV(:, 1  ,L))*BYIM
-        DMVS(1) = 0.
-        DO I=2,IM
-          DMVS(I) = DMVS(I-1) + (MV(I, 1  ,L)-MVS)
-        END DO
-        ADMVS = SUM(DMVS(:))*BYIM
-        DO I=1,IM
-          MU(I, 1,L) = (ADMVS-DMVS(I) + MUS)*BY12CHI
-        END DO
-        CONV(IM,1,L) = -MVS
-      end if
-
-      if (HAVE_NORTH_POLE) then
-        MUN = DYP(JM)*UO(1,JM,L)*MO(1,JM,L)
-        MVN = SUM(MV(:,JM-1,L))*BYIM
-        DMVN(1) = 0.
-        DO I=2,IM
-          DMVN(I) = DMVN(I-1) + (MV(I,JM-1,L)-MVN)
-        END DO
-        ADMVN = SUM(DMVN(:))*BYIM
-        DO I=1,IM
-          MU(I,JM,L) = (DMVN(I)-ADMVN + MUN)*BY12CHI
-        END DO
-        CONV(1,JM,L) =  MVN
-      end if
+      DO 210 J=J1H,JNP
+  210 MV(:,J,L) = .5*DXV(J)*VO(:,J,L)*(MO(:,J,L)+MO(:,J+1,L))
+C****
+C**** Compute MU so that CONV is identical for each polar triangle
+C****
+C     If (QSP) then
+C       MVS = Sum(MV(:,1,L)) / IM
+C       dMVS(1) = 0
+C       Do 310 I=2,IM
+C 310   dMVS(I) = dMVS(I-1) + (MV(I,1,L)-MVS)
+C       dMVSm   = Sum(dMVS(:)) / IM
+C       MU(:,1,L) = dMVSm - dMVS(:)  ;  EndIf
+      If (QNP) then
+        MVN = Sum(MV(:,JM-1,L)) / IM
+        dMVN(1) = 0
+        Do 320 I=2,IM
+  320   dMVN(I) = dMVN(I-1) + (MV(I,JM-1,L)-MVN)
+        dMVNm   = Sum(dMVN(:)) / IM
+        MU(:,JM,L) = dMVN(:) - dMVNm  ;  EndIf
 C****
 C**** Compute horizontal fluid convergence at non-polar points
 C****
-      DO J=J_0S,J_1S
-        CONV(1,J,L) = MU(IM,J,L)-MU(1,J,L) + (MV(1,J-1,L)-MV(1,J,L))
-        DO I=2,IM
-          CONV(I,J,L) = MU(I-1,J,L)-MU(I,J,L) + (MV(I,J-1,L)-MV(I,J,L))
-        END DO
-      END DO
-  220 CONTINUE
-!$OMP END PARALLEL DO
+      Do 420 J=J1P,JNP
+      Do 410 I=2,IM
+  410 CONV(I,J,L) = MU(I-1,J,L)-MU(I,J,L) + (MV(I,J-1,L)-MV(I,J,L))
+  420 CONV(1,J,L) = MU(IM ,J,L)-MU(1,J,L) + (MV(1,J-1,L)-MV(1,J,L))
+C     If (QSP)  CONV(1,1 ,L) = - MVS
+      If (QNP)  CONV(1,JM,L) =   MVN
+  430 Continue
 C****
 C**** Compute vertically integrated column convergence and mass
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,L,IMIN,IMAX,LMIJ,SCONV,SMM,BYSIGEO)
-      DO J=J_0,J_1
-        IMIN=1
-        IMAX=IM
-        IF (J.EQ.1) IMIN=IM
-        IF (J.EQ.JM) IMAX=1
-      DO I=IMIN,IMAX
-      LMIJ=1
-      IF(LMM(I,J).LE.1)  GO TO 420
-      LMIJ=LMM(I,J)
-      SCONV = 0.
-      SMM   = 0.
-      DO 310 L=1,LMIJ
-        SCONV = SCONV + CONV(I,J,L)
-  310   SMM   = SMM   +   MM(I,J,L)
-      BYSIGEO=1d0/SIGEO(LMIJ)
-      SCONV = SCONV*BYSIGEO
-      SMM   = SMM  *BYSIGEO
+!$OMP ParallelDo   Private (I,J,L, IMAX,LM, CONVs,MMs)
+      Do 630 J=J1,JN
+      IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
+      Do 630 I=1,IMAX
+      LM=1
+      If (LMOM(I,J) <= 1)  GoTo 620
+      LM=LMOM(I,J)
+      CONVs = Sum(CONV(I,J,1:LM)) / ZOE(LM)
+      MMs   = Sum(  MM(I,J,1:LM)) / ZOE(LM)
 C****
 C**** Compute MW, the downward fluid flux
 C****
-      MW(I,J,1) = CONV(I,J,1)-SCONV*DSIGO(1) +
-     +           (  MM(I,J,1)-  SMM*DSIGO(1))*BYNSDTO
-      DO 410 L=2,LMIJ-1
-  410   MW(I,J,L) = CONV(I,J,L)-SCONV*DSIGO(L) + MW(I,J,L-1) +
-     +           (  MM(I,J,L)-  SMM*DSIGO(L))*BYNSDTO
-  420 DO 430 L=LMIJ,LMO-1
-  430   MW(I,J,L) = 0.
-      END DO
-      END DO
-!$OMP END PARALLEL DO
+      MW(I,J,1) = CONV(I,J,1) - CONVs*dZO(1) +
+     +           (  MM(I,J,1) -   MMs*dZO(1)) * zNSxDTO
+      Do 610 L=2,LM-1
+  610 MW(I,J,L) = CONV(I,J,L) - CONVs*dZO(L) + MW(I,J,L-1) +
+     +           (  MM(I,J,L) -   MMs*dZO(L)) * zNSxDTO
+  620 MW(I,J,LM:LMO-1) = 0
+  630 Continue
 C****
 C**** Sum mass fluxes to be used for advection of tracers
 C****
-      IF (QSAVE) THEN
-!$OMP PARALLEL DO  PRIVATE(L)
-        DO L=1,LMO
-          SMU(:,:,L) = SMU(:,:,L) + MU(:,:,L)
-          SMV(:,:,L) = SMV(:,:,L) + MV(:,:,L)
-          SMW(:,:,L) = SMW(:,:,L) + MW(:,:,L)
-        END DO
-!$OMP END PARALLEL DO
-      END IF
+      If (.not.QEVEN)  Return
+!$OMP ParallelDo   Private (L)
+      Do 710 L=1,LMO
+      SMU(:,J1 :JN ,L) = SMU(:,J1 :JN ,L) + MU(:,J1 :JN ,L)
+      SMV(:,J1H:JNP,L) = SMV(:,J1H:JNP,L) + MV(:,J1H:JNP,L)
+      If (L==LMO)  GoTo 710
+      SMW(:,J1P:JNP,L) = SMW(:,J1P:JNP,L) + MW(:,J1P:JNP,L)
+  710 Continue
+C     If (QSP)  SMW(1,1 ,:) = SMW(1,1 ,:) + MW(1,1 ,:)
+      If (QNP)  SMW(1,JM,:) = SMW(1,JM,:) + MW(1,JM,:)
+      Return
+      EndSubroutine OFLUX
 
-      RETURN
-      END SUBROUTINE OFLUX
-
-      SUBROUTINE OPFIL (X,LMAX)
-!@sum  OPFIL smoothes X in zonal direction  - extends to trimmed halo
-!@auth Gary Russell
-!@ver  1.0
+      Subroutine OPFIL (X)
 C****
-C**** OPFIL smoothes X in zonal direction by reducing coefficients
+C**** OPFIL smoothes X in the zonal direction by reducing coefficients
 C**** of its Fourier series for high wave numbers near the poles.
-C**** INDM for polar ocean filter set to work with AVR4X5LD.Z12.
-C****            Now AVR4X5LD.Z12.gas1
-      USE CONSTANT, only : twopi
-      USE OCEAN, only : im,jm,lmo,dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv
-     *     =>dxvo,dyv=>dyvo,j40s
-      USE FILEMANAGER, only : openunit, closeunit
-      USE DOMAIN_DECOMP, only : grid, GET
-
-      IMPLICIT NONE
-      REAL*8, PARAMETER :: DLON=TWOPI/IM
-      INTEGER, INTENT(IN) :: LMAX
-      REAL*8, INTENT(INOUT) ::
-     *   X(IM,grid%j_strt_halo:grid%j_stop_halo,LMO)
-      INTEGER, PARAMETER :: NMAX=IM/2
-      INTEGER, SAVE :: NSEGM,INDM, JXMAX, JNOF
-      INTEGER*2, SAVE, DIMENSION(:,:), ALLOCATABLE :: NSEG
-      INTEGER*4, SAVE, DIMENSION(:,:), ALLOCATABLE :: INDX
-      INTEGER*2, SAVE, DIMENSION(:,:,:), ALLOCATABLE :: IMIN,ILEN
-      REAL*4, SAVE, DIMENSION(:), ALLOCATABLE :: REDUCO
-      REAL*8, SAVE :: AVCOS(IM,NMAX),AVSIN(IM,NMAX)
-      INTEGER, SAVE :: IFIRST=1
-      REAL*8  AN(0:NMAX),BN(0:NMAX), Y(IM)
-      INTEGER I,J,L,N,JA,JX,NS,I0,IL,IND,K,iu_AVR,IN
-      REAL*8 :: REDUC,DRATM,SM
-      CHARACTER*80 TITLE
-
-      INTEGER :: J_0H, J_1H
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      J_0H=max(1,J_0H) ; J_1H=min(JM-1,J_1H)     ! trimmed halo
-
+C**** The ocean polar filter here works with AVR4X5LD.Z12.gas1 .
 C****
-      IF (IFIRST.EQ.1) THEN
-      IFIRST=0
-      JXMAX=2*J40S-1
-      JNOF=JM-2*J40S
-C**** Calculate  cos(TWOPI*N*I/IM)  and  sin(TWOPI*N*I/IM)
-      DO 10 I=1,NMAX
-      AVCOS(I,1) = COS(DLON*I)
-      AVSIN(I,1) = SIN(DLON*I)
-      AVCOS(I+NMAX,1) = -AVCOS(I,1)
-   10 AVSIN(I+NMAX,1) = -AVSIN(I,1)
-      DO 20 N=2,NMAX
-      DO 20 I=1,IM
-      IN = I*N-((I*N-1)/IM)*IM
-      AVCOS(I,N) = AVCOS(IN,1)
-   20 AVSIN(I,N) = AVSIN(IN,1)
+      Use CONSTANT, Only: TWOPI
+      Use OCEAN, Only: IM,JM,LMO,J1O, DLON, DXP=>DXPO, DYP=>DYPO,
+     *  JMPF=>J40S  !  greatest J in SH where polar filter is applied
+      Use FILEMANAGER, Only: OPENUNIT, CLOSEUNIT
+      Use DOMAIN_DECOMP, Only: GRID
+      Implicit None
+C****
+      Real*8,Intent(InOut) ::
+     *  X(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO)
+      Integer*4,Parameter :: IMz2=IM/2  !  highest possible wave number
+      Integer*4,Save ::
+     *  JMEX,    !  exclude unfiltered latitudes, store J=JM-1 in JMEX
+     *  NBASM,   !  maximum number of ocean basins at any latitude
+     *  INDM,    !  number of entries in array REDUCO
+     *  NMIN(JM) !  minimum wave number for Fourier smoothing
+      Real*8,Save :: SMOOTH(IMz2,JM)  !  multiplies Fourier coefficient
+C****
+      Integer*2,Save,Allocatable,Dimension(:,:) ::
+     *  NBAS    !  number of ocean basins for given layer and latitude
+      Integer*2,Save,Allocatable,Dimension(:,:,:) ::
+     *  IMINm1, !  western most cell in basin minus 1
+     *  IWIDm1  !  number of cells in basin minus 1
+      Integer*4,Save,Allocatable,Dimension(:,:) ::
+     *  INDEX   !  index to concatenated matricies
+      Real*4,Save,Allocatable,Dimension(:) ::
+     *  REDUCO  !  concatenation of reduction matricies
+C****
+      Character*80 TITLE
+      Integer*4 I,I1,INDX,IWm2, J,JA,JX, K,L, N,NB, IU_AVR
+      Real*8 AN(0:IMz2), !  Fourier cosine coefficients
+     *       BN(0:IMz2), !  Fourier sine coefficients
+     *          Y(IM*2), !  original copy of X that wraps around IDL
+     *       DRAT, REDUC
+C****
+      Integer*4,Save :: IFIRST=1, J1,JN,J1P,JNP
+      If (IFIRST == 0)  GoTo 100
+      IFIRST = 0
+      JMEX = 2*JMPF-1
+C**** Extract domain decomposition band parameters
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      J1P = Max(J1,2)       !    2      5     JM-3   Exclude SP
+      JNP = Min(JN,JM-1)    !    4      8     JM-1   Exclude NP
+C**** Calculate SMOOTHing factor for longitudes without land cells
+      Do 30 J=J1O,JM-1
+      DRAT = DXP(J)/DYP(3)
+      Do 20 N=IMz2,1,-1
+      SMOOTH(N,J) = IMz2*DRAT/N
+   20 If (SMOOTH(N,J) >= 1)  GoTo 30
+C     N = 0
+   30 NMIN(J) = N+1
 C**** Read in reduction contribution matrices from disk
-      call openunit("AVR",iu_AVR,.TRUE.,.TRUE.)
-C**** read in size of arrays and allocate space
-      READ  (iu_AVR) TITLE,NSEGM,INDM
-      ALLOCATE(IMIN(NSEGM,LMO,4:JXMAX))
-      ALLOCATE(ILEN(NSEGM,LMO,4:JXMAX))
-      ALLOCATE(NSEG(LMO,4:JXMAX))
-      ALLOCATE(INDX(IM,2:J40S))
-      ALLOCATE(REDUCO(INDM))
-C**** read in arrays
-      READ  (iu_AVR) TITLE,NSEG,IMIN,ILEN,INDX,REDUCO
-      call closeunit (iu_AVR)
-      WRITE (6,*) 'Read on unit ',iu_AVR,': ',TITLE
-      END IF
+      Call OPENUNIT ('AVR',IU_AVR,.True.,.True.)
+      Read (IU_AVR) TITLE,NBASM,INDM
+      Allocate (IMINm1(NBASM,LMO,J1O:JMEX), NBAS(LMO,J1O:JMEX),
+     *          IWIDm1(NBASM,LMO,J1O:JMEX), INDEX(IM,2:JMPF),
+     *          REDUCO(INDM))
+      Read (IU_AVR) TITLE,NBAS,IMINm1,IWIDm1,INDEX,REDUCO
+      Call CLOSEUNIT (IU_AVR)
+      Write (6,*) 'Read from unit',IU_AVR,': ',TITLE
 C****
-C**** Loop over J and L.  J = latitude, JA = absolute latitude.
+C**** Loop over J and L.  JX = eXclude unfiltered latitudes
+C****                     JA = Absolute latitude
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,JA,JX,K,L,N,NS,I0,IL,IND,Y,REDUC,
-!$OMP&                     AN,BN,DRATM,SM)
-  100 DO 330 J=max(4,J_0H),J_1H       ! trimmed halo
-      if (J .le. J40S) then
-         JA = J      ; JX = J
-      else       ! skip latitudes J40S+1,..,J40S+JNOF
-         JA = JM+1-J ; JX = J-JNOF
-         if (JX .le. J40S) cycle
-      end if
-cccc  DO 330 JX=4,JXMAX
-cccc  J =JX
-cccc  JA=JX
-cccc  IF(JX.GT.J40S)  J =JNOF+JX
-cccc  IF(JX.GT.J40S)  JA=2*J40S+1-JX
-      DO 330 L=1,LMAX
-      IF(ILEN(1,L,JX).GE.IM)  GO TO 300
+!$OMP ParallelDo   Private (I,I1,INDX,IWm2, J,JA,JX, K,L, N,NB,
+!$OMP*                      AN,BN, REDUC,Y)
+  100 Do 410 J=Max(J1O,J1P),JNP
+      JX=J  ;  If(J > JMPF) JX=J+2*JMPF-JM
+      JA=J  ;  If(J > JMPF) JA=JM+1-J
+      If (JA > JMPF)  GoTo 410  !  skip latitudes J=JMPF+1,JM-JMPF
+      Do 400 L=1,LMO
+      If (IWIDm1(1,L,JX) >= IM)  GoTo 300
 C****
-C**** Land boxes exist at this latitude and layer, loop over ocean
-C**** segments.
+C**** Land cells exist at this latitude and layer, loop over ocean
+C**** basins.
 C****
-      DO 270 NS=1,NSEG(L,JX)
-      I0 = IMIN(NS,L,JX)
-      IL = ILEN(NS,L,JX)
-      IND= INDX(IL,JA)
-      IF(IL+I0.GT.IM)  GO TO 200
-C**** Ocean segment does not wrap around the IDL.
-C**** Copy X to temporary array and filter X in place.
-      DO 110 I=1+I0,IL+I0
-  110 Y(I-I0) = X(I,J,L)
-      DO 140 I=1+I0,IL+I0
-      REDUC = 0.
-      DO 130 K=1,IL
-      IND=IND+1
-  130 REDUC = REDUC + REDUCO(IND)*Y(K)
+      Do 270 NB=1,NBAS(L,JX)
+      I1   = IMINm1(NB,L,JX) + 1
+      IWm2 = IWIDm1(NB,L,JX) - 1
+      INDX = INDEX(IWm2+1,JA)
+      If (I1+IWm2 > IM)  GoTo 200
+C**** Ocean basin does not wrap around the IDL.
+C**** Copy X to temporary array Y and filter X in place.
+      Do 110 I=I1,I1+IWm2
+  110 Y(I) = X(I,J,L)
+      Do 140 I=I1,I1+IWm2
+      REDUC = 0
+      Do 130 K=I1,I1+IWm2
+      INDX=INDX+1
+  130 REDUC = REDUC + REDUCO(INDX)*Y(K)
   140 X(I,J,L) = X(I,J,L) - REDUC
-      GO TO 270
-C**** Ocean segment wraps around the IDL.
-C**** Copy X to temporary array and filter X in place.
-  200 DO 210 I=1+I0,IM
-  210 Y(I-I0) = X(I,J,L)
-      DO 220 I=1,IL+I0-IM
-  220 Y(I-I0+IM) = X(I,J,L)
-      DO 240 I=1+I0,IM
-      REDUC = 0.
-      DO 230 K=1,IL
-      IND=IND+1
-  230 REDUC = REDUC + REDUCO(IND)*Y(K)
+      GoTo 270
+C**** Ocean basin wraps around the IDL.
+C**** Copy X to temporary array Y and filter X in place.
+  200 Do 210 I=I1,IM
+  210 Y(I) = X(I,J,L)
+      Do 220 I=IM+1,I1+IWm2
+  220 Y(I) = X(I-IM,J,L)
+      Do 240 I=I1,IM
+      REDUC = 0
+      Do 230 K=I1,I1+IWm2
+      INDX=INDX+1
+  230 REDUC = REDUC + REDUCO(INDX)*Y(K)
   240 X(I,J,L) = X(I,J,L) - REDUC
-      DO 260 I=1,IL+I0-IM
-      REDUC = 0.
-      DO 250 K=1,IL
-      IND=IND+1
-  250 REDUC = REDUC + REDUCO(IND)*Y(K)
+      Do 260 I=1,I1+IWm2-IM
+      REDUC = 0
+      Do 250 K=I1,I1+IWm2
+      INDX=INDX+1
+  250 REDUC = REDUC + REDUCO(INDX)*Y(K)
   260 X(I,J,L) = X(I,J,L) - REDUC
-  270 CONTINUE
-      GO TO 330
+  270 Continue
+      GoTo 400
 C****
-C**** No land boxes at this latitude and layer,
+C**** No land cells at this latitude and layer,
 C**** perform standard polar filter
 C****
-  300 CALL FFT (X(1,J,L),AN,BN)
-      DRATM = NMAX*DXP(J)/DYP(3)
-      DO N=NMAX,INT(DRATM)+1,-1   ! guarantees that SM > 0
-        SM = 1. - DRATM/N
-        DO I=1,IM
-          X(I,J,L) = X(I,J,L) - SM*(AN(N)*AVCOS(I,N)+BN(N)*AVSIN(I,N))
-        END DO
-      END DO
-  330 CONTINUE
-!$OMP END PARALLEL DO
-      RETURN
-      END SUBROUTINE OPFIL
-
-      SUBROUTINE OADVM (MM2,MM0,DT)
-!@sum  OADVM calculates the updated column mass
-!@auth Gary Russell
-!@ver  1.0
+  300 Call FFT (X(1,J,L),AN,BN)
+      Do 310 N=NMIN(J),IMz2-1
+      AN(N) = AN(N)*SMOOTH(N,J)
+  310 BN(N) = BN(N)*SMOOTH(N,J)
+      AN(IMz2) = AN(IMz2)*SMOOTH(IMz2,J)
+      Call FFTI (AN,BN,X(1,J,L))
 C****
-C**** Input:  MM0 (kg), CONV (kg/s), MW (kg/s), DT (s)
-C**** Output: MM2 (kg) = MM0 + DT*DM*DSIGO
+  400 Continue
+  410 Continue
+      Return
+      EndSubroutine OPFIL
+
+      Subroutine OADVM (MM2,MM0,DT)
 C****
-      USE OCEAN, only : im,jm,lmo,lmm
-      USE OCEAN_DYN, only : mu,mv,mw,conv
-      USE DOMAIN_DECOMP, only : grid, GET
-      IMPLICIT NONE
-
-      REAL*8,INTENT(OUT):: MM2(IM,grid%j_strt_halo:grid%j_stop_halo,LMO)
-      REAL*8,INTENT(IN) :: MM0(IM,grid%j_strt_halo:grid%j_stop_halo,LMO)
-      REAL*8,INTENT(IN) :: DT
-      INTEGER I,J,L,LMIJ,IMIN,IMAX
-
-      INTEGER :: J_0, J_1
-      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-
-      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
-     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
+C**** OADVM calculates the updated mass
+C**** Input:  MM0 (kg), DT (s), CONV (kg/s), MW (kg/s)
+C**** Output: MM2 (kg) = MM0 + DT*[CONV + MW(L-1) - MW(L)]
+C****
+      Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM
+      Use OCEAN_DYN, Only: MW, CONV
+      Use DOMAIN_DECOMP, Only: GRID
+      Implicit None
+      Real*8,Intent(Out):: MM2(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO)
+      Real*8,Intent(In) :: MM0(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO)
+     *                    ,DT
+      Integer*4 I,J,L,LM,IMAX, J1,JN
+C****
+C**** Extract domain decomposition band parameters
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
 C****
 C**** Compute the new mass MM2
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,IMIN,IMAX,LMIJ)
-      DO J=J_0,J_1
-        IMIN=1
-        IMAX=IM
-        IF (J.EQ.1) IMIN=IM
-        IF (J.EQ.JM) IMAX=1
-        DO I=IMIN,IMAX
-      LMIJ=LMM(I,J)
-      IF(LMIJ-1)  40,10,20
-   10 MM2(I,J,1) = MM0(I,J,1) + DT*CONV(I,J,1)
-      GO TO 40
-   20 MM2(I,J,1) = MM0(I,J,1) + DT*(CONV(I,J,1)-MW(I,J,1))
-      DO 30 L=2,LMIJ-1
-   30 MM2(I,J,L) = MM0(I,J,L) + DT*(CONV(I,J,L)+(MW(I,J,L-1)-MW(I,J,L)))
-      MM2(I,J,LMIJ) = MM0(I,J,LMIJ) + DT*(CONV(I,J,LMIJ)+MW(I,J,LMIJ-1))
- 40   END DO
-      END DO
-!$OMP END PARALLEL DO
-C**** Fill in values at the poles
-      if (HAVE_NORTH_POLE) then
-        DO L=1,LMO
-          MM2(2:IM  ,JM,L) = MM2(1,JM,L)
-        end do
-      end if
-C     if (HAVE_SOUTH_POLE) then
-C       DO L=1,LMO
-C         MM2(1:IM-1, 1,L) = MM2(IM,1,L)
-C       end do
-C     end if
-      RETURN
-      END SUBROUTINE OADVM
+!$OMP ParallelDo   Private (I,J, IMAX,LM)
+      Do 20 J=J1,JN
+      IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
+      Do 20 I=1,IMAX
+      If (LMOM(I,J)==0)  GoTo 20
+      If (LMOM(I,J)==1)  Then
+        MM2(I,J,1) = MM0(I,J,1) + DT*CONV(I,J,1)
+        GoTo 20  ;  EndIf
+      LM = LMOM(I,J)
+      MM2(I,J,1) = MM0(I,J,1) + DT*(CONV(I,J,1)-MW(I,J,1))
+      Do 10 L=2,LM-1
+   10 MM2(I,J,L) = MM0(I,J,L) + DT*(CONV(I,J,L) + MW(I,J,L-1)-MW(I,J,L))
+      MM2(I,J,LM) = MM0(I,J,LM) + DT*(CONV(I,J,LM) + MW(I,J,LM-1))
+   20 Continue
+      Return
+      EndSubroutine OADVM
 
-      SUBROUTINE OADVV (UM2,VM2,UM0,VM0,DT1)
-!@sum  OADVV advects oceanic momentum (with coriolis force)
-!@auth Gary Russell
-!@ver  1.0
+      Subroutine OADVV (UM2,VM2,UM0,VM0,DT1)
 C****
-C**** Input:  MO (kg/m**2), UO (m/s), VO (m/s) = from odd solution
-C****          MU (kg/s), MV (kg/s), MW (kg/s) = fluid fluxes
-C**** Output: UM2 (kg*m/s) = UM0 + DT*(MU*U-MU*U+MV*U-MV*U+M*CM*V)
-C****         VM2 (kg*m/s) = VM0 + DT*(MU*V-MU*V+MV*V-MV*V-M*CM*U)
+C**** OADVV advects oceanic momentum (with coriolis force)
+C**** Input:  MO (kg/m^2), UO (m/s), VO (m/s) = from odd solution
+C****         MU (kg/s), MV (kg/s), MW (kg/s) = fluid fluxes
+C**** Output: UM2 (kg*m/s) = UM0 + DT*(MU*U-MU*U + MV*U-MV*U + M*CM*V)
+C****         VM2 (kg*m/s) = VM0 + DT*(MU*V-MU*V + MV*V-MV*V - M*CM*U)
 C****
-      USE CONSTANT, only : twopi,omega,sday,radius
-      USE OCEAN, only : im,jm,lmo,mo,uo,vo,
-     *     dxyp=>dxypo,dxp=>dxpo,dyp=>dypo,dxv=>dxvo,dyv=>dyvo,
-     *     cosv=>cosvo,cosp=>cospo
-      USE OCEAN_DYN, only : mu,mv,mw
-      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE,NORTH,SOUTH
-
-      IMPLICIT NONE
-      REAL*8, PARAMETER :: CHI=.125d0
-      REAL*8, INTENT(OUT),
-     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: UM2,VM2
-      REAL*8, INTENT(IN),
-     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: UM0,VM0
-      REAL*8, INTENT(IN) :: DT1
-      REAL*8, SAVE, DIMENSION(JM) :: DCOSP,TANP
-      REAL*8,
-     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: DUM,DVM
-      REAL*8, DIMENSION(0:JM) :: GX,GXUY,DGDUDN,DGDUUP
-      REAL*8, DIMENSION(IM) :: UDCOSY,UYUTAY
-      REAL*8,
-     *   DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO-1) :: FLUXA
-      LOGICAL*4 :: QFIRST = .TRUE.
-      INTEGER I,J,L
-      REAL*8 DT2,DT4,DTC2,DTD4,UMUX,VMVY,VMUNE,VMUSE,UMVX,VMUY,UMUNE
-     *     ,UMUNW,UMVNE,UMVNW
-
-      INTEGER :: J_0, J_1, J_0S, J_1S
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
-     *              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
+      Use CONSTANT, Only: RADIUS,OMEGA
+      Use OCEAN, Only: IM,JM,LMO, IVSP,IVNP, DXV=>DXVO,
+     *                 COSU,SINU, SINxY,TANxY, MO,UO,VO
+      Use OCEAN_DYN, Only: MU,MV,MW
+      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+      Implicit None
+      Real*8,Intent(Out),
+     *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: UM2,VM2
+      Real*8,Intent(In),
+     *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: UM0,VM0
+      Real*8,Intent(In) :: DT1
 C****
-      IF (QFIRST) THEN
-        QFIRST = .FALSE.
-        DO J=1,JM  ! These arrays are not distributed
-          DCOSP(J) = COSV(J-1)-COSV(J)
-          TANP(J)  = DCOSP(J)/COSP(J)
-        END DO
-      END IF
+      Real*8 DT2,DT4,DT6,DT12
+      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
+     *       DUM,DVM
+      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *       UMVc,UMVw,UMVe
+      Real*8 UMU,VMV,VMUc,VMUs,VMUn, FLUX, dUMSP,dVMSP,dUMNP,dVMNP,
+     *       USINYJ(IM),UTANUJ(IM)
+      Integer*4 I,J,L, J1,JN,J1P,J1H,JNP,JNR
+      Logical*4 QSP,QNP
 C****
-      DT2  = DT1*5d-1
-      DT4  = DT1*2.5d-1
-      DTC2 = DT1*CHI*5d-1
-      DTD4 = DT1*(1d0-2d0*CHI)*2.5d-1
-C**** Zero out momentum changes
-      DUM = 0.
-      DVM = 0.
+C**** Extract domain decomposition band parameters
+C**** ASSUME THAT J1 NEVER EQUALS 2 AND JN NEVER EQUALS JM-1
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      J1P = Max(J1,2)       !    2      5     JM-3   Exclude SP
+      J1H = Max(J1-1,1)     !    1      4     JM-4   Halo minimum
+      JNP = Min(JN,JM-1)    !    4      8     JM-1   Exclude NP
+      JNR = Min(JN+1,JM-1)  !    5      9     JM-1   Halo, Exclude NP
+C     QSP = J1==1           !    T      F      F
+      QNP = JN==JM          !    F      F      T
+C****
+C     Call HALO_UPDATE (GRID, MO, FROM=NORTH)        !  copied in OFLUX
+      Call HALO_UPDATE (GRID, UO, FROM=NORTH+SOUTH)
+      Call HALO_UPDATE (GRID, VO, FROM=NORTH)
+C     Call HALO_UPDATE (GRID, VO, FROM=SOUTH)        !  copied in OFLUX
+      Call HALO_UPDATE (GRID, MU, FROM=NORTH)
+      Call HALO_UPDATE (GRID, MV, FROM=NORTH)
+C     Call HALO_UPDATE (GRID, MV, FROM=SOUTH)        !  recalc in OFLUX
+      Call HALO_UPDATE (GRID, MW, FROM=NORTH)
+C****
+      DT2  = DT1/2
+      DT4  = DT1/4
+      DT6  = DT1/6
+      Dt12 = DT1/12
 C****
 C**** Horizontal advection of momentum
 C****
-      CALL HALO_UPDATE(grid, MV, FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, VO, FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, MU, FROM=NORTH)
-      CALL HALO_UPDATE(grid, MO, FROM=NORTH)
-      CALL HALO_UPDATE(grid, MW, FROM=NORTH)
-      CALL HALO_UPDATE(grid, UO, FROM=NORTH+SOUTH)
-!$OMP PARALLEL DO  PRIVATE(I,J,L, UMUX,VMVY,VMUNE,VMUSE,
-!$OMP&  UMVX,UMVNE,UMVNW,VMUY, GX,GXUY,DGDUDN,DGDUUP,UDCOSY,UYUTAY)
-      DO 480 L=1,LMO
-        DO J=J_0S,J_1S
-C**** Contribution of West-East flux to U wind
-C**** Contribution of South-North and corner fluxes to V wind
-C**** (split into first then rest)
-          UMUX = DT4*(MU(IM,J,L)+MU(1,J,L))*(UO(IM,J,L)+UO(1,J,L))
-          DUM(IM,J,L) = DUM(IM,J,L) - UMUX
-          DUM(1 ,J,L) = DUM(1 ,J,L) + UMUX
-          VMVY  = DT4 * (MV(IM,J-1,L)+MV(IM,J,L))*
-     *                  (VO(IM,J-1,L)+VO(IM,J,L))
-          VMUNE = DTC2* MU(IM,J,L) * (VO(IM,J-1,L) + VO(1,J  ,L))
-          VMUSE = DTC2* MU(IM,J,L) * (VO(IM,J  ,L) + VO(1,J-1,L))
-          DVM(IM,J-1,L) = DVM(IM,J-1,L) - (VMUNE+VMVY)
-          DVM(1 ,J-1,L) = DVM(1 ,J-1,L) +  VMUSE
-          DVM(IM,J  ,L) = DVM(IM,J  ,L) - (VMUSE-VMVY)
-          DVM(1 ,J  ,L) = DVM(1 ,J  ,L) +  VMUNE
-          DO I=2,IM     ! not first
-            UMUX = DT4*(MU(I-1,J,L)+MU(I,J,L))*(UO(I-1,J,L)+UO(I,J,L))
-            DUM(I  ,J,L) = DUM(I  ,J,L) + UMUX
-            DUM(I-1,J,L) = DUM(I-1,J,L) - UMUX
-            VMVY  = DT4* (MV(I-1,J-1,L)+MV(I-1,J,L))*
-     *                   (VO(I-1,J-1,L)+VO(I-1,J,L))
-            VMUNE = DTC2* MU(I-1,J,L) * (VO(I-1,J-1,L) + VO(I,J  ,L))
-            VMUSE = DTC2* MU(I-1,J,L) * (VO(I-1,J  ,L) + VO(I,J-1,L))
-            DVM(I  ,J-1,L) = DVM(I  ,J-1,L) +  VMUSE
-            DVM(I-1,J-1,L) = DVM(I-1,J-1,L) - (VMUNE+VMVY)
-            DVM(I  ,J  ,L) = DVM(I  ,J  ,L) +  VMUNE
-            DVM(I-1,J  ,L) = DVM(I-1,J  ,L) - (VMUSE-VMVY)
-          END DO
-        END DO
-c****   account for contributions from band north of the of current band
-        if (.not.HAVE_NORTH_POLE) then
-          j=J_1S+1     ! date line first
-          VMVY  = DT4 * (MV(IM,J-1,L)+MV(IM,J,L))*
-     *                  (VO(IM,J-1,L)+VO(IM,J,L))
-          VMUNE = DTC2* MU(IM,J,L) * (VO(IM,J-1,L) + VO(1,J  ,L))
-          VMUSE = DTC2* MU(IM,J,L) * (VO(IM,J  ,L) + VO(1,J-1,L))
-          DVM(IM,J-1,L) = DVM(IM,J-1,L) - (VMUNE+VMVY)
-          DVM(1 ,J-1,L) = DVM(1 ,J-1,L) +  VMUSE
-          DO I=2,IM     ! off the date line
-            VMVY  = DT4* (MV(I-1,J-1,L)+MV(I-1,J,L))*
-     *                   (VO(I-1,J-1,L)+VO(I-1,J,L))
-            VMUNE = DTC2* MU(I-1,J,L) * (VO(I-1,J-1,L) + VO(I,J  ,L))
-            VMUSE = DTC2* MU(I-1,J,L) * (VO(I-1,J  ,L) + VO(I,J-1,L))
-            DVM(I  ,J-1,L) = DVM(I  ,J-1,L) +  VMUSE
-            DVM(I-1,J-1,L) = DVM(I-1,J-1,L) - (VMUNE+VMVY)
-          END DO
-        end if
-
-C**** Contribution of South-North and corner fluxes to U wind
-C**** Contribution of West-East flux to V wind
-C**** (split into first then rest)
-
-c**** account for contributions from band south of the of current band
-      if (.not.HAVE_SOUTH_POLE) then
-        J=J_0-1
-        UMVX  = DTD4*(MV(IM,J,L)+MV(1,J,L))*(UO(IM,J,L)+UO(IM,J+1,L))
-        UMVNE = DTC2* MV(1,J,L)*(UO(IM,J,L)+UO(1 ,J+1,L))
-        UMVNW = DTC2* MV(1,J,L)*(UO(1 ,J,L)+UO(IM,J+1,L))
-        DUM(IM,J+1,L) = DUM(IM,J+1,L) + (UMVNW+UMVX)
-        DUM(1 ,J+1,L) = DUM(1 ,J+1,L) +  UMVNE
-        DO I=2,IM
-          UMVX=DTD4*(MV(I-1,J,L)+MV(I,J,L))*(UO(I-1,J,L)+UO(I-1,J+1,L))
-          UMVNE = DTC2* MV(I,J,L)*(UO(I-1,J,L)+UO(I  ,J+1,L))
-          UMVNW = DTC2* MV(I,J,L)*(UO(I  ,J,L)+UO(I-1,J+1,L))
-          DUM(I  ,J+1,L) = DUM(I  ,J+1,L) +  UMVNE
-          DUM(I-1,J+1,L) = DUM(I-1,J+1,L) + (UMVNW+UMVX)
-        END DO
-      end if
-
-      DO J=J_0,J_1S
-        UMVX  = DTD4*(MV(IM,J,L)+MV(1,J,L))*(UO(IM,J,L)+UO(IM,J+1,L))
-        UMVNE = DTC2* MV(1,J,L)*(UO(IM,J,L)+UO(1 ,J+1,L))
-        UMVNW = DTC2* MV(1,J,L)*(UO(1 ,J,L)+UO(IM,J+1,L))
-        DUM(IM,J  ,L) = DUM(IM,J  ,L) - (UMVNE+UMVX)
-        DUM(1 ,J  ,L) = DUM(1 ,J  ,L) -  UMVNW
-        DUM(IM,J+1,L) = DUM(IM,J+1,L) + (UMVNW+UMVX)
-        DUM(1 ,J+1,L) = DUM(1 ,J+1,L) +  UMVNE
-        VMUY = DTD4*(MU(IM,J,L)+MU(IM,J+1,L))*(VO(IM,J,L)+VO(1,J,L))
-        DVM(IM,J  ,L) = DVM(IM,J  ,L) - VMUY
-        DVM(1 ,J  ,L) = DVM(1 ,J  ,L) + VMUY
-        DO I=2,IM
-          UMVX=DTD4*(MV(I-1,J,L)+MV(I,J,L))*(UO(I-1,J,L)+UO(I-1,J+1,L))
-          UMVNE = DTC2* MV(I,J,L)*(UO(I-1,J,L)+UO(I  ,J+1,L))
-          UMVNW = DTC2* MV(I,J,L)*(UO(I  ,J,L)+UO(I-1,J+1,L))
-          DUM(I  ,J  ,L) = DUM(I  ,J  ,L) -  UMVNW
-          DUM(I-1,J  ,L) = DUM(I-1,J  ,L) - (UMVNE+UMVX)
-          DUM(I  ,J+1,L) = DUM(I  ,J+1,L) +  UMVNE
-          DUM(I-1,J+1,L) = DUM(I-1,J+1,L) + (UMVNW+UMVX)
-          VMUY=DTD4*(MU(I-1,J,L)+MU(I-1,J+1,L))*(VO(I-1,J,L)+VO(I,J,L))
-          DVM(I  ,J  ,L) = DVM(I  ,J  ,L) + VMUY
-          DVM(I-1,J  ,L) = DVM(I-1,J  ,L) - VMUY
-        END DO
-      END DO
+!$OMP ParallelDo   Private (I,J,L, UMU, UMVc,UMVw,UMVe, USINYJ,
+!$OMP*                             VMV, VMUc,VMUs,VMUn, UTANUJ)
+      Do 480 L=1,LMO
+C**** Zero out momentum changes
+      DUM(:,:,L) = 0
+      DVM(:,:,L) = 0
+C**** Contribution of eastward flux to U momentum
+      Do 310 J=J1,JN
+      UMU = DT4*(UO(1,J,L)+UO(IM,J,L))*(MU(1,J,L)+MU(IM,J,L))
+      DUM(1 ,J,L) = DUM(1 ,J,L) + UMU
+      DUM(IM,J,L) = DUM(IM,J,L) - UMU
+      Do 310 I=2,IM
+      UMU = DT4*(UO(I,J,L)+UO(I-1,J,L))*(MU(I,J,L)+MU(I-1,J,L))
+      DUM(I  ,J,L) = DUM(I  ,J,L) + UMU
+  310 DUM(I-1,J,L) = DUM(I-1,J,L) - UMU
+C**** Contribution of northward center to U momentum
+      Do 320 J=J1H,JNP
+      UMVc(IM,J) = DT6*(UO(IM,J,L)+UO(IM,J+1,L))*(MV(IM,J,L)+MV(1,J,L))
+      DUM(IM,J  ,L) = DUM(IM,J  ,L) - UMVc(IM,J)
+      DUM(IM,J+1,L) = DUM(IM,J+1,L) + UMVc(IM,J)
+      Do 320 I=1,IM-1
+      UMVc(I,J) = DT6*(UO(I,J,L)+UO(I,J+1,L))*(MV(I,J,L)+MV(I+1,J,L))
+      DUM(I,J  ,L) = DUM(I,J  ,L) - UMVc(I,J)
+  320 DUM(I,J+1,L) = DUM(I,J+1,L) + UMVc(I,J)
+C**** Contribution of northward corner fluxes to U momentum
+      Do 330 J=J1H,JNP
+      UMVe(1,J) = DT12*(UO(IM,J,L)+UO(1 ,J+1,L))*MV(1,J,L)
+      UMVw(1,J) = DT12*(UO(1 ,J,L)+UO(IM,J+1,L))*MV(1,J,L)
+      DUM(1 ,J  ,L) = DUM(1 ,J  ,L) - UMVw(1,J)
+      DUM(IM,J  ,L) = DUM(IM,J  ,L) - UMVe(1,J)
+      DUM(1 ,J+1,L) = DUM(1 ,J+1,L) + UMVe(1,J)
+      DUM(IM,J+1,L) = DUM(IM,J+1,L) + UMVw(1,J)
+      Do 330 I=2,IM
+      UMVe(I,J) = DT12*(UO(I-1,J,L)+UO(I  ,J+1,L))*MV(I,J,L)
+      UMVw(I,J) = DT12*(UO(I  ,J,L)+UO(I-1,J+1,L))*MV(I,J,L)
+      DUM(I  ,J  ,L) = DUM(I  ,J  ,L) - UMVw(I,J)
+      DUM(I-1,J  ,L) = DUM(I-1,J  ,L) - UMVe(I,J)
+      DUM(I  ,J+1,L) = DUM(I  ,J+1,L) + UMVe(I,J)
+  330 DUM(I-1,J+1,L) = DUM(I-1,J+1,L) + UMVw(I,J)
+C**** Contribution of eastward center flux to V momentum
+      Do 340 J=J1,JNP
+      VMUc = DT6*(VO(IM,J,L)+VO(1,J,L))*(MU(IM,J,L)+MU(IM,J+1,L))
+      DVM(IM,J,L) = DVM(IM,J,L) - VMUc
+      DVM(1 ,J,L) = DVM(1 ,J,L) + VMUc
+      Do 340 I=1,IM-1
+      VMUc = DT6*(VO(I,J,L)+VO(I+1,J,L))*(MU(I,J,L)+MU(I,J+1,L))
+      DVM(I  ,J,L) = DVM(I  ,J,L) - VMUc
+  340 DVM(I+1,J,L) = DVM(I+1,J,L) + VMUc
+C**** Contribution of eastward corner and northward fluxes to V momentum
+C     If (QSP)  Then
+C       J = 1
+C       VMV  = DT4 *(VO(IM,1,L)+V0(IM,0,L))*MV(IM,1,L)
+C       VMUn = DT12*(V0(IM,0,L)+VO(1 ,1,L))*MU(IM,1,L)
+C       VMUs = DT12*(VO(IM,1,L)+V0(1 ,0,L))*MU(IM,1,L)
+C       DVM(IM,1,L) = DVM(IM,1,L) - VMUs + VMV
+C       DVM(1 ,1,L) = DVM(1 ,1,L) + VMUn
+C       Do 350 I=1,IM-1
+C       VMV  = DT4* (VO(I,1,L)+V0(I  ,0,L))*MV(I,1,L)
+C       VMUn = DT12*(V0(I,0,L)+VO(I+1,1,L))*MU(I,1,L)
+C       VMUs = DT12*(VO(I,1,L)+V0(I+1,0,L))*MU(I,1,L)
+C       DVM(I  ,1,L) = DVM(I  ,1,L) - VMUs + VMV
+C 350   DVM(I+1,1,L) = DVM(I+1,1,L) + VMUn  ;  EndIf
+      Do 360 J=J1P,JNR
+      VMV  = DT4 *(VO(IM,J  ,L)+VO(IM,J-1,L))*(MV(IM,J,L)+MV(IM,J-1,L))
+      VMUn = DT12*(VO(IM,J-1,L)+VO(1 ,J  ,L))* MU(IM,J,L)
+      VMUs = DT12*(VO(IM,J  ,L)+VO(1 ,J-1,L))* MU(IM,J,L)
+      DVM(IM,J  ,L) = DVM(IM,J  ,L) - VMUs + VMV
+      DVM(IM,J-1,L) = DVM(IM,J-1,L) - VMUn - VMV
+      DVM(1 ,J  ,L) = DVM(1 ,J  ,L) + VMUn
+      DVM(1 ,J-1,L) = DVM(1 ,J-1,L) + VMUs
+      Do 360 I=1,IM-1
+      VMV  = DT4* (VO(I,J  ,L)+VO(I  ,J-1,L))*(MV(I,J,L)+MV(I,J-1,L))
+      VMUn = DT12*(VO(I,J-1,L)+VO(I+1,J  ,L))* MU(I,J,L)
+      VMUs = DT12*(VO(I,J  ,L)+VO(I+1,J-1,L))* MU(I,J,L)
+      DVM(I  ,J  ,L) = DVM(I  ,J  ,L) - VMUs + VMV
+      DVM(I  ,J-1,L) = DVM(I  ,J-1,L) - VMUn - VMV
+      DVM(I+1,J  ,L) = DVM(I+1,J  ,L) + VMUn
+  360 DVM(I+1,J-1,L) = DVM(I+1,J-1,L) + VMUs
+      If (QNP)  Then
+C       J = JM
+        VMV  = DT4 *(VO(IM,JM  ,L)+VO(IM,JM-1,L))*MV(IM,JM-1,L)
+        VMUn = DT12*(VO(IM,JM-1,L)+VO(1 ,JM  ,L))*MU(IM,JM,L)
+        VMUs = DT12*(VO(IM,JM  ,L)+VO(1 ,JM-1,L))*MU(IM,JM,L)
+        DVM(IM,JM-1,L) = DVM(IM,JM-1,L) - VMUn - VMV
+        DVM(1 ,JM-1,L) = DVM(1 ,JM-1,L) + VMUs
+        Do 370 I=1,IM-1
+        VMV  = DT4* (VO(I,JM  ,L)+VO(I  ,JM-1,L))*MV(I,JM-1,L)
+        VMUn = DT12*(VO(I,JM-1,L)+VO(I+1,JM  ,L))*MU(I,JM,L)
+        VMUs = DT12*(VO(I,JM  ,L)+VO(I+1,JM-1,L))*MU(I,JM,L)
+        DVM(I  ,JM-1,L) = DVM(I  ,JM-1,L) - VMUn - VMV
+  370   DVM(I+1,JM-1,L) = DVM(I+1,JM-1,L) + VMUs  ;  EndIf
+C****
 C**** Coriolis force and metric term
 C****
 C**** U component
-          GX(0) = 0.d0
-        GXUY(0) = 0.d0
-      DGDUDN(0) = 0.d0
-      DGDUUP(0) = 0.d0
-          GX(JM) = 0.d0
-        GXUY(JM) = 0.d0
-      DGDUDN(JM) = 0.d0
-      DGDUUP(JM) = 0.d0
-C**** First I=1,then I=2,IM-1 then I=IM
-      DO J=max(1,J_0-1),J_1S
-        GX(J)   =  MV(1,J,L)+MV(2,J,L)
-        GXUY(J) = (MV(1,J,L)+MV(2,J,L))*(UO(1,J,L)+UO(1,J+1,L))
-        DGDUDN(J) = MV(1,J,L)*(UO(IM,J  ,L)-UO(1,J  ,L)) -
-     *              MV(2,J,L)*(UO(1 ,J  ,L)-UO(2,J  ,L))
-        DGDUUP(J) = MV(1,J,L)*(UO(IM,J+1,L)-UO(1,J+1,L)) -
-     *              MV(2,J,L)*(UO(1 ,J+1,L)-UO(2,J+1,L))
-      END DO
-      DO J=J_0,J_1
-        DUM(1,J,L) = DUM(1,J,L) +
-     *    DT2*(OMEGA*RADIUS*(GX(J-1)+GX(J))*DCOSP(J) + TANP(J)*
-     *    (2.5d-1*(GXUY(J-1)+GXUY(J))+5d-1*CHI*(DGDUDN(J-1)+DGDUUP(J))))
-      END DO
-      DO I=2,IM-1
-        DO J=max(1,J_0-1),J_1S
-          GX(J)   =  MV(I,J,L)+MV(I+1,J,L)
-          GXUY(J) = (MV(I,J,L)+MV(I+1,J,L))*(UO(I,J,L)+UO(I,J+1,L))
-          DGDUDN(J) = MV(I  ,J,L)*(UO(I-1,J  ,L)-UO(I  ,J  ,L)) -
-     *                MV(I+1,J,L)*(UO(I  ,J  ,L)-UO(I+1,J  ,L))
-          DGDUUP(J) = MV(I  ,J,L)*(UO(I-1,J+1,L)-UO(I  ,J+1,L)) -
-     *                MV(I+1,J,L)*(UO(I  ,J+1,L)-UO(I+1,J+1,L))
-        END DO
-        DO J=J_0,J_1
-          DUM(I,J,L) = DUM(I,J,L) +
-     *    DT2*(OMEGA*RADIUS*(GX(J-1)+GX(J))*DCOSP(J) + TANP(J)*
-     *    (2.5d-1*(GXUY(J-1)+GXUY(J))+5d-1*CHI*(DGDUDN(J-1)+DGDUUP(J))))
-        END DO
-      END DO
-      DO J=max(1,J_0-1),J_1S
-        GX(J)   =  MV(IM,J,L)+MV(1,J,L)
-        GXUY(J) = (MV(IM,J,L)+MV(1,J,L))*(UO(IM,J,L)+UO(IM,J+1,L))
-        DGDUDN(J) = MV(IM,J,L)*(UO(IM-1,J  ,L)-UO(IM,J  ,L)) -
-     *              MV(1 ,J,L)*(UO(IM  ,J  ,L)-UO(1 ,J  ,L))
-        DGDUUP(J) = MV(IM,J,L)*(UO(IM-1,J+1,L)-UO(IM,J+1,L)) -
-     *              MV(1 ,J,L)*(UO(IM  ,J+1,L)-UO(1 ,J+1,L))
-      END DO
-      DO J=J_0,J_1
-        DUM(IM,J,L) = DUM(IM,J,L) +
-     *    DT2*(OMEGA*RADIUS*(GX(J-1)+GX(J))*DCOSP(J) + TANP(J)*
-     *    (2.5d-1*(GXUY(J-1)+GXUY(J))+5d-1*CHI*(DGDUDN(J-1)+DGDUUP(J))))
-      END DO
+C     If (QSP)  Then
+C       Do 410 I=1,IM-1
+C 410   dUM(I,1,L) = dUM(I,1,L) +
+C    +    DT2*OMEGA*RADIUS*SINxY(1)*(MV(I,1,L)+MV(I+1,1,L)) +
+C    +    TANxY(1)*(UMVw(I,1)+UMVc(I,1)+UMVe(I+1,1))*.5
+C       dUM(IM,1,L) = dUM(IM,1,L) +
+C    +    DT2*OMEGA*RADIUS*SINxY(1)*(MV(IM,1,L)+MV(1,1,L)) +
+C    +    TANxY(1)*(UMVw(IM,1)+UMVc(IM,1)+UMVe(1,1))*.5  !  EndIf
+      Do 420 J=J1P,JNP
+      dUM(IM,J,L) = dUM(IM,J,L) + DT2*OMEGA*RADIUS*SINxY(J)*
+     *    (MV(IM,J-1,L)+MV(1,J-1,L)+MV(IM,J,L)+MV(1,J,L)) +
+     +  TANxY(J)*(UMVe(IM,J-1)+UMVc(IM,J-1)+UMVw(1,J-1) +
+     +            UMVw(IM,J  )+UMVc(IM,J  )+UMVe(1,J  ))*.5
+      Do 420 I=1,IM-1
+  420 dUM(I,J,L) = dUM(I,J,L) + DT2*OMEGA*RADIUS*SINxY(J)*
+     *    (MV(I,J-1,L)+MV(I+1,J-1,L)+MV(I,J,L)+MV(I+1,J,L)) +
+     +  TANxY(J)*(UMVe(I,J-1)+UMVc(I,J-1)+UMVw(I+1,J-1) +
+     +            UMVw(I,J  )+UMVc(I,J  )+UMVe(I+1,J  ))*.5
+      If (QNP)  Then
+        Do 430 I=1,IM-1
+  430   dUM(I,JM,L) = dUM(I,JM,L) +
+     +    DT2*OMEGA*RADIUS*SINxY(JM)*(MV(I,JM-1,L)+MV(I+1,JM-1,L)) +
+     +    TANxY(JM)*(UMVe(I,JM-1)+UMVc(I,JM-1)+UMVw(I+1,JM-1))*.5
+        dUM(IM,JM,L) = dUM(IM,JM,L) +
+     +    DT2*OMEGA*RADIUS*SINxY(JM)*(MV(IM,JM-1,L)+MV(1,JM-1,L)) +
+     +    TANxY(JM)*(UMVe(IM,JM-1)+UMVc(IM,JM-1)+UMVw(1,JM-1))*.5
+        EndIf
 C**** V component
-      DO J=J_0,J_1S
-        DO I=1,IM
-          UDCOSY(I) =  UO(I,J,L)*DCOSP(J) + UO(I,J+1,L)*DCOSP(J+1)
-          UYUTAY(I) = (UO(I,J,L)* TANP(J) + UO(I,J+1,L)* TANP(J+1))*
+      Do 450 J=J1,JNP
+      Do 440 I=1,IM
+      USINYJ(I) =  UO(I,J,L)*SINxY(J) + UO(I,J+1,L)*SINxY(J+1)
+  440 UTANUJ(I) = (UO(I,J,L)*TANxY(J) + UO(I,J+1,L)*TANxY(J+1))*
      *            (UO(I,J,L)+UO(I,J+1,L))
-        END DO
-        DVM(1,J,L) = DVM(1,J,L) - DT4*DXV(J)*(MO(1,J,L)+MO(1,J+1,L))*
-     *    (OMEGA*RADIUS*(UDCOSY(IM)+UDCOSY(1)) +
-     *    2.5d-1*(UYUTAY(IM)+UYUTAY(1)) - 5d-1*CHI*(TANP(J)+TANP(J+1))*
-     *    (UO(IM,J,L)-UO(1,J,L))*(UO(IM,J+1,L)-UO(1,J+1,L)))
-        DO I=2,IM
-          DVM(I,J,L) = DVM(I,J,L) - DT4*DXV(J)*(MO(I,J,L)+MO(I,J+1,L))*
-     *      (OMEGA*RADIUS*(UDCOSY(I-1)+UDCOSY(I)) +
-     *      2.5d-1*(UYUTAY(I-1)+UYUTAY(I))-5d-1*CHI*(TANP(J)+TANP(J+1))*
-     *      (UO(I-1,J,L)-UO(I,J,L))*(UO(I-1,J+1,L)-UO(I,J+1,L)))
-        END DO
-      END DO
-  480 CONTINUE
-!$OMP END PARALLEL DO
+      dVM(1,J,L) = dVM(1,J,L) - DT4*DXV(J)*(MO(1,J,L)+MO(1,J+1,L))*
+     *  (OMEGA*RADIUS*(USINYJ(IM)+USINYJ(1)) +
+     +  .25*(UTANUJ(IM)+UTANUJ(1)) - (TANxY(J)+TANxY(J+1))*
+     *    (UO(IM,J,L)-UO(1,J,L))*(UO(IM,J+1,L)-UO(1,J+1,L))/12)
+      Do 450 I=2,IM
+  450 dVM(I,J,L) = dVM(I,J,L) - DT4*DXV(J)*(MO(I,J,L)+MO(I,J+1,L))*
+     *  (OMEGA*RADIUS*(USINYJ(I-1)+USINYJ(I)) +
+     +  .25*(UTANUJ(I-1)+UTANUJ(I)) - (TANxY(J)+TANxY(J+1))*
+     *    (UO(I-1,J,L)-UO(I,J,L))*(UO(I-1,J+1,L)-UO(I,J+1,L))/12)
+  480 Continue
 C****
 C**** Vertical advection of momentum
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO L=1,LMO-1
-        DO J=J_0S,J_1S
-          DO I=1,IM-1
-            FLUXA(I,J,L) =
-     *           DT4*(MW(I,J,L)+MW(I+1,J,L))*(UO(I,J,L)+UO(I,J,L+1))
-          END DO
-          FLUXA(IM,J,L) =
-     *         DT4*(MW(IM,J,L)+MW(1,J,L))*(UO(IM,J,L)+UO(IM,J,L+1))
-        END DO
-        if (have_north_pole)
-     *  FLUXA(1,JM,L) = DT2*MW(1,JM,L)*IM*(UO(1,JM,L)+UO(1,JM,L+1))
-      END DO
-!$OMP END PARALLEL DO
-C
-!$OMP PARALLEL DO  PRIVATE(L)
-      DO L=1,LMO
-        IF(L.EQ.1)  THEN
-          DUM(:,J_0S:J_1S,L) = DUM(:,J_0S:J_1S,L) - FLUXA(:,J_0S:J_1S,L)
-          if (have_north_pole) DUM(1,JM,L) = DUM(1,JM,L) - FLUXA(1,JM,L)
-        ELSE IF(L.LT.LMO)  THEN
-          DUM(:,J_0S:J_1S,L)=DUM(:,J_0S:J_1S,L) + FLUXA(:,J_0S:J_1S,L-1)
-          if(have_north_pole)DUM(1,JM,L) = DUM(1,JM,L) + FLUXA(1,JM,L-1)
-          DUM(:,J_0S:J_1S,L) = DUM(:,J_0S:J_1S,L) - FLUXA(:,J_0S:J_1S,L)
-          if (have_north_pole) DUM(1,JM,L) = DUM(1,JM,L) - FLUXA(1,JM,L)
-        ELSE IF(L.EQ.LMO)  THEN
-          DUM(:,J_0S:J_1S,L)=DUM(:,J_0S:J_1S,L) + FLUXA(:,J_0S:J_1S,L-1)
-          if (have_north_pole) DUM(1,JM,L)=DUM(1,JM,L) + FLUXA(1,JM,L-1)
-        END IF
-      END DO
-!$OMP END PARALLEL DO
-C
+C**** U component
+C$OMP ParallelDo   Private (I,J,L, FLUX)
+      Do 560 J=J1,JN
+      If (J==1)   GoTo 520
+      If (J==JM)  GoTo 540
+      Do 510 L=1,LMO-1
+      FLUX = DT4*(MW(IM,J,L)+MW(1,J,L))*(UO(IM,J,L)+UO(IM,J,L+1))
+      dUM(IM,J,L)   = dUM(IM,J,L)   - FLUX
+      dUM(IM,J,L+1) = dUM(IM,J,L+1) + FLUX
+      Do 510 I=1,IM-1
+      FLUX = DT4*(MW(I,J,L)+MW(I+1,J,L))*(UO(I,J,L)+UO(I,J,L+1))
+      dUM(I,J,L)   = dUM(I,J,L)   - FLUX
+  510 dUM(I,J,L+1) = dUM(I,J,L+1) + FLUX
+      GoTo 560
+  520 Do 530 L=1,LMO-1
+      Do 530 I=1,IM
+      FLUX = DT2*MW(1,1,L)*(UO(I,1,L)+UO(I,1,L+1))
+      dUM(I,1,L)   = dUM(I,1,L)   - FLUX
+  530 dUM(I,1,L+1) = dUM(I,1,L+1) + FLUX
+      GoTo 560
+  540 Do 550 L=1,LMO-1
+      Do 550 I=1,IM
+      FLUX = DT2*MW(1,JM,L)*(UO(I,JM,L)+UO(I,JM,L+1))
+      dUM(I,JM,L)   = dUM(I,JM,L)   - FLUX
+  550 dUM(I,JM,L+1) = dUM(I,JM,L+1) + FLUX
+  560 Continue
 C**** V component
-C
-!$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO L=1,LMO-1
-        DO J=J_0S,min(JM-2,J_1S)
-          DO I=1,IM
-            FLUXA(I,J,L) =
-     *           DT4*(MW(I,J,L)+MW(I,J+1,L))*(VO(I,J,L)+VO(I,J,L+1))
-          END DO
-        END DO
-        if (have_north_pole) then
-          DO I=1,IM
-            FLUXA(I,JM-1,L) = DT4*(MW(I,JM-1,L)+2.*MW(1,JM,L))*
-     *         (VO(I,JM-1,L)+VO(I,JM-1,L+1))
-          END DO
-        end if
-      END DO
-!$OMP END PARALLEL DO
-C
-!$OMP PARALLEL DO  PRIVATE(L)
-      DO L=1,LMO
-        IF(L.EQ.1)  THEN
-          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L) - FLUXA(:,J_0S:J_1S,L)
-        ELSE IF(L.LT.LMO)  THEN
-          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L)+FLUXA(:,J_0S:J_1S,L-1)
-          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L)-FLUXA(:,J_0S:J_1S,L)
-        ELSE IF(L.EQ.LMO)  THEN
-          DVM(:,J_0S:J_1S,L) = DVM(:,J_0S:J_1S,L)+FLUXA(:,J_0S:J_1S,L-1)
-        END IF
-      END DO
-!$OMP END PARALLEL DO
+C$OMP ParallelDo   Private (I,J,L, FLUX)
+      Do 660 J=J1,JNP
+      If (J==1)  GoTo 620
+      If (J==JM-1)  GoTo 640
+      Do 610 L=1,LMO-1
+      Do 610 I=1,IM
+      FLUX = DT4*(MW(I,J,L)+MW(I,J+1,L))*(VO(I,J,L)+VO(I,J,L+1))
+      dVM(I,J,L)   = dVM(I,J,L)   - FLUX
+  610 dVM(I,J,L+1) = dVM(I,J,L+1) + FLUX
+      GoTo 660
+  620 Do 630 L=1,LMO-1
+      Do 630 I=1,IM
+      FLUX = DT4*(MW(1,1,L)+MW(I,2,L))*(VO(I,1,L)+VO(I,1,L+1))
+      dVM(I,1,L)   = dVM(I,1,L)   - FLUX
+  630 dVM(I,1,L+1) = dVM(I,1,L+1) + FLUX
+      GoTo 660
+  640 Do 650 L=1,LMO-1
+      Do 650 I=1,IM
+      FLUX = DT4*(MW(I,JM-1,L)+MW(1,JM,L))*(VO(I,JM-1,L)+VO(I,JM-1,L+1))
+      dVM(I,JM-1,L)   = dVM(I,JM-1,L)   - FLUX
+  650 dVM(I,JM-1,L+1) = dVM(I,JM-1,L+1) + FLUX
+  660 Continue
 C****
 C**** Add changes to momentum
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO L=1,LMO
-C**** U component
-        DO J=J_0S,J_1S
-        DO I=1,IM
-          UM2(I,J,L) = UM0(I,J,L) + DUM(I,J,L)
-        END DO
-        END DO
-        if(have_south_pole) UM2(IM,1,L) = UM0(IM,1,L) + sum(DUM(:,1,L))
-        if(have_north_pole) UM2(1,JM,L) = UM0(1,JM,L) + sum(DUM(:,JM,L))
-C**** V component
-        DO J=J_0,J_1S
-        DO I=1,IM
-          VM2(I,J,L) = VM0(I,J,L) + DVM(I,J,L)
-        END DO
-        END DO
-      END DO
-!$OMP END PARALLEL DO
-      RETURN
-      END SUBROUTINE OADVV
+C$OMP ParallelDo   Private (I,J,L, dUMSP,dVMSP,dUMNP,dVMNP)
+      Do 730 L=1,LMO
+C**** Calculate dUM and dVM at poles, then update UM and VM
+C     If (QSP)  Then
+C       dUMSP =   Sum (dUM(:,1,L)*COSU(:)) * 2/IM
+C       dVMSP = - Sum (dUM(:,1,L)*SINU(:)) * 2/IM
+C       UM2(IVSP,1,L) = UM0(IVSP,1,L) + dVMSP
+C       UM2(IM  ,1,L) = UM0(IM  ,1,L) + dUMSP  ;  EndIf
+      If (QNP)  Then
+        dUMNP = Sum (dUM(:,JM,L)*COSU(:)) * 2/IM
+        dVMNP = Sum (dUM(:,JM,L)*SINU(:)) * 2/IM
+        UM2(IM  ,JM,L) = UM0(IM  ,JM,L) + dUMNP
+        UM2(IVNP,JM,L) = UM0(IVNP,JM,L) + dVMNP  ;  EndIf
+C**** Update UM and VM away from poles
+      Do 710 J=J1P,JNP
+  710 UM2(:,J,L) = UM0(:,J,L) + dUM(:,J,L)
+      Do 720 J=J1,JNP
+  720 VM2(:,J,L) = VM0(:,J,L) + dVM(:,J,L)
+  730 Continue
+      Return
+      EndSubroutine OADVV
 
-      SUBROUTINE OPGF (UM,VM,DT1)
-!@sum  OPGF adds the pressure gradient force to the momentum
-!@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : grav
-      USE OCEAN, only : im,jm,lmo,g0m,gzmo,szmo,mo,hocean,lmm,lmu,lmv
-     *     ,focean,dypo,dxvo,opress,ogeoz,imaxj
-      USE OCEAN_DYN, only : po,phi,dh,dzgdp,vbar
-      use domain_decomp, only : grid, get, halo_update, north
-
-      IMPLICIT NONE
+      Subroutine OPGF (UM,VM,DT1)
 C****
-C**** Input: G0M (J), GZMO, S0M (kg), SZMO, DT (s), MO (kg/m**2)
+C**** OPGF adds the pressure gradient force to the momentum
+C**** Input: G0M (J), GZM, S0M (kg), SZM, DT (s), MO (kg/m^2)
 C**** Output: UM (kg*m/s) = UM - DT*(DH*D(P)+MO*D(PHI))*DYP
 C****         VM (kg*m/s) = VM - DT*(DH*D(P)+MO*D(PHI))*DXV
 C****
-      REAL*8, INTENT(OUT),
-     *   DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: UM,VM
-      REAL*8, INTENT(IN) :: DT1
-      REAL*8,
-     *   DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: DUM,DVM
-      INTEGER I,J,L,IP1
-      REAL*8, SAVE :: PHIE
-      REAL*8 DT2
-
-      integer :: j_0,j_1, j_0s,j_1s
-      logical :: have_north_pole
-
-      call get (grid, j_strt=j_0, j_stop=j_1,
-     *  j_strt_skp=j_0s, j_stop_skp=j_1s,
-     *  have_north_pole=have_north_pole)
-
+      Use CONSTANT, Only: GRAV
+      Use OCEAN, Only: IM,JM,LMO, IVNP,IVSP,
+     *                 LMOM=>LMM,LMOU=>LMU,LMOV=>LMV,
+     *                 MO, G0M,GZM=>GZMO, S0M,SZM=>SZMO,
+     *                 FOCEAN, mZSOLID=>HOCEAN, DXPGF,DYPGF,
+     *                 COSI=>COSIC,SINI=>SINIC, OPRESS,OGEOZ
+      Use OCEAN_DYN, Only: MMI, VBAR,dH, GUP,GDN, SUP,SDN
+      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Implicit None
+      Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
+      Real*8,Intent(Out),
+     *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: UM,VM
+      Real*8,Intent(In) :: DT1
+      Real*8,External   :: VOLGSP
 C****
-C**** SURFCB  OPRESS  Atmospheric and sea ice pressure (Pa-101325)
-C****         OGEOZ  Ocean surface geopotential (m^2/s^2)
+      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
+     *          dUM,dVM, P,ZG
+      Real*8    PUP(LMO),PDN(LMO), PE,ZGE,VUP,VDN,dZGdP,
+     *          dUMNP(LMO),dVMNP(LMO), DT2
+      Integer*4 I,J,L,IMAX, J1,JN,J1P,JNP,JNH
+      Logical*4 QSP,QNP
 C****
-      DT2   = DT1*5d-1
+C**** Extract domain decomposition band parameters
+C**** ASSUME THAT J1 NEVER EQUALS 2 AND JN NEVER EQUALS JM-1
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      J1P = Max(J1,2)       !    2      5     JM-3   Exclude SP
+      JNP = Min(JN,JM-1)    !    4      8     JM-1   Exclude NP
+      JNH = Min(JN+1,JM)    !    5      9     JM     Halo maximum
+C     QSP = J1==1           !    T      F      F
+      QNP = JN==JM          !    F      F      T
+C****
+      Call HALO_UPDATE (GRID,OPRESS,FROM=NORTH)
+C     Call HALO_UPDATE (GRID,  MO, FROM=NORTH)  !  copied in OFLUX
+C     Call HALO_UPDATE (GRID, GUP, FROM=NORTH)  !  recalc in OPGF0
+C     Call HALO_UPDATE (GRID, GDN, FROM=NORTH)  !  recalc in OPGF0
+C     Call HALO_UPDATE (GRID, SUP, FROM=NORTH)  !  recalc in OPGF0
+C     Call HALO_UPDATE (GRID, SDN, FROM=NORTH)  !  recalc in OPGF0
+      DT2 = DT1/2
 C****
 C**** Calculate the mass weighted pressure P (Pa),
-C**** geopotential PHI (m**2/s**2), and layer thickness DH (m)
+C**** geopotential ZG (m^2/s^2), and layer thickness dH (m)
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,L,PHIE)
-      DO J=j_0,j_1
-      DO I=1,IMAXJ(J)
-        IF(FOCEAN(I,J).GT.0.) THEN
+C$OMP ParallelDo   Private (I,J,L, PUP,PDN,PE, ZGE,VUP,VDN,dZGdP)
+      Do 130 J=J1,JNH
+      IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
+      Do 130 I=1,IMAX
+      If (FOCEAN(I,J) == 0)  GoTo 130
 C**** Calculate pressure by integrating from the top down
-          PO(I,J,1) = OPRESS(I,J) + MO(I,J,1)*5d-1*GRAV
-          DO L=2,LMM(I,J)
-            PO(I,J,L) = PO(I,J,L-1) + (MO(I,J,L-1)+MO(I,J,L))*5d-1*GRAV
-          END DO
+      PE = OPRESS(I,J)
+      Do 110 L=1,LMOM(I,J)
+      P(I,J,L) = PE     + MO(I,J,L)*GRAV*.5
+      PUP(L) = P(I,J,L) - MO(I,J,L)*GRAV*z12eH
+      PDN(L) = P(I,J,L) + MO(I,J,L)*GRAV*z12eH
+  110 PE     = PE       + MO(I,J,L)*GRAV
 C**** Calculate geopotential by integrating from the bottom up
-          PHIE = -HOCEAN(I,J)*GRAV
-          DO L=LMM(I,J),1,-1
-            PHI(I,J,L) = PHIE + DZGDP(I,J,L)*MO(I,J,L)*GRAV
-            DH(I,J,L) =  VBAR(I,J,L)*MO(I,J,L)
-            PHIE = PHIE + VBAR(I,J,L)*MO(I,J,L)*GRAV
-          END DO
-          OGEOZ(I,J) = PHIE
-        END IF
-      END DO
-      END DO
-!$OMP END PARALLEL DO
-C**** Define polar values at all latitudes
-C     if (have_south_pole) then
-C       DO L=1,LMM(1,JM)
-C          PO(2:IM, 1,L) =  PO(1,IM,L)
-C         PHI(2:IM, 1,L) = PHI(1,IM,L)
-C          DH(2:IM, 1,L) =  DH(1,IM,L)
-C        END DO
-C        OGEOZ(2:IM, 1) = OGEOZ(1,1)
-C     end if
-      if (have_north_pole) then
-        DO L=1,LMM(1,JM)
-           PO(2:IM,JM,L) =  PO(1,JM,L)
-          PHI(2:IM,JM,L) = PHI(1,JM,L)
-           DH(2:IM,JM,L) =  DH(1,JM,L)
-        END DO
-        OGEOZ(2:IM,JM) = OGEOZ(1,JM)
-      end if
+      ZGE = - mZSOLID(I,J)*GRAV
+      Do 120 L=LMOM(I,J),1,-1
+      VUP = VOLGSP (GUP(I,J,L),SUP(I,J,L),PUP(L))
+      VDN = VOLGSP (GDN(I,J,L),SDN(I,J,L),PDN(L))
+      dZGdP = VUP*(.5-z12eH) + VDN*(.5+z12eH)
+      VBAR(I,J,L) = (VUP + VDN)*.5
+      ZG(I,J,L) = MO(I,J,L)*GRAV*.5*dZGdP + ZGE
+      dH(I,J,L) = MO(I,J,L)*VBAR(I,J,L)
+  120 ZGE = ZGE + dH(I,J,L)*GRAV
+      OGEOZ(I,J) = ZGE
+  130 Continue
+C**** Copy VBAR and DH to all longitudes at north pole
+      If (QNP) Then
+        Do 140 L=1,LMOM(1,JM)
+        VBAR(2:IM,JM,L) = VBAR(1,JM,L)
+  140     DH(2:IM,JM,L) =   DH(1,JM,L)
+      EndIf
 C****
 C**** Calculate smoothed East-West Pressure Gradient Force
 C****
-      dum = 0.
-!$OMP PARALLEL DO  PRIVATE(I,IP1,J,L)
-      DO 230 J=j_0s,j_1s
-      I=IM
-      DO 230 IP1=1,IM
-      DO 210 L=1,LMU(I,J)
-  210 DUM(I,J,L) = -DT2*DYPO(J)*
-     *  (( DH(IP1,J,L)+ DH(I,J,L))*( PO(IP1,J,L)- PO(I,J,L)) +
-     +   (PHI(IP1,J,L)-PHI(I,J,L))*(MO(IP1,J,L)+MO(I,J,L)))
-c     DO 220 L=LMU(I,J)+1,LMO
-c 220 DUM(I,J,L) = 0.
-  230 I=IP1
-!$OMP END PARALLEL DO
-      CALL OPFIL (DUM,LMO)  ! extends to trimmed halo
+C$OMP ParallelDo   Private (I,J,L)
+      Do 220 J=J1P,JNP
+      Do 210 I=1,IM-1
+      Do 210 L=1,LMOU(I,J)
+  210 dUM(I,J,L) = DT2*DYPGF(J)*
+     *             ((dH(I,J,L)+dH(I+1,J,L))*( P(I,J,L)- P(I+1,J,L)) +
+     +              (MO(I,J,L)+MO(I+1,J,L))*(ZG(I,J,L)-ZG(I+1,J,L)))
+      Do 220 L=1,LMOU(IM,J)
+  220 dUM(IM,J,L) = DT2*DYPGF(J)*
+     *              ((dH(IM,J,L)+dH(1,J,L))*( P(IM,J,L)- P(1,J,L)) +
+     +               (MO(IM,J,L)+MO(1,J,L))*(ZG(IM,J,L)-ZG(1,J,L)))
+      Call OPFIL (dUM)
 C****
 C**** Calculate North-South Pressure Gradient Force
 C****
-      CALL HALO_UPDATE(grid, DH,FROM=NORTH)
-      CALL HALO_UPDATE(grid, PO,FROM=NORTH)
-      CALL HALO_UPDATE(grid,PHI,FROM=NORTH)
-      CALL HALO_UPDATE(grid, MO,FROM=NORTH)
-!$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO 310 J=j_0,j_1s
-      DO 310 I=1,IM
-      DO 310 L=1,LMV(I,J)
-  310 DVM(I,J,L) = -DT2*DXVO(J)*
-     *  (( DH(I,J+1,L)+ DH(I,J,L))*(PO(I,J+1,L)-PO(I,J,L)) +
-     +   (PHI(I,J+1,L)-PHI(I,J,L))*(MO(I,J+1,L)+MO(I,J,L)))
-!$OMP END PARALLEL DO
+C$OMP ParallelDo   Private (I,J,L)
+      Do 340 J=J1,JNP
+      If (J==JM-1)  GoTo 320
+      Do 310 I=1,IM
+      Do 310 L=1,LMOV(I,J)
+  310 dVM(I,J,L) = DT2*DXPGF(J)*
+     *  ((dH(I,J,L)+dH(I,J+1,L))*( P(I,J,L)- P(I,J+1,L)) +
+     +   (MO(I,J,L)+MO(I,J+1,L))*(ZG(I,J,L)-ZG(I,J+1,L)))
+      GoTo 340
+  320 Do 330 I=1,IM
+      Do 330 L=1,LMOV(I,JM-1)
+  330 dVM(I,JM-1,L) = DT2*DXPGF(JM-1)*
+     *  ((dH(I,JM-1,L)+dH(1,JM,L))*( P(I,JM-1,L)- P(1,JM,L)) +
+     +   (MO(I,JM-1,L)+MO(1,JM,L))*(ZG(I,JM-1,L)-ZG(1,JM,L)))
+  340 Continue
+C****
+C**** Pressure Gradient Force at north pole
+C****
+      If (QNP)  Then
+        dUMNP(:) = 0  ;  dVMNP(:) = 0
+        Do 510 I=1,IM
+        Do 510 L=1,LMOV(I,JM-1)
+        dUMNP(L) = dUMNP(L) - SINI(I)*dVM(I,JM-1,L)
+  510   dVMNP(L) = dVMNP(L) + COSI(I)*dVM(I,JM-1,L)
+        Do 520 L=1,LMOM(1,JM)
+        dUMNP(L) = dUMNP(L)*4*DXPGF(JM) / (IM*DXPGF(JM-1))
+  520   dVMNP(L) = dVMNP(L)*4*DXPGF(JM) / (IM*DXPGF(JM-1))  ;  EndIf
 C****
 C**** Add pressure gradient force to momentum
 C****
-!$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO J=j_0s,j_1s
-        DO I=1,IM
-      DO 610 L=1,LMU(I,J)
-  610 UM(I,J,L) = UM(I,J,L) + DUM(I,J,L)
-      END DO
-      END DO
-!$OMP END PARALLEL DO
-!$OMP PARALLEL DO  PRIVATE(I,J,L)
-      DO J=j_0,j_1s
-        DO I=1,IM
-      DO 630 L=1,LMV(I,J)
-  630 VM(I,J,L) = VM(I,J,L) + DVM(I,J,L)
-      END DO
-      END DO
-!$OMP END PARALLEL DO
-      RETURN
+C**** Update UM away from poles
+C$OMP ParallelDo   Private (I,J,L)
+      Do 630 J=J1,JNP
+      Do 620 I=1,IM
+      Do 610 L=1,LMOU(I,J)
+  610 UM(I,J,L) = UM(I,J,L) + dUM(I,J,L)
+C**** Update VM away from poles
+      Do 620 L=1,LMOV(I,J)
+  620 VM(I,J,L) = VM(I,J,L) + dVM(I,J,L)
+  630 Continue
+C**** UM and VM at poles
+      If (QNP)  Then
+        Do 650 L=1,LMOM(1,JM)
+        UM(IM  ,JM,L) = UM(IM  ,JM,L) + dUMNP(L)
+  650   UM(IVNP,JM,L) = UM(IVNP,JM,L) + dVMNP(L)  ;  EndIf
+      Return
+      End Subroutine OPGF
+
+      Subroutine OPGF0
 C****
-      END SUBROUTINE OPGF
-
-      SUBROUTINE OPGF0
-!@sum  OPGF0 calculates specific volume of each grid box
-!@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+C**** OPGF0 calculates GUP, GDN, SUP and SDN inside each ocean cell,
+C**** which will be kept constant during the dynamics of momentum
 C****
-C**** OPGF0 calculates VOLGSP at two locations inside each grid box,
-C**** which will be kept constant during the dynamics of momentum,
-C**** and calculates two weighted averages from those values
+      Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM,
+     *                 G0M,GZM=>GZMO, S0M,SZM=>SZMO
+      Use OCEAN_DYN, Only: MMI, GUP,GDN, SUP,SDN
+      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Implicit None
+      Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
+      Integer*4 I,J,L,IMAX, J1,JN,JNH
 C****
-      USE CONSTANT, only : grav,rrt12=>byrt12
-      USE OCEAN, only : im,jm,lmo,g0m,gzmo,s0m,szmo,mo,opress,lmm
-     *     ,bydxypo,imaxj,opbot
-      USE OCEAN_DYN, only : dzgdp,vbar,mmi
-      use domain_decomp, only : grid, get
-
-      IMPLICIT NONE
-      INTEGER I,J,L
-      REAL*8, SAVE :: PE
-      REAL*8 PUP,PDN,GUP,GDN,SUP,SDN,VUP,VDN,PBAR,BYMMI
-      REAL*8 VOLGSP
-
-      integer :: j_0,j_1
-
-      call get (grid, j_strt=j_0, j_stop=j_1)
-
-!$OMP PARALLEL DO  PRIVATE(I,J,L,PE,BYMMI,PBAR,PUP,PDN,GUP,GDN,
-!$OMP&                     SUP,SDN,VUP,VDN)
-      DO J=j_0,j_1
-      DO I=1,IMAXJ(J)
-        PE = OPRESS(I,J)
-        DO L=1,LMM(I,J)
-          BYMMI=1d0/MMI(I,J,L)
-          PBAR= PE   + MO(I,J,L)*(GRAV*5d-1)
-          PE  = PE   + MO(I,J,L)* GRAV
-          PUP = PBAR - MO(I,J,L)*(GRAV*RRT12)
-          PDN = PBAR + MO(I,J,L)*(GRAV*RRT12)
-          GUP = (G0M(I,J,L)-2d0*RRT12*GZMO(I,J,L))*BYMMI
-          GDN = (G0M(I,J,L)+2d0*RRT12*GZMO(I,J,L))*BYMMI
-          SUP = (S0M(I,J,L)-2d0*RRT12*SZMO(I,J,L))*BYMMI
-          SDN = (S0M(I,J,L)+2d0*RRT12*SZMO(I,J,L))*BYMMI
-          VUP = VOLGSP(GUP,SUP,PUP)
-          VDN = VOLGSP(GDN,SDN,PDN)
-          DZGDP(I,J,L) = (VUP*(5d-1-RRT12) + VDN*(5d-1+RRT12))*5d-1
-          VBAR(I,J,L) = (VUP + VDN)*5d-1
-        END DO
-        OPBOT(I,J) = PE
-      END DO
-      END DO
-!$OMP END PARALLEL DO
-      RETURN
-      END SUBROUTINE OPGF0
+C**** Extract domain decomposition band parameters
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      JNH = Min(JN+1,JM)    !    5      9     JM     Halo maximum
+C****
+      Call HALO_UPDATE (GRID, MMI, FROM=NORTH)
+      Call HALO_UPDATE (GRID, G0M, FROM=NORTH)
+      Call HALO_UPDATE (GRID, GZM, FROM=NORTH)
+      Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
+      Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
+C****
+C$OMP ParallelDo   Private (I,J,L,IMAX)
+      Do 10 J=J1,JNH
+      IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
+      Do 10 I=1,IMAX
+      Do 10 L=1,LMOM(I,J)
+      GUP(I,J,L) = (G0M(I,J,L) - 2*z12eH*GZM(I,J,L)) / MMI(I,J,L)
+      GDN(I,J,L) = (G0M(I,J,L) + 2*z12eH*GZM(I,J,L)) / MMI(I,J,L)
+      SUP(I,J,L) = (S0M(I,J,L) - 2*z12eH*SZM(I,J,L)) / MMI(I,J,L)
+   10 SDN(I,J,L) = (S0M(I,J,L) + 2*z12eH*SZM(I,J,L)) / MMI(I,J,L)
+      Return
+      End Subroutine OPGF0
 
       SUBROUTINE OADVT (RM,RX,RY,RZ,DT,QLIMIT, OIJL)
 !@sum  OADVT advects tracers using the linear upstream scheme.
@@ -2254,7 +2196,7 @@ C****
 !$OMP END PARALLEL DO
 
 C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
-      IF(ICKERR.EQ.0)  RETURN
+      IF(ICKERR == 0)  RETURN
       DO 440 L=1,LMO
       DO 440 J=J_0S,J_1S
       DO 440 I=1,IM
@@ -2372,7 +2314,7 @@ c****
 
         if (ierr.gt.0) then
           write(6,*) "Error in oadvty: i,j,l=",err_loc
-          if (ierr.eq.2) then
+          if (ierr == 2) then
 ccc         write(0,*) "Error in qlimit: abs(b) > 1"
 ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
             ICKERR=ICKERR+1
@@ -2771,8 +2713,8 @@ C**** Loop over latitudes and longitudes
       DO J=J_0,J_1
         IMIN=1
         IMAX=IM
-        IF (J.EQ.1) IMIN=IM
-        IF (J.EQ.JM) IMAX=1
+        IF (J == 1) IMIN=IM
+        IF (J == JM) IMAX=1
         DO I=IMIN,IMAX
       CM(0) = 0.
        C(0) = 0.
@@ -2896,12 +2838,12 @@ C****
 !$OMP END PARALLEL DO
 
 C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
-      IF(ICKERR.EQ.0)  RETURN
+      IF(ICKERR == 0)  RETURN
       DO J=J_0,J_1
         IMIN=1
         IMAX=IM
-        IF (J.EQ.1) IMIN=IM
-        IF (J.EQ.JM) IMAX=1
+        IF (J == 1) IMIN=IM
+        IF (J == JM) IMAX=1
         DO I=IMIN,IMAX
         LMIJ=LMM(I,J)
         DO L=1,LMIJ
@@ -2919,18 +2861,18 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       call stop_model("OADVTZ",255)
       END SUBROUTINE OADVTZ
 
-      SUBROUTINE OBDRAG
+      Subroutine OBDRAG
 !@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
 !@auth Gary Russell
 !@ver  1.0
-      USE OCEAN, only : im,jm,lmo,mo,uo,vo,lmu,lmv,dts
+      Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
+     *                 COSI=>COSIC,SINI=>SINIC
       use domain_decomp, only : grid, get, halo_update, north, south
 
-      IMPLICIT NONE
-      INTEGER, PARAMETER :: IQ1=1+IM/4, IQ2=IQ1+IM/4, IQ3=IQ2+IM/4
+      Implicit None
       REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1
       REAL*8,DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO):: UT,VT
-      INTEGER I,J,L,IP1,JV,IM1
+      Integer*4 I,J,L,Ip1,Im1
       REAL*8 WSQ
 
       INTEGER :: J_0, J_0S,J_1S  ; logical :: have_north_pole
@@ -2940,63 +2882,75 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 C****
 C**** UO = UO*(1-x/y)  is approximated by  UO*y/(y+x)  for stability
 C****
-C**** Save UO,VO into UT,VT which will be unchanged
       call halo_update (grid, mo, FROM=NORTH)
       call halo_update (grid, uo, FROM=NORTH)
       call halo_update (grid, vo, FROM=SOUTH)
-!$OMP PARALLEL DO  PRIVATE(L)
+C**** Save UO,VO into UT,VT which will be unchanged
+!$OMP ParallelDo   Private (L)
       DO 10 L=1,LMO
         UT(:,:,L) = UO(:,:,L)
  10     VT(:,:,L) = VO(:,:,L)
-!$OMP END PARALLEL DO
+!$OMP EndParallelDo
 C****
 C**** Reduce West-East ocean current
 C****
 C**** Bottom drag in the interior
+!$OMP ParallelDo   Private (I,J,L,Ip1, WSQ)
+      DO 120 J=max(J1O,J_0),J_1S
       I=IM
-      DO 120 J=J_0S,J_1S
       DO 110 IP1=1,IM
-      IF(LMU(I,J).LE.0)  GO TO 110
+      IF(LMU(I,J) <= 0)  GO TO 110
       L=LMU(I,J)
       WSQ = UT(I,J,L)*UT(I,J,L) + 1d-20 +
-     *  2.5d-1*(VT(I,J  ,L)*VT(I,J  ,L) + VT(IP1,J  ,L)*VT(IP1,J  ,L)
+     *  .25*(VT(I,J  ,L)*VT(I,J  ,L) + VT(IP1,J  ,L)*VT(IP1,J  ,L)
      *     + VT(I,J-1,L)*VT(I,J-1,L) + VT(IP1,J-1,L)*VT(IP1,J-1,L))
       UO(I,J,L) = UO(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
      *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
   110 I=IP1
   120 CONTINUE
 C**** Bottom drag at the poles
+C     IF(LMU(1,1 or JM) <= 0)  GO TO
       if (have_north_pole) then
-      J=JM
-      JV=JM-1
-C     IF(LMU(1,J).LE.0)  GO TO
-      L=LMU(1,J)
-      WSQ = UT(1,J,L)*UT(1,J,L) + 1d-20 +
-     *  2.5d-1*(VT(  1,JV,L)*VT(  1,JV,L) + VT(IQ1,JV,L)*VT(IQ1,JV,L)
-     *     + VT(IQ2,JV,L)*VT(IQ2,JV,L) + VT(IQ3,JV,L)*VT(IQ3,JV,L))
-      UO(1,J,L) = UO(1,J,L) * MO(1,J,L) /
-     *           (MO(1,J,L) + DTS*BDRAGX*SQRT(WSQ))
-      DO 130 I=2,IM
-  130 UO(I,J,L) = UO(1,J,L)
+        L=LMU(1,JM)
+        WSQ = UT(IM,JM,L)**2 + UT(IVNP,JM,L)**2 + 1d-20
+        UO(IM,JM,L) = UO(IM,JM,L) * MO(1,JM,L) /
+     /                           (MO(1,JM,L) + DTS*BDRAGX*Sqrt(WSQ))
+        UO(IVNP,JM,L) = UO(IVNP,JM,L) * MO(1,JM,L) /
+     /                           (MO(1,JM,L) + DTS*BDRAGX*Sqrt(WSQ))
       end if
 C****
 C**** Reduce South-North ocean current
 C****
+!$OMP ParallelDo   Private (I,J,L,Im1, WSQ)
+      Do 240 J=max(J1O,J_0),J_1S
+      If (J==JM-1)  GoTo 220
+C**** Bottom drag away from north pole
       IM1=IM
-      DO 220 J=J_0,J_1S  ! J_0S ???
       DO 210 I=1,IM
-      IF(LMV(I,J).LE.0)  GO TO 210
+      IF(LMV(I,J) <= 0)  GO TO 210
       L=LMV(I,J)
       WSQ = VT(I,J,L)*VT(I,J,L) + 1d-20 +
-     *  2.5d-1*(UT(IM1,J+1,L)*UT(IM1,J+1,L) + UT(I,J+1,L)*UT(I,J+1,L)
+     *  .25*(UT(IM1,J+1,L)*UT(IM1,J+1,L) + UT(I,J+1,L)*UT(I,J+1,L)
      *     + UT(IM1,J  ,L)*UT(IM1,J  ,L) + UT(I,J  ,L)*UT(I,J  ,L))
       VO(I,J,L) = VO(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
      *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
   210 IM1=I
-  220 CONTINUE
+      GoTo 240
+C**** Bottom drag near north pole
+  220 Im1=IM
+      Do 230 I=1,IM
+      If (LMV(I,JM-1) <= 0)  GoTo 230
+      L = LMV(I,JM-1)
+      WSQ = VT(I,JM-1,L)*VT(I,JM-1,L) + 1d-20 +
+     +   .5*(UT(IM,JM,L)*COSI(I) + UT(IVNP,JM,L)*SINI(I))**2 +
+     +  .25*(UT(Im1,JM-1,L)*UT(Im1,JM-1,L) + UT(I,JM-1,L)*UT(I,JM-1,L))
+      VO(I,JM-1,L) = VO(I,JM-1,L) * (MO(I,JM-1,L)+MO(1,JM,L)) /
+     *              (MO(I,JM-1,L)+MO(1,JM,L) + DTS*BDRAGX*SQRT(WSQ)*2)
+  230 Im1=I
+  240 Continue
       RETURN
 C****
-      END SUBROUTINE OBDRAG
+      END Subroutine OBDRAG
 
       SUBROUTINE OCOAST
 !@sum OCOAST reduces the horizontal perpendicular gradients of tracers
@@ -3059,8 +3013,8 @@ C**** Reduce South-North gradient of tracers
 !@sum and the sea ice stress to the layer 1 ocean velocities
 !@auth Gary Russell
 !@ver  1.0
-      USE OCEAN, only : im,jm,uo,vo,mo,dxyso,dxyno,dxyvo,lmu,lmv,cosic
-     *     ,sinic,ratoc
+      USE OCEAN, only : im,jm,ivnp,uo,vo,mo,dxyso,dxyno,dxyvo,
+     *                  lmu,lmv,cosic,sinic,ratoc
       USE FLUXES, only : dmua,dmva,dmui,dmvi
       use domain_decomp, only : grid, get, halo_update, north
 
@@ -3101,8 +3055,10 @@ C****
         I=IP1
       END DO
       END DO
-      if (have_north_pole)
-     *  UO(1,JM,1) = UO(1,JM,1)*(1d0 - DMUA(2,JM,1)/MO(1,JM,1))
+      if (have_north_pole) then
+        UO(IM  ,JM,1) = UO(IM  ,JM,1) + DMUA(1,JM,1)/MO(1,JM,1)
+        UO(IVNP,JM,1) = UO(IVNP,JM,1) + DMVA(1,JM,1)/MO(1,JM,1)
+      end if
 C****
 C**** Surface stress is applied to V component
 C****
@@ -3481,6 +3437,7 @@ C****
       USE CONSTANT, only :twopi,rhows,omega,radius
 !mpi  USE OCEAN, only : im,jm,lmo,mo,uo,vo,   ! ???
       USE OCEAN, only : im,jm,lmo,mo=>mo_glob,uo=>uo_glob,vo=>vo_glob,
+     *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,
      *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
 !mpi  USE OCEAN_DYN, only : dh  ! ???
       USE OCEAN_DYN, only : dh=>dh_glob
@@ -3629,12 +3586,26 @@ C**** At North Pole
         END IF
       END DO
       END IF
+C**** End of initialization from first call to ODIFF
+C****
 C**** Solve diffusion equations semi implicitly
+C****
       DT2=DTDIFF*5d-1     ! half time-step
+C**** Store North Pole velocity components, they will not be changed
+c     if(have_north_pole) then
+      UONP(:) = UO(IM  ,JM,:)
+      VONP(:) = UO(IVNP,JM,:)
+c     end if
+C****
 !$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
 !$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RU,RV,
 !$OMP&  UU,UV,UT,UY,UX, VT,VY,VX)
       DO L=1,LMO
+C**** Calculate rotating polar velocities from UONP and VONP
+c     if(have_north_pole) then
+      UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
+      VO(:,JM,L) = VONP(L)*COSI(:) - UONP(L)*SINI(:)
+c     end if
 C**** Save (0.5*) mass reciprical for velocity points
       DO J=2,JM-1
         I=IM
@@ -3690,7 +3661,7 @@ C****
           VY=VY*BYDYP(J)
           VX=VX*BYDXV(J)
 C**** Calculate fluxes (including FSLIP condition)
-          IF (FSLIP.EQ.1.) THEN
+          IF (FSLIP == 1.) THEN
             IF (L.LE.LMV(I,J) .AND. L.LE.LMV(IM1,J))
      *           FUY(IM1,J)=KHV(J)*VX
             IF (L.LE.LMU(I,J) .AND. L.LE.LMU(I,J+1))
@@ -3723,8 +3694,8 @@ C**** Minor complication due to cyclic nature of boundary condition
             RU(II) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
      *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
 C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I.eq.1 ) RU(II)=RU(II) + DTU*UXA(I,J,L)*UO(IM,J,L)
-            IF (I.eq.IM) RU(II)=RU(II) + DTU*UXC(I,J,L)*UO(1,J,L)
+            IF (I == 1 ) RU(II)=RU(II) + DTU*UXA(I,J,L)*UO(IM,J,L)
+            IF (I == IM) RU(II)=RU(II) + DTU*UXC(I,J,L)*UO(1,J,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
@@ -3738,8 +3709,8 @@ C**** Add Wasjowicz cross-terms to RU + second metric term
             RV(II) = VO(I,J,L) + DTV*(VYA(I,J,L)*VO(I,J-1,L)
      *           +VYB(I,J,L)*VO(I,J,L) + VYC(I,J,L)*VO(I,J+1,L))
 C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I.eq.1 ) RV(II)=RV(II) + DTV*VXA(I,J,L)*VO(IM,J,L)
-            IF (I.eq.IM) RV(II)=RV(II) + DTV*VXC(I,J,L)*VO(1,J,L)
+            IF (I == 1 ) RV(II)=RV(II) + DTV*VXA(I,J,L)*VO(IM,J,L)
+            IF (I == IM) RV(II)=RV(II) + DTV*VXC(I,J,L)*VO(1,J,L)
 C**** Add Wasjowicz cross-terms to RV + second metric term
             RV(II) = RV(II) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
@@ -3750,20 +3721,20 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
         END DO
       END DO
 C**** At North Pole (no metric terms)
-      BU(IIP) = 1d0
-      BV(IIP) = 1d0
-      IF (L.LE.LMU(1,JM)) THEN
-      DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
-        RU(IIP) = UO(1,JM,L) +DTU*UYPB(L)*UO(1,JM,L)
-        DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
-          RU(IIP) = RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
-     *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
-        END DO
-      END IF
+c     BU(IIP) = 1d0
+c     BV(IIP) = 1d0
+c     IF (L.LE.LMU(1,JM)) THEN
+c     DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
+c       RU(IIP) = 0.
+c       DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
+c         RU(IIP) = RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
+c    *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
+c       END DO
+c     END IF
 C**** Call tridiagonal solver
-      CALL TRIDIAG(AU,BU,CU,RU,UU,IIP)
-      CALL TRIDIAG(AV,BV,CV,RV,UV,IIP)
-      DO II=1,IIP
+      CALL TRIDIAG(AU,BU,CU,RU,UU,IIP-1)
+      CALL TRIDIAG(AV,BV,CV,RV,UV,IIP-1)
+      DO II=1,IIP-1
         J= 2 + (II-1)/IM
         I= II-(J-2)*IM
         UO(I,J,L) = UU(II)
@@ -3771,10 +3742,11 @@ C**** Call tridiagonal solver
 c        UO(II,2,L) = UU(II)   ! this cycles through correctly
 c        VO(II,2,L) = UV(II)
       END DO
-      DO I=2,IM
-        UO(I,JM,L) = UO(1,JM,L)
-      END DO
+C****
 C**** Now do semi implicit solution in y
+C**** Recalculate rotating polar velocities from UONP and VONP
+C     UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
+C     VO(:,JM,L) = VONP(L)*COSI(:) - UONP(L)*SINI(:)
 C**** Calc. cross-term fluxes + second metric term (at half time step)
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
       FUX=0             ! flux in U equation at the x_+ boundary
@@ -3820,7 +3792,7 @@ C****
           VY=VY*BYDYP(J)
           VX=VX*BYDXV(J)
 C**** Calculate fluxes (including FSLIP condition)
-          IF (FSLIP.EQ.1.) THEN
+          IF (FSLIP == 1.) THEN
             IF (L.LE.LMV(I,J) .AND. L.LE.LMV(IM1,J))
      *           FUY(IM1,J)=KHV(J)* VX
             IF (L.LE.LMU(I,J) .AND. L.LE.LMU(I,J+1))
@@ -3852,8 +3824,8 @@ C**** Minor complication due to singular nature of polar box
             IF (J.lt.JM-1) CU(II) =     - DTU*UYC(I,J,L)
             RU(II) = UO(I,J,L) + DTU*(UXA(I,J,L)*UO(IM1,J,L)
      *           +UXB(I,J,L)*UO(I,J,L) + UXC(I,J,L)*UO(IP1,J,L))
-C**** Make properly tridiagonal by making explicit polar terms
-            IF (J.eq.JM-1) RU(II)=RU(II) + DTU*UYC(I,J,L)*UO(1,JM,L)
+c**** Make properly tridiagonal by making explicit polar terms
+            IF (J == JM-1) RU(II)=RU(II) + DTU*UYC(I,J,L)*UO(I,JM,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
@@ -3866,6 +3838,8 @@ C**** Add Wasjowicz cross-terms to RU + second metric term
             IF (J.lt.JM-1) CV(II) =     - DTV*VYC(I,J,L)
             RV(II) = VO(I,J,L) + DTV*(VXA(I,J,L)*VO(IM1,J,L)
      *           +VXB(I,J,L)*VO(I,J,L) + VXC(I,J,L)*VO(IP1,J,L))
+c**** Make properly tridiagonal by making explicit polar terms
+            IF (J == JM-1) RV(II)=RV(II) + DTV*VYC(I,J,L)*VO(I,JM,L)
 C**** Add Wasjowicz cross-terms to RV + second metric term
             RV(II) = RV(II) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
@@ -3876,33 +3850,35 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
         END DO
       END DO
 C**** At North Pole (do partly explicitly) no metric terms
-      BU(IIP) = 1d0
-      BV(IIP) = 1d0
-      IF (L.LE.LMU(1,JM)) THEN
-        DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
-        BU(IIP) = BU(IIP) - DTU*UYPB(L)
-        RU(IIP) = UO(1,JM,L)
-        DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
-          RU(IIP)= RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
-     *         - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
-        END DO
-      END IF
+c     BU(IIP) = 1d0
+c     BV(IIP) = 1d0
+c     IF (L.LE.LMU(1,JM)) THEN
+c       DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
+c       BU(IIP) = BU(IIP) - DTU*UYPB(L)
+c       RU(IIP) = UO(1,JM,L)
+c       DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
+c         RU(IIP)= RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
+c    *         - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
+c       END DO
+c     END IF
 C**** Call tridiagonal solver
-      CALL TRIDIAG(AU,BU,CU,RU,UU,IIP)
-      CALL TRIDIAG(AV,BV,CV,RV,UV,IIP)
+      CALL TRIDIAG(AU,BU,CU,RU,UU,IIP-1)
+      CALL TRIDIAG(AV,BV,CV,RV,UV,IIP-1)
       DO II=1,IIP-1
         I= 1 + (II-1)/(JM-2)
         J= 1 + II - (I-1)*(JM-2)
         UO(I,J,L) = UU(II)
         VO(I,J,L) = UV(II)
       END DO
-      DO I=1,IM
-        UO(I,JM,L) = UU(IIP)
-      END DO
 C****
       END DO
 !$OMP END PARALLEL DO
-C**** Done!
+C**** Restore unchanged UONP and VONP into prognostic locations in UO
+c     if(have_north_pole) then
+      UO(IM  ,JM,:) = UONP(:)
+      UO(IVNP,JM,:) = VONP(:)
+c     end if
+C****
       RETURN
       END SUBROUTINE ODIFF
 
@@ -3914,8 +3890,9 @@ C**** Done!
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
 #endif
-      USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm,ogeoz,uo
-     *     ,vo,ogeoz_sv
+      USE OCEAN, only : im,jm,IVSP,IVNP, imaxj,dxypo,lmm,
+     *     COSU,SINU, COSI=>COSIC,SINI=>SINIC,
+     *     focean,g0m,s0m,mo,ogeoz,uo,vo,ogeoz_sv
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
@@ -3970,13 +3947,14 @@ C****
 C**** do poles
       if (HAVE_NORTH_POLE) then
       IF (FOCEAN(1,JM).gt.0) THEN
-        VOSURF(1,JM)=0.
+        UOSURF(1,JM) = UO(IM,JM,1)*COSU(1) + UO(IVNP,JM,1)*SINU(1)
+        VOSURF(1,JM) = UO(IVNP,JM,1)*COSI(1) - UO(IM,JM,1)*SINI(1)
         DO I=2,IM
           GTEMP(:,1,I,JM)=GTEMP(:,1,1,JM)
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
-          UOSURF(I,JM)=UOSURF(1,JM)
-          VOSURF(I,JM)=0.
+          UOSURF(I,JM) = UO(IM,JM,1)*COSU(I) + UO(IVNP,JM,1)*SINU(I)
+          VOSURF(I,JM) = UO(IVNP,JM,1)*COSI(I) - UO(IM,JM,1)*SINI(I)
           OGEOZA(I,JM)=OGEOZA(1,JM)
 #ifdef TRACERS_WATER
           GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
@@ -3985,21 +3963,21 @@ C**** do poles
       END IF
       end if
 
-      if (HAVE_SOUTH_POLE) then
-      IF (FOCEAN(1,1).gt.0) THEN
-        DO I=2,IM
-          GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
-          SSS(I,1)=SSS(1,1)
-          MLHC(I,1)=MLHC(1,1)
-          UOSURF(I,1)=UOSURF(1,1)
-          VOSURF(I,1)=VOSURF(1,1)
-          OGEOZA(I,1)=OGEOZA(1,1)
+c     if (HAVE_SOUTH_POLE) then
+c     IF (FOCEAN(1,1).gt.0) THEN
+c       DO I=2,IM
+c         GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
+c         SSS(I,1)=SSS(1,1)
+c         MLHC(I,1)=MLHC(1,1)
+c         UOSURF(I,1) = UO(IM,1,1)*COSU(1) - UO(IVSP,1,1)*SINU(1)
+c         VOSURF(I,0) = UO(IVSP,1,1)*COSI(I) - UO(IM,1,1)*SINI(I)
+c         OGEOZA(I,1)=OGEOZA(1,1)
 #ifdef TRACERS_WATER
-          GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
+c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
-        END DO
-      END IF
-      end if
+c       END DO
+c     END IF
+c     end if
       RETURN
 C****
       END SUBROUTINE TOC2SST
@@ -4014,7 +3992,7 @@ C****
       SUBROUTINE ADVSI_DIAG
 !@sum ADVSI_DIAG dummy routine for consistency with qflux model
       RETURN
-      END
+      END SUBROUTINE ADVSI_DIAG
 
       SUBROUTINE AT2OT(FIELDA,FIELDO,NF,QCONSERV)
 !@sum  AT2OT interpolates Atm Tracer grid to Ocean Tracer grid

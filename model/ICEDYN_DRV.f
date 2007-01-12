@@ -1,3 +1,6 @@
+C****
+C**** ICEDYN_DRV.f    Sea ICE DYNamics    2006/12/21
+C****
 #include "rundeck_opts.h"
 
       MODULE ICEDYN_COM
@@ -104,8 +107,8 @@ C**** Ice advection diagnostics
 !    parallelization along latitude (j)
       grid_MIC =grid
 
-C**** Get dimensioning parameters for arrays defined in the grid  and grid_MIC 
-C**** stencils.
+C**** Get dimensioning parameters for arrays defined in the grid  and 
+C**** grid_MIC stencils.
 
       CALL GET(grid    , J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
       CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
@@ -228,7 +231,7 @@ C****
       REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ_GLOB
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRICDIAG01"
-      
+
       write(TR_MODULE_HEADER(lhead+1:80),'(a9,i3,a1,i3,a1,i2,a1,i2,a4)')
      *     'R8 Ticij(',imic,',',jmic,',',kticij,',',ntm,'),it'
 #endif
@@ -524,7 +527,7 @@ C**** Update halo for HEFF
 c**** set north pole
       if (grid%HAVE_NORTH_POLE) then
         do i=1,nx1
-          AMASS(i,jm)= RHOI*HEFF(1,JM) 
+          AMASS(i,jm)= RHOI*HEFF(1,JM)
           COR  (i,jm)= AMASS(i,jm)*2.0*OMEGA*SINEN(1,JM)
         end do
       end if                    !end NORTH_POLE block if
@@ -554,8 +557,8 @@ c**** set north pole
       if (grid%HAVE_NORTH_POLE) then
         do i=1,im
           UIB  (i,jm)=USI(1,jm)
-          GWATX(i,jm)=UOSURF(1,jm)
-          PGFUB(i,jm)=PGFU(1,jm)
+          GWATX(i,jm)=0.
+          PGFUB(i,jm)=0.
           VIB  (i,jm)=0.
           GWATY(i,jm)=0.
           PGFVB(i,jm)=0.
@@ -786,7 +789,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE DIAG_COM, only : oa
       IMPLICIT NONE
 !      REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     FASI, FXSI, FYSI, FAW
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
 #ifndef TRACERS_WATER
@@ -847,7 +850,7 @@ C**** Regularise ice concentration gradients to prevent advection errors
       END DO
       END DO
 
-C**** update RSISAVE for diagnostics 
+C**** update RSISAVE for diagnostics
       RSISAVE(:,:)=RSI(:,:)
 
 C**** set up local MHS array to contain all advected quantities
@@ -1280,7 +1283,7 @@ C**** ensure that salinity is only associated with ice
               SSI(1,I,J)=SICE*(XSI(1)*ACE1I-XSI(2)*SNOWI(I,J))/ACE1I
             END IF
             SSI(2,I,J)=SICE-SSI(1,I,J)
-C**** correction of heat energy to compensate for salinity fix            
+C**** correction of heat energy to compensate for salinity fix 
             HSI(1,I,J)=HSI(1,I,J)-(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
             HSI(2,I,J)=HSI(2,I,J)+(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
             DO L=3,LMI

@@ -1,24 +1,36 @@
+C****   
+C**** OCEAN_COM.f    Module Variables for Ocean    2007/01/12
+C****
 #include "rundeck_opts.h"
 
-      MODULE OCEAN
+      Module OCEAN
 !@sum  OCEAN dynamic ocean related variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
-      USE MODEL_COM, only : im,jm,fim,byim
-      USE GEOM, only : imaxj
+      Use CONSTANT,  Only: TWOPI
+      Use MODEL_COM, Only: IM,JM, FIM,BYIM, IVNP,IVSP
+      Use GEOM,      Only: imaxj
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm
+      Use TRACER_COM, Only : ntm
 #endif
-      IMPLICIT NONE
-      SAVE
-      INTEGER, PARAMETER :: LMO=13 !@param LMO max no. of ocean levels
-      INTEGER :: LMO_min = 1 !@dbparam LMO_min min no. of ocean levels
-!@param LSRPD level of solar radiation penetration depth
-      INTEGER, PARAMETER :: LSRPD=3
-!@param ZE1,ZERAT control the grid spacing in the vertical
-      REAL*8, PARAMETER :: ZE1=12d0,ZERAT=1.5d0
+      Implicit None
+      Integer*4,Parameter ::
+     *  LMO=13,             !  @param LMO max # of ocean layers
+     *  LSRPD = 3,          !  deepest layer for solar radiation
+!!   *  IVSP = 3*IM/4,      !  V at south pole is stored in U(IVSP,1)
+!!   *  IVNP =   IM/4,      !  V at north pole is stored in U(IVNP,JM)
+     *  JLATD = 180/(JM-1)  !  LATitudinal spacing in degrees
+      Real*8,Parameter ::
+     *  ZE1   = 12,
+     *  ZERAT = 1.5,
+     *  DLON  = TWOPI/IM,        !  LONgitudinal spacing in radians
+     *  DLAT  = TWOPI*JLATD/360, !  LATitudinal spacing in radians
+     *  FJEQ  = .5*(1+JM)        !  J coordinate of the EQuator
+
+      Integer*4 ::
+     *  LMO_MIN = 1  !  @dbparam LMO_MIN min # of ocean layers
 
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)
@@ -32,20 +44,34 @@ C**** Global arrays needed for i/o, GM,straits,odiff ?
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
 
+      Real*8 UONP(LMO), !  U component at north pole, points down 90W
+     *       VONP(LMO)  !  V component at north pole, points down 0 (GM)
+
 C**** ocean geometry (should this be in a separate module?)
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: COSVO
-      REAL*8, DIMENSION(IM) :: SINIC,COSIC
-      REAL*8, DIMENSION(LMO) :: DSIGO,SIGO
+      Real*8 DSIGO(LMO),SIGO(LMO),
+     *  dZO(LMO)  !  = ZE(L) - ZE(L-1)
       REAL*8, DIMENSION(0:LMO) :: SIGEO,ZE
-      INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV   ! fixed arrays
+      Real*8
+     *  DXPGF(0:JM),! DXYV/dYPGF is north-south distance used in PGF
+     *  DYPGF(JM), !  DXYP/dXPGF is east-west distance used in PGF
+     *  COSM(JM),  !  = .5*COSV(J-1) + .5*COSV(J)
+     *  COSQ(JM),  !  sQuare of COSine = .5*COSV(J-1)^2 + .5*COSV(J)^2
+     *  SINIC(IM), !  SINe of longitude of grid cell center from IDL
+     *  COSIC(IM), !  COSine of longitude of grid cell center from IDL
+     *  SINU(IM),  !  SINe of longitude of eastern edge of grid cell
+     *  COSU(IM),  !  COSine of longitude of eastern edge of grid cell
+     *  SINxY(JM), !  DLAT * SINe of latitude used by Coriolis force
+     *  TANxY(JM)  !  DLAT * TANgent of latitude used by metric term
+      INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV
 !@var RATOC,ROCAT Ratio of areas for converting atm. fluxes to ocean
       REAL*8, DIMENSION(JM) :: RATOC,ROCAT
-!@var J40S max. grid box below 40S (used in OPFIL)
-      INTEGER :: J40S
+      Integer*4 J40S, !  maximum grid cell below 40S (used in OPFIL)
+     *           J1O  !  most southern latitude (J) where ocean exists
 
-      REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN ! fixed arrays
+      REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
 C**** ocean related parameters
       INTEGER NDYNO,MDYNO,MSGSO
 !@dbparam DTO timestep for ocean dynamics (s)
@@ -151,33 +177,31 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       RETURN
       end subroutine scatter_ocean
 
-      END MODULE OCEAN
+      END Module OCEAN
 
-      MODULE OCEAN_DYN
+      Module OCEAN_DYN
 !@sum  OCEAN_DYN contains variables used in ocean dynamics
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
-      USE OCEAN, only : im,jm,lmo
-      IMPLICIT NONE
-      SAVE
-C**** variables for the pressure gradient terms
-!@var PO ocean pressure field
-!@var PHI ocean geopotential
+      Use OCEAN, Only : im,jm,lmo
 !@var DH height of each ocean layer
-!@var DZGDP
 !@var VBAR mean specific volume of each layer
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PO,PHI,DH,DZGDP,VBAR !  (IM,JM,LMO)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DH,VBAR !  (IM,JM,LMO)
       REAL*8, DIMENSION(IM,JM,LMO) :: DH_glob,VBAR_glob ! for serial ocnGM ???
+
+!@var GUP,GDN specific pot enthropy upper,lower part of layer (J/kg)
+!@var SUP,SDN salinity at           upper,lower part of layer (1)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GUP,GDN,SUP,SDN
 
 C**** momentum and mass fluxes
 !@var MMI initial mass field (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MMI  !  (IM,JM,LMO)
 !@var SMU,SMV,SMW integrated mass fluxes
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SMU,SMV,SMW   !  (IM,JM,LMO)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SMU,SMV,SMW ! (IM,JM,LMO)
 !@var CONV mass flux convergence
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CONV      !  (IM,JM,LMO)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CONV      !   (IM,JM,LMO)
 !@var MU,MV,MW instantaneous mass fluxes
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MU,MV,MW  !  (IM,JM,LMO)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MU,MV,MW  !   (IM,JM,LMO)
 C****
 
       contains
@@ -204,15 +228,14 @@ C****
       return
       end subroutine scatter_ocndyn
 
-      END MODULE OCEAN_DYN
+      END Module OCEAN_DYN
 
-      MODULE SW2OCEAN
+      Module SW2OCEAN
 !@sum  SW2OCEAN variables for putting solar radiation into ocean
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
-      USE OCEAN, only : ze
-      IMPLICIT NONE
-      SAVE
+      Use OCEAN, Only : ze
+      Implicit None
       INTEGER, PARAMETER :: LSRPD = 3
       REAL*8, DIMENSION(LSRPD) :: FSR,FSRZ,dFSRdZ,dFSRdZB
       REAL*8, PARAMETER :: RFRAC=.62d0, ZETA1=1.5d0, ZETA2=2d1
@@ -243,7 +266,7 @@ C****
 C****
       END SUBROUTINE init_solar
 C****
-      END MODULE SW2OCEAN
+      END Module SW2OCEAN
 
       SUBROUTINE alloc_ocean(grid)
 !@sum  To allocate arrays who sizes now need to be determined at
@@ -261,7 +284,7 @@ C****
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
       USE TRACER_COM, only : ntm
 #endif
-      USE OCEAN_DYN, only : PO,PHI,DH,DZGDP,VBAR
+      USE OCEAN_DYN, only : DH,VBAR, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
 
       IMPLICIT NONE
@@ -293,11 +316,15 @@ C****
       ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
 #endif
-      ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)
+!!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
+!!!   ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   DH(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(DZGDP(IM,J_0H:J_1H,LMO), STAT = IER)
+!!!   ALLOCATE(DZGDP(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( VBAR(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(  GUP(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(  GDN(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(  SUP(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(  SDN(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  MMI(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  SMU(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  SMV(IM,J_0H:J_1H,LMO), STAT = IER)

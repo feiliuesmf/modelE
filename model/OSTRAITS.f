@@ -297,23 +297,24 @@ C****
       USE OCEAN, only : im,jm,lmo, ze, dxypo, mo=>mo_glob, gather_ocean
      *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
      *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
+     *  ,dlat,dlon,fjeq
       USE STRAITS, only : dist,wist,nmst,distpg,rsist,rsixst,msist,hsist
      *     ,ssist,mmst,g0mst,s0mst,gxmst,sxmst,gzmst,szmst,must,lmst,ist
      *     ,jst,xst,yst
       use domain_decomp, only: am_i_root
       IMPLICIT NONE
       INTEGER I,J,L,N,I1,J1,I2,J2
-      REAL*8 DLON,DLAT,FLAT,DFLON,DFLAT,SLAT,DSLON,DSLAT,TLAT,DTLON
-     *     ,DTLAT,G01,GZ1,S01,SZ1,G02,GZ2,S02,SZ2,FJEQ
+      REAL*8 FLAT,DFLON,DFLAT,SLAT,DSLON,DSLAT,TLAT,DTLON
+     *     ,DTLAT,G01,GZ1,S01,SZ1,G02,GZ2,S02,SZ2
       LOGICAL, INTENT(IN) :: iniOCEAN
 C****
 C**** Calculate distance of strait, distance between centers of
 C**** ocean grid boxes through strait for pressure gradient force,
 C**** and mass of water in the strait
 C****
-      DLON = TWOPI/IM
-      DLAT = NINT(180d0/(JM-1))*TWOPI/360d0
-      FJEQ = (JM+1d0)/2d0
+cc    DLON = TWOPI/IM
+cc    DLAT = NINT(180d0/(JM-1))*TWOPI/360d0
+cc    FJEQ = (JM+1d0)/2d0
       DO N=1,NMST
       DSLON = (IST(N,2)+5d-1*XST(N,2)-IST(N,1)-5d-1*XST(N,1))*DLON
       DSLAT = (JST(N,2)+5d-1*YST(N,2)-JST(N,1)-5d-1*YST(N,1))*DLAT

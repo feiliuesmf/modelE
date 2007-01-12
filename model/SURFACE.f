@@ -1,3 +1,6 @@
+C**** 
+C**** SURFACE.f    SURFACE fluxes    2006/12/21
+C****
 #include "rundeck_opts.h"
 
       SUBROUTINE SURFCE
@@ -13,7 +16,7 @@
      &     ,grav
 #endif
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
-     *     ,idacc,ndasf,fland,flice,focean
+     *     ,idacc,ndasf,fland,flice,focean,IVSP,IVNP
      *     ,nday,modrd,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
@@ -207,7 +210,7 @@ c
 
       REAL*8, DIMENSION(n_idx4,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: diurn_part
-      REAL*8, 
+      REAL*8,
      &     DIMENSION(n_idx3,grid%J_STRT_HALO:grid%J_STOP_HALO,NDIUPT)::
      &     diurn_partb
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,n_idx3)::
@@ -229,7 +232,7 @@ c
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, 
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,        J_STOP=J_1)
 
       NSTEPS=NIsurf*ITime
@@ -286,8 +289,7 @@ C**** Set up tracers for PBL calculation if required
       ntx = nx
 #endif
 
-      Call HALO_UPDATE(GRID, uosurf, FROM=SOUTH+NORTH)
-      Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID,u,FROM=SOUTH+NORTH)
@@ -295,7 +297,7 @@ C**** Set up tracers for PBL calculation if required
 
       diurn_part=0
 
-      idx1 = (/ IDD_SPR, 
+      idx1 = (/ IDD_SPR,
      &     IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1,
      &     IDD_Q5,  IDD_Q4,  IDD_Q3,  IDD_Q2,  IDD_Q1 /)
       idx2 = (/ IDD_TS,  IDD_TG1, IDD_QS,  IDD_QG,  IDD_SWG,
@@ -430,7 +432,7 @@ C**** SSH does not work for qflux/fixed SST configurations
            AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+GTEMP(1,1,I,J)
            AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)
            AIJ(I,J,IJ_SSH)=AIJ(I,J,IJ_SSH)+OGEOZA(I,J)*BYGRAV+
-     *          RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS 
+     *          RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS
          END IF
 C****
       DO ITYPE=1,3       ! no earth type
@@ -466,16 +468,10 @@ C**** limit on tracer evporation from lake
         if (UOdrag.eq.1) then ! use uocean for drag calculation
 C**** Convert UOSURF,VOSURF from C grid to A grid
 C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
-          if (pole) then
-            uocean = 0. ; vocean = 0.
-            do k=1,kmaxj(j)
-              uocean = uocean + rapj(k,j)*(uosurf(idij(k,i,j),idjj(k,j)
-     *             -1)*cosip(k)-hemi*vosurf(idij(k,i,j),idjj(k,j)-1)
-     *             *sinip(k))
-              vocean = vocean + rapj(k,j)*(vosurf(idij(k,i,j),idjj(k,j)
-     *             -1)*cosip(k)+hemi*uosurf(idij(k,i,j),idjj(k,j)-1)
-     *             *sinip(k))
-            end do
+          if (j==1) then
+            uocean = uosurf(im,1)   ; vocean = uosurf(ivsp,1)
+          else if (j==jm) then
+            uocean = uosurf(im,jm)  ; vocean = uosurf(ivnp,jm)
           else
             uocean = 0.5*(uosurf(i,j)+uosurf(im1,j))
             vocean = 0.5*(vosurf(i,j)+vosurf(i,j-1))
@@ -619,7 +615,7 @@ C**** Calculate trsfac (set to zero for const flux)
           rhosrf0=100.*ps/(rgas*pbl_args%tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            trsfac(nx)=1. 
+            trsfac(nx)=1.
      &      !then multiplied by deposition velocity in PBL
 #ifdef TRACERS_WATER
             tr_evap_max(nx)=1.d30
@@ -653,7 +649,7 @@ C =====================================================================
       pbl_args%vocean = vocean
       pbl_args%psurf = PS
       pbl_args%trhr0 = TRHR(0,I,J)
-      
+
       CALL PBL(I,J,ITYPE,PTYPE,pbl_args)
 
       us = pbl_args%us
@@ -865,7 +861,7 @@ C**** Limit evaporation if lake mass is at minimum
      &         ss2_flux*dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss2_flux*dxyp(j)*ptype*dtsurf
-#ifdef TRACERS_AMP          
+#ifdef TRACERS_AMP
          case ('M_SSA_SS')
        EMIS_SOURCE(i,j,1,5)=EMIS_SOURCE(i,j,1,5)+ss1_flux*dxyp(j)*ptype
        EMIS_SOURCE(i,j,1,6)=EMIS_SOURCE(i,j,1,6)+ss2_flux*dxyp(j)*ptype
@@ -1100,7 +1096,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
 
                 tmp(idd_uvabl1)=
      *               +ptype*sqrt( uabl(1,i,j,itype)*uabl(1,i,j,itype)
-     *               +            vabl(1,i,j,itype)*vabl(1,i,j,itype)) 
+     *               +            vabl(1,i,j,itype)*vabl(1,i,j,itype))
                 tmp(idd_uvabl2)=
      *               +ptype*sqrt( uabl(2,i,j,itype)*uabl(2,i,j,itype)
      *               +            vabl(2,i,j,itype)*vabl(2,i,j,itype))
@@ -1142,12 +1138,12 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_qabl8)=+ptype*qabl(8,i,j,itype)
 
                 tmp(idd_zhat1)=+ptype*zhat(1)
-                tmp(idd_zhat2)=+ptype*zhat(2)          
-                tmp(idd_zhat3)=+ptype*zhat(3)          
-                tmp(idd_zhat4)=+ptype*zhat(4)          
-                tmp(idd_zhat5)=+ptype*zhat(5)          
-                tmp(idd_zhat6)=+ptype*zhat(6)          
-                tmp(idd_zhat7)=+ptype*zhat(7)          
+                tmp(idd_zhat2)=+ptype*zhat(2)
+                tmp(idd_zhat3)=+ptype*zhat(3)
+                tmp(idd_zhat4)=+ptype*zhat(4)
+                tmp(idd_zhat5)=+ptype*zhat(5)
+                tmp(idd_zhat6)=+ptype*zhat(6)
+                tmp(idd_zhat7)=+ptype*zhat(7)
 
                 tmp(idd_e1)=+eabl(1,i,j,itype)*ptype
                 tmp(idd_e2)=+eabl(2,i,j,itype)*ptype
@@ -1258,7 +1254,7 @@ C****
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
 
-      idx_areg = (/ J_TRHDT, J_SHDT, J_EVHDT, J_EVAP, J_TSRF, 
+      idx_areg = (/ J_TRHDT, J_SHDT, J_EVHDT, J_EVAP, J_TSRF,
      &     J_TG1, J_TG2 /)
       CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
       AREG(:,idx_areg) = AREG(:,idx_areg) + AREGSUM
@@ -1271,7 +1267,7 @@ C****
          HDIURN(ihm,idx4,:)=HDIURN(ihm,idx4,:) + DIURNSUM
 #endif
       END IF
-      
+
 
 C****
 C**** dycamic vegetation time step
@@ -1334,7 +1330,7 @@ C****
 
         DO KR=1,NDIUPT
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
-C**** For distributed implementation - ensure point is on local process.          
+C**** For distributed implementation - ensure point is on local process.
 
           I = IJDD(1,KR)
           J = IJDD(2,KR)

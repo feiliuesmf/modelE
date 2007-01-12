@@ -1,3 +1,6 @@
+C****
+C**** OCNKPP.f    KPP OCeaN vertical mixing scheme    2006/11/06
+C****
 #include "rundeck_opts.h"
 
       MODULE KPP_COM
@@ -1114,7 +1117,7 @@ C**** Save surface values
 #endif
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
-     *     ,dxypo,cosic,sinic,uo,vo,ramvn,bydts
+     *     ,dxypo,cosic,sinic,uo,vo,ramvn,bydts, IVNP
       USE SEAICE_COM, only : rsi
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
      *     ,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
@@ -1132,12 +1135,12 @@ C**** Save surface values
 
       IMPLICIT NONE
 
-      LOGICAL*4 QPOLE,ir
+      LOGICAL*4 QPOLE  
       REAL*8,
      *   DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: UT,VT
       REAL*8 UL(LMO,IM+2),MML(LMO),
      *     G0ML(LMO,2,2),S0ML(LMO,2,2),GZML(LMO,2,2),SZML(LMO,2,2),
-     *     BYMML(LMO),DTBYDZ(LMO),BYDZ2(LMO),RAVM(IM+1),RAMV(IM+1),
+     *     BYMML(LMO),DTBYDZ(LMO),BYDZ2(LMO),RAVM(IM+2),RAMV(IM+2),
      *     UL0(LMO,IM+2),G0ML0(LMO,2,2),S0ML0(LMO,2,2),MML0(LMO),
      *     BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
      *     AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
@@ -1147,7 +1150,7 @@ C**** Save surface values
      *     ,DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
       INTEGER NSIGT,N
 #endif
-      INTEGER LMUV(IM+1)
+      INTEGER LMUV(IM+2)
 
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1, BYBETA=1d0/BETA
@@ -1157,10 +1160,9 @@ C**** KPP variables
      *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
      *     alphaDT(LMO),betaDS(LMO),ghat(LMO),byhwide(0:LMO+1)
       REAL*8 G(LMO),S(LMO),TO(LMO),BYRHO(LMO),RHO(LMO),PO(LMO)
-      REAL*8 UKJM(LMO,IM+1)  !  ,UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
+      REAL*8 UKJM(LMO,IM+2)  !  ,UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
       REAL*8 UKM(LMO,4,2,2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO),
      *              OLJ(3,LMO,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8, DIMENSION(LMO) :: OL_RHO,OL_TEMP,OL_SALT
 
       LOGICAL, PARAMETER :: LDD = .FALSE.
       INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
@@ -1216,7 +1218,7 @@ C****
       LMIJ=LMM(1,JM)
       IQ=1
       JQ=1
-      KMUV=IM+1
+      KMUV=IM+2
       DO I=1,IM
         LMUV(I) = LMV(I,JM-1)
         RAVM(I) = 1d0/IM
@@ -1228,10 +1230,16 @@ C****
           UL(L,I)  = UL0(L,I)
         END DO
       END DO
-      LMUV(IM+1) = LMU(1,JM)
+      LMUV(IM+1) = LMM(1,JM)
       RAVM(IM+1) = 1d0
       RAMV(IM+1) = 1d0
-      UL0(1,IM+1) = UT(1,JM,1)
+      UL0(1,IM+1) = UT(IM,JM,1)
+      UL(1,IM+1)  = UO1(IM,JM)
+      LMUV(IM+2)  = LMM(1,JM)
+      RAVM(IM+2)  = 1d0
+      RAMV(IM+2)  = 1d0
+      UL0(1,IM+2) = UT(IVNP,JM,1)
+      UL(1,IM+2)  = UO1(IVNP,JM)
       MML0(1)     = MO(1,JM,1)*DXYPO(JM)
       BYMML0(1)   = 1d0/MML0(1)
       DTBYDZ(1)   = DTS/MO(1,JM,1)
@@ -1239,12 +1247,14 @@ C****
       S0ML0(1,1,1)= S0M(1,JM,1)
       GZML(1,1,1) = GZMO(1,JM,1)
       SZML(1,1,1) = SZMO(1,JM,1)
-      UL(1,IM+1)  = UO1(1,JM)
       MMLT(1)     = MO1(1,JM)*DXYPO(JM)
       BYMMLT(1)   = 1d0/MMLT(1)
       S0ML(1,1,1) = S0M1(1,JM)
       DO L=2,LMIJ
-        UL0(L,IM+1) = UT(1,JM,L)
+        UL0(L,IM+1) = UT(IM,JM,L)
+        UL(L,IM+1)  = UL0(L,IM+1)
+        UL0(L,IM+2) = UT(IVNP,JM,L)
+        UL(L,IM+2)  = UL0(L,IM+2)
         MML0(L)     = MO(1,JM,L)*DXYPO(JM)
         BYMML0(L)   = 1d0/MML0(L)
         DTBYDZ(L)   = DTS/MO(1,JM,L)
@@ -1253,7 +1263,6 @@ C****
         S0ML0(L,1,1)= S0M(1,JM,L)
         GZML(L,1,1) = GZMO(1,JM,L)
         SZML(L,1,1) = SZMO(1,JM,L)
-        UL(L,IM+1)  = UL0(L,IM+1)
         MMLT(L)     = MML0(L)
         BYMMLT(L)   = BYMML0(L)
         S0ML(L,1,1) = S0ML0(L,1,1)
@@ -1666,8 +1675,10 @@ CCC        DO II=1,IM
 CCC          VO(II,JM-1,1:LMUV(II))=VO(II,JM-1,1:LMUV(II))+RAMV(II)*
 CCC     *         (UL(1:LMUV(II),II)-VT(II,JM-1,1:LMUV(II)))
 CCC        END DO
-CCC        UO(1,JM,1:LMIJ)=UO(1,JM,1:LMIJ) + RAMV(IM+1)*
-CCC     *       (UL(1:LMIJ,IM+1)-UT(1,JM,1:LMIJ))
+CCC        UO(IM,JM,1:LMIJ)=UO(IM,JM,1:LMIJ) + RAMV(IM+1)*
+CCC     *       (UL(1:LMIJ,IM+1)-UT(IM,JM,1:LMIJ))
+CCC        UO(IVNP,JM,1:LMIJ)=UO(IVNP,JM,1:LMIJ) + RAMV(IM+2)*
+CCC     *       (UL(1:LMIJ,IM+2)-UT(IVNP,JM,1:LMIJ))
 CCC      ELSE
 CCC        UO(IM1,J,1:LMUV(1))=UO(IM1,J,1:LMUV(1)) + RAMV(1)*
 CCC     *       (UL(1:LMUV(1),1)-UT(IM1,J,1:LMUV(1)))
@@ -1685,7 +1696,9 @@ CCC      END IF
      *          VT(II,JM-1,1:LMUV(II)))
          END DO
          UKJM(1:LMIJ,IM+1)= RAMV(IM+1)*(UL(1:LMIJ,IM+1)-
-     *        UT(1,JM,1:LMIJ))
+     *        UT(IM,JM,1:LMIJ))
+         UKJM(1:LMIJ,IM+2)= RAMV(IM+2)*(UL(1:LMIJ,IM+2)-
+     *        UT(IVNP,JM,1:LMIJ))
       ELSE
         UKM(1:LMUV(1),1,IQ,JQ,I,J) = RAMV(1)*(UL(1:LMUV(1),1)
      *          -UT(IM1,J,1:LMUV(1)))
@@ -1797,7 +1810,9 @@ C**** North pole
         VO(I,JM-1,1:LMV(I,JM-1))=VO(I,JM-1,1:LMV(I,JM-1))+
      *       UKJM(1:LMV(I,JM-1),I)
       END DO
-      UO(1,JM,1:LMU(1,JM))=UO(1,JM,1:LMU(1,JM)) + UKJM(1:LMU(1,JM),IM+1)
+      UO(IM,JM,1:LMU(1,JM))=UO(IM,JM,1:LMU(1,JM))+UKJM(1:LMU(1,JM),IM+1)
+      UO(IVNP,JM,1:LMU(1,JM)) = UO(IVNP,JM,1:LMU(1,JM)) + 
+     +                          UKJM(1:LMU(1,JM),IM+2)
       end if
 C**** Everywhere else
       DO J=j_0s,j_1s
@@ -1847,14 +1862,6 @@ c     END DO
       call globalsum(grid,OLJ(1,:,:),OL(:,L_RHO)  ,jband=(/1,jm/) )
       call globalsum(grid,OLJ(2,:,:),OL(:,L_TEMP) ,jband=(/1,jm/) )
       call globalsum(grid,OLJ(3,:,:),OL(:,L_SALT) ,jband=(/1,jm/) )
-c     call globalsum(grid,OLJ(1,:,:),OL_RHO   ,jband=(/1,jm/) )
-c     call globalsum(grid,OLJ(2,:,:),OL_TEMP  ,jband=(/1,jm/) )
-c     call globalsum(grid,OLJ(3,:,:),OL_SALT  ,jband=(/1,jm/) )
-c     if (am_i_root()) then
-c        OL(:,L_RHO ) = OL(:,L_RHO ) + OL_RHO
-c        OL(:,L_TEMP) = OL(:,L_TEMP) + OL_TEMP
-c        OL(:,L_SALT) = OL(:,L_SALT) + OL_SALT
-c     end if
 C****
       RETURN
       END SUBROUTINE OCONV
