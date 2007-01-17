@@ -178,6 +178,7 @@ C**** accumulate diagnostics
             END IF
 #endif
          end if
+         call scatter_odiags ()
         CASE (ioread,irerun)    ! restarts
           IF (AM_I_ROOT()) then
             READ (kunit,err=10) HEADER,OIJ,OIJL,OL,OLNST,it
