@@ -1168,7 +1168,7 @@ C**** conservation diagnostic
         call addEnergyAsLocalHeat(DKE,T,PK, diagIndex=JL_dTdtsdrg)
 
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
-!$OMP  PARALLEL DO PRIVATE(I,J,L,K)
+!$OMP  PARALLEL DO PRIVATE(I,J,L)
         DO L=1,LM
           DO J=J_0,J_1
             AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(J,L)
