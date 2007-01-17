@@ -179,13 +179,18 @@ function compare {
     ln -s $file2 $run.f2
 
     local numLinesFound=`$CMP $run.f1 $run.f2 | wc -l`
-    local numLinesExpected=`$CMP $run.f1 $run.f1 | wc -l`
+    local minLinesExpected=`$CMP $run.f1 $run.f1 | wc -l`
+    local maxLinesExpected
 
     local rc
 
-    if [ $mode == OpenMP ]; then let "numLinesExpected=$numLinesExpected+22"; fi
+    if [ $mode == OpenMP ]; then 
+	let "maxLinesExpected=$minLinesExpected+22"
+    else
+	maxLinesExpected=$minLinesExpected
+    fi
 
-    if [ $numLinesFound == $numLinesExpected ]; then
+    if [[ ($numLinesFound -le $maxLinesExpected) && ($minLinesExpected -le $numLinesFound) ]]; then
 	rc=0
     else
 	local numArgs=$#
