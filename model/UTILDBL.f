@@ -647,7 +647,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       write(form_str,"('(I',I1,')')") num_digits
 
       open( iu_status, file='run_status', form='FORMATTED',
-     &     status='REPLACE', ERR=10 )
+     &     status='UNKNOWN', ERR=10 )
       write( iu_status, form_str, ERR=10 ) retcode
       write( iu_status, '(A)', ERR=10 ) message
       close( iu_status )

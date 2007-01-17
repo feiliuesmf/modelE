@@ -45,7 +45,7 @@ c$$$      USE MODEL_COM, only: clock
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ACC,iu_RSF,iu_ODA
-      INTEGER :: MDUM = 0
+      INTEGER :: mpi_err, MDUM = 0
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,TOTALT
@@ -71,9 +71,6 @@ C**** Command line options
       real*8 w_ghy_j_2(jm),w_ghy_j_1(jm), w_lake_j_2(jm),w_lake_j_1(jm)
       real*8 h_ghy_j_2(jm),h_ghy_j_1(jm), h_lake_j_2(jm),h_lake_j_1(jm)
 
-C**** Set run_status to "run in progress"
-      call write_run_status("Run in progress...",1)
-
       call init_app(grid,im,jm,lm)
       call alloc_drv()
 C****
@@ -95,6 +92,9 @@ C****
       CALL INPUT (istart,ifile)
 #endif
 
+C**** Set run_status to "run in progress"
+      if(istart > 0) call write_run_status("Run in progress...",1)
+
 C****
 C**** Initialize FV dynamical core (ESMF component) if requested
 C****
@@ -112,6 +112,12 @@ C****
           call aPERIOD (JMON0,JYEAR0,months,1,0, acc_period,Ldate)
         end if
         call print_diags(0)
+        if(istart < 1) then 
+#ifdef USE_ESMF
+           call mpi_finalize(mpi_err)
+#endif
+           call exit_rc (0)
+        end if
         CALL stop_model ('The run has already completed',13)
         ! no output files are affected
       END IF
@@ -462,13 +468,13 @@ cddd     &          sum( w_ghy_j_1 ), sum( w_lake_j_1 ),
 cddd     &          sum( w_ghy_j_2-w_ghy_j_1 ),
 cddd     &          sum( w_lake_j_2-w_lake_j_1 )
 cddd  !          print *,"GHY_LAKE errors:",
-cddd  !   &           w_ghy_j_2-w_ghy_j_1+w_lake_j_2-w_lake_j_1 
+cddd  !   &           w_ghy_j_2-w_ghy_j_1+w_lake_j_2-w_lake_j_1
 cddd            print *,"GHY_LAKE_E tot hgy, tot lake, d ghy, d lake",
 cddd     &          sum( h_ghy_j_1 ), sum( h_lake_j_1 ),
 cddd     &          sum( h_ghy_j_2-h_ghy_j_1 ),
 cddd     &          sum( h_lake_j_2-h_lake_j_1 )
 cddd            print *,"GHY_LAKE errors:",
-cddd     &           h_ghy_j_2-h_ghy_j_1+h_lake_j_2-h_lake_j_1 
+cddd     &           h_ghy_j_2-h_ghy_j_1+h_lake_j_2-h_lake_j_1
         call daily_OCEAN(.true.)           ! end_of_day
         call daily_ICE
         call daily_LI
@@ -631,7 +637,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       IF (Itime.ge.ItimeE) CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
-      CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
+      CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop 
 
       END
 
@@ -647,7 +653,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 !@sum This program reads most of parameters from the database (DB)
 !@+   get_param( "A", X ) reads parameter A into variable X
 !@+   if "A" is not in the database, it will generate an error
-!@+   message and stop
+!@+   message and stop 
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
