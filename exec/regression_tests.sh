@@ -6,6 +6,14 @@
 #PBS -m "abe"
 #PBS -M "Thomas.L.Clune@nasa.gov"
 
+#BSUB -n 4
+#BSUB -W 06:00
+#BSUB -q general_lng
+#BSUB -P k3002
+#BSUB -J modelE_test
+#BSUB -B
+#BSUB -u "Thomas.L.Clune@nasa.gov"
+
 # Script to build standard modelE rundecks under OpenMP and MPI for the purposes of
 # detecting defects in paralellization.
 
@@ -14,7 +22,13 @@ case `hostname` in
     palm | explore* ) 
 	export NOBACKUP=/nobackup/progress
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
-        export MODES="serial other MPI OpenMP";;
+        export MODES="serial other MPI OpenMP"
+        export COMPILER=Intel8;;
+    halem* )
+        export NOBACKUP=/scr/progress
+	export BASELIBDIR=/share/ESMA/baselibs/v2_2r0/OSF1
+        export MODES="serial MPI OpenMP"
+        export NETCDFHOME=/usr/local/unsupported;;
     *) 
         export NOBACKUP=$HOME
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
@@ -59,7 +73,7 @@ function buildRundeck {
     gmake gcm RUN=$run $EXTRAS SETUP_FLAGS=-wait  >> $logfile 2>&1
 
     if [ "$mode" == "serial" ]; then 
-	make aux RUN=$run     >> $logfile 2>&1
+	gmake aux RUN=$run     >> $logfile 2>&1
     fi
     logMessage "    ... done building $run."
 }
@@ -67,7 +81,12 @@ function buildRundeck {
 function environmentModules {
     source ${MODULESHOME}/init/bash
     module purge
-    module load intel-comp.9.1.039 scsl.1.5.1.1 mpt.1.12.0.0
+    case `hostname` in
+	palm | explore* )  module load intel-comp.9.1.039 scsl.1.5.1.1 mpt.1.12.0.0;;
+        halem* ) 
+	   module load fortran/551F esmf/2.2.0rp1-551J
+	   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/ulocal/stow/esmf-2.2.0rp1-551J/lib;;
+    esac
 }
 
 function setEnvironment {
@@ -95,14 +114,8 @@ OUTPUT_TO_FILES=YES
 VERBOSE_OUTPUT=YES
 MP=NO
 UMASK=002
-COMPILER=Intel8
-NETCDFHOME=
-ESMF_ARCH=Linux
-ESMF_PREC=64
-ESMF_COMPILER=intel
-ESMF_COMM=mpi
-ESMF_BOPT=O
-ESMF_NO_IOCODE=true
+BASELIBDIR=$BASELIBDIR
+NETCDFHOME=$NETCDFHOME
 EOF
 
     source ~/.modelErc
@@ -159,7 +172,8 @@ function compare {
     local file2=$4
     local logfile=$5
 
-    local CMP=$SCRATCH/$run/decks/$rundeck.serial_bin/CMPE002 
+    local run=`buildName $rundeck $mode`
+    local CMP=$SCRATCH/$rundeck.serial/decks/$rundeck.serial_bin/CMPE002 
     
     ln -s $file1 $run.f1
     ln -s $file2 $run.f2
@@ -168,13 +182,20 @@ function compare {
     local numLinesExpected=`$CMP $run.f1 $run.f1 | wc -l`
 
     local rc
+
+    if [ $mode == OpenMP ]; then let "numLinesExpected=$numLinesExpected+22"; fi
+
     if [ $numLinesFound == $numLinesExpected ]; then
 	rc=0
     else
 	local numArgs=$#
+	logError "Comparison failed for files $file1 and $file2."
 	if [ $numArgs == 5 ]; then
-	    echo "Numline discrepancy. Expected " $numLinesExpected " but found " $numLinesFound "." $logfile
+	    echo "Numline discrepancy. Expected $numLinesExpected but found $numLinesFound." >> $logfile
 	    $CMP $run.f1 $run.f2 >> $logfile
+	else
+	    logMessage "Numline discrepancy. Expected $numLinesExpected but found $numLinesFound."
+	    $CMP $run.f1 $run.f2 >> $MAIN_LOG
 	fi
 	rc=1
     fi
@@ -190,7 +211,7 @@ function runSerial {
 
     # serial
     logMessage "   ... serial 1 hour run ..."
-    make setup_nocomp RUN=$run SETUP_FLAGS=-wait  >> $logfile 2>&1
+    gmake setup_nocomp RUN=$run SETUP_FLAGS=-wait  >> $logfile 2>&1
     if [ $? == 0 ]; then
 	logMessage '   ... 1 hour serial run has completed.'
 	cp $run/fort.2 $RESULTS/$run.1hr
@@ -226,7 +247,7 @@ function runOther {
 
     # serial
     logMessage "   ... other 1 hour run ..."
-    make setup_nocomp RUN=$run SETUP_FLAGS=-wait  >> $logfile 2>&1
+    gmake setup_nocomp RUN=$run SETUP_FLAGS=-wait  >> $logfile 2>&1
     if [ $? == 0 ]; then
 	logMessage '   ... 1 hour other run has completed.'
 	cp $run/fort.2 $RESULTS/$run.1hr
@@ -261,7 +282,7 @@ function runMPI {
     local NORMAL_TERMINATION=13
 
     for np in $MPI_NPROCS; do
-        make setup_nocomp RUN=$run ESMF=YES NPES=$np SETUP_FLAGS=-wait >> $logfile 2>&1
+        gmake setup_nocomp RUN=$run ESMF=YES NPES=$np SETUP_FLAGS=-wait >> $logfile 2>&1
 	compare $rundeck $mode $RESULTS/$rundeck.serial.1hr $run/fort.2 $logfile
 	if [ $? == 0 ]; then
 	    logMessage "   ... 1 hour $mode run on $np processes gives correct results."
@@ -303,7 +324,7 @@ function runOpenMP {
     local NORMAL_TERMINATION=13
 
     for np in $OMP_NPROCS; do
-        make setup_nocomp RUN=$run MP=YES NPROC=$np SETUP_FLAGS=-wait >> $logfile 2>&1
+        gmake setup_nocomp RUN=$run MP=YES NPROC=$np SETUP_FLAGS=-wait >> $logfile 2>&1
 	local referenceMode
 	case `hostname` in
 	    palm | explore* ) referenceMode=other;;
