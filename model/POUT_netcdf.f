@@ -564,7 +564,6 @@ c secondary grid
 !@sum  OPEN_JL opens the lat-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : sig,sige
       USE DIAG_COM, only : plm,ple,ple_dn,pmb,kgz_max,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
@@ -749,7 +748,6 @@ C**** set dimensions
 !@sum  OPEN_IL opens the lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : sig,sige
       USE GEOM, only : lon_dg
       USE DIAG_COM, only : plm,ple,ple_dn
       USE NCOUT
