@@ -30,7 +30,9 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
      *  FJEQ  = .5*(1+JM)        !  J coordinate of the EQuator
 
       Integer*4 ::
-     *  LMO_MIN = 1  !  @dbparam LMO_MIN min # of ocean layers
+     *  LMO_MIN = 1, !  @dbparam LMO_MIN min # of ocean layers
+     *  OBottom_drag = 1,  !  @dbparam use ocean bottom drag routine
+     *  OCoastal_drag = 1  !  @dbparam use ocean coastal drag routine
 
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)

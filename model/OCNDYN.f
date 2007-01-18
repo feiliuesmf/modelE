@@ -15,6 +15,7 @@ C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo
      *     ,s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso
      *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP !,VOSP,IVSP
+     *     ,OBottom_drag,OCoastal_drag
 C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
@@ -69,8 +70,8 @@ C**** Calculate vertical diffusion
       CALL OCONV
          CALL CHECKO('OCONV ')
 C**** Apply bottom and coastal drags
-      CALL OBDRAG
-      CALL OCOAST
+      if (OBottom_drag  == 1) CALL OBDRAG
+      if (OCoastal_drag == 1) CALL OCOAST
          CALL TIMER (MNOW,MSGSO)
 
       IDACC(11) = IDACC(11) + 1
@@ -278,6 +279,7 @@ c        CALL CHECKO ('STADVI')
      *     ,lmu,lmv,hatmo,hocean,ze,dZO,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
+     *     ,OBottom_drag,OCoastal_drag
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
@@ -307,6 +309,12 @@ C****
         call stop_model(
      &       "Must have KOCEAN > 0 for interactive ocean runs",255)
       END IF
+C****
+C**** Select drag options
+C****
+      call sync_param("OBottom_drag",OBottom_drag)
+      call sync_param("OCoastal_drag",OCoastal_drag)
+
 C****
 C**** set up time steps from atmospheric model
 C****
