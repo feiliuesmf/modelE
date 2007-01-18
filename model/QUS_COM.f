@@ -84,12 +84,14 @@
       RETURN
       END SUBROUTINE io_somtq
 
-      subroutine tq_zmom_init(t,q)
-      USE MODEL_COM, only : im,jm,lm,sige,sig
+      subroutine tq_zmom_init(t,q,pmid,pedn)
+      USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP, ONLY: grid
       USE SOMTQ_COM
       implicit none
       REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: t,q
+      REAL*8 :: pmid(lm,im,grid%j_strt_halo:grid%j_stop_halo),
+     *     pedn(lm+1,im,grid%j_strt_halo:grid%j_stop_halo)
       integer :: i,j,l
       REAL*8 :: rdsig
 
@@ -109,22 +111,24 @@ C****
 
 C**** INITIALIZES VERTICAL SLOPES OF T,Q
       DO J=J_0,J_1
-      DO I=1,IM
-         RDSIG=(SIG(1)-SIGE(2))/(SIG(1)-SIG(2))
-         TMOM(MZ,I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
-         QMOM(MZ,I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
-         IF(Q(I,J,1)+QMOM(MZ,I,J,1).LT.0.) QMOM(MZ,I,J,1)=-Q(I,J,1)
-         DO L=2,LM-1
-            RDSIG=(SIG(L)-SIGE(L+1))/(SIG(L-1)-SIG(L+1))
+        DO I=1,IM
+          RDSIG=(PMID(1,I,J)-PEDN(2,I,J))/(PMID(1,I,J)-PMID(2,I,J))
+          TMOM(MZ,I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
+          QMOM(MZ,I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
+          IF(Q(I,J,1)+QMOM(MZ,I,J,1).LT.0.) QMOM(MZ,I,J,1)=-Q(I,J,1)
+          DO L=2,LM-1
+            RDSIG=(PMID(L,I,J)-PEDN(L+1,I,J))/
+     *           (PMID(L-1,I,J)-PMID(L+1,I,J))
             TMOM(MZ,I,J,L)=(T(I,J,L+1)-T(I,J,L-1))*RDSIG
             QMOM(MZ,I,J,L)=(Q(I,J,L+1)-Q(I,J,L-1))*RDSIG
             IF(Q(I,J,L)+QMOM(MZ,I,J,L).LT.0.) QMOM(MZ,I,J,L)=-Q(I,J,L)
-         END DO
-         RDSIG=(SIG(LM)-SIGE(LM+1))/(SIG(LM-1)-SIG(LM))
-         TMOM(MZ,I,J,LM)=(T(I,J,LM)-T(I,J,LM-1))*RDSIG
-         QMOM(MZ,I,J,LM)=(Q(I,J,LM)-Q(I,J,LM-1))*RDSIG
-         IF(Q(I,J,LM)+QMOM(MZ,I,J,LM).LT.0.) QMOM(MZ,I,J,LM)=-Q(I,J,LM)
-      END DO
+          END DO
+          RDSIG=(PMID(LM,I,J)-PEDN(LM+1,I,J))/
+     *         (PMID(LM-1,I,J)-PMID(LM,I,J))
+          TMOM(MZ,I,J,LM)=(T(I,J,LM)-T(I,J,LM-1))*RDSIG
+          QMOM(MZ,I,J,LM)=(Q(I,J,LM)-Q(I,J,LM-1))*RDSIG
+          IF(Q(I,J,LM)+QMOM(MZ,I,J,LM).LT.0.) QMOM(MZ,I,J,LM)=-Q(I,J,LM)
+        END DO
       END DO
       return
       end subroutine tq_zmom_init

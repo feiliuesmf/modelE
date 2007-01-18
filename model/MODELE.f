@@ -792,7 +792,7 @@ C****
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
       USE RAD_COM, only : rqt,cloud_rad_forc
-      USE DYNAMICS, only : pk
+      USE DYNAMICS, only : pk,pmid,pedn
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
@@ -1207,7 +1207,7 @@ C**** Initialize surface friction velocity
         END DO
         END DO
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
-        call tq_zmom_init(t,q)
+        call tq_zmom_init(t,q,PMID,PEDN)
       END IF
 C****
 C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=3-5    just hints
