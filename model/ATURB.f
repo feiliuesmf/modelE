@@ -17,7 +17,7 @@
 
       USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny,mb2kg
       USE MODEL_COM, only :
-     *     im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
+     *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
      *     ,pmtop
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
@@ -1362,8 +1362,8 @@ C**** Halo updates from the south
 
       subroutine zze(dz,dze,dz0,z,ze,n)
 !@sum finds the layer middle and edge heights, z and ze
-!@var  z vertical coordinate associated with SIG(l)
-!@var  ze vertical coordinate associated with SIGE(l)
+!@var  z vertical coordinate of mid points
+!@var  ze vertical coordinate at edges 
 !@var  dz(l) z(l+1) - z(l)
 !@var  dze(l) ze(l+1) - ze(l)
 !@var  dz0 z(1) - ze(1)

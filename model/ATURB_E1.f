@@ -17,7 +17,7 @@
 
       USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny,mb2kg
       USE MODEL_COM, only :
-     *     im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
+     *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
      *     ,pmtop
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
@@ -632,8 +632,8 @@ C****
       J_0STG = grid%J_STRT_STGR
       J_1STG = grid%J_STOP_STGR
 
-      !@ temp0 virtual temperature (K) at (i,j) and SIG(l)
-      !@ temp1 virtual temperature (K) at (i,j) and SIG(l+1)
+      !@ temp0 virtual temperature (K) at (i,j) mid point
+      !@ temp1 virtual temperature (K) at (i,j) edge 
       !@ temp1e average of temp0 and temp1
 !$OMP  PARALLEL DO PRIVATE (J,I,L,pl1,pl,pl1e,ple,temp0,temp1,temp1e,
 !$OMP*  plm1e)
@@ -1331,7 +1331,7 @@ C**** Halo updates from the south
 
       subroutine zze(dze,ze,n)
 !@sum finds the layer edge height ze
-!@var  ze vertical coordinate associated with SIGE(l)
+!@var  ze vertical coordinate at edge
 !@var  dze(l) ze(l+1) - ze(l)
 !@var  n number of layers
 
