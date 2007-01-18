@@ -290,18 +290,18 @@ function runMPI {
         gmake setup_nocomp RUN=$run ESMF=YES NPES=$np SETUP_FLAGS=-wait >> $logfile 2>&1
 	compare $rundeck $mode $RESULTS/$rundeck.serial.1hr $run/fort.2 $logfile
 	if [ $? == 0 ]; then
-	    logMessage "   ... 1 hour $mode run on $np processes gives correct results."
+	    logMessage "   ... 1 hour $mode run on $np processes matches serial results."
 	else
-	    logError $rundeck $mode "MPI 1 hour run does not match serial results."
+	    logError $rundeck $mode "MPI 1 hour run on $np processes does not match serial results."
 	    STATUS=1
 	    return 1
 	fi
 	pushd $CMRUNDIR/$run
 	./$run -np $np -r >> $logfile 2>&1
 	if [ $? == $NORMAL_TERMINATION ]; then
-	    logMessage "   ... 1 day $mode continuation has completed on $np processes."
+	    logMessage "   ... 1 day $mode continuation on $np processes has completed on $np processes."
 	else
-	    logError $rundeck $mode "continuation on $np processes failed."
+	    logError $rundeck $mode "1 day continuation on $np processes failed."
 	    STATUS=1
 	    popd
 	    return 1
@@ -309,9 +309,9 @@ function runMPI {
 	popd
 	compare $rundeck $mode $RESULTS/$rundeck.serial.1dy $run/fort.2 $logfile
 	if [ $? == 0 ]; then
-	    logMessage "   ... 1 day $mode continuation on $np processes gives consistent results."
+	    logMessage "   ... 1 day $mode continuation on $np processes matches serial results."
 	else
-	    logError $rundeck $mode "1 day run does not match serial results."
+	    logError $rundeck $mode "1 day run on $np processes does not match serial results."
 	    STATUS=1
 	    return 1
 	fi
@@ -338,9 +338,9 @@ function runOpenMP {
 
 	compare $rundeck $mode $RESULTS/$rundeck.$referenceMode.1hr $run/fort.2 $logfile
 	if [ $? == 0 ]; then
-	    logMessage "   ... 1 hour $mode run on $np threads gives correct results.."
+	    logMessage "   ... 1 hour $mode run on $np threads matches serial* results.."
 	else
-	    logError $logfile $mode "1 hour run on $np threads does not match serial results."
+	    logError $logfile $mode "1 hour run on $np threads does not match serial* results."
 	    STATUS=1
 	    return 1
 	fi
@@ -349,16 +349,16 @@ function runOpenMP {
 	if [ $? == $NORMAL_TERMINATION ]; then
 	    logMessage "   ... 1 day $mode run on $np threads has completed."
 	else
-	    logError $rundeck $mode '1 day continuation failed.' >> $MAIN_LOG
+	    logError $rundeck $mode '1 day continuation on $np threads failed.' >> $MAIN_LOG
 	    popd
 	    return 1
 	fi
 	popd
 	compare $rundeck $mode $RESULTS/$rundeck.$referenceMode.1dy $run/fort.2 $logfile
 	if [ $? == 0 ]; then
-	    logMessage "   ... 1 day $mode continuation on $np threads gives consistent results.."
+	    logMessage "   ... 1 day $mode continuation on $np threads matches serial results.."
 	else
-	    logError $rundeck $mode "1 day continuation does not match serial results." >> $MAIN_LOG
+	    logError $rundeck $mode "1 day continuation on $np threads does not match serial results."
 	    STATUS=1
 	    return 1
 	fi
@@ -380,6 +380,8 @@ function checkBaseline {
 	    if [ $STATUS == 0 ]; then
 		logMessage "   ... All consistency checks passed => Assuming intentional change to results!"
 		cp $RESULTS/$rundeck.serial.$duration $BASELINE/$rundeck.serial.$duration
+	    else
+		logMessage "   ... Not updating baseline results due to failed consistency check."
 	    fi
 	fi
     done
