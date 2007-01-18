@@ -21,6 +21,10 @@ C**** Tracer input/output common block for PBL
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
       integer ntx
       integer, dimension(ntm) :: ntix
+#ifdef TRACERS_GASEXCH_Natassa
+      real*8  :: alati       !sss
+      real*8  :: Kw_gas, beta_gas
+#endif
 #ifdef TRACERS_WATER
 !@var tr_evap_max maximum amount of tracer available in ground reservoir
       real*8, dimension(ntm) :: tr_evap_max
@@ -43,6 +47,9 @@ C**** Tracer input/output common block for PBL
      &     lmonin
 #endif
       common /trspec/trtop,trs,trsfac,trconstflx
+#ifdef TRACERS_GASEXCH_Natassa
+     *     ,Kw_gas,beta_gas
+#endif
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
@@ -318,6 +325,9 @@ c     ENDIF
      &     qgrnd,qgrnd_sat,evap_max,fr_sat,
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
+#if defined(TRACERS_GASEXCH_Natassa)
+     *     alati,Kw_gas,beta_gas,
+#endif
 #if defined(TRACERS_WATER)
      *     tr_evap_max,
 #endif

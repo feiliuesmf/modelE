@@ -973,6 +973,9 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       write(6,*) '...and Jean/David tracers and chemistry'
 #endif
+#ifdef TRACERS_GASEXCH_Natassa
+      write(6,*) '...and Natassa Romanou to-ocean tracers'
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif

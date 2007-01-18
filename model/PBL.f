@@ -11,8 +11,14 @@
 
       USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx,tf
      &                     ,by3,lhe,rgas
+#ifdef TRACERS_GASEXCH_Natassa
+     .           ,rhows,mair
+#endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname,trradius
+#ifdef TRACERS_GASEXCH_Natassa
+     .     ,tr_mm
+#endif
 #ifdef TRACERS_WATER
      &     ,tr_wd_TYPE, nWATER
 #endif
@@ -34,6 +40,9 @@
 #endif
 #endif
 #endif
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      USE MODEL_COM, only : focean
 #endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
@@ -88,6 +97,12 @@ C**** boundary layer parameters
       real*8, dimension(n,ntm) :: tr
 #endif
 
+#ifdef TRACERS_GASEXCH_Natassa
+      real*8 :: temp_c,Sc_gas,sc_cfc,sol_cfc,alpha_gas
+      external sc_cfc,sol_cfc
+      COMMON /GASEXCH_BLK/ temp_c,Sc_gas,alpha_gas
+!$OMP THREADPRIVATE (/GASEXCH_BLK/)
+#endif
 C**** parameters for surface fluxes
       !Hogstrom 1988:
       real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
@@ -130,6 +145,9 @@ CCC      real*8 :: bgrid
      &     qgrnd,qgrnd_sat,evap_max,fr_sat,
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
+#if defined(TRACERS_GASEXCH_Natassa)
+     *     alati,Kw_gas,beta_gas,
+#endif
 #if defined(TRACERS_WATER)
      *     tr_evap_max,
 #endif
@@ -194,6 +212,12 @@ c   output:
 !@var  ntx  number of tracers to loop over
 !@var  ntix index of tracers used in pbl
 #endif
+#if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_Natassa)
+!@var  alati SSS at i,j
+!@var  Kw_gas  gas exchange transfer velocity at i,j only over ocean
+!@var  alpha_gas  solubility of gas
+!@var  beta_gas  conversion term  that includes solubility
+#endif
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
 !@var  tr_evap_max max amount of possible tracer evaporation
 #endif
@@ -229,6 +253,10 @@ c  internals:
       real*8, dimension(n-1) :: kqsave
       real*8 :: qsat
       integer itr
+#ifdef TRACERS_GASEXCH_Natassa
+      real*8, intent(in) :: alati
+      real*8, intent(out):: Kw_gas,beta_gas
+#endif
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
 #ifdef TRACERS_SPECIAL_O18
@@ -528,6 +556,108 @@ ccc dust emission from earth
           dust_flux(n1)=dsrcflx
           dust_flux2(n1)=dsrcflx2
         END SELECT
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+
+      IF (ITYPE.EQ.1 .and. focean(ilong,jlat).gt.0.) THEN  ! OCEAN
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !OCMIP implementation www.ipsl.jussieu.fr/OCMIP
+      !F=Kw*Csat - Kw*Csurf=
+      !  Kw*alpha*trs - Kw*trs
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !new treatment for units
+      !F=Kw*Csat -Kw*Csurf
+      ! =Kw*alpha*mol_weight_air/mol_weight_cfc11*surfp*Cair  !!!TERM_1*Cair
+      ! -Kw*rho_water/mol_weight_cfc11*Csurf                  !!!TERM_2
+      !
+      ! where, Kw                in m/s
+      !        alpha                mol/m^3/atm
+      !        mol_weight_air       Kg_air
+      !        mol_weight_cfc11     Kg_CFC-11
+      !        surfp                atm
+      !        Cair                 Kg_CFC-11/Kg_air
+      !        rho_water            Kg_water/m^3
+      !        Csurf                Kg_CFC-11/Kg_water
+      !then F is in  (mol/m^3)(m/s)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      !---------------------------------------------------------------
+      !TRANSFER VELOCITY
+      !---------------------------------------------------------------
+      !compute Schmidt number for gas
+      !temp_c=ts-273.16
+      !temp_c=tg1     !use ground temp computed earlier
+      !temp_c=tgrnd
+      !temp_c=tgrnd-273.16
+       temp_c=tg1     !use ground temp computed earlier
+
+      Sc_gas=sc_cfc(temp_c,11)
+
+      !wind speed wsh: magn. of surf. wind modified by buoyancy flux (m/s)
+      !compute transfer velocity Kw
+      !only over ocean
+
+      if (Sc_gas .le. 0.) then
+        write(*,'(a,2i4,a,2f9.3)')
+     .          'warning: Sc_gas negtv, at ',ilong,jlat,
+     .          ', Sc_gas,temp_c=',Sc_gas,temp_c
+         Kw_gas=1.e-10
+      else
+         Kw_gas=1.d0/3.6e+5*0.337d0*wsh*wsh*(Sc_gas/660.d0)**(-0.5d0)
+      endif
+
+      !---------------------------------------------------------------
+      !gas SOLUBILITY
+      !---------------------------------------------------------------
+      !alpha --solubility of CFC (11 or 12) in seawater
+      !in mol/m^3/picoatm
+       alpha_gas=sol_cfc(temp_c,alati,11)
+      !convert to mol/m^3/atm
+       alpha_gas=alpha_gas*1.e+12
+
+      !---------------------------------------------------------------
+      !psurf is in mb. multiply with 10.197e-4 to get atm
+      !include molecular weights for air and CFC-11
+       beta_gas=alpha_gas*(psurf*10.197e-4)*mair*1.e-3
+     .                   /(tr_mm(itr)*1.e-3)
+       beta_gas = beta_gas * tr_mm(itr)*1.e-3/rhows
+
+      !trsf is really sfac = Kw_gas * beta_gas
+      !units are such that flux comes out to (m/s)(kg/kg)
+       trsf = Kw_gas * beta_gas
+
+       trcnst = Kw_gas * trconstflx(itr)*byrho   ! convert to (conc * m/s)
+
+cdiag write(*,'(a,2i3,13e12.4)')'PBL, Kw ',
+cdiag.    ilong,jlat,temp_c,Sc_gas,wsh,Kw_gas,mair
+cdiag.   ,psurf*10.197e-4,alati,alpha_gas,beta_gas
+cdiag.   ,rhows,trconstflx(itr),trsf,trcnst
+
+      ENDIF
+
+#endif
+
+C**** solve tracer transport equation
+        call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
+     *       ,trcnst,trtop(itr),
+#ifdef TRACERS_WATER
+     *       tr_evap_max(itr),fr_sat,
+#endif
+     *       dtime,n)
+
+#ifdef TRACERS_DRYDEP
+C**** put in a check to prevent unphysical solutions. If too much
+C**** tracer is being taken out, replace profile with linear one
+C**** with maximum allowed flux.
+        if (dodrydep(ntix(itr))) then
+          if ((trsf*tr(1,itr)-trcnst)*dtime.gt.trtop(itr)*ztop) then
+            do i=1,n
+              tr(i,itr)=(trtop(itr)*ztop/dtime+trcnst)/trsf+(i-1)
+     *             *trtop(itr)/float(n-1)
+            end do
+          end if
 #endif
 #ifdef TRACERS_AMP
         SELECT CASE (trname(ntix(itr)))

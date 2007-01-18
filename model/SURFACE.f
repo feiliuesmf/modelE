@@ -53,6 +53,9 @@ C**** Interface to PBL
   !   &     ,evap_max,fr_sat,uocean,vocean,psurf,trhr0
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
+#ifdef TRACERS_GASEXCH_Natassa
+     *     ,alati,Kw_gas,beta_gas
+#endif
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
@@ -119,6 +122,9 @@ C**** Interface to PBL
      *     ,uosurf,vosurf,uisurf,visurf,ogeoza
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
+#ifdef TRACERS_GASEXCH_Natassa
+     *     ,trgasex,gtracer
+#endif
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
 #endif
@@ -180,6 +186,9 @@ c
 #ifdef TRACERS_ON
       real*8 rhosrf0, totflux(ntm)
       integer n,nx,nsrc
+#ifdef TRACERS_GASEXCH_Natassa
+      real*8, dimension(ntm) :: trgrnd
+#endif
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim,trgrnd
       real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1,frac
@@ -351,6 +360,9 @@ C****
 !$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,QSRF,pbl_args,jr
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
+#if defined(TRACERS_GASEXCH_Natassa)
+!$OMP*  ,trgrnd
+#endif
 #if defined(TRACERS_WATER)
 !$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1,frac
 #endif
@@ -593,6 +605,15 @@ C**** set defaults
         trsfac(nx)=0.
         totflux(nx)=0.
         trconstflx(nx)=0.
+#ifdef TRACERS_GASEXCH_Natassa
+       IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
+          alati=sss(I,J)
+          trgrnd(nx)=gtracer(n,itype,i,j)
+          trsfac(nx)=1.
+          trconstflx(nx)=trgrnd(nx)
+cdiag     print*,'SURFACEn 1: trconstflx(nx)=',trconstflx(nx)
+       END IF
+#endif
 C**** Set surface boundary conditions for tracers depending on whether
 C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
@@ -626,9 +647,12 @@ C**** Calculate trsfac (set to zero for const flux)
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
 C**** Now send kg/m^2/s to PBL, and dived by rho there.
           do nsrc=1,ntsurfsrc(n)
+cdiag       write(*,'(a,4i5,e12.4)')
+cdiag.      'SURFACE:trsource ',i,j,nsrc,n,trsource(i,j,nsrc,n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
           trconstflx(nx)=totflux(nx)*bydxyp(j)   ! kg/m^2/s
+
 #ifdef TRACERS_WATER
 !!!        end select
         endif
@@ -840,6 +864,22 @@ C**** Limit evaporation if lake mass is at minimum
           END IF
           TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
         END IF
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+       IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
+          TRGASEX(n,ITYPE,I,J) =
+     .                 Kw_gas * (beta_gas*trs(nx)-trgrnd(nx))
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)
+     &               + Kw_gas * (beta_gas*trs(nx)-trgrnd(nx))
+     &               * dxyp(j)*ptype
+         taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
+     &               + Kw_gas * (beta_gas*trs(nx)-trgrnd(nx))
+     &               * dxyp(j)*ptype*dtsurf
+
+cdiag  write(*,'(a,2i5,5e12.4)')'SUFRACE, TRGASEX ',
+cdiag.  i,j,Kw_gas,beta_gas,trs(nx)
+cdiag.   ,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
+       END IF
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         select case (trname(n))

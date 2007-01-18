@@ -95,6 +95,11 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       logical Ox_a_tracer
 #endif
 #endif
+
+#ifdef TRACERS_GASEXCH_Natassa
+      integer i
+#endif
+
       INTEGER J_0, J_1
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -206,6 +211,15 @@ C**** Define individual tracer characteristics
       n_Air = n
           ntm_power(n) = -2
           tr_mm(n) = mair
+
+      case ('CFCn')
+      n_CFCn = n
+          ntm_power(n) = -12
+          !!tr_mm(n) = 136.0d0    !NCAR value
+          tr_mm(n) = 137.37d0     !note units are in gr
+          ntsurfsrc(n) = 1
+          needtrs(n)=.true.
+
 
       case ('SF6')
       n_SF6 = n
@@ -1955,6 +1969,15 @@ C****
       k = 0
       do n=1,ntm
       select case (trname(n))
+      case ('CFCn')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Layer_1_source_of_'//trname(n)
+        lname_jls(k) = 'CFCn CFC-GRID SOURCE, LAYER 1'
+        jls_ltop(k) = 1
+        jls_power(k) = -3.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
       case ('SF6')
         k = k + 1
         jls_source(1,n) = k
@@ -3731,6 +3754,18 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = 0
       do n=1,ntm
       select case (trname(n))
+
+      case ('CFCn')
+      k = k+1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'CFCn Layer 1 SOURCE'
+        sname_ijts(k) = 'CFCn_CFC-GRID_SOURCE_LAYER_1'
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
       case ('SF6')
       k = k+1
         ijts_source(1,n) = k
@@ -6109,7 +6144,7 @@ c#endif
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
-#endif TRACERS_AMP
+#endif /* TRACERS_AMP */
 #ifdef TRACERS_HETCHEM
       case ('SO4_d1')
 c chemical production of SO4 from SO2 on dust
@@ -7393,6 +7428,11 @@ C**** set some defaults
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
+      case ('CFCn')
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+
+
       case ('SF6')
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -8598,6 +8638,22 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
         end if
       end do
 #endif
+
+#ifdef TRACERS_GASEXCH_Natassa
+      !read in OCMIP based CFC-11 global emissions
+      !=sum(dC/dt) for each hemisphere
+      !these are *annual global averages* and need to be
+      !converted to our timestep value
+      print*, 'opening file=OCMIP_cfc.dat'
+      open(unit=11,file='/g6/aromanou/OCMIP_cfc.dat')
+      do n=1,ntm
+        do i=1,67
+          read(11,'(5x,e12.4)')ocmip_cfc(i,n)
+        enddo
+      enddo
+      close(11)
+#endif
+
       return
       end subroutine init_tracer
 
@@ -8690,6 +8746,10 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       REAL*4, DIMENSION(jm,lm)    ::  N2Oic   !each proc. reads global array
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                      CH4ic
+
+#ifdef TRACERS_GASEXCH_Natassa
+      REAL*8 :: dummy
+#endif
 
 !@param bymair 1/molecular wt. of air = 1/mair
 !@param byjm 1./JM
@@ -9243,6 +9303,15 @@ C         AM=kg/m2, and DXYP=m2:
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-10*ICfactor
           end do; end do; end do
 #endif
+
+        case ('CFCn')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            if(l.ge.LS1) then
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-13
+            else
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
+            end if
+          end do; end do; end do
 
         case ('CFC')
 #ifdef SHINDELL_STRAT_CHEM
@@ -9937,6 +10006,11 @@ C**** at the start of any day
      *  steph,stepx,stepp,tmon,bydt,tnew,scca(im)
       REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
+#ifdef TRACERS_GASEXCH_Natassa
+      integer :: i_ocmip,imax
+      real*8, dimension(ntm) :: trsource_glbavg
+#endif
+
       INTEGER J_0, J_1
 
 C****
@@ -9953,15 +10027,16 @@ C**** All sources are saved as kg/s
       case default
 !     write(6,*) ' Sources for ',trname(n),' are not in this routine'
 C****
-C**** Surface Sources of SF6 (Same grid as CFC11)
+C**** Surface Sources of SF6 and CFCn (Same grid as CFC11)
 C****
-      case ('SF6','CFC11')
+      case ('SF6','CFC11','CFCn')
         trsource(:,:,:,n)=0
 C**** SF6 source increases each year by .3pptv/year
+C**** CFCnsource increases each year so that the glbavg is from obs
 C**** CFC source is the same each year
 C**** Distribute source over ice-free land
         steppy = 1./(sday*JDperY)
-        if (trname(n).eq.'SF6') then
+        if (trname(n).eq.'SF6'  .or. trname(n).eq.'CFCn') then
 C         Make sure index KY=1 in year that tracer turns on
           ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
           base = (0.3d-12)*tr_mm(n)/mair !pptm
@@ -10064,6 +10139,75 @@ C**** Source over Australia and New Zealand
         source = .02d0*anngas*steppy
         i=66; j=15
         IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
+
+      !case ('CFCn')
+        !print out global average for each time step before weighing
+        !in the OCMIP values
+#ifdef TRACERS_GASEXCH_Natassa
+        sarea  = 0.
+        trsource_glbavg(n)=0.
+        do j=1,46
+         imax=72
+         if (j .eq. 1 .or. j .eq. 46) imax=1
+          do i=1,imax
+           sarea = sarea + dxyp(j)*fearth(i,j)
+           trsource_glbavg(n)=trsource_glbavg(n)
+     .                    + trsource(i,j,1,n)*dxyp(j)*fearth(i,j)
+          enddo
+        enddo
+        trsource_glbavg(n)=trsource_glbavg(n)/sarea
+
+        !weight trsource by ocmip_cfc global average
+        !number of steps/year=JDperY*sday/dtsrc=365*86400/1800=17520
+        i_ocmip=(itime-itime_tr0(n))/JDperY/int(sday/dtsrc)+1
+        if (mod(itime,JDperY*int(sday/dtsrc)) .eq. 0.)
+     .     write(6,'(a,2i5)'),
+     .             'TRACERS_DRV, new year: itime, i_ocmip=',
+     .             itime,i_ocmip
+        do j=1,46
+          do i=1,72
+
+cdiag     write(6,'(a,2i5,2e12.4,i5,4e12.4)')'TRACERS_DRV '
+cdiag.         ,i,j,trsource(i,j,1,n),ocmip_cfc(i_ocmip,n),
+cdiag.          JDperY,hrday,dtsrc,3600,trsource_glbavg(n)
+
+             trsource(i,j,1,n) = trsource(i,j,1,n)
+     .        * (ocmip_cfc(i_ocmip,n)/(JDperY*sday/dtsrc))
+     .        / trsource_glbavg(n)
+          enddo
+        enddo
+
+        write(6,'(a,3i5,3e12.4)')'TRACERS_DRV, CFC source at pt(15,33)'
+     .               ,15,33,i_ocmip,trsource(15,33,1,n)
+     .               ,ocmip_cfc(i_ocmip,n),trsource_glbavg(n)
+
+        !recompute global average after weighting in OCMIP
+        sarea  = 0.
+        trsource_glbavg(n)=0.
+        do j=1,46
+         imax=72
+         if (j .eq. 1 .or. j .eq. 46) imax=1
+          do i=1,imax
+           sarea = sarea + dxyp(j)*fearth(i,j)
+           trsource_glbavg(n)=trsource_glbavg(n)
+     .                    + trsource(i,j,1,n)*dxyp(j)*fearth(i,j)
+cdiag     write(6,'(a,3i5,i10,5e12.4)')'TRACERS_DRV '
+cdiag.         ,i,j,itime_tr0(n),i_ocmip
+cdiag.         ,sarea,trsource(i,j,1,n),dxyp(j)
+cdiag.         ,fearth(i,j),trsource_glbavg(n)
+          enddo
+        enddo
+        trsource_glbavg(n)=trsource_glbavg(n)/sarea
+
+cdiag   do j=1,46
+cdiag     do i=1,72
+cdiag     write(6,'(a,3i5,i10,3e12.4)')'TRACERS_DRV '
+cdiag.         ,i,j,itime_tr0(n),i_ocmip
+cdiag.         ,ocmip_cfc(i_ocmip,n),trsource(i,j,1,n)
+cdiag.         ,trsource_glbavg(n)
+cdiag     enddo
+cdiag   enddo
+#endif
 
 C****
 C**** Surface Sources for Radon-222
@@ -10180,7 +10324,7 @@ C****
      *      NH3_src_nat_con(:,j)+ NH3_src_nat_cyc(:,j)*SCCA(:)
      *      + NH3_src_hum_cyc(:,j)*SCCA(:)
         end do
-#endif TRACERS_NITRATE
+#endif /* TRACERS_NITRATE */
 #ifdef TRACERS_SPECIAL_Shindell
       case ('CO')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
@@ -10309,7 +10453,7 @@ c Laki emissions
 #endif
 #ifdef TRACERS_NITRATE
       USE NITRATE_AEROSOL
-#endif TRACERS_NITRATE
+#endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only : EMIS_SOURCE
 #endif
@@ -10624,7 +10768,7 @@ C**** Apply chemistry and overwrite changes:
 #endif
        call apply_tracer_3Dsource(1,n_NH4)  ! NO3 chem prod
        call apply_tracer_3Dsource(1,n_NH3)  ! NH3
-#endif TRACERS_NITRATE
+#endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
       DO n=1,ntm
        tr3Dsource(:,J_0:J_1,:,:,n) = 0.d0

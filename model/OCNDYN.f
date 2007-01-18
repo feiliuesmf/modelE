@@ -3115,6 +3115,9 @@ C**** Surface stress is applied to V component at the North Pole
 #endif
      *     ,dtrsi
 #endif
+#ifdef TRACERS_GASEXCH_Natassa
+      USE FLUXES, only : TRGASEX
+#endif  
       USE SEAICE_COM, only : rsi
       use domain_decomp, only : grid, get
 
@@ -3177,6 +3180,13 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
 #else
         TRUNO(:)=0. ; TRUNI(:)=0.
 #endif
+
+#ifdef TRACERS_GASEXCH_Natassa
+        !note that TRGASEX is positive down i.e. same sign as
+        !TRUNO, while TREVAPOR is positive up.
+        TRUNO(:)=RATOC(J)*TRGASEX(:,1,I,J)
+#endif
+
 #endif
 
         CALL OSOURC(ROICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
@@ -3908,12 +3918,20 @@ C****
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
+#ifdef TRACERS_GASEXCH_Natassa
+     *     ,GTRACER,TRGASEX
+      USE TRACER_COM, only : ntm
+#endif
+
       use domain_decomp, only : grid, get
 
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
       integer :: j_0,j_1
+#ifdef TRACERS_GASEXCH_Natassa
+     .         ,n
+#endif
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       call get (grid, j_strt=j_0, j_stop=j_1,
@@ -3949,6 +3967,15 @@ C****
             GTRACER(:,1,I,J)=trw0(:)
 #endif
 #endif
+
+#ifdef TRACERS_GASEXCH_Natassa
+            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
+cdiag       do n=1,ntm
+cdiag       write(6,'(a,3i5,5e12.4)')'OCNDYN, TRACER  ',
+cdiag.           I,J,n,GTRACER(n,1,I,J),TRMO(I,J,1,n),
+cdiag.           MO(I,J,n),DXYPO(J),TRGASEX(n,1,I,J)
+cdiag       enddo
+#endif
           END IF
         END DO
       END DO
@@ -3967,6 +3994,9 @@ C**** do poles
 #ifdef TRACERS_WATER
           GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
 #endif
+#ifdef TRACERS_GASEXCH_Natassa
+          GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
+#endif
         END DO
       END IF
       end if
@@ -3981,6 +4011,9 @@ c         UOSURF(I,1) = UO(IM,1,1)*COSU(1) - UO(IVSP,1,1)*SINU(1)
 c         VOSURF(I,0) = UO(IVSP,1,1)*COSI(I) - UO(IM,1,1)*SINI(I)
 c         OGEOZA(I,1)=OGEOZA(1,1)
 #ifdef TRACERS_WATER
+c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
 c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
 c       END DO
@@ -4160,9 +4193,11 @@ C****
      *     ,trmo
 #endif
       USE FLUXES, only : gmelt,egmelt
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
 #endif
+#endif               /* TNL: inserted */
       use domain_decomp, only : grid,get
 
       IMPLICIT NONE
@@ -4184,9 +4219,11 @@ C**** divide over depth and scale for time step
             IF (FOCEAN(I,J).GT.0. .and. GMELT(I,J).gt.0) THEN
               MO(I,J,L) = MO(I,J,L)+GMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))
               G0M(I,J,L)=G0M(I,J,L)+EGMELT(I,J)*DZ
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
               TRMO(I,J,L,:)=TRMO(I,J,L,:)+TRGMELT(:,I,J)*DZ
 #endif
+#endif               /* TNL: inserted */
             END IF
           END DO
         END DO

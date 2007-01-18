@@ -37,11 +37,13 @@ C**** The net fluxes of glacier mass into the ocean (per hemisphere)
 !@var EACCPDA total energy flux per year for Antarctica (kg/yr)
 !@var EACCPDG total energy flux per year for Greenland (kg/yr)
       REAL*8 :: ACCPDA, ACCPDG,  EACCPDA, EACCPDG
+#ifdef TRACERS_WATER /* TNL: inserted */
 #ifdef TRACERS_OCEAN
 !@var TRACCPDA total tracer flux per year for Antarctica (kg/yr)
 !@var TRACCPDG total tracer flux per year for Greenland (kg/yr)
       REAL*8 :: TRACCPDA(NTM), TRACCPDG(NTM)
 #endif
+#endif   /* TNL: inserted */
 
       CONTAINS
 

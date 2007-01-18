@@ -127,6 +127,11 @@ C**** fluxes associated with variable lake fractions
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:):: tr3Dsource
 
+#ifdef TRACERS_GASEXCH_Natassa
+!@var TRGASEX  tracer gas exchange over each type (kg/m^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
+#endif
+
 #ifdef TRACERS_WATER
 !@var TRPREC tracers in precip (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: TRPREC
@@ -316,6 +321,14 @@ C**** fluxes associated with variable lake fractions
       ALLOCATE( GTRACER ( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
      &  STAT = IER)
       GTRACER=0.
+
+#ifdef TRACERS_GASEXCH_Natassa
+
+      ALLOCATE( TRGASEX( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
+     &   STAT = IER)
+      TRGASEX=0.     !initialize to zero
+
+#endif
 
 #ifdef TRACERS_WATER
                                                     !(:)-(:)-I-J arrays

@@ -15,9 +15,11 @@
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,traccpda,traccpdg
 #endif
+#endif               /* TNL: inserted */
       USE LANDICE_COM, only : tlandi,snowli,loc_gla,loc_glg,mdwnimp
      *     ,edwnimp
 #ifdef TRACERS_WATER
@@ -130,9 +132,11 @@ C**** Greenland melt area
 
 C**** Intialise gmelt fluxes
       GMELT = 0. ; EGMELT = 0.
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
       TRGMELT = 0.
 #endif
+#endif /* TNL: inserted */
 
       if (do_glmelt .and. glmelt_on.eq.1) then
 C****  Note that water goes in with as if it is ice at 0 deg.
@@ -153,10 +157,12 @@ C**** for Antarctica and for Greenland it is 316x10**12 kg/year
         ACCPDA = glmelt_fac_sh*2016d12 ! kg/year
         ACCPDG = glmelt_fac_nh*316d12 ! kg/year
         EACCPDA = -LHM*ACCPDA ; EACCPDG = -LHM*ACCPDG ! J/year
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
         TRACCPDA(:) = trglac(:)*ACCPDA ! kg/year
         TRACCPDG(:) = trglac(:)*ACCPDG ! kg/year
 #endif
+#endif /* TNL: inserted */
 
 C**** initiallise implicit accumulators (note that these arrays are
 C**** not used until at least one full year has passed)
@@ -177,16 +183,20 @@ C**** Set GL MELT arrays
           IF (LOC_GLA(I,J)) THEN
              GMELT(I,J) =  ACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J) ! kg
             EGMELT(I,J) = EACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J) ! J
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
             TRGMELT(:,I,J)= TRACCPDA(:)*FAC_SH*DXYP(J)*FOCEAN(I,J)  ! kg
 #endif
+#endif /* TNL: inserted */
           END IF
           IF (LOC_GLG(I,J)) THEN
              GMELT(I,J) =  ACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! kg
             EGMELT(I,J) = EACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! J
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
             TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*DXYP(J)*FOCEAN(I,J) ! kg
 #endif
+#endif /* TNL: inserted */
           END IF
         END DO
       END DO
@@ -356,8 +366,10 @@ C**** Finish summing and store total accumulations into AREG.
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
 #endif
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
+#endif   /* TNL: inserted */
       USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr
 #endif
 #endif
@@ -488,10 +500,12 @@ C**** Accumulate diagnostics related to iceberg flux here also
       AREG_PART(JR,J,9)   = AREG_PART(JR,J,9) + EGMELT(I,J)
       AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
       AIJ(I,J,IJ_ERVR)=AIJ(I,J,IJ_ERVR) + EGMELT(I,J)
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
       TAIJN(I,J,TIJ_RVR,:)=TAIJN(I,J,TIJ_RVR,:)+ TRGMELT(:,I,J)
      *     *BYDXYP(J)
 #endif
+#endif  /* TNL: inserted */
 C****
       END DO
       END DO
@@ -599,18 +613,22 @@ C****
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,traccpda,traccpdg
 #endif
+#endif    /* TNL: inserted */
       USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp,loc_gla
      *     ,loc_glg
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0,trdwnimp
 #endif
       USE FLUXES, only : gtemp,gmelt,egmelt
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
 #endif
+#endif    /* TNL: inserted */
 #ifdef TRACERS_WATER
      *     ,gtracer
       USE TRACER_COM, only :  trw0
@@ -662,10 +680,12 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
      *         ,mdwnimp_NH
           write(6,*) "Temp (before): ",(eaccpda/accpda+lhm)/shi
      *         ,(eaccpdg/accpdg+lhm)/shi
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
           write(6,*),"Tracers (before)",1000*(traccpda(:)/accpda/trw0(:)
      *         -1.)
 #endif
+#endif   /* TNL: inserted */
            accpda =  accpda + gm_relax*(mdwnimp_SH -  accpda)
            accpdg =  accpdg + gm_relax*(mdwnimp_NH -  accpdg)
           eaccpda = eaccpda + gm_relax*(edwnimp_SH - eaccpda)
@@ -679,6 +699,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
         call ESMF_BCAST(grid, EACCPDA)
         call ESMF_BCAST(grid, EACCPDG)
 
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
         if (AM_I_ROOT()) THEN
           traccpda(:)=traccpda(:)+gm_relax*(trdwnimp_SH(:)-traccpda(:))
@@ -690,6 +711,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
         call ESMF_BCAST(grid, TRACCPDA)
         call ESMF_BCAST(grid, TRACCPDG)
 #endif
+#endif   /* TNL: inserted */
 ! accumulation (kg per source time step) per water column
       FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH)
       FAC_NH=DTsrc/(EDPERY*SDAY*FWAREA_NH)
@@ -700,16 +722,20 @@ C**** Set GL MELT arrays
           IF (LOC_GLA(I,J)) THEN
               GMELT(I,J)  =  ACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J)  ! kg
               EGMELT(I,J) = EACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J) ! J
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
               TRGMELT(:,I,J)=TRACCPDA(:)*FAC_SH*DXYP(J)*FOCEAN(I,J)  ! kg
 #endif
+#endif    /* TNL: inserted */
           END IF
           IF (LOC_GLG(I,J)) THEN
              GMELT(I,J) =  ACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! kg
             EGMELT(I,J) = EACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! J
+#ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
             TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*DXYP(J)*FOCEAN(I,J)  ! kg
 #endif
+#endif    /* TNL: inserted */
           END IF
         END DO
       END DO

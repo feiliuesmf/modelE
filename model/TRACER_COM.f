@@ -492,9 +492,15 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
 #else
 #ifdef TRACERS_OCEAN
+#if defined TRACERS_GASEXCH_Natassa
+      integer, parameter :: ntm=1
+      character*8, parameter :: trname(ntm)= (/
+     *     'CFCn    '/)
+#else
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Water   '/)
-#else ! default for TRACERS_ON
+#endif
+#else /* default for TRACERS_ON */
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
 #endif
@@ -548,7 +554,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
-     *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
+     *     n_Pb210 = 0,n_Be7=0,   n_Be10=0, n_CFCn=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
      *     n_SO4_d3=0,n_N_d1=0,  n_N_d2=0,  n_N_d3=0,
      &     n_NH3=0,   n_NH4=0,   n_NO3p=0,
@@ -707,6 +713,11 @@ C****
       INTEGER, PARAMETER :: nChemistry  = 1, nStratwrite = 2,
      &                      nLightning  = 3, nAircraft   = 4
 
+#ifdef TRACERS_GASEXCH_Natassa
+!@var ocmip_cfc: CFC-11 emissions estimated from OCMIP surf.conc.
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ocmip_cfc
+#endif
+
 #ifdef TRACERS_WATER   
 !@param nWD_TYPES number of tracer types for wetdep purposes  
       integer, parameter :: nWD_TYPES=3 !(gas,particle,water)
@@ -768,7 +779,14 @@ C****
      *             no3_live(IM,J_0H:J_1H,LM),
      *                  trm(IM,J_0H:J_1H,LM,NTM),
      *                trmom(NMOM,IM,J_0H:J_1H,LM,NTM) )
-  
+    
+#ifdef TRACERS_GASEXCH_Natassa
+      !60years (1939--1998) OCMIP surfc. concentr. converted to
+      !global averaged emission rates
+      !each value corresponds to the annual value
+      ALLOCATE(ocmip_cfc(67,NTM))
+#endif
+
 #ifdef TRACERS_WATER
       ALLOCATE(        trwm(IM,J_0H:J_1H,LM,NTM) )
 #endif
