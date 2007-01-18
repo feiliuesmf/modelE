@@ -19,7 +19,7 @@
       USE TRACER_COM, only: TRM,TRMOM,NTM
       USE TRDIAG_COM, only: TAJLN=>TAJLN_loc,JLNT_TURB
 #endif
-      USE DYNAMICS, only : pk,pdsig,plij,dke
+      USE DYNAMICS, only : pk,pdsig,plij,dke,pedn
       USE PBLCOM, only : dclev,w2gcm,w2_l1
       IMPLICIT NONE
 
@@ -40,8 +40,7 @@ C
       INTEGER  LRANG(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 C
       REAL*8, DIMENSION(NMOM) :: TMOMS,QMOMS
-      REAL*8 DOK,PIJBOT,PIJ,PKMS,QMS
-     *     ,TVMS,THETA,RDP,THM
+      REAL*8 DOK,PKMS,QMS,TVMS,THETA,RDP,THM
 
 #ifdef TRACERS_ON
       REAL*8, DIMENSION(NMOM,NTM) :: TRMOMS
@@ -85,7 +84,7 @@ C****   WHILE U,V WILL BE UPDATED.
       UT=U ; VT=V
 C**** OUTSIDE LOOPS OVER J AND I
 !$OMP  PARALLEL DO PRIVATE (I,IM1,IMAX,J,K,KMAX,L,LMIN,LMAX,IDI,IDJ,
-!$OMP*   DP,PIJ,PIJBOT,PKMS, QMS,QMOMS, RA,RDP,
+!$OMP*   DP,PKMS, QMS,QMOMS, RA,RDP,
 #ifdef TRACERS_ON
 !$OMP*   TRMS,TRMOMS,SDPL,BYSDPL,
 #endif
@@ -117,9 +116,7 @@ C
      *   T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*deltx)) cycle lbase_loop
 C**** MIX HEAT AND MOISTURE THROUGHOUT THE UNSTABLE LAYERS
 C**** MIX THROUGH TWO LOWER LAYERS
-      PIJBOT=PLIJ(LMIN,I,J)
       DP(LMIN)=PDSIG(LMIN,I,J)
-      PIJ=PLIJ(LMIN+1,I,J)
       DP(LMIN+1)=PDSIG(LMIN+1,I,J)
       PKMS=PK(LMIN,I,J)*DP(LMIN)+PK(LMIN+1,I,J)*DP(LMIN+1)
       TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*deltx)*(PK(LMIN,I,J)*DP(LMIN))
@@ -143,7 +140,6 @@ C**** sum moments to mix over unstable layers
 C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       DO L=LMIN+2,LM
         IF (THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*deltx)) GO TO 160
-        PIJ=PLIJ(L,I,J)
         DP(L)=PDSIG(L,I,J)
         PKMS=PKMS+(PK(L,I,J)*DP(L))
         QMS=QMS+Q(I,J,L)*DP(L)
@@ -160,7 +156,7 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       END DO
   150 L=LM+1
   160 LMAX=L-1
-      RDP=1./(PIJBOT*SIGE(LMIN)-PIJ*SIGE(LMAX+1))
+      RDP=1./(PEDN(LMIN,I,J)-PEDN(LMAX+1,I,J)) 
       QMS=QMS*RDP
       THM=TVMS/(PKMS*(1.+QMS*deltx))
 #ifdef TRACERS_ON

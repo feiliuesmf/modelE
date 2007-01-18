@@ -885,7 +885,7 @@ c
       USE DOMAIN_DECOMP, only : GRID
       USE MODEL_COM, only : im,jm,lm,fim,flice,
      &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,lrunid,ntype
+     &     jyear,jyear0,ls1,itime,itime0,nday,xlabel,lrunid,ntype
       USE GEOM, only : dxyp,lat,lat_dg
       USE DIAG_COM, only :
      &     QDIAG,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
@@ -3415,7 +3415,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID
       USE CONSTANT, only : teeny
       USE MODEL_COM, only :
-     &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
+     &     jm,lm,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
       USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
