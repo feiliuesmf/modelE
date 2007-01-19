@@ -165,7 +165,7 @@ FFLAGS = -fpp -O2 -ftz         -convert big_endian
 F90FLAGS = -fpp -O2 -ftz        -convert big_endian -free 
 LFLAGS = -O2 -ftz
 CPP = /lib/cpp -P -traditional
-CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel8
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel8 -DCONVERT_BIGENDIAN
 F90_VERSION = $(shell $(F90) -v 2>&1)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
