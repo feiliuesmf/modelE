@@ -348,7 +348,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
-     &      PTLISO ,KTREND ,LMR=>NL, PLB
+     &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER , O3YR_max
@@ -760,6 +760,7 @@ C**** set up unit numbers for 14 more radiation input files
         IF (IU.EQ.5) CYCLE                 ! obsolete trop. aerosol data
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
+      LS1_loc=1  ! default
 C***********************************************************************
 C     Main Radiative Initializations
 C     ------------------------------------------------------------------
