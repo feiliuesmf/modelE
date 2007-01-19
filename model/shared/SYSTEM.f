@@ -88,6 +88,7 @@
       real*8 x, randss
       integer :: a, b ! linear coefficient
       integer :: nn
+      if (n.eq.0) return
       a = A_linear
       nn = n
       b = 1
@@ -105,7 +106,7 @@
       Integer :: n
       Integer :: i
       Real*8  :: x
-
+      
       Write(6,*) ' ***********************************************'
       Write(6,*) ' Warning: slow implementation of burn_random()  '
       Write(6,*) ' on this platform.  Better performance can be   '
