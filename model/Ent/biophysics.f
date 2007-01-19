@@ -313,7 +313,7 @@
       !betad, betadl
 
       !* Accumulate uptake. ## HACK FOR ONE COHORT PER PATCH ##
-      pp%tallest%C_lab = pp%tallest%C_lab + NPP*dtsec  !(kg/m2) ###Eventually need to convert to kg/individual.
+      pp%tallest%C_lab = pp%tallest%C_lab + pp%NPP*dtsec  !(kg/m2) ###Eventually need to convert to kg/individual.
 
       !OUTPUTS FROM ENT TO GCM/EWB
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
