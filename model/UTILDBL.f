@@ -602,7 +602,8 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       rank =0
 #endif
       if (rank == 0) then
-        call write_run_status( message, retcode )
+        if ( retcode >= 0 ) ! skip writing status file for retcode<0
+     &       call write_run_status( message, retcode )
         write (6,'(//2(" ",132("*")/))')
         write (6,*) ' Program terminated due to the following reason:'
         write (6,*) ' >>  ', message, '  <<'

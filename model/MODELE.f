@@ -79,7 +79,7 @@ C****
       call read_options( qcrestart, ifile )
       if ( qcrestart ) then
         call print_restart_info
-        call stop_model("Terminated normally: printed restart info",13)
+        call stop_model("Terminated normally: printed restart info",-1)
       endif
 C****
 C**** INITIALIZATIONS
@@ -112,13 +112,11 @@ C****
           call aPERIOD (JMON0,JYEAR0,months,1,0, acc_period,Ldate)
         end if
         call print_diags(0)
-        if(istart < 1) then 
-#ifdef USE_ESMF
-           call mpi_finalize(mpi_err)
-#endif
-           call exit_rc (0)
+        if(istart < 1) then
+          call stop_model ('Finished post-processing',-1)
+        else
+          call stop_model ('The run has already completed',13)
         end if
-        CALL stop_model ('The run has already completed',13)
         ! no output files are affected
       END IF
 
