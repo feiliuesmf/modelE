@@ -350,8 +350,8 @@
       pp%R_auto = R_autosum
       pp%TRANS_SW = TRANS_SW 
 
-      !* Accumulate uptake. ## HACK FOR ONE COHORT PER PATCH ##
-      pp%tallest%C_lab = pp%tallest%C_lab + pp%NPP*dtsec  !(kg/m2) ###Eventually need to convert to kg/individual.
+      !* Accumulate uptake. 
+      pp%C_lab = pp%C_lab + pp%NPP*dtsec  !(kg/m2) ###Eventually need to convert to kg/individual.
 
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
       !pp%cellptr%GCANOPY = GCANOPY
