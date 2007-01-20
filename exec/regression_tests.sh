@@ -480,6 +480,6 @@ done
 
 popd
 cleanUp
-export MAILING_ADDRESS=Thomas.L.Clune@nasa.gov
-mail -s $MAIN_LOG $MAILING_ADDRESS
+export MAILING_ADDRESS=giss-modelE-regression@sourcemotel.gsfc.nasa.gov
+mail -s "modelE regression tests" $MAILING_ADDRESS -a$MAIN_LOG
 logMessage "All processing completed."
