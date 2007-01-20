@@ -31,6 +31,8 @@
          real*8 :: sstar  !Rel. soil moist at stress onset (Rodriguez-Iturbe)
          real*8 :: swilt  !Normalized soil water at wilting point (dim'less)
          real*8 :: nf !Canopy nitrogen factor (dimensionless) (Kull and Kruijt)
+         !CLM respiration parameters
+         real*8 :: r      !CLM respiration parameter (gC/gN)
          !CASA parameters
          real*8 :: sla !Specific leaf area (m^2 leaf area/kg C)
          real*8 :: lrage !CASA Turnover time of leaves and roots (years)
@@ -98,6 +100,7 @@
          real*8 LAI               !*
          !@var LMA Leaf mass per leaf area (gC/m2)
          real*8 LMA
+         !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
 
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
@@ -107,11 +110,10 @@
          real*8 :: crown_dy       ! Crown vertical axis length (m)
          real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
-         !real*8 :: LA            ! Leaf area (m2[leaf])
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: froot(:) ! Fraction of roots in soil layer
 
-         !* BIOMASS POOLS (SHOULD CONVERT TO PER INDIVIDUAL LATER)
+         !* BIOMASS POOLS (g-C/single plant)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
          real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
          real*8 :: C_sw           ! Sapwood carbon (=rho_wood*sw_vol) (units?)
@@ -125,13 +127,14 @@
          real*8 :: C_croot        ! Coarse root carbon
          real*8 :: N_croot        ! Coarse root nitrogen
 
-         !* FLUXES
-         real*8 :: gcanopy        ! Conductance of water vapor/plant (kg/s)
-         real*8 :: GPP            ! GPP flux/plant over time step (kg-C/m2/s)
-         real*8 :: NPP            ! NPP flux/plant over time step (kg-C/m2/s)
-         real*8 :: R_growth       ! Growth respiration/plant over time step (kg-C/m2/s)
-         real*8 :: R_maint        ! Maintenance respir/plant over time step (kg-C/m2/s)
-         real*8 :: N_up           ! N uptake from soil over time step (kg-N/m2/s)
+         !* FLUXES (for whole cohort over area cover)
+         real*8 :: Ci             !*Internal foliage CO2 (mol/m3) !!Cohort level
+         real*8 :: gcanopy        ! Conductance of water vapor/cohort (m/s)
+         real*8 :: GPP            ! GPP flux/cohort/area cover (kg-C/m2/s)
+         real*8 :: NPP            ! NPP flux/cohort/area cover (kg-C/m2/s)
+         real*8 :: R_auto         ! Autotrophic respiration/cohort/area cover (kg-C/m2/s)
+                                  ! = growth(Acan) + maint(fol,sapwood,root)
+         real*8 :: N_up           ! N uptake from soil/cohort/area cover (kg-N/m2/s)
 !         real*8 :: C_litter       ! C in litterfall
 !         real*8 :: N_litter       ! N in litterfall
          real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts
@@ -153,38 +156,84 @@
 !****************************************************************************
       type patch
          real*8 :: age                !*Patch age (years)
-         real*8 :: area               !*Patch area (units?)
+         real*8 :: area               !*Patch area (fraction of entcell)
          type(entcelltype),pointer:: cellptr !Pointer to grid cell
          type(patch),pointer :: older !Pointer to next older patch
          type(patch),pointer :: younger !Pointer to next younger patch
          type(cohort),pointer :: tallest !Pointer to tallest cohort
          type(cohort),pointer :: shortest !Pointer to shortest cohort
-         type(cohort),pointer :: sumcohort !Summary of properties of cohorts.
-         !NOTE:  In sumcohort:  
-         ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
-         ! total number of individuals (may want to do by biomass of cohort)
-         ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
 
-         !* Structural variables *!
-         real*8 :: nm   !Mean canopy nitrogen (g/m2[leaf]) over patch
+         !*- - - - - - - Cohorts summary variables - - - - - - - - - - -*!
+         !  Intensive properties (e.g. geometry, LMA) are averages weighted by
+         ! total number of individuals or LAI.
+         !  Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
 
-         !* Flux variables for GCM/EWB - patch total
+         !* DIAGNOSTICS - NITROGEN and LEAF status */
+         !@var nm   Mean leaf nitrogen (g/m2[leaf])
+         real*8 :: nm
+         !@var Ntot Total cohort nitrogen (g/m[ground]2).
+         real*8 Ntot
+         !@var LMA Leaf mass per leaf area (gC/m2)
+         real*8 LMA
+         !@var LAI Total cohort leaf area index (m2[leaf]/m2[ground])
+         real*8 LAI               !*
+         !@var LAIpft LAI by cover type.
+         real*8,pointer :: LAIpft(:) !(N_COVERTYPES)
+         !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
+
+         !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
+         real*8 :: h              !* mean Height (m)
+         real*8 :: crown_dx       ! Crown horizontal axis length (m)
+         real*8 :: crown_dy       ! Crown vertical axis length (m)
+!         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
+!         real*8 :: root_d         ! Root half spheroid diameter (m)
+         real*8 :: clump          ! Leaf clumping parameter (TBA)
+         real*8,pointer :: froot(:) ! Fraction of roots in soil layer
+
+         !* DIAGNOSTICS - BIOMASS POOLS (g-C/cohort)
+         real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
+         real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
+         real*8 :: C_w           ! Sapwood+dead wood carbon (=rho_wood*sw_vol) (units?)
+         real*8 :: N_w           ! Sapwood+dead wood nitrogen
+         real*8 :: C_lab          ! Labile stored carbon 
+         real*8 :: N_lab          ! Labile stored nitrogen
+         real*8 :: C_froot        ! Fine root carbon
+         real*8 :: N_froot        ! Fine root nitrogen
+         real*8 :: C_root        ! Fine+coarse root carbon
+         real*8 :: N_root        ! Fine+coarse root nitrogen
+
+         !* EXPORT - FLUXES (whole patch)
+         real*8 :: Ci             !*Internal foliage CO2 (mol/m3) 
+         real*8 :: GCANOPY        ! Conductance of water vapor (m/s)
+         !* DIAGNOSTICS - FLUXES
+         real*8 :: GPP            ! GPP flux (kg-C/m2/s)
+         real*8 :: NPP            ! NPP flux (kg-C/m2/s)
+         real*8 :: R_auto         ! Autotrophic respiration (kg-C/m2/s)
+                                  ! = growth(Acan) + maint(fol,sapwood,root)
+         real*8 :: N_up           ! N uptake from soil(kg-N/m2/s)
+!         real*8 :: C_litter       ! C in litterfall
+!         real*8 :: N_litter       ! N in litterfall
+!         real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts
+         !- - - - - - - end of cohort summary variables - - - - - - - - - - - - -
+
+         !- - - - - - - Patch total - - - - - - - - - - - - - - - - - - - - - - -
+
+         !* IMPORT-PRESCRIBED, EXPORT-SIMULATED
          real*8 :: z0              !Roughness length, average over patch
-         real*8 :: albedo(N_BANDS) !Spectral albedo, average over patch
-         real*8 :: TRANS_SW     !Transmittance of shortwave radiation to the ground (fraction)
-         real*8 :: GCANOPY         !Canopy conductance of water vapor (mm/s)
-         real*8 :: CO2flux         !Net CO2 flux up (kg-C/m2-gnd/s)
-         real*8 :: Ci   !<<<        !*Internal foliage CO2 (mol/m3) !!Cohort level
-         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+         !* EXPORT 
+         real*8 :: albedo(N_BANDS)   !Spectral albedo, average over patch
+         real*8 :: betad             !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8,pointer :: betadl(:) !Water stress in layers.
-         real*8 :: Soil_resp       !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
-         real*8 :: R_can  !Canopy respiration. Temporary hack (kg-C/m2/s) -NYK 7/28/06 ## Will go in sumcohort.
-         real*8 :: R_root !Root respiration. Temporary hack (kg-C/m2/s) -NYK 7/28/06 ## Will go in sumcohort.
+         real*8 :: TRANS_SW          !Transmittance of shortwave radiation to the ground (fraction)
+         real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
+         !* DIAGNOSTICS - soil
+         real*8 :: Soil_resp         !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
+         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !<<< !(g-C/m^2, CASA Tpools, single cell)
 
-         !* Variables calculated by GCM/EWB - downscaled from grid cell
+         !* IMPORT - Variables calculated by GCM/EWB - downscaled from grid cell
 !         real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
-         real*8 :: Soilmoist !Soil moisture (volumetric fraction, avg top 30 cm) -PK 6/28/06
-         real*8 :: N_deposit          !N deposition (kgN/m2)
+         real*8 :: Soilmoist    !Soil moisture (volumetric fraction, avg top 30 cm) -PK 6/28/06
+!         real*8 :: N_deposit    !N deposition (kgN/m2)
 
          !* Variables for biophysics and biogeochemistry
          type(canradtype) :: crad !Data structure for light profile
@@ -192,21 +241,12 @@
          !* Disturbance values
          real*8 :: fuel
          real*8 :: ignition_rate
-         real*8 :: lambda1(T_SUB)  !Site-averaged fire dist. rate during year
+         real*8 :: lambda1(T_SUB) !Site-averaged fire dist. rate during year
          real*8 :: disturbance_rate(N_DIST_TYPES)
 
-         !* DIAGNOSTIC SUMMARIES
-         !* Biomass pools - patch total
-         !* SEE avgcohort and sumcohort
-         real*8 :: LAI(N_COVERTYPES)
-         real*8 :: C_froot           !Carbon in fine roots.
 
          !* Soil data (needed for albedo computation)
          integer soil_type      ! 1 - sand (bright) ; 2 - dirt (dark)
-
-         !* CASA carbon pools *!
-         !"live" & "dead"
-         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !<<< !(g-C/m^2, CASA Tpools, single cell)
 
 #ifdef NEWDIAG
          !* Soil pools - patch total
@@ -223,13 +263,9 @@
          real*8 :: dpdt              !Rate of change of patch area
          real*8 :: dwdt              !Rate of change of available soil water
 #endif
-         !* Activity diagnostics - can be summed by month, year, etc.
-         real*8 :: GPP               !Gross primary productivity (kgC/m2/s)
-         real*8 :: NPP               !Net primary productivity (kgC/m2/s)
-!         real*8 :: Soil_resp         !Soil heterotrophic respiration (kgC/m2/s) !moved to fluxes -PK 6/14/06
       end type patch
 
-!****************************************************************************
+
 !****************************************************************************
       type entcelltype
  !        real*8 :: long, lat      !longitude, latitude
@@ -237,14 +273,84 @@
          real*8 :: area         !Area km^2
          type(patch), pointer:: youngest
          type(patch), pointer:: oldest
-         type(patch), pointer:: sumpatch !summary of patches in entcell
 
-         !Cell-level summary values - PHYSICAL
-         !EXPORT - from radiative transfer
+         !*- - - - - - - Cohorts summary variables - - - - - - - - - - -*!
+         !* Per vegetated ground area of entcell ** excludes bare soil area.
+         !  Intensive properties (e.g. geometry, LMA) are averages weighted by
+         ! total number of individuals or leaf area.
+         !  Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
+
+         !* IMPORT-PRESCRIBED, EXPORT-SIMULATED - NITROGEN and LEAF status */
+         !@var nm   Mean leaf nitrogen (g/m2[leaf]).
+         real*8 :: nm
+         !@var Ntot Total cohort nitrogen (g/m[ground]2) for vegetated patches only.
+         real*8 Ntot
+         !@var LMA Leaf mass per leaf area (gC/m2)
+         real*8 LMA
+         !@var LAI Leaf area index (m2[leaf]/m2[ground]) for vegetated patches only.
+         real*8 LAI               
+         !@var LAIpft LAI by cover type.
+         real*8,pointer :: LAIpft(:) !(N_COVERTYPES)
+         !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
+
+         !* IMPORT-PRESCRIBED, EXPORT-SIMULATED - GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
+         real*8 :: h              !* mean Height (m)
+!         real*8 :: crown_dx       ! Crown horizontal axis length (m)
+!         real*8 :: crown_dy       ! Crown vertical axis length (m)
+!         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
+!         real*8 :: root_d         ! Root half spheroid diameter (m)
+!         real*8 :: clump          ! Leaf clumping parameter (TBA)
+         real*8,pointer :: froot(:) ! Fraction of roots in soil layer
+
+         !*  IMPORT-PRESCRIBED, EXPORT-SIMULATED - BIOMASS POOLS (g-C/cohort)
+         real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
+         real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
+         real*8 :: C_w           ! Sapwood+dead wood carbon (=rho_wood*sw_vol) (units?)
+         real*8 :: N_w           ! Sapwood+dead wood nitrogen
+         real*8 :: C_lab          ! Labile stored carbon 
+         real*8 :: N_lab          ! Labile stored nitrogen
+         real*8 :: C_froot        ! Fine root carbon
+         real*8 :: N_froot        ! Fine root nitrogen
+         real*8 :: C_root        ! Fine+coarse root carbon
+         real*8 :: N_root        ! Fine+coarse root nitrogen
+
+         !* IMPORT/EXPORT PUBLIC - FLUXES)
+         real*8 :: Ci             !*Internal foliage CO2 (mol/m3) 
+         real*8 :: GCANOPY        ! Conductance of water vapor (m/s)
+         !* EXPORT - FLUXES 
+         real*8 :: GPP            ! GPP flux (kg-C/m2/s)
+         real*8 :: NPP            ! NPP flux (kg-C/m2/s)
+         real*8 :: R_auto         ! Autotrophic respiration (kg-C/m2/s)
+                                  ! = growth(Acan) + maint(fol,sapwood,root)
+         real*8 :: N_up           ! N uptake from soil(kg-N/m2/s)
+!         real*8 :: C_litter       ! C in litterfall
+!         real*8 :: N_litter       ! N in litterfall
+!         real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts
+         !- - - - - - - end of cohort summary variables - - - - - - - - - - - - - - - - - - -
+
+         !- - - - - -  Patch-level summary values - PHYSICAL ------------------
+         !* EXPORT - from radiative transfer
+         real*8 :: z0              !Roughness length, average over patch
          real*8 :: albedo(N_BANDS) !Albedo may be in bands or hyperspectral
+         real*8 :: betad             !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
+         real*8,pointer :: betadl(:) !Water stress in layers.
          real*8 :: TRANS_SW  !Transmittance of shortwave radiation to the ground (fraction)
+         real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
+         !* DIAGNOSTICS - soil
+         real*8 :: Soil_resp         !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
+         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !<<< !(g-C/m^2, CASA Tpools, single cell)
 
-         !SOIL - IMPORT
+         !* Disturbance values
+         real*8 :: fuel
+         real*8 :: ignition_rate
+         real*8 :: lambda1(T_SUB) !Site-averaged fire dist. rate during year
+         real*8 :: disturbance_rate(N_DIST_TYPES)
+
+         !- - - - - - Entcell-level variables - - - - - - - - - - - - - - - -
+         !* IMPORT/EXPORT - vegetation
+         real*8 :: fv  ! vegetation fraction of entcell
+         real*8 :: heat_capacity ! total veg. heat capacity
+         !* IMPORT - SOIL
          real*8 :: soil_Phi      !Soil porosity (m3/m3)
          real*8 :: soildepth    !Soil depth (m)
          real*8 :: theta_max    !Saturated soil water volume (m/m)
@@ -254,34 +360,12 @@
          !SOIL - CONSTANTS
          !Soil textures for CASA -PK
          !use siltfrac = 1-(clayfrac+sandfrac)?? (R&A scheme has loam/peat!) -PK 
-         real*8 :: soil_texture(N_SOIL_TYPES) ! fractions of soil textures
-                                              ! in upper 30 cm of soil
+         real*8 :: soil_texture(N_SOIL_TYPES) ! fractions of soil textures, upper 30 cm of soil
 !         real*8 clayfrac  !fractional clay content (passed from GHY.f)
 !         real*8 sandfrac  !fractional sand content (also from GHY.f)
 
-         !VEGETATION - EXPORT STATE
-         real*8 :: z0           !Roughness length (m)
-!         real*8 :: GCANOPY      !Canopy conductance of water vapor (mm s-1)
-!         real*8 :: CO2flux      !CO2 flux (umol m-2 s-1)
-!         real*8 :: GPP          !GPP
-!         !real*8 :: NPP          !NPP
-!         !real*8 :: VOCflux     !Other kind of fluxes, aerosols from fire, etc.
-         !Cell-level diagnostic values - BIOLOGICAL
-         !e.g. LAI, biomass pools, nitrogen pools, PFT fractions, GDD, GPP, etc
-!         real*8 :: LAI(N_COVERTYPES)
-         real*8 :: fv  ! vegetation fractionls
-         real*8 :: LAI  !Total LAI
-         real*8 :: heat_capacity ! total veg. heat capacity
-!         real*8,pointer :: froot(:) !Fraction of roots in soil layer
-!         real*8 :: C_froot      !Carbon in fine roots
-!         real*8 :: betad  !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
-!         real*8,pointer :: betadl(:) !Water stress in layers.
-         !-----
 
-         !VEGETATION - PUBLIC
-!         real*8 :: Ci           !*Internal foliage CO2 (mol/m3) !!Cohort level
-
-         !METEOROLOGICAL - IMPORT STATE VARIABLES
+         !IMPORT - METEOROLOGICAL STATE VARIABLES
          !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
          real*8 :: TcanopyC     !Canopy temperatue (Celsius)
          real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)

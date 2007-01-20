@@ -454,7 +454,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine prescr_plant_cpools(pft, lai, h, dbh, popdens, cpool )
       !* Calculate plant carbon pools for single plant (g-C/plant)
-      !* After Moorcroft, et al. (2001).
+      !* After Moorcroft, et al. (2001). No assignment of LABILE pool here.
       integer,intent(in) :: pft !plant functional type
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant

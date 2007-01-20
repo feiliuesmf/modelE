@@ -14,7 +14,7 @@
      &     crown_dx, crown_dy,dbh, root_d,LAI,clump,froot,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     GCANOPY, GPP, NPP, R_growth,R_maint,
+     &     Ci, GCANOPY, GPP, NPP, R_auto,
      &     N_up, C_to_Nfix)
 
       type(patch),pointer :: pp
@@ -24,7 +24,7 @@
       real*8 :: froot(N_DEPTH)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     GCANOPY, GPP, NPP, R_growth,R_maint,
+     &     Ci, GCANOPY, GPP, NPP, R_auto,
      &     N_up, C_to_Nfix
       !------------------
       type(cohort),pointer :: cop, csp, newc
@@ -41,7 +41,7 @@
      &       crown_dx, crown_dy,dbh, root_d,clump,
      &       LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &       GCANOPY, GPP, NPP, R_growth,R_maint,
+     &       Ci, GCANOPY, GPP, NPP, R_auto,
      &       N_up, C_to_Nfix,froot)
 
         newc%Ntot = nm*LAI
@@ -126,7 +126,7 @@
      &     crown_dx, crown_dy,dbh, root_d,clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     GCANOPY, GPP, NPP, R_growth,R_maint,
+     &     Ci, GCANOPY, GPP, NPP, R_auto,
      &     N_up, C_to_Nfix, froot)
       !Given cohort's characteristics, assign to cohort data variable.
 
@@ -137,7 +137,7 @@
      &     crown_dx, crown_dy,dbh, root_d,clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     GCANOPY, GPP, NPP, R_growth,R_maint,
+     &     Ci, GCANOPY, GPP, NPP, R_auto,
      &     N_up, C_to_Nfix, froot(:)
 
       cop%pft = pft
@@ -163,11 +163,11 @@
       cop%N_froot =  N_froot 
       cop%C_croot =  C_croot 
       cop%N_croot = N_croot
+      cop%Ci = Ci
       cop%GCANOPY =  GCANOPY 
       cop%GPP =  GPP 
       cop%NPP =  NPP 
-      cop%R_growth = R_growth
-      cop%R_maint = R_maint
+      cop%R_auto = 0.0
       cop%N_up =  N_up 
 !      cop%C_litter = C_litter
 !      cop%N_litter = N_litter
@@ -229,11 +229,11 @@ cddd      end subroutine init_cohort_defaults
       cop%N_croot = 0.0
       
       !* FLUXES *!
+      cop%Ci =  0.0127D0        !Initial value not zero.
       cop%GCANOPY = 0.0
       cop%GPP = 0.0
       cop%NPP = 0.0
-      cop%R_growth = 0.0
-      cop%R_maint = 0.0
+      cop%R_auto = 0.0
       cop%N_up = 0.0
 !      cop%C_litter = 0.0
 !      cop%N_litter = 0.0

@@ -71,128 +71,108 @@
       implicit none
       type(patch),pointer :: pp
       !-----Local variables-------
-      type(cohort),pointer :: scop, cop
-      real*8 :: nc  !density sum
+      type(cohort),pointer :: cop
+      real*8 :: nc, nsum  !density, sum
       integer :: ia  !array index
       integer :: pft
 
-      scop => pp%sumcohort
-
       !* Zero out summary variables *!
-      call zero_cohort(scop)
-      nc = 0.d0
-      scop%n = nc
+      call zero_patch_cohortsum(pp)
       pp%Tpool(:,1:NLIVE) = 0.d0 !###
 
       if ( .not. associated(pp%tallest) ) return ! no cohorts in this patch
 
       do ia=1,N_COVERTYPES
-        pp%LAI(ia) = 0.d0
+        pp%LAIpft(ia) = 0.d0
       end do
 
-      scop%pft = pp%tallest%pft
-
+      nsum = 0
       cop => pp%tallest
       do while(ASSOCIATED(cop))
         pft = cop%pft
-        nc = nc + cop%n  !Number of individuals summed for wtd avg.
+
+        !*- - - - - - COHORT SUMMARY VARIABLES - - - - - - - - - -
+        nc = cop%n  
+        nsum = nsum + nc !Number of individuals for summing.
+
         !* PFT PARAMETERS
         ! Only need to index array of pftypes.
 
-        !* NITROGEN status - CANOPY*/
-        scop%nm = scop%nm + cop%nm*cop%n  !wtd avg
-        scop%Ntot = scop%Ntot + cop%Ntot  !Total
+        !* NITROGEN status and LEAF */
+        pp%nm = pp%nm + cop%nm*cop%LAI !wtd average
+        pp%Ntot = pp%Ntot + cop%Ntot  !Total
+        pp%LAI = pp%LAI + cop%LAI  !Total
+        pp%LAIpft(pft) = pp%LAIpft(pft) + cop%LAI  !Total
+        pp%LMA = pp%LMA + cop%LMA * cop%LAI  !wtd avg
 
-        scop%LAI = scop%LAI + cop%LAI  !Total
-        pp%LAI(pft) = pp%LAI(pft) + cop%LAI
+         !* GEOMETRY - WEIGHTED AVERAGES
+        pp%h = pp%h + cop%h * nc  !wtd avg
+        pp%crown_dx = pp%crown_dx + cop%crown_dx * nc !wtd avg
+        pp%crown_dy = pp%crown_dy + cop%crown_dy * nc !wtd avg
+        pp%clump = pp%clump + cop%clump * nc !wtd avg - ##SHOULD COME FROM RADIATIVE TRANSFER
+        !* Do froot(:) outside this loop, below.
+
+         !* BIOMASS POOLS - TOTALS
+        pp%C_fol = pp%C_fol + cop%C_fol * nc !Total
+        pp%N_fol = pp%N_fol + cop%N_fol * nc
+        pp%C_w = pp%C_w + (cop%C_sw  + cop%C_hw) * nc
+        pp%N_w = pp%N_w + (cop%N_sw  + cop%N_hw) * nc
+        pp%C_lab = pp%C_lab + cop%C_lab * nc 
+        pp%N_lab = pp%N_lab + cop%N_lab * nc 
+        pp%C_froot = pp%C_froot + (cop%C_froot) * nc
+        pp%N_froot = pp%N_froot + (cop%N_froot) * nc
+        pp%C_root = pp%C_root + (cop%C_froot + cop%C_croot) * nc
+        pp%N_root = pp%N_root + (cop%N_froot + cop%N_croot) * nc
+
+         !* FLUXES - TOTALS
+        pp%Ci = pp%Ci + cop%Ci * cop%LAI !wtd average
+        pp%GCANOPY = pp%GCANOPY + cop%GCANOPY !total
+        pp%GPP = pp%GPP + cop%GPP     !total
+        pp%NPP = pp%NPP + cop%NPP     !total
+        pp%R_auto = pp%R_auto         !total
+        pp%N_up = pp%N_up + cop%N_up  !total
+!        pp%C_litter = pp%C_litter + cop%C_litter
+!        pp%N_litter = pp%N_litter + cop%N_litter  
+!        pp%C_to_Nfix = pp%C_to_Nfix + cop%C_to_Nfix
+
+         !* REPRODUCTION
+        !*- - - - - end cohort summary variables - - - - - - - - - - - - -
+
+        !* CASA pools * These are redundant but not 1-1 with the cohort pools.
         pp%Tpool(CARBON,LEAF) = pp%Tpool(CARBON,LEAF)
      &       + cop%C_fol * cop%n    !kg-C/m^2-ground
         pp%Tpool(CARBON,FROOT) = pp%Tpool(CARBON,FROOT)
      &       + cop%C_froot * cop%n  
         pp%Tpool(CARBON,WOOD) = pp%Tpool(CARBON,WOOD)
-     &       + (cop%C_hw + cop%C_croot) * cop%n
+     &       + (cop%C_sw + cop%C_hw) * cop%n
         !* Tpool(NITROGEN,:,:) gets updated in casa_bgfluxes.f
-        pp%LAI(cop%pft) = pp%LAI(cop%pft) + cop%LAI
-
-         !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
-
-         !* GEOMETRY - WEIGHTED AVERAGES
-        scop%h = scop%h + cop%h*cop%n  !wtd avg
-        scop%crown_dx = scop%crown_dx + cop%crown_dx*cop%n !wtd avg
-        scop%crown_dy = scop%crown_dy + cop%crown_dy*cop%n !wtd avg
-        scop%dbh = scop%dbh + cop%dbh*cop%n !wtd avg
-        scop%root_d = scop%root_d + cop%root_d*cop%n !wtd avg
-        scop%clump = scop%clump + cop%clump*cop%n !wtd avg
-        !* Do froot(:) outside this loop, below.
-
-         !* BIOMASS POOLS - TOTALS
-        !scop%LMA = scop%LMA + cop%LMA*cop%n !wtd avg
-        scop%C_fol = scop%C_fol + cop%C_fol !Total
-        scop%N_fol = scop%N_fol + cop%N_fol
-        scop%C_sw = scop%C_sw + cop%C_sw    
-        scop%N_sw = scop%N_sw + cop%N_sw    
-        scop%C_hw = scop%C_hw + cop%C_hw    
-        scop%N_hw = scop%N_hw + cop%N_hw    
-        scop%C_lab = scop%C_lab + cop%C_lab   
-        scop%N_lab = scop%N_lab + cop%N_lab   
-        scop%C_froot = scop%C_froot + cop%C_froot 
-        scop%N_froot = scop%N_froot + cop%N_froot 
-        scop%C_croot = scop%C_croot + cop%C_croot 
-        scop%N_croot = scop%N_croot + cop%N_croot 
-
-         !* FLUXES - TOTALS
-        scop%gcanopy = scop%gcanopy + cop%gcanopy 
-        scop%GPP = scop%GPP + cop%GPP     
-        scop%NPP = scop%NPP + cop%NPP
-        scop%R_growth = scop%R_growth + cop%R_growth
-        scop%R_maint = scop%R_maint + cop%R_maint 
-        scop%N_up = scop%N_up + cop%N_up
-!        scop%C_litter = scop%C_litter + cop%C_litter
-!        scop%N_litter = scop%N_litter + cop%N_litter  
-        scop%C_to_Nfix = scop%C_to_Nfix + cop%C_to_Nfix
-
-         !* REPRODUCTION
-         !scop%------        ! ASK PAUL
 
         cop => cop%shorter
       end do
 
       !* ------- DO AVERAGES ----------------------------------------------*!
 
-      !** ## CHECK IF NC = 0.D0 ## **!
+      !* CHECK IF NC = 0. If ASSOCIATE(pp%tallest) then should not be a problem.*!
+!      pp%n = nsum                          !* Total individuals *!
 
-      !* NITROGEN status */
-      scop%nm = scop%nm/nc
-      
-      !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
-      scop%h = scop%h/nc
-      scop%crown_dx = scop%crown_dx/nc
-      scop%crown_dy = scop%crown_dy/nc
-      scop%dbh = scop%dbh/nc
-      scop%root_d = scop%root_d/nc
-      scop%clump = scop%clump/nc
+      !* NITROGEN status and LEAF */
+      pp%nm = pp%nm / pp%LAI    !wtd average
+      pp%LMA = pp%LMA / pp%LAI  !wtd avg
 
+      !* GEOMETRY - WEIGHTED AVERAGES
+      pp%h = pp%h / nsum        !wtd avg
+      pp%crown_dx = pp%crown_dx / nsum !wtd avg
+      pp%crown_dy = pp%crown_dy / nsum !wtd avg
+      pp%clump = pp%clump / nsum !wtd avg - ##SHOULD COME FROM RADIATIVE TRANSFER
       CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
-      
-      !* BIOMASS POOLS - TOTALS
-      !scop%LMA = scop%LMA/nc
-      !pp%Tpool(CARBON,LEAF) = pp%Tpool(CARBON,LEAF)/pp%area !m-2 basis - NYK
-      !pp%Tpool(CARBON,FROOT) = pp%Tpool(CARBON,FROOT)/pp%area
-      !pp%Tpool(CARBON,WOOD) = pp%Tpool(CARBON,WOOD)/pp%area
-      
-      !* Total individuals *!
-      scop%n = nc
 
-
-      !* ------- DO PATCH-LEVEL SUMMARIES OF scop ------------------------*!
-      !* Structural variables
-      pp%nm = scop%nm
-
+      !* FLUXES 
+      pp%Ci = pp%Ci / pp%LAI !wtd average
+!
       !* Flux variables for GCM/EWB - patch total
       !pp%z0 =0.d0               !## Dummy ##!
       !##### call get_patchalbedo(jday,pp)######
       !##### Calculate TRANS_SW ################
-      !pp%GCANOPY      !Calculated by biophysics
 
       !* Variables calculated by GCM/EWB - downscaled from grid cell
       !Soilmoist(:)        !Calculated by GCM/EWB
@@ -211,6 +191,40 @@
 
       !*********************************************************************
 
+      subroutine zero_patch_cohortsum(pp)
+!@sum Zero only the patch's cohort summary variables
+      implicit none
+      type(patch),pointer :: pp
+
+      pp%nm = 0.d0
+      pp%Ntot = 0.d0
+      pp%LAI = 0.d0
+      pp%LMA = 0.d0
+      pp%h = 0.d0
+      pp%crown_dx = 0.d0
+      pp%crown_dy = 0.d0
+      pp%clump = 0.d0
+      pp%froot = 0.d0
+      pp%C_fol = 0.d0
+      pp%N_fol = 0.d0
+      pp%C_w = 0.d0
+      pp%N_w = 0.d0
+      pp%C_lab = 0.d0
+      pp%N_lab = 0.d0
+      pp%C_froot = 0.d0
+      pp%N_froot = 0.d0
+      pp%C_root = 0.d0
+      pp%N_root = 0.d0
+      pp%Ci = 0.d0
+      pp%GCANOPY = 0.d0
+      pp%GPP = 0.d0
+      pp%NPP = 0.d0
+      pp%R_auto = 0.d0
+      pp%N_up = 0.d0
+
+      end subroutine zero_patch_cohortsum
+      !*********************************************************************
+
       subroutine zero_patch(pp)
 !@sum Initialize patch, zeroing variables.
       implicit none
@@ -221,24 +235,22 @@
             pp%area = 0.d0
 
             !* Structural variables *!
-            pp%nm = 0.0d0
+            call zero_patch_cohortsum(pp)
 
             !* Flux variables for GCM/EWB - patch total
             pp%z0 = 0.0d0    !## Get GISS z0 ######!
             pp%albedo = 0.0d0!## Get GISS albveg ##!
             pp%TRANS_SW = 0.0d0 !## Calculate ##!
-            pp%GCANOPY = 0.d0 !Will be updated in biophysics.f
+            pp%GCANOPY = 0.d0 !
             pp%CO2flux = 0.d0 
             pp%Ci = 0.0127D0  !Initial value not zero.
             pp%betad = 0.d0
             pp%betadl = 0.d0
             pp%Soil_resp = 0.d0
-            pp%R_can = 0.d0  !##Temporary hack. Belongs in sumcohort.
-            pp%R_root = 0.d0  !##Temporary hack. Belongs in sumcohort.
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
             pp%Soilmoist = 0.0d0 !## Get GISS soil moisture layers ##!
-            pp%N_deposit = 0.d0
+!            pp%N_deposit = 0.d0
 
             !* Variables for biophysics and biogeochemistry
             !pp%crad%##### = !## Get GORT canopy radiation params ##!
@@ -256,8 +268,7 @@
 
             !* DIAGNOSTIC SUMMARIES
             !* Biomass pools - patch total
-            pp%LAI(:) = 0.d0
-            pp%C_froot = 0.d0
+            pp%LAIpft(:) = 0.d0
             pp%Tpool(:,:) = 0.d0
 
             !* Soil type
@@ -293,9 +304,6 @@
 #endif
 
             !* Activity diagnostics - can be summed by month, year, etc.
-            pp%GPP = 0.d0 !## Dummy ##!
-            pp%NPP = 0.d0 !## Dummy ##!
-!            pp%Soil_resp = 0.d0 !## Dummy ##! !moved to fluxes -PK 6/14/06
 
       end subroutine zero_patch
 
@@ -328,7 +336,7 @@
         cop => cop%shorter
       end do
       if (frootC_total > 0.0) then
-        pp%sumcohort%froot = froot/frootC_total
+        pp%froot = froot/frootC_total
       end if
       pp%C_froot = frootC_total
 
@@ -368,9 +376,10 @@
       if ( area > 1.d0 ) call stop_model("patch_construct: area >1",255)
       ! allocate memory
       allocate( pp )
-!      allocate( pp%Soilmoist(N_DEPTH) )  !remove -- have made into scalar -PK 6/28/06
+      allocate( pp%LAIpft(N_COVERTYPES) )  !remove -- have made into scalar -PK 6/28/06
       allocate( pp%betadl(N_DEPTH) )
-!      allocate( pp%LAI(N_COVERTYPES))
+      allocate( pp%froot(N_DEPTH) )
+!      allocate( pp%LAIpft(N_COVERTYPES))
 
       ! set pointers
       pp%cellptr => parent_entcell
@@ -385,9 +394,6 @@
       pp%area = area
       pp%soil_type = soil_type
       
-      ! create sumcohort
-      call cohort_construct(pp%sumcohort, pp)
-
       end subroutine patch_construct
 
       !*********************************************************************
@@ -398,9 +404,6 @@
       type(patch), pointer :: pp
       !---
       type(cohort),pointer :: cop, cop_tmp
-
-      ! destroy sumcohort
-      call cohort_destruct(pp%sumcohort)
 
       ! destroy other cohorts
       cop => pp%tallest
@@ -434,7 +437,8 @@
 
       write(iu,'(a,a," = ",f10.7)') prefix,"area",pp%area
       write(iu,'(a,a," = ",f10.2)') prefix,"age ",pp%age
-      write(iu,'(a,a," = ",f10.7)') prefix,"GCANOPY ",pp%GCANOPY
+      write(iu,'(a,a," = ",f10.7)') prefix,"GCANOPY ",
+     &     pp%GCANOPY
       write(iu,'(a,a," = ",f10.7)') prefix,"Ci ",pp%Ci
       write(iu,'(a,a," = ",f10.7)') prefix,"nm ",pp%nm
       write(iu,'(a,a," = ",f10.7)') prefix,"soil H2O ",pp%Soilmoist
@@ -460,9 +464,6 @@
         call cohort_print(iu, cop, prefix//prefix_c)
         cop => cop%shorter
       enddo
-
-      write(iu,'(a,"sumcohort:")') prefix
-      call cohort_print(iu, pp%sumcohort, prefix//"s       ")
 
       end subroutine patch_print
 

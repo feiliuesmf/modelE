@@ -38,40 +38,43 @@
       type(patch), pointer :: pp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
 
+      pp => ecp%oldest
+      do while (ASSOCIATED(pp)) 
+      !#### THIS LOOP: NEED TO REPLACE ALL CALLS WITH ecp TO CALLS WITH pp ##
 
-      pp => ecp%sumpatch
+        if (ALBEDO_FLAG) then
+          call get_patchalbedo(pp)
+        end if
 
-      if (ALBEDO_FLAG) then
-        call get_patchalbedo(pp)
-      end if
+        call ent_integrate(dtsec,ecp) !Biophysics, respiration
 
-      call ent_integrate(dtsec,ecp) !Biophysics, respiration
-
-      if (STRUCT_FLAG(tt,ecp)) then
-        call reproduction_calc(dtsec, tt, pp)
-        call reorganize_cohorts(pp)
-        call phenology_update (dtsec,tt, pp) !UPDATE LAI
-        call recalc_radpar (pp) !UPDATE canopy radiative transfer
-      end if
-      call summarize_patch(pp)
-
-      !Flag when it's time to update disturbance.
-      !May be at set time intervals, or function of biomass accumulation, etc.
-      !For now, monthly update as a place holder.
-      if (STRUCT_FLAG_MONTH(tt,ecp)) then
+        if (STRUCT_FLAG(tt,ecp)) then
+          call reproduction_calc(dtsec, tt, pp)
+          call reorganize_cohorts(pp)
+          call phenology_update (dtsec,tt, pp) !UPDATE LAI
+          call recalc_radpar (pp) !UPDATE canopy radiative transfer
+        end if
+        call summarize_patch(pp)
+      
+        !Flag when it's time to update disturbance.
+        !May be at set time intervals, or function of biomass accumulation, etc.
+        !For now, monthly update as a place holder.
+        if (STRUCT_FLAG_MONTH(tt,ecp)) then
         !* Update phenology and disturbance
         !call phenology_update (dtsec,tt, pp) !UPDATE LAI - put in ent_integrate
-        call fire_frequency_cell (dtsec,tt, ecp) !DUMMY
-        call recalc_radpar_cell (ecp) !
-        call reorganize_patches(ecp)
-        call calc_cell_disturbance_rates(dtsec,tt,ecp)
-      else
-        call calc_cell_disturbance_rates(dtsec,tt,ecp)
-      end if
+          call fire_frequency_cell (dtsec,tt, ecp) !DUMMY
+          call recalc_radpar_cell (ecp) !
+          call reorganize_patches(ecp)
+          call calc_cell_disturbance_rates(dtsec,tt,ecp)
+        else
+          call calc_cell_disturbance_rates(dtsec,tt,ecp)
+        end if
+        pp => pp%younger
+      end do
 
-       call summarize_entcell(ecp)
+      call summarize_entcell(ecp)
 
-      end subroutine ent_ecosystem_dynamics
+        end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
       subroutine ent_integrate_GISS(ecp, dtsec)
@@ -94,8 +97,6 @@
       !-----local--------
       type(patch),pointer :: pp
 
-      !***GISS version:  pass in ecp%sumpatch
-      !pp = ecp%sumpatch
       pp => ecp%oldest  !changed to => (!) -PK 7/11/06
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
@@ -134,16 +135,17 @@
       type(patch),pointer :: pp
 
       !* Loop through patches
-      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
+      pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp) !?
         !call growth(...)
         call litter(dtsec, pp) 
         call soil_bgc(dtsec, pp)
+        pp%CO2flux = -pp%NPP + pp%Soil_resp
         pp%age = pp%age + dtsec
         call summarize_patch(pp)
-        pp => pp%younger  !changed to => (!) -PK 7/11/06
+        pp => pp%younger 
       end do 
 
       call summarize_entcell(ecp)
@@ -153,8 +155,8 @@
       call entcell_print(6, ecp)
       print *,"*"
       !write(90,*) ecp%GCANOPY
-      !write(90,*) ecp%sumpatch%GCANOPY
-      !write(91,*) ecp%sumpatch%Ci
+      !write(90,*) ecp%GCANOPY
+      !write(91,*) ecp%Ci
 #endif
 
       end subroutine ent_integrate
@@ -189,8 +191,8 @@
           
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
           write(99,*)  !Fluxes are positive up.
-     &         pp%sumcohort%pft,pp%sumcohort%lai, pp%Tpool(CARBON,:), 
-     &         -pp%GPP,pp%R_can, pp%R_root,pp%Soil_resp,
+     &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:), 
+     &         -pp%GPP,pp%R_auto,pp%Soil_resp,
      &         -pp%NPP,pp%CO2flux
           !*********************************************************!
         else 
@@ -211,8 +213,8 @@
       call entcell_print(6, ecp)
       print *,"*"
       !write(90,*) ecp%GCANOPY
-      !write(90,*) ecp%sumpatch%GCANOPY
-      !write(91,*) ecp%sumpatch%Ci
+      !write(90,*) ecp%GCANOPY
+      !write(91,*) ecp%Ci
 #endif
       end subroutine ent_biophysics
       !*********************************************************************

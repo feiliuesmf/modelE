@@ -22,7 +22,7 @@
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
       real*8 laipatch
-      real*8 :: cpool(N_BPOOLS)
+cddd      real*8 :: cpool(N_BPOOLS)
 
       pp => ecp%oldest      
       do while ( associated(pp) )
@@ -43,7 +43,7 @@ cddd          cop%C_croot = cpool(CR)
 
           cop => cop%shorter
         enddo
-        pp%sumcohort%LAI = laipatch
+        pp%LAI = laipatch
         pp => pp%younger
       enddo
 
@@ -63,9 +63,9 @@ cddd          cop%C_croot = cpool(CR)
       do while ( associated(pp) )
         ! update albedo of vegetated patches only
         if ( associated(pp%tallest) ) then ! have vegetation
-          if ( pp%sumcohort%pft > N_PFT .or.  pp%sumcohort%pft < 1 )
+          if ( pp%tallest%pft > N_PFT .or.  pp%tallest%pft < 1 )
      &         call stop_model("entcell_update_albedo: bad pft",255)
-          pp%albedo(1:N_BANDS) = albedodata(1:N_BANDS, pp%sumcohort%pft)
+          pp%albedo(1:N_BANDS) = albedodata(1:N_BANDS, pp%tallest%pft)
         endif
         pp => pp%younger
       enddo
@@ -113,14 +113,13 @@ cddd          cop%C_croot = cpool(CR)
 
       type(entcelltype) :: entcell
       integer,intent(in), optional :: jday
-      integer, intent(in), pointer, optional :: hemi
+      integer, pointer, optional :: hemi
       logical, intent(in), optional :: do_giss_phenology
-      real*8, intent(in), pointer, optional :: laidata(:)
-      real*8, intent(in), pointer, optional :: albedodata(:,:)
-      real*8, intent(in), pointer, optional :: cropsdata
+      real*8,  pointer, optional :: laidata(:)
+      real*8,  pointer, optional :: albedodata(:,:)
+      real*8,  pointer, optional :: cropsdata
       !----Local------
       type(patch),pointer :: pp
-      type(cohort),pointer :: cop
 
       if ( present(do_giss_phenology) ) then
         if ( do_giss_phenology ) then
@@ -202,10 +201,10 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 
           cop => cop%shorter
         end do
-        pp%sumcohort%LAI = laipatch
+        pp%LAI = laipatch
 
         !* ALBEDO *!
-        call prescr_veg_albedo(hemi, pp%sumcohort%pft, 
+        call prescr_veg_albedo(hemi, pp%tallest%pft, 
      &       jday, pp%albedo)
 
       endif

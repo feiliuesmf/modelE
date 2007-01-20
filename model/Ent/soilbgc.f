@@ -27,11 +27,7 @@
       real*8 Tpool(PTRACE,NPOOLS)    !total plant and soil C,N pools (gC/m2)
       real*8 Cflux           !total soil C flux to atm (gC/m2/s) **C flux, NOT CO2!**
 
-      type(cohort),pointer :: scop
-
-      scop => pp%sumcohort
-      
-      ivt = scop%pft     
+      ivt = pp%tallest%pft     
       soilmoist = pp%Soilmoist    !soil moist varies by patch
       soiltemp = pp%cellptr%Soiltemp  !soil temp, texture vary by cell
       clayfrac = pp%cellptr%soil_texture(3) !in GHY.f, texture order is sand,loam,clay,peat(+bedrock) -PK 7/13/06
@@ -74,7 +70,7 @@
 ! input 
       real*8,intent(in) :: dtsec           !main ent time step (s)
       real*8,intent(in) :: soilmoist       !soil moisture avg over top 30 cm
-      integer,intent(in) :: ivt            !ivt = pp%sumcohort%pft (assigned in soilbgc)
+      integer,intent(in) :: ivt            !ivt = pp%tallest%pft (assigned in soilbgc)
       real*8,intent(in) :: soiltemp        !soil temperature avg over top 30 cm
       real*8,intent(in) :: clayfrac        !fractional clay content in soil
       real*8,intent(in) :: sandfrac        !fractional sand content in soil
@@ -284,7 +280,7 @@ C.. mod 03/03/11 change closs/nloss to be g/m2/sec instead of g/m2/timestep
 
 ! ------------------------ input/output variables -----------------
 ! input
-      integer,intent(in) :: ivt            !ivt = pp%sumcohort%pft (assigned in soilbgc)
+      integer,intent(in) :: ivt            !ivt = pp%tallest%pft (assigned in soilbgc)
       real*8,intent(in) :: eff(NRESP_POOLS)        !decomp coefs
       real*8,intent(in) :: frac_donor(NRESP_POOLS) !decomp coefs
       real*8,intent(in) :: Closs(PTRACE,NPOOLS)    !amt C lost per pool (gC/m2)

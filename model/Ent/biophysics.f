@@ -199,6 +199,17 @@
       subroutine photosynth_cond(dtsec, pp)
       !Computes photosynthesis and conductance for a patch
       ! by summing through cohorts.
+      !1. Canopy radiative transfer is calculate for the entire patch:
+      !   canopy albedo, TRANS_SW, light profile
+      !   (clumping is calculated outside this routine when canopy
+      !    structure is updated).
+      !2. Calls veg() to update cohort (cp%) conductance & CO2 uptake:
+      !   gcanopy, GPP, Ci
+      !3. Calculates autotrophic respiration for each cohort:
+      !   NPP, R_auto = R_growth + R_maint(leaf, stem root)
+      !4. Update cohort C_lab labile carbon pool.
+      !5. Updates the same patch (pp%) variables as above.
+                                !
       use ent_const
       use ent_types
       use patches, only : patch_print
@@ -206,11 +217,13 @@
 
       real*8, intent(in) :: dtsec
       type(patch),pointer :: pp  
+      type(cohort),pointer :: cop
       !-----Local----------!
 
       integer :: pft
       real*8 :: TcanopyC,P_mbar,Ch,U,CosZen,Ca,betad,Qf
-      real*8 :: GCANOPY,Ci,TRANS_SW,GPP !,NPP
+      real*8 :: GCANOPY,Ci,TRANS_SW,GPP,NPP,R_auto
+      real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       type(veg_par_type) :: vegpar !Vegetation parameters
@@ -220,24 +233,21 @@
       !call patch_print(6,pp," ")
 #endif
 
-      if ( pp%sumcohort%pft == -1 ) then ! bare soil
-        pp%GCANOPY = 0.d0
-        pp%Ci = 0.d0
+      if ( .NOT.ASSOCIATED(pp%tallest)) then ! bare soil
         pp%TRANS_SW = 1.d0
-        pp%GPP = 0.d0
-        pp%NPP = 0.d0
         return
       endif
 
-      if ( pp%sumcohort%pft < 1 .or. pp%sumcohort%pft > N_PFT ) then
-        print *,"photosynth_cond: wrong pft = ", pp%sumcohort%pft
+      if (( pp%tallest%pft.eq.0).or.(pp%tallest%pft > N_PFT)) then
+        print *,"photosynth_cond: wrong pft = ", pp%tallest%pft
         call patch_print(6,pp,"ERROR ")
         call stop_model("photosynth_cond: wrong pft",255)
       endif
 
+      !* SET UP DRIVERS *!
       pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
-     i     ,pp%sumcohort%froot(:)
-     i     ,pp%cellptr%fice(:), pfpar(pp%sumcohort%pft)%hwilt
+     i     ,pp%froot(:)
+     i     ,pp%cellptr%fice(:), pfpar(pp%tallest%pft)%hwilt
      o     , pp%betadl(:))
 
       IPAR = pp%cellptr%IPARdir + pp%cellptr%IPARdif
@@ -246,76 +256,103 @@
       else
         fdir = pp%cellptr%IPARdir / IPAR
       endif
-!      write(98,*) pp%cellptr%IPARdif,pp%cellptr%IPARdir,fdir
-!      IPAR = 0.82d0*pp%cellptr%Ivis*pp%cellptr%CosZen
-!      if ( pp%cellptr%Ivis > 1.e-30 )
-!     &     fdir = pp%cellptr%Idir / pp%cellptr%Ivis
-!      CosZen = pp%cellptr%CosZen
 
-      !* Assign vegpar
-      !** GISS replication test hack:  grid cell average patch properties
-      vegpar%alai = pp%sumcohort%LAI
-      vegpar%nm = pp%sumcohort%nm
-      !vegpar%vh = pp%tallest%h
-      vegpar%vh = pp%sumcohort%h
-      vegpar%vegalbedo = pp%albedo(1) !Visible band
-
-      !* ZERO SOME OUTPUT VARIABLES
-      pp%TRANS_SW = 0.
-      pp%GPP = 0.
-      pp%NPP = 0.
-!      CNC = 
-!      Ci = 
-!      Qf = 
-
-      pft =  pp%sumcohort%pft
       TcanopyC = pp%cellptr%TcanopyC
       P_mbar = pp%cellptr%P_mbar
       Ch = pp%cellptr%Ch
       U = pp%cellptr%U
-      !IPAR,fdir
       CosZen = pp%cellptr%CosZen
       Ca = pp%cellptr%Ca
       betad = pp%betad
       Qf = pp%cellptr%Qf
-      !vegpar
-      GCANOPY = pp%GCANOPY
-      Ci = pp%Ci
-      !TRANS_SW = pp%TRANS_SW
-      !GPP =  pp%GPP
-      !NPP =  pp%NPP
 
-!      print *,"Calling veg..."
-      call veg(
-     i     dtsec, pft,
-     i     TcanopyC,
-     i     P_mbar,Ch,U,
-     i     IPAR,fdir,CosZen,
-     i     Ca,
-     i     betad,
-     i     Qf, 
-     &     vegpar,
-     &     GCANOPY, Ci, 
-     o     TRANS_SW, GPP)  !, NPP )
+      !* ZERO SOME OUTPUT VARIABLES AT PATCH LEVEL
+      pp%TRANS_SW = 0.
+      !* Time-stepped outputs:  CNC, Ci, Qf.
 
-      !OUTPUT VARIABLES
-      !vegpar
-      pp%GCANOPY = GCANOPY
-      pp%Ci = Ci
-      pp%TRANS_SW = TRANS_SW
-      pp%GPP = GPP
-      pp%R_can =  
-     &     Canopy_respir(vegpar%Ntot, TcanopyC+KELVIN)*0.012D-6 !kg-C/m2/s
-      pp%R_root = 
-     &     Root_respir(TcanopyC, pp%Tpool(CARBON,FROOT)*1e-3) !kg-C/m2/s
-      pp%NPP = GPP - pp%R_can - pp%R_root
+      !* INITIALIZE SUMMARY OUTPUT VARIABLES *!
+      GCANOPYsum = 0.d0
+      Ciavg = 0.d0
+      GPPsum = 0.d0
+      NPPsum = 0.d0
+      R_autosum = 0.d0
 
-      !betad, betadl
+      !* LOOP THROUGH COHORTS *!
+      cop => pp%tallest
+      do while (ASSOCIATED(cop))
+        !* Assign vegpar
+
+        !** GISS replication test hack:  grid cell average patch properties
+        !vegpar%alai = pp%LAI
+        !vegpar%nm = pp%nm
+        !vegpar%vh = pp%h
+        !vegpar%vegalbedo = pp%albedo(1) !Visible band
+        !pft =  pp%tallest%pft
+        !GCANOPY = pp%GCANOPY
+        !Ci = pp%Ci
+
+        vegpar%alai = cop%LAI
+        vegpar%nm = cop%nm
+        vegpar%vh = cop%h
+        vegpar%vegalbedo = pp%albedo(1) !Visible band. NOTE: Patch level.
+        pft =  cop%pft
+
+        !GCM land surface saved variables.
+        GCANOPY = pp%GCANOPY *cop%LAI/pp%LAI !Fraction contrib. by cohort. ##HACK as it is not necessarily proportional by LAI.
+        Ci = pp%Ci
+
+        !print *,"Calling veg..."
+        call veg(
+     i       dtsec, pft,
+     i       TcanopyC,
+     i       P_mbar,Ch,U,
+     i       IPAR,fdir,CosZen,
+     i       Ca,
+     i       betad,
+     i       Qf, 
+     &       vegpar,
+     &       GCANOPY, Ci, 
+     o       TRANS_SW, GPP)     !, NPP )
+        
+        !* Assign outputs to cohort *!
+        cop%GCANOPY = GCANOPY
+        cop%Ci = Ci
+        cop%GPP = GPP !kg-C/m2-ground/s
+        !Canopy autotrophic respiration needs to be updated for different
+        !C:N ratios for the different pools.
+        cop%R_auto =  0.012D-6 * !kg-C/m2/s
+     &       (Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN)
+!     &       (Resp_can_maint(cop%pft,cop%C_fol + cop%C_sw + cop%C_froot,
+!     &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n) + 
+     &       + Resp_can_growth(cop%GPP,
+     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN)))
+        cop%NPP = GPP - cop%R_auto !kg-C/m2-ground/s
+       !betad, betadl
+
+        !* pp cohort flux summaries
+        GCANOPYsum = GCANOPYsum + cop%GCANOPY
+        Ciavg = Ciavg + Ci*cop%LAI
+        GPPsum = GPPsum + cop%GPP
+        NPPsum = NPPsum + cop%NPP
+        R_autosum = R_autosum + cop%R_auto
+
+       !* Accumulate uptake. 
+        cop%C_lab = cop%C_lab + NPP*dtsec/cop%n !(kg/individual)
+
+        cop => cop%shorter
+      end do
+
+      !* Patch-level OUTPUTS *!
+      pp%GCANOPY = GCANOPYsum
+      pp%Ci = Ciavg/pp%LAI
+      pp%GPP = GPPsum
+      pp%NPP = NPPsum
+      pp%R_auto = R_autosum
+      pp%TRANS_SW = TRANS_SW 
 
       !* Accumulate uptake. ## HACK FOR ONE COHORT PER PATCH ##
       pp%tallest%C_lab = pp%tallest%C_lab + pp%NPP*dtsec  !(kg/m2) ###Eventually need to convert to kg/individual.
 
-      !OUTPUTS FROM ENT TO GCM/EWB
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
       !pp%cellptr%GCANOPY = GCANOPY
       !pp%cellptr%Ci = Ci
@@ -566,9 +603,9 @@
 ! Canopy photosynthesis at saturating CiPa (Amax: umol/m[ground]2/s).
       call qsimp(vegpar,ps,Amax,sbeta,I0dr,I0df,CiPa,tk,prpa)
 !----------------------------------------------------------------------!
-! Canopy mitochondrial respiration (umol/m[ground]2/s).
+! Canopy mitochondrial respiration (umol/m[ground]2/s). Above-ground.
 !      Rcan=0.20D0*vegpar%Ntot*exp(18.72D0-46.39D3/(gasc*tk))
-      Rcan = Canopy_Respir(vegpar%Ntot, tk)
+      Rcan = Canopy_Resp(vegpar%Ntot, tk)
 ! Net canopy photosynthesis (umol/m[ground]2/s).
       Anet=Acan-Rcan
 ! Net canopy photosynthesis at saturating CiPa (umol/m[ground]2/s).
@@ -668,12 +705,12 @@
 ! Net primary productivity (kg[C]/m2/s).  Not available yet.
 !     NPP = GPP - 0.012D-6*(Rcan + BoleRespir + RootRespir)
 !      NPP_OUT = 0.012D06*Anet
-!     &     - Root_respir(Tcan, pp%sumcohort%Tpool(CARBON,FROOT)*1e-3)
+!     &     - Resp_root(Tcan, pp%Tpool(CARBON,FROOT)*1e-3)
 ! Net ecosystem exchange (kg[C]/m2/s).  Not available yet.
 !     NEE = NPP - 0.012D-6* SoilRespir
-! Updata canopy conductance for next timestep (m/s).
+! Update canopy conductance for next timestep (m/s).
       CNC_INOUT=CNCN
-! Updata leaf CO2 concentration for next timestep (mol/m3).
+! Update leaf CO2 concentration for next timestep (mol/m3).
       Ci_INOUT=Ci
 !----------------------------------------------------------------------!
       return
@@ -966,7 +1003,7 @@
 ! Net primary productivity (kg[C]/m2/s).  Not available yet.
 !     NPP = GPP - 0.012D-6*(Rcan + BoleRespir + RootRespir)
 !      NPP_OUT = 0.012D-6*Anet
-!     &     - Root_respir(tcan, pp%sumcohort%Tpool(CARBON,FROOT)*1e-3) !kg-C/m2/s
+!     &     - Resp_root(tcan, pp%Tpool(CARBON,FROOT)*1e-3) !kg-C/m2/s
 ! Updata canopy conductance for next timestep (m/s).
       CNC_INOUT=CNCN 
 ! Updata leaf CO2 concentration for next timestep (mol/m3).
@@ -976,25 +1013,59 @@
       end subroutine veg_C4
 
 !---------------------------------------------------------------------!
-      real*8 function Canopy_respir(N_gm2, T_kelvin) Result(CanResp)
+      real*8 function Canopy_Resp(N_gm2,T_kelvin) Result(MaintResp)
+      !Canopy maintenance (mitochondrial) respiration (umol-C/m2/s)
+      !Based on biomass (or canopy nitrogen). Friend & Kiang (2005).
       real*8 :: N_gm2 !Canopy foliage nitrogen (g-N/m2-ground)
       real*8 :: T_kelvin !Canopy temperature (Kelvin)
 
-      CanResp=0.20D0*N_gm2*exp(18.72D0-46.39D3/(gasc*T_kelvin))
-      end function Canopy_respir
+      MaintResp=0.20D0*N_gm2*exp(18.72D0-46.39D3/(gasc*T_kelvin))
+      end function Canopy_Resp
 !---------------------------------------------------------------------!
-      real*8 function Root_respir(Tcelsius,froot_kgCm2) Result(Rootresp)
+      real*8 function Resp_can_growth(Acan,Rmaint) Result(R_growth)
+      !Canopy growth respiration (umol/m2/s)
+      !Based on photosynthetic activity. From CLM3.0.
+      real*8 :: Acan !Canopy photosynthesis rate (umol/m2/s)
+      real*8 :: Rmaint !Canopy maintenance respiration rate (umol/m2/s)
+
+      R_growth = 0.25 * (Acan - Rmaint)
+      end function Resp_can_growth
+!---------------------------------------------------------------------!
+      real*8 function Resp_can_maint(pft,C,CN,T_k,n) 
+     &     Result(R_maint)
+      !Canopy maintenance respiration (umol/m2-ground/s)
+      !Based on photosynthetic activity. From CLM3.0.
+      integer :: pft            !Plant functional type.
+      real*8 :: C               !g-C/m2-ground in the individual.
+                                !Can be leaf, stem, or root pools.
+      real*8 :: CN              !C:N ration of the respective pool
+!      real*8 :: R_maint !Canopy maintenance respiration rate (umol/m2/s)
+      real*8 :: T_k             !Temperature of canopy (Kelvin)
+      real*8 :: n               !Density of individuals (no./m2)
+      !---Local-------
+      real*8,parameter :: k_CLM = 6.34e-07 !(s-1) rate from CLM.
+
+      R_maint = pfpar(pft)%r * k_CLM * (C/CN) * 
+     &     exp(308.56*(1/56.02 - (1/(T_k-227.13)))) *
+     &     2.d6*n/28.5
+      !Note:  CLM calculates this per individual*population/area_fraction
+      !      to give flux per area of pft cover rather than per ground area.
+      end function Resp_can_maint
+!---------------------------------------------------------------------!
+      real*8 function Resp_root(Tcelsius,froot_kgCm2) Result(Rootresp)
 !@sum Frootresp = fine root respiration (kgC/s/m2)
+      !From ED model.  Not used.
       real*8 :: Tcelsius, froot_kgCm2
       
       Rootresp = OptCurve(Tcelsius,1.0d0,3000.d0) * froot_kgCm2/SECPY
      &     /((1.d0 + exp(0.4*(5.0-Tcelsius)))
      &     *(1.d0 + exp(0.4*(Tcelsius-45.d0))))
 
-      end function Root_respir
+      end function Resp_root
 !---------------------------------------------------------------------!
       real*8 function OptCurve(Tcelsius,x,y) Result(OptCurveResult)
 !@sum Optimum curve, where OptCurveResult=x at 15 Celsius.
+      !From ED model.
       real*8 :: Tcelsius, x, y
       
       OptCurveResult = x * exp(y*(1/288.15d0 - 1/(Tcelsius+KELVIN)))

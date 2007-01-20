@@ -372,7 +372,6 @@ cddd
 cddd      ! don't allocate patches, just set all pointers to NULL
 cddd      nullify( entcell%entcell%youngest )
 cddd      nullify( entcell%entcell%oldest   )
-cddd      nullify( entcell%entcell%sumpatch )
 cddd      ! for now set all values o zero or defaults
 cddd      call zero_entcell(entcell%entcell)
 
@@ -1349,25 +1348,25 @@ cddd      end subroutine ent_cell_update_single
       integer n
 
       if ( present(canopy_conductance) )
-     &     canopy_conductance = entcell%entcell%sumpatch%GCANOPY
+     &     canopy_conductance = entcell%entcell%GCANOPY
 
       if ( present(shortwave_transmit) )
-     &     shortwave_transmit = entcell%entcell%sumpatch%TRANS_SW
+     &     shortwave_transmit = entcell%entcell%TRANS_SW
 
       if ( present(foliage_CO2) )
-     &     foliage_CO2 = entcell%entcell%sumpatch%Ci
+     &     foliage_CO2 = entcell%entcell%Ci
 
       if ( present(foliage_humidity) )
      &     foliage_humidity = entcell%entcell%Qf
 
       if ( present(canopy_gpp) )
-     &     canopy_gpp = entcell%entcell%sumpatch%GPP
+     &     canopy_gpp = entcell%entcell%GPP
 
       if ( present(roughness_length) )
      &     roughness_length = entcell%entcell%z0
 
       if ( present(flux_CO2) )
-     &     flux_CO2 = entcell%entcell%sumpatch%CO2flux
+     &     flux_CO2 = entcell%entcell%CO2flux
 
       if ( present(canopy_max_H2O) )
      &     canopy_max_H2O = entcell%entcell%LAI * .0001d0 !!! GISS setting
@@ -1384,13 +1383,13 @@ cddd      end subroutine ent_cell_update_single
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
-          beta_soil_layers(n) = entcell%entcell%sumpatch%betadl(n)
+          beta_soil_layers(n) = entcell%entcell%betadl(n)
         enddo
       endif
 
       if ( present(albedo) ) then
         do n=1,N_BANDS
-          albedo(n) = entcell%entcell%sumpatch%albedo(n)
+          albedo(n) = entcell%entcell%albedo(n)
         enddo
       endif
 
@@ -1444,25 +1443,25 @@ cddd      end subroutine ent_cell_update_single
 
       do i=1,ic
       if ( present(canopy_conductance) )
-     &     canopy_conductance(i) = entcell(i)%entcell%sumpatch%gcanopy
+     &     canopy_conductance(i) = entcell(i)%entcell%gcanopy
 
       if ( present(shortwave_transmit) )
-     &     shortwave_transmit(i) = entcell(i)%entcell%sumpatch%TRANS_SW
+     &     shortwave_transmit(i) = entcell(i)%entcell%TRANS_SW
 
       if ( present(foliage_CO2) )
-     &     foliage_CO2(i) = entcell(i)%entcell%sumpatch%Ci
+     &     foliage_CO2(i) = entcell(i)%entcell%Ci
 
       if ( present(foliage_humidity) )
      &     foliage_humidity(i) = entcell(i)%entcell%Qf
 
       if ( present(canopy_gpp) )
-     &     canopy_gpp(i) = entcell(i)%entcell%sumpatch%GPP
+     &     canopy_gpp(i) = entcell(i)%entcell%GPP
 
       if ( present(roughness_length) )
      &     roughness_length(i) = entcell(i)%entcell%z0
 
       if ( present(flux_CO2) )
-     &     flux_CO2(i) = entcell(i)%entcell%sumpatch%CO2flux
+     &     flux_CO2(i) = entcell(i)%entcell%CO2flux
 
       if ( present(canopy_max_H2O) )
      &     canopy_max_H2O(i) = entcell(i)%entcell%LAI * .0001d0 !!! GISS setting
@@ -1480,19 +1479,19 @@ cddd      end subroutine ent_cell_update_single
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
-          beta_soil_layers(n,i) = entcell(i)%entcell%sumpatch%betadl(n)
+          beta_soil_layers(n,i) = entcell(i)%entcell%betadl(n)
         enddo
       endif
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
-          beta_soil_layers(n,i) = entcell(i)%entcell%sumpatch%betadl(n)
+          beta_soil_layers(n,i) = entcell(i)%entcell%betadl(n)
         enddo
       endif
 
       if ( present(albedo) ) then
         do n=1,N_BANDS
-          albedo(n,i) = entcell(i)%entcell%sumpatch%albedo(n)
+          albedo(n,i) = entcell(i)%entcell%albedo(n)
         enddo
       endif
 
@@ -1549,29 +1548,29 @@ cddd      end subroutine ent_cell_update_single
       do i=1,ic
       if ( present(canopy_conductance) )
      &     canopy_conductance(i,j) = 
-     &       entcell(i,j)%entcell%sumpatch%GCANOPY
+     &       entcell(i,j)%entcell%GCANOPY
 
       print*,'Nancys compiler needs print stmt in ent_mod here, argh.'
 
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i,j) = 
-     &     entcell(i,j)%entcell%sumpatch%TRANS_SW
+     &     entcell(i,j)%entcell%TRANS_SW
 
       if ( present(foliage_CO2) )
-     &     foliage_CO2(i,j) = entcell(i,j)%entcell%sumpatch%Ci
+     &     foliage_CO2(i,j) = entcell(i,j)%entcell%Ci
 
       if ( present(foliage_humidity) )
      &     foliage_humidity(i,j) = entcell(i,j)%entcell%Qf
 
       if ( present(canopy_gpp) )
-     &     canopy_gpp(i,j) = entcell(i,j)%entcell%sumpatch%GPP
+     &     canopy_gpp(i,j) = entcell(i,j)%entcell%GPP
 
       if ( present(roughness_length) )
      &     roughness_length(i,j) = entcell(i,j)%entcell%z0
 
       if ( present(flux_CO2) )
-     &     flux_CO2(i,j) = entcell(i,j)%entcell%sumpatch%CO2flux
+     &     flux_CO2(i,j) = entcell(i,j)%entcell%CO2flux
 
       if ( present(canopy_max_H2O) )
      &     canopy_max_H2O(i,j) = 
@@ -1597,13 +1596,13 @@ cddd      end subroutine ent_cell_update_single
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
           beta_soil_layers(n,i,j) = 
-     &         entcell(i,j)%entcell%sumpatch%betadl(n)
+     &         entcell(i,j)%entcell%betadl(n)
         enddo
       endif
 
       if ( present(albedo) ) then
         do n=1,N_BANDS
-          albedo(n,i,j) = entcell(i,j)%entcell%sumpatch%albedo(n)
+          albedo(n,i,j) = entcell(i,j)%entcell%albedo(n)
         enddo
       endif
 
