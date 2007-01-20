@@ -480,4 +480,6 @@ done
 
 popd
 cleanUp
+export MAILING_ADDRESS=Thomas.L.Clune@nasa.gov
+mail -s $MAIN_LOG $MAILING_ADDRESS
 logMessage "All processing completed."
