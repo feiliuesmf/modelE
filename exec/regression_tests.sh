@@ -440,8 +440,10 @@ setUp
 mkdir $SCRATCH
 pushd $SCRATCH
 
-logMessage "Processing rundecks $RUNDECKS."
-logMessage "Processing modes $MODES."
+logMessage "Regression testin on platform $HOSTNAME."
+logMessage "   Processing rundecks $RUNDECKS."
+logMessage "   Processing modes $MODES."
+logMessage " "
 
 
 for rundeck in $RUNDECKS; do
