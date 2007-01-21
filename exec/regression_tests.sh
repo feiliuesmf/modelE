@@ -196,10 +196,10 @@ function compare {
 	local numArgs=$#
 	logError "Comparison failed for files $file1 and $file2."
 	if [ $numArgs == 5 ]; then
-	    echo "Numline discrepancy. Expected $numLinesExpected but found $numLinesFound." >> $logfile
+	    echo "Numline discrepancy. Expected $maxLinesExpected but found $numLinesFound." >> $logfile
 	    $CMP $run.f1 $run.f2 >> $logfile
 	else
-	    logMessage "Numline discrepancy. Expected $numLinesExpected but found $numLinesFound."
+	    logMessage "Numline discrepancy. Expected $maxLinesExpected but found $numLinesFound."
 	    $CMP $run.f1 $run.f2 >> $MAIN_LOG
 	fi
 	rc=1
