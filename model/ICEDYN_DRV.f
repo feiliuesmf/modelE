@@ -1,4 +1,4 @@
-C****
+C**** 
 C**** ICEDYN_DRV.f    Sea ICE DYNamics    2006/12/21
 C****
 #include "rundeck_opts.h"
@@ -107,7 +107,7 @@ C**** Ice advection diagnostics
 !    parallelization along latitude (j)
       grid_MIC =grid
 
-C**** Get dimensioning parameters for arrays defined in the grid  and 
+C**** Get dimensioning parameters for arrays defined in the grid  and
 C**** grid_MIC stencils.
 
       CALL GET(grid    , J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
@@ -949,7 +949,7 @@ C****
 C**** Calculate south-north sea ice fluxes near North Pole
 C****
       IF (HAVE_NORTH_POLE) THEN
-        IF(VSIDT(I,JM-1).eq.0.)  EXIT
+        IF(VSIDT(I,JM-1).eq.0.) cycle
         FAW(I,JM-1) = VSIDT(I,JM-1)*DXV(JM) ! careful with atm.grid index!
         IF(VSIDT(I,JM-1).le.0.) THEN
 C**** Sea ice velocity is southward from North Pole box
@@ -1283,7 +1283,7 @@ C**** ensure that salinity is only associated with ice
               SSI(1,I,J)=SICE*(XSI(1)*ACE1I-XSI(2)*SNOWI(I,J))/ACE1I
             END IF
             SSI(2,I,J)=SICE-SSI(1,I,J)
-C**** correction of heat energy to compensate for salinity fix 
+C**** correction of heat energy to compensate for salinity fix
             HSI(1,I,J)=HSI(1,I,J)-(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
             HSI(2,I,J)=HSI(2,I,J)+(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
             DO L=3,LMI
