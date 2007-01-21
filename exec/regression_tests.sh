@@ -489,7 +489,8 @@ case `uname` in
     OSF1) 
 	mailx -s $SUBJECT $MAILING_ADDRESS <<- EOF
 	~r $MAIN_LOG
-	EOF;;
+	EOF
+	;;
    Linux)
        mail -s $SUBJECT $MAILING_ADDRESS -a $MAIN_LOG
 esac
