@@ -1,4 +1,4 @@
-C**** 
+C****  
 C**** SURFACE.f    SURFACE fluxes    2006/12/21
 C****
 #include "rundeck_opts.h"
@@ -960,7 +960,7 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
       DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
       uflux1(i,j)=uflux1(i,j)+PTYPE*RCDMWS*(US-UOCEAN)
-      vflux1(i,j)=vflux1(i,j)+PTYPE*RCDMWS*(VS-UOCEAN)
+      vflux1(i,j)=vflux1(i,j)+PTYPE*RCDMWS*(VS-VOCEAN)
 C****
 C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE
 C****
