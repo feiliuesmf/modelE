@@ -10,18 +10,18 @@
       contains
       !*********************************************************************
       subroutine insert_cohort(pp,pft,n, h,
-     &     nm,
-     &     crown_dx, crown_dy,dbh, root_d,LAI,clump,froot,
-     &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
+     &     nm,LAI,
+     &     crown_dx, crown_dy,dbh, clump,LMA, root_d,froot,
+     &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
      &     N_up, C_to_Nfix)
 
       type(patch),pointer :: pp
       integer :: pft
-      real*8 :: n, h, nm,
-     &     crown_dx, crown_dy,dbh, root_d,LAI,clump
-      real*8 :: froot(N_DEPTH)
+      real*8 :: n, h, nm, LAI,
+     &     crown_dx, crown_dy,dbh, clump
+      real*8 :: root_d,froot(N_DEPTH)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
@@ -38,11 +38,11 @@
         !!newc%pptr = pp
         call cohort_construct(newc, pp, pft)
         call assign_cohort(newc,pft,n, h, nm, LAI,
-     &       crown_dx, crown_dy,dbh, root_d,clump,
-     &       LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
+     &       crown_dx, crown_dy,dbh, clump, LMA, root_d,froot,
+     &       C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       Ci, GCANOPY, GPP, NPP, R_auto,
-     &       N_up, C_to_Nfix,froot)
+     &       N_up, C_to_Nfix)
 
         newc%Ntot = nm*LAI
 
@@ -123,22 +123,21 @@
       !*********************************************************************
       
       subroutine assign_cohort(cop,pft,n, h, nm, LAI,
-     &     crown_dx, crown_dy,dbh, root_d,clump,
-     &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
+     &     crown_dx, crown_dy,dbh, clump,LMA,root_d,froot,
+     &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
-     &     N_up, C_to_Nfix, froot)
+     &     N_up, C_to_Nfix)
       !Given cohort's characteristics, assign to cohort data variable.
 
       type(cohort) :: cop
       integer :: pft
-      !real*8,optional :: nm, Ntot
-      real*8 :: n, h, nm, LAI,
-     &     crown_dx, crown_dy,dbh, root_d,clump,
+      real*8,optional :: n, h, nm, LAI,
+     &     crown_dx, crown_dy,dbh, root_d, froot(:),clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
-     &     N_up, C_to_Nfix, froot(:)
+     &     N_up, C_to_Nfix
 
       cop%pft = pft
       cop%n = n
@@ -149,6 +148,7 @@
       cop%crown_dy =  crown_dy
       cop%dbh =  dbh 
       cop%root_d = root_d
+      cop%froot(:) = froot(:)
       cop%clump = clump
       cop%LMA =  LMA 
       cop%C_fol =  C_fol 
@@ -172,7 +172,6 @@
 !      cop%C_litter = C_litter
 !      cop%N_litter = N_litter
       cop%C_to_Nfix = C_to_Nfix
-      cop%froot(:) = froot(:)
 
       end subroutine assign_cohort
       !*********************************************************************

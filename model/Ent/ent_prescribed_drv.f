@@ -10,6 +10,7 @@
 
 
       public 
+     &     init_canopy_physical,
      &     prescr_vegdata,
      &     prescr_get_vdata, prescr_get_laidata, 
      &     prescr_update_vegcrops
@@ -20,6 +21,18 @@
       !*    SUBROUTINES TO READ IN prescr VEGETATION DATA SETS 
       !*********************************************************************
 
+!***************************************************************************
+      subroutine init_canopy_physical(
+     & I0,I1,J0,J1,Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
+      integer,intent(in) :: I0,I1,J0,J1
+      real*8, DIMENSION(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
+
+      Ci_ini(:,:) = 0.0127d0
+      CNC_ini(:,:) = 0.d0
+      Tcan_ini(:,:) = 0.d0           !Should be a forcing from land surface model.
+      Qf_ini(:,:) = 0.d0             !Should be a forcing from land surface model.
+
+      end subroutine init_canopy_physical
 !***************************************************************************
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,

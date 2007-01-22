@@ -360,12 +360,13 @@
       end subroutine sum_roots_patches2cell
 #endif
 
-!**************************************************************************
-
+!*************************************************************************
       subroutine init_simple_entcell( ecp,
-     i     vegdata,popdens,laidata,hdata,dbhdata,craddata,
-     i     cpooldata,nmdata,
-     i     frootdata,soildata,albedodata,soil_texture)
+     ivegdata,popdens,laidata,hdata,dbhdata,craddata,
+     icpooldata,nmdata,
+     ifrootdata,soildata,albedodata,soil_texture,
+     iCi_ini, CNC_ini, Tcan_ini, Qf_ini)
+
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
       type(entcelltype) :: ecp
@@ -381,6 +382,7 @@
       integer,intent(in) :: soildata(N_COVERTYPES)
       real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
       real*8,intent(in) :: soil_texture(N_SOIL_TYPES) !Veg cover fractions.
+      real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini 
       !-----Local---------
       integer :: ncov, pft
       type(patch),pointer :: pp, pp_tmp
@@ -400,8 +402,11 @@
       nullify(ecp%oldest)
       nullify(ecp%youngest)
 
-!      do ncov=1,N_PFT           !One patch with one cohort per pft or bare
-      do ncov=1,N_COVERTYPES           !One patch with one cohort per pft
+      !Initialize canopy met variables.
+      ecp%TcanopyC = Tcan_ini
+      ecp%Qf = Qf_ini
+
+      do ncov=1,N_COVERTYPES           !One patch with one cohort per pft or bare
         pft = ncov - COVEROFFSET
         !### Get from GISS GCM ## vfraction of grid cell and area.
 
@@ -409,6 +414,7 @@
          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
+          call assign_patch(pp,Ci_ini, CNC_ini)
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(ncov) > EPS ) then 
@@ -418,14 +424,14 @@
               call stop_model("init_simple_entcell: wrong pft",255)
             endif
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
-     &           nmdata(ncov),
-     &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,laidata(ncov),
+     &           nmdata(ncov),laidata(ncov),
+     &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,0.d0,
      &           0.d0, frootdata(ncov,:),
-     &           0.d0,cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
+     &           cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
      &           cpooldata(ncov,HW),0.d0,
      &           cpooldata(ncov,LABILE),0.d0,
      &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
-     &           0.d0, 0.d0,0.d0,0.d0,0.d0,
+     &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,
      &           0.d0,0.d0)
           endif
           call summarize_patch(pp)

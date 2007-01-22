@@ -193,8 +193,8 @@
          !* DIAGNOSTICS - BIOMASS POOLS (g-C/cohort)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
          real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
-         real*8 :: C_w           ! Sapwood+dead wood carbon (=rho_wood*sw_vol) (units?)
-         real*8 :: N_w           ! Sapwood+dead wood nitrogen
+         real*8 :: C_w           ! Sapwood+hardwood carbon (=rho_wood*sw_vol) (units?)
+         real*8 :: N_w           ! Sapwood+hardwood nitrogen
          real*8 :: C_lab          ! Labile stored carbon 
          real*8 :: N_lab          ! Labile stored nitrogen
          real*8 :: C_froot        ! Fine root carbon

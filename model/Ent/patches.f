@@ -37,6 +37,17 @@
       end subroutine insert_patch
 
       !*********************************************************************
+      subroutine assign_patch(pp,
+     &     Ci_ini, CNC_ini)
+      !Eventually may want to include all patch variables as optional vars.
+      type(patch),pointer :: pp
+      real*8 :: Ci_ini, CNC_ini
+
+      pp%Ci = Ci_ini
+      pp%GCANOPY = CNC_ini
+
+      end subroutine assign_patch
+      !*********************************************************************
       subroutine delete_patch(gp, pp)
       !* Delete patch pointed to by pp
       !* NOTE:  THIS DOES NOT AUTOMATICALLY UPDATE ENTCELL SUMMMARY VALUES

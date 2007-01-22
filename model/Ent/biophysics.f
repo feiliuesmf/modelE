@@ -222,7 +222,7 @@
 
       integer :: pft
       real*8 :: TcanopyC,P_mbar,Ch,U,CosZen,Ca,betad,Qf
-      real*8 :: GCANOPY,Ci,TRANS_SW,GPP,NPP,R_auto
+      real*8 :: GCANOPY,Ci,TRANS_SW,GPP,NPP !,R_auto
       real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
@@ -529,12 +529,9 @@
       real*8 :: dts,dtt
       integer :: N
 
-!hack!!!
-      !Ci_INOUT = 0.02d0
-
 !## DEBUG  ##!
 #ifdef DEBUG
-      write(95,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
+      write(951,*)  dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
      i     betad,
      i     Qf_IN, 
      &     vegpar,

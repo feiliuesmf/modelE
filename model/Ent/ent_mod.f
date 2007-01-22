@@ -507,7 +507,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_froots,
      &     pft_soil_type,
      &     vegalbedo,
-     &     soil_texture
+     &     soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
      &     )
       type(entcelltype_public), intent(out) :: entcell
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES
@@ -523,13 +524,14 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
-      real*8, dimension(:)  ::   ! dim=N_SOIL_TYPES
-     &     soil_texture
+      real*8, dimension(:)  ::  soil_texture ! dim=N_SOIL_TYPES
+      real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini 
 
       call init_simple_entcell( entcell%entcell,
      &     veg_fraction, pft_population_density, leaf_area_index,
      &     pft_heights, pft_dbh,pft_crad,pft_cpool, pft_nmdata, 
-     &     pft_froots, pft_soil_type, vegalbedo, soil_texture)
+     &     pft_froots, pft_soil_type, vegalbedo, soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
       
       end subroutine ent_cell_set_single
 
@@ -546,8 +548,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_froots,
      &     pft_soil_type,
      &     vegalbedo,
-     &     soil_texture
-     &     )
+     &     soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
       type(entcelltype_public), intent(out) :: entcell(:)
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
@@ -562,8 +564,8 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
-      real*8, dimension(:,:)  ::   ! dim=N_SOIL_TYPES
-     &     soil_texture
+      real*8, dimension(:,:)  ::    soil_texture ! dim=N_SOIL_TYPES
+      real*8, dimension(:) :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       !---
       integer n, nc
 
@@ -574,7 +576,8 @@ cddd      call zero_entcell(entcell%entcell)
      &       veg_fraction(:,n), pft_population_density,
      &       leaf_area_index(:,n), pft_heights, pft_dbh, pft_crad, 
      &       pft_cpool(:,:,n), pft_nmdata, pft_froots, 
-     &       pft_soil_type, vegalbedo(:,:,n), soil_texture(:,n))
+     &       pft_soil_type, vegalbedo(:,:,n), soil_texture(:,n),
+     &       Ci_ini(n), CNC_ini(n), Tcan_ini(n), Qf_ini(n))
       enddo
       
       end subroutine ent_cell_set_array_1d
@@ -592,8 +595,8 @@ cddd      call zero_entcell(entcell%entcell)
      &     pft_froots,
      &     pft_soil_type,
      &     vegalbedo,
-     &     soil_texture
-     &     )
+     &     soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
       type(entcelltype_public), intent(out) :: entcell(:,:)
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
@@ -608,8 +611,8 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
-      real*8, dimension(:,:,:)  ::   ! dim=N_SOIL_TYPES
-     &     soil_texture
+      real*8, dimension(:,:,:)  ::  soil_texture ! dim=N_SOIL_TYPES
+      real*8, dimension(:,:) :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       !---
       integer i, j, ic, jc
 
@@ -630,7 +633,8 @@ cddd      call zero_entcell(entcell%entcell)
      &         pft_heights,pft_dbh,pft_crad,pft_cpool(:,:,i,j),
      &         pft_nmdata,
      &         pft_froots,
-     &         pft_soil_type,vegalbedo(:,:,i,j), soil_texture(:,i,j))
+     &         pft_soil_type,vegalbedo(:,:,i,j), soil_texture(:,i,j),
+     &         Ci_ini(i,j), CNC_ini(i,j), Tcan_ini(i,j), Qf_ini(i,j))
         enddo
       enddo
       
