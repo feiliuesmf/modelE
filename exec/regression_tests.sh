@@ -482,16 +482,14 @@ done
 
 popd
 cleanUp
+logMessage "All processing completed."
+
 # mail log to standard mailing list
 export MAILING_ADDRESS=giss-modelE-regression@sourcemotel.gsfc.nasa.gov
 export SUBJECT="modelE regression tests on $HOSTNAME"
 case `uname` in
-    OSF1) 
-	mailx -s $SUBJECT $MAILING_ADDRESS <<- EOF
-	~r $MAIN_LOG
-	EOF
-	;;
-   Linux)
-       mail -s $SUBJECT $MAILING_ADDRESS -a $MAIN_LOG
+    OSF1)  export MAIL=mailx;;
+    Linux) export MAIL=mail;;
 esac
-logMessage "All processing completed."
+mail -s "SUBJECT" $MAILING_ADDRESS < $MAIN_LOG
+
