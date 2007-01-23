@@ -246,7 +246,7 @@
 
       !* SET UP DRIVERS *!
       pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
-     i     ,pp%froot(:)
+     i     ,pp%fracroot(:)
      i     ,pp%cellptr%fice(:), pfpar(pp%tallest%pft)%hwilt
      o     , pp%betadl(:))
 
@@ -1068,14 +1068,14 @@
       OptCurveResult = x * exp(y*(1/288.15d0 - 1/(Tcelsius+KELVIN)))
       end function OptCurve
 !---------------------------------------------------------------------!
-      function water_stress(nlayers, soilmp, froot, fice,
+      function water_stress(nlayers, soilmp, fracroot, fice,
      &     hwilt, betadl) Result(betad)
       !1. Rosensweig & Abramopoulos water stress fn.
 
       implicit none
       integer,intent(in) :: nlayers !Number of soil layers
       real*8,intent(in) ::  soilmp(:) !Soil matric potential (m)
-      real*8,intent(in) :: froot(:) !Fraction of roots in layer
+      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
       real*8,intent(in) :: fice(:)  !Fraction of ice in layer
       real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
       real*8,intent(out) :: betadl(:) !Water stress in layers
@@ -1085,7 +1085,7 @@
       
       betad = 0.d0
       do k = 1,nlayers
-        betadl(k) = (1.d0-fice(k))*froot(k)
+        betadl(k) = (1.d0-fice(k))*fracroot(k)
      &       *max((hwilt-soilmp(k))/hwilt,0.d0)
         betad = betad + betadl(k) 
       end do
@@ -1094,7 +1094,7 @@
       end function water_stress
 !----------------------------------------------------------------------!
       function water_stress2(pft, nlayers, thetas, thetasat, thetamin, 
-     &     froot, fice, hwilt) Result(betad)
+     &     fracroot, fice, hwilt) Result(betad)
 
       implicit none
       integer,intent(in) :: pft  !Plant functional type number.
@@ -1103,7 +1103,7 @@
       real*8,intent(in) :: thetasat  !Saturated soil water (vol.water/vol.soil)
                                 !Equals porosity
       real*8,intent(in) :: thetamin !Hygroscopic H2O cont(vol.water/vol.soil)
-      real*8,intent(in) :: froot(:) !Fraction of roots in layer
+      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
       real*8,intent(in) :: fice(:)  !Fraction of ice in layer
       real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
       real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
@@ -1125,7 +1125,7 @@
         else
           betak = 0.d0
         end if
-        betad = betad +  (1.d0-fice(k))*froot(k)*betak
+        betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
       end do
       if (betad < EPS2) betad=0.d0
 
@@ -1133,14 +1133,14 @@
 
 !----------------------------------------------------------------------!
       function water_stress3(nlayers, thetas, thetafc, thetamin, 
-     &     froot, fice, hwilt) Result(betad)
+     &     fracroot, fice, hwilt) Result(betad)
 
       implicit none
       integer,intent(in) :: nlayers !Number of soil layers
       real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
       real*8,intent(in) :: thetafc  !Field capacity (vol.water/vol.soil)
       real*8,intent(in) :: thetamin !Hygroscopic H2O cont(vol.water/vol.soil)
-      real*8,intent(in) :: froot(:) !Fraction of roots in layer
+      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
       real*8,intent(in) :: fice(:)  !Fraction of ice in layer
       real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
       real*8 :: betad !Stress value, 0-1, 1=no stress
@@ -1149,7 +1149,7 @@
       !3. Relative extractable water,REW
       betad = 0.d0
       do k = 1,nlayers
-        betad = betad +  (1.d0-fice(k))*froot(k)*
+        betad = betad +  (1.d0-fice(k))*fracroot(k)*
      &       (thetas(k)-thetamin)/(thetafc-thetamin)
       end do
       if (betad < EPS2) betad=0.d0

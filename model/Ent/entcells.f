@@ -36,7 +36,7 @@
 !      ecp%crown_dx = 0.d0
 !      ecp%crown_dy = 0.d0
 !      ecp%clump = 0.d0
-      ecp%froot(:) = 0.d0
+      ecp%fracroot(:) = 0.d0
       ecp%C_fol = 0.d0
       ecp%N_fol = 0.d0
       ecp%C_w = 0.d0
@@ -140,7 +140,7 @@
       !real*8 :: Soilmoist(N_DEPTH) !Available soil moisture by depth (mm)
       !real*8 :: N_deposit       !N deposition (kgN/m2)
       !real*8 :: LAI
-      !real*8 :: froot(N_DEPTH)
+      !real*8 :: fracroot(N_DEPTH)
       integer :: ip             !#patches
       integer :: ia             !counter variable
       real*8 :: fa, laifa, laifasum
@@ -178,7 +178,7 @@
 !        ecp%crown_dy = ecp%crown_dy +  pp%crown_dy * laifa
 !        ecp%clump = ecp%clump + pp%clump * laifa
         do ia=1,N_DEPTH
-          ecp%froot(ia) = ecp%froot(ia) + pp%froot(ia)*pp%area
+          ecp%fracroot(ia) = ecp%fracroot(ia) + pp%fracroot(ia)*pp%area
         end do
 
         ecp%C_fol = ecp%C_fol + pp%C_fol * pp%area
@@ -260,7 +260,7 @@
         end do
 
         ecp%h = ecp%h/laifasum
-        ecp%froot(:) = ecp%froot/fa
+        ecp%fracroot = ecp%fracroot/fa
         ecp%C_fol = ecp%C_fol/fa
         ecp%N_fol = ecp%N_fol/fa
         ecp%C_w = ecp%C_w/fa
@@ -332,13 +332,13 @@
       !-----Local variables-------
       type(patch),pointer :: pp
       integer :: ia
-      real*8 :: froot(N_DEPTH)
+      real*8 :: fracroot(N_DEPTH)
       real*8 :: frootC_total
       real*8 :: cf, tcf !cover fraction, total cover fraction
 
       !* Re-zero summary variable.
       do ia=1,N_DEPTH
-        froot(ia) = 0.0
+        fracroot(ia) = 0.0
       end do
       frootC_total = 0.0
       cf = 0.0
@@ -350,12 +350,12 @@
         tcf = tcf + cf
         frootC_total = frootC_total + pp%C_froot
         do ia=1,N_DEPTH
-          froot(ia) = froot(ia) + cf*pp%froot(ia)*pp%C_froot  
+          fracroot(ia) = fracroot(ia) + cf*pp%fracroot(ia)*pp%C_froot  
         end do
         pp = pp%younger
       end do
 
-      ecp%froot = froot/(tcf*frootC_total)
+      ecp%fracroot = fracroot/(tcf*frootC_total)
 
       end subroutine sum_roots_patches2cell
 #endif
@@ -364,7 +364,7 @@
       subroutine init_simple_entcell( ecp,
      ivegdata,popdens,laidata,hdata,dbhdata,craddata,
      icpooldata,nmdata,
-     ifrootdata,soildata,albedodata,soil_texture,
+     ifracrootdata,soildata,albedodata,soil_texture,
      iCi_ini, CNC_ini, Tcan_ini, Qf_ini)
 
       !@sum Initializes an entcell assuming one cohort per patch.
@@ -378,7 +378,7 @@
       real*8,intent(in) :: craddata(N_COVERTYPES)
       real*8,intent(in) :: cpooldata(N_COVERTYPES,N_BPOOLS)
       real*8,intent(in) :: nmdata(N_COVERTYPES) !Nitrogen parameter
-      real*8,intent(in) :: frootdata(N_COVERTYPES,N_DEPTH) !Root profile.
+      real*8,intent(in) :: fracrootdata(N_COVERTYPES,N_DEPTH) !Root profile.
       integer,intent(in) :: soildata(N_COVERTYPES)
       real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
       real*8,intent(in) :: soil_texture(N_SOIL_TYPES) !Veg cover fractions.
@@ -426,7 +426,7 @@
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
      &           nmdata(ncov),laidata(ncov),
      &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,0.d0,
-     &           0.d0, frootdata(ncov,:),
+     &           0.d0, fracrootdata(ncov,:),
      &           cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
      &           cpooldata(ncov,HW),0.d0,
      &           cpooldata(ncov,LABILE),0.d0,
@@ -462,7 +462,7 @@
       allocate( ecp%LAIpft(N_COVERTYPES) )
       allocate( ecp%Soilmp(N_DEPTH) )
       allocate( ecp%fice(N_DEPTH) )
-      allocate( ecp%froot(N_DEPTH) )
+      allocate( ecp%fracroot(N_DEPTH) )
       allocate( ecp%betadl(N_DEPTH) )
 
       ! set pointers

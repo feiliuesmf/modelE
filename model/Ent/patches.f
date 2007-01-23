@@ -121,7 +121,7 @@
         pp%crown_dx = pp%crown_dx + cop%crown_dx * nc !wtd avg
         pp%crown_dy = pp%crown_dy + cop%crown_dy * nc !wtd avg
         pp%clump = pp%clump + cop%clump * nc !wtd avg - ##SHOULD COME FROM RADIATIVE TRANSFER
-        !* Do froot(:) outside this loop, below.
+        !* Do fracroot(:) outside this loop, below.
 
          !* BIOMASS POOLS - TOTALS
         pp%C_fol = pp%C_fol + cop%C_fol * nc !Total
@@ -215,7 +215,7 @@
       pp%crown_dx = 0.d0
       pp%crown_dy = 0.d0
       pp%clump = 0.d0
-      pp%froot = 0.d0
+      pp%fracroot = 0.d0
       pp%C_fol = 0.d0
       pp%N_fol = 0.d0
       pp%C_w = 0.d0
@@ -328,11 +328,11 @@
       !-----Local variables-------
       type(cohort),pointer :: cop
       integer :: n
-      real*8 :: froot(N_DEPTH)
+      real*8 :: fracroot(N_DEPTH)
       real*8 :: frootC_total
 
       do n=1,N_DEPTH  !Initialize
-        froot(n) = 0.0
+        fracroot(n) = 0.0
       end do 
       frootC_total = 0.0
 
@@ -341,13 +341,13 @@
         !frootC_total = frootC_total + cop%n*cop%C_froot !Mass wtd avg.
         frootC_total = frootC_total + cop%n !##HACK UNTIL CAN DO frootC wtd avg
         do n=1,N_DEPTH
-          !froot(n) = froot(n) + cop%n*cop%C_froot*cop%froot(n) !Mass wtd avg.
-          froot(n) = froot(n) + cop%n*cop%froot(n) !Population wtd avg.##HACK
+          !fracroot(n) = fracroot(n) + cop%n*cop%C_froot*cop%fracroot(n) !Mass wtd avg.
+          fracroot(n) = fracroot(n) + cop%n*cop%fracroot(n) !Population wtd avg.##HACK
         end do
         cop => cop%shorter
       end do
       if (frootC_total > 0.0) then
-        pp%froot = froot/frootC_total
+        pp%fracroot = fracroot/frootC_total
       end if
       pp%C_froot = frootC_total
 
@@ -389,7 +389,7 @@
       allocate( pp )
       allocate( pp%LAIpft(N_COVERTYPES) )  !remove -- have made into scalar -PK 6/28/06
       allocate( pp%betadl(N_DEPTH) )
-      allocate( pp%froot(N_DEPTH) )
+      allocate( pp%fracroot(N_DEPTH) )
 !      allocate( pp%LAIpft(N_COVERTYPES))
 
       ! set pointers

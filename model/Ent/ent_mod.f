@@ -363,7 +363,7 @@ cddd      end interface ent_cell_update
 cddd      allocate( entcell%entcell )
 cddd
 cddd      ! allocate internal arrays
-cddd      allocate( entcell%entcell%froot(N_DEPTH) )
+cddd      allocate( entcell%entcell%fracroot(N_DEPTH) )
 cddd      allocate( entcell%entcell%betadl(N_DEPTH) )
 cddd      allocate( entcell%entcell%Soilmoist(N_DEPTH) )
 cddd      allocate( entcell%entcell%Soilmp(N_DEPTH) )
@@ -1122,8 +1122,8 @@ cddd      end subroutine ent_cell_update_single
       call copy_vars( buf(dc:), nn,  c%C_fol,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%C_froot,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%C_hw,  flag ); dc = dc + nn
-      ! I guess froot is also needed ...
-      call copy_vars( buf(dc:), nn,  c%froot,  flag ); dc = dc + nn
+      ! I guess fracroot is also needed ...
+      call copy_vars( buf(dc:), nn,  c%fracroot,  flag ); dc = dc + nn
       
       
 

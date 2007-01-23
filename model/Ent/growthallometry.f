@@ -22,16 +22,16 @@
       end subroutine uptake_N
       !*********************************************************************
 
-      subroutine init_rootdistr(froot, pft)
-      !use ent_GISSveg, only : GISS_calc_froot
-      real*8 :: froot(N_DEPTH)
+      subroutine init_rootdistr(fracroot, pft)
+      !use ent_GISSveg, only : GISS_calc_fracroot
+      real*8 :: fracroot(N_DEPTH)
       integer :: pft
 
       !GISS TEMPORARY - prescribed roots should be passed in
-!      call GISS_calc_froot(froot, pft)
+!      call GISS_calc_fracroot(fracroot, pft)
 
       ! at least set it to zero, since it is called in zero_cohort...
-      froot(:) = 0.d0
+      fracroot(:) = 0.d0
 
       !* Prognostic roots calculated here *!.
 

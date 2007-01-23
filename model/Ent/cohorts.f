@@ -11,7 +11,7 @@
       !*********************************************************************
       subroutine insert_cohort(pp,pft,n, h,
      &     nm,LAI,
-     &     crown_dx, crown_dy,dbh, clump,LMA, root_d,froot,
+     &     crown_dx, crown_dy,dbh, clump,LMA, root_d,fracroot,
      &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
@@ -21,7 +21,7 @@
       integer :: pft
       real*8 :: n, h, nm, LAI,
      &     crown_dx, crown_dy,dbh, clump
-      real*8 :: root_d,froot(N_DEPTH)
+      real*8 :: root_d,fracroot(N_DEPTH)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
@@ -38,7 +38,7 @@
         !!newc%pptr = pp
         call cohort_construct(newc, pp, pft)
         call assign_cohort(newc,pft,n, h, nm, LAI,
-     &       crown_dx, crown_dy,dbh, clump, LMA, root_d,froot,
+     &       crown_dx, crown_dy,dbh, clump, LMA, root_d,fracroot,
      &       C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       Ci, GCANOPY, GPP, NPP, R_auto,
@@ -123,7 +123,7 @@
       !*********************************************************************
       
       subroutine assign_cohort(cop,pft,n, h, nm, LAI,
-     &     crown_dx, crown_dy,dbh, clump,LMA,root_d,froot,
+     &     crown_dx, crown_dy,dbh, clump,LMA,root_d,fracroot,
      &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
@@ -133,7 +133,7 @@
       type(cohort) :: cop
       integer :: pft
       real*8,optional :: n, h, nm, LAI,
-     &     crown_dx, crown_dy,dbh, root_d, froot(:),clump,
+     &     crown_dx, crown_dy,dbh, root_d, fracroot(:),clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
@@ -148,7 +148,7 @@
       cop%crown_dy =  crown_dy
       cop%dbh =  dbh 
       cop%root_d = root_d
-      cop%froot(:) = froot(:)
+      cop%fracroot(:) = fracroot(:)
       cop%clump = clump
       cop%LMA =  LMA 
       cop%C_fol =  C_fol 
@@ -210,7 +210,7 @@ cddd      end subroutine init_cohort_defaults
       cop%root_d = 0.0
       cop%LAI = 0.0
       cop%clump = 0.0
-      cop%froot(:) = 0.0
+      cop%fracroot(:) = 0.0
 
       !* BIOMASS POOLS *!
       cop%LMA = 0.0
@@ -269,7 +269,7 @@ cddd      end subroutine init_cohort_defaults
 
       ! allocate memory
       allocate( cop )
-      allocate( cop%froot(N_DEPTH) )
+      allocate( cop%fracroot(N_DEPTH) )
 
       ! set pointers if any
       nullify(cop%cellptr )
@@ -303,7 +303,7 @@ cddd      end subroutine init_cohort_defaults
       ! here if this functionality is needed
 
       ! deallocate all memory
-      deallocate( cop%froot )
+      deallocate( cop%fracroot )
       deallocate( cop )
       nullify( cop )
 
@@ -325,9 +325,9 @@ cddd      end subroutine init_cohort_defaults
       write(iu, '(a,a," = ",f10.7)') prefix,"LAI ",cop%LAI
       write(iu, '(a,a," = ",f10.7)') prefix,"h   ",cop%h
       write(iu, '(a,a," = ",f10.7)') prefix,"dbh ",cop%dbh
-      write(iu, '(a,"froot = " )') prefix
+      write(iu, '(a,"fracroot = " )') prefix
       do n=1,N_DEPTH
-        write(iu, '(a,"      ",f10.7)') prefix,cop%froot(n)
+        write(iu, '(a,"      ",f10.7)') prefix,cop%fracroot(n)
       enddo
       write(iu, '(a,a," = ",f10.7)') prefix,"Gcan",cop%gcanopy
       write(iu, '(a,a," = ",f10.7)') prefix,"GPP ",cop%GPP

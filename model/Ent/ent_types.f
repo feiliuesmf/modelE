@@ -111,7 +111,7 @@
          real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8,pointer :: froot(:) ! Fraction of roots in soil layer
+         real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
          !* BIOMASS POOLS (g-C/single plant)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
@@ -188,7 +188,7 @@
 !         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8,pointer :: froot(:) ! Fraction of roots in soil layer
+         real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
          !* DIAGNOSTICS - BIOMASS POOLS (g-C/cohort)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
@@ -300,7 +300,7 @@
 !         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
 !         real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8,pointer :: froot(:) ! Fraction of roots in soil layer
+         real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
          !*  IMPORT-PRESCRIBED, EXPORT-SIMULATED - BIOMASS POOLS (g-C/cohort)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
