@@ -1,3 +1,4 @@
+!@sum Photosynthesis and canopy conductance.
       module biophysics
 !@sum Photosynthesis and canopy conductance.
 !@auth A. Friend, N. Kiang
