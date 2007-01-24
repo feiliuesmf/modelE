@@ -97,7 +97,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 
 #ifdef TRACERS_GASEXCH_Natassa
-      integer i
+      integer i, iu_data
 #endif
 
       INTEGER J_0, J_1
@@ -8645,13 +8645,13 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       !these are *annual global averages* and need to be
       !converted to our timestep value
       print*, 'opening file=OCMIP_cfc.dat'
-      open(unit=11,file='/g6/aromanou/OCMIP_cfc.dat')
+      call openunit('OCMIP_cfc',iu_data,.false.,.true.)
       do n=1,ntm
         do i=1,67
-          read(11,'(5x,e12.4)')ocmip_cfc(i,n)
+          read(iu_data,'(5x,e12.4)')ocmip_cfc(i,n)
         enddo
       enddo
-      close(11)
+      call closeunit(iu_data)
 #endif
 
       return

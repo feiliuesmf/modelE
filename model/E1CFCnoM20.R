@@ -108,6 +108,7 @@ dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
+OCMIP_cfc=OCMIP_cfc.dat
 
 Label and Namelist:
 E1CFCnoM20 (CFC ocean tracers)
@@ -128,8 +129,8 @@ P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_SDRAG=1         ! conserve ang. mom.
 
-OBottom_drag=0      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
-OCoastal_drag=0     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
+OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
+OCoastal_drag=1     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
