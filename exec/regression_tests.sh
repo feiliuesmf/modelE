@@ -491,5 +491,5 @@ case `uname` in
     OSF1)  export MAIL=mailx;;
     Linux) export MAIL=mail;;
 esac
-mail -s "SUBJECT" $MAILING_ADDRESS < $MAIN_LOG
+mail -s "$SUBJECT" $MAILING_ADDRESS < $MAIN_LOG
 
