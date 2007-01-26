@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -l ncpus=4
 #PBS -l walltime=4:00:00
-#PBS -W group_list=k3002
+#PBS -W group_list=a940a
 #PBS -N modelE_test
 #PBS -m "abe"
 #PBS -M "Thomas.L.Clune@nasa.gov"
