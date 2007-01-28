@@ -635,7 +635,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       IF (Itime.ge.ItimeE) CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
-      CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop 
+      CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
 
       END
 
@@ -651,7 +651,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 !@sum This program reads most of parameters from the database (DB)
 !@+   get_param( "A", X ) reads parameter A into variable X
 !@+   if "A" is not in the database, it will generate an error
-!@+   message and stop 
+!@+   message and stop
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
@@ -1049,9 +1049,12 @@ C****                  INITIAL STARTS - ISTART: 1 to 8              ****
 C****                                                               ****
 C****   Current settings: 1 - from defaults                         ****
 C****                     2 - from observed data                    ****
-C****         not done  3-6 - from old model M-file - not all data  ****
-C****                     7 - from converted M-file - no snow model ****
-C****                     8 - from current model M-file             ****
+C****                     3 - so far unused                         ****
+C****                     4 - from coupled model M-file - reset ocn ****
+C****                     5 - tracer run from M-file w/o tracers    ****
+C****                     6 - pred.ocn run from M-file w/o ocn data ****
+C****                     7 - from mod. II' M-file - reset snow/ocn ****
+C****                     8 - from current model M-file - no resets ****
 C****                                                               ****
 C***********************************************************************
 C**** get unit for atmospheric initial conditions if needed
@@ -1211,19 +1214,19 @@ C**** INITIALIZE VERTICAL SLOPES OF T,Q
         call tq_zmom_init(t,q,PMID,PEDN)
       END IF
 C****
-C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=3-5    just hints
+C**** I.C from possibly older/incomplete MODEL OUTPUT, ISTART=3-8
 C****
+      SELECT CASE (ISTART)
+      CASE (3)               ! just general hints - not to be used as is
 C**** Read what's there and substitute rest as needed (as above)
 C**** To be implemented as needed. Sometimes it is safer to
 C**** combine the ground layers into 2 layers (top 10cm and rest) and
 C**** set   redoGH  to .true.  (after major changes in the GH code or
 C**** after changing to a new horizontal grid)
 C     redoGH=.TRUE.
-C**** Set flag to initialise pbl/snow variables if they are not in I.C.
+C**** Set flag to initialise pbl/snow variables if obsolete or missing
 C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
-      SELECT CASE (ISTART)
-      CASE (3)
-        go to 890               !  not available
+        go to 890            !  not implemented; stop model
 C****
 C**** I.C FROM FULL MODEL RESTART FILE (but re-initialise ocean)
 C****
