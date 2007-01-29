@@ -159,9 +159,10 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 !@var CLDSSL large-scale cloud cover
 
 !@var SM,QM Vertical profiles of T/Q
-      REAL*8, DIMENSION(LM) :: SM,QM
+      REAL*8, DIMENSION(LM) :: SM,QM   ! ,DDR,SMDNL,QMDNL
       REAL*8, DIMENSION(NMOM,LM) :: SMOM,QMOM,SMOMMC,QMOMMC,
-     *  SMOMLS,QMOMLS
+     *  SMOMLS,QMOMLS    ! ,SMOMDNL,QMOMDNL
+C     REAL*8, DIMENSION(IM,LM) :: UMDNL,VMDNL
 
 #ifdef TRACERS_ON
 !@var TM Vertical profiles of tracers
@@ -299,7 +300,8 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,WMCLWP,WMCTWP
 #endif
      *  ,FSUB,FCONV,FSSL,FMCL,WTURB,TVL,W2L,GZL
-     *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L
+C    *  ,DDR,SMDNL,QMDNL,SMOMDNL,QMOMDNL
+     *  ,SAVWL,SAVWL1,SAVE1L,SAVE2L
 #ifdef CLD_AER_CDNC
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
@@ -344,6 +346,7 @@ C**** functions
       REAL*8, DIMENSION(NMOM,LM) :: FMOM
       REAL*8, DIMENSION(NMOM,LM) :: SMOMOLD,QMOMOLD
       REAL*8, DIMENSION(NMOM,LM) :: DSMOM,DQMOM,DSMOMR,DQMOMR
+     *     ,SMOMDNL,QMOMDNL
       REAL*8, DIMENSION(NMOM) ::
      &     SMOMP,QMOMP, SMOMPMAX,QMOMPMAX, SMOMDN,QMOMDN
 
@@ -388,6 +391,7 @@ c for sulfur chemistry
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM,CONDP
+     *     ,DDR,SMDNL,QMDNL
 #ifdef CLD_AER_CDNC
      *     ,CONDPC
 #endif
@@ -427,7 +431,7 @@ c for sulfur chemistry
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
      *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,GAMA,DQSUM,TNX,TNX1
-     *     ,DQ,DMSE1,FCTYPE,BETAU,ALPHAU
+     *     ,DQ,DMSE1,FCTYPE,BETAU,ALPHAU,DDRSUM,SMSUM,QMSUM
      *     ,CDHDRT,DDRAFT,DELTA,MPOLD,FPOLD
      *     ,ALPHA,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
@@ -436,7 +440,7 @@ c for sulfur chemistry
      *     ,PRCP
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
-     *     ,SUMDP,DDRUP,EDRAFT,CONTCE,HDEP,TVP,W2TEM
+     *     ,SUMDP,DDRUP,EDRAFT,DDROLD,CONTCE,HDEP,TVP,W2TEM
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
      *     ,FCONV_tmp,FSUB_tmp,FSSL_tmp
      *     , MNdO,MNdL,MNdI,MCDNCW,MCDNCI   !Menon
@@ -448,7 +452,7 @@ c for sulfur chemistry
 !@var TERM1 contribution to non-entraining convective cloud
 !@var FMP0 non-entraining convective mass
 !@var SMO1,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE dummy variables
-!@var WMDN,WMUP,SVDN,SVUP,WMEDG,SVEDG,DDRUP dummy variables
+!@var WMDN,WMUP,SVDN,SVUP,WMEDG,SVEDG,DDRUP,DDROLD dummy variables
 !@var DMSE difference in moist static energy
 !@var FPLUME fraction of convective plume
 !@var DFP an iterative increment
@@ -528,7 +532,7 @@ c for sulfur chemistry
 !@var IERR,LERR error reports from advection
       INTEGER, INTENT(OUT) :: IERR,LERR
 !@var DUM, DVM changes of UM,VM
-      REAL*8, DIMENSION(IM,LM) :: DUM,DVM
+      REAL*8, DIMENSION(IM,LM) :: DUM,DVM,UMDNL,VMDNL
 
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
 !@var BELOW_CLOUD logical- is the current level below cloud?
@@ -737,7 +741,16 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
         DET(L)=0.
         BUOY(L)=0.
         WCU(L)=0.
+        DDR(L)=0.
+        SMDNL(L)=0.
+        QMDNL(L)=0.
       END DO
+      SMOMDNL(:,:)=0.
+      QMOMDNL(:,:)=0.
+      UMDN(1:KMAX)=0.
+      VMDN(1:KMAX)=0.
+      UMDNL(1:KMAX,:)=0.
+      VMDNL(1:KMAX,:)=0.
       DUM(1:KMAX,:)=0.
       DVM(1:KMAX,:)=0.
       DSM(:) = 0.
@@ -786,7 +799,7 @@ C**** calculate subsiding fraction here. Then we can use FMC1 from the
 C**** beginning. The analagous arrays are only set if plume is actually
 C**** moved up.
       IF (MCCONT.le.0) THEN
-         FCONV_tmp=MPLUM1/AIRM(LMIN+1)
+         FCONV_tmp=MPLUM1*BYAM(LMIN+1)
          IF(FCONV_tmp.GT.1.d0) FCONV_tmp=1.d0
          FSUB_tmp=1.d0+(AIRM(LMIN+1)-100.d0)/200.d0
          IF(FSUB_tmp.GT.1.d0/(FCONV_tmp+1.d-20)-1.d0)
@@ -804,7 +817,7 @@ C**** guard against possibility of too big a plume
       RFMC1=.FALSE.
   160 IF (MC1) THEN
          RFMC1=.TRUE.
-         FCONV_tmp=MPLUM1/AIRM(LMIN+1)
+         FCONV_tmp=MPLUM1*BYAM(LMIN+1)
          IF(FCONV_tmp.GT.1.d0) FCONV_tmp=1.d0
          FSUB_tmp=1.d0+(PL(LMIN)-PL(LMAX)-100.d0)/200.d0
          IF(FSUB_tmp.GT.1.d0/(FCONV_tmp+1.d-20)-1.d0)
@@ -830,7 +843,16 @@ C        MC1=.FALSE.
         DET(L)=0.
         BUOY(L)=0.
         WCU(L)=0.
+        DDR(L)=0.
+        SMDNL(L)=0.
+        QMDNL(L)=0.
       END DO
+      SMOMDNL(:,:)=0.
+      QMOMDNL(:,:)=0.
+      UMDN(1:KMAX)=0.
+      VMDN(1:KMAX)=0.
+      UMDNL(1:KMAX,:)=0.
+      VMDNL(1:KMAX,:)=0.
       DUM(1:KMAX,:)=0.
       DVM(1:KMAX,:)=0.
       DSM(:) = 0.
@@ -1187,7 +1209,7 @@ C**** ENTRAINMENT
 C****
 C     IF(IC.EQ.2.OR.(IC.EQ.1.AND.PL(L).GE.800.)) THEN
       TVP=(SMP/MPLUME)*PLK(L)*(1.+DELTX*QMP/MPLUME)
-      BUOY(L)=(TVP-TVL(L))/TVL(L)-COND(L)/AIRM(L)
+      BUOY(L)=(TVP-TVL(L))/TVL(L)-COND(L)*BYAM(L)
       ENT(L)=.16667D0*CONTCE*GRAV*BUOY(L)/(WCU(L-1)*WCU(L-1)+teeny)
       IF (ENT(L).LT.0.D0) THEN
         DET(L)=-ENT(L)
@@ -1275,7 +1297,7 @@ C**** CHECK THE DOWNDRAFT POSSIBILITY
 C**** Define downdraft properties
 C****
       IF(L-LMIN.LE.1) GO TO 291
-      IF(ETADN.GT.1d-10) GO TO 291
+      IF(ETADN.GT.1d-10) GO TO 291 ! comment out for multiple downdrafts
       SMIX=.5*(SUP+SMP/MPLUME)
       QMIX=.5*(QUP+QMP/MPLUME)
 C     WMIX=.5*(WMUP+WMDN)
@@ -1283,21 +1305,26 @@ C     SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
 C     DMMIX=(SVUP-SVMIX)*PLK(L)+
 C    *  SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
 C     IF(DMMIX.LT.1d-10) GO TO 291
-      IF(SMIX.GE.SUP) GO TO 291
-      IF(PL(L).GT.700.) GO TO 291
-      LDRAFT=L
+      IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
+      IF(PL(L).GT.700.) GO TO 291   ! do we need this condition?
+      LDRAFT=L                      ! the highest downdraft level
       ETADN=BY3
       FLEFT=1.-.5*ETADN
       DDRAFT=ETADN*MPLUME
+      DDR(L)=DDRAFT
       FDDP = .5*DDRAFT/MPLUME
       FDDL = .5*DDRAFT*BYAM(L)
       MPLUME=FLEFT*MPLUME
-      SMDN=DDRAFT*SMIX         ! = SM(L)*FDDL +  SMP*FDDP
-      SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
+C     SMDN=DDRAFT*SMIX         ! = SM(L)*FDDL +  SMP*FDDP
+C     SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
+      SMDNL(L)=DDRAFT*SMIX
+      SMOMDNL(xymoms,L)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
       SMP=FLEFT*SMP
       SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
-      QMDN=DDRAFT*QMIX         ! = QM(L)*FDDL +  QMP*FDDP
-      QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
+C     QMDN=DDRAFT*QMIX         ! = QM(L)*FDDL +  QMP*FDDP
+C     QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
+      QMDNL(L)=DDRAFT*QMIX
+      QMOMDNL(xymoms,L)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
       QMP=FLEFT*QMP
       QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
       DMR(L) = DMR(L)-.5*DDRAFT
@@ -1315,10 +1342,12 @@ C     IF(DMMIX.LT.1d-10) GO TO 291
       tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
 #endif
       DO K=1,KMAX
-         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
+C        UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
+         UMDNL(K,L)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
          UMP(K)=UMP(K)*FLEFT
          DUM(K,L)=DUM(K,L)-.5*DDRAFT*U_0(K,L)
-         VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
+C        VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
+         VMDNL(K,L)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
          VMP(K)=VMP(K)*FLEFT
          DVM(K,L)=DVM(K,L)-.5*DDRAFT*V_0(K,L)
       ENDDO
@@ -1463,23 +1492,43 @@ C****
       EDRAFT=0.
       IF(ETADN.GT.1d-10) THEN
       CONSUM=0.
+      DDRSUM=0.
+      SMSUM=0.
+      QMSUM=0.
       DO 347 L=LMIN,LDRAFT
+      DDRSUM=DDRSUM+DDR(L)
+      SMSUM=SMSUM+SMDNL(L)
+      QMSUM=QMSUM+QMDNL(L)
   347 CONSUM=CONSUM+COND(L)
-      TNX=SMDN*PLK(LMIN)/DDRAFT
-      QNX=QMDN/DDRAFT
+      DDRAFT=DDR(LDRAFT)
+      DDROLD=DDRAFT
+      SMDN=SMDNL(LDRAFT)
+      QMDN=QMDNL(LDRAFT)
+      SMOMDN(xymoms)=SMOMDNL(xymoms,LDRAFT)
+      QMOMDN(xymoms)=QMOMDNL(xymoms,LDRAFT)
+        DO K=1,KMAX
+        UMDN(K)=UMDNL(K,LDRAFT)
+        VMDN(K)=VMDNL(K,LDRAFT)
+        ENDDO
+      TNX=SMSUM*PLK(LMIN)/DDRSUM
+      QNX=QMSUM/DDRSUM
       LHX=LHE
       IF(TPSAV(LMIN).LT.TF) LHX=LHS
       SLH=LHX*BYSHA
       QSATC=QSAT(TNX,LHX,PL(LMIN))
       DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
-      DQRAT=DQ*DDRAFT/(CONSUM+teeny)
+      DQRAT=DQ*DDRSUM/(CONSUM+teeny)
       DO 346 L=LDRAFT,1,-1
       LHX=LHE
       IF (L.GE.LMIN) THEN  ! avoids reference to uninitiallised value
         IF(TPSAV(L).LT.TF) LHX=LHS
       END IF
       SLH=LHX*BYSHA
-      DQEVP=DQRAT*COND(L)
+C     TNX=SMDN*PLK(L)/DDRAFT
+C     QNX=QMDN/DDRAFT
+C     QSATC=QSAT(TNX,LHX,PL(L))
+C     DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
+      DQEVP=DQRAT*COND(L)                      ! DQ*DDRAFT
       IF(DQEVP.GT.COND(L)) DQEVP=COND(L)
       IF (L.LT.LMIN) DQEVP=0.
       FSEVP = 0
@@ -1520,15 +1569,16 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
 C**** ENTRAINMENT OF DOWNDRAFTS
       IF(L.LT.LDRAFT.AND.L.GT.1) THEN
         DDRUP=DDRAFT
-        DDRAFT=DDRAFT*(1.+ETAL(L))
+        DDRAFT=DDRAFT+DDROLD*ETAL(L)   ! add in entrainment
+C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
         IF(DDRUP.GT.DDRAFT) DDRAFT=DDRUP
         IF(DDRAFT.GT..95d0*(AIRM(L-1)+DMR(L-1)))
      *    DDRAFT=.95d0*(AIRM(L-1)+DMR(L-1))
         EDRAFT=DDRAFT-DDRUP
         IF (EDRAFT.gt.0) THEN  ! usual case, entrainment into downdraft
           FENTRA=EDRAFT*BYAM(L)
-          SENV=SM(L)/AIRM(L)
-          QENV=QM(L)/AIRM(L)
+          SENV=SM(L)*BYAM(L)
+          QENV=QM(L)*BYAM(L)
           SMDN=SMDN+EDRAFT*SENV
           QMDN=QMDN+EDRAFT*QENV
           SMOMDN(xymoms)= SMOMDN(xymoms)+ SMOM(xymoms,L)*FENTRA
@@ -1538,6 +1588,12 @@ C**** ENTRAINMENT OF DOWNDRAFTS
           DQMR(L)=DQMR(L)-EDRAFT*QENV
           DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
           DMR(L)=DMR(L)-EDRAFT
+          DO K=1,KMAX          ! add in momentum entrainment
+            UMDN(K)=UMDN(K)+FENTRA*UM(K,L)
+            VMDN(K)=VMDN(K)+FENTRA*VM(K,L)
+            DUM(K,L)=DUM(K,L)-FENTRA*UM(K,L)
+            DVM(K,L)=DVM(K,L)-FENTRA*VM(K,L)
+          ENDDO
 #ifdef TRACERS_ON
           Tenv(1:NTX)=tm(l,1:NTX)/airm(l)
           TMDN(1:NTX)=TMDN(1:NTX)+EDRAFT*Tenv(1:NTX)
@@ -1557,6 +1613,12 @@ C**** ENTRAINMENT OF DOWNDRAFTS
           SMOMDN(xymoms)= SMOMDN(xymoms)*(1+FENTRA)
           QMOMDN(xymoms)= QMOMDN(xymoms)*(1+FENTRA)
           DM(L)=DM(L)-EDRAFT
+          DO K=1,KMAX          ! add in momentum detrainment
+            UMDN(K)=UMDN(K)*(1.+FENTRA)
+            VMDN(K)=VMDN(K)*(1.+FENTRA)
+            DUM(K,L)=DUM(K,L)-FENTRA*UMDN(K)
+            DVM(K,L)=DVM(K,L)-FENTRA*VMDN(K)
+          ENDDO
 #ifdef TRACERS_ON
           DTM(L,1:NTX)=DTM(L,1:NTX)-FENTRA*TMDN(1:NTX)
           DTMOM(xymoms,L,1:NTX)=DTMOM(xymoms,L,1:NTX)-
@@ -1566,12 +1628,25 @@ C**** ENTRAINMENT OF DOWNDRAFTS
 #endif
         END IF
       ENDIF
-      IF(L.GT.1) DDM(L-1)=DDRAFT
+C     IF(L.GT.1) DDM(L-1)=DDRAFT
       LDMIN=L
 C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       IF (L.LE.LMIN.AND.L.GT.1) THEN
         SMIX=SMDN/DDRAFT
-        IF (SMIX.GE.(SM1(L-1)/AIRM(L-1))) GO TO 345
+        IF (SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
+      ENDIF
+      IF(L.GT.1) THEN
+        DDROLD=DDRAFT
+        DDRAFT=DDRAFT+DDR(L-1)    ! add in downdraft one layer below
+        DDM(L-1)=DDRAFT     ! IF(L.GT.1) DDM(L-1)=DDRAFT
+        SMDN=SMDN+SMDNL(L-1)
+        QMDN=QMDN+QMDNL(L-1)
+        SMOMDN(xymoms)=SMOMDN(xymoms)+SMOMDNL(xymoms,L-1)
+        QMOMDN(xymoms)=QMOMDN(xymoms)+QMOMDNL(xymoms,L-1)
+        DO K=1,KMAX
+        UMDN(K)=UMDN(K)+UMDNL(K,L-1)
+        VMDN(K)=VMDN(K)+VMDNL(K,L-1)
+        ENDDO
       ENDIF
   346 CONTINUE
   345 DSM(LDMIN)=DSM(LDMIN)+SMDN
@@ -3438,7 +3513,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2.f,v 2.83 2006/12/13 19:54:41 cdmsy Exp $
+!$Id: CLOUDS2.f,v 2.84 2007/01/29 18:26:19 cdmsy Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
