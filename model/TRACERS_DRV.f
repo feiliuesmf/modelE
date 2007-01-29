@@ -1977,6 +1977,14 @@ C****
         jls_ltop(k) = 1
         jls_power(k) = -3.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'CFCn Ocean source'
+        sname_ijts(k) = 'CFCn_Ocean_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('SF6')
         k = k + 1
