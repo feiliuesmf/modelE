@@ -1,12 +1,15 @@
 c used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/Attic/TRACER_GASEXCH_Natassa.f,v $
-c $Revision: 1.1 $
-c $Date: 2007/01/18 23:17:21 $   ;  $State: Exp $
+c $Revision: 1.2 $
+c $Date: 2007/01/30 16:28:36 $   ;  $State: Exp $
 c $Author: ntausnev $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_Natassa.f,v $
+c Revision 1.2  2007/01/30 16:28:36  ntausnev
+c Correction bugs for TRACERS_GASEXCH_Natassa option. Functions must be real*8 type.
+c
 c Revision 1.1  2007/01/18 23:17:21  ntausnev
 c Subroutines used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
@@ -18,7 +21,7 @@ c Revision 1.1  1998/07/07 15:22:00  orr
 c Initial revision
 c
 c ---------------------------------------------------------------------
-      REAL FUNCTION sol_cfc(pt,ps,kn)
+      REAL*8 FUNCTION sol_cfc(pt,ps,kn)  
 c-------------------------------------------------------------------
 c
 c     CFC 11 and 12 Solubilities in seawater
@@ -92,12 +95,15 @@ c-----------------------------------------------------------------------
 c used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/Attic/TRACER_GASEXCH_Natassa.f,v $
-c  $Revision: 1.1 $
-c  $Date: 2007/01/18 23:17:21 $   ;  $State: Exp $
+c  $Revision: 1.2 $
+c  $Date: 2007/01/30 16:28:36 $   ;  $State: Exp $
 c  $Author: ntausnev $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_Natassa.f,v $
+c  Revision 1.2  2007/01/30 16:28:36  ntausnev
+c  Correction bugs for TRACERS_GASEXCH_Natassa option. Functions must be real*8 type.
+c
 c  Revision 1.1  2007/01/18 23:17:21  ntausnev
 c  Subroutines used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
@@ -105,7 +111,7 @@ c  Revision 1.1  1998/07/07 15:22:00  orr
 c  Initial revision
 c 
 c  ---------------------------------------------------------------------
-      REAL FUNCTION sc_cfc(t,kn)
+      REAL*8 FUNCTION sc_cfc(t,kn)   
 c---------------------------------------------------
 c     CFC 11 and 12 Schmidt number 
 c     as a function of temperature. 
