@@ -488,7 +488,7 @@ logMessage "All processing completed."
 export MAILING_ADDRESS=giss-modelE-regression@sourcemotel.gsfc.nasa.gov
 export SUBJECT="modelE regression tests on $HOSTNAME"
 case `uname` in
-    OSF1)  export MAIL=mailx;;
+    OSF1)  export MAIL=Mail;;
     Linux) export MAIL=mail;;
 esac
 $MAIL -s "$SUBJECT" $MAILING_ADDRESS < $MAIN_LOG
