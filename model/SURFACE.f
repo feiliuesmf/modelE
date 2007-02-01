@@ -1400,7 +1400,8 @@ C****
 C**** Save for tracer dry deposition conservation quantity:
       do n=1,ntm
         if(dodrydep(n)) then
-          call diagtcb(dtr_dd(:,n,1),itcon_dd(n,1),n)  ! turb dep
+          if (itcon_dd(n,1).gt.0)
+     *    call diagtcb(dtr_dd(:,n,1),itcon_dd(n,1),n)  ! turb dep
           if (itcon_dd(n,2).gt.0)
      *         call diagtcb(dtr_dd(:,n,2),itcon_dd(n,2),n) ! grav sett
         end if
