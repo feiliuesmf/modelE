@@ -639,26 +639,6 @@ cdiag.   ,rhows,trconstflx(itr),trsf,trcnst
 
 #endif
 
-C**** solve tracer transport equation
-        call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
-     *       ,trcnst,trtop(itr),
-#ifdef TRACERS_WATER
-     *       tr_evap_max(itr),fr_sat,
-#endif
-     *       dtime,n)
-
-#ifdef TRACERS_DRYDEP
-C**** put in a check to prevent unphysical solutions. If too much
-C**** tracer is being taken out, replace profile with linear one
-C**** with maximum allowed flux.
-        if (dodrydep(ntix(itr))) then
-          if ((trsf*tr(1,itr)-trcnst)*dtime.gt.trtop(itr)*ztop) then
-            do i=1,n
-              tr(i,itr)=(trtop(itr)*ztop/dtime+trcnst)/trsf+(i-1)
-     *             *trtop(itr)/float(n-1)
-            end do
-          end if
-#endif
 #ifdef TRACERS_AMP
         SELECT CASE (trname(ntix(itr)))
         case ('M_DD1_DU')
