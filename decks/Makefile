@@ -99,7 +99,7 @@ ifndef NPES
 	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)
 else
 	echo PRUN
-	@$(SETUP) $(SETUP_FLAGS) -mpi $(NPES) $(RUN) 
+	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN) 
 endif
 
 $(SETUP_GFDL):
