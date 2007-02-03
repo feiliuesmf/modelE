@@ -114,7 +114,7 @@ cohorts.f patches.f entcells.f \
 biophysics.f canopyradiation.f \
 growthallometry.f reproduction.f phenology.f \
 disturbance.f soilbgc.f ent_const.f \
-ent_types.f  ent_pfts.f ent_prescribed_updates.f
+ent_types.f  ent_pfts.f ent_prescribed_updates.f ent_prescribed_drv.f
 OBJS_IN_SUBDIRS = $(patsubst %, Ent/%, $(FSRC_ENT:.f=.o))
 
 ifneq ($(MAKECMDGOALS),rundeck)

@@ -43,6 +43,9 @@
       ! maybe call "ent_initialize" ? , i.e.
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
       ! ask Max if OK
+      call ent_initialize(
+     &     do_soilresp=.false.
+     &     )
 
       if (iniENT ) then
       ! initialize ent cells to something meaningful
@@ -107,7 +110,8 @@ c**** check whether ground hydrology data exist at this point.
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
-      use ent_GISSveg, only : GISS_vegdata, GISS_calc_shc
+      use ent_prescribed_drv, only : prescr_vegdata
+      use ent_prescr_veg, only : prescr_calc_shc
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       !Local variables
@@ -151,7 +155,7 @@ c**** check whether ground hydrology data exist at this point.
 !      call ent_cell_set(entcells, vegdata, popdata, laidata,
 !     &     hdata, nmdata, frootdata, soildata, albedodata, soil_texture)
 
-      call GISS_vegdata(jday, year, 
+      call prescr_vegdata(jday, year, 
      &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
      &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
      &     soildata,soil_texture)
@@ -188,7 +192,9 @@ cddd      enddo
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
-      use ent_GISSveg, only : GISS_get_laidata, GISS_veg_albedodata
+      use ent_prescribed_drv, only:
+     &     prescr_get_laidata,prescr_veg_albedodata
+      !use ent_prescr_veg, only: prescr_get_laidata,prescr_veg_albedodata
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       !Local variables
@@ -198,8 +204,8 @@ cddd      enddo
       integer i,j
 
 
-      call GISS_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
-      call GISS_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
+      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
 
 cddd      do j=j0,j1
 cddd        do i=i0,i1

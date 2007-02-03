@@ -1768,7 +1768,7 @@ ccc accm0 was not called here in older version - check
 
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
-          call ent_fast_processes( entcell, dt, .false. )
+          call ent_fast_processes( entcell, dt )
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
