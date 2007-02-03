@@ -13,7 +13,7 @@
      &     init_canopy_physical,
      &     prescr_vegdata,
      &     prescr_get_vdata, prescr_get_laidata, 
-     &     prescr_update_vegcrops
+     &     prescr_update_vegcrops, prescr_veg_albedodata
 
       contains
 
