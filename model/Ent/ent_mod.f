@@ -1124,8 +1124,10 @@ cddd      end subroutine ent_cell_update_single
       call copy_vars( buf(dc:), nn,  c%C_hw,  flag ); dc = dc + nn
       ! I guess fracroot is also needed ...
       call copy_vars( buf(dc:), nn,  c%fracroot,  flag ); dc = dc + nn
-      
-      
+
+      ! added new data to restore checkpoint after sumcohort was removed...
+      call copy_vars( buf(dc:), nn,  c%Ci,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%gcanopy,  flag ); dc = dc + nn
 
       n = dc
 
