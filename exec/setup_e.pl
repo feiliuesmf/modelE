@@ -29,6 +29,7 @@ $omp=0;
 $mpi=0;
 $nproc=1;
 $flag_wait=0;
+$MPIDISTR="";
 
 ## if $HOME/.modelErc is present get settings from there
 
@@ -61,9 +62,10 @@ printf "UMASK = %03lo\n", $UMASK;
 while ($_ = $ARGV[0], /^-/) {
     shift;
     last if /^--$/;
-    if (/^-omp/) { $omp = 1; $nproc = shift; next;}
-    if (/^-mpi/) { $mpi = 1; $nproc = shift; next;}
-    if (/^-wait/) { $flag_wait = 1; next;}
+    if (/^-omp\b/) { $omp = 1; $nproc = shift; next;}
+    if (/^-mpi\b/) { $mpi = 1; $nproc = shift; next;}
+    if (/^-wait\b/) { $flag_wait = 1; next;}
+    if (/^-mpidistr\b/) { $MPIDISTR = shift; next;}
     print "setup: unknown option $_ \n"; exit 1;
 }
 
@@ -263,6 +265,9 @@ if ( $uname =~ /IRIX64/ ) {
 } elsif ( $uname =~ /Linux/ ) {
     $omp_run = "export OMP_NUM_THREADS=\$NP; ";
     $mpi_run = "mpirun -np \$NP ";
+    if ( $MPIDISTR =~ /SCALI/ ) {
+	$mpi_run .= "-inherit_limits ";
+    }
 }
 
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
