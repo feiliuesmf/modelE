@@ -8,7 +8,7 @@ CAOO   Just to test CVS
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       USE MODEL_COM
-      USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT,pack_data
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
@@ -48,7 +48,7 @@ c$$$      USE MODEL_COM, only: clock
       INTEGER :: mpi_err, MDUM = 0
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-      REAL*8 DTIME,TOTALT
+      REAL*8 DTIME,TOTALT , oa_glob(im,jm,koa)
 
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
@@ -495,7 +495,9 @@ C****
       IF (Kvflxo.EQ.0.) OA(:,:,4:KOA)=0. ! to prepare for future saves
       IF (Kvflxo.NE.0.) THEN
          IF (MOD(Itime,NDAY).eq.0) THEN
-            call WRITEI8 (iu_vflxo,Itime,OA,im*jm*koa)
+            call pack_data (grid, OA, OA_glob)
+            if (am_I_root())
+     *         call WRITEI8 (iu_vflxo,Itime,OA_glob,im*jm*koa)
 C**** ZERO OUT INTEGRATED QUANTITIES
             OA(:,:,4:KOA)=0.
          ELSEIF (MOD(Itime,NDAY/2).eq.0) THEN
