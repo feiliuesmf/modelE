@@ -1316,6 +1316,9 @@ C****
             PLKIC=FLAKE(I,J)*    RSI(I,J)
             new_flake=min(0.95d0*(FLAKE(I,J)+FEARTH(I,J)),(9d0*PI
      *           *(TANLK(I,J)*MWL(I,J)/RHOW)**2)**BY3/DXYP(J))
+C**** hack to prevent lakes fooding the snow in GHY
+C**** (do not flood more than 4.9% of land per day)
+            new_flake=min( new_flake, FLAKE(I,J)+.049d0*FEARTH(I,J) )
             hlk=0.
             if (new_flake.gt.0) hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
