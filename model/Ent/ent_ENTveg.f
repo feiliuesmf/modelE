@@ -1,5 +1,5 @@
       module ent_prescr_veg
-
+!KIM - temporary values for ENT pfts
       use ent_const
       use ent_pfts
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
@@ -16,16 +16,22 @@
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
 
 !*********************************************************************
-!--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
+!--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_arctic c4crops 
+!----sand bdirt
+!KIM - temp. values
       real*8, parameter :: alamax(N_COVERTYPES) =
-     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
-     &     ,0.d0, 0.d0, 2.d0 /)
+     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
+     &     ,2.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 4.5d0, 0.d0, 0.d0/)
+
       real*8, parameter :: alamin(N_COVERTYPES) =
-     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
-     &     ,0.d0, 0.d0, 1.d0 /)
+     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
+     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.d0, 0.d0 /)
+
       integer, parameter :: laday(N_COVERTYPES) =
-     $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
-     &     ,0, 0, 196 /)
+     $     (/ 196, 196, 196, 196, 196, 196, 196
+     &     ,196, 196, 196, 196, 196, 196, 0, 0 /)
 
       real*8,parameter :: EDPERY=365. !GISS CONST.f
 
@@ -187,59 +193,73 @@ C                    WINTER  SPRING  SUMMER  AUTUMN
 C**** parameters used for vegetation albedo
 !@var albvnd veg alb by veg type, season and band
       real*8, parameter :: ALBVND(NV,4,6) = RESHAPE( (/
+C
+!--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_arctic c4crops 
+!----sand bdirt
+!KIM - temp. values
+C
 C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.067,.089,.089,.078,.100,.067,.061,.089,.000,.200,.089,
-     2 .500,.062,.100,.100,.073,.055,.067,.061,.100,.000,.200,.100,
-     3 .500,.085,.091,.139,.085,.058,.083,.061,.091,.000,.200,.091,
-     4 .500,.080,.090,.111,.064,.055,.061,.061,.090,.000,.200,.090,
+     1 .061,.061,.067,.067,.100,.100,.078,.089,.089,.089,.089,.089,
+     & .089,.500,.000,
+     2 .061,.061,.067,.067,.055,.055,.073,.100,.100,.100,.100,.100,
+     & .100,.500,.000,
+     3 .061,.061,.083,.083,.058,.058,.085,.139,.139,.091,.091,.091,
+     & .091,.500,.000,
+     4 .061,.061,.061,.061,.055,.055,.064,.111,.111,.090,.090,.090,
+     & .090,.500,.000,
 C
 C     (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.200,.267,.267,.233,.300,.200,.183,.267,.000,.200,.267,
-     2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
-     3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
-     4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
+     1 .183,.183,.200,.200,.300,.300,.233,.267,.267,.267,.267,.267,
+     & .267,.500,.000,
+     2 .183,.183,.200,.200,.218,.218,.241,.300,.300,.350,.350,.350,
+     & .350,.500,.000,
+     3 .183,.183,.250,.250,.288,.288,.297,.417,.417,.364,.364,.364,
+     & .364,.500,.000,
+     4 .183,.183,.183,.183,.218,.218,.204,.333,.333,.315,.315,.315,
+     & .315,.500,.000,
 C
 C     (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.200,.267,.267,.233,.300,.200,.183,.267,.000,.200,.267,
-     2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
-     3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
-     4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
+     1 .183,.183,.200,.200,.300,.300,.233,.267,.267,.267,.267,.267,
+     & .267,.500,.000,
+     2 .183,.183,.200,.200,.218,.218,.241,.300,.300,.350,.350,.350,
+     & .350,.500,.000,
+     3 .183,.183,.250,.250,.288,.288,.297,.417,.417,.364,.364,.364,
+     & .364,.500,.000,
+     4 .183,.183,.183,.183,.218,.218,.204,.333,.333,.315,.315,.315,
+     & .315,.500,.000,
 C
 C     (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.080,.107,.107,.093,.120,.080,.073,.107,.000,.200,.107,
-     2 .500,.082,.140,.120,.096,.083,.080,.073,.140,.000,.200,.140,
-     3 .500,.119,.145,.167,.119,.115,.100,.073,.145,.000,.200,.145,
-     4 .500,.102,.126,.132,.081,.087,.073,.073,.126,.000,.200,.126,
+     1 .073,.073,.080,.080,.120,.120,.093,.107,.107,.107,.107,.107,
+     & .107,.500,.000,
+     2 .073,.073,.080,.080,.083,.083,.096,.120,.120,.140,.140,.140,
+     & .140,.500,.000,
+     3 .073,.073,.100,.100,.115,.115,.119,.167,.167,.145,.145,.145,
+     & .145,.500,.000,
+     4 .073,.073,.073,.073,.087,.087,.081,.132,.132,.126,.126,.126,
+     & .126,.500,.000,
 C
 C     (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.100,.133,.133,.116,.150,.100,.091,.133,.000,.200,.133,
-     2 .500,.103,.175,.150,.120,.109,.100,.091,.175,.000,.200,.175,
-     3 .500,.148,.182,.208,.148,.144,.125,.091,.182,.000,.200,.182,
-     4 .500,.127,.157,.166,.102,.109,.091,.091,.157,.000,.200,.157,
+     1 .091,.091,.100,.100,.150,.150,.116,.133,.133,.133,.133,.133,
+     & .133,.500,.000,
+     2 .091,.091,.100,.100,.109,.109,.120,.150,.150,.175,.175,.175,
+     & .175,.500,.000,
+     3 .091,.091,.125,.125,.144,.144,.148,.208,.208,.182,.182,.182,
+     & .182,.500,.000,
+     4 .091,.091,.091,.091,.109,.109,.102,.166,.166,.157,.157,.157,
+     & .157,.500,.000,
 C
 C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.020,.027,.027,.023,.030,.020,.018,.027,.000,.200,.027,
-     2 .500,.021,.035,.030,.024,.022,.020,.018,.035,.000,.200,.035,
-     3 .500,.030,.036,.042,.030,.029,.025,.018,.036,.000,.200,.036,
-     4 .500,.026,.032,.033,.020,.022,.018,.018,.032,.000,.200,.032
+
+     1 .018,.018,.020,.020,.030,.030,.023,.027,.027,.027,.027,.027,
+     & .027,.500,.000,
+     2 .018,.018,.020,.020,.022,.022,.024,.030,.030,.035,.035,.035,
+     & .035,.500,.000,
+     3 .018,.018,.025,.025,.029,.029,.030,.042,.042,.036,.036,.036,
+     & .036,.500,.000,
+     4 .018,.018,.018,.018,.022,.022,.020,.033,.033,.032,.032,.032,
+     & .032,.500,.000
      *     /),(/NV,4,6/) )
 C
 ccc or pass k-vegetation type, L-band and 1 or 2 for Hemisphere
@@ -286,13 +306,19 @@ c
      &     (/  0.99999964d-01,  0.17254400d+00,
      &     0.29771447d+00,  0.51368874d+00,  0.88633960d+00,
      &     0.15293264d+01 /)
- !--- tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
+
+!--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_arctic c4crops 
+!----sand bdirt
+!KIM - temp. values
       real*8, parameter :: aroot(N_COVERTYPES) = 
-     $     (/ 0.d0,12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0
-     &     ,0.d0, 0.d0, 0.9d0 /)
+     $     (/ 1.1d0, 1.1d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0
+     &     ,0.8d0, 0.8d0, 0.9d0, 0.9d0, 0.9d0, 0.9d0, 0.d0, 0.d0 /)
       real*8, parameter :: broot(N_COVERTYPES) = 
-     $     (/ 0.d0, 1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0
-     &     ,0.d0, 0.d0, 0.9d0 /)
+     $     (/ 0.4d0, 0.4d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+     &     , 0.4d0, 0.4d0, 0.9d0, 0.9d0, 0.9d0, 0.9d0, 0.0d0, 0.0d0 /)
+
       integer :: n,l
       real*8 :: z, frup,frdn
 
@@ -340,9 +366,13 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 :: hdata(N_COVERTYPES) 
       !------
       real*8, parameter :: vhght(N_COVERTYPES) =
-      !* bsand tundrv  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
-     $     (/0.d0, 0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
-     &     ,0.d0, 0.d0, 1.5d0 /)
+!--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_arctic c4crops 
+!----sand bdirt
+!KIM - temp. values
+     $     (/25d0, 25d0, 30d0, 30d0, 20d0, 20d0, 15d0
+     &     , 5d0, 5d0, 1.5d0, 1.5d0, 1.5d0, 1.75d0, 0.d0, 0.d0 /)
 
       !* Copy prescr code for calculating seasonal canopy height here.
       ! For prescr Model E replication, don't need to fill in an
@@ -362,8 +392,14 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 :: nmdata(N_COVERTYPES)
       !-------
       real*8, parameter :: nmv(N_COVERTYPES) =
-     $     (/0.d0,1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
-     &     ,0.d0, 0.d0, 0.82d0 /)
+!--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_arctic c4crops 
+!----sand bdirt
+!KIM - temp. values
+     $     (/2.7d0, 2.7d0, 2.9d0, 2.9d0, 1.25d0, 1.25d0, 1.03d0
+     &     , 2.38d0, 2.38d0, 0.82d0, 0.82d0, 0.82d0, 2.50d0
+     &     , 0.d0, 0.d0 /)
 
       !* Return intial nm for all vegetation and cover types
       nmdata = nmv
@@ -408,11 +444,7 @@ c**** calculate root fraction afr averaged over vegetation types
       do pft = 1,N_PFT
         n = pft + COVEROFFSET
         if (pft.ne.GRASSC3) then !Woody
-          if (pft.eq.TUNDRA) then
-            wddata(n) = ED_woodydiameter(pft,hdata(n)) * 20 !FUDGE UNTIL HAVE MIXED CANOPIES
-          else                  !Most trees
-            wddata(n) = ED_woodydiameter(pft,hdata(n))
-          end if
+          wddata(n) = ED_woodydiameter(pft,hdata(n))
         endif
       enddo
       end subroutine prescr_get_woodydiameter
@@ -426,12 +458,8 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8,intent(in) ::  h !height (m)
       !real*8,intent(out) :: dbh !(cm)
 
-      if (pft.eq.SAVANNA) then
-        dbh = 30.0 !Estimate from Tonzi Ranch, NYK
-      else
-        dbh = ((1/2.34)*h)**(1/0.64)
-      endif
-      
+      dbh = ((1/2.34)*h)**(1/0.64)
+        
       end function ED_woodydiameter
 
 !*************************************************************************
