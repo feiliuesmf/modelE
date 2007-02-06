@@ -303,10 +303,21 @@
       integer, intent(out) :: soil_color(N_COVERTYPES)
       real*8, intent(out) :: soil_texture(N_SOIL_TYPES,I0:I1,J0:J1)
       !------
+#ifdef PFT_MODEL_ENT
+!--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_arctic c4crops 
+!----sand bdirt
+!KIM - temp. values
       integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
+     $     (/ 2, 2,  2, 2, 2, 2, 2
+     &     ,2, 2, 2, 2 ,2, 2, 1, 2 /)
+#else
       !* bsand tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
      $     (/1, 2, 2,  2, 2, 2, 2, 2
      &     ,2, 2, 2, 2 /)
+#endif
       real*8 :: buf(im,jm,N_SOIL_TYPES)
       integer :: iu_SOIL
       integer k
