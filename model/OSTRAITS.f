@@ -58,7 +58,7 @@ C**** Subtract Pressure Gradient Force from the mass flux
       END DO
 C****
       RETURN
-      END
+      END SUBROUTINE STPGF
 
       SUBROUTINE STADV
 !@sum  STADV advects tracers and water mass through the straits
@@ -132,7 +132,7 @@ C**** Red sea area)
       END DO
       END DO
       RETURN
-      END
+      END SUBROUTINE STADV
 
       SUBROUTINE STADVT(N,L,AM,MM1,MM2,RMST,RXST,RZST,RM,RX,RY,RZ,OLN
      *     ,QLIMIT)
@@ -244,7 +244,7 @@ C****
       end if
 C****
       RETURN
-      END
+      END SUBROUTINE STADVT
 
       SUBROUTINE STBDRA
 !@sum  STBDRA exerts a bottom drag on the lowest layer and a side drag
@@ -395,7 +395,7 @@ C**** Initialize sea ice in straits
       END IF
 C****
       RETURN
-      END
+      END SUBROUTINE init_STRAITS
 
 c      SUBROUTINE STADVI
 c!@sum  STADVI advects sea ice through the straits
