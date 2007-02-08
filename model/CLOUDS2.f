@@ -2397,6 +2397,17 @@ C**** initialise vertical arrays
 c      AERTAU=0.
        DSGL(:,1:SNTM)=0.
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (diag_wetdep == 1) THEN
+C**** initialise diagnostic arrays
+        trwash_ls=0.D0
+        trprcp_ls=0.D0
+        trclwc_ls=0.D0
+        trclwe_ls=0.D0
+        trcond_ls=0.D0
+      END IF
+#endif
       DO L=1,LP50
         CAREA(L)=1.-CLDSAVL(L)
 C       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
@@ -3513,7 +3524,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2.f,v 2.84 2007/01/29 18:26:19 cdmsy Exp $
+!$Id: CLOUDS2.f,v 2.85 2007/02/08 12:29:52 jan Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
