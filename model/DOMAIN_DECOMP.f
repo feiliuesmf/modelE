@@ -590,8 +590,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
 #else
-      grd_dum%J_STRT_HALO   = 1
-      grd_dum%J_STOP_HALO   = JM
+      grd_dum%J_STRT_HALO = MAX(1,  grd_dum % J_STRT - 1)
+      grd_dum%J_STOP_HALO = MIN(JM, grd_dum % J_STOP + 1)
 #endif
 
       IF (RANK_LAT > 0) THEN
