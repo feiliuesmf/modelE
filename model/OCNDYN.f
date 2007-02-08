@@ -29,7 +29,7 @@ C?*** For serial GM/straits computations, pack data into global arrays
      *     ,toijl_glob=>toijl      ! for serial gm ?
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE DOMAIN_DECOMP, only : grid,get
+      USE DOMAIN_DECOMP, only : grid,get, haveLatitude
 
 C?*** For serial ODIF/GM/straits computations:
       USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
@@ -69,6 +69,7 @@ C**** Apply ice/ocean and air/ocean stress to ocean
 C**** Calculate vertical diffusion
       CALL OCONV
          CALL CHECKO('OCONV ')
+
 C**** Apply bottom and coastal drags
       if (OBottom_drag  == 1) CALL OBDRAG
       if (OCoastal_drag == 1) CALL OCOAST
@@ -88,6 +89,7 @@ C**** initialize summed mass fluxes
 
       CALL OVTOM (MMI,UM0,VM0)
       CALL OPGF0
+
       NS=NDYNO
 C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
       CALL OFLUX  (NS,MMI,.FALSE.)
@@ -95,6 +97,7 @@ C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
 C     CALL STADVM(MM1,MUST,DTOFS,.False.)
       CALL OADVV (UM1,VM1,UM0,VM0,DTOFS)
       CALL OPGF  (UM1,VM1,DTOFS)
+
 C     CALL STPGF (MUST1,MUST,DTOFS)
       CALL OMTOV (MM1,UM1,VM1)
 C**** Initial Backward step,  QM1 = QM0 + DT*F(Q0)
@@ -108,6 +111,7 @@ C     CALL STPGF (MUST1,MUST,DTO)
 C**** First even leap frog step,  Q2 = Q0 + 2*DT*F(Q1)
       CALL OFLUX  (NS,MMI,.TRUE.)
       CALL OADVM (MM0,MMI,DTOLF)
+
 C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
       CALL OADVV (UM0,VM0,UM0,VM0,DTOLF)
       CALL OPGF  (UM0,VM0,DTOLF)
@@ -118,6 +122,7 @@ C**** Odd leap frog step,  Q3 = Q1 + 2*DT*F(Q2)
   420 Continue
       CALL OFLUX  (NS,MM1,.FALSE.)
       CALL OADVM (MM1,MM1,DTOLF)
+
 C     CALL STADVM(MM1,MUST,DTOLF,.False.)
       CALL OADVV (UM1,VM1,UM1,VM1,DTOLF)
       CALL OPGF  (UM1,VM1,DTOLF)
@@ -125,6 +130,7 @@ C     CALL STPGF (MUST1,MUST1,DTOLF)
       CALL OMTOV (MM1,UM1,VM1)
       NS=NS-1
 C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
+
       CALL OFLUX  (NS,MM0,.TRUE.)
       CALL OADVM (MM0,MM0,DTOLF)
 C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
@@ -145,6 +151,7 @@ C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
       END DO
 !$OMP END PARALLEL DO
 C**** Advection of Potential Enthalpy and Salt
+
       CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
      *        ,OIJL(1,J_0H,1,IJL_GFLX))
       CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.
@@ -186,8 +193,12 @@ C**** Advection of Potential Enthalpy and Salt
 
         IF (MODD5S == 0) CALL DIAGCA (12)
 
-c????          Non-parallelized parts : ODIFF, GM, straits
 c     ODIFF:   mo,uo,vo (ocean), dh (ocean_dyn)
+
+
+      CALL ODIFF(DTS)
+
+c????          Non-parallelized parts : GM, straits
 c     GM:      mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO (ocean)
 c              dh,vbar (ocean_dyn), kpl (kpp_com), (t)oijl (odiag)
 c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
@@ -205,9 +216,10 @@ c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
      *                   TOIJL_glob(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N))
       end do
 #endif
+
       IF(AM_I_ROOT()) THEN
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
-        CALL ODIFF(DTS)
+!       CALL ODIFF(DTS)
           CALL CHECKO ('ODIFF ')
 C**** Apply GM + Redi tracer fluxes
         CALL GMKDIF
@@ -3453,37 +3465,59 @@ C**** FSLIP = 0 implies no slip conditions, = 1 implies free slip
 C**** Mass variation is included
 C****
       USE CONSTANT, only :twopi,rhows,omega,radius
-!mpi  USE OCEAN, only : im,jm,lmo,mo,uo,vo,   ! ???
-      USE OCEAN, only : im,jm,lmo,mo=>mo_glob,uo=>uo_glob,vo=>vo_glob,
+      USE OCEAN, only : im,jm,lmo,mo,uo,vo,
      *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,
      *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
-!mpi  USE OCEAN_DYN, only : dh  ! ???
-      USE OCEAN_DYN, only : dh=>dh_glob
+      USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag
+
+      USE DOMAIN_DECOMP, ONLY : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
+      USE DOMAIN_DECOMP, ONLY : haveLatitude
+
       IMPLICIT NONE
       REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
       INTEGER, PARAMETER :: IIP=IM*(JM-2)+1
+      !mk  begin
       REAL*8, DIMENSION(JM) :: KYPXP,KXPYV,KYVXV,KXVYP
-      REAL*8, SAVE, DIMENSION(JM) :: BYDXYV,
+      REAL*8, SAVE, DIMENSION(0:JM) :: BYDXYV,
      *     KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,BYDYP
       REAL*8, DIMENSION(IM,JM,2) :: DUDX,DUDY,DVDX,DVDY
       REAL*8, DIMENSION(IM,JM) :: FUX,FUY,FVX,FVY,BYMU,BYMV
+      !mk  end
       INTEGER, SAVE :: IFIRST = 1
 C**** Local variables
+      !mk  begin
       REAL*8, DIMENSION(IIP) :: AU,BU,CU,RU,UU,AV,BV,CV,RV,UV
       REAL*8, SAVE, DIMENSION(IM,JM,LMO) :: UXA,UXB,UXC,UYA,UYB,UYC,VXA
      *     ,VXB,VXC,VYA,VYB,VYC
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
       REAL*8, SAVE, DIMENSION(IM,LMO) :: UYPA
+
+      INTEGER, DIMENSION(IM,JM) :: indexIIglob
+      !mk  end
       REAL*8, INTENT(IN) :: DTDIFF
       REAL*8, SAVE :: BYDXYPJM
       REAL*8 DSV,DSP,VLAT,DLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
       INTEGER I,J,L,IP1,IM1,II
+      logical :: dothis
+
+!     domain decomposition
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+c**** Extract domain decomposition info
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C****
 
       IF(IFIRST.ne.0)  THEN
       IFIRST = 0
-      DO J=2,JM-1
+      DO J=J_0S-1,J_1S   !mk check this
 C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
 c      KHP(J)=2d0*RHOWS*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
 c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
@@ -3509,12 +3543,19 @@ C**** Discretisation errors need TANP/V to be defined like this
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
         TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
       END DO
-      KHV(1)=KHV(2)
-      BYDXV(1)=1D0/DXVO(1)
-      BYDYV(1)=1D0/DYVO(1)
-      BYDYP(1)=1D0/DYPO(1)
-      BYDXP(JM)=1D0/DXPO(JM)
-      BYDXYPJM=1D0/(DXYPO(JM)*IM)
+      !make halo_update if 2 is not present   mk
+      !barrier synchoronization is required before sending the message,
+      !j=2 is computed before the message is sent
+      if( HAVE_SOUTH_POLE ) then
+        KHV(1)=KHV(2)
+        BYDXV(1)=1D0/DXVO(1)
+        BYDYV(1)=1D0/DYVO(1)
+        BYDYP(1)=1D0/DYPO(1)
+      endif
+      if( HAVE_NORTH_POLE ) then
+        BYDXP(JM)=1D0/DXPO(JM)
+        BYDXYPJM=1D0/(DXYPO(JM)*IM)
+      endif
       PRINT*,"Kh: ",(J,KHP(J),J=1,JM)
 C****
 C**** Calculate operators fixed in time for U and V equations
@@ -3532,7 +3573,7 @@ C**** including metric terms in y derivatives
         DUDY=0.
         DVDX=0.
         DVDY=0.
-        DO J=2,JM-1
+        DO J=max(2,J_0S-1),J_1S
           I=IM
           DO IP1=1,IM
             IF (L.LE.LMU(IP1,J)) DUDX(IP1,J,1) = KYPXP(J)
@@ -3563,10 +3604,12 @@ C**** including metric terms in y derivatives
             I=IP1
           END DO
         END DO
+        CALL HALO_UPDATE(grid, DUDY(:,grid%j_strt_halo:grid%j_stop_halo,
+     *     :), FROM=SOUTH)
 C****
 C**** Combine to form tri-diagonal operators including first metric term
 C****
-        DO J=2,JM-1
+        DO J=J_0S,J_1S
           IM1=IM
           DO I=1,IM
             IF(L.LE.LMU(IM1,J)) THEN
@@ -3595,52 +3638,91 @@ C****
           END DO
         END DO
 C**** At North Pole
-        IF(L.LE.LMU(1,JM)) THEN
-          DO I=1,IM
-            UYPB(L) = UYPB(L) - DUDY(I,JM-1,1)
-            UYPA(I,L) = -DUDY(I,JM-1,2)*BYDXYPJM
-          END DO
-          UYPB(L) = UYPB(L)*BYDXYPJM
+        !following uses jm and jm-1 data, if both are not on same
+        !processor (need to check this), halo_date is required.
+        IF(HAVE_NORTH_POLE) THEN
+          IF(L.LE.LMU(1,JM)) THEN
+            DO I=1,IM
+              UYPB(L) = UYPB(L) - DUDY(I,JM-1,1)
+              UYPA(I,L) = -DUDY(I,JM-1,2)*BYDXYPJM
+            END DO
+            UYPB(L) = UYPB(L)*BYDXYPJM
+          END IF
         END IF
       END DO
       END IF
+!**  IFIRST block ends here
 C**** End of initialization from first call to ODIFF
 C****
 C**** Solve diffusion equations semi implicitly
 C****
       DT2=DTDIFF*5d-1     ! half time-step
 C**** Store North Pole velocity components, they will not be changed
-c     if(have_north_pole) then
-      UONP(:) = UO(IM  ,JM,:)
-      VONP(:) = UO(IVNP,JM,:)
-c     end if
+      if(have_north_pole) then
+        UONP(:) = UO(IM  ,JM,:)
+        VONP(:) = UO(IVNP,JM,:)
+      end if
+
+      CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,BYDXP(grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,TANV (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,DXPO (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+
+!     CALL HALO_UPDATE(grid,MO (:,grid%j_strt_halo:grid%j_stop_halo,:),
+!    *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,MO,
+     *                 FROM=NORTH)
+
 C****
 !$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
 !$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RU,RV,
 !$OMP&  UU,UV,UT,UY,UX, VT,VY,VX)
       DO L=1,LMO
+      !mk move these outside of L loop
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=SOUTH)
 C**** Calculate rotating polar velocities from UONP and VONP
-c     if(have_north_pole) then
-      UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
-      VO(:,JM,L) = VONP(L)*COSI(:) - UONP(L)*SINI(:)
-c     end if
+      if(have_north_pole) then
+        UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
+        VO(:,JM,L) = VONP(L)*COSI(:) - UONP(L)*SINI(:)
+      end if
 C**** Save (0.5*) mass reciprical for velocity points
-      DO J=2,JM-1
+      DO J=J_0S,J_1S
         I=IM
         DO IP1=1,IM
           IF (L.LE.LMU(I,J)) BYMU(I,J) = 1./(MO(I,J,L)+MO(IP1,J,L))
+          IF (L.LE.LMV(I,J)) then
+            if ((MO(I,J,L)+MO(I,J+1,L))==0.) then
+              print*,'divide by 0 is imminent:',
+     &             I,J,L,MO(I,J,L), MO(I,J+1,L)
+              end if
+            end if
           IF (L.LE.LMV(I,J)) BYMV(I,J) = 1./(MO(I,J,L)+MO(I,J+1,L))
           I=IP1
         END DO
       END DO
-      IF (L.LE.LMU(1,JM)) BYMU(1,JM) = 1./MO(1,JM,L)
+      if( HAVE_NORTH_POLE ) then
+        IF (L.LE.LMU(1,JM)) BYMU(1,JM) = 1./MO(1,JM,L)
+      endif
 C**** Calculate Wasjowicz boundary terms
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
       FUX=0             ! flux in U equation at the x_+ boundary
       FUY=0             ! flux in U equation at the y_+ boundary
       FVX=0             ! flux in V equation at the x_+ boundary
       FVY=0             ! flux in V equation at the y_+ boundary
-      DO J=1,JM-1
+      DO J=J_0, J_1S
         IM1=IM-1
         DO I=1,IM
           UT=0          ! mean u*tan on x_+ boundary for V equation
@@ -3693,11 +3775,44 @@ C**** Calculate fluxes (including FSLIP condition)
           IM1=I
         END DO
       END DO
+
+      CALL HALO_UPDATE(grid,FUY (:,grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,FVY (:,grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+
+      CALL HALO_UPDATE(grid,FVX (:,grid%j_strt_halo:grid%j_stop_halo),
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,FVX (:,grid%j_strt_halo:grid%j_stop_halo),
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,FVY (:,grid%j_strt_halo:grid%j_stop_halo),
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,FVY (:,grid%j_strt_halo:grid%j_stop_halo),
+     *                 FROM=NORTH)
+
 C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
 C**** Minor complication due to cyclic nature of boundary condition
       AU=0. ; BU=0. ; CU=0. ; RU=0. ; UU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
+      ! global array for index II translation
+      indexIIglob(:,:) = 0
       DO J=2,JM-1
+        IM1=IM-1
+        I=IM
+        DO IP1=1,IM
+          II=IM*(J-2)+I
+          indexIIglob(IP1,J) = II
+          IM1=I
+          I=IP1
+        END DO
+      END DO
+      indexIIglob(:,JM) = IIP
+
+      DO J=J_0S,J_1S
         IM1=IM-1
         I=IM
         DO IP1=1,IM
@@ -3750,28 +3865,54 @@ c    *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
 c     END IF
 C**** Call tridiagonal solver
+!**   global AU, BU, CU, RU
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RU)
+
       CALL TRIDIAG(AU,BU,CU,RU,UU,IIP-1)
+
+!**   global AV, BV, CV, RV
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RV)
+
       CALL TRIDIAG(AV,BV,CV,RV,UV,IIP-1)
+
       DO II=1,IIP-1
         J= 2 + (II-1)/IM
-        I= II-(J-2)*IM
-        UO(I,J,L) = UU(II)
-        VO(I,J,L) = UV(II)
+        if (haveLatitude(grid,J)) then
+          I= II-(J-2)*IM
+          UO(I,J,L) = UU(II)
+          VO(I,J,L) = UV(II)
 c        UO(II,2,L) = UU(II)   ! this cycles through correctly
 c        VO(II,2,L) = UV(II)
+        end if
       END DO
 C****
 C**** Now do semi implicit solution in y
 C**** Recalculate rotating polar velocities from UONP and VONP
 C     UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
 C     VO(:,JM,L) = VONP(L)*COSI(:) - UONP(L)*SINI(:)
+
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=SOUTH)
+
 C**** Calc. cross-term fluxes + second metric term (at half time step)
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
       FUX=0             ! flux in U equation at the x_+ boundary
       FUY=0             ! flux in U equation at the y_+ boundary
       FVX=0             ! flux in V equation at the x_+ boundary
       FVY=0             ! flux in V equation at the y_+ boundary
-      DO J=1,JM-1
+      DO J=J_0,J_1S
         IM1=IM-1
         DO I=1,IM
           UT=0         ! mean u*tan on x_+ boundary for V equation
@@ -3824,14 +3965,56 @@ C**** Calculate fluxes (including FSLIP condition)
           IM1=I
         END DO
       END DO
+
+      CALL HALO_UPDATE(grid,FUY (:,grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,FVY (:,grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+
 C**** Calculate tridiagonal matrix for second semi-implicit step (in y)
 C**** Minor complication due to singular nature of polar box
       AU=0. ; BU=0. ; CU=0. ; RU=0. ; UU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
+
+      ! save index II in indexIIglob ,should save only once up front
+      indexIIglob(:,:) = 0
       IM1=IM-1
       I=IM
       DO IP1=1,IM
         DO J=2,JM-1
+          II=(JM-2)*(I-1)+(J-1)
+          indexIIglob(IP1,J) = II
+          IM1=I
+          I=IP1
+        END DO
+      END DO
+      DO IP1=1,IM
+        !this is not in accordance with above formula
+        indexIIglob(IP1,JM) = IIP
+      END DO
+
+      !IM1=IM-1
+      !I=IM
+      DO IP1=1,IM
+        DO J=J_0S,J_1S
+          !put following into a function
+          if(ip1.eq.1) then
+            if(J.eq.2) then
+              IM1=IM-1; I=IM;
+            elseif(J.eq.3) then
+              IM1=IM; I=IP1;
+            else
+              IM1=IP1; I=IP1;
+            endif
+          endif
+          if(ip1.gt.1) then
+            if(j.eq.2) then
+              IM1=IP1-1; I=IP1-1;
+            else
+              IM1=IP1; I=IP1;
+            endif
+          endif
+
           II=(JM-2)*(I-1)+(J-1)
           BU(II) = 1d0
           BV(II) = 1d0
@@ -3843,6 +4026,7 @@ C**** Minor complication due to singular nature of polar box
             RU(II) = UO(I,J,L) + DTU*(UXA(I,J,L)*UO(IM1,J,L)
      *           +UXB(I,J,L)*UO(I,J,L) + UXC(I,J,L)*UO(IP1,J,L))
 c**** Make properly tridiagonal by making explicit polar terms
+!mkt  UO(1,JM,L) changed to UO(I,JM,L)
             IF (J == JM-1) RU(II)=RU(II) + DTU*UYC(I,J,L)*UO(I,JM,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
@@ -3880,25 +4064,94 @@ c    *         - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
 c     END IF
 C**** Call tridiagonal solver
+
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RU)
+
       CALL TRIDIAG(AU,BU,CU,RU,UU,IIP-1)
+
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RV)
+
       CALL TRIDIAG(AV,BV,CV,RV,UV,IIP-1)
+
       DO II=1,IIP-1
         I= 1 + (II-1)/(JM-2)
         J= 1 + II - (I-1)*(JM-2)
-        UO(I,J,L) = UU(II)
-        VO(I,J,L) = UV(II)
+        if (haveLatitude(grid,J)) then
+          UO(I,J,L) = UU(II)
+          VO(I,J,L) = UV(II)
+        end if
       END DO
 C****
       END DO
 !$OMP END PARALLEL DO
 C**** Restore unchanged UONP and VONP into prognostic locations in UO
-c     if(have_north_pole) then
-      UO(IM  ,JM,:) = UONP(:)
-      UO(IVNP,JM,:) = VONP(:)
-c     end if
+      if(have_north_pole) then
+        UO(IM  ,JM,:) = UONP(:)
+        UO(IVNP,JM,:) = VONP(:)
+      end if
 C****
       RETURN
       END SUBROUTINE ODIFF
+
+      SUBROUTINE ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AU)
+
+      USE OCEAN, only : IM, JM
+      USE DOMAIN_DECOMP, ONLY : grid, GET, PACK_DATA, ESMF_BCAST
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, NORTH, SOUTH, AM_I_ROOT
+
+      IMPLICIT NONE
+      INTEGER, intent(in) :: IIP
+      INTEGER, DIMENSION(IM,JM), intent(in) :: indexIIglob
+      REAL*8, DIMENSION(IIP), intent(inout) :: AU
+
+      INTEGER :: J_0S, J_1S, J_0, J_1
+      INTEGER :: J, IP1
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: tmp3
+      !REAL*8, DIMENSION(IM,grid%J_STRT:grid%J_STOP) :: tmp3
+      REAL*8, DIMENSION(IM,JM) :: dummy
+      logical :: HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &         J_STRT  = J_0,   J_STOP  = J_1,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE )
+
+! gather AU on all processors
+! use dumy array temporarily for gather operation
+      !save consecutive j data in dummy
+      dummy(:,:) = 0.0d0
+      tmp3(:,:) = 0
+      DO J=J_0S,  J_1S
+        DO IP1=1,IM
+          tmp3(IP1, J) = AU( indexIIglob(IP1,J) )
+        END DO
+      END DO
+      if( HAVE_NORTH_POLE ) then
+        DO IP1=1,IM
+          tmp3(IP1, JM) = AU(IIP)
+        END DO
+      endif
+      !pack data
+      CALL HALO_UPDATE(grid, tmp3(:,grid%j_strt_halo:grid%j_stop_halo)
+     *     , FROM=SOUTH)
+      CALL HALO_UPDATE(grid, tmp3(:,grid%j_strt_halo:grid%j_stop_halo)
+     *     , FROM=NORTH)
+      CALL PACK_DATA(grid,    tmp3  ,    dummy)
+      CALL ESMF_BCAST(grid, dummy)
+      !re-populate AU with global data global AU
+      DO J=2,JM-1
+        DO IP1=1,IM
+          AU(indexIIglob(IP1,J)) = dummy(IP1,J)
+        END DO
+      END DO
+      AU(IIP)=dummy(1,JM)
+
+      END SUBROUTINE ODIFF_TRIDIAG_COEF
 
       SUBROUTINE TOC2SST
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
