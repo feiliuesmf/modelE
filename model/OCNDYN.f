@@ -751,22 +751,22 @@ c**** Extract domain decomposition info
 C**** Check for NaN/INF in ocean data
       IF (QCHECK) THEN
       JM_loc = J_1H - J_0H + 1
-      CALL CHECK3(MO  ,IM,JM_loc,LMO,SUBR,'mo ')
-      CALL CHECK3(G0M ,IM,JM_loc,LMO,SUBR,'g0m')
-      CALL CHECK3(GXMO,IM,JM_loc,LMO,SUBR,'gxm')
-      CALL CHECK3(GYMO,IM,JM_loc,LMO,SUBR,'gym')
-      CALL CHECK3(GZMO,IM,JM_loc,LMO,SUBR,'gzm')
-      CALL CHECK3(S0M ,IM,JM_loc,LMO,SUBR,'s0m')
-      CALL CHECK3(SXMO,IM,JM_loc,LMO,SUBR,'sxm')
-      CALL CHECK3(SYMO,IM,JM_loc,LMO,SUBR,'sym')
-      CALL CHECK3(SZMO,IM,JM_loc,LMO,SUBR,'szm')
-      CALL CHECK3(UO  ,IM,JM_loc,LMO,SUBR,'uo ')
-      CALL CHECK3(VO  ,IM,JM_loc,LMO,SUBR,'vo ')
+      CALL CHECK3B(MO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'mo ')
+      CALL CHECK3B(G0M(1,J_0,1) ,IM,J_0,J_1,JM,LMO,SUBR,'g0m')
+      CALL CHECK3B(GXMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'gxm')
+      CALL CHECK3B(GYMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'gym')
+      CALL CHECK3B(GZMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'gzm')
+      CALL CHECK3B(S0M(1,J_0,1) ,IM,J_0,J_1,JM,LMO,SUBR,'s0m')
+      CALL CHECK3B(SXMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'sxm')
+      CALL CHECK3B(SYMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'sym')
+      CALL CHECK3B(SZMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'szm')
+      CALL CHECK3B(UO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'uo ')
+      CALL CHECK3B(VO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK3(TRMO,IM,JM_loc,LMO*NTM,SUBR,'trm')
-      CALL CHECK3(TXMO,IM,JM_loc,LMO*NTM,SUBR,'txm')
-      CALL CHECK3(TYMO,IM,JM_loc,LMO*NTM,SUBR,'tym')
-      CALL CHECK3(TZMO,IM,JM_loc,LMO*NTM,SUBR,'tzm')
+      CALL CHECK3B(TRMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'trm')
+      CALL CHECK3B(TXMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'txm')
+      CALL CHECK3B(TYMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'tym')
+      CALL CHECK3B(TZMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'tzm')
 #endif
 
 C**** Check for variables out of bounds
