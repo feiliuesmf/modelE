@@ -805,7 +805,7 @@ C**** Check first layer ocean mass
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
  230      SALIM = .043
-          IF(I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
+          IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
           IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
      *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
      *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
@@ -1434,13 +1434,14 @@ C**** Read in reduction contribution matrices from disk
       Read (IU_AVR) TITLE,NBAS,IMINm1,IWIDm1,INDEX,REDUCO
       Call CLOSEUNIT (IU_AVR)
       Write (6,*) 'Read from unit',IU_AVR,': ',TITLE
+ 100  CONTINUE
 C****
 C**** Loop over J and L.  JX = eXclude unfiltered latitudes
 C****                     JA = Absolute latitude
 C****
 !$OMP ParallelDo   Private (I,I1,INDX,IWm2, J,JA,JX, K,L, N,NB,
 !$OMP*                      AN,BN, REDUC,Y)
-  100 Do 410 J=Max(J1O,J1P),JNP
+      Do 410 J=Max(J1O,J1P),JNP
       JX=J  ;  If(J > JMPF) JX=J+2*JMPF-JM
       JA=J  ;  If(J > JMPF) JA=JM+1-J
       If (JA > JMPF)  GoTo 410  !  skip latitudes J=JMPF+1,JM-JMPF
@@ -4136,7 +4137,7 @@ C****
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE )
 
 ! gather AU on all processors
-! use dumy array temporarily for gather operation
+! use dummy array temporarily for gather operation
       !save consecutive j data in dummy
       dummy(:,:) = 0.0d0
       tmp3(:,:) = 0
