@@ -3478,29 +3478,32 @@ C****
       IMPLICIT NONE
       REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
       INTEGER, PARAMETER :: IIP=IM*(JM-2)+1
-      !mk  begin
-      REAL*8, DIMENSION(JM) :: KYPXP,KXPYV,KYVXV,KXVYP
-      REAL*8, SAVE, DIMENSION(0:JM) :: BYDXYV,
-     *     KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,BYDYP
-      REAL*8, DIMENSION(IM,JM,2) :: DUDX,DUDY,DVDX,DVDY
-      REAL*8, DIMENSION(IM,JM) :: FUX,FUY,FVX,FVY,BYMU,BYMV
-      !mk  end
+
+      REAL*8, DIMENSION(grid%j_strt_halo:grid%j_stop_halo) ::
+     *     KYPXP,KXPYV,KYVXV,KXVYP
+      REAL*8, SAVE, ALLOCATABLE, DIMENSION(:) ::
+     *     BYDXYV, KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,BYDYP
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,2) ::
+     *      DUDX,DUDY,DVDX,DVDY
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo) ::
+     *      FUX,FUY,FVX,FVY,BYMU,BYMV
+
       INTEGER, SAVE :: IFIRST = 1
 C**** Local variables
-      !mk  begin
+
       REAL*8, DIMENSION(IIP) :: AU,BU,CU,RU,UU,AV,BV,CV,RV,UV
-      REAL*8, SAVE, DIMENSION(IM,JM,LMO) :: UXA,UXB,UXC,UYA,UYB,UYC,VXA
-     *     ,VXB,VXC,VYA,VYB,VYC
+      REAL*8, SAVE, ALLOCATABLE, DIMENSION(:,:,:) ::
+     *      UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
       REAL*8, SAVE, DIMENSION(IM,LMO) :: UYPA
 
-      INTEGER, DIMENSION(IM,JM) :: indexIIglob
-      !mk  end
+      INTEGER, SAVE, DIMENSION(IM,JM) :: indexIIglob
+      INTEGER, SAVE, DIMENSION(IM,JM) :: indexIIglob2
+
       REAL*8, INTENT(IN) :: DTDIFF
       REAL*8, SAVE :: BYDXYPJM
       REAL*8 DSV,DSP,VLAT,DLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
       INTEGER I,J,L,IP1,IM1,II
-      logical :: dothis
 
 !     domain decomposition
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
@@ -3517,7 +3520,64 @@ C****
 
       IF(IFIRST.ne.0)  THEN
       IFIRST = 0
-      DO J=J_0S-1,J_1S   !mk check this
+
+        allocate( BYDXYV(grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( KHP   (grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( KHV   (grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( TANP  (grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( TANV  (grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( BYDXV (grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( BYDXP (grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( BYDYV (grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( BYDYP (grid%j_strt_halo:grid%j_stop_halo) )
+
+        allocate( UXA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( UXB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( UXC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( UYA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( UYB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( UYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( VXA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( VXB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( VXC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( VYA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( VYB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( VYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+
+        ! global array for index II translation in
+        ! first semi-implicit step (in x)
+        indexIIglob(:,:) = 0
+        DO J=2,JM-1
+          IM1=IM-1
+          I=IM
+          DO IP1=1,IM
+            II=IM*(J-2)+I
+            indexIIglob(IP1,J) = II
+            IM1=I
+            I=IP1
+          END DO
+        END DO
+        indexIIglob(:,JM) = IIP
+
+        ! global array for index II translation in
+        ! second semi-implicit step (in y)
+        indexIIglob2(:,:) = 0
+        IM1=IM-1
+        I=IM
+        DO IP1=1,IM
+          DO J=2,JM-1
+            II=(JM-2)*(I-1)+(J-1)
+            indexIIglob2(IP1,J) = II
+            IM1=I
+            I=IP1
+          END DO
+        END DO
+        DO IP1=1,IM
+          !this is not in accordance with above formula
+          indexIIglob2(IP1,JM) = IIP
+        END DO
+
+      DO J=J_0S-1,J_1S
 C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
 c      KHP(J)=2d0*RHOWS*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
 c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
@@ -3543,7 +3603,7 @@ C**** Discretisation errors need TANP/V to be defined like this
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
         TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
       END DO
-      !make halo_update if 2 is not present   mk
+      !make halo_update if 2 is not present
       !barrier synchoronization is required before sending the message,
       !j=2 is computed before the message is sent
       if( HAVE_SOUTH_POLE ) then
@@ -3556,7 +3616,19 @@ C**** Discretisation errors need TANP/V to be defined like this
         BYDXP(JM)=1D0/DXPO(JM)
         BYDXYPJM=1D0/(DXYPO(JM)*IM)
       endif
-      PRINT*,"Kh: ",(J,KHP(J),J=1,JM)
+
+      CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,BYDXP(grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,TANV (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+
+      PRINT*,"Kh: ",(J,KHP(J),J=J_0,J_1)
 C****
 C**** Calculate operators fixed in time for U and V equations
 C****
@@ -3652,6 +3724,7 @@ C**** At North Pole
       END DO
       END IF
 !**  IFIRST block ends here
+
 C**** End of initialization from first call to ODIFF
 C****
 C**** Solve diffusion equations semi implicitly
@@ -3663,36 +3736,28 @@ C**** Store North Pole velocity components, they will not be changed
         VONP(:) = UO(IVNP,JM,:)
       end if
 
-      CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,BYDXP(grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,TANV (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,DXPO (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH)
 
-!     CALL HALO_UPDATE(grid,MO (:,grid%j_strt_halo:grid%j_stop_halo,:),
-!    *                 FROM=NORTH)
+!     also may later need HALO for DXPO(N), DXVO(S)
+
+      CALL HALO_UPDATE(grid,DH,
+     *                 FROM=NORTH)
       CALL HALO_UPDATE(grid,MO,
      *                 FROM=NORTH)
+
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+     *                 FROM=SOUTH)
 
 C****
 !$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
 !$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RU,RV,
 !$OMP&  UU,UV,UT,UY,UX, VT,VY,VX)
       DO L=1,LMO
-      !mk move these outside of L loop
-      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
-     *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
-     *                 FROM=SOUTH)
 C**** Calculate rotating polar velocities from UONP and VONP
       if(have_north_pole) then
         UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
@@ -3703,12 +3768,6 @@ C**** Save (0.5*) mass reciprical for velocity points
         I=IM
         DO IP1=1,IM
           IF (L.LE.LMU(I,J)) BYMU(I,J) = 1./(MO(I,J,L)+MO(IP1,J,L))
-          IF (L.LE.LMV(I,J)) then
-            if ((MO(I,J,L)+MO(I,J+1,L))==0.) then
-              print*,'divide by 0 is imminent:',
-     &             I,J,L,MO(I,J,L), MO(I,J+1,L)
-              end if
-            end if
           IF (L.LE.LMV(I,J)) BYMV(I,J) = 1./(MO(I,J,L)+MO(I,J+1,L))
           I=IP1
         END DO
@@ -3778,39 +3837,13 @@ C**** Calculate fluxes (including FSLIP condition)
 
       CALL HALO_UPDATE(grid,FUY (:,grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
-     *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,FVY (:,grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
-
-      CALL HALO_UPDATE(grid,FVX (:,grid%j_strt_halo:grid%j_stop_halo),
-     *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,FVX (:,grid%j_strt_halo:grid%j_stop_halo),
-     *                 FROM=NORTH)
       CALL HALO_UPDATE(grid,FVY (:,grid%j_strt_halo:grid%j_stop_halo),
      *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,FVY (:,grid%j_strt_halo:grid%j_stop_halo),
-     *                 FROM=NORTH)
 
 C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
 C**** Minor complication due to cyclic nature of boundary condition
       AU=0. ; BU=0. ; CU=0. ; RU=0. ; UU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
-      ! global array for index II translation
-      indexIIglob(:,:) = 0
-      DO J=2,JM-1
-        IM1=IM-1
-        I=IM
-        DO IP1=1,IM
-          II=IM*(J-2)+I
-          indexIIglob(IP1,J) = II
-          IM1=I
-          I=IP1
-        END DO
-      END DO
-      indexIIglob(:,JM) = IIP
 
       DO J=J_0S,J_1S
         IM1=IM-1
@@ -3897,13 +3930,13 @@ C**** Recalculate rotating polar velocities from UONP and VONP
 C     UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
 C     VO(:,JM,L) = VONP(L)*COSI(:) - UONP(L)*SINI(:)
 
-      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
      *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
      *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
      *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,:) ,
+      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
      *                 FROM=SOUTH)
 
 C**** Calc. cross-term fluxes + second metric term (at half time step)
@@ -3976,28 +4009,9 @@ C**** Minor complication due to singular nature of polar box
       AU=0. ; BU=0. ; CU=0. ; RU=0. ; UU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
 
-      ! save index II in indexIIglob ,should save only once up front
-      indexIIglob(:,:) = 0
-      IM1=IM-1
-      I=IM
-      DO IP1=1,IM
-        DO J=2,JM-1
-          II=(JM-2)*(I-1)+(J-1)
-          indexIIglob(IP1,J) = II
-          IM1=I
-          I=IP1
-        END DO
-      END DO
-      DO IP1=1,IM
-        !this is not in accordance with above formula
-        indexIIglob(IP1,JM) = IIP
-      END DO
-
-      !IM1=IM-1
-      !I=IM
       DO IP1=1,IM
         DO J=J_0S,J_1S
-          !put following into a function
+          !put following later into a subroutine
           if(ip1.eq.1) then
             if(J.eq.2) then
               IM1=IM-1; I=IM;
@@ -4065,17 +4079,17 @@ c       END DO
 c     END IF
 C**** Call tridiagonal solver
 
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, AU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, BU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, CU)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, RU)
 
       CALL TRIDIAG(AU,BU,CU,RU,UU,IIP-1)
 
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, AV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, BV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, CV)
+      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, RV)
 
       CALL TRIDIAG(AV,BV,CV,RV,UV,IIP-1)
 
