@@ -36,7 +36,7 @@
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
 #endif
-      INTEGER I,J,JR,ITYPE,N
+      INTEGER I,J,JR,ITYPE
       LOGICAL WETSNOW
 
 C****Work array for regional diagnostic accumulation
@@ -1138,7 +1138,7 @@ C****
       IMPLICIT NONE
 !@var SALT total salt in ocean ice (kg/m^2)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: SALT
-      INTEGER I,J,L
+      INTEGER I,J
 
 c**** Extract useful domain information from grid
       INTEGER J_0, J_1, J_0H, J_1H

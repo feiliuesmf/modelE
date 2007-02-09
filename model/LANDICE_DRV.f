@@ -45,7 +45,7 @@
       INTEGER, PARAMETER :: NBOXMAX=18
       INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
       INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
-      REAL*8 ACCPCA,ACCPCG,FAC_SH,FAC_NH
+      REAL*8 FAC_SH,FAC_NH
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA_part
       LOGICAL :: do_glmelt
       INTEGER I,J,N
@@ -682,7 +682,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
      *         ,(eaccpdg/accpdg+lhm)/shi
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-          write(6,*),"Tracers (before)",1000*(traccpda(:)/accpda/trw0(:)
+          write(6,*) "Tracers (before)",1000*(traccpda(:)/accpda/trw0(:)
      *         -1.)
 #endif
 #endif   /* TNL: inserted */
@@ -705,7 +705,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
           traccpda(:)=traccpda(:)+gm_relax*(trdwnimp_SH(:)-traccpda(:))
           traccpdg(:)=traccpdg(:)+gm_relax*(trdwnimp_NH(:)-traccpdg(:))
 
-          write(6,*),"Tracers (after)",1000*(traccpda(:)/accpda/trw0(:)
+          write(6,*) "Tracers (after)",1000*(traccpda(:)/accpda/trw0(:)
      *         -1.)
         ENDIF
         call ESMF_BCAST(grid, TRACCPDA)
