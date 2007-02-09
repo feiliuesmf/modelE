@@ -376,6 +376,11 @@ C****
 !$OMP*  )
 !$OMP*  SCHEDULE(DYNAMIC,2)
 C
+#ifdef TRACERS_ON
+#  ifdef TRACERS_GASEXCH_Natassa
+      trgasex(:,:,:,:) = 0. 
+#  endif
+#endif
       DO J=J_0,J_1
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
