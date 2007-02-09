@@ -30,6 +30,7 @@ $mpi=0;
 $nproc=1;
 $flag_wait=0;
 $MPIDISTR="";
+$debugger="";
 
 ## if $HOME/.modelErc is present get settings from there
 
@@ -66,6 +67,7 @@ while ($_ = $ARGV[0], /^-/) {
     if (/^-mpi\b/) { $mpi = 1; $nproc = shift; next;}
     if (/^-wait\b/) { $flag_wait = 1; next;}
     if (/^-mpidistr\b/) { $MPIDISTR = shift; next;}
+    if (/^-debug\b/) { $debugger = shift; $flag_wait = 1; next;}
     print "setup: unknown option $_ \n"; exit 1;
 }
 
@@ -312,6 +314,20 @@ if ( $mpi ) {
     $run_command = $mpi_run;
 } else {
     $run_command = $omp_run; # serial also fits here
+}
+
+## a hack to run setup in debugger
+
+if ( $debugger ) {
+print <<`EOC`;
+    umask $umask_str
+    touch lock
+    . ./runtime_opts
+    echo "-99" > run_status
+    echo "INPUT not yet completed" >> run_status
+    ./"$runID"ln
+EOC
+exec "$debugger ./$runID.exe; rm -f AIC GIC OIC; ./${runID}uln; rm -f lock";
 }
 
 ## If on some machines MPI can't be used interactively, a hack
