@@ -946,6 +946,7 @@ c**** calculate ground fluxes
 c     call qsbal
 !!! insert htprs here ???
 
+      print *,"GHY_DRV: ",i,j
 
       call ghinij (i,j)
       call veg_set_cell(i,j)
@@ -1880,9 +1881,9 @@ C-BMP Global sum on evap_max_ij
 ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
 ccc to something more appropriate
 
-       call globalsum(grid, evap_max_ij,evap_max_ij_sum,
+      call globalsum(grid, evap_max_ij,evap_max_ij_sum,
      &                all=.true.)
-      if ( evap_max_ij_sum > im*jm-1.d0 ) then ! old default
+      if ( evap_max_ij_sum > im-1.d0 ) then ! old default
         do j=J_0,J_1
           do i=1,im
             if ( fearth(i,j) .le. 0.d0 ) cycle
