@@ -3493,6 +3493,8 @@ C****
 C**** Local variables
 
       REAL*8, DIMENSION(IIP) :: AU,BU,CU,RU,UU,AV,BV,CV,RV,UV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: 
+     *     AU_new, BU_new, CU_new, RU_new
       REAL*8, SAVE, ALLOCATABLE, DIMENSION(:,:,:) ::
      *      UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
@@ -3629,7 +3631,6 @@ C**** Discretisation errors need TANP/V to be defined like this
       CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=NORTH)
 
-      PRINT*,"Kh: ",(J,KHP(J),J=J_0,J_1)
 C****
 C**** Calculate operators fixed in time for U and V equations
 C****
@@ -3738,6 +3739,12 @@ C**** Store North Pole velocity components, they will not be changed
       end if
 
 
+
+      allocate( AU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( CU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( RU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
+
 !     also may later need HALO for DXPO(N), DXVO(S)
 
       CALL HALO_UPDATE(grid,DH,
@@ -3843,28 +3850,43 @@ C**** Calculate fluxes (including FSLIP condition)
 
 C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
 C**** Minor complication due to cyclic nature of boundary condition
-      AU=0. ; BU=0. ; CU=0. ; RU=0. ; UU=0.
+      AU=0. ; BU=0. ; CU=0. ; RU=0.
+      AU_new=0. ; BU_new=0. ; CU_new=0. ; RU_new=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
-
+      
       DO J=J_0S,J_1S
         IM1=IM-1
         I=IM
         DO IP1=1,IM
           II=IM*(J-2)+I
           BU(II) = 1d0
+          BU_new(I,J) = 1d0
           BV(II) = 1d0
           IF (L.LE.LMU(I,J)) THEN
             DTU = DT2*(DH(I,J,L)+DH(IP1,J,L))*BYMU(I,J)
             IF (I.gt.1 ) AU(II) =        - DTU*UXA(I,J,L)
+            IF (I.gt.1 ) AU_new(I,J) =        - DTU*UXA(I,J,L)
                          BU(II) = BU(II) - DTU*UXB(I,J,L)
+                         BU_new(I,J) = BU_new(I,J) - DTU*UXB(I,J,L)
             IF (I.lt.IM) CU(II) =        - DTU*UXC(I,J,L)
+            IF (I.lt.IM) CU_new(I,J) =        - DTU*UXC(I,J,L)
             RU(II) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
+     *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
+            RU_new(I,J) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
      *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
 C**** Make properly tridiagonal by making explicit cyclic terms
             IF (I == 1 ) RU(II)=RU(II) + DTU*UXA(I,J,L)*UO(IM,J,L)
             IF (I == IM) RU(II)=RU(II) + DTU*UXC(I,J,L)*UO(1,J,L)
+            IF (I == 1 ) 
+     *           RU_new(I,J)=RU_new(I,J) + DTU*UXA(I,J,L)*UO(IM,J,L)
+            IF (I == IM) 
+     *           RU_new(I,J)=RU_new(I,J) + DTU*UXC(I,J,L)*UO(1,J,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
+     *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
+     *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
+            RU_new(I,J) = 
+     *           RU_new(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
           END IF
@@ -3905,7 +3927,10 @@ C**** Call tridiagonal solver
       call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CU)
       call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RU)
 
-      CALL TRIDIAG(AU,BU,CU,RU,UU,IIP-1)
+      Do J = J_0S, J_1S
+        CALL TRIDIAG(AU_new(:,J),BU_new(:,J),CU_new(:,J),
+     *       RU_new(:,J),UO(:,J,L), IM)
+      End Do
 
 !**   global AV, BV, CV, RV
       call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AV)
@@ -3919,9 +3944,7 @@ C**** Call tridiagonal solver
         J= 2 + (II-1)/IM
         if (haveLatitude(grid,J)) then
           I= II-(J-2)*IM
-          UO(I,J,L) = UU(II)
           VO(I,J,L) = UV(II)
-c        UO(II,2,L) = UU(II)   ! this cycles through correctly
 c        VO(II,2,L) = UV(II)
         end if
       END DO
@@ -4103,8 +4126,12 @@ C**** Call tridiagonal solver
         end if
       END DO
 C****
+
       END DO
 !$OMP END PARALLEL DO
+
+      deallocate(AU_new, BU_new, CU_new, RU_new)
+
 C**** Restore unchanged UONP and VONP into prognostic locations in UO
       if(have_north_pole) then
         UO(IM  ,JM,:) = UONP(:)
