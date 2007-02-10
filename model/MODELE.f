@@ -363,9 +363,7 @@ C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
       CALL GROUND_E    ! diagnostic only - should be merged with EARTH
 C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
-      print*,'Before oceans'
       CALL OCEANS
-      print*,'After oceans'
          CALL CHECKT ('OCEANS')
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI
