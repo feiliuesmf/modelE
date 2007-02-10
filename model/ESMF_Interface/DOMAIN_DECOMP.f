@@ -575,16 +575,20 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       grd_dum%J_STRT        = J0_DUM
       grd_dum%J_STOP        = J1_DUM
-      IF (RANK_LAT > 0) THEN
-        grd_dum%J_STRT_SKP = J0_DUM
-      ELSE
-        grd_dum%J_STRT_SKP    = 2
-      END IF
-      IF (RANK_LAT < NP_LAT - 1) THEN
-        grd_dum%J_STOP_SKP    = J1_DUM
-      ELSE
-        grd_dum%J_STOP_SKP    = JM-1
-      END IF
+cddd      IF (RANK_LAT > 0) THEN
+cddd        grd_dum%J_STRT_SKP = J0_DUM
+cddd      ELSE
+cddd        grd_dum%J_STRT_SKP    = 2
+cddd      END IF
+cddd      IF (RANK_LAT < NP_LAT - 1) THEN
+cddd        grd_dum%J_STOP_SKP    = J1_DUM
+cddd      ELSE
+cddd        grd_dum%J_STOP_SKP    = JM-1
+cddd      END IF
+
+ccc I think the following will do the same and will be compatible with SCM
+      grd_dum%J_STRT_SKP = max (   2, J0_DUM)
+      grd_dum%J_STOP_SKP = min (JM-1, J1_DUM)
 
 #ifdef USE_ESMF
       grd_dum%J_STRT_HALO   = J0_DUM - width_
@@ -594,11 +598,12 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%J_STOP_HALO = MIN(JM, grd_dum % J_STOP + 1)
 #endif
 
-      IF (RANK_LAT > 0) THEN
-        grd_dum%J_STRT_STGR = J0_DUM
-      ELSE
-        grd_dum%J_STRT_STGR = 2
-      ENDIF
+cddd      IF (RANK_LAT > 0) THEN
+cddd        grd_dum%J_STRT_STGR = J0_DUM
+cddd      ELSE
+cddd        grd_dum%J_STRT_STGR = 2
+cddd      ENDIF
+      grd_dum%J_STRT_STGR   = max(2,J0_DUM)
       grd_dum%J_STOP_STGR   = J1_DUM
 
       grd_dum%HAVE_SOUTH_POLE = (RANK_LAT == 0)
@@ -607,6 +612,13 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       J_EQUATOR = JM/2
       grd_dum%HAVE_EQUATOR    =
      &      (J0_DUM <= J_EQUATOR) .AND. (J1_DUM >= J_EQUATOR)
+
+      if (present(J_SCM)) then
+        ! assume J_SCM is in "general position"
+        grd_dum%HAVE_SOUTH_POLE = .false.
+        grd_dum%HAVE_NORTH_POLE = .false.
+        grd_dum%HAVE_EQUATOR    = .false.
+      endif
 
       END SUBROUTINE INIT_GRID
 
@@ -1256,7 +1268,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_ESMF
       Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 1)
 #else
-      garr = arr(j_0:j_1)
+      garr = 0.d0
+      garr(j_0:j_1) = arr(j_0:j_1)
 #endif
 
       If (AM_I_ROOT()) then
@@ -1347,7 +1360,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_ESMF
       Call gather(grd_dum%ESMF_GRID, zon, garr, shape(zon), 1)
 #else
-      garr = zon(j_0:j_1)
+      garr = 0.d0
+      garr(j_0:j_1) = zon(j_0:j_1)
 #endif
       If (AM_I_ROOT()) then
         If (istag_) then
@@ -1438,7 +1452,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_ESMF
       Call gather(grd_dum%ESMF_GRID, zon, garr, shape(zon), 1)
 #else
-      garr(:,:) = zon(j_0:j_1,:)
+      garr(:,:) = 0.d0
+      garr(j_0:j_1,:)  = zon(j_0:j_1,:)
 #endif
       If (AM_I_ROOT()) then
          If (istag_) then
@@ -1505,7 +1520,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
      &        MPI_COMM_WORLD, ier)
       End If
 #else
-      gsum = Sum(arr(:,jb1:jb2),2)
+      gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ),2)
 #endif
       END SUBROUTINE GLOBALSUM_OTHER_IJK
 
@@ -1550,7 +1565,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
      &        MPI_COMM_WORLD, ier)
       End If
 #else
-      gsum = Sum(arr(:,jb1:jb2,:),2)
+      gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ,:),2)
 #endif
       END SUBROUTINE GLOBALSUM_OTHER_IJK_IK
 
@@ -1664,7 +1679,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
      &        MPI_COMM_WORLD, ier)
       End If
 #else
-      gsum = Sum(arr(:,1:JM,:),2)
+      gsum = Sum(arr(:,j_0:j_1,:),2)
 #endif
       END SUBROUTINE GLOBALSUM_IJK_IK
 
@@ -1700,7 +1715,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_ESMF
       Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 1)
 #else
-      garr(:,:) = arr(j_0:j_1,:)
+      garr(:,:) = 0.d0
+      garr(j_0:j_1,:) = arr(j_0:j_1,:)
 #endif
       If (AM_I_ROOT()) then
          If (istag_) then
@@ -1821,7 +1837,8 @@ C****  convert from real*4 to real*8
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
 #else
-      AVAR(:,1:grd_dum%JM_WORLD)=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
       if (AM_I_ROOT()) then
          If (IERR==0) Then
@@ -1865,7 +1882,8 @@ C****  convert from real*4 to real*8
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
 #else
-      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
+     &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
 #endif
 
       if (AM_I_ROOT()) then
@@ -1910,7 +1928,8 @@ C****  convert from real*4 to real*8
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
       CALL ESMF_BCAST(grd_dum, M   )
 #else
-      AVAR=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       if (AM_I_ROOT()) then
@@ -1957,7 +1976,8 @@ C****  convert from real*4 to real*8
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
       CALL ESMF_BCAST(grd_dum, M   )
 #else
-      AVAR=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
+     &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
 #endif
 
       if (AM_I_ROOT()) then
@@ -2006,7 +2026,8 @@ C****  convert from real*4 to real*8
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
 #else
-      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       if (AM_I_ROOT()) then
@@ -2056,7 +2077,8 @@ C****  convert from real*4 to real*8
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
 #else
-      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
+     &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
 #endif
 
       if (am_i_root()) then
@@ -2097,7 +2119,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       Call gather(grd_dum%ESMF_GRID, buf8, buf_glob8, shape(buf), 2)
       buf_glob = buf_glob8
 #else
-      buf_glob = buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
+      buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       If (AM_I_ROOT()) then
@@ -2469,7 +2492,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       Call Gather(grd_dum%ESMF_GRID, local_array, global_array,
      &     shape(local_array), 1)
 #else
-      global_array = local_array(grd_dum%J_STRT:grd_dum%J_STOP)
+      global_array(grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     local_array(grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayGather_J
@@ -2486,7 +2510,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &     local_array(grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array(grd_dum%J_STRT:grd_dum%J_STOP)
+      global_array(grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     local_array(grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayGather_J_int
@@ -2503,7 +2528,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &     shape(local_array), 2)
 
 #else
-      global_array = local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
+      global_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayGather_IJ
@@ -2520,7 +2546,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
+      global_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &         local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine LArrayGather_IJ
@@ -2538,7 +2565,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
+      global_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine IArrayGather_IJ
@@ -2556,7 +2584,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       Call scatter(grd_dum%ESMF_GRID, global_array, local_array,
      &     shape(local_array), 1)
 #else
-      local_array(grd_dum%J_STRT:grd_dum%J_STOP) = global_array
+      local_array(grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     global_array(grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayScatter_J
@@ -2572,7 +2601,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       Call scatter(grd_dum%ESMF_GRID, global_array, local_array,
      &     shape(local_array), 2)
 #else
-      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) = global_array
+      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     global_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayScatter_IJ
@@ -2589,7 +2619,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      & global_array)
 #else
-      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) = global_array
+      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     global_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine IArrayScatter_IJ
@@ -2606,7 +2637,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      & global_array)
 #else
-      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) = global_array
+      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     global_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine LArrayScatter_IJ
@@ -3504,7 +3536,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 1)
 #else
-      arr_glob=
+      arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:)=
      & arr(grd_dum%J_STRT:grd_dum%J_STOP,:)
 #endif
 
@@ -3777,7 +3809,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 1)
 #else
-      arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:)=arr_glob
+      arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:)=
+     &     arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:)
 #endif
 
       RETURN
@@ -3797,7 +3830,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 1)
 #else
-      arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=arr_glob
+      arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=
+     &     arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
 #endif
 
       RETURN
@@ -3817,7 +3851,8 @@ C------------------------------------
 #ifdef USE_ESMF
       CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
 #else
-      arr_glob=arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
+      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     &     arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       RETURN
@@ -3836,7 +3871,8 @@ C------------------------------------
 #ifdef USE_ESMF
       CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 3)
 #else
-      arr_glob=arr(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
+      arr_glob(:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     &     arr(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       RETURN
