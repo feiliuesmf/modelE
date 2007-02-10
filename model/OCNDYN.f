@@ -3501,9 +3501,6 @@ C**** Local variables
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
       REAL*8, SAVE, DIMENSION(IM,LMO) :: UYPA
 
-      INTEGER, SAVE, DIMENSION(IM,JM) :: indexIIglob
-      INTEGER, SAVE, DIMENSION(IM,JM) :: indexIIglob2
-
       REAL*8, INTENT(IN) :: DTDIFF
       REAL*8, SAVE :: BYDXYPJM
       REAL*8 DSV,DSP,VLAT,DLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
@@ -3548,38 +3545,6 @@ C****
         allocate( VYB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( VYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
-        ! global array for index II translation in
-        ! first semi-implicit step (in x)
-        indexIIglob(:,:) = 0
-        DO J=2,JM-1
-          IM1=IM-1
-          I=IM
-          DO IP1=1,IM
-            II=IM*(J-2)+I
-            indexIIglob(IP1,J) = II
-            IM1=I
-            I=IP1
-          END DO
-        END DO
-        indexIIglob(:,JM) = IIP
-
-        ! global array for index II translation in
-        ! second semi-implicit step (in y)
-        indexIIglob2(:,:) = 0
-        IM1=IM-1
-        I=IM
-        DO IP1=1,IM
-          DO J=2,JM-1
-            II=(JM-2)*(I-1)+(J-1)
-            indexIIglob2(IP1,J) = II
-            IM1=I
-            I=IP1
-          END DO
-        END DO
-        DO IP1=1,IM
-          !this is not in accordance with above formula
-          indexIIglob2(IP1,JM) = IIP
-        END DO
 
       DO J=J_0S-1,J_1S
 C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
@@ -3769,7 +3734,7 @@ C**** Store North Pole velocity components, they will not be changed
 
 C****
 !$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
-!$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RU,RV,
+!$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1, J, L, RU,RV,
 !$OMP&  UU,UV,UT,UY,UX, VT,VY,VX)
       DO L=1,LMO
 C**** Calculate rotating polar velocities from UONP and VONP
@@ -3863,7 +3828,6 @@ C**** Minor complication due to cyclic nature of boundary condition
         IM1=IM-1
         I=IM
         DO IP1=1,IM
-          II=IM*(J-2)+I
           BU(I,J) = 1d0
           BV(I,J) = 1d0
           IF (L.LE.LMU(I,J)) THEN
@@ -4022,7 +3986,6 @@ C**** Minor complication due to singular nature of polar box
             endif
           endif
 
-          II=(JM-2)*(I-1)+(J-1)
           BU(I,J) = 1d0
           BV(I,J) = 1d0
           IF (L.LE.LMU(I,J)) THEN
@@ -4079,7 +4042,6 @@ C**** Call tridiagonal solver
       VO(:,J_0S:J_1S,L)=UV(:,J_0S:J_1S)
 
 C****
-
       END DO
 !$OMP END PARALLEL DO
 
