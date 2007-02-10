@@ -3470,7 +3470,7 @@ C****
      *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,
      *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
       USE OCEAN_DYN, only : dh
-      USE TRIDIAG_MOD, only : tridiag
+      USE TRIDIAG_MOD, only : tridiag, tridiag_new
 
       USE DOMAIN_DECOMP, ONLY : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
@@ -3492,9 +3492,10 @@ C****
       INTEGER, SAVE :: IFIRST = 1
 C**** Local variables
 
-      REAL*8, DIMENSION(IIP) :: AU,BU,CU,RU,UU,AV,BV,CV,RV,UV
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: 
-     *     AU_new, BU_new, CU_new, RU_new
+     *     AU, BU, CU, RU, UU
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: 
+     *     AV, BV, CV, RV, UV
       REAL*8, SAVE, ALLOCATABLE, DIMENSION(:,:,:) ::
      *      UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
@@ -3738,12 +3739,17 @@ C**** Store North Pole velocity components, they will not be changed
         VONP(:) = UO(IVNP,JM,:)
       end if
 
+      allocate( AU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( CU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( RU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( UU(IM,grid%j_strt_halo:grid%j_stop_halo) )
 
-
-      allocate( AU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( BU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( CU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( RU_new(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( AV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( CV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( RV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( UV(IM,grid%j_strt_halo:grid%j_stop_halo) )
 
 !     also may later need HALO for DXPO(N), DXVO(S)
 
@@ -3851,57 +3857,42 @@ C**** Calculate fluxes (including FSLIP condition)
 C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
 C**** Minor complication due to cyclic nature of boundary condition
       AU=0. ; BU=0. ; CU=0. ; RU=0.
-      AU_new=0. ; BU_new=0. ; CU_new=0. ; RU_new=0.
-      AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
+      AV=0. ; BV=0. ; CV=0. ; RV=0.
       
       DO J=J_0S,J_1S
         IM1=IM-1
         I=IM
         DO IP1=1,IM
           II=IM*(J-2)+I
-          BU(II) = 1d0
-          BU_new(I,J) = 1d0
-          BV(II) = 1d0
+          BU(I,J) = 1d0
+          BV(I,J) = 1d0
           IF (L.LE.LMU(I,J)) THEN
             DTU = DT2*(DH(I,J,L)+DH(IP1,J,L))*BYMU(I,J)
-            IF (I.gt.1 ) AU(II) =        - DTU*UXA(I,J,L)
-            IF (I.gt.1 ) AU_new(I,J) =        - DTU*UXA(I,J,L)
-                         BU(II) = BU(II) - DTU*UXB(I,J,L)
-                         BU_new(I,J) = BU_new(I,J) - DTU*UXB(I,J,L)
-            IF (I.lt.IM) CU(II) =        - DTU*UXC(I,J,L)
-            IF (I.lt.IM) CU_new(I,J) =        - DTU*UXC(I,J,L)
-            RU(II) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
-     *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
-            RU_new(I,J) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
+            IF (I.gt.1 ) AU(I,J) =        - DTU*UXA(I,J,L)
+                         BU(I,J) = BU(I,J) - DTU*UXB(I,J,L)
+            IF (I.lt.IM) CU(I,J) =        - DTU*UXC(I,J,L)
+            RU(I,J) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
      *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
 C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I == 1 ) RU(II)=RU(II) + DTU*UXA(I,J,L)*UO(IM,J,L)
-            IF (I == IM) RU(II)=RU(II) + DTU*UXC(I,J,L)*UO(1,J,L)
-            IF (I == 1 ) 
-     *           RU_new(I,J)=RU_new(I,J) + DTU*UXA(I,J,L)*UO(IM,J,L)
-            IF (I == IM) 
-     *           RU_new(I,J)=RU_new(I,J) + DTU*UXC(I,J,L)*UO(1,J,L)
+            IF (I == 1 ) RU(I,J)=RU(I,J) + DTU*UXA(I,J,L)*UO(IM,J,L)
+            IF (I == IM) RU(I,J)=RU(I,J) + DTU*UXC(I,J,L)*UO(1,J,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
-            RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
-     *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
-     *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
-            RU_new(I,J) = 
-     *           RU_new(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
+            RU(I,J) = RU(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
           END IF
           IF (L.LE.LMV(I,J)) THEN
             DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
-            IF (I.gt.1 ) AV(II) =        - DTV*VXA(I,J,L)
-                         BV(II) = BV(II) - DTV*VXB(I,J,L)
-            IF (I.lt.IM) CV(II) =        - DTV*VXC(I,J,L)
-            RV(II) = VO(I,J,L) + DTV*(VYA(I,J,L)*VO(I,J-1,L)
+            IF (I.gt.1 ) AV(I,J) =        - DTV*VXA(I,J,L)
+                         BV(I,J) = BV(I,J) - DTV*VXB(I,J,L)
+            IF (I.lt.IM) CV(I,J) =        - DTV*VXC(I,J,L)
+            RV(I,J) = VO(I,J,L) + DTV*(VYA(I,J,L)*VO(I,J-1,L)
      *           +VYB(I,J,L)*VO(I,J,L) + VYC(I,J,L)*VO(I,J+1,L))
 C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I == 1 ) RV(II)=RV(II) + DTV*VXA(I,J,L)*VO(IM,J,L)
-            IF (I == IM) RV(II)=RV(II) + DTV*VXC(I,J,L)*VO(1,J,L)
+            IF (I == 1 ) RV(I,J)=RV(I,J) + DTV*VXA(I,J,L)*VO(IM,J,L)
+            IF (I == IM) RV(I,J)=RV(I,J) + DTV*VXC(I,J,L)*VO(1,J,L)
 C**** Add Wasjowicz cross-terms to RV + second metric term
-            RV(II) = RV(II) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
+            RV(I,J) = RV(I,J) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
           END IF
@@ -3921,33 +3912,11 @@ c    *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
 c     END IF
 C**** Call tridiagonal solver
-!**   global AU, BU, CU, RU
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RU)
-
-      Do J = J_0S, J_1S
-        CALL TRIDIAG(AU_new(:,J),BU_new(:,J),CU_new(:,J),
-     *       RU_new(:,J),UO(:,J,L), IM)
-      End Do
-
-!**   global AV, BV, CV, RV
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, BV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, CV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob, RV)
-
-      CALL TRIDIAG(AV,BV,CV,RV,UV,IIP-1)
-
-      DO II=1,IIP-1
-        J= 2 + (II-1)/IM
-        if (haveLatitude(grid,J)) then
-          I= II-(J-2)*IM
-          VO(I,J,L) = UV(II)
-c        VO(II,2,L) = UV(II)
-        end if
+      DO J = J_0S, J_1S
+        CALL TRIDIAG(AU(:,J), BU(:,J), CU(:,J), RU(:,J), UO(:,J,L), IM)
+        CALL TRIDIAG(AV(:,J), BV(:,J), CV(:,J), RV(:,J), VO(:,J,L), IM)
       END DO
+
 C****
 C**** Now do semi implicit solution in y
 C**** Recalculate rotating polar velocities from UONP and VONP
@@ -4030,7 +3999,7 @@ C**** Calculate fluxes (including FSLIP condition)
 
 C**** Calculate tridiagonal matrix for second semi-implicit step (in y)
 C**** Minor complication due to singular nature of polar box
-      AU=0. ; BU=0. ; CU=0. ; RU=0. ; UU=0.
+      AU=0. ; BU=0. ; CU=0. ; RU=0.; UU=0
       AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
 
       DO IP1=1,IM
@@ -4054,34 +4023,34 @@ C**** Minor complication due to singular nature of polar box
           endif
 
           II=(JM-2)*(I-1)+(J-1)
-          BU(II) = 1d0
-          BV(II) = 1d0
+          BU(I,J) = 1d0
+          BV(I,J) = 1d0
           IF (L.LE.LMU(I,J)) THEN
             DTU = DT2*(DH(I,J,L)+DH(IP1,J,L))*BYMU(I,J)
-            AU(II) =        - DTU*UYA(I,J,L)
-            BU(II) = BU(II) - DTU*UYB(I,J,L)
-            IF (J.lt.JM-1) CU(II) =     - DTU*UYC(I,J,L)
-            RU(II) = UO(I,J,L) + DTU*(UXA(I,J,L)*UO(IM1,J,L)
+            AU(I,J) =        - DTU*UYA(I,J,L)
+            BU(I,J) = BU(I,J) - DTU*UYB(I,J,L)
+            IF (J.lt.JM-1) CU(I,J) =     - DTU*UYC(I,J,L)
+            RU(I,J) = UO(I,J,L) + DTU*(UXA(I,J,L)*UO(IM1,J,L)
      *           +UXB(I,J,L)*UO(I,J,L) + UXC(I,J,L)*UO(IP1,J,L))
 c**** Make properly tridiagonal by making explicit polar terms
 !mkt  UO(1,JM,L) changed to UO(I,JM,L)
-            IF (J == JM-1) RU(II)=RU(II) + DTU*UYC(I,J,L)*UO(I,JM,L)
+            IF (J == JM-1) RU(I,J)=RU(I,J) + DTU*UYC(I,J,L)*UO(I,JM,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
-            RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
+            RU(I,J) = RU(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
           END IF
           IF (L.LE.LMV(I,J)) THEN
             DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
-            AV(II) =        - DTV*VYA(I,J,L)
-            BV(II) = BV(II) - DTV*VYB(I,J,L)
-            IF (J.lt.JM-1) CV(II) =     - DTV*VYC(I,J,L)
-            RV(II) = VO(I,J,L) + DTV*(VXA(I,J,L)*VO(IM1,J,L)
+            AV(I,J) =        - DTV*VYA(I,J,L)
+            BV(I,J) = BV(I,J) - DTV*VYB(I,J,L)
+            IF (J.lt.JM-1) CV(I,J) =     - DTV*VYC(I,J,L)
+            RV(I,J) = VO(I,J,L) + DTV*(VXA(I,J,L)*VO(IM1,J,L)
      *           +VXB(I,J,L)*VO(I,J,L) + VXC(I,J,L)*VO(IP1,J,L))
 c**** Make properly tridiagonal by making explicit polar terms
-            IF (J == JM-1) RV(II)=RV(II) + DTV*VYC(I,J,L)*VO(I,JM,L)
+            IF (J == JM-1) RV(I,J)=RV(I,J) + DTV*VYC(I,J,L)*VO(I,JM,L)
 C**** Add Wasjowicz cross-terms to RV + second metric term
-            RV(II) = RV(II) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
+            RV(I,J) = RV(I,J) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
           END IF
@@ -4103,34 +4072,19 @@ c       END DO
 c     END IF
 C**** Call tridiagonal solver
 
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, AU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, BU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, CU)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, RU)
+      CALL TRIDIAG_new(AU, BU, CU, RU, UU, grid,J_LOWER=2,J_UPPER=JM-1)
+      CALL TRIDIAG_new(AV, BV, CV, RV, UV, grid,J_LOWER=2,J_UPPER=JM-1)
 
-      CALL TRIDIAG(AU,BU,CU,RU,UU,IIP-1)
+      UO(:,J_0S:J_1S,L)=UU(:,J_0S:J_1S)
+      VO(:,J_0S:J_1S,L)=UV(:,J_0S:J_1S)
 
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, AV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, BV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, CV)
-      call  ODIFF_TRIDIAG_COEF(IIP, indexIIglob2, RV)
-
-      CALL TRIDIAG(AV,BV,CV,RV,UV,IIP-1)
-
-      DO II=1,IIP-1
-        I= 1 + (II-1)/(JM-2)
-        J= 1 + II - (I-1)*(JM-2)
-        if (haveLatitude(grid,J)) then
-          UO(I,J,L) = UU(II)
-          VO(I,J,L) = UV(II)
-        end if
-      END DO
 C****
 
       END DO
 !$OMP END PARALLEL DO
 
-      deallocate(AU_new, BU_new, CU_new, RU_new)
+      deallocate(AU, BU, CU, RU, UU)
+      deallocate(AV, BV, CV, RV, UV)
 
 C**** Restore unchanged UONP and VONP into prognostic locations in UO
       if(have_north_pole) then
