@@ -3478,7 +3478,6 @@ C****
 
       IMPLICIT NONE
       REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
-      INTEGER, PARAMETER :: IIP=IM*(JM-2)+1
 
       REAL*8, DIMENSION(grid%j_strt_halo:grid%j_stop_halo) ::
      *     KYPXP,KXPYV,KYVXV,KXVYP
@@ -3704,18 +3703,6 @@ C**** Store North Pole velocity components, they will not be changed
         VONP(:) = UO(IVNP,JM,:)
       end if
 
-      allocate( AU(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( BU(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( CU(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( RU(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( UU(IM,grid%j_strt_halo:grid%j_stop_halo) )
-
-      allocate( AV(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( BV(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( CV(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( RV(IM,grid%j_strt_halo:grid%j_stop_halo) )
-      allocate( UV(IM,grid%j_strt_halo:grid%j_stop_halo) )
-
 !     also may later need HALO for DXPO(N), DXVO(S)
 
       CALL HALO_UPDATE(grid,DH,
@@ -3733,9 +3720,29 @@ C**** Store North Pole velocity components, they will not be changed
      *                 FROM=SOUTH)
 
 C****
-!$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
-!$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1, J, L, RU,RV,
-!$OMP&  UU,UV,UT,UY,UX, VT,VY,VX)
+!$OMP PARALLEL DEFAULT(NONE), 
+!$OMP&  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU, DTV,
+!$OMP&          FUX,FUY,FVX,FVY, I,IP1,IM1, J, L, RU,RV,
+!$OMP&          UU,UV,UT,UY,UX, VT,VY,VX),
+!$OMP&  SHARED(have_north_pole, UO, VO, UONP, VONP, COSU,SINU,COSI,SINI,
+!$OMP&         J_0, J_0S, J_1S, LMU, MO, LMV, TANP, TANV, 
+!$OMP&         BYDYP, BYDXV, BYDXP, BYDYV, KHV, KHP, grid, DT2, DH, 
+!$OMP&         UXA, UXB, UXC, UYA, UYB, UYC, VXA, VXB, VXC, 
+!$OMP&         VYA, VYB, VYC, DYVO, DXVO, DXPO, DYPO, BYDXYPO, BYDXYV)
+
+      allocate( AU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( CU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( RU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( UU(IM,grid%j_strt_halo:grid%j_stop_halo) )
+
+      allocate( AV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( CV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( RV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( UV(IM,grid%j_strt_halo:grid%j_stop_halo) )
+
+!$OMP DO
       DO L=1,LMO
 C**** Calculate rotating polar velocities from UONP and VONP
       if(have_north_pole) then
@@ -3964,7 +3971,7 @@ C**** Calculate fluxes (including FSLIP condition)
 C**** Calculate tridiagonal matrix for second semi-implicit step (in y)
 C**** Minor complication due to singular nature of polar box
       AU=0. ; BU=0. ; CU=0. ; RU=0.; UU=0
-      AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
+      AV=0. ; BV=0. ; CV=0. ; RV=0.; UV=0.
 
       DO IP1=1,IM
         DO J=J_0S,J_1S
@@ -4043,10 +4050,10 @@ C**** Call tridiagonal solver
 
 C****
       END DO
-!$OMP END PARALLEL DO
-
+!$OMP END DO
       deallocate(AU, BU, CU, RU, UU)
       deallocate(AV, BV, CV, RV, UV)
+!$OMP END PARALLEL
 
 C**** Restore unchanged UONP and VONP into prognostic locations in UO
       if(have_north_pole) then
@@ -4057,59 +4064,6 @@ C****
       RETURN
       END SUBROUTINE ODIFF
 
-      SUBROUTINE ODIFF_TRIDIAG_COEF(IIP, indexIIglob, AU)
-
-      USE OCEAN, only : IM, JM
-      USE DOMAIN_DECOMP, ONLY : grid, GET, PACK_DATA, ESMF_BCAST
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, NORTH, SOUTH, AM_I_ROOT
-
-      IMPLICIT NONE
-      INTEGER, intent(in) :: IIP
-      INTEGER, DIMENSION(IM,JM), intent(in) :: indexIIglob
-      REAL*8, DIMENSION(IIP), intent(inout) :: AU
-
-      INTEGER :: J_0S, J_1S, J_0, J_1
-      INTEGER :: J, IP1
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: tmp3
-      !REAL*8, DIMENSION(IM,grid%J_STRT:grid%J_STOP) :: tmp3
-      REAL*8, DIMENSION(IM,JM) :: dummy
-      logical :: HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
-     &         J_STRT  = J_0,   J_STOP  = J_1,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE )
-
-! gather AU on all processors
-! use dummy array temporarily for gather operation
-      !save consecutive j data in dummy
-      dummy(:,:) = 0.0d0
-      tmp3(:,:) = 0
-      DO J=J_0S,  J_1S
-        DO IP1=1,IM
-          tmp3(IP1, J) = AU( indexIIglob(IP1,J) )
-        END DO
-      END DO
-      if( HAVE_NORTH_POLE ) then
-        DO IP1=1,IM
-          tmp3(IP1, JM) = AU(IIP)
-        END DO
-      endif
-      !pack data
-      CALL HALO_UPDATE(grid, tmp3(:,grid%j_strt_halo:grid%j_stop_halo)
-     *     , FROM=SOUTH)
-      CALL HALO_UPDATE(grid, tmp3(:,grid%j_strt_halo:grid%j_stop_halo)
-     *     , FROM=NORTH)
-      CALL PACK_DATA(grid,    tmp3  ,    dummy)
-      CALL ESMF_BCAST(grid, dummy)
-      !re-populate AU with global data global AU
-      DO J=2,JM-1
-        DO IP1=1,IM
-          AU(indexIIglob(IP1,J)) = dummy(IP1,J)
-        END DO
-      END DO
-      AU(IIP)=dummy(1,JM)
-
-      END SUBROUTINE ODIFF_TRIDIAG_COEF
 
       SUBROUTINE TOC2SST
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
