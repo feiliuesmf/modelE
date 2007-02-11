@@ -3587,15 +3587,17 @@ C**** Discretisation errors need TANP/V to be defined like this
       endif
 
       CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
+     *                 FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid,BYDXP(grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=NORTH)
       CALL HALO_UPDATE(grid,TANV (grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=SOUTH)
       CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,KXVYP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
 
 C****
 C**** Calculate operators fixed in time for U and V equations
