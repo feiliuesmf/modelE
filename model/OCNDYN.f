@@ -3545,7 +3545,7 @@ C****
         allocate( VYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
 
-      DO J=J_0S-1,J_1S
+      DO J=J_0,J_1
 C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
 c      KHP(J)=2d0*RHOWS*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
 c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
