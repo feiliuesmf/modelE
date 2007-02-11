@@ -3545,7 +3545,7 @@ C****
         allocate( VYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
 
-      DO J=J_0,J_1
+      DO J=J_0,J_1S
 C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
 c      KHP(J)=2d0*RHOWS*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
 c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
@@ -3583,6 +3583,7 @@ C**** Discretisation errors need TANP/V to be defined like this
       if( HAVE_NORTH_POLE ) then
         BYDXP(JM)=1D0/DXPO(JM)
         BYDXYPJM=1D0/(DXYPO(JM)*IM)
+        TANP(JM) = 0
       endif
 
       CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
