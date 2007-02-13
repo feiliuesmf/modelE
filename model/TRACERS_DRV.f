@@ -9513,24 +9513,24 @@ c read in AEROCOM seasalt
 
 c read in AEROCOM SO2 emissions
 c Industrial
-      SO2_src_3D(:,:,:,:)=0.d0
+      so2_src_3d(:,:,:,:)=0.d0
 #ifndef EDGAR_1995
       if (imPI.eq.0) then
       if (imAER.eq.0) then
-      SO2_src(:,:,:)=0.d0
+      so2_src(:,:,:)=0.d0
       call openunit('SO2_IND',iuc,.false.)
       do mm=1,9999
       read(iuc,*) ii,jj,carbstuff
       if (ii.eq.0.) go to 81
-      SO2_src(ii,jj,1)=carbstuff/(sday*30.4)/12.d0
+      so2_src(ii,jj,1)=carbstuff/(sday*30.4)/12.d0
       end do
   81  call closeunit(iuc)
       endif
       endif
 #endif
 C Put aircraft in here
-      so2_src_3D(:,:,:,2)=0.
-      bci_src_3D(:,:,:)=0.d0
+      so2_src_3d(:,:,:,2)=0.
+      bci_src_3d(:,:,:)=0.d0
       call openunit('AIRCRAFT',iuc2,.true.)
 C Read 13 layer data file for 23 layer model
       if (lm.eq.23) then
@@ -9557,7 +9557,7 @@ c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
 c adjusts 2015 source to 1990 source.
 c 4.d0d-4 converts to kg S
 c (for BC multiply this by 0.1)
-      so2_src_3D(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
+      so2_src_3d(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
      *  /2.3d0/sday
       if (imAER.ne.1) so2_src_3D(:,:,:,2)=0.d0
       bci_src_3D(:,:,:)=so2_src_3D(:,:,:,2)*0.1d0
@@ -9568,7 +9568,7 @@ cdmk
       do mm=1,99999
       read(iuc,*) ii,jj,ll,carbstuff
       if (ii.eq.0.) go to 83
-      SO2_src_3D(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
+      so2_src_3d(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
       end do
   83  call closeunit(iuc)
       if (imAER.eq.1) then
@@ -9587,7 +9587,7 @@ c volcano - explosive
       do mm=1,99999
       read(iuc,*) ii,jj,ll,carbstuff
       if (ii.eq.0.) go to 84
-      SO2_src_3D(ii,jj,ll,1)=SO2_src_3D(ii,jj,ll,1)
+      so2_src_3d(ii,jj,ll,1)=so2_src_3d(ii,jj,ll,1)
      * +carbstuff/(sday*30.4d0)/12.d0
       end do
   84  call closeunit(iuc)
@@ -9994,7 +9994,7 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
-      USE AEROSOL_SOURCES, only: SO2_src,BCI_src,OCI_src,BCB_src,
+      USE AEROSOL_SOURCES, only: so2_src,BCI_src,OCI_src,BCB_src,
      *   OCB_src,OCT_src
 #endif
 #ifdef TRACERS_COSMO
@@ -10371,16 +10371,16 @@ C****
 #ifdef EDGAR_1995
         do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
-            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.975d0
+            trsource(:,j,ns,n) = so2_src(:,j,ns)*0.975d0
          end do
         end do
 #else
         do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
             if (ntsurfsrc(n).eq.1) then
-            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.975d0
+            trsource(:,j,ns,n) = so2_src(:,j,ns)*0.975d0
             else
-            trsource(:,j,ns,n) = SO2_src(:,j,ns)
+            trsource(:,j,ns,n) = so2_src(:,j,ns)
             endif
          end do
         end do
@@ -10391,12 +10391,12 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
 #ifdef EDGAR_1995
         do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
-         trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.0375d0*dxyp(j)
+         trsource(:,j,ns,n) = so2_src(:,j,ns)*0.0375d0*dxyp(j)
        end do
        end do
 #else
          do j=J_0,J_1
-            trsource(:,j,1,n) = SO2_src(:,j,1)*0.0375d0
+            trsource(:,j,1,n) = so2_src(:,j,1)*0.0375d0
          end do
 #endif
       case ('BCII')
@@ -10450,7 +10450,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
-      USE AEROSOL_SOURCES, only: SO2_src_3d,BCI_src_3d,BCB_src,
+      USE AEROSOL_SOURCES, only: so2_src_3d,BCI_src_3d,BCB_src,
      *     OCB_src,SO2_biosrc_3D,lmAER,OCBt_src,BCBt_src,OCI_src
       USE PBLCOM, only: dclev
 c Laki emissions
@@ -10534,20 +10534,20 @@ c      endif
 c      enddo
 c     endif
 c End Laki code
-      tr3Dsource(:,J_0:J_1,:,1,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.975d0
+      tr3Dsource(:,J_0:J_1,:,1,n) = so2_src_3d(:,J_0:J_1,:,1)*0.975d0
       call apply_tracer_3Dsource(1,n) ! volcanos
-      tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,2)
+      tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,2)
       if (imAER.ne.1) call apply_tracer_3Dsource(2,n) ! aircraft
-      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=SO2_biosrc_3D(:,J_0:J_1,:,jmon)
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=so2_biosrc_3D(:,J_0:J_1,:,jmon)
      *     *0.975d0
       tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
       call apply_tracer_3Dsource(3,n) ! biomass
 
       case ('SO4')
 C**** three 3D sources ( volcanos and biomass) read in from files
-      tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+      tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,1)*0.0375d0
       call apply_tracer_3Dsource(2,n) ! volcanos
-      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=SO2_biosrc_3D(:,J_0:J_1,:,jmon)
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=so2_biosrc_3D(:,J_0:J_1,:,jmon)
      *     *0.0375d0
       tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
       call apply_tracer_3Dsource(3,n) ! biomass
@@ -11254,6 +11254,7 @@ C**** no fractionation for ice evap
 #endif
       INTEGER J_0, J_1
       real*8 ppres,te,tt,mm,dmm,rk4,ek4,a,b,c,d,f
+     * aa 
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
       integer maxl
@@ -11275,9 +11276,10 @@ C***4.SO2 + OH -> SO4 + HO2
 
 CGreg: certain things now done outside the loops for speed:
       a= 73.41463d20 ! 6.02d20/.082d0
-      b= 0.357d-42   ! 1.7d-22*0.21d0*1.d-20
-      c= 1.155d-31   ! 5.5d-20*0.21d0*1.d-11
-      d= 4.0d-31     ! 4.0d-20*1.d-11
+      aa=1.d-20
+      b= 0.357d-22   ! 1.7d-22*0.21d0*1.d-20/aa
+      c= 1.155d-11   ! 5.5d-20*0.21d0*1.d-11/aa
+      d= 4.0d-11     ! 4.0d-20*1.d-11/aa
 
       do l=1,LM
       do j=J_0,J_1
@@ -11300,19 +11302,19 @@ c DMM is number density of air in molecules/cm3
 
         dmm=ppres*tt*a
         rsulf1(i,j,l) =
-     &  b*dmm*exp(7810.d0*tt)/(1.d0+c*exp(7460.d0*tt)*dmm)
+     & b*dmm*exp(7810.d0*tt)*aa/(1.d0+c*exp(7460.d0*tt)*dmm*aa)
 
         rsulf2(i,j,l) = 9.6d-12*exp(-234.d0*tt)
 
         rsulf3(i,j,l) = 1.9d-13*exp(520.d0*tt)
 
-        rk4 = ((tt*300.d0)**(3.3d0))*dmm*d
+        rk4 = aa*((tt*300.d0)**(3.3d0))*dmm*d
 !greg   ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
-        f=log10(2.d12*rk4)
+        f=log10(0.5d12*rk4)
         ek4 = 1.d0/(1.d0 + (f*f))
 
 !greg   rsulf4(i,j,l) = (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
-        rsulf4(i,j,l) = (rk4/(1.d0 + 2.d12*rk4  ))*(0.45d0**ek4)
+        rsulf4(i,j,l) = (rk4/(1.d0 + 0.5d12*rk4  ))*(0.45d0**ek4)
 
       endif
 
