@@ -34,6 +34,13 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
      *  OBottom_drag = 1,  !  @dbparam use ocean bottom drag routine
      *  OCoastal_drag = 1  !  @dbparam use ocean coastal drag routine
 
+      REAL*8 ::
+     *     oc_salt_mean = -999. ! @dbparam mean salinity of ocean (if set)
+#ifdef TRACERS_OCEAN
+     *     , oc_tracer_mean(ntm) = -999. ! @dbparam mean tracer ratio of ocean
+                                         ! Note: in permil for water isotopes
+#endif 
+
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)
 !@var VO N-S velocity on C-grid (m/s)
@@ -104,14 +111,14 @@ C**** ocean related parameters
 
 c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
       CALL PACK_DATA(grid,   MO   ,    MO_glob)
-        if (icase.ne.1) then      ! needed for i/o and ODIFF only
-      CALL PACK_DATA(grid,   UO   ,    UO_glob)
-      CALL PACK_DATA(grid,   VO   ,    VO_glob)
-        end if
-        if (icase.lt.1) then      ! needed for i/o only
-      CALL PACK_DATA(grid,OGEOZ   , OGEOZ_glob)
-      CALL PACK_DATA(grid,OGEOZ_SV,OGEOZ_SV_glob)
-        end if
+      if (icase.ne.1) then      ! needed for i/o and ODIFF only
+        CALL PACK_DATA(grid,   UO   ,    UO_glob)
+        CALL PACK_DATA(grid,   VO   ,    VO_glob)
+      end if
+      if (icase.lt.1) then      ! needed for i/o only
+        CALL PACK_DATA(grid,OGEOZ   , OGEOZ_glob)
+        CALL PACK_DATA(grid,OGEOZ_SV,OGEOZ_SV_glob)
+      end if
 
       CALL PACK_DATA(grid,  G0M   ,   G0M_glob)
       CALL PACK_DATA(grid,  GXMO  ,  GXMO_glob)
@@ -335,6 +342,9 @@ C****
       ALLOCATE(   MU(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   MV(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   MW(IM,J_0H:J_1H,LMO), STAT = IER)
+
+C**** Necessary initiallisation?
+      MU=0. ; MV=0. ; MW=0. ; CONV=0.
 
 c??   call ALLOC_GM_COM(grid)
       call ALLOC_KPP_COM(grid)
