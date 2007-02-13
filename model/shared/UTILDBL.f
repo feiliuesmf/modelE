@@ -581,6 +581,43 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       RETURN
       END SUBROUTINE CHECK4
 
+      SUBROUTINE CHECK4B(A,IN,J1,J2,JN,KN,LN,SUBR,FIELD)
+!@sum  CHECK4 Checks for NaN/INF in real 4-D arrays
+!@auth Original development team
+!@ver  1.0
+      IMPLICIT NONE
+
+!@var IN,JN,KN,LN size of 4-D array
+      INTEGER, INTENT(IN) :: IN,J1,J2,JN,KN,LN
+!@var SUBR identifies where CHECK4 was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+!@var FIELD identifies the field being tested
+      CHARACTER*6, INTENT(IN) :: FIELD
+!@var A array being tested
+      REAL*8, DIMENSION(IN,J1:J2,KN,LN),INTENT(IN) :: A
+      LOGICAL :: QCHECK4 = .FALSE.
+      INTEGER I,J,K,L !@var I,J,K,L loop variables
+
+!$OMP PARALLEL DO PRIVATE (L,K,J,I) SHARED (QCHECK4)
+      DO L=1,LN
+      DO K=1,KN
+      DO J=J1,J2
+      DO I=1,IN
+        IF (.NOT.(A(I,J,K,L).GT.0..OR.A(I,J,K,L).LE.0.) .or.
+     *       ABS(A(I,J,K,L)) .gt.HUGE(A(I,J,K,L)) ) THEN
+          WRITE (6,*) TRIM(FIELD),': ',I,J,K,L,A(I,J,K,L),'after ',SUBR
+          IF (J.LT.JN.AND.J.GT.1) QCHECK4 = .TRUE.
+        END IF
+      END DO
+      END DO
+      END DO
+      END DO
+!$OMP END PARALLEL DO
+      CALL SYS_FLUSH(6)
+      IF (QCHECK4) call stop_model('CHECK4',255)
+      RETURN
+      END SUBROUTINE CHECK4B
+
       function unit_string (pow10,ending)
 !@sum Construct a units string with nice properties (no embedded blanks)
 !@auth G. Schmidt, J. Lerner
