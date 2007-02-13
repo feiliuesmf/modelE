@@ -763,10 +763,10 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3B(UO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'uo ')
       CALL CHECK3B(VO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK3B(TRMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'trm')
-      CALL CHECK3B(TXMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'txm')
-      CALL CHECK3B(TYMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'tym')
-      CALL CHECK3B(TZMO(1,J_0,1),IM,J_0,J_1,JM,LMO*NTM,SUBR,'tzm')
+      CALL CHECK4B(TRMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'trm')
+      CALL CHECK4B(TXMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'txm')
+      CALL CHECK4B(TYMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'tym')
+      CALL CHECK4B(TZMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'tzm')
 #endif
 
 C**** Check for variables out of bounds
