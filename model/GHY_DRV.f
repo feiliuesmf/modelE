@@ -946,8 +946,6 @@ c**** calculate ground fluxes
 c     call qsbal
 !!! insert htprs here ???
 
-      print *,"GHY_DRV: ",i,j
-
       call ghinij (i,j)
       call veg_set_cell(i,j)
       call advnc
