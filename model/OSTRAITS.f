@@ -345,7 +345,7 @@ C**** each strait
 C****
       call gather_ocean(1) ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
 
-         if(am_I_root()) then
+      if(am_I_root()) then
       DO N=1,NMST
       I1=IST(N,1)
       J1=JST(N,1)
@@ -388,7 +388,7 @@ C**** Initialize sea ice in straits
       MSIST=0.
       HSIST=0.
       SSIST=0.
-         end if  ! root-process only
+      end if                    ! root-process only
 
       call bcast_straits(.true.) ! skip tracers
 

@@ -1256,7 +1256,8 @@ C**** by setting SF to be zero over mid N. America
 C**** This is a horrible resolution-dependent hack!
       TSUM=0.
       IF (JM.eq.46) TSUM=SUM(SF(14:17,34))/4.   ! 4x5
-      IF (JM.eq.90) TSUM=SUM(SF(28:34,65))/7.   ! 2x2.5
+! hack to avoid an out of bounds error 
+      IF (JM.eq.90) TSUM=SUM(SF(28:34,NINT(JM*0.7222)))/7.   ! 2x2.5
       DO J=1,JM-1
         DO I=1,IM
           SF(I,J)=SF(I,J)-TSUM
