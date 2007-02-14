@@ -74,7 +74,7 @@ C****
 #ifdef TRACERS_OCEAN
      *  ,ntm, trmo=>trmo_glob,
      *        txmo=>txmo_glob, tymo=>tymo_glob, tzmo=>tzmo_glob
-#endif
+#endif /* def TRACERS_OCEAN */ 
       USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg,g0mst,s0mst
      *     ,gxmst,sxmst,gzmst,szmst,mmst
 #ifdef TRACERS_OCEAN
@@ -109,7 +109,7 @@ C****
      *       TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),TLNST(L,N,1,ITR),
      *       t_qlimit(ITR))
       END DO
-#endif
+#endif /* def TRACERS_OCEAN */ 
       MO(I1,J1,L) = MO(I1,J1,L) - AM*BYDXYPO(J1)
       MO(I2,J2,L) = MO(I2,J2,L) + AM*BYDXYPO(J2)
         OLNST(L,N,LN_MFLX) = OLNST(L,N,LN_MFLX) + AM
@@ -712,7 +712,7 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(TXMST,LMO,NMST,NTM,SUBR,'txmst')
       CALL CHECK3(TZMST,LMO,NMST,NTM,SUBR,'tzmst')
 c      CALL CHECK3(TRSIST,NTM,LMI,NMST,SUBR,'trist')
-#endif
+#endif /* def TRACERS_OCEAN */ 
 
       DO N=1,NMST
         DO L=1,LMST(N)
@@ -768,7 +768,7 @@ c     *         *xsi(1:2)-ssist(1:2,nmax),msist(2,nmax)*xsi(3:4)
 c     *         -ssist(3:4,nmax)
         end if
       end do
-#endif
+#endif /* def TRACERS_OCEAN */ 
 
       END IF
 C****
@@ -790,21 +790,30 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCSTR01"
-#ifdef TRACERS_WATER
+#if (defined  TRACERS_WATER) || (defined TRACERS_OCEAN )
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCSTR01"
+#endif /*  (defined  TRACERS_WATER) || (defined TRACERS_OCEAN ) */ 
 
-#ifndef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+#  ifndef TRACERS_OCEAN
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
      *     ,',',lmi,',',nmst,')'
-#else
+#  else /* ndef TRACERS_OCEAN */ 
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
      *     ,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
-     *     ,'):TRMST,TXST,TZST'
-#endif
-#endif
+     *     ,'):TRMST,TXMST,TZMST'
+#  endif /* ndef TRACERS_OCEAN */ 
+#else /* def TRACERS_WATER */ 
+#  ifdef TRACERS_OCEAN
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a7,i3,a1,i3,a1,i3,a)') 'R8 dim('
+     *     ,lmo,',',nmst,',',NTM
+     *     ,'):TRMST,TXMST,TZMST'
+#  endif /* def TRACERS_OCEAN */ 
+#endif /* def TRACERS_WATER */ 
 
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
      *     i2,a1,i2,a)') 'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
@@ -817,10 +826,14 @@ C****
      *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
 #ifdef TRACERS_WATER
         WRITE (kunit,err=10) TRMODULE_HEADER,TRSIST
-#ifdef TRACERS_OCEAN
+#  ifdef TRACERS_OCEAN
      *       ,TRMST,TXMST,TZMST
-#endif
-#endif
+#  endif
+#else /* def TRACERS_WATER */ 
+#  ifdef TRACERS_OCEAN
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRMST,TXMST,TZMST
+#  endif
+#endif /* def TRACERS_WATER */ 
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread,irerun,irsfic)    ! restarts
@@ -834,15 +847,21 @@ C****
           END IF
 #ifdef TRACERS_WATER
           READ (kunit,err=10) TRHEADER,TRSIST
-#ifdef TRACERS_OCEAN
+#  ifdef TRACERS_OCEAN
      *       ,TRMST,TXMST,TZMST
-#endif
+#  endif
+#else /* def TRACERS_WATER */ 
+#  ifdef TRACERS_OCEAN
+          READ (kunit,err=10) TRHEADER,TRMST,TXMST,TZMST
+#  endif
+#endif /* def TRACERS_WATER */ 
+#if (defined  TRACERS_WATER) || (defined TRACERS_OCEAN )
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
-#endif
+#endif /*  (defined  TRACERS_WATER) || (defined TRACERS_OCEAN ) */ 
          end if
          call BCAST_straits(.false.) ! don't skip tracers
         CASE (irsficnt)    ! restarts (never any tracers)
@@ -883,15 +902,14 @@ C****
       CALL ESMF_BCAST(grid, HSIST)
       CALL ESMF_BCAST(grid, SSIST)
 
-#ifdef TRACERS_WATER
       if(skip_tracers) return
-
+#ifdef TRACERS_WATER
       CALL ESMF_BCAST(grid, TRSIST)
+#endif
 #ifdef TRACERS_OCEAN
       CALL ESMF_BCAST(grid, TRMST)
       CALL ESMF_BCAST(grid, TXMST)
       CALL ESMF_BCAST(grid, TZMST)
-#endif
-#endif
+#endif /* def TRACERS_OCEAN */ 
       return
       end SUBROUTINE BCAST_straits
