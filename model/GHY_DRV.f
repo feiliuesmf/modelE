@@ -735,8 +735,10 @@ C**** Work array for regional diagnostic accumulation
 #endif
       INTEGER :: ih, ihm, ii, ivar, kr
       INTEGER :: idx(n_idx)
-
-
+#ifdef TRACERS_DUST
+      INTEGER :: n,n1
+#endif
+      REAL*8 :: tmp(NDIUVAR)
 
 C****   define local grid
       integer J_0, J_1, J_0H, J_1H
@@ -783,25 +785,24 @@ C**** halo update u and v for distributed parallelization
      &      ,idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
 #endif
 #ifdef TRACERS_DUST
-     &      ,idd_emis,idd_emis2,idd_turb,idd_grav
-     &      ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon,idd_rifl
-     &      ,idd_zpbl1,idd_zpbl2,idd_zpbl3,idd_zpbl4,idd_zpbl5,idd_zpbl6
-     &      ,idd_zpbl7,idd_zpbl8
-     &      ,idd_uabl1,idd_uabl2,idd_uabl3,idd_uabl4,idd_uabl5,idd_uabl6
-     &      ,idd_uabl7,idd_uabl8
-     &      ,idd_vabl1,idd_vabl2,idd_vabl3,idd_vabl4,idd_vabl5,idd_vabl6
-     &      ,idd_vabl7,idd_vabl8
-     &      ,idd_uvabl1,idd_uvabl2,idd_uvabl3,idd_uvabl4,idd_uvabl5
-     &      ,idd_uvabl6,idd_uvabl7,idd_uvabl8
-     &      ,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4,idd_tabl5,idd_tabl6
-     &      ,idd_tabl7,idd_tabl8
-     &      ,idd_qabl1,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
-     &      ,idd_qabl7,idd_qabl8
-     &      ,idd_zhat1,idd_zhat2,idd_zhat3,idd_zhat4,idd_zhat5,idd_zhat6
-     &      ,idd_zhat7
-     &      ,idd_e1,idd_e2,idd_e3,idd_e4,idd_e5,idd_e6,idd_e7
-     &      ,idd_km1,idd_km2,idd_km3,idd_km4,idd_km5,idd_km6,idd_km7
-     &      ,idd_ri1,idd_ri2,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
+     &      ,idd_emis,   idd_emis2,  idd_turb,   idd_grav,   idd_ws2
+     &      ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl
+     &      ,idd_zpbl1,  idd_zpbl2,  idd_zpbl3,  idd_zpbl4,  idd_zpbl5
+     &      ,idd_zpbl6,  idd_zpbl7,  idd_zpbl8,  idd_uabl1,  idd_uabl2
+     &      ,idd_uabl3,  idd_uabl4,  idd_uabl5,  idd_uabl6,  idd_uabl7
+     &      ,idd_uabl8,  idd_vabl1,  idd_vabl2,  idd_vabl3,  idd_vabl4
+     &      ,idd_vabl5,  idd_vabl6,  idd_vabl7,  idd_vabl8,  idd_uvabl1
+     &      ,idd_uvabl2, idd_uvabl3, idd_uvabl4, idd_uvabl5, idd_uvabl6
+     &      ,idd_uvabl7, idd_uvabl8, idd_tabl1,  idd_tabl2,  idd_tabl3
+     &      ,idd_tabl4,  idd_tabl5,  idd_tabl6,  idd_tabl7,  idd_tabl8
+     &      ,idd_qabl1,  idd_qabl2,  idd_qabl3,  idd_qabl4,  idd_qabl5
+     &      ,idd_qabl6,  idd_qabl7,  idd_qabl8,  idd_zhat1,  idd_zhat2
+     &      ,idd_zhat3,  idd_zhat4,  idd_zhat5,  idd_zhat6,  idd_zhat7
+     &      ,idd_e1,     idd_e2,     idd_e3,     idd_e4,     idd_e5
+     &      ,idd_e6,     idd_e7,     idd_km1,    idd_km2,    idd_km3
+     &      ,idd_km4,    idd_km5,    idd_km6,    idd_km7,    idd_ri1
+     &      ,idd_ri2,    idd_ri3,    idd_ri4,    idd_ri5,    idd_ri6
+     &      ,idd_ri7
 #endif
      &      /)
 
@@ -809,7 +810,10 @@ C**** halo update u and v for distributed parallelization
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
 !$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,
-!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat
+!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat,jr,kr,tmp
+#ifdef TRACERS_DUST
+!$OMP*   ,n,n1
+#endif
 !$OMP*   )
 !$OMP*   SHARED(ns,moddsf,moddd)
 !$OMP*   SCHEDULE(DYNAMIC,2)
@@ -1012,14 +1016,18 @@ c****
       e0(i,j,4)=e0(i,j,4)+af0dt
       e1(i,j,4)=e1(i,j,4)+af1dt
 
-      call ghy_diag( i,j,ns,moddsf,moddd
+      call ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij, pbl_args, pbl_args%dtsurf
      &     ,adiurn_part
+     &     ,idx
 #ifndef NO_HDIURN
      &     ,hdiurn_part
 #endif
-     &     ,idx)
+#ifdef TRACERS_DUST
+     &     ,n,n1
+#endif
+     &     )
 
 c**** update tracers
 #ifdef TRACERS_ON
@@ -1131,14 +1139,18 @@ c***********************************************************************
 c***********************************************************************
 c***********************************************************************
 
-      subroutine ghy_diag( i,j,ns,moddsf,moddd
+      subroutine ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij, pbl_args, dtsurf
      &     ,adiurn_part
+     &     ,idx
 #ifndef NO_HDIURN
      &     ,hdiurn_part
 #endif
-     &     ,idx)
+#ifdef TRACERS_DUST
+     &     ,n,n1
+#endif
+     &     )
 
       use diag_com , only : aij=>aij_loc
      *     ,tsfrez=>tsfrez_loc,tdiurn,aj=>aj_loc,areg,jreg
@@ -1222,12 +1234,11 @@ c***********************************************************************
       real*8 trhdt,tg2av,wtr2av,ace2av,tg1,shdt,ptype,srheat,srhdt
       real*8 warmer,spring,trheat,evhdt
       integer, parameter :: itype=4
-      integer kr,ih,ihm,jr
+      integer :: kr,jr
 #ifdef TRACERS_DUST
       INTEGER :: n,n1
 #endif
-
-      REAL*8 :: tmp(NDIUVAR)
+      REAL*8 :: tmp(:)
 
 ccc the following values are returned by PBL
       real*8 us,vs,ws,wsm,psi,dbl,khs,ug,vg,wg
@@ -1263,8 +1274,6 @@ ccc the following values are returned by PBL
        else
          warmer=spring
       end if
-      ih=1+jhour
-      ihm = ih+(jdate-1)*24
 
       ptype=fearth(i,j)
       jr=jreg(i,j)
