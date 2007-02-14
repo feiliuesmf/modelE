@@ -337,7 +337,7 @@ C**** check on physicality of non-local fluxes....
 C**** fix first layer for rare tracer problems
 C**** Does this ever happen for q? (put this in just in case)
             if ( q0(1)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
-              flux_bot=-q0(1)/(dtime*bydzerho(1))
+              flux_bot=q0(1)/(dtime*bydzerho(1))
               wq_nl(2)=(flux_bot-rhoe(1)*qflx)/rhoe(2)
             end if
           flux_top=0.
@@ -369,7 +369,7 @@ C**** check on physicality of non-local fluxes....
             flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
 C**** fix first layer for rare tracer problems
             if ( tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
-              flux_bot=-tr0ij(1,n)/(dtime*bydzerho(1))
+              flux_bot=tr0ij(1,n)/(dtime*bydzerho(1))
               wc_nl(2,n)=(flux_bot-rhoe(1)*trflx(n))/rhoe(2)
             end if
             flux_top=0.
