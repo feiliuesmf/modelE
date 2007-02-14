@@ -5687,6 +5687,7 @@ c emissions of industrial SO2
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
+        case ('SO4')
 c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(1,n) = k
