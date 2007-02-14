@@ -15,7 +15,7 @@ C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo
      *     ,s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso
      *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP !,VOSP,IVSP
-     *     ,OBottom_drag,OCoastal_drag
+     *     ,OBottom_drag,OCoastal_drag,focean
 C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
@@ -44,12 +44,10 @@ C?*** For serial ODIF/GM/straits computations:
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H
-      integer, save :: ifirst = 1
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
-      if (ifirst == 1) then
-        ifirst=0
-        MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
-      end if
+
+C**** initiallise work arrays
+      MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
 
 C****
 C**** Integrate Ocean Dynamics terms
@@ -97,7 +95,6 @@ C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
 C     CALL STADVM(MM1,MUST,DTOFS,.False.)
       CALL OADVV (UM1,VM1,UM0,VM0,DTOFS)
       CALL OPGF  (UM1,VM1,DTOFS)
-
 C     CALL STPGF (MUST1,MUST,DTOFS)
       CALL OMTOV (MM1,UM1,VM1)
 C**** Initial Backward step,  QM1 = QM0 + DT*F(Q0)
@@ -111,7 +108,6 @@ C     CALL STPGF (MUST1,MUST,DTO)
 C**** First even leap frog step,  Q2 = Q0 + 2*DT*F(Q1)
       CALL OFLUX  (NS,MMI,.TRUE.)
       CALL OADVM (MM0,MMI,DTOLF)
-
 C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
       CALL OADVV (UM0,VM0,UM0,VM0,DTOLF)
       CALL OPGF  (UM0,VM0,DTOLF)
@@ -122,7 +118,6 @@ C**** Odd leap frog step,  Q3 = Q1 + 2*DT*F(Q2)
   420 Continue
       CALL OFLUX  (NS,MM1,.FALSE.)
       CALL OADVM (MM1,MM1,DTOLF)
-
 C     CALL STADVM(MM1,MUST,DTOLF,.False.)
       CALL OADVV (UM1,VM1,UM1,VM1,DTOLF)
       CALL OPGF  (UM1,VM1,DTOLF)
@@ -130,7 +125,6 @@ C     CALL STPGF (MUST1,MUST1,DTOLF)
       CALL OMTOV (MM1,UM1,VM1)
       NS=NS-1
 C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
-
       CALL OFLUX  (NS,MM0,.TRUE.)
       CALL OADVM (MM0,MM0,DTOLF)
 C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
@@ -150,8 +144,8 @@ C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
         OIJL(:,:,L,IJL_MFW) = OIJL(:,:,L,IJL_MFW) + SMW(:,:,L)
       END DO
 !$OMP END PARALLEL DO
-C**** Advection of Potential Enthalpy and Salt
 
+C**** Advection of Potential Enthalpy and Salt
       CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
      *        ,OIJL(1,J_0H,1,IJL_GFLX))
       CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.
@@ -173,9 +167,11 @@ C**** Advection of Potential Enthalpy and Salt
 !$OMP END PARALLEL DO
         DO J=J_0,J_1
           DO I=1,IMAXJ(J)
-            OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
-            OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  + (OPBOT(I,J)-ZE(LMM(I,J))
-     *           *RHOWS*GRAV)
+            IF (FOCEAN(I,J).gt.0) THEN
+              OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
+              OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  + (OPBOT(I,J)-ZE(LMM(I,J
+     *             ))*RHOWS*GRAV)
+            END IF
           END DO
         END DO
 
@@ -291,7 +287,10 @@ c        CALL CHECKO ('STADVI')
      *     ,lmu,lmv,hatmo,hocean,ze,dZO,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
-     *     ,OBottom_drag,OCoastal_drag
+     *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+#ifdef TRACERS_OCEAN
+     *     ,oc_tracer_mean,ntm
+#endif
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
@@ -326,6 +325,12 @@ C**** Select drag options
 C****
       call sync_param("OBottom_drag",OBottom_drag)
       call sync_param("OCoastal_drag",OCoastal_drag)
+
+C**** define initial condition options for global mean
+      call sync_param("oc_salt_mean",oc_salt_mean)
+#ifdef TRACERS_OCEAN
+      call sync_param("oc_tracer_mean",oc_tracer_mean,ntm)
+#endif
 
 C****
 C**** set up time steps from atmospheric model
@@ -532,7 +537,7 @@ C**** Multiply specific quantities by mass
 C**** Initiallise geopotential field (needed by KPP)
       OGEOZ = 0.
       OGEOZ_SV = 0.
-
+      
       END IF
 
 C**** Extend ocean data to added layers at bottom if necessary
@@ -561,6 +566,9 @@ C**** Extend ocean data to added layers at bottom if necessary
 
 C**** Initialize straits arrays
       call init_STRAITS(iniOCEAN)
+
+C**** Adjust global mean salinity if required (only at first start up)
+      if (istart.lt.9 .and. oc_salt_mean.ne.-999.) call adjust_mean_salt
 
 C**** Initialize solar radiation penetration arrays
       call init_solar
@@ -735,7 +743,7 @@ C****
 #endif
       USE SEAICE_COM, only : rsi
       USE OCEAN
-      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       IMPLICIT NONE
       REAL*8 SALIM,GO1,SO1,relerr,errmax,temgs
       LOGICAL QCHECKO
@@ -751,27 +759,27 @@ c**** Extract domain decomposition info
 C**** Check for NaN/INF in ocean data
       IF (QCHECK) THEN
       JM_loc = J_1H - J_0H + 1
-      CALL CHECK3B(MO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'mo ')
-      CALL CHECK3B(G0M(1,J_0,1) ,IM,J_0,J_1,JM,LMO,SUBR,'g0m')
-      CALL CHECK3B(GXMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'gxm')
-      CALL CHECK3B(GYMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'gym')
-      CALL CHECK3B(GZMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'gzm')
-      CALL CHECK3B(S0M(1,J_0,1) ,IM,J_0,J_1,JM,LMO,SUBR,'s0m')
-      CALL CHECK3B(SXMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'sxm')
-      CALL CHECK3B(SYMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'sym')
-      CALL CHECK3B(SZMO(1,J_0,1),IM,J_0,J_1,JM,LMO,SUBR,'szm')
-      CALL CHECK3B(UO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'uo ')
-      CALL CHECK3B(VO(1,J_0,1)  ,IM,J_0,J_1,JM,LMO,SUBR,'vo ')
+      CALL CHECK3B(MO  ,IM,J_0H,J_1H,JM,LMO,SUBR,'mo ')
+      CALL CHECK3B(G0M ,IM,J_0H,J_1H,JM,LMO,SUBR,'g0m')
+      CALL CHECK3B(GXMO,IM,J_0H,J_1H,JM,LMO,SUBR,'gxm')
+      CALL CHECK3B(GYMO,IM,J_0H,J_1H,JM,LMO,SUBR,'gym')
+      CALL CHECK3B(GZMO,IM,J_0H,J_1H,JM,LMO,SUBR,'gzm')
+      CALL CHECK3B(S0M ,IM,J_0H,J_1H,JM,LMO,SUBR,'s0m')
+      CALL CHECK3B(SXMO,IM,J_0H,J_1H,JM,LMO,SUBR,'sxm')
+      CALL CHECK3B(SYMO,IM,J_0H,J_1H,JM,LMO,SUBR,'sym')
+      CALL CHECK3B(SZMO,IM,J_0H,J_1H,JM,LMO,SUBR,'szm')
+      CALL CHECK3B(UO  ,IM,J_0H,J_1H,JM,LMO,SUBR,'uo ')
+      CALL CHECK3B(VO  ,IM,J_0H,J_1H,JM,LMO,SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK4B(TRMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'trm')
-      CALL CHECK4B(TXMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'txm')
-      CALL CHECK4B(TYMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'tym')
-      CALL CHECK4B(TZMO(1,J_0,1,1),IM,J_0,J_1,JM,LMO,NTM,SUBR,'tzm')
+      CALL CHECK4B(TRMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'trm')
+      CALL CHECK4B(TXMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'txm')
+      CALL CHECK4B(TYMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'tym')
+      CALL CHECK4B(TZMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'tzm')
 #endif
 
 C**** Check for variables out of bounds
       QCHECKO=.FALSE.
-      DO J=J_0S,J_1
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).gt.0.) THEN
 C**** Check potential specific enthalpy/salinity
@@ -804,7 +812,7 @@ C**** Check first layer ocean mass
             QCHECKO=.TRUE.
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
- 230      SALIM = .043
+ 230      SALIM = .045
           IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
           IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
      *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
@@ -873,7 +881,7 @@ C**** Check conservation of water tracers in ocean
 
       END IF
 C****
-      CALL CHECKOST(SUBR)
+      IF (AM_I_ROOT()) CALL CHECKOST(SUBR)
 C****
       END SUBROUTINE CHECKO
 
@@ -1827,7 +1835,7 @@ C****
      *                 LMOM=>LMM,LMOU=>LMU,LMOV=>LMV,
      *                 MO, G0M,GZM=>GZMO, S0M,SZM=>SZMO,
      *                 FOCEAN, mZSOLID=>HOCEAN, DXPGF,DYPGF,
-     *                 COSI=>COSIC,SINI=>SINIC, OPRESS,OGEOZ
+     *                 COSI=>COSIC,SINI=>SINIC, OPRESS,OGEOZ,OPBOT
       Use OCEAN_DYN, Only: MMI, VBAR,dH, GUP,GDN, SUP,SDN
       Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
       Implicit None
@@ -1866,7 +1874,7 @@ C****
 C**** Calculate the mass weighted pressure P (Pa),
 C**** geopotential ZG (m^2/s^2), and layer thickness dH (m)
 C****
-C$OMP ParallelDo   Private (I,J,L, PUP,PDN,PE, ZGE,VUP,VDN,dZGdP)
+C$OMP ParallelDo   Private (I,J,L,IMAX, PUP,PDN,PE, ZGE,VUP,VDN,dZGdP)
       Do 130 J=J1,JNH
       IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
       Do 130 I=1,IMAX
@@ -1878,6 +1886,8 @@ C**** Calculate pressure by integrating from the top down
       PUP(L) = P(I,J,L) - MO(I,J,L)*GRAV*z12eH
       PDN(L) = P(I,J,L) + MO(I,J,L)*GRAV*z12eH
   110 PE     = PE       + MO(I,J,L)*GRAV
+C**** save bottom pressure diagnostic
+      OPBOT(I,J)=PE   
 C**** Calculate geopotential by integrating from the bottom up
       ZGE = - mZSOLID(I,J)*GRAV
       Do 120 L=LMOM(I,J),1,-1
@@ -2350,6 +2360,7 @@ c       end if
         end if
 
 !$OMP  PARALLEL DO PRIVATE(I,L) DEFAULT(SHARED)
+!$OMP&             REDUCTION(+:ICKERR)
 !!! !$OMP* SHARED(JM,IM)
       do l=1,lmo
 
@@ -2365,7 +2376,7 @@ c       end if   !SOUTH POLE
           rm(1,jm,l) = rm_np(l)  + sum(fm(:,jm-1,l))/im
           rz(1,jm,l) = rzm_np(l) + sum(fz(:,jm-1,l))/im
           if(mo(1,jm,l)<0. .or. (qlimit.and.rm(1,jm,l)<0.)) then
-            ICKERR=1
+            ICKERR=ICKERR+1
             write(0,*) 'oadvty: mo or salt<0 at North Pole layer',
      *      L,mo(1,jm,L),rm(1,jm,L)
           endif
@@ -4399,3 +4410,105 @@ C**** divide over depth and scale for time step
 C****
       RETURN
       END SUBROUTINE GLMELT
+
+
+      SUBROUTINE ADJUST_MEAN_SALT
+      USE GEOM, only : dxyp,imaxj
+      USE CONSTANT, only : grav
+      USE OCEAN, only : im,jm,lmo,focean,lmm,mo,s0m,sxmo
+     *     ,symo,szmo,dxypo,oc_salt_mean,g0m,dxypo
+      USE STRAITS, only : s0mst,sxmst,szmst,nmst,lmst,g0mst,mmst,dist
+     *     ,wist
+      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get, AM_I_ROOT,
+     *     ESMF_BCAST
+      IMPLICIT NONE
+      REAL*8 :: totalSalt,totalMass
+
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::OSALTJ
+     *     ,OMASSJ
+      REAL*8 mean_S,frac_inc,T_ORIG,T_NEW,temgsp,shcgs,pres,g,s
+      INTEGER I,J,L,N,J_0,J_1
+      
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+
+      call conserv_OSL(OSALTJ)
+      call conserv_OMS(OMASSJ)
+      OSALTJ(:)=OSALTJ(:)*DXYP(:)
+      OMASSJ(:)=OMASSJ(:)*DXYP(:)
+
+      CALL GLOBALSUM(grid, OSALTJ, totalSalt, ALL=.true.)
+      CALL GLOBALSUM(grid, OMASSJ, totalMass, ALL=.true.)
+
+      if (AM_I_ROOT()) then
+        mean_S=1000*totalSalt/totalMass  ! psu
+        frac_inc=oc_salt_mean/mean_S
+        write(6,*) "Changing ocean salinity: ",mean_S,frac_inc
+      end if
+      call ESMF_BCAST(grid,  frac_inc)
+
+C**** adjust open ocean salinity
+      DO J=J_0,J_1
+        DO I=1,IMAXJ(J)
+          PRES=0
+          DO L=1,LMM(I,J)
+            PRES=PRES+MO(I,J,L)*GRAV*.5
+            G=G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
+            S=S0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
+            T_ORIG=TEMGSP (G,S,PRES)
+            S0M(I,J,L)=frac_inc*S0M(I,J,L)
+            if (frac_inc.lt.1.) then
+              SXMO(I,J,L)=frac_inc*SXMO(I,J,L)
+              SYMO(I,J,L)=frac_inc*SYMO(I,J,L)
+              SZMO(I,J,L)=frac_inc*SZMO(I,J,L)
+            end if
+            S=S0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
+            T_NEW=TEMGSP (G,S,PRES)
+C**** approximately adjust enthalpy to restore temperature
+            G0M(I,J,L)=G0M(I,J,L)+(T_ORIG-T_NEW)*SHCGS(G,S)*MO(I,J,L)
+     *           *DXYPO(J)
+            G=G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
+            IF (L.lt.LMM(I,J)) PRES=PRES+MO(I,J,L)*GRAV*.5
+          END DO
+        END DO
+      END DO
+
+C**** adjust strait salinity
+      if (am_I_root()) then
+        DO N=1,NMST
+          PRES=0
+          DO L=1,LMST(N)
+            PRES=PRES+MMST(L,N)*GRAV*.5/(DIST(N)*WIST(N))
+            G=G0MST(L,N)/MMST(L,N)
+            S=S0MST(L,N)/MMST(L,N)
+            T_ORIG=TEMGSP (G,S,PRES)
+            S0MST(L,N)=frac_inc*S0MST(L,N)
+            if (frac_inc.lt.1) then
+              SXMST(L,N)=frac_inc*SXMST(L,N)
+              SZMST(L,N)=frac_inc*SZMST(L,N)
+            end if
+            S=S0MST(L,N)/MMST(L,N)
+            T_NEW=TEMGSP (G,S,PRES)
+C**** approximately adjust enthalpy to restore temperature
+            G0MST(L,N)=G0MST(L,N)+(T_ORIG-T_NEW)*SHCGS(G,S)*MMST(L,N)
+            G=G0MST(L,N)/MMST(L,N)
+            IF (L.lt.LMST(N)) PRES=PRES+MMST(L,N)*GRAV*.5/(DIST(N)
+     *           *WIST(N))
+          END DO
+        END DO
+      end if
+      CALL ESMF_BCAST(grid, S0MST)
+      CALL ESMF_BCAST(grid, SXMST)
+      CALL ESMF_BCAST(grid, SZMST)
+
+C**** Check
+      call conserv_OSL(OSALTJ)
+      OSALTJ(:)=OSALTJ(:)*DXYP(:)
+      CALL GLOBALSUM(grid, OSALTJ, totalSalt, ALL=.true.)
+
+      if (AM_I_ROOT()) then
+        mean_S=1000*totalSalt/totalMass  ! psu
+        write(6,*) "New ocean salinity: ",mean_S,oc_salt_mean
+      end if
+
+      RETURN
+      END SUBROUTINE ADJUST_MEAN_SALT
