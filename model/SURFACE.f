@@ -959,6 +959,7 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
+
       TGRND(ITYPE,I,J)=TG1
       DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*MA1*P1K)
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
@@ -1337,9 +1338,9 @@ C****
         TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
         QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
         IF ( Q(I,J,1)+DQ1(I,J) .LT. qmin ) THEN
-          WRITE(99,*)
-     &         ITime,'I,J:',I,J,' Q1:',Q(I,J,1)+DQ1(I,J),'->',qmin
-          dq1(i,j)=qmin-q(i,j,1)
+c          WRITE(99,*)
+c     &         ITime,'I,J:',I,J,' Q1:',Q(I,J,1)+DQ1(I,J),'->',qmin
+c          dq1(i,j)=qmin-q(i,j,1)
           QMOM(:,I,J,1)=0.
         ENDIF
 c****   retrieve fluxes
