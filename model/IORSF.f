@@ -48,6 +48,12 @@ C**** Calls to individual i/o routines
         call io_earth  (kunit,iaction,ioerr)
         call io_soils  (kunit,iaction,ioerr)
         call io_vegetation  (kunit,iaction,ioerr)
+#ifdef USE_ENT
+        !!! actually not sure if this call is needed
+        !!! (seems like it is duplicated in io_vegetation...)
+        call io_veg_related  (kunit,iaction,ioerr)
+        !call io_ent    (kunit,iaction,ioerr)
+#endif
         call io_snow   (kunit,iaction,ioerr)
         call io_landice(kunit,iaction,ioerr)
         call io_bldat  (kunit,iaction,ioerr)

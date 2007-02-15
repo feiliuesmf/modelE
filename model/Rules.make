@@ -462,6 +462,16 @@ endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
 endif
+
+ifeq ($(USE_ENT),YES)
+  CPPFLAGS += -DUSE_ENT
+ifeq ($(COMPILER),Absoft)
+    FFLAGS+= -pEnt
+else
+    FFLAGS+= -IEnt
+endif
+endif
+
 #
 # Check for extra options specified in modelErc
 #

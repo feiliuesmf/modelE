@@ -823,7 +823,10 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
-      USE DVEG_COUPLER, only : init_dveg
+#ifdef USE_ENT
+      USE ENT_DRV, only : init_module_ent
+#endif
+
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
@@ -847,6 +850,9 @@ c$$$      USE MODEL_COM, only: clock
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
      &           ,iniOCEAN = .FALSE.
+#ifdef USE_ENT
+     &     ,iniENT = .FALSE.
+#endif
 #ifdef USE_FVCORE
       type (ESMF_Clock) :: clock
 #endif
@@ -856,6 +862,7 @@ c$$$      USE MODEL_COM, only: clock
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
+      integer ISTART_kradia, nl_soil
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
@@ -1100,6 +1107,9 @@ C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
+#ifdef USE_ENT
+        iniENT = .TRUE.
+#endif
         if (istart.eq.1) redogh=.true.
 C**** Read in ground initial conditions
         call openunit("GIC",iu_GIC,.true.,.true.)
@@ -1557,9 +1567,18 @@ C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
+!!! hack: make sure that ISTART_kradia==0 if Kradia>0
+!!! do we need it ? I.A.
+      ISTART_kradia = ISTART
+      if ( Kradia.gt.0 ) ISTART_kradia = 0
+      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia, nl_soil)
+#ifdef USE_ENT
+      CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
+#endif
+
       if (Kradia.gt.0) then   !  radiative forcing run
-        CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
-        CALL init_dveg   ! needed here ? -I.A.
+        !CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
+        !CALL init_module_ent(iniENT,grid,jday,dxyp)
         CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(0,num_acc_files) !post-processing
         if (AM_I_ROOT()) Then
@@ -1572,8 +1591,8 @@ C****
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
       end if                  !  Kradia>0; radiative forcing run
-      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
-      CALL init_dveg      ! initialize dynamic vegetation module
+!      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
+!      CALL init_module_ent(iniENT,grid,jday,dxyp)
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****

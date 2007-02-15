@@ -911,7 +911,12 @@ C     OUTPUT DATA
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth,fr_snow_rad_ij,fearth
+#ifdef USE_ENT
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
+#else
       USE VEG_COM, only : vdata
+#endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp,nstype
@@ -1540,9 +1545,18 @@ C****
       else                            ! rad.frc. model
         wearth = wsoil(i,j)
       end if
+#ifdef USE_ENT
+      if ( fearth(i,j) > 0.d0 ) then
+        call ent_get_exports( entcells(i,j),
+     &       vegetation_fractions=PVT )
+      else
+        PVT(:) = 0.d0  ! actually PVT is not supposed to be used in this case
+      endif
+#else
       DO K=1,12
         PVT(K)=VDATA(I,J,K)
       END DO
+#endif
       WMAG=WSAVG(I,J)
 C****
 C**** Radiative interaction and forcing diagnostics:

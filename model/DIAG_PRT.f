@@ -4590,7 +4590,7 @@ c**** find hemispheric and global means
       USE RAD_COM, only : cloud_rad_forc
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
-      USE VEG_COM, only : vdata
+      !USE VEG_COM, only : vdata
       USE DIAG_COM
       USE BDIJ
 
@@ -6280,7 +6280,12 @@ C****
       USE MODEL_COM, only : ZATMO
       USE LAKES_COM, only : FLAKE
       USE GHY_COM,   only : FEARTH
+#ifdef USE_ENT
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
+#else
       USE VEG_COM,   only : vdata
+#endif
       USE DIAG_COM, only : AIJ,  AIJ_loc
       USE DIAG_COM, only : AJ,   AJ_loc
       USE DIAG_COM, only : APJ,  APJ_loc
@@ -6304,6 +6309,10 @@ C****
       IMPLICIT NONE
       INTEGER :: J_0, J_1, J_0H, J_1H
       REAL*8, ALLOCATABLE :: tmp(:,:)
+#ifdef USE_ENT
+      REAL*8, ALLOCATABLE :: fract_vege(:,:)
+      INTEGER i,j
+#endif
 
       CALL PACK_DATAj(GRID, AJ_loc,  AJ)
       CALL PACK_DATAj(GRID, APJ_loc, APJ)
@@ -6340,12 +6349,23 @@ C****
       CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
       CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))
 
+#ifdef USE_ENT
+      ALLOCATE(fract_vege(IM, J_0H:J_1H))
+      call ent_get_exports( entcells(1:IM,J_0:J_1),
+     &           fraction_of_vegetated_soil=fract_vege(1:IM,J_0:J_1) )
+      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * (1.d0-fract_vege(:,J_0:J_1))
+      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
+      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * fract_vege(:,J_0:J_1)
+      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
+      DEALLOCATE(fract_vege)
+#else
       tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
      &     (vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10))
       CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
       tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
      &     (1.-(vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10)))
       CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
+#endif
       DEALLOCATE(tmp)
 
       call gather_odiags

@@ -4,7 +4,8 @@
 .SUFFIXES: .o .U .S .GCM .OCN .f .F
 .SUFFIXES:
 
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc esmf_interface unit_tests
+.PHONY: FORCE rundeck depend gcm setup clean vclean newstart exe cmp .R \
+htmldoc esmf_interface unit_tests
 VPATH = ESMF_Interface
 #
 # Print Usage if no targets were given
@@ -103,7 +104,22 @@ sinclude ~/.modelErc
 
 #
 # Lists of objects and dependencies
-# 
+#
+
+SUBDIRS =
+OBJS_IN_SUBDIRS =
+ifeq ($(USE_ENT),YES)
+# list of subdirectories with modelE code (eventually should be read
+# from the rundeck)
+SUBDIRS = Ent
+FSRC_ENT = ent_mod.f ent_GISSveg.f ent.f \
+cohorts.f patches.f entcells.f \
+biophysics.f canopyradiation.f \
+growthallometry.f reproduction.f phenology.f \
+disturbance.f soilbgc.f ent_const.f \
+ent_types.f  ent_pfts.f ent_prescribed_updates.f ent_prescribed_drv.f
+OBJS_IN_SUBDIRS = $(patsubst %, Ent/%, $(FSRC_ENT:.f=.o))
+endif
 
 ifneq ($(MAKECMDGOALS),rundeck)
 ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)
@@ -281,9 +297,10 @@ ESMF_Interface/esmf_custom_mod.mod: ESMF_Interface/ESMF_CUSTOM_MOD.F90
 gcm: $(BIN_DIR)/$(RUN).exe
 
 #$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface fvdycore $(OBJS)
-$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface $(OBJS)
+$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface modelsubdirs $(OBJS)
 	echo linking executable $(MSG)
-	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
+             $(OBJS_IN_SUBDIRS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT
 	if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
 endif
@@ -294,8 +311,8 @@ endif
 	echo '---------    executable $(RUN).exe was created     ---------'
 	echo '--------------------------------------------------------------'
 
-gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJSA)
-	ar rcs $(RUN).a $(OBJSA)
+gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) modelsubdirs $(OBJSA)
+	ar rcs $(RUN).a $(OBJSA) $(OBJS_IN_SUBDIRS)
 	if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).a $(BIN_DIR)
 
@@ -331,6 +348,9 @@ clean:
 vclean:
 	rm -f *.o *.mod *.vo *.inc .depend* *.sig
 	$(MAKE) -C $(ESMF_Interface) clean
+ifeq ($(USE_ENT),YES)
+	$(MAKE) -C Ent clean
+endif
 
 src_cpp_dir: $(FSRCS_CPP)
 	mkdir $(DECKS_DIR)/$(RUN)_src
@@ -341,3 +361,14 @@ src_cpp_dir: $(FSRCS_CPP)
 export $(FFLAGS)
 unit_tests:
 	$(MAKE) -C Unit_Tests Etest
+
+#  extra stuff for inclusion of subdirectories
+
+modelsubdirs: filemanager.mod
+
+modelsubdirs: $(patsubst %, _dir_%, $(SUBDIRS))
+
+$(patsubst %, _dir_%, $(SUBDIRS)) : FORCE DOMAIN_DECOMP.mod 
+	$(MAKE) -C $(patsubst _dir_%, %, $@) depend ONLINE=YES
+	$(MAKE) -C $(patsubst _dir_%, %, $@) all \
+          ESMF_Interface=$(ESMF_Interface) ONLINE=YES
