@@ -193,6 +193,7 @@ c     ODIFF:   mo,uo,vo (ocean), dh (ocean_dyn)
 
 
       CALL ODIFF(DTS)
+          CALL CHECKO ('ODIFF0')
 
 c????          Non-parallelized parts : GM, straits
 c     GM:      mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO (ocean)
@@ -216,7 +217,7 @@ c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
       IF(AM_I_ROOT()) THEN
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
 !       CALL ODIFF(DTS)
-          CALL CHECKO ('ODIFF ')
+          CALL CHECKO_serial ('ODIFF ')
 C**** Apply GM + Redi tracer fluxes
         CALL GMKDIF
         CALL GMFEXP(G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
@@ -227,13 +228,14 @@ C**** Apply GM + Redi tracer fluxes
 !mpi  CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM
-        CALL GMFEXP(TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob,
-     *            t_qlimit(n),TOIJL_glob(1,1,1,TOIJL_GMFL,N))
+        CALL GMFEXP(TRMO_glob(1,1,1,N),TXMO_glob(1,1,1,N),TYMO_glob(1,1
+     *       ,1,N),TZMO_glob(1,1,1,N),t_qlimit(n),TOIJL_glob(1,1,1
+     *       ,TOIJL_GMFL,N))
 !mpi    CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
 !mpi *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
       END DO
 #endif
-        CALL CHECKO ('GMDIFF')
+        CALL CHECKO_serial ('GMDIFF')
         CALL TIMER (MNOW,MSGSO)
 C****
 C**** Acceleration and advection of tracers through ocean straits
@@ -241,8 +243,9 @@ C****
         CALL STPGF
         CALL STCONV
         CALL STBDRA
-          CALL CHECKO ('STBDRA')
+          CALL CHECKO_serial ('STBDRA')
         CALL STADV
+          CALL CHECKO_serial ('STADV0')
       END IF
 
       call scatter_ocean (2)
@@ -266,7 +269,7 @@ C**** remove STADVI since it is not really consistent with ICEDYN
 c      CALL STADVI
 c        CALL CHECKO ('STADVI')
 #ifdef TRACERS_OCEAN
-        CALL OC_TDECAY
+      CALL OC_TDECAY
 #endif
         CALL TIMER (MNOW,MSGSO)
       CALL TOC2SST
@@ -730,10 +733,8 @@ C****
 C****
       END SUBROUTINE io_ocdyn
 
-      SUBROUTINE CHECKO(SUBR)
-!@sum  CHECKO Checks whether Ocean variables are reasonable
-!@&    ESMF: It should only be called from a serial region.
-!@$          It is NOT parallelized
+      SUBROUTINE CHECKO_serial(SUBR)
+!@sum  CHECKO Checks whether Ocean variables are reasonable (serial version)
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byrt3,teeny
@@ -741,7 +742,155 @@ C****
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm, trname, t_qlimit
 #endif
-      USE SEAICE_COM, only : rsi
+      USE OCEAN, only : im,jm,lmo,dxypo,focean,imaxj, lmm, mo=>mo_glob
+     *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
+     *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
+     *  ,uo=>uo_glob, vo=>vo_glob  
+#ifdef TRACERS_OCEAN
+     *  ,trmo=>trmo_glob, txmo=>txmo_glob, tymo=>tymo_glob,
+     *   tzmo=>tzmo_glob
+#endif
+      IMPLICIT NONE
+      REAL*8 SALIM,GO1,SO1,relerr,errmax,temgs
+      LOGICAL QCHECKO
+      INTEGER I,J,L,n,imax,jmax,lmax
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+
+C**** Check for NaN/INF in ocean data
+      IF (QCHECK) THEN
+      CALL CHECK3B(MO  ,IM,1,JM,JM,LMO,SUBR,'mo ')
+      CALL CHECK3B(G0M ,IM,1,JM,JM,LMO,SUBR,'g0m')
+      CALL CHECK3B(GXMO,IM,1,JM,JM,LMO,SUBR,'gxm')
+      CALL CHECK3B(GYMO,IM,1,JM,JM,LMO,SUBR,'gym')
+      CALL CHECK3B(GZMO,IM,1,JM,JM,LMO,SUBR,'gzm')
+      CALL CHECK3B(S0M ,IM,1,JM,JM,LMO,SUBR,'s0m')
+      CALL CHECK3B(SXMO,IM,1,JM,JM,LMO,SUBR,'sxm')
+      CALL CHECK3B(SYMO,IM,1,JM,JM,LMO,SUBR,'sym')
+      CALL CHECK3B(SZMO,IM,1,JM,JM,LMO,SUBR,'szm')
+      CALL CHECK3B(UO  ,IM,1,JM,JM,LMO,SUBR,'uo ')
+      CALL CHECK3B(VO  ,IM,1,JM,JM,LMO,SUBR,'vo ')
+#ifdef TRACERS_OCEAN
+      CALL CHECK4B(TRMO,IM,1,JM,JM,LMO,NTM,SUBR,'tzm')
+#endif
+
+C**** Check for variables out of bounds
+      QCHECKO=.FALSE.
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        IF(FOCEAN(I,J).gt.0.) THEN
+C**** Check potential specific enthalpy/salinity
+          DO L=1,LMM(I,J)
+          GO1 = G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
+          SO1 = S0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
+          IF(GO1.lt.-10000. .or. GO1.gt.200000.) THEN
+            WRITE (6,*) 'After ',SUBR,': I,J,L,GO=',I,J,L,GO1,TEMGS(GO1
+     *           ,SO1)
+            IF (GO1.lt.-20000. .or. GO1.gt.200000.) QCHECKO=.TRUE.
+          END IF
+          IF(SO1.gt.0.045 .or. SO1.lt.0.) THEN
+            WRITE (6,*) 'After ',SUBR,': I,J,L,SO=',I,J,L,1d3*SO1
+            IF ((SO1.gt.0.05 .or. SO1.lt.0.) .and. .not. (I == 47.and.
+     *           J == 30)) QCHECKO=.TRUE.
+          END IF
+          END DO
+C**** Check all ocean currents
+          DO L = 1,LMO
+            IF(ABS(UO(I,J,L)).gt.7. .or. ABS(VO(I,J,L)).gt.5) THEN
+              WRITE (6,*) 'After ',SUBR,': I,J,L,UO,VO=',I,J,L,UO(I,J,L)
+     *             ,VO(I,J,L)
+              QCHECKO=.TRUE.
+            END IF
+          END DO
+C**** Check first layer ocean mass
+          IF(MO(I,J,1).lt.2000. .or. MO(I,J,1).gt.20000.) THEN
+            IF (I == 47.and.(J == 33.or.J == 34)) GOTO 230 ! not Caspian
+            WRITE (6,*) 'After ',SUBR,': I,J,MO=',I,J,MO(I,J,1)
+            QCHECKO=.TRUE.
+          END IF
+C**** Check ocean salinity in each eighth box for the first layer
+ 230      SALIM = .045
+          IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
+          IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
+     *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
+     *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
+     *         /(MO(I,J,1)*DXYPO(J)).lt.SALIM)  GO TO 240
+          WRITE (6,*) 'After ',SUBR,': I,J,S0,SX,SY,SZ=',I,J,
+     *         1d3*S0M(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3*SXMO(I,J,1)/(MO(I
+     *         ,J,1)*DXYPO(J)),1d3*SYMO(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3
+     *         *SZMO(I,J,1)/(MO(I,J,1)*DXYPO(J))
+          QCHECKO=.TRUE.
+ 240      CONTINUE
+        END IF
+      END DO
+      END DO
+
+#ifdef TRACERS_OCEAN
+      do n=1,ntm
+C**** Check for negative tracers
+        if (t_qlimit(n)) then
+        do l=1,lmo
+        do j=1,jm
+        do i=1,imaxj(j)
+          if (l.le.lmm(i,j)) then
+            if (trmo(i,j,l,n).lt.0) then
+              write(6,*) "Neg Tracer in ocean after ",subr,i,j,l,
+     *             trname(n),trmo(i,j,l,n)
+              QCHECKO=.true.
+            end if
+          end if
+        end do
+        end do
+        end do
+        end if
+C**** Check conservation of water tracers in ocean
+        if (trname(n) == 'Water') then
+          errmax = 0. ; imax=1 ; jmax=1 ; lmax=1
+          do l=1,lmo
+          do j=1,jm
+          do i=1,imaxj(j)
+            if (l.le.lmm(i,j)) then
+              relerr=max(
+     *             abs(trmo(i,j,l,n)-mo(i,j,l)*dxypo(j)+s0m(i,j,l)),
+     *             abs(txmo(i,j,l,n)+sxmo(i,j,l)),
+     *             abs(tymo(i,j,l,n)+symo(i,j,l)),
+     *             abs(tzmo(i,j,l,n)+szmo(i,j,l)))/
+     *             (mo(i,j,l)*dxypo(j)-s0m(i,j,l))
+            if (relerr.gt.errmax) then
+              imax=i ; jmax=j ; lmax=l ; errmax=relerr
+            end if
+            end if
+          end do
+          end do
+          end do
+          print*,"Relative error in ocean fresh water mass after ",subr
+     *         ,":",imax,jmax,lmax,errmax,trmo(imax,jmax,lmax,n),mo(imax
+     *         ,jmax,lmax)*dxypo(jmax)-s0m(imax,jmax,lmax),txmo(imax
+     *         ,jmax,lmax,n),-sxmo(imax,jmax,lmax),tymo(imax,jmax,lmax,n
+     *         ),-symo(imax,jmax ,lmax),tzmo(imax,jmax,lmax,n),
+     *         -szmo(imax,jmax,lmax)
+        end if
+      end do
+#endif
+
+      IF (QCHECKO)
+     &     call stop_model("QCHECKO: Ocean Variables out of bounds",255)
+
+      END IF
+C****
+      CALL CHECKOST(SUBR)
+C****
+      END SUBROUTINE CHECKO_serial
+
+      SUBROUTINE CHECKO(SUBR)
+!@sum  CHECKO Checks whether Ocean variables are reasonable (parallel version)
+!@auth Original Development Team
+!@ver  1.0
+      USE CONSTANT, only : byrt3,teeny
+      USE MODEL_COM, only : qcheck
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm, trname, t_qlimit
+#endif
       USE OCEAN
       USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       IMPLICIT NONE
@@ -883,7 +1032,7 @@ C**** Check conservation of water tracers in ocean
 C****
       IF (AM_I_ROOT()) CALL CHECKOST(SUBR)
 C****
-      END SUBROUTINE CHECKO
+      END SUBROUTINE CHECKO 
 
       SUBROUTINE conserv_OKE(OKE)
 !@sum  conserv_OKE calculates zonal ocean kinetic energy
