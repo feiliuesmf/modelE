@@ -38,6 +38,8 @@
 !@var SLIM = Upper limit of isopycnal slopes (stability parameter)
       REAL*8, PARAMETER :: SLIM=2d-3, BYSLIM=1./SLIM
 
+      REAL*8, PARAMETER :: eps=TINY(1.D0)
+
       REAL*8, DIMENSION(JM) :: BYDYP,BYDXP,BYDYV
 
       END MODULE GM_COM
@@ -290,12 +292,11 @@ C**** Loop for Fluxes in X-direction
         RFXT =(FXX(IM1,J,L) + FXZ(IM1,J,L))*MOFX
         IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFXT.gt.0.95d0*TRM(IM1,J,L).and.ABS(RFXT).gt.1d-20) THEN
+          IF (RFXT >  0.95d0*TRM(IM1,J,L).and.ABS(RFXT) >   eps ) THEN
 c            print*,"GMlimit1x",i,j,l,RFXT,FXX(IM1,J,L),FXZ(IM1,J,L)
 c     *           ,BXX(I,J,L),TR(IM1,J,L),TR(I,J,L)
             RFXT = 0.95d0*TRM(IM1,J,L)
-          ELSEIF (RFXT.lt.-0.95d0*TRM(I,J,L).and.ABS(RFXT).gt.1d-20)
-     *           THEN
+          ELSEIF (RFXT < -0.95d0*TRM(I,J,L).and.ABS(RFXT) > eps) THEN
 c            print*,"GMlimit2x",i,j,l,RFXT,FXX(IM1,J,L),FXZ(IM1,J,L)
 c     *           ,BXX(I,J,L),TR(IM1,J,L),TR(I,J,L)
             RFXT = -0.95d0*TRM(I,J,L)
@@ -318,11 +319,11 @@ C**** Loop for Fluxes in Y-direction
         RFYT =(FYY(I,J-1,L) + FYZ(I,J-1,L))*MOFY
         IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFYT.gt.0.95d0*TRM(I,J-1,L).and.ABS(RFYT).gt.1d-20) THEN
+          IF (RFYT >  0.95d0*TRM(I,J-1,L).and.ABS(RFYT) >  eps  ) THEN
 c            print*,"GMlimit1y",i,j,l,RFYT,FYY(I,J-1,L),FYZ(I,J-1,L)
 c     *           ,BYY(I,J-1,L),TR(I,J-1,L),TR(I,J,L)
             RFYT = 0.95d0*TRM(I,J-1,L)
-          ELSEIF (RFYT.lt.-0.95d0*TRM(I,J,L).and.ABS(RFYT).gt.1d-20)
+          ELSEIF (RFYT <  -0.95d0*TRM(I,J,L).and.ABS(RFYT) >  eps  )
      *           THEN
 c            print*,"GMlimit2y",i,j,l,RFYT,FYY(I,J-1,L),FYZ(I,J-1,L)
 c     *           ,BYY(I,J-1,L),TR(I,J-1,L),TR(I,J,L)
@@ -353,12 +354,11 @@ C**** Fluxes in Y-direction
         RFYT =(FYY(I,JM-1,L) + FYZ(I,JM-1,L))*MOFY
         IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFYT.gt.0.95d0*TRM(I,JM-1,L).and.ABS(RFYT).gt.1d-20) THEN
+          IF (RFYT >  0.95d0*TRM(I,JM-1,L).and.ABS(RFYT) >   eps ) THEN
 c            print*,"GMlimit3y",I,jm,l,RFYT,FYY(I,JM-1,L),FYZ(I,JM-1,L)
 c     *           ,BYY(I,JM-1,L),TR(I,JM-1,L),TR(1,JM,L)
             RFYT = 0.95d0*TRM(I,JM-1,L)
-          ELSEIF (RFYT.lt.-0.95d0*TRM(1,JM,L).and.ABS(RFYT).gt.1d-20)
-     *           THEN
+          ELSEIF (RFYT  < -0.95d0*TRM(1,JM,L).and.ABS(RFYT) > eps) THEN
 c            print*,"GMlimit4y",I,jm,l,RFYT,FYY(I,JM-1,L),FYZ(I,JM-1,L)
 c     *           ,BYY(I,JM-1,L),TR(I,JM-1,L),TRM(1,JM,L)
             RFYT = -0.95d0*TRM(1,JM,L)
@@ -394,11 +394,11 @@ C**** Calculate new tracer/salinity/enthalpy
         RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
         IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFZT.gt.0.95d0*TRM(I,J,L+1).and.ABS(RFZT).gt.1d-20) THEN
+          IF (RFZT >  0.95d0*TRM(I,J,L+1).and.ABS(RFZT) >  eps  ) THEN
 c            print*,"GMlimit1z",i,j,l,RFZT,FZZ(i,J,L),FZX(i,j,l),FZY(I,J
 c     *           ,L),BZZ(I,J,L),TR(I,J,L+1),TR(I,J,L)
             RFZT = 0.95d0*TRM(I,J,L+1)
-          ELSEIF (RFZT.lt.-0.95d0*TRM(I,J,L).and.ABS(RFZT).gt.1d-20)
+          ELSEIF (RFZT <  -0.95d0*TRM(I,J,L).and.ABS(RFZT) >  eps  )
      *           THEN
 c            print*,"GMlimit2z",i,j,l,RFZT,FZZ(i,J,L),FZX(i,j,l),FZY(I,J
 c     *           ,L),BZZ(I,J,L),TR(I,J,L+1),TR(I,J,L)
@@ -435,12 +435,11 @@ C**** Calculate new tracer/salinity/enthalpy
         RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
         IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFZT.gt.0.95d0*TRM(1,JM,L+1).and.ABS(RFZT).gt.1d-20) THEN
+          IF (RFZT >  0.95d0*TRM(1,JM,L+1).and.ABS(RFZT) > eps) THEN
 c            print*,"GMlimit3z",1,jm,l,RFZT,FZZ(1,JM,L),FZY(1,JM
 c     *           ,L),BZZ(1,JM,L),TR(1,JM,L+1),TR(1,JM,L)
             RFZT = 0.95d0*TRM(1,JM,L+1)
-          ELSEIF (RFZT.lt.-0.95d0*TRM(1,JM,L).and.ABS(RFZT).gt.1d-20)
-     *           THEN
+          ELSEIF (RFZT < -0.95d0*TRM(1,JM,L).and.ABS(RFZT) > eps) THEN
 c            print*,"GMlimit4z",1,jm,l,RFZT,FZZ(1,JM,L),FZY(1,JM
 c     *           ,L),BZZ(1,JM,L),TR(1,JM,L+1),TR(1,JM,L)
             RFZT = -0.95d0*TRM(1,JM,L)
