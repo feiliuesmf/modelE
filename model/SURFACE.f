@@ -341,6 +341,11 @@ C**** Set up tracers for PBL calculation if required
       idx4(:n_idx1)   = idx1
       idx4(n_idx1+1:) = idx2
 
+#ifdef TRACERS_ON
+#  ifdef TRACERS_GASEXCH_Natassa
+      trgasex(:,:,:,:) = 0. 
+#  endif
+#endif
 
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
@@ -375,11 +380,6 @@ C****
 !$OMP*  )
 !$OMP*  SCHEDULE(DYNAMIC,2)
 C
-#ifdef TRACERS_ON
-#  ifdef TRACERS_GASEXCH_Natassa
-      trgasex(:,:,:,:) = 0. 
-#  endif
-#endif
       DO J=J_0,J_1
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
