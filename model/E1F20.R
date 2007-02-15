@@ -97,8 +97,8 @@ Kvflxo=0        ! use =1 to save VFLXO daily ONLY to prepare for q-flux runs
 ocn_cycl=1      ! =0 if ocean varies from year to year
 
 ! drag params if grav.wave drag is not used and top is at .01mb
-X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)
-C_SDRAG=.0002       ! constant SDRAG above PTOP=150mb
+X_SDRAG=.004,.0004  ! used above P(P)_sdrag mb (and in top layer)
+C_SDRAG=.0004       ! constant SDRAG above PTOP=150mb
 P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
 PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
