@@ -596,13 +596,12 @@ c***********************************************************************
       integer variable_lk
 
       ! Indexes used for adiurn and hdiurn
+      INTEGER, PARAMETER :: n_idx = 22
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: n_idx=28
+      INTEGER,PARAMETER :: n_idxd=6
 #else
 #ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: n_idx=114
-#else
-      INTEGER, PARAMETER :: n_idx = 22
+      INTEGER,PARAMETER :: n_idxd=92
 #endif
 #endif
 
@@ -660,7 +659,7 @@ c****
 
       use diag_com , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
      &     ,j_tsrf,j_tg1,j_tg2,areg,jreg,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
-     &     ,adiurn,NDIUPT
+     &     ,adiurn,NDIUPT,adiurn_dust
 #ifndef NO_HDIURN
      &     ,hdiurn
 #endif
@@ -733,8 +732,22 @@ C**** Work array for regional diagnostic accumulation
 #ifndef NO_HDIURN
      *     ,HDIURNSUM
 #endif
-      INTEGER :: ih, ihm, ii, ivar, kr
       INTEGER :: idx(n_idx)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: adiurn_tempd
+#ifndef NO_HDIURN
+      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: hdiurn_tempd
+#endif
+      REAL*8, DIMENSION(n_idxd, NDIUPT) :: ADIURNSUMd
+#ifndef NO_HDIURN
+     *     ,HDIURNSUMd
+#endif
+      INTEGER :: idxd(n_idxd)
+#endif
+      INTEGER :: ih, ihm, ii, ivar, kr
 #ifdef TRACERS_DUST
       INTEGER :: n,n1
 #endif
@@ -779,11 +792,11 @@ C**** halo update u and v for distributed parallelization
      &        idd_lwg, idd_sh,  idd_lh,  idd_hz0, idd_ug,
      &        idd_vg,  idd_wg,  idd_us,  idd_vs,  idd_ws,
      &        idd_cia, idd_cm,  idd_ch,  idd_cq,  idd_eds,
-     &        idd_dbl, idd_ev
+     &        idd_dbl, idd_ev /)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &      ,idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
-#endif
+      IF (adiurn_dust == 1) THEN
+        idxd=(/ idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
 #ifdef TRACERS_DUST
      &      ,idd_emis,   idd_emis2,  idd_turb,   idd_grav,   idd_ws2
      &      ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl
@@ -805,6 +818,8 @@ C**** halo update u and v for distributed parallelization
      &      ,idd_ri7
 #endif
      &      /)
+      END IF
+#endif
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
@@ -1027,6 +1042,10 @@ c****
 #ifdef TRACERS_DUST
      &     ,n,n1
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,idxd
+#endif
      &     )
 
 c**** update tracers
@@ -1058,12 +1077,35 @@ c**** update tracers
           HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
 #endif
         END DO
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (adiurn_dust == 1) THEN
+          DO ii=1,n_idxd
+            ivar=idxd(ii)
+            ADIURN_tempd(ii,:,kr)=ADIURN_part(:,ivar,kr)
+#ifndef NO_HDIURN
+            HDIURN_tempd(ii,:,kr)=HDIURN_part(:,ivar,kr)
+#endif
+          END DO
+        END IF
+#endif
       END DO
       CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX,:,1:ndiupt),
      &    ADIURNSUM(1:N_IDX,1:ndiupt))
 #ifndef NO_HDIURN
       CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX,:,1:ndiupt),
      &    HDIURNSUM(1:N_IDX,1:ndiupt))
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (adiurn_dust == 1) THEN
+        CALL GLOBALSUM(grid,ADIURN_tempd(1:n_idxd,:,1:ndiupt),
+     &       ADIURNSUMd(1:n_idxd,1:ndiupt))
+#ifndef NO_HDIURN
+        CALL GLOBALSUM(grid,HDIURN_tempd(1:n_idxd,:,1:ndiupt),
+     &       HDIURNSUMd(1:n_idxd,1:ndiupt))
+#endif
+      END IF
 #endif
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX
@@ -1075,6 +1117,20 @@ c**** update tracers
 #endif
           END IF
         END DO
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        IF (adiurn_dust == 1) THEN
+          DO ii=1,n_idxd
+            ivar=idxd(ii)
+            IF (AM_I_ROOT()) THEN
+              ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUMd(ii,kr)
+#ifndef NO_HDIURN
+              HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUMd(ii,kr)
+#endif
+            END IF
+          END DO
+        END IF
+#endif
       END DO
 
 C***Initialize work array
@@ -1149,6 +1205,10 @@ c***********************************************************************
 #endif
 #ifdef TRACERS_DUST
      &     ,n,n1
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,idxd
 #endif
      &     )
 
@@ -1229,6 +1289,10 @@ c***********************************************************************
      &     NDIUVAR, NDIUPT) :: hdiurn_part
 #endif
       INTEGER, INTENT(IN) :: idx(:)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      INTEGER,INTENT(IN) :: idxd(:)
+#endif
 
       real*8 timez
       real*8 trhdt,tg2av,wtr2av,ace2av,tg1,shdt,ptype,srheat,srhdt
@@ -1437,6 +1501,14 @@ c**** quantities accumulated hourly for diagDD
             tmp(idd_eds)=+khs*ptype
             tmp(idd_dbl)=+dbl*ptype
             tmp(idd_ev)=+aevap*ptype
+
+            ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
+     *           tmp(idx(:))
+#ifndef NO_HDIURN
+            HDIURN_part(J,idx(:),kr)=HDIURN_part(J,idx(:),kr) +
+     *           tmp(idx(:))
+#endif
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
             IF (adiurn_dust == 1) THEN
@@ -1446,11 +1518,7 @@ c**** quantities accumulated hourly for diagDD
               tmp(idd_wd)=+wsubwd*ptype
               tmp(idd_wm)=+wsubwm*ptype
               tmp(idd_wtrsh)=+wtrsh*ptype
-            END IF
-#endif
 #ifdef TRACERS_DUST
-            IF (adiurn_dust == 1) THEN
-
               tmp(idd_emis)=0.D0
               tmp(idd_emis2)=0.D0
               tmp(idd_turb)=0.D0
@@ -1468,7 +1536,6 @@ c**** quantities accumulated hourly for diagDD
                 END IF
 #endif
               END DO
-
               tmp(idd_ws2)=+ws*ws*ptype
               tmp(idd_ustar)=+pbl_args%ustar*ptype
               tmp(idd_us3)=+ptype*pbl_args%ustar*pbl_args%ustar
@@ -1580,17 +1647,16 @@ c**** quantities accumulated hourly for diagDD
               tmp(idd_ri5)=+ptype*gh(5)/(gm(5)+1.d-20)
               tmp(idd_ri6)=+ptype*gh(6)/(gm(6)+1.d-20)
               tmp(idd_ri7)=+ptype*gh(7)/(gm(7)+1.d-20)
+#endif
 
+              ADIURN_part(J,idxd(:),kr)=ADIURN_part(J,idxd(:),kr) +
+     *             tmp(idxd(:))
+#ifndef NO_HDIURN
+              HDIURN_part(J,idxd(:),kr)=HDIURN_part(J,idxd(:),kr) +
+     *             tmp(idxd(:))
+#endif
             END IF
 #endif
-
-            ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
-     *           tmp(idx(:))
-#ifndef NO_HDIURN
-            HDIURN_part(J,idx(:),kr)=HDIURN_part(J,idx(:),kr) +
-     *           tmp(idx(:))
-#endif
-
           end if
         end do
       endif

@@ -204,31 +204,42 @@ c
 #endif
 
       INTEGER, PARAMETER :: n_idx1 = 11
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: n_idx2=27
-#else
-#ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: n_idx2=111
-#else
       INTEGER, PARAMETER :: n_idx2 = 22
-#endif
-#endif
       INTEGER, PARAMETER :: n_idx3 = 2
       INTEGER, PARAMETER :: n_idx4 = n_idx1+n_idx2
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      INTEGER,PARAMETER :: n_idxd=5
+#else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: n_idxd=89
+#endif
+#endif
 
       REAL*8, DIMENSION(n_idx4,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: diurn_part
       REAL*8,
      &     DIMENSION(n_idx3,grid%J_STRT_HALO:grid%J_STOP_HALO,NDIUPT)::
      &     diurn_partb
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,n_idx3)::
-     &     diurn_temp
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      REAL*8,
+     &     DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,NDIUPT) ::
+     &     diurn_partd
+#endif
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
       INTEGER :: idx4(n_idx1+n_idx2)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      INTEGER :: idxd(n_idxd)
+#endif
       REAL*8 :: tmp(NDIUVAR)
       INTEGER :: ii, ivar
       REAL*8, DIMENSION(n_idx4, NDIUPT) :: DIURNSUM
       REAL*8, DIMENSION(n_idx3, NDIUPT) :: DIURNSUMb
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      REAL*8,DIMENSION(n_idxd, NDIUPT) :: DIURNSUMd
+#endif
       INTEGER, PARAMETER :: n_areg = 7
       REAL*8, DIMENSION(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,n_areg)::
      *     AREG_part
@@ -312,34 +323,41 @@ C**** Set up tracers for PBL calculation if required
      &          IDD_LWG, IDD_SH,  IDD_LH,  IDD_HZ0, IDD_UG,
      &          IDD_VG,  IDD_WG,  IDD_US,  IDD_VS,  IDD_WS,
      &          IDD_CIA, IDD_CM,  IDD_CH,  IDD_CQ,  IDD_EDS,
-     &          IDD_DBL, IDD_EV
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *     ,idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf
-#endif
-#ifdef TRACERS_DUST
-     *     ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon
-     *     ,idd_rifl,idd_zpbl1,idd_zpbl2,idd_zpbl3,idd_zpbl4
-     *     ,idd_zpbl5,idd_zpbl6,idd_zpbl7,idd_zpbl8
-     *     ,idd_uabl1,idd_uabl2,idd_uabl3,idd_uabl4,idd_uabl5
-     *     ,idd_uabl6,idd_uabl7,idd_uabl8,idd_vabl1,idd_vabl2
-     *     ,idd_vabl3,idd_vabl4,idd_vabl5,idd_vabl6,idd_vabl7
-     *     ,idd_vabl8,idd_uvabl1,idd_uvabl2,idd_uvabl3
-     *     ,idd_uvabl4,idd_uvabl5,idd_uvabl6,idd_uvabl7
-     *     ,idd_uvabl8,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4
-     *     ,idd_tabl5,idd_tabl6,idd_tabl7,idd_tabl8,idd_qabl1
-     *     ,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
-     *     ,idd_qabl7,idd_qabl8,idd_zhat1,idd_zhat2,idd_zhat3
-     *     ,idd_zhat4,idd_zhat5,idd_zhat6,idd_zhat7,idd_e1,idd_e2
-     *     ,idd_e3,idd_e4,idd_e5,idd_e6,idd_e7,idd_km1,idd_km2
-     *     ,idd_km3,idd_km4,idd_km5,idd_km6,idd_km7,idd_ri1,idd_ri2
-     *     ,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
-     &     ,idd_grav,idd_turb
-#endif
-     &     /)
+     &          IDD_DBL, IDD_EV /)
       idx3 = (/ IDD_DCF, IDD_LDC /)
       idx4(:n_idx1)   = idx1
       idx4(n_idx1+1:) = idx2
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+
+      IF (adiurn_dust == 1) THEN
+
+        diurn_partd=0.D0
+
+        idxd=(/idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf
+#ifdef TRACERS_DUST
+     *     ,idd_ws2,    idd_ustar,  idd_us3,    idd_stress, idd_lmon
+     *     ,idd_rifl,   idd_zpbl1,  idd_zpbl2,  idd_zpbl3,  idd_zpbl4
+     *     ,idd_zpbl5,  idd_zpbl6,  idd_zpbl7,  idd_zpbl8,  idd_uabl1
+     *     ,idd_uabl2,  idd_uabl3,  idd_uabl4,  idd_uabl5,  idd_uabl6
+     *     ,idd_uabl7,  idd_uabl8,  idd_vabl1,  idd_vabl2,  idd_vabl3
+     *     ,idd_vabl4,  idd_vabl5,  idd_vabl6,  idd_vabl7,  idd_vabl8
+     *     ,idd_uvabl1, idd_uvabl2, idd_uvabl3, idd_uvabl4, idd_uvabl5
+     *     ,idd_uvabl6, idd_uvabl7, idd_uvabl8, idd_tabl1,  idd_tabl2
+     *     ,idd_tabl3,  idd_tabl4,  idd_tabl5,  idd_tabl6,  idd_tabl7
+     *     ,idd_tabl8,  idd_qabl1,  idd_qabl2,  idd_qabl3,  idd_qabl4
+     *     ,idd_qabl5,  idd_qabl6,  idd_qabl7,  idd_qabl8,  idd_zhat1
+     *     ,idd_zhat2,  idd_zhat3,  idd_zhat4,  idd_zhat5,  idd_zhat6
+     *     ,idd_zhat7,  idd_e1,     idd_e2,     idd_e3,     idd_e4
+     *     ,idd_e5,     idd_e6,     idd_e7,     idd_km1,    idd_km2
+     *     ,idd_km3,    idd_km4,    idd_km5,    idd_km6,    idd_km7
+     *     ,idd_ri1,    idd_ri2,    idd_ri3,    idd_ri4,    idd_ri5
+     &     ,idd_ri6,    idd_ri7,    idd_grav,   idd_turb
+#endif
+     &       /)
+      END IF
+#endif
 
 #ifdef TRACERS_ON
 #  ifdef TRACERS_GASEXCH_Natassa
@@ -1078,19 +1096,18 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               tmp(IDD_DBL)=+pbl_args%DBL*PTYPE
               tmp(IDD_EV)=+EVAP*PTYPE
 
+              DIURN_part(n_idx1+1:n_idx4,J,kr)=
+     &             DIURN_part(n_idx1+1:n_idx4,J,kr)+tmp(idx2(:))
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-            IF (adiurn_dust == 1) THEN
-              tmp(idd_wsgcm)=+pbl_args%wsgcm*ptype
-              tmp(idd_wspdf)=+pbl_args%wspdf*ptype
-              tmp(idd_wtke)=+wsubtke*ptype
-              tmp(idd_wd)=+wsubwd*ptype
-              tmp(idd_wm)=+wsubwm*ptype
-            END IF
-#endif
-#ifdef TRACERS_DUST
               IF (adiurn_dust == 1) THEN
-
+                tmp(idd_wsgcm)=+pbl_args%wsgcm*ptype
+                tmp(idd_wspdf)=+pbl_args%wspdf*ptype
+                tmp(idd_wtke)=+wsubtke*ptype
+                tmp(idd_wd)=+wsubwd*ptype
+                tmp(idd_wm)=+wsubwm*ptype
+#ifdef TRACERS_DUST
                 tmp(idd_turb)=0.D0
                 tmp(idd_grav)=0.D0
 #ifdef TRACERS_DRYDEP
@@ -1102,7 +1119,6 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                   END IF
                 END DO
 #endif
-
                 tmp(idd_ws2)=+ws*ws*ptype
                 tmp(idd_ustar)=+pbl_args%ustar*ptype
                 tmp(idd_us3)=+ptype*pbl_args%ustar**3
@@ -1213,11 +1229,10 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_ri5)=+ptype*gh(5)/(gm(5)+1.d-20)
                 tmp(idd_ri6)=+ptype*gh(6)/(gm(6)+1.d-20)
                 tmp(idd_ri7)=+ptype*gh(7)/(gm(7)+1.d-20)
-
+#endif
+                DIURN_partd(:,J,kr)=DIURN_partd(:,J,kr)+tmp(idxd(:))
               END IF
 #endif
-              DIURN_part(n_idx1+1:n_idx4,J,kr)=
-     &             DIURN_part(n_idx1+1:n_idx4,J,kr)+tmp(idx2(:))
             END IF
           END DO
         END IF
@@ -1306,10 +1321,25 @@ C****
 
       CALL GLOBALSUM(grid, DIURN_part, DIURNSUM)
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (adiurn_dust == 1)
+     &   CALL globalsum(grid,diurn_partd,diurnsumd)
+#endif
+
       IF (AM_I_ROOT()) THEN
          ADIURN(ih,idx4,:)=ADIURN(ih,idx4,:)   + DIURNSUM
 #ifndef NO_HDIURN
          HDIURN(ihm,idx4,:)=HDIURN(ihm,idx4,:) + DIURNSUM
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+         IF (adiurn_dust == 1) THEN
+           adiurn(ih,idxd,:)=adiurn(ih,idxd,:)+diurnsumd
+#ifndef NO_HDIURN
+           hdiurn(ihm,idxd,:)=hdiurn(ihm,idxd,:)+diurnsumd
+#endif
+         END IF
 #endif
       END IF
 
