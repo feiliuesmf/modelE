@@ -288,7 +288,10 @@
       use icedyn, only : imic
       use diag_com, only : keynr,tsfrez,tdiurn,oa
       use diag_com, only : aj,areg,apj,ajl,asjl,aij,ail,energy,consrv &
-           ,speca,atpe,adiurn,wave,ajk,aijk,aisccp,hdiurn
+           ,speca,atpe,adiurn,wave,ajk,aijk,aisccp
+#ifndef NO_HDIURN
+      use diag_com, only : hdiurn
+#endif
       use model_com, only : idacc
 
 #ifdef CHECK_OCEAN
@@ -547,7 +550,9 @@
         check("ajk",ajk)
         check("aijk",aijk)
         check("aisccp",aisccp)
+#ifndef NO_HDIURN
         check("hdiurn",hdiurn)
+#endif
 
         ! diags
         check("KEYNR",KEYNR)
