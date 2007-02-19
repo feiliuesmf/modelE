@@ -10017,6 +10017,8 @@ C**** at the start of any day
 
 #ifdef TRACERS_GASEXCH_Natassa
       integer :: i_ocmip,imax
+      real*8  :: factor
+      real*8  :: trsource_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(ntm) :: trsource_glbavg
 #endif
 
@@ -10155,15 +10157,21 @@ C**** Source over Australia and New Zealand
 #ifdef TRACERS_GASEXCH_Natassa
         sarea  = 0.
         trsource_glbavg(n)=0.
-        do j=1,46
+        sarea_prt(:)  = 0.
+        trsource_prt(:) = 0.
+        do j=J_0,J_1
          imax=72
          if (j .eq. 1 .or. j .eq. 46) imax=1
           do i=1,imax
-           sarea = sarea + dxyp(j)*fearth(i,j)
-           trsource_glbavg(n)=trsource_glbavg(n)
-     .                    + trsource(i,j,1,n)*dxyp(j)*fearth(i,j)
+           factor = dxyp(j)*fearth(i,j)
+           sarea_prt(j)= sarea_prt(j) + FACTOR
+           trsource_prt(j) = trsource_prt(j) + trsource(i,j,1,n)*FACTOR
           enddo
         enddo
+
+        CALL GLOBALSUM(grid, sarea_prt,    sarea, all=.true.)
+        CALL GLOBALSUM(grid,trsource_prt,trsource_glbavg(n),all=.true.)
+
         trsource_glbavg(n)=trsource_glbavg(n)/sarea
 
         !weight trsource by ocmip_cfc global average
@@ -10173,7 +10181,7 @@ C**** Source over Australia and New Zealand
      .     write(6,'(a,2i5)'),
      .             'TRACERS_DRV, new year: itime, i_ocmip=',
      .             itime,i_ocmip
-        do j=1,46
+        do j=J_0,J_1 ! TNL
           do i=1,72
 
 cdiag     write(6,'(a,2i5,2e12.4,i5,4e12.4)')'TRACERS_DRV '
@@ -10193,29 +10201,23 @@ cdiag.          JDperY,hrday,dtsrc,3600,trsource_glbavg(n)
         !recompute global average after weighting in OCMIP
         sarea  = 0.
         trsource_glbavg(n)=0.
-        do j=1,46
+        sarea_prt(:)  = 0.
+        trsource_prt(:) = 0.
+        do j=J_0,J_1
          imax=72
          if (j .eq. 1 .or. j .eq. 46) imax=1
           do i=1,imax
-           sarea = sarea + dxyp(j)*fearth(i,j)
-           trsource_glbavg(n)=trsource_glbavg(n)
-     .                    + trsource(i,j,1,n)*dxyp(j)*fearth(i,j)
-cdiag     write(6,'(a,3i5,i10,5e12.4)')'TRACERS_DRV '
-cdiag.         ,i,j,itime_tr0(n),i_ocmip
-cdiag.         ,sarea,trsource(i,j,1,n),dxyp(j)
-cdiag.         ,fearth(i,j),trsource_glbavg(n)
+           factor = dxyp(j)*fearth(i,j)
+           sarea_prt(j)= sarea_prt(j) + FACTOR
+           trsource_prt(j) = trsource_prt(j) + trsource(i,j,1,n)*FACTOR
           enddo
         enddo
+
+        CALL GLOBALSUM(grid, sarea_prt,    sarea, all=.true.)
+        CALL GLOBALSUM(grid,trsource_prt,trsource_glbavg(n),all=.true.)
+
         trsource_glbavg(n)=trsource_glbavg(n)/sarea
 
-cdiag   do j=1,46
-cdiag     do i=1,72
-cdiag     write(6,'(a,3i5,i10,3e12.4)')'TRACERS_DRV '
-cdiag.         ,i,j,itime_tr0(n),i_ocmip
-cdiag.         ,ocmip_cfc(i_ocmip,n),trsource(i,j,1,n)
-cdiag.         ,trsource_glbavg(n)
-cdiag     enddo
-cdiag   enddo
 #endif
 
 C****
