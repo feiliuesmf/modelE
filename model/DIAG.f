@@ -4116,14 +4116,17 @@ c****
 !@+   for diurnal cycle diagnostics
 !@auth Reha Cakmur/Jan Perlwitz
 
-      USE MODEL_COM, only : u,v,t,p,q,jhour,ptop,sig
+      USE MODEL_COM, only : u,v,t,p,q,jdate,jhour,ptop,sig
       USE CONSTANT, only : bygrav
-      USE domain_decomp,ONLY : grid,get
+      USE domain_decomp,ONLY : am_i_root,get,globalsum,grid
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE DYNAMICS, only : phi,wsave,pek,byam
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
-      USE diag_com,ONLY : adiurn_dust,ndiupt,ijdd,adiurn
+      USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,ijdd,adiurn
+#ifndef NO_HDIURN
+     &     ,hdiurn
+#endif
 #ifdef TRACERS_DUST
      *     ,idd_u1,idd_u2,idd_u3,idd_u4,idd_u5,idd_u6,idd_u7
      *     ,idd_u8,idd_u9,idd_u10,idd_u11,idd_v1,idd_v2,idd_v3,idd_v4
@@ -4158,8 +4161,17 @@ c****
      &     ,Ntm_dust,n_clay
 #endif
 #endif
-      INTEGER :: i,j,ih,kr,n,n1,nx
+
+      IMPLICIT NONE
+
+      INTEGER :: i,j,ih,ihm,kr,n,n1,nx
       REAL*8 :: psk
+      INTEGER,PARAMETER :: n_idxd=154
+      INTEGER :: idxd(n_idxd)
+      REAL*8 :: tmp(NDIUVAR)
+      REAL*8,DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: diurn_partd
+      REAL*8,DIMENSION(n_idxd, NDIUPT) :: diurnsumd
 
 C****   define local grid
       INTEGER J_0, J_1
@@ -4169,7 +4181,48 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL get(grid, J_STRT=J_0, J_STOP=J_1)
 
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) THEN
+
+        diurn_partd=0.D0
+
+        idxd=(/
+     &      idd_u1,     idd_u2,     idd_u3,      idd_u4,     idd_u5
+     &     ,idd_u6,     idd_u7,     idd_u8,      idd_u9,     idd_u10
+     &     ,idd_u11,    idd_v1,     idd_v2,      idd_v3,     idd_v4
+     &     ,idd_v5,     idd_v6,     idd_v7,      idd_v8,     idd_v9
+     &     ,idd_v10,    idd_v11,    idd_uv1,     idd_uv2,    idd_uv3
+     &     ,idd_uv4,    idd_uv5,    idd_uv6,     idd_uv7,    idd_uv8
+     &     ,idd_uv9,    idd_uv10,   idd_uv11,    idd_t1,     idd_t2
+     &     ,idd_t3,     idd_t4,     idd_t5,      idd_t6,     idd_t7
+     &     ,idd_t8,     idd_t9,     idd_t10,     idd_t11,    idd_qq1
+     &     ,idd_qq2,    idd_qq3,    idd_qq4,     idd_qq5,    idd_qq6
+     &     ,idd_qq7,    idd_qq8,    idd_qq9,     idd_qq10,   idd_qq11
+     &     ,idd_p1,     idd_p2,     idd_p3,      idd_p4,     idd_p5
+     &     ,idd_p6,     idd_p7,     idd_p8,      idd_p9,     idd_p10
+     &     ,idd_p11,    idd_w1,     idd_w2,      idd_w3,     idd_w4
+     &     ,idd_w5,     idd_w6,     idd_w7,      idd_w8,     idd_w9
+     &     ,idd_w10,    idd_w11,    idd_phi1,    idd_phi2,   idd_phi3
+     &     ,idd_phi4,   idd_phi5,   idd_phi6,    idd_phi7,   idd_phi8
+     &     ,idd_phi9,   idd_phi10,  idd_phi11,   idd_sr1,    idd_sr2
+     &     ,idd_sr3,    idd_sr4,    idd_sr5,     idd_sr6,    idd_sr7
+     &     ,idd_sr8,    idd_sr9,    idd_sr10,    idd_sr11,   idd_tr1
+     &     ,idd_tr2,    idd_tr3,    idd_tr4,     idd_tr5,    idd_tr6
+     &     ,idd_tr7,    idd_tr8,    idd_tr9,     idd_tr10,   idd_tr11
+     &     ,idd_load1,  idd_load2,  idd_load3,   idd_load4,  idd_load5
+     &     ,idd_load6,  idd_load7,  idd_load8,   idd_load9,  idd_load10
+     &     ,idd_load11, idd_conc1,  idd_conc2,   idd_conc3,  idd_conc4
+     &     ,idd_conc5,  idd_conc6,  idd_conc7,   idd_conc8,  idd_conc9
+     &     ,idd_conc10, idd_conc11, idd_tau1,    idd_tau2,   idd_tau3
+     &     ,idd_tau4,   idd_tau5,   idd_tau6,    idd_tau7,   idd_tau8
+     &     ,idd_tau9,   idd_tau10,  idd_tau11,   idd_tau_cs1,idd_tau_cs2
+     &     ,idd_tau_cs3,idd_tau_cs4,idd_tau_cs5, idd_tau_cs6,idd_tau_cs7
+     &     ,idd_tau_cs8,idd_tau_cs9,idd_tau_cs10,idd_tau_cs11/)
+      END IF
+#endif
+
       ih=jhour+1
+      ihm=ih+(jdate-1)*24
 !$OMP PARALLEL DO PRIVATE(i,j,kr,n,psk,n1)
 !$OMP*   SCHEDULE(DYNAMIC,2)
       do j=j_0,j_1
@@ -4180,277 +4233,195 @@ C****
 #ifdef TRACERS_DUST
           IF (adiurn_dust == 1) THEN
 
-            adiurn(ih,idd_u1,kr)=adiurn(ih,idd_u1,kr)+u(i,j,1)
-            adiurn(ih,idd_u2,kr)=adiurn(ih,idd_u2,kr)+u(i,j,2)
-            adiurn(ih,idd_u3,kr)=adiurn(ih,idd_u3,kr)+u(i,j,3)
-            adiurn(ih,idd_u4,kr)=adiurn(ih,idd_u4,kr)+u(i,j,4)
-            adiurn(ih,idd_u5,kr)=adiurn(ih,idd_u5,kr)+u(i,j,5)
-            adiurn(ih,idd_u6,kr)=adiurn(ih,idd_u6,kr)+u(i,j,6)
-            adiurn(ih,idd_u7,kr)=adiurn(ih,idd_u7,kr)+u(i,j,7)
-            adiurn(ih,idd_u8,kr)=adiurn(ih,idd_u8,kr)+u(i,j,8)
-            adiurn(ih,idd_u9,kr)=adiurn(ih,idd_u9,kr)+u(i,j,9)
-            adiurn(ih,idd_u10,kr)=adiurn(ih,idd_u10,kr)+u(i,j,10)
-            adiurn(ih,idd_u11,kr)=adiurn(ih,idd_u11,kr)+u(i,j,11)
+            tmp=0.D0
 
-            adiurn(ih,idd_v1,kr)=adiurn(ih,idd_v1,kr)+v(i,j,1)
-            adiurn(ih,idd_v2,kr)=adiurn(ih,idd_v2,kr)+v(i,j,2)
-            adiurn(ih,idd_v3,kr)=adiurn(ih,idd_v3,kr)+v(i,j,3)
-            adiurn(ih,idd_v4,kr)=adiurn(ih,idd_v4,kr)+v(i,j,4)
-            adiurn(ih,idd_v5,kr)=adiurn(ih,idd_v5,kr)+v(i,j,5)
-            adiurn(ih,idd_v6,kr)=adiurn(ih,idd_v6,kr)+v(i,j,6)
-            adiurn(ih,idd_v7,kr)=adiurn(ih,idd_v7,kr)+v(i,j,7)
-            adiurn(ih,idd_v8,kr)=adiurn(ih,idd_v8,kr)+v(i,j,8)
-            adiurn(ih,idd_v9,kr)=adiurn(ih,idd_v9,kr)+v(i,j,9)
-            adiurn(ih,idd_v10,kr)=adiurn(ih,idd_v10,kr)+v(i,j,10)
-            adiurn(ih,idd_v11,kr)=adiurn(ih,idd_v11,kr)+v(i,j,11)
+            tmp(idd_u1)=+u(i,j,1)
+            tmp(idd_u2)=+u(i,j,2)
+            tmp(idd_u3)=+u(i,j,3)
+            tmp(idd_u4)=+u(i,j,4)
+            tmp(idd_u5)=+u(i,j,5)
+            tmp(idd_u6)=+u(i,j,6)
+            tmp(idd_u7)=+u(i,j,7)
+            tmp(idd_u8)=+u(i,j,8)
+            tmp(idd_u9)=+u(i,j,9)
+            tmp(idd_u10)=+u(i,j,10)
+            tmp(idd_u11)=+u(i,j,11)
 
-            adiurn(ih,idd_uv1,kr)=adiurn(ih,idd_uv1,kr)
-     *           +sqrt( u(i,j,1)*u(i,j,1) + v(i,j,1)*v(i,j,1))
-            adiurn(ih,idd_uv2,kr)=adiurn(ih,idd_uv2,kr)
-     *           +sqrt( u(i,j,2)*u(i,j,2) + v(i,j,2)*v(i,j,2))
-            adiurn(ih,idd_uv3,kr)=adiurn(ih,idd_uv3,kr)
-     *           +sqrt( u(i,j,3)*u(i,j,3) + v(i,j,3)*v(i,j,3))
-            adiurn(ih,idd_uv4,kr)=adiurn(ih,idd_uv4,kr)
-     *           +sqrt( u(i,j,4)*u(i,j,4) + v(i,j,4)*v(i,j,4))
-            adiurn(ih,idd_uv5,kr)=adiurn(ih,idd_uv5,kr)
-     *           +sqrt( u(i,j,5)*u(i,j,5) + v(i,j,5)*v(i,j,5))
-            adiurn(ih,idd_uv6,kr)=adiurn(ih,idd_uv6,kr)
-     *           +sqrt( u(i,j,6)*u(i,j,6) + v(i,j,6)*v(i,j,6))
-            adiurn(ih,idd_uv7,kr)=adiurn(ih,idd_uv7,kr)
-     *           +sqrt( u(i,j,7)*u(i,j,7) + v(i,j,7)*v(i,j,7))
-            adiurn(ih,idd_uv8,kr)=adiurn(ih,idd_uv8,kr)
-     *           +sqrt( u(i,j,8)*u(i,j,8) + v(i,j,8)*v(i,j,8))
-            adiurn(ih,idd_uv9,kr)=adiurn(ih,idd_uv9,kr)
-     *           +sqrt( u(i,j,9)*u(i,j,9) + v(i,j,9)*v(i,j,9))
-            adiurn(ih,idd_uv10,kr)=adiurn(ih,idd_uv10,kr)
-     *           +sqrt( u(i,j,10)*u(i,j,10) + v(i,j,10)*v(i,j,10))
-            adiurn(ih,idd_uv11,kr)=adiurn(ih,idd_uv11,kr)
-     *           +sqrt( u(i,j,11)*u(i,j,11) + v(i,j,11)*v(i,j,11))
+            tmp(idd_v1)=+v(i,j,1)
+            tmp(idd_v2)=+v(i,j,2)
+            tmp(idd_v3)=+v(i,j,3)
+            tmp(idd_v4)=+v(i,j,4)
+            tmp(idd_v5)=+v(i,j,5)
+            tmp(idd_v6)=+v(i,j,6)
+            tmp(idd_v7)=+v(i,j,7)
+            tmp(idd_v8)=+v(i,j,8)
+            tmp(idd_v9)=+v(i,j,9)
+            tmp(idd_v10)=+v(i,j,10)
+            tmp(idd_v11)=+v(i,j,11)
 
-            adiurn(ih,idd_t1,kr)=adiurn(ih,idd_t1,kr)+t(i,j,1)*psk
-            adiurn(ih,idd_t2,kr)=adiurn(ih,idd_t2,kr)+t(i,j,2)*psk
-            adiurn(ih,idd_t3,kr)=adiurn(ih,idd_t3,kr)+t(i,j,3)*psk
-            adiurn(ih,idd_t4,kr)=adiurn(ih,idd_t4,kr)+t(i,j,4)*psk
-            adiurn(ih,idd_t5,kr)=adiurn(ih,idd_t5,kr)+t(i,j,5)*psk
-            adiurn(ih,idd_t6,kr)=adiurn(ih,idd_t6,kr)+t(i,j,6)*psk
-            adiurn(ih,idd_t7,kr)=adiurn(ih,idd_t7,kr)+t(i,j,7)*psk
-            adiurn(ih,idd_t8,kr)=adiurn(ih,idd_t8,kr)+t(i,j,8)*psk
-            adiurn(ih,idd_t9,kr)=adiurn(ih,idd_t9,kr)+t(i,j,9)*psk
-            adiurn(ih,idd_t10,kr)=adiurn(ih,idd_t10,kr)+t(i,j,10)*psk
-            adiurn(ih,idd_t11,kr)=adiurn(ih,idd_t11,kr)+t(i,j,11)*psk
+            tmp(idd_uv1)=+sqrt(u(i,j,1)*u(i,j,1)+v(i,j,1)*v(i,j,1))
+            tmp(idd_uv2)=+sqrt(u(i,j,2)*u(i,j,2)+v(i,j,2)*v(i,j,2))
+            tmp(idd_uv3)=+sqrt(u(i,j,3)*u(i,j,3)+v(i,j,3)*v(i,j,3))
+            tmp(idd_uv4)=+sqrt(u(i,j,4)*u(i,j,4)+v(i,j,4)*v(i,j,4))
+            tmp(idd_uv5)=+sqrt(u(i,j,5)*u(i,j,5)+v(i,j,5)*v(i,j,5))
+            tmp(idd_uv6)=+sqrt(u(i,j,6)*u(i,j,6)+v(i,j,6)*v(i,j,6))
+            tmp(idd_uv7)=+sqrt(u(i,j,7)*u(i,j,7)+v(i,j,7)*v(i,j,7))
+            tmp(idd_uv8)=+sqrt(u(i,j,8)*u(i,j,8)+v(i,j,8)*v(i,j,8))
+            tmp(idd_uv9)=+sqrt(u(i,j,9)*u(i,j,9)+v(i,j,9)*v(i,j,9))
+            tmp(idd_uv10)=+sqrt(u(i,j,10)*u(i,j,10)+v(i,j,10)*v(i,j,10))
+            tmp(idd_uv11)=+sqrt(u(i,j,11)*u(i,j,11)+v(i,j,11)*v(i,j,11))
 
-            adiurn(ih,idd_qq1,kr)=adiurn(ih,idd_qq1,kr)+q(i,j,1)
-            adiurn(ih,idd_qq2,kr)=adiurn(ih,idd_qq2,kr)+q(i,j,2)
-            adiurn(ih,idd_qq3,kr)=adiurn(ih,idd_qq3,kr)+q(i,j,3)
-            adiurn(ih,idd_qq4,kr)=adiurn(ih,idd_qq4,kr)+q(i,j,4)
-            adiurn(ih,idd_qq5,kr)=adiurn(ih,idd_qq5,kr)+q(i,j,5)
-            adiurn(ih,idd_qq6,kr)=adiurn(ih,idd_qq6,kr)+q(i,j,6)
-            adiurn(ih,idd_qq7,kr)=adiurn(ih,idd_qq7,kr)+q(i,j,7)
-            adiurn(ih,idd_qq8,kr)=adiurn(ih,idd_qq8,kr)+q(i,j,8)
-            adiurn(ih,idd_qq9,kr)=adiurn(ih,idd_qq9,kr)+q(i,j,9)
-            adiurn(ih,idd_qq10,kr)=adiurn(ih,idd_qq10,kr)+q(i,j,10)
-            adiurn(ih,idd_qq11,kr)=adiurn(ih,idd_qq11,kr)+q(i,j,11)
+            tmp(idd_t1)=+t(i,j,1)*psk
+            tmp(idd_t2)=+t(i,j,2)*psk
+            tmp(idd_t3)=+t(i,j,3)*psk
+            tmp(idd_t4)=+t(i,j,4)*psk
+            tmp(idd_t5)=+t(i,j,5)*psk
+            tmp(idd_t6)=+t(i,j,6)*psk
+            tmp(idd_t7)=+t(i,j,7)*psk
+            tmp(idd_t8)=+t(i,j,8)*psk
+            tmp(idd_t9)=+t(i,j,9)*psk
+            tmp(idd_t10)=+t(i,j,10)*psk
+            tmp(idd_t11)=+t(i,j,11)*psk
 
-            adiurn(ih,idd_p1,kr)=adiurn(ih,idd_p1,kr)
-     *           +p(i,j)*sig(1)+ptop
-            adiurn(ih,idd_p2,kr)=adiurn(ih,idd_p2,kr)
-     *           +p(i,j)*sig(2)+ptop
-            adiurn(ih,idd_p3,kr)=adiurn(ih,idd_p3,kr)
-     *           +p(i,j)*sig(3)+ptop
-            adiurn(ih,idd_p4,kr)=adiurn(ih,idd_p4,kr)
-     *           +p(i,j)*sig(4)+ptop
-            adiurn(ih,idd_p5,kr)=adiurn(ih,idd_p5,kr)
-     *           +p(i,j)*sig(5)+ptop
-            adiurn(ih,idd_p6,kr)=adiurn(ih,idd_p6,kr)
-     *           +p(i,j)*sig(6)+ptop
-            adiurn(ih,idd_p7,kr)=adiurn(ih,idd_p7,kr)
-     *           +p(i,j)*sig(7)+ptop
-            adiurn(ih,idd_p8,kr)=adiurn(ih,idd_p8,kr)
-     *           +p(i,j)*sig(8)+ptop
-            adiurn(ih,idd_p9,kr)=adiurn(ih,idd_p9,kr)
-     *           +p(i,j)*sig(9)+ptop
-            adiurn(ih,idd_p10,kr)=adiurn(ih,idd_p10,kr)
-     *           +p(i,j)*sig(10)+ptop
-            adiurn(ih,idd_p11,kr)=adiurn(ih,idd_p11,kr)
-     *           +p(i,j)*sig(11)+ptop
+            tmp(idd_qq1)=+q(i,j,1)
+            tmp(idd_qq2)=+q(i,j,2)
+            tmp(idd_qq3)=+q(i,j,3)
+            tmp(idd_qq4)=+q(i,j,4)
+            tmp(idd_qq5)=+q(i,j,5)
+            tmp(idd_qq6)=+q(i,j,6)
+            tmp(idd_qq7)=+q(i,j,7)
+            tmp(idd_qq8)=+q(i,j,8)
+            tmp(idd_qq9)=+q(i,j,9)
+            tmp(idd_qq10)=+q(i,j,10)
+            tmp(idd_qq11)=+q(i,j,11)
 
-            adiurn(ih,idd_w1,kr)=adiurn(ih,idd_w1,kr)+wsave(i,j,1)
-            adiurn(ih,idd_w2,kr)=adiurn(ih,idd_w2,kr)+wsave(i,j,2)
-            adiurn(ih,idd_w3,kr)=adiurn(ih,idd_w3,kr)+wsave(i,j,3)
-            adiurn(ih,idd_w4,kr)=adiurn(ih,idd_w4,kr)+wsave(i,j,4)
-            adiurn(ih,idd_w5,kr)=adiurn(ih,idd_w5,kr)+wsave(i,j,5)
-            adiurn(ih,idd_w6,kr)=adiurn(ih,idd_w6,kr)+wsave(i,j,6)
-            adiurn(ih,idd_w7,kr)=adiurn(ih,idd_w7,kr)+wsave(i,j,7)
-            adiurn(ih,idd_w8,kr)=adiurn(ih,idd_w8,kr)+wsave(i,j,8)
-            adiurn(ih,idd_w9,kr)=adiurn(ih,idd_w9,kr)+wsave(i,j,9)
-            adiurn(ih,idd_w10,kr)=adiurn(ih,idd_w10,kr)+wsave(i,j,10)
-            adiurn(ih,idd_w11,kr)=adiurn(ih,idd_w11,kr)+wsave(i,j,11)
+            tmp(idd_p1)=+p(i,j)*sig(1)+ptop
+            tmp(idd_p2)=+p(i,j)*sig(2)+ptop
+            tmp(idd_p3)=+p(i,j)*sig(3)+ptop
+            tmp(idd_p4)=+p(i,j)*sig(4)+ptop
+            tmp(idd_p5)=+p(i,j)*sig(5)+ptop
+            tmp(idd_p6)=+p(i,j)*sig(6)+ptop
+            tmp(idd_p7)=+p(i,j)*sig(7)+ptop
+            tmp(idd_p8)=+p(i,j)*sig(8)+ptop
+            tmp(idd_p9)=+p(i,j)*sig(9)+ptop
+            tmp(idd_p10)=+p(i,j)*sig(10)+ptop
+            tmp(idd_p11)=+p(i,j)*sig(11)+ptop
 
-            adiurn(ih,idd_phi1,kr)=adiurn(ih,idd_phi1,kr)
-     *           +phi(i,j,1)*bygrav
-            adiurn(ih,idd_phi2,kr)=adiurn(ih,idd_phi2,kr)
-     *           +phi(i,j,2)*bygrav
-            adiurn(ih,idd_phi3,kr)=adiurn(ih,idd_phi3,kr)
-     *           +phi(i,j,3)*bygrav
-            adiurn(ih,idd_phi4,kr)=adiurn(ih,idd_phi4,kr)
-     *           +phi(i,j,4)*bygrav
-            adiurn(ih,idd_phi5,kr)=adiurn(ih,idd_phi5,kr)
-     *           +phi(i,j,5)*bygrav
-            adiurn(ih,idd_phi6,kr)=adiurn(ih,idd_phi6,kr)
-     *           +phi(i,j,6)*bygrav
-            adiurn(ih,idd_phi7,kr)=adiurn(ih,idd_phi7,kr)
-     *           +phi(i,j,7)*bygrav
-            adiurn(ih,idd_phi8,kr)=adiurn(ih,idd_phi8,kr)
-     *           +phi(i,j,8)*bygrav
-            adiurn(ih,idd_phi9,kr)=adiurn(ih,idd_phi9,kr)
-     *           +phi(i,j,9)*bygrav
-            adiurn(ih,idd_phi10,kr)=adiurn(ih,idd_phi10,kr)
-     *           +phi(i,j,10)*bygrav
-            adiurn(ih,idd_phi11,kr)=adiurn(ih,idd_phi11,kr)
-     *           +phi(i,j,11)*bygrav
+            tmp(idd_w1)=+wsave(i,j,1)
+            tmp(idd_w2)=+wsave(i,j,2)
+            tmp(idd_w3)=+wsave(i,j,3)
+            tmp(idd_w4)=+wsave(i,j,4)
+            tmp(idd_w5)=+wsave(i,j,5)
+            tmp(idd_w6)=+wsave(i,j,6)
+            tmp(idd_w7)=+wsave(i,j,7)
+            tmp(idd_w8)=+wsave(i,j,8)
+            tmp(idd_w9)=+wsave(i,j,9)
+            tmp(idd_w10)=+wsave(i,j,10)
+            tmp(idd_w11)=+wsave(i,j,11)
 
-            adiurn(ih,idd_sr1,kr)=adiurn(ih,idd_sr1,kr)
-     *           +srnflb_save(i,j,1)*cosz1(i,j)
-            adiurn(ih,idd_sr2,kr)=adiurn(ih,idd_sr2,kr)
-     *           +srnflb_save(i,j,2)*cosz1(i,j)
-            adiurn(ih,idd_sr3,kr)=adiurn(ih,idd_sr3,kr)
-     *           +srnflb_save(i,j,3)*cosz1(i,j)
-            adiurn(ih,idd_sr4,kr)=adiurn(ih,idd_sr4,kr)
-     *           +srnflb_save(i,j,4)*cosz1(i,j)
-            adiurn(ih,idd_sr5,kr)=adiurn(ih,idd_sr5,kr)
-     *           +srnflb_save(i,j,5)*cosz1(i,j)
-            adiurn(ih,idd_sr6,kr)=adiurn(ih,idd_sr6,kr)
-     *           +srnflb_save(i,j,6)*cosz1(i,j)
-            adiurn(ih,idd_sr7,kr)=adiurn(ih,idd_sr7,kr)
-     *           +srnflb_save(i,j,7)*cosz1(i,j)
-            adiurn(ih,idd_sr8,kr)=adiurn(ih,idd_sr8,kr)
-     *           +srnflb_save(i,j,8)*cosz1(i,j)
-            adiurn(ih,idd_sr9,kr)=adiurn(ih,idd_sr9,kr)
-     *           +srnflb_save(i,j,9)*cosz1(i,j)
-            adiurn(ih,idd_sr10,kr)=adiurn(ih,idd_sr10,kr)
-     *           +srnflb_save(i,j,10)*cosz1(i,j)
-            adiurn(ih,idd_sr11,kr)=adiurn(ih,idd_sr11,kr)
-     *           +srnflb_save(i,j,11)*cosz1(i,j)
+            tmp(idd_phi1)=+phi(i,j,1)*bygrav
+            tmp(idd_phi2)=+phi(i,j,2)*bygrav
+            tmp(idd_phi3)=+phi(i,j,3)*bygrav
+            tmp(idd_phi4)=+phi(i,j,4)*bygrav
+            tmp(idd_phi5)=+phi(i,j,5)*bygrav
+            tmp(idd_phi6)=+phi(i,j,6)*bygrav
+            tmp(idd_phi7)=+phi(i,j,7)*bygrav
+            tmp(idd_phi8)=+phi(i,j,8)*bygrav
+            tmp(idd_phi9)=+phi(i,j,9)*bygrav
+            tmp(idd_phi10)=+phi(i,j,10)*bygrav
+            tmp(idd_phi11)=+phi(i,j,11)*bygrav
 
-            adiurn(ih,idd_tr1,kr)=adiurn(ih,idd_tr1,kr)
-     *           +trnflb_save(i,j,1)
-            adiurn(ih,idd_tr2,kr)=adiurn(ih,idd_tr2,kr)
-     *           +trnflb_save(i,j,2)
-            adiurn(ih,idd_tr3,kr)=adiurn(ih,idd_tr3,kr)
-     *           +trnflb_save(i,j,3)
-            adiurn(ih,idd_tr4,kr)=adiurn(ih,idd_tr4,kr)
-     *           +trnflb_save(i,j,4)
-            adiurn(ih,idd_tr5,kr)=adiurn(ih,idd_tr5,kr)
-     *           +trnflb_save(i,j,5)
-            adiurn(ih,idd_tr6,kr)=adiurn(ih,idd_tr6,kr)
-     *           +trnflb_save(i,j,6)
-            adiurn(ih,idd_tr7,kr)=adiurn(ih,idd_tr7,kr)
-     *           +trnflb_save(i,j,7)
-            adiurn(ih,idd_tr8,kr)=adiurn(ih,idd_tr8,kr)
-     *           +trnflb_save(i,j,8)
-            adiurn(ih,idd_tr9,kr)=adiurn(ih,idd_tr9,kr)
-     *           +trnflb_save(i,j,9)
-            adiurn(ih,idd_tr10,kr)=adiurn(ih,idd_tr10,kr)
-     *           +trnflb_save(i,j,10)
-            adiurn(ih,idd_tr11,kr)=adiurn(ih,idd_tr11,kr)
-     *           +trnflb_save(i,j,11)
+            tmp(idd_sr1)=+srnflb_save(i,j,1)*cosz1(i,j)
+            tmp(idd_sr2)=+srnflb_save(i,j,2)*cosz1(i,j)
+            tmp(idd_sr3)=+srnflb_save(i,j,3)*cosz1(i,j)
+            tmp(idd_sr4)=+srnflb_save(i,j,4)*cosz1(i,j)
+            tmp(idd_sr5)=+srnflb_save(i,j,5)*cosz1(i,j)
+            tmp(idd_sr6)=+srnflb_save(i,j,6)*cosz1(i,j)
+            tmp(idd_sr7)=+srnflb_save(i,j,7)*cosz1(i,j)
+            tmp(idd_sr8)=+srnflb_save(i,j,8)*cosz1(i,j)
+            tmp(idd_sr9)=+srnflb_save(i,j,9)*cosz1(i,j)
+            tmp(idd_sr10)=+srnflb_save(i,j,10)*cosz1(i,j)
+            tmp(idd_sr11)=+srnflb_save(i,j,11)*cosz1(i,j)
+
+            tmp(idd_tr1)=+trnflb_save(i,j,1)
+            tmp(idd_tr2)=+trnflb_save(i,j,2)
+            tmp(idd_tr3)=+trnflb_save(i,j,3)
+            tmp(idd_tr4)=+trnflb_save(i,j,4)
+            tmp(idd_tr5)=+trnflb_save(i,j,5)
+            tmp(idd_tr6)=+trnflb_save(i,j,6)
+            tmp(idd_tr7)=+trnflb_save(i,j,7)
+            tmp(idd_tr8)=+trnflb_save(i,j,8)
+            tmp(idd_tr9)=+trnflb_save(i,j,9)
+            tmp(idd_tr10)=+trnflb_save(i,j,10)
+            tmp(idd_tr11)=+trnflb_save(i,j,11)
 
             DO n=1,Ntm_dust
               n1=n_clay+n-1
 
-              adiurn(ih,idd_load1,kr)=adiurn(ih,idd_load1,kr)
-     *             +trm(i,j,1,n1)/dxyp(j)
-              adiurn(ih,idd_load2,kr)=adiurn(ih,idd_load2,kr)
-     *             +trm(i,j,2,n1)/dxyp(j)
-              adiurn(ih,idd_load3,kr)=adiurn(ih,idd_load3,kr)
-     *             +trm(i,j,3,n1)/dxyp(j)
-              adiurn(ih,idd_load4,kr)=adiurn(ih,idd_load4,kr)
-     *             +trm(i,j,4,n1)/dxyp(j)
-              adiurn(ih,idd_load5,kr)=adiurn(ih,idd_load5,kr)
-     *             +trm(i,j,5,n1)/dxyp(j)
-              adiurn(ih,idd_load6,kr)=adiurn(ih,idd_load6,kr)
-     *             +trm(i,j,6,n1)/dxyp(j)
-              adiurn(ih,idd_load7,kr)=adiurn(ih,idd_load7,kr)
-     *             +trm(i,j,7,n1)/dxyp(j)
-              adiurn(ih,idd_load8,kr)=adiurn(ih,idd_load8,kr)
-     *             +trm(i,j,8,n1)/dxyp(j)
-              adiurn(ih,idd_load9,kr)=adiurn(ih,idd_load9,kr)
-     *             +trm(i,j,9,n1)/dxyp(j)
-              adiurn(ih,idd_load10,kr)=adiurn(ih,idd_load10,kr)
-     *             +trm(i,j,10,n1)/dxyp(j)
-              adiurn(ih,idd_load11,kr)=adiurn(ih,idd_load11,kr)
-     *             +trm(i,j,11,n1)/dxyp(j)
+              tmp(idd_load1)=tmp(idd_load1)+trm(i,j,1,n1)/dxyp(j)
+              tmp(idd_load2)=tmp(idd_load2)+trm(i,j,2,n1)/dxyp(j)
+              tmp(idd_load3)=tmp(idd_load3)+trm(i,j,3,n1)/dxyp(j)
+              tmp(idd_load4)=tmp(idd_load4)+trm(i,j,4,n1)/dxyp(j)
+              tmp(idd_load5)=tmp(idd_load5)+trm(i,j,5,n1)/dxyp(j)
+              tmp(idd_load6)=tmp(idd_load6)+trm(i,j,6,n1)/dxyp(j)
+              tmp(idd_load7)=tmp(idd_load7)+trm(i,j,7,n1)/dxyp(j)
+              tmp(idd_load8)=tmp(idd_load8)+trm(i,j,8,n1)/dxyp(j)
+              tmp(idd_load9)=tmp(idd_load9)+trm(i,j,9,n1)/dxyp(j)
+              tmp(idd_load10)=tmp(idd_load10)+trm(i,j,10,n1)/dxyp(j)
+              tmp(idd_load11)=tmp(idd_load11)+trm(i,j,11,n1)/dxyp(j)
 
-              adiurn(ih,idd_conc1,kr)=adiurn(ih,idd_conc1,kr)
-     *             +trm(i,j,1,n1)*byam(1,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc2,kr)=adiurn(ih,idd_conc2,kr)
-     *             +trm(i,j,2,n1)*byam(2,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc3,kr)=adiurn(ih,idd_conc3,kr)
-     *             +trm(i,j,3,n1)*byam(3,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc4,kr)=adiurn(ih,idd_conc4,kr)
-     *             +trm(i,j,4,n1)*byam(4,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc5,kr)=adiurn(ih,idd_conc5,kr)
-     *             +trm(i,j,5,n1)*byam(5,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc6,kr)=adiurn(ih,idd_conc6,kr)
-     *             +trm(i,j,6,n1)*byam(6,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc7,kr)=adiurn(ih,idd_conc7,kr)
-     *             +trm(i,j,7,n1)*byam(7,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc8,kr)=adiurn(ih,idd_conc8,kr)
-     *             +trm(i,j,8,n1)*byam(8,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc9,kr)=adiurn(ih,idd_conc9,kr)
-     *             +trm(i,j,9,n1)*byam(9,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc10,kr)=adiurn(ih,idd_conc10,kr)
-     *             +trm(i,j,10,n1)*byam(10,i,j)*bydxyp(j)
-              adiurn(ih,idd_conc11,kr)=adiurn(ih,idd_conc11,kr)
-     *             +trm(i,j,11,n1)*byam(11,i,j)*bydxyp(j)
+              tmp(idd_conc1)=tmp(idd_conc1)
+     &             +trm(i,j,1,n1)*byam(1,i,j)*bydxyp(j)
+              tmp(idd_conc2)=tmp(idd_conc2)
+     &             +trm(i,j,2,n1)*byam(2,i,j)*bydxyp(j)
+              tmp(idd_conc3)=tmp(idd_conc3)
+     &             +trm(i,j,3,n1)*byam(3,i,j)*bydxyp(j)
+              tmp(idd_conc4)=tmp(idd_conc4)
+     &             +trm(i,j,4,n1)*byam(4,i,j)*bydxyp(j)
+              tmp(idd_conc5)=tmp(idd_conc5)
+     &             +trm(i,j,5,n1)*byam(5,i,j)*bydxyp(j)
+              tmp(idd_conc6)=tmp(idd_conc6)
+     &             +trm(i,j,6,n1)*byam(6,i,j)*bydxyp(j)
+              tmp(idd_conc7)=tmp(idd_conc7)
+     &             +trm(i,j,7,n1)*byam(7,i,j)*bydxyp(j)
+              tmp(idd_conc8)=tmp(idd_conc8)
+     &             +trm(i,j,8,n1)*byam(8,i,j)*bydxyp(j)
+              tmp(idd_conc9)=tmp(idd_conc9)
+     &             +trm(i,j,9,n1)*byam(9,i,j)*bydxyp(j)
+              tmp(idd_conc10)=tmp(idd_conc10)
+     &             +trm(i,j,10,n1)*byam(10,i,j)*bydxyp(j)
+              tmp(idd_conc11)=tmp(idd_conc11)
+     &             +trm(i,j,11,n1)*byam(11,i,j)*bydxyp(j)
 
-              adiurn(ih,idd_tau1,kr)=adiurn(ih,idd_tau1,kr)
-     *             +ttausv_save(i,j,n1,1)
-              adiurn(ih,idd_tau2,kr)=adiurn(ih,idd_tau2,kr)
-     *             +ttausv_save(i,j,n1,2)
-              adiurn(ih,idd_tau3,kr)=adiurn(ih,idd_tau3,kr)
-     *             +ttausv_save(i,j,n1,3)
-              adiurn(ih,idd_tau4,kr)=adiurn(ih,idd_tau4,kr)
-     *             +ttausv_save(i,j,n1,4)
-              adiurn(ih,idd_tau5,kr)=adiurn(ih,idd_tau5,kr)
-     *             +ttausv_save(i,j,n1,5)
-              adiurn(ih,idd_tau6,kr)=adiurn(ih,idd_tau6,kr)
-     *             +ttausv_save(i,j,n1,6)
-              adiurn(ih,idd_tau7,kr)=adiurn(ih,idd_tau7,kr)
-     *             +ttausv_save(i,j,n1,7)
-              adiurn(ih,idd_tau8,kr)=adiurn(ih,idd_tau8,kr)
-     *             +ttausv_save(i,j,n1,8)
-              adiurn(ih,idd_tau9,kr)=adiurn(ih,idd_tau9,kr)
-     *             +ttausv_save(i,j,n1,9)
-              adiurn(ih,idd_tau10,kr)=adiurn(ih,idd_tau10,kr)
-     *             +ttausv_save(i,j,n1,10)
-              adiurn(ih,idd_tau11,kr)=adiurn(ih,idd_tau11,kr)
-     *             +ttausv_save(i,j,n1,11)
+              tmp(idd_tau1)=tmp(idd_tau1)+ttausv_save(i,j,n1,1)
+              tmp(idd_tau2)=tmp(idd_tau2)+ttausv_save(i,j,n1,2)
+              tmp(idd_tau3)=tmp(idd_tau3)+ttausv_save(i,j,n1,3)
+              tmp(idd_tau4)=tmp(idd_tau4)+ttausv_save(i,j,n1,4)
+              tmp(idd_tau5)=tmp(idd_tau5)+ttausv_save(i,j,n1,5)
+              tmp(idd_tau6)=tmp(idd_tau6)+ttausv_save(i,j,n1,6)
+              tmp(idd_tau7)=tmp(idd_tau7)+ttausv_save(i,j,n1,7)
+              tmp(idd_tau8)=tmp(idd_tau8)+ttausv_save(i,j,n1,8)
+              tmp(idd_tau9)=tmp(idd_tau9)+ttausv_save(i,j,n1,9)
+              tmp(idd_tau10)=tmp(idd_tau10)+ttausv_save(i,j,n1,10)
+              tmp(idd_tau11)=tmp(idd_tau11)+ttausv_save(i,j,n1,11)
 
-              adiurn(ih,idd_tau_cs1,kr)=adiurn(ih,idd_tau_cs1,kr)
-     *             +ttausv_cs_save(i,j,n1,1)
-              adiurn(ih,idd_tau_cs2,kr)=adiurn(ih,idd_tau_cs2,kr)
-     *             +ttausv_cs_save(i,j,n1,2)
-              adiurn(ih,idd_tau_cs3,kr)=adiurn(ih,idd_tau_cs3,kr)
-     *             +ttausv_cs_save(i,j,n1,3)
-              adiurn(ih,idd_tau_cs4,kr)=adiurn(ih,idd_tau_cs4,kr)
-     *             +ttausv_cs_save(i,j,n1,4)
-              adiurn(ih,idd_tau_cs5,kr)=adiurn(ih,idd_tau_cs5,kr)
-     *             +ttausv_cs_save(i,j,n1,5)
-              adiurn(ih,idd_tau_cs6,kr)=adiurn(ih,idd_tau_cs6,kr)
-     *             +ttausv_cs_save(i,j,n1,6)
-              adiurn(ih,idd_tau_cs7,kr)=adiurn(ih,idd_tau_cs7,kr)
-     *             +ttausv_cs_save(i,j,n1,7)
-              adiurn(ih,idd_tau_cs8,kr)=adiurn(ih,idd_tau_cs8,kr)
-     *             +ttausv_cs_save(i,j,n1,8)
-              adiurn(ih,idd_tau_cs9,kr)=adiurn(ih,idd_tau_cs9,kr)
-     *             +ttausv_cs_save(i,j,n1,9)
-              adiurn(ih,idd_tau_cs10,kr)=adiurn(ih,idd_tau_cs10,kr)
-     *             +ttausv_cs_save(i,j,n1,10)
-              adiurn(ih,idd_tau_cs11,kr)=adiurn(ih,idd_tau_cs11,kr)
-     *             +ttausv_cs_save(i,j,n1,11)
+              tmp(idd_tau_cs1)=tmp(idd_tau_cs1)+ttausv_cs_save(i,j,n1,1)
+              tmp(idd_tau_cs2)=tmp(idd_tau_cs2)+ttausv_cs_save(i,j,n1,2)
+              tmp(idd_tau_cs3)=tmp(idd_tau_cs3)+ttausv_cs_save(i,j,n1,3)
+              tmp(idd_tau_cs4)=tmp(idd_tau_cs4)+ttausv_cs_save(i,j,n1,4)
+              tmp(idd_tau_cs5)=tmp(idd_tau_cs5)+ttausv_cs_save(i,j,n1,5)
+              tmp(idd_tau_cs6)=tmp(idd_tau_cs6)+ttausv_cs_save(i,j,n1,6)
+              tmp(idd_tau_cs7)=tmp(idd_tau_cs7)+ttausv_cs_save(i,j,n1,7)
+              tmp(idd_tau_cs8)=tmp(idd_tau_cs8)+ttausv_cs_save(i,j,n1,8)
+              tmp(idd_tau_cs9)=tmp(idd_tau_cs9)+ttausv_cs_save(i,j,n1,9)
+              tmp(idd_tau_cs10)=tmp(idd_tau_cs10)
+     &             +ttausv_cs_save(i,j,n1,10)
+              tmp(idd_tau_cs11)=tmp(idd_tau_cs11)
+     &             +ttausv_cs_save(i,j,n1,11)
 
             END DO
+
+            DIURN_partd(:,J,kr)=DIURN_partd(:,J,kr)+tmp(idxd(:))
 
           END IF
 #endif
@@ -4459,6 +4430,19 @@ C****
       enddo
       enddo
 !$OMP END PARALLEL DO
+
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) THEN
+        CALL globalsum(grid,diurn_partd,diurnsumd)
+
+        IF (AM_I_ROOT()) THEN
+          adiurn(ih,idxd,:)=adiurn(ih,idxd,:)+diurnsumd
+#ifndef NO_HDIURN
+          hdiurn(ihm,idxd,:)=hdiurn(ihm,idxd,:)+diurnsumd
+#endif
+        END IF
+      END IF
+#endif
 
       return
       end subroutine ahourly

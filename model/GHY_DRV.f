@@ -1123,9 +1123,9 @@ c**** update tracers
           DO ii=1,n_idxd
             ivar=idxd(ii)
             IF (AM_I_ROOT()) THEN
-              ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUMd(ii,kr)
+              ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr)+ADIURNSUMd(ii,kr)
 #ifndef NO_HDIURN
-              HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUMd(ii,kr)
+              HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr)+HDIURNSUMd(ii,kr)
 #endif
             END IF
           END DO

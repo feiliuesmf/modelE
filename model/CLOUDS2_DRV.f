@@ -268,6 +268,9 @@ CRKF...FIX
       INTEGER, PARAMETER :: n_idx1 = 5
       INTEGER, PARAMETER :: n_idx2 = 3
       INTEGER, PARAMETER :: n_idx3 = 6
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: n_idxd=1
+#endif
 #ifndef NO_HDIURN
       REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUPT) :: hdiurn_temp
@@ -280,6 +283,19 @@ CRKF...FIX
      &     ,HDIURNSUM
 #endif
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
+#ifdef TRACERS_DUST
+      INTEGER :: idxd(n_idxd)
+      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: adiurn_tempd
+#ifndef NO_HDIURN
+      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: hdiurn_tempd
+#endif
+      REAL*8, DIMENSION(n_idxd, NDIUPT) :: adiurnsumd
+#ifndef NO_HDIURN
+     &     ,hdiurnsumd
+#endif
+#endif
       REAL*8 :: tmp(NDIUVAR)
       REAL*8,
      *  DIMENSION(ntau,npres,nisccp,grid%J_STRT_HALO:grid%J_STOP_HALO)::
@@ -306,6 +322,9 @@ C**** Initialize
       idx1 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC /)
       idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
       idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) idxd=(/idd_wet/)
+#endif
 
 
 C**** define local grid
@@ -1334,8 +1353,13 @@ c     ..........
               IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
                 SELECT CASE (trname(n))
                 CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-                  adiurn(ih,idd_wet,kr)=adiurn(ih,idd_wet,kr)
-     &                 +trprec(n,i,j)*bydxyp(j)/Dtsrc
+                  tmp(idd_wet)=+trprec(n,i,j)*bydxyp(j)/Dtsrc
+                  adiurn_part(J,idxd(:),kr)=adiurn_part(J,idxd(:),kr)+
+     &                 tmp(idxd(:))
+#ifndef NO_HDIURN
+                  hdiurn_part(J,idxd(:),kr)=hdiurn_part(J,idxd(:),kr)+
+     &                 tmp(idxd(:))
+#endif
                 END SELECT
               END IF
             END DO
@@ -1397,8 +1421,16 @@ c     ..........
         DO n=1,Ntm_dust
           DO kr=1,Ndiupt
             IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
-              adiurn(ih,idd_wet,kr)=adiurn(ih,idd_wet,kr)
-     &             +trprec_dust(n,i,j)*bydxyp(j)/Dtsrc
+              SELECT CASE (trname(n))
+              CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
+                tmp(idd_wet)=+trprec_dust(n,i,j)*bydxyp(j)/Dtsrc
+                adiurn_part(J,idxd(:),kr)=adiurn_part(J,idxd(:),kr)+
+     &               tmp(idxd(:))
+#ifndef NO_HDIURN
+                hdiurn_part(J,idxd(:),kr)=hdiurn_part(J,idxd(:),kr)+
+     &               tmp(idxd(:))
+#endif
+              END SELECT
             END IF
           END DO
         END DO
@@ -1536,6 +1568,36 @@ C    identical results regardless of number of distributed processes used.
           END IF
         END DO
       END DO
+#ifdef TRACERS_DUST
+      IF (adiurn_dust == 1) THEN
+        DO kr=1,ndiupt
+          DO ii=1,n_idxd
+            ivar=idxd(ii)
+            adiurn_tempd(ii,:,kr)=adiurn_part(:,ivar,kr)
+#ifndef NO_HDIURN
+            hdiurn_tempd(ii,:,kr)=hdiurn_part(:,ivar,kr)
+#endif
+          END DO
+        END DO
+        CALL globalsum(grid,adiurn_tempd(1:n_idxd,:,1:ndiupt),
+     &       adiurnsumd(1:n_idxd,1:ndiupt))
+#ifndef NO_HDIURN
+        CALL globalsum(grid,hdiurn_tempd(1:n_idxd,:,1:ndiupt),
+     &       hdiurnsumd(1:n_idxd,1:ndiupt))
+#endif
+        DO kr=1,ndiupt
+          DO ii=1,n_idxd
+            ivar=idxd(ii)
+            IF (AM_I_ROOT()) THEN
+              adiurn(ih,ivar,kr)=adiurn(ih,ivar,kr)+adiurnsumd(ii,kr)
+#ifndef NO_HDIURN
+              hdiurn(ihm,ivar,kr)=hdiurn(ihm,ivar,kr)+hdiurnsumd(ii,kr)
+#endif
+            END IF
+          END DO
+        END DO
+      END IF
+#endif
 
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
