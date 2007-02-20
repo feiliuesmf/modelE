@@ -16,14 +16,15 @@
 
 
 
-      subroutine init_module_ent(iniENT, Jday, Jyear, focean)
+      subroutine init_module_ent(iniENT, Jday, Jyear, focean1)
 !@sum initializes vegetation
       use param
       use ent_com, only : entcells
+      use model_com, only : focean
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT
-      real*8, intent(in) :: focean(:,:)
+      real*8, intent(in) :: focean1(:,:)
       !---
       integer I_0, I_1, J_0, J_1, i, j
       ! the following are rundeck parameters which need to be
@@ -52,7 +53,10 @@
         do j=J_0,J_1
           do i=I_0,I_1
             if (focean(i,j) <= 0) then
+              !print *,"EARTH",i,j,focean(i,j)
               call ent_cell_construct( entcells(i,j) )
+            else
+              !print *,"OCEAN",i,j,focean(i,j)
             end if
           enddo
         enddo

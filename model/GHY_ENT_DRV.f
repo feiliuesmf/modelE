@@ -817,8 +817,8 @@ C**** halo update u and v for distributed parallelization
      &      /)
 
       !--- at the moment update vegetation every time step
-      hemi(:,JEQUATOR+1:J_1) = 1
-      hemi(:,J_0:JEQUATOR) = -1
+      hemi(:,max(JEQUATOR+1,J_0):J_1) = 1
+      hemi(:,J_0:min(JEQUATOR,J_1)) = -1
   !    call ent_prescribe_vegupdate(dtsrc/nisurf,entcells,
   !   &     hemi,jday,jyear,.false.,.false.)
 
@@ -2638,6 +2638,8 @@ cddd            end if
             !call veg_set_cell(i,j,.true.)
             !call ent_get_value( i, j, canopy_holding_capacity=ws_can )
             !call ent_get_value( i, j, fraction_of_vegetated_soil=fv )
+            !print *,"daily focean",focean(i,j),i,j
+            !print *,"daily fearth",fearth(i,j),i,j
             call ent_get_exports( entcells(i,j),
      &           canopy_max_H2O=ws_can,
      &           fraction_of_vegetated_soil=fv )
