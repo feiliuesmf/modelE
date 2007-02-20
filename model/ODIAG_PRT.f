@@ -793,7 +793,7 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
-      INTEGER I,J,K,L,NS,N,KB,IP1
+      INTEGER I,J,K,L,NS,N,KB,IP1,LP1
      *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
       REAL*8 FAC,FACST
       CHARACTER TITLE*80,lname*50,sname*30,units*50
@@ -814,7 +814,8 @@ C****
         sname='sf_'//trim(BASIN(KB))
         units='Sv'
         XJL(2:JM,1:LMO+1)=SFM(1:JM-1,0:LMO,KB)
-        IF (QDIAG) CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO+1,XJL
+        LP1=LMO+1
+        IF (QDIAG) CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LP1,XJL
      *       ,ZOC1,"Latitude","Depth (m)")
 C****
 C**** Write data to PRinT file
