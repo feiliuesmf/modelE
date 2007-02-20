@@ -69,19 +69,19 @@
       call prescr_get_soil_types(IM,JM,I0,I1,J0,J1,
      &     soil_color,soil_texture)
 
-      print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
-      print*,'hdata',hdata
-      print*,'nmdata',nmdata
-      print*,'dbhdata',dbhdata
-      print*,'popdata',popdata
-      print*,'craddata',craddata
+      !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
+      !print*,'hdata',hdata
+      !print*,'nmdata',nmdata
+      !print*,'dbhdata',dbhdata
+      !print*,'popdata',popdata
+      !print*,'craddata',craddata
 !      print*,'cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)',
 !     &     cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)
 !      print*,'cpooldata(SHRUB+COVEROFFSET,:,I1,J1)',
 !     &     cpooldata(SHRUB+COVEROFFSET,:,I1,J1)
 !      print*,'cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)',
 !     &     cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)
-      print*,'soil_color',soil_color
+      !print*,'soil_color',soil_color
 
       end subroutine prescr_vegdata
 

@@ -1556,7 +1556,9 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_conductance(i,j) = 
      &       entcell(i,j)%entcell%GCANOPY
 
-      print*,'Nancys compiler needs print stmt in ent_mod here, argh.'
+      if( j > 32768 ) then
+        print*,'Nancys compiler needs print stmt in ent_mod here'
+      endif
 
 
       if ( present(shortwave_transmit) )

@@ -449,7 +449,7 @@
 
       call summarize_entcell(ecp)
 
-      print *,"leaving init_simple_entcell:"
+      !print *,"leaving init_simple_entcell:"
       !call entcell_print(6,ecp)
 
       end subroutine init_simple_entcell
