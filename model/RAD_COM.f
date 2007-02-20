@@ -47,6 +47,8 @@ C**** exactly the same as the default values.
 !@var SRHR(1->LM) Solar   raditive heating rate (W/m^2)  (short wave)
 !@var TRHR(1->LM) Thermal raditive heating rate (W/m^2)  (long wave)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SRHR,TRHR
+!@var TRSURF upward thermal radiation at the surface from rad step W/m2
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSURF
 !@var FSF Solar Forcing over each type (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSF
 !@var FSRDIR Direct beam solar incident at surface (W/m^2)
@@ -174,10 +176,10 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
 #endif
-      USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,
-     *     SRDN, CFRAC, RCLD, O3_tracer_save,rad_to_chem,rad_to_file,
-     *     KLIQ, COSZ1, dH2O, ALB, SALB, SINJ, COSJ, 
-     *     srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
+      USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
+     *     ,SRDN, CFRAC, RCLD, O3_tracer_save,rad_to_chem,rad_to_file
+     *     ,KLIQ, COSZ1, dH2O, ALB, SALB, SINJ, COSJ,srnflb_save,
+     *     trnflb_save, ttausv_save, ttausv_cs_save
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -191,6 +193,7 @@ C**** Local variables initialised in init_RAD
      *     Tchg(LM+LM_REQ, IM, J_0H:J_1H),
      *     SRHR(0:LM, IM, J_0H:J_1H),
      *     TRHR(0:LM, IM, J_0H:J_1H),
+     *     TRSURF(1:4, IM, J_0H:J_1H),
      *     FSF(4,IM, J_0H:J_1H),
      *     FSRDIR(IM, J_0H:J_1H),
      *     SRVISSURF(IM, J_0H:J_1H),
@@ -251,7 +254,7 @@ C**** Local variables initialised in init_RAD
       REAL*8 :: Tchg_glob(LM+LM_REQ,IM,JM)
       REAL*8 :: RQT_glob(LM_REQ,IM,JM)
       INTEGER :: kliq_glob(LM,4,IM,JM)
-      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR_GLOB, TRHR_GLOB
+      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR_GLOB, TRHR_GLOB,TRSURF_GLOB
       REAL*8  :: FSF_GLOB(4,IM,JM)
       REAL*8, DIMENSION(IM, JM) :: FSRDIR_GLOB, SRVISSURF_GLOB,
      &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
@@ -304,6 +307,7 @@ C**** Local variables initialised in init_RAD
         Call PACK_BLOCK( grid, kliq, kliq_glob)
         CALL PACK_COLUMN(grid, SRHR, SRHR_GLOB)
         CALL PACK_COLUMN(grid, TRHR, TRHR_GLOB)
+        CALL PACK_COLUMN(grid, TRSURF, TRSURF_GLOB)
         CALL PACK_COLUMN(grid,  FSF,  FSF_GLOB)
 
         CALL PACK_DATA( grid, SALB     , SALB_GLOB)
@@ -328,7 +332,8 @@ C**** Local variables initialised in init_RAD
      *     WRITE (kunit,err=10) MODULE_HEADER,RQT_GLOB,KLIQ_GLOB
   ! rest needed only if MODRAD>0 at restart
      *      ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
-     *      ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
+     *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,
+     *       RCLD_GLOB,  TRSURF_GLOB
 #ifdef TRACERS_SPECIAL_Shindell
      *      ,O3_tracer_save_GLOB,rad_to_chem_GLOB
 #endif
@@ -344,7 +349,8 @@ C**** Local variables initialised in init_RAD
   ! rest needed only if MODRAD>0 at restart
   ! rest needed only if MODRAD>0 at restart
      *       ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
-     *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
+     *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,
+     *        RCLD_GLOB ,TRSURF_GLOB
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,O3_tracer_save_GLOB,rad_to_chem_GLOB
 #endif
@@ -364,6 +370,7 @@ C**** Local variables initialised in init_RAD
           Call UNPACK_BLOCK( grid, kliq_glob, kliq)
           CALL UNPACK_COLUMN(grid, SRHR_glob, SRHR)
           CALL UNPACK_COLUMN(grid, TRHR_glob, TRHR)
+          CALL UNPACK_COLUMN(grid, TRSURF_glob, TRSURF)
           CALL UNPACK_COLUMN(grid,  FSF_glob,  FSF)
   
           CALL UNPACK_DATA( grid, SALB_glob     , SALB)

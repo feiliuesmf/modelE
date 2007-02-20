@@ -613,7 +613,7 @@ c***********************************************************************
 !@auth I. Alienov/F. Abramopolous
 c****
       use constant, only : grav,rgas,lhe,lhs
-     *     ,sha,tf,rhow,deltx
+     *     ,sha,tf,rhow,deltx,stbo
       use model_com, only : t,p,q,dtsrc,nisurf,jdate
      *     ,jday,jhour,nday,itime,jeq,u,v
       use DOMAIN_DECOMP, only : GRID, GET
@@ -621,7 +621,7 @@ c****
       use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
       use geom, only : imaxj
       use dynamics, only : pmid,pk,pek,pedn,am
-      use rad_com, only : trhr,fsf, cosz1
+      use rad_com, only : trhr,fsf, cosz1,trsurf
 
       !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
@@ -674,7 +674,7 @@ c****
       real*8 shdt,evhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
      *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij
-     *     ,spring,q1
+     *     ,spring,q1,dlwdt
 
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
@@ -761,7 +761,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-      ! dtsurf=dtsrc/nisurf
+    ! dtsurf=dtsrc/nisurf
 
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
@@ -824,7 +824,7 @@ C**** halo update u and v for distributed parallelization
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
 !$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
-!$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,
+!$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,dlwdt,
 !$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat,jr,kr,tmp
 #ifdef TRACERS_DUST
 !$OMP*   ,n,n1
@@ -1021,7 +1021,10 @@ c**** calculate fluxes using implicit time step for non-ocean points
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
       evapor(i,j,4)=evapor(i,j,4)+aevap
       shdt=-ashg
-      dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*ma1*p1k)
+C**** calculate correction for different TG in radiation and surface
+      dLWDT = pbl_args%dtsurf*(TRSURF(ITYPE,I,J)-STBO*(tearth(i,j)+TF)
+     *     **4) 
+      dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
       dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
   !    qsavg(i,j)=qsavg(i,j)+qs*ptype
 c**** save runoff for addition to lake mass/energy resevoirs
@@ -3712,12 +3715,13 @@ c**** wearth+aiearth are used in radiation only
       subroutine remove_extra_snow
       use constant, only : rhow
       use ghy_com, only : nsn_ij, dzsn_ij, wsn_ij, hsn_ij,
-     &     fr_snow_ij,fearth
+     &     fr_snow_ij,fearth,w_ij,ngm
 #ifdef TRACERS_WATER
      &     ,tr_wsn_ij
       use TRACER_COM, only : ntm
 #endif
       use veg_com, only : afb
+      use LAKES_COM, only : flake
       use LANDICE_COM, only : MDWNIMP, EDWNIMP
 #ifdef TRACERS_WATER
      &     ,TRDWNIMP
@@ -3734,7 +3738,7 @@ c**** wearth+aiearth are used in radiation only
 !!!      real*8, parameter :: WSN_MAX = .2d0 ! 2 m of water equivalent
       integer i,j,I_0,I_1,J_0,J_1,J_0H,J_1H
       real*8 fbv(2),wsn(3),hsn(3),dzsn(3),fr_snow,wsn_tot,d_wsn,eta
-      real*8 dw,dh
+      real*8 dw,dh   ! ,tot0
       integer ibv,nsn,JR
       REAL*8  :: AREG_SUM(size(AREG,1),2)
       REAL*8, DIMENSION(
@@ -3756,6 +3760,14 @@ C**** Initialize work array
 
           fbv(1) = afb(i,j)
           fbv(2) =1.d0 - fbv(1)
+
+c          tot0=(fbv(1)*sum( w_ij(1:ngm,1,i,j) )
+c     &         +  fbv(2)*sum( w_ij(0:ngm,2,i,j) )
+c     &         +  fbv(1)*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1
+c     *         ,i,j))+  fbv(2)*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2
+c     *         ,i,j),2,i,j)))*fearth(i,j)*rhow+flake(i,j)*sum(
+c     *         w_ij(0:ngm,3,i,j) )*rhow 
+
 
           do ibv=1,2
             if ( fbv(ibv) <= 0.d0 ) cycle
@@ -3803,6 +3815,12 @@ C**** Initialize work array
 
             endif
           enddo
+c          print*,tot0,(fbv(1)*sum( w_ij(1:ngm,1,i,j) )
+c     &         +  fbv(2)*sum( w_ij(0:ngm,2,i,j) )
+c     &         +  fbv(1)*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1
+c     *         ,i,j))+  fbv(2)*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2
+c     *         ,i,j),2,i,j)))*fearth(i,j)*rhow+flake(i,j)*sum(
+c     *         w_ij(0:ngm,3,i,j) )*rhow
 
         enddo
       enddo

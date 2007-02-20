@@ -26,7 +26,7 @@ C****
      *     ,cosip
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
-      USE RAD_COM, only : trhr,fsf,cosz1
+      USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_DRYDEP
@@ -168,7 +168,7 @@ C**** Interface to PBL
      *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT
      *     ,T2DEN,T2CON,T2MUL,FQEVAP ! ,QSDEN,QSCON,QSMUL,TGDEN
-     *     ,Z1BY6L,EVAPLIM,F2,FSRI(2),HTLIM
+     *     ,Z1BY6L,EVAPLIM,F2,FSRI(2),HTLIM,dlwdt
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -378,7 +378,7 @@ C****
 !$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, ! QSDEN,
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT, ! QSCON,QSMUL,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,  ! TGDEN,
-!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,
+!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,dlwdt,
 !$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,QSRF,pbl_args,jr,tmp
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
@@ -713,7 +713,7 @@ C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RCDHWS=CH*pbl_args%WSH*RHOSRF
       RCDQWS=CQ*pbl_args%WSH*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
-C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
+C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       SHEAT=SHA*RCDHWS*(TS-TG)
       BETAUP = BETA
       IF (QSRF .GT. QG_SAT) BETAUP = 1.
@@ -978,7 +978,9 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
 
       TGRND(ITYPE,I,J)=TG1
-      DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*MA1*P1K)
+C**** calculate correction for different TG in radiation and surface
+      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*(TG1+TF)**4) 
+      DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
       DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
       DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)

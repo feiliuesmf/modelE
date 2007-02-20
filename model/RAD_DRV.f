@@ -875,7 +875,7 @@ C     OUTPUT DATA
      *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
@@ -905,7 +905,7 @@ C     OUTPUT DATA
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
      *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
-     &     ,adiurn_dust
+     &     ,adiurn_dust,j_trnfp0,j_trnfp1
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -1011,10 +1011,10 @@ C
       REAL*8 :: AIL_J50_SUM(IM,LM)
       REAL*8 :: AIL_J70_SUM(IM,LM)
       REAL*8 ::
-     &     AREG_part(NREG,grid%J_STRT_HALO:grid%J_STOP_HALO,17)
-      REAL*8 :: AREGSUM(NREG,17)
+     &     AREG_part(NREG,grid%J_STRT_HALO:grid%J_STOP_HALO,19)
+      REAL*8 :: AREGSUM(NREG,19)
       Integer :: idx1(7)
-      Integer :: idx2(17)
+      Integer :: idx2(19)
       character(len=300) :: out_line
 
 C
@@ -1885,10 +1885,14 @@ C****
       FSF(1,I,J)=FSRNFG(1)   !  ocean
       FSF(2,I,J)=FSRNFG(3)   !  ocean ice
       FSF(3,I,J)=FSRNFG(4)   !  land ice
-      FSF(4,I,J)=FSRNFG(2)   !  soil
+      FSF(4,I,J)=FSRNFG(2)   !  soil       
       SRHR(0,I,J)=SRNFLB(1)
       TRHR(0,I,J)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4+
      +  PEARTH*TGE**4)-TRNFLB(1)
+      TRSURF(1,I,J) = STBO*TGO**4  !  ocean     
+      TRSURF(2,I,J) = STBO*TGOI**4  !  ocean ice 
+      TRSURF(3,I,J) = STBO*TGLI**4  !  land ice  
+      TRSURF(4,I,J) = STBO*TGE**4  !  soil      
       DO L=1,LM
         SRHR(L,I,J)=SRFHRL(L)
         TRHR(L,I,J)=-TRFCRL(L)
@@ -2112,6 +2116,8 @@ c***             END DO
          AJ(J,J_TRINCG ,IT)=AJ(J,J_TRINCG ,IT)+TRINCG(I,J)*FTYPE(IT,I,J)
          AJ(J,J_HSURF  ,IT)=AJ(J,J_HSURF  ,IT)-(TNFS(3,I,J)-TNFS(1,I,J))
      *        *FTYPE(IT,I,J)
+         AJ(J,J_TRNFP0 ,IT)=AJ(J,J_TRNFP0 ,IT)-TNFS(3,I,J)*FTYPE(IT,I,J)
+         AJ(J,J_TRNFP1 ,IT)=AJ(J,J_TRNFP1 ,IT)-TNFS(2,I,J)*FTYPE(IT,I,J)
          AJ(J,J_SRNFP1 ,IT)=AJ(J,J_SRNFP1 ,IT)+SNFS(2,I,J)*CSZ2
      *          *FTYPE(IT,I,J)
          AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-(TNFS(2,I,J)-TNFS(1,I,J))
@@ -2143,12 +2149,14 @@ C****
      *        *DXYPJ
          AREG_part(JR,J,8)=AREG_part(JR,J,8)+  BTMPW(I,J)      *DXYPJ
          AREG_part(JR,J,9)=AREG_part(JR,J,9)+ TRINCG(I,J)      *DXYPJ
+         AREG_part(JR,J,10)=AREG_part(JR,J,10)- TNFS(3,I,J)*DXYPJ
+         AREG_part(JR,J,11)=AREG_part(JR,J,11)- TNFS(2,I,J)*DXYPJ
          DO K=2,9
            JK=K+J_PLAVIS-2     ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
              AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J)
            END DO
-           AREG_part(JR,J,10+k-2)=AREG_part(JR,J,10+k-2)+
+           AREG_part(JR,J,12+k-2)=AREG_part(JR,J,12+k-2)+
      +          (S0*CSZ2)*ALB(I,J,K)*DXYPJ
          END DO
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
@@ -2337,8 +2345,8 @@ c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
 
          CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
          idx2 = (/ J_SRINCP0, J_SRNFP0, J_SRNFP1,
-     &     J_SRINCG, J_HATM, J_SRNFG, J_HSURF, J_BRTEMP, J_TRINCG,
-     &     (J_PLAVIS+i, i=0,7) /)
+     &        J_SRINCG, J_HATM, J_SRNFG, J_HSURF, J_BRTEMP, J_TRINCG,
+     *        J_TRNFP0,J_TRNFP1,(J_PLAVIS+i, i=0,7) /)
          AREG(:,idx2) = AREG(:,idx2) + AREGSUM
 
 
