@@ -330,6 +330,18 @@
          module procedure UNPACK_J_4D
       end interface
 
+      PUBLIC SEND_TO_J
+      interface SEND_TO_J
+         module procedure SEND_TO_J_1D
+         module procedure ISEND_TO_J_0D
+      end interface
+
+      PUBLIC RECV_FROM_J
+      interface RECV_FROM_J
+         module procedure RECV_FROM_J_1D
+         module procedure IRECV_FROM_J_0D
+      end interface
+
 
       ! Direction bits
       PUBLIC :: NORTH, SOUTH
@@ -397,6 +409,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: RANK_LON
 !@var RANK_LAT_RANK index of _this_ process in meridional set.
       INTEGER :: RANK_LAT
+!@var lookup_pet index of PET for a given J
+      INTEGER, DIMENSION(:), POINTER :: lookup_pet
 
       TYPE (ESMF_DELayout) :: ESMF_LAYOUT_def
       Integer :: pe
@@ -425,6 +439,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       CHARACTER(LEN=20) :: buffer
 
 #ifdef USE_ESMF
+      Type (ESMF_Axisindex), Pointer :: AI(:,:)
+      INTEGER :: p
 #endif
 
 #ifdef USE_ESMF
@@ -466,6 +482,21 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
       WRITE(buffer,'(a,i3.3)') 'LOG_',my_pet
       CALL openunit(TRIM(buffer), grd_dum%log_unit)
+#endif
+
+      ! set lookup table PET(J)
+      Allocate(lookup_pet(1:JM))
+      lookup_pet(:) = 0
+#ifdef USE_ESMF
+      Allocate(AI(NPES,3))
+      Call ESMF_GridGetAllAxisIndex(grd_dum%ESMF_GRID, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
+      Do p = 1, npes
+        lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
+      End Do
+      Deallocate(AI)
+      print *,"lookup_pet = ", lookup_pet
 #endif
 
       END SUBROUTINE INIT_APP
@@ -5074,6 +5105,55 @@ C--------------------------------
       haveLatitude = (j >= grd_dum%J_STRT .and. j <= grd_dum%J_STOP)
 
       end function haveLatitude
+
+
+      subroutine SEND_TO_J_1D(grd_dum, arr, j_dest, tag)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Real*8, Intent(In) :: arr(:)
+      Integer, Intent(In) :: j_dest, tag
+      INTEGER :: ier
+#ifdef USE_ESMF
+      call MPI_Send(arr, Size(arr), MPI_DOUBLE_PRECISION,
+     &     lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
+#endif
+      end subroutine SEND_TO_J_1D
+
+      subroutine ISEND_TO_J_0D(grd_dum, arr, j_dest, tag)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Integer, Intent(In) :: arr
+      Integer, Intent(In) :: j_dest, tag
+      INTEGER :: ier
+#ifdef USE_ESMF
+      call MPI_Send(arr, 1, MPI_INTEGER,
+     &     lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
+#endif
+      end subroutine ISEND_TO_J_0D
+
+      subroutine RECV_FROM_J_1D(grd_dum, arr, j_src, tag)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Real*8, Intent(In) :: arr(:)
+      Integer, Intent(In) :: j_src, tag
+      INTEGER :: ier, status(MPI_STATUS_SIZE)
+#ifdef USE_ESMF
+      call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION,
+     &     lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
+#endif
+      end subroutine RECV_FROM_J_1D
+
+      subroutine IRECV_FROM_J_0D(grd_dum, arr, j_src, tag)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Integer, Intent(In) :: arr
+      Integer, Intent(In) :: j_src, tag
+      INTEGER :: ier, status(MPI_STATUS_SIZE)
+#ifdef USE_ESMF
+      call MPI_Recv(arr, 1, MPI_INTEGER,
+     &     lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
+#endif
+      end subroutine IRECV_FROM_J_0D
 
       END MODULE DOMAIN_DECOMP
 
