@@ -37,4 +37,7 @@
 #define PMPI_WTIME PMPI_WTIME_
 #define PMPI_WTICK PMPI_WTICK_
 
+#define MPI_Send mpi_send_
+#define MPI_Recv mpi_recv_
+
 #endif
