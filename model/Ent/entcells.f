@@ -247,6 +247,9 @@
         pp => pp%younger
       end do
       
+!!!!
+    !!! hack to avoid divizion by zero
+      laifasum = max( laifasum, 1.d-10 )
       !------DO AVERAGES-------------------------------------------------
       !!!CHECK IF ECP%AREA IS ZERO!
       if (ASSOCIATED(ecp%oldest)) then
@@ -389,7 +392,7 @@
 
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("init_simple_entcell 1",255)
-      call entcell_print(6,ecp)
+      !call entcell_print(6,ecp)
 
       ! destroy all existing patches since we are going to 
       ! re-initialize the cell
@@ -447,7 +450,7 @@
       call summarize_entcell(ecp)
 
       print *,"leaving init_simple_entcell:"
-      call entcell_print(6,ecp)
+      !call entcell_print(6,ecp)
 
       end subroutine init_simple_entcell
 
