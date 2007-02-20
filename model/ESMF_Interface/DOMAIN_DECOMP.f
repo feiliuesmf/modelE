@@ -5136,8 +5136,8 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(In) :: arr(:)
       Integer, Intent(In) :: j_src, tag
-      INTEGER :: ier, status(MPI_STATUS_SIZE)
 #ifdef USE_ESMF
+      INTEGER :: ier, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION,
      &     lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
 #endif
@@ -5148,8 +5148,8 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(In) :: arr
       Integer, Intent(In) :: j_src, tag
-      INTEGER :: ier, status(MPI_STATUS_SIZE)
 #ifdef USE_ESMF
+      INTEGER :: ier, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, 1, MPI_INTEGER,
      &     lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
 #endif
