@@ -375,7 +375,7 @@ cddd      nullify( entcell%entcell%oldest   )
 cddd      ! for now set all values o zero or defaults
 cddd      call zero_entcell(entcell%entcell)
 
-      print *,"ent_cell_constr"
+      !print *,"ent_cell_constr"
       call entcell_construct(entcell%entcell)
       !call entcell_print(6, entcell%entcell)
 
@@ -621,7 +621,7 @@ cddd      call zero_entcell(entcell%entcell)
 
       do j=1,jc
         do i=1,ic
-          print *,"ent_cell_set_array_2d i,j=",i,j
+          !print *,"ent_cell_set_array_2d i,j=",i,j
           if ( .not. associated(entcell(i,j)%entcell) ) cycle
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("init_simple_entcell 1",255)
@@ -753,8 +753,8 @@ cddd      end subroutine ent_cell_update_single
         do i=1,ic
           if ( .not. associated( buf2d(i,j)%ptr ) ) cycle
 
-          print *,"ent_cell_pack_2d i,j,dcc,lsize=",i,j,dcc,lsize
-          print *,buf2d(i,j)%ptr(1:lsize)
+          !print *,"ent_cell_pack_2d i,j,dcc,lsize=",i,j,dcc,lsize
+          !print *,buf2d(i,j)%ptr(1:lsize)
           lsize = size(buf2d(i,j)%ptr, 1)
           dbuf(dcc) = i; dcc = dcc+1
           dbuf(dcc) = j; dcc = dcc+1
@@ -824,9 +824,9 @@ cddd      end subroutine ent_cell_update_single
       allocate( dbuf(ndbuf+1+np) ) !i.e. num reals + num int's
       dc = 0
       dbuf(dc+1) = real( np, kind(0d0) );               dc = dc + 1
-      print *,"pack ", np, dbuf(1)
+      !print *,"pack ", np, dbuf(1)
       dbuf(dc+1:dc+np) = real( nc(1:np), kind(0d0) ); dc = dc + np
-      print *,"pack1 ", nc(1:np), dbuf(2:dc) 
+      !print *,"pack1 ", nc(1:np), dbuf(2:dc) 
 
       ! now do the real saving
       ! no need to count patches and cohorts again, but leaving it here
