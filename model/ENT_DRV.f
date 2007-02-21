@@ -23,16 +23,21 @@
       use model_com, only : focean
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
-      logical, intent(in) :: iniENT
+      logical, intent(inout) :: iniENT
       real*8, intent(in) :: focean1(:,:)
       !---
       integer I_0, I_1, J_0, J_1, i, j
       ! the following are rundeck parameters which need to be
       ! passed to ent (and used there)
       integer cond_scheme, vegCO2X_off, crops_yr, read_c4_grass
+      integer :: force_init_ent=0
 
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               I_STRT     =I_0,    I_STOP     =I_1)
+
+!!! hack
+      call sync_param( "init_ent", force_init_ent)
+      if ( force_init_ent == 1 ) iniENT = .true.
 
       !--- read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03

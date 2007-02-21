@@ -522,6 +522,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       use domain_decomp, only : grid, am_i_root
       use domain_decomp, only : pack_data, unpack_data
       use ghy_com, only : Ci_ij, Qf_ij, cnc_ij
+      use param
       implicit none
 
       integer kunit   !@var kunit unit number of read/write
@@ -534,6 +535,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@var Qf_ij_glob work array for parallel_io
 !@var cnc_ij_glob work array for parallel_io
       real*8, dimension(im,jm) :: Ci_ij_glob, Qf_ij_glob, cnc_ij_glob
+      integer :: force_init_ent=0
+
+!!! hack
+      call sync_param( "init_ent", force_init_ent)
 
       write(module_header(lhead+1:80),'(a)') 'Ci_ij,Qf_ij,cnc_ij'
 
@@ -546,6 +551,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &    write (kunit,err=10) module_header,Ci_ij_glob,Qf_ij_glob,
      &                         cnc_ij_glob
       case (ioread:)            ! input from restart file
+       if ( force_init_ent .ne. 1 ) then
         if ( AM_I_ROOT() ) then
           read(kunit,err=10) header, Ci_ij_glob, Qf_ij_glob, cnc_ij_glob
           if (header(1:lhead).ne.module_header(1:lhead)) then
@@ -556,6 +562,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         call unpack_data(grid, Ci_ij_glob,   Ci_ij)
         call unpack_data(grid, Qf_ij_glob,   Qf_ij)
         call unpack_data(grid, cnc_ij_glob, cnc_ij)
+       endif
       end select
 
       return

@@ -143,6 +143,7 @@
       use ent_com, only : Cint, Qfol, cnc_ij,
      &     ent_read_state,ent_write_state
       use ent_mod
+      use param
       
       implicit none
 
@@ -156,6 +157,11 @@
 !@var qfol_glob work array for parallel_io
 !@var cnc_ij_glob work array for parallel_io
       real*8, dimension(im,jm) :: cint_glob, qfol_glob, cnc_ij_glob
+      integer :: force_init_ent=0
+
+!!! hack
+      call sync_param( "init_ent", force_init_ent)
+
 
       write(module_header(lhead+1:80),'(a)') 'cint,qfol,cnc_ij'
 
@@ -179,7 +185,9 @@
         call unpack_data(grid, cint_glob,   cint)
         call unpack_data(grid, qfol_glob,   qfol)
         call unpack_data(grid, cnc_ij_glob, cnc_ij)
-        call  ent_read_state( kunit )
+        if ( force_init_ent .ne. 1 ) then
+           call  ent_read_state( kunit )
+        endif
       end select
 
       return

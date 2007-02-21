@@ -2280,9 +2280,11 @@ c****
 
       subroutine ghy_save_cell(i,j)
       use sle001, only : w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
+     $     ,cnc,Ci,Qf
       use ghy_com, only : ngm,nlsn,LS_NFRAC
      &     ,dz_ij,w_ij,ht_ij,snowbv
      &     ,nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
+     $     ,cnc_ij,Ci_ij,Qf_ij
       implicit none
       integer, intent(in) :: i,j
 
@@ -2301,9 +2303,9 @@ ccc copy snow variables back to storage
       hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
       fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 ccc saving vegetation prognostic variables
-      cnc_ij(i0,j0) = cnc
-      Ci_ij(i0,j0) = Ci
-      Qf_ij(i0,j0) = Qf
+      cnc_ij(i,j) = cnc
+      Ci_ij(i,j) = Ci
+      Qf_ij(i,j) = Qf
 
       end subroutine ghy_save_cell
 
