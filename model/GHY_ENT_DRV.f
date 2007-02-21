@@ -2300,6 +2300,10 @@ ccc copy snow variables back to storage
       wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
       hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
       fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
+ccc saving vegetation prognostic variables
+      cnc_ij(i0,j0) = cnc
+      Ci_ij(i0,j0) = Ci
+      Qf_ij(i0,j0) = Qf
 
       end subroutine ghy_save_cell
 
