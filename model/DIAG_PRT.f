@@ -2576,6 +2576,11 @@ C**** MASS FLUX MOIST CONVECTION
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLE    ,AJL(1,1,n),SCALET,ONES,ONES,LM-1,2,JGRID_JL(n))
+C**** DOWNDRAFT FLUX MOIST CONVECTION
+      n = JL_MCDFLX
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLE    ,AJL(1,1,n),SCALET,ONES,ONES,LM-1,2,JGRID_JL(n))
 
 C****
 C**** RADIATION, CONDENSATION AND CONVECTION
@@ -2700,6 +2705,16 @@ C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCHEAT
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+      n = JL_MCDEEP
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+      n = JL_MCSHLW
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
@@ -5818,7 +5833,7 @@ C****
 C**** Complete 3D-field titles
 C****
       DO L=1,LM
-        WRITE(CPRESS(L),'(F8.3)') pmidl00(l) 
+        WRITE(CPRESS(L),'(F8.3)') pmidl00(l)
       END DO
 
 C**** Select fields

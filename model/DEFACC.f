@@ -3103,7 +3103,7 @@ c
             write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
             call stop_model( 'kaij too small', 255 )
          end if
-         
+
          write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
          if(.not.qcheck) return
          do kk=1,k
@@ -3284,6 +3284,16 @@ c
       jl_mcmflx = k
       sname_jl(k) = 'mc_mflx' !                  'FMX(MC)*P'
       lname_jl(k) = 'VERTICAL MASS EXCHANGE FROM MOIST CONVECTION'
+      units_jl(k) = 'mb/s'
+      scale_jl(k) = 1./(FIM*DTsrc)
+      pow_jl(k) = -5
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_mcdflx = k
+      sname_jl(k) = 'mc_dflx' !                  'DDMX(MC)*P'
+      lname_jl(k) = 'DOWNDRAFT MASS FLUX FROM MOIST CONVECTION'
       units_jl(k) = 'mb/s'
       scale_jl(k) = 1./(FIM*DTsrc)
       pow_jl(k) = -5
@@ -3691,6 +3701,26 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_mcdeep = k
+      sname_jl(k) = 'tot_ht_deepmc' !
+      lname_jl(k) = 'TOTAL HEATING BY DEEP MOIST CONVECTION (Q1)'
+      units_jl(k) = 'W/(m^2*mb)'
+      pow_jl(k) = -2
+      scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_mcshlw = k
+      sname_jl(k) = 'tot_ht_shlwmc' !
+      lname_jl(k) = 'TOTAL HEATING BY SHALLOW MOIST CONVECTION (Q1)'
+      units_jl(k) = 'W/(m^2*mb)'
+      pow_jl(k) = -2
+      scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
       jl_mcdry = k
       sname_jl(k) = 'tot_dry_mc' !
       lname_jl(k) = 'TOTAL DRYING BY MOIST CONVECTION (Q2)'
@@ -3882,7 +3912,7 @@ c
             write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k
             call stop_model( 'kajl too small', 255 )
          end if
-         
+
          write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
          if(.not.qcheck) return
          do kk=1,k
@@ -6945,7 +6975,7 @@ c
      &           ' to at least ',k
             call stop_model( 'Ndiuvar too small', 255 )
          end if
-         
+
          write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
          if(.not.qcheck) return
          do kk=1,k

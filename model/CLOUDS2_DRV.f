@@ -35,11 +35,12 @@
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
      *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,ij_scldi,
+     *     jl_mcshlw,jl_mcdeep,
 #ifndef NO_HDIURN
      *     hdiurn,
 #endif
      *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
-     *     ij_fwoc,p_acc,ndiuvar,nisccp,adiurn_dust
+     *     ij_fwoc,p_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
@@ -124,6 +125,7 @@
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb,ncol
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
+     *     ,dphashlw,dphadeep,dgshlw,dgdeep
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws
@@ -686,8 +688,13 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
      &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
           AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
      &         (DQCOND(L)-DGDQM(L))*BYDSIG(L)
+          AJL(J,L,JL_MCSHLW)=AJL(J,L,JL_MCSHLW)+
+     &         (DPHASHLW(L)+DGSHLW(L))*BYDSIG(L)
+          AJL(J,L,JL_MCDEEP)=AJL(J,L,JL_MCDEEP)+
+     &         (DPHADEEP(L)+DGDEEP(L))*BYDSIG(L)
           AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
+          AJL(J,L,JL_MCDFLX)=AJL(J,L,JL_MCDFLX)+DDMFLX(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
         END DO
         DO IT=1,NTYPE
@@ -713,25 +720,25 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
 #ifdef CLD_AER_CDNC
         DO L =1,LM
         IF (NMCW.ge.1) then
-         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L) 
-         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L) 
+         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)
+         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)
          AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)
-         AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)   
-         AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L) 
-         AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L) 
+         AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)
+         AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)
+         AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)
          AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)
 c        write(6,*)"IJL_REWM",AIJK(I,J,L,IJL_REWM),I,J,L,
 c    *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
         ENDIF
 
         IF (NMCI.ge.1) then
-         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)   
-         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)   
-         AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)  
+         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)
+         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)
+         AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)
          AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)
-         AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)   
-         AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L) 
-         AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L) 
+         AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)
+         AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)
+         AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)
 c        write(6,*)"IJL_REIM",AIJK(I,J,L,IJL_REIM),I,J,L,
 c    *   AIJK(I,J,L,IJL_CDIM),AIJK(I,J,L,IJL_CWIM),ALWIM(L)
         ENDIF
@@ -1083,7 +1090,7 @@ C**** set ISCCP diagnostics
           AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp
           AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt
           AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1.
-C**** note LOW CLOUDS:       ipres=6,7 
+C**** note LOW CLOUDS:       ipres=6,7
 C****      MID-LEVEL CLOUDS: ipres=4,5
 C****      HIGH CLOUDS:      ipres=1,2,3
 C**** Sum over itau=2,ntau (itau=1 is no cloud)
@@ -1214,13 +1221,13 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
 #ifdef CLD_AER_CDNC
         DO L=1,LM
          IF (NLSW.ge.1) then
-          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L) 
-          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L) 
-          AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L) 
-          AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)  
-          AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)  
-          AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)  
-          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)  
+          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)
+          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)
+          AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)
+          AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)
+          AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)
+          AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)
+          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)
 c     if(AIJ(I,J,IJ_3dNWS).gt.0.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS(L),NLSW,itime,l
          ENDIF
@@ -1230,9 +1237,9 @@ c    * ,ACDNWS(L),NLSW,itime,l
          AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)
          AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)
          AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)
-         AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L) 
+         AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L)
          AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)
-         AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)   
+         AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)
         ENDIF
 c       STOP "CLOUDS2_DRV_F26"
 
@@ -1761,7 +1768,7 @@ C**** SEARCH FOR THE 50 MB LEVEL
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS (MATCHES ISCCP DEFNs)
       DO L=1,LM
         LLOW=L
-        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.680.) EXIT 
+        IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.680.) EXIT
       END DO
       DO L=LLOW+1,LM
         LMID=L

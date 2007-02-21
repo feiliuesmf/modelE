@@ -90,7 +90,7 @@ C**** input variables
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
      *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL
-     *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L
+     *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -285,6 +285,7 @@ CCOMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,UM1,VM1,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
+     *  ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
      *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ,DDMFLX,PLAND
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
@@ -391,7 +392,7 @@ c for sulfur chemistry
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM,CONDP
-     *     ,DDR,SMDNL,QMDNL
+     *     ,DDR,SMDNL,QMDNL,CONDP1,CONDV,HEAT1
 #ifdef CLD_AER_CDNC
      *     ,CONDPC
 #endif
@@ -436,7 +437,7 @@ c for sulfur chemistry
      *     ,ALPHA,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
      *     ,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA,FEVAP,FLEFT
-     *     ,FQCOND,FQEVP,FPRCP,FSEVP,FSSUM,HEAT1
+     *     ,FQCOND,FQEVP,FPRCP,FSEVP,FSSUM     !  ,HEAT1
      *     ,PRCP
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
@@ -526,7 +527,7 @@ c for sulfur chemistry
 !@var TTURB, TRATIO, BYPBLM dummy variables
 !@var HPBL, PBLM PBL height (m) and air mass in PBL (mb)
       REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW
-     *     ,VT,CONDMU,HPBL,PBLM,TTURB,TRATIO,BYPBLM
+     *     ,VT,CONDMU,HPBL,PBLM,TTURB,TRATIO,BYPBLM,DWCU,FLMCM
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
@@ -588,7 +589,11 @@ C**** initiallise arrays of computed ouput
 C**** zero out diagnostics
          MCFLX =0.
          DGDSM=0.
+         DGDEEP=0.
+         DGSHLW=0.
          DPHASE=0.
+         DPHADEEP=0.
+         DPHASHLW=0.
          DTOTW=0.
          DQCOND=0.
          DGDQM=0.
@@ -631,6 +636,13 @@ C**** CALULATE PBL HEIGHT AND MASS
       END IF
       END DO
       BYPBLM=1.d0/PBLM
+C**** CALCULATE DEL WCU TO TRAVEL HALF LAYER THICKNESS
+      FLMCM=LMCM
+      DWCU=0.
+      DO L=1,LMCM
+        DWCU=DWCU+AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+      END DO
+      DWCU=0.5*DWCU*BYDTsrc/FLMCM
 C**** OUTER MC LOOP OVER BASE LAYER
       DO 600 LMIN=1,LMCM-1
       MAXLVL=0
@@ -733,6 +745,9 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
         COND(L)=0.
         CDHEAT(L)=0.
         CONDP(L)=0.
+        CONDP1(L)=0.
+        CONDV(L)=0.
+        HEAT1(L)=0.
         DM(L)=0.
         DMR(L)=0.
         CCM(L)=0.
@@ -835,6 +850,9 @@ C        MC1=.FALSE.
         COND(L)=0.
         CDHEAT(L)=0.
         CONDP(L)=0.
+        CONDP1(L)=0.
+        CONDV(L)=0.
+        HEAT1(L)=0.
         DM(L)=0.
         DMR(L)=0.
         CCM(L)=0.
@@ -1045,6 +1063,13 @@ C**** save plume temperature after possible condensation
         QMP=QMPT
       END IF
       COND(L)=DQSUM
+      CDHEAT(L)=SLH*COND(L)          ! cal CDHEAT before add CONDV
+      CDHSUM=CDHSUM+CDHEAT(L)
+      COND(L)=COND(L)+CONDV(L-1)     ! add in the vertical transported COND
+      IF (TPSAV(L-1).GE.TF.AND.TP.LT.TF)   ! phase change from water to ice
+     *  HEAT1(L)=HEAT1(L)-LHM*CONDV(L-1)*BYSHA/PLK(L)
+      IF (TPSAV(L-1).LT.TF.AND.TP.GE.TF)   ! phase change from ice to water
+     *  HEAT1(L)=HEAT1(L)+LHM*CONDV(L-1)*BYSHA/PLK(L)
       CONDMU=100.*COND(L)*PL(L)/(CCM(L-1)*TL(L)*RGAS)
       FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
@@ -1200,10 +1225,10 @@ c formation of sulfate
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
       END DO
 #endif
-      TAUMCL(L)=TAUMCL(L)+DQSUM*FMC1
-      CDHEAT(L)=SLH*COND(L)
-      CDHSUM=CDHSUM+CDHEAT(L)
-      IF(ETADN.GT.1d-10) CDHDRT=CDHDRT+SLH*COND(L)
+      TAUMCL(L)=TAUMCL(L)+COND(L)*FMC1    ! DQSUM*FMC1
+C     CDHEAT(L)=SLH*COND(L)
+C     CDHSUM=CDHSUM+CDHEAT(L)
+      IF(ETADN.GT.1d-10) CDHDRT=CDHDRT+CDHEAT(L)    ! SLH*COND(L)
 C****
 C**** ENTRAINMENT
 C****
@@ -1354,7 +1379,6 @@ C        VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
 C****
 C**** COMPUTE CUMULUS V. VELOCITY
 C****
-C 291 DET(L)=0.D0
   291 W2TEM=.16667D0*GRAV*BUOY(L)/(WCU(L-1)+teeny)-WCU(L-1)*
      *      (.66667D0*DET(L)+ENT(L))
       WCU(L)=WCU(L-1)+HDEP*W2TEM
@@ -1387,7 +1411,8 @@ C     WV=WMAX                                    ! old specification of WV
 C     IF(PL(L).GT.700..AND.PLE(1).GT.700.)
 C    *  WV=WMAX*(PLE(1)-PL(L))/(PLE(1)-700.)
 C     IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN
-      WV=WCU(L)               ! apply the calculated cumulus updraft speed
+      WV=WCU(L)-DWCU          ! apply the calculated cumulus updraft speed
+      IF(WV.LT.0.d0) WV=0.d0
       DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
       DCG=MIN(DCG,1.D-2)
       DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
@@ -1395,6 +1420,18 @@ C     IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN
       IF (TP.GE.TF) THEN ! water phase
         DDCW=6d-3/FITMAX
         IF(PLAND.LT..5) DDCW=1.5d-3/FITMAX
+        DCW=0.
+        DO ITER=1,ITMAX-1
+          VT=(-.267d0+DCW*(5.15D3-DCW*(1.0225D6-7.55D7*DCW)))*
+     *       (1000./PL(L))**.4d0
+          IF(VT.GE.0..AND.ABS(VT-WV).LT..3) EXIT
+          IF(VT.GT.WMAX) EXIT
+          DCW=DCW+DDCW
+        END DO
+        CONDP1(L)=RHOW*(PI*by6)*CN0*EXP(-FLAMW*DCW)*
+     *     (DCW*DCW*DCW/FLAMW+3.*DCW*DCW/(FLAMW*FLAMW)+
+     *     6.*DCW/(FLAMW*FLAMW*FLAMW)+6./FLAMW**4)
+        WV=WCU(L)+DWCU          ! apply the calculated cumulus updraft speed
         DCW=0.
         DO ITER=1,ITMAX-1
           VT=(-.267d0+DCW*(5.15D3-DCW*(1.0225D6-7.55D7*DCW)))*
@@ -1423,6 +1460,12 @@ c    *write(6,*)"Mup",CONDP(L),CONDPC(L),CONDMU,DCW,MCDNCW,RCLD_C,L
 c      write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
 #endif
       ELSE IF (TP.LE.TI) THEN ! pure ice phase
+        CONDP1(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+     *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
+     *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
+        WV=WCU(L)+DWCU
+        DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
+        DCI=MIN(DCI,1.D-2)
         CONDP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
@@ -1435,10 +1478,28 @@ c      write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
         CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
+        CONDP1(L)=FG*CONDGP+FI*CONDIP
+        WV=WCU(L)+DWCU
+        DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
+        DCI=MIN(DCI,1.D-2)
+        DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
+        DCG=MIN(DCG,1.D-2)
+        CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+     *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
+     *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
+        CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
+     *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
+     *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
         CONDP(L)=FG*CONDGP+FI*CONDIP
       ENDIF
 c convert condp to the same units as cond
       CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
+      CONDP1(L)=.01d0*CONDP1(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
+      IF(CONDP1(L).GT.COND(L)) CONDP1(L)=COND(L)
+      IF(CONDP(L).GT.CONDP1(L)) CONDP(L)=CONDP1(L)
+      CONDV(L)=COND(L)-CONDP1(L)       ! part of COND transported up
+      COND(L)=COND(L)-CONDV(L)         ! CONDP1(L)
+C       WRITE(6,*) L,DWCU,WCU(L),CONDV(L),CONDP1(L),CONDP(L),COND(L)
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
 C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
   340 IF(LMIN.EQ.LMAX) GO TO 600
@@ -1636,9 +1697,9 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
         IF (SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
       ENDIF
       IF(L.GT.1) THEN
+        DDM(L-1)=DDRAFT     ! IF(L.GT.1) DDM(L-1)=DDRAFT
         DDROLD=DDRAFT
         DDRAFT=DDRAFT+DDR(L-1)    ! add in downdraft one layer below
-        DDM(L-1)=DDRAFT     ! IF(L.GT.1) DDM(L-1)=DDRAFT
         SMDN=SMDN+SMDNL(L-1)
         QMDN=QMDN+QMDNL(L-1)
         SMOMDN(xymoms)=SMOMDN(xymoms)+SMOMDNL(xymoms,L-1)
@@ -1729,6 +1790,10 @@ C**** diagnostics
         IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
         MCFLX(L)=MCFLX(L)+CCM(L)*FMC1
         DGDSM(L)=DGDSM(L)+(PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+        IF(PLE(LMAX+1).GT.700.d0) DGSHLW(L)=DGSHLW(L)+
+     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+        IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DGDEEP(L)=DGDEEP(L)+
+     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
@@ -1763,7 +1828,8 @@ C**** save new 'environment' profile for static stability calc.
 C****
 C**** Partition condensate into precipitation and cloud water
 C****
-      IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+      COND(LMAX)=COND(LMAX)+CONDV(LMAX)
+      IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN      ! always?
         DO L=LMAX,LMIN,-1
           IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
           FCLW=0.
@@ -1803,6 +1869,10 @@ C since a fraction (FCLW) of TRCOND was removed above.
 #endif
          DPHASE(LMAX)=DPHASE(LMAX)+(CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+
      *                CDHM)*FMC1
+         IF(PLE(LMAX+1).GT.700.d0) DPHASHLW(LMAX)=DPHASHLW(LMAX)+
+     *     (CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM)*FMC1
+         IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DPHADEEP(LMAX)=
+     *     DPHADEEP(LMAX)+(CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM)*FMC1
       DO 540 L=LMAX-1,1,-1
       IF(PRCP.LE.0.) GO TO 530
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
@@ -1843,11 +1913,11 @@ C**** Q = Q + F(TOLD,PRHEAT,QOLD+EVAP)
       TOLD=SMOLD(L)*PLK(L)*BYAM(L)
       TOLD1=SMOLD(L+1)*PLK(L+1)*BYAM(L+1)
 C**** decide whether to melt snow/ice
-      HEAT1=0.
+C     HEAT1=0.
       IF(L.EQ.LFRZ.OR.(L.LE.LMIN.AND.TOLD.GE.TF.AND.TOLD1.LT.TF.AND.L.GT
-     *     .LFRZ)) HEAT1=LHM*PRCP*BYSHA
+     *     .LFRZ)) HEAT1(L)=HEAT1(L)+LHM*PRCP*BYSHA
 C**** and deal with possible inversions and re-freezing of rain
-      IF (TOLD.LT.TF.AND.TOLD1.GT.TF) HEAT1=-LHM*PRCP*BYSHA
+      IF (TOLD.LT.TF.AND.TOLD1.GT.TF) HEAT1(L)=HEAT1(L)-LHM*PRCP*BYSHA
       TNX=TOLD
       QNX=QMOLD(L)*BYAM(L)
       LHX=LHE
@@ -1869,9 +1939,9 @@ C**** and deal with possible inversions and re-freezing of rain
       PRCP=PRCP-DQSUM
 C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REEVAPORATION IN CLOUDS
       FSSUM = 0
-      IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1)/
+      IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1(L))/
      *     (PLK(L)*SM(L))
-      SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)
+      SM(L)=SM(L)-(SLH*DQSUM+HEAT1(L))/PLK(L)
       SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM
 #ifdef TRACERS_WATER
@@ -1997,7 +2067,11 @@ c     *         ,THLAW
 #endif
          FCDH1=0.
          IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-         DPHASE(L)=DPHASE(L)-(SLH*DQSUM-FCDH1+HEAT1)*FMC1
+         DPHASE(L)=DPHASE(L)-(SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
+         IF(PLE(LMAX+1).GT.700.d0) DPHASHLW(L)=DPHASHLW(L)-
+     *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
+         IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DPHADEEP(L)=DPHADEEP(L)-
+     *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
          DQCOND(L)=DQCOND(L)-SLH*DQSUM*FMC1
 C**** ADD PRECIPITATION AND LATENT HEAT BELOW
   530 PRHEAT=CDHEAT(L)+SLH*PRCP
@@ -3524,7 +3598,11 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2.f,v 2.85 2007/02/08 12:29:52 jan Exp $
+<<<<<<< CLOUDS2.f
+!$Id: CLOUDS2.f,v 2.86 2007/02/21 18:43:04 cdmsy Exp $
+=======
+!$Id: CLOUDS2.f,v 2.86 2007/02/21 18:43:04 cdmsy Exp $
+>>>>>>> 2.85
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov

@@ -511,13 +511,14 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER, public ::
      &     jl_mcmflx,jl_srhr,jl_trcr,jl_sshr,jl_trbhr,jl_mchr,jl_totntlh
      *     ,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape,jl_dtdyn,jl_dudfmdrg
-     *     ,jl_totcld,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
+     *     ,jl_totcld,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10,jl_mcdflx
      *     ,jl_dumcdrgp10,jl_dumcdrgm40,jl_dumcdrgp40,jl_dumcdrgm20
      *     ,jl_dumcdrgp20,jl_sscld,jl_mccld,jl_sdifcoef,jl_dudtsdif
      *     ,jl_gwfirst,jl_dtdtsdrg,jl_epflxv,jl_rhe,jl_epflxn,jl_damdc
      *     ,jl_dammc,jl_40,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac
      *     ,jl_wwpac,jl_47,jl_zmfntmom,jl_totntmom,jl_mchphas,jl_mcdtotw
      *     ,jl_dudtsdrg,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
+     *     ,jl_mcdeep,jl_mcshlw
      *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,jl_dudtvdif
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
 #ifdef CLD_AER_CDNC
