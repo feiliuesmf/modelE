@@ -3598,11 +3598,6 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-<<<<<<< CLOUDS2.f
-!$Id: CLOUDS2.f,v 2.86 2007/02/21 18:43:04 cdmsy Exp $
-=======
-!$Id: CLOUDS2.f,v 2.86 2007/02/21 18:43:04 cdmsy Exp $
->>>>>>> 2.85
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
