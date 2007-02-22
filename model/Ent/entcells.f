@@ -110,6 +110,7 @@
       ecp%Qf = 3.D-6            !Foliage surface vapor mixing ratio (kg/kg)
       
       !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
+      ecp%TairC = 0.0           !Air temperature (Celsius) 
       ecp%TcanopyC = 0.d0       !Canopy temperatue (Celsius)
 !      ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.d0         !Atmospheric pressure (mb)
@@ -125,6 +126,15 @@
       ecp%IPARdif = 0.0         !Incident diffuse PAR 400-700 nm (W m-2)
       ecp%IPARdir = 0.0         !Incident direct PAR 400-700 nm (W m-2)
       ecp%CosZen = 0.0         !Solar zenith angle
+
+      !Phenology
+      ecp%soiltemp_10d = 0.0
+      ecp%airtemp_10d = 0.0  
+      ecp%soilmoist_10d = 0.0
+      ecp%gdd = 0.0
+      ecp%ncd = 0.0
+      ecp%ld = 0.0
+      ecp%wat = 0.0
 
       end subroutine zero_entcell
 !**************************************************************************
@@ -435,7 +445,7 @@
      &           cpooldata(ncov,LABILE),0.d0,
      &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,
-     &           0.d0,0.d0)
+     &           0.d0,0.d0,0.d0,0.d0,0.d0) !KIM - 3 new vars for phenology
           endif
           call summarize_patch(pp)
 

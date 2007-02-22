@@ -247,10 +247,11 @@ cddd      end interface ent_cell_update
 !*************************************************************************
 
       subroutine ent_seasonal_update_single(entcell,
-     &     dt
+     &     dt,
 ! insert any needed input parameters here
-     &     )
-      use ent, only : ent_integrate_GISS
+     &     time) !KIM - for phenology:
+                 !KIM - consiquently time is added in subroutines *_1d & *_2d 
+      use ent, only : ent_integrate_GISS, ent_integrate
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
 !@+   Right now (before real dynamic vegetation is implemented)
@@ -262,32 +263,40 @@ cddd      end interface ent_cell_update
 !@+   parameters we need only "jday"
 !@+   Is it OK from ESMF point of view?
       !use ent_driver, only : ent_update_veg_structure
-      type(entcelltype_public), intent(in) :: entcell
+      type(entcelltype_public), intent(inout) :: entcell !KIM - changed in->inout
+      real*8, intent(in) :: time !KIM - for phenology
       real*8, intent(in) :: dt !Time step (s)
       !---
       
       !call ent_update_veg_structure( entcell%entcell, jday )
+
+#ifdef PFT_MODEL_ENT
+      call ent_integrate(dt, entcell%entcell, time) 
+#else
       call ent_integrate_GISS(entcell%entcell,dt)
+#endif
 
       end subroutine ent_seasonal_update_single
 
 
-      subroutine ent_seasonal_update_array_1d(entcell, dt)
+      subroutine ent_seasonal_update_array_1d(entcell, dt,time)
       type(entcelltype_public), intent(inout) :: entcell(:)
+      real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
       !---
       integer n, nc
 
       nc = size(entcell)
       do n=1,nc
-        call ent_seasonal_update_single( entcell(n), dt)
+        call ent_seasonal_update_single( entcell(n), dt, time)
       enddo
 
       end subroutine ent_seasonal_update_array_1d
 
 
-      subroutine ent_seasonal_update_array_2d(entcell,dt)
+      subroutine ent_seasonal_update_array_2d(entcell,dt,time)
       type(entcelltype_public), intent(inout) :: entcell(:,:)
+      real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
 !      integer, intent(in) :: jday
       !---
@@ -298,7 +307,7 @@ cddd      end interface ent_cell_update
 
       do j=1,jc
         do i=1,ic
-          call ent_seasonal_update_single( entcell(i,j), dt )
+          call ent_seasonal_update_single( entcell(i,j), dt, time ) 
         enddo
       enddo
 
@@ -1136,6 +1145,7 @@ cddd      end subroutine ent_cell_update_single
 !******************************************************************
 
       subroutine ent_set_forcings_single( entcell,
+     &     air_temperature, !KIM - for phenology
      &     canopy_temperature,
      &     canopy_air_humidity,      
      &     surf_pressure,            
@@ -1154,6 +1164,7 @@ cddd      end subroutine ent_cell_update_single
       type(entcelltype_public), intent(out) :: entcell
       ! forcings probably should not be optional ...
       real*8, intent(in) ::
+     &     air_temperature, !KIM - for phenology
      &     canopy_temperature,
      &     canopy_air_humidity,
      &     surf_pressure,
@@ -1172,6 +1183,7 @@ cddd      end subroutine ent_cell_update_single
       !----------
       integer n
 
+      entcell%entcell%TairC = air_temperature !KIM - for phenology
       entcell%entcell%TcanopyC = canopy_temperature
       entcell%entcell%Qf = canopy_air_humidity
       entcell%entcell%P_mbar = surf_pressure
@@ -1192,6 +1204,7 @@ cddd      end subroutine ent_cell_update_single
 
 
       subroutine ent_set_forcings_array_1d( entcell,
+     &     air_temperature, !KIM - for phenology
      &     canopy_temperature,
      &     canopy_air_humidity,      
      &     surf_pressure,            
@@ -1210,6 +1223,7 @@ cddd      end subroutine ent_cell_update_single
       type(entcelltype_public), dimension(:), intent(out) :: entcell
       ! forcings probably should not be optional ...
       real*8, dimension(:)  ::
+     &     air_temperature, !KIM - for phenology
      &     canopy_temperature,
      &     canopy_air_humidity,
      &     surf_pressure,
@@ -1232,6 +1246,7 @@ cddd      end subroutine ent_cell_update_single
       ic = size(entcell, 1)
 
       do i=1,ic
+        entcell(i)%entcell%TairC = air_temperature(i) !KIM - for phenology
         entcell(i)%entcell%TcanopyC = canopy_temperature(i)
         entcell(i)%entcell%Qf = canopy_air_humidity(i)
         entcell(i)%entcell%P_mbar = surf_pressure(i)
@@ -1254,6 +1269,7 @@ cddd      end subroutine ent_cell_update_single
 
 
       subroutine ent_set_forcings_array_2d( entcell,
+     &     air_temperature, !KIM - for phenology
      &     canopy_temperature,
      &     canopy_air_humidity,      
      &     surf_pressure,            
@@ -1272,6 +1288,7 @@ cddd      end subroutine ent_cell_update_single
       type(entcelltype_public), dimension(:,:), intent(out) :: entcell
       ! forcings probably should not be optional ...
       real*8, dimension(:,:)  ::
+     &     air_temperature, !KIM - for phenology
      &     canopy_temperature,
      &     canopy_air_humidity,
      &     surf_pressure,
@@ -1296,6 +1313,7 @@ cddd      end subroutine ent_cell_update_single
       
       do j=1,jc
         do i=1,ic
+          entcell(i,j)%entcell%TairC = air_temperature(i,j) !KIM - for phenoloygy
           entcell(i,j)%entcell%TcanopyC = canopy_temperature(i,j)
           entcell(i,j)%entcell%Qf = canopy_air_humidity(i,j)
           entcell(i,j)%entcell%P_mbar = surf_pressure(i,j)

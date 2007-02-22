@@ -39,6 +39,10 @@
       !woodage - stem litter age (years) (CASA)
       !lit_C2N - litter C:N (CASA)
       !lignin - lignin content
+      !* Parameter for phenology
+      !phenotype - phenological types
+      !          - evergreen (1), cold deciduous (2), drougt deciduous (3), 
+      !            both cold and drought deciduous (4)
 
       !SOURCES:
       !soil  moisture points:  7 & 10 from Kiang (2002) dissertation.
@@ -50,34 +54,34 @@
       !***************************************************
       !Temp values for Ent pfts (See ent_const.f for types)
       type(pftype),parameter :: pfpar(N_PFT) =         !PFT parameters
-      !     pst,  hwilt, sstar, swilt,nf,sla,r,lrage,woodage,lit_C2N,lignin !
+      !     pst,  hwilt, sstar, swilt,nf,sla,r,lrage,woodage,lit_C2N,lignin,phenotype !
      &           (/      
      &     pftype(1, -100.d0, .60d0, .29d0, 1.3d0, 25.0d0, 0.85d0, 
-     &     1.8d0, 41.0d0, 40.d0, 0.2d0),
+     &     1.8d0, 41.0d0, 40.d0, 0.2d0, 1),
      &     pftype(1, -100.d0, .60d0, .29d0, 1.2d0, 25.0d0, 0.85d0, 
-     &     1.8d0,41.0d0, 40.d0, 0.2d0),
+     &     1.8d0,41.0d0, 40.d0, 0.2d0, 1),
      &     pftype(1, -100.d0, .55d0, .25d0, 0.9d0, 10.0d0, 0.9d0, 
-     &     5.0d0, 42.0d0, 80.d0, 0.25d0),
+     &     5.0d0, 42.0d0, 80.d0, 0.25d0, 1),
      &     pftype(1, -100.d0, .55d0, .25d0, 0.85d0,10.0d0, 0.9d0, 
-     &     5.0d0, 42.0d0, 80.d0, 0.25d0),
+     &     5.0d0, 42.0d0, 80.d0, 0.25d0, 1),
      &     pftype(1, -100.d0, .50d0, .29d0, 1.5d0, 30.0d0, 0.9d0, 
-     &     1.2d0, 58.0d0, 50.d0, 0.2d0),
+     &     1.2d0, 58.0d0, 50.d0, 0.2d0, 2),
      &     pftype(1, -100.d0, .50d0, .29d0, 1.4d0, 30.0d0, 0.9d0, 
-     &     1.2d0, 58.0d0, 50.d0, 0.2d0),
+     &     1.2d0, 58.0d0, 50.d0, 0.2d0, 2),
      &     pftype(1, -100.d0, .45d0, .22d0, 1.4d0, 30.0d0, 0.85d0, 
-     &     1.2d0,25.0d0, 60.d0, 0.2d0),
+     &     1.2d0,25.0d0, 60.d0, 0.2d0, 3),
      &     pftype(1, -100.d0, .50d0, .22d0, 1.4d0, 25.0d0, 0.6d0, 
-     &     2.8d0, 5.5d0, 50.d0, 0.15d0),
+     &     2.8d0, 5.5d0, 50.d0, 0.15d0, 3),
      &     pftype(1, -100.d0, .40d0, .22d0, 1.3d0, 25.0d0, 0.85d0, 
-     &     1.0d0, 5.5d0, 65.d0, 0.2d0),
+     &     1.0d0, 5.5d0, 65.d0, 0.2d0, 2),
      &     pftype(1, -100.d0, .65d0, .27d0, 1.5d0, 40.0d0, 0.6d0, 
-     &     1.5d0, 0.0d0, 50.d0, 0.1d0),
+     &     1.5d0, 0.0d0, 50.d0, 0.1d0, 4),
      &     pftype(2, -100.d0, .55d0, .22d0, 0.76d0,35.0d0, 0.6d0, 
-     &     1.5d0, 0.0d0, 50.d0, 0.1d0),
+     &     1.5d0, 0.0d0, 50.d0, 0.1d0, 4),
      &     pftype(1, -100.d0, .60d0, .27d0, 1.4d0, 20.0d0, 0.6d0, 
-     &     1.5d0, 0.0d0, 50.d0, 0.1d0),
+     &     1.5d0, 0.0d0, 50.d0, 0.1d0, 3),
      &     pftype(2, -100.d0, .65d0, .27d0, 0.76d0,60.0d0, 1.2d0, 
-     &     1.2d0, 1.0d0, 40.d0, 0.1d0)
+     &     1.2d0, 1.0d0, 40.d0, 0.1d0, 4)
      &     /)
 
       ! other parameters needed for Ent to compile

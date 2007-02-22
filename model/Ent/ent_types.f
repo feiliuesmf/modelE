@@ -39,7 +39,8 @@
          real*8 :: woodage !CASA Turnover time of stems (years)
          real*8 :: lit_C2N !CASA litcn_casa (C:N ratio) IS THIS FOLIAGE&ROOTS?
          real*8 :: lignin  !CASA lignin (UNITS?  lignin content of ??)
-         !real*8 :: !Phenological parameters, other
+         !Phenology parameter - KIM
+         integer :: phenotype !phenological types
       end type pftype
 !****************************************************************************
 
@@ -141,6 +142,11 @@
 
          !* REPRODUCTION
          !real*8 :: ------        ! ASK PAUL
+
+         !* PHENOLOGY - KIM
+         real*8 :: phenofactor
+         real*8 :: phenofactor_c
+         real*8 :: phenofactor_d
          
       end type cohort
 
@@ -367,10 +373,12 @@
 
          !IMPORT - METEOROLOGICAL STATE VARIABLES
          !Cell-level summary values - CALCULATED BY GCM/EWB OR OFF-LINE FILE
+         real*8 :: TairC ! Air temperature (Clesius) !KIM-to drive phenology
          real*8 :: TcanopyC     !Canopy temperatue (Celsius)
          real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
+
           !CASA needs next 2 only for top 30 cm (top 2 = 27 cm; plus 3/dzsoi of lyr 3) -PK
          real*8 :: Soilmoist !Soil moisture (volumetric fraction)
          real*8 :: Soiltemp  !Soil temperature (Celsius)
@@ -389,6 +397,15 @@
          real*8 :: IPARdir        !Incident direct PAR (W m-2)
          real*8 :: IPARdif        !Incident diffuse PAR (W m-2)
          real*8 :: CosZen     !Solar zenith angle
+
+         !PHENOLOGY - KIM
+         real*8 :: soiltemp_10d
+         real*8 :: airtemp_10d
+         real*8 :: soilmoist_10d          
+         real*8 :: gdd
+         real*8 :: ncd
+         real*8 :: ld
+         real*8 :: wat
 
       end type entcelltype
 

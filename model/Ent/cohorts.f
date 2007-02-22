@@ -15,7 +15,8 @@
      &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
-     &     N_up, C_to_Nfix)
+     &     N_up, C_to_Nfix, 
+     &     phenofactor_c, phenofactor_d, phenofactor) !KIM - 3 new vars for phenology
 
       type(patch),pointer :: pp
       integer :: pft
@@ -25,7 +26,8 @@
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
-     &     N_up, C_to_Nfix
+     &     N_up, C_to_Nfix,
+     &     phenofactor_c, phenofactor_d, phenofactor
       !------------------
       type(cohort),pointer :: cop, csp, newc
 
@@ -42,7 +44,8 @@
      &       C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       Ci, GCANOPY, GPP, NPP, R_auto,
-     &       N_up, C_to_Nfix)
+     &       N_up, C_to_Nfix,
+     &       phenofactor_c, phenofactor_d, phenofactor)
 
         newc%Ntot = nm*LAI
 
@@ -127,7 +130,9 @@
      &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
-     &     N_up, C_to_Nfix)
+     &     N_up, C_to_Nfix,
+     &     phenofactor_c, phenofactor_d, phenofactor)
+
       !Given cohort's characteristics, assign to cohort data variable.
 
       type(cohort) :: cop
@@ -137,7 +142,8 @@
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto,
-     &     N_up, C_to_Nfix
+     &     N_up, C_to_Nfix,
+     &     phenofactor_c, phenofactor_d, phenofactor
 
       cop%pft = pft
       cop%n = n
@@ -172,6 +178,9 @@
 !      cop%C_litter = C_litter
 !      cop%N_litter = N_litter
       cop%C_to_Nfix = C_to_Nfix
+      cop%phenofactor_c = phenofactor_c
+      cop%phenofactor_d = phenofactor_d
+      cop%phenofactor = phenofactor
 
       end subroutine assign_cohort
       !*********************************************************************
@@ -240,6 +249,12 @@ cddd      end subroutine init_cohort_defaults
 
       !* REPRODUCTION *!
       !cop%
+
+      !* PHENOLOGY *!
+      cop%phenofactor_c = 0.0
+      cop%phenofactor_d = 0.0
+      cop%phenofactor = 0.0
+
       end subroutine zero_cohort
 
 

@@ -16,6 +16,7 @@
       save
 
       public ent_ecosystem_dynamics, ent_integrate_GISS, ent_biophysics
+      public ent_integrate !Added by KIM
 
       contains
       !*********************************************************************
@@ -46,12 +47,12 @@
           call get_patchalbedo(pp)
         end if
 
-        call ent_integrate(dtsec,ecp) !Biophysics, respiration
+!        call ent_integrate(dtsec,ecp,0.0) !Biophysics, respiration
 
         if (STRUCT_FLAG(tt,ecp)) then
           call reproduction_calc(dtsec, tt, pp)
           call reorganize_cohorts(pp)
-          call phenology_update (dtsec,tt, pp) !UPDATE LAI
+!          call phenology_update (dtsec,tt, pp) !UPDATE LAI
           call recalc_radpar (pp) !UPDATE canopy radiative transfer
         end if
         call summarize_patch(pp)
@@ -114,7 +115,7 @@
 
       !*********************************************************************
 
-      subroutine ent_integrate(dtsec, ecp)
+      subroutine ent_integrate(dtsec, ecp, time)
 !@sum Ent biophysics/biogeochemistry
       use reproduction
       use cohorts
@@ -123,7 +124,7 @@
       use growthallometry, only : uptake_N
       use phenology, only : litter
       use soilbgc, only : soil_bgc
-      use phenology, only : phenology_update
+      use phenology, only : phenology_update, phenology_stats
       use canopyrad, only : recalc_radpar
       use entcells, only : summarize_entcell, entcell_print
 
@@ -133,6 +134,15 @@
       type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp
+      real*8 :: time            !temp. for Phenology
+      logical :: dailyupdate    !temp. for Phenology
+       
+      if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily, later use timestruct
+         dailyupdate=.true.
+      else 
+         dailyupdate=.false.
+      end if
+
 
       !* Loop through patches
       pp => ecp%oldest 
@@ -140,6 +150,10 @@
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp) !?
         !call growth(...)
+        call phenology_stats(dtsec,pp,dailyupdate)
+        if (dailyupdate) then
+           call phenology_update(pp)
+        end if
         call litter(dtsec, pp) 
         call soil_bgc(dtsec, pp)
         pp%CO2flux = -pp%NPP + pp%Soil_resp
