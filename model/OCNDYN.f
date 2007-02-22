@@ -4565,7 +4565,7 @@ C****
       USE GEOM, only : dxyp,imaxj
       USE CONSTANT, only : grav
       USE OCEAN, only : im,jm,lmo,focean,lmm,mo,s0m,sxmo
-     *     ,symo,szmo,dxypo,oc_salt_mean,g0m,dxypo
+     *     ,symo,szmo,dxypo,oc_salt_mean,g0m
       USE STRAITS, only : s0mst,sxmst,szmst,nmst,lmst,g0mst,mmst,dist
      *     ,wist
       use DOMAIN_DECOMP, only: grid, GLOBALSUM, get, AM_I_ROOT,
