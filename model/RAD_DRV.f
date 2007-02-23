@@ -930,7 +930,7 @@ C     OUTPUT DATA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4
      *     ,n_OCI1,n_OCI2,n_OCI3,n_OCA1,n_OCA2,n_OCA3,n_OCA4
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,SNFST0,TNFST0
+c    *     ,SNFST0,TNFST0
 #endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau
      &     ,ijts_tausub,ijts_fcsub,ijts_3dtau,ijts_sqex,ijts_sqexsub
@@ -2186,8 +2186,8 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
          if (ntrace.gt.0) then
 #ifdef TRACERS_AEROSOLS_Koch
-           snfst0(:,:,i,j)=0.D0
-           tnfst0(:,:,i,j)=0.D0
+c          snfst0(:,:,i,j)=0.D0
+c          tnfst0(:,:,i,j)=0.D0
 #endif
 c     ..........
 c     accumulation of forcings for tracers for which ntrace fields are
@@ -2289,14 +2289,14 @@ c longwave forcing at surface (if required)
      &                -rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
                END SELECT
 #ifdef TRACERS_AEROSOLS_Koch
-               SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
-     &              +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
-               SNFST0(2,ntrix(n),I,J)=SNFST0(2,ntrix(n),I,J)
-     &              +rsign*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
-               TNFST0(1,ntrix(n),I,J)=TNFST0(1,ntrix(n),I,J)
-     &              -rsign*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
-               TNFST0(2,ntrix(n),I,J)=TNFST0(2,ntrix(n),I,J)
-     &              -rsign*(TNFST(1,n,I,J)-TNFS(1,I,J))
+c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
+c    &              +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
+c              SNFST0(2,ntrix(n),I,J)=SNFST0(2,ntrix(n),I,J)
+c    &              +rsign*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
+c              TNFST0(1,ntrix(n),I,J)=TNFST0(1,ntrix(n),I,J)
+c    &              -rsign*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
+c              TNFST0(2,ntrix(n),I,J)=TNFST0(2,ntrix(n),I,J)
+c    &              -rsign*(TNFST(1,n,I,J)-TNFS(1,I,J))
 #endif
              END IF
            end do

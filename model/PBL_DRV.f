@@ -119,9 +119,6 @@ C          ,UG,VG,WG,W2_1
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,wsgcm,wspdf
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      USE AEROSOL_SOURCES, only: PBLH
-#endif
 #endif
 
       USE PBLCOM
@@ -263,10 +260,6 @@ c     ELSE
 
 c     ENDIF
 
-#if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP)
-      IF (ITYPE.eq.1) PBLH(I,J)=dbl
-#endif
   !    ppbl=pedn(l,i,j)  ! - not used anywhere ?
       coriol=sinp(j)*omega2
       ttop=tkv

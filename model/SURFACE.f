@@ -38,9 +38,6 @@ C****
 #ifdef TRACERS_DUST
      &     ,Ntm_dust,n_clay
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) ||(defined TRACERS_AMP)
-      USE AEROSOL_SOURCES, only: SHDTT
-#endif
 #endif
 C**** Interface to PBL
   !    USE SOCPBL, only : ZS1,TGV,TKV,QG_SAT,QG_AVER,HEMI,DTSURF,POLE
@@ -737,9 +734,6 @@ c       EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
         SHDT = DTSURF*SHEAT
         EVHDT=DTSURF*EVHEAT              ! latent heat flux
         TRHDT=DTSURF*TRHEAT
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        SHDTT(I,J)=SHDT
-#endif
 C****
 !!!      CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
       else if ( ITYPE == 2 ) then
