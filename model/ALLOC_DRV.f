@@ -36,6 +36,9 @@ c set-up for MPI implementation
       call alloc_tracer_sources(grid)
       call alloc_lightning(grid)
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      call alloc_aerosol_sources(grid)
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       CALL alloc_dust(grid)

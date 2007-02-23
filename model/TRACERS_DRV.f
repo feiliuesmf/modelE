@@ -8678,7 +8678,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_COLUMN, write_parallel
+      USE DOMAIN_DECOMP, only : GRID,GET,UNPACK_COLUMN, write_parallel,
+     * UNPACK_DATA
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm,rnsrc
@@ -8730,7 +8731,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
      * BCB_src,OCB_src,OCT_src
      * ,DMS_AER,SS1_AER,SS2_AER
-     * ,SO2_src_3D,SO2_biosrc_3D,SO2_src,bci_src_3D
+     * ,SO2_src_3D,SO2_biosrc_3D,SO2_src,bci_src_3D,
+     * nso2src,nso2src_3D,lmAER
 #endif
 #ifdef TRACERS_COSMO
        USE COSMO_SOURCES, only: rn_src
@@ -8779,16 +8781,29 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      include 'netcdf.inc'
+c     include 'netcdf.inc'
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       integer start(3),count(3),status,ncidu,id1
       REAL*8 dmsconc
+      real*8, dimension(im,jm,12) :: DMSinput_glob,OCT_src_glob
+      real*8, dimension(im,jm) :: so2_src_glob1,so2_src1
+      real*8, dimension(im,jm,lm) :: so2_src_3D_glob1,so2_src_3D_1
+      real*8, dimension(im,jm,lmAER,12) :: SO2_biosrc_3D_glob
+      real*8, dimension(im,jm) :: BCI_src_glob1,BCI_src_glob2,
+     * BCI_src_glob3,BCI_src_glob4,BCI_src1,BCI_src2,BCI_src3,
+     * BCI_src4,OCI_src_glob1,OCI_src_glob2,
+     * OCI_src_glob3,OCI_src_glob4,OCI_src1,OCI_src2,OCI_src3,
+     * OCI_src4
+      real*8, dimension(im,jm,8) :: OCI_src_glob5
+      real*8, dimension(im,jm,lm) :: volc_exp,volc_exp_glob
+      real*8, dimension(im,jm,lm,12) :: BCB_src_glob, OCB_src_glob
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll
       INTEGER iuc2
       real*8 carbstuff,ccnv,carb(8)
-      real*4 :: craft(im,jm,lm)
+      real*8, DIMENSION(im,jm,lm) :: craft,craft_glob
+      real*4, DIMENSION(im,jm,lm) :: craft_read
       character*56 titleg
 #endif
 
@@ -9463,231 +9478,337 @@ C**** Initialise ocean tracers if necessary
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c read in DMS source
-      if (imAER.ne.1) then
-      call openunit('DMS_SEA',mon_unit,.false.)
-      DO 8 mm =1,12
-      READ(mon_unit,*) mont
-      do ir=1,9999
-      read(mon_unit,901) ii,jj,dmsconc
-c I'm not using the moments
+      if (imAER.ne.1) then !initialize interactive DMS (non-AeroCom)      
+
+      if ( AM_I_ROOT() ) then
+C    Initialize:
+        DO J=1,JM;  DO I=1,IM; DO MM=1,12;
+          DMSinput_glob(I,J,MM)= 0.d0
+        END DO   ;  END DO   ; END DO    ;
+
+        call openunit('DMS_SEA',mon_unit,.false.)
+        DO 8 mm=1,12
+        READ(mon_unit,*) mont
+        do ir=1,9999
+        READ(mon_unit,901) ii,jj,dmsconc
       IF (II.EQ.0) GO TO 8
-      DMSinput(ii,jj,mm)=dmsconc
+      DMSinput_glob(ii,jj,mm)=dmsconc
       end do
   8   CONTINUE
         call closeunit(mon_unit)
-      else  !AEROCOM run for now these are in
-         status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
-         status=NF_INQ_VARID(ncidu,'dms',id1)
-          start(1)=1
-          start(2)=1
-          start(3)=1
-          count(1)=im
-          count(2)=jm
-          count(3)=366
-          status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER)
-          status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
+      endif
+
+      CALL UNPACK_DATA(grid, DMSinput_glob, DMSinput)
+
+c I've commented out this, don't know how to do netcdf
+c     else  !AEROCOM run for now these are in
+c        status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
+c        status=NF_INQ_VARID(ncidu,'dms',id1)
+c         start(1)=1
+c         start(2)=1
+c         start(3)=1
+c         count(1)=im
+c         count(2)=jm
+c         count(3)=366
+c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER)
+c         status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
       endif
  901  FORMAT(3X,2(I4),E11.3,5F9.2)
 c read in AEROCOM seasalt
       if (imAER.eq.1) then
-         status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
-         status=NF_INQ_VARID(ncidu,'salt',id1)
-          start(1)=1
-          start(2)=1
-          start(3)=1
-          count(1)=im
-          count(2)=jm
-          count(3)=366
-          status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER)
-          status=NF_CLOSE('SALT1',NCNOWRIT,ncidu)
-         status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
-         status=NF_INQ_VARID(ncidu,'salt',id1)
-          start(1)=1
-          start(2)=1
-          start(3)=1
-          count(1)=im
-          count(2)=jm
-          count(3)=366
-          status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER)
-          status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
+c        status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
+c        status=NF_INQ_VARID(ncidu,'salt',id1)
+c         start(1)=1
+c         start(2)=1
+c         start(3)=1
+c         count(1)=im
+c         count(2)=jm
+c         count(3)=366
+c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER)
+c         status=NF_CLOSE('SALT1',NCNOWRIT,ncidu)
+c        status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
+c        status=NF_INQ_VARID(ncidu,'salt',id1)
+c         start(1)=1
+c         start(2)=1
+c         start(3)=1
+c         count(1)=im
+c         count(2)=jm
+c         count(3)=366
+c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER)
+c         status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
       endif
 
-c read in AEROCOM SO2 emissions
+c read in SO2 emissions
 c Industrial
-      so2_src_3d(:,:,:,:)=0.d0
 #ifndef EDGAR_1995
       if (imPI.eq.0) then
       if (imAER.eq.0) then
-      so2_src(:,:,:)=0.d0
-      call openunit('SO2_IND',iuc,.false.)
-      do mm=1,9999
-      read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) go to 81
-      so2_src(ii,jj,1)=carbstuff/(sday*30.4)/12.d0
+      if ( AM_I_ROOT() ) then
+C    Initialize:
+        DO J=1,JM;  DO I=1,IM
+          so2_src_glob1(I,J)= 0.d0
+          so2_src1(I,J)= 0.d0
+          so2_src(I,J,1)= 0.d0
+        END DO   ;  END DO   
+        call openunit('SO2_IND',iuc,.false.)
+       do mm=1,9999
+        READ(iuc,*) ii,jj,carbstuff
+        if (ii.eq.0) go to 81
+      so2_src_glob1(ii,jj)=carbstuff/(sday*30.4)/12.d0
       end do
   81  call closeunit(iuc)
       endif
       endif
+      endif
+      CALL UNPACK_DATA(grid, so2_src_glob1, so2_src1)
+      so2_src(:,j_0:j_1,1)=so2_src1(:,j_0:j_1)
 #endif
-C Put aircraft in here
-      so2_src_3d(:,:,:,2)=0.
-      bci_src_3d(:,:,:)=0.d0
+C Put aircraft for so2 and BC
+      if (imPI.eq.0) then
+      if (imAER.ne.1) then
+      if ( AM_I_ROOT() ) then
+C    Initialize:
+        DO J=1,JM;  DO I=1,IM;  DO L=1,LM;
+          craft_glob(I,J,L)= 0.d0
+          craft(I,J,L)=0.d0
+          craft_read(I,J,L)=0.d0
+          so2_src_3d(I,J,L,2)= 0.d0
+          bci_src_3d(I,J,L)=0.d0
+        END DO   ;  END DO   ;  END DO   ;  
       call openunit('AIRCRAFT',iuc2,.true.)
-C Read 13 layer data file for 23 layer model
       if (lm.eq.23) then
       DO L=1,LS1+1
-      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
+      READ(iuc2) titleg,((craft_read(i,j,l),i=1,im),j=1,jm)
       END DO
       else
       DO L=1,LM
-      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
+      READ(iuc2) titleg,((craft_read(i,j,l),i=1,im),j=1,jm)
       END DO
       endif
       call closeunit(iuc2)
-C Set emissions above LS1+1 to zero for 23 layer model
-       if (lm.eq.23) then
-       DO L=LS1+2,LM
-        DO J=1,JM
-         DO I=1,IM
-       craft(i,j,l)=0.0
-       END DO
-       END DO
-       END DO
-       endif
+      craft_glob(:,:,:)=craft_read(:,:,:)
+      endif
+      CALL UNPACK_DATA(grid, craft_glob, craft)      
+
 c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
 c adjusts 2015 source to 1990 source.
 c 4.d0d-4 converts to kg S
 c (for BC multiply this by 0.1)
-      so2_src_3d(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
-     *  /2.3d0/sday
-      if (imAER.ne.1) so2_src_3D(:,:,:,2)=0.d0
-      bci_src_3D(:,:,:)=so2_src_3D(:,:,:,2)*0.1d0
+      so2_src_3d(:,j_0:j_1,:,2)=craft(:,j_0:j_1,:)*4.0d-4
+     *  *tr_mm(n_SO2)/32.d0/2.3d0/sday
+      bci_src_3D(:,j_0:j_1,:)=so2_src_3D(:,j_0:j_1,:,2)*0.1d0
+      endif
+      endif
 
 c volcano - continuous
-cdmk
+C    Initialize:
+      if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;  DO L=1,LM;
+          so2_src_3D_glob1(I,J,L)= 0.d0
+          so2_src_3D_1(I,J,L)= 0.d0
+        END DO   ;  END DO   ;  END DO
       call openunit('SO2_VOLCANO',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,ll,carbstuff
-      if (ii.eq.0.) go to 83
-      so2_src_3d(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
+      if (ii.eq.0) go to 83
+      so2_src_3d_glob1(ii,jj,ll)=carbstuff/(sday*30.4d0)/12.d0
       end do
   83  call closeunit(iuc)
+      endif
+      CALL UNPACK_DATA(grid, so2_src_3D_glob1, so2_src_3D_1)
+      so2_src_3D(:,j_0:j_1,:,1)=so2_src_3D_1(:,j_0:j_1,:)
+      
+c Biomass for AeroCom  
       if (imAER.eq.1) then
-      SO2_biosrc_3D(:,:,:,:)=0.d0
-c Biomass
+      if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;  DO L=1,LMAER; DO MM=1,12;
+          so2_biosrc_3D_glob(I,J,L,mm)= 0.d0
+          so2_biosrc_3D(I,J,L,mm)= 0.d0
+        END DO   ;  END DO   ;  END DO      ; END DO
       call openunit('SO2_BIOMASS',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,mmm,ll,carbstuff
-      if (ii.eq.0.) go to 82
+      if (ii.eq.0) go to 82
       if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      SO2_biosrc_3D(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
+      SO2_biosrc_3D_glob(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
       end do
   82  call closeunit(iuc)
-c volcano - explosive
+      endif
+      CALL UNPACK_DATA(grid, so2_biosrc_3D_glob, so2_biosrc_3D)  
+  
+c volcano - explosive, for AeroCom
+       if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;  DO L=1,LM; 
+          volc_exp_glob(I,J,L)= 0.d0
+          volc_exp(I,J,L)= 0.d0
+        END DO   ;  END DO   ;  END DO   ;    
       call openunit('SO2_VOLCANO_EXP',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,ll,carbstuff
-      if (ii.eq.0.) go to 84
-      so2_src_3d(ii,jj,ll,1)=so2_src_3d(ii,jj,ll,1)
-     * +carbstuff/(sday*30.4d0)/12.d0
+      if (ii.eq.0) go to 84
+      volc_exp_glob(ii,jj,ll)=carbstuff/(sday*30.4d0)/12.d0
       end do
   84  call closeunit(iuc)
+      endif
+      CALL UNPACK_DATA(grid, volc_exp_glob, volc_exp)
+      so2_src_3d(:,j_0:j_1,:,1)=so2_src_3d(:,j_0:j_1,:,1)+
+     * volc_exp(:,j_0:j_1,:) 
       endif
 c read in BC and OC sources
 c Industrial BC/OC
       if (imAER.ge.0.and.imAER.le.2) then
-c !else use historic emissions
-      BCI_src(:,:)=0.d0
+c  !else use historic emissions
+        if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;   
+          BCI_src_glob1(I,J)= 0.d0
+          BCI_src1(I,J)= 0.d0
+          BCI_src(I,J)=0.d0
+        END DO   ;  END DO   ;     
       if (imPI.eq.0) then
        call openunit('BC_BIOFUEL',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0.) go to 9
-       BCI_src(ii,jj)=carbstuff
+       if (ii.eq.0) go to 9
+       BCI_src_glob1(ii,jj)=carbstuff
        end do
   9    call closeunit(iuc)
+       endif
+       CALL UNPACK_DATA(grid, BCI_src_glob1, BCI_src1)
+       BCI_src(:,J_0:J_1)=BCI_src1(:,J_0:J_1)
+       if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;   
+          BCI_src_glob2(I,J)= 0.d0
+          BCI_src2(I,J)=0.d0
+        END DO   ;  END DO   ;   
        call openunit('BC_FOSSIL_FUEL',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0.) go to 10
-       BCI_src(ii,jj)=BCI_src(ii,jj)+carbstuff
+       BCI_src_glob2(ii,jj)=carbstuff
        end do
  10    call closeunit(iuc)
-       if (imAER.eq.2) then
+       endif
+       CALL UNPACK_DATA(grid, BCI_src_glob2, BCI_src2) 
+       BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src2(:,J_0:J_1)
+       if (imAER.eq.2) then  !more sectors to read in
+       if ( AM_I_ROOT() ) then
+       DO J=1,JM;  DO I=1,IM;   
+          BCI_src_glob3(I,J)= 0.d0
+          BCI_src3(I,J)=0.d0
+        END DO   ;  END DO   ;   
        call openunit('BC_IND',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0.) go to 41
-       BCI_src(ii,jj)=BCI_src(ii,jj)+carbstuff
+       if (ii.eq.0) go to 41
+       BCI_src_glob3(ii,jj)=carbstuff
        end do
  41    call closeunit(iuc)
+       endif
+       CALL UNPACK_DATA(grid, BCI_src_glob3, BCI_src3) 
+       BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src3(:,J_0:J_1) 
+       if ( AM_I_ROOT() ) then
+       DO J=1,JM;  DO I=1,IM;   
+          BCI_src_glob4(I,J)= 0.d0
+          BCI_src4(I,J)=0.d0
+        END DO   ;  END DO   ;        
        call openunit('BC_TRANS',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0.) go to 16
-       BCI_src(ii,jj)=BCI_src(ii,jj)+carbstuff
+       if (ii.eq.0) go to 16
+       BCI_src_glob4(ii,jj)=carbstuff
        end do
  16    call closeunit(iuc)
        endif
-       OCI_src(:,:,:)=0.d0
+       CALL UNPACK_DATA(grid, BCI_src_glob4, BCI_src4) 
+       BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src4(:,J_0:J_1)  
+       endif
+       if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;   
+          OCI_src_glob1(I,J)= 0.d0
+          OCI_src1(I,J)=0.d0
+          OCI_src(I,J,1)= 0.d0
+        END DO   ;  END DO   ;            
        call openunit('OC_BIOFUEL',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0.) go to 11
-       OCI_src(ii,jj,1)=carbstuff
+       if (ii.eq.0) go to 11
+       OCI_src_glob1(ii,jj)=carbstuff
        end do
  11    call closeunit(iuc)
+       endif
+       CALL UNPACK_DATA(grid, OCI_src_glob1, OCI_src1) 
+       OCI_src(:,J_0:J_1,1)=OCI_src1(:,J_0:J_1) 
+       if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;   
+          OCI_src_glob2(I,J)= 0.d0
+          OCI_src2(I,J)=0.d0
+        END DO   ;  END DO   ; 
        call openunit('OC_FOSSIL_FUEL',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0.) go to 12
-       OCI_src(ii,jj,1)=OCI_src(ii,jj,1)+carbstuff
+       if (ii.eq.0) go to 12
+       OCI_src_glob2(ii,jj)=carbstuff
        end do
  12    call closeunit(iuc)
+       endif
+       CALL UNPACK_DATA(grid, OCI_src_glob2, OCI_src2) 
+       OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src2(:,J_0:J_1)   
        if (imAER.eq.2) then
+       if ( AM_I_ROOT() ) then
+       DO J=1,JM;  DO I=1,IM;   
+          OCI_src_glob3(I,J)= 0.d0
+          OCI_src3(I,J)=0.d0
+       END DO   ;  END DO   ; 
        call openunit('OC_IND',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0.) go to 17
-       OCI_src(ii,jj,1)=OCI_src(ii,jj,1)+carbstuff
+       if (ii.eq.0) go to 17
+       OCI_src_glob3(ii,jj)=carbstuff
        end do
  17    call closeunit(iuc)
+       endif
+       CALL UNPACK_DATA(grid, OCI_src_glob3, OCI_src3) 
+       OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src3(:,J_0:J_1) 
+       if ( AM_I_ROOT() ) then
+       DO J=1,JM;  DO I=1,IM;   
+          OCI_src_glob4(I,J)= 0.d0
+          OCI_src4(I,J)=0.d0
+        END DO   ;  END DO   ;
        call openunit('OC_TRANS',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0.) go to 42
-       OCI_src(ii,jj,1)=OCI_src(ii,jj,1)+carbstuff
+       if (ii.eq.0) go to 42
+       OCI_src_glob4(ii,jj)=carbstuff
        end do
  42    call closeunit(iuc)
        endif
-       do i=1,im
-       do j=j_0,J_1
-       ccnv=1.d0/(sday*30.4)
-       OCI_src(i,j,1)=OCI_src(i,j,1)*ccnv/12.d0
-       if (imAER.eq.2) then
-       OCI_src(i,j,1)=OCI_src(i,j,1)*1.3d0
+       CALL UNPACK_DATA(grid, OCI_src_glob4, OCI_src4) 
+       OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src4(:,J_0:J_1)   
        endif
-       end do
-       end do
-       do i=1,im
-       do j=j_0,J_1
-       ccnv=1.d0/(sday*30.4)
-       BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
-       end do
-       end do
+c convert from year to second
+       ccnv=1.d0/(sday*365.d0)
+       OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*ccnv
+c convert sectoral OC emissions to OM       
+       if (imAER.eq.2) OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*1.3d0
+       BCI_src(:,j_0:j_1)=BCI_src(:,j_0:j_1)*ccnv
       endif
       endif
-c Biomass BC/OC for AEROCOM (otherwise it is done in
-c   get_hist_BM
+c Biomass BC/OC for AEROCOM, with their own 3D distribution
+c  (otherwise it is done in get_hist_BM, across boundary layer)
       if (imAER.eq.1) then ! AEROCOM
-      BCB_src(:,:,:,:)=0.d0
-      OCB_src(:,:,:,:)=0.d0
+      if ( AM_I_ROOT() ) then
+       DO J=1,JM;  DO I=1,IM;   DO L=1,LM; DO MMM=1,12;
+        BCB_src_glob(I,J,L,MMM)= 0.d0
+        OCB_src_glob(I,J,L,MMM)=0.d0
+        BCB_src(I,J,L,MMM)= 0.d0
+        OCB_src(I,J,L,MMM)=0.d0        
+      END DO   ;  END DO   ;    END DO   ; END DO;
       call openunit('BC_BIOMASS',iuc,.false.)
       do mm=1,99999
       read(iuc,*) ii,jj,mmm,ll,carbstuff
-      if (ii.eq.0.) go to 13
+      if (ii.eq.0) go to 13
       if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      BCB_src(ii,jj,ll,mmm)=carbstuff
+      BCB_src_glob(ii,jj,ll,mmm)=carbstuff
       end do
  13   call closeunit(iuc)
       call openunit('OC_BIOMASS',iuc,.false.)
@@ -9695,71 +9816,86 @@ c   get_hist_BM
       read(iuc,*) ii,jj,mmm,ll,carbstuff
       if (ii.eq.0.) go to 14
       if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      OCB_src(ii,jj,ll,mmm)=carbstuff
+      OCB_src_glob(ii,jj,ll,mmm)=carbstuff
       end do
  14   call closeunit(iuc)
-      ccnv=1.d0
-      if (imAER.eq.1) ccnv=1.d0/(sday*30.4)
-      do i=1,im
-      do j=j_0,J_1
-      do m=1,12
-      do l=1,7
-      BCB_src(i,j,l,m)=BCB_src(i,j,l,m)*ccnv
-      OCB_src(i,j,l,m)=OCB_src(i,j,l,m)*ccnv  !*1.3d0
-      end do
-      end do
-      end do
-      end do
+      endif
+      CALL UNPACK_DATA(grid, BCB_src_glob, BCB_src)
+      CALL UNPACK_DATA(grid, OCB_src_glob, OCB_src)
+      ccnv=1.d0/(sday*30.4)
+      BCB_src(:,j_0:j_1,1:7,:)=BCB_src(:,j_0:j_1,1:7,:)*ccnv
+      OCB_src(:,j_0:j_1,1:7,:)=OCB_src(:,j_0:j_1,1:7,:)*ccnv  !*1.3d0
       endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
 c Terpenes
-      OCT_src(:,:,:)=0.d0
       if (imAER.ne.1) then
+       if ( AM_I_ROOT() ) then
+       DO J=1,JM;  DO I=1,IM;   DO MMM=1,12;
+        OCT_src_glob(I,J,MMM)=0.d0
+        OCT_src(I,J,MMM)=0.d0        
+      END DO   ;  END DO   ;    END DO   ;
       call openunit('TERPENE',mon_unit,.false.)
       do mm=1,12
       do mmm=1,9999
       read(mon_unit,*) ii,jj,carbstuff
-      if (ii.eq.0.) go to 15
-      OCT_src(ii,jj,mm)=carbstuff
+      if (ii.eq.0) go to 15
+      OCT_src_glob(ii,jj,mm)=carbstuff
       end do
  15   continue
       end do
-      call closeunit(mon_unit)
+      call closeunit(mon_unit)   
+      endif
+      CALL UNPACK_DATA(grid, OCT_src_glob, OCT_src)      
+
 c units are mg Terpene/m2/month
       do mm=1,12; do j=J_0,J_1; do i=1,im
-       OCT_src(i,j,mm) = OCT_src(i,j,mm)*dxyp(j)*0.1d0
-     *  *1.3d0/(1.D6*3600.d0*24.d0*30.4d0)
+       OCT_src(i,j,mm) = OCT_src(i,j,mm)
+     *  *dxyp(j)*0.1d0*1.3d0/(1.D6*3600.d0*24.d0*30.4d0)
       end do; end do; end do
+      endif
 c This assumes 10% emission yield (Chin, Penner)
 c 1.3 converts OC to OM
-      else ! AEROCOM
+      if (imAER.eq.1) then! AEROCOM
+       if ( AM_I_ROOT() ) then
+       DO J=1,JM;  DO I=1,IM;   DO MMM=1,12;
+        OCT_src_glob(I,J,MMM)=0.d0
+        OCT_src(I,J,MMM)=0.d0        
+      END DO   ;  END DO   ;    END DO   ;      
       call openunit('TERPENE',mon_unit,.false.)
       do mmm=1,99999
       read(mon_unit,*) ii,jj,mm,carbstuff
-      if (ii.eq.0.) go to 18
+      if (ii.eq.0) go to 18
       carbstuff=carbstuff/(sday*30.4d0)
-      OCT_src(ii,jj,mm)=carbstuff   !*1.3d0
+      OCT_src_glob(ii,jj,mm)=carbstuff   !*1.3d0
       end do
  18   continue
       call closeunit(mon_unit)
       endif
+      CALL UNPACK_DATA(grid, OCT_src_glob, OCT_src)      
+      endif
 #endif
 #ifdef TRACERS_OM_SP
-       OCI_src(:,:,:)=0.d0
+       if ( AM_I_ROOT() ) then
+        DO J=1,JM;  DO I=1,IM;  DO mm=1,8; 
+          OCI_src_glob5(I,J,mm)=0.d0
+          OCI_src5(I,J,mm)=0.d0
+          OCI_src(I,J,mm)= 0.d0
+        END DO   ;  END DO   ;    
+
        call openunit('OC_FOSSIL_FUEL',iuc,.false.)
        do mm=1,9999
        read(iuc,*) ii,jj,(carb(ir),ir=1,8)
        if (ii.eq.0.) go to 43
-       OCI_src(ii,jj,:)=carb(:)
-       end do
+       DO mm=1,8
+       OCI_src_glob5(ii,jj,mm)=carb(mm)
+       END DO
  43    call closeunit(iuc)
-       do j=J_0,J_1; do i=1,im
-       do ii=1,4
-       OCI_src(i,j,ii)=OCI_src(i,j,ii)*1.3d0/(sday*365.)
-       end do
-       end do; end do
+       endif
+        CALL UNPACK_DATA(grid, OCI_src_glob5, OCI_src)
+       OCI_src(:,j_0:j_1,1:4)=OCI_src_glob5(:,j_0:j_1,1:4)
+     * *1.3d0/(sday*365.d0)
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
 c read in NH3 emissions
@@ -11256,8 +11392,7 @@ C**** no fractionation for ice evap
       USE TRCHEM_Shindell_COM, only: which_trop
 #endif
       INTEGER J_0, J_1
-      real*8 ppres,te,tt,mm,dmm,rk4,ek4,a,b,c,d,f
-     * aa 
+      real*8 ppres,te,tt,mm,dmm,rk4,ek4,a,b,c,d,f,aa
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
       integer maxl
@@ -11266,10 +11401,10 @@ C**** no fractionation for ice evap
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C Initialise
-      rsulf1(:,:,:)=0.d0
-      rsulf2(:,:,:)=0.d0
-      rsulf3(:,:,:)=0.d0
-      rsulf4(:,:,:)=0.d0
+      rsulf1(:,j_0:j_1,:)=0.d0
+      rsulf2(:,j_0:j_1,:)=0.d0
+      rsulf3(:,j_0:j_1,:)=0.d0
+      rsulf4(:,j_0:j_1,:)=0.d0
 
 C Reactions
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
