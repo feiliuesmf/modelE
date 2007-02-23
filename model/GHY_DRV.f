@@ -1744,7 +1744,6 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical :: qcon(npts)
       integer i, j, ibv
-      real*8 pearth
       logical ghy_data_missing
       character conpt(npts)*10
 #ifdef TRACERS_WATER
@@ -1905,8 +1904,14 @@ c**** recompute ground hydrology data if necessary (new soils data)
 
         do j=J_0,J_1
         do i=1,im
-          pearth=fearth(i,j)
-          if(pearth.le.0.) then
+          present_land = .false.
+          if (variable_lk==0) then
+            if ( fearth(i,j) > 0.d0 ) present_land = .true.
+          else
+            if ( focean(i,j) < 1.d0 ) present_land = .true.
+          endif
+
+          if( .not. present_land ) then
 
             w_ij(:,:,i,j)=0.
             ht_ij(:,:,i,j)=0.
@@ -1983,8 +1988,13 @@ ccc!!! restart file (without snow model data)
       if (inisnow) then
         do j=J_0,J_1
         do i=1,im
-          pearth=fearth(i,j)
-          if(pearth.le.0.) then
+          present_land = .false.
+          if (variable_lk==0) then
+            if ( fearth(i,j) > 0.d0 ) present_land = .true.
+          else
+            if ( focean(i,j) < 1.d0 ) present_land = .true.
+          endif
+          if( .not. present_land ) then
             nsn_ij(:,i,j)     = 0
             !isn_ij(:,i,j)     = 0
             dzsn_ij(:,:,i,j)  = 0.
