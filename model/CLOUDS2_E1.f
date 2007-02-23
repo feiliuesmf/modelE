@@ -582,7 +582,11 @@ C**** initiallise arrays of computed ouput
 C**** zero out diagnostics
          MCFLX =0.
          DGDSM=0.
+         DGDEEP=0.
+         DGSHLW=0.
          DPHASE=0.
+         DPHADEEP=0.
+         DPHASHLW=0.
          DTOTW=0.
          DQCOND=0.
          DGDQM=0.
@@ -1486,6 +1490,10 @@ C**** diagnostics
         IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
         MCFLX(L)=MCFLX(L)+CCM(L)*FMC1
         DGDSM(L)=DGDSM(L)+(PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+        IF(PLE(LMAX+1).GT.700.d0) DGSHLW(L)=DGSHLW(L)+
+     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+        IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DGDEEP(L)=DGDEEP(L)+
+     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
@@ -1560,6 +1568,10 @@ C since a fraction (FCLW) of TRCOND was removed above.
 #endif
          DPHASE(LMAX)=DPHASE(LMAX)+(CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+
      *                CDHM)*FMC1
+         IF(PLE(LMAX+1).GT.700.d0) DPHASHLW(LMAX)=DPHASHLW(LMAX)+
+     *     (CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM)*FMC1
+         IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DPHADEEP(LMAX)=
+     *     DPHADEEP(LMAX)+(CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM)*FMC1
       DO 540 L=LMAX-1,1,-1
       IF(PRCP.LE.0.) GO TO 530
       FCLOUD=CCMUL*CCM(L)*BYAM(L+1)
@@ -1742,6 +1754,10 @@ cdmk GET_WASH now has gas dissolution, extra arguments
          FCDH1=0.
          IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
          DPHASE(L)=DPHASE(L)-(SLH*DQSUM-FCDH1+HEAT1)*FMC1
+         IF(PLE(LMAX+1).GT.700.d0) DPHASHLW(L)=DPHASHLW(L)-
+     *     (SLH*DQSUM-FCDH1+HEAT1)*FMC1
+         IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DPHADEEP(L)=DPHADEEP(L)-
+     *     (SLH*DQSUM-FCDH1+HEAT1)*FMC1
          DQCOND(L)=DQCOND(L)-SLH*DQSUM*FMC1
 C**** ADD PRECIPITATION AND LATENT HEAT BELOW
   530 PRHEAT=CDHEAT(L)+SLH*PRCP
@@ -3232,7 +3248,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.9 2007/02/23 18:50:35 koch Exp $
+!$Id: CLOUDS2_E1.f,v 1.10 2007/02/23 19:20:44 gavin Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
