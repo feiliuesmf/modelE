@@ -362,8 +362,12 @@ C**** functions
 !@+   (this is slightly different from TPSAV)
       REAL*8, DIMENSION(LM)       :: TPOLD
 #ifdef TRACERS_WATER
+!@var TRPCRP tracer mass in precip
+!@var TRCOND tracer mass in condensate
+!@var TRCONDV tracer mass in lofted condensate
       REAL*8, DIMENSION(NTM)      :: TRPRCP
       REAL*8, DIMENSION(NTM,LM)   :: TRCOND
+      REAL*8, DIMENSION(NTM,LM)   :: TRCONDV
 !@var FQCONDT fraction of tracer that condenses
 !@var FQEVPT  fraction of tracer that evaporates (in downdrafts)
 !@var FPRCPT fraction of tracer that evaporates (in net re-evaporation)
@@ -438,7 +442,7 @@ c for sulfur chemistry
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
      *     ,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA,FEVAP,FLEFT
      *     ,FQCOND,FQEVP,FPRCP,FSEVP,FSSUM     !  ,HEAT1
-     *     ,PRCP
+     *     ,PRCP,FQCONDV
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
      *     ,SUMDP,DDRUP,EDRAFT,DDROLD,CONTCE,HDEP,TVP,W2TEM
@@ -478,6 +482,7 @@ c for sulfur chemistry
 !@var FEVAP fraction of air available for precip evaporation
 !@var FLEFT fraction of plume after removing downdraft mass
 !@var FQCOND fraction of water vapour that condenses in plume
+!@var FQCONDV fraction of condensate that is lofted
 !@var FQEVP fraction of water vapour that evaporates in downdraft
 !@var FPRCP fraction of evaporated precipitation
 !@var FSEVP fraction of energy lost to evaporate
@@ -785,6 +790,7 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
 #endif
 #ifdef TRACERS_WATER
       TRCOND = 0.
+      TRCONDV = 0.
 #endif
       MC1=.FALSE.
 C     IF (IC.EQ.1) THEN
@@ -890,6 +896,7 @@ C        MC1=.FALSE.
 #endif
 #ifdef TRACERS_WATER
       TRCOND = 0.
+      TRCONDV = 0.
 #endif
 C**** guard against possibility of too big a plume
         MPLUME=MIN(0.95d0*AIRM(LMIN)*FMC1,MPLUME)
@@ -1215,7 +1222,7 @@ c formation of sulfate
        CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
      *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
      *       ,CLDSAVT)
-        TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
+        TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L) + TRCONDV(N,L-1)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
         IF (diag_wetdep == 1)
@@ -1500,6 +1507,11 @@ c convert condp to the same units as cond
       CONDV(L)=COND(L)-CONDP1(L)       ! part of COND transported up
       COND(L)=COND(L)-CONDV(L)         ! CONDP1(L)
 C       WRITE(6,*) L,DWCU,WCU(L),CONDV(L),CONDP1(L),CONDP(L),COND(L)
+#ifdef TRACERS_WATER
+      FQCONDV=CONDV(L)/(COND(L)+CONDV(L))
+      TRCONDV(:,L)=FQCONDV*TRCOND(:,L)
+      TRCOND (:,L)=TRCOND(:,L)-TRCONDV(:,L)
+#endif
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
 C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
   340 IF(LMIN.EQ.LMAX) GO TO 600
@@ -1829,6 +1841,9 @@ C****
 C**** Partition condensate into precipitation and cloud water
 C****
       COND(LMAX)=COND(LMAX)+CONDV(LMAX)
+#ifdef TRACERS_WATER
+      TRCOND(:,LMAX)=TRCOND(:,LMAX)+TRCONDV(:,LMAX)
+#endif
       IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN      ! always?
         DO L=LMAX,LMIN,-1
           IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
