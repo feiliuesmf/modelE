@@ -254,7 +254,8 @@ C**** Local variables initialised in init_RAD
       REAL*8 :: Tchg_glob(LM+LM_REQ,IM,JM)
       REAL*8 :: RQT_glob(LM_REQ,IM,JM)
       INTEGER :: kliq_glob(LM,4,IM,JM)
-      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR_GLOB, TRHR_GLOB,TRSURF_GLOB
+      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR_GLOB, TRHR_GLOB
+      REAL*8, DIMENSION(1:4,IM,JM) :: TRSURF_GLOB
       REAL*8  :: FSF_GLOB(4,IM,JM)
       REAL*8, DIMENSION(IM, JM) :: FSRDIR_GLOB, SRVISSURF_GLOB,
      &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
