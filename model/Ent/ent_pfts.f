@@ -57,8 +57,8 @@
       !nf - canopy nitrogen factor (dimensionless)
       !* Parameters from CASA:
       !sla - specific leaf area (m2 leaf area/kg leaf C)(CASA)
-      !lrage - leaf and root litter age (years) (CASA)
-      !woodage - stem litter age (years) (CASA)
+      !lrage - leaf and root litter turnover time (years) (CASA)
+      !woodage - stem litter turnover time (years) (CASA)
       !lit_C2N - litter C:N (CASA)
       !lignin - lignin content
 
