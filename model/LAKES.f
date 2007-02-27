@@ -863,7 +863,7 @@ C**** Check for special case:
               if (rvrfl) then
                 DGM=TLAKE(ID,JD)*DMM*SHW ! TLAKE always defined
 #ifdef TRACERS_WATER
-                DTM(:) = DMM*TRLAKE(:,1,ID,JD)/MWL(ID,JD)
+                DTM(:) = DMM*GTRACER(:,1,ID,JD)
 #endif
               end if
               END IF
