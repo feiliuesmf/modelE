@@ -967,6 +967,10 @@ c     call qsbal
 
       call ghinij (i,j)
       call veg_set_cell(i,j)
+! snow / var lakes problem at this cell (underwater snow in initial data)
+!      if (i==47 .and. j==33) then
+!        print *,i,j
+!      endif
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
@@ -1881,6 +1885,20 @@ c**** check whether ground hydrology data exist at this point.
         call stop_model(
      &       'Ground Hydrology data is missing at some cells',255)
       endif
+
+!!! hack - remove underwater snow
+!!! (should not be present in restart file in the first place!)
+      do j=J_0,J_1
+        do i=1,im
+          if ( fearth(i,j) == 0.d0 ) then
+            nsn_ij(:, i, j) = 1
+            wsn_ij(:, :, i, j) = 0.d0
+            hsn_ij(:, :, i, j) = 0.d0
+            dzsn_ij(:, :, i, j) = 0.d0
+            fr_snow_ij(:, i, j) = 0.d0
+          endif
+        enddo
+      enddo
 
       call hl0
 
