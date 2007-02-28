@@ -11,6 +11,7 @@
       public 
      &     prescr_veg_albedo,prescr_calc_rootprof,
      &     prescr_calcconst, prescr_calc_lai
+     &     alamax !For temporary phenology.
       public prescr_calc_shc,prescr_plant_cpools
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad

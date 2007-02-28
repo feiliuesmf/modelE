@@ -36,9 +36,10 @@
       type(patch),pointer :: pp 
       type(cohort), pointer :: cop
       integer :: pft
-      real*8, parameter :: alamax(N_PFT) = !temp. from ent_ENTveg.f
-     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
-     &     ,2.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 4.5d0/)
+      real*8, parameter :: laimax(N_PFT) = !temp. from ent_ENTveg.f
+     &     alamax((COVEROFFSET+1):(COVEROFFSET+N_PFT))
+!     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
+!     &     ,2.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 4.5d0/)
 
       !---------------------------------------------------------------
       !* Prognostic phenology is calculated here.
@@ -53,7 +54,7 @@
         ! = (Maximum Leaf Area Index) * (Phenology Factor)
         !No carbon pool update for now.
 
-        cop%LAI= alamax(pft) * cop%phenofactor
+        cop%LAI= laimax(pft) * cop%phenofactor
         
         cop => cop%shorter 
  

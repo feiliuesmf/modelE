@@ -31,15 +31,18 @@
          real*8 :: sstar  !Rel. soil moist at stress onset (Rodriguez-Iturbe)
          real*8 :: swilt  !Normalized soil water at wilting point (dim'less)
          real*8 :: nf !Canopy nitrogen factor (dimensionless) (Kull and Kruijt)
-         !CLM respiration parameters
-         real*8 :: r      !CLM respiration parameter (gC/gN)
-         !CASA parameters
+         !CASA parameters, CLM parameters
          real*8 :: sla !Specific leaf area (m^2 leaf area/kg C)
+         real*8 :: r      !CLM respiration parameter (gC/gN)
          real*8 :: lrage !CASA Turnover time of leaves and roots (years)
          real*8 :: woodage !CASA Turnover time of stems (years)
          real*8 :: lit_C2N !CASA litcn_casa (C:N ratio) IS THIS FOLIAGE&ROOTS?
          real*8 :: lignin  !CASA lignin (UNITS?  lignin content of ??)
          !Phenology parameter - KIM
+         !* Parameter for phenology
+         !phenotype - phenological types
+         !          - evergreen (1), cold deciduous (2), drougt deciduous (3), 
+         !            both cold and drought deciduous (4)
          integer :: phenotype !phenological types
       end type pftype
 !****************************************************************************
