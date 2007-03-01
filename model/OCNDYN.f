@@ -571,7 +571,8 @@ C**** Initialize straits arrays
       call init_STRAITS(iniOCEAN)
 
 C**** Adjust global mean salinity if required (only at first start up)
-      if (istart.lt.9 .and. oc_salt_mean.ne.-999.) call adjust_mean_salt
+      if (istart.gt.0 .and. istart.lt.9 .and. oc_salt_mean.ne.-999.)
+     *     call adjust_mean_salt
 
 C**** Initialize solar radiation penetration arrays
       call init_solar
