@@ -1192,7 +1192,7 @@ C**** CONDENSING TRACERS
       WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
       DO N=1,NTX
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
+      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 400
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
 
@@ -1215,7 +1215,7 @@ C**** CONDENSING TRACERS
       DO N=1,NTX
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
+      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
 
@@ -1710,11 +1710,12 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
+
 #endif
         DO N=1,NTX
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
+      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 402
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
 
@@ -2633,9 +2634,10 @@ c CLDSAVT is current FCLD
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
      * ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX
      *  ,DT_SULF_SS(1,L),FCLD)
+
       DO N=1,NTX
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
+      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 403
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 403
 
@@ -2670,7 +2672,7 @@ c precip. tracer evap
         TR_LEF=1.D0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
+      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 404
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 404
 
@@ -2821,7 +2823,7 @@ c   processes - this should be all in-cloud
         TR_LEF=1.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
+      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 405
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 405
 
@@ -3248,7 +3250,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.10 2007/02/23 19:20:44 gavin Exp $
+!$Id: CLOUDS2_E1.f,v 1.11 2007/03/01 21:20:55 sbauer Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov

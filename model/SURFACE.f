@@ -139,7 +139,10 @@ C**** Interface to PBL
      *     ,trdrydep
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc , tij_surf
-      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_isrc
+      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_isrc,ijts_source
+#ifdef TRACERS_AMP
+     &                       ,ijts_AMPe
+#endif
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_source,jls_isrc
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd
@@ -149,7 +152,8 @@ C**** Interface to PBL
 #endif
 #endif
 #ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only : EMIS_SOURCE
+      USE AERO_SETUP, only : RECIP_PART_MASS
+      USE AMP_AEROSOL, only: DTR_AMPe
 #endif
       USE SOIL_DRV, only: earth
 
@@ -918,12 +922,27 @@ cdiag.   ,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
           tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *         ss2_flux*dxyp(j)*ptype*dtsurf
 #ifdef TRACERS_AMP
-         case ('M_SSA_SS')
-       EMIS_SOURCE(i,j,1,5)=EMIS_SOURCE(i,j,1,5)+ss1_flux*dxyp(j)*ptype
-       EMIS_SOURCE(i,j,1,6)=EMIS_SOURCE(i,j,1,6)+ss2_flux*dxyp(j)*ptype
+        case ('M_SSA_SS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+     &         ss1_flux*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)+ss1_flux*dxyp(j)*ptype*dtsurf
+        case ('M_SSC_SS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+     &         ss2_flux*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)+ss2_flux*dxyp(j)*ptype*dtsurf
+        case ('M_SSS_SS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+     &    (ss1_flux+ss2_flux)*dxyp(j)*ptype
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+     &    (ss1_flux+ss2_flux)*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
+     &    (ss1_flux+ss2_flux)*dxyp(j)*ptype*dtsurf
+#endif
 #endif
         end select
-#endif
+
 #ifdef TRACERS_DRYDEP
 C****
 C**** Calculate Tracer Dry Deposition (including gravitational settling)

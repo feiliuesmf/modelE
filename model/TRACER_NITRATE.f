@@ -23,8 +23,8 @@ C**** functions
 #endif
 c      print *, ' SUSA: offH ' ,  OFF_HNO3(1,1,1)
 
-      yi = 0.d0
-      yo = 0.d0
+      yi(:) = 0.d0
+      yo(:) = 0.d0
 
       DO L=1,LM                            
       DO J=1,JM                            

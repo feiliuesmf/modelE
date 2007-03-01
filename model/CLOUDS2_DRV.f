@@ -1267,7 +1267,7 @@ C**** TRACERS: Use only the active ones
 #endif
           trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
           trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) 
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
@@ -1277,11 +1277,13 @@ C**** TRACERS: Use only the active ones
           if (ijts_aq(n).gt.0) then
             taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
-#ifdef TRACERS_AMP
-           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
-#endif
           endif
           end if
+#endif
+#ifdef TRACERS_AMP          
+           if (trname(n).eq."M_ACC_SU") then
+           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+           endif
 #endif
         end do
 #ifdef TRACERS_WATER
@@ -1702,7 +1704,6 @@ C**** and save changes in KE for addition as heat later
       END DO
       END DO
 !$OMP  END PARALLEL DO
-
 
       if (isccp_diags.eq.1) CALL RINIT(seed) ! reset random number sequ.
 

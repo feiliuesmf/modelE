@@ -804,8 +804,11 @@ C****
       USE AERO_CONFIG
       USE AERO_COAG
       USE AERO_INIT
+      USE AERO_SETUP
       USE AERO_SUBS
       USE AERO_NPF
+      USE AERO_DIAM
+      USE AMP_AEROSOL
 #endif
       USE DIAG_COM, only : acc_period,monacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
@@ -1615,6 +1618,7 @@ C**** Initialize nudging
       CALL SETUP_EMIS
       CALL SETUP_KCI
       CALL SETUP_NPFMASS
+      CALL SETUP_DIAM
 #endif
 C****
       if(istart.gt.0) CALL RINIT (IRAND)

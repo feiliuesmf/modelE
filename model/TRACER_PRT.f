@@ -129,7 +129,6 @@ C**** NOFMT contains the indexes of the TCONSRV array where each
 C**** change is to be stored for each quantity. If NOFMT(M,NT)=0,
 C**** no calculation is done.
 C**** NOFMT(1,NT) is the index for the instantaneous value.
-
       if (nofmt(m,nt).gt.0) then
 C**** Calculate current value TOTAL
         call consrv_tr(nt,total)
@@ -1132,7 +1131,6 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 c**** always skip unused fields
       Qk = .true.
 C**** Fill in the undefined pole box duplicates
-        print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
       do i=2,im
         taijln(i,1,:,:) = taijln(1,1,:,:)
         taijln(i,jm,:,:) = taijln(1,jm,:,:)
@@ -1141,8 +1139,8 @@ C**** Fill in the undefined pole box duplicates
         taijs (i,1,:) = taijs(1,1,:)
         taijs (i,jm,:) = taijs(1,jm,:)
       end do
-      print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
-      print *, 'In DIAGIjt: taijs(2,1,10)=',taijs(2,1,10)
+c      print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
+c      print *, 'In DIAGIjt: taijs(2,1,10)=',taijs(2,1,10)
 
 C**** Fill in maplet indices for tracer concentrations
       k = 0

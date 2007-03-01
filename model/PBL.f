@@ -516,6 +516,10 @@ C****   4) tracers with interactive sources
         case ('M_SSC_SS')
           call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
           trcnst=ss2_flux *byrho
+        case ('M_SSS_SS')
+          call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
+          call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
+          trcnst=(ss2_flux + ss1_flux)*byrho
 #endif
         end select
 #endif
@@ -557,6 +561,67 @@ ccc dust emission from earth
           dust_flux2(n1)=dsrcflx2
         END SELECT
 #endif
+
+#ifdef TRACERS_AMP
+        SELECT CASE (trname(ntix(itr)))
+        case ('M_DD1_DU')
+         n1=1
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=dsrcflx*byrho
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+   
+        n1=2
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=trcnst+(dsrcflx*byrho)
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+   
+       case ('M_DD2_DU')
+         n1=3
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=dsrcflx*byrho
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+         n1=4
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=trcnst+(dsrcflx*byrho)
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+        case ('M_DDD_DU')
+         n1=1
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=dsrcflx*byrho
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+        n1=2
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=trcnst+(dsrcflx*byrho)
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+         n1=3
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=trcnst+(dsrcflx*byrho)
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+         n1=4
+          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
+     &         dsrcflx,dsrcflx2)
+           trcnst=trcnst+(dsrcflx*byrho)
+           dust_flux(n1)=dsrcflx
+           dust_flux2(n1)=dsrcflx2
+
+         END SELECT
+#endif
+
+
 #ifdef TRACERS_GASEXCH_Natassa
 
       IF (ITYPE.EQ.1 .and. focean(ilong,jlat).gt.0.) THEN  ! OCEAN
@@ -637,27 +702,6 @@ cdiag.   ,rhows,trconstflx(itr),trsf,trcnst
 
       ENDIF
 
-#endif
-
-#ifdef TRACERS_AMP
-        SELECT CASE (trname(ntix(itr)))
-        case ('M_DD1_DU')
-         do n1=1,2!ntm_dust
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=dsrcflx*byrho
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
-         enddo  
-        case ('M_DD2_DU')
-         do n1=3,ntm_dust
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=dsrcflx*byrho
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
-         enddo  
-         END SELECT
 #endif
 
 C**** solve tracer transport equation

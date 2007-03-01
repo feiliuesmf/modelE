@@ -992,7 +992,7 @@ c Aerosol chemistry
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,d44,o3mc,rsulfo3
+     *       ,d41,d42,d43,o3mc,rsulfo3
 #endif
       real*8 bciage,ociage
       real*8, dimension(im,jm,lm,12) :: ohr_glob,dho2r_glob,
@@ -1018,12 +1018,17 @@ C**** initialise source arrays
         tr3Dsource(:,j_0:j_1,l,1,n_DMS)=0. ! DMS chem sink
 #ifndef TRACERS_AMP
         tr3Dsource(:,j_0:j_1,l,1,n_MSA)=0. ! MSA chem sink
+        tr3Dsource(:,j_0:j_1,l,1,n_SO4)=0. ! SO4 chem source
 #endif
         tr3Dsource(:,j_0:j_1,l,4,n_SO2)=0. ! SO2 chem source
         tr3Dsource(:,j_0:j_1,l,5,n_SO2)=0. ! SO2 chem sink
-        tr3Dsource(:,j_0:j_1,l,1,n_SO4)=0. ! SO4 chem source
         tr3Dsource(:,j_0:j_1,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,j_0:j_1,l,2,n_H2O2_s)=0. ! H2O2 chem sink
+#ifdef TRACERS_AMP
+        tr3Dsource(:,j_0:j_1,l,1,n_H2SO4)=0. ! H2O2 chem sink
+        tr3Dsource(:,j_0:j_1,l,1,n_M_ACC_SU)=0. ! ACC SO4 source
+        tr3Dsource(:,j_0:j_1,l,1,n_M_AKK_SU)=0. ! AKK SO4 source
+#endif
 #ifdef TRACERS_HETCHEM
         tr3Dsource(:,j_0:j_1,l,1,n_SO4_d1) =0. ! SO4 on dust
         tr3Dsource(:,j_0:j_1,l,1,n_SO4_d2) =0. ! SO4 on dust
@@ -1051,6 +1056,7 @@ C**** initialise source arrays
         end if
       end do
 !$OMP END PARALLEL DO
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
@@ -1291,16 +1297,16 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
        d41 = exp(-rxts1(i,j,l)*dtsrc)     
        d42 = exp(-rxts2(i,j,l)*dtsrc)     
        d43 = exp(-rxts3(i,j,l)*dtsrc)     
-c       d44 = exp(-rxts4(i,j,l)*dtsrc)     
        tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
-c     .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
 #else
        tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+#ifdef TRACERS_AMP
+       tr3Dsource(i,j,l,1,n_H2SO4)=trm(i,j,l,n_SO2)*(1.d0-d4)/dtsrc 
 #endif        
-          
+#endif        
 c diagnostics to save oxidant fields
 #ifdef TRACERS_SPECIAL_Shindell
           najl = jls_OHcon
@@ -1337,10 +1343,8 @@ c sulfate production from SO2 on mineral dust aerosol
 #endif
         case('SO4')
 C SO4 production
-#ifndef TRACERS_AMP
           tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n)+tr_mm(n)
      *         /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
-#endif
         case('H2O2_s')
 
           if (coupled_chem.eq.1) go to 140
@@ -1365,9 +1369,8 @@ C     HO2 + HO2 + H2O + M ->
           eeee = eh2o*(ek9+ek9t)*dtt*dho2mc
           xk9 = dho2kg*eeee
 c H2O2 production: eqn 9
-
+         
           tr3Dsource(i,j,l,1,n) = tr_mm(n)*xk9/dtsrc
-
 c H2O2 losses:5 and 6
           r5 = perj(i,j,l)
           d5 = exp(-r5*dtsrc)
@@ -1710,7 +1713,7 @@ c can't be more than moles going in:
  22   continue
       do n=1,ntx
        select case (trname(ntix(n)))
-       case('SO4')
+       case('SO4','M_ACC_SU')
        is4=ntix(n)
 !       is4x=n
        sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,isx)*tm(l,ihx)

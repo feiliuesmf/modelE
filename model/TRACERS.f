@@ -416,7 +416,6 @@ C**** Note that tracer flux is added to first layer either implicitly
 C**** in ATURB or explcitly in 'apply_fluxes_to_atm' call in SURFACE.
 
       do n=1,ntm
-
         trflux1(:,:,n) = 0.
 C**** Non-interactive sources
         do ns=1,ntsurfsrc(n)
@@ -550,7 +549,8 @@ C**** update tracer mass and diagnostics
         end do
       end do
       end if
-      call DIAGTCA(itcon_3Dsrc(ns,n),n)
+      if (itcon_3Dsrc(ns,n).gt.0)
+     *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
       RETURN
       END SUBROUTINE apply_tracer_3Dsource
@@ -649,6 +649,10 @@ C****
       USE DYNAMICS, only : gz,pmid,pk
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname
+#ifdef TRACERS_AMP
+     *     ,AMP_MODES_MAP,ntmAMP
+      USE AERO_DIAM, only : DIAM
+#endif
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_grav
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
@@ -669,6 +673,11 @@ C**** Gravitational settling
           do i=1,imaxj(j)
             fluxd=0.
             do l=lm,1,-1        ! loop down
+#ifdef TRACERS_AMP
+      if (n.lt.ntmAMP) then
+      if(AMP_MODES_MAP(n).gt.0) trradius(n)=DIAM(i,j,l,AMP_MODES_MAP(n))
+      endif 
+#endif         
               told(i,j,l)=trm(i,j,l,n)
 C**** air density + relative humidity (wrt water)
               press=pmid(l,i,j)
@@ -735,13 +744,14 @@ C****
      *     c4=-1.424d0
       real*8 r_h,den_h,rh
 #endif
-
 C**** calculate stoke's velocity
       vgs=2.*grav*trpdens(n)*trradius(n)**2/(9.*visc_air)
 
 #ifdef TRACERS_AEROSOLS_Koch
 c need to hydrate the sea salt before determining settling
-      if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2')
+      if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2'
+     * .or.trname(n).eq.'M_SSA_SS'.or. trname(n).eq.'M_SSC_SS'
+     * .or.trname(n).eq.'M_SSS_SS')
      *     then
         rh=max(0.01d0,min(rh1,0.99d0))
 c hydrated radius

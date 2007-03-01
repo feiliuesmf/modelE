@@ -51,12 +51,15 @@ c******************   TRACERS             ******************************
      *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-     &     ,jls_source
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+     &     ,jls_source,ijts_source
+#endif
+#ifdef TRACERS_AMP
+     &     ,ijts_AMPe
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,ijts_source,nDustEmij,nDustEmjl
+    (defined TRACERS_QUARZHEM) 
+     &     ,nDustEmij,nDustEmjl
      &     ,ijts_spec,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,jls_spec,nDustEv1jl,nDustEv2jl,nDustWthjl
 #endif
@@ -99,9 +102,6 @@ c******************   TRACERS             ******************************
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,wsubtke,wsubwd
      &     ,wsubwm,dust_event1,dust_event2,wtrsh
-#endif
-#ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only : EMIS_SOURCE
 #endif
 ccc extra stuff which was present in "earth" by default
 #ifdef TRACERS_WATER
@@ -274,6 +274,10 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       use constant, only : tf
       use tracer_sources, only : n__temp,n__sat,n__gwet
 #endif
+#ifdef TRACERS_AMP
+      USE AERO_SETUP, only : RECIP_PART_MASS
+      USE AMP_AEROSOL, only: DTR_AMPe            
+#endif
       implicit none
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf,rhosrf
@@ -346,13 +350,45 @@ C**** are used, it can happen over land as well.
      *         ss2_flux*dxyp(j)*ptype*dtsurf
 #ifdef TRACERS_AMP
         case ('M_SSA_SS')
-       EMIS_SOURCE(i,j,1,5)=EMIS_SOURCE(i,j,1,5)+ss1_flux*dxyp(j)*ptype
-       EMIS_SOURCE(i,j,1,6)=EMIS_SOURCE(i,j,1,6)+ss2_flux*dxyp(j)*ptype
-        case ('M_DD1_DU')
-       EMIS_SOURCE(i,j,1,7)=EMIS_SOURCE(i,j,1,7)
-     * +(dust_flux(1)+dust_flux(2))*dxyp(j)*ptype
-       EMIS_SOURCE(i,j,1,8)=EMIS_SOURCE(i,j,1,8)
-     * +(dust_flux(3)+dust_flux(4))*dxyp(j)*ptype
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+     &         ss1_flux*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)+ss1_flux*dxyp(j)*ptype*dtsurf
+        case ('M_SSC_SS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+     &         ss2_flux*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)+ss2_flux*dxyp(j)*ptype*dtsurf
+
+
+        case ('M_SSS_SS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+(ss1_flux+ss2_flux)
+     &    *dxyp(j)*ptype
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+     &         (ss1_flux+ss2_flux)*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
+     *           (ss1_flux+ss2_flux)*dxyp(j)*ptype*dtsurf
+
+        case ('M_DD1_DU')  
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+(dust_flux(1)+dust_flux(2))
+     &                   *dxyp(j)*ptype
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) 
+     &    +(dust_flux(1)+dust_flux(2))*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)
+     &    +(dust_flux(1)+dust_flux(2))*dxyp(j)*ptype*dtsurf
+        case ('N_DD1_1')  
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+((dust_flux(1)+dust_flux(2))
+     &        *dxyp(j)*ptype)* RECIP_PART_MASS(5)
+        case ('M_DD2_DU')  
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+(dust_flux(3)+dust_flux(4))
+     &                   *dxyp(j)*ptype
+         taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) 
+     &    +(dust_flux(3)+dust_flux(4))*dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)
+     &    +(dust_flux(3)+dust_flux(4))*dxyp(j)*ptype*dtsurf
+        case ('N_DD2_1')  
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+((dust_flux(3)+dust_flux(4))
+     &            *dxyp(j)*ptype)* RECIP_PART_MASS(10)
 #endif
         end select
 #endif

@@ -8,9 +8,12 @@
       USE MODEL_COM, only: im,jm,lm
       USE DOMAIN_DECOMP, ONLY: grid
       USE DIAG_COM, only: npts !npts are conservation quantities
-      USE TRACER_COM, only: ntm
 #ifdef TRACERS_ON
+      USE TRACER_COM, only: ntm
      *     , ntsurfsrcmax, nt3Dsrcmax
+#ifdef TRACERS_AMP
+     *     ,ntmAMP
+#endif
 #endif
       IMPLICIT NONE
       SAVE
@@ -181,7 +184,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_MINERALS
       INTEGER,PARAMETER :: ktaijs=1063
 #else
-      INTEGER,PARAMETER :: ktaijs= 572
+      INTEGER,PARAMETER :: ktaijs=1183
 #endif
 #endif
 #endif
@@ -272,10 +275,14 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
-!@var ijts_AMPemis tracer idependent array for AMP emission
-      INTEGER ijts_AMPemis(Ntm)
+#ifdef TRACERS_AMP 
+!@var ijts_AMPm tracer idependent array for AMP modes
+      INTEGER ijts_AMPm(lm,2,Ntm)
+!@var ijts_AMPe tracer idependent array for emissions
+      INTEGER ijts_AMPe(Ntm)
 !@var ijts_AMPp tracer idependent array for AMP processes
-      INTEGER ijts_AMPp(10,Ntm)
+      INTEGER ijts_AMPp(7,Ntm)
+#endif
 #ifdef TRACERS_WATER
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
       INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
@@ -524,9 +531,11 @@ C**** include some extra troposphere only ones
 !@var itcon_ss Index array for large-scale condensation conserv. diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_ss
 !@var itcon_amp Index array for microphysical processes diags
-      INTEGER, DIMENSION(10,ntmxcon) :: itcon_amp
-!@var itcon_ampe Index array for emissions into modes microphysical  diags
+      INTEGER, DIMENSION(7,ntmxcon) :: itcon_amp
+!@var itcon_amp Index array for microphysical processes diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_ampe
+!@var itcon_amp Index array for microphysical processes diags
+      INTEGER, DIMENSION(2,ntmxcon) :: itcon_ampm
 #ifdef TRACERS_DRYDEP
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd

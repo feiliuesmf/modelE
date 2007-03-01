@@ -448,7 +448,7 @@ c     prescribed AEROCOM dust emission
       END IF
 
 #endif
-# else ! TRACER_AMP
+# else ! TRACERS_AMP
      
       USE constant,ONLY : sday
       USE model_com,ONLY : jday,jmon
@@ -521,7 +521,7 @@ c ..........
       END IF
       END IF
 
-#endif ! TRACER_AMP  
+#endif ! TRACERS_AMP  
 
             
       RETURN

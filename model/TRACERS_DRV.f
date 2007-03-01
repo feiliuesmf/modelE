@@ -1395,7 +1395,17 @@ CCC#endif
           tr_mm(n) = 1.
 #endif
 #endif
-C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
+C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
+      case ('H2SO4')
+      n_H2SO4 = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 98.   
+          tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
+#ifdef TRACERS_DRYDEP
+          HSTAR(n)=1.d14
+#endif
+          tr_wd_TYPE(n) = nGAS
       case ('M_NO3')
       n_M_NO3 = n
           ntm_power(n) = -11
@@ -1416,13 +1426,13 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_wd_TYPE(n) = nPART      
       case ('M_H2O')
       n_M_H2O = n
-          ntm_power(n) = -11
+          ntm_power(n) = -4
           ntsurfsrc(n) = 0
-          tr_mm(n) = 24.
+          tr_mm(n) = mwat
           trpdens(n)=1.d3
           trradius(n)=3.d-7
           fq_aer(n)=1.   
-          tr_wd_TYPE(n) = nPART     
+          tr_wd_TYPE(n) = nPART !nWater     
       case ('M_AKK_SU')
       n_M_AKK_SU = n
           ntm_power(n) = -11
@@ -1444,7 +1454,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
        case ('M_ACC_SU')
       n_M_ACC_SU = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 0
+          ntsurfsrc(n) = 1
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
@@ -1475,7 +1485,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 1.
           trpdens(n)=2.5d3
           trradius(n)=0.5d-6
-          fq_aer(n)=1. 
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART
        case ('N_DD1_1')
       n_N_DD1_1 = n
@@ -1484,7 +1494,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 1.
           trpdens(n)=2.5d3
           trradius(n)=0.5d-6
-          fq_aer(n)=1. 
+          fq_aer(n)=0.9 
           tr_wd_TYPE(n) = nPART
        case ('M_DS1_SU')
       n_M_DS1_SU = n
@@ -1529,7 +1539,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 1.
           trpdens(n)=2.65d3
           trradius(n)=1.5d-6
-          fq_aer(n)=1. 
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART
        case ('N_DD2_1')
       n_N_DD2_1 = n
@@ -1538,7 +1548,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 1.
           trpdens(n)=2.65d3
           trradius(n)=1.5d-6
-          fq_aer(n)=1. 
+          fq_aer(n)=0.9 
           tr_wd_TYPE(n) = nPART
         case ('M_DS2_SU')
       n_M_DS2_SU = n
@@ -1585,24 +1595,6 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           trradius(n)=4.4d-7
           fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART 
-      case ('N_SSA_1')
-      n_N_SSA_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)=2.2d3
-          trradius(n)=4.4d-7
-          fq_aer(n)=1. 
-          tr_wd_TYPE(n) = nPART 
-      case ('M_SSC_SU')
-      n_M_SSC_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1. 
-          tr_wd_TYPE(n) = nPART 
       case ('M_SSC_SS')
       n_M_SSC_SS = n
           ntm_power(n) = -11
@@ -1612,13 +1604,22 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           trradius(n)=5.d-6
           fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART 
-      case ('N_SSC_1')
-      n_N_SSC_1 = n
+      case ('M_SSS_SS')
+      n_M_SSS_SS = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
+          tr_mm(n) = 75.
           trpdens(n)=2.2d3
-          trradius(n)=3.d-7
+          trradius(n)=5.d-6
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
+      case ('M_SSS_SU')
+      n_M_SSS_SU = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 75.
+          trpdens(n)=2.2d3
+          trradius(n)=5.d-6
           fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART 
       case ('M_OCC_SU')
@@ -1633,20 +1634,20 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
       case ('M_OCC_OC')
       n_M_OCC_OC = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 0
+          ntsurfsrc(n) = 1
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART 
       case ('N_OCC_1')
       n_N_OCC_1 = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 0
+          ntsurfsrc(n) = 1
           tr_mm(n) = 1.
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0.5 
           tr_wd_TYPE(n) = nPART 
       case ('M_BC1_SU')
       n_M_BC1_SU = n
@@ -1660,20 +1661,20 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
       case ('M_BC1_BC')
       n_M_BC1_BC = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 0
+          ntsurfsrc(n) = 1
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART 
       case ('N_BC1_1')
       n_N_BC1_1 = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 0
+          ntsurfsrc(n) = 1
           tr_mm(n) = 1.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0.5 
           tr_wd_TYPE(n) = nPART 
       case ('M_BC2_SU')
       n_M_BC2_SU = n
@@ -1745,7 +1746,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 96.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0.5 
           tr_wd_TYPE(n) = nPART 
       case ('M_DBC_DU')
       n_M_DBC_DU = n
@@ -1754,7 +1755,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 1.
           trpdens(n)=2.5D3
           trradius(n)=.5d-6
-          fq_aer(n)=1. 
+          fq_aer(n)=0.5 
           tr_wd_TYPE(n) = nPART 
       case ('N_DBC_1')
       n_N_DBC_1 = n
@@ -1763,7 +1764,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 1.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0.5 
           tr_wd_TYPE(n) = nPART 
       case ('M_BOC_SU')
       n_M_BOC_SU = n
@@ -1781,7 +1782,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART 
       case ('M_BOC_OC')
       n_M_BOC_OC = n
@@ -1790,7 +1791,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART 
       case ('N_BOC_1')
       n_N_BOC_1 = n
@@ -1799,7 +1800,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1, M2, M3 M4)
           tr_mm(n) = 1.
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=1. 
+          fq_aer(n)=0.5 
           tr_wd_TYPE(n) = nPART
       case ('M_BCS_SU')
       n_M_BCS_SU = n
@@ -2917,8 +2918,7 @@ c biomass source of SO4
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c SUSA BAUSTELLE
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch)
 c convective cloud phase source of SO4
         k = k + 1
         jls_incloud(1,n) = k
@@ -3689,7 +3689,7 @@ c
 #endif
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c Oxidants
 #ifndef TRACERS_SPECIAL_Shindell
         k = k + 1
@@ -3756,8 +3756,11 @@ C**** Defaults for ijts (sources, sinks, etc.)
       ijts_fc(:,:)=0
       ijts_3Dsource(:,:)=0
       ijts_aq(:)=0
-      ijts_AMPemis(:)=0 
+#ifdef TRACERS_AMP
+      ijts_AMPe(:)=0 
       ijts_AMPp(:,:)=0 
+      ijts_AMPm(:,:,:)=0
+#endif 
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
       do n=1,ntm
@@ -5765,7 +5768,7 @@ c SO4 from industrial emissions
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#ifdef TRACERS_AEROSOLS_Koch
 c put in source of SO4 from aqueous chem
         k = k + 1
         ijts_aq(n) = k
@@ -6051,24 +6054,24 @@ c NO3 clear sky longwave radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))
 c#endif
 #ifdef TRACERS_AMP
-        case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',   
-     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
-     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
-     *    'M_SSA_SS','N_SSA_1 ','M_SSC_SU','M_SSC_SS','N_SSC_1 ',   
-     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
-     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',
-     *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',   
-     *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
+        case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
+     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',!DS1,DD2
+     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',!DD2,DS2,SSA
+     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC  
+     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',!BC1,BC2,BC3
+     *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',!BC3,DBC
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC   
+     *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',!BCS,MXX
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
-     *    'M_OCS_OC','N_OCS_1 ')
+     *    'M_OCS_OC','N_OCS_1 ','M_SSS_SS','M_SSS_SU')
        k = k + 1
          ijts_AMPp(1,n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_1_'//trim(trname(n))
-         sname_ijts(k) = 'Production_1_'//trim(trname(n))
+         lname_ijts(k) = 'P1_Nucl_'//trim(trname(n))
+         sname_ijts(k) = 'P1_Nucl_'//trim(trname(n))
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
@@ -6076,8 +6079,8 @@ c#endif
          ijts_AMPp(2,n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_2_'//trim(trname(n))
-         sname_ijts(k) = 'Production_2_'//trim(trname(n))
+         lname_ijts(k) = 'P2_Coag_'//trim(trname(n))
+         sname_ijts(k) = 'P2_Coag_'//trim(trname(n))
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
@@ -6085,8 +6088,8 @@ c#endif
          ijts_AMPp(3,n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_3_'//trim(trname(n))
-         sname_ijts(k) = 'Production_3_'//trim(trname(n))
+         lname_ijts(k) = 'P3_Cond_'//trim(trname(n))
+         sname_ijts(k) = 'P3_Cond_'//trim(trname(n))
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
@@ -6094,8 +6097,8 @@ c#endif
          ijts_AMPp(4,n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_4_'//trim(trname(n))
-         sname_ijts(k) = 'Production_4_'//trim(trname(n))
+         lname_ijts(k) = 'P4_Incld_NIMC_'//trim(trname(n))
+         sname_ijts(k) = 'P4_Incld_NIMC_'//trim(trname(n))
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
@@ -6103,8 +6106,8 @@ c#endif
          ijts_AMPp(5,n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_5_'//trim(trname(n))
-         sname_ijts(k) = 'Production_5_'//trim(trname(n))
+         lname_ijts(k) = 'P5_IMLoss_NIAC_'//trim(trname(n))
+         sname_ijts(k) = 'P5_IMLoss_NIAC_'//trim(trname(n))
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
@@ -6112,8 +6115,8 @@ c#endif
          ijts_AMPp(6,n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_6_'//trim(trname(n))
-         sname_ijts(k) = 'Production_6_'//trim(trname(n))
+         lname_ijts(k) = 'P6_Mode_Trans_'//trim(trname(n))
+         sname_ijts(k) = 'P6_Mode_Trans_'//trim(trname(n))
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
@@ -6121,39 +6124,12 @@ c#endif
          ijts_AMPp(7,n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_7_'//trim(trname(n))
-         sname_ijts(k) = 'Production_7_'//trim(trname(n))
+         lname_ijts(k) = 'P7_Total_Change_'//trim(trname(n))
+         sname_ijts(k) = 'P7_Total_Change_'//trim(trname(n))
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
-       k = k + 1
-         ijts_AMPp(8,n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_8_'//trim(trname(n))
-         sname_ijts(k) = 'Production_8_'//trim(trname(n))
-         ijts_power(k) = -11.
-         units_ijts(k) = unit_string(ijts_power(k),' ')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-       k = k + 1
-         ijts_AMPp(9,n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_9_'//trim(trname(n))
-         sname_ijts(k) = 'Production_9_'//trim(trname(n))
-         ijts_power(k) = -11.
-         units_ijts(k) = unit_string(ijts_power(k),' ')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-       k = k + 1
-         ijts_AMPp(10,n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Production_10_'//trim(trname(n))
-         sname_ijts(k) = 'Production_10_'//trim(trname(n))
-         ijts_power(k) = -11.
-         units_ijts(k) = unit_string(ijts_power(k),' ')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-#endif /* TRACERS_AMP */
+#endif 
 #ifdef TRACERS_HETCHEM
       case ('SO4_d1')
 c chemical production of SO4 from SO2 on dust
@@ -7371,9 +7347,10 @@ c     end do
        do n=1,ntm
        select case(trname(n))
        CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC','M_DD1_DU',
-     *      'M_SSA_SS','M_SSC_SS','M_BOC_BC','M_BOC_OC','M_DD2_DU')
+     *      'M_SSA_SS','M_SSC_SS','M_BOC_BC','M_BOC_OC','M_DD2_DU',
+     *      'M_SSS_SS')
        k = k + 1
-         ijts_AMPemis(n)=k
+         ijts_AMPe(n)=k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'Emission_'//trim(trname(n))
@@ -7381,6 +7358,35 @@ c     end do
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
+c- 3D diagnostic per mode
+      CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
+     *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
+     *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
+     *     'N_MXX_1 ','N_OCS_1 ')
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPm(l,1,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a13,i2.2)') TRIM(trname(n))//'DIAM L=',L
+         write(sname_ijts(k),'(a13,i2.2)') 'DIAM___'//TRIM(trname(n)),L
+c         write(*,'(a13,i2.2)') 'DIAM___'//TRIM(trname(n)),L
+         ijts_power(k) = -2.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPm(l,2,n)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a13,i2.2)') TRIM(trname(n))//'ACTI L=',L
+         write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_'//TRIM(trname(n)),L
+c         write(*,'(a13,i2.2)') 'ACTI3D_'//TRIM(trname(n)),L
+         ijts_power(k) = -2.
+         units_ijts(k) = unit_string(ijts_power(k),' ')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
       end select
       end do
 #endif
@@ -7419,8 +7425,9 @@ C**** First 12 are standard for all tracers and GCM
 
 C**** set some defaults
       itcon_mc(:)=0
-      itcon_amp(:,:)=0
-      itcon_ampe(:)=0
+      itcon_AMP(:,:)=0
+      itcon_AMPe(:)=0
+      itcon_AMPm(:,:)=0
       itcon_ss(:)=0
       itcon_surf(:,:)=0
       itcon_3Dsrc(:,:)=0
@@ -8325,8 +8332,7 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 #endif
-c#ifdef TRACERS_NITRATE
-      case ('NH3')
+      case ('NH3','H2SO4')
       itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
       qsum(itcon_3Dsrc(1,N)) = .true.
@@ -8398,7 +8404,7 @@ c#ifdef TRACERS_NITRATE
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
-c#endif
+
       case ('Be7')
       itcon_3Dsrc(1,N) =13
       qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
@@ -8540,23 +8546,14 @@ c#endif
       qsum(itcon_wt(n)) = .false.
 #endif
 #endif
+c- Species including AMP  emissions
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      CASE('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',   
-     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
-     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
-     *    'M_SSA_SS','N_SSA_1 ','M_SSC_SU','M_SSC_SS','N_SSC_1 ',   
-     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
-     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',
-     *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',   
-     *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
-     *    'M_OCS_OC','N_OCS_1 ')
+        case('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC','M_BOC_BC',
+     &       'M_BOC_OC',
+     &       'M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU','M_DD2_DU')
       itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
       qsum(itcon_3Dsrc(1,N)) = .true.
@@ -8576,39 +8573,160 @@ c#endif
         qsum(itcon_dd(n,2)) = .false.
       end if
 #endif
-        itcon_ampe(n)=18
-        qcon(itcon_ampe(n)) = .true. ; conpts(6) = 'Emission'
-        qsum(itcon_ampe(n)) = .false.
-        itcon_amp(1,n)=19
-        qcon(itcon_amp(1,n)) = .true. ; conpts(7) = 'EQSAM 1st call'
-        qsum(itcon_amp(1,n)) = .false.
-        itcon_amp(2,n)=20
-        qcon(itcon_amp(2,n)) = .true. ; conpts(8) = 'UD Number Conc'
-        qsum(itcon_amp(2,n)) = .false.
-        itcon_amp(3,n)=21
-        qcon(itcon_amp(3,n)) = .true. ; conpts(9) = 'UD Mass Conc'
-        qsum(itcon_amp(3,n)) = .false.
-        itcon_amp(4,n)=22
-        qcon(itcon_amp(4,n)) = .true. ; conpts(10) = 'EQSAM 2nd call'
-        qsum(itcon_amp(4,n)) = .false.
-        itcon_amp(5,n)=23
-        qcon(itcon_amp(5,n)) = .true. ; conpts(11) = 'Trans.bw Modes'
-        qsum(itcon_amp(5,n)) = .false.
-        itcon_amp(6,n)=24
-        qcon(itcon_amp(6,n)) = .true.;conpts(12) ='Intermod Transf.'
-        qsum(itcon_amp(6,n)) = .false.
-        itcon_amp(7,n)=25
-        qcon(itcon_amp(7,n)) = .true. ; conpts(13) = 'Low Numb Limit'
-        qsum(itcon_amp(7,n)) = .false.
-c        itcon_amp(8,n)=26
-c        qcon(itcon_amp(8,n)) = .true. ; conpts(14) = 'P8'
-c        qsum(itcon_amp(8,n)) = .false.
-c        itcon_amp(9,n)=27
-c        qcon(itcon_amp(9,n)) = .true. ; conpts(15) = 'P9'
-c        qsum(itcon_amp(9,n)) = .false.
-c        itcon_amp(10,n)=28
-c        qcon(itcon_amp(10,n)) = .true. ; conpts(16) = 'P10'
-c        qsum(itcon_amp(10,n)) = .false.
+       itcon_AMPe(N) = 18
+       qcon(itcon_AMPe(N)) = .true.; conpts(6) = 'Emission AMP'
+       qsum(itcon_AMPe(N)) = .false.
+c Processes AMP Budget
+        itcon_AMP(1,n)=19
+        qcon(itcon_AMP(1,n)) = .true. ; conpts(7) = 'P1 Nucleation'
+        qsum(itcon_AMP(1,n)) = .false.
+        itcon_AMP(2,n)=20
+        qcon(itcon_AMP(2,n)) = .true. ; conpts(8) = 'P2 Coagulation'
+        qsum(itcon_AMP(2,n)) = .false.
+        itcon_AMP(3,n)=21
+        qcon(itcon_AMP(3,n)) = .true.;conpts(9) ='P3 Condensation'
+        qsum(itcon_AMP(3,n)) = .false.
+        itcon_AMP(4,n)=22
+        qcon(itcon_AMP(4,n)) = .true. ; conpts(10) = 'P4 Incloud'
+        qsum(itcon_AMP(4,n)) = .false.
+        itcon_AMP(5,n)=23
+        qcon(itcon_AMP(5,n)) = .true. ; conpts(11) = 'P5 Intermode Loss'
+        qsum(itcon_AMP(5,n)) = .false.
+        itcon_AMP(6,n)=24
+        qcon(itcon_AMP(6,n)) = .true. ; conpts(12) = 'P6 Mode Transf'
+        qsum(itcon_AMP(6,n)) = .false.
+        itcon_AMP(7,n)=25
+        qcon(itcon_AMP(7,n)) = .true. ; conpts(13) = 'P7 AMP Budget'
+        qsum(itcon_AMP(7,n)) = .false.
+
+       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      CASE('M_NO3   ','M_NH4   ','M_H2O   ',
+     *     'M_DD1_SU',
+     *     'M_DS1_SU','M_DS1_DU','M_DD2_SU',
+     *     'M_DS2_SU','M_DS2_DU','M_SSA_SU',
+     *     'M_OCC_SU','M_BC1_SU',
+     *     'M_BC2_SU','M_BC2_BC','M_BC3_SU',
+     *     'M_BC3_BC','M_DBC_SU','M_DBC_BC','M_DBC_DU',
+     *     'M_BOC_SU',
+     *     'M_BCS_SU','M_BCS_BC','M_MXX_SU','M_MXX_BC',
+     *     'M_MXX_OC','M_MXX_DU','M_MXX_SS','M_OCS_SU',
+     *     'M_OCS_OC','M_SSS_SU')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=16
+        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+        itcon_dd(n,2)=17
+        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+        qsum(itcon_dd(n,2)) = .false.
+      end if
+#endif
+c Processes AMP Budget
+        itcon_AMP(1,n)=18
+        qcon(itcon_AMP(1,n)) = .true. ; conpts(6) = 'P1 Nucleation'
+        qsum(itcon_AMP(1,n)) = .false.
+        itcon_AMP(2,n)=19
+        qcon(itcon_AMP(2,n)) = .true. ; conpts(7) = 'P2 Coagulation'
+        qsum(itcon_AMP(2,n)) = .false.
+        itcon_AMP(3,n)=20
+        qcon(itcon_AMP(3,n)) = .true.;conpts(8) ='P3 Condensation'
+        qsum(itcon_AMP(3,n)) = .false.
+        itcon_AMP(4,n)=21
+        qcon(itcon_AMP(4,n)) = .true. ; conpts(9) = 'P4 Incloud'
+        qsum(itcon_AMP(4,n)) = .false.
+        itcon_AMP(5,n)=22
+        qcon(itcon_AMP(5,n)) = .true. ; conpts(10) = 'P5 Intermode Loss'
+        qsum(itcon_AMP(5,n)) = .false.
+        itcon_AMP(6,n)=23
+        qcon(itcon_AMP(6,n)) = .true. ; conpts(11) = 'P6 Mode Transf'
+        qsum(itcon_AMP(6,n)) = .false.
+        itcon_AMP(7,n)=24
+        qcon(itcon_AMP(7,n)) = .true. ; conpts(12) = 'P7 AMP Budget'
+        qsum(itcon_AMP(7,n)) = .false.
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
+     *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
+     *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
+     *     'N_MXX_1 ','N_OCS_1 ')
+
+      kt_power_change(n) = -5
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2)')
+      kt_power_inst(n) = -3
+      scale_inst(n) = 10d0**(-kt_power_inst(n))
+      inst_unit(n) = unit_string(kt_power_inst(n),'kg/m^2)')
+cSUSA
+c      kt_power_change(n) = 5
+c      scale_change(n) = 10d0**(-kt_power_change(n))
+c      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2)')
+c      kt_power_inst(n) = 3
+c      scale_inst(n) = 10d0**(-kt_power_inst(n))
+c      inst_unit(n) = unit_string(kt_power_inst(n),'kg/m^2)')
+
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_mc(n) =14
+      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =15
+      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=16
+        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+        itcon_dd(n,2)=17
+        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+        qsum(itcon_dd(n,2)) = .false.
+      end if
+#endif
+        itcon_AMPm(1,n)=18
+        qcon(itcon_AMPm(1,n)) = .true. ; conpts(6) = 'Mode Diameter'
+        qsum(itcon_AMPm(1,n)) = .false.
+        itcon_AMPm(2,n)=19
+        qcon(itcon_AMPm(2,n)) = .true. ; conpts(7) = 'Mode AktivPart'
+        qsum(itcon_AMPm(2,n)) = .false.
+c Processes AMP Budget
+        itcon_AMP(1,n)=20
+        qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
+        qsum(itcon_AMP(1,n)) = .false.
+        itcon_AMP(2,n)=21
+        qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
+        qsum(itcon_AMP(2,n)) = .false.
+        itcon_AMP(3,n)=22
+        qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 NOTHING'
+        qsum(itcon_AMP(3,n)) = .false.
+        itcon_AMP(4,n)=23
+        qcon(itcon_AMP(4,n)) = .true. ; conpts(11) ='P4 Intermode Coag'
+        qsum(itcon_AMP(4,n)) = .false.
+        itcon_AMP(5,n)=24
+        qcon(itcon_AMP(5,n)) = .true. ; conpts(12) ='P5 Intramode Tr'
+        qsum(itcon_AMP(5,n)) = .false.
+        itcon_AMP(6,n)=25
+        qcon(itcon_AMP(6,n)) = .true. ; conpts(13) = 'P6 Mode Transf'
+        qsum(itcon_AMP(6,n)) = .false.
+        itcon_AMP(7,n)=26
+        qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
+        qsum(itcon_AMP(7,n)) = .false.
 
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -8781,7 +8899,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-c     include 'netcdf.inc'
+      include 'netcdf.inc'
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
@@ -9410,21 +9528,21 @@ C         AM=kg/m2, and DXYP=m2:
         case('M_NO3   ','M_NH4   ','M_H2O   ','N_AKK_1 ',
      *    'N_ACC_1 ','M_DD1_SU','N_DD1_1 ',   
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
-     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
-     *    'N_SSA_1 ','M_SSC_SU','N_SSC_1 ',   
+     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',   
      *    'M_OCC_SU','N_OCC_1 ','M_BC1_SU',
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',
      *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
      *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',   
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
-     *    'M_OCS_OC','N_OCS_1 ','NH3')
+     *    'M_OCS_OC','N_OCS_1 ','NH3','H2SO4')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-23
           end do; end do; end do        
 
-       case('M_AKK_SU','M_ACC_SU','M_DD1_DU',
-     *    'M_SSA_SS','M_SSC_SS','M_BC1_BC','M_OCC_OC')
+        case('M_AKK_SU','M_ACC_SU','M_DD1_DU',
+     *    'M_SSA_SS','M_SSC_SS','M_BC1_BC','M_OCC_OC',
+     *    'M_SSS_SS','M_SSS_SU')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-32
           end do; end do; end do
@@ -10143,7 +10261,9 @@ C**** at the start of any day
       USE RAD_COM,  only : cosz1
 #endif
 #ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only : EMIS_SOURCE
+      USE AERO_SETUP, only : RECIP_PART_MASS
+      USE AMP_AEROSOL, only: DTR_AMPe
+      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
       implicit none
       integer :: i,j,ns,l,ky,n
@@ -10526,7 +10646,7 @@ C****
 #endif
 
 c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
-      case ('SO4')
+      case ('SO4','M_ACC_SU')
 #ifdef EDGAR_1995
         do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
@@ -10554,18 +10674,39 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
             trsource(:,j,1,n) = OCT_src(:,j,jmon)
          end do
 #endif
-      end select
-      end do
 #ifdef TRACERS_AMP
+       case ('M_BC1_BC')
          do j=J_0,J_1
-          EMIS_SOURCE(:,j,1,1) = EMIS_SOURCE(:,j,1,1)+BCI_src(:,j)
-c         do l=1,8
-c          EMIS_SOURCE(:,j,l,3) = EMIS_SOURCE(:,j,l,3)+OCI_src(:,j,l)
-c         end do
-          EMIS_SOURCE(:,j,1,3) = EMIS_SOURCE(:,j,1,3)+OCI_src(:,j,1)
-          EMIS_SOURCE(:,j,1,3) = EMIS_SOURCE(:,j,1,3)+OCT_src(:,j,jmon)
+          trsource(:,j,1,n) = BCI_src(:,j)
+       taijs(:,j,ijts_AMPe(n))=taijs(:,j,ijts_AMPe(n)) +
+     &         trsource(:,j,1,n)*dtsrc
+         do i = 1,im       
+        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trsource(i,j,1,n)*dtsrc    
+         end do
+         end do
+       case ('N_BC1_1')
+         do j=J_0,J_1
+          trsource(:,j,1,n) = BCI_src(:,j) 
+     &   * RECIP_PART_MASS(3)
+         end do
+       case ('M_OCC_OC')
+         do j=J_0,J_1
+          trsource(:,j,1,n) = OCI_src(:,j,1)+OCT_src(:,j,jmon)
+       taijs(:,j,ijts_AMPe(n))=taijs(:,j,ijts_AMPe(n)) +
+     &         trsource(:,j,1,n)*dtsrc    
+         do i = 1,im      
+        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trsource(i,j,1,n)*dtsrc    
+         end do
+         end do
+       case ('N_OCC_1')
+         do j=J_0,J_1
+          trsource(:,j,1,n) = (OCI_src(:,j,1)+OCT_src(:,j,jmon))
+     &    * RECIP_PART_MASS(4)
          end do
 #endif
+      end select
+      end do
+
 C****
       END SUBROUTINE set_tracer_2Dsource
 
@@ -10579,7 +10720,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
       USE TRACER_COM
       USE FLUXES, only: tr3Dsource
-      USE MODEL_COM, only: itime,jmon
+      USE MODEL_COM, only: itime,jmon, dtsrc
       USE GEOM, only: dxyp,bydxyp
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
@@ -10602,7 +10743,10 @@ c Laki emissions
       USE NITRATE_AEROSOL
 #endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only : EMIS_SOURCE
+      USE AERO_SETUP, only : RECIP_PART_MASS
+      USE AMP_AEROSOL, only: DTR_AMPe
+      USE TRDIAG_COM, only : itcon_AMP, itcon_AMPe,itcon_AMPm
+      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow,blay
@@ -10613,6 +10757,8 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+c SUSA
+      tr3Dsource(:,J_0:J_1,:,:,:) = 0.d0
 
 C**** All sources are saved as kg/s
       do n=1,ntm
@@ -10691,6 +10837,74 @@ C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
       call apply_tracer_3Dsource(3,n) ! biomass
 
+#ifdef TRACERS_AMP
+      case ('M_ACC_SU')
+#ifdef TRACERS_AMP_M4
+      tr3Dsource(:,J_0:J_1,:,2,n) = 
+     &      SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+      call apply_tracer_3Dsource(2,n) ! volcanos
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=
+     &      SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+      call apply_tracer_3Dsource(3,n) ! biomass
+       do l=1,lm; do i=1,im
+       DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)+
+     &  (tr3Dsource(i,J_0:J_1,l,2,n)+tr3Dsource(i,J_0:J_1,l,3,n))*dtsrc
+#else
+      tr3Dsource(:,J_0:J_1,:,2,n) = 
+     &          0.99*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+      call apply_tracer_3Dsource(2,n) ! volcanos
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=
+     &          0.99*SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+      call apply_tracer_3Dsource(3,n) ! biomass
+       do l=1,lm; do i=1,im
+       DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)+
+     &  (tr3Dsource(i,J_0:J_1,l,2,n)+tr3Dsource(i,J_0:J_1,l,3,n))*dtsrc
+#endif    
+      enddo ; enddo
+
+      case ('M_AKK_SU')
+      tr3Dsource(:,J_0:J_1,:,2,n) = 
+     &          0.01*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+      call apply_tracer_3Dsource(2,n) ! volcanos
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=
+     &          0.01*SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+      call apply_tracer_3Dsource(3,n) ! biomass
+      do l=1,lm; do i=1,im
+       DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)+
+     &  (tr3Dsource(i,J_0:J_1,l,2,n)+tr3Dsource(i,J_0:J_1,l,3,n))*dtsrc    
+      enddo ; enddo 
+
+      case ('N_ACC_1')
+#ifdef TRACERS_AMP_M4
+      tr3Dsource(:,J_0:J_1,:,2,n) =  RECIP_PART_MASS(2)*
+     &          SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+      call apply_tracer_3Dsource(2,n) ! volcanos
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=
+     &          SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+      call apply_tracer_3Dsource(3,n) ! biomass
+#else
+      tr3Dsource(:,J_0:J_1,:,2,n) =  RECIP_PART_MASS(2)*
+     &          0.99*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+      call apply_tracer_3Dsource(2,n) ! volcanos
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=
+     &          0.99*SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+      call apply_tracer_3Dsource(3,n) ! biomass
+#endif
+
+      case ('N_AKK_1')
+      tr3Dsource(:,J_0:J_1,:,2,n) = RECIP_PART_MASS(1)*
+     &          0.01*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+      call apply_tracer_3Dsource(2,n) ! volcanos
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=
+     &          0.01*SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+      call apply_tracer_3Dsource(3,n) ! biomass
+#endif
        case ('BCIA')
 C**** aircraft source for fresh industrial BC
       tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
@@ -10725,6 +10939,122 @@ C**** biomass source for OC
       endif
       call apply_tracer_3Dsource(1,n) ! biomass
 #endif
+
+#ifdef TRACERS_AMP
+
+      case ('M_BC1_BC')
+C**** aircraft source for fresh industrial BC
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
+      tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
+      call apply_tracer_3Dsource(2,n) ! aircraft
+      do l = 1,lm; do i=1,im
+       taijs(i,J_0:J_1,ijts_AMPe(n))=taijs(i,J_0:J_1,ijts_AMPe(n)) +
+     &         tr3Dsource(i,J_0:J_1,l,2,n)*dtsrc    
+        DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)
+     &        +tr3Dsource(i,J_0:J_1,l,2,n)*dtsrc    
+      end do; end do
+#ifdef TRACERS_AMP_M4
+C**** biomass source for BC
+      tr3Dsource(:,J_0:J_1,:,3,n) = 0.d0
+      if (imAER.ne.1) then
+      do j=J_0,J_1; do i=1,im
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,3,n) = BCB_src(i,j,1,jmon)/real(blay)
+      end do
+      end do; end do
+      else
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n) = BCB_src(:,J_0:J_1,:,jmon)
+      endif
+      call apply_tracer_3Dsource(3,n) ! biomass
+      do l = 1,lm; do i=1,im
+        taijs(i,J_0:J_1,ijts_AMPe(n))=taijs(i,J_0:J_1,ijts_AMPe(n)) +
+     &         tr3Dsource(i,J_0:J_1,l,3,n)*dtsrc    
+        DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)
+     &        +tr3Dsource(i,J_0:J_1,l,3,n)*dtsrc    
+      end do; end do
+#endif
+
+      case ('N_BC1_1')
+C**** aircraft source for fresh industrial BC
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
+      tr3Dsource(:,J_0:J_1,:,2,n) = 
+     &  BCI_src_3d(:,J_0:J_1,:)* RECIP_PART_MASS(3)
+      call apply_tracer_3Dsource(2,n) ! aircraft
+#ifdef TRACERS_AMP_M4
+      tr3Dsource(:,J_0:J_1,:,3,n) = 0.d0
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n) = 
+     &( tr3Dsource(:,J_0:J_1,1:lmAER,3,n_M_BC1_BC))
+     & * RECIP_PART_MASS(8)
+      call apply_tracer_3Dsource(3,n) ! biomass
+#endif
+
+      case  ('M_BOC_BC')
+C**** biomass source for BC
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
+      if (imAER.ne.1) then
+      do j=J_0,J_1; do i=1,im
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,2,n) = BCB_src(i,j,1,jmon)/real(blay)
+      end do
+      end do; end do
+      else
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) = BCB_src(:,J_0:J_1,:,jmon)
+      endif
+      call apply_tracer_3Dsource(2,n) ! biomass
+      do l = 1,lm; do i=1,im
+        taijs(i,J_0:J_1,ijts_AMPe(n))=taijs(i,J_0:J_1,ijts_AMPe(n)) +
+     &         tr3Dsource(i,J_0:J_1,l,2,n)*dtsrc    
+        DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)
+     &        +tr3Dsource(i,J_0:J_1,l,2,n)*dtsrc    
+      end do; end do
+
+#ifdef TRACERS_AMP_M4
+      case  ('M_OCC_OC')
+#else
+      case  ('M_BOC_OC')
+#endif
+C**** biomass source for OC
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
+      if (imAER.ne.1) then
+      do j=J_0,J_1; do i=1,im
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,2,n) = OCB_src(i,j,1,jmon)/real(blay)
+      end do
+      end do; end do
+      else
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) = OCB_src(:,J_0:J_1,:,jmon)
+      endif
+      call apply_tracer_3Dsource(2,n) ! biomass
+      do l = 1,lm; do i=1,im
+        taijs(i,J_0:J_1,ijts_AMPe(n))=taijs(i,J_0:J_1,ijts_AMPe(n)) +
+     &         tr3Dsource(i,J_0:J_1,l,2,n)*dtsrc    
+        DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)
+     &        +tr3Dsource(i,J_0:J_1,l,2,n)*dtsrc    
+      end do; end do
+
+#ifdef TRACERS_AMP_M4
+      case  ('N_OCC_1')
+C**** biomass source for BC
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) = 
+     &( tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_OCC_OC) 
+     & + tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_BC1_BC))
+     & * RECIP_PART_MASS(8)
+      call apply_tracer_3Dsource(2,n) ! biomass
+#else
+      case  ('N_BOC_1')
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) = 
+     &( tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_BOC_BC) 
+     & + tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_BOC_OC))
+     & * RECIP_PART_MASS(8)
+      call apply_tracer_3Dsource(2,n) ! biomass
+#endif
+#endif
+
 #ifdef TRACERS_OM_SP
       case ('OCI1')
 c**** biomass + industrial for OC species
@@ -10799,36 +11129,7 @@ C****
       end select
 
       end do
-#ifdef TRACERS_AMP
-c     BC
-      EMIS_SOURCE(:,J_0:J_1,:,1) = EMIS_SOURCE(:,J_0:J_1,:,1) 
-     *                           + BCI_src_3d(:,J_0:J_1,:)
-      if (imAER.ne.1) then
-      do j=J_0,J_1; do i=1,im
-      blay=int(dclev(i,j)+0.5)
-      do l=1,blay
-      EMIS_SOURCE(i,j,l,2) = EMIS_SOURCE(i,j,l,2) 
-     *                      + BCBt_src(i,j)/real(blay)
-      end do
-      end do; end do
-      else
-      EMIS_SOURCE(:,J_0:J_1,:,2) =  EMIS_SOURCE(:,J_0:J_1,:,2) 
-     *                            + BCB_src(:,J_0:J_1,:,jmon)
-      endif
-c     OC
-      if (imAER.ne.1) then
-      do j=J_0,J_1; do i=1,im
-      blay=int(dclev(i,j)+0.5)
-      do l=1,blay
-      EMIS_SOURCE(i,j,l,4) = EMIS_SOURCE(i,j,l,4)
-     *                       + OCBt_src(i,j)/real(blay)
-      end do
-      end do; end do
-      else
-      EMIS_SOURCE(:,J_0:J_1,:,4) = EMIS_SOURCE(:,J_0:J_1,:,4)
-     *                           + OCB_src(:,J_0:J_1,:,jmon)
-      endif
-#endif
+
 #ifdef TRACERS_AEROSOLS_Koch
        call aerosol_gas_chem
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
@@ -10917,24 +11218,21 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(1,n_NH3)  ! NH3
 #endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
-      DO n=1,ntm
-       tr3Dsource(:,J_0:J_1,:,:,n) = 0.d0
-      ENDDO
 
       call aerosol_gas_chem
-
-      CALL MATRIX_DRV
+      call MATRIX_DRV
 
       DO n=1,ntmAMP
-       call apply_tracer_3Dsource(1,n)
+       call apply_tracer_3Dsource(1,n) ! Aerosol Mirophysics
       ENDDO
+
        call apply_tracer_3Dsource(1,n_NH3)  ! NH3 
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
        call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(5,n_SO2)  ! SO2 chem sink
-       call apply_tracer_3Dsource(1,n_SO4)  ! SO4 chem source
-       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
-       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
+       call apply_tracer_3Dsource(1,n_H2O2_s)! H2O2 chem source
+       call apply_tracer_3Dsource(2,n_H2O2_s)! H2O2 chem sink
+       call apply_tracer_3Dsource(1,n_H2SO4) ! H2SO4 chem prod
 #endif
 
       return
