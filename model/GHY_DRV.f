@@ -1809,6 +1809,7 @@ C**** define local grid
       integer J_0H, J_1H
       logical present_land
       integer init_flake
+      integer kk
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -2071,6 +2072,17 @@ ccc!!! restart file (without snow model data)
 
             call ghinij (i,j)
             call set_snow
+
+!!!! hack
+!            do kk=1,6
+!              do ibv=1,LS_NFRAC
+!                if ( w(kk,ibv) < thetm(kk,ibv)*dz(kk) ) then
+!                  print *,"corrected w ",i,j,kk,ibv, w(kk,ibv)
+!                  w(kk,ibv) = thetm(kk,ibv)*dz(kk)
+!                endif
+!                print *,i,j,kk,ibv, w(kk,ibv),thetm(kk,ibv)*dz(kk)
+!              enddo
+!            enddo
 
             nsn_ij    (1:2, i, j)         = nsn(1:2)
             !isn_ij    (1:2, i, j)         = isn(1:2)
@@ -2537,6 +2549,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       use model_com, only : itime,wfcs
       use geom, only : imaxj
       use constant, only : rhow
+      use veg_com, only : afb
       use ghy_com, only : tearth,wearth,aiearth,snowe,w_ij,ht_ij
      *     ,snowbv,ngm,fearth,wsn_ij
 #ifdef TRACERS_WATER
@@ -2593,6 +2606,10 @@ c**** check for reasonable temperatures over earth
         end do
       end do
 
+      !print *,"checke: w(51,33) ", w_ij(:,:,51,33)
+      !print *,"checke: fearth(51,33) ", fearth(51,33),afb(51,33)
+      
+
 c**** check tracers
 #ifdef TRACERS_WATER
       do n=1,ntm
@@ -2619,9 +2636,9 @@ c**** check tracers
           do j=J_0, J_1
             do i=1,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
-              relerr=maxval( abs( (tr_w_ij(n,1:ngm,1:2,i,j)
-     &             - w_ij(1:ngm,1:2,i,j)*rhow)
-     &             /(w_ij(1:ngm,1:2,i,j)*rhow + EPS) ) )
+              relerr=( sum(abs( (tr_w_ij(n,1:ngm,1:2,i,j)
+     &             - w_ij(1:ngm,1:2,i,j)*rhow))
+     &             /sum(w_ij(1:ngm,1:2,i,j)*rhow + EPS) ) )
               if (relerr > errmax) then
                 imax=i ; jmax=j ; errmax=relerr
               end if
@@ -2630,6 +2647,7 @@ c**** check tracers
           print*,"Relative error in soil after ",trim(subr),":"
      *         ,imax,jmax,errmax,tr_w_ij(n,1:ngm,1:2,imax,jmax)
      &         - w_ij(1:ngm,1:2,imax,jmax)*rhow
+     &         ,w_ij(1:ngm,1:2,imax,jmax)*rhow
           
         endif
       enddo
