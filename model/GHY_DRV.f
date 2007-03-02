@@ -2122,7 +2122,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
       jday=1+mod(itime/nday,365)
       ! initialize underwater fraction foe variable lakes
-      if ( init_flake > 0 .and. variable_lk > 0 )
+      if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 10 )
      &     call init_underwater_soil
 
       ! land water deficit for changing lake fractions
