@@ -453,7 +453,10 @@ C**** Get parameters from rundeck
       call sync_param("variable_lk",variable_lk)
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
-      if (init_flake.eq.1.and.istart.lt.10) FLAKE = FLAKE0
+      if (init_flake.eq.1.and.istart.lt.10) THEN
+        print*,"Initialising FLAKE from TOPO file..."
+        FLAKE = FLAKE0
+      end if
 
 C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       DO J=J_0, J_1
@@ -1169,7 +1172,7 @@ C**** check for negative mass
 C**** check for reasonable lake surface temps
           IF (TLAKE(I,J).ge.50 .or. TLAKE(I,J).lt.-0.5) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TSL=',I,J,TLAKE(I,J)
-c            QCHECKL = .TRUE.
+            if (TLAKE(I,J).lt.-1) QCHECKL = .TRUE.
           END IF
         END IF
 C**** Check total lake mass ( <0.4 m, >20x orig depth)
@@ -1861,19 +1864,23 @@ C****
       USE LAKES_COM, only : tlake,mwl,mldlk,gml,flake
       USE SEAICE, only : xsi,ace1i,rhoi
       USE SEAICE_COM, only : rsi,hsi,msi,snowi
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=1
-      INTEGER I,J,N
-      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/36/),
-     *                             JDIAG = (/26/)
+      INTEGER I,J,N, J_0, J_1
+      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/57/),
+     *                             JDIAG = (/31/)
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
 
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1)
+
       DO N=1,NDIAG
         I=IDIAG(N)
         J=JDIAG(N)
+        if (J.lt. J_0 .or. J.gt. J_1) CYCLE 
         IF (FLAKE(I,J).gt.0) THEN
         HLK2 = MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)) - MLDLK(I,J)
         IF (HLK2.gt.0) THEN
