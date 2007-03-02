@@ -940,8 +940,8 @@ cdiag.   ,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      &    (ss1_flux+ss2_flux)*dxyp(j)*ptype*dtsurf
 #endif
+       end select
 #endif
-        end select
 
 #ifdef TRACERS_DRYDEP
 C****
