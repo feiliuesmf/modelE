@@ -619,6 +619,7 @@ c***********************************************************************
       public conserv_wtg
       public conserv_htg
       public conserv_wtg_1
+      public checke
 
       !real*8 cosday,sinday
       !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
@@ -2535,20 +2536,29 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
 !@ver  1.0
       use model_com, only : itime,wfcs
       use geom, only : imaxj
+      use constant, only : rhow
       use ghy_com, only : tearth,wearth,aiearth,snowe,w_ij,ht_ij
-     *     ,snowbv,ngm,fearth
+     *     ,snowbv,ngm,fearth,wsn_ij
+#ifdef TRACERS_WATER
+     &     ,tr_w_ij,tr_wsn_ij
+      USE TRACER_COM, only : ntm, trname, t_qlimit
+#endif
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       implicit none
-
-      real*8 x,tgl,wtrl,acel
-      integer i,j
 !@var subr identifies where check was called from
       character*6, intent(in) :: subr
+
+      real*8 x,tgl,wtrl,acel
+      integer i,j,imax,jmax,n
+      real*8, parameter :: EPS=1.d-12
+      logical QCHECKL
+      real*8 relerr, errmax
 
 C**** define local grid
       integer I_0, I_1
       integer J_0, J_1
 
+      QCHECKL = .false.
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -2582,6 +2592,51 @@ c**** check for reasonable temperatures over earth
           end if
         end do
       end do
+
+c**** check tracers
+#ifdef TRACERS_WATER
+      do n=1,ntm
+        ! check for neg tracers
+        if (t_qlimit(n)) then
+          do j=J_0, J_1
+            do i=1,imaxj(j)
+              if ( fearth(i,j) <= 0.d0 ) cycle
+              if ( minval( tr_w_ij(n,:,:,i,j)   ) < 0.d0 .or.
+     &             minval( tr_wsn_ij(n,:,:,i,j) ) < 0.d0 ) then
+                print*,"Neg tracer in earth after ",SUBR,i,j,trname(n)
+     &               , "tr_soil= ", tr_w_ij(n,:,:,i,j)
+     &               , "TR_SNOW= ", tr_wsn_ij(n,:,:,i,j)
+                QCHECKL=.TRUE.
+              end if
+           
+            end do
+          end do
+        end if
+        
+        ! check if water == water
+        if (trname(n) == 'Water') then
+          errmax = 0. ; imax=1 ; jmax=1
+          do j=J_0, J_1
+            do i=1,imaxj(j)
+              if ( fearth(i,j) <= 0.d0 ) cycle
+              relerr=maxval( abs( (tr_w_ij(n,1:ngm,1:2,i,j)
+     &             - w_ij(1:ngm,1:2,i,j)*rhow)
+     &             /(w_ij(1:ngm,1:2,i,j)*rhow + EPS) ) )
+              if (relerr > errmax) then
+                imax=i ; jmax=j ; errmax=relerr
+              end if
+            enddo
+          enddo
+          print*,"Relative error in soil after ",trim(subr),":"
+     *         ,imax,jmax,errmax,tr_w_ij(n,1:ngm,1:2,imax,jmax)
+     &         - w_ij(1:ngm,1:2,imax,jmax)*rhow
+          
+        endif
+      enddo
+#endif
+
+      IF (QCHECKL)
+     &     call stop_model('CHECKL: Earth variables out of bounds',255)
 
       return
  901  format ('0gdata off, subr,i,j,i-time,pearth,',a7,2i4,i10,f5.2,1x

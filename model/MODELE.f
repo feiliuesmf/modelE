@@ -1802,6 +1802,7 @@ C**** CORRECTED.
       USE MODEL_COM
       USE DYNAMICS, only : pk
       USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
+      USE soil_drv, only : checke
       IMPLICIT NONE
       INTEGER I,J,L
 !@var SUBR identifies where CHECK was called from
@@ -1850,7 +1851,7 @@ C**** Check Ice arrays
 C**** Check Lake arrays
         CALL CHECKL(SUBR)
 C**** Check Earth arrays
-c       CALL CHECKE(SUBR)
+       CALL CHECKE(SUBR)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** check tracers
         CALL CHECKTR(SUBR)
