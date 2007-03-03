@@ -2551,7 +2551,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       use constant, only : rhow
       use veg_com, only : afb
       use ghy_com, only : tearth,wearth,aiearth,snowe,w_ij,ht_ij
-     *     ,snowbv,ngm,fearth,wsn_ij
+     *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
       USE TRACER_COM, only : ntm, trname, t_qlimit
@@ -2562,10 +2562,10 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       character*6, intent(in) :: subr
 
       real*8 x,tgl,wtrl,acel
-      integer i,j,imax,jmax,n
+      integer i,j,imax,jmax,n,nsb,nsv
       real*8, parameter :: EPS=1.d-12
       logical QCHECKL
-      real*8 relerr, errmax
+      real*8 relerr, errmax, fb, fv
 
 C**** define local grid
       integer I_0, I_1
@@ -2636,18 +2636,75 @@ c**** check tracers
           do j=J_0, J_1
             do i=1,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
-              relerr=( sum(abs( (tr_w_ij(n,1:ngm,1:2,i,j)
-     &             - w_ij(1:ngm,1:2,i,j)*rhow))
-     &             /sum(w_ij(1:ngm,1:2,i,j)*rhow + EPS) ) )
+              fb = afb(i,j)
+              fv = 1.d0 - fb
+              relerr= ( fb*sum(abs(
+     &             tr_w_ij(n,1:ngm,1,i,j) - w_ij(1:ngm,1,i,j)*rhow))
+     &             + fv*sum(abs(
+     &             tr_w_ij(n,0:ngm,2,i,j) - w_ij(0:ngm,2,i,j)*rhow)) )
+     &             /(  rhow*( fb*sum(w_ij(1:ngm,1,i,j))
+     &             + fv*sum(w_ij(0:ngm,2,i,j)) ) + EPS  )
               if (relerr > errmax) then
                 imax=i ; jmax=j ; errmax=relerr
               end if
             enddo
           enddo
+          fb = afb(imax,jmax)
+          fv = 1.d0 - fb
           print*,"Relative error in soil after ",trim(subr),":"
-     *         ,imax,jmax,errmax,tr_w_ij(n,1:ngm,1:2,imax,jmax)
-     &         - w_ij(1:ngm,1:2,imax,jmax)*rhow
-     &         ,w_ij(1:ngm,1:2,imax,jmax)*rhow
+     &         ,imax,jmax,errmax
+     &         ,( tr_w_ij(n,1:ngm,1,imax,jmax)
+     &         - w_ij(1:ngm,1,imax,jmax)*rhow )*fb
+     &         ,( tr_w_ij(n,0:ngm,2,imax,jmax)
+     &         - w_ij(0:ngm,2,imax,jmax)*rhow )*fv
+     &         , rhow*( fb*sum(w_ij(1:ngm,1,imax,jmax))
+     &         +        fv*sum(w_ij(0:ngm,2,imax,jmax)) )
+cddd     &         ,w_ij(1:ngm,1,imax,jmax)*rhow
+cddd     &         ,w_ij(0:ngm,2,imax,jmax)*rhow
+
+          errmax = 0. ; imax=1 ; jmax=1
+          do j=J_0, J_1
+            do i=1,imaxj(j)
+              if ( fearth(i,j) <= 0.d0 ) cycle
+              fb = afb(i,j)
+              fv = 1.d0 - fb
+              nsb = nsn_ij(1,i,j)
+              nsv = nsn_ij(2,i,j)
+              relerr= ( fb*sum(abs( tr_wsn_ij(n,1:nsb,1,i,j)
+     &             - wsn_ij(1:nsb,1,i,j)*rhow*fr_snow_ij(1,i,j) ))
+     &             + fv*sum(abs( tr_wsn_ij(n,1:nsv,2,i,j)
+     &             - wsn_ij(1:nsv,2,i,j)*rhow*fr_snow_ij(2,i,j))) )
+     &             /(rhow*(
+     &             fb*sum(wsn_ij(1:nsb,1,i,j))*fr_snow_ij(1,i,j) +
+     &             fv*sum(wsn_ij(1:nsv,2,i,j))*fr_snow_ij(2,i,j) ) +EPS)
+              if (relerr > errmax) then
+                imax=i ; jmax=j ; errmax=relerr
+              end if
+            enddo
+          enddo
+          fb = afb(imax,jmax)
+          fv = 1.d0 - fb
+          nsb = nsn_ij(1,imax,jmax)
+          nsv = nsn_ij(2,imax,jmax)
+          print*,"Relative error in snow after ",trim(subr),":"
+     &         ,imax,jmax,errmax
+     &         ,( tr_wsn_ij(n,1:nsb,1,imax,jmax)
+     &         - wsn_ij(1:nsb,1,imax,jmax)*rhow
+     &         *fr_snow_ij(1,imax,jmax) )*fb
+     &         ,( tr_wsn_ij(n,1:nsv,2,imax,jmax)
+     &         - wsn_ij(1:nsv,2,imax,jmax)*rhow
+     &         *fr_snow_ij(2,imax,jmax) )*fv
+     &         ,rhow*( fb*sum(wsn_ij(1:nsb,1,imax,jmax))
+     &         * fr_snow_ij(1,imax,jmax)
+     &         +       fv*sum(wsn_ij(1:nsv,2,imax,jmax))
+     &         * fr_snow_ij(2,imax,jmax) )
+
+cddd     &         ,wsn_ij(1:nsn_ij(1,imax,jmax),1,imax,jmax)*rhow
+cddd     &         *fr_snow_ij(1,imax,jmax)
+cddd     &         ,wsn_ij(1:nsn_ij(1,imax,jmax),2,imax,jmax)*rhow
+cddd     &         *fr_snow_ij(2,imax,jmax)
+
+
           
         endif
       enddo
