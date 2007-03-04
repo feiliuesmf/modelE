@@ -23,12 +23,14 @@ case `hostname` in
 	export NOBACKUP=/nobackup/progress
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
         export MODES="serial other MPI OpenMP"
-        export COMPILER=Intel8;;
+        export COMPILER=Intel8
+        export GCMSEARCHPATH=/giss;;
     halem* )
         export NOBACKUP=/scr/progress
 	export BASELIBDIR=/share/ESMA/baselibs/v2_2r0/OSF1
         export MODES="serial MPI OpenMP"
-        export NETCDFHOME=/usr/local/unsupported;;
+        export NETCDFHOME=/usr/local/unsupported
+	export GCMSEARCHPATH=/giss2/giss;;
     *) 
         export NOBACKUP=$HOME
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
@@ -106,7 +108,6 @@ createModelErc() {
     cat > ~/.modelErc <<EOF
 DECKS_REPOSITORY=$MODELE_DATA/decksRepository
 CMRUNDIR=$MODELE_DATA/cmrun
-GCMSEARCHPATH=/giss
 EXECDIR=$MODELE_DATA/exec
 SAVEDISK=$MODELE_DATA/out
 OVERWRITE=YES
