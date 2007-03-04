@@ -3,8 +3,8 @@
 #PBS -l walltime=4:00:00
 #PBS -W group_list=a940a
 #PBS -N modelE_test
-#PBS -m "abe"
-#PBS -M "Thomas.L.Clune@nasa.gov"
+# #PBS -m "abe"
+# #PBS -M "Thomas.L.Clune@nasa.gov"
 
 #BSUB -n 4
 #BSUB -W 06:00
@@ -12,7 +12,7 @@
 #BSUB -P k3002
 #BSUB -J modelE_test
 #BSUB -B
-#BSUB -u "Thomas.L.Clune@nasa.gov"
+# #BSUB -u "Thomas.L.Clune@nasa.gov"
 
 # Script to build standard modelE rundecks under OpenMP and MPI for the purposes of
 # detecting defects in paralellization.
