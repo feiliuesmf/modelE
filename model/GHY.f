@@ -2507,14 +2507,25 @@ ccc internal vars:
 #ifdef TRACERS_SPECIAL_O18
       real*8, external :: fracvl
 #endif
+!@var tol error tolerance for each type of tracer
+      real*8 tol(ntg)
 
 ccc for debug
       real*8 tr_w_o(ntgm,0:ngm,2), tr_wsn_o(ntgm,nlsn,2)
 
       if ( ntg < 1 ) return   ! no water tracers
 
+
       !m = 2 !!! testing
       m = ntg
+
+ccc set error tolerance for each time of tracer (can be increased
+ccc if model stops due to round-off error)
+      do mc=1,m
+         tol(mc) = ( sum(tr_w(mc,:,:))/(size(tr_w,2)*size(tr_w,3))
+     &        +   sum(tr_wsn(mc,:,:))/(size(tr_wsn,2)*size(tr_wsn,3))
+     &        ) * 1.d-10 + 1.d-32
+      enddo
 
 !!! for test only
 !      trpr(:) = .5d0 * pr
@@ -2601,6 +2612,7 @@ ccc loops...
       if ( pr > 0.d0 ) tr_wcc(:m,1) = trpr(:m)/pr
       call check_wc(tr_wcc(1,1))
 ccc end canopy
+
 
 ccc snow
   !!!>>    tr_wsnc(:m,:,:) = 0.d0 !!! was 0
@@ -2712,7 +2724,6 @@ cddd      print '(a,10(e12.4))', 'tr_wsn_2 '
 cddd     &     , tr_wsn(1,:,2) - wsn(:,2) * fr_snow(2) * 1000.d0
 cddd     &     , fr_snow(2), nsn(2)+0.d0, flux_snow_tot(0:nlsn,2)*dts
 
-
 ccc soil layers
   !>>    tr_wc(:m,1:n,1:2) = 0.d0
   !>    tr_wc(:m,1:n,1:2) = 1000.d0  !!! was 0
@@ -2741,6 +2752,8 @@ ccc soil layers
         if ( wi(1,ibv) > 0.d0 )
      &       tr_wc(:m,1,ibv) = tr_w(:m,1,ibv)/wi(1,ibv)
         call check_wc(tr_wc(1,1,ibv))
+
+
         ! sweep down
         do i=2,n
           if ( f(i,ibv) < 0.d0 ) then
@@ -2754,6 +2767,8 @@ ccc soil layers
      &           - tr_wc(:m,i-1,ibv)*flux_dt
           endif
         enddo
+        
+
         ! sweep up
         do i=n-1,1,-1
           if ( f(i+1,ibv) > 0.d0 ) then
@@ -2785,6 +2800,7 @@ ccc loops...
         tr_evap(:m,1) = tr_evap(:m,1) + evap_tmp(:m)*tr_wc(:m,1,1)
       endif
 
+
 ccc runoff
       do ibv=i_bare,i_vege
         tr_rnff(:m,ibv) = tr_rnff(:m,ibv) + tr_wc(:m,1,ibv)*rnf(ibv)
@@ -2796,6 +2812,7 @@ ccc runoff
      &         - tr_wc(:m,i,ibv)*rnff(i,ibv)*dts
         enddo
       enddo
+
 
 ccc !!! include surface runoff !!!
 
@@ -2809,7 +2826,6 @@ ccc transpiration
       endif
 
 
-
 cddd      print *, 'end ghy_tracers'
 cddd      print *, 'trpr, trpr_dt ', trpr(1), trpr(1)*dts
 cddd      print *, 'tr_w 1 ', tr_w(1,:,1)
@@ -2819,31 +2835,40 @@ cddd      print *, 'tr_wsn 2 ', tr_wsn(1,:,2)
 cddd      print *, 'evap ', tr_evap(1,:)*dts
 cddd      print *, 'runoff ', tr_rnff(1,:)*dts
 
-      do ibv=i_bare,i_vege
-        do i=1,n
-          if ( tr_w(1,i,ibv) < 0.d0 ) then
-c            print *,'EEEEG ', tr_w(1,i,ibv), ibv, i
-            !call abort
-            tr_w(1,i,ibv) = 0.d0
-          endif
-        enddo
-        do i=1,nlsn
-          if ( tr_wsn(1,i,ibv) < 0.d0 ) then
-c            print *,'EEEES ', tr_wsn(1,i,ibv),
-c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
-            tr_wsn(1,i,ibv) = 0.d0
-          endif
-        enddo
-        err = trpr(1)*dts
-     &       + sum( tr_w_o(1,:,ibv) ) + sum( tr_wsn_o(1,:,ibv) )
-     &       - sum( tr_w(1,:,ibv) ) - sum( tr_wsn(1,:,ibv) )
-     &       - tr_evap(1,ibv)*dts - tr_rnff(1,ibv)*dts
-        !print *,'err ', err
-        if ( abs( err ) > 1.d-10 ) !-10  ! was -16
-     &   write(0,*) 'ghy tracers not conserved at',ijdebug,' err=',err
-!!!  &       call stop_model("ghy tracers not conserved",255)
+      do mc=1,m
+         do ibv=i_bare,i_vege
+            do i=1,n
+               if ( tr_w(mc,i,ibv) < 0.d0 ) then
+                  if ( tr_w(mc,i,ibv) < -tol(mc) ) then
+                     print *,'GHY:tr_w<0 ', tr_w(mc,i,ibv), ibv, i
+                     call stop_model("GHY:tr_w<0",255)
+                  endif
+                  tr_w(mc,i,ibv) = 0.d0
+               endif
+            enddo
+            do i=1,nlsn
+               if ( tr_wsn(mc,i,ibv) < 0.d0 ) then
+                  if ( tr_wsn(mc,i,ibv) < -tol(mc) ) then
+                     print *,'GHY:tr_wsn<0 ', tr_wsn(mc,i,ibv),
+     &                    ibv, i, flmlt(ibv), fr_snow(ibv)
+                  endif
+                  tr_wsn(mc,i,ibv) = 0.d0
+               endif
+            enddo
+            err = trpr(mc)*dts
+     &           + sum( tr_w_o(mc,:,ibv) ) + sum( tr_wsn_o(mc,:,ibv) )
+     &           - sum( tr_w(mc,:,ibv) ) - sum( tr_wsn(mc,:,ibv) )
+     &           - tr_evap(mc,ibv)*dts - tr_rnff(mc,ibv)*dts
+                                !print *,'err ', err
+            if ( abs( err ) > tol(mc) ) then
+               write(0,*)
+     $              'ghy tracers not conserved at',ijdebug,' err=',err
+!!!            call stop_model("ghy tracers not conserved",255)
+            endif
+         enddo
       enddo
 
+     
 !!! hack
 !!! get rid of possible garbage
       do ibv=i_bare,i_vege
