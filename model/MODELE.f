@@ -96,14 +96,6 @@ C**** Set run_status to "run in progress"
       if(istart > 0) call write_run_status("Run in progress...",1)
 
 C****
-C**** Initialize FV dynamical core (ESMF component) if requested
-C****
-#ifdef USE_FVCORE
-      Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
-#endif
-
-
-C****
 C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE.and.Kradia.le.0) then ! includes ISTART<1 case
@@ -146,6 +138,13 @@ C**** INITIALIZE TIME PARAMETERS
            if (kradia.le.0) CALL CHECKT ('INPUT ')
       end if
       CALL UPDTYPE
+
+C****
+C**** Initialize FV dynamical core (ESMF component) if requested
+C****
+#ifdef USE_FVCORE
+      Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
+#endif
 
       if (AM_I_ROOT())
      *   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
