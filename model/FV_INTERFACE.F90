@@ -30,7 +30,7 @@ module FV_INTERFACE_MOD
   public :: Run                    ! Execute the FV method to integrate the core forward in time
   public :: Checkpoint             ! Unimplemented
   public :: Restart                ! Unimplemented - should move within Initialize()
-
+  public :: edgepressure_giss
 
   ! This data structure is o convenient entity for storing persistent data between
   ! calls to this module.  In addition to
@@ -104,6 +104,10 @@ module FV_INTERFACE_MOD
   Real*8, parameter :: PRESSURE_UNIT_FV    =    1 ! 1 pa
   Real*8, parameter :: PRESSURE_UNIT_RATIO = PRESSURE_UNIT_GISS/PRESSURE_UNIT_FV
 
+  character(len=*), parameter :: FVCORE_INTERNAL_RESTART = 'fv_internal_restart.dat'
+  character(len=*), parameter :: FVCORE_IMPORT_RESTART   = 'fv_import_restart.dat'
+  character(len=*), parameter :: FVCORE_LAYOUT           = 'fv_layout.rc'
+
 contains
 
   subroutine Initialize_fv(fv, vm, grid, clock, config_file)
@@ -125,9 +129,8 @@ contains
     type (ESMF_Array)                :: Qarray
     type (ESMF_FieldDataMap)         :: datamap
 
-    print*,'HERE:',__LINE__,__FILE__
-    fv%vm  =vm
-    fv%grid=grid
+    fv % vm  =vm
+    fv % grid=grid
 
     ! Load configuration information from resource file
     !  ------------------------------------------------
@@ -135,21 +138,20 @@ contains
 
     !  Create the dynamics component, using same layout as application
     !  ------------------------------------------------------------------
-    fv%gc = ESMF_GridCompCreate ( vm=vm, name='FV dynamics', &
+    fv % gc = ESMF_GridCompCreate ( vm=vm, name='FV dynamics', &
          & grid=grid, gridcomptype=ESMF_ATM,              &
          & config=cf, rc=rc)
     VERIFY_(rc)
 
-
     ! Create couplings
-    fv%import = ESMF_StateCreate ( 'fv dycore imports', ESMF_STATE_IMPORT, rc=rc )
+    fv % import = ESMF_StateCreate ( 'fv dycore imports', ESMF_STATE_IMPORT, rc=rc )
     VERIFY_(rc)
-    fv%export = ESMF_StateCreate ( 'fv dycore exports', ESMF_STATE_EXPORT, rc=rc )
+    fv % export = ESMF_StateCreate ( 'fv dycore exports', ESMF_STATE_EXPORT, rc=rc )
     VERIFY_(rc)
 
     !  Register services for components
     !  --------------------------------
-    call ESMF_GridCompSetServices ( fv%gc, SetServices, rc )
+    call ESMF_GridCompSetServices ( fv % gc, SetServices, rc )
     VERIFY_(rc)
 
     ! Initialize component (and import/export states)
@@ -158,36 +160,29 @@ contains
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
     ! create one based upon modelE's internal state.
-    write(*,*)'call create_restart_file()'
+
     call create_restart_file(fv, cf, clock)
 
-    print*,'HERE:',__LINE__,__FILE__
-    call ESMF_GridCompInitialize ( fv%gc, importState=fv%import, exportState=fv%export, clock=clock, &
+    call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
          & phase=ESMF_SINGLEPHASE, rc=rc )
-    print*,'HERE:',__LINE__,__FILE__
     VERIFY_(rc)
 
 
     ! Specific Humidity - need to reserve space in FV import state
     Call get(modelE_grid, J_STRT=J_0, J_STOP=J_1)
-    Allocate(fv%Q(IM,J_0:J_1,LM))
+    Allocate(fv % Q(IM,J_0:J_1,LM))
 
-    Qarray = ESMF_ArrayCreate(fv%Q, ESMF_DATA_REF, RC=rc)
-    print*,'HERE:',__LINE__,__FILE__
+    Qarray = ESMF_ArrayCreate(fv % Q, ESMF_DATA_REF, RC=rc)
     VERIFY_(rc)
         call ESMF_FieldDataMapSetDefault(datamap, dataRank=3, rc=rc)
-    print*,'HERE:',__LINE__,__FILE__
     Qfield = ESMF_FieldCreate( grid, Qarray, horzRelloc=ESMF_CELL_CENTER, &
 !!$         name="Q", rc=rc)
          datamap=datamap, name="Q", rc=rc)
-    print*,'HERE:',__LINE__,__FILE__
     VERIFY_(rc)
     ! First obtain a reference field from the state (avoids tedious details)
-    call ESMF_StateGetBundle (fv%import, 'QTR'  , bundle, rc=rc)
-    print*,'HERE:',__LINE__,__FILE__
+    call ESMF_StateGetBundle (fv % import, 'QTR'  , bundle, rc=rc)
     VERIFY_(rc)
     Call ESMF_BundleAddField(bundle, Qfield, rc=rc)
-    print*,'HERE:',__LINE__,__FILE__
     VERIFY_(rc)
 
     Call allocate_tendency_storage(fv)
@@ -200,7 +195,7 @@ contains
     use DOMAIN_DECOMP, only: grid, get
     USE CONSTANT, only: KAPA
 
-    REAL*8 :: PE(IM,grid%J_STRT:grid%J_STOP,LM+1)
+    REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
 
     INTEGER :: L, j_0, j_1
 
@@ -225,9 +220,9 @@ contains
     Use MODEL_COM, only: T
     USE DOMAIN_DECOMP, only: grid, GET
 
-    REAL*8 :: dPT(IM,grid%J_STRT:grid%J_STOP,LM)
-    REAL*8 :: PE(IM,grid%J_STRT:grid%J_STOP,LM+1)
-    REAL*8 :: T_dry(IM,grid%J_STRT:grid%J_STOP,LM)
+    REAL*8 :: dPT(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
+    REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: J_0,J_1,k
     Call Get(grid, J_STRT=J_0, J_STOP=J_1)
@@ -253,32 +248,32 @@ contains
          & J_STRT=J_0, J_STOP=J_1)
 
     ! 1) Link/copy modelE data to import state
-    call ESMFL_StateGetPointerToData ( fv%import,fv%dudt,'DUDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % import,fv % dudt,'DUDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv%import,fv%dvdt,'DVDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % import,fv % dvdt,'DVDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv%import,fv%dtdt,'DTDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % import,fv % dtdt,'DTDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv%import,fv%dpedt,'DPEDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % import,fv % dpedt,'DPEDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv%import,fv%phis, 'PHIS', rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % import,fv % phis, 'PHIS', rc=rc)
     VERIFY_(rc)
 
-    fv%dudt=0
-    fv%dvdt=0
-    fv%dtdt=0
-    fv%dpedt=0
+    fv % dudt=0
+    fv % dvdt=0
+    fv % dtdt=0
+    fv % dpedt=0
 
     ! 2) Allocate space for storing old values from which to compute tendencies
-    Allocate(fv%U_old(IM,J_0:J_1,LM), &
-         &   fv%V_old(IM,J_0:J_1,LM), &
-         &   fv%dPT_old(IM,J_0:J_1,LM), &
-         &   fv%PE_old(IM,J_0:J_1,LM+1))
+    Allocate(fv % U_old(IM,J_0:J_1,LM), &
+         &   fv % V_old(IM,J_0:J_1,LM), &
+         &   fv % dPT_old(IM,J_0:J_1,LM), &
+         &   fv % PE_old(IM,J_0:J_1,LM+1))
 
-    fv%U_old = U(:,J_0:J_1,:)
-    fv%V_old = V(:,J_0:J_1,:)
-    fv%dPT_old = DeltPressure_DryTemp_GISS()
-    fv%PE_old   = EdgePressure_GISS()
+    fv % U_old = U(:,J_0:J_1,:)
+    fv % V_old = V(:,J_0:J_1,:)
+    fv % dPT_old = DeltPressure_DryTemp_GISS()
+    fv % PE_old   = EdgePressure_GISS()
 
   End Subroutine allocate_tendency_storage
 
@@ -287,9 +282,9 @@ contains
     type (esmf_clock), intent(in) :: clock
     integer :: rc
 
-    call ESMF_GridCompFinalize ( fv%gc, fv%import, fv%export, clock, rc )
+    call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc )
 
-    Deallocate(fv%U_old, fv%V_old, fv%dPT_old, fv%PE_old)
+    Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % PE_old)
 
   end subroutine finalize
 
@@ -309,30 +304,30 @@ contains
     Call Get(grid, j_strt=j_0, j_stop=j_1)
 
     ! U, V
-    DUT(:,J_0:J_1,:) = Tendency(U(:,J_0:J_1,:), fv%U_old(:,J_0:J_1,:))
-    DVT(:,J_0:J_1,:) = Tendency(V(:,J_0:J_1,:), fv%V_old(:,J_0:J_1,:))
-    call ConvertUV_GISS2FV(DUT(:,J_0:J_1,:), DVT(:,J_0:J_1,:), fv%dudt, fv%dvdt)
+    DUT(:,J_0:J_1,:) = Tendency(U(:,J_0:J_1,:), fv % U_old(:,J_0:J_1,:))
+    DVT(:,J_0:J_1,:) = Tendency(V(:,J_0:J_1,:), fv % V_old(:,J_0:J_1,:))
+    call ConvertUV_GISS2FV(DUT(:,J_0:J_1,:), DVT(:,J_0:J_1,:), fv % dudt, fv % dvdt)
 
     ! delta pressure weighted Temperature
-    Call ConvertPotTemp_GISS2FV( Tendency(DeltPressure_DryTemp_GISS(), fv%dPT_old) , fv%dtdt)
+    fv  %  dtdt = reverse(Tendency(DeltPressure_DryTemp_GISS(), fv % dPT_old)) * PRESSURE_UNIT_RATIO
 
     ! Edge Pressure
-    Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv%PE_old), fv%dpedt)
+    Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv % PE_old), fv % dpedt)
 
 
-!!!!!!    fv%dpedt=0
+!!!!!!    fv % dpedt=0
 
 #ifdef NO_FORCING
-    fv%dudt = 0
-    fv%dvdt = 0
-    fv%dTdt = 0
-    fv%dPEdt = 0
+    fv % dudt = 0
+    fv % dvdt = 0
+    fv % dTdt = 0
+    fv % dPEdt = 0
 #endif
 
-!!$$    call write_profile(real(fv%dudt,8),'Tendency U')
-!!$$    call write_profile(real(fv%dVdt,8),'Tendency V')
-!!$$    call write_profile(real(fv%dTdt,8),'Tendency T')
-!!$$    call write_profile(real(fv%dPEdt,8),'Tendency PE')
+!!$$    call write_profile(real(fv % dudt,8),'Tendency U')
+!!$$    call write_profile(real(fv % dVdt,8),'Tendency V')
+!!$$    call write_profile(real(fv % dTdt,8),'Tendency T')
+!!$$    call write_profile(real(fv % dPEdt,8),'Tendency PE')
 
   end subroutine compute_tendencies
 
@@ -361,7 +356,7 @@ contains
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
 
-    REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: PIJL
+    REAL*8, DIMENSION(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM) :: PIJL
     integer :: istep, NS, NIdyn_fv
 !!$    integer :: i,j, l, im1, j_0s, j_1s
 
@@ -373,14 +368,21 @@ contains
 
     call clear_accumulated_mass_fluxes()
     ! Run dycore
+    write(*,*)'here: ',__LINE__,__FILE__
     NIdyn_fv = NIdyn/2 ! no leapfrog
     do istep = 1, NIdyn_fv
-       call ESMF_GridCompRun ( fv%gc, fv%import, fv%export, clock, rc )
+    write(*,*)'here: ',__LINE__,__FILE__
+       call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
+    write(*,*)'here: ',__LINE__,__FILE__
+       call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc )
+    write(*,*)'here: ',__LINE__,__FILE__
        call accumulate_mass_fluxes(fv)
        TMOM = 0 ! for now
+       call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
     end do
+    write(*,*)'here: ',__LINE__,__FILE__
 
 !!$    Call GET(grid, j_strt_skp=j_0s, j_stop_skp=j_1s)
 !!$    Call HALO_UPDATE(grid, pv, FROM=NORTH)
@@ -396,19 +398,18 @@ contains
 !!$    end do
 
 !!$    call compute_horizontal_mass_convergence(pu, pv, conv)
-    call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
+!!$    call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
 
     gz  = phi
   end subroutine run_fv
 
   subroutine checkpoint(fv, clock)
-    Type (FV_Core),    intent(in) :: fv
+    use GEOS_mod, only: GEOS_RecordPhase
+    Type (FV_Core),    intent(inout) :: fv
     type (esmf_clock), intent(in) :: clock
     integer :: rc
 
-#ifndef SKIP_FV
-!    call ESMF_GridCompRun( fv%gc, fv%import, fv%export, clock, rc)
-#endif
+    call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, GEOS_RecordPhase, rc=rc)
 
   end subroutine checkpoint
 
@@ -465,13 +466,26 @@ contains
 
   !----------------------------
   function load_configuration(config_file) result( config )
+    use FILEMANAGER
+    Use MODEL_COM,  only: DT
     character(len=*), parameter :: Iam="FV_INTERFACE::loadconfiguration"
     character(len=*), intent(in) :: config_file
     type (esmf_config)           :: config
 
+    logical :: exists
+    integer :: iunit
+
     config = esmf_configcreate(rc=rc)
     VERIFY_(rc)
 
+    inquire(file=trim(config_file), exist = exists)
+    if (.not. exists) then
+       call openunit(config_file, iunit, qbin=.false., qold=.false.)
+       write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE: ', FVCORE_INTERNAL_RESTART
+       write(iunit,*)'FVCORE_LAYOUT_FILE:           ', FVCORE_LAYOUT
+       write(iunit,*)'RUN_DT:                       ', DT*2
+       close(iunit)
+    end if
     call esmf_configloadfile(config, config_file, rc=rc)
     VERIFY_(rc)
 
@@ -484,6 +498,7 @@ contains
     USE RESOLUTION, only: IM, JM, LM, LS1
     Use MODEL_COM, only: sige, sig, Ptop, DT, PMTOP
     Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
+    USE GEOM, only: AREAG, DXYP
     Use Constant, only: omega, radius, grav, rgas, kapa, deltx
 
     Type (FV_Core), Intent(InOut) :: fv
@@ -503,18 +518,15 @@ contains
     real*8, allocatable, dimension(:,:,:) :: V_d
     real*8, allocatable, dimension(:,:,:) :: PE, PKZ, PT
 
-
-    write(*,*)'huh?'
-
     ! 1) Create layout resource file - independent of actual restart file.
     If (AM_I_ROOT()) Then
-       Call Write_Layout('fvcore_layout.rc', fv)
+       Call Write_Layout(FVCORE_LAYOUT, fv)
     End If
 
     Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
-         & default='fvcore_internal_restart',rc=rc)
+         & default=FVCORE_INTERNAL_RESTART,rc=rc)
 
-    Inquire(file=rst_file,EXIST=exist)
+    inquire(file=rst_file,EXIST=exist)
     if (exist) then
        if (AM_I_ROOT()) Then
           print*,'Apparently a restart file for FV already exists: ',trim(rst_file)
@@ -550,8 +562,8 @@ contains
 
 !!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
       
-      Call GEOS_VarWrite(unit, grid%ESMF_GRID, U_d(:,J_0:J_1,:))
-      Call GEOS_VarWrite(unit, grid%ESMF_GRID, V_d(:,J_0:J_1,:))
+      Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(:,J_0:J_1,:))
+      Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(:,J_0:J_1,:))
 
       Deallocate(V_d)
       Deallocate(U_d)
@@ -559,17 +571,16 @@ contains
     ! Compute potential temperature from modelE (1 mb -> 1 pa ref)
       Allocate(PT(IM, J_0:J_1, LM))
     Call ConvertPotTemp_GISS2FV(VirtualTemp(T(:,J_0:J_1,:), Q(:,J_0:J_1,:)), PT)
-      Call GEOS_VarWrite(unit, grid%ESMF_GRID, PT)
+      Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
       Deallocate(PT)
 
     ! Compute PE, PKZ from modelE
       Allocate(PKZ(IM, J_0:J_1, LM))
       Allocate(PE(IM, J_0:J_1, LM+1))
-
     Call ComputePressureLevels(unit, grid, VirtualTemp(T, Q), P, SIG, SIGE, Ptop, KAPA, PE, PKZ )
 
-      Call GEOS_VarWrite(unit, grid%ESMF_GRID, PE)
-      Call GEOS_VarWrite(unit, grid%ESMF_GRID, PKZ)
+      Call GEOS_VarWrite(unit, grid % ESMF_GRID, PE)
+      Call GEOS_VarWrite(unit, grid % ESMF_GRID, PKZ)
 
       Deallocate(PE)
       Deallocate(PKZ)
@@ -596,10 +607,10 @@ contains
       USE RESOLUTION, only: IM, LM, LS1
       Integer, intent(in) :: unit
       type (dist_grid) :: grid
-      real*8, dimension(:,grid%j_strt_halo:,:) :: T_virt
-      real*8, dimension(:,grid%j_strt_halo:) :: P
-      real*8, dimension(IM,grid%j_strt:grid%j_stop,LM) :: PKZ
-      real*8, dimension(IM,grid%j_strt:grid%j_stop,LM+1) :: PE
+      real*8, dimension(:,grid % j_strt_halo:,:) :: T_virt
+      real*8, dimension(:,grid % j_strt_halo:) :: P
+      real*8, dimension(IM,grid % j_strt:grid % j_stop,LM) :: PKZ
+      real*8, dimension(IM,grid % j_strt:grid % j_stop,LM+1) :: PE
       real*8 :: sig(:), sige(:)
       real*8 :: ptop, kapa
 
@@ -638,7 +649,7 @@ contains
 
       Integer, intent(in) :: unit
       Type (Dist_Grid) :: grid
-      real*8, dimension(:,grid%j_strt_halo:,:) :: U_b, V_b
+      real*8, dimension(:,grid % j_strt_halo:,:) :: U_b, V_b
 
       real*8, intent(out) :: U_d(:,:,:), V_d(:,:,:)
 
@@ -680,9 +691,9 @@ contains
       Integer :: unit
       Integer :: npes
 
-      call esmf_vmget(fv%vm, petcount = npes, rc=rc)
+      call esmf_vmget(fv % vm, petcount = npes, rc=rc)
       Allocate(AI(npes,3))
-      call esmf_gridgetallaxisindex(fv%grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
+      call esmf_gridgetallaxisindex(fv % grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
            &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 
       unit = GetFile(fname, form="formatted", rc=rc)
@@ -696,8 +707,8 @@ contains
       Write(unit,*)' ntotq: ',1
       Write(unit,*)'    nq: ',1
       Write(unit,*)'  imxy: ',IM
-      Write(unit,'(a,100(1x,I4))')'  jmxy: ',AI(:,2)%MAX-AI(:,2)%MIN+1
-      Write(unit,'(a,100(1x,I4))')'  jmyz: ',AI(:,2)%MAX-AI(:,2)%MIN+1
+      Write(unit,'(a,100(1x,I4))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
+      Write(unit,'(a,100(1x,I4))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
       Write(unit,*)'   kmyz: ',LM
       Call Free_File(unit)
 
@@ -737,7 +748,7 @@ contains
     USE CONSTANT, only: KAPA
 
     REAL*8 :: PE
-    REAL*8 :: PKZ(IM,grid%J_STRT:grid%J_STOP,LM)
+    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: L, j_0, j_1
 
@@ -761,8 +772,8 @@ contains
     Use MODEL_COM, only: T
     USE DOMAIN_DECOMP, only: grid, GET
 
-    REAL*8 :: T_dry(IM,grid%J_STRT:grid%J_STOP,LM)
-    REAL*8 :: PKZ(IM,grid%J_STRT:grid%J_STOP,LM)
+    REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: J_0,J_1
     Call Get(grid, J_STRT=J_0, J_STOP=J_1)
@@ -786,13 +797,13 @@ contains
     Call Get(grid, j_strt=j_0, j_stop=j_1)
 
     ! 1) Link/copy modelE data to import state
-    fv%phis=ZATMO(:,j_0:j_1)
+    fv % phis=ZATMO(:,j_0:j_1)
 #ifdef NO_FORCING
-    fv%phis = 0
+    fv % phis = 0
 #endif
 
     ! Moisture
-    fv%Q = Reverse(Q(:,j_0:j_1,:))
+    fv % Q = Reverse(Q(:,j_0:j_1,:))
 #ifdef NO_FORCING
     ptr = 0
 #endif
@@ -807,6 +818,7 @@ contains
     Use MODEL_COM, only : SIGE, Ptop, P
     USE DOMAIN_DECOMP, only: grid, GET, SOUTH, NORTH, HALO_UPDATE
     Use ATMDYN, only: CALC_AMPK
+    USE GEOM
     Type (FV_CORE) :: fv
     real*4, Dimension(:,:,:), Pointer :: U_a, V_a, T_fv, PLE
 
@@ -818,37 +830,38 @@ contains
     Call Get(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
 
     ! First compute updated values for modelE.  Then capture the
-    ! new state in fv%*_old for computing tendencies.
+    ! new state in fv % *_old for computing tendencies.
     ! ----------------------------------------------------------
 
     ! Velocity field
     !---------------
-    call ESMFL_StateGetPointerToData ( fv%export,U_a,'U',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,U_a,'U',rc=rc)
       VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv%export,V_a,'V',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,V_a,'V',rc=rc)
       VERIFY_(rc)
     call Regrid_A_to_B(Reverse(U_a), Reverse(V_a), U(:,J_0:J_1,:), V(:,J_0:J_1,:))
-    fv%U_old = U(:,J_0:J_1,:)
-    fv%V_old = V(:,J_0:J_1,:)
+    fv % U_old = U(:,J_0:J_1,:)
+    fv % V_old = V(:,J_0:J_1,:)
 
     ! Potential temperature (save dry Temperature for computing tendencies)
     !----------------------------------------------------------------------
-    call ESMFL_StateGetPointerToData ( fv%export,T_fv,'TH',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,T_fv,'TH',rc=rc)
       VERIFY_(rc)
     call ConvertPotTemp_FV2GISS(T_fv, T)
 
     ! Use edge pressure export to update surface pressure
     !----------------------------------------------------------------------
-    call ESMFL_StateGetPointerToData ( fv%export,PLE,'PLE',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,PLE,'PLE',rc=rc)
       VERIFY_(rc)
-    call ConvertPressure_FV2GISS(PLE, fv%PE_old)
+
+    call ConvertPressure_FV2GISS(PLE, fv % PE_old)
     ! Just need surface pressure - Ptop
-    P(:,J_0:J_1) = (fv%PE_old(:,:,1) - Ptop)/SIGE(1)
+    P(:,J_0:J_1) = (fv % PE_old(:,:,1) - Ptop)/SIGE(1)
     CALL CALC_AMPK(LS1-1)
 
     ! Preserve state information for later computation of tendencies.
-    fv%dPT_old = DeltPressure_DryTemp_GISS()
-    fv%PE_old = EdgePressure_GISS()
+    fv % dPT_old = DeltPressure_DryTemp_GISS()
+    fv % PE_old = EdgePressure_GISS()
 
   End Subroutine Copy_FV_export_to_modelE
 
@@ -941,8 +954,8 @@ contains
   subroutine Regrid_A_to_B(U_a, V_a, U_b, V_b)
     Use Resolution, only : IM, LM
     Use DOMAIN_DECOMP, only : grid, get, SOUTH, HALO_UPDATE
-    Real*4, intent(in), Dimension(:,grid%J_STRT:,:) :: U_a, V_a
-    Real*8, intent(out),Dimension(:,grid%J_STRT:,:) :: U_b, V_b
+    Real*4, intent(in), Dimension(:,grid % J_STRT:,:) :: U_a, V_a
+    Real*8, intent(out),Dimension(:,grid % J_STRT:,:) :: U_b, V_b
 
     Real*8, allocatable, dimension(:,:,:) :: Ua_halo, Va_halo
     Integer :: i,j,k,im1
@@ -982,8 +995,8 @@ contains
   subroutine Regrid_B_to_A(U_b, V_b, U_a, V_a)
     Use Resolution, only : IM, JM, LM
     Use DOMAIN_DECOMP, only : grid, get, NORTH, HALO_UPDATE
-    Real*8, intent(in), Dimension(:,grid%J_STRT:,:) :: U_b, V_b
-    Real*4, intent(out), Dimension(:,grid%J_STRT:,:) :: U_a, V_a
+    Real*8, intent(in), Dimension(:,grid % J_STRT:,:) :: U_b, V_b
+    Real*4, intent(out), Dimension(:,grid % J_STRT:,:) :: U_a, V_a
 
     Real*8, allocatable, dimension(:,:,:) :: Ub_halo, Vb_halo
 
@@ -1065,10 +1078,10 @@ contains
     USE RESOLUTION, only: IM, JM, LM
     Use DOMAIN_DECOMP, only: grid, get
     Implicit None
-    Real*8, intent(in) :: U_b(:,grid%j_strt_halo:,:)
-    Real*8, intent(in) :: V_b(:,grid%j_strt_halo:,:)
-    Real*8, intent(out) :: U_d(:,grid%j_strt:,:)
-    Real*8, intent(out) :: V_d(:,grid%j_strt:,:)
+    Real*8, intent(in) :: U_b(:,grid % j_strt_halo:,:)
+    Real*8, intent(in) :: V_b(:,grid % j_strt_halo:,:)
+    Real*8, intent(out) :: U_d(:,grid % j_strt:,:)
+    Real*8, intent(out) :: V_d(:,grid % j_strt:,:)
 
     Integer :: i, j, k, ip1
     Integer :: j_0, j_1, j_0s, j_1s
@@ -1168,9 +1181,9 @@ contains
     Integer :: k, km
     Real*8 :: rng(3,LM)
     Real*8 :: arr_global(IM,JM,size(arr,3))
-    Real*8 :: arr_tmp(IM,grid%j_STRT_HALO:grid%J_stop_HALO,size(arr,3))
+    Real*8 :: arr_tmp(IM,grid % j_STRT_HALO:grid % J_stop_HALO,size(arr,3))
 
-    arr_tmp(:,grid%J_strt:grid%J_STOP,:)=arr
+    arr_tmp(:,grid % J_strt:grid % J_STOP,:)=arr
 
     Call PACK_DATA(grid, arr_tmp, arr_global)
 
@@ -1200,11 +1213,11 @@ contains
     USE GEOM, only: IMAXJ
     implicit none
 
-    real*8, intent(in) :: P(:,grid%J_STRT_HALO:)
-    real*8, intent(in) :: T(:,grid%J_STRT_HALO:,:)
-    real*8, intent(in) :: SZ(:,grid%J_STRT_HALO:,:)
-    real*8, intent(in) :: ZATMO(:,grid%J_STRT_HALO:)
-    real*8 :: phi(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
+    real*8, intent(in) :: P(:,grid % J_STRT_HALO:)
+    real*8, intent(in) :: T(:,grid % J_STRT_HALO:,:)
+    real*8, intent(in) :: SZ(:,grid % J_STRT_HALO:,:)
+    real*8, intent(in) :: ZATMO(:,grid % J_STRT_HALO:)
+    real*8 :: phi(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM)
 
     REAL*8 :: PKE(LS1:LM+1)
     REAL*8 :: PIJ, PHIDN
@@ -1319,17 +1332,20 @@ contains
 
     ! Horizontal and Vertical mass fluxes
     !---------------
-    call ESMFL_StateGetPointerToData ( fv%export,mfx_X,'MFX',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,mfx_X,'MFX',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv%export,mfx_Y,'MFY',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,mfx_Y,'MFY',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv%export,mfx_Z,'MFZ',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,mfx_Z,'MFZ',rc=rc)
     VERIFY_(rc)
     
     mfx_X = Reverse(mfx_X)/PRESSURE_UNIT_RATIO 
     mfx_Y = Reverse(mfx_Y)/PRESSURE_UNIT_RATIO 
     mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO  ! negative for coordinate translation
 
+    mfx_X = 0
+    mfx_Y = 0
+    mfx_Z = 0
 
     PU(:,J_0:J_1,:) = mfx_X
     PV(:,J_0:J_1,:) = mfx_Y
@@ -1338,45 +1354,15 @@ contains
     PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)
     PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)
 
-!!$    call halo_update(grid, pv, FROM=NORTH)
-!!$    do L = 1, LM
-!!$       Do j = j_0s, j_1s
-!!$          im1 = im
-!!$          do i = 1, im
-!!$             conv(i,j,l) = (pu(im1,j,l) - pu(i,j,l) + pv(i,j,l) - pv(i,j+1,l))
-!!$             im1=i
-!!$          end do
-!!$       end do
-!!$      If (HAVE_SOUTH_POLE) CONV(1,1,L)=-SUM(PV(:,2,L)
-!!$      If (HAVE_NORTH_POLE) CONV(1,JM,L)=SUM(PV(:,JM,L))
-!!$    end do
-!!$    do l = lm-1, 1, -1
-!!$       PIT(:,:) = PIT(:,:) + SD(:,:,L)
-!!$    end do
-!!$
-!!$    do L = LM-2, LS1-1, -1
-!!$       SD(:,:,L) = SD(:,:,L+1) + SD(:,:,L)
-!!$    end do
-!!$    do L = LS1-2,1,-1
-!!$       SD(:,:,L) = SD(:,:,L+1) + SD(:,:,L)-DSIG(L+1)*PIT(:,:)
-!!$    end do
-!!$    DO L=1,LM-1
-!!$       DO I=2,IM
-!!$          IF (HAVE_SOUTH_POLE) SD(I,JJ(1),L)=SD(1,JJ(1),L)
-!!$          IF (HAVE_NORTH_POLE) SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
-!!$       end do
-!!$    end do
-
     SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,JJ(J_0):JJ(J_1),1:LM-1)
-
 
   end subroutine accumulate_mass_fluxes
 
   subroutine set_zonal_flow(U_d, V_d, j0, j1)
     use GEOM, only: cosp
     use DOMAIN_DECOMP, only: grid
-    Real*8, intent(out) :: U_d(:,grid%j_strt:,:)
-    Real*8, intent(out) :: V_d(:,grid%j_strt:,:)
+    Real*8, intent(out) :: U_d(:,grid % j_strt:,:)
+    Real*8, intent(out) :: V_d(:,grid % j_strt:,:)
     integer :: j0, j1
     integer :: j
 
