@@ -33,7 +33,7 @@
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
       USE SEAICE_COM, only : trsi0
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_Koch)
       USE clouds, ONLY : diag_wetdep
 #endif
 #endif
@@ -785,7 +785,11 @@ C This number wasn't adjusted when the vegetation source was added.
       case ('SO2')
       n_SO2 = n
           ntm_power(n) = -11
+#ifdef EDGAR_1995
+          ntsurfsrc(n) = 6
+#else
           ntsurfsrc(n) = 1   !Industrial
+#endif
           tr_mm(n) = 64.
           tr_RKD(n) =0.0118d0 !mole/J or  1.2  M/atm
           tr_DHD(n) =-2.62d4! in J/mole= -6.27 kcal/mol
@@ -797,7 +801,11 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('SO4')
       n_SO4 = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 1   ! EDGAR
+#ifdef EDGAR_1995
+          ntsurfsrc(n) = 6
+#else
+          ntsurfsrc(n) = 1   !Industrial
+#endif
           tr_mm(n) = 96.
           trpdens(n)=1.7d3   !kg/m3 this is sulfate value
           trradius(n)=3.d-7 !m
@@ -2826,6 +2834,50 @@ c gravitational settling of MSA
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
        case ('SO2')
+#ifdef EDGAR_1995
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'E95_Fos_Fuel_Source_of_'//trname(n)
+        lname_jls(k) = 'SO2 E95 fossil fuel source'
+        jls_ltop(k) = 1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'E95_Industrial_Source_of_'//trname(n)
+        lname_jls(k) = 'SO2 E95 Industrial Processes source'
+        jls_ltop(k) = 1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'E95_Waste_hl_source_'//trname(n)
+        lname_jls(k) = 'SO2 E95 Waste Handling source'
+        jls_ltop(k) = 1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(4,n) = k
+        sname_jls(k) = 'E95_Biofuel_source_of_'//trname(n)
+        lname_jls(k) = 'SO2 E95 Biofuel source'
+        jls_ltop(k) = 1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(5,n) = k
+        sname_jls(k) = 'E95_Ag_waste_burn_source_of_'//trname(n)
+        lname_jls(k) = 'SO2 E95 Agricultural Waste Burning source'
+        jls_ltop(k) = 1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(6,n) = k
+        sname_jls(k) = 'E95_Biomass_burn_source_of_'//trname(n)
+        lname_jls(k) = 'SO2 E95 Biomass burning source'
+        jls_ltop(k) = 1
+        jls_power(k) = 0.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#else
 c industrial source
         k = k + 1
         jls_source(1,n) = k
@@ -2834,6 +2886,7 @@ c industrial source
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 c volcanic production of SO2
         k = k + 1
         jls_3Dsource(1,n) = k
@@ -8004,6 +8057,31 @@ C**** set some defaults
       itcon_3Dsrc(5,N) = 17
       qcon(itcon_3Dsrc(5,N)) = .true.; conpts(5) = 'Chem sink'
       qsum(itcon_3Dsrc(5,N)) = .true.
+#ifdef EDGAR_1995
+      itcon_surf(1,N) = 18
+      qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'E95 Fossil fuel'
+      itcon_surf(2,N) =19 
+      qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'E95 Industrial'
+      itcon_surf(3,N) = 20
+      qcon(itcon_surf(3,N)) = .true.; conpts(8) = 'E95 Waste hand.'
+      itcon_surf(4,N) = 21
+      qcon(itcon_surf(4,N)) = .true.; conpts(9) = 'E95 Biofuel'
+      itcon_surf(5,N) = 22
+      qcon(itcon_surf(5,N)) = .true.; conpts(10) = 'E95 Agr. waste.'
+      itcon_surf(6,N) = 23
+      qcon(itcon_surf(6,N)) = .true.; conpts(11) = 'E95 Biomass Burn'
+      itcon_mc(n) =24
+      qcon(itcon_mc(n)) = .true.  ; conpts(12) = 'MOIST CONV'
+      itcon_ss(n) =25
+      qcon(itcon_ss(n)) = .true.  ; conpts(13) = 'LS COND'
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=26
+        qcon(itcon_dd(n,1)) = .true. ; conpts(14) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+      end if
+#endif
+#else
       itcon_surf(1,N) = 18
       qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
       qsum(itcon_surf(1,N))=.false.
@@ -8020,7 +8098,7 @@ C**** set some defaults
         qsum(itcon_dd(n,1)) = .false.
       end if
 #endif
-
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -8036,6 +8114,34 @@ C**** set some defaults
       itcon_3Dsrc(3,N) = 15
       qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'biomass src'
       qsum(itcon_3Dsrc(3,N)) = .true.
+#ifdef EDGAR_1995
+      itcon_surf(1,N) = 16
+      qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'E95 Fossil fuel'
+      itcon_surf(2,N) = 17
+      qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'E95 Industrial'
+      itcon_surf(3,N) = 18
+      qcon(itcon_surf(3,N)) = .true.; conpts(6) = 'E95 Waste hand.'
+      itcon_surf(4,N) =19 
+      qcon(itcon_surf(4,N)) = .true.; conpts(7) = 'E95 Biofuel'
+      itcon_surf(5,N) = 20
+      qcon(itcon_surf(5,N)) = .true.; conpts(8) = 'E95 Agr. waste.'
+      itcon_surf(6,N) = 21
+      qcon(itcon_surf(6,N)) = .true.; conpts(9) = 'E95 Biomass Burn'
+      itcon_mc(n) =22
+      qcon(itcon_mc(n)) = .true.  ; conpts(10) = 'MOIST CONV'
+      itcon_ss(n) =23
+      qcon(itcon_ss(n)) = .true.  ; conpts(11) = 'LS COND'
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n,1)=24
+        qcon(itcon_dd(n,1)) = .true. ; conpts(12) = 'TURB DEP'
+        qsum(itcon_dd(n,1)) = .false.
+        itcon_dd(n,2)=25
+        qcon(itcon_dd(n,2)) = .true. ; conpts(13) = 'GRAV SET'
+        qsum(itcon_dd(n,2)) = .false.
+      end if
+#endif
+#else
       itcon_surf(1,N) = 16
       qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
       qsum(itcon_surf(1,N)) = .false.
@@ -8054,6 +8160,7 @@ C**** set some defaults
         qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
         qsum(itcon_dd(n,2)) = .false.
       end if
+#endif
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -10630,7 +10737,7 @@ C****
 #ifdef EDGAR_1995
         do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
-            trsource(:,j,ns,n) = so2_src(:,j,ns)*0.975d0
+            trsource(:,j,ns,n) = so2_src(:,j,ns)*0.975d0*dxyp(j)
          end do
         end do
 #else
@@ -11453,10 +11560,13 @@ c with double dissolution if partially soluble
           if (TR_CONV) then
 #endif
            if (LHX.EQ.LHE) then !liquid cloud
-               fq=(1.d0+fq_aer(ntix(n)))/2.d0
+c
+               fq=fq_aer(ntix(n))
+c              fq=(1.d0+fq_aer(ntix(n)))/2.d0
 c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
            else
-               fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
+               fq=fq_aer(ntix(n))*0.08d0
+c              fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
 c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
            endif
           endif

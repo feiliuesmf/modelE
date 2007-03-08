@@ -47,6 +47,8 @@ C**** decide on emissions
       call sync_param("imAER",imAER)
 C**** decide if preindustrial emissions
       call sync_param("imPI",imPI)
+C**** determine year of emissions
+      call sync_param("aer_int_yr",aer_int_yr)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)

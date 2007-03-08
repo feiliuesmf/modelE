@@ -57,7 +57,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
      *   oh,dho2,perj,tno3,o3_offline  !im,jm,lm
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ohr,dho2r,perjr,
-     *   tno3r  !im,jm,lm,12
+     *   tno3r,ohsr  !im,jm,lm,12
 
       END MODULE AEROSOL_SOURCES
 
@@ -82,7 +82,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * OCI_src,OCT_src,OCB_src,OCBt_src,BCI_src_3D,imAER,
      * nsssrc,ss_src,nso2src_3d,SO2_src_3D,SO2_biosrc_3D,
      * ohr,dho2r,perjr,
-     * tno3r,oh,dho2,perj,tno3,o3_offline
+     * tno3r,oh,dho2,perj,tno3,ohsr,o3_offline
       use MODEL_COM, only: im,lm
       
       IMPLICIT NONE
@@ -117,7 +117,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * perj(IM,J_0H:J_1H,lm),tno3(IM,J_0H:J_1H,lm),
      * o3_offline(IM,J_0H:J_1H,lm) )
       allocate( ohr(IM,J_0H:J_1H,lm,12),dho2r(IM,J_0H:J_1H,lm,12),
-     * perjr(IM,J_0H:J_1H,lm,12),tno3r(IM,J_0H:J_1H,lm,12) )
+     * perjr(IM,J_0H:J_1H,lm,12),tno3r(IM,J_0H:J_1H,lm,12),
+     * ohsr(IM,J_0H:J_1H,lm,12) )
 
       return
       end subroutine alloc_aerosol_sources      
@@ -268,9 +269,11 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE MODEL_COM, only: itime,jday,JDperY,im,jm,DTsrc,
      * ls1,jmon,t,lm
+      USE DOMAIN_DECOMP, only : GRID, GET,readt_parallel 
       USE GEOM, only: BYDXYP
       USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits,
+     * nameunit
       USE TRACER_COM, only: itime_tr0,trname
       USE AEROSOL_SOURCES, only: src=>SO2_src,nsrc=>nso2src,
      *  SO2_biosrc_3D
@@ -284,13 +287,15 @@ C**** Monthly sources are interpolated each day
       character*12 :: ann_files(nanns) =
      * (/'SO2_FFNB_E95','SO2_INNB_E95','SO2_WHNB_E95',
      *  'SO2_BFNB_E95'/)
-      logical :: ann_bins(nanns)=(/.true.,.true.,.true.,.true./) ! binary file?
+      logical :: ann_bins(nanns)=(/.true.,.true.,
+     *   .true.,.true./) ! binary file?
       character*12 :: mon_files(nmons) =
      * (/'SO2_AGNB_E95','SO2_BBNB_E95'/)
       logical :: mon_bins(nmons)=(/.true.,.true./)
-      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      real*8, allocatable, dimension(:,:,:) :: tlca,tlcb  ! for monthly sources
       real*8 frac,bySperHr
-      integer i,j,jj,nt,iact,iu,k,imon(nmons)
+      integer :: imon(nmons)
+      integer i,j,jj,nt,iact,iu,k,j_0h,j_1h,j_0,j_1
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
@@ -298,8 +303,9 @@ C Edgar-1995 has its own biomass (2D) source and diagnostic.
 C To avoid complications with indexing of 3D sources, leave in the
 C 3D biomass array and diagnostic but fill it with Edgar 1995
 C emissions. Make all levels other than surface equal to zero (nbell)
+       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-      so2_biosrc_3D(:,:,:,:)=0.
+       so2_biosrc_3D(:,j_0:j_1,:,:)=0.
 C Now the Edgar-1995 sources
 C
 C    K=1    Fossil fuel combustion           (edgar 95 annual)
@@ -320,17 +326,20 @@ C**** The EDGAR-1995 sources are in KGSO2/4x5grid/HR and need to be
 C**** converted to KGSO2/m2/sec:
 C****
       if (ifirst) then
+       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+       allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
         call openunits(ann_files,ann_units,ann_bins,nanns)
         k = 0
         do iu = ann_units(1),ann_units(nanns)
           k = k+1
-          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-
-          do j=1,jm
+c         call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
+          call readt_parallel (grid,iu,nameunit(iu),0,src(:,:,k),1)
+          do j=j_0,j_1
             src(:,j,k) = src(:,j,k)*bydxyp(j)*bySperHr
           end do
         end do
         call closeunits(ann_units,nanns)
+       
         call openunits(mon_files,mon_units,mon_bins,nmons)
       endif
 C****
@@ -344,8 +353,8 @@ C****
       do k=nanns+1,nsrc
         jj = jj+1
         call read_monthly_sources(mon_units(jj),jdlast,
-     *    tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
-        do j=1,jm
+     *    tlca(:,:,jj),tlcb(:,:,jj),src(:,:,k),frac,imon(jj))
+        do j=j_0,j_1
 C Also fill 3D biomass array
 C Units are kgSO2/s
           if (k.eq.6) then
@@ -356,7 +365,6 @@ C Units are kgSO2/s
         end do
       end do
       jdlast = jday
-
 c      write(6,*) trname(nt),'Sources interpolated to current day',frac
       call sys_flush(6)
 C****
@@ -401,8 +409,8 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       endif
       CALL UNPACK_DATA(grid, BCB_src_glob, BCB_src)
       if (imAER.eq.2) then
-      if ( AM_I_ROOT() ) then
       if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
+      if ( AM_I_ROOT() ) then
       DO J=1,JM; DO I=1,IM;
       ratb(I,J)=0.d0
       ratb_glob(I,J)=0.d0
@@ -440,8 +448,8 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       endif
       CALL UNPACK_DATA(grid, OCB_src_glob, OCB_src)
       if (imAER.eq.2) then
-      if ( AM_I_ROOT() ) then
       if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
+      if ( AM_I_ROOT() ) then
       DO J=1,JM; DO I=1,IM;
       rato(I,J)=0.d0
       rato_glob(I,J)=0.d0
@@ -978,7 +986,7 @@ c if after Feb 28 skip the leapyear day
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
-     & dho2,perj,tno3,o3_offline
+     & dho2,perj,tno3,ohsr,o3_offline
        USE CONSTANT, only : mair
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
@@ -996,10 +1004,10 @@ c Aerosol chemistry
 #endif
       real*8 bciage,ociage
       real*8, dimension(im,jm,lm,12) :: ohr_glob,dho2r_glob,
-     * perjr_glob,tno3r_glob,ohsr_glob,ohsrl
+     * perjr_glob,tno3r_glob,ohsr_glob
       real*8, dimension(im,jm,lm) :: ohr_globm,dho2r_globm,
      * perjr_globm,tno3r_globm
-      real*4, dimension(im,jm) :: ohsr
+      real*4, dimension(im,jm) :: ohsr_real
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,j_0,j_1,
      * j_0s,j_1s,mmm
@@ -1007,7 +1015,7 @@ c Aerosol chemistry
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 #endif
       integer maxl
-      save ifirst,itopen,iuc,ohsrl
+      save ifirst,itopen,iuc
       
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1,J_STRT_SKP=J_0S,
      * J_STOP_SKP=J_1S)
@@ -1097,41 +1105,37 @@ c Use this for chem inputs from B4360C0M23, from Drew
 
          if(AM_I_ROOT( ))then
         call openunit('AER_OH_STRAT',iuc,.true.)
-        do ii=1,jmon
+        do ii=1,12
         do ll=1,lm
-         read(iuc) ohsr
-         ohsr_glob(:,:,ll,ii)=ohsr(:,:)*1.D5
-
-c         do i=1,im
-c         do j=1,jm
-c         if (ll.ge.ltropo(i,j)) then
-c          if (j.eq.1.or.j.eq.46) then
-c          if (i.lt.72) ohsr(i,j)=ohsr(72,j)
-c          endif
-c           ohsr_glob(i,j,ll)=ohsr(i,j)*1.D5
-c         end if
-c         end do
-c         end do
+         read(iuc) ohsr_real
+         ohsr_glob(:,:,ll,ii)=ohsr_real(:,:)*1.D5
+          do i=1,im
+          do j=1,jm
+           if (j.eq.1.or.j.eq.jm) then  !there was a problem at the poles
+           if (i.lt.72) ohsr_glob(i,j,ll,ii)=ohsr_glob(72,j,ll,ii)
+           endif
+          end do
+          end do
         end do
         end do
         call closeunit(iuc)
         endif
-        call UNPACK_DATA( grid, ohsr_glob, ohsrl )
+        call UNPACK_DATA( grid, ohsr_glob, ohsr )
         ifirst=.false.
         endif
 c
-c       do j=j_0s,j_1s   !skip pole since there was a problem there
-c       do i=1,im
-c       do l=1,lm
-c       do mmm=1,jmon
-c       if (l.gt.12) then !ltropo(i,j)) then
-c       ohr(i,j,l,mmm)=ohsrl(i,j,l,mmm)
-c       endif
-c       end do
-c       end do
-c       end do
-c       end do
-
+        do j=j_0s,j_1s   
+        do i=1,im
+        do l=1,lm
+        do mmm=1,jmon
+c       if (l.gt.ltropo(i,j)) then
+        if (l.gt.10) then
+        ohr(i,j,l,mmm)=ohsr(i,j,l,mmm)
+        endif
+        end do
+        end do
+        end do
+        end do
 
         CALL SCALERAD
       endif
