@@ -182,7 +182,7 @@ c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_Koch)
 !@dbparam diag_wetdep switches on/off special diags for wet deposition
       INTEGER :: diag_wetdep=0 ! =off (default) (on: 1)
 !@var trcond_mc saves condensed tracer in MC clouds [kg]
@@ -1999,7 +1999,7 @@ c     *         ,FPRCPT,TRPRCP(N)
         END DO
       END IF
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_Koch)
       IF (.NOT. below_cloud .AND. prcp > teeny) THEN
         wmxtr=prcp*byam(l)
         precip_mm=prcp*100.*bygrav
@@ -2011,7 +2011,8 @@ c     *         ,FPRCPT,TRPRCP(N)
      &         'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &         'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &         'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &         'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &     'Sil1QuHe','Sil2QuHe','Sil3QuHe','H2O2_s','SO2','SO4','MSA',
+     *   'BCB','BCII','BCIA','OCB','OCIA','OCII','seasalt1','seasalt2')
             CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tnx,lhx,
      &         wmxtr,fplume,l,tm,trprcp,thlaw,pl(l),ntix)
             trprcp(n)=fwasht*tm(l,n)+trprcp(n)+thlaw
@@ -3023,7 +3024,8 @@ cdmk change GET_WASH below - extra arguments
      *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_Koch)
+c
           SELECT CASE(trname(ntix(n)))
           CASE('Clay','Silt1','Silt2','Silt3','Silt4',
      &         'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
