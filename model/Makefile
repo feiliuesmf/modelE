@@ -372,3 +372,6 @@ $(patsubst %, _dir_%, $(SUBDIRS)) : FORCE DOMAIN_DECOMP.mod
 	$(MAKE) -C $(patsubst _dir_%, %, $@) depend ONLINE=YES
 	$(MAKE) -C $(patsubst _dir_%, %, $@) all \
           ESMF_Interface=$(ESMF_Interface) ONLINE=YES
+
+etags: $(FSRCS)
+	etags $(FSRCS)
