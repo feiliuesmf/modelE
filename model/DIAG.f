@@ -4223,7 +4223,7 @@ C****
 
       ih=jhour+1
       ihm=ih+(jdate-1)*24
-!$OMP PARALLEL DO PRIVATE(i,j,kr,n,psk,n1)
+!$OMP PARALLEL DO PRIVATE(i,j,kr,n,psk,n1,tmp)
 !$OMP*   SCHEDULE(DYNAMIC,2)
       do j=j_0,j_1
       do i=1,imaxj(j)
