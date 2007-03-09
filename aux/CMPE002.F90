@@ -46,6 +46,13 @@
         return
       endif
 
+      do i=1,num
+        if ( db(i)%name == name ) then
+          print *,"ERROR: You are trying to check array twice: ",name
+          call stop_model("Do not check the same array more than once!",255)
+        endif
+      enddo
+     
       num=num+1
       if (num>max_num) call stop_model("too many arrays",255)
       db(num)%name=name
@@ -638,10 +645,6 @@
 #  endif
 
 #  ifdef CHECK_OCEAN
-         check("oij",oij)
-         check("oijl",oijl)
-         check("ol",ol)
-         check("olnst",olnst)
 #    ifdef TRACERS_WATER
        check("trsist",trsist)
 #      ifdef TRACERS_OCEAN
