@@ -1481,8 +1481,8 @@ c      var_name='hour';call wrtdarr(hours)
       integer :: nhrs
 !
       nhrs = min(hr_in_month,hr_in_day*(idacc(ia_12hr)/2))
-      im_data = hr_in_month ! input arrays always dimensioned the same
       call open_diurn(filename,nhrs,NDIUVAR_gcm,kr1,kr2)
+      im_data = hr_in_month ! input arrays always dimensioned the same
 
       att_name='note'
       att_str=nl//
