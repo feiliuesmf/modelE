@@ -168,6 +168,7 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO) :: FXX,FXZ,FYY,FYZ,FZZ,FZX,FZY
       REAL*8 MOFX, MOFY, MOFZ, RFXT, RFYT, RFZT, DT4, DT4DY, DT4DX,
      *     STRNP
+      REAL*8, DIMENSION(IM,JM,LMO) :: flux_x, flux_y, flux_z
       INTEGER I,J,L,IM1,IP1
 
       DT4 = 0.25*DTS
@@ -278,8 +279,42 @@ C**** Skip for L+1 greater than LMM(I,J+1)
       END DO
       END DO
 !$OMP  END PARALLEL DO
+
+      call computeFluxes(DT4, flux_x, flux_y, flux_z, TXM, TYM,
+     &                   TZM, FXX, FXZ, FYY, FYZ, FZZ, FZX, FZY)
+
+      IF (QLIMIT) THEN
+        call adjustAndAddFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
+      ELSE
+        call addFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
+      END IF
+
+      RETURN
+      END SUBROUTINE GMFEXP
+C****
+      SUBROUTINE computeFluxes(DT4, flux_x, flux_y, flux_z, TXM, TYM,
+     &                         TZM, FXX, FXZ, FYY, FYZ, FZZ, FZX, FZY)
+!@sum  computes GM fluxes for tracer quantities
+!@ver  1.0
+      USE GM_COM
+      USE DOMAIN_DECOMP, ONLY : grid, GET
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: DT4
+      REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: flux_x, flux_y,
+     &                                                flux_z
+      REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: TXM,TYM,TZM
+      REAL*8, DIMENSION(IM,JM,LMO), INTENT(IN) :: FXX,FXZ,FYY,FYZ,FZZ,
+     &                                            FZX,FZY
+      REAL*8 MOFX, MOFY, MOFZ, RFXT, RFYT, RFZT
+      LOGICAL :: HAVE_NORTH_POLE
+      INTEGER I,J,L,IM1
+
+      CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C**** Summation of explicit fluxes to TR, (R(T))
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,MOFX,RFXT,MOFY,RFYT,STRNP)
+      flux_x = 0.0; flux_y = 0.0; flux_z = 0.0;
+
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,MOFX,RFXT,MOFY,RFYT,MOFZ,RFZT)
       DO L=1,LMO
 C**** Non-Polar boxes
       DO J=2,JM-1
@@ -290,91 +325,193 @@ C**** Loop for Fluxes in X-direction
       IF(LMU(IM1,J).ge.L) THEN
         MOFX = (MO(IM1,J,L) +  MO(I  ,J,L)) * DXYPO(J) *BYDXP(J) *0.5
         RFXT =(FXX(IM1,J,L) + FXZ(IM1,J,L))*MOFX
-        IF (QLIMIT) THEN
-C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFXT >  0.95d0*TRM(IM1,J,L).and.ABS(RFXT) >   eps ) THEN
-c            print*,"GMlimit1x",i,j,l,RFXT,FXX(IM1,J,L),FXZ(IM1,J,L)
-c     *           ,BXX(I,J,L),TR(IM1,J,L),TR(I,J,L)
-            RFXT = 0.95d0*TRM(IM1,J,L)
-          ELSEIF (RFXT < -0.95d0*TRM(I,J,L).and.ABS(RFXT) > eps) THEN
-c            print*,"GMlimit2x",i,j,l,RFXT,FXX(IM1,J,L),FXZ(IM1,J,L)
-c     *           ,BXX(I,J,L),TR(IM1,J,L),TR(I,J,L)
-            RFXT = -0.95d0*TRM(I,J,L)
-          END IF
-        END IF
-C**** Add and Subtract horizontal X flux
-        TRM(I  ,J,L) = TRM(I  ,J,L) + RFXT
-        TRM(IM1,J,L) = TRM(IM1,J,L) - RFXT
-C**** Save Diagnostic, GIJL(1) = RFXT
-        GIJL(I,J,L,1) = GIJL(I,J,L,1) + RFXT
-      END IF
+
+        flux_x(I,J,L) =RFXT
+      endif
 C**** Gradient fluxes in X direction affected by diagonal terms
       IF (L.le.LMM(I,J)) TXM(I,J,L) = (TXM(I,J,L) -
      *     3.*(FXX(IM1,J,L)+FXX(I,J,L))*MO(I,J,L)*DXYPO(J)*BYDXP(J))/
      *     (1.+6.*DT4*(BXX(IM1,J,L)+BXX(I,J,L))*BYDXP(J)**2)
+
 C**** Loop for Fluxes in Y-direction
       IF(LMV(I,J-1).ge.L) THEN
         MOFY =((MO(I,J-1,L)*BYDYP(J-1)*DXYPO(J-1)) +
      *         (MO(I,J  ,L)*BYDYP(J  )*DXYPO(J  )))*0.5
         RFYT =(FYY(I,J-1,L) + FYZ(I,J-1,L))*MOFY
-        IF (QLIMIT) THEN
-C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFYT >  0.95d0*TRM(I,J-1,L).and.ABS(RFYT) >  eps  ) THEN
-c            print*,"GMlimit1y",i,j,l,RFYT,FYY(I,J-1,L),FYZ(I,J-1,L)
-c     *           ,BYY(I,J-1,L),TR(I,J-1,L),TR(I,J,L)
-            RFYT = 0.95d0*TRM(I,J-1,L)
-          ELSEIF (RFYT <  -0.95d0*TRM(I,J,L).and.ABS(RFYT) >  eps  )
-     *           THEN
-c            print*,"GMlimit2y",i,j,l,RFYT,FYY(I,J-1,L),FYZ(I,J-1,L)
-c     *           ,BYY(I,J-1,L),TR(I,J-1,L),TR(I,J,L)
-            RFYT = -0.95d0*TRM(I,J,L)
+
+        flux_y(I,J,L) =RFYT
+      endif
+C**** Gradient fluxes in Y direction affected by diagonal terms
+      IF (L.le.LMM(I,J)) TYM(I,J,L) = (TYM(I,J,L) -
+     *     3.*(FYY(I,J-1,L)+FYY(I,J,L))*MO(I,J,L)*DXYPO(J)*BYDYP(J))/
+     *     (1.+6.*DT4*(BYY(I,J-1,L)+BYY(I,J,L))*BYDYP(J)**2)
+
+C**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
+C**** Loop for Fluxes in Z-direction
+      IF(KPL(I,J).gt.L) GO TO 610
+      IF(LMM(I,J).lt.L) GO TO 610
+      IF(LMM(I,J).gt.L) THEN
+C**** Calculate new tracer/salinity/enthalpy
+        MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
+     *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
+        RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
+
+        flux_z(I,J,L) =RFZT
+      endif
+C**** Gradient fluxes in Z direction affected by diagonal terms
+      IF (L.gt.1) THEN
+        TZM(I,J,L) = (TZM(I,J,L) - 3.*(FZZ(I,J,L)+FZZ(I,J,L-1))*
+     *       MO(I,J,L)*DXYPO(J)*BYDH(I,J,L))/(1.+6.*DT4*(BZZ(I,J,L)
+     *       +BZZ(I,J,L-1))*BYDH(I,J,L)**2)
+      ELSE
+        TZM(I,J,L) = (TZM(I,J,L) - 3.*FZZ(I,J,L)*MO(I,J,L)*DXYPO(J)
+     *       *BYDH(I,J,L))/(1.+12.*DT4*BZZ(I,J,L)*BYDH(I,J,L)**2)
+      END IF
+
+C**** END of I and J loops
+  610 IM1 = I
+      END DO
+      END DO
+
+      IF(HAVE_NORTH_POLE) THEN
+
+C****   North Polar box
+C****   Fluxes in Y-direction
+        DO I=1,IM
+          IF(LMV(I,JM-1).ge.L) THEN
+            MOFY =((MO(I,JM-1,L)*BYDYP(JM-1)*DXYPO(JM-1)) +
+     *             (MO(1,JM  ,L)*BYDYP(JM  )*DXYPO(JM  )))*0.5
+            RFYT =(FYY(I,JM-1,L) + FYZ(I,JM-1,L))*MOFY
+            flux_y(I,JM,L) = RFYT
           END IF
+        END DO
+
+C****   Loop for Fluxes in Z-direction
+        IF(KPL(1,JM).gt.L) GO TO 620
+        IF(LMM(1,JM).lt.L) GO TO 620
+        IF(LMM(1,JM).gt.L) THEN
+C****     Calculate new tracer/salinity/enthalpy
+          MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
+     *           (MO(1,JM,L  )*BYDH(1,JM,L  ))) * DXYPO(JM) *0.5
+          RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
+          flux_z(1,JM,L) = RFZT
         END IF
+C****   Gradient fluxes in Z direction affected by diagonal terms
+        IF (L.gt.1) THEN
+          TZM(1,JM,L) = (TZM(1,JM,L) - 3.*(FZZ(1,JM,L)+FZZ(1,JM,L-1))*
+     *      MO(1,JM,L)*DXYPO(JM)*BYDH(1,JM,L))/(1.+6.*DT4*(BZZ(1,JM,L)
+     *      +BZZ(1,JM,L-1))*BYDH(1,JM,L)**2)
+        ELSE
+          TZM(1,JM,L) = (TZM(1,JM,L) - 3.*FZZ(1,JM,L)*MO(1,JM,L)*
+     &      DXYPO(JM) *BYDH(1,JM,L))/(1.+12.*DT4*BZZ(1,JM,L)*
+     &      BYDH(1,JM,L)**2)
+        END IF
+
+      END IF   ! HAVE_NORTH_POLE
+
+ 620  END DO   ! L loop
+!$OMP END PARALLEL DO
+
+      RETURN
+      END SUBROUTINE computeFluxes
+C****
+      SUBROUTINE limitedValue(RFXT,TRM1,TRM)
+      USE GM_COM, only : eps
+      IMPLICIT NONE
+
+      REAL*8, INTENT(INOUT) :: RFXT
+      REAL*8, INTENT( IN  ) :: TRM1, TRM
+
+      IF ( RFXT >  0.95d0*TRM1.and.ABS( RFXT ) >   eps ) THEN
+        RFXT = 0.95d0*TRM1
+      ELSEIF ( RFXT < -0.95d0*TRM.and.ABS( RFXT ) > eps) THEN
+        RFXT = -0.95d0*TRM
+      END IF
+
+      RETURN
+      END SUBROUTINE limitedValue
+C****
+      SUBROUTINE adjustAndAddFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
+!@sum applies limiting process to  GM fluxes for tracer quantities
+!@ver  1.0
+      USE GM_COM
+      USE DOMAIN_DECOMP, ONLY : grid, GET
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: TRM, flux_x,
+     &                                               flux_y, flux_z
+      REAL*8, DIMENSION(IM,JM,LMO,3), INTENT(INOUT) :: GIJL
+      REAL*8  RFXT, RFYT, RFZT, STRNP
+      INTEGER I,J,L,IM1
+      LOGICAL :: HAVE_NORTH_POLE
+
+      CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+!updates TRM and GIJL with limit adjusted flux values
+
+      DO L=1,LMO
+C**** Non-Polar boxes
+      DO J=2,JM-1
+      IM1 = IM
+      DO I=1,IM
+      IF(LMM(I,J).le.0) GO TO 611
+
+!adjustments in x direction
+      IF(LMU(IM1,J).ge.L) THEN
+C**** If fluxes are more than 95% of tracer amount, limit fluxes
+        RFXT = flux_x(I,J,L)
+        call limitedValue(RFXT,TRM(IM1,J,L),TRM(I,J,L))
+C**** Add and Subtract horizontal X flux
+        TRM(I  ,J,L) = TRM(I  ,J,L) + RFXT
+        TRM(IM1,J,L) = TRM(IM1,J,L) - RFXT
+C**** Save Diagnostic, GIJL(1) = RFXT
+        GIJL(I,J,L,1) = GIJL(I,J,L,1) + RFXT
+        !update flux limited values
+        flux_x(I,J,L) =  RFXT
+      END IF
+
+!adjustments in y direction
+C**** Loop for Fluxes in Y-direction
+      IF(LMV(I,J-1).ge.L) THEN
+C**** If fluxes are more than 95% of tracer amount, limit fluxes
+        RFYT = flux_y(I,J,L)
+        call limitedValue(RFYT,TRM(I,J-1,L),TRM(I,J,L))
 C**** Add and Subtract horizontal Y fluxes
         TRM(I,J  ,L) = TRM(I,J  ,L) + RFYT
         TRM(I,J-1,L) = TRM(I,J-1,L) - RFYT
 C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
+        !update flux limited values
+        flux_y(I, J, L) = RFYT
       END IF
-C**** Gradient fluxes in Y direction affected by diagonal terms
-      IF (L.le.LMM(I,J)) TYM(I,J,L) = (TYM(I,J,L) -
-     *     3.*(FYY(I,J-1,L)+FYY(I,J,L))*MO(I,J,L)*DXYPO(J)*BYDYP(J))/
-     *     (1.+6.*DT4*(BYY(I,J-1,L)+BYY(I,J,L))*BYDYP(J)**2)
+
 C**** END of I and J loops
-  610 IM1 = I
+  611 IM1 = I
       END DO
       END DO
+
+      IF(HAVE_NORTH_POLE) THEN
 C**** North Polar box
       STRNP=0.
 C**** Fluxes in Y-direction
       DO I=1,IM
       IF(LMV(I,JM-1).ge.L) THEN
-        MOFY =((MO(I,JM-1,L)*BYDYP(JM-1)*DXYPO(JM-1)) +
-     *         (MO(1,JM  ,L)*BYDYP(JM  )*DXYPO(JM  )))*0.5
-        RFYT =(FYY(I,JM-1,L) + FYZ(I,JM-1,L))*MOFY
-        IF (QLIMIT) THEN
+        RFYT = flux_y(I,JM,L)
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFYT >  0.95d0*TRM(I,JM-1,L).and.ABS(RFYT) >   eps ) THEN
-c            print*,"GMlimit3y",I,jm,l,RFYT,FYY(I,JM-1,L),FYZ(I,JM-1,L)
-c     *           ,BYY(I,JM-1,L),TR(I,JM-1,L),TR(1,JM,L)
-            RFYT = 0.95d0*TRM(I,JM-1,L)
-          ELSEIF (RFYT  < -0.95d0*TRM(1,JM,L).and.ABS(RFYT) > eps) THEN
-c            print*,"GMlimit4y",I,jm,l,RFYT,FYY(I,JM-1,L),FYZ(I,JM-1,L)
-c     *           ,BYY(I,JM-1,L),TR(I,JM-1,L),TRM(1,JM,L)
-            RFYT = -0.95d0*TRM(1,JM,L)
-          END IF
-        END IF
+        call limitedValue(RFYT,TRM(I,JM-1,L),TRM(1,JM,L))
 C**** Add and Subtract horizontal Y fluxes
         STRNP= STRNP + RFYT
         TRM(I,JM-1,L) = TRM(I,JM-1,L) - RFYT
+        flux_y(I,JM,L) = RFYT
       END IF
       END DO
 C**** adjust polar box
       TRM(1,JM,L)=TRM(1,JM,L) + STRNP/IM
 C**** Save Diagnostic, GIJL(2) = RFYT
       GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
- 620  END DO
-!$OMP END PARALLEL DO
+
+      END IF   ! HAVE_NORTH_POLE
+
+ 621  END DO    !L loop
 
 C**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
 C**** Extracted from preceding L loop to allow parallelization of that
@@ -388,83 +525,153 @@ C**** Loop for Fluxes in Z-direction
       IF(KPL(I,J).gt.L) GO TO 710
       IF(LMM(I,J).lt.L) GO TO 710
       IF(LMM(I,J).gt.L) THEN
-C**** Calculate new tracer/salinity/enthalpy
-        MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
-     *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
-        RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
-        IF (QLIMIT) THEN
+C****   tracer/salinity/enthalpy
+        RFZT = flux_z(I,J,L)
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFZT >  0.95d0*TRM(I,J,L+1).and.ABS(RFZT) >  eps  ) THEN
-c            print*,"GMlimit1z",i,j,l,RFZT,FZZ(i,J,L),FZX(i,j,l),FZY(I,J
-c     *           ,L),BZZ(I,J,L),TR(I,J,L+1),TR(I,J,L)
-            RFZT = 0.95d0*TRM(I,J,L+1)
-          ELSEIF (RFZT <  -0.95d0*TRM(I,J,L).and.ABS(RFZT) >  eps  )
-     *           THEN
-c            print*,"GMlimit2z",i,j,l,RFZT,FZZ(i,J,L),FZX(i,j,l),FZY(I,J
-c     *           ,L),BZZ(I,J,L),TR(I,J,L+1),TR(I,J,L)
-            RFZT = -0.95d0*TRM(I,J,L)
-          END IF
-        END IF
+        call limitedValue(RFZT,TRM(I,J,L+1),TRM(I,J,L))
 C**** Add and Subtract vertical flux. Note +ve upward flux
         TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
         TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
       END IF
-C**** Gradient fluxes in Z direction affected by diagonal terms
-      IF (L.gt.1) THEN
-        TZM(I,J,L) = (TZM(I,J,L) - 3.*(FZZ(I,J,L)+FZZ(I,J,L-1))*
-     *       MO(I,J,L)*DXYPO(J)*BYDH(I,J,L))/(1.+6.*DT4*(BZZ(I,J,L)
-     *       +BZZ(I,J,L-1))*BYDH(I,J,L)**2)
-      ELSE
-        TZM(I,J,L) = (TZM(I,J,L) - 3.*FZZ(I,J,L)*MO(I,J,L)*DXYPO(J)
-     *       *BYDH(I,J,L))/(1.+12.*DT4*BZZ(I,J,L)*BYDH(I,J,L)**2)
-      END IF
+
 C**** END of I and J loops
  710  CONTINUE
       END DO
       END DO
+
+      IF(HAVE_NORTH_POLE) THEN
+
+C****   North Polar box
+C****   Loop for Fluxes in Z-direction
+        IF(KPL(1,JM).gt.L) GO TO 720
+        IF(LMM(1,JM).lt.L) GO TO 720
+        IF(LMM(1,JM).gt.L) THEN
+C****     Calculate new tracer/salinity/enthalpy
+            RFZT = flux_z(1,JM,L)
+C****     If fluxes are more than 95% of tracer amount, limit fluxes
+          call limitedValue(RFZT,TRM(1,JM,L+1),TRM(1,JM,L))
+C****     Add and Subtract vertical flux. Note +ve upward flux
+          TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
+          TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
+C****     Save Diagnostic, GIJL(3) = RFZT
+          GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
+        END IF
+ 720    CONTINUE
+
+      END IF   ! HAVE_NORTH_POLE
+      END DO
+
+      RETURN
+      END SUBROUTINE adjustAndAddFluxes
+C****
+      SUBROUTINE addFluxes (TRM_SAV, flux_x, flux_y, flux_z, GIJL)
+!@sum applies GM fluxes to tracer quantities
+!@ver  1.0
+      USE GM_COM, only: LMM, LMU, LMV, KPL, IM, JM, LMO
+      USE DOMAIN_DECOMP, ONLY : grid, GET
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: TRM_SAV
+      REAL*8, DIMENSION(IM,JM,LMO), INTENT(IN) :: flux_x,
+     &                                       flux_y, flux_z
+      REAL*8, DIMENSION(IM,JM,LMO,3), INTENT(INOUT) :: GIJL
+      REAL*8 STRNP, RFZT
+      INTEGER :: I, J, L, IM1
+      LOGICAL :: HAVE_NORTH_POLE
+
+      CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+!updates TRM (TRM_SAV in here) and GIJL using flux values
+      DO L=1,LMO
+C**** Non-Polar boxes
+      DO J=2,JM-1
+      IM1 = IM
+      DO I=1,IM
+
+      IF(LMM(I,J).le.0) GO TO 613
+
+        IF(LMU(IM1,J).ge.L) THEN
+          TRM_SAV(I  ,J,L) = TRM_SAV(I  ,J,L) + flux_x(I,J,L)
+          TRM_SAV(IM1,J,L) = TRM_SAV(IM1,J,L) - flux_x(I,J,L)
+C**** Save Diagnostic, GIJL(1) = flux_x(I,J,L)
+          GIJL(I,J,L,1) = GIJL(I,J,L,1) + flux_x(I,J,L)
+        END IF
+
+        IF(LMV(I,J-1).ge.L) THEN
+          TRM_SAV(I,J  ,L) = TRM_SAV(I,J  ,L) + flux_y(I,J,L)
+          TRM_SAV(I,J-1,L) = TRM_SAV(I,J-1,L) - flux_y(I,J,L)
+C**** Save Diagnostic, GIJL(2) = flux_y(I,J,L)
+          GIJL(I,J,L,2) = GIJL(I,J,L,2) + flux_y(I,J,L)
+        END IF
+
+C**** END of I and J loops
+  613 IM1 = I
+      END DO
+      END DO
+
+      IF(HAVE_NORTH_POLE) THEN
+C****   North Polar box
+        STRNP=0.
+C****   Fluxes in Y-direction
+        DO I=1,IM
+          IF(LMV(I,JM-1).ge.L) THEN
+C****       Add and Subtract horizontal Y fluxes
+            STRNP= STRNP + flux_y(I,JM,L)
+            TRM_SAV(I,JM-1,L) = TRM_SAV(I,JM-1,L) - flux_y(I,JM,L)
+          END IF
+        END DO
+C**** adjust polar box
+        TRM_SAV(1,JM,L)=TRM_SAV(1,JM,L) + STRNP/IM
+C**** Save Diagnostic, GIJL(2) = STRNP
+        GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
+      END IF
+ 622  END DO    !L loop
+
+C**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
+C**** Extracted from preceding L loop to allow parallelization of that
+C**** loop; this loop can't be
+      DO L=1,LMO
+C**** Non-Polar boxes
+      DO J=2,JM-1
+      DO I=1,IM
+      IF(LMM(I,J).le.0) GO TO 710
+C**** Loop for Fluxes in Z-direction
+      IF(KPL(I,J).gt.L) GO TO 710
+      IF(LMM(I,J).lt.L) GO TO 710
+      IF(LMM(I,J).gt.L) THEN
+C****   tracer/salinity/enthalpy
+        RFZT = flux_z(I,J,L)
+C**** Add and Subtract vertical flux. Note +ve upward flux
+        TRM_SAV(I,J,L  ) = TRM_SAV(I,J,L  ) + RFZT
+        TRM_SAV(I,J,L+1) = TRM_SAV(I,J,L+1) - RFZT
+C**** Save Diagnostic, GIJL(3) = RFZT
+        GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
+      END IF
+
+C**** END of I and J loops
+ 710  CONTINUE
+      END DO
+      END DO
+
 C**** North Polar box
 C**** Loop for Fluxes in Z-direction
       IF(KPL(1,JM).gt.L) GO TO 720
       IF(LMM(1,JM).lt.L) GO TO 720
       IF(LMM(1,JM).gt.L) THEN
 C**** Calculate new tracer/salinity/enthalpy
-        MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
-     *         (MO(1,JM,L  )*BYDH(1,JM,L  ))) * DXYPO(JM) *0.5
-        RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
-        IF (QLIMIT) THEN
-C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFZT >  0.95d0*TRM(1,JM,L+1).and.ABS(RFZT) > eps) THEN
-c            print*,"GMlimit3z",1,jm,l,RFZT,FZZ(1,JM,L),FZY(1,JM
-c     *           ,L),BZZ(1,JM,L),TR(1,JM,L+1),TR(1,JM,L)
-            RFZT = 0.95d0*TRM(1,JM,L+1)
-          ELSEIF (RFZT < -0.95d0*TRM(1,JM,L).and.ABS(RFZT) > eps) THEN
-c            print*,"GMlimit4z",1,jm,l,RFZT,FZZ(1,JM,L),FZY(1,JM
-c     *           ,L),BZZ(1,JM,L),TR(1,JM,L+1),TR(1,JM,L)
-            RFZT = -0.95d0*TRM(1,JM,L)
-          END IF
-        END IF
+        RFZT = flux_z(1,JM,L)
 C**** Add and Subtract vertical flux. Note +ve upward flux
-        TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
-        TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
+        TRM_SAV(1,JM,L  ) = TRM_SAV(1,JM,L  ) + RFZT
+        TRM_SAV(1,JM,L+1) = TRM_SAV(1,JM,L+1) - RFZT
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
-      END IF
-C**** Gradient fluxes in Z direction affected by diagonal terms
-      IF (L.gt.1) THEN
-        TZM(1,JM,L) = (TZM(1,JM,L) - 3.*(FZZ(1,JM,L)+FZZ(1,JM,L-1))*
-     *       MO(1,JM,L)*DXYPO(JM)*BYDH(1,JM,L))/(1.+6.*DT4*(BZZ(1,JM,L)
-     *       +BZZ(1,JM,L-1))*BYDH(1,JM,L)**2)
-      ELSE
-        TZM(1,JM,L) = (TZM(1,JM,L) - 3.*FZZ(1,JM,L)*MO(1,JM,L)*DXYPO(JM)
-     *       *BYDH(1,JM,L))/(1.+12.*DT4*BZZ(1,JM,L)*BYDH(1,JM,L)**2)
       END IF
  720  CONTINUE
       END DO
 
       RETURN
-      END SUBROUTINE GMFEXP
+      END SUBROUTINE addFluxes
 C****
       SUBROUTINE ISOSLOPE4
 !@sum  ISOSLOPE4 calculates the isopycnal slopes from density triads
