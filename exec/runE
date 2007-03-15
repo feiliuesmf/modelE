@@ -48,7 +48,7 @@
    nproc=1  ; nptxt=''
    if echo $2 | grep '^[0-9][0-9]*$' > /dev/null ; then
    nproc=$2 ; nptxt="using up to $nproc processor(s)" ; fi
-#  export MP_SET_NUMTHREADS=$nproc
+   export MP_SET_NUMTHREADS=$nproc
 #  export OMP_NUM_THREADS=$nproc      # different env variable for Lahey
 
    cd "$CMRUNDIR/$RUNID"
