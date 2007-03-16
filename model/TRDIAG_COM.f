@@ -62,6 +62,9 @@ C**** TAIJLN
 
 C**** TAIJN
 !@param KTAIJ number of 3D diagnostics for each tracer
+#ifdef TRACERS_GASEXCH_Natassa
+      integer, parameter :: ktaij=6
+#else
 #ifdef TRACERS_WATER
 #ifdef TRACERS_DRYDEP
       integer, parameter :: ktaij=13
@@ -75,8 +78,12 @@ C**** TAIJN
       integer, parameter :: ktaij=3
 #endif
 #endif
+#endif
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_mass
+#ifdef TRACERS_GASEXCH_Natassa
+      integer tij_gasx,tij_kw,tij_alpha
+#endif
 #ifdef TRACERS_WATER
 !@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1

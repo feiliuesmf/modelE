@@ -146,7 +146,7 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #if defined(TRACERS_GASEXCH_Natassa)
-     *     alati,Kw_gas,beta_gas,
+     *     alati,Kw_gas,alpha_gas,beta_gas,
 #endif
 #if defined(TRACERS_WATER)
      *     tr_evap_max,
@@ -255,7 +255,7 @@ c  internals:
       integer itr
 #ifdef TRACERS_GASEXCH_Natassa
       real*8, intent(in) :: alati
-      real*8, intent(out):: Kw_gas,beta_gas
+      real*8, intent(out):: Kw_gas,alpha_gas,beta_gas
 #endif
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
@@ -687,7 +687,7 @@ ccc dust emission from earth
       !include molecular weights for air and CFC-11
        beta_gas=alpha_gas*(psurf*10.197e-4)*mair*1.e-3
      .                   /(tr_mm(itr)*1.e-3)
-       beta_gas = beta_gas * tr_mm(itr)*1.e-3/rhows
+!!!    beta_gas = beta_gas * tr_mm(itr)*1.e-3/rhows
 
       !trsf is really sfac = Kw_gas * beta_gas
       !units are such that flux comes out to (m/s)(kg/kg)

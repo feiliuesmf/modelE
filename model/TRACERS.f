@@ -247,6 +247,34 @@ C**** Surface concentration
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
+#ifdef TRACERS_GASEXCH_Natassa
+C**** Gas Exchange Solubility coefficient
+      k = k+1
+      tij_alpha = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Solubility'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Solubility'
+        ijtc_power(n) = 0
+        units_tij(k,n) = unit_string(ijtc_power(n),'mol/l/atm')
+        scale_tij(k,n) = 10.**(-ijtc_power(n))
+C**** Gas Exchange Coefficient (piston velocity)
+      k = k+1
+      tij_kw = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Piston_Veloc'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Piston Veloc'
+        ijtc_power(n) = -4
+        units_tij(k,n) = unit_string(ijtc_power(n),'m/s')
+        scale_tij(k,n) = 10.**(-ijtc_power(n))
+C**** Gas Exchange flux at ocean surface
+      k = k+1
+      tij_gasx = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Gas_Exch_Flux'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Gas Exch Flux'
+        ijtc_power(n) = -6
+        units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^2')
+        scale_tij(k,n) = 10.**(-ijtc_power(n))
+
+      print*,'TRACERS.f Natassa: ktaij=',ktaij,', k=',k
+#endif
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water.

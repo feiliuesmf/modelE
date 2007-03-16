@@ -51,7 +51,7 @@ C**** Interface to PBL
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_GASEXCH_Natassa
-     *     ,alati,Kw_gas,beta_gas
+     *     ,alati,Kw_gas,alpha_gas,beta_gas
 #endif
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
@@ -144,6 +144,9 @@ C**** Interface to PBL
      &                       ,ijts_AMPe
 #endif
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_source,jls_isrc
+#ifdef TRACERS_GASEXCH_Natassa
+     *     ,tij_gasx,tij_kw,tij_alpha
+#endif
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd
 #endif
@@ -634,7 +637,7 @@ C**** set defaults
           trgrnd(nx)=gtracer(n,itype,i,j)
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-cdiag     print*,'SURFACEn 1: trconstflx(nx)=',trconstflx(nx)
+cdiag     print*,'SURFACE 1: trconstflx(nx)=',trconstflx(nx)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
@@ -1269,6 +1272,16 @@ C**** Save surface tracer concentration whether calculated or not
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *bydxyp(j),0d0)*ptype
           end if
+#ifdef TRACERS_GASEXCH_Natassa
+          if (focean(i,j).gt.0.) then
+            taijn(i,j,tij_kw,n) = taijn(i,j,tij_kw,n)
+     *                          + Kw_gas*ptype
+            taijn(i,j,tij_alpha,n) = taijn(i,j,tij_alpha,n)
+     *                             + alpha_gas*ptype
+            taijn(i,j,tij_gasx,n) = taijn(i,j,tij_gasx,n)
+     *                            + trgrnd(nx)*ptype
+          endif
+#endif
 #ifdef TRACERS_WATER
           if (tr_wd_type(n).eq.nWater) then
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+

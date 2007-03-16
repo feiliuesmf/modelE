@@ -1,12 +1,44 @@
+      MODULE TRACER_GASEXCH_COM
+
+      USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
+
+      implicit none
+
+      SAVE
+
+
+#include "dimensions.h"
+#include "dimension2.h"
+
+
+      SAVE
+
+
+      real*8 atracflx(iia,jja,ntm),atrac(iia,jja,ntm)
+      common /gasexch1/atracflx,atrac
+
+      real   tracflx(idm,jdm,ntm)     !  tracer flux at air-sea intfc
+      common /gasexch2/tracflx
+
+      END MODULE TRACER_GASEXCH_COM
+
 c used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/Attic/TRACER_GASEXCH_Natassa.f,v $
-c $Revision: 1.2 $
-c $Date: 2007/01/30 16:28:36 $   ;  $State: Exp $
+c $Revision: 1.3 $
+c $Date: 2007/03/16 23:43:11 $   ;  $State: Exp $
 c $Author: ntausnev $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_Natassa.f,v $
+c Revision 1.3  2007/03/16 23:43:11  ntausnev
+c
+c Updated and cleaned the code for option TRACERS_GASEXCH_Natassa.
+c Included additional diagnostics for option TRACERS_GASEXCH_Natassa.
+c Checked that the restarts and results did not depend on
+c the number of processors for MPI. It is true for option
+c TRACERS_GASEXCH_Natassa and without it.
+c
 c Revision 1.2  2007/01/30 16:28:36  ntausnev
 c Correction bugs for TRACERS_GASEXCH_Natassa option. Functions must be real*8 type.
 c
@@ -95,12 +127,20 @@ c-----------------------------------------------------------------------
 c used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/Attic/TRACER_GASEXCH_Natassa.f,v $
-c  $Revision: 1.2 $
-c  $Date: 2007/01/30 16:28:36 $   ;  $State: Exp $
+c  $Revision: 1.3 $
+c  $Date: 2007/03/16 23:43:11 $   ;  $State: Exp $
 c  $Author: ntausnev $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_Natassa.f,v $
+c  Revision 1.3  2007/03/16 23:43:11  ntausnev
+c
+c  Updated and cleaned the code for option TRACERS_GASEXCH_Natassa.
+c  Included additional diagnostics for option TRACERS_GASEXCH_Natassa.
+c  Checked that the restarts and results did not depend on
+c  the number of processors for MPI. It is true for option
+c  TRACERS_GASEXCH_Natassa and without it.
+c
 c  Revision 1.2  2007/01/30 16:28:36  ntausnev
 c  Correction bugs for TRACERS_GASEXCH_Natassa option. Functions must be real*8 type.
 c
