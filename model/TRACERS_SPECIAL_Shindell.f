@@ -288,9 +288,9 @@ C**** Monthly sources are interpolated each day
      &       ,max_days,int_wet_dist,topo_lim,sat_lim,gw_ulim,gw_llim
      &       ,SW_lim,exclude_us_eu,nra_ch4,first_mod,n__temp,n__sw
      &       ,n__gwet,n__SAT,nn_or_zon,nday_ch4,ice_age
-      use ghy_com, only : top_dev_ij,fearth
       use GEOM, only : lat_dg, lon_dg, imaxj
 #endif
+      use ghy_com, only : top_dev_ij,fearth
       USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
      & ,fix_CH4_chemistry
       
