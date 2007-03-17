@@ -154,17 +154,32 @@ diagnostics</A></P>
 
 <p><A name="part0_1"><b>1) HOW-TO get the code from the CVS repository</b></a></p>
 
-<p>The modelE code includes source code, scripts and some documentation.
-This is stored through the CVS revision control system, and copies can
-be checked-out to your home directory using the following commands:</p>
+<p>The modelE code includes source code, scripts and some
+documentation. It is stored in a CVS (Concurrent Versions System)
+repository on a dedicated GISS CVS server
+<tt>simplex.giss.nasa.gov</tt>. To access the code you need an account 
+on this machine (if you need to set one contact Igor Aleinov). More 
+information on accessing GISS CVS server from NASA machines can be found at 
+<A HREF="http://simplex.giss.nasa.gov/giss/">
+http://simplex.giss.nasa.gov/giss/</A> (Accessible only from GISS machines).
+Once you have an account with enabled access
+from your machine you can check-out a copy of the code using the
+following commands:</p>
 <tt>
-   export CVSROOT=/u/cmrun/cvs/repository<br>
-   cvs checkout -r modelE1 modelE<br>
+   export CVSROOT=simplex.giss.nasa.gov:/giss/cvsroot<br>
+   export CVS_RSH=ssh<br>
+   cvs checkout -r modelE1-patches modelE<br>
 </tt>
 
-<p> This will create a directory modelE/ in your directory. The code
-will correspond to modelE1 - the frozen version for 2004. Please check
-to see if this actual is the latest release. To place the model in a
+<p> This will create a directory <tt>modelE/</tt> in your directory. The code
+will correspond to modelE1 - the frozen version for 2004 with 
+&quot;patches&quot; - latest bug fixes and additional diagnostics.
+To check-out the latest development version you skip <tt>-r tag</tt>
+option:</p>
+<tt>
+   cvs checkout modelE<br>
+</tt>
+<p>To place the model in a
 different directory, use the <tt> -d dirname </tt> option. Depending
 on your level of skill in using CVS, and whether you are a developer,
 you may want to set up a private branch where you can store your own
@@ -274,17 +289,43 @@ which one can set in <tt>~/.modelErc</tt>:</p>
   to your taste.<br>
   (default: <tt>VERBOSE_OUTPUT=NO</tt>)<br>
 
-<li>  <tt>MP</tt> - multiprocessing support. If set to <tt>YES</tt> gmake will
+<li>  <tt>MP</tt> - 
+  OpenMP multiprocessing support. If set to <tt>YES</tt> gmake will
   compile the code with OpenMP instructions. Don't set it to <tt>YES</tt>
   unless you are really planning to run the model on several processors,
   otherwise it will be unnecessary waste of resources (and your model can
   actually run slower on one cpu). Also keep in mind that one can not compile
   OpenMP objects with an non-OpenMP linker, so if you change from
   <tt>MP=YES</tt> to <tt>MP=NO</tt> you have to recompile the entire
-  model. This option has effect currently on SGI and Compaq only, but
-  can be set to work for dual-processor Linux systems depending on the
-  compiler.<br> (default: <tt>MP=NO</tt>)<br>
+  model. This option has effect only for OpenMP-supporting compilers.
+  If you are planning to use MPI parallelization set this to <tt>NO</tt>
+  <br> (default: <tt>MP=NO</tt>)<br>
+
+<li>  <tt>UMASK</tt> - permissions for files in your run directory.
+  This is an equivalent of Unix <tt>umask</tt>.<br> 
+  (default: <tt>UMASK=002</tt>)<br>
+
+<li>  <tt>COMPILER</tt> - distribution of fortran compiler you are
+  using. This has no effect on systems that have only proprietary
+  compiler. Currently supported options:<br>
+  <tt>Absoft</tt> - Absoft compiler<br> 
+  <tt>Intel</tt> - Intel compiler (versions up to 7)<br> 
+  <tt>Intel8</tt> - Intel compiler (versions 8 and 9)<br> 
+  <tt>Lahey</tt> - Lahey compiler<br> 
+  <tt>PGI</tt> - PGI compiler<br> 
+  <tt>G95</tt> - GNU g95 compiler<br> 
+  <tt>XLF</tt> - IBM XLF compiler<br> 
+  (default: not set)<br>
+
+<li>  <tt>ESMF_DIR</tt> - path to ESMF library. Needed only to 
+  compile MPI-parallelized version.<br> 
+  (default: not set)<br>
+
 </UL>
+The options listed above are the only supported <tt>~/.modelErc</tt>
+options. You can include there something else if you think it
+appropriate, but keep in mind that you are doing it at your own
+risk! (don't complain if something stops working)
 
 <p><A name="part0_3"><b>3) System requirements</b></a></p>
 
@@ -486,6 +527,16 @@ the first hour (or specifically the first source time step).
 If this runs successfully there will be a message saying so. Likewise
 if there is a problem.</p>
 
+<p>You can specify additional options for the compilation process 
+(assuming that you know what you are doing) by appending
+<tt>option=value</tt> to the <tt>gmake</tt> line. In particular, you
+can over-write the options specified in your <tt>~/.modelErc</tt>
+file. For example, if you have <tt>MP=NO</tt> in <tt>~/.modelErc</tt>
+you can compile OpenMP-parallelized run with:</p>
+<pre>
+     gmake gcm RUN=E001xyz MP=YES
+</pre>
+
    <LI> <A name="part1_1c"><b> How to interact with CVS to make sure
      the run is reproducible</b></A>
 <p>
@@ -561,9 +612,13 @@ option <tt>MP=YES</tt> can be set in <tt>~/.modelErc</tt> file (see <A
 HREF="#part0_2"> Part 0.2</A>).  In that case one can skip it on the
 command line.</p>
 
-<p> In the setup stage, the number of processors is defined by the
-relevant environmental variable <tt>$MP_SET_NUMTHREADS</tt>. However,
-when using <tt>runE</tt>, it is similar to the way it is used for the
+<p> In the setup stage, the number of OpenMP processors is set to 1 unless
+you specify it explicitly with <tt>NPROC=number</tt>. For example to
+run setup on 4 processors one executes:
+<pre>
+  gmake setup RUN=E001xyz MP=YES NPROC=4
+</pre>
+The model is run with <tt>runE</tt> in a similar way to the
 non-OpenMP model, except that one has to specify the number of
 processors as a second argument to <tt>runE</tt>. For instance if one
 wants to run the model E001xyz on 4 processors one starts it with
