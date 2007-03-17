@@ -776,6 +776,11 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       integer, parameter :: ntm=2
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
 #else
+#if defined TRACERS_GASEXCH_Natassa
+      integer, parameter :: ntm=1
+      character*8, parameter :: trname(ntm)= (/
+     *     'CFCn    '/)
+#else
 #ifdef TRACERS_OCEAN
 #if defined TRACERS_GASEXCH_Natassa
       integer, parameter :: ntm=1
@@ -788,6 +793,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else /* default for TRACERS_ON */
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
+#endif
 #endif
 #endif
 #endif
