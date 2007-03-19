@@ -306,10 +306,10 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO), INTENT(IN) :: FXX,FXZ,FYY,FYZ,FZZ,
      &                                            FZX,FZY
       REAL*8 MOFX, MOFY, MOFZ, RFXT, RFYT, RFZT
-      LOGICAL :: HAVE_NORTH_POLE
+!     LOGICAL :: HAVE_NORTH_POLE
       INTEGER I,J,L,IM1
 
-      CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+!     CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Summation of explicit fluxes to TR, (R(T))
       flux_x = 0.0; flux_y = 0.0; flux_z = 0.0;
@@ -373,7 +373,7 @@ C**** END of I and J loops
       END DO
       END DO
 
-      IF(HAVE_NORTH_POLE) THEN
+!     IF(HAVE_NORTH_POLE) THEN
 
 C****   North Polar box
 C****   Fluxes in Y-direction
@@ -407,7 +407,7 @@ C****   Gradient fluxes in Z direction affected by diagonal terms
      &      BYDH(1,JM,L)**2)
         END IF
 
-      END IF   ! HAVE_NORTH_POLE
+!     END IF   ! HAVE_NORTH_POLE
 
  620  END DO   ! L loop
 !$OMP END PARALLEL DO
@@ -442,9 +442,9 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO,3), INTENT(INOUT) :: GIJL
       REAL*8  RFXT, RFYT, RFZT, STRNP
       INTEGER I,J,L,IM1
-      LOGICAL :: HAVE_NORTH_POLE
+!     LOGICAL :: HAVE_NORTH_POLE
 
-      CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+!     CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 !updates TRM and GIJL with limit adjusted flux values
 
@@ -489,7 +489,7 @@ C**** END of I and J loops
       END DO
       END DO
 
-      IF(HAVE_NORTH_POLE) THEN
+!     IF(HAVE_NORTH_POLE) THEN
 C**** North Polar box
       STRNP=0.
 C**** Fluxes in Y-direction
@@ -509,7 +509,7 @@ C**** adjust polar box
 C**** Save Diagnostic, GIJL(2) = RFYT
       GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
 
-      END IF   ! HAVE_NORTH_POLE
+!     END IF   ! HAVE_NORTH_POLE
 
  621  END DO    !L loop
 
@@ -541,7 +541,7 @@ C**** END of I and J loops
       END DO
       END DO
 
-      IF(HAVE_NORTH_POLE) THEN
+!     IF(HAVE_NORTH_POLE) THEN
 
 C****   North Polar box
 C****   Loop for Fluxes in Z-direction
@@ -560,7 +560,7 @@ C****     Save Diagnostic, GIJL(3) = RFZT
         END IF
  720    CONTINUE
 
-      END IF   ! HAVE_NORTH_POLE
+!     END IF   ! HAVE_NORTH_POLE
       END DO
 
       RETURN
@@ -578,9 +578,9 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO,3), INTENT(INOUT) :: GIJL
       REAL*8 STRNP, RFZT
       INTEGER :: I, J, L, IM1
-      LOGICAL :: HAVE_NORTH_POLE
+!     LOGICAL :: HAVE_NORTH_POLE
 
-      CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+!     CALL GET(grid, HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 !updates TRM (TRM_SAV in here) and GIJL using flux values
       DO L=1,LMO
@@ -610,7 +610,7 @@ C**** END of I and J loops
       END DO
       END DO
 
-      IF(HAVE_NORTH_POLE) THEN
+!     IF(HAVE_NORTH_POLE) THEN
 C****   North Polar box
         STRNP=0.
 C****   Fluxes in Y-direction
@@ -625,7 +625,7 @@ C**** adjust polar box
         TRM_SAV(1,JM,L)=TRM_SAV(1,JM,L) + STRNP/IM
 C**** Save Diagnostic, GIJL(2) = STRNP
         GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
-      END IF
+!     END IF
  622  END DO    !L loop
 
 C**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
@@ -654,20 +654,23 @@ C**** END of I and J loops
       END DO
       END DO
 
+
+!     IF(HAVE_NORTH_POLE) THEN
 C**** North Polar box
 C**** Loop for Fluxes in Z-direction
-      IF(KPL(1,JM).gt.L) GO TO 720
-      IF(LMM(1,JM).lt.L) GO TO 720
-      IF(LMM(1,JM).gt.L) THEN
+        IF(KPL(1,JM).gt.L) GO TO 720
+        IF(LMM(1,JM).lt.L) GO TO 720
+        IF(LMM(1,JM).gt.L) THEN
 C**** Calculate new tracer/salinity/enthalpy
-        RFZT = flux_z(1,JM,L)
+          RFZT = flux_z(1,JM,L)
 C**** Add and Subtract vertical flux. Note +ve upward flux
-        TRM_SAV(1,JM,L  ) = TRM_SAV(1,JM,L  ) + RFZT
-        TRM_SAV(1,JM,L+1) = TRM_SAV(1,JM,L+1) - RFZT
+          TRM_SAV(1,JM,L  ) = TRM_SAV(1,JM,L  ) + RFZT
+          TRM_SAV(1,JM,L+1) = TRM_SAV(1,JM,L+1) - RFZT
 C**** Save Diagnostic, GIJL(3) = RFZT
-        GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
-      END IF
- 720  CONTINUE
+          GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
+        END IF
+ 720    CONTINUE
+!     END IF     ! HAVE_NORTH_POLE
       END DO
 
       RETURN
