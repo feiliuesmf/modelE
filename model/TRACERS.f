@@ -385,6 +385,18 @@ C**** Tracers conc. in soil water
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
         end if
         scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+C**** Tracers conc. in land snow water
+      k = k+1
+      tij_snow = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_Snow'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Land Snow Water'
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+        end if
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.

@@ -69,7 +69,7 @@ C**** TAIJN
 #ifdef TRACERS_DRYDEP
       integer, parameter :: ktaij=13
 #else
-      integer, parameter :: ktaij=11
+      integer, parameter :: ktaij=12
 #endif
 #else
 #ifdef TRACERS_DRYDEP
@@ -87,7 +87,7 @@ C**** TAIJN
 #ifdef TRACERS_WATER
 !@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
-     *     ,tij_lk2,tij_soil
+     *     ,tij_lk2,tij_soil,tij_snow
 #endif
 #ifdef TRACERS_DRYDEP
       integer tij_drydep,tij_gsdep

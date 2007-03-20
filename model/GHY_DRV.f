@@ -45,7 +45,7 @@ c******************   TRACERS             ******************************
       use trdiag_com, only : taijn=>taijn_loc,tij_surf
      *  ,taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc
 #ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,tij_soil
+     *     ,tij_evap,tij_grnd,tij_soil,tij_snow
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
@@ -497,8 +497,12 @@ ccc not sure about the code below. hopefully that''s what is meant above
         taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         gtracer(n,itype,i,j)*ptype
         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n) + (
-     &       fb*(sum( tr_w(nx,1:ngm,1) ) + sum( tr_wsn(nx,1:nsn(1),1)))+
-     &       fv*(sum( tr_w(nx,0:ngm,2) ) + sum( tr_wsn(nx,1:nsn(2),2) ))
+     &       fb*(sum( tr_w(nx,1:ngm,1) ))+
+     &       fv*(sum( tr_w(nx,0:ngm,2) ))
+     *       )
+        taijn(i,j,tij_snow,n)=taijn(i,j,tij_snow,n) + (
+     &       fb*(sum( tr_wsn(nx,1:nsn(1),1) ))+
+     &       fv*(sum( tr_wsn(nx,1:nsn(2),2) ))
      *       )
         tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
      *       +trevapor(n,itype,i,j)*ptype
