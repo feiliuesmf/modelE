@@ -460,6 +460,9 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
       !----Local------
+
+      ! just in case, set to 0 to avoid possible NaNs
+      cpool(:) = 0.d0
       
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1e3!Bl
       cpool(FR) = cpool(FOL)   !Br

@@ -107,6 +107,12 @@
       real*8 Resp(PTRACE,NPOOLS)     !amt C lost to atm per pool (gC/m2), used to calculate Cflux
       real*8 poolsum                 !accumulates Resp
 
+
+
+!!! HACK  set Closs to something so that 1:NLIVE are initialized
+!!! please fix!
+      Closs(:,:) = 0.d0
+
       
 ! define rate coefs fact_soilmic, fact_slow, fact_passive (from casatci.F) -PK 5/25/06
         if(ivt.eq.CROPS)then      

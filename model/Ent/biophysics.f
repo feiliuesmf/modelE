@@ -223,7 +223,7 @@
 
       integer :: pft
       real*8 :: TcanopyC,P_mbar,Ch,U,CosZen,Ca,betad,Qf
-      real*8 :: GCANOPY,Ci,TRANS_SW,GPP,NPP !,R_auto
+      real*8 :: GCANOPY,Ci,TRANS_SW,GPP ! ,NPP !,R_auto
       real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
@@ -338,7 +338,7 @@
         R_autosum = R_autosum + cop%R_auto
 
        !* Accumulate uptake. 
-        cop%C_lab = cop%C_lab + NPP*dtsec/cop%n !(kg/individual)
+        cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
 
         cop => cop%shorter
       end do
