@@ -299,7 +299,8 @@
         pft =  cop%pft
 
         !GCM land surface saved variables.
-        GCANOPY = pp%GCANOPY *cop%LAI/pp%LAI !Fraction contrib. by cohort. ##HACK as it is not necessarily proportional by LAI.
+        GCANOPY = pp%GCANOPY  !##HACK FOR FRIEND SCHEME.  This only works if GCANOPY is not partitioned over different cohorts.
+        !GCANOPY = pp%GCANOPY *cop%LAI/pp%LAI !Fraction contrib. by cohort. ##HACK as it is not necessarily proportional by LAI.
         Ci = pp%Ci
 
         !print *,"Calling veg..."

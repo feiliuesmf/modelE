@@ -244,7 +244,7 @@
 
             pp%age=0.d0
             pp%area = 0.d0
-
+            
             !* Structural variables *!
             call zero_patch_cohortsum(pp)
 
