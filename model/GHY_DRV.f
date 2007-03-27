@@ -2555,7 +2555,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       use constant, only : rhow
       use veg_com, only : afb
       use ghy_com, only : tearth,wearth,aiearth,snowe,w_ij,ht_ij
-     *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij
+     *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij,LS_NFRAC
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
       USE TRACER_COM, only : ntm, trname, t_qlimit
@@ -2590,7 +2590,7 @@ c**** check for nan/inf in earth data
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hb')
       call check3(ht_ij(0:ngm,2,I_0:I_1,J_0:J_1),ngm+1,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hv')
-      call check3(snowbv(1:ngm,I_0:I_1,J_0:J_1),2    ,
+      call check3(snowbv(1:LS_NFRAC,I_0:I_1,J_0:J_1),LS_NFRAC,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'sn')
 
 c**** check for reasonable temperatures over earth
