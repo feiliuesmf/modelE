@@ -9,19 +9,17 @@ c
 #include "dimension2.h"
 #include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
-      integer io,jo
 c
 cdiag tta=0.
 cdiag tto=0.
-c$OMP PARALLEL DO PRIVATE(io,jo)
+c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
 c
       do 17 n=1,nlisto2a(ia,ja)
-      io=ilisto2a(ia,ja,n) 
-      jo=jlisto2a(ia,ja,n) 
- 17   flda(ia,ja)=flda(ia,ja)+fldo(io,jo)*wlisto2a(ia,ja,n)
+ 17   flda(ia,ja)=flda(ia,ja)+fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
+     .                                              *wlisto2a(ia,ja,n)
 cdiag tta=tta+flda(ia,ja)*ofrac(ia,ja)*agcmgdsz(ja)
  16   continue
 c$OMP END PARALLEL DO             
@@ -52,7 +50,7 @@ c
 c
 cdiag tto=0.
 c --- mapping tauxa/tauya to ogcm grid
-c$OMP PARALLEL DO PRIVATE(ia,ja) !!! REDUCTION(+:tto)
+c$OMP PARALLEL DO
       do 6 j=1,jj               
       do 6 l=1,isp(j)           
       do 6 i=ifp(j,l),ilp(j,l)
@@ -60,10 +58,10 @@ c$OMP PARALLEL DO PRIVATE(ia,ja) !!! REDUCTION(+:tto)
       sward(i,j)=0.
 c
       do 7 n=1,ntaua2o(i,j)
-      ia=itaua2o(i,j,n) 
-      ja=jtaua2o(i,j,n) 
-      eward(i,j)=eward(i,j)+tauxa(ia,ja)*wtaua2o(i,j,n)
- 7    sward(i,j)=sward(i,j)-tauya(ia,ja)*wtaua2o(i,j,n)
+      eward(i,j)=eward(i,j)+tauxa(itaua2o(i,j,n),jtaua2o(i,j,n))
+     .                                          *wtaua2o(i,j,n)
+ 7    sward(i,j)=sward(i,j)-tauya(itaua2o(i,j,n),jtaua2o(i,j,n))
+     .                                          *wtaua2o(i,j,n)
 cdiag tto=tto+eward(i,j)*ocellsz(i,j)
  6    continue
 c$OMP END PARALLEL DO
@@ -106,16 +104,15 @@ cdiag      do 18 ja=1,jja
 cdiag      tta=tta+flda(ia,ja)*agcmocn(ia,ja)
 cdiag 18   continue
 c
-c$OMP PARALLEL DO PRIVATE(ia,ja)
+c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
       fldo(i,j)=0.
 c
       do 9 n=1,nlista2o(i,j)
-      ia=ilista2o(i,j,n)
-      ja=jlista2o(i,j,n)
-      fldo(i,j)=fldo(i,j)+flda(ia,ja)*wlista2o(i,j,n)
+      fldo(i,j)=fldo(i,j)+flda(ilista2o(i,j,n),jlista2o(i,j,n))
+     .                        *wlista2o(i,j,n)
  9    continue
 cdiag      tto=tto+fldo(i,j)*ocellsz(i,j)
  8    continue
@@ -139,8 +136,7 @@ c
 #include "dimension2.h"
 #include "a2o.h"
       real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
-     .      ,nward(iio,jjo),eward(iio,jjo),tta,tto,sin
-      integer io,jo
+     .      ,nward(iio,jjo),eward(iio,jjo),tta,tto,sine
 c
 c$OMP PARALLEL DO
       do 10 j=1,jj
@@ -151,34 +147,40 @@ c$OMP END PARALLEL DO
 c
 c --- rotate taux/tauy to n/e orientation at local p point on panam grid
 c --- check velocity bounds
-c$OMP PARALLEL DO PRIVATE(jb,sin)
+c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jj
       jb=mod(j,jj)+1
       do 12 l=1,isp(j)           
       do 12 i=ifp(j,l),ilp(j,l)
-      if (iv(i,j)+iv(i,jb)+iu(i,j)+iu(i+1,j).eq.4) then
-      sin=sino(i,j)*sino(i,j)+coso(i,j)*coso(i,j)
+      if (ip(i,j).eq.1) then
+      sine=sino(i,j)*sino(i,j)+coso(i,j)*coso(i,j)
       nward(i,j)=((tauyo(i,j)+tauyo(i ,jb))*sino(i,j)
-     .           -(tauxo(i,j)+tauxo(i+1,j))*coso(i,j))/(2.*sin)
+     .           -(tauxo(i,j)+tauxo(i+1,j))*coso(i,j))/(2.*sine)
       eward(i,j)=((tauyo(i,j)+tauyo(i ,jb))*coso(i,j)
-     .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sin)
+     .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
+c     if (max(abs(nward(i,j)),abs(eward(i,j))).gt.1.e4)
+c    .   write(*,'(2i3,8es10.2)') i,j,tauyo(i,j),tauyo(i ,jb)
+c    .      ,tauxo(i,j),tauxo(i+1,j)
+c    . ,tauyo(i,j),tauyo(i ,jb),tauxo(i,j),tauxo(i+1,j)
       endif
  12   continue
 c$OMP END PARALLEL DO           
 c
 c --- mapping nward/eward from ogcm grid to agcm grid
 c
-c$OMP PARALLEL DO PRIVATE(io,jo)
+c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       tauxa(ia,ja)=0.
       tauya(ia,ja)=0.
 c
-      do 17 n=1,nlisto2a(ia,ja)
-      io=ilisto2a(ia,ja,n)
-      jo=jlisto2a(ia,ja,n)
-      tauxa(ia,ja)=tauxa(ia,ja)+eward(io,jo)*wlisto2a(ia,ja,n)
- 17   tauya(ia,ja)=tauya(ia,ja)+nward(io,jo)*wlisto2a(ia,ja,n)
+      do 17 n=1,nlisto2a_e(ia,ja)
+ 17   tauxa(ia,ja)=tauxa(ia,ja)+eward(ilisto2a_e(ia,ja,n)
+     .          ,jlisto2a_e(ia,ja,n))*wlisto2a_e(ia,ja,n)
+c
+      do 18 n=1,nlisto2a_n(ia,ja)
+ 18   tauya(ia,ja)=tauya(ia,ja)+nward(ilisto2a_n(ia,ja,n)
+     .          ,jlisto2a_n(ia,ja,n))*wlisto2a_n(ia,ja,n)
  16   continue
 c$OMP END PARALLEL DO
 c

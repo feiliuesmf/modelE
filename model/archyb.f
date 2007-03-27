@@ -18,10 +18,11 @@ c
       character flnm*40,intvl*3
       character what*12
       real*4 real4(idm,jdm)
-     .   ,time4,watcum4,empcum4,thref4,thbase4,theta4(kdm)
+     .   ,time4,watcum4,empcum4,thref4,theta4(kdm),unused
       integer*4 length4,idm4,jdm4,kdm4,nstep4
       integer*4 irecl ! specific record lenth, machine dependent
       logical, parameter :: smooth = .true.     ! smooth fields before saving
+      data unused/0./
 c
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 c --- check if ogcm date matches agcm date
@@ -63,12 +64,11 @@ c
       kdm4=kdm
       nstep4=nstep
       time4=time
-      thbase4=thbase
       do k=1,kk
         theta4(k)=theta(k)
       end do
       write (nop,rec=no) length4,idm4,jdm4,kdm4,nstep4,time4
-     .      ,thbase4,theta4
+     .      ,unused,theta4
 c
       if (smooth) then
 c
@@ -160,13 +160,27 @@ c
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'th3d        ',k,real4
       write (lp,100)     'th3d        ',k,no
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- ifort miscomputes 'no' in the following loop:
+ccc      do nt=1,ntrcr
+ccc        no=no+1
+ccc        call r8tor4(tracer(1,1,k,nt),real4)
+ccc        if (smooth) call psmoo4(real4)
+ccc        write (what,'(a6,i2,4x)') 'tracer',nt
+ccc        write (nop,rec=no) what,k,real4
+ccc      write (lp,100)       what,k,no
+ccc      end do
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- code around compiler glitch:
       do nt=1,ntrcr
-        no=no+1
         call r8tor4(tracer(1,1,k,nt),real4)
-        write (what,'(a7,i2)') 'tracer ',nt
-        write (nop,rec=no) what,k,real4
-        write (lp,100)     what,k,no
+        if (smooth) call psmoo4(real4)
+        write (what,'(a6,i2,4x)') 'tracer',nt
+        write (nop,rec=no+nt) what,k,real4
+      write (lp,100)       what,k,no+nt
       end do
+      no=no+ntrcr
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  75   continue
 c
 c --- output time-averaged fields

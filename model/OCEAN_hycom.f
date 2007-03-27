@@ -1,39 +1,28 @@
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-      use DOMAIN_DECOMP, only: AM_I_ROOT
-      use hybrid_mpi_omp_coupler, only: init_hybrid_coupler
-      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
-      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities
-      use hybrid_mpi_omp_coupler, only: startMultiThreaded
-      use hybrid_mpi_omp_coupler, only: startSingleThreaded
-
-      integer istart
-
-      call gatherDistributedQuantities()
-
-      if (AM_I_ROOT()) then
-         call startMultiThreaded()
-
-        !--------------------------
-        call init_OCEAN_internal(iniOCEAN, istart)
-        !--------------------------
-
-        call startSingleThreaded()
-      end if
-      call scatterDistributedQuantities()
-
-      END SUBROUTINE init_OCEAN
-
-      SUBROUTINE init_OCEAN_internal(iniOcean, istart)
-      USE MODEL_COM, only : im,jm
-      ! MODEL_COM module
-      USE hybrid_mpi_omp_coupler, only : focean
-      ! From FLUXES
-      use hybrid_mpi_omp_coupler, only: gtemp
+      USE MODEL_COM, only : im,jm,focean
+      USE FLUXES, only : gtemp
       integer istart
 #include "dimensions.h"
 #include "dimension2.h"
 #include "cpl.h"
+css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
+c
+c --- increase temp by 2 deg
+c     do 21 j=1,jj
+c     do 21 l=1,isp(j)
+c     do 21 i=ifp(j,l),ilp(j,l)
+c       if (latij(i,j,3).lt.-65..and.lonij(i,j,3).le.5.) then !lat[-90:90],lon[0:360]
+c         p(i,j,1)=0.
+c         do k=1,kk
+c         p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
+c         temp(i,j,   k)=temp(i,j,   k)+2.*(min(p(i,j,k+1),200.*onem)-
+c    .    min(p(i,j,k),200.*onem))/max(dp(i,j,k),onemm)
+c         temp(i,j,kk+k)=temp(i,j,kk+k)+2.*(min(p(i,j,k+1),200.*onem)-
+c    .    min(p(i,j,k),200.*onem))/max(dp(i,j,k),onemm)
+c         enddo
+c       endif
+c21   continue
 c
       if (istart.gt.2) then               !istart=2 has done this in inirfn
       DO J=1,JM
@@ -45,7 +34,7 @@ c
       END DO
       endif
 c
-      END SUBROUTINE init_OCEAN_internal
+      END SUBROUTINE init_OCEAN
 c
       SUBROUTINE DUMMY_OCN
 !@sum  DUMMY necessary entry points for non-dynamic/non-deep oceans
@@ -71,7 +60,7 @@ css   entry io_ocean(iu_GIC,ioread,ioerr)
 css   entry CHECKO(SUBR)
 c
       ENTRY ADVSI_DIAG
-!     entry alloc_ocean           ! TNL
+      entry alloc_ocean
 c --- not calling ice dynamics
 css      ENTRY DYNSI
 css      ENTRY ADVSI
@@ -84,37 +73,15 @@ c
       RETURN
       END SUBROUTINE DUMMY_OCN
 c
-
-      SUBROUTINE io_ocean(kunit, iaction, ioerr)
-      use DOMAIN_DECOMP, only: AM_I_ROOT
-      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities_IO
-      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities_IO
-
-      integer kunit, iaction, ioerr
-
-      call gatherDistributedQuantities_IO()
-      if (AM_I_ROOT()) then
-
-        !--------------------------
-        call io_ocean_internal(kunit, iaction, ioerr)
-        !--------------------------
-
-      end if
-
-      call scatterDistributedQuantities_IO()
-
-      END SUBROUTINE io_ocean
-      
-      SUBROUTINE io_ocean_internal(kunit,iaction,ioerr)
+      SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
 !@ver  1.0       
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
-      ! from FLUXES
-      use hybrid_mpi_omp_coupler, only: sss,ogeoza,uosurf,vosurf,
-     *     dmsi,dhsi,dssi
+      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
       IMPLICIT NONE
 #include "dimensions.h"
+#include "dimension2.h"
 #include "common_blocks.h"
 #include "cpl.h"
 c
@@ -142,15 +109,16 @@ c
       CASE (:IOWRITE)            ! output to standard restart file
 css     WRITE (kunit,err=10) MODULE_HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO
 css  *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
+css#ifdef TRACERS_OCEAN
+css       WRITE (kunit,err=10) TRMODULE_HEADER,tracer
+css#endif
         WRITE (kunit,err=10) MODULE_HEADER,nstep,time
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
-#ifdef TRACERS_OCEAN
-       WRITE (kunit,err=10) TRMODULE_HEADER,tracer
-#endif
+     . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
           CASE (IRSFICNO)   ! initial conditions (no ocean data)
@@ -159,17 +127,20 @@ css  *     ,S0M,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
+            print *,' calling geopar'
             call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
+     . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
-            nstep=nstep0
-            time=time0
+      nstep=nstep0
+      time=time0
+c
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
@@ -189,11 +160,12 @@ css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
             call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
+     . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -208,35 +180,14 @@ c
  10   IOERR=1
       RETURN
 C****
-      END SUBROUTINE io_ocean_internal
+      END SUBROUTINE io_ocean
 c
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
-
-      call gatherDistributedQuantities()
-
-      if (AM_I_ROOT()) then
-
-        !--------------------------
-         call CHECKO_internal(SUBR)
-        !--------------------------
-
-      end if
-
-      END SUBROUTINE CHECKO
-
-      SUBROUTINE CHECKO_internal(SUBR)
-!@sum  CHECKO Checks whether Ocean are reasonable
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
-      ! FLUXES module
-      use hybrid_mpi_omp_coupler, only: gtemp
-      ! MODEL_COM module
-      USE hybrid_mpi_omp_coupler, only : focean
+      USE FLUXES, only : gtemp
+      USE MODEL_COM, only : focean
 
       IMPLICIT NONE
       integer i,j
@@ -248,7 +199,7 @@ c
       write(*,'(10f7.2)') ((gtemp(1,1,i,j),i=1,10),j=15,20)
       write(*,'(a)') 'focean'
       write(*,'(10f7.2)') ((focean(i,j),i=1,10),j=15,20)
-      END SUBROUTINE CHECKO_internal
+      END SUBROUTINE CHECKO
 c
 
       SUBROUTINE daily_OCEAN
@@ -284,6 +235,6 @@ css      RETURN
 css      END
 c
       subroutine gather_odiags
-C     nothing to gather - not ready yet
+C     nothing to gather - ocean prescribed
       return
       end subroutine gather_odiags

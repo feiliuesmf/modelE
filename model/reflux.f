@@ -108,7 +108,7 @@ cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,knew,'  clout:',
 cdiag.    signew(i,j,knew),(pnew(i,j,knew+1)-pnew(i,j,knew))
       cloutr(i)=cloutr(i)+signew(i,j,knew)
      .   *(pnew(i,j,knew+1)-pnew(i,j,knew))
-      if (abs(cloutr(i)-colinr(i)).gt.acurcy*thbase*pold(i,j,kold+1))
+      if (abs(cloutr(i)-colinr(i)).gt.acurcy*35.*pold(i,j,kold+1))
      .  write (*,100) i,j,'  reflux - bad dens.intgl.',colinr(i),
      .    cloutr(i),(cloutr(i)-colinr(i))/colinr(i)
  100  format (2i5,a,1p,2e16.8,e9.1)
@@ -117,9 +117,9 @@ cdiag.    signew(i,j,knew),(pnew(i,j,knew+1)-pnew(i,j,knew))
 c$OMP END PARALLEL DO
 c
 cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' old density profile:',
-cdiag.   (sigold(itest,jtest,k)+thbase,k=1,kold)
+cdiag.   (sigold(itest,jtest,k),k=1,kold)
 cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' new density profile:',
-cdiag.   (signew(itest,jtest,k)+thbase,k=1,knew)
+cdiag.   (signew(itest,jtest,k),k=1,knew)
 c
 c$OMP PARALLEL DO PRIVATE(ja,colinu,colinv,cloutu,cloutv,uinteg,vinteg,
 c$OMP+ siga,sigb,phi,plo,pa,pb,q,delp,uold,vold) SHARED(abort)

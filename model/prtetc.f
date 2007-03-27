@@ -108,7 +108,7 @@ c
       logical slave,fail
       common/cmp_pipe/iunit,lpunit,slave
 c
-      if (nstep.le.450) return                !  don't start right away
+      if (nstep.le.24) return                ! don't start right away
 c
       if (slave) then
       write (lpunit,'(2a)') 'writing for comparison: ',what
@@ -316,7 +316,7 @@ c
      .   ,(j,j=jz-2,jz+2)
       write (lp,105)
      .  (i,(p(i,j,ks+1)/onem,j=jz-2,jz+2),
-     .  (th3d(i,j,ks)+thbase,j=jz-2,jz+2),i=iz-2,iz+2)
+     .  (th3d(i,j,ks),j=jz-2,jz+2),i=iz-2,iz+2)
 c
  1    continue
 ccc      if (1.gt.0) stop '(stencl)'                !  optional
@@ -346,6 +346,33 @@ c
 c
       return
       end
+c
+c
+      subroutine pr_9x9(array,idm,jdm,iz,jz,offset,scale,what)
+c
+c --- (sames as prt9x9 except that array dimensions are passed as arguments)
+c
+c --- write 9 x 9 point cluster of 'array' values centered on (iz,jz).
+c --- the printed numbers actually represent (array(i,j) + offset) * scale
+c
+      implicit none
+c
+      real array(idm,jdm),scale,offset
+      character what*12
+      integer lp,idm,jdm,i,j,iz,jz,jwrap
+      common /linepr/ lp
+      jwrap(j)=mod(j-1+jdm,jdm)+1               !  for use in cyclic domain
+c
+ 100  format(a12,9i7)
+ 101  format(i10,3x,9f7.1)
+c
+      write (lp,100) what,(jwrap(j),j=jz-4,jz+4)
+      write (lp,101) (i,(scale*(array(i,jwrap(j))+offset),
+     .   j=jz-4,jz+4),i=iz-4,iz+4)
+c
+      return
+      end
+c
 c
       subroutine prt7x7(array,iz,jz,what)
 c

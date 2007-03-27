@@ -3,29 +3,32 @@ c
 c --- hycom version 0.9 -- cyclic and noncyclic b.c. combined
       implicit none
 c
-#include "dimensions.h"
-#include "dimension2.h"
-#include "common_blocks.h"
+      include 'dimensions.h'
+      include 'dimension2.h'
+      include 'common_blocks.h'
 c
       real stress(idm,jdm),stresx(idm,jdm),stresy(idm,jdm),
      .     dpmx(idm,jdm),visc(idm,jdm),vort(idm,jdm),oneta(idm,jdm),
      .     wgtia(idm,jdm),wgtib(idm,jdm),wgtja(idm,jdm),wgtjb(idm,jdm),
      .     dpxy,dpia,dpib,dpja,dpjb,visca,viscb,ptopl,pbotl,cutoff,q,
      .     dt1inv,phi,plo,ubot,vbot,thkbop,thk,thka,thkb,avg,slab,
-     .     olda,oldb,botvel,drcoef,dmontg,dthstr
+     .     olda,oldb,boost,pbot1,pbot2,p1,p2,botvel,drcoef
       real dl2u(idm,jdm),dl2uja(idm,jdm),dl2ujb(idm,jdm),
      .     dl2v(idm,jdm),dl2via(idm,jdm),dl2vib(idm,jdm)
       integer kan,jcyc
       character text*20
-      data drcoef/.003/
       real kappaf,hfharm
       external kappaf,hfharm
+      data drcoef/.003/
+c
+      boost(pbot1,pbot2,p1,p2)=max(1.,1.5-min(pbot1-p1,pbot2-p2)
+     .  /min(3.*tenm,.125*(pbot1+pbot2)))
 c
 c --- --------------------
 c --- hydrostatic equation
 c --- --------------------
 c
-c$OMP PARALLEL DO PRIVATE(km) SHARED(kapref)
+c$OMP PARALLEL DO PRIVATE(km)
       do 81 j=1,jj
       do 81 l=1,isp(j)
 c
@@ -36,19 +39,8 @@ c
 c --- use upper interface pressure in converting sigma to sigma-star.
 c --- this is to avoid density variations in layers intersected by sea floor
 c
-      if (kapref.ne.0) then !thermobaric
-        if (kapref.gt.0) then
-          thstar(i,j,k)=th3d(i,j,km)
-     .     +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),kapref)
-        else
-          thstar(i,j,k)=th3d(i,j,km)
-     .     +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),2)
-          thstar(i,j,k+kk)=th3d(i,j,km)
-     .     +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),kapi(i,j))
-        endif
-      else  !non-thermobaric
-        thstar(i,j,k)=th3d(i,j,km)
-      endif  !thermobaric:else
+      thstar(i,j,k)=th3d(i,j,km)
+     .   +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k))
 c
  82   p(i,j,k+1)=p(i,j,k)+dp(i,j,km)
 c
@@ -58,25 +50,15 @@ c --- store (1+eta) (= p_total/p_prime) in -oneta-
       oneta(i,j)=1.+pbavg(i,j,m)/p(i,j,kk+1)
 c
 c --- m_prime in lowest layer:
-      montg(i,j,kk)=psikk(i,j,1)+(p(i,j,kk+1)
-     .      *(thkk(i,j,1)-thstar(i,j,kk))
-     .      -pbavg(i,j,m)*(thstar(i,j,kk)+thbase))*thref**2
-      if (kapref.eq.-1)
-     .montg(i,j,2*kk)=psikk(i,j,2)+(p(i,j,kk+1)
-     .      *(thkk(i,j,2)-thstar(i,j,2*kk))
-     .      -pbavg(i,j,m)*(thstar(i,j,2*kk)+thbase))*thref**2
- 80   continue
+ 80   montg(i,j,kk)=psikk(i,j)+(p(i,j,kk+1)*(thkk(i,j)-thstar(i,j,kk))
+     .              -pbavg(i,j,m)*(thstar(i,j,kk)+thbase))*thref**2
 c
 c --- m_prime in remaining layers:
       do 81 k=kk-1,1,-1
       km=k+mm
       do 81 i=ifp(j,l),ilp(j,l)
-      montg(i,j,k)=montg(i,j,k+1)+p(i,j,k+1)*oneta(i,j)
+ 81   montg(i,j,k)=montg(i,j,k+1)+p(i,j,k+1)*oneta(i,j)
      .          *(thstar(i,j,k+1)-thstar(i,j,k))*thref**2
-      if (kapref.eq.-1)
-     .montg(i,j,kk+k)=montg(i,j,kk+k+1)+p(i,j,k+1)*oneta(i,j)
-     .          *(thstar(i,j,kk+k+1)-thstar(i,j,kk+k))*thref**2
- 81   continue
 c$OMP END PARALLEL DO
 c
 cdiag do j=jtest-1,jtest+1
@@ -120,7 +102,7 @@ c
       vbot=vbavg(i,j,n)+vbavg(i,jb ,n)+util2(i,j)/thkbop
       botvel=.25*sqrt(ubot*ubot+vbot*vbot)+cbar
       ustarb(i,j)=sqrt(drcoef)*botvel
- 804  drag(i,j)=min(drcoef*botvel/thkbot,.5/delt1)              ! units: 1/s
+ 804  drag(i,j)=min(drcoef*botvel/thkbot,.5/delt1)		! units: 1/s
 c$OMP END PARALLEL DO
 c
 c --- store r.h.s. of barotropic u/v eqn. in -ubrhs,vbrhs-
@@ -141,7 +123,7 @@ c
       stresx(i,j)=(taux(i,j)+taux(i-1,j))*.5
      .            *g/min(ekman*onem,depthu(i,j))        !  units: m/s^2
 c --- reduce stress under ice
-ccc      stresx(i,j)=stresx(i,j)*(1.-.45*(covice(i,j)+covice(i-1,j)))
+c     stresx(i,j)=stresx(i,j)*(1.-.45*(covice(i,j)+covice(i-1,j)))
  69   continue
 c
       do 70 l=1,isv(j)
@@ -154,9 +136,11 @@ c
       stresy(i,j)=(tauy(i,j)+tauy(i,ja))*.5
      .            *g/min(ekman*onem,depthv(i,j))        !  units: m/s^2
 c --- reduce stress under ice
-ccc      stresy(i,j)=stresy(i,j)*(1.-.45*(covice(i,j)+covice(i,ja )))
+c     stresy(i,j)=stresy(i,j)*(1.-.45*(covice(i,j)+covice(i,ja )))
  70   continue
 c$OMP END PARALLEL DO
+c
+c --- the old  momeq2.f  starts here
 c
       cutoff=5.*onem
 c
@@ -165,7 +149,7 @@ c$OMP PARALLEL DO
       do 814 i=1,ii
       dl2u(i,j)=0.
       dl2v(i,j)=0.
-      vort(i,j)=huge                        !  diagnostic use
+      vort(i,j)=huge			!  diagnostic use
 c --- spatial weighting function for pressure gradient calculation:
       util1(i,j)=0.
  814  util2(i,j)=0.
@@ -185,7 +169,7 @@ c$OMP PARALLEL DO
  812  dpmx(i,j)=2.*cutoff
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SHARED(k)
       do 807 j=1,jj
       do 807 l=1,isu(j)
       do 807 i=ifu(j,l),ilu(j,l)
@@ -205,7 +189,7 @@ c$OMP PARALLEL DO PRIVATE(jb)
  802  dpmx(i,jb )=max(dpmx(i,jb ),dp(i,j,km)+dp(i-1,j,km))
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SHARED(k)
       do 808 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 808 l=1,isv(j)
@@ -222,7 +206,7 @@ c --- define auxiliary velocity fields (via,vib,uja,ujb) to implement
 c --- sidewall friction along near-vertical bottom slopes. wgtja,wgtjb,wgtia,
 c --- wgtib indicate the extent to which a sidewall is present.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib)
+c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SHARED(k)
       do 806 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -376,8 +360,10 @@ c$OMP PARALLEL DO PRIVATE(jb)
       jb=mod(j     ,jj)+1
       do 37 l=1,isu(j)
       do 37 i=ifu(j,l),ilu(j,l)
- 37   visc(i,j)=max(veldff,viscos*
+      visc(i,j)=max(veldff,viscos*
      .sqrt(.5*(defor1(i,j)+defor1(i-1,j)+defor2(i,j)+defor2(i,jb ))))
+     .   *boost(pbot(i,j),pbot(i-1,j),p(i,j,k),p(i-1,j,k))
+ 37   continue
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,dpxy,dpja,dpjb,visca,viscb)
@@ -439,22 +425,13 @@ c
 c --- pressure force in x direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 c
-c$OMP PARALLEL DO SHARED(k,kapref) PRIVATE(dmontg,dthstr)
+c$OMP PARALLEL DO SHARED(k)
       do 96 j=1,jj
       do 96 l=1,isu(j)
       do 96 i=ifu(j,l),ilu(j,l)
       util1(i,j)=max(0.,min(depthu(i,j)-pu(i,j,k),h1))
-      if (kapref.ne.-1) then
-        dmontg=montg( i,j,k)-montg( i-1,j,k)
-        dthstr=thstar(i,j,k)-thstar(i-1,j,k)
-      else !2 thermobaric reference states
-        q=0.5*(skap(i,j)+skap(i-1,j))
-        dmontg=     q *(montg( i,j,k   )-montg( i-1,j,k   ))+
-     .         (1.0-q)*(montg( i,j,kk+k)-montg( i-1,j,kk+k))
-        dthstr=     q *(thstar(i,j,k   )-thstar(i-1,j,k   ))+
-     .         (1.0-q)*(thstar(i,j,kk+k)-thstar(i-1,j,kk+k))
-      endif
- 96   pgfx(i,j)=util1(i,j)*(dmontg+dthstr
+ 96   pgfx(i,j)=util1(i,j)*
+     .    (montg(i,j,k)-montg(i-1,j,k)+(thstar(i,j,k)-thstar(i-1,j,k))
      .      *(p(i,j,k+1)*p(i-1,j,k+1)-p(i,j,k)*p(i-1,j,k))*thref**2
      .      /(dp(i,j,km)+dp(i-1,j,km)+epsil))
 c$OMP END PARALLEL DO
@@ -482,7 +459,7 @@ c
      .  (util1(i-1,j)+util1(i+1,j)+util1(i,ja)+util1(i,jb)+epsil))/h1
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(jb,ptopl,pbotl)
+c$OMP PARALLEL DO PRIVATE(jb,ptopl,pbotl) SHARED(k)
       do 6 j=1,jj
       jb=mod(j     ,jj)+1
       do 6 l=1,isu(j)
@@ -551,8 +528,10 @@ c$OMP PARALLEL DO PRIVATE(ja)
       ja=mod(j-2+jj,jj)+1
       do 38 l=1,isv(j)
       do 38 i=ifv(j,l),ilv(j,l)
- 38   visc(i,j)=max(veldff,viscos*
+      visc(i,j)=max(veldff,viscos*
      .sqrt(.5*(defor1(i,j)+defor1(i,ja )+defor2(i,j)+defor2(i+1,j))))
+     .   *boost(pbot(i,j),pbot(i,ja ),p(i,j,k),p(i,ja ,k))
+ 38   continue
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO PRIVATE(j,ja,jb)
@@ -627,23 +606,14 @@ c
 c --- pressure force in y direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 c
-c$OMP PARALLEL DO SHARED(ja,kapref) PRIVATE(dmontg,dthstr)
+c$OMP PARALLEL DO PRIVATE(ja) SHARED(k)
       do 97 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 97 l=1,isv(j)
       do 97 i=ifv(j,l),ilv(j,l)
       util2(i,j)=max(0.,min(depthv(i,j)-pv(i,j,k),h1))
-      if (kapref.ne.-1) then
-        dmontg=montg( i,j,k)-montg( i,ja,k)
-        dthstr=thstar(i,j,k)-thstar(i,ja,k)
-      else !2 thermobaric reference states
-        q=0.5*(skap(i,j)+skap(i,ja))
-        dmontg=     q *(montg( i,j,k   )-montg( i,ja,k   ))+
-     .         (1.0-q)*(montg( i,j,kk+k)-montg( i,ja,kk+k))
-        dthstr=     q *(thstar(i,j,k   )-thstar(i,ja,k   ))+
-     .         (1.0-q)*(thstar(i,j,kk+k)-thstar(i,ja,kk+k))
-      endif
- 97   pgfy(i,j)=util2(i,j)*(dmontg+dthstr
+ 97   pgfy(i,j)=util2(i,j)*
+     .    (montg(i,j,k)-montg(i,ja ,k)+(thstar(i,j,k)-thstar(i,ja ,k))
      .      *(p(i,j,k+1)*p(i,ja ,k+1)-p(i,j,k)*p(i,ja ,k))*thref**2
      .      /(dp(i,j,km)+dp(i,ja ,km)+epsil))
 c$OMP END PARALLEL DO
@@ -674,7 +644,7 @@ c
      .  (util2(ia ,j)+util2(ib ,j)+util2(i,ja )+util2(i,jb )+epsil))/h1
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb,ptopl,pbotl)
+c$OMP PARALLEL DO PRIVATE(ja,jb,ptopl,pbotl) SHARED(k)
       do 7 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -846,7 +816,7 @@ c
       km=k+mm
       kn=k+nn
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SHARED(k)
       do 22 j=1,jj
 c
       do 24 l=1,isu(j)
@@ -922,3 +892,5 @@ c> Oct. 2000 - changed 'thkbot' in drag formula (stmt. 804) to 'thkbop/g'
 c> Oct. 2000 - limited bottom drag to  1/(model time step)
 c> Apr. 2001 - eliminated stmt_funcs.h
 c> Dec. 2001 - added 'glue' to lateral mixing operation
+c> Jan. 2004 - boosted viscosity near sea floor (loops 37,38)
+c> Mar. 2006 - added bering strait exchange logic

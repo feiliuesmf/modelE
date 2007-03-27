@@ -468,112 +468,6 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  154  continue
 c$OMP END PARALLEL DO
 c
-c --- initialize thermobaric reference state arrays.
-c
-      if (kapref.ne.-1) then
-        kapnum=1
-      else
-        kapnum=2
-      endif
-c
-      if (kapref.eq.-1) then
-c ---   input field is between 1.0 and 3.0 and indicates the
-c ---   relative strength of the two nearest reference states,
-c ---     e.g. 1.7 is 70% ref2 and 30% ref1
-c ---     and  2.3 is 70% ref2 and 30% ref3.
-c
-      open (34,file=flnmbas,form='formatted',status='old')
-      do n=1,2
-      read(34,*)
-      read(34,'(90i1)') ((ip(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
-      enddo
-      close(34)
-c
-      do 3 i=1,idm
-      do 3 j=1,jdm 
-      util1(i,j)=1.             !land
-c
-      if (    ip(i,j).eq.1 .or. ip(i,j).eq.2) then  ! N.S. of AT
-        util1(i,j)=2
-      elseif (ip(i,j).eq.3 .or. ip(i,j).eq.4) then  ! N.S. of IN
-        util1(i,j)=1.6
-        util1(i,j)=2.           ! Alan's choice
-      elseif (ip(i,j).eq.5 .or. ip(i,j).eq.6) then  ! N.S. of PA
-        util1(i,j)=1.3
-        util1(i,j)=2.           ! Alan's choice
-      elseif (ip(i,j).eq.7 .or. ip(i,j).eq.8) then
-        util1(i,j)=1                               ! Arctic/Antarctic
-      elseif (ip(i,j).eq.9)  then
-        util1(i,j)=3                               ! Med
-      endif
-c     if (ip(i,j).gt.0) util1(i,j)=2               ! Arctic/Antarctic
- 3    continue
-c
-      call findmx(iu,util1,ii,ii,jj,'kap1')
-      write(*,'(a)') 'chk kap1'
-      do n=1,4
-      write (*,'(45i2)') ((int(util1(i,j)*10),j=(n-1)*jj/4+1,n*jj/4)
-     .                                        ,i=1,idm)
-      write (*,*)
-      enddo
-c
-      do m=1,10
-      call psmooo(util1)
-      enddo
-      call findmx(iu,util1,ii,ii,jj,'kap2')
-      write(*,'(a)') 'chk kap2'
-      do n=1,4
-      write (*,'(45i2)') ((int(util1(i,j)*10),j=(n-1)*jj/4+1,n*jj/4)
-     .                                                     ,i=1,idm)
-      write (*,*)
-      enddo
-c
-c       kapi is the 2nd reference state (1st is always 2)
-c       skap is the scale factor (0.0-1.0) for the 1st reference state
-c
-c       assumes that reference states 1 and 3 are never next to each other.
-c
-        do 155 j=1,jj
-        ja=mod(j-2+jj,jj)+1
-        jb=mod(j     ,jj)+1
-        do 155 l=1,isp(j)
-        do 155 i=ifp(j,l),ilp(j,l)+1
-        ia=mod(i-2+ii,ii)+1
-        ib=mod(i     ,ii)+1
-c
-c           if     (max(util1(i, j),
-c    &                  util1(ia,j),
-c    &                  util1(ib,j),
-c    &                  util1(i,ja),
-c    &                  util1(i,jb) ).gt.2.0) then
-        if (util1(i,j).gt.2.0) then
-              util2(i,j) = 3.0              !kapi
-               skap(i,j) = 3.0 - util1(i,j)
-            else
-              util2(i,j) = 1.0              !kapi
-               skap(i,j) = util1(i,j) - 1.0
-            endif
-        if (skap(i,j).lt.0. .or. skap(i,j).gt.1.) then
-          write(*,'(2i4,3(a,f5.1),a,i2)')i,j,' skap=',skap(i,j)
-     . ,' util2=',util2(i,j),' read in kapi=',util1(i,j),' ip=',ip(i,j)
-          stop 'wrong skap'
-        endif
- 155    continue
-        kapi(:,:) = util2(:,:)
-c
-        write(*,'(a)') 'chk skap'
-        do n=1,4
-        write (*,'(45i2)') ((int(skap(i,j)*10),j=(n-1)*jj/4+1,n*jj/4)
-     .                                                     ,i=1,idm)
-        write (*,*)
-        enddo
-c
-      else
-        skap(:,:) = 1.0     !for diagnostics only
-        kapi(:,:) = kapref  !for diagnostics only
-      endif !kapref.eq.-1:else
-c
-c
 c --- read in all weights
 c
 c$OMP PARALLEL DO
@@ -610,6 +504,16 @@ c
       read(16,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
       close(16)
 c
+      open(17,file=flnmo2a_e,form='unformatted',status='old',
+     .  access='direct',recl=iia*jja*((nwgto2a*2+1)*4+nwgto2a*8))
+      read(17,rec=1) ilisto2a_e,jlisto2a_e,wlisto2a_e,nlisto2a_e
+      close(17)
+c
+      open(18,file=flnmo2a_n,form='unformatted',status='old',
+     .  access='direct',recl=iia*jja*((nwgto2a*2+1)*4+nwgto2a*8))
+      read(18,rec=1) ilisto2a_n,jlisto2a_n,wlisto2a_n,nlisto2a_n
+      close(18)
+c
       open(22,file=flnmcoso,form='unformatted',status='old')
       read(22) iz,jz,coso,sino
       close(22)
@@ -617,6 +521,14 @@ c
         print *,' iz,jz=',iz,jz
         stop '(wrong iz/jz in cososino.8bin)'
       endif
+c
+c --- 1:8: NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
+      open (34,file=flnmbas,form='formatted',status='old')
+      do n=1,2
+      read(34,*)
+      read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
+      enddo 
+      close(34)
 c
       return
       end

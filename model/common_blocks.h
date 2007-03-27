@@ -15,8 +15,8 @@ c
      .,th3d(idm,jdm,2*kdm)                    ! potential density
      .,thstar(idm,jdm,2*kdm)                  ! virtual potential density
      .,thermb(idm,jdm,2*kdm)                  ! difference thstar - th3d
-     .,psikk(idm,jdm,2)                       ! init.montg.pot. in bottom layer
-     .,thkk(idm,jdm,2)                        ! init.thstar in bottom layer
+     .,psikk(idm,jdm)                         ! init.montg.pot. in bottom layer
+     .,thkk(idm,jdm)                          ! init.thstar in bottom layer
      .,dpmixl(idm,jdm)                        ! Kraus-Turner mixed layer depth
      .,srfhgt(idm,jdm)                        ! sea surface height
 c
@@ -24,7 +24,7 @@ c
      .     temp,saln,th3d,thstar,thermb,psikk,thkk,dpmixl,srfhgt
 c
       c o m m o n
-     . montg(idm,jdm,2*kdm)                   ! montgomery potential
+     . montg(idm,jdm,kdm)                     ! montgomery potential
      .,defor1(idm,jdm),defor2(idm,jdm)        ! deformation components
      .,ubavg(idm,jdm,3),vbavg(idm,jdm,3)      ! barotropic velocity
      .,pbavg(idm,jdm,3)                       ! barotropic pressure
@@ -103,20 +103,15 @@ c    .,odhsi(idm,jdm)                         ! heat borrowed from frozen
      .,odmsi(idm,jdm)                         ! newly formed ice
      .,omlhc(idm,jdm)
      .,dmfz(idm,jdm)                          ! ice mass due to freezing
-     .,skap(idm,jdm)        ! thermobaric scale factor between reference states
 c
       real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
 c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
-     .   ,odmsi,omlhc,dmfz,skap
+     .   ,odmsi,omlhc,dmfz
 c
       integer, dimension (idm,jdm) ::
      .  klist         !k-index of layer below mixl'r
-     . ,kapi          !thermobaric reference state index (1 or 3)
-      integer ::
-     . kapref         !thermobaric reference state (-1=input,0=none,1,2,3=const)
-     .,kapnum         !number of thermobaric reference states (1 or 2)
 c
-      common/int1/klist,kapi,kapref,kapnum
+      common/int1/klist
 
 c ---  s w i t c h e s    (if set to .true., then...)
 c --- diagno      output model fields and diagnostic messages
@@ -186,11 +181,11 @@ c ---' salmin' = minimum salinity allowed in an isopycnic layer
 c --- 'acurcy' = permissible roundoff error in column integral calc.
 c --- 'nhr   ' = coupling freq. in hours
 c
-      common/parms1/thbase,sigma(kdm),theta(kdm),baclin,batrop,thkdff,
+      common/parms1/thbase,theta(kdm),baclin,batrop,thkdff,
      .              veldff,temdff,viscos,diapyc,vertmx,h1,slip,cbar,
      .              diagfq,wuv1,wuv2,wts1,wts2,acurcy,wbaro,thkmin,
      .              thkbot,botmin,ekman,sigjmp,salmin(kdm)
-      real sigma,theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
+      real theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
      .     diapyc,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,acurcy,
      .     wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
 c
@@ -227,10 +222,12 @@ c
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
      .            ,flnminp,flnmint,flnmins
      .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
+     .            ,flnmo2a_e,flnmo2a_n
       common/iovars/flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
      .            ,flnminp,flnmint,flnmins
      .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
+     .            ,flnmo2a_e,flnmo2a_n
 c
 c> Revision history:
 c>

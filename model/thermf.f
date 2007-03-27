@@ -9,8 +9,8 @@ c
 #include "dimension2.h"
 #include "common_blocks.h"
 c
-      real thknss,radfl,radflw,radfli,wind,airt,vpmx,prcp,prcpw,prcpi,
-     .     evap,evapw,evapi,snsibl,snsibw,snsibi,exchng,target,old,
+      real thknss,radfl,radflw,radfli,vpmx,prcp,prcpw,prcpi,
+     .     evap,evapw,evapi,exchng,target,old,
      .     rmean,tmean,smean,vmean,boxvol,emnp(idm,jdm),slfcol(jdm),
      .     watcol(jdm),empcol(jdm),rhocol(jdm),temcol(jdm),salcol(jdm)
       integer iprime,ktop
@@ -68,8 +68,8 @@ c
       tmean=0.
       smean=0.
 c
-c$OMP PARALLEL DO PRIVATE(thknss,wind,airt,vpmx,prcp,exchng,
-c$OMP. radfl,radflw,radfli,evap,evapw,evapi,snsibl,snsibw,snsibi)
+c$OMP PARALLEL DO PRIVATE(thknss,vpmx,prcp,exchng,
+c$OMP. radfl,radflw,radfli,evap,evapw,evapi)
       do 85 j=1,jj
 c
       watcol(j)=0.
@@ -143,7 +143,7 @@ css  .  slfcum*365.*86400.*g/onem
      .                                                     ,f9.3)')
      .  slfcum*36500.*86400.*g/(avgbot*area*onem)
       write (lp,'(i9,a,3f9.3)') nstep,' mean surf. sig,temp,saln:',
-     .    rmean/area+thbase,tmean/area,smean/area
+     .    rmean/area,tmean/area,smean/area
 c
       rmean=0.
       smean=0.
@@ -164,7 +164,7 @@ c$OMP+ REDUCTION(+:rmean,smean,tmean,vmean)
  84   vmean=vmean+boxvol
 c$OMP END PARALLEL DO
       write (lp,'(i9,a,3f9.3)') nstep,' mean basin sig,temp,saln:',
-     .    rmean/vmean+thbase,tmean/vmean,smean/vmean
+     .    rmean/vmean,tmean/vmean,smean/vmean
       end if                                !  diagno = .true.
 c
       return

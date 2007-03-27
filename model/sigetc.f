@@ -100,59 +100,28 @@ c
       return
       end
 c
-c
-      real function kappaf(t,s,prs,kkf)
+      real function kappaf(t,s,prs)
 c
 c --- compressibility coefficient kappa^(theta) from sun et al. (1999)
 c
       implicit none
       include 'dimensions.h'
       include 'common_blocks.h'
-      real t,s,prs,kappaf1
-      integer kkf
-      external kappaf1
+      real t,s,prs,tdif,sdif
 c
       include 'state_eqn.h'
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- thermobaric compressibility coefficient (integral from prs to pref)
-c --- Sun et.al. (1999) JPO 29 pp 2719-2729
-c --- kappaf1 used internally to simplify offsetting T and S.
-c --- always invoke via kappaf.
-c --- t: potential temperature; s: psu; prs: pressure; kkf: ref.state
-c ---     example: kappaf(4.5,34.5,1.e7,1) =  0.11411243
-c ---     example: kappaf(4.5,34.5,1.e7,2) =  0.03091669
-c ---     example: kappaf(4.5,34.5,1.e7,3) = -0.21053029
-      kappaf=
-     &     kappaf1(max(-2.0,min(32.0,t))-toff(kkf),
-     &             max(-4.0,min( 4.0,s-soff(kkf))),
-     &             prs,kkf)
-c
-      return
-      end
-c
-      real function kappaf1(t,s,prs,kkf)
-c
-c --- compressibility coefficient kappa^(theta) from sun et al. (1999)
-c
-      implicit none
-      include 'dimensions.h'
-      include 'common_blocks.h'
-      real t,s,prs
-      integer kkf
-      data pref/2.e7/
-c
-      include 'state_eqn.h'
-c
-c --- t: potential temperature; s: psu; prs: pressure; kkf: ref.state
-c ---     example: kappaf(4.5,34.5,1.e7,1) =  0.11411243
-c ---     example: kappaf(4.5,34.5,1.e7,2) =  0.03091669
-c ---     example: kappaf(4.5,34.5,1.e7,3) = -0.21053029
-      kappaf1=1.e-11*(prs-pref)*
-     . ( s*( qs(kkf)+t* qst(kkf) ) +
-     .   t*( qt(kkf)+t*(qtt(kkf)+t*qttt(kkf))+
-css  .       0.5*(prs+pref)*(qpt(kkf)+s*qpst(kkf)+t*qptt(kkf)) ) )/thref
-     .       0.5*(prs+pref)*(qpt(kkf)+s*qpst(kkf)+t*qptt(kkf)) ) )/1.e-3
+ccc      kappaf=0.                              ! no thermobaricity
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      sdif=max(30.,min(38.,s))-refsal
+      tdif=max(-2.,min(32.,t))-reftem
+      kappaf=sclkap * (tdif*(qt+tdif*(qtt+tdif*qttt)
+     .       +.5*(prs+pref)*(qpt+sdif*qpst+tdif*qptt))
+     .       +sdif*(qs+tdif*qst))*(prs-pref)/thref
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- claes rooth's original formula:
+ccc   kappaf=-.075e-12*t*(3.-.06*t+.0004*t*t)*(prs-pref)/thref
 c
       return
       end
@@ -371,7 +340,7 @@ c
       hyc_pechg1=0.
       do 8 k=1,kk
  8    hyc_pechg1=hyc_pechg1+
-     .  (varian(k)-varian(k-1))/(1000.+theta(k)+thbase)
+     .  (varian(k)-varian(k-1))/(1000.+theta(k))
 c
 c --- report result in units of joules (kg m^2/sec^2)
       hyc_pechg1=.5*hyc_pechg1/g
@@ -513,7 +482,7 @@ c
       hyc_pechg2=0.
       do 8 k=1,kk
  8    hyc_pechg2=hyc_pechg2
-     .  +(varian(k)-varian(k-1))/(1000.+theta(k)+thbase)
+     .  +(varian(k)-varian(k-1))/(1000.+theta(k))
 c
 c --- report result in units of watts (kg m^2/sec^3)
       hyc_pechg2=.5*hyc_pechg2/(g*delt1)
@@ -526,57 +495,40 @@ c>
 c> Dec. 2004 - fixed bug in loop 9 (excluded interfaces on shallow bottom)
 c
 c
-      subroutine newbot
-c
-c --- hycom version 0.9
+      subroutine totals(dp1,field1,dp2,field2,text)
       implicit none
-#include "dimensions.h"
-#include "dimension2.h"
-#include "common_blocks.h"
 c
-      real factor
+c --- compute volume integral of 2 fields (field1,field2), each associated
+c --- with its own layer thickness field (dp1,dp2)
 c
-c --- call this routine if bottom topography has been altered in any way.
-c --- note: removing grid points entirely (by setting their depth to
-c --- zero) should be done elsewhere, i.e., before bigrid is called.
+      include 'dimensions.h'
+      include 'dimension2.h'
+      include 'common_blocks.h'
 c
-ccc      if (idm.eq.181 .and. jdm.eq.180)               !  global 2 deg grid
-ccc     .   pbot(166,179)=150.*onem
+      real dp1(idm,jdm,kdm),dp2(idm,jdm,kdm),field1(idm,jdm,kdm),
+     .     field2(idm,jdm,kdm),sum1j(jdm),sum2j(jdm),sum1,sum2
+      character text*(*)
 c
-c$OMP PARALLEL DO PRIVATE(factor)
-      do 3 j=1,jj
-      do 3 l=1,isp(j)
-c
+c$OMP PARALLEL DO
+      do 1 j=1,jj
+      sum1j(j)=0.
+      sum2j(j)=0.
       do 1 k=1,kk
+      do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
- 1    p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
-c
-      do 2 i=ifp(j,l),ilp(j,l)
-      pbot(i,j)=max(pbot(i,j),botmin*onem)    ! botmin: minimum water depth
-      if (abs(p(i,j,kk+1)-pbot(i,j)).gt.onem)
-     .  write (lp,'(2i5,a,2f9.1)') i,j,
-     .   '  old/new bottom depth:',p(i,j,kk+1)/onem,pbot(i,j)/onem
- 2    continue
-c
-      do 3 k=1,kk
-      do 3 i=ifp(j,l),ilp(j,l)
-      factor=pbot(i,j)/p(i,j,kk+1)
-      if (factor.lt..99999 .or. factor.gt.1.00001) then
-        dp(i,j,k   )=dp(i,j,k   )*factor
-        dp(i,j,k+kk)=dp(i,j,k+kk)*factor
-c
-        if (k.gt.1) then
-          psikk(i,j,1)=psikk(i,j,1)-p(i,j,k)*(factor-1.)*
-     .     (thstar(i,j,k)-thstar(i,j,k-1))*thref
-          psikk(i,j,2)=psikk(i,j,2)-p(i,j,k)*(factor-1.)*
-     .     (thstar(i,j,kk+k)-thstar(i,j,kk+k-1))*thref
-        end if
-      end if
- 3    continue
+      sum1j(j)=sum1j(j)+dp1(i,j,k)*field1(i,j,k)*scp2(i,j)
+ 1    sum2j(j)=sum2j(j)+dp2(i,j,k)*field2(i,j,k)*scp2(i,j)
 c$OMP END PARALLEL DO
 c
+      sum1=0.
+      sum2=0.
+c$OMP PARALLEL DO REDUCTION(+:sum1,sum2)
+      do 2 j=1,jj
+      sum1=sum1+sum1j(j)
+ 2    sum2=sum2+sum2j(j)
+c$OMP END PARALLEL DO
+c
+      write (lp,'(a,1p,2e19.9)') text,sum1,sum2
       return
       end
-
-
 

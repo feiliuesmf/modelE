@@ -17,11 +17,11 @@ c
       integer, parameter :: itmax = 5
 c
 c --- boost = 1 to within 15 m of bottom, then increases linearly to 1.5
-      boost(pbot1,pbot2,p1,p2)=max(1.,1.5-min(pbot1-p1,pbot2-p2)
-     .  /(30.*onem))
+c     boost(pbot1,pbot2,p1,p2)=max(1.,1.5-min(pbot1-p1,pbot2-p2)
+c    .  /(30.*onem))
 c --- boost = 1 to within 30 m of bottom, then increases linearly to 2
-ccc      boost(pbot1,pbot2,p1,p2)=max(1.,2.-min(pbot1-p1,pbot2-p2)
-ccc     .  /(30.*onem))
+      boost(pbot1,pbot2,p1,p2)=max(1.,2.-min(pbot1-p1,pbot2-p2)
+     .  /(30.*onem))
 c --- boost = 1 to within 100 m of bottom, then increases linearly to 3
 ccc      boost(pbot1,pbot2,p1,p2)=max(1.,3.-min(pbot1-p1,pbot2-p2)
 ccc     .  /(50.*onem))
@@ -89,8 +89,9 @@ c
       if (beropn .and.
      .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
      .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,'(i4,a,i2,1p,2e15.7)') nstep,
+     .  write(*,104) nstep,
      . ' cnuity1 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+ 104  format (i9,a,i2,2es15.7)
 c
 c --- advance -dp- field using low-order (diffusive) flux values
 c
@@ -189,15 +190,13 @@ c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb)
      .                          dp(i,ja,kn),dp(i,jb,kn)))
 c
       jb=mod(j     ,jj)+1
-      util1(i,j)=(util1(i,j)-dp(i,j,kn))
+      util1(i,j)=(util1(i,j)-dp(i,j,kn))*scp2(i,j)
      ./((max(0.,uflux2(i,j))-min(0.,uflux2(i+1,j))
-     .  +max(0.,vflux2(i,j))-min(0.,vflux2(i,jb ))+epsil)
-     .*delt1*scp2i(i,j))
+     .  +max(0.,vflux2(i,j))-min(0.,vflux2(i,jb ))+epsil)*delt1)
 c
- 26   util2(i,j)=(util2(i,j)-dp(i,j,kn))
+ 26   util2(i,j)=(util2(i,j)-dp(i,j,kn))*scp2(i,j)
      ./((min(0.,uflux2(i,j))-max(0.,uflux2(i+1,j))
-     .  +min(0.,vflux2(i,j))-max(0.,vflux2(i,jb ))-epsil)
-     .*delt1*scp2i(i,j))
+     .  +min(0.,vflux2(i,j))-max(0.,vflux2(i,jb ))-epsil)*delt1)
 c$OMP END PARALLEL DO
 c
 c --- limit antidiffusive fluxes
@@ -238,7 +237,7 @@ c
       if (beropn .and.
      .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
      .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,'(i4,a,i2,1p,2e15.7)') nstep,
+     .  write(*,104) nstep,
      . ' cnuity2 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
 c --- evaluate effect of antidiffusive fluxes on -dp- field
@@ -338,7 +337,7 @@ c
       if (beropn .and.
      .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
      .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,'(i4,a,i2,1p,2e15.7)') nstep,
+     .  write(*,104) nstep,
      . ' cnuity3 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
  77   continue
@@ -426,7 +425,7 @@ c
       if (beropn .and.
      .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
      .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,'(i4,a,i2,1p,2e15.7)') nstep,
+     .  write(*,104) nstep,
      . ' cnuity4 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
  20   continue				!  k loop
@@ -453,8 +452,8 @@ c
       if (thkdff.eq.0.) return
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      if (diagno)
-     .  q=hyc_pechg1(dp(1,1,k1n),th3d(1,1,k1n),32)
+c     if (diagno)
+c    .  q=hyc_pechg1(dp(1,1,k1n),th3d(1,1,k1n),32)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       hymar=1./(10.*sigjmp)
@@ -577,10 +576,9 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn)
       jb=mod(j     ,jj)+1
       do 261 l=1,isp(j)
       do 261 i=ifp(j,l),ilp(j,l)
-      util2(i,j)=-dp(i,j,kn)
-     ./((min(0.,bolusu(i,j,k))-max(0.,bolusu(i+1,j,k))
-     .  +min(0.,bolusv(i,j,k))-max(0.,bolusv(i,jb ,k))-epsil)
-     .*scp2i(i,j))
+      util2(i,j)=-dp(i,j,kn)*scp2(i,j)
+     ./(min(0.,bolusu(i,j,k))-max(0.,bolusu(i+1,j,k))
+     . +min(0.,bolusv(i,j,k))-max(0.,bolusv(i,jb ,k))-epsil)
  261  continue
 c$OMP END PARALLEL DO
 c
@@ -681,16 +679,16 @@ c
       if (beropn .and.
      .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
      .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,'(i4,a,i2,1p,2e15.7)') nstep,
+     .  write(*,104) nstep,
      . ' cnuity5 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
  7    continue
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      if (diagno) then
-        q=hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),32)
-        write (lp,103) time,'  APE change due to intfc smoothing:',q
-      end if
+c     if (diagno) then
+c       q=hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),32)
+c       write (lp,103) time,'  APE change due to intfc smoothing:',q
+c     end if
  103  format (f9.1,a,-12p,f9.3,' TW')
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       return
