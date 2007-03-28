@@ -105,21 +105,23 @@ C          ,UG,VG,WG,W2_1
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
-      USE SOCPBL, only : npbl=>n
-     &     ,dpdxr,dpdyr
-     &     ,dpdxr0,dpdyr0
-     &     ,advanc                      ! subroutine
-     &     ,zgs                  ! global
-     &     ,US,VS,WSM,WSH,TSV,QSRF,DBL,KHS
-     &     ,UG,VG,mdf
-     &     ,ustar,cm,ch,cq,z0m,w2_1
-#ifdef TRACERS_ON
-     *     ,tr
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,wsgcm,wspdf
-#endif
-#endif
+cddd      USE SOCPBL, only : npbl=>n
+cddd     &     ,dpdxr,dpdyr
+cddd     &     ,dpdxr0,dpdyr0
+cddd     &     ,advanc                      ! subroutine
+cddd     &     ,zgs                  ! global
+cddd     &     ,US,VS,WSM,WSH,TSV,QSRF,DBL,KHS
+cddd     &     ,UG,VG,mdf
+cddd     &     ,ustar,cm,ch,cq,z0m,w2_1
+cddd#ifdef TRACERS_ON
+cddd     *     ,tr
+cddd#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+cddd    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+cddd     &     ,wsgcm,wspdf
+cddd#endif
+cddd#endif
+
+      use SOCPBL, only : npbl=>n, zgs, advanc
 
       USE PBLCOM
       use QUSDEF, only : mz
@@ -160,13 +162,50 @@ c
       real*8 zs1,tgv,tkv,ws,psi,wg,qg_sat,qg_aver,dtsurf,hemi
 !@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
       logical pole
- 
+
+!**** the following is output from advance
+!@var US     = x component of surface wind, positive eastward (m/s)
+!@var VS     = y component of surface wind, positive northward (m/s)
+!@var WSGCM  = magnitude of the GCM surface wind - ocean currents (m/s)
+!@var WSPDF  = mean surface wind calculated from PDF of wind speed (m/s)
+!@var WSH    = magnitude of GCM surf wind - ocean curr + buoyancy flux(m/s)
+!@var WSM    = (=WSH) magn of GCM surf wind - ocean curr + buoyancy flux(m/s)
+!@var TSV    = virtual potential temperature of the surface (K)
+!@var QS     = surface value of the specific moisture
+!@var DBL    = boundary layer height (m)
+!@var KMS    = momentum transport coefficient at ZGS (m**2/s)
+!@var KHS    = heat transport coefficient at ZGS (m**2/s)
+!@var KHQ    = moist transport coefficient at ZGS (m**2/s)
+!@var PPBL   = pressure at DBL (mb)
+!@var USTAR  = friction speed (square root of momentum flux) (m/s)
+!@var CM     = drag coefficient (dimensionless surface momentum flux)
+!@var CH     = Stanton number   (dimensionless surface heat flux)
+!@var CQ     = Dalton number    (dimensionless surface moisture flux)
+!@var z0m   = roughness length for momentum,
+!@+           prescribed for itype=3,4 but computed for itype=1,2 (m)
+!@var z0h   = roughness length for temperature (m)
+!@var z0q   = roughness length for water vapor (m)
+!@var UG     = eastward component of the geostrophic wind (m/s)
+!@var VG     = northward component of the geostrophic wind (m/s)
+!@var MDF    = downdraft mass flux (m/s)
+!@var WINT   = integrated surface wind speed over sgs wind distribution
+      real*8 :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     &         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
+     &         ,wsgcm,wspdf,w2_1,mdf
+
+! extra input
+      real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
+
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
-      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
-!$OMP  THREADPRIVATE (/pbluvtq/)
+!      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
+!!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
+#if defined(TRACERS_ON)
+!@var  tr local tracer profile (passive scalars)
+      real*8, dimension(npbl,ntm) :: tr
+#endif
 
 ccc extract data from the pbl_args structure
       dtsurf = pbl_args%dtsurf
@@ -314,30 +353,43 @@ c     ENDIF
       mdf = ddm1(i,j)
 
       call advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrndv,
-     &     qgrnd,qgrnd_sat,evap_max,fr_sat,
+     3      coriol,utop,vtop,ttop,qtop,tgrndv
+     &     ,qgrnd,qgrnd_sat,evap_max,fr_sat
 #if defined(TRACERS_ON)
-     *     trs,trtop,trsfac,trconstflx,ntx,ntix,
+     *     ,trs,trtop,trsfac,trconstflx,ntx,ntix
 #if defined(TRACERS_GASEXCH_Natassa)
-     *     alati,Kw_gas,alpha_gas,beta_gas,
+     *     ,alati,Kw_gas,alpha_gas,beta_gas
 #endif
 #if defined(TRACERS_WATER)
-     *     tr_evap_max,
+     *     ,tr_evap_max
 #endif
 #if defined(TRACERS_DRYDEP)
-     *     dep_vel,gs_vel,
+     *     ,dep_vel,gs_vel
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     *     DMS_flux,ss1_flux,ss2_flux,
+     *     ,DMS_flux,ss1_flux,ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
-     &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
+     &     ,ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm
+     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh
 #endif
 #endif
-     4     psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
-     5     uocean,vocean,ts_guess,i,j,itype)
+     4     ,psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs
+     5     ,uocean,vocean,ts_guess,i,j,itype
+     6     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
+     &     ,wsgcm,wspdf,w2_1,mdf
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+     &     ,upbl
+     &     ,vpbl
+     &     ,tpbl
+     &     ,qpbl
+     &     ,epbl
+#ifdef TRACERS_ON
+     &     ,tr
+#endif
+     &     )
 
       uabl(:,i,j,itype)=upbl(:)
       vabl(:,i,j,itype)=vpbl(:)
@@ -433,8 +485,10 @@ c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
-      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+!      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
+!     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+
+      USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0
       USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP, only : GRID, GET
@@ -464,12 +518,13 @@ C**** ignore ocean currents for initialisation.
      *     ztop,elhx,coriol,tgrndv,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
       real*8 qsat
+      real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
-      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
-!$OMP  THREADPRIVATE (/pbluvtq/)
+!!      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
+!!!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
       integer :: J_1, J_0
@@ -607,7 +662,9 @@ c ******************************************************************
 
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,ustar,
-     3                 uocean,vocean,ilong,jlat,itype)
+     3                 uocean,vocean,ilong,jlat,itype
+     &                 ,dpdxr,dpdyr,dpdxr0,dpdyr0
+     &                 ,upbl,vpbl,tpbl,qpbl,epbl)
             cmgs(i,j,itype)=cm
             chgs(i,j,itype)=ch
             cqgs(i,j,itype)=cq
