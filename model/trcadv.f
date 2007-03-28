@@ -214,7 +214,7 @@ c> Dec. 2004 - made code cyclic in both -i- and -j- direction
 c> Feb. 2005 - added multiple tracer capability
 c> Mar. 2006 - added bering strait exchange logic
 c
-      subroutine fct3d(iord,fld,u,v,w,scal,scali,fco1,fc1)
+      subroutine fct3d(iord,fld,u,v,w,scal,scali,fco,fc)
 c
 c --- fully 3-d version of advfct.f
 c
@@ -228,10 +228,10 @@ c
       implicit none
       include 'dimensions.h'
       include 'dimension2.h'
+      include 'bering.h'
 c
       real fld(idm,jdm,kdm),u(idm,jdm,kdm),v(idm,jdm,kdm),
      .     w(idm,jdm,kdm),fco(idm,jdm,kdm),fc(idm,jdm,kdm),
-     .     fco1(idm,jdm,kdm),fc1(idm,jdm,kdm),
      .     vertfx(idm,jdm,kdm),vertdv(idm,jdm,kdm),
      .     scal(idm,jdm),scali(idm,jdm)
       real fmx(idm,jdm),fmn(idm,jdm),flp(idm,jdm),fln(idm,jdm),
@@ -246,21 +246,10 @@ c
       data recovr/.false./
       parameter (athird=1./3.)
       common/testpt/itest,jtest
+
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
       parameter (epsil=1.e-11,onemu=1.e-6)
-c
-c$OMP PARALLEL DO
-      do 21 j=1,jj
-      do 21 k=1,kk
-      do 21 l=1,isp(j)
-      do 21 i=ifp(j,l),ilp(j,l)
-      fco(i,j,k)=max(0.,fco1(i,j,k))
-      fc (i,j,k)=max(0.,fc1 (i,j,k))
-      if (fco(i,j,k).lt.1.e-30) fco(i,j,k)=0.
-      if (fc (i,j,k).lt.1.e-30) fc (i,j,k)=0.
- 21   continue
-c$OMP END PARALLEL DO
 c
 c --- optional: check mass conservation
 cdiag i=itest
@@ -323,11 +312,8 @@ c --- fill massless cells with data from layer above or below
      .          /(           fco(i,j,k)+             onemu)
       do 18 k=2,kk
       do 18 i=ifp(j,l),ilp(j,l)
-      fld(i,j,k)=(fld(i,j,k)*fco(i,j,k)+fld(i,j,k-1)*onemu)
+ 18   fld(i,j,k)=(fld(i,j,k)*fco(i,j,k)+fld(i,j,k-1)*onemu)
      .          /(           fco(i,j,k)+             onemu)
-      if (fld(i,j,k).le.1.e-30) fld(i,j,k)=0.
-      if (k.eq.2.and.fld(i,j,1).le.1.e-30) fld(i,j,1)=0.
- 18   continue
 c
       do 26 i=ifp(j,l),ilp(j,l)
 c
@@ -442,6 +428,11 @@ c
       after=0.
 c
       do 4 k=1,kk
+c
+      if (beropn) then
+        fld(ipacn,jpac,k)=0.
+        fld(iatls,jatl,k)=0.
+      end if
 c
 c$OMP PARALLEL DO SHARED(k)
       do 14 j=1,jj
@@ -576,9 +567,7 @@ c
         vlumj(j)=vlumj(j)+scal(i,j)*fc(i,j,k)
         clipj(j)=clipj(j)+(q-amount)*scal(i,j)
       end if
-      fld(i,j,k)=(fld(i,j,k)*onemu+amount)/(onemu+fc(i,j,k))
-      fld(i,j,k)=max(fmn(i,j),min(fld(i,j,k),fmx(i,j)))	!  just to be sure...
- 61   continue
+ 61   fld(i,j,k)=(fld(i,j,k)*onemu+amount)/(onemu+fc(i,j,k))
 c$OMP END PARALLEL DO
 c
 cdiag call findmx(ip,fld(1,1,k),idm,ii1,jj,'fld after 61')
@@ -645,9 +634,7 @@ c$OMP PARALLEL DO PRIVATE(jb,amount,q) SHARED(k)
       q=fld(i,j,k)*fc(i,j,k)-flxdiv(i,j)
       amount=max(0.,fmn(i,j)*fc(i,j,k),min(q,fmx(i,j)*fc(i,j,k)))
       if (recovr) clipj(j)=clipj(j)+(q-amount)*scal(i,j)
-      fld(i,j,k)=(fld(i,j,k)*onemu+amount)/(onemu+fc(i,j,k))
-      fld(i,j,k)=max(fmn(i,j),min(fld(i,j,k),fmx(i,j)))	! just to be sure...
- 62   continue
+ 62   fld(i,j,k)=(fld(i,j,k)*onemu+amount)/(onemu+fc(i,j,k))
 c$OMP END PARALLEL DO
 c
 cdiag call findmx(ip,fld(1,1,k),idm,ii1,jj,'fld after 62')
@@ -676,14 +663,18 @@ c$OMP END PARALLEL DO
         end if
       end if
 c
-cc$OMP PARALLEL DO SHARED(k)
+      if (beropn) then
+        fld(ipacn,jpac,k)=0.
+        fld(iatls,jatl,k)=0.
+      end if
+c
+c$OMP PARALLEL DO SHARED(k)
       do 15 j=1,jj
       afterj(j)=0.
       do 15 l=1,isp(j)
       do 15 i=ifp(j,l),ilp(j,l)
  15   afterj(j)=afterj(j)+fld(i,j,k)*fc(i,j,k)*scal(i,j)
-cc$OMP END PARALLEL DO
-c
+c$OMP END PARALLEL DO
       do j=1,jj
         bfore=bfore+bforej(j)
         after=after+afterj(j)
@@ -697,8 +688,7 @@ c
       q=1.
       if (after.ne.0.) q=bfore/after
       write (lp,'(a,f11.6)') 'fct3d: multiply tracer field by',q
-ccc   if (q.gt.1.1 .or. q.lt..9) stop '(excessive nonconservation)'
-      if (q.gt.2.0 .or. q.lt..5) stop '(excessive nonconservation)'
+      if (q.gt.1.1 .or. q.lt..9) stop '(excessive nonconservation)'
 c
 c$OMP PARALLEL DO
       do 20 j=1,jj
