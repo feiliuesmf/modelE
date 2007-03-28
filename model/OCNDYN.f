@@ -43,8 +43,10 @@ C?*** For serial ODIF/GM/straits computations:
       INTEGER NS,I,J,L,mnow,n
 
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0H
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
+      INTEGER :: J_0, J_1, J_0H, J_1H
+!     CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     *               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
 C**** initiallise work arrays
       MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
@@ -193,7 +195,18 @@ c     ODIFF:   mo,uo,vo (ocean), dh (ocean_dyn)
 
 
       CALL ODIFF(DTS)
-          CALL CHECKO ('ODIFF0')
+      CALL CHECKO ('ODIFF0')
+C**** Apply GM + Redi tracer fluxes
+      CALL GMKDIF
+      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
+      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
+
+#ifdef TRACERS_OCEAN
+      DO N = 1,NTM
+        CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
+     *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
+      END DO
+#endif
 
 c????          Non-parallelized parts : GM, straits
 c     GM:      mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO (ocean)
@@ -217,23 +230,23 @@ c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
       IF(AM_I_ROOT()) THEN
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
 !       CALL ODIFF(DTS)
-          CALL CHECKO_serial ('ODIFF ')
+!mk          CALL CHECKO_serial ('ODIFF ')
 C**** Apply GM + Redi tracer fluxes
-        CALL GMKDIF
-        CALL GMFEXP(G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
-     *            .FALSE.,OIJL_glob(1,1,1,IJL_GGMFL))
-        CALL GMFEXP(S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
-     *            .TRUE., OIJL_glob(1,1,1,IJL_SGMFL))
+!       CALL GMKDIF
+!       CALL GMFEXP(G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
+!    *            .FALSE.,OIJL_glob(1,1,1,IJL_GGMFL))
+!       CALL GMFEXP(S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
+!    *            .TRUE., OIJL_glob(1,1,1,IJL_SGMFL))
 !mpi  CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
 !mpi  CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
 #ifdef TRACERS_OCEAN
-      DO N = 1,NTM
-        CALL GMFEXP(TRMO_glob(1,1,1,N),TXMO_glob(1,1,1,N),TYMO_glob(1,1
-     *       ,1,N),TZMO_glob(1,1,1,N),t_qlimit(n),TOIJL_glob(1,1,1
-     *       ,TOIJL_GMFL,N))
+!     DO N = 1,NTM
+!       CALL GMFEXP(TRMO_glob(1,1,1,N),TXMO_glob(1,1,1,N),TYMO_glob(1,1
+!    *       ,1,N),TZMO_glob(1,1,1,N),t_qlimit(n),TOIJL_glob(1,1,1
+!    *       ,TOIJL_GMFL,N))
 !mpi    CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
 !mpi *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
-      END DO
+!     END DO
 #endif
         CALL CHECKO_serial ('GMDIFF')
         CALL TIMER (MNOW,MSGSO)
