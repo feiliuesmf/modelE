@@ -26,39 +26,26 @@
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
 
+      private
+
+      ! public parameters
+      public n,zgs,XCDpbl,kappa,emax
+
+      ! public interfaces
+      public advanc,inits,ccoeff0
+
+      ! model coefficients (actually a hack, but leave it for now)
+      public rimax,ghmin,ghmax,gmmax0,gm_at_rimax,d1,d2,d3,d4,d5
+     *     ,s0,s1,s2,s4,s5,s6,s7,s8,c1,c2,c3,c4,c5,b1,b123,b2,prt
+     &     ,g0,d1_3,d2_3,d3_3,d4_3,d5_3
+     *     ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3
+     *     ,g1,g2,g3,g4,g5,g6,g7,g8
+
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
-!@var US     = x component of surface wind, positive eastward (m/s)
-!@var VS     = y component of surface wind, positive northward (m/s)
-!@var WSGCM  = magnitude of the GCM surface wind - ocean currents (m/s)
-!@var WSM    = magnitude of the surface wind - ocean currents (m/s)
-!@var WSH    = magnitude of surface wind modified by buoyancy flux(m/s)
-!@var TSV    = virtual potential temperature of the surface (K)
-!@var QS     = surface value of the specific moisture
-!@var DBL    = boundary layer height (m)
-!@var KMS    = momentum transport coefficient at ZGS (m**2/s)
-!@var KHS    = heat transport coefficient at ZGS (m**2/s)
-!@var KHQ    = moist transport coefficient at ZGS (m**2/s)
-!@var PPBL   = pressure at DBL (mb)
-!@var USTAR  = friction speed (square root of momentum flux) (m/s)
-!@var CM     = drag coefficient (dimensionless surface momentum flux)
-!@var CH     = Stanton number   (dimensionless surface heat flux)
-!@var CQ     = Dalton number    (dimensionless surface moisture flux)
-!@var z0m   = roughness length for momentum,
-!@+           prescribed for itype=3,4 but computed for itype=1,2 (m)
-!@var z0h   = roughness length for temperature (m)
-!@var z0q   = roughness length for water vapor (m)
-!@var UG     = eastward component of the geostrophic wind (m/s)
-!@var VG     = northward component of the geostrophic wind (m/s)
-!@var MDF    = downdraft mass flux (m/s)
-!@var WINT   = integrated surface wind speed over sgs wind distribution
-      real*8 :: w2_1,mdf
-      real*8 :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
-     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,XCDpbl=1d0
-     &         ,wsgcm,wspdf
+      real*8 :: XCDpbl=1d0
 
-      real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
+      real*8 :: rimax,ghmin,ghmax,gmmax0,gm_at_rimax,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s4,s5,s6,s7,s8,c1,c2,c3,c4,c5,b1,b123,b2,prt
 
       !for level 3 model only:
@@ -70,11 +57,17 @@ C**** boundary layer parameters
       real*8, parameter :: kappa=0.40d0 !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
-#ifdef TRACERS_ON
-!@var  tr local tracer profile (passive scalars)
-      real*8, dimension(n,ntm) :: tr
-#endif
+!!#ifdef TRACERS_ON
+!!!@var  tr local tracer profile (passive scalars)
+!!      real*8, dimension(n,ntm) :: tr
+!!#endif
 
+!!#ifdef TRACERS_GASEXCH_Natassa
+!!      real*8 :: temp_c,Sc_gas
+!!      real*8, external :: sc_cfc,sol_cfc
+!!      COMMON /GASEXCH_BLK/ temp_c,Sc_gas,alpha_gas
+!!!$OMP THREADPRIVATE (/GASEXCH_BLK/)
+!!#endif
 C**** parameters for surface fluxes
       !Hogstrom 1988:
       real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
@@ -89,15 +82,15 @@ ccc  *     gamahs=4.7d0/sigma
 C***
 C***  Thread-Private Common
 C***
-      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0
-#ifdef TRACERS_ON
-     * ,tr
-#endif
-!$OMP  THREADPRIVATE (/PBLTPC/)
+!!      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0
+!!#ifdef TRACERS_ON
+!!     * ,tr
+!!#endif
+!!!$OMP  THREADPRIVATE (/PBLTPC/)
 
-      COMMON /PBLOUT/US,VS,WSM,WSH,TSV,QSRF,DBL,KMS,KHS,KQS,
-     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,W2_1,MDF,wsgcm,wspdf
-!$OMP  THREADPRIVATE (/PBLOUT/)
+!      COMMON /PBLOUT/US,VS,WSM,WSH,TSV,QSRF,DBL,KMS,KHS,KQS,
+!     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,W2_1,MDF,wsgcm,wspdf
+!!$OMP  THREADPRIVATE (/PBLOUT/)
 
 CCC !@var bgrid log-linear gridding parameter
 CCC      real*8 :: bgrid
@@ -113,27 +106,39 @@ CCC      real*8 :: bgrid
       CONTAINS
 
       subroutine advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrnd,
-     &     qgrnd,qgrnd_sat,evap_max,fr_sat,
+     3      coriol,utop,vtop,ttop,qtop,tgrnd
+     &     ,qgrnd,qgrnd_sat,evap_max,fr_sat
 #if defined(TRACERS_ON)
-     *     trs,trtop,trsfac,trconstflx,ntx,ntix,
+     *     ,trs,trtop,trsfac,trconstflx,ntx,ntix
+#if defined(TRACERS_GASEXCH_Natassa)
+     *     ,alati,Kw_gas,alpha_gas,beta_gas
+#endif
 #if defined(TRACERS_WATER)
-     *     tr_evap_max,
+     *     ,tr_evap_max
 #endif
 #if defined(TRACERS_DRYDEP)
-     *     dep_vel,gs_vel,
+     *     ,dep_vel,gs_vel
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     *     DMS_flux, ss1_flux, ss2_flux,
+     *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,
-     &     zhat,lmonin,dust_event1,dust_event2,wtrsh,
+     &     ,ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm
+     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh
 #endif
 #endif
-     4     psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
-     5     uocean,vocean,ts_guess,ilong,jlat,itype)
+     4     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
+     5     ,uocean,vocean,ts_guess,ilong,jlat,itype
+     6     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
+     &     ,wsgcm,wspdf,w2_1,mdf
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+     &     ,u,v,t,q,e
+#if defined(TRACERS_ON)
+     &     ,tr
+#endif
+     &     )
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -173,6 +178,32 @@ c   output:
 !@var  z0q  roughness height for moisture
 !@var  psurf surface pressure
 !@var  trhr0 incident long wave radiation
+!  more output (may be duplicated)
+!@var US     = x component of surface wind, positive eastward (m/s)
+!@var VS     = y component of surface wind, positive northward (m/s)
+!@var WSGCM  = magnitude of the GCM surface wind - ocean currents (m/s)
+!@var WSPDF  = mean surface wind calculated from PDF of wind speed (m/s)
+!@var WSH    = magnitude of GCM surf wind - ocean curr + buoyancy flux(m/s)
+!@var WSM    = (=WSH) magn of GCM surf wind - ocean curr + buoyancy flux(m/s)
+!@var TSV    = virtual potential temperature of the surface (K)
+!@var QS     = surface value of the specific moisture
+!@var DBL    = boundary layer height (m)
+!@var KMS    = momentum transport coefficient at ZGS (m**2/s)
+!@var KHS    = heat transport coefficient at ZGS (m**2/s)
+!@var KHQ    = moist transport coefficient at ZGS (m**2/s)
+!@var PPBL   = pressure at DBL (mb)
+!@var USTAR  = friction speed (square root of momentum flux) (m/s)
+!@var CM     = drag coefficient (dimensionless surface momentum flux)
+!@var CH     = Stanton number   (dimensionless surface heat flux)
+!@var CQ     = Dalton number    (dimensionless surface moisture flux)
+!@var z0m   = roughness length for momentum,
+!@+           prescribed for itype=3,4 but computed for itype=1,2 (m)
+!@var z0h   = roughness length for temperature (m)
+!@var z0q   = roughness length for water vapor (m)
+!@var UG     = eastward component of the geostrophic wind (m/s)
+!@var VG     = northward component of the geostrophic wind (m/s)
+!@var MDF    = downdraft mass flux (m/s)
+!@var WINT   = integrated surface wind speed over sgs wind distribution
 #if defined(TRACERS_ON)
 !@var  trtop  tracer conc. at the top of the layer
 !@var  trs  surface tracer conc.
@@ -205,6 +236,12 @@ c  internals:
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
       real*8, intent(in) :: psurf,trhr0
+      !-- output:
+      real*8, intent(out) :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     &         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
+     &         ,wsgcm,wspdf,w2_1,mdf
+      real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
+
 #ifdef TRACERS_ON
       real*8, intent(in), dimension(ntm) :: trtop
       real*8, intent(in), dimension(ntm) :: trconstflx,trsfac
@@ -258,12 +295,15 @@ C****
 !@var  q  local specific humidity (a passive scalar)
 !@var  e  local turbulent kinetic energy
 c**** special threadprivate common block (compaq compiler stupidity)
-      real*8, dimension(n) :: u,v,t,q
-      real*8, dimension(n-1) :: e
-      common/pbluvtq/u,v,t,q,e
-!$OMP  THREADPRIVATE (/pbluvtq/)
+      real*8, dimension(n), intent(inout) :: u,v,t,q
+      real*8, dimension(n-1), intent(inout) :: e
+!!      common/pbluvtq/u,v,t,q,e
+!!!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
-
+#if defined(TRACERS_ON)
+!@var  tr local tracer profile (passive scalars)
+      real*8, dimension(n,ntm) :: tr
+#endif
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qsrf
@@ -324,11 +364,13 @@ c        call abort
      &       ,evap_max,fr_sat)
 
         call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd
-     &            ,ttop,dtime,n)
+     &            ,ttop,dtime,n
+     &            ,dpdxr,dpdyr,dpdxr0,dpdyr0)
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3              ug,vg,uocean,vocean,n)
+     3              ug,vg,uocean,vocean,n
+     &              ,dpdxr,dpdyr,dpdxr0,dpdyr0)
 
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
           call tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,kh(1),
@@ -1394,7 +1436,8 @@ c     rhs(n-1)=0.
       end subroutine e_eqn
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
-     &                ,ttop,dtime,n)
+     &                ,ttop,dtime,n
+     &                ,dpdxr,dpdyr,dpdxr0,dpdyr0)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
@@ -1428,6 +1471,7 @@ c     rhs(n-1)=0.
       real*8, dimension(n), intent(inout) :: t
       real*8, intent(in) :: ch,tgrnd
       real*8, intent(in) :: ttop,dtime,usurf
+      real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: facth,factx,facty
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -1630,7 +1674,8 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
 
       subroutine uv_eqn(u0,v0,u,v,z,km,dz,dzh,
      2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3                  ug,vg,uocean,vocean,n)
+     3                  ug,vg,uocean,vocean,n
+     &                  ,dpdxr,dpdyr,dpdxr0,dpdyr0)
 !@sum uv_eqn integrates differential eqns for u & v (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
@@ -1669,6 +1714,7 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
       real*8, dimension(n-1), intent(in) :: km,dzh
       real*8, intent(in) :: ustar,cm,z0m,utop,vtop,dtime,coriol,ug,vg
      &                     ,uocean,vocean
+      real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -1830,7 +1876,8 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       end subroutine q_eqn_sta
 
       subroutine uv_eqn_sta(u,v,z,km,dz,dzh,
-     2            ustar,cm,utop,vtop,coriol,uocean,vocean,n)
+     2            ustar,cm,utop,vtop,coriol,uocean,vocean,n
+     &            ,dpdxr,dpdyr,dpdxr0,dpdyr0)
 !@sum  uv_eqn_sta computes the static solutions of the u and v
 !@+    between the surface and the first GCM layer.
 !@+    The boundary conditions at the bottom are:
@@ -1864,6 +1911,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n-1), intent(in) :: km,dzh
       real*8, intent(in) :: ustar,cm,utop,vtop,coriol,uocean,vocean
+      real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -1956,7 +2004,9 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 
       subroutine inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2          ttop,qtop,coriol,cm,ch,cq,ustar,uocean,vocean,
-     3          ilong,jlat,itype)
+     3          ilong,jlat,itype
+     &          ,dpdxr,dpdyr,dpdxr0,dpdyr0
+     &          ,u,v,t,q,e)
 !@sum  inits initializes the winds, virtual potential temperature,
 !@+    and humidity using static solutions of the GISS 2000
 !@+    turbulence model at level 2
@@ -1988,6 +2038,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
      *     ,qtop,coriol,uocean,vocean
       real*8, intent(out) :: cm,ch,cq,ustar
       integer, intent(in) :: ilong,jlat,itype
+      real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8, dimension(n-1) :: km,kh,kq,ke,gm,gh
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
@@ -2001,12 +2052,14 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
-c**** special threadprivate common block (compaq compiler stupidity)
-      real*8, dimension(n) :: u,v,t,q
-      real*8, dimension(n-1) :: e
-      common/pbluvtq/u,v,t,q,e
+      real*8 dbl ! I hope it is really a local variable (was global before) I.A
 
-!$OMP  THREADPRIVATE (/pbluvtq/)
+c**** special threadprivate common block (compaq compiler stupidity)
+      real*8, dimension(n), intent(out) :: u,v,t,q
+      real*8, dimension(n-1), intent(out) :: e
+!!      common/pbluvtq/u,v,t,q,e
+
+!!!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
       dbl=1000.d0 !initial guess of dbl
@@ -2094,7 +2147,8 @@ c Initialization for iteration:
         call q_eqn_sta(q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,n)
 
         call uv_eqn_sta(u,v,z,km,dz,dzh,ustar,cm,utop,vtop,coriol,
-     &                  uocean,vocean,n)
+     &                  uocean,vocean,n
+     &                  ,dpdxr,dpdyr,dpdxr0,dpdyr0)
 
         call tcheck(t,tgrnd,n)
         call tcheck(q,qgrnd,n)
