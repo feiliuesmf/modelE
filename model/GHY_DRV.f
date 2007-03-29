@@ -1231,7 +1231,6 @@ C***Initialize work array
       areg(1:size(areg,1),j_tg2)=areg(1:size(areg,1),j_tg2)
      &    + areg_sum(1:size(areg,1),9)
 
-
 C
       return
       end subroutine earth
@@ -1933,6 +1932,9 @@ c**** check whether ground hydrology data exist at this point.
       do j=J_0,J_1
         do i=1,im
           if ( fearth(i,j) == 0.d0 ) then
+            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 ) then
+              print *,"removing snow from ",i,j," : cell under water"
+            endif
             nsn_ij(:, i, j) = 1
             wsn_ij(:, :, i, j) = 0.d0
             hsn_ij(:, :, i, j) = 0.d0
@@ -2055,7 +2057,7 @@ ccc!!! restart file (without snow model data)
             if ( focean(i,j) < 1.d0 ) present_land = .true.
           endif
           if( .not. present_land ) then
-            nsn_ij(:,i,j)     = 0
+            nsn_ij(:,i,j)     = 1
             !isn_ij(:,i,j)     = 0
             dzsn_ij(:,:,i,j)  = 0.
             wsn_ij(:,:,i,j)   = 0.
