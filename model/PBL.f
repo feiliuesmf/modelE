@@ -265,9 +265,10 @@ c  internals:
       integer, intent(in) :: ilong,jlat,itype
       real*8, intent(in) :: psurf,trhr0
       !-- output:
-      real*8, intent(out) :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
-     &         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
-     &         ,wsgcm,wspdf,w2_1,mdf
+      real*8, intent(out) :: us,vs,wsm,wsh,tsv,qsrf,kms,khs,kqs
+     &         ,ustar,cm,ch,cq,z0m,z0h,z0q
+     &         ,wsgcm,wspdf,w2_1
+      real*8, intent(in) :: dbl,ug,vg,mdf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
 #ifdef TRACERS_ON
@@ -348,7 +349,7 @@ C**** end special threadprivate common block
 #endif
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qsrf
+        print*,"advanc: i,j,itype=",ilong,jlat,itype,u(1),v(1),t(1),q(1)
 c        call abort
         call stop_model("PBL error in advanc",255)
       end if
