@@ -111,18 +111,19 @@ c     flnmarc = location (pathname) of archive files
 c     flnmovt = location (pathname) of ovtn.xxxxxx files
 c     flnmlat = location (pathname) of lat/lon at vorticity points
 c
-      data flnmlat/'latlon195x180_20w.4bin'/
-      data flnmdep/'depth195x180_20w.4bin'/
-      data flnmint/'temp181x180x20jan_lt.asc'/
-      data flnmins/'salt181x180x20jan_lt.asc'/
-      data flnminp/'pout181x180x20jan_lt.asc'/
-      data flnmbas/'ibasin195x180_20w.asc'/
-      data flnma2o    /'flxa2o195x180.8bin'/
-      data flnma2o_tau/'taua2o195x180.8bin'/
-      data flnmo2a    /'ssto2a195x180.8bin'/
-      data flnmo2a_e  /'e_o2a195x180.8bin'/
-      data flnmo2a_n  /'n_o2a195x180.8bin'/
-      data flnmcoso /'cososino195x180.8bin'/
+      data flnmovt/'./'/
+      data flnmlat    /'latlonij'/
+      data flnmdep    /'hycomtopo'/
+      data flnmint    /'temp_ini'/
+      data flnmins    /'salt_ini'/
+      data flnminp    /'pout_ini'/
+      data flnmbas    /'ibasin'/
+      data flnma2o    /'flxa2o'/
+      data flnma2o_tau/'taua2o'/
+      data flnmo2a    /'ssto2a'/
+      data flnmo2a_e  /'e_o2a'/
+      data flnmo2a_n  /'n_o2a'/
+      data flnmcoso   /'cososino'/
       data flnmovt/'./'/
 c
       end

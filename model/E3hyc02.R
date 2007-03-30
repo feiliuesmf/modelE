@@ -120,18 +120,19 @@ BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 OCMIP_cfc=OCMIP_cfc.dat
-latlon195x180_20w.4bin=latlon195x180_20w.4bin
-depth195x180_20w.4bin=depth195x180_20w.4bin
-temp181x180x20jan_lt.asc=temp181x180x20jan_lt.asc
-salt181x180x20jan_lt.asc=salt181x180x20jan_lt.asc
-pout181x180x20jan_lt.asc=pout181x180x20jan_lt.asc
-ibasin195x180_20w.asc=ibasin195x180_20w.asc
-flxa2o195x180.8bin=flxa2o195x180.8bin
-taua2o195x180.8bin=taua2o195x180.8bin
-ssto2a195x180.8bin=ssto2a195x180.8bin
-e_o2a195x180.8bin=e_o2a195x180.8bin
-n_o2a195x180.8bin=n_o2a195x180.8bin
-cososino195x180.8bin=cososino195x180.8bin
+!!!!!!!!!!!!!!!!!!! HYCOM input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+latlonij=latlon195x180_20w.4bin    ! lat & lon at each i,j
+hycomtopo=depth195x180_20w.4bin    ! topography used in ocean model
+temp_ini=temp181x180x20jan_lt.txt  ! sea surface temperature as initial condition
+salt_ini=salt181x180x20jan_lt.txt  ! salinity as initial condition
+pout_ini=pout181x180x20jan_lt.txt  ! layer pressure as initial condition
+ibasin=ibasin195x180_20w.txt       ! basin mask
+flxa2o=flxa2o195x180.8bin          ! coupler weights for flux from atm to ocean
+taua2o=taua2o195x180.8bin          ! weights for vector from atm to ocean
+ssto2a=ssto2a195x180.8bin          ! weights for sst from ocean to atm
+e_o2a=e_o2a195x180.8bin            ! weights for eastward vel from ocean to atm
+n_o2a=n_o2a195x180.8bin            ! weights for northward vel from ocean to atm
+cososino=cososino195x180.8bin      ! cos/sin of i,j axis angle on ocean grid
 
 Label and Namelist:
 E3hyc02 (hycoma+tsadts: bihar=.1,hybgn1,pump[20:200],part.kppx3,enh.den,no conv)
@@ -207,11 +208,12 @@ nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU t
 ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
+nssw=48         ! do ssw at the end of day
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
-   YEARE=1800,MONTHE=1,DATEE=1,HOURE=4, KDIAG=13*0,
-   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=1,HOURE=1
+   YEARI=1800,MONTHI=01,DATEI=01,HOURI=00, !  from default: IYEAR1=YEARI
+   YEARE=1800,MONTHE=01,DATEE=01,HOURE=04, KDIAG=13*0,
+   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=01,DATEE=01,HOURE=01
  &END
 link_ha_feb07
