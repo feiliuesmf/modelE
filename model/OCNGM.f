@@ -1185,12 +1185,12 @@ c         END IF
      *                 FROM=SOUTH+NORTH)
 
 C**** Calculate density gradients
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
 
       !initialize
       RHOMZ = -0.0; BYRHOZ = -0.0;
       RHOY = -0.0; RHOX = -0.0;
 
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
       DO L=1,LMO
        !DO J=2,JM
         J2 = min(J_1STG+1, JM)
