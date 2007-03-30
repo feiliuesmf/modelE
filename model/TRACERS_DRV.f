@@ -10665,7 +10665,6 @@ C**** Source over Australia and New Zealand
         i=66; j=15
         IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
 
-      !case ('CFCn')
         !print out global average for each time step before weighing
         !in the OCMIP values
 #ifdef TRACERS_GASEXCH_Natassa
