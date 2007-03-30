@@ -20,7 +20,6 @@
 RUNDECKS="E1M20 E1oM20 E1F20 E001tr"
 case `hostname` in
     palm | explore* ) 
-	export NOBACKUP=/nobackup/progress
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
         export MODES="serial other MPI OpenMP"
         export COMPILER=Intel8
