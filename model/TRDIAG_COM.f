@@ -67,7 +67,7 @@ C**** TAIJN
 #else
 #ifdef TRACERS_WATER
 #ifdef TRACERS_DRYDEP
-      integer, parameter :: ktaij=13
+      integer, parameter :: ktaij=14
 #else
       integer, parameter :: ktaij=12
 #endif
