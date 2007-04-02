@@ -4,9 +4,6 @@
 
       implicit none
 
-      SAVE
-
-
 #include "dimensions.h"
 #include "dimension2.h"
 
@@ -17,7 +14,7 @@
       real*8 atracflx(iia,jja,ntm),atrac(iia,jja,ntm)
       common /gasexch1/atracflx,atrac
 
-      real   tracflx(idm,jdm,ntm)     !  tracer flux at air-sea intfc
+      real*8   tracflx(idm,jdm,ntm)     !  tracer flux at air-sea intfc
       common /gasexch2/tracflx
 
       END MODULE TRACER_GASEXCH_COM
@@ -25,12 +22,15 @@
 c used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/Attic/TRACER_GASEXCH_Natassa.f,v $
-c $Revision: 1.3 $
-c $Date: 2007/03/16 23:43:11 $   ;  $State: Exp $
+c $Revision: 1.4 $
+c $Date: 2007/04/02 22:40:47 $   ;  $State: Exp $
 c $Author: ntausnev $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_Natassa.f,v $
+c Revision 1.4  2007/04/02 22:40:47  ntausnev
+c Removed double save statement. Changed real ==> real*8
+c
 c Revision 1.3  2007/03/16 23:43:11  ntausnev
 c
 c Updated and cleaned the code for option TRACERS_GASEXCH_Natassa.
@@ -127,12 +127,15 @@ c-----------------------------------------------------------------------
 c used with TRACERS_GASEXCH_Natassa to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/Attic/TRACER_GASEXCH_Natassa.f,v $
-c  $Revision: 1.3 $
-c  $Date: 2007/03/16 23:43:11 $   ;  $State: Exp $
+c  $Revision: 1.4 $
+c  $Date: 2007/04/02 22:40:47 $   ;  $State: Exp $
 c  $Author: ntausnev $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_Natassa.f,v $
+c  Revision 1.4  2007/04/02 22:40:47  ntausnev
+c  Removed double save statement. Changed real ==> real*8
+c
 c  Revision 1.3  2007/03/16 23:43:11  ntausnev
 c
 c  Updated and cleaned the code for option TRACERS_GASEXCH_Natassa.
