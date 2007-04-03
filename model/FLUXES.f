@@ -207,7 +207,7 @@ C**** fluxes associated with variable lake fractions
       END MODULE FLUXES
 
       SUBROUTINE ALLOC_FLUXES(grd_dum)
-!@sum   Initializes FLUXES's arrays
+!@sum   Initializes FLUXES''s arrays
 !@auth  Rosalinda de Fainchtein
 !@ver  1.0
 

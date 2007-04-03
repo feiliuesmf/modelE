@@ -6,68 +6,19 @@
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
+      use SOCPBL, only : npbl=>n
 #endif
 #endif
       implicit none
-ccc   save
 
+      private
 
-#ifdef TRACERS_ON
-C**** Tracer input/output common block for PBL
-!@var trtop,trs tracer mass ratio in level 1/surface
-!@var trsfac, trconstflx factors in surface flux boundary cond.
-!@var ntx number of tracers that need pbl calculation
-!@var ntix index array to map local tracer number to global
-      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-      integer ntx
-      integer, dimension(ntm) :: ntix
-#ifdef TRACERS_GASEXCH_Natassa
-      real*8  :: alati       !sss
-      real*8  :: Kw_gas,alpha_gas,beta_gas
-#endif
-#ifdef TRACERS_WATER
-!@var tr_evap_max maximum amount of tracer available in ground reservoir
-      real*8, dimension(ntm) :: tr_evap_max
-#endif
-#ifdef TRACERS_DRYDEP
-!@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
-!@var gs_vel gravitational settling velocity (m/s)
-      real*8, dimension(ntm) :: dep_vel,gs_vel
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      real*8 :: DMS_flux,ss1_flux,ss2_flux
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke,wsubwd,
-     &   wsubwm,dust_event1,dust_event2,wtrsh
-!@param npbl  no of pbl. layers
-      INTEGER,PARAMETER :: npbl=8
-      REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
-     &     lmonin
-#endif
-      common /trspec/trtop,trs,trsfac,trconstflx
-#ifdef TRACERS_GASEXCH_Natassa
-     *     ,alati,Kw_gas,alpha_gas,beta_gas
-#endif
-#ifdef TRACERS_WATER
-     *     ,tr_evap_max
-#endif
-#ifdef TRACERS_DRYDEP
-     *     ,dep_vel,gs_vel
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     *     ,DMS_flux,ss1_flux,ss2_flux
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm,zhat
-     &     ,lmonin,dust_event1,dust_event2,wtrsh
-#endif
+      public t_pbl_args, pbl
 
-!$OMP  THREADPRIVATE (/trspec/)
-#endif
-
+c**** t_pbl_args is a derived type structure which contains all
+c**** input/output arguments for PBL
+c**** Please, use this structure to pass all your arguments to PBL
+c**** Don't use global variables for that purpose !
       type t_pbl_args
         ! input:
         real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
@@ -77,13 +28,44 @@ C**** Tracer input/output common block for PBL
         real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq
         ! the following args needed for diagnostics
         real*8 psi,dbl,khs,ug,vg,wg
+#ifdef TRACERS_ON
+C**** Tracer input/output
+!@var trtop,trs tracer mass ratio in level 1/surface
+!@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var ntx number of tracers that need pbl calculation
+!@var ntix index array to map local tracer number to global
+      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+      integer ntx
+      integer, dimension(ntm) :: ntix
+
 #ifdef TRACERS_DUST
         ! additional args for dust tracer diagnostics
         REAL*8 :: ustar,zgs
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,wsgcm,wspdf
+      REAL*8 ::wsgcm,wspdf
+      REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke,wsubwd,
+     &   wsubwm,dust_event1,dust_event2,wtrsh
+      REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
+     &     lmonin
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      real*8 :: DMS_flux,ss1_flux,ss2_flux
+#endif
+#ifdef TRACERS_DRYDEP
+!@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
+!@var gs_vel gravitational settling velocity (m/s)
+      real*8, dimension(ntm) :: dep_vel,gs_vel
+#endif
+#ifdef TRACERS_WATER
+!@var tr_evap_max maximum amount of tracer available in ground reservoir
+      real*8, dimension(ntm) :: tr_evap_max
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      real*8  :: alati       !sss
+      real*8  :: Kw_gas,alpha_gas,beta_gas
+#endif
 #endif
       end type t_pbl_args
 
@@ -335,8 +317,8 @@ c     ENDIF
       qpbl(:)=qabl(:,i,j,itype)
       epbl(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
 #ifdef TRACERS_ON
-      do nx=1,ntx
-        tr(:,nx)=trabl(:,ntix(nx),i,j,itype)
+      do nx=1,pbl_args%ntx
+        tr(:,nx)=trabl(:,pbl_args%ntix(nx),i,j,itype)
       end do
 #endif
 
@@ -352,42 +334,37 @@ c     ENDIF
      2          *(1+q(i,j,1)*deltx)
       mdf = ddm1(i,j)
 
-      call advanc(
-     3      coriol,utop,vtop,ttop,qtop,tgrndv
+      call advanc(coriol,utop,vtop,ttop,qtop,tgrndv
      &     ,qgrnd,qgrnd_sat,evap_max,fr_sat
+     &     ,psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs
+     &     ,uocean,vocean,ts_guess,i,j,itype
+     &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wsgcm,wspdf,w2_1,mdf
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
-     *     ,trs,trtop,trsfac,trconstflx,ntx,ntix
+     &     ,pbl_args%trs,pbl_args%trtop,pbl_args%trsfac
+     &     ,pbl_args%trconstflx,pbl_args%ntx,pbl_args%ntix ,tr
 #if defined(TRACERS_GASEXCH_Natassa)
-     *     ,alati,Kw_gas,alpha_gas,beta_gas
+     &     ,pbl_args%alati,pbl_args%Kw_gas
+     &     ,pbl_args%alpha_gas,pbl_args%beta_gas
 #endif
 #if defined(TRACERS_WATER)
-     *     ,tr_evap_max
+     &     ,pbl_args%tr_evap_max
 #endif
 #if defined(TRACERS_DRYDEP)
-     *     ,dep_vel,gs_vel
+     &     ,pbl_args%dep_vel,pbl_args%gs_vel
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     *     ,DMS_flux,ss1_flux,ss2_flux
+     &     ,pbl_args%DMS_flux,pbl_args%ss1_flux,pbl_args%ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm
-     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh
+     &     ,ptype,pbl_args%dust_flux,pbl_args%dust_flux2
+     &     ,pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm,pbl_args%z
+     &     ,pbl_args%km,pbl_args%gh,pbl_args%gm
+     &     ,pbl_args%zhat,pbl_args%lmonin,pbl_args%dust_event1
+     &     ,pbl_args%dust_event2,pbl_args%wtrsh
 #endif
-#endif
-     4     ,psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs
-     5     ,uocean,vocean,ts_guess,i,j,itype
-     6     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
-     &     ,wsgcm,wspdf,w2_1,mdf
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
-     &     ,upbl
-     &     ,vpbl
-     &     ,tpbl
-     &     ,qpbl
-     &     ,epbl
-#ifdef TRACERS_ON
-     &     ,tr
 #endif
      &     )
 
@@ -397,8 +374,8 @@ c     ENDIF
       qabl(:,i,j,itype)=qpbl(:)
       eabl(1:npbl-1,i,j,itype)=epbl(1:npbl-1)
 #ifdef TRACERS_ON
-      do nx=1,ntx
-        trabl(:,ntix(nx),i,j,itype)=tr(:,nx)
+      do nx=1,pbl_args%ntx
+        trabl(:,pbl_args%ntix(nx),i,j,itype)=tr(:,nx)
       end do
 #endif
 

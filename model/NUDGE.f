@@ -34,7 +34,8 @@ c******************************************************************
       USE DOMAIN_DECOMP, only : grid
       USE NUDGE_COM, only : u1,v1,u2,v2,tau,anudgeu,anudgev,pl,nlevnc
       IMPLICIT NONE
-      REAL*8 DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UGCM, VGCM
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     &     UGCM, VGCM
 c     LOCAL
       INTEGER i,j,l
       REAL*8  alphau,alphav,a,dtstep
@@ -204,10 +205,11 @@ c ==============
         REAL varo(im,jm-1,lmo)!  Variable on the old grid (input)
         REAL varn(im,jm,lm) !  Variable on the new grid (output)
         real coef,dp1,dp2
+        integer J_0SG,J_1SG
 
         J_0SG = grid%J_STRT_STGR
         J_1SG = grid%J_STOP_STGR
-        do j= J_OSG, J_1SG             ! Please pay attention j starts at 2
+        do j= J_0SG, J_1SG             ! Please pay attention j starts at 2
           do i=1,im
           do ln=1,lm
 

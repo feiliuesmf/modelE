@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE dust_emission_constraints(i,j,itype,ptype,wsgcm,
-     &     dsteve1,dsteve2,soilvtrsh)
+     &     dsteve1,dsteve2,soilvtrsh,
+     &     wsubtke,wsubwd,wsubwm)
 !@sum  local constrainsts for dust tracer emission valid for all dust bins
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
@@ -12,13 +13,13 @@
       USE ghy_com,ONLY : snowe,wearth,aiearth
       USE tracers_dust,ONLY : pdfint,dryhr,hbaij,lim,ljm,lkm,qdust,
      &     ricntd,table,vtrsh,x1,x2,x3,wsubtke_com,wsubwd_com,wsubwm_com
-      USE pbl_drv,ONLY : wsubtke,wsubwd,wsubwm
 
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: i,j,itype
       REAL*8,INTENT(IN) :: ptype,wsgcm
       REAL*8,INTENT(OUT) :: dsteve1,dsteve2,soilvtrsh
+      REAL*8,INTENT(IN) :: wsubtke,wsubwd,wsubwm
 
       REAL*8 :: mcfrac=0.05
       REAL*8 :: hbaijold,hbaijd

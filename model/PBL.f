@@ -77,19 +77,9 @@
 
 C**** boundary layer parameters
       real*8, parameter :: kappa=0.40d0 !@var kappa  Von Karman constant
+!@var  zgs  height of the surface layer (nominally 10 m)
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
-!!#ifdef TRACERS_ON
-!!!@var  tr local tracer profile (passive scalars)
-!!      real*8, dimension(n,ntm) :: tr
-!!#endif
-
-!!#ifdef TRACERS_GASEXCH_Natassa
-!!      real*8 :: temp_c,Sc_gas
-!!      real*8, external :: sc_cfc,sol_cfc
-!!      COMMON /GASEXCH_BLK/ temp_c,Sc_gas,alpha_gas
-!!!$OMP THREADPRIVATE (/GASEXCH_BLK/)
-!!#endif
 C**** parameters for surface fluxes
       !Hogstrom 1988:
       real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
@@ -101,18 +91,6 @@ ccc   real*8, parameter :: sigma=0.74d0,sigma1=1.-sigma
 ccc   real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
 ccc  *     gamahs=4.7d0/sigma
 
-C***
-C***  Thread-Private Common
-C***
-!!      COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0
-!!#ifdef TRACERS_ON
-!!     * ,tr
-!!#endif
-!!!$OMP  THREADPRIVATE (/PBLTPC/)
-
-!      COMMON /PBLOUT/US,VS,WSM,WSH,TSV,QSRF,DBL,KMS,KHS,KQS,
-!     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,W2_1,MDF,wsgcm,wspdf
-!!$OMP  THREADPRIVATE (/PBLOUT/)
 
 CCC !@var bgrid log-linear gridding parameter
 CCC      real*8 :: bgrid
@@ -127,11 +105,15 @@ CCC      real*8 :: bgrid
 
       CONTAINS
 
-      subroutine advanc(
-     3      coriol,utop,vtop,ttop,qtop,tgrnd
+      subroutine advanc(coriol,utop,vtop,ttop,qtop,tgrnd
      &     ,qgrnd,qgrnd_sat,evap_max,fr_sat
+     4     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
+     5     ,uocean,vocean,ts_guess,ilong,jlat,itype
+     6     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg ,wsgcm,wspdf,w2_1,mdf
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0 ,u,v,t,q,e
 #if defined(TRACERS_ON)
-     *     ,trs,trtop,trsfac,trconstflx,ntx,ntix
+     *     ,trs,trtop,trsfac,trconstflx,ntx,ntix,tr
 #if defined(TRACERS_GASEXCH_Natassa)
      *     ,alati,Kw_gas,alpha_gas,beta_gas
 #endif
@@ -150,23 +132,11 @@ CCC      real*8 :: bgrid
      &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh
 #endif
 #endif
-     4     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
-     5     ,uocean,vocean,ts_guess,ilong,jlat,itype
-     6     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
-     &     ,wsgcm,wspdf,w2_1,mdf
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
-     &     ,u,v,t,q,e
-#if defined(TRACERS_ON)
-     &     ,tr
-#endif
      &     )
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c    input:
-!@var  z0m  roughness height for momentum (if itype>2)
-!@var  zgs  height of the surface layer (nominally 10 m)
 !@var  coriol  2.*omega*sin(latitude), the coriolis factor
 !@var  utop  x component of wind at the top of the layer
 !@var  vtop  y component of wind at the top of the layer
@@ -493,7 +463,8 @@ C**** for all dry deposited tracers
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsgcm,
-     &   dust_event1,dust_event2,wtrsh)
+     &   dust_event1,dust_event2,wtrsh,
+     &   wsubtke,wsubwd,wsubwm)
 #endif
 
 C**** loop over tracers
