@@ -957,6 +957,9 @@ c**** loop over ground time steps
       elhx=lhe
       if(tg1.lt.0.)  elhx=lhs
       pbl_args%qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
+      pbl_args%tg=tg
+      pbl_args%elhx=elhx
+      pbl_args%qsol=srheat   ! solar heating
   !    qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
 
       qg = qg_ij(i,j)
@@ -977,6 +980,7 @@ c**** loop over ground time steps
 C**** Obviously there are no ocean currents for earth points, but
 C**** variables set for consistency with surfce
       pbl_args%uocean=0 ; pbl_args%vocean=0
+      pbl_args%ocean = .FALSE.
   !    uocean=0 ; vocean=0
 
 c***********************************************************************

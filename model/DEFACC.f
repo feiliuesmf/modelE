@@ -3026,6 +3026,15 @@ c
       ir_ij(k) = ir_m95_265
 c
       k=k+1 !
+      IJ_DSKIN   = k !
+      lname_ij(k) = 'SKIN TEMPERATURE OFFSET'
+      units_ij(k) = '0.1 C'
+      name_ij(k) = 'dskin'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_m9_26
+c
+      k=k+1 !
       IJ_P1000 = k !
       lname_ij(k) = '1000 hPa BELOW GROUND'  ! weighting functi
       units_ij(k) = '%'

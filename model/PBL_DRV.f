@@ -1,12 +1,12 @@
 #include "rundeck_opts.h"
 
       module PBL_DRV
+      use SOCPBL, only : npbl=>n
 #ifdef TRACERS_ON
       use tracer_com, only : ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
-      use SOCPBL, only : npbl=>n
 #endif
 #endif
       implicit none
@@ -22,49 +22,47 @@ c**** Don't use global variables for that purpose !
       type t_pbl_args
         ! input:
         real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
-        real*8  evap_max,fr_sat,uocean,vocean,psurf,trhr0
-        logical :: pole
+        real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
+        real*8 tg,elhx,qsol,sss_loc
+        logical :: pole,ocean
         ! output:
-        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq
+        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin
         ! the following args needed for diagnostics
-        real*8 psi,dbl,khs,ug,vg,wg
+        real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
 #ifdef TRACERS_ON
 C**** Tracer input/output
 !@var trtop,trs tracer mass ratio in level 1/surface
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
 !@var ntix index array to map local tracer number to global
-      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-      integer ntx
-      integer, dimension(ntm) :: ntix
+        real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+        integer ntx
+        integer, dimension(ntm) :: ntix
 
-#ifdef TRACERS_DUST
-        ! additional args for dust tracer diagnostics
-        REAL*8 :: ustar,zgs
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      REAL*8 ::wsgcm,wspdf
-      REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke,wsubwd,
-     &   wsubwm,dust_event1,dust_event2,wtrsh
-      REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
-     &     lmonin
+        REAL*8 ::wsgcm,wspdf
+        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
+     *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
+        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
+     &       lmonin
 #endif
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      real*8 :: DMS_flux,ss1_flux,ss2_flux
+        real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
 #ifdef TRACERS_DRYDEP
 !@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
 !@var gs_vel gravitational settling velocity (m/s)
-      real*8, dimension(ntm) :: dep_vel,gs_vel
+        real*8, dimension(ntm) :: dep_vel,gs_vel
 #endif
 #ifdef TRACERS_WATER
 !@var tr_evap_max maximum amount of tracer available in ground reservoir
-      real*8, dimension(ntm) :: tr_evap_max
+        real*8, dimension(ntm) :: tr_evap_max
 #endif
+
 #ifdef TRACERS_GASEXCH_Natassa
-      real*8  :: alati       !sss
-      real*8  :: Kw_gas,alpha_gas,beta_gas
+        real*8  :: Kw_gas,alpha_gas,beta_gas
 #endif
 #endif
       end type t_pbl_args
@@ -125,9 +123,14 @@ c
 !@var PSI    = angular diff. btw geostrophic and surface winds (rads)
 !@var WG     = magnitude of the geostrophic wind (m/s)
 !@var HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
-      real*8 zs1,tgv,tkv,ws,psi,wg,qg_sat,qg_aver,dtsurf,hemi
+!@var TG     = bulk ground temperature (K)
+!@var ELHX   = latent heat for saturation humidity (J/kg)
+!@var dskin  = skin-bulk SST difference (C)
+!@VAR QSOL   = solar heating (W/m2)
+      real*8 zs1,tgv,tkv,ws,psi,wg,qg_sat,qg_aver,dtsurf,hemi,tg,elhx
+     *     ,dskin,qsol,sss_loc
 !@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
-      logical pole
+      logical pole,ocean
 
 !**** the following is output from advance
 !@var US     = x component of surface wind, positive eastward (m/s)
@@ -181,6 +184,11 @@ ccc extract data from the pbl_args structure
       vocean = pbl_args%vocean
       psurf = pbl_args%psurf
       trhr0 = pbl_args%trhr0
+      tg = pbl_args%tg
+      elhx = pbl_args%elhx
+      qsol = pbl_args%qsol
+      sss_loc=pbl_args%sss_loc
+      ocean = pbl_args%ocean
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
@@ -311,19 +319,18 @@ c     ENDIF
      2          *(1+q(i,j,1)*deltx)
       mdf = ddm1(i,j)
 
-      call advanc(coriol,utop,vtop,ttop,qtop,tgrndv
-     &     ,qgrnd,qgrnd_sat,evap_max,fr_sat
+      call advanc(coriol,utop,vtop,ttop,qtop,tgrndv,tg,elhx,qsol
+     &     ,qgrnd,qgrnd_sat,evap_max,fr_sat,sss_loc
      &     ,psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs
-     &     ,uocean,vocean,ts_guess,i,j,itype
-     &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     &     ,uocean,vocean,ts_guess,i,j,itype,ocean
+     &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs,dskin
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wsgcm,wspdf,w2_1,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
      &     ,pbl_args%trs,pbl_args%trtop,pbl_args%trsfac
      &     ,pbl_args%trconstflx,pbl_args%ntx,pbl_args%ntix ,tr
 #if defined(TRACERS_GASEXCH_Natassa)
-     &     ,pbl_args%alati,pbl_args%Kw_gas
-     &     ,pbl_args%alpha_gas,pbl_args%beta_gas
+     &     ,pbl_args%Kw_gas,pbl_args%alpha_gas,pbl_args%beta_gas
 #endif
 #if defined(TRACERS_WATER)
      &     ,pbl_args%tr_evap_max
@@ -409,10 +416,9 @@ ccc put data backto pbl_args structure
       pbl_args%ug = ug
       pbl_args%vg = vg
       pbl_args%wg = wg
-#ifdef TRACERS_DUST
+      pbl_args%dskin = dskin
       pbl_args%ustar = ustar
       pbl_args%zgs = zgs
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       pbl_args%wsgcm=wsgcm
@@ -442,7 +448,7 @@ c -------------------------------------------------------------
 !      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
 !     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
 
-      USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0
+      USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0,skin_effect
       USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP, only : GRID, GET
@@ -491,6 +497,7 @@ C things to be done regardless of inipbl
       CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),0,roughl,1)
       call closeunit(iu_CDN)
       call sync_param( 'XCDpbl', XCDpbl )
+      call sync_param( 'skin_effect', skin_effect )
 
       do j=J_0,J_1
         do i=1,im

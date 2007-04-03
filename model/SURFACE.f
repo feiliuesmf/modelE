@@ -11,10 +11,7 @@ C****
 !@auth Nobody will claim responsibilty
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
-     *     ,deltx,teeny,rhows     ! ,byrt3
-#ifdef TRACERS_DUST
-     &     ,grav
-#endif
+     *     ,deltx,teeny,rhows,grav     ! ,byrt3
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,ndasf,fland,flice,focean,IVSP,IVNP
      *     ,nday,modrd,itime,jhour,itocean
@@ -42,26 +39,6 @@ C****
       USE PBLCOM, only : tsavg,dclev
      &     ,eabl,uabl,vabl,tabl,qabl
       USE PBL_DRV, only : pbl, t_pbl_args
-  !   &     ,evap_max,fr_sat,uocean,vocean,psurf,trhr0
-#ifdef TRACERS_ON
-!     *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
-#ifdef TRACERS_GASEXCH_Natassa
-!     *     ,alati,Kw_gas,alpha_gas,beta_gas
-#endif
-#ifdef TRACERS_WATER
-!     *     ,tr_evap_max
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-!    (defined TRACERS_QUARZHEM)
-!     &     ,z,km,gh,gm,zhat,lmonin,wsubtke,wsubwd,wsubwm
-#endif
-#ifdef TRACERS_DRYDEP
-!     *     ,dep_vel,gs_vel
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-!     *     ,DMS_flux, ss1_flux, ss2_flux
-#endif
-#endif
       USE DIAG_COM, only : oa,aij=>aij_loc
      *     ,tdiurn,aj=>aj_loc,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
@@ -73,7 +50,7 @@ C****
      *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG
+     *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG,ij_dskin
 #ifndef NO_HDIURN
      *     ,hdiurn
 #endif
@@ -167,7 +144,7 @@ C****
      *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT
      *     ,T2DEN,T2CON,T2MUL,FQEVAP ! ,QSDEN,QSCON,QSMUL,TGDEN
-     *     ,Z1BY6L,EVAPLIM,F2,FSRI(2),HTLIM,dlwdt
+     *     ,Z1BY6L,EVAPLIM,F2,FSRI(2),HTLIM,dlwdt,dskin
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -379,7 +356,7 @@ C****
 !$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, ! QSDEN,
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT, ! QSCON,QSMUL,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,  ! TGDEN,
-!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,dlwdt,
+!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,dlwdt,dskin
 !$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,QSRF,pbl_args,jr,tmp
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
@@ -618,9 +595,12 @@ C****
       TG=TG1+TF
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
+      pbl_args%TG=TG   ! actual ground temperature
+      pbl_args%ELHX=ELHX   ! relevant latent heat
+      pbl_args%QSOL=SRHEAT   ! solar heating
       pbl_args%TGV=TG*(1.+QG_SAT*deltx)
-   !   psurf=PS   ! extra values to pass to PBL, possibly temporary
-   !   trhr0 = TRHR(0,I,J)
+      IF (ITYPE.EQ.1) pbl_args%sss_loc=sss(I,J)
+
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
@@ -631,7 +611,6 @@ C**** set defaults
         trconstflx(nx)=0.
 #ifdef TRACERS_GASEXCH_Natassa
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
-          pbl_args%alati=sss(I,J)
           trgrnd(nx)=gtracer(n,itype,i,j)
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
@@ -669,7 +648,7 @@ C**** Calculate trsfac (set to zero for const flux)
           end if
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-C**** Now send kg/m^2/s to PBL, and dived by rho there.
+C**** Now send kg/m^2/s to PBL, and divided by rho there.
           do nsrc=1,ntsurfsrc(n)
 cdiag       write(*,'(a,4i5,e12.4)')
 cdiag.      'SURFACE:trsource ',i,j,nsrc,n,trsource(i,j,nsrc,n)
@@ -697,6 +676,7 @@ C =====================================================================
       pbl_args%vocean = vocean
       pbl_args%psurf = PS
       pbl_args%trhr0 = TRHR(0,I,J)
+      pbl_args%ocean = (ITYPE.eq.1 .and. FOCEAN(I,J).gt.0)
 #ifdef TRACERS_ON
       pbl_args%trs(:) = trs(:)
       pbl_args%trsfac(:) = trsfac(:)
@@ -717,8 +697,14 @@ C =====================================================================
       CM = pbl_args%cm
       CH = pbl_args%ch
       CQ = pbl_args%cq
-C =====================================================================
       TS=pbl_args%TSV/(1.+QSRF*deltx)
+C =====================================================================
+C**** Adjust ground variables to account for skin effects
+      TG = TG + pbl_args%dskin
+      QG_SAT=QSAT(TG,ELHX,PS)
+      IF (pbl_args%ocean) QG_SAT=0.98d0*QG_SAT
+      TG1 = TG - TF
+      
 C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RHOSRF=100.*PS/(RGAS*pbl_args%TSV)
       RCDMWS=CM*pbl_args%WSM*RHOSRF
@@ -1010,7 +996,7 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
 
-      TGRND(ITYPE,I,J)=TG1
+      TGRND(ITYPE,I,J)=TG1  ! includes skin effects
 C**** calculate correction for different TG in radiation and surface
       dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*(TG1+TF)**4) 
       DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
@@ -1074,6 +1060,9 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSRF*PTYPE
           AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TG1*PTYPE
           AIJ(I,J,IJ_PBLHT)=AIJ(I,J,IJ_PBLHT)+pbl_args%dbl*PTYPE
+
+          if (ITYPE==1)
+     *         AIJ(I,J,IJ_DSKIN)=AIJ(I,J,IJ_DSKIN)+pbl_args%dskin
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1160,8 +1149,8 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_stress)=+rcdmws*pbl_args%wsm*ptype
                 tmp(idd_lmon)=+pbl_args%lmonin*ptype
                 tmp(idd_rifl)=
-     &               +ptype*grav*(ts-(tg1+tf))*pbl_args%zgs
-     &               /(ws*ws*(tg1+tf))
+     &               +ptype*grav*(ts-tg))*pbl_args%zgs
+     &               /(ws*ws*tg)
 
                 tmp(idd_zpbl1)=+ptype*pbl_args%z(1)
                 tmp(idd_zpbl2)=+ptype*pbl_args%z(2)

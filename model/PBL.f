@@ -10,10 +10,8 @@
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
       USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx,tf
-     &                     ,by3,lhe,rgas
-#ifdef TRACERS_GASEXCH_Natassa
-     .           ,rhows,mair
-#endif
+     &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo,rgas
+      USE SEAICE, only : tfrez
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname,trradius
 #ifdef TRACERS_GASEXCH_Natassa
@@ -41,17 +39,13 @@
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
-!!! focean doesn''t belong to this module !!! - I.A.
-      USE MODEL_COM, only : focean
-#endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
 
       private
 
       ! public parameters
-      public n,zgs,XCDpbl,kappa,emax
+      public n,zgs,XCDpbl,kappa,emax,skin_effect
 
       ! public interfaces
       public advanc,inits,ccoeff0
@@ -65,6 +59,7 @@
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
+!@dbparam XCDpbl factor for momentum drag coefficient
       real*8 :: XCDpbl=1d0
 
       real*8 :: rimax,ghmin,ghmax,gmmax0,gm_at_rimax,d1,d2,d3,d4,d5
@@ -103,28 +98,31 @@ CCC      real*8 :: bgrid
 !@param twoby3 2/3 constant
       real*8, parameter :: twoby3 = 2d0/3d0
 
+!@dbparam skin_effect sets whether skin effects are used or not
+      integer :: skin_effect=0  ! Not used by default
+
       CONTAINS
 
-      subroutine advanc(coriol,utop,vtop,ttop,qtop,tgrnd
-     &     ,qgrnd,qgrnd_sat,evap_max,fr_sat
-     4     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
-     5     ,uocean,vocean,ts_guess,ilong,jlat,itype
-     6     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+      subroutine advanc(coriol,utop,vtop,ttop,qtop,tgrnd0,tg,elhx,qsol
+     &     ,qgrnd0,qgrnd_sat,evap_max,fr_sat,sss_loc
+     &     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
+     &     ,uocean,vocean,ts_guess,ilong,jlat,itype,ocean
+     &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs,dskin
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg ,wsgcm,wspdf,w2_1,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0 ,u,v,t,q,e
 #if defined(TRACERS_ON)
-     *     ,trs,trtop,trsfac,trconstflx,ntx,ntix,tr
+     &     ,trs,trtop,trsfac,trconstflx,ntx,ntix,tr
 #if defined(TRACERS_GASEXCH_Natassa)
-     *     ,alati,Kw_gas,alpha_gas,beta_gas
+     &     ,Kw_gas,alpha_gas,beta_gas
 #endif
 #if defined(TRACERS_WATER)
-     *     ,tr_evap_max
+     &     ,tr_evap_max
 #endif
 #if defined(TRACERS_DRYDEP)
-     *     ,dep_vel,gs_vel
+     &     ,dep_vel,gs_vel
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     *     ,DMS_flux, ss1_flux, ss2_flux
+     &     ,DMS_flux, ss1_flux, ss2_flux
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -142,8 +140,10 @@ c    input:
 !@var  vtop  y component of wind at the top of the layer
 !@var  ttop  virtual potential temperature at the top of the layer
 !@var  qtop  moisture at the top of the layer
-!@var  tgrnd  virt. pot. temp. of the ground, at the roughness height
-!@var  qgrnd  moisture at the ground, at the roughness height
+!@var  tgrnd0 bulk virt. pot. temp. of the ground, at the roughness height
+!@var  tg  actual ground temp
+!@var  elhx relevant latent heat for qg calc
+!@var  qgrnd0 initial moisture at the ground, at the roughness height
 !@var  qgrnd_sat saturated moisture at the ground, at the roughness height
 !@var  evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
@@ -152,6 +152,9 @@ c    input:
 !@var  ilong  longitude identifier
 !@var  jlat   latitude identifier
 !@var  itype  1, ocean; 2, ocean ice; 3, land ice; 4, land
+!@var  psurf surface pressure
+!@var  trhr0 incident long wave radiation
+!@var  sss_loc SSS at i,j
 c   output:
 !@var  us  x component of the surface wind (i.e., due east)
 !@var  vs  y component of the surface wind (i.e., due north)
@@ -168,8 +171,7 @@ c   output:
 !@var  z0m  roughness height for momentum (if itype=1 or 2)
 !@var  z0h  roughness height for heat
 !@var  z0q  roughness height for moisture
-!@var  psurf surface pressure
-!@var  trhr0 incident long wave radiation
+!@var  dskin skin-bulk SST difference
 !  more output (may be duplicated)
 !@var US     = x component of surface wind, positive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
@@ -205,7 +207,6 @@ c   output:
 !@var  ntix index of tracers used in pbl
 #endif
 #if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_Natassa)
-!@var  alati SSS at i,j
 !@var  Kw_gas  gas exchange transfer velocity at i,j only over ocean
 !@var  alpha_gas  solubility of gas
 !@var  beta_gas  conversion term  that includes solubility
@@ -229,17 +230,19 @@ c  internals:
 
       real*8, intent(in) :: coriol,utop,vtop,ttop,qtop,uocean,vocean
      *                      ,ts_guess
-      real*8, intent(in) :: tgrnd,qgrnd,qgrnd_sat,evap_max,fr_sat
-     &     ,ztop,dtime
-      real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
+      real*8, intent(in) :: tgrnd0,qgrnd0,qgrnd_sat,evap_max,fr_sat
+     &     ,ztop,dtime,tg,elhx,qsol
+      real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs,dskin
       integer, intent(in) :: ilong,jlat,itype
       real*8, intent(in) :: psurf,trhr0
+      real*8, intent(in) :: sss_loc
+      logical, intent(in) :: ocean
+      real*8, intent(in) :: dbl,ug,vg,mdf
+      real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       !-- output:
       real*8, intent(out) :: us,vs,wsm,wsh,tsv,qsrf,kms,khs,kqs
      &         ,ustar,cm,ch,cq,z0m,z0h,z0q
      &         ,wsgcm,wspdf,w2_1
-      real*8, intent(in) :: dbl,ug,vg,mdf
-      real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
 #ifdef TRACERS_ON
       real*8, intent(in), dimension(ntm) :: trtop
@@ -248,12 +251,10 @@ c  internals:
       integer, intent(in) :: ntx
       integer, intent(in), dimension(ntm) :: ntix
       real*8, dimension(n,ntm) :: trsave
-      real*8 trcnst,trsf,cqsave,ts,rhosrf,byrho,tg1,rh1
+      real*8 trcnst,trsf,cqsave,byrho,rh1
       real*8, dimension(n-1) :: kqsave
-      real*8 :: qsat
       integer itr
 #ifdef TRACERS_GASEXCH_Natassa
-      real*8, intent(in) :: alati
       real*8, intent(out):: Kw_gas,alpha_gas,beta_gas
 #endif
 #ifdef TRACERS_WATER
@@ -270,7 +271,8 @@ c  internals:
       real*8, intent(out) :: DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
-      real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h
+      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
+      real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
@@ -278,7 +280,6 @@ c  internals:
       real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1
       real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
-     *       ,eles
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 C****
       real*8 :: sig0,delt,wt,wmin,wmax
@@ -299,7 +300,7 @@ C****
       REAL*8 :: lmonin
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
-      real*8 :: temp_c,Sc_gas
+      real*8 :: Sc_gas
       real*8, external :: sc_cfc,sol_cfc
 #endif
 !@var  u  local due east component of wind
@@ -307,12 +308,8 @@ C****
 !@var  t  local virtual potential temperature
 !@var  q  local specific humidity (a passive scalar)
 !@var  e  local turbulent kinetic energy
-c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n), intent(inout) :: u,v,t,q
       real*8, dimension(n-1), intent(inout) :: e
-!!      common/pbluvtq/u,v,t,q,e
-!!!$OMP  THREADPRIVATE (/pbluvtq/)
-C**** end special threadprivate common block
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(n,ntm) :: tr
@@ -320,7 +317,6 @@ C**** end special threadprivate common block
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"advanc: i,j,itype=",ilong,jlat,itype,u(1),v(1),t(1),q(1)
-c        call abort
         call stop_model("PBL error in advanc",255)
       end if
 
@@ -341,12 +337,34 @@ c        call abort
       end do
       ustar0=0.
 
+      tgrnd=tgrnd0              ! use initial bulk ground temp
+      qgrnd=qgrnd0              ! use initial sat humidity
+      tgskin=tg                 ! initially assume no skin/bulk difference
+      dskin=0
+      
+      call getl1(e,zhat,dzh,lscale,n)
+      
       do iter=1,itmax
 
-        if(iter.eq.1) then
-          call getl1(e,zhat,dzh,lscale,n)
-        else
+        if(iter.gt.1) then
           call getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
+C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes
+          if (itype.eq.1 .and. skin_effect.gt.0) then 
+c estimate net flux and ustar_oc from current tg,qg etc.
+            ts=t(1)/(1+q(1)*deltx)
+            rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
+            Qnet= (lhe+tgskin*shv)*cq*wsh*rhosrf*(q(1)-qgrnd) ! Latent
+     *          +  sha*ch*wsh*rhosrf*(ts-tgskin)              ! Sensible
+     *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
+            ustar_oc=ustar*sqrt(rhosrf*byrhows)
+            dskin=deltaSST(Qnet,Qsol,ustar_oc)
+            tgskin=0.5*(tgskin+(tg+dskin))   ! smooth changes in iteration
+            tgskin=max(tgskin,tf+tfrez(sss_loc))  ! prevent unphysical values
+            dskin=tgskin-tg ! net dskin diagnostic
+            qgrnd=qsat(tgskin,elhx,psurf) 
+            if (ocean) qgrnd=0.98d0*qgrnd  ! use ocean adjustment
+            tgrnd=tgskin*(1.+qgrnd*deltx)
+          endif
         endif
 
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
@@ -357,7 +375,6 @@ c        call abort
         kqsave=kq
         cqsave=cq
 #endif
-
 
         !@var wstar the convection-induced wind according to
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
@@ -380,19 +397,15 @@ c        call abort
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat)
 
-        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd
-     &            ,ttop,dtime,n
-     &            ,dpdxr,dpdyr,dpdxr0,dpdyr0)
+        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd,ttop,dtime
+     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0) 
 
-        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
-     2              ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3              ug,vg,uocean,vocean,n
-     &              ,dpdxr,dpdyr,dpdxr0,dpdyr0)
+        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
+     *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
+     *       ,dpdyr0)
 
-        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
-          call tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,kh(1),
-     *              ts_guess,n)
-        endif
+        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) call tfix(t,z,ttop,tgrnd
+     *       ,lmonin,tstar,ustar,kh(1),ts_guess,n)
 
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
@@ -414,7 +427,6 @@ c        call abort
         ustar0=ustar
 
       end do
-c     write(97,*) "iter=",iter,ustar
 
 c**** cannot update wsh without taking care that wsh used for tracers is
 c**** the same as that used for q
@@ -449,9 +461,9 @@ C**** tracer calculations are passive and therefore do not need to
 C**** be inside the iteration. Use moisture diffusivity.
 C**** First, define some useful quantities
       ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
-      tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
       rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
       byrho=1d0/rhosrf
+      tg1 = tgskin-tf ! re-calculate ground T (C)
       rh1=q(1)/qsat(ts,lhe,psurf) ! rel. hum. at surface (wrt water)
 
 #ifdef TRACERS_DRYDEP
@@ -492,10 +504,10 @@ C**** get fractionation for isotopes
 #endif
 
 #ifdef TRACERS_DRYDEP
-C****   3) dry deposited tracers (inlcuding gravitational settling)
+C****   3) dry deposited tracers (including gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(ntix(itr))) then
-C****   get setling velocity
+C****   get settling velocity
           if (trradius(ntix(itr)).gt.0.) then
             gs_vel(ntix(itr))=vgs(rhosrf,rh1,ntix(itr))
           else
@@ -632,11 +644,7 @@ ccc dust emission from earth
 
 #ifdef TRACERS_GASEXCH_Natassa
 
-!!! What "focean" is doing here !!!???
-!!! Isn't ITYPE==1 not enaough???
-!!! This is single-column module. Don't use I,J arrays here !!
-
-      IF (ITYPE .EQ.1 .and. focean(ilong,jlat).gt.0.) THEN  ! OCEAN
+      IF (ocean) THEN  ! OCEAN
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !OCMIP implementation www.ipsl.jussieu.fr/OCMIP
       !F=Kw*Csat - Kw*Csurf=
@@ -664,13 +672,8 @@ ccc dust emission from earth
       !TRANSFER VELOCITY
       !---------------------------------------------------------------
       !compute Schmidt number for gas
-      !temp_c=ts-273.16
-      !temp_c=tg1     !use ground temp computed earlier
-      !temp_c=tgrnd
-      !temp_c=tgrnd-273.16
-       temp_c=tg1     !use ground temp computed earlier
-
-      Sc_gas=sc_cfc(temp_c,11)
+      ! use ground temperature in deg C including skin effects
+      Sc_gas=sc_cfc(tg1,11)
 
       !wind speed wsh: magn. of surf. wind modified by buoyancy flux (m/s)
       !compute transfer velocity Kw
@@ -679,7 +682,7 @@ ccc dust emission from earth
       if (Sc_gas .le. 0.) then
         write(*,'(a,2i4,a,2f9.3)')
      .          'warning: Sc_gas negtv, at ',ilong,jlat,
-     .          ', Sc_gas,temp_c=',Sc_gas,temp_c
+     .          ', Sc_gas,temp_c=',Sc_gas,tg1
          Kw_gas=1.e-10
       else
          Kw_gas=1.d0/3.6e+5*0.337d0*wsh*wsh*(Sc_gas/660.d0)**(-0.5d0)
@@ -690,7 +693,7 @@ ccc dust emission from earth
       !---------------------------------------------------------------
       !alpha --solubility of CFC (11 or 12) in seawater
       !in mol/m^3/picoatm
-       alpha_gas=sol_cfc(temp_c,alati,11)
+       alpha_gas=sol_cfc(tg1,sss_loc,11)
       !convert to mol/m^3/atm
        alpha_gas=alpha_gas*1.e+12
 
@@ -705,11 +708,11 @@ ccc dust emission from earth
       !units are such that flux comes out to (m/s)(kg/kg)
        trsf = Kw_gas * beta_gas
 
-       trcnst = Kw_gas * trconstflx(itr)*byrho   ! convert to (conc * m/s)
+       trcnst = Kw_gas * trconstflx(itr)*byrho ! convert to (conc * m/s)
 
 cdiag write(*,'(a,2i3,13e12.4)')'PBL, Kw ',
-cdiag.    ilong,jlat,temp_c,Sc_gas,wsh,Kw_gas,mair
-cdiag.   ,psurf*10.197e-4,alati,alpha_gas,beta_gas
+cdiag.    ilong,jlat,tg1,Sc_gas,wsh,Kw_gas,mair
+cdiag.   ,psurf*10.197e-4,sss_loc,alpha_gas,beta_gas
 cdiag.   ,rhows,trconstflx(itr),trsf,trcnst
 
       ENDIF
@@ -1573,7 +1576,6 @@ c     rhs(n-1)=0.
       real*8, dimension(n), intent(in) :: zhat,lscale
       real*8, dimension(n), intent(inout) :: e
       real*8, parameter :: emin=1.d-6
-      real*8, dimension(n) :: eles
       integer :: j !@var j loop variable
       real*8 :: tvflx,ustar3,zj,kz,zeta,phi_m,eps,ej
 
@@ -3124,3 +3126,39 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       return
       END SUBROUTINE locatepbl
+
+      real*8 function deltaSST(Qnet,Qsol,ustar_oc)
+!@sum deltaSST calculate skin-bulk SST difference (deg C)
+!@var Qnet Net heat flux (not including solar, +ve dwn) (W/m2)
+!@var Qsol Solar heat flux (W/m2)
+!@var ustar_oc ocean u* (m/s)
+      USE CONSTANT, only : rhows,visc_wtr_kin
+      IMPLICIT NONE
+      real*8, intent(in) :: Qnet,Qsol,ustar_oc
+C**** k thermal cond. 0.596 W/mK (35 psu, 20 deg, 0 press)
+      real*8, parameter :: byk= 1.677d0  ! 1/thermal conductivity (K/(W/m))
+!@var lam coefficient (non-dim)
+      real*8, parameter :: lam=2.4d0  ! Ward (2007)
+!@var del micro-layer thickness (m)
+      real*8 :: del
+!@var fc fraction of solar absorbed in micro-layer
+      real*8 :: fc
+
+C**** calculate micro-layer thickness (m) 
+C**** Cap ustar so that it doesn't get too small in low wind conditions
+C**** ustar_oc < 0.0044 corresponding to tau < 0.01 N/m2
+      del = lam*visc_wtr_kin/max(ustar_oc,0.0044d0)
+
+C**** fraction of solar absorbed (Fairall et al, 1996)
+      if (del .lt. 1d-8) then
+        fc = 0.0545d0 + 11.*del
+      else
+        fc = 0.137d0 + 11.*del - 6.6d-5*(1.-exp(-del*1250.))/del
+      end if
+      fc = min(0.24d0,fc)    ! assume max feasible del=1cm?
+
+C**** delta SST = skin - bulk (+ve for flux going down)
+C**** includes occurences of warm skin temperatures (generally < 0.01 C)
+      deltaSST=(Qnet + fc*Qsol)*del*byk 
+
+      end function deltaSST

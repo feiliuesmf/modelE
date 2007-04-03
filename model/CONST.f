@@ -58,6 +58,8 @@ c**** lhs(T) = lhs(0) + (shv-shi) T (in C)
       real*8,parameter :: rhow = 1d3
 !@param rhows density of average sea water (1030 kg/m^3)
       real*8,parameter :: rhows = 1030d0
+!@param byrhows recip. density of average sea water (1/1030 m^3/kg)
+      real*8,parameter :: byrhows = 1d0/rhows
 !@param rhoi density of pure ice (916.6 kg/m^3)
       real*8,parameter :: rhoi = 916.6d0
 !@param byrhoi 1/rhoi (m^3/kg)
@@ -138,6 +140,9 @@ c     real*8,parameter :: shv = 4.*rvap  ????
 
 !@var visc_air_kin kinematic viscosity of air (m^2/ s)
       real*8,parameter :: visc_air_kin = 1.46d-5
+
+!@var visc_wtr_kin kinematic viscosity of water (35 psu, 20 deg C) (m^2/ s)
+      real*8,parameter :: visc_wtr_kin = 1.05d-6
 
 !@var avog Avogadro's constant (atmos/mole)
       real*8,parameter :: avog=6.023d23
