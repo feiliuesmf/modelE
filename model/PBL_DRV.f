@@ -81,27 +81,11 @@ C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
 C          ,UG,VG,WG,W2_1
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
-      USE MODEL_COM
-     &     , only : t,q,u,v,ls1
+      USE MODEL_COM, only : t,q,u,v,ls1
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
-cddd      USE SOCPBL, only : npbl=>n
-cddd     &     ,dpdxr,dpdyr
-cddd     &     ,dpdxr0,dpdyr0
-cddd     &     ,advanc                      ! subroutine
-cddd     &     ,zgs                  ! global
-cddd     &     ,US,VS,WSM,WSH,TSV,QSRF,DBL,KHS
-cddd     &     ,UG,VG,mdf
-cddd     &     ,ustar,cm,ch,cq,z0m,w2_1
-cddd#ifdef TRACERS_ON
-cddd     *     ,tr
-cddd#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-cddd    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-cddd     &     ,wsgcm,wspdf
-cddd#endif
-cddd#endif
 
       use SOCPBL, only : npbl=>n, zgs, advanc
 
@@ -174,16 +158,9 @@ c
       real*8 :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
      &         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
      &         ,wsgcm,wspdf,w2_1,mdf
-
-! extra input
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-
-c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
-!      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
-!!$OMP  THREADPRIVATE (/pbluvtq/)
-C**** end special threadprivate common block
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(npbl,ntm) :: tr
@@ -496,13 +473,8 @@ C**** ignore ocean currents for initialisation.
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
       real*8 qsat
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-
-c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
-!!      common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
-!!!$OMP  THREADPRIVATE (/pbluvtq/)
-C**** end special threadprivate common block
 
       integer :: J_1, J_0
       integer :: J_1H, J_0H
