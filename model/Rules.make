@@ -43,7 +43,9 @@ endif
 # starting machine - specific options
 #
 
-NO_COMMAND = echo Requested target is not supported on $(UNAME); exit 1;
+NO_COMMAND = echo "*****  Requested target is not supported on $(UNAME)"; \
+             echo "*****  or compiler is not specified properly."; \
+             echo "*****  You have COMPILER=$(COMPILER)" ; exit 1;
 F90 = $(NO_COMMAND)
 FMAKEDEP = $(NO_COMMAND)
 CMP_MOD = $(NO_COMMAND)
@@ -61,6 +63,10 @@ ECHO_FLAGS =
 
 UNAME = $(shell uname)
 
+# hack to keep Intel8 name valid (only temporarily)
+ifeq ($(COMPILER),Intel8)
+COMPILER=intel
+endif
 
 # SGI - specific options here
 ifeq ($(UNAME),IRIX64)
@@ -133,7 +139,7 @@ FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
 endif
 
 ## this is for Intel Compiler (Version 7 - some problems remain)
-ifeq ($(COMPILER),Intel)
+ifeq ($(COMPILER),Intel7)
 F90 = efc
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifc-on-LINUX
@@ -157,7 +163,7 @@ endif
 endif
 
 ## this is for Intel Compiler (version 8 - compiles but problems remain) 
-ifeq ($(COMPILER),Intel8)
+ifeq ($(COMPILER),intel)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-9-0-on-LINUX
@@ -222,7 +228,7 @@ endif
 endif
 
 ## This is for the Portland Group Compiler (PGI)
-ifeq ($(COMPILER),PGI)
+ifeq ($(COMPILER),pgi)
 F90 = pgf90 -Mbyteswapio
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
@@ -234,6 +240,7 @@ FFLAGS += -Msmp
 LFLAGS += -Msmp
 endif
 # uncomment next two lines for extensive debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
 #FFLAGS += 
 #LFLAGS += 
 endif
@@ -255,6 +262,26 @@ FFLAGS += -trap=INVALID,DIVBYZERO,OVERFLOW -B111 -C
 LFLAGS += -lefence
 endif
 endif
+
+## This is for NAG compiler
+ifeq ($(COMPILER),nag)
+F90 = f95
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_NAG
+FFLAGS = -O2
+F90FLAGS = -O2 -free
+LFLAGS =
+# the following switch adds extra debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS +=
+LFLAGS += -lefence
+endif
+endif
+
+
+endif
+# end Linux options
 
 
 # IBM - specific options here
@@ -325,7 +352,7 @@ endif
 endif
 
 # ...with the NAG compiler
-ifeq ($(COMPILER),NAG)
+ifeq ($(COMPILER),nag)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
@@ -385,7 +412,7 @@ ifeq ($(UNAME),OSF1)
 CPPFLAGS += -DUSE_ESMF
 LIBS += -lesmf -lmpi
 endif
-ifeq ($(COMPILER),Intel8)
+ifeq ($(COMPILER),intel)
 ifeq ($(ESMF_DIR),)
 ESMFINCLUDEDIR = ${BASELIBDIR}/include/esmf
 ESMFLIBDIR = ${BASELIBDIR}/lib
@@ -549,7 +576,7 @@ ifeq ($(COMPILER),Lahey)
 	  $(COMP_OUTPUT)
 	rm -f $*.F
 else
-ifeq ($(COMPILER),PGI)
+ifeq ($(COMPILER),pgi)
 	cp $*.f $*.F
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
 	  $(COMP_OUTPUT)
