@@ -324,7 +324,7 @@ c     ENDIF
      &     ,psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,uocean,vocean,ts_guess,i,j,itype,ocean
      &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs,dskin
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wsgcm,wspdf,w2_1,mdf
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wsgcm,w2_1,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
      &     ,pbl_args%trs,pbl_args%trtop,pbl_args%trsfac
@@ -347,7 +347,7 @@ c     ENDIF
      &     ,pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm,pbl_args%z
      &     ,pbl_args%km,pbl_args%gh,pbl_args%gm
      &     ,pbl_args%zhat,pbl_args%lmonin,pbl_args%dust_event1
-     &     ,pbl_args%dust_event2,pbl_args%wtrsh
+     &     ,pbl_args%dust_event2,pbl_args%wtrsh,wspdf
 #endif
 #endif
      &     )

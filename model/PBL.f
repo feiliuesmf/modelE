@@ -10,7 +10,7 @@
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
       USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx,tf
-     &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo,rgas
+     &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo
       USE SEAICE, only : tfrez
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname,trradius
@@ -108,7 +108,7 @@ CCC      real*8 :: bgrid
      &     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,uocean,vocean,ts_guess,ilong,jlat,itype,ocean
      &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs,dskin
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg ,wsgcm,wspdf,w2_1,mdf
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg ,wsgcm,w2_1,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0 ,u,v,t,q,e
 #if defined(TRACERS_ON)
      &     ,trs,trtop,trsfac,trconstflx,ntx,ntix,tr
@@ -127,7 +127,7 @@ CCC      real*8 :: bgrid
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm
-     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh
+     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh,wspdf
 #endif
 #endif
      &     )
@@ -242,7 +242,7 @@ c  internals:
       !-- output:
       real*8, intent(out) :: us,vs,wsm,wsh,tsv,qsrf,kms,khs,kqs
      &         ,ustar,cm,ch,cq,z0m,z0h,z0q
-     &         ,wsgcm,wspdf,w2_1
+     &         ,wsgcm,w2_1
 
 #ifdef TRACERS_ON
       real*8, intent(in), dimension(ntm) :: trtop
@@ -288,7 +288,7 @@ C****
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       REAL*8,INTENT(IN) :: ptype
       REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),
-     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
+     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh,wspdf
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
       REAL*8,INTENT(OUT) :: z(n)
@@ -432,10 +432,7 @@ c**** cannot update wsh without taking care that wsh used for tracers is
 c**** the same as that used for q
 c      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
-#endif
 
 C**** Preliminary coding for use of sub-gridscale wind distribution
 C**** generic calculations for all tracers
