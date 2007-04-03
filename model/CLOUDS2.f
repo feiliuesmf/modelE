@@ -2299,14 +2299,14 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
      *     QSATL,RHF,ATH,SQ,ER,QHEAT,
-     *     CAREA,PREP,RH00,EC,WMXM
+     *     CLEARA,PREP,RH00,EC,WMXM
 !@var QSATL saturation water vapor mixing ratio
 !@var RHF environmental relative humidity
 !@var ATH change in potential temperature
 !@var SQ ERMAX dummy variables
 !@var ER evaporation of precip
 !@var QHEAT change of latent heat
-!@var CAREA fraction of clear region
+!@var CLEARA fraction of clear region
 !@var PREP precip conversion rate
 !@var RH00 threshold relative humidity
 !@var EC cloud evaporation rate
@@ -2500,12 +2500,12 @@ C**** initialise diagnostic arrays
       END IF
 #endif
       DO L=1,LP50
-        CAREA(L)=1.-CLDSAVL(L)
-C       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-C       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-U00ice+teeny))
-C       IF(CAREA(L).GT.1.) CAREA(L)=1.
-C       IF(RH(L).GT.1.) CAREA(L)=0.
-        IF(WMX(L).LE.0.) CAREA(L)=1.
+        CLEARA(L)=1.-CLDSAVL(L)
+C       IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+C       IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-U00ice+teeny))
+C       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
+C       IF(RH(L).GT.1.) CLEARA(L)=0.
+        IF(WMX(L).LE.0.) CLEARA(L)=1.
       END DO
       DQUP=0.
       TOLDUP=TL(LP50)
@@ -2534,8 +2534,8 @@ C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
       CM0=CM00
       VDEF=VVEL-VSUBL(L)
       IF(VDEF.GT.0.) CM0=CM00*10.**(-VDEF)
-c      FCLD=1.-CAREA(L)+1.E-20            !!!
-      FCLD=(1.-CAREA(L))*FSSL(L)+teeny
+c      FCLD=1.-CLEARA(L)+1.E-20            !!!
+      FCLD=(1.-CLEARA(L))*FSSL(L)+teeny
 C**** COMPUTE THE PROBABILITY OF ICE FORMATION, FUNI, AND
 C**** THE PROBABLITY OF GLACIATION OF SUPER-COOLED WATER, PFR
 C**** DETERMINE THE PHASE MOISTURE CONDENSES TO
@@ -2638,7 +2638,7 @@ C**** Estimate critical rel. hum. based on parcel lifting argument
       END IF
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
-      RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
+      RHF(L)=RH00(L)+(1.-CLEARA(L))*(1.-RH00(L))
 C**** Set precip phase to be the same as the cloud, unless precip above
 C**** is ice and temperatures after ice melt would still be below TFrez
       LHP(L)=LHX
@@ -2729,7 +2729,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPJ,
-     *FCLD,CAREA(L),CLDSAVL(L),DSS,SMFPML(L),PL(L),TL(L),OLDCDO(L),
+     *FCLD,CLEARA(L),CLDSAVL(L),DSS,SMFPML(L),PL(L),TL(L),OLDCDO(L),
      *OLDCDL(L),VVEL,SME(L),DSU,CDNL1,CDNO1)
       SNdO=CDNO1
       SNdL=CDNL1
@@ -2816,7 +2816,7 @@ C**** COMPUTE EVAPORATION OF RAIN WATER, ER
         END IF
         ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
 C**** COMPUTATION OF CLOUD WATER EVAPORATION
-        IF (CAREA(L).GT.0.) THEN
+        IF (CLEARA(L).GT.0.) THEN
           WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           IF(LHX.EQ.LHE.AND.WMX(L)/FCLD.GE.WCONST*1d-3)
      *         WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
@@ -2841,16 +2841,16 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
         END IF
 C**** COMPUTE NET LATENT HEATING DUE TO STRATIFORM CLOUD PHASE CHANGE,
 C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
-        DRHDT=2.*CAREA(L)*CAREA(L)*(1.-RH00(L))*(QCONV+ER(L))/LHX/
-     *       (WMX(L)/(FCLD+teeny)+2.*CAREA(L)*QSATL(L)*(1.-RH00(L))
+        DRHDT=2.*CLEARA(L)*CLEARA(L)*(1.-RH00(L))*(QCONV+ER(L))/LHX/
+     *       (WMX(L)/(FCLD+teeny)+2.*CLEARA(L)*QSATL(L)*(1.-RH00(L))
      *       +teeny)
         IF(ER(L).EQ.0.AND.WMX(L).LE.0.) DRHDT=0.
         QHEAT(L)=FSSL(L)*(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
-        DWDT=QHEAT(L)/LHX-PREP(L)+CAREA(L)*FSSL(L)*ER(L)/LHX
+        DWDT=QHEAT(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
         WMNEW =WMX(L)+DWDT*DTsrc
         IF(WMNEW.LT.0.) THEN
           WMNEW=0.
-          QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CAREA(L)*FSSL(L)*ER(L)
+          QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CLEARA(L)*FSSL(L)*ER(L)
         END IF
       ELSE
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
@@ -2859,7 +2859,7 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
         IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
      *       ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
-        QHEAT(L)=-CAREA(L)*FSSL(L)*ER(L)
+        QHEAT(L)=-CLEARA(L)*FSSL(L)*ER(L)
         WMNEW=0.
       END IF
 
@@ -2878,21 +2878,21 @@ C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
      *     HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
 C**** Make sure energy is conserved for transfers between P and CLW
       IF (LHP(L).NE.LHX)
-     *     HPHASE=HPHASE+(ER(L)*CAREA(L)*FSSL(L)/LHX-PREP(L))*LHM
+     *     HPHASE=HPHASE+(ER(L)*CLEARA(L)*FSSL(L)/LHX-PREP(L))*LHM
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
-        PREBAR(L)=PREBAR(L+1)*(1.-CAREA(L)*FSSL(L))+
+        PREBAR(L)=PREBAR(L+1)*(1.-CLEARA(L)*FSSL(L))+
      *            AIRM(L)*PREP(L)*BYGRAV
       ELSE
         PREBAR(L)=MAX(0d0,PREBAR(L+1)+
-     *       AIRM(L)*(PREP(L)-ER(L)*CAREA(L)*FSSL(L)/LHX)*BYGRAV)
+     *       AIRM(L)*(PREP(L)-ER(L)*CLEARA(L)*FSSL(L)/LHX)*BYGRAV)
       END IF
 C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
       QNEW =QL(L)-DTsrc*QHEAT(L)/(LHX*FSSL(L)+teeny)
       IF(QNEW.LT.0.) THEN
         QNEW=0.
         QHEAT(L)=QL(L)*LHX*BYDTsrc*FSSL(L)
-        DWDT1=QHEAT(L)/LHX-PREP(L)+CAREA(L)*FSSL(L)*ER(L)/LHX
+        DWDT1=QHEAT(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
         WMNEW=WMX(L)+DWDT1*DTsrc
 C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
         IF(WMNEW.LT.0.) THEN
@@ -2908,21 +2908,21 @@ C**** Only Calculate fractional changes of Q to W
       IF (WMX(L).gt.0.) FPR=PREP(L)*DTsrc/WMX(L)              ! CLW->P
       FPR=MIN(1d0,FPR)
       FER=0.
-      IF (PREBAR(L+1).gt.0.) FER=CAREA(L)*FSSL(L)*ER(L)*AIRM(L)/
+      IF (PREBAR(L+1).gt.0.) FER=CLEARA(L)*FSSL(L)*ER(L)*AIRM(L)/
      *     (GRAV*LHX*PREBAR(L+1))                             ! P->Q
       FER=MIN(1d0,FER)
       FWTOQ=0.                                                ! CLW->Q
 #endif
       FQTOW=0.                                                ! Q->CLW
       IF (FSSL(L).gt.0) THEN
-      IF (QHEAT(L)+CAREA(L)*FSSL(L)*ER(L).gt.0) THEN
-        IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.0.) FQTOW=(QHEAT(L
-     *       )+CAREA(L)*FSSL(L)*ER(L))*DTsrc/((LHX*QL(L)+DTsrc*CAREA(L)
+      IF (QHEAT(L)+CLEARA(L)*FSSL(L)*ER(L).gt.0) THEN
+        IF (LHX*QL(L)+DTsrc*CLEARA(L)*ER(L).gt.0.) FQTOW=(QHEAT(L
+     *      )+CLEARA(L)*FSSL(L)*ER(L))*DTsrc/((LHX*QL(L)+DTsrc*CLEARA(L)
      *       *ER(L))*FSSL(L))
 #ifdef TRACERS_WATER
       ELSE
         IF (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L)
-     *       +CAREA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
+     *      +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
         FWTOQ=MIN(1d0,FWTOQ)
 #endif
       END IF
@@ -3120,12 +3120,12 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
 C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
       RH1(L)=QL(L)/QSATC
       IF(LHX.EQ.LHS) THEN
-        IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-        IF(CAREA(L).GT.1.) CAREA(L)=1.
-        IF(RH(L).GT.1.) CAREA(L)=0.
-        IF(WMX(L).LE.0.) CAREA(L)=1.
-        QF=(QL(L)-QSATC*(1.-CAREA(L)))/(CAREA(L)+teeny)
-        IF(QF.LT.0.) WRITE(6,*) 'L CA QF Q QSA=',L,CAREA(L),QF,QL(L),
+        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(CLEARA(L).GT.1.) CLEARA(L)=1.
+        IF(RH(L).GT.1.) CLEARA(L)=0.
+        IF(WMX(L).LE.0.) CLEARA(L)=1.
+        QF=(QL(L)-QSATC*(1.-CLEARA(L)))/(CLEARA(L)+teeny)
+        IF(QF.LT.0.) WRITE(6,*) 'L CA QF Q QSA=',L,CLEARA(L),QF,QL(L),
      *               QSATC
         QSATE=QSAT(TL(L),LHE,PL(L))
         RHW=.00536d0*TL(L)-.276d0
@@ -3218,12 +3218,12 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
       TNEW=TL(L)
 !     if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
       END IF
-      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-      IF(CAREA(L).GT.1.) CAREA(L)=1.
-      IF(RH(L).GT.1.) CAREA(L)=0.
-      IF(WMX(L).LE.0.) CAREA(L)=1.
-      IF(CAREA(L).LT.0.) CAREA(L)=0.
-      RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
+      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+      IF(CLEARA(L).GT.1.) CLEARA(L)=1.
+      IF(RH(L).GT.1.) CLEARA(L)=0.
+      IF(WMX(L).LE.0.) CLEARA(L)=1.
+      IF(CLEARA(L).LT.0.) CLEARA(L)=0.
+      RHF(L)=RH00(L)+(1.-CLEARA(L))*(1.-RH00(L))
       IF(RH(L).LE.RHF(L).AND.RH(L).LT..999999.AND.WMX(L).gt.0.) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
@@ -3253,13 +3253,13 @@ C**** set phase of condensation for next box down
       IF (PREBAR(L).gt.0 .AND. LHP(L).EQ.LHS) PREICE(L)=PREBAR(L)
       IF (PREBAR(L).le.0) LHP(L)=0.
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
-      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-      IF(CAREA(L).GT.1.) CAREA(L)=1.
-      IF(RH(L).GT.1.) CAREA(L)=0.
-      IF(WMX(L).LE.0.) CAREA(L)=1.
-      IF(CAREA(L).LT.0.) CAREA(L)=0.
-      CLDSSL(L)=FSSL(L)*(1.-CAREA(L))
-      CLDSAVL(L)=1.-CAREA(L)
+      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+      IF(CLEARA(L).GT.1.) CLEARA(L)=1.
+      IF(RH(L).GT.1.) CLEARA(L)=0.
+      IF(WMX(L).LE.0.) CLEARA(L)=1.
+      IF(CLEARA(L).LT.0.) CLEARA(L)=0.
+      CLDSSL(L)=FSSL(L)*(1.-CLEARA(L))
+      CLDSAVL(L)=1.-CLEARA(L)
 #ifdef TRACERS_WATER
       IF(CLDSSL(L).gt.0.) CLOUD_YET=.true.
       IF(CLOUD_YET.and.CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
@@ -3288,8 +3288,8 @@ C****
         TOLDU=TL(L+1)
         QOLD=QL(L)
         QOLDU=QL(L+1)
-        FCLD=(1.-CAREA(L))*FSSL(L)+teeny
-        IF(CAREA(L).EQ.1. .OR. (CAREA(L).LT.1..AND.CAREA(L+1).LT.1.))
+        FCLD=(1.-CLEARA(L))*FSSL(L)+teeny
+        IF(CLEARA(L).EQ.1. .OR. (CLEARA(L).LT.1..AND.CLEARA(L+1).LT.1.))
      *       CYCLE
         SEDGE=THBAR(TH(L+1),TH(L))
         DSE=(TH(L+1)-SEDGE)*PLK(L+1)+(SEDGE-TH(L))*PLK(L)+
@@ -3420,11 +3420,11 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
 #endif
         TRWML(1:NTX,L+1)=0.
 #endif
-        IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-        IF(CAREA(L).GT.1.) CAREA(L)=1.
-        IF(RH(L).GT.1.) CAREA(L)=0.
-        CLDSSL(L)=FSSL(L)*(1.-CAREA(L))
-        CLDSAVL(L)=1.-CAREA(L)
+        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(CLEARA(L).GT.1.) CLEARA(L)=1.
+        IF(RH(L).GT.1.) CLEARA(L)=0.
+        CLDSSL(L)=FSSL(L)*(1.-CLEARA(L))
+        CLDSAVL(L)=1.-CLEARA(L)
         TNEW=TL(L)
         TNEWU=TL(L+1)
         QNEW=QL(L)
@@ -3483,7 +3483,7 @@ c     If (SCDNCW.ge.1400.d0) SCDNCW=1400.d0   !set max CDNC sensitivity test
 
 !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
           RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
-          QHEATC=(QHEAT(L)+FSSL(L)*CAREA(L)*(EC(L)+ER(L)))/LHX
+          QHEATC=(QHEAT(L)+FSSL(L)*CLEARA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
 !         RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
