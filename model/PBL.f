@@ -57,7 +57,69 @@
      *     ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3
      *     ,g1,g2,g3,g4,g5,g6,g7,g8
 
+      public t_pbl_args
+
       integer, parameter :: n=8  !@param n  no of pbl. layers
+      integer, parameter :: npbl=n
+
+!!!! i/o structure
+
+c**** t_pbl_args is a derived type structure which contains all
+c**** input/output arguments for PBL
+c**** Please, use this structure to pass all your arguments to PBL
+c**** Don''t use global variables for that purpose !
+      type t_pbl_args
+        ! input:
+        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
+        real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
+        real*8 tg,elhx,qsol,sss_loc
+        logical :: pole,ocean
+        ! output:
+        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin
+        ! the following args needed for diagnostics
+        real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
+#ifdef TRACERS_ON
+C**** Tracer input/output
+!@var trtop,trs tracer mass ratio in level 1/surface
+!@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var ntx number of tracers that need pbl calculation
+!@var ntix index array to map local tracer number to global
+        real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+        integer ntx
+        integer, dimension(ntm) :: ntix
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+        REAL*8 ::wsgcm,wspdf
+        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
+     *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
+        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
+     &       lmonin
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+        real*8 :: DMS_flux,ss1_flux,ss2_flux
+#endif
+#ifdef TRACERS_DRYDEP
+!@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
+!@var gs_vel gravitational settling velocity (m/s)
+        real*8, dimension(ntm) :: dep_vel,gs_vel
+#endif
+#ifdef TRACERS_WATER
+!@var tr_evap_max maximum amount of tracer available in ground reservoir
+        real*8, dimension(ntm) :: tr_evap_max
+#endif
+
+#ifdef TRACERS_GASEXCH_Natassa
+        real*8  :: Kw_gas,alpha_gas,beta_gas
+#endif
+#endif
+      end type t_pbl_args
+
+
+
+
+
 
 !@dbparam XCDpbl factor for momentum drag coefficient
       real*8 :: XCDpbl=1d0
@@ -103,12 +165,12 @@ CCC      real*8 :: bgrid
 
       CONTAINS
 
-      subroutine advanc(coriol,utop,vtop,ttop,qtop,tgrnd0,tg,elhx,qsol
-     &     ,qgrnd0,qgrnd_sat,evap_max,fr_sat,sss_loc
-     &     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
-     &     ,uocean,vocean,ts_guess,ilong,jlat,itype,ocean
-     &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs,dskin
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg ,wsgcm,w2_1,mdf
+      subroutine advanc( pbl_args
+     &     ,coriol,utop,vtop,qtop
+     &     ,ztop,ufluxs,vfluxs,tfluxs,qfluxs
+     &     ,ts_guess,ilong,jlat,itype
+     &     ,kms,kqs
+     &     ,z0m,z0h,z0q,w2_1,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0 ,u,v,t,q,e
 #if defined(TRACERS_ON)
      &     ,trs,trtop,trsfac,trconstflx,ntx,ntix,tr
@@ -127,7 +189,7 @@ CCC      real*8 :: bgrid
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm
-     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh,wspdf
+     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh
 #endif
 #endif
      &     )
@@ -228,21 +290,28 @@ c  internals:
 !@var  ipbl  stores bl properties of last time step
       implicit none
 
-      real*8, intent(in) :: coriol,utop,vtop,ttop,qtop,uocean,vocean
+      type (t_pbl_args) :: pbl_args
+
+      real*8, intent(in) :: coriol,utop,vtop,qtop
      *                      ,ts_guess
-      real*8, intent(in) :: tgrnd0,qgrnd0,qgrnd_sat,evap_max,fr_sat
-     &     ,ztop,dtime,tg,elhx,qsol
-      real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs,dskin
+      real*8, intent(in) :: ztop
+      real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
-      real*8, intent(in) :: psurf,trhr0
-      real*8, intent(in) :: sss_loc
-      logical, intent(in) :: ocean
-      real*8, intent(in) :: dbl,ug,vg,mdf
+      real*8, intent(in) :: mdf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       !-- output:
-      real*8, intent(out) :: us,vs,wsm,wsh,tsv,qsrf,kms,khs,kqs
-     &         ,ustar,cm,ch,cq,z0m,z0h,z0q
-     &         ,wsgcm,w2_1
+      real*8, intent(out) :: kms,kqs
+     &         ,z0m,z0h,z0q
+     &         ,w2_1
+
+
+!!! local
+      real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
+      real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
+      logical :: ocean
+
+!!! local for output
+      real*8 :: us,vs,wsm,wsh,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm
 
 #ifdef TRACERS_ON
       real*8, intent(in), dimension(ntm) :: trtop
@@ -288,12 +357,13 @@ C****
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       REAL*8,INTENT(IN) :: ptype
       REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),
-     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh,wspdf
+     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
       REAL*8,INTENT(OUT) :: z(n)
       REAL*8,INTENT(OUT) :: km(n-1),gh(n-1),gm(n-1),zhat(n-1)
       REAL*8,INTENT(OUT) :: lmonin
+      real*8 wspdf
 #else
       REAL*8,DIMENSION(n) :: z
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
@@ -314,6 +384,49 @@ C****
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(n,ntm) :: tr
 #endif
+
+!!!!!!!!! hack to pass pbl_args !!!!!!!!
+      dtime = pbl_args%dtsurf
+      !zs1 = pbl_args%zs1
+      tgrnd0 = pbl_args%tgv
+      ttop = pbl_args%tkv
+      qgrnd_sat = pbl_args%qg_sat
+      qgrnd0 = pbl_args%qg_aver
+      !hemi = pbl_args%hemi
+      evap_max = pbl_args%evap_max
+      fr_sat = pbl_args%fr_sat
+      uocean = pbl_args%uocean
+      vocean = pbl_args%vocean
+      psurf = pbl_args%psurf
+      trhr0 = pbl_args%trhr0
+      tg = pbl_args%tg
+      elhx = pbl_args%elhx
+      qsol = pbl_args%qsol
+      sss_loc = pbl_args%sss_loc
+      !pole = pbl_args%pole
+
+      ocean = pbl_args%ocean
+      !!!us = pbl_args%us
+      !!!vs = pbl_args%vs
+      !ws = pbl_args%ws
+      !!!wsm = pbl_args%wsm
+      !!!wsh = pbl_args%wsh
+      !!!tsv = pbl_args%tsv
+      !!!qsrf = pbl_args%qsrf
+      cm = pbl_args%cm
+      ch = pbl_args%ch
+      cq = pbl_args%cq
+      dskin = pbl_args%dskin
+      !psi = pbl_args%psi
+      dbl = pbl_args%dbl
+      khs = pbl_args%khs
+      ug = pbl_args%ug
+      vg = pbl_args%vg
+      !wg = pbl_args%wg
+      !!!ustar = pbl_args%ustar
+      !!zgs = pbl_args%zgs
+
+
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"advanc: i,j,itype=",ilong,jlat,itype,u(1),v(1),t(1),q(1)
@@ -775,6 +888,52 @@ c Diagnostics printed at a selected point:
      4              utop,vtop,ttop,qtop,
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif
+
+!!!!!!!!!!!!!!!!! hack to pass pbl_args !!!!!!!!!!!!
+      !pbl_args%dtsurf = dtsurf
+      !pbl_args%zs1 = zs1
+      !pbl_args%tgv = tgv
+      !pbl_args%tkv = tkv
+      !pbl_args%qg_sat = qg_sat
+      !pbl_args%qg_aver = qg_aver
+      !pbl_args%hemi = hemi
+      !pbl_args%evap_max = evap_max
+      !pbl_args%fr_sat = fr_sat
+      !pbl_args%uocean = uocean
+      !pbl_args%vocean = vocean
+      !pbl_args%psurf = psurf
+      !pbl_args%trhr0 = trhr0
+      !pbl_args%tg = tg
+      !pbl_args%elhx = elhx
+      !pbl_args%qsol = qsol
+      !pbl_args%sss_loc = sss_loc
+      !pbl_args%pole = pole
+      !pbl_args%ocean = ocean
+      pbl_args%us = us
+      pbl_args%vs = vs
+      pbl_args%ws = wsm  !!! what the difference between wsm and ws ?
+      pbl_args%wsm = wsm
+      pbl_args%wsh = wsh
+      pbl_args%tsv = tsv
+      pbl_args%qsrf = qsrf
+      pbl_args%cm = cm
+      pbl_args%ch = ch
+      pbl_args%cq = cq
+      pbl_args%dskin = dskin
+      !!pbl_args%psi = psi
+      pbl_args%dbl = dbl
+      pbl_args%khs = khs
+      !!!pbl_args%ug = ug
+      !!!pbl_args%vg = vg
+      !!pbl_args%wg = wg
+      pbl_args%ustar = ustar
+      pbl_args%zgs = zgs
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      pbl_args%wsgcm=wsgcm
+      pbl_args%wspdf=wspdf
+#endif
+
 
       return
       end subroutine advanc

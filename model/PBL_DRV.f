@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       module PBL_DRV
-      use SOCPBL, only : npbl=>n
+      use SOCPBL, only : npbl=>n, t_pbl_args
 #ifdef TRACERS_ON
       use tracer_com, only : ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -14,59 +14,59 @@
       private
 
       public t_pbl_args, pbl
-
-c**** t_pbl_args is a derived type structure which contains all
-c**** input/output arguments for PBL
-c**** Please, use this structure to pass all your arguments to PBL
-c**** Don't use global variables for that purpose !
-      type t_pbl_args
-        ! input:
-        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
-        real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
-        real*8 tg,elhx,qsol,sss_loc
-        logical :: pole,ocean
-        ! output:
-        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin
-        ! the following args needed for diagnostics
-        real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
-#ifdef TRACERS_ON
-C**** Tracer input/output
-!@var trtop,trs tracer mass ratio in level 1/surface
-!@var trsfac, trconstflx factors in surface flux boundary cond.
-!@var ntx number of tracers that need pbl calculation
-!@var ntix index array to map local tracer number to global
-        real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-        integer ntx
-        integer, dimension(ntm) :: ntix
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-        REAL*8 ::wsgcm,wspdf
-        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
-     *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
-        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
-     &       lmonin
-#endif
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        real*8 :: DMS_flux,ss1_flux,ss2_flux
-#endif
-#ifdef TRACERS_DRYDEP
-!@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
-!@var gs_vel gravitational settling velocity (m/s)
-        real*8, dimension(ntm) :: dep_vel,gs_vel
-#endif
-#ifdef TRACERS_WATER
-!@var tr_evap_max maximum amount of tracer available in ground reservoir
-        real*8, dimension(ntm) :: tr_evap_max
-#endif
-
-#ifdef TRACERS_GASEXCH_Natassa
-        real*8  :: Kw_gas,alpha_gas,beta_gas
-#endif
-#endif
-      end type t_pbl_args
-
+cddd
+cdddc**** t_pbl_args is a derived type structure which contains all
+cdddc**** input/output arguments for PBL
+cdddc**** Please, use this structure to pass all your arguments to PBL
+cdddc**** Don''t use global variables for that purpose !
+cddd      type t_pbl_args
+cddd        ! input:
+cddd        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
+cddd        real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
+cddd        real*8 tg,elhx,qsol,sss_loc
+cddd        logical :: pole,ocean
+cddd        ! output:
+cddd        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin
+cddd        ! the following args needed for diagnostics
+cddd        real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
+cddd#ifdef TRACERS_ON
+cdddC**** Tracer input/output
+cddd!@var trtop,trs tracer mass ratio in level 1/surface
+cddd!@var trsfac, trconstflx factors in surface flux boundary cond.
+cddd!@var ntx number of tracers that need pbl calculation
+cddd!@var ntix index array to map local tracer number to global
+cddd        real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+cddd        integer ntx
+cddd        integer, dimension(ntm) :: ntix
+cddd
+cddd#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+cddd    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+cddd        REAL*8 ::wsgcm,wspdf
+cddd        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
+cddd     *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
+cddd        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
+cddd     &       lmonin
+cddd#endif
+cddd
+cddd#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+cddd        real*8 :: DMS_flux,ss1_flux,ss2_flux
+cddd#endif
+cddd#ifdef TRACERS_DRYDEP
+cddd!@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
+cddd!@var gs_vel gravitational settling velocity (m/s)
+cddd        real*8, dimension(ntm) :: dep_vel,gs_vel
+cddd#endif
+cddd#ifdef TRACERS_WATER
+cddd!@var tr_evap_max maximum amount of tracer available in ground reservoir
+cddd        real*8, dimension(ntm) :: tr_evap_max
+cddd#endif
+cddd
+cddd#ifdef TRACERS_GASEXCH_Natassa
+cddd        real*8  :: Kw_gas,alpha_gas,beta_gas
+cddd#endif
+cddd#endif
+cddd      end type t_pbl_args
+cddd
       contains
 
       SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args)
@@ -84,9 +84,7 @@ C          ,UG,VG,WG,W2_1
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
-
       use SOCPBL, only : npbl=>n, zgs, advanc
-
       USE PBLCOM
       use QUSDEF, only : mz
       use SOMTQ_COM, only : tmom
@@ -170,25 +168,25 @@ c
 #endif
 
 ccc extract data from the pbl_args structure
-      dtsurf = pbl_args%dtsurf
+      !dtsurf = pbl_args%dtsurf
       zs1 = pbl_args%zs1
-      tgv = pbl_args%tgv
-      tkv = pbl_args%tkv
-      qg_sat = pbl_args%qg_sat
-      qg_aver = pbl_args%qg_aver
+      !tgv = pbl_args%tgv
+      !tkv = pbl_args%tkv
+      !qg_sat = pbl_args%qg_sat
+      !qg_aver = pbl_args%qg_aver
       hemi = pbl_args%hemi
       pole = pbl_args%pole
-      evap_max = pbl_args%evap_max
-      fr_sat = pbl_args%fr_sat
-      uocean = pbl_args%uocean
-      vocean = pbl_args%vocean
-      psurf = pbl_args%psurf
-      trhr0 = pbl_args%trhr0
-      tg = pbl_args%tg
-      elhx = pbl_args%elhx
-      qsol = pbl_args%qsol
-      sss_loc=pbl_args%sss_loc
-      ocean = pbl_args%ocean
+      !evap_max = pbl_args%evap_max
+      !fr_sat = pbl_args%fr_sat
+      !uocean = pbl_args%uocean
+      !vocean = pbl_args%vocean
+      !psurf = pbl_args%psurf
+      !trhr0 = pbl_args%trhr0
+      !tg = pbl_args%tg
+      !elhx = pbl_args%elhx
+      !qsol = pbl_args%qsol
+      !sss_loc=pbl_args%sss_loc
+      !ocean = pbl_args%ocean
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
@@ -197,7 +195,8 @@ C        roughness lengths from Brutsaert for rough surfaces
         Z0M=30./(10.**ROUGHL(I,J))
       ENDIF
       ztop=zgs+zs1  ! zs1 is calculated before pbl is called
-      IF (TKV.EQ.TGV) TGV=1.0001d0*TGV
+      IF (pbl_args%TKV.EQ.pbl_args%TGV)
+     &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
 
       ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE CORRESPONDING
       ! GCM LAYER (L) AT WHICH TO COMPUTE UG AND VG.
@@ -319,12 +318,21 @@ c     ENDIF
      2          *(1+q(i,j,1)*deltx)
       mdf = ddm1(i,j)
 
-      call advanc(coriol,utop,vtop,ttop,qtop,tgrndv,tg,elhx,qsol
-     &     ,qgrnd,qgrnd_sat,evap_max,fr_sat,sss_loc
-     &     ,psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs
-     &     ,uocean,vocean,ts_guess,i,j,itype,ocean
-     &     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs,dskin
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wsgcm,w2_1,mdf
+!!! put some results from above to pbl_args
+      pbl_args%dbl = dbl
+      pbl_args%ug = ug
+      pbl_args%vg = vg
+      pbl_args%wg = sqrt(ug*ug+vg*vg)
+      pbl_args%cm = cm
+      pbl_args%ch = ch
+      pbl_args%cq = cq
+
+      call advanc( pbl_args 
+     &     ,coriol,utop,vtop,qtop
+     &     ,ztop,ufluxs,vfluxs,tfluxs,qfluxs
+     &     ,ts_guess,i,j,itype
+     &     ,kms,kqs
+     &     ,z0m,z0h,z0q,w2_1,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
      &     ,pbl_args%trs,pbl_args%trtop,pbl_args%trsfac
@@ -347,7 +355,7 @@ c     ENDIF
      &     ,pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm,pbl_args%z
      &     ,pbl_args%km,pbl_args%gh,pbl_args%gm
      &     ,pbl_args%zhat,pbl_args%lmonin,pbl_args%dust_event1
-     &     ,pbl_args%dust_event2,pbl_args%wtrsh,wspdf
+     &     ,pbl_args%dust_event2,pbl_args%wtrsh
 #endif
 #endif
      &     )
@@ -363,67 +371,67 @@ c     ENDIF
       end do
 #endif
 
-      cmgs(i,j,itype)=cm
-      chgs(i,j,itype)=ch
-      cqgs(i,j,itype)=cq
+      cmgs(i,j,itype)=pbl_args%cm
+      chgs(i,j,itype)=pbl_args%ch
+      cqgs(i,j,itype)=pbl_args%cq
       ipbl(i,j,itype)=1  ! ipbl is used in subroutine init_pbl
 
       ws    =wsm
-      wg    =sqrt(ug*ug+vg*vg)
+      !!!wg    =sqrt(ug*ug+vg*vg)
 
       psitop=atan2(vg,ug+teeny)
-      psisrf=atan2(vs,us+teeny)
+      psisrf=atan2(pbl_args%vs,pbl_args%us+teeny)
       psi   =psisrf-psitop
-      ustar_pbl(i,j,itype)=ustar
+      ustar_pbl(i,j,itype)=pbl_args%ustar
 C ******************************************************************
-      TS=TSV/(1.+QSRF*deltx)
+      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
       if ( ts.lt.152d0 .or. ts.gt.423d0 ) then
         write(6,*) 'PBL: Ts bad at',i,j,' itype',itype,ts
         if (ts.gt.1d3) call stop_model("PBL: Ts out of range",255)
         if (ts.lt.50d0) call stop_model("PBL: Ts out of range",255)
       end if
-      WSAVG(I,J)=WSAVG(I,J)+WS*PTYPE
+      WSAVG(I,J)=WSAVG(I,J)+pbl_args%WS*PTYPE
       TSAVG(I,J)=TSAVG(I,J)+TS*PTYPE
   !    if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QSRF*PTYPE
-      QSAVG(I,J)=QSAVG(I,J)+QSRF*PTYPE
-      USAVG(I,J)=USAVG(I,J)+US*PTYPE
-      VSAVG(I,J)=VSAVG(I,J)+VS*PTYPE
-      TAUAVG(I,J)=TAUAVG(I,J)+CM*WS*WS*PTYPE
+      QSAVG(I,J)=QSAVG(I,J)+pbl_args%QSRF*PTYPE
+      USAVG(I,J)=USAVG(I,J)+pbl_args%US*PTYPE
+      VSAVG(I,J)=VSAVG(I,J)+pbl_args%VS*PTYPE
+      TAUAVG(I,J)=TAUAVG(I,J)+pbl_args%CM*pbl_args%WS*pbl_args%WS*PTYPE
 
       uflux(I,J)=uflux(I,J)+ufluxs*PTYPE
       vflux(I,J)=vflux(I,J)+vfluxs*PTYPE
       tflux(I,J)=tflux(I,J)+tfluxs*PTYPE
       qflux(I,J)=qflux(I,J)+qfluxs*PTYPE
 
-      tgvAVG(I,J)=tgvAVG(I,J)+tgv*PTYPE
-      qgAVG(I,J)=qgAVG(I,J)+qgrnd*PTYPE
+      tgvAVG(I,J)=tgvAVG(I,J)+pbl_args%tgv*PTYPE
+      qgAVG(I,J)=qgAVG(I,J)+pbl_args%qg_aver*PTYPE
       w2_l1(I,J)=w2_l1(I,J)+w2_1*PTYPE
 
 ccc put data backto pbl_args structure
-      pbl_args%us = us
-      pbl_args%vs = vs
-      pbl_args%ws = ws
-      pbl_args%wsm = wsm
-      pbl_args%wsh = wsh
-      pbl_args%tsv = tsv
-      pbl_args%qsrf = qsrf
-      pbl_args%cm = cm
-      pbl_args%ch = ch
-      pbl_args%cq = cq
+      !pbl_args%us = us
+      !pbl_args%vs = vs
+      !pbl_args%ws = ws
+      !pbl_args%wsm = wsm
+      !pbl_args%wsh = wsh
+      !pbl_args%tsv = tsv
+      !pbl_args%qsrf = qsrf
+      !pbl_args%cm = cm
+      !pbl_args%ch = ch
+      !pbl_args%cq = cq
       pbl_args%psi = psi
-      pbl_args%dbl = dbl
-      pbl_args%khs = khs
-      pbl_args%ug = ug
-      pbl_args%vg = vg
-      pbl_args%wg = wg
-      pbl_args%dskin = dskin
-      pbl_args%ustar = ustar
-      pbl_args%zgs = zgs
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      pbl_args%wsgcm=wsgcm
-      pbl_args%wspdf=wspdf
-#endif
+      !pbl_args%dbl = dbl
+      !pbl_args%khs = khs
+      !pbl_args%ug = ug
+      !pbl_args%vg = vg
+      !pbl_args%wg = wg
+      !pbl_args%dskin = dskin
+      !pbl_args%ustar = ustar
+      !pbl_args%zgs = zgs
+!#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+!    (defined TRACERS_QUARZHEM)
+!      pbl_args%wsgcm=wsgcm
+!      pbl_args%wspdf=wspdf
+!#endif
 
       RETURN
       END SUBROUTINE PBL
