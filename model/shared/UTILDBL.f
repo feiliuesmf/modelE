@@ -651,8 +651,6 @@ C****      '(' is required, so it is inserted
       character*(*), intent (in) :: message
 !@var retcode return code to be passed to the calling script
       integer, intent(in) :: retcode
-!@dbparam dump_core if set to 1 dump core for debugging
-      integer :: dump_core = 0
       integer, parameter :: iu_err = 9
       integer :: mpi_err
       integer :: rank
@@ -661,13 +659,6 @@ C****      '(' is required, so it is inserted
 #include "mpif.h"
 #endif
 
-c**** don't call sync_param if the error is in 'PARAM' to avoid loops
-      if ( message(1:6) .ne. 'PARAM:' ) then
-        call sync_param( "dump_core", dump_core )
-      else
-        write (6,*) " Error in PARAM: Can't use sync_param."
-        write (6,*) " Will use default dump_core = ", dump_core
-      endif
 #ifdef USE_ESMF
       call MPI_COMM_RANK(MPI_COMM_WORLD, rank, mpi_err)
 #else
@@ -684,7 +675,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
 
       call sys_flush(6)
 
-      if ( retcode > 13 .and. dump_core > 0  ) then
+      if ( retcode > 13 ) then
 #ifdef USE_ESMF
         call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
 #else
