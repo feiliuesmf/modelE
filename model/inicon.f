@@ -1,9 +1,17 @@
+#include "rundeck_opts.h"
       subroutine inicon
 c
 c --- hycom version 0.9
       USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
      .      ,gtemp,sss,mlhc
+#ifdef TRACERS_GASEXCH_Natassa
+     .      ,GTRACER
+
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : atrac
+#endif
       USE MODEL_COM, only : focean
       implicit none
 c
@@ -15,6 +23,9 @@ c
       include 'cpl.h'
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni,ipo(idm,jdm),kkap
+#ifdef TRACERS_GASEXCH_Natassa
+      integer nt
+#endif
       character text*24,preambl(5)*79
       real tofsig,kappaf,sigocn,cold,temavg,vol,sst,sofsig,spval
       real*4 real4(iold,jdm)
@@ -211,6 +222,11 @@ cc$OMP END PARALLEL DO
       call ssto2a(temp,asst)
       call ssto2a(saln,sss)
 c     call ssto2a(omlhc,mlhc)
+#ifdef TRACERS_GASEXCH_Natassa
+      do nt=1,ntm
+         call ssto2a(tracer(:,:,1,nt),atrac)
+      enddo
+#endif
 c
       call findmx(ip,temp,ii,ii,jj,'ini sst')
       call findmx(ip,saln,ii,ii,jj,'ini sss')
@@ -218,6 +234,11 @@ c$OMP PARALLEL DO
       do 22 ja=1,jja
       do 22 ia=1,iia
       if (focean(ia,ja).gt.0.) then
+#ifdef TRACERS_GASEXCH_Natassa
+      do nt=1,ntm
+      GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
+      enddo
+#endif
         gtemp(1,1,ia,ja)=asst(ia,ja)
         if (sss(ia,ja).le.10.) then
           write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja

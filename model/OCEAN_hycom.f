@@ -1,6 +1,14 @@
+#include "rundeck_opts.h"
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
       USE MODEL_COM, only : im,jm,focean
       USE FLUXES, only : gtemp
+#ifdef TRACERS_GASEXCH_Natassa
+     .                  ,GTRACER,TRGASEX
+
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : atrac
+#endif
       integer istart
 #include "dimensions.h"
 #include "dimension2.h"
@@ -29,6 +37,11 @@ c
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0.) THEN
           GTEMP(1,1,I,J)=asst(I,J)
+#ifdef TRACERS_GASEXCH_Natassa
+        do nt=1,ntm
+        GTRACER(nt,1,I,J)=atrac(I,J,nt)
+        enddo
+#endif
         END IF
       END DO
       END DO
@@ -79,6 +92,9 @@ c
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
       USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_GASEXCH_COM, only : atrac
+#endif
       IMPLICIT NONE
 #include "dimensions.h"
 #include "dimension2.h"
@@ -119,6 +135,9 @@ css#endif
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
      . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
+#ifdef TRACERS_GASEXCH_Natassa
+     . ,atrac
+#endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
           CASE (IRSFICNO)   ! initial conditions (no ocean data)
@@ -136,6 +155,9 @@ c
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
      . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
+#ifdef TRACERS_GASEXCH_Natassa
+     . ,atrac
+#endif
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
       nstep=nstep0

@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       subroutine OCEANS
 c
 c --- ------------------------------
@@ -86,6 +87,13 @@ c
      . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
      . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
      . ,gmelt,egmelt,solar
+#ifdef TRACERS_GASEXCH_Natassa
+     . ,TRGASEX,GTRACER
+
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : atracflx,atrac,tracflx
+#endif
       USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : fsss,tfrez
       USE GEOM, only : dxyp
@@ -110,6 +118,9 @@ c
      .    ,thkchg,flxdiv,den_str
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
+#ifdef TRACERS_GASEXCH_Natassa
+      integer nt
+#endif
       external rename
       logical master,slave,diag_ape
       character util(idm*jdm+14)*2,charac(20)*1,string*20,
@@ -129,6 +140,9 @@ c
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
      . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
      . ,utila(iia,jja)
+#ifdef TRACERS_GASEXCH_Natassa
+     . ,otrac(idm,jdm,ntm),tracflx2(idm,jdm,ntm)
+#endif
 
 #include "state_eqn.h"
 c
@@ -159,6 +173,11 @@ c$OMP PARALLEL DO
           aice(ia,ja)=0.
          austar(ia,ja)=0.
          aswflx(ia,ja)=0.
+#ifdef TRACERS_GASEXCH_Natassa
+        do nt=1,ntm
+        atracflx(ia,ja,nt)=0.
+        enddo
+#endif
  28     continue
 c$OMP END PARALLEL DO
       endif
@@ -200,6 +219,18 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
       aswflx(ia,ja)=aswflx(ia,ja)+(solar(1,ia,ja)*(1.-rsi(ia,ja))!J/m*m=>W/m*m
      .                            +solar(3,ia,ja)*    rsi(ia,ja))
      .                                 /(3600.*real(nhr))
+#ifdef TRACERS_GASEXCH_Natassa
+      do nt=1,ntm
+      atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
+     .                 + TRGASEX(nt,1,ia,ja)*airdns    !(kg/kg)(m/s) -> kg/m2/s
+     .                 * dtsrc/(real(nhr)*3600.)
+!srctimstp/coupltimstp
+      if (ia.eq.iatest.and.ja.eq.jatest)
+     .write(6,'(a,2i5,2e12.4)')'hycomp, TRGASEX, atracflx at point',
+     .  iatest,jatest,TRGASEX(nt,1,iatest,jatest),
+     .  atracflx(iatest,jatest,nt)
+      enddo
+#endif
  29   continue
 c$OMP END PARALLEL DO
 c
@@ -230,6 +261,11 @@ c
       call flxa2o(aemnp,oemnp)                    !E - P everywhere
       call flxa2o(austar,ustar)                   !friction velocity
       call flxa2o(aswflx,sswflx)                  ! shortwave flux
+#ifdef TRACERS_GASEXCH_Natassa
+      do nt=1,ntm
+      call flxa2o(atracflx(:,:,nt),tracflx2(:,:,nt)) !tracer flux
+      enddo
+#endif
 c
       call system_clock(before)
       call system_clock(count_rate=rate)
@@ -249,7 +285,6 @@ c$OMP PARALLEL SHARED(mo1)
 ccc   mo1=OMP_GET_NUM_THREADS()
 c$OMP END PARALLEL
 c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0
-c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
 ccc     . ,' =======  number of threads:',mo1,' ======='
 c
       lp=6
@@ -381,6 +416,11 @@ c
       hekman(i,j)=ustar(i,j)*(cekman*4.0)/                ! kpp
      &           (abs(corio(i,j  ))+abs(corio(i+1,j  ))+
      &            abs(corio(i,jb ))+abs(corio(i+1,jb )))
+#ifdef TRACERS_GASEXCH_Natassa
+      do nt=1,ntm
+      otrac(i,j,nt)=0.
+      enddo
+#endif
  202  continue
 c$OMP END PARALLEL DO
 c
@@ -417,6 +457,19 @@ c
       trcadv_time = 0.0
       if (dotrcr) then
         call system_clock(before)      ! time elapsed since last system_clock
+c --- zero-out accumulated flux
+c     this should be done at the beginning of the 'long' time interval
+#ifdef TRACERS_GASEXCH_Natassa
+      do j=1,jj
+      do l=1,isp(j)
+      do i=ifp(j,l),ilp(j,l)
+      do nt=1,ntm
+      tracflx(i,j,nt) = 0.
+      enddo
+      enddo
+      enddo
+      enddo
+#endif
 c --- initialization of tracer transport arrays (incl. dpinit):
         call tradv0(m,mm)
 cdiag print *,'past tradv0'
@@ -436,7 +489,24 @@ c12     tracer(i,j,1,1)=1.              !  surface ventilation tracer
 cc$OMP END PARALLEL DO
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
-      end if
+      end if !dotrcr
+c
+c --- accumulate tracer flux over 'long' time period
+c     this should be done at every time step (of the long interval)
+#ifdef TRACERS_GASEXCH_Natassa
+      do nt=1,ntm
+      do j=1,jj
+      do l=1,isp(j)
+      do i=ifp(j,l),ilp(j,l)
+      tracflx(i,j,nt) = tracflx(i,j,nt)
+     .                + tracflx2(i,j,nt)*1./float(trcfrq)
+      enddo
+      enddo
+      enddo
+      write(6,'(a,i5,2e12.4)')'hycomp, tracflx at pt(109,94) and nt=',
+     .    nt,tracflx2(109,94,nt),tracflx(109,94,nt)
+      enddo
+#endif
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- available potential energy diagnostics:
@@ -780,6 +850,15 @@ c$OMP PARALLEL DO
       osiav(i,j)=osiav(i,j)+odmsi(i,j)*baclin*dtsrc/(3600.*real(nhr)) !kg/m2=>kg*.5*hr/m2
       omlhc(i,j)=spcifh*max(dp(i,j,k1n)/onem,thkmin)/thref  ! J/(m2*C)
       oogeoza(i,j)=(montg(i,j,1)+thref*pbavg(i,j,m))*g/(thref*onem) ! m^2/s^2
+#ifdef TRACERS_GASEXCH_Natassa
+      !here we define the tracer that participates in the
+      !gas exchange flux.
+      do nt=1,ntm
+      otrac(i,j,nt)=otrac(i,j,nt)
+     .            +tracer(i,j,1,nt)
+     .            *baclin/(3600.*real(nhr))
+      enddo
+#endif
  201  continue
 c$OMP END PARALLEL DO
 c
@@ -810,6 +889,11 @@ css   call iceo2a(omlhc,mlhc)
       call ssto2a(oogeoza,ogeoza)
       call ssto2a(osiav,utila)                 !kg/m*m per agcm time step
       call veco2a(usf,vsf,uosurf,vosurf)
+#ifdef TRACERS_GASEXCH_Natassa
+      do nt=1,ntm
+      call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
+      enddo
+#endif
 c
 c     call findmx(ipa,asst,iia,iia,jja,'asst')
 c     call findmx(ipa,sss,iia,iia,jja,'osss')
@@ -829,6 +913,14 @@ c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ja=1,jja
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
+#ifdef TRACERS_GASEXCH_Natassa
+        do nt=1,ntm
+        GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
+        if (ia.eq.iatest.and.ja.eq.jatest)
+     .  write(6,'(a,2i5,e12.4)')'hycom, atrac at point ',
+     .      iatest,jatest,atrac(iatest,jatest,nt)
+        enddo
+#endif
         tf=tfrez(sss(ia,ja),0.)
         dmsi(1,ia,ja)=utila(ia,ja)                        !kg/m2 per agcm step
         dhsi(1,ia,ja)=utila(ia,ja)                        !J/m2 per agcm step
