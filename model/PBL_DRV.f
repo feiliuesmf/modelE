@@ -327,36 +327,12 @@ c     ENDIF
       pbl_args%ch = ch
       pbl_args%cq = cq
 
-      call advanc( pbl_args 
-     &     ,coriol,utop,vtop,qtop
-     &     ,ztop,ufluxs,vfluxs,tfluxs,qfluxs
-     &     ,ts_guess,i,j,itype
-     &     ,kms,kqs
-     &     ,z0m,z0h,z0q,w2_1,mdf
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,upbl,vpbl,tpbl,qpbl,epbl
+      call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,i,j,itype
+     &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
+     &     ,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
-     &     ,pbl_args%trs,pbl_args%trtop,pbl_args%trsfac
-     &     ,pbl_args%trconstflx,pbl_args%ntx,pbl_args%ntix ,tr
-#if defined(TRACERS_GASEXCH_Natassa)
-     &     ,pbl_args%Kw_gas,pbl_args%alpha_gas,pbl_args%beta_gas
-#endif
-#if defined(TRACERS_WATER)
-     &     ,pbl_args%tr_evap_max
-#endif
-#if defined(TRACERS_DRYDEP)
-     &     ,pbl_args%dep_vel,pbl_args%gs_vel
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     &     ,pbl_args%DMS_flux,pbl_args%ss1_flux,pbl_args%ss2_flux
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,ptype,pbl_args%dust_flux,pbl_args%dust_flux2
-     &     ,pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm,pbl_args%z
-     &     ,pbl_args%km,pbl_args%gh,pbl_args%gm
-     &     ,pbl_args%zhat,pbl_args%lmonin,pbl_args%dust_event1
-     &     ,pbl_args%dust_event2,pbl_args%wtrsh
-#endif
+     &     ,tr,ptype
 #endif
      &     )
 
