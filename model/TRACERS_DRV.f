@@ -1790,7 +1790,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=0. 
+          fq_aer(n)=0.6 
           tr_wd_TYPE(n) = nPART 
       case ('M_BOC_OC')
       n_M_BOC_OC = n
@@ -1799,7 +1799,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=0. 
+          fq_aer(n)=0.6 
           tr_wd_TYPE(n) = nPART 
       case ('N_BOC_1')
       n_N_BOC_1 = n
@@ -1808,7 +1808,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=0.5 
+          fq_aer(n)=0.6 
           tr_wd_TYPE(n) = nPART
       case ('M_BCS_SU')
       n_M_BCS_SU = n
@@ -10928,6 +10928,35 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
             trsource(:,j,1,n) = 0.01* so2_src(:,j,1)*0.0375d0
          end do
 #endif
+      case ('N_AKK_1')
+#ifdef EDGAR_1995
+        do ns=1,ntsurfsrc(n)
+         do j=J_0,J_1
+         trsource(:,j,ns,n) = (0.01*so2_src(:,j,ns)*0.0375d0*dxyp(j))
+     &   *    RECIP_PART_MASS(1)
+       end do
+       end do
+#else
+         do j=J_0,J_1
+            trsource(:,j,1,n) = (0.01* so2_src(:,j,1)*0.0375d0)
+     &    *     RECIP_PART_MASS(1)
+         end do
+#endif
+      case ('N_ACC_1')
+#ifdef EDGAR_1995
+        do ns=1,ntsurfsrc(n)
+         do j=J_0,J_1
+         trsource(:,j,ns,n) = (0.99*so2_src(:,j,ns)*0.0375d0*dxyp(j))
+     &   *    RECIP_PART_MASS(2)
+       end do
+       end do
+#else
+         do j=J_0,J_1
+            trsource(:,j,1,n) = (0.99* so2_src(:,j,1)*0.0375d0)
+     &    *     RECIP_PART_MASS(2)
+         end do
+#endif ! EDGAR
+#endif !AMP
 
       case ('BCII')
          do j=J_0,J_1
@@ -10938,23 +10967,18 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
             trsource(:,j,1,n) = OCI_src(:,j,1)
             trsource(:,j,2,n) = OCT_src(:,j,jmon)
          end do
-#endif
-#endif
+
+#endif !TRACERS_AEROSOL AMP
 #ifdef TRACERS_OM_SP
        case ('OCI3')
          do j=J_0,J_1
             trsource(:,j,1,n) = OCT_src(:,j,jmon)
          end do
-#endif
+#endif !OMSP
 #ifdef TRACERS_AMP
        case ('M_BC1_BC')
          do j=J_0,J_1
           trsource(:,j,1,n) = BCI_src(:,j)
-c       taijs(:,j,ijts_AMPe(n))=taijs(:,j,ijts_AMPe(n)) +
-c     &         trsource(:,j,1,n)!*dtsrc
-c         do i = 1,im       
-c        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trsource(i,j,1,n)*dtsrc    
-c         end do
          end do
        case ('N_BC1_1')
          do j=J_0,J_1
@@ -10964,18 +10988,13 @@ c         end do
        case ('M_OCC_OC')
          do j=J_0,J_1
           trsource(:,j,1,n) = OCI_src(:,j,1)+OCT_src(:,j,jmon)
-c c      taijs(:,j,ijts_AMPe(n))=taijs(:,j,ijts_AMPe(n)) +
-c c    &         trsource(:,j,1,n)!*dtsrc    
-c         do i = 1,im      
-c        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trsource(i,j,1,n)*dtsrc    
-c         end do
          end do
        case ('N_OCC_1')
          do j=J_0,J_1
           trsource(:,j,1,n) = (OCI_src(:,j,1)+OCT_src(:,j,jmon))
      &    * RECIP_PART_MASS(4)
          end do
-#endif
+#endif !AMP
       end select
       end do
 
@@ -11118,11 +11137,6 @@ C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,:,2,n) =  tr3Dsource(:,J_0:J_1,:,2,n) 
      &    +(  SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
       call apply_tracer_3Dsource(2,n) ! biomass+volcano
-c       do l=1,lm; do i=1,im
-c        taijs(i,J_0:J_1,ijts_AMPe(n))=taijs(i,J_0:J_1,ijts_AMPe(n)) +
-c     &         tr3Dsource(i,J_0:J_1,l,2,n)+ tr3Dsource(i,J_0:J_1,l,3,n)
-c       DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)+
-c     &  (tr3Dsource(i,J_0:J_1,l,2,n)+tr3Dsource(i,J_0:J_1,l,3,n))*dtsrc
 #else
       tr3Dsource(:,J_0:J_1,1:lmAER,2,n)=
      &          0.99*SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
@@ -11130,11 +11144,6 @@ c     &  (tr3Dsource(i,J_0:J_1,l,2,n)+tr3Dsource(i,J_0:J_1,l,3,n))*dtsrc
       tr3Dsource(:,J_0:J_1,:,2,n) =  tr3Dsource(:,J_0:J_1,:,2,n) 
      &    +      (0.99*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
       call apply_tracer_3Dsource(2,n) ! biomass + volcano
-c       do l=1,lm; do i=1,im
-c        taijs(i,J_0:J_1,ijts_AMPe(n))=taijs(i,J_0:J_1,ijts_AMPe(n)) +
-c     &         tr3Dsource(i,J_0:J_1,l,2,n)+ tr3Dsource(i,J_0:J_1,l,3,n)
-c       DTR_AMPe(J_0:J_1,n)=DTR_AMPe(J_0:J_1,n)+
-c     &  (tr3Dsource(i,J_0:J_1,l,2,n)+tr3Dsource(i,J_0:J_1,l,3,n))*dtsrc
 #endif    
 c      enddo ; enddo
 
