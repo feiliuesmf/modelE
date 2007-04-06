@@ -37,7 +37,16 @@ C**** must be compiled after the model
       character*120 cindex_file
       integer iu_CI, i0, j0
       logical :: extend_gh = .false.
-      character*1 dummy(106064), dummy2(331280)
+      character*1, allocatable :: dummy(:), dummy2(:)
+
+      ! hack to read irrelevant records for different resolutions
+      if ( im==72 ) then
+        allocate( dummy(106064), dummy2(331280) )
+      else if ( im==144 ) then
+        allocate( dummy(414800), dummy2(1296080) )
+      else
+        call stop_model("This resolution is not supported",255)
+      endif
 
       IF (IARGC().lt.2) THEN
         PRINT*,"Convert GIC file to the extended format"
