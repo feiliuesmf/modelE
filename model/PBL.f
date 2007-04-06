@@ -908,7 +908,6 @@ c Diagnostics printed at a selected point:
       pbl_args%gm(:) = gm(:)
       pbl_args%gh(:) = gh(:)
       pbl_args%lmonin = lmonin
-      pbl_args%
 #endif
 
 

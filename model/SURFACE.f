@@ -1149,8 +1149,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_stress)=+rcdmws*pbl_args%wsm*ptype
                 tmp(idd_lmon)=+pbl_args%lmonin*ptype
                 tmp(idd_rifl)=
-     &               +ptype*grav*(ts-tg))*pbl_args%zgs
-     &               /(ws*ws*tg)
+     &               +ptype*grav*(ts-tg)*pbl_args%zgs/(ws*ws*tg)
 
                 tmp(idd_zpbl1)=+ptype*pbl_args%z(1)
                 tmp(idd_zpbl2)=+ptype*pbl_args%z(2)
