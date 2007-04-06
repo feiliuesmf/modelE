@@ -1,5 +1,6 @@
 #include "rundeck_opts.h"
 
+
       MODULE SOCPBL
 !@sum  SOCPBL deals with boundary layer physics
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
@@ -335,6 +336,10 @@ C****
       real*8, external :: sc_cfc,sol_cfc
 #endif
 
+#ifdef USE_PBL_E1
+      real*8 wstar3fac
+#endif
+
 c**** get input from pbl_args structure
       dtime = pbl_args%dtsurf
       tgrnd0 = pbl_args%tgv
@@ -423,9 +428,22 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         cqsave=cq
 #endif
 
+#ifdef USE_PBL_E1
+        call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
+     2                 ustar,dtime,n)
+#endif
+
         !@var wstar the convection-induced wind according to
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
+#ifdef USE_PBL_E1
+        if(t(2).lt.t(1)) then !convective
+          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
+          wstar2h = (wstar3fac*kh(1))**twoby3
+        else
+          wstar2h = 0.
+        endif
+#else
         if(t(2).lt.t(1)) then !convective
           wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
           wstar2h = wstar3**twoby3
@@ -433,11 +451,16 @@ c estimate net flux and ustar_oc from current tg,qg etc.
           wstar3=0.
           wstar2h = 0.
         endif
+#endif
 
+#ifdef USE_PBL_E1
+        ! do nothing
+#else
         call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
         call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
+#endif
 
         wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
 
@@ -542,9 +565,15 @@ C**** Water tracers need to multiply pbl_args%trsfac and pbl_args%trconstflx by 
           trsf=pbl_args%trsfac(itr)*cqsave*wsh
 #ifdef TRACERS_SPECIAL_O18
 C**** get fractionation for isotopes
+#ifdef USE_PBL_E1
+          call get_frac(itype,wsm,tg1,q(1),qgrnd
+     &         ,trname(pbl_args%ntix(itr))
+     *         ,trc1,trs1)
+#else
           call get_frac(itype,wsm,tg1,q(1),qgrnd_sat
      &         ,trname(pbl_args%ntix(itr))
      *         ,trc1,trs1)
+#endif
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
 #endif
@@ -907,11 +936,16 @@ c**** copy output to pbl_args
       tstar  = kh(1)*dtdz/ustar
       qstar  = kq(1)*dqdz/ustar
       zgs    = z(1)
+
       if (ustar.gt.smax*vel1) ustar=smax*vel1
       if (ustar.lt.smin*vel1) ustar=smin*vel1
       if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
       if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
+#ifdef USE_PBL_E1
+      ! do nothing
+#else
       if (tstar.eq.0.) tstar=teeny
+#endif
       if (abs(qstar).gt.smax*abs(q(1)-qgrnd)) qstar=smax*(q(1)-qgrnd)
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
 
@@ -982,7 +1016,11 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       integer :: i   !@var i  array dimension
       real*8 kz,l0,ls,lb,an2,an,dudz,dvdz,as2,qty,qturb,zeta
 
+#ifdef USE_PBL_E1
+      l0=.16d0*dbl ! Moeng and Sullivan 1994
+#else
       l0=.3d0*dbl ! Moeng and Sullivan 1994
+#endif
 
       if (l0.lt.zhat(1)) l0=zhat(1)
 
@@ -1375,7 +1413,11 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       implicit none
 
       ! temperary variable
+#ifdef USE_PBL_E1
+      real*8 :: del
+#else
       real*8 :: del,aa,bb,cc,tmp
+#endif
 
       prt=     0.82d0
       b1=     19.3d0
@@ -1419,6 +1461,9 @@ c     find rimax:
       rimax=(c2+sqrt(c2**2-4.*c1*c3))/(2.*c1)
       rimax=int(rimax*1000.)/1000.
 
+#ifdef USE_PBL_E1
+      ! do nothing
+#else
 c     find gm_at_rimax
 
       aa=c1*rimax*rimax-c2*rimax+c3
@@ -1431,6 +1476,7 @@ c     find gm_at_rimax
          gm_at_rimax=(-bb-sqrt(tmp))/(2.*aa)
       endif
       ! rimax=.96,  gm_at_rimax=.1366285d6
+#endif
 
 c     find ghmin,ghmax,gmmax0:
 
@@ -2304,6 +2350,9 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       real*8 :: lmonin,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test
      *     ,wstar3,wstar2h,usurfq,usurfh
+#ifdef USE_PBL_E1
+      real*8 wstar3fac
+#endif
       integer, save :: iter_count=0
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
@@ -2391,6 +2440,14 @@ c Initialization for iteration:
         !! dbl=.375d0*sqrt(ustar*abs(lmonin)/omega)
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
+#ifdef USE_PBL_E1
+        if(t(2).lt.t(1)) then
+          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
+          wstar2h = (wstar3fac*kh(1))**twoby3
+        else
+          wstar2h = 0.
+        endif
+#else
         if(t(2).lt.t(1)) then
           wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
           wstar2h = wstar3**twoby3
@@ -2398,7 +2455,7 @@ c Initialization for iteration:
           wstar3=0.
           wstar2h = 0.
         endif
-
+#endif
         usurfh  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
         usurfq  = usurfh
 
