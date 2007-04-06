@@ -710,8 +710,12 @@ C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
       REAL*8, dimension(8) ::
 C                          MINERAL DUST PARAMETERS
 C                         CLAY                  SILT
+#ifndef USE_RADIATION_E1
      *REDUST=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,2.773D0,5.545D0,
      &                                        8D0/) ! <- not used; 3 silt only
+#else
+     *REDUST=(/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/)
+#endif
 !nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)
      *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,
      &                                        2.65D0/)! <- not used; 3 silt only
@@ -4927,6 +4931,7 @@ C**** Collect cloud and aerosol LW-absorption and cloud levels
       CSUM=0             ! cloud LW-absorption - column amount
       NCLDS=0            ! number of layers containing clouds
       LCL(:)=0           ! cloud levels top->bottom
+#ifndef USE_RADIATION_E1
       DO L=NL,L1,-1
         if (TRCALK(L,1) > 1.E-2) then              ! Clouds
           SUMA(L)=TRCALK(L,1)
@@ -4945,6 +4950,7 @@ C**** Collect cloud and aerosol LW-absorption and cloud levels
           LVLO=L
         end if
       END DO
+#endif
 
 C**** Modify XTRD if clouds are present
       LCBOT=0
@@ -5075,10 +5081,12 @@ C                     --------------------------------------------------
 
   220 PLBN=PLB(L)
       ICOMB=0
+#ifndef USE_RADIATION_E1
       IF (TAUAG > TAUAP) THEN
         ICOMB=1
         TAUAG=TAUAX
       END IF
+#endif
       TAUBG=TAUAG+TAUAG
       TAUCG=10.D0*TAUAG
 
