@@ -179,7 +179,7 @@
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "BLD02"
-      INTEGER :: J_0, J_1, J_0H, J_1H, L,K
+      INTEGER :: J_0, J_1
       REAL*8, DIMENSION(IM,JM) :: wsavg_glob,tsavg_glob,
      *       qsavg_glob,dclev_glob,usavg_glob,
      *       vsavg_glob,tauavg_glob,qgavg_glob,tgvavg_glob

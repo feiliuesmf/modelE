@@ -1,72 +1,13 @@
 #include "rundeck_opts.h"
 
       module PBL_DRV
-      use SOCPBL, only : npbl=>n, t_pbl_args
-#ifdef TRACERS_ON
-      use tracer_com, only : ntm
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,Ntm_dust
-#endif
-#endif
+      use SOCPBL, only : t_pbl_args
       implicit none
 
       private
 
       public t_pbl_args, pbl
-cddd
-cdddc**** t_pbl_args is a derived type structure which contains all
-cdddc**** input/output arguments for PBL
-cdddc**** Please, use this structure to pass all your arguments to PBL
-cdddc**** Don''t use global variables for that purpose !
-cddd      type t_pbl_args
-cddd        ! input:
-cddd        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
-cddd        real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
-cddd        real*8 tg,elhx,qsol,sss_loc
-cddd        logical :: pole,ocean
-cddd        ! output:
-cddd        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin
-cddd        ! the following args needed for diagnostics
-cddd        real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
-cddd#ifdef TRACERS_ON
-cdddC**** Tracer input/output
-cddd!@var trtop,trs tracer mass ratio in level 1/surface
-cddd!@var trsfac, trconstflx factors in surface flux boundary cond.
-cddd!@var ntx number of tracers that need pbl calculation
-cddd!@var ntix index array to map local tracer number to global
-cddd        real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-cddd        integer ntx
-cddd        integer, dimension(ntm) :: ntix
-cddd
-cddd#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-cddd    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-cddd        REAL*8 ::wsgcm,wspdf
-cddd        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
-cddd     *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
-cddd        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
-cddd     &       lmonin
-cddd#endif
-cddd
-cddd#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-cddd        real*8 :: DMS_flux,ss1_flux,ss2_flux
-cddd#endif
-cddd#ifdef TRACERS_DRYDEP
-cddd!@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
-cddd!@var gs_vel gravitational settling velocity (m/s)
-cddd        real*8, dimension(ntm) :: dep_vel,gs_vel
-cddd#endif
-cddd#ifdef TRACERS_WATER
-cddd!@var tr_evap_max maximum amount of tracer available in ground reservoir
-cddd        real*8, dimension(ntm) :: tr_evap_max
-cddd#endif
-cddd
-cddd#ifdef TRACERS_GASEXCH_Natassa
-cddd        real*8  :: Kw_gas,alpha_gas,beta_gas
-cddd#endif
-cddd#endif
-cddd      end type t_pbl_args
-cddd
+
       contains
 
       SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args)
@@ -109,11 +50,8 @@ c
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 !@var uocean,vocean ocean/ice velocities for use in drag calulation
-      real*8 uocean,vocean
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
-      real*8 :: evap_max,fr_sat
-      real*8 :: psurf, trhr0
 !@var ZS1    = height of the first model layer (m)
 !@var TGV    = virtual potential temperature of the ground (K)
 !@var TKV    = virtual potential temperature of first model layer (K)
@@ -125,12 +63,11 @@ c
 !@var ELHX   = latent heat for saturation humidity (J/kg)
 !@var dskin  = skin-bulk SST difference (C)
 !@VAR QSOL   = solar heating (W/m2)
-      real*8 zs1,tgv,tkv,ws,psi,wg,qg_sat,qg_aver,dtsurf,hemi,tg,elhx
-     *     ,dskin,qsol,sss_loc
+      real*8 zs1,tgv,tkv,psi,qg_sat,qg_aver,hemi
 !@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
-      logical pole,ocean
+      logical pole
 
-!**** the following is output from advance
+!**** the following is output from advance (mostly passed through pbl_args)
 !@var US     = x component of surface wind, positive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
 !@var WSGCM  = magnitude of the GCM surface wind - ocean currents (m/s)
@@ -156,37 +93,19 @@ c
 !@var VG     = northward component of the geostrophic wind (m/s)
 !@var MDF    = downdraft mass flux (m/s)
 !@var WINT   = integrated surface wind speed over sgs wind distribution
-      real*8 :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
-     &         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg
-     &         ,wsgcm,wspdf,w2_1,mdf
+      real*8 :: dbl,kms,kqs,cm,ch,cq,z0m,z0h,z0q,ug,vg,w2_1,mdf
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
-      real*8, dimension(npbl,ntm) :: tr
+      real*8, dimension(npbl,pbl_args%ntx) :: tr
 #endif
 
-ccc extract data from the pbl_args structure
-      !dtsurf = pbl_args%dtsurf
+ccc extract data needed in driver from the pbl_args structure
       zs1 = pbl_args%zs1
-      !tgv = pbl_args%tgv
-      !tkv = pbl_args%tkv
-      !qg_sat = pbl_args%qg_sat
-      !qg_aver = pbl_args%qg_aver
       hemi = pbl_args%hemi
       pole = pbl_args%pole
-      !evap_max = pbl_args%evap_max
-      !fr_sat = pbl_args%fr_sat
-      !uocean = pbl_args%uocean
-      !vocean = pbl_args%vocean
-      !psurf = pbl_args%psurf
-      !trhr0 = pbl_args%trhr0
-      !tg = pbl_args%tg
-      !elhx = pbl_args%elhx
-      !qsol = pbl_args%qsol
-      !sss_loc=pbl_args%sss_loc
-      !ocean = pbl_args%ocean
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
@@ -352,9 +271,6 @@ c     ENDIF
       cqgs(i,j,itype)=pbl_args%cq
       ipbl(i,j,itype)=1  ! ipbl is used in subroutine init_pbl
 
-      ws    =wsm
-      !!!wg    =sqrt(ug*ug+vg*vg)
-
       psitop=atan2(vg,ug+teeny)
       psisrf=atan2(pbl_args%vs,pbl_args%us+teeny)
       psi   =psisrf-psitop
@@ -383,31 +299,9 @@ C ******************************************************************
       qgAVG(I,J)=qgAVG(I,J)+pbl_args%qg_aver*PTYPE
       w2_l1(I,J)=w2_l1(I,J)+w2_1*PTYPE
 
-ccc put data backto pbl_args structure
-      !pbl_args%us = us
-      !pbl_args%vs = vs
-      !pbl_args%ws = ws
-      !pbl_args%wsm = wsm
-      !pbl_args%wsh = wsh
-      !pbl_args%tsv = tsv
-      !pbl_args%qsrf = qsrf
-      !pbl_args%cm = cm
-      !pbl_args%ch = ch
-      !pbl_args%cq = cq
-      pbl_args%psi = psi
-      !pbl_args%dbl = dbl
-      !pbl_args%khs = khs
-      !pbl_args%ug = ug
-      !pbl_args%vg = vg
-      !pbl_args%wg = wg
-      !pbl_args%dskin = dskin
-      !pbl_args%ustar = ustar
-      !pbl_args%zgs = zgs
-!#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-!    (defined TRACERS_QUARZHEM)
-!      pbl_args%wsgcm=wsgcm
-!      pbl_args%wspdf=wspdf
-!#endif
+ccc put drive output data to pbl_args structure
+      pbl_args%psi = psi ! maybe also should be moved to ADVANC
+                         ! or completely otside of PBL* ?
 
       RETURN
       END SUBROUTINE PBL

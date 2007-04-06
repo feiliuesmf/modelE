@@ -62,8 +62,6 @@
       integer, parameter :: n=8  !@param n  no of pbl. layers
       integer, parameter :: npbl=n
 
-!!!! i/o structure
-
 c**** t_pbl_args is a derived type structure which contains all
 c**** input/output arguments for PBL
 c**** Please, use this structure to pass all your arguments to PBL
@@ -79,7 +77,9 @@ c**** Don''t use global variables for that purpose !
         ! the following args needed for diagnostics
         real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
 #ifdef TRACERS_ON
-C**** Tracer input/output
+c**** Attention: tracer arrays in this structure have dim 1:ntm
+c**** while local arrays in PBL code have dim 1:ntx
+c**** Tracer input/output
 !@var trtop,trs tracer mass ratio in level 1/surface
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
@@ -115,10 +115,6 @@ C**** Tracer input/output
 #endif
 #endif
       end type t_pbl_args
-
-
-
-
 
 
 !@dbparam XCDpbl factor for momentum drag coefficient
@@ -311,8 +307,6 @@ c**** other local vars
       real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 C****
-      real*8 :: sig0,delt,wt,wmin,wmax
-      integer :: icase
       REAL*8,DIMENSION(n) :: z
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
       REAL*8 :: lmonin
@@ -334,21 +328,19 @@ C****
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
-      real*8 wspdf
+      real*8 wspdf,delt
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       real*8 :: Sc_gas
       real*8, external :: sc_cfc,sol_cfc
 #endif
 
-!!!!!!!!! hack to pass pbl_args !!!!!!!!
+c**** get input from pbl_args structure
       dtime = pbl_args%dtsurf
-      !zs1 = pbl_args%zs1
       tgrnd0 = pbl_args%tgv
       ttop = pbl_args%tkv
       qgrnd_sat = pbl_args%qg_sat
       qgrnd0 = pbl_args%qg_aver
-      !hemi = pbl_args%hemi
       evap_max = pbl_args%evap_max
       fr_sat = pbl_args%fr_sat
       uocean = pbl_args%uocean
@@ -359,29 +351,15 @@ C****
       elhx = pbl_args%elhx
       qsol = pbl_args%qsol
       sss_loc = pbl_args%sss_loc
-      !pole = pbl_args%pole
-
       ocean = pbl_args%ocean
-      !!!us = pbl_args%us
-      !!!vs = pbl_args%vs
-      !ws = pbl_args%ws
-      !!!wsm = pbl_args%wsm
-      !!!wsh = pbl_args%wsh
-      !!!tsv = pbl_args%tsv
-      !!!qsrf = pbl_args%qsrf
       cm = pbl_args%cm
       ch = pbl_args%ch
       cq = pbl_args%cq
       dskin = pbl_args%dskin
-      !psi = pbl_args%psi
       dbl = pbl_args%dbl
       khs = pbl_args%khs
       ug = pbl_args%ug
       vg = pbl_args%vg
-      !wg = pbl_args%wg
-      !!!ustar = pbl_args%ustar
-      !!zgs = pbl_args%zgs
-
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
@@ -859,26 +837,7 @@ c Diagnostics printed at a selected point:
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif
 
-!!!!!!!!!!!!!!!!! hack to pass pbl_args !!!!!!!!!!!!
-      !pbl_args%dtsurf = dtsurf
-      !pbl_args%zs1 = zs1
-      !pbl_args%tgv = tgv
-      !pbl_args%tkv = tkv
-      !pbl_args%qg_sat = qg_sat
-      !pbl_args%qg_aver = qg_aver
-      !pbl_args%hemi = hemi
-      !pbl_args%evap_max = evap_max
-      !pbl_args%fr_sat = fr_sat
-      !pbl_args%uocean = uocean
-      !pbl_args%vocean = vocean
-      !pbl_args%psurf = psurf
-      !pbl_args%trhr0 = trhr0
-      !pbl_args%tg = tg
-      !pbl_args%elhx = elhx
-      !pbl_args%qsol = qsol
-      !pbl_args%sss_loc = sss_loc
-      !pbl_args%pole = pole
-      !pbl_args%ocean = ocean
+c**** copy output to pbl_args
       pbl_args%us = us
       pbl_args%vs = vs
       pbl_args%ws = wsm  !!! what the difference between wsm and ws ?
@@ -890,12 +849,9 @@ c Diagnostics printed at a selected point:
       pbl_args%ch = ch
       pbl_args%cq = cq
       pbl_args%dskin = dskin
-      !!pbl_args%psi = psi
+      !!pbl_args%psi = psi   ! maybe compute it here ?
       pbl_args%dbl = dbl
       pbl_args%khs = khs
-      !!!pbl_args%ug = ug
-      !!!pbl_args%vg = vg
-      !!pbl_args%wg = wg
       pbl_args%ustar = ustar
       pbl_args%zgs = zgs
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -909,7 +865,6 @@ c Diagnostics printed at a selected point:
       pbl_args%gh(:) = gh(:)
       pbl_args%lmonin = lmonin
 #endif
-
 
       return
       end subroutine advanc
