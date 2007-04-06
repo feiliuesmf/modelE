@@ -29,7 +29,7 @@
       private
 
       ! public parameters
-      public n,zgs,XCDpbl,kappa,emax
+      public n,zgs,XCDpbl,kappa,emax,skin_effect
 
       ! public interfaces
       public advanc,inits,ccoeff0
@@ -41,8 +41,67 @@
      *     ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3
      *     ,g1,g2,g3,g4,g5,g6,g7,g8
 
-      integer, parameter :: n=8  !@param n  no of pbl. layers
+      public t_pbl_args
 
+      integer, parameter :: n=8  !@param n  no of pbl. layers
+      integer, parameter :: npbl=n
+
+c**** t_pbl_args is a derived type structure which contains all
+c**** input/output arguments for PBL
+c**** Please, use this structure to pass all your arguments to PBL
+c**** Don''t use global variables for that purpose !
+      type t_pbl_args
+        ! input:
+        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
+        real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
+        real*8 tg,elhx,qsol,sss_loc
+        logical :: pole,ocean
+        ! output:
+        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin
+        ! the following args needed for diagnostics
+        real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
+#ifdef TRACERS_ON
+c**** Attention: tracer arrays in this structure have dim 1:ntm
+c**** while local arrays in PBL code have dim 1:ntx
+c**** Tracer input/output
+!@var trtop,trs tracer mass ratio in level 1/surface
+!@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var ntx number of tracers that need pbl calculation
+!@var ntix index array to map local tracer number to global
+        real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+        integer ntx
+        integer, dimension(ntm) :: ntix
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+        REAL*8 ::wsgcm,wspdf
+        REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
+     *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
+        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
+     &       lmonin
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+        real*8 :: DMS_flux,ss1_flux,ss2_flux
+#endif
+#ifdef TRACERS_DRYDEP
+!@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
+!@var gs_vel gravitational settling velocity (m/s)
+        real*8, dimension(ntm) :: dep_vel,gs_vel
+#endif
+#ifdef TRACERS_WATER
+!@var tr_evap_max maximum amount of tracer available in ground reservoir
+        real*8, dimension(ntm) :: tr_evap_max
+#endif
+
+#ifdef TRACERS_GASEXCH_Natassa
+        real*8  :: Kw_gas,alpha_gas,beta_gas
+#endif
+#endif
+      end type t_pbl_args
+
+
+!@dbparam XCDpbl factor for momentum drag coefficient
       real*8 :: XCDpbl=1d0
 
       real*8 :: rimax,ghmin,ghmax,gmmax0,gm_at_rimax,d1,d2,d3,d4,d5
@@ -81,34 +140,16 @@ CCC      real*8 :: bgrid
 !@param twoby3 2/3 constant
       real*8, parameter :: twoby3 = 2d0/3d0
 
+      integer :: skin_effect=0
+
       CONTAINS
 
-      subroutine advanc(coriol,utop,vtop,ttop,qtop,tgrnd
-     &     ,qgrnd,qgrnd_sat,evap_max,fr_sat
-     4     ,psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs
-     5     ,uocean,vocean,ts_guess,ilong,jlat,itype
-     6     ,us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg ,wsgcm,wspdf,w2_1,mdf
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0 ,u,v,t,q,e
+      subroutine advanc(pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,ilong,jlat,itype
+     &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
+     &     ,u,v,t,q,e
 #if defined(TRACERS_ON)
-     *     ,trs,trtop,trsfac,trconstflx,ntx,ntix,tr
-#if defined(TRACERS_GASEXCH_Natassa)
-     *     ,alati,Kw_gas,alpha_gas,beta_gas
-#endif
-#if defined(TRACERS_WATER)
-     *     ,tr_evap_max
-#endif
-#if defined(TRACERS_DRYDEP)
-     *     ,dep_vel,gs_vel
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     *     ,DMS_flux, ss1_flux, ss2_flux
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,ptype,dust_flux,dust_flux2,wsubtke,wsubwd,wsubwm,z,km,gh,gm
-     &     ,zhat,lmonin,dust_event1,dust_event2,wtrsh
-#endif
+     &     ,tr,ptype
 #endif
      &     )
 !@sum  advanc  time steps the solutions for the boundary layer variables
@@ -174,16 +215,26 @@ c   output:
 !@var VG     = northward component of the geostrophic wind (m/s)
 !@var MDF    = downdraft mass flux (m/s)
 !@var WINT   = integrated surface wind speed over sgs wind distribution
+!@var  u  local due east component of wind
+!@var  v  local due north component of wind
+!@var  t  local virtual potential temperature
+!@var  q  local specific humidity (a passive scalar)
+!@var  e  local turbulent kinetic energy
 #if defined(TRACERS_ON)
-!@var  trtop  tracer conc. at the top of the layer
-!@var  trs  surface tracer conc.
-!@var  trsfac  factor for trs in surface boundary condition
-!@var  trconstflx  constant component of surface tracer flux
-!@var  ntx  number of tracers to loop over
-!@var  ntix index of tracers used in pbl
+!@var  pbl_args%trtop  tracer conc. at the top of the layer
+!@var  pbl_args%trs  surface tracer conc.
+!@var  pbl_args%trsfac  factor for pbl_args%trs in surface boundary condition
+!@var  pbl_args%trconstflx  constant component of surface tracer flux
+!@var  pbl_args%ntx  number of tracers to loop over
+!@var  pbl_args%ntix index of tracers used in pbl
+#endif
+#if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_Natassa)
+!@var  pbl_args%Kw_gas  gas exchange transfer velocity at i,j only over ocean
+!@var  pbl_args%alpha_gas  solubility of gas
+!@var  pbl_args%beta_gas  conversion term  that includes solubility
 #endif
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
-!@var  tr_evap_max max amount of possible tracer evaporation
+!@var  pbl_args%tr_evap_max max amount of possible tracer evaporation
 #endif
 c  internals:
 !@var  n     number of the local, vertical grid points
@@ -199,82 +250,96 @@ c  internals:
 !@var  ipbl  stores bl properties of last time step
       implicit none
 
-      real*8, intent(in) :: coriol,utop,vtop,ttop,qtop,uocean,vocean
-     *                      ,ts_guess
-      real*8, intent(in) :: tgrnd,qgrnd,qgrnd_sat,evap_max,fr_sat
-     &     ,ztop,dtime
-      real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
-      integer, intent(in) :: ilong,jlat,itype
-      real*8, intent(in) :: psurf,trhr0
-      !-- output:
-      real*8, intent(out) :: us,vs,wsm,wsh,tsv,qsrf,kms,khs,kqs
-     &         ,ustar,cm,ch,cq,z0m,z0h,z0q
-     &         ,wsgcm,wspdf,w2_1
-      real*8, intent(in) :: dbl,ug,vg,mdf
+      !-- in/out structure
+      type (t_pbl_args), intent(inout) :: pbl_args
+      !-- input:
+      real*8, intent(in) :: coriol,utop,vtop,qtop,ztop,ts_guess
+      real*8, intent(in) :: mdf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-
+      integer, intent(in) :: ilong,jlat,itype
+      !-- output:
+      real*8, intent(out) :: kms,kqs,z0m,z0h,z0q,w2_1
+      real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
+      real*8, dimension(n),   intent(inout) :: u,v,t,q
+      real*8, dimension(n-1), intent(inout) :: e
+#if defined(TRACERS_ON)
+!@var  tr local tracer profile (passive scalars)
+      real*8, intent(in) :: ptype
+      real*8, dimension(n,ntm), intent(inout) :: tr
+#endif
+      
+c**** local vars for input from pbl_args
+      real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
+      real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
+      logical :: ocean
+c**** local vars for output to pbl_args
+      real*8 :: us,vs,wsm,wsh,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm
+c**** other local vars
+      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
+      real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
+      real*8 :: bgrid,an2,as2,dudz,dvdz,tau,wstar3fac
+      real*8, parameter ::  tol=1d-3,w=.5d0
+      integer, parameter ::  itmax=50
+      integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
+      real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
+     *       ,usave1,vsave1,tsave1,qsave1
+      real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
+      integer :: i,j,iter,ierr  !@var i,j,iter loop variable
+C****
+      REAL*8,DIMENSION(n) :: z
+      REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
+      REAL*8 :: lmonin
 #ifdef TRACERS_ON
-      real*8, intent(in), dimension(ntm) :: trtop
-      real*8, intent(in), dimension(ntm) :: trconstflx,trsfac
-      real*8, intent(out), dimension(ntm) :: trs
-      integer, intent(in) :: ntx
-      integer, intent(in), dimension(ntm) :: ntix
       real*8, dimension(n,ntm) :: trsave
-      real*8 trcnst,trsf,cqsave,ts,rhosrf,byrho,tg1,rh1
+      real*8 trcnst,trsf,cqsave,byrho,rh1
       real*8, dimension(n-1) :: kqsave
-      real*8 :: qsat
       integer itr
 #ifdef TRACERS_WATER
-      real*8, intent(in), dimension(ntm) :: tr_evap_max
 #ifdef TRACERS_SPECIAL_O18
       real*8 :: trc1,trs1   ! could be passed out....
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
-      real*8 , intent(out), dimension(ntm) :: dep_vel,gs_vel
       real*8 vgs
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      real*8, intent(out) :: DMS_flux, ss1_flux, ss2_flux
 #endif
-#endif
-      real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
-      real*8 :: bgrid,an2,as2,dudz,dvdz,tau
-      real*8, parameter ::  tol=1d-3,w=.5d0
-      integer, parameter ::  itmax=50
-      integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
-      real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
-     *       ,usave1,vsave1,tsave1,qsave1
-      real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
-     *     ,esave,esave1
-      integer :: i,j,iter,ierr  !@var i,j,iter loop variable
-C****
-      real*8 :: sig0,delt,wt,wmin,wmax
-      integer :: icase
-
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      REAL*8,INTENT(IN) :: ptype
-      REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),
-     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
+      real*8 wspdf,delt
 #endif
-!@var  u  local due east component of wind
-!@var  v  local due north component of wind
-!@var  t  local virtual potential temperature
-!@var  q  local specific humidity (a passive scalar)
-!@var  e  local turbulent kinetic energy
-c**** special threadprivate common block (compaq compiler stupidity)
-      real*8, dimension(n), intent(inout) :: u,v,t,q
-      real*8, dimension(n-1), intent(inout) :: e
-!!      common/pbluvtq/u,v,t,q,e
-!!!$OMP  THREADPRIVATE (/pbluvtq/)
-C**** end special threadprivate common block
-#if defined(TRACERS_ON)
-!@var  tr local tracer profile (passive scalars)
-      real*8, dimension(n,ntm) :: tr
+#ifdef TRACERS_GASEXCH_Natassa
+      real*8 :: Sc_gas
+      real*8, external :: sc_cfc,sol_cfc
 #endif
+
+c**** get input from pbl_args structure
+      dtime = pbl_args%dtsurf
+      tgrnd0 = pbl_args%tgv
+      ttop = pbl_args%tkv
+      qgrnd_sat = pbl_args%qg_sat
+      qgrnd0 = pbl_args%qg_aver
+      evap_max = pbl_args%evap_max
+      fr_sat = pbl_args%fr_sat
+      uocean = pbl_args%uocean
+      vocean = pbl_args%vocean
+      psurf = pbl_args%psurf
+      trhr0 = pbl_args%trhr0
+      tg = pbl_args%tg
+      elhx = pbl_args%elhx
+      qsol = pbl_args%qsol
+      sss_loc = pbl_args%sss_loc
+      ocean = pbl_args%ocean
+      cm = pbl_args%cm
+      ch = pbl_args%ch
+      cq = pbl_args%cq
+      dskin = pbl_args%dskin
+      dbl = pbl_args%dbl
+      khs = pbl_args%khs
+      ug = pbl_args%ug
+      vg = pbl_args%vg
+
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"advanc: i,j,itype=",ilong,jlat,itype,u(1),v(1),t(1),q(1)
@@ -288,7 +353,7 @@ c        call abort
       qsave(:)=q(:)
       esave(:)=e(:)
 #ifdef TRACERS_ON
-      trsave(:,1:ntx)=tr(:,1:ntx)
+      trsave(:,1:pbl_args%ntx)=tr(:,1:pbl_args%ntx)
 #endif
       do i=1,n-1
         usave1(i)=usave(i)
@@ -334,19 +399,15 @@ c        call abort
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat)
 
-        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd
-     &            ,ttop,dtime,n
-     &            ,dpdxr,dpdyr,dpdxr0,dpdyr0)
+        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd,ttop,dtime
+     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0) 
 
-        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
-     2              ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3              ug,vg,uocean,vocean,n
-     &              ,dpdxr,dpdyr,dpdxr0,dpdyr0)
+        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
+     *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
+     *       ,dpdyr0)
 
-        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
-          call tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,kh(1),
-     *              ts_guess,n)
-        endif
+        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) call tfix(t,z,ttop,tgrnd
+     *       ,lmonin,tstar,ustar,kh(1),ts_guess,n)
 
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
@@ -374,10 +435,8 @@ c**** cannot update wsh without taking care that wsh used for tracers is
 c**** the same as that used for q
 c      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
-#endif
+
 C**** Preliminary coding for use of sub-gridscale wind distribution
 C**** generic calculations for all tracers
 C**** To use, uncomment next two lines and adapt the next chunk for
@@ -386,8 +445,10 @@ C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
-      CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),wsubtke,wsubwd,wsubwm)
-      CALL get_wspdf(wsubtke,wsubwd,wsubwm,wsgcm,wspdf)
+      CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
+     &     ,pbl_args%wsubwd,pbl_args%wsubwm)
+      CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
+     &     ,wsgcm,wspdf)
 #endif
 csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,wsh,t(1))
 csgsC**** possibly tracer specific coding
@@ -410,33 +471,35 @@ C**** First, define some useful quantities
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
-      call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts,dep_vel)
+      call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts
+     &     ,pbl_args%dep_vel)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsgcm,
-     &   dust_event1,dust_event2,wtrsh,
-     &   wsubtke,wsubwd,wsubwm)
+     &   pbl_args%dust_event1,pbl_args%dust_event2,pbl_args%wtrsh,
+     &   pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm)
 #endif
 
 C**** loop over tracers
-      do itr=1,ntx
+      do itr=1,pbl_args%ntx
 C**** Define boundary conditions
 
 C****   1) default air mass tracers
-        trcnst=trconstflx(itr)*byrho   ! convert to (conc * m/s)
-        trsf=trsfac(itr)
+        trcnst=pbl_args%trconstflx(itr)*byrho   ! convert to (conc * m/s)
+        trsf=pbl_args%trsfac(itr)
 
 #ifdef TRACERS_WATER
 C****   2) water mass tracers
-C**** Water tracers need to multiply trsfac and trconstflx by cq*Usurf
-        if (tr_wd_TYPE(ntix(itr)).eq.nWATER) then
-          trcnst=trconstflx(itr)*cqsave*wsh
-          trsf=trsfac(itr)*cqsave*wsh
+C**** Water tracers need to multiply pbl_args%trsfac and pbl_args%trconstflx by cq*Usurf
+        if (tr_wd_TYPE(pbl_args%ntix(itr)).eq.nWATER) then
+          trcnst=pbl_args%trconstflx(itr)*cqsave*wsh
+          trsf=pbl_args%trsfac(itr)*cqsave*wsh
 #ifdef TRACERS_SPECIAL_O18
 C**** get fractionation for isotopes
-          call get_frac(itype,wsm,tg1,q(1),qgrnd,trname(ntix(itr)),trc1
+          call get_frac(itype,wsm,tg1,q(1),qgrnd
+     &         ,trname(pbl_args%ntix(itr)),trc1
      *         ,trs1)
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
@@ -447,40 +510,48 @@ C**** get fractionation for isotopes
 #ifdef TRACERS_DRYDEP
 C****   3) dry deposited tracers (inlcuding gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
-        if(dodrydep(ntix(itr))) then
-C****   get setling velocity
-          if (trradius(ntix(itr)).gt.0.) then
-            gs_vel(ntix(itr))=vgs(rhosrf,rh1,ntix(itr))
+        if(dodrydep(pbl_args%ntix(itr))) then
+C****   get settling velocity
+          if (trradius(pbl_args%ntix(itr)).gt.0.) then
+            pbl_args%gs_vel(pbl_args%ntix(itr))=vgs(rhosrf,rh1
+     &           ,pbl_args%ntix(itr))
           else
-            gs_vel(ntix(itr))=0.
+            pbl_args%gs_vel(pbl_args%ntix(itr))=0.
           end if
-          trsf=trsfac(itr)*(dep_vel(ntix(itr))+gs_vel(ntix(itr)))
+          trsf=pbl_args%trsfac(itr)*(pbl_args%dep_vel(pbl_args%ntix(itr)
+     &         )+pbl_args%gs_vel(pbl_args%ntix(itr)))
         end if
 #endif
 
 C****   4) tracers with interactive sources
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        select case (trname(ntix(itr)))
+        select case (trname(pbl_args%ntix(itr)))
         case ('DMS')
-          call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
-          trcnst=DMS_flux*byrho
+          call read_DMS_sources(wsm,itype,ilong,jlat,pbl_args%DMS_flux)
+          trcnst=pbl_args%DMS_flux*byrho
         case ('seasalt1')
-          call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
-          trcnst=ss1_flux*byrho
+          call read_seasalt_sources(wsm,itype,1,ilong,jlat
+     &         ,pbl_args%ss1_flux)
+          trcnst=pbl_args%ss1_flux*byrho
         case ('seasalt2')
-          call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
-          trcnst=ss2_flux *byrho
+          call read_seasalt_sources(wsm,itype,2,ilong,jlat
+     &         ,pbl_args%ss2_flux)
+          trcnst=pbl_args%ss2_flux *byrho
 #ifdef TRACERS_AMP
         case ('M_SSA_SS')
-          call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
-          trcnst=ss1_flux*byrho
+          call read_seasalt_sources(wsm,itype,1,ilong,jlat
+     &         ,pbl_args%ss1_flux)
+          trcnst=pbl_args%ss1_flux*byrho
         case ('M_SSC_SS')
-          call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
-          trcnst=ss2_flux *byrho
+          call read_seasalt_sources(wsm,itype,2,ilong,jlat
+     &         ,pbl_args%ss2_flux)
+          trcnst=pbl_args%ss2_flux *byrho
         case ('M_SSS_SS')
-          call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
-          call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
-          trcnst=(ss2_flux + ss1_flux)*byrho
+          call read_seasalt_sources(wsm,itype,1,ilong,jlat
+     &         ,pbl_args%ss1_flux)
+          call read_seasalt_sources(wsm,itype,2,ilong,jlat
+     &         ,pbl_args%ss2_flux)
+          trcnst=(pbl_args%ss2_flux + pbl_args%ss1_flux)*byrho
 #endif
         end select
 #endif
@@ -488,10 +559,10 @@ C****   4) tracers with interactive sources
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 ccc dust emission from earth
-        SELECT CASE (trname(ntix(itr)))
+        SELECT CASE (trname(pbl_args%ntix(itr)))
 #ifdef TRACERS_DUST
         CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-          n1=ntix(itr)-n_clay+1
+          n1=pbl_args%ntix(itr)-n_clay+1
 #else
 #ifdef TRACERS_MINERALS
         CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
@@ -499,93 +570,93 @@ ccc dust emission from earth
      &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
      &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=ntix(itr)-n_clayilli+1
+          n1=pbl_args%ntix(itr)-n_clayilli+1
 #else
 #ifdef TRACERS_QUARZHEM
         CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=ntix(itr)-n_sil1quhe+1
+          n1=pbl_args%ntix(itr)-n_sil1quhe+1
 #endif
 #endif
 #endif
         END SELECT
-        SELECT CASE (trname(ntix(itr)))
+        SELECT CASE (trname(pbl_args%ntix(itr)))
           CASE ('Clay','Silt1','Silt2','Silt3','Silt4',
      &          'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &          'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &          'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &          'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
      &          'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          CALL local_dust_emission(ilong,jlat,ntix(itr),wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
+          CALL local_dust_emission(ilong,jlat,pbl_args%ntix(itr),wsgcm
+     &         ,ptype, dsrcflx,dsrcflx2)
           trcnst=dsrcflx*byrho
-          dust_flux(n1)=dsrcflx
-          dust_flux2(n1)=dsrcflx2
+          pbl_args%dust_flux(n1)=dsrcflx
+          pbl_args%dust_flux2(n1)=dsrcflx2
         END SELECT
 #endif
 #ifdef TRACERS_AMP
-        SELECT CASE (trname(ntix(itr)))
+        SELECT CASE (trname(pbl_args%ntix(itr)))
         case ('M_DD1_DU')
          n1=1!ntm_dust
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=dsrcflx*byrho
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
    
         n1=2!ntm_dust
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=trcnst+(dsrcflx*byrho)
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
    
        case ('M_DD2_DU')
          n1=3
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=dsrcflx*byrho
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
          n1=4
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=trcnst+(dsrcflx*byrho)
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
-
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
         case ('M_DDD_DU')
          n1=1
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=dsrcflx*byrho
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
         n1=2
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=trcnst+(dsrcflx*byrho)
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
          n1=3
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=trcnst+(dsrcflx*byrho)
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
          n1=4
           CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
      &         dsrcflx,dsrcflx2)
            trcnst=trcnst+(dsrcflx*byrho)
-           dust_flux(n1)=dsrcflx
-           dust_flux2(n1)=dsrcflx2
+           pbl_args%dust_flux(n1)=dsrcflx
+           pbl_args%dust_flux2(n1)=dsrcflx2
+
          END SELECT
 #endif
 
 C**** solve tracer transport equation
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
-     *       ,trcnst,trtop(itr),
+     *       ,trcnst,pbl_args%trtop(itr),
 #ifdef TRACERS_WATER
-     *       tr_evap_max(itr),fr_sat,
+     *       pbl_args%tr_evap_max(itr),fr_sat,
 #endif
      *       dtime,n)
 
@@ -593,16 +664,17 @@ C**** solve tracer transport equation
 C**** put in a check to prevent unphysical solutions. If too much
 C**** tracer is being taken out, replace profile with linear one
 C**** with maximum allowed flux.
-        if (dodrydep(ntix(itr))) then
-          if ((trsf*tr(1,itr)-trcnst)*dtime.gt.trtop(itr)*ztop) then
+        if (dodrydep(pbl_args%ntix(itr))) then
+          if ((trsf*tr(1,itr)-trcnst)*dtime
+     &         .gt.pbl_args%trtop(itr)*ztop) then
             do i=1,n
-              tr(i,itr)=(trtop(itr)*ztop/dtime+trcnst)/trsf+(i-1)
-     *             *trtop(itr)/float(n-1)
+              tr(i,itr)=(pbl_args%trtop(itr)*ztop/dtime+trcnst)/trsf
+     &             +(i-1) *pbl_args%trtop(itr)/float(n-1)
             end do
           end if
         end if
 #endif
-        trs(itr) = tr(1,itr)
+        pbl_args%trs(itr) = tr(1,itr)
       end do
 #endif
 
@@ -639,6 +711,35 @@ c Diagnostics printed at a selected point:
      4              utop,vtop,ttop,qtop,
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif
+
+c**** copy output to pbl_args
+      pbl_args%us = us
+      pbl_args%vs = vs
+      pbl_args%ws = wsm  !!! what the difference between wsm and ws ?
+      pbl_args%wsm = wsm
+      pbl_args%wsh = wsh
+      pbl_args%tsv = tsv
+      pbl_args%qsrf = qsrf
+      pbl_args%cm = cm
+      pbl_args%ch = ch
+      pbl_args%cq = cq
+      pbl_args%dskin = dskin
+      !!pbl_args%psi = psi   ! maybe compute it here ?
+      pbl_args%dbl = dbl
+      pbl_args%khs = khs
+      pbl_args%ustar = ustar
+      pbl_args%zgs = zgs
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      pbl_args%wsgcm=wsgcm
+      pbl_args%wspdf=wspdf
+      pbl_args%z(:) = z(:)
+      pbl_args%zhat(:) = zhat(:)
+      pbl_args%km(:) = km(:)
+      pbl_args%gm(:) = gm(:)
+      pbl_args%gh(:) = gh(:)
+      pbl_args%lmonin = lmonin
+#endif
 
       return
       end subroutine advanc
