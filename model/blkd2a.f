@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       block data blkdat
 c
       include 'dimensions.h'
@@ -86,7 +87,11 @@ c --- thermo      use thermodynamic forcing functions
 c --- windf       use wind stress forcing function
 c --- relax       activate lateral boundary nudging
 c
+#ifdef TRACERS_GASEXCH_Natassa
+      data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
+#else
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
+#endif
 c
 c --- 'lp' = logical unit number for printer output
       data lp/6/
