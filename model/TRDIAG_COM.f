@@ -233,7 +233,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
 !@param MaxDMc Maximum number of special wet depo diags for MC clouds
 !@param MaxDLs Maximum number of special wet depo diags for LS clouds
       INTEGER,PARAMETER :: MaxDMc=6,MaxDLs=6
@@ -291,10 +291,12 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_AMPp(7,Ntm)
 #endif
 #ifdef TRACERS_WATER
+#ifdef TRDIAG_WETDEPO
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
       INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
 !@var ijts_trdpls indices of taijs special wet depo diags for LS clouds
       INTEGER :: ijts_trdpls(MaxDLs,Ntm)
+#endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -460,10 +462,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@var jls_prec tracer independent array for precipitation/wet dep
       INTEGER, DIMENSION(2,NTM) :: jls_prec
 #ifdef TRACERS_WATER
+#ifdef TRDIAG_WETDEPO
 !@var jls_trdpmc indices of tajls special wet depo diags for MC clouds
       INTEGER :: jls_trdpmc(MaxDMc,Ntm)
 !@var jls_trdpls indices of tajls special wet depo diags for LS clouds
       INTEGER :: jls_trdpls(MaxDLs,Ntm)
+#endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)

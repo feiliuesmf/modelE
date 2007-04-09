@@ -85,8 +85,7 @@
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jls_incloud,ijts_aq
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#ifdef TRDIAG_WETDEPO
      &     ,jls_trdpmc,jls_trdpls,ijts_trdpmc,ijts_trdpls
 #endif
 #else
@@ -102,8 +101,7 @@
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,dt_sulf_mc,dt_sulf_ss
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_Koch)
+#ifdef TRDIAG_WETDEPO
      &     ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc
      &     ,trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
      &     ,diag_wetdep
@@ -1296,8 +1294,7 @@ C**** diagnostics
      *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*bydxyp(j)
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
      *         trprec(n,i,j)*bydxyp(j)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#ifdef TRDIAG_WETDEPO
 c     ..........
 c     accumulates special wet depo diagnostics
 c     ..........

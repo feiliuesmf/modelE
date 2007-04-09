@@ -32,8 +32,7 @@
 #ifdef TRACERS_WATER
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
       USE SEAICE_COM, only : trsi0
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_Koch)
+#ifdef TRDIAG_WETDEPO
       USE clouds, ONLY : diag_wetdep
 #endif
 #endif
@@ -144,11 +143,8 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
-#ifdef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
-#endif
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -3504,6 +3500,7 @@ c gravitational settling of ss2
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
 #ifdef TRACERS_WATER
+#ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1) THEN
         k=k+1
           jls_trdpmc(1,n)=k
@@ -3593,6 +3590,7 @@ c gravitational settling of ss2
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
         END IF
+#endif
 #else
         k=k+1
           jls_wet(n)=k
@@ -6647,6 +6645,7 @@ c clear sky scattering asymmetry factor in six solar bands
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
 #ifdef TRACERS_WATER
+#ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1) THEN
           k=k+1
           ijts_trdpmc(1,n)=k
@@ -6760,6 +6759,7 @@ c clear sky scattering asymmetry factor in six solar bands
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         END IF
+#endif
 #else
       k=k+1
         ijts_wet(n)=k
