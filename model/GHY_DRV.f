@@ -207,9 +207,9 @@ C**** The select is used to distinguish water from gases or particle
 !        case (nWATER)
         if (tr_wd_TYPE(n) .eq. nWATER) then
 C**** no fractionation from ground (yet)
-C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
+C**** trsfac and trconstflx are multiplied by cq*wsh and QG in PBL
           pbl_args%trsfac(nx)=1.
-          pbl_args%trconstflx(nx)=gtracer(n,itype,i,j)*QG
+          pbl_args%trconstflx(nx)=gtracer(n,itype,i,j)
 !        case (nGAS, nPART)
         elseif (tr_wd_TYPE(n).eq.nGAS .or. tr_wd_TYPE(n).eq.nPART) then
 #endif

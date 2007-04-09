@@ -625,8 +625,8 @@ C**** The select is used to distinguish water from gases or particle
 !!!        select case (tr_wd_TYPE(n))
 !!!        case (nWATER)
         if ( tr_wd_TYPE(n) == nWATER ) then
-          trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT
-C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
+          trgrnd(nx)=gtracer(n,itype,i,j)
+C**** trsfac and trconstflx are multiplied by cq*wsh and QG_SAT in PBL
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
 !!!        case (nGAS, nPART)
@@ -834,11 +834,11 @@ C****
           IF (ITYPE.EQ.1) THEN  ! OCEAN
 C**** do calculation implicitly for TQS
 #ifdef TRACERS_SPECIAL_O18
-            TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*
+            TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT*
      *           fracvl(tg1,trname(n)))*FRACLK(pbl_args%WSM,trname(n))
             dTEVdTQS =-RCDQWS*FRACLK(pbl_args%WSM,trname(n))
 #else
-            TEV=-RCDQWS*(trs(nx)-trgrnd(nx))
+            TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT)
             dTEVdTQS =-RCDQWS
 #endif
 c           dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/
@@ -848,7 +848,7 @@ c           TEVAP=DTSURF*(TEV+dTQS*dTEVdTQS)
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
-              TEVAP=EVAP*trgrnd(nx)/QG_SAT
+              TEVAP=EVAP*trgrnd(nx)
             ELSE                ! DEW (fractionates)
 #ifdef TRACERS_SPECIAL_O18
               IF (TG1.gt.0) THEN

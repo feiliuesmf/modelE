@@ -559,21 +559,15 @@ C****   1) default air mass tracers
 
 #ifdef TRACERS_WATER
 C****   2) water mass tracers
-C**** Water tracers need to multiply pbl_args%trsfac and pbl_args%trconstflx by cq*Usurf
+C**** Water tracers need to multiply trsfac/trconstflx by cq*Usurf
+C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
         if (tr_wd_TYPE(pbl_args%ntix(itr)).eq.nWATER) then
-          trcnst=pbl_args%trconstflx(itr)*cqsave*wsh
+          trcnst=pbl_args%trconstflx(itr)*cqsave*wsh*qgrnd_sat
           trsf=pbl_args%trsfac(itr)*cqsave*wsh
 #ifdef TRACERS_SPECIAL_O18
 C**** get fractionation for isotopes
-#ifdef USE_PBL_E1
-          call get_frac(itype,wsm,tg1,q(1),qgrnd
-     &         ,trname(pbl_args%ntix(itr))
-     *         ,trc1,trs1)
-#else
           call get_frac(itype,wsm,tg1,q(1),qgrnd_sat
-     &         ,trname(pbl_args%ntix(itr))
-     *         ,trc1,trs1)
-#endif
+     &         ,trname(pbl_args%ntix(itr)),trc1,trs1)
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
 #endif
