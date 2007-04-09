@@ -2524,7 +2524,7 @@ ccc if model stops due to round-off error)
       do mc=1,m
          tol(mc) = ( sum(tr_w(mc,:,:))/(size(tr_w,2)*size(tr_w,3))
      &        +   sum(tr_wsn(mc,:,:))/(size(tr_wsn,2)*size(tr_wsn,3))
-     &        ) * 1.d-10 + 1.d-32
+     &        + trpr(mc)*dts ) * 1.d-10 + 1.d-32
       enddo
 
 !!! for test only
