@@ -453,7 +453,7 @@ C**** Get parameters from rundeck
       call sync_param("variable_lk",variable_lk)
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
-      if (init_flake.eq.1.and.istart.lt.10) THEN
+      if ((init_flake.eq.1.and.istart.lt.10) .or. INILAKE) THEN
         print*,"Initialising FLAKE from TOPO file..."
         FLAKE = FLAKE0
       end if
@@ -461,9 +461,9 @@ C**** initialise FLAKE if requested (i.e. from older restart files)
 C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       DO J=J_0, J_1
         DO I=1,IM
-          IF (FLAKE0(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
-            print*,"Warning: Fixing HLAKE",i,j,FLAKE0(I,J),HLAKE(I,J)
-     *           ,"--> 1m"
+          IF (FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
+            print*,"Warning: Fixing HLAKE",i,j,FLAKE(I,J),FLAKE0(I,J)
+     *           ,HLAKE(I,J),"--> 1m"
             HLAKE(I,J)=1.
           END IF
         END DO
@@ -474,11 +474,7 @@ C**** Set lake variables from surface temperature
 C**** This is just an estimate for the initiallisation
         DO J=J_0, J_1
           DO I=1,IM
-            FLAKE(I,J) = FLAKE0(I,J)
             IF (FLAKE(I,J).gt.0) THEN
-              IF (HLAKE(I,J).lt.1.) print*,
-     *             "HLAKE too small for lake fraction",i,j,HLAKE(I,J)
-     *             ,FLAKE(I,J)
               TLAKE(I,J) = MAX(0d0,TSAVG(I,J)-TF)
               MWL(I,J)   = RHOW*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
               MLK1       = MINMLD*RHOW*FLAKE(I,J)*DXYP(J)
@@ -566,8 +562,8 @@ C**** read in named rivers (if any)
 C**** Create integral direction array KDIREC from CDIREC
       CALL HALO_UPDATE(GRID, FEARTH0, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FLICE,  FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)  ! fixed
+      CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)  ! fixed
 
       ! Use unusual loop bounds to fill KDIREC in halo
       DO J=MAX(1,J_0-1),MIN(JM,J_1+1)
@@ -806,7 +802,7 @@ C****
       CALL HALO_UPDATE(GRID,FOCEAN,FROM=NORTH+SOUTH) ! fixed
       CALL HALO_UPDATE(GRID,FEARTH,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, ZATMO,FROM=NORTH+SOUTH) ! fixed
-      CALL HALO_UPDATE(GRID, HLAKE,FROM=NORTH+SOUTH) ! fixed
+      CALL HALO_UPDATE(GRID, HLAKE,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, FLAKE,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid,   MWL,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, TLAKE,FROM=NORTH+SOUTH)
@@ -844,7 +840,7 @@ C**** Loop now includes polar boxes
             IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE 
 
 C**** MWLSILL/D mass associated with full lake (and downstream)
-            MWLSILL = RHOW*MAX(HLAKE(IU,JU),1d0)*FLAKE(IU,JU)*DXYP(JU)
+            MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             rvrfl=.false.
 C**** Check for special case:
             IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).ge.
@@ -1325,6 +1321,7 @@ C**** (do not flood more than 4.9% of land per day)
             hlk=0.
             if (new_flake.gt.0) hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
+              IF (FLAKE(I,J).eq.0) HLAKE(I,J)=MAX(1d0,HLAKE(I,J))
               IF (new_flake.gt.0 .and. hlk.gt.0.4) THEN ! new or surviving lake
 C**** adjust for fearth changes
                 FRSAT=0.
