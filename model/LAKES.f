@@ -1259,7 +1259,7 @@ C****
 !@auth G. Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny
-      USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice
+      USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
       USE LAKES, only : kdirec,minmld,variable_lk
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
 #ifdef TRACERS_WATER
