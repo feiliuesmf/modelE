@@ -306,13 +306,14 @@ ccc data for tracers
 #ifdef TRACERS_WATER
 ccc should be passed from elsewhere
 !@var ntgm maximal number of tracers that can by passesd to HGY
-      integer, parameter, public :: ntgm = 3
+      integer, parameter, public :: ntgm = 13
 !@var ntg actual number of tracers passed to ground hydrology
       integer, public :: ntg
 !@var trpr flux of tracers in precipitation (?/m^2 s)
+!@var trdd flux of tracers as dry deposit (?/m^2 s)
 !@var tr_w amount of tracers in the soil (?)
 !@var tr_wsn amount of tracers in the snow (?)
-      real*8, public :: trpr(ntgm), tr_surf(ntgm),
+      real*8, public :: trpr(ntgm), trdd(ntgm), tr_surf(ntgm),
      &     tr_w(ntgm,0:ngm,2), tr_wsn(ntgm,nlsn,2)
 ccc tracers output:
 !@var tr_evap flux of tracers to atm due to evaporation (?/m^2 s)
@@ -356,7 +357,7 @@ C***
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
-     &     ,trpr, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
+     &     ,trpr,trdd, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
      &     ,atr_evap,atr_rnff,atr_g
 #endif
 c     not sure if it works with derived type. if not - comment the
@@ -2464,6 +2465,31 @@ ccc (to make the data compatible with snow model)
       end subroutine check_wc
 
 
+      subroutine ghy_tracers_drydep
+!@sum applies dry deposit flux to tracers in upper layers of 
+!@+   canopy, soil and snow
+ccc input from outside:
+ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
+!@var m number of tracers (=ntg)
+      integer m
+
+      m = ntg
+
+      if ( process_vege ) then
+        ! +drydep
+        tr_w(:m,0,2) = tr_w(:m,0,2) + trdd(:m)*(1-fm*fr_snow(2))*dts
+        tr_wsn(:m,1,2) = tr_wsn(:m,1,2) + trdd(:m)*fm*fr_snow(2)*dts
+      endif
+
+      if ( process_bare ) then
+        ! +drydep
+        tr_w(:m,1,1) = tr_w(:m,1,1) + trdd(:m)*(1-fr_snow(1))*dts
+        tr_wsn(:m,1,1) = tr_wsn(:m,1,1) + trdd(:m)*fr_snow(1)*dts
+      endif
+      
+      end subroutine ghy_tracers_drydep
+
+
       subroutine ghy_tracers
 ccc will need the following data from GHY:
 ccc rnff(k,ibv) - underground runoff fro layers 1:n
@@ -2482,6 +2508,7 @@ ccc 3. propagate them through the soil
 ccc input from outside:
 ccc pr - precipitation (m/s) ~ (10^3 kg /m^2 /s)
 ccc trpr(ntgm) - flux of tracers (kg /m^2 /s)
+ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
 ccc tr_surf(ntgm) - surface concentration of tracers (kg/m^3 H2O)
 
 ccc **************************************************
@@ -2523,8 +2550,9 @@ ccc set error tolerance for each time of tracer (can be increased
 ccc if model stops due to round-off error)
       do mc=1,m
          tol(mc) = ( sum(tr_w(mc,:,:))/(size(tr_w,2)*size(tr_w,3))
-     &        +   sum(tr_wsn(mc,:,:))/(size(tr_wsn,2)*size(tr_wsn,3))
-     &        + trpr(mc)*dts ) * 1.d-10 + 1.d-32
+     &       +   sum(tr_wsn(mc,:,:))/(size(tr_wsn,2)*size(tr_wsn,3))
+     &       + trpr(mc)*dts + trdd(mc)*dts + tr_surf(mc)*1.d-8*dts )
+     &       *1.d-10 + 1.d-32
       enddo
 
 !!! for test only
@@ -2569,6 +2597,10 @@ ccc set internal vars
 ccc reset accumulators to 0
       tr_evap(:m,1:2) = 0.d0
       tr_rnff(:m,1:2) = 0.d0
+
+ccc apply dry deposit tracers here (may need to be removed outside 
+ccc but will keep it here for now for compatibility with conservation tests
+      call ghy_tracers_drydep
 
 ccc canopy
       tr_wcc(:m,:) = 0.d0
@@ -2855,7 +2887,7 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
                   tr_wsn(mc,i,ibv) = 0.d0
                endif
             enddo
-            err = trpr(mc)*dts
+            err = trpr(mc)*dts + trdd(mc)*dts
      &           + sum( tr_w_o(mc,:,ibv) ) + sum( tr_wsn_o(mc,:,ibv) )
      &           - sum( tr_w(mc,:,ibv) ) - sum( tr_wsn(mc,:,ibv) )
      &           - tr_evap(mc,ibv)*dts - tr_rnff(mc,ibv)*dts
@@ -2863,6 +2895,19 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
             if ( abs( err ) > tol(mc) ) then
                write(0,*)
      $              'ghy tracers not conserved at',ijdebug,' err=',err
+               write(99,*)
+     $              'ghy tracers not conserved at',ijdebug,' err=',err
+     $              ,"mc= ",mc, "ibv= ",ibv
+     $              ,"value =",trpr(mc)*dts
+     &              + sum(tr_w_o(mc,:,ibv) ) + sum( tr_wsn_o(mc,:,ibv))
+               write(99,*) "tr_w_o",tr_w_o(mc,:,ibv)
+     $              ,"tr_wsn_o",tr_wsn_o(mc,:,ibv)
+     $              ,"tr_w",tr_w(mc,:,ibv)
+     $              ,"tr_wsn",tr_wsn(mc,:,ibv)
+     $              ,"trpr(mc)*dts",trpr(mc)*dts
+     $              ,"trdd(mc)*dts",trdd(mc)*dts
+     $              ,"tr_evap*tds",tr_evap(mc,ibv)*dts
+     $              ,"tr_rnff",tr_rnff(mc,ibv)*dts
 !!!            call stop_model("ghy tracers not conserved",255)
             endif
          enddo

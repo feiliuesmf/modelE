@@ -6,7 +6,7 @@ c******************   TRACERS             ******************************
 
       use sle001, only :
 #ifdef TRACERS_WATER
-     &     tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
+     &    tr_w,tr_wsn,trpr,trdd,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
 #ifdef TRACERS_SPECIAL_O18
      &     ,tr_name
@@ -134,9 +134,12 @@ ccc set i,j - independent stuff for tracers
           ntx=ntx+1
           ntix(ntx) = n
 #ifdef TRACERS_WATER
-          if ( tr_wd_TYPE(n) == nWATER ) then
+          if ( tr_wd_TYPE(n)==nWATER .or. tr_wd_TYPE(n)==nPART ) then
             ntg = ntg + 1
-            if ( ntg > ntgm ) call stop_model("ghy_drv: ntg > ntgm",255)
+            if ( ntg > ntgm ) then
+               print *,"ntgm too small. maybe set it to ntm=",ntm
+               call stop_model("ghy_drv: ntg > ntgm",255)
+            endif
             ntixw(ntg) = n
 #ifdef TRACERS_SPECIAL_O18
             tr_name(ntg) = trname(n)
@@ -182,9 +185,10 @@ ccc tracers variables
         tr_w(nx,0:ngm,2) = tr_w_ij(n,0:ngm,2,i,j)
         tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
         ! flux in
-        trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s
+        trpr(nx) = (trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s (in precip)
+        trdd(nx) = trdrydep(n,itype,i,j)/dtsrc   ! kg/m^2 s (dry dep.)
         ! concentration of tracers in atm. water at the surface
-        if (qm1.gt.0) then  ! avoid very rare error
+        if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
           tr_surf(nx) = trm(i,j,1,n)*bydxyp(j)*rhow/qm1 ! kg/m^3
         else
           tr_surf(nx) = 0.
