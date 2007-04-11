@@ -98,7 +98,7 @@ C**** Some local constants
 
       RETURN
       END SUBROUTINE ALLOC_DIAG_LOC
-
+  
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
@@ -111,20 +111,19 @@ C**** Some local constants
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,sinp,bydxyv,rapvn,rapvs
       USE RAD_COM, only : rqt
-      USE DIAG_COM, only : aj=>aj_loc,areg,jreg,apj=>apj_loc
-     *     ,ajl=>ajl_loc,asjl=>asjl_loc,ail,j50n,j70n,j5nuv
-     *     ,j5suv,j5s,j5n,aij=>aij_loc
-     *     ,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
-     *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
-     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm
-     *     ,ij_q300,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs
-     *     ,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst
-     *     ,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq
-     *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
-     *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
-     *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
-     *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst,plm
-     *     ,ij_p1000,ij_p925,ij_p700,ij_p600,ij_p500
+      USE DIAG_COM, only : aj=>aj_loc, aregj_loc, jreg,
+     *     apj=>apj_loc, ajl=>ajl_loc,asjl=>asjl_loc,ail,j50n,j70n,j5nuv
+     *     ,j5suv,j5s,j5n,aij=>aij_loc,ij_dtdp,ij_dsev,ij_phi1k,ij_pres
+     *     ,ij_puq,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
+     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
+     *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
+     *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
+     *     ,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq,il_qeq,il_w50n
+     *     ,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n,kgz_max,pmb,ght
+     *     ,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape,jl_uepac,jl_vepac
+     *     ,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac,jl_epflxn,jl_epflxv
+     *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
+     *     ,ij_p600,ij_p500
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn,am
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
@@ -147,10 +146,10 @@ C**** Some local constants
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP
-      REAL*8,
-     & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-     & :: AREG_part
-      REAL*8 :: AREGSUM(size(areg,1),2)
+c      REAL*8,
+c     & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
+c     & :: AREG_part
+c      REAL*8 :: AREGSUM(size(areg,1),2)
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
@@ -256,7 +255,7 @@ C****
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
-      AREG_part=0.
+c      AREG_part=0.
       DO J=J_0,J_1
         DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
@@ -268,8 +267,8 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
             SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
             AJ(J,J_TX1,IT)=AJ(J,J_TX1,IT)+(TX(I,J,1)-TF)*FTYPE(IT,I,J)
           END DO
-C****         AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
-          AREG_part(JR,J,1)=AREG_part(JR,J,1)+(TX(I,J,1)-TF)*DXYPJ
+          AREGJ_LOC(JR,J,J_TX1)=AREGJ_LOC(JR,J,J_TX1)+(TX(I,J,1)-TF)
+     *         *DXYPJ
           PI(J)=PI(J)+P(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
           PS=P(I,J)+PTOP
@@ -351,15 +350,14 @@ C**** BEGIN AMIP
 C**** END AMIP
         END DO
       END DO
-C****          AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
 
-      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:1),
-     &    AREGSUM(1:size(AREG,1),1:1),ALL=.TRUE.)
-      AREG(1:size(AREG,1),J_TX1)=AREG(1:size(AREG,1),J_TX1)
-     &  +AREGSUM(1:size(AREG,1),1)
+c      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:1),
+c     &    AREGSUM(1:size(AREG,1),1:1),ALL=.TRUE.)
+c      AREG(1:size(AREG,1),J_TX1)=AREG(1:size(AREG,1),J_TX1)
+c     &  +AREGSUM(1:size(AREG,1),1)
 
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
-      AREG_part = 0.
+c      AREG_part = 0.
       DO J=J_0,J_1
         DXYPJ=DXYP(J)
         DO L=1,LM
@@ -378,13 +376,14 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
               AJ(J,J_QP,IT)=AJ(J,J_QP,IT)+(Q(I,J,L)+WM(I,J,L))*PIJ
      *             *DSIG(L)*FTYPE(IT,I,J)
             END DO
-C****            AREG(JR,J_QP)=AREG(JR,J_QP)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
-C****     *           *DXYPJ
-C****            AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
-            AREG_part(JR,J,1)=AREG_part(JR,J,1)+(Q(I,J,L)+WM(I,J,L))*
-     *                        PIJ*DSIG(L)*DXYPJ
-            AREG_part(JR,J,2)=AREG_part(JR,J,2)+
-     *                        (TX(I,J,L)-TF)*DBYSD*DXYPJ
+            AREGJ_LOC(JR,J,J_QP)=AREGJ_LOC(JR,J,J_QP)+(Q(I,J,L)+WM(I,J,L
+     *           ))*PIJ*DSIG(L)*DXYPJ
+            AREGJ_LOC(JR,J,J_TX)=AREGJ_LOC(JR,J,J_TX)+(TX(I,J,L)-TF)
+     *           *DBYSD*DXYPJ
+c            AREG_part(JR,J,1)=AREG_part(JR,J,1)+(Q(I,J,L)+WM(I,J,L))*
+c     *                        PIJ*DSIG(L)*DXYPJ
+c            AREG_part(JR,J,2)=AREG_part(JR,J,2)+
+c     *                        (TX(I,J,L)-TF)*DBYSD*DXYPJ
             TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
             PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
             SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
@@ -394,12 +393,12 @@ C****            AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
         END DO
       END DO
 
-      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:2),
-     &   AREGSUM(1:size(AREG,1),1:2),ALL=.TRUE.)
-      AREG(1:size(AREG,1),J_QP)=AREG(1:size(AREG,1),J_QP)
-     &   +AREGSUM(1:size(AREG,1),1)
-      AREG(1:size(AREG,1),J_TX)=AREG(1:size(AREG,1),J_TX)
-     &   +AREGSUM(1:size(AREG,1),2)
+c      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:2),
+c     &   AREGSUM(1:size(AREG,1),1:2),ALL=.TRUE.)
+c      AREG(1:size(AREG,1),J_QP)=AREG(1:size(AREG,1),J_QP)
+c     &   +AREGSUM(1:size(AREG,1),1)
+c      AREG(1:size(AREG,1),J_TX)=AREG(1:size(AREG,1),J_TX)
+c     &   +AREGSUM(1:size(AREG,1),2)
 
 C****
 C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
@@ -429,7 +428,7 @@ C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
 C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
 C****
-      AREG_part=0.
+c      AREG_part=0.
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
@@ -439,8 +438,8 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
         DO IT=1,NTYPE
           AJ(J,J_DTDGTR,IT)=AJ(J,J_DTDGTR,IT)+SS*FTYPE(IT,I,J)
         END DO
-C****        AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
-        AREG_part(JR,J,1)=AREG_part(JR,J,1)+SS*DXYPJ
+        AREGJ_LOC(JR,J,J_DTDGTR)=AREGJ_LOC(JR,J,J_DTDGTR)+SS*DXYPJ
+c        AREG_part(JR,J,1)=AREG_part(JR,J,1)+SS*DXYPJ
         AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
       END DO
 C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
@@ -451,8 +450,8 @@ C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
         DO IT=1,NTYPE
           AJ(J,J_DTSGST,IT)=AJ(J,J_DTSGST,IT)+SS*FTYPE(IT,I,J)
         END DO
-C****        AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
-        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SS*DXYPJ
+        AREGJ_LOC(JR,J,J_DTSGST)=AREGJ_LOC(JR,J,J_DTSGST)+SS*DXYPJ
+c        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SS*DXYPJ
       END DO
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
@@ -476,14 +475,12 @@ C****
       ASJL(J,3,2)=ASJL(J,3,2)+PHIRI
       END DO
 
-C****        AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
-C****        AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
-      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:2),
-     &   AREGSUM(1:size(AREG,1),1:2),ALL=.TRUE.)
-      AREG(1:size(AREG,1),J_DTDGTR)=AREG(1:size(AREG,1),J_DTDGTR)
-     &    +AREGSUM(1:size(AREG,1),1)
-      AREG(1:size(AREG,1),J_DTSGST)=AREG(1:size(AREG,1),J_DTSGST)
-     &    +AREGSUM(1:size(AREG,1),2)
+c      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:2),
+c     &   AREGSUM(1:size(AREG,1),1:2),ALL=.TRUE.)
+c      AREG(1:size(AREG,1),J_DTDGTR)=AREG(1:size(AREG,1),J_DTDGTR)
+c     &    +AREGSUM(1:size(AREG,1),1)
+c      AREG(1:size(AREG,1),J_DTSGST)=AREG(1:size(AREG,1),J_DTSGST)
+c     &    +AREGSUM(1:size(AREG,1),2)
 
 C****
 C**** RICHARDSON NUMBER , ROSSBY NUMBER , RADIUS OF DEFORMATION
@@ -4770,12 +4767,9 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE DIAG_COM
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRDIAG_COM, only: taijln, TAIJLN_loc
-      USE TRDIAG_COM, only: taijn,  TAIJN_loc
-      USE TRDIAG_COM, only: taijs,  TAIJS_loc
-      USE TRDIAG_COM, only: TAJLN,  TAJLN_loc
-      USE TRDIAG_COM, only: TAJLS,  TAJLS_loc
-      USE TRDIAG_COM, only: TCONSRV,TCONSRV_loc
+      USE TRDIAG_COM, only: taijln, TAIJLN_loc, taijn,  TAIJN_loc,
+     *     taijs,  TAIJS_loc, TAJLN,  TAJLN_loc, TAJLS,  TAJLS_loc,
+     *     TCONSRV,TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, only: grid, CHECKSUM
       IMPLICIT NONE
@@ -4788,7 +4782,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
         if (isum.eq.1) return
         go to 100
       end if
-      AJ_loc=0    ; AREG=0
+      AJ_loc=0    ; AREGJ_loc=0
 
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL=0   ; ENERGY=0 ; CONSRV_loc=0

@@ -23,7 +23,7 @@
 #ifdef TRACERS_WATER
      *     ,ntm,trsi
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,ij_f0oi,j_imelt,j_smelt
      &     ,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP, only : GRID
@@ -40,10 +40,10 @@
       LOGICAL WETSNOW
 
 C****Work array for regional diagnostic accumulation
-      REAL*8 :: AREG_SUM(size(AREG,1), 3)
-      REAL*8, DIMENSION(
-     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
-     &       :: AREG_part
+c      REAL*8 :: AREG_SUM(size(AREG,1), 3)
+c      REAL*8, DIMENSION(
+c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
+c     &       :: AREG_part
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -57,7 +57,7 @@ C****
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 C**** Initialize work array
-      AREG_part(:,J_0H:J_1H,1:3) = 0.
+c      AREG_part(:,J_0H:J_1H,1:3) = 0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
         JR=JREG(I,J)
@@ -131,9 +131,12 @@ c         AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN*POICE       ! ==0
         END IF
 
 C**** Accumulate regional diagnostics
-        AREG_part(JR,J,1)=AREG_part(JR,j,1)+RUN0 *POICE*DXYP(J)
-        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SRUN0*POICE*DXYP(J)
-c     AREG_part(JR,J,3)=AREG_part(JR,J,3)+ERUN *POICE*DXYP(J) ! ==0
+        AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+RUN0 *POICE*DXYP(J)
+        AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+SRUN0*POICE*DXYP(J)
+c     AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+ERUN *POICE*DXYP(J) ! ==0
+c        AREG_part(JR,J,1)=AREG_part(JR,j,1)+RUN0 *POICE*DXYP(J)
+c        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SRUN0*POICE*DXYP(J)
+cc     AREG_part(JR,J,3)=AREG_part(JR,J,3)+ERUN *POICE*DXYP(J) ! ==0
 
       END IF
 
@@ -145,12 +148,12 @@ C**** Calculate pressure anomaly at surface
       END DO
 
 C****Finish accumulation of regional diagnostics (...sum along j)
-        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
-     &     AREG_SUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
-        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),1)
-        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),2)
+c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
+c     &     AREG_SUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
+c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),1)
+c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),2)
 
 
       IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
@@ -302,8 +305,8 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
-      USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,areg,jreg
-     *     ,ij_fwio,ij_htio,ij_stio,aij=>aij_loc
+      USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,
+     *     aregj=>aregj_loc,jreg,ij_fwio,ij_htio,ij_stio,aij=>aij_loc
       USE SEAICE, only : simelt,tfrez
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
@@ -326,10 +329,10 @@ C****
 #endif
       INTEGER I,J,ITYPE,JR,ITYPEO
       integer :: J_0, J_1
-      REAL*8, DIMENSION(
-     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
-     &       :: AREG_part
-      REAL*8 :: AREG_sum(size(AREG,1),3)
+c      REAL*8, DIMENSION(
+c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
+c     &       :: AREG_part
+c      REAL*8 :: AREG_sum(size(AREG,1),3)
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -342,7 +345,7 @@ C**** add fluxes to oceans/lakes.
 cc      IF (MOD(ITIME,NDAY).eq.0) THEN
 cc        DT=SDAY    ! if called more frequently this should change
         DT=DTsrc    ! now do this every physics time step
-        AREG_part = 0
+c        AREG_part = 0
         DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -397,9 +400,10 @@ C**** accumulate diagnostics
      *          *PWATER
            AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+    RUN0*(1.-ROICE)
      *          *PWATER
-           AREG_part(JR,J,1)= AREG_part(JR,J,1)-ENRGUSED*PWATER*DXYP(J)     ! HMELT
-           AREG_part(JR,J,2)= AREG_part(JR,J,2)+SALT*PWATER*DXYP(J)         ! SMELT
-           AREG_part(JR,J,3)= AREG_part(JR,J,3)+RUN0*PWATER*DXYP(J)         ! IMELT
+           AREGJ(JR,J,J_HMELT)= AREGJ(JR,J,J_HMELT)-ENRGUSED*PWATER ! HMELT
+     *          *DXYP(J) 
+           AREGJ(JR,J,J_SMELT)= AREGJ(JR,J,J_SMELT)+SALT*PWATER*DXYP(J) ! SMELT
+           AREGJ(JR,J,J_IMELT)= AREGJ(JR,J,J_IMELT)+RUN0*PWATER*DXYP(J) ! IMELT
 C**** Update prognostic sea ice variables
             RSI(I,J)=ROICE
             MSI(I,J)=MSI2
@@ -420,14 +424,14 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
         END DO
         END DO
 
-        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:3),
-     &     AREG_SUM(1:SIZE(AREG,1),1:3),ALL=.TRUE.)
-        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),1)
-        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),2)
-        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),3)
+c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:3),
+c     &     AREG_SUM(1:SIZE(AREG,1),1:3),ALL=.TRUE.)
+c        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),1)
+c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),2)
+c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),3)
 
 
 cc      ELSE
@@ -464,7 +468,7 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : mwl,gml,flake
-      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,ij_rsoi,ij_msi
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio
@@ -485,10 +489,10 @@ C****
      *     ,tralpha
 #endif
 C**** Working arrays for regional diagnostic arrays
-      REAL*8 :: AREG_SUM(size(AREG,1),4)
-      REAL*8, DIMENSION(
-     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,4)
-     &       :: AREG_part
+c      REAL*8 :: AREG_SUM(size(AREG,1),4)
+c      REAL*8, DIMENSION(
+c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,4)
+c     &       :: AREG_part
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -503,7 +507,7 @@ C****
       debug=.false.
 
 C**** Initialize work array
-      AREG_part(:,J_0H:J_1H,1:4) = 0.
+c      AREG_part(:,J_0H:J_1H,1:4) = 0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
@@ -637,13 +641,13 @@ C**** snow cover diagnostic now matches that seen by the radiation
           AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+(FSOC+SRUN+SFLUX
      *         +SSNWIC)*POICE
 
-          AREG_part(JR,J,1)=AREG_part(JR,J,1)+SCOVI*DXYP(J)
-          AREG_part(JR,J,2)=AREG_part(JR,J,2)+(FMOC+RUN+MFLUX+MSNWIC)
-     *         *POICE*DXYP(J)
-          AREG_part(JR,J,3)=AREG_part(JR,J,3)+(FHOC+ERUN+HFLUX+HSNWIC)
-     *         *POICE*DXYP(J)
-          AREG_part(JR,J,4)=AREG_part(JR,J,4)+(FSOC+SRUN+SFLUX+SSNWIC)
-     *         *POICE*DXYP(J)
+          AREGJ(JR,J,J_RSNOW)=AREGJ(JR,J,J_RSNOW)+SCOVI*DXYP(J)
+          AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+(FMOC+ RUN+MFLUX
+     *         +MSNWIC)*POICE*DXYP(J)
+          AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+(FHOC+ERUN+HFLUX
+     *         +HSNWIC)*POICE*DXYP(J)
+          AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+(FSOC+SRUN+SFLUX
+     *         +SSNWIC)*POICE*DXYP(J)
 
       END IF
 C**** set total atmopsheric pressure anomaly in case needed by ocean
@@ -654,16 +658,16 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
       END DO
 
 C**** Finish diagnostic accumulations into AREG (sum over j)
-        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:4),
-     &     AREG_SUM(1:SIZE(AREG,1),1:4),ALL=.TRUE.)
-        AREG(1:SIZE(AREG,1),J_RSNOW)=AREG(1:SIZE(AREG,1),J_RSNOW)+
-     &      AREG_SUM(1:SIZE(AREG,1),1)
-        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),2)
-        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),3)
-        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),4)
+c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:4),
+c     &     AREG_SUM(1:SIZE(AREG,1),1:4),ALL=.TRUE.)
+c        AREG(1:SIZE(AREG,1),J_RSNOW)=AREG(1:SIZE(AREG,1),J_RSNOW)+
+c     &      AREG_SUM(1:SIZE(AREG,1),1)
+c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),2)
+c        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),3)
+c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),4)
 
       IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
       IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
@@ -682,7 +686,7 @@ C****
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx,ij_fwio,ij_htio,ij_stio
@@ -714,10 +718,10 @@ C****
 C****
 C**** Work array for regional diagnostic accumulation
 C****
-      REAL*8 :: AREG_SUM(size(AREG,1),7)
-      REAL*8, DIMENSION(
-     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,7)
-     &       :: AREG_part
+c      REAL*8 :: AREG_SUM(size(AREG,1),7)
+c      REAL*8, DIMENSION(
+c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,7)
+c     &       :: AREG_part
 
 C****
 C**** Extract useful local domain parmeters from "grid"
@@ -733,7 +737,7 @@ C****
       debug=.false.
  
 C**** Initialize work array
-      AREG_part(:,J_0H:J_1H,1:7) = 0.
+c      AREG_part(:,J_0H:J_1H,1:7) = 0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -795,11 +799,11 @@ C**** Ice-covered ocean diagnostics
         AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGFI*POICE
         AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-ACEFI *POICE
 C**** regional diagnostics
-        AREG_part(JR,J,1)=AREG_part(JR,J,1)-
+        AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)-
      *       (ACEFO *POCEAN+ACEFI *POICE)*DXYP(J)
-        AREG_part(JR,J,2)=AREG_part(JR,J,2)-
+        AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)-
      *       (ENRGFO*POCEAN+ENRGFI*POICE)*DXYP(J)
-        AREG_part(JR,J,3)=AREG_part(JR,J,3)-
+        AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)-
      *       (SALTO *POCEAN+SALTI *POICE)*DXYP(J)
 
 c        debug=i.eq.20.and.j.eq.37
@@ -839,10 +843,10 @@ C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_ACE2,ITYPE)=AJ(J,J_ACE2,ITYPE)+MSI2   *POICE
         AJ(J,J_SNOW,ITYPE)=AJ(J,J_SNOW,ITYPE)+SNOW   *POICE
         IF (JR.ne.24) THEN
-          AREG_part(JR,J,4)=AREG_part(JR,J,4) +     POICE*DXYP(J)
-          AREG_part(JR,J,5)=AREG_part(JR,J,5)+SNOW *POICE*DXYP(J)
-          AREG_part(JR,J,6)=AREG_part(JR,J,6)+ACE1I*POICE*DXYP(J)
-          AREG_part(JR,J,7)=AREG_part(JR,J,7)+MSI2 *POICE*DXYP(J)
+          AREGJ(JR,J,J_RSI) =AREGJ(JR,J,J_RSI) +      POICE*DXYP(J)
+          AREGJ(JR,J,J_SNOW)=AREGJ(JR,J,J_SNOW)+SNOW *POICE*DXYP(J)
+          AREGJ(JR,J,J_ACE1)=AREGJ(JR,J,J_ACE1)+ACE1I*POICE*DXYP(J)
+          AREGJ(JR,J,J_ACE2)=AREGJ(JR,J,J_ACE2)+MSI2 *POICE*DXYP(J)
         END IF
         AIJ(I,J,IJ_TSI)=AIJ(I,J,IJ_TSI)+
      *       POICE*(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
@@ -869,22 +873,22 @@ C**** Save sea ice tracer amount
       END DO
 
 C**** Finish diagnostic accumulations into AREG (sum over j)
-        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:7),
-     &     AREG_SUM(1:SIZE(AREG,1),1:7),ALL=.TRUE.)
-        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),1)
-        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),2)
-        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-     &      AREG_SUM(1:SIZE(AREG,1),3)
-        AREG(1:SIZE(AREG,1),J_RSI)=AREG(1:SIZE(AREG,1),J_RSI)+
-     &      AREG_SUM(1:SIZE(AREG,1),4)
-        AREG(1:SIZE(AREG,1),J_SNOW)=AREG(1:SIZE(AREG,1),J_SNOW)+
-     &      AREG_SUM(1:SIZE(AREG,1),5)
-        AREG(1:SIZE(AREG,1),J_ACE1)=AREG(1:SIZE(AREG,1),J_ACE1)+
-     &      AREG_SUM(1:SIZE(AREG,1),6)
-        AREG(1:SIZE(AREG,1),J_ACE2)=AREG(1:SIZE(AREG,1),J_ACE2)+
-     &      AREG_SUM(1:SIZE(AREG,1),7)
+c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:7),
+c     &     AREG_SUM(1:SIZE(AREG,1),1:7),ALL=.TRUE.)
+c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),1)
+c        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),2)
+c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+c     &      AREG_SUM(1:SIZE(AREG,1),3)
+c        AREG(1:SIZE(AREG,1),J_RSI)=AREG(1:SIZE(AREG,1),J_RSI)+
+c     &      AREG_SUM(1:SIZE(AREG,1),4)
+c        AREG(1:SIZE(AREG,1),J_SNOW)=AREG(1:SIZE(AREG,1),J_SNOW)+
+c     &      AREG_SUM(1:SIZE(AREG,1),5)
+c        AREG(1:SIZE(AREG,1),J_ACE1)=AREG(1:SIZE(AREG,1),J_ACE1)+
+c     &      AREG_SUM(1:SIZE(AREG,1),6)
+c        AREG(1:SIZE(AREG,1),J_ACE2)=AREG(1:SIZE(AREG,1),J_ACE2)+
+c     &      AREG_SUM(1:SIZE(AREG,1),7)
 
 C**** replicate ice values at the north pole
       IF (HAVE_NORTH_POLE) THEN

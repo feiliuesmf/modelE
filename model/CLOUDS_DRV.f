@@ -27,7 +27,7 @@
      *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
-      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc,
+      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
      *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
@@ -177,18 +177,18 @@ Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
 !     REAL*8  AJEQIL(J5N-J5S+1,IM,LM),
-      REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
+      REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) !,
+c     *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
-      REAL*8  :: AREG_SUM
-      REAL*8, DIMENSION(
-     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
-     &        :: AREG_part
+c      REAL*8  :: AREG_SUM
+c      REAL*8, DIMENSION(
+c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
+c     &        :: AREG_part
       REAL*8 :: randxx
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
@@ -524,8 +524,8 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
         END DO
-CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
-        AREGIJ(I,J,1)=PRCPMC*DXYP(J)  ! add in after parallel region
+        AREGJ(JR,J,J_PRCPMC)=AREGJ(JR,J,J_PRCPMC)+PRCPMC*DXYP(J)
+c        AREGIJ(I,J,1)=PRCPMC*DXYP(J)  ! add in after parallel region
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
             tmp(IDD_PR)  =+PRCPMC
@@ -732,8 +732,8 @@ C**** Accumulate diagnostics of LSCOND
          DO IT=1,NTYPE
            AJ(J,J_PRCPSS,IT)=AJ(J,J_PRCPSS,IT)+PRCPSS*FTYPE(IT,I,J)
          END DO
-CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
-         AREGIJ(I,J,2)=PRCPSS*DXYP(J)  ! add in after parallel region
+         AREGJ(JR,J,J_PRCPSS)=AREGJ(JR,J,J_PRCPSS)+PRCPSS*DXYP(J)
+c         AREGIJ(I,J,2)=PRCPSS*DXYP(J)  ! add in after parallel region
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              tmp(IDD_PR)  =+PRCPSS
@@ -770,8 +770,8 @@ C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
           AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)
         END DO
-CCC     AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
-        AREGIJ(I,J,3)=ENRGP*DXYP(J)  ! add in after parallel region
+        AREGJ(JR,J,J_EPRCP)=AREGJ(JR,J,J_EPRCP)+ENRGP*DXYP(J)
+c        AREGIJ(I,J,3)=ENRGP*DXYP(J)  ! add in after parallel region
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
@@ -1095,30 +1095,30 @@ C**** Delayed summations (to control order of summands)
       END IF
          
 C***EXCEPTION: Indirect addressing [JREG(I,J)]
-      AREG_part(:,J_0H:J_1H,1:3) = 0
-      DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
-         JR=JREG(I,J)
-         IF(LMC(1,I,J).GT.0)
-     *     AREG_part(JR,J,1)=AREG_part(JR,J,1)+AREGIJ(I,J,1)
-         AREG_part(JR,J,2)=AREG_part(JR,J,2)+AREGIJ(I,J,2)
-         AREG_part(JR,J,3) =AREG_part(JR,J,3) +AREGIJ(I,J,3)
-      END DO
-      END DO
+c      AREG_part(:,J_0H:J_1H,1:3) = 0
+c      DO J=J_0,J_1
+c      DO I=1,IMAXJ(J)
+c         JR=JREG(I,J)
+c         IF(LMC(1,I,J).GT.0)
+c     *     AREG_part(JR,J,1)=AREG_part(JR,J,1)+AREGIJ(I,J,1)
+c         AREG_part(JR,J,2)=AREG_part(JR,J,2)+AREGIJ(I,J,2)
+c         AREG_part(JR,J,3) =AREG_part(JR,J,3) +AREGIJ(I,J,3)
+c      END DO
+c      END DO
 
-      DO JR=1,SIZE(AREG,1)
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,1), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_PRCPMC) = AREG(JR,J_PRCPMC) + AREG_SUM
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,2), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_PRCPSS) = AREG(JR,J_PRCPSS) + AREG_SUM
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,3), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_EPRCP ) = AREG(JR,J_EPRCP ) + AREG_SUM
-      END DO
+c      DO JR=1,SIZE(AREG,1)
+c        AREG_SUM=0.
+c        CALL GLOBALSUM(GRID, AREG_part(JR,:,1), AREG_SUM, ALL=.TRUE.)
+c        AREG(JR,J_PRCPMC) = AREG(JR,J_PRCPMC) + AREG_SUM
+c
+c        AREG_SUM=0.
+c        CALL GLOBALSUM(GRID, AREG_part(JR,:,2), AREG_SUM, ALL=.TRUE.)
+c        AREG(JR,J_PRCPSS) = AREG(JR,J_PRCPSS) + AREG_SUM
+c
+c        AREG_SUM=0.
+c        CALL GLOBALSUM(GRID, AREG_part(JR,:,3), AREG_SUM, ALL=.TRUE.)
+c        AREG(JR,J_EPRCP ) = AREG(JR,J_EPRCP ) + AREG_SUM
+c      END DO
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX3
           ivar = idx3(ii)

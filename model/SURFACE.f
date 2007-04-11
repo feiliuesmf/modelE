@@ -40,7 +40,7 @@ C****
      &     ,eabl,uabl,vabl,tabl,qabl
       USE PBL_DRV, only : pbl, t_pbl_args
       USE DIAG_COM, only : oa,aij=>aij_loc
-     *     ,tdiurn,aj=>aj_loc,areg,adiurn,ndiupt,jreg
+     *     ,tdiurn,aj=>aj_loc,aregj=>aregj_loc,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc
@@ -218,11 +218,11 @@ c
     (defined TRACERS_QUARZHEM)
       REAL*8,DIMENSION(n_idxd, NDIUPT) :: DIURNSUMd
 #endif
-      INTEGER, PARAMETER :: n_areg = 7
-      REAL*8, DIMENSION(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,n_areg)::
-     *     AREG_part
-      REAL*8 :: AREGSUM(NREG,n_areg)
-      INTEGER :: idx_areg(n_areg)
+c      INTEGER, PARAMETER :: n_areg = 7
+c      REAL*8, DIMENSION(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,n_areg)::
+c     *     AREG_part
+c      REAL*8 :: AREGSUM(NREG,n_areg)
+c      INTEGER :: idx_areg(n_areg)
 
       INTEGER :: J_0, J_1, J_0H, J_1H
 
@@ -262,7 +262,7 @@ C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
       DO NS=1,NIsurf
-         AREG_part = 0.
+c         AREG_part = 0.
          MODDSF=MOD(NSTEPS+NS-1,NDASF*NIsurf+1)
          IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
          MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
@@ -403,7 +403,7 @@ C****
       P1K=PK(1,I,J)
       Q1=Q(I,J,1)
       THV1=T(I,J,1)*(1.+Q1*deltx)
-CCC   JR=JREG(I,J)
+      JR=JREG(I,J)
       MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
 c     MSUM = (PS*100.)/GRAV !@var MSUM total mass of atmosphere (kg/m^2)
 c     PGK = (PS*100.)**KAPA
@@ -1019,22 +1019,24 @@ C****
           AJ(J,J_TG2 ,IDTYPE)=AJ(J,J_TG2 ,IDTYPE)+    TG2*PTYPE
         END IF
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-CCC     AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
-CCC     AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDT *PTYPE*DXYP(J)
-CCC     AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
-CCC     AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
-CCC     IF(MODDSF.EQ.0)
-CCC  *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
-        JR=JREG(I,J)
-        AREG_part(JR,J,1)=AREG_part(JR,J,1)+TRHDT*PTYPE*DXYP(J)
-        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SHDT *PTYPE*DXYP(J)
-        AREG_part(JR,J,3)=AREG_part(JR,J,3)+EVHDT*PTYPE*DXYP(J)
-        AREG_part(JR,J,4)=AREG_part(JR,J,4)+EVAP *PTYPE*DXYP(J)
+        AREGJ(JR,J,J_TRHDT)=AREGJ(JR,J,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
+        AREGJ(JR,J,J_SHDT )=AREGJ(JR,J,J_SHDT )+SHDT *PTYPE*DXYP(J)
+        AREGJ(JR,J,J_EVHDT)=AREGJ(JR,J,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
+        AREGJ(JR,J,J_EVAP )=AREGJ(JR,J,J_EVAP )+EVAP *PTYPE*DXYP(J)
         IF(MODDSF.EQ.0) THEN
-          AREG_part(JR,J,5)=AREG_part(JR,J,5)+(TS-TF)*PTYPE*DXYP(J)
-          AREG_part(JR,J,6)=AREG_part(JR,J,6)+    TG1*PTYPE*DXYP(J)
-          AREG_part(JR,J,7)=AREG_part(JR,J,7)+    TG2*PTYPE*DXYP(J)
+          AREGJ(JR,J,J_TSRF)=AREGJ(JR,J,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
+          AREGJ(JR,J,J_TG1 )=AREGJ(JR,J,J_TG1 )+    TG1*PTYPE*DXYP(J)
+          AREGJ(JR,J,J_TG2 )=AREGJ(JR,J,J_TG2 )+    TG2*PTYPE*DXYP(J)
         END IF
+c        AREG_part(JR,J,1)=AREG_part(JR,J,1)+TRHDT*PTYPE*DXYP(J)
+c        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SHDT *PTYPE*DXYP(J)
+c        AREG_part(JR,J,3)=AREG_part(JR,J,3)+EVHDT*PTYPE*DXYP(J)
+c        AREG_part(JR,J,4)=AREG_part(JR,J,4)+EVAP *PTYPE*DXYP(J)
+c        IF(MODDSF.EQ.0) THEN
+c          AREG_part(JR,J,5)=AREG_part(JR,J,5)+(TS-TF)*PTYPE*DXYP(J)
+c          AREG_part(JR,J,6)=AREG_part(JR,J,6)+    TG1*PTYPE*DXYP(J)
+c          AREG_part(JR,J,7)=AREG_part(JR,J,7)+    TG2*PTYPE*DXYP(J)
+c        END IF
 C
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
         AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDT*PTYPE
@@ -1347,10 +1349,10 @@ C****
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
 
-      idx_areg = (/ J_TRHDT, J_SHDT, J_EVHDT, J_EVAP, J_TSRF,
-     &     J_TG1, J_TG2 /)
-      CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
-      AREG(:,idx_areg) = AREG(:,idx_areg) + AREGSUM
+c      idx_areg = (/ J_TRHDT, J_SHDT, J_EVHDT, J_EVAP, J_TSRF,
+c     &     J_TG1, J_TG2 /)
+c      CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
+c      AREG(:,idx_areg) = AREG(:,idx_areg) + AREGSUM
 
       CALL GLOBALSUM(grid, DIURN_part, DIURNSUM)
 

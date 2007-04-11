@@ -884,8 +884,8 @@ C     OUTPUT DATA
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
-      USE DIAG_COM, only : aj=>aj_loc,areg,jreg,aij=>aij_loc,
-     *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
+      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,jreg,aij=>aij_loc
+     *     ,ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
 #ifndef NO_HDIURN
      *     hdiurn,
 #endif
@@ -983,7 +983,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-     *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+c     *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       REAL*8, DIMENSION(NLOC_DIU_VAR,
@@ -1010,9 +1010,9 @@ C
       REAL*8 :: AIL_REQ_SUM(IM,LM)
       REAL*8 :: AIL_J50_SUM(IM,LM)
       REAL*8 :: AIL_J70_SUM(IM,LM)
-      REAL*8 ::
-     &     AREG_part(NREG,grid%J_STRT_HALO:grid%J_STOP_HALO,19)
-      REAL*8 :: AREGSUM(NREG,19)
+c      REAL*8 ::
+c     &     AREG_part(NREG,grid%J_STRT_HALO:grid%J_STOP_HALO,19)
+c      REAL*8 :: AREGSUM(NREG,19)
       Integer :: idx1(7)
       Integer :: idx2(19)
       character(len=300) :: out_line
@@ -1204,8 +1204,8 @@ C**** SS clouds are considered as a block for each continuous cloud
 
       end if                    ! kradia le 0
 
-      aregij = 0
-      areg_part = 0
+c      aregij = 0
+c      areg_part = 0
 C****
 C**** MAIN J LOOP
 C****
@@ -1235,7 +1235,7 @@ C****
       ILON=INT(.5+(I-.5)*72./IM+.5)  ! lon_index w.r.to 72x46 grid
       L1 = 1                         ! lowest layer above ground
       LMR=LM+LM_REQ                  ! radiation allows var. # of layers
-CCC      JR=JREG(I,J)
+      JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
       POICE=RSI(I,J)*(1.-PLAND)
@@ -1356,14 +1356,14 @@ C**** effective cloud cover diagnostics
            AJ(J,J_CLDDEP,IT)=AJ(J,J_CLDDEP,IT)+DEPTH*FTYPE(IT,I,J)
            AJ(J,J_PCLD  ,IT)=AJ(J,J_PCLD  ,IT)+CLDCV*FTYPE(IT,I,J)
          END DO
-CCC      AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+CSS  *DXYP(J)
-CCC      AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+CMC  *DXYP(J)
-CCC      AREG(JR,J_CLDDEP)=AREG(JR,J_CLDDEP)+DEPTH*DXYP(J)
-CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
-         AREGIJ(1,I,J)=AREGIJ(1,I,J)+CSS  *DXYP(J)
-         AREGIJ(2,I,J)=AREGIJ(2,I,J)+CMC  *DXYP(J)
-         AREGIJ(3,I,J)=AREGIJ(3,I,J)+DEPTH*DXYP(J)
-         AREGIJ(4,I,J)=AREGIJ(4,I,J)+CLDCV*DXYP(J)
+         AREGJ(JR,J,J_PCLDSS)=AREGJ(JR,J,J_PCLDSS)+CSS  *DXYP(J)
+         AREGJ(JR,J,J_PCLDMC)=AREGJ(JR,J,J_PCLDMC)+CMC  *DXYP(J)
+         AREGJ(JR,J,J_CLDDEP)=AREGJ(JR,J,J_CLDDEP)+DEPTH*DXYP(J)
+         AREGJ(JR,J,J_PCLD)  =AREGJ(JR,J,J_PCLD)  +CLDCV*DXYP(J)
+c         AREGIJ(1,I,J)=AREGIJ(1,I,J)+CSS  *DXYP(J)
+c         AREGIJ(2,I,J)=AREGIJ(2,I,J)+CMC  *DXYP(J)
+c         AREGIJ(3,I,J)=AREGIJ(3,I,J)+DEPTH*DXYP(J)
+c         AREGIJ(4,I,J)=AREGIJ(4,I,J)+CLDCV*DXYP(J)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO L=1,LLOW
@@ -1959,18 +1959,18 @@ C**** Save clear sky/tropopause diagnostics here
         AJ(J,J_TOTTRP,IT)=AJ(J,J_TOTTRP,IT)+(SRNFLB(LTROPO(I,J))
      *     *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
       END DO
-CCC   AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
-CCC  *     *CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
-CCC   AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+OPNSKY*
-CCC  *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-CCC   AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+
-CCC  *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-      AREGIJ(5,I,J)=AREGIJ(5,I,J)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
-     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
-      AREGIJ(6,I,J)=AREGIJ(6,I,J)+OPNSKY*
+      AREGJ(JR,J,J_CLRTOA)=AREGJ(JR,J,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ
+     *     +1)*CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
+      AREGJ(JR,J,J_CLRTRP)=AREGJ(JR,J,J_CLRTRP)+OPNSKY*
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-      AREGIJ(7,I,J)=AREGIJ(7,I,J)+
+      AREGJ(JR,J,J_TOTTRP)=AREGJ(JR,J,J_TOTTRP)+
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
+c      AREGIJ(5,I,J)=AREGIJ(5,I,J)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
+c     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
+c      AREGIJ(6,I,J)=AREGIJ(6,I,J)+OPNSKY*
+c     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
+c      AREGIJ(7,I,J)=AREGIJ(7,I,J)+
+c     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
 C**** Save cloud top diagnostics here
       if (CLDCV.le.0.) go to 590
       AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+plb(ltopcl+1)
@@ -2043,26 +2043,26 @@ C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
 C       delayed accumulation to preserve order of summation
-         DO J=J_0,J_1
-           AREG_part(:,J,:) = 0
-         DO I=1,IMAXJ(J)
-           JR=JREG(I,J)
-           AREG_part(JR,J,1) = AREG_part(JR,J,1) + AREGIJ(1,I,J)
-           AREG_part(JR,J,2) = AREG_part(JR,J,2) + AREGIJ(2,I,J)
-           AREG_part(JR,J,3) = AREG_part(JR,J,3) + AREGIJ(3,I,J)
-           AREG_part(JR,J,4) = AREG_part(JR,J,4) + AREGIJ(4,I,J)
-           AREG_part(JR,J,5) = AREG_part(JR,J,5) + AREGIJ(5,I,J)
-           AREG_part(JR,J,6) = AREG_part(JR,J,6) + AREGIJ(6,I,J)
-           AREG_part(JR,J,7) = AREG_part(JR,J,7) + AREGIJ(7,I,J)
-         END DO
-         END DO
-
-         CALL GLOBALSUM(grid, AREG_PART(:,:,1:7), AREGSUM(:,1:7))
-         idx1 = (/ J_PCLDSS, J_PCLDMC, J_CLDDEP, J_PCLD,
-     &        J_CLRTOA, J_CLRTRP, J_TOTTRP /)
-         AREG(:,idx1) = AREG(:,idx1) + AREGSUM(:,1:7)
+c         DO J=J_0,J_1
+c           AREG_part(:,J,:) = 0
+c         DO I=1,IMAXJ(J)
+c           JR=JREG(I,J)
+c           AREG_part(JR,J,1) = AREG_part(JR,J,1) + AREGIJ(1,I,J)
+c           AREG_part(JR,J,2) = AREG_part(JR,J,2) + AREGIJ(2,I,J)
+c           AREG_part(JR,J,3) = AREG_part(JR,J,3) + AREGIJ(3,I,J)
+c           AREG_part(JR,J,4) = AREG_part(JR,J,4) + AREGIJ(4,I,J)
+c           AREG_part(JR,J,5) = AREG_part(JR,J,5) + AREGIJ(5,I,J)
+c           AREG_part(JR,J,6) = AREG_part(JR,J,6) + AREGIJ(6,I,J)
+c           AREG_part(JR,J,7) = AREG_part(JR,J,7) + AREGIJ(7,I,J)
+c         END DO
+c         END DO
+c
+c         CALL GLOBALSUM(grid, AREG_PART(:,:,1:7), AREGSUM(:,1:7))
+c         idx1 = (/ J_PCLDSS, J_PCLDMC, J_CLDDEP, J_PCLD,
+c     &        J_CLRTOA, J_CLRTRP, J_TOTTRP /)
+c         AREG(:,idx1) = AREG(:,idx1) + AREGSUM(:,1:7)
 C
-         AREG_part = 0 ! reset
+c         AREG_part = 0 ! reset
 
          DIURN_partb=0.
          DO 780 J=J_0,J_1
@@ -2123,11 +2123,6 @@ c***             END DO
          AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-(TNFS(2,I,J)-TNFS(1,I,J))
      *        *FTYPE(IT,I,J)
          END DO
-         AREG_part(JR,J,1)=AREG_part(JR,J,1)+(S0*CSZ2)*DXYPJ
-         AREG_part(JR,J,2)=AREG_part(JR,J,2)+(SNFS(3,I,J)*CSZ2)*DXYPJ
-         AREG_part(JR,J,3)=AREG_part(JR,J,3)+(SNFS(2,I,J)*CSZ2)*DXYPJ
-         AREG_part(JR,J,4)=AREG_part(JR,J,4)+
-     *     (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPJ
 C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*CSZ2)
      *        *FOCEAN(I,J)*(1.-RSI(I,J))
@@ -2142,22 +2137,29 @@ C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*CSZ2)
      *        * FLAKE(I,J)*RSI(I,J)
 C****
-         AREG_part(JR,J,5)=AREG_part(JR,J,5)  -(TNFS(2,I,J)-TNFS(1,I,J))
+         AREGJ(JR,J,J_SRINCP0)=AREGJ(JR,J,J_SRINCP0)+(S0*CSZ2)*DXYPJ
+         AREGJ(JR,J,J_SRNFP0 )=AREGJ(JR,J,J_SRNFP0 )+(SNFS(3,I,J)*CSZ2)
      *        *DXYPJ
-         AREG_part(JR,J,6) =AREG_part(JR,J,6) +(SRHR(0,I,J)*CSZ2)*DXYPJ
-         AREG_part(JR,J,7) =AREG_part(JR,J,7) -(TNFS(3,I,J)-TNFS(1,I,J))
+         AREGJ(JR,J,J_SRNFP1 )=AREGJ(JR,J,J_SRNFP1 )+(SNFS(2,I,J)*CSZ2)
      *        *DXYPJ
-         AREG_part(JR,J,8)=AREG_part(JR,J,8)+  BTMPW(I,J)      *DXYPJ
-         AREG_part(JR,J,9)=AREG_part(JR,J,9)+ TRINCG(I,J)      *DXYPJ
-         AREG_part(JR,J,10)=AREG_part(JR,J,10)- TNFS(3,I,J)*DXYPJ
-         AREG_part(JR,J,11)=AREG_part(JR,J,11)- TNFS(2,I,J)*DXYPJ
+         AREGJ(JR,J,J_SRINCG )=AREGJ(JR,J,J_SRINCG )+
+     *        (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPJ
+         AREGJ(JR,J,J_HATM)=AREGJ(JR,J,J_HATM)-(TNFS(2,I,J)-TNFS(1,I,J))
+     *        *DXYPJ
+         AREGJ(JR,J,J_SRNFG)=AREGJ(JR,J,J_SRNFG) +(SRHR(0,I,J)*CSZ2)
+     *        *DXYPJ
+         AREGJ(JR,J,J_HSURF)=AREGJ(JR,J,J_HSURF) -
+     *        (TNFS(3,I,J)-TNFS(1,I,J))*DXYPJ
+         AREGJ(JR,J,J_BRTEMP)=AREGJ(JR,J,J_BRTEMP)+  BTMPW(I,J)*DXYPJ
+         AREGJ(JR,J,J_TRINCG)=AREGJ(JR,J,J_TRINCG)+ TRINCG(I,J)*DXYPJ
+         AREGJ(JR,J,J_TRNFP0)=AREGJ(JR,J,J_TRNFP0)- TNFS(3,I,J)*DXYPJ
+         AREGJ(JR,J,J_TRNFP1)=AREGJ(JR,J,J_TRNFP1)- TNFS(2,I,J)*DXYPJ
          DO K=2,9
-           JK=K+J_PLAVIS-2     ! accumulate 8 radiation diags.
+           JK=K+J_PLAVIS-2      ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
              AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J)
            END DO
-           AREG_part(JR,J,12+k-2)=AREG_part(JR,J,12+k-2)+
-     +          (S0*CSZ2)*ALB(I,J,K)*DXYPJ
+           AREGJ(JR,J,JK)=AREGJ(JR,J,JK)+(S0*CSZ2)*ALB(I,J,K)*DXYPJ
          END DO
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
@@ -2343,11 +2345,11 @@ c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
 
-         CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
-         idx2 = (/ J_SRINCP0, J_SRNFP0, J_SRNFP1,
-     &        J_SRINCG, J_HATM, J_SRNFG, J_HSURF, J_BRTEMP, J_TRINCG,
-     *        J_TRNFP0,J_TRNFP1,(J_PLAVIS+i, i=0,7) /)
-         AREG(:,idx2) = AREG(:,idx2) + AREGSUM
+c         CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
+c         idx2 = (/ J_SRINCP0, J_SRNFP0, J_SRNFP1,
+c     &        J_SRINCG, J_HATM, J_SRNFG, J_HSURF, J_BRTEMP, J_TRINCG,
+c     *        J_TRNFP0,J_TRNFP1,(J_PLAVIS+i, i=0,7) /)
+c         AREG(:,idx2) = AREG(:,idx2) + AREGSUM
 
 
       CALL GLOBALSUM(grid, DIURN_partb, DIURNSUMb, ALL=.true.)

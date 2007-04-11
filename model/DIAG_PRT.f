@@ -888,7 +888,7 @@ c
      &     jyear,jyear0,ls1,itime,itime0,nday,xlabel,lrunid,ntype
       USE GEOM, only : dxyp,lat,lat_dg
       USE DIAG_COM, only :
-     &     QDIAG,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
+     &     QDIAG,acc_period,aj,aregj,jreg,kdiag,namreg,nreg,kaj,ia_j,
      &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
      *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
@@ -897,6 +897,7 @@ c
      *     ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt
       USE BDJ
       IMPLICIT NONE
+      REAL*8, DIMENSION(NREG,KAJ) :: AREG
       REAL*8, DIMENSION(JM), SAVE :: S1
       REAL*8, DIMENSION(NREG), SAVE :: SAREA
       REAL*8, DIMENSION(JM) :: FLAT
@@ -993,6 +994,14 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  ! excl. regions, but types dimensioned 0:ntype_out
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
      *     ,ntype_out,jm,lat_dg)
+      print*,"in diagj"
+      call sys_flush(6)
+C**** Sum AREGJ over latitude to get AREG
+      DO K=1,KAJ
+        DO JR=1,NREG
+          CALL GLOBALSUM(GRID, AREGJ(JR,:,K), AREG(JR,K), ALL=.TRUE.)
+        END DO
+      END DO
 
 C**** CALCULATE THE DERIVED QUANTTIES
       BYA1=1./(IDACC(ia_srf)+teeny)
@@ -6286,34 +6295,23 @@ C****
       END subroutine vntrp1
 
       SUBROUTINE DIAG_GATHER
-      USE MODEL_COM, only : IM
-      USE MODEL_COM, only : FLAND, FOCEAN, FLICE
-      USE MODEL_COM, only : ZATMO
+      USE MODEL_COM, only : IM, FLAND, FOCEAN, FLICE, ZATMO
       USE LAKES_COM, only : FLAKE
-      USE GHY_COM,   only : FEARTH
+      USE GHY_COM, only : FEARTH
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
 #else
       USE VEG_COM,   only : vdata
 #endif
-      USE DIAG_COM, only : AIJ,  AIJ_loc
-      USE DIAG_COM, only : AJ,   AJ_loc
-      USE DIAG_COM, only : APJ,  APJ_loc
-      USE DIAG_COM, only : AJK,  AJK_loc
-      USE DIAG_COM, only : AIJK, AIJK_loc
-      USE DIAG_COM, only : ASJL, ASJL_loc
-      USE DIAG_COM, only : AJL,  AJL_loc
-      USE DIAG_COM, only : CONSRV, CONSRV_loc
-      USE DIAG_COM, only : TSFREZ, TSFREZ_loc
-      USE DIAG_COM, only : WT_IJ
+      USE DIAG_COM, only : AIJ,  AIJ_loc, AJ,   AJ_loc, AREGJ,
+     *     AREGJ_loc, APJ, APJ_loc, AJK,  AJK_loc, AIJK, AIJK_loc,
+     *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
+     *     TSFREZ_loc, WT_IJ
 #ifdef TRACERS_ON
-      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc
-      USE TRDIAG_COM, only : TAIJN , TAIJN_loc
-      USE TRDIAG_COM, only : TAIJS , TAIJS_loc
-      USE TRDIAG_COM, only : TAJLN , TAJLN_loc
-      USE TRDIAG_COM, only : TAJLS , TAJLS_loc
-      USE TRDIAG_COM, only : TCONSRV,TCONSRV_loc
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
+     *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
+     *     TCONSRV, TCONSRV_loc 
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj, GET
       USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM
@@ -6326,6 +6324,7 @@ C****
 #endif
 
       CALL PACK_DATAj(GRID, AJ_loc,  AJ)
+      CALL PACK_DATA(GRID, AREGJ_loc,  AREGJ)
       CALL PACK_DATAj(GRID, APJ_loc, APJ)
       CALL PACK_DATAj(GRID, AJK_loc, AJK)
       CALL PACK_DATA (GRID, AIJ_loc, AIJ)
@@ -6384,27 +6383,19 @@ C****
       END SUBROUTINE DIAG_GATHER
 
       SUBROUTINE DIAG_SCATTER
-      USE DIAG_COM, only : AIJ, AIJ_loc
-      USE DIAG_COM, only : AJ,  AJ_loc
-      USE DIAG_COM, only : APJ, APJ_loc
-      USE DIAG_COM, only : AJK, AJK_loc
-      USE DIAG_COM, only : AIJK, AIJK_loc
-      USE DIAG_COM, only : ASJL, ASJL_loc
-      USE DIAG_COM, only : AJL,  AJL_loc
-      USE DIAG_COM, only : CONSRV, CONSRV_loc
-      USE DIAG_COM, only : TSFREZ, TSFREZ_loc
+      USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc, AREGJ, AREGJ_loc,
+     *     APJ, APJ_loc, AJK, AJK_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
+     *     AJL,  AJL_loc, CONSRV, CONSRV_loc, TSFREZ, TSFREZ_loc
 #ifdef TRACERS_ON
-      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc
-      USE TRDIAG_COM, only : TAIJN , TAIJN_loc
-      USE TRDIAG_COM, only : TAIJS , TAIJS_loc
-      USE TRDIAG_COM, only : TAJLN , TAJLN_loc
-      USE TRDIAG_COM, only : TAJLS , TAJLS_loc
-      USE TRDIAG_COM, only : TCONSRV,TCONSRV_loc
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN , TAIJN_loc,
+     *     TAIJS , TAIJS_loc, TAJLN , TAJLN_loc, TAJLS , TAJLS_loc,
+     *     TCONSRV, TCONSRV_loc 
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       IMPLICIT NONE
 
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
+      CALL UNPACK_DATA(GRID, AREGJ,  AREGJ_loc)
       CALL UNPACK_DATAj(GRID, APJ, APJ_loc)
       CALL UNPACK_DATAj(GRID, AJK, AJK_loc)
       CALL UNPACK_DATA (GRID, AIJ, AIJ_loc)

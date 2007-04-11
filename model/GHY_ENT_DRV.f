@@ -668,8 +668,8 @@ c****
       use snow_drvm, only : snow_cover_same_as_rad
 
       use diag_com , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
-     &     ,j_tsrf,j_tg1,j_tg2,areg,jreg,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
-     &     ,adiurn,NDIUPT
+     &     ,j_tsrf,j_tg1,j_tg2,aregj=>aregj_loc,jreg,HR_IN_DAY
+     *     ,HR_IN_MONTH,NDIUVAR,adiurn,NDIUPT
 #ifndef NO_HDIURN
      &     ,hdiurn
 #endif
@@ -695,7 +695,7 @@ c****
 
       real*8 qsat
 ccc hack for openMP: need temporary array
-      real*8 aregij(9,im,jm)
+c      real*8 aregij(9,im,jm)
       integer jr
 !@var qg rel. humidity at the ground, defined: total_evap = Cq V (qg-qs)
 !@var qg_nsat rel. humidity at non-saturated fraction of soil
@@ -724,10 +724,10 @@ c**** input/output for PBL
       real*8 qg_sat
 
 C**** Work array for regional diagnostic accumulation
-      real*8, dimension(size(AREG,1),9) :: areg_sum
-      real*8, DIMENSION(
-     &        size(AREG,1),grid%J_STRT_HALO:grid%J_STOP_HALO,9 )
-     &        :: AREG_PART
+c      real*8, dimension(size(AREG,1),9) :: areg_sum
+c      real*8, DIMENSION(
+c     &        size(AREG,1),grid%J_STRT_HALO:grid%J_STOP_HALO,9 )
+c     &        :: AREG_PART
 
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
@@ -774,7 +774,7 @@ ccc set i,j - independent stuff for tracers
       call ghy_tracers_set_step
 #endif
 
-      aregij = 0.
+c      aregij = 0.
 c****
 c**** outside loop over j and i, executed once for each grid point
 c****
@@ -1053,7 +1053,7 @@ c****
 
       call ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
-     &     ,aregij, pbl_args, pbl_args%dtsurf
+     &     , pbl_args, pbl_args%dtsurf
      &     ,adiurn_part
 #ifndef NO_HDIURN
      &     ,hdiurn_part
@@ -1109,54 +1109,54 @@ c**** update tracers
       END DO
 
 C***Initialize work array
-      areg_part(:,:,1:9) = 0.
+c      areg_part(:,:,1:9) = 0.
+c
+c      DO 825 J=J_0,J_1
+c      DO 825 I=1,IMAXJ(J)
+c         IF(FEARTH(I,J).LE.0.0)  GO TO 825
+c         JR=JREG(I,J)
+c         areg_part(jr,j,1 )=areg_part(jr,j,1 )+AREGIJ(1,I,J)
+c         areg_part(jr,j,2 )=areg_part(jr,j,2 )+AREGIJ(2,I,J)
+c         areg_part(jr,j,3 )=areg_part(jr,j,3 )+AREGIJ(3,I,J)
+c         areg_part(jr,j,4 )=areg_part(jr,j,4 )+AREGIJ(4,I,J)
+c         areg_part(jr,j,5 )=areg_part(jr,j,5 )+AREGIJ(5,I,J)
+c         areg_part(jr,j,6 )=areg_part(jr,j,6 )+AREGIJ(6,I,J)
+c         if( moddsf == 0 ) then
+c           areg_part(jr,j,7)=areg_part(jr,j,7 )+AREGIJ(7,I,J)
+c           areg_part(jr,j,8)=areg_part(jr,j,8 )+AREGIJ(8,I,J)
+c           areg_part(jr,j,9)=areg_part(jr,j,9 )+AREGIJ(9,I,J)
+c         end if
+c  825 CONTINUE
 
-      DO 825 J=J_0,J_1
-      DO 825 I=1,IMAXJ(J)
-         IF(FEARTH(I,J).LE.0.0)  GO TO 825
-         JR=JREG(I,J)
-         areg_part(jr,j,1 )=areg_part(jr,j,1 )+AREGIJ(1,I,J)
-         areg_part(jr,j,2 )=areg_part(jr,j,2 )+AREGIJ(2,I,J)
-         areg_part(jr,j,3 )=areg_part(jr,j,3 )+AREGIJ(3,I,J)
-         areg_part(jr,j,4 )=areg_part(jr,j,4 )+AREGIJ(4,I,J)
-         areg_part(jr,j,5 )=areg_part(jr,j,5 )+AREGIJ(5,I,J)
-         areg_part(jr,j,6 )=areg_part(jr,j,6 )+AREGIJ(6,I,J)
-         if( moddsf == 0 ) then
-           areg_part(jr,j,7)=areg_part(jr,j,7 )+AREGIJ(7,I,J)
-           areg_part(jr,j,8)=areg_part(jr,j,8 )+AREGIJ(8,I,J)
-           areg_part(jr,j,9)=areg_part(jr,j,9 )+AREGIJ(9,I,J)
-         end if
-  825 CONTINUE
 
-
-      call globalsum(grid,areg_part(1:size(areg,1),:,1:9),
-     &    areg_sum(1:size(areg,1),1:9), all=.true.)
-      areg(1:size(areg,1),j_trhdt)=areg(1:size(areg,1),j_trhdt)
-     &    + areg_sum(1:size(areg,1),1)
-
-      areg(1:size(areg,1),j_shdt)=areg(1:size(areg,1),j_shdt)
-     &    + areg_sum(1:size(areg,1),2)
-
-      areg(1:size(areg,1),j_evhdt)=areg(1:size(areg,1),j_evhdt)
-     &    + areg_sum(1:size(areg,1),3)
-
-      areg(1:size(areg,1),j_evap)=areg(1:size(areg,1),j_evap)
-     &    + areg_sum(1:size(areg,1),4)
-
-      areg(1:size(areg,1),j_erun)=areg(1:size(areg,1),j_erun)
-     &    + areg_sum(1:size(areg,1),5)
-
-      areg(1:size(areg,1),j_run)=areg(1:size(areg,1),j_run)
-     &    + areg_sum(1:size(areg,1),6)
-
-      areg(1:size(areg,1),j_tsrf)=areg(1:size(areg,1),j_tsrf)
-     &    + areg_sum(1:size(areg,1),7)
-
-      areg(1:size(areg,1),j_tg1)=areg(1:size(areg,1),j_tg1)
-     &    + areg_sum(1:size(areg,1),8)
-
-      areg(1:size(areg,1),j_tg2)=areg(1:size(areg,1),j_tg2)
-     &    + areg_sum(1:size(areg,1),9)
+c      call globalsum(grid,areg_part(1:size(areg,1),:,1:9),
+c     &    areg_sum(1:size(areg,1),1:9), all=.true.)
+c      areg(1:size(areg,1),j_trhdt)=areg(1:size(areg,1),j_trhdt)
+c     &    + areg_sum(1:size(areg,1),1)
+c
+c      areg(1:size(areg,1),j_shdt)=areg(1:size(areg,1),j_shdt)
+c     &    + areg_sum(1:size(areg,1),2)
+c
+c      areg(1:size(areg,1),j_evhdt)=areg(1:size(areg,1),j_evhdt)
+c     &    + areg_sum(1:size(areg,1),3)
+c
+c      areg(1:size(areg,1),j_evap)=areg(1:size(areg,1),j_evap)
+c     &    + areg_sum(1:size(areg,1),4)
+c
+c      areg(1:size(areg,1),j_erun)=areg(1:size(areg,1),j_erun)
+c     &    + areg_sum(1:size(areg,1),5)
+c
+c      areg(1:size(areg,1),j_run)=areg(1:size(areg,1),j_run)
+c     &    + areg_sum(1:size(areg,1),6)
+c
+c      areg(1:size(areg,1),j_tsrf)=areg(1:size(areg,1),j_tsrf)
+c     &    + areg_sum(1:size(areg,1),7)
+c
+c      areg(1:size(areg,1),j_tg1)=areg(1:size(areg,1),j_tg1)
+c     &    + areg_sum(1:size(areg,1),8)
+c
+c      areg(1:size(areg,1),j_tg2)=areg(1:size(areg,1),j_tg2)
+c     &    + areg_sum(1:size(areg,1),9)
 
 
 C
@@ -1172,7 +1172,7 @@ c***********************************************************************
 
       subroutine ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
-     &     ,aregij, pbl_args, dtsurf
+     &     , pbl_args, dtsurf
      &     ,adiurn_part
 #ifndef NO_HDIURN
      &     ,hdiurn_part
@@ -1180,7 +1180,7 @@ c***********************************************************************
      &     ,idx)
 
       use diag_com , only : aij=>aij_loc
-     *     ,tsfrez=>tsfrez_loc,tdiurn,aj=>aj_loc,areg,jreg
+     *     ,tsfrez=>tsfrez_loc,tdiurn,aj=>aj_loc,aregj=>aregj_loc,jreg
      *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
@@ -1246,7 +1246,7 @@ c***********************************************************************
       implicit none
       integer, intent(in) :: i,j,ns,moddsf,moddd
       real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg
-      real*8, intent(out) :: aregij(:,:,:)
+c      real*8, intent(out) :: aregij(:,:,:)
       type (t_pbl_args) :: pbl_args
       real*8, intent(in) :: dtsurf
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
@@ -1377,30 +1377,31 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 
 c**** quantities accumulated for regions in diagj
-cddd      areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
-cddd      areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
-cddd      areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
-cddd      areg(jr,j_evap )=areg(jr,j_evap )+aevap*ptype*dxyp(j)
-cddd      areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*ptype*dxyp(j)
-cddd      areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*ptype*dxyp(j)
-cddd      if ( moddsf == 0 ) then
-cddd        areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
-cddd        areg(jr,j_tg1 ) =areg(jr,j_tg1 ) + tg1   *ptype*dxyp(j)
-cddd        areg(jr,j_tg2 ) =areg(jr,j_tg2 ) + tg2av *ptype*dxyp(j)
-cddd      end if
+      aregj(jr,j,j_trhdt)=aregj(jr,j,j_trhdt)+trhdt*ptype*dxyp(j)
+      aregj(jr,j,j_shdt )=aregj(jr,j,j_shdt )+shdt*ptype*dxyp(j)
+      aregj(jr,j,j_evhdt)=aregj(jr,j,j_evhdt)+evhdt*ptype*dxyp(j)
+      aregj(jr,j,j_evap )=aregj(jr,j,j_evap )+aevap*ptype*dxyp(j)
+      aregj(jr,j,j_erun)=aregj(jr,j,j_erun)+(aeruns+aerunu)*ptype*dxyp(j
+     *     )
+      aregj(jr,j,j_run )=aregj(jr,j,j_run )+(aruns+arunu)*ptype*dxyp(j)
+      if ( moddsf == 0 ) then
+        aregj(jr,j,j_tsrf )=aregj(jr,j,j_tsrf )+(ts-tf)*ptype*dxyp(j)
+        aregj(jr,j,j_tg1 ) =aregj(jr,j,j_tg1 ) + tg1   *ptype*dxyp(j)
+        aregj(jr,j,j_tg2 ) =aregj(jr,j,j_tg2 ) + tg2av *ptype*dxyp(j)
+      end if
 
 c!!! do something with regional diag !!!
-      AREGIJ(1,I,J)  = trhdt*ptype*dxyp(j)
-      AREGIJ(2,I,J)  = shdt*ptype*dxyp(j)
-      AREGIJ(3,I,J)  = evhdt*ptype*dxyp(j)
-      AREGIJ(4,I,J)  = aevap*ptype*dxyp(j)
-      AREGIJ(5,I,J)  = (aeruns+aerunu)*ptype*dxyp(j)
-      AREGIJ(6,I,J)  = (aruns+arunu)*ptype*dxyp(j)
-      if ( moddsf == 0 ) THEN
-        AREGIJ(7,I,J)  = (ts-tf)*ptype*dxyp(j)
-        AREGIJ(8,I,J)  = tg1    *ptype*dxyp(j)
-        AREGIJ(9,I,J)  = tg2av  *ptype*dxyp(j)
-      end if
+c      AREGIJ(1,I,J)  = trhdt*ptype*dxyp(j)
+c      AREGIJ(2,I,J)  = shdt*ptype*dxyp(j)
+c      AREGIJ(3,I,J)  = evhdt*ptype*dxyp(j)
+c      AREGIJ(4,I,J)  = aevap*ptype*dxyp(j)
+c      AREGIJ(5,I,J)  = (aeruns+aerunu)*ptype*dxyp(j)
+c      AREGIJ(6,I,J)  = (aruns+arunu)*ptype*dxyp(j)
+c      if ( moddsf == 0 ) THEN
+c        AREGIJ(7,I,J)  = (ts-tf)*ptype*dxyp(j)
+c        AREGIJ(8,I,J)  = tg1    *ptype*dxyp(j)
+c        AREGIJ(9,I,J)  = tg2av  *ptype*dxyp(j)
+c      end if
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+abetad/nisurf
@@ -2741,7 +2742,7 @@ c****
 !      use ghy_com, only : snowe, tearth,wearth,aiearth,wbare,wvege
 !     *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij
       !use veg_com, only : afb
-      use diag_com, only : aj=>aj_loc,areg,aij=>aij_loc
+      use diag_com, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g04,ij_g10,ij_g28
@@ -2758,10 +2759,10 @@ c****
       integer i,j,jr,k
 
 C**** Work array for regional diagnostic accumulation
-      real*8, DIMENSION(size(AREG,1),6) :: areg_sum
-      real*8, DIMENSION(
-     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,6 )
-     &        :: AREG_PART
+c      real*8, DIMENSION(size(AREG,1),6) :: areg_sum
+c      real*8, DIMENSION(
+c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,6 )
+c     &        :: AREG_PART
 
 C**** define local grid
       integer J_0, J_1, J_0H, J_1H
@@ -2773,7 +2774,7 @@ C****
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
 C***Initialize work array
-      areg_part(:,J_0H:j_1H,1:6) = 0.
+c      areg_part(:,J_0H:j_1H,1:6) = 0.
       do j=J_0,J_1
       do i=1,imaxj(j)
       pearth=fearth(i,j)
@@ -2808,7 +2809,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 
         !if (snowe(i,j).gt.0.) scove=pearth
         aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
-        areg_part(jr,j,1)=areg_part(jr,j,1)+scove*dxyp(j)
+        aregj(jr,j,j_rsnow)=aregj(jr,j,j_rsnow)+scove*dxyp(j)
         aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
         aij(i,j,ij_snow)=aij(i,j,ij_snow)+snow*pearth
         aij(i,j,ij_rsit)=aij(i,j,ij_rsit)+scove
@@ -2818,11 +2819,11 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aj(j,j_wtr2,itearth)=aj(j,j_wtr2,itearth)+wtr2*pearth
         aj(j,j_ace2,itearth)=aj(j,j_ace2,itearth)+ace2*pearth
         aj(j,j_snow,itearth)=aj(j,j_snow,itearth)+snow*pearth
-        areg_part(jr,j,2)=areg_part(jr,j,2)+snow*pearth*dxyp(j)
-        areg_part(jr,j,3)=areg_part(jr,j,3)+wtr1*pearth*dxyp(j)
-        areg_part(jr,j,4)=areg_part(jr,j,4)+ace1*pearth*dxyp(j)
-        areg_part(jr,j,5)=areg_part(jr,j,5)+wtr2*pearth*dxyp(j)
-        areg_part(jr,j,6)=areg_part(jr,j,6)+ace2*pearth*dxyp(j)
+        aregj(jr,j,j_snow)=aregj(jr,j,j_snow)+snow*pearth*dxyp(j)
+        aregj(jr,j,j_wtr1)=aregj(jr,j,j_wtr1)+wtr1*pearth*dxyp(j)
+        aregj(jr,j,j_ace1)=aregj(jr,j,j_ace1)+ace1*pearth*dxyp(j)
+        aregj(jr,j,j_wtr2)=aregj(jr,j,j_wtr2)+wtr2*pearth*dxyp(j)
+        aregj(jr,j,j_ace2)=aregj(jr,j,j_ace2)+ace2*pearth*dxyp(j)
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
@@ -2847,20 +2848,20 @@ c****
       end do
       end do
 
-      call globalsum(grid,areg_part(1:size(areg,1),:,1:6),
-     &    areg_sum(1:size(areg,1),1:6), all=.true.)
-      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow)
-     &    + areg_sum(1:size(areg,1),1)
-      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow)
-     &    + areg_sum(1:size(areg,1),2)
-      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1)
-     &    + areg_sum(1:size(areg,1),3)
-      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1)
-     &    + areg_sum(1:size(areg,1),4)
-      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2)
-     &    + areg_sum(1:size(areg,1),5)
-      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2)
-     &    + areg_sum(1:size(areg,1),6)
+c      call globalsum(grid,areg_part(1:size(areg,1),:,1:6),
+c     &    areg_sum(1:size(areg,1),1:6), all=.true.)
+c      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow)
+c     &    + areg_sum(1:size(areg,1),1)
+c      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow)
+c     &    + areg_sum(1:size(areg,1),2)
+c      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1)
+c     &    + areg_sum(1:size(areg,1),3)
+c      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1)
+c     &    + areg_sum(1:size(areg,1),4)
+c      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2)
+c     &    + areg_sum(1:size(areg,1),5)
+c      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2)
+c     &    + areg_sum(1:size(areg,1),6)
 
 
       end subroutine ground_e
@@ -3827,7 +3828,8 @@ c**** wearth+aiearth are used in radiation only
 #endif
       use GEOM, only : DXYP
       use MODEL_COM, only : ITEARTH
-      USE DIAG_COM, only : aj=>aj_loc,areg,j_implh,j_implm,JREG
+      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,j_implh,j_implm
+     *     ,JREG
       USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
 
       implicit none
@@ -3839,16 +3841,16 @@ c**** wearth+aiearth are used in radiation only
       real*8 fbv(2),wsn(3),hsn(3),dzsn(3),fr_snow,wsn_tot,d_wsn,eta
       real*8 dw,dh
       integer ibv,nsn,JR
-      REAL*8  :: AREG_SUM(size(AREG,1),2)
-      REAL*8, DIMENSION(
-     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,2 )
-     &        :: AREG_PART
+c      REAL*8  :: AREG_SUM(size(AREG,1),2)
+c      REAL*8, DIMENSION(
+c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,2 )
+c     &        :: AREG_PART
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1
      &        ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
 C**** Initialize work array
-      AREG_PART(:,J_0H:J_1H,1:2) = 0.
+c      AREG_PART(:,J_0H:J_1H,1:2) = 0.
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -3900,10 +3902,10 @@ C**** Initialize work array
      &             AJ(J,J_IMPLH,ITEARTH) + dh*fearth(i,j)
               AJ(J,J_IMPLM,ITEARTH) =
      &             AJ(J,J_IMPLM,ITEARTH) + dw*fearth(i,j)
-              AREG_PART(JR,J,1) =
-     &             AREG_PART(JR,J,1) + dh*fearth(i,j)*DXYP(j)
-              AREG_PART(JR,J,2) =
-     &             AREG_PART(JR,J,2) + dw*fearth(i,j)*DXYP(j)
+              AREGJ(JR,J,J_IMPLH) =
+     &             AREGJ(JR,J,J_IMPLH) + dh*fearth(i,j)*DXYP(j)
+              AREGJ(JR,J,J_IMPLM) =
+     &             AREGJ(JR,J,J_IMPLM) + dw*fearth(i,j)*DXYP(j)
 
               !print *,"remove_extra_snow", i,j,ibv,wsn_tot,eta,dw,dh
 
@@ -3913,13 +3915,13 @@ C**** Initialize work array
         enddo
       enddo
 
-      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:2),
-     &  AREG_SUM(1:SIZE(AREG,1),1:2), ALL=.TRUE.)
-
-      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
-     &   + AREG_SUM(1:SIZE(AREG,1),1)
-      AREG(1:SIZE(AREG,1),J_IMPLM)  =AREG(1:SIZE(AREG,1),J_IMPLM)
-     &   + AREG_SUM(1:SIZE(AREG,1),2)
+c      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:2),
+c     &  AREG_SUM(1:SIZE(AREG,1),1:2), ALL=.TRUE.)
+c
+c      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
+c     &   + AREG_SUM(1:SIZE(AREG,1),1)
+c      AREG(1:SIZE(AREG,1),J_IMPLM)  =AREG(1:SIZE(AREG,1),J_IMPLM)
+c     &   + AREG_SUM(1:SIZE(AREG,1),2)
 
 
       end subroutine remove_extra_snow

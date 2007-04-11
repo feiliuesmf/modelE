@@ -33,8 +33,10 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: SQRTM
 !@param NREG number of regions for budget diagnostics
       INTEGER, PARAMETER, public :: NREG=24
-!@var AREG regional budget diagnostics
-      REAL*8, DIMENSION(NREG,KAJ), public :: AREG
+!@var AREGJ regional budget diagnostics
+      REAL*8, DIMENSION(NREG,JM,KAJ), public :: AREGJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AREGJ_loc
+
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4, public :: TITREG*80,NAMREG(2,23)
 !@var JREH lat/lon array defining regions for AREG diagnostics
@@ -727,13 +729,11 @@ c idacc-indices of various processes
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
-     &                   KGZ,KOA,KTSF,nwts_ij,KTD
+     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG
       USE RAD_COM, only : LM_REQ
-      USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,APJ_loc,AJL_loc,ASJL_loc
-     *     ,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc
-     *     ,AFLX_ST,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc
-     *     ,OA
-     &     ,P_acc
+      USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
+     *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc, AFLX_ST
+     *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -758,6 +758,7 @@ c idacc-indices of various processes
      &         STAT = IER)
 
       ALLOCATE(AJ_loc(J_0H:J_1H, KAJ, NTYPE),
+     &         AREGJ_loc(NREG,J_0H:J_1H,KAJ),
      &         AJL_loc(J_0H:J_1H, LM, KAJL),
      &         ASJL_loc(J_0H:J_1H,LM_REQ,KASJL),
      &         AIJ_loc(IM,J_0H:J_1H,KAIJ),
@@ -794,7 +795,7 @@ c idacc-indices of various processes
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
-      INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ + JM*KAPJ
+      INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + JM*NREG*KAJ + JM*KAPJ
      *     + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
@@ -804,7 +805,7 @@ c idacc-indices of various processes
      *     + HR_IN_MONTH*NDIUVAR*NDIUPT
 #endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
-      REAL*4 AJ4(JM,KAJ,NTYPE),AREG4(NREG,KAJ),APJ4(JM,KAPJ)
+      REAL*4 AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ),APJ4(JM,KAPJ)
       REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
       REAL*4 AIL4(IM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
       REAL*4 CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
@@ -833,7 +834,7 @@ c idacc-indices of various processes
 
       REAL*8 :: TDIURN_glob(IM, JM, KTD)
       REAL*8 :: OA_glob    (IM, JM, KOA)
-      INTEGER :: J_0, J_1, I
+      INTEGER :: J_0, J_1
 
       CALL GET( grid, J_STRT=J_0, J_STOP=J_1  )
 
@@ -906,6 +907,7 @@ C**** The regular model (Kradia le 0)
 
         CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
         CALL PACK_DATAj(grid, AJ_loc, AJ)
+        CALL PACK_DATA(grid, AREGJ_loc, AREGJ)
         CALL PACK_DATAj(grid, APJ_loc, APJ)
         CALL PACK_DATAj(grid, AJL_loc, AJL)
         CALL PACK_DATAj(grid, ASJL_loc, ASJL)
@@ -919,7 +921,7 @@ C**** The regular model (Kradia le 0)
 
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,
+     *     idacc, AJ,AREGJ,APJ,AJL,ASJL,AIJ,
      *     AIL, ENERGY,CONSRV,
      *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #ifndef NO_HDIURN
@@ -933,6 +935,7 @@ C**** The regular model (Kradia le 0)
 
         CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
         CALL PACK_DATAj(grid, AJ_loc, AJ)
+        CALL PACK_DATA(grid, AREGJ_loc, AREGJ)
         CALL PACK_DATAj(grid, APJ_loc, APJ)
         CALL PACK_DATAj(grid, AJL_loc, AJL)
         CALL PACK_DATAj(grid, ASJL_loc, ASJL)
@@ -944,7 +947,7 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,
      *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
-     *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),REAL(APJ,KIND=4),
+     *     REAL(AJ,KIND=4),REAL(AREGJ,KIND=4),REAL(APJ,KIND=4),
      *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),
      *     REAL(AIJ,KIND=4),REAL(AIL,KIND=4),
      *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
@@ -966,7 +969,7 @@ C**** The regular model (Kradia le 0)
       CASE (ioread)           ! input from restart file
         if (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *       idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
+     *       idacc, AJ,AREGJ,APJ,AJL,ASJL,AIJ,AIL,
      *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #ifndef NO_HDIURN
      *       HDIURN,
@@ -984,8 +987,8 @@ C**** The regular model (Kradia le 0)
       CASE (IOREAD_SINGLE)      !
         If (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
-     *       idac1, AJ4,AREG4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4,CONSRV4,
-     *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
+     *         idac1, AJ4,AREGJ4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4
+     *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
 #ifndef NO_HDIURN
      *       HDIURN4,
 #endif
@@ -997,7 +1000,6 @@ C**** The regular model (Kradia le 0)
 
         ! copy to full precision variables
         ! First "non-distributed" arrays
-          AREG=AREG+AREG4
           AIL=AIL+AIL4
           ENERGY=ENERGY+ENERGY4
           SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
@@ -1009,6 +1011,7 @@ C**** The regular model (Kradia le 0)
           ! Now for the distributed arrays
           TSFREZ= TSFREZ4
           AJ    = AJ     + AJ4
+          AREGJ = AREGJ  + AREGJ4
           APJ   = APJ    + APJ4
           AJL   = AJL    + AJL4
           ASJL  = ASJL   + ASJL4
@@ -1053,7 +1056,6 @@ C**** The regular model (Kradia le 0)
         CALL ESMF_BCAST(grid, keyct )
         CALL ESMF_BCAST(grid, KEYNR )
         CALL ESMF_BCAST(grid, idacc )
-        CALL ESMF_BCAST(grid, AREG  )
         CALL ESMF_BCAST(grid, AIL   )
         CALL ESMF_BCAST(grid, ENERGY)
         CALL ESMF_BCAST(grid, SPECA )
@@ -1070,6 +1072,7 @@ C**** The regular model (Kradia le 0)
       Subroutine Scatter_Diagnostics()
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
         CALL UNPACK_DATAj(grid, AJ,     AJ_loc)
+        CALL UNPACK_DATA(grid, AREGJ,  AREGJ_loc)
         CALL UNPACK_DATAj(grid, APJ,    APJ_loc)
         CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
         CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)

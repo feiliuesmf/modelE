@@ -95,9 +95,9 @@
 !@var RUN0 runoff from ice (kg/m^2)
 !@var SRUN0 salt in runoff from ice (kg/m^2)
       REAL*8, INTENT(OUT) :: RUN0, SRUN0
-      REAL*8 :: BYMSI2, FMSI2, FMSI3, FHSI2, FHSI3,
-     *     CMPRS, SNWF, RAIN, FREZI, MSI1, FSSI2, HFREZ,SNOW1,
-     *     FSSI3, MELTI, MELTS, SMELTI, DSNOW, SICE, HCMPRS, HSNOW, HICE
+      REAL*8 :: FMSI2, FMSI3, FHSI2, FHSI3,
+     *     CMPRS, SNWF, RAIN, FREZI, MSI1, FSSI2, SNOW1,
+     *     FSSI3, MELTI, MELTS, SMELTI, SICE, HCMPRS, HSNOW, HICE
 #ifdef TRACERS_WATER
 !@var TRSIL tracer amount in ice layers (kg/m^2)
       REAL*8, DIMENSION(NTM,LMI), INTENT(INOUT) :: TRSIL
@@ -381,7 +381,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       REAL*8 SMELTI, SMELT3, SMELT4, FSSI2, FSSI3, SICE
       REAL*8 FMSI2, FMSI3, FHSI2, FHSI3
       REAL*8 HC1, HC2, HC3, HC4, HICE, HSNOW, HCMPRS
-      REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3, FO
+      REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F2, F3, FO
 
       FMSI2=0. ; FHSI2=0. ; FHSI3=0. ; FSSI2=0. ; FSSI3=0.
       MELTS=0. ; MELTI=0. ; MELT3=0. ; MELT4=0.
@@ -1060,7 +1060,7 @@ C****
 
       REAL*8 DSSI(3:LMI),DMSI(3:LMI),DHSI(3:LMI),TSIL(3:LMI),DS12
      *     ,DM12,DH12
-      REAL*8 FMSI1,FMSI2,FMSI3,FSSI1,FSSI2,FSSI3,FHSI1,FHSI2,FHSI3
+      REAL*8 FMSI2,FMSI3,FSSI2,FSSI3,FHSI2,FHSI3
       REAL*8 HSNOW,HICE,SICE,TICE,MSI1
       INTEGER L
 !@var dtssi decay time scale for sea ice salinity (days)
@@ -1591,7 +1591,6 @@ C**** Be careful to avoid taking too much tracer from ocean box
 #endif
       REAL*8 DSNOW,Z0,MAXM,MAXME,Eoc,Esnow,Ei,Erat,Si,MSI1
       REAL*8 SICE,HICE,HSNOW,FMSI2,FMSI3,FHSI2,FSSI2,FHSI3,FSSI3
-      INTEGER L
 
 C**** test for snow ice possibility      
       IF (RHOI*SNOW.gt.(ACE1I+MSI2)*(RHOWS-RHOI)) THEN
