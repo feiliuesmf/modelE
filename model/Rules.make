@@ -222,8 +222,8 @@ LFLAGS = -lf90math -lV77 -lU77
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-FFLAGS += -trap=INVALID,DIVBYZERO,OVERFLOW -B111 -C
-LFLAGS += -lefence
+FFLAGS += -g -trap=INVALID,DIVBYZERO,OVERFLOW -B111
+LFLAGS += 
 endif
 endif
 
