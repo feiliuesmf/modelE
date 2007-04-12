@@ -186,7 +186,11 @@ ccc tracers variables
         tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
         ! flux in
         trpr(nx) = (trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s (in precip)
+#ifdef TRACERS_DRYDEP
         trdd(nx) = trdrydep(n,itype,i,j)/dtsrc   ! kg/m^2 s (dry dep.)
+#else
+        trdd(nx) = 0
+#endif
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
           tr_surf(nx) = trm(i,j,1,n)*bydxyp(j)*rhow/qm1 ! kg/m^3
