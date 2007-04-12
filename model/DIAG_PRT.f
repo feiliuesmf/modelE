@@ -4146,11 +4146,9 @@ c Check the count
      &     name,lname,units)
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
 !+    (l)name/units are set in DEFACC/IJ_TITLEX but may be altered here
-      USE CONSTANT, only :
-     &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef,teeny
-      USE MODEL_COM, only :
-     &     im,jm,fim,jeq,byim,DTsrc,ptop,
-     &     IDACC,
+      USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef
+     *     ,teeny 
+      USE MODEL_COM, only : im,jm,fim,jeq,byim,DTsrc,ptop,IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE DIAG_COM
@@ -4204,9 +4202,12 @@ c**** ratios (the denominators)
         k1 = index(lname_ij(k),' x ')
         if (k1 .gt. 0 .and. qdiag_ratios) then
           if (index(lname_ij(k),' x POPOCN') .gt. 0) then
-            do j=1,jm      ! open ocean only
+            do j=1,jm      ! open ocean only (incl. open lake)
             do i=1,im
-              adenom(i,j) = 1-fland_glob(i,j) - aij(i,j,ij_rsoi)
+c              adenom(i,j) = 1-fland_glob(i,j) - aij(i,j,ij_rsoi)
+c     *             /(idacc(ia_ij(ij_rsoi))+teeny)
+              adenom(i,j) =  wt_ij(i,j,2)+aij(i,j,ij_lk)
+     *             /(idacc(ia_ij(ij_lk))+teeny) - aij(i,j,ij_rsoi)
      *             /(idacc(ia_ij(ij_rsoi))+teeny)
             end do
             end do
@@ -6355,9 +6356,9 @@ C****
 
       wt_ij(:,:,1) = 1.
       CALL PACK_DATA(GRID, focean, wt_ij(:,:,2))
-      CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))
+      CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))  ! not correct 
       CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
-      CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))
+      CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))  ! not correct
 
 #ifdef USE_ENT
       ALLOCATE(fract_vege(IM, J_0H:J_1H))
