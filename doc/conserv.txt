@@ -41,10 +41,10 @@ Ocean salt: SUM OF CHANGES OF OCN SALT (10^-9 kg/s/m^2) * 0.001
 
 Conservation of Water mass fluxes
 ---------------------------------
-0  =  Global: RIVER DISCH  
+0  =  Global: [RIVER DISCH - DWN IMP WT FLX]  
 
-(Note that the Global: HT RIVER DISCH will also be zero, since we do
-not take into account the potential energy of the river flow.)
+Excess river discharge is due to parameterisation of iceberg calving
+of excess water from ice sheet accumulation.
 
 0 = Global: WATER RUNOFF 
 
@@ -64,7 +64,9 @@ Conservation of Water in Ground
 -------------------------------
 
 Ground: Change of GRND WAT by EARTH (10^-9 kg/s*m^2)  =
-LAND: [Precip - Evap - Water Runoff] * GRfrac / .0000864
+LAND: [Precip - Evap - Water Runoff - Dwn Imp] * GRfrac / .0000864
+
+Implicit flux accounts for excess snow accumulation correction.
 
 Conservation of Glacial Ice
 ---------------------------
