@@ -869,8 +869,9 @@ C**** Normal downstream flow
             IF(.not.rvrfl .and. MWL(IU,JU).gt.MWLSILL) THEN
               rvrfl=.true.
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
-              IF (MWL(IU,JU)-DMM.lt.1d-20) DMM=MWL(IU,JU)
+              IF (MWL(IU,JU)-DMM.lt.1d-6) DMM=MWL(IU,JU)
               DMM=MIN(DMM,0.5d0*RHOW*DXYP(JU)) ! minimise 'flood' events!
+
 c              IF (FLAKE(IU,JU).gt.0) THEN
 c                MLM=RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
 c                DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
@@ -886,7 +887,6 @@ c              END IF
             END IF
 
             IF (rvrfl) THEN              
-
               FLOW(IU,JU)  =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
 #ifdef TRACERS_WATER
@@ -976,7 +976,7 @@ C****
 #endif
 
 C**** remove pathologically small values
-            IF (MWL(I,J).lt.1d-20) THEN
+            IF (MWL(I,J).lt.1d-6) THEN
               MWL(I,J)=0.
               GML(I,J)=0.
 #ifdef TRACERS_WATER
@@ -1166,7 +1166,7 @@ C**** check for negative mass
 C**** check for reasonable lake surface temps
           IF (TLAKE(I,J).ge.50 .or. TLAKE(I,J).lt.-0.5) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TSL=',I,J,TLAKE(I,J)
-            if (TLAKE(I,J).lt.-1) QCHECKL = .TRUE.
+            if (TLAKE(I,J).lt.-5.and.FLAKE(I,J).gt.0) QCHECKL = .TRUE.
           END IF
         END IF
 C**** Check total lake mass ( <0.4 m, >20x orig depth)
@@ -1283,7 +1283,7 @@ C****
       integer i,j,J_0,J_1,jr,itm
       real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
      *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk
-     *     ,frsat
+     *     ,frsat,new_MLD
 #ifdef TRACERS_WATER
      *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
      &     ,tottr(ntm)
@@ -1322,6 +1322,7 @@ C**** (do not flood more than 4.9% of land per day)
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
               IF (FLAKE(I,J).eq.0) HLAKE(I,J)=MAX(1d0,HLAKE(I,J))
               IF (new_flake.gt.0 .and. hlk.gt.0.4) THEN ! new or surviving lake
+                HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it wasn't set
 C**** adjust for fearth changes
                 FRSAT=0.
                 IF (new_flake.gt.FLAKE(I,J)) THEN ! some water used to saturate
@@ -1422,9 +1423,10 @@ C**** all tracers --> tracer*FRAC, then adjust layering
                 END IF
 C**** adjust layering if necessary
                 HLK=MWL(I,J)/(RHOW*new_flake*DXYP(J))
-                IF (MLDLK(I,J)*FLAKE(I,J).lt.new_flake*MINMLD) THEN
-                  IF (FLAKE(I,J).eq.0 .or. HLK.lt.MINMLD) THEN ! new or shallow lake
-                    MLDLK(I,J)=MIN(MINMLD,HLK)
+                new_MLD=MIN(MAX(MINMLD,HLK-HLAKE(I,J)),HLK)
+                IF (MLDLK(I,J)*FLAKE(I,J).lt.new_flake*new_MLD) THEN
+                  IF (FLAKE(I,J).eq.0 .or. HLK.le.new_MLD) THEN ! new or shallow lake
+                    MLDLK(I,J)=new_MLD
 #ifdef TRACERS_WATER
                     TOTTR(:)=TRLAKE(:,1,I,J)+TRLAKE(:,2,I,J)
                     TRLAKE(:,2,I,J)=TOTTR(:)*(HLK-MLDLK(I,J))/HLK
@@ -1432,16 +1434,13 @@ C**** adjust layering if necessary
 #endif
                   ELSE  
 #ifdef TRACERS_WATER
-                    HLK2=HLK-MLDLK(I,J)*FLAKE(I,J)/new_flake
-                    IF (HLK2.gt.1d-20) THEN
-                      DTR(:)=TRLAKE(:,2,I,J)*(new_flake*MINMLD-MLDLK(I,J
-     *                     )*FLAKE(I,J))/(HLK*new_flake-MLDLK(I,J)
-     *                     *FLAKE(I,J))
-                      TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DTR(:)
-                      TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)-DTR(:)
-                    END IF
+                    DTR(:)=TRLAKE(:,2,I,J)*(new_flake*new_MLD-MLDLK(I
+     *                   ,J)*FLAKE(I,J))/(HLK*new_flake-MLDLK(I,J)
+     *                   *FLAKE(I,J))
+                    TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DTR(:)
+                    TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)-DTR(:)
 #endif
-                    MLDLK(I,J)=MINMLD
+                    MLDLK(I,J)=new_MLD
                   END IF
                 ELSE
                   MLDLK(I,J)=MLDLK(I,J)*FLAKE(I,J)/new_flake
@@ -1869,10 +1868,10 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
-      INTEGER, PARAMETER :: NDIAG=1
+      INTEGER, PARAMETER :: NDIAG=4
       INTEGER I,J,N, J_0, J_1
-      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/57/),
-     *                             JDIAG = (/31/)
+      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/41, 66, 12, 31/),
+     *                             JDIAG = (/27, 15, 36, 41/)
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
@@ -1884,21 +1883,23 @@ C****
         J=JDIAG(N)
         if (J.lt. J_0 .or. J.gt. J_1) CYCLE 
         IF (FLAKE(I,J).gt.0) THEN
-        HLK2 = MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)) - MLDLK(I,J)
-        IF (HLK2.gt.0) THEN
-        TLK2 = (GML(I,J)/(SHW*RHOW*FLAKE(I,J)*DXYP(J)) -
-     *       TLAKE(I,J)*MLDLK(I,J))/HLK2
+          HLK2 = MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)) - MLDLK(I,J)
+          IF (HLK2.gt.0) THEN
+            TLK2 = (GML(I,J)/(SHW*RHOW*FLAKE(I,J)*DXYP(J)) -
+     *           TLAKE(I,J)*MLDLK(I,J))/HLK2
+          ELSE
+            TLK2=0.
+          END IF
+          TSIL(:)=0.
+          IF (RSI(I,J).gt.0) THEN
+            TSIL(1:2) = (HSI(1:2,I,J)/(XSI(1:2)*(ACE1I+SNOWI(I,J)))+LHM)
+     *           *BYSHI
+            TSIL(3:4) = (HSI(3:4,I,J)/(XSI(3:4)*MSI(I,J))+LHM)*BYSHI
+          END IF
+          WRITE(99,*) STR,I,J,FLAKE(I,J),TLAKE(I,J),TLK2,MLDLK(I,J),HLK2
+     *         ,RSI(I,J),MSI(I,J)/RHOI,SNOWI(I,J)/RHOW,TSIL(1:4)
         ELSE
-          TLK2=0.
-        END IF
-        TSIL(:)=0.
-        IF (RSI(I,J).gt.0) THEN
-          TSIL(1:2) = (HSI(1:2,I,J)/(XSI(1:2)*(ACE1I+SNOWI(I,J)))+LHM)
-     *         *BYSHI
-          TSIL(3:4) = (HSI(3:4,I,J)/(XSI(3:4)*MSI(I,J))+LHM)*BYSHI
-        END IF
-        WRITE(99,*) STR,I,J,FLAKE(I,J),TLAKE(I,J),TLK2,MLDLK(I,J),HLK2
-     *       ,RSI(I,J),MSI(I,J)/RHOI,SNOWI(I,J)/RHOW,TSIL(1:4)
+          WRITE(99,*) STR,I,J,TLAKE(I,J),MWL(I,J)
         END IF
       END DO
 
