@@ -427,13 +427,11 @@ c      AREG_PART(:,J_0H:J_1H,1:9) = 0.
      *       -trdrydep(:,3,i,j)
 #endif
 #endif
-
         CALL LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,
 #ifdef TRACERS_WATER
      *     TRSNOW,TRLI,TREVAP,TRDIFS,TRUN0,
 #endif
      *     EDIFS,DIFS,RUN0)
-
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J)=SNOW
         TLANDI(1,I,J)=TG1
@@ -670,6 +668,10 @@ C**** we aren't getting that right anyway.
             CALL GLOBALSUM(grid, TRDWNIMP(ITM,:,:), gsum, hsum ,ALL=
      *           .TRUE.)
             trdwnimp_NH(ITM)=hsum(1) ;  trdwnimp_SH(ITM)=hsum(2)
+            print*,'Tracers:',(trdwnimp_NH(ITM)/mdwnimp_NH/trw0(itm)-1.
+     *           )*1000,(trdwnimp_SH(ITM)/mdwnimp_SH/trw0(itm)-1.)*1000
+     *           ,trdwnimp_NH(ITM),mdwnimp_NH,trdwnimp_SH(ITM)
+     *           ,mdwnimp_SH
           END DO
 #endif
 

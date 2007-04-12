@@ -2651,8 +2651,8 @@ c**** check tracers
           do j=J_0, J_1
             do i=1,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
-              if ( minval( tr_w_ij(n,:,:,i,j)   ) < 0.d0 .or.
-     &             minval( tr_wsn_ij(n,:,:,i,j) ) < 0.d0 ) then
+              if ( minval( tr_w_ij(n,:,:,i,j)   ) < -1.d15 .or.
+     &             minval( tr_wsn_ij(n,:,:,i,j) ) < -1.d15 ) then
                 print*,"Neg tracer in earth after ",SUBR,i,j,trname(n)
      &               , "tr_soil= ", tr_w_ij(n,:,:,i,j)
      &               , "TR_SNOW= ", tr_wsn_ij(n,:,:,i,j)
@@ -3664,7 +3664,7 @@ cddd            endif
             fr_snow_ij(1:2,i,j) =
      &           fr_snow_ij(1:2,i,j)*(1.d0-dfrac/fearth(i,j))
 #ifdef TRACERS_WATER
-            ! tr_wsn is spreaf over entire cell (i.e. *fr_snow)
+            ! tr_wsn is spread over entire cell (i.e. *fr_snow)
             tr_wsn_ij(:,:,1:2,i,j) = tr_wsn_ij(:,:,1:2,i,j) *
      &           (1.d0 - dfrac/fearth(i,j))
 #endif
@@ -3789,7 +3789,7 @@ cddd            endif
             fr_snow_ij(1:2,i,j) =
      &           fr_snow_ij(1:2,i,j)*(1.d0+dfrac/fearth(i,j))
 #ifdef TRACERS_WATER
-            ! tr_wsn is spreaf over entire cell (i.e. *fr_snow)
+            ! tr_wsn is spread over entire cell (i.e. *fr_snow)
             tr_wsn_ij(:,:,1:2,i,j) = tr_wsn_ij(:,:,1:2,i,j) *
      &           (1.d0 + dfrac/fearth(i,j))
 #endif
@@ -4047,12 +4047,12 @@ c     &             AREG_PART(JR,J,2) + dw*fearth(i,j)*DXYP(j)
 
             endif
           enddo
-c          print*,tot0,(fbv(1)*sum( w_ij(1:ngm,1,i,j) )
-c     &         +  fbv(2)*sum( w_ij(0:ngm,2,i,j) )
-c     &         +  fbv(1)*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1
-c     *         ,i,j))+  fbv(2)*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2
-c     *         ,i,j),2,i,j)))*fearth(i,j)*rhow+flake(i,j)*sum(
-c     *         w_ij(0:ngm,3,i,j) )*rhow
+c          print
+c     *         *,i,j,tot0,(fbv(1)*sum( w_ij(1:ngm,1,i,j) )+  fbv(2)*sum(
+c     *         w_ij(0:ngm,2,i,j) )+  fbv(1)*fr_snow_ij(1,i,j)*sum(
+c     *         wsn_ij(1:nsn_ij(1,i,j),1,i,j))+  fbv(2)*fr_snow_ij(2,i,j)
+c     *         *sum( wsn_ij(1:nsn_ij(2,i,j),2,i,j)))*fearth(i,j)*rhow
+c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 
         enddo
       enddo
