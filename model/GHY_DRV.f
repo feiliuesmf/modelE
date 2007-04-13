@@ -1301,7 +1301,7 @@ c***********************************************************************
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
-     &     ,ij_aflmlt,ij_aeruns,ij_aerunu
+     &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1426,7 +1426,7 @@ ccc the following values are returned by PBL
       shdt=-ashg
       evhdt=-alhg
 
-
+      aij(i,j,ij_fveg)=aij(i,j,ij_fveg)+fv/nisurf
       aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
       aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
       aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw

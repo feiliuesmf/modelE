@@ -2602,6 +2602,16 @@ c
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_0_3550
 c
+      k=k+1
+      IJ_FVEG = k
+      name_ij(k) = 'fr_veg' !
+      lname_ij(k) = 'FRACTION OF VEGETATED SOIL'
+      units_ij(k) = '%'
+      scale_ij(k) = 100.
+      ia_ij(k) = ia_src
+      iw_ij(k) = iw_veg
+      ir_ij(k) = ir_0_3550
+c
 c Gravity Wave diagnostics
       iDO_GWDRAG = 0
       if (DO_GWDRAG) then

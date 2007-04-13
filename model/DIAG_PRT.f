@@ -606,8 +606,9 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
         MODULE PROCEDURE GLOBALSUM_JK
       END INTERFACE
 
-      REAL*8 :: FLAND_glob(IM,JM)
-      REAL*8 :: FEARTH_glob(IM,JM)
+      !REAL*8 :: FLAND_glob(IM,JM)
+      !REAL*8 :: FEARTH_glob(IM,JM)
+      REAL*8 :: FOCEAN_glob(IM,JM)
       REAL*8 :: FLICE_glob(IM,JM)
       REAL*8 :: ZATMO_glob(IM,JM)
 
@@ -4232,9 +4233,7 @@ c     *             /(idacc(ia_ij(ij_rsoi))+teeny)
           else if (index(lname_ij(k),' x PSOIL') .gt. 0) then
             do j=1,jm      ! earth only (fland - flake - flice)
             do i=1,im
-              adenom(i,j)=fland_glob(i,j)
-     *             - aij(i,j,ij_lk)/(idacc(ia_ij(ij_lk))+teeny)
-     *             - aij(i,j,ij_li)/(idacc(ia_ij(ij_li))+teeny)
+              adenom(i,j)=wt_ij(i,j,iw_soil)
             end do
             end do
           else if (index(lname_ij(k),' x TOTAL CLOUD') .gt. 0) then
@@ -4352,7 +4351,7 @@ c**** time independent arrays
         anum = zatmo_glob*bygrav    ; irange = ir_0_3550
 
       else if (k.eq.ij_fland) then
-        anum = 100.*fland_glob
+        anum = 100.*wt_ij(:,:,iw_land)
 
 c**** vectors: magnitude
       else if (k.eq.ij_jet.or.k.eq.ij_wsmn) then
@@ -4607,7 +4606,7 @@ c**** find hemispheric and global means
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
-     &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
+     &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG,idacc
       USE RAD_COM, only : cloud_rad_forc
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
@@ -4722,13 +4721,23 @@ C****
 C**** Collect the appropriate weight-arrays in WT_IJ
       do J=1,JM
       do i=1,im
-        wt_ij(i,j,1) = 1.
+        wt_ij(i,j,iw_all) = 1.
 cgsfc        wt_ij(i,j,2) = focean(i,j)
+        wt_ij(i,j,iw_ocn) = focean_glob(i,j)
 cgsfc        wt_ij(i,j,3) = flake(i,j)
+        wt_ij(i,j,iw_lake) = aij(i,j,ij_lk)/(idacc(ia_ij(ij_lk))+teeny)
 cgsfc        wt_ij(i,j,4) = flice(i,j)
+        wt_ij(i,j,iw_lice) = flice_glob(i,j)
 cgsfc        wt_ij(i,j,5) = fearth(i,j)
+        wt_ij(i,j,iw_soil) = 1.d0 - wt_ij(i,j,iw_ocn)
+     &       - wt_ij(i,j,iw_lake) -  wt_ij(i,j,iw_lice)
 cgsfc        wt_ij(i,j,6) = fearth(i,j)*(vdata(i,j,1)+vdata(i,j,10))
+        wt_ij(i,j,iw_bare) = wt_ij(i,j,iw_soil)
+     &       *aij(i,j,ij_fveg)/(idacc(ia_ij(ij_fveg))+teeny)
 cgsfc        wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
+        wt_ij(i,j,iw_veg) = wt_ij(i,j,iw_soil)
+     &       *(1.d0 - aij(i,j,ij_fveg)/(idacc(ia_ij(ij_fveg))+teeny))
+        wt_ij(i,j,iw_land) = wt_ij(i,j,iw_soil) + wt_ij(i,j,iw_lice)
       end do
       end do
 C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
@@ -4908,7 +4917,7 @@ c**** for angles, change range from -180->180 to 0-360 (fac=.1)
           if (irange.eq.ir_angl .and. val.lt.-.5) val = val+36.
           if (irange.eq.ir_angl .and. val.le..1) val = .1
           line(k)(k1:k1) = mark(val,ibar,undef)
-          if (fland_glob(i,j).gt..5) line(k+1)(k1:k1) = line(k)(k1:k1)
+          if (wt_ij(i,j,iw_land).gt..5) line(k+1)(k1:k1)=line(k)(k1:k1)
           line(k+1)(1:1) = '+'             !  overstrike
         end do
       end do
@@ -4948,7 +4957,7 @@ C**** Print out full-page digital maps
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
-      use diag_com, only : inc=>inci
+      use diag_com, only : inc=>inci,wt_ij,iw_land
       IMPLICIT NONE
 
       CHARACTER*48 TITLE
@@ -4991,7 +5000,7 @@ C**** PRINT MAP
         if (SMAPJ(J).eq.undef) AVG='         '
         WRITE (6,920) NINT(LAT_DG(J,jgrid)),J,(LINE(I),I=1,IM,INC),AVG
         DO I=1,IM
-          IF (FLAND_glob(I,J).lt..5) LINE(I)='   '
+          IF (wt_ij(i,j,iw_land).lt..5) LINE(I)='   '
         end do
         WRITE (6,925) (LINE(I),I=1,IM,INC)
         WRITE (6,925) (LINE(I),I=1,IM,INC)
@@ -6208,8 +6217,8 @@ c**** Collect temperatures and pressures (on the secondary grid)
       do ip1=1,im
         ts=.25*(aij(i,j,ij_ts)+aij(i,j-1,ij_ts)+
      +      aij(ip1,j,ij_ts)+aij(ip1,j-1,ij_ts))/idacc(ia_src)
-        pland=.25*(fland_glob(i,j)+fland_glob(i,j-1)+fland_glob(ip1,j)+
-     +       fland_glob(ip1,j-1))
+        pland = .25*(wt_ij(i,j,iw_land) + wt_ij(i,j-1,iw_land)
+     &       + wt_ij(ip1,j,iw_land) + wt_ij(ip1,j-1,iw_land))
         plb(lm+1)=pmtop
         do l=lm,1,-1
           dp=aijk(i,j,l,ijk_dp)
@@ -6296,15 +6305,15 @@ C****
       END subroutine vntrp1
 
       SUBROUTINE DIAG_GATHER
-      USE MODEL_COM, only : IM, FLAND, FOCEAN, FLICE, ZATMO
-      USE LAKES_COM, only : FLAKE
-      USE GHY_COM, only : FEARTH
-#ifdef USE_ENT
-      use ent_com, only : entcells
-      use ent_mod, only : ent_get_exports
-#else
-      USE VEG_COM,   only : vdata
-#endif
+      USE MODEL_COM, only : IM, FOCEAN, FLICE, ZATMO
+cddd      USE LAKES_COM, only : FLAKE
+cddd      USE GHY_COM, only : FEARTH
+cddd#ifdef USE_ENT
+cddd      use ent_com, only : entcells
+cddd      use ent_mod, only : ent_get_exports
+cddd#else
+cddd      USE VEG_COM,   only : vdata
+cddd#endif
       USE DIAG_COM, only : AIJ,  AIJ_loc, AJ,   AJ_loc, AREGJ,
      *     AREGJ_loc, APJ, APJ_loc, AJK,  AJK_loc, AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
@@ -6314,15 +6323,16 @@ C****
      *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
      *     TCONSRV, TCONSRV_loc 
 #endif
-      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj, GET
+      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
       USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM
+      USE CONSTANT, only : NaN
       IMPLICIT NONE
-      INTEGER :: J_0, J_1, J_0H, J_1H
-      REAL*8, ALLOCATABLE :: tmp(:,:)
-#ifdef USE_ENT
-      REAL*8, ALLOCATABLE :: fract_vege(:,:)
-      INTEGER i,j
-#endif
+cddd      INTEGER :: J_0, J_1, J_0H, J_1H
+cddd      REAL*8, ALLOCATABLE :: tmp(:,:)
+cddd#ifdef USE_ENT
+cddd      REAL*8, ALLOCATABLE :: fract_vege(:,:)
+cddd      INTEGER i,j
+cddd#endif
 
       CALL PACK_DATAj(GRID, AJ_loc,  AJ)
       CALL PACK_DATA(GRID, AREGJ_loc,  AREGJ)
@@ -6345,39 +6355,41 @@ C****
 #endif
 
 ! Now the external arrays
-      CALL PACK_DATA(GRID, fland, fland_glob)
-      CALL PACK_DATA(GRID, fearth, fearth_glob)
+      !!CALL PACK_DATA(GRID, fland, fland_glob)
+      !!CALL PACK_DATA(GRID, fearth, fearth_glob)
+      CALL PACK_DATA(GRID, focean, focean_glob)
       CALL PACK_DATA(GRID, flice, flice_glob)
       CALL PACK_DATA(GRID, zatmo, zatmo_glob)
 
-      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
-     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      ALLOCATE(tmp(IM, J_0H:J_1H))
+cddd      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
+cddd     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+cddd      ALLOCATE(tmp(IM, J_0H:J_1H))
+cddd
+cddd      wt_ij(:,:,1) = 1.
+      wt_ij(:,:,:) = NaN
+      !!CALL PACK_DATA(GRID, focean, wt_ij(:,:,2))
+      !!CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))  ! not correct 
+      !!CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
+      !!CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))  ! not correct
 
-      wt_ij(:,:,1) = 1.
-      CALL PACK_DATA(GRID, focean, wt_ij(:,:,2))
-      CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))  ! not correct 
-      CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
-      CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))  ! not correct
-
-#ifdef USE_ENT
-      ALLOCATE(fract_vege(IM, J_0H:J_1H))
-      call ent_get_exports( entcells(1:IM,J_0:J_1),
-     &           fraction_of_vegetated_soil=fract_vege(1:IM,J_0:J_1) )
-      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * (1.d0-fract_vege(:,J_0:J_1))
-      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
-      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * fract_vege(:,J_0:J_1)
-      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
-      DEALLOCATE(fract_vege)
-#else
-      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
-     &     (vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10))
-      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
-      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
-     &     (1.-(vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10)))
-      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
-#endif
-      DEALLOCATE(tmp)
+cddd#ifdef USE_ENT
+cddd      ALLOCATE(fract_vege(IM, J_0H:J_1H))
+cddd      call ent_get_exports( entcells(1:IM,J_0:J_1),
+cddd     &           fraction_of_vegetated_soil=fract_vege(1:IM,J_0:J_1) )
+cddd      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * (1.d0-fract_vege(:,J_0:J_1))
+cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
+cddd      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * fract_vege(:,J_0:J_1)
+cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
+cddd      DEALLOCATE(fract_vege)
+cddd#else
+cddd      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
+cddd     &     (vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10))
+cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
+cddd      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
+cddd     &     (1.-(vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10)))
+cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
+cddd#endif
+cddd      DEALLOCATE(tmp)
 
       call gather_odiags
 

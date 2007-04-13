@@ -403,7 +403,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
      *     IJ_FWIO, IJ_HTIO, IJ_STIO, IJ_DSKIN,
      *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
-     *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK
+     *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
+     &     IJ_FVEG
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
@@ -496,12 +497,12 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IW_IJ weighting indices for IJ diagnostics
       integer, dimension(kaij), public :: iw_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
-      integer, parameter, public :: nwts_ij = 7
+      integer, parameter, public :: nwts_ij = 8
 !@var wt_ij various weight-arrays use in ij-diagnostics
       real*8, dimension(IM,JM,NWTS_IJ), public :: wt_ij
 !@var IW_xxx index for weight-array
       integer, parameter, public :: iw_all=1 , iw_ocn=2 , iw_lake=3,
-     *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7
+     *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7, iw_land=8
 !@var IR_IJ range indices for IJ diagnostics
       integer, dimension(kaij), public :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
