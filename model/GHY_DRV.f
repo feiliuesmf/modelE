@@ -2793,7 +2793,7 @@ C**** Extract useful local domain parameters from "grid"
       ! lake fraction changed
       if (end_of_day .and. variable_lk > 0) call update_land_fractions
 
-      if (end_of_day) call remove_extra_snow
+      ! if (end_of_day) call remove_extra_snow_to_ocean
 
 !!! testing
 !!!      aalbveg(:,:) = 0.08D0
@@ -3943,7 +3943,7 @@ c**** wearth+aiearth are used in radiation only
       end subroutine set_new_ghy_cells_outputs
 
 
-      subroutine remove_extra_snow
+      subroutine remove_extra_snow_to_ocean ! bad idea ?
       use constant, only : rhow
       use ghy_com, only : nsn_ij, dzsn_ij, wsn_ij, hsn_ij,
      &     fr_snow_ij,fearth,w_ij,ngm
@@ -4070,4 +4070,4 @@ c      AREG(1:SIZE(AREG,1),J_IMPLM)  =AREG(1:SIZE(AREG,1),J_IMPLM)
 c     &   + AREG_SUM(1:SIZE(AREG,1),2)
 
 
-      end subroutine remove_extra_snow
+      end subroutine remove_extra_snow_to_ocean

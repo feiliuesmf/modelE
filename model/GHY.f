@@ -1787,6 +1787,7 @@ cddd     &     , tr_w(1,:,1) - w(:,1) * 1000.d0
 cddd      print '(a,10(e12.4))', 'tr_w_2 '
 cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 !!!
+        call restrict_snow
         call check_water(1)
         call check_energy(1)
         call accm
@@ -2401,6 +2402,13 @@ ccc and now limit all the snow to 5cm water equivalent
             wsn(1,ibv)= snowd(ibv)
             hsn(1,ibv)= tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
           endif
+ccc and now limit all the snow to 50cm water equivalent (for debug)
+cddd          if ( snowd(ibv) .gt. 0.0005d0 ) then
+cddd            snowd(ibv) = 0.5d0
+cddd            dzsn(1,ibv)= snowd(ibv) * 5.d0
+cddd            wsn(1,ibv)= snowd(ibv)
+cddd            hsn(1,ibv)= tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+cddd          endif
 
 ccc redistribute snow over the layers and recompute fr_snow
 ccc (to make the data compatible with snow model)
@@ -3020,9 +3028,10 @@ c    &       'GHY: water conservation problem in veg. soil',255)
      &       + rnf(1)*max(tp(1,1),0.d0) )
      &       - srht - trht + thrm_tot(1) + snsh_tot(1)
 
-        if ( abs( error_energy ) > 1.d-5 )
-c    &       call stop_model('GHY: energy conservation problem',255)
-     &       write(0,*)'GHY:bare soil error_energy',ijdebug,error_energy
+        if ( abs( error_energy ) > 1.d-5 ) then
+          write(0,*)'GHY:bare soil error_energy',ijdebug,error_energy
+          !call stop_model('GHY: energy conservation problem',255)
+        endif
       endif
 
       ! vegetated soil
@@ -3034,14 +3043,65 @@ c    &       call stop_model('GHY: energy conservation problem',255)
      &       + rnf(2)*max(tp(1,2),0.d0) )
      &       - srht - trht + thrm_tot(2) + snsh_tot(2)
 
-       if ( abs( error_energy ) > 1.d-5)
-c    &   call stop_model('GHY: energy cons problem in veg. soil',255)
-     &       write(0,*)'GHY:veg soil error_energy',ijdebug,error_energy
+        if ( abs( error_energy ) > 1.d-5) then
+          write(0,*)'GHY:veg soil error_energy',ijdebug,error_energy
+          !call stop_model('GHY: energy cons problem in veg. soil',255)
+        endif
       endif
 
       ghy_debug%energy(:) = total_energy(:)
 
       end subroutine check_energy
+
+
+      subroutine restrict_snow
+!@sum remove the snow in excess of WSN_MAX and dump its water into 
+!@+   runoff, keeping associated heat in the soil
+      real*8, parameter :: WSN_MAX = 2.d0 ! 2 m of water equivalent
+      !real*8, parameter :: WSN_MAX = .2d0 ! .2 m of water equivalent
+      real*8 :: wsn_tot,d_wsn,eta,dw(2:3),dh(2:3)
+      integer :: ibv
+
+      do ibv=i_bare,i_vege
+
+        if ( fr_snow(ibv) <= 0.d0 ) cycle
+        wsn_tot = sum( wsn(1:nsn(ibv),ibv) )
+        if ( wsn_tot <= WSN_MAX ) cycle
+
+         ! check if snow structure ok for thick snow
+        if ( nsn(ibv) < 3)
+     &       call stop_model("remove_extra_snow: nsn<3",255)
+        
+        d_wsn = wsn_tot - WSN_MAX
+
+        ! do not remove too much at a time (for now 24mm / day)
+        d_wsn = min( d_wsn, 1.d-3*dts/3600.d0 )
+
+        !print *,"restricting snow: wsn_tot = ", wsn_tot,ijdebug
+        !print *,"before:",hsn(1:3, ibv),fr_snow(ibv) ,ht(1,ibv)
+              ! fraction of snow to be removed:
+        eta = d_wsn/sum(wsn(2:3,ibv))
+        dw(2:3) = eta*wsn(2:3, ibv)
+        dh(2:3) = eta*hsn(2:3, ibv)
+        !print *,"dw,dh:",dw,dh
+        wsn(2:3, ibv)  = wsn(2:3, ibv) - dw(2:3)
+        hsn(2:3, ibv)  = hsn(2:3, ibv) - dh(2:3)
+        dzsn(2:3, ibv) = (1.d0-eta)*dzsn(2:3, ibv)
+
+        rnf(ibv) = rnf(ibv)   + sum(dw(2:3))*fr_snow(ibv)/dts
+        ht(1,ibv) = ht(1,ibv) + sum(dh(2:3))*fr_snow(ibv)
+     &       - sum(dw(2:3))*fr_snow(ibv)*max(tp(1,ibv),0.d0)*shw
+        !print *,"after:",hsn(1:3, ibv),fr_snow(ibv) ,ht(1,ibv)
+
+#ifdef TRACERS_WATER
+        tr_rnff(1:ntg,ibv) = tr_rnff(1:ntg,ibv) +
+     &       eta*(tr_wsn(1:ntg,2,ibv)+tr_wsn(1:ntg,3,ibv))
+        tr_wsn(1:ntg,2:3,ibv) = (1.d0-eta)*tr_wsn(1:ntg,2:3,ibv)
+#endif
+
+      end do
+
+      end subroutine restrict_snow
 
 
       end module sle001
