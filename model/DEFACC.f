@@ -2609,8 +2609,8 @@ c
       units_ij(k) = '%'
       scale_ij(k) = 100.
       ia_ij(k) = ia_src
-      iw_ij(k) = iw_veg
-      ir_ij(k) = ir_0_3550
+      !iw_ij(k) = iw_veg
+      !ir_ij(k) = ir_0_3550
 c
 c Gravity Wave diagnostics
       iDO_GWDRAG = 0
