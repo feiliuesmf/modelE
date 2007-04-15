@@ -294,7 +294,7 @@
       use icedyn_com, only : rsix,rsiy,usi,vsi,icij
       use icedyn, only : imic
       use diag_com, only : keynr,tsfrez,tdiurn,oa
-      use diag_com, only : aj,areg,apj,ajl,asjl,aij,ail,energy,consrv &
+      use diag_com, only : aj,aregj,apj,ajl,asjl,aij,ail,energy,consrv &
            ,speca,atpe,adiurn,wave,ajk,aijk,aisccp
 #ifndef NO_HDIURN
       use diag_com, only : hdiurn
@@ -542,7 +542,7 @@
 
         ! diagnostics from diag_com
         check("aj",aj)
-        check("areg",areg)
+        check("aregj",aregj)
         check("apj",apj)
         check("ajl",ajl)
         check("asjl",asjl)
