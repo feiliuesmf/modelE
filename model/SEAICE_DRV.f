@@ -684,7 +684,7 @@ C****
      *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
+      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
 #endif
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,j_rsi,j_ace1,j_ace2,j_snow
@@ -857,7 +857,8 @@ C**** ACCUMULATE DIAGNOSTICS
 #ifdef TRACERS_WATER
 C**** Save sea ice tracer amount
       do n=1,ntm
-        if (itime_tr0(n).le.itime .and. tr_wd_TYPE(n).eq.nWater) then
+        if (itime_tr0(n).le.itime .and. (tr_wd_TYPE(n).eq.nWater .or.
+     *      tr_wd_TYPE(n).eq.nPART)) then
           taijn(i,j,tij_seaice,n)=taijn(i,j,tij_seaice,n)+
      *         POICE*sum(trsil(n,:))
         end if
