@@ -258,7 +258,7 @@
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays
       use domain_decomp, only : init_app, grid, finish_app
-      use model_com, only : ioread
+      use model_com, only : ioread,ioread_nodiag
       use model_com, only : im,jm,lm
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
@@ -389,7 +389,11 @@
 
       do i=1,2
         call openunit( file_name(i), fd, .true., .true. )
+#ifndef SKIP_DIAG
         call io_rsf( fd, Itime(i), ioread, ioerr )
+#else
+        call io_rsf( fd, Itime(i), ioread_nodiag, ioerr )
+#endif
         call closeunit( fd )
         if ( ioerr == 1 ) then
            print *, 'There was an error while reading input file.'

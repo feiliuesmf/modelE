@@ -192,6 +192,7 @@ C**** slightly larger, to sample all points within the cycle
 !@param IRERUN Flag used for reading in restart part to extend OLD run
       INTEGER, PARAMETER :: ioread=1,ioread_single=2,
      *     irerun=3,irsfic=4,irsficnt=5,ioreadnt=6,irsficno=7,
+     *     ioread_nodiag=8,
      *     iowrite=-1,iowrite_single=-2,iowrite_mon=-3
 
 !**** Main model prognostic variables
