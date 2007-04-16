@@ -10896,10 +10896,10 @@ c!OMSP
      &    * RECIP_PART_MASS(4)
          end do
 #endif
+#endif
       end select
       end do
       END SUBROUTINE set_tracer_2Dsource
-#endif
 
 
       SUBROUTINE tracer_3Dsource
