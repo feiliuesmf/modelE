@@ -18,7 +18,7 @@ else
   for x in $* ; do echo $x ; done
 fi
 
-rmdir -rf ___work 2> /dev/null  ; mkdir ___work
+rm -rf ___work 2> /dev/null  ; mkdir ___work
 
 files=''
 for x in $*
