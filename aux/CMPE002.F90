@@ -293,6 +293,8 @@
 #endif
       use icedyn_com, only : rsix,rsiy,usi,vsi,icij
       use icedyn, only : imic
+
+#ifndef SKIP_DIAG
       use diag_com, only : keynr,tsfrez,tdiurn,oa
       use diag_com, only : aj,aregj,apj,ajl,asjl,aij,ail,energy,consrv &
            ,speca,atpe,adiurn,wave,ajk,aijk,aisccp
@@ -304,12 +306,15 @@
 #ifdef CHECK_OCEAN
       use odiag, only: oij,oijl,ol,olnst
 #endif
+#endif
 
 !ccc  include tracers data here
 #ifdef TRACERS_ON
       use pblcom, only : trabl
       use tracer_com, only : trm,trmom
+#ifndef SKIP_DIAG
       use trdiag_com, only: taijln,taijn,taijs,tajln,tajls,tconsrv
+#endif
 
 #  ifdef TRACERS_WATER
       use lakes_com, only : trlake
@@ -540,6 +545,7 @@
           check("VSI",VSI)
         end if
 
+#ifndef SKIP_DIAG
         ! diagnostics from diag_com
         check("aj",aj)
         check("aregj",aregj)
@@ -560,7 +566,6 @@
 #ifndef NO_HDIURN
         check("hdiurn",hdiurn)
 #endif
-
         ! diags
         check("KEYNR",KEYNR)
         check("TSFREZ",TSFREZ)
@@ -579,17 +584,20 @@
         check("ol",ol)
         check("olnst",olnst)
 #endif
+#endif
 
 !ccc    compare tracers data here
 #ifdef TRACERS_ON
         check("TRM",TRM)
         check("TRmom",TRmom)
+#ifndef SKIP_DIAG
         check("taijln",taijln)
         check("taijn",taijn)
         check("taijs",taijs)
         check("tajln",tajln)
         check("tajls",tajls)
         check("tconsrv",tconsrv)
+#endif
 
 #  ifdef TRACERS_WATER
         check("trlake",trlake)
