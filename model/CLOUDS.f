@@ -2428,7 +2428,7 @@ cdmk added arguments above; THLAW added below (no way to factor this)
           TMFAC=0.
           TMFAC2=0.
         ENDIF
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
+        FPRT=FPR
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)

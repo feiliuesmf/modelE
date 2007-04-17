@@ -11633,64 +11633,6 @@ c
       END SUBROUTINE GET_COND_FACTOR
 
 
-      SUBROUTINE GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FQ0,fq,ntix)
-!@sum  GET_PREC_FACTOR calculation of the precipitation scavenging
-!@+    fraction for tracers WITHIN large scale clouds. Current version
-!@+    uses the first order removal rate based on [Giorgi and
-!@+    Chameides, 1986], for gaseous and particulate tracers.
-!@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 RAINOUT subroutine)
-c
-C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only: dtsrc
-      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,ntm
-c      USE CLOUDS, only: NTIX
-c
-      IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments:
-!@var FQ            tracer fraction scavenged into precipitation
-!@var FQ0 [default] tracer fraction scavenged into precipitation
-!@var FCLD cloud fraction
-!@var N index for tracer number loop
-!@var CM conversion rate for large cloud water content
-!@var BELOW_CLOUD logical- is the current level below cloud?
-      LOGICAL, INTENT(IN) :: BELOW_CLOUD
-      INTEGER, INTENT(IN) :: N,ntix(ntm)
-      REAL*8,  INTENT(IN) :: FQ0, FCLD, CM
-      REAL*8,  INTENT(OUT):: FQ
-c
-      SELECT CASE(tr_wd_TYPE(NTIX(N)))
-        CASE(nGAS)                                ! gas
-c         IF(BELOW_CLOUD) THEN
-c           fq = 0.D0
-c         ELSE
-c           minus preserves FPRT sign convention in LSCOND
-c           fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
-            fq=FQ0
-c         END IF
-        CASE(nWATER)                          ! water/original method
-          fq = FQ0                            ! no fractionation
-        CASE(nPART)                           ! aerosols
-c         IF(BELOW_CLOUD) THEN
-c           fq = 0.D0
-c         ELSE
-c           minus preserves FPRT sign convention in LSCOND
-c           fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
-c We could try the following, to make removal amount proportional
-c   to autoconversion (CM*DTsrc). The 2nd factor of CM*DTsrc
-c   approximates the fraction of the cloud that is precipitating
-            fq =  FQ0   ! CM*DTsrc*CM*DTsrc
-c         END IF
-        CASE DEFAULT                          ! error
-          call stop_model(
-     &    'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT',255)
-      END SELECT
-c
-      RETURN
-      END SUBROUTINE GET_PREC_FACTOR
-
-
       SUBROUTINE GET_WASH_FACTOR(N,b_beta_DT,PREC,fq
      * ,TEMP,LHX,WMXTR,FCLOUD,L,TM,TRPR,THLAW,pl,ntix)
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer

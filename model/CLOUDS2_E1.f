@@ -2695,7 +2695,8 @@ cdmk added arguments above; THLAW added below (no way to factor this)
           TMFAC=0.
           TMFAC2=0.
         ENDIF
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
+!gone:  CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
+        FPRT=FPR
 c ---------------------- calculate fluxes ------------------------
         DTERT = FERT  *TRPRBAR(N,L+1)
         DTPRT = FPRT  *TRWML(N,L)
@@ -3204,7 +3205,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.13 2007/04/09 01:38:54 jan Exp $
+!$Id: CLOUDS2_E1.f,v 1.14 2007/04/17 00:07:20 faluvegi Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
