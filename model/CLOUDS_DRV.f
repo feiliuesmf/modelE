@@ -351,7 +351,7 @@ C****
 C**** MAIN I LOOP
 C****
       DO I=1,IMAXJ(J)
-cc       JR=JREG(I,J)  ! summing done outside parallel region
+       JR=JREG(I,J)  ! summing done outside parallel region
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS FOR MSTCNV
 C****
