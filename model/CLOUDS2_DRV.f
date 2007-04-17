@@ -446,7 +446,7 @@ C****
 !$OMP*  n1,n_fidx,
 #endif
 #endif
-!$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
+!$OMP*  ITROP,IERR, J,JERR,JR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
 !$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,q0,q1,q2,WM1,WMI,sunlit)
@@ -1520,7 +1520,7 @@ C**** Accumulate AISCCP array
       AISCCP(1:ntau,1:npres,1:nisccp) = AISCCP(1:ntau,1:npres,1:nisccp)
      *     +AISCCPSUM(1:ntau,1:npres,1:nisccp)
 
-C****Accumulate diagnostigs into AREG in a way that insures bitwise
+C****Accumulate diagnostics into AREG in a way that insures bitwise
 C    identical results regardless of number of distributed processes used.
 c      AREG_part(:,J_0H:J_1H,1:3) = 0
 c      DO J=J_0,J_1

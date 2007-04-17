@@ -1190,7 +1190,7 @@ C**** Calculate density gradients
       RHOMZ = -0.0; BYRHOZ = -0.0;
       RHOY = -0.0; RHOX = -0.0;
 
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,J2)
       DO L=1,LMO
        !DO J=2,JM
         J2 = min(J_1STG+1, JM)

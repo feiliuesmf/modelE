@@ -1215,7 +1215,7 @@ C****
       DIURN_part=0.
       DIURN_partb=0.
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-!$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
+!$OMP*   I,INCH,IH,IHM,IT, J,JR, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
 !$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
 !$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
 !$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,
