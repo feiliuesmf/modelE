@@ -402,6 +402,10 @@ C**** Calculate J1O = least J with some ocean
       Do 130 J=1,JM
   130 If (Sum(FOCEAN(:,J)) > 0)  GoTo 140
   140 J1O = J
+      write(6,*) "Minimum J with some ocean:",J1O
+C**** Fix to 4 for temporary consistency
+      J1O=4 
+      write(6,*) "Fixed J1O:",J1O
 
 C**** Calculate LMM and modify HOCEAN
       call sync_param("LMO_min",LMO_min)
