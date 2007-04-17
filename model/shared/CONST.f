@@ -30,7 +30,7 @@ C**** Numerical constants
       real*8,parameter :: undef=-1.d30
 !@param teeny  small positive value used in num/(den+teeny) to avoid 0/0
       real*8,parameter :: teeny=1.d-30
-      integer*8,parameter :: intNaN=Z'FFFFFFFFFFFFFFFF'
+      integer*8,parameter :: intNaN=-1  ! i.e. = Z'FFFFFFFFFFFFFFFF'
 !@param NaN NaN
       real*8,parameter :: NaN=transfer(intNaN,1.d0)
 
