@@ -4,9 +4,8 @@
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat
+      USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat,lm_req
       USE GEOM, only : dlon
-      USE RAD_COM, only : LM_REQ
 
       IMPLICIT NONE
       SAVE
@@ -728,10 +727,9 @@ c idacc-indices of various processes
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
       USE RESOLUTION, ONLY : IM,LM
-      USE MODEL_COM, ONLY : NTYPE
+      USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG
-      USE RAD_COM, only : LM_REQ
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc, AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc
