@@ -445,25 +445,25 @@ C**** if there is a problem try nearest neighbour
       IF((LMM(I,J).GT.0).AND.(ABS(MO(I,J,1)/ZE(1)-1d3).GT.5d1)) THEN
         WRITE (6,931) I,J,LMIJ,MO(I,J,1),ZE(1)
         II=0 ; JJ=0
-        IF (MO(I,J+1,1).gt.0 .and. LMM(I,J+1).ge.LMM(I,J)) THEN
+        IF (MO4(I,J+1,1).gt.0 .and. LMM(I,J+1).ge.LMM(I,J)) THEN
           II=I ; JJ=J+1
-        ELSEIF (MO(I+1,J,1).gt.0 .and. LMM(I+1,J).ge.LMM(I,J)) THEN
+        ELSEIF (MO4(I+1,J,1).gt.0 .and. LMM(I+1,J).ge.LMM(I,J)) THEN
           II=I+1 ; JJ=J
-        ELSEIF (MO(I,J-1,1).gt.0 .and. LMM(I,J-1).ge.LMM(I,J)) THEN
+        ELSEIF (MO4(I,J-1,1).gt.0 .and. LMM(I,J-1).ge.LMM(I,J)) THEN
           II=I ; JJ=J-1
-        ELSEIF (MO(I-1,J,1).gt.0 .and. LMM(I-1,J).ge.LMM(I,J)) THEN
+        ELSEIF (MO4(I-1,J,1).gt.0 .and. LMM(I-1,J).ge.LMM(I,J)) THEN
           II=I-1 ; JJ=J
-        ELSEIF (MO(I+1,J+1,1).gt.0 .and. LMM(I+1,J+1).ge.LMM(I,J)) THEN
+        ELSEIF (MO4(I+1,J+1,1).gt.0 .and. LMM(I+1,J+1).ge.LMM(I,J)) THEN
           II=I+1 ; JJ=J+1
-        ELSEIF (MO(I-1,J+1,1).gt.0 .and. LMM(I-1,J+1).ge.LMM(I,J)) THEN
+        ELSEIF (MO4(I-1,J+1,1).gt.0 .and. LMM(I-1,J+1).ge.LMM(I,J)) THEN
           II=I-1 ; JJ=J+1
-        ELSEIF (MO(I+1,J-1,1).gt.0 .and. LMM(I+1,J-1).ge.LMM(I,J)) THEN
+        ELSEIF (MO4(I+1,J-1,1).gt.0 .and. LMM(I+1,J-1).ge.LMM(I,J)) THEN
           II=I+1 ; JJ=J-1
-        ELSEIF (MO(I-1,J-1,1).gt.0 .and. LMM(I-1,J-1).ge.LMM(I,J)) THEN
+        ELSEIF (MO4(I-1,J-1,1).gt.0 .and. LMM(I-1,J-1).ge.LMM(I,J)) THEN
           II=I-1 ; JJ=J-1
         END IF
         IF (II.ne.0) THEN
-          MO(I,J,1:LMM(I,J))=MO(II,JJ,1:LMM(I,J))
+          MO(I,J,1:LMM(I,J))=MO4(II,JJ,1:LMM(I,J))
           G0M4(I,J,1:LMM(I,J))=G0M4(II,JJ,1:LMM(I,J))
           S0M4(I,J,1:LMM(I,J))=S0M4(II,JJ,1:LMM(I,J))
           GZM4(I,J,1:LMM(I,J))=GZM4(II,JJ,1:LMM(I,J))
