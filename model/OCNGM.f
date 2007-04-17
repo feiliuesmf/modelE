@@ -1103,7 +1103,7 @@ C****
       REAL*8, DIMENSION(IM,JM) ::  AINV_glob
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
-      INTEGER :: J2
+      INTEGER :: J_1HR
       LOGICAL :: HAVE_NORTH_POLE
       logical :: dothis
 
@@ -1190,11 +1190,11 @@ C**** Calculate density gradients
       RHOMZ = -0.0; BYRHOZ = -0.0;
       RHOY = -0.0; RHOX = -0.0;
 
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,J2)
+      J_1HR = min(J_1STG+1, JM)
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
       DO L=1,LMO
        !DO J=2,JM
-        J2 = min(J_1STG+1, JM)
-        DO J=J_0STG,J2
+        DO J=J_0STG,J_1HR
           IM1 = IM
           DO I=1,IM
 C**** Skip non-ocean grid points
