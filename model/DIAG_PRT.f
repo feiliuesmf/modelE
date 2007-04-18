@@ -4148,7 +4148,7 @@ c Check the count
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
 !+    (l)name/units are set in DEFACC/IJ_TITLEX but may be altered here
       USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef
-     *     ,teeny 
+     *     ,teeny
       USE MODEL_COM, only : im,jm,fim,jeq,byim,DTsrc,ptop,IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID
@@ -4190,7 +4190,7 @@ c**** offsets ("  + " or "  - " in lname_ij, i.e. 2 blanks,+|-,1 blank)
           else if (index(lname_ij(k),'  - PTOP') .gt. 0)  then
             off = -ptop
           end if
-          lname_ij(k)(k1:80) = ' ' ; lname = lname_ij(k)
+          lname(k1:80) = ' '
         end if
         byiacc = 1./(idacc(ia_ij(k))+teeny)
         do j=1,jm
@@ -4335,7 +4335,7 @@ c     *             /(idacc(ia_ij(ij_rsoi))+teeny)
             end do
             end do
           end if
-          lname_ij(k)(k1:80) = ' '    ; lname = lname_ij(k)
+          lname(k1:80) = ' '
         end if
         go to 100
       end if
@@ -6321,7 +6321,7 @@ cddd#endif
 #ifdef TRACERS_ON
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
      *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc 
+     *     TCONSRV, TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
       USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM
@@ -6368,7 +6368,7 @@ cddd
 cddd      wt_ij(:,:,1) = 1.
       wt_ij(:,:,:) = NaN
       !!CALL PACK_DATA(GRID, focean, wt_ij(:,:,2))
-      !!CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))  ! not correct 
+      !!CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))  ! not correct
       !!CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
       !!CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))  ! not correct
 
@@ -6402,7 +6402,7 @@ cddd      DEALLOCATE(tmp)
 #ifdef TRACERS_ON
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN , TAIJN_loc,
      *     TAIJS , TAIJS_loc, TAJLN , TAJLN_loc, TAJLS , TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc 
+     *     TCONSRV, TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       IMPLICIT NONE
