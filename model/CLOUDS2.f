@@ -1326,7 +1326,7 @@ C**** CHECK THE DOWNDRAFT POSSIBILITY
 C**** Define downdraft properties
 C****
       IF(L-LMIN.LE.1) GO TO 291
-      IF(ETADN.GT.1d-10) GO TO 291 ! comment out for multiple downdrafts
+C     IF(ETADN.GT.1d-10) GO TO 291 ! comment out for multiple downdrafts
       SMIX=.5*(SUP+SMP/MPLUME)
       QMIX=.5*(QUP+QMP/MPLUME)
 C     WMIX=.5*(WMUP+WMDN)
@@ -1335,9 +1335,9 @@ C     DMMIX=(SVUP-SVMIX)*PLK(L)+
 C    *  SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
 C     IF(DMMIX.LT.1d-10) GO TO 291
       IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
-      IF(PL(L).GT.700.) GO TO 291   ! do we need this condition?
+C     IF(PL(L).GT.700.) GO TO 291   ! do we need this condition?
       LDRAFT=L                      ! the highest downdraft level
-      ETADN=BY3
+      ETADN=.23d0
       FLEFT=1.-.5*ETADN
       DDRAFT=ETADN*MPLUME
       DDR(L)=DDRAFT
