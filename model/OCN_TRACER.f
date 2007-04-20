@@ -200,8 +200,10 @@ C**** Initiallise strait values based on adjacent ocean boxes
      *           -ssist(3:lmi,nst))
 #endif
           end do
-          call bcast_straits(.false.) ! bcst tracers
+
         end if
+
+        call bcast_straits(.false.) ! bcst tracers
 
 C**** Balance tracers so that average concentration is TRW0 
 C**** or oc_tracer_mean
@@ -343,7 +345,7 @@ C****
       USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
 !@var OSALT zonal ocean tracer (kg/m^2)
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OTR
+      REAL*8, DIMENSION(GRID%J_STRT:GRID%J_STOP) :: OTR
       INTEGER I,J,L,N,ITR
 
       INTEGER :: J_0, J_1
