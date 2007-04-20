@@ -77,7 +77,7 @@
       ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
       ! total number of individuals (may want to do by biomass of cohort)
       ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
-      use cohorts, only: zero_cohort
+
       use canopyrad
       implicit none
       type(patch),pointer :: pp

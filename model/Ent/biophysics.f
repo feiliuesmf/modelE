@@ -224,7 +224,7 @@
       integer :: pft
       real*8 :: TcanopyC,P_mbar,Ch,U,CosZen,Ca,betad,Qf
       real*8 :: GCANOPY,Ci,TRANS_SW,GPP ! ,NPP !,R_auto
-      real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum
+      real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       type(veg_par_type) :: vegpar !Vegetation parameters
@@ -277,6 +277,7 @@
       GPPsum = 0.d0
       NPPsum = 0.d0
       R_autosum = 0.d0
+      C_labsum = 0.d0
 
       !* LOOP THROUGH COHORTS *!
       cop => pp%tallest
@@ -329,6 +330,8 @@
      &       + Resp_can_growth(cop%GPP,
      &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN)))
         cop%NPP = GPP - cop%R_auto !kg-C/m2-ground/s
+       !* Accumulate uptake. 
+        cop%C_lab = cop%C_lab + cop%NPP*dtsec !/cop%n !(kg/individual)
        !betad, betadl
 
         !* pp cohort flux summaries
@@ -337,9 +340,7 @@
         GPPsum = GPPsum + cop%GPP
         NPPsum = NPPsum + cop%NPP
         R_autosum = R_autosum + cop%R_auto
-
-       !* Accumulate uptake. 
-        cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
+        C_labsum = C_labsum + cop%C_lab
 
         cop => cop%shorter
       end do
@@ -353,7 +354,10 @@
       pp%TRANS_SW = TRANS_SW 
 
       !* Accumulate uptake. 
-      pp%C_lab = pp%C_lab + pp%NPP*dtsec  !(kg/m2) ###Eventually need to convert to kg/individual.
+      !* Respiration should be from leaves and not draw down C_lab. ## Need to allocate respiration to leaves.##
+!      pp%C_lab = pp%C_lab + max(C_labsum, 0.d0)  !(kg/m2) ###Eventually need to convert to kg/individual.
+      pp%C_lab = C_labsum!(kg/m2) ###Eventually need to convert to kg/individual.
+      
 
       !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
       !pp%cellptr%GCANOPY = GCANOPY
@@ -699,7 +703,7 @@
       endif
 !......................................................................
 ! Gross primary productivity (kg[C]/m2/s).
-      GPP_OUT=0.012D-6*Acan
+      GPP_OUT=0.012D-6*Acan !Positive for GPP
       !write(*,*) parinc, GPP, Acan
 ! Net primary productivity (kg[C]/m2/s).  Not available yet.
 !     NPP = GPP - 0.012D-6*(Rcan + BoleRespir + RootRespir)

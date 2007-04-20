@@ -109,10 +109,10 @@
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
 
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
-         real*8 :: h  !<<<            !* Height (m)
+         real*8 :: h              !* Height (m)
          real*8 :: crown_dx       ! Crown horizontal axis length (m)
          real*8 :: crown_dy       ! Crown vertical axis length (m)
-         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
+         real*8 :: dbh            ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
@@ -194,7 +194,7 @@
          real*8 :: h              !* mean Height (m)
          real*8 :: crown_dx       ! Crown horizontal axis length (m)
          real*8 :: crown_dy       ! Crown vertical axis length (m)
-!         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
+!         real*8 :: dbh           ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
@@ -237,7 +237,7 @@
          real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
          !* DIAGNOSTICS - soil
          real*8 :: Soil_resp         !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
-         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !<<< !(g-C/m^2, CASA Tpools, single cell)
+         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool  !(g-C/m^2, CASA Tpools, single cell)
 
          !* IMPORT - Variables calculated by GCM/EWB - downscaled from grid cell
 !         real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
@@ -306,7 +306,7 @@
          real*8 :: h              !* mean Height (m)
 !         real*8 :: crown_dx       ! Crown horizontal axis length (m)
 !         real*8 :: crown_dy       ! Crown vertical axis length (m)
-!         real*8 :: dbh   !<<<         ! Stem diameter at breast height (m)
+!         real*8 :: dbh            ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
 !         real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
@@ -347,7 +347,7 @@
          real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
          !* DIAGNOSTICS - soil
          real*8 :: Soil_resp         !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
-         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !<<< !(g-C/m^2, CASA Tpools, single cell)
+         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
 
          !* Disturbance values
          real*8 :: fuel

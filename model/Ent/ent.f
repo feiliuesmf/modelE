@@ -189,12 +189,14 @@
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
       type(ent_config) :: config
+      integer :: patchnum
       !---Local--------
       type(patch),pointer :: pp
 
-
+      patchnum = 0
       pp => ecp%oldest
       do while(ASSOCIATED(pp))
+        patchnum = patchnum + 1
         !print*,'NEXT PATCH'
         !print*,'Calling photosynth_cond'
         call photosynth_cond(dtsec, pp)
@@ -204,10 +206,12 @@
           pp%CO2flux = -pp%NPP + pp%Soil_resp
           
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
-          write(99,*)  !Fluxes are positive up.
+          write(995,*)  !Fluxes are positive up.
+     &         patchnum,pp%cellptr%IPARdir + pp%cellptr%IPARdif, 
+     &         pp%cellptr%coszen,
      &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:), 
-     &         -pp%GPP,pp%R_auto,pp%Soil_resp,
-     &         -pp%NPP,pp%CO2flux
+     &         pp%GPP,pp%R_auto,pp%Soil_resp,
+     &         pp%NPP,pp%CO2flux,pp%GCANOPY, pp%tallest%C_lab
           !*********************************************************!
         else 
           pp%CO2flux = UNDEF
@@ -217,6 +221,7 @@
         if ( config%do_soilresp ) call litter(dtsec,pp)
         pp%age = pp%age + dtsec
         !call summarize_patch(pp)
+
         pp => pp%younger
 
       end do
