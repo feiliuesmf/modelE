@@ -1757,6 +1757,7 @@ c**** read rundeck parameters
       snow_cover_coef2 = snow_cover_coef
       call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
       call sync_param( "snoage_def", snoage_def )
+      call sync_param( "wsn_max", wsn_max )
       call sync_param( "ghy_default_data", ghy_default_data )
       call  get_param( "variable_lk", variable_lk )
       call  get_param( "init_flake", init_flake )
@@ -2528,7 +2529,7 @@ c**** check for reasonable temperatures over earth
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghy_com, only : snoage, snoage_def,fearth, aalbveg
+      use ghy_com, only : snoage, snoage_def,fearth, aalbveg, wsn_max
       !use veg_com, only : almass,aalbveg       !nyk
       !use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
       use surf_albedo, only: albvnh, updsur  !nyk
@@ -2559,7 +2560,7 @@ C**** Extract useful local domain parameters from "grid"
       ! lake fraction changed
       if (end_of_day .and. variable_lk > 0) call update_land_fractions
 
-      if (end_of_day) call remove_extra_snow
+      if (end_of_day .and. wsn_max>0) call remove_extra_snow
 
 !!! testing
 !!!      aalbveg(:,:) = 0.08D0
@@ -3814,7 +3815,7 @@ c**** wearth+aiearth are used in radiation only
       subroutine remove_extra_snow
       use constant, only : rhow
       use ghy_com, only : nsn_ij, dzsn_ij, wsn_ij, hsn_ij,
-     &     fr_snow_ij,fearth
+     &     fr_snow_ij,fearth, wsn_max
 #ifdef TRACERS_WATER
      &     ,tr_wsn_ij
       use TRACER_COM, only : ntm
@@ -3835,8 +3836,6 @@ c**** wearth+aiearth are used in radiation only
       implicit none
       !! integer, intent(in) :: jday
       !---
-      real*8, parameter :: WSN_MAX = 2.d0 ! 2 m of water equivalent
-!!!      real*8, parameter :: WSN_MAX = .2d0 ! 2 m of water equivalent
       integer i,j,I_0,I_1,J_0,J_1,J_0H,J_1H
       real*8 fbv(2),wsn(3),hsn(3),dzsn(3),fr_snow,wsn_tot,d_wsn,eta
       real*8 dw,dh

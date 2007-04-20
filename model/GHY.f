@@ -108,7 +108,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
-      use ghy_com, only : ngm, imt, nlsn, LS_NFRAC
+      use ghy_com, only : ngm, imt, nlsn, LS_NFRAC, wsn_max
 
 
       implicit none
@@ -1787,7 +1787,7 @@ cddd     &     , tr_w(1,:,1) - w(:,1) * 1000.d0
 cddd      print '(a,10(e12.4))', 'tr_w_2 '
 cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 !!!
-        call restrict_snow
+        if(wsn_max>0) call restrict_snow (wsn_max)
         call check_water(1)
         call check_energy(1)
         call accm
@@ -2474,7 +2474,7 @@ ccc (to make the data compatible with snow model)
 
 
       subroutine ghy_tracers_drydep
-!@sum applies dry deposit flux to tracers in upper layers of 
+!@sum applies dry deposit flux to tracers in upper layers of
 !@+   canopy, soil and snow
 ccc input from outside:
 ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
@@ -2494,7 +2494,7 @@ ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
         tr_w(:m,1,1) = tr_w(:m,1,1) + trdd(:m)*(1-fr_snow(1))*dts
         tr_wsn(:m,1,1) = tr_wsn(:m,1,1) + trdd(:m)*fr_snow(1)*dts
       endif
-      
+
       end subroutine ghy_tracers_drydep
 
 
@@ -2606,7 +2606,7 @@ ccc reset accumulators to 0
       tr_evap(:m,1:2) = 0.d0
       tr_rnff(:m,1:2) = 0.d0
 
-ccc apply dry deposit tracers here (may need to be removed outside 
+ccc apply dry deposit tracers here (may need to be removed outside
 ccc but will keep it here for now for compatibility with conservation tests
       call ghy_tracers_drydep
 
@@ -2807,7 +2807,7 @@ ccc soil layers
      &           - tr_wc(:m,i-1,ibv)*flux_dt
           endif
         enddo
-        
+
 
         ! sweep up
         do i=n-1,1,-1
@@ -2921,7 +2921,7 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
          enddo
       enddo
 
-     
+
 !!! hack
 !!! get rid of possible garbage
       do ibv=i_bare,i_vege
@@ -3054,12 +3054,10 @@ c    &       'GHY: water conservation problem in veg. soil',255)
       end subroutine check_energy
 
 
-      subroutine restrict_snow
-!@sum remove the snow in excess of WSN_MAX and dump its water into 
+      subroutine restrict_snow (wsn_max)
+!@sum remove the snow in excess of WSN_MAX and dump its water into
 !@+   runoff, keeping associated heat in the soil
-      real*8, parameter :: WSN_MAX = 2.d0 ! 2 m of water equivalent
-      !real*8, parameter :: WSN_MAX = .2d0 ! .2 m of water equivalent
-      real*8 :: wsn_tot,d_wsn,eta,dw(2:3),dh(2:3)
+      real*8 :: wsn_max,wsn_tot,d_wsn,eta,dw(2:3),dh(2:3)
       integer :: ibv
 
       do ibv=i_bare,i_vege
@@ -3071,7 +3069,7 @@ c    &       'GHY: water conservation problem in veg. soil',255)
          ! check if snow structure ok for thick snow
         if ( nsn(ibv) < 3)
      &       call stop_model("remove_extra_snow: nsn<3",255)
-        
+
         d_wsn = wsn_tot - WSN_MAX
 
         ! do not remove too much at a time (for now 24mm / day)

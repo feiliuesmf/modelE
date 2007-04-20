@@ -150,7 +150,9 @@ C**** are calculated.
 C****
 C**** Initial average mass fluxes for Antarctica/Greenland
 
+#ifndef USE_LANDICE_DRV_E1
       if (istart.lt.8 .or. ACCPDA.eq.0) then
+#endif
 C**** Initiallise total mass/energy fluxes (only at start of run)
 C**** The net accumulation from IPCC2 report is 2016x10**12 kg/year
 C**** for Antarctica and for Greenland it is 316x10**12 kg/year
@@ -171,7 +173,9 @@ C**** not used until at least one full year has passed)
 #ifdef TRACERS_WATER
       TRDWNIMP=0.
 #endif
+#ifndef USE_LANDICE_DRV_E1
       end if
+#endif
 
 ! accumulation (kg per source time step) per water column
       FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH)
@@ -652,6 +656,9 @@ C**** implicit fluxes. If this is used, then ice sheets/snow are FORCED to
 C**** be in balance. This may not be appropriate for transient runs but
 C**** we aren't getting that right anyway.
 
+#ifdef USE_LANDICE_DRV_E1
+       if(JDAY.eq.1) return
+#endif
       IF (JDAY.eq.1) THEN   ! Jan 1. only
 
 ! only adjust after at least one full year

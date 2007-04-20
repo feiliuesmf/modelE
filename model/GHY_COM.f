@@ -21,6 +21,8 @@ ccc dimensions of the GHY arrays
 !@var imt number of soil textures
 !@var nlsn max number of snow layers
       integer, parameter, public :: ngm=6, imt=5, nlsn=3
+!@dbparam WSN_MAX snow amount limit (m, water equivalent)
+      real*8, public :: WSN_MAX = 2.d0
 
 !@var LS_NFRAC number of land surface fractions
       integer, parameter, public :: LS_NFRAC=3
@@ -114,7 +116,7 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 !@var cnc_ij canopy conductance
       real*8, ALLOCATABLE, dimension(:,:) :: cnc_ij
 
-!@var aalbveg vegetation albedo, eventually should be moved to a 
+!@var aalbveg vegetation albedo, eventually should be moved to a
 !@+   better place DO WE NEED THIS ???
       real*8, ALLOCATABLE, dimension(:,:) :: aalbveg
 #endif
@@ -253,7 +255,7 @@ C**** Initialize to zero
       CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH01"
 
       REAL*8, DIMENSION(IM,JM) :: SNOWE_glob, TEARTH_glob, WEARTH_glob,
-     &                            AIEARTH_GLOB,evap_max_ij_glob, 
+     &                            AIEARTH_GLOB,evap_max_ij_glob,
      &                            fr_sat_ij_glob, qg_ij_glob
       REAL*8 :: SNOAGE_glob(3,IM,JM)
       INTEGER :: J_0, J_1
@@ -284,14 +286,14 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       ,AIEARTH_glob,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob
      &       ,qg_ij_glob
 
-        CALL UNPACK_DATA(grid, SNOWE_glob       , SNOWE      )     
-        CALL UNPACK_DATA(grid, TEARTH_glob      , TEARTH     )     
-        CALL UNPACK_DATA(grid, WEARTH_glob      , WEARTH     )     
-        CALL UNPACK_DATA(grid, AIEARTH_glob     , AIEARTH    )     
-        CALL UNPACK_DATA(grid, evap_max_ij_glob , evap_max_ij)     
-        CALL UNPACK_DATA(grid, fr_sat_ij_glob   , fr_sat_ij  )     
-        CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )     
-        CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )     
+        CALL UNPACK_DATA(grid, SNOWE_glob       , SNOWE      )
+        CALL UNPACK_DATA(grid, TEARTH_glob      , TEARTH     )
+        CALL UNPACK_DATA(grid, WEARTH_glob      , WEARTH     )
+        CALL UNPACK_DATA(grid, AIEARTH_glob     , AIEARTH    )
+        CALL UNPACK_DATA(grid, evap_max_ij_glob , evap_max_ij)
+        CALL UNPACK_DATA(grid, fr_sat_ij_glob   , fr_sat_ij  )
+        CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )
+        CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )
 
         if (AM_I_ROOT() .and.
      &      HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
@@ -360,7 +362,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         enddo
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
-        IF (AM_I_ROOT()) THEN 
+        IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,w_glob,
      *       ht_glob,snowbv_glob
 #ifdef TRACERS_WATER
@@ -389,7 +391,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       w_ij(0:NGM,:,1:IM,J_0H:J_1H))
          call unpack_block(grid, ht_glob,
      &       ht_ij(0:NGM,:,1:IM,J_0H:J_1H))
-        call unpack_column(grid, snowbv_glob, 
+        call unpack_column(grid, snowbv_glob,
      &       snowbv(1:2,1:IM,J_0H:J_1H))
 
 #ifdef TRACERS_WATER
@@ -486,8 +488,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL UNPACK_BLOCK(grid,  WSN_IJ_GLOB,  WSN_IJ)
         CALL UNPACK_BLOCK(grid,  HSN_IJ_GLOB,  HSN_IJ)
         CALL UNPACK_COLUMN(grid, NSN_IJ_GLOB,  NSN_IJ)
-        CALL UNPACK_COLUMN(grid, FR_SNOW_IJ_GLOB,  FR_SNOW_IJ) 
-#ifdef TRACERS_WATER 
+        CALL UNPACK_COLUMN(grid, FR_SNOW_IJ_GLOB,  FR_SNOW_IJ)
+#ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
           if (AM_I_ROOT()) then

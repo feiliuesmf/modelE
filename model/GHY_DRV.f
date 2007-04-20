@@ -58,7 +58,7 @@ c******************   TRACERS             ******************************
      &     ,ijts_AMPe
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) 
+    (defined TRACERS_QUARZHEM)
      &     ,nDustEmij,nDustEmjl
      &     ,ijts_spec,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,jls_spec,nDustEv1jl,nDustEv2jl,nDustWthjl
@@ -276,7 +276,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
 #ifdef TRACERS_AMP
       USE AERO_SETUP, only : RECIP_PART_MASS
-      USE AMP_AEROSOL, only: DTR_AMPe            
+      USE AMP_AEROSOL, only: DTR_AMPe
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -380,31 +380,31 @@ C**** are used, it can happen over land as well.
      *           (pbl_args%ss1_flux+pbl_args%ss2_flux)
      &         *dxyp(j)*ptype*dtsurf
 
-        case ('M_DD1_DU')  
+        case ('M_DD1_DU')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         (pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &                   *dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) 
+          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n))
      &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &         *dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
      &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &         *dxyp(j)*ptype*dtsurf
-        case ('N_DD1_1')  
+        case ('N_DD1_1')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      &         +((pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &        *dxyp(j)*ptype)* RECIP_PART_MASS(5)
-        case ('M_DD2_DU')  
+        case ('M_DD2_DU')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      &         +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &                   *dxyp(j)*ptype
-         taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) 
+         taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n))
      &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &         *dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
      &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &        *dxyp(j)*ptype*dtsurf
-        case ('N_DD2_1')  
+        case ('N_DD2_1')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         ((pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &            *dxyp(j)*ptype)* RECIP_PART_MASS(10)
@@ -1098,7 +1098,7 @@ c**** accumulate surface fluxes and prognostic and diagnostic quantities
       shdt=-ashg
 C**** calculate correction for different TG in radiation and surface
       dLWDT = pbl_args%dtsurf*(TRSURF(ITYPE,I,J)-STBO*(tearth(i,j)+TF)
-     *     **4) 
+     *     **4)
       dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
       dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
   !    qsavg(i,j)=qsavg(i,j)+qs*ptype
@@ -1869,6 +1869,7 @@ c**** read rundeck parameters
       snow_cover_coef2 = snow_cover_coef
       call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
       call sync_param( "snoage_def", snoage_def )
+      call sync_param( "wsn_max", wsn_max )
       call sync_param( "ghy_default_data", ghy_default_data )
       call  get_param( "variable_lk", variable_lk )
       call  get_param( "init_flake", init_flake )
@@ -2645,7 +2646,7 @@ c**** check for reasonable temperatures over earth
 
       !print *,"checke: w(51,33) ", w_ij(:,:,51,33)
       !print *,"checke: fearth(51,33) ", fearth(51,33),afb(51,33)
-      
+
 
 c**** check tracers
 #ifdef TRACERS_WATER
@@ -2662,11 +2663,11 @@ c**** check tracers
      &               , "TR_SNOW= ", tr_wsn_ij(n,:,:,i,j)
                 QCHECKL=.TRUE.
               end if
-           
+
             end do
           end do
         end if
-        
+
         ! check if water == water
         if (trname(n) == 'Water') then
           errmax = 0. ; imax=1 ; jmax=1
@@ -2742,7 +2743,7 @@ cddd     &         ,wsn_ij(1:nsn_ij(1,imax,jmax),2,imax,jmax)*rhow
 cddd     &         *fr_snow_ij(2,imax,jmax)
 
 
-          
+
         endif
       enddo
 #endif
@@ -2768,7 +2769,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghy_com, only : snoage, snoage_def,fearth
+      use ghy_com, only : snoage, snoage_def,fearth ! , wsn_max
       use veg_com, only : almass,aalbveg       !nyk
       use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
       use surf_albedo, only: albvnh, updsur  !nyk
@@ -2793,7 +2794,7 @@ C**** Extract useful local domain parameters from "grid"
       ! lake fraction changed
       if (end_of_day .and. variable_lk > 0) call update_land_fractions
 
-      ! if (end_of_day) call remove_extra_snow_to_ocean
+      ! if (end_of_day .and. wsn_max>0) call remove_extra_snow_to_ocean
 
 !!! testing
 !!!      aalbveg(:,:) = 0.08D0
@@ -3946,7 +3947,7 @@ c**** wearth+aiearth are used in radiation only
       subroutine remove_extra_snow_to_ocean ! bad idea ?
       use constant, only : rhow
       use ghy_com, only : nsn_ij, dzsn_ij, wsn_ij, hsn_ij,
-     &     fr_snow_ij,fearth,w_ij,ngm
+     &     fr_snow_ij,fearth,w_ij,ngm,wsn_max
 #ifdef TRACERS_WATER
      &     ,tr_wsn_ij
       use TRACER_COM, only : ntm
@@ -3966,8 +3967,6 @@ c**** wearth+aiearth are used in radiation only
       implicit none
       !! integer, intent(in) :: jday
       !---
-      real*8, parameter :: WSN_MAX = 2.d0 ! 2 m of water equivalent
-!!!      real*8, parameter :: WSN_MAX = .2d0 ! 2 m of water equivalent
       integer i,j,I_0,I_1,J_0,J_1,J_0H,J_1H
       real*8 fbv(2),wsn(3),hsn(3),dzsn(3),fr_snow,wsn_tot,d_wsn,eta
       real*8 dw,dh   ! ,tot0
@@ -3998,7 +3997,7 @@ c     &         +  fbv(2)*sum( w_ij(0:ngm,2,i,j) )
 c     &         +  fbv(1)*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1
 c     *         ,i,j))+  fbv(2)*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2
 c     *         ,i,j),2,i,j)))*fearth(i,j)*rhow+flake(i,j)*sum(
-c     *         w_ij(0:ngm,3,i,j) )*rhow 
+c     *         w_ij(0:ngm,3,i,j) )*rhow
 
 
           do ibv=1,2
