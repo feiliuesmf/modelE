@@ -98,7 +98,7 @@ C**** Some local constants
 
       RETURN
       END SUBROUTINE ALLOC_DIAG_LOC
-  
+
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
@@ -3705,7 +3705,7 @@ C**** fix polar values
               !call writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
-           end do        
+           end do
         case ("SO4_d2")
             kunit=kunit+1
             do l=1,lm
@@ -3721,7 +3721,7 @@ C**** fix polar values
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
-        case ("SO4_d3")  
+        case ("SO4_d3")
             kunit=kunit+1
             do l=1,lm
               do j=J_0,J_1
@@ -3735,8 +3735,8 @@ C**** fix polar values
               !call writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
-           end do        
-        case ("Clay")  
+           end do
+        case ("Clay")
             kunit=kunit+1
             do l=1,lm
               do j=J_0,J_1
@@ -3750,7 +3750,7 @@ C**** fix polar values
               !call writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
-           end do        
+           end do
         case ("Silt1")
             kunit=kunit+1
             do l=1,lm
@@ -3765,8 +3765,8 @@ C**** fix polar values
               !call writei(iu_subdd(kunit),itime,data,im*jm)
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
-           end do  
-        case ("Silt2")  
+           end do
+        case ("Silt2")
             kunit=kunit+1
             do l=1,lm
               do j=J_0,J_1
@@ -3781,7 +3781,7 @@ C**** fix polar values
               call writei_parallel(grid,
      &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
            end do
-        case ("Silt3")  
+        case ("Silt3")
             kunit=kunit+1
             do l=1,lm
               do j=J_0,J_1
@@ -4484,7 +4484,7 @@ C****
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 C**** Initialise resolution dependent diagnostic parameters
-      call diag_res  
+      call diag_res
 
       call sync_param( "NAMDD", NAMDD, NDIUPT )
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
@@ -4541,8 +4541,8 @@ C****          write(6,*) XLABEL
 C**** Initialize certain arrays used by more than one print routine
       DO L=1,LM
         PLE(L)   =pednl00(l+1)
-        PLE_DN(L)=pednl00(l)  
-        PLM(L)   =pmidl00(l)  
+        PLE_DN(L)=pednl00(l)
+        PLM(L)   =pmidl00(l)
       END DO
       PLM(LM+1:LM+LM_REQ)=pmidl00(lm+1:lm+lm_req)
 
@@ -4790,7 +4790,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 #ifndef NO_HDIURN
       HDIURN=0
 #endif
-      AISCCP=0
+      ADIURN=0 ; AISCCP=0
 #ifdef TRACERS_ON
        TAJLN=0. ; TAJLS=0. ; TCONSRV=0.
        TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
