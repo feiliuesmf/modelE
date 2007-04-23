@@ -331,7 +331,7 @@
      &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN)))
         cop%NPP = GPP - cop%R_auto !kg-C/m2-ground/s
        !* Accumulate uptake. 
-        cop%C_lab = cop%C_lab + cop%NPP*dtsec !/cop%n !(kg/individual)
+        cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
        !betad, betadl
 
         !* pp cohort flux summaries
@@ -340,7 +340,7 @@
         GPPsum = GPPsum + cop%GPP
         NPPsum = NPPsum + cop%NPP
         R_autosum = R_autosum + cop%R_auto
-        C_labsum = C_labsum + cop%C_lab
+        C_labsum = C_labsum + cop%C_lab * cop%n !Sum for cohort.
 
         cop => cop%shorter
       end do
