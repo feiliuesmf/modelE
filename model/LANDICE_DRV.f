@@ -664,15 +664,15 @@ C**** we aren't getting that right anyway.
 
 ! mass and energy (kg, J)
           CALL GLOBALSUM(grid, MDWNIMP, gsum, hsum ,ALL=.TRUE.)
-          mdwnimp_NH=hsum(1) ;  mdwnimp_SH=hsum(2)
+          mdwnimp_SH=hsum(1) ;  mdwnimp_NH=hsum(2)
           CALL GLOBALSUM(grid, EDWNIMP, gsum, hsum ,ALL=.TRUE.)
-          edwnimp_NH=hsum(1) ;  edwnimp_SH=hsum(2)
+          edwnimp_SH=hsum(1) ;  edwnimp_NH=hsum(2)
 
 #ifdef TRACERS_WATER
           DO ITM=1,NTM
             CALL GLOBALSUM(grid, TRDWNIMP(ITM,:,:), gsum, hsum ,ALL=
      *           .TRUE.)
-            trdwnimp_NH(ITM)=hsum(1) ;  trdwnimp_SH(ITM)=hsum(2)
+            trdwnimp_SH(ITM)=hsum(1) ;  trdwnimp_NH(ITM)=hsum(2)
             print*,'Tracers:',(trdwnimp_NH(ITM)/mdwnimp_NH/trw0(itm)-1.
      *           )*1000,(trdwnimp_SH(ITM)/mdwnimp_SH/trw0(itm)-1.)*1000
      *           ,trdwnimp_NH(ITM),mdwnimp_NH,trdwnimp_SH(ITM)
