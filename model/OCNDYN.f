@@ -321,7 +321,7 @@ c        CALL CHECKO ('STADVI')
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER, INTENT(IN) :: istart
-
+      LOGICAL :: iniStraits
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_NORTH_POLE
@@ -585,7 +585,8 @@ C**** Extend ocean data to added layers at bottom if necessary
       end if
 
 C**** Initialize straits arrays
-      call init_STRAITS(iniOCEAN)
+      iniStraits=iniOCEAN.or.(istart.lt.9)
+      call init_STRAITS(iniStraits)
 
 C**** Adjust global mean salinity if required (only at first start up)
       if (istart.gt.0 .and. istart.lt.9 .and. oc_salt_mean.ne.-999.)
@@ -4305,6 +4306,7 @@ C****
             OGEOZA(I,J)=0.5*(OGEOZ(I,J)+OGEOZ_SV(I,J))
             UOSURF(I,J)=UO(I,J,1)
             VOSURF(I,J)=VO(I,J,1)
+
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
             GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J)-
@@ -4323,6 +4325,7 @@ cdiag.           MO(I,J,n),DXYPO(J),TRGASEX(n,1,I,J)
 cdiag       enddo
 #endif
           END IF
+
         END DO
       END DO
 C**** do poles
@@ -4365,6 +4368,7 @@ c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 c       END DO
 c     END IF
 c     end if
+
       RETURN
 C****
       END SUBROUTINE TOC2SST
@@ -4580,6 +4584,9 @@ C****
 
 
       SUBROUTINE ADJUST_MEAN_SALT
+!@sum  ADJUST_MEAN_SALT sets the global mean salinity in the ocean
+!@auth Gavin Schmidt
+!@ver  1.0
       USE GEOM, only : dxyp,imaxj
       USE CONSTANT, only : grav
       USE OCEAN, only : im,jm,lmo,focean,lmm,mo,s0m,sxmo
