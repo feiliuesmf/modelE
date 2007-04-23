@@ -656,11 +656,9 @@ C**** implicit fluxes. If this is used, then ice sheets/snow are FORCED to
 C**** be in balance. This may not be appropriate for transient runs but
 C**** we aren't getting that right anyway.
 
-#ifdef USE_LANDICE_DRV_E1
-       if(JDAY.eq.1) return
-#endif
       IF (JDAY.eq.1) THEN   ! Jan 1. only
 
+#ifndef USE_LANDICE_DRV_E1
 ! only adjust after at least one full year
         IF (itime.ge.itimei+JDperY*nday) THEN
 
@@ -749,7 +747,8 @@ C**** Set GL MELT arrays
         END DO
       END DO
 
-      END IF
+      END IF  ! run not in its first year
+#endif  /* skip for LANDICE_DRV_E1 */
 
 C**** reset implicit accumulators
       MDWNIMP=0.
@@ -758,7 +757,7 @@ C**** reset implicit accumulators
       TRDWNIMP=0.
 #endif
 
-      END IF
+      END IF  ! start of new year
 
       END SUBROUTINE daily_LI
 
