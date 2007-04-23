@@ -251,6 +251,9 @@
 #define check(y,x) call store(i,y,pack(x,tt),size(x)); \
                    call guess_dims(i,y,shape(x))
 
+#define checks(y,x) call store(i,y,(/x/),1); \
+                   call guess_dims(i,y,(/1/))
+
       program compare
       use CMP
       use filemanager
