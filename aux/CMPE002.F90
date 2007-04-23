@@ -38,7 +38,7 @@
       integer i
 
       if (ind==2) then
-        do i=1,num 
+        do i=1,num
           if ( db(i)%name == name ) exit
         enddo
         if (i>num) call stop_model("name not present in db",255)
@@ -46,7 +46,7 @@
         return
       endif
 
-      do i=1,num 
+      do i=1,num
         if ( db(i)%name == name ) then
           print *,"ERROR: You are trying to check array twice: ",name
           call stop_model("Do not check the same array more than once!",255)
@@ -78,7 +78,7 @@
       integer i
 
       if (ind==2) then
-        do i=1,num 
+        do i=1,num
           if ( db(i)%name == name ) exit
         enddo
         if (i>num) call stop_model("name not present in db",255)
@@ -110,7 +110,7 @@
       ! local
       integer n,i
 !!!     write(0,*) 'checking ',name
-      do i=1,num 
+      do i=1,num
         if ( db(i)%name == name ) exit
       enddo
       if (i>num) call stop_model("rs: name not present in db",255)
@@ -177,7 +177,7 @@
       equivalence (v1,iv1(1)), (v2,iv2(1))
 
 
-      do m=1,num 
+      do m=1,num
         nerr = 0
         print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points=",i8)', &
            db(m)%im, db(m)%jm, db(m)%km,  db(m)%lm, trim(db(m)%name), &
@@ -491,10 +491,10 @@
         check("tlandi",tlandi)
         check("MdwnImp",MdwnImp)
         check("EdwnImp",EdwnImp)
-        !check("accpda",accpda)
-        !check("accpdg",accpdg)
-        !check("Eaccpda",Eaccpda)
-        !check("Eaccpdg",Eaccpdg)
+        checks("accpda",accpda)
+        checks("accpdg",accpdg)
+        checks("Eaccpda",Eaccpda)
+        checks("Eaccpdg",Eaccpdg)
         ! bldat
         check("wsavg",wsavg)
         check("tsavg",tsavg)
@@ -531,7 +531,7 @@
         check("Tchg",Tchg)
         check("rqt",rqt)
         check("kliq",kliq)
-        !check("s0",s0)
+        checks("s0",s0)
         check("srhr",srhr)
         check("trhr",trhr)
         check("fsf",fsf)
