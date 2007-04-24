@@ -23,7 +23,7 @@ case `hostname` in
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
         export MODES="serial other MPI OpenMP"
         export COMPILER=Intel8
-        export GCMSEARCHPATH=/giss;;
+	export GCMSEARCHPATH=/explore/nobackup/projects/GISS/prod_input_files;;
     halem* )
         export NOBACKUP=/scr/progress
 	export BASELIBDIR=/share/ESMA/baselibs/v2_2r0/OSF1
@@ -43,7 +43,7 @@ export SCRATCH=$NOBACKUP/modelE_scratch
 export RESULTS=$NOBACKUP/modelE_regression
 export BASELINE=$NOBACKUP/modelE_baseline
 export MODELE_DATA=$NOBACKUP/modelE_data
-export SAVEDISK=$NOBACKUP/savedisk
+export SAVEDISK=$SCRATCH/savedisk
 export STATUS=0
 
 function setNumLines {
