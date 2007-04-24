@@ -104,7 +104,7 @@ C****
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
 !@var OCEANE zonal ocean energy (J/M^2)
-      REAL*8, DIMENSION(grid%J_STRT : grid%J_STOP) :: OCEANE
+      REAL*8, DIMENSION(grid%J_STRT_HALO : grid%J_STOP_HALO) :: OCEANE
       INTEGER I,J
       integer :: J_0, J_1
       logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE

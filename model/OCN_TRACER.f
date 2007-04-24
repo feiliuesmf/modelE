@@ -47,7 +47,7 @@
       real*4, dimension(im,jm,lmo) :: t0m4,tzm4
       real*8 fwm,trsum,wsum,tratio,afac,frac_tr
 #endif
-      real*8 :: OTRACJ(GRID%J_STRT:GRID%J_STOP)
+      real*8 :: OTRACJ(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
       CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S, J_STRT = J_0,
      *     J_STOP = J_1, J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
@@ -345,7 +345,7 @@ C****
       USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
 !@var OSALT zonal ocean tracer (kg/m^2)
-      REAL*8, DIMENSION(GRID%J_STRT:GRID%J_STOP) :: OTR
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OTR
       INTEGER I,J,L,N,ITR
 
       INTEGER :: J_0, J_1
