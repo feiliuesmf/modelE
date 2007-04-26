@@ -2769,7 +2769,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghy_com, only : snoage, snoage_def,fearth ! , wsn_max
+      use ghy_com, only : snoage, snoage_def,fearth, wsn_max
       use veg_com, only : almass,aalbveg       !nyk
       use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
       use surf_albedo, only: albvnh, updsur  !nyk
@@ -2794,7 +2794,7 @@ C**** Extract useful local domain parameters from "grid"
       ! lake fraction changed
       if (end_of_day .and. variable_lk > 0) call update_land_fractions
 
-      ! if (end_of_day .and. wsn_max>0) call remove_extra_snow_to_ocean
+      if (end_of_day .and. wsn_max>0) call remove_extra_snow_to_ocean
 
 !!! testing
 !!!      aalbveg(:,:) = 0.08D0

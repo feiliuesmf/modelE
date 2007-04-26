@@ -108,7 +108,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
-      use ghy_com, only : ngm, imt, nlsn, LS_NFRAC, wsn_max
+      use ghy_com, only : ngm, imt, nlsn, LS_NFRAC !, wsn_max
 
 
       implicit none
@@ -1787,7 +1787,7 @@ cddd     &     , tr_w(1,:,1) - w(:,1) * 1000.d0
 cddd      print '(a,10(e12.4))', 'tr_w_2 '
 cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 !!!
-        if(wsn_max>0) call restrict_snow (wsn_max)
+        ! if(wsn_max>0) call restrict_snow (wsn_max)
         call check_water(1)
         call check_energy(1)
         call accm
