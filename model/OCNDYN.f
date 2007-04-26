@@ -88,6 +88,7 @@ C**** initialize summed mass fluxes
 !$OMP END PARALLEL DO
 
       CALL OVTOM (MMI,UM0,VM0)
+
       CALL OPGF0
 
       NS=NDYNO
@@ -428,7 +429,7 @@ C**** Calculate LMU
 C**** Calculate LMV
       DO 190 J=1,JM-1  ! global arrays (fixed from now on)
       DO 190 I=1,IM
-  190 LMV(I,J) = MIN(LMM(I,J),LMM(I,J+1))
+ 190  LMV(I,J) = MIN(LMM(I,J),LMM(I,J+1))
 C****
       IF(iniOCEAN) THEN
 C**** Initialize a run from ocean initial conditions
@@ -582,6 +583,22 @@ C**** Extend ocean data to added layers at bottom if necessary
           end if
         end do
         end do
+      end if
+
+C**** zero out unphysical values (that might have come from a 
+C**** restart file with different topography)
+      if (istart.le.9) then
+        DO J=J_0S,J_1S
+          DO I=1,IMAXJ(J)
+            VO(I,J,LMV(I,J)+1:LMO)=0. 
+          END DO
+        END DO
+        DO J=J_0,J_1
+          DO I=1,IMAXJ(J)
+            UO(I,J,LMU(I,J)+1:LMO)=0. 
+            MO(I,J,LMM(I,J)+1:LMO)=0.
+          END DO
+        END DO
       end if
 
 C**** Initialize straits arrays
@@ -2004,7 +2021,7 @@ C****
      *                 MO, G0M,GZM=>GZMO, S0M,SZM=>SZMO,
      *                 FOCEAN, mZSOLID=>HOCEAN, DXPGF,DYPGF,
      *                 COSI=>COSIC,SINI=>SINIC, OPRESS,OGEOZ,OPBOT
-      Use OCEAN_DYN, Only: MMI, VBAR,dH, GUP,GDN, SUP,SDN
+      Use OCEAN_DYN, Only: VBAR,dH, GUP,GDN, SUP,SDN
       Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
       Implicit None
       Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
