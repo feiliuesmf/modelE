@@ -4733,10 +4733,10 @@ cgsfc        wt_ij(i,j,5) = fearth(i,j)
      &       - wt_ij(i,j,iw_lake) -  wt_ij(i,j,iw_lice)
 cgsfc        wt_ij(i,j,6) = fearth(i,j)*(vdata(i,j,1)+vdata(i,j,10))
         wt_ij(i,j,iw_bare) = wt_ij(i,j,iw_soil)
-     &       *aij(i,j,ij_fveg)/(idacc(ia_ij(ij_fveg))+teeny)
+     &       *(1.d0 - aij(i,j,ij_fveg)/(idacc(ia_ij(ij_fveg))+teeny))
 cgsfc        wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
         wt_ij(i,j,iw_veg) = wt_ij(i,j,iw_soil)
-     &       *(1.d0 - aij(i,j,ij_fveg)/(idacc(ia_ij(ij_fveg))+teeny))
+     &       *aij(i,j,ij_fveg)/(idacc(ia_ij(ij_fveg))+teeny)
         wt_ij(i,j,iw_land) = wt_ij(i,j,iw_soil) + wt_ij(i,j,iw_lice)
       end do
       end do
