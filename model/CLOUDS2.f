@@ -352,10 +352,10 @@ C**** functions
 #ifdef TRACERS_ON
 !@var TMOLD: old TM (tracer mass)
 !@var DTM,DTMR: Vertical profiles of Tracers mass and changes
-      REAL*8, DIMENSION(LM,NTM)      :: TMOLD,  DTM,  DTMR,TM1
-      REAL*8, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR
-      REAL*8, DIMENSION(NTM)      :: TMP,  TMPMAX,  TMDN, TENV
-      REAL*8, DIMENSION(NMOM,NTM) :: TMOMP,TMOMPMAX,TMOMDN
+      REAL*8, DIMENSION(LM,NTM)      :: TMOLD, DTM, DTMR, TM1, TMDNL
+      REAL*8, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR, TMOMDNL
+      REAL*8, DIMENSION(NTM)      :: TMP, TMPMAX, TENV, TMDN
+      REAL*8, DIMENSION(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
 !@var TPOLD saved plume temperature after condensation for tracers
 !@+   (this is slightly different from TPSAV)
       REAL*8, DIMENSION(LM)       :: TPOLD
@@ -784,6 +784,8 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DTMOM(:,:,1:NTX) = 0.
       DTMR(:,1:NTX) = 0.
       DTMOMR(:,:,1:NTX) = 0.
+      TMDNL(:,1:NTX) = 0.
+      TMOMDNL(:,:,1:NTX) = 0.
       TPOLD = 0.
 #endif
 #ifdef TRACERS_WATER
@@ -1362,8 +1364,8 @@ C     QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
       DQMR(L)=DQMR(L)-.5*DDRAFT*QUP        ! = DQM(L)-QM(L)*FDDL
       DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
 #ifdef TRACERS_ON
-      Tmdn(1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
-      tmomdn(xymoms,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
+      Tmdnl(l,1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
+      tmomdnl(xymoms,l,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
      *     tmomp(xymoms,  1:NTX)*fddp
       dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm    (l,1:NTX)
       dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
@@ -1580,6 +1582,10 @@ C****
         UMDN(K)=UMDNL(K,LDRAFT)
         VMDN(K)=VMDNL(K,LDRAFT)
         ENDDO
+#ifdef TRACERS_ON
+      TMDN(:)=TMDNL(LDRAFT,:)
+      TMOMDN(xymoms,:)=TMOMDNL(xymoms,LDRAFT,:)
+#endif
       TNX=SMSUM*PLK(LMIN)/DDRSUM
       QNX=QMSUM/DDRSUM
       LHX=LHE
@@ -1715,6 +1721,12 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
         UMDN(K)=UMDN(K)+UMDNL(K,L-1)
         VMDN(K)=VMDN(K)+VMDNL(K,L-1)
         ENDDO
+#ifdef TRACERS_ON
+        DO N=1,NTX
+          TMDN(N)=TMDN(N)+TMDNL(L-1,N)
+          TMOMDN(xymoms,N)=TMOMDN(xymoms,N)+TMOMDNL(xymoms,L-1,N)
+        END DO
+#endif        
       ENDIF
   346 CONTINUE
   345 DSM(LDMIN)=DSM(LDMIN)+SMDN
