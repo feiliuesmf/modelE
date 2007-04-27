@@ -395,6 +395,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
+! The order of the ntmAMP aerosols matters!!!
       integer, parameter :: ntm=56,ntmAMP=51,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
@@ -433,13 +434,13 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    13,0 ,0 ,0 ,14, !DBC,BOC
      *    0 ,0 ,15,0 ,0 , !BCS,MXX
      *    0 ,0 , 0,16/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-3)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,16,17,18,19,20,
      *    21,      24,   26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44,45,46,47,48,49,50,
-     *    51   /)
+     *    51,52,53,54   /)
 #endif
 #ifdef TRACERS_AMP_M2
       integer, parameter :: ntm=56,ntmAMP=51,ntm_dust=4
@@ -480,13 +481,13 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    13,0 ,0 ,0 ,14, !DBC,BOC
      *    0 ,0 ,15,0 ,0 , !BCS,MXX
      *    0 ,0 ,0 ,16/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-3)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,16,17,18,19,20,
      *    21,      24,  26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44,45,46,47,48,49,50,
-     *    51   /)
+     *    51,52,53,54   /)
 #endif
 #ifdef TRACERS_AMP_M3
       integer, parameter :: ntm=46,ntmAMP=41,ntm_dust=4
@@ -521,12 +522,12 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    10,0 ,0 ,11,0 , !BC1,BC2,BOc
      *    0 ,0 ,12,0 ,0 , !BOC,MXX
      *    0 ,0 ,0 ,13/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-3)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15      ,18   ,20,
      *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
-     *    41  /)
+     *    41,42,43,44  /)
 #endif
 #ifdef TRACERS_AMP_M4
       integer, parameter :: ntm=39,ntmAMP=34,ntm_dust=4
@@ -557,11 +558,11 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    8 ,0 ,0 ,9 ,0,  !BC1,BC2,MXX
      *    0, 0, 0 ,0 ,10  !MXX
      *    /)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-1)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,16,17,18,19,
      *    21,22,23,24,25,26,27,28,29,30,        
-     *    31,32,33,34   /)
+     *    31,32,33,34,35   /)
 
 #endif
 #ifdef TRACERS_AMP_M5
@@ -603,12 +604,12 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    11,0 ,0 ,0 ,12, !DBC,BOC
      *    0, 0, 13,0 ,0, !BCS,MXX
      *    0,0,0,14/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-3)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,      18,   20,
      *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
-     *    41,42,43,44,45   /)
+     *    41,42,43,44,45,46,47,48   /)
 #endif
 #ifdef TRACERS_AMP_M6
       integer, parameter :: ntm=50,ntmAMP=45,ntm_dust=4
@@ -649,12 +650,12 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    11,0 ,0 ,0 ,12, !DBC,BOC
      *    0 ,0 ,13,0 ,0 , !BCS,MXX
      *    0 ,0 ,0 ,14/)
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-3)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,      18,   20,
      *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
-     *    41,42,43,44,45   /)
+     *    41,42,43,44,45,46,47,48   /)
 #endif
 #ifdef TRACERS_AMP_M7
       integer, parameter :: ntm=40,ntmAMP=35,ntm_dust=4
@@ -692,11 +693,11 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0, 0, 0,10,    !OCS,DBC
      *    0, 0,          !MXX
      *    0, 0, 0,11/)   !MXX
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-3)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,      18,   20,
      *    21,22,23,24,25,26,27,28,29,30,        
-     *    31,32,33,34,35/)
+     *    31,32,33,34,35,36,37,38/)
 #endif
 #ifdef TRACERS_AMP_M8
       integer, parameter :: ntm=33,ntmAMP=28,ntm_dust=4
@@ -729,7 +730,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0 ,0 ,5, 0, 0,  !OCC,BC1
      *    6, 0, 0, 7, 0,  !BC1,BC2
      *    0,0,0,0,8,/)    !MXX
-      integer, parameter :: AMP_AERO_MAP(ntmAMP-1)=(/
+      integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,        
      *    6 ,7 ,8 ,9 ,10,        
      *    11,12,13,15,16,        

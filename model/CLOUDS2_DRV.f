@@ -1262,7 +1262,7 @@ C**** TRACERS: Use only the active ones
 #endif
           trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
           trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
-#if (defined TRACERS_AEROSOLS_Koch) 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+

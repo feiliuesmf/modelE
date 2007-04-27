@@ -112,9 +112,6 @@ C****
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc , tij_surf
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_isrc,ijts_source
-#ifdef TRACERS_AMP
-     &                       ,ijts_AMPe
-#endif
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_source,jls_isrc
 #ifdef TRACERS_GASEXCH_Natassa
      *     ,tij_gasx,tij_kw,tij_alpha
@@ -127,7 +124,6 @@ C****
 #endif
 #endif
 #ifdef TRACERS_AMP
-      USE AERO_SETUP, only : RECIP_PART_MASS
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
       USE SOIL_DRV, only: earth
@@ -925,21 +921,21 @@ cdiag.   ,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
         case ('M_SSA_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         pbl_args%ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
      &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
         case ('M_SSC_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         pbl_args%ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
      &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
         case ('M_SSS_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &    (pbl_args%ss1_flux+pbl_args%ss2_flux)*dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
      &    (pbl_args%ss1_flux+pbl_args%ss2_flux)*dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      &    (pbl_args%ss1_flux+pbl_args%ss2_flux)*dxyp(j)*ptype*dtsurf

@@ -34,7 +34,7 @@
       USE SEAICE_COM, only : trsi0
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_Koch)
-      USE clouds, ONLY : diag_wetdep
+      USE CLOUDS, ONLY : diag_wetdep
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1419,7 +1419,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 62.
-          trpdens(n)=1.7d3
+          trpdens(n)=1.7d3   
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
@@ -1428,10 +1428,10 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 18.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)=1.7d3   
+          trradius(n)=3.d-7 
+          fq_aer(n)=1.   
+          tr_wd_TYPE(n) = nPART      
       case ('M_H2O')
       n_M_H2O = n
           ntm_power(n) = -4
@@ -1439,8 +1439,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = mwat
           trpdens(n)=1.d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART !nWater
+          fq_aer(n)=1.   
+          tr_wd_TYPE(n) = nPART !nWater     
       case ('M_AKK_SU')
       n_M_AKK_SU = n
           ntm_power(n) = -11
@@ -1448,16 +1448,16 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('N_AKK_1')
       n_N_AKK_1 = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 1
+          ntsurfsrc(n) = 0
           tr_mm(n) = 1.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('M_ACC_SU')
       n_M_ACC_SU = n
@@ -1466,16 +1466,16 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('N_ACC_1')
       n_N_ACC_1 = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 1
+          ntsurfsrc(n) = 0
           tr_mm(n) = 1.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('M_DD1_SU')
       n_M_DD1_SU = n
@@ -1484,7 +1484,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('M_DD1_DU')
       n_M_DD1_DU = n
@@ -1493,7 +1493,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.5d3
           trradius(n)=0.5d-6
-          fq_aer(n)=0.
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART
        case ('N_DD1_1')
       n_N_DD1_1 = n
@@ -1502,7 +1502,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.5d3
           trradius(n)=0.5d-6
-          fq_aer(n)=0.9
+          fq_aer(n)=0.9 
           tr_wd_TYPE(n) = nPART
        case ('M_DS1_SU')
       n_M_DS1_SU = n
@@ -1511,7 +1511,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('M_DS1_DU')
       n_M_DS1_DU = n
@@ -1520,7 +1520,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.5d3
           trradius(n)=.5d-6
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('N_DS1_1')
       n_ N_DS1_1= n
@@ -1529,7 +1529,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=3.5d3
           trradius(n)=.5d-6
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('M_DD2_SU')
       n_M_DD2_SU = n
@@ -1538,7 +1538,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
        case ('M_DD2_DU')
       n_M_DD2_DU = n
@@ -1547,7 +1547,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.65d3
           trradius(n)=1.5d-6
-          fq_aer(n)=0.
+          fq_aer(n)=0. 
           tr_wd_TYPE(n) = nPART
        case ('N_DD2_1')
       n_N_DD2_1 = n
@@ -1556,7 +1556,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.65d3
           trradius(n)=1.5d-6
-          fq_aer(n)=0.9
+          fq_aer(n)=0.9 
           tr_wd_TYPE(n) = nPART
         case ('M_DS2_SU')
       n_M_DS2_SU = n
@@ -1565,8 +1565,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_DS2_DU')
       n_M_DS2_DU = n
           ntm_power(n) = -11
@@ -1574,8 +1574,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.65d3
           trradius(n)=1.5d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('N_DS2_1')
       n_N_DS2_1 = n
           ntm_power(n) = -11
@@ -1583,8 +1583,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.65d3
           trradius(n)=1.5d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSA_SU')
       n_M_SSA_SU = n
           ntm_power(n) = -11
@@ -1592,8 +1592,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSA_SS')
       n_M_SSA_SS = n
           ntm_power(n) = -11
@@ -1601,8 +1601,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 75.
           trpdens(n)=2.2d3
           trradius(n)=4.4d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSC_SS')
       n_M_SSC_SS = n
           ntm_power(n) = -11
@@ -1610,8 +1610,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 75.
           trpdens(n)=2.2d3
           trradius(n)=5.d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSS_SS')
       n_M_SSS_SS = n
           ntm_power(n) = -11
@@ -1619,8 +1619,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 75.
           trpdens(n)=2.2d3
           trradius(n)=5.d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSS_SU')
       n_M_SSS_SU = n
           ntm_power(n) = -11
@@ -1628,8 +1628,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 75.
           trpdens(n)=2.2d3
           trradius(n)=5.d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_OCC_SU')
       n_M_OCC_SU = n
           ntm_power(n) = -11
@@ -1637,8 +1637,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_OCC_OC')
       n_M_OCC_OC = n
           ntm_power(n) = -11
@@ -1646,17 +1646,17 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=0.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=0. 
+          tr_wd_TYPE(n) = nPART 
       case ('N_OCC_1')
       n_N_OCC_1 = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 1
+          ntsurfsrc(n) = 0
           tr_mm(n) = 1.
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=0.5 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC1_SU')
       n_M_BC1_SU = n
           ntm_power(n) = -11
@@ -1664,8 +1664,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC1_BC')
       n_M_BC1_BC = n
           ntm_power(n) = -11
@@ -1673,17 +1673,17 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=0.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=0. 
+          tr_wd_TYPE(n) = nPART 
       case ('N_BC1_1')
       n_N_BC1_1 = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 1
+          ntsurfsrc(n) = 0
           tr_mm(n) = 1.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=0.5 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC2_SU')
       n_M_BC2_SU = n
           ntm_power(n) = -11
@@ -1691,8 +1691,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC2_BC')
       n_M_BC2_BC = n
           ntm_power(n) = -11
@@ -1700,8 +1700,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('N_BC2_1')
       n_N_BC2_1 = n
           ntm_power(n) = -11
@@ -1709,8 +1709,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC3_SU')
       n_M_BC3_SU = n
           ntm_power(n) = -11
@@ -1718,8 +1718,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC3_BC')
       n_M_BC3_BC = n
           ntm_power(n) = -11
@@ -1727,8 +1727,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('N_BC3_1')
       n_N_BC3_1 = n
           ntm_power(n) = -11
@@ -1736,8 +1736,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=1.3d3
           trradius(n)= 1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_DBC_SU')
       n_M_DBC_SU = n
           ntm_power(n) = -11
@@ -1745,8 +1745,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_DBC_BC')
       n_M_DBC_BC = n
           ntm_power(n) = -11
@@ -1754,8 +1754,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=0.5 
+          tr_wd_TYPE(n) = nPART 
       case ('M_DBC_DU')
       n_M_DBC_DU = n
           ntm_power(n) = -11
@@ -1763,8 +1763,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.5D3
           trradius(n)=.5d-6
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=0.5 
+          tr_wd_TYPE(n) = nPART 
       case ('N_DBC_1')
       n_N_DBC_1 = n
           ntm_power(n) = -11
@@ -1772,8 +1772,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=0.5 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BOC_SU')
       n_M_BOC_SU = n
           ntm_power(n) = -11
@@ -1781,8 +1781,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART 
       case ('M_BOC_BC')
       n_M_BOC_BC = n
           ntm_power(n) = -11
@@ -1817,8 +1817,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('M_BCS_BC')
       n_M_BCS_BC = n
           ntm_power(n) = -11
@@ -1826,8 +1826,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('N_BCS_1')
       n_N_BCS_1 = n
           ntm_power(n) = -11
@@ -1835,8 +1835,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_SU')
       n_M_MXX_SU = n
           ntm_power(n) = -11
@@ -1844,7 +1844,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
       case ('M_MXX_BC')
       n_M_MXX_BC = n
@@ -1853,8 +1853,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 12.
           trpdens(n)=1.3d3
           trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_OC')
       n_M_MXX_OC = n
           ntm_power(n) = -11
@@ -1862,8 +1862,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_DU')
       n_M_MXX_DU = n
           ntm_power(n) = -11
@@ -1871,8 +1871,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=2.5d3
           trradius(n)=.5d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_SS')
       n_M_MXX_SS = n
           ntm_power(n) = -11
@@ -1880,8 +1880,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 75.
           trpdens(n)=2.2d3
           trradius(n)=4.4d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('N_MXX_1')
       n_N_MXX_1 = n
           ntm_power(n) = -11
@@ -1889,8 +1889,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('M_OCS_SU')
       n_M_OCS_SU = n
           ntm_power(n) = -11
@@ -1898,8 +1898,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 96.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('M_OCS_OC')
       n_M_OCS_OC = n
           ntm_power(n) = -11
@@ -1907,8 +1907,8 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          fq_aer(n)=1. 
+          tr_wd_TYPE(n) = nPART       
       case ('N_OCS_1')
       n_N_OCS_1 = n
           ntm_power(n) = -11
@@ -1916,7 +1916,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 1.
           trpdens(n)=1.5d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1. 
           tr_wd_TYPE(n) = nPART
 #endif
       end select
@@ -6108,14 +6108,14 @@ c NO3 clear sky longwave radiative forcing
 c#endif
 #ifdef TRACERS_AMP
         case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',!DS1,DD2
      *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',!DD2,DS2,SSA
-     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC
+     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC  
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',!BC1,BC2,BC3
      *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',!BC3,DBC
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC   
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',!BCS,MXX
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
      *    'M_OCS_OC','N_OCS_1 ','M_SSS_SS','M_SSS_SU')
@@ -6191,7 +6191,7 @@ c#endif
          ijts_power(k) = -11.
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
-#endif
+#endif 
 #ifdef TRACERS_HETCHEM
       case ('SO4_d1')
 c chemical production of SO4 from SO2 on dust
@@ -9158,7 +9158,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-c     include 'netcdf.inc'
+      include 'netcdf.inc'
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
@@ -9780,19 +9780,19 @@ C         AM=kg/m2, and DXYP=m2:
 
 #ifdef TRACERS_AMP
         case('M_NO3   ','M_NH4   ','M_H2O   ','N_AKK_1 ',
-     *    'N_ACC_1 ','M_DD1_SU','N_DD1_1 ',
+     *    'N_ACC_1 ','M_DD1_SU','N_DD1_1 ',   
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
-     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
+     *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',   
      *    'M_OCC_SU','N_OCC_1 ','M_BC1_SU',
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',
      *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',   
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
      *    'M_OCS_OC','N_OCS_1 ','NH3','H2SO4')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-23
-          end do; end do; end do
+          end do; end do; end do  
 
         case('M_AKK_SU','M_ACC_SU','M_DD1_DU',
      *    'M_SSA_SS','M_SSC_SS','M_BC1_BC','M_OCC_OC',
@@ -10021,6 +10021,7 @@ c  !else use historic emissions
        call closeunit(iuc)
        BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src2(:,J_0:J_1)
        if (imAER.eq.2) then  !more sectors to read in
+       
        BCI_src3(:,:)=0.d0
        call openunit('BC_IND',iuc,.false.)
        do
@@ -10031,6 +10032,7 @@ c  !else use historic emissions
        end do
        call closeunit(iuc)
        BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src3(:,J_0:J_1)
+       
        BCI_src4(:,:)=0.d0
        call openunit('BC_TRANS',iuc,.false.)
        do
@@ -10189,12 +10191,13 @@ c Industrial
  53   call closeunit(iuc)
 
       call openunit('NH3SOURCE_N_C',iuc,.false.)
-      do mm=1,9999
+      do
       read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) go to 54
+      if (ii.eq.0.) exit
+      if (jj<j_0 .or. jj>j_1) cycle
       NH3_src_nat_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
- 54   call closeunit(iuc)
+      call closeunit(iuc)
 
       call openunit('NH3SOURCE_H_A',iuc,.false.)
       do mm=1,9999
@@ -10828,35 +10831,6 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
             trsource(:,j,1,n) = 0.01* so2_src(:,j,1)*0.0375d0
          end do
 #endif
-      case ('N_AKK_1')
-#ifdef EDGAR_1995
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
-         trsource(:,j,ns,n) = (0.01*so2_src(:,j,ns)*0.0375d0*dxyp(j))
-     &   *    RECIP_PART_MASS(1)
-       end do
-       end do
-#else
-         do j=J_0,J_1
-            trsource(:,j,1,n) = (0.01* so2_src(:,j,1)*0.0375d0)
-     &    *     RECIP_PART_MASS(1)
-         end do
-#endif
-      case ('N_ACC_1')
-#ifdef EDGAR_1995
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
-         trsource(:,j,ns,n) = (0.99*so2_src(:,j,ns)*0.0375d0*dxyp(j))
-     &   *    RECIP_PART_MASS(2)
-       end do
-       end do
-#else
-         do j=J_0,J_1
-            trsource(:,j,1,n) = (0.99* so2_src(:,j,1)*0.0375d0)
-     &    *     RECIP_PART_MASS(2)
-         end do
-#endif 
-c! EDGAR
 #endif 
 c! TRACERS_AMP
       case ('BCII')
@@ -10881,19 +10855,9 @@ c!OMSP
          do j=J_0,J_1
           trsource(:,j,1,n) = BCI_src(:,j)
          end do
-       case ('N_BC1_1')
-         do j=J_0,J_1
-          trsource(:,j,1,n) = BCI_src(:,j)
-     &   * RECIP_PART_MASS(3)
-         end do
        case ('M_OCC_OC')
          do j=J_0,J_1
           trsource(:,j,1,n) = OCI_src(:,j,1)+OCT_src(:,j,jmon)
-         end do
-       case ('N_OCC_1')
-         do j=J_0,J_1
-          trsource(:,j,1,n) = (OCI_src(:,j,1)+OCT_src(:,j,jmon))
-     &    * RECIP_PART_MASS(4)
          end do
 #endif
 #endif
@@ -11034,57 +10998,33 @@ C**** three 3D sources ( volcanos and biomass) read in from files
 #ifdef TRACERS_AMP
       case ('M_ACC_SU')
 #ifdef TRACERS_AMP_M4
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)=
-     &      SO2_biosrc_3D(:,J_0:J_1,:)*0.0375d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,2,n) = 0.
-      tr3Dsource(:,J_0:J_1,:,2,n) =  tr3Dsource(:,J_0:J_1,:,2,n) 
-     &    +(  SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
+      tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+#ifndef EDGAR_1995
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n) 
+     &      + so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0
+#endif
       call apply_tracer_3Dsource(2,n) ! biomass+volcano
 #else
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)=
-     &          0.99*SO2_biosrc_3D(:,J_0:J_1,:)*0.0375d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,2,n) = 0.
-      tr3Dsource(:,J_0:J_1,:,2,n) =  tr3Dsource(:,J_0:J_1,:,2,n) 
-     &    +      (0.99*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
-      call apply_tracer_3Dsource(2,n) ! biomass + volcano
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.99
+     &                           *SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+#ifndef EDGAR_1995
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n) 
+     &      + (0.99* so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0)
+#endif
+      call apply_tracer_3Dsource(2,n) ! biomass+volcano
 #endif    
 c      enddo ; enddo
 
       case ('M_AKK_SU')
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)=
-     &          0.01*SO2_biosrc_3D(:,J_0:J_1,:jmon)*0.0375d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,2,n) = 0.
-      tr3Dsource(:,J_0:J_1,:,2,n) = tr3Dsource(:,J_0:J_1,:,2,n)
-     &  +      (0.01*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.01
+     &                           *SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
+#ifndef EDGAR_1995
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n) 
+     &      + (0.01* so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0)
+#endif
       call apply_tracer_3Dsource(2,n) ! biomass+volcano
+#endif
 
-      case ('N_ACC_1')
-#ifdef TRACERS_AMP_M4
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)=
-     &          SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,2,n) = 0.
-      tr3Dsource(:,J_0:J_1,:,2,n) =  
-     & tr3Dsource(:,J_0:J_1,:,2,n) + (RECIP_PART_MASS(2)*
-     &          SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
-      call apply_tracer_3Dsource(2,n) ! biomass+volcano
-#else
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)=
-     &          0.99*SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,2,n) = 0.
-      tr3Dsource(:,J_0:J_1,:,2,n) =  
-     & tr3Dsource(:,J_0:J_1,:,2,n) + (RECIP_PART_MASS(2)*
-     &          SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
-      call apply_tracer_3Dsource(2,n) ! biomass
-#endif
-      case ('N_AKK_1')
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)=
-     &          0.01*SO2_biosrc_3D(:,J_0:J_1,:,jmon)*0.0375d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,2,n) = 0.
-      tr3Dsource(:,J_0:J_1,:,2,n) = 
-     &tr3Dsource(:,J_0:J_1,:,2,n) + (RECIP_PART_MASS(1)*
-     &          0.01*SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0)
-      call apply_tracer_3Dsource(2,n) ! biomass
-#endif
        case ('BCIA')
 C**** aircraft source for fresh industrial BC
       tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
@@ -11135,7 +11075,7 @@ C**** biomass source for BC
       blay=int(dclev(i,j)+0.5)
       do l=1,blay
       tr3Dsource(i,j,l,2,n) = tr3Dsource(i,j,l,2,n)
-     &     + (BCB_src(i,j,1,jmon)/real(blay))
+     &     + (BCBt_src(i,j)/real(blay))
       end do
       end do; end do
       else
@@ -11146,18 +11086,6 @@ C**** biomass source for BC
       call apply_tracer_3Dsource(2,n) ! biomass
 #endif
 
-      case ('N_BC1_1')
-C**** aircraft source for fresh industrial BC
-      tr3Dsource(:,J_0:J_1,:,2,n) = 
-     &  BCI_src_3d(:,J_0:J_1,:)* RECIP_PART_MASS(3)
-      call apply_tracer_3Dsource(2,n) ! aircraft
-#ifdef TRACERS_AMP_M4
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) = 
-     &( tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_BC1_BC))
-     & * RECIP_PART_MASS(8)
-      call apply_tracer_3Dsource(2,n) ! biomass
-#endif
-
       case  ('M_BOC_BC')
 C**** biomass source for BC
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
@@ -11165,7 +11093,7 @@ C**** biomass source for BC
       do j=J_0,J_1; do i=1,im
       blay=int(dclev(i,j)+0.5)
       do l=1,blay
-      tr3Dsource(i,j,l,2,n) = BCB_src(i,j,1,jmon)/real(blay)
+      tr3Dsource(i,j,l,2,n) = BCBt_src(i,j)/real(blay)
       end do
       end do; end do
       else
@@ -11184,34 +11112,14 @@ C**** biomass source for OC
       do j=J_0,J_1; do i=1,im
       blay=int(dclev(i,j)+0.5)
       do l=1,blay
-      tr3Dsource(i,j,l,2,n) = OCB_src(i,j,1,jmon)/real(blay)
+      tr3Dsource(i,j,l,2,n) = OCBt_src(i,j)/real(blay)
       end do
       end do; end do
       else
       tr3Dsource(:,J_0:J_1,1:lmAER,2,n) = OCB_src(:,J_0:J_1,:,jmon)
       endif
       call apply_tracer_3Dsource(2,n) ! biomass
-
-#ifdef TRACERS_AMP_M4
-      case  ('N_OCC_1')
-C**** biomass source for BC
-      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) =
-     &( tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_OCC_OC)
-     & + tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_BC1_BC))
-     & * RECIP_PART_MASS(8)
-      call apply_tracer_3Dsource(2,n) ! biomass
-#else
-      case  ('N_BOC_1')
-      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) =
-     &( tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_BOC_BC)
-     & + tr3Dsource(:,J_0:J_1,1:lmAER,2,n_M_BOC_OC))
-     & * RECIP_PART_MASS(8)
-      call apply_tracer_3Dsource(2,n) ! biomass
 #endif
-#endif
-
 #ifdef TRACERS_OM_SP
       case ('OCI1')
 c**** biomass + industrial for OC species
@@ -11377,18 +11285,18 @@ C**** Apply chemistry and overwrite changes:
 #ifdef TRACERS_AMP
 
       call aerosol_gas_chem
-      call MATRIX_DRV
-
-      DO n=1,ntmAMP
-       call apply_tracer_3Dsource(1,n) ! Aerosol Mirophysics
-      ENDDO
-
-       call apply_tracer_3Dsource(1,n_NH3)  ! NH3
+       call apply_tracer_3Dsource(2,n_H2SO4) ! H2SO4 chem prod
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
        call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(5,n_SO2)  ! SO2 chem sink
        call apply_tracer_3Dsource(1,n_H2O2_s)! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s)! H2O2 chem sink
+      call MATRIX_DRV
+
+      DO n=1,ntmAMP
+       call apply_tracer_3Dsource(1,n) ! Aerosol Mirophysics
+      ENDDO
+       call apply_tracer_3Dsource(1,n_NH3)  ! NH3 
        call apply_tracer_3Dsource(1,n_H2SO4) ! H2SO4 chem prod
 #endif
 

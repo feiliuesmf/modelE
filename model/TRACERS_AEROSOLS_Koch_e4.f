@@ -1175,7 +1175,7 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 #else
        tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
-       tr3Dsource(i,j,l,1,n_H2SO4)=trm(i,j,l,n_SO2)*(1.d0-d4)/dtsrc 
+       tr3Dsource(i,j,l,2,n_H2SO4)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #endif        
 #endif        
 c diagnostics to save oxidant fields

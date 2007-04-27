@@ -1177,7 +1177,7 @@ C**** CONDENSING TRACERS
       WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
       DO N=1,NTX
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
+      case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 400
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
 
@@ -1200,7 +1200,7 @@ C**** CONDENSING TRACERS
       DO N=1,NTX
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
+      case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
 
@@ -2029,7 +2029,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         DO N=1,NTX
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
+      case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 402
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
 
@@ -2948,7 +2948,7 @@ c CLDSAVT is current FCLD
      *  ,DT_SULF_SS(1,L),FCLD)
       DO N=1,NTX
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
+      case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 403
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 403
 
@@ -2983,7 +2983,7 @@ c precip. tracer evap
         TR_LEF=1.D0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
+      case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 404
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 404
 
@@ -3130,7 +3130,7 @@ c   processes - this should be all in-cloud
         TR_LEF=1.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU')
+      case('SO2','SO4','H2O2_s','H2O2')
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 405
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 405
 

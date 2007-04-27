@@ -55,7 +55,7 @@ c******************   TRACERS             ******************************
      &     ,jls_source,ijts_source
 #endif
 #ifdef TRACERS_AMP
-     &     ,ijts_AMPe
+     &     ,itcon_surf
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -275,7 +275,6 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       use tracer_sources, only : n__temp,n__sat,n__gwet
 #endif
 #ifdef TRACERS_AMP
-      USE AERO_SETUP, only : RECIP_PART_MASS
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
       implicit none
@@ -356,58 +355,67 @@ C**** are used, it can happen over land as well.
         case ('M_SSA_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         pbl_args%ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
      &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
+     &         pbl_args%ss1_flux*dxyp(j)*ptype!*dtsurf
+        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_SSC_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         pbl_args%ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
      &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-
-
+        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_SSS_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+(pbl_args%ss1_flux+
      &         pbl_args%ss2_flux)
      &    *dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n)) +
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
      &         (pbl_args%ss1_flux+pbl_args%ss2_flux)
      &         *dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      *           (pbl_args%ss1_flux+pbl_args%ss2_flux)
      &         *dxyp(j)*ptype*dtsurf
-
+        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_DD1_DU')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         (pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &                   *dxyp(j)*ptype
-          taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n))
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) 
      &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &         *dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
      &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
-     &         *dxyp(j)*ptype*dtsurf
-        case ('N_DD1_1')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     &         +((pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
-     &        *dxyp(j)*ptype)* RECIP_PART_MASS(5)
+     &         *dxyp(j)*ptype*dtsurf 
+        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_DD2_DU')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      &         +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &                   *dxyp(j)*ptype
-         taijs(i,j,ijts_AMPe(n))=taijs(i,j,ijts_AMPe(n))
+         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) 
      &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &         *dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
      &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &        *dxyp(j)*ptype*dtsurf
-        case ('N_DD2_1')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         ((pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
-     &            *dxyp(j)*ptype)* RECIP_PART_MASS(10)
+         CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
+        case ('M_DDD_DU')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)
+     &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
+     &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
+     &                   *dxyp(j)*ptype
+         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) 
+     &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
+     &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
+     &         *dxyp(j)*ptype*dtsurf
+         DTR_AMPe(j,n)=DTR_AMPe(j,n)
+     &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
+     &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
+     &        *dxyp(j)*ptype*dtsurf
+         CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
+
 #endif
         end select
 #endif

@@ -109,7 +109,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
       use ghy_com, only : ngm, imt, nlsn, LS_NFRAC !, wsn_max
-
+      use tracer_com, only : ntm
 
       implicit none
       save
@@ -306,7 +306,7 @@ ccc data for tracers
 #ifdef TRACERS_WATER
 ccc should be passed from elsewhere
 !@var ntgm maximal number of tracers that can by passesd to HGY
-      integer, parameter, public :: ntgm = 13
+      integer, parameter, public :: ntgm = ntm
 !@var ntg actual number of tracers passed to ground hydrology
       integer, public :: ntg
 !@var trpr flux of tracers in precipitation (?/m^2 s)
