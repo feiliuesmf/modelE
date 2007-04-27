@@ -28,10 +28,10 @@ C**** some arrays here for compatility with new clouds
 #ifdef CLD_AER_CDNC
 !@var OLDNO, OLDNL old CDNC for ocean and land ,SMFPM:CTEI parameter
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNO,OLDNL,SMFPM
-!@var LWC,Cld depth, cld tem,N, Re, LWP for 3 hrly diag save  
+!@var LWC,Cld depth, cld tem,N, Re, LWP for 3 hrly diag save
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CL3D,CI3D,CD3D,CTEM
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CDN3D,CRE3D
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: CLWP       
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: CLWP
 #endif
 
 C**** variables saved for radiation calculations
@@ -53,7 +53,7 @@ C**** variables saved for surface wind spectrum calculations
 C**** variables used (and saved) for gravity wave drag calculations
 !@var AIRX, AIRMX*DXYP(J) convective mass flux (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: AIRX
-!@var LMC max layer of mc convective mass flux. 
+!@var LMC max layer of mc convective mass flux.
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: LMC
 
 !@var LLOW,LMID,LHI max levels for low, mid and high clouds
@@ -72,7 +72,7 @@ C**** variables used (and saved) for gravity wave drag calculations
      *                       CLDSAV1,FSS,
 #ifdef CLD_AER_CDNC
      *                       OLDNO,OLDNL,SMFPM,
-     *                       CL3D,CI3D,CD3D,CTEM,CDN3D,CRE3D,CLWP,                       
+     *                       CL3D,CI3D,CD3D,CTEM,CDN3D,CRE3D,CLWP,
 #endif
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
@@ -125,14 +125,14 @@ C**** variables used (and saved) for gravity wave drag calculations
      *         STAT=IER)
 
 !@var FSS initialized to 1.
-      FSS = 1. 
+      FSS = 1.
 #ifdef CLD_AER_CDNC
 !@var OLDNO and OLDNL are initialized to 10.
-      OLDNO = 10. 
-      OLDNL = 10. 
+      OLDNO = 10.
+      OLDNL = 10.
 !@var SMFPM is initialised to 0.5 (proxy for cloud top turbulence)
       SMFPM = 0.5
-#endif 
+#endif
 
       ALLOCATE(     DDM1(IM,J_0H:J_1H),
      *              AIRX(IM,J_0H:J_1H),
@@ -166,11 +166,11 @@ C**** Initialise some output used in dynamics
       REAL*8, DIMENSION(LM,IM,JM) :: TTOLD_glob,QTOLD_glob
      &                              ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
-           ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+     &     ,OLDNO_glob,OLDNL_glob,SMFPM_glob
 #endif
 
       write(MODULE_HEADER(lhead+1:80),'(a)')
-     *'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
+     &'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to standard restart file
@@ -180,9 +180,9 @@ C**** Initialise some output used in dynamics
         CALL PACK_COLUMN(grid, RHSAV,  RHSAV_glob)
         CALL PACK_COLUMN(grid, CLDSAV, CLDSAV_glob)
 #ifdef CLD_AER_CDNC
-        CALL PACK_COLUMN(grid, OLDNO, OLDNO_glob) 
-        CALL PACK_COLUMN(grid, OLDNL, OLDNL_glob) 
-        CALL PACK_COLUMN(grid, SMFPM, SMFPM_glob) 
+        CALL PACK_COLUMN(grid, OLDNO, OLDNO_glob)
+        CALL PACK_COLUMN(grid, OLDNL, OLDNL_glob)
+        CALL PACK_COLUMN(grid, SMFPM, SMFPM_glob)
 #endif
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,
