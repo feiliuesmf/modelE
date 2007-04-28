@@ -109,7 +109,9 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
       use ghy_com, only : ngm, imt, nlsn, LS_NFRAC !, wsn_max
+#ifdef TRACERS_WATER
       use tracer_com, only : ntm
+#endif
 
       implicit none
       save
