@@ -995,8 +995,6 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  ! excl. regions, but types dimensioned 0:ntype_out
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
      *     ,ntype_out,jm,lat_dg)
-      print*,"in diagj"
-      call sys_flush(6)
 C**** Sum AREGJ over latitude to get AREG
       DO K=1,KAJ
         DO JR=1,NREG
