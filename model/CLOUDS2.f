@@ -892,6 +892,8 @@ C        MC1=.FALSE.
       DTMOM(:,:,1:NTX) = 0.
       DTMR(:,1:NTX) = 0.
       DTMOMR(:,:,1:NTX) = 0.
+      TMDNL(:,1:NTX) = 0.
+      TMOMDNL(:,:,1:NTX) = 0.
       TPOLD = 0.
 #endif
 #ifdef TRACERS_WATER
