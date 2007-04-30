@@ -9108,8 +9108,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      * BCB_src,OCB_src,OCT_src
      * ,DMS_AER,SS1_AER,SS2_AER
      * ,SO2_src_3D,SO2_biosrc_3D,SO2_src,bci_src_3D,
-     * lmAER
-     * ,craft
+     * lmAER,craft,
+     * NH3_src_nat_con,NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
 #endif
 #ifdef TRACERS_COSMO
        USE COSMO_SOURCES, only: rn_src
@@ -9118,8 +9118,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
-#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
-      USE NITRATE_AEROSOL
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m
@@ -10182,13 +10182,14 @@ c Industrial
       NH3_src_hum_cyc(:,:)=0.d0
 
       call openunit('NH3SOURCE_N_A',iuc,.false.)
-      do mm=1,9999
+      do
       read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) go to 53
-! conversion [kg N/gb/a] -> [kg NH3 /gb/s]  (should be [kg/m2/s], but tr3dsource has no dxyp )
+      if (ii.eq.0.) exit
+      if (jj<j_0 .or. jj>j_1) cycle
+! conversion [kg N/gb/a] -> [kg NH3 /gb/s]
       NH3_src_nat_cyc(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
- 53   call closeunit(iuc)
+      call closeunit(iuc)
 
       call openunit('NH3SOURCE_N_C',iuc,.false.)
       do
@@ -10200,22 +10201,24 @@ c Industrial
       call closeunit(iuc)
 
       call openunit('NH3SOURCE_H_A',iuc,.false.)
-      do mm=1,9999
+      do 
       read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) go to 55
+      if (ii.eq.0.) exit
+      if (jj<j_0 .or. jj>j_1) cycle
       if (imPI.eq.1) carbstuff=carbstuff*0.5d0
       NH3_src_hum_cyc(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
- 55   call closeunit(iuc)
+      call closeunit(iuc)
 
       call openunit('NH3SOURCE_H_C',iuc,.false.)
-      do mm=1,9999
+      do 
       read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) go to 56
+      if (ii.eq.0.) exit
+      if (jj<j_0 .or. jj>j_1) cycle
       if (imPI.eq.1) carbstuff=carbstuff*0.5d0
       NH3_src_hum_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
- 56   call closeunit(iuc)
+      call closeunit(iuc)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -10411,13 +10414,15 @@ C**** at the start of any day
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: so2_src,BCI_src,OCI_src,BCB_src,
-     *   OCB_src,OCT_src
+     * OCB_src,OCT_src,
+     * NH3_src_nat_con,NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+
+
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only: rn_src
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
-      USE NITRATE_AEROSOL
       USE apply3d, only : apply_tracer_3Dsource
       USE RAD_COM,  only : cosz1
 #endif
@@ -10887,7 +10892,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: so2_src_3d,BCI_src_3d,BCB_src,
      *     OCB_src,SO2_biosrc_3D,lmAER,OCBt_src,BCBt_src,OCI_src
-     *     ,so2t_src
+     *     ,so2t_src, NH3_src_nat_con,
+     & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+
       USE PBLCOM, only: dclev
 c Laki emissions
 c     USE DYNAMICS, only: LTROPO
@@ -10895,9 +10902,6 @@ c     USE CONSTANT, only: sday
 c     USE MODEL_COM, only: jday,jyear
 c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 #endif
-#ifdef TRACERS_NITRATE
-      USE NITRATE_AEROSOL
-#endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
       USE AERO_SETUP, only : RECIP_PART_MASS
       USE AMP_AEROSOL, only: DTR_AMPe

@@ -67,6 +67,9 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ohr,dho2r,perjr,
      *   tno3r,ohsr  !im,jm,lm,12   DMK jmon
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: craft  !(im,jm,lm)
+!var NH3_src_nat_con Ammonium sources
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)       ::  NH3_src_nat_con,
+     & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
 
       END MODULE AEROSOL_SOURCES
 
@@ -94,7 +97,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * ohr,dho2r,perjr,
      * tno3r,oh,dho2,perj,tno3,ohsr
      * ,o3_offline
-     * ,craft,so2t_src
+     * ,craft,so2t_src,NH3_src_nat_con,
+     & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+
+
       use MODEL_COM, only: im,lm
       
       IMPLICIT NONE
@@ -137,148 +143,169 @@ c     endif
       allocate( ohr(IM,J_0H:J_1H,lm),dho2r(IM,J_0H:J_1H,lm),
      * perjr(IM,J_0H:J_1H,lm),tno3r(IM,J_0H:J_1H,lm),
      * ohsr(IM,J_0H:J_1H,lm),STAT=IER )
+c Nitrate aerosols
+! I,J
+      allocate(  NH3_src_nat_con(IM,J_0H:J_1H) )
+      allocate(  NH3_src_nat_cyc(IM,J_0H:J_1H) )
+      allocate(  NH3_src_hum_con(IM,J_0H:J_1H) )
+      allocate(  NH3_src_hum_cyc(IM,J_0H:J_1H) )
 
       return
       end subroutine alloc_aerosol_sources      
-      
       subroutine get_O3_offline
 !@sum read in ozone fields for aqueous oxidation
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits      
-      USE AEROSOL_SOURCES, only: o3_offline
-C
-      IMPLICIT NONE
+      use model_com, only: jday,im,jm,lm
+      use filemanager, only: openunit,closeunit
+      use aerosol_sources, only: o3_offline
+      use domain_decomp, only: grid, get, write_parallel
+C     
+      implicit none
 
 C**** Local parameters and variables and arguments:
 c
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=0,nmons=1,levo3=23
-      integer ann_units(nanns),mon_units(nmons),imon(nmons)
-      integer i,j,iu,k,l
-      integer      :: jdlast=0  
+!@var nmons: number of monthly input files
+      integer, parameter :: nmons=1,levo3=23
+      integer, dimension(nmons) :: mon_units,imon
+      integer :: i,j,k,l
+      integer :: jdlast=0
       logical :: ifirst=.true.
-      character*80 title   
+      character*80 title
+      character(len=300) :: out_line
       character*10 :: mon_files(nmons) = (/'O3_FIELD'/)
-      logical      :: mon_bins(nmons)=(/.true./) ! binary file?
-      REAL*8, DIMENSION(IM,JM,levo3,1) :: src
-      REAL*8,DIMENSION(Im,Jm,levo3),SAVE :: tlca,tlcb
-      save jdlast,mon_units,imon,ifirst
-C initialise
-c      o3_offline(:,:,:)=0.0d0
-c
-C     Read it in here and interpolated each day.
-C
-      if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
-      IF (ifirst) jdlast=jday-1
-      j = 0
-      do k=nanns+1,1
-        j = j+1
-        call read_monthly_O3_3D(levo3,mon_units(j),jdlast,
-     *       tlca,tlcb,src(1,1,1,k),imon(j),ifirst)
-      end do
-      ifirst=.FALSE.
+      logical :: mon_bins(nmons)=(/.true./) ! binary file?
+      real*8 :: frac
+      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,levo3,1)
+     &        :: src
+      real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb
+      save jdlast,mon_units,imon,ifirst,tlca,tlcb
+      INTEGER :: J_1, J_0, J_0H, J_1H
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      if (ifirst) then
+        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+        allocate(tlca(im,j_0H:j_1H,levo3,nmons),
+     &           tlcb(im,j_0H:j_1H,levo3,nmons))
+        ifirst=.false.
+      endif
+      k=1
+      call openunit(mon_files(k),mon_units(k),mon_bins(k))
+      call read_mon3Dsources(levo3,mon_units(k),jdlast,
+     & tlca(:,:,:,k),tlcb(:,:,:,k),src(:,:,:,k),frac,imon(k))     
+      call closeunit(mon_units(k))
+      
       jdlast = jday
 
-      call sys_flush(6)
+      if(levo3 /= LM) then ! might be ok, but you should check
+        write(out_line,*)
+     &  'make sure levels are correct in get_O3_offline'
+        call write_parallel(trim(out_line))
+        call stop_model('check on get_O3_offline',255)
+      endif
+      
+      o3_offline(:,J_0:J_1,:)=src(:,J_0:J_1,:,k)
 
-      do k=nanns+1,1; DO l=1,lm; DO J=1,JM; DO I=1,IM
-      o3_offline(i,j,l)=src(I,J,L,k)
-
-      end do
-      end do
-      end do
-      end do
-
+      write(out_line,*)
+     &'offline ozone interpolated to current day',frac
+      call write_parallel(trim(out_line))
+      
+      return
       END SUBROUTINE get_O3_offline
-
-      SUBROUTINE read_monthly_O3_3D(Ldim,iu,jdlast,tlca,tlcb,
-     *     data1,imon,ifirst)
+      
+      
+      SUBROUTINE read_mon3Dsources(Ldim,iu,jdlast,tlca,tlcb,data1,
+     & frac,imon)
+! we need to combine this with the one that is used in TRACERS_
+! SPECIAL_Shindell, (called read_monthly_3Dsources) and then move it
+! into more general tracer code...
 !@sum Read in monthly sources and interpolate to current day
-!@ Author Greg Faluvegi 
 !@+   Calling routine must have the lines:
 !@+      real*8 tlca(im,jm,Ldim,nm),tlcb(im,jm,Ldim,nm)
 !@+      integer imon(nm)   ! nm=number of files that will be read
+!@+      data jdlast /0/
 !@+      save jdlast,tlca,tlcb,imon
 !@+   Input: iu, the fileUnit#; jdlast
 !@+   Output: interpolated data array + two monthly data arrays
+!@auth Jean Lerner and others / Greg Faluvegi
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP, only : GRID,GET,READT_PARALLEL,REWIND_PARALLEL
+     & ,write_parallel
       implicit none
-
 !@var Ldim how many vertical levels in the read-in file?
-      INTEGER,INTENT(IN) :: Ldim,iu,jdlast
-      LOGICAL,INTENT(IN) :: ifirst
-
-      INTEGER,INTENT(INOUT) :: imon
-      REAL*8,DIMENSION(Im,Jm,Ldim),INTENT(INOUT) :: tlca,tlcb
-
-      REAL*8,INTENT(OUT) :: data1(im,jm,Ldim)
-
 !@var L dummy vertical loop variable
-      INTEGER :: L
-!@var imom saves month for interpolation
-      INTEGER,SAVE :: imom
-!@var frac weighting factor for interpolation between months
-!@var A2D,B2D 2 dimensional fields to read in data
-      REAL*8 :: frac,A2D(im,jm),B2D(im,jm)
+      integer Ldim,L,imon,iu,jdlast
+      character(len=300) :: out_line
+      real*8 :: frac
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     A2D,B2D,dummy
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::
+     &     tlca,tlcb,data1
 
-      idofm(2)=46
+      integer :: J_0, J_1
 
-      IF (ifirst) THEN          ! NEED TO READ IN FIRST MONTH OF DATA AT START
-        REWIND iu
-        imon=1                  ! imon=January
-        if (jday < 16)  then    ! JDAY in Jan 1-15, first month is Dec
-          do L=1,LDim*11
-            read(iu)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+C
+      if (jdlast == 0) then   ! NEED TO READ IN FIRST MONTH OF DATA
+        imon=1                ! imon=January
+        if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+          do L=1,Ldim*11
+            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,dummy,1)
           end do
           DO L=1,Ldim
-            call readt(iu,0,A2D,im*jm,A2D,1) ! read in December
-            tlca(:,:,L)=A2d(:,:)
+            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,A2D,1)
+            tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
           END DO
-          rewind iu
-        else                    ! JDAY is in Jan 16 to Dec 16, get first month
-          imon=1
-          DO WHILE (jday >= idofm(imon) .AND. imon <= 12)
-            imon=imon+1
-          END DO
+          CALL REWIND_PARALLEL( iu )
+        else              ! JDAY is in Jan 16 to Dec 16, get first month
+  120     imon=imon+1
+          if (jday > idofm(imon) .AND. imon <= 12) go to 120
           do L=1,Ldim*(imon-2)
-            read(iu)
+            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,dummy,1)
           end do
           DO L=1,Ldim
-            call readt(iu,0,A2D,im*jm,A2D,1) ! read in current month
-            tlca(:,:,L)=A2d(:,:)
+            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,A2D,1)
+            tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
           END DO
-          IF (imon == 13) REWIND iu
+          if (imon == 13)  CALL REWIND_PARALLEL( iu )
         end if
-      END IF
-c ..........
-c Read in next month at start or when middle of the current month is reached
-c ..........
-      IF (ifirst .OR. (jday == idofm(imon) .AND. jday /= jdlast)) THEN
-        IF (.NOT. ifirst) THEN
-          tlca(:,:,:) = tlcb(:,:,:)
-          IF (imon == 12) REWIND iu
-        END IF
-        DO L=1,Ldim
-          CALL readt(iu,0,B2D,im*jm,B2D,1) ! read in next month
-          tlcb(:,:,L)=B2D(:,:)
-        END DO
-        IF (jday >= idofm(imon)) imon=imon+1
-        imom=imon
-        IF (imon == 13) imon=1
-      END IF
-      IF (jday == 1) imom=1
-
+      else                         ! Do we need to read in second month?
+        if (jday /= jdlast+1) then ! Check that data is read in daily
+          if (jday /= 1 .OR. jdlast /= 365) then
+            write(out_line,*)'Bad day values in read_monthly_3Dsources'
+     &      //': JDAY,JDLAST=',JDAY,JDLAST
+            call write_parallel(trim(out_line),crit=.true.)
+            call stop_model('Bad values in read_monthly_3Dsources',255)
+          end if
+          imon=imon-12             ! New year
+          go to 130
+        end if
+        if (jday <= idofm(imon)) go to 130
+        imon=imon+1                ! read in new month of data
+        if (imon == 13) then
+          CALL REWIND_PARALLEL( iu  )
+        else
+          do L=1,Ldim*(imon-1)
+            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,dummy,1)
+          end do
+        endif
+      end if
+      DO L=1,Ldim
+        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,B2D,1)
+        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+      END DO
+ 130  continue
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imom)-jday)/(idofm(imom)-idofm(imom-1))
-      data1(:,:,:) = tlca(:,:,:)*frac + tlcb(:,:,:)*(1.-frac)
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      data1(:,J_0:J_1,:) =
+     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      return
+      end subroutine read_mon3Dsources
 
-      write(6,*) 'Read in ozone offline fields for in cloud oxidation 
-     *     interpolated to current day',frac
 
-      END SUBROUTINE read_monthly_O3_3D
 
       SUBROUTINE read_E95_SO2_source(nt,iact)
 !@sum reads in SO2 surface sources: Edgar 1995 (RIVM)

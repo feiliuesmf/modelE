@@ -39,6 +39,9 @@ c set-up for MPI implementation
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       call alloc_aerosol_sources(grid)
 #endif
+#ifdef TRACERS_AMP
+      call alloc_tracer_amp_com(grid)
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       CALL alloc_dust(grid)

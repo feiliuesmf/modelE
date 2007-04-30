@@ -249,20 +249,23 @@ c      print*,' STAUB', il,dustnc(36,28,1,nd)
       
 #ifdef TRACERS_DUST
       DO nd = 5,ndtr  !1,ndtr
-        krate(:,:,:,1,il) = krate(:,:,:,1,il) + rxtnox(:,:,:,nd,il)
+        krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il) 
+     & + rxtnox(:,J_0:J_1,:,nd,il)
       ENDDO
-        krate(:,:,:,2,il) = rxtnox(:,:,:,5,il)
+        krate(:,J_0:J_1,:,2,il) = rxtnox(:,J_0:J_1,:,5,il)
 #else
       DO nd = 1,ndtr  !1,ndtr
-        krate(:,:,:,1,il) = krate(:,:,:,1,il) + rxtnox(:,:,:,nd,il)
+        krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il) 
+     & + rxtnox(:,J_0:J_1,:,nd,il)
       ENDDO
       DO nd = 1,5  !1,ndtr
-        krate(:,:,:,2,il) = krate(:,:,:,2,il) + rxtnox(:,:,:,nd,il)
+        krate(:,J_0:J_1,:,2,il) = krate(:,J_0:J_1,:,2,il) 
+     &  + rxtnox(:,J_0:J_1,:,nd,il)
       ENDDO
 #endif
-        krate(:,:,:,3,il) = rxtnox(:,:,:,6,il)
-        krate(:,:,:,4,il) = rxtnox(:,:,:,7,il)
-        krate(:,:,:,5,il) = rxtnox(:,:,:,8,il)
+        krate(:,J_0:J_1,:,3,il) = rxtnox(:,J_0:J_1,:,6,il)
+        krate(:,J_0:J_1,:,4,il) = rxtnox(:,J_0:J_1,:,7,il)
+        krate(:,J_0:J_1,:,5,il) = rxtnox(:,J_0:J_1,:,8,il)
       ENDDO ! il
 
 c      print*,' KRATE NR:,', krate(36,28,1,:,:)
@@ -524,20 +527,20 @@ c        if  (dustnc(i,j,l,nd).gt.1000.)
 
 #ifdef TRACERS_DUST
       DO nd = 5,ndtr  !1,ndtr
-        rxts(:,:,:) = rxts(:,:,:) + rxt(:,:,:,nd)
+        rxts(:,j_0:J_1,:) = rxts(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
       ENDDO
-        rxts1(:,:,:) = rxt(:,:,:,5)
+        rxts1(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,5)
 #else
       DO nd = 1,ndtr  !1,ndtr
-        rxts(:,:,:) = rxts(:,:,:) + rxt(:,:,:,nd)
+        rxts(:,j_0:J_1,:) = rxts(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
       ENDDO
       DO nd = 1,5  !1,ndtr
-        rxts1(:,:,:) = rxts1(:,:,:) + rxt(:,:,:,nd)
+        rxts1(:,j_0:J_1,:) = rxts1(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
       ENDDO
 #endif
-        rxts2(:,:,:) = rxt(:,:,:,6)
-        rxts3(:,:,:) = rxt(:,:,:,7)
-        rxts4(:,:,:) = rxt(:,:,:,8)
+        rxts2(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,6)
+        rxts3(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,7)
+        rxts4(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,8)
 
 
       end subroutine sulfdust
@@ -620,7 +623,8 @@ c     XMO=(JDAY+14.75)/30.5
       IF(MB.GT.12) MB=1                                            
 C                                                                  
 
-      DUSTTX(:,:,:,:)=WMA*DUST(:,:,:,:,MA)+WMB*DUST(:,:,:,:,MB) 
+      DUSTTX(:,J_0:J_1,:,:)=WMA*DUST(:,J_0:J_1,:,:,MA)+
+     & WMB*DUST(:,J_0:J_1,:,:,MB) 
 
       RETURN
       END

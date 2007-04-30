@@ -1,6 +1,8 @@
       SUBROUTINE EQSAM_DRV
       USE TRACER_COM
-      USE NITRATE_AEROSOL
+      USE NITRATE_AEROSOL_SOURCES, only: NH3_src_nat_con,
+     & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+
       USE MODEL_COM, only : im,jm,lm     ! dimensions
      $                     ,t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
@@ -11,13 +13,15 @@
       USE DYNAMICS,   only: pmid,pk,byam   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
+      USE DOMAIN_DECOMP,only: GRID, GET
+
       IMPLICIT NONE
 !    local variables
       real*8 :: yi(11),yo(35),yM,yS
-      integer:: KLO,j,l,i
+      integer:: KLO,j,l,i,J_0, J_1
 C**** functions
       real*8 :: QSAT
-
+      CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
@@ -27,7 +31,7 @@ c      print *, ' SUSA: offH ' ,  OFF_HNO3(1,1,1)
       yo(:) = 0.d0
 
       DO L=1,LM                            
-      DO J=1,JM                            
+      DO J=1,J_0,J_1                                
       DO I=1,IMAXJ(J)                      
 ! meteo
       yi(1) = pk(l,i,j)*t(i,j,l)           !should be in [K]
