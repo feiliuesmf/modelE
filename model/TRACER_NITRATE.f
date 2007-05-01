@@ -1,7 +1,8 @@
       SUBROUTINE EQSAM_DRV
       USE TRACER_COM
-      USE NITRATE_AEROSOL_SOURCES, only: NH3_src_nat_con,
+      USE AEROSOL_SOURCES, only: NH3_src_nat_con,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+     & ,off_HNO3
 
       USE MODEL_COM, only : im,jm,lm     ! dimensions
      $                     ,t            ! potential temperature (C)
@@ -23,7 +24,7 @@ C**** functions
       real*8 :: QSAT
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
 #ifndef  TRACERS_SPECIAL_Shindell
-      CALL READ_OFFHNO3(OFF_HNO3)
+c      CALL READ_OFFHNO3(OFF_HNO3)
 #endif
 c      print *, ' SUSA: offH ' ,  OFF_HNO3(1,1,1)
 
@@ -60,8 +61,8 @@ c      print *, ' SUSA: offH ' ,  OFF_HNO3(1,1,1)
       yi(5) =yi(5)+ (trm(i,j,l,n_NO3p)*yM*(mair/TR_MM(n_NO3p))*
      *         BYDXYP(J)*BYAM(L,I,J) )      ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
 #else !off-line HNO3
-      yi(5) = off_HNO3(i,j,l)*yM    ! HNO3 (g)   [umol/m^3 air]
-c      yi(5) = off_HNO3(i,j,l)*yM*(mair/63.018d0)    ! HNO3 (g)   [umol/m^3 air]
+      yi(5) = yi(3) !superwrong!!!!!!!!!!!
+c      yi(5) = off_HNO3(i,j,l)*yM    ! HNO3 (g)   [umol/m^3 air]
 #endif
 ! estimated sea salt = NaCl
       yi(6) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
@@ -821,59 +822,3 @@ c      TAIJS(I,J,ijts_Nit(L,:))=TAIJS(I,J,ijts_Nit(L,:))+yo(:)
 !
       end subroutine eqsam
 
-      SUBROUTINE READ_OFFHNO3(OUT)
-      USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jmon
-      IMPLICIT NONE
-      SAVE
-      include 'netcdf.inc'
-!@param  nlevnc vertical levels of off-line data  
-      INTEGER, PARAMETER :: nlevnc =23
-      REAL*4, DIMENSION(IM,JM,LM) :: OUT
-      REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1, IN2
-!@var netcdf integer
-      INTEGER :: ncid,id
-      INTEGER :: step_rea=0
-!@var time interpoltation
-      REAL*8 :: tau
-      integer start(4),count(4),status,l
-c -----------------------------------------------------------------
-c   Initialisation of the files to be read
-c -----------------------------------------------------------------
-      if (step_rea.ne.jmon) then 
-          step_rea = JMON
-           print*,'READING HNO3 OFFLINE ',jmon, step_rea
-c -----------------------------------------------------------------
-c   Opening of the files to be read
-c -----------------------------------------------------------------
-            status=NF_OPEN('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
-            status=NF_INQ_VARID(ncid,'FELD',id)
-C------------------------------------------------------------------
-c -----------------------------------------------------------------
-c   read
-c -----------------------------------------------------------------
-      start(1)=1
-      start(2)=1
-      start(3)=1
-      start(4)=step_rea
-
-      count(1)=im
-      count(2)=jm
-      count(3)=nlevnc
-      count(4)=1
-
-      status=NF_GET_VARA_REAL(ncid,id,start,count,IN1)
-      start(4)=step_rea+1
-      if (start(4).gt.12) start(4)=1
-      status=NF_GET_VARA_REAL(ncid,id,start,count,IN2)
-
-      status=NF_CLOSE('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
-      endif
-C-----------------------------------------------------------------------
-      tau  = jday/30.
-         do l=1,lm
-         OUT(:,:,l) = (1.-tau)*IN1(:,:,l)+tau*IN2(:,:,l)  
-         enddo
-c -----------------------------------------------------------------
-      RETURN
-      END SUBROUTINE READ_OFFHNO3
-c -----------------------------------------------------------------

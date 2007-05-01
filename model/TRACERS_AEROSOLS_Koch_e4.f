@@ -70,6 +70,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !var NH3_src_nat_con Ammonium sources
       REAL*8, ALLOCATABLE, DIMENSION(:,:)       ::  NH3_src_nat_con,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+!var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3
 
       END MODULE AEROSOL_SOURCES
 
@@ -97,7 +99,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * ohr,dho2r,perjr,
      * tno3r,oh,dho2,perj,tno3,ohsr
      * ,o3_offline
-     * ,craft,so2t_src,NH3_src_nat_con,
+     * ,craft,so2t_src,NH3_src_nat_con, off_HNO3,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
 
 
@@ -149,6 +151,8 @@ c Nitrate aerosols
       allocate(  NH3_src_nat_cyc(IM,J_0H:J_1H) )
       allocate(  NH3_src_hum_con(IM,J_0H:J_1H) )
       allocate(  NH3_src_hum_cyc(IM,J_0H:J_1H) )
+c off line HNO3
+      allocate(  off_HNO3(IM,J_0H:J_1H,LM)     )
 
       return
       end subroutine alloc_aerosol_sources      
@@ -304,6 +308,63 @@ c**** Interpolate two months of data to current day
      & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
       return
       end subroutine read_mon3Dsources
+
+      SUBROUTINE READ_OFFHNO3(OUT)
+      USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jmon
+      IMPLICIT NONE
+      SAVE
+      include 'netcdf.inc'
+!@param  nlevnc vertical levels of off-line data  
+      INTEGER, PARAMETER :: nlevnc =23
+      REAL*4, DIMENSION(IM,JM,LM) :: OUT
+      REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1, IN2
+!@var netcdf integer
+      INTEGER :: ncid,id
+      INTEGER :: step_rea=0
+!@var time interpoltation
+      REAL*8 :: tau
+      integer start(4),count(4),status,l
+c -----------------------------------------------------------------
+c   Initialisation of the files to be read
+c -----------------------------------------------------------------
+      if (step_rea.ne.jmon) then 
+          step_rea = JMON
+           print*,'READING HNO3 OFFLINE ',jmon, step_rea
+c -----------------------------------------------------------------
+c   Opening of the files to be read
+c -----------------------------------------------------------------
+            status=NF_OPEN('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+            status=NF_INQ_VARID(ncid,'FELD',id)
+C------------------------------------------------------------------
+c -----------------------------------------------------------------
+c   read
+c -----------------------------------------------------------------
+      start(1)=1
+      start(2)=1
+      start(3)=1
+      start(4)=step_rea
+
+      count(1)=im
+      count(2)=jm
+      count(3)=nlevnc
+      count(4)=1
+
+      status=NF_GET_VARA_REAL(ncid,id,start,count,IN1)
+      start(4)=step_rea+1
+      if (start(4).gt.12) start(4)=1
+      status=NF_GET_VARA_REAL(ncid,id,start,count,IN2)
+
+      status=NF_CLOSE('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+      endif
+C-----------------------------------------------------------------------
+      tau  = jday/30.
+         do l=1,lm
+         OUT(:,:,l) = (1.-tau)*IN1(:,:,l)+tau*IN2(:,:,l)  
+         enddo
+c -----------------------------------------------------------------
+      RETURN
+      END SUBROUTINE READ_OFFHNO3
+c -----------------------------------------------------------------
 
 
 
