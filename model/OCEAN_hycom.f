@@ -13,6 +13,7 @@
 #include "dimensions.h"
 #include "dimension2.h"
 #include "cpl.h"
+
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
 c
@@ -114,11 +115,17 @@ c
       write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
      *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
 #endif
+
 c
 css   write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
 css  *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
 c
       write(*,'(a,i9,f9.0)')'chk ocean write at nstep/day=',nstep,time
+
+      write(*,'(a,5e12.4)')'OCEAN_hycom1: ',
+     .    dp(100,100,1),u(100,100,1),v(100,100,1),
+     .    temp(100,100,1),saln(100,100,1)
+
       write (MODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
      . 'u,v,dp,t,s,th,tb,ub,vb,pb,pb,psi,thk,mxl,uf,vf,df,tcr3+o18+a8'
       SELECT CASE (IACTION)
@@ -160,6 +167,11 @@ c
 #endif
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
+
+      write(*,'(a,5e12.4)')'OCEAN_hycom2: ',
+     .    dp(100,100,1),u(100,100,1),v(100,100,1),
+     .    temp(100,100,1),saln(100,100,1)
+
       nstep=nstep0
       time=time0
 c
@@ -188,8 +200,16 @@ c
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
      . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
+#ifdef TRACERS_GASEXCH_Natassa
+     . ,atrac
+#endif
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
+
+      write(*,'(a,5e12.4)')'OCEAN_hycom2: ',
+     .    dp(100,100,1),u(100,100,1),v(100,100,1),
+     .    temp(100,100,1),saln(100,100,1)
+
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
@@ -197,6 +217,19 @@ c
             END IF
           END SELECT
       END SELECT
+
+!#ifdef TRACERS_restart_Natassa
+!      print*, '********************************************************'
+!      print*, '********************************************************'
+!      print*, '********************************************************'
+!      print*, '************ RESTARTING FROM AN OLD TRACER RUN *********'
+!      print*, '************** SETTING TRACERS TO ZERO *****************'
+!      print*, '********************************************************'
+!      print*, '********************************************************'
+!      print*, '********************************************************'
+!      tracer = 0.
+!#endif
+
 
       RETURN
  10   IOERR=1

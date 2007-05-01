@@ -101,6 +101,16 @@ c
       USE CONSTANT, only : lhm,shi,shw
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
+
+#ifdef TRACERS_OceanBiology
+      USE obio_dim
+      USE obio_forc, only:    avgq,awind,owind,asolz,osolz
+      USE obio_com,  only:    gcmax,pCO2,dobio
+
+      USE PBLCOM, only : wsavg
+      USE RAD_COM,   only: COSZ1
+#endif
+
 c
       implicit none
 c
@@ -121,6 +131,10 @@ c
 #ifdef TRACERS_GASEXCH_Natassa
       integer nt
 #endif
+#ifdef TRACERS_OceanBiology
+      integer ihr,ichan,hour_of_day,day_of_month,iyear
+      integer bef,aft                   !  bio routine timing variables
+#endif
       external rename
       logical master,slave,diag_ape
       character util(idm*jdm+14)*2,charac(20)*1,string*20,
@@ -135,6 +149,9 @@ c
       real cnuity_time,tsadvc_time,momtum_time,barotp_time,trcadv_time,
      .     thermf_time,enloan_time,mxlayr_time,hybgen_time,
      .     agcm_time,ogcm_time
+#ifdef TRACERS_OceanBiology
+      real*4 ocnbio_time,ocnbio_total_time,ocnbio_avg_time
+#endif
       integer after,before,rate,bfogcm
 c
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
@@ -178,6 +195,10 @@ c$OMP PARALLEL DO
         atracflx(ia,ja,nt)=0.
         enddo
 #endif
+#ifdef TRACERS_OceanBiology
+          awind(ia,ja)=0.
+          asolz(ia,ja)=0.
+#endif
  28     continue
 c$OMP END PARALLEL DO
       endif
@@ -219,6 +240,14 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
       aswflx(ia,ja)=aswflx(ia,ja)+(solar(1,ia,ja)*(1.-rsi(ia,ja))!J/m*m=>W/m*m
      .                            +solar(3,ia,ja)*    rsi(ia,ja))
      .                                 /(3600.*real(nhr))
+#ifdef TRACERS_OceanBiology
+      asolz(ia,ja)=asolz(ia,ja)                            ! 
+     .            +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr))    !
+      awind(ia,ja)=awind(ia,ja)                            ! 
+     .            +wsavg(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cdiag write(*,'(a,2i5,2e12.4)')
+cdiag.        'hycom2, o_ awind:', ia,ja,wsavg(ia,ja),awind(ia,ja)
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
@@ -261,6 +290,12 @@ c
       call flxa2o(aemnp,oemnp)                    !E - P everywhere
       call flxa2o(austar,ustar)                   !friction velocity
       call flxa2o(aswflx,sswflx)                  ! shortwave flux
+#ifdef TRACERS_OceanBiology    
+      call flxa2o(asolz,osolz)
+      call flxa2o(awind,owind)
+cdiag write(*,'(a,2i5,e12.4)')
+cdiag.   'hycom2, wind at (109,94):', 109,94,owind(109,94)
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       call flxa2o(atracflx(:,:,nt),tracflx2(:,:,nt)) !tracer flux
@@ -508,6 +543,54 @@ c     this should be done at every time step (of the long interval)
       enddo
 #endif
 c
+#ifdef TRACERS_OceanBiology
+      call system_clock(before)      ! time elapsed since last system_clock
+      trcout = .true.
+
+      before = after
+      ocnbio_time=0.0
+
+      if (dobio) then
+cdiag  do k=1,kdm
+cdiag  km=k+mm
+cdiag   if (k.eq.1)
+cdiag.   write(lp,'(a,3i5,a,a)')'bfre obio ',nstep,itest,jtest
+cdiag.   ,'    dp       nitr      ammo      sili      iron  '
+cdiag.   ,'    diat      chlo      cyan      cocco     herb'
+cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
+cdiag.     k,dp(itest,jtest,km)/onem,
+cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
+cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
+cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
+cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
+cdiag.     tracer(itest,jtest,k,9)
+cdiag  enddo
+cdiag  call obio_limits('bfre obio_model')
+
+         call obio_model(mm)
+
+cdiag  do k=1,kdm
+cdiag  km=k+mm
+cdiag   if (k.eq.1)
+cdiag.   write(lp,'(a,3i5,a,a)')'aftr obio ',nstep,itest,jtest
+cdiag.   ,'    dp       nitr      ammo      sili      iron  '
+cdiag.   ,'    diat      chlo      cyan      cocco     herb'
+cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
+cdiag.     k,dp(itest,jtest,km)/onem,
+cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
+cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
+cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
+cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
+cdiag.     tracer(itest,jtest,k,9)
+cdiag  enddo
+cdiag  call obio_limits('aftr obio_model')
+
+      endif
+
+      call system_clock(after)
+      ocnbio_time = real(after-before)/real(rate)
+
+#endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- available potential energy diagnostics:
       if (diag_ape)
@@ -533,14 +616,65 @@ c --- long time step tracer advection: build up mass flux time integral
 cdiag print *,'past tradv1'
 c
         if (mod(nstep,trcfrq).eq.0) then
+cdiag     if (nstep.gt.40) then
+cdiag     do j=1,jj
+cdiag     do l=1,isp(j)
+cdiag     do i=ifp(j,l),ilp(j,l)
+cdiag     do k=1,kdm
+cdiag     km=k+mm
+cdiag      write(lp,'(a,3i4,2e12.4)')
+cdiag.    'befor tradv2 ',i,j,k,dp(i,j,km)/onem,
+cdiag.     tracer(i,j,k,15)
+cdiag     enddo
+cdiag     enddo
+cdiag     enddo
+cdiag     enddo
+cdiag     endif
+
           dotrcr=.true.         !  start tracer advection/turb.mixing cycle
           write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
+      
           call tradv2(n,nn)
+
+cdiag     if (nstep.gt.40) then
+cdiag     do j=1,jj
+cdiag     do l=1,isp(j)
+cdiag     do i=ifp(j,l),ilp(j,l)
+cdiag     do k=1,kdm
+cdiag     km=k+mm
+cdiag      write(lp,'(a,3i4,2e12.4)')
+cdiag.    'after tradv2 ',i,j,k,dp(i,j,km)/onem,
+cdiag.     tracer(i,j,k,15)
+cdiag     enddo
+cdiag     enddo
+cdiag     enddo
+cdiag     enddo
+cdiag     endif
+
         end if
         trcadv_time = trcadv_time + real(after-before)/real(rate)
-      end if
+
+#ifdef TRACERS_OceanBiology
+cdiag  do k=1,kdm
+cdiag  km=k+mm
+cdiag   if (k.eq.1)
+cdiag.   write(lp,'(a,3i5,a,a)')'aftr tadv ',nstep,itest,jtest
+cdiag.   ,'    dp       nitr      ammo      sili      iron  '
+cdiag.   ,'    diat      chlo      cyan      cocco     herb'
+cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
+cdiag.     k,dp(itest,jtest,km)/onem,
+cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
+cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
+cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
+cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
+cdiag.     tracer(itest,jtest,k,9)
+cdiag  enddo
+cdiag  call obio_limits('aftr trcadv')
+#endif
+
+      end if  !trcout
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape) q=hyc_pechg1(dp(1,1,k1m),th3d(1,1,k1m),32)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -621,6 +755,24 @@ c
 c     call sstbud(4,'  air-sea fluxes',tprime)
 c     call sstbud(5,'     entrainment',temp(1,1,k1n))
 
+#ifdef TRACERS_OceanBiology
+cdiag  do k=1,kdm
+cdiag  km=k+mm
+cdiag  if (k.eq.1)
+cdiag.   write(lp,'(a,3i5,a,a)')'aftr kpp  ',nstep,itest,jtest
+cdiag.   ,'    dp       nitr      ammo      sili      iron  '
+cdiag.   ,'    diat      chlo      cyan      cocco     herb'
+cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
+cdiag.     k,dp(itest,jtest,km)/onem,
+cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
+cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
+cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
+cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
+cdiag.     tracer(itest,jtest,k,9)
+cdiag  enddo
+cdiag  call obio_limits('aftr kpp')
+#endif
+
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
      . write (501,103) time,'  APE change due to thermal forcing:',
@@ -637,6 +789,24 @@ c
 c
 ccc      write (string,'(a12,i8)') 'hybgrd, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
+
+#ifdef TRACERS_OceanBiology
+cdiag  do k=1,kdm
+cdiag  km=k+mm
+cdiag   if (k.eq.1)
+cdiag.   write(lp,'(a,3i5,a,a)')'aftr hbge ',nstep,itest,jtest
+cdiag.   ,'    dp       nitr      ammo      sili      iron  '
+cdiag.   ,'    diat      chlo      cyan      cocco     herb'
+cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
+cdiag.     k,dp(itest,jtest,km)/onem,
+cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
+cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
+cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
+cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
+cdiag.     tracer(itest,jtest,k,9)
+cdiag  enddo
+cdiag  call obio_limits('aftr hybgen')
+#endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
      . write (501,103) time,'  APE change due to vert.regridding:',
@@ -778,6 +948,10 @@ c
 c
       if (mod(nstep,5).eq.0) call flush(lp)
 c
+#ifdef TRACERS_OceanBiology
+      if (dobio .or. diagno) call obio_trint
+#endif
+c
       if (.not.diagno) go to 23
 c
       write (lp,100) nstep,int((time+.001)/365.),mod(time+.001,365.)
@@ -853,11 +1027,20 @@ c$OMP PARALLEL DO
 #ifdef TRACERS_GASEXCH_Natassa
       !here we define the tracer that participates in the
       !gas exchange flux.
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       do nt=1,ntm
       otrac(i,j,nt)=otrac(i,j,nt)
      .            +tracer(i,j,1,nt)
      .            *baclin/(3600.*real(nhr))
       enddo
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      do nt=1,ntm
+      otrac(i,j,nt)=otrac(i,j,nt)
+     .             +pCO2(i,j)
+     .             *baclin/(3600.*real(nhr))
+      enddo
+#endif
 #endif
  201  continue
 c$OMP END PARALLEL DO

@@ -92,7 +92,7 @@ C****
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
 #ifdef TRACERS_GASEXCH_Natassa
-     *     ,trgasex,gtracer
+     *     ,TRGASEX,GTRACER
 #endif
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
@@ -126,6 +126,7 @@ C****
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
+
       USE SOIL_DRV, only: earth
 
       IMPLICIT NONE
@@ -607,6 +608,7 @@ C**** set defaults
         trconstflx(nx)=0.
 #ifdef TRACERS_GASEXCH_Natassa
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
+          pbl_args%alati=sss(I,J)
           trgrnd(nx)=gtracer(n,itype,i,j)
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
@@ -890,7 +892,7 @@ C**** Limit evaporation if lake mass is at minimum
      &               * dxyp(j)*ptype*dtsurf
 
 cdiag  write(*,'(a,2i5,5e12.4)')'SUFRACE, TRGASEX ',
-cdiag.  i,j,Kw_gas,beta_gas,trs(nx)
+cdiag.  i,j,Kw_gas,pbl_args%beta_gas,trs(nx)
 cdiag.   ,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
        END IF
 #endif

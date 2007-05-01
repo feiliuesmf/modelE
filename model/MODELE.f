@@ -983,7 +983,14 @@ C****
       write(6,*) '...and Jean/David tracers and chemistry'
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
-      write(6,*) '...and Natassa Romanou to-ocean tracers'
+      write(6,*) '          '
+      write(6,*) '...and Natassa Romanou air-sea GAS EXCHANGE'
+#ifdef TRACERS_GASEXCH_CFC_Natassa
+      write(6,*) '****CFC flux across air/sea interface****'
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      write(6,*) '****CO2 flux across air/sea interface****'
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and Drew Shindell tracers and chemistry'

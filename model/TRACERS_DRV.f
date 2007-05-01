@@ -96,7 +96,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #endif
 
-#ifdef TRACERS_GASEXCH_Natassa
+#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
       integer i, iu_data
 #endif
 
@@ -212,6 +212,17 @@ C**** Define individual tracer characteristics
           ntm_power(n) = -2
           tr_mm(n) = mair
 
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      case ('CO2n')
+      n_CO2n = n
+          ntm_power(n) = -6
+          tr_mm(n) = 44.d0     !grams
+          t_qlimit(n) = .false.
+          ntsurfsrc(n) = 1
+          needtrs(n)=.true.
+#endif
+
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       case ('CFCn')
       n_CFCn = n
           ntm_power(n) = -12
@@ -219,6 +230,7 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 137.37d0     !note units are in gr
           ntsurfsrc(n) = 1
           needtrs(n)=.true.
+#endif
 
 
       case ('SF6')
@@ -1978,6 +1990,28 @@ C****
       k = 0
       do n=1,ntm
       select case (trname(n))
+
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      case ('CO2n')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'to be defined ....'//trname(n)
+        lname_jls(k) = 'CO2n                            '
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'CO2n Ocean source'
+        sname_ijts(k) = 'CO2n_Ocean_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
+
+
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       case ('CFCn')
         k = k + 1
         jls_source(1,n) = k
@@ -1994,6 +2028,7 @@ C****
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 
       case ('SF6')
         k = k + 1
@@ -3819,6 +3854,21 @@ C**** This needs to be 'hand coded' depending on circumstances
       do n=1,ntm
       select case (trname(n))
 
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      case ('CO2n')
+      k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        sname_ijts(k) = 'some source i know '//trname(n)
+        lname_ijts(k) = 'CO2 ...............'
+        ijts_power(k) = -11.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
+
+
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       case ('CFCn')
       k = k+1
         ijts_source(1,n) = k
@@ -3829,6 +3879,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 
       case ('SF6')
       k = k+1
@@ -7534,9 +7585,17 @@ C**** set some defaults
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      case ('CO2n')
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+#endif
+
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       case ('CFCn')
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+#endif
 
 
       case ('SF6')
@@ -9024,7 +9083,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       end do
 #endif
 
-#ifdef TRACERS_GASEXCH_Natassa
+#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
       !read in OCMIP based CFC-11 global emissions
       !=sum(dC/dt) for each hemisphere
       !these are *annual global averages* and need to be
@@ -9135,7 +9194,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                      CH4ic
 
-#ifdef TRACERS_GASEXCH_Natassa
+#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
       REAL*8 :: dummy
 #endif
 
@@ -9700,6 +9759,19 @@ C         AM=kg/m2, and DXYP=m2:
           end do; end do; end do
 #endif
 
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+        case ('CO2n')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            if(l.ge.LS1) then
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-13
+            else
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
+            end if
+          end do; end do; end do
+#endif
+
+
+#ifdef TRACERS_GASEXCH_CFC_Natassa
         case ('CFCn')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             if(l.ge.LS1) then
@@ -9708,6 +9780,7 @@ C         AM=kg/m2, and DXYP=m2:
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
             end if
           end do; end do; end do
+#endif
 
         case ('CFC')
 #ifdef SHINDELL_STRAT_CHEM
@@ -10437,7 +10510,7 @@ C**** at the start of any day
      *  steph,stepx,stepp,tmon,bydt,tnew,scca(im)
       REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
-#ifdef TRACERS_GASEXCH_Natassa
+#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
       integer :: i_ocmip,imax
       real*8  :: factor
       real*8  :: trsource_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -10575,7 +10648,7 @@ C**** Source over Australia and New Zealand
 
         !print out global average for each time step before weighing
         !in the OCMIP values
-#ifdef TRACERS_GASEXCH_Natassa
+#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
         sarea  = 0.
         trsource_glbavg(n)=0.
         sarea_prt(:)  = 0.

@@ -320,6 +320,10 @@ ccc   use mod_xc  ! HYCOM communication interface
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
+
+#ifdef TRACERS_OceanBiology
+      USE obio_dim, only : ntyp,n_inert,ndet,ncar
+#endif
 #endif
 
 c
@@ -577,7 +581,13 @@ c --- modify t and s
 #ifdef TRACERS_GASEXCH_Natassa
         if (dotrcr) then
          do ktr=1,ntm
+#ifdef TRACERS_GASEXCH_CFC_Natassa
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
+     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
+#endif
          enddo
         endif
 #endif
@@ -1360,6 +1370,10 @@ ccc   use mod_xc  ! HYCOM communication interface
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
+
+#ifdef TRACERS_OceanBiology
+      USE obio_dim, only : ntyp,n_inert,ndet,ncar
+#endif
 #endif
 
 c
@@ -1636,7 +1650,21 @@ c --- modify t and s; set old value arrays at p points for initial iteration
 #ifdef TRACERS_GASEXCH_Natassa
         if (dotrcr) then
          do ktr=1,ntm
+#ifdef TRACERS_GASEXCH_CFC_Natassa
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
+          if(i.eq.109.and.j.eq.94)
+     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
+     .      ktr,tracer(i,j,k,ktr)-dtracer(ktr),dtracer(ktr),
+     .          tracer(i,j,k,ktr)
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
+     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
+          if(i.eq.109.and.j.eq.94)
+     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
+     .      ktr,tracer(i,j,k,ntyp+n_inert+ndet+ncar)-dtracer(ktr),
+     .      dtracer(ktr),tracer(i,j,k,ntyp+n_inert+ndet+ncar)
+#endif
          enddo
         endif
 #endif
@@ -2735,6 +2763,10 @@ c
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
+
+#ifdef TRACERS_OceanBiology
+      USE obio_dim, only : ntyp,n_inert,ndet,ncar
+#endif
 #endif
 c --- hycom version 2.1
       implicit none
@@ -2858,13 +2890,24 @@ cdiag.      'old tracer',ktr,(tr1do(k,ktr),k=1,nlayer)
           !tracer flux imposed at air-sea intfc
           ghatflux=0.
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
           !tracflx positive in the +p direction (into the ocean)
           ghatflux=-tracflx(i,j,ktr)*thref
-          write(6,*)'mxkprf, calculation of the ghatflux',i,j,ghatflux
           if(i.eq.109.and.j.eq.94)
-     .    write(6,'(a,i5,e12.4)')
-     .            'mxkprf, ghatflux at pt(109,94) and nt=',
-     .             ktr,ghatflux
+     .    write(6,'(a,i5,2e12.4)')
+     .            'mxkpp, ghatflux at pt(109,94) and nt=',
+     .             ktr,tracflx(i,j,ktr),ghatflux
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+          !only DIC has surface flux
+          if (ktr.eq.ntyp+n_inert+ndet+ncar) then
+             ghatflux=-tracflx(i,j,1)*thref    !because ntm=1
+             if(i.eq.109.and.j.eq.94)
+     .             write(6,'(a,i5,2e12.4)')
+     .            'mxkpp, ghatflux at pt(109,94) and nt=',
+     .             ktr,tracflx(i,j,1),ghatflux
+          endif
+#endif
 #endif
           call tridrhs(hm,
      &        tr1do(1,ktr),diffs,ghat,ghatflux,tri,nlayer,rhs,

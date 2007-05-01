@@ -76,7 +76,9 @@ c
 c --- 'itest,jtest' = grid point where detailed diagnostics are desired
 c     data itest,jtest/174,41/
 c     data itest,jtest/163,133/
-      data itest,jtest/104,46/
+c     data itest,jtest/109,94/
+c     data itest,jtest/93,14/
+      data itest,jtest/100,100/
 c
 c ---      equatn   --  the i index of the equator
 c
@@ -87,9 +89,9 @@ c --- thermo      use thermodynamic forcing functions
 c --- windf       use wind stress forcing function
 c --- relax       activate lateral boundary nudging
 c
-#ifdef TRACERS_GASEXCH_Natassa
+#if defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
-#else
+#else    
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
 #endif
 c

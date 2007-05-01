@@ -24,6 +24,16 @@ C**** Each tracer has a variable name and a unique index
       character*8, parameter :: trname(ntm)=(/
      *     'Water   ','H2O18   ','HDO     '/)  !,'HTO     '/)
 #else     
+#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
+      integer, parameter :: ntm=1
+      character*8, parameter :: trname(ntm)=(/'CFCn    '/)
+#endif  /* TRACERS_GASEXCH_CFC_Natassa */
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      integer, parameter :: ntm=1
+      character*8, parameter :: trname(ntm)=(/'CO2n    '/)
+#endif  /* TRACERS_GASEXCH_CO2_Natassa */
+#else
 #if (defined TRACERS_SPECIAL_Lerner) && (defined TRACERS_WATER) 
       integer, parameter :: ntm=10
       character*8, parameter :: trname(ntm)= (/
@@ -777,25 +787,14 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       integer, parameter :: ntm=2
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
 #else
-#if defined TRACERS_GASEXCH_Natassa
-      integer, parameter :: ntm=1
-      character*8, parameter :: trname(ntm)= (/
-     *     'CFCn    '/)
-#else
 #ifdef TRACERS_OCEAN
-#if defined TRACERS_GASEXCH_Natassa
-      integer, parameter :: ntm=1
-      character*8, parameter :: trname(ntm)= (/
-     *     'CFCn    '/)
-#else
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Water   '/)
-#endif
 #else /* default for TRACERS_ON */
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
 #endif
-#endif
+#endif   /* TRACERS_GASEXCH_Natassa */
 #endif
 #endif
 #endif
@@ -846,7 +845,13 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
-     *     n_Pb210 = 0,n_Be7=0,   n_Be10=0, n_CFCn=0,
+     *     n_Pb210 = 0,n_Be7=0,   n_Be10=0, 
+#ifdef TRACERS_GASEXCH_CFC_Natassa
+     .     n_CFCn=0,
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+     .     n_CO2n=0,
+#endif
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
      *     n_SO4_d3=0,n_N_d1=0,  n_N_d2=0,  n_N_d3=0,
      &     n_NH3=0,   n_NH4=0,   n_NO3p=0,

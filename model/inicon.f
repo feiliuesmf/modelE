@@ -11,7 +11,12 @@ c --- hycom version 0.9
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : atrac
+
+#if defined(TRACERS_GASEXCH_CO2_Natassa) && defined(TRACERS_OceanBiology)
+      USE obio_com, only : pCO2
 #endif
+#endif
+
       USE MODEL_COM, only : focean
       implicit none
 c
@@ -223,9 +228,14 @@ cc$OMP END PARALLEL DO
       call ssto2a(saln,sss)
 c     call ssto2a(omlhc,mlhc)
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       do nt=1,ntm
          call ssto2a(tracer(:,:,1,nt),atrac)
       enddo
+#endif
+#if defined(TRACERS_GASEXCH_CO2_Natassa) && defined(TRACERS_OceanBiology)
+         call ssto2a(pCO2,atrac)
+#endif
 #endif
 c
       call findmx(ip,temp,ii,ii,jj,'ini sst')

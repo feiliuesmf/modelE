@@ -110,7 +110,7 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
       save
       private
 
-      public openunit, closeunit, print_open_units
+      public openunit, closeunit, print_open_units,findunit
       public openunits, closeunits, nameunit
 
 !@param MINUNIT, MAXUNIT - min and max unit number allowed
@@ -184,7 +184,7 @@ C**** parse options
 
       call findunit( iunit )
 
-!dbug write(6,*) "FILEMANAGER: Before Opening file ",trim(filename) !RKF debug
+!dbg  write(6,*) "FILEMANAGER: Before Opening file ",trim(filename) !RKF debug
       if ( form == "FORMATTED" ) then
         open( iunit, FILE=filename, FORM=form, STATUS=status,
 #ifdef CONVERT_BIGENDIAN
@@ -199,7 +199,7 @@ C**** parse options
      *       ERR=10 )
       endif
 
-!dbug write(6,*) "FILEMANAGER: Opened file ",trim(filename) !RKF debug
+!dbg  write(6,*) "FILEMANAGER: Opened file ",trim(filename) !RKF debug
 
       Units(iunit)%in_use = .true.
       name_len = len_trim(filename)

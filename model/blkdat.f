@@ -75,7 +75,8 @@ c --- 'epsil'  = small nonzero number used to prevent division by zero
 c
 c --- 'itest,jtest' = grid point where detailed diagnostics are desired
 c     data itest,jtest/174,41/
-      data itest,jtest/163,133/
+c     data itest,jtest/163,133/
+      data itest,jtest/100,100/
 c
 c ---      equatn   --  the i index of the equator
 c
@@ -86,7 +87,7 @@ c --- thermo      use thermodynamic forcing functions
 c --- windf       use wind stress forcing function
 c --- relax       activate lateral boundary nudging
 c
-#ifdef TRACERS_GASEXCH_Natassa
+#if defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
 #else
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./

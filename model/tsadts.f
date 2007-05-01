@@ -139,9 +139,9 @@ cdiag.write (lp,'(i9,2i5,i3,'' th,s,dp after advection  '',2f9.3,f8.2)')
 cdiag.nstep,itest,jtest,k,temp(itest,jtest,kn),saln(itest,jtest,kn),
 cdiag.dp(itest,jtest,kn)/onem
 c
-      if (diagno)
-     . write (lp,'(i9,i3,'' min/max of s after advection:'',4f7.2)')
-     . nstep,k,sminn,smaxx
+cdiag if (diagno)
+cdiag. write (lp,'(i9,i3,'' min/max of s after advection:'',4f7.2)')
+cdiag. nstep,k,sminn,smaxx
 c
 c --- --------------------------------------
 c --- diffusion of thermodynamic variable(s)

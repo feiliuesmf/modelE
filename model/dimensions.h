@@ -1,7 +1,7 @@
 c-----------------------------------------------------------------------------
       integer idm,jdm,kdm,ms,iia,jja,iio,jjo,ntrcr,iold
       real equato
-      parameter (idm=195,jdm=180,kdm=20,ms=15,ntrcr=1,equato=115.
+      parameter (idm=195,jdm=180,kdm=20,ms=15,ntrcr=15,equato=115.
      .          ,iold=181)
       parameter (iia=72,jja=46,iio=idm,jjo=jdm)
 c

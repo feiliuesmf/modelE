@@ -40,6 +40,11 @@
 #endif
 #endif
 #endif
+#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      USE obio_incom, only : awan
+#endif
+#endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
 
@@ -112,7 +117,7 @@ c**** Tracer input/output
 #endif
 
 #ifdef TRACERS_GASEXCH_Natassa
-        real*8  :: Kw_gas,alpha_gas,beta_gas
+        real*8  :: alati,Kw_gas,alpha_gas,beta_gas
 #endif
 #endif
       end type t_pbl_args
@@ -251,6 +256,7 @@ c   output:
 !@var  pbl_args%ntix index of tracers used in pbl
 #endif
 #if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_Natassa)
+!@var  pbl_args%alati SSS at i,j
 !@var  pbl_args%Kw_gas  gas exchange transfer velocity at i,j only over ocean
 !@var  pbl_args%alpha_gas  solubility of gas
 !@var  pbl_args%beta_gas  conversion term  that includes solubility
@@ -270,6 +276,13 @@ c  internals:
 !@var  kh    turbulent thermometric conductivity. computed
 !@var  ke    transport coefficient for the turbulent kinetic energy.
 !@var  ipbl  stores bl properties of last time step
+
+#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      USE obio_forc, only : atmCO2
+#endif
+#endif
+
       implicit none
 
       !-- in/out structure
@@ -333,7 +346,12 @@ C****
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       real*8 :: Sc_gas
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       real*8, external :: sc_cfc,sol_cfc
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      real*8, external :: sc_co2,sol_co2
+#endif
 #endif
 
 #ifdef USE_PBL_E1
@@ -723,6 +741,65 @@ ccc dust emission from earth
 
 #ifdef TRACERS_GASEXCH_Natassa
 
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      IF (ocean) THEN  ! OCEAN
+      !---------------------------------------------------------------
+      !TRANSFER VELOCITY
+      !---------------------------------------------------------------
+      !Schidt number for gas
+       Sc_gas=sc_co2(tg1)
+      !wind speed wsh: magn. of surf. wind modified by buoyancy flux (m/s)
+      !compute transfer velocity Kw only over ocean
+      if (Sc_gas .le. 0.) then
+        write(*,'(a,2i4,a,2f9.3)')
+     .          'warning: Sc_gas negtv, at ',ilong,jlat,
+     .          ', Sc_gas,temp_c=',Sc_gas,tg1
+         pbl_args%Kw_gas=1.e-10
+      else
+         pbl_args%Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * wsh * wsh * awan !units of m/s
+      endif
+
+      !---------------------------------------------------------------
+      !gas SOLUBILITY
+      !---------------------------------------------------------------
+      !alpha --solubility of CO2 in seawater
+      !in mol/m^3/picoatm
+       pbl_args%alpha_gas=sol_co2(tg1,pbl_args%alati)
+      !convert to mol/m^3/atm
+       pbl_args%alpha_gas=pbl_args%alpha_gas*1.e+12   !?? units
+
+      !---------------------------------------------------------------
+      !psurf is in mb. multiply with 10.197e-4 to get atm
+      !include molecular weights for air and CO2
+       pbl_args%beta_gas=pbl_args%alpha_gas*(psurf*10.197e-4)*mair*1.e-3
+     .                   /(tr_mm(itr)*1.e-3)
+       !!atmCO2=368.6D0  !defined in obio_forc
+!!!    pbl_args%beta_gas = pbl_args%beta_gas * tr_mm(itr)*1.e-3/rhows * atmCO2
+
+cwatson        xco2 = atmCO2*1013.0/stdslp
+cwatson       deltco2 = (xco2-pCO2_ij)*ff*1.0245E-3
+cwatson       deltaco2=atmCO2*1013.0/stdslp*ff*1.0245E-3  !beta_gas
+cwatson               - pCO2_ij *ff*1.0245E-3       !trconstflx(itr)
+cwatson ff is actually alpha_gas
+
+      !trsf is really sfac = pbl_args%Kw_gas * pbl_args%beta_gas
+      !units are such that flux comes out to (m/s)(kg/kg)
+       trsf = pbl_args%Kw_gas * pbl_args%beta_gas
+
+       trcnst = pbl_args%Kw_gas * pbl_args%trconstflx(itr)*byrho   ! convert to (conc * m/s)
+
+cdiag write(*,'(a,2i3,14e12.4)')'PBL, Kw ',
+cdiag.    ilong,jlat,tg1,Sc_gas,wsh,pbl_args%Kw_gas,mair
+cdiag.   ,psurf*10.197e-4,pbl_args%alati,pbl_args%alpha_gas
+cdiag.   ,pbl_args%beta_gas,atmCO2
+cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
+
+      ENDIF
+#endif   /* TRACERS_GASEXCH_CO2_Natassa */
+
+
+#ifdef TRACERS_GASEXCH_CFC_Natassa
+
       IF (ocean) THEN  ! OCEAN
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !OCMIP implementation www.ipsl.jussieu.fr/OCMIP
@@ -797,7 +874,8 @@ cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
 
       ENDIF
 
-#endif
+#endif /* TRACERS_GASEXCH_CFC_Natassa */
+#endif /* TRACERS_GASEXCH_Natassa */
 
 C**** solve tracer transport equation
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
