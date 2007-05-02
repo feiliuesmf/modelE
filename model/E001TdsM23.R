@@ -117,6 +117,7 @@ O3file_07=jan2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=jan2004_o3_shindelltrop_72x46x49x12_1980
 O3file_09=jan2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=jan2004_o3timetrend_46x49x2412_1850_2050
+delta_O3=do3_shindell_72x46x49x12_2037-2107_E009TdsSxHp-SnHpM23
 GHG=GHG.1850-2050.Mar2002
 ! e.g. GHGic=E009TdsG1701FM23/GHG_IC_1701
 dH2O=dH2O_by_CH4_monthly
@@ -270,6 +271,7 @@ o3_yr   =1979
 !-------------------------------------------------------------------------
 COUPLED_CHEM=0     ! to couple chemistry and aerosols
 imAER=0
+use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
 rad_interact_tr=1  ! 1=use calculated Ox in radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
 rad_forc_lev=1     ! use LTROPO(I,J) level for rad forcing diags.
