@@ -311,16 +311,20 @@ c**** Interpolate two months of data to current day
 
       SUBROUTINE READ_OFFHNO3(OUT)
       USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jmon
+      USE DOMAIN_DECOMP, only : grid,unpack_data,am_i_root
       IMPLICIT NONE
-      SAVE
       include 'netcdf.inc'
 !@param  nlevnc vertical levels of off-line data  
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     &    intent(out) :: OUT
       INTEGER, PARAMETER :: nlevnc =23
-      REAL*4, DIMENSION(IM,JM,LM) :: OUT
-      REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1, IN2
+      REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1_glob4, IN2_glob4
+      REAL*8, DIMENSION(IM,JM,nlevnc) :: IN1_glob, IN2_glob
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc),
+     &    save :: IN1, IN2
 !@var netcdf integer
       INTEGER :: ncid,id
-      INTEGER :: step_rea=0
+      INTEGER, save :: step_rea=0
 !@var time interpoltation
       REAL*8 :: tau
       integer start(4),count(4),status,l
@@ -328,34 +332,42 @@ c -----------------------------------------------------------------
 c   Initialisation of the files to be read
 c -----------------------------------------------------------------
       if (step_rea.ne.jmon) then 
-          step_rea = JMON
-           print*,'READING HNO3 OFFLINE ',jmon, step_rea
+        step_rea = JMON
+        if ( am_i_root() ) then
+          print*,'READING HNO3 OFFLINE ',jmon, step_rea
 c -----------------------------------------------------------------
 c   Opening of the files to be read
 c -----------------------------------------------------------------
-            status=NF_OPEN('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
-            status=NF_INQ_VARID(ncid,'FELD',id)
+          status=NF_OPEN('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+          status=NF_INQ_VARID(ncid,'FELD',id)
 C------------------------------------------------------------------
 c -----------------------------------------------------------------
 c   read
 c -----------------------------------------------------------------
-      start(1)=1
-      start(2)=1
-      start(3)=1
-      start(4)=step_rea
+          start(1)=1
+          start(2)=1
+          start(3)=1
+          start(4)=step_rea
 
-      count(1)=im
-      count(2)=jm
-      count(3)=nlevnc
-      count(4)=1
+          count(1)=im
+          count(2)=jm
+          count(3)=nlevnc
+          count(4)=1
 
-      status=NF_GET_VARA_REAL(ncid,id,start,count,IN1)
-      start(4)=step_rea+1
-      if (start(4).gt.12) start(4)=1
-      status=NF_GET_VARA_REAL(ncid,id,start,count,IN2)
+          status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_glob4)
+          start(4)=step_rea+1
+          if (start(4).gt.12) start(4)=1
+          status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_glob4)
 
-      status=NF_CLOSE('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+          status=NF_CLOSE('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+
+          IN1_glob = IN1_glob4
+          IN2_glob = IN2_glob4
+        endif ! am_i_root
+        call UNPACK_DATA(grid, IN1_glob, IN1)
+        call UNPACK_DATA(grid, IN2_glob, IN2)
       endif
+
 C-----------------------------------------------------------------------
       tau  = jday/30.
          do l=1,lm
