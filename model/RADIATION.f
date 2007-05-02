@@ -2074,6 +2074,7 @@ C
 !!!   use RADPAR, only : MLON72,MLAT46,NL,PLB0,U0GAS,MADO3M
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE PARAM
       IMPLICIT NONE
 
 !     In 2003, 9 decadal files and an ozone trend data file have been
@@ -2089,6 +2090,8 @@ C
       REAL*4 O3YEAR(MLON72,MLAT46,NLO3,0:12),OTREND(MLAT46,NLO3,LMONTR)
       REAL*4 O3ICMA(MLON72,MLAT46,NLO3,12),O3JCMA(MLON72,MLAT46,NLO3,12)
       INTEGER LJTTRO(MLAT46)
+      real*4, dimension(MLON72,MLAT46,NLO3,0:12) :: delta_O3_max_min
+      real*4, dimension(NLO3) :: delta_O3_now
 !!!   COMMON/O3JCOM/O3JDAY(NLO3,MLON72,MLAT46)   !  for offline testing
 
 C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
@@ -2096,6 +2099,14 @@ C     -----------------------------------------------------------------
 
       CHARACTER*80 TITLE
       logical, PARAMETER :: qbinary=.true.   ; logical qexist
+!@dbparam use_sol_Ox_cycle if =1, a cycle of ozone is appled to 
+!@+ o3year, as a function of the solar constant cycle.
+!@var add_sol is [S00WM2(now)-1/2(S00WM2min+S00WM2max)]/
+!@+ [S00WM2max-S00WM2min] so that O3(altered) = O3(default) +
+!@+ add_sol*delta_O3_max_min
+      integer :: use_sol_Ox_cycle = 0
+      real*8 :: add_sol
+      real*8 :: S0min, S0max
 
 C**** The data statements below are only used if  MADO3M > -1
       CHARACTER*40, DIMENSION(NFO3X) :: DDFILE = (/
@@ -2113,6 +2124,7 @@ C**** The data statements below are only used if  MADO3M > -1
       INTEGER :: NFO3 = NFO3X
       CHARACTER*40 :: OTFILE ='aug2003_o3timetrend_46x49x2412_1850_2050'
       INTEGER :: IFILE=11            ! not used in GCM runs
+      integer :: idfile
 
 !!!   REAL*8 :: PLBO3(NLO3+1) = (/ ! could be read off the titles
 !!!  *      1010d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
@@ -2126,9 +2138,9 @@ C**** LJTTRO(MLAT46) below layer 1+LJTTRO,  O3-interp is based on CH4
       DATA LJTTRO/9*0,4*7,20*8,7*7,6*6/ ! does not work well near S.Pole
       INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
 
-      save nfo3,iyear,ljttro,otrend,o3year
+      save nfo3,iyear,ljttro,otrend,o3year,delta_O3_max_min
 !!!   save plbo3
-      save ddfile,ifile
+      save ddfile,ifile,idfile,S0min,S0max
 
       INTEGER :: JYEARO,JJDAYO
       INTEGER I,J,L,M,N,IY,JY,MI,MJ,MN,NLT,JYEARX  !! ,ILON,JLAT
@@ -2140,6 +2152,18 @@ C**** Deal with out-of-range years (incl. starts before 1850)
 
       IF(IFIRST==1) THEN
 
+      call sync_param("use_sol_Ox_cycle",use_sol_Ox_cycle)
+      
+      if(use_sol_Ox_cycle==1)then
+        call openunit ("delta_O3",idfile,qbinary)
+        read(idfile)S0min,S0max
+        do m=1,12; do L=1,NLO3
+          read(idfile)TITLE,delta_O3_max_min(:,:,L,M)
+        enddo    ; enddo
+        delta_O3_max_min(:,:,:,0)=delta_O3_max_min(:,:,:,12)
+        call closeunit (idfile)
+      endif
+      
       if(plbo3(1) < plb0(1)) plbo3(1)=plb0(1)                  ! ??
       IF(MADO3M < 0) then
 C****   Find O3 data files and fill array IYEAR from title(1:4)
@@ -2352,9 +2376,19 @@ C     the formula below yields M near the middle of month M
       WTMI=1.D0-WTMJ
       IF(MI > 11) MI=0
       MJ=MI+1
+      if(use_sol_Ox_cycle==1)then
+        add_sol = (S00WM2*RATLS0-0.5d0*(S0min+S0max))/(S0max-S0min)
+        write(661,661)JJDAYO,S00WM2*RATLS0,S0min,S0max,add_sol
+      endif
+  661 format('JJDAYO,S00WM2*RATLS0,S0min,S0max,frac=',I4,3F9.2,F7.3)
       DO 510 J=1,MLAT46
       DO 510 I=1,MLON72
       O3JDAY(:,I,J)=WTMI*O3YEAR(I,J,:,MI)+WTMJ*O3YEAR(I,J,:,MJ)
+      if(use_sol_Ox_cycle==1) then
+        delta_O3_now(:) = WTMI*delta_O3_max_min(I,J,:,MI) + 
+     &                    WTMJ*delta_O3_max_min(I,J,:,MJ) 
+        O3JDAY(:,I,J) = O3JDAY(:,I,J) + add_sol*delta_O3_now(:)
+      endif
   510 CONTINUE
       RETURN
 
