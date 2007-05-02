@@ -1077,6 +1077,9 @@ C****
       USE TRDIAG_COM, only : tij_drydep
       USE TRDIAG_COM, only : tij_gsdep
 #endif
+#ifdef TRACERS_COSMO
+      USE TRDIAG_COM, only : tij_surf
+#endif
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : tij_prec
       USE TRDIAG_COM, only : tij_grnd
