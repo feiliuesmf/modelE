@@ -320,17 +320,21 @@ c**** Interpolate two months of data to current day
       INTEGER, PARAMETER :: nlevnc =23
       REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1_glob4, IN2_glob4
       REAL*8, DIMENSION(IM,JM,nlevnc) :: IN1_glob, IN2_glob
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc),
-     &    save :: IN1, IN2
+      REAL*8, DIMENSION(:,:,:), pointer, save :: IN1, IN2
 !@var netcdf integer
       INTEGER :: ncid,id
-      INTEGER, save :: step_rea=0
+      INTEGER, save :: step_rea=0, first_call=1
 !@var time interpoltation
       REAL*8 :: tau
       integer start(4),count(4),status,l
 c -----------------------------------------------------------------
 c   Initialisation of the files to be read
 c -----------------------------------------------------------------
+      if (first_call==1) then
+        first_call=0
+        allocate( IN1(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
+        allocate( IN2(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
+      endif
       if (step_rea.ne.jmon) then 
         step_rea = JMON
         if ( am_i_root() ) then
