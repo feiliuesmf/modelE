@@ -185,11 +185,11 @@
         do n=1,db(m)%n
           select case( db(m)%type )
           case (TYPE_DOUBLE)
-            v1 = db(m)%buf2(n)
-            v2 = db(m)%buf1(n)
+            v1 = db(m)%buf1(n)
+            v2 = db(m)%buf2(n)
           case (TYPE_INT)
-            v1 = db(m)%ibuf2(n)
-            v2 = db(m)%ibuf1(n)
+            v1 = db(m)%ibuf1(n)
+            v2 = db(m)%ibuf2(n)
           case default
             call stop_model("wrong type in DB",255)
           end select
