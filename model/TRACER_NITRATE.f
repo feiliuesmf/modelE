@@ -8,7 +8,7 @@
      $                     ,t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
      $                     ,dtsrc
-      USE GEOM, only: dxyp,imaxj,BYDXYP
+      USE GEOM, only: dxyp,BYDXYP
       USE CONSTANT,   only:  lhe,mair       ! latent heat of evaporation at 0 C
       USE FLUXES, only: tr3Dsource
       USE DYNAMICS,   only: pmid,pk,byam   ! midpoint pressure in hPa (mb)
@@ -18,22 +18,24 @@
 
       IMPLICIT NONE
 !    local variables
-      real*8 :: yi(11),yo(35),yM,yS
-      integer:: KLO,j,l,i,J_0, J_1
+      REAL*8 :: yi(11),yo(35),yM,yS
+      INTEGER:: KLO,j,l,i,J_0, J_1
 C**** functions
-      real*8 :: QSAT
+      REAL*8 :: QSAT
+ 
+
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
+
 #ifndef  TRACERS_SPECIAL_Shindell
-c      CALL READ_OFFHNO3(OFF_HNO3)
+      CALL READ_OFFHNO3(OFF_HNO3)
 #endif
-c      print *, ' SUSA: offH ' ,  OFF_HNO3(1,1,1)
 
       yi(:) = 0.d0
       yo(:) = 0.d0
 
       DO L=1,LM                            
-      DO J=1,J_0,J_1                                
-      DO I=1,IMAXJ(J)                      
+      DO J=J_0,J_1                               
+      DO I=1,IM                      
 ! meteo
       yi(1) = pk(l,i,j)*t(i,j,l)           !should be in [K]
       yi(2) = q(i,j,l)/QSAT(yi(1),lhe,pmid(l,i,j)) ! rH [0-1]
@@ -61,8 +63,7 @@ c      print *, ' SUSA: offH ' ,  OFF_HNO3(1,1,1)
       yi(5) =yi(5)+ (trm(i,j,l,n_NO3p)*yM*(mair/TR_MM(n_NO3p))*
      *         BYDXYP(J)*BYAM(L,I,J) )      ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
 #else !off-line HNO3
-      yi(5) = yi(3) !superwrong!!!!!!!!!!!
-c      yi(5) = off_HNO3(i,j,l)*yM    ! HNO3 (g)   [umol/m^3 air]
+      yi(5) = off_HNO3(i,j,l)*yM    ! HNO3 (g)   [umol/m^3 air]
 #endif
 ! estimated sea salt = NaCl
       yi(6) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
@@ -96,9 +97,12 @@ c      print * , '2HNO3: ', off_HNO3(i,j,l), 'SO4:',trm(i,j,l,n_SO4)
 ! NH4:      yo(16) -> yo(19)
 ! SO4:      yo(11) yo(18) yo(21)
 ! Nitrate production
+   
+
       tr3Dsource(i,j,l,1,n_NO3p)= ((yo(20)
      *        /(yM*(mair/TR_MM(n_NO3p))* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NO3p)) /dtsrc
+
 c      if (tr3Dsource(i,j,l,1,n_NO3p).lt.0.d0)  then 
 c      tr3Dsource(i,j,l,1,n_NO3p)= 0.d0
 c      endif
@@ -110,6 +114,7 @@ c      endif
       tr3Dsource(i,j,l,1,n_NH4) =((yo(19) 
      *        /(yM*(mair/TR_MM(n_NH4))* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NH4))/dtsrc
+
 #ifdef  TRACERS_SPECIAL_Shindell
 ! Nitric Acid residual
       tr3Dsource(i,j,l,3,n_HNO3) =((yo(9)
