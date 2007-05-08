@@ -538,8 +538,8 @@ ccc not sure about the code below. hopefully that''s what is meant above
      &       fb*(sum( tr_wsn(nx,1:nsn(1),1) ))+
      &       fv*(sum( tr_wsn(nx,1:nsn(2),2) ))
      *       )
-        tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
-     *       +trevapor(n,itype,i,j)*ptype
+        if (tr_wd_TYPE(n).eq.nWATER) tajls(j,1,jls_source(1,n))=
+     *       tajls(j,1,jls_source(1,n))+trevapor(n,itype,i,j)*ptype
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -2625,16 +2625,16 @@ C****
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
 c**** check for nan/inf in earth data
-      call check3(w_ij(1:ngm,1,I_0:I_1,J_0:J_1) ,ngm  ,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wb')
-      call check3(w_ij(0:ngm,2,I_0:I_1,J_0:J_1) ,ngm+1,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wv')
-      call check3(ht_ij(0:ngm,1,I_0:I_1,J_0:J_1),ngm+1,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hb')
-      call check3(ht_ij(0:ngm,2,I_0:I_1,J_0:J_1),ngm+1,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hv')
-      call check3(snowbv(1:LS_NFRAC,I_0:I_1,J_0:J_1),LS_NFRAC,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'sn')
+c      call check3b(w_ij(1,1,1,1 ,ngm  ,
+c     *                 IM,J_0,J_1,JM,subr,'wb')
+c      call check3b(w_ij(0,2,I_0:I_1,J_0:J_1) ,ngm+1,
+c     *                 IM,J_0,J_1,JM,subr,'wv')
+c      call check3b(ht_ij(0,1,1,J_0),ngm+1,
+c     *                 IM,J_0,J_1,JM,subr,'hb')
+c      call check4b(ht_ij(0,2,1,J_0),ngm+1,2,
+c     *                 IM,J_0,J_1,JM,subr,'hv')
+c      call check3b(snowbv(1,1,J_0),LS_NFRAC,
+c     *                 IM,J_0,J_1,JM,subr,'sn')
 
 c**** check for reasonable temperatures over earth
       x=1.001
