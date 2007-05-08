@@ -271,7 +271,7 @@
       use straits, only : must,g0mst,gxmst,gzmst,s0mst,sxmst,szmst &
            ,rsist,rsixst,msist,hsist,ssist
 #endif
-      use lakes_com, only : mldlk,mwl,tlake,gml
+      use lakes_com, only : mldlk,mwl,tlake,gml,flake
       use seaice_com, only : rsi,hsi,snowi,msi,ssi,pond_melt,flag_dsws
       use ghy_com, only : snowe,tearth,wearth,aiearth,snoage &
            ,evap_max_ij,fr_sat_ij,qg_ij
@@ -453,6 +453,7 @@
         check("mwl",mwl)
         check("tlake",tlake)
         check("gml",gml)
+        check("flake",flake)
         ! sea ice
         check("rsi",rsi)
         check("hsi",hsi)
