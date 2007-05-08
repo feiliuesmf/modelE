@@ -948,7 +948,7 @@ C****
 C****
       END SUBROUTINE vflx_OCEAN
 
-      SUBROUTINE init_ice(iniOCEAN)
+      SUBROUTINE init_ice(iniOCEAN,istart)
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
@@ -972,7 +972,7 @@ C****
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
       CHARACTER CONPT(NPTS)*10
-      INTEGER I,J
+      INTEGER I,J,istart
       REAL*8 MSI1,TFO
       integer :: J_0, J_1
 C****
@@ -994,12 +994,15 @@ C**** Decide whether snow_ice formation is allowed
       call sync_param("snow_ice",snow_ice)
 
 C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
+      if (istart.lt.9) then
       DO J=J_0, J_1
       DO I=1,IM
         IF (FOCEAN(I,J)+FLAKE0(I,J).eq.0 .and. RSI(i,j).gt.0) RSI(I,J)=0
         IF (RSI(I,J).gt.0 .and. FLAKE0(I,J).gt.0) SSI(:,I,J)=0.
       END DO
       END DO
+      end if
+
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case
         DO J=J_0, J_1

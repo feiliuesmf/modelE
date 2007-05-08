@@ -1270,6 +1270,7 @@ C****
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
         inipbl  = .TRUE.      ! initialise pbl profiles
         iniOCEAN = .TRUE.     ! read in ocean ic
+        redoGH=.TRUE.
 C****
 C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
 C****
@@ -1283,6 +1284,8 @@ C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
+        iniSNOW = .TRUE.      ! extract snow data from first soil layer
+        iniPBL=.TRUE.
         if (ioerr.eq.1) goto 800
       END SELECT
 C**** Check consistency of starting time
@@ -1524,7 +1527,7 @@ C**** Actual array is set from restart file.
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
-      CALL init_ice(iniOCEAN)
+      CALL init_ice(iniOCEAN,istart)
 C**** Initialize lake variables (including river directions)
       CALL init_LAKES(inilake,istart)
 C**** Initialize ocean variables
