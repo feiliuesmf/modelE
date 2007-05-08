@@ -1470,7 +1470,7 @@ C     ------------------------------------------------------------------
 
 C     ------------------------------------------------------------------
 C
-C     REPART   Repartitions FXL (a histogram-tyoe distribution function)
+C     REPART   Repartitions FXL (a histogram-type distribution function)
 C              where XLB depicts the NXB partitions that define FXL data
 C              FXL is assumed to be constant between XLB(N) AND XLB(N+1)
 C

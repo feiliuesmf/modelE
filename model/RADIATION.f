@@ -2039,6 +2039,7 @@ C--------------------------------
 !      ENTRY UPDGHG(JYEARG,JJDAYG)
 C--------------------------------
       subroutine UPDGHG(JYEARG,JJDAYG)
+      IMPLICIT NONE
       INTEGER, INTENT(IN) :: JYEARG,JJDAYG
       REAL*8 TREF,TNOW
       INTEGER I
@@ -3640,6 +3641,7 @@ C--------------------------------
 !      ENTRY UPDDST(JYEARD,JJDAYD)
 C--------------------------------
       subroutine UPDDST(JYEARD,JJDAYD)
+      IMPLICIT NONE
       INTEGER, INTENT(IN) :: JYEARD,JJDAYD
       REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
       INTEGER I,J,K,L,N,MI,MJ
@@ -3672,6 +3674,7 @@ C-----------------
 !      ENTRY GETDST
 C-----------------
       subroutine GETDST
+      IMPLICIT NONE
       REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
       INTEGER I,J,K,L,N,MI,MJ
 
@@ -4068,6 +4071,7 @@ C-----------------
 !      ENTRY GETCLD
 C-----------------
       subroutine GETCLD
+      IMPLICIT NONE
       REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
      *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
      *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
@@ -4299,6 +4303,7 @@ C--------------------------------
       subroutine UPDEPS(JYEARE,JJDAYE)
 C                 Select ISCCP-Based Cloud Heterogeneity Time Dependence
 C                 ------------------------------------------------------
+      IMPLICIT NONE
       INTEGER, INTENT(IN) :: JYEARE,JJDAYE
       REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
      *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
@@ -4338,6 +4343,7 @@ C                     KCLDEP =  2  Keeps whatever is specified in CLDEPS
 C                     KCLDEP =  3  Uses: Column EPCOL(72,46) Climatology
 C                     KCLDEP =  4  Uses: Ht Dep EPLOW, EPMID, EPHIG Data
 C                     --------------------------------------------------
+      IMPLICIT NONE
       REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
      *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
      *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
