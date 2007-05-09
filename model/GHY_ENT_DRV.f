@@ -1791,7 +1791,7 @@ c**** read topmodel parameters
      *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),0,top_dev_ij  ,1)
         call closeunit (iu_TOP_INDEX)
       else  ! reset to default data
-        if ( istart>0 .and. istart<10 ) then ! reset all
+        if ( istart>0 .and. istart<8 ) then ! reset all
           call reset_gh_to_defaults( .true. )
         else   ! do not reset ghy prognostic variables
           call reset_gh_to_defaults( .false. )

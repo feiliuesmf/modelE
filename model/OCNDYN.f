@@ -587,7 +587,7 @@ C**** Extend ocean data to added layers at bottom if necessary
 
 C**** zero out unphysical values (that might have come from a 
 C**** restart file with different topography)
-      if (istart.le.9) then
+      if (istart.lt.9) then
         DO J=J_0S,J_1S
           DO I=1,IMAXJ(J)
             VO(I,J,LMV(I,J)+1:LMO)=0. 

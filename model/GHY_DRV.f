@@ -1910,7 +1910,7 @@ c**** read topmodel parameters
      *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),0,top_dev_ij  ,1)
         call closeunit (iu_TOP_INDEX)
       else  ! reset to default data
-        if ( istart>0 .and. istart<10 ) then ! reset all
+        if ( istart>0 .and. istart<8 ) then ! reset all
           call reset_gh_to_defaults( .true. )
         else   ! do not reset ghy prognostic variables
           call reset_gh_to_defaults( .false. )
@@ -2168,8 +2168,8 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       enddo
 
       jday=1+mod(itime/nday,365)
-      ! initialize underwater fraction foe variable lakes
-      if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 10 )
+      ! initialize underwater fraction for variable lakes
+      if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 9 )
      &     call init_underwater_soil
 
       ! land water deficit for changing lake fractions

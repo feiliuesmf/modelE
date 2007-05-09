@@ -452,7 +452,7 @@ C**** Get parameters from rundeck
       call sync_param("variable_lk",variable_lk)
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
-      if ((init_flake.eq.1.and.istart.lt.10) .or. INILAKE) THEN
+      if ((init_flake.eq.1.and.istart.lt.8) .or. INILAKE) THEN
         print*,"Initialising FLAKE from TOPO file..."
         FLAKE = FLAKE0
       end if
