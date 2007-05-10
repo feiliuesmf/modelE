@@ -34,7 +34,12 @@ $debugger="";
 
 ## if $HOME/.modelErc is present get settings from there
 
-$modelerc = (getpwuid($>))[7]."/.modelErc";
+if (exists $ENV{MODELERC}) {
+  $modelerc = $ENV{MODELERC}
+}
+else {
+  $modelerc = (getpwuid($>))[7]."/.modelErc";
+}
 
 if ( -f $modelerc ) {
     print "Using settings from ~/.modelErc\n";
