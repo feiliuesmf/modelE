@@ -100,7 +100,9 @@ RUN_H_TMP = tmp_cpp.h
 # default modelE configuration file:
 include $(SCRIPTS_DIR)/modelErc
 # configuration file with user-defined options:
-sinclude ~/.modelErc
+HOMEDIR = $(wildcard ~)
+MODELERC ?= $(HOMEDIR)/.modelErc
+sinclude $(MODELERC)
 
 #
 # Lists of objects and dependencies
