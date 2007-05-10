@@ -3362,8 +3362,8 @@ C**** k thermal cond. 0.596 W/mK (35 psu, 20 deg, 0 press)
 
 C**** calculate micro-layer thickness (m) 
 C**** Cap ustar so that it doesn't get too small in low wind conditions
-C**** ustar_oc < 0.0044 corresponding to tau < 0.01 N/m2
-      del = lam*visc_wtr_kin/max(ustar_oc,0.0044d0)
+C**** ustar_oc > 0.00098 corresponding to tau > 0.001 N/m2
+      del = lam*visc_wtr_kin/max(ustar_oc,0.00098d0)
 
 C**** fraction of solar absorbed (Fairall et al, 1996)
       if (del .lt. 1d-8) then
