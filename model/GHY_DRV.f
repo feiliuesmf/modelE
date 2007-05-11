@@ -652,6 +652,7 @@ c***********************************************************************
       public conserv_htg
       public conserv_wtg_1
       public checke
+      public snow_cover
 
       !real*8 cosday,sinday
       !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
@@ -3529,6 +3530,7 @@ cddd      sinday=sin(twopi/edpery*jday)
       use constant, only : twopi,edpery,rhow,shw_kg=>shw
       use ghy_com, only : ngm,imt,dz_ij,q_ij
      &     ,w_ij,ht_ij,fr_snow_ij,fearth
+     &     ,fr_snow_rad_ij,snowbv,top_dev_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
       use TRACER_COM, only : ntm
@@ -3543,12 +3545,13 @@ cddd      sinday=sin(twopi/edpery*jday)
 #endif
       use GEOM, only : BYDXYP
       USE DOMAIN_DECOMP, ONLY : GRID, GET
-      use soil_drv, only : conserv_wtg_1
+      use soil_drv, only : conserv_wtg_1,snow_cover
+      use snow_drvm, only : snow_cover_same_as_rad
 
       implicit none
       !! integer, intent(in) :: jday
       !---
-      integer i,j,I_0,I_1,J_0,J_1
+      integer i,j,I_0,I_1,J_0,J_1,ibv
       integer k,m
       real*8 :: w_stor(0:ngm)
       real*8 :: dz(ngm),q(imt,ngm)
@@ -3560,7 +3563,6 @@ cddd      sinday=sin(twopi/edpery*jday)
       real*8 dfrac
 #ifdef TRACERS_WATER
       real*8 dtr_soil(ntm),dtr_lake(ntm),dtr(ntm),tr_per_m3(ntm)
-      integer ibv
 #endif
       real*8 tmp_before(0:ngm), tmp_after(0:ngm)
       real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -3597,7 +3599,7 @@ cddd      sinday=sin(twopi/edpery*jday)
           !print *,"UPDATING FRACTIONS: i,j= ",i,j
           !print *,"fb, fv = ", fb, fv
 
-          if ( flake(i,j) < svflake(i,j) ) then ! lake shrinked
+          if ( flake(i,j) < svflake(i,j) ) then ! lake shrunk
             ! no external fluxes, just part of underwater fraction
             ! is transformed into a land fraction
 
@@ -3814,6 +3816,20 @@ cddd            endif
      &           fr_snow_ij(2,i,j) > 1.d0 ) call stop_model(
      &           "update_land_fractions: fr_snow_ij > 1",255)
 
+          endif
+
+c**** Also reset snow fraction for albedo computation 
+          if ( snow_cover_same_as_rad == 0 ) then
+            ! recompute snow fraction using different formula
+            do ibv=1,2
+               call snow_cover(fr_snow_rad_ij(ibv,i,j),
+     &                snowbv(ibv,i,j), top_dev_ij(i,j) )
+               fr_snow_rad_ij(ibv,i,j) = min (
+     &            fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+            enddo
+          else
+            ! snow fraction same as in snow model
+            fr_snow_rad_ij(:,i,j) = fr_snow_ij(:, i, j)
           endif
 
           call set_new_ghy_cells_outputs
