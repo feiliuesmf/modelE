@@ -21,12 +21,10 @@ C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
 
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
-     *     ,oijl_glob=>oijl        ! for serial gm ?
      *     ,ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx
      *     ,ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
 #ifdef TRACERS_OCEAN
      *     ,toijl=>toijl_loc, toijl_conc,toijl_tflx,toijl_gmfl
-     *     ,toijl_glob=>toijl      ! for serial gm ?
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
       USE DOMAIN_DECOMP, only : grid,get, haveLatitude
@@ -34,8 +32,6 @@ C?*** For serial GM/straits computations, pack data into global arrays
 C?*** For serial ODIF/GM/straits computations:
       USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
-      USE OCEAN_DYN, only : scatter_ocndyn, gather_ocndyn ! odiff/gm ?
-      use kpp_com, only: kpl,kpl_glob  ! for serial gm ?
 
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
@@ -192,22 +188,22 @@ C**** Advection of Potential Enthalpy and Salt
 
         IF (MODD5S == 0) CALL DIAGCA (12)
 
-c     ODIFF:   mo,uo,vo (ocean), dh (ocean_dyn)
-
-
+C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
       CALL CHECKO ('ODIFF0')
+
 C**** Apply GM + Redi tracer fluxes
       CALL GMKDIF
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
       CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
-
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM
         CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
      *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
       END DO
 #endif
+      CALL CHECKO ('GMDIFF')
+      CALL TIMER (MNOW,MSGSO)
 
 c????          Non-parallelized parts : GM, straits
 c     GM:      mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO (ocean)
@@ -215,42 +211,8 @@ c              dh,vbar (ocean_dyn), kpl (kpp_com), (t)oijl (odiag)
 c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
 
       call gather_ocean (2)
-      call gather_ocndyn
-      call pack_data (grid, kpl, kpl_glob)
-      call pack_data (grid, OIJL(:,:,:,IJL_GGMFL:IJL_GGMFL+2) ,
-     *                      OIJL_glob(:,:,:,IJL_GGMFL:IJL_GGMFL+2))
-      call pack_data (grid, OIJL(:,:,:,IJL_SGMFL:IJL_SGMFL+2) ,
-     *                      OIJL_glob(:,:,:,IJL_SGMFL:IJL_SGMFL+2))
-#ifdef TRACERS_OCEAN
-      do n=1,ntm
-        call pack_data (grid, TOIJL(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N),
-     *                   TOIJL_glob(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N))
-      end do
-#endif
 
       IF(AM_I_ROOT()) THEN
-C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
-!       CALL ODIFF(DTS)
-!mk          CALL CHECKO_serial ('ODIFF ')
-C**** Apply GM + Redi tracer fluxes
-!       CALL GMKDIF
-!       CALL GMFEXP(G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
-!    *            .FALSE.,OIJL_glob(1,1,1,IJL_GGMFL))
-!       CALL GMFEXP(S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
-!    *            .TRUE., OIJL_glob(1,1,1,IJL_SGMFL))
-!mpi  CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
-!mpi  CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
-#ifdef TRACERS_OCEAN
-!     DO N = 1,NTM
-!       CALL GMFEXP(TRMO_glob(1,1,1,N),TXMO_glob(1,1,1,N),TYMO_glob(1,1
-!    *       ,1,N),TZMO_glob(1,1,1,N),t_qlimit(n),TOIJL_glob(1,1,1
-!    *       ,TOIJL_GMFL,N))
-!mpi    CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
-!mpi *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
-!     END DO
-#endif
-        CALL CHECKO_serial ('GMDIFF')
-        CALL TIMER (MNOW,MSGSO)
 C****
 C**** Acceleration and advection of tracers through ocean straits
 C****
@@ -263,20 +225,7 @@ C****
       END IF
 
       call scatter_ocean (2)
-      call scatter_ocndyn
-      call unpack_data (grid, kpl_glob, kpl)
       call BCAST_straits (0)
-      call unpack_data (grid, OIJL_glob(:,:,:,IJL_GGMFL:IJL_GGMFL+2),
-     *                  OIJL(:,:,:,IJL_GGMFL:IJL_GGMFL+2))
-      call unpack_data (grid, OIJL_glob(:,:,:,IJL_SGMFL:IJL_SGMFL+2),
-     *                  OIJL(:,:,:,IJL_SGMFL:IJL_SGMFL+2))
-#ifdef TRACERS_OCEAN
-      do n=1,ntm
-        call unpack_data (grid,
-     *                   TOIJL_glob(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N),
-     *                   TOIJL(:,:,:,TOIJL_GMFL:TOIJL_GMFL+2,N))
-      end do
-#endif
 c????      end of serialized part
         CALL CHECKO ('STADV ')
 C**** remove STADVI since it is not really consistent with ICEDYN

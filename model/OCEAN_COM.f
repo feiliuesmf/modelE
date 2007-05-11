@@ -151,14 +151,12 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
 
 c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
       CALL UNPACK_DATA(grid,       MO_glob,   MO )
-        if (icase.ne.1) then            ! needed for i/o and ODIFF only
-      CALL UNPACK_DATA(grid,       UO_glob,   UO )
-      CALL UNPACK_DATA(grid,       VO_glob,   VO )
-        end if
-        if (icase.lt.1) then            ! needed for i/o only
-      CALL UNPACK_DATA(grid,    OGEOZ_glob, OGEOZ   )
-      CALL UNPACK_DATA(grid, OGEOZ_SV_glob, OGEOZ_SV)
-        end if
+      if (icase.lt.1) then            ! needed for i/o only
+        CALL UNPACK_DATA(grid,       UO_glob,   UO )
+        CALL UNPACK_DATA(grid,       VO_glob,   VO )
+        CALL UNPACK_DATA(grid,    OGEOZ_glob, OGEOZ   )
+        CALL UNPACK_DATA(grid, OGEOZ_SV_glob, OGEOZ_SV)
+      end if
 
       CALL UNPACK_DATA(grid,      G0M_glob,  G0M )
       CALL UNPACK_DATA(grid,     GXMO_glob,  GXMO)
@@ -180,8 +178,6 @@ c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
 c**** icase=2: still serialized non-i/o parts of ocn dynamics
                ! for straits: mo,G0M,...,S0M,...,TRMO,...,opress
       CALL UNPACK_DATA(grid,   OPRESS_glob,OPRESS)
-               ! for OCNGM:   mo,G0M,...,S0M,...,TRMO,...
-               ! for ODIFF:   mo,uo,vo
 
       RETURN
       end subroutine scatter_ocean
@@ -212,31 +208,6 @@ C**** momentum and mass fluxes
 !@var MU,MV,MW instantaneous mass fluxes
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MU,MV,MW  !   (IM,JM,LMO)
 C****
-
-      contains
-
-      subroutine gather_ocndyn
-      use domain_decomp, only: grid, pack_data
-
-         ! for ODIFF:    dh
-      CALL PACK_DATA(grid,    dh  ,    dh_glob)
-         ! for OCNGM:    dh,vbar
-      CALL PACK_DATA(grid,  vbar  ,  vbar_glob)
-
-      return
-      end subroutine gather_ocndyn
-
-      subroutine scatter_ocndyn
-      use domain_decomp, only: grid, unpack_data
-
-         ! for ODIFF:    dh
-      CALL UNPACK_DATA(grid,    dh_glob, dh)
-         ! for OCNGM:    dh,vbar
-      CALL UNPACK_DATA(grid,  vbar_glob, vbar)
-
-      return
-      end subroutine scatter_ocndyn
-
       END Module OCEAN_DYN
 
       Module SW2OCEAN
