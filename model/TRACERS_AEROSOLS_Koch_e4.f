@@ -329,7 +329,8 @@ c**** Interpolate two months of data to current day
       integer start(4),count(4),status,l
 c -----------------------------------------------------------------
 c   Initialisation of the files to be read
-c -----------------------------------------------------------------
+c ----------------------------------------------------------------     
+
       if (first_call==1) then
         first_call=0
         allocate( IN1(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
@@ -1016,9 +1017,7 @@ ccOMP PARALLEL DO PRIVATE (L)
         tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
 #ifdef TRACERS_AMP
-        tr3Dsource(:,j_0:j_1,:,1,n_H2SO4)=0. ! H2O2 chem sink
-        tr3Dsource(:,j_0:j_1,:,1,n_M_ACC_SU)=0. ! ACC SO4 source
-        tr3Dsource(:,j_0:j_1,:,1,n_M_AKK_SU)=0. ! AKK SO4 source
+        tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2O2 chem sink
 #endif
 #ifdef TRACERS_HETCHEM
         tr3Dsource(:,j_0:j_1,:,1,n_SO4_d1) =0. ! SO4 on dust
