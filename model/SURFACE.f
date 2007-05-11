@@ -245,6 +245,7 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
       END DO
       END DO
 
+
 C**** Zero out fluxes summed over type and surface time step
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
@@ -254,6 +255,9 @@ C**** Zero out fluxes summed over type and surface time step
 #ifdef TRACERS_DRYDEP
       TRDRYDEP = 0.
       dtr_dd=0.
+#endif
+#ifdef TRACERS_AMP
+      DTR_AMPe(J_0:J_1,:) = 0.d0
 #endif
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
@@ -1386,7 +1390,9 @@ C****
 C****
 C**** EARTH
 C****
+
       CALL EARTH(NS,MODDSF,MODDD)
+
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****

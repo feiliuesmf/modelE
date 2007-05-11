@@ -1260,7 +1260,7 @@ C**** Fill in maplet indices for sources and sinks
        if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
      *   'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
 #endif
-#if (defined TRACERS_AMP)
+#ifdef TRACERS_AMP
        if (name(k)(1:4).eq.'DIAM') ijtype(k)=2
 #endif
       end do

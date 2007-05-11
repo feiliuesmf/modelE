@@ -8983,10 +8983,10 @@ c Processes AMP Budget
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
      *     'N_MXX_1 ','N_OCS_1 ')
 
-      kt_power_change(n) = -5
+      kt_power_change(n) = 5
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2)')
-      kt_power_inst(n) = -3
+      kt_power_inst(n) = 3
       scale_inst(n) = 10d0**(-kt_power_inst(n))
       inst_unit(n) = unit_string(kt_power_inst(n),'kg/m^2)')
 cSUSA
@@ -10292,6 +10292,7 @@ c Industrial
       NH3_src_hum_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
       call closeunit(iuc)
+
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -10817,11 +10818,12 @@ C****
 C**** No non-interactive surface sources of Water
 C****
       case ('Water')
-        trsource(:,J_0:J_1,:,n)=0
+        trsource(:,J_0:J_1,:,n)=0.d0
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
       case ('NH3')
-         scca(:) = 0.d0
+        trsource(:,J_0:J_1,:,n)=0.d0
         do j=J_0,J_1
+         scca(:) = 0.d0
           do i = 1,im
            if (cosz1(i,j) > 0.) scca(i) = cosz1(i,j) * 4.
           enddo
@@ -10885,6 +10887,19 @@ c       endif
 
 c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
       case ('SO4','M_ACC_SU')
+#ifdef TRACERS_AMP_M4
+#ifdef EDGAR_1995
+       do ns=1,ntsurfsrc(n)
+       do j=J_0,J_1
+         trsource(:,j,ns,n) = so2_src(:,j,ns)*0.0375d0*dxyp(j)
+       end do
+       end do
+#else
+       do j=J_0,J_1
+         trsource(:,j,1,n) = so2_src(:,j,1)*0.0375d0
+       end do
+#endif
+#else
 #ifdef EDGAR_1995
         do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
@@ -10896,6 +10911,8 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
             trsource(:,j,1,n) = .99*so2_src(:,j,1)*0.0375d0
          end do
 #endif
+#endif
+
 #ifdef TRACERS_AMP
       case ('M_AKK_SU')
 #ifdef EDGAR_1995
@@ -10941,6 +10958,7 @@ c!OMSP
 #endif
       end select
       end do
+
       END SUBROUTINE set_tracer_2Dsource
 
 
@@ -11074,6 +11092,7 @@ C**** three 3D sources ( volcanos and biomass) read in from files
 #endif
 #ifdef TRACERS_AMP
       case ('M_ACC_SU')
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
 #ifdef TRACERS_AMP_M4
       tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
 #ifndef EDGAR_1995
@@ -11093,6 +11112,7 @@ C**** three 3D sources ( volcanos and biomass) read in from files
 c      enddo ; enddo
 
       case ('M_AKK_SU')
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.01
      &                           *SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
 #ifndef EDGAR_1995
@@ -11351,32 +11371,41 @@ C**** Apply chemistry and overwrite changes:
        tr3Dsource(:,J_0:J_1,:,1,n_NO3p) = 0.d0
        tr3Dsource(:,J_0:J_1,:,1,n_NH4)  = 0.d0
        tr3Dsource(:,J_0:J_1,:,1,n_NH3)  = 0.d0
+
        call EQSAM_DRV
+
        call apply_tracer_3Dsource(1,n_NO3p) ! NO3 chem prod
 #ifdef TRACERS_SPECIAL_Shindell
        call apply_tracer_3Dsource(3,n_HNO3) ! NO3 chem prod
 #endif
        call apply_tracer_3Dsource(1,n_NH4)  ! NO3 chem prod
        call apply_tracer_3Dsource(1,n_NH3)  ! NH3
+
 #endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
-
-      call aerosol_gas_chem
+       call aerosol_gas_chem
        call apply_tracer_3Dsource(2,n_H2SO4) ! H2SO4 chem prod
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
        call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(5,n_SO2)  ! SO2 chem sink
        call apply_tracer_3Dsource(1,n_H2O2_s)! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s)! H2O2 chem sink
-      call MATRIX_DRV
+      DO n=1,ntmAMP
+        tr3Dsource(:,J_0:J_1,:,1,n)  = 0.d0! Aerosol Mirophysics
+      ENDDO
+#ifdef  TRACERS_SPECIAL_Shindell
+        tr3Dsource(:,J_0:J_1,:,1,n_HNO3)  = 0.d0! Aerosol Mirophysics
+#endif
+       call MATRIX_DRV
 
       DO n=1,ntmAMP
        call apply_tracer_3Dsource(1,n) ! Aerosol Mirophysics
       ENDDO
+
        call apply_tracer_3Dsource(1,n_NH3)  ! NH3 
        call apply_tracer_3Dsource(1,n_H2SO4) ! H2SO4 chem prod
+     
 #endif
-
       return
       END SUBROUTINE tracer_3Dsource
 #endif

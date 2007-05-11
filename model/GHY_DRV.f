@@ -322,7 +322,6 @@ ccc accumulate tracer evaporation and runoff
      &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
       enddo
 #endif
-
       DO nx=1,ntx
         n=ntix(nx)
 
@@ -358,8 +357,7 @@ C**** are used, it can happen over land as well.
           taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
      &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     &         pbl_args%ss1_flux*dxyp(j)*ptype!*dtsurf
-        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
+     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
         case ('M_SSC_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         pbl_args%ss2_flux*dxyp(j)*ptype
@@ -367,7 +365,6 @@ C**** are used, it can happen over land as well.
      &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_SSS_SS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+(pbl_args%ss1_flux+
      &         pbl_args%ss2_flux)
@@ -378,9 +375,8 @@ C**** are used, it can happen over land as well.
          DTR_AMPe(j,n)=DTR_AMPe(j,n)+
      *           (pbl_args%ss1_flux+pbl_args%ss2_flux)
      &         *dxyp(j)*ptype*dtsurf
-        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_DD1_DU')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         (pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &                   *dxyp(j)*ptype
           taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) 
@@ -389,7 +385,6 @@ C**** are used, it can happen over land as well.
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
      &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &         *dxyp(j)*ptype*dtsurf 
-        CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_DD2_DU')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      &         +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
@@ -400,7 +395,6 @@ C**** are used, it can happen over land as well.
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
      &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &        *dxyp(j)*ptype*dtsurf
-         CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
         case ('M_DDD_DU')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
@@ -414,11 +408,11 @@ C**** are used, it can happen over land as well.
      &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
      &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &        *dxyp(j)*ptype*dtsurf
-         CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
 
 #endif
         end select
 #endif
+ 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 ccc dust emission from earth
