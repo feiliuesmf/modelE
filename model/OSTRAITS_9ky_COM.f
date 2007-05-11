@@ -188,7 +188,7 @@ C****
       USE OCEAN, only : jm
       USE STRAITS, only : nmst
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT) :: X(0:JM,4,6)
+      REAL*8, INTENT(INOUT) :: X(0:JM,4,3)
       REAL*8, INTENT(IN) :: SCALE,SOLNST(NMST)
       INTEGER, INTENT(IN) ::  KQ
 

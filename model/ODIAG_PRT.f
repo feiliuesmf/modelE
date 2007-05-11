@@ -1037,73 +1037,10 @@ C****
         END DO
       END DO
 C****
-C**** Add south-north flow between basins
-C****
-C**** Add Bering Strait flow into Atlantic from Pacific
-C      DO 310 J=1,38
-C      SF(J,L,1) = SF(J,L,1) + OIJL(3,39,L+1,2)*FAC
-C  310 SF(J,L,2) = SF(J,L,2) - OIJL(3,39,L+1,2)*FAC
-C**** Add Indonesian Straits flow into Pacific from Indian
-C      DO 320 J=1,20
-C      SF(J,L,2) = SF(J,L,2) + OIJL(59,21,L+1,2)*FAC
-C      SF(J,L,2) = SF(J,L,2) + OIJL(60,21,L+1,2)*FAC
-C      SF(J,L,3) = SF(J,L,3) - OIJL(59,21,L+1,2)*FAC
-C  320 SF(J,L,3) = SF(J,L,3) - OIJL(60,21,L+1,2)*FAC
-C      DO 330 J=1,19
-C      SF(J,L,2) = SF(J,L,2) + OIJL(62,20,L+1,2)*FAC
-C  330 SF(J,L,3) = SF(J,L,3) - OIJL(62,20,L+1,2)*FAC
-C****
-C**** Add west-east flow between basins
-C****
-C**** Add Drake Passage flow into Atlantic from Pacific
-C      FLOW = 0.
-C      DO 410 J=8,1,-1
-C      FLOW = FLOW + OIJL(23,J+1,L+1,1)*FAC
-C      SF(J,L,1) = SF(J,L,1) + FLOW
-C  410 SF(J,L,2) = SF(J,L,2) - FLOW
-C**** Add flow south of Africa into Indian from Atlantic
-C      FLOW = 0.
-C      DO 420 J=13,1,-1
-C      FLOW = FLOW + OIJL(40,J+1,L+1,1)*FAC
-C      SF(J,L,3) = SF(J,L,3) + FLOW
-C  420 SF(J,L,1) = SF(J,L,1) - FLOW
-C**** Add flow south of Australia into Pacific from Indian
-C      FLOW = 0.
-C      DO 430 J=12,1,-1
-C      FLOW = FLOW + OIJL(65,J+1,L+1,1)*FAC
-C      SF(J,L,2) = SF(J,L,2) + FLOW
-C  430 SF(J,L,3) = SF(J,L,3) - FLOW
-C****
 C**** Add strait flow from to the Stream Function
 C****
       CALL STRMJL_STRAITS(L,SF,OLNST,FACST)
 
-cC**** Fury & Hecla: (19,42) to (20,40)
-c      SF(41,L,1) = SF(41,L,1) - OLNST(L+1,1)*FACST
-c      SF(40,L,1) = SF(40,L,1) - OLNST(L+1,1)*FACST
-cC**** Nares: (22,43) to (24,44)
-c      SF(43,L,1) = SF(43,L,1) + OLNST(L+1,2)*FACST
-cC**** Gibralter: (35,32) to (37,33)
-c      SF(32,L,1) = SF(32,L,1) + OLNST(L+1,3)*FACST
-cC**** English: (36,36) to (37,37)
-c      SF(36,L,1) = SF(36,L,1) + OLNST(L+1,4)*FACST
-cC**** Bosporous: (42,33) to (43,34)
-c      SF(33,L,1) = SF(33,L,1) + OLNST(L+1,6)*FACST
-cC**** Red Sea: (44,29) to (45,28)
-c      SF(28,L,3) = SF(28,L,3) - OLNST(L+1,7)*FACST
-cC**** Bab-al-Mandab: (45,28) to (46,27)
-c      SF(27,L,3) = SF(27,L,3) - OLNST(L+1,8)*FACST
-cC**** Hormuz: (47,30) to (49,29)
-c      SF(29,L,3) = SF(29,L,3) - OLNST(L+1,9)*FACST
-cC**** Korea: (62,32) to (63,33)
-c      SF(32,L,2) = SF(32,L,2) + OLNST(L+1,11)*FACST
-cC**** Soya: (64,34) to (65,35)
-c      SF(34,L,2) = SF(34,L,2) + OLNST(L+1,12)*FACST
-cC**** Malacca: (56,25) to (58,24), from Indian Ocean to Pacific Ocean
-c      SF(24,L,2) = SF(24,L,2) - OLNST(L+1,10)*FACST  !*.5
-cc      DO 510 J=1,23
-cc      SF(J,L,2) = SF(J,L,2) - OLNST(L+1,10)*FACST*.5
-cc  510 SF(J,L,3) = SF(J,L,3) + OLNST(L+1,10)*FACST*.5
       END DO
 C****
 C**** Calculate global Stream Function by summing it over 3 oceans
@@ -1225,32 +1162,6 @@ C**** Add strait flow from to the Stream Function
 C****
       CALL STRMIJ_STRAITS(J,SF,OLNST,FACST)
 
-cC**** Fury & Hecla: (19,42) to (20,40)
-c      IF (J.eq.41) SF(19,41) = SF(19,41) + SUM(OLNST(1:LMST(1),1))*FACST
-cC**** Nares: (22,43) to (24,44)
-c      IF (J.eq.44) SF(22,44) = SF(22,44) + SUM(OLNST(1:LMST(2),2))*FACST
-c      IF (J.eq.44) SF(23,44) = SF(23,44) + SUM(OLNST(1:LMST(2),2))*FACST
-cC**** Gibrater: (35,32) to (37,33)
-c      IF (J.eq.33) SF(35,33) = SF(35,33) + SUM(OLNST(1:LMST(3),3))*FACST
-c      IF (J.eq.33) SF(36,33) = SF(36,33) + SUM(OLNST(1:LMST(3),3))*FACST
-cC**** Engish: (36,36) to (37,37)
-c      IF (J.eq.37) SF(36,37) = SF(36,37) + SUM(OLNST(1:LMST(4),4))*FACST
-cC**** Bosporous: (42,33) to (43,34)
-c      IF (J.eq.34) SF(42,34) = SF(42,34) + SUM(OLNST(1:LMST(6),6))*FACST
-cC**** Red Sea: (44,29) to (45,28)
-c      IF (J.eq.29) SF(44,29) = SF(44,29) + SUM(OLNST(1:LMST(7),7))*FACST
-cC**** Bab-al-Mandab: (45,28) to (46,27)
-c      IF (J.eq.28) SF(45,28) = SF(45,28) + SUM(OLNST(1:LMST(8),8))*FACST
-cC**** Hormuz: (47,30) to (49,29)
-c      IF (J.eq.30) SF(47,30) = SF(47,30) + SUM(OLNST(1:LMST(9),9))*FACST
-c      IF (J.eq.30) SF(48,30) = SF(48,30) + SUM(OLNST(1:LMST(9),9))*FACST
-cC**** Korea: (62,32) to (63,33)
-c      IF (J.eq.33) SF(62,33) = SF(62,33)+SUM(OLNST(1:LMST(11),11))*FACST
-cC**** Soya: (64,34) to (65,35)
-c      IF (J.eq.35) SF(64,35) = SF(64,35)+SUM(OLNST(1:LMST(12),12))*FACST
-cC**** Malacca: (56,25) to (58,24),
-c      IF (J.eq.25) SF(56,25) = SF(56,25)+SUM(OLNST(1:LMST(10),10))*FACST
-c      IF (J.eq.25) SF(57,25) = SF(57,25)+SUM(OLNST(1:LMST(10),10))*FACST
       END DO
 C**** Correct SF for mean E-W drift (SF over topography --> 0)
 C**** by setting SF to be zero over mid N. America
@@ -1685,19 +1596,33 @@ C****
       USE DIAG_COM, only : qdiag
       USE ODIAG
       IMPLICIT NONE
-      CHARACTER TITLE*80, NAME(7)*50,YAXIS(3)*8
-      REAL*8 VLAT(0:JM),X(0:JM,4,6),SCALEM(3),SCALES(3),SOLNST(NMST),
+      CHARACTER TITLE*80, NAME(11)*50,YAXIS(3)*8
+C**** X is integrated flux array X(LATITUDE,BASIN,KQ)
+C****   KQ 1   Mass (kg)
+C****      2   Heat (J)
+C****      3   Salt (kg)
+C****  XCOMP X(LATITUDE,BASIN,COMP,KQ) (KQ = 2,3)
+C**** COMP 1   advected by overturning
+C****      2   flux from GM
+C****      3   advected by horizontal gyres (residual)
+C****
+      REAL*8 X(0:JM,4,3),XCOMP(0:JM,4,3,3)
+      REAL*8 VLAT(0:JM),SCALEM(3),SCALES(3),SOLNST(NMST),
      *       MV(4),MT(4), XSPEC(3),YSPEC(3,3)
       INTEGER, PARAMETER :: INC=1+(JM-1)/24
       INTEGER IS(4)
       DATA NAME/
-     1  'Northward Transport of Mass (10^9 kg/sec)',
-     2  'North. Trans. of Potential Enthalpy (10^15 W)',
-     3  'North. Trans. of Salt - .035*Mass (10^6 kg/sec)',
-     4  'North. Trans. of Heat in Atlantic Ocean (10^15 W)',
-     5  'North. Trans. of Heat in Pacific Ocean (10^15 W)',
-     6  'North. Trans. of Heat in Indian Ocean (10^15 W)',
-     7  'North. Trans. of Heat in Global Ocean (10^15 W)'/
+     *     'Northward Transport of Mass (10^9 kg/sec)',
+     *     'North. Trans. of Potential Enthalpy (10^15 W)',
+     *     'North. Trans. of Salt - .035*Mass (10^6 kg/sec)',
+     *     'North. Trans. of Heat in Atl. Ocean (10^15 W)',
+     *     'North. Trans. of Heat in Pac. Ocean (10^15 W)',
+     *     'North. Trans. of Heat in Indian Ocean (10^15 W)',
+     *     'North. Trans. of Heat in Global Ocean (10^15 W)',
+     *     'North. Trans. of Salt in Atl. Ocean (10^6 kg/s)',
+     *     'North. Trans. of Salt in Pac. Ocean (10^6 kg/s)',
+     *     'North. Trans. of Salt in Indian Ocean (10^6 kg/s)',
+     *     'North. Trans. of Salt in Global Ocean (10^6 kg/s)'/
       DATA YAXIS /'  Mass  ', 'Enthalpy', '  Salt  '/
       DATA XSPEC /-90.,90.,30./
       DATA YSPEC /-4.,4.,1., -5.,6.,1., -50.,50.,10./
@@ -1723,11 +1648,11 @@ C****
       SCALES(2) = .5D-15/(IDACC(1)*DTS)
       SCALES(3) = .5D- 6/(IDACC(1)*DTS)
 C****
-      X = 0.
+      X = 0. ; XCOMP =0.
 C****
 C**** Loop over quantites
 C****
-      DO 620 KQ=1,3
+      DO KQ=1,3
 C****
 C**** Calculate the transport entering each domain from the
 C**** southern boundary
@@ -1744,126 +1669,60 @@ C****
         NOIJLGM=IJL_SGMFL+1
       END SELECT
 
-      DO 120 J=1,JM-1
-      DO 120 I=1,IM
-      IF(OIJL(I,J,1,IJL_MFV).eq.0)  GO TO 120
-      KB = KBASIN(I,J+1)
-      SOIJL = 0.
-      SOIJLGM = 0.
-      DO L=1,LMO
-        SOIJL = SOIJL + OIJL(I,J,L,NOIJL)
-        IF (NOIJLGM.gt.0) SOIJLGM = SOIJLGM + OIJL(I,J,L,NOIJLGM)
+      DO J=1,JM-1
+        DO I=1,IM
+          IF(OIJL(I,J,1,IJL_MFV).eq.0) CYCLE
+          KB = KBASIN(I,J+1)
+          SOIJL = 0.
+          SOIJLGM = 0.
+          DO L=1,LMO
+            SOIJL = SOIJL + OIJL(I,J,L,NOIJL)
+            IF (NOIJLGM.gt.0) SOIJLGM = SOIJLGM + OIJL(I,J,L,NOIJLGM)
+          END DO
+          X(J,KB,KQ) = X(J,KB,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
+          X(J, 4,KQ) = X(J, 4,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
+          IF (KQ.ne.1) THEN
+c        X(J,KB,5) = X(J,KB,5) + SOIJLGM*SCALEM(KQ)
+c        X(J, 4,5) = X(J, 4,5) + SOIJLGM*SCALEM(KQ)
+            XCOMP(J,KB,2,KQ) = XCOMP(J,KB,2,KQ) + SOIJLGM*SCALEM(KQ)
+            XCOMP(J, 4,2,KQ) = XCOMP(J, 4,2,KQ) + SOIJLGM*SCALEM(KQ)
+          END IF
+        END DO
       END DO
-      X(J,KB,KQ) = X(J,KB,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
-      X(J, 4,KQ) = X(J, 4,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
-      IF (KQ.eq.2) THEN
-        X(J,KB,5) = X(J,KB,5) + SOIJLGM*SCALEM(KQ)
-        X(J, 4,5) = X(J, 4,5) + SOIJLGM*SCALEM(KQ)
-      END IF
-  120 CONTINUE
-      IF(KQ.ne.2)  GO TO 200
 C****
-C**** Accumulate northward transport of heat by overturning and by
+C**** Accumulate northward transports by overturning and by
 C**** horizontal gyre
-C****
-      DO 190 J=1,JM-1
-      DO 180 L=1,LMO
-        IS=0 ; MV=0 ; MT=0
-      DO 170 I=1,IM
-      IF(OIJL(I,J,L,IJL_MFV).eq.0)  GO TO 170
-      KB = KBASIN(I,J+1)
-      IS(KB) = IS(KB) + 1
-      MV(KB) = MV(KB) + OIJL(I,J,L,IJL_MFV)
-      MT(KB) = MT(KB) + OIJL(I,J,L,IJL_GFLX+1)/OIJL(I,J,L,IJL_MFV)
-  170 CONTINUE
-      IS(4) = IS(1) + IS(2) + IS(3)
-      MV(4) = MV(1) + MV(2) + MV(3)
-      MT(4) = MT(1) + MT(2) + MT(3)
-      DO 180 KB=1,4
-      IF(IS(KB).eq.0)  GO TO 180
-      X(J,KB,4) = X(J,KB,4) + SCALEM(2)*MV(KB)*MT(KB)/IS(KB)
-  180 CONTINUE
-      DO 190 KB=1,4
-  190 X(J,KB,6) = X(J,KB,2) - X(J,KB,4) - X(J,KB,5)
-  200 CONTINUE
-C**** I choose to define basins only where they can be integrated
-C**** across from edge to edge. Gary has another convention.
-C**** If that is required, uncomment these sections.
-cC****
-cC**** Calculate the transport entering each domain from an east-
-cC**** west boundary that is north of the southern boundary
-cC****
-cC**** Bering Strait affects Atlantic and Pacific
-c      SOIJL = 0.
-c      DO L=1,LMO
-c        SOIJL = SOIJL + OIJL(3,39,L,NOIJL)
-c        IF (NOIJLGM.gt.0) SOIJL = SOIJL + OIJL(3,39,L,NOIJLGM)
-c      END DO
-c      DO 220 J=1,39-1
-c      X(J,1,KQ) = X(J,1,KQ) + SOIJL*SCALEM(KQ)
-c  220 X(J,2,KQ) = X(J,2,KQ) - SOIJL*SCALEM(KQ)
-cC**** Lombock Passage affects Indian and Pacific
-c      SOIJL = 0.
-c      DO L=1,LMO
-c      DO I=59,60
-c        SOIJL = SOIJL + OIJL(I,21,L,NOIJL)
-c        IF (NOIJLGM.gt.0) SOIJL = SOIJL + OIJL(I,21,L,NOIJLGM)
-c      END DO
-c      END Do
-c      DO 240 J=1,21-1
-c      X(J,2,KQ) = X(J,2,KQ) + SOIJL*SCALEM(KQ)
-c  240 X(J,3,KQ) = X(J,3,KQ) - SOIJL*SCALEM(KQ)
-cC**** Borneo Passage affects Indian and Pacific
-c      SOIJL = 0.
-c      DO L=1,LMO
-c        SOIJL = SOIJL + OIJL(62,20,L,NOIJL)
-c        IF (NOIJLGM.gt.0) SOIJL = SOIJL + OIJL(62,20,L,NOIJLGM)
-c      END DO
-c      DO 260 J=1,20-1
-c      X(J,2,KQ) = X(J,2,KQ) + SOIJL*SCALEM(KQ)
-c  260 X(J,3,KQ) = X(J,3,KQ) - SOIJL*SCALEM(KQ)
-cC****
-cC**** Calculate the transport entering each domain from a north-
-cC**** south boundary that is north of the southern boundary
-cC****
-c      SELECT CASE (KQ)
-c      CASE (1)
-c        NOIJL=IJL_MFU
-c        NOIJLGM=0
-c      CASE (2)
-c        NOIJL=IJL_GFLX
-c        NOIJLGM=IJL_GGMFL
-c      CASE (3)
-c        NOIJL=IJL_SFLX
-c        NOIJLGM=IJL_SGMFL
-c      END SELECT
-cC**** Drake Passage affects Pacific and Atlantic
-c      SOIJL = 0.
-c      DO 320 J=8,1,-1
-c      DO L=1,LMO
-c        SOIJL = SOIJL + OIJL(23,J+1,L,NOIJL)
-c        IF (NOIJLGM.gt.0) SOIJL = SOIJL + OIJL(23,J+1,L,NOIJLGM)
-c      END DO
-c      X(J,1,KQ) = X(J,1,KQ) + SOIJL*SCALEM(KQ)
-c  320 X(J,2,KQ) = X(J,2,KQ) - SOIJL*SCALEM(KQ)
-cC**** Line south of Africa affects Atlantic and Indian
-c      SOIJL = 0.
-c      DO 340 J=13,1,-1
-c      DO L=1,LMO
-c        SOIJL = SOIJL + OIJL(40,J+1,L,NOIJL)
-c        IF (NOIJLGM.gt.0) SOIJL = SOIJL + OIJL(40,J+1,L,NOIJLGM)
-c      END DO
-c      X(J,1,KQ) = X(J,1,KQ) - SOIJL*SCALEM(KQ)
-c  340 X(J,3,KQ) = X(J,3,KQ) + SOIJL*SCALEM(KQ)
-cC**** Line south of Austalia affects Indian and Pacific
-c      SOIJL = 0.
-c      DO 360 J=12,1,-1
-c      DO L=1,LMO
-c        SOIJL = SOIJL + OIJL(65,J+1,L,NOIJL)
-c        IF (NOIJLGM.gt.0) SOIJL = SOIJL + OIJL(65,J+1,L,NOIJLGM)
-c      END DO
-c      X(J,2,KQ) = X(J,2,KQ) + SOIJL*SCALEM(KQ)
-c  360 X(J,3,KQ) = X(J,3,KQ) - SOIJL*SCALEM(KQ)
+C**** 
+      DO J=1,JM-1
+        DO L=1,LMO
+          IS=0 ; MV=0 ; MT=0
+          DO I=1,IM
+            IF(OIJL(I,J,L,IJL_MFV).eq.0)  CYCLE
+            KB = KBASIN(I,J+1)
+            IS(KB) = IS(KB) + 1
+            MV(KB) = MV(KB) + OIJL(I,J,L,IJL_MFV)
+            IF (NOIJL.gt.0) MT(KB) = MT(KB) + OIJL(I,J,L,NOIJL)/OIJL(I,J
+     *           ,L,IJL_MFV)
+          END DO
+          IS(4) = IS(1) + IS(2) + IS(3)
+          MV(4) = MV(1) + MV(2) + MV(3)
+          IF (NOIJL.gt.0) MT(4) = MT(1) + MT(2) + MT(3)
+          DO KB=1,4
+            IF(IS(KB).eq.0) CYCLE
+c     X(J,KB,4) = X(J,KB,4) + SCALEM(2)*MV(KB)*MT(KB)/IS(KB)
+            IF (KQ.eq.1) THEN
+              XCOMP(J,KB,1,KQ) = XCOMP(J,KB,1,KQ) + SCALEM(KQ)*MV(KB)
+            ELSE
+              XCOMP(J,KB,1,KQ) = XCOMP(J,KB,1,KQ) + SCALEM(KQ)*MV(KB)
+     *             *MT(KB)/IS(KB)
+            END IF
+          END DO
+        END DO
+        DO KB=1,4
+c     X(J,KB,6) = X(J,KB,2) - X(J,KB,4) - X(J,KB,5)
+          XCOMP(J,KB,3,KQ)=X(J,KB,KQ)-XCOMP(J,KB,1,KQ)-XCOMP(J,KB,2,KQ)
+        END DO
+      END DO
 C****
 C**** Calculate transport through straits from latitude to another
 C**** within the same basin
@@ -1877,68 +1736,32 @@ C****
         NOLNST=LN_SFLX
       END SELECT
 
-      DO 400 NS=1,NMST
-      SOLNST(NS) = 0.
-      DO 400 L=1,LMO
-  400 SOLNST(NS) = SOLNST(NS) + OLNST(L,NS,NOLNST)
+      DO NS=1,NMST
+        SOLNST(NS) = 0.
+        DO L=1,LMO
+          SOLNST(NS) = SOLNST(NS) + OLNST(L,NS,NOLNST)
+        END DO
+      END DO
 
       CALL OTJ_STRAITS(X,SOLNST,SCALES(KQ),KQ)
 
-cC**** Fury & Hecla: (19,42) to (20,40)
-c      X(40,1,KQ) = X(40,1,KQ) - SOLNST(1)*SCALES(KQ)
-c      X(40,4,KQ) = X(40,4,KQ) - SOLNST(1)*SCALES(KQ)
-c      X(41,1,KQ) = X(41,1,KQ) - SOLNST(1)*SCALES(KQ)
-c      X(41,4,KQ) = X(41,4,KQ) - SOLNST(1)*SCALES(KQ)
-cC**** Nares: (22,43) to (24,44)
-c      X(43,1,KQ) = X(43,1,KQ) + SOLNST(2)*SCALES(KQ)
-c      X(43,4,KQ) = X(43,4,KQ) + SOLNST(2)*SCALES(KQ)
-cC**** Gibralter: (35,32) to (37,33)
-c      X(32,1,KQ) = X(32,1,KQ) + SOLNST(3)*SCALES(KQ)
-c      X(32,4,KQ) = X(32,4,KQ) + SOLNST(3)*SCALES(KQ)
-cC**** English: (36,36) to (37,37)
-c      X(36,1,KQ) = X(36,1,KQ) + SOLNST(4)*SCALES(KQ)
-c      X(36,4,KQ) = X(36,4,KQ) + SOLNST(4)*SCALES(KQ)
-cC**** Bosporous: (42,33) to (43,34)
-c      X(33,1,KQ) = X(33,1,KQ) + SOLNST(6)*SCALES(KQ)
-c      X(33,4,KQ) = X(33,4,KQ) + SOLNST(6)*SCALES(KQ)
-cC**** Red Sea: (44,29) to (45,28)
-c      X(28,3,KQ) = X(28,3,KQ) - SOLNST(7)*SCALES(KQ)
-c      X(28,4,KQ) = X(28,4,KQ) - SOLNST(7)*SCALES(KQ)
-cC**** Bab-al-Mandab: (45,28) to (46,27)
-c      X(27,3,KQ) = X(27,3,KQ) - SOLNST(8)*SCALES(KQ)
-c      X(27,4,KQ) = X(27,4,KQ) - SOLNST(8)*SCALES(KQ)
-cC**** Hormuz: (47,30) to (49,29)
-c      X(29,3,KQ) = X(29,3,KQ) - SOLNST(9)*SCALES(KQ)
-c      X(29,4,KQ) = X(29,4,KQ) - SOLNST(9)*SCALES(KQ)
-cC**** Korea: (62,32) to (63,33)
-c      X(32,2,KQ) = X(32,2,KQ) + SOLNST(11)*SCALES(KQ)
-c      X(32,4,KQ) = X(32,4,KQ) + SOLNST(11)*SCALES(KQ)
-cC**** Soya: (64,34) to (65,35)
-c      X(34,2,KQ) = X(34,2,KQ) + SOLNST(12)*SCALES(KQ)
-c      X(34,4,KQ) = X(34,4,KQ) + SOLNST(12)*SCALES(KQ)
-cC****
-cC**** Calculate transport through straits from one basin to another
-cC****
-cC**** Malacca: (56,25) to (58,24)
-cc      DO 510 J=1,23
-cc      X( J,2,KQ) = X( J,2,KQ) + SOLNST(10)*SCALES(KQ)
-cc  510 X( J,3,KQ) = X( J,3,KQ) - SOLNST(10)*SCALES(KQ)
-c      X(24,3,KQ) = X(24,3,KQ) - SOLNST(10)*SCALES(KQ)
-c      X(24,4,KQ) = X(24,4,KQ) - SOLNST(10)*SCALES(KQ)
-
 C**** Fill in south polar value
-      DO 610 KB=1,4
-  610 X(0,KB,KQ)  = X(1,KB,KQ)
-  620 CONTINUE
+      X(0,1:4,KQ)  = X(1,1:4,KQ)
+
+      END DO
 C**** Replace salt by salt - .035 times mass
-      DO 630 KB=1,4
-      DO 630 J=0,JM
-  630 X(J,KB,3) = X(J,KB,3) - .035d3*X(J,KB,1)
+      DO KB=1,4
+        DO J=0,JM
+          X(J,KB,3) = X(J,KB,3) - .035d3*X(J,KB,1)
+          XCOMP(J,KB,:,3) = XCOMP(J,KB,:,3) - .035d3*XCOMP(J,KB,:,1)
+        END DO
+      END DO
 C****
       IDLAT= NINT(180./(JM-1))
       FJEQ = JM/2.
-      DO 660 J=1,JM-1
-  660 VLAT( J) = IDLAT*(J-FJEQ)
+      DO J=1,JM-1
+        VLAT( J) = IDLAT*(J-FJEQ)
+      END DO
       VLAT( 0) = -90.
       VLAT(JM) =  90.
 C****
@@ -1964,31 +1787,37 @@ C**** print out truncated series to PRT file
           WRITE (iu_otj,*)
         END IF
       END DO
-C****
-C**** Write titles and data to disk for northward transport of heat
+C**** 
+C**** Write titles and data to disk for northward transports 
 C**** by components
 C****
-      WRITE(6,908)
-      DO KB=1,4
-      TITLE(1:50)=NAME(3+KB)
-      WRITE (6,907) TITLE(1:72)
+      DO KQ=2,3
+        WRITE(6,908)
+        DO KB=1,4
+          TITLE(1:50)=NAME(3+KB*(KQ-1))
+          WRITE (6,907) TITLE(1:72)
 C**** print out truncated series to PRT file
-      WRITE(6,903) (NINT(VLAT(J)),J=JM,0,-INC)
-      WRITE(6,906)BASIN(KB)(1:3)//" Overtrn",(X(J,KB,4),J=JM,0,-INC)
-      WRITE(6,906)BASIN(KB)(1:3)//" GM flx ",(X(J,KB,5),J=JM,0,-INC)
-      WRITE(6,906)BASIN(KB)(1:3)//" Hor gyr",(X(J,KB,6),J=JM,0,-INC)
-      WRITE(6,906)BASIN(KB)(1:3)//" Total  ",(X(J,KB,2),J=JM,0,-INC)
-      WRITE(6,904)
-      IF (QDIAG) THEN
-        WRITE (iu_otj,*) TITLE
-        WRITE (iu_otj,*) 'Latitude'
-        WRITE (iu_otj,*) YAXIS(2)
-        WRITE (iu_otj,*)
-     *       ' Lat      Total    Overturn    GM_flux    Hor_Gyre'
-        WRITE (iu_otj,976)(VLAT(J),X(J,KB,2),X(J,KB,4),X(J,KB,5),X(J,KB
-     *       ,6),J=0,JM)
-        WRITE (iu_otj,*)
-      END IF
+          WRITE(6,903) (NINT(VLAT(J)),J=JM,0,-INC)
+          WRITE(6,906)BASIN(KB)(1:3)//" Overtrn",(XCOMP(J,KB,1,KQ),J=JM
+     *         ,0,-INC)
+          WRITE(6,906)BASIN(KB)(1:3)//" GM flx ",(XCOMP(J,KB,2,KQ),J=JM
+     *         ,0,-INC)
+          WRITE(6,906)BASIN(KB)(1:3)//" Hor gyr",(XCOMP(J,KB,3,KQ),J=JM
+     *         ,0,-INC)
+          WRITE(6,906)BASIN(KB)(1:3)//" Total  ",(X(J,KB,KQ),J=JM,0,-INC
+     *         )
+          WRITE(6,904)
+          IF (QDIAG) THEN
+            WRITE (iu_otj,*) TITLE
+            WRITE (iu_otj,*) 'Latitude'
+            WRITE (iu_otj,*) YAXIS(2)
+            WRITE (iu_otj,*)
+     *           ' Lat      Total    Overturn    GM_flux    Hor_Gyre'
+            WRITE (iu_otj,976)(VLAT(J),X(J,KB,KQ),XCOMP(J,KB,1:3,KQ),J=0
+     *           ,JM)
+            WRITE (iu_otj,*)
+          END IF
+        END DO
       END DO
       RETURN
 C****
