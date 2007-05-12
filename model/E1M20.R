@@ -217,8 +217,8 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! --------------------------------------                             =======
 !     need last 5-10 yrs of VFLXO-files and final rsf from E1M20
 !     replace section 1 of "Data input files" by the 3 lines:
-! AIC=E1M20/1JAN1961.rsfE1M20.MXL65m      ! made by aux/mkOTSPEC  (65m)
-! OHT=E1M20/OTSPEC.E1M20.MXL65m.1956-1960 ! made by aux/mkOTSPEC  (65m)
+! AIC=1JAN1961.rsfE1M20.MXL65m      ! made by aux/mkOTSPEC  (65m)
+! OHT=OTSPEC.E1M20.MXL65m.1956-1960 ! made by aux/mkOTSPEC  (65m)
 ! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
 !     set in &&PARAMETERS : KOCEAN=1
 !     replace the the namelist &INPUTZ by (e.g.)
@@ -232,8 +232,8 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! -----------------------------------------                          ======
 !     need last 5-10 yrs of VFLXO-files and final rsf from E1M20
 !     replace section 1 of "Data input files" by the 3 lines:
-! AIC=E1M20/1JAN1961.rsfE1M20.MXL250m      ! made by aux/mkOTSPEC  (250m)
-! OHT=E1M20/OTSPEC.E1M20.MXL250m.1956-1960 ! made by aux/mkOTSPEC  (250m)
+! AIC=1JAN1961.rsfE1M20.MXL250m      ! made by aux/mkOTSPEC  (250m)
+! OHT=OTSPEC.E1M20.MXL250m.1956-1960 ! made by aux/mkOTSPEC  (250m)
 ! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
 !     set in &&PARAMETERS : KOCEAN=1 , KCOPY=3  (to create *.odaE1qM20 files)
 !     replace the the namelist &INPUTZ by
@@ -246,12 +246,12 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! q-flux run with diffusion into deep ocean (needs E1qM20)  E1qM20 -> E1qdM20
 ! -----------------------------------------                           =======
 !     need last 10 yrs of oda-files and final rsf from E1qM20 (KCOPY=3)
-!     replace in "Object modules" :                          OCNML -> OCNDEEP
+!     replace in "Object modules" :                          OCNML -> ODEEP
 !     replace section 1 of "Data input files" by the 5 lines:
-! AIC=E1qM20/1JAN2001.rsfE1qM20
-! OHT=E1M20/OTSPEC.E1M20.MXL250m.1951-1960
+! AIC=1JAN2001.rsfE1qM20
+! OHT=OTSPEC.E1M20.MXL250m.1951-1960
 ! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
-! TG3M=E1qM20/TG3M.E1qM20  ! made by E1M20_bin/mkdeep.exe (gmake auxdeep ...)
+! TG3M=TG3M.E1qM20  ! made by E1M20_bin/mkdeep.exe (gmake auxdeep ...)
 ! EDDY=ED4X5 ! eddy diffusion for mixing into deep ocean
 !     set in &&PARAMETERS : KOCEAN=1 , KCOPY=2
 !     replace the the namelist &INPUTZ by
