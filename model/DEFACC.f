@@ -4513,8 +4513,8 @@ c
       lname_ijk(k) = 'OMEGA'!  a-grid
       units_ijk(k) = 'Pa/s'
       scale_ijk(k) = 100.
-      jgrid_ijk(k) = 1
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJK_PF=k
@@ -4579,6 +4579,7 @@ c
       units_ijk(k) = '%'
       scale_ijk(k) = 100.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
 #ifdef CLD_AER_CDNC
       k=k+1
@@ -4588,6 +4589,7 @@ c
       units_ijk(k) = 'um'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_REWS=k    ! exception - Reff is on model layers
@@ -4596,6 +4598,7 @@ c
       units_ijk(k) = 'um'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_CDWM=k    ! exception - CDNC is on model layers
@@ -4604,6 +4607,7 @@ c
       units_ijk(k) = 'cm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_CDWS=k    ! exception - CDNC is on model layers
@@ -4612,6 +4616,7 @@ c
       units_ijk(k) = 'cm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_CWWM=k    ! exception - LWC is on model layers
@@ -4620,6 +4625,7 @@ c
       units_ijk(k) = 'gm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_CWWS=k    ! exception - LWC is on model layers
@@ -4628,6 +4634,7 @@ c
       units_ijk(k) = 'gm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_REIM=k    ! exception - Reff is on model layers
@@ -4636,6 +4643,7 @@ c
       units_ijk(k) = 'um'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_REIS=k    ! exception - Reff is on model layers
@@ -4644,6 +4652,7 @@ c
       units_ijk(k) = 'um'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_CDIM=k    ! exception - CDNC is on model layers
@@ -4652,6 +4661,7 @@ c
       units_ijk(k) = 'cm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_CDIS=k    ! exception - CDNC is on model layers
@@ -4660,6 +4670,7 @@ c
       units_ijk(k) = 'cm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
       k=k+1
       IJL_CWIM=k    ! exception - LWC is on model layers
       name_ijk(k) = 'cwim'
@@ -4667,6 +4678,7 @@ c
       units_ijk(k) = 'gm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 c
       k=k+1
       IJL_CWIS=k    ! exception - LWC is on model layers
@@ -4675,6 +4687,7 @@ c
       units_ijk(k) = 'gm-3'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
+      jgrid_ijk(k) = 1
 #endif
       if (AM_I_ROOT()) then
          write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
