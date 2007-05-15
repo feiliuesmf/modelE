@@ -137,9 +137,11 @@ C****
       ENTRY ODIFS
       ENTRY io_ocdiag
       ENTRY reset_ODIAG
+      ENTRY gather_odiags ()
       ENTRY diag_OCEAN
 
       ENTRY init_ODEEP
+      ENTRY alloc_ODEEP
 
       RETURN
       END SUBROUTINE DUMMY_OCN

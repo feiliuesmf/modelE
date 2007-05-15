@@ -647,6 +647,9 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      &         XZO(IM,J_0H:J_1H),
      &         XZN(IM,J_0H:J_1H),
      &    STAT=IER)
+
+      call alloc_ODEEP(grid)
+ 
       END SUBROUTINE ALLOC_OCEAN
 
 
@@ -1291,7 +1294,3 @@ C****
       end subroutine tracer_ic_ocean
 #endif
 
-      subroutine gather_odiags
-C     nothing to gather - ocean prescribed
-      return
-      end subroutine gather_odiags

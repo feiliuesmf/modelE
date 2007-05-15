@@ -3244,7 +3244,7 @@ C****
       INTEGER :: J1,JWT,LMAX
       REAL*8 :: SCALET,SCALER,PRTFAC
       INTEGER :: POW10P
-      REAL*8, DIMENSION(JM,LM) :: AX
+      REAL*8, DIMENSION(JM,LMAX) :: AX
       REAL*8, DIMENSION(JM,LM_REQ) :: ARQX
       REAL*8, DIMENSION(JM) :: SCALEJ,SCALJR
       REAL*8, DIMENSION(LM) :: SCALEL
@@ -6389,7 +6389,7 @@ cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
 cddd#endif
 cddd      DEALLOCATE(tmp)
 
-      call gather_odiags
+      call gather_odiags ()
 
       END SUBROUTINE DIAG_GATHER
 
