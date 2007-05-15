@@ -17,28 +17,32 @@
 !@param uplfac uplift factor for each size class of soil dust [kg*s**2/m**5]
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8,PARAMETER :: Upclsi=52.D-9
-#else !default case
+#else
+c**** default case
       REAL*8,PARAMETER :: Upclsi=12.068996D-9
 #endif
 #ifdef TRACERS_DUST_CUB_SAH
 !@param By8 0.25d0/2d0
       REAL*8,PARAMETER :: By8=0.25D0/2D0
-#else !default case
+#else
+c**** default case
       REAL*8,PARAMETER :: By4=1D0/4D0
 #endif
 !@param fracn fraction of uplifted soil for each size class of dust [1]
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: Fracl=By6,Frasi=By8
-#else !default case
+#else
+c**** default case
       REAL*8 :: Fracl=0.092335D0,Frasi=0.226916D0
 #endif
-!@var hbaij  accumulated precipitation - evaporation balance
+!@var hbaij accumulated precipitation - evaporation balance  [kg/m^2]
+!@var ricntd no. of hours with negative precipitation - evaporation balance [1]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: hbaij,ricntd
 !@var dryhr  number of hours with evaporation-precipitation greater Zero
 !@+          to allow dust emission
 !@var frclay fraction of clay
 !@var frsilt fraction of silt
-!@var vtrsh  threshold wind speed above which dust emis. is allowed
+!@var vtrsh  threshold wind speed above which dust emis. is allowed [m/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: dryhr,frclay,frsilt,vtrsh
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 !@param Mtrac number of different fields with tracer fractions in grid box
@@ -47,19 +51,15 @@
 !@var minf distribution of tracer fractions in grid box
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: minfr
 #endif
-!@var qdust flag whether conditions for dust emission are fulfilled
-      LOGICAL,ALLOCATABLE,DIMENSION(:,:) :: qdust
 !@var ers_data field of ERS data
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ers_data
-!@var gin_data distribution of preferred sources
-      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: gin_data
+!@var src_fnct distribution of preferred sources
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: src_fnct
       INTEGER,PARAMETER :: Lim=220,Ljm=220,Lkm=22
 !@var x1,x2,x3 indices of lock up table for emission
       REAL*8 :: x1(Lim),x2(Ljm),x3(Lkm)
 !@var table array of lock up table for emission local to each grid box
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: table
-!@var integral of emission PDF function
-      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pdfint
 !@var wsubtke_com distributed array of subscale turbulent term
 !@var wsubwd_com distributed array of subscale dry convective term
 !@var wsubwm_com distributed array of subscale moist convective term
@@ -68,7 +68,7 @@
 !@var prelay distributed array with some prec info needed for simple wet
 !@+          deposition scheme
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: prelay
-!@var d_dust prescribed daily dust emissions
+!@var d_dust prescribed daily dust emissions [kg] (e.g. AEROCOM)
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: d_dust
 #endif
 
@@ -87,8 +87,8 @@
       USE model_com,ONLY : JMperY,JDperY
       USE tracer_com,ONLY : Ntm_dust
       USE tracers_dust,ONLY : hbaij,ricntd,dryhr,frclay,frsilt,vtrsh,
-     &     qdust,gin_data,ers_data,pdfint,wsubtke_com,wsubwd_com,
-     &     wsubwm_com,prelay,d_dust,lim,ljm,lkm,table
+     &     src_fnct,ers_data,wsubtke_com,wsubwd_com,wsubwm_com,prelay,
+     &     d_dust,lim,ljm,lkm,table
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,Mtrac,minfr
 #endif
@@ -112,10 +112,8 @@
       ALLOCATE(hbaij(i_0h:i_1h,j_0h:j_1h),ricntd(i_0h:i_1h,j_0h:j_1h),
      &     dryhr(i_0h:i_1h,j_0h:j_1h),frclay(i_0h:i_1h,j_0h:j_1h),
      &     frsilt(i_0h:i_1h,j_0h:j_1h),vtrsh(i_0h:i_1h,j_0h:j_1h),
-     &     qdust(i_0h:i_1h,j_0h:j_1h),
-     &     gin_data(i_0h:i_1h,j_0h:j_1h),
+     &     src_fnct(i_0h:i_1h,j_0h:j_1h),
      &     ers_data(i_0h:i_1h,j_0h:j_1h,JMperY),
-     &     pdfint(i_0h:i_1h,j_0h:j_1h),
      &     wsubtke_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwd_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwm_com(i_0h:i_1h,j_0h:j_1h),
@@ -149,7 +147,7 @@
       USE model_com,ONLY : JDperY,JMperY
       USE tracer_com,ONLY : imDUST,kim,kjm,table1,x11,x21,Ntm_dust
       USE tracers_dust,ONLY : dryhr,frclay,frsilt,vtrsh,ers_data,
-     &   gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
+     &   src_fnct,table,x1,x2,x3,lim,ljm,lkm,d_dust
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &   ,Mtrac,minfr
 #endif
@@ -292,9 +290,9 @@ c**** Read input: ERS data
         END DO
         CALL closeunit(io_data)
 
-c**** Read input: GINOUX data
+c**** Read input: source function data
         CALL openunit('GIN',io_data,.TRUE.,.TRUE.)
-        CALL dread_parallel(grid,io_data,nameunit(io_data),gin_data)
+        CALL dread_parallel(grid,io_data,nameunit(io_data),src_fnct)
         CALL closeunit(io_data)
 
 c**** Read input: EMISSION LOOKUP TABLE data

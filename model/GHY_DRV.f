@@ -17,7 +17,7 @@ c******************   TRACERS             ******************************
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
 #endif
 #ifdef TRACERS_DRYDEP
@@ -152,16 +152,28 @@ ccc set i,j - independent stuff for tracers
       end subroutine ghy_tracers_set_step
 
 
-      subroutine ghy_tracers_set_cell(i,j,qg,evap_max,pbl_args)
+      subroutine ghy_tracers_set_cell(i,j,ptype,qg,evap_max,pbl_args)
 !@sum tracers code to be called before the i,j cell is processed
       use model_com, only : dtsrc
       use pbl_drv, only : t_pbl_args
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      USE constant,ONLY : sday
+      USE model_com,ONLY : jday,jmon,wfcs
+      USE geom,ONLY : dxyp
+      USE ghy_com,ONLY : snowe,wearth,aiearth
+      USE tracers_dust,ONLY : d_dust,ers_data,hbaij,ricntd,src_fnct
+     &     ,frclay,frsilt,dryhr,vtrsh
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+     &     ,minfr
+#endif
+#endif
 #ifdef TRACERS_WATER
       use sle001, only : qm1
 #endif
       implicit none
       integer, intent(in) :: i,j
-      real*8, intent(in) :: qg,evap_max
+      real*8, intent(in) :: qg,evap_max,ptype
       type (t_pbl_args), intent(inout) :: pbl_args
       integer n,nx,nsrc
 
@@ -251,6 +263,30 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       end do
 #endif
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      pbl_args%snowe=snowe(i,j)
+      pbl_args%wearth=wearth(i,j)
+      pbl_args%aiearth=aiearth(i,j)
+      pbl_args%wfcs=wfcs(i,j)
+      pbl_args%ers_data=ers_data(i,j,jmon)
+      pbl_args%src_fnct=src_fnct(i,j)
+      pbl_args%frclay=frclay(i,j)
+      pbl_args%frsilt=frsilt(i,j)
+      pbl_args%vtrsh=vtrsh(i,j)
+      pbl_args%dryhr=dryhr(i,j)
+      pbl_args%hbaij=hbaij(i,j)
+      pbl_args%ricntd=ricntd(i,j)
+      pbl_args%pprec=pprec(i,j)
+      pbl_args%pevap=pevap(i,j,itype)
+c**** prescribed dust emission
+      pbl_args%d_dust(1:Ntm_dust)=d_dust(i,j,1:Ntm_dust,jday)/Sday
+     &     /dxyp(j)/ptype
+#endif
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      pbl_args%minfr(:)=minfr(i,j,:)
+#endif
+
       end subroutine ghy_tracers_set_cell
 
 
@@ -276,6 +312,10 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      USE tracers_dust,ONLY : hbaij,ricntd
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -304,6 +344,8 @@ ccc tracers
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      hbaij(i,j)=pbl_args%hbaij
+      ricntd(i,j)=pbl_args%ricntd
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -505,7 +547,7 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+
      &           pbl_args%trs(nx)*ptype
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
             trs_glob(i,j,itype,n)=pbl_args%trs(nx)*ptype
 #endif
           else
@@ -1003,8 +1045,8 @@ ccc actually PBL needs evap (kg/m^2*s) / rho_air
 
 c**** call tracers stuff
 #ifdef TRACERS_ON
-      call ghy_tracers_set_cell(i,j, pbl_args%qg_sat,pbl_args%evap_max
-     &     ,pbl_args)
+      call ghy_tracers_set_cell(i,j,ptype,pbl_args%qg_sat
+     &     ,pbl_args%evap_max,pbl_args)
 #endif
       call pbl(i,j,itype,ptype,pbl_args)
 c****

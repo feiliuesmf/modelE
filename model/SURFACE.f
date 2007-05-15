@@ -98,8 +98,8 @@ C****
      *     ,trevapor,trunoe,gtracer
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,trs_glob
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+     &     ,trs_glob,pprec,pevap
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
@@ -126,7 +126,10 @@ C****
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
-
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      USE tracers_dust,ONLY : hbaij,ricntd
+#endif
       USE SOIL_DRV, only: earth
 
       IMPLICIT NONE
@@ -686,11 +689,23 @@ C =====================================================================
       pbl_args%ntix(:) = ntix(:)
       pbl_args%ntx = ntx
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      pbl_args%hbaij=hbaij(i,j)
+      pbl_args%ricntd=ricntd(i,j)
+      pbl_args%pprec=pprec(i,j)
+      pbl_args%pevap=pevap(i,j,itype)
+#endif
 
       CALL PBL(I,J,ITYPE,PTYPE,pbl_args)
 
 #ifdef TRACERS_ON
       trs(:) = pbl_args%trs(:)
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      hbaij(i,j)=pbl_args%hbaij
+      ricntd(i,j)=pbl_args%ricntd
 #endif
       us = pbl_args%us
       vs = pbl_args%vs
@@ -1273,7 +1288,7 @@ C**** Save surface tracer concentration whether calculated or not
             nx=nx+1
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
             trs_glob(i,j,itype,n)=trs(nx)*ptype
 #endif
           else

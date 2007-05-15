@@ -40,6 +40,9 @@
 #endif
 #endif
 #endif
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      USE tracers_dust,ONLY : Mtrac
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
 #ifdef TRACERS_GASEXCH_CO2_Natassa
       USE obio_incom, only : awan
@@ -96,11 +99,57 @@ c**** Tracer input/output
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+c**** input
+!@var pbl_args%snowe earth snow amount [kg/m^2]
+!@var pbl_args%wearth earth water of first layer [kg/m^2]
+!@var pbl_args%aiearth earth ice of first layer [kg/m^2]
+!@var pbl_args%wfcs water field capacity of first ground layer [kg/m^2]
+        REAL*8 :: snowe,wearth,aiearth,wfcs
+!@var pbl_args%ers_data ERS data
+!@var pbl_args%src_fnct distribution of preferred sources
+        REAL*8 :: ers_data,src_fnct
+!@var pbl_args%frclay fraction of clay
+!@var pbl_args%frsilt fraction of silt
+!@var pbl_args%dryhr number of hours with evaporation-precipitation greater
+!@+                  Zero to allow dust emission
+!@var pbl_args%vtrsh thresh. wind speed above which dust emis. is allowed [m/s]
+        REAL*8 :: frclay,frsilt,dryhr,vtrsh
+!@var pbl_args%pprec precipitation at previous time step [kg/m^2]
+!@var pbl_args%pevap evaporation at previous time step [kg/m^2]
+        REAL*8 :: pprec,pevap
+!@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
+        REAL*8 :: d_dust(Ntm_dust)
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+!@var pbl_args%minfr distribution of tracer fractions in grid box
+        REAL*8 :: minfr(Mtrac)
+#endif
+c**** output
+!@var pbl_args%pdfint integral of dust emission probability density function
+        REAL*8 :: pdfint
+!@var pbl_args%wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
+!@var pbl_args%wspdf mean surface wind calculated from PDF of wind speed [m/s]
         REAL*8 ::wsgcm,wspdf
+!@var pbl_args%wsubtke turbulent kinetic energy velocity scale [m/s]
+!@var pbl_args%wsubwd dry convective velocity scale [m/s]
+!@var pbl_args%wsubwm moist convective velocity scale [m/s]
+!@var pbl_args%wtrsh velocity threshold for dust emission (depends on soil
+!@+                  moisture) [m/s]
+!@var pbl_args%dust_event1 number of dust events [1]
+!@var pbl_args%dust_event2 number of dust events above velocity threshold
+!@+                        of cubic emission scheme (diagnositcs only) [1]
+!@var pbl_args%dust_flux1 dust flux [kg/m^2/s]
+!@var pbl_args%dust_flux2 dust flux from cubic emission scheme (diagnostics
+!@+                       only) [kg/m^2/s]
         REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust),wsubtke
      *       ,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
         REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
      &       lmonin
+!@var pbl_args%hbaij accumulated precipitation - evaporation balance  [kg/m^2]
+!@var pbl_args%ricntd no. of hours with negative precipitation - evaporation
+!@+                   balance [1]
+        REAL*8 :: hbaij,ricntd
+!@var pbl_args%qdust flag whether conditions for dust emission are fulfilled
+        LOGICAL :: qdust
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -562,9 +611,7 @@ C**** for all dry deposited tracers
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsgcm,
-     &   pbl_args%dust_event1,pbl_args%dust_event2,pbl_args%wtrsh,
-     &   pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm)
+      CALL dust_emission_constraints(itype,ptype,wsgcm,pbl_args)
 #endif
 
 C**** loop over tracers
@@ -665,14 +712,14 @@ ccc dust emission from earth
 #endif
         END SELECT
         SELECT CASE (trname(pbl_args%ntix(itr)))
-          CASE ('Clay','Silt1','Silt2','Silt3','Silt4',
-     &          'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &          'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &          'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &          'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &          'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          CALL local_dust_emission(ilong,jlat,pbl_args%ntix(itr),wsgcm
-     &         ,ptype, dsrcflx,dsrcflx2)
+        CASE ('Clay','Silt1','Silt2','Silt3','Silt4',
+     &        'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
+     &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          CALL local_dust_emission(pbl_args%ntix(itr),ptype,wsgcm,
+     &       pbl_args,dsrcflx,dsrcflx2)
           trcnst=dsrcflx*byrho
           pbl_args%dust_flux(n1)=dsrcflx
           pbl_args%dust_flux2(n1)=dsrcflx2
@@ -681,61 +728,31 @@ ccc dust emission from earth
 
 #ifdef TRACERS_AMP
         SELECT CASE (trname(pbl_args%ntix(itr)))
-        case ('M_DD1_DU')
-         n1=1
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=dsrcflx*byrho
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-   
-        n1=2
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=trcnst+(dsrcflx*byrho)
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-   
-       case ('M_DD2_DU')
-         n1=3
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=dsrcflx*byrho
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-         n1=4
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=trcnst+(dsrcflx*byrho)
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-        case ('M_DDD_DU')
-         n1=1
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=dsrcflx*byrho
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-        n1=2
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=trcnst+(dsrcflx*byrho)
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-         n1=3
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=trcnst+(dsrcflx*byrho)
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-         n1=4
-          CALL local_dust_emission(ilong,jlat,n1,wsgcm,ptype,
-     &         dsrcflx,dsrcflx2)
-           trcnst=trcnst+(dsrcflx*byrho)
-           pbl_args%dust_flux(n1)=dsrcflx
-           pbl_args%dust_flux2(n1)=dsrcflx2
-
-         END SELECT
+        CASE ('M_DD1_DU')
+          DO n1=1,2
+            CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,dsrcflx,
+     &           dsrcflx2)
+            trcnst=dsrcflx*byrho
+            pbl_args%dust_flux(n1)=dsrcflx
+            pbl_args%dust_flux2(n1)=dsrcflx2
+          END DO
+        CASE ('M_DD2_DU')
+          DO n1=3,4
+            CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,dsrcflx,
+     &           dsrcflx2)
+            trcnst=dsrcflx*byrho
+            pbl_args%dust_flux(n1)=dsrcflx
+            pbl_args%dust_flux2(n1)=dsrcflx2
+          END DO
+        CASE ('M_DDD_DU')
+          DO n1=1,4
+            CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,dsrcflx,
+     &           dsrcflx2)
+            trcnst=dsrcflx*byrho
+            pbl_args%dust_flux(n1)=dsrcflx
+            pbl_args%dust_flux2(n1)=dsrcflx2
+          END DO
+        END SELECT
 #endif
 
 
