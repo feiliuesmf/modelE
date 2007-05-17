@@ -52,6 +52,7 @@
       ecp%GPP = 0.d0
       ecp%NPP = 0.d0
       ecp%R_auto = 0.d0
+      ecp%R_root = 0.d0  !PK 5/15/07
       ecp%N_up = 0.d0
 
       !--Patch-level properties--!
@@ -210,6 +211,7 @@
         ecp%GPP = ecp%GPP + pp%GPP*pp%area
         ecp%NPP = ecp%NPP + pp%NPP*pp%area
         ecp%R_auto = ecp%R_auto + pp%R_auto*pp%area
+        ecp%R_root = ecp%R_root + pp%R_root*pp%area  !PK 5/15/07
         ecp%N_up = ecp%N_up + pp%N_up*pp%area
 
         !- - - - Patch - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -291,6 +293,7 @@
         ecp%GPP = ecp%GPP/fa
         ecp%NPP = ecp%NPP/fa
         ecp%R_auto = ecp%R_auto/fa
+        ecp%R_root = ecp%R_root/fa  !PK 5/15/07
         ecp%N_up = ecp%N_up/fa
 
         !- - - - - -  Patch-level summary values - PHYSICAL ------------------
@@ -443,7 +446,7 @@
      &           cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
      &           cpooldata(ncov,HW),0.d0,
      &           cpooldata(ncov,LABILE),0.d0,
-     &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
+     &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,0.d0, !added last 0 for R_root -PK 5/15/07
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,
      &           0.d0,0.d0,0.d0,0.d0,0.d0) !KIM - 3 new vars for phenology
           endif

@@ -14,7 +14,7 @@
      &     crown_dx, crown_dy,dbh, clump,LMA, root_d,fracroot,
      &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     Ci, GCANOPY, GPP, NPP, R_auto,
+     &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix, 
      &     phenofactor_c, phenofactor_d, phenofactor) !KIM - 3 new vars for phenology
 
@@ -25,7 +25,7 @@
       real*8 :: root_d,fracroot(N_DEPTH)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     Ci, GCANOPY, GPP, NPP, R_auto,
+     &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
      &     phenofactor_c, phenofactor_d, phenofactor
       !------------------
@@ -43,7 +43,7 @@
      &       crown_dx, crown_dy,dbh, clump, LMA, root_d,fracroot,
      &       C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &       Ci, GCANOPY, GPP, NPP, R_auto,
+     &       Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &       N_up, C_to_Nfix,
      &       phenofactor_c, phenofactor_d, phenofactor)
 
@@ -129,7 +129,7 @@
      &     crown_dx, crown_dy,dbh, clump,LMA,root_d,fracroot,
      &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     Ci, GCANOPY, GPP, NPP, R_auto,
+     &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
      &     phenofactor_c, phenofactor_d, phenofactor)
 
@@ -141,7 +141,7 @@
      &     crown_dx, crown_dy,dbh, root_d, fracroot(:),clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
-     &     Ci, GCANOPY, GPP, NPP, R_auto,
+     &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
      &     phenofactor_c, phenofactor_d, phenofactor
 
@@ -174,6 +174,7 @@
       cop%GPP =  GPP 
       cop%NPP =  NPP 
       cop%R_auto = 0.0
+      cop%R_root = 0.0 !PK 5/15/07
       cop%N_up =  N_up 
 !      cop%C_litter = C_litter
 !      cop%N_litter = N_litter
@@ -242,6 +243,7 @@ cddd      end subroutine init_cohort_defaults
       cop%GPP = 0.0
       cop%NPP = 0.0
       cop%R_auto = 0.0
+      cop%R_root = 0.0 !PK 5/15/07
       cop%N_up = 0.0
 !      cop%C_litter = 0.0
 !      cop%N_litter = 0.0

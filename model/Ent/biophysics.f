@@ -224,7 +224,8 @@
       integer :: pft
       real*8 :: TcanopyC,P_mbar,Ch,U,CosZen,Ca,betad,Qf
       real*8 :: GCANOPY,Ci,TRANS_SW,GPP ! ,NPP !,R_auto
-      real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum
+      real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum,
+     &          R_rootsum  !PK 5/15/07
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       type(veg_par_type) :: vegpar !Vegetation parameters
@@ -277,6 +278,7 @@
       GPPsum = 0.d0
       NPPsum = 0.d0
       R_autosum = 0.d0
+      R_rootsum = 0.d0
       C_labsum = 0.d0
 
       !* LOOP THROUGH COHORTS *!
@@ -321,6 +323,9 @@
         cop%GCANOPY = GCANOPY
         cop%Ci = Ci
         cop%GPP = GPP !kg-C/m2-ground/s
+       !calculate root respiration separately  -PK 5/15/07
+        cop%R_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
+     &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)
         !Canopy autotrophic respiration needs to be updated for different
         !C:N ratios for the different pools.
         cop%R_auto =  0.012D-6 * !kg-C/m2/s
@@ -329,6 +334,7 @@
 !     &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n) + 
      &       + Resp_can_growth(cop%GPP,
      &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN)))
+     &       + cop%R_root  !PK 5/15/07 
         cop%NPP = GPP - cop%R_auto !kg-C/m2-ground/s
        !* Accumulate uptake. 
         cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
@@ -340,6 +346,7 @@
         GPPsum = GPPsum + cop%GPP
         NPPsum = NPPsum + cop%NPP
         R_autosum = R_autosum + cop%R_auto
+        R_rootsum = R_rootsum + cop%R_root  !PK 5/15/07
         C_labsum = C_labsum + cop%C_lab * cop%n !Sum for cohort.
 
         cop => cop%shorter
@@ -351,6 +358,7 @@
       pp%GPP = GPPsum
       pp%NPP = NPPsum
       pp%R_auto = R_autosum
+      pp%R_root = R_rootsum
       pp%TRANS_SW = TRANS_SW 
 
       !* Accumulate uptake. 
@@ -1038,8 +1046,9 @@
      &     Result(R_maint)
       !Canopy maintenance respiration (umol/m2-ground/s)
       !Based on photosynthetic activity. From CLM3.0.
+      !see CLM3.0 DGVM documentation for explanation of constants -PK 5/15/07 
       integer :: pft            !Plant functional type.
-      real*8 :: C               !g-C/m2-ground in the individual.
+      real*8 :: C               !g-C/individual  !not per m2 -PK 5/15/07
                                 !Can be leaf, stem, or root pools.
       real*8 :: CN              !C:N ration of the respective pool
 !      real*8 :: R_maint !Canopy maintenance respiration rate (umol/m2/s)

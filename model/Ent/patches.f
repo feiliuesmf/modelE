@@ -141,6 +141,7 @@
         pp%GPP = pp%GPP + cop%GPP     !total
         pp%NPP = pp%NPP + cop%NPP     !total
         pp%R_auto = pp%R_auto         !total
+        pp%R_root = pp%R_root         !total  !PK 5/15/07
         pp%N_up = pp%N_up + cop%N_up  !total
 !        pp%C_litter = pp%C_litter + cop%C_litter
 !        pp%N_litter = pp%N_litter + cop%N_litter  
@@ -231,6 +232,7 @@
       pp%GPP = 0.d0
       pp%NPP = 0.d0
       pp%R_auto = 0.d0
+      pp%R_root = 0.d0  !PK 5/15/07
       pp%N_up = 0.d0
 
       end subroutine zero_patch_cohortsum
