@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l ncpus=4
+#PBS -l select=1:ncpus=4
 #PBS -l walltime=4:00:00
 #PBS -W group_list=a940a
 #PBS -N modelE_test
@@ -22,8 +22,14 @@ case `hostname` in
     palm | explore* ) 
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
         export MODES="serial other MPI OpenMP"
-        export COMPILER=Intel8
-	export GCMSEARCHPATH=/explore/nobackup/projects/GISS/prod_input_files;;
+        export USE_COMPILER=Intel8
+	export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files;;
+    discover* | borg* )
+        export BASELIBDIR=/usr/local/other/baselibs/v2_2rp2_213.34meta/Linux
+        export MODES="serial other MPI OpenMP"
+        export NETCDFHOME=
+	export USE_COMPILER=Intel8
+	export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files;;
     halem* )
         export NOBACKUP=/scr/progress
 	export BASELIBDIR=/share/ESMA/baselibs/v2_2r0/OSF1
@@ -84,11 +90,17 @@ function environmentModules {
     source ${MODULESHOME}/init/bash
     module purge
     case `hostname` in
-	palm | explore* )  module load intel-comp.9.1.039 scsl.1.5.1.1 mpt.1.12.0.0;;
-        halem* ) 
+	palm | explore* )  module load intel-comp.9.1.039 scsl.1.5.1.1 mpt.1.12.0.0 ;;
+	discover* | borg* )  module load comp/intel-9.1.042 mpi/scali-5.3 lib/mkl-9.0.017 ;;
+	halem* ) 
 	   module load fortran/551F esmf/2.2.0rp1-551J
-	   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/ulocal/stow/esmf-2.2.0rp1-551J/lib;;
+	   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/ulocal/stow/esmf-2.2.0rp1-551J/lib ;;
     esac
+    echo "****************"
+    echo " module list: "
+    module list | echo
+    echo $USE_COMPILER
+    echo "****************"
 }
 
 function setEnvironment {
@@ -117,6 +129,7 @@ UMASK=002
 SAVEDISK=$SAVEDISK
 GCMSEARCHPATH=$GCMSEARCHPATH
 NETCDFHOME=
+COMPILER=$USE_COMPILER
 EOF
 
     source ~/.modelErc
@@ -483,7 +496,7 @@ for rundeck in $RUNDECKS; do
 done
 
 popd
-cleanUp
+#cleanUp
 logMessage "All processing completed."
 
 # mail log to standard mailing list
