@@ -2570,7 +2570,6 @@ c--------------------------------------------------------------
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE
       ! qlimit variables
-      REAL*8 :: an, anm1, fn, fnm1, sn, syn, sxy
       !
 
       ierr=0
@@ -2700,6 +2699,8 @@ c-------------------------------------------------------------------
       End Subroutine tracer_slopes
 
       Subroutine apply_limiter
+      REAL*8 :: an, anm1, fn, fnm1, sn, syn
+
 c     If (HAVE_SOUTH_POLE) Then
 c        n = J_0
 c        an = fy(i,n,l) ! reading fracm which was stored in fx
@@ -2731,6 +2732,7 @@ c     End If
       End Subroutine apply_limiter
 
       Subroutine update_tracer_mass() ! non-polar only
+      REAL*8 :: sxy
 
       Do n=J_0S,J_1S
 
