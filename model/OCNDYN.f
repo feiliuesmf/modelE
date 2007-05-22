@@ -2569,8 +2569,6 @@ c--------------------------------------------------------------
       INTEGER :: l
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE
-      ! qlimit variables
-      !
 
       ierr=0
 
@@ -2711,7 +2709,6 @@ c        sn = s(i,n,l)
 c        syn = sy(i,n,l)
 c        call limitq_lin(anm1,an,fnm1,fn,sn,syn)
 c        f(i,n,l) = fn
-c        f(i,n-1,l) = fnm1
 c        sy(i,n,l) = syn
 c     End If
 
