@@ -397,9 +397,9 @@ c**** calculate root fraction afr averaged over vegetation types
 !----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
 !----shrub_arid c3grass c4grass c3grass_arctic c4crops 
 !----sand bdirt
-!KIM - temp. values
+!KIM - temp. values. NYK - c3grass=3.27 (Ponca avg), c4grass=2.50 (Shidler avg)
      $     (/2.7d0, 2.7d0, 2.9d0, 2.9d0, 1.25d0, 1.25d0, 1.03d0
-     &     , 2.38d0, 2.38d0, 0.82d0, 0.82d0, 0.82d0, 2.50d0
+     &     , 2.38d0, 2.38d0, 3.27d0, 2.50d0, 3.27d0, 2.50d0
      &     , 0.d0, 0.d0 /)
 
       !* Return intial nm for all vegetation and cover types

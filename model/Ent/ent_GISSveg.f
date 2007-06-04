@@ -363,7 +363,7 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 :: nmdata(N_COVERTYPES)
       !-------
       real*8, parameter :: nmv(N_COVERTYPES) =
-     $     (/0.d0,1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
+     $     (/0.d0,1.6d0,3.27d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
      &     ,0.d0, 0.d0, 0.82d0 /)
 
       !* Return intial nm for all vegetation and cover types
