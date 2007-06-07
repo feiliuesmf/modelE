@@ -421,17 +421,17 @@ C**** are used, it can happen over land as well.
          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &         (pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &                   *dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) 
+          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n))
      &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
      &         *dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
      &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
-     &         *dxyp(j)*ptype*dtsurf 
+     &         *dxyp(j)*ptype*dtsurf
         case ('M_DD2_DU')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      &         +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &                   *dxyp(j)*ptype
-         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) 
+         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n))
      &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &         *dxyp(j)*ptype*dtsurf
          DTR_AMPe(j,n)=DTR_AMPe(j,n)
@@ -442,7 +442,7 @@ C**** are used, it can happen over land as well.
      &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
      &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &                   *dxyp(j)*ptype
-         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) 
+         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n))
      &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
      &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
      &         *dxyp(j)*ptype*dtsurf
@@ -454,7 +454,7 @@ C**** are used, it can happen over land as well.
 #endif
         end select
 #endif
- 
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 ccc dust emission from earth
@@ -2206,7 +2206,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
       jday=1+mod(itime/nday,365)
       ! initialize underwater fraction for variable lakes
-      if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 8 )
+      if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 9 )
      &     call init_underwater_soil
 
       ! land water deficit for changing lake fractions
@@ -3860,7 +3860,7 @@ cddd            endif
 
           endif
 
-c**** Also reset snow fraction for albedo computation 
+c**** Also reset snow fraction for albedo computation
           if ( snow_cover_same_as_rad == 0 ) then
             ! recompute snow fraction using different formula
             do ibv=1,2

@@ -189,9 +189,9 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 
 ! the "frozen (or 'slush') version" of 2006 paper E1M20 -> EfzM20
 !     -------------------------------------------          ======
-!     replace in "Object modules"     the 5 files
-! CLOUDS2    PBL    ATURB    RADIATION    LANDICE_DRV     by:
-! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1 LANDICE_DRV_E1
+!     replace in "Object modules"     the 4 files
+! CLOUDS2    PBL    ATURB    RADIATION    by:
+! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1 
 !     replace in "Data input files:" OSST/SICE by
 ! OSST=OST4X5.B.1975-84avg.Hadl1.1
 ! SICE=SICE4X5.B.1975-84avg.Hadl1.1
@@ -199,6 +199,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 !                           dalbsnX=.015, ! (was set to that value by mistake)
 !                           variable_lk=0 ! lake fractions are fixed in time
 !                           wsn_max=0.    ! do not restrict snow depth
+!                           glmelt_on=2   ! skip annual adjustment of glacial melt
 !                       and change all 1850->1979
 
 ! Alternate simple ocean parameterizations (all require a preliminary run with

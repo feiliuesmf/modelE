@@ -138,7 +138,7 @@ C**** Intialise gmelt fluxes
 #endif
 #endif /* TNL: inserted */
 
-      if (do_glmelt .and. glmelt_on.eq.1) then
+      if (do_glmelt .and. glmelt_on > 0) then
 C****  Note that water goes in with as if it is ice at 0 deg.
 C****  Possibly this should be a function of in-situ freezing temp?
 C****
@@ -150,9 +150,7 @@ C**** are calculated.
 C****
 C**** Initial average mass fluxes for Antarctica/Greenland
 
-#ifndef USE_LANDICE_DRV_E1
       if (istart.lt.8 .or. ACCPDA.eq.0) then
-#endif
 C**** Initiallise total mass/energy fluxes (only at start of run)
 C**** The net accumulation from IPCC2 report is 2016x10**12 kg/year
 C**** for Antarctica and for Greenland it is 316x10**12 kg/year
@@ -168,14 +166,12 @@ C**** for Antarctica and for Greenland it is 316x10**12 kg/year
 
 C**** initiallise implicit accumulators (note that these arrays are
 C**** not used until at least one full year has passed)
-      MDWNIMP=0.
-      EDWNIMP=0.
+        MDWNIMP=0.
+        EDWNIMP=0.
 #ifdef TRACERS_WATER
-      TRDWNIMP=0.
+        TRDWNIMP=0.
 #endif
-#ifndef USE_LANDICE_DRV_E1
       end if
-#endif
 
 ! accumulation (kg per source time step) per water column
       FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH)
@@ -658,9 +654,8 @@ C**** we aren't getting that right anyway.
 
       IF (JDAY.eq.1) THEN   ! Jan 1. only
 
-#ifndef USE_LANDICE_DRV_E1
 ! only adjust after at least one full year
-        IF (itime.ge.itimei+JDperY*nday) THEN
+        IF (itime.ge.itimei+JDperY*nday .and. glmelt_on==1) THEN
 
 ! mass and energy (kg, J)
           CALL GLOBALSUM(grid, MDWNIMP, gsum, hsum ,ALL=.TRUE.)
@@ -748,7 +743,6 @@ C**** Set GL MELT arrays
       END DO
 
       END IF  ! run not in its first year
-#endif  /* skip for LANDICE_DRV_E1 */
 
 C**** reset implicit accumulators
       MDWNIMP=0.

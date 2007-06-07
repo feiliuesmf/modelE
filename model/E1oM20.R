@@ -140,13 +140,13 @@ s0_yr=1880    !? 1979
 s0_day=182
 ghg_yr=1880   !? 1979
 ghg_day=182
-volc_yr=1880  !? 1979
+volc_yr=1880  !? or -1 to get mean volc.aerosols
 volc_day=182
 aero_yr=1880  !? 1979
 od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1880 !? 1979
-dalbsnX=.015
+dalbsnX=.015       ! should be .024
 o3_yr=-1880    !? 1979
 
 ! parameters that control the Shapiro filter
@@ -178,3 +178,19 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
    YEARE=1901,MONTHE=1,DATEE=2,HOURE=0, KDIAG=13*0,
    ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
+
+! Instructions for related rundeck types
+! ======================================
+! the "frozen (or 'slush') version" of 2006 paper E1oM20 -> EofzM20
+!     -------------------------------------------           =======
+!     replace in "Object modules"     the 4 files
+! CLOUDS2    PBL    ATURB    RADIATION    by:
+! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1
+!     set in &&PARAMETERS : variable_lk=0 ! lake fractions are fixed in time
+!                           river_fac=1.04
+!                           wsn_max=0.    ! do not restrict snow depth
+!                           glmelt_on=2   ! skip annual adjustment of glacial melt
+!                           glmelt_fac_nh=2.91
+!                           glmelt_fac_sh=1.98
+!                           oBottom_drag=0
+!                           oCoastal_drag=0

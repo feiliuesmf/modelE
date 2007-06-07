@@ -22,7 +22,7 @@
 !@var HC2LI heat capacity of second layer land ice (J/m^2)
       REAL*8, PARAMETER :: HC2LI = ACE2LI*SHI
 !@dbparam glmelt_on determines whether glacial melt is used for oceans
-      INTEGER :: glmelt_on = 1   ! default is 'on'
+      INTEGER :: glmelt_on = 1 ! yes w/ann adjustment (2: yes but fixed)
 !@dbparam glmelt_fac_nh is a factor to multiply glacial melt by in NH
       REAL*8  :: glmelt_fac_nh = 1.d0
 !@dbparam glmelt_fac_sh is a factor to multiply glacial melt by in SH
@@ -243,18 +243,18 @@ C**** CALCULATE TG2
       IMPLICIT NONE
       SAVE
 !@var SNOWLI snow amount on land ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWLI 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWLI
 !@var TLANDI temperature of each land ice layer (C)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLANDI 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLANDI
 !@var MDWNIMP downward implicit ice amount accumulator (kg)
 !@var EDWNIMP downward implicit energy amount accumulator (J)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MDWNIMP, EDWNIMP 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MDWNIMP, EDWNIMP
 !@var LOC_GLA, LOC_GLG mask for glmelt around Antarctica and Greeland
       LOGICAL, ALLOCATABLE, DIMENSION(:,:) :: LOC_GLA, LOC_GLG
 
 #ifdef TRACERS_WATER
 !@var TRSNOWLI tracer amount in land ice snow (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSNOWLI 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSNOWLI
 !@var TRLNDI tracer amount in land ice (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRLNDI
 !@var TRLI0 default tracer conc. for land ice (kg/kg)
@@ -299,7 +299,7 @@ C**** CALCULATE TG2
      *          TRLNDI  (NTM,IM,J_0H:J_1H),
      *          TRDWNIMP(NTM,IM,J_0H:J_1H),
      *          STAT=IER)
-#endif 
+#endif
 
       RETURN
       END SUBROUTINE ALLOC_LANDICE_COM
@@ -343,7 +343,7 @@ C**** CALCULATE TG2
      *     //',TRACC'
 #endif
 #endif
-      
+
       MODULE_HEADER(lhead+1:80) = 'R8 SNOW(im,jm),T(2,im,jm),MDWN,EDWN'
      *     //',MACC,EACC'
 
@@ -381,6 +381,8 @@ C**** Gather into global arrays
      *           ,EACCPDG
           ELSEIF (HEADER(1:LHEAD).EQ."GLAIC01") THEN
             READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
+            MDWNIMP_GLOB=0 ; EDWNIMP_GLOB=0
+            ACCPDA=0 ; ACCPDG=0 ; EACCPDA=0 ; EACCPDG=0
           ELSE
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10

@@ -54,7 +54,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@+       when using older restart files
       INTEGER :: init_flake=1   ! default = 1
 !@dbparam variable_lk 1 if lakes are to be variable
-!@+       (temporary variable for development purposes) 
+!@+       (temporary variable for development purposes)
       INTEGER :: variable_lk=0    ! default = 0
 
       CONTAINS
@@ -452,7 +452,7 @@ C**** Get parameters from rundeck
       call sync_param("variable_lk",variable_lk)
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
-      if ((init_flake.eq.1.and.istart.lt.8) .or. INILAKE) THEN
+      if ((init_flake.eq.1.and.istart.lt.9) .or. INILAKE) THEN
         print*,"Initialising FLAKE from TOPO file..."
         FLAKE = FLAKE0
       end if
@@ -821,12 +821,12 @@ C**** to allow a back-flux. Take account of mean topography change as
 C**** well. This is mainly an issue for the Caspian and Aral Seas.
 C**** Loop now includes polar boxes
 
-! note on MPI fixes: since different PEs can influence the downstream 
-! accumulation of FLOW etc, we loop on the haloed variables to ensure 
+! note on MPI fixes: since different PEs can influence the downstream
+! accumulation of FLOW etc, we loop on the haloed variables to ensure
 ! that contributions from the halo are included in FLOW/FLOWO etc.
 ! If downstream box is outside the interior, cycle - this is dealt with on
 ! a separate PE
- 
+
       DO JU=MAX(1,J_0H),MIN(JM,J_1H)
         DO IU=1,IMAXJ(JU)
           IF (KDIREC(IU,JU).gt.0 .or.
@@ -835,7 +835,7 @@ C**** Loop now includes polar boxes
             ID=IFLOW(IU,JU)
 
 ! only calculate for downstream interior boxes.
-            IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE 
+            IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE
 
 C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
@@ -849,7 +849,7 @@ C**** Check for special case:
               IF (FLAKE(IU,JU).gt.0) THEN
                 IF (MWL(ID,JD)-MWLSILLD+DXYP(JD)*(MWL(IU,JU)-MWLSILL)
      *               /(FLAKE(IU,JU)*DXYP(JU)).gt.0) THEN
-                  DMM=-(MWL(ID,JD)-MWLSILLD+DXYP(JD)*(MWL(IU,JU)-MWLSILL 
+                  DMM=-(MWL(ID,JD)-MWLSILLD+DXYP(JD)*(MWL(IU,JU)-MWLSILL
      *                 )/(FLAKE(IU,JU)*DXYP(JU)))*URATE*DTsrc ! <0
                   rvrfl=.true.
                 END IF
@@ -886,7 +886,7 @@ c              END IF
 #endif
             END IF
 
-            IF (rvrfl) THEN              
+            IF (rvrfl) THEN
               FLOW(IU,JU)  =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
 #ifdef TRACERS_WATER
@@ -894,9 +894,9 @@ c              END IF
 #endif
 
 C**** calculate adjustments for poles
-              IF (JU.eq.1 .or. JU.eq.JM) THEN 
+              IF (JU.eq.1 .or. JU.eq.JM) THEN
                 FLFAC=IM        ! pole exception upstream
-              ELSEIF (JD.eq.1 .or. JD.eq.JM) THEN 
+              ELSEIF (JD.eq.1 .or. JD.eq.JM) THEN
                 FLFAC=1d0/real(IM) ! pole exception downstream
               ELSE
                 FLFAC=1.        ! default
@@ -1262,7 +1262,7 @@ C****
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
-#endif 
+#endif
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
 #ifdef TRACERS_WATER
      *     ,trsi
@@ -1369,7 +1369,7 @@ C**** all tracers --> tracer*FRAC, then adjust layering
                   FMSI3=ACE1I*(FRAC-1d0) ! kg/m2 flux over new fraction
                   FMSI2=FMSI3*XSI(1)
                   FMSI4=FMSI3*XSI(4)
-                  
+
                   FHSI2=FMSI2*HSI(1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J)))
                   IF (FMSI3.LT.FRAC*XSI(2)*(ACE1I+SNOWI(I,J))) THEN
                     FHSI3=FMSI3*HSI(2,I,J)/(XSI(2)*(ACE1I+SNOWI(I,J)))
@@ -1381,16 +1381,16 @@ C**** all tracers --> tracer*FRAC, then adjust layering
                   IF (FMSI4.LT.FRAC*XSI(3)*MSI(I,J)) THEN
                     FHSI4=FMSI4*HSI(3,I,J)/(XSI(3)*MSI(I,J))
                   ELSE
-                    FHSI4=HSI(3,I,J)*FRAC+(FMSI4-FRAC*XSI(3)*MSI(I,J)) 
+                    FHSI4=HSI(3,I,J)*FRAC+(FMSI4-FRAC*XSI(3)*MSI(I,J))
      *                   *FHSI3/FMSI3
                   END IF
-                  
+
                   HSI(1,I,J)=HSI(1,I,J)*(ACE1I+SNOWNEW)/
      *                 (ACE1I+SNOWI(I,J))
                   HSI(2,I,J)=HSI(2,I,J)*FRAC+FHSI2-FHSI3
                   HSI(3,I,J)=HSI(3,I,J)*FRAC+FHSI3-FHSI4
                   HSI(4,I,J)=HSI(4,I,J)*FRAC      +FHSI4
-                  
+
 #ifdef TRACERS_WATER
                   sumt=rsi(i,j)*flake(I,j)*sum(trsi(1,:,i,j))
                   FTSI2(:)=FMSI2*TRSI(:,1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J)
@@ -1409,7 +1409,7 @@ C**** all tracers --> tracer*FRAC, then adjust layering
                     FTSI4(:)=TRSI(:,3,I,J)*FRAC+(FMSI4-FRAC*XSI(3)*MSI(I
      *                   ,J))*FTSI3(:)/FMSI3
                   END IF
-                  
+
                   TRSI(:,1,I,J)=TRSI(:,1,I,J)*(ACE1I+SNOWNEW)/
      *                 (ACE1I+SNOWI(I,J))
                   TRSI(:,2,I,J)=TRSI(:,2,I,J)*FRAC+FTSI2(:)-FTSI3(:)
@@ -1432,7 +1432,7 @@ C**** adjust layering if necessary
                     TRLAKE(:,2,I,J)=TOTTR(:)*(HLK-MLDLK(I,J))/HLK
                     TRLAKE(:,1,I,J)=TOTTR(:)*     MLDLK(I,J) /HLK
 #endif
-                  ELSE  
+                  ELSE
 #ifdef TRACERS_WATER
                     DTR(:)=TRLAKE(:,2,I,J)*(new_flake*new_MLD-MLDLK(I
      *                   ,J)*FLAKE(I,J))/(HLK*new_flake-MLDLK(I,J)
@@ -1475,13 +1475,13 @@ C**** Accumulate regional diagnostics
      *                 *DXYP(J)
 c                  AREG_part(JR,J,1)=AREG_part(JR,J,1)+PLKIC*IMLT*DXYP(J)
 c                  AREG_part(JR,J,2)=AREG_part(JR,J,2)+PLKIC*HMLT*DXYP(J)
-C**** 
+C****
                   RSI(I,J)=0.
                   SNOWI(I,J)=0.
                   HSI(1:2,I,J)=-LHM*XSI(1:2)*ACE1I
                   HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
                   MSI(I,J)=AC2OIM
-                  
+
                   TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
                   MLDLK(I,J)=MINMLD
                   FLAKE(I,J)=0.
@@ -1493,7 +1493,7 @@ C****
           END IF
         END DO
       END DO
-      
+
 C**** Finish accumulation of regional diagnostics (...sum along j)
 c      CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
 c     &     AREG_SUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
@@ -1501,9 +1501,9 @@ c      AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
 c     &     AREG_SUM(1:SIZE(AREG,1),1)
 c      AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
 c     &     AREG_SUM(1:SIZE(AREG,1),2)
-      
+
       end if
-C**** 
+C****
       CALL PRINTLK("DY")
 
 C**** Set GTEMP array for lakes
@@ -1519,7 +1519,7 @@ C**** Set GTEMP array for lakes
           END IF
         END DO
       END DO
-C**** 
+C****
       RETURN
       END SUBROUTINE daily_LAKE
 
@@ -1881,7 +1881,7 @@ C****
       DO N=1,NDIAG
         I=IDIAG(N)
         J=JDIAG(N)
-        if (J.lt. J_0 .or. J.gt. J_1) CYCLE 
+        if (J.lt. J_0 .or. J.gt. J_1) CYCLE
         IF (FLAKE(I,J).gt.0) THEN
           HLK2 = MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)) - MLDLK(I,J)
           IF (HLK2.gt.0) THEN
