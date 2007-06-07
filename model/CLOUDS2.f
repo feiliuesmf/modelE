@@ -2108,8 +2108,15 @@ C**** Isotopic equilibration of liquid precip with water vapour
 #endif
   540 CONTINUE
 C****
-      IF(PRCP.GT.0.) CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
-     *     ,FMC1)
+      IF(PRCP.GT.0.) THEN
+        IF(PLE(LMIN)-PLE(LMAX+1).LT.450.) THEN
+          CLDMCL(1)=MIN(CLDMCL(1),FMC1)
+        ELSE
+          CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYPBLM*FMC1,FMC1)
+        END IF
+      END IF
+C     IF(PRCP.GT.0.) CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
+C    *     ,FMC1)
       PRCPMC=PRCPMC+PRCP*FMC1
 #ifdef TRACERS_WATER
       TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)*FMC1
