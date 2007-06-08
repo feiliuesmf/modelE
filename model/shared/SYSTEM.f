@@ -106,13 +106,15 @@
       Integer :: n
       Integer :: i
       Real*8  :: x
-      
+
+#ifdef USE_ESMF      
       Write(6,*) ' ***********************************************'
       Write(6,*) ' Warning: slow implementation of burn_random()  '
       Write(6,*) ' on this platform.  Better performance can be   '
       Write(6,*) ' achieved by using a recursion relation for most'
       Write(6,*) ' random number generators. (contact Tom Clune)  '
       Write(6,*) ' ***********************************************'
+#endif
 
       Do i = 1, n
         x = RANDU(x)
