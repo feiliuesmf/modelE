@@ -94,7 +94,7 @@
 
          !* PFT PARAMETERS
          ! Only need to index array of pftypes.
-         
+
          !* NITROGEN status */
          !@var nm   Mean cohort nitrogen (g/m2[leaf]) over whole grid cell
          real*8 :: nm
@@ -117,7 +117,7 @@
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
-         !* BIOMASS POOLS (g-C/single plant)
+         !* BIOMASS POOLS (kg-C/single plant)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
          real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
          real*8 :: C_sw           ! Sapwood carbon (=rho_wood*sw_vol) (units?)
@@ -130,6 +130,7 @@
          real*8 :: N_froot        ! Fine root nitrogen
          real*8 :: C_croot        ! Coarse root carbon
          real*8 :: N_croot        ! Coarse root nitrogen
+         !real*8,pointer :: Bpool(PTRACE,NBpools) !Single plant pools of C and N. Replace previous non-array vars - NYK
 
          !* FLUXES (for whole cohort over area cover)
          real*8 :: Ci             !*Internal foliage CO2 (mol/m3) !!Cohort level
@@ -148,10 +149,13 @@
          !real*8 :: ------        ! ASK PAUL
 
          !* PHENOLOGY - KIM
-         real*8 :: phenofactor
-         real*8 :: phenofactor_c
-         real*8 :: phenofactor_d
-         
+         real*8 :: phenofactor   !phenofactor_c * phenofactor_d
+         real*8 :: phenofactor_c !Cold deciduousness
+         real*8 :: phenofactor_d !Drought deciduousness
+         !* PHYSIOLOGICAL STATUS *!  !NYK
+         real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
+         real*8,pointer :: stressH2Ol(:) !Water stress in layers.
+         real*8 :: senescefrac  !Fraction of biomass undergoing senescence to litterfall.
       end type cohort
 
 !****************************************************************************

@@ -214,7 +214,7 @@
                phenofactor_c = 1.0d0
             end if
 
-            ! Drougth Deciduousness
+            ! Drought Deciduousness
             if ((phenotype .eq. 3) .OR. (phenotype .eq. 4)) then
                phenofactor_d =  min (1.0d0, wat/wat_threshold)                    
             else
@@ -226,7 +226,8 @@
             cop%phenofactor_c=phenofactor_c
             cop%phenofactor_d=phenofactor_d
             cop%phenofactor=phenofactor
-            
+            !* cop%senescefrac = INSERT CALCULATION IF <> phenofactor
+
             ld =  0.d0 !zero-out every day
             
             if ((phenofactor_c_old .gt. phenofactor_c) .AND.
@@ -253,7 +254,7 @@
       !*********************************************************************
       subroutine litter(dtsec, pp)
       !* Determine litter from live carbon pools and update Tpool.
-      !* After CASA. - NYK 7/27/06
+      !* After CASA, but called at daily time step. - NYK 7/27/06
 
       real*8 :: dtsec           !dt in seconds
       !type(timestruct) :: tt    !Greenwich Mean Time
@@ -273,14 +274,26 @@
         !*## NOTE:  betad should eventually be defined at cohort level!!##
         pft = cop%pft
 
-        !* NLIVE POOLS *! !* betad/SECPY to replace stressCD is temporary HACK ##
+        !* NLIVE POOLS *! !* betad to replace stressCD is temporary HACK ##
         Closs(CARBON,LEAF) = 
-     &       cop%C_fol * cop%n * (annK(pft,LEAF)+pp%betad/SECPY)*dtsec !* x tune factor
+     &       cop%C_fol * cop%n * 
+     &       (annK(pft,LEAF)+(1.d0-cop%stressH2O)/SDAY)*SDAY !dtsec, Changed to daily time step - NYK !* x tune factor
         Closs(CARBON,FROOT) = 
-     &       cop%C_froot * cop%n * annK(pft,FROOT)*dtsec
+     &       cop%C_froot * cop%n * annK(pft,FROOT)*SDAY !dtsec, Changed to daily time step - NYK
         Closs(CARBON,WOOD) = 
-     &       cop%C_hw * cop%n
-     &       *(1.d0-exp(-annK(pft,WOOD)*dtsec)) !* expr is kdt; x tune factor
+     &       (cop%C_hw + cop%C_croot) * cop%n  !Added coarse root litter
+     &       *(1.d0-exp(-annK(pft,WOOD)*SDAY)) !dtsec)), Changed to daily time step -NYK !* expr is kdt; x tune factor
+
+!*   Later will replace above with senescefrac factors, which can be calculated by
+!*   either prescribed or prognostic phenology: ****** NYK!
+!        Closs(CARBON,LEAF) = 
+!     &       cop%C_fol * cop%n * cop%senescefrac !* x tune factor
+!        Closs(CARBON,FROOT) = 
+!     &       cop%C_froot * cop%n * cop%senescefrac !* x tune factor
+!        Closs(CARBON,WOOD) = 
+!     &       (cop%C_hw + cop%C_croot) * cop%n
+!     &       *(1.d0-exp(-annK(pft,WOOD)*dtsec)) !* expr is kdt; x tune factor
+
 
 !        write(98,*) 'In litter: ',dtsec
 !        write(98,*) cop%pft, cop%C_fol, cop%n, annK(pft,LEAF),pp%betad

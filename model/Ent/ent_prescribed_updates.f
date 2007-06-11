@@ -179,6 +179,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       type(cohort),pointer :: cop
       real*8 :: laipatch
       real*8 :: cpool(N_BPOOLS)
+      real*8 :: lai_next !Unfortunately, have to calculate LAI twice :( NYK
 
       if (ASSOCIATED(pp)) then
 
@@ -187,7 +188,8 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         cpool(:) = 0.d0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
-          cop%lai = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
+          cop%LAI = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
+
           laipatch = laipatch + cop%lai
 
           call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
@@ -198,6 +200,15 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 !          cop%C_lab = cpool(LABILE)
 !          cop%C_froot = cpool(FR)
           cop%C_croot = cpool(CR)
+
+          !* Calculate senescence factor for next time step litterfall routine.
+          lai_next = prescr_calc_lai(cop%pft+COVEROFFSET, jday+1, hemi)
+          if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
+            cop%senescefrac = min(0.d0,(cop%LAI-lai_next)/cop%LAI)
+          else
+            cop%senescefrac = 0.d0
+          endif
+
 
           cop => cop%shorter
         end do

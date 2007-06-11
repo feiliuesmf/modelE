@@ -247,6 +247,8 @@
       endif
 
       !* SET UP DRIVERS *!
+      !* Patch-level water stress only needed for Friend&Kiang conductance.
+      !* Cohort-level water stress is used for cohort-level photosynthesis.
       pp%betad = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
      i     ,pp%fracroot(:)
      i     ,pp%cellptr%fice(:), pfpar(pp%tallest%pft)%hwilt
@@ -294,6 +296,11 @@
         !pft =  pp%tallest%pft
         !GCANOPY = pp%GCANOPY
         !Ci = pp%Ci
+        cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
+     i       ,cop%fracroot(:)
+     i       ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
+     o       , cop%stressH2Ol(:))
+        betad = cop%stressH2O
 
         vegpar%alai = cop%LAI
         vegpar%nm = cop%nm
@@ -313,7 +320,7 @@
      i       P_mbar,Ch,U,
      i       IPAR,fdir,CosZen,
      i       Ca,
-     i       betad,
+     i       betad,  !NOTE:  betad is stressH2O of cohort
      i       Qf, 
      &       vegpar,
      &       GCANOPY, Ci, 
@@ -338,7 +345,6 @@
         cop%NPP = GPP - cop%R_auto !kg-C/m2-ground/s
        !* Accumulate uptake. 
         cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
-       !betad, betadl
 
         !* pp cohort flux summaries
         GCANOPYsum = GCANOPYsum + cop%GCANOPY
@@ -1046,7 +1052,7 @@
      &     Result(R_maint)
       !Canopy maintenance respiration (umol/m2-ground/s)
       !Based on photosynthetic activity. From CLM3.0.
-      !see CLM3.0 DGVM documentation for explanation of constants -PK 5/15/07 
+
       integer :: pft            !Plant functional type.
       real*8 :: C               !g-C/individual  !not per m2 -PK 5/15/07
                                 !Can be leaf, stem, or root pools.

@@ -153,8 +153,9 @@
         call phenology_stats(dtsec,pp,dailyupdate)
         if (dailyupdate) then
            call phenology_update(pp)
+           call litter(dtsec, pp) 
         end if
-        call litter(dtsec, pp) 
+!        call litter(dtsec, pp) !Moved to call after phenology_update on daily time step.
         call soil_bgc(dtsec, pp)
         pp%CO2flux = -pp%NPP + pp%Soil_resp
         pp%age = pp%age + dtsec
@@ -212,6 +213,11 @@
      &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:), 
      &         pp%GPP,pp%R_auto,pp%Soil_resp,
      &         pp%NPP,pp%CO2flux,pp%GCANOPY, pp%tallest%C_lab
+
+          !* Nancy's diagnostics *!
+          write(996,*) pp%tallest%pft, pp%lai, pp%Tpool(CARBON,:),
+     &         pp%GPP, pp%R_auto, pp%Soil_resp, pp%NPP, pp%CO2flux,
+     &         pp%GCANOPY
           !*********************************************************!
         else 
           pp%CO2flux = UNDEF

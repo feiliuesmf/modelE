@@ -95,9 +95,6 @@
      &                      / (1. - solubfract(n))
         lignineffect(n) = exp(-3.0 * structuralLignin(n))
       end do
-      print *,
-     &     'from prescr_calcconst (ent_prescrveg): lignineffect[n_pft]='
-     &       ,lignineffect
 
       end subroutine prescr_calcconst
 
@@ -114,7 +111,7 @@
       !-----Local variables------
       real*8 dphi
 
-      dphi = 0
+      dphi = 0.d0
       if ( hemi < 0 ) dphi = 2d0*pi*.5d0
 
       !* Return lai *!
