@@ -2538,7 +2538,7 @@ C                      4      ORG  Organic                            5
 C     ------------------------------------------------------------------
 
       character*40, save :: dtfile='oct2003.relhum.nr.Q633G633.table'
-      logical, parameter :: qbinary=.false.  ; logical qexist
+      logical qexist
       INTEGER i,j,j1,k,k1,in1,ir1,jdry,jwet,jhimax,khimax,maxdry,maxwet
       INTEGER n,n0,n1,nn,np,nrhn1
       REAL*8 x,xx,xi,xn0,xn1,xr1,ff,fi,gi,gd1,gd2,gw1,gw2,grh,qrh,rrh
@@ -2688,7 +2688,7 @@ C     ------------------------------------------------------------------
       if(.not.qexist) dtfile='RH_QG_Mie  ' ! generic name used by GCM
       inquire (file=dtfile,exist=qexist)
       if(.not.qexist) call stop_model('setrel: no RH_QG files',255)
-      call openunit(dtfile,kdread,qbinary) ! formatted:qbinary=.false.
+      call openunit(dtfile,kdread,.false.,.true.) ! formatted, old
 
       READ (KDREAD,7000) (XNR(J),J=1,31)
  7000 FORMAT(12X,F5.3,30F8.3)

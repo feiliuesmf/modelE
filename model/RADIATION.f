@@ -2099,8 +2099,8 @@ C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
 C     -----------------------------------------------------------------
 
       CHARACTER*80 TITLE
-      logical, PARAMETER :: qbinary=.true.   ; logical qexist
-!@dbparam use_sol_Ox_cycle if =1, a cycle of ozone is appled to 
+      logical qexist
+!@dbparam use_sol_Ox_cycle if =1, a cycle of ozone is appled to
 !@+ o3year, as a function of the solar constant cycle.
 !@var add_sol is [S00WM2(now)-1/2(S00WM2min+S00WM2max)]/
 !@+ [S00WM2max-S00WM2min] so that O3(altered) = O3(default) +
@@ -2154,9 +2154,9 @@ C**** Deal with out-of-range years (incl. starts before 1850)
       IF(IFIRST==1) THEN
 
       call sync_param("use_sol_Ox_cycle",use_sol_Ox_cycle)
-      
+
       if(use_sol_Ox_cycle==1)then
-        call openunit ("delta_O3",idfile,qbinary)
+        call openunit ("delta_O3",idfile,.true.,.true.)
         read(idfile)S0min,S0max
         do m=1,12; do L=1,NLO3
           read(idfile)TITLE,delta_O3_max_min(:,:,L,M)
@@ -2164,7 +2164,7 @@ C**** Deal with out-of-range years (incl. starts before 1850)
         delta_O3_max_min(:,:,:,0)=delta_O3_max_min(:,:,:,12)
         call closeunit (idfile)
       endif
-      
+
       if(plbo3(1) < plb0(1)) plbo3(1)=plb0(1)                  ! ??
       IF(MADO3M < 0) then
 C****   Find O3 data files and fill array IYEAR from title(1:4)
@@ -2175,7 +2175,7 @@ C****   Find O3 data files and fill array IYEAR from title(1:4)
           write (ddfile(n),'(a7,i2.2)') 'O3file_',n
           inquire (file=trim(ddfile(n)),exist=qexist)
           if(.not.qexist) go to 10 !  exit
-          call openunit (ddfile(n),ifile,qbinary)
+          call openunit (ddfile(n),ifile,.true.,.true.)
           read(ifile) title
           call closeunit (ifile)
           if (AM_I_ROOT())
@@ -2202,7 +2202,7 @@ C**** Prior to first year of data, cycle through first year of data
 
       if(IY <= 1.and.nfo3 > 1) then
                        ! READ strat O3 time trend for strat O3 interpol.
-        call openunit (OTFILE,ifile,qbinary)
+        call openunit (OTFILE,ifile,.true.,.true.)
         READ (IFILE) OTREND
         call closeunit (ifile)
         if (AM_I_ROOT()) then
@@ -2211,7 +2211,7 @@ C**** Prior to first year of data, cycle through first year of data
       end if
 
       if(IY > 0) then
-        call openunit (ddfile(IY),ifile,qbinary)
+        call openunit (ddfile(IY),ifile,.true.,.true.)
         DO 30 M=1,12
         DO 30 L=1,NLO3
    30   READ (IFILE) TITLE,O3YEAR(:,:,L,M)
@@ -2247,7 +2247,7 @@ C****
       JYR=IYEAR(JY)
 
 C**** Get first decadal file
-      call openunit (ddfile(IY),ifile,qbinary)                     ! IYR
+      call openunit (ddfile(IY),ifile,.true.,.true.)               ! IYR
       DO 110 M=1,12
       DO 110 L=1,NLO3
   110 READ (IFILE) TITLE,O3ICMA(:,:,L,M)
@@ -2258,7 +2258,7 @@ C**** Get first decadal file
 C        READ and use prior decadal file to define prior year December
 C        (only when starting up with JYEARO=1890,1910,1930,...1980
 C         and only for non-cyclical cases)
-      call openunit (ddfile(IY-1),ifile,qbinary)                   ! KYR
+      call openunit (ddfile(IY-1),ifile,.true.,.true.)             ! KYR
       DO 210 M=1,12
       DO 210 L=1,NLO3
   210 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
@@ -2294,7 +2294,7 @@ C     ------------------------------------------------------------------
       ENDIF
 
 C**** Get next  decadal file
-      call openunit (ddfile(JY),ifile,qbinary)                    !  JYR
+      call openunit (ddfile(JY),ifile,.true.,.true.)               ! JYR
       DO 310 M=1,12
       DO 310 L=1,NLO3
   310 READ(IFILE) TITLE,O3JCMA(:,:,L,M)
@@ -2386,8 +2386,8 @@ C     the formula below yields M near the middle of month M
       DO 510 I=1,MLON72
       O3JDAY(:,I,J)=WTMI*O3YEAR(I,J,:,MI)+WTMJ*O3YEAR(I,J,:,MJ)
       if(use_sol_Ox_cycle==1) then
-        delta_O3_now(:) = WTMI*delta_O3_max_min(I,J,:,MI) + 
-     &                    WTMJ*delta_O3_max_min(I,J,:,MJ) 
+        delta_O3_now(:) = WTMI*delta_O3_max_min(I,J,:,MI) +
+     &                    WTMJ*delta_O3_max_min(I,J,:,MJ)
         O3JDAY(:,I,J) = O3JDAY(:,I,J) + add_sol*delta_O3_now(:)
       endif
   510 CONTINUE
@@ -3350,7 +3350,7 @@ C         1850 Background Org Carbon OCX = 0.162 Natural + 0.838 BioBurn
 C         1850 Background Blk Carbon BCI = 0  (No Industrial BC in 1850)
 C         1850 Background Blk Carbon BCB = BBP,all of 1850 BC is BioBurn
 C     ------------------------------------------------------------------
-      logical, PARAMETER :: qbinary=.true.   ; logical qexist
+      logical qexist
       INTEGER, save :: IFILE=11, IFIRST=1, JYRNOW=0
 
       INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
@@ -3366,25 +3366,25 @@ C                                       --------------------------------
       if(.not.qexist) call stop_model('updaer: no TropAero files',255)
 
 !**** Pre-industrial data
-      call openunit (RDFILE(1),ifile,qbinary)   ! unform.:qbinary=true
+      call openunit (RDFILE(1),ifile,.true.,.true.)    ! unformatted,old
       DO 101 IDD=1,10
       DO 101 M=1,12
   101 READ (IFILE) XTITLE,PREDD(:,:,:,M,IDD)
       call closeunit (ifile)
 !**** Industrial Sulfates
-      call openunit (RDFILE(2),ifile,qbinary)
+      call openunit (RDFILE(2),ifile,.true.,.true.)
       DO 102 IDD=1,8
       DO 102 M=1,12
   102 READ (IFILE) XTITLE,SUIDD(:,:,:,M,IDD)
       call closeunit (ifile)
 !**** Industrial Organic Carbons
-      call openunit (RDFILE(3),ifile,qbinary)
+      call openunit (RDFILE(3),ifile,.true.,.true.)
       DO 103 IDD=1,8
       DO 103 M=1,12
   103 READ (IFILE) XTITLE,OCIDD(:,:,:,M,IDD)
       call closeunit (ifile)
 !**** Industrial Black Carbons
-      call openunit (RDFILE(4),ifile,qbinary)
+      call openunit (RDFILE(4),ifile,.true.,.true.)
       DO 104 IDD=1,8
       DO 104 M=1,12
   104 READ (IFILE) XTITLE,BCIDD(:,:,:,M,IDD)
@@ -3396,7 +3396,7 @@ C       independent aerosols (desert dust and sea salt)       an:  /cm^3
 C     - Save the monthly 1850 mass densities (md) for the time dependent
 C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 
-!!!   call openunit (RDFILE(5),ifile,qbinary)  ! disregard desert dust
+!!!   call openunit (RDFILE(5),ifile,.true.,.true.) !neglect desert dust
 !!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
       xsslt=aermix(3)/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
       byz = 1d-6/za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
