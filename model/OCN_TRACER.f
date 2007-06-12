@@ -74,7 +74,7 @@ C**** only TRACERS_WATER is true.
           end do
           end do
 #endif
-        case ('Water', 'H2O18', 'HDO')
+        case ('Water', 'H2O18', 'HDO', 'H2O17' )
 #if (defined TRACERS_OCEAN) && (defined TRACERS_SPECIAL_O18)
 C**** Open ic file for isotope tracers
           call openunit("H2O18ic",iu_O18ic,.true.,.true.)

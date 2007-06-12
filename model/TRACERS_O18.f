@@ -11,7 +11,7 @@
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
       CHARACTER, INTENT(IN) :: trname*8
-      INTEGER, PARAMETER :: NTSPM=4
+      INTEGER, PARAMETER :: NTSPM=5
 c**** quadratic fit to Majoube (1971)
 c      REAL*8, PARAMETER ::
 c     *     A(NTSPM) = (/  0d0, -3.75d-7, -6.375d-6, -6.875d-6  /),
@@ -19,12 +19,12 @@ c     *     B(NTSPM) = (/  0d0,  1.025d-4, 1.2475d-3, 1.7d-3    /),
 c     *     C(NTSPM) = (/  1d0,  0.9884d0, 0.9001d0 , 0.86975d0 /)
 c**** exponentials 
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/  0d0,  1137d0   ,  24844d0  , 46480d0  /),
-     *     B(NTSPM) = (/  0d0, -0.4156d0 , -76.248d0 ,-103.87d0 /),
-     *     C(NTSPM) = (/  0d0, -2.0667d-3,  52.612d-3, 0d0      /)
+     * A(NTSPM)=(/  0d0,  1137d0   ,  24844d0  , 46480d0,   601.47d0/),
+     * B(NTSPM)=(/  0d0, -0.4156d0 , -76.248d0 ,-103.87d0, -0.2199d0/),
+     * C(NTSPM)=(/  0d0, -2.0667d-3,  52.612d-3, 0d0,      -1.0933d-3/)
 
 !@var ITR   species number of tracer
-C****       1: Fresh Water 2: o18 3: Deu  4: Tritium
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
       INTEGER ITR
       REAL*8 FRACVL,TK
 C****
@@ -37,6 +37,8 @@ C****
         ITR=3
       case ('HTO')   ! tritium data not yet confirmed
         ITR=4
+      case ('H2O17')
+        ITR=5 
       case default
         write(6,*) "Tracer name ",trname," not defined in FRACVL"
         call stop_model('Tracer name not defined in FRACVL',255)
@@ -58,19 +60,19 @@ C****
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
       CHARACTER, INTENT(IN) :: trname*8
-      INTEGER, PARAMETER :: NTSPM=4
+      INTEGER, PARAMETER :: NTSPM=5
 C**** linear fit
 c      REAL*8, PARAMETER ::
 c     *     A(NTSPM) = (/  0d0,  1.36d-4,   1.46d-3, 0d0/),
 c     *     B(NTSPM) = (/  1d0,  0.9850d0, 0.8834d0, 0.7845d0/)
 C**** exponential
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/  0d0,  0d0       , 16288d0 , 46480d0 /),
-     *     B(NTSPM) = (/  0d0,  11.839d0  , 0d0     ,-103.87d0/),
-     *     C(NTSPM) = (/  0d0, -0.028244d0,-0.0934d0, 0d0     /)
+     * A(NTSPM) = (/ 0d0,  0d0       , 16288d0 , 46480d0 , 0d0/),
+     * B(NTSPM) = (/ 0d0,  11.839d0  , 0d0     ,-103.87d0, 6.2628d0/),
+     * C(NTSPM) = (/ 0d0, -0.028244d0,-0.0934d0, 0d0,     -.01494d0/)
 
 !@var ITR   species number of tracer
-C****       1: Fresh Water 2: o18 3: Deu  4: Tritium
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
       INTEGER ITR
       REAL*8 FRACVS,TK
 C****
@@ -83,6 +85,8 @@ C****
         ITR=3
       case ('HTO')   ! tritium data not yet confirmed
         ITR=4
+      case ('H2O17')
+        ITR=5
       case default
         write(6,*) "Tracer name ",trname," not defined in FRACVS"
         call stop_model('Tracer name not defined in FRACVS',255)
@@ -101,11 +105,11 @@ C****
 !@auth Gavin Schmidt
       IMPLICIT NONE
       CHARACTER, INTENT(IN) :: trname*8
-      INTEGER, PARAMETER :: NTSPM=4
+      INTEGER, PARAMETER :: NTSPM=5
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/ 1d0, 1.0035d0, 1.0208d0,  1.04d0/)
+     *     A(NTSPM) = (/ 1d0, 1.0035d0, 1.0208d0,  1.04d0, 1.00185d0/)
 !@var ITR   species number of tracer
-C****       1: Fresh Water 2: o18 3: Deu  4: Tritium
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
       INTEGER ITR
       REAL*8 FRACLS
 C****
@@ -118,6 +122,8 @@ C****
         ITR=3
       case ('HTO')
         ITR=4
+      case ('H2O17')
+        ITR=5
       case default
         FRACLS=1.    ! no fractionation
         RETURN
@@ -135,13 +141,18 @@ C****
 !@var WS surface wind speed (m/s)
       REAL*8, INTENT(IN) :: WS
       CHARACTER, INTENT(IN) :: trname*8
-      INTEGER, PARAMETER :: NTSPM=4
+      INTEGER, PARAMETER :: NTSPM=5
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/ 1d0, 0.994d0,  0.99472d0,  0.98944d0  /),
-     *     B(NTSPM) = (/ 0d0, 0.285d-3, 0.2508d-3,  0.5016d-3  /),
-     *     C(NTSPM) = (/ 0d0, 0.82d-3,  0.7216d-3,  0.14432d-2 /)
+     * A(NTSPM)=(/ 1d0, 0.994d0,  0.99472d0,  0.98944d0,  0.996913d0 /),
+     * B(NTSPM)=(/ 0d0, 0.285d-3, 0.2508d-3,  0.5016d-3,  0.14663d-3 /),
+     * C(NTSPM)=(/ 0d0, 0.82d-3,  0.7216d-3,  0.14432d-2, 0.42189d-3 /)
+C**** alternative from Cappa et al (2003)
+c      REAL*8, PARAMETER ::
+c     * A(NTSPM) = (/ 1d0, 0.99295d0,  0.99636d0,  0.99295d0, 0.99637d0/),
+c     * B(NTSPM) = (/ 0d0, 0.485d-3, 0.188d-3,  0.485d-3, .2495d-3/),
+c     * C(NTSPM) = (/ 0d0, 0.727d-3, 0.275d-3,  0.727d-3, .3740d-3/)
 !@var ITR   species number of tracer
-C****       1: Fresh Water 2: o18 3: Deu  4: Tritium
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
       INTEGER ITR
       REAL*8 FRACLK
 C****
@@ -156,6 +167,8 @@ C****
         ITR=3
       case ('HTO')   ! tritium data not yet confirmed
         ITR=4
+      case ('H2O17')
+        ITR=5
       case default
         write(6,*) "Tracer name ",trname," not defined in FRACLK"
         call stop_model('Tracer name not defined in FRACLK',255)
@@ -215,8 +228,13 @@ C****
       REAL*8, INTENT(IN) :: SUPSAT
 !@var ALPH equilibrium fractionation
       REAL*8, INTENT(IN) :: ALPH
+      INTEGER, PARAMETER :: NTSPM=5
 !@var ZDIFREL = inverse ratio of diffusion coeffs w.r.t normal water
-      real*8 :: ZDIFREL(4) = (/ 1d0 ,1.0285d0, 1.0251d0, 1.0331d0/)
+      real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0285d0, 1.0251d0, 1.0331d0,
+     *     1.014663d0/)
+C**** alternative from Cappa et al (2003)
+c     real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0319d0, 1.0164d0, 1.0319d0,
+c    *     1.016399d0/)
       integer itr
       real*8 kin_cond_ice
 C****
@@ -231,6 +249,8 @@ C****
         ITR=3
       case ('HTO')
         ITR=4
+      case ('H2O17')
+        ITR=5
       case default
         write(6,*) "Tracer name ",trname," not defined in KIN_COND"
         call stop_model('Tracer name not defined in KIN_COND',255)
@@ -251,8 +271,13 @@ C****
       REAL*8, INTENT(IN) :: HEFF
 !@var alph equilibrium fractionation 
       REAL*8, INTENT(IN) :: ALPH
+      INTEGER, PARAMETER :: NTSPM=5
 !@var ZDIFRELGAM = ZDIFREL^0.58 
-      real*8 :: ZDIFRELGAM(4) = (/ 1d0, 1.0164d0, 1.0145d0, 1.0191d0/)
+      real*8 :: ZDIFRELGAM(NTSPM) = (/ 1d0, 1.0164d0, 1.0145d0, 1.0191d0
+     *     ,1.008479d0 /)
+C**** alternative from Cappa et al (2003)
+c     real*8 :: ZDIFRELGAM(NTSPM) = (/ 1d0, 1.0184d0, 1.0095d0, 1.0184d0,
+c    *     1.009478d0 /)
       integer itr
       real*8 kin_evap_prec
 C****
@@ -267,6 +292,8 @@ C****
         ITR=3
       case ('HTO')
         ITR=4
+      case ('H2O17')
+        ITR=5
       case default
         write(6,*) "Tracer name ",trname," not defined in KIN_EVAP"
         call stop_model('Tracer name not defined in KIN_EVAP',255)

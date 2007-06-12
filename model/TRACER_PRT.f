@@ -16,17 +16,8 @@
       USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
-      USE TRDIAG_COM, only : taijln => taijln_loc
-      USE TRDIAG_COM, only : taijn  => taijn_loc
-      USE TRDIAG_COM, only : tajln  => tajln_loc
-
-!!!!  USE TRDIAG_COM, only : taijln
-!!!!  USE TRDIAG_COM, only : taijn
-!!!!  USE TRDIAG_COM, only : tajln
-      USE TRDIAG_COM, only : tij_mass
-      USE TRDIAG_COM, only : tij_conc
-      USE TRDIAG_COM, only : jlnt_conc
-      USE TRDIAG_COM, only : jlnt_mass
+      USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
+     *     tajln  => tajln_loc, tij_mass, tij_conc, jlnt_conc, jlnt_mass
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : jlnt_cldh2o
 #endif
@@ -465,51 +456,21 @@ C****
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
-      USE TRDIAG_COM, only : PDSIGJL
-      USE TRDIAG_COM, only : tajln
-      USE TRDIAG_COM, only : tajls
-      USE TRDIAG_COM, only : lname_jln
-      USE TRDIAG_COM, only : sname_jln
-      USE TRDIAG_COM, only : units_jln
-      USE TRDIAG_COM, only : scale_jln
-
-      USE TRDIAG_COM, only : lname_jls
-      USE TRDIAG_COM, only : sname_jls
-      USE TRDIAG_COM, only : units_jls
-      USE TRDIAG_COM, only : scale_jls
-
-      USE TRDIAG_COM, only : jls_power
-      USE TRDIAG_COM, only : jls_ltop
-
-      USE TRDIAG_COM, only :    ia_jls
-      USE TRDIAG_COM, only :   jwt_jls
-      USE TRDIAG_COM, only : jgrid_jls
-      USE TRDIAG_COM, only : jls_3Dsource
-
-      USE TRDIAG_COM, only : jlnt_conc
-      USE TRDIAG_COM, only : jlnt_mass
+      USE TRDIAG_COM, only : PDSIGJL, tajln, tajls, lname_jln, sname_jln
+     *     , units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
+     *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
+     *     jls_3Dsource, jlnt_conc, jlnt_mass, jlnt_nt_tot, jlnt_nt_mm,
+     *     jlnt_lscond,  jlnt_turb,  jlnt_vt_tot, jlnt_vt_mm, jlnt_mc,
+     *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : jlnt_cldh2o
 #endif
-      USE TRDIAG_COM, only : jlnt_nt_tot
-      USE TRDIAG_COM, only : jlnt_nt_mm
-      USE TRDIAG_COM, only : jlnt_lscond
-      USE TRDIAG_COM, only : jlnt_turb
-      USE TRDIAG_COM, only : jlnt_vt_tot
-      USE TRDIAG_COM, only : jlnt_vt_mm
-      USE TRDIAG_COM, only : jlnt_mc
-
-      USE TRDIAG_COM, only : jgrid_jlq
-      USE TRDIAG_COM, only :    ia_jlq
-      USE TRDIAG_COM, only : scale_jlq
-      USE TRDIAG_COM, only : jlq_power
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRDIAG_COM, only : to_per_mil
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRDIAG_COM, only : jls_H2Omr, jls_day
 #endif
-      USE TRDIAG_COM, only : ktajls
       USE BDJLT
       IMPLICIT NONE
 
@@ -520,7 +481,7 @@ C****
       REAL*8 :: scalet
       INTEGER :: J,L,N,K,jtpow,kw,n1,n2
       CHARACTER :: lname*80,sname*30,units*50
-      REAL*8 :: dD, d18O
+      REAL*8 :: dD, d18O, d17O
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.jlt'//XLABEL(1:LRUNID)
@@ -870,6 +831,56 @@ C**** Concentration in cloud water
      *       ,jgrid_jlq(k))
 
       end if
+
+C****
+C**** Calculations of 17O excess (D17O=ln(d17O+1)-0.529*ln(d18O+1))
+C**** Note: some of these definitions probably belong in JLt_TITLEX
+C****
+      if (n_H2O18.gt.0 .and. n_H2O17.gt.0) then
+        n1=n_H2O18
+        n2=n_H2O17
+        scalet = 1.
+        jtpow = 0.
+
+C**** Concentration in water vapour
+        k=jlnt_conc
+        do l=1,lm
+          do j=1,jm
+            if (tajln(j,l,k,n_water).gt.0) then
+              d18O=tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
+              d17O=tajln(j,l,k,n2)/(trw0(n2)*tajln(j,l,k,n_water))
+              a(j,l)=1d6*(log(d17O)-0.529d0*log(d18O))
+            else
+              a(j,l)=undef
+            end if
+          end do
+        end do
+        lname="D17O excess"
+        sname="D17O_excess"
+        units="per meg"
+        CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
+     *       ,jgrid_jlq(k))
+
+C**** Concentration in cloud water
+        k=jlnt_cldh2o
+        do l=1,lm
+          do j=1,jm
+            if (tajln(j,l,k,n_water).gt.0) then
+              d18O=tajln(j,l,k,n1)/(trw0(n1)*tajln(j,l,k,n_water))
+              d17O=tajln(j,l,k,n2)/(trw0(n2)*tajln(j,l,k,n_water))
+              a(j,l)=1d6*(log(d17O)-0.529d0*log(d18O))
+            else
+              a(j,l)=undef
+            end if
+          end do
+        end do
+        lname="D17O excess in cloud water"
+        sname="D17O_excess_cldh2o"
+        units="per meg"
+        CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
+     *       ,jgrid_jlq(k))
+
+      end if
 #endif
 
       if (qdiag) call close_jl
@@ -1050,52 +1061,29 @@ C****
 !@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
-
+      USE CONSTANT, only : undef
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
 
-      USE TRDIAG_COM, only : taijln
-      USE TRDIAG_COM, only : taijn
-      USE TRDIAG_COM, only : taijs
+      USE TRDIAG_COM, only : taijln, taijn, taijs, sname_ijt, lname_ijt,
+     *     units_ijt, ir_ijt, ia_ijt, scale_ijt, sname_tij, lname_tij,
+     *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
+     *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, ijts_index
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+     &     ,to_per_mil
+#endif
 
-      USE TRDIAG_COM, only : sname_ijt
-      USE TRDIAG_COM, only : lname_ijt
-      USE TRDIAG_COM, only : units_ijt
-      USE TRDIAG_COM, only : ir_ijt
-      USE TRDIAG_COM, only : ia_ijt
-      USE TRDIAG_COM, only : scale_ijt
-
-      USE TRDIAG_COM, only : sname_tij
-      USE TRDIAG_COM, only : lname_tij
-      USE TRDIAG_COM, only : units_tij
-      USE TRDIAG_COM, only : scale_tij
-
-      USE TRDIAG_COM, only : tij_mass
 #ifdef TRACERS_DRYDEP
-      USE TRDIAG_COM, only : tij_drydep
-      USE TRDIAG_COM, only : tij_gsdep
+      USE TRDIAG_COM, only : tij_drydep, tij_gsdep
 #endif
 #ifdef TRACERS_COSMO
       USE TRDIAG_COM, only : tij_surf
 #endif
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : tij_prec
-      USE TRDIAG_COM, only : tij_grnd
+      USE TRDIAG_COM, only : tij_prec, tij_grnd
 #endif
-
-      USE TRDIAG_COM, only : lname_ijts
-      USE TRDIAG_COM, only : sname_ijts
-      USE TRDIAG_COM, only : units_ijts
-      USE TRDIAG_COM, only : scale_ijts
-      USE TRDIAG_COM, only : ia_ijts
-
-      USE TRDIAG_COM, only : ktaij, ktaijs, ijts_index
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-     &     ,to_per_mil
-#endif
-
       USE DIAG_SERIAL, only : MAPTXT
       IMPLICIT NONE
 
@@ -1142,8 +1130,6 @@ C**** Fill in the undefined pole box duplicates
         taijs (i,1,:) = taijs(1,1,:)
         taijs (i,jm,:) = taijs(1,jm,:)
       end do
-c      print *, 'In DIAGIjt: taijs(1,1,10)=',taijs(1,1,10)
-c      print *, 'In DIAGIjt: taijs(2,1,10)=',taijs(2,1,10)
 
 C**** Fill in maplet indices for tracer concentrations
       k = 0
@@ -1349,6 +1335,89 @@ C**** water vapour
      *         8.*taijln(:,:,l,n1)/trw0(n1)+
      *         7.*taijln(:,:,l,n_water))
           aij2(:,:,k) = taijln(:,:,l,n_water)
+          scale(k) = 1.
+        end do
+      end if
+
+C****
+C**** Calculations of D17O excess (D17O=ln(d17O+1)-0.529*ln(d18O+1))
+C****
+      if (n_H2O18.gt.0 .and. n_H2O17.gt.0) then
+        n1=n_H2O18
+        n2=n_H2O17
+C**** precipitation
+        k=k+1
+        ijtype(k) = 3
+        name(k) = "prec_ij_D17O"
+        lname(k) = "D17O excess in precip"
+        units(k) = "per meg"
+        irange(k) = ir_m45_130
+        iacc(k) = ia_src
+        iord(k) = 1
+        do j=1,jm
+          do i=1,im
+            if (taijn(i,j,tij_prec,n_water).gt.0) then
+              aij1(i,j,k) = 1d6*taijn(i,j,tij_prec,n_water)*
+     *             (log(taijn(i,j,tij_prec,n2)/trw0(n2))-
+     *             0.529d0*log(taijn(i,j,tij_prec,n1)/trw0(n1))-
+     *             0.471d0*log(taijn(i,j,tij_prec,n_water)))
+              aij2(i,j,k) = taijn(i,j,tij_prec,n_water)
+            else
+              aij1(i,j,k)=undef
+              aij2(i,j,k)=0.
+            end if
+          end do
+        end do
+        scale(k) = 1.
+C**** ground concentration
+        k=k+1
+        ijtype(k) = 3
+        name(k) = "grnd_ij_D17O"
+        lname(k) = "D17O excess at Ground"
+        units(k) = "per meg"
+        irange(k) = ir_m45_130
+        iacc(k) = ia_src
+        iord(k) = 2
+        do j=1,jm
+          do i=1,im
+            if (taijn(i,j,tij_grnd,n_water).gt.0) then
+              aij1(i,j,k) = 1d6*taijn(i,j,tij_grnd,n_water)*
+     *             (log(taijn(i,j,tij_grnd,n2)/trw0(n2))-
+     *             0.529d0*log(taijn(i,j,tij_grnd,n1)/trw0(n1))-
+     *             0.471d0*log(taijn(i,j,tij_grnd,n_water)))
+              aij2(i,j,k) = taijn(i,j,tij_grnd,n_water)
+            else
+              aij1(i,j,k)=undef
+              aij2(i,j,k)=0.
+            end if
+          end do
+        end do
+        scale(k) = 1.
+C**** water vapour
+        do l=1,lm
+          k=k+1
+          ijtype(k) = 3
+          lname(k) = "D17O excess water vapour Level"
+          write(lname(k)(32:34),'(I3)') l
+          name(k) = "wvap_ij_D17O"//adjustl(lname(k)(32:34))
+          units(k) = "per meg"
+          irange(k) = ir_m45_130
+          iacc(k) = ia_src
+          iord(k) = l+2
+          do j=1,jm
+            do i=1,im
+              if (taijln(i,j,l,n_water).gt.0) then
+                aij1(i,j,k) = 1d6*taijln(i,j,l,n_water)*
+     *               (log(taijln(i,j,l,n2)/trw0(n2))-
+     *               0.529d0*log(taijln(i,j,l,n1)/trw0(n1))-
+     *               0.471d0*log(taijln(i,j,l,n_water)))
+                aij2(i,j,k) = taijln(i,j,l,n_water)
+              else
+                aij1(i,j,k)=undef
+                aij2(i,j,k)=0.
+              end if
+            end do
+          end do             
           scale(k) = 1.
         end do
       end if

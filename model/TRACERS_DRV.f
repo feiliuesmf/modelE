@@ -414,6 +414,23 @@ C**** Get solar variability coefficient from namelist if it exits
 #ifdef TRACERS_OCEAN
           trglac(n) = 0.
 #endif
+
+      case ('H2O17')
+      n_H2O17 = n
+          ntm_power(n) = -7
+          tr_mm(n) = 19.
+          needtrs(n) = .true.
+          tr_wd_TYPE(n) = nWater
+          trw0(n) = 4.020d-5   ! SMOW mass ratio of water molecules
+          trli0(n) = 0.98937d0*trw0(n)  ! d=-10.63 D17O=0
+          trsi0(n) = fracls(trname(n))*trw0(n)
+          tr_H2ObyCH4(n) = trw0(n)*1.011596d0 ! d=+11.596 (some frac from O2)
+          ntrocn(n) = -3
+#ifdef TRACERS_OCEAN
+          trglac(n) = trw0(n)*0.98937d0   ! d=-10.63 D17O=
+#endif
+
+
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox')
@@ -2377,7 +2394,7 @@ C****
 
 #ifdef TRACERS_WATER
 C**** generic ones for many water tracers
-      case ('Water', 'H2O18', 'HDO', 'HTO')
+      case ('Water', 'H2O18', 'HDO', 'HTO', 'H2O17' )
        k = k + 1
         jls_source(1,n)=k
         sname_jls(k) = 'Evap_'//trname(n)
@@ -4525,7 +4542,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 #ifdef TRACERS_WATER
         case ('Water')
           ! nothing I can think of....
-        case ('H2O18')
+        case ('H2O18', 'H2O17' )
         case ('HDO')
         case ('HTO')
 #endif
@@ -8057,27 +8074,7 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('Water')
-      itcon_mc(n) = 13
-      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 14
-      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-
-      case ('H2O18')
-      itcon_mc(n) = 13
-      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 14
-      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-
-      case ('HDO')
+      case ('Water','H2O18', 'HDO', 'H2O17' )
       itcon_mc(n) = 13
       qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
@@ -9452,7 +9449,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
 #endif
 
 #ifdef TRACERS_WATER
-      case ('Water', 'H2O18', 'HDO', 'HTO')
+      case ('Water', 'H2O18', 'HDO', 'HTO', 'H2O17')
 
 C**** initial atmospheric conc. needs to be defined for each tracer
         select case (trname(n))
@@ -9464,6 +9461,9 @@ C**** for gradients defined on water mass (should be an option?)
 c     tmominit = 0.
         case ('H2O18')        ! d18O=-80
           trinit=0.92d0*trw0(n)
+          tmominit = trinit
+        case ('H2O17')        ! d18O=-43.15  (D17O=0)
+          trinit=.95685d0*trw0(n)
           tmominit = trinit
         case ('HDO')   ! dD=-630
           trinit=0.37d0*trw0(n)
@@ -9557,7 +9557,7 @@ c**** earth
               !trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
               gtracer (n,4,i,j)=trw0(n)
             else
-              tr_w_ij  (n,:,1:2,i,j)=0.
+              tr_w_ij  (n,:,:,i,j)=0.
               tr_wsn_ij(n,:,:,i,j)=0.
               !trsnowbv(n,1,i,j)=0.
               !trsnowbv(n,2,i,j)=0.

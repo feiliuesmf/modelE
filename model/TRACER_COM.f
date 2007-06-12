@@ -20,9 +20,9 @@ C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
 #ifdef TRACERS_SPECIAL_O18
-      integer, parameter :: ntm=3
+      integer, parameter :: ntm=4
       character*8, parameter :: trname(ntm)=(/
-     *     'Water   ','H2O18   ','HDO     '/)  !,'HTO     '/)
+     *     'Water   ','H2O18   ','HDO     ', 'H2O17   '/)  !,'HTO     '/)
 #else     
 #ifdef TRACERS_GASEXCH_Natassa
 #ifdef TRACERS_GASEXCH_CFC_Natassa
@@ -328,13 +328,14 @@ CCC   integer, parameter :: ntm=28,ntm_chem=25
      &                          'GLT     '/)
 CCC  &    'Be7     ','Be10    ','GLT     '/)
 #else
-      integer, parameter :: ntm=25,ntm_chem=25
+      integer, parameter :: ntm=26,ntm_chem=25
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
      *    'HNO3    ','H2O2    ','CH3OOH  ','HCHO    ','HO2NO2  ',
      *    'CO      ','CH4     ','PAN     ','Isoprene','AlkylNit',
      *    'Alkenes ','Paraffin','HCl     ','HOCl    ','ClONO2  ',
-     *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     '/)
+     *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
+     *    'Water   '/)
 #endif
 #endif
 #else
@@ -840,7 +841,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_CFC11=0,  n_14CO2=0, n_CH4=0,   n_O3=0,       n_water=0,
      *     n_H2O18=0,  n_HDO=0,   n_HTO=0,   n_Ox=0,       n_NOx=0, 
      *     n_N2O5=0,   n_HNO3=0,  n_H2O2=0,  n_CH3OOH=0,   n_HCHO=0,
-     *     n_HO2NO2=0, n_CO=0,    n_PAN=0,
+     *     n_HO2NO2=0, n_CO=0,    n_PAN=0,   n_H2O17=0,
      *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
