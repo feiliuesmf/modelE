@@ -1214,7 +1214,7 @@ C
       USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop,psf,sig
       USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
       USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, closeunits
+      USE FILEMANAGER, only: openunit,closeunit
       USE FLUXES, only: tr3Dsource
       USE GEOM, only: dxyp
       USE TRACER_COM, only: itime_tr0,trname,n_NOx,nAircraft
@@ -1318,7 +1318,7 @@ C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
       USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
-      USE FILEMANAGER, only: openunit,closeunit, closeunits
+      USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
 C
       IMPLICIT NONE

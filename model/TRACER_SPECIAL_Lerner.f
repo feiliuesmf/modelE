@@ -827,7 +827,7 @@ C**** Monthly sources are interpolated each day
       USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth0,flake0
       USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE FILEMANAGER, only: openunit,closeunit
       USE FILEMANAGER, only: nameunit
       USE CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
       implicit none
@@ -844,13 +844,12 @@ C**** Monthly sources are interpolated each day
       character*12 :: ann_files(nanns-3) =
      *  (/'CH4_ANIMALS ','CH4_COALMINE','CH4_GASLEAK ','CH4_GASVENT ',
      *    'CH4_CITYDUMP','CH4_SOIL_ABS','CH4_TERMITES','CH4_COALBURN'/)
-      logical :: ann_bins(nanns-3)=(/.true.,.true.,.true.,.true.,
-     *        .true.,.true.,.true.,.true./)
+      logical :: ann_bins=.true.
       character*8 :: mon_files(nmons) =
      *   (/'CH4_BURN','CH4_RICE','CH4_WETL'/)
       real*8 adj_wet(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       integer :: kwet=14         !!! position of wetlands array in src
-      logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
+      logical :: mon_bins=.true.
 
 c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
       real*8, allocatable :: tlca(:,:,:), tlcb(:,:,:)   ! for monthly sources
@@ -886,14 +885,15 @@ C****
          CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
          Allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
         k = 0
-        call openunits(ann_files,ann_units,ann_bins,nanns-3)
-        do iu = ann_units(1),ann_units(nanns-3)
+        call openunit(ann_files,ann_units,ann_bins)
+        do iu = 1,nanns-3
           k = k+1
-          call readt_parallel (grid,iu,nameunit(iu),0,src(:,:,k),1)
+          call readt_parallel (grid,
+     &         ann_units(iu),nameunit(ann_units(iu)),0,src(:,:,k),1)
 !ref      call readt          (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
         end do
-        call closeunits(ann_units,nanns-3)
+        call closeunit(ann_units)
         ! 3 miscellaneous sources
           k = k+1
           src(:,:,k) = focean(:,:)*adj(k)/(sday*JDperY)
@@ -902,7 +902,7 @@ C****
           k = k+1
           src(:,:,k) = fearth0(:,:)*adj(k)/(sday*JDperY)
 
-      call openunits(mon_files,mon_units,mon_bins,nmons)
+      call openunit(mon_files,mon_units,mon_bins)
       endif
 C****
 C**** Monthly sources are interpolated to the current day
@@ -952,7 +952,7 @@ C**** Monthly sources are interpolated each day
       USE DOMAIN_DECOMP, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname
       USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      USE FILEMANAGER, only: openunit,closeunit
       USE FILEMANAGER, only: nameunit
       implicit none
       character*80 title
@@ -964,9 +964,9 @@ C**** Monthly sources are interpolated each day
       integer ann_units(nanns),mon_units(nmons)
       character*12 :: ann_files(nanns) =
      *  (/'CO2_FOS_FUEL','CO2_FERT    ','CO2_REGROWTH','CO2_LAND_USE'/)
-      logical :: ann_bins(nanns)=(/.true.,.true.,.true.,.true./)
+      logical :: ann_bins=.true.
       character*9 :: mon_files(nmons) = (/'CO2_VEG  ','CO2_OCEAN'/)
-      logical :: mon_bins(nmons)=(/.true.,.true./)
+      logical :: mon_bins=.true.
 
 c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
       real*8, Allocatable, DIMENSION(:,:,:) :: tlca, tlcb ! for monthly sources
@@ -989,17 +989,18 @@ C****
       if (ifirst) then
         Allocate(tlca(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons),
      &           tlcb(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
-        call openunits(ann_files,ann_units,ann_bins,nanns)
+        call openunit(ann_files,ann_units,ann_bins)
         k = 0
-        do iu = ann_units(1),ann_units(nanns)
+        do iu = 1,nanns
           k = k+1
-          call readt_parallel (grid,iu,nameunit(iu),0,src(:,:,k),1)
+          call readt_parallel (grid,
+     &         ann_units(iu),nameunit(ann_units(iu)),0,src(:,:,k),1)
 !ref      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)/(sday*JDperY)
         end do
-        call closeunits(ann_units,nanns)
+        call closeunit(ann_units)
 
-      call openunits(mon_files,mon_units,mon_bins,nmons)
+      call openunit(mon_files,mon_units,mon_bins)
       endif
 C****
 C**** Monthly sources are interpolated to the current day

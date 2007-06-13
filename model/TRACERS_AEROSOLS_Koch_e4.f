@@ -396,7 +396,7 @@ c    * ,DTsrc,ls1,jmon,t,lm
      * ,AM_I_ROOT
       USE GEOM, only: BYDXYP
       USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits,
+      USE FILEMANAGER, only: openunit,closeunit,
      * nameunit
       USE TRACER_COM, only: itime_tr0,trname
       USE AEROSOL_SOURCES, only: src=>SO2_src,nsrc=>nso2src
@@ -410,11 +410,10 @@ c    *  ,SO2_biosrc_3D
       character*12 :: ann_files(nanns) =
      * (/'SO2_FFNB_E95','SO2_INNB_E95','SO2_WHNB_E95',
      *  'SO2_BFNB_E95'/)
-      logical :: ann_bins(nanns)=(/.true.,.true.,
-     *   .true.,.true./) ! binary file?
+      logical :: ann_bins=.true.
       character*12 :: mon_files(nmons) =
      * (/'SO2_AGNB_E95','SO2_BBNB_E95'/)
-      logical :: mon_bins(nmons)=(/.true.,.true./)
+      logical :: mon_bins=.true.
       real*8, allocatable, dimension(:,:,:) :: tlca,tlcb  ! for monthly sources
       real*8 frac,bySperHr
       integer :: imon(nmons)
@@ -452,19 +451,20 @@ C****
        Allocate(tlca(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons),
      &           tlcb(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
 c      allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-        call openunits(ann_files,ann_units,ann_bins,nanns)
+        call openunit(ann_files,ann_units,ann_bins)
         k = 0
-        do iu = ann_units(1),ann_units(nanns)
+        do iu = 1,nanns
           k = k+1
 c         call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          call readt_parallel (grid,iu,nameunit(iu),0,src(:,:,k),1)
+          call readt_parallel (grid,
+     &         ann_units(iu),nameunit(ann_units(iu)),0,src(:,:,k),1)
           do j=j_0,j_1
             src(:,j,k) = src(:,j,k)*bydxyp(j)*bySperHr
           end do
         end do
-        call closeunits(ann_units,nanns)
+        call closeunit(ann_units)
        
-        call openunits(mon_files,mon_units,mon_bins,nmons)
+        call openunit(mon_files,mon_units,mon_bins)
       endif
 C****
 C**** Monthly sources are interpolated to the current day

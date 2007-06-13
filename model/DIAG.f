@@ -2998,7 +2998,7 @@ C****
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,lm,itime
-      USE FILEMANAGER, only : openunit, closeunits, nameunit
+      USE FILEMANAGER, only : openunit, closeunit, nameunit
       USE DIAG_COM, only : kgz_max,pmname,P_acc
       USE PARAM
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
@@ -3174,7 +3174,7 @@ C****
 
       if (nsubdd.ne.0) then
 C**** close and re-open units
-        call closeunits ( iu_SUBDD, kddunit )
+        call closeunit ( iu_SUBDD(1:kddunit) )
         call open_subdd( aDATE )
       end if
 C****

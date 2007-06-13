@@ -111,7 +111,17 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
       private
 
       public openunit, closeunit, print_open_units,findunit
-      public openunits, closeunits, nameunit
+      public nameunit
+
+      interface openunit
+        module procedure openunit_0d
+        module procedure openunit_1d
+      end interface openunit
+
+      interface closeunit
+        module procedure closeunit_0d
+        module procedure closeunit_1d
+      end interface closeunit
 
 !@param MINUNIT, MAXUNIT - min and max unit number allowed
       integer, parameter :: MINUNIT = 50, MAXUNIT = 128
@@ -158,7 +168,7 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
       end subroutine findunit
 
 
-      subroutine openunit( filename, iunit, qbin, qold )
+      subroutine openunit_0d( filename, iunit, qbin, qold )
 !@sum openunit opens the file <filename> and returns its unit in <unit>
       implicit none
 !@var unit - unit of opened file
@@ -208,9 +218,9 @@ C**** parse options
 
  10   write(6,*) "FILEMANAGER: Error opening file ",trim(filename)
       call stop_model('FILEMANAGER: FILE OPENING ERROR',255)
-      end subroutine openunit
+      end subroutine openunit_0d
 
-      subroutine closeunit( unit )
+      subroutine closeunit_0d( unit )
 !@sum closeunit closes the file the file corresponding to unit <unit>
       implicit none
 !@var unit - unit of the file to close
@@ -225,7 +235,42 @@ C**** parse options
       close( unit )
       Units(unit)%in_use = .false.
       Units(unit)%filename = " "
-      end subroutine closeunit
+      end subroutine closeunit_0d
+
+
+      subroutine openunit_1d( filename, iunit, qbin, qold )
+!@sum  openunit_1d sets unit number for requested files and opens them
+!@auth Gavin Schmidt, simplified by I. Aleinov
+!@ver  1.0
+!@var unit - unit of opened file
+      integer, intent(out), dimension(:) :: iunit
+!@var filename - name of the file to open
+      character*(*), intent(in), dimension(:) :: filename
+!@var qbin - .true. if file is binary (.false. by default)
+!@var qold - .true. if file is old (.false. by default)
+      logical, optional, intent(in) :: qbin, qold
+      integer i !@var i loop variable
+
+      do i=1,size(filename)
+        call openunit( filename(i), iunit(i), qbin, qold )
+      end do
+      end subroutine openunit_1d
+
+
+      subroutine closeunit_1d( iunit )
+!@sum  closeunit_1d closes files corresponding to units iunit
+!@auth Gavin Schmidt, I. Aleinov
+!@ver  1.0
+      implicit none
+!@var iunit unit numbers for files in current request
+      integer, intent(in), dimension(:) :: iunit
+!@var nreq number of file unit numbers
+      integer i
+
+      do i=1,size(iunit)
+        call closeunit( iunit(i) )
+      end do
+      end subroutine closeunit_1d
 
 
       subroutine print_open_units
@@ -240,44 +285,6 @@ C**** parse options
         endif
       enddo
       end subroutine print_open_units
-
-
-      SUBROUTINE OPENUNITS(FILENM,IUNIT,QBIN,NREQ)
-!@sum  OPENUNITS sets unit number for requested files and opens them
-!@auth Gavin Schmidt, simplified by I. Aleinov
-!@ver  1.0
-      IMPLICIT NONE
-!@var IUNIT unit numbers for files in current request
-      INTEGER, INTENT(OUT), DIMENSION(*) :: IUNIT
-!@var FILENM name of file to open
-      CHARACTER*(*), INTENT(IN), DIMENSION(*) :: FILENM
-!@var QBIN true if binary file is to be opened (UNFORMATTED)
-      LOGICAL, INTENT(IN), DIMENSION(*) :: QBIN
-!@var NREQ number of file unit numbers requested
-      INTEGER, INTENT(IN) :: NREQ
-      INTEGER I !@var I loop variable
-
-      DO I=1,NREQ
-        call openunit( FILENM(I), IUNIT(I), QBIN(I) )
-      END DO
-      END SUBROUTINE OPENUNITS
-
-
-      SUBROUTINE CLOSEUNITS( IUNIT, NREQ)
-!@sum  CLOSEUNITS closes files corresponding to units IUNIT
-!@auth Gavin Schmidt, I. Aleinov
-!@ver  1.0
-      IMPLICIT NONE
-!@var IUNIT unit numbers for files in current request
-      INTEGER, INTENT(IN), DIMENSION(*) :: IUNIT
-!@var NREQ number of file unit numbers
-      INTEGER, INTENT(IN) :: NREQ
-      INTEGER I
-
-      DO I=1,NREQ
-        call closeunit( IUNIT(I) )
-      END DO
-      END SUBROUTINE CLOSEUNITS
 
       END MODULE FILEMANAGER
 
