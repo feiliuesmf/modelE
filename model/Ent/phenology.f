@@ -283,24 +283,20 @@
      &       cop%C_hw * cop%n
      &       *(1.d0-exp(-annK(pft,WOOD)*SDAY)) !* expr is kdt; x tune factor
 
-!        Closs(CARBON,LEAF) = 
-!     &       cop%C_fol * cop%n * 
-!     &       (annK(pft,LEAF)+(1.d0-cop%stressH2O)/SDAY)*SDAY !dtsec, Changed to daily time step - NYK !* x tune factor
-!        Closs(CARBON,FROOT) = 
-!       &       cop%C_froot * cop%n * annK(pft,FROOT)*SDAY !dtsec, Changed to daily time step - NYK
-!        Closs(CARBON,WOOD) = 
-!     &       (cop%C_hw + cop%C_croot) * cop%n  !Added coarse root litter
-!     &       *(1.d0-exp(-annK(pft,WOOD)*SDAY)) !dtsec)), Changed to daily time step -NYK !* expr is kdt; x tune factor
 
+!*   PUSHKER - COMMENT OUT THE ABOVE LINES AND UNCOMMENT THESE LINES FOR NEW
+!*             LITTER FLUX - NANCY
 !*   Later will replace above with senescefrac factors, which can be calculated by
 !*   either prescribed or prognostic phenology: ****** NYK!
 !        Closs(CARBON,LEAF) = 
-!     &       cop%C_fol * cop%n * cop%senescefrac !* x tune factor
+!     &       cop%C_fol * cop%n *
+!     &       (annK(pft,LEAF)*SDAY +cop%senescefrac) !* x tune factor
 !        Closs(CARBON,FROOT) = 
-!     &       cop%C_froot * cop%n * cop%senescefrac !* x tune factor
+!     &       cop%C_froot * cop%n * 
+!     &       (annK(pft,FROOT)*SDAY + cop%senescefrac) !* x tune factor
 !        Closs(CARBON,WOOD) = 
 !     &       (cop%C_hw + cop%C_croot) * cop%n
-!     &       *(1.d0-exp(-annK(pft,WOOD)*dtsec)) !* expr is kdt; x tune factor
+!     &       *(1.d0-exp(-annK(pft,WOOD)*SDAY)) !* expr is kdt; x tune factor
 
 
 !        write(98,*) 'In litter: ',dtsec

@@ -204,7 +204,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           !* Calculate senescence factor for next time step litterfall routine.
           lai_next = prescr_calc_lai(cop%pft+COVEROFFSET, jday+1, hemi)
           if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
-            cop%senescefrac = min(0.d0,(cop%LAI-lai_next)/cop%LAI)
+            cop%senescefrac = max(0.d0,(cop%LAI-lai_next)/cop%LAI)
           else
             cop%senescefrac = 0.d0
           endif

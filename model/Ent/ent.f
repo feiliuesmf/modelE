@@ -212,7 +212,8 @@
      &         pp%cellptr%coszen,
      &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:), 
      &         pp%GPP,pp%R_auto,pp%Soil_resp,
-     &         pp%NPP,pp%CO2flux,pp%GCANOPY, pp%tallest%C_lab
+     &         pp%NPP,pp%CO2flux,pp%GCANOPY, pp%tallest%C_lab,
+     &         pp%tallest%senescefrac
 
           !* Nancy's diagnostics *!
           write(996,*) pp%tallest%pft, pp%lai, pp%Tpool(CARBON,:),

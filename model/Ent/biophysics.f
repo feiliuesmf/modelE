@@ -356,6 +356,7 @@
         C_labsum = C_labsum + cop%C_lab * cop%n !Sum for cohort.
 
         cop => cop%shorter
+
       end do
 
       !* Patch-level OUTPUTS *!
