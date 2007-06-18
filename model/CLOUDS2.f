@@ -1728,7 +1728,7 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
           TMDN(N)=TMDN(N)+TMDNL(L-1,N)
           TMOMDN(xymoms,N)=TMOMDN(xymoms,N)+TMOMDNL(xymoms,L-1,N)
         END DO
-#endif        
+#endif
       ENDIF
   346 CONTINUE
   345 DSM(LDMIN)=DSM(LDMIN)+SMDN
@@ -2562,8 +2562,11 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
         RANDNO=RNDSSL(1,L)       !  RANDNO=RANDU(XY)
         IF(RANDNO.LT.FUNI) LHX=LHS
 
+        IF (OLDLHX.EQ.LHS.AND.TL(L).LT.TF) LHX=LHS   ! keep old phase
+        IF (OLDLHX.EQ.LHE) LHX=LHE                   ! keep old phase
 C**** special case 1) if ice previously then stay as ice (if T<Tf)
-        IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
+C       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
+        IF(OLDLAT.EQ.LHS.AND.TL(L).LT.TF) THEN
           IF(LHX.EQ.LHE) BANDF=.TRUE.
           LHX=LHS
         ENDIF
