@@ -2,7 +2,7 @@
       USE TRACER_COM
       USE AEROSOL_SOURCES, only: NH3_src_nat_con,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
-     & ,off_HNO3
+     & ,off_HNO3,off_SS
 
       USE MODEL_COM, only : im,jm,lm     ! dimensions
      $                     ,t            ! potential temperature (C)
@@ -19,17 +19,27 @@
       IMPLICIT NONE
 !    local variables
       REAL*8 :: yi(11),yo(35),yM,yS
-      INTEGER:: KLO,j,l,i,J_0, J_1
+      INTEGER:: KLO,j,l,i,J_0, J_1,n
 C**** functions
       REAL*8 :: QSAT
- 
+      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,8) ::
+     * offdust
+      LOGICAL, SAVE :: NO_SS = .TRUE.
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
 
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
+#ifndef TRACERS_DUST
+      CALL READDUST(offdust)
+#endif
 
+      do n=1,ntm
+      if (trname(n).eq.'seasalt1')    NO_SS=.FALSE.
+      enddo   
+
+      if (NO_SS) CALL READ_OFFSS(OFF_SS)
       yi(:) = 0.d0
       yo(:) = 0.d0
 
@@ -63,15 +73,25 @@ C**** functions
       yi(5) =yi(5)+ (trm(i,j,l,n_NO3p)*yM*(mair/TR_MM(n_NO3p))*
      *         BYDXYP(J)*BYAM(L,I,J) )      ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
 #else !off-line HNO3
-      yi(5) = off_HNO3(i,j,l)*yM    ! HNO3 (g)   [umol/m^3 air]
+      yi(5) = off_HNO3(i,j,l)*yM*(mair/63.018)    ! HNO3 (g)   [umol/m^3 air]
 #endif
+      
+      if (NO_SS) then
 ! estimated sea salt = NaCl
+      yi(6) = off_SS(i,j,l)*0.5 ! off_SS [kg/kg]
+     *         *yM*(mair/23.)*0.1 ! Na+ (ss  + xsod) (a)   [umol/m^3 air]
+
+      yi(7) = off_SS(i,j,l)*0.5
+     *         *yM*(mair/36.5)*0.1  ! HCl  (g) + Cl-   (p)   [umol/m^3 air]
+      else
       yi(6) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
      *         *yM*(mair/23.)*
      *         BYDXYP(J)*BYAM(L,I,J) *0.1 ! Na+ (ss  + xsod) (a)   [umol/m^3 air]
       yi(7) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
      *         *yM*(mair/36.5)*
      *         BYDXYP(J)*BYAM(L,I,J)*0.1  ! HCl  (g) + Cl-   (p)   [umol/m^3 air]
+      endif
+#ifdef  TRACERS_DUST
 ! estimated after Trochkine et al. 2003, dust = 10% Ca + 10% K + 20% Mg +[60% (Na, Al, Si, Fe)]
       yi(8) = (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
      *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.1
@@ -84,10 +104,16 @@ C**** functions
       yi(10)= (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
      *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.2
      *         *yM*(mair/24.3)*
-     *         BYDXYP(J)*BYAM(L,I,J)        ! Mg++ (p) from Dust     [umol/m^3 air]   
+     *         BYDXYP(J)*BYAM(L,I,J)        ! Mg++ (p) from Dust     [umol/m^3 air]  
+#else
+      yi(8) = (sum(offdust(i,j,l,:)))*0.1
+     *         *yM*(mair/39.1)        ! K+   (p) from Dust     [umol/m^3 air]
+      yi(9) = (sum(offdust(i,j,l,:)))*0.1 
+     *         *yM*(mair/40.)         ! Ca++ (p) from Dust     [umol/m^3 air]
+      yi(10)= (sum(offdust(i,j,l,:)))*0.2
+     *         *yM*(mair/24.3)        ! Mg++ (p) from Dust     [umol/m^3 air]    
+#endif
 
-c      print * , '1HNO3: ', yi(5), 'SO4:',yi(4)
-c      print * , '2HNO3: ', off_HNO3(i,j,l), 'SO4:',trm(i,j,l,n_SO4)
 
       klo=0
       call EQSAM(yi,yo,1,klo)
@@ -98,7 +124,6 @@ c      print * , '2HNO3: ', off_HNO3(i,j,l), 'SO4:',trm(i,j,l,n_SO4)
 ! SO4:      yo(11) yo(18) yo(21)
 ! Nitrate production
    
-
       tr3Dsource(i,j,l,1,n_NO3p)= ((yo(20)
      *        /(yM*(mair/TR_MM(n_NO3p))* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NO3p)) /dtsrc
@@ -121,9 +146,6 @@ c      endif
      *        /(yM*(mair/TR_MM(n_HNO3))* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_HNO3))/dtsrc
 #endif
-! Special Diagnostics
-     
-c      TAIJS(I,J,ijts_Nit(L,:))=TAIJS(I,J,ijts_Nit(L,:))+yo(:)
 
       ENDDO
       ENDDO

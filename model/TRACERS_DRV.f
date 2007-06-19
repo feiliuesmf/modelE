@@ -1439,8 +1439,9 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           ntsurfsrc(n) = 0
           tr_mm(n) = 98.
           tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
+          tr_DHD(n) =-2.62d4! in J/mole= -6.27 kcal/mol
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=1.d14
+          HSTAR(n)=1.d5
 #endif
           tr_wd_TYPE(n) = nGAS
       case ('M_NO3')
@@ -9864,14 +9865,14 @@ C         AM=kg/m2, and DXYP=m2:
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
      *    'M_OCS_OC','N_OCS_1 ','NH3','H2SO4')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-23
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14!23
           end do; end do; end do  
 
         case('M_AKK_SU','M_ACC_SU','M_DD1_DU',
      *    'M_SSA_SS','M_SSC_SS','M_BC1_BC','M_OCC_OC',
      *    'M_SSS_SS','M_SSS_SU')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-32
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14!32
           end do; end do; end do
 #endif
 
@@ -10278,7 +10279,7 @@ c Industrial
       read(iuc,*) ii,jj,carbstuff
       if (ii.eq.0.) exit
       if (jj<j_0 .or. jj>j_1) cycle
-      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      if (imPI.eq.1) carbstuff=carbstuff*0.2d0
       NH3_src_hum_cyc(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
       call closeunit(iuc)
@@ -10288,7 +10289,7 @@ c Industrial
       read(iuc,*) ii,jj,carbstuff
       if (ii.eq.0.) exit
       if (jj<j_0 .or. jj>j_1) cycle
-      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      if (imPI.eq.1) carbstuff=carbstuff*0.2d0
       NH3_src_hum_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
       call closeunit(iuc)
@@ -11166,7 +11167,6 @@ C**** aircraft source for fresh industrial BC
       call apply_tracer_3Dsource(2,n) ! aircraft
 #ifdef TRACERS_AMP_M4
 C**** biomass source for BC
-      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
       if (imAER.ne.1) then
       do j=J_0,J_1; do i=1,im
       blay=int(dclev(i,j)+0.5)
@@ -11393,9 +11393,12 @@ C**** Apply chemistry and overwrite changes:
       DO n=1,ntmAMP
         tr3Dsource(:,J_0:J_1,:,1,n)  = 0.d0! Aerosol Mirophysics
       ENDDO
+        tr3Dsource(:,J_0:J_1,:,1,n_H2SO4)  = 0.d0! Aerosol Mirophysics
+        tr3Dsource(:,J_0:J_1,:,1,n_NH3)  = 0.d0! Aerosol Mirophysics
 #ifdef  TRACERS_SPECIAL_Shindell
-        tr3Dsource(:,J_0:J_1,:,1,n_HNO3)  = 0.d0! Aerosol Mirophysics
+        tr3Dsource(:,J_0:J_1,:,3,n_HNO3)  = 0.d0! Aerosol Mirophysics
 #endif
+
        call MATRIX_DRV
 
       DO n=1,ntmAMP
@@ -11404,7 +11407,9 @@ C**** Apply chemistry and overwrite changes:
 
        call apply_tracer_3Dsource(1,n_NH3)  ! NH3 
        call apply_tracer_3Dsource(1,n_H2SO4) ! H2SO4 chem prod
-     
+#ifdef  TRACERS_SPECIAL_Shindell
+       call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod
+#endif
 #endif
       return
       END SUBROUTINE tracer_3Dsource

@@ -71,7 +71,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)       ::  NH3_src_nat_con,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
 
       END MODULE AEROSOL_SOURCES
 
@@ -99,7 +99,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * ohr,dho2r,perjr,
      * tno3r,oh,dho2,perj,tno3,ohsr
      * ,o3_offline
-     * ,craft,so2t_src,NH3_src_nat_con, off_HNO3,
+     * ,craft,so2t_src,NH3_src_nat_con, off_HNO3,off_SS,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
 
 
@@ -151,8 +151,9 @@ c Nitrate aerosols
       allocate(  NH3_src_nat_cyc(IM,J_0H:J_1H) )
       allocate(  NH3_src_hum_con(IM,J_0H:J_1H) )
       allocate(  NH3_src_hum_cyc(IM,J_0H:J_1H) )
-c off line HNO3
+c off line 
       allocate(  off_HNO3(IM,J_0H:J_1H,LM)     )
+      allocate(  off_SS(IM,J_0H:J_1H,LM)     )
 
       return
       end subroutine alloc_aerosol_sources      
@@ -310,7 +311,7 @@ c**** Interpolate two months of data to current day
       end subroutine read_mon3Dsources
 
       SUBROUTINE READ_OFFHNO3(OUT)
-      USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jmon
+      USE MODEL_COM, only : im,jm,lm,jdate,JDendOFM,jmon
       USE DOMAIN_DECOMP, only : grid,unpack_data,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -374,7 +375,7 @@ c -----------------------------------------------------------------
       endif
 
 C-----------------------------------------------------------------------
-      tau  = jday/30.
+      tau=(jdate-.5)/(JDendOFM(jmon)-JDendOFM(jmon-1))
          do l=1,lm
          OUT(:,:,l) = (1.-tau)*IN1(:,:,l)+tau*IN2(:,:,l)  
          enddo
@@ -383,6 +384,79 @@ c -----------------------------------------------------------------
       END SUBROUTINE READ_OFFHNO3
 c -----------------------------------------------------------------
 
+      SUBROUTINE READ_OFFSS(OUT)
+      USE MODEL_COM, only : im,jm,lm,jdate,jmon,JDendOFM
+      USE DOMAIN_DECOMP, only : grid,unpack_data,am_i_root
+      IMPLICIT NONE
+      include 'netcdf.inc'
+!@param  nlevnc vertical levels of off-line data  
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     &    intent(out) :: OUT
+      INTEGER, PARAMETER :: nlevnc =23
+      REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1_glob4, IN2_glob4
+      REAL*8, DIMENSION(IM,JM,nlevnc) :: IN1_glob, IN2_glob
+      REAL*8, DIMENSION(:,:,:), pointer, save :: IN1_ss, IN2_ss
+!@var netcdf integer
+      INTEGER :: ncid,id
+      INTEGER, save :: step_rea_ss=0, first_call_ss=1
+!@var time interpoltation
+      REAL*8 :: tau
+      integer start(4),count(4),status,l,i,j
+c -----------------------------------------------------------------
+c   Initialisation of the files to be read
+c ----------------------------------------------------------------     
+
+      if (first_call_ss==1) then
+        first_call_ss=0
+        allocate( IN1_ss(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
+        allocate( IN2_ss(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
+      endif
+      if (step_rea_ss.ne.jmon) then 
+        step_rea_ss = JMON
+        if ( am_i_root() ) then
+          print*,'READING SEAS OFFLINE ',jmon, step_rea_ss
+c -----------------------------------------------------------------
+c   Opening of the files to be read
+c -----------------------------------------------------------------
+          status=NF_OPEN('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
+          status=NF_INQ_VARID(ncid,'FELD',id)
+C------------------------------------------------------------------
+c -----------------------------------------------------------------
+c   read
+c -----------------------------------------------------------------
+          start(1)=1
+          start(2)=1
+          start(3)=1
+          start(4)=step_rea_ss
+
+          count(1)=im
+          count(2)=jm
+          count(3)=nlevnc
+          count(4)=1
+
+          status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_glob4)
+          start(4)=step_rea_ss+1
+          if (start(4).gt.12) start(4)=1
+          status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_glob4)
+
+          status=NF_CLOSE('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
+
+          IN1_glob = IN1_glob4
+          IN2_glob = IN2_glob4
+        endif ! am_i_root
+        call UNPACK_DATA(grid, IN1_glob, IN1_ss)
+        call UNPACK_DATA(grid, IN2_glob, IN2_ss)
+      endif
+
+C-----------------------------------------------------------------------
+      tau=(jdate-.5)/(JDendOFM(jmon)-JDendOFM(jmon-1))
+         do l=1,lm
+         OUT(:,:,l) = (1.-tau)*IN1_ss(:,:,l)+tau*IN2_ss(:,:,l)  
+         enddo
+c -----------------------------------------------------------------
+      RETURN
+      END SUBROUTINE READ_OFFSS
+c -----------------------------------------------------------------
 
 
       SUBROUTINE read_E95_SO2_source(nt,iact)

@@ -230,6 +230,14 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OCII    ','OCIA    ','OCB     ','NH3     ','NH4     ',
      *    'NO3p    ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
+      integer, parameter :: ntm=13,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'DMS     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','NH3     ','NH4     ',
+     *    'NO3p    '/)
+#else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch)
 !@var ntm_chem number of drew-only tracers
@@ -823,6 +831,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #endif
 #endif
 #endif
+#endif
 #ifdef regional_Ox_tracers
 !@var NregOx number of regional Ox tracers
       integer, parameter :: NregOx=6
@@ -1047,7 +1056,7 @@ C note, tr_evap_fact is not dimensioned as NTM:
 !@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)
       real*8, dimension(ntm) :: trglac
 #endif
-#ifdef TRACERS_HETCHEM
+#if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       integer, parameter :: rhet=3
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
      *                                         ,rxts4
