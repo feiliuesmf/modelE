@@ -482,6 +482,9 @@ Cred* end Reduced Arrays 2
       dtr_wt(j,:)=0.D0
 #endif
 #endif
+#ifdef TRACERS_AMP
+      AQsulfRATE(:,j,:) = 0.d0
+#endif
 #endif
       kmax = kmaxj(j)
 C****
@@ -1276,7 +1279,7 @@ C**** TRACERS: Use only the active ones
           end if
 #endif
 #ifdef TRACERS_AMP          
-           if (trname(n).eq."M_ACC_SU") then
+            if (trname(n).eq."M_ACC_SU") then
            AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
            endif
 #endif

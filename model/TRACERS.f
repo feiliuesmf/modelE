@@ -717,7 +717,8 @@ C**** Gravitational settling
             do l=lm,1,-1        ! loop down
 #ifdef TRACERS_AMP
       if (n.le.ntmAMP) then
-      if(AMP_MODES_MAP(n).gt.0) trradius(n)=DIAM(i,j,l,AMP_MODES_MAP(n))
+      if(AMP_MODES_MAP(n).gt.0) 
+     &      trradius(n)=DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
       endif 
 #endif         
               told(i,j,l)=trm(i,j,l,n)
