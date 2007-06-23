@@ -166,6 +166,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 
 
       subroutine prescr_phenology(jday,hemi, pp)
+      !* DAILY TIME STEP *!
       !* Calculate new LAI and albedo for given jday, for prescr vegetation. *!
       !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
       use ent_pfts
@@ -194,7 +195,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 
           call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
      &         cop%dbh, cop%n, cpool )
-!          cop%C_fol = cpool(FOL)
+          cop%C_fol = cpool(FOL)
           cop%C_sw = cpool(SW)
           cop%C_hw = cpool(HW)
 !          cop%C_lab = cpool(LABILE)
@@ -209,9 +210,9 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
             cop%senescefrac = 0.d0
           endif
 
-
           cop => cop%shorter
         end do
+        call litter(pp) !Daily time step
         pp%LAI = laipatch
 
         !* ALBEDO *!

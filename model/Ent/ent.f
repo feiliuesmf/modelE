@@ -102,7 +102,7 @@
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp) !Dummy
-        call litter(dtsec, pp)  !Update litter pools
+        call litter(pp)  !Update litter pools
         call soil_bgc(dtsec, pp)
         pp%age = pp%age + dtsec
         call summarize_patch(pp)
@@ -153,7 +153,7 @@
         call phenology_stats(dtsec,pp,dailyupdate)
         if (dailyupdate) then
            call phenology_update(pp)
-           call litter(dtsec, pp) 
+           call litter(pp) 
         end if
 !        call litter(dtsec, pp) !Moved to call after phenology_update on daily time step.
         call soil_bgc(dtsec, pp)
@@ -178,7 +178,7 @@
 
 
       !*********************************************************************
-      subroutine ent_biophysics(dtsec, ecp, config)
+      subroutine ent_biophysics(dtsec, ecp, config, dailyupdate)
 !@sum  Photosynthesis CO2 uptake.
 !@+    If do_soilresp, then also  soil respiration for net CO2 fluxes.
       use biophysics, only : photosynth_cond
@@ -190,10 +190,11 @@
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
       type(ent_config) :: config
-      integer :: patchnum
+      logical :: dailyupdate    !For prescribed phenology, litter
       !---Local--------
       type(patch),pointer :: pp
-
+      integer :: patchnum
+       
       patchnum = 0
       pp => ecp%oldest
       do while(ASSOCIATED(pp))
@@ -205,6 +206,9 @@
           !print*,'Calling soil_bgc'
           call soil_bgc(dtsec,pp)
           pp%CO2flux = -pp%NPP + pp%Soil_resp
+        ! litter is updated here since it is an integration over time
+        ! is do_soilresp flag ok or different flag is needed ?
+        ! if ( dailyupdate ) call litter(pp)
           
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
           write(995,*)  !Fluxes are positive up.
@@ -216,16 +220,13 @@
      &         pp%tallest%senescefrac
 
           !* Nancy's diagnostics *!
-          write(996,*) pp%tallest%pft, pp%lai, pp%Tpool(CARBON,:),
-     &         pp%GPP, pp%R_auto, pp%Soil_resp, pp%NPP, pp%CO2flux,
-     &         pp%GCANOPY
+!          write(996,*) pp%tallest%pft, pp%lai, pp%Tpool(CARBON,:),
+!     &         pp%GPP, pp%R_auto, pp%Soil_resp, pp%NPP, pp%CO2flux,
+!     &         pp%GCANOPY
           !*********************************************************!
         else 
           pp%CO2flux = UNDEF
         endif
-        ! litter is updated here since it is an integration over time
-        ! is do_soilresp flag ok or different flag is needed ?
-        if ( config%do_soilresp ) call litter(dtsec,pp)
         pp%age = pp%age + dtsec
         !call summarize_patch(pp)
 
