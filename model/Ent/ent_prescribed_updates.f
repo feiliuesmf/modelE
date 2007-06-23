@@ -172,6 +172,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       use ent_pfts
       use ent_prescr_veg, only : prescr_calc_lai,prescr_plant_cpools,
      &     prescr_veg_albedo
+      use phenology, only : litter
       implicit none
       integer,intent(in) :: jday !Day of year.
       integer,intent(in) :: hemi !@var hemi -1: S.hemisphere, 1: N.hemisphere
@@ -180,7 +181,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       type(cohort),pointer :: cop
       real*8 :: laipatch
       real*8 :: cpool(N_BPOOLS)
-      real*8 :: lai_next !Unfortunately, have to calculate LAI twice :( NYK
+      real*8 :: lai_old
 
       if (ASSOCIATED(pp)) then
 
@@ -189,6 +190,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         cpool(:) = 0.d0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
+          lai_old = cop%LAI
           cop%LAI = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
 
           laipatch = laipatch + cop%lai
@@ -203,9 +205,8 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           cop%C_croot = cpool(CR)
 
           !* Calculate senescence factor for next time step litterfall routine.
-          lai_next = prescr_calc_lai(cop%pft+COVEROFFSET, jday+1, hemi)
           if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
-            cop%senescefrac = max(0.d0,(cop%LAI-lai_next)/cop%LAI)
+            cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/cop%LAI)
           else
             cop%senescefrac = 0.d0
           endif

@@ -178,7 +178,7 @@
 
 
       !*********************************************************************
-      subroutine ent_biophysics(dtsec, ecp, config, dailyupdate)
+      subroutine ent_biophysics(dtsec, ecp, config)
 !@sum  Photosynthesis CO2 uptake.
 !@+    If do_soilresp, then also  soil respiration for net CO2 fluxes.
       use biophysics, only : photosynth_cond
@@ -190,7 +190,6 @@
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
       type(ent_config) :: config
-      logical :: dailyupdate    !For prescribed phenology, litter
       !---Local--------
       type(patch),pointer :: pp
       integer :: patchnum
@@ -206,9 +205,9 @@
           !print*,'Calling soil_bgc'
           call soil_bgc(dtsec,pp)
           pp%CO2flux = -pp%NPP + pp%Soil_resp
-        ! litter is updated here since it is an integration over time
+        ! Litter is updated daily in ent_prescribe_vegupdates.
         ! is do_soilresp flag ok or different flag is needed ?
-        ! if ( dailyupdate ) call litter(pp)
+        ! if ( dailyupdate ) call litter(pp) 
           
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
           write(995,*)  !Fluxes are positive up.

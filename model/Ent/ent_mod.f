@@ -193,7 +193,7 @@ cddd      end interface ent_cell_update
           if ( present(hemi) ) hemi_1 => hemi(i,j)
           
           call entcell_vegupdate(entcell(i,j)%entcell, hemi_1,
-     &         jday, do_giss_phenology,
+     &         jday, do_giss_phenology, 
      &         laidata_1, albedodata_1, cropsdata_1)
         enddo
       enddo
