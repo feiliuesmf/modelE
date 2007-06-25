@@ -41,7 +41,7 @@
          !Phenology parameter - KIM
          !* Parameter for phenology
          !phenotype - phenological types
-         !          - evergreen (1), cold deciduous (2), drougt deciduous (3), 
+         !          - evergreen (1), cold deciduous (2), drought deciduous (3), 
          !            both cold and drought deciduous (4)
          integer :: phenotype !phenological types
       end type pftype

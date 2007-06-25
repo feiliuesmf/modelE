@@ -204,6 +204,8 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 !          cop%C_froot = cpool(FR)
           cop%C_croot = cpool(CR)
 
+          cop%Ntot = cop%nm * cop%LAI  !This should eventually go into N allocation routine if dynamic nm.
+
           !* Calculate senescence factor for next time step litterfall routine.
           if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
             cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/cop%LAI)
