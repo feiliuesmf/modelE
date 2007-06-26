@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       SUBROUTINE EQSAM_DRV
       USE TRACER_COM
       USE AEROSOL_SOURCES, only: NH3_src_nat_con,
@@ -31,6 +32,7 @@ C**** functions
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
+
 #ifndef TRACERS_DUST
       CALL READDUST(offdust)
 #endif
@@ -73,7 +75,7 @@ C**** functions
       yi(5) =yi(5)+ (trm(i,j,l,n_NO3p)*yM*(mair/TR_MM(n_NO3p))*
      *         BYDXYP(J)*BYAM(L,I,J) )      ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
 #else !off-line HNO3
-      yi(5) = off_HNO3(i,j,l)*yM*(mair/63.018)    ! HNO3 (g)   [umol/m^3 air]
+      yi(5) = off_HNO3(i,j,l)*yM!*(mair/63.018)    ! HNO3 (g)   [umol/m^3 air]
 #endif
       
       if (NO_SS) then
