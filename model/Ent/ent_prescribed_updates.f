@@ -165,7 +165,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       end subroutine entcell_vegupdate
 
 
-      subroutine prescr_phenology(jday,hemi, pp)
+      subroutine prescr_phenology(jday,hemi, pp, )
       !* DAILY TIME STEP *!
       !* Calculate new LAI and albedo for given jday, for prescr vegetation. *!
       !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
@@ -208,7 +208,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 
           !* Calculate senescence factor for next time step litterfall routine.
           if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
-            cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/cop%LAI)
+            cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/lai_old)
           else
             cop%senescefrac = 0.d0
           endif
