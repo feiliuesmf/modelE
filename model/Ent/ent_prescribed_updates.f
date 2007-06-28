@@ -115,7 +115,7 @@ cddd          cop%C_croot = cpool(CR)
       integer,intent(in), optional :: jday
       integer, pointer, optional :: hemi
       logical, intent(in), optional :: do_giss_phenology
-      real*8,  pointer, optional :: laidata(:)
+      real*8,  pointer, optional :: laidata(:)  !Array of length N_PFT
       real*8,  pointer, optional :: albedodata(:,:)
       real*8,  pointer, optional :: cropsdata
       !----Local------
@@ -130,17 +130,26 @@ cddd          cop%C_croot = cpool(CR)
           pp => entcell%oldest
           do while (ASSOCIATED(pp))
           !* LAI, ALBEDO *!
-            call prescr_phenology(jday,hemi, pp)
+            if ( present(laidata) ) then
+              if (associated(laidata) ) then
+                call prescr_phenology(jday,hemi, pp, laidata)
+              else
+                call prescr_phenology(jday,hemi, pp)
+              endif
+            else
+              call prescr_phenology(jday,hemi, pp)
+            endif
             call summarize_patch(pp)
             pp => pp%younger
           end do
         endif
       endif
 
-      if ( present(laidata) ) then
-        if ( associated(laidata) )
-     &       call entcell_update_lai(entcell, laidata)
-      endif
+! * LAI update has been moved to prescr_phenology  - NYK    
+!      if ( present(laidata) ) then
+!        if ( associated(laidata) )
+!     &       call entcell_update_lai(entcell, laidata)
+!      endif
 
       if ( present(albedodata) ) then
         if ( associated(albedodata) )
@@ -165,7 +174,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       end subroutine entcell_vegupdate
 
 
-      subroutine prescr_phenology(jday,hemi, pp, )
+      subroutine prescr_phenology(jday,hemi,pp,laidata )
       !* DAILY TIME STEP *!
       !* Calculate new LAI and albedo for given jday, for prescr vegetation. *!
       !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
@@ -177,6 +186,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       integer,intent(in) :: jday !Day of year.
       integer,intent(in) :: hemi !@var hemi -1: S.hemisphere, 1: N.hemisphere
       type(patch),pointer :: pp
+      real*8,  pointer, optional :: laidata(:) !Array of length N_PFT
       !-------local-----
       type(cohort),pointer :: cop
       real*8 :: laipatch
@@ -191,7 +201,15 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         cop => pp%tallest
         do while (ASSOCIATED(cop))
           lai_old = cop%LAI
-          cop%LAI = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
+          if ( present(laidata) ) then  
+            if ( ASSOCIATED(laidata)) then !Externally prescribed LAI.
+              cop%LAI = laidata(cop%pft+COVEROFFSET)
+            else
+              call stop_model("ent_prescribed_updates: no laidata",255)
+            endif
+          else                  !Internally calculated prescribed LAI.
+            cop%LAI = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
+          endif
 
           laipatch = laipatch + cop%lai
 
