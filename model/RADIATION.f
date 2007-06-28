@@ -5071,8 +5071,8 @@ C**** Find top layer with absorbers: L=Ltop
       DNC(L)=0.D0
       TRC(L)=1.D0
   210 CONTINUE
-      UFLB(L1:NL,K)=BG                 ! no absorbers in whole column
-      TRUFLB(L1:NL)=TRUFLB(L1:NL)+BG
+      UFLB(L1:NL+1,K)=BG                 ! no absorbers in whole column
+      TRUFLB(L1:NL+1)=TRUFLB(L1:NL+1)+BG
       TOTLZF(1)=TOTLZF(1)+BG
       TOTLZF(2)=TOTLZF(2)+BG
       TOTLZF(3)=TOTLZF(3)+BG
