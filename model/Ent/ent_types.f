@@ -137,10 +137,10 @@
          real*8 :: gcanopy        ! Conductance of water vapor/cohort (m/s)
          real*8 :: GPP            ! GPP flux/cohort/area cover (kg-C/m2/s)
          real*8 :: NPP            ! NPP flux/cohort/area cover (kg-C/m2/s)
-         real*8 :: R_auto         ! Autotrophic respiration/cohort/area cover (kg-C/m2/s)
+         real*8 :: R_auto         ! Autotrophic respiration/cohort/area (kg-C/m2/s)
                                   ! = growth(Acan) + maint(fol,sapwood,root)
-         real*8 :: R_root         ! Root respiration/cohort/area cover (kg-C/m2/s) -PK 5/15/07
-         real*8 :: N_up           ! N uptake from soil/cohort/area cover (kg-N/m2/s)
+         real*8 :: R_root         ! Root respiration/cohort/area  (kg-C/m2/s) -PK 5/15/07
+         real*8 :: N_up           ! N uptake from soil/cohort/area (kg-N/m2/s)
 !         real*8 :: C_litter       ! C in litterfall
 !         real*8 :: N_litter       ! N in litterfall
          real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts

@@ -57,29 +57,31 @@
       !nf - canopy nitrogen factor (dimensionless)
       !* Parameters from CASA:
       !sla - specific leaf area (m2 leaf area/kg leaf C)(CASA)
+      !r - CASA respiration parameter (gC/gN)(CASA)
       !lrage - leaf and root litter turnover time (years) (CASA)
       !woodage - stem litter turnover time (years) (CASA)
       !lit_C2N - litter C:N (CASA)
       !lignin - lignin content
+      !phenotype - phenological type
 
       type(pftype),parameter :: pfpar(N_PFT) =          !PFT parameters
-     &!        pst,hwilt,sstar,swilt,nf,sla,r,lrage,woodage,lit_C2N,lignin ! 
+     &!        pst,hwilt,sstar,swilt,nf,sla,r,lrage,woodage,lit_C2N,lignin,phenotype ! 
      &     (/
-     &     pftype(1,   -100.d0,  .50d0, .30d0,  1.4d0,
+     &     pftype(1,   -100.d0,  .50d0, .30d0,  1.4d0, !tundra
      &     22.5d0, 0.6d0, 2.8d0, 5.5d0, 50.0d0,0.15d0,1),
-     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.5d0,
+     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.5d0, !grassC3
      &     37.5d0, 0.6d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,4),
-     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0,
+     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0, !shrub
      &     32.5d0, 1.d0, 1.25d0, 5.5d0, 57.5d0, 0.15d0,3),
-     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0,
+     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0, !savanna
      &     32.5d0, 1.d0, 1.8d0, 25.d0, 50.0d0, 0.15d0,3),
-     &     pftype(1,   -100.d0,  .55d0, .29d0,  1.5d0,
+     &     pftype(1,   -100.d0,  .55d0, .29d0,  1.5d0, !decidforest
      &     30.d0, 0.85d0, 1.5d0, 42.5d0, 50.0d0, 0.2d0,2),
-     &     pftype(1,   -100.d0,  .60d0, .25d0,  0.9d0,
+     &     pftype(1,   -100.d0,  .60d0, .25d0,  0.9d0, !evergrneedle
      &     10.d0, 0.9d0, 5.d0,42.0d0, 80.0d0,0.25d0,1),
-     &     pftype(1,   -100.d0,  .55d0, .26d0,  1.1d0,
+     &     pftype(1,   -100.d0,  .55d0, .26d0,  1.1d0, !troprainf
      &     25.d0, 0.733d0, 1.8d0, 41.0d0, 40.0d0, 0.2d0,1),
-     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.3d0,
+     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.3d0, !crops
      &     60.d0, 0.6d0, 1.1d0, 58.0d0, 52.5d0, 0.16d0,4)
 !     &     pftype(1,   -100.d0,  .50d0, .30d0,  0.76d0)&
 !     &     0.0d0,0.0d0,0.0d0,0.0d0)

@@ -339,7 +339,11 @@ c**** calculate root fraction afr averaged over vegetation types
       !------
       real*8, parameter :: vhght(N_COVERTYPES) =
       !* bsand tundrv  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
-     $     (/0.d0, 0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
+      !GISS ORIGINAL
+!     $     (/0.d0, 0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
+!     &     ,0.d0, 0.d0, 1.5d0 /)
+      !NYK ADJUSTED VALUES
+     $     (/0.d0, 0.1d0, 1.5d0,  5d0,  7.1d0,  20d0,  30d0, 25d0,1.75d0
      &     ,0.d0, 0.d0, 1.5d0 /)
 
       !* Copy prescr code for calculating seasonal canopy height here.
@@ -461,13 +465,13 @@ c**** calculate root fraction afr averaged over vegetation types
       ! just in case, set to 0 to avoid possible NaNs
       cpool(:) = 0.d0
       
-      cpool(FOL) = lai/pfpar(pft)%sla/popdens *1e3!Bl
+      cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
       if (pft.ne.GRASSC3) then  !Woody
-        cpool(SW) = 0.00128 * pfpar(pft)%sla * cpool(FR) * h *1e3 !Bsw
-        cpool(HW) = 0.069*(h**0.572)*(dbh**1.94) * 
-     &       (wooddensity_gcm3(pft)**0.931) *1e3
+        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h *1d3 !Bsw
+        cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
+     &       (wooddensity_gcm3(pft)**0.9301) *1d3
         cpool(CR) = 0.d0        !dummy
       else
         cpool(SW) = 0.d0

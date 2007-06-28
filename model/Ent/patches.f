@@ -324,7 +324,7 @@
       !*********************************************************************
       subroutine sum_roots_cohorts2patch(pp)
       !@sum Calculate patch-level depth- and mass-weighted average
-      !@sum of fine roots.
+      !@sum of fine roots depth fractions, fracroot.
       implicit none
       type(patch),pointer :: pp
       !-----Local variables-------
@@ -333,15 +333,16 @@
       real*8 :: fracroot(N_DEPTH)
       real*8 :: frootC_total
 
-      do n=1,N_DEPTH  !Initialize
+      !Initialize
+      do n=1,N_DEPTH  
         fracroot(n) = 0.0
       end do 
       frootC_total = 0.0
 
       cop => pp%tallest
       do while(ASSOCIATED(cop)) 
-        !frootC_total = frootC_total + cop%n*cop%C_froot !Mass wtd avg.
-        frootC_total = frootC_total + cop%n !##HACK UNTIL CAN DO frootC wtd avg
+        frootC_total = frootC_total + cop%n*cop%C_froot !Mass sum per area
+        !* NYK - haven't set up fracroot yet.
         do n=1,N_DEPTH
           !fracroot(n) = fracroot(n) + cop%n*cop%C_froot*cop%fracroot(n) !Mass wtd avg.
           fracroot(n) = fracroot(n) + cop%n*cop%fracroot(n) !Population wtd avg.##HACK
@@ -351,7 +352,7 @@
       if (frootC_total > 0.0) then
         pp%fracroot = fracroot/frootC_total
       end if
-      pp%C_froot = frootC_total
+!      pp%C_froot = frootC_total !Already calculated outside of this routine.
 
       end subroutine sum_roots_cohorts2patch
       !*********************************************************************

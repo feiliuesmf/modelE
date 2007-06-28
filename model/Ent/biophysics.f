@@ -228,6 +228,8 @@
      &          R_rootsum  !PK 5/15/07
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
+      real*8 :: Resp_maint      !Maintenance respiration temp variable
+      real*8 :: Cdiff           !Difference beween neg NPP and C_lab temp variable.
       type(veg_par_type) :: vegpar !Vegetation parameters
 
 #ifdef DEBUG
@@ -330,21 +332,41 @@
         cop%GCANOPY = GCANOPY
         cop%Ci = Ci
         cop%GPP = GPP !kg-C/m2-ground/s
-       !calculate root respiration separately  -PK 5/15/07
+        !NOTE: NEED TO FIX Canopy maintenace respiration for different
+        !C:N ratios for the different pools.
+        !* Maintenance respiration - root
         cop%R_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
      &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)
-        !Canopy autotrophic respiration needs to be updated for different
-        !C:N ratios for the different pools.
-        cop%R_auto =  0.012D-6 * !kg-C/m2/s
-     &       (Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN)
-!     &       (Resp_can_maint(cop%pft,cop%C_fol + cop%C_sw + cop%C_froot,
-!     &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n) + 
-     &       + Resp_can_growth(cop%GPP,
-     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN)))
+        !* Maintenance respiration - leaf + sapwood + storage
+        Resp_maint = 0.012D-6 * (!kg-C/m2/s
+     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
+     &       + Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - need to get C:N
+     &       900.d0,TcanopyC+Kelvin,cop%n) 
+     &       + Resp_can_maint(cop%pft,cop%C_lab, !Storage
+     &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)  )
+        !* Total respiration - maintenance + growth
+        cop%R_auto =  
+     &       Resp_maint 
      &       + cop%R_root  !PK 5/15/07 
+     &       + 0.012D-6 * Resp_can_growth(cop%pft, cop%GPP/0.012D-6,
+     &       (Resp_maint+cop%R_root)/0.012D-6 )
+!     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
         cop%NPP = GPP - cop%R_auto !kg-C/m2-ground/s
-       !* Accumulate uptake. 
-        cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
+        !* Accumulate uptake. - * PUT THIS IN A SUBROUTINE OR FUNCTION C_lab_update
+          if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
+     &       (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
+              !Don't let C_lab go below zero.
+              cop%C_lab = EPS
+              !* NYK - TEMPORARY HACK - SHOULD CALL STRESS SUBROUTINE FOR SENESCENCE.
+              !*       Needs checks for negative NPP loss greater than C pools.
+              Cdiff = cop%NPP*dtsec/cop%n + (cop%C_lab - EPS)
+              cop%C_fol = cop%C_fol + 0.33d0*Cdiff
+              cop%C_froot = cop%C_froot + 0.33d0*Cdiff
+              cop%C_sw = cop%C_sw + 0.33d0*Cdiff
+              !cop%LAI = !should update
+            else
+            cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
+          endif
 
         !* pp cohort flux summaries
         GCANOPYsum = GCANOPYsum + cop%GCANOPY
@@ -1040,33 +1062,37 @@
       MaintResp=0.20D0*N_gm2*exp(18.72D0-46.39D3/(gasc*T_kelvin))
       end function Canopy_Resp
 !---------------------------------------------------------------------!
-      real*8 function Resp_can_growth(Acan,Rmaint) Result(R_growth)
+      real*8 function Resp_can_growth(pft,Acan,Rmaint) Result(R_growth)
       !Canopy growth respiration (umol/m2/s)
       !Based on photosynthetic activity. From CLM3.0.
+      !Fixed to min 0.d0 like ED2. - NYK
+      integer :: pft
       real*8 :: Acan !Canopy photosynthesis rate (umol/m2/s)
       real*8 :: Rmaint !Canopy maintenance respiration rate (umol/m2/s)
+      real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33
 
-      R_growth = 0.25 * (Acan - Rmaint)
+      growth_r = pfpar(pft)%r * 0.5d0  !NYK's hack - chec
+      R_growth = max(0.d0, growth_r * (Acan - Rmaint))
       end function Resp_can_growth
 !---------------------------------------------------------------------!
       real*8 function Resp_can_maint(pft,C,CN,T_k,n) 
      &     Result(R_maint)
       !Canopy maintenance respiration (umol/m2-ground/s)
-      !Based on photosynthetic activity. From CLM3.0.
+      !Based on biomass amount (total N in pool). From CLM3.0.
 
       integer :: pft            !Plant functional type.
       real*8 :: C               !g-C/individual  !not per m2 -PK 5/15/07
                                 !Can be leaf, stem, or root pools.
-      real*8 :: CN              !C:N ration of the respective pool
+      real*8 :: CN              !C:N ratio of the respective pool
 !      real*8 :: R_maint !Canopy maintenance respiration rate (umol/m2/s)
       real*8 :: T_k             !Temperature of canopy (Kelvin)
       real*8 :: n               !Density of individuals (no./m2)
       !---Local-------
-      real*8,parameter :: k_CLM = 6.34e-07 !(s-1) rate from CLM.
+      real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
 
       R_maint = pfpar(pft)%r * k_CLM * (C/CN) * 
-     &     exp(308.56*(1/56.02 - (1/(T_k-227.13)))) *
-     &     2.d6*n/28.5
+     &     exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
+     &     2.d6*n/28.5d0
       !Note:  CLM calculates this per individual*population/area_fraction
       !      to give flux per area of pft cover rather than per ground area.
       end function Resp_can_maint
@@ -1077,8 +1103,8 @@
       real*8 :: Tcelsius, froot_kgCm2
       
       Rootresp = OptCurve(Tcelsius,1.0d0,3000.d0) * froot_kgCm2/SECPY
-     &     /((1.d0 + exp(0.4*(5.0-Tcelsius)))
-     &     *(1.d0 + exp(0.4*(Tcelsius-45.d0))))
+     &     /((1.d0 + exp(0.4d0*(5.0d0-Tcelsius)))
+     &     *(1.d0 + exp(0.4d0*(Tcelsius-45.d0))))
 
       end function Resp_root
 !---------------------------------------------------------------------!

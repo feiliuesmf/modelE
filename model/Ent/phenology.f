@@ -264,6 +264,10 @@
       real*8 :: Closs(PTRACE,NPOOLS) !Litter per cohort.
       real*8 :: Clossacc(PTRACE,NPOOLS) !Litter accumulator.
       integer :: pft
+      real*8 :: turnoverdtleaf !Closs amount from intrinsic turnover of biomass pool.
+      real*8 :: turnoverdtfroot !Closs amount from intrinsic turnover of biomass pool.
+      real*8 :: turnoverdtwood !Closs amount from intrinsic turnover of biomass pool.
+      real*8 :: turnoverdttotal, adj !Total, adjustment factor if larger than C_lab.
 
       Closs(:,:) = 0.d0
       Clossacc(:,:) = 0.d0
@@ -271,33 +275,35 @@
       !* Calculate fresh litter from each cohort *!
       cop => pp%tallest  !changed to => (!) -PK 7/11/06
       do while(ASSOCIATED(cop)) 
-        !*## NOTE:  betad should eventually be defined at cohort level!!##
         pft = cop%pft
 
-        !* NLIVE POOLS *! !* betad to replace stressCD is temporary HACK ##
-!        Closs(CARBON,LEAF) =
-!     &       cop%C_fol * cop%n * (annK(pft,LEAF)+pp%betad/SECPY)*SDAY !* x tune factor
-!        Closs(CARBON,FROOT) =
-!     &       cop%C_froot * cop%n * annK(pft,FROOT)*SDAY
-!        Closs(CARBON,WOOD) =
-!     &       cop%C_hw * cop%n
-!     &       *(1.d0-exp(-annK(pft,WOOD)*SDAY)) !* expr is kdt; x tune factor
+        !* NLIVE POOLS *! 
+        turnoverdtleaf = annK(pft,LEAF)*SDAY
+        turnoverdtfroot = annK(pft,FROOT)*SDAY
+        turnoverdtwood = 1.d0-exp(-annK(pft,WOOD)*SDAY) !Sapwood not hardwood
 
+        !* UPDATE C_LAB: Turnover should draw down C_lab. *!
+        ! Check that amount not too large 
+        turnoverdttotal = turnoverdtleaf+turnoverdtfroot+turnoverdtwood
+        !if (turnoverdttotal.lt.cop%C_lab) then
+          adj = 1.d0  !No adjustment, enough C_lab
+        !else
+        !  adj = (cop%C_lab - EPS)/turnoverdttotal !Turnover can reduce C_lab only to EPS.
+        !endif
+        !cop%C_lab = cop%C_lab - adj*turnoverdttotal
+        !* NEED TO PUT RETRANSLOCATION IN HERE, TOO *!
 
-!*   PUSHKER - COMMENT OUT THE ABOVE LINES AND UNCOMMENT THESE LINES FOR NEW
-!*             LITTER FLUX - NANCY
-!*   Later will replace above with senescefrac factors, which can be calculated by
-!*   either prescribed or prognostic phenology: ****** NYK!
+        !* Calculate litter *!
+        ! Senescefrac factor can be calculated by either prescribed or prognostic phenology: ****** NYK!
         Closs(CARBON,LEAF) = 
      &       cop%C_fol * cop%n *
-     &       (annK(pft,LEAF)*SDAY +cop%senescefrac) !* x tune factor
+     &       (adj*turnoverdtleaf + cop%senescefrac) !* x tune factor
         Closs(CARBON,FROOT) = 
      &       cop%C_froot * cop%n * 
-     &       (annK(pft,FROOT)*SDAY + cop%senescefrac) !* x tune factor
+     &       (adj*turnoverdtfroot + cop%senescefrac) !* x tune factor
         Closs(CARBON,WOOD) = 
      &       (cop%C_hw + cop%C_croot) * cop%n
-     &       *(1.d0-exp(-annK(pft,WOOD)*SDAY)) !* expr is kdt; x tune factor
-
+     &       *(adj*turnoverdtwood) !* expr is kdt; x tune factor
 
 !        write(98,*) 'In litter: ',dtsec
 !        write(98,*) cop%pft, cop%C_fol, cop%n, annK(pft,LEAF),pp%betad

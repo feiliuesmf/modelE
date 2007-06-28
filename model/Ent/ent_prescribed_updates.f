@@ -201,7 +201,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           cop%C_sw = cpool(SW)
           cop%C_hw = cpool(HW)
 !          cop%C_lab = cpool(LABILE)
-!          cop%C_froot = cpool(FR)
+          cop%C_froot = cpool(FR)
           cop%C_croot = cpool(CR)
 
           cop%Ntot = cop%nm * cop%LAI  !This should eventually go into N allocation routine if dynamic nm.
