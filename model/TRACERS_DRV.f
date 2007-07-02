@@ -1020,7 +1020,7 @@ CCC#else
           ntm_power(n) = -23        ! power of ten for tracer
 CCC#endif
           tr_mm(n) = 7.d0
-          trdecay(n) =  1.51d-7
+          trdecay(n) = 1.51d-7
           trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
           trradius(n) = 1.d-7  !appropriate for stratosphere
           fq_aer(n)=1.   !fraction of aerosol that dissolves
@@ -1041,7 +1041,7 @@ CCC#endif
 
       case ('Pb210')
           n_Pb210 = n
-          ntm_power(n) = -22
+          ntm_power(n) = -23
           tr_mm(n) = 210.d0
           trdecay(n) = 9.85d-10
           trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
@@ -9168,8 +9168,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      * lmAER,craft,
      * NH3_src_nat_con,NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
 #endif
-#ifdef TRACERS_COSMO
-       USE COSMO_SOURCES, only: rn_src
+#ifdef TRACERS_RADON
+       USE AEROSOL_SOURCES, only: rn_src
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -9927,7 +9927,7 @@ c read in DMS source
       if (imAER.ne.1) then !initialize interactive DMS (non-AeroCom)
 
           DMSinput(:,:,:)= 0.d0
-        call openunit('DMS_SEA',mon_unit,.false.)
+        call openunit('DMS_SEA',mon_unit,.false.,.true.)
         DO 8 mm=1,12
         READ(mon_unit,*) mont
       do
@@ -9984,7 +9984,7 @@ c Industrial
       if (imAER.eq.0) then
 C    Initialize:
         so2_src(:,:,:)= 0.d0
-        call openunit('SO2_IND',iuc,.false.)
+        call openunit('SO2_IND',iuc,.false.,.true.)
       do
        READ(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10002,7 +10002,7 @@ C Put aircraft for so2 and BC
 C    Initialize:
           so2_src_3d(:,:,:,2)= 0.d0
           bci_src_3d(:,:,:)=0.d0
-      call openunit('AIRCRAFT',iuc2,.true.)
+      call openunit('AIRCRAFT',iuc2,.true.,.true.)
       if (lm.eq.23) then
       DO L=1,LS1+1
       READ(iuc2) titleg,((craft_read(i,j,l),i=1,im),j=1,jm)
@@ -10029,7 +10029,7 @@ c (for BC multiply this by 0.1)
 c volcano - continuous
 C    Initialize:
       so2_src_3D(:,:,:,1)= 0.d0
-      call openunit('SO2_VOLCANO',iuc,.false.)
+      call openunit('SO2_VOLCANO',iuc,.false.,.true.)
       do
       read(iuc,*) ii,jj,ll,carbstuff
       if (ii.eq.0) exit
@@ -10057,7 +10057,7 @@ c
       if (imAER.eq.1) then
 c volcano - explosive, for AeroCom
        volc_exp(:,:,:)= 0.d0
-      call openunit('SO2_VOLCANO_EXP',iuc,.false.)
+      call openunit('SO2_VOLCANO_EXP',iuc,.false.,.true.)
       do
       read(iuc,*) ii,jj,ll,carbstuff
       if (ii.eq.0) exit
@@ -10075,7 +10075,7 @@ c Industrial BC/OC
 c  !else use historic emissions
           BCI_src1(:,:)= 0.d0
           BCI_src(:,:)=0.d0
-       call openunit('BC_BIOFUEL',iuc,.false.)
+       call openunit('BC_BIOFUEL',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10085,7 +10085,7 @@ c  !else use historic emissions
        call closeunit(iuc)
        BCI_src(:,J_0:J_1)=BCI_src1(:,J_0:J_1)
        BCI_src2(:,:)=0.d0
-       call openunit('BC_FOSSIL_FUEL',iuc,.false.)
+       call openunit('BC_FOSSIL_FUEL',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10097,7 +10097,7 @@ c  !else use historic emissions
        if (imAER.eq.2) then  !more sectors to read in
        
        BCI_src3(:,:)=0.d0
-       call openunit('BC_IND',iuc,.false.)
+       call openunit('BC_IND',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10108,7 +10108,7 @@ c  !else use historic emissions
        BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src3(:,J_0:J_1)
        
        BCI_src4(:,:)=0.d0
-       call openunit('BC_TRANS',iuc,.false.)
+       call openunit('BC_TRANS',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10120,7 +10120,7 @@ c  !else use historic emissions
        endif  !imAER=2
        OCI_src1(:,:)=0.d0
        OCI_src(:,:,1)= 0.d0
-       call openunit('OC_BIOFUEL',iuc,.false.)
+       call openunit('OC_BIOFUEL',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10130,7 +10130,7 @@ c  !else use historic emissions
        call closeunit(iuc)
        OCI_src(:,J_0:J_1,1)=OCI_src1(:,J_0:J_1)
        OCI_src2(:,:)=0.d0
-       call openunit('OC_FOSSIL_FUEL',iuc,.false.)
+       call openunit('OC_FOSSIL_FUEL',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10141,7 +10141,7 @@ c  !else use historic emissions
        OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src2(:,J_0:J_1)
        if (imAER.eq.2) then
        OCI_src3(:,:)=0.d0
-       call openunit('OC_IND',iuc,.false.)
+       call openunit('OC_IND',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10151,7 +10151,7 @@ c  !else use historic emissions
        call closeunit(iuc)
        OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src3(:,J_0:J_1)
        OCI_src4(:,:)=0.d0
-       call openunit('OC_TRANS',iuc,.false.)
+       call openunit('OC_TRANS',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
        if (ii.eq.0) exit
@@ -10174,7 +10174,7 @@ c  (otherwise it is done in get_hist_BM, across boundary layer)
       if (imAER.eq.1) then ! AEROCOM
       BCB_src(:,:,:,:)= 0.d0
       OCB_src(:,:,:,:)=0.d0
-      call openunit('BC_BIOMASS',iuc,.false.)
+      call openunit('BC_BIOMASS',iuc,.false.,.true.)
       do
       read(iuc,*) ii,jj,mmm,ll,carbstuff
       if (ii.eq.0) exit
@@ -10183,7 +10183,7 @@ c  (otherwise it is done in get_hist_BM, across boundary layer)
       BCB_src(ii,jj,ll,mmm)=carbstuff
       end do
       call closeunit(iuc)
-      call openunit('OC_BIOMASS',iuc,.false.)
+      call openunit('OC_BIOMASS',iuc,.false.,.true.)
       do
       read(iuc,*) ii,jj,mmm,ll,carbstuff
       if (ii.eq.0.) exit
@@ -10202,7 +10202,7 @@ c  (otherwise it is done in get_hist_BM, across boundary layer)
 c Terpenes
       if (imAER.ne.1) then
         OCT_src(:,:,:)=0.d0
-      call openunit('TERPENE',mon_unit,.false.)
+      call openunit('TERPENE',mon_unit,.false.,.true.)
       do mm=1,12
       do
       read(mon_unit,*) ii,jj,carbstuff
@@ -10222,7 +10222,7 @@ c This assumes 10% emission yield (Chin, Penner)
 c 1.3 converts OC to OM
       if (imAER.eq.1) then! AEROCOM
         OCT_src(:,:,:)=0.d0
-      call openunit('TERPENE',mon_unit,.false.)
+      call openunit('TERPENE',mon_unit,.false.,.true.)
       do
       read(mon_unit,*) ii,jj,mm,carbstuff
       if (ii.eq.0) exit
@@ -10235,7 +10235,7 @@ c 1.3 converts OC to OM
 #endif
 #ifdef TRACERS_OM_SP
        OCI_src(:,:,1:8)= 0.d0
-       call openunit('OC_FOSSIL_FUEL',iuc,.false.)
+       call openunit('OC_FOSSIL_FUEL',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,(carb(ir),ir=1,8)
        if (ii.eq.0) exit
@@ -10494,8 +10494,8 @@ C**** at the start of any day
 
 
 #endif
-#ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only: rn_src
+#ifdef TRACERS_RADON
+      USE AEROSOL_SOURCES, only: rn_src
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
       USE apply3d, only : apply_tracer_3Dsource
@@ -10743,7 +10743,7 @@ c   emission from 1 at 30N to 0.2 at 70N and 0.2 north of 70N
              trsource(i,j,1,n)=0.2*trsource(i,j,1,n)
            endif
           else if (rnsrc.eq.2) then !Schery and Wasiolek
-#ifdef TRACERS_COSMO
+#ifdef TRACERS_RADON
 c Schery source
           trsource(i,j,1,n)=rn_src(i,j,jmon)
 #endif
@@ -11010,7 +11010,9 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 c SUSA
+#ifndef TRACERS_RADON
       tr3Dsource(:,J_0:J_1,:,:,:) = 0.d0
+#endif
 
 C**** All sources are saved as kg/s
       do n=1,ntm
@@ -11284,8 +11286,19 @@ c cosmogenic src
         end do; end do; end do
         call apply_tracer_3Dsource(1,n)
 C****
+#endif
+#ifdef TRACERS_RADON
       case('Pb210')
         call apply_tracer_3Dsource(1,n) !radioactive decay of Rn222
+c      do i=1,im
+c      do j=1,jm
+c      do l=1,4
+c      if (tr3Dsource(i,j,l,1,n).gt.0) then
+c     write(6,*) 'here i am',i,j,l,tr3Dsource(i,j,l,1,n),trm(i,j,l,n)
+c      endif
+c      end do
+c      end do
+c      end do
 #endif
 
       end select
@@ -11564,7 +11577,7 @@ C**** this is a parameterisation from Georg Hoffmann
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_AMP) || (defined TRACERS_RADON)
 c only dissolve if the cloud has grown
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST) &&\
     (defined TRACERS_HETCHEM)
@@ -11715,7 +11728,8 @@ C
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
-    (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP)
+    (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_RADON)
           fq = -b_beta_DT*(EXP(-PREC*rc_washt(ntix(n)))-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0

@@ -67,6 +67,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ohr,dho2r,perjr,
      *   tno3r,ohsr  !im,jm,lm,12   DMK jmon
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: craft  !(im,jm,lm)
+      real*8, ALLOCATABLE, DIMENSION(:,:) :: snosiz
+#ifdef TRACERS_RADON
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: rn_src
+#endif
 !var NH3_src_nat_con Ammonium sources
       REAL*8, ALLOCATABLE, DIMENSION(:,:)       ::  NH3_src_nat_con,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
@@ -99,9 +103,12 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * ohr,dho2r,perjr,
      * tno3r,oh,dho2,perj,tno3,ohsr
      * ,o3_offline
+     * ,snosiz
      * ,craft,so2t_src,NH3_src_nat_con, off_HNO3,off_SS,
      & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
-
+#ifdef TRACERS_RADON
+     * ,rn_src
+#endif
 
       use MODEL_COM, only: im,lm
       
@@ -145,6 +152,10 @@ c     endif
       allocate( ohr(IM,J_0H:J_1H,lm),dho2r(IM,J_0H:J_1H,lm),
      * perjr(IM,J_0H:J_1H,lm),tno3r(IM,J_0H:J_1H,lm),
      * ohsr(IM,J_0H:J_1H,lm),STAT=IER )
+      allocate( snosiz(IM,J_0H:J_1H) ,STAT=IER)
+#ifdef TRACERS_RADON
+      allocate( rn_src(IM,J_0H:J_1H,12) ,STAT=IER)
+#endif
 c Nitrate aerosols
 ! I,J
       allocate(  NH3_src_nat_con(IM,J_0H:J_1H) )
@@ -197,7 +208,7 @@ c
         ifirst=.false.
       endif
       k=1
-      call openunit(mon_files(k),mon_units(k),mon_bins(k))
+      call openunit(mon_files(k),mon_units(k),mon_bins(k),.true.)
       call read_mon3Dsources(levo3,mon_units(k),jdlast,
      & tlca(:,:,:,k),tlcb(:,:,:,k),src(:,:,:,k),frac,imon(k))     
       call closeunit(mon_units(k))
@@ -525,7 +536,7 @@ C****
        Allocate(tlca(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons),
      &           tlcb(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
 c      allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-        call openunit(ann_files,ann_units,ann_bins)
+        call openunit(ann_files,ann_units,ann_bins,.true.)
         k = 0
         do iu = 1,nanns
           k = k+1
@@ -538,7 +549,7 @@ c         call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
         end do
         call closeunit(ann_units)
        
-        call openunit(mon_files,mon_units,mon_bins)
+        call openunit(mon_files,mon_units,mon_bins,.true.)
       endif
 C****
 C**** Monthly sources are interpolated to the current day
@@ -590,7 +601,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
 
       if (iact.eq.0) then
       so2_biosrc_3D(:,:,:,:)= 0.d0
-      call openunit('SO2_BIOMASS',iuc,.false.)
+      call openunit('SO2_BIOMASS',iuc,.false.,.true.)
       do
       read(iuc,*) ii,jj,mm,ll,carbstuff
       if (ii.eq.0) exit
@@ -602,7 +613,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       if (imAER.eq.1) go to 33
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
-      call openunit('BC_BIOMASS',iuc,.false.)
+      call openunit('BC_BIOMASS',iuc,.false.,.true.)
       do 
       read(iuc,*) mm,ii,jj,carbstuff
       if (ii.eq.0) exit
@@ -615,7 +626,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       if (imAER.eq.2) then
       if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
       ratb(:,:)=0.d0
-      call openunit('BC_BM_RAT',iuc,.false.)
+      call openunit('BC_BM_RAT',iuc,.false.,.true.)
       do 
       read(iuc,*) ii,jj,carbstuff
       if (ii.eq.0.) exit
@@ -629,7 +640,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       end do
       endif
       endif  
-      call openunit('OC_BIOMASS',iuc,.false.)
+      call openunit('OC_BIOMASS',iuc,.false.,.true.)
       do 
       read(iuc,*) mm,ii,jj,carbstuff
       if (ii.eq.0.) exit 
@@ -642,7 +653,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       if (imAER.eq.2) then
       if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
       rato(:,:)=0.d0
-      call openunit('OC_BM_RAT',iuc,.false.)
+      call openunit('OC_BM_RAT',iuc,.false.,.true.)
       do 
       read(iuc,*) ii,jj,carbstuff
       if (ii.eq.0.) exit 
@@ -742,7 +753,7 @@ c   then open new files
       jb2=1990
       irr=7
       endif
-      call openunit('BC_INDh',iuc, .false.)
+      call openunit('BC_INDh',iuc, .false.,.true.)
       do ip=1,7326
       read(iuc,*) ii,jj,iy,xbcff,xbcbm,xombm
       if (jj<j_0 .or. jj>j_1) cycle
@@ -831,7 +842,7 @@ c   then open new files
       irr=7
       endif
       if(AM_I_ROOT( ))then      
-      call openunit('SO2_INDh',iuc, .true.)
+      call openunit('SO2_INDh',iuc, .true.,.true.)
       read(iuc) hso2_all_read
       call closeunit(iuc)
       endif
@@ -886,7 +897,7 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
       
 C  Read in emissions from biomass burning
        so2_biosrc_3D(:,:,1:lmAER,1:12)= 0.d0
-      call openunit('SO2_BIOMASS',iuc2,.false.)
+      call openunit('SO2_BIOMASS',iuc2,.false.,.true.)
       DO 
 Cewg  SDDAY -- first day (as day of the year) of the 90 driest days
       READ (iuc2,9051) IB,JB,TB,TBX,TBXX,TBY,TBYY,TBXY,SDDAY
@@ -1135,7 +1146,7 @@ ccOMP END PARALLEL DO
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
          if(AM_I_ROOT( ))then
-        call openunit('AER_CHEM',iuc,.true.)
+        call openunit('AER_CHEM',iuc,.true.,.true.)
         do ii=1,jmon
           read(iuc) ichemi
           read(iuc) ohr_globm
@@ -1157,7 +1168,7 @@ cDMK I could move these loops outside AM_I_ROOT
         call UNPACK_DATA( grid, tno3r_globm, tno3r )
 
          if(AM_I_ROOT( ))then
-        call openunit('AER_OH_STRAT',iuc2,.true.)
+        call openunit('AER_OH_STRAT',iuc2,.true.,.true.)
         do ii=1,jmon  !12
         do ll=1,lm
          read(iuc2) ohsr_real
@@ -1643,14 +1654,16 @@ c     REAL*8,  INTENT(OUT)::
         sulfout(N)=0.
         tr_left(N)=1.
       end do
-#ifdef TRACERS_COSMO
-      do n=1,ntx
-       select case (trname(ntix(n)))
-       case ('Pb210   ','Be7     ','Be10    ','Rn222')
-       go to 333
-       end select
-      end do
-#endif
+c is this needed?
+c#if (defined TRACERS_COSMO) || (defined TRACERS_
+c      do n=1,ntx
+c       select case (trname(ntix(n)))
+c       case ('Pb210   ','Be7     ','Be10    ','Rn222')
+c       go to 333
+c       end select
+c      end do
+C#endif
+c
 c
 C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
@@ -1812,4 +1825,161 @@ c can't be more than moles going in:
  333  RETURN
       END SUBROUTINE GET_SULFATE
 
+      SUBROUTINE GET_BC_DALBEDO(i,j,bc_dalb)
+!@sum Calculates change to albedo of snow on ice and snow on land due
+!@+     to BC within the snow.
+!@+     Parameterization based on Warren and Wiscombe (1980) (21 inputs)
+!@+     or actually on Flanner et al. fig 2 r_e=500 (14 inputs)
+!@+     or Warren and Wiscombe (1985) (18 input, old vs new, then I
+!@+     continue linearly from 19-29 off the plot)
+!@+auth Dorothy Koch
+c
+      USE CONSTANT, only: rhow
+      USE GHY_COM, only: tr_wsn_ij, wsn_ij
+      USE SEAICE_COM, only: trsi, snowi
+      USE TRACER_COM, only: trname,n_BCB,n_BCII,n_BCIA
+      USE VEG_COM, only: afb
+      USE RADPAR, only: agesn
+      USE FLUXES, only: gtracer,gtemp
+      IMPLICIT NONE
+c Warren and Wiscombe 1985 includes age dependence
+      real*8, parameter :: bc(29)=(/1.d0,2.d0,3.d0,4.d0,5.d0,
+     * 6.d0,7.d0,8.d0,9.d0,10.d0,20.d0,30.d0,40.d0,50.d0,60.d0,
+     * 70.d0,80.d0,90.d0,100.d0,110.d0,120.d0,130.d0,140.d0,
+     * 150.d0,160.d0,170.d0,180.d0,190.d0,200.d0/)
+      real*8, parameter :: daln(29)=(/0.d0,0.1d0,0.1d0,0.2d0,
+     * 0.2d0,0.2d0,0.2d0,0.3d0,0.3d0,0.4d0,0.7d0,0.9d0,1.1d0,
+     * 1.3d0,1.5d0,1.6d0,1.8d0,2.d0,2.2d0,2.4d0,2.6d0,2.8d0,
+     * 3.d0,3.2d0,3.4d0,3.6d0,3.8d0,4.d0,4.2d0/)
+      real*8, parameter :: dalo(29)=(/0.1d0,0.2d0,0.4d0,0.5d0,
+     * 0.6d0,0.7d0,0.8d0,0.9d0,1.d0,1.d0,2.d0,2.6d0,3.2d0,
+     * 3.8d0,4.3d0,4.8d0,5.2d0,5.5d0,5.9d0,6.3d0,6.7d0,7.1d0,
+     * 7.5d0,7.9d0,8.3d0,8.7d0,9.1d0,9.5d0,9.9d0/)
+c Flanner et al
+c     real*8, parameter :: bc(14)=(/25.d0,50.d0,100.d0,150.d0,
+c    * 200.d0,
+c    *250.d0,300.d0,400.d0,500.d0,600.d0,700.d0,800.d0,900.d0,
+c    * 1000.d0/)
+c     real*8, parameter :: dal(14)=(/1.d0,2.d0,3.d0,4.d0,5.d0,
+c    * 6.d0,7.d0,8.d0,9.d0,10.d0,11.d0,11.5d0,12.d0,12.5d0/)
+c Warren and Wiscomb 1980
+c     real*8, parameter :: bc(21)=(/0.05d0,0.075d0,0.1d0,0.2d0,
+c    * 0.3d0,0.4d0,0.5d0,0.6d0,0.7d0,0.8d0,0.9d0,1.d0,2.d0,
+c    * 3.d0,4.d0,5.d0,6.d0,7.d0,8.d0,9.d0,10.d0/)
+c     real*8, parameter :: dal(21)=(/2.d0,3.d0,4.d0,6.d0,8.d0,
+c    * 9.d0,10.d0,11.d0,12.d0,13.d0,14.d0,16.d0,18.d0,20.d0,
+c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
+      REAL*8  scon,icon,bcsnowb,bcsnowv,bcice,fv,fb,
+     * sconb,sconv,bcc,rads
+      INTEGER n,ic,ib
+      INTEGER, INTENT(IN) :: i,j
+      REAL*8, INTENT(OUT) :: bc_dalb
+c
+c tr_wsn_ij(n,nsl,2,i,j) tracer in snow layer l multiplied by fraction snow, kg/m2
+c wsn_ij(nsl,2,i,j)
+c trsi(n,nsi,i,j) tracer in sea ice in layer l, kg/m2
+c snowi(i,j) snow amount on sea ice, kg/m2
+c afb(i,j)=fb, fraction that is bare soil
+c fv=1-fb fraction that is vegetated
+c rads is the snow grain size determined in GRAINS
+c gtracer(n,2,i,j) is tracer concentration in snow on sea ice?
+c Maybe I need tracer in snow on sea ice, or mass of sea ice...?
+c Does trsi accumulate for ALL tracers?
+c fractions??
+c
+      bc_dalb=0.
+      scon=0.
+      icon=0.
+      bcsnowb=0.
+      bcsnowv=0.
+      bcice=0.
+      fb=afb(i,j)
+      fv=1.-fb
+       if (wsn_ij(1,1,i,j).gt.0.)  then
+       bcsnowb=tr_wsn_ij(n_BCII,1,1,i,j)+
+     *  tr_wsn_ij(n_BCIA,1,1,i,j)+tr_wsn_ij(n_BCB,1,1,i,j)
+       sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
+       endif
+       if (wsn_ij(1,2,i,j).gt.0.)  then
+       bcsnowv=tr_wsn_ij(n_BCII,1,2,i,j)+
+     *  tr_wsn_ij(n_BCIA,1,2,i,j)+tr_wsn_ij(n_BCB,1,2,i,j)
+       sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
+       endif
+       scon=(fb*sconb+fv*sconv)*1.D9   !kg/kg to ppmw
+       if (snowi(i,j).gt.0.) then
+       icon=(gtracer(n_BCII,2,i,j)+gtracer(n_BCIA,2,i,j)+
+     *  gtracer(n_BCB,2,i,j))*1.d9
+       endif
+       bcc=DMAX1(icon,scon)
+       call GRAINS(i,j,rads)
 
+       do ib=1,28
+       if (bcc.gt.bc(ib).and.bcc.lt.bc(ib+1)) then
+       bc_dalb=-(daln(ib)
+     *       +(rads-100.d0)/900.d0*(dalo(ib)-daln(ib)))/100.
+       go to 33
+       endif
+       end do
+ 33    continue
+       if (bcc.ge.bc(29)) bc_dalb=-(daln(29)
+     *    + (rads-100.d0)/900.d0*(dalo(29)-daln(29)))/100.
+c     if (bc_dalb.ne.0.) write(6,*) 'alb_write',i,j,bc_dalb,bcc,rads
+      RETURN
+      END SUBROUTINE GET_BC_DALBEDO
+
+      SUBROUTINE GRAINS(i,j,rads)
+!@sum Estimates snow grain size (microns) based on air temperature
+!@+     and snow age. From Susan Marshall's PhD thesis
+!@+auth Dorothy Koch
+c
+      USE CONSTANT, only: pi,gasc
+      USE PBLCOM, only: tsavg
+      USE GHY_COM, only: snoage
+      USE AEROSOL_SOURCES, only: snosiz
+      IMPLICIT none
+      REAL*8 E,A,age,r0,radmm,ert,
+     * tfac,area,delrad
+      INTEGER n,ic,ib
+      INTEGER, INTENT(IN) :: i,j
+      REAL*8, INTENT(OUT) :: rads
+      DATA E,A /26020.d0, 29100.d0/
+c tsavg(i,j) surface air temperature
+c snoage(k,i,j) k=1 ocean ice, k=2 land ice, k=3 land
+c   (do these differ within a gridbox?) in days
+c RN1 radius from previous timestep
+c RADS snow grain radius
+c
+c Find the age of snow, I assume the age does not
+c  vary within the gridbox so just take the max?
+       age=DMAX1(snoage(1,i,j),snoage(2,i,j),snoage(3,i,j))
+c Use Temperature to check if melting or non-melting snow
+       IF (tsavg(i,j).le.273.15) then
+c Non-melting snow; distinguish between initial or
+c  secondary growth rate
+        IF (age.lt.13.5) then
+c initial growth
+         r0=50.
+         radmm=r0+ (0.008d0+age)
+         rads=radmm*1000.d0
+         snosiz(i,j)=rads+r0
+        ELSE
+c secondary growth
+         r0=150.d0
+         ert = dexp(-E/(GASC*TSAVG(I,J)))
+         tfac = a*ert
+         area = (TFAC/365.d0) * (AGE-12.5d0)
+         radmm=dsqrt(area/pi)
+         delrad = radmm*1000.d0
+         rads=delrad + r0
+         snosiz(i,j)=rads
+        ENDIF
+       ELSE
+c melting snow
+        radmm=dsqrt(0.05d0)
+        rads=snosiz(i,j)+(radmm*100.d0)
+        snosiz(i,j)=rads
+       ENDIF
+       rads=DMIN1(rads,1000.d0)
+       rads=DMAX1(rads,100.d0)
+      RETURN
+      END SUBROUTINE GRAINS
