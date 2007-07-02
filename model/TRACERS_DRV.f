@@ -11009,10 +11009,6 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-c SUSA
-#ifndef TRACERS_RADON
-      tr3Dsource(:,J_0:J_1,:,:,:) = 0.d0
-#endif
 
 C**** All sources are saved as kg/s
       do n=1,ntm
@@ -11287,19 +11283,8 @@ c cosmogenic src
         call apply_tracer_3Dsource(1,n)
 C****
 #endif
-#ifdef TRACERS_RADON
       case('Pb210')
         call apply_tracer_3Dsource(1,n) !radioactive decay of Rn222
-c      do i=1,im
-c      do j=1,jm
-c      do l=1,4
-c      if (tr3Dsource(i,j,l,1,n).gt.0) then
-c     write(6,*) 'here i am',i,j,l,tr3Dsource(i,j,l,1,n),trm(i,j,l,n)
-c      endif
-c      end do
-c      end do
-c      end do
-#endif
 
       end select
 
