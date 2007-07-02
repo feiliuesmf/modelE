@@ -784,7 +784,7 @@ contains
   end function DryTemp_GISS
 
   Subroutine Copy_modelE_to_FV_import(fv)
-    USE MODEL_COM, only:  Q     ! Secific Humidity
+    USE MODEL_COM, only:  Q     ! Specific Humidity
     USE MODEL_COM, only:  ZATMO ! Geopotential Height?
     USE MODEL_COM, Only : U, V, T
     Use DOMAIN_DECOMP, Only: grid, Get
