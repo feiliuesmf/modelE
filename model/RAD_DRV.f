@@ -1113,7 +1113,8 @@ c**** find scaling factors for surface albedo reduction
          tauda_psum(1)=im*dxyp(1)*depobc_1990(1,1)
       End If
       do j=J_0S,J_1S
-         JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
+c         JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
+         JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5)   ! slightly more general
          sumda_psum(j)=0
          tauda_psum(j)=0
          do i=1,im
@@ -1227,7 +1228,8 @@ C****
       DO 600 J=J_0,J_1
 C**** Radiation input files use a 72x46 grid independent of IM and JM
 C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
-      JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
+c      JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
+      JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5) ! slightly more general
 C****
 C**** MAIN I LOOP
 C****

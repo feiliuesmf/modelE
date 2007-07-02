@@ -1087,7 +1087,7 @@ C****
         IF (HAVE_SOUTH_POLE) CO2JK( 1,K) = CO2W( 1,K)
         IF (HAVE_NORTH_POLE) CO2JK(JM,K) = CO2W(37,K)
         DO J=J_0S,J_1S
-          W = 1. + (J-1)*36./(JM-1)
+          W = 1. + (J-1)*0.2*DLAT_DG
           JW=W
           CO2JK(J,K) = CO2W(JW,K)*(JW+1-W) + CO2W(JW+1,K)*(W-JW)
       end do; end do
@@ -1479,7 +1479,7 @@ C**** Keep step function except at two transition points (+/1 15 deg)
       END DO
       DO J=20,27,7
         If ((J>=J_0).and.(J<=J_1)) THEN
-          W = 1. + (J-1)*2./(JM-1)
+          W = 1. + (J-1)*DLAT_DG/90.
           JW=W
           GASJK(J,K) = GASW(JW,K-28)*(JW+1-W) + GASW(JW+1,K-28)*(W-JW)
         End If

@@ -141,10 +141,10 @@ c     real*8,parameter :: shv = 4.*rvap  ????
 !@var visc_air dynamic viscosity of air (kg/m s)
       real*8,parameter :: visc_air = 1.7d-5
 
-!@var visc_air_kin kinematic viscosity of air (m^2/ s)
+!@var visc_air_kin kinematic viscosity of air (1 bar 15 deg C) (m^2/s)
       real*8,parameter :: visc_air_kin = 1.46d-5
 
-!@var visc_wtr_kin kinematic viscosity of water (35 psu, 20 deg C) (m^2/ s)
+!@var visc_wtr_kin kinematic viscosity of water (35 psu, 20 deg C) (m^2/s)
       real*8,parameter :: visc_wtr_kin = 1.05d-6
 
 !@var avog Avogadro's constant (atmos/mole)
