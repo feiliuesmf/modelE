@@ -39,11 +39,6 @@
       INTEGER I,J,JR,ITYPE
       LOGICAL WETSNOW
 
-C****Work array for regional diagnostic accumulation
-c      REAL*8 :: AREG_SUM(size(AREG,1), 3)
-c      REAL*8, DIMENSION(
-c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
-c     &       :: AREG_part
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -57,7 +52,6 @@ C****
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 C**** Initialize work array
-c      AREG_part(:,J_0H:J_1H,1:3) = 0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
         JR=JREG(I,J)
@@ -134,9 +128,6 @@ C**** Accumulate regional diagnostics
         AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+RUN0 *POICE*DXYP(J)
         AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+SRUN0*POICE*DXYP(J)
 c     AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+ERUN *POICE*DXYP(J) ! ==0
-c        AREG_part(JR,J,1)=AREG_part(JR,j,1)+RUN0 *POICE*DXYP(J)
-c        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SRUN0*POICE*DXYP(J)
-cc     AREG_part(JR,J,3)=AREG_part(JR,J,3)+ERUN *POICE*DXYP(J) ! ==0
 
       END IF
 
@@ -146,15 +137,6 @@ C**** Calculate pressure anomaly at surface
 
       END DO
       END DO
-
-C****Finish accumulation of regional diagnostics (...sum along j)
-c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
-c     &     AREG_SUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
-c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),1)
-c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),2)
-
 
       IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
       IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
@@ -329,10 +311,6 @@ C****
 #endif
       INTEGER I,J,ITYPE,JR,ITYPEO
       integer :: J_0, J_1
-c      REAL*8, DIMENSION(
-c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
-c     &       :: AREG_part
-c      REAL*8 :: AREG_sum(size(AREG,1),3)
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -345,7 +323,6 @@ C**** add fluxes to oceans/lakes.
 cc      IF (MOD(ITIME,NDAY).eq.0) THEN
 cc        DT=SDAY    ! if called more frequently this should change
         DT=DTsrc    ! now do this every physics time step
-c        AREG_part = 0
         DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -424,16 +401,6 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
         END DO
         END DO
 
-c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:3),
-c     &     AREG_SUM(1:SIZE(AREG,1),1:3),ALL=.TRUE.)
-c        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),1)
-c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),2)
-c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),3)
-
-
 cc      ELSE
 cc        MELTI=0. ; EMELTI=0. ; SMELTI=0.
 cc#ifdef TRACERS_WATER
@@ -488,11 +455,6 @@ C****
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun,trsnwic,trm
      *     ,tralpha
 #endif
-C**** Working arrays for regional diagnostic arrays
-c      REAL*8 :: AREG_SUM(size(AREG,1),4)
-c      REAL*8, DIMENSION(
-c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,4)
-c     &       :: AREG_part
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -507,7 +469,6 @@ C****
       debug=.false.
 
 C**** Initialize work array
-c      AREG_part(:,J_0H:J_1H,1:4) = 0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
@@ -657,18 +618,6 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
       END DO
       END DO
 
-C**** Finish diagnostic accumulations into AREG (sum over j)
-c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:4),
-c     &     AREG_SUM(1:SIZE(AREG,1),1:4),ALL=.TRUE.)
-c        AREG(1:SIZE(AREG,1),J_RSNOW)=AREG(1:SIZE(AREG,1),J_RSNOW)+
-c     &      AREG_SUM(1:SIZE(AREG,1),1)
-c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),2)
-c        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),3)
-c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),4)
-
       IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
       IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
@@ -716,14 +665,6 @@ C****
       INTEGER I,J,JR,ITYPE,ITYPEO,N
 
 C****
-C**** Work array for regional diagnostic accumulation
-C****
-c      REAL*8 :: AREG_SUM(size(AREG,1),7)
-c      REAL*8, DIMENSION(
-c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,7)
-c     &       :: AREG_part
-
-C****
 C**** Extract useful local domain parmeters from "grid"
 C****
       integer :: J_0, J_1, J_0H, J_1H
@@ -737,7 +678,6 @@ C****
       debug=.false.
  
 C**** Initialize work array
-c      AREG_part(:,J_0H:J_1H,1:7) = 0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -872,24 +812,6 @@ C**** Save sea ice tracer amount
       END IF
       END DO
       END DO
-
-C**** Finish diagnostic accumulations into AREG (sum over j)
-c        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:7),
-c     &     AREG_SUM(1:SIZE(AREG,1),1:7),ALL=.TRUE.)
-c        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),1)
-c        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),2)
-c        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
-c     &      AREG_SUM(1:SIZE(AREG,1),3)
-c        AREG(1:SIZE(AREG,1),J_RSI)=AREG(1:SIZE(AREG,1),J_RSI)+
-c     &      AREG_SUM(1:SIZE(AREG,1),4)
-c        AREG(1:SIZE(AREG,1),J_SNOW)=AREG(1:SIZE(AREG,1),J_SNOW)+
-c     &      AREG_SUM(1:SIZE(AREG,1),5)
-c        AREG(1:SIZE(AREG,1),J_ACE1)=AREG(1:SIZE(AREG,1),J_ACE1)+
-c     &      AREG_SUM(1:SIZE(AREG,1),6)
-c        AREG(1:SIZE(AREG,1),J_ACE2)=AREG(1:SIZE(AREG,1),J_ACE2)+
-c     &      AREG_SUM(1:SIZE(AREG,1),7)
 
 C**** replicate ice values at the north pole
       IF (HAVE_NORTH_POLE) THEN

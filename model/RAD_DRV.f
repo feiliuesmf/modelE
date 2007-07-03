@@ -983,7 +983,6 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-c     *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       REAL*8, DIMENSION(NLOC_DIU_VAR,
@@ -1010,11 +1009,6 @@ c     *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 :: AIL_REQ_SUM(IM,LM)
       REAL*8 :: AIL_J50_SUM(IM,LM)
       REAL*8 :: AIL_J70_SUM(IM,LM)
-c      REAL*8 ::
-c     &     AREG_part(NREG,grid%J_STRT_HALO:grid%J_STOP_HALO,19)
-c      REAL*8 :: AREGSUM(NREG,19)
-      Integer :: idx1(7)
-      Integer :: idx2(19)
       character(len=300) :: out_line
 
 C
@@ -1205,8 +1199,6 @@ C**** SS clouds are considered as a block for each continuous cloud
 
       end if                    ! kradia le 0
 
-c      aregij = 0
-c      areg_part = 0
 C****
 C**** MAIN J LOOP
 C****
@@ -1362,10 +1354,6 @@ C**** effective cloud cover diagnostics
          AREGJ(JR,J,J_PCLDMC)=AREGJ(JR,J,J_PCLDMC)+CMC  *DXYP(J)
          AREGJ(JR,J,J_CLDDEP)=AREGJ(JR,J,J_CLDDEP)+DEPTH*DXYP(J)
          AREGJ(JR,J,J_PCLD)  =AREGJ(JR,J,J_PCLD)  +CLDCV*DXYP(J)
-c         AREGIJ(1,I,J)=AREGIJ(1,I,J)+CSS  *DXYP(J)
-c         AREGIJ(2,I,J)=AREGIJ(2,I,J)+CMC  *DXYP(J)
-c         AREGIJ(3,I,J)=AREGIJ(3,I,J)+DEPTH*DXYP(J)
-c         AREGIJ(4,I,J)=AREGIJ(4,I,J)+CLDCV*DXYP(J)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO L=1,LLOW
@@ -1967,12 +1955,7 @@ C**** Save clear sky/tropopause diagnostics here
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
       AREGJ(JR,J,J_TOTTRP)=AREGJ(JR,J,J_TOTTRP)+
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-c      AREGIJ(5,I,J)=AREGIJ(5,I,J)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
-c     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
-c      AREGIJ(6,I,J)=AREGIJ(6,I,J)+OPNSKY*
-c     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-c      AREGIJ(7,I,J)=AREGIJ(7,I,J)+
-c     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
+
 C**** Save cloud top diagnostics here
       if (CLDCV.le.0.) go to 590
       AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+plb(ltopcl+1)
@@ -2044,28 +2027,6 @@ C****   output data: really needed only if kradia=2
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
-C       delayed accumulation to preserve order of summation
-c         DO J=J_0,J_1
-c           AREG_part(:,J,:) = 0
-c         DO I=1,IMAXJ(J)
-c           JR=JREG(I,J)
-c           AREG_part(JR,J,1) = AREG_part(JR,J,1) + AREGIJ(1,I,J)
-c           AREG_part(JR,J,2) = AREG_part(JR,J,2) + AREGIJ(2,I,J)
-c           AREG_part(JR,J,3) = AREG_part(JR,J,3) + AREGIJ(3,I,J)
-c           AREG_part(JR,J,4) = AREG_part(JR,J,4) + AREGIJ(4,I,J)
-c           AREG_part(JR,J,5) = AREG_part(JR,J,5) + AREGIJ(5,I,J)
-c           AREG_part(JR,J,6) = AREG_part(JR,J,6) + AREGIJ(6,I,J)
-c           AREG_part(JR,J,7) = AREG_part(JR,J,7) + AREGIJ(7,I,J)
-c         END DO
-c         END DO
-c
-c         CALL GLOBALSUM(grid, AREG_PART(:,:,1:7), AREGSUM(:,1:7))
-c         idx1 = (/ J_PCLDSS, J_PCLDMC, J_CLDDEP, J_PCLD,
-c     &        J_CLRTOA, J_CLRTRP, J_TOTTRP /)
-c         AREG(:,idx1) = AREG(:,idx1) + AREGSUM(:,1:7)
-C
-c         AREG_part = 0 ! reset
-
          DIURN_partb=0.
          DO 780 J=J_0,J_1
          DXYPJ=DXYP(J)
@@ -2346,13 +2307,6 @@ c move this diag outside rad time step for improved averaging
 c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
-
-c         CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
-c         idx2 = (/ J_SRINCP0, J_SRNFP0, J_SRNFP1,
-c     &        J_SRINCG, J_HATM, J_SRNFG, J_HSURF, J_BRTEMP, J_TRINCG,
-c     *        J_TRNFP0,J_TRNFP1,(J_PLAVIS+i, i=0,7) /)
-c         AREG(:,idx2) = AREG(:,idx2) + AREGSUM
-
 
       CALL GLOBALSUM(grid, DIURN_partb, DIURNSUMb, ALL=.true.)
 

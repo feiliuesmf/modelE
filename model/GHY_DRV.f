@@ -792,8 +792,6 @@ c****
 
 
       real*8 qsat
-ccc hack for openMP: need temporary array
-c      real*8 aregij(9,im,jm)
       integer jr
 !@var qg rel. humidity at the ground, defined: total_evap = Cq V (qg-qs)
 !@var qg_nsat rel. humidity at non-saturated fraction of soil
@@ -820,12 +818,6 @@ c****
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
       real*8 qg_sat
-
-C**** Work array for regional diagnostic accumulation
-c      real*8, dimension(size(AREG,1),9) :: areg_sum
-c      real*8, DIMENSION(
-c     &        size(AREG,1),grid%J_STRT_HALO:grid%J_STOP_HALO,9 )
-c     &        :: AREG_PART
 
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
@@ -885,7 +877,6 @@ ccc set i,j - independent stuff for tracers
       call ghy_tracers_set_step
 #endif
 
-c      aregij = 0.
 c****
 c**** outside loop over j and i, executed once for each grid point
 c****
@@ -1256,57 +1247,6 @@ c**** update tracers
         END IF
 #endif
       END DO
-
-C***Initialize work array
-c      areg_part(:,:,1:9) = 0.
-c
-c      DO 825 J=J_0,J_1
-c      DO 825 I=1,IMAXJ(J)
-c         IF(FEARTH(I,J).LE.0.0)  GO TO 825
-c         JR=JREG(I,J)
-c         areg_part(jr,j,1 )=areg_part(jr,j,1 )+AREGIJ(1,I,J)
-c         areg_part(jr,j,2 )=areg_part(jr,j,2 )+AREGIJ(2,I,J)
-c         areg_part(jr,j,3 )=areg_part(jr,j,3 )+AREGIJ(3,I,J)
-c         areg_part(jr,j,4 )=areg_part(jr,j,4 )+AREGIJ(4,I,J)
-c         areg_part(jr,j,5 )=areg_part(jr,j,5 )+AREGIJ(5,I,J)
-c         areg_part(jr,j,6 )=areg_part(jr,j,6 )+AREGIJ(6,I,J)
-c         if( moddsf == 0 ) then
-c           areg_part(jr,j,7)=areg_part(jr,j,7 )+AREGIJ(7,I,J)
-c           areg_part(jr,j,8)=areg_part(jr,j,8 )+AREGIJ(8,I,J)
-c           areg_part(jr,j,9)=areg_part(jr,j,9 )+AREGIJ(9,I,J)
-c         end if
-c 825 CONTINUE
-
-
-c      call globalsum(grid,areg_part(1:size(areg,1),:,1:9),
-c     &    areg_sum(1:size(areg,1),1:9), all=.true.)
-c      areg(1:size(areg,1),j_trhdt)=areg(1:size(areg,1),j_trhdt)
-c     &    + areg_sum(1:size(areg,1),1)
-c
-c      areg(1:size(areg,1),j_shdt)=areg(1:size(areg,1),j_shdt)
-c     &    + areg_sum(1:size(areg,1),2)
-c
-c      areg(1:size(areg,1),j_evhdt)=areg(1:size(areg,1),j_evhdt)
-c     &    + areg_sum(1:size(areg,1),3)
-c
-c      areg(1:size(areg,1),j_evap)=areg(1:size(areg,1),j_evap)
-c     &    + areg_sum(1:size(areg,1),4)
-c
-c      areg(1:size(areg,1),j_erun)=areg(1:size(areg,1),j_erun)
-c     &    + areg_sum(1:size(areg,1),5)
-c
-c      areg(1:size(areg,1),j_run)=areg(1:size(areg,1),j_run)
-c     &    + areg_sum(1:size(areg,1),6)
-c
-c      areg(1:size(areg,1),j_tsrf)=areg(1:size(areg,1),j_tsrf)
-c     &    + areg_sum(1:size(areg,1),7)
-c
-c      areg(1:size(areg,1),j_tg1)=areg(1:size(areg,1),j_tg1)
-c     &    + areg_sum(1:size(areg,1),8)
-c
-c      areg(1:size(areg,1),j_tg2)=areg(1:size(areg,1),j_tg2)
-c     &    + areg_sum(1:size(areg,1),9)
-
 C
       return
       end subroutine earth
@@ -1400,7 +1340,6 @@ c***********************************************************************
       implicit none
       integer, intent(in) :: i,j,ns,moddsf,moddd
       real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg
-c      real*8, intent(out) :: aregij(:,:,:)
       type (t_pbl_args) :: pbl_args
       real*8, intent(in) :: dtsurf
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
@@ -1545,18 +1484,6 @@ c**** quantities accumulated for regions in diagj
         aregj(jr,j,j_tg2 ) =aregj(jr,j,j_tg2 ) + tg2av *ptype*dxyp(j)
       end if
 
-c!!! do something with regional diag !!!
-c      AREGIJ(1,I,J)  = trhdt*ptype*dxyp(j)
-c      AREGIJ(2,I,J)  = shdt*ptype*dxyp(j)
-c      AREGIJ(3,I,J)  = evhdt*ptype*dxyp(j)
-c      AREGIJ(4,I,J)  = aevap*ptype*dxyp(j)
-c      AREGIJ(5,I,J)  = (aeruns+aerunu)*ptype*dxyp(j)
-c      AREGIJ(6,I,J)  = (aruns+arunu)*ptype*dxyp(j)
-c      if ( moddsf == 0 ) THEN
-c        AREGIJ(7,I,J)  = (ts-tf)*ptype*dxyp(j)
-c        AREGIJ(8,I,J)  = tg1    *ptype*dxyp(j)
-c        AREGIJ(9,I,J)  = tg2av  *ptype*dxyp(j)
-c      end if
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+abetad/nisurf
@@ -2984,12 +2911,6 @@ c****
      *     ,pearth,enrgp,scove
       integer i,j,jr,k
 
-C**** Work array for regional diagnostic accumulation
-c      real*8, DIMENSION(size(AREG,1),6) :: areg_sum
-c      real*8, DIMENSION(
-c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,6 )
-c     &        :: AREG_PART
-
 C**** define local grid
       integer J_0, J_1, J_0H, J_1H
 
@@ -2999,8 +2920,6 @@ C****
       CALL GET(grid, J_STRT=J_0      , J_STOP=J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
-C***Initialize work array
-c     areg_part(:,J_0H:j_1H,1:6) = 0.
       do j=J_0,J_1
       do i=1,imaxj(j)
       pearth=fearth(i,j)
@@ -3069,22 +2988,6 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 c****
       end do
       end do
-
-c      call globalsum(grid,areg_part(1:size(areg,1),:,1:6),
-c     &    areg_sum(1:size(areg,1),1:6), all=.true.)
-c      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow)
-c     &    + areg_sum(1:size(areg,1),1)
-c      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow)
-c     &    + areg_sum(1:size(areg,1),2)
-c      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1)
-c     &    + areg_sum(1:size(areg,1),3)
-c      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1)
-c     &    + areg_sum(1:size(areg,1),4)
-c      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2)
-c     &    + areg_sum(1:size(areg,1),5)
-c      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2)
-c     &    + areg_sum(1:size(areg,1),6)
-
 
       end subroutine ground_e
 
@@ -4032,16 +3935,9 @@ c**** wearth+aiearth are used in radiation only
       real*8 fbv(2),wsn(3),hsn(3),dzsn(3),fr_snow,wsn_tot,d_wsn,eta
       real*8 dw,dh   ! ,tot0
       integer ibv,nsn,JR
-c      REAL*8  :: AREG_SUM(size(AREG,1),2)
-c      REAL*8, DIMENSION(
-c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,2 )
-c     &        :: AREG_PART
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1
      &        ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
-
-C**** Initialize work array
-c      AREG_PART(:,J_0H:J_1H,1:2) = 0.
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -4102,10 +3998,6 @@ c     *         w_ij(0:ngm,3,i,j) )*rhow
      &             AREGJ(JR,J,J_IMPLH) + dh*fearth(i,j)*DXYP(j)
               AREGJ(JR,J,J_IMPLM) =
      &             AREGJ(JR,J,J_IMPLM) + dw*fearth(i,j)*DXYP(j)
-c              AREG_PART(JR,J,1) =
-c     &             AREG_PART(JR,J,1) + dh*fearth(i,j)*DXYP(j)
-c              AREG_PART(JR,J,2) =
-c     &             AREG_PART(JR,J,2) + dw*fearth(i,j)*DXYP(j)
 
               !print *,"remove_extra_snow", i,j,ibv,wsn_tot,eta,dw,dh
 
@@ -4120,14 +4012,5 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 
         enddo
       enddo
-
-c      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:2),
-c     &  AREG_SUM(1:SIZE(AREG,1),1:2), ALL=.TRUE.)
-c
-c      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
-c     &   + AREG_SUM(1:SIZE(AREG,1),1)
-c      AREG(1:SIZE(AREG,1),J_IMPLM)  =AREG(1:SIZE(AREG,1),J_IMPLM)
-c     &   + AREG_SUM(1:SIZE(AREG,1),2)
-
 
       end subroutine remove_extra_snow_to_ocean

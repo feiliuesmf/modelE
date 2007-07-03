@@ -155,8 +155,6 @@ C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
 !@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use
 !@+        of common block OOBS in MODULE STATIC_OCEAN
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-c      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
-c      REAL*8 :: gsum(NREG,1)
 
       INTEGER :: J_0,J_1
       LOGICAL :: HAVE_NORTH_POLE
@@ -457,7 +455,6 @@ C**** Interpolate the mixed layer depth z1o to the current day and
 C**** limit it to the annual maxmimal mixed layer depth z12o
       FRAC = REAL(JDmidOFM(IMON)-JDAY,KIND=8)/
      a           (JDmidOFM(IMON)-JDmidOFM(IMON-1))
-c      areg_part = 0
 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
@@ -511,14 +508,6 @@ C**** update heat and salt
       END IF
       END DO
       END DO
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
-c     &  gsum(1:NREG,1)
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
-c     &  gsum(1:NREG,1)
 
       RETURN
       END SUBROUTINE OCLIM
@@ -887,12 +876,8 @@ C****
      *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
       INTEGER I,J,JR
       INTEGER :: J_0,J_1
-c      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
-c      REAL*8 :: gsum(NREG,1)
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
-
-c      areg_part = 0
 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
@@ -948,14 +933,6 @@ C**** Additional mass (precip) is balanced by deep removal
         END IF
       END DO
       END DO
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
-c     &  gsum(1:NREG,1)
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
-c     &  gsum(1:NREG,1)
 
       RETURN
 C****
@@ -999,12 +976,9 @@ C**** output from OSOURC
 
       INTEGER I,J,JR
       INTEGER :: J_0,J_1
-c      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
-c      REAL*8 :: gsum(NREG,1)
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
-c      areg_part = 0
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -1081,14 +1055,7 @@ C**** store surface temperatures
         END IF
       END DO
       END DO
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
-c     &  gsum(1:NREG,1)
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
-c     &  gsum(1:NREG,1)
+
       RETURN
 C****
       END SUBROUTINE OCEANS
@@ -1116,13 +1083,10 @@ C****
       INTEGER I,J,JR
       REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
       INTEGER :: J_0,J_1
-c      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
-c      REAL*8 :: gsum(NREG,1)
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       IF (KOCEAN.ge.1) THEN     ! qflux model
-c        areg_part = 0
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -1194,14 +1158,6 @@ C**** regional diagnostics
         END IF
       END DO
       END DO
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
-c     &  gsum(1:NREG,1)
-c      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH),
-c     &  gsum(1:NREG,1:1))
-c      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
-c     &  gsum(1:NREG,1)
       END IF
 
       RETURN

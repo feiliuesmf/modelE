@@ -244,7 +244,6 @@ Cred*                   end Reduced Arrays 1
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
 CRKF...FIX
       REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) !,
-c     *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
@@ -253,11 +252,6 @@ c     *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
-c      REAL*8, DIMENSION(
-c     &        size(AREG,1), 3)  :: AREG_SUM
-c      REAL*8, DIMENSION(
-c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
-c     &        :: AREG_part
 
 #ifndef NO_HDIURN
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
@@ -1522,31 +1516,6 @@ C**** Accumulate AISCCP array
      &     AISCCPSUM(1:ntau,1:npres,1:nisccp))
       AISCCP(1:ntau,1:npres,1:nisccp) = AISCCP(1:ntau,1:npres,1:nisccp)
      *     +AISCCPSUM(1:ntau,1:npres,1:nisccp)
-
-C****Accumulate diagnostics into AREG in a way that insures bitwise
-C    identical results regardless of number of distributed processes used.
-c      AREG_part(:,J_0H:J_1H,1:3) = 0
-c      DO J=J_0,J_1
-c      DO I=1,IMAXJ(J)
-c         JR=JREG(I,J)
-c         IF(LMC(1,I,J).GT.0)
-c     *     AREG_part(JR,J,1)=AREG_part(JR,J,1)+AREGIJ(I,J,1)
-c         AREG_part(JR,J,2)=AREG_part(JR,J,2)+AREGIJ(I,J,2)
-c         AREG_part(JR,J,3) =AREG_part(JR,J,3) +AREGIJ(I,J,3)
-c      END DO
-c      END DO
-
-
-c      CALL GLOBALSUM(GRID, AREG_part(1:SIZE(AREG,1),:,1:3),
-c     &   AREG_SUM(1:SIZE(AREG,1), 1:3), ALL=.TRUE.)
-c      AREG(1:SIZE(AREG,1),J_PRCPMC) =
-c     &   AREG(1:SIZE(AREG,1),J_PRCPMC) + AREG_SUM(1:SIZE(AREG,1),1)
-c
-c      AREG(1:SIZE(AREG,1),J_PRCPSS) =
-c     &   AREG(1:SIZE(AREG,1),J_PRCPSS) + AREG_SUM(1:SIZE(AREG,1),2)
-c
-c      AREG(1:SIZE(AREG,1),J_EPRCP ) =
-c     &   AREG(1:SIZE(AREG,1),J_EPRCP ) + AREG_SUM(1:SIZE(AREG,1),3)
 
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX3

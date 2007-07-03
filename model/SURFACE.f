@@ -218,12 +218,6 @@ c
     (defined TRACERS_QUARZHEM)
       REAL*8,DIMENSION(n_idxd, NDIUPT) :: DIURNSUMd
 #endif
-c      INTEGER, PARAMETER :: n_areg = 7
-c      REAL*8, DIMENSION(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,n_areg)::
-c     *     AREG_part
-c      REAL*8 :: AREGSUM(NREG,n_areg)
-c      INTEGER :: idx_areg(n_areg)
-
       INTEGER :: J_0, J_1, J_0H, J_1H
 
 C****
@@ -266,7 +260,6 @@ C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
       DO NS=1,NIsurf
-c         AREG_part = 0.
          MODDSF=MOD(NSTEPS+NS-1,NDASF*NIsurf+1)
          IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
          MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
@@ -1045,16 +1038,7 @@ C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
           AREGJ(JR,J,J_TG1 )=AREGJ(JR,J,J_TG1 )+    TG1*PTYPE*DXYP(J)
           AREGJ(JR,J,J_TG2 )=AREGJ(JR,J,J_TG2 )+    TG2*PTYPE*DXYP(J)
         END IF
-c        AREG_part(JR,J,1)=AREG_part(JR,J,1)+TRHDT*PTYPE*DXYP(J)
-c        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SHDT *PTYPE*DXYP(J)
-c        AREG_part(JR,J,3)=AREG_part(JR,J,3)+EVHDT*PTYPE*DXYP(J)
-c        AREG_part(JR,J,4)=AREG_part(JR,J,4)+EVAP *PTYPE*DXYP(J)
-c        IF(MODDSF.EQ.0) THEN
-c          AREG_part(JR,J,5)=AREG_part(JR,J,5)+(TS-TF)*PTYPE*DXYP(J)
-c          AREG_part(JR,J,6)=AREG_part(JR,J,6)+    TG1*PTYPE*DXYP(J)
-c          AREG_part(JR,J,7)=AREG_part(JR,J,7)+    TG2*PTYPE*DXYP(J)
-c        END IF
-C
+
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
         AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDT*PTYPE
         IF(MODDSF.EQ.0) THEN
@@ -1365,11 +1349,6 @@ C****
 
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
-
-c      idx_areg = (/ J_TRHDT, J_SHDT, J_EVHDT, J_EVAP, J_TSRF,
-c     &     J_TG1, J_TG2 /)
-c      CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
-c      AREG(:,idx_areg) = AREG(:,idx_areg) + AREGSUM
 
       CALL GLOBALSUM(grid, DIURN_part, DIURNSUM)
 

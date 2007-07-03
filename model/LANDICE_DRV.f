@@ -58,11 +58,13 @@ C**** set GTEMP array for landice
           IF (FLICE(I,J).gt.0) THEN
             GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
 #ifdef TRACERS_WATER
+            if (istart.ge.9) then
             IF (SNOWLI(I,J).gt.1d-5) THEN
               GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
             ELSE
               GTRACER(:,3,I,J)=TRLNDI(:,I,J)/(ACE1LI+ACE2LI)
             END IF
+            end if
 #endif
           END IF
         END DO
@@ -249,19 +251,12 @@ C****
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-c      REAL*8  :: AREG_SUM(size(AREG,1),4)
-c      REAL*8, DIMENSION(
-c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,4 )
-c     &        :: AREG_PART
 C**** Get useful grid parameters
       INTEGER :: I, J, JR
       INTEGER :: J_0, J_1, J_0H, J_1H
 
       CALL GET(GRID,J_STRT=J_0      , J_STOP=J_1      ,
      &              J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-
-C**** Initialize work array
-c      AREG_PART(:,J_0H:J_1H,1:4)=0.
 
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
@@ -329,16 +324,6 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
       END DO
       END DO
 
-C**** Finish summing and store total accumulations into AREG.
-c      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:4),
-c     &   AREG_SUM(1:SIZE(AREG,1),1:4), ALL=.TRUE.)
-c      AREG(1:SIZE(AREG,1),J_RUN  )=AREG(1:SIZE(AREG,1),J_RUN)
-c     &   + AREG_SUM(1:SIZE(AREG,1),1)
-c      AREG(1:SIZE(AREG,1),J_IMPLM)=AREG(1:SIZE(AREG,1),J_IMPLM)
-c     &   + AREG_SUM(1:SIZE(AREG,1),3)
-c      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
-c     &   + AREG_SUM(1:SIZE(AREG,1),4)
-
       END SUBROUTINE PRECIP_LI
 
       SUBROUTINE GROUND_LI
@@ -391,19 +376,11 @@ c     &   + AREG_SUM(1:SIZE(AREG,1),4)
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-c      REAL*8  :: AREG_SUM(size(AREG,1),9)
-c      REAL*8, DIMENSION(
-c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,9 )
-c     &        :: AREG_PART
-
       INTEGER I,J,JR
       INTEGER :: J_0,J_1, J_0H, J_1H
 
       CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1
      &             ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
-
-C**** Initialize work array
-c      AREG_PART(:,J_0H:J_1H,1:9) = 0.
 
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
@@ -507,29 +484,6 @@ C**** Accumulate diagnostics related to iceberg flux here also
 C****
       END DO
       END DO
-
-c      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:9),
-c     &  AREG_SUM(1:SIZE(AREG,1),1:9), ALL=.TRUE.)
-c
-c      AREG(1:SIZE(AREG,1),J_RSNOW)=AREG(1:SIZE(AREG,1),J_RSNOW)
-c     &   + AREG_SUM(1:SIZE(AREG,1),1)
-c      AREG(1:SIZE(AREG,1),J_RUN)  =AREG(1:SIZE(AREG,1),J_RUN)
-c     &   + AREG_SUM(1:SIZE(AREG,1),2)
-c      AREG(1:SIZE(AREG,1),J_SNOW) =AREG(1:SIZE(AREG,1),J_SNOW)
-c     &   + AREG_SUM(1:SIZE(AREG,1),3)
-c      AREG(1:SIZE(AREG,1),J_ACE1) =AREG(1:SIZE(AREG,1),J_ACE1)
-c     &   + AREG_SUM(1:SIZE(AREG,1),4)
-c      AREG(1:SIZE(AREG,1),J_ACE2) =AREG(1:SIZE(AREG,1),J_ACE2)
-c     &   + AREG_SUM(1:SIZE(AREG,1),5)
-c      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
-c     &   + AREG_SUM(1:SIZE(AREG,1),6)
-c      AREG(1:SIZE(AREG,1),J_IMPLM)=AREG(1:SIZE(AREG,1),J_IMPLM)
-c     &   + AREG_SUM(1:SIZE(AREG,1),7)
-c      AREG(1:SIZE(AREG,1),J_RVRD) = AREG(1:SIZE(AREG,1),J_RVRD)
-c     &   + AREG_SUM(1:SIZE(AREG,1),8)
-c      AREG(1:SIZE(AREG,1),J_ERVR) = AREG(1:SIZE(AREG,1),J_ERVR)
-c     &   + AREG_SUM(1:SIZE(AREG,1),9)
-
 
       END SUBROUTINE GROUND_LI
 
