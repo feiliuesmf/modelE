@@ -763,10 +763,6 @@ C****
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
-c      REAL*8,
-c     & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-c     & :: AREG_part
-c      REAL*8 :: AREGSUM(size(areg,1),2)
 !@var URATE upstream fractional rate of river flow per time step
 !@+         (only for special case)
       REAL*8 :: URATE = 1d-6  ! roughly 10 day e-folding time
@@ -810,8 +806,6 @@ C****
       CALL HALO_UPDATE_COLUMN(grid,  TRLAKE(:,1,:,:),NORTH+SOUTH)
       CALL HALO_UPDATE(grid,  TAIJN(:,:,TIJ_RVR,:),FROM=NORTH+SOUTH)
 #endif
-
-c      AREG_part = 0.
 
 C**** Calculate fluxes downstream if lake mass is above sill height (HLAKE (m))
 C**** Also allow flow into ocean fraction of same box if KDIREC=0
@@ -942,9 +936,7 @@ C**** accumulate river runoff diags (moved from ground)
               END IF
               JR=JREG(ID,JD)
               AREGJ(JR,JD,J_RVRD)=AREGJ(JR,JD,J_RVRD)+DMM
-c              AREG_part(JR,JD,1)=AREG_part(JR,JD,1)+DMM
               AREGJ(JR,JD,J_ERVR)=AREGJ(JR,JD,J_ERVR)+DGM+DPE
-c              AREG_part(JR,JD,2)=AREG_part(JR,JD,2)+DGM+DPE
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
 #ifdef TRACERS_WATER
@@ -955,13 +947,6 @@ c              AREG_part(JR,JD,2)=AREG_part(JR,JD,2)+DGM+DPE
           END IF
         END DO
       END DO
-
-c      CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
-c     &     AREGSUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
-c      AREG(1:SIZE(AREG,1),J_RVRD)=AREG(1:SIZE(AREG,1),J_RVRD)+
-c     &      AREGSUM(1:SIZE(AREG,1),1)
-c      AREG(1:SIZE(AREG,1),J_ERVR)=AREG(1:SIZE(AREG,1),J_ERVR)+
-c     &      AREGSUM(1:SIZE(AREG,1),2)
 
 C****
 C**** Apply net river flow to continental reservoirs
@@ -1288,15 +1273,8 @@ C****
      *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
      &     ,tottr(ntm)
 #endif
-C****Work array for regional diagnostic accumulation
-c      REAL*8 :: AREG_SUM(size(AREG,1),2)
-c      REAL*8, DIMENSION(
-c     &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,2)
-c     &       :: AREG_part
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-C**** Initialize work array
-c      AREG_part(:,J_0:J_1,1:2) = 0.
 
 C**** Experimental code: not yet fully functional
 C**** Update lake fraction as a function of lake mass at end of day
@@ -1473,8 +1451,6 @@ C**** Accumulate regional diagnostics
      *                 *DXYP(J)
                   AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+PLKIC*HMLT
      *                 *DXYP(J)
-c                  AREG_part(JR,J,1)=AREG_part(JR,J,1)+PLKIC*IMLT*DXYP(J)
-c                  AREG_part(JR,J,2)=AREG_part(JR,J,2)+PLKIC*HMLT*DXYP(J)
 C****
                   RSI(I,J)=0.
                   SNOWI(I,J)=0.
@@ -1493,14 +1469,6 @@ C****
           END IF
         END DO
       END DO
-
-C**** Finish accumulation of regional diagnostics (...sum along j)
-c      CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
-c     &     AREG_SUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
-c      AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
-c     &     AREG_SUM(1:SIZE(AREG,1),1)
-c      AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
-c     &     AREG_SUM(1:SIZE(AREG,1),2)
 
       end if
 C****
@@ -1660,10 +1628,6 @@ C**** grid box variables
 C**** fluxes
       REAL*8 EVAPO, FIDT, FODT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
      *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2, U2RHO
-c      REAL*8,
-c     & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-c     & :: AREG_part
-c      REAL*8  :: AREGSUM(size(areg,1),2)
 C**** output from LKSOURC
       REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
 #ifdef TRACERS_WATER
@@ -1679,7 +1643,6 @@ C**** output from LKSOURC
 
       CALL PRINTLK("GR")
 
-c      AREG_part=0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       JR=JREG(I,J)
@@ -1817,10 +1780,8 @@ C**** Ice-covered ocean diagnostics
 C**** regional diags
         AREGJ(JR,J,J_WTR1)=AREGJ(JR,J,J_WTR1)+
      *       MLAKE(1)*FLAKE(I,J)*DXYP(J)
-c        AREG_part(JR,J,1)=AREG_part(JR,J,1)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
         AREGJ(JR,J,J_WTR2)=AREGJ(JR,J,J_WTR2)+
      *       MLAKE(2)*FLAKE(I,J)*DXYP(J)
-c        AREG_part(JR,J,2)=AREG_part(JR,J,2)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
 #ifdef TRACERS_WATER
 C**** tracer diagnostics
         TAIJN(I,J,tij_lk1,:)=TAIJN(I,J,tij_lk1,:)+TRLAKEL(:,1) !*PLKICE?
@@ -1840,13 +1801,6 @@ C**** Store mass and energy fluxes for formation of sea ice
       END IF
       END DO  ! i loop
       END DO  ! j loop
-
-c      CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
-c     &     AREGSUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
-c      AREG(1:SIZE(AREG,1),J_WTR1)=AREG(1:SIZE(AREG,1),J_WTR1)+
-c     &      AREGSUM(1:SIZE(AREG,1),1)
-c      AREG(1:SIZE(AREG,1),J_WTR2)=AREG(1:SIZE(AREG,1),J_WTR2)+
-c     &      AREGSUM(1:SIZE(AREG,1),2)
 
       CALL PRINTLK("G2")
 

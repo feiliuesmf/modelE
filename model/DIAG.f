@@ -146,10 +146,7 @@ C**** Some local constants
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP
-c      REAL*8,
-c     & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-c     & :: AREG_part
-c      REAL*8 :: AREGSUM(size(areg,1),2)
+
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
@@ -255,7 +252,6 @@ C****
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
-c      AREG_part=0.
       DO J=J_0,J_1
         DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
@@ -351,13 +347,7 @@ C**** END AMIP
         END DO
       END DO
 
-c      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:1),
-c     &    AREGSUM(1:size(AREG,1),1:1),ALL=.TRUE.)
-c      AREG(1:size(AREG,1),J_TX1)=AREG(1:size(AREG,1),J_TX1)
-c     &  +AREGSUM(1:size(AREG,1),1)
-
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
-c      AREG_part = 0.
       DO J=J_0,J_1
         DXYPJ=DXYP(J)
         DO L=1,LM
@@ -380,10 +370,6 @@ c      AREG_part = 0.
      *           ))*PIJ*DSIG(L)*DXYPJ
             AREGJ_LOC(JR,J,J_TX)=AREGJ_LOC(JR,J,J_TX)+(TX(I,J,L)-TF)
      *           *DBYSD*DXYPJ
-c            AREG_part(JR,J,1)=AREG_part(JR,J,1)+(Q(I,J,L)+WM(I,J,L))*
-c     *                        PIJ*DSIG(L)*DXYPJ
-c            AREG_part(JR,J,2)=AREG_part(JR,J,2)+
-c     *                        (TX(I,J,L)-TF)*DBYSD*DXYPJ
             TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
             PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
             SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
@@ -392,13 +378,6 @@ c     *                        (TX(I,J,L)-TF)*DBYSD*DXYPJ
           AJL(J,L,JL_DTDYN)=AJL(J,L,JL_DTDYN)+THI-TJL0(J,L)
         END DO
       END DO
-
-c      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:2),
-c     &   AREGSUM(1:size(AREG,1),1:2),ALL=.TRUE.)
-c      AREG(1:size(AREG,1),J_QP)=AREG(1:size(AREG,1),J_QP)
-c     &   +AREGSUM(1:size(AREG,1),1)
-c      AREG(1:size(AREG,1),J_TX)=AREG(1:size(AREG,1),J_TX)
-c     &   +AREGSUM(1:size(AREG,1),2)
 
 C****
 C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
@@ -428,7 +407,6 @@ C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
 C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
 C****
-c      AREG_part=0.
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
@@ -439,7 +417,6 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
           AJ(J,J_DTDGTR,IT)=AJ(J,J_DTDGTR,IT)+SS*FTYPE(IT,I,J)
         END DO
         AREGJ_LOC(JR,J,J_DTDGTR)=AREGJ_LOC(JR,J,J_DTDGTR)+SS*DXYPJ
-c        AREG_part(JR,J,1)=AREG_part(JR,J,1)+SS*DXYPJ
         AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
       END DO
 C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
@@ -451,7 +428,6 @@ C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
           AJ(J,J_DTSGST,IT)=AJ(J,J_DTSGST,IT)+SS*FTYPE(IT,I,J)
         END DO
         AREGJ_LOC(JR,J,J_DTSGST)=AREGJ_LOC(JR,J,J_DTSGST)+SS*DXYPJ
-c        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SS*DXYPJ
       END DO
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
@@ -474,13 +450,6 @@ C****
       PHIRI=PHIRI+RGAS*.5*(TRI(2)+TRI(3))*DLNP23
       ASJL(J,3,2)=ASJL(J,3,2)+PHIRI
       END DO
-
-c      CALL GLOBALSUM(grid,AREG_part(1:size(AREG,1),:,1:2),
-c     &   AREGSUM(1:size(AREG,1),1:2),ALL=.TRUE.)
-c      AREG(1:size(AREG,1),J_DTDGTR)=AREG(1:size(AREG,1),J_DTDGTR)
-c     &    +AREGSUM(1:size(AREG,1),1)
-c      AREG(1:size(AREG,1),J_DTSGST)=AREG(1:size(AREG,1),J_DTSGST)
-c     &    +AREGSUM(1:size(AREG,1),2)
 
 C****
 C**** RICHARDSON NUMBER , ROSSBY NUMBER , RADIUS OF DEFORMATION
