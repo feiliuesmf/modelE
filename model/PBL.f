@@ -14,12 +14,10 @@
      &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo
       USE SEAICE, only : tfrez
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,trname,trradius
-#ifdef TRACERS_GASEXCH_Natassa
-     .     ,tr_mm
-#endif
-#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm,trname,trradius,tr_mm
      &     ,tr_wd_TYPE, nWATER
+#ifdef TRACERS_SPECIAL_O18
+     *     ,iso_index, n_water
 #endif
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
@@ -160,6 +158,7 @@ c**** output
 !@var gs_vel gravitational settling velocity (m/s)
         real*8, dimension(ntm) :: dep_vel,gs_vel
 #endif
+
 #ifdef TRACERS_WATER
 !@var tr_evap_max maximum amount of tracer available in ground reservoir
         real*8, dimension(ntm) :: tr_evap_max
@@ -381,6 +380,7 @@ C****
 #ifdef TRACERS_WATER
 #ifdef TRACERS_SPECIAL_O18
       real*8 :: trc1,trs1   ! could be passed out....
+      real*8 :: fac_cq_tr(ntm)
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
@@ -489,6 +489,9 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+#ifdef TRACERS_SPECIAL_O18
+     *             fac_cq_tr,
+#endif 
      3             km,kh,kq,dzh,itype,n)
 #ifdef TRACERS_ON
         kqsave=kq
@@ -633,6 +636,7 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
 C**** get fractionation for isotopes
           call get_frac(itype,wsm,tg1,q(1),qgrnd_sat
      &         ,trname(pbl_args%ntix(itr)),trc1,trs1)
+c          print*,"fac_cq",fac_cq_tr(itr),trc1,trs1
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
 #endif
@@ -989,6 +993,9 @@ c**** copy output to pbl_args
 
       subroutine stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+#ifdef TRACERS_SPECIAL_O18
+     *                 fac_cq_tr,
+#endif 
      3                 km,kh,kq,dzh,itype,n)
 !@sum computes USTAR,TSTAR and QSTAR
 !@+   Momentum flux = USTAR*USTAR
@@ -1010,6 +1017,10 @@ c**** copy output to pbl_args
       real*8, intent(inout) :: z0m
       real*8, intent(out) :: ustar,tstar,qstar,lmonin
       real*8, intent(out) :: z0h,z0q,cm,ch,cq
+#ifdef TRACERS_SPECIAL_O18
+      real*8, intent(out) :: fac_cq_tr(ntm)
+#endif 
+
 
       real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
 
@@ -1040,8 +1051,12 @@ c**** copy output to pbl_args
 
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
       if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
-c     To compute the drag coefficient,Stanton number and Dalton number
-      call dflux(lmonin,ustar,vel1,z0m,z0h,z0q,zgs,cm,ch,cq,itype)
+c**** To compute the drag coefficient,Stanton number and Dalton number
+      call dflux(lmonin,ustar,vel1,z0m,z0h,z0q,zgs,cm,ch,cq,
+#ifdef TRACERS_SPECIAL_O18
+     *     fac_cq_tr,
+#endif 
+     *     itype)
 
       return
       end subroutine stars
@@ -1146,13 +1161,18 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       return
       end subroutine getl
 
-      subroutine dflux(lmonin,ustar,vsurf,z0m,z0h,z0q,zgs,
-     2                 cm,ch,cq,itype)
+      subroutine dflux(lmonin,ustar0,vsurf,z0m,z0h,z0q,zgs,
+     *                 cm,ch,cq,
+#ifdef TRACERS_SPECIAL_O18
+     *                 fac_cq_tr,
+#endif 
+     *                 itype)
 !@sum   dflux computes (dimensionless) surface fluxes of momemtun,
 !@+     heat and moisture (drag coefficient, Stanton number,
 !@+     and Dalton number)
 !@+     Now with explicit Sc and Pr number dependence
-!@auth  Ye Cheng/G. Hartke
+!@+     and flexibility for water isotopes
+!@auth  Ye Cheng/G. Hartke (mods by G. Schmidt)
 !@ver   1.0
 !@var lmonin = Monin-Obukhov length (m)
 !@var ustar  = friction speed (sqrt of surface momentum flux) (m/sec)
@@ -1168,69 +1188,135 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var z0q   = roughness length for water vapor (m)
 !@var Sc    = Schmidt (no relation) number (visc_air_kin/diff)
 !@var Pr    = Prandtl number (visc_air_kin/therm_diff)
+!@var fac_cq_tr = ratio of cq for water isotopes = f(Sc_tr)
 cgav  use constant, only :: nu=>visc_air_kin
       implicit none
 
-      real*8,  intent(in) :: lmonin,ustar,vsurf,zgs
+      real*8,  intent(in) :: lmonin,ustar0,vsurf,zgs
       integer,  intent(in) :: itype
       real*8,  intent(inout) :: z0m
       real*8,  intent(out) :: cm,ch,cq,z0h,z0q
+#ifdef TRACERS_SPECIAL_O18
+      real*8, intent(out) :: fac_cq_tr(ntm)
+      real*8 :: cq_tr(ntm),z0q_tr(ntm),Sc_tr
+      integer :: itr
+      INTEGER, PARAMETER :: NTSPM=5
+!@var ZDIFREL = inverse ratio of diffusion coeffs w.r.t normal water
+      real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0285d0, 1.0251d0, 1.0331d0,
+     *     1.014663d0/)   ! MJ78
+c      real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0319d0, 1.0164d0, 1.0319d0,
+c     *     1.016399d0/)   ! Cappa et al 2003
+#endif
 
       real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,
+#ifdef PBL_E1
      *     nuh=0.395d0*nu, nuq=0.624d0*nu,
+#else
+c**** more accurate nuh, nuq assuming Sc and Pr so that this is
+c**** consistent with formula in getzhq. Note '0.624' is for Sc=0.6.
+c     *     nuh=0.39522377113362589d0*nu,  nuq=0.63943320118296587d0*nu,
      *     Sc=0.595d0, Pr=0.71d0
-
-      real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
-     *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
-     *     ,lzgsbyz0h,lzgsbyz0q,X !nu ,nu_smooth,fac_rough
-C**** functional dependence on Sc,Pr for smooth, rough surfaces
-!nu   nu_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
-!nu   fac_rough(X) = -7.3d0*kappa*sqrt(X)
+#endif
+      real*8 dm,ustar
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
-c  Compute roughness lengths using rough surface formulation:
+        ustar = max(ustar0,1.0125d-5)  ! make sure not too small
+
+c Compute roughness lengths using smooth/rough surface formulation:
+
 cgav    z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
-        z0m=num/ustar+0.018d0*ustar*ustar*bygrav
-        if (z0m.gt.0.2d0) z0m=0.2d0
-c       if (ustar.le.0.02d0) then
-          z0h=nuh/ustar + 1.4d-5
-cgav      z0h=nu_smooth(Pr)/ustar + 1.4d-5
-          if (z0h.gt.0.5852d0) z0h=0.5852d0
-          z0q=nuq/ustar + 1.3d-4
-cgav      z0q=nu_smooth(Sc)/ustar + 1.3d-4
-          if (z0q.gt.0.92444d0) z0q=0.92444d0
-c         else
-c         r0q=(ustar*z0m/nu)**0.25d0
-c         z0h=7.4*z0m*exp(fac_rough(Pr)*r0q)
-c         z0q=7.4*z0m*exp(fac_rough(Sc)*r0q)
-c         if (ustar.lt.0.2d0) then
-c           beta=(ustar-0.02d0)/0.18d0
-c           z0h=(1.-beta)*nu_smooth(Pr)/ustar+beta*z0h
-c           z0q=(1.-beta)*nu_smooth(Sc)/ustar+beta*z0q
-c         endif
-c       endif
-c *********************************************************************
+        z0m=num/ustar+0.018d0*ustar*ustar*bygrav ! Harkte and Rind (1996)
+
+#ifdef PBL_E1
+        z0h=nuh/ustar + 1.4d-5
+        z0q=nuq/ustar + 1.3d-4
+#else
+        call getzhq(ustar,z0m,Pr,nu,1.4d-5,z0h)  ! heat
+        call getzhq(ustar,z0m,Sc,nu,1.3d-4,z0q)  ! vapour
+#endif
+
+#ifdef TRACERS_SPECIAL_O18
+C**** calculate different z0q for different diffusivities
+          do itr=1,ntm
+            if (tr_wd_TYPE(itr).eq.nWater) then
+              Sc_tr=Sc*ZDIFREL(iso_index(itr))
+              call getzhq(ustar,z0m,Sc_tr,nu,1.3d-4,z0q_tr(itr))
+            end if
+          end do
+#endif          
+
       else
 c *********************************************************************
 c  For land and land ice, z0m is specified. For z0h and z0q,
 c    empirical evidence suggests:
         z0h=z0m*.13533528d0    ! = exp(-2.)
         z0q=z0h
+#ifdef TRACERS_SPECIAL_O18
+        z0q_tr(:)=z0q
+#endif
 c *********************************************************************
       endif
 
+      call getcm(zgs,z0m,lmonin,dm,cm)
+      call getchq(zgs,z0m,lmonin,dm,z0h,ch)
+      call getchq(zgs,z0m,lmonin,dm,z0q,cq)
+
+#ifdef TRACERS_SPECIAL_O18
+      do itr=1,ntm
+        if (tr_wd_TYPE(itr).eq.nWater)
+     *       call getchq(zgs,z0m,lmonin,dm,z0q_tr(itr),cq_tr(itr))
+      end do
+      do itr=1,ntm
+        if (tr_wd_TYPE(itr).eq.nWater)
+     *       fac_cq_tr(itr)=cq_tr(itr)/cq_tr(n_Water) 
+      end do
+#endif
+
+      return
+      end subroutine dflux
+
+      subroutine getzhq(ustar,z0m,ScPr,nu,z0min,z0hq)
+!@sum calculate z0hq heat/humidity roughness length
+!@+   modified from eqs 5.24, 5.27 and 5.35 in Brutsaert (1982) 
+      implicit none
+      real*8, intent(in) :: ustar,z0m,ScPr,z0min,nu
+      real*8, intent(out) :: z0hq
+      real*8, parameter :: z0=0.00023d0 ! rough limit (m)
+      real*8 r0q,beta,fac_smooth,fac_rough,X
+
+C**** functional dependence on Sc,Pr for smooth, rough surfaces
+      fac_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
+      fac_rough(X) = -7.3d0*kappa*sqrt(X)
+
+c      if (ustar.le.0.02d0) then  ! smooth regime
+         z0hq=nu*fac_smooth(ScPr)/ustar + z0min
+c      else    ! rough regime
+c        r0q=sqrt(sqrt(ustar*z0/nu))
+c        z0hq=7.4d0*z0*exp(fac_rough(ScPr)*r0q)
+c        if (ustar.lt.0.2d0) then ! intermediate regime (lin. interp.)
+c          beta=(ustar-0.02d0)/0.18d0
+c          z0hq=(1.-beta)*(nu*fac_smooth(ScPr)/ustar+z0min)+beta*z0hq
+c        endif
+c      endif
+
+      return
+      end subroutine getzhq
+
+      subroutine getcm(zgs,z0m,lmonin,dm,cm)
+!@sum calculate cm drag coefficient for momentum
+!@+   Hartke and Rind (1997)
+      implicit none
+      real*8, intent(in) :: zgs,z0m,lmonin
+      real*8, intent(out) :: dm,cm
+
+      real*8 zgsbyl,z0mbyl,cmn,dpsim,xms,xm0,lzgsbyz0m
+
       lzgsbyz0m = log(zgs/z0m)
-      lzgsbyz0h = log(zgs/z0h)
-      lzgsbyz0q = log(zgs/z0q)
       cmn=kappa*kappa/(lzgsbyz0m**2)
-      chn=kappa*kappa/(lzgsbyz0m*lzgsbyz0h)
-      cqn=kappa*kappa/(lzgsbyz0m*lzgsbyz0q)
 
       zgsbyl=zgs/lmonin
       z0mbyl=z0m/lmonin
-      z0hbyl=z0h/lmonin
-      z0qbyl=z0q/lmonin
 
 c *********************************************************************
 c  Now compute DPSI, which is the difference in the psi functions
@@ -1241,43 +1327,71 @@ c *********************************************************************
 c *********************************************************************
 c  Here the atmosphere is stable with respect to the ground:
         dpsim=-gamams*(zgsbyl-z0mbyl)
-        dpsih= sigma1*lzgsbyz0h-sigma*gamahs*(zgsbyl-z0hbyl)
-        dpsiq= sigma1*lzgsbyz0q-sigma*gamahs*(zgsbyl-z0qbyl)
 c *********************************************************************
       else
 c *********************************************************************
 c  Here the atmosphere is unstable with respect to the ground:
         xms  =    (1.-gamamu*zgsbyl)**0.25d0
         xm0  =    (1.-gamamu*z0mbyl)**0.25d0
-        xhs  =sqrt(1.-gamahu*zgsbyl)
-        xh0  =sqrt(1.-gamahu*z0hbyl)
-        xqs  =sqrt(1.-gamahu*zgsbyl)
-        xq0  =sqrt(1.-gamahu*z0qbyl)
         dpsim=log((1.+xms)*(1.+xms)*(1.+xms*xms)/
      2           ((1.+xm0)*(1.+xm0)*(1.+xm0*xm0)))-
      3        2.*(atan(xms)-atan(xm0))
-        dpsih=sigma1*lzgsbyz0h+2.*sigma*log((1.+xhs)/(1.+xh0))
-        dpsiq=sigma1*lzgsbyz0q+2.*sigma*log((1.+xqs)/(1.+xq0))
 c *********************************************************************
       endif
 
       dm=      1./(1.-min(dpsim/lzgsbyz0m,.9d0))**2
-      dh=sqrt(dm)/(1.-min(dpsih/lzgsbyz0h,.9d0))
-      dq=sqrt(dm)/(1.-min(dpsiq/lzgsbyz0q,.9d0))
-
       cm=XCDpbl*dm*cmn
-      ch=dh*chn
-      cq=dq*cqn
       if (cm.gt.cmax) cm=cmax
-      if (ch.gt.cmax) ch=cmax
-      if (cq.gt.cmax) cq=cmax
-
       if (cm.lt.cmin) cm=cmin
-      if (ch.lt.cmin) ch=cmin
-      if (cq.lt.cmin) cq=cmin
 
       return
-      end subroutine dflux
+      end subroutine getcm
+
+      subroutine getchq(zgs,z0m,lmonin,dm,z0hq,chq)
+!@sum calculate chq drag coefficients for heat/water
+!@+   Hartke and Rind (1997)
+      implicit none
+      real*8, intent(in) :: zgs,z0m,lmonin,dm,z0hq
+      real*8, intent(out) :: chq
+
+      real*8 zgsbyl,z0hqbyl,chqn,dpsihq,xhqs,xhq0,lzgsbyz0m,lzgsbyz0hq
+     *     ,dhq
+
+      lzgsbyz0m  = log(zgs/z0m)
+      lzgsbyz0hq = log(zgs/z0hq)
+
+      chqn=kappa*kappa/(lzgsbyz0m*lzgsbyz0hq)
+
+      zgsbyl=zgs/lmonin
+      z0hqbyl=z0hq/lmonin
+
+c *********************************************************************
+c  Now compute DPSI, which is the difference in the psi functions
+c    computed at zgs and the relevant roughness height:
+c *********************************************************************
+
+      if (lmonin.gt.0.) then
+c *********************************************************************
+c  Here the atmosphere is stable with respect to the ground:
+        dpsihq= sigma1*lzgsbyz0hq-sigma*gamahs*(zgsbyl-z0hqbyl)
+c *********************************************************************
+      else
+c *********************************************************************
+c  Here the atmosphere is unstable with respect to the ground:
+        xhqs  =sqrt(1.-gamahu*zgsbyl)
+        xhq0  =sqrt(1.-gamahu*z0hqbyl)
+        dpsihq=sigma1*lzgsbyz0hq+2.*sigma*log((1.+xhqs)/(1.+xhq0))
+c *********************************************************************
+      endif
+
+      dhq=sqrt(dm)/(1.-min(dpsihq/lzgsbyz0hq,.9d0))
+
+      chq=dhq*chqn
+      if (chq.gt.cmax) chq=cmax
+      if (chq.lt.cmin) chq=cmin
+
+      return
+      end subroutine getchq
 
       subroutine simil(u,t,q,z,ustar,tstar,qstar,
      2                 z0m,z0h,z0q,lmonin,tg,qg)
@@ -2447,6 +2561,9 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
+#ifdef TRACERS_SPECIAL_O18
+      real*8 :: fac_cq_tr(ntm)   ! not used here
+#endif
 
       real*8 dbl ! I hope it is really a local variable (was global before) I.A
 
@@ -2525,6 +2642,9 @@ c Initialization for iteration:
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+#ifdef TRACERS_SPECIAL_O18
+     *             fac_cq_tr,
+#endif 
      3             km,kh,kq,dzh,itype,n)
         !! dbl=.375d0*sqrt(ustar*abs(lmonin)/omega)
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
