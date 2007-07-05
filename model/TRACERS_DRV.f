@@ -11425,7 +11425,7 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 !@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
-      USE CONSTANT, only: BYGASC, MAIR,teeny,lhe,tf,by3
+      USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
      *     ,trname,ntm,lm,t_qlimit,fq_aer,trpdens
 #ifdef TRACERS_SPECIAL_O18
@@ -11639,6 +11639,7 @@ c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
           endif
           if (FCLOUD.LT.1.D-16) fq=0.d0
           if (fq.ge.1.d0) fq=0.9999
+          if (fq0.eq.0.) fq=0.d0
 #endif
 
         CASE DEFAULT                                ! error
