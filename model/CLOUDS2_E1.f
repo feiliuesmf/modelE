@@ -3120,7 +3120,8 @@ C** for spectral dispersion effects on droplet size distribution
 !@auth Menon    end of addition  comment out the RCLDE definition below
 #endif
         CSIZEL(L)=RCLDE
-#ifdef CLD_AER_CDNC  !save for diag purposes
+#ifdef CLD_AER_CDNC  
+C**** save for diag purposes
         IF (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
             ACDNWS(L)= SCDNCW
             AREWS(L) = RCLDE
@@ -3220,7 +3221,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.16 2007/06/29 16:32:15 jan Exp $
+!$Id: CLOUDS2_E1.f,v 1.17 2007/07/06 15:32:53 gavin Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
