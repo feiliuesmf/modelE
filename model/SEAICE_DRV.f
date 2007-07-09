@@ -199,7 +199,7 @@ C**** Set mixed layer conditions
             Tri(:)=TRSI(:,LMI,I,J)/(XSI(LMI)*MSI(I,J)-SSI(LMI,I,J))
 #ifdef TRACERS_SPECIAL_O18
             do n=1,ntm
-              tralpha(n)=fracls(trname(n))
+              tralpha(n)=fracls(n)
             end do
 #else
             tralpha(:)=1.

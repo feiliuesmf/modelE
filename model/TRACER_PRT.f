@@ -882,8 +882,8 @@ C**** Concentration in cloud water
 
       end if
 #endif
-
       if (qdiag) call close_jl
+
       RETURN
       END SUBROUTINE DIAGJLT
 #endif
@@ -1061,7 +1061,6 @@ C****
 !@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
-      USE CONSTANT, only : undef
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
@@ -1074,22 +1073,21 @@ C****
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
-
 #ifdef TRACERS_DRYDEP
-      USE TRDIAG_COM, only : tij_drydep, tij_gsdep
+     *     ,tij_drydep, tij_gsdep
 #endif
 #ifdef TRACERS_COSMO
-      USE TRDIAG_COM, only : tij_surf
+     *     ,tij_surf
 #endif
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : tij_prec, tij_grnd
+     *     ,tij_grnd, tij_prec
 #endif
       USE DIAG_SERIAL, only : MAPTXT
       IMPLICIT NONE
 
       integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
 #ifdef TRACERS_SPECIAL_O18
-     *     + 2+lm               ! include dexcess diags
+     *     + 2+lm + 2+lm        ! include dexcess + D17O diags
 #endif
 #ifdef TRACERS_DRYDEP
      *     + ntm                ! include dry dep % diags
@@ -1221,34 +1219,29 @@ C**** Fill in maplet indices for sources and sinks
         aij1(:,:,k) = taijs(:,:,kx)
         aij2(:,:,k) = 1.
         scale(k) = scale_ijts(kx)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP)
-       if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or.
-     *  name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
+
+        if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or.
+     *   name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
      &   name(k)(1:5) .EQ. 'wtrsh' .OR. name(k)(1:8) .EQ. 'ext_band'
      &   .OR. name(k)(1:8) .EQ. 'sct_band' .OR. name(k)(1:8) .EQ.
      &   'asf_band') ijtype(k)=2
-       if (name(k)(5:6).eq.'CS') then
-       ijtype(k)=3
-       aij1(:,:,k)=aij1(:,:,k)*scale(k)
-       aij2(:,:,k)=real(idacc(iacc(k)))-aij(:,:,ij_cldcv)
-       scale(k)=1.
-       endif
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-       if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.
-     *  name(k)(1:7).eq.'OH_con_'.or. name(k)(1:8).eq.'NO3_con_'
-     *  .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:8).eq.
-     *  'J(H2O2)_') ijtype(k)=2
-#endif
-#if (defined TRACERS_AEROSOLS_Koch)
-       if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
-     *   'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
-#endif
-#ifdef TRACERS_AMP
+        if (name(k)(5:6).eq.'CS') then
+          ijtype(k)=3
+          aij1(:,:,k)=aij1(:,:,k)*scale(k)
+          aij2(:,:,k)=real(idacc(iacc(k)))-aij(:,:,ij_cldcv)
+          scale(k)=1.
+        endif
+
+        if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.
+     *    name(k)(1:7).eq.'OH_con_'.or. name(k)(1:8).eq.'NO3_con_'
+     *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:8).eq.
+     *    'J(H2O2)_') ijtype(k)=2
+
+        if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
+     *    'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
+
        if (name(k)(1:4).eq.'DIAM') ijtype(k)=2
-#endif
+
       end do
 
 #ifdef TRACERS_COSMO
@@ -1283,7 +1276,6 @@ C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
         aij2(:,:,k) = taijn(:,:,tij_surf,n_Pb210) !denominator
       end if
 #endif
-
 
 #ifdef TRACERS_SPECIAL_O18
 C****
@@ -1363,7 +1355,7 @@ C**** precipitation
      *             0.471d0*log(taijn(i,j,tij_prec,n_water)))
               aij2(i,j,k) = taijn(i,j,tij_prec,n_water)
             else
-              aij1(i,j,k)=undef
+              aij1(i,j,k)=0.
               aij2(i,j,k)=0.
             end if
           end do
@@ -1387,7 +1379,7 @@ C**** ground concentration
      *             0.471d0*log(taijn(i,j,tij_grnd,n_water)))
               aij2(i,j,k) = taijn(i,j,tij_grnd,n_water)
             else
-              aij1(i,j,k)=undef
+              aij1(i,j,k)=0.
               aij2(i,j,k)=0.
             end if
           end do
@@ -1413,7 +1405,7 @@ C**** water vapour
      *               0.471d0*log(taijln(i,j,l,n_water)))
                 aij2(i,j,k) = taijln(i,j,l,n_water)
               else
-                aij1(i,j,k)=undef
+                aij1(i,j,k)=0.
                 aij2(i,j,k)=0.
               end if
             end do

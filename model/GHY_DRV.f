@@ -8,9 +8,6 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_WATER
      &    tr_w,tr_wsn,trpr,trdd,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
-#ifdef TRACERS_SPECIAL_O18
-     &     ,tr_name
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       use sle001,ONLY : aevap
@@ -85,7 +82,7 @@ c******************   TRACERS             ******************************
 #endif
 
 #ifdef TRACERS_WATER
-      use ghy_com, only : tr_w_ij,tr_wsn_ij
+      use ghy_com, only : tr_w_ij,tr_wsn_ij, ntixw
 #endif
 
 ccc extra stuff which was present in "earth" by default
@@ -104,10 +101,6 @@ ccc extra stuff which was present in "earth" by default
       public ghy_tracers_save_cell
 
       real*8 totflux(ntm)
-#ifdef TRACERS_WATER
-!@var ntixw index array for tracers (shared by OMP threads)
-      real*8 ntixw(ntm)
-#endif
       integer ntx,ntix(ntm)
       integer, parameter :: itype=4
 
@@ -141,9 +134,6 @@ ccc set i,j - independent stuff for tracers
                call stop_model("ghy_drv: ntg > ntgm",255)
             endif
             ntixw(ntg) = n
-#ifdef TRACERS_SPECIAL_O18
-            tr_name(ntg) = trname(n)
-#endif
           endif
 #endif
         end if

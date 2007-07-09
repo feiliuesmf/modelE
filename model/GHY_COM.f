@@ -106,6 +106,8 @@ ccc new tracers
 ccc TRSNOWBV is not used
 !@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWBV0
+!@var ntixw index array for tracers (shared by OMP threads)
+      integer ntixw(ntm)
 #endif
 #ifdef USE_ENT
 ccc stuff that got back from VEG_COM, maybe should be relocated to Ent

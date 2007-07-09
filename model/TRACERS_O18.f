@@ -3,178 +3,117 @@
 !@sum  TRACERS_O18 water isotope specific routines and functions
 !@auth Gavin Schmidt
 
-      FUNCTION FRACVL(TEMP,trname)
+      FUNCTION FRACVL(TEMP,itr)
 !@sum FRACVL Calculate vapor-->liquid equilibrium fractionation factor
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
+      use tracer_com, only : iso_index
       IMPLICIT NONE
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
-      CHARACTER, INTENT(IN) :: trname*8
+      INTEGER, INTENT(IN) :: itr  ! actual tracer number
       INTEGER, PARAMETER :: NTSPM=5
-c**** quadratic fit to Majoube (1971)
-c      REAL*8, PARAMETER ::
-c     *     A(NTSPM) = (/  0d0, -3.75d-7, -6.375d-6, -6.875d-6  /),
-c     *     B(NTSPM) = (/  0d0,  1.025d-4, 1.2475d-3, 1.7d-3    /),
-c     *     C(NTSPM) = (/  1d0,  0.9884d0, 0.9001d0 , 0.86975d0 /)
-c**** exponentials 
       REAL*8, PARAMETER ::
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
+c**** exponential fit 
      * A(NTSPM)=(/  0d0,  1137d0   ,  24844d0  , 46480d0,   601.47d0/),
      * B(NTSPM)=(/  0d0, -0.4156d0 , -76.248d0 ,-103.87d0, -0.2199d0/),
      * C(NTSPM)=(/  0d0, -2.0667d-3,  52.612d-3, 0d0,      -1.0933d-3/)
-
-!@var ITR   species number of tracer
-C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
-      INTEGER ITR
+c**** quadratic fit to Majoube (1971)
+c     *     A(NTSPM) = (/  0d0, -3.75d-7, -6.375d-6, -6.875d-6  /),
+c     *     B(NTSPM) = (/  0d0,  1.025d-4, 1.2475d-3, 1.7d-3    /),
+c     *     C(NTSPM) = (/  1d0,  0.9884d0, 0.9001d0 , 0.86975d0 /)
       REAL*8 FRACVL,TK
+      INTEGER N
 C****
-      select case (trname)
-      case ('Water')
-        ITR=1
-      case ('H2O18')
-        ITR=2
-      case ('HDO')
-        ITR=3
-      case ('HTO')   ! tritium data not yet confirmed
-        ITR=4
-      case ('H2O17')
-        ITR=5 
-      case default
-        write(6,*) "Tracer name ",trname," not defined in FRACVL"
-        call stop_model('Tracer name not defined in FRACVL',255)
-      end select
+      N=iso_index(itr)
 C**** Quadratic fit
-c      FRACVL=C(ITR) + TEMP*(B(ITR) + TEMP*A(ITR))
+c      FRACVL=C(N) + TEMP*(B(N) + TEMP*A(N))
 C**** Exponential
       TK=TEMP+TF
-      FRACVL=EXP(-A(ITR)/TK**2 - B(ITR)/TK - C(ITR))
+      FRACVL=EXP(-A(N)/TK**2 - B(N)/TK - C(N))
 C****
       RETURN
       END FUNCTION FRACVL
 
-      FUNCTION FRACVS(TEMP,trname)
+      FUNCTION FRACVS(TEMP,itr)
 !@sum FRACVS Calculate vapour --> solid (ice) equil. fractionation fact.
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
+      use tracer_com, only : iso_index
       IMPLICIT NONE
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
-      CHARACTER, INTENT(IN) :: trname*8
+      INTEGER, INTENT(IN) :: itr ! actual tracer number
       INTEGER, PARAMETER :: NTSPM=5
-C**** linear fit
-c      REAL*8, PARAMETER ::
-c     *     A(NTSPM) = (/  0d0,  1.36d-4,   1.46d-3, 0d0/),
-c     *     B(NTSPM) = (/  1d0,  0.9850d0, 0.8834d0, 0.7845d0/)
-C**** exponential
       REAL*8, PARAMETER ::
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
+C**** exponential
      * A(NTSPM) = (/ 0d0,  0d0       , 16288d0 , 46480d0 , 0d0/),
      * B(NTSPM) = (/ 0d0,  11.839d0  , 0d0     ,-103.87d0, 6.2628d0/),
      * C(NTSPM) = (/ 0d0, -0.028244d0,-0.0934d0, 0d0,     -.01494d0/)
-
-!@var ITR   species number of tracer
-C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
-      INTEGER ITR
-      REAL*8 FRACVS,TK
-C****
-      select case (trname)
-      case ('Water')
-        ITR=1
-      case ('H2O18')
-        ITR=2
-      case ('HDO')
-        ITR=3
-      case ('HTO')   ! tritium data not yet confirmed
-        ITR=4
-      case ('H2O17')
-        ITR=5
-      case default
-        write(6,*) "Tracer name ",trname," not defined in FRACVS"
-        call stop_model('Tracer name not defined in FRACVS',255)
-      end select
 C**** linear fit
-c      FRACVS=B(ITR) + A(ITR)*TEMP
+c     *     A(NTSPM) = (/  0d0,  1.36d-4,   1.46d-3, 0d0/),
+c     *     B(NTSPM) = (/  1d0,  0.9850d0, 0.8834d0, 0.7845d0/)
+
+      REAL*8 FRACVS,TK
+      INTEGER N
+
+      N=iso_index(itr)
+C**** linear fit
+c      FRACVS=B(N) + A(N)*TEMP
 C**** Exponential
       TK=TEMP+TF
-      FRACVS=EXP(-A(ITR)/TK**2 - B(ITR)/TK -C(ITR))
+      FRACVS=EXP(-A(N)/TK**2 - B(N)/TK -C(N))
 C****
       RETURN
       END FUNCTION FRACVS
 
-      FUNCTION FRACLS(trname)
+      FUNCTION FRACLS(itr)
 !@sum FRACLS Calculate liquid --> solid equilibrium fractionation factor
 !@auth Gavin Schmidt
+      use tracer_com, only : iso_index
       IMPLICIT NONE
-      CHARACTER, INTENT(IN) :: trname*8
+      INTEGER, INTENT(IN) :: itr ! actual tracer number
       INTEGER, PARAMETER :: NTSPM=5
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/ 1d0, 1.0035d0, 1.0208d0,  1.04d0, 1.00185d0/)
-!@var ITR   species number of tracer
 C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
-      INTEGER ITR
+     *     A(NTSPM) = (/ 1d0, 1.0035d0, 1.0208d0,  1.04d0, 1.00185d0/)
+
       REAL*8 FRACLS
 C****
-      select case (trname)
-      case ('Water')
-        ITR=1
-      case ('H2O18')
-        ITR=2
-      case ('HDO')
-        ITR=3
-      case ('HTO')
-        ITR=4
-      case ('H2O17')
-        ITR=5
-      case default
-        FRACLS=1.    ! no fractionation
-        RETURN
-      end select
-      FRACLS=A(ITR)
+      FRACLS=A(iso_index(itr))
 C****
       RETURN
       END FUNCTION FRACLS
 
-      FUNCTION FRACLK(WS,trname)
+      FUNCTION FRACLK(WS,itr)
 !@sum FRACLK calculates the liquid/vapor kinetic fractionation factor
 !@+          from either (Merlivat and Jouzel,1979) or as a constant
 !@auth Gavin Schmidt
+      use tracer_com, only : iso_index
       IMPLICIT NONE
 !@var WS surface wind speed (m/s)
       REAL*8, INTENT(IN) :: WS
-      CHARACTER, INTENT(IN) :: trname*8
+      INTEGER, INTENT(IN) :: itr  ! actual tracer index
       INTEGER, PARAMETER :: NTSPM=5
       REAL*8, PARAMETER ::
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
      * A(NTSPM)=(/ 1d0, 0.994d0,  0.99472d0,  0.98944d0,  0.996913d0 /),
      * B(NTSPM)=(/ 0d0, 0.285d-3, 0.2508d-3,  0.5016d-3,  0.14663d-3 /),
      * C(NTSPM)=(/ 0d0, 0.82d-3,  0.7216d-3,  0.14432d-2, 0.42189d-3 /)
 C**** alternative from Cappa et al (2003)
-c      REAL*8, PARAMETER ::
 c     * A(NTSPM) = (/ 1d0, 0.99295d0,  0.99636d0,  0.99295d0, 0.99637d0/),
 c     * B(NTSPM) = (/ 0d0, 0.485d-3, 0.188d-3,  0.485d-3, .2495d-3/),
 c     * C(NTSPM) = (/ 0d0, 0.727d-3, 0.275d-3,  0.727d-3, .3740d-3/)
-!@var ITR   species number of tracer
-C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
-      INTEGER ITR
       REAL*8 FRACLK
+      INTEGER N
 C****
 C**** Calculate kinetic fractionation factor:
 C****
-      select case (trname)
-      case ('Water')
-        ITR=1
-      case ('H2O18')
-        ITR=2
-      case ('HDO')
-        ITR=3
-      case ('HTO')   ! tritium data not yet confirmed
-        ITR=4
-      case ('H2O17')
-        ITR=5
-      case default
-        write(6,*) "Tracer name ",trname," not defined in FRACLK"
-        call stop_model('Tracer name not defined in FRACLK',255)
-      end select
-      FRACLK=A(ITR)
-      IF(WS.GE.7.) FRACLK=1d0-(B(ITR)*WS+C(ITR))
+      N=iso_index(itr)
+      FRACLK=A(N)
+      IF(WS.GE.7.) FRACLK=1d0-(B(N)*WS+C(N))
 C****
       RETURN
       END FUNCTION FRACLK
@@ -184,7 +123,7 @@ C****
 !@sum ISOEQUIL equilibrates isotopes in vapor & liquid/solid reservoirs
 !@auth Gavin Schmidt/Georg Hoffmann
       USE CONSTANT, only : tf
-      USE TRACER_COM, only: trname,tr_wd_TYPE,nWATER
+      USE TRACER_COM, only: tr_wd_TYPE,nWATER
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: N
       LOGICAL, INTENT(IN) :: LIQU !@var LIQU true if QML is liquid
@@ -202,9 +141,9 @@ C****
         TDEGC = TEMP - TF
         IF (QMV.GT.0.) THEN
           IF (LIQU) THEN
-            ZALPH = 1./FRACVL(TDEGC,trname(N))
+            ZALPH = 1./FRACVL(TDEGC,N)
           ELSE
-            ZALPH = 1./FRACVS(TDEGC,trname(N))
+            ZALPH = 1./FRACVS(TDEGC,N)
           END IF
           ZXFAC = FEQ*ZALPH*QML/QMV
           ZDELEQU = (FEQ*TRML - ZXFAC*TRMV)/(1.+ZXFAC)
@@ -217,88 +156,51 @@ C****
 C****
       END SUBROUTINE ISOEQUIL
 
-      FUNCTION KIN_COND_ICE(ALPH,SUPSAT,trname)
+      FUNCTION KIN_COND_ICE(ALPH,SUPSAT,itr)
 !@sum calculate kinetic fractionation when condensing to ice in 
 !@+   super-saturated conditions
 !@auth Gavin Schmidt/Georg Hoffmann
       USE CONSTANT, only : tf
       IMPLICIT NONE
-      CHARACTER, INTENT(IN) :: trname*8
+      INTEGER, INTENT(IN) :: itr   ! actual tracer index
 !@var SUPSAT super_saturation factor from cloud scheme
       REAL*8, INTENT(IN) :: SUPSAT
 !@var ALPH equilibrium fractionation
       REAL*8, INTENT(IN) :: ALPH
-      INTEGER, PARAMETER :: NTSPM=5
-!@var ZDIFREL = inverse ratio of diffusion coeffs w.r.t normal water
-      real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0285d0, 1.0251d0, 1.0331d0,
-     *     1.014663d0/)
-C**** alternative from Cappa et al (2003)
-c     real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0319d0, 1.0164d0, 1.0319d0,
-c    *     1.016399d0/)
-      integer itr
-      real*8 kin_cond_ice
+      real*8 kin_cond_ice, get_diff_rel
 C****
 C**** Calculate kinetic condensation when condensing to ice
 C****
-      select case (trname)
-      case ('Water')
-        ITR=1
-      case ('H2O18')
-        ITR=2
-      case ('HDO')
-        ITR=3
-      case ('HTO')
-        ITR=4
-      case ('H2O17')
-        ITR=5
-      case default
-        write(6,*) "Tracer name ",trname," not defined in KIN_COND"
-        call stop_model('Tracer name not defined in KIN_COND',255)
-      end select
-      KIN_COND_ICE=alph*SUPSAT/(1.+(SUPSAT-1.)*alph*ZDIFREL(ITR))
+      KIN_COND_ICE=alph*SUPSAT/(1.+(SUPSAT-1.)*alph*get_diff_rel(itr))
 
       return
       end function kin_cond_ice
 
-      FUNCTION KIN_EVAP_PREC(ALPH,HEFF,trname)
+      FUNCTION KIN_EVAP_PREC(ALPH,HEFF,itr)
 !@sum calculate kinetic fractionation when evaporating into 
 !@+   undersaturated environment
 !@auth Gavin Schmidt/Georg Hoffmann
       USE CONSTANT, only : tf
+      use tracer_com, only : iso_index
       IMPLICIT NONE
-      CHARACTER, INTENT(IN) :: trname*8
+      INTEGER, INTENT(IN) :: itr ! actual tracer index
 !@var HEFF effective relative humidity from cloud scheme
       REAL*8, INTENT(IN) :: HEFF
 !@var alph equilibrium fractionation 
       REAL*8, INTENT(IN) :: ALPH
       INTEGER, PARAMETER :: NTSPM=5
 !@var ZDIFRELGAM = ZDIFREL^0.58 
-      real*8 :: ZDIFRELGAM(NTSPM) = (/ 1d0, 1.0164d0, 1.0145d0, 1.0191d0
-     *     ,1.008479d0 /)
+      real*8 :: ZDIFRELGAM(NTSPM) =
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
+     *     (/ 1d0, 1.0164d0, 1.0145d0, 1.0191d0, 1.008479d0 /)
 C**** alternative from Cappa et al (2003)
-c     real*8 :: ZDIFRELGAM(NTSPM) = (/ 1d0, 1.0184d0, 1.0095d0, 1.0184d0,
-c    *     1.009478d0 /)
-      integer itr
+c     *     (/ 1d0, 1.0184d0, 1.0095d0, 1.0184d0, 1.009478d0 /)
       real*8 kin_evap_prec
 C****
 C**** Calculate kinetic condensation when evaporating below clouds
 C****
-      select case (trname)
-      case ('Water')
-        ITR=1
-      case ('H2O18')
-        ITR=2
-      case ('HDO')
-        ITR=3
-      case ('HTO')
-        ITR=4
-      case ('H2O17')
-        ITR=5
-      case default
-        write(6,*) "Tracer name ",trname," not defined in KIN_EVAP"
-        call stop_model('Tracer name not defined in KIN_EVAP',255)
-      end select
-      KIN_EVAP_PREC=alph*HEFF/(1.+(HEFF-1.)*alph*ZDIFRELGAM(ITR))
+      KIN_EVAP_PREC=alph*HEFF/(1.+(HEFF-1.)*alph
+     *     *ZDIFRELGAM(iso_index(ITR)))
 
       return
       end function kin_evap_prec
@@ -317,14 +219,14 @@ C****
       return
       end function delta
 
-      subroutine get_frac(itype,ws,tg1,q1,qg,trname,trc1,trs1)
+      subroutine get_frac(itype,ws,tg1,q1,qg,itr,trc1,trs1)
 !@sum get_frac calculated fractionation factors during evaporation
 !@auth Gavin Schmidt
       use constant, only : tf
       implicit none
       real*8, intent(in) :: ws,tg1,q1,qg
       integer, intent(in) :: itype
-      character*8, intent(in) :: trname
+      integer, intent(in) :: itr ! actual tracer number
 !@var trc1 factor multiplying trcnst in PBL
 !@var trs1 factor multiplying trsf in PBL
       real*8, intent(out) :: trc1,trs1
@@ -334,17 +236,17 @@ C**** Isotope tracers have different fractionations dependent on
 C**** type and direction of flux
       select case (itype)
       case (1)                  ! ocean: kinetic fractionation
-        fk = fraclk(ws,trname)
-        trc1 = fk * fracvl(tg1,trname)
+        fk = fraclk(ws,itr)
+        trc1 = fk * fracvl(tg1,itr)
         trs1 = fk
       case (2:4)              ! other types
 C**** tracers are now passive, so use 'upstream' concentration
         if (q1-qg.gt.0.) then ! dew
           trc1 = 0.
           if (tg1.gt.0) then
-            frac=fracvl(tg1,trname)
+            frac=fracvl(tg1,itr)
           else
-            frac=fracvs(tg1,trname)
+            frac=fracvs(tg1,itr)
           end if
           trs1=(q1-qg)/(q1*frac)
         else
@@ -354,4 +256,23 @@ C**** tracers are now passive, so use 'upstream' concentration
       end select
       return
       end subroutine get_frac
+
+      real*8 function get_diff_rel(itr)
+      use tracer_com, only : iso_index
+      implicit none
+      integer, intent(in) :: itr  ! tracer index
+
+      integer, parameter :: ntspm=5
+!@var zdifrel = inverse ratio of diffusion coeffs w.r.t normal water
+      real*8 :: zdifrel(ntspm) =
+C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
+! MJ78
+     *     (/ 1d0 ,1.0285d0, 1.0251d0, 1.0331d0, 1.014663d0/) 
+! Cappa et al 2003
+c     *     (/ 1d0 ,1.0319d0, 1.0164d0, 1.0319d0, 1.016399d0/) 
+
+      get_diff_rel = ZDIFREL(iso_index(itr))
+
+      return
+      end function
 #endif

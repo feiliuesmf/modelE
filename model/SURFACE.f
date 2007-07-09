@@ -845,8 +845,8 @@ C****
 C**** do calculation implicitly for TQS
 #ifdef TRACERS_SPECIAL_O18
             TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT*
-     *           fracvl(tg1,trname(n)))*FRACLK(pbl_args%WSM,trname(n))
-            dTEVdTQS =-RCDQWS*FRACLK(pbl_args%WSM,trname(n))
+     *           fracvl(tg1,n))*FRACLK(pbl_args%WSM,n)
+            dTEVdTQS =-RCDQWS*FRACLK(pbl_args%WSM,n)
 #else
             TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT)
             dTEVdTQS =-RCDQWS
@@ -862,9 +862,9 @@ C**** tracer flux is set by source tracer concentration
             ELSE                ! DEW (fractionates)
 #ifdef TRACERS_SPECIAL_O18
               IF (TG1.gt.0) THEN
-                frac=FRACVL(TG1,trname(n))
+                frac=FRACVL(TG1,n)
               ELSE
-                frac=FRACVS(TG1,trname(n))
+                frac=FRACVS(TG1,n)
               END IF
               TEVAP=EVAP*trs(nx)/(QSRF*frac+teeny)
 #else

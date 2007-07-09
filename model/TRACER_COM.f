@@ -1043,6 +1043,9 @@ C note, tr_evap_fact is not dimensioned as NTM:
 #ifdef TRACERS_SPECIAL_O18
 !@dbparam supsatfac factor controlling super saturation for isotopes
       real*8 :: supsatfac = 2d-3
+!@var iso_index indexing taking actual tracer number to isotope 
+!@+   fractionation number (1=water,2=h2o18,3=hdo,4=hto,5=h2o17)
+      integer :: iso_index(5)
 #endif
 #endif
 

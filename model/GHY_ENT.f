@@ -323,9 +323,6 @@ ccc tracers output:
 !@var tr_evap flux of tracers to atm due to evaporation
 !@var tr_evap flux of tracers due to runoff
       real*8, public :: atr_evap(ntgm),atr_rnff(ntgm),atr_g(ntgm)
-#ifdef TRACERS_SPECIAL_O18
-      character*8, public :: tr_name(ntgm)
-#endif
 #endif
 
 ccc the following variables are needed for the interface with 
@@ -2666,9 +2663,8 @@ ccc canopy
 #ifdef TRACERS_SPECIAL_O18
         if ( evap_tmp(1)*dts < wi(0,2) .and. tp(0,2) > 0.d0 ) then
           do mc=1,m
-ccc tr_name - loop over string comparisons deep inside the nested
 ccc loops...
-            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(0,2),tr_name(mc) )
+            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(0,2),ntixw(mc))
           enddo
         endif
 #endif
@@ -2864,9 +2860,8 @@ ccc evap from bare soil
 #ifdef TRACERS_SPECIAL_O18
         if ( evap_tmp(1)*dts < wi(1,1) .and. tp(1,1) > 0.d0 ) then
           do mc=1,m
-ccc tr_name - loop over string comparisons deep inside the nested
 ccc loops...
-            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(1,1),tr_name(mc) )
+            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(1,1),ntixw(mc))
           enddo
         endif
 #endif

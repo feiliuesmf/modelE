@@ -3428,7 +3428,7 @@ C****
       DTROI(:) = 0. ; DTROO(:) = 0.
       do n=1,ntm
 #ifdef TRACERS_SPECIAL_O18
-        FRAC(n)=fracls(trname(n))
+        FRAC(n)=fracls(n)
 #else
         FRAC(n)=1.
 #endif
