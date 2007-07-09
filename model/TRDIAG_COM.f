@@ -191,7 +191,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_MINERALS
       INTEGER,PARAMETER :: ktaijs=1063
 #else
+#ifdef TRACERS_SPECIAL_Shindell
+      INTEGER,PARAMETER :: ktaijs=476
+#else
       INTEGER,PARAMETER :: ktaijs=1183
+#endif
 #endif
 #endif
 #endif
