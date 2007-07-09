@@ -254,7 +254,7 @@ C ----------------------------------------------
 #ifdef SHINDELL_STRAT_CHEM
      &                     ,cfc_pppv     = 1722.d-12
      &                     ,n2o_pppv     = 290.d-9
-     &                     ,cfc_rad95    = 794.3d-12 ! file GHG.1850-2050.Mar2002 only !!!
+     &                     ,cfc_rad95    = 794.d-12 ! file GHG_A1B.June2004.txt only !!!
      &                     ,fact_cfc     = cfc_pppv/cfc_rad95
      &                     ,dtausub      = 1.d0
      &                     ,dsubdiv      = 1.d1
