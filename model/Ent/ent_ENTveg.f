@@ -506,6 +506,7 @@ c**** calculate root fraction afr averaged over vegetation types
         cpool(CR) = 0.d0
       endif
       !write(97,*) pft, lai, h, dbh, popdens, cpool
+
       end subroutine prescr_plant_cpools
 
 !*************************************************************************
