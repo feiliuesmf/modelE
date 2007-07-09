@@ -460,6 +460,7 @@ c**** get input from pbl_args structure
       qgrnd=qgrnd0              ! use initial sat humidity
       tgskin=tg                 ! initially assume no skin/bulk difference
       dskin=0
+      ts=t(1)/(1+q(1)*deltx)
       
       call getl1(e,zhat,dzh,lscale,n)
       
@@ -487,7 +488,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         endif
 
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,ts,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
@@ -635,10 +636,21 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
 #ifdef TRACERS_SPECIAL_O18
 C**** get fractionation for isotopes
           call get_frac(itype,wsm,tg1,q(1),qgrnd_sat
-     &         ,trname(pbl_args%ntix(itr)),trc1,trs1)
-c          print*,"fac_cq",fac_cq_tr(itr),trc1,trs1
+     &         ,pbl_args%ntix(itr),trc1,trs1)
+#ifdef O18_KINETIC_FRAC
+c          if (itype.eq.1) print*,"fac_cq",itr,ustar,1000*(1.
+c     *         -fac_cq_tr(itr)),1000*(1.-trs1)
+          if (itype.eq.1) then
+            trcnst=fac_cq_tr(itr)*trc1*trcnst/trs1
+            trsf  =fac_cq_tr(itr)*trsf
+          else
+            trcnst=trc1*trcnst
+            trsf  =trs1*trsf
+          end if
+#else
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
+#endif
 #endif
         end if
 #endif
@@ -991,7 +1003,7 @@ c**** copy output to pbl_args
       return
       end subroutine advanc
 
-      subroutine stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+      subroutine stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,ts,
      2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *                 fac_cq_tr,
@@ -1013,7 +1025,7 @@ c**** copy output to pbl_args
       integer, intent(in) :: itype,n
       real*8, dimension(n), intent(in) :: u,v,t,q,z
       real*8, dimension(n-1), intent(in) :: km,kh,kq,dzh
-      real*8, intent(in) :: tgrnd,qgrnd
+      real*8, intent(in) :: tgrnd,qgrnd,ts
       real*8, intent(inout) :: z0m
       real*8, intent(out) :: ustar,tstar,qstar,lmonin
       real*8, intent(out) :: z0h,z0q,cm,ch,cq
@@ -1052,7 +1064,7 @@ c**** copy output to pbl_args
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
       if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
 c**** To compute the drag coefficient,Stanton number and Dalton number
-      call dflux(lmonin,ustar,vel1,z0m,z0h,z0q,zgs,cm,ch,cq,
+      call dflux(lmonin,ustar,vel1,ts,z0m,z0h,z0q,zgs,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *     fac_cq_tr,
 #endif 
@@ -1161,7 +1173,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       return
       end subroutine getl
 
-      subroutine dflux(lmonin,ustar0,vsurf,z0m,z0h,z0q,zgs,
+      subroutine dflux(lmonin,ustar0,vsurf,ts,z0m,z0h,z0q,zgs,
      *                 cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *                 fac_cq_tr,
@@ -1177,6 +1189,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
 !@var lmonin = Monin-Obukhov length (m)
 !@var ustar  = friction speed (sqrt of surface momentum flux) (m/sec)
 !@var vsurf  = total surface wind speed, used to limit ustar -> cm
+!@var ts     = surface air temperature (K)
 !@var zgs    = height of the surface layer (m)
 !@var itype  = integer identifying surface type
 !@var z0m   = momentum roughness length, prescribed (itype=3,4) (m)
@@ -1192,41 +1205,44 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
 cgav  use constant, only :: nu=>visc_air_kin
       implicit none
 
-      real*8,  intent(in) :: lmonin,ustar0,vsurf,zgs
+      real*8,  intent(in) :: lmonin,ustar0,vsurf,zgs,ts
       integer,  intent(in) :: itype
       real*8,  intent(inout) :: z0m
       real*8,  intent(out) :: cm,ch,cq,z0h,z0q
 #ifdef TRACERS_SPECIAL_O18
       real*8, intent(out) :: fac_cq_tr(ntm)
-      real*8 :: cq_tr(ntm),z0q_tr(ntm),Sc_tr
+      real*8 :: cq_tr(ntm),z0q_tr(ntm),Sc_tr,get_diff_rel
       integer :: itr
-      INTEGER, PARAMETER :: NTSPM=5
-!@var ZDIFREL = inverse ratio of diffusion coeffs w.r.t normal water
-      real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0285d0, 1.0251d0, 1.0331d0,
-     *     1.014663d0/)   ! MJ78
-c      real*8 :: ZDIFREL(NTSPM) = (/ 1d0 ,1.0319d0, 1.0164d0, 1.0319d0,
-c     *     1.016399d0/)   ! Cappa et al 2003
 #endif
+      
+      real*8 :: nu,num,nuh,nuq
+      real*8 dm,ustar,dum,T
+      real*8, parameter :: Sc=0.595d0, Pr=0.71d0
 
-      real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,
+C**** comment out for temperature dependence
+      nu=1.5d-5
+C**** uncomment for temperature dependence of nu 
+C**** Kinematic viscosity of dry air - Andreas (1989) CRREL Rep. 89-11
+       T = ts-tf   ! deg C
+!       nu=1.326d-5*(1.+T*(6.542d-3+T*(8.301d-6-4.84d-9*T)))   !m2/s
+
+      num=0.135d0*nu
+
 #ifdef PBL_E1
-     *     nuh=0.395d0*nu, nuq=0.624d0*nu,
-#else
+      nuh=0.395d0*nu ;  nuq=0.624d0*nu
+#endif
 c**** more accurate nuh, nuq assuming Sc and Pr so that this is
 c**** consistent with formula in getzhq. Note '0.624' is for Sc=0.6.
-c     *     nuh=0.39522377113362589d0*nu,  nuq=0.63943320118296587d0*nu,
-     *     Sc=0.595d0, Pr=0.71d0
-#endif
-      real*8 dm,ustar
+c     nuh=0.39522377113362589d0*nu ;  nuq=0.63943320118296587d0*nu
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
         ustar = max(ustar0,1.0125d-5)  ! make sure not too small
-
 c Compute roughness lengths using smooth/rough surface formulation:
 
-cgav    z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
-        z0m=num/ustar+0.018d0*ustar*ustar*bygrav ! Harkte and Rind (1996)
+C**** uncomment for COARE algorithm
+c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav
+        z0m=num/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
 
 #ifdef PBL_E1
         z0h=nuh/ustar + 1.4d-5
@@ -1240,7 +1256,7 @@ cgav    z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
 C**** calculate different z0q for different diffusivities
           do itr=1,ntm
             if (tr_wd_TYPE(itr).eq.nWater) then
-              Sc_tr=Sc*ZDIFREL(iso_index(itr))
+              Sc_tr=Sc*get_diff_rel(itr)
               call getzhq(ustar,z0m,Sc_tr,nu,1.3d-4,z0q_tr(itr))
             end if
           end do
@@ -1259,13 +1275,13 @@ c *********************************************************************
       endif
 
       call getcm(zgs,z0m,lmonin,dm,cm)
-      call getchq(zgs,z0m,lmonin,dm,z0h,ch)
-      call getchq(zgs,z0m,lmonin,dm,z0q,cq)
+      call getchq(zgs,z0m,lmonin,dm,z0h,dum,ch)
+      call getchq(zgs,z0m,lmonin,dm,z0q,dum,cq)
 
 #ifdef TRACERS_SPECIAL_O18
       do itr=1,ntm
         if (tr_wd_TYPE(itr).eq.nWater)
-     *       call getchq(zgs,z0m,lmonin,dm,z0q_tr(itr),cq_tr(itr))
+     *       call getchq(zgs,z0m,lmonin,dm,z0q_tr(itr),cq_tr(itr),dum)
       end do
       do itr=1,ntm
         if (tr_wd_TYPE(itr).eq.nWater)
@@ -1289,11 +1305,12 @@ C**** functional dependence on Sc,Pr for smooth, rough surfaces
       fac_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
       fac_rough(X) = -7.3d0*kappa*sqrt(X)
 
-c      if (ustar.le.0.02d0) then  ! smooth regime
+C**** uncomment and remove z0min for original HR97 code
+c      if (ustar.le.0.20d0) then  ! smooth regime
          z0hq=nu*fac_smooth(ScPr)/ustar + z0min
 c      else    ! rough regime
-c        r0q=sqrt(sqrt(ustar*z0/nu))
-c        z0hq=7.4d0*z0*exp(fac_rough(ScPr)*r0q)
+c        r0q=sqrt(sqrt(ustar*z0m/nu))
+c        z0hq=7.4d0*z0m*exp(fac_rough(ScPr)*r0q)
 c        if (ustar.lt.0.2d0) then ! intermediate regime (lin. interp.)
 c          beta=(ustar-0.02d0)/0.18d0
 c          z0hq=(1.-beta)*(nu*fac_smooth(ScPr)/ustar+z0min)+beta*z0hq
@@ -1347,12 +1364,12 @@ c *********************************************************************
       return
       end subroutine getcm
 
-      subroutine getchq(zgs,z0m,lmonin,dm,z0hq,chq)
+      subroutine getchq(zgs,z0m,lmonin,dm,z0hq,chq0,chq)
 !@sum calculate chq drag coefficients for heat/water
 !@+   Hartke and Rind (1997)
       implicit none
       real*8, intent(in) :: zgs,z0m,lmonin,dm,z0hq
-      real*8, intent(out) :: chq
+      real*8, intent(out) :: chq,chq0  ! final and unlimited version
 
       real*8 zgsbyl,z0hqbyl,chqn,dpsihq,xhqs,xhq0,lzgsbyz0m,lzgsbyz0hq
      *     ,dhq
@@ -1387,6 +1404,7 @@ c *********************************************************************
       dhq=sqrt(dm)/(1.-min(dpsihq/lzgsbyz0hq,.9d0))
 
       chq=dhq*chqn
+      chq0=chq
       if (chq.gt.cmax) chq=cmax
       if (chq.lt.cmin) chq=cmin
 
@@ -2552,7 +2570,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       real*8, dimension(n-1) :: zhat,xihat,dzh,lscale,esave
       real*8 :: lmonin,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test
-     *     ,wstar3,wstar2h,usurfq,usurfh
+     *     ,wstar3,wstar2h,usurfq,usurfh,ts
 #ifdef USE_PBL_E1
       real*8 wstar3fac
 #endif
@@ -2640,7 +2658,9 @@ c Initialization for iteration:
         endif
 
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
+
+        ts=t(1)/(1+q(1)*deltx)
+        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,ts,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
