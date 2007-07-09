@@ -10,8 +10,8 @@
 
       public 
      &     prescr_veg_albedo,prescr_calc_rootprof,
-     &     prescr_calcconst, prescr_calc_lai,
-     &     alamax !For temporary phenology.
+     &     prescr_calcconst, prescr_calc_lai
+     &     ,alamax !For temporary phenology.
       public prescr_calc_shc,prescr_plant_cpools
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
@@ -397,9 +397,9 @@ c**** calculate root fraction afr averaged over vegetation types
 !----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
 !----shrub_arid c3grass c4grass c3grass_arctic c4crops 
 !----sand bdirt
-!KIM - temp. values. NYK - c3grass=3.27 (Ponca avg), c4grass=2.50 (Shidler avg)
+!KIM - temp. values
      $     (/2.7d0, 2.7d0, 2.9d0, 2.9d0, 1.25d0, 1.25d0, 1.03d0
-     &     , 2.38d0, 2.38d0, 3.27d0, 2.50d0, 3.27d0, 2.50d0
+     &     , 2.38d0, 2.38d0, 0.82d0, 0.82d0, 0.82d0, 2.50d0
      &     , 0.d0, 0.d0 /)
 
       !* Return intial nm for all vegetation and cover types
@@ -483,19 +483,22 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine prescr_plant_cpools(pft, lai, h, dbh, popdens, cpool )
       !* Calculate plant carbon pools for single plant (g-C/plant)
-      !* After Moorcroft, et al. (2001).
+      !* After Moorcroft, et al. (2001). No assignment of LABILE pool here.
       integer,intent(in) :: pft !plant functional type
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
       !----Local------
+
+      ! just in case, set to 0 to avoid possible NaNs
+      cpool(:) = 0.d0
       
-      cpool(FOL) = lai/pfpar(pft)%sla/popdens *1e3!Bl
+      cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
       if (pft.ne.GRASSC3) then  !Woody
-        cpool(SW) = 0.00128 * pfpar(pft)%sla * cpool(FR) * h *1e3 !Bsw
-        cpool(HW) = 0.069*(h**0.572)*(dbh**1.94) * wooddensity_gcm3(pft)
-     &       *1e3
+        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
+        cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
+     &       (wooddensity_gcm3(pft)**0.9301) *1d3
         cpool(CR) = 0.d0        !dummy
       else
         cpool(SW) = 0.d0
