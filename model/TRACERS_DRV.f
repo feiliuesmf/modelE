@@ -552,10 +552,11 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
 C          check on GHG file:
            call openunit('GHG',iu_data,.false.,.true.)
            read(iu_data,'(a80)') title
-           if(title(1:39).ne.' Greenhouse Gas Mixing Ratios  3/4/2002')
-     &     then
+           read(iu_data,'(a80)') title
+           if(trim(title).ne.
+     &'----- observed to 2003; IPCC scenario A1B 2004-2100 -------')then
             write(6,*) 'cfc_rad95 in TRCHEM_Shindell_COM was from'
-            write(6,*) 'GHG.1850-2050.Mar2002. It appears you changed'
+            write(6,*) 'GHG_A1B.June2004.txt. It appears you changed'
             write(6,*) 'that file. Please check on cfc_rad95'
             call stop_model('Check on cfc_rad95',255)
            end if
