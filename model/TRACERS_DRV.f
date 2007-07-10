@@ -129,6 +129,9 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       tr_H2ObyCH4 = 0.
       dowetdep = .false.
 #endif
+#ifdef TRACERS_SPECIAL_O18
+      iso_index = 1             ! act like water by default
+#endif 
 #ifdef TRACERS_DRYDEP
       dodrydep = .false.
       F0 = 0.
@@ -362,6 +365,9 @@ C**** Get solar variability coefficient from namelist if it exits
 #ifdef TRACERS_OCEAN
           trglac(n) = 1.
 #endif
+#ifdef TRACERS_SPECIAL_O18
+          iso_index(n) = 1  ! indexing for isotopic fractionation calcs
+#endif
 
 #ifdef TRACERS_ON
 #ifdef TRACERS_SPECIAL_O18
@@ -371,9 +377,10 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_mm(n) = 20.
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
+          iso_index(n) = 2  ! indexing for isotopic fractionation calcs
           trw0(n) = 2.228d-3   ! SMOW mass ratio of water molecules
           trli0(n) = 0.980d0*trw0(n)  ! d=-20
-          trsi0(n) = fracls(trname(n))*trw0(n)
+          trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
           ntrocn(n) = -3
 #ifdef TRACERS_OCEAN
@@ -386,9 +393,10 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_mm(n) = 19.
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
+          iso_index(n) = 3  ! indexing for isotopic fractionation calcs
           trw0(n) = 3.29d-4    ! SMOW mass ratio of water molecules
           trli0(n) = 0.830d0*trw0(n)  ! d=-170
-          trsi0(n) = fracls(trname(n))*trw0(n)
+          trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
           ntrocn(n) = -4
 #ifdef TRACERS_OCEAN
@@ -401,6 +409,7 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_mm(n) = 20.
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
+          iso_index(n) = 4  ! indexing for isotopic fractionation calcs
           trw0(n) = 0. !2.22d-18   ! SMOW mass ratio of water molecules
           trli0(n) = 0.
           trsi0(n) = 0.
@@ -417,17 +426,17 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_mm(n) = 19.
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
+          iso_index(n) = 5  ! indexing for isotopic fractionation calcs
           trw0(n) = 4.020d-5   ! SMOW mass ratio of water molecules
           trli0(n) = 0.98937d0*trw0(n)  ! d=-10.63 D17O=0
-          trsi0(n) = fracls(trname(n))*trw0(n)
+          trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.011596d0 ! d=+11.596 (some frac from O2)
           ntrocn(n) = -3
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.98937d0   ! d=-10.63 D17O=
 #endif
-
-
 #endif
+
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox')
       n_Ox = n
@@ -11527,28 +11536,28 @@ C****
               tdegc=0.5*(temp0 + temp) -tf
 C**** Calculate alpha (fractionation coefficient)
                 if (LHX.eq.LHE) then ! cond to water
-                  alph=1./fracvl(tdegc,trname(ntix(n)))
+                  alph=1./fracvl(tdegc,ntix(n))
                 else            ! cond to ice
-                  alph=1./fracvs(tdegc,trname(ntix(n)))
+                  alph=1./fracvs(tdegc,ntix(n))
 C**** kinetic fractionation can occur as a function of supersaturation
 C**** this is a parameterisation from Georg Hoffmann
                   supsat=1d0-supsatfac*tdegc
                   if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
-     *                 ,trname(ntix(n)))
+     *                 ,ntix(n))
                 end if
                 fq = 1.- (1.-fq0)**alph
             else
 C**** assume condensate in equilibrium with vapour at temp
               tdegc=temp -tf
               if (LHX.eq.LHE) then ! cond to water
-                alph=1./fracvl(tdegc,trname(ntix(n)))
+                alph=1./fracvl(tdegc,ntix(n))
               else              ! cond to ice
-                alph=1./fracvs(tdegc,trname(ntix(n)))
+                alph=1./fracvs(tdegc,ntix(n))
 C**** kinetic fractionation can occur as a function of supersaturation
 C**** this is a parameterisation from Georg Hoffmann
                 supsat=1d0-supsatfac*tdegc
                 if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
-     *               ,trname(ntix(n)))
+     *               ,ntix(n))
               end if
               fq = alph * fq0/(1.+(alph-1.)*fq0)
             end if
@@ -11774,10 +11783,10 @@ c
 #ifdef TRACERS_SPECIAL_O18
           tdegc=temp-tf
           if (lhx.eq.lhe) then
-            alph=fracvl(tdegc,trname(ntix(n)))
+            alph=fracvl(tdegc,ntix(n))
 C**** below clouds kinetic effects with evap into unsaturated air
             if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
-     *           ,trname(ntix(n)))
+     *           ,ntix(n))
           else
 C**** no fractionation for ice evap
             alph=1.
