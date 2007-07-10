@@ -86,7 +86,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       integer iu_data,m,i,j,nq
       character*80 title
       character(len=300) :: out_line
-      real*8, dimension(im,jm,lm) :: N2OICIN_glob,CH4ICIN_glob,
+      real*8, dimension(im,jm,LCOalt) :: N2OICIN_glob,CH4ICIN_glob,
      & OxICIN_glob,CFCICIN_glob
       real*8, dimension(jm,LcorrOx,12) :: corrOxIN_glob
 #ifdef regional_Ox_tracers
