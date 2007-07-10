@@ -109,7 +109,7 @@ C**** Calculate heat and mass fluxes to lake
       FRAC(:)=1.
 #ifdef TRACERS_SPECIAL_O18
       do n=1,ntm
-        FRAC(n)=fracls(trname(n)) ! fractionation when freezing
+        FRAC(n)=fracls(n) ! fractionation when freezing
       end do
 #endif
 #endif
