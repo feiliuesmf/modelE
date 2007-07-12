@@ -1084,7 +1084,7 @@ C**** save plume temperature after possible condensation
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
 #ifdef CLD_AER_CDNC
-!@auth Menon  saving aerosols mass for CDNC prediction
+! Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
         DSS(N)=1.d-10
         DSGL(L,N)=1.d-10
@@ -2381,7 +2381,7 @@ c for sulfur chemistry
      *     ,PRATM,SMN12,SMO12,QF
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
-!@auth Menon  - storing var for cloud droplet number
+! Menon  - storing var for cloud droplet number
        integer, PARAMETER :: SNTM=17
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(SNTM),QCRIT
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
@@ -2653,7 +2653,7 @@ C**** is ice and temperatures after ice melt would still be below TFrez
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
      *     +teeny)) LHP(L)=LHP(L+1)
 #ifdef CLD_AER_CDNC
-!@auth Menon  saving aerosols mass for CDNC prediction
+! Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
         DSS(N)=1.d-10
         DSGL(L,N)=1.d-10
@@ -3451,7 +3451,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdL = 174.d0
       SNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
-!@auth Menon for CDNC prediction
+! Menon for CDNC prediction
       CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
      *CLDSAVL(L),VVEL,SME(L),DSU,SMFPML(L),OLDCDO(L),OLDCDL(L),
      *CDNL1,CDNO1)
@@ -3489,10 +3489,11 @@ C** for spectral dispersion effects on droplet size distribution
       Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
 !     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
       RCLDE=RCLD*Rbeta
-!@auth Menon    end of addition  comment out the RCLDE definition below
+! Menon    end of addition  comment out the RCLDE definition below
 #endif
         CSIZEL(L)=RCLDE
-#ifdef CLD_AER_CDNC  !save for diag purposes
+#ifdef CLD_AER_CDNC
+  !save for diag purposes
         IF (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
             ACDNWS(L)= SCDNCW
             AREWS(L) = RCLDE
