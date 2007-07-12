@@ -40,10 +40,10 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !!! WARNING: if new diagnostics are added, keep io_trdiag up-to-date !!!
 C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
-      real*8, dimension(IM,JM,LM,ntm)         :: taijln
+      real*8, allocatable, dimension(:,:,:,:)         :: taijln
       real*8, allocatable, dimension(:,:,:,:) :: taijln_loc
-      real*4, dimension(IM,JM,LM,ntm)         :: taijln4
-      real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
+      !real*4, dimension(IM,JM,LM,ntm)         :: taijln4
+      !real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
       character(len=30), dimension(lm,ntm) :: sname_ijt,units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
@@ -93,10 +93,10 @@ C**** TAIJN
       integer tij_drydep,tij_gsdep
 #endif
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
-      real*8, dimension(IM,JM,ktaij,ntm)      :: taijn
+      real*8, allocatable, dimension(:,:,:,:)      :: taijn
       real*8, allocatable, dimension(:,:,:,:) :: taijn_loc
-      real*4, dimension(IM,JM,ktaij,ntm)      :: taijn4
-      real*8, allocatable, dimension(:,:,:,:) :: taijn4_loc
+      !real*4, dimension(IM,JM,ktaij,ntm)      :: taijn4
+      !real*8, allocatable, dimension(:,:,:,:) :: taijn4_loc
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
       REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
@@ -248,10 +248,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@dbparam diag_rad switches on/off comprehensive radiative diags for tracers
       INTEGER :: diag_rad=0 ! =off (default)
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
-      REAL*8, DIMENSION(IM,JM,ktaijs)       :: TAIJS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
-      REAL*4, DIMENSION(IM,JM,ktaijs)       :: TAIJS4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS4_loc
+      !REAL*4, DIMENSION(IM,JM,ktaijs)       :: TAIJS4
+      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS4_loc
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
@@ -335,10 +335,10 @@ C**** TAJLN
 #endif
      &     ,ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
-      REAL*8, DIMENSION(JM,LM,ktajlx,ntm)     :: TAJLN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: TAJLN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN_loc
-      REAL*4, DIMENSION(JM,LM,ktajlx,ntm)     :: TAJLN4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN4_loc
+      !REAL*4, DIMENSION(JM,LM,ktajlx,ntm)     :: TAJLN4
+      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN4_loc
 !@var jlnt_xx Names for TAJLN diagnostics
       INTEGER jlnt_conc,jlnt_mass,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
      &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond, jlnt_bebe,
@@ -447,10 +447,10 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER,PARAMETER :: nDustEm2jl=2
 #endif
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
-      REAL*8, DIMENSION(JM,LM,ktajls)       :: TAJLS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS_loc
-      REAL*4, DIMENSION(JM,LM,ktajls)       :: TAJLS4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS4_loc
+      !REAL*4, DIMENSION(JM,LM,ktajls)       :: TAJLS4
+      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS4_loc
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
 !@var jls_isrc tracer independent array for TAJLS interactive surface src. diags
@@ -507,10 +507,10 @@ C**** include some extra troposphere only ones
       INTEGER, PARAMETER :: ntmxcon = ntm
 #endif
 !@var TCONSRV conservation diagnostics for tracers
-      REAL*8, DIMENSION(JM,ktcon,ntmxcon)   :: TCONSRV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV_loc
-      REAL*4, DIMENSION(JM,ktcon,ntmxcon)   :: TCONSRV4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV4_loc
+      !REAL*4, DIMENSION(JM,ktcon,ntmxcon)   :: TCONSRV4
+      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV4_loc
 !@var SCALE_TCON scales for tracer conservation diagnostics
       REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
@@ -727,12 +727,12 @@ C****
       USE TRDIAG_COM, only : tajls_loc,  tajls
       USE TRDIAG_COM, only : tconsrv_loc,tconsrv
 
-      USE TRDIAG_COM, only : taijln4_loc, taijln4
-      USE TRDIAG_COM, only : taijn4_loc,  taijn4
-      USE TRDIAG_COM, only : taijs4_loc,  taijs4
-      USE TRDIAG_COM, only : tajln4_loc,  tajln4
-      USE TRDIAG_COM, only : tajls4_loc,  tajls4
-      USE TRDIAG_COM, only : tconsrv4_loc,tconsrv4
+      !USE TRDIAG_COM, only : taijln4_loc, taijln4
+      !USE TRDIAG_COM, only : taijn4_loc,  taijn4
+      !USE TRDIAG_COM, only : taijs4_loc,  taijs4
+      !USE TRDIAG_COM, only : tajln4_loc,  tajln4
+      !USE TRDIAG_COM, only : tajls4_loc,  tajls4
+      !USE TRDIAG_COM, only : tconsrv4_loc,tconsrv4
 
       USE TRDIAG_COM, only : pdsigjl
 
@@ -759,9 +759,37 @@ C****
 !     REAL*4 TAIJS4(IM,JM,ktaijs),TAJLN4(JM,LM,ktajlx,NTM)
 !     REAL*4 TAJLS4(JM,LM,ktajls),TCONSRV4(JM,ktcon,ntmxcon)
 
+      real*4, allocatable, dimension(:,:,:,:) :: taijln4
+      real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
+      real*4, allocatable, dimension(:,:,:,:) :: taijn4
+      real*8, allocatable, dimension(:,:,:,:) :: taijn4_loc
+      REAL*4, allocatable, DIMENSION(:,:,:)   :: TAIJS4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: TAIJS4_loc
+      REAL*4, allocatable, DIMENSION(:,:,:,:) :: TAJLN4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN4_loc
+      REAL*4, allocatable, DIMENSION(:,:,:)   :: TAJLS4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: TAJLS4_loc
+      REAL*4, allocatable, DIMENSION(:,:,:)   :: TCONSRV4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: TCONSRV4_loc
+      INTEGER :: status
+
       INTEGER :: J_0H, J_1H
 
       CALL GET( grid,  J_STRT_HALO = J_0H,  J_STOP_HALO = J_1H )
+
+      ALLOCATE ( taijln4(IM,JM,LM,ntm), stat=status )
+      ALLOCATE ( taijn4(IM,JM,ktaij,ntm), stat=status )
+      ALLOCATE ( TAIJS4(IM,JM,ktaijs), stat=status )
+      ALLOCATE ( TAJLN4(JM,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS4(JM,LM,ktajls), stat=status )
+      ALLOCATE ( TCONSRV4(JM,ktcon,ntmxcon), stat=status )
+
+      ALLOCATE ( TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
+      ALLOCATE ( TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
+      ALLOCATE ( TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
+      ALLOCATE ( TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
+      ALLOCATE ( TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
 
       write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
      *   'R8 TACC(',ktacc,'),it'
@@ -846,6 +874,20 @@ C*** Unpack read global data into local distributed arrays
         END SELECT
       END SELECT
 
+      DEALLOCATE ( taijln4 )
+      DEALLOCATE ( taijn4 )
+      DEALLOCATE ( TAIJS4 )
+      DEALLOCATE ( TAJLN4 )
+      DEALLOCATE ( TAJLS4 )
+      DEALLOCATE ( TCONSRV4 )
+
+      DEALLOCATE ( TAIJLN4_loc )
+      DEALLOCATE ( TAIJN4_loc )
+      DEALLOCATE ( TAIJS4_loc )
+      DEALLOCATE ( TAJLN4_loc )
+      DEALLOCATE ( TAJLS4_loc )
+      DEALLOCATE ( TCONSRV4_loc )
+
       RETURN
  10   IOERR=1
       RETURN
@@ -868,12 +910,19 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
 
-      ALLOCATE ( TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
-      ALLOCATE ( TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
-      ALLOCATE ( TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
-      ALLOCATE ( TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
-      ALLOCATE ( TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
-      ALLOCATE ( TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
+      ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
+      ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )
+      ALLOCATE ( TAIJS( IM,JM,ktaijs   ), stat=status )
+      ALLOCATE ( TAJLN(    JM,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS(    JM,LM,ktajls    ), stat=status )
+      ALLOCATE ( TCONSRV(  JM,ktcon,ntmxcon), stat=status )
+
+      !ALLOCATE ( TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
+      !ALLOCATE ( TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
+      !ALLOCATE ( TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
+      !ALLOCATE ( TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
+      !ALLOCATE ( TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
+      !ALLOCATE ( TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
 
 #ifdef TRACERS_DRYDEP
       ALLOCATE (dtr_dd(J_0H:J_1H,Ntm,2),stat=status)
