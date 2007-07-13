@@ -391,10 +391,15 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'seasalt1','seasalt2',
      *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
 #else
-#if (defined TRACERS_COSMO) && (defined TRACERS_RADON)
+#if (defined TRACERS_COSMO) 
+      integer, parameter :: ntm=3
+      character*8, parameter :: trname(ntm)=(/
+     *     'Pb210   ','Be7     ','Be10    '/)
+#if (defined TRACERS_RADON)
       integer, parameter :: ntm=4
       character*8, parameter :: trname(ntm)=(/
      *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
+#endif
 #else
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: ntm=13
