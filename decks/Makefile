@@ -14,6 +14,7 @@ HOMEDIR = $(wildcard ~)
 MODELERC ?= $(HOMEDIR)/.modelErc
 #default number of processors for setup
 NPROC = 1
+NPES = 1
 # getting options from configuration files
 # default modelE configuration file:
 include $(SCRIPTS_DIR)/modelErc
@@ -95,7 +96,7 @@ setup_script:
 	fi
 	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
-ifndef NPES
+ifneq ($(ESMF),YES)
 	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)
 else
 	echo PRUN
