@@ -1272,7 +1272,7 @@ C**** TRACERS: Use only the active ones
           endif
           end if
 #endif
-#ifdef TRACERS_AMP          
+#ifdef TRACERS_AMP
             if (trname(n).eq."M_ACC_SU") then
            AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
            endif
@@ -1691,6 +1691,8 @@ C     WRITE(195) ITIME,SAVWCU,SAVWC1,SAVEN1,SAVEN2,FOCEAN
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau
+     *  ,funio_denominator,autoconv_multiplier,radius_multiplier
+     *  ,entrainment_cont1,entrainment_cont2
       USE CLOUDS_COM, only : llow,lmid,lhi
       USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
       USE PARAM
@@ -1714,6 +1716,11 @@ C     WRITE(195) ITIME,SAVWCU,SAVWC1,SAVEN1,SAVEN2,FOCEAN
       call sync_param( "RWCldOX", RWCldOX )
       call sync_param( "ISC", ISC)
       call sync_param( "do_blU00", do_blU00)
+      call sync_param( "funio_denominator",funio_denominator)
+      call sync_param( "autoconv_multiplier",autoconv_multiplier)
+      call sync_param( "radius_multiplier",radius_multiplier)
+      call sync_param( "entrainment_cont1",entrainment_cont1)
+      call sync_param( "entrainment_cont2",entrainment_cont2)
 
       IF(LMCM.LT.0) LMCM = LS1-1
       call set_param( "LMCM", LMCM, 'o' )

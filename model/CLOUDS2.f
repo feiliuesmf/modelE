@@ -40,6 +40,7 @@ C**** parameters and constants
       REAL*8, PARAMETER :: CCMUL=1.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
       REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND
+      REAL*8 :: RTEMP,CMX,RCLDX,CONTCE1,CONTCE2
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 !@var PLAND land fraction
@@ -53,6 +54,16 @@ C**** Set-able variables
       REAL*8 :: U00wtrX = 1.0d0     ! default
 !@dbparam U00ice critical humidity for ice cloud condensation
       REAL*8 :: U00ice = .7d0       ! default
+!@dbparam funio_denominator funio denominator
+      REAL*8 :: funio_denominator=15.d0  ! default
+!@dbparam autoconv_multiplier autoconversion rate multiplier
+      REAL*8 :: autoconv_multiplier=1.d0 ! default
+!@dbparam radius_multiplier cloud particle radius multiplier
+      REAL*8 :: radius_multiplier=1.d0   ! default
+!@dbparam entrainment_cont1 constant for entrainment rate, plume 1
+      REAL*8 :: entrainment_cont1=.3d0   ! default
+!@dbparam entrainment_cont2 constant for entrainment rate, plume 2
+      REAL*8 :: entrainment_cont2=.6d0   ! default
 !@dbparam HRMAX maximum distance an air parcel rises from surface
       REAL*8 :: HRMAX = 1000.d0     ! default (m)
 !@dbparam RWCldOX multiplies part.size of water clouds over ocean
@@ -557,6 +568,9 @@ C****
       FMC1=0.
       FSSL=1.
       FITMAX=ITMAX
+      RCLDX=radius_multiplier
+      CONTCE1=entrainment_cont1
+      CONTCE2=entrainment_cont2
 C**** initiallise arrays of computed ouput
       TAUMCL=0
       SVWMXL=0
@@ -951,8 +965,10 @@ C****
       DDRAFT=0.
       LFRZ=0
       LMAX=LMIN
-      CONTCE=.3
-      IF(IC.EQ.2) CONTCE=.6
+C     CONTCE=.3
+C     IF(IC.EQ.2) CONTCE=.6
+      CONTCE=CONTCE1
+      IF(IC.EQ.2) CONTCE=CONTCE2
       WCU(LMIN)=MAX(.5D0,WTURB(LMIN))
       IF(IC.EQ.1) WCU(LMIN)=MAX(.5D0,2.D0*WTURB(LMIN))
 C     WCU(LMIN)=MAX(.5D0,SQRT(W2L(LMIN)))
@@ -2210,10 +2226,12 @@ C**   Set CDNC for moist conv. clds (const at present)
               MCDNCI=MNdI
             IF(SVLATL(L).EQ.LHE)  THEN
 !              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-               RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
+C              RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
+               RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
              ELSE
 !              RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-               RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
+C              RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
+               RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
      *              *(1.+pl(l)*xRICld)
             END IF
             RCLDE=RCLD/BYBR   !  effective droplet radius in anvil
@@ -2464,6 +2482,9 @@ C****
       PRCPSS=0.
       HCNDSS=0.
       CKIJ=1.
+      RCLDX=radius_multiplier
+      RTEMP=funio_denominator
+      CMX=autoconv_multiplier
 C**** initialise vertical arrays
       ER=0.
       EC=0.
@@ -2556,7 +2577,8 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
         IF(TL(L).GT.269.16) THEN ! OC/SI/LI clouds: water above -4
           FUNIO=0.
         ELSE
-          FUNIO=1.-EXP(-((TL(L)-269.16d0)/15.)**2)
+C         FUNIO=1.-EXP(-((TL(L)-269.16d0)/15.)**2)
+          FUNIO=1.-EXP(-((TL(L)-269.16d0)/RTEMP)**2)
         END IF
         IF(TL(L).GT.263.16) THEN ! land clouds water: above -10
           FUNIL=0.
@@ -2763,9 +2785,9 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
 !routine to get the autoconversion rate
           WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           IF(LHX.EQ.LHE)  THEN
-            RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
-            RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
      *         *(1.+pl(l)*xRICld)
           END IF
        CALL GET_QAUT(L,PL(L),TL(L),FCLD,WMX(L),SCDNCW,RCLD,RHOW,
@@ -2783,6 +2805,7 @@ c     if (r6.gt.r6c) then
       endif
 !end routine for QAUT as a function of N,LWC
 #endif
+        CM=CM*CMX
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
 #ifdef CLD_AER_CDNC
@@ -2832,10 +2855,10 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
           IF(WTEM.LT.1d-10) WTEM=1d-10
           IF(LHX.EQ.LHE)  THEN
 !           RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
-            RCLD=1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+            RCLD=RCLDX*1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
 !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-            RCLD=100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+            RCLD=RCLDX*100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
      *         *(1.+pl(l)*xRICld)
           END IF
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
@@ -3472,12 +3495,12 @@ c     If (SCDNCW.ge.1400.d0) SCDNCW=1400.d0   !set max CDNC sensitivity test
         IF(LHX.EQ.LHE) THEN
 
 !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-          RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+          RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           QHEATC=(QHEAT(L)+FSSL(L)*CLEARA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
 !         RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-          RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+          RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
      *         *(1.+pl(l)*xRICld)
         ENDIF
         RCLDE=RCLD/BYBR
