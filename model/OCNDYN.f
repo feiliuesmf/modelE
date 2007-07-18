@@ -6,6 +6,11 @@
 !@ver  1.0
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
+#ifdef TRACERS_AGE_OCEAN
+     *     ,dtsrc,JDperY,JHOUR
+      USE CONSTANT, only: SDAY
+      USE OCEAN, only : DXYPO
+#endif
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit,ntm
       USE OCEAN, only : trmo,txmo,tymo,tzmo
@@ -149,6 +154,32 @@ C**** Advection of Potential Enthalpy and Salt
      *        ,OIJL(1,J_0H,1,IJL_GFLX))
       CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.
      *        ,OIJL(1,J_0H,1,IJL_SFLX))
+
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_AGE_OCEAN
+!at each time step set surface tracer conc=0 and add 1 below
+!this is mass*age (kg*year)
+!age=1/(JDperY*24*3600) in years
+      TRMO(:,:,1,:)=0.D0
+      DO J=J_0,J_1
+      DO I=1,IMAXJ(J)
+        IF (FOCEAN(I,J).gt.0) THEN
+        DO L=2,LMO
+           TRMO(I,J,L,:)= TRMO(I,J,L,:) 
+     *                  + MO(I,J,L) * DXYPO(J)
+     *                  * dtsrc/(FLOAT(JDperY)*SDAY)
+
+           if (JHOUR.eq.12)
+     *     write(6,'(a,3i5,4e12.4)')'OCNDYN, AGE TRACER  ',
+     *     I,J,L,TRMO(I,J,L,1),MO(I,J,L),DXYPO(J),
+     *           dtsrc/(FLOAT(JDperY)*SDAY)
+        ENDDO
+        ENDIF
+      ENDDO
+      ENDDO
+#endif
+#endif
+
 #ifdef TRACERS_OCEAN
       DO N=1,NTM
         CALL OADVT(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)

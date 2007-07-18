@@ -803,8 +803,14 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
 #else
 #ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Water   '/)
+#endif   /* TRACERS_WATER */
+#ifdef TRACERS_AGE_OCEAN
+      integer, parameter :: ntm=1
+      character*8, parameter :: trname(ntm)=(/'Age     '/)
+#endif   /* TRACERS_AGE_OCEAN */
 #else /* default for TRACERS_ON */
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
@@ -838,6 +844,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #endif
 #endif
 #endif
+
 #ifdef regional_Ox_tracers
 !@var NregOx number of regional Ox tracers
       integer, parameter :: NregOx=6
@@ -867,6 +874,9 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
      .     n_CO2n=0,
+#endif
+#ifdef TRACERS_AGE_OCEAN
+     .     n_Age=0,
 #endif
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
      *     n_SO4_d3=0,n_N_d1=0,  n_N_d2=0,  n_N_d3=0,

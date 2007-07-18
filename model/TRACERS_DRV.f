@@ -231,6 +231,14 @@ C**** Define individual tracer characteristics
           needtrs(n)=.true.
 #endif
 
+#ifdef TRACERS_AGE_OCEAN
+      case ('Age')
+      n_Age = n
+          ntm_power(n) = 1
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 1.  
+#endif
+
 
       case ('SF6')
       n_SF6 = n
@@ -9121,6 +9129,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
+#ifdef TRACERS_AGE_OCEAN
+     &     ,focean
+#endif
       USE DOMAIN_DECOMP, only : GRID,GET,UNPACK_COLUMN, write_parallel,
      * UNPACK_DATA
       USE SOMTQ_COM, only : qmom,mz,mzz
@@ -9187,6 +9198,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL
+#endif
+#ifdef TRACERS_AGE_OCEAN
+      USE OCEAN, only: MO,DXYPO
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m
@@ -9284,7 +9298,7 @@ C**** set some defaults for water tracers
       select case (trname(n))
 
         case default
-c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
+          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           call stop_model("TRACER_IC",255)
 
         case ('Air')
@@ -9789,6 +9803,15 @@ C         AM=kg/m2, and DXYP=m2:
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-13
             else
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
+            end if
+          end do; end do; end do
+#endif
+
+#ifdef TRACERS_AGE_OCEAN
+      case ('Age')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            if(l.ge.LS1) then
+              trm(i,j,l,n) = 0.
             end if
           end do; end do; end do
 #endif
