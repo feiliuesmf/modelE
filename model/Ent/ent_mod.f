@@ -166,6 +166,8 @@ cddd      end interface ent_cell_update
       integer, pointer :: hemi_1
       integer i, ic, j, jc
 
+      write(780,*) __FILE__,__LINE__,present(hemi)
+
       ic = size(entcell,1)
       jc = size(entcell,2)
 
@@ -191,6 +193,8 @@ cddd      end interface ent_cell_update
           if ( present(albedodata) ) albedodata_1 => albedodata(:,:,i,j)
           if ( present(cropsdata) ) cropsdata_1 => cropsdata(i,j)
           if ( present(hemi) ) hemi_1 => hemi(i,j)
+
+          write(780,*) __FILE__,__LINE__,hemi_1
           
           call entcell_vegupdate(entcell(i,j)%entcell, hemi_1,
      &         jday, do_giss_phenology, 

@@ -152,6 +152,7 @@
       cop%n = n
       cop%nm = nm
       cop%LAI = LAI
+      write(777,*) __FILE__,__LINE__,cop%LAI
       cop%h = h
       cop%crown_dx =  crown_dx 
       cop%crown_dy =  crown_dy

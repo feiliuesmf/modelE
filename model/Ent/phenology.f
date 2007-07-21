@@ -55,6 +55,7 @@
         !No carbon pool update for now.
 
         cop%LAI= laimax(pft) * cop%phenofactor
+        write(777,*) __FILE__,__LINE__,cop%LAI
         
         cop => cop%shorter 
  
