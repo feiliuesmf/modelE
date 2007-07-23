@@ -470,7 +470,7 @@ C****
 C**** Zonal adjustment for combined wetlands and tundra
 C****
       do j=J_0,J_1
-        if ( (J>15) .AND. (J<=JM-15) ) then
+        if ((lat_dg(j,1) >= -30.) .and. (lat_dg(j,1) <= 30.))then
           CH4_src(:,j,kwet) = CH4_src(:,j,kwet)*1.761d0
         else
           CH4_src(:,j,kwet) = CH4_src(:,j,kwet)*0.6585d0
