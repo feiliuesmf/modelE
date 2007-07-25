@@ -6,7 +6,7 @@
       use ent_types, only : entcelltype, patch, cohort, timestruct,
      &     MAX_PATCHES, MAX_COHORTS, ent_config
       use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
-     &     , N_BPOOLS, N_PFT
+     &     , N_BPOOLS, N_PFT, N_CASA_LAYERS,NPOOLS,NLIVE,CARBON,PTRACE  !added last 5 for soil bgc -PK 
       !use ent_prescrveg
       use entcells
 
@@ -17,7 +17,7 @@
 
       !--- public constants ---
       public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES, N_BPOOLS
-      public N_PFT
+      public N_PFT, N_CASA_LAYERS  !added last one -PK
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
@@ -166,7 +166,7 @@ cddd      end interface ent_cell_update
       integer, pointer :: hemi_1
       integer i, ic, j, jc
 
-      write(780,*) __FILE__,__LINE__,present(hemi)
+!      write(780,*) __FILE__,__LINE__,present(hemi)
 
       ic = size(entcell,1)
       jc = size(entcell,2)
@@ -194,7 +194,7 @@ cddd      end interface ent_cell_update
           if ( present(cropsdata) ) cropsdata_1 => cropsdata(i,j)
           if ( present(hemi) ) hemi_1 => hemi(i,j)
 
-          write(780,*) __FILE__,__LINE__,hemi_1
+!          write(780,*) __FILE__,__LINE__,hemi_1
           
           call entcell_vegupdate(entcell(i,j)%entcell, hemi_1,
      &         jday, do_giss_phenology, 
@@ -1088,7 +1088,7 @@ cddd      end subroutine ent_cell_update_single
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer dc, nn
+      integer dc, nn, i
 
       dc = 0
 
@@ -1096,8 +1096,10 @@ cddd      end subroutine ent_cell_update_single
       call copy_vars( buf(dc:), nn,  p%age,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  p%area, flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  p%Ci,   flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  p%Tpool(1,:),flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  p%Tpool(2,:),flag ); dc = dc + nn
+      do i=1,N_CASA_LAYERS      !need b/c Tpool now rank 3  -PK  
+       call copy_vars( buf(dc:), nn,  p%Tpool(1,:,i),flag );dc = dc + nn
+       call copy_vars( buf(dc:), nn,  p%Tpool(2,:,i),flag );dc = dc + nn
+      end do
       ! not sure about the following, probably can be restored from 
       ! other data...
       call copy_vars( buf(dc:), nn,  p%soil_type, flag ); dc = dc + nn
@@ -1159,8 +1161,10 @@ cddd      end subroutine ent_cell_update_single
      &     total_visible_rad,
      &     direct_visible_rad,
      &     cos_solar_zenith_angle,
-     &     soil_temp30cm,       !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
-     &     soil_moist30cm,
+!     &     soil_temp30cm,       !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
+!     &     soil_moist30cm,
+     &     soil_temp,   !now want explicit depth-structured soiltemp,soilmoist--see ent_types -PK 7/07
+     &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
@@ -1177,10 +1181,12 @@ cddd      end subroutine ent_cell_update_single
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     cos_solar_zenith_angle,
-     &     soil_temp30cm,        
-     &     soil_moist30cm
+     &     cos_solar_zenith_angle
+!     &     soil_temp30cm,        
+!     &     soil_moist30cm
       real*8, dimension(:), intent(in) ::
+     &     soil_temp,
+     &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
@@ -1197,8 +1203,12 @@ cddd      end subroutine ent_cell_update_single
       entcell%entcell%IPARdif = total_visible_rad-direct_visible_rad
       entcell%entcell%IPARdir = direct_visible_rad
       entcell%entcell%CosZen = cos_solar_zenith_angle
-      entcell%entcell%Soiltemp = soil_temp30cm  !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
-      entcell%entcell%Soilmoist = soil_moist30cm
+!      entcell%entcell%Soiltemp = soil_temp30cm
+!      entcell%entcell%Soilmoist = soil_moist30cm
+      do n=1,N_CASA_LAYERS
+        entcell%entcell%Soiltemp(n) = soil_temp(n)
+        entcell%entcell%Soilmoist(n) = soil_moist(n)
+      end do
       do n=1,N_DEPTH
         entcell%entcell%Soilmp(n) = soil_matric_pot(n)
         entcell%entcell%fice(n) = soil_ice_fraction(n)
@@ -1218,8 +1228,10 @@ cddd      end subroutine ent_cell_update_single
      &     total_visible_rad,
      &     direct_visible_rad,
      &     cos_solar_zenith_angle,
-     &     soil_temp30cm,       !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
-     &     soil_moist30cm,
+!     &     soil_temp30cm,
+!     &     soil_moist30cm,
+     &     soil_temp,
+     &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
@@ -1236,10 +1248,12 @@ cddd      end subroutine ent_cell_update_single
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     cos_solar_zenith_angle,
-     &     soil_temp30cm,       
-     &     soil_moist30cm
+     &     cos_solar_zenith_angle
+!     &     soil_temp30cm,       
+!     &     soil_moist30cm
       real*8, dimension(:,:), intent(in) ::
+     &     soil_temp,
+     &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
@@ -1261,8 +1275,12 @@ cddd      end subroutine ent_cell_update_single
      &       direct_visible_rad(i)
         entcell(i)%entcell%IPARdir = direct_visible_rad(i)
         entcell(i)%entcell%CosZen = cos_solar_zenith_angle(i)
-        entcell(i)%entcell%Soiltemp = soil_temp30cm(i)  !added soil T, volum moist (avg top 30 cm) -PK 6/28/06
-        entcell(i)%entcell%Soilmoist = soil_moist30cm(i)
+!        entcell(i)%entcell%Soiltemp = soil_temp30cm(i)
+!        entcell(i)%entcell%Soilmoist = soil_moist30cm(i)
+        do n=1,N_CASA_LAYERS
+          entcell(i)%entcell%Soiltemp(n) = soil_temp(n,i)
+          entcell(i)%entcell%Soilmoist(n) = soil_moist(n,i)
+        end do
         do n=1,N_DEPTH
           entcell(i)%entcell%Soilmp(n) = soil_matric_pot(n,i)
           entcell(i)%entcell%fice(n) = soil_ice_fraction(n,i)
@@ -1283,8 +1301,10 @@ cddd      end subroutine ent_cell_update_single
      &     total_visible_rad,
      &     direct_visible_rad,
      &     cos_solar_zenith_angle,
-     &     soil_temp30cm,
-     &     soil_moist30cm,
+!     &     soil_temp30cm,
+!     &     soil_moist30cm,
+     &     soil_temp,
+     &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
@@ -1301,10 +1321,12 @@ cddd      end subroutine ent_cell_update_single
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     cos_solar_zenith_angle,
-     &     soil_temp30cm,
-     &     soil_moist30cm
+     &     cos_solar_zenith_angle
+!     &     soil_temp30cm,
+!     &     soil_moist30cm
       real*8, dimension(:,:,:), intent(in) ::
+     &     soil_temp,
+     &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
      &     soil_ice_fraction
@@ -1328,8 +1350,12 @@ cddd      end subroutine ent_cell_update_single
      &       direct_visible_rad(i,j)
           entcell(i,j)%entcell%IPARdir = direct_visible_rad(i,j)
           entcell(i,j)%entcell%CosZen = cos_solar_zenith_angle(i,j)
-          entcell(i,j)%entcell%Soiltemp = soil_temp30cm(i,j)
-          entcell(i,j)%entcell%Soilmoist = soil_moist30cm(i,j)
+!          entcell(i,j)%entcell%Soiltemp = soil_temp30cm(i,j)
+!          entcell(i,j)%entcell%Soilmoist = soil_moist30cm(i,j)
+          do n=1,N_CASA_LAYERS
+            entcell(i,j)%entcell%Soiltemp(n) = soil_temp(n,i,j)
+            entcell(i,j)%entcell%Soilmoist(n) = soil_moist(n,i,j)
+          end do
           do n=1,N_DEPTH
             entcell(i,j)%entcell%Soilmp(n) = soil_matric_pot(n,i,j)
             entcell(i,j)%entcell%fice(n) = soil_ice_fraction(n,i,j)
@@ -1354,7 +1380,10 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
      &     fraction_of_vegetated_soil,
-     &     vegetation_fractions
+     &     vegetation_fractions,
+           !added next 2 -PK 7/07
+     &     soilresp,
+     &     soilcpools
      &     )
       type(entcelltype_public), intent(in) :: entcell
       real*8, optional, intent(out) ::
@@ -1367,13 +1396,16 @@ cddd      end subroutine ent_cell_update_single
      &     flux_CO2,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
-     &     fraction_of_vegetated_soil
+     &     fraction_of_vegetated_soil,
+     &     soilresp  
       real*8, dimension(:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
      &     vegetation_fractions
+      real*8, dimension(:,:,:), optional, intent(out) ::
+     &     soilcpools 
       !----------
-      integer n
+      integer n,p,ii
 
       if ( present(canopy_conductance) )
      &     canopy_conductance = entcell%entcell%GCANOPY
@@ -1409,6 +1441,9 @@ cddd      end subroutine ent_cell_update_single
         fraction_of_vegetated_soil = entcell%entcell%fv
       endif
 
+      if ( present(soilresp) )  !PK
+     &     soilresp = entcell%entcell%Soil_resp
+
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
           beta_soil_layers(n) = entcell%entcell%betadl(n)
@@ -1430,6 +1465,16 @@ cddd      end subroutine ent_cell_update_single
         call entcell_extract_pfts(entcell%entcell, vegetation_fractions)
       endif
 
+      if ( present(soilcpools) ) then  !PK
+        do n=1,N_CASA_LAYERS
+         do p=1,PTRACE
+          do ii=1,NPOOLS
+            soilcpools(p,ii,n) = entcell%entcell%Tpool(p,ii,n)
+          end do
+         end do
+        enddo
+      endif
+
       end subroutine ent_get_exports_single
 
 
@@ -1446,7 +1491,9 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
      &     fraction_of_vegetated_soil,
-     &     vegetation_fractions
+     &     vegetation_fractions,
+     &     soilresp,
+     &     soilcpools
      &     )
       type(entcelltype_public), dimension(:), intent(in) :: entcell
       real*8, dimension(:), optional, intent(out) ::
@@ -1459,13 +1506,16 @@ cddd      end subroutine ent_cell_update_single
      &     flux_CO2,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
-     &     fraction_of_vegetated_soil
+     &     fraction_of_vegetated_soil,
+     &     soilresp
       real*8, dimension(:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
      &     vegetation_fractions
+      real*8, dimension(:,:,:,:), optional, intent(out) ::
+     &     soilcpools 
       !----------
-      integer n, i, ic
+      integer n, i, ic, p, ii
 
       ic = size(entcell, 1)
 
@@ -1505,11 +1555,8 @@ cddd      end subroutine ent_cell_update_single
         call stop_model("not implemmented yet",255)
       endif
 
-      if ( present(beta_soil_layers) ) then
-        do n=1,N_DEPTH
-          beta_soil_layers(n,i) = entcell(i)%entcell%betadl(n)
-        enddo
-      endif
+      if ( present(soilresp) )  !PK
+     &     soilresp(i) = entcell(i)%entcell%Soil_resp
 
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
@@ -1530,6 +1577,18 @@ cddd      end subroutine ent_cell_update_single
           call stop_model("not implemmented yet",255)
         enddo
       endif
+
+      if ( present(soilcpools) ) then  !PK
+        do n=1,N_CASA_LAYERS
+         do p=1,PTRACE
+          do ii=1,NPOOLS
+            soilcpools(p,ii,n,i) = 
+     &      entcell(i)%entcell%Tpool(p,ii,n)
+          end do
+         end do
+        enddo
+      endif
+
       enddo
 
       end subroutine ent_get_exports_array_1d
@@ -1548,7 +1607,9 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
      &     fraction_of_vegetated_soil,
-     &     vegetation_fractions
+     &     vegetation_fractions,
+     &     soilresp,
+     &     soilcpools
      &     )
       type(entcelltype_public), dimension(:,:), intent(in) :: entcell
       real*8, dimension(:,:), optional, intent(out) ::
@@ -1561,13 +1622,16 @@ cddd      end subroutine ent_cell_update_single
      &     flux_CO2,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
-     &     fraction_of_vegetated_soil
+     &     fraction_of_vegetated_soil,
+     &     soilresp
       real*8, dimension(:,:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
      &     vegetation_fractions
+      real*8, dimension(:,:,:,:,:), optional, intent(out) ::
+     &     soilcpools
       !----------
-      integer n, i, j, ic, jc
+      integer n, i, j, ic, jc, p,ii
 
       ic = size(entcell, 1)
       jc = size(entcell, 2)
@@ -1623,6 +1687,9 @@ cddd      end subroutine ent_cell_update_single
         endif
       endif
 
+      if ( present(soilresp) )
+     &     soilresp(i,j) = entcell(i,j)%entcell%Soil_resp
+
       if ( present(beta_soil_layers) ) then
         do n=1,N_DEPTH
           beta_soil_layers(n,i,j) = 
@@ -1643,8 +1710,20 @@ cddd      end subroutine ent_cell_update_single
           call stop_model("not implemmented yet",255)
         enddo
       endif
-      enddo
-      enddo
+
+      if ( present(soilcpools) ) then
+        do n=1,N_CASA_LAYERS
+         do p=1,PTRACE
+          do ii=1,NPOOLS
+            soilcpools(p,ii,n,i,j) = 
+     &      entcell(i,j)%entcell%Tpool(p,ii,n)
+          end do
+         end do
+        enddo
+      endif
+
+      enddo  !i
+      enddo  !j
 
       end subroutine ent_get_exports_array_2d
 

@@ -55,7 +55,7 @@
         !No carbon pool update for now.
 
         cop%LAI= laimax(pft) * cop%phenofactor
-        write(777,*) __FILE__,__LINE__,cop%LAI
+!        write(777,*) __FILE__,__LINE__,cop%LAI
         
         cop => cop%shorter 
  
@@ -123,8 +123,8 @@
       
       airtemp =  pp%cellptr%TairC
 !      soilmoist = pp%Soilmoist  !vary with patches, but currently doesn't work at the patch level
-      soilmoist = pp%cellptr%Soilmoist
-      soiltemp = pp%cellptr%Soiltemp  
+      soilmoist = pp%cellptr%Soilmoist(1)  !assign these only to top 30 cm for now -PK 3/16/07
+      soiltemp = pp%cellptr%Soiltemp(1)
       coszen = pp%cellptr%CosZen
     
   
@@ -256,28 +256,36 @@
       subroutine litter( pp)
       !* Determine litter from live carbon pools and update Tpool.
       !* After CASA, but called at daily time step. - NYK 7/27/06
+      
+      use cohorts, only : calc_CASArootfrac 
 
       !real*8 :: dtsec           !dt in seconds
       !type(timestruct) :: tt    !Greenwich Mean Time
       type(patch),pointer :: pp
       !--Local-----------------
       type(cohort),pointer :: cop
-      real*8 :: Closs(PTRACE,NPOOLS) !Litter per cohort.
-      real*8 :: Clossacc(PTRACE,NPOOLS) !Litter accumulator.
-      integer :: pft
+      real*8 :: Closs(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter per cohort.  !explicitly depth-structured -PK 7/07
+      real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
+      integer :: pft,i
+      real*8 :: fracrootCASA(N_CASA_LAYERS)
       real*8 :: turnoverdtleaf !Closs amount from intrinsic turnover of biomass pool.
       real*8 :: turnoverdtfroot !Closs amount from intrinsic turnover of biomass pool.
       real*8 :: turnoverdtwood !Closs amount from intrinsic turnover of biomass pool.
       real*8 :: turnoverdttotal, adj !Total, adjustment factor if larger than C_lab.
 
-      Closs(:,:) = 0.d0
-      Clossacc(:,:) = 0.d0
+      Closs(:,:,:) = 0.d0
+      Clossacc(:,:,:) = 0.d0
 
       !* Calculate fresh litter from each cohort *!
       cop => pp%tallest  !changed to => (!) -PK 7/11/06
       do while(ASSOCIATED(cop)) 
         pft = cop%pft
+        
+      !assign root fractions for CASA layers -PK
+      call calc_CASArootfrac(cop,fracrootCASA)
+!      print *, 'from litter(pheno*.f): fracrootCASA(:) =', fracrootCASA !***test*** -PK 11/27/06  
 
+       do i=1,N_CASA_LAYERS  !do this over all CASA layers -PK
         !* NLIVE POOLS *! 
         turnoverdtleaf = annK(pft,LEAF)*SDAY
         turnoverdtfroot = annK(pft,FROOT)*SDAY
@@ -296,15 +304,20 @@
 
         !* Calculate litter *!
         ! Senescefrac factor can be calculated by either prescribed or prognostic phenology: ****** NYK!
-        Closs(CARBON,LEAF) = 
+        if (i.eq.1) then  !only top CASA layer has leaf and wood litter -PK   
+         Closs(CARBON,LEAF,i) = 
      &       cop%C_fol * cop%n *
      &       (adj*turnoverdtleaf + cop%senescefrac) !* x tune factor
-        Closs(CARBON,FROOT) = 
-     &       cop%C_froot * cop%n * 
-     &       (adj*turnoverdtfroot + cop%senescefrac) !* x tune factor
-        Closs(CARBON,WOOD) = 
+         Closs(CARBON,WOOD,i) = 
      &       (cop%C_hw + cop%C_croot) * cop%n
      &       *(adj*turnoverdtwood) !* expr is kdt; x tune factor
+        else    
+         Closs(CARBON,LEAF,i) = 0.d0 
+         Closs(CARBON,WOOD,i) = 0.d0
+        end if
+         Closs(CARBON,FROOT,i) =  !both layers have root litter -PK 
+     &       fracrootCASA(i)*cop%C_froot * cop%n * 
+     &       (adj*turnoverdtfroot + cop%senescefrac) !* x tune factor
 
 !        write(98,*) 'In litter: ',dtsec
 !        write(98,*) cop%pft, cop%C_fol, cop%n, annK(pft,LEAF),pp%betad
@@ -313,41 +326,44 @@
 !        write(98,*) 'solubfract(pft)', solubfract(pft)
 !        write(98,*) 'Closs(CARBON,LEAF)',Closs(CARBON,LEAF)
 !        write(98,*) 'Closs(CARBON,FROOT)',Closs(CARBON,FROOT)
-        
-        Clossacc(CARBON,LEAF) = Clossacc(CARBON,LEAF)
-     &       + Closs(CARBON,LEAF)
-        Clossacc(CARBON,FROOT) = Clossacc(CARBON,FROOT) 
-     &       + Closs(CARBON,FROOT)
-        Clossacc(CARBON,WOOD) = Clossacc(CARBON,WOOD) 
-     &       + Closs(CARBON,WOOD)
+         Clossacc(CARBON,LEAF,i) = Clossacc(CARBON,LEAF,i)
+     &        + Closs(CARBON,LEAF,i)
+         Clossacc(CARBON,FROOT,i) = Clossacc(CARBON,FROOT,i) 
+     &        + Closs(CARBON,FROOT,i)
+         Clossacc(CARBON,WOOD,i) = Clossacc(CARBON,WOOD,i) 
+     &        + Closs(CARBON,WOOD,i)
 
         !* NDEAD POOLS *!
-        Clossacc(CARBON,SURFMET) = Clossacc(CARBON,SURFMET) 
-     &       + Closs(CARBON,LEAF) * solubfract(pft)
-        Clossacc(CARBON,SOILMET) = Clossacc(CARBON,SOILMET) 
-     &       + Closs(CARBON,FROOT) * solubfract(pft)
-        Clossacc(CARBON,SURFSTR) = Clossacc(CARBON,SURFSTR)
-     &       + Closs(CARBON,LEAF) * (1-solubfract(pft))
-        Clossacc(CARBON,SOILSTR) = Clossacc(CARBON,SOILSTR) 
-     &       + Closs(CARBON,FROOT) * (1-solubfract(pft))
-        Clossacc(CARBON,CWD) = Clossacc(CARBON,CWD) 
-     &       + Closs(CARBON,WOOD)
+         Clossacc(CARBON,SURFMET,i) = Clossacc(CARBON,SURFMET,i) 
+     &        + Closs(CARBON,LEAF,i) * solubfract(pft)
+         Clossacc(CARBON,SOILMET,i) = Clossacc(CARBON,SOILMET,i) 
+     &        + Closs(CARBON,FROOT,i) * solubfract(pft)
+         Clossacc(CARBON,SURFSTR,i) = Clossacc(CARBON,SURFSTR,i)
+     &        + Closs(CARBON,LEAF,i) * (1-solubfract(pft))
+         Clossacc(CARBON,SOILSTR,i) = Clossacc(CARBON,SOILSTR,i) 
+     &        + Closs(CARBON,FROOT,i) * (1-solubfract(pft))
+         Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
+     &        + Closs(CARBON,WOOD,i)
+        end do  !loop through CASA layers-->cumul litter per pool per layer -PK
      
         cop => cop%shorter  !added -PK 7/12/06
-      end do
+      end do  !loop through cohorts
 
       !* NDEAD POOLS *!
-      pp%Tpool(CARBON,SURFMET) = pp%Tpool(CARBON,SURFMET) 
-     &     + Clossacc(CARBON,SURFMET)
-      pp%Tpool(CARBON,SOILMET) = pp%Tpool(CARBON,SOILMET) 
-     &     + Clossacc(CARBON,SOILMET)
-      pp%Tpool(CARBON,SURFSTR) = pp%Tpool(CARBON,SURFSTR)
-     &     + Clossacc(CARBON,SURFSTR)
-      pp%Tpool(CARBON,SOILSTR) = pp%Tpool(CARBON,SOILSTR) 
-     &     + Clossacc(CARBON,SOILSTR)
-      pp%Tpool(CARBON,CWD) = pp%Tpool(CARBON,CWD) 
-     &     + Clossacc(CARBON,CWD)
-      
+       do i=1,N_CASA_LAYERS
+        pp%Tpool(CARBON,SURFMET,i) = pp%Tpool(CARBON,SURFMET,i) 
+     &     + Clossacc(CARBON,SURFMET,i)
+        pp%Tpool(CARBON,SOILMET,i) = pp%Tpool(CARBON,SOILMET,i) 
+     &     + Clossacc(CARBON,SOILMET,i)
+        pp%Tpool(CARBON,SURFSTR,i) = pp%Tpool(CARBON,SURFSTR,i)
+     &     + Clossacc(CARBON,SURFSTR,i)
+        pp%Tpool(CARBON,SOILSTR,i) = pp%Tpool(CARBON,SOILSTR,i) 
+     &     + Clossacc(CARBON,SOILSTR,i)
+        pp%Tpool(CARBON,CWD,i) = pp%Tpool(CARBON,CWD,i) 
+     &     + Clossacc(CARBON,CWD,i)
+       end do   !loop through CASA layers-->total C per pool per layer -PK
+!       print *, __FILE__,__LINE__,'pp%Tpool=',pp%Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
+
       end subroutine litter
       !*********************************************************************
 

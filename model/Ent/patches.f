@@ -77,7 +77,7 @@
       ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
       ! total number of individuals (may want to do by biomass of cohort)
       ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
-
+      use cohorts, only: calc_CASArootfrac  !PK 7/07
       use canopyrad
       implicit none
       type(patch),pointer :: pp
@@ -86,10 +86,11 @@
       real*8 :: nc, nsum  !density, sum
       integer :: ia  !array index
       integer :: pft
+      real*8 :: fracrootCASA(N_CASA_LAYERS)  !to map fracroot to fracrootCASA -PK 7/07
 
       !* Zero out summary variables *!
       call zero_patch_cohortsum(pp)
-      pp%Tpool(:,1:NLIVE) = 0.d0 !###
+      pp%Tpool(:,1:NLIVE,:) = 0.d0 !###
 
       if ( .not. associated(pp%tallest) ) return ! no cohorts in this patch
 
@@ -101,6 +102,10 @@
       cop => pp%tallest
       do while(ASSOCIATED(cop))
         pft = cop%pft
+        
+      !assign root fractions for CASA layers -PK 11/06 
+      call calc_CASArootfrac(cop,fracrootCASA)
+!      print *, 'from patches: fracrootCASA(:) =', fracrootCASA !***test*** -PK 11/27/06 
 
         !*- - - - - - COHORT SUMMARY VARIABLES - - - - - - - - - -
         nc = cop%n  
@@ -151,16 +156,23 @@
         !*- - - - - end cohort summary variables - - - - - - - - - - - - -
 
         !* CASA pools * These are redundant but not 1-1 with the cohort pools.
-        pp%Tpool(CARBON,LEAF) = pp%Tpool(CARBON,LEAF)
-     &       + cop%C_fol * cop%n    !kg-C/m^2-ground
-        pp%Tpool(CARBON,FROOT) = pp%Tpool(CARBON,FROOT)
-     &       + cop%C_froot * cop%n  
-        pp%Tpool(CARBON,WOOD) = pp%Tpool(CARBON,WOOD)
+       do ia=1,N_CASA_LAYERS  !loop over all CASA layers -PK 7/07
+        if (ia.eq.1) then  !only top CASA layer has leaves & wood
+         pp%Tpool(CARBON,LEAF,ia) = pp%Tpool(CARBON,LEAF,ia)
+     &        + cop%C_fol * cop%n    !kg-C/m^2-ground
+         pp%Tpool(CARBON,WOOD,ia) = pp%Tpool(CARBON,WOOD,ia)  !note: phenology.f uses C_croot instead of C_sw -PK 7/07
      &       + (cop%C_sw + cop%C_hw) * cop%n
+        else    
+         pp%Tpool(CARBON,LEAF,ia) = 0.d0  
+         pp%Tpool(CARBON,WOOD,ia) = 0.d0
+        end if 
+         pp%Tpool(CARBON,FROOT,ia) = pp%Tpool(CARBON,FROOT,ia)
+     &        + fracrootCASA(ia)*cop%C_froot * cop%n
+       end do  !N_CASA_LAYERS
         !* Tpool(NITROGEN,:,:) gets updated in casa_bgfluxes.f
 
         cop => cop%shorter
-      end do
+      end do    !loop through cohorts
 
       !* ------- DO AVERAGES ----------------------------------------------*!
 
@@ -262,7 +274,7 @@
             pp%Soil_resp = 0.d0
 
             !* Variables calculated by GCM/EWB - downscaled from grid cell
-            pp%Soilmoist = 0.0d0 !## Get GISS soil moisture layers ##!
+            pp%Soilmoist(:) = 0.0d0 !## Get GISS soil moisture layers ##!
 !            pp%N_deposit = 0.d0
 
             !* Variables for biophysics and biogeochemistry
@@ -282,13 +294,10 @@
             !* DIAGNOSTIC SUMMARIES
             !* Biomass pools - patch total
             pp%LAIpft(:) = 0.d0
-            pp%Tpool(:,:) = 0.d0
+            pp%Tpool(:,:,:) = 0.d0
 
             !* Soil type
             pp%soil_type = -1    ! set to undefined soil type (maybe use -1?)
-
-            !* Soil vars for CASA -PK
-            pp%Soilmoist = 0.d0
 
 #ifdef NEWDIAG
             pp%plant_ag_Cp = 0.d0 !## Dummy ##!
@@ -437,13 +446,14 @@
       end subroutine patch_destruct
 
 
+      !*********************************************************************
       subroutine patch_print(iu,pp,prefix)
       use cohorts, only : cohort_print
       integer, intent(in) :: iu
       type(patch), intent(in) :: pp
       character*(*), optional, intent(in) :: prefix
       !---
-      integer n, nc, m
+      integer n, nc, m, i
       type(cohort),pointer :: cop
       character*8 prefix_c
 
@@ -463,8 +473,10 @@
       write(iu,'(a,"Tpool:")') prefix
       do m=1,PTRACE
         do n=1,NPOOLS,3
+         do i=1,N_CASA_LAYERS
           write(iu,'(a,"      ",i1,"  ",e12.4,e12.4,e12.4)') prefix,m
-     &         ,pp%Tpool(m,n),pp%Tpool(m,n+1),pp%Tpool(m,n+2)
+     &         ,pp%Tpool(m,n,i),pp%Tpool(m,n+1,i),pp%Tpool(m,n+2,i)
+         end do
         enddo
       enddo
       write(iu,'(a,a," = ",i7)') prefix,"soil type",pp%soil_type
@@ -507,18 +519,19 @@
 !**************************************************************************
 
       subroutine print_Tpool(Tpool)
-      real*8 :: Tpool(PTRACE,NPOOLS)
-      print*,'Tpool(CARBON,LEAF)',Tpool(CARBON,LEAF)
-      print*,'Tpool(CARBON,FROOT)',Tpool(CARBON,FROOT)
-      print*,'Tpool(CARBON,WOOD)',Tpool(CARBON,WOOD)
-      print*,'Tpool(CARBON,SURFMET)',Tpool(CARBON,SURFMET)
-      print*,'Tpool(CARBON,SURFSTR)',Tpool(CARBON,SURFSTR)
-      print*,'Tpool(CARBON,SOILMET)',Tpool(CARBON,SOILMET)
-      print*,'Tpool(CARBON,SOILSTR)',Tpool(CARBON,SOILSTR)
-      print*,'Tpool(CARBON,CWD)',Tpool(CARBON,CWD)
-      print*,'Tpool(CARBON,SOILMIC)',Tpool(CARBON,SOILMIC)
-      print*,'Tpool(CARBON,SLOW)',Tpool(CARBON,SLOW)
-      print*,'Tpool(CARBON,PASSIVE)',Tpool(CARBON,PASSIVE)
+      real*8 :: Tpool(PTRACE,NPOOLS,N_CASA_LAYERS)
+      print*,'Tpool(CARBON,LEAF,:)',Tpool(CARBON,LEAF,:)
+      print*,'Tpool(CARBON,FROOT,:)',Tpool(CARBON,FROOT,:)
+      print*,'Tpool(CARBON,WOOD,:)',Tpool(CARBON,WOOD,:)
+      print*,'Tpool(CARBON,SURFMET,:)',Tpool(CARBON,SURFMET,:)
+      print*,'Tpool(CARBON,SURFSTR,:)',Tpool(CARBON,SURFSTR,:)
+      print*,'Tpool(CARBON,SOILMET,:)',Tpool(CARBON,SOILMET,:)
+      print*,'Tpool(CARBON,SOILSTR,:)',Tpool(CARBON,SOILSTR,:)
+      print*,'Tpool(CARBON,CWD,:)',Tpool(CARBON,CWD,:)
+      print*,'Tpool(CARBON,SOILMIC,:)',Tpool(CARBON,SURFMIC,:)
+      print*,'Tpool(CARBON,SURFMIC,:)',Tpool(CARBON,SOILMIC,:)
+      print*,'Tpool(CARBON,SLOW,:)',Tpool(CARBON,SLOW,:)
+      print*,'Tpool(CARBON,PASSIVE,:)',Tpool(CARBON,PASSIVE,:)
       end subroutine print_Tpool
 
 !**************************************************************************

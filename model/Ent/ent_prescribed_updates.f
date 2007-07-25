@@ -30,7 +30,7 @@ cddd      real*8 :: cpool(N_BPOOLS)
         cop => pp%tallest
         do while ( associated(cop) )
           cop%lai = laidata(cop%pft)
-          write(777,*) __FILE__,__LINE__,cop%LAI
+!          write(777,*) __FILE__,__LINE__,cop%LAI
           laipatch = laipatch + cop%lai
           !!! this is hack, but don't know what to do with it at the moment...
 cddd          call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
@@ -122,8 +122,8 @@ cddd          cop%C_croot = cpool(CR)
       !----Local------
       type(patch),pointer :: pp
 
-      write(779,*) __FILE__,__LINE__
-     &   ,hemi,present(laidata),present(do_giss_phenology)
+!      write(779,*) __FILE__,__LINE__
+!     &   ,hemi,present(laidata),present(do_giss_phenology)
 
 
       if ( present(do_giss_phenology) ) then
@@ -198,8 +198,8 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: cpool(N_BPOOLS)
       real*8 :: lai_old
 
-      write(779,*) __FILE__,__LINE__
-     &   ,hemi,present(laidata)
+!      write(779,*) __FILE__,__LINE__
+!     &   ,hemi,present(laidata)
 
       if (ASSOCIATED(pp)) then
 
@@ -212,15 +212,15 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           if ( present(laidata) ) then  
             if ( ASSOCIATED(laidata)) then !Externally prescribed LAI.
               cop%LAI = laidata(cop%pft+COVEROFFSET)
-              write(777,*) __FILE__,__LINE__,cop%LAI
+!              write(777,*) __FILE__,__LINE__,cop%LAI
             else
               call stop_model("ent_prescribed_updates: no laidata",255)
             endif
           else                  !Internally calculated prescribed LAI.
-            write(778,*) __FILE__,__LINE__
-     &  ,cop%pft,COVEROFFSET,jday,hemi 
+!            write(778,*) __FILE__,__LINE__
+!     &  ,cop%pft,COVEROFFSET,jday,hemi 
             cop%LAI = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
-            write(777,*) __FILE__,__LINE__,cop%LAI
+!            write(777,*) __FILE__,__LINE__,cop%LAI
           endif
 
           laipatch = laipatch + cop%lai

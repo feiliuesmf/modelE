@@ -210,10 +210,10 @@
         ! if ( dailyupdate ) call litter(pp) 
           
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
-          write(995,'(i5,2e16.5,i5,100e16.5)')  !Fluxes are positive up.
+          write(995,'(i5,2(1pe16.8),i5,100(1pe16.8))')  !Fluxes are positive up.
      &         patchnum,pp%cellptr%IPARdir + pp%cellptr%IPARdif, 
      &         pp%cellptr%coszen,
-     &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:), 
+     &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:,:), 
      &         pp%GPP,pp%R_auto,pp%Soil_resp,
      &         pp%NPP,pp%CO2flux,pp%GCANOPY, pp%tallest%C_lab,
      &         pp%tallest%senescefrac

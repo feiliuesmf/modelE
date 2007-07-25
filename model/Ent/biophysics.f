@@ -306,7 +306,7 @@
         betad = cop%stressH2O
 
         vegpar%alai = cop%LAI
-        write(777,*) __FILE__,__LINE__,cop%LAI
+!        write(777,*) __FILE__,__LINE__,cop%LAI
         vegpar%nm = cop%nm
         vegpar%vh = cop%h
         vegpar%vegalbedo = pp%albedo(1) !Visible band. NOTE: Patch level.
@@ -584,13 +584,13 @@
      o     TRANS_SW_OUT, GPP_OUT !, NPP_OUT 
 #endif
 
-      write(666,'(e16.5,i5,100e16.5)')      
-     i     dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
-     i     betad,
-     i     Qf_IN,
-     i     vegpar%alai
-      write(667,*)
-     &     vegpar
+!      write(666,'(e16.5,i5,100e16.5)')      
+!     i     dt, pft,tcan,pres,ch,U,parinc,fdir,CosZen,Ca,
+!     i     betad,
+!     i     Qf_IN,
+!     i     vegpar%alai
+!      write(667,*)
+!     &     vegpar
 !     &     CNC_INOUT, Ci_INOUT,
 !     o     TRANS_SW_OUT, GPP_OUT)    !, NPP_OUT )
 

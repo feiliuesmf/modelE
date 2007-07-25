@@ -112,7 +112,7 @@
       !************************************************
       
       integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
-       integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
+      integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
 
 
       !************************************************************************
@@ -133,6 +133,10 @@
       integer,parameter :: NLIVE = 3
       integer,parameter :: NDEAD = 9
       integer,parameter :: NPOOLS = NLIVE + NDEAD
+      !layers for soil bgc -- need to make this into variable if
+      !affected arrays later allocated dynamically -PK 7/23/07    
+      integer,parameter :: N_CASA_LAYERS = 1  !**keep 1 for now to replicate default run for implicit top 30cm** -PK 7/07 
+!      integer,parameter :: N_CASA_LAYERS = 2  !to add explicit depth structure to soil model -PK 11/06
       !* Total pool array indices
       integer,parameter :: PTRACE = 2 !Trace elements in Tpools, C and N
       integer,parameter :: Carbon = 1

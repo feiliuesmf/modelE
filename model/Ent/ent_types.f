@@ -243,11 +243,15 @@
          real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
          !* DIAGNOSTICS - soil
          real*8 :: Soil_resp         !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
-         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool  !(g-C/m^2, CASA Tpools, single cell)
+         real*8, dimension(PTRACE,NPOOLS,N_CASA_LAYERS) :: Tpool !(g-C/m^2, CASA Tpools, single cell) !added dim N_CASA_LAYERS -PK
 
          !* IMPORT - Variables calculated by GCM/EWB - downscaled from grid cell
-!         real*8,pointer :: Soilmoist(:) !Available soil moisture by depth (mm)
-         real*8 :: Soilmoist    !Soil moisture (volumetric fraction, avg top 30 cm) -PK 6/28/06
+         
+      !use soil moisture (and temperature) for 2 CASA layers:    -PK 
+      !0-30 cm, 30-100 cm (second might change to 30-200 cm)
+      !**might change this and soiltemp to dynamically allocated arrays** -PK 7/07 
+         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
+
 !         real*8 :: N_deposit    !N deposition (kgN/m2)
 
          !* Variables for biophysics and biogeochemistry
@@ -258,7 +262,6 @@
          real*8 :: ignition_rate
          real*8 :: lambda1(T_SUB) !Site-averaged fire dist. rate during year
          real*8 :: disturbance_rate(N_DIST_TYPES)
-
 
          !* Soil data (needed for albedo computation)
          integer soil_type      ! 1 - sand (bright) ; 2 - dirt (dark)
@@ -354,7 +357,7 @@
          real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
          !* DIAGNOSTICS - soil
          real*8 :: Soil_resp         !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06
-         real*8, DIMENSION(PTRACE,NPOOLS) :: Tpool !(g-C/m^2, CASA Tpools, single cell)
+         real*8, dimension(PTRACE,NPOOLS,N_CASA_LAYERS) :: Tpool !(g-C/m^2, CASA Tpools, single cell) !added dim N_CASA_LAYERS -PK
 
          !* Disturbance values
          real*8 :: fuel
@@ -388,10 +391,9 @@
          real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
-
-          !CASA needs next 2 only for top 30 cm (top 2 = 27 cm; plus 3/dzsoi of lyr 3) -PK
-         real*8 :: Soilmoist !Soil moisture (volumetric fraction)
-         real*8 :: Soiltemp  !Soil temperature (Celsius)
+         !next two now explicitly depth-structured (see above) -PK
+         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
+         real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)
          real*8,pointer :: Soilmp(:) !Soil matric potential (m)
          real*8,pointer :: fice(:) !Fraction of soil layer that is ice
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
@@ -406,7 +408,7 @@
 !         real*8 :: IPAR         !Incident PAR 400-700 nm (W m-2)
          real*8 :: IPARdir        !Incident direct PAR (W m-2)
          real*8 :: IPARdif        !Incident diffuse PAR (W m-2)
-         real*8 :: CosZen     !Solar zenith angle
+         real*8 :: CosZen         !cos of solar zenith angle
 
          !PHENOLOGY - KIM
          real*8 :: soiltemp_10d
