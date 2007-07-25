@@ -63,9 +63,9 @@
       ecp%TRANS_SW = 0.d0
       ecp%CO2flux = 0.d0
       ecp%Soil_resp = 0.d0
-      ecp%Tpool(:,:) = 0.d0
+      ecp%Tpool(:,:,:) = 0.d0
 
-      ecp%Soilmoist = 0.d0
+!      ecp%Soilmoist = 0.d0  !commented out -- it's a forcing, so shouldn't be altered -PK 7/24/07
 !      ecp%N_deposit = 0.d0
 
 !      nullify(ecp%crad%heights)
@@ -126,7 +126,7 @@
       !may later be broken down into hyperspectral increments in an array
       ecp%IPARdif = 0.0         !Incident diffuse PAR 400-700 nm (W m-2)
       ecp%IPARdir = 0.0         !Incident direct PAR 400-700 nm (W m-2)
-      ecp%CosZen = 0.0         !Solar zenith angle
+      ecp%CosZen = 0.0          !cos of solar zenith angle
 
       !Phenology
       ecp%soiltemp_10d = 0.0
