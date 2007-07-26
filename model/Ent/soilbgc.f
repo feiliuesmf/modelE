@@ -92,11 +92,6 @@
       integer ::  n,m
       integer ::  ipool, i
       real*8 :: Cdead(N_CASA_LAYERS) 
-      !coefs for vertical C transport (based on Baisden et al., GBC 16, 2002) -PK 5/07        
-      !layer depths(mm) for use w/vertical transport coefs. **need to know these a priori**  -PK 5/07
-      real*8 :: dz(N_CASA_LAYERS) !move to ent_const at some point? -PK 7/07   
-      !rate coefficients 
-      real*8, dimension(N_CASA_LAYERS) :: vfast, vslow, vpass
 !decomp coefs      
       real*8 :: fact_soilmic(N_PFT)
       real*8 :: fact_slow(N_PFT)
@@ -188,7 +183,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
             if (Soiltemp(n) .gt. 0.d0) then
 !               Wlim(n) = min( max(Soilmoist(n)-watdry,0.d0) /  !original CASA function -PK
 !     &                   (watopt-watdry), 1.d0)
-        !**function RWC from DelGrosso et al., 2002** -PK 2/07
+        !**function RWC from DelGrosso et al., 2005** -PK 2/07
                Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
             else
                Wlim = 0.01d0
@@ -388,6 +383,7 @@ C.. mod 03/03/11 change closs/nloss to be g/m2/sec instead of g/m2/timestep
       real*8,intent(inout) :: Tpool(PTRACE,NPOOLS,N_CASA_LAYERS)  !total plant and soil C,N pools
 ! ------------------------ local variables ------------------------
       integer ::  i, n, numlayers
+      !coefs for vertical C transport (based on Baisden et al., GBC 16, 2002) -PK 5/07        
       !layer depths(mm) for use w/vertical transport coefs. **need to know these a priori**  -PK 5/07
       real*8 :: dz(N_CASA_LAYERS) !move to ent_const at some point? -PK 7/07   
       !rate coefficients 
