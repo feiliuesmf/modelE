@@ -166,10 +166,11 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 
 *---Step 1a: TEMPERATURE AND MOISTURE CONSTRAINTS ON DECOMP 
 ! temperature dependence
-            bgtemp = (Q10 ** ((Soiltemp - 30.d0) / 10.d0))  !original CASA function -PK
-        !**use function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
-!            bgtemp = 0.56d0+(1.46d0*atan(PI*0.0309d0*(Soiltemp-15.7d0)))
-!     &                       /PI
+!            bgtemp = (Q10 ** ((Soiltemp - 30.d0) / 10.d0))  !original CASA function -PK
+        !**function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
+        !allows for variable Q10 rather than fixed 
+            bgtemp = 0.56d0+(1.46d0*atan(PI*0.0309d0*(Soiltemp-15.7d0)))
+     &                       /PI
 
 ! moisture dependence 
 * mimic calculation of bevap in surphy.F to get Wlim
@@ -185,18 +186,18 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !!to both atm and other pools (see step 1b below) -PK 6/8/06
            do n=1,N_CASA_LAYERS
             if (Soiltemp(n) .gt. 0.d0) then
-               Wlim(n) = min( max(Soilmoist(n)-watdry,0.d0) /  !original CASA function -PK
-     &                   (watopt-watdry), 1.d0)
-        !**use function RWC from DelGrosso et al., 2002** -PK 2/07
-!               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
+!               Wlim(n) = min( max(Soilmoist(n)-watdry,0.d0) /  !original CASA function -PK
+!     &                   (watopt-watdry), 1.d0)
+        !**function RWC from DelGrosso et al., 2002** -PK 2/07
+               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
             else
                Wlim = 0.01d0
             end if
            end do
 
-           bgmoist = 0.25d0 + 0.75d0*Wlim  !original CASA function -PK
-        !**try using functions f(RWC), Rh from DelGrosso et al. (Biogeoch. 73, 2005)** -PK 2/07
-!           bgmoist = 5.d0*(0.287d0+(atan(PI*0.009d0*(Wlim-17.47d0)))/PI)
+!           bgmoist = 0.25d0 + 0.75d0*Wlim  !original CASA function -PK
+        !**functions f(RWC), Rh from DelGrosso et al. (Biogeoch. 73, 2005)** -PK 2/07
+           bgmoist = 5.d0*(0.287d0+(atan(PI*0.009d0*(Wlim-17.47d0)))/PI)
            atmp = bgtemp * bgmoist
 
 *---Step 1b: DETERMINE loss of C FROM EACH DEAD POOL (donor) PER TIMESTEP
@@ -232,7 +233,8 @@ ciyf (only need to track limits on inventories)
            do n = NLIVE+1,NPOOLS
             Closs(CARBON,n,i)=MIN(Closs(CARBON,n,i),Tpool(CARBON,n,i))
            end do
-          end do
+           
+          end do  !N_CASA_LAYERS
  
 *---Step 1c:  SOM C DECOMPOSITION
 *iyf:  update Tpool's:  C is transferred between donor and receiver pools 
