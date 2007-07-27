@@ -247,6 +247,16 @@ C**** Surface concentration
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
+C**** Surface concentration by volume (units kg/m^3)
+      k = k+1
+      tij_surfbv = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *     '_byVol_At_Surface'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' By Vol At Surface'
+        units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^3')
+        scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
+     *                 REAL(NIsurf,KIND=8)
 #ifdef TRACERS_GASEXCH_Natassa
 C**** Gas Exchange Solubility coefficient
       k = k+1

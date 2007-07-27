@@ -39,7 +39,7 @@ c******************   TRACERS             ******************************
 #endif
 #endif
 #endif
-      use trdiag_com, only : taijn=>taijn_loc,tij_surf
+      use trdiag_com, only : taijn=>taijn_loc,tij_surf, tij_surfbv
      *  ,taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tij_soil,tij_snow
@@ -534,16 +534,21 @@ C**** Save surface tracer concentration whether calculated or not
         if (itime_tr0(n).le.itime) then
           if (needtrs(n)) then
             nx=nx+1
-            taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+
+            taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)+
      &           pbl_args%trs(nx)*ptype
+            taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)+
+     &           pbl_args%trs(nx)*ptype*rhosrf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
             trs_glob(i,j,itype,n)=pbl_args%trs(nx)*ptype
 #endif
           else
-            taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
+            taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *bydxyp(j),0d0)*ptype
+            taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
+     *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
+     *           *bydxyp(j),0d0)*ptype*rhosrf
           end if
         end if
       end do

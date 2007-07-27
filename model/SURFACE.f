@@ -110,7 +110,7 @@ C****
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
 #endif
-      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_surf
+      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_surf, tij_surfbv
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_isrc,ijts_source
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_source,jls_isrc
 #ifdef TRACERS_GASEXCH_Natassa
@@ -1270,7 +1270,10 @@ C**** Save surface tracer concentration whether calculated or not
         if (itime_tr0(n).le.itime) then
           if (needtrs(n)) then
             nx=nx+1
-            taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
+            taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)
+     *           +trs(nx)*ptype
+            taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
+     *           +trs(nx)*ptype*rhosrf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
             trs_glob(i,j,itype,n)=trs(nx)*ptype
@@ -1279,6 +1282,9 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *bydxyp(j),0d0)*ptype
+            taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
+     *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
+     *           *bydxyp(j),0d0)*ptype*rhosrf
           end if
 #ifdef TRACERS_GASEXCH_Natassa
           if (focean(i,j).gt.0.) then
