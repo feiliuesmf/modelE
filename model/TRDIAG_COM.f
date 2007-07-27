@@ -61,7 +61,7 @@ C**** TAIJLN
 !@var IJT_XX Names for TAIJLN diagnostics (Not currently used)
 
 C**** TAIJN
-!@param KTAIJ number of 3D diagnostics for each tracer
+!@param KTAIJ number of 2D diags describing surface and column load along with wet and dry deposition
 #ifdef TRACERS_GASEXCH_Natassa
       integer, parameter :: ktaij=7
 #else
