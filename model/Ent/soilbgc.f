@@ -30,15 +30,15 @@
 
       ivt = pp%tallest%pft     
 !      Soilmoist = pp%Soilmoist    !soil moist varies by patch  !**omit for now** -PK 7/6/07
-      Soilmoist = pp%cellptr%Soilmoist 
-      Soiltemp = pp%cellptr%Soiltemp  !soil temp, texture vary by cell
+      Soilmoist(:) = pp%cellptr%Soilmoist(:) 
+      Soiltemp(:) = pp%cellptr%Soiltemp(:)  !soil temp, texture vary by cell
 !       print *, __FILE__,__LINE__,'soiltemp=',soiltemp !***test*** -PK 7/24/07  
 !       print *, __FILE__,__LINE__,'soilmoist=',soilmoist !***test*** -PK 7/24/07  
       clayfrac = pp%cellptr%soil_texture(3) !in GHY.f, texture order is sand,loam,clay,peat(+bedrock) -PK 7/13/06
       sandfrac = pp%cellptr%soil_texture(1)
 ! use siltfrac = 1 - (clayfrac + sandfrac) or 0.4*"loam" for now -PK 6/14/06
       siltfrac = 0.4*pp%cellptr%soil_texture(2)  !**hack** -PK
-      Tpool = pp%Tpool !Added - NYK 7/27/06
+      Tpool(:,:,:) = pp%Tpool(:,:,:) !Added - NYK 7/27/06
 !       print *, __FILE__,__LINE__,'Tpool=',Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
       
 #ifdef DEBUG
@@ -55,7 +55,7 @@
       !* Convert Cflux from gC/m2/s to kgC/m2/s 
       !* and assign patch soil_resp, Tpool 
       pp%Soil_resp = Cflux*1.d-3 
-      pp%Tpool = Tpool
+      pp%Tpool(:,:,:) = Tpool(:,:,:)
 !       print *, __FILE__,__LINE__,'pp%Tpool=',pp%Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
 
 #ifdef DEBUG
@@ -161,7 +161,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 
 *---Step 1a: TEMPERATURE AND MOISTURE CONSTRAINTS ON DECOMP 
 ! temperature dependence
-!            bgtemp = (Q10 ** ((Soiltemp - 30.d0) / 10.d0))  !original CASA function -PK
+!            bgtemp(:) = (Q10 ** ((Soiltemp(:) - 30.d0) / 10.d0))  !original CASA function -PK
         !**function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
         !allows for variable Q10 rather than fixed 
             bgtemp = 0.56d0+(1.46d0*atan(PI*0.0309d0*(Soiltemp-15.7d0)))
@@ -190,10 +190,11 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
             end if
            end do
 
-!           bgmoist = 0.25d0 + 0.75d0*Wlim  !original CASA function -PK
+!           bgmoist(:) = 0.25d0 + 0.75d0*Wlim(:)  !original CASA function -PK
         !**functions f(RWC), Rh from DelGrosso et al. (Biogeoch. 73, 2005)** -PK 2/07
-           bgmoist = 5.d0*(0.287d0+(atan(PI*0.009d0*(Wlim-17.47d0)))/PI)
-           atmp = bgtemp * bgmoist
+           bgmoist(:) = 5.d0 *
+     &                 (0.287d0+(atan(PI*0.009d0*(Wlim(:)-17.47d0)))/PI)
+           atmp(:) = bgtemp(:) * bgmoist(:)
 
 *---Step 1b: DETERMINE loss of C FROM EACH DEAD POOL (donor) PER TIMESTEP
 *iyf:  Closs is the amount of carbon each pool loses in gC/m2/timestep.

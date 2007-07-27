@@ -116,8 +116,8 @@
 !      ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.d0         !Atmospheric pressure (mb)
       ecp%Ca = 0.d0             !@Atmos CO2 conc at surface height (mol/m3).
-      ecp%Soilmoist = 0.d0      !Soil moisture avg top 30 cm (volumetric fraction) -PK 6/28/06
-      ecp%Soiltemp = 0.d0       !Soil temp avg top 30 cm (Celsius)
+      ecp%Soilmoist(:) = 0.d0   !Soil moisture (volumetric fraction), depth-structured  -PK 6/28/06
+      ecp%Soiltemp(:) = 0.d0    !Soil temp (Celsius), depth-structured 
       ecp%fice = 0.d0           !Fraction of soil layer that is ice
       ecp%Ch = 0.d0             !Ground to surface heat transfer coefficient 
       ecp%U = 0.d0              !Surface layer wind speed (m s-1)
@@ -231,10 +231,10 @@
         
         !* DIAGNOSTICS
         ecp%Soil_resp = ecp%Soil_resp + pp%Soil_resp*pp%area     !added soil resp (umolC/m2/s) -PK 6/14/06
-        ecp%Tpool = ecp%Tpool + pp%Tpool*pp%area                                                
+        ecp%Tpool(:,:,:) = ecp%Tpool(:,:,:) + pp%Tpool(:,:,:)*pp%area                                                
 
         !* IMPORT Variables calculated by GCM/EWB - downscaled from grid cell
-        ecp%Soilmoist = ecp%Soilmoist + pp%Soilmoist*pp%area !##
+        ecp%Soilmoist(:) = ecp%Soilmoist(:) + pp%Soilmoist(:)*pp%area !##
         !ecp%N_deposit     !N deposition (kgN/m2)
 
         !* Variables for biophysics and biogeochemistry
@@ -306,10 +306,10 @@
         ecp%TRANS_SW = ecp%TRANS_SW/fa !Area-weighted average
         ecp%CO2flux = ecp%CO2flux/fa
         ecp%Soil_resp = ecp%Soil_resp/fa     !added soil resp (umolC/m2/s) -PK 6/14/06
-        ecp%Tpool = ecp%Tpool/fa       
+        ecp%Tpool(:,:,:) = ecp%Tpool(:,:,:)/fa       
         
         !* Variables calculated by GCM/EWB - up/downscaled to/from grid cell
-        ecp%Soilmoist = ecp%Soilmoist/fa
+        ecp%Soilmoist(:) = ecp%Soilmoist(:)/fa
         do ia=1,N_DEPTH
           ecp%betadl(ia) = ecp%betadl(ia)/fa
         end do
