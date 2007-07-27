@@ -4,12 +4,9 @@
 !@ver  1.0
       USE CONSTANT, only : radius,omega,grav
       USE OCEAN, only : im,jm,lmo,lmm,lmu,lmv,dts,cospo,sinpo,ze,dxypo
-     *     ,mo,dypo,dyvo,dxpo               ! non-serial version
-!    *     ,mo=>mo_glob,dypo,dyvo,dxpo      ! serial version
-      USE KPP_COM, only : kpl,kpl_glob      ! non-serial version
-      USE OCEAN_DYN, only  : dh, vbar       ! non-serial version
-!     USE KPP_COM, only : kpl=>kpl_glob     ! serial version
-!     USE OCEAN_DYN, only  : dh=>dh_glob, vbar=>vbar_glob !serial vers'n
+     *     ,mo,dypo,dyvo,dxpo             
+      USE KPP_COM, only : kpl,kpl_glob   
+      USE OCEAN_DYN, only  : dh, vbar   
 
       USE DOMAIN_DECOMP, ONLY : grid, GET, HALO_UPDATE, NORTH, SOUTH,
      *                          PACK_DATA, AM_I_ROOT,

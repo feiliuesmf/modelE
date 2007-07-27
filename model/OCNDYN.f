@@ -12,7 +12,7 @@
       USE OCEAN, only : DXYPO
 #endif
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : t_qlimit,ntm
+      USE TRACER_COM, only : t_qlimit,ntm,n_age
       USE OCEAN, only : trmo,txmo,tymo,tzmo
 C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : trmo_glob,txmo_glob,tymo_glob,tzmo_glob
@@ -44,10 +44,8 @@ C?*** For serial ODIF/GM/straits computations:
       INTEGER NS,I,J,L,mnow,n
 
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0H, J_1H
-!     CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     *               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      INTEGER :: J_0, J_1, J_0H
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
 
 C**** initiallise work arrays
       MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
@@ -160,19 +158,20 @@ C**** Advection of Potential Enthalpy and Salt
 !at each time step set surface tracer conc=0 and add 1 below
 !this is mass*age (kg*year)
 !age=1/(JDperY*24*3600) in years
-      TRMO(:,:,1,:)=0.D0
+      TRMO(:,:,1,n_age)=0 
+      TXMO(:,:,1,n_age)=0 ; TYMO(:,:,1,n_age)=0 ; TZMO(:,:,1,n_age)=0
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
         DO L=2,LMO
-           TRMO(I,J,L,:)= TRMO(I,J,L,:) 
+           TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age)
      *                  + MO(I,J,L) * DXYPO(J)
      *                  * dtsrc/(FLOAT(JDperY)*SDAY)
 
-           if (JHOUR.eq.12)
-     *     write(6,'(a,3i5,4e12.4)')'OCNDYN, AGE TRACER  ',
-     *     I,J,L,TRMO(I,J,L,1),MO(I,J,L),DXYPO(J),
-     *           dtsrc/(FLOAT(JDperY)*SDAY)
+!!         if (JHOUR.eq.12)
+!!   *     write(6,'(a,3i5,4e12.4)')'OCNDYN, AGE TRACER  ',
+!!   *     I,J,L,TRMO(I,J,L,1),MO(I,J,L),DXYPO(J),
+!!   *           dtsrc/(FLOAT(JDperY)*SDAY)
         ENDDO
         ENDIF
       ENDDO
@@ -385,7 +384,7 @@ C**** Calculate J1O = least J with some ocean
   140 J1O = J
       write(6,*) "Minimum J with some ocean:",J1O
 C**** Fix to 4 for temporary consistency
-      J1O=4 
+      J1O=4
       write(6,*) "Fixed J1O:",J1O
 
 C**** Calculate LMM and modify HOCEAN
@@ -538,7 +537,7 @@ C**** Multiply specific quantities by mass
 C**** Initiallise geopotential field (needed by KPP)
       OGEOZ = 0.
       OGEOZ_SV = 0.
-      
+
       END IF
 
 C**** Extend ocean data to added layers at bottom if necessary
@@ -565,17 +564,17 @@ C**** Extend ocean data to added layers at bottom if necessary
         end do
       end if
 
-C**** zero out unphysical values (that might have come from a 
+C**** zero out unphysical values (that might have come from a
 C**** restart file with different topography)
       if (istart.lt.9) then
         DO J=J_0S,J_1S
           DO I=1,IMAXJ(J)
-            VO(I,J,LMV(I,J)+1:LMO)=0. 
+            VO(I,J,LMV(I,J)+1:LMO)=0.
           END DO
         END DO
         DO J=J_0,J_1
           DO I=1,IMAXJ(J)
-            UO(I,J,LMU(I,J)+1:LMO)=0. 
+            UO(I,J,LMU(I,J)+1:LMO)=0.
             MO(I,J,LMM(I,J)+1:LMO)=0.
           END DO
         END DO
@@ -761,7 +760,7 @@ C****
       USE OCEAN, only : im,jm,lmo,dxypo,focean,imaxj, lmm, mo=>mo_glob
      *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
      *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
-     *  ,uo=>uo_glob, vo=>vo_glob  
+     *  ,uo=>uo_glob, vo=>vo_glob
 #ifdef TRACERS_OCEAN
      *  ,trmo=>trmo_glob, txmo=>txmo_glob, tymo=>tymo_glob,
      *   tzmo=>tzmo_glob
@@ -1048,7 +1047,7 @@ C**** Check conservation of water tracers in ocean
 C****
       IF (AM_I_ROOT()) CALL CHECKOST(SUBR)
 C****
-      END SUBROUTINE CHECKO 
+      END SUBROUTINE CHECKO
 
       SUBROUTINE conserv_OKE(OKE)
 !@sum  conserv_OKE calculates zonal ocean kinetic energy
@@ -2052,7 +2051,7 @@ C**** Calculate pressure by integrating from the top down
       PDN(L) = P(I,J,L) + MO(I,J,L)*GRAV*z12eH
   110 PE     = PE       + MO(I,J,L)*GRAV
 C**** save bottom pressure diagnostic
-      OPBOT(I,J)=PE   
+      OPBOT(I,J)=PE
 C**** Calculate geopotential by integrating from the bottom up
       ZGE = - mZSOLID(I,J)*GRAV
       Do 120 L=LMOM(I,J),1,-1
@@ -3305,7 +3304,7 @@ C**** Surface stress is applied to V component at the North Pole
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       USE FLUXES, only : TRGASEX
-#endif  
+#endif
       USE SEAICE_COM, only : rsi
       use domain_decomp, only : grid, get
 
@@ -3666,9 +3665,9 @@ C****
       INTEGER, SAVE :: IFIRST = 1
 C**** Local variables
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
      *     AU, BU, CU, RU, UU
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
      *     AV, BV, CV, RV, UV
       REAL*8, SAVE, ALLOCATABLE, DIMENSION(:,:,:) ::
      *      UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
@@ -3898,14 +3897,14 @@ C**** Store North Pole velocity components, they will not be changed
      *                 FROM=SOUTH)
 
 C****
-!$OMP PARALLEL DEFAULT(NONE), 
+!$OMP PARALLEL DEFAULT(NONE),
 !$OMP&  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU, DTV,
 !$OMP&          FUX,FUY,FVX,FVY, I,IP1,IM1, J, L, RU,RV,
 !$OMP&          UU,UV,UT,UY,UX, VT,VY,VX),
 !$OMP&  SHARED(have_north_pole, UO, VO, UONP, VONP, COSU,SINU,COSI,SINI,
-!$OMP&         J_0, J_0S, J_1S, LMU, MO, LMV, TANP, TANV, 
-!$OMP&         BYDYP, BYDXV, BYDXP, BYDYV, KHV, KHP, grid, DT2, DH, 
-!$OMP&         UXA, UXB, UXC, UYA, UYB, UYC, VXA, VXB, VXC, 
+!$OMP&         J_0, J_0S, J_1S, LMU, MO, LMV, TANP, TANV,
+!$OMP&         BYDYP, BYDXV, BYDXP, BYDYV, KHV, KHP, grid, DT2, DH,
+!$OMP&         UXA, UXB, UXC, UYA, UYB, UYC, VXA, VXB, VXC,
 !$OMP&         VYA, VYB, VYC, DYVO, DXVO, DXPO, DYPO, BYDXYPO, BYDXYV)
 
       allocate( AU(IM,grid%j_strt_halo:grid%j_stop_halo) )
@@ -4008,7 +4007,7 @@ C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
 C**** Minor complication due to cyclic nature of boundary condition
       AU=0. ; BU=0. ; CU=0. ; RU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0.
-      
+
       DO J=J_0S,J_1S
         IM1=IM-1
         I=IM
@@ -4598,7 +4597,7 @@ C****
      *     ,OMASSJ
       REAL*8 mean_S,frac_inc,T_ORIG,T_NEW,temgsp,shcgs,pres,g,s
       INTEGER I,J,L,N,J_0,J_1
-      
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
       call conserv_OSL(OSALTJ)
