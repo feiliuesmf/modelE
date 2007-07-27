@@ -111,7 +111,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
       use ghy_com, only : ngm, imt, nlsn, LS_NFRAC !, wsn_max
 #ifdef TRACERS_WATER
      *     ,ntixw
-      use tracer_com, only : ntm
+      use tracer_com, only : ntm,tr_wd_TYPE,nWater
 #endif
 
       implicit none
@@ -2623,6 +2623,7 @@ ccc canopy
         call check_wc(tr_wcc(1,2))
 
       ! +- evap
+      if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
       if ( evapvw >= 0.d0 ) then  ! no dew
         evap_tmp(:m) = fc(0)+pr
 #ifdef TRACERS_SPECIAL_O18
@@ -2641,6 +2642,7 @@ ccc loops...
         wi(0,2) = wi(0,2) - (fc(0)+pr)*dts
         tr_wcc(:m,2) = tr_w(:m,0,2)/wi(0,2)
       endif
+      end if
       call check_wc(tr_wcc(1,2))
 
       ! -drip
@@ -2658,6 +2660,8 @@ ccc snow
       tr_wsnc(:m,:,:) = 0.d0 !!! was 1000
 
       ! dew
+      if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
+
       if ( process_bare .and. evapbs < 0.d0 ) then
         flux_dt = - evapbs*fr_snow(1)*dts
         tr_evap(:m,1) = tr_evap(:m,1) - flux_dt/dts*tr_surf(:m)
@@ -2670,6 +2674,8 @@ ccc snow
         tr_wsn(:m,1,2) = tr_wsn(:m,1,2) + flux_dt*tr_surf(:m)
         wsni(1,2) = wsni(1,2) + flux_dt
       endif
+
+      end if
 
       do ibv=i_bare,i_vege
         ! init tr_wsnc
@@ -2742,6 +2748,8 @@ ccc snow
           wi(1,ibv) = wi(1,ibv) + flmlt_scale(ibv)*dts
         endif
         ! evap
+        if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
+
         if ( ibv == 1 ) then
           flux_dt = max( evapbs*fr_snow(1)*dts, 0.d0 )
         else
@@ -2751,6 +2759,8 @@ ccc snow
 !        tr_wsnc(:m,1,ibv) = 1000.d0
         tr_wsn(:m,1,ibv) = tr_wsn(:m,1,ibv) - tr_wsnc(:m,1,ibv)*flux_dt
         tr_evap(:m,ibv)= tr_evap(:m,ibv) + tr_wsnc(:m,1,ibv)*flux_dt/dts
+
+        end if
       enddo
 
 !!!! for test
@@ -2768,12 +2778,16 @@ ccc soil layers
   !>    tr_wc(:m,1:n,1:2) = 1000.d0  !!! was 0
 
       ! add dew to bare soil
+      if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
+
       if ( process_bare .and. evapb < 0.d0 ) then
         flux_dt = - evapb*(1.d0-fr_snow(1))*dts
         tr_evap(:m,1) = tr_evap(:m,1) - flux_dt/dts*tr_surf(:m)
         tr_w(:m,1,1) = tr_w(:m,1,1) + flux_dt*tr_surf(:m)
         wi(1,1) = wi(1,1) + flux_dt
       endif
+
+      end if
 
       do ibv=i_bare,i_vege
         ! initial tr_wc
@@ -2826,6 +2840,7 @@ ccc soil layers
 ccc evap from bare soil
       if ( process_bare .and. evapb >= 0.d0 ) then
         evap_tmp(:m) = evapb*(1.d0-fr_snow(1))
+        if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
 #ifdef TRACERS_SPECIAL_O18
         if ( evap_tmp(1)*dts < wi(1,1) .and. tp(1,1) > 0.d0 ) then
           do mc=1,m
@@ -2836,6 +2851,7 @@ ccc loops...
 #endif
         tr_w(:m,1,1) = tr_w(:m,1,1) - evap_tmp(:m)*tr_wc(:m,1,1)*dts
         tr_evap(:m,1) = tr_evap(:m,1) + evap_tmp(:m)*tr_wc(:m,1,1)
+        endif
       endif
 
 
@@ -2857,9 +2873,11 @@ ccc !!! include surface runoff !!!
 ccc transpiration
       if ( process_vege ) then
         do i=1,n
+          if (tr_wd_TYPE(ntixw(n)).eq.nWATER) THEN
           flux_dt = fd*(1.-fr_snow(2)*fm)*evapdl(i,2)*dts
           tr_evap(:m,2) = tr_evap(:m,2) + tr_wc(:m,i,2)*flux_dt/dts
           tr_w(:m,i,2) = tr_w(:m,i,2) - tr_wc(:m,i,2)*flux_dt
+          end if
         enddo
       endif
 

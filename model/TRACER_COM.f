@@ -392,13 +392,14 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
 #else
 #if (defined TRACERS_COSMO) 
-      integer, parameter :: ntm=3
-      character*8, parameter :: trname(ntm)=(/
-     *     'Pb210   ','Be7     ','Be10    '/)
 #if (defined TRACERS_RADON)
       integer, parameter :: ntm=4
       character*8, parameter :: trname(ntm)=(/
      *     'Pb210   ','Be7     ','Be10    ','Rn222   '/)
+#else
+      integer, parameter :: ntm=2
+      character*8, parameter :: trname(ntm)=(/
+     *     'Be7     ','Be10    '/)
 #endif
 #else
 #ifdef TRACERS_AEROSOLS_Koch
@@ -869,15 +870,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0, 
-#ifdef TRACERS_GASEXCH_CFC_Natassa
-     .     n_CFCn=0,
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-     .     n_CO2n=0,
-#endif
-#ifdef TRACERS_AGE_OCEAN
-     .     n_Age=0,
-#endif
+     .     n_CFCn=0, n_CO2n=0, n_Age=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
      *     n_SO4_d3=0,n_N_d1=0,  n_N_d2=0,  n_N_d3=0,
      &     n_NH3=0,   n_NH4=0,   n_NO3p=0,
@@ -1045,7 +1038,7 @@ C****
 #ifdef TRACERS_WATER   
 !@param nWD_TYPES number of tracer types for wetdep purposes  
       integer, parameter :: nWD_TYPES=3 !(gas,particle,water)
-!@param tr_evap_fact fraction of re-evaporation by tracer type
+!@param tr_evap_fact fraction of re-evaporation of raindrops by tracer type
 C note, tr_evap_fact is not dimensioned as NTM:
       REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
      *     (/1.d0, 0.5d0,  1.d0/)
