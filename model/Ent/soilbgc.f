@@ -164,8 +164,8 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !            bgtemp(:) = (Q10 ** ((Soiltemp(:) - 30.d0) / 10.d0))  !original CASA function -PK
         !**function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
         !allows for variable Q10 rather than fixed 
-            bgtemp = 0.56d0+(1.46d0*atan(PI*0.0309d0*(Soiltemp-15.7d0)))
-     &                       /PI
+            bgtemp(:) = 0.56d0+
+     &      (1.46d0*atan(PI*0.0309d0*(Soiltemp(:)-15.7d0))) / PI
 
 ! moisture dependence 
 * mimic calculation of bevap in surphy.F to get Wlim
