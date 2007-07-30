@@ -1035,6 +1035,7 @@ C****
       USE DOMAIN_DECOMP, only: GRID, GET
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
+      USE GEOM, only : DLAT_DG
       IMPLICIT NONE
       integer,PARAMETER :: kmwco2=60
       REAL*4 CO2W(37,0:30)
@@ -1408,6 +1409,7 @@ C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
+      USE GEOM, only : DLAT_DG
       implicit none
       integer j,jw,k,kstart,l,n,iu
       integer, parameter :: kmw=200
