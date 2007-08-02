@@ -154,32 +154,6 @@ C**** Advection of Potential Enthalpy and Salt
      *        ,OIJL(1,J_0H,1,IJL_SFLX))
 
 #ifdef TRACERS_OCEAN
-#ifdef TRACERS_AGE_OCEAN
-!at each time step set surface tracer conc=0 and add 1 below
-!this is mass*age (kg*year)
-!age=1/(JDperY*24*3600) in years
-      TRMO(:,:,1,n_age)=0 
-      TXMO(:,:,1,n_age)=0 ; TYMO(:,:,1,n_age)=0 ; TZMO(:,:,1,n_age)=0
-      DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
-        IF (FOCEAN(I,J).gt.0) THEN
-        DO L=2,LMO
-           TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age)
-     *                  + MO(I,J,L) * DXYPO(J)
-     *                  * dtsrc/(FLOAT(JDperY)*SDAY)
-
-!!         if (JHOUR.eq.12)
-!!   *     write(6,'(a,3i5,4e12.4)')'OCNDYN, AGE TRACER  ',
-!!   *     I,J,L,TRMO(I,J,L,1),MO(I,J,L),DXYPO(J),
-!!   *           dtsrc/(FLOAT(JDperY)*SDAY)
-        ENDDO
-        ENDIF
-      ENDDO
-      ENDDO
-#endif
-#endif
-
-#ifdef TRACERS_OCEAN
       DO N=1,NTM
         CALL OADVT(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
      *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),DTOLF,t_qlimit(n)
@@ -198,8 +172,8 @@ C**** Advection of Potential Enthalpy and Salt
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
               OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
-              OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  + (OPBOT(I,J)-ZE(LMM(I,J
-     *             ))*RHOWS*GRAV)
+              OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  +
+     +             (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)
             END IF
           END DO
         END DO
@@ -235,9 +209,7 @@ C**** Apply GM + Redi tracer fluxes
       CALL CHECKO ('GMDIFF')
       CALL TIMER (MNOW,MSGSO)
 
-c????          Non-parallelized parts : GM, straits
-c     GM:      mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO (ocean)
-c              dh,vbar (ocean_dyn), kpl (kpp_com), (t)oijl (odiag)
+c????          Non-parallelized parts : straits
 c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
 
       call gather_ocean (2)
@@ -263,6 +235,24 @@ c      CALL STADVI
 c        CALL CHECKO ('STADVI')
 #ifdef TRACERS_OCEAN
       CALL OC_TDECAY
+
+#ifdef TRACERS_AGE_OCEAN
+!at each time step set surface tracer conc=0 and add 1 below
+!this is mass*age (kg*year)
+!age=1/(JDperY*24*3600) in years
+      TRMO(:,:,1,n_age)=0
+      TXMO(:,:,1,n_age)=0 ; TYMO(:,:,1,n_age)=0 ; TZMO(:,:,1,n_age)=0
+      DO J=J_0,J_1
+      DO I=1,IMAXJ(J)
+        IF (FOCEAN(I,J).gt.0) THEN
+        DO L=2,LMO
+           TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age) +
+     +                   dtsrc/(JDperY*SDAY) * MO(I,J,L) * DXYPO(J)
+        ENDDO
+        ENDIF
+      ENDDO
+      ENDDO
+#endif
 #endif
         CALL TIMER (MNOW,MSGSO)
       CALL TOC2SST
