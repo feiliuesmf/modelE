@@ -21,26 +21,24 @@
       !-----Local---------
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
-      real*8 laipatch
-cddd      real*8 :: cpool(N_BPOOLS)
+      real*8 laipatch, lai_old
 
       pp => ecp%oldest      
       do while ( associated(pp) )
         laipatch = 0.d0
         cop => pp%tallest
         do while ( associated(cop) )
+          lai_old = cop%LAI
           cop%lai = laidata(cop%pft)
 !          write(777,*) __FILE__,__LINE__,cop%LAI
           laipatch = laipatch + cop%lai
-          !!! this is hack, but don't know what to do with it at the moment...
-cddd          call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
-cddd     &         cop%dbh, cop%n, cpool )
-cddd          cop%C_fol = cpool(FOL)
-cddd          cop%C_sw = cpool(SW)
-cddd          cop%C_hw = cpool(HW)
-cddd          cop%C_lab = cpool(LABILE)
-cddd          cop%C_froot = cpool(FR)
-cddd          cop%C_croot = cpool(CR)
+
+          !* Calculate senescence factor for next time step litterfall routine.
+          if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
+            cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/lai_old)
+          else
+            cop%senescefrac = 0.d0
+          endif
 
           cop => cop%shorter
         enddo
@@ -101,7 +99,7 @@ cddd          cop%C_croot = cpool(CR)
      
 
       subroutine entcell_vegupdate(entcell, hemi, jday
-     &     ,do_giss_phenology
+     &     ,do_giss_phenology, do_giss_lai
      &     ,laidata, albedodata, cropsdata )
 !@sum updates corresponding data on entcell level (and down). 
 !@+   everything except entcell is optional. coordinate-dependent
@@ -113,59 +111,39 @@ cddd          cop%C_croot = cpool(CR)
       use ent_prescr_veg, only : prescr_calc_shc
 
       type(entcelltype) :: entcell
-      integer,intent(in), optional :: jday
-      integer, pointer, optional :: hemi
-      logical, intent(in), optional :: do_giss_phenology
-      real*8,  pointer, optional :: laidata(:)  !Array of length N_PFT
-      real*8,  pointer, optional :: albedodata(:,:)
-      real*8,  pointer, optional :: cropsdata
+      integer,intent(in) :: jday
+      integer,intent(in) :: hemi
+      logical, intent(in) :: do_giss_phenology
+      logical, intent(in) :: do_giss_lai
+      real*8,  pointer :: laidata(:)  !Array of length N_PFT
+      real*8,  pointer :: albedodata(:,:)
+      real*8,  pointer :: cropsdata
       !----Local------
       type(patch),pointer :: pp
 
-!      write(779,*) __FILE__,__LINE__
-!     &   ,hemi,present(laidata),present(do_giss_phenology)
+      ! update with external data first
+      if ( associated(laidata) )
+     &     call entcell_update_lai(entcell, laidata)
 
+      if ( associated(albedodata) )
+     &     call entcell_update_albedo(entcell, albedodata)
 
-      if ( present(do_giss_phenology) ) then
-        if ( do_giss_phenology ) then
-          if ( .not. (present(hemi).and.present(jday)) )
-     &         call stop_model("entcell_vegupdate: needs hemi,jday",255)
-          if ( .not. associated(hemi) )
-     &         call stop_model("entcell_vegupdate: needs hemi",255)
-          pp => entcell%oldest
-          do while (ASSOCIATED(pp))
+      if ( associated(cropsdata) )
+     &     call entcell_update_crops(entcell, cropsdata)
+
+      ! and then do GISS phenology if required
+      if ( do_giss_phenology ) then
+        if ( hemi<-2 .or. jday <-2 )
+     &       call stop_model("entcell_vegupdate: needs hemi,jday",255)
+        pp => entcell%oldest
+        do while (ASSOCIATED(pp))
           !* LAI, ALBEDO *!
-            if ( present(laidata) ) then
-              if (associated(laidata) ) then
-                call prescr_phenology(jday,hemi, pp, laidata)
-              else
-                call prescr_phenology(jday,hemi, pp)
-              endif
-            else
-              call prescr_phenology(jday,hemi, pp)
-            endif
-            call summarize_patch(pp)
-            pp => pp%younger
-          end do
-        endif
+          call prescr_phenology(jday,hemi, pp, do_giss_lai)
+          call summarize_patch(pp)
+          pp => pp%younger
+        end do
       endif
-
-! * LAI update has been moved to prescr_phenology  - NYK    
-!      if ( present(laidata) ) then
-!        if ( associated(laidata) )
-!     &       call entcell_update_lai(entcell, laidata)
-!      endif
-
-      if ( present(albedodata) ) then
-        if ( associated(albedodata) )
-     &       call entcell_update_albedo(entcell, albedodata)
-      endif
-
-      if ( present(cropsdata) ) then
-        if ( associated(cropsdata) )
-     &       call entcell_update_crops(entcell, cropsdata)
-      endif
-
+ 
       call summarize_entcell(entcell)
 
       call entcell_update_shc(entcell)
@@ -179,7 +157,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       end subroutine entcell_vegupdate
 
 
-      subroutine prescr_phenology(jday,hemi,pp,laidata )
+      subroutine prescr_phenology(jday,hemi,pp,do_giss_lai)
       !* DAILY TIME STEP *!
       !* Calculate new LAI and albedo for given jday, for prescr vegetation. *!
       !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
@@ -191,7 +169,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       integer,intent(in) :: jday !Day of year.
       integer,intent(in) :: hemi !@var hemi -1: S.hemisphere, 1: N.hemisphere
       type(patch),pointer :: pp
-      real*8,  pointer, optional :: laidata(:) !Array of length N_PFT
+      logical, intent(in) :: do_giss_lai
       !-------local-----
       type(cohort),pointer :: cop
       real*8 :: laipatch
@@ -204,26 +182,22 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       if (ASSOCIATED(pp)) then
 
         !* LAI *AND* BIOMASS - carbon pools *!
-        laipatch = 0.d0 !Initialize for summing
+        laipatch = 0.d0         !Initialize for summing
         cpool(:) = 0.d0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
-          lai_old = cop%LAI
-          if ( present(laidata) ) then  
-            if ( ASSOCIATED(laidata)) then !Externally prescribed LAI.
-              cop%LAI = laidata(cop%pft+COVEROFFSET)
-!              write(777,*) __FILE__,__LINE__,cop%LAI
-            else
-              call stop_model("ent_prescribed_updates: no laidata",255)
-            endif
-          else                  !Internally calculated prescribed LAI.
-!            write(778,*) __FILE__,__LINE__
-!     &  ,cop%pft,COVEROFFSET,jday,hemi 
+          if ( do_giss_lai ) then
+            lai_old = cop%LAI
             cop%LAI = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
-!            write(777,*) __FILE__,__LINE__,cop%LAI
+            !* Calculate senescence factor for next time step litterfall routine.
+            if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
+              cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/lai_old)
+            else
+              cop%senescefrac = 0.d0
+            endif
           endif
 
-          laipatch = laipatch + cop%lai
+          laipatch = laipatch + cop%LAI
 
           call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
      &         cop%dbh, cop%n, cpool )
@@ -235,13 +209,6 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           cop%C_croot = cpool(CR)
 
           cop%Ntot = cop%nm * cop%LAI  !This should eventually go into N allocation routine if dynamic nm.
-
-          !* Calculate senescence factor for next time step litterfall routine.
-          if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
-            cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/lai_old)
-          else
-            cop%senescefrac = 0.d0
-          endif
 
           cop => cop%shorter
         end do
