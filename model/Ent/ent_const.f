@@ -129,7 +129,7 @@
       !* CASA SOIL CONSTANTS
       !* THESE SHOULD GO IN THE CASA MODULE BUT NEED TO BE USED IN ENT_TYPES.F
       !* Array sizes
-      integer,parameter :: N_SOIL_TYPES = 5
+      integer,parameter :: N_SOIL_TEXTURES = 5  !in GHY.f, textures are sand,loam,clay,peat(+bedrock) -PK 7/13/06
       integer,parameter :: NLIVE = 3
       integer,parameter :: NDEAD = 9
       integer,parameter :: NPOOLS = NLIVE + NDEAD

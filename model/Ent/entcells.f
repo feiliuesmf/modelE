@@ -397,7 +397,7 @@
       real*8,intent(in) :: fracrootdata(N_COVERTYPES,N_DEPTH) !Root profile.
       integer,intent(in) :: soildata(N_COVERTYPES)
       real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
-      real*8,intent(in) :: soil_texture(N_SOIL_TYPES) !Veg cover fractions.
+      real*8,intent(in) :: soil_texture(N_SOIL_TEXTURES) !soil texture fractions.
       real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini 
       !-----Local---------
       integer :: ncov, pft

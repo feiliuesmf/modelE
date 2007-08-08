@@ -5,7 +5,7 @@
       ! need to know about internal structure of Ent types
       use ent_types, only : entcelltype, patch, cohort, timestruct,
      &     MAX_PATCHES, MAX_COHORTS, ent_config
-      use ent_const, only : N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES
+      use ent_const, only : N_BANDS,N_COVERTYPES,N_DEPTH,N_SOIL_TEXTURES
      &     , N_BPOOLS, N_PFT, N_CASA_LAYERS,NPOOLS,NLIVE,CARBON,PTRACE  !added last 5 for soil bgc -PK 
       !use ent_prescrveg
       use entcells
@@ -16,7 +16,7 @@
       private
 
       !--- public constants ---
-      public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TYPES, N_BPOOLS
+      public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TEXTURES, N_BPOOLS
       public N_PFT, N_CASA_LAYERS  !added last one -PK
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
@@ -551,7 +551,7 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
-      real*8, dimension(:)  ::  soil_texture ! dim=N_SOIL_TYPES
+      real*8, dimension(:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
       real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini 
 
       call init_simple_entcell( entcell%entcell,
@@ -591,7 +591,7 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
-      real*8, dimension(:,:)  ::    soil_texture ! dim=N_SOIL_TYPES
+      real*8, dimension(:,:)  ::    soil_texture ! dim=N_SOIL_TEXTURES
       real*8, dimension(:) :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       !---
       integer n, nc
@@ -638,7 +638,7 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
-      real*8, dimension(:,:,:)  ::  soil_texture ! dim=N_SOIL_TYPES
+      real*8, dimension(:,:,:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
       real*8, dimension(:,:) :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       !---
       integer i, j, ic, jc

@@ -50,7 +50,7 @@
       real*8,intent(out) :: craddata(N_COVERTYPES)
       real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
       integer,intent(out) :: soil_color(N_COVERTYPES)
-      real*8,intent(out) :: soil_texture(N_SOIL_TYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: soil_texture(N_SOIL_TEXTURES,I0:I1,J0:J1)
       !-----Local------
 
       call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
@@ -301,7 +301,7 @@
       use FILEMANAGER, only : openunit,closeunit
       integer, intent(in) :: im,jm,I0,I1,J0,J1
       integer, intent(out) :: soil_color(N_COVERTYPES)
-      real*8, intent(out) :: soil_texture(N_SOIL_TYPES,I0:I1,J0:J1)
+      real*8, intent(out) :: soil_texture(N_SOIL_TEXTURES,I0:I1,J0:J1)
       !------
 #ifdef PFT_MODEL_ENT
 !--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
@@ -318,7 +318,7 @@
      $     (/1, 2, 2,  2, 2, 2, 2, 2
      &     ,2, 2, 2, 2 /)
 #endif
-      real*8 :: buf(im,jm,N_SOIL_TYPES)
+      real*8 :: buf(im,jm,N_SOIL_TEXTURES)
       integer :: iu_SOIL
       integer k
 
@@ -328,7 +328,7 @@
       read(iu_SOIL) buf
       call closeunit(iu_SOIL)
 
-      do k=1,N_SOIL_TYPES
+      do k=1,N_SOIL_TEXTURES
         soil_texture(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1,k)
       enddo
 

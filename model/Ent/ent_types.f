@@ -378,8 +378,7 @@
 
          !SOIL - CONSTANTS
          !Soil textures for CASA -PK
-         !use siltfrac = 1-(clayfrac+sandfrac)?? (R&A scheme has loam/peat!) -PK 
-         real*8 :: soil_texture(N_SOIL_TYPES) ! fractions of soil textures, upper 30 cm of soil
+         real*8 :: soil_texture(N_SOIL_TEXTURES) ! fractions of soil textures
 !         real*8 clayfrac  !fractional clay content (passed from GHY.f)
 !         real*8 sandfrac  !fractional sand content (also from GHY.f)
 
