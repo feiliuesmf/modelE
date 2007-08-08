@@ -187,7 +187,7 @@ cddd      end interface ent_cell_update
       ! set defaults
       nullify( laidata_1, albedodata_1, cropsdata_1 )
       do_giss_phenology_1 = .false.
-      do_giss_phenology_1 = .true.
+      do_giss_lai_1 = .true.
       hemi_1 = -32768
       jday_1 = -32768
 
