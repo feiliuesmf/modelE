@@ -214,10 +214,10 @@
           write(995,'(i5,3(1pe16.8),i5,100(1pe16.8))')  !Fluxes are positive up.
      &         patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 
      &         pp%cellptr%coszen,
-     &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:,:), 
+     &         pp%tallest%pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
      &         pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
      &         pp%GPP,pp%R_auto,pp%Soil_resp,
-     &         pp%NPP,pp%CO2flux,pp%GCANOPY, pp%tallest%C_lab,
+     &         pp%NPP,pp%CO2flux,pp%GCANOPY,
      &         pp%tallest%senescefrac
           if (pp%GPP.lt.0.d0) then
             print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
