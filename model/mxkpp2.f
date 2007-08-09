@@ -1653,7 +1653,7 @@ c --- modify t and s; set old value arrays at p points for initial iteration
 #ifdef TRACERS_GASEXCH_CFC_Natassa
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
           if(i.eq.109.and.j.eq.94)
-     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
+     .     write(6,'(a,i4,3e12.4)')'mxkpp: add dtracer ',
      .      ktr,tracer(i,j,k,ktr)-dtracer(ktr),dtracer(ktr),
      .          tracer(i,j,k,ktr)
 #endif
