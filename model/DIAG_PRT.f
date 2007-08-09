@@ -4161,7 +4161,7 @@ c Check the count
       integer i,j,l,k1,k2,iwt,igrid,jgrid,irange,n1,n2
       character(len=30) name,units
       character(len=80) lname
-      real*8 :: gm,nh,sh, off, byiacc, scalek
+      real*8 :: gm,nh,sh, off, byiacc, scalek, an2Zan1
 !@var  isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
       integer isumz,isumg
 
@@ -4400,10 +4400,11 @@ c**** ratios of lin. comb.: albedos from net radiation
           n2=ij_srincg
           n1=ij_srnfg
         end if
+        an2Zan1=idacc(ia_ij(n2))/(idacc(ia_ij(n1))+teeny)
         do j=1,jm
         do i=1,im
           adenom(i,j)=aij(i,j,n2)
-          anum(i,j)=100.*(adenom(i,j)-aij(i,j,n1))
+          anum(i,j)=100.*(adenom(i,j)-aij(i,j,n1)*an2Zan1)
         end do
         end do
 
@@ -4415,9 +4416,10 @@ c**** ratios: albedos from reflected radiation
           n1=ij_srvis
           n2=ij_srincp0
         end if
+        an2Zan1=idacc(ia_ij(n2))/(idacc(ia_ij(n1))+teeny)
         do j=1,jm
         do i=1,im
-          anum(i,j)=100.*aij(i,j,n1)
+          anum(i,j)=100.*aij(i,j,n1)*an2Zan1
           adenom(i,j)=aij(i,j,n2)
         end do
         end do
