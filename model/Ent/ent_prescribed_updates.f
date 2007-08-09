@@ -47,7 +47,30 @@
       enddo
 
       end subroutine entcell_update_lai
- 
+
+
+      subroutine entcell_update_height( ecp,
+     i    hdata)
+!@sum sets prescribed LAI over the cell
+      !use ent_prescrveg, only : prescr_plant_cpools
+      type(entcelltype) :: ecp
+      real*8,intent(in) :: hdata(N_PFT) !@var LAI for all PFT's 
+      !-----Local---------
+      type(patch), pointer :: pp  !@var p current patch
+      type(cohort), pointer :: cop !@var current cohort
+
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+        cop => pp%tallest
+        do while ( associated(cop) )
+          cop%h = hdata(cop%pft)
+          cop => cop%shorter
+        enddo
+        pp => pp%younger
+      enddo
+
+      end subroutine entcell_update_height
+
 
       subroutine entcell_update_albedo( ecp,
      i    albedodata)
@@ -100,7 +123,7 @@
 
       subroutine entcell_vegupdate(entcell, hemi, jday
      &     ,do_giss_phenology, do_giss_lai
-     &     ,laidata, albedodata, cropsdata )
+     &     ,laidata, hdata, albedodata, cropsdata )
 !@sum updates corresponding data on entcell level (and down). 
 !@+   everything except entcell is optional. coordinate-dependent
 !@+   is given pointer attribute to provide a way to tell the 
@@ -116,6 +139,7 @@
       logical, intent(in) :: do_giss_phenology
       logical, intent(in) :: do_giss_lai
       real*8,  pointer :: laidata(:)  !Array of length N_PFT
+      real*8,  pointer :: hdata(:)  !Array of length N_PFT
       real*8,  pointer :: albedodata(:,:)
       real*8,  pointer :: cropsdata
       !----Local------
@@ -124,6 +148,9 @@
       ! update with external data first
       if ( associated(laidata) )
      &     call entcell_update_lai(entcell, laidata)
+
+      if ( associated(hdata) )
+     &     call entcell_update_height(entcell, hdata)
 
       if ( associated(albedodata) )
      &     call entcell_update_albedo(entcell, albedodata)

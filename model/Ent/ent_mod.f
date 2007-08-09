@@ -146,7 +146,7 @@ cddd      end interface ent_cell_update
 !---- interfaces to run the model one time step --------------------------
       subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai,
-     &     laidata, albedodata, cropsdata)
+     &     laidata, hdata, albedodata, cropsdata)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
 !@+   set a flag requesting certain action like do_giss_phenology.
@@ -159,11 +159,13 @@ cddd      end interface ent_cell_update
       logical, intent(in), optional :: do_giss_phenology
       logical, intent(in), optional :: do_giss_lai
       real*8, intent(in), optional, target :: laidata(:,:,:)
+      real*8, intent(in), optional, target :: hdata(:,:,:)
       real*8, intent(in), optional, target :: albedodata(:,:,:,:)
       real*8, intent(in), optional, target :: cropsdata(:,:)
       !---
       real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), albedodata_1(:,:), cropsdata_1
+      real*8, pointer :: laidata_1(:), hdata_1(:),
+     &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
       logical :: do_giss_phenology_1, do_giss_lai_1
       integer i, ic, j, jc
@@ -185,7 +187,7 @@ cddd      end interface ent_cell_update
       endif
 
       ! set defaults
-      nullify( laidata_1, albedodata_1, cropsdata_1 )
+      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
       do_giss_phenology_1 = .false.
       do_giss_lai_1 = .true.
       hemi_1 = -32768
@@ -204,6 +206,7 @@ cddd      end interface ent_cell_update
           if ( .not. associated(entcell(i,j)%entcell) ) cycle
 
           if ( present(laidata) ) laidata_1 => laidata(:,i,j)
+          if ( present(hdata) ) hdata_1 => hdata(:,i,j)
           if ( present(albedodata) ) albedodata_1 => albedodata(:,:,i,j)
           if ( present(cropsdata) ) cropsdata_1 => cropsdata(i,j)
           if ( present(hemi) ) hemi_1 = hemi(i,j)
@@ -212,7 +215,7 @@ cddd      end interface ent_cell_update
           
           call entcell_vegupdate(entcell(i,j)%entcell, hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1, 
-     &         laidata_1, albedodata_1, cropsdata_1)
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
         enddo
       enddo
 
