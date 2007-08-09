@@ -229,6 +229,7 @@
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       real*8 :: Resp_maint      !Maintenance respiration temp variable
+      real*8 :: Resp_growth     !Growth respiration 
       real*8 :: Cdiff           !Difference beween neg NPP and C_lab temp variable.
       type(veg_par_type) :: vegpar !Vegetation parameters
 
@@ -299,76 +300,98 @@
         !pft =  pp%tallest%pft
         !GCANOPY = pp%GCANOPY
         !Ci = pp%Ci
-        cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
-     i       ,cop%fracroot(:)
-     i       ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
-     o       , cop%stressH2Ol(:))
-        betad = cop%stressH2O
 
-        vegpar%alai = cop%LAI
+        !* PHOTOSYNTHESIS *!
+        if (cop%LAI.gt.0.d0) then
+          cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
+     i         ,cop%fracroot(:)
+     i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
+     o         , cop%stressH2Ol(:))
+          betad = cop%stressH2O
+          
+          vegpar%alai = cop%LAI
 !        write(777,*) __FILE__,__LINE__,cop%LAI
-        vegpar%nm = cop%nm
-        vegpar%vh = cop%h
-        vegpar%vegalbedo = pp%albedo(1) !Visible band. NOTE: Patch level.
-        pft =  cop%pft
+          vegpar%nm = cop%nm
+          vegpar%vh = cop%h
+          vegpar%vegalbedo = pp%albedo(1) !Visible band. NOTE: Patch level.
+          pft =  cop%pft
 
-        !GCM land surface saved variables.
-        GCANOPY = pp%GCANOPY  !##HACK FOR FRIEND SCHEME.  This only works if GCANOPY is not partitioned over different cohorts.
-        !GCANOPY = pp%GCANOPY *cop%LAI/pp%LAI !Fraction contrib. by cohort. ##HACK as it is not necessarily proportional by LAI.
-        Ci = pp%Ci
+          !GCM land surface saved variables.
+          GCANOPY = pp%GCANOPY  !##HACK FOR FRIEND SCHEME.  This only works if GCANOPY is not partitioned over different cohorts.
+         !GCANOPY = pp%GCANOPY *cop%LAI/pp%LAI !Fraction contrib. by cohort. ##HACK as it is not necessarily proportional by LAI.
+          Ci = pp%Ci
 
-        !print *,"Calling veg..."
-        call veg(
-     i       dtsec, pft,
-     i       TcanopyC,
-     i       P_mbar,Ch,U,
-     i       IPAR,fdir,CosZen,
-     i       Ca,
-     i       betad,  !NOTE:  betad is stressH2O of cohort
-     i       Qf, 
-     &       vegpar,
-     &       GCANOPY, Ci, 
-     o       TRANS_SW, GPP)     !, NPP )
-        
-        !* Assign outputs to cohort *!
-        cop%GCANOPY = GCANOPY
-        cop%Ci = Ci
-        cop%GPP = GPP !kg-C/m2-ground/s
+         !print *,"Calling veg..."
+          call veg(
+     i         dtsec, pft,
+     i         TcanopyC,
+     i         P_mbar,Ch,U,
+     i         IPAR,fdir,CosZen,
+     i         Ca,
+     i         betad,           !NOTE:  betad is stressH2O of cohort
+     i         Qf, 
+     &         vegpar,
+     &         GCANOPY, Ci, 
+     o         TRANS_SW, GPP)   !, NPP )
+          
+          !* Assign outputs to cohort *!
+          cop%GCANOPY = GCANOPY
+          cop%Ci = Ci
+          cop%GPP = GPP         !kg-C/m2-ground/s
+          if (GPP.lt.0.d0) then
+            print *,"BAD GPP:",vegpar%alai,cop%lai
+          endif
+        else !Zero LAI, no photosynthesis
+          vegpar%alai = cop%LAI
+          vegpar%Ntot = 0.d0
+          cop%GCANOPY = 0.d0 !May want minimum conductance for stems.
+          cop%Ci = EPS
+          GPP = 0.d0
+          cop%GPP = GPP
+        end if
+
+        !* RESPIRATION FLUXES *!
         !NOTE: NEED TO FIX Canopy maintenace respiration for different
         !C:N ratios for the different pools.
         !* Maintenance respiration - root
         cop%R_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
      &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)
         !* Maintenance respiration - leaf + sapwood + storage
-        Resp_maint = 0.012D-6 * (!kg-C/m2/s
-     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
-     &       + Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - need to get C:N
-     &       900.d0,TcanopyC+Kelvin,cop%n) 
+        Resp_maint = 0.012D-6 * ( !kg-C/m2/s
+     &         Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
+     &         + Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - need to get C:N
+     &         900.d0,TcanopyC+Kelvin,cop%n) 
      &       + Resp_can_maint(cop%pft,cop%C_lab, !Storage
-     &       pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)  )
-        !* Total respiration - maintenance + growth
+     &         pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)  )
+        Resp_growth = 0.012D-6 * Resp_can_growth(cop%pft, 
+     &       cop%GPP/0.012D-6, (Resp_maint+cop%R_root)/0.012D-6 )
+          !* Total respiration - maintenance + growth
         cop%R_auto =  
-     &       Resp_maint 
-     &       + cop%R_root  !PK 5/15/07 
-     &       + 0.012D-6 * Resp_can_growth(cop%pft, cop%GPP/0.012D-6,
-     &       (Resp_maint+cop%R_root)/0.012D-6 )
+     &         Resp_maint 
+     &         + cop%R_root     !PK 5/15/07 
+     &         + Resp_growth
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
-        cop%NPP = GPP - cop%R_auto !kg-C/m2-ground/s
+        cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
+        
+        write(999,*) cop%GPP,cop%R_root,Resp_maint,Resp_growth,
+     &       cop%R_auto,vegpar%Ntot, cop%h
+
         !* Accumulate uptake. - * PUT THIS IN A SUBROUTINE OR FUNCTION C_lab_update
-          if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
+        !* SHOULD AFFECT SENESCENCE OR DEATH OF PLANT *!
+        if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
      &       (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
-              !Don't let C_lab go below zero.
-              cop%C_lab = EPS
-              !* NYK - TEMPORARY HACK - SHOULD CALL STRESS SUBROUTINE FOR SENESCENCE.
-              !*       Needs checks for negative NPP loss greater than C pools.
-              Cdiff = cop%NPP*dtsec/cop%n + (cop%C_lab - EPS)
-              cop%C_fol = cop%C_fol + 0.33d0*Cdiff
-              cop%C_froot = cop%C_froot + 0.33d0*Cdiff
-              cop%C_sw = cop%C_sw + 0.33d0*Cdiff
-              !cop%LAI = !should update
-            else
-            cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
-          endif
+          !Don't let C_lab go below zero.
+          cop%C_lab = EPS
+          !* NYK - TEMPORARY HACK - SHOULD CALL STRESS SUBROUTINE FOR SENESCENCE.
+          !*       Needs checks for negative NPP loss greater than C pools.
+          Cdiff = cop%NPP*dtsec/cop%n + (cop%C_lab - EPS)
+          cop%C_fol = max(0.d0,cop%C_fol + 0.33d0*Cdiff)
+          cop%C_froot = max(0.d0,cop%C_froot + 0.33d0*Cdiff)
+          cop%C_sw = max(0.d0,cop%C_sw + 0.33d0*Cdiff)
+          !cop%LAI = !should update
+        else
+          cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
+        endif
 
         !* pp cohort flux summaries
         GCANOPYsum = GCANOPYsum + cop%GCANOPY
@@ -397,16 +420,6 @@
 !      pp%C_lab = pp%C_lab + max(C_labsum, 0.d0)  !(kg/m2) ###Eventually need to convert to kg/individual.
       pp%C_lab = C_labsum!(kg/m2) ###Eventually need to convert to kg/individual.
       
-
-      !*** GISS HACK. PATCH VALUES ASSIGNED TO ENTCELL LEVEL. ****!!!
-      !pp%cellptr%GCANOPY = GCANOPY
-      !pp%cellptr%Ci = Ci
-      !pp%cellptr%Qf = Qf  !Calculated by hydrology scheme.
-      !pp%cellptr%GPP = GPP
-      !pp%cellptr%TRANS_SW = TRANS_SW
-      !pp%cellptr%betad = betad
-      !pp%cellptr%betadl = betadl
-
       end subroutine photosynth_cond
 
       !************************************************************************
@@ -1051,7 +1064,7 @@
       endif 
 !......................................................................
 ! Gross primary productivity (kg[C]/m2/s). 
-      GPP_OUT=0.012D-6*Acan
+      GPP_OUT=0.012D-6*Acan !Acan[umol/m2/s] to kg-C/m2/s, (umol/m2/s) x MW-C(12g/mol) * (1e-6 mol/umol) * (1e-3 kg/g)
       !write(*,*) parinc, GPP, Acan
 ! Net primary productivity (kg[C]/m2/s).  Not available yet.
 !     NPP = GPP - 0.012D-6*(Rcan + BoleRespir + RootRespir)

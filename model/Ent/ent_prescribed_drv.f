@@ -104,13 +104,12 @@
       vdata(:,:,:) = 0.d0
       call openunit("VEG",iu_VEG,.true.,.true.)
 
-      do k=1,10  !## HACK - this should be related to N_COVERTYPES
-
-        read(iu_VEG) title, buf
+      do k=1,N_COVERTYPES-2  !## Skip algae and grac4 #HACK
+        read(iu_VEG) title , buf
         vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
         print *,"read VEG:", title
       end do
-
+      print *,"vdata", vdata(:,I0:I1,J0:J1) !#DEBUG
       call closeunit(iu_VEG)
       end subroutine prescr_get_vdata
 
@@ -141,10 +140,12 @@
 
       call openunit("CROPS",iu_CROPS,.true.,.true.)
       do while( year2 < year )
+        print *, "Got here in prescr_get_cropdata"
         year1 = year2
         crop1(:,:) = crop2(:,:)
-        read (iu_CROPS,end=10) title, crop4
-        read(title,*) year2
+        read (iu_CROPS,end=10) title , crop4
+        read(title,*) year2 !Read year integer out of character array title
+        print *,"read CROPS:",title,year2
         crop2(I0:I1,J0:J1) = crop4(I0:I1,J0:J1)
       enddo
       wt = (year-year1)/(real(year2-year1,kind=8))
@@ -325,8 +326,10 @@
       soil_color(:) = soil_color_prescribed(:)
 
       call openunit("soil_textures",iu_SOIL,.true.,.true.)
+      print *,IM,JM,N_COVERTYPES !#DEBUG
       read(iu_SOIL) buf
       call closeunit(iu_SOIL)
+      print *,"soil fractions:",buf(I0,J0,:)!#DEBUG
 
       do k=1,N_SOIL_TEXTURES
         soil_texture(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1,k)
