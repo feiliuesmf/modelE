@@ -160,10 +160,10 @@
 
 !****************************************************************************
       type canradtype
-         !Arrays in height levels in the canopy
+!         !Arrays in height levels in the canopy
          real*8,pointer :: heights !height levels (m) betwn layers (#layers+1)
          real*8,pointer :: LAI(:) !LAI within height level
-         !Whole-canopy foliage clumping factor
+!         !Whole-canopy foliage clumping factor
          real*8 :: GORTclump
       end type canradtype
 
@@ -390,6 +390,7 @@
          real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
+         real*8 :: Cf           !Foliage surface CO2 conc (mol/m3) !-NK
          !next two now explicitly depth-structured (see above) -PK
          real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
          real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)

@@ -292,15 +292,6 @@
       do while (ASSOCIATED(cop))
         !* Assign vegpar
 
-        !** GISS replication test hack:  grid cell average patch properties
-        !vegpar%alai = pp%LAI
-        !vegpar%nm = pp%nm
-        !vegpar%vh = pp%h
-        !vegpar%vegalbedo = pp%albedo(1) !Visible band
-        !pft =  pp%tallest%pft
-        !GCANOPY = pp%GCANOPY
-        !Ci = pp%Ci
-
         !* PHOTOSYNTHESIS *!
         if (cop%LAI.gt.0.d0) then
           cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
@@ -344,7 +335,7 @@
         else !Zero LAI, no photosynthesis
           vegpar%alai = cop%LAI
           vegpar%Ntot = 0.d0
-          cop%GCANOPY = 0.d0 !May want minimum conductance for stems.
+          cop%GCANOPY = 0.d0 !May want minimum conductance for stems & cuticle.
           cop%Ci = EPS
           GPP = 0.d0
           cop%GPP = GPP

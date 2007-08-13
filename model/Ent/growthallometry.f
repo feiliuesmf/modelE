@@ -3,6 +3,7 @@
 !@sum individual plant, growth, and allometry.
 
       use ent_types
+      use ent_const
 
       implicit none
 

@@ -116,6 +116,7 @@
 !      ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.d0         !Atmospheric pressure (mb)
       ecp%Ca = 0.d0             !@Atmos CO2 conc at surface height (mol/m3).
+      ecp%Cf = 0.d0             !Foliage surface CO2 conc (mol/m3).
       ecp%Soilmoist(:) = 0.d0   !Soil moisture (volumetric fraction), depth-structured  -PK 6/28/06
       ecp%Soiltemp(:) = 0.d0    !Soil temp (Celsius), depth-structured 
       ecp%fice = 0.d0           !Fraction of soil layer that is ice
@@ -350,28 +351,28 @@
       integer :: ia
       real*8 :: fracroot(N_DEPTH)
       real*8 :: frootC_total
-      real*8 :: cf, tcf !cover fraction, total cover fraction
+      real*8 :: cfrac, tcfrac !cover fraction, total cover fraction
 
       !* Re-zero summary variable.
       do ia=1,N_DEPTH
         fracroot(ia) = 0.0
       end do
       frootC_total = 0.0
-      cf = 0.0
-      tcf = 0.0
+      cfrac = 0.0
+      tcfrac = 0.0
 
       pp = ecp%oldest
       do while (ASSOCIATED(pp))
-        cf = pp%area !This is area fraction.
-        tcf = tcf + cf
+        cfrac = pp%area !This is area fraction.
+        tcfrac = tcfrac + cfrac
         frootC_total = frootC_total + pp%C_froot
         do ia=1,N_DEPTH
-          fracroot(ia) = fracroot(ia) + cf*pp%fracroot(ia)*pp%C_froot  
+          fracroot(ia) = fracroot(ia) + cfrac*pp%fracroot(ia)*pp%C_froot  
         end do
         pp = pp%younger
       end do
 
-      ecp%fracroot = fracroot/(tcf*frootC_total)
+      ecp%fracroot = fracroot/(tcfrac*frootC_total)
 
       end subroutine sum_roots_patches2cell
 #endif

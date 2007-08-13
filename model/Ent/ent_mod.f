@@ -1172,7 +1172,8 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_temperature,
      &     canopy_air_humidity,      
      &     surf_pressure,            
-     &     surf_CO2,                 
+     &     surf_CO2,      
+     &     fol_CO2,
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -1194,6 +1195,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
+     &     fol_CO2,
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -1215,6 +1217,7 @@ cddd      end subroutine ent_cell_update_single
       entcell%entcell%Qf = canopy_air_humidity
       entcell%entcell%P_mbar = surf_pressure
       entcell%entcell%Ca = surf_CO2
+      entcell%entcell%Cf = fol_CO2
       entcell%entcell%Ch = heat_transfer_coef
       entcell%entcell%U = wind_speed
       entcell%entcell%IPARdif = total_visible_rad-direct_visible_rad
@@ -1240,6 +1243,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,                 
+     &     fol_CO2,
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -1261,6 +1265,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
+     &     fol_CO2,
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -1286,6 +1291,7 @@ cddd      end subroutine ent_cell_update_single
         entcell(i)%entcell%Qf = canopy_air_humidity(i)
         entcell(i)%entcell%P_mbar = surf_pressure(i)
         entcell(i)%entcell%Ca = surf_CO2(i)
+        entcell(i)%entcell%Cf = fol_CO2(i)
         entcell(i)%entcell%Ch = heat_transfer_coef(i)
         entcell(i)%entcell%U = wind_speed(i)
         entcell(i)%entcell%IPARdif = total_visible_rad(i)-
@@ -1313,6 +1319,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,                 
+     &     fol_CO2,                 
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -1334,6 +1341,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
+     &     fol_CO2,                 
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -1361,6 +1369,7 @@ cddd      end subroutine ent_cell_update_single
           entcell(i,j)%entcell%Qf = canopy_air_humidity(i,j)
           entcell(i,j)%entcell%P_mbar = surf_pressure(i,j)
           entcell(i,j)%entcell%Ca = surf_CO2(i,j)
+          entcell(i,j)%entcell%Cf = fol_CO2(i,j)
           entcell(i,j)%entcell%Ch = heat_transfer_coef(i,j)
           entcell(i,j)%entcell%U = wind_speed(i,j)
           entcell(i,j)%entcell%IPARdif = total_visible_rad(i,j)-
@@ -1388,7 +1397,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_conductance,
      &     beta_soil_layers,
      &     shortwave_transmit,
-     &     foliage_CO2,
+     &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
      &     roughness_length,
@@ -1406,7 +1415,7 @@ cddd      end subroutine ent_cell_update_single
       real*8, optional, intent(out) ::
      &     canopy_conductance,
      &     shortwave_transmit,
-     &     foliage_CO2,
+     &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
      &     roughness_length,
@@ -1430,8 +1439,8 @@ cddd      end subroutine ent_cell_update_single
       if ( present(shortwave_transmit) )
      &     shortwave_transmit = entcell%entcell%TRANS_SW
 
-      if ( present(foliage_CO2) )
-     &     foliage_CO2 = entcell%entcell%Ci
+      if ( present(leafinternal_CO2) )
+     &     leafinternal_CO2 = entcell%entcell%Ci
 
       if ( present(foliage_humidity) )
      &     foliage_humidity = entcell%entcell%Qf
@@ -1499,7 +1508,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_conductance,
      &     beta_soil_layers,
      &     shortwave_transmit,
-     &     foliage_CO2,
+     &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
      &     roughness_length,
@@ -1516,7 +1525,7 @@ cddd      end subroutine ent_cell_update_single
       real*8, dimension(:), optional, intent(out) ::
      &     canopy_conductance,
      &     shortwave_transmit,
-     &     foliage_CO2,
+     &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
      &     roughness_length,
@@ -1543,8 +1552,8 @@ cddd      end subroutine ent_cell_update_single
       if ( present(shortwave_transmit) )
      &     shortwave_transmit(i) = entcell(i)%entcell%TRANS_SW
 
-      if ( present(foliage_CO2) )
-     &     foliage_CO2(i) = entcell(i)%entcell%Ci
+      if ( present(leafinternal_CO2) )
+     &     leafinternal_CO2(i) = entcell(i)%entcell%Ci
 
       if ( present(foliage_humidity) )
      &     foliage_humidity(i) = entcell(i)%entcell%Qf
@@ -1615,7 +1624,7 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_conductance,
      &     beta_soil_layers,
      &     shortwave_transmit,
-     &     foliage_CO2,
+     &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
      &     roughness_length,
@@ -1632,7 +1641,7 @@ cddd      end subroutine ent_cell_update_single
       real*8, dimension(:,:), optional, intent(out) ::
      &     canopy_conductance,
      &     shortwave_transmit,
-     &     foliage_CO2,
+     &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
      &     roughness_length,
@@ -1668,8 +1677,8 @@ cddd      end subroutine ent_cell_update_single
      &     shortwave_transmit(i,j) = 
      &     entcell(i,j)%entcell%TRANS_SW
 
-      if ( present(foliage_CO2) )
-     &     foliage_CO2(i,j) = entcell(i,j)%entcell%Ci
+      if ( present(leafinternal_CO2) )
+     &     leafinternal_CO2(i,j) = entcell(i,j)%entcell%Ci
 
       if ( present(foliage_humidity) )
      &     foliage_humidity(i,j) = entcell(i,j)%entcell%Qf
