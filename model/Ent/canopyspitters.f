@@ -169,7 +169,8 @@
 
          !* Assign outputs to cohort *!
          !* Multiply in cop%stressH2O
-          cop%GCANOPY = GCANOPY * 18.d-3 / rhow !Convert mol-H2O m-2 s-1 to m/s
+!          cop%GCANOPY = GCANOPY * 18.d-3 / rhow !Convert mol-H2O m-2 s-1 to m/s
+          cop%GCANOPY = GCANOPY * 18.d0 / rhow !Convert ?mol-H2O m-2 s-1 to m/s
          ! (mol-H2O m-2 s-1)*(18 g/mol * 1d-3 kg/g) / (rhow kg m-3) = m/s
           cop%Ci = psdrvpar%ci * !ci is in mole fraction
      &         psdrvpar%Pa/(gasc * (psdrvpar%Tc+KELVIN)) !mol m-3
@@ -289,7 +290,7 @@
       !call qsimp(cradpar%LAI,cradpar,cf,ci,Tc,Pa,rh,Anet,Gsint) 
       !### LAIcanopy for radiation and LAIcohort for photosynthesis need to be distinguished.
       call qsimp(cradpar%LAI,cradpar,psdrvpar,cf,Gb,Atot,Gsint,Rdint) 
-
+      write(993,*) cradpar,psdrvpar,cf,Gb,Atot,Gsint,Rdint
       !Calculate conductance and ci at the canopy level
 !      call Gs_bound(dt, LAI,Gsint, Gs) !Limit rate of change of Gs.
 !      Ciconc = calc_Ci_canopy(ca,Gb,Gs,Anet,LAI,IPAR)
