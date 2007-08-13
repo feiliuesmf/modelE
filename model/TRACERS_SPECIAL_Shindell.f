@@ -349,10 +349,6 @@ C**** Monthly sources are interpolated each day
 
       INTEGER :: J_1, J_0, J_0H, J_1H
 
-#if (defined EDGAR_HYDE_SOURCES) || (defined EDGAR_1995)
-      call stop_model('EDGAR_HYDE_SOURCES not set up.',255)
-#endif
-
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       if (itime < itime_tr0(nt)) return
@@ -670,9 +666,6 @@ C**** Monthly sources are interpolated each day
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
-#if (defined EDGAR_HYDE_SOURCES) || (defined EDGAR_1995)
-      call stop_model('EDGAR_HYDE_SOURCES not set up.',255)
-#endif
       if (itime < itime_tr0(nt)) return
 C****
 C**** Annual Sources and sink
@@ -768,9 +761,7 @@ C**** Monthly sources are interpolated each day
       INTEGER :: J_1, J_0, J_0H, J_1H
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-#if (defined EDGAR_HYDE_SOURCES) || (defined EDGAR_1995)
-      call stop_model('EDGAR_HYDE_SOURCES not set up.',255)
-#endif
+
       if (itime < itime_tr0(nt)) return
       bySperHr = 1.d0/3600.d0
 C****
@@ -873,9 +864,6 @@ C**** Monthly sources are interpolated each day
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
 
-#if (defined EDGAR_HYDE_SOURCES) || (defined EDGAR_1995)
-      call stop_model('EDGAR_HYDE_SOURCES not set up.',255)
-#endif
       if (itime < itime_tr0(nt)) return
       bySperHr = 1.d0/3600.d0
 C****
@@ -977,9 +965,6 @@ C**** Monthly sources are interpolated each day
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-#if (defined EDGAR_HYDE_SOURCES) || (defined EDGAR_1995)
-      call stop_model('EDGAR_HYDE_SOURCES not set up.',255)
-#endif
       if (itime < itime_tr0(nt)) return
 C****
 C**** Annual Sources and sink
@@ -1068,9 +1053,6 @@ C**** Monthly sources are interpolated each day
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
 
-#if (defined EDGAR_HYDE_SOURCES) || (defined EDGAR_1995)
-      call stop_model('EDGAR_HYDE_SOURCES not set up.',255)
-#endif
       if (itime < itime_tr0(nt)) return
       bySperHr = 1.d0/3600.d0
 C****

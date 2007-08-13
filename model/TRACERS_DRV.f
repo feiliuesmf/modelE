@@ -319,11 +319,7 @@ C**** This is only effective with a complete restart.
           call sync_param("pfix_CH4_S",pfix_CH4_S)
           call sync_param("fix_CH4_chemistry",fix_CH4_chemistry)
           call sync_param("scale_ch4_IC_file",scale_ch4_IC_file)
-#ifdef EDGAR_HYDE_SOURCES
-          ntsurfsrc(n) = 15
-#else
           ntsurfsrc(n) = 14
-#endif
           ntm_power(n) = -8
 C         Interpolate CH4 altitude-dependence to model resolution:
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
@@ -493,11 +489,7 @@ C         Only alter Ox between 250 and 30 hPa:
       case ('NOx')
       n_NOx = n
           ntm_power(n) = -11
-#ifdef EDGAR_HYDE_SOURCES
-          ntsurfsrc(n) = 7
-#else
           ntsurfsrc(n) = 3 ! fossil fuel, biomass burning, soil
-#endif
           tr_mm(n) = 14.01d0
 #ifdef TRACERS_DRYDEP
           F0(n) = 1.d-1
@@ -645,11 +637,7 @@ C          read the CFC initial conditions:
       case ('CO')
       n_CO = n
           ntm_power(n) = -8
-#ifdef EDGAR_HYDE_SOURCES
-          ntsurfsrc(n) = 6
-#else
           ntsurfsrc(n) = 2 ! industrial + biomass burning
-#endif
           tr_mm(n) = 28.01d0
 C         Interpolate CO altitude-dependence to model resolution:
           CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt,.true.)
@@ -680,12 +668,7 @@ C         Interpolate CO altitude-dependence to model resolution:
       case ('Alkenes')
       n_Alkenes = n
           ntm_power(n) = -10
-#ifdef EDGAR_HYDE_SOURCES
-          ntsurfsrc(n) = 8
-#else
           ntsurfsrc(n) = 3   ! industrial + biomass burning + vegetation
-#endif
-
           tr_mm(n) = 46.59d0 ! i.e. carbon mass, weighted as:
 C 68.6% indust. x (41.2% Propene(3C) + 58.8% other Alkenes/ynes(4.8C)) +
 C 31.2% biomass burn x (47.9% Propene + 52.1% other Alkenes/ynes)= 3.88C
@@ -694,11 +677,7 @@ C This number wasn't adjusted when the vegetation was added.
       case ('Paraffin')
       n_Paraffin = n
           ntm_power(n) = -10
-#ifdef EDGAR_HYDE_SOURCES
-          ntsurfsrc(n) = 8
-#else
           ntsurfsrc(n) = 3   ! industrial + biomass burning + vegetation
-#endif
           tr_mm(n) = 59.50d0 ! i.e. carbon mass, weighted as:
 C 94.2%indust. x (12.% Ethane(2C) + 11.1% Propane(3C) + 20.5% Butane(4C)
 C + 18.% Pentane(5C) + 34.% higher Alkanes(7.5C) + 4.4% Ketones(4.6C)) +
@@ -2237,71 +2216,6 @@ C****
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifdef EDGAR_HYDE_SOURCES
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'EH_Animal_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Animal source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'EH_Fos_Fuel_Comb_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Fossil Fuel Combustion source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'EH_Landfill_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Landfills source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'EH_Fos_Fuel_Prod_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Fossil Fuel Production etc source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'EH_Ag_waste_burn_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Agricultural Waste Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(8,n) = k
-        sname_jls(k) = 'EH_Deforest_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Deforestation source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(12,n) = k
-        sname_jls(k) = 'EH_savan_burn_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Savannah Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(13,n) = k
-        sname_jls(k) = 'EH_Biofuel_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Biofuel P,T,C source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(15,n) = k
-        sname_jls(k) = 'EH_Ag_Land_source_'//trname(n)
-        lname_jls(k) = 'CH4 EH Agricultural Land Activities source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#else
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Animal_source_of'//trname(n)
@@ -2358,7 +2272,6 @@ C****
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
@@ -2485,57 +2398,6 @@ C**** special one unique to HTO
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifdef EDGAR_HYDE_SOURCES
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'EH_Fos_Fuel_Source_of_'//trname(n)
-        lname_jls(k) = 'NOx EH fossil fuel combustion source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'EH_Industrial_Source_of_'//trname(n)
-        lname_jls(k) = 'NOx EH Industrial Processes source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'EH_Ag_Land_source_'//trname(n)
-        lname_jls(k) = 'NOx EH Agricultural Land Activitied source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'EH_Ag_waste_burn_source_'//trname(n)
-        lname_jls(k) = 'NOx EH Agricultural Waste Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'EH_Biofuel_source_'//trname(n)
-        lname_jls(k) = 'NOx EH Biofuel P,T,C source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'EH_Deforest_source_'//trname(n)
-        lname_jls(k) = 'NOx EH Deforestation source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(7,n) = k
-        sname_jls(k) = 'EH_Savannah_source_'//trname(n)
-        lname_jls(k) = 'NOx EH Savannah Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#else
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Fossil_Fuel_Source_of_'//trname(n)
@@ -2557,7 +2419,6 @@ C**** special one unique to HTO
         jls_ltop(k) = 1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 
       case ('N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
      &      'AlkylNit','Ox','OxREG1','OxREG2','OxREG3',
@@ -2612,50 +2473,6 @@ C**** special one unique to HTO
         jls_ltop(k) = LM
         jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifdef EDGAR_HYDE_SOURCES
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'EH_Fos_Fuel_Source_'//trname(n)
-        lname_jls(k) = 'CO EH Fossil Fuel Combustion source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'EH_Industrial_Source_'//trname(n)
-        lname_jls(k) = 'CO EH Industrial Processes source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'EH_Ag_Waste_Source_'//trname(n)
-        lname_jls(k) = 'CO EH Agricultural Waste Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'EH_Savannah_Source_'//trname(n)
-        lname_jls(k) = 'CO EH Savannah Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'EH_Biofuel_Source_'//trname(n)
-        lname_jls(k) = 'CO EH Biofuel P,T,C source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'EH_Deforest_Source_'//trname(n)
-        lname_jls(k) = 'CO EH Deforestation source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#else
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_Source_of'//trname(n)
@@ -2670,7 +2487,6 @@ C**** special one unique to HTO
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 
 #ifdef SHINDELL_STRAT_EXTRA
       case ('GLT')
@@ -2729,59 +2545,6 @@ C**** special one unique to HTO
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifdef EDGAR_HYDE_SOURCES
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'EH_Foss_Fuel_Comb_source_'//trname(n)
-        lname_jls(k) = trname(n)//' EH Fossil Fuel Combustion source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'EH_Industrial_source_'//trname(n)
-        lname_jls(k) = trname(n)//' EH Idustrial Processes source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-!! #3 is (common) vegetation source.  See above.
-        jls_source(4,n) = k
-        sname_jls(k) = 'EH_Foss_Fuel_Prod_source_'//trname(n)
-        lname_jls(k) = trname(n)//' EH Fossil Fuel Production source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'EH_Ag_Waste_source_'//trname(n)
-        lname_jls(k) =
-     &  trname(n)//' EH Agricultural Waste Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'EH_Savanna_source_'//trname(n)
-        lname_jls(k) = trname(n)//' EH Savanna Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(7,n) = k
-        sname_jls(k) = 'EH_Biofuel_source_'//trname(n)
-        lname_jls(k) = trname(n)//' EH Biofuel P,T,C source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(8,n) = k
-        sname_jls(k) = 'EH_Deforest_source_'//trname(n)
-        lname_jls(k) = trname(n)//' EH Deforestation source'
-        jls_ltop(k) = 1
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#else
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_source_of'//trname(n)
@@ -2796,8 +2559,6 @@ C**** special one unique to HTO
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-!! #3 is (common) vegetation source. See above.
-#endif
 
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2')
         k = k + 1
@@ -4058,71 +3819,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('NOx')
-#ifdef EDGAR_HYDE_SOURCES
-      k = k+1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx EH fossil fuel combustion source'
-        sname_ijts(k) = 'NOx_EH_ffuel_source'
-        ijts_power(k) = -14
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx EH industrial processes source'
-        sname_ijts(k) = 'NOx_EH_indust_source'
-        ijts_power(k) = -14
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx EH agricultural land activities source'
-        sname_ijts(k) = 'NOx_EH_Ag_land_source'
-        ijts_power(k) = -14
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(4,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx EH agricultural waste burning source'
-        sname_ijts(k) = 'NOx_EH_Ag_waste_source'
-        ijts_power(k) = -14
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(5,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx EH Biofuel prod, trans, comb source'
-        sname_ijts(k) = 'NOx_EH_biofuel_source'
-        ijts_power(k) = -14
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(6,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx EH deforestation source'
-        sname_ijts(k) = 'NOx_EH_deforest_source'
-        ijts_power(k) = -14
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(7,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NOx EH savannah burning source'
-        sname_ijts(k) = 'NOx_EH_savannah_source'
-        ijts_power(k) = -14
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#else
       k = k+1
         ijts_source(1,n) = k
         ijts_index(k) = n
@@ -4150,7 +3846,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -14
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
       k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
@@ -4189,62 +3884,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('CO')
-#ifdef EDGAR_HYDE_SOURCES
-      k = k+1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO EH fossil fuel combustion source'
-        sname_ijts(k) = 'CO_EH_ffuel_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO EH industrial processes source'
-        sname_ijts(k) = 'CO_EH_indust_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO EH agricultural waste burning source'
-        sname_ijts(k) = 'CO_EH_Ag_waste_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(4,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO EH savannah burning source'
-        sname_ijts(k) = 'CO_EH_savannah_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(5,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO EH biofuel prod, trans, comb source'
-        sname_ijts(k) = 'CO_EH_biofuel_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(6,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO EH deforestation source'
-        sname_ijts(k) = 'CO_EH_deforest_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#else
       k = k+1
         ijts_source(1,n) = k
         ijts_index(k) = n
@@ -4263,7 +3902,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
       k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
@@ -4338,89 +3976,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef EDGAR_HYDE_SOURCES
-      k = k + 1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Animal source'
-        sname_ijts(k) = 'CH4_EH_Animal_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Fossil Fuel Combustion source'
-        sname_ijts(k) = 'CH4_EH_ffuel_comb_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Landfills source'
-        sname_ijts(k) = 'CH4_EH_Landfill_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(4,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Fossil Fuel Production source'
-        sname_ijts(k) = 'CH4_ffuel_prod_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(5,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Agricultural Waste Burning source'
-        sname_ijts(k) = 'CH4_EH_Ag_Waste_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(8,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Deforestation source'
-        sname_ijts(k) = 'CH4_EH_Deforest_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(12,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Savannah Burning source'
-        sname_ijts(k) = 'CH4_EH_Savannah_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(13,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Biofuel P,T,C source'
-        sname_ijts(k) = 'CH4_EH_Biofuel_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_source(15,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CH4 EH Agricultural Land Activities source'
-        sname_ijts(k) = 'CH4_EH_Ag_Land_source'
-        ijts_power(k) = -13
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#else
       k = k + 1
         ijts_source(1,n) = k
         ijts_index(k) = n
@@ -4493,7 +4048,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
       k = k + 1
         ijts_3Dsource(nChemistry,n) = k
@@ -4606,73 +4160,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('Alkenes','Paraffin')
-#ifdef EDGAR_HYDE_SOURCES
-      k = k+1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' EH fossil fuel combustion source'
-        sname_ijts(k) = trname(n)//'_EH_ffuel_comb_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' EH industrial processes source'
-        sname_ijts(k) = trname(n)//'_EH_indust_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-!! #3 is the (common) vegetation source. See below.
-      k = k+1
-        ijts_source(4,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' EH fossil fuel production source'
-        sname_ijts(k) = trname(n)//'_EH_ffuel_prod_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(5,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) =
-     &  trname(n)//' EH agricultural waste burning source'
-        sname_ijts(k) = trname(n)//'_EH_Ag_waste_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(6,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' EH savannah burning source'
-        sname_ijts(k) = trname(n)//'_EH_savannah_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(7,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' EH biofuel P,T,C source'
-        sname_ijts(k) = trname(n)//'_EH_biofuel_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(8,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' EH deforestation source'
-        sname_ijts(k) = trname(n)//'_EH_deforest_source'
-        ijts_power(k) = -13.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#else
       k = k+1
         ijts_source(1,n) = k
         ijts_index(k) = n
@@ -4691,8 +4178,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-!! #3 is the (common) vegetation source. See below.
-#endif
       k = k+1
         ijts_source(3,n) = k
         ijts_index(k) = n
@@ -7732,27 +7217,6 @@ C**** set some defaults
       conpts(g-12)='Misc. Ground source'
       g=g+1; itcon_surf(14,N) = g; qcon(itcon_surf(14,N)) = .true.
       conpts(g-12)= 'Wetlands+Tundra'
-#ifdef EDGAR_HYDE_SOURCES
-      g=g+1; itcon_surf(1,N) = g; qcon(itcon_surf(1,N)) = .true.
-      conpts(g-12)= 'EH Animal source'
-      g=g+1; itcon_surf(2,N) = g; qcon(itcon_surf(2,N)) = .true.
-      conpts(g-12)= 'EH ffuel comb source'
-      g=g+1; itcon_surf(3,N) = g; qcon(itcon_surf(3,N)) = .true.
-      conpts(g-12)= 'EH landfills source'
-      g=g+1; itcon_surf(4,N) = g; qcon(itcon_surf(4,N)) = .true.
-      conpts(g-12)= 'EH ffuel prod source'
-      g=g+1; itcon_surf(5,N) = g; qcon(itcon_surf(5,N)) = .true.
-      conpts(g-12)= 'EH Ag Waste Burn source'
-      g=g+1; itcon_surf(8,N) = g; qcon(itcon_surf(8,N)) = .true.
-      conpts(g-12)= 'EH deforestation source'
-      g=g+1; itcon_surf(12,N) = g; qcon(itcon_surf(12,N)) = .true.
-      conpts(g-12)= 'EH savann. burn source'
-      g=g+1; itcon_surf(13,N) = g; qcon(itcon_surf(13,N)) = .true.
-      conpts(g-12)= 'EH biofuel PTC source'
-      g=g+1; itcon_surf(15,N) = g; qcon(itcon_surf(15,N)) = .true.
-      conpts(g-12)= 'EH Ag Land Act source'
-      qsum(itcon_surf(1:15,N)) = .false.  ! prevent summing twice
-#else
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12)= 'Animal source'
       g=g+1; itcon_surf(2,N) = g
@@ -7770,7 +7234,6 @@ C**** set some defaults
       g=g+1; itcon_surf(13,N) = g
       qcon(itcon_surf(13,N)) = .true.; conpts(g-12)= 'Rice source'
       qsum(itcon_surf(1:14,N)) = .false.  ! prevent summing twice
-#endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
         g=g+1; itcon_dd(n,1)= g
@@ -7926,29 +7389,12 @@ C**** set some defaults
       qcon(itcon_3Dsrc(nAircraft,N)) = .true.
       conpts(g-12) = 'Aircraft'
       qsum(itcon_3Dsrc(nAircraft,N)) = .true.
-#ifdef EDGAR_HYDE_SOURCES
-      g=g+1; itcon_surf(1,N) = g; qcon(itcon_surf(1,N)) = .true.
-      conpts(g-12) = 'EH Fossil Fuel Comb.'
-      g=g+1; itcon_surf(2,N) = g; qcon(itcon_surf(2,N)) = .true.
-      conpts(g-12) = 'EH Indust. Proc. Comb.'
-      g=g+1; itcon_surf(3,N) = g; qcon(itcon_surf(3,N)) = .true.
-      conpts(g-12) = 'EH Ag Land Activities'
-      g=g+1; itcon_surf(4,N) = g; qcon(itcon_surf(4,N)) = .true.
-      conpts(g-12) = 'EH Ag Waste Burning'
-      g=g+1; itcon_surf(5,N) = g; qcon(itcon_surf(5,N)) = .true.
-      conpts(g-12) = 'EH Biofuel PTC'
-      g=g+1; itcon_surf(6,N) = g; qcon(itcon_surf(6,N)) = .true.
-      conpts(g-12) = 'EH Deforestation'
-      g=g+1; itcon_surf(7,N) = g; qcon(itcon_surf(7,N)) = .true.
-      conpts(g-12) = 'EH Savannah Burning'
-#else
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Fossil Fuels'
       g=g+1; itcon_surf(2,N) = g
       qcon(itcon_surf(2,N)) = .true.; conpts(g-12) = 'Biomass Burning'
       g=g+1; itcon_surf(3,N) = g
       qcon(itcon_surf(3,N)) = .true.; conpts(g-12) = 'Soil'
-#endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
         g=g+1; itcon_dd(n,1)=g
@@ -7973,25 +7419,10 @@ C**** set some defaults
       qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
       conpts(g-12)='Overwrite'
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-#ifdef EDGAR_HYDE_SOURCES
-      g=g+1; itcon_surf(1,N) = g; qcon(itcon_surf(1,N)) = .true.
-      conpts(g-12) = 'EH fossil fuel comb.'
-      g=g+1; itcon_surf(2,N) = g; qcon(itcon_surf(2,N)) = .true.
-      conpts(g-12) = 'EH industrial proc.'
-      g=g+1; itcon_surf(3,N) = g; qcon(itcon_surf(3,N)) = .true.
-      conpts(g-12) = 'EH ag waste burning'
-      g=g+1; itcon_surf(4,N) = g; qcon(itcon_surf(4,N)) = .true.
-      conpts(g-12) = 'EH savannah burning'
-      g=g+1; itcon_surf(5,N) = g; qcon(itcon_surf(5,N)) = .true.
-      conpts(g-12) = 'EH biofuel PTC'
-      g=g+1; itcon_surf(6,N) = g; qcon(itcon_surf(6,N)) = .true.
-      conpts(g-12) = 'EH deforestation'
-#else
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Industrial'
       g=g+1; itcon_surf(2,N) = g
       qcon(itcon_surf(2,N)) = .true.; conpts(g-12) = 'Biomass Burning'
-#endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
         g=g+1; itcon_dd(n,1)=g
@@ -8059,29 +7490,10 @@ C**** set some defaults
       qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
       g=g+1; itcon_surf(3,N) = g
       qcon(itcon_surf(3,N)) = .true.; conpts(g-12) = 'Vegetation'
-#ifdef EDGAR_HYDE_SOURCES
-      g=g+1; itcon_surf(1,N) = g; qcon(itcon_surf(1,N)) = .true.
-      conpts(g-12) = 'EH Fossil Fuel Comb'
-      g=g+1; itcon_surf(2,N) = g; qcon(itcon_surf(2,N)) = .true.
-      conpts(g-12) = 'EH Idustrial Proc'
-!! #3 is (common) vegetation source.  See above.
-      g=g+1; itcon_surf(4,N) = g; qcon(itcon_surf(4,N)) = .true.
-      conpts(g-12) = 'EH Fossil Fuel Prod'
-      g=g+1; itcon_surf(5,N) = g; qcon(itcon_surf(5,N)) = .true.
-      conpts(g-12) = 'EH Ag Waste Burning'
-      g=g+1; itcon_surf(6,N) = g; qcon(itcon_surf(6,N)) = .true.
-      conpts(g-12) = 'EH Savanna Burning'
-      g=g+1; itcon_surf(7,N) = g; qcon(itcon_surf(7,N)) = .true.
-      conpts(g-12) = 'EH Biofuel PTC'
-      g=g+1; itcon_surf(8,N) = g; qcon(itcon_surf(8,N)) = .true.
-      conpts(g-12) = 'EH Deforestation'
-#else
       g=g+1; itcon_surf(1,N) = g
       qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Industrial'
       g=g+1; itcon_surf(2,N) = g
       qcon(itcon_surf(2,N)) = .true.; conpts(g-12) = 'Biomass Burning'
-!! #3 is (common) vegetation source.  See above.
-#endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
         g=g+1; itcon_dd(n,1)=g
