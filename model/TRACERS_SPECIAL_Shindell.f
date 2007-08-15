@@ -5,41 +5,22 @@
 #ifdef TRACERS_ON
 
       USE TRACER_COM
-      USE MODEL_COM, only : nisurf
 
       IMPLICIT NONE
       SAVE
 
 !@param Laircr the number of layers of aircraft data read from file
 !@param Lsulf the number of layers of sulfate SA data read from file
-!@param correct_CO_ind correction factor Lee put in for industrial CO
       INTEGER, PARAMETER :: 
      &                      Laircr      =19,
      &                      Lsulf       =23 ! not LM
-      REAL*8, PARAMETER ::  correct_CO_ind=520./410.
+#ifdef GFED_3D_BIOMASS 
+     &                     ,LbbGFED     =6
+      real*8, allocatable, dimension(:,:,:,:) :: GFED_BB
+#endif
 #ifdef SHINDELL_STRAT_EXTRA
-     & ,                    GLTic = 1.d-9 ! pppv
-#endif      
-c I tried to use ntsurfsrc( ) instead of these !!!
-      integer, parameter :: nch4src     = 14,
-     &                      nCOsrc      =  2,
-     &                      nAlkenessrc =  3,
-     &                      nParaffinsrc=  3,
-     &                      nIsoprenesrc=  1,
-     &                      nNOxsrc     =  3
-
-!@var CH4_src           CH4 surface sources and sinks (kg/m2/s)
-!@var CO_src             CO surface sources and sinks (kg/m2/s)
-!@var Alkenes_src   Alkenes surface sources and sinks (kg/m2/s)
-!@var Paraffin_src Paraffin surface sources and sinks (kg/m2/s)
-!@var NOx_src           NOx surface sources and sinks (kg/m2/s)
-!@var Isoprene_src ISoprene surface sources and sinks (kg/m2/s)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CO_src
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Alkenes_src
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Paraffin_src
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Isoprene_src
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: NOx_src
+      REAL*8, PARAMETER ::  GLTic = 1.d-9 ! pppv
+#endif   
 
 #ifdef INTERACTIVE_WETLANDS_CH4
 !@dbparam nn_or_zon approach to use for expanding wetlands 1=
@@ -111,17 +92,16 @@ c I tried to use ntsurfsrc( ) instead of these !!!
 !@auth G.Faluvegi
 !@ver  1.0
       use domain_decomp, only : dist_grid, get, write_parallel
-      use TRACER_SOURCES, only: CO_src,CH4_src,Alkenes_src,Paraffin_src
-     & ,Isoprene_src,NOx_src,nCOsrc,nNOxsrc,nch4src,nAlkenessrc
-     & ,nParaffinsrc, nIsoprenesrc
-#ifdef INTERACTIVE_WETLANDS_CH4
-     & ,day_ncep,DRA_ch4,avg_model,PRS_ch4,avg_ncep,sum_ncep,HRA_ch4,
-     & iHch4,iDch4,i0ch4,first_mod,nra_ch4,nra_ncep,max_days,
-     & maxHR_ch4
-#endif
-      use tracer_com, only    : ntm,n_CO,n_CH4,n_Alkenes,
-     &                          n_Paraffin,n_Isoprene,n_NOx
       use model_com, only     : im
+      use tracer_com, only : ntm
+#ifdef INTERACTIVE_WETLANDS_CH4
+      use TRACER_SOURCES, only: maxHR_ch4,
+     & day_ncep,DRA_ch4,avg_model,PRS_ch4,avg_ncep,sum_ncep,HRA_ch4,
+     & iHch4,iDch4,i0ch4,first_mod,nra_ch4,nra_ncep,max_days
+#endif
+#ifdef GFED_3D_BIOMASS
+      use TRACER_SOURCES, only: GFED_BB,LbbGFED
+#endif
 
       IMPLICIT NONE
 
@@ -134,12 +114,9 @@ c I tried to use ntsurfsrc( ) instead of these !!!
     
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
  
-      allocate( CO_src(IM,J_0H:J_1H,nCOsrc) )
-      allocate( NOx_src(IM,J_0H:J_1H,nNOxsrc) )
-      allocate( CH4_src(IM,J_0H:J_1H,nCH4src) )
-      allocate( Alkenes_src(IM,J_0H:J_1H,nAlkenessrc) )
-      allocate( Paraffin_src(IM,J_0H:J_1H,nParaffinsrc) )
-      allocate( Isoprene_src(IM,J_0H:J_1H,nIsoprenesrc) )
+#ifdef GFED_3D_BIOMASS
+      allocate( GFED_BB(IM,J_0H:J_1H,LbbGFED,ntm) )
+#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       allocate( first_mod(IM,J_0H:J_1H,nra_ch4) )
       allocate( iHch4(IM,J_0H:J_1H,nra_ch4) )
@@ -265,6 +242,10 @@ C we change that.)
       return
       end subroutine overwrite_GLT
 #endif
+
+#ifdef hell_freezes_over
+! keeping this in for reference for now (regarding the
+! wetlands portion, which must be reinserted somewhere):
 
       subroutine read_CH4_sources(nt,iact)
 !@sum reads in CH4 surface sources and sinks
@@ -624,466 +605,8 @@ C No emissions over glacier latitudes if desired:
 #endif
       return
       end subroutine read_CH4_sources
+#endif
 
-
-      subroutine read_CO_sources(nt,iact)
-!@sum reads in CO surface sources and sinks
-!@auth Jean Lerner/Greg Faluvegi
-C****
-C**** There is 1 monthly sources and 1 annual source
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE TRACER_COM, only: itime_tr0,trname
-      use TRACER_SOURCES, only: CO_src,correct_CO_ind,nCOsrc
-      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
-      implicit none
-
-!@var PIfact factor for altering source to preindustrial (or not)
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=1,nmons=1
-      integer, dimension(nanns) :: ann_units
-      integer, dimension(nmons) :: mon_units, imon
-      integer :: jdlast=0
-      integer i,j,nt,iact,iu,k
-      character*80 :: title
-      character*13, dimension(nanns) :: ann_files=(/'CO_INDUSTRIAL'/)
-      character*10, dimension(nmons) :: mon_files=(/'CO_BIOMASS'/)
-      character(len=300) :: out_line
-      logical, dimension(nanns) :: ann_bins=(/.true./)
-      logical :: ifirst=.true.
-      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
-      real*8, allocatable, dimension(:,:,:) :: tlca, tlcb
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: A2D
-      real*8 frac, PIfact
-
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      INTEGER :: J_1, J_0, J_0H, J_1H
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      
-      if (itime < itime_tr0(nt)) return
-C****
-C**** Annual Sources and sink
-C**** I believe this source is already in (kg CO)/m2/sec, so no
-C**** conversion needed.  However, Lee put in a correction factor of
-C**** 520/410 = correct_CO_ind, so put that in here:
-C****
-      if (ifirst) then
-        allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-        do k = 1,nanns
-          call openunit(ann_files(k),ann_units(k),ann_bins(k))
-          select case(PI_run)
-          case(1);      PIfact=PIratio_indus
-          case default; PIfact=1.d0
-          end select
-          iu=ann_units(k)
-!old      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D(:,:),1)
-          CO_src(:,j_0:j_1,k) = A2D(:,j_0:j_1)*correct_CO_ind*PIfact
-          call closeunit(iu)
-        end do
-        ifirst = .false.
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C**** I believe this source is already in (kg CO)/m2/sec, so no
-C**** conversion needed:
-C****
-      j = 0
-      do k=nanns+1,nCOsrc
-        select case(PI_run)
-        case(1) ! pre-industrial
-          select case(k)
-          case(nanns+1); PIfact=PIratio_bburn
-          case default; PIfact=1.d0
-          end select
-        case default
-          PIfact=1.d0
-        end select
-        j = j+1
-        call openunit(mon_files(j),mon_units(j),mon_bins(j))
-        call read_mon_src_2(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),CO_src(:,:,k),frac,imon(j))
-        call closeunit(mon_units(j))
-        CO_src(:,J_0:J_1,k) = CO_src(:,J_0:J_1,k)*PIfact
-      end do
-      jdlast = jday
-      write(out_line,*)
-     &trname(nt),'Sources interpolated to current day',frac
-      call write_parallel(trim(out_line))   
-C****
-      return
-      end subroutine read_CO_sources
-
-
-      subroutine read_Alkenes_sources(nt,iact)
-!@sum reads in Alkenes surface sources and sinks
-!@auth Jean Lerner/Greg Faluvegi
-C****
-C**** There are 2 monthly sources and 1 annual source
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE GEOM, only: BYDXYP
-      USE TRACER_COM, only: itime_tr0,trname
-      use TRACER_SOURCES, only: src=>Alkenes_src,nsrc=>nAlkenessrc
-      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
-   
-      implicit none
-      
-!@var PIfact factor for altering source to preindustrial (or not)
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=1,nmons=2
-      integer, dimension(nanns) :: ann_units
-      integer, dimension(nmons) :: mon_units, imon
-      integer :: jdlast=0
-      integer i,j,nt,iact,iu,k,jj
-      character*80 :: title
-      character*18,dimension(nanns)::ann_files=(/'Alkenes_INDUSTRIAL'/)
-      character*18,dimension(nmons)::mon_files=(/'Alkenes_BIOMASS   ',
-     &                                           'Alkenes_VEGETATION'/)
-      character(len=300) :: out_line
-      logical, dimension(nanns) :: ann_bins=(/.true./)
-      logical :: ifirst=.true.
-      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
-      real*8, allocatable, dimension(:,:,:) :: tlca, tlcb  ! for monthly sources
-      real*8 frac, PIfact, bySperHr
-      
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      INTEGER :: J_1, J_0, J_0H, J_1H
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-
-      if (itime < itime_tr0(nt)) return
-      bySperHr = 1.d0/3600.d0
-C****
-C**** Annual Sources and sink
-C**** I believe input file is in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s.
-C****
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-        do k = 1,nanns
-          call openunit(ann_files(k),ann_units(k),ann_bins(k))
-          iu=ann_units(k)
-          select case(PI_run)
-          case(1);      PIfact=PIratio_indus
-          case default; PIfact=1.d0
-          end select
-!old      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          call readt_parallel(grid,iu,nameunit(iu),0,src(:,:,k),1)
-          do jj=J_0,J_1
-            src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*bySperHr*PIfact
-          enddo
-          call closeunit(iu)
-        end do
-        ifirst = .false.
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C**** I believe input files are in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s.
-C****
-      j = 0
-      do k=nanns+1,nsrc
-        select case(PI_run)
-        case(1) ! pre-industrial
-          select case(k)
-          case(nanns+1); PIfact=PIratio_bburn
-          case default ; PIfact=1.d0
-          end select
-        case default
-          PIfact=1.d0
-        end select
-        j = j+1
-        call openunit(mon_files(j),mon_units(j),mon_bins(j))
-        call read_mon_src_2(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),src(:,:,k),frac,imon(j))
-        call closeunit(mon_units(j))
-        do JJ=J_0,J_1
-          src(:,JJ,k)=src(:,JJ,k)*BYDXYP(JJ)*bySperHr*PIfact
-        enddo
-      end do
-      jdlast = jday
-      write(out_line,*)
-     &trname(nt),'Sources interpolated to current day',frac
-      call write_parallel(trim(out_line))   
-C****
-      return
-      end subroutine read_Alkenes_sources
-
-
-      subroutine read_Paraffin_sources(nt,iact)
-!@sum reads in Paraffin surface sources and sinks
-!@auth Jean Lerner/Greg Faluvegi
-C****
-C**** There are 2 monthly sources and 1 annual source
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE GEOM, only: BYDXYP
-      USE TRACER_COM, only: itime_tr0,trname
-      use TRACER_SOURCES, only: src=>Paraffin_src,nsrc=>nParaffinsrc
-      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
-     
-      implicit none
-      
-!@var PIfact factor for altering source to preindustrial (or not)
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=1,nmons=2
-      integer, dimension(nanns) :: ann_units
-      integer, dimension(nmons) :: mon_units, imon
-      integer :: jdlast=0
-      integer i,j,nt,iact,iu,k,jj
-      character*80 :: title
-      character*19, dimension(nanns) :: ann_files=
-     &                                      (/'Paraffin_INDUSTRIAL'/)
-      character*19, dimension(nmons) :: mon_files=
-     &                (/'Paraffin_BIOMASS   ','Paraffin_VEGETATION'/)
-      character(len=300) :: out_line
-      logical, dimension(nanns) :: ann_bins=(/.true./)
-      logical :: ifirst=.true.
-      logical, dimension(nmons) :: mon_bins(nmons)=(/.true.,.true./) ! binary file?
-      real*8, allocatable, dimension(:,:,:) :: tlca, tlcb  ! for monthly sources
-      real*8 frac, PIfact, bySperHr
-      
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      INTEGER :: J_1, J_0, J_0H, J_1H
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
-
-      if (itime < itime_tr0(nt)) return
-      bySperHr = 1.d0/3600.d0
-C****
-C**** Annual Sources and sink
-C**** I believe input file is in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s.
-C****
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-        do k=1,nanns 
-          call openunit(ann_files(k),ann_units(k),ann_bins(k))
-          iu=ann_units(k)
-          select case(PI_run)
-          case(1);      PIfact=PIratio_indus
-          case default; PIfact=1.d0
-          end select
-!old      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          call readt_parallel(grid,iu,nameunit(iu),0,src(:,:,k),1)
-          do jj=J_0,J_1
-            src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*bySperHr*PIfact
-          enddo 
-          call closeunit(iu)
-        end do
-        ifirst = .false.
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C**** I believe input files are in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s.
-C****
-      j = 0
-      do k=nanns+1,nsrc
-        select case(PI_run)
-        case(1) ! pre-industrial
-          select case(k)
-          case(nanns+1); PIfact=PIratio_bburn
-          case default ; PIfact=1.d0
-          end select
-        case default
-          PIfact=1.d0
-        end select
-        j = j+1
-        call openunit(mon_files(j),mon_units(j),mon_bins(j))
-        call read_mon_src_2(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),src(:,:,k),frac,imon(j))
-        call closeunit(mon_units(j))
-        do jj=J_0,J_1
-          src(:,jj,k)=src(:,jj,k)*BYDXYP(jj)*bySperHr*PIfact
-        end do
-      end do
-      jdlast = jday
-      write(out_line,*)
-     &trname(nt),'Sources interpolated to current day',frac
-      call write_parallel(trim(out_line)) 
-C****
-      return
-      end subroutine read_Paraffin_sources
-
-
-      subroutine read_NOx_sources(nt,iact)
-!@sum reads in NOx surface sources and sinks
-!@auth Jean Lerner/Greg Faluvegi
-C****
-C**** There are 2 monthly sources and 1 annual source
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
-     &   ,am_i_root
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE TRACER_COM, only: itime_tr0,trname
-      use TRACER_SOURCES, only: NOx_src, nsrc=>nNOxsrc
-      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
-
-      implicit none
-!@var PIfact factor for altering source to preindustrial (or not)
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=1,nmons=2
-      integer, dimension(nanns) :: ann_units
-      integer, dimension(nmons) :: mon_units, imon
-      integer :: jdlast=0
-      integer i,j,nt,iact,iu,k
-      character*80 :: title
-      character*15, dimension(nanns) :: ann_files=(/'NOx_FOSSIL_FUEL'/)
-      character*11, dimension(nmons) :: mon_files=
-     &                                  (/'NOx_BIOMASS','NOx_SOIL   '/)
-      character(len=300) :: out_line
-      logical, dimension(nanns) :: ann_bins=(/.true./)
-      logical :: ifirst=.true.
-      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
-      real*8, allocatable, dimension(:,:,:) :: tlca, tlcb  ! for monthly sources
-      real*8 frac, PIfact, bySperHr
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: A2D
-
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      INTEGER :: J_1, J_0, J_0H, J_1H
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-
-      if (itime < itime_tr0(nt)) return
-C****
-C**** Annual Sources and sink
-C**** The titles of the input file say this is in KG/Y/m2, so convert
-C**** yr-1 to s-1:
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-        do k = 1,nanns
-          call openunit(ann_files(k),ann_units(k),ann_bins(k))
-          select case(PI_run)
-          case(1);      PIfact=PIratio_indus
-          case default; PIfact=1.d0
-          end select
-          iu=ann_units(k)
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D(:,:),1)
-          NOx_src(:,J_0:J_1,k) = A2D(:,J_0:J_1)*PIfact/(sday*JDperY)
-          call closeunit(iu)
-        end do
-        ifirst = .false.
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C**** The titles of the input files say this is in KG/m2/s, so no
-C**** conversion is necessary:
-C****
-      j = 0
-      do k=nanns+1,nsrc
-        select case(PI_run)
-        case(1) ! pre-industrial
-          select case(k)
-          case(nanns+1); PIfact=PIratio_bburn
-          case default ; PIfact=1.d0
-          end select
-        case default
-          PIfact=1.d0
-        end select
-        j = j+1
-        call openunit(mon_files(j),mon_units(j),mon_bins(j))
-        call read_mon_src_2(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),NOx_src(:,:,k),frac,imon(j))
-        call closeunit(mon_units(j))
-        NOx_src(:,J_0:J_1,k) = NOx_src(:,J_0:J_1,k) * PIfact
-      end do
-      jdlast = jday
-      write(out_line,*)
-     &trname(nt),'Sources interpolated to current day',frac
-      call write_parallel(trim(out_line)) 
-C****
-      return
-      end subroutine read_NOx_sources   
-
-
-      subroutine read_Isoprene_sources(nt,iact)
-!@sum reads in Isoprene surface sources and sinks
-!@auth Jean Lerner/Greg Faluvegi
-C****
-C**** There is 1 monthly source
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit,nameunit
-      USE GEOM, only: BYDXYP
-      USE TRACER_COM, only: itime_tr0,trname
-      use TRACER_SOURCES, only: src=>Isoprene_src, nsrc=>nIsoprenesrc
-     
-      implicit none
-      
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=0,nmons=1
-      integer, dimension(nmons) :: mon_units, imon
-      integer :: jdlast=0
-      integer i,j,nt,iact,iu,k,jj
-      character*80 :: title
-      character*19, dimension(nmons) :: mon_files=
-     &                                    (/'Isoprene_VEGETATION'/)
-      character(len=300) :: out_line
-      logical :: ifirst=.true.
-      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
-      real*8, allocatable, dimension(:,:,:) :: tlca, tlcb  ! for monthly sources
-      real*8 frac, bySperHr
-      
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      INTEGER :: J_1, J_0, J_0H, J_1H
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
-
-      if (itime < itime_tr0(nt)) return
-      bySperHr = 1.d0/3600.d0
-C****
-C**** Monthly sources are interpolated to the current day
-C****
-C**** I believe input files are in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s.
-C****
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-        ifirst = .false.
-      endif
-      j = 0
-      do k=nanns+1,nsrc
-        j = j+1
-        call openunit(mon_files(j),mon_units(j),mon_bins(j))
-        call read_mon_src_2(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),src(:,:,k),frac,imon(j))
-        call closeunit(mon_units(j))
-        do jj=J_0,J_1 ! note the 1/3 hardcode >>>>
-          src(:,jj,k)=src(:,jj,k)*BYDXYP(jj)*bySperHr*0.33333d0
-        end do
-      end do
-      jdlast = jday
-      write(out_line,*)
-     &trname(nt),'Sources interpolated to current day',frac
-      call write_parallel(trim(out_line)) 
-C****
-      return
-      end subroutine read_Isoprene_sources
 c
 c
       SUBROUTINE get_lightning_NOx
@@ -1093,7 +616,7 @@ c
 c
 C**** GLOBAL parameters and variables:
       USE FLUXES, only        : tr3Dsource
-      USE TRACER_COM, only    : n_NOx,nLightning
+      USE TRACER_COM, only    : n_NOx,nOther
       USE LIGHTNING, only     : HGT,JS,JN,SRCLIGHT,RNOx_lgt
       USE CONSTANT, only      : bygrav
       USE MODEL_COM, only     : fland,IM,LS1,LM
@@ -1172,12 +695,12 @@ c          RNOx_lgt is gN/min added per grid box (lightning NOx):
  1510    continue    
 C        save tracer 3D source. convert from gN/min to kgN/s :
          DO L=1,LEVTROP
-           tr3Dsource(I,J,L,nLightning,n_NOx) = 
+           tr3Dsource(I,J,L,nOther,n_NOx) = 
      &     SRCLIGHT(L)*pmin2psec*1.d-3
          END DO
          DO L=LEVTROP+1,LM
-            tr3Dsource(I,J,LEVTROP,nLightning,n_NOx) = tr3Dsource(I,J
-     $       ,LEVTROP,nLightning,n_NOx) + SRCLIGHT(L)*pmin2psec*1.d-3
+            tr3Dsource(I,J,LEVTROP,nOther,n_NOx) = tr3Dsource(I,J
+     $       ,LEVTROP,nOther,n_NOx) + SRCLIGHT(L)*pmin2psec*1.d-3
          END DO
       END DO ! I
       END DO ! J
@@ -1219,7 +742,7 @@ c
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
       real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb ! for monthly sources
 !     real*8 tlca(im,jm,Laircr,nmons),tlcb(im,jm,Laircr,nmons)      
-      real*8 frac, PIfact, bySperHr      
+      real*8 frac, bySperHr      
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,1)
      &                                     :: src
       REAL*8, DIMENSION(LM)                :: pres
@@ -1937,65 +1460,147 @@ C
 
 #endif
 
-      SUBROUTINE read_mon_src_2(iu,jdlast,tlca,tlcb,data,
-     *  frac,imon)
-!@sum Read in monthly sources and interpolate to current day
-!@+   Calling routine must have the lines:
-!@+      real*8 tlca(im,jm,nm),tlcb(im,jm,nm)
-!@+      integer imon(nm)   ! nm=number of files that will be read
-!@+      data jdlast /0/
-!@+      save jdlast,tlca,tlcb,imon
-!@+   Input: iu, the fileUnit#; jdlast
-!@+   Output: interpolated data array + two monthly data arrays
-!@auth Jean Lerner and others
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID, GET
-      USE DOMAIN_DECOMP, only : READT_PARALLEL, REWIND_PARALLEL
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
-      implicit none
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     tlca,tlcb,data
-      real*8 :: frac
-      integer imon,iu,jdlast
+#ifdef GFED_3D_BIOMASS
+      SUBROUTINE get_GFED_biomass_burning(nt)
+!@sum  get_GFED_biomass_burning to read the
+!@+    3D source of various tracers from biomass burning
+!@auth Greg Faluvegi / Jean Learner
+!@ver  1.0 (based on DB396Tds3M23 aircraft reading)
+c
+C**** GLOBAL parameters and variables:
+C
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm
+      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DYNAMICS, only: GZ
+      USE CONSTANT, only: sday,hrday,byGRAV
+      USE FILEMANAGER, only: openunit,closeunit
+      USE GEOM, only: bydxyp
+      USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm
+      use TRACER_SOURCES, only: LbbGFED,GFED_BB
+C
+      IMPLICIT NONE
+c
+!@var pres local pressure variable
+      integer :: mon_units,l,i,j,iu,k,ll,luse
+      integer, dimension(ntm) :: jdlast, imon
+      integer, intent(in) :: nt ! the tracer index
+      character*80 :: title
+      character*40 :: mon_files
+      character(len=300) :: out_line
+      logical :: ifirst=.true.
+      logical :: mon_bins=.true. ! binary file?
+      real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb ! for monthly sources
+      real*8 frac, PIfact, bySperHr, a, b, c, ha, hb, hc
+      REAL*8,DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LbbGFED,ntm)
+     &                                     ::src
+      REAL*4, PARAMETER, DIMENSION(LbbGFED) :: zmid =
+     & (/ 50.  ,300., 750.,1500.,2500., 4500./)
+      save ifirst,jdlast,tlca,tlcb,mon_units,imon
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
-      integer :: J_0, J_1
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1 ,
+     &               I_STRT=I_0, I_STOP=I_1 )
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      if (itime < itime_tr0(nt)) return
 
-      if (jdlast == 0) then ! NEED TO READ IN FIRST MONTH OF DATA
-        imon=1          ! imon=January
-        if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,12)
-          CALL REWIND_PARALLEL( iu )
-        else            ! JDAY is in Jan 16 to Dec 16, get first month
-  120     imon=imon+1
-          if (jday > idofm(imon) .AND. imon <= 12) go to 120
-          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,imon-1)
-          if (imon == 13)  CALL REWIND_PARALLEL( iu )
-        end if
-      else              ! Do we need to read in second month?
-        if (jday /= jdlast+1) then ! Check that data is read in daily
-          if (jday /= 1 .OR. jdlast /= 365) then
-            write(6,*)
-     *      'Incorrect values in Tracer Source:JDAY,JDLAST=',JDAY,JDLAST
-            call stop_model('stopped in TRACERS.f',255)
-          end if
-          imon=imon-12  ! New year
-          go to 130
-        end if
-        if (jday <= idofm(imon)) go to 130
-        imon=imon+1     ! read in new month of data
-        tlca(:,:) = tlcb(:,:)
-        if (imon == 13) then
-          CALL REWIND_PARALLEL( iu  )
-        else 
-          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlcb,imon-1) !<<<<<
-        endif
-      end if
-      CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlcb,1)
-  130 continue
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      data(:,J_0:J_1) = tlca(:,J_0:J_1)*frac + tlcb(:,J_0:J_1)*(1.-frac)
+      mon_files=trim(trname(nt))//'_IIASA_BBURN'
+      bySperHr=1.d0/3600.d0
+
+C****
+C**** Monthly sources are interpolated to the current day
+C**** Conversion is from KG/4x5grid/HR to KG/m2/s:
+C****
+      if (ifirst) then
+        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+        allocate(tlca(im,j_0H:j_1H,LbbGFED,ntm),
+     &           tlcb(im,j_0H:j_1H,LbbGFED,ntm))
+        ifirst=.false.
+      endif
+      call openunit(mon_files,mon_units,mon_bins)
+      call read_monthly_3Dsources(LbbGFED,mon_units,jdlast(nt),
+     &tlca(:,:,:,nt),tlcb(:,:,:,nt),src(:,:,:,nt),frac,imon(nt))
+      call closeunit(mon_units)
+      jdlast(nt) = jday
+      write(out_line,*)
+     &trname(nt)//' from biomass burn interp to current day',frac
+      call write_parallel(trim(out_line))
+
+      do L=1,LbbGFED; do j=j_0,j_1; do i=1,IM
+        GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
+      enddo         ; enddo       ; enddo
+
       return
-      end subroutine read_mon_src_2
+      END SUBROUTINE get_GFED_biomass_burning
+
+
+      SUBROUTINE dist_GFED_biomass_burning(nt)
+!@sum  dist_GFED_biomass_burning to locate on model levels the
+!@+    3D source of various tracers from biomass burning
+!@auth Greg Faluvegi / Jean Learner
+!@ver  1.0 (based on DB396Tds3M23 aircraft reading)
+c
+C**** GLOBAL parameters and variables:
+C
+      USE MODEL_COM, only: im,jm,lm
+      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DYNAMICS, only: GZ
+      USE CONSTANT, only: byGRAV
+      USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm,n_SO4
+     & ,n_SO2
+      use TRACER_SOURCES, only: LbbGFED,GFED_BB
+      USE FLUXES, only : tr3Dsource
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_bburn
+#endif
+C
+      IMPLICIT NONE
+c
+!@var pres local pressure variable
+      integer :: l,i,j,k,ll,luse
+      integer, intent(in) :: nt ! the tracer index
+      real*8 :: a, b, c, ha, hb, hc, fact_SO4
+      REAL*4, PARAMETER, DIMENSION(LbbGFED) :: zmid =
+     & (/ 50.  ,300., 750.,1500.,2500., 4500./)
+
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1 ,
+     &               I_STRT=I_0, I_STOP=I_1 )
+
+      fact_SO4=0.0375d0
+
+      do J=J_0,J_1 ; do I=I_0,I_1
+        do LL=1,LbbGFED
+          Luse=0
+          loop_L: do L=1,LM
+            if(L==LM) call stop_model('biomass burning crazy-high',255)
+            if(l > 1)then
+              ha=gz(i,j,l-1)*bygrav
+              a=abs(ha-zmid(LL))
+            else
+              a=0.d0
+            endif
+            hb=gz(i,j,l)*bygrav
+            b=abs(hb-zmid(LL))
+            hc=gz(i,j,l+1)*bygrav
+            c=abs(hc-zmid(LL))
+            if((L==1.and.b<=c).or.(L /=1.and.(b<a.and.c>=b)))then
+              Luse=L
+              exit loop_L
+            endif
+          enddo loop_L
+          if(nt==n_SO4)then
+            tr3Dsource(i,j,Luse,nBiomass,nt) =
+     &      tr3Dsource(i,j,Luse,nBiomass,nt) +
+     &      GFED_BB(i,j,LL,n_SO2)*fact_SO4
+          else
+            tr3Dsource(i,j,Luse,nBiomass,nt) =
+     &      tr3Dsource(i,j,Luse,nBiomass,nt)+GFED_BB(i,j,LL,nt)
+          endif
+        enddo
+
+      enddo; enddo
+
+      return
+      END SUBROUTINE dist_GFED_biomass_burning
+#endif
