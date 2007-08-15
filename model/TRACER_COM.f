@@ -85,18 +85,25 @@ C**** Each tracer has a variable name and a unique index
 #if (defined SHINDELL_STRAT_CHEM) && (defined TRACERS_AEROSOLS_Koch)
 !@var ntm_chem number of drew-only tracers
 
+#ifdef SULF_ONLY_AEROSOLS
+      integer, parameter :: ntm=30,ntm_chem=25
+#else
       integer, parameter :: ntm=38,ntm_chem=25
+#endif /* SULF_ONLY_AEROSOLS */
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
      *    'HNO3    ','H2O2    ','CH3OOH  ','HCHO    ','HO2NO2  ',
      *    'CO      ','CH4     ','PAN     ','Isoprene','AlkylNit',
      *    'Alkenes ','Paraffin','HCl     ','HOCl    ','ClONO2  ',
      *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
-     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
-     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
-     *    'OCII    ','OCIA    ','OCB     '/)
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '
+#ifdef SULF_ONLY_AEROSOLS
+     *    /)
 #else
-
+     *   ,'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     '/)
+#endif /* SULF_ONLY_AEROSOLS */
+#else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
     (defined TRACERS_NITRATE)
@@ -856,7 +863,17 @@ C****
       integer, dimension(ntm) :: ntisurfsrc
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
       integer, parameter :: nt3Dsrcmax=6
-
+!@var sfc_src array holds tracer sources that go into trsource( )
+!@+ maybe wasteful of memory, but works for now...
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: sfc_src
+!@var ssname holds source name, read from file header, e.g. to be
+!@+ placed into lname and sname arrays.
+!@var freq frequency (annual? monthly?) read from emis file header
+!@var res horiz. resolution (M? F?) read from emis file header
+!@var nameT tracer name read from emis file header (should match trname)
+      character*50, dimension(ntm,ntsurfsrcmax) :: ssname
+      character*10, dimension(ntm,ntsurfsrcmax) :: nameT
+      character*1, dimension(ntm,ntsurfsrcmax) :: freq,res
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
 !@param nWATER index for wetdep tracer type = water
@@ -875,10 +892,14 @@ C****
       REAL*8 :: rc_washt(Ntm)=1.D-1
 !@param nChemistry index for tracer chemistry 3D source
 !@param nStratwrite index for tracer stratosphic overwrite 3D source
-!@param nLightning index for tracer lightning 3D source
+!@param nOther index for tracer misc. 3D source
 !@param nAircraft index for tracer aircraft 3D source
+!@param nVolcanic index for tracer volcano 3D source
+! Must be a better way to do this, but for now, it is better than
+! hardcoding indicies with a number like "3":
       INTEGER, PARAMETER :: nChemistry  = 1, nStratwrite = 2,
-     &                      nLightning  = 3, nAircraft   = 4
+     &     nOther  = 3, nAircraft   = 4, nBiomass    = 5,
+     &     nVolcanic = 6
 
 #ifdef TRACERS_GASEXCH_Natassa
 !@var ocmip_cfc: CFC-11 emissions estimated from OCMIP surf.conc.
@@ -948,7 +969,8 @@ C****
       ALLOCATE(     oh_live(IM,J_0H:J_1H,LM),
      *             no3_live(IM,J_0H:J_1H,LM),
      *                  trm(IM,J_0H:J_1H,LM,NTM),
-     *                trmom(NMOM,IM,J_0H:J_1H,LM,NTM) )
+     *                trmom(NMOM,IM,J_0H:J_1H,LM,NTM),
+     *              sfc_src(IM,J_0H:J_1H,ntm,ntsurfsrcmax))
 
 #ifdef TRACERS_GASEXCH_Natassa
       !60years (1939--1998) OCMIP surfc. concentr. converted to
