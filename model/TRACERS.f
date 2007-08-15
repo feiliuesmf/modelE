@@ -549,7 +549,7 @@ C****
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -603,6 +603,7 @@ C**** update tracer mass and diagnostics
       end if
       if (itcon_3Dsrc(ns,n).gt.0)
      *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
+
 C****
       RETURN
       END SUBROUTINE apply_tracer_3Dsource
@@ -1296,3 +1297,277 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       RETURN
       END SUBROUTINE io_tracer
+
+
+      subroutine num_srf_sources(nt,nsrc)
+!@sum reads headers from emission files to return
+!@+ source names and determine the number of sources
+!@+ from the numbert of files in the rundeck of the form:
+!@+ trname_##
+!@auth Greg Faluvegi
+
+      use TRACER_COM, only : ntsurfsrcmax,trname
+      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE FILEMANAGER, only: openunit,closeunit
+    
+      implicit none
+
+!@var nsrc number of source to define ntsurfsrc(n)
+      integer, intent(out) :: nsrc
+      integer, intent(in) :: nt
+      integer :: n,iu
+      character*2 :: fnum
+      character*80 :: fname
+      character(len=300) :: out_line
+      logical :: qexist
+
+! loop through potential number of surface sources, checking if
+! those files exist. If they do, obtain the source name by reading
+! the header. If not, the number of sources for this tracer has 
+! been reached:
+
+      nsrc=0
+      loop_n: do n=1,ntsurfsrcmax
+        if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
+        else ; write(fnum,'(I2)')n ; endif
+        fname=trim(trname(nt))//'_'//fnum
+        inquire(file=fname,exist=qexist)
+        if(qexist) then
+          nsrc=nsrc+1
+          call openunit(fname,iu,.true.)
+          call read_emis_header(nt,n,iu)
+          call closeunit(iu)
+        else
+          exit loop_n
+        endif
+      enddo loop_n
+
+! and make sure there isn't a skip:
+
+      n=n+1
+      if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
+      else ; write(fnum,'(I2)')n ; endif
+      fname=trim(trname(nt))//'_'//fnum
+      inquire(file=fname,exist=qexist)
+      if(qexist) then
+        write(out_line,*)'problem with num_srf_sources'
+        call write_parallel(trim(out_line))
+        call stop_model(trim(out_line),255)
+      endif
+
+      end subroutine num_srf_sources
+
+
+      subroutine read_sfc_sources(n,nsrc)
+!@sum reads surface (2D generally non-interactive) sources
+!@auth Jean Lerner/Greg Faluvegi
+      USE MODEL_COM, only: itime,jday,im
+      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
+      USE FILEMANAGER, only: openunit,closeunit, nameunit
+      USE TRACER_COM,only:itime_tr0,trname,sfc_src,ntm,ntsurfsrcmax,
+     & freq,nameT,ssname
+   
+      implicit none
+      
+      integer,dimension(ntm) :: jdlast2=0
+      integer :: iu,ns
+      integer, intent(in) :: nsrc,n
+      character*80 :: title,fname
+      character*2 :: fnum
+      character(len=300) :: out_line
+      logical,dimension(ntm,ntsurfsrcmax) :: ifirst2=.true.
+      
+      save ifirst2,jdlast2
+
+      INTEGER :: J_1, J_0, J_0H, J_1H
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      if (itime < itime_tr0(n)) return
+      if (nsrc == 0) return
+   
+      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      do ns=1,nsrc
+
+! open file and read its header:
+
+        if(ns < 10) then
+          write(fnum,'(a1,I1)')'0',ns
+        else
+          write(fnum,'(I2)')ns
+        endif
+        fname=trim(trname(n))//'_'//fnum
+        call openunit(fname,iu,.true.)
+        call read_emis_header(n,ns,iu)
+
+! now read the data: (should be in kg/m2/s please)
+
+        select case(freq(n,ns))
+        case('a')        ! annual file, only read first time
+          if(ifirst2(n,ns)) then
+            call readt_parallel(grid,iu,fname,0,sfc_src(:,:,n,ns),1)
+            write(out_line,*)
+     &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' ann source read.'
+            call write_parallel(trim(out_line))
+            ifirst2(n,ns) = .false.
+          endif
+        case('m')        ! monthly file, interpolate to now
+          call read_mon_src_2(n,ns,iu,jdlast2(n),sfc_src(:,:,n,ns))
+          ifirst2(n,ns) = .false. ! needed?
+        end select
+
+        call closeunit(iu)
+
+      enddo
+
+      jdlast2(n) = jday
+
+      return
+      end subroutine read_sfc_sources
+
+
+      subroutine read_emis_header(n,ns,iu)
+!@sum read_emis_header reads the emissions file's header and
+!@+   reports back the meta-data. 
+!@auth Greg Faluvegi
+     
+      use TRACER_COM, only : trname,nameT
+      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE FILEMANAGER, only: openunit,closeunit
+
+      implicit none
+
+      integer, intent(in) :: iu,n,ns
+      integer :: n1,n2,error
+      character*80 :: message,header
+      character(len=300) :: out_line
+
+      error=0
+      read(iu)header
+      if(len_trim(header) < 1)error=1
+
+      call parse_header(n,ns,trim(header),error)
+  
+      select case(error)
+      case default ! nothing
+      case(1) ; message='read_emis_header: missing header'
+      case(2) ; message='read_emis_header: problem with freq'
+      case(3) ; message='read_emis_header: a and m are choiced for freq'
+      case(4) ; message='read_emis_header: problem with tracer name'
+      case(5) ; message='read_emis_header: tracer name mismatch'
+      case(6) ; message='read_emis_header: problem with source'
+      case(7) ; message='read_emis_header: problem with res'
+      case(8) ; message='read_emis_header: M and F are choices for res'
+      end select
+      if(error > 0) then
+        write(out_line,*) trim(header)
+        call write_parallel(trim(out_line))
+        write(out_line,*) trim(message)
+        call write_parallel(trim(out_line))
+        call stop_model('problem reading emissions',255)
+      endif
+
+      end subroutine read_emis_header
+
+
+      subroutine parse_header(n,ns,str,error)
+!@sum parse_header gets the informantion from emissions file's
+!@+  header and reports back the meta-data. 
+!@auth Greg Faluvegi
+     
+      use TRACER_COM, only : trname,freq,nameT,res,ssname
+
+      implicit none
+
+      integer, intent(in) :: n,ns
+      integer :: n1,n2,error
+      character*80 :: message,header
+      character*(*) str
+      character(len=300) :: out_line
+
+      n1 = scan( str,'=')         ! freq
+      if(str(1:n1-1) /= 'freq')error=2
+      read(str(n1+1:n1+1),*)freq(n,ns)
+      if(freq(n,ns) /= 'a' .and. freq(n,ns) /= 'm')error=3
+
+      str = str(n1+3:)            ! tracer name
+      n1 = scan( str, '=')
+      if(str(1:n1-1) /= 'name')error=4
+      n2 = scan( str,' ')
+      read(str(n1+1:n2-1),*)nameT(n,ns)
+      if(trim(trname(n)) /= trim(nameT(n,ns)))error=5
+
+      str = str(n2+1:)            ! source name
+      n1 = scan( str,'=')
+      if(str(1:n1-1) /= 'source')error=6
+      n2 = scan( str,' ')
+      read(str(n1+1:n2-1),*)ssname(n,ns)
+
+      str = str(n2+1:)            ! resolution
+      n1 = scan( str,'=')
+      if(str(1:n1-1) /= 'res')error=7
+      read(str(n1+1:n1+1),*)res(n,ns)
+      if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F')error=8
+
+      end subroutine parse_header
+
+
+      SUBROUTINE read_mon_src_2(n,ns,iu,jdlast,data)
+!@sum Read in monthly sources and interpolate to current day
+!@+   Calling routine must have the lines:
+!@+      integer imon(nm)   ! nm=number of files that will be read
+!@+      data jdlast /0/
+!@+      save jdlast,imon
+!@+   Input: iu, the fileUnit#; jdlast
+!@+   Output: interpolated data array + two monthly data arrays
+!@+ Note: this started out very similar to read_monthly_sources, 
+!@+ but I had problems with that routine. This one is less effecient,
+!@+ in that it doesn't keep file open, and has to read monthly files
+!@+ each day. My intent is to eventually fix this problem and merge
+!@+ with read_monthly_sources. --gsf
+!@auth Greg Faluvegi, Jean Lerner and others
+
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT, write_parallel,
+     & READT_PARALLEL, REWIND_PARALLEL
+      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      USE TRACER_COM, only: ssname,nameT
+
+      implicit none
+
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     tlca,tlcb,data
+      real*8 :: frac
+      integer ::  imon,iu,jdlast,n,ns
+      character*80 :: junk
+      character(len=300) :: out_line
+
+      integer :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      imon=1
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,12)
+        CALL REWIND_PARALLEL( iu );if (AM_I_ROOT()) read( iu ) junk
+      else            ! JDAY is in Jan 16 to Dec 16, get first month
+  120   imon=imon+1
+        if (jday > idofm(imon) .AND. imon <= 12) go to 120
+        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,imon-1)
+        if (imon == 13)then
+          CALL REWIND_PARALLEL( iu );if (AM_I_ROOT()) read( iu ) junk
+        endif
+      end if
+      CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlcb,1)
+
+c**** Interpolate two months of data to current day
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      data(:,J_0:J_1) = tlca(:,J_0:J_1)*frac + tlcb(:,J_0:J_1)*(1.-frac)
+      write(out_line,*)
+     &trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' interp to now ',frac
+      call write_parallel(trim(out_line))
+
+      return
+      end subroutine read_mon_src_2
+
