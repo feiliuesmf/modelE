@@ -18,6 +18,7 @@ Preprocessor Options
 #define TRACERS_DRYDEP              ! include tracer dry deposition
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
+#define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file 
 !  OFF #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
