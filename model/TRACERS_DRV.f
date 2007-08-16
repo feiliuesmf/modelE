@@ -62,7 +62,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer :: l,k,kk,kount,n,ntemp,n2,ltop,g,kr,n1
+      integer :: l,k,kk,n,ntemp,n2,ltop,g,kr,n1
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
       CHARACTER*17 :: cform
@@ -197,22 +197,19 @@ C**** get rundeck parameter for cosmogenic source factor
 ! (I can enclose this in an ifdef if it causes problems
 ! for people):
       do n=1,ntm
+! general case:
         call num_srf_sources(n,ntsurfsrc(n))
-! special check for methane (could be moved out of drv):
+! special cases: 
         if(trname(n) == 'CH4')then
          if(use_rad_ch4 /= 0)then
            ntsurfsrc(n) = 0
+#ifdef WATER_MISC_GRND_CH4_SRC
          else
-           kount=0
-           do kk=1,ntsurfsrc(n)
-             if(ssname(n,kk)(1:4) == 'GEIA')kount=kount+1
-           enddo
-           if(kount==ntsurfsrc(n)) then
-             ntsurfsrc(n)=ntsurfsrc(n)+3  
-             ssname(n,ntsurfsrc(n)  )='GEIA_Misc_Ground_Source'
-             ssname(n,ntsurfsrc(n)-1)='GEIA_Lake'
-             ssname(n,ntsurfsrc(n)-2)='GEIA_Ocean'
-           endif
+           ntsurfsrc(n)=ntsurfsrc(n)+3  
+           ssname(n,ntsurfsrc(n)  )='GEIA_Misc_Ground_Source'
+           ssname(n,ntsurfsrc(n)-1)='GEIA_Lake'
+           ssname(n,ntsurfsrc(n)-2)='GEIA_Ocean'
+#endif
          endif
         endif 
       enddo
@@ -9273,7 +9270,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      & dms_offline,so2_offline,sulfate,PIratio_indus
 #endif
       IMPLICIT NONE
-      INTEGER n,iact,last_month,kount,kk
+      INTEGER n,iact,last_month,kk
       data last_month/-1/
       INTEGER J_0, J_1
 C****
@@ -9344,24 +9341,19 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
-! special check for methane:
-      kount=0
-      do kk=1,ntsurfsrc(n_CH4)
-        if(ssname(n_CH4,kk)(1:4) == 'GEIA')kount=kount+1
-      enddo
       do n=1,ntm_chem
         if(n==n_CH4)then
-         if(ntsurfsrc(n) > 0)then
-          call read_sfc_sources(n,ntsurfsrc(n)-3)
-          if(kount==ntsurfsrc(n))then
-            sfc_src(:,J_0:J_1,n,ntsurfsrc(n)  )=
-     &      1.698d-12*fearth0(:,J_0:J_1) ! 5.3558e-5 Jean
-            sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1)=
-     &      5.495d-11*flake0(:,J_0:J_1)  ! 17.330e-4 Jean
-            sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-2)=
-     &      1.141d-12*focean(:,J_0:J_1)  ! 3.5997e-5 Jean
-          endif
-         endif
+#ifdef WATER_MISC_GRND_CH4_SRC
+         call read_sfc_sources(n,ntsurfsrc(n)-3)
+         sfc_src(:,J_0:J_1,n,ntsurfsrc(n)  )=
+     &   1.698d-12*fearth0(:,J_0:J_1) ! 5.3558e-5 Jean
+         sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1)=
+     &   5.495d-11*flake0(:,J_0:J_1)  ! 17.330e-4 Jean
+         sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-2)=
+     &   1.141d-12*focean(:,J_0:J_1)  ! 3.5997e-5 Jean
+#else
+         if(ntsurfsrc(n) > 0) call read_sfc_sources(n,ntsurfsrc(n))
+#endif
         else
           if(ntsurfsrc(n)>0) call read_sfc_sources(n,ntsurfsrc(n))
           select case (trname(n))
