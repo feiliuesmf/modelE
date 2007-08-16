@@ -1384,7 +1384,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       if (itime < itime_tr0(n)) return
-      if (nsrc == 0) return
+      if (nsrc <= 0) return
    
       call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
