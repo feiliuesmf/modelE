@@ -481,10 +481,16 @@
       real*8 :: gammam
       real*8 :: c3, c2, c1, c   !Coefficients of the cubic of ci (c3*ci^3 + c2*ci^2 + c1*ci + c)
 
+      real*8 :: c_1, c_2, c_3, e, fmol, gamol, a, C3_, A_,cs_,A_1,rs_
+      real*8 :: res_, C6, Ra,A_2,cixx(3)
+      integer :: nroots, i
       rb = 1/gb
       m = pspar%m
       b = pspar%b
       gammam = pspar%Gammastar * 1.d06/Pa !Convert Pa to umol/mol
+
+!#define USE_IGORS_CUBIC
+#ifndef USE_IGORS_CUBIC
 
       X = b*(1.37d0*rb)**2.d0 - (m*rh - 1.65d0)*1.37d0*rb 
       Y = ca*(m*rh - 1.65d0) - b*2.d0*1.37d0*rb*ca 
@@ -505,7 +511,95 @@
      &     + (Rd*f1)**2.d0)
      &     - Y*f1*( a1*gammam + Rd*f1) + T*f1**2.d0
 
-      ci = cubicroot(c3, c2, c1, c)
+      !ci = cubicroot(c3, c2, c1, c)
+      call cubicroot(c3, c2, c1, c, cixx, nroots)
+      if ( nroots<1 ) call stop_model("ci_cubic: no solution",255)
+      ci = maxval( cixx(1:3) )
+
+#else
+      e = e1
+      fmol = f1
+      gamol = gammam
+      a = a1
+      C3_ =1.37d0
+      C6 = 1.65d0
+      Ra = C3_*rb
+
+      c = -((ca*fmol + a*gamol*Ra + fmol*Ra*Rd)*
+     -     (b*(ca*fmol + a*gamol*Ra + fmol*Ra*Rd) + 
+     -       (a*gamol + fmol*Rd)*(C6 - m*rh)))
+
+      c1 = 2*a**2*gamol*Ra*(C6 + b*Ra - m*rh) + 
+     -   a*(2*b*ca*fmol*Ra - 2*b*ca*e*gamol*Ra + b*fmol*gamol*Ra + 
+     -      2*b*fmol*Ra**2*Rd - 2*b*e*gamol*Ra**2*Rd + 
+     -      C6*(fmol - e*gamol)*(ca + 2*Ra*Rd) - ca*fmol*m*rh + 
+     -      ca*e*gamol*m*rh - fmol*gamol*m*rh - 2*fmol*m*Ra*Rd*rh + 
+     -      2*e*gamol*m*Ra*Rd*rh) + 
+     -   fmol*(-(b*(ca + Ra*Rd)*(2*ca*e - fmol + 2*e*Ra*Rd)) - 
+     -      Rd*(2*C6*ca*e + 2*C6*e*Ra*Rd - 2*ca*e*m*rh + fmol*m*rh - 
+     -         2*e*m*Ra*Rd*rh))
+
+      c2 = -(a**2*Ra*(C6 + b*Ra - m*rh)) + 
+     -   a*(2*b*ca*e*Ra - b*fmol*Ra + b*e*gamol*Ra + 2*b*e*Ra**2*Rd + 
+     -      C6*e*(ca + 2*Ra*Rd) - ca*e*m*rh + fmol*m*rh - e*gamol*m*rh - 
+     -      2*e*m*Ra*Rd*rh) - e*
+     -    (b*(ca + Ra*Rd)*(ca*e - 2*fmol + e*Ra*Rd) + 
+     -      Rd*(C6*ca*e + C6*e*Ra*Rd - ca*e*m*rh + 2*fmol*m*rh -
+     &     e*m*Ra*Rd*rh)
+     -      )
+
+      c3 = e*(b*(ca*e - a*Ra + e*Ra*Rd) + m*(a - e*Rd)*rh)
+
+      !ci = cubicroot(c3, c2, c1, c)
+      call cubicroot(c3, c2, c1, c, cixx, nroots)
+      if ( nroots<1 ) call stop_model("ci_cubic: no solution",255)
+      ci = maxval( cixx(1:nroots) )
+
+#endif
+
+!#define DEBUG_CUBIC
+#ifdef DEBUG_CUBIC
+      e = e1
+      fmol = f1
+      gamol = gammam
+      a = a1
+      C3_ =1.37d0
+      C6 = 1.65d0
+      Ra = C3_*rb
+
+      !!! uncomment these 3 lines to check all roots
+      !c_1 = ci
+      !do i=1,nroots
+      !ci = cixx(i)
+
+      print *,"cicici", ci
+
+      A_ = a*(ci - gamol)/(e*ci + fmol) - Rd
+      cs_ = ca - A_*C3_*rb
+      rs_ = 1./(m*A_*rh/cs_ + b)
+      A_1 = (cs_ - ci)/(C6*rs_)
+      A_2 = (ca-cs_)/(C3_*rb)
+
+      print *,"AAAA", A_1, A_2
+      print *,"cs", cs_ !, ca-a*Ra, ca - A_*C3_*rb
+      print *,"rs", rs_ !, C6*(ca-a*Ra)/(m*rh*a)
+!      print *,"RES_A",     A_*C6/(ca-A_*Ra-ci)-m*A_*rh/(ca-A_*Ra)-b
+!     &     , -A_*C6/(ca-A_*Ra-ci)-m*A_*rh/(ca-A_*Ra)-b
+
+      ! residual for Igor's cubic
+      res_ = -(a**2*(ci - gamol)**2*Ra*(C6 + b*Ra - m*rh)) - 
+     -   a*(ci*e + fmol)*(ci - gamol)*
+     -    (-2*b*ca*Ra + b*ci*Ra - 2*b*Ra**2*Rd - C6*(ca + 2*Ra*Rd) + 
+     -      ca*m*rh - ci*m*rh + 2*m*Ra*Rd*rh) - 
+     -   (ci*e + fmol)**2*(b*(ca + Ra*Rd)*(ca - ci + Ra*Rd) + 
+     -      Rd*(C6*ca + C6*Ra*Rd - ca*m*rh + ci*m*rh - m*Ra*Rd*rh))
+      print *,"RES= ", res_, c + c1*ci + c2*ci**2 + c3*ci**3
+      print '(a,i3,i3,4e15.4)',"PLOT", i, pspar%pft, ci, A_, cs_, rs_
+
+      !!! uncomment these 2 lines to check all roots
+      !enddo
+      !ci = c_1
+#endif
 
 #ifdef DEBUG
       write(994,*) 'rb,m,b,ca,gammam,X,Y,Z,W,T,a1,e1,f1,
@@ -516,18 +610,23 @@
       end function ci_cubic
 
 !=================================================
-      real*8 function cubicroot(a,b,c,d) Result(x)
+      !real*8 function cubicroot(a,b,c,d) Result(x)
+      subroutine cubicroot(a,b,c,d,x,n) 
       !* solve cubic equation: a x^3 + b x^2 + c x + d = 0 *!
       !* Written by Igor Aleinov from solution by Cardano in
       !* Korn, Korn, Mathematical Handbook.
       implicit none
-      real*8,intent(in) :: a,b,c,d
+      real*8,intent(in) :: a,b,c,d  ! coefficients of cubic
+      real*8, intent(out) :: x(:)   ! results ( 0-3 roots )
+      integer, intent(out) :: n     ! number of roots
       real*8 :: x0,x1,x2
       real*8 :: a0,a1,a2,Q1,R1,D1
       real*8, parameter :: EPS0 = 1.d-15
       real*8, parameter :: one3rd = 1.d0/3.d0
       real*8 :: arg, S, T
       complex*16 :: ST
+
+      !print *,"cubicroot:",a,b,c,d
 
       if (abs(a) < (abs(b)+abs(c)+abs(d))*EPS0 ) then
         if (abs(b) < (abs(c)+abs(d))*EPS0) then
@@ -540,8 +639,9 @@
             stop
           endif
           x0 = -d/c
-          x = x0
+          x(1) = x0
           !write(*,*) "Cardano: returning",x0
+          n = 1
         else
           write(*,*) "What's this?"
           D1 = c*c - 4.d0*b*d
@@ -551,15 +651,21 @@
             x0 = (-c + Q1) / (2.d0 * b)
             x1 = (-c - Q1) / (2.d0 * b)
             !return
+            n = 2
           else if (D1.eq.0.) then
             x0 = -c / (2.d0 * b)
             x1 = x0
+            n = 1
           else 
-            x0 = -c /(4.d0 *b)
+            x0 = -c /(2.d0 *b)
             x1 = sqrt(-D1) / (2.d0* b)
+            n = 0
           end if
         end if
-        x = max(x0,x1)
+        !print *,"CX1",x0,x1
+        !x = max(x0,x1)
+        x(1) = x0
+        x(2) = x1
       else
         a2 = b/a
         a1 = c/a
@@ -577,12 +683,16 @@
           x0 = -a2/3.d0 + S + T
           x1 = -a2/3.d0 - (S+T)*0.5d0
           x2 = sqrt(3.d0) * (S-T)*0.5d0
+          !print *,"CX2",x0,x1,x2
+          n = 1
         else if (D1.eq.0.) then !* two roots coincide * *!
           !write(*,*) "Two roots coincide."
           S = sign(1.d0, R1) * (abs(R1)**one3rd)
           x0 = -a2/3.d0 + 2.d0*S
           x1 = -a2/3.d0 - S
           x2 = x1
+          !print *,"CX3",x0,x1,x2
+          n =2
         else                    !* three different real roots *!
           !call CRtCube( R1, sqrt(-D1), S, T)
           !write(*,*) "Three different real roots. a2R1D1ST",a2,R1,D1,S,T
@@ -592,10 +702,16 @@
           x0 = -a2/3.d0 + 2.d0*S
           x1 = -a2/3.d0 - S + sqrt(3.d0)*T
           x2 = -a2/3.d0 - S - sqrt(3.d0)*T
+          !print *,"CX4",x0,x1,x2
+          n = 3
         end if
-        x = max(x0,x1,x2)
+        !x = max(x0,x1,x2)
+        !x = x2
+        x(1) = x0
+        x(2) = x1
+        x(3) = x2
       end if
-      end function cubicroot
+      end subroutine cubicroot
       
 !=================================================
 
