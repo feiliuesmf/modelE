@@ -44,6 +44,14 @@
          !          - evergreen (1), cold deciduous (2), drought deciduous (3), 
          !            both cold and drought deciduous (4)
          integer :: phenotype !phenological types
+         !* Parameters for plant allomteries
+         real*8 :: b1Cf !para 1 for allometric relation btw DBH & foliage C 
+         real*8 :: b2Cf !para 2 for allometric relation btw DBH & foliage C
+         real*8 :: b1Cd !para 1 for allometric relation btw DBH & dead C
+         real*8 :: b2Cd !para 2 for allometric relation btw DBH & dead C
+         real*8 :: b1Ht !para 1 for allometric relation btw DBH & height
+         real*8 :: b2Ht !para 2 for allometric relation btw DBH & height
+
       end type pftype
 !****************************************************************************
 
@@ -152,6 +160,9 @@
          real*8 :: phenofactor   !phenofactor_c * phenofactor_d
          real*8 :: phenofactor_c !Cold deciduousness
          real*8 :: phenofactor_d !Drought deciduousness
+         real*8 :: dphdt !change in phenofactor (needed for growth)
+         real*8 :: CB_d !daily carbon balance
+
          !* PHYSIOLOGICAL STATUS *!  !NYK
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
          real*8,pointer :: stressH2Ol(:) !Water stress in layers.
