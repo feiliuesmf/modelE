@@ -68,9 +68,9 @@ C**** Set-able variables
 !@dbparam radius_multiplier cloud particle radius multiplier
       REAL*8 :: radius_multiplier=1.d0   ! default
 !@dbparam entrainment_cont1 constant for entrainment rate, plume 1
-      REAL*8 :: entrainment_cont1=.3d0   ! default
+      REAL*8 :: entrainment_cont1=.2d0   ! default
 !@dbparam entrainment_cont2 constant for entrainment rate, plume 2
-      REAL*8 :: entrainment_cont2=.6d0   ! default
+      REAL*8 :: entrainment_cont2=.2d0   ! default
 !@dbparam HRMAX maximum distance an air parcel rises from surface
       REAL*8 :: HRMAX = 1000.d0     ! default (m)
 !@dbparam RWCldOX multiplies part.size of water clouds over ocean
@@ -561,6 +561,8 @@ C****
       FSSL=1.
       FITMAX=ITMAX
       RCLDX=radius_multiplier
+! allow variable entrainment: scale by ENTCON=0.2 (consistency w/ devel model)
+      CONTCE1=entrainment_cont1*5d0
 C**** initiallise arrays of computed ouput
       TAUMCL=0
       SVWMXL=0
@@ -937,7 +939,7 @@ C****
 C**** ENTRAINMENT
 C****
       IF(IC.EQ.2.OR.(IC.EQ.1.AND.PL(L).GE.800.)) THEN
-      FENTR=ETAL(L)*FPLUME
+      FENTR=CONTCE1*ETAL(L)*FPLUME   ! optional scaling 
       IF(FENTR+FPLUME.GT.1.) FENTR=1.-FPLUME
       IF(FENTR.LT.teeny) GO TO 293
       ETAL1=FENTR/(FPLUME+teeny)
@@ -3238,7 +3240,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.18 2007/07/18 13:41:58 cdmsy Exp $
+!$Id: CLOUDS2_E1.f,v 1.19 2007/08/21 19:14:18 gavin Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
