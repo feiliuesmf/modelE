@@ -1302,41 +1302,79 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       subroutine num_srf_sources(nt,nsrc)
 !@sum reads headers from emission files to return
 !@+ source names and determine the number of sources
-!@+ from the numbert of files in the rundeck of the form:
-!@+ trname_##
+!@+ from the number of files in the rundeck of the form:
+!@+ trname_##. Then assigns each source to sector(s),
+!@+ based on definitions in the rundeck.
 !@auth Greg Faluvegi
 
-      use TRACER_COM, only : ntsurfsrcmax,trname
+      use TRACER_COM, only : ntsurfsrcmax,trname,
+     & num_tr_sectors,n_max_sect,tr_sect_index,num_sectors,
+     & tr_sect_name, sect_name
       USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
+      USE PARAM, only : sync_param
     
       implicit none
 
 !@var nsrc number of source to define ntsurfsrc(n)
       integer, intent(out) :: nsrc
       integer, intent(in) :: nt
-      integer :: n,iu
+      integer :: n,iu,i,j,nsect,nn
       character*2 :: fnum
       character*80 :: fname
+      character*32 :: pname
+      character*124 :: tr_sectors_are
       character(len=300) :: out_line
       logical :: qexist
 
 ! loop through potential number of surface sources, checking if
 ! those files exist. If they do, obtain the source name by reading
 ! the header. If not, the number of sources for this tracer has 
-! been reached:
+! been reached.
 
       nsrc=0
       loop_n: do n=1,ntsurfsrcmax
         if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
         else ; write(fnum,'(I2)')n ; endif
         fname=trim(trname(nt))//'_'//fnum
+        pname=trim(trim(fname)//'_sect')
         inquire(file=fname,exist=qexist)
         if(qexist) then
           nsrc=nsrc+1
           call openunit(fname,iu,.true.)
           call read_emis_header(nt,n,iu)
           call closeunit(iu)
+! -- begin sector  stuff --
+          tr_sectors_are = ' '
+          call sync_param(pname,tr_sectors_are)
+          num_tr_sectors(nt,n)=0
+          i=1
+          do while(i < len(tr_sectors_are))
+            j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
+            if (j > 1) then
+              num_tr_sectors(nt,n)=num_tr_sectors(nt,n)+1
+              i=i+j
+            else
+              i=i+1
+            end if
+          enddo
+          if(num_tr_sectors(nt,n) > n_max_sect) call stop_model
+     &    ("num_tr_sectors problem",255)
+          if(num_tr_sectors(nt,n) > 0)then
+            read(tr_sectors_are,*)
+     &      tr_sect_name(nt,n,1:num_tr_sectors(nt,n))
+            do nsect=1,num_tr_sectors(nt,n)
+              tr_sect_index(nt,n,nsect)=0
+              loop_nn: do nn=1,num_sectors
+                if(trim(tr_sect_name(nt,n,nsect)) ==
+     &          trim(sect_name(nn))) then
+                  tr_sect_index(nt,n,nsect)=nn
+                  exit loop_nn
+                endif
+              enddo loop_nn
+            enddo
+          endif
+! -- end sector stuff --
         else
           exit loop_n
         endif
@@ -1571,3 +1609,113 @@ c**** Interpolate two months of data to current day
       return
       end subroutine read_mon_src_2
 
+
+      subroutine setup_emis_sectors_regions
+!@sum setup_emis_sectors_regions reads from the rundeck the 
+!@+ geographic regions and sectors associated with tracer
+!@+ emissions and saves names.
+!@+ Also reads the factors associated with each sector and
+!@+ region. Output IJ map of regions.
+!@auth Greg Faluvegi
+
+      use TRACER_COM, only : n_max_sect,reg_n,reg_s,reg_e,reg_w,
+     & n_max_reg,alter_sources,ef_REG_IJ,ef_REG_IJ_glob,
+     & ef_REG_IJ_glob4,ef_fact,num_regions,num_sectors,sect_name
+      USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
+     & UNPACK_DATAj,write_parallel
+      USE GEOM, only: lat_dg, lon_dg, imaxj
+      USE FILEMANAGER, only: openunit,closeunit
+      USE PARAM, only : sync_param
+
+      implicit none
+
+      integer :: i,j,n,iu
+      character*80 :: title
+      character*2 :: fnum
+      character*124 :: sectors_are,regions_are
+
+      INTEGER J_0, J_1
+      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+
+      sectors_are=' '
+      regions_are=' '
+      call sync_param("sectors_are",sectors_are)
+      call sync_param("regions_are",regions_are)
+
+! see how many sectors there are, save names in array:
+
+      num_sectors=0
+      i=1
+      do while(i < len(sectors_are))
+        j=index(sectors_are(i:len(sectors_are))," ")
+        if (j > 1) then
+          num_sectors=num_sectors+1
+          i=i+j
+        else
+          i=i+1
+        end if
+      enddo
+      if (num_sectors > n_max_sect) call stop_model
+     &("n_max_sect must be increased",255)
+      if(num_sectors > 0 ) read(sectors_are,*)
+     & sect_name(1:num_sectors)
+
+! see how many regions there are, save names in array:
+
+      num_regions=0
+      i=1
+      do while(i < len(regions_are))
+        j=index(regions_are(i:len(regions_are))," ")
+        if (j > 1) then
+          num_regions=num_regions+1
+          i=i+j
+        else
+          i=i+1
+        end if
+      enddo
+      if (num_regions > n_max_reg) call stop_model
+     &("n_max_reg must be increased",255)
+      if(num_regions>0) then
+        REG_N(:)=-1.e30 ! initialize to undefined
+        REG_S(:)=-1.e30; REG_E(:)=-1.e30; REG_W(:)=-1.e30
+        call sync_param("REG_N",REG_N,num_regions)
+        call sync_param("REG_S",REG_S,num_regions)
+        call sync_param("REG_E",REG_E,num_regions)
+        call sync_param("REG_W",REG_W,num_regions)
+      end if 
+
+! read the actual emission altering factors:
+      do n=1,num_sectors
+        if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
+        else ; write(fnum,'(I2)')n ; endif
+        ef_fact(n,:)=1.d0
+        call sync_param("SECT_"//fnum,ef_fact(n,:),num_regions)
+      enddo
+
+! check if there is any altering requested:
+      alter_sources = .false.
+      do i=1,num_sectors; do j=1,num_regions
+        if(ef_fact(i,j)/=1.0 .and. ef_fact(i,j)/=-1.d30)
+     &  alter_sources = .true.
+      enddo ; enddo
+
+! write out regions to GISS-format IJ file, each restart:
+      if(alter_sources)then
+        ef_REG_IJ(:,J_0:J_1)=0.d0
+        do j=J_0,J_1; do i=1,imaxj(j); do n=1,num_regions
+          if(lat_dg(j,1) >= REG_S(n) .and. lat_dg(j,1)
+     &    <= REG_N(n) .and. lon_dg(i,1) >= REG_W(n)
+     &    .and. lon_dg(i,1) < REG_E(n) ) ef_REG_IJ(i,j)=
+     &    max(ef_REG_IJ(i,j),dble(n))
+        enddo; enddo; enddo
+        call pack_data(grid,ef_REG_IJ,ef_REG_IJ_glob)
+        if(am_i_root( ))then
+          title='Regions defined in rundeck for altering tracer sources'
+          call openunit('EF_REG',iu,.true.)
+          ef_REG_IJ_glob4(:,:)=sngl(ef_REG_IJ_glob(:,:))
+          write(iu)title,ef_REG_IJ_glob4
+          call closeunit(iu)
+        endif
+      endif
+
+      end subroutine setup_emis_sectors_regions

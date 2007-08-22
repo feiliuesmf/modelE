@@ -217,6 +217,56 @@ R=00BG/B
 DTFIX=300
 &&PARAMETERS
 
+!--- define emission sectors above files belong to ---
+CO_01_sect='CO FFUEL'
+CO_02_sect='CO BBURN'
+Alkenes_01_sect='ALK FFUEL'
+Alkenes_02_sect='ALK BBURN'
+Alkenes_03_sect='ALK'
+Paraffin_01_sect='PAR FFUEL'
+Paraffin_02_sect='PAR BBURN'
+Paraffin_03_sect='PAR'
+NOx_01_sect='NOX FFUEL'
+NOx_02_sect='NOX BBURN'
+NOx_03_sect='NOX'
+NOx_AIRCRAFT_sect='NOX FFUEL' ! special 3D source case
+CH4_01_sect='CH4'
+CH4_02_sect='CH4 FFUEL'
+CH4_03_sect='CH4 FFUEL'
+CH4_04_sect='CH4 FFUEL'
+CH4_05_sect='CH4'
+CH4_06_sect='CH4'
+CH4_07_sect='CH4'
+CH4_08_sect='CH4 FFUEL'
+CH4_09_sect='CH4 BBURN'
+CH4_10_sect='CH4'
+CH4_11_sect='CH4 WETL'
+Isoprene_01_sect='ISO'
+!
+!       ---------define-REGIONS------------
+!        global S.Asia E.Asia Europe N.Amer
+REG_S=    -90.,    5.,   15.,   25.,   15.
+REG_N=     90.,   35.,   50.,   65.,   55.
+REG_W=   -180.,   50.,   95.,  -10., -125.
+REG_E=    180.,   95.,  160.,   50.,  -60.
+!       ---define-regions-names/order------
+REGIONS_ARE='global S_Asia E_Asia Europe N_America'
+!       ---define-factors-by-sector--------
+!        global S.Asia E.Asia Europe N.Amer
+SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! CO
+SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! ALK
+SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! PAR
+SECT_04= 1.000, 1.000, 1.000, 1.000, 1.000 ! CH4
+SECT_05= 1.000, 1.000, 1.000, 1.000, 1.000 ! NOX
+SECT_06= 1.000, 1.000, 1.000, 1.000, 1.000 ! ISO
+SECT_07= 1.000, 1.000, 1.000, 1.000, 1.000 ! FFUEL
+SECT_08= 1.000, 1.000, 1.000, 1.000, 1.000 ! BBURN
+SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
+!       ---define-sectors-names/orde-------
+SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL'
+!-----
+
+
 ocn_cycl=1      ! =0 if ocean varies from year to year
 X_SDRAG=.00025,.000025  ! used for lin. sdrag above P_SDRAG mb
 C_SDRAG=0.      ! no constant sdrag

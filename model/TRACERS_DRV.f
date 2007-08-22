@@ -188,6 +188,9 @@ C**** get rundeck parameter for cosmogenic source factor
       call sync_param("be7_src_param", be7_src_param)
 #endif
 
+! call routine to read/set up regions and sectors for emissions:
+      call setup_emis_sectors_regions
+
 ! The following section will check for rundeck file of
 ! the form: trname_01, trname_02... and thereby define
 ! the ntsurfsrc(n). If those files exist it reads an
@@ -195,7 +198,8 @@ C**** get rundeck parameter for cosmogenic source factor
 ! source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
 ! get set to zero if those files aren't found:
 ! (I can enclose this in an ifdef if it causes problems
-! for people):
+! for people). num_srf_sources routine also assigns
+! sources to sectors, if desired:
       do n=1,ntm
 ! general case:
         call num_srf_sources(n,ntsurfsrc(n))
@@ -9422,7 +9426,7 @@ C**** at the start of any day
       USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, write_parallel
      * ,AM_I_ROOT
 
-      USE GEOM, only: dxyp,areag,lat_dg
+      USE GEOM, only: dxyp,areag,lat_dg,lon_dg,imaxj
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
@@ -9456,7 +9460,7 @@ C**** at the start of any day
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
       implicit none
-      integer :: i,j,ns,l,ky,n
+      integer :: i,j,ns,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  steph,stepx,stepp,tmon,bydt,tnew,scca(im)
       REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -9890,7 +9894,31 @@ c!OMSP
 #endif
 #endif
       end select
-      end do
+
+! please keep at end of tracer loop :
+      if(alter_sources)then               ! if altering requested
+        do ns=1,ntsurfsrc(n)              ! loop over source
+          do nsect=1,num_tr_sectors(n,ns) ! and sectors for that source
+      write(6,*)'tr,ns,nsect,ind=',trim(trname(n)),ns,nsect,
+     &tr_sect_index(n,ns,nsect),ef_fact(tr_sect_index(n,ns,nsect),:)
+            do j=J_0,J_1                  ! and latitudes
+              do i=1,imaxj(j)             ! and longitudes 
+                do kreg=1,num_regions     ! and defined regions
+          if(lat_dg(j,1) >= reg_S(kreg) .and. lat_dg(j,1) ! check if
+     &    <= reg_N(kreg) .and. lon_dg(i,1) >= reg_W(kreg) ! in region
+     &    .and. lon_dg(i,1) < reg_E(kreg) ) then
+            if(ef_fact(tr_sect_index(n,ns,nsect),kreg) > -1.e20)
+     &      trsource(i,j,ns,n)=trsource(i,j,ns,n)*
+     &      ef_FACT(tr_sect_index(n,ns,nsect),kreg)
+          endif
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+      endif
+
+      end do ! n - main tracer loop
 
       END SUBROUTINE set_tracer_2Dsource
 

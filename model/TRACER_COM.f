@@ -874,6 +874,35 @@ C****
       character*50, dimension(ntm,ntsurfsrcmax) :: ssname
       character*10, dimension(ntm,ntsurfsrcmax) :: nameT
       character*1, dimension(ntm,ntsurfsrcmax) :: freq,res
+! ---- section for altering tracers sources by sector/region ----
+!@param n_max_sect maximum number of sectors for emissions altering
+!@param n_max_reg  maximum number of regions for emissions altering
+      integer, parameter :: n_max_sect=10, n_max_reg=10
+!@var num_tr_sectors number of sectors for a particular tracer and source
+      integer, dimension(ntm,ntsurfsrcmax) :: num_tr_sectors
+!@var num_regions the number of source-altering regions from rundeck
+!@var num_sectors the number of source-altering sectors from rundeck
+      integer :: num_regions, num_sectors
+!@var alter_sources true if any source altering factors are on
+      logical :: alter_sources
+!@var reg_N the north edge of rectangular regions for emissions altering
+!@var reg_S the south edge of rectangular regions for emissions altering
+!@var reg_E the east  edge of rectangular regions for emissions altering
+!@var reg_W the west  edge of rectangular regions for emissions altering
+      real*8, dimension(n_max_reg) :: reg_N,reg_S,reg_E,reg_W
+!@var tr_sect_index array hold the sector index for given tracer/source
+      integer, dimension(ntm,ntsurfsrcmax,n_max_sect) :: tr_sect_index
+!@var tr_sect_name array hold the sector name for given tracer/source
+      character*10,dimension(ntm,ntsurfsrcmax,n_max_sect):: tr_sect_name
+!@var sect_name array hold the sector names (all)
+      character*10,dimension(n_max_sect):: sect_name
+!@var ef_fact the actual factors that alter sources by region/sector
+      real*8, dimension(n_max_sect,n_max_reg) :: ef_fact
+! variables for outputting a map of the regions:
+      real*8, allocatable, dimension(:,:) :: ef_REG_IJ
+      real*8, dimension(IM,JM) :: ef_REG_IJ_glob
+      real*4, dimension(IM,JM) :: ef_REG_IJ_glob4
+! --- end of source-altering section ----------------------------
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
 !@param nWATER index for wetdep tracer type = water
@@ -966,6 +995,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
+      ALLOCATE(   ef_REG_IJ(IM,J_0H:J_1H) )
       ALLOCATE(     oh_live(IM,J_0H:J_1H,LM),
      *             no3_live(IM,J_0H:J_1H,LM),
      *                  trm(IM,J_0H:J_1H,LM,NTM),
