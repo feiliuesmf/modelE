@@ -191,6 +191,9 @@ C**** get rundeck parameter for cosmogenic source factor
 ! call routine to read/set up regions and sectors for emissions:
       call setup_emis_sectors_regions
 
+! initialize 3D source factors: 
+      ef_fact3d(:,:)=1.d0
+
 ! The following section will check for rundeck file of
 ! the form: trname_01, trname_02... and thereby define
 ! the ntsurfsrc(n). If those files exist it reads an

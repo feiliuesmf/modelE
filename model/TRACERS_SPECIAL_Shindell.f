@@ -722,8 +722,11 @@ C
       USE FILEMANAGER, only: openunit,closeunit
       USE FLUXES, only: tr3Dsource
       USE GEOM, only: dxyp
-      USE TRACER_COM, only: itime_tr0,trname,n_NOx,nAircraft
+      USE TRACER_COM, only: itime_tr0,trname,n_NOx,nAircraft, 
+     & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
+     & num_sectors,n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
       use TRACER_SOURCES, only: Laircr
+      use param, only: sync_param
 C
       IMPLICIT NONE
 c
@@ -733,10 +736,12 @@ c
       integer, parameter :: nanns=0,nmons=1
       integer, dimension(nmons) :: mon_units, imon
       integer :: jdlast=0
-      integer l,i,j,iu,k,ll,nt
+      integer l,i,j,iu,k,ll,nt,ns,nsect,nn
       character*80 :: title
       character*12, dimension(nmons) :: mon_files=(/'NOx_AIRCRAFT'/)
       character(len=300) :: out_line
+      character*124 :: tr_sectors_are
+      character*32 :: pname
       logical :: LINJECT
       logical :: ifirst=.true.
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
@@ -803,6 +808,43 @@ C====
        END DO   ! I
       END DO    ! J
 C
+! Now, check for a sector definition:
+! -- begin sector  stuff --
+          tr_sectors_are = ' '
+          pname='NOx_AIRCRAFT_sect'
+          call sync_param(pname,tr_sectors_are)
+          num_tr_sectors3D(n_NOX,nAircraft)=0
+          i=1
+          do while(i < len(tr_sectors_are))
+            j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
+            if (j > 1) then
+              num_tr_sectors3D(n_NOX,nAircraft)=
+     &        num_tr_sectors3D(n_NOX,nAircraft) + 1
+              i=i+j
+            else
+              i=i+1
+            end if
+          enddo
+          ns=num_tr_sectors3D(n_NOX,nAircraft)
+          if(ns > n_max_sect) 
+     &    call stop_model("num_tr_sectors3D problem",255)
+          if(ns > 0)then
+            read(tr_sectors_are,*)tr_sect_name3D(n_NOx,nAircraft,1:ns)
+            do nsect=1,ns
+              tr_sect_index3D(n_NOX,nAircraft,nsect)=0
+              loop_nn: do nn=1,num_sectors
+                if(trim(tr_sect_name3D(n_NOx,nAircraft,nsect)) ==
+     &          trim(sect_name(nn))) then
+                  tr_sect_index3D(n_NOx,nAircraft,nsect)=nn
+                  ef_fact3d(nn,1:num_regions)=
+     &            ef_fact(nn,1:num_regions)
+                  exit loop_nn
+                endif
+              enddo loop_nn
+            enddo
+          endif
+! -- end sector stuff --
+
       return
       END SUBROUTINE get_aircraft_NOx
 C
@@ -1475,18 +1517,23 @@ C
       USE CONSTANT, only: sday,hrday,byGRAV
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only: bydxyp
-      USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm
+      USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm,
+     & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
+     & num_sectors,n_max_sect,num_regions,ef_fact,ef_fact3D
       use TRACER_SOURCES, only: LbbGFED,GFED_BB
+      use param, only; sync_param
 C
       IMPLICIT NONE
 c
 !@var pres local pressure variable
-      integer :: mon_units,l,i,j,iu,k,ll,luse
+      integer :: mon_units,l,i,j,iu,k,ll,luse,ns,nsect,nn
       integer, dimension(ntm) :: jdlast, imon
       integer, intent(in) :: nt ! the tracer index
       character*80 :: title
       character*40 :: mon_files
       character(len=300) :: out_line
+      character*124 :: tr_sectors_are
+      character*32 :: pname
       logical :: ifirst=.true.
       logical :: mon_bins=.true. ! binary file?
       real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb ! for monthly sources
@@ -1528,6 +1575,43 @@ C****
       do L=1,LbbGFED; do j=j_0,j_1; do i=1,IM
         GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
       enddo         ; enddo       ; enddo
+
+! Now, check for a sector definition:
+! -- begin sector  stuff --
+          tr_sectors_are = ' '
+          pname=trname(nt)//'_IIASA_BBURN_sect'
+          call sync_param(pname,tr_sectors_are)
+          num_tr_sectors3D(nt,nBiomass)=0
+          i=1
+          do while(i < len(tr_sectors_are))
+            j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
+            if (j > 1) then
+              num_tr_sectors3D(nt,nBiomass)=
+     &        num_tr_sectors3D(nt,nBiomass) + 1
+              i=i+j
+            else
+              i=i+1
+            end if
+          enddo
+          ns=num_tr_sectors3D(nt,nBiomass)
+          if(ns > n_max_sect)
+     &    call stop_model("num_tr_sectors3D problem",255)
+          if(ns > 0)then
+            read(tr_sectors_are,*)tr_sect_name3D(nt,nBiomass,1:ns)
+            do nsect=1,ns
+              tr_sect_index3D(nt,nBiomass,nsect)=0
+              loop_nn: do nn=1,num_sectors
+                if(trim(tr_sect_name3D(nt,nBiomass,nsect)) ==
+     &          trim(sect_name(nn))) then
+                  tr_sect_index3D(nt,nBiomass,nsect)=nn
+                  ef_fact3d(nn,1:num_regions)=
+     &            ef_fact(nn,1:num_regions)
+                  exit loop_nn
+                endif
+              enddo loop_nn
+            enddo
+          endif
+! -- end sector stuff --
 
       return
       END SUBROUTINE get_GFED_biomass_burning

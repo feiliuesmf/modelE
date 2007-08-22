@@ -543,9 +543,11 @@ C****
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : jm,im,lm,dtsrc
-      USE GEOM, only : imaxj,bydxyp
+      USE GEOM, only : imaxj,bydxyp,lat_dg,lon_dg
       USE QUSDEF, only: nmom
-      USE TRACER_COM, only : ntm,trm,trmom,trname
+      USE TRACER_COM, only : ntm,trm,trmom,trname,alter_sources,
+     * num_regions,reg_S,reg_N,reg_E,reg_W,ef_FACT3d,num_tr_sectors
+     * ,tr_sect_index3D,num_tr_sectors3d
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
@@ -556,7 +558,7 @@ C****
       integer, intent(in) :: n,ns
       real*8 fr3d,taijsum(im,grid%j_strt_halo:grid%j_stop_halo,lm)
       logical :: domom
-      integer najl,i,j,l,naij
+      integer najl,i,j,l,naij,kreg,nsect,nn
       INTEGER :: J_0, J_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -573,6 +575,29 @@ C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
       najl = jls_3Dsource(ns,n)
       naij = ijts_3Dsource(ns,n)
+
+C**** apply tracer source alterations if requested in rundeck:
+      if(alter_sources)then
+      do nsect=1,num_tr_sectors3d(n,ns)
+      do l=1,lm ! making non-openMP suspecting bug...
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        do kreg=1,num_regions
+          if(lat_dg(j,1) >= REG_S(kreg) .and. lat_dg(j,1)
+     &    <= REG_N(kreg) .and. lon_dg(i,1) >= REG_W(kreg)
+     &    .and. lon_dg(i,1) < REG_E(kreg) )then
+            nn=tr_sect_index3D(n,ns,nsect)
+            if(ef_FACT3d(nn,kreg) > -1.e20)
+     &      tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
+     &      ef_FACT3d(nn,kreg) 
+          endif 
+        enddo
+      enddo
+      enddo 
+      enddo
+      enddo
+      endif
+
 !$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
       do l=1,lm
       do j=j_0,j_1
@@ -1337,7 +1362,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
         else ; write(fnum,'(I2)')n ; endif
         fname=trim(trname(nt))//'_'//fnum
-        pname=trim(trim(fname)//'_sect')
         inquire(file=fname,exist=qexist)
         if(qexist) then
           nsrc=nsrc+1
@@ -1346,6 +1370,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call closeunit(iu)
 ! -- begin sector  stuff --
           tr_sectors_are = ' '
+          pname=trim(trim(fname)//'_sect')
           call sync_param(pname,tr_sectors_are)
           num_tr_sectors(nt,n)=0
           i=1
