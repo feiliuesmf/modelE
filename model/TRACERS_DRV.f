@@ -9899,8 +9899,6 @@ c!OMSP
       if(alter_sources)then               ! if altering requested
         do ns=1,ntsurfsrc(n)              ! loop over source
           do nsect=1,num_tr_sectors(n,ns) ! and sectors for that source
-      write(6,*)'tr,ns,nsect,ind=',trim(trname(n)),ns,nsect,
-     &tr_sect_index(n,ns,nsect),ef_fact(tr_sect_index(n,ns,nsect),:)
             do j=J_0,J_1                  ! and latitudes
               do i=1,imaxj(j)             ! and longitudes 
                 do kreg=1,num_regions     ! and defined regions
