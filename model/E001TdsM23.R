@@ -242,7 +242,7 @@ CH4_09_sect='CH4 BBURN'
 CH4_10_sect='CH4'
 CH4_11_sect='CH4 WETL'
 Isoprene_01_sect='ISO'
-!
+!      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
 REG_S=    -90.,    5.,   15.,   25.,   15.
@@ -251,6 +251,7 @@ REG_W=   -180.,   50.,   95.,  -10., -125.
 REG_E=    180.,   95.,  160.,   50.,  -60.
 !       ---define-regions-names/order------
 REGIONS_ARE='global S_Asia E_Asia Europe N_America'
+!-fit-here--|                                                              |---
 !       ---define-factors-by-sector--------
 !        global S.Asia E.Asia Europe N.Amer
 SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! CO
@@ -262,8 +263,9 @@ SECT_06= 1.000, 1.000, 1.000, 1.000, 1.000 ! ISO
 SECT_07= 1.000, 1.000, 1.000, 1.000, 1.000 ! FFUEL
 SECT_08= 1.000, 1.000, 1.000, 1.000, 1.000 ! BBURN
 SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
-!       ---define-sectors-names/orde-------
+!       ---define-sectors-names/order------
 SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL'
+!-fit-here--|                                                              |---
 !-----
 
 
