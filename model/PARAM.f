@@ -71,7 +71,7 @@
       public query_param
 
       integer, parameter :: MAX_PARAMS = 256
-      integer, parameter :: MAX_RPARAMS = 128
+      integer, parameter :: MAX_RPARAMS = 256
       integer, parameter :: MAX_IPARAMS = 310
       integer, parameter :: MAX_CPARAMS = 90
       integer, parameter :: MAX_NAME_LEN = 32
@@ -202,6 +202,7 @@
           num_iparam = num_iparam + dim
         case ('r')
           if ( num_rparam+dim >= MAX_RPARAMS ) then
+            print *, 'PARAM: Need ',num_rparam+dim+1
             print *, 'PARAM: Maximal number of real parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_RPARAMS'
             call stop_model(
