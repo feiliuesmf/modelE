@@ -880,6 +880,8 @@ C****
       integer, parameter :: n_max_sect=10, n_max_reg=10
 !@var num_tr_sectors number of sectors for a particular tracer and source
       integer, dimension(ntm,ntsurfsrcmax) :: num_tr_sectors
+!@var num_tr_sectors3D number of sectors for a tracer's 3D source
+      integer, dimension(ntm,nt3Dsrcmax) :: num_tr_sectors3D
 !@var num_regions the number of source-altering regions from rundeck
 !@var num_sectors the number of source-altering sectors from rundeck
       integer :: num_regions, num_sectors
@@ -892,12 +894,18 @@ C****
       real*8, dimension(n_max_reg) :: reg_N,reg_S,reg_E,reg_W
 !@var tr_sect_index array hold the sector index for given tracer/source
       integer, dimension(ntm,ntsurfsrcmax,n_max_sect) :: tr_sect_index
+!@var tr_sect_index3D holds 3d source sector index for given tracer/source
+      integer, dimension(ntm,nt3Dsrcmax,n_max_sect) :: tr_sect_index3D
 !@var tr_sect_name array hold the sector name for given tracer/source
       character*10,dimension(ntm,ntsurfsrcmax,n_max_sect):: tr_sect_name
+!@var tr_sect_name3D holds 3d source sector name for given tracer/source
+      character*10,dimension(ntm,nt3Dsrcmax,n_max_sect):: tr_sect_name3D
 !@var sect_name array hold the sector names (all)
       character*10,dimension(n_max_sect):: sect_name
 !@var ef_fact the actual factors that alter sources by region/sector
-      real*8, dimension(n_max_sect,n_max_reg) :: ef_fact
+!@var ef_fact3d factors used to alter 3D sources (these are more
+!@+ hard-coded for now...)
+      real*8, dimension(n_max_sect,n_max_reg) :: ef_fact,ef_fact3D
 ! variables for outputting a map of the regions:
       real*8, allocatable, dimension(:,:) :: ef_REG_IJ
       real*8, dimension(IM,JM) :: ef_REG_IJ_glob
