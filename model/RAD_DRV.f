@@ -365,7 +365,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,ref_mult
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
@@ -439,6 +439,7 @@ C**** sync radiation parameters from input
       call sync_param( "rad_interact_tr", rad_interact_tr )
       call sync_param( "rad_forc_lev", rad_forc_lev )
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
+      call sync_param( "ref_mult", ref_mult )
       if (istart.le.0) return
 
 C**** Set orbital parameters appropriately
