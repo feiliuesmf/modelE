@@ -357,7 +357,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !g95     *     ,FSXAER,FTXAER    ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN
-      USE RADPAR, only : rcomp1, writer, writet
+      USE RADPAR, only : rcomp1, writer, writet,ref_mult
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
@@ -365,7 +365,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,ref_mult
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
