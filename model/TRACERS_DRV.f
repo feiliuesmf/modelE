@@ -9366,7 +9366,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           select case (trname(n))
           case ('NOx')
             tr3Dsource(:,J_0:J_1,:,nAircraft,n)  = 0.
-            if(PI_run/=1.or.PIratio_indus==1.) call get_aircraft_NOx
+            call get_aircraft_NOx
 !           (lightning called from tracer_3Dsource)
           case ('N2O5')
             tr3Dsource(:,J_0:J_1,:,:,n) = 0.
