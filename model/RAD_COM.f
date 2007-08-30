@@ -136,6 +136,18 @@ C**** exactly the same as the default values.
 !@var SALB (1.-broadband surface albedo) - saved in rsf
       REAL*8, POINTER, DIMENSION(:,:) :: SALB   ! = ALB(:,:,1)
 !      EQUIVALENCE (SALB,ALB)
+
+#ifdef ALTER_RADF_BY_LAT
+!@var FULGAS_lat multiplicative factors for altering FULGAS by latitude
+!@+ for non-transient runs. (greenhouse gas regional forcing)
+      real*8, dimension(13,46):: FULGAS_lat !rad not model grid, 13 gasses
+!@var FS8OPX_lat multiplicative factors for altering FS8OPX by latitude
+!@+ for non-transient runs. (aerosol regional forcing) SOLAR
+!@var FT8OPX_lat multiplicative factors for altering FT8OPX by latitude
+!@+ for non-transient runs. (aerosol regional forcing) THERMAL 
+      real*8, dimension(8,46):: FS8OPX_lat,FT8OPX_lat !rad not model grid
+                                                !8 groups of aerosols
+#endif
 !@dbparam rad_interact_tr =1 for radiatively active tracers (default=0)
       INTEGER :: rad_interact_tr = 0
 C**** the radiative forcing level for instantaneous forcing calcs is set

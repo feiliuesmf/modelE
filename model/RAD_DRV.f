@@ -357,6 +357,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !g95     *     ,FSXAER,FTXAER    ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN
+#ifdef ALTER_RADF_BY_LAT
+     *     ,FS8OPX_orig,FT8OPX_orig
+#endif
       USE RADPAR, only : rcomp1, writer, writet,ref_mult
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
@@ -365,8 +368,11 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
+#ifdef ALTER_RADF_BY_LAT
+     *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
+#endif
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
@@ -374,7 +380,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #endif
       IMPLICIT NONE
 
-      INTEGER J,L,LR,n1,istart ! LONR,LATR
+      INTEGER J,L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
       REAL*8 SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -391,6 +397,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       INTEGER J_0,J_1,J_1S
       LOGICAL HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       character(len=300) :: out_line
+      character*6 :: skip
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1
      *             ,  J_STOP_SKP=J_1S
@@ -532,7 +539,9 @@ C****    or time dependent (year=0); if day=0 an annual cycle is used
 C****                                         even if the year is fixed
       KYEARS=s0_yr   ; KJDAYS=s0_day ;  MADLUV=1   ! solar 'constant'
       KYEARG=ghg_yr  ; KJDAYG=ghg_day              ! well-mixed GHGases
+#ifndef ALTER_RADF_BY_LAT
       if(ghg_yr.gt.0)  MADGHG=0                    ! skip GHG-updating
+#endif
       KYEARO=O3_yr   ; KJDAYO=0 ;       MADO3M=-1  ! ozone (ann.cycle)
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
@@ -781,6 +790,29 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       write(out_line,*) 'spec.hum in rad.equ.layers:',shl0
       call write_parallel(trim(out_line),unit=6)
 
+#ifdef ALTER_RADF_BY_LAT
+C**** Save initial rad forcing alterations:
+      FS8OPX_orig(:)=FS8OPX(:); FT8OPX_orig(:)=FT8OPX(:) ! aerosols
+
+C**** Read in the factors used for alterations:
+      call openunit('ALT_GHG_LAT',iu2,.false.,.true.)
+      read(iu2,*) ! skip first line
+      do n=1,46
+        read(iu2,'(a6,13D8.3)') skip,(FULGAS_lat(nn,n),nn=1,13)
+      enddo
+      call closeunit(iu2)
+      call openunit('ALT_AER_LAT',iu2,.false.,.true.)
+      read(iu2,*) ! skip first line
+      do n=1,46
+        read(iu2,'(a6,8D8.3)') skip,(FS8OPX_lat(nn,n),nn=1,8)
+      enddo
+      read(iu2,*) ! skip first line
+      do n=1,46
+        read(iu2,'(a6,8D8.3)') skip,(FT8OPX_lat(nn,n),nn=1,8)
+      enddo
+      call closeunit(iu2)
+#endif
+
       RETURN
       END SUBROUTINE init_RAD
 
@@ -799,6 +831,9 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       USE MODEL_COM, only : jday,jyear
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
+#ifdef ALTER_RADF_BY_LAT
+     *     ,FULGAS_orig
+#endif
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,ghg_yr,co2ppm,Volc_yr
@@ -831,6 +866,12 @@ C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if (am_i_root() .and.
      *  jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
+
+#ifdef ALTER_RADF_BY_LAT
+C**** Save initial rad forcing alterations:
+      FULGAS_orig(:)=FULGAS(:) ! GHGs
+#endif
+
 C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
@@ -854,6 +895,9 @@ C**** Define CO2 (ppm) for rest of model
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_ozone
+#ifdef ALTER_RADF_BY_LAT
+     &          ,FS8OPX,FT8OPX,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
+#endif
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON, L1,LMR=>NL, PLB ,TLB,TLM ,SHL,RHL
      &             ,ltopcl,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
@@ -877,6 +921,9 @@ C     OUTPUT DATA
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
+#ifdef ALTER_RADF_BY_LAT
+     *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
+#endif
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
@@ -1213,6 +1260,9 @@ C****
 !$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
 !$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
 !$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,
+#ifdef ALTER_RADF_BY_LAT
+!$OMP*   fulgas,fulgas_orig,FS8OPX,FS8OPX_orig,FT8OPX,FT8OPX_orig,
+#endif
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1223,6 +1273,11 @@ C**** Radiation input files use a 72x46 grid independent of IM and JM
 C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
 c      JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
       JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5) ! slightly more general
+#ifdef ALTER_RADF_BY_LAT
+      FULGAS(:)=FULGAS_orig(:)*FULGAS_lat(:,JLAT)
+      FS8OPX(:)=FS8OPX_orig(:)*FS8OPX_lat(:,JLAT)
+      FT8OPX(:)=FT8OPX_orig(:)*FT8OPX_lat(:,JLAT)
+#endif
 C****
 C**** MAIN I LOOP
 C****

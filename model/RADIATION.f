@@ -1,4 +1,5 @@
-        
+#include "rundeck_opts.h"        
+
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -566,6 +567,10 @@ C-------------------------
 C      H2O CO2  O3  O2 NO2 N2O CH4 F11 F12 N2C CFC11+ CFC12+ SO2
 C        1   2   3   4   5   6   7   8   9  10    11     12   13
      +   1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,   1.,    1.,  0./)
+#ifdef ALTER_RADF_BY_LAT
+!@var FULGAS_orig saves initial FULGAS values
+      REAL*8, dimension(13) :: FULGAS_orig
+#endif
 
 !@var FGOLDH scales background aerosols for Glb Ocn Land Desert Haze
 C                         GLOBAL  OCEAN   LAND  DESERT    HAZE
@@ -709,6 +714,12 @@ C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
      * ,PI0MAX=(/1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.00/)
 
 !nu  * ,A8VEFF=(/ .200,  .200,  .200,  .200,  .200,  .200,  .200, .200/)
+
+#ifdef ALTER_RADF_BY_LAT
+!@var FS8OPX_orig saves initial FS8OPX values
+!@var FT8OPX_orig saves initial FT8OPX values
+      REAL*8, dimension(8) :: FS8OPX_orig, FT8OPX_orig
+#endif
 
       REAL*8, dimension(8) ::
 C                          MINERAL DUST PARAMETERS
