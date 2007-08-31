@@ -102,6 +102,7 @@ C**** input variables
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
      *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL
      *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
+     *     ,QDNL,TDNL
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -299,7 +300,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
-     *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT
+     *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT,TDNL,QDNL
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
 #ifdef CLD_AER_CDNC
      *  ,ACDNWM,ACDNIM,ACDNWS,ACDNIS
@@ -542,6 +543,7 @@ c for sulfur chemistry
 !@var HPBL, PBLM PBL height (m) and air mass in PBL (mb)
       REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW
      *     ,VT,CONDMU,HPBL,PBLM,TTURB,TRATIO,BYPBLM,DWCU,FLMCM
+     *     ,UMTEMP,VMTEMP
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
@@ -615,6 +617,8 @@ C**** zero out diagnostics
          DQCOND=0.
          DGDQM=0.
          DDMFLX=0.
+         TDNL=0.
+         QDNL=0.
 C**** save initial values (which will be updated after subsid)
       SM1=SM
       QM1=QM
@@ -1100,7 +1104,7 @@ C**** save plume temperature after possible condensation
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
 #ifdef CLD_AER_CDNC
-! Menon  saving aerosols mass for CDNC prediction
+!@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
         DSS(N)=1.d-10
         DSGL(L,N)=1.d-10
@@ -1300,10 +1304,12 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
      *     *FENTRA
 #endif
       DO K=1,KMAX
-         UMP(K)=UMP(K)+U_0(K,L)*EPLUME
-         DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME
-         VMP(K)=VMP(K)+V_0(K,L)*EPLUME
-         DVM(K,L)=DVM(K,L)-V_0(K,L)*EPLUME
+         UMTEMP=0.7*MPLUME**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
+         VMTEMP=0.7*MPLUME**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
+         UMP(K)=UMP(K)+U_0(K,L)*EPLUME+UMTEMP
+         DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME-UMTEMP
+         VMP(K)=VMP(K)+V_0(K,L)*EPLUME+VMTEMP
+         DVM(K,L)=DVM(K,L)-V_0(K,L)*EPLUME-VMTEMP
       ENDDO
   293 CONTINUE
       END IF
@@ -1327,10 +1333,12 @@ C****
         DQMOM(xymoms,L)=DQMOM(xymoms,L)+DELTA*QMOMP(xymoms)
         QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
         DO K=1,KMAX
-          DUM(K,L)=DUM(K,L)+UMP(K)*DELTA
-          DVM(K,L)=DVM(K,L)+VMP(K)*DELTA
-          UMP(K)=UMP(K)-UMP(K)*DELTA
-          VMP(K)=VMP(K)-VMP(K)*DELTA
+          UMTEMP=0.7*MPLUME**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
+          VMTEMP=0.7*MPLUME**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
+          DUM(K,L)=DUM(K,L)+UMP(K)*DELTA-UMTEMP
+          DVM(K,L)=DVM(K,L)+VMP(K)*DELTA-VMTEMP
+          UMP(K)=UMP(K)-UMP(K)*DELTA+UMTEMP
+          VMP(K)=VMP(K)-VMP(K)*DELTA+VMTEMP
         ENDDO
 
 #ifdef TRACERS_ON
@@ -1357,7 +1365,7 @@ C     IF(DMMIX.LT.1d-10) GO TO 291
       IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
 C     IF(PL(L).GT.700.) GO TO 291   ! do we need this condition?
       LDRAFT=L                      ! the highest downdraft level
-      ETADN=.23d0
+      ETADN=.20d0      ! reduce ETADN to improve computational stability
       FLEFT=1.-.5*ETADN
       DDRAFT=ETADN*MPLUME
       DDR(L)=DDRAFT
@@ -1680,11 +1688,13 @@ C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
           DQMR(L)=DQMR(L)-EDRAFT*QENV
           DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
           DMR(L)=DMR(L)-EDRAFT
-          DO K=1,KMAX          ! add in momentum entrainment
-            UMDN(K)=UMDN(K)+FENTRA*UM(K,L)
-            VMDN(K)=VMDN(K)+FENTRA*VM(K,L)
-            DUM(K,L)=DUM(K,L)-FENTRA*UM(K,L)
-            DVM(K,L)=DVM(K,L)-FENTRA*VM(K,L)
+          DO K=1,KMAX        ! add in momentum entrainment
+            UMTEMP=0.7*DDRAFT**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
+            VMTEMP=0.7*DDRAFT**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
+            UMDN(K)=UMDN(K)+FENTRA*UM(K,L)-UMTEMP
+            VMDN(K)=VMDN(K)+FENTRA*VM(K,L)-VMTEMP
+            DUM(K,L)=DUM(K,L)-FENTRA*UM(K,L)+UMTEMP
+            DVM(K,L)=DVM(K,L)-FENTRA*VM(K,L)+VMTEMP
           ENDDO
 #ifdef TRACERS_ON
           Tenv(1:NTX)=tm(l,1:NTX)/airm(l)
@@ -1706,10 +1716,12 @@ C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
           QMOMDN(xymoms)= QMOMDN(xymoms)*(1+FENTRA)
           DM(L)=DM(L)-EDRAFT
           DO K=1,KMAX          ! add in momentum detrainment
-            UMDN(K)=UMDN(K)*(1.+FENTRA)
-            VMDN(K)=VMDN(K)*(1.+FENTRA)
-            DUM(K,L)=DUM(K,L)-FENTRA*UMDN(K)
-            DVM(K,L)=DVM(K,L)-FENTRA*VMDN(K)
+            UMTEMP=0.7*DDRAFT**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
+            VMTEMP=0.7*DDRAFT**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
+            UMDN(K)=UMDN(K)*(1.+FENTRA)-UMTEMP
+            VMDN(K)=VMDN(K)*(1.+FENTRA)-VMTEMP
+            DUM(K,L)=DUM(K,L)-FENTRA*UMDN(K)+UMTEMP
+            DVM(K,L)=DVM(K,L)-FENTRA*VMDN(K)+VMTEMP
           ENDDO
 #ifdef TRACERS_ON
           DTM(L,1:NTX)=DTM(L,1:NTX)-FENTRA*TMDN(1:NTX)
@@ -1751,6 +1763,8 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       DSMOM(xymoms,LDMIN)=DSMOM(xymoms,LDMIN) + SMOMDN(xymoms)
       DQM(LDMIN)=DQM(LDMIN)+QMDN
       DQMOM(xymoms,LDMIN)=DQMOM(xymoms,LDMIN) + QMOMDN(xymoms)
+      TDNL(LDMIN)=SMDN*PLK(LDMIN)/(DDRAFT+teeny)
+      QDNL(LDMIN)=QMDN/(DDRAFT+teeny)
 #ifdef TRACERS_ON
       DTM(LDMIN,1:NTX) = DTM(LDMIN,1:NTX) + TMDN(1:NTX)
       DTMOM(xymoms,LDMIN,1:NTX) = DTMOM(xymoms,LDMIN,1:NTX) +
@@ -1834,6 +1848,10 @@ C**** diagnostics
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
+C       IF(L.EQ.1) THEN
+C         IF(DDMFLX(1).GT.0.) WRITE(6,*) 'DDM TDN1 QDN1=',
+C    *      DDMFLX(1),TDNL(1),QDNL(1)
+C       END IF
         IF(QM(L).LT.0.d0) WRITE(0,*) ' Q neg: it,i,j,l,q',
      *   itime,i_debug,j_debug,l,qm(l)
       END DO
@@ -2226,11 +2244,9 @@ C**   Set CDNC for moist conv. clds (const at present)
               MCDNCI=MNdI
             IF(SVLATL(L).EQ.LHE)  THEN
 !              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-C              RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
                RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
              ELSE
 !              RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-C              RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
                RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
      *              *(1.+pl(l)*xRICld)
             END IF
@@ -2373,11 +2389,6 @@ c for tracers in general, added by Koch
 !@var CLDSAVT is present cloud fraction, saved for tracer use
 !@var cldprec cloud fraction at lowest precipitating level
       REAL*8 :: cldprec
-#ifndef NO_WASHOUT_IN_CLOUDS
-!@var tm_temp temporary array for tracer mass after applying other removal
-!@+           and re-evaporation processes to calculate washout in clouds
-      REAL(8),DIMENSION(Lm,Ntm) :: tm_temp
-#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -2399,7 +2410,7 @@ c for sulfur chemistry
      *     ,PRATM,SMN12,SMO12,QF
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
-! Menon  - storing var for cloud droplet number
+!@auth Menon  - storing var for cloud droplet number
        integer, PARAMETER :: SNTM=17
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(SNTM),QCRIT
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
@@ -2675,7 +2686,7 @@ C**** is ice and temperatures after ice melt would still be below TFrez
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
      *     +teeny)) LHP(L)=LHP(L+1)
 #ifdef CLD_AER_CDNC
-! Menon  saving aerosols mass for CDNC prediction
+!@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
         DSS(N)=1.d-10
         DSGL(L,N)=1.d-10
@@ -3054,18 +3065,30 @@ cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
      *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
+#ifndef NO_WASHOUT_IN_CLOUDS
+          precip_mm = prebar(l+1)*100.*dtsrc
+          wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
+          IF (precip_mm < 0.) precip_mm=0.
+          IF (wmxtr < 0.) wmxtr=0.
+          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+     &         wmxtr,cldprec,l,tm,trprbar(1,l),thwash,pl(l),ntix) !washout
+#endif
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           b_beta_DT = cldsavt*CM*dtsrc
+c         saves cloud fraction at lowest precipitating level for washout
+          cldprec=cldsavt
           CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
      *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix,CLDSAVT)
 cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
         IF (TM(L,N).GT.teeny) THEN
           TMFAC=THLAW/TM(L,N)
+          TMFAC2=THWASH/TM(L,N)
         ELSE
           TMFAC=0.
+          TMFAC2=0.
         ENDIF
         FPRT=FPR
 c ---------------------- calculate fluxes ------------------------
@@ -3074,31 +3097,9 @@ c ---------------------- calculate fluxes ------------------------
         DTQWT =
      &  FQTOWT*TR_LEF*(TM(L,N)+DTERT)-FWTOQT*TRWML(N,L)*(1.-FPRT)
 #ifndef NO_WASHOUT_IN_CLOUDS
-c**** washout in clouds
-        tm_temp(l,n)=tm(l,n)-dtqwt-thlaw
-        IF(.NOT.(BELOW_CLOUD.and.WMX(L).lt.teeny)) THEN
-          precip_mm = prebar(l+1)*100.*dtsrc
-          wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
-          IF (precip_mm < 0.) precip_mm=0.
-          IF (wmxtr < 0.) wmxtr=0.
-          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
-     &         wmxtr,cldprec,l,tm_temp,trprbar(1,l),thwash,pl(l),ntix) !washout
-c         saves cloud fraction at lowest precipitating level for washout
-          cldprec=cldsavt
-        END IF
-        dtwrt=fwasht*tm_temp(l,n)
-        IF (tm_temp(l,n).GT.teeny) THEN
-          TMFAC2=THWASH/tm_temp(l,n)
-        ELSE
-          TMFAC2=0.
-        ENDIF
+        dtwrt=fwasht*(tm(l,n)-dtqwt)
 #else
         dtwrt=fwasht*tm(l,n)
-        IF (TM(L,N).GT.teeny) THEN
-          TMFAC2=THWASH/TM(L,N)
-        ELSE
-          TMFAC2=0.
-        ENDIF
 #endif
 c ---------------------- apply fluxes ------------------------
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
@@ -3474,7 +3475,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdL = 174.d0
       SNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
-! Menon for CDNC prediction
+!@auth Menon for CDNC prediction
       CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
      *CLDSAVL(L),VVEL,SME(L),DSU,SMFPML(L),OLDCDO(L),OLDCDL(L),
      *CDNL1,CDNO1)
@@ -3512,11 +3513,10 @@ C** for spectral dispersion effects on droplet size distribution
       Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
 !     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
       RCLDE=RCLD*Rbeta
-! Menon    end of addition  comment out the RCLDE definition below
+!@auth Menon    end of addition  comment out the RCLDE definition below
 #endif
         CSIZEL(L)=RCLDE
-#ifdef CLD_AER_CDNC
-  !save for diag purposes
+#ifdef CLD_AER_CDNC  !save for diag purposes
         IF (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
             ACDNWS(L)= SCDNCW
             AREWS(L) = RCLDE

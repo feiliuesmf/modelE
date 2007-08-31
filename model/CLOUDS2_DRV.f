@@ -26,6 +26,7 @@
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
+     *     ,ddms,tdn1,qdn1
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
      *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
@@ -123,7 +124,7 @@
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb,ncol
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
-     *     ,dphashlw,dphadeep,dgshlw,dgdeep
+     *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws
@@ -244,6 +245,7 @@ Cred*                   end Reduced Arrays 1
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
 CRKF...FIX
       REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) !,
+c     *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
@@ -252,6 +254,11 @@ CRKF...FIX
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
+c      REAL*8, DIMENSION(
+c     &        size(AREG,1), 3)  :: AREG_SUM
+c      REAL*8, DIMENSION(
+c     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
+c     &        :: AREG_part
 
 #ifndef NO_HDIURN
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
@@ -476,9 +483,6 @@ Cred* end Reduced Arrays 2
       dtr_wt(j,:)=0.D0
 #endif
 #endif
-#ifdef TRACERS_AMP
-      AQsulfRATE(:,j,:) = 0.d0
-#endif
 #endif
       kmax = kmaxj(j)
 C****
@@ -610,6 +614,9 @@ C**** temperature of precip is based on pre-mstcnv profile
 C**** SET DEFAULTS FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
       DDM1(I,J)=0.
+      DDMS(I,J)=0.
+      TDN1(I,J)=0.
+      QDN1(I,J)=0.
 C****
 C**** Energy conservation note: For future reference the energy function
 C**** for these column calculations (assuming energy reference level
@@ -796,6 +803,16 @@ C       END IF
         CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
         FSS(:,I,J)=FSSL(:)
         AIRX(I,J) = AIRXL*DXYP(J)
+        DO L=1,DCL
+          TDN1(I,J)=TDNL(L)              ! downdraft temperature
+          QDN1(I,J)=QDNL(L)              ! downdraft humidity
+          DDMS(I,J)=-100.*DDMFLX(L)/(GRAV*DTsrc) ! downdraft mass flux
+          IF(DDMFLX(L).GT.0.d0) EXIT
+        END DO
+c       IF (DDMFLX(1).GT.0.) THEN
+c         WRITE(6,*) 'I J DDMS TDN1 QDN1=',
+c    *      I,J,DDMS(I,J),TDN1(I,J),QDN1(I,J)
+c       END IF
 C**** level 1 downfdraft mass flux/rho (m/s)
         DDM1(I,J) = (1.-FSSL(1))*DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)
      *       *DTSrc)
@@ -1273,7 +1290,7 @@ C**** TRACERS: Use only the active ones
           end if
 #endif
 #ifdef TRACERS_AMP
-            if (trname(n).eq."M_ACC_SU") then
+           if (trname(n).eq."M_ACC_SU") then
            AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
            endif
 #endif
@@ -1517,6 +1534,31 @@ C**** Accumulate AISCCP array
       AISCCP(1:ntau,1:npres,1:nisccp) = AISCCP(1:ntau,1:npres,1:nisccp)
      *     +AISCCPSUM(1:ntau,1:npres,1:nisccp)
 
+C****Accumulate diagnostics into AREG in a way that insures bitwise
+C    identical results regardless of number of distributed processes used.
+c      AREG_part(:,J_0H:J_1H,1:3) = 0
+c      DO J=J_0,J_1
+c      DO I=1,IMAXJ(J)
+c         JR=JREG(I,J)
+c         IF(LMC(1,I,J).GT.0)
+c     *     AREG_part(JR,J,1)=AREG_part(JR,J,1)+AREGIJ(I,J,1)
+c         AREG_part(JR,J,2)=AREG_part(JR,J,2)+AREGIJ(I,J,2)
+c         AREG_part(JR,J,3) =AREG_part(JR,J,3) +AREGIJ(I,J,3)
+c      END DO
+c      END DO
+
+
+c      CALL GLOBALSUM(GRID, AREG_part(1:SIZE(AREG,1),:,1:3),
+c     &   AREG_SUM(1:SIZE(AREG,1), 1:3), ALL=.TRUE.)
+c      AREG(1:SIZE(AREG,1),J_PRCPMC) =
+c     &   AREG(1:SIZE(AREG,1),J_PRCPMC) + AREG_SUM(1:SIZE(AREG,1),1)
+c
+c      AREG(1:SIZE(AREG,1),J_PRCPSS) =
+c     &   AREG(1:SIZE(AREG,1),J_PRCPSS) + AREG_SUM(1:SIZE(AREG,1),2)
+c
+c      AREG(1:SIZE(AREG,1),J_EPRCP ) =
+c     &   AREG(1:SIZE(AREG,1),J_EPRCP ) + AREG_SUM(1:SIZE(AREG,1),3)
+
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX3
           ivar = idx3(ii)
@@ -1677,6 +1719,16 @@ CCC   WRITE(6,415) ITIME,W500P1
   415 FORMAT(1X,'W500 AT I=21 L=5 TIME= ',I10/,1X,10F8.3/,1X,10F8.3)
 CCC   WRITE(6,420) ENTJ
   420 FORMAT(1X,'ENT  AT I=21 L=5'/,1X,10F8.2/,1X,10F8.2)
+C     IF (AM_I_ROOT()) THEN
+C       DO J=1,JM
+C        IF (J.EQ.46) WRITE (6,425) (DDMS(I,J),I=1,IM,4)
+C        IF (J.EQ.46) WRITE (6,426) (TDN1(I,J),I=1,IM,4)
+C        IF (J.EQ.46) WRITE (6,427) (QDN1(I,J),I=1,IM,4)
+C       END DO
+C     END IF
+C 425 FORMAT (1X,'DDMS=',36E10.2)
+C 426 FORMAT (1X,'TDN1=',36E10.2)
+C 427 FORMAT (1X,'QDN1=',36E10.2)
 C     WRITE(195) ITIME,SAVWCU,SAVWC1,SAVEN1,SAVEN2,FOCEAN
       RETURN
       END SUBROUTINE CONDSE
