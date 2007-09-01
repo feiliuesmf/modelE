@@ -41,6 +41,12 @@ c$$$      USE MODEL_COM, only: clock
 #endif
       USE ATMDYN_QDYNAM, only : QDYNAM
       use soil_drv, only : conserv_wtg, conserv_htg
+#ifdef USE_FVCORE
+      use dynamics_save, only: save_dynamics_state
+      use dynamics_save, only: restore_dynamics_state
+      use dynamics_save, only: write_dynamics_state
+      use dynamics_save, only: initialize_dynsave => initialize
+#endif
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -144,6 +150,7 @@ C**** Initialize FV dynamical core (ESMF component) if requested
 C****
 #ifdef USE_FVCORE
       Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
+      call initialize_dynsave
 #endif
 
       if (AM_I_ROOT())
@@ -246,14 +253,23 @@ C**** Initialise total energy (J/m^2)
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
+      call save_dynamics_state()
+
+      call restore_dynamics_state()
+      call DYNAM()
+      call write_dynamics_state('MODELE A')
+
       ! Using FV instead
+      call restore_dynamics_state()
          IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
-      CALL Run(fv, clock)
-         IF (MOD(Itime-ItimeI,NDAA).eq.0) THEN
-           CALL DIAGA
-           CALL DIAGB
-           CALL EPFLUX (U,V,T,P)
-         ENDIF
+      call Run(fv, clock)
+         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
+           call DIAGA
+           call DIAGB
+           call EPFLUX (U,V,T,P)
+         endif
+      call write_dynamics_state('FV')
+
 #endif
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
@@ -1934,4 +1950,4 @@ C**** check tracers
 
       return
       end subroutine print_restart_info
-
+      

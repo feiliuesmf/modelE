@@ -129,6 +129,7 @@ contains
     type (ESMF_Array)                :: Qarray
     type (ESMF_FieldDataMap)         :: datamap
 
+
     fv % vm  =vm
     fv % grid=grid
 
@@ -151,6 +152,7 @@ contains
 
     !  Register services for components
     !  --------------------------------
+!   print*,'calling set services'
     call ESMF_GridCompSetServices ( fv % gc, SetServices, rc )
     VERIFY_(rc)
 
@@ -163,10 +165,21 @@ contains
 
     call create_restart_file(fv, cf, clock)
 
+!   print*,'calling fv initialize'
     call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
          & phase=ESMF_SINGLEPHASE, rc=rc )
     VERIFY_(rc)
 
+
+    call allocateFvExport3D ( fv % export,'U' )
+    call allocateFvExport3D ( fv % export,'V' )
+    call allocateFvExport3D ( fv % export,'TH' )
+    call allocateFvExport3D ( fv % export,'PLE' )
+    call allocateFvExport3D ( fv % export,'MFX' )
+    call allocateFvExport3D ( fv % export,'MFY' )
+    call allocateFvExport3D ( fv % export,'MFZ' )
+
+!   print*,'called fv initialize'
 
     ! Specific Humidity - need to reserve space in FV import state
     Call get(modelE_grid, J_STRT=J_0, J_STOP=J_1)
@@ -186,6 +199,22 @@ contains
     VERIFY_(rc)
 
     Call allocate_tendency_storage(fv)
+
+    contains
+
+    subroutine allocateFvExport3D ( state, name )
+    type(ESMF_State),  intent(INOUT) :: state
+    character(len=*),  intent(IN   ) :: name
+
+    real, pointer                    :: ptr(:,:,:)
+    logical :: alloc
+    integer :: status
+
+    alloc = .true.
+    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc , status )
+    VERIFY_(status)
+
+    end subroutine allocateFvExport3D
 
   end subroutine Initialize_fv
 
@@ -348,17 +377,17 @@ contains
   subroutine run_fv(fv, clock)
     USE DOMAIN_DECOMP, only: grid, halo_update, get, grid, NORTH
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
-    USE MODEL_COM, only : NIdyn, DT
+    USE MODEL_COM, only : NIdyn, DT, DTSRC
     USE SOMTQ_COM, only: TMOM, MZ
     USE ATMDYN, only: CALC_AMP, CALC_PIJL, AFLUX, COMPUTE_MASS_FLUX_DIAGS
     USE DYNAMICS, only: MA, PHI, GZ
     USE DYNAMICS, ONLY: PU, PV, CONV
+
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
 
     REAL*8, DIMENSION(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM) :: PIJL
     integer :: istep, NS, NIdyn_fv
-!!$    integer :: i,j, l, im1, j_0s, j_1s
 
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
@@ -369,7 +398,7 @@ contains
     call clear_accumulated_mass_fluxes()
     ! Run dycore
     write(*,*)'here: ',__LINE__,__FILE__
-    NIdyn_fv = NIdyn/2 ! no leapfrog
+    NIdyn_fv = DTsrc / (2*DT)
     do istep = 1, NIdyn_fv
     write(*,*)'here: ',__LINE__,__FILE__
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
@@ -383,22 +412,6 @@ contains
        call compute_mass_flux_diags(phi, pu, pv, dt)
     end do
     write(*,*)'here: ',__LINE__,__FILE__
-
-!!$    Call GET(grid, j_strt_skp=j_0s, j_stop_skp=j_1s)
-!!$    Call HALO_UPDATE(grid, pv, FROM=NORTH)
-!!$
-!!$    do l = 1, lm
-!!$       do j = J_0S, J_1S
-!!$          im1 = im
-!!$          do i = 1, im
-!!$             conv(i,j,l) = (pu(im1,j,l) - pu(i,j,l) + pv(i,j,l)-pv(i,j+1,l))
-!!$             im1 = i
-!!$          end do
-!!$       end do
-!!$    end do
-
-!!$    call compute_horizontal_mass_convergence(pu, pv, conv)
-!!$    call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
 
     gz  = phi
   end subroutine run_fv
@@ -784,7 +797,7 @@ contains
   end function DryTemp_GISS
 
   Subroutine Copy_modelE_to_FV_import(fv)
-    USE MODEL_COM, only:  Q     ! Specific Humidity
+    USE MODEL_COM, only:  Q     ! Secific Humidity
     USE MODEL_COM, only:  ZATMO ! Geopotential Height?
     USE MODEL_COM, Only : U, V, T
     Use DOMAIN_DECOMP, Only: grid, Get
@@ -1326,12 +1339,14 @@ contains
     integer :: rc
     logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
+
     Call Get(grid, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
          & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
          & HAVE_NORTH_POLE = HAVE_NORTH_POLE, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
     ! Horizontal and Vertical mass fluxes
     !---------------
+
     call ESMFL_StateGetPointerToData ( fv % export,mfx_X,'MFX',rc=rc)
     VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,mfx_Y,'MFY',rc=rc)
@@ -1391,3 +1406,162 @@ Subroutine abort_core(line,rc)
 
 End Subroutine abort_core
 
+module dynamics_save
+
+  implicit none
+  private
+
+  public :: initialize
+  public :: save_dynamics_state
+  public :: restore_dynamics_state
+  public :: write_dynamics_state
+
+  real*8, allocatable, dimension(:,:,:), save :: U_save, V_save, T_save
+  real*8, allocatable, dimension(:,:), save :: P_save
+  real*8, allocatable, dimension(:,:,:), save :: Q_save, WM_save
+  real*8, allocatable, dimension(:,:,:), save :: gz_save, phi_save
+  real*8, allocatable, dimension(:,:,:,:), save :: tmom_save
+  real*8, allocatable, dimension(:,:,:), save :: pdsig_save
+
+contains
+
+  subroutine initialize()
+    use resolution, only : IM, JM, LM
+    use somtq_com, only : tmom, NMOM
+
+    allocate(U_save(IM,1:JM,LM))
+    allocate(V_save(IM,1:JM,LM))
+    allocate(T_save(IM,1:JM,LM))
+    allocate(P_save(IM,1:JM))
+    allocate(Q_save(IM,1:JM,LM))
+    allocate(WM_save(IM,1:JM,LM))
+
+    allocate(gz_save(IM,1:JM,LM))
+    allocate(phi_save(IM,1:JM,LM))
+    allocate(tmom_save(NMOM,IM,1:JM,LM))
+    allocate(pdsig_save(LM,IM,1:JM))
+
+  end subroutine initialize
+
+  subroutine save_dynamics_state()
+    use resolution, only : IM, JM, LM
+    use model_com, only: U, V, T, P, Q, WM
+    use dynamics, only: gz, phi, pdsig
+    use somtq_com, only : tmom
+
+    U_save = U(:,1:JM,:)
+    V_save = V(:,1:JM,:)
+    T_save = T(:,1:JM,:)
+    P_save = P(:,1:JM)
+    Q_save = Q(:,1:JM,:)
+    WM_save = WM(:,1:JM,:)
+
+    gz_save = gz(:,1:JM,:)
+    phi_save = phi(:,1:JM,:)
+    tmom_save = tmom(:,:,1:JM,:)
+    pdsig_save = pdsig(:,:,1:JM)
+
+  end subroutine save_dynamics_state
+
+  subroutine restore_dynamics_state()
+    use resolution, only : IM, JM, LM
+    use model_com, only: U, V, T, P, Q, WM
+    use dynamics, only: gz, phi, pdsig
+    use somtq_com, only : tmom
+
+    U(:,1:JM,:) = U_save
+    V(:,1:JM,:) = V_save
+    T(:,1:JM,:) = T_save
+    P(:,1:JM)   = P_save
+    Q(:,1:JM,:) = Q_save
+    WM(:,1:JM,:) = WM_save
+
+    gz(:,1:JM,:)   = gz_save
+    phi(:,1:JM,:)  = phi_save
+    tmom(:,:,1:JM,:) = tmom_save
+    pdsig(:,:,1:JM) = pdsig_save
+
+  end subroutine restore_dynamics_state
+
+  subroutine write_dynamics_state(dyn)
+    use resolution, only : IM, JM, LM
+    use model_com, only: U, V, T, P
+    character(len=*), intent(in) :: dyn
+    integer :: unit
+
+    select case(dyn)
+    case ('FV')
+       unit = 21
+    case ('MODELE A')
+       unit = 22
+    case ('MODELE B')
+       unit = 23
+    case ('MODELE C')
+       unit = 24
+    case default
+    end select
+
+    write(unit) 'U',U(:,1:JM,:)
+    write(unit) 'V',V(:,1:JM,:)
+    write(unit) 'T',T(:,1:JM,:)
+    write(unit) 'P',P(:,1:JM)
+
+
+    select case(dyn)
+    case ('FV')
+       unit = 31
+    case ('MODELE A')
+       unit = 32
+    case ('MODELE B')
+       unit = 33
+    case ('MODELE C')
+       unit = 34
+    case default
+    end select
+
+    write(*,*) 'DYNAMICS for ' // trim(dyn)
+    call write_surface_zone('U',U(:,:,1))
+    call write_surface_zone('V',V(:,:,1))
+    call write_surface_zone('T',T(:,:,1))
+    call write_surface_zone('P',P(:,:))
+
+    call write_avg('U',U)
+    call write_avg('V',V)
+    call write_avg('T',T)
+
+  contains
+
+    subroutine write_surface_zone(name, array)
+      character(len=*), intent(in) :: name
+      real*8, intent(in) :: array(:,:)
+      integer :: j
+
+      write(unit,*)' '
+      write(unit,*)'*********************************'
+      write(unit,*)'Surface Zonal Average for ' // trim(name)
+      write(unit,*)'*********************************'
+      do j = 1, JM
+         write(unit,*) j, sum(array(:,j))/IM
+      end do
+      write(unit,*)' '
+    end subroutine write_surface_zone
+
+    subroutine write_avg(name, array)
+      use geom, only: AREAG, dxyp
+      character(len=*), intent(in) :: name
+      real*8, intent(in) :: array(:,:,:)
+      integer :: k
+
+      write(unit,*)' '
+      write(unit,*)'*********************************'
+      write(unit,*)' Level Average for ' // trim(name)
+      write(unit,*)'*********************************'
+      do k = 1, LM
+         write(unit,*) k, sum(sum(array(:,1:JM,k),1)*dxyp(1:jm))/AREAG
+      end do
+      write(unit,*)' '
+    end subroutine write_avg
+
+  end subroutine write_dynamics_state
+
+end module dynamics_save

@@ -167,9 +167,9 @@ ifeq ($(COMPILER),intel)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-9-0-on-LINUX
-FFLAGS = -fpp -O2 -ftz         -convert big_endian 
-F90FLAGS = -fpp -O2 -ftz        -convert big_endian -free 
-LFLAGS = -O2 -ftz
+FFLAGS = -fpp -g -traceback -ftz         -convert big_endian 
+F90FLAGS = -fpp -g -traceback -ftz        -convert big_endian -free 
+LFLAGS = -g -traceback -ftz
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_Intel8 -DCONVERT_BIGENDIAN
 F90_VERSION = $(shell $(F90) -v 2>&1)
@@ -483,8 +483,9 @@ ifeq ($(FVCORE),YES)
   CPPFLAGS += -DUSE_FVCORE
   FVINC = -I$(FVCORE_ROOT)/$(UNAME)/include
   INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASELIBDIR)/include
-  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L$(BASLIBEDIR)/lib
-  LIBS += -L${BASELIBDIR} -lesmf  -lmpi -lmpi++ -lstdc++  -lpthread ${NETCDF_STUBS} -lrt -lc
+  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio -lGMAO_cfio -lGEOS_Shared -lGEOS_Base -L$(BASELIBDIR)/lib
+#  LIBS += -L${BASELIBDIR} -lesmf  -lmpi -lmpi++ -lstdc++  -lpthread ${NETCDF_STUBS} -lrt -lc
+  LIBS += -L${BASELIBDIR}/lib -lesmf -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -lfmpi -lmpi -threads
 endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
