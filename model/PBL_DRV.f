@@ -14,6 +14,9 @@
 !@sum  PBL calculate pbl profiles for each surface type
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
+!@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
+!@var TDN1 downdraft temperature flux in K, (i,j)
+!@var QDN1 downdraft humidity flux in kg/kg, (i,j)
 
 C    input: ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
@@ -25,6 +28,7 @@ C          ,UG,VG,WG,W2_1
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
+      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
       use QUSDEF, only : mz
@@ -95,6 +99,7 @@ c
 !@var WINT   = integrated surface wind speed over sgs wind distribution
       real*8 :: dbl,kms,kqs,cm,ch,cq,z0m,z0h,z0q,ug,vg,w2_1,mdf
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
+      real*8 ::  mdn,mup
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
 #if defined(TRACERS_ON)
@@ -106,6 +111,22 @@ ccc extract data needed in driver from the pbl_args structure
       zs1 = pbl_args%zs1
       hemi = pbl_args%hemi
       pole = pbl_args%pole
+
+      ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
+      ! tprime,qprime are the pertubation of t and q due to gustiness
+
+      ! pick up one of the following two expressions for gusti
+
+      ! for down draft:
+      mdn=max(DDMS(i,j), -0.07d0)
+      pbl_args%gusti=log(1.-600.4d0*mdn-4375.*mdn*mdn)
+
+      ! for up draft:
+      ! mup=min(DDMS(i,j), 0.1d0)
+      ! pbl_args%gusti=log(1.+386.6d0*mup-1850.*mup*mup)
+
+      pbl_args%tprime=TDN1(i,j)-T(i,j,1)*pk(1,i,j)
+      pbl_args%qprime=QDN1(i,j)-Q(i,j,1)
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces

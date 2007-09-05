@@ -2991,6 +2991,24 @@ c
       ir_ij(k) = ir_0_3550
 c
       k=k+1 !
+      IJ_GUSTI   = k !
+      lname_ij(k) = 'GUSTI WIND'
+      units_ij(k) = 'M/S'
+      name_ij(k) = 'gusti'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_3550
+c
+      k=k+1 !
+      IJ_MCCON   = k !
+      lname_ij(k) = 'MOIST CONV COUNT'
+      units_ij(k) = '1'
+      name_ij(k) = 'mccon'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_3550
+c
+      k=k+1 !
       IJ_SWDCLS = k ! SW clear-sky down radiation surf (W/m**2) 2 RD
       lname_ij(k) = 'SW CLR-SKY DOWNWARD RADIATION, SURFACE METHOD 2'
       units_ij(k) = 'W/m^2'

@@ -168,6 +168,7 @@ ccc   input fluxes
       real*8, public :: pr,htpr,prs,htprs,srht,trht
 ccc   input bc''s
       real*8, public :: ts,qs,pres,rho,vsm,ch,qm1
+     *     ,vsh,vsh0,tprime,qprime
 !@var dt earth time step (s)
       real*8, public :: dt
 
@@ -353,6 +354,7 @@ C***
      &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
+     &     ,vsh,vsh0,tprime,qprime
 
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
@@ -709,11 +711,13 @@ ccc   local variables
       real*8 betadl(ngm) ! used in evaps_limits only
       real*8 pot_evap_can
       real*8 cnc         ! local cnc from veg_conductance, nyk
+      real*8 v_qprime    ! local variable
 #ifdef EVAP_VEG_GROUND
       real*8 evap_max_vegsoil
 #endif
 c     cna is the conductance of the atmosphere
-      cna=ch*vsm
+      !cna=ch*vsm
+      cna=ch*vsh
       rho3=rho/rhow ! i.e divide by rho_water to get flux in m/s
 
 ccc make sure that important vars are initialized (needed for ibv hack)
@@ -807,7 +811,10 @@ c     Get canopy conductivity cnc and gpp
         acna=cna                ! return to old diagnostics
         acnc=cnc                ! return to old diagnostics
 !        agpp=gpp                !nyk 4/25/03.  Put in subroutine accm.
-        pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+c       pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+        pot_evap_can = betat*rho3*ch*(
+     &                 vsh*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+     &                 -(vsh-vsh0)*qprime)
         evap_max_dry(ibv) = 0.d0
         if ( betad > 0.d0 .and. pot_evap_can > 0.d0 ) then
           do k=1,n
@@ -868,12 +875,19 @@ c     calculate bare soil, canopy and snow mixing ratios
 #endif
 
 c     potential evaporation for bare and vegetated soil and snow
-      epb  = rho3*cna*(qb-qs)
-      epbs = rho3*cna*(qbs-qs)
-      epv  = rho3*cna*(qv-qs)
-      epvs = rho3*cna*(qvs-qs)
+c     epb  = rho3*cna*(qb-qs)
+c     epbs = rho3*cna*(qbs-qs)
+c     epv  = rho3*cna*(qv-qs)
+c     epvs = rho3*cna*(qvs-qs)
+      v_qprime=(vsh-vsh0)*qprime
+      epb  = rho3*ch*( vsh*(qb-qs) -v_qprime )
+      epbs = rho3*ch*( vsh*(qbs-qs)-v_qprime )
+      epv  = rho3*ch*( vsh*(qv-qs) -v_qprime )
+      epvs = rho3*ch*( vsh*(qvs-qs)-v_qprime )
+
 #ifdef EVAP_VEG_GROUND
-      epvg  = rho3*cna*(qvg-qs) ! actually not correct !
+c     epvg  = rho3*cna*(qvg-qs) ! actually not correct !
+      epvg  = rho3*ch*( vsh*(qvg-qs)-v_qprime )
 #endif
 
 c     bare soil evaporation
@@ -937,13 +951,25 @@ cccccccccccccccccccccccccccccccccccccccc
       subroutine sensible_heat
 !@sum computes sensible heat for bare/vegetated soil and snow
       implicit none
-      real*8 cna
+      real*8 cna,v_tprime
 
-      cna=ch*vsm
-      snsh(1)=sha*rho*cna*(tp(1,1)-ts+tfrz)     ! bare soil
-      snsh(2)=sha*rho*cna*(tp(0,2)-ts+tfrz)     ! canopy
-      snshs(1) = sha*rho*cna*(tsn1(1)-ts+tfrz)  ! bare soil snow
-      snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)  ! canopy snow
+c     cna=ch*vsm
+c     snsh(1)=sha*rho*cna*(tp(1,1)-ts+tfrz)     ! bare soil
+c     snsh(2)=sha*rho*cna*(tp(0,2)-ts+tfrz)     ! canopy
+c     snshs(1) = sha*rho*cna*(tsn1(1)-ts+tfrz)  ! bare soil snow
+c     snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)  ! canopy snow
+c     dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
+
+      cna=ch*vsh
+      v_tprime=(vsh-vsh0)*tprime
+      snsh(1)=sha*rho*ch*(vsh*(tp(1,1)-ts+tfrz)-v_tprime)
+                                                ! bare soil
+      snsh(2)=sha*rho*ch*(vsh*(tp(0,2)-ts+tfrz)-v_tprime)
+                                                ! canopy
+      snshs(1)=sha*rho*ch*(vsh*(tsn1(1)-ts+tfrz)-v_tprime)
+                                                ! bare soil snow
+      snshs(2)=sha*rho*ch*(vsh*(tsn1(2)-ts+tfrz)-v_tprime)
+                                                 ! canopy snow
       dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
 
       end subroutine sensible_heat
@@ -1946,10 +1972,12 @@ c**** calculation of penman value of potential evaporation, aepp
 c     h0=-atrg/dt+srht+trht
 ccc   h0=-thrm(2)+srht+trht
       el0=elh*1d-3
-      cpfac=sha*rho * ch*vsm
+      ! cpfac=sha*rho * ch*vsm
       qsats=qsat(ts,lhe,pres)
       dqdt = dqsatdt(ts,lhe)*qsats
-      epen=(dqdt*h0+cpfac*(qsats-qs))/(el0*dqdt+sha)
+      ! epen=(dqdt*h0+cpfac*(qsats-qs))/(el0*dqdt+sha)
+      epen=(dqdt*h0+sha*rho*ch*
+     &      ( vsh*(qsats-qs)-(vsh-vsh0)*qprime ))/(el0*dqdt+sha)
       aepp=epen*dt
       abetap=1.d0
       if (aepp.gt.0.d0) abetap=(aevapw+aevapd+aevapb)/aepp

@@ -51,6 +51,7 @@ C****
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG,ij_dskin
+     *     ,ij_gusti,ij_mccon
 #ifndef NO_HDIURN
      *     ,hdiurn
 #endif
@@ -131,6 +132,12 @@ C****
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
       USE SOIL_DRV, only: earth
+
+      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
+!@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
+!@var TDN1 downdraft temperature flux in K, (i,j)
+!@var QDN1 downdraft humidity flux in kg/kg, (i,j)
+
 
       IMPLICIT NONE
       integer rc
@@ -722,10 +729,17 @@ C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RCDQWS=CQ*pbl_args%WSH*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
-      SHEAT=SHA*RCDHWS*(TS-TG)
+      ! SHEAT=SHA*RCDHWS*(TS-TG)
+      ! Including gustiness in the sensible heat flux:
+      SHEAT=SHA*CH*RHOSRF*( pbl_args%WSH*(TS-TG)
+     &   +(pbl_args%WSH-pbl_args%wsh0)*pbl_args%tprime)
       BETAUP = BETA
       IF (QSRF .GT. QG_SAT) BETAUP = 1.
-      EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QSRF-QG_SAT)
+      ! EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QSRF-QG_SAT)
+      ! Including gustiness in the latent heat flux:
+      EVHEAT=(LHE+TG1*SHV)*BETAUP*CQ*RHOSRF*(
+     &     pbl_args%WSH*(QSRF-QG_SAT)
+     &   +(pbl_args%WSH-pbl_args%wsh0)*pbl_args%qprime)
       TRHEAT=TRHR(0,I,J)-STBO*(TG*TG)*(TG*TG)
 C****
 !!!      SELECT CASE (ITYPE)
@@ -752,7 +766,11 @@ C****
 ! heat flux on first/second/third layers (W/m^2)
         F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
         F2 = SRHEAT*FSRI(2)
-        EVHEAT = LHE*RCDQWS*(QSRF-QG_SAT) ! latent heat flux (W/m^2)
+        ! EVHEAT = LHE*RCDQWS*(QSRF-QG_SAT) ! latent heat flux (W/m^2)
+        ! Including gustiness in the latent heat flux:
+        EVHEAT=LHE*CQ*RHOSRF*(
+     &     pbl_args%WSH*(QSRF-QG_SAT)
+     &   +(pbl_args%WSH-pbl_args%wsh0)*(QDN1(i,j)-Q1))
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         dSNdTG=-RCDHWS*SHA
         dQGdTG=QG_SAT*DQSATDT(TG,ELHX) ! d(QG)/dTG
@@ -1063,6 +1081,9 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSRF*PTYPE
           AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TG1*PTYPE
           AIJ(I,J,IJ_PBLHT)=AIJ(I,J,IJ_PBLHT)+pbl_args%dbl*PTYPE
+          if(DDMS(I,J).lt.0.) ! ddms < 0 for down draft
+     *         AIJ(I,J,ij_mccon)=AIJ(I,J,ij_mccon)+ptype
+          AIJ(I,J,IJ_GUSTI)=AIJ(I,J,IJ_GUSTI)+pbl_args%gusti*PTYPE
 
           if (ITYPE==1)
      *         AIJ(I,J,IJ_DSKIN)=AIJ(I,J,IJ_DSKIN)+pbl_args%dskin

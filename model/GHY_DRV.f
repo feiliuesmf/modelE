@@ -723,6 +723,7 @@ c****
      *     ,sha,tf,rhow,deltx,stbo
       use model_com, only : t,p,q,dtsrc,nisurf,jdate
      *     ,jday,jhour,nday,itime,jeq,u,v
+     *     ,im,jm
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
       use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
@@ -740,6 +741,7 @@ c****
      &    tbcs,af0dt,af1dt,
      &    qm1,qs,
      &    pres,rho,ts,vsm,ch,srht,trht
+     &   ,vsh,vsh0,tprime,qprime
 
       use veg_drv, only: veg_save_cell,veg_set_cell
 
@@ -1055,6 +1057,10 @@ c  define extra variables to be passed in surfc:
       veg_pres = ps
       rho   =rhosrf
       vsm   =pbl_args%ws
+      vsh   =pbl_args%wsh
+      vsh0  =pbl_args%wsh0
+      tprime  =pbl_args%tprime
+      qprime  =pbl_args%qprime
       veg_vsm = pbl_args%ws
       ch    =cdh
       veg_ch = cdh
@@ -1283,6 +1289,7 @@ c***********************************************************************
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
+     &     ,ij_gusti,ij_mccon
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -1312,6 +1319,7 @@ c***********************************************************************
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
 
       use ghy_com, only : gdeep, fearth
+      USE CLOUDS_COM, only : DDMS
 
  !     USE SOCPBL, only : dtsurf         ! zgs,     ! global
  !    &     ,us,vs,ws,wsm,psi,dbl    ! ,edvisc=>kms
@@ -1360,7 +1368,7 @@ c***********************************************************************
       REAL*8 :: tmp(:)
 
 ccc the following values are returned by PBL
-      real*8 us,vs,ws,wsm,psi,dbl,khs,ug,vg,wg
+      real*8 us,vs,ws,wsm,psi,dbl,khs,ug,vg,wg,gusti
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,wsgcm,wspdf
@@ -1375,6 +1383,7 @@ ccc the following values are returned by PBL
       ug = pbl_args%ug
       vg = pbl_args%vg
       wg = pbl_args%wg
+      gusti = pbl_args%gusti
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       wsgcm=pbl_args%wsgcm
@@ -1503,6 +1512,9 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
         aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
         aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dbl*ptype
+        if(DDMS(I,J).lt.0.)   ! ddms < 0 for down draft
+     *     AIJ(I,J,ij_mccon)=AIJ(I,J,ij_mccon)+ptype
+        aij(i,j,ij_gusti)=aij(i,j,ij_gusti)+gusti*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
 

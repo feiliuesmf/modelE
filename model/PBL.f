@@ -78,9 +78,12 @@ c**** Don''t use global variables for that purpose !
         real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
         real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
         real*8 tg,elhx,qsol,sss_loc
+     &        ,tprime,qprime
         logical :: pole,ocean
+        ! inout:
+        real*8 gusti
         ! output:
-        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin
+        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin,wsh0
         ! the following args needed for diagnostics
         real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
 #ifdef TRACERS_ON
@@ -331,6 +334,11 @@ c  internals:
 #endif
 #endif
 
+      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
+!@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
+!@var TDN1 downdraft temperature flux in K, (i,j)
+!@var QDN1 downdraft humidity flux in kg/kg, (i,j)
+
       implicit none
 
       !-- in/out structure
@@ -355,8 +363,11 @@ c**** local vars for input from pbl_args
       real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
       real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
       logical :: ocean
+c**** local vars for input/output from/to pbl_args
+      real*8 :: gusti
 c**** local vars for output to pbl_args
       real*8 :: us,vs,wsm,wsh,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm
+      real*8 :: wsh0
 c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
@@ -517,8 +528,12 @@ c estimate net flux and ustar_oc from current tg,qg etc.
 #else
         if(t(2).lt.t(1)) then !convective
           wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
-          wstar2h = wstar3**twoby3
+          ! wstar2h = wstar3**twoby3
+          ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421:
+          gusti=pbl_args%gusti ! defined in PBL_DRVmc1.f
+          wstar2h = gusti*gusti
         else
+          gusti=0.
           wstar3=0.
           wstar2h = 0.
         endif
@@ -533,7 +548,11 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
 #endif
 
-        wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
+        ! Inclusion of gustiness in surface fluxes
+        ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
+
+        wsh0 = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
+        wsh =  sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat)
@@ -977,6 +996,7 @@ c**** copy output to pbl_args
       pbl_args%ws = wsm  !!! what the difference between wsm and ws ?
       pbl_args%wsm = wsm
       pbl_args%wsh = wsh
+      pbl_args%wsh0 = wsh0
       pbl_args%tsv = tsv
       pbl_args%qsrf = qsrf
       pbl_args%cm = cm
@@ -988,6 +1008,7 @@ c**** copy output to pbl_args
       pbl_args%khs = khs
       pbl_args%ustar = ustar
       pbl_args%zgs = zgs
+      pbl_args%gusti = gusti
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       pbl_args%wsgcm=wsgcm

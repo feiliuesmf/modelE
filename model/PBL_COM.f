@@ -44,7 +44,7 @@
 !@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
       REAL*8, allocatable, dimension(:,:) ::
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,tgvavg,qgavg
-     &    ,w2_l1
+     &    ,w2_l1,gustiwind
       REAL*8, allocatable, dimension(:,:,:) :: ustar_pbl
 
 !@var egcm  3-d turbulent kinetic energy in the whole atmosphere
@@ -316,6 +316,9 @@ C****
       vflux(:,J_0H:J_1H) = 0. 
       tflux(:,J_0H:J_1H) = 0. 
       qflux(:,J_0H:J_1H) = 0. 
+
+      ALLOCATE( gustiwind(im,J_0H:J_1H),STAT=IER)
+      gustiwind(:,J_0H:J_1H) = 0.
 
       END SUBROUTINE ALLOC_PBL_COM
 

@@ -4644,7 +4644,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
-      kmaplets = 55
+      kmaplets = 57
       nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags +
      *     2*cloud_rad_forc
       nmaps = 2
@@ -4667,7 +4667,7 @@ C**** standard printout
      *  ij_icecld,  ij_optdi,   ij_cldtpt,   !        row 2
      *  ij_cldcv1,  ij_cldt1p,  ij_cldt1t,   ! pg  9  row 1
      *  ij_pcldl,   ij_pcldm,   ij_pcldh,    !        row 2
-     *  ij_pblht                         /)  ! pg  10 row 1
+     *  ij_pblht,   ij_gusti,   ij_mccon /)  ! pg  10 row 1
 
 C**** include ISCCP diags if requested
       if (isccp_diags.eq.1) then
