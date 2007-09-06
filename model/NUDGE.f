@@ -21,6 +21,7 @@ c *****************************************************************
       REAL*8 :: tau
 !@param  anudgeu anudgev relaxation constant
       REAL*8 :: anudgeu = 0., anudgev = 0.
+      LOGICAL :: first = .true.
 
       END MODULE NUDGE_COM
 
@@ -127,12 +128,13 @@ c -----------------------------------------------------------------
 
         endif  ! step = 1460
 C-----------------------------------------------------------------------
-      if (mod(itime,nday/4).eq.0.) then
+      if (first .or. mod(itime,nday/4).eq.0.) then
            vn1(:,:,:) = vn2(:,:,:)
            un1(:,:,:) = un2(:,:,:)
            step_rea = INT( (((jday - 1) * 24) + jhour)/6) + 2
             if (step_rea.eq.1461.) step_rea = 1
            call read_ana(step_rea)
+           first=.false.
       endif
 C-----------------------------------------------------------------------
       tau  = mod(itime,nday/4)/float(nday/4)
