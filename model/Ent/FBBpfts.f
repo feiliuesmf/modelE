@@ -54,7 +54,8 @@
 !     &     ,100d0                !Vcmax, Sellers II (1996)
 !     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
 !     &     ,45.d0                !Vcmax, best fit guess, see plots of 07/09/2007.
-     &     ,60.d0                !Vcmax, best fit guess, see plots of 08/10/2007.
+     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
+!     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
 !     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum

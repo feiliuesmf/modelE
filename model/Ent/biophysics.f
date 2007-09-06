@@ -234,7 +234,7 @@
       type(veg_par_type) :: vegpar !Vegetation parameters
 
 #ifdef DEBUG
-      print *,"Started photosynth_cond" ! with patch:"
+      print *,"Started photosynth_cond FK" ! with patch:"
       !call patch_print(6,pp," ")
 #endif
 

@@ -74,21 +74,30 @@
      &     ,sunlitshaded)
       implicit none
       integer,intent(in) :: pft
-      real*8,intent(in) :: IPAR
+      real*8,intent(in) :: IPAR !umol m-2 s-1
       type(psdrvtype) :: psp
-      real*8,intent(in) :: ca, Gb
+      real*8,intent(in) :: ca !Ambient air CO2 (umol mol-1)
+      real*8,intent(in) :: Gb !mol m-2 s-1
       real*8,intent(out) :: gsout, Aout, Rdout !ci in psp
       integer,intent(in) :: sunlitshaded
       !---Local---
-      real*8 :: ci
+      real*8 :: ci, cs
+      real*8,parameter :: LOW_LIGHT_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
       
 !      call Collatz(pft,IPAR,psp%cf,psp%Tc,psp%Pa,psp%rh,psp%ci,
 !     &     gsout,Aout)
 
-      call Photosynth_analyticsoln(pft,IPAR,ca,ci,
+!      if (IPAR.lt.LOW_LIGHT_LIMIT) then
+!        Rdout = Respveg(pftpar(pft)%Nleaf,psp%Tc)  !Should be only leaf respiration!
+!        Aout = 0.d0
+!        cs = ca - (Aout-Rdout)*1.37d0/Gb
+!        gsout = BallBerry(Aout, psp%rh, cs, psp) 
+!        psp%ci = ca             !Dummy assignment, no need to solve for ci 
+!      else
+        call Photosynth_analyticsoln(pft,IPAR,ca,ci,
      &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
-      psp%ci = ci  !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
-
+        psp%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
+!      endif
       end subroutine pscondleaf
 
 !-----------------------------------------------------------------------------
@@ -100,7 +109,7 @@
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
       real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1) 
-      real*8,intent(in) :: ca   !Ambient air CO2 concentration (umol mol-1)      
+      real*8,intent(in) :: ca   !Ambient air CO2 mole fraction (umol mol-1)      
       real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
       real*8,intent(in) :: rh   !Relative humidity
       real*8,intent(in) :: Pa   !Pressure (Pa)
@@ -119,7 +128,7 @@
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
 
       call calc_Pspar(pft, Pa, Tl, O2pres, pspar)
-      Rd = Respveg(pspar,Tl)  !Should be only leaf respiration!
+      Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
       
       call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, Cie, Je1)
       call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, Cic, Jc1)
@@ -129,6 +138,7 @@
       if (Atot.lt.0.d0) then 
         write(997,*) "Error, Atot<0.0:",Je1,Jc1,Js1,ca,gb,rh,IPAR,Pa,
      &       pspar,sunlitshaded
+        Atot = 0.d0
 !        return
       endif
 
@@ -136,8 +146,10 @@
         Cip = Cie
       else if (Atot.eq.Jc1) then
         Cip = Cic
-      else 
+      else if (Atot.eq.Js1) then
         Cip = Cis
+      else !Atot was set to 0.d0 due to low light
+        Cip = max(0.d0, Cie)
       endif
 
       Anet = Atot - Rd
@@ -194,12 +206,12 @@
       call calc_Pspar(pft, Pa, Tl, O2pres, pspar)
 
       Atot = Farquhar(IPAR,ci*Pa*1.d-06,O2pres,Tl,pspar) 
-      Anet = Atot - Respveg(pspar,Tl)
+      Anet = Atot - Respveg(pspar%Nleaf,Tl)
 
       gs = BallBerry(Atot, rh, cs, pspar)
 
 #ifdef DEBUG
-      write(96,*) "IPAR",IPAR,Atot,Anet,Respveg(pspar,Tl),gs
+      write(96,*) "IPAR",IPAR,Atot,Anet,Respveg(pspar%Nleaf,Tl),gs
 #endif
 !      if (if_ci.eq.1) ci = calc_ci(ca, gb, gs, Anet, IPAR, pspar)
 
@@ -234,7 +246,7 @@
 !      end subroutine load_metdata
 !-----------------------------------------------------------------------------
 
-      function Respveg(pspar,Tl) Result(Rd)
+      function Respveg(Nleaf,Tl) Result(Rd)
       !@sum Respveg Autotrophic respiration (umol-CO2 m-2[leaf] s-1)
       !Rd = dark respiration = mitochondrial respiration =
       !  growth respiration(activity) + maintenance respiration (biomass)
@@ -242,7 +254,8 @@
       !Need to distinguish aboveground respiration for leaf Ci vs. roots.
 
       implicit none
-      type(photosynthpar) :: pspar
+!      type(photosynthpar) :: pspar
+      real*8,intent(in) :: Nleaf !(g-N/m^2 leaf) leaf nitrogen 
       real*8,intent(in) :: Tl !Leaf temperature (Celsius)
       real*8 :: Rd  !Autotrophic respiration (umol-CO2 m-2[leaf] s-1)
 !      integer :: p
@@ -258,7 +271,7 @@
 !     &     *exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
       !N(g m-2) per LAI from Ponca Ntot/LA, get mean 1st 120 days of season 2.47 g/m-2[leaf]
       !The Harley relation is an order of magnitude too small.
-      Rd = pspar%Nleaf * exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
+      Rd = Nleaf * exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
 
 !      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
       end function Respveg
@@ -489,7 +502,7 @@
       b = pspar%b
       gammam = pspar%Gammastar * 1.d06/Pa !Convert Pa to umol/mol
 
-!#define USE_IGORS_CUBIC
+#define USE_IGORS_CUBIC
 #ifndef USE_IGORS_CUBIC
 
       X = b*(1.37d0*rb)**2.d0 - (m*rh - 1.65d0)*1.37d0*rb 
@@ -515,6 +528,13 @@
       call cubicroot(c3, c2, c1, c, cixx, nroots)
       if ( nroots<1 ) call stop_model("ci_cubic: no solution",255)
       ci = maxval( cixx(1:3) )
+
+!#DEBUG
+      cs_ = ca - A_*C3_*rb
+      write(992,*) "A,ca,cs,gs, pspar%pft, cixx,ci",
+     &     a1*(ci - gamol)/(e1*ci + f1) - Rd, ca,cs_,
+     &     m * (a1*(ci - gamol)/(e1*ci + f1) - Rd)*rh/cs_ + b,
+     &     pspar%pft, cixx,ci
 
 #else
       e = e1
@@ -595,7 +615,8 @@
      -      Rd*(C6*ca + C6*Ra*Rd - ca*m*rh + ci*m*rh - m*Ra*Rd*rh))
       print *,"RES= ", res_, c + c1*ci + c2*ci**2 + c3*ci**3
       print '(a,i3,i3,4e15.4)',"PLOT", i, pspar%pft, ci, A_, cs_, rs_
-
+      write(994,*) "A_1,A2,cs,rs,res_,i, pspar%pft, ci, A_, cs_, rs_",
+     &     A_1,A2,cs,rs,res_,i, pspar%pft, ci, A_, cs_, rs_
       !!! uncomment these 2 lines to check all roots
       !enddo
       !ci = c_1
@@ -815,7 +836,7 @@
       call calc_Pspar(pft, Pa, Tl, O2conc*Pa*1.d-06, pspar)
 
       Anet = Farquhar(IPAR,ci*Pa*1.d-06,O2conc*Pa*1.d-06,Tl,pspar) 
-     &     - Respveg(pspar,Tl)
+     &     - Respveg(pspar%Nleaf,Tl)
 
       end function Farquhar_standalone
 !-----------------------------------------------------------------------------
