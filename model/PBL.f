@@ -372,6 +372,7 @@ c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
+      real*8 :: wsh02
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
@@ -525,17 +526,17 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         else
           wstar2h = 0.
         endif
+        gusti=0.
 #else
         if(t(2).lt.t(1)) then !convective
           wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
-          ! wstar2h = wstar3**twoby3
-          ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421:
-          gusti=pbl_args%gusti ! defined in PBL_DRVmc1.f
-          wstar2h = gusti*gusti
+          wstar2h = wstar3**twoby3
+          ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
+          gusti=pbl_args%gusti ! defined in PBL_DRV.f
         else
-          gusti=0.
           wstar3=0.
-          wstar2h = 0.
+          wstar2h=0.
+          gusti=0.
         endif
 #endif
 
@@ -551,8 +552,9 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         ! Inclusion of gustiness in surface fluxes
         ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
 
-        wsh0 = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
-        wsh =  sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
+        wsh02=(u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h
+        wsh0=sqrt(wsh02)
+        wsh=sqrt(wsh02+gusti*gusti)
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat)
@@ -590,7 +592,6 @@ c estimate net flux and ustar_oc from current tg,qg etc.
 
 c**** cannot update wsh without taking care that wsh used for tracers is
 c**** the same as that used for q
-c      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
       wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
 
