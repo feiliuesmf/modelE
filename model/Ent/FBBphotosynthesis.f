@@ -5,6 +5,7 @@
       !stomatal conductance (Ball and Berry, 1985, 1987).
       
       use FarquharBBpspar
+      use ent_const
 
       implicit none
       private
@@ -14,8 +15,8 @@
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
-      real*8,parameter :: Kelvin = 273.15d0
-      real*8,parameter :: Rgas = 8.314510d0 !gas constant (8.314510 J/mol K)
+!      real*8,parameter :: Kelvin = 273.15d0
+      real*8,parameter :: Rgas = gasc !8.314510d0 !gas constant (8.314510 J/mol K)
       real*8,parameter :: Kc = 30.0       !Michaelis-Menten coeff.constant for CO2 (Pa), Collatz (1991)
       real*8,parameter :: Ko = 3.d4       !Michaelis-Menten coeff.constant for O2 (Pa), Collatz (1991)
       real*8,parameter :: KcQ10 = 2.1d0   !Kc Q10 exponent, Collatz (1991)
@@ -94,10 +95,16 @@
 !        gsout = BallBerry(Aout, psp%rh, cs, psp) 
 !        psp%ci = ca             !Dummy assignment, no need to solve for ci 
 !      else
-        call Photosynth_analyticsoln(pft,IPAR,ca,ci,
+      call Photosynth_analyticsoln(pft,IPAR,ca,ci,
      &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
-        psp%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
+      psp%ci = ci               !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
 !      endif
+        
+      !Biological limits for gs - cuticular conductance?
+      if(gsout.lt.(0.00006d0*psp%Pa/(gasc*(psp%Tc+KELVIN)))) then
+        gsout=0.00006d0*psp%Pa/(gasc*(psp%Tc+KELVIN))
+      endif
+
       end subroutine pscondleaf
 
 !-----------------------------------------------------------------------------
@@ -286,7 +293,7 @@
       !----Local-----
       real*8,parameter :: tau=2600.d0  !CO2/O2-specificity ratio
 
-      Gammastar = O2/(2.d0*tau*Q10(0.57d0,Tl)) !Collatz (A3) 
+      Gammastar = O2/(2.d0*tau*Q10fn(0.57d0,Tl)) !Collatz (A3) 
 
       end function calc_CO2compp
 !-----------------------------------------------------------------------------
@@ -445,14 +452,14 @@
       return
       end function arrhenius
 !=================================================
-      function Q10(Q10par,Tcelsius) Result(Q10factor)
+      function Q10fn(Q10par,Tcelsius) Result(Q10factor)
       !@sum From Collatz, et al. (1991)
       implicit none
       real*8 :: Q10par, Tcelsius,Q10factor
 
       Q10factor = Q10par**((Tcelsius-25.d0)/10.d0)
 
-      end function Q10
+      end function Q10fn
 !=================================================
 
       function Tresponse(c,deltaH,Tcelsius) Result(Tfactor)
@@ -758,10 +765,10 @@
       pspar%PARabsorb = pftpar(p)%PARabsorb !Collatz et al. (1991)
       !pspar%Vcmax = pftpar(p)%Vcmax/(1 + exp((-220.e03+703.*(Tl+Kelvin))
 !     &     /(Rgas*(Tl+Kelvin))))
-      pspar%Vcmax = pftpar(p)%Vcmax * Q10(2.21d0, Tl)
+      pspar%Vcmax = pftpar(p)%Vcmax * Q10fn(2.21d0, Tl)
 
-      pspar%Kc = Kc*Q10(KcQ10,Tl) !(Collatz, eq. A12)
-      pspar%Ko = Ko*Q10(KoQ10,Tl) !(Collatz, eq. A12)
+      pspar%Kc = Kc*Q10fn(KcQ10,Tl) !(Collatz, eq. A12)
+      pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
       pspar%Gammastar = calc_CO2compp(O2pres,Tl) !(Pa) (Collatz)
       pspar%m = pftpar(p)%m     !Slope of Ball-Berry equation (Collatz)
       pspar%b = pftpar(p)%b     !Intercept of Ball-Berry equation (mol m-2 s-1) (Collatz)

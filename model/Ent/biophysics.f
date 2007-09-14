@@ -668,9 +668,11 @@
 ! Net canopy photosynthesis at saturating CiPa (umol/m[ground]2/s).
       Anet_max=max(Amax-Rcan,0.d0)
 !----------------------------------------------------------------------!
-! Humidity deficit across canopy surface (kg/kg).
-      qvsat = QSAT(tk,2500800.-2360.*tk*(101325./prpa)**(gasc/cp),pres)
-      dQs=qvsat-Qf_IN
+! Humidity deficit across canopy surface (inside leaf to leaf surface) (kg/kg).
+!      qvsat = QSAT(tk,2500800.-2360.*tk*(101325./prpa)**(gasc/cp),pres) !Wrong previous -NK 9/14/07
+!      qvsat = QSAT(tk,LHE0+(SHV100-SHW25)*(tk-KELVIN),pres)
+      qvsat = QSAT(tk,LHEW,pres)
+      dQs= qvsat-Qf_IN
       if(dQs.lt.zero)dQs=zero
 !----------------------------------------------------------------------!
 ! New equilibrium canopy conductance to moisture (m/s). 
@@ -967,7 +969,8 @@
       Anet_max=max(Amax-Rcan,0.d0)
 !----------------------------------------------------------------------!
 ! Humidity deficit across canopy surface (kg/kg).
-      qvsat = QSAT(tk,2500800.-2360.*tk*(101325./prpa)**(gasc/cp),pres)
+!      qvsat = QSAT(tk,2500800.-2360.*tk*(101325./prpa)**(gasc/cp),pres) !Wrong previous - NK 09/14/07
+      qvsat = QSAT(tk,2500800.-2360.*(tk-KELVIN),pres)
       dQs=qvsat-Qf_IN
       if(dQs.lt.zero)dQs=zero
 !----------------------------------------------------------------------!
@@ -1600,28 +1603,56 @@
 
 !##############################################################################
 
-      real*8 FUNCTION QSAT (TM,QL,PR)
-      implicit none
-!@sum  QSAT calculates saturation vapour mixing ratio (kg/kg)
+      FUNCTION QSAT (TM,LH,PR)
+!@sum  QSAT calculates saturation vapour mixing ratio
 !@auth Gary Russell
 !@ver  1.0
 !      USE CONSTANT, only : mrat,rvap,tf
-!      IMPLICIT NONE
+      IMPLICIT NONE
+!@var Physical constants from GISS GCM CONST.f
+      real*8, parameter :: MWAT = 18.015d0 !molecular weight of water vapour (g/mol)
+      real*8, parameter :: MAIR = 28.9655d0 !molecular weight of dry air (28.9655 g/mol)
+      real*8, parameter :: MRAT = MWAT/MAIR 
+      real*8, parameter :: RVAP = 1d3 * GASC/MWAT !gas constant for water vapour (461.5 J/K kg)
 !@var A,B,C   expansion coefficients for QSAT
-      REAL*8, PARAMETER :: A=3.797915e0    !3.797915d0
-      REAL*8, PARAMETER :: B=7.93252e-6    !7.93252d-6
-      REAL*8, PARAMETER :: C=2.166847e-3         !2.166847d-3
-      real*8 :: TM, QL, PR
-!**** Note that if QL is considered to be a function of temperature, the
-!**** correct argument in QSAT is the average QL from t=0 (C) to TM, ie.
-!**** QL = 0.5*(QL(0)+QL(t))
-!      REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
-!      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
-!     REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
-!      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
-      QSAT = A*EXP(QL*(B-C/TM))/PR
+      REAL*8, PARAMETER :: A=6.108d0*MRAT    !3.797915d0
+      REAL*8, PARAMETER :: B= 1./(RVAP*TF)   !7.93252d-6
+      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
+C**** Note that if LH is considered to be a function of temperature, the
+C**** correct argument in QSAT is the average LH from t=0 (C) to TM, ie.
+C**** LH = 0.5*(LH(0)+LH(t))
+      REAL*8, INTENT(IN) :: TM  !@var TM   temperature (K)
+      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
+      REAL*8, INTENT(IN) :: LH  !@var LH   lat. heat of vap./sub. (J/kg)
+      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
+      QSAT = A*EXP(LH*(B-C/max(130.d0,TM)))/PR
       RETURN
       END FUNCTION QSAT
+
+!======================================================================!
+
+!     real*8 FUNCTION QSATold (TM,QL,PR)
+!      implicit none
+!!@sum  QSAT calculates saturation vapour mixing ratio (kg/kg)
+!!@auth Gary Russell
+!!@ver  1.0
+!!      USE CONSTANT, only : mrat,rvap,tf
+!!      IMPLICIT NONE
+!!@var A,B,C   expansion coefficients for QSAT
+!      REAL*8, PARAMETER :: A=3.797915e0    !3.797915d0
+!      REAL*8, PARAMETER :: B=7.93252e-6    !7.93252d-6
+!      REAL*8, PARAMETER :: C=2.166847e-3         !2.166847d-3
+!      real*8 :: TM, QL, PR
+!!**** Note that if QL is considered to be a function of temperature, the
+!!**** correct argument in QSAT is the average QL from t=0 (C) to TM, ie.
+!!**** QL = 0.5*(QL(0)+QL(t))
+!!      REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
+!!      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
+!!     REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
+!!      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
+!      QSAT = A*EXP(QL*(B-C/TM))/PR
+!      RETURN
+!      END FUNCTION QSATold
 !======================================================================!
 
 

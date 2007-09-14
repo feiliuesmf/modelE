@@ -81,10 +81,10 @@
      &          R_rootsum  !PK 5/15/07
       real*8 :: molconc_to_umol
 
-!#ifdef DEBUG
+#ifdef DEBUG
       print *,"Started photosynth_cond in FBB" ! with patch:"
       !call patch_print(6,pp," ")
-!#endif
+#endif
 
       if ( .NOT.ASSOCIATED(pp%tallest)) then ! bare soil
         pp%TRANS_SW = 1.d0
@@ -794,7 +794,7 @@
         abssl=0.0D0
         fracsl=0
       endif
-      TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
+      TRANS_SW = ((1-fracsl)*abssh + fracsl*abssl)
 !      write(110,*) TRANS_SW,I0dr,I0df,abssh, abssl, sbeta, sigma, kbl
 
 
@@ -902,7 +902,7 @@
       else
          RCL=layers  ! convert to real*8
          DEL=(L2-L1)/RCL !Canopy LAI for radiative transfer.
-         DELc=(L2c-L1c)/RCL !Canopy LAI for radiative transfer.
+         DELc=(L2c-L1c)/RCL !Cohort LAI for radiative transfer.
          X=L1+0.5D0*DEL
          SUM=0.D0
          SUMg=0.d0

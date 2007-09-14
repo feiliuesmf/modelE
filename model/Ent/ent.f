@@ -216,7 +216,7 @@
      &         pp%cellptr%coszen,
      &         pp%tallest%pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
      &         pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
-     &         pp%GPP,pp%R_auto,pp%Soil_resp,
+     &         pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
      &         pp%NPP,pp%CO2flux,pp%GCANOPY,
      &         pp%tallest%senescefrac
           if (pp%GPP.lt.0.d0) then

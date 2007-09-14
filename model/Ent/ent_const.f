@@ -17,12 +17,16 @@
       !************************************************************************
       !* NUMERICAL CONSTANTS
       real*8,parameter :: PI = 3.1415926535897932d0 !@param pi    pi
-      real*8,parameter :: zero = 0d0
+      real*8,parameter :: zero = 0.d0
 
       !************************************************************************
-      !* PHYSICAL CONSTANTS
+      !* PHYSICAL CONSTANTS - may set these equal to constants of GCM.
       real*8,parameter :: stbo =5.67051d-8 !Stefan-Boltzman (W/m2/K4)
-      real*8,parameter :: lhe = 2.5d6 !Latent heat evap (2.5008d6 J/kg)
+      real*8,parameter :: lhe0 = 2.5008d6 !Latent heat evap at 0 oC (2.5008d6 J/kg)
+      real*8,parameter :: lhew = 2.260d6 !Latent heat evap at 100 oC (J/kg)
+      real*8,parameter :: shv100 = 2080.d0 !Specific heat of water vapor @ 100 oC (J kg-1 K-1)
+      real*8,parameter :: shw25 = 4181.3d0 !Specific heat of water liquid @ 25 oC (J kg-1 K-1) (Wiki)
+      real*8,parameter :: shw20 = 4185.d0 !Specific heat of water liquid @ 20 oC (J kg-1 K-1) (GISS GCM)
       real*8,parameter :: rhow = 1d3  !Density of pure water (1000 kg/m^3)
       real*8,parameter :: tfrz = 273.16d0 !freezing pt of H2O at 1 atm (Kelvin)
       real*8,parameter :: KELVIN = tfrz
