@@ -92,12 +92,12 @@
 !        Rdout = Respveg(pftpar(pft)%Nleaf,psp%Tc)  !Should be only leaf respiration!
 !        Aout = 0.d0
 !        cs = ca - (Aout-Rdout)*1.37d0/Gb
-!        gsout = BallBerry(Aout, psp%rh, cs, psp) 
+!        gsout = pftpar(pft)%b
 !        psp%ci = ca             !Dummy assignment, no need to solve for ci 
 !      else
-      call Photosynth_analyticsoln(pft,IPAR,ca,ci,
-     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
-      psp%ci = ci               !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
+        call Photosynth_analyticsoln(pft,IPAR,ca,ci,
+     &       psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
+        psp%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
 !      endif
         
       !Biological limits for gs - cuticular conductance?
