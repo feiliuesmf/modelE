@@ -2384,7 +2384,10 @@ C**** special one unique to HTO
           jls_ltop(k) = LM
           jls_power(k) = -2.
           units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end select
 #ifdef GFED_3D_BIOMASS
+        select case(trname(n))
+        case('NOx','CO','Alkenes','Paraffin')
           k = k + 1
           jls_3Dsource(nBiomass,n) = k
           sname_jls(k) = 'bburn_source_of'//trname(n)
@@ -2392,8 +2395,8 @@ C**** special one unique to HTO
           jls_ltop(k) = LM
           jls_power(k) = -2.
           units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
         end select
+#endif
 
       case ('DMS')
         k = k + 1
