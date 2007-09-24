@@ -4708,6 +4708,10 @@ c
       jgrid_ijk(k) = 1
 #endif
       if (AM_I_ROOT()) then
+         if (k .gt. kaijk) then
+            write (6,*) 'ijk_defs: Increase kaijk=',kaijk,' to ',k
+            call stop_model( 'kaijk too small', 255 )
+         end if
          write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
          if(.not.qcheck) return
          do kk=1,k
