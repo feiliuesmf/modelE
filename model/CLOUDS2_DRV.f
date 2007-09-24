@@ -28,7 +28,7 @@
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
-     *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,
+     *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
@@ -47,7 +47,6 @@
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
      *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
      *     ,ij_3dlwm,ij_3dlws,ij_3dlim,ij_3dlis
-     *     ,aijk
      *     ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
      *     ,ij_wmclwp,ij_wmctwp
      *     ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis

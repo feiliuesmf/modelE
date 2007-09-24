@@ -951,7 +951,7 @@ C     OUTPUT DATA
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
      *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
-     *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk,ijl_cf
+     *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk=>aijk_loc,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
      &     ,adiurn_dust,j_trnfp0,j_trnfp1
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
@@ -1931,14 +1931,14 @@ C****
       FSF(1,I,J)=FSRNFG(1)   !  ocean
       FSF(2,I,J)=FSRNFG(3)   !  ocean ice
       FSF(3,I,J)=FSRNFG(4)   !  land ice
-      FSF(4,I,J)=FSRNFG(2)   !  soil       
+      FSF(4,I,J)=FSRNFG(2)   !  soil
       SRHR(0,I,J)=SRNFLB(1)
       TRHR(0,I,J)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4+
      +  PEARTH*TGE**4)-TRNFLB(1)
-      TRSURF(1,I,J) = STBO*TGO**4  !  ocean     
-      TRSURF(2,I,J) = STBO*TGOI**4  !  ocean ice 
-      TRSURF(3,I,J) = STBO*TGLI**4  !  land ice  
-      TRSURF(4,I,J) = STBO*TGE**4  !  soil      
+      TRSURF(1,I,J) = STBO*TGO**4  !  ocean
+      TRSURF(2,I,J) = STBO*TGOI**4  !  ocean ice
+      TRSURF(3,I,J) = STBO*TGLI**4  !  land ice
+      TRSURF(4,I,J) = STBO*TGE**4  !  soil
       DO L=1,LM
         SRHR(L,I,J)=SRFHRL(L)
         TRHR(L,I,J)=-TRFCRL(L)

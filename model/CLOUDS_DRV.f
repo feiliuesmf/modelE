@@ -28,7 +28,7 @@
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
-     *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,
+     *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
@@ -105,7 +105,7 @@
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only : AQsulfRATE
-#endif  
+#endif
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer rc
@@ -168,7 +168,7 @@ C**** parameters and variables for isccp diags
       integer itau,itrop,nbox,ibox
 C****
 
-C 
+C
 Cred*                       Reduced Arrays 1                 *********
 C        not clear yet whether they still speed things up
       REAL*8  GZIL(IM,LM), SD_CLDIL(IM,LM), WMIL(IM,LM)
@@ -213,9 +213,9 @@ C**** define local grid
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
 
-C 
+C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
-C 
+C
 C     Burn random numbers from latitudes to the south
       CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*LP50*3)
 
@@ -238,7 +238,7 @@ C
 C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
       CALL HALO_UPDATE(GRID,U,from= NORTH)
       CALL HALO_UPDATE(GRID,V,from= NORTH)
-C 
+C
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
       VC=V
@@ -316,11 +316,11 @@ C****
 !$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,WM1,WMI)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
-C 
+C
       DO J=J_0,J_1
-C 
+C
 Cred* Reduced Arrays 2
-C 
+C
         DXYPJ=DXYP(J)
       DO L=1,LM
          GZIL(:,L) = GZ(:,J,L)
@@ -524,8 +524,8 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
             tmp(IDD_PR)  =+PRCPMC
-            tmp(IDD_ECND)=+HCNDMC  
-            tmp(IDD_MCP) =+PRCPMC  
+            tmp(IDD_ECND)=+HCNDMC
+            tmp(IDD_MCP) =+PRCPMC
             tmp(IDD_DMC) =+CLDDEPIJ
             tmp(IDD_SMC) =+CLDSLWIJ
             hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
@@ -732,8 +732,8 @@ C**** Accumulate diagnostics of LSCOND
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              tmp(IDD_PR)  =+PRCPSS
-             tmp(IDD_ECND)=+HCNDSS  
-             tmp(IDD_SSP) =+PRCPSS  
+             tmp(IDD_ECND)=+HCNDSS
+             tmp(IDD_SSP) =+PRCPSS
              hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
              adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
@@ -1043,16 +1043,16 @@ Cred*       end Reduced Arrays 3
 C**** END OF MAIN LOOP FOR INDEX J
 !$OMP  END PARALLEL DO
 C****
-C 
+C
 C     WAS THERE AN ERROR IN SUBSID ??
-C 
+C
       IF(ICKERR.NE.0)  THEN
          WRITE(6,*)  'SUBSID ERROR: ABS(C) > 1'
          call stop_model('SUBSID ERROR: ABS(C) > 1',255)
       END IF
-C 
+C
 C     WAS THERE AN ERROR IN ISCCP CLOUD TYPING ??
-C 
+C
       IF(JCKERR.NE.0)  THEN
          WRITE(6,*)  'ISCCP CLOUD TYPING ERROR'
          call stop_model('ISCCP CLOUD TYPING ERROR',255)
@@ -1088,7 +1088,7 @@ C**** Delayed summations (to control order of summands)
             END DO
          END DO
       END IF
-         
+
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX3
           ivar = idx3(ii)
@@ -1101,9 +1101,9 @@ C**** Delayed summations (to control order of summands)
         END DO
       END DO
 
-C 
+C
 C     NOW REALLY UPDATE THE MODEL WINDS
-C 
+C
 
       CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
@@ -1121,7 +1121,7 @@ C
           END DO
         END DO
       ENDIF
-C 
+C
 C**** Initialize dummy work arrays
 
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
@@ -1168,7 +1168,7 @@ C**** First half of loop cycle for j=j_1 for internal blocks
         ENDIF
       END DO       !LM
 !$OMP  END PARALLEL DO
-C 
+C
 CAOO      J=JM
       IF(HAVE_NORTH_POLE) THEN
         DO K=1,IM  !  KMAXJ(J)
