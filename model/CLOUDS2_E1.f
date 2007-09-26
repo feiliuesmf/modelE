@@ -942,7 +942,7 @@ C****
 C**** ENTRAINMENT
 C****
       IF(IC.EQ.2.OR.(IC.EQ.1.AND.PL(L).GE.800.)) THEN
-      FENTR=CONTCE1*ETAL(L)*FPLUME   ! optional scaling 
+      FENTR=CONTCE1*ETAL(L)*FPLUME   ! optional scaling
       IF(FENTR+FPLUME.GT.1.) FENTR=1.-FPLUME
       IF(FENTR.LT.teeny) GO TO 293
       ETAL1=FENTR/(FPLUME+teeny)
@@ -1426,6 +1426,8 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       DSMOM(xymoms,LDMIN)=DSMOM(xymoms,LDMIN) + SMOMDN(xymoms)
       DQM(LDMIN)=DQM(LDMIN)+QMDN
       DQMOM(xymoms,LDMIN)=DQMOM(xymoms,LDMIN) + QMOMDN(xymoms)
+      TDNL(LDMIN)=SMDN*PLK(LDMIN)/(DDRAFT+teeny)
+      QDNL(LDMIN)=QMDN/(DDRAFT+teeny)
 #ifdef TRACERS_ON
       DTM(LDMIN,1:NTX) = DTM(LDMIN,1:NTX) + TMDN(1:NTX)
       DTMOM(xymoms,LDMIN,1:NTX) = DTMOM(xymoms,LDMIN,1:NTX) +
@@ -3243,7 +3245,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.20 2007/09/26 00:33:20 ialeinov Exp $
+!$Id: CLOUDS2_E1.f,v 1.21 2007/09/26 14:11:50 cdmsy Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
