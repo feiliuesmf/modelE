@@ -109,6 +109,7 @@ C**** input variables
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
      *     ,FSSL,FSUB,FCONV,FMCL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL
      *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
+     *     ,QDNL,TDNL
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -303,7 +304,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
-     *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT
+     *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT,QDNL,TDNL
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
 #ifdef CLD_AER_CDNC
      *  ,ACDNWM,ACDNIM,ACDNWS,ACDNIS
@@ -603,6 +604,8 @@ C**** zero out diagnostics
          DQCOND=0.
          DGDQM=0.
          DDMFLX=0.
+         TDNL=0.
+         QDNL=0.
 C**** save initial values (which will be updated after subsid)
       SM1=SM
       QM1=QM
@@ -3240,7 +3243,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.19 2007/08/21 19:14:18 gavin Exp $
+!$Id: CLOUDS2_E1.f,v 1.20 2007/09/26 00:33:20 ialeinov Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
