@@ -207,6 +207,7 @@ C**** get rundeck parameter for cosmogenic source factor
 ! general case:
         call num_srf_sources(n,ntsurfsrc(n))
 ! special cases: 
+#ifdef TRACERS_SPECIAL_Shindell
         if(trname(n) == 'CH4')then
          if(use_rad_ch4 /= 0)then
            ntsurfsrc(n) = 0
@@ -219,6 +220,7 @@ C**** get rundeck parameter for cosmogenic source factor
 #endif
          endif
         endif 
+#endif
       enddo
 
 C**** Define individual tracer characteristics
@@ -9265,7 +9267,10 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,itime,coupled_chem,fearth0,focean,flake0
       USE DOMAIN_DECOMP, only : grid, get, write_parallel
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
-     & n_CH4,sfc_src,ntsurfsrc,ntm_chem,ssname
+#ifdef TRACERS_SPECIAL_Shindell
+     & ntm_chem,
+#endif
+     & n_CH4,sfc_src,ntsurfsrc,ssname
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      * ,aer_int_yr,imAER
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
