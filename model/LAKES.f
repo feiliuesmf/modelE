@@ -838,13 +838,14 @@ C**** Check for special case:
             IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).ge.
      &           0.95d0*(FLAKE(ID,JD)+FEARTH(ID,JD))) THEN
               MWLSILLD = RHOW*(HLAKE(ID,JD)+BYGRAV*MAX(ZATMO(IU,JU)
-     *             -ZATMO(ID,JD),0d0))*DXYP(JD)
+     *             -ZATMO(ID,JD),0d0))*DXYP(JD)*FLAKE(ID,JD)
               IF (MWL(ID,JD)-MWLSILLD.gt.0) THEN  ! potential back flux
               IF (FLAKE(IU,JU).gt.0) THEN
-                IF (MWL(ID,JD)-MWLSILLD+DXYP(JD)*(MWL(IU,JU)-MWLSILL)
-     *               /(FLAKE(IU,JU)*DXYP(JU)).gt.0) THEN
-                  DMM=-(MWL(ID,JD)-MWLSILLD+DXYP(JD)*(MWL(IU,JU)-MWLSILL
-     *                 )/(FLAKE(IU,JU)*DXYP(JU)))*URATE*DTsrc ! <0
+                IF (MWL(ID,JD)-MWLSILLD-FLAKE(ID,JD)*DXYP(JD)*(MWL(IU,JU
+     *               )-MWLSILL)/(FLAKE(IU,JU)*DXYP(JU)).gt.0) THEN
+                  DMM=-(MWL(ID,JD)-MWLSILLD-FLAKE(ID,JD)*DXYP(JD)
+     *                 *(MWL(IU,JU)-MWLSILL)/(FLAKE(IU,JU)*DXYP(JU)))
+     *                 *URATE*DTsrc  ! <0
                   rvrfl=.true.
                 END IF
               ELSE
