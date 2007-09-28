@@ -625,8 +625,11 @@ ccc I think the following will do the same and will be compatible with SCM
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
 #else
-      grd_dum%J_STRT_HALO = MAX(1,  grd_dum % J_STRT - 1)
-      grd_dum%J_STOP_HALO = MIN(JM, grd_dum % J_STOP + 1)
+      ! I guess we don't need HALO in SCM mode...
+      !grd_dum%J_STRT_HALO = MAX(1,  grd_dum % J_STRT - 1)
+      !grd_dum%J_STOP_HALO = MIN(JM, grd_dum % J_STOP + 1)
+      grd_dum%J_STRT_HALO = MAX(1,  grd_dum % J_STRT)
+      grd_dum%J_STOP_HALO = MIN(JM, grd_dum % J_STOP)
 #endif
 
 cddd      IF (RANK_LAT > 0) THEN
