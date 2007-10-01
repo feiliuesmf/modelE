@@ -150,9 +150,9 @@ c#endif
 ! Aerosol Water [ug/m3]
 
 c aval [m3/gb] mass of air pro m3      
-      AVOL = am(l,i,j)*dxyp(j)/mair*1000.d0*gasc*
-     *      (pk(l,i,j)*t(i,j,l)) /(pmid(l,i,j)     *100.)
-      trm(i,j,l,n_AW) = YO(1,12) *AVOL * 1.d-9
+c      AVOL = am(l,i,j)*dxyp(j)/mair*1000.d0*gasc*
+c     *      (pk(l,i,j)*t(i,j,l)) /(pmid(l,i,j)     *100.)
+c      trm(i,j,l,n_AW) = YO(1,12) *AVOL * 1.d-9
 
 #ifdef  TRACERS_SPECIAL_Shindell
 ! Nitric Acid residual
