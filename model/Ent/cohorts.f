@@ -54,39 +54,40 @@
         ! >>>>
         ! Nancy, make sure that you distinguish between = and =>
         ! in the following code
+        !changed '=' to '=>' to avoid memory faults -PK 9/28/07
         if (ASSOCIATED(pp%shortest)) then !A. There are other cohorts.
           if (pp%shortest%h.ge.newc%h) then !newc is shortest
-            pp%shortest%shorter = newc
-            newc%taller = pp%shortest
-            pp%shortest = newc
+            pp%shortest%shorter => newc  !changed = to => -PK 9/28/07 
+            newc%taller => pp%shortest
+            pp%shortest => newc
           else if (pp%tallest%h.lt.newc%h) then !newc is tallest
-            pp%tallest%taller = newc
-            newc%shorter = pp%tallest
-            pp%tallest = newc
+            pp%tallest%taller => newc  
+            newc%shorter => pp%tallest
+            pp%tallest => newc
           else !newc is neither tallest nor shortest
-            cop = pp%shortest
+            cop => pp%shortest
             do while (cop%h.lt.newc%h) !find next taller cohort
-              cop = cop%taller
+              cop => cop%taller
             end do
-            newc%taller = cop
-            newc%shorter = cop%shorter
-            newc%shorter%taller = newc
-            cop%shorter = newc
+            newc%taller => cop
+            newc%shorter => cop%shorter
+            newc%shorter%taller => newc
+            cop%shorter => newc
           end if
           !Now parse through csp's
-          csp = newc%taller
+          csp => newc%taller
           if (ASSOCIATED(csp)) then
             do while (csp%pft.ne.newc%pft)
               if (ASSOCIATED(csp%taller).and.(csp%pft.ne.newc%pft)) then
-                csp = csp%taller
+                csp => csp%taller
               else
                 exit !exit loop
               end if
             end do
             if (csp%pft.eq.newc%pft) then !1.newc is not tallest csp
-              newc%csptaller = csp
-              newc%cspshorter = csp%cspshorter
-              csp%cspshorter = newc
+              newc%csptaller => csp
+              newc%cspshorter => csp%cspshorter
+              csp%cspshorter => newc
             else !2. no taller con-specifics
               nullify(newc%csptaller)
             end if
@@ -94,20 +95,20 @@
             nullify(newc%csptaller)
           end if
           if (.NOT.ASSOCIATED(newc%cspshorter)) then !Case 1 did not hold
-            csp = newc%shorter
+            csp => newc%shorter
             if (ASSOCIATED(csp)) then
               do while (csp%pft.ne.newc%pft)
                 if (ASSOCIATED(csp%shorter).and.
      &               (csp%pft.ne.newc%pft)) then
-                  csp = csp%shorter
+                  csp => csp%shorter
                 else
                   exit
                 end if
               end do
               if (csp%pft.eq.newc%pft) then !4. newc is not shortest csp
-                newc%cspshorter = csp
-                newc%csptaller = csp%csptaller
-                csp%csptaller = newc
+                newc%cspshorter => csp
+                newc%csptaller => csp%csptaller
+                csp%csptaller => newc
               else !5. no shorter con-specifics
                 nullify(newc%cspshorter)
               end if
