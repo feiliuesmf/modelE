@@ -6971,10 +6971,10 @@ C**** set some defaults
 #ifdef TRACERS_NITRATE
         select case (trname(n))
         case ('HNO3')
-          g=g+1; itcon_3Dsrc(nHetchem,N) = g
-          qcon(itcon_3Dsrc(nHetchem,N)) = .true.
+          g=g+1; itcon_3Dsrc(nOther,N) = g
+          qcon(itcon_3Dsrc(nOther,N)) = .true.
           conpts(g-12)='Nitrate Chemistry'
-          qsum(itcon_3Dsrc(nHetchem,N)) = .true.
+          qsum(itcon_3Dsrc(nOther,N)) = .true.
         end select
 #endif
         do kk=1,ntsurfsrc(n)
