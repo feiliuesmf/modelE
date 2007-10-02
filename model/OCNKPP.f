@@ -1122,6 +1122,9 @@ C**** Save surface values
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
      *     ,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
+#ifdef TRACERS_OCEAN
+     *     ,toijl=>toijl_loc,toijl_wtfl
+#endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
 #ifdef TRACERS_OCEAN
      *     ,trmo1,txmo1,tymo1
@@ -1651,6 +1654,10 @@ C**** Diagnostics for non-local transport and vertical diffusion
 c         OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
 c         OIJL(I,J,L,IJL_KVGG) = OIJL(I,J,L,IJL_KVGG) + AKVG(L)*GHATG(L)
 c         OIJL(I,J,L,IJL_KVSG) = OIJL(I,J,L,IJL_KVSG) + AKVS(L)*GHATS(L)
+#ifdef TRACERS_OCEAN
+C**** vertical diffusive tracer flux
+         TOIJL(I,J,L,TOIJL_WTFL,:)=TOIJL(I,J,L,TOIJL_WTFL,:)+FLT(L,:)
+#endif
        END DO
 C**** Also set vertical diagnostics
        DO L=1,LMIJ

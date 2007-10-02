@@ -73,6 +73,7 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO,KTOIJL,NTM)    :: TOIJL
 !@var toijl_xxx indices for TOIJL diags
       INTEGER, PARAMETER :: toijl_conc=1,toijl_tflx=2,toijl_gmfl=6
+     *     ,toijl_wtfl=10
 !@var TLNST strait diagnostics
       REAL*8, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST
 #endif
