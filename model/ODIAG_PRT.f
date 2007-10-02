@@ -1421,7 +1421,7 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
      *               *DYPO(J) *(ZE(L)-ZE(L-1)))
                 XBG(J,L,1)= 1d-6*(OIJL(I,J,L,IJL_GFLX)+OIJL(I,J,L
      *               ,IJL_GGMFL))/(IDACC(1)*DTS*DYPO(J)*(ZE(L)-ZE(L-1)))
-                XBS(J,L,1)= 1d-6*(OIJL(I,J,L,IJL_MFU)+OIJL(I,J,L
+                XBS(J,L,1)= 1d-6*(OIJL(I,J,L,IJL_SFLX)+OIJL(I,J,L
      *               ,IJL_SGMFL))/(IDACC(1)*DTS*DYPO(J)*(ZE(L)-ZE(L-1)))
               ELSE
                 XB0(J,L,1)=undef
