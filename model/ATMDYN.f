@@ -360,8 +360,9 @@ C**** and convert to WSAVE, units of m/s):
       USE MODEL_COM, only: im,jm,lm,itime,dt,byim
       USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
       USE TRACER_ADV
-      USE TRDIAG_COM, only:
-     &  jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,TAJLN=>TAJLN_loc
+      USE TRDIAG_COM, only: TAJLN=>TAJLN_loc, TAIJN=>TAIJN_LOC,
+     *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
+     *     tij_uflx,tij_vflx 
       IMPLICIT NONE
       REAL*8 DTLF,byncyc
       INTEGER N
@@ -371,7 +372,11 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
         IF (itime.LT.itime_tr0(N)) cycle
         sfbm = 0.; sbm = 0.; sbf = 0.
         sfcm = 0.; scm = 0.; scf = 0.
+        safv = 0.; sbfv = 0. 
+
         CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
+
+C**** Flux diagnostics
         byncyc = 1./ncyc
         TAJLN(:,:,jlnt_nt_tot,n) = TAJLN(:,:,jlnt_nt_tot,n) + sbf(:,:)
         TAJLN(:,:,jlnt_nt_mm, n) = TAJLN(:,:,jlnt_nt_mm, n)
@@ -379,6 +384,13 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
         TAJLN(:,:,jlnt_vt_tot,n) = TAJLN(:,:,jlnt_vt_tot,n) + scf(:,:)
         TAJLN(:,:,jlnt_vt_mm, n) = TAJLN(:,:,jlnt_vt_mm, n)
      &    + scm(:,:)*sfcm(:,:)*byim*byncyc
+
+#ifdef TRACERS_WATER
+C**** vertically integrated atmospheric fluxes
+        TAIJN(:,:,tij_uflx,n) = TAIJN(:,:,tij_uflx,n) + safv(:,:)
+        TAIJN(:,:,tij_vflx,n) = TAIJN(:,:,tij_vflx,n) + sbfv(:,:)
+#endif
+
       ENDDO
       RETURN
       END SUBROUTINE TrDYNAM

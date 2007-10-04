@@ -24,9 +24,8 @@
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
       integer :: l,k,n
-      character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10, DIMENSION(NTM) :: CMR,CMRWT
-      logical :: qcon(KTCON-1), T=.TRUE. , F=.FALSE.
+      logical :: T=.TRUE. , F=.FALSE.
       character*50 :: unit_string
 
 C**** Get itime_tr0 from rundeck if it exists
@@ -407,6 +406,34 @@ C**** Tracers conc. in land snow water
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
         end if
         scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+C**** Tracer ice-ocean flux
+      k = k+1
+      tij_icocflx = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_ic_oc_flx'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Ice-Ocean Flux'
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)-5,'kg/m^2/s')
+        end if
+        scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
+C**** Tracers integrated E-W atmospheric flux
+      k = k+1
+      tij_uflx = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_uflx'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' E-W Atmos Flux'
+        units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
+        scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
+C**** Tracers integrated E-W atmospheric flux
+      k = k+1
+      tij_vflx = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_vflx'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' N-S Atmos Flux'
+        units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
+        scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.
@@ -1435,7 +1462,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       integer,dimension(ntm) :: jdlast2=0
       integer :: iu,ns
       integer, intent(in) :: nsrc,n
-      character*80 :: title,fname
+      character*80 :: fname
       character*2 :: fnum
       character(len=300) :: out_line
       logical,dimension(ntm,ntsurfsrcmax) :: ifirst2=.true.
@@ -1502,7 +1529,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       implicit none
 
       integer, intent(in) :: iu,n,ns
-      integer :: n1,n2,error
+      integer :: error
       character*80 :: message,header
       character(len=300) :: out_line
 
@@ -1545,9 +1572,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
       integer, intent(in) :: n,ns
       integer :: n1,n2,error
-      character*80 :: message,header
       character*(*) str
-      character(len=300) :: out_line
 
       n1 = scan( str,'=')         ! freq
       if(str(1:n1-1) /= 'freq')error=2

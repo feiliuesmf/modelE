@@ -1069,18 +1069,11 @@ C****
       USE TRDIAG_COM, only : taijln, taijn, taijs, sname_ijt, lname_ijt,
      *     units_ijt, ir_ijt, ia_ijt, scale_ijt, sname_tij, lname_tij,
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
-     *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, ijts_index
+     *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, ijts_index,
+     *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
+     *     tij_uflx, tij_vflx
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
-#endif
-#ifdef TRACERS_DRYDEP
-     *     ,tij_drydep, tij_gsdep
-#endif
-#ifdef TRACERS_COSMO
-     *     ,tij_surf
-#endif
-#ifdef TRACERS_WATER
-     *     ,tij_grnd, tij_prec
 #endif
       USE DIAG_SERIAL, only : MAPTXT
       IMPLICIT NONE
@@ -1171,7 +1164,8 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
         aij1(:,:,k) = taijn(:,:,l,n)
         aij2(:,:,k) = 1.
 #ifdef TRACERS_WATER
-        if (to_per_mil(n).gt.0 .and. l.ne.tij_mass) then
+      if (to_per_mil(n).gt.0 .and. l.ne.tij_mass .and. l.ne.tij_uflx
+     *         .and. l.ne.tij_vflx) then
         aij1(:,:,k)=1d3*(taijn(:,:,l,n)-taijn(:,:,l,n_water)*trw0(n))
         aij2(:,:,k)=taijn(:,:,l,n_water)*trw0(n)
         ijtype(k) = 3

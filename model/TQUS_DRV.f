@@ -7,8 +7,11 @@
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: NSTEPX1, NSTEPX2
       INTEGER, ALLOCATABLE, DIMENSION(:,:)   :: NSTEPZ
       INTEGER NSTEPY(LM,NCMAX), NCYC
+C**** zonal mean diags
       REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: sfbm,sbm,sbf,
      *                                          sfcm,scm,scf
+C**** vertically integrated fluxes
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: safv,sbfv
 
       contains
 
@@ -104,7 +107,8 @@ ccc   mflx(:,:,:)=pu(:,:,:)
       ENDDO
 !$OMP  END PARALLEL DO
 
-      call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx1(J_0H,1,n))
+      call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx1(J_0H,1,n),
+     &    safv)
 
 ccc   mflx(:,:,:)=pv(:,:,:)
 !$OMP  PARALLEL DO PRIVATE (L)
@@ -114,7 +118,7 @@ ccc   mflx(:,:,:)=pv(:,:,:)
 !$OMP  END PARALLEL DO
 
       call aadvqy (rm,rmom,ma,mflx,qlimit,tname,nstepy(1,n),
-     &    sbf,sbm,sfbm)
+     &    sbf,sbm,sfbm,sbfv)
 
 ccc   mflx(:,:,:)=sd(:,:,:)
 !$OMP  PARALLEL DO PRIVATE (L)
@@ -133,17 +137,18 @@ ccc   mflx(:,:,:)=pu(:,:,:)
       ENDDO
 !$OMP  END PARALLEL DO
 
-      call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(J_0H,1,n))
+      call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(J_0H,1,n),
+     *     safv)
       end do
 
 C**** deal with vertical polar box diagnostics outside ncyc loop
       if (HAVE_SOUTH_POLE) then
 !$OMP  PARALLEL DO PRIVATE (L)
-      do l=1,lm-1
-        sfcm(1 ,l) = fim*sfcm(1 ,l)
-        scm (1 ,l) = fim*scm (1 ,l)
-        scf (1 ,l) = fim*scf (1 ,l)
-      end do
+        do l=1,lm-1
+          sfcm(1 ,l) = fim*sfcm(1 ,l)
+          scm (1 ,l) = fim*scm (1 ,l)
+          scf (1 ,l) = fim*scf (1 ,l)
+        end do
 !$OMP  END PARALLEL DO
       endif
       if (HAVE_NORTH_POLE) then
@@ -152,7 +157,7 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
           sfcm(jm,l) = fim*sfcm(jm,l)
           scm (jm,l) = fim*scm (jm,l)
           scf (jm,l) = fim*scf (jm,l)
-      end do
+        end do
 !$OMP  END PARALLEL DO
       endif
 
@@ -411,7 +416,8 @@ ccc   MA(:,:,:) = MB(:,:,:)
       end MODULE TRACER_ADV
 
 
-      subroutine aadvQx(rm,rmom,mass,mu,qlimit,tname,nstep)
+      subroutine aadvQx(rm,rmom,mass,mu,qlimit,tname,nstep,
+     *     safv)
 !@sum  AADVQX advection driver for x-direction
 !@auth Maxwell Kelley; modified by J. Lerner
 c****
@@ -439,6 +445,8 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
      &                                         rmom
       logical ::  qlimit
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
+      REAL*8, intent(out),
+     *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: safv
       character*8 tname
       integer :: nstep(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
       integer :: i,j,l,ierr,nerr,ns,ICKERR,ICKERR_LOC
@@ -475,10 +483,17 @@ c****
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(a) > 1"
         if (ierr.eq.2) ICKERR_LOC=ICKERR_LOC+1
       end if
+
+! store tracer flux in safv array
+      safv(:,j) = safv(:,j) + f_i(:) 
+
       enddo ! ns
       enddo ! j
       enddo ! l
 !$OMP  END PARALLEL DO
+
+      If (HAVE_NORTH_POLE) safv(:,jm) = 0. ! no horizontal flux at poles
+      If (HAVE_SOUTH_POLE) safv(:,1) = 0.  
 C
       CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvQx',11)
@@ -489,7 +504,7 @@ c****
 
 
       subroutine aadvQy(rm,rmom,mass,mv,qlimit,tname,nstep,
-     &   sbf,sbm,sfbm)
+     &   sbf,sbm,sfbm, sbfv)
 !@sum  AADVQY advection driver for y-direction
 !@auth Maxwell Kelley; modified by J. Lerner
 c****
@@ -522,6 +537,8 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       REAL*8, intent(out), 
      &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      &                                         sfbm,sbm,sbf
+      REAL*8, intent(out),
+     *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
       character*8 tname
       integer :: i,j,l,ierr,ns,nstep(lm),ICKERR, ICKERR_LOC
       integer :: err_loc(3)
@@ -657,15 +674,18 @@ c**** average and unscale polar boxes
       end do ! time step
 
       do l=1,lm
-        do j=J_0,J_1S           !diagnostics
+        do j=J_0,J_1S           ! zonal mean diagnostics
           sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j,l)/(mv(:,j,l)+teeny))
           sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
           sbf (j,l) = sbf (j,l) + sum(fqv(:,j,l))
-        enddo
+        end do
       end do
-      
 
-
+      do l=1,lm                 ! vert. integrated diagnostics
+        do j=J_0,J_1S
+            sbfv (:,j) = sbfv (:,j) + fqv(:,j,l)
+        end do
+      end do
 C
       CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.NE.0)  call stop_model('Stopped in aadvQy',11)
@@ -1083,6 +1103,9 @@ C****
      *          sfcm(J_0H:J_1H,LM),
      *           scm(J_0H:J_1H,LM),
      *           scf(J_0H:J_1H,LM) )
+
+      ALLOCATE( safv(IM,J_0H:J_1H),
+     *          sbfv(IM,J_0H:J_1H) )
 
       END SUBROUTINE ALLOC_TRACER_ADV
 

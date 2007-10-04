@@ -944,7 +944,7 @@ C**** weighting functions for surface types
 
       REAL*8 :: HSUMJ(JM),HWTJ(JM),HSUMJ2(JM)
 
-      INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
+      INTEGER :: I,IACC,J,JH,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
      *     ,iu_Ibp
       character*80 line
       logical, save :: Qbp(0:NTYPE_OUT)
@@ -1704,7 +1704,7 @@ Cbmp - ADDED
       REAL*8, PARAMETER :: ONE=1.
 
       INTEGER ::
-     &     I,IX,J,J1,JH,JHEMI,K,K1,KDN,KM,KUP,L,LR,M,N
+     &     I,IX,J,J1,JH,K,K1,KDN,KM,KUP,L,LR,M,N
 
       REAL*8 ::
      &     BDN,BUP,BYDP2,BYDPK,BYFSQ,BYIADA,
@@ -3254,7 +3254,7 @@ C****
       CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
-      INTEGER :: IWORD,J,JH,JHEMI,K,L  ,ksx,klmax
+      INTEGER :: IWORD,J,JH,K,L  ,ksx,klmax
       REAL*8 :: FGLOB,GSUM,SDSIG,SUMFAC
 
       REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
@@ -3469,7 +3469,7 @@ cBMP - added
       CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
-      INTEGER :: IWORD,J,JHEMI,K,L
+      INTEGER :: IWORD,J,K,L
       REAL*8 :: FGLOB,GSUM,SUMFAC,GVWT
 
       REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
@@ -4541,7 +4541,7 @@ cBMP - added
       real*8, dimension(jm) :: sumjA, wtA
 cBMP - added
 
-      integer k,i,j,jgrid,isumz,isumg,jhemi
+      integer k,i,j,jgrid,isumz,isumg
 
 
 c**** find smap,smapj  from the numerators and denominators
@@ -5119,8 +5119,8 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       CHARACTER*4, PARAMETER :: HEMIS(2) = (/' SH ',' NH '/),
      *     DASH = ('----')
 
-      INTEGER :: j,jhemi,jnh,jp1,jpm,jsh,jv1,jvm,jx,n
-      REAL*8 :: aglob,ahem,feq,fnh,fsh,days
+      INTEGER :: j,jhemi,jnh,jp1,jpm,jv1,jvm,jx,n
+      REAL*8 :: aglob,ahem,days
 
 
 C**** CALCULATE SCALING FACTORS
@@ -6366,7 +6366,7 @@ cddd     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 cddd      ALLOCATE(tmp(IM, J_0H:J_1H))
 cddd
 cddd      wt_ij(:,:,1) = 1.
-      wt_ij(:,:,:) = NaN
+      wt_ij(:,:,:) = 1.  ! NaN
       !!CALL PACK_DATA(GRID, focean, wt_ij(:,:,2))
       !!CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))  ! not correct
       !!CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))

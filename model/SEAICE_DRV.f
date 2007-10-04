@@ -22,6 +22,7 @@
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,flag_dsws,pond_melt
 #ifdef TRACERS_WATER
      *     ,ntm,trsi
+      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,ij_f0oi,j_imelt,j_smelt
@@ -122,6 +123,10 @@ c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+ERUN *POICE  ! ==0
           AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SRUN0)*POICE
 c         AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN*POICE       ! ==0
           AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUN0*POICE
+#ifdef TRACERS_WATER
+          TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+     *                    +TRUN0(:)*POICE
+#endif
         END IF
 
 C**** Accumulate regional diagnostics
@@ -293,6 +298,7 @@ C****
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
+      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE LAKES_COM, only : flake
       USE FLUXES, only : sss,melti,emelti,smelti,gtemp,mlhc,fwsim
@@ -366,6 +372,10 @@ C**** accumulate diagnostics
              AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SALT)*PWATER
              AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)-ENRGUSED*PWATER
              AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SALT*PWATER
+#ifdef TRACERS_WATER
+             TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+     *                                        +TRUN0(:)*PWATER
+#endif
            END IF
 
            AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED*ROICE*PWATER
@@ -433,6 +443,7 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
+      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE LAKES_COM, only : mwl,gml,flake
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
@@ -592,6 +603,10 @@ C**** snow cover diagnostic now matches that seen by the radiation
      *           *POICE
             AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUNOSI(I,J)*POICE
             AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUNOSI(I,J)*POICE
+#ifdef TRACERS_WATER
+            TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+     *                                       +TRUNOSI(I,J,:)*POICE
+#endif
           END IF
 
           AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
@@ -634,6 +649,7 @@ C****
       USE GEOM, only : imaxj,dxyp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
+      USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx, tij_seaice
 #endif
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,j_rsi,j_ace1,j_ace2,j_snow
@@ -643,7 +659,6 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
-      USE TRDIAG_COM, only : tij_seaice, taijn=>taijn_loc
 #endif
       USE FLUXES, only : dmsi,dhsi,dssi,gtemp,fwsim
 #ifdef TRACERS_WATER
@@ -729,6 +744,10 @@ C**** ice formation diagnostics on the atmospheric grid
      *         - POICE* ENRGFI
           AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO) - POCEAN* SALTO
      *         - POICE* SALTI
+#ifdef TRACERS_WATER
+          TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+     *                    - POCEAN*TRO(:) - POICE*TRI(:) 
+#endif
         END IF
 C**** open ocean diagnostics
         AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)-SALTO *POCEAN

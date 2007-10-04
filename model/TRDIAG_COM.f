@@ -67,9 +67,9 @@ C**** TAIJN
 #else
 #ifdef TRACERS_WATER
 #ifdef TRACERS_DRYDEP
-      integer, parameter :: ktaij=15
+      integer, parameter :: ktaij=18
 #else
-      integer, parameter :: ktaij=13
+      integer, parameter :: ktaij=16
 #endif
 #else
 #ifdef TRACERS_DRYDEP
@@ -81,17 +81,12 @@ C**** TAIJN
 #endif
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_surfbv,tij_mass
-#ifdef TRACERS_GASEXCH_Natassa
-      integer tij_gasx,tij_kw,tij_alpha
-#endif
-#ifdef TRACERS_WATER
 !@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
-     *     ,tij_lk2,tij_soil,tij_snow
-#endif
-#ifdef TRACERS_DRYDEP
-      integer tij_drydep,tij_gsdep
-#endif
+     *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx,tij_icocflx   
+      integer tij_gasx,tij_kw,tij_alpha  ! TRACERS_GASEXCH_Natassa
+      integer tij_drydep,tij_gsdep ! TRACERS_DRYDEP
+
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, allocatable, dimension(:,:,:,:)      :: taijn
       real*8, allocatable, dimension(:,:,:,:) :: taijn_loc

@@ -26,12 +26,13 @@
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,trsi0,ntm
+      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp,sss,fwsim,mlhc
       USE DIAG_COM, only : aij=>aij_loc, aregj=>aregj_loc, jreg,ij_smfx
      *     ,aj=>aj_loc,j_implh, j_implm, j_imelt, j_hmelt, j_smelt, NREG
-     *     , KAJ
+     *     , KAJ, ij_fwio
       IMPLICIT NONE
       SAVE
       logical :: off_line=.false.
@@ -143,7 +144,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL, INTENT(IN) :: end_of_day
 
-      INTEGER n,J,I,LSTMON,K,m,m1,JR
+      INTEGER n,J,I,LSTMON,m,m1,JR
       REAL*8 RSICSQ,ZIMIN,ZIMAX,Z1OMIN,RSINEW,TIME,FRAC,MSINEW,OPNOCN
      *     ,TFO
 !@var JDLAST julian day that OCLIM was last called
@@ -349,6 +350,9 @@ C**** accumulate diagnostics
               AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
      *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
+              AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)-(SNOWI(I,J)+ACE1I
+     *             -SUM(SSI(1:2,I,J)))*(RSINEW-RSI(I,J))-(RSINEW*MSINEW
+     *             -RSI(I,J)*MSI(I,J))*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
               AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
      *             *RSI(I,J)*(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
      *               /MSI(I,J))
@@ -361,6 +365,13 @@ C**** accumulate diagnostics
               AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-FOCEAN(I,J)
      *             *(RSINEW-RSI(I,J))*(SUM(HSI(1:2,I,J))+
      *             SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)))
+#ifdef TRACERS_WATER
+              DO N=1,NTM
+                TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
+     *            SUM(TRSI(N,1:2,I,J))*(RSINEW-RSI(I,J))-
+     *            SUM(TRSI(N,3:4,I,J))*(RSINEW*MSINEW/MSI(I,J)-RSI(I,J))
+              END DO
+#endif
             END IF
 C**** adjust enthalpy and salt so temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
@@ -475,6 +486,8 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
             MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
      *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
 C**** save diagnostics
+            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
+     *           -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))  
             AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*(MSINEW-MSI(I,J))
             AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
@@ -494,6 +507,13 @@ C**** save diagnostics
             AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)-
      *           FOCEAN(I,J)*RSI(I,J)
      *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYP(J)
+#ifdef TRACERS_WATER
+            DO N=1,NTM
+              TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
+     *           SUM(TRSI(N,1:2,I,J))*(RSINEW-RSI(I,J))-
+     *           SUM(TRSI(N,3:4,I,J))*(RSINEW*MSINEW/MSI(I,J)-RSI(I,J))
+            END DO
+#endif
 C**** update heat and salt
             HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
@@ -1071,16 +1091,16 @@ C****
       USE SEAICE, only : ace1i,lmi
       USE SEAICE_COM, only : rsi,msi,hsi,ssi,snowi
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : trsi
+      USE SEAICE_COM, only : trsi, ntm
+      USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx
 #endif
-
-      USE DIAG_COM, only : NREG, KAJ
       USE FLUXES, only : fwsim,msicnv,mlhc
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,J_IMPLM,J_IMPLH
-     *     ,jreg,aij=>aij_loc,j_imelt,j_hmelt,j_smelt
+     *     ,jreg,aij=>aij_loc,j_imelt,j_hmelt,j_smelt, ij_fwio, NREG,
+     *     KAJ 
       USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
-      INTEGER I,J,JR
+      INTEGER I,J,JR,N
       REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
       INTEGER :: J_0,J_1
 
@@ -1113,6 +1133,8 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
                 MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
      *               -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
 C**** save diagnostics 
+                AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
+     *               -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
                 AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*(MSINEW-MSI(I,J))
                 AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
@@ -1131,6 +1153,12 @@ C**** save diagnostics
                 AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)-
      *               FOCEAN(I,J)*RSI(I,J)
      *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPJ
+#ifdef TRACERS_WATER
+                DO N=1,NTM
+                  TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
+     *              SUM(TRSI(N,3:4,I,J))*RSI(I,J)*(MSINEW/MSI(I,J)-1.)
+                END DO
+#endif
 C**** update heat and salt
                 HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
                 SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
@@ -1202,7 +1230,6 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
-      INTEGER I,J
       REAL*8 :: AIJ_tmp_glob(IM,JM)
 
       SELECT CASE (IACTION)
