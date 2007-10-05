@@ -821,7 +821,7 @@ C     ENDIF
       WMAX=50.
       LHX=LHE
       MPLUME=MIN(AIRM(LMIN),AIRM(LMIN+1))
-      FMP2=.5*FMP2             ! use 1 hr adjustment time
+      FMP2=FMP2*min(1d0,DTsrc/3600.d0)    ! use 1 hr adjustment time
       IF(MPLUME.GT.FMP2) MPLUME=FMP2
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
       TTURB=HPBL/WTURB(LMIN)
