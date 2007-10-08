@@ -1,6 +1,4 @@
 #include "rundeck_opts.h"
-#define JJ(J) (J)-J_0H+1
-
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lerner/R. Ruedy/M. Kelley
 !@ver  1.0
@@ -124,7 +122,7 @@ C**** Some local constants
      *     ,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac,jl_epflxn,jl_epflxv
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
-      USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn,am
+      USE DYNAMICS, only : pk,phi,pmid,plij, pit,SD,pedn,am
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE,
@@ -659,7 +657,7 @@ C****
         PE=SIGE(L+1)*PIJ+PTOP
         PKE=PE**KAPA
         THETA=THBAR(T(I,J,L+1),T(I,J,L))
-        W(I,J,L)=SD(I,JJ(J),L)*THETA*PKE/PE
+        W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
       END DO
       END DO
       END DO
@@ -850,7 +848,7 @@ C**** VERTICAL TRANSPORT
       DO 878 J=J_0S,J_1S
       PITMN=0.
       DO 870 I=1,IM
-  870 PITMN=PITMN+PIT(I,JJ(J))
+  870 PITMN=PITMN+PIT(I,J)
       PITMN=PITMN/FIM
       DO 878 L=1,LM-1
       IF(L.GE.LS1-1) PITMN=0.
@@ -860,7 +858,7 @@ C**** VERTICAL TRANSPORT
       DO 872 I=1,IM
       DTHDP=DTHDP+T(I,J,L+1)-T(I,J,L)
       THMN=THMN+T(I,J,L+1)+T(I,J,L)
-  872 SDMN=SDMN+SD(I,JJ(J),L)
+  872 SDMN=SDMN+SD(I,J,L)
       SMALL=.0001*FIM*T(1,J,L+1)
 c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF (DTHDP.LT.SMALL) DTHDP=SMALL
@@ -881,9 +879,9 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF(L.GE.LS1) DP=(SIG(L)-SIG(L+1))*PSFMPT
       IF(L.EQ.LS1-1) DP=P(I,J)*SIG(L)-PSFMPT*SIG(LS1)
       PVTHP=PVTHP+DP*VPE*(T(I,J,L)+T(I,J,L+1)-THMN)
-      PITIJ=PIT(I,JJ(J))
+      PITIJ=PIT(I,J)
       IF(L.GE.LS1-1) PITIJ=0.
-      SDPU=SDPU+(SD(I,JJ(J),L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
+      SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
   874 IM1=I
       AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+
      &     (.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU
@@ -945,7 +943,7 @@ C****
      &      JK_DUDTTEM,JK_DTDTTEM,JK_EPFLXNCP,JK_EPFLXVCP,
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
-      USE DYNAMICS, only : phi,dut,dvt,plij,sd,pmid,pedn
+      USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP, only : HALO_UPDATEj
@@ -1386,7 +1384,7 @@ C**** INTERPOLATE HERE
  850        PUP=PL(L+1)
             IF (LUP.EQ.L) PUP=PM(K+1)
             DPK=DPK+(PDN-PUP)
-            SDK=SDK+(PDN-PUP)*SD(I,JJ(J),L)
+            SDK=SDK+(PDN-PUP)*SD(I,J,L)
             IF (LUP.EQ.L) GO TO 860
             L=L+1
             PDN=PL(L)

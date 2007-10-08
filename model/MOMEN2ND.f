@@ -1,5 +1,3 @@
-#define JJ(J) (J)-J_0H+1
-
       module MOMENTS
       implicit none
       private
@@ -407,15 +405,15 @@ C 310 I=IP1
       DO J=J_0S,J_1
          DO I=1,IM-1
            ASDU(I,J,L)=DT2*(
-     *                (SD(I,JJ(J-1),L)+SD(I+1,JJ(J-1),L))
+     *                (SD(I,J-1,L)+SD(I+1,J-1,L))
      *                 *RAVPN(J-1)+
-     *                (SD(I,JJ(J),L)+SD(I+1,JJ(J),L))
+     *                (SD(I,J,L)+SD(I+1,J,L))
      *                 *RAVPS(J) )
          END DO
            ASDU(IM,J,L)=DT2*(
-     *                (SD(IM,JJ(J-1),L)+SD(1,JJ(J-1),L))
+     *                (SD(IM,J-1,L)+SD(1,J-1,L))
      *                  *RAVPN(J-1)+
-     *                (SD(IM,JJ(J),L)+SD(1,JJ(J),L))
+     *                (SD(IM,J,L)+SD(1,J,L))
      *                  *RAVPS(J) )
       END DO
       END DO

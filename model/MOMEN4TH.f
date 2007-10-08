@@ -1,5 +1,3 @@
-#define JJ(J) (J)-J_0H+1
-
       module MOMENTS
       implicit none
       private
@@ -443,8 +441,8 @@ C     DO 310 L=1,LM-1
 C     DO 310 J=2,JM
 C     I=IM
 C     DO 310 IP1=1,IM
-C     SDU=DT2*((SD(I,JJ(J-1),L)+SD(IP1,JJ(J-1),L))*RAVPN(J-1)+
-C    *  (SD(I,JJ(J),L)+SD(IP1,JJ(J),L))*RAVPS(J))
+C     SDU=DT2*((SD(I,J-1,L)+SD(IP1,J-1,L))*RAVPN(J-1)+
+C    *  (SD(I,J,L)+SD(IP1,J,L))*RAVPS(J))
 C     DUT(I,J,L)  =DUT(I,J,L)  +SDU*(U(I,J,L)+U(I,J,L+1))
 C     DUT(I,J,L+1)=DUT(I,J,L+1)-SDU*(U(I,J,L)+U(I,J,L+1))
 C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
@@ -456,14 +454,14 @@ C 310 I=IP1
 cgsfc      DO J=2,JM
       DO J = J_0SG, J_1SG
          DO I=1,IM-1
-            ASDU(I,J,L)=DT2*((SD(I,JJ(J-1),L)+
-     *                        SD(I+1,JJ(J-1),L))
+            ASDU(I,J,L)=DT2*((SD(I,J-1,L)+
+     *                        SD(I+1,J-1,L))
      *      *RAVPN(J-1) +
-     *      (SD(I,JJ(J),L)+SD(I+1,JJ(J),L))*RAVPS(J))
+     *      (SD(I,J,L)+SD(I+1,J,L))*RAVPS(J))
          END DO
-         ASDU(IM,J,L)=DT2*((SD(IM,JJ(J-1),L)+SD(1,JJ(J-1),L))
+         ASDU(IM,J,L)=DT2*((SD(IM,J-1,L)+SD(1,J-1,L))
      *                *RAVPN(J-1)+
-     *                (SD(IM,JJ(J),L)+SD(1,JJ(J),L))*RAVPS(J))
+     *                (SD(IM,J,L)+SD(1,J,L))*RAVPS(J))
       END DO
       END DO
 !$OMP  END PARALLEL DO

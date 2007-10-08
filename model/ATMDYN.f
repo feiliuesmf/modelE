@@ -1,5 +1,4 @@
 #include "rundeck_opts.h"
-#define JJ(J) (J)-J_0H+1
 
       module ATMDYN
       implicit none
@@ -37,7 +36,6 @@
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP, only : LOG_PARALLEL
       USE DOMAIN_DECOMP, only : haveLatitude
       USE MOMENTS, only : advecv
       IMPLICIT NONE
@@ -678,64 +676,44 @@ C
 !$OMP  END PARALLEL DO
 C
 C**** COMPUTE PIT, THE PRESSURE TENDENCY
-CC    PIT(I,JJ(J))=CONV(I,J1)
-C     DO 2420 L=LM,2,-1
-C     IF (HAVE_SOUTH_POLE) PIT(1,JJ(1))=PIT(1,JJ(1))+CONV(1,1,L)
-C     IF (HAVE_NORTH_POLE) PIT(1,JJ(JM))=PIT(1,JJ(JM))+CONV(1,JM,L)
-C     DO 2420 J=J_0S,J_1S
-C     DO 2420 I=1,IM
-C2420 PIT(I,JJ(J))=PIT(I,JJ(J))+CONV(I,J,L)
+      PIT(:,J_0:J_1) = CONV(:,J_0:J_1,1)
+      SD(:,J_0:J_1,1:LM-1) = CONV(:,J_0:J_1,2:LM)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2420 J=J_0,J_1
          DO 2410 I=1,IMAXJ(J)
          DO 2410 L=LM-1,1,-1
-            PIT(I,JJ(J))=PIT(I,JJ(J))+SD(I,JJ(J),L)
+           PIT(I,J) = PIT(I,J) + SD(I,J,L)
  2410    CONTINUE
  2420 CONTINUE
 !$OMP  END PARALLEL DO
 C**** COMPUTE SD, SIGMA DOT                                             -------
-C     IF (HAVE_SOUTH_POLE) SD(1, JJ(1),LM-1)=CONV(1, JJ(1),LM)                     |
-C     IF (HAVE_NORTH_POLE) SD(1,JJ(J)M,LM-1)=CONV(1,JM,LM)             completely wasteful
-C     DO 2430 J=J_0S,J_1S                                                  |
-C     DO 2430 I=1,IM                                                       |
-C2430 SD(I,JJ(J),LM-1)=CONV(I,J,LM)                                         -------
-C     DO 2435 L=LM-2,LS1-1,-1
-C     IF (HAVE_SOUTH_POLE) SD(1,JJ( 1),L)=SD(1,JJ( 1),L+1)+CONV(1, 1,L+1)
-C     IF (HAVE_NORTH_POLE) SD(1,JJ(JM),L)=SD(1,JJ(JM),L+1)+CONV(1,JM,L+1)
-C     DO 2435 J=J_0S, J_1S
-C     DO 2435 I=1,IM
-C     SD(I,JJ( J),L)=SD(I,JJ( J),L+1)+CONV(I, J,L+1)
-C2435 CONTINUE
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2435 J=J_0,J_1
          DO 2430 I=1,IMAXJ(J)
          DO 2430 L=LM-2,LS1-1,-1
-            SD(I,JJ(J),L)=SD(I,JJ(J),L+1)+SD(I,JJ(J),L)
+            SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)
  2430    CONTINUE
  2435 CONTINUE
 !$OMP  END PARALLEL DO
-C     DO 2440 L=LS1-2,1,-1
-C     IF (HAVE_SOUTH_POLE) SD(1,JJ( 1),L)=SD(1,JJ( 1),L+1)+CONV(1, 1,L+1)-DSIG(L+1)*PIT(1,JJ( 1))
-C     IF (HAVE_NORTH_POLE) SD(1,JJ(JM),L)=SD(1,JJ(JM),L+1)+CONV(1,JM,L+1)-DSIG(L+1)*PIT(1,JJ(JM))
-C     DO 2440 J=J_0S,J_1S
-C     DO 2440 I=1,IM
-C     SD(I,JJ( J),L)=SD(I,JJ( J),L+1)+CONV(I, J,L+1)-DSIG(L+1)*PIT(I,JJ( J))
-C2440 CONTINUE
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2440 J=J_0,J_1
          DO 2438 I=1,IMAXJ(J)
          DO 2438 L=LS1-2,1,-1
-           SD(I,JJ(J),L)=SD(I,JJ(J),L+1)+SD(I,JJ(J),L)-
-     &           DSIG(L+1)*PIT(I,JJ(J))
+           SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)-
+     &           DSIG(L+1)*PIT(I,J)
  2438    CONTINUE
  2440 CONTINUE
 !$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
         IF (haveLatitude(grid,J=1)) 
-     *     SD(I,JJ(1),L)=SD(1,JJ(1),L)
+     *     SD(I,1,L)=SD(1,1,L)
  2450   IF (haveLatitude(grid,J=JM))
-     *     SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
+     *       SD(I,JM,L)=SD(1,JM,L)
+
+        ! Recopy into CONV to support prior usage
+      CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
+      CONV(:,J_0:J_1,2:LM) = SD(:,J_0:J_1,1:LM-1)
 
       RETURN
       END SUBROUTINE AFLUX
@@ -774,7 +752,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       n_exception = 0
       outer_loop:  DO J=J_0,J_1
         DO I=1,IMAXJ(J)
-          PA(I,J)=P(I,J)+(DT1*PIT(I,JJ(J))*BYDXYP(J))
+          PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
           IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
             n_exception = n_exception + 1
             IF (PA(I,J)+PTOP.lt.250. .or. PA(I,J)+PTOP.GT.1200.)

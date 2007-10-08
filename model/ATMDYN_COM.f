@@ -46,11 +46,10 @@ C**** module should own dynam variables used by other routines
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PU,PV
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: CONV
 cgsfc      REAL*8, DIMENSION(IM,JM,LM-1) :: SD
-      REAL*8, POINTER :: SD(:,:,:)
+      REAL*8, ALLOCATABLE :: SD(:,:,:)
 !@var PIT  pressure tendency (mb m^2/s)
-      REAL*8, POINTER :: PIT(:,:)
+      REAL*8, ALLOCATABLE :: PIT(:,:)
 cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
-cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI,SPA
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DUT,DVT
@@ -131,11 +130,9 @@ cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
      $                MA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 
      $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM-1), 
+     $              PIT(I_0H:I_1H,J_0H:J_1H),
+     $              SD(I_0H:I_1H,J_0H:J_1H,LM-1),
      $   STAT = IER)
-
-      ! F90 pointers replace EQUIVALENCE
-      SD  => CONV(:,:,2:)
-      PIT => CONV(:,:,1)
 
       !hack to remove NaNs from "SD" - possible mistake somewhere
       CONV(:,:,:) = 0.d0
