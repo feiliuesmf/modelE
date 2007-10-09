@@ -362,6 +362,7 @@ c  internals:
 c**** local vars for input from pbl_args
       real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
       real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
+      real*8 :: qprime,tprime
       logical :: ocean
 c**** local vars for input/output from/to pbl_args
       real*8 :: gusti
@@ -485,9 +486,17 @@ C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes
 c estimate net flux and ustar_oc from current tg,qg etc.
             ts=t(1)/(1+q(1)*deltx)
             rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
-            Qnet= (lhe+tgskin*shv)*cq*wsh*rhosrf*(q(1)-qgrnd) ! Latent
-     *          +  sha*ch*wsh*rhosrf*(ts-tgskin)              ! Sensible
-     *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
+c           Qnet= (lhe+tgskin*shv)*cq*wsh*rhosrf*(q(1)-qgrnd) ! Latent
+c    *          +  sha*ch*wsh*rhosrf*(ts-tgskin)              ! Sensible
+c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
+            Qnet= (lhe+tgskin*shv)*cq*rhosrf*(
+     &          pbl_args%wsh*(q(1)-qgrnd)
+     &        +(pbl_args%wsh-pbl_args%wsh0)*pbl_args%qprime ) ! Latent
+     &        + sha*ch*rhosrf*(
+     &          pbl_args%wsh*(ts-tgskin)
+     &        +(pbl_args%wsh-pbl_args%wsh0)*pbl_args%tprime ) ! Sensible 
+     &          +trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin)   ! LW
+
             ustar_oc=ustar*sqrt(rhosrf*byrhows)
             dskin=deltaSST(Qnet,Qsol,ustar_oc)
             tgskin=0.5*(tgskin+(tg+dskin))   ! smooth changes in iteration
@@ -555,12 +564,14 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         wsh02=(u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h
         wsh0=sqrt(wsh02)
         wsh=sqrt(wsh02+gusti*gusti)
+        qprime=pbl_args%qprime
+        tprime=pbl_args%tprime
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
-     &       ,evap_max,fr_sat)
+     &       ,evap_max,fr_sat,wsh0,qprime)
 
         call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd,ttop,dtime
-     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0) 
+     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,wsh0,tprime) 
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
      *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
@@ -1984,17 +1995,19 @@ c     rhs(n-1)=0.
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
      &                ,ttop,dtime,n
-     &                ,dpdxr,dpdyr,dpdxr0,dpdyr0)
+     &                ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
-!@+   kh * dt/dz = ch * usurf * (t - tg) - deltx * t * wq
+!@+   kh * dt/dz = ch * ( usurf*(t1 - (1+deltx*q1)*tgrnd)
+!@+                      +(1+deltx*q1)*(usurf-usurf0)*tprime )
+!@+                - deltx * t1/(1+deltx*q1) * wq(1)
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
-!@var t z-profle of virtual potential temperature
+!@var t z-profle of virtual potential temperature ref. to the surface
 !@var q z-profle of specific humidity
 !@var t0 z-profle of t at previous time step
 !@var kh z-profile of heat conductivity
@@ -2008,6 +2021,7 @@ c     rhs(n-1)=0.
 !@var ttop virtual potential temperature at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
+
       implicit none
 
       integer, intent(in) :: n
@@ -2019,6 +2033,7 @@ c     rhs(n-1)=0.
       real*8, intent(in) :: ch,tgrnd
       real*8, intent(in) :: ttop,dtime,usurf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
+      real*8, intent(in) ::  usurf0,tprime
 
       real*8 :: facth,factx,facty
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -2038,9 +2053,10 @@ c     rhs(n-1)=0.
       facth  = ch*usurf*dzh(1)/kh(1)
 
       dia(1) = 1.+facth
-     &        +deltx*kq(1)/kh(1)*(q(2)-q(1))/(1.+deltx*q(1))
+     &        +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
       sup(1) = -1.
-      rhs(1) = facth*tgrnd
+      rhs(1)= facth*(1+deltx*q(1))
+     &       *(tgrnd-(1.-usurf0/(usurf+teeny))*tprime)
 
       dia(n)  = 1.
       sub(n)  = 0.
@@ -2052,12 +2068,15 @@ c     rhs(n-1)=0.
       end subroutine t_eqn
 
       subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n
-     &     ,flux_max,fr_sat)
+     &     ,flux_max,fr_sat,usurf0,qprime)
 !@sum q_eqn integrates differential eqn q (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
-!@+   kq * dq/dz = min ( cq * usurf * (q - qg) ,
-!@+         fr_sat * cq * usurf * (q - qg) + ( 1 - fr_sat ) * flux_max )
+!@+   kq * dq/dz = min ( cq * usurf * (q(1) - qgrnd)
+!@+                    + cq * (usurf-usurf0) * qprime ,
+!@+           fr_sat * ( cq * usurf * (q(1) - qgrnd)
+!@+                    + cq * (usurf-usurf0) * qprime )
+!@+       + ( 1 - fr_sat ) * flux_max )
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -2074,6 +2093,7 @@ c     rhs(n-1)=0.
 !@var n number of vertical subgrid main layers
 !@var flux_max maximal flux from the unsaturated soil
 !@var fr_sat fraction of the saturated soil
+
       implicit none
 
       integer, intent(in) :: n
@@ -2084,6 +2104,7 @@ c     rhs(n-1)=0.
       real*8, dimension(n), intent(out) :: q
       real*8, intent(in) :: cq,qgrnd,qtop,dtime,usurf
       real*8, intent(in) :: flux_max,fr_sat
+      real*8, intent(in) :: usurf0,qprime
 
       real*8 :: factq
       integer :: i  !@var i loop variable
@@ -2102,7 +2123,7 @@ c     rhs(n-1)=0.
 
       dia(1) = 1.+factq
       sup(1) = -1.
-      rhs(1)= factq*qgrnd
+      rhs(1)= factq*(qgrnd-(1.-usurf0/(usurf+teeny))*qprime)
 
       dia(n)  = 1.
       sub(n)  = 0.
@@ -2114,16 +2135,22 @@ c**** Now let us check if the computed flux doesn't exceed the maximum
 c**** for unsaturated fraction
 
       if ( fr_sat .ge. 1. ) return   ! all soil is saturated
-      if ( cq * usurf * (qgrnd - q(1)) .le. flux_max ) return
+      if ( cq * usurf * (qgrnd - q(1)) + cq * (usurf0-usurf) * qprime
+     &   .le. flux_max ) return
 
 c**** Flux is too high, have to recompute with the following boundary
 c**** conditions at the bottom:
-c**** kq * dq/dz = fr_sat * cq * usurf * (q - qg)
-c****              + ( 1 - fr_sat ) * flux_max
+c**** kq * dq/dz = fr_sat * ( cq * usurf * (q(1) - qgrnd)
+c****                       + cq * (usurf-usurf0) * qprime )
+c****             + ( 1 - fr_sat ) * flux_max
 
       dia(1) = 1. + fr_sat*factq
       sup(1) = -1.
-      rhs(1)= fr_sat*factq*qgrnd + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+      rhs(1)= fr_sat*factq*(qgrnd-(1.-usurf0/(usurf+teeny))*qprime)
+     &         + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+       ! check the sign in front of (1.-fr_sat),
+       ! if according to my derivation from !@sum, it is -, not +
+       ! a minus sign may have been obsorbed in flux_max
 
       call TRIDIAG(sub,dia,sup,rhs,q,n)
 
