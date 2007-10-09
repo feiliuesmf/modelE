@@ -17,8 +17,9 @@
       !public canopyfluxes
 
 !      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
-      real*8,parameter :: IPARMINMOL=50  !umol m-2 s-1
 !      real*8,parameter :: EPS=1.d-8   !Small, to prevent div zero.
+      real*8,parameter :: IPARMINMOL=50  !umol m-2 s-1
+      real*8,parameter :: O2pres=20900. !Pa, from Collatz? Hanan? Not exactly .209*101325 Pa.
 
       type :: canraddrv
          !Canopy radiative transfer
@@ -55,6 +56,7 @@
       use ent_const
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
+      use photcondmod, only : biophysdrv_setup, calc_Pspar
       use patches, only : patch_print
 !      use physutil, only:  QSAT
 
@@ -68,6 +70,7 @@
       !----Local----------------!
       type(cohort),pointer :: cop
       type(psdrvtype) :: psdrvpar !Met biophysics drivers, except for radiation.
+      real*8 :: ci_umol !umol/mol
       real*8 :: ca_umol !umol/mol
       real*8 :: cf_umol !umol/mol !NOTE: This is only used by Friend & Kiang biophysics.
       real*8 :: TsurfK, TcanK,Pa !,rh
@@ -130,29 +133,38 @@
 
       !* Other photosynthesis drivers *!
       !Set up psdrvpar - pack in met drivers.
-      Pa = pp%cellptr%P_mbar * 100.d0
+        Pa = pp%cellptr%P_mbar * 100.d0
       Gb = pp%cellptr%Ch*pp%cellptr%U* Pa/
      &     (gasc*(pp%cellptr%TairC+KELVIN)) !m/s * N/m2 * mol K/J * 1/K = mol/m2/s
 !      write(995,*) "canopyspitters Gb:",Gb,pp%cellptr%Ch,pp%cellptr%U,
 !     &     Pa,pp%cellptr%TairC,gasc
       molconc_to_umol = gasc * (pp%cellptr%TcanopyC + KELVIN)/Pa * 1d6
-      psdrvpar%ci = pp%cellptr%Ci * molconc_to_umol
+      ci_umol = pp%cellptr%Ci * molconc_to_umol
       ca_umol = pp%cellptr%Ca * molconc_to_umol !This isn't used, but may be to calculated next cf.
-      cf_umol = pp%cellptr%Cf * molconc_to_umol
-      psdrvpar%cf = cf_umol !##HACK - NEED TO CALC AND SAVE Cf
-      psdrvpar%Tc = pp%cellptr%TcanopyC
-      psdrvpar%Pa = Pa
+      cf_umol = pp%cellptr%Cf * molconc_to_umol !##HACK - NEED TO CALC AND SAVE Cf
       TcanK = pp%cellptr%TcanopyC + KELVIN
       TsurfK = pp%cellptr%TairC + KELVIN
-      psdrvpar%rh = min(1.d0,
+      call biophysdrv_setup(cf_umol,ci_umol,
+     &     pp%cellptr%TcanopyC,Pa,
+     &     min(1.d0,  !RH
      &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
-     &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0))
+     &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0)),
+     &     psdrvpar)
+!      psdrvpar%cf = cf_umol !##HACK - NEED TO CALC AND SAVE Cf
+!      psdrvpar%Tc = pp%cellptr%TcanopyC
+!      psdrvpar%Pa = Pa
+!      psdrvpar%rh = min(1.d0,
+!     &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
+!     &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0))
 !      Ch = pp%cellptr%Ch
 !      U = pp%cellptr%U
 
+      
       !* LOOP THROUGH COHORTS *!
       cop => pp%tallest
       do while (ASSOCIATED(cop))
+        call calc_Pspar(cop%pft, psdrvpar%Pa, psdrvpar%Tc,O2pres) 
+
         !* Assign vegpar
 
         if (cop%LAI.gt.0.d0) then
@@ -216,18 +228,7 @@
       
       end subroutine photosynth_cond
 
-!---------------------------------------------------------------------------
-!      subroutine biophysdrv_setup(cf_molfrac,ci_molfrac,
-!     &     TcanopyC,Pa,rh,psdrvpar)
-!      real*8 :: cf_molfrac,ci_molfrac,TcanopyC,Pa,rh
-!      type(psdrvtype) :: psdrvpar
 
-!      psdrvpar%cf = cf_molfrac
-!      psdrvpar%ci = ci_molfrac
-!      psdrvpar%Tc = TcanopyC
-!      psdrvpar%Pa = Pa
-!      psdrvpar%rh = rh
-!      end subroutine biophysdrv_setup
 !---------------------------------------------------------------------------
       subroutine canopyfluxes(dt, pft
      i     ,canalbedo,LAIcanopy,LAIcohort,IPAR,CosZen,fdir
@@ -293,7 +294,8 @@
       !Calculate net photosynthesis, integrate vertically with Simpson's Rule.
       !call qsimp(cradpar%LAI,cradpar,cf,ci,Tc,Pa,rh,Anet,Gsint) 
       !### LAIcanopy for radiation and LAIcohort for photosynthesis need to be distinguished.
-      call qsimp(cradpar%LAI,cradpar,psdrvpar,ca,Gb,Atot,Gsint,Rdint) 
+      call qsimp(cradpar%LAI,cradpar,psdrvpar,ca
+     &     ,Gb,Atot,Gsint,Rdint) 
 !      write(993,*) cradpar,psdrvpar,ca,cf,Gb,Atot,Gsint,Rdint
       !Calculate conductance and ci at the canopy level
 !      call Gs_bound(dt, LAI,Gsint, Gs) !Limit rate of change of Gs.
@@ -352,7 +354,7 @@
       !Spitters parameters
      i     Lcum                 !Cumulative LAI from top of canopy (m2/m2)
      i     ,crp                !Canopy radiation parameters 
-     i     ,psp                 !Photosynthesis routine parameters
+     i     ,psp                 !Photosynthesis met drivers
      i     ,ca                  !Ambient air CO2 conc (umol/mol)
      i     ,Gb                  !Leaf boundary layer conductance (mol/m2/s)
      o     ,Alayer              !Leaf Net assimilation of CO2 in layer (umol m-2 s-1)
@@ -803,7 +805,7 @@
 !#############################################################################
 !###################### INTEGRATION ##########################################
 
-      subroutine qsimp(Xlim,crp,psp,ca,Gb, S,Sg,Sr)
+      subroutine qsimp(Xlim,crp,psp,ca,Gb,S,Sg,Sr)
 !----------------------------------------------------------------------!
 ! qsimp calculates canopy photosynthesis by increasing the number of
 ! layers in the integration until the result (S) changes by less than

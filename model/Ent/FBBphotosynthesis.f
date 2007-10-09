@@ -8,10 +8,10 @@
       use ent_const
 
       implicit none
-      private
+
       save
 
-      public init_ci, pscondleaf, biophysdrv_setup,ciMIN
+      public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
@@ -35,13 +35,9 @@
       real*8 :: Nleaf           !g-N/m^2[leaf] - May want to take this from Tpool instead.
       end type photosynthpar
 
-!      type metdatatype
-!      real*8 :: IPAR !Incident PAR (umol m-2 s-1)
-!      real*8 :: ca   !Ambient air CO2 concentration (umol mol-1)
-!      real*8 :: Ta   !Ambient air temperature (Celsius)
-!      real*8 :: rh   !Relative humidity
-!      real*8 :: O2concmol !O2 mole fraction in leaf (mmol mol-1)
-!      end type metdatatype
+      private
+      !=====GLOBAL VARIABLES (MODULE ONLY)=====!
+      type(photosynthpar) :: pspar !Photosynthesis parameters.
 !-----------------------------------------------------------------------------
 
       contains
@@ -59,6 +55,7 @@
       
 !-----------------------------------------------------------------------------
       subroutine biophysdrv_setup(cf,ci,Tc,Pa,rh,psdrvpar)
+      !* Set up met drivers for photosynthesis.
       implicit none
       real*8,intent(in) :: cf, ci, Tc, Pa, rh
       type(psdrvtype),intent(out) :: psdrvpar
@@ -96,7 +93,7 @@
 !        psp%ci = ca             !Dummy assignment, no need to solve for ci 
 !      else
         call Photosynth_analyticsoln(pft,IPAR,ca,ci,
-     &       psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
+     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
         psp%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
 !      endif
         
@@ -127,14 +124,14 @@
       real*8,intent(out) :: Rd  !Dark = above-ground growth + maintenance respiration (umol m-2 s-1)
       integer,intent(in) :: sunlitshaded !For diagnostic outputs only.
         !---Local----
-      type(photosynthpar) :: pspar
-      real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa)
+!      type(photosynthpar) :: pspar !Moved to global to module.
+      real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa) Not exactly .209*101325.
       real*8 :: Cip,Cie,Cic,Cis !Leaf internal CO2 (Pa)
       real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
 
-      call calc_Pspar(pft, Pa, Tl, O2pres, pspar)
+!      call calc_Pspar(pft, Pa, Tl, O2pres, pspar) !Moved up a module to reduce computation.
       Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
       
       call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, Cie, Je1)
@@ -210,7 +207,7 @@
 
 !      call load_metdata(IPAR,ca,Ta,rh,O2conc)
 
-      call calc_Pspar(pft, Pa, Tl, O2pres, pspar)
+      call calc_Pspar(pft, Pa, Tl, O2pres)
 
       Atot = Farquhar(IPAR,ci*Pa*1.d-06,O2pres,Tl,pspar) 
       Anet = Atot - Respveg(pspar%Nleaf,Tl)
@@ -743,16 +740,16 @@
       
 !=================================================
 
-      subroutine calc_Pspar(pft, Pa, Tl, O2pres, pspar)
-      !@sum calc_Pspar Collatz photosynthesis parameters.
+      subroutine calc_Pspar(pft, Pa, Tl, O2pres)
+      !@sum calc_Pspar Collatz photosynthesis parameters. GLOBAL TO MODULE.
       !@sum Later need to replace these with von Caemmerer book Arrhenius
       !@sum function sensitivies (her Table 2.3)
       implicit none
       integer,intent(in) :: pft  !Plant functional type, 1=C3 grassland
       real*8 :: Pa  !Atmospheric pressure (Pa)
-      real*8 :: Tl  !Leaf temperature
+      real*8 :: Tl  !Leaf temperature (Celsius)
       real*8 :: O2pres !O2 partial pressure in leaf (Pa)
-      type(photosynthpar),intent(inout) :: pspar
+!      type(photosynthpar),intent(inout) :: pspar !Moved to global to module.
       integer :: p
       !Below parameters are declared at top of module, though only used here.
 !      real*8,parameter :: Kc              !Michaelis-Menten constant for CO2 (Pa)
@@ -840,7 +837,7 @@
       cs = ca      !Assign CO2 concentration at leaf surface
                    !More rigorously, cs should also be solved for.
 
-      call calc_Pspar(pft, Pa, Tl, O2conc*Pa*1.d-06, pspar)
+      call calc_Pspar(pft, Pa, Tl, O2conc*Pa*1.d-06)
 
       Anet = Farquhar(IPAR,ci*Pa*1.d-06,O2conc*Pa*1.d-06,Tl,pspar) 
      &     - Respveg(pspar%Nleaf,Tl)
