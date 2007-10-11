@@ -48,7 +48,6 @@ OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093.ext                 ! bdy.cond
 VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4.ext
 CDN=CD4X500S.ext
-SOIL=S4X50093.ext TOPO=Z72X46N.cor4_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD_modelE_M.RVR      ! river direction file
 TOP_INDEX=top_index_72x46.ij.ext
@@ -96,9 +95,10 @@ P_SDRAG=.1     ! lin. sdrag above .1 mb (top 2 layers) except near poles
 PP_SDRAG=.1    ! lin. sdrag above .1 mb near poles (top 2 layers)
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
 PBREAK = 200.  ! The level for GW breaking above.
-DEFTHRESH=0.000035 !the default is 15d-6
+DEFTHRESH=0.000030 !the default is 15d-6
 PCONPEN=400.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003
+CMTN=0.25      ! default is 0.5
 
 KOCEAN=0
 Kvflxo=0        ! saving VFLXO (daily)
