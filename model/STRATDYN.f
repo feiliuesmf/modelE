@@ -56,7 +56,6 @@ C**** momentum passes through model top.
       INTEGER, PARAMETER :: NM=9
 !@var Arrays needed for GWDRAG
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EK
-c      REAL*8 :: PKS(LM)
 
       END MODULE
 
@@ -161,9 +160,6 @@ C****
         ZWT(I,J+1)=ZWT(I,J)
       END DO
       END DO
-c      DO L=LS1,LM
-c        PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
-c      END DO
 
 C**** define wave number array EK for GWDRAG
 C**** EKX is the mean wave number for wave lengths between a 1x1 degree
@@ -325,26 +321,17 @@ C**** Note area weighting for four point means
       TL(0)=TPHYS*PL(0)**KAPA
       RHOL(0)=PL(0)/(RGAS*TPHYS)
       DO L=1,MIN(LDIFM+1,LM)
-c        IF (L.GE.LS1) PIJ=PSFMPT
-c        PL(L)=PIJ*SIG(L)+PTOP
         UL(L)=U(I,J,L)
         VL(L)=V(I,J,L)
         RHOL(L)=(RHO(I,J-1,L)+RHO(IP1,J-1,L))*RAPVN(J-1)+
      *          (RHO(I,J  ,L)+RHO(IP1,J  ,L))*RAPVS(J)
-c        PLE(L)=PIJ*SIGE(L)+PTOP
       END DO
 C**** Edge values at LM+1 don't matter since diffusiv flx=F(L)-F(L-1)=0
-      IF (L.EQ.LM+1) THEN   ! this is terribly coded!
-c         PL(L)   =PIJ*SIGE(L)+PTOP
-         PL(L) = PLE(L)   ! can this be correct?
-         UL(L)   =UL(L-1)
-         VL(L)   =VL(L-1)
-         RHOL(L) =RHOL(L-1)
-c         PLE(L)  =PIJ*SIGE(L)+PTOP
-       ENDIF
-c      DO L=1,LDIFM
-c        AIRM(L)  =PLE(L)-PLE(L+1)
-c      END DO
+      L = LM+1   !!!! A lot relies on LDIFM=LM !!!
+        PL(L) = PLE(L)
+        UL(L)   =UL(L-1)
+        VL(L)   =VL(L-1)
+        RHOL(L) =RHOL(L-1)
       DO L=1,LDIFM+1
         KMEDGE(L)=VKEDDY(I,J,L)
         KHEDGE(L)=VKEDDY(I,J,L)
@@ -575,6 +562,7 @@ C****
      *     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
       USE DIAG, only : diagcd
       USE ATMDYN, only: addEnergyAsLocalHeat
+      USE RANDOM
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
@@ -610,6 +598,9 @@ C****
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,MDN
      *     ,MUP,MUR,BVFSQ,ANGM,DPT,DUANG
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ranmtn
+      real*8 dut_angm(lm,nm),xy
+      integer lmax_angm(nm),lp10,lp2040,lpshr
 
       INTEGER :: J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -627,6 +618,16 @@ C****
 C****
       DTHR=2./NIdyn  ! = dt_dyn_leapfrog/dt_source=1/(#calls/phys.call)
       BYDT1 = 1./DT1
+C
+C     Set Randon numbers for 1/4 Mountain Drag
+C
+      CALL BURN_RANDOM(IM*(J_0-1))
+      DO J=J_0,J_1
+      DO I=1,IM
+        RANMTN(I,J) = RANDU(XY)
+      END DO
+      END DO
+      CALL BURN_RANDOM(IM*(JM-J_1))
 
 !$OMP PARALLEL DO PRIVATE(I,J,L,P00,AML,DP,PLE,PL)
       DO J=J_0,J_1
@@ -721,7 +722,8 @@ C****
 !$OMP*  MDN,MUP,MUR,N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,TL,THL,TEDGE,
 !$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, W0,WSRC,WCHECK,
 !$OMP*  WMCE,WMC, XDIFF, YDN,YUP, ZVAR,WTX,WT,AIRXS,CLDDEP,CLDHT,FPLUME,
-!$OMP*  UIL,VIL, TLIL,THIL,BVIL,P00,AML)
+!$OMP*  UIL,VIL, TLIL,THIL,BVIL,P00,AML,
+!$OMP*  LMAX_ANGM,DUT_ANGM,LP10,LP2040,LPSHR)
       DO J=J_0STG,J_1STG
 C**** parallel reductions
          UIL(:,:)=U(:,J,:)
@@ -738,22 +740,12 @@ C****
 C**** CALCULATE VERTICAL ARRAYS
 C****
       PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
-c      SP=PIJ
       CALL CALC_VERT_AMP(PIJ,LM,P00,AML,DP,PLE,PL)
 
       DO L=1,LM
-c      IF (L.GE.LS1) PIJ=PSFMPT
-c      TL(L)=.25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
-c     *  PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
-c      THL(L)=.25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
       TL(L)=TLIL(I,L)
       THL(L)=THIL(I,L)
-c      PLE(L)=PIJ*SIGE(L)+PTOP
-c      PL(L)=PIJ*SIG(L)+PTOP
-c      DP(L)=PIJ*DSIG(L)
       RHO(L)=PL(L)/(RGAS*TL(L))
-c      BVFSQ=.5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))/
-c     *  (DP(L)*THL(L))*GRAV*GRAV*RHO(L)
       BVFSQ=BVIL(I,L)/(DP(L)*THL(L))*GRAV*GRAV*RHO(L)
       IF (PL(L).GE..4d0) THEN
         BVF(L)=SQRT(MAX(BVFSQ,1.d-10))
@@ -767,8 +759,24 @@ CRAD  RDI(L)=960.*960./(TL(L)*TL(L))*EXP(-960./TL(L))
       UL(L)=UIL(I,L)   ! U(I,J,L)
       VL(L)=VIL(I,L)   ! V(I,J,L)
       END DO
-c      PLE(LM+1)=PIJ*SIGE(LM+1)+PTOP
-c      PIJ=SP
+C**** Levels for angular momentum restoration
+      do l=lm,1,-1
+        if (pl(l).lt.500.) lp10 = l
+        if (pl(l).lt.400.) lp2040 = l
+        if (pl(l).lt.200.) lpshr = l
+      end do
+      if (pl(lpshr)-ple(lpshr-1).lt.pl(lpshr)-200.) lpshr=lpshr-1
+      if (pl(lp2040)-ple(lp2040-1).lt.pl(lp2040)-400.) lp2040=lp2040-1
+      if (pl(lp10)-ple(lp10-1).lt.pl(lp10)-500.) lp10=lp10-1
+      lmax_angm(1) = lpshr  !Mountain
+      lmax_angm(9) = lpshr  !Deformation
+      lmax_angm(2) = lpshr  !Shear
+      lmax_angm(3) = lp10
+      lmax_angm(4) = lp10
+      lmax_angm(5) = lp2040
+      lmax_angm(6) = lp2040
+      lmax_angm(7) = lp2040
+      lmax_angm(8) = lp2040
 C****
 C**** INITIALIZE THE MOMENTUM FLUX FOR VARIOUS WAVES
 C****
@@ -777,8 +785,9 @@ C****
       LD(:)=LM+1                ! set drag level = LM+1 (turns off drag)
       WT(:)=1.                  ! initialize area weight to 1
       MUB(:,:)=0.
+      dut_angm(:,:)=0.
 C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
-      IF (QGWMTN.eq.1) THEN
+      IF (QGWMTN.eq.1 .and. ranmtn(i,j).lt.0.25d0) THEN
         LD(1)=LBREAK
         U0=(UL(1)*DP(1)+UL(2)*DP(2))/(DP(1)+DP(2))
         V0=(VL(1)*DP(1)+VL(2)*DP(2))/(DP(1)+DP(2))
@@ -874,6 +883,7 @@ c        END IF
         UR(3)=USRC/(WSRC+ ERR)
         VR(3)=VSRC/(WSRC+ ERR)
         MU(3)=-EK(3,J)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
+        MU(3)=MU(3)*0.1
         MU(4)=MU(3)
         CN(3)=WSRC-10.
         CN(4)=WSRC+10.
@@ -1057,6 +1067,7 @@ C**** (DEFORMATION DIFFUSION IS * XDIFF)
         IF (DFT.GT.-ERR) CYCLE
 C**** SHEAR AND MOUNTAIN ORIENTATION
         DUTN=DWT*UR(N)*WT(N)
+        DUT_ANGM(L,N) = DUT_ANGM(L,N)+DUTN
         DUT(L)=DUT(L)+DUTN
         DVT(L)=DVT(L)+DWT*VR(N)
         IF (MRCH.EQ.2) AJL(J,L,N+JL_gwFirst-1)=AJL(J,L,N+JL_gwFirst-1)
@@ -1119,27 +1130,26 @@ C****
       END IF
 
 C**** Save AM change
-      ANGM = 0.
-      DO L=LDRAG-1,LM
-        ANGM = ANGM - DUT(L)*DP(L)
-      END DO
-
       if (ang_gwd.gt.0) then    ! add in ang mom
-        lmax=ls1-1              ! below PTOP
-        if (ang_gwd.gt.1) lmax=lm ! over whole column
-        DPT=0
-        DO L=1,LMAX
-          DPT=DPT+DP(L)
-        END DO
-        DUANG = ANGM/DPT
-        IF (MRCH.eq.2) THEN
-          DO L=1,LMAX
-            DKE(I,J,L) = DKE(I,J,L) + DUANG*(0.5*DUANG+UIL(I,L)+DUT(L))
-            DUT3(I,J,L)=DUT3(I,J,L) + DUANG*DP(L)*DXYV(J)
+        DO N=1,NM
+          ANGM = 0.
+          DO L=LDRAG-1,LM
+            ANGM = ANGM - DUT_ANGM(L,N)*DP(L)
           END DO
-        END IF
-        DO L=1,LMAX
-          DUT(L) = DUT(L) + DUANG
+          DPT=0
+          DO L=1,LMAX_ANGM(N)
+            DPT=DPT+DP(L)
+          END DO
+          DUANG = ANGM/DPT
+          IF (MRCH.eq.2) THEN
+            DO L=1,LMAX_ANGM(N)
+              DKE(I,J,L) = DKE(I,J,L)+DUANG*(0.5*DUANG+UIL(I,L)+DUT(L))
+              DUT3(I,J,L)=DUT3(I,J,L)+DUANG*DP(L)*DXYV(J)
+            END DO
+          END IF
+          DO L=1,LMAX_ANGM(N)
+             DUT(L) = DUT(L) + DUANG
+          END DO
         END DO
       end if
 C****
