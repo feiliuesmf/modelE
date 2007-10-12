@@ -96,7 +96,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param n2o_pppv default N2O L=1 overwriting in pppv
 !@param cfc_pppv default CFC L=1 overwriting in pppv
 !@param cfc_rad95 the average L=1 radiation code CFC11+CFC12 value
-!@+     for 1995 (pppv). Note this must be changed if rad trend changes!
+!@+     for 1995 (pppv). 
 !@param fact_cfc ratio of our default CFC L=1 overwriting to the 
 !@+     radiation's 1995 L=1 CFC11+CFC12 value.
       INTEGER, PARAMETER ::
@@ -254,7 +254,7 @@ C ----------------------------------------------
 #ifdef SHINDELL_STRAT_CHEM
      &                     ,cfc_pppv     = 1722.d-12
      &                     ,n2o_pppv     = 290.d-9
-     &                     ,cfc_rad95    = 794.d-12 ! file GHG_A1B.June2004.txt only !!!
+     &                     ,cfc_rad95    = 794.d-12 
      &                     ,fact_cfc     = cfc_pppv/cfc_rad95
      &                     ,dtausub      = 1.d0
      &                     ,dsubdiv      = 1.d1
