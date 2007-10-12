@@ -585,7 +585,8 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
 C          check on GHG file's 1995 value for CFCs:
            call openunit('GHG',iu_data,.false.,.true.)
            do i=1,5; read(iu_data,'(a80)') title; enddo
-           do i=1,9999
+           temp_year=0
+           do while(temp_year <= 1995)
              read(iu_data,*,end=101) temp_year,(temp_ghg(j),j=1,6)
              if(temp_year==1995)then
                temp_ghg(1)=cfc_rad95*0.95d0 
@@ -593,12 +594,13 @@ C          check on GHG file's 1995 value for CFCs:
                temp_ghg(3)=(temp_ghg(4)+temp_ghg(5))*1.d-9
                if(temp_ghg(3) < temp_ghg(1) .or.
      &         temp_ghg(3) > temp_ghg(2))then
-                 call stop_model('please check on cfc_rad95',255)
+                 call stop_model('please check on cfc_rad95 2',255)
                endif
-               exit
              endif
            enddo
  101       continue
+           if(temp_year<1995)
+     &     call stop_model('please check on cfc_rad95 1',255)
            call closeunit(iu_data)
 C          read the CFC initial conditions:
            call openunit('CFC_IC',iu_data,.true.,.true.)
