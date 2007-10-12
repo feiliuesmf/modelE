@@ -77,8 +77,8 @@ C**** Command line options
       real*8 w_ghy_j_2(jm),w_ghy_j_1(jm), w_lake_j_2(jm),w_lake_j_1(jm)
       real*8 h_ghy_j_2(jm),h_ghy_j_1(jm), h_lake_j_2(jm),h_lake_j_1(jm)
 
-      type (DynamicsState) :: importState
-      type (DynamicsState) :: exportState
+!!      type (DynamicsState) :: importState
+!!      type (DynamicsState) :: exportState
 
       call init_app(grid,im,jm,lm)
       call alloc_drv()
@@ -186,7 +186,7 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
-      call allocateState()
+!!    call allocateState()
       DO WHILE (Itime.lt.ItimeE)
 
 c$$$         call test_save(__LINE__, itime)
