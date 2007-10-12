@@ -49,7 +49,7 @@
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
-     &     use_rad_n2o,use_rad_cfc
+     &     use_rad_n2o,use_rad_cfc,cfc_rad95
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
@@ -89,6 +89,10 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       real*8, dimension(im,jm,LCOalt) :: N2OICIN_glob,CH4ICIN_glob,
      & OxICIN_glob,CFCICIN_glob
       real*8, dimension(jm,LcorrOx,12) :: corrOxIN_glob
+#ifdef SHINDELL_STRAT_CHEM
+      real*8, dimension(6) :: temp_ghg
+      integer :: temp_year
+#endif /* SHINDELL_STRAT_CHEM */
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
@@ -578,17 +582,23 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
           tr_mm(n) = 137.4d0 !CFC11
 #ifdef SHINDELL_STRAT_CHEM
           if(AM_I_ROOT( ))then
-C          check on GHG file:
+C          check on GHG file's 1995 value for CFCs:
            call openunit('GHG',iu_data,.false.,.true.)
-           read(iu_data,'(a80)') title
-           read(iu_data,'(a80)') title
-           if(trim(title).ne.
-     &'----- observed to 2003; IPCC scenario A1B 2004-2100 -------')then
-            write(6,*) 'cfc_rad95 in TRCHEM_Shindell_COM was from'
-            write(6,*) 'GHG_A1B.June2004.txt. It appears you changed'
-            write(6,*) 'that file. Please check on cfc_rad95'
-            call stop_model('Check on cfc_rad95',255)
-           end if
+           do i=1,5; read(iu_data,'(a80)') title; enddo
+           do i=1,9999
+             read(iu_data,*,end=101) temp_year,(temp_ghg(j),j=1,6)
+             if(temp_year==1995)then
+               temp_ghg(1)=cfc_rad95*0.95d0 
+               temp_ghg(2)=cfc_rad95*1.05d0 
+               temp_ghg(3)=(temp_ghg(4)+temp_ghg(5))*1.d-9
+               if(temp_ghg(3) < temp_ghg(1) .or.
+     &         temp_ghg(3) > temp_ghg(2))then
+                 call stop_model('please check on cfc_rad95',255)
+               endif
+               exit
+             endif
+           enddo
+ 101       continue
            call closeunit(iu_data)
 C          read the CFC initial conditions:
            call openunit('CFC_IC',iu_data,.true.,.true.)
