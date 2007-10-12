@@ -180,7 +180,9 @@ C     REAL*8, DIMENSION(IM,LM) :: UMDNL,VMDNL
 !@var TM Vertical profiles of tracers
       REAL*8, DIMENSION(LM,NTM) :: TM
       REAL*8, DIMENSION(nmom,lm,ntm) :: TMOM
-      COMMON/CLD_TRCCOM/TM,TMOM
+!@var TRDNL tracer concentration in lowest downdraft (kg/kg)
+      REAL*8, DIMENSION(NTM,LM) :: TRDNL
+      COMMON/CLD_TRCCOM/TM,TMOM,TRDNL
 !$OMP  THREADPRIVATE (/CLD_TRCCOM/)
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
@@ -279,11 +281,8 @@ C**** output variables
       REAL*8 AIRXL,PRHEAT
 !@var RNDSSL stored random number sequences
       REAL*8  RNDSSL(3,LM)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
 !@var prebar1 copy of variable prebar
       REAL*8 prebar1(Lm+1)
-#endif
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
 CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
@@ -316,11 +315,7 @@ C    *  ,DDR,SMDNL,QMDNL,SMOMDNL,QMOMDNL
 #ifdef CLD_AER_CDNC
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *  ,prebar1
-#endif
-     *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
+     *  ,prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
 
       CONTAINS
@@ -628,6 +623,7 @@ C**** save initial values (which will be updated after subsid)
       VLAT=LHE
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
+      TRDNL = 0.
 #ifdef TRACERS_WATER
       CLDSAVT=0.
 #endif
@@ -1770,6 +1766,7 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       DTM(LDMIN,1:NTX) = DTM(LDMIN,1:NTX) + TMDN(1:NTX)
       DTMOM(xymoms,LDMIN,1:NTX) = DTMOM(xymoms,LDMIN,1:NTX) +
      *     TMOMDN(xymoms,1:NTX)
+      TRDNL(1:NTX,LDMIN)=TMDN(1:NTX)/(DDRAFT+teeny)
 #endif
       DO K=1,KMAX
       DUM(K,LDMIN)=DUM(K,LDMIN)+UMDN(K)
@@ -3260,10 +3257,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         END IF
         WMX(L)=0.
       END IF
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
       prebar1(l)=prebar(l)
-#endif
 C**** set phase of condensation for next box down
       PREICE(L)=0.
       IF (PREBAR(L).gt.0 .AND. LHP(L).EQ.LHS) PREICE(L)=PREBAR(L)

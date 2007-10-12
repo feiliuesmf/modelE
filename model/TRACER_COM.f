@@ -855,6 +855,9 @@ C****
 !@var TRMOM: Second order moments for tracers (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
 
+!@var TRDN1: lowest level downdraft tracer concentration (kg/kg)
+       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trdn1
+
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: ntsurfsrcmax=15
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
@@ -1008,6 +1011,7 @@ C****
      *             no3_live(IM,J_0H:J_1H,LM),
      *                  trm(IM,J_0H:J_1H,LM,NTM),
      *                trmom(NMOM,IM,J_0H:J_1H,LM,NTM),
+     *                trdn1(NTM,IM,J_0H:J_1H),
      *              sfc_src(IM,J_0H:J_1H,ntm,ntsurfsrcmax))
 
 #ifdef TRACERS_GASEXCH_Natassa

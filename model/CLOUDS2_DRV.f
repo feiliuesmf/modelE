@@ -55,7 +55,7 @@
      &     ,idd_wet
 #endif
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname
+      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
 #else
@@ -94,7 +94,7 @@
      &     ,jls_wet,ijts_wet,itcon_wt
 #endif
 #endif
-      USE CLOUDS, only : tm,tmom ! local  (i,j)
+      USE CLOUDS, only : tm,tmom,trdnl ! local  (i,j)
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
@@ -123,19 +123,13 @@
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb,ncol
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
-     *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl
+     *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
-     *     ,alwim,alwis,alwwm,alwws
-     *     ,nlsw,nlsi,nmcw,nmci
-     *     ,oldcdo,oldcdl,smfpml
-     *     ,sme
+     *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci
+     *     ,oldcdo,oldcdl,smfpml,sme
      *     ,cteml,cd3dl,cl3dl,ci3dl,cdn3dl,cre3dl,smlwp
      *     ,wmclwp,wmctwp
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *     ,prebar1
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
@@ -806,6 +800,9 @@ C       END IF
           TDN1(I,J)=TDNL(L)              ! downdraft temperature
           QDN1(I,J)=QDNL(L)              ! downdraft humidity
           DDMS(I,J)=-100.*DDMFLX(L)/(GRAV*DTsrc) ! downdraft mass flux
+#ifdef TRACERS_ON
+          TRDN1(:,I,J)=TRDNL(:,L)        ! downdraft tracer conc
+#endif
           IF(DDMFLX(L).GT.0.d0) EXIT
         END DO
 c       IF (DDMFLX(1).GT.0.) THEN
