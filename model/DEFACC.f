@@ -3780,7 +3780,7 @@ c
       k=k+1
       jl_totntlh = k
       sname_jl(k) = 'jl_tot_nt_lh'
-      lname_jl(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
+      lname_jl(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT (QDYN)'
       units_jl(k) = 'W/mb'
       pow_jl(k) = 10
       scale_jl(k) = 100.*bygrav*LHE*XWON*fim/DTsrc

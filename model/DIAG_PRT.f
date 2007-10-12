@@ -2071,7 +2071,7 @@ C**** Individual wave transports commented out. (gas - 05/2001)
       CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
      &     PLM,BX,SCALET,DXV,ONES,KM,2,JGRID_jk(n))
 C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND.EDDY, EDDIES AND TOTAL
-C**** New way!
+C**** New way! (Direct diag from QDYNAM, on layers)
       n = jl_nt_lh_e
       dx = 0.
       DX(2:jm,:)=AJL(2:jm,:,Jl_TOTNTLH)-AJL(2:jm,:,Jl_ZMFNTLH)
@@ -2085,7 +2085,8 @@ C**** New way!
       CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
      &     PLM,DX,SCALET,ONES,ONES,lm,2,JGRID_jl(n))
 C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
-C**** Old Way!  NOTE:  AX is needed later
+C**** Old Way!  (estimate from DIAGB using 2nd order advection on CP)
+C**** NOTE:  AX is needed later
       dx=0.
       DO 240 K=1,KM
       DO 240 J=2,JM
