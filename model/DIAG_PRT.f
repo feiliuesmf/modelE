@@ -1341,7 +1341,7 @@ c
       k = k + 1
       jl_nt_lh_e = k
       sname_jl(k) = 'nt_lh_eddy'        ; jgrid_jl(k) = 2
-      lname_jl(k) = 'N. TRANSPORT OF LATENT HEAT BY EDDIES'
+      lname_jl(k) = 'N. TRANSPORT OF LATENT HEAT BY EDDIES (QDYN)'
       units_jl(k) = 'W/mb'
       scale_jl(k) = 100.*bygrav*xwon*lhe*fim/DTsrc
       pow_jl(k) = 10
