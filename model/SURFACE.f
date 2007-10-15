@@ -1,4 +1,4 @@
-C****  
+C****   
 C**** SURFACE.f    SURFACE fluxes    2006/12/21
 C****
 #include "rundeck_opts.h"
@@ -111,8 +111,9 @@ C****
      *     ,trdrydep
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
+     *      taijs=>taijs_loc,ijts_isrc,ijts_source,
      *      jls_source, jls_isrc, tij_surf, tij_surfbv, tij_gasx,
-     *      tij_kw, tij_alpha, tij_evap, tij_grnd, tij_drydep, 
+     *      tij_kw, tij_alpha, tij_evap, tij_grnd, tij_drydep,
      *      tij_gsdep, itcon_dd, dtr_dd
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
@@ -333,7 +334,7 @@ C**** Set up tracers for PBL calculation if required
 
 #ifdef TRACERS_ON
 #  ifdef TRACERS_GASEXCH_Natassa
-      trgasex(:,:,:,:) = 0. 
+      trgasex(:,:,:,:) = 0.
 #  endif
 #endif
 
@@ -711,7 +712,7 @@ C**** Adjust ground variables to account for skin effects
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (pbl_args%ocean) QG_SAT=0.98d0*QG_SAT
       TG1 = TG - TF
-      
+
 C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RHOSRF=100.*PS/(RGAS*pbl_args%TSV)
       RCDMWS=CM*pbl_args%WSM*RHOSRF
@@ -1016,7 +1017,7 @@ C**** Limit heat fluxes out of lakes if near minimum depth
 
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
 C**** calculate correction for different TG in radiation and surface
-      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*(TG1+TF)**4) 
+      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*(TG1+TF)**4)
       DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
       DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
@@ -1395,7 +1396,7 @@ C****
 C****
 C**** dycamic vegetation time step
 C****
-!!! probably don't need this call unless something can be done 
+!!! probably don't need this call unless something can be done
 !   separately from ground hydrology on i,j grid
 !      call step_dveg(dtsurf)
 C****
