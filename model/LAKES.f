@@ -1300,7 +1300,7 @@ C**** (do not flood more than 4.9% of land per day)
             hlkic=0.
             if (new_flake.gt.0) then
               hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))
-              hlkic=(MSI(I,J)+SNOW+ACE1I)*RSI(I,J)/RHOW
+              hlkic=(MSI(I,J)+SNOWI(I,J)+ACE1I)*RSI(I,J)/RHOW
             end if
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
               IF (FLAKE(I,J).eq.0) HLAKE(I,J)=MAX(1d0,HLAKE(I,J))
