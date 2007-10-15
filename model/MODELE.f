@@ -41,12 +41,6 @@ c$$$      USE MODEL_COM, only: clock
 #endif
       USE ATMDYN_QDYNAM, only : QDYNAM
       use soil_drv, only : conserv_wtg, conserv_htg
-#ifdef USE_FVCORE
-      use dynamics_save, only: save_dynamics_state
-      use dynamics_save, only: restore_dynamics_state
-      use dynamics_save, only: write_dynamics_state
-      use dynamics_save, only: initialize_dynsave => initialize
-#endif
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -76,9 +70,6 @@ C**** Command line options
       ! tmp arrays
       real*8 w_ghy_j_2(jm),w_ghy_j_1(jm), w_lake_j_2(jm),w_lake_j_1(jm)
       real*8 h_ghy_j_2(jm),h_ghy_j_1(jm), h_lake_j_2(jm),h_lake_j_1(jm)
-
-!!      type (DynamicsState) :: importState
-!!      type (DynamicsState) :: exportState
 
       call init_app(grid,im,jm,lm)
       call alloc_drv()
@@ -186,7 +177,6 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
-!!    call allocateState()
       DO WHILE (Itime.lt.ItimeE)
 
 c$$$         call test_save(__LINE__, itime)
@@ -256,14 +246,9 @@ C**** Initialise total energy (J/m^2)
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
-      call save_dynamics_state()
-
-      call restore_dynamics_state()
       call DYNAM()
-      call write_dynamics_state('MODELE A')
 
       ! Using FV instead
-      call restore_dynamics_state()
          IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
       call Run(fv, clock)
          if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
@@ -271,7 +256,6 @@ C**** Initialise total energy (J/m^2)
            call DIAGB
            call EPFLUX (U,V,T,P)
          endif
-      call write_dynamics_state('FV')
 
 #endif
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
