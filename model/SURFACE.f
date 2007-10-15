@@ -36,8 +36,7 @@ C****
      &     ,Ntm_dust,n_clay
 #endif
 #endif
-      USE PBLCOM, only : tsavg,dclev
-     &     ,eabl,uabl,vabl,tabl,qabl
+      USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE PBL_DRV, only : pbl, t_pbl_args
       USE DIAG_COM, only : oa,aij=>aij_loc
      *     ,tdiurn,aj=>aj_loc,aregj=>aregj_loc,adiurn,ndiupt,jreg
@@ -51,11 +50,11 @@ C****
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG,ij_dskin
-     *     ,ij_gusti,ij_mccon
+     *     ,ij_gusti,ij_mccon,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh
+     *     ,adiurn_dust
 #ifndef NO_HDIURN
      *     ,hdiurn
 #endif
-     &     ,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh,adiurn_dust
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -111,19 +110,10 @@ C****
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
 #endif
-      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_surf, tij_surfbv
-      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_isrc,ijts_source
-      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_source,jls_isrc
-#ifdef TRACERS_GASEXCH_Natassa
-     *     ,tij_gasx,tij_kw,tij_alpha
-#endif
-#ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd
-#endif
-#ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
-#endif
-#endif
+      USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
+     *      jls_source, jls_isrc, tij_surf, tij_surfbv, tij_gasx,
+     *      tij_kw, tij_alpha, tij_evap, tij_grnd, tij_drydep, 
+     *      tij_gsdep, itcon_dd, dtr_dd
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
@@ -133,10 +123,10 @@ C****
 #endif
       USE SOIL_DRV, only: earth
 
-      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
-!@var TDN1 downdraft temperature flux in K, (i,j)
-!@var QDN1 downdraft humidity flux in kg/kg, (i,j)
+!@var TDN1 downdraft temperature in K, (i,j)
+!@var QDN1 downdraft humidity in kg/kg, (i,j)
+      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
 
 
       IMPLICIT NONE
@@ -1013,7 +1003,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
       IF (ITYPE.eq.1 .and. FLAKE(I,J).gt.0 .and.
-     *     E0(I,J,1)+F0DT+HTLIM.lt.0) THEN
+     *     E0(I,J,1)+F0DT+HTLIM.lt.0 .and. HTLIM.gt.0) THEN
         if (QCHECK) write(6,*) "Limiting heat flux from lake",i,j,SHDT
      *       ,F0DT,E0(I,J,1),DTSURF*SRHEAT,TRHDT,EVHDT,HTLIM
         SHDT = -(HTLIM+E0(I,J,1)+DTSURF*SRHEAT+TRHDT+EVHDT)
