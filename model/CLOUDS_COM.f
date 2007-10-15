@@ -51,7 +51,7 @@ C**** variables saved for surface wind spectrum calculations
 !@var DDMS downdraft mass flux at level 1 (kg/s/m**2)
 !@var TDN1 downdraft temperature (K)
 !@var QDN1 downdraft humidity (kg/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DDM1,DDMS,TDN1,QDN1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DDM1,DDMS,TDN1,QDN1,DDML
 
 C**** variables used (and saved) for gravity wave drag calculations
 !@var AIRX, AIRMX*DXYP(J) convective mass flux (kg/s)
@@ -79,7 +79,7 @@ C**** variables used (and saved) for gravity wave drag calculations
 #endif
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
-     *                       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1
+     *                       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -142,6 +142,7 @@ C**** variables used (and saved) for gravity wave drag calculations
      *              DDMS(IM,J_0H:J_1H),
      *              TDN1(IM,J_0H:J_1H),
      *              QDN1(IM,J_0H:J_1H),
+     *              DDML(IM,J_0H:J_1H),
      *         STAT=IER)
 
       ALLOCATE(     LMC(2,IM,J_0H:J_1H),

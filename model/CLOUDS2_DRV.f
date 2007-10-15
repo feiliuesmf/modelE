@@ -26,7 +26,7 @@
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
-     *     ,ddms,tdn1,qdn1
+     *     ,ddms,tdn1,qdn1,ddml
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
      *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
@@ -608,6 +608,7 @@ C**** SET DEFAULTS FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
       DDM1(I,J)=0.
       DDMS(I,J)=0.
+      DDML(I,J)=0.
       TDN1(I,J)=0.
       QDN1(I,J)=0.
 C****
@@ -797,6 +798,7 @@ C       END IF
         FSS(:,I,J)=FSSL(:)
         AIRX(I,J) = AIRXL*DXYP(J)
         DO L=1,DCL
+          DDML(I,J)=L                    ! the lowest downdraft layer
           TDN1(I,J)=TDNL(L)              ! downdraft temperature
           QDN1(I,J)=QDNL(L)              ! downdraft humidity
           DDMS(I,J)=-100.*DDMFLX(L)/(GRAV*DTsrc) ! downdraft mass flux
