@@ -15,6 +15,7 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
 #ifdef TRACERS_OCEAN
       Use TRACER_COM, Only : ntm
 #endif
+      Use SparseCommunicator_mod
       Implicit None
       Integer*4,Parameter ::
      *  LMO=13,             !  @param LMO max # of ocean layers
@@ -102,6 +103,8 @@ C**** ocean related parameters
      *       TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRMO,TXMO,TYMO,TZMO
 #endif
+     
+      type (SparseCommunicator_type), save :: mySparseComm_type
 
       contains
 
@@ -181,6 +184,83 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
 
       RETURN
       end subroutine scatter_ocean
+
+      subroutine gather_ocean_straits (icase)
+      use SparseCommunicator_mod, only: gatherIJ
+      integer, intent(in) :: icase
+
+c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
+      CALL gatherIJ(mySparseComm_type,   MO   ,    MO_glob)
+      if (icase.ne.1) then      ! needed for i/o and ODIFF only
+        CALL gatherIJ(mySparseComm_type,   UO   ,    UO_glob)
+        CALL gatherIJ(mySparseComm_type,   VO   ,    VO_glob)
+      end if
+      if (icase.lt.1) then      ! needed for i/o only
+        CALL gatherIJ(mySparseComm_type,OGEOZ   , OGEOZ_glob)
+        CALL gatherIJ(mySparseComm_type,OGEOZ_SV,OGEOZ_SV_glob)
+      end if
+
+      CALL gatherIJ(mySparseComm_type,  G0M   ,   G0M_glob)
+      CALL gatherIJ(mySparseComm_type,  GXMO  ,  GXMO_glob)
+      CALL gatherIJ(mySparseComm_type,  GYMO  ,  GYMO_glob)
+      CALL gatherIJ(mySparseComm_type,  GZMO  ,  GZMO_glob)
+      CALL gatherIJ(mySparseComm_type,  S0M   ,   S0M_glob)
+      CALL gatherIJ(mySparseComm_type,  SXMO  ,  SXMO_glob)
+      CALL gatherIJ(mySparseComm_type,  SYMO  ,  SYMO_glob)
+      CALL gatherIJ(mySparseComm_type,  SZMO  ,  SZMO_glob)
+#ifdef TRACERS_OCEAN
+      CALL gatherIJ(mySparseComm_type,  TRMO  ,  TRMO_glob)
+      CALL gatherIJ(mySparseComm_type,  TXMO  ,  TXMO_glob)
+      CALL gatherIJ(mySparseComm_type,  TYMO  ,  TYMO_glob)
+      CALL gatherIJ(mySparseComm_type,  TZMO  ,  TZMO_glob)
+#endif
+      if (icase.lt.2) return
+
+c**** icase=2: still serialized non-i/o parts of ocn dynamics
+               ! for straits:  mo,G0M,...,S0M,...,TRMO,...,opress
+      CALL gatherIJ(mySparseComm_type,  OPRESS,OPRESS_glob)
+               ! for OCNGM:    mo,G0M,...,S0M,...,TRMO,...
+               ! for ODIFF:    mo,uo,vo
+
+      RETURN
+      end subroutine gather_ocean_straits
+
+      subroutine scatter_ocean_straits (icase)
+      use SparseCommunicator_mod, only: scatterIJ
+      integer, intent(in) :: icase
+
+c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
+      CALL scatterIJ(mySparseComm_type,       MO_glob,   MO )
+      if (icase.lt.1) then            ! needed for i/o only
+        CALL scatterIJ(mySparseComm_type,       UO_glob,   UO )
+        CALL scatterIJ(mySparseComm_type,       VO_glob,   VO )
+        CALL scatterIJ(mySparseComm_type,    OGEOZ_glob, OGEOZ   )
+        CALL scatterIJ(mySparseComm_type, OGEOZ_SV_glob, OGEOZ_SV)
+      end if
+
+      CALL scatterIJ(mySparseComm_type,      G0M_glob,  G0M )
+      CALL scatterIJ(mySparseComm_type,     GXMO_glob,  GXMO)
+      CALL scatterIJ(mySparseComm_type,     GYMO_glob,  GYMO)
+      CALL scatterIJ(mySparseComm_type,     GZMO_glob,  GZMO)
+      CALL scatterIJ(mySparseComm_type,      S0M_glob,  S0M )
+      CALL scatterIJ(mySparseComm_type,     SXMO_glob,  SXMO)
+      CALL scatterIJ(mySparseComm_type,     SYMO_glob,  SYMO)
+      CALL scatterIJ(mySparseComm_type,     SZMO_glob,  SZMO)
+#ifdef TRACERS_OCEAN
+      if (icase.lt.0) return                   ! IC w/o tracers
+      CALL scatterIJ(mySparseComm_type,     TRMO_glob,  TRMO)
+      CALL scatterIJ(mySparseComm_type,     TXMO_glob,  TXMO)
+      CALL scatterIJ(mySparseComm_type,     TYMO_glob,  TYMO)
+      CALL scatterIJ(mySparseComm_type,     TZMO_glob,  TZMO)
+#endif
+      if (icase.lt.2) return
+
+c**** icase=2: still serialized non-i/o parts of ocn dynamics
+               ! for straits: mo,G0M,...,S0M,...,TRMO,...,opress
+      CALL scatterIJ(mySparseComm_type,   OPRESS_glob,OPRESS)
+
+      RETURN
+      end subroutine scatter_ocean_straits
 
       END Module OCEAN
 

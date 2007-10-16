@@ -297,16 +297,40 @@ C****
       USE OCEAN, only : im,jm,lmo, ze, dxypo, mo=>mo_glob, gather_ocean
      *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
      *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
-     *  ,dlat,dlon,fjeq
+     *  ,dlat,dlon,fjeq, mySparseComm_type
       USE STRAITS, only : dist,wist,nmst,distpg,rsist,rsixst,msist,hsist
      *     ,ssist,mmst,g0mst,s0mst,gxmst,sxmst,gzmst,szmst,must,lmst,ist
      *     ,jst,xst,yst
-      use domain_decomp, only: am_i_root
+      use domain_decomp, only: am_i_root, grid, get
+      Use SparseCommunicator_mod
       IMPLICIT NONE
-      INTEGER I,J,L,N,I1,J1,I2,J2
+      INTEGER I,J,L,N,I1,J1,I2,J2, ier
       REAL*8 FLAT,DFLON,DFLAT,SLAT,DSLON,DSLAT,TLAT,DTLON
      *     ,DTLAT,G01,GZ1,S01,SZ1,G02,GZ2,S02,SZ2
       LOGICAL, INTENT(IN) :: iniOCEAN
+
+      !initialize communication data for gathering and scattering
+      !straits ocean data
+      integer  :: locLB(2),locUB(2),globLB(2),globUB(2)
+      integer, allocatable :: points(:,:)
+
+      allocate(points(2, 2*nmst), stat=ier)
+      points(1,:) = RESHAPE( ist(:,:) , (/2*NMST/) )
+      points(2,:) = RESHAPE( jst(:,:) , (/2*NMST/) )
+
+      CALL GET(grid, J_STRT_HALO = locLB(2), J_STOP_HALO = locUB(2))
+
+      locLB(1)=1; locUB(1)=grid%IM_WORLD;
+      !locLB(2)=jmin; locUB(2)=jmax;
+
+      !bounds global
+      globLB(1)=1; globUB(1)=grid%IM_WORLD;
+      globLB(2)=1; globUB(2)=grid%JM_WORLD;
+
+      mySparseComm_type = SparseCommunicator(points,
+     &                  locLB  , locUB  , globLB , globUB )
+      deallocate(points)
+
 C****
 C**** Calculate distance of strait, distance between centers of
 C**** ocean grid boxes through strait for pressure gradient force,

@@ -37,6 +37,7 @@ C?*** For serial GM/straits computations, pack data into global arrays
 C?*** For serial ODIF/GM/straits computations:
       USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
+      USE OCEAN, only : scatter_ocean_straits, gather_ocean_straits
 
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
@@ -212,7 +213,7 @@ C**** Apply GM + Redi tracer fluxes
 c????          Non-parallelized parts : straits
 c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
 
-      call gather_ocean (2)
+      call gather_ocean_straits (2)
 
       IF(AM_I_ROOT()) THEN
 C****
@@ -226,7 +227,7 @@ C****
           CALL CHECKO_serial ('STADV0')
       END IF
 
-      call scatter_ocean (2)
+      call scatter_ocean_straits (2)
       call BCAST_straits (0)
 c????      end of serialized part
         CALL CHECKO ('STADV ')
