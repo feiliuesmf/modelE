@@ -41,7 +41,8 @@
          real*8 :: LAI
 
          !Radiation
-         real*8 :: solarzen !Solar zenith angle (radians)
+!         real*8 :: solarzen !Solar zenith angle (radians)
+         real*8 :: CosZen !cos(solarzen) = sin(solarelev)
          real*8 :: I0df, I0dr   !Direct and diffuse incident PAR at top of canopy (umol m-2 s-1)
       end type canraddrv
 
@@ -64,20 +65,17 @@
 
       real*8, intent(in) :: dtsec
       type(patch),pointer :: pp  
-      !---Additional var inputs for Farquhar/Ball-Berry
-      real*8 :: Gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-!      real*8 :: cf !Surface CO2 concentration (umol mol-1) ?Ambient air, leaf surface?
       !----Local----------------!
       type(cohort),pointer :: cop
       type(psdrvtype) :: psdrvpar !Met biophysics drivers, except for radiation.
-      real*8 :: ci_umol !umol/mol
-      real*8 :: ca_umol !umol/mol
-      real*8 :: cf_umol !umol/mol !NOTE: This is only used by Friend & Kiang biophysics.
+      real*8 :: ci_umol !umol/mol, Leaf internal CO2 
+      real*8 :: ca_umol !umol/mol, Ambient air CO2
+      real*8 :: cf_umol !umol/mol, Foliage surface CO2 !NOTE: This is only used by Friend & Kiang biophysics.
       real*8 :: TsurfK, TcanK,Pa !,rh
-!      real*8 :: Ch,U
       real*8 :: CosZen,betad
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
+      real*8 :: Gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
       real*8 :: Anet,Atot,Rd    !umol m-2 s-1
       real*8 :: GCANOPY,TRANS_SW ! Ci,NPP !,R_auto
       real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum,
@@ -101,7 +99,7 @@
       endif
 
       !* ZERO SOME OUTPUT VARIABLES AT PATCH LEVEL
-      pp%TRANS_SW = 0.
+      pp%TRANS_SW = 1.d0 !Case of zero LAI.
       !* Time-stepped outputs:  CNC, Ci, Qf.
 
       !* INITIALIZE SUMMARY OUTPUT VARIABLES *!
@@ -131,9 +129,10 @@
       endif
       CosZen = pp%cellptr%CosZen
 
+      Pa = pp%cellptr%P_mbar * 100.d0
+
       !* Other photosynthesis drivers *!
       !Set up psdrvpar - pack in met drivers.
-        Pa = pp%cellptr%P_mbar * 100.d0
       Gb = pp%cellptr%Ch*pp%cellptr%U* Pa/
      &     (gasc*(pp%cellptr%TairC+KELVIN)) !m/s * N/m2 * mol K/J * 1/K = mol/m2/s
 !      write(995,*) "canopyspitters Gb:",Gb,pp%cellptr%Ch,pp%cellptr%U,
@@ -294,8 +293,7 @@
       !Calculate net photosynthesis, integrate vertically with Simpson's Rule.
       !call qsimp(cradpar%LAI,cradpar,cf,ci,Tc,Pa,rh,Anet,Gsint) 
       !### LAIcanopy for radiation and LAIcohort for photosynthesis need to be distinguished.
-      call qsimp(cradpar%LAI,cradpar,psdrvpar,ca
-     &     ,Gb,Atot,Gsint,Rdint) 
+      call qsimp(cradpar%LAI,cradpar,psdrvpar,ca,Gb,Atot,Gsint,Rdint) 
 !      write(993,*) cradpar,psdrvpar,ca,cf,Gb,Atot,Gsint,Rdint
       !Calculate conductance and ci at the canopy level
 !      call Gs_bound(dt, LAI,Gsint, Gs) !Limit rate of change of Gs.
@@ -645,7 +643,8 @@
 
       sbeta = CosZen ! cos(solarzen) = sin(solarelev)
 
-      crp%solarzen = acos(CosZen)
+!      crp%solarzen = acos(CosZen)
+      crp%CosZen = CosZen
 ! Direct beam PAR incident on canopy (umol/m2/s).
       crp%I0dr=fdir*IPAR
 ! Diffuse PAR incident on canopy (umol/m2/s).
@@ -705,7 +704,7 @@
       real*8 Idrdra
       real*8,parameter :: zero = 0.d0
       
-      sbeta = cos(crp%solarzen) !cos(solarzen) = sin(solarelev)
+      sbeta = crp%CosZen !cos(solarzen) = sin(solarelev)
       I0df = crp%I0df
       I0dr = crp%I0dr
 ! When sun is above the horizon.
@@ -796,7 +795,9 @@
         abssl=0.0D0
         fracsl=0
       endif
-      TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
+
+      TRANS_SW = 1.d0 - ((1.d0-fracsl)*abssh + fracsl*abssl)
+
 !      write(110,*) TRANS_SW,I0dr,I0df,abssh, abssl, sbeta, sigma, kbl
 
 
@@ -931,7 +932,7 @@
       FUNCTION QSAT (TM,LH,PR)
 !@sum  QSAT calculates saturation vapour mixing ratio
 !@auth Gary Russell
-!@ver  1.0
+!@ver  1.0 (I think this is at least version 2.0)
 !      USE CONSTANT, only : mrat,rvap,tf
       IMPLICIT NONE
 !@var Physical constants from GISS GCM CONST.f
@@ -945,7 +946,7 @@
       REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
 C**** Note that if LH is considered to be a function of temperature, the
 C**** correct argument in QSAT is the average LH from t=0 (C) to TM, ie.
-C**** LH = 0.5*(LH(0)+LH(t))
+C**** LH = 0.5*(LH(0)+LH(t)), where LH(0)=
       REAL*8, INTENT(IN) :: TM  !@var TM   temperature (K)
       REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
       REAL*8, INTENT(IN) :: LH  !@var LH   lat. heat of vap./sub. (J/kg)

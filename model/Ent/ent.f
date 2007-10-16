@@ -216,6 +216,7 @@
      &         pp%cellptr%coszen,
      &         pp%tallest%pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
      &         pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
+     &         pp%TRANS_SW,
      &         pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
      &         pp%NPP,pp%CO2flux,pp%GCANOPY,
      &         pp%tallest%senescefrac
