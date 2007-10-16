@@ -114,13 +114,17 @@ C****
      *      taijs=>taijs_loc,ijts_isrc,ijts_source,
      *      jls_source, jls_isrc, tij_surf, tij_surfbv, tij_gasx,
      *      tij_kw, tij_alpha, tij_evap, tij_grnd, tij_drydep,
-     *      tij_gsdep, itcon_dd, dtr_dd
+     *      tij_gsdep
+#ifdef TRACERS_DRYDEP
+     *      , itcon_dd, dtr_dd
+#endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE tracers_dust,ONLY : hbaij,ricntd
+#endif
 #endif
       USE SOIL_DRV, only: earth
 
