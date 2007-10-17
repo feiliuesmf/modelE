@@ -28,7 +28,7 @@ C          ,UG,VG,WG,W2_1
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
-      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
+      USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
       use QUSDEF, only : mz
@@ -125,8 +125,18 @@ ccc extract data needed in driver from the pbl_args structure
       ! mup=min(DDMS(i,j), 0.1d0)
       ! pbl_args%gusti=log(1.+386.6d0*mup-1850.*mup*mup)
 
-      pbl_args%tprime=TDN1(i,j)-T(i,j,1)*pk(1,i,j)
-      pbl_args%qprime=QDN1(i,j)-Q(i,j,1)
+      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
+      if(nint(DDML(i,j)).eq.1) then
+         pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
+         pbl_args%qdns=QDN1(i,j)
+         pbl_args%tprime=pbl_args%tdns-TS
+         pbl_args%qprime=pbl_args%qdns-pbl_args%QSRF
+      else
+         pbl_args%tdns=TS
+         pbl_args%qdns=pbl_args%QSRF
+         pbl_args%tprime=0.d0
+         pbl_args%qprime=0.d0
+      endif
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces

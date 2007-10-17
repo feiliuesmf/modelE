@@ -81,7 +81,7 @@ c**** Don''t use global variables for that purpose !
      &        ,tprime,qprime
         logical :: pole,ocean
         ! inout:
-        real*8 gusti
+        real*8 gusti,tdns,qdns
         ! output:
         real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin,wsh0
         ! the following args needed for diagnostics
@@ -334,7 +334,7 @@ c  internals:
 #endif
 #endif
 
-      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
+      USE CLOUDS_COM, only : DDMS
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
 !@var TDN1 downdraft temperature flux in K, (i,j)
 !@var QDN1 downdraft humidity flux in kg/kg, (i,j)
@@ -373,7 +373,7 @@ c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
-      real*8 :: wsh02
+      real*8 :: wsh02,tdn1,qdn1
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
@@ -564,14 +564,16 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
         wsh02=(u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h
         wsh0=sqrt(wsh02)
         wsh=sqrt(wsh02+gusti*gusti)
+        tdn1=pbl_args%tdns
+        qdn1=pbl_args%qdns
         qprime=pbl_args%qprime
         tprime=pbl_args%tprime
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
-     &       ,evap_max,fr_sat,wsh0,qprime)
+     &       ,evap_max,fr_sat,wsh0,qprime,qdn1)
 
         call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd,ttop,dtime
-     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,wsh0,tprime) 
+     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,wsh0,tprime,tdn1) 
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
      *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
@@ -1995,13 +1997,19 @@ c     rhs(n-1)=0.
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
      &                ,ttop,dtime,n
-     &                ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime)
+     &                ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdn1)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
-!@+   The boundary conditions at the bottom are:
+!@+   Boundary conditions at bottom: Mellor and Yamada 1982, Eq(72),
+!@+   Redelsperger et al. 2000, J. Climate, 13, 402-421
+!@+   Emanuel and Zivkovic 1999, JAS, 56, 1766-1782
+!@+   including the effects on the surface flux
+!@+   due to the moist convection wind gustiness and the
+!@+   downdraft temperature perturbation
 !@+   kh * dt/dz = ch * ( usurf*(t1 - (1+deltx*q1)*tgrnd)
 !@+                      +(1+deltx*q1)*(usurf-usurf0)*tprime )
-!@+                - deltx * t1/(1+deltx*q1) * wq(1)
+!@+                + deltx * t1/(1+deltx*q1) * kq * dqdz
+!@+   where tprime=tdn1-t1/(1+deltx*q1), t1 is at surf
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -2033,9 +2041,9 @@ c     rhs(n-1)=0.
       real*8, intent(in) :: ch,tgrnd
       real*8, intent(in) :: ttop,dtime,usurf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8, intent(in) ::  usurf0,tprime
+      real*8, intent(in) ::  usurf0,tprime,tdn1
 
-      real*8 :: facth,factx,facty
+      real*8 :: facth,factx,facty,rat
       integer :: i,j,iter  !@var i,j,iter loop variable
 
       do i=2,n-1
@@ -2052,11 +2060,16 @@ c     rhs(n-1)=0.
 
       facth  = ch*usurf*dzh(1)/kh(1)
 
-      dia(1) = 1.+facth
-     &        +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
+      if(tprime.eq.0.d0) then
+         rat = 1.d0
+      else
+         rat = usurf0/(usurf+teeny)
+      endif
+
+      dia(1) = 1+facth*rat
+     &          +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
       sup(1) = -1.
-      rhs(1)= facth*(1+deltx*q(1))
-     &       *(tgrnd-(1.-usurf0/(usurf+teeny))*tprime)
+      rhs(1) = facth*(1.+deltx*q(1))*(tgrnd-(1.d0-rat)*tdn1)
 
       dia(n)  = 1.
       sub(n)  = 0.
@@ -2068,15 +2081,21 @@ c     rhs(n-1)=0.
       end subroutine t_eqn
 
       subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n
-     &     ,flux_max,fr_sat,usurf0,qprime)
+     &     ,flux_max,fr_sat,usurf0,qprime,qdn1)
 !@sum q_eqn integrates differential eqn q (tridiagonal method)
 !@+   between the surface and the first GCM layer.
-!@+   The boundary conditions at the bottom are:
-!@+   kq * dq/dz = min ( cq * usurf * (q(1) - qgrnd)
+!@+   The boundary conditions at the bottom Ref:
+!@+   Redelsperger et al. 2000, J. Climate, 13, 402-421
+!@+   Emanuel and Zivkovic 1999, JAS, 56, 1766-1782
+!@+   including the effects on the surface flux
+!@+   due to the moist convection wind gustiness and the
+!@+   downdraft specific humidity perturbation
+!@+   kq * dq/dz = min ( cq * usurf * (q1 - qgrnd)
 !@+                    + cq * (usurf-usurf0) * qprime ,
-!@+           fr_sat * ( cq * usurf * (q(1) - qgrnd)
+!@+           fr_sat * ( cq * usurf * (q1 - qgrnd)
 !@+                    + cq * (usurf-usurf0) * qprime )
-!@+       + ( 1 - fr_sat ) * flux_max )
+!@+       - ( 1 - fr_sat ) * flux_max )
+!@+   where qprime=qdn1-q1, q1 is q at surf
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -2104,9 +2123,9 @@ c     rhs(n-1)=0.
       real*8, dimension(n), intent(out) :: q
       real*8, intent(in) :: cq,qgrnd,qtop,dtime,usurf
       real*8, intent(in) :: flux_max,fr_sat
-      real*8, intent(in) :: usurf0,qprime
+      real*8, intent(in) :: usurf0,qprime,qdn1
 
-      real*8 :: factq
+      real*8 :: factq,rat
       integer :: i  !@var i loop variable
 
       do i=2,n-1
@@ -2120,10 +2139,16 @@ c     rhs(n-1)=0.
       end do
 
       factq  = cq*usurf*dzh(1)/kq(1)
+      rat=usurf0/(usurf+teeny)
 
-      dia(1) = 1.+factq
       sup(1) = -1.
-      rhs(1)= factq*(qgrnd-(1.-usurf0/(usurf+teeny))*qprime)
+      if(qprime.eq.0.d0) then
+         dia(1) = 1.+factq
+         rhs(1)= factq*qgrnd
+      else
+         dia(1) = 1.+factq*rat
+         rhs(1)= factq*(qgrnd-(1.-rat)*qdn1)
+      endif
 
       dia(n)  = 1.
       sub(n)  = 0.
@@ -2142,15 +2167,18 @@ c**** Flux is too high, have to recompute with the following boundary
 c**** conditions at the bottom:
 c**** kq * dq/dz = fr_sat * ( cq * usurf * (q(1) - qgrnd)
 c****                       + cq * (usurf-usurf0) * qprime )
-c****             + ( 1 - fr_sat ) * flux_max
+c****             - ( 1 - fr_sat ) * flux_max
 
-      dia(1) = 1. + fr_sat*factq
       sup(1) = -1.
-      rhs(1)= fr_sat*factq*(qgrnd-(1.-usurf0/(usurf+teeny))*qprime)
-     &         + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
-       ! check the sign in front of (1.-fr_sat),
-       ! if according to my derivation from !@sum, it is -, not +
-       ! a minus sign may have been obsorbed in flux_max
+      if(qprime.eq.0.d0) then
+         dia(1) = 1. + fr_sat*factq
+         rhs(1)= fr_sat*factq*qgrnd
+     &            + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+      else
+         dia(1) = 1. + fr_sat*factq*rat
+         rhs(1)= fr_sat*factq*(qgrnd-(1.-rat)*qdn1)
+     &            + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+      endif
 
       call TRIDIAG(sub,dia,sup,rhs,q,n)
 
