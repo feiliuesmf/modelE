@@ -399,7 +399,7 @@ C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
 C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
 C 310 I=IP1
 !!! MUST USE CONV for HALO update not SD which is aliased to it.
-      CALL HALO_UPDATE(GRID,CONV,FROM=SOUTH)
+      CALL HALO_UPDATE(GRID,SD,FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM-1
       DO J=J_0S,J_1
@@ -418,6 +418,7 @@ C 310 I=IP1
       END DO
       END DO
 !$OMP  END PARALLEL DO
+
       L=1
       DO J=J_0S,J_1
          DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
