@@ -362,7 +362,7 @@ c  internals:
 c**** local vars for input from pbl_args
       real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
       real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
-      real*8 :: qprime,tprime
+      real*8 :: tprime,qprime,tdn1,qdn1
       logical :: ocean
 c**** local vars for input/output from/to pbl_args
       real*8 :: gusti
@@ -373,7 +373,7 @@ c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
-      real*8 :: wsh02,tdn1,qdn1
+      real*8 :: wsh02
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
@@ -445,6 +445,18 @@ c**** get input from pbl_args structure
       khs = pbl_args%khs
       ug = pbl_args%ug
       vg = pbl_args%vg
+#ifdef USE_PBL_E1
+      tdn1=0.d0
+      qdn1=0.d0
+      tprime=0.d0
+      qprime=0.d0
+#else
+      tdn1=pbl_args%tdns
+      qdn1=pbl_args%qdns
+      tprime=pbl_args%tprime
+      qprime=pbl_args%qprime
+#endif
+
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
@@ -491,10 +503,10 @@ c    *          +  sha*ch*wsh*rhosrf*(ts-tgskin)              ! Sensible
 c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
             Qnet= (lhe+tgskin*shv)*cq*rhosrf*(
      &          pbl_args%wsh*(q(1)-qgrnd)
-     &        +(pbl_args%wsh-pbl_args%wsh0)*pbl_args%qprime ) ! Latent
+     &        +(pbl_args%wsh-pbl_args%wsh0)*qprime ) ! Latent
      &        + sha*ch*rhosrf*(
      &          pbl_args%wsh*(ts-tgskin)
-     &        +(pbl_args%wsh-pbl_args%wsh0)*pbl_args%tprime ) ! Sensible 
+     &        +(pbl_args%wsh-pbl_args%wsh0)*tprime ) ! Sensible 
      &          +trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin)   ! LW
 
             ustar_oc=ustar*sqrt(rhosrf*byrhows)
@@ -564,10 +576,6 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
         wsh02=(u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h
         wsh0=sqrt(wsh02)
         wsh=sqrt(wsh02+gusti*gusti)
-        tdn1=pbl_args%tdns
-        qdn1=pbl_args%qdns
-        qprime=pbl_args%qprime
-        tprime=pbl_args%tprime
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat,wsh0,qprime,qdn1)
