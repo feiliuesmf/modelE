@@ -1271,7 +1271,7 @@ C**** Kinematic viscosity of dry air - Andreas (1989) CRREL Rep. 89-11
 
       num=0.135d0*nu
 
-#ifdef PBL_E1
+#ifdef USE_PBL_E1
       nuh=0.395d0*nu ;  nuq=0.624d0*nu
 #endif
 c**** more accurate nuh, nuq assuming Sc and Pr so that this is
@@ -1287,7 +1287,7 @@ C**** uncomment for COARE algorithm
 c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav
         z0m=num/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
 
-#ifdef PBL_E1
+#ifdef USE_PBL_E1
         z0h=nuh/ustar + 1.4d-5
         z0q=nuq/ustar + 1.3d-4
 #else
