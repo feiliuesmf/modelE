@@ -1,8 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE EQSAM_DRV
       USE TRACER_COM
-      USE AEROSOL_SOURCES, only: NH3_src_nat_con,
-     & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+      USE AEROSOL_SOURCES, only: NH3_src_con, NH3_src_cyc
      & ,off_HNO3,off_SS
 
       USE MODEL_COM, only : im,jm,lm     ! dimensions

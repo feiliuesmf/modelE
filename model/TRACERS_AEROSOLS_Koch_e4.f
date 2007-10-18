@@ -71,9 +71,9 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifdef TRACERS_RADON
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: rn_src
 #endif
-!var NH3_src_nat_con Ammonium sources
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)       ::  NH3_src_nat_con,
-     & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+!var NH3_src_con Ammonium sources
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)       ::
+     & NH3_src_con, NH3_src_cyc
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
 
@@ -104,8 +104,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * tno3r,oh,dho2,perj,tno3,ohsr
      * ,o3_offline
      * ,snosiz
-     * ,craft,so2t_src,NH3_src_nat_con, off_HNO3,off_SS,
-     & NH3_src_nat_cyc, NH3_src_hum_con, NH3_src_hum_cyc
+     * ,craft,so2t_src, off_HNO3,off_SS
+     * ,NH3_src_con, NH3_src_cyc
 #ifdef TRACERS_RADON
      * ,rn_src
 #endif
@@ -158,10 +158,8 @@ c     endif
 #endif
 c Nitrate aerosols
 ! I,J
-      allocate(  NH3_src_nat_con(IM,J_0H:J_1H) )
-      allocate(  NH3_src_nat_cyc(IM,J_0H:J_1H) )
-      allocate(  NH3_src_hum_con(IM,J_0H:J_1H) )
-      allocate(  NH3_src_hum_cyc(IM,J_0H:J_1H) )
+      allocate(  NH3_src_con(IM,J_0H:J_1H) )
+      allocate(  NH3_src_cyc(IM,J_0H:J_1H) )
 c off line 
       allocate(  off_HNO3(IM,J_0H:J_1H,LM)     )
       allocate(  off_SS(IM,J_0H:J_1H,LM)     )
