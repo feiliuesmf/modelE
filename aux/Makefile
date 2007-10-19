@@ -20,6 +20,8 @@ BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
 GCMLIB = $(BIN_DIR)/$(RUN).a
 
+DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
+
 # getting options from configuration files
 # default modelE configuration file:
 include $(SCRIPTS_DIR)/modelErc
