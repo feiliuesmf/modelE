@@ -2077,7 +2077,7 @@ c     rhs(n-1)=0.
       dia(1) = 1+facth*rat
      &          +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
       sup(1) = -1.
-      rhs(1) = facth*(1.+deltx*q(1))*(tgrnd-(1.d0-rat)*tdn1)
+      rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+deltx*q(1))*tdn1)
 
       dia(n)  = 1.
       sub(n)  = 0.
