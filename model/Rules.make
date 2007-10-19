@@ -604,7 +604,12 @@ ifeq ($(COMPARE_MODULES_HACK),YES)
 else
 	@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
-	  echo $@ > $$i.sig; fi; done; fi
+	  echo $@ > $$i.sig1; fi; done; fi ; \
+	if [ -s $(DEPENDFILE) ] ; then \
+	  perl -e 'while(<>){ if(/(\S+\.mod): *$@/){ `echo $@ > "$$1.sig"`;} }' $(DEPENDFILE) ; fi
+#	for i in `perl -e 'while(<>){ if(/(\S+\.mod): *$@/){ print "$$1\n";} }' $(DEPENDFILE)` ; \
+#	do echo $$i ; \
+#	done 
 endif
 	@touch -r .timestamp $@
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
@@ -634,7 +639,9 @@ endif
 endif
 	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
-	  echo $@ > $$i.sig; fi; done; fi 
+	  echo $@ > $$i.sig1; fi; done; fi ; \
+	if [ -s $(DEPENDFILE) ] ; then \
+	perl -e 'while(<>){ if(/(\S+\.mod): *$@/){ `echo $@ > "$$1.sig"`;} }' $(DEPENDFILE) ; fi
 	@touch -r .timestamp $@
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
 ifdef COMP_OUTPUT
