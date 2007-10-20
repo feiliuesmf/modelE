@@ -33,7 +33,7 @@ C          ,UG,VG,WG,W2_1
       USE PBLCOM
       use QUSDEF, only : mz
       use SOMTQ_COM, only : tmom
- 
+
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
@@ -125,15 +125,18 @@ ccc extract data needed in driver from the pbl_args structure
       ! mup=min(DDMS(i,j), 0.1d0)
       ! pbl_args%gusti=log(1.+386.6d0*mup-1850.*mup*mup)
 
-      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
+!!!!  TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
+      TS=tabl(1,i,j,itype)/(1.+qabl(1,i,j,itype)*deltx)
       if(nint(DDML(i,j)).eq.1) then
          pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
          pbl_args%qdns=QDN1(i,j)
          pbl_args%tprime=pbl_args%tdns-TS
-         pbl_args%qprime=pbl_args%qdns-pbl_args%QSRF
+!!!!     pbl_args%qprime=pbl_args%qdns-pbl_args%QSRF
+         pbl_args%qprime=pbl_args%qdns-qabl(1,i,j,itype)
       else
          pbl_args%tdns=TS
-         pbl_args%qdns=pbl_args%QSRF
+!!!!     pbl_args%qdns=pbl_args%QSRF
+         pbl_args%qdns=qabl(1,i,j,itype)
          pbl_args%tprime=0.d0
          pbl_args%qprime=0.d0
       endif
@@ -462,7 +465,7 @@ C**** fix roughness length for ocean ice that turned to land ice
         else
           elhx=lhs
         endif
-C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION 
+C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
         call HALO_UPDATE(grid, u, from=NORTH)
         call HALO_UPDATE(grid, v, from=NORTH)
         do j=J_0,J_1
@@ -579,7 +582,7 @@ c For ITYPE=3 (land ice; frozen on land since last time step):
 c  If there was no computation made for land ice at the last time step,
 c  this time step may start from land result. If there was no
 c  land ice nor land computation at the last time step, nothing
-c  need be done. 
+c  need be done.
 c
 c For ITYPE=4 (land; melted land ice since last time step):
 c  If there was no computation made for land at the last time step,
@@ -696,7 +699,7 @@ ccc???
       cmgs(i,j,itype_out)=cmgs(i,j,itype_in)
       chgs(i,j,itype_out)=chgs(i,j,itype_in)
       cqgs(i,j,itype_out)=cqgs(i,j,itype_in)
-      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)      
+      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)
 
       return
       end subroutine setbl
