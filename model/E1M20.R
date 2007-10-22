@@ -145,12 +145,12 @@ ghg_yr=1850                                        ! =1979 , also change OSST,SI
 ghg_day=182
 volc_yr=-1  ! 1850-1999 mean strat.aeros           ! =1979 , also change OSST,SICE
 volc_day=182
-aero_yr=1850                                       ! =1979 , also change OSST,SICE
+aero_yr=-1850                                       ! =-1979 , also change OSST,SICE
 od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1850                                      ! =1979 , also change OSST,SICE
 dalbsnX=.024
-o3_yr=-1850                                        ! =1979 , also change OSST,SICE
+o3_yr=-1850                                        ! =-1979 , also change OSST,SICE
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
@@ -191,7 +191,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 !     -------------------------------------------          ======
 !     replace in "Object modules"     the 4 files
 ! CLOUDS2    PBL    ATURB    RADIATION    by:
-! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1 
+! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1
 !     replace in "Data input files:" OSST/SICE by
 ! OSST=OST4X5.B.1975-84avg.Hadl1.1
 ! SICE=SICE4X5.B.1975-84avg.Hadl1.1
