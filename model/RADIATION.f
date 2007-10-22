@@ -1,4 +1,4 @@
-#include "rundeck_opts.h"        
+#include "rundeck_opts.h"
 
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
@@ -3459,10 +3459,10 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
         A6YEAR(:,:,:,0,N)=A6YEAR(:,:,:,12,N)
       END DO
 
-      IF(JYEARA > 1850) THEN                           !   (JYEAR>1850)
-        WTANI=GLOPOP(JYEARA)
-        WTOCB=min( 1d0 , (JYEARA-1850)/140.D0 )
-        WTBCB=min( 1d0 , (JYEARA-1850)/140.D0 )
+      IF(JYEARX > 1850) THEN                           !   (JYEAR>1850)
+        WTANI=GLOPOP(JYEARX)
+        WTOCB=min( 1d0 , (JYEARX-1850)/140.D0 )
+        WTBCB=min( 1d0 , (JYEARX-1850)/140.D0 )
         DO M=1,12            !  Add time dependent JYEAR ANI,OCB,BCB
           A6YEAR(:,:,:,M,3) = A6YEAR(:,:,:,M,3)+
      +        AERMIX( 9)*WTANI*PREDD(:,:,:,M, 8)*1000*DRYM2G(3)
@@ -3471,9 +3471,9 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
           A6YEAR(:,:,:,M,6) = A6YEAR(:,:,:,M,6)+
      +        AERMIX(13)*WTBCB*PREDD(:,:,:,M,10)*1000*DRYM2G(6)
         END DO
-        WTANI=GLOPOP(JYEARA-1)
-        WTOCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
-        WTBCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
+        WTANI=GLOPOP(JYEARX-1)
+        WTOCB=min( 139/140d0 , (JYEARX-1851)/140.D0 )
+        WTBCB=min( 139/140d0 , (JYEARX-1851)/140.D0 )
         M=12        !  Add time dependent JYEAR-1 ANI,OCB,BCB Dec data
         A6YEAR(:,:,:,0,3) = A6YEAR(:,:,:,0,3)+
      +      AERMIX( 9)*WTANI*PREDD(:,:,:,M, 8)*1000*DRYM2G(3)
@@ -3483,8 +3483,8 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
      +      AERMIX(13)*WTBCB*PREDD(:,:,:,M,10)*1000*DRYM2G(6)
       ENDIF
 
-      IF(JYEARA > 1850.and.JYEARA < 1876) THEN   !   (1850<JYEAR<1876)
-       WT75=(JYEARA-1850)/25.D0
+      IF(JYEARX > 1850.and.JYEARX < 1876) THEN   !   (1850<JYEAR<1876)
+       WT75=(JYEARX-1850)/25.D0
        DO M=1,12          !    Add time dependent JYEAR SUI,OCI,BCI
        A6YEAR(:,:,:,M,1) = A6YEAR(:,:,:,M,1)+
      +                 WT75*SUIDD(:,:,:,M,1)*AERMIX( 8)*1000*DRYM2G(1)
@@ -3494,7 +3494,7 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
      +                 WT75*BCIDD(:,:,:,M,1)*AERMIX(11)*1000*DRYM2G(5)
        END DO
 
-       WT75=(JYEARA-1851)/25.D0
+       WT75=(JYEARX-1851)/25.D0
        M=12          !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
        A6YEAR(:,:,:,0,1) = A6YEAR(:,:,:,0,1)+
      +                 WT75*SUIDD(:,:,:,M,1)*AERMIX( 8)*1000*DRYM2G(1)
@@ -3504,9 +3504,9 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
      +                 WT75*BCIDD(:,:,:,M,1)*AERMIX(11)*1000*DRYM2G(5)
       ENDIF
 
-      IF(JYEARA > 1875) THEN                         !     (JYEAR>1875)
-      CALL STREND(JYEARA,IYS,JYS,SWTI,SWTJ)
-      CALL CTREND(JYEARA,IYC,JYC,CWTI,CWTJ)
+      IF(JYEARX > 1875) THEN                         !     (JYEAR>1875)
+      CALL STREND(JYEARX,IYS,JYS,SWTI,SWTJ)
+      CALL CTREND(JYEARX,IYC,JYC,CWTI,CWTJ)
       DO 141 M=1,12            !    Add time dependent JYEAR SUI,OCI,BCI
       DO 141 L=1,9
       DO 141 J=1,46
@@ -3522,8 +3522,8 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
       IF(A6YEAR(I,J,L,M,5) < 0.) A6YEAR(I,J,L,M,5)=0.
   141 CONTINUE
 
-      CALL STREND(JYEARA-1,IYS,JYS,SWTI,SWTJ)
-      CALL CTREND(JYEARA-1,IYC,JYC,CWTI,CWTJ)
+      CALL STREND(JYEARX-1,IYS,JYS,SWTI,SWTJ)
+      CALL CTREND(JYEARX-1,IYC,JYC,CWTI,CWTJ)
       M=12            !  Add time dependent JYEAR-1 SUI,OCI,BCI Dec data
       DO 145 L=1,9
       DO 145 J=1,46
