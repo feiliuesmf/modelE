@@ -1559,7 +1559,7 @@ C----------------------------------------------
       JJDAYA=JDAY
       JYEARA=JYEAR
       IF(KJDAYA > 0)             JJDAYA=KJDAYA
-      IF(KYEARA > 0)             JYEARA=KYEARA
+      IF(KYEARA.ne.0)            JYEARA=KYEARA
 C----------------------------------------------
       IF(MADAER.ne.0) CALL UPDAER(JYEARA,JJDAYA)
 C----------------------------------------------
@@ -3439,7 +3439,11 @@ C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
 
 C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
 C     ------------------------------------------------------------------
-      JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
+      if(JYEARA<0) then
+        JYEARX = -JYEARA
+      else
+        JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
+      end if
 
       IF(JYEARX==JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
 
@@ -3540,7 +3544,11 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
   145 CONTINUE
       ENDIF
       JYRNOW=JYEARX
-
+      if(jyeara<0) then  ! cyclic case
+        DO N=1,6
+          A6YEAR(:,:,:,0,N)=A6YEAR(:,:,:,12,N)
+        END DO
+      end if
 
 C      A6JDAY is interpolated daily from A6YEAR seasonal data via JJDAYA
 C      -----------------------------------------------------------------
