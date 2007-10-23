@@ -1218,7 +1218,8 @@ C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
-     *                          NORTH, SOUTH, HALO_UPDATE_COLUMN
+     *                          NORTH, SOUTH, HALO_UPDATE_COLUMN,
+     *     haveLatitude
       USE DYNAMICS, only : pu,pv
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,defrm
@@ -1336,19 +1337,13 @@ C**** Convert to UV-grid
       DEFRM2(I,J)=.25*DEFRM2(I,J)*BYDXYV(J)
       DEFRM(I,J)=SQRT(DEFRM1(I,J)**2+DEFRM2(I,J)**2)
   120 I=IP1
-C**** Set deformation to zero near the poles
-      IF (HAVE_SOUTH_POLE) THEN
-         DO I=1,IM
-            DEFRM(I,2)=0.
-            DEFRM(I,3)=0.
-         END DO
-      ENDIF
-      IF (HAVE_NORTH_POLE) THEN
-         DO I=1,IM
-            DEFRM(I,JM-1)=0.
-            DEFRM(I,JM  )=0.
-         END DO
-      ENDIF
+C**** Set 
+deformation to zero near the poles
+      if (haveLatitude(grid, J=2)) DEFRM(1:IM,2) = 0.
+      if (haveLatitude(grid, J=3)) DEFRM(1:IM,3) = 0.
+
+      if (haveLatitude(grid, J=JM-1)) DEFRM(1:IM,JM-1) = 0.
+      if (haveLatitude(grid, J=JM)) DEFRM(1:IM,JM) = 0.
 
 
 C****
