@@ -129,9 +129,7 @@ C****
       USE SOIL_DRV, only: earth
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
-!@var TDN1 downdraft temperature in K, (i,j)
-!@var QDN1 downdraft humidity in kg/kg, (i,j)
-      USE CLOUDS_COM, only : DDMS,TDN1,QDN1
+      USE CLOUDS_COM, only : DDMS
 
 
       IMPLICIT NONE
@@ -765,7 +763,7 @@ C****
         ! Including gustiness in the latent heat flux:
         EVHEAT=LHE*CQ*RHOSRF*(
      &     pbl_args%WSH*(QSRF-QG_SAT)
-     &   +(pbl_args%WSH-pbl_args%wsh0)*(QDN1(i,j)-Q1))
+     &   +(pbl_args%WSH-pbl_args%wsh0)*pbl_args%qprime)
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         dSNdTG=-RCDHWS*SHA
         dQGdTG=QG_SAT*DQSATDT(TG,ELHX) ! d(QG)/dTG

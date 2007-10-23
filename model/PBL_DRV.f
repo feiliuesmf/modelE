@@ -15,8 +15,8 @@
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
-!@var TDN1 downdraft temperature flux in K, (i,j)
-!@var QDN1 downdraft humidity flux in kg/kg, (i,j)
+!@var TDN1 downdraft temperature in K, (i,j)
+!@var QDN1 downdraft humidity in kg/kg, (i,j)
 
 C    input: ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
@@ -33,7 +33,7 @@ C          ,UG,VG,WG,W2_1
       USE PBLCOM
       use QUSDEF, only : mz
       use SOMTQ_COM, only : tmom
-
+ 
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
@@ -124,22 +124,6 @@ ccc extract data needed in driver from the pbl_args structure
       ! for up draft:
       ! mup=min(DDMS(i,j), 0.1d0)
       ! pbl_args%gusti=log(1.+386.6d0*mup-1850.*mup*mup)
-
-!!!!  TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
-      TS=tabl(1,i,j,itype)/(1.+qabl(1,i,j,itype)*deltx)
-      if(nint(DDML(i,j)).eq.1) then
-         pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
-         pbl_args%qdns=QDN1(i,j)
-         pbl_args%tprime=pbl_args%tdns-TS
-!!!!     pbl_args%qprime=pbl_args%qdns-pbl_args%QSRF
-         pbl_args%qprime=pbl_args%qdns-qabl(1,i,j,itype)
-      else
-         pbl_args%tdns=TS
-!!!!     pbl_args%qdns=pbl_args%QSRF
-         pbl_args%qdns=qabl(1,i,j,itype)
-         pbl_args%tprime=0.d0
-         pbl_args%qprime=0.d0
-      endif
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
@@ -280,6 +264,26 @@ c     ENDIF
       pbl_args%ch = ch
       pbl_args%cq = cq
 
+      TS=tpbl(1)/(1.+deltx*qpbl(1))
+#ifdef USE_PBL_E1
+      pbl_args%tdns=0.d0
+      pbl_args%qdns=0.d0
+      pbl_args%tprime=0.d0
+      pbl_args%qprime=0.d0
+#else
+      if(nint(DDML(i,j)).eq.1) then
+         pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
+         pbl_args%qdns=QDN1(i,j)
+         pbl_args%tprime=pbl_args%tdns-TS
+         pbl_args%qprime=pbl_args%qdns-qpbl(1)
+      else
+         pbl_args%tdns=TS
+         pbl_args%qdns=qpbl(1)
+         pbl_args%tprime=0.d0
+         pbl_args%qprime=0.d0
+      endif
+#endif
+
       call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,i,j,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
@@ -300,6 +304,20 @@ c     ENDIF
       end do
 #endif
 
+
+      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
+#ifdef USE_PBL_E1
+      ! do nothing
+#else
+      if(nint(DDML(i,j)).eq.1) then
+         pbl_args%tprime=pbl_args%tdns-TS
+         pbl_args%qprime=pbl_args%qdns-pbl_args%QSRF
+      else
+         pbl_args%tdns=TS
+         pbl_args%qdns=pbl_args%QSRF
+      endif
+#endif
+
       cmgs(i,j,itype)=pbl_args%cm
       chgs(i,j,itype)=pbl_args%ch
       cqgs(i,j,itype)=pbl_args%cq
@@ -310,7 +328,6 @@ c     ENDIF
       psi   =psisrf-psitop
       ustar_pbl(i,j,itype)=pbl_args%ustar
 C ******************************************************************
-      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
       if ( ts.lt.152d0 .or. ts.gt.423d0 ) then
         write(6,*) 'PBL: Ts bad at',i,j,' itype',itype,ts
         if (ts.gt.1d3) call stop_model("PBL: Ts out of range",255)

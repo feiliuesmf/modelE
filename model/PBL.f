@@ -336,8 +336,8 @@ c  internals:
 
       USE CLOUDS_COM, only : DDMS
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
-!@var TDN1 downdraft temperature flux in K, (i,j)
-!@var QDN1 downdraft humidity flux in kg/kg, (i,j)
+!@var TDN1 downdraft temperature in K, (i,j)
+!@var QDN1 downdraft humidity in kg/kg, (i,j)
 
       implicit none
 
@@ -445,18 +445,11 @@ c**** get input from pbl_args structure
       khs = pbl_args%khs
       ug = pbl_args%ug
       vg = pbl_args%vg
-#ifdef USE_PBL_E1
-      tdn1=0.d0
-      qdn1=0.d0
-      tprime=0.d0
-      qprime=0.d0
-#else
+
       tdn1=pbl_args%tdns
       qdn1=pbl_args%qdns
       tprime=pbl_args%tprime
       qprime=pbl_args%qprime
-#endif
-
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
@@ -2014,7 +2007,7 @@ c     rhs(n-1)=0.
 !@+   including the effects on the surface flux
 !@+   due to the moist convection wind gustiness and the
 !@+   downdraft temperature perturbation
-!@+   kh * dt/dz = ch * ( usurf*(t1 - (1+deltx*q1)*tgrnd)
+!@+   kh * dt/dz = ch * ( usurf*(t1 - tgrnd)
 !@+                      +(1+deltx*q1)*(usurf-usurf0)*tprime )
 !@+                + deltx * t1/(1+deltx*q1) * kq * dqdz
 !@+   where tprime=tdn1-t1/(1+deltx*q1), t1 is at surf
