@@ -632,7 +632,6 @@ ccc         if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
  2010 CONTINUE
  2015 CONTINUE
 
-      CALL HALO_UPDATE(grid, zatmo, FROM=SOUTH)
       CALL HALO_UPDATE(grid, pijl, FROM=SOUTH)
 ccc   do j=2,jm
 c**** Exceptional J loop boundaries
