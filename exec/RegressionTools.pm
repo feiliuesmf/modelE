@@ -99,8 +99,12 @@ sub runConfiguration {
     cd $installDir/decks;
     make setup_nocomp RUN=$expName $flags;
     cd $expName;
+    # Remove old result so that we notice if things fail really badly
+    rm $resultsDir/$expName.1hr$suffix;
     cp fort.2 $resultsDir/$expName.1hr$suffix;
     $continue1Day;
+    # Remove old result so that we notice if things fail really badly
+    rm $resultsDir/$expName.1dy$suffix;
     cp fort.2 $resultsDir/$expName.1dy$suffix;
 EOF
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$resultsDir/$expName.runlog", NUM_PROCS => $npes}));
