@@ -47,9 +47,9 @@ close MODELERC;
 `mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR}`;
 
 my $rundecks = ["E1M20","E1oM20","E1F20","E001tr"];
-#my $rundecks = ["E1M20"];
+
 my $configurations;
-#$configurations -> {"E1M20"} = ["MPI"];
+
 $configurations -> {"E1M20"}  = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
 $configurations -> {"E1oM20"} = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
 $configurations -> {"E1F20"}  = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
@@ -71,7 +71,7 @@ if ($level eq "gentle") { # 3 lats per proc
 }
 elsif ($level eq "aggressive") { # aggressive - 2 lats per proc
     $numProcessors -> {E1M20}  -> {MPI}    = [1,4,23];
-    $numProcessors -> {E1oM20} -> {MPI}    = [1,4,23];
+    $numProcessors -> {E1oM20} -> {MPI}    = [1,4,15];
     $numProcessors -> {E001tr} -> {MPI}    = [1,4,23];
     $numProcessors -> {E1F20}  -> {MPI}    = [1,4,45];
 }
@@ -199,7 +199,7 @@ foreach my $rundeck (@$rundecks) {
 
 close REPORT;
 # Mail report to mailing list
-`mail -s regression giss-modelE-regression\@sourcemotel.gsfc.nasa.gov < Report`;
+`mail -s "discover results" giss-modelE-regression\@sourcemotel.gsfc.nasa.gov < Report`;
 
 print LOG "Completed nightly regresison tests.\n";
 close(LOG);
