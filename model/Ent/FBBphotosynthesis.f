@@ -499,7 +499,7 @@
       real*8 :: c3, c2, c1, c   !Coefficients of the cubic of ci (c3*ci^3 + c2*ci^2 + c1*ci + c)
 
       real*8 :: c_1, c_2, c_3, e, fmol, gamol, a, C3_, A_,cs_,A_1,rs_
-      real*8 :: res_, C6, Ra,A_2,cixx(3)
+      real*8 :: res_, C6, Ra,A_2,cixx(3),K
       integer :: nroots, i
       rb = 1/gb
       m = pspar%m
@@ -617,13 +617,34 @@
      -      ca*m*rh - ci*m*rh + 2*m*Ra*Rd*rh) - 
      -   (ci*e + fmol)**2*(b*(ca + Ra*Rd)*(ca - ci + Ra*Rd) + 
      -      Rd*(C6*ca + C6*Ra*Rd - ca*m*rh + ci*m*rh - m*Ra*Rd*rh))
-      print *,"RES= ", res_, c + c1*ci + c2*ci**2 + c3*ci**3
-      print '(a,i3,i3,4e15.4)',"PLOT", i, pspar%pft, ci, A_, cs_, rs_
-      write(994,*) "A_1,A2,cs,rs,res_,i, pspar%pft, ci, A_, cs_, rs_",
-     &     A_1,A2,cs,rs,res_,i, pspar%pft, ci, A_, cs_, rs_
+!      print *,"RES= ", res_, c + c1*ci + c2*ci**2 + c3*ci**3
+!      print '(a,i3,i3,4e15.4)',"PLOT", i, pspar%pft, ci, A_, cs_, rs_
+!      write(994,*) "A_1,A2,cs,rs,res_,i, pspar%pft, ci, A_, cs_, rs_",
+!     &     A_1,A_2,cs_,rs_,res_,i, pspar%pft, ci, A_, cs_, rs_
       !!! uncomment these 2 lines to check all roots
       !enddo
       !ci = c_1
+#endif
+
+!#define USE_IGORS_CUBIC_2
+#ifdef USE_IGORS_CUBIC_2
+      b = b/C6
+      K = m * rh / C6
+
+      Y=fmol/e
+      X= -a/e * (gamol+fmol/e)
+      Z= a/e -Rd
+
+      c = -(b*Ca*(X + (Ca + Y)*Z))
+      c1 = Ca*Z - K*(X + Ca*Z + Y*Z) + 
+     -   b*(Ca**2 + Ca*(Y + 2*Ra*Z) + Ra*(X + Y*Z))
+      c2 = Ca*(-1 + K - 2*b*Ra) + K*(Y + Ra*Z) - Ra*(b*Y + Z + b*Ra*Z)
+      c3 = Ra*(1 - K + b*Ra)
+
+      call cubicroot(c3, c2, c1, c, cixx, nroots)
+      print *,"NNNN ",cixx(1:nroots)
+      print *,"UUUU", A_1-cixx(2)
+
 #endif
 
 #ifdef DEBUG
