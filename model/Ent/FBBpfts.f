@@ -37,7 +37,7 @@
 
       !=======CONSTANTS========!
 !      integer,parameter :: N_PFT = 8  !2-C3 herbaceous
-
+#ifdef PSPAR_HACK
       type(pspartype),parameter :: pftpar(N_PFT) = !PFT parameters for GISS veg types
      &!     pft PARabsorb Vcmax Kc Ko KcQ10 KoQ10 Gammastar  m b !Rdc RdH
      &     (/
@@ -74,7 +74,6 @@
      &     ,.002d0              !b, CLM
      &     ,4d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ),
-#ifdef PSPAR_HACK
      &     pspartype(2          !SHRUB
      &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,17d0               !Vmax25, CLM 
@@ -103,7 +102,45 @@
      &     ,.002d0              !b, CLM
      &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     )
+     &/)
+
 #else
+      type(pspartype),parameter :: pftpar(N_PFT) = !PFT parameters for GISS veg types
+     &!     pft PARabsorb Vcmax Kc Ko KcQ10 KoQ10 Gammastar  m b !Rdc RdH
+     &     (/
+     &     pspartype(1          !TUNDRA
+     &     ,.89d0               !from leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,43.d0               !Vmax25, CLM
+     &     ,9.d0                !m, CLM
+     &     ,.002d0              !b, CLM
+     &     ,7d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &),
+     &     pspartype(1          !GRASSC3 - this is 2 in Ent, most grassland is C4.
+     &     ,.86d0               !PARabsorb, Collatz et al. (1991)
+!     &     ,30d0                !Vcmax, Wullschleger (1993) winter wheat, Triticum aestivum
+!     &     ,100d0                !Vcmax, Sellers II (1996)
+!     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
+!     &     ,45.d0                !Vcmax, best fit guess, see plots of 07/09/2007.
+     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
+!     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+     &     ,11.d0               !m, X.Mo, et al. (2001)
+     &     ,.008d0              !b, X.Mo, et al. (2001)
+!     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum
+     &     ,3.27d0),            !Ponca Ntot/LA average (actually seasonal curve); Rd not large deviance from direct daily Ntot 
+     &     pspartype(2          !SHRUB
+     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,17d0               !Vmax25, CLM 
+     &     ,9d0                !m, CLM
+     &     ,.002d0              !b, CLM
+     &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ),
+     &     pspartype(2          !SAVANNA
+     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,24d0               !Vmax25, CLM
+     &     ,5d0                !m, CLM
+     &     ,.002d0              !b, CLM
+     &     ,4d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ),
      &     pspartype(1          !DECIDFOREST
      &     ,0d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,0d0               !Vmax25, CLM
@@ -132,8 +169,9 @@
      &     ,0d0              !b, CLM
      &     ,0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     )
-#endif
      &/)
+#endif
+
 
       !NOTES:
         !--------Collatz, et al. (1991) Farquhar parameters-----
