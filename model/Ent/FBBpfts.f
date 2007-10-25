@@ -74,6 +74,36 @@
      &     ,.002d0              !b, CLM
      &     ,4d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ),
+#ifdef PSPAR_HACK
+     &     pspartype(2          !SHRUB
+     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,17d0               !Vmax25, CLM 
+     &     ,9d0                !m, CLM
+     &     ,.002d0              !b, CLM
+     &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ),
+     &     pspartype(2          !SHRUB
+     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,17d0               !Vmax25, CLM 
+     &     ,9d0                !m, CLM
+     &     ,.002d0              !b, CLM
+     &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ),
+     &     pspartype(2          !SHRUB
+     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,17d0               !Vmax25, CLM 
+     &     ,9d0                !m, CLM
+     &     ,.002d0              !b, CLM
+     &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ),
+     &     pspartype(2          !SHRUB
+     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,17d0               !Vmax25, CLM 
+     &     ,9d0                !m, CLM
+     &     ,.002d0              !b, CLM
+     &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     )
+#else
      &     pspartype(1          !DECIDFOREST
      &     ,0d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,0d0               !Vmax25, CLM
@@ -102,6 +132,7 @@
      &     ,0d0              !b, CLM
      &     ,0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     )
+#endif
      &/)
 
       !NOTES:
