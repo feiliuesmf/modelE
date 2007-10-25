@@ -394,7 +394,9 @@ C.. mod 03/03/11 change closs/nloss to be g/m2/sec instead of g/m2/timestep
         numlayers = 2
       !might increase dz(2) to 1700 mm, i.e. put bottom of column at 2 m -PK
         dz(1) = 300.d0  !layer 1 = 300 mm
+#ifdef NCASA2
         dz(2) = 700.d0  !layer 2 = 700 mm   
+#endif
         
       !calculate 1st-order transport coefs in appropriate units (unitless) 
       do i=1,N_CASA_LAYERS
