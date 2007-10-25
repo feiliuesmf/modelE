@@ -1,8 +1,6 @@
 #define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
 #define RETURN_(status) If (Present(rc)) rc=status; return
 
-! special macro to deal with the fact that SD and PIT are defined via F90 slices:
-#define JJ(J) (J)-J_0H+1
 
 !#define NO_FORCING
 
@@ -31,7 +29,7 @@ module FV_INTERFACE_MOD
   public :: Checkpoint             ! Unimplemented
   public :: Restart                ! Unimplemented - should move within Initialize()
   public :: edgepressure_giss
-
+  public :: DryTemp_GISS
   ! This data structure is o convenient entity for storing persistent data between
   ! calls to this module.  In addition to
   Type FV_CORE
@@ -57,7 +55,7 @@ module FV_INTERFACE_MOD
      ! by differencing before and after physics.  Therefore, the final dynamical state
      ! must be preserved for the following
      ! of modelE fields
-     real*8, pointer, dimension(:,:,:) :: U_old, V_old, dPT_old, PE_old
+     real*8, pointer, dimension(:,:,:) :: U_old, V_old, dPT_old, PE_old, dT_old
 
   END Type FV_CORE
 
@@ -175,8 +173,9 @@ contains
     call allocateFvExport3D ( fv % export,'V' )
     call allocateFvExport3D ( fv % export,'TH' )
     call allocateFvExport3D ( fv % export,'PLE' )
-    call allocateFvExport3D ( fv % export,'MFX' )
-    call allocateFvExport3D ( fv % export,'MFY' )
+    call allocateFvExport3D ( fv % export,'Q' )
+    call allocateFvExport3D ( fv % export,'MFX_A' )
+    call allocateFvExport3D ( fv % export,'MFY_A' )
     call allocateFvExport3D ( fv % export,'MFZ' )
 
 !   print*,'called fv initialize'
@@ -242,6 +241,25 @@ contains
 
   end function EdgePressure_GISS
 
+  ! Compute Delta-pressure for GISS model
+  function DeltPressure_GISS() Result(dP)
+    USE RESOLUTION, only: IM, LM, LS1
+    Use MODEL_COM, only: T
+    USE DOMAIN_DECOMP, only: grid, GET
+
+    REAL*8 :: dP(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
+
+    INTEGER :: J_0,J_1,k
+    Call Get(grid, J_STRT=J_0, J_STOP=J_1)
+
+    PE = EdgePressure_GISS()
+    do k = 1, LM
+       dP(:,:,k) = (PE(:,:,k)-PE(:,:,k+1))
+    end do
+
+  end function DeltPressure_GISS
+
 
   ! Convert Potential Temperature into (dry) Temperature
   function DeltPressure_DryTemp_GISS() Result(dPT)
@@ -297,11 +315,13 @@ contains
     Allocate(fv % U_old(IM,J_0:J_1,LM), &
          &   fv % V_old(IM,J_0:J_1,LM), &
          &   fv % dPT_old(IM,J_0:J_1,LM), &
+         &   fv % dT_old(IM,J_0:J_1,LM), &
          &   fv % PE_old(IM,J_0:J_1,LM+1))
 
     fv % U_old = U(:,J_0:J_1,:)
     fv % V_old = V(:,J_0:J_1,:)
     fv % dPT_old = DeltPressure_DryTemp_GISS()
+    fv % dT_old = DryTemp_GISS()
     fv % PE_old   = EdgePressure_GISS()
 
   End Subroutine allocate_tendency_storage
@@ -313,7 +333,7 @@ contains
 
     call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc )
 
-    Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % PE_old)
+    Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
 
   end subroutine finalize
 
@@ -325,6 +345,7 @@ contains
     USE MODEL_COM, Only: U, V, T
     USE DOMAIN_DECOMP, only: grid, get
     USE DYNAMICS, only: DUT, DVT
+    USE CONSTANT, only: KAPA
     Implicit None
     Type (FV_CORE) :: fv
 
@@ -338,13 +359,11 @@ contains
     call ConvertUV_GISS2FV(DUT(:,J_0:J_1,:), DVT(:,J_0:J_1,:), fv % dudt, fv % dvdt)
 
     ! delta pressure weighted Temperature
-    fv  %  dtdt = reverse(Tendency(DeltPressure_DryTemp_GISS(), fv % dPT_old)) * PRESSURE_UNIT_RATIO
+    fv  %  dtdt = reverse(DeltPressure_GISS() * Tendency(DryTemp_GISS(), fv % dT_old)) * &
+         & (PRESSURE_UNIT_RATIO)
 
     ! Edge Pressure
     Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv % PE_old), fv % dpedt)
-
-
-!!!!!!    fv % dpedt=0
 
 #ifdef NO_FORCING
     fv % dudt = 0
@@ -382,6 +401,7 @@ contains
     USE ATMDYN, only: CALC_AMP, CALC_PIJL, AFLUX, COMPUTE_MASS_FLUX_DIAGS
     USE DYNAMICS, only: MA, PHI, GZ
     USE DYNAMICS, ONLY: PU, PV, CONV
+    USE DYNAMICS, ONLY: SD, AFLUX
 
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
@@ -397,21 +417,17 @@ contains
 
     call clear_accumulated_mass_fluxes()
     ! Run dycore
-    write(*,*)'here: ',__LINE__,__FILE__
-    NIdyn_fv = DTsrc / (2*DT)
+    NIdyn_fv = DTsrc / (DT)
     do istep = 1, NIdyn_fv
-    write(*,*)'here: ',__LINE__,__FILE__
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
-    write(*,*)'here: ',__LINE__,__FILE__
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc )
-    write(*,*)'here: ',__LINE__,__FILE__
+
        call accumulate_mass_fluxes(fv)
        TMOM = 0 ! for now
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
     end do
-    write(*,*)'here: ',__LINE__,__FILE__
 
     gz  = phi
   end subroutine run_fv
@@ -496,7 +512,7 @@ contains
        call openunit(config_file, iunit, qbin=.false., qold=.false.)
        write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE: ', FVCORE_INTERNAL_RESTART
        write(iunit,*)'FVCORE_LAYOUT_FILE:           ', FVCORE_LAYOUT
-       write(iunit,*)'RUN_DT:                       ', DT*2
+       write(iunit,*)'RUN_DT:                       ', DT
        close(iunit)
     end if
     call esmf_configloadfile(config, config_file, rc=rc)
@@ -715,7 +731,7 @@ contains
       Write(unit,*)'    im: ',IM
       Write(unit,*)'    jm: ',JM
       Write(unit,*)'    km: ',LM
-      Write(unit,*)'    dt: ',DT*2
+      Write(unit,*)'    dt: ',DT
       Write(unit,*)'nsplit: ',0
       Write(unit,*)' ntotq: ',1
       Write(unit,*)'    nq: ',1
@@ -818,7 +834,7 @@ contains
     ! Moisture
     fv % Q = Reverse(Q(:,j_0:j_1,:))
 #ifdef NO_FORCING
-    ptr = 0
+    fv % Q = 0
 #endif
 
   End Subroutine Copy_modelE_to_FV_import
@@ -873,8 +889,8 @@ contains
     CALL CALC_AMPK(LS1-1)
 
     ! Preserve state information for later computation of tendencies.
+    fv % dT_old = DryTemp_GISS()
     fv % dPT_old = DeltPressure_DryTemp_GISS()
-    fv % PE_old = EdgePressure_GISS()
 
   End Subroutine Copy_FV_export_to_modelE
 
@@ -1106,26 +1122,34 @@ contains
     If (HAVE_SOUTH_POLE) Then
        ! 1st interpolate to 'A' grid
        Call FixPole(U_b(:,2,:), V_b(:,2,:), U_d(:,1,:))
-       V_d(:,1,:) = (V_b(:,2,:) + CSHIFT(V_b(:,2,:),1,1))/2
+     ! V_d(:,1,:) = (V_b(:,2,:) + CSHIFT(V_b(:,2,:),1,1))/2
+       U_d(:,1,:)=0 ! not used (but needs legal value)
     End If
 
     If (HAVE_NORTH_POLE) Then
        ! 1st interpolate to 'A' grid
-       Call FixPole(U_b(:,JM,:), V_b(:,JM,:), U_d(:,JM-1,:))
-       V_d(:,JM-1,:) = (V_b(:,JM,:) + CSHIFT(V_b(:,JM,:),1,1))/2
-
-       U_d(:,JM,:)=0 ! not used (but needs legal value)
-       V_d(:,JM,:)=0 ! not used (but needs legal value)
+       Call FixPole(U_b(:,JM,:), V_b(:,JM,:), U_d(:,JM,:))
+     ! V_d(:,JM,:) = (V_b(:,JM,:) + CSHIFT(V_b(:,JM,:),1,1))/2
     End If
 
+! V-grid
     Do k = 1, LM
        Do j = j_0s, j_1s
+          Do i = 1, IM
+             V_d(i,j,k) = (V_b(i,j,k) + V_b(i,j+1,k)) /2
+          End Do
+       !  V_d(:,j,:) = (V_b(:,j,:) + CSHIFT(V_b(:,j,:),1,1))/2
+       End Do
+    End Do
+! U-grid
+    Do k = 1, LM
+       Do j = j_0s, j_1
           i = IM
           Do ip1 = 1, IM
-             U_d(i,j,k) = (U_b(i,j,k) + U_b(i,j+1,k)) /2
-             V_d(i,j,k) = (V_b(i,j,k) + V_b(ip1,j,k)) /2
+             U_d(i,j,k) = (U_b(i,j,k) + U_b(ip1,j,k)) /2
              i = ip1
           End Do
+       !  U_d(:,j,:) = (U_b(:,j,:) + CSHIFT(U_b(:,j,:),1,1))/2
        End Do
     End Do
 
@@ -1327,18 +1351,22 @@ contains
     Use Resolution, only: IM,JM,LM,LS1
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
-    USE MODEL_COM, only: DSIG
+    USE MODEL_COM, only: DTsrc,DT,DSIG
     USE DOMAIN_DECOMP, only: get, grid, NORTH, SOUTH, HALO_UPDATE
+    Use Constant, only: radius,pi,grav
     implicit none
     type (FV_core) :: fv
-    real*4, Dimension(:,:,:), Pointer :: mfx_X, mfx_Y, mfx_Z
+    real*4, Dimension(:,:,:), Pointer :: PLE, mfx_X, mfx_Y, mfx_Z
     integer :: J_0, J_1
     integer :: J_0S, J_1S
     integer :: J_0H, J_1H
     integer :: i,im1,j,l
     integer :: rc
     logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+    real*8 :: DTLF
+    real*8 :: area,dlon,dlat,LAT
 
+    DTLF = 2.0*DT
 
     Call Get(grid, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
          & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
@@ -1347,29 +1375,53 @@ contains
     ! Horizontal and Vertical mass fluxes
     !---------------
 
-    call ESMFL_StateGetPointerToData ( fv % export,mfx_X,'MFX',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,mfx_X,'MFX_A',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % export,mfx_Y,'MFY',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,mfx_Y,'MFY_A',rc=rc)
     VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,mfx_Z,'MFZ',rc=rc)
     VERIFY_(rc)
-    
-    mfx_X = Reverse(mfx_X)/PRESSURE_UNIT_RATIO 
-    mfx_Y = Reverse(mfx_Y)/PRESSURE_UNIT_RATIO 
-    mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO  ! negative for coordinate translation
-
+    call ESMFL_StateGetPointerToData ( fv % export,PLE,'PLE',rc=rc)
+    VERIFY_(rc)
+   
+!     \item {\tt MFX}:       Mass-Weighted U-Wind on C-Grid (Pa m^2/s)
+!     \item {\tt MFY}:       Mass-Weighted V-wind on C-Grid (Pa m^2/s)
+!     \item {\tt MFZ}:       Vertical mass flux (kg/(m^2*s))
+#ifdef NO_MASS_FLUX
     mfx_X = 0
     mfx_Y = 0
     mfx_Z = 0
+#endif
+    call Regrid_A_to_B(Reverse(mfx_X), Reverse(mfx_Y), PU(:,J_0:J_1,:), PV(:,J_0:J_1,:))
+    PU = (DTLF/DTsrc)*PU/PRESSURE_UNIT_RATIO
+    PV = (DTLF/DTsrc)*PV/PRESSURE_UNIT_RATIO
+ 
+    mfx_Z = (DTLF/DTsrc)*Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
+    dlon = 2.0*pi/im
+    dlat = pi/(jm-1)
+    do l=1,lm
+       do j=j_0,j_1
+          LAT = ((-pi/2.0) + (j-1)*dlat)
+          do i=1,im
+             area = (radius*(dlon)*COS(LAT))*(radius*dlat)
+             mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (Pa m^2/s)
+          enddo
+       enddo
+    enddo
+    SD(:,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
 
-    PU(:,J_0:J_1,:) = mfx_X
-    PV(:,J_0:J_1,:) = mfx_Y
-    SD(:,JJ(J_0):JJ(J_1),1:LM-1) = mfx_Z(:,:,2:LM) ! SD only goes up to LM-1
+    ! Recopy into CONV to support prior usage
+    CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
+    CONV(:,J_0:J_1,2:LM) = SD(:,J_0:J_1,1:LM-1)
+
+    ! Surface Pressure tendency - vert integral of horizontal convergence
+    PIT(:,J_0:J_1) = mfx_Z(:,:,1) + sum(SD(:,:,1:LM-1),3)
 
     PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)
     PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)
 
-    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,JJ(J_0):JJ(J_1),1:LM-1)
+    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)
+
 
   end subroutine accumulate_mass_fluxes
 

@@ -7,11 +7,15 @@ CAOO   Just to test CVS
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
+      USE PBLCOM, only : tsavg,usavg,vsavg
+      USE FLUXES, only : prec
+      USE CONSTANT, only : bygrav
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT,pack_data
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
       USE DYNAMICS
-      USE RAD_COM, only : dimrad_sv
+      USE RAD_COM, only : dimrad_sv, cfrac, cosz1, srdn
+      USE RADPAR, only : S0
       USE RANDOM
       USE GETTIME_MOD
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -32,6 +36,12 @@ CAOO   Just to test CVS
 c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
+c$$$      USE GISS_dynamicalCore_mod, only: 
+c$$$     &     allocateImportState => allocateState,
+c$$$     &     deallocateImportState => deallocateState,
+c$$$     &     saveImportState => saveState,
+c$$$     &     restoreImportState => restoreState
+c$$$      USE GISS_exportState_mod
 #endif
       USE ATMDYN, only : DYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
@@ -41,6 +51,15 @@ c$$$      USE MODEL_COM, only: clock
 #endif
       USE ATMDYN_QDYNAM, only : QDYNAM
       use soil_drv, only : conserv_wtg, conserv_htg
+<<<<<<< MODELE.f
+c$$$#ifdef USE_FVCORE
+c$$$      use dynamics_save, only: save_dynamics_state
+c$$$      use dynamics_save, only: restore_dynamics_state
+c$$$      use dynamics_save, only: write_dynamics_state
+c$$$      use dynamics_save, only: initialize_dynsave => initialize
+c$$$#endif
+=======
+>>>>>>> 2.253
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -71,6 +90,19 @@ C**** Command line options
       real*8 w_ghy_j_2(jm),w_ghy_j_1(jm), w_lake_j_2(jm),w_lake_j_1(jm)
       real*8 h_ghy_j_2(jm),h_ghy_j_1(jm), h_lake_j_2(jm),h_lake_j_1(jm)
 
+!  gkw: instantenous diagnostic output on single processor
+!  -------------------------------------------------------
+      REAL*8, EXTERNAL :: SLP
+      real*8 zs, psfc
+      integer i, j, n, jminute
+
+#if defined(TOGGLE_CORE)
+      logical,parameter :: use_fv_core = .false.
+#else
+      logical,parameter :: use_fv_core = .true.
+#endif
+
+
       call init_app(grid,im,jm,lm)
       call alloc_drv()
 C****
@@ -87,7 +119,7 @@ C****
          CALL TIMER (MNOW,MDUM)
 
 #ifdef USE_FVCORE
-      CALL INPUT (istart,ifile,clock)
+      CALL INPUT (istart,ifile,clock,use_fv_core)
 #else
       CALL INPUT (istart,ifile)
 #endif
@@ -143,8 +175,10 @@ C****
 C**** Initialize FV dynamical core (ESMF component) if requested
 C****
 #ifdef USE_FVCORE
-      Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
-      call initialize_dynsave
+      if (use_fv_core) then
+         Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
+c$$$         call initialize_dynsave
+      end if
 #endif
 
       if (AM_I_ROOT())
@@ -153,6 +187,18 @@ C****
      *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
      *   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
          CALL TIMER (MNOW,MELSE)
+
+!  gkw: open unit for diagnostic output
+!  ------------------------------------      
+      IF (AM_I_ROOT()) Then
+      open(44,file='diag.out',form='formatted',status='unknown')
+      open(45,file='diag.gdat',form='unformatted',status='unknown')
+      open(46,file='3D_GISS.gdat',form='unformatted',status='unknown')
+      open(47,file='diag.out',form='formatted',status='unknown')
+      open(48,file='diag.gdat',form='unformatted',status='unknown')
+      open(49,file='3D_FV.gdat',form='unformatted',status='unknown')
+      endif
+
 C****
 C**** Open and position output history files if needed
 C****
@@ -173,6 +219,9 @@ C**** Initiallise file for sub-daily diagnostics, controlled by
 C**** space-separated string segments in SUBDD & SUBDD1 in the rundeck
       call init_subdd(aDATE)
       call sys_flush(6)
+c$$$
+c$$$      call allocateState()
+c$$$      call allocateImportState()
 C****
 C**** MAIN LOOP
 C****
@@ -191,7 +240,7 @@ C**** write restart information alternately onto 2 disk files
          call io_rsf(iu_RSF,Itime,iowrite,ioerr)
          IF (AM_I_ROOT()) call closeunit(iu_RSF)
 #ifdef USE_FVCORE
-         call Checkpoint(fv, clock)
+         if (use_fv_core) call Checkpoint(fv, clock)
 #endif
          if (AM_I_ROOT())
      *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
@@ -243,11 +292,40 @@ C**** Initialize pressure for mass fluxes used by tracers and Q
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
-#ifndef USE_FVCORE
+#ifdef USE_FVCORE
+      if (.not. use_fv_core) then
+#endif
       CALL DYNAM()
+<<<<<<< MODELE.f
+#ifdef USE_FVCORE
+      else
+#ifdef BOTH_DYNAMICS
+c$$$      call saveImportState()
+         call DYNAM()
+      if (mod(Itime,12) == 0) call gkw_diags(44,45,46)
+c$$$      call saveState()
+c$$$      call restoreImportState()
+#endif
+
+      ! Using FV instead
+c$$$         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
+         call Run(fv, clock)
+      if (mod(Itime,48) == 0) call gkw_diags(47,48,49)
+c$$$         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
+c$$$            call DIAGA
+c$$$            call DIAGB
+c$$$            call EPFLUX (U,V,T,P)
+c$$$         endif
+      end if
+#endif
+
+=======
 #else
       call DYNAM()
+>>>>>>> 2.253
 
+<<<<<<< MODELE.f
+=======
       ! Using FV instead
          IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
       call Run(fv, clock)
@@ -256,8 +334,8 @@ C**** Initialise total energy (J/m^2)
            call DIAGB
            call EPFLUX (U,V,T,P)
          endif
+>>>>>>> 2.253
 
-#endif
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
@@ -417,7 +495,7 @@ C**** Accumulate tracer distribution diagnostics
       end if                                  ! full model,kradia le 0
 
 #ifdef USE_FVCORE
-      Call Compute_Tendencies(fv)
+      if (use_fv_core) Call Compute_Tendencies(fv)
 #endif
 
 C****
@@ -605,12 +683,18 @@ C**** Flag to continue run has been turned off
       END IF
 
 c$$$      call test_save(__LINE__, itime-1)
+
+      ! call temporary diagnostics
+c$$$      if (mod(Itime,12) == 0) call gkw_diags(44,45,46)
+
       END DO
 
       call gettime(tloopend)
       if (AM_I_ROOT())
      *     write(*,*) "Time spent in the main loop in seconds:",
      *     .01*(tloopend-tloopbegin)
+
+C
 C****
 C**** END OF MAIN LOOP
 C****
@@ -641,6 +725,225 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      &     'Terminated normally (reached maximum time)',13)
       CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
 
+      contains
+
+      subroutine gkw_diags(unitA, unitB, unitC)
+      use DOMAIN_DECOMP, only: grid, get, pack_data, AM_I_ROOT
+      use FV_INTERFACE_MOD, only: DryTemp_GISS
+      integer, intent(in) :: unitA, unitB, unitC
+
+      real*8 diagout8(im,jm)
+      real*4 diagout(im,jm), xmin, xmax
+      real*8, allocatable :: diagout_loc(:,:)
+!  gkw: write out diagnostics
+!  --------------------------
+      integer :: J_0h, j_1h
+      integer :: J_0, j_1
+      CALL GET(grid, J_STRT_HALO= J_0H, J_STOP_HALO = J_1H, 
+     *     J_STRT= J_0, J_STOP = J_1)
+
+      allocate(diagout_loc(IM,J_0H:J_1H))
+      if(mod(itime,2) .eq. 0) then
+         jminute =  0.
+      else
+         jminute = 30.
+      endif
+
+      if (AM_I_ROOT()) then
+         rewind(unitA)
+c$$$         rewind(unitB)
+      
+      WRITE (unitA,'(A16,I5,A5,I3,A4,2I3,I9)')
+     .  'model time: Year',JYEAR,aMON,JDATE,', Hr',JHOUR,JMINUTE,ITIME
+
+!  grads header
+!  ------------
+        diagout(:,:) = 0.
+        diagout(1,1) = jyear
+        diagout(2,1) = jmon
+        diagout(3,1) = jdate
+        diagout(4,1) = jhour
+        diagout(5,1) = jminute
+        diagout(6,1) = itime
+
+        zs = 0.
+        psfc = 0.
+        do i = 1,im
+           if(cosz1(i,jm/2) .gt. zs) then
+              zs = cosz1(i,jm/2)
+              psfc = i
+           endif
+        end do
+
+        diagout(7,1) = psfc
+
+        write(unitB) diagout
+      end if
+
+!  sfc temperature
+!  ---------------
+        call pack_data(grid, tsavg, diagout8)
+        diagout(:,:) = diagout8(:,:) - 273.16
+        
+        call process(unitA, unitB, diagout,
+     *       '# tsfc,Surface Air Temperature (C),')
+
+!  sea level pressure
+!  ------------------
+        do j = j_0,j_1
+          do i = 1,im
+            PSFC=P(I,J)+PTOP
+            ZS=ZATMO(I,J)*bygrav
+            diagout_loc(i,j) = SLP(PSFC,TSAVG(I,J),ZS) - 1000.
+          end do
+        end do
+        call pack_data(grid, diagout_loc, diagout8)
+        diagout = diagout8
+        call process(unitA, unitB, diagout,
+     *       '# slpr,Sea Level Pressure (hPa),')
+
+!  precipitation
+!  -------------
+        call pack_data(grid, 24. * prec(:,:), diagout8)
+        diagout = diagout8
+        call process(unitA, unitB, diagout,
+     *       '# prec,Total Precipitation (mm/day),')
+
+!  cloud cover
+!  -----------
+        call pack_data(grid, cfrac(:,:), diagout8)
+        diagout = diagout8
+        call process(unitA, unitB, diagout,
+     *       '# cldt,Total Cloud Cover (%),')
+
+!  surface winds
+!  -------------
+        call pack_data(grid, usavg(:,:), diagout8)
+        diagout = diagout8
+        call process(unitA, unitB, diagout,
+     *       '# usfc,Surface u-wind (m/s),')
+
+        call pack_data(grid, vsavg(:,:), diagout8)
+        diagout = diagout8
+        call process(unitA, unitB, diagout,
+     *       '# vsfc,Surface v-wind (m/s),')
+
+!  TOA incident solar
+!  ------------------
+        call pack_data(grid, s0 * cosz1(:,:), diagout8)
+        diagout = diagout8
+        call process(unitA, unitB, diagout,
+     *       '# fsdt,Incoming solar TOA (W/m2),')
+
+!  net SFC shortwave
+!  -----------------
+        call pack_data(grid, srdn(:,:), diagout8)
+        diagout = diagout8
+        call process(unitA, unitB, diagout,
+     *       '# fsns,surface net shortwave (W/m2),')
+
+
+        if (am_i_root()) then
+           call flush(unitA)
+           call flush(unitB)
+        end if
+
+        call diag3d_tlc(U, unitC,lm)
+        call diag3d_tlc(V, unitC,lm)
+        call diag3d_tlcb(DryTemp_GISS(), unitC,lm)
+        call diag3d_tlc(Q, unitC,lm)
+        call diag3d_tlc(WM, unitC,lm)
+
+        do j = j_0,j_1
+          do i = 1,im
+            PSFC=P(I,J)+PTOP
+            ZS=ZATMO(I,J)*bygrav
+            diagout_loc(i,j) = SLP(PSFC,TSAVG(I,J),ZS) - 1000.
+          end do
+        end do
+        call diag3d_tlc(diagout_loc, unitC,1)
+c$$$        call diag3d_tlc_special(PDSIG, unitC)
+
+      end subroutine gkw_diags
+
+      subroutine diag3d_tlc(arr,unit,numLevs)
+      use DOMAIN_DECOMP, only: grid, get, pack_data, AM_I_ROOT
+      use MODEL_COM
+      integer :: numlevs
+      real*8 arr(IM,grid%j_strt_halo:grid%j_stop_halo,numLevs)
+      integer :: unit
+      integer :: l
+
+      real*8 diagout3D8(im,jm,numLevs)
+      real*4 diagout3D(im,jm,numLevs)
+
+      call pack_data(grid, arr, diagout3D8)
+      if (AM_I_ROOT()) then
+         diagout3D = diagout3D8
+         do l = 1, numLevs
+            write(unit) diagout3D(:,:,l)
+         end do
+      end if
+
+      end subroutine diag3d_tlc
+
+      subroutine diag3d_tlcb(arr,unit,numLevs)
+      use DOMAIN_DECOMP, only: grid, get, pack_data, AM_I_ROOT
+      use MODEL_COM
+      integer :: numlevs
+      real*8 arr(IM,grid%j_strt:grid%j_stop,numLevs)
+      real*8 arrHalo(IM,grid%j_strt_halo:grid%j_stop_halo,numLevs)
+      integer :: unit
+      integer :: l
+
+      real*8 diagout3D8(im,jm,numLevs)
+      real*4 diagout3D(im,jm,numLevs)
+
+      arrHalo(:,grid%j_strt:grid%j_stop,:) = arr
+      call pack_data(grid, arrHalo, diagout3D8)
+      if (AM_I_ROOT()) then
+         diagout3D = diagout3D8
+         do l = 1, numLevs
+            write(unit) diagout3D(:,:,l)
+         end do
+      end if
+
+      end subroutine diag3d_tlcb
+
+      subroutine diag3d_tlc_special(arr,unit)
+      use DOMAIN_DECOMP, only: grid, get, pack_column, AM_I_ROOT
+      use MODEL_COM
+      real*8 arr(LM,IM,grid%j_strt_halo:grid%j_stop_halo)
+      integer :: unit
+
+      real*8 diagout3D8(lm,im,jm)
+      real*4 diagout3D(im,jm,lm)
+      integer :: l
+
+      call pack_column(grid, arr, diagout3D8)
+      if (AM_I_ROOT()) then
+         do l = 1, lm
+            diagout3D(:,:,l) = diagout3D8(l,:,:)
+            write(unit) diagout3D(:,:,l)
+         end do
+      end if
+      end subroutine diag3d_tlc_special
+
+      subroutine process(unitA, unitB, arr, header)
+      use DOMAIN_DECOMP, only: AM_I_ROOT
+      integer :: unitA, unitB
+      real*4 arr(IM,JM)
+      real*4 xmin, xmax
+      character(len=*) :: header
+      if (AM_I_ROOT()) then
+        call minmax(arr,im,jm,xmin,xmax)
+        write(unitA,301) header,xmin,xmax
+        write(unitA,401) ((arr(i,j), i=1,im), j=jm,1,-1)
+        write(unitB)       arr
+ 301    format(a,2(f6.2,','))
+ 401    format(12(f6.2,','))
+      end if
+      end subroutine process
       END
 
 
@@ -648,6 +951,8 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       USE MODEL_COM, only : stop_on
       implicit none
       stop_on = .true.
+
+
       end subroutine sig_stop_model
 
 
@@ -766,7 +1071,7 @@ C****
       end subroutine init_Model
 
 #ifdef USE_FVCORE
-      SUBROUTINE INPUT (istart,ifile,clock)
+      SUBROUTINE INPUT (istart,ifile,clock,use_fv_core)
 #else
       SUBROUTINE INPUT (istart,ifile)
 #endif
@@ -860,6 +1165,7 @@ c$$$      USE MODEL_COM, only: clock
 #endif
 #ifdef USE_FVCORE
       type (ESMF_Clock) :: clock
+      logical, intent(in) :: use_fv_core
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1465,16 +1771,21 @@ C**** Check consistency of DTsrc (with NDAY) and dt (with NIdyn)
       DTsrc = SDAY/NDAY
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
-      NIdyn=nint(dtsrc/dt)
-#ifndef USE_FVCORE
+#ifdef USE_FVCORE
+      if (use_fv_core) then
+         NIdyn=nint(dtsrc/dt)
+      else
+#endif
 C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
 C****
-      NIdyn = 2*nint(.5*dtsrc/dt)
-      if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
-        if (AM_I_ROOT())
-     *        write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
-        call stop_model('INPUT: DT inappropriately set',255)
-      end if
+         NIdyn = 2*nint(.5*dtsrc/dt)
+         if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
+            if (AM_I_ROOT())
+     *           write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
+            call stop_model('INPUT: DT inappropriately set',255)
+         end if
+#ifdef USE_FVCORE
+      endif
 #endif
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
@@ -1938,3 +2249,28 @@ C**** check tracers
       return
       end subroutine print_restart_info
       
+
+      subroutine minmax(valu,im,jm,xmin,xmax)
+
+      integer im, jm
+      real*4 valu(im,jm)
+      real*4 xmin,xmax
+
+      xmin =  1.e20
+      xmax = -1.e20
+
+      do i = 2,im
+        valu(i, 1) = valu(1, 1)
+        valu(i,jm) = valu(1,jm)
+      end do
+
+      do j = 1,jm
+        do i = 1,im
+          xmin = min(xmin,valu(i,j))
+          xmax = max(xmax,valu(i,j))
+        end do
+      end do
+
+      return
+      end subroutine minmax
+
