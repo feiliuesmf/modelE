@@ -595,8 +595,9 @@
       !c_1 = ci
       !do i=1,nroots
       !ci = cixx(i)
-
-      print *,"cicici", ci
+      print *,"-----------------"
+      print *,"a,gammamol,fmol,Rd", a,gamol,fmol,Rd
+      print *,"ci", ci
 
       A_ = a*(ci - gamol)/(e*ci + fmol) - Rd
       cs_ = ca - A_*C3_*rb
@@ -604,9 +605,10 @@
       A_1 = (cs_ - ci)/(C6*rs_)
       A_2 = (ca-cs_)/(C3_*rb)
 
-      print *,"AAAA", A_1, A_2
       print *,"cs", cs_ !, ca-a*Ra, ca - A_*C3_*rb
+      print *,"ca", ca !, C6*(ca-a*Ra)/(m*rh*a)
       print *,"rs", rs_ !, C6*(ca-a*Ra)/(m*rh*a)
+      print *,"AAAA", A_
 !      print *,"RES_A",     A_*C6/(ca-A_*Ra-ci)-m*A_*rh/(ca-A_*Ra)-b
 !     &     , -A_*C6/(ca-A_*Ra-ci)-m*A_*rh/(ca-A_*Ra)-b
 
@@ -643,7 +645,9 @@
 
       call cubicroot(c3, c2, c1, c, cixx, nroots)
       print *,"NNNN ",cixx(1:nroots)
-      print *,"UUUU", A_1-cixx(2)
+      !print *,"UUUU", A_1-cixx(2)
+
+      call Baldocchi(c3,c2,c1,c)
 
 #endif
 
@@ -654,6 +658,53 @@
      &     c3*(ci**3.d0) + c2*(ci**2.d0) + c1*ci + c
 #endif      
       end function ci_cubic
+
+
+      subroutine Baldocchi(c3,c2,c1,c)
+      real*8, intent(in) :: c3,c2,c1,c
+      !---
+      real*8 p,q,r, Q_,R_,thet, x1,x2,x3
+
+      p = c2/c3
+      q = c1/c3
+      r = c/c3
+
+      Q_ = (p**2 - 3.d0*q)/9.d0
+      R_ = ( 2*p**3 - 9*p*q + 27*r )/54.d0
+
+      if ( Q_ < 0.d0 ) then
+        print *,"BBBB"," OOPS1"
+        return
+      endif
+
+      if ( R_**2 > Q_**3 ) then
+        print *,"BBBB"," OOPS2"
+        return
+      endif
+
+      thet = acos(R_/sqrt(Q_**3))
+
+      x1 = -2.d0 * sqrt(Q_) * cos((thet     )/3.d0) - p/3.d0
+      x2 = -2.d0 * sqrt(Q_) * cos((thet+2*Pi)/3.d0) - p/3.d0
+      x3 = -2.d0 * sqrt(Q_) * cos((thet+4*Pi)/3.d0) - p/3.d0
+
+      print *,"BBBB", x1,x2,x3
+      
+cddd
+cddd      p = (e*bet + fmol*thet - a*alf + e*alf*Rd)/(e*alf)
+cddd      q = (e*gam + fmol*gam/Ca - a*bet + a*gamol*thet
+cddd     &     + e*Rd*bet + Rd*fmol*thet)
+cddd     &     /(e*alf)
+cddd      r = (-a*gam + a*gamol*gam/Ca + e*Rd*gam + Rd*fmol*gam/Ca)/(e*alf)
+cddd
+cddd
+cddd
+cddd      p = (e*bet + b*thet - a*alf + e*alf*Rd)/(e*alf)
+cddd      q = (e*gam + b*gam/Ca - alf*bet + a*d*thet + e*Rd*bet + Rd*b*thet)
+cddd     &     /(e*alf)
+cddd      r = (-a*gam + a*d*gam
+cddd
+      end subroutine Baldocchi
 
 !=================================================
       !real*8 function cubicroot(a,b,c,d) Result(x)
