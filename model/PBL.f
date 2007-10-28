@@ -78,10 +78,9 @@ c**** Don''t use global variables for that purpose !
         real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
         real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
         real*8 tg,elhx,qsol,sss_loc
-     &        ,tprime,qprime
-        logical :: pole,ocean
+        logical :: pole,ocean,ddml_eq_1
         ! inout:
-        real*8 gusti,tdns,qdns
+        real*8 gusti,tdns,qdns,tprime,qprime
         ! output:
         real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin,wsh0
         ! the following args needed for diagnostics
@@ -334,10 +333,8 @@ c  internals:
 #endif
 #endif
 
-      USE CLOUDS_COM, only : DDMS
-!@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
-!@var TDN1 downdraft temperature in K, (i,j)
-!@var QDN1 downdraft humidity in kg/kg, (i,j)
+!@var tdns downdraft temperature in K, (i,j)
+!@var qdns downdraft humidity in kg/kg, (i,j)
 
       implicit none
 
@@ -351,6 +348,7 @@ c  internals:
       !-- output:
       real*8, intent(out) :: kms,kqs,z0m,z0h,z0q,w2_1
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
+      !-- inout:
       real*8, dimension(n),   intent(inout) :: u,v,t,q
       real*8, dimension(n-1), intent(inout) :: e
 #if defined(TRACERS_ON)
@@ -362,8 +360,8 @@ c  internals:
 c**** local vars for input from pbl_args
       real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
       real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
-      real*8 :: tprime,qprime,tdn1,qdn1
-      logical :: ocean
+      real*8 :: tdns,qdns,tprime,qprime
+      logical :: ocean,ddml_eq_1
 c**** local vars for input/output from/to pbl_args
       real*8 :: gusti
 c**** local vars for output to pbl_args
@@ -416,10 +414,6 @@ C****
 #endif
 #endif
 
-#ifdef USE_PBL_E1
-      real*8 wstar3fac
-#endif
-
 c**** get input from pbl_args structure
       dtime = pbl_args%dtsurf
       tgrnd0 = pbl_args%tgv
@@ -445,11 +439,7 @@ c**** get input from pbl_args structure
       khs = pbl_args%khs
       ug = pbl_args%ug
       vg = pbl_args%vg
-
-      tdn1=pbl_args%tdns
-      qdn1=pbl_args%qdns
-      tprime=pbl_args%tprime
-      qprime=pbl_args%qprime
+      ddml_eq_1 = pbl_args%ddml_eq_1
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
@@ -482,6 +472,18 @@ c**** get input from pbl_args structure
       
       call getl1(e,zhat,dzh,lscale,n)
       
+      if(ddml_eq_1) then
+        tdns=pbl_args%tdns
+        qdns=pbl_args%qdns
+        tprime=tdns-t(1)/(1.+deltx*q(1))
+        qprime=qdns-q(1)
+      else ! either ddml(ilong,jlat).ne.1 or USE_PBL_E1
+        tdns=0.d0
+        qdns=0.d0
+        tprime=0.d0
+        qprime=0.d0
+      endif
+
       do iter=1,itmax
 
         if(iter.gt.1) then
@@ -533,26 +535,21 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
         !@var wstar the convection-induced wind according to
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
-#ifdef USE_PBL_E1
-        if(t(2).lt.t(1)) then !convective
-          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
-          wstar2h = (wstar3fac*kh(1))**twoby3
-        else
-          wstar2h = 0.
-        endif
-        gusti=0.
-#else
+
         if(t(2).lt.t(1)) then !convective
           wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
           wstar2h = wstar3**twoby3
+#ifdef USE_PBL_E1
+          gusti=0.
+#else
           ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
           gusti=pbl_args%gusti ! defined in PBL_DRV.f
+#endif
         else
           wstar3=0.
           wstar2h=0.
           gusti=0.
         endif
-#endif
 
 #ifdef USE_PBL_E1
         ! do nothing
@@ -571,10 +568,10 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
         wsh=sqrt(wsh02+gusti*gusti)
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
-     &       ,evap_max,fr_sat,wsh0,qprime,qdn1)
+     &       ,evap_max,fr_sat,wsh0,qprime,qdns,ddml_eq_1)
 
         call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd,ttop,dtime
-     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,wsh0,tprime,tdn1) 
+     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,wsh0,tprime,tdns,ddml_eq_1) 
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
      *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
@@ -602,7 +599,15 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
         end if
         ustar0=ustar
 
-      end do
+        if(ddml_eq_1) then
+          tprime=tdns-t(1)/(1.+deltx*q(1))
+          qprime=qdns-q(1)
+        endif
+
+      end do ! end of iter loop
+
+      pbl_args%tprime=tprime
+      pbl_args%qprime=qprime
 
 c**** cannot update wsh without taking care that wsh used for tracers is
 c**** the same as that used for q
@@ -1071,6 +1076,7 @@ c**** copy output to pbl_args
 
 
       real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
+      real*8, parameter :: ustar_min=1.d-3
 
       dz     = dzh(1)
       vel1   = sqrt(u(1)*u(1)+v(1)*v(1))
@@ -1080,7 +1086,11 @@ c**** copy output to pbl_args
       dtdz   = (t(2)-t(1))/dz
       dqdz   = (q(2)-q(1))/dz
       ustar  = sqrt(km(1)*dudz)
+#ifdef USE_PBL_E1
       ustar  = max(ustar,teeny)
+#else
+      ustar  = max(ustar,ustar_min)
+#endif
       tstar  = kh(1)*dtdz/ustar
       qstar  = kq(1)*dqdz/ustar
       zgs    = z(1)
@@ -1093,6 +1103,7 @@ c**** copy output to pbl_args
       ! do nothing
 #else
       if (tstar.eq.0.) tstar=teeny
+      ustar  = max(ustar,ustar_min)
 #endif
       if (abs(qstar).gt.smax*abs(q(1)-qgrnd)) qstar=smax*(q(1)-qgrnd)
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
@@ -1997,8 +2008,8 @@ c     rhs(n-1)=0.
       end subroutine e_les
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
-     &                ,ttop,dtime,n
-     &                ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdn1)
+     &     ,ttop,dtime,n
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdns,ddml_eq_1)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   Boundary conditions at bottom: Mellor and Yamada 1982, Eq(72),
@@ -2010,7 +2021,7 @@ c     rhs(n-1)=0.
 !@+   kh * dt/dz = ch * ( usurf*(t1 - tgrnd)
 !@+                      +(1+deltx*q1)*(usurf-usurf0)*tprime )
 !@+                + deltx * t1/(1+deltx*q1) * kq * dqdz
-!@+   where tprime=tdn1-t1/(1+deltx*q1), t1 is at surf
+!@+   where tprime=tdns-t1/(1+deltx*q1), t1 is at surf
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -2042,7 +2053,8 @@ c     rhs(n-1)=0.
       real*8, intent(in) :: ch,tgrnd
       real*8, intent(in) :: ttop,dtime,usurf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8, intent(in) ::  usurf0,tprime,tdn1
+      real*8, intent(in) ::  usurf0,tprime,tdns
+      logical, intent(in) :: ddml_eq_1
 
       real*8 :: facth,factx,facty,rat
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -2060,20 +2072,21 @@ c     rhs(n-1)=0.
       end do
 
       facth  = ch*usurf*dzh(1)/kh(1)
+      sup(1) = -1.
 
-      if(tprime.eq.0.d0) then
-         rat = 1.d0
-      else
+      if(ddml_eq_1) then
          rat = usurf0/(usurf+teeny)
+         dia(1) = 1+facth*rat
+     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
+         rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+deltx*q(1))*tdns)
+      else
+         dia(1) = 1+facth
+     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
+         rhs(1) = facth*tgrnd
       endif
 
-      dia(1) = 1+facth*rat
-     &          +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
-      sup(1) = -1.
-      rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+deltx*q(1))*tdn1)
-
-      dia(n)  = 1.
-      sub(n)  = 0.
+      dia(n) = 1.
+      sub(n) = 0.
       rhs(n) = ttop
 
       call TRIDIAG(sub,dia,sup,rhs,t,n)
@@ -2082,7 +2095,7 @@ c     rhs(n-1)=0.
       end subroutine t_eqn
 
       subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n
-     &     ,flux_max,fr_sat,usurf0,qprime,qdn1)
+     &     ,flux_max,fr_sat,usurf0,qprime,qdns,ddml_eq_1)
 !@sum q_eqn integrates differential eqn q (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom Ref:
@@ -2096,7 +2109,7 @@ c     rhs(n-1)=0.
 !@+           fr_sat * ( cq * usurf * (q1 - qgrnd)
 !@+                    + cq * (usurf-usurf0) * qprime )
 !@+       - ( 1 - fr_sat ) * flux_max )
-!@+   where qprime=qdn1-q1, q1 is q at surf
+!@+   where qprime=qdns-q1, q1 is q at surf
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -2124,7 +2137,8 @@ c     rhs(n-1)=0.
       real*8, dimension(n), intent(out) :: q
       real*8, intent(in) :: cq,qgrnd,qtop,dtime,usurf
       real*8, intent(in) :: flux_max,fr_sat
-      real*8, intent(in) :: usurf0,qprime,qdn1
+      real*8, intent(in) :: usurf0,qprime,qdns
+      logical, intent(in) :: ddml_eq_1
 
       real*8 :: factq,rat
       integer :: i  !@var i loop variable
@@ -2140,19 +2154,19 @@ c     rhs(n-1)=0.
       end do
 
       factq  = cq*usurf*dzh(1)/kq(1)
-      rat=usurf0/(usurf+teeny)
-
       sup(1) = -1.
-      if(qprime.eq.0.d0) then
-         dia(1) = 1.+factq
-         rhs(1)= factq*qgrnd
-      else
+
+      if(ddml_eq_1) then
+         rat = usurf0/(usurf+teeny)
          dia(1) = 1.+factq*rat
-         rhs(1)= factq*(qgrnd-(1.-rat)*qdn1)
+         rhs(1)= factq*(qgrnd-(1.-rat)*qdns)
+      else
+         dia(1) = 1.+factq
+         rhs(1) = factq*qgrnd
       endif
 
-      dia(n)  = 1.
-      sub(n)  = 0.
+      dia(n) = 1.
+      sub(n) = 0.
       rhs(n) = qtop
 
       call TRIDIAG(sub,dia,sup,rhs,q,n)
@@ -2170,14 +2184,14 @@ c**** kq * dq/dz = fr_sat * ( cq * usurf * (q(1) - qgrnd)
 c****                       + cq * (usurf-usurf0) * qprime )
 c****             - ( 1 - fr_sat ) * flux_max
 
-      sup(1) = -1.
-      if(qprime.eq.0.d0) then
-         dia(1) = 1. + fr_sat*factq
-         rhs(1)= fr_sat*factq*qgrnd
+      if(ddml_eq_1) then
+         rat = usurf0/(usurf+teeny)
+         dia(1) = 1. + fr_sat*factq*rat
+         rhs(1)= fr_sat*factq*(qgrnd-(1.-rat)*qdns)
      &            + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
       else
-         dia(1) = 1. + fr_sat*factq*rat
-         rhs(1)= fr_sat*factq*(qgrnd-(1.-rat)*qdn1)
+         dia(1) = 1. + fr_sat*factq
+         rhs(1)= fr_sat*factq*qgrnd
      &            + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
       endif
 
@@ -2649,9 +2663,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       real*8 :: lmonin,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test
      *     ,wstar3,wstar2h,usurfq,usurfh,ts
-#ifdef USE_PBL_E1
-      real*8 wstar3fac
-#endif
+
       integer, save :: iter_count=0
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
@@ -2747,14 +2759,7 @@ c Initialization for iteration:
         !! dbl=.375d0*sqrt(ustar*abs(lmonin)/omega)
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
-#ifdef USE_PBL_E1
-        if(t(2).lt.t(1)) then
-          wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
-          wstar2h = (wstar3fac*kh(1))**twoby3
-        else
-          wstar2h = 0.
-        endif
-#else
+
         if(t(2).lt.t(1)) then
           wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
           wstar2h = wstar3**twoby3
@@ -2762,7 +2767,7 @@ c Initialization for iteration:
           wstar3=0.
           wstar2h = 0.
         endif
-#endif
+
         usurfh  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
         usurfq  = usurfh
 

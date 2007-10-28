@@ -264,25 +264,23 @@ c     ENDIF
       pbl_args%ch = ch
       pbl_args%cq = cq
 
-      TS=tpbl(1)/(1.+deltx*qpbl(1))
 #ifdef USE_PBL_E1
-      pbl_args%tdns=0.d0
-      pbl_args%qdns=0.d0
-      pbl_args%tprime=0.d0
-      pbl_args%qprime=0.d0
+      pbl_args%ddml_eq_1=.false.
 #else
-      if(nint(DDML(i,j)).eq.1) then
+      pbl_args%ddml_eq_1=(nint(DDML(i,j)).eq.1)
+#endif
+
+      ! if ddml_eq_1=.false.,
+      ! i.e., either USE_PBL_E1 or DDML(i,j) is not 1,
+      ! then tdns,qdns,tprime,qprimt are not in use
+
+      if(pbl_args%ddml_eq_1) then
          pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
          pbl_args%qdns=QDN1(i,j)
-         pbl_args%tprime=pbl_args%tdns-TS
-         pbl_args%qprime=pbl_args%qdns-qpbl(1)
       else
-         pbl_args%tdns=TS
-         pbl_args%qdns=qpbl(1)
-         pbl_args%tprime=0.d0
-         pbl_args%qprime=0.d0
+         pbl_args%tdns=0.d0
+         pbl_args%qdns=0.d0
       endif
-#endif
 
       call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,i,j,itype
@@ -304,20 +302,6 @@ c     ENDIF
       end do
 #endif
 
-
-      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
-#ifdef USE_PBL_E1
-      ! do nothing
-#else
-      if(nint(DDML(i,j)).eq.1) then
-         pbl_args%tprime=pbl_args%tdns-TS
-         pbl_args%qprime=pbl_args%qdns-pbl_args%QSRF
-      else
-         pbl_args%tdns=TS
-         pbl_args%qdns=pbl_args%QSRF
-      endif
-#endif
-
       cmgs(i,j,itype)=pbl_args%cm
       chgs(i,j,itype)=pbl_args%ch
       cqgs(i,j,itype)=pbl_args%cq
@@ -328,6 +312,7 @@ c     ENDIF
       psi   =psisrf-psitop
       ustar_pbl(i,j,itype)=pbl_args%ustar
 C ******************************************************************
+      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
       if ( ts.lt.152d0 .or. ts.gt.423d0 ) then
         write(6,*) 'PBL: Ts bad at',i,j,' itype',itype,ts
         if (ts.gt.1d3) call stop_model("PBL: Ts out of range",255)
@@ -482,7 +467,7 @@ C**** fix roughness length for ocean ice that turned to land ice
         else
           elhx=lhs
         endif
-C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
+C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION 
         call HALO_UPDATE(grid, u, from=NORTH)
         call HALO_UPDATE(grid, v, from=NORTH)
         do j=J_0,J_1
@@ -599,7 +584,7 @@ c For ITYPE=3 (land ice; frozen on land since last time step):
 c  If there was no computation made for land ice at the last time step,
 c  this time step may start from land result. If there was no
 c  land ice nor land computation at the last time step, nothing
-c  need be done.
+c  need be done. 
 c
 c For ITYPE=4 (land; melted land ice since last time step):
 c  If there was no computation made for land at the last time step,
@@ -716,7 +701,7 @@ ccc???
       cmgs(i,j,itype_out)=cmgs(i,j,itype_in)
       chgs(i,j,itype_out)=chgs(i,j,itype_in)
       cqgs(i,j,itype_out)=cqgs(i,j,itype_in)
-      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)
+      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)      
 
       return
       end subroutine setbl
