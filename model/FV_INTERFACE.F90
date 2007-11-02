@@ -363,7 +363,7 @@ contains
          & (PRESSURE_UNIT_RATIO)
 
     ! Edge Pressure
-    Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv % PE_old), fv % dpedt)
+       Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv % PE_old), fv % dpedt)
 
 #ifdef NO_FORCING
     fv % dudt = 0
@@ -501,20 +501,17 @@ contains
     character(len=*), intent(in) :: config_file
     type (esmf_config)           :: config
 
-    logical :: exists
     integer :: iunit
 
     config = esmf_configcreate(rc=rc)
     VERIFY_(rc)
 
-    inquire(file=trim(config_file), exist = exists)
-    if (.not. exists) then
-       call openunit(config_file, iunit, qbin=.false., qold=.false.)
-       write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE: ', FVCORE_INTERNAL_RESTART
-       write(iunit,*)'FVCORE_LAYOUT_FILE:           ', FVCORE_LAYOUT
-       write(iunit,*)'RUN_DT:                       ', DT
-       close(iunit)
-    end if
+    call openunit(config_file, iunit, qbin=.false., qold=.false.)
+    write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE: ', FVCORE_INTERNAL_RESTART
+    write(iunit,*)'FVCORE_LAYOUT_FILE:           ', FVCORE_LAYOUT
+    write(iunit,*)'RUN_DT:                       ', DT
+    close(iunit)
+
     call esmf_configloadfile(config, config_file, rc=rc)
     VERIFY_(rc)
 
@@ -599,7 +596,7 @@ contains
 
     ! Compute potential temperature from modelE (1 mb -> 1 pa ref)
       Allocate(PT(IM, J_0:J_1, LM))
-    Call ConvertPotTemp_GISS2FV(VirtualTemp(T(:,J_0:J_1,:), Q(:,J_0:J_1,:)), PT)
+     Call ConvertPotTemp_GISS2FV(VirtualTemp(T(:,J_0:J_1,:), Q(:,J_0:J_1,:)), PT)
       Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
       Deallocate(PT)
 
@@ -1004,10 +1001,10 @@ contains
           im1 = IM
           Do i = 1, IM
 
-             u_b(i,j,k) = (Ua_halo(im1,j-1,k) + Ua_halo(i,j-1,k) + Ua_halo(im1,j,k) + Ua_halo(i,j,k))/4
-             v_b(i,j,k) = (Va_halo(im1,j-1,k) + Va_halo(i,j-1,k) + Va_halo(im1,j,k) + Va_halo(i,j,k))/4
+             u_b(i,j,k) = (Ua_halo(im1,j,k) + Ua_halo(i,j,k))/2
+             v_b(i,j,k) = (Va_halo(im1,j,k) + Va_halo(i,j,k))/2
              im1 = i
-
+ 
           End do
        end do
     end do
@@ -1050,8 +1047,8 @@ contains
           im1 = IM
           Do i = 1, IM
 
-             u_a(im1,j,k) = (ub_halo(im1,j,k) + ub_halo(i,j,k) + ub_halo(im1,j+1,k) + ub_halo(i,j+1,k))/4
-             v_a(im1,j,k) = (vb_halo(im1,j,k) + vb_halo(i,j,k) + vb_halo(im1,j+1,k) + vb_halo(i,j+1,k))/4
+             u_a(im1,j,k) = (ub_halo(im1,j,k) + ub_halo(i,j,k))/2
+             v_a(im1,j,k) = (vb_halo(im1,j,k) + vb_halo(i,j,k))/2
              im1 = i
 
           End do
@@ -1363,10 +1360,10 @@ contains
     integer :: i,im1,j,l
     integer :: rc
     logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-    real*8 :: DTLF
+    real*8 :: DTLF, DTfac
     real*8 :: area,dlon,dlat,LAT
 
-    DTLF = 2.0*DT
+    DTfac = DT
 
     Call Get(grid, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
          & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
@@ -1393,10 +1390,10 @@ contains
     mfx_Z = 0
 #endif
     call Regrid_A_to_B(Reverse(mfx_X), Reverse(mfx_Y), PU(:,J_0:J_1,:), PV(:,J_0:J_1,:))
-    PU = (DTLF/DTsrc)*PU/PRESSURE_UNIT_RATIO
-    PV = (DTLF/DTsrc)*PV/PRESSURE_UNIT_RATIO
+    PU = PU/PRESSURE_UNIT_RATIO
+    PV = PV/PRESSURE_UNIT_RATIO
  
-    mfx_Z = (DTLF/DTsrc)*Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
+    mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
     dlon = 2.0*pi/im
     dlat = pi/(jm-1)
     do l=1,lm
@@ -1410,17 +1407,17 @@ contains
     enddo
     SD(:,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
 
+    ! Surface Pressure tendency - vert integral of horizontal convergence
+    PIT(:,J_0:J_1) = mfx_Z(:,:,1) + sum(SD(:,:,1:LM-1),3)
+
     ! Recopy into CONV to support prior usage
     CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
     CONV(:,J_0:J_1,2:LM) = SD(:,J_0:J_1,1:LM-1)
 
-    ! Surface Pressure tendency - vert integral of horizontal convergence
-    PIT(:,J_0:J_1) = mfx_Z(:,:,1) + sum(SD(:,:,1:LM-1),3)
+    PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)*DTfac
+    PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)*DTfac
 
-    PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)
-    PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)
-
-    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)
+    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)*DTfac
 
 
   end subroutine accumulate_mass_fluxes
