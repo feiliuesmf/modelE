@@ -216,6 +216,10 @@ C**** Restart after 8 steps due to divergence of solutions
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
 
+      PUA = PUA * DTLF
+      PVA = PVA * DTLF
+      SDA(:,:,1:LM-1) = SDA(:,:,1:LM-1) * DTLF
+
       RETURN
       END SUBROUTINE DYNAM
 
@@ -2436,7 +2440,7 @@ c**** Extract domain decomposition info
 
       DTLF=2.*DT
       CALL CALC_AMP(PS,MB)
-      CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
+      CALL AADVQ0 (1._8)  ! uses the fluxes pua,pva,sda from DYNAM
 C****
 C**** convert from concentration to mass units
 C****
