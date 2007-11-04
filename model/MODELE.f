@@ -144,7 +144,6 @@ C**** Initialize FV dynamical core (ESMF component) if requested
 C****
 #ifdef USE_FVCORE
       Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
-      call initialize_dynsave
 #endif
 
       if (AM_I_ROOT())
