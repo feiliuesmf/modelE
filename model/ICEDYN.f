@@ -1,4 +1,4 @@
-    
+     
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
 C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
@@ -1101,7 +1101,6 @@ c set cyclic conditions on eastern and western boundary
 !@auth Gavin Schmidt (based on code from J. Zhang)
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH,GLOBALSUM
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE,am_i_root
-      USE MODEL_COM, only : im,jm
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
      *        ,uvm,dxu,dyu
       IMPLICIT NONE
@@ -1119,7 +1118,7 @@ C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
-      rms=0. ; rms0=0. 
+      rms=0. ; rms0=0.
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
       KKI=0.
  10   KKI=KKI+1
