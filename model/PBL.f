@@ -1076,7 +1076,7 @@ c**** copy output to pbl_args
 
 
       real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
-      real*8, parameter :: ustar_min=1.d-3
+      real*8, parameter :: ustar_min=1.d-2
 
       dz     = dzh(1)
       vel1   = sqrt(u(1)*u(1)+v(1)*v(1))

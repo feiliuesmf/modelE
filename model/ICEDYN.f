@@ -1,4 +1,4 @@
-
+    
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
 C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
@@ -59,7 +59,7 @@ C**** input
 !@var UIB,VIB velocity arrays (m/s)  (????)
 C**** internal variables
 !@var PRESS ice internal pressure (Pa)
-!@var FORCEX,FORCEY external force 
+!@var FORCEX,FORCEY external force
 !@var DRAGS,DRAGA symmetric/anti-symmetric drag terms
 !@var ZMAX,ZMIN max,min values of ZETA
 !@var ETA,ZETA viscosities
@@ -71,9 +71,9 @@ C**** output
      *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB
      *     ,VIB,DMU,DMV,HEFF,AREA
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UICE,VICE
-C**** Geometry 
+C**** Geometry
 !@var SINEN sin(phi)
-!@var BYDXDY 
+!@var BYDXDY
 !@var DXT,DXU x-direction distances on tracer and velocity grid
 !@var DYT,DYU y-direction distances on tracer and velocity grid
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: SINEN,BYDXDY
@@ -93,7 +93,7 @@ C**** Geometry
 !@var BYDTS reciprocal of timestep in ice dynamics code
       REAL*8 :: BYDTS
 
-      CONTAINS 
+      CONTAINS
 
       SUBROUTINE FORM
 !@sum  FORM calculates ice dynamics input parameters for relaxation
@@ -158,8 +158,8 @@ C NOW ADD IN CURRENT FORCE
           FORCEY(I,J)=FORCEY(I,J)+DWATN(I,J)*(-SINWAT*GWATX(I,J)
      1         +COSWAT*GWATY(I,J))
         END IF
-        
-C     NOW ADD IN TILT 
+
+C     NOW ADD IN TILT
         if (osurf_tilt.eq.1) then
 C**** This assumes explicit knowledge of sea surface tilt
           FORCEX(I,J)=FORCEX(I,J)+AMASS(I,J)*PGFUB(I,J)
@@ -244,7 +244,7 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,grid%j_strt_halo:grid%j_stop_halo) 
+      REAL*8, DIMENSION(NX1,grid%j_strt_halo:grid%j_stop_halo)
      &        :: E11,E22,E12
 c      REAL*8 :: SS11
       REAL*8, PARAMETER :: ECM2 = 1.0/(ECCEN**2),GMIN=1d-20
@@ -342,15 +342,15 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
       USE TRIDIAG_MOD, only : TRIDIAG, TRIDIAG_new
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &         AU,BU,CU,FXY,FXY1
-      REAL*8, DIMENSION(2:NX1-1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(2:NX1-1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &         AV,BV,CV,VRT,U_tmp
-      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &         FXYa,FXY1a
       REAL*8, DIMENSION(2:NX1-1,JM) :: AV_GLOB,BV_GLOB,CV_GLOB
       REAL*8, DIMENSION(NX1) :: CUU,URT         !CUU,
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &         CVV                     !CVV,
       REAL*8, DIMENSION(2:NX1-1,JM) :: VRT_GLOB, U_TMP_GLOB
       REAL*8, PARAMETER :: BYRAD2 = 1./(RADIUS*RADIUS)
@@ -360,8 +360,8 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 
       INTEGER :: J_0,J_1, J_0S,J_1S, J_0H,J_1H, J_0STG,J_1STG
 
-C**** Replaces NYPOLE in loops. 
-      INTEGER :: J_NYP 
+C**** Replaces NYPOLE in loops.
+      INTEGER :: J_NYP
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -399,17 +399,17 @@ C NOW MAKE SURE BDRY PTS ARE EQUAL TO ZERO
          VICE(I,NY1,1)=-VICEC(I+(NX1-2)/2,NY1-1)
          UICE(I,NY1,3)=-UICEC(I+(NX1-2)/2,NY1-1)
          VICE(I,NY1,3)=-VICEC(I+(NX1-2)/2,NY1-1)
-  
+
          UICEC(I,NY1)=-UICEC(I+(NX1-2)/2,NY1-1)
          VICEC(I,NY1)=-VICEC(I+(NX1-2)/2,NY1-1)
         END DO
-  
+
         DO I=NX1/2+1,NX1-1
          UICE(I,NY1,1)=-UICEC(I-(NX1-2)/2,NY1-1)
          VICE(I,NY1,1)=-VICEC(I-(NX1-2)/2,NY1-1)
          UICE(I,NY1,3)=-UICEC(I-(NX1-2)/2,NY1-1)
          VICE(I,NY1,3)=-VICEC(I-(NX1-2)/2,NY1-1)
-  
+
          UICEC(I,NY1)=-UICEC(I-(NX1-2)/2,NY1-1)
          VICEC(I,NY1)=-VICEC(I-(NX1-2)/2,NY1-1)
         END DO
@@ -424,7 +424,7 @@ C NOW MAKE SURE BDRY PTS ARE EQUAL TO ZERO
         VICE(1,J,3)=VICEC(NX1-1,J)
         UICE(NX1,J,3)=UICEC(2,J)
         VICE(NX1,J,3)=VICEC(2,J)
-  
+
         UICEC(1,J)=UICEC(NX1-1,J)
         VICEC(1,J)=VICEC(NX1-1,J)
         UICEC(NX1,J)=UICEC(2,J)
@@ -614,7 +614,7 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
         DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
         ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
-  
+
         AA1=((ETA(I+1,J)  +ZETA(I+1,J)  )*BYCSU(J)+
      *      (ETA(I+1,J+1)+ZETA(I+1,J+1))*BYCSU(J))*BYCSU(J)
         AA2=((ETA(I,J)+ZETA(I,J))*BYCSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
@@ -918,7 +918,7 @@ c        END DO
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       IMPLICIT NONE
-      REAL*8 :: dlat,dlon,phit,phiu,hemi,rms,fjeq,acor,acoru
+      REAL*8 :: dlat,dlon,phit,phiu,hemi,fjeq,acor,acoru
       INTEGER I,J,n,k,kki,sumk,l
       INTEGER :: J_0,J_1,J_0S,J_1S
 
@@ -951,7 +951,7 @@ c****
         dyu(j) = dlat*radius
       enddo
 
-C**** polar box corrections 
+C**** polar box corrections
       IF (grid%HAVE_NORTH_POLE) THEN
         dyt(ny1)=dyt(ny1)*acor
         dyu(ny1)=dyu(ny1)*acoru
@@ -978,7 +978,7 @@ C**** polar box corrections
         bydy2(j)=0.5/(dyu(j)*dyu(j))
         bydyr(j)=0.5/(dyu(j)*radius)
       end do
-      
+
       do j=j_0,j_1
         do i=1,nx1
           bydxdy(i,j) = 0.5/(dxu(i)*dyu(j))
@@ -993,7 +993,7 @@ c      tngt(ny1)= sin(phit)/cst(ny1)
       cst(1) = cos(phit)
 c      tngt(1)= sin(phit)/cst(1)
 
-      do j = 2,ny1-1 
+      do j = 2,ny1-1
        phit = (j-fjeq)*dlat
        cst(j) = cos(phit)
        tngt(j)= sin(phit)/cst(j)
@@ -1013,13 +1013,13 @@ c      tngt(1)= sin(phit)/cst(1)
         enddo
       enddo
 
-C**** fix some polar fields 
+C**** fix some polar fields
 C**** (can't use 'have_north_pole', needs adjacent boxes too!)
       TNGT(NY1)=TNGT(NY1-1)
       tng(ny1)=tng(ny1-1)
       csu(ny1)=csu(ny1-1)
       bycsu(ny1) = 1./csu(ny1)
-      
+
       TNGT(1)=TNGT(2)
       tng(1) =tng(2)
       csu(1) =csu(2)
@@ -1035,7 +1035,7 @@ C**** Set land masks for tracer and velocity points
           heffm(i,j)=nint(focean(i-1,j))
         enddo
         heffm(1,j)=heffm(nx1-1,j)
-        heffm(nx1,j)=heffm(2,j)  
+        heffm(nx1,j)=heffm(2,j)
       enddo
 C**** define velocity points (including exterior corners)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
@@ -1054,7 +1054,7 @@ c     CALL HALO_UPDATE(grid, UVM, FROM=NORTH)
         do i=2,nx1-1
           k = nint(max (uvm(i,j), uvm(i-1,j), uvm(i,j-1), uvm(i-1,j-1)))
 c         sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
-c set to k except if an island 
+c set to k except if an island
 c         if (.not. (sumk.eq.4.and.focean(i-1,j).eq.0) ) then
             heffm(i,j) = k
 c         end if
@@ -1096,16 +1096,20 @@ c set cyclic conditions on eastern and western boundary
       END MODULE ICEDYN
 
       SUBROUTINE VPICEDYN
-!@sum  vpicedyn is the entry point into the viscous-plastic ice 
+!@sum  vpicedyn is the entry point into the viscous-plastic ice
 !@+    dynamics code
 !@auth Gavin Schmidt (based on code from J. Zhang)
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH,GLOBALSUM
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
+      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE,am_i_root
+      USE MODEL_COM, only : im,jm
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
+     *        ,uvm,dxu,dyu
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &        USAVE,VSAVE
-      REAL*8 rms, rms_part(grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &        rms_part,area_part
+      REAL*8 rms0,rms,area
       INTEGER kki,i,j
       INTEGER :: J_0,J_1,J_0S,J_1S
 
@@ -1115,7 +1119,7 @@ C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
-      rms=0.
+      rms=0. ; rms0=0. 
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
       KKI=0.
  10   KKI=KKI+1
@@ -1174,22 +1178,31 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       END DO
 
       if (kki.gt.1) then ! test convergence
-        rms_part=0.
+        rms_part=0. ; area_part=0.
         do i=1,nx1
            do j=j_0,j_1
-            rms_part(j)=rms_part(j)+
+            rms_part(j)=rms_part(j)+  dxu(i)*dyu(j)*UVM(i,j)*
      *           (USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,j)-VICE(i,j,1))**2
+            area_part(j)=area_part(j)+dxu(i)*dyu(j)*UVM(i,j)
           end do
         end do
         CALL GLOBALSUM(grid, rms_part, rms, all=.true.)
+        CALL GLOBALSUM(grid, area_part, area, all=.true.)
       end if
 
-      if (kki.eq.20) then
-        write(6,*) "Too many iterations in VPICEDYN. kki:",kki,rms
-      elseif (kki.eq.1 .or. rms.gt.0.01d0) then
+      if (kki>2 .and. rms>rms0) then
+        if(am_i_root())
+     *    write(0,*) 'VPICEDYN rms increased, kki:',kki,rms0,rms
+        UICE(:,:,1)=USAVE
+        VICE(:,:,1)=VSAVE
+      elseif (kki.eq.20) then
+        if(am_i_root())
+     *    write(0,*) "Too many iterations in VPICEDYN. kki:",kki,rms
+      elseif (kki.eq.1 .or. rms.gt.2.5d-6*area) then
         USAVE=UICE(:,:,1)
         VSAVE=VICE(:,:,1)
-        goto 10 
+        rms0=rms
+        goto 10
       end if
 
       RETURN
@@ -1203,7 +1216,7 @@ C**** arrays allocated in this routine were originally dimensioned
 C**** (..,ny1,..). Since ny1=jm (see above), the grid structure as defined
 C**** in DOMAIN_DECOMP can be used in the calling routine.
 C**** In the case that ny1 is NOT equal to JM, a structure appropriately
-C**** modified to reflect the differences should be created in DOMAIN_DECOMP 
+C**** modified to reflect the differences should be created in DOMAIN_DECOMP
 C**** and used in the calling routine. No modification should be necesary
 C**** to ALLOC_ICEDYN.
 
@@ -1235,7 +1248,7 @@ C**** to ALLOC_ICEDYN.
 
       CALL INIT_GRID(grid_MIC, IMIC, JMIC, 1)
       CALL INIT_GRID(grid_NXY, NX1, NY1,1)
-      CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H, 
+      CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
 
       ALLOCATE( FOCEAN(NX1-2,J_0H:J_1H),
