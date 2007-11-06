@@ -1,4 +1,4 @@
-     
+       
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
 C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
@@ -1181,7 +1181,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
         do i=1,nx1
            do j=j_0,j_1
             rms_part(j)=rms_part(j)+  dxu(i)*dyu(j)*UVM(i,j)*
-     *           (USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,j)-VICE(i,j,1))**2
+     *         ((USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,j)-VICE(i,j,1))**2)
             area_part(j)=area_part(j)+dxu(i)*dyu(j)*UVM(i,j)
           end do
         end do
@@ -1197,7 +1197,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       elseif (kki.eq.20) then
         if(am_i_root())
      *    write(0,*) "Too many iterations in VPICEDYN. kki:",kki,rms
-      elseif (kki.eq.1 .or. rms.gt.2.5d-6*area) then
+      elseif (kki == 1 .or. rms > 5d-6*area) then
         USAVE=UICE(:,:,1)
         VSAVE=VICE(:,:,1)
         rms0=rms
