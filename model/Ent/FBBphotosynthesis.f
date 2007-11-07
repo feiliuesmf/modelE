@@ -499,7 +499,7 @@
       real*8 :: c3, c2, c1, c   !Coefficients of the cubic of ci (c3*ci^3 + c2*ci^2 + c1*ci + c)
 
       real*8 :: c_1, c_2, c_3, e, fmol, gamol, a, C3_, A_,cs_,A_1,rs_
-      real*8 :: res_, C6, Ra,A_2,cixx(3),K
+      real*8 :: res_, C6, Ra,A_2,cixx(3),K, ci_
       integer :: nroots, i
       rb = 1/gb
       m = pspar%m
@@ -649,6 +649,11 @@
 
       call Baldocchi(c3,c2,c1,c)
 
+       !if ( a/e -Rd < 0 ) then
+       !  write(502,'(20f15.6)') a1,e1,gamol,f1,Rd,K,b,Ca,Ra
+       !endif
+
+
 #endif
 
 #ifdef DEBUG
@@ -656,8 +661,110 @@
      & c3,c2,c1,c,ci,expr(ci)',
      &     rb,m,b,ca,gammam,X,Y,Z,W,T,a1,e1,f1,c3,c2,c1,c,ci,
      &     c3*(ci**3.d0) + c2*(ci**2.d0) + c1*ci + c
-#endif      
+#endif
+      ! testing new solution for "ci"
+      !ci_ = ci_cubic1(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
       end function ci_cubic
+
+      real*8 function ci_cubic1(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)Result(ci)
+      !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
+      !@sum ci (umol/mol)
+      !@sum For the case of assimilation being of the form:
+      !@sum         A = a*(Cip - Gammastar)/(e*Cip + f) - Rd
+      !@sum Numerator and denominator are converted from (Pa/Pa) to (umol mol-1)/(umol mol-1)
+      !@sum         A = a1*(ci - gammamol) /(e1*ci + fmol) - Rd
+      !@sum where gammamol = Gammastar*1d06/Pa, fmol = f1 = f*1d06/Pa
+
+      implicit none
+      real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
+      real*8 :: rh              !Relative humidity
+      real*8 :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+      real*8 :: Pa              !Pressure (Pa)
+      real*8 :: Rd              !Leaf mitochondrial respiration (umol m-2 s-1)
+      real*8 :: a1              !Coefficient in linear Farquhar equ.
+      real*8 :: e1              !Coefficient in linear Farquhar equ.
+      real*8 :: f1              !Coefficient in linear Farquhar equ.
+      type(photosynthpar) :: pspar
+      !----Local----
+      real*8, parameter :: S_ATM=1.37d0  ! diffusivity ratio H2O/CO2 (atmosph.)
+      real*8, parameter :: S_STOM=1.65d0 ! diffusivity ratio H2O/CO2 (stomatal)
+      real*8 :: Ra, b, K, gamol, A_d_asymp
+      real*8 :: X, Y, Z, Y1  ! tmp vars
+      real*8 :: c3, c2, c1, c   !Coefficients of the cubic of ci (c3*ci^3 + c2*ci^2 + c1*ci + c)
+      real*8 :: cixx(3), A ! solutions of cubic
+      real*8 :: cs, Rs ! needed to compute ci
+      integer :: nroots, i
+
+      Ra = 1/gb * S_ATM
+      b = pspar%b / S_STOM
+      K = pspar%m * rh / S_STOM
+      gamol = pspar%Gammastar * 1.d06/Pa !Convert Pa to umol/mol
+      A_d_asymp = - b*Ca / (K - b*Ra) ! asymptotic val of A from diffusion eq.
+
+      ! first check some special cases
+      if ( A_d_asymp >= 0.d0 ) then
+        ! this can happen only for very low humidity
+        ! probably should never happen in the real world, but if it does,
+        ! this case should be considered separately
+        print *,"K<b*Ra: m,rh,b,Ra:",pspar%m,rh,b,Ra
+        call stop_model("ci_cubic: rh too small ?",255)
+      endif
+
+      Y= f1/e1
+      X= -a1/e1 * (gamol+f1/e1)
+      Z= a1/e1 -Rd
+
+      if ( Z > 0.d0 ) then
+        ! Farquhar curve is above zero. May have solution A > 0
+        c = -(b*Ca*(X + (Ca + Y)*Z))
+        c1 = Ca*Z - K*(X + Ca*Z + Y*Z) + 
+     &       b*(Ca**2 + Ca*(Y + 2*Ra*Z) + Ra*(X + Y*Z))
+        c2 = Ca*(-1 + K - 2*b*Ra) + K*(Y + Ra*Z) - Ra*(b*Y + Z + b*Ra*Z)
+        c3 = Ra*(1 - K + b*Ra)
+
+        call cubicroot(c3, c2, c1, c, cixx, nroots)
+
+        ! find minimal root above the asymptotic value
+        A = 1.d30
+        do i=1,nroots
+          if ( cixx(i) < A .and. cixx(i) > A_d_asymp ) A = cixx(i)
+        enddo
+        if ( A == 1.d30 ) call stop_model("ci_cubic: no solution",255)
+
+        if ( A >= 0 ) then
+          cs = ca - A*Ra
+          Rs = 1.d0 / (K*A/cs + b)
+          ci = cs - A*Rs
+          ! just in case, check consistency
+          if ( ci < 0.d0 ) call stop_model("ci_cubic: ci<0",255)
+          if ( cs < 0.d0 ) call stop_model("ci_cubic: cs<0",255)
+          print *,'QQQQ ',A
+          return
+        endif
+
+      endif
+
+      ! if we got here then A<0 : have to solve quaratic equation
+
+      Y1 = Y + ca
+      c2 = Ra + 1.d0/b
+      c1 = - (Y1 + c2*Z)
+      c  = X + Y1*Z
+
+      ! just in case,
+      if (  c1*c1 - 4.d0*c2*c < 0.d0 )
+     &     call stop_model("ci_cubic: no solution to quadratic",255)
+      A = ( - c1 - sqrt( c1*c1 - 4.d0*c2*c ) ) / ( 2.d0 * c2 )
+      cs = ca - A*Ra
+      Rs = 1.d0 / ( b)
+      ci = cs - A*Rs
+      print *,"q ", ci, cs, A, Rs, Ra
+      ! just in case, check consistency
+      if ( ci < 0.d0 ) call stop_model("ci_cubic: q: ci<0",255)
+      if ( cs < 0.d0 ) call stop_model("ci_cubic: q: cs<0",255)
+      print *,'QQQQ ',A
+
+      end function ci_cubic1
 
 
       subroutine Baldocchi(c3,c2,c1,c)
