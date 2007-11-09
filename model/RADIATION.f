@@ -596,7 +596,7 @@ C     for setbak/getbak only   1      2      3       4       5
 
 !@var KUVFAC,UVFACT,UVWAVL,KSNORM rescale UV spectral flux distribution
       INTEGER :: KUVFAC=0,  KSNORM=0  ! no rescaling
-      REAL*8  :: UVWAVL(3)=(/0.0010, 0.0020, 0.0030/)
+      REAL*8  :: UVWAVL(3)=(/0.295, 0.310, 0.366/)
       REAL*8  :: UVFACT(3)=(/1.0000, 1.0000, 1.0000/)
 
 !@var SRCGSF Scaling Factors for Cloud Asymmetry Parameter for
@@ -1782,9 +1782,8 @@ C-----------------------------------------------------------------------
       INTEGER, INTENT(IN) :: JYEARS,JJDAYS
       INTEGER, INTENT(IN), optional :: UPDSOL_flag
       INTEGER, SAVE :: LMOREF=0
-      INTEGER JMO,LMO,Is0x,K,I,NWSUV,II,J
-      REAL*8 FLXSUM,F1FLUX,F2FLUX,F3FLUX,UVNORM,XX,OCM
-     *     ,TAUK,UVWAVA,UVWAVB,AO33
+      INTEGER JMO,LMO,Is0x,K,I,NWSUV,II,J,NUV
+      REAL*8 FLXSUM,FFLUX(3),UVNORM,XX,OCM,TAUK,UVWAVA,UVWAVB,AO33
 
       if ( present(UPDSOL_flag) ) goto 777
 
@@ -1850,28 +1849,21 @@ c      CORFAC=1366.2911D0/1366.4487855D0
 C                                         Option to Modify Solar UV Flux
 C                                         ------------------------------
   130 IF(KUVFAC==1) THEN
-        F1FLUX=0.D0
-        F2FLUX=0.D0
-        F3FLUX=0.D0
-        DO 160 I=1,NWSUV
-        IF(WSOLAR(I) > UVWAVL(1)) GO TO 140
-        F1FLUX=F1FLUX+FSOLAR(I)
-        FSOLAR(I)=FSOLAR(I)*UVFACT(1)
-        GO TO 160
-  140   CONTINUE
-        IF(WSOLAR(I) > UVWAVL(2)) GO TO 150
-        F2FLUX=F2FLUX+FSOLAR(I)
-        FSOLAR(I)=FSOLAR(I)*UVFACT(2)
-        GO TO 160
-  150   CONTINUE
-        IF(WSOLAR(I) > UVWAVL(3)) GO TO 170
-        F3FLUX=F3FLUX+FSOLAR(I)
-        FSOLAR(I)=FSOLAR(I)*UVFACT(3)
-  160   CONTINUE
-  170   CONTINUE
-        UVNORM=F1FLUX*(1.D0-UVFACT(1))+F2FLUX*(1.D0-UVFACT(2))
-     +        +F3FLUX*(1.D0-UVFACT(3))
-        IF(KSNORM==0) S00WM2=S00WM2-UVNORM
+        FFLUX(:)=0.D0
+        NUV=1
+        DO I=1,NWSUV,2          ! by twos to account for histogram
+ 140      IF(WSOLAR(I+1) <= UVWAVL(NUV)) THEN 
+            FFLUX(NUV)=FFLUX(NUV)+FSOLAR(I)*(WSOLAR(I+1)-WSOLAR(I))
+            FSOLAR(I:I+1)=FSOLAR(I:I+1)*UVFACT(NUV)
+          ELSE
+            NUV=NUV+1
+            IF (NUV.LE.3) GOTO 140
+            EXIT
+          END IF
+        END DO
+        UVNORM = SUM(FFLUX(:)*(1d0-UVFACT(:)))
+        IF (MADLUV==0) UVNORM=UVNORM*CORFAC 
+        IF (KSNORM==0) S00WM2=S00WM2-UVNORM
       ENDIF
 C                  -----------------------------------------------------
 C                  When KUVFAC=1 option multiplicative factors UVFACT(I)
@@ -1959,28 +1951,21 @@ C                                          -----------------------------
 C                                         Option to Modify Solar UV Flux
 C                                         ------------------------------
       IF(KUVFAC==1) THEN
-        F1FLUX=0.D0
-        F2FLUX=0.D0
-        F3FLUX=0.D0
-        DO 260 I=1,NWSUV
-        IF(WSOLAR(I) > UVWAVL(1)) GO TO 240
-        F1FLUX=F1FLUX+FSOLAR(I)
-        FSOLAR(I)=FSOLAR(I)*UVFACT(1)
-        GO TO 260
-  240   CONTINUE
-        IF(WSOLAR(I) > UVWAVL(2)) GO TO 250
-        F2FLUX=F2FLUX+FSOLAR(I)
-        FSOLAR(I)=FSOLAR(I)*UVFACT(2)
-        GO TO 260
-  250   CONTINUE
-        IF(WSOLAR(I) > UVWAVL(3)) GO TO 270
-        F3FLUX=F3FLUX+FSOLAR(I)
-        FSOLAR(I)=FSOLAR(I)*UVFACT(3)
-  260   CONTINUE
-  270   CONTINUE
-        UVNORM=F1FLUX*(1.D0-UVFACT(1))+F2FLUX*(1.D0-UVFACT(2))
-     +        +F3FLUX*(1.D0-UVFACT(3))
-        IF(KSNORM==0) FLXSUM=FLXSUM-UVNORM
+        FFLUX(:)=0.D0
+        NUV=1
+        DO I=1,NWSUV,2          ! by twos to account for histogram
+ 240      IF(WSOLAR(I+1) <= UVWAVL(NUV)) THEN 
+            FFLUX(NUV)=FFLUX(NUV)+FSOLAR(I)*(WSOLAR(I+1)-WSOLAR(I))
+            FSOLAR(I:I+1)=FSOLAR(I:I+1)*UVFACT(NUV)
+          ELSE
+            NUV=NUV+1
+            IF (NUV.LE.3) GOTO 240
+            EXIT
+          END IF
+        END DO
+        UVNORM = SUM(FFLUX(:)*(1d0-UVFACT(:)))
+        IF (MADLUV==0) UVNORM=UVNORM*CORFAC 
+        IF (KSNORM==0) FLXSUM=FLXSUM-UVNORM
       ENDIF
 
       RATLS0=FLXSUM/S00WM2
