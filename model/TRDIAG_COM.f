@@ -213,10 +213,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-!@param nDustEmij index of dust emission in ijts_source
+!@param nDustEmij index of dust emission in ijts_isrc
       INTEGER,PARAMETER :: nDustEmij=1
-!@param nDustTurbij index of dust dry turbulent deposition in ijts_source
-      INTEGER,PARAMETER :: nDustTurbij=3
+!@param nDustTurbij index of dust dry turbulent deposition in ijts_isrc
+      INTEGER,PARAMETER :: nDustTurbij=3  ! not used?
 !@param nDustEv1ij index of number of dust events below threshold wind
 !@param nDustEv1ij in ijts_spec
 !@param nDustEv2ij index of number of dust events above threshold wind
@@ -226,7 +226,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 #ifdef TRACERS_DUST
 !@param nDustEm2ij index of dust emission according to cubic scheme
-!@param nDustEm2ij in ijts_source
+!@param nDustEm2ij in ijts_isrc
       INTEGER,PARAMETER :: nDustEm2ij=2
 #endif
 

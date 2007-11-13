@@ -1936,9 +1936,9 @@ C****
 #ifdef TRACERS_GASEXCH_CO2_Natassa
       case ('CO2n')
         k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'to be defined ....'//trname(n)
-        lname_jls(k) = 'CO2n                            '
+        jls_isrc(1,n) = k
+        sname_jls(k) = 'Ocean_gas_exch_'//trname(n)
+        lname_jls(k) = 'CO2n Ocean gas exchange'
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1962,6 +1962,7 @@ C****
         jls_ltop(k) = 1
         jls_power(k) = -3.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+
         ijts_isrc(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
@@ -2273,7 +2274,7 @@ C****
 C**** generic ones for many water tracers
       case ('Water', 'H2O18', 'HDO', 'HTO', 'H2O17' )
        k = k + 1
-        jls_source(1,n)=k
+        jls_isrc(1,n)=k
         sname_jls(k) = 'Evap_'//trname(n)
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
         jls_ltop(k) = 1
@@ -2281,7 +2282,7 @@ C**** generic ones for many water tracers
         scale_jls(k) = SDAY*byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
-        jls_source(2,n)=k
+        jls_isrc(2,n)=k
         sname_jls(k) = 'Ocn_Evap_'//trname(n)
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
         jls_ltop(k) = 1
@@ -2422,7 +2423,7 @@ C**** special one unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 C
         k = k + 1
-        jls_source(2,n) = k
+        jls_isrc(2,n) = k
         sname_jls(k) = 'TKE_Contribution'//trname(n)
         lname_jls(k) = 'SGSWSP TKE'
         jwt_jls(k) = 2
@@ -2432,7 +2433,7 @@ C
         units_jls(k) = unit_string(jls_power(k),'%')
 
         k = k + 1
-        jls_source(3,n) = k
+        jls_isrc(3,n) = k
         sname_jls(k) = 'Wet_Conv_Contr'//trname(n)
         lname_jls(k) = 'SGSWSP Wet Conv'
         jwt_jls(k) = 2
@@ -2442,7 +2443,7 @@ C
         units_jls(k) = unit_string(jls_power(k),'%')
 
         k = k + 1
-        jls_source(4,n) = k
+        jls_isrc(4,n) = k
         sname_jls(k) = 'Dry_Conv_Contr'//trname(n)
         lname_jls(k) = 'SGSWSP Dry Conv'
         jwt_jls(k) = 2
@@ -2452,7 +2453,7 @@ C
         units_jls(k) = unit_string(jls_power(k),'%')
 
         k = k + 1
-        jls_source(5,n) = k
+        jls_isrc(5,n) = k
         sname_jls(k) = 'SGSWSP-old'//trname(n)
         lname_jls(k) = 'DMS SGSWP-old/old'
         jwt_jls(k) = 2
@@ -3095,7 +3096,7 @@ c gravitational settling of ss1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-       case ('seasalt2')
+      case ('seasalt2')
         k = k + 1
         jls_isrc(1,n) = k
         sname_jls(k) = 'Ocean_source_of'//trname(n)
@@ -3123,7 +3124,7 @@ c gravitational settling of ss2
      &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
 
         k=k+1
-          jls_source(nDustEmjl,n)=k
+          jls_isrc(nDustEmjl,n)=k
           lname_jls(k)='Emission of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_emission'
           jls_ltop(k)=1
@@ -3132,7 +3133,7 @@ c gravitational settling of ss2
 #ifdef TRACERS_DUST
         IF (imDust == 0) THEN
           k=k+1
-          jls_source(nDustEm2jl,n)=k
+          jls_isrc(nDustEm2jl,n)=k
           lname_jls(k)='Cubic emission of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_emission2'
           jls_ltop(k)=1
@@ -3142,7 +3143,7 @@ c gravitational settling of ss2
 #endif
 #ifndef TRACERS_DRYDEP
         k=k+1
-          jls_source(nDustTurbjl,n)=k
+          jls_isrc(nDustTurbjl,n)=k
           lname_jls(k)='Turbulent deposition of '//TRIM(trname(n))
           sname_jls(k)=TRIM(trname(n))//'_turb_depo'
           jls_ltop(k)=1
@@ -3460,11 +3461,11 @@ C**** This needs to be 'hand coded' depending on circumstances
 #ifdef TRACERS_GASEXCH_CO2_Natassa
       case ('CO2n')
       k = k + 1
-        ijts_source(1,n) = k
+        ijts_isrc(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'some source i know '//trname(n)
-        lname_ijts(k) = 'CO2 ...............'
+        sname_ijts(k) = 'ocean_gas_exc_'//trname(n)
+        lname_ijts(k) = 'Ocean gas exchange CO2'
         ijts_power(k) = -11.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5262,7 +5263,7 @@ c#ifdef TRACERS_NITRATE
       case ('NH3')
 c production of NH3 from all emissions
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_source(1,n) = k  ! 3dsource?
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'NH3 source from emission'
@@ -5443,7 +5444,7 @@ c#endif
       case ('SO4_d1')
 c chemical production of SO4 from SO2 on dust
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_source(1,n) = k  ! 3dsource?
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d1 Chemical source'
@@ -5454,7 +5455,7 @@ c chemical production of SO4 from SO2 on dust
       case ('SO4_d2')
 c chemical production of SO4 from SO2 on dust
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_source(1,n) = k  ! 3dsource?
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d2 Chemical source'
@@ -5465,7 +5466,7 @@ c chemical production of SO4 from SO2 on dust
       case ('SO4_d3')
 c chemical production of SO4 from SO2 on dust
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_source(1,n) = k  ! 3dsource?
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d3 Chemical source'
@@ -5861,7 +5862,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &   'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
      &   'Sil1QuHe','Sil2QuHe','Sil3QuHe')
         k=k+1
-        ijts_source(nDustEmij,n)=k
+        ijts_isrc(nDustEmij,n)=k
         lname_ijts(k)='Emission of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_emission'
         ijts_index(k)=n
@@ -5872,7 +5873,7 @@ c clear sky scattering asymmetry factor in six solar bands
 #ifdef TRACERS_DUST
         IF (imDust == 0) THEN
         k=k+1
-        ijts_source(nDustEm2ij,n)=k
+        ijts_isrc(nDustEm2ij,n)=k
         lname_ijts(k)='Cubic emission of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_emission2'
         ijts_index(k)=n
@@ -5884,7 +5885,7 @@ c clear sky scattering asymmetry factor in six solar bands
 #endif
 #ifndef TRACERS_DRYDEP
       k=k+1
-        ijts_source(nDustTurbij,n)=k
+        ijts_isrc(nDustTurbij,n)=k
         lname_ijts(k)='Turbulent Deposition of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_turb_depo'
         ijts_index(k)=n
@@ -6650,7 +6651,7 @@ c     end do
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c Surface industrial emissions
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_source(1,n) = k  ! 3dsource?
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Surf_src_'//trim(trname(n))
@@ -6672,7 +6673,7 @@ c- 3D sources diagnostic
 c- interactive sources diagnostic
        CASE('M_DD1_DU','M_SSA_SS','M_SSC_SS','M_DD2_DU','M_SSS_SS')
        k = k + 1
-         ijts_source(1,n)=k
+         ijts_isrc(1,n) = k
          ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'Emission_'//trim(trname(n))

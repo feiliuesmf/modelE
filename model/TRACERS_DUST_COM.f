@@ -9,14 +9,14 @@
       USE resolution,ONLY : Im,Jm,Lm
       USE tracer_com,ONLY : Ntm_dust
 
-!@param nDustEmij index of dust emission in ijts_source
-!@param nDustTurbij index of dust dry turbulent deposition in ijts_source
-!@param nDustGravij index of dust gravitational settling in ijts_source
-!@param nDustWetij index of dust wet deposition in ijts_source
+!@param nDustEmij index of dust emission in ijts_isrc
+!@param nDustTurbij index of dust dry turbulent deposition in ijts_isrc
+!@param nDustGravij index of dust gravitational settling in ijts_isrc
+!@param nDustWetij index of dust wet deposition in ijts_isrc
       INTEGER,PARAMETER :: nDustEmij=1,
-     &                     nDustTurbij=2,
-     &                     nDustGravij=3,
-     &                     nDustWetij=4
+     &                     nDustTurbij=2,  ! not used?
+     &                     nDustGravij=3,  ! not used?
+     &                     nDustWetij=4    ! not used?
 !@param nDustEmjl index of dust emission in jls_source
 !@param nDustTurbjl index of dust dry turbulent deposition in jls_source
 !@param nDustGrav3Djl index of dust gravitational settling in jls_3Dsource

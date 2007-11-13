@@ -478,7 +478,7 @@ C**** Tracers dry deposition flux.
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : tajls=>tajls_loc,ijts_source,jls_source
-     *     ,itcon_surf,ijts_isrc,jls_isrc
+     *     ,itcon_surf
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
@@ -492,7 +492,7 @@ C**** Tracers dry deposition flux.
 C**** This is tracer independent coding designed to work for all
 C**** surface sources.
 C**** Note that tracer flux is added to first layer either implicitly
-C**** in ATURB or explcitly in 'apply_fluxes_to_atm' call in SURFACE.
+C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
 
       do n=1,ntm
         trflux1(:,:,n) = 0.
@@ -522,18 +522,7 @@ C**** diagnostics
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do
-cC**** Interactive sources  ! this is definitely not right.
-cC**** diagnostics
-c        do ns=1,ntisurfsrc(n)
-c         naij = ijts_isrc(ns,n)
-c         taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
-c         najl = jls_isrc(ns,n)
-c         do j=1,jm
-c           tajls(j,1,najl) = tajls(j,1,najl)+
-c     *         sum(trsrfflx(1:imaxj(j),j,n))*dtstep
-c         end do
-cc        call DIAGTCA(itcon_surf(ns,n),n)  ????
-c        end do
+
 C**** modify vertical moments (only from non-interactive sources)
        do j=j_0,j_1
         trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux1(:,j,n)
