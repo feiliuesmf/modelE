@@ -1169,7 +1169,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
 
       CALL RELAX
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
        UICE(1,J,1)=UICE(NX1-1,J,1)
        VICE(1,J,1)=VICE(NX1-1,J,1)
        UICE(NX1,J,1)=UICE(2,J,1)

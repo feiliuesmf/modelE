@@ -354,7 +354,7 @@ C****
       END SUBROUTINE reset_icdiag
 
       SUBROUTINE DYNSI
-!@sum  DYNSI calculate ice velocites
+!@sum  DYNSI calculates ice velocites
 !@+    Note that the ice velocities are calculated on the ice grid
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
