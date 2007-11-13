@@ -611,6 +611,9 @@ C**** SET DEFAULTS FOR AIR MASS FLUX (STRAT MODEL)
       DDML(I,J)=0.
       TDN1(I,J)=0.
       QDN1(I,J)=0.
+#ifdef TRACERS_ON
+      TRDN1(:,I,J)=0.
+#endif
 C****
 C**** Energy conservation note: For future reference the energy function
 C**** for these column calculations (assuming energy reference level
@@ -799,14 +802,16 @@ C       END IF
         AIRX(I,J) = AIRXL*DXYP(J)
         DO L=1,DCL
           DDML(I,J)=L                    ! the lowest downdraft layer
-          TDN1(I,J)=TDNL(L)              ! downdraft temperature
-          QDN1(I,J)=QDNL(L)              ! downdraft humidity
-          DDMS(I,J)=-100.*DDMFLX(L)/(GRAV*DTsrc) ! downdraft mass flux
-#ifdef TRACERS_ON
-          TRDN1(:,I,J)=TRDNL(:,L)        ! downdraft tracer conc
-#endif
           IF(DDMFLX(L).GT.0.d0) EXIT
         END DO
+        IF (DDML(I,J).gt.0) THEN
+          TDN1(I,J)=TDNL(DDML(I,J))     ! downdraft temperature
+          QDN1(I,J)=QDNL(DDML(I,J))     ! downdraft humidity
+          DDMS(I,J)=-100.*DDMFLX(DDML(I,J))/(GRAV*DTsrc) ! downdraft mass flux
+#ifdef TRACERS_ON
+          TRDN1(:,I,J)=1d-2*TRDNL(:,DDML(I,J))*GRAV*BYDXYP(J) ! downdraft tracer conc
+#endif
+        END IF
 c       IF (DDMFLX(1).GT.0.) THEN
 c         WRITE(6,*) 'I J DDMS TDN1 QDN1=',
 c    *      I,J,DDMS(I,J),TDN1(I,J),QDN1(I,J)

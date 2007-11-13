@@ -48,10 +48,12 @@ C**** variables saved for radiation calculations
 
 C**** variables saved for surface wind spectrum calculations
 !@var DDM1 downdraft mass flux / rho at lowest level (m/s)
+!@var DDML lowest level of downdraft 
 !@var DDMS downdraft mass flux at level 1 (kg/s/m**2)
 !@var TDN1 downdraft temperature (K)
 !@var QDN1 downdraft humidity (kg/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DDM1,DDMS,TDN1,QDN1,DDML
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DDM1,DDMS,TDN1,QDN1
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: DDML
 
 C**** variables used (and saved) for gravity wave drag calculations
 !@var AIRX, AIRMX*DXYP(J) convective mass flux (kg/s)
