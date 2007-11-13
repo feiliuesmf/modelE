@@ -241,8 +241,8 @@ LFLAGS += -Msmp
 endif
 # uncomment next two lines for extensive debugging
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-#FFLAGS += 
-#LFLAGS += 
+FFLAGS += -Mbounds -Mchkfpstk -Mchkptr -Mchkstk
+LFLAGS += -Mbounds -Mchkfpstk -Mchkptr -Mchkstk
 endif
 endif
 
