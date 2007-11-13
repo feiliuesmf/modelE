@@ -19,7 +19,7 @@
 !@var QDN1 downdraft humidity in kg/kg, (i,j)
 
 C    input: ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
-C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
+C    output:US,VS,WS,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
 C          ,UG,VG,WG,W2_1
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
@@ -29,6 +29,9 @@ C          ,UG,VG,WG,W2_1
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
+#ifdef TRACERS_ON
+      USE TRACER_COM, only : trdn1
+#endif
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
       use QUSDEF, only : mz
@@ -76,8 +79,7 @@ c
 !@var VS     = y component of surface wind, positive northward (m/s)
 !@var WSGCM  = magnitude of the GCM surface wind - ocean currents (m/s)
 !@var WSPDF  = mean surface wind calculated from PDF of wind speed (m/s)
-!@var WSH    = magnitude of GCM surf wind - ocean curr + buoyancy flux(m/s)
-!@var WSM    = (=WSH) magn of GCM surf wind - ocean curr + buoyancy flux(m/s)
+!@var WS     = magn. of GCM surf wind - ocean curr + buoyancy + gust (m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
 !@var QS     = surface value of the specific moisture
 !@var DBL    = boundary layer height (m)
@@ -99,7 +101,7 @@ c
 !@var WINT   = integrated surface wind speed over sgs wind distribution
       real*8 :: dbl,kms,kqs,cm,ch,cq,z0m,z0h,z0q,ug,vg,w2_1,mdf
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8 ::  mdn,mup
+      real*8 ::  mdn  ! ,mup
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
 #if defined(TRACERS_ON)
@@ -267,19 +269,27 @@ c     ENDIF
 #ifdef USE_PBL_E1
       pbl_args%ddml_eq_1=.false.
 #else
-      pbl_args%ddml_eq_1=(nint(DDML(i,j)).eq.1)
+      pbl_args%ddml_eq_1=DDML(i,j).eq.1
 #endif
 
       ! if ddml_eq_1=.false.,
       ! i.e., either USE_PBL_E1 or DDML(i,j) is not 1,
-      ! then tdns,qdns,tprime,qprimt are not in use
+      ! then tdns,qdns,tprime,qprime are not in use
 
-      if(pbl_args%ddml_eq_1) then
-         pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
-         pbl_args%qdns=QDN1(i,j)
+      if (pbl_args%ddml_eq_1) then
+        pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
+        pbl_args%qdns=QDN1(i,j)
+#ifdef TRACERS_ON
+        do nx=1,pbl_args%ntx
+          pbl_args%trdn1(nx)=TRDN1(pbl_args%ntix(nx),i,j)
+        end do
+#endif
       else
-         pbl_args%tdns=0.d0
-         pbl_args%qdns=0.d0
+        pbl_args%tdns=0.d0
+        pbl_args%qdns=0.d0
+#ifdef TRACERS_ON
+        pbl_args%trdn1(:)=0.
+#endif
       endif
 
       call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf

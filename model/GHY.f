@@ -167,8 +167,7 @@ ccc   private accumulators:
 ccc   input fluxes
       real*8, public :: pr,htpr,prs,htprs,srht,trht
 ccc   input bc''s
-      real*8, public :: ts,qs,pres,rho,vsm,ch,qm1
-     *     ,vsh,vsh0,tprime,qprime
+      real*8, public :: ts,qs,pres,rho,ch,qm1,vs,vs0,tprime,qprime
 !@var dt earth time step (s)
       real*8, public :: dt
 
@@ -350,11 +349,11 @@ C***
      &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
      &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
      &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
-     &     ,top_index,top_stdev,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk
+     &     ,top_index,top_stdev,tp,trht,ts,tsn1,w,ws,wsn,xinfc,xk
      &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
-     &     ,vsh,vsh0,tprime,qprime
+     &     ,vs,vs0,tprime,qprime
 
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
@@ -716,8 +715,7 @@ ccc   local variables
       real*8 evap_max_vegsoil
 #endif
 c     cna is the conductance of the atmosphere
-      !cna=ch*vsm
-      cna=ch*vsh
+      cna=ch*vs
       rho3=rho/rhow ! i.e divide by rho_water to get flux in m/s
 
 ccc make sure that important vars are initialized (needed for ibv hack)
@@ -813,8 +811,8 @@ c     Get canopy conductivity cnc and gpp
 !        agpp=gpp                !nyk 4/25/03.  Put in subroutine accm.
 c       pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
         pot_evap_can = betat*rho3*ch*(
-     &                 vsh*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
-     &                 -(vsh-vsh0)*qprime)
+     &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+     &                 -(vs-vs0)*qprime)
         evap_max_dry(ibv) = 0.d0
         if ( betad > 0.d0 .and. pot_evap_can > 0.d0 ) then
           do k=1,n
@@ -879,15 +877,15 @@ c     epb  = rho3*cna*(qb-qs)
 c     epbs = rho3*cna*(qbs-qs)
 c     epv  = rho3*cna*(qv-qs)
 c     epvs = rho3*cna*(qvs-qs)
-      v_qprime=(vsh-vsh0)*qprime
-      epb  = rho3*ch*( vsh*(qb-qs) -v_qprime )
-      epbs = rho3*ch*( vsh*(qbs-qs)-v_qprime )
-      epv  = rho3*ch*( vsh*(qv-qs) -v_qprime )
-      epvs = rho3*ch*( vsh*(qvs-qs)-v_qprime )
+      v_qprime=(vs-vs0)*qprime
+      epb  = rho3*ch*( vs*(qb-qs) -v_qprime )
+      epbs = rho3*ch*( vs*(qbs-qs)-v_qprime )
+      epv  = rho3*ch*( vs*(qv-qs) -v_qprime )
+      epvs = rho3*ch*( vs*(qvs-qs)-v_qprime )
 
 #ifdef EVAP_VEG_GROUND
 c     epvg  = rho3*cna*(qvg-qs) ! actually not correct !
-      epvg  = rho3*ch*( vsh*(qvg-qs)-v_qprime )
+      epvg  = rho3*ch*( vs*(qvg-qs)-v_qprime )
 #endif
 
 c     bare soil evaporation
@@ -953,22 +951,22 @@ cccccccccccccccccccccccccccccccccccccccc
       implicit none
       real*8 cna,v_tprime
 
-c     cna=ch*vsm
+c     cna=ch*vs
 c     snsh(1)=sha*rho*cna*(tp(1,1)-ts+tfrz)     ! bare soil
 c     snsh(2)=sha*rho*cna*(tp(0,2)-ts+tfrz)     ! canopy
 c     snshs(1) = sha*rho*cna*(tsn1(1)-ts+tfrz)  ! bare soil snow
 c     snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)  ! canopy snow
 c     dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
 
-      cna=ch*vsh
-      v_tprime=(vsh-vsh0)*tprime
-      snsh(1)=sha*rho*ch*(vsh*(tp(1,1)-ts+tfrz)-v_tprime)
+      cna=ch*vs
+      v_tprime=(vs-vs0)*tprime
+      snsh(1)=sha*rho*ch*(vs*(tp(1,1)-ts+tfrz)-v_tprime)
                                                 ! bare soil
-      snsh(2)=sha*rho*ch*(vsh*(tp(0,2)-ts+tfrz)-v_tprime)
+      snsh(2)=sha*rho*ch*(vs*(tp(0,2)-ts+tfrz)-v_tprime)
                                                 ! canopy
-      snshs(1)=sha*rho*ch*(vsh*(tsn1(1)-ts+tfrz)-v_tprime)
+      snshs(1)=sha*rho*ch*(vs*(tsn1(1)-ts+tfrz)-v_tprime)
                                                 ! bare soil snow
-      snshs(2)=sha*rho*ch*(vsh*(tsn1(2)-ts+tfrz)-v_tprime)
+      snshs(2)=sha*rho*ch*(vs*(tsn1(2)-ts+tfrz)-v_tprime)
                                                  ! canopy snow
       dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
 
@@ -981,7 +979,7 @@ c**** obtains qs by successive approximation.
 c**** calculates evaporation.
 c**** input:
 c**** ch - heat conductivity coefficient from ground to surface
-c**** vsm - surface layer wind speed, m s-1
+c**** vs - surface layer wind speed, m s-1
 c**** rho - air density, kg m-3
 c**** eddy - transfer coefficient from surface to first atmosphere
 c**** theta - water saturation of layers and canopy
@@ -1756,7 +1754,7 @@ ccc accm0 was not called here in older version - check
 !        evapvw = 0.d0
 !        evapvd = 0.d0
 !        evapdl = 0.d0
- !       evapvs = 0.d0
+!        evapvs = 0.d0
 !        devapbs_dt = 0.d0
 !        devapvs_dt =0.d0
 !        dsnsh_dt = 0.d0
@@ -1822,7 +1820,7 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 cddd      print '(a,i6,10(e12.4))', 'ghy_temp ', ijdebug,
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
-        call update_veg_locals(evap_tot(2), rho, rhow, ch, vsm,qs)
+        call update_veg_locals(evap_tot(2), rho, rhow, ch, vs,qs)
 
 #ifdef TRACERS_WATER
 C**** finalise surface tracer concentration here
@@ -1972,12 +1970,12 @@ c**** calculation of penman value of potential evaporation, aepp
 c     h0=-atrg/dt+srht+trht
 ccc   h0=-thrm(2)+srht+trht
       el0=elh*1d-3
-      ! cpfac=sha*rho * ch*vsm
+      ! cpfac=sha*rho * ch*vs
       qsats=qsat(ts,lhe,pres)
       dqdt = dqsatdt(ts,lhe)*qsats
       ! epen=(dqdt*h0+cpfac*(qsats-qs))/(el0*dqdt+sha)
       epen=(dqdt*h0+sha*rho*ch*
-     &      ( vsh*(qsats-qs)-(vsh-vsh0)*qprime ))/(el0*dqdt+sha)
+     &      ( vs*(qsats-qs)-(vs-vs0)*qprime ))/(el0*dqdt+sha)
       aepp=epen*dt
       abetap=1.d0
       if (aepp.gt.0.d0) abetap=(aevapw+aevapd+aevapb)/aepp
@@ -2069,7 +2067,7 @@ c****
 c**** finally, calculate max time step for top layer bare soil
 c**** and canopy interaction with surface layer.
 c**** use timestep based on coefficient of drag
-      cna=ch*vsm
+      cna=ch*vs
       rho3=.001d0*rho
       betas(1:2) = 1.d0 ! it''s an overkill but it makes the things
                         ! simpler.
@@ -2138,7 +2136,7 @@ cc    write(ichn,1021)
       write(ichn,1023)'j= ',mod(ijdebug,1000),
      *     'snowf= ',drips(1),'tg= ',0.d0-tfrz,'qs= ',qs
       write(ichn,1043)'t1= ',0.d0-tfrz,'vg= ',0.d0,'ch= ',ch
-      write(ichn,1044)'vsm= ',vsm
+      write(ichn,1044)'vs= ',vs
       write(ichn,1022)
       write(ichn,1021)
       write(ichn,1014)'bare soil   fb = ',fb

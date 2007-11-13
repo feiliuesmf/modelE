@@ -39,20 +39,14 @@ c******************   TRACERS             ******************************
 #endif
 #endif
 #endif
-      use trdiag_com, only : taijn=>taijn_loc,tij_surf, tij_surfbv
-     *  ,taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc
+      use trdiag_com, only : taijn=>taijn_loc,tij_surf, tij_surfbv,
+     *   taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc,
+     *   itcon_surf
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tij_soil,tij_snow
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
-#endif
-#if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,jls_source,ijts_source
-#endif
-#ifdef TRACERS_AMP
-     &     ,itcon_surf
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -217,7 +211,7 @@ C**** The select is used to distinguish water from gases or particle
 !        case (nWATER)
         if (tr_wd_TYPE(n) .eq. nWATER) then
 C**** no fractionation from ground (yet)
-C**** trsfac and trconstflx are multiplied by cq*wsh and QG in PBL
+C**** trsfac and trconstflx are multiplied by cq*ws and QG in PBL
           pbl_args%trsfac(nx)=1.
           pbl_args%trconstflx(nx)=gtracer(n,itype,i,j)
 !        case (nGAS, nPART)
@@ -319,6 +313,9 @@ c**** prescribed dust emission
 #ifdef TRACERS_DRYDEP
       real*8 tdryd,tdd,td1,rtsdt,rts
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      real*8 trc_flux
+#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       real*8, intent(IN) :: ra_temp,ra_sat,ra_gwet
 #endif
@@ -358,91 +355,38 @@ ccc accumulate tracer evaporation and runoff
         n=ntix(nx)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-C**** technicallly these are ocean emissions, but if fixed datasets
-C**** are used, it can happen over land as well.
+C**** technicallly some of these are ocean emissions, but if 
+C**** fixed datasets are used, it can happen over land as well.
+
         select case (trname(n))
         case ('DMS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%DMS_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &         pbl_args%DMS_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         pbl_args%DMS_flux*dxyp(j)*ptype*dtsurf
-        case ('seasalt1')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     &         +pbl_args%ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-        case ('seasalt2')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-#ifdef TRACERS_AMP
-        case ('M_SSA_SS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
-     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-        case ('M_SSC_SS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
-     &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
+          trc_flux=pbl_args%DMS_flux
+        case ('seasalt1', 'M_SSA_SS')
+          trc_flux=pbl_args%ss1_flux
+        case ('seasalt2', 'M_SSC_SS')
+          trc_flux=pbl_args%ss2_flux
         case ('M_SSS_SS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+(pbl_args%ss1_flux+
-     &         pbl_args%ss2_flux)
-     &    *dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
-     &         (pbl_args%ss1_flux+pbl_args%ss2_flux)
-     &         *dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     *           (pbl_args%ss1_flux+pbl_args%ss2_flux)
-     &         *dxyp(j)*ptype*dtsurf
+          trc_flux=(pbl_args%ss1_flux+pbl_args%ss2_flux)
         case ('M_DD1_DU')
-         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         (pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
-     &                   *dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n))
-     &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
-     &         *dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)
-     &    +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2))
-     &         *dxyp(j)*ptype*dtsurf
+          trc_flux=sum(pbl_args%dust_flux(1:2))
         case ('M_DD2_DU')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     &         +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
-     &                   *dxyp(j)*ptype
-         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n))
-     &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
-     &         *dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)
-     &    +(pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
-     &        *dxyp(j)*ptype*dtsurf
+          trc_flux=sum(pbl_args%dust_flux(3:4))
         case ('M_DDD_DU')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
-     &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
-     &                   *dxyp(j)*ptype
-         taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n))
-     &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
-     &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
-     &         *dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)
-     &         +(pbl_args%dust_flux(1)+pbl_args%dust_flux(2)
-     &         + pbl_args%dust_flux(3)+pbl_args%dust_flux(4))
-     &        *dxyp(j)*ptype*dtsurf
-
-#endif
+          trc_flux=sum(pbl_args%dust_flux(1:4))
         end select
+
+        trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+     &       trc_flux*dxyp(j)*ptype
+        taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &       trc_flux*dxyp(j)*ptype*dtsurf
+
+#ifdef TRACERS_AMP
+        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*dxyp(j)*ptype*dtsurf
+#else
+        tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *       trc_flux*dxyp(j)*ptype*dtsurf   ! why not for all aerosols?
+#endif
+
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -469,22 +413,22 @@ ccc dust emission from earth
 #endif
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      &         +pbl_args%dust_flux(n1)*dxyp(j)*ptype
-          taijs(i,j,ijts_source(nDustEmij,n))
-     &         =taijs(i,j,ijts_source(nDustEmij,n))
+          taijs(i,j,ijts_isrc(nDustEmij,n))
+     &         =taijs(i,j,ijts_isrc(nDustEmij,n))
      &         +pbl_args%dust_flux(n1)
      &         *dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_source(nDustEmjl,n))
-     &         =tajls(j,1,jls_source(nDustEmjl,n))
+          tajls(j,1,jls_isrc(nDustEmjl,n))
+     &         =tajls(j,1,jls_isrc(nDustEmjl,n))
      &         +pbl_args%dust_flux(n1)*dxyp(j)
      &         *ptype*dtsurf
 #ifdef TRACERS_DUST
           IF (imDust == 0) THEN
-            taijs(i,j,ijts_source(nDustEm2ij,n))
-     &           =taijs(i,j,ijts_source(nDustEm2ij,n))
+            taijs(i,j,ijts_isrc(nDustEm2ij,n))
+     &           =taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           +pbl_args%dust_flux2(n1)
      &           *dxyp(j)*ptype*dtsurf
-            tajls(j,1,jls_source(nDustEm2jl,n))
-     &           =tajls(j,1,jls_source(nDustEm2jl,n))
+            tajls(j,1,jls_isrc(nDustEm2jl,n))
+     &           =tajls(j,1,jls_isrc(nDustEm2jl,n))
      &           +pbl_args%dust_flux2(n1)*dxyp(j)*ptype*dtsurf
           END IF
 #endif
@@ -569,8 +513,8 @@ ccc not sure about the code below. hopefully that''s what is meant above
      &       fb*(sum( tr_wsn(nx,1:nsn(1),1) ))+
      &       fv*(sum( tr_wsn(nx,1:nsn(2),2) ))
      *       )
-        if (tr_wd_TYPE(n).eq.nWATER) tajls(j,1,jls_source(1,n))=
-     *       tajls(j,1,jls_source(1,n))+trevapor(n,itype,i,j)*ptype
+        if (tr_wd_TYPE(n).eq.nWATER) tajls(j,1,jls_isrc(1,n))=
+     *       tajls(j,1,jls_isrc(1,n))+trevapor(n,itype,i,j)*ptype
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -740,8 +684,8 @@ c****
      &    aruns,arunu,aeruns,aerunu,
      &    tbcs,af0dt,af1dt,
      &    qm1,qs,
-     &    pres,rho,ts,vsm,ch,srht,trht
-     &   ,vsh,vsh0,tprime,qprime
+     &    pres,rho,ts,ch,srht,trht
+     &   ,vs,vs0,tprime,qprime
 
       use veg_drv, only: veg_save_cell,veg_set_cell
 
@@ -753,16 +697,9 @@ c****
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
 
       use vegetation, only :
-     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
+     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm !ia
 
-  !    USE SOCPBL, only :
-  !   &     dtsurf               ! zgs,     ! global
-  !   &     ,zs1,tgv,tkv,qg_sat,qg_aver,hemi,pole,     ! rest local
-  !   &     us,vs,ws,wsm,wsh,tsv,qsrf
-  !    use pblcom, only : ipbl,cmgs,chgs,cqgs,qsavg
       use pbl_drv, only : pbl, t_pbl_args
-  !   &     , evap_max,fr_sat,uocean,vocean,psurf,trhr0
-
 
       use snow_drvm, only : snow_cover_same_as_rad
 
@@ -1047,26 +984,25 @@ c**** calculate qs
       ts=pbl_args%tsv/(1.+qs*deltx)
 c**** calculate rhosrf*cdm*ws
       rhosrf=100.*ps/(rgas*pbl_args%tsv)
-      rcdmws=cdm*pbl_args%wsm*rhosrf
-      rcdhws=cdh*pbl_args%wsh*rhosrf
+      rcdmws=cdm*pbl_args%ws*rhosrf
+      rcdhws=cdh*pbl_args%ws*rhosrf
       trheat=trhr(0,i,j)
 c***********************************************************************
 c****
 c  define extra variables to be passed in surfc:
-      pres  =ps
+      pres   = ps
       veg_pres = ps
-      rho   =rhosrf
-      vsm   =pbl_args%ws
-      vsh   =pbl_args%wsh
-      vsh0  =pbl_args%wsh0
-      tprime  =pbl_args%tprime
-      qprime  =pbl_args%qprime
-      veg_vsm = pbl_args%ws
-      ch    =cdh
+      rho    = rhosrf
+      vs     = pbl_args%ws
+      vs0    = pbl_args%ws0
+      tprime = pbl_args%tprime
+      qprime = pbl_args%qprime
+      veg_ws = pbl_args%ws
+      ch     = cdh
       veg_ch = cdh
-      srht  =srheat
+      srht   = srheat
       veg_srht = srheat
-      trht  =trheat
+      trht   = trheat
 c***********************************************************************
 c****
 c**** calculate ground fluxes
@@ -1321,14 +1257,7 @@ c***********************************************************************
       use ghy_com, only : gdeep, fearth
       USE CLOUDS_COM, only : DDMS
 
- !     USE SOCPBL, only : dtsurf         ! zgs,     ! global
- !    &     ,us,vs,ws,wsm,psi,dbl    ! ,edvisc=>kms
- !    &     ,khs,ug,vg,wg
- !     use pbl_drv, only : uocean,vocean
       use pbl_drv, only : t_pbl_args
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-!     &     ,dep_vel,gs_vel
-#endif
 
 #ifdef TRACERS_DUST
       USE tracer_com,ONLY : Ntm_dust,n_clay
@@ -1368,7 +1297,7 @@ c***********************************************************************
       REAL*8 :: tmp(:)
 
 ccc the following values are returned by PBL
-      real*8 us,vs,ws,wsm,psi,dbl,khs,ug,vg,wg,gusti
+      real*8 us,vs,ws,psi,dbl,khs,ug,vg,wg,gusti
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,wsgcm,wspdf
@@ -1376,7 +1305,6 @@ ccc the following values are returned by PBL
       us = pbl_args%us
       vs = pbl_args%vs
       ws = pbl_args%ws
-      wsm = pbl_args%wsm
       psi = pbl_args%psi
       dbl = pbl_args%dbl
       khs = pbl_args%khs
@@ -1506,7 +1434,7 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_ts)=aij(i,j,ij_ts)+(ts-tf)*ptype
         aij(i,j,ij_us)=aij(i,j,ij_us)+us*ptype
         aij(i,j,ij_vs)=aij(i,j,ij_vs)+vs*ptype
-        aij(i,j,ij_taus)=aij(i,j,ij_taus)+rcdmws*wsm*ptype
+        aij(i,j,ij_taus)=aij(i,j,ij_taus)+rcdmws*ws*ptype
         aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*(us)*ptype !-uocean
         aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*(vs)*ptype !-vocean
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
@@ -1597,7 +1525,7 @@ c**** quantities accumulated hourly for diagDD
               tmp(idd_ustar)=+pbl_args%ustar*ptype
               tmp(idd_us3)=+ptype*pbl_args%ustar*pbl_args%ustar
      &             *pbl_args%ustar
-              tmp(idd_stress)=+rcdmws*wsm*ptype
+              tmp(idd_stress)=+rcdmws*ws*ptype
               tmp(idd_lmon)=+pbl_args%lmonin*ptype
               tmp(idd_rifl)=
      &             +ptype*grav*(ts-(tg1+tf))*pbl_args%zgs

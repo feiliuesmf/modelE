@@ -82,7 +82,7 @@ c**** Don''t use global variables for that purpose !
         ! inout:
         real*8 gusti,tdns,qdns,tprime,qprime
         ! output:
-        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq,dskin,wsh0
+        real*8 us,vs,ws,tsv,qsrf,cm,ch,cq,dskin,ws0
         ! the following args needed for diagnostics
         real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
 #ifdef TRACERS_ON
@@ -93,9 +93,14 @@ c**** Tracer input/output
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
 !@var ntix index array to map local tracer number to global
+!@var trprime anomalous tracer concentration in downdraft 
         real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+        real*8, dimension(ntm) :: trdn1,trprime
         integer ntx
         integer, dimension(ntm) :: ntix
+#ifdef TRACERS_SPECIAL_O18
+        real*8, dimension(ntm) :: frack
+#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -257,7 +262,7 @@ c   output:
 !@var  kms  surface value of km
 !@var  khs  surface value of kh
 !@var  kqs  surface value of kq
-!@var  wsh  magnitude of surface wind modified by buoyancy flux (m/s)
+!@var  ws  magnitude of surface wind modified by buoyancy flux (m/s)
 !@var  ustar  friction speed
 !@var  cm  dimensionless momentum flux at surface (drag coeff.)
 !@var  ch  dimensionless heat flux at surface (stanton number)
@@ -271,8 +276,7 @@ c   output:
 !@var VS     = y component of surface wind, positive northward (m/s)
 !@var WSGCM  = magnitude of the GCM surface wind - ocean currents (m/s)
 !@var WSPDF  = mean surface wind calculated from PDF of wind speed (m/s)
-!@var WSH    = magnitude of GCM surf wind - ocean curr + buoyancy flux(m/s)
-!@var WSM    = (=WSH) magn of GCM surf wind - ocean curr + buoyancy flux(m/s)
+!@var WS     = magn of GCM surf wind - ocean curr + buoyancy + gust (m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
 !@var QS     = surface value of the specific moisture
 !@var DBL    = boundary layer height (m)
@@ -298,21 +302,21 @@ c   output:
 !@var  q  local specific humidity (a passive scalar)
 !@var  e  local turbulent kinetic energy
 #if defined(TRACERS_ON)
-!@var  pbl_args%trtop  tracer conc. at the top of the layer
-!@var  pbl_args%trs  surface tracer conc.
-!@var  pbl_args%trsfac  factor for pbl_args%trs in surface boundary condition
-!@var  pbl_args%trconstflx  constant component of surface tracer flux
-!@var  pbl_args%ntx  number of tracers to loop over
-!@var  pbl_args%ntix index of tracers used in pbl
+!@var  trtop  tracer conc. at the top of the layer
+!@var  trs  surface tracer conc.
+!@var  trsfac  factor for pbl_args%trs in surface boundary condition
+!@var  trconstflx  constant component of surface tracer flux
+!@var  ntx  number of tracers to loop over
+!@var  ntix index of tracers used in pbl
 #endif
 #if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_Natassa)
-!@var  pbl_args%alati SSS at i,j
-!@var  pbl_args%Kw_gas  gas exchange transfer velocity at i,j only over ocean
-!@var  pbl_args%alpha_gas  solubility of gas
-!@var  pbl_args%beta_gas  conversion term  that includes solubility
+!@var  alati SSS at i,j
+!@var  Kw_gas  gas exchange transfer velocity at i,j only over ocean
+!@var  alpha_gas  solubility of gas
+!@var  beta_gas  conversion term  that includes solubility
 #endif
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
-!@var  pbl_args%tr_evap_max max amount of possible tracer evaporation
+!@var  tr_evap_max max amount of possible tracer evaporation
 #endif
 c  internals:
 !@var  n     number of the local, vertical grid points
@@ -362,23 +366,22 @@ c**** local vars for input from pbl_args
       real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
       real*8 :: tdns,qdns,tprime,qprime
       logical :: ocean,ddml_eq_1
-c**** local vars for input/output from/to pbl_args
       real*8 :: gusti
 c**** local vars for output to pbl_args
-      real*8 :: us,vs,wsm,wsh,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm
-      real*8 :: wsh0
+      real*8 :: us,vs,ws,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm
+      real*8 :: ws0
 c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
-      real*8 :: wsh02
+      real*8 :: ws02
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
       real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1
       real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
-      integer :: i,j,iter,ierr  !@var i,j,iter loop variable
+      integer :: i,iter,ierr  !@var i,iter loop variable
 C****
       REAL*8,DIMENSION(n) :: z
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
@@ -482,6 +485,9 @@ c**** get input from pbl_args structure
         qdns=0.d0
         tprime=0.d0
         qprime=0.d0
+#ifdef TRACERS_ON
+        pbl_args%trprime(:)=0
+#endif
       endif
 
       do iter=1,itmax
@@ -493,16 +499,10 @@ C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes
 c estimate net flux and ustar_oc from current tg,qg etc.
             ts=t(1)/(1+q(1)*deltx)
             rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
-c           Qnet= (lhe+tgskin*shv)*cq*wsh*rhosrf*(q(1)-qgrnd) ! Latent
-c    *          +  sha*ch*wsh*rhosrf*(ts-tgskin)              ! Sensible
-c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
-            Qnet= (lhe+tgskin*shv)*cq*rhosrf*(
-     &          pbl_args%wsh*(q(1)-qgrnd)
-     &        +(pbl_args%wsh-pbl_args%wsh0)*qprime ) ! Latent
-     &        + sha*ch*rhosrf*(
-     &          pbl_args%wsh*(ts-tgskin)
-     &        +(pbl_args%wsh-pbl_args%wsh0)*tprime ) ! Sensible 
-     &          +trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin)   ! LW
+            Qnet= (lhe+tgskin*shv)*cq*rhosrf*(ws*(q(1)-qgrnd)
+     &           +(ws-ws0)*qprime)                          ! Latent
+     &           + sha*ch*rhosrf*(ws*(ts-tgskin)+(ws-ws0)*tprime) ! Sensible
+     &           +trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
 
             ustar_oc=ustar*sqrt(rhosrf*byrhows)
             dskin=deltaSST(Qnet,Qsol,ustar_oc)
@@ -551,9 +551,7 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
           gusti=0.
         endif
 
-#ifdef USE_PBL_E1
-        ! do nothing
-#else
+#ifndef USE_PBL_E1
         call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
@@ -563,15 +561,15 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
         ! Inclusion of gustiness in surface fluxes
         ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
 
-        wsh02=(u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h
-        wsh0=sqrt(wsh02)
-        wsh=sqrt(wsh02+gusti*gusti)
+        ws02=(u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h
+        ws0=sqrt(ws02)
+        ws=sqrt(ws02+gusti*gusti)
 
-        call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
-     &       ,evap_max,fr_sat,wsh0,qprime,qdns,ddml_eq_1)
+        call q_eqn(qsave,q,kq,dz,dzh,cq,ws,qgrnd_sat,qtop,dtime,n
+     &       ,evap_max,fr_sat,ws0,qprime,qdns,ddml_eq_1)
 
-        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd,ttop,dtime
-     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,wsh0,tprime,tdns,ddml_eq_1) 
+        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,ws,tgrnd,ttop,dtime
+     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns,ddml_eq_1) 
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
      *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
@@ -579,6 +577,11 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
 
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) call tfix(t,z,ttop,tgrnd
      *       ,lmonin,tstar,ustar,kh(1),ts_guess,n)
+
+        if(ddml_eq_1) then
+          tprime=tdns-t(1)/(1.+deltx*q(1))
+          qprime=qdns-q(1)
+        endif
 
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
@@ -599,19 +602,10 @@ c    *          +  trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
         end if
         ustar0=ustar
 
-        if(ddml_eq_1) then
-          tprime=tdns-t(1)/(1.+deltx*q(1))
-          qprime=qdns-q(1)
-        endif
-
       end do ! end of iter loop
 
-      pbl_args%tprime=tprime
-      pbl_args%qprime=qprime
-
-c**** cannot update wsh without taking care that wsh used for tracers is
+c**** cannot update ws without taking care that ws used for tracers is
 c**** the same as that used for q
-      wsm = wsh
       wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
 
 C**** Preliminary coding for use of sub-gridscale wind distribution
@@ -627,13 +621,13 @@ C**** and GHY_DRV. This may need to be tracer dependent?
       CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
      &     ,wsgcm,wspdf)
 #endif
-csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,wsh,t(1))
+csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,ws,t(1))
 csgsC**** possibly tracer specific coding
 csgs      wt = 3.                 ! threshold velocity
 csgs      wmin = wt               ! minimum wind velocity (usually wt?)
 csgs      wmax = 50.              ! maxmimum wind velocity
 csgs      icase=3                 ! icase=3 ==> w^3 dependency
-csgs      call integrate_sgswind(sig0,wt,wmin,wmax,wsh,icase,wint)
+csgs      call integrate_sgswind(sig0,wt,wmin,wmax,ws,icase,wint)
 
 #ifdef TRACERS_ON
 C**** tracer calculations are passive and therefore do not need to
@@ -670,26 +664,22 @@ C****   2) water mass tracers
 C**** Water tracers need to multiply trsfac/trconstflx by cq*Usurf
 C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
         if (tr_wd_TYPE(pbl_args%ntix(itr)).eq.nWATER) then
-          trcnst=pbl_args%trconstflx(itr)*cqsave*wsh*qgrnd_sat
-          trsf=pbl_args%trsfac(itr)*cqsave*wsh
+          trcnst=cqsave*(pbl_args%trconstflx(itr)*ws*qgrnd_sat-
+     *         (ws-ws0)*pbl_args%trdn1(itr))
+          if (ddml_eq_1) then   ! hmmm... gusti>0 even if ddml_eq_1=F
+            trsf=pbl_args%trsfac(itr)*cqsave*ws0
+          else
+            trsf=pbl_args%trsfac(itr)*cqsave*ws
+          end if
 #ifdef TRACERS_SPECIAL_O18
 C**** get fractionation for isotopes
-          call get_frac(itype,wsm,tg1,q(1),qgrnd_sat
-     &         ,pbl_args%ntix(itr),trc1,trs1)
-#ifdef O18_KINETIC_FRAC
-c          if (itype.eq.1) print*,"fac_cq",itr,ustar,1000*(1.
-c     *         -fac_cq_tr(itr)),1000*(1.-trs1)
-          if (itype.eq.1) then
-            trcnst=fac_cq_tr(itr)*trc1*trcnst/trs1
-            trsf  =fac_cq_tr(itr)*trsf
-          else
-            trcnst=trc1*trcnst
-            trsf  =trs1*trsf
-          end if
-#else
+          call get_frac(itype,ws,tg1,q(1),qgrnd_sat
+     &         ,pbl_args%ntix(itr),fac_cq_tr(itr),trc1,trs1)
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
-#endif
+          pbl_args%frack(itr)=trs1  ! save for output
+          if (itr.eq.1.and.ilong.eq.6.and.jlat.eq.28) print*,"pbl0",trs1
+     *         ,ws,ws0,pbl_args%trconstflx(itr),pbl_args%trsfac(itr)
 #endif
         end if
 #endif
@@ -714,32 +704,22 @@ C****   4) tracers with interactive sources
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         select case (trname(pbl_args%ntix(itr)))
         case ('DMS')
-          call read_DMS_sources(wsm,itype,ilong,jlat,pbl_args%DMS_flux)
+          call read_DMS_sources(ws,itype,ilong,jlat,pbl_args%DMS_flux)
           trcnst=pbl_args%DMS_flux*byrho
-        case ('seasalt1')
-          call read_seasalt_sources(wsm,itype,1,ilong,jlat
+        case ('seasalt1', 'M_SSA_SS')
+          call read_seasalt_sources(ws,itype,1,ilong,jlat
      &         ,pbl_args%ss1_flux)
           trcnst=pbl_args%ss1_flux*byrho
-        case ('seasalt2')
-          call read_seasalt_sources(wsm,itype,2,ilong,jlat
-     &         ,pbl_args%ss2_flux)
-          trcnst=pbl_args%ss2_flux *byrho
-#ifdef TRACERS_AMP
-        case ('M_SSA_SS')
-          call read_seasalt_sources(wsm,itype,1,ilong,jlat
-     &         ,pbl_args%ss1_flux)
-          trcnst=pbl_args%ss1_flux*byrho
-        case ('M_SSC_SS')
-          call read_seasalt_sources(wsm,itype,2,ilong,jlat
+        case ('seasalt2', 'M_SSC_SS')
+          call read_seasalt_sources(ws,itype,2,ilong,jlat
      &         ,pbl_args%ss2_flux)
           trcnst=pbl_args%ss2_flux *byrho
         case ('M_SSS_SS')
-          call read_seasalt_sources(wsm,itype,1,ilong,jlat
+          call read_seasalt_sources(ws,itype,1,ilong,jlat
      &         ,pbl_args%ss1_flux)
-          call read_seasalt_sources(wsm,itype,2,ilong,jlat
+          call read_seasalt_sources(ws,itype,2,ilong,jlat
      &         ,pbl_args%ss2_flux)
           trcnst=(pbl_args%ss2_flux + pbl_args%ss1_flux)*byrho
-#endif
         end select
 #endif
 
@@ -818,9 +798,9 @@ ccc dust emission from earth
       !---------------------------------------------------------------
       !TRANSFER VELOCITY
       !---------------------------------------------------------------
-      !Schidt number for gas
+      !Schmidt number for gas
        Sc_gas=sc_co2(tg1)
-      !wind speed wsh: magn. of surf. wind modified by buoyancy flux (m/s)
+      !wind speed ws: magn. of surf. wind modified by buoyancy flux (m/s)
       !compute transfer velocity Kw only over ocean
       if (Sc_gas .le. 0.) then
         write(*,'(a,2i4,a,2f9.3)')
@@ -828,7 +808,7 @@ ccc dust emission from earth
      .          ', Sc_gas,temp_c=',Sc_gas,tg1
          pbl_args%Kw_gas=1.e-10
       else
-         pbl_args%Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * wsh * wsh * awan !units of m/s
+         pbl_args%Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * ws * ws * awan !units of m/s
       endif
 
       !---------------------------------------------------------------
@@ -844,7 +824,7 @@ ccc dust emission from earth
       !psurf is in mb. multiply with 10.197e-4 to get atm
       !include molecular weights for air and CO2
        pbl_args%beta_gas=pbl_args%alpha_gas*(psurf*10.197e-4)*mair*1.e-3
-     .                   /(tr_mm(itr)*1.e-3)
+     &                   /(tr_mm(itr)*1.e-3)
        !!atmCO2=368.6D0  !defined in obio_forc
 !!!    pbl_args%beta_gas = pbl_args%beta_gas * tr_mm(itr)*1.e-3/rhows * atmCO2
 
@@ -861,7 +841,7 @@ cwatson ff is actually alpha_gas
        trcnst = pbl_args%Kw_gas * pbl_args%trconstflx(itr)*byrho   ! convert to (conc * m/s)
 
 cdiag write(*,'(a,2i3,14e12.4)')'PBL, Kw ',
-cdiag.    ilong,jlat,tg1,Sc_gas,wsh,pbl_args%Kw_gas,mair
+cdiag.    ilong,jlat,tg1,Sc_gas,ws,pbl_args%Kw_gas,mair
 cdiag.   ,psurf*10.197e-4,pbl_args%alati,pbl_args%alpha_gas
 cdiag.   ,pbl_args%beta_gas,atmCO2
 cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
@@ -899,11 +879,11 @@ cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
       !---------------------------------------------------------------
       !TRANSFER VELOCITY
       !---------------------------------------------------------------
-      !compute Schmidt number for gas
+      ! compute Schmidt number for gas
       ! use ground temperature in deg C including skin effects
       Sc_gas=sc_cfc(tg1,11)
 
-      !wind speed wsh: magn. of surf. wind modified by buoyancy flux (m/s)
+      !wind speed ws: magn. of surf. wind modified by buoyancy flux (m/s)
       !compute transfer velocity Kw
       !only over ocean
 
@@ -914,7 +894,7 @@ cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
          pbl_args%Kw_gas=1.e-10
       else
          pbl_args%Kw_gas=
-     &       1.d0/3.6e+5*0.337d0*wsh*wsh*(Sc_gas/660.d0)**(-0.5d0)
+     &       1.d0/3.6e+5*0.337d0*ws*ws*(Sc_gas/660.d0)**(-0.5d0)
       endif
 
       !---------------------------------------------------------------
@@ -930,7 +910,7 @@ cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
       !psurf is in mb. multiply with 10.197e-4 to get atm
       !include molecular weights for air and CFC-11
        pbl_args%beta_gas=pbl_args%alpha_gas*(psurf*10.197e-4)*mair*1.e-3
-     .                   /(tr_mm(itr)*1.e-3)
+     &                   /(tr_mm(itr)*1.e-3)
 !!!    pbl_args%beta_gas = pbl_args%beta_gas * tr_mm(itr)*1.e-3/rhows
 
       !trsf is really sfac = pbl_args%Kw_gas * pbl_args%beta_gas
@@ -938,11 +918,6 @@ cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
        trsf = pbl_args%Kw_gas * pbl_args%beta_gas
 
        trcnst = pbl_args%Kw_gas * pbl_args%trconstflx(itr)*byrho ! convert to (conc * m/s)
-
-cdiag write(*,'(a,2i3,13e12.4)')'PBL, Kw ',
-cdiag.    ilong,jlat,tg1,Sc_gas,wsh,pbl_args%Kw_gas,mair
-cdiag.   ,psurf*10.197e-4,sss_loc,pbl_args%alpha_gas,pbl_args%beta_gas
-cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
 
       ENDIF
 
@@ -956,7 +931,8 @@ C**** solve tracer transport equation
      *       pbl_args%tr_evap_max(itr),fr_sat,
 #endif
      *       dtime,n)
-
+      if (itr.eq.1.and.ilong.eq.6.and.jlat.eq.28) print*,"pbl1",tr(:,1)
+     *,q(:)
 
 #ifdef TRACERS_DRYDEP
 C**** put in a check to prevent unphysical solutions. If too much
@@ -972,7 +948,6 @@ C**** with maximum allowed flux.
           end if
         end if
 #endif
-        pbl_args%trs(itr) = tr(1,itr)
       end do
 #endif
 
@@ -1013,10 +988,8 @@ c Diagnostics printed at a selected point:
 c**** copy output to pbl_args
       pbl_args%us = us
       pbl_args%vs = vs
-      pbl_args%ws = wsm  !!! what the difference between wsm and ws ?
-      pbl_args%wsm = wsm
-      pbl_args%wsh = wsh
-      pbl_args%wsh0 = wsh0
+      pbl_args%ws = ws    ! wind speed including buoyancy + gusti
+      pbl_args%ws0 = ws0  ! wind speed including buoyancy
       pbl_args%tsv = tsv
       pbl_args%qsrf = qsrf
       pbl_args%cm = cm
@@ -1029,6 +1002,13 @@ c**** copy output to pbl_args
       pbl_args%ustar = ustar
       pbl_args%zgs = zgs
       pbl_args%gusti = gusti
+      pbl_args%tprime=tprime
+      pbl_args%qprime=qprime
+
+C**** tracer code output
+#ifdef TRACERS_ON
+      pbl_args%trs(:) = tr(1,:)
+      if (ddml_eq_1) pbl_args%trprime(:) = pbl_args%trdn1(:)-tr(1,:)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       pbl_args%wsgcm=wsgcm
@@ -1039,6 +1019,7 @@ c**** copy output to pbl_args
       pbl_args%gm(:) = gm(:)
       pbl_args%gh(:) = gh(:)
       pbl_args%lmonin = lmonin
+#endif
 #endif
 
       return
@@ -1177,7 +1158,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       real*8, intent(in) :: dbl,lmonin,ustar
 
       integer :: i   !@var i  array dimension
-      real*8 kz,l0,ls,lb,an2,an,dudz,dvdz,as2,qty,qturb,zeta
+      real*8 kz,l0,ls,lb,an2,an,qty,qturb,zeta
 
 #ifdef USE_PBL_E1
       l0=.16d0*dbl ! Moeng and Sullivan 1994
@@ -1594,7 +1575,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 !$OMP  THREADPRIVATE(/GRIDS_99/)
       external fgrid2
       real*8 rtsafe
-      integer i,j,iter  !@var i,j,iter loop variable
+      integer i,iter  !@var i,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh
 
       z1pass=z1
@@ -1828,8 +1809,8 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, parameter :: se=0.1d0,kmax=100.d0
      &  ,kmmin=1.5d-5,khmin=2.5d-5,kqmin=2.5d-5,kemin=1.5d-5
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
-     &  ,sq,sq_by_sh,taue
-      integer :: i,j  !@var i,j loop variable
+     &  ,sq,taue
+      integer :: i !@var i loop variable
 
       do i=1,n-1
         an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
@@ -2202,7 +2183,7 @@ c****             - ( 1 - fr_sat ) * flux_max
 
       subroutine tr_eqn(tr0,tr,kq,dz,dzh,sfac,constflx,trtop,
 #ifdef TRACERS_WATER
-     *     tr_evap_max,fr_sat,
+     *     tr_evap_max,fr_sat, 
 #endif
      *     dtime,n)
 !@sum tr_eqn integrates differential eqn for tracers (tridiag. method)
@@ -2211,6 +2192,10 @@ c****             - ( 1 - fr_sat ) * flux_max
 !@+   kq * dtr/dz = sfac * trs - constflx
 !@+   i.e. for moisture, sfac=cq*usurf, constflx=cq*usurf*qg
 !@+        to get:  kq * dq/dz = cq * usurf * (qs - qg)
+!@+   for new moisture (including downdraft effects)
+!@+        sfac=cq*(usurf-dusurf), constflx=cq*(usurf*qg + dusurf*qdns)
+!@+    or  sfac=cq*usurf0, constflx=cq*(usurf*(qg+qdns)-usurf0*qdns)
+!@+        to get:  kq * dq/dz = cq*(usurf*(qs-qg) + dusurf*(qdns-qs))
 !@+   This should be flexible enough to deal with most situations.
 !@+   at the top, the tracer conc. is prescribed.
 !@auth Ye Cheng/G. Hartke

@@ -260,7 +260,6 @@ C**** Initialize to zero
      &                            AIEARTH_GLOB,evap_max_ij_glob,
      &                            fr_sat_ij_glob, qg_ij_glob
       REAL*8 :: SNOAGE_glob(3,IM,JM)
-      INTEGER :: J_0, J_1
 
       MODULE_HEADER(lhead+1:80) =
      *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
@@ -334,9 +333,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS03"
       INTEGER :: J_0H, J_1H
-      integer m
 
 #ifdef TRACERS_WATER
+      integer m
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS03"
       REAL*8 :: TRSNOWBV0_GLOB(NTM,2,IM,JM)

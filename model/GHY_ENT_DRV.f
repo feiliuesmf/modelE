@@ -50,13 +50,9 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd,dtr_dd
 #endif
-#if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-     &     ,jls_source
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,ijts_source,nDustEmij,nDustEmjl
+     &     ,nDustEmij,nDustEmjl
      &     ,ijts_spec,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,jls_spec,nDustEv1jl,nDustEv2jl,nDustWthjl
 #endif
@@ -379,19 +375,19 @@ ccc dust emission from earth
 #endif
 #endif
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
-          taijs(i,j,ijts_source(nDustEmij,n))
-     &         =taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)
+          taijs(i,j,ijts_isrc(nDustEmij,n))
+     &         =taijs(i,j,ijts_isrc(nDustEmij,n))+dust_flux(n1)
      &         *dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_source(nDustEmjl,n))
-     &         =tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)
+          tajls(j,1,jls_isrc(nDustEmjl,n))
+     &         =tajls(j,1,jls_isrc(nDustEmjl,n))+dust_flux(n1)*dxyp(j)
      &         *ptype*dtsurf
 #ifdef TRACERS_DUST
           IF (imDust == 0) THEN
-            taijs(i,j,ijts_source(nDustEm2ij,n))
-     &           =taijs(i,j,ijts_source(nDustEm2ij,n))+dust_flux2(n1)
+            taijs(i,j,ijts_isrc(nDustEm2ij,n))
+     &           =taijs(i,j,ijts_isrc(nDustEm2ij,n))+dust_flux2(n1)
      &           *dxyp(j)*ptype*dtsurf
-            tajls(j,1,jls_source(nDustEm2jl,n))
-     &           =tajls(j,1,jls_source(nDustEm2jl,n))
+            tajls(j,1,jls_isrc(nDustEm2jl,n))
+     &           =tajls(j,1,jls_isrc(nDustEm2jl,n))
      &           +dust_flux2(n1)*dxyp(j)*ptype*dtsurf
           END IF
 #endif
@@ -468,7 +464,7 @@ ccc not sure about the code below. hopefully that''s what is meant above
      &       fb*(sum( tr_wsn(nx,1:nsn(1),1)))+
      &       fv*(sum( tr_wsn(nx,1:nsn(2),2) ))
      *       )
-        tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
+        tajls(j,1,jls_isrc(1,n))=tajls(j,1,jls_isrc(1,n))
      *       +trevapor(n,itype,i,j)*ptype
       enddo
 #endif

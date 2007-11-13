@@ -219,12 +219,13 @@ C****
       return
       end function delta
 
-      subroutine get_frac(itype,ws,tg1,q1,qg,itr,trc1,trs1)
+      subroutine get_frac(itype,ws,tg1,q1,qg,itr,fac_cq_tr,trc1,trs1)
 !@sum get_frac calculated fractionation factors during evaporation
 !@auth Gavin Schmidt
       use constant, only : tf
       implicit none
-      real*8, intent(in) :: ws,tg1,q1,qg
+!@var fac_cq_tr kinetic frac. explicit Schmidt no. dependence
+      real*8, intent(in) :: ws,tg1,q1,qg,fac_cq_tr
       integer, intent(in) :: itype
       integer, intent(in) :: itr ! actual tracer number
 !@var trc1 factor multiplying trcnst in PBL
@@ -236,7 +237,11 @@ C**** Isotope tracers have different fractionations dependent on
 C**** type and direction of flux
       select case (itype)
       case (1)                  ! ocean: kinetic fractionation
+#ifdef O18_KINETIC_FRAC
+        fk = fac_cq_tr
+#else
         fk = fraclk(ws,itr)
+#endif
         trc1 = fk * fracvl(tg1,itr)
         trs1 = fk
       case (2:4)              ! other types

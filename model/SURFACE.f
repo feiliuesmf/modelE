@@ -11,7 +11,7 @@ C****
 !@auth Nobody will claim responsibilty
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
-     *     ,deltx,teeny,rhows,grav     ! ,byrt3
+     *     ,deltx,teeny,rhows,grav
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,ndasf,fland,flice,focean,IVSP,IVNP
      *     ,nday,modrd,itime,jhour,itocean
@@ -81,8 +81,7 @@ C****
 #endif
       USE LANDICE, only : z1e,z2li,hc1li,hc2li
       USE LANDICE_COM, only : snowli
-      USE SEAICE, only : xsi,ace1i,alami,byrli,byrls, ! z1i,
-     *     solar_ice_frac
+      USE SEAICE, only : xsi,ace1i,alami,byrli,byrls,solar_ice_frac
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
@@ -111,10 +110,9 @@ C****
      *     ,trdrydep
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
-     *      taijs=>taijs_loc,ijts_isrc,ijts_source,
-     *      jls_source, jls_isrc, tij_surf, tij_surfbv, tij_gasx,
-     *      tij_kw, tij_alpha, tij_evap, tij_grnd, tij_drydep,
-     *      tij_gsdep
+     *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf, 
+     *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap, 
+     *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd, dtr_dd
 #endif
@@ -123,7 +121,7 @@ C****
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE tracers_dust,ONLY : hbaij,ricntd
+      USE TRACERS_DUST, only : hbaij,ricntd
 #endif
 #endif
       USE SOIL_DRV, only: earth
@@ -131,46 +129,42 @@ C****
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
 
-
       IMPLICIT NONE
-      integer rc
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
-     *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
-     *     ,CM,CH,CQ,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
-     *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG !,HSDEN,HSCON !,dEVdQS
-     *     ,dT2,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER !,HSMUL,dHS,dQS,dTS
+     *     ,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
+     *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
+     *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG 
+     *     ,dT2,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER
      *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
-     *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT
-     *     ,T2DEN,T2CON,T2MUL,FQEVAP ! ,QSDEN,QSCON,QSMUL,TGDEN
-     *     ,Z1BY6L,EVAPLIM,F2,FSRI(2),HTLIM,dlwdt
+     *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS
+     *     ,SHEAT,TRHEAT,T2DEN,T2CON,T2MUL,FQEVAP,Z1BY6L,EVAPLIM,F2
+     *     ,FSRI(2),HTLIM,dlwdt
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *                                                       TGRND,TGRN2
+     *     TGRND,TGRN2
       REAL*8, PARAMETER :: qmin=1.d-12
-      REAL*8, PARAMETER :: ! S1BYG1 = BYRT3, Z1IBYL=Z1I/ALAMI,
-     &     Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
+      REAL*8, PARAMETER :: Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws
+      real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0
       logical pole
 c
 #ifdef TRACERS_ON
-      real*8 rhosrf0, totflux(ntm)
+      real*8 totflux(ntm)
       integer n,nx,nsrc
       real*8, dimension(ntm) :: trs,trsfac,trconstflx
       integer ntix(ntm), ntx
-#ifdef TRACERS_GASEXCH_Natassa
       real*8, dimension(ntm) :: trgrnd
-#endif
+      real*8 trc_flux
 #ifdef TRACERS_WATER
-      real*8, dimension(ntm) :: tevaplim,trgrnd
-      real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1,frac
+      real*8, dimension(ntm) :: tevaplim
+      real*8  TEV,tevap,dTQS,TDP,TDT1,frac
 #ifdef TRACERS_SPECIAL_O18
-     *     ,FRACVL,FRACVS,FRACLK
+     *     ,FRACVL,FRACVS
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
@@ -180,7 +174,7 @@ c
       INTEGER :: n1
 #endif
 #endif
-
+C**** some shorthand indices and arrays for diurn diags
       INTEGER, PARAMETER :: n_idx1 = 11
       INTEGER, PARAMETER :: n_idx2 = 22
       INTEGER, PARAMETER :: n_idx3 = 2
@@ -218,6 +212,7 @@ c
     (defined TRACERS_QUARZHEM)
       REAL*8,DIMENSION(n_idxd, NDIUPT) :: DIURNSUMd
 #endif
+C****
       INTEGER :: J_0, J_1, J_0H, J_1H
 
 C****
@@ -225,6 +220,48 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,        J_STOP=J_1)
+
+C**** Initialise constant indices
+      idx1 = (/ IDD_SPR,
+     &     IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1,
+     &     IDD_Q5,  IDD_Q4,  IDD_Q3,  IDD_Q2,  IDD_Q1 /)
+      idx2 = (/ IDD_TS,  IDD_TG1, IDD_QS,  IDD_QG,  IDD_SWG,
+     &          IDD_LWG, IDD_SH,  IDD_LH,  IDD_HZ0, IDD_UG,
+     &          IDD_VG,  IDD_WG,  IDD_US,  IDD_VS,  IDD_WS,
+     &          IDD_CIA, IDD_CM,  IDD_CH,  IDD_CQ,  IDD_EDS,
+     &          IDD_DBL, IDD_EV /)
+      idx3 = (/ IDD_DCF, IDD_LDC /)
+      idx4(:n_idx1)   = idx1
+      idx4(n_idx1+1:) = idx2
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      IF (adiurn_dust == 1) THEN
+        idxd=(/idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf
+#ifdef TRACERS_DUST
+     *     ,idd_ws2,    idd_ustar,  idd_us3,    idd_stress, idd_lmon
+     *     ,idd_rifl,   idd_zpbl1,  idd_zpbl2,  idd_zpbl3,  idd_zpbl4
+     *     ,idd_zpbl5,  idd_zpbl6,  idd_zpbl7,  idd_zpbl8,  idd_uabl1
+     *     ,idd_uabl2,  idd_uabl3,  idd_uabl4,  idd_uabl5,  idd_uabl6
+     *     ,idd_uabl7,  idd_uabl8,  idd_vabl1,  idd_vabl2,  idd_vabl3
+     *     ,idd_vabl4,  idd_vabl5,  idd_vabl6,  idd_vabl7,  idd_vabl8
+     *     ,idd_uvabl1, idd_uvabl2, idd_uvabl3, idd_uvabl4, idd_uvabl5
+     *     ,idd_uvabl6, idd_uvabl7, idd_uvabl8, idd_tabl1,  idd_tabl2
+     *     ,idd_tabl3,  idd_tabl4,  idd_tabl5,  idd_tabl6,  idd_tabl7
+     *     ,idd_tabl8,  idd_qabl1,  idd_qabl2,  idd_qabl3,  idd_qabl4
+     *     ,idd_qabl5,  idd_qabl6,  idd_qabl7,  idd_qabl8,  idd_zhat1
+     *     ,idd_zhat2,  idd_zhat3,  idd_zhat4,  idd_zhat5,  idd_zhat6
+     *     ,idd_zhat7,  idd_e1,     idd_e2,     idd_e3,     idd_e4
+     *     ,idd_e5,     idd_e6,     idd_e7,     idd_km1,    idd_km2
+     *     ,idd_km3,    idd_km4,    idd_km5,    idd_km6,    idd_km7
+     *     ,idd_ri1,    idd_ri2,    idd_ri3,    idd_ri4,    idd_ri5
+     &     ,idd_ri6,    idd_ri7,    idd_grav,   idd_turb
+#endif
+     &       /)
+      END IF
+#endif
+
+C****
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -267,6 +304,9 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 #ifdef TRACERS_ON
          trsrfflx = 0.
+#ifdef TRACERS_GASEXCH_Natassa
+         trgasex(:,:,:,:) = 0.
+#endif
 #endif
 
       call loadbl
@@ -283,86 +323,38 @@ C**** Set up tracers for PBL calculation if required
       ntx = nx
 #endif
 
+      diurn_part=0
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      if (adiurn_dust == 1) diurn_partd=0.D0
+#endif
+
       Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID,u,FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID,v,FROM=SOUTH+NORTH)
 
-      diurn_part=0
-
-      idx1 = (/ IDD_SPR,
-     &     IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1,
-     &     IDD_Q5,  IDD_Q4,  IDD_Q3,  IDD_Q2,  IDD_Q1 /)
-      idx2 = (/ IDD_TS,  IDD_TG1, IDD_QS,  IDD_QG,  IDD_SWG,
-     &          IDD_LWG, IDD_SH,  IDD_LH,  IDD_HZ0, IDD_UG,
-     &          IDD_VG,  IDD_WG,  IDD_US,  IDD_VS,  IDD_WS,
-     &          IDD_CIA, IDD_CM,  IDD_CH,  IDD_CQ,  IDD_EDS,
-     &          IDD_DBL, IDD_EV /)
-      idx3 = (/ IDD_DCF, IDD_LDC /)
-      idx4(:n_idx1)   = idx1
-      idx4(n_idx1+1:) = idx2
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-
-      IF (adiurn_dust == 1) THEN
-
-        diurn_partd=0.D0
-
-        idxd=(/idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf
-#ifdef TRACERS_DUST
-     *     ,idd_ws2,    idd_ustar,  idd_us3,    idd_stress, idd_lmon
-     *     ,idd_rifl,   idd_zpbl1,  idd_zpbl2,  idd_zpbl3,  idd_zpbl4
-     *     ,idd_zpbl5,  idd_zpbl6,  idd_zpbl7,  idd_zpbl8,  idd_uabl1
-     *     ,idd_uabl2,  idd_uabl3,  idd_uabl4,  idd_uabl5,  idd_uabl6
-     *     ,idd_uabl7,  idd_uabl8,  idd_vabl1,  idd_vabl2,  idd_vabl3
-     *     ,idd_vabl4,  idd_vabl5,  idd_vabl6,  idd_vabl7,  idd_vabl8
-     *     ,idd_uvabl1, idd_uvabl2, idd_uvabl3, idd_uvabl4, idd_uvabl5
-     *     ,idd_uvabl6, idd_uvabl7, idd_uvabl8, idd_tabl1,  idd_tabl2
-     *     ,idd_tabl3,  idd_tabl4,  idd_tabl5,  idd_tabl6,  idd_tabl7
-     *     ,idd_tabl8,  idd_qabl1,  idd_qabl2,  idd_qabl3,  idd_qabl4
-     *     ,idd_qabl5,  idd_qabl6,  idd_qabl7,  idd_qabl8,  idd_zhat1
-     *     ,idd_zhat2,  idd_zhat3,  idd_zhat4,  idd_zhat5,  idd_zhat6
-     *     ,idd_zhat7,  idd_e1,     idd_e2,     idd_e3,     idd_e4
-     *     ,idd_e5,     idd_e6,     idd_e7,     idd_km1,    idd_km2
-     *     ,idd_km3,    idd_km4,    idd_km5,    idd_km6,    idd_km7
-     *     ,idd_ri1,    idd_ri2,    idd_ri3,    idd_ri4,    idd_ri5
-     &     ,idd_ri6,    idd_ri7,    idd_grav,   idd_turb
-#endif
-     &       /)
-      END IF
-#endif
-
-#ifdef TRACERS_ON
-#  ifdef TRACERS_GASEXCH_Natassa
-      trgasex(:,:,:,:) = 0.
-#  endif
-#endif
-
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-!$OMP   PARALLEL DO PRIVATE (ACE2, BETA,BETAUP,   CM,CH,CQ,
+!$OMP   PARALLEL DO PRIVATE (ACE2, CM,CH,CQ,
 !$OMP*  CDTERM,CDENOM,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
-!$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,   ! DEVDQS,
-!$OMP*  DT2, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0, ! DHS,DQS,DTS,
-!$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,  ! HSDEN,HSCON,
-!$OMP*  HTLIM,I,ITYPE,IDTYPE,IM1, J,K, !,HSMUL
+!$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,
+!$OMP*  DT2, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
+!$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,
+!$OMP*  HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
 !$OMP*  KR, MA1,MSI1, PS,P1K,PLAND,PWATER,
-!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, ! QSDEN,
-!$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT, ! QSCON,QSMUL,
-!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,  ! TGDEN,
+!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, 
+!$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS, SHEAT,SRHEAT,
+!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS, 
 !$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,dlwdt,
-!$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,QSRF,pbl_args,jr,tmp
+!$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,WS0,QSRF,pbl_args,jr,tmp
 #if defined(TRACERS_ON)
-!$OMP*  ,n,nx,nsrc,rhosrf0,totflux
-!$OMP*  ,trs,trsfac,trconstflx
-#if defined(TRACERS_GASEXCH_Natassa)
-!$OMP*  ,trgrnd
-#endif
+!$OMP*  ,n,nx,nsrc,totflux,trs,trsfac,trconstflx,trgrnd
+!$OMP*  ,trc_flux
 #if defined(TRACERS_WATER)
-!$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1,frac
+!$OMP*  ,tevaplim,tevap,TEV,dTQS,TDP,TDT1,frac
 #endif
 #if defined(TRACERS_DRYDEP)
 !$OMP*  ,tdryd,tdd,td1,rtsdt,rts
@@ -373,7 +365,8 @@ C****
 #endif
 !$OMP*  )
 !$OMP*  SCHEDULE(DYNAMIC,2)
-C
+
+C**** Start loop over grid points
       DO J=J_0,J_1
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
@@ -402,9 +395,7 @@ C****
       THV1=T(I,J,1)*(1.+Q1*deltx)
       JR=JREG(I,J)
       MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
-c     MSUM = (PS*100.)/GRAV !@var MSUM total mass of atmosphere (kg/m^2)
-c     PGK = (PS*100.)**KAPA
-c     PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
+
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
       do nx=1,ntx
@@ -420,17 +411,9 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          IF(MODDD.EQ.0) THEN
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-             tmp(IDD_SPR)=+PS
-             tmp(IDD_PT5)=+PSK*T(I,J,5)
-             tmp(IDD_PT4)=+PSK*T(I,J,4)
-             tmp(IDD_PT3)=+PSK*T(I,J,3)
-             tmp(IDD_PT2)=+PSK*T(I,J,2)
-             tmp(IDD_PT1)=+PSK*T(I,J,1)
-             tmp(IDD_Q5)=+Q(I,J,5)
-             tmp(IDD_Q4)=+Q(I,J,4)
-             tmp(IDD_Q3)=+Q(I,J,3)
-             tmp(IDD_Q2)=+Q(I,J,2)
-             tmp(IDD_Q1)=+Q1
+             tmp(IDD_SPR)=PS
+             tmp(IDD_PT1-4:IDD_PT1)=PSK*T(I,J,5:1)
+             tmp(IDD_Q1-4:IDD_Q1)=Q(I,J,5:1)
              DIURN_part(1:n_idx1,J,kr)=DIURN_part(1:n_idx1,J,kr)+
      &            tmp(idx1(:))
            END IF
@@ -447,11 +430,9 @@ C**** SSH does not work for qflux/fixed SST configurations
 C****
       DO ITYPE=1,3       ! no earth type
   !    ipbl(i,j,itype)=0
-!!!      SELECT CASE (ITYPE)
 C****
 C**** OPEN OCEAN/LAKE
 C****
-!!!      CASE (1)
       if ( ITYPE == 1 ) then
 
       PTYPE=POCEAN
@@ -493,13 +474,11 @@ C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
-      BETA=1.
       ELHX=LHE
       END IF
 C****
 C**** OCEAN/LAKE ICE
 C****
-!!!      CASE (2)
       else if ( ITYPE == 2 ) then
 
       PTYPE=POICE
@@ -547,7 +526,6 @@ C**** fraction of solar radiation leaving layer 1 and 2
         FSRI(1:2) = 0
       END IF
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
-      BETA=1.
       ELHX=LHS
 
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
@@ -557,7 +535,6 @@ C**** fraction of solar radiation leaving layer 1 and 2
 C****
 C**** LAND ICE
 C****
-!!!      CASE (3)
       else if ( ITYPE == 3 ) then
 
       PTYPE=PLICE
@@ -571,19 +548,16 @@ C****
       CDTERM=TG2
       CDENOM=1./(2.*Z1BY6L+Z2LI3L)
       HCG1=HC1LI+SNOW*SHI
-      BETA=1.
       ELHX=LHS
       uocean = 0. ; vocean = 0. ! no land ice velocity
       END IF
-!!!      END SELECT
+
       endif
 C****
       IF (PTYPE.gt.0) THEN
 C****
 C**** BOUNDARY LAYER INTERACTION
 C****
-  !    TKV=THV1*PSK  ! TKV is referenced to the surface pressure
-  !    pbl_args%ZS1=.5d-2*RGAS*TKV*MA1/PMID(1,I,J)
       SHDT=0.
       EVHDT=0.
       TRHDT=0.
@@ -612,33 +586,28 @@ C**** set defaults
           trgrnd(nx)=gtracer(n,itype,i,j)
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-cdiag     print*,'SURFACE 1: trconstflx(nx)=',trconstflx(nx)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
 C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
         pbl_args%tr_evap_max(nx)=1.
-C**** The select is used to distinguish water from gases or particle
-!!!        select case (tr_wd_TYPE(n))
-!!!        case (nWATER)
+C**** This distinguishes water from gases or particle
         if ( tr_wd_TYPE(n) == nWATER ) then
           trgrnd(nx)=gtracer(n,itype,i,j)
-C**** trsfac and trconstflx are multiplied by cq*wsh and QG_SAT in PBL
+C**** trsfac and trconstflx are multiplied by cq*ws and QG_SAT in PBL
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-!!!        case (nGAS, nPART)
+
         else if ( tr_wd_TYPE(n) == nGAS .or.
      &         tr_wd_TYPE(n) == nPART ) then
 #endif
 C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
 C**** Calculate trsfac (set to zero for const flux)
-          rhosrf0=100.*ps/(rgas*pbl_args%tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            trsfac(nx)=1.
-     &      !then multiplied by deposition velocity in PBL
+            trsfac(nx)=1.       !then multiplied by deposition velocity in PBL
 #ifdef TRACERS_WATER
             pbl_args%tr_evap_max(nx)=1.d30
             trgrnd(nx)=0.
@@ -648,14 +617,11 @@ C**** Calculate trsfac (set to zero for const flux)
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
 C**** Now send kg/m^2/s to PBL, and divided by rho there.
           do nsrc=1,ntsurfsrc(n)
-cdiag       write(*,'(a,4i5,e12.4)')
-cdiag.      'SURFACE:trsource ',i,j,nsrc,n,trsource(i,j,nsrc,n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
           trconstflx(nx)=totflux(nx)*bydxyp(j)   ! kg/m^2/s
 
 #ifdef TRACERS_WATER
-!!!        end select
         endif
 #endif
       end do
@@ -690,6 +656,7 @@ C =====================================================================
       pbl_args%pevap=pevap(i,j,itype)
 #endif
 
+C**** Call pbl to calculate near surface profile
       CALL PBL(I,J,ITYPE,PTYPE,pbl_args)
 
 #ifdef TRACERS_ON
@@ -703,6 +670,7 @@ C =====================================================================
       us = pbl_args%us
       vs = pbl_args%vs
       ws = pbl_args%ws
+      ws0 = pbl_args%ws0
       qsrf = pbl_args%qsrf
       CM = pbl_args%cm
       CH = pbl_args%ch
@@ -717,101 +685,67 @@ C**** Adjust ground variables to account for skin effects
 
 C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RHOSRF=100.*PS/(RGAS*pbl_args%TSV)
-      RCDMWS=CM*pbl_args%WSM*RHOSRF
-      RCDHWS=CH*pbl_args%WSH*RHOSRF
-      RCDQWS=CQ*pbl_args%WSH*RHOSRF
+      RCDMWS=CM*WS*RHOSRF
+      RCDHWS=CH*WS*RHOSRF
+      RCDQWS=CQ*WS*RHOSRF
+      RCDHDWS=CH*(WS-WS0)*RHOSRF
+      RCDQDWS=CQ*(WS-WS0)*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
-      ! SHEAT=SHA*RCDHWS*(TS-TG)
       ! Including gustiness in the sensible heat flux:
-      SHEAT=SHA*CH*RHOSRF*( pbl_args%WSH*(TS-TG)
-     &   +(pbl_args%WSH-pbl_args%wsh0)*pbl_args%tprime)
-      BETAUP = BETA
-      IF (QSRF .GT. QG_SAT) BETAUP = 1.
-      ! EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QSRF-QG_SAT)
+      SHEAT=SHA*(RCDHWS*(TS-TG)+RCDHDWS*pbl_args%tprime)
       ! Including gustiness in the latent heat flux:
-      EVHEAT=(LHE+TG1*SHV)*BETAUP*CQ*RHOSRF*(
-     &     pbl_args%WSH*(QSRF-QG_SAT)
-     &   +(pbl_args%WSH-pbl_args%wsh0)*pbl_args%qprime)
+      EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
+     *                      RCDQDWS*pbl_args%qprime)
       TRHEAT=TRHR(0,I,J)-STBO*(TG*TG)*(TG*TG)
-C****
-!!!      SELECT CASE (ITYPE)
 
-!!!      CASE (1) ! FLUXES USING IMPLICIT TIME STEP FOR OCEAN POINTS
+C**** CASE (1) ! FLUXES USING EXPLICIT TIME STEP FOR OCEAN POINTS
       if ( ITYPE == 1) then
-c       DSHDTG=-RCDHWS*SHA
-c       dEVdQS = LHE*RCDQWS
-c       dHS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
-c    A       ((1.+2.*S1BYG1)*DTSURF*PGK*RCDHWS+MA1*PKDN)
-c       dTS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
-c    A       (MA1*PKDN*SHA-(1.+2.*S1BYG1)*DTSURF*PGK*DSHDTG)
-c       dQS = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/
-c    A       ((1.+2.*S1BYG1)*DTSURF*dEVdQS+MA1*LHE)
-c       SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
-c       EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
         SHDT = DTSURF*SHEAT
         EVHDT=DTSURF*EVHEAT              ! latent heat flux
         TRHDT=DTSURF*TRHEAT
-C****
-!!!      CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
+
+C**** CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
       else if ( ITYPE == 2 ) then
 
 ! heat flux on first/second/third layers (W/m^2)
         F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
         F2 = SRHEAT*FSRI(2)
-        ! EVHEAT = LHE*RCDQWS*(QSRF-QG_SAT) ! latent heat flux (W/m^2)
         ! Including gustiness in the latent heat flux:
-        EVHEAT=LHE*CQ*RHOSRF*(
-     &     pbl_args%WSH*(QSRF-QG_SAT)
-     &   +(pbl_args%WSH-pbl_args%wsh0)*pbl_args%qprime)
+        EVHEAT=LHE*(RCDQWS*(QSRF-QG_SAT)+RCDQDWS*pbl_args%qprime) ! why is this different to above?
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         dSNdTG=-RCDHWS*SHA
         dQGdTG=QG_SAT*DQSATDT(TG,ELHX) ! d(QG)/dTG
         dEVdTG = -dQGdTG*LHE*RCDQWS ! d(EVHEAT)/dTG
         dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
         dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
-cc      dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
-c       dEVdQS = LHE*RCDQWS     ! d(EVHEAT)/dQS
-c       HSDEN = -(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG+MA1*PKDN*SHA
-c       HSCON = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/HSDEN ! (J*sec)/kg
-c       HSMUL=-(1.+2.*S1BYG1)*DTSURF*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
-c       QSDEN = (1.+2.*S1BYG1)*BETA*DTSURF*dEVdQS+MA1*LHE
-c       QSCON = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/QSDEN
-c       QSMUL = -(1.+2.*S1BYG1)*DTSURF*BETA*dEVdTG/QSDEN
-        T2DEN = HCG2+BETA*DTSURF*dF1dTG
+
+        T2DEN = HCG2+DTSURF*dF1dTG
         T2CON = DTSURF*(F1-F2)/T2DEN
-        T2MUL = BETA*DTSURF*dF1dTG/T2DEN
-c       TGDEN = HCG1-BETA*DTSURF*(dF0dTG-dF1dTG-
-c    A       HSMUL*dSNdTG+QSMUL*dEVdQS+T2MUL*dF1dTG) ! W/(m^2*degC)
-c       dTG = DTSURF*(F0-F1+BETA*
-c    A       (QSCON*dEVdQS-HSCON*dSNdTG+T2CON*dF1dTG))/TGDEN ! degC
+        T2MUL = DTSURF*dF1dTG/T2DEN
 
         DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
         DTG=(F0-F1)*DTSURF/(HCG1-DTSURF*DFDTG)
 
         IF (TG1+dTG .GT. 0.) dTG = -TG1
-c       dHS = HSCON+HSMUL*dTG   ! (J*sec)/kg
-c       dQS = QSCON+QSMUL*dTG
         dT2 = T2CON+T2MUL*dTG
-c       SHDT = DTSURF*(SHEAT+BETA*((dTG-dHS)*dSNdTG)) ! sensible
-c       EVHDT = DTSURF*(EVHEAT+BETA*(dTG*dEVdTG+dQS*dEVdQS)) ! latent
-        SHDT = DTSURF*(SHEAT+BETA*dTG*dSNdTG) ! sensible
-        EVHDT = DTSURF*(EVHEAT+BETA*dTG*dEVdTG) ! latent
 
-        TRHDT = DTSURF*(TRHEAT+BETA*dTG*dTRdTG) ! thermal flux (J/m^2)
-        F1DT = DTSURF*(F1+BETA*(dTG*dF1dTG-dT2*dF1dTG))
+        SHDT  = DTSURF*(SHEAT +dTG*dSNdTG) ! sensible
+        EVHDT = DTSURF*(EVHEAT+dTG*dEVdTG) ! latent
+        TRHDT = DTSURF*(TRHEAT+dTG*dTRdTG) ! thermal flux (J/m^2)
+        F1DT = DTSURF*(F1+(dTG*dF1dTG-dT2*dF1dTG))
         TG1 = TG1+dTG          ! first layer sea ice temperature (degC)
         TG2 = TG2+dT2          ! second layer sea ice temperature (degC)
         TGRN2(ITYPE,I,J) = TG2
-C****
-!!!      CASE (3) ! IMPLICIT TIME STEP OVER LANDICE
+
+C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
       else if ( ITYPE == 3 ) then
 
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
         F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
         DSHDTG=-RCDHWS*SHA
         DQGDTG=QG_SAT*DQSATDT(TG,ELHX)
-        DEVDTG=-RCDQWS*LHE*BETAUP*DQGDTG
+        DEVDTG=-RCDQWS*LHE*DQGDTG
         DTRDTG=-4.*STBO*TG*TG*TG
         DF0DTG=DSHDTG+DEVDTG+DTRDTG
         DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
@@ -822,7 +756,6 @@ C****
         F1DT=DTSURF*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
         TG1=TG1+DTG
 
-!!!      END SELECT
       endif
 
 C**** CALCULATE EVAPORATION
@@ -853,19 +786,18 @@ C****
 C**** Calculate Water Tracer Evaporation
 C****
           IF (ITYPE.EQ.1) THEN  ! OCEAN
-C**** do calculation implicitly for TQS
 #ifdef TRACERS_SPECIAL_O18
-            TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT*
-     *           fracvl(tg1,n))*FRACLK(pbl_args%WSM,n)
-            dTEVdTQS =-RCDQWS*FRACLK(pbl_args%WSM,n)
+            TEV=-(RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT*fracvl(tg1,n))
+     *           +RCDQDWS*pbl_args%trprime(nx))*pbl_args%frack(nx)
 #else
-            TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT)
-            dTEVdTQS =-RCDQWS
+            TEV=-(RCDQWS*(trs(nx)-trgrnd(nx)*QG_SAT)
+     *           +RCDQDWS*pbl_args%trprime(nx))
 #endif
-c           dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/
-c    *           ((1.+2.*S1BYG1)*DTSURF*dTEVdTQS-MA1)
-c           TEVAP=DTSURF*(TEV+dTQS*dTEVdTQS)
             TEVAP=DTSURF*TEV
+            if (nx.eq.1.and.i.eq.6.and.j.eq.28) print*,"surf0",TEVAP
+     *           ,EVAP,pbl_args%qprime,pbl_args%trprime(nx),qsrf,trs(nx)
+     *           ,pbl_args%ddml_eq_1,trgrnd(nx),fracvl(tg1,n)
+     *           ,pbl_args%frack(nx)
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
@@ -904,6 +836,9 @@ C**** Limit evaporation if lake mass is at minimum
         END IF
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
+C****
+C**** Calculate Tracer Gas Exchange
+C****
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
           TRGASEX(n,ITYPE,I,J) =
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
@@ -914,58 +849,34 @@ C**** Limit evaporation if lake mass is at minimum
      &         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
      &               * dxyp(j)*ptype*dtsurf
 
-cdiag  write(*,'(a,2i5,5e12.4)')'SUFRACE, TRGASEX ',
-cdiag.  i,j,Kw_gas,pbl_args%beta_gas,trs(nx)
-cdiag.   ,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
        END IF
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+C****
+C**** Calculate Aersosol Exchange
+C****
         select case (trname(n))
         case ('DMS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%DMS_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &         pbl_args%DMS_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         pbl_args%DMS_flux*dxyp(j)*ptype*dtsurf
-        case ('seasalt1')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-        case ('seasalt2')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-#ifdef TRACERS_AMP
-        case ('M_SSA_SS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%ss1_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
-     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     &         pbl_args%ss1_flux*dxyp(j)*ptype*dtsurf
-        case ('M_SSC_SS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &         pbl_args%ss2_flux*dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
-     &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     &         pbl_args%ss2_flux*dxyp(j)*ptype*dtsurf
+          trc_flux=pbl_args%DMS_flux
+        case ('seasalt1', 'M_SSA_SS')
+          trc_flux=pbl_args%ss1_flux
+        case ('seasalt2', 'M_SSC_SS')
+          trc_flux=pbl_args%ss2_flux
         case ('M_SSS_SS')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &    (pbl_args%ss1_flux+pbl_args%ss2_flux)*dxyp(j)*ptype
-          taijs(i,j,ijts_source(1,n))=taijs(i,j,ijts_source(1,n)) +
-     &    (pbl_args%ss1_flux+pbl_args%ss2_flux)*dxyp(j)*ptype*dtsurf
-         DTR_AMPe(j,n)=DTR_AMPe(j,n)+
-     &    (pbl_args%ss1_flux+pbl_args%ss2_flux)*dxyp(j)*ptype*dtsurf
+          trc_flux=(pbl_args%ss1_flux+pbl_args%ss2_flux)
+        end select
+
+        trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+     &       trc_flux*dxyp(j)*ptype
+        taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &       trc_flux*dxyp(j)*ptype*dtsurf
+
+#ifdef TRACERS_AMP
+        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*dxyp(j)*ptype*dtsurf
+#else
+        tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *       trc_flux*dxyp(j)*ptype*dtsurf   ! why not for all aerosols?
 #endif
-       end select
 #endif
 
 #ifdef TRACERS_DRYDEP
@@ -1020,6 +931,7 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
 C**** calculate correction for different TG in radiation and surface
       dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*(TG1+TF)**4)
+C**** final fluxes
       DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
       DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
@@ -1068,7 +980,7 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TS-TF)*PTYPE
           AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+US*PTYPE
           AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VS*PTYPE
-          AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*pbl_args%WSM*PTYPE
+          AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*WS*PTYPE
           AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RCDMWS*(US-UOCEAN)*PTYPE
           AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RCDMWS*(VS-VOCEAN)*PTYPE
           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSRF*PTYPE
@@ -1112,30 +1024,30 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         IF(MODDD.EQ.0) THEN
           DO KR=1,NDIUPT
             IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-              tmp(IDD_TS)=+TS*PTYPE
-              tmp(IDD_TG1)=+(TG1+TF)*PTYPE
-              tmp(IDD_QS)=+QSRF*PTYPE
-              tmp(IDD_QG)=+QG_SAT*PTYPE
-              tmp(IDD_SWG)=+SRHEAT*DTSURF
+              tmp(IDD_TS)=TS*PTYPE
+              tmp(IDD_TG1)=(TG1+TF)*PTYPE
+              tmp(IDD_QS)=QSRF*PTYPE
+              tmp(IDD_QG)=QG_SAT*PTYPE
+              tmp(IDD_SWG)=SRHEAT*DTSURF
      *             *PTYPE
-              tmp(IDD_LWG)=+TRHDT*PTYPE
-              tmp(IDD_SH)=+SHDT*PTYPE
-              tmp(IDD_LH)=+EVHDT*PTYPE
+              tmp(IDD_LWG)=TRHDT*PTYPE
+              tmp(IDD_SH)=SHDT*PTYPE
+              tmp(IDD_LH)=EVHDT*PTYPE
               tmp(IDD_HZ0)=
      *             +(SRHEAT*DTSURF+TRHDT+SHDT+EVHDT)*PTYPE
-              tmp(IDD_UG)=+pbl_args%UG*PTYPE
-              tmp(IDD_VG)=+pbl_args%VG*PTYPE
-              tmp(IDD_WG)=+pbl_args%WG*PTYPE
-              tmp(IDD_US)=+US*PTYPE
-              tmp(IDD_VS)=+VS*PTYPE
-              tmp(IDD_WS)=+WS*PTYPE
-              tmp(IDD_CIA)=+pbl_args%PSI*PTYPE
-              tmp(IDD_CM)=+CM*PTYPE
-              tmp(IDD_CH)=+CH*PTYPE
-              tmp(IDD_CQ)=+CQ*PTYPE
-              tmp(IDD_EDS)=+pbl_args%KHS*PTYPE
-              tmp(IDD_DBL)=+pbl_args%DBL*PTYPE
-              tmp(IDD_EV)=+EVAP*PTYPE
+              tmp(IDD_UG)=pbl_args%UG*PTYPE
+              tmp(IDD_VG)=pbl_args%VG*PTYPE
+              tmp(IDD_WG)=pbl_args%WG*PTYPE
+              tmp(IDD_US)=US*PTYPE
+              tmp(IDD_VS)=VS*PTYPE
+              tmp(IDD_WS)=WS*PTYPE
+              tmp(IDD_CIA)=pbl_args%PSI*PTYPE
+              tmp(IDD_CM)=CM*PTYPE
+              tmp(IDD_CH)=CH*PTYPE
+              tmp(IDD_CQ)=CQ*PTYPE
+              tmp(IDD_EDS)=pbl_args%KHS*PTYPE
+              tmp(IDD_DBL)=pbl_args%DBL*PTYPE
+              tmp(IDD_EV)=EVAP*PTYPE
 
               DIURN_part(n_idx1+1:n_idx4,J,kr)=
      &             DIURN_part(n_idx1+1:n_idx4,J,kr)+tmp(idx2(:))
@@ -1143,11 +1055,11 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
               IF (adiurn_dust == 1) THEN
-                tmp(idd_wsgcm)=+pbl_args%wsgcm*ptype
-                tmp(idd_wspdf)=+pbl_args%wspdf*ptype
-                tmp(idd_wtke)=+pbl_args%wsubtke*ptype
-                tmp(idd_wd)=+pbl_args%wsubwd*ptype
-                tmp(idd_wm)=+pbl_args%wsubwm*ptype
+                tmp(idd_wsgcm)=pbl_args%wsgcm*ptype
+                tmp(idd_wspdf)=pbl_args%wspdf*ptype
+                tmp(idd_wtke)=pbl_args%wsubtke*ptype
+                tmp(idd_wd)=pbl_args%wsubwd*ptype
+                tmp(idd_wm)=pbl_args%wsubwm*ptype
 #ifdef TRACERS_DUST
                 tmp(idd_turb)=0.D0
                 tmp(idd_grav)=0.D0
@@ -1155,120 +1067,32 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 DO n=1,Ntm_dust
                   n1=n_clay+n-1
                   IF (dodrydep(n1)) THEN
-                    tmp(idd_turb)=+ptype*rts*pbl_args%dep_vel(n1)
-                    tmp(idd_grav)=+ptype*rts*pbl_args%gs_vel(n1)
+                    tmp(idd_turb)=ptype*rts*pbl_args%dep_vel(n1)
+                    tmp(idd_grav)=ptype*rts*pbl_args%gs_vel(n1)
                   END IF
                 END DO
 #endif
-                tmp(idd_ws2)=+ws*ws*ptype
-                tmp(idd_ustar)=+pbl_args%ustar*ptype
-                tmp(idd_us3)=+ptype*pbl_args%ustar**3
-                tmp(idd_stress)=+rcdmws*pbl_args%wsm*ptype
-                tmp(idd_lmon)=+pbl_args%lmonin*ptype
+                tmp(idd_ws2)=ws*ws*ptype
+                tmp(idd_ustar)=pbl_args%ustar*ptype
+                tmp(idd_us3)=ptype*pbl_args%ustar**3
+                tmp(idd_stress)=rcdmws*pbl_args%ws*ptype
+                tmp(idd_lmon)=pbl_args%lmonin*ptype
                 tmp(idd_rifl)=
      &               +ptype*grav*(ts-tg)*pbl_args%zgs/(ws*ws*tg)
 
-                tmp(idd_zpbl1)=+ptype*pbl_args%z(1)
-                tmp(idd_zpbl2)=+ptype*pbl_args%z(2)
-                tmp(idd_zpbl3)=+ptype*pbl_args%z(3)
-                tmp(idd_zpbl4)=+ptype*pbl_args%z(4)
-                tmp(idd_zpbl5)=+ptype*pbl_args%z(5)
-                tmp(idd_zpbl6)=+ptype*pbl_args%z(6)
-                tmp(idd_zpbl7)=+ptype*pbl_args%z(7)
-                tmp(idd_zpbl8)=+ptype*pbl_args%z(8)
-
-                tmp(idd_uabl1)=+ptype*uabl(1,i,j,itype)
-                tmp(idd_uabl2)=+ptype*uabl(2,i,j,itype)
-                tmp(idd_uabl3)=+ptype*uabl(3,i,j,itype)
-                tmp(idd_uabl4)=+ptype*uabl(4,i,j,itype)
-                tmp(idd_uabl5)=+ptype*uabl(5,i,j,itype)
-                tmp(idd_uabl6)=+ptype*uabl(6,i,j,itype)
-                tmp(idd_uabl7)=+ptype*uabl(7,i,j,itype)
-                tmp(idd_uabl8)=+ptype*uabl(8,i,j,itype)
-
-                tmp(idd_vabl1)=+ptype*vabl(1,i,j,itype)
-                tmp(idd_vabl2)=+ptype*vabl(2,i,j,itype)
-                tmp(idd_vabl3)=+ptype*vabl(3,i,j,itype)
-                tmp(idd_vabl4)=+ptype*vabl(4,i,j,itype)
-                tmp(idd_vabl5)=+ptype*vabl(5,i,j,itype)
-                tmp(idd_vabl6)=+ptype*vabl(6,i,j,itype)
-                tmp(idd_vabl7)=+ptype*vabl(7,i,j,itype)
-                tmp(idd_vabl8)=+ptype*vabl(8,i,j,itype)
-
-                tmp(idd_uvabl1)=
-     *               +ptype*sqrt( uabl(1,i,j,itype)*uabl(1,i,j,itype)
-     *               +            vabl(1,i,j,itype)*vabl(1,i,j,itype))
-                tmp(idd_uvabl2)=
-     *               +ptype*sqrt( uabl(2,i,j,itype)*uabl(2,i,j,itype)
-     *               +            vabl(2,i,j,itype)*vabl(2,i,j,itype))
-                tmp(idd_uvabl3)=
-     *               +ptype*sqrt( uabl(3,i,j,itype)*uabl(3,i,j,itype)
-     *               +            vabl(3,i,j,itype)*vabl(3,i,j,itype))
-                tmp(idd_uvabl4)=
-     *               +ptype*sqrt( uabl(4,i,j,itype)*uabl(4,i,j,itype)
-     *               +            vabl(4,i,j,itype)*vabl(4,i,j,itype))
-                tmp(idd_uvabl5)=
-     *               +ptype*sqrt( uabl(5,i,j,itype)*uabl(5,i,j,itype)
-     *               +            vabl(5,i,j,itype)*vabl(5,i,j,itype))
-                tmp(idd_uvabl6)=
-     *               +ptype*sqrt( uabl(6,i,j,itype)*uabl(6,i,j,itype)
-     *               +            vabl(6,i,j,itype)*vabl(6,i,j,itype))
-                tmp(idd_uvabl7)=
-     *               +ptype*sqrt( uabl(7,i,j,itype)*uabl(7,i,j,itype)
-     *               +            vabl(7,i,j,itype)*vabl(7,i,j,itype))
-                tmp(idd_uvabl8)=
-     *               +ptype*sqrt( uabl(8,i,j,itype)*uabl(8,i,j,itype)
-     *               +            vabl(8,i,j,itype)*vabl(8,i,j,itype))
-
-                tmp(idd_tabl1)=+ptype*tabl(1,i,j,itype)
-                tmp(idd_tabl2)=+ptype*tabl(2,i,j,itype)
-                tmp(idd_tabl3)=+ptype*tabl(3,i,j,itype)
-                tmp(idd_tabl4)=+ptype*tabl(4,i,j,itype)
-                tmp(idd_tabl5)=+ptype*tabl(5,i,j,itype)
-                tmp(idd_tabl6)=+ptype*tabl(6,i,j,itype)
-                tmp(idd_tabl7)=+ptype*tabl(7,i,j,itype)
-                tmp(idd_tabl8)=+ptype*tabl(8,i,j,itype)
-
-                tmp(idd_qabl1)=+ptype*qabl(1,i,j,itype)
-                tmp(idd_qabl2)=+ptype*qabl(2,i,j,itype)
-                tmp(idd_qabl3)=+ptype*qabl(3,i,j,itype)
-                tmp(idd_qabl4)=+ptype*qabl(4,i,j,itype)
-                tmp(idd_qabl5)=+ptype*qabl(5,i,j,itype)
-                tmp(idd_qabl6)=+ptype*qabl(6,i,j,itype)
-                tmp(idd_qabl7)=+ptype*qabl(7,i,j,itype)
-                tmp(idd_qabl8)=+ptype*qabl(8,i,j,itype)
-
-                tmp(idd_zhat1)=+ptype*pbl_args%zhat(1)
-                tmp(idd_zhat2)=+ptype*pbl_args%zhat(2)
-                tmp(idd_zhat3)=+ptype*pbl_args%zhat(3)
-                tmp(idd_zhat4)=+ptype*pbl_args%zhat(4)
-                tmp(idd_zhat5)=+ptype*pbl_args%zhat(5)
-                tmp(idd_zhat6)=+ptype*pbl_args%zhat(6)
-                tmp(idd_zhat7)=+ptype*pbl_args%zhat(7)
-
-                tmp(idd_e1)=+eabl(1,i,j,itype)*ptype
-                tmp(idd_e2)=+eabl(2,i,j,itype)*ptype
-                tmp(idd_e3)=+eabl(3,i,j,itype)*ptype
-                tmp(idd_e4)=+eabl(4,i,j,itype)*ptype
-                tmp(idd_e5)=+eabl(5,i,j,itype)*ptype
-                tmp(idd_e6)=+eabl(6,i,j,itype)*ptype
-                tmp(idd_e7)=+eabl(7,i,j,itype)*ptype
-
-                tmp(idd_km1)=+ptype*pbl_args%km(1)
-                tmp(idd_km2)=+ptype*pbl_args%km(2)
-                tmp(idd_km3)=+ptype*pbl_args%km(3)
-                tmp(idd_km4)=+ptype*pbl_args%km(4)
-                tmp(idd_km5)=+ptype*pbl_args%km(5)
-                tmp(idd_km6)=+ptype*pbl_args%km(6)
-                tmp(idd_km7)=+ptype*pbl_args%km(7)
-
-                tmp(idd_ri1)=ptype*pbl_args%gh(1)/(pbl_args%gm(1)+1d-20)
-                tmp(idd_ri2)=ptype*pbl_args%gh(2)/(pbl_args%gm(2)+1d-20)
-                tmp(idd_ri3)=ptype*pbl_args%gh(3)/(pbl_args%gm(3)+1d-20)
-                tmp(idd_ri4)=ptype*pbl_args%gh(4)/(pbl_args%gm(4)+1d-20)
-                tmp(idd_ri5)=ptype*pbl_args%gh(5)/(pbl_args%gm(5)+1d-20)
-                tmp(idd_ri6)=ptype*pbl_args%gh(6)/(pbl_args%gm(6)+1d-20)
-                tmp(idd_ri7)=ptype*pbl_args%gh(7)/(pbl_args%gm(7)+1d-20)
+                tmp(idd_zpbl1:idd_zpbl8)=ptype*pbl_args%z(1:8)
+                tmp(idd_uabl1:idd_uabl8)=ptype*uabl(1:8,i,j,itype)
+                tmp(idd_vabl1:idd_vabl8)=ptype*vabl(1:8,i,j,itype)
+                tmp(idd_uvabl1:idd_uvabl8)=ptype*sqrt( 
+     *               uabl(1:8,i,j,itype)*uabl(1:8,i,j,itype)+
+     *               vabl(1:8,i,j,itype)*vabl(1:8,i,j,itype))
+                tmp(idd_tabl1:idd_tabl8)=ptype*tabl(1:8,i,j,itype)
+                tmp(idd_qabl1:idd_qabl8)=ptype*qabl(1:8,i,j,itype)
+                tmp(idd_zhat1:idd_zhat7)=ptype*pbl_args%zhat(1:7)
+                tmp(idd_e1:idd_e7)=eabl(1:7,i,j,itype)*ptype
+                tmp(idd_km1:idd_km7)=ptype*pbl_args%km(1:7)
+                tmp(idd_ri1:idd_ri7)=ptype*pbl_args%gh(1:7)
+     *               /(pbl_args%gm(1:7)+1d-20)
 #endif
                 DIURN_partd(:,J,kr)=DIURN_partd(:,J,kr)+tmp(idxd(:))
               END IF
@@ -1314,10 +1138,10 @@ C**** Save surface tracer concentration whether calculated or not
           if (tr_wd_type(n).eq.nWater) then
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *           trevapor(n,itype,i,j)*ptype
-            tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
+            tajls(j,1,jls_isrc(1,n))=tajls(j,1,jls_isrc(1,n))
      *           +trevapor(n,itype,i,j)*ptype
-            if (focean(i,j).gt.0) tajls(j,1,jls_source(2,n))=tajls(j,1
-     *           ,jls_source(2,n))+trevapor(n,itype,i,j)*ptype
+            if (focean(i,j).gt.0) tajls(j,1,jls_isrc(2,n))=tajls(j,1
+     *           ,jls_isrc(2,n))+trevapor(n,itype,i,j)*ptype
           end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         gtracer(n,itype,i,j)*ptype
@@ -1328,7 +1152,6 @@ C**** Save surface tracer concentration whether calculated or not
 C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
 C****
-!!!      SELECT CASE (ITYPE)
 !!!      CASE (1)  ! ocean
       if ( ITYPE == 1 ) then
         OA(I,J,6)=OA(I,J,6)+TRHDT
@@ -1359,7 +1182,6 @@ C****
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)    + F0DT*PTYPE
         AIJ(I,J,IJ_EVAPLI)=AIJ(I,J,IJ_EVAPLI)+ EVAP*PTYPE
 C****
-!!!      END SELECT
       endif
 C****
       END IF
@@ -1422,9 +1244,6 @@ C****
         TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
         QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
         IF ( Q(I,J,1)+DQ1(I,J) .LT. qmin ) THEN
-c          WRITE(99,*)
-c     &         ITime,'I,J:',I,J,' Q1:',Q(I,J,1)+DQ1(I,J),'->',qmin
-c          dq1(i,j)=qmin-q(i,j,1)
           QMOM(:,I,J,1)=0.
         ENDIF
 c****   retrieve fluxes
@@ -1466,8 +1285,8 @@ C**** For distributed implementation - ensure point is on local process.
           J = IJDD(2,KR)
           IF ((J >= J_0) .AND. (J <= J_1)) THEN
             IF(DCLEV(I,J).GT.1.) THEN
-              tmp(1)=+1.
-              tmp(2)=+DCLEV(I,J)
+              tmp(1)=1.
+              tmp(2)=DCLEV(I,J)
               DIURN_partb(:,J,KR)=DIURN_partb(:,J,KR)+tmp(1:2)
             END IF
           END IF
