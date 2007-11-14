@@ -32,7 +32,11 @@ C**** Numerical constants
       real*8,parameter :: teeny=1.d-30
       integer*8,parameter :: intNaN=-1  ! i.e. = Z'FFFFFFFFFFFFFFFF'
 !@param NaN NaN
+#if (defined COMPILER_PGI)
+      real*8,parameter :: NaN=1d30
+#else
       real*8,parameter :: NaN=transfer(intNaN,1.d0)
+#endif
 
 C**** Physical constants
 

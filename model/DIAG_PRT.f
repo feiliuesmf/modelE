@@ -1041,7 +1041,11 @@ C****
       WRITE (6,901) XLABEL
       WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+#if (defined COMPILER_PGI)
+      write(6,*) "skipping some info due to PGI bugs :-("
+#else
       write(6,fmt=fmt903) NINT(LAT_DG(JM:INC:-INC,1))
+#endif
       WRITE (6,905)
       NDER=1
       KDER=1
@@ -1159,7 +1163,11 @@ C****
       END IF
       END IF
       END DO
+#if (defined COMPILER_PGI)
+      write(6,*) "skipping some info due to PGI bugs :-("
+#else
       write(6,fmt=(fmt903)) NINT(LAT_DG(JM:INC:-INC,1))
+#endif
       WRITE (6,905)
       IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,k_j_out
      *     +nj_out,TERRAIN(M),M+1) ! the +1 is because M starts at 0
@@ -1175,8 +1183,12 @@ C****
          WRITE (6,902) '   (REGIONS)    ',
      *        JYEAR0,AMON0,JDATE0,JHOUR0,
      *        JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+#if (defined COMPILER_PGI)
+      write(6,*) "skipping some info due to PGI bugs :-("
+#else
          write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
      *        (/23*2/) )
+#endif
 c     write(6,fmt=fmt918) NAMREG(1,1:23)
       END IF
       NDER=1
@@ -1226,8 +1238,12 @@ C**** differentiate normal ratios from albedo calculations
       END IF
       END IF
       END DO
+#if (defined COMPILER_PGI)
+      write(6,*) "skipping some info due to PGI bugs :-("
+#else
       write(6,fmt=fmt918) RESHAPE( (/NAMREG(1,1:23),NAMREG(2,1:23)/),
      *                              (/23*2/) )
+#endif
       WRITE (6,905)
       RETURN
 C****
