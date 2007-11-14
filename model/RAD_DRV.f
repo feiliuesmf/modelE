@@ -45,9 +45,6 @@ C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       INTEGER :: I_0, I_1, J_0, J_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
 
-      if ( present(COSZA) ) goto 777 ! COSZS
-C****
-!      ENTRY COSZT (ROT1,ROT2,COSZ)
 C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -57,6 +54,10 @@ C****
       J_1S = grid%J_STOP_SKP
       J_0STG = grid%J_STRT_STGR
       J_1STG = grid%J_STOP_STGR
+
+      if ( present(COSZA) ) goto 777 ! COSZS
+C****
+!      ENTRY COSZT (ROT1,ROT2,COSZ)
 C****
 C**** THIS ENTRY COMPUTES THE ZENITH ANGLE WEIGHTED BY DAYTIME
 C**** HOURS FROM ROT1 TO ROT2, GREENWICH MEAN TIME IN RADIANS.  ROT1
