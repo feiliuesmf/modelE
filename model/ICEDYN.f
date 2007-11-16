@@ -1,4 +1,4 @@
-       
+    
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
 C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
@@ -1101,8 +1101,9 @@ c set cyclic conditions on eastern and western boundary
 !@auth Gavin Schmidt (based on code from J. Zhang)
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH,GLOBALSUM
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE,am_i_root
+      USE MODEL_COM, only : itime
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
-     *        ,uvm,dxu,dyu
+     *        ,uvm,dxu,dyu,amass
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &        USAVE,VSAVE
@@ -1111,6 +1112,7 @@ c set cyclic conditions on eastern and western boundary
       REAL*8 rms0,rms,area
       INTEGER kki,i,j
       INTEGER :: J_0,J_1,J_0S,J_1S
+      logical :: debug
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -1118,7 +1120,7 @@ C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
-      rms=0. ; rms0=0.
+      rms=0. ; rms0=0. ; debug=.false. 
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
       KKI=0.
  10   KKI=KKI+1
@@ -1180,24 +1182,29 @@ C NOW SET U(1)=U(2) AND SAME FOR V
         rms_part=0. ; area_part=0.
         do i=1,nx1
            do j=j_0,j_1
-            rms_part(j)=rms_part(j)+  dxu(i)*dyu(j)*UVM(i,j)*
+            if(amass(i,j)*UVM(i,j)>0) then
+              rms_part(j)=rms_part(j)+  dxu(i)*dyu(j)*
      *         ((USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,j)-VICE(i,j,1))**2)
-            area_part(j)=area_part(j)+dxu(i)*dyu(j)*UVM(i,j)
+              area_part(j)=area_part(j)+dxu(i)*dyu(j)
+            end if
           end do
         end do
         CALL GLOBALSUM(grid, rms_part, rms, all=.true.)
         CALL GLOBALSUM(grid, area_part, area, all=.true.)
+        if(debug.and.am_i_root()) write(0,*) itime,kki,1d5*rms/area
       end if
 
-      if (kki>2 .and. rms>rms0) then
+      if (kki > 2 .and. rms > rms0) then
+        debug=.true.
         if(am_i_root())
-     *    write(0,*) 'VPICEDYN rms increased, kki:',kki,rms0,rms
-        UICE(:,:,1)=USAVE
-        VICE(:,:,1)=VSAVE
-      elseif (kki.eq.20) then
+     *    write(0,*) 'VPICEDYN rms rose, kki:',itime,kki,
+     *      1d5*rms0/area,1d5*rms/area
+      end if
+      if (kki.eq.20) then
+        rms=sqrt(rms/area)
         if(am_i_root())
-     *    write(0,*) "Too many iterations in VPICEDYN. kki:",kki,rms
-      elseif (kki == 1 .or. rms > 5d-6*area) then
+     *    write(0,*) "20 iterations in VPICEDYN: itime,rms",itime,rms
+      elseif (kki == 1 .or. rms > 1d-5*area) then
         USAVE=UICE(:,:,1)
         VSAVE=VICE(:,:,1)
         rms0=rms
