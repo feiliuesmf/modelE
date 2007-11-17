@@ -28,6 +28,9 @@
       real*8 :: Tpool(PTRACE,NPOOLS,N_CASA_LAYERS)  !total plant and soil C,N pools (gC/m2), depth-structured
       real*8 :: Cflux                    !total soil C flux to atm (gC/m2/s) **C flux, NOT CO2!**
 
+      ! do nothing if no vegetation
+      if ( .not. ASSOCIATED(pp%tallest) ) return
+
       ivt = pp%tallest%pft     
 !      Soilmoist = pp%Soilmoist    !soil moist varies by patch  !**omit for now** -PK 7/6/07
       Soilmoist(:) = pp%cellptr%Soilmoist(:) 

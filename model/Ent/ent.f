@@ -194,6 +194,8 @@
       !---Local--------
       type(patch),pointer :: pp
       integer :: patchnum
+      integer tmp_pft
+      real*8  tmp_senescefrac
        
       patchnum = 0
       pp => ecp%oldest
@@ -211,15 +213,21 @@
         ! if ( dailyupdate ) call litter(pp) 
           
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
+          tmp_pft = -1
+          tmp_senescefrac = 0
+          if ( ASSOCIATED(pp%tallest) ) then
+            tmp_pft = pp%tallest%pft
+            tmp_senescefrac = pp%tallest%senescefrac
+          endif
           write(995,'(i5,3(1pe16.8),i5,100(1pe16.8))')  !Fluxes are positive up.
      &         patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 
      &         pp%cellptr%coszen,
-     &         pp%tallest%pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
+     &         tmp_pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
      &         pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
      &         pp%TRANS_SW,
      &         pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
      &         pp%NPP,pp%CO2flux,pp%GCANOPY,
-     &         pp%tallest%senescefrac
+     &         tmp_senescefrac
           if (pp%GPP.lt.0.d0) then
             print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
           endif

@@ -243,8 +243,10 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         pp%LAI = laipatch
 
         !* ALBEDO *!
-        call prescr_veg_albedo(hemi, pp%tallest%pft, 
-     &       jday, pp%albedo)
+        if ( ASSOCIATED(pp%tallest) ) then ! update if have vegetation
+          call prescr_veg_albedo(hemi, pp%tallest%pft, 
+     &         jday, pp%albedo)
+        endif
 
       endif
       end subroutine prescr_phenology
