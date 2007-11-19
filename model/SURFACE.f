@@ -794,10 +794,6 @@ C****
      *           +RCDQDWS*pbl_args%trprime(nx))
 #endif
             TEVAP=DTSURF*TEV
-            if (nx.eq.1.and.i.eq.6.and.j.eq.28) print*,"surf0",TEVAP
-     *           ,EVAP,pbl_args%qprime,pbl_args%trprime(nx),qsrf,trs(nx)
-     *           ,pbl_args%ddml_eq_1,trgrnd(nx),fracvl(tg1,n)
-     *           ,pbl_args%frack(nx)
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
