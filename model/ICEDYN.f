@@ -1,4 +1,4 @@
-    
+     
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
 C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
@@ -1120,7 +1120,7 @@ C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
-      rms=0. ; rms0=0. ; debug=.false. 
+      rms=0. ; rms0=0. ; debug=.false.
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
       KKI=0.
  10   KKI=KKI+1
@@ -1191,20 +1191,20 @@ C NOW SET U(1)=U(2) AND SAME FOR V
         end do
         CALL GLOBALSUM(grid, rms_part, rms, all=.true.)
         CALL GLOBALSUM(grid, area_part, area, all=.true.)
-        if(debug.and.am_i_root()) write(0,*) itime,kki,1d5*rms/area
+        if(debug.and.am_i_root()) write(0,*) itime,kki,4d4*rms/area
       end if
 
       if (kki > 2 .and. rms > rms0) then
         debug=.true.
         if(am_i_root())
      *    write(0,*) 'VPICEDYN rms rose, kki:',itime,kki,
-     *      1d5*rms0/area,1d5*rms/area
+     *      4d4*rms0/area,4d4*rms/area
       end if
       if (kki.eq.20) then
         rms=sqrt(rms/area)
         if(am_i_root())
      *    write(0,*) "20 iterations in VPICEDYN: itime,rms",itime,rms
-      elseif (kki == 1 .or. rms > 1d-5*area) then
+      elseif (kki == 1 .or. rms > 25d-6*area) then
         USAVE=UICE(:,:,1)
         VSAVE=VICE(:,:,1)
         rms0=rms
