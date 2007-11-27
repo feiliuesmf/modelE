@@ -1001,8 +1001,8 @@ contains
           im1 = IM
           Do i = 1, IM
 
-             u_b(i,j,k) = (Ua_halo(im1,j,k) + Ua_halo(i,j,k))/2
-             v_b(i,j,k) = (Va_halo(im1,j,k) + Va_halo(i,j,k))/2
+             u_b(i,j,k) = (Ua_halo(im1,j-1,k) + Ua_halo(i,j-1,k) + Ua_halo(im1,j,k) + Ua_halo(i,j,k))/4
+             v_b(i,j,k) = (Va_halo(im1,j-1,k) + Va_halo(i,j-1,k) + Va_halo(im1,j,k) + Va_halo(i,j,k))/4
              im1 = i
  
           End do
@@ -1047,8 +1047,8 @@ contains
           im1 = IM
           Do i = 1, IM
 
-             u_a(im1,j,k) = (ub_halo(im1,j,k) + ub_halo(i,j,k))/2
-             v_a(im1,j,k) = (vb_halo(im1,j,k) + vb_halo(i,j,k))/2
+             u_a(im1,j,k) = (ub_halo(im1,j,k) + ub_halo(i,j,k) + ub_halo(im1,j+1,k) + ub_halo(i,j+1,k))/4
+             v_a(im1,j,k) = (vb_halo(im1,j,k) + vb_halo(i,j,k) + vb_halo(im1,j+1,k) + vb_halo(i,j+1,k))/4
              im1 = i
 
           End do
@@ -1398,9 +1398,9 @@ contains
     dlat = pi/(jm-1)
     do l=1,lm
        do j=j_0,j_1
-          LAT = ((-pi/2.0) + (j-1)*dlat)
+          LAT = ((-pi/2.0) + (j-0.5)*dlat )
           do i=1,im
-             area = (radius*(dlon)*COS(LAT))*(radius*dlat)
+             area = radius**2 * dlon * COS(LAT) * 2 * sin(dlat/2)
              mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (Pa m^2/s)
           enddo
        enddo
@@ -1408,7 +1408,7 @@ contains
     SD(:,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
 
     ! Surface Pressure tendency - vert integral of horizontal convergence
-    PIT(:,J_0:J_1) = mfx_Z(:,:,1) + sum(SD(:,:,1:LM-1),3)
+    PIT(:,J_0:J_1) = mfx_Z(:,:,1) + sum(SD(:,J_0:J_1,1:LM-1),3)
 
     ! Recopy into CONV to support prior usage
     CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
@@ -1418,7 +1418,6 @@ contains
     PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)*DTfac
 
     SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)*DTfac
-
 
   end subroutine accumulate_mass_fluxes
 

@@ -33,7 +33,7 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
-      USE ATMDYN, only : DYNAM,CALC_TROP,PGRAD_PBL
+      USE ATMDYN, only : DYNAM,CALC_TROP,PGRAD_PBL,SDRAG
      &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
      &     ,COMPUTE_WSAVE, getTotalEnergy, addEnergyAsDiffuseHeat
 #ifdef TRACERS_ON
@@ -245,11 +245,12 @@ C**** Initialise total energy (J/m^2)
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
-      call DYNAM()
-
       ! Using FV instead
          IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
       call Run(fv, clock)
+
+
+      CALL SDRAG (DTsrc)
          if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
            call DIAGA
            call DIAGB
@@ -264,6 +265,7 @@ C**** Currently energy is put in uniformly weighted by mass
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
       call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+
 C**** Scale WM mixing ratios to conserve liquid water
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1

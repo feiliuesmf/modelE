@@ -8,7 +8,7 @@
      &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
      &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
-     &     ,getTotalEnergy
+     &     ,getTotalEnergy,SDRAG
      &     ,addEnergyAsDiffuseHeat, addEnergyAsLocalHeat
 #ifdef TRACERS_ON
      &     ,trdynam
