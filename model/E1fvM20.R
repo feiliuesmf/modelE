@@ -158,7 +158,7 @@ DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 DTsrc=1800.     ! cannot be changed after a run has been started
 ! parameters that may have to be changed in emergencies:
-DT=450.
+DT=1800.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
