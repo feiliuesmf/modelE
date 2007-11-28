@@ -955,7 +955,7 @@ C**** Additional mass (precip) is balanced by deep removal
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
-          GETMPR(1,I,J)=GTEMP(1,1,I,J)
+          GTEMPR(1,I,J)=GTEMP(1,1,I,J)
         END IF
       END DO
       END DO
