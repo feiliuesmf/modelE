@@ -93,6 +93,8 @@ C**** sea ice melt and iceberg/glacial melt.
 
 !@var GTEMP ground temperature (upper two levels) over surface type (C)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTEMP
+!@var GTEMPR radiative ground temperature over surface type (C)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GTEMPR
 !@var SSS sea surface salinity on atmospheric grid (ppt)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSS
 !@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
@@ -298,7 +300,10 @@ C**** fluxes associated with variable lake fractions
        !:,:,I,J array
        ALLOCATE( GTEMP( 2 , NSTYPE, I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
+       ALLOCATE( GTEMPR( NSTYPE, I_0H:I_1H , J_0H:J_1H ),
+     &   STAT = IER)
        GTEMP=0.   ! initialize at 0
+       GTEMPR=0.   ! initialize at 0
 
 !TRACERS_ON**********************
 

@@ -403,7 +403,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
 #endif
-      USE FLUXES, only : gtemp,mlhc
+      USE FLUXES, only : gtemp,mlhc,gtempr
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : tsavg
       USE LAKES
@@ -516,6 +516,7 @@ C**** Set GTEMP arrays for lakes
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
+            GTEMPR(1,I,J) =GTEMP(1,1,I,J)
             IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*DXYP(J))
      *           THEN
               GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
@@ -748,7 +749,7 @@ C****
       USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr
       USE FLUXES, only : trflowo,gtracer
 #endif
-      USE FLUXES, only : flowo,eflowo,gtemp,mlhc
+      USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
@@ -1001,6 +1002,7 @@ C**** Set GTEMP array for lakes
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
+            GTEMPR(1,I,J) =GTEMP(1,1,I,J)
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
@@ -1256,7 +1258,7 @@ C****
       USE SEAICE, only : ace1i,xsi,ac2oim
       USE GEOM, only : dxyp,imaxj,bydxyp
       USE GHY_COM, only : fearth
-      USE FLUXES, only : dmwldf,dgml,gtemp,mlhc
+      USE FLUXES, only : dmwldf,dgml,gtemp,mlhc,gtempr
 #ifdef TRACERS_WATER
      *     ,dtrl,gtracer
 #endif
@@ -1485,6 +1487,7 @@ C**** Set GTEMP array for lakes
         DO I=1,IMAXJ(J)
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
+            GTEMPR(1,I,J) =GTEMP(1,1,I,J)
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
@@ -1510,7 +1513,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
-      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp,melti,emelti
+      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp,melti,emelti,
+     *      gtempr
 #ifdef TRACERS_WATER
      *     ,trunpsi,trunoli,trprec,gtracer,trmelti
 #endif
@@ -1563,6 +1567,7 @@ C**** simelt is given as kg, so divide by area
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
           GTEMP(1,1,I,J)=TLAKE(I,J)
+          GTEMPR(1,I,J) =GTEMP(1,1,I,J)
           IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*DXYP(J))
      *         THEN
             GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
@@ -1609,7 +1614,7 @@ C****
 
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
-     *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp
+     *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp, gtempr
 #ifdef TRACERS_WATER
      *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer
 #ifdef TRACERS_DRYDEP
@@ -1776,6 +1781,7 @@ C**** Resave prognostic variables
 #endif
         GTEMP(1,1,I,J)=TLAKE(I,J)
         GTEMP(2,1,I,J)=TLK2       ! diagnostic only
+        GTEMPR(1,I,J) =GTEMP(1,1,I,J)
 
 C**** Open lake diagnostics
         AJ(J,J_WTR1, ITLAKE)=AJ(J,J_WTR1, ITLAKE)+MLAKE(1)*POLAKE

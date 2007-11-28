@@ -782,7 +782,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,apress,msicnv,fwsim
+      USE FLUXES, only : gtemp,apress,msicnv,fwsim,gtempr
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -1321,6 +1321,7 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
      *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
               GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
      *             (XSI(1:2)*(SNOWI(I,J)+ACE1I))+LHM)*BYSHI
+              GTEMPR(2,I,J) = GTEMP(1,2,I,J)
 #ifdef TRACERS_WATER
               GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
      *             -SSI(1,I,J))
@@ -1333,6 +1334,7 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
             DO I=2,IM           ! North pole
               APRESS(I,JM)=APRESS(1,JM)
               GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
+              GTEMPR(2,I,J) = GTEMP(1,2,I,J)
 #ifdef TRACERS_WATER
               GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
 #endif

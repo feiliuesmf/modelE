@@ -25,7 +25,7 @@
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trli0,trdwnimp
 #endif
-      USE FLUXES, only : gtemp,gmelt,egmelt
+      USE FLUXES, only : gtemp,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
      *     ,gtracer
 #ifdef TRACERS_OCEAN
@@ -57,6 +57,7 @@ C**** set GTEMP array for landice
         DO I=1,IM
           IF (FLICE(I,J).gt.0) THEN
             GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+            GTEMPR(3,I,J) = GTEMP(1,3,I,J)
 #ifdef TRACERS_WATER
             if (istart.ge.9) then
             IF (SNOWLI(I,J).gt.1d-5) THEN
@@ -222,7 +223,7 @@ C****
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp,bydxyp
-      USE FLUXES, only : runoli,prec,eprec,gtemp
+      USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
 #endif
@@ -293,6 +294,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+        GTEMPR(3,I,J) = GTEMP(1,3,I,J)
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
         EDWNIMP(I,J)=EDWNIMP(I,J)+ERUN2*PLICE*DXYPJ
@@ -345,7 +347,7 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0,trdwnimp
 #endif
-      USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt
+      USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
      *     ,trunoli,trevapor,gtracer
 #ifdef TRACERS_DRYDEP
@@ -415,6 +417,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+        GTEMPR(3,I,J) = GTEMP(1,3,I,J)
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
         EDWNIMP(I,J)=EDWNIMP(I,J)+EDIFS*PLICE*DXYPJ
@@ -575,7 +578,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0,trdwnimp
 #endif
-      USE FLUXES, only : gtemp,gmelt,egmelt
+      USE FLUXES, only : gmelt,egmelt
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,trgmelt

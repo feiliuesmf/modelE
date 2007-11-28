@@ -5,7 +5,7 @@ c --- hycom version 0.9
       use hybrid_mpi_omp_coupler, only: e0,prec,evapor,flowo
      .      ,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
-     .      ,gtemp,sss,mlhc
+     .      ,gtemp,sss,mlhc,gtempr
       ! MODEL_COM
       USE hybrid_mpi_omp_coupler, only : focean
       implicit none
@@ -240,6 +240,7 @@ c$OMP PARALLEL DO
       do 22 ia=1,iia
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
+        gtempr(1,1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
         if (sss(ia,ja).le.10.) then
           write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja
      . ,' sss=',sss(ia,ja),' sst=',asst(ia,ja),' focean=',focean(ia,ja)

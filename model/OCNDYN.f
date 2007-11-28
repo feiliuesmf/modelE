@@ -4247,7 +4247,8 @@ C****
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
-      USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf
+      USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
+     *      gtempr
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -4280,6 +4281,7 @@ C****
             SO= S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             TO= TEMGS(GO,SO)
             GTEMP(1,1,I,J)= TO
+            GTEMPR(1,I,J) = GTEMP(1,1,I,J)
             SSS(I,J) = 1d3*SO
             MLHC(I,J)= MO(I,J,1)*SHCGS(GO,SO)
             IF (LMM(I,J).gt.1) THEN
@@ -4321,6 +4323,7 @@ C**** do poles
         VOSURF(1,JM) = UO(IVNP,JM,1)*COSI(1) - UO(IM,JM,1)*SINI(1)
         DO I=2,IM
           GTEMP(:,1,I,JM)=GTEMP(:,1,1,JM)
+          GTEMPR(1,I,JM) =GTEMP(1,1,I,JM)
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
           UOSURF(I,JM) = UO(IM,JM,1)*COSU(I) + UO(IVNP,JM,1)*SINU(I)
@@ -4340,6 +4343,7 @@ c     if (HAVE_SOUTH_POLE) then
 c     IF (FOCEAN(1,1).gt.0) THEN
 c       DO I=2,IM
 c         GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
+c         GTEMPR(1,I,1) = GTEMP(1,1,I,1)
 c         SSS(I,1)=SSS(1,1)
 c         MLHC(I,1)=MLHC(1,1)
 c         UOSURF(I,1) = UO(IM,1,1)*COSU(1) - UO(IVSP,1,1)*SINU(1)

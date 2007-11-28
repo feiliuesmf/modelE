@@ -86,7 +86,7 @@ c
       USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
      . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
      . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
-     . ,gmelt,egmelt,solar
+     . ,gmelt,egmelt,solar,gtempr
 #ifdef TRACERS_GASEXCH_Natassa
      . ,TRGASEX,GTRACER
 
@@ -1096,6 +1096,7 @@ c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ja=1,jja
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
+        gtempr(1,1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)

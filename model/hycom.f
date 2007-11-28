@@ -109,7 +109,7 @@ c
      . ,eflowo,dmua,dmva
      . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
      . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
-     . ,gmelt,egmelt,solar
+     . ,gmelt,egmelt,solar,gtempr
       ! From SEAICE_COM
       USE hybrid_mpi_omp_coupler, only : rsi,msi
       ! From SEAICE
@@ -814,6 +814,7 @@ c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ja=1,jja
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
+        gtempr(1,1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
         tf=tfrez(sss(ia,ja),0.)
         dmsi(1,ia,ja)=utila(ia,ja)                        !kg/m2 per agcm step
         dhsi(1,ia,ja)=utila(ia,ja)                        !J/m2 per agcm step

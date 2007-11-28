@@ -690,7 +690,7 @@ c****
       use veg_drv, only: veg_save_cell,veg_set_cell
 
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
-     *     ,runoe,erunoe,gtemp,precss
+     *     ,runoe,erunoe,gtemp,precss,gtempr
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
@@ -1063,6 +1063,7 @@ c**** wearth+aiearth are used in radiation only
       aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
      &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
       gtemp(1,4,i,j)=tearth(i,j)
+      gtempr(4,i,j) =gtemp(1,4,i,j)
 c**** calculate fluxes using implicit time step for non-ocean points
       uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
       vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(pbl_args%vs) !-vocean)
@@ -1707,7 +1708,7 @@ c**** modifications needed for split of bare soils into 2 types
       use fluxes, only : gtracer
       use veg_com, only:  afb, avh
 #endif
-      use fluxes, only : gtemp
+      use fluxes, only : gtemp,gtempr
       use ghy_com
       use dynamics, only : pedn
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
@@ -1941,6 +1942,7 @@ c**** set gtemp array
         do i=1,im
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tearth(i,j)
+            gtempr(4,i,j) =gtemp(1,4,i,j)
           end if
         end do
       end do
@@ -3740,7 +3742,7 @@ c**** Also reset snow fraction for albedo computation
       use TRACER_COM, only : ntm,needtrs,itime_tr0
       use model_com, only : itime
 #endif
-      use FLUXES, only : gtemp
+      use FLUXES, only : gtemp,gtempr
 #ifdef TRACERS_WATER
      &     ,gtracer
 #endif
@@ -3818,6 +3820,7 @@ c**** wearth+aiearth are used in radiation only
           aiearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*ficeb +
      &         fv*w_ij(1,2,i,j)*ficev )
           gtemp(1,4,i,j)=tearth(i,j)
+          gtempr(4,i,j) =gtemp(1,4,i,j)
 
 #ifdef TRACERS_WATER
       ! I use vegetated ground insted of canopy since canopy has 0 H2O

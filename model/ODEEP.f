@@ -304,7 +304,7 @@ C****
       USE ODEEP_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo,lmom
       USE SEAICE_COM, only : rsi
       USE DIAG_COM, only : aj,j_ftherm
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,gtempr
       USE STATIC_OCEAN, only : z12o,tocean
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
@@ -365,6 +365,7 @@ C**** Set first layer thickness
             AJ(J,J_FTHERM,ITOICE )=AJ(J,J_FTHERM,ITOICE )-(RTGO(1,I,J)
      *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*RSI(I,J)
             GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
+            GTEMPR(1,I,J) = GTEMP(1,1,I,J)
           END IF
         END DO
       END DO

@@ -596,8 +596,8 @@ C     for setbak/getbak only   1      2      3       4       5
 
 !@var KUVFAC,UVFACT,UVWAVL,KSNORM rescale UV spectral flux distribution
       INTEGER :: KUVFAC=0,  KSNORM=0  ! no rescaling
-      REAL*8  :: UVWAVL(3)=(/0.295, 0.310, 0.366/)
-      REAL*8  :: UVFACT(3)=(/1.0000, 1.0000, 1.0000/)
+      REAL*8  :: UVWAVL(3)=(/0.295d0, 0.310d0, 0.366d0/)
+      REAL*8  :: UVFACT(3)=(/0.98011d0, 0.99467d0, 0.99795d0/)
 
 !@var SRCGSF Scaling Factors for Cloud Asymmetry Parameter for
 !@+                            Water    Ice    MieIce

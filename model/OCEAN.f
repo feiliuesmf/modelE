@@ -29,7 +29,7 @@
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE LANDICE_COM, only : snowli,tlandi
-      USE FLUXES, only : gtemp,sss,fwsim,mlhc
+      USE FLUXES, only : gtemp,sss,fwsim,mlhc,gtempr
       USE DIAG_COM, only : aij=>aij_loc, aregj=>aregj_loc, jreg,ij_smfx
      *     ,aj=>aj_loc,j_implh, j_implm, j_imelt, j_hmelt, j_smelt, NREG
      *     , KAJ, ij_fwio
@@ -398,6 +398,7 @@ C**** SET DEFAULTS IF NO OCEAN ICE
 #endif
               SNOWI(I,J)=0.
               GTEMP(1:2,2,I,J)=TFO
+              GTEMPR(2,I,J) = GTEMP(1,2,I,J)
             END IF
             FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
      *           ,I,J)))
@@ -418,6 +419,7 @@ C**** REPLICATE VALUES AT POLE (for prescribed data only)
             TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
 #endif
             GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
+            GTEMPR(2,I,JM) = GTEMP(1,2,I,JM)
             FWSIM(I,JM)=FWSIM(1,JM)
           END DO
         END IF
@@ -687,6 +689,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE FLUXES, only : gtracer
 #endif
       USE FLUXES, only : gtemp,sss,uosurf,vosurf,uisurf,visurf,ogeoza
+     *     ,gtempr
       USE SEAICE, only : qsfix, osurf_tilt
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
@@ -788,6 +791,7 @@ C**** Set fluxed arrays for oceans
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
+          GTEMPR(1,I,J) = GTEMP(1,1,I,J)
           SSS(I,J) = SSS0
 #ifdef TRACERS_WATER
           gtracer(:,1,i,j)=trw0(:)
@@ -820,7 +824,7 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,jday
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_toc2,ij_tgo2
-      USE FLUXES, only : gtemp,mlhc,fwsim
+      USE FLUXES, only : gtemp,mlhc,fwsim,gtempr
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DOMAIN_DECOMP, only : GRID,GET
@@ -867,6 +871,7 @@ C**** set gtemp array for ocean temperature
       DO I=1,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
+          GTEMPR(1,I,J) = GTEMP(1,1,I,J)
           MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
         END IF
       END DO
@@ -885,7 +890,7 @@ C****
       USE DIAG_COM, only : aj=>aj_loc,j_implm,j_implh,oa,
      *     aregj=>aregj_loc,jreg
       USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
-     *     ,emelti,smelti,fwsim
+     *     ,emelti,smelti,fwsim,gtempr
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
@@ -950,6 +955,7 @@ C**** Additional mass (precip) is balanced by deep removal
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
+          GETMPR(1,I,J)=GTEMP(1,1,I,J)
         END IF
       END DO
       END DO
@@ -970,7 +976,7 @@ C****
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,jreg,j_implm
      *     ,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
-     *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc,gmelt,egmelt
+     *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
@@ -1071,7 +1077,7 @@ C**** assume const mean tracer conc over freshwater amount
 #endif
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-
+          GTEMPR(1,I,J) = GTEMP(1,1,I,J)
         END IF
       END DO
       END DO
