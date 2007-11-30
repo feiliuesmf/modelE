@@ -87,7 +87,6 @@ sub runConfiguration {
 
     my $suffix;
     my $logFile = "$resultsDir/$expName.runlog";
-    unlink($logFile); # delete it
 
     if ($configuration eq "SERIAL" or $configuration eq "SERIALMP") {
 	$suffix = "";

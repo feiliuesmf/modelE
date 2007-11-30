@@ -47,7 +47,6 @@ close MODELERC;
 `mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR}`;
 
 my $rundecks = ["E1M20","E1oM20","E1F20","E001tr"];
-#my $rundecks = ["E1M20"];
 
 my $configurations;
 
@@ -186,9 +185,6 @@ foreach my $rundeck (@$rundecks) {
 		    my $buildLogTail = `tail -20 $resultsDir/$rundeck.$configuration.buildlog`;
 		    print LOG "\nTail of Build Log:\n";
 		    print LOG "$buildLogTail\n";
-		    my $runLogTail = `tail -20 $resultsDir/$rundeck.$configuration.runlog`;
-		    print LOG "\nTail of Run Log:\n";
-		    print LOG "$runLogTail\n";
 
 		    if ($configuration eq "SERIAL") {$newSerial = 1;}
 		    else {$consistent = 0;}
