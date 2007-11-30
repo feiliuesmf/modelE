@@ -27,7 +27,6 @@ module FV_INTERFACE_MOD
   public :: Compute_Tendencies     ! Temporarily a separate method, but will move within Run() soon.
   public :: Run                    ! Execute the FV method to integrate the core forward in time
   public :: Checkpoint             ! Unimplemented
-  public :: Restart                ! Unimplemented - should move within Initialize()
   public :: edgepressure_giss
   public :: DryTemp_GISS
   ! This data structure is o convenient entity for storing persistent data between
@@ -47,7 +46,8 @@ module FV_INTERFACE_MOD
      ! The following pointers can be re-extracted from the import state at each iteration,
      ! but it is convenient to have a simpler means of access.
      real*4, pointer, dimension(:,:,:) :: dudt, dvdt, dtdt, dpedt  ! Tendencies
-     real*4, pointer, dimension(:,:,:) :: Q  ! Tendencies
+     real*4, pointer, dimension(:,:,:) :: Q  ! Humidity
+     real*4, pointer, dimension(:,:,:) :: Qtr  ! other tracers
      real*4, pointer, dimension(:,:)   :: phis
 
 
@@ -106,15 +106,21 @@ module FV_INTERFACE_MOD
   character(len=*), parameter :: FVCORE_IMPORT_RESTART   = 'fv_import_restart.dat'
   character(len=*), parameter :: FVCORE_LAYOUT           = 'fv_layout.rc'
 
+  character(len=*), parameter :: TENDENCIES_FILE = 'tendencies_checkpoint'
+
+  integer, parameter :: FROM_OBSERVED_DATA = 2
+  integer, parameter :: FROM_LATEST_SAVE_FILE = 10
+
 contains
 
-  subroutine Initialize_fv(fv, vm, grid, clock, config_file)
+  subroutine Initialize_fv(fv, istart, vm, grid, clock, config_file)
     use resolution, only: IM, LM
     use fvdycore_gridcompmod, only: SetServices
     use GEOS_BaseMod, only: GEOS_FieldCreate
     use DOMAIN_DECOMP, only : modelE_grid => grid, get
 
     type (fv_core),    intent(inout) :: fv
+    integer,           intent(in) :: istart
     type (esmf_vm),    intent(in) :: vm
     type (esmf_grid),  intent(in) :: grid
     type (esmf_clock), intent(in) :: clock
@@ -126,7 +132,6 @@ contains
     type (ESMF_Field)                :: Qfield
     type (ESMF_Array)                :: Qarray
     type (ESMF_FieldDataMap)         :: datamap
-
 
     fv % vm  =vm
     fv % grid=grid
@@ -154,20 +159,20 @@ contains
     call ESMF_GridCompSetServices ( fv % gc, SetServices, rc )
     VERIFY_(rc)
 
-    ! Initialize component (and import/export states)
-    !  ----------------------------------------------
 
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
     ! create one based upon modelE's internal state.
-
-    call create_restart_file(fv, cf, clock)
+    call create_restart_file(fv, istart, cf, clock)
 
 !   print*,'calling fv initialize'
     call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
          & phase=ESMF_SINGLEPHASE, rc=rc )
     VERIFY_(rc)
 
+    ! Initialize component (and import/export states)
+    !  ----------------------------------------------
+    Call allocate_tendency_storage(fv, istart)
 
     call allocateFvExport3D ( fv % export,'U' )
     call allocateFvExport3D ( fv % export,'V' )
@@ -178,17 +183,20 @@ contains
     call allocateFvExport3D ( fv % export,'MFY_A' )
     call allocateFvExport3D ( fv % export,'MFZ' )
 
+
 !   print*,'called fv initialize'
 
     ! Specific Humidity - need to reserve space in FV import state
+    call ESMFL_StateGetPointerToData ( fv % export,fv % q,'Q',rc=rc)
+    VERIFY_(rc)
     Call get(modelE_grid, J_STRT=J_0, J_STOP=J_1)
-    Allocate(fv % Q(IM,J_0:J_1,LM))
+    Allocate(fv % Qtr(IM,J_0:J_1,LM))
 
-    Qarray = ESMF_ArrayCreate(fv % Q, ESMF_DATA_REF, RC=rc)
+
+    Qarray = ESMF_ArrayCreate(fv % Qtr, ESMF_DATA_REF, RC=rc)
     VERIFY_(rc)
         call ESMF_FieldDataMapSetDefault(datamap, dataRank=3, rc=rc)
     Qfield = ESMF_FieldCreate( grid, Qarray, horzRelloc=ESMF_CELL_CENTER, &
-!!$         name="Q", rc=rc)
          datamap=datamap, name="Q", rc=rc)
     VERIFY_(rc)
     ! First obtain a reference field from the state (avoids tedious details)
@@ -196,8 +204,6 @@ contains
     VERIFY_(rc)
     Call ESMF_BundleAddField(bundle, Qfield, rc=rc)
     VERIFY_(rc)
-
-    Call allocate_tendency_storage(fv)
 
     contains
 
@@ -283,14 +289,18 @@ contains
   end function DeltPressure_DryTemp_GISS
 
 
-  Subroutine allocate_tendency_storage(fv)
-    Use DOMAIN_DECOMP, only: GRID, GET
+  Subroutine allocate_tendency_storage(fv, istart)
+    Use DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT
     USE RESOLUTION, only: IM, LM, LS1
     USE MODEL_COM, only: U, V, T
+    use FILEMANAGER
     Implicit None
     Type (FV_Core) :: fv
+    integer, intent(in) :: istart
 
     Integer :: J_0H, J_1H, J_0, J_1
+    integer :: iunit
+
     Call Get(grid, J_strt_halo=J_0H, J_stop_halo=J_1H, &
          & J_STRT=J_0, J_STOP=J_1)
 
@@ -306,11 +316,6 @@ contains
     call ESMFL_StateGetPointerToData ( fv % import,fv % phis, 'PHIS', rc=rc)
     VERIFY_(rc)
 
-    fv % dudt=0
-    fv % dvdt=0
-    fv % dtdt=0
-    fv % dpedt=0
-
     ! 2) Allocate space for storing old values from which to compute tendencies
     Allocate(fv % U_old(IM,J_0:J_1,LM), &
          &   fv % V_old(IM,J_0:J_1,LM), &
@@ -318,11 +323,55 @@ contains
          &   fv % dT_old(IM,J_0:J_1,LM), &
          &   fv % PE_old(IM,J_0:J_1,LM+1))
 
-    fv % U_old = U(:,J_0:J_1,:)
-    fv % V_old = V(:,J_0:J_1,:)
-    fv % dPT_old = DeltPressure_DryTemp_GISS()
-    fv % dT_old = DryTemp_GISS()
-    fv % PE_old   = EdgePressure_GISS()
+    select case (istart)
+    case (FROM_OBSERVED_DATA)
+       ! Do a cold start.  Set Old = Current.
+       fv % dudt=0
+       fv % dvdt=0
+       fv % dtdt=0
+       fv % dpedt=0
+
+       fv % U_old = U(:,J_0:J_1,:)
+       fv % V_old = V(:,J_0:J_1,:)
+       fv % dPT_old = DeltPressure_DryTemp_GISS()
+       fv % dT_old = DryTemp_GISS()
+       fv % PE_old   = EdgePressure_GISS()
+    case (FROM_LATEST_SAVE_FILE)
+       ! input couplings are in a file somewhere and already read in
+       if (AM_I_ROOT()) call openunit(TENDENCIES_FILE, iunit, qbin=.true.,qold=.true.)
+       call readArr(iunit, fv % U_old)
+       call readArr(iunit, fv % V_old)
+       call readArr(iunit, fv % dPT_old)
+       call readArr(iunit, fv % PE_old)
+       call readArr(iunit, fv % dT_old)
+       if (AM_I_ROOT()) close(iunit)
+       call compute_tendencies(fv)
+    case default
+       call stop_model('ISTART option not supported',istart)
+    end select
+
+
+  contains
+
+    subroutine readArr(iunit, arr)
+      use resolution, only: IM, JM
+      use DOMAIN_DECOMP, only: grid, unpack_data, get
+      integer, intent(in) :: iunit
+      real*8, intent(out) :: arr(:,:,:)
+      real*8, allocatable :: padArr(:,:,:)
+      real*8, allocatable :: globalArr(:,:,:)
+
+      allocate(globalArr(IM,JM,size(arr,3)))
+      allocate(padArr(1:IM,j_0h:j_1h, size(arr,3)))
+
+      if (AM_I_ROOT()) read(iunit) globalArr
+      call unpack_data(grid, globalArr, padArr)
+      arr(:,:,:) = padArr(:,j_0:j_1,:)
+
+      deallocate(padArr)
+      deallocate(globalArr)
+
+    end subroutine readArr
 
   End Subroutine allocate_tendency_storage
 
@@ -331,8 +380,8 @@ contains
     type (esmf_clock), intent(in) :: clock
     integer :: rc
 
+    call saveTendencies(fv)
     call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc )
-
     Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
 
   end subroutine finalize
@@ -405,9 +454,11 @@ contains
 
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
+    type (ESMF_TimeInterval) :: timeInterval
 
     REAL*8, DIMENSION(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM) :: PIJL
     integer :: istep, NS, NIdyn_fv
+    integer :: rc
 
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
@@ -419,14 +470,20 @@ contains
     ! Run dycore
     NIdyn_fv = DTsrc / (DT)
     do istep = 1, NIdyn_fv
+
+       call printSnapshot(fv)
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc )
+
+       call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
+       call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
 
        call accumulate_mass_fluxes(fv)
        TMOM = 0 ! for now
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
+       call printSnapshot(fv)
     end do
 
     gz  = phi
@@ -438,12 +495,70 @@ contains
     type (esmf_clock), intent(in) :: clock
     integer :: rc
 
+    character(len=*), parameter :: SUFFIX_TEMPLATE = '.YYYYMMDD_HHMMz.bin'
+    character(len=len(SUFFIX_TEMPLATE)) :: suffix
+    Type (ESMF_Time)  :: currentTime
+    integer :: year, month, day, hour, minute, second
+
     call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, GEOS_RecordPhase, rc=rc)
+    ! Now move the file into a more useful name
+    ! 1) FV names restarts as: fvcore_internal_checkoint.YYYYMMDD_HHMMz.bin
+    call ESMF_ClockGet(clock, currTime=currentTime, rc=rc)
+    call ESMF_TimeGet(currentTime, YY=year, MM= month, &
+         DD=day, H=hour, M=minute, &
+         S=second, rc=rc)
+    write(suffix,'(".",i4.4,i2.2,i2.2,"_",i2.2,i2.2,"z.bin")'), &
+         & year, month, day, hour, minute
+    call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // FVCORE_INTERNAL_RESTART)
+!!$    call system('mv ' // TENDENCIES_FILE // suffix // ' ' // TENDENCIES_FILE)
+
+    call saveTendencies(fv)
 
   end subroutine checkpoint
 
-  subroutine restart()
-  end subroutine restart
+  subroutine saveTendencies(fv)
+    use DOMAIN_DECOMP, only: AM_I_ROOT
+    use FILEMANAGER
+    type (fv_core),    intent(inout) :: fv
+    integer :: iunit
+
+    if (AM_I_ROOT()) call openunit(TENDENCIES_FILE, iunit, qbin=.true.)
+
+    call saveArr(iunit, fv % U_old)
+    call saveArr(iunit, fv % V_old)
+    call saveArr(iunit, fv % dPT_old)
+    call saveArr(iunit, fv % PE_old)
+    call saveArr(iunit, fv % dT_old)
+
+    if (am_i_root()) close(iunit)
+
+  contains
+
+    subroutine saveArr(iunit, arr)
+      use resolution, only: IM, JM
+      use DOMAIN_DECOMP, only: grid, pack_data, get
+      integer, intent(in) :: iunit
+      real*8, intent(in) :: arr(:,:,:)
+      real*8, allocatable :: padArr(:,:,:)
+      real*8, allocatable :: globalArr(:,:,:)
+      integer :: j_0, j_1
+      integer :: j_0h, j_1h
+
+      Call Get(grid, j_strt=j_0, j_stop=j_1, &
+           & j_strt_halo = j_0h, j_stop_halo = j_1h)
+      allocate(globalArr(IM,JM,size(arr,3)))
+      allocate(padArr(1:IM,j_0h:j_1h, size(arr,3)))
+      
+      padArr(:,j_0:j_1,:) = arr(:,:,:)
+      call pack_data(grid, padArr, globalArr)
+      if (AM_I_ROOT()) write(iunit) globalArr
+
+      deallocate(padArr)
+      deallocate(globalArr)
+
+    end subroutine saveArr
+
+  end subroutine saveTendencies
 
   !----------------------------
   !  Internal routines
@@ -507,9 +622,12 @@ contains
     VERIFY_(rc)
 
     call openunit(config_file, iunit, qbin=.false., qold=.false.)
-    write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE: ', FVCORE_INTERNAL_RESTART
-    write(iunit,*)'FVCORE_LAYOUT_FILE:           ', FVCORE_LAYOUT
-    write(iunit,*)'RUN_DT:                       ', DT
+    write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
+    write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
+!!$    write(iunit,*)'FVCORE_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
+!!$    write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
+    write(iunit,*)'FVCORE_LAYOUT_FILE:               ', FVCORE_LAYOUT
+    write(iunit,*)'RUN_DT:                           ', DT
     close(iunit)
 
     call esmf_configloadfile(config, config_file, rc=rc)
@@ -518,7 +636,7 @@ contains
   end function load_configuration
   !----------------------------
 
-  Subroutine Create_Restart_File(fv, cf, clock)
+  Subroutine Create_Restart_File(fv, istart, cf, clock)
     USE DOMAIN_DECOMP, ONLY: GRID, GET, AM_I_ROOT
     Use GEOS_IOMod, only: GETFILE, Free_file, GEOS_VarWrite, Write_parallel
     USE RESOLUTION, only: IM, JM, LM, LS1
@@ -528,6 +646,7 @@ contains
     Use Constant, only: omega, radius, grav, rgas, kapa, deltx
 
     Type (FV_Core), Intent(InOut) :: fv
+    integer, intent(in) :: istart
     Type (ESMF_Config), Intent(InOut) :: cf
     Type (ESMF_Clock),  Intent(In) :: clock
 
@@ -544,6 +663,7 @@ contains
     real*8, allocatable, dimension(:,:,:) :: V_d
     real*8, allocatable, dimension(:,:,:) :: PE, PKZ, PT
 
+
     ! 1) Create layout resource file - independent of actual restart file.
     If (AM_I_ROOT()) Then
        Call Write_Layout(FVCORE_LAYOUT, fv)
@@ -552,69 +672,90 @@ contains
     Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
 
-    inquire(file=rst_file,EXIST=exist)
-    if (exist) then
-       if (AM_I_ROOT()) Then
-          print*,'Apparently a restart file for FV already exists: ',trim(rst_file)
-          print*,'Returning to main program'
-          print*,' '
+    ! Check to see if restart file already exists
+    print*,'Looking for an FV restart ...',istart
+    select case (istart)
+    case (FROM_LATEST_SAVE_FILE)
+       inquire(file=FVCORE_INTERNAL_RESTART, EXIST=exist)
+       if (exist) then
+          if (AM_I_ROOT()) then
+             print*,'Using checkpoint file: ',FVCORE_INTERNAL_RESTART
+          end if
+          return
        end if
+    case (FROM_OBSERVED_DATA)
+       ! Forcing creation of FV restart from GISS data for now
+!!$       ! possibly exists from somewhere else?
+!!$       inquire(file=rst_file,EXIST=exist)
+!!$       if (exist) then
+!!$          if (AM_I_ROOT()) Then
+!!$             print*,'Apparently a restart file for FV already exists: ',trim(rst_file)
+!!$             print*,'Returning to main program'
+!!$             print*,' '
+!!$          end if
+!!$          return
+!!$       end if
+    case default
+       ! Uh oh
+       call stop_model('ISTART value not supported for FV restart.',ISTART)
        return
-    end if
+    end select
+
+    ! If we got to here, then this means then we'll have to create a restart file
+    ! from scratch.
     unit = GetFile(rst_file, form="unformatted", rc=rc)
     VERIFY_(rc)
-
+    
     ! 1) Start date
     Call write_start_date(clock, unit)
-
+    
     ! 2) Grid size
     Call WRITE_PARALLEL( (/ IM, JM, LM, LS1-1, N_TRACERS /), unit )
-
+    
     ! 3) Pressure coordinates
     ! Keep in mind that L is reversed between these two models
-
+    
     Call Compute_ak_bk(ak, bk, sige, Ptop, PSFMPT, unit)
     Call WRITE_PARALLEL( ak, unit)
     Call WRITE_PARALLEL( bk, unit)
-
+    
     Call GET(grid, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
-
+    
     ! 4) 3D fields velocities
-      Allocate(U_d(IM, J_0:J_1, LM))
-      Allocate(V_d(IM, J_0:J_1, LM))
-
-      write(*,*)'Calling ComputeRestartVelocities()'
-      Call ComputeRestartVelocities(unit, grid, U, V, U_d, V_d)
-
+    Allocate(U_d(IM, J_0:J_1, LM))
+    Allocate(V_d(IM, J_0:J_1, LM))
+    
+    write(*,*)'Calling ComputeRestartVelocities()'
+    Call ComputeRestartVelocities(unit, grid, U, V, U_d, V_d)
+    
 !!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
-      
-      Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(:,J_0:J_1,:))
-      Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(:,J_0:J_1,:))
-
-      Deallocate(V_d)
-      Deallocate(U_d)
-
+    
+    Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(:,J_0:J_1,:))
+    Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(:,J_0:J_1,:))
+    
+    Deallocate(V_d)
+    Deallocate(U_d)
+    
     ! Compute potential temperature from modelE (1 mb -> 1 pa ref)
-      Allocate(PT(IM, J_0:J_1, LM))
-     Call ConvertPotTemp_GISS2FV(VirtualTemp(T(:,J_0:J_1,:), Q(:,J_0:J_1,:)), PT)
-      Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
-      Deallocate(PT)
-
+    Allocate(PT(IM, J_0:J_1, LM))
+    Call ConvertPotTemp_GISS2FV(VirtualTemp(T(:,J_0:J_1,:), Q(:,J_0:J_1,:)), PT)
+    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
+    Deallocate(PT)
+    
     ! Compute PE, PKZ from modelE
-      Allocate(PKZ(IM, J_0:J_1, LM))
-      Allocate(PE(IM, J_0:J_1, LM+1))
+    Allocate(PKZ(IM, J_0:J_1, LM))
+    Allocate(PE(IM, J_0:J_1, LM+1))
     Call ComputePressureLevels(unit, grid, VirtualTemp(T, Q), P, SIG, SIGE, Ptop, KAPA, PE, PKZ )
-
-      Call GEOS_VarWrite(unit, grid % ESMF_GRID, PE)
-      Call GEOS_VarWrite(unit, grid % ESMF_GRID, PKZ)
-
-      Deallocate(PE)
-      Deallocate(PKZ)
-
+    
+    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PE)
+    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PKZ)
+    
+    Deallocate(PE)
+    Deallocate(PKZ)
+    
     Call Free_File(unit)
-
+          
   CONTAINS
-
 
     ! Computes virtual pot. temp. from pot. temp. and specific humidity
     !------------------------------------------------------------------
@@ -1435,6 +1576,28 @@ contains
     end do
   end subroutine set_zonal_flow
 
+  subroutine printSnapshot(fv)
+    use MODEL_COM, only: U, V, T, Q, P
+    type (fv_core) :: fv
+    integer, save :: counter = 0
+
+    counter = counter + 1
+    write(40,*)'Iteration: ',counter
+    write(40,*)'U : ', U(4, 3, 3)
+    write(40,*)'V : ', V(4, 3, 3)
+    write(40,*)'T : ', T(4, 3, 3)
+    write(40,*)'Q : ', Q(4, 3, 3)
+    write(40,*)'P : ', P(4, 3)
+    write(40,*)'dudt  : ', fv % dudt(4, 3, 3), sum(fv% dudt)
+    write(40,*)'dvdt  : ', fv % dvdt(4, 3, 3), sum(fv% dvdt)
+    write(40,*)'dtdt  : ', fv % dtdt(4, 3, 3), sum(fv% dtdt)
+    write(40,*)'dpedt : ', fv % dpedt(4, 3, 14), sum(fv% dpedt)
+    write(40,*)'Q     : ', fv % q(4, 3, 3)
+    write(40,*)'PHIS  : ', fv % phis(4, 3)
+    write(40,*)'*******'
+    write(40,*)' '
+  end subroutine printSnapshot
+
 end module FV_INTERFACE_MOD
 
 !----------------------------------------------------------------
@@ -1611,5 +1774,6 @@ contains
     end subroutine write_avg
 
   end subroutine write_dynamics_state
+
 
 end module dynamics_save
