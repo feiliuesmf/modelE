@@ -14,6 +14,9 @@ c *****************************************************************
       REAL*4, DIMENSION(IM,JM,LM) :: u1,v1,u2,v2
       REAL*4, DIMENSION(IM,JM-1,nlevnc) :: UN1,VN1,UN2,VN2
       REAL*4, DIMENSION(nlevnc) :: pl
+      REAL*8, DIMENSION(IM,JM,LM) :: u18,v18,u28,v28
+      REAL*8, DIMENSION(IM,JM,LM) :: UN18,VN18,UN28,VN28
+      REAL*8, DIMENSION(LM) :: pl8
 !@var netcdf integer
       INTEGER :: ncidu,ncidv,uid,vid,plid
       INTEGER :: step_rea=1,zirk=0
@@ -21,7 +24,6 @@ c *****************************************************************
       REAL*8 :: tau
 !@param  anudgeu anudgev relaxation constant
       REAL*8 :: anudgeu = 0., anudgev = 0.
-      LOGICAL :: first = .true.
 
       END MODULE NUDGE_COM
 
@@ -128,13 +130,12 @@ c -----------------------------------------------------------------
 
         endif  ! step = 1460
 C-----------------------------------------------------------------------
-      if (first .or. mod(itime,nday/4).eq.0.) then
+      if (mod(itime,nday/4).eq.0.) then
            vn1(:,:,:) = vn2(:,:,:)
            un1(:,:,:) = un2(:,:,:)
            step_rea = INT( (((jday - 1) * 24) + jhour)/6) + 2
             if (step_rea.eq.1461.) step_rea = 1
            call read_ana(step_rea)
-           first=.false.
       endif
 C-----------------------------------------------------------------------
       tau  = mod(itime,nday/4)/float(nday/4)
@@ -251,6 +252,7 @@ c******************************************************************
 !@auth Susanne
 !@ver
       USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
+     &                      ,itime,itimei
       USE NUDGE_COM
       USE PARAM
       IMPLICIT NONE
@@ -261,6 +263,13 @@ c******************************************************************
 C**** Rundeck parameters:
       call sync_param( "ANUDGEU", ANUDGEU )
       call sync_param( "ANUDGEV", ANUDGEV )
+
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      IF(Itime == ItimeI) THEN  
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
 c -----------------------------------------------------------------
 c   Initialisation of the files to be read
 c -----------------------------------------------------------------
@@ -274,6 +283,13 @@ C-----------------------------------------------------------------------
       if (step_rea.eq.1460.) then
             zirk = jyear - iyear1 + 1
       endif
+
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      ENDIF                      
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
 c -----------------------------------------------------------------
 c   Opening of the files to be read
 c -----------------------------------------------------------------
@@ -290,6 +306,12 @@ c -----------------------------------------------------------------
             status=NF_INQ_VARID(ncidu,'level',plid)
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
             status=NF_INQ_VARID(ncidv,'vwnd',vid)
+
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      IF(Itime == ItimeI) THEN   
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 C------------------------------------------------------------------
 c -----------------------------------------------------------------
@@ -313,8 +335,79 @@ c -----------------------------------------------------------------
       status=NF_GET_VARA_REAL(ncidu,uid,start,count,un2)
       status=NF_GET_VARA_REAL(ncidv,vid,start,count,vn2)
 
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+      ENDIF 
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+C $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
       return
       end subroutine nudge_init
 
 
 c -----------------------------------------------------------------
+
+
+      subroutine io_nudge(kunit,iaction,ioerr)
+!@sum  io_nudge reads and writes met-nuding arrays to file
+!@auth G. Faluvegi
+!@ver  1.0
+! note that the nudging was never updated for MPI/ESMF, so for the
+! moment neither is this routine. This was just put in to try and
+! fix an irreproducibility issue when nudging is on.
+      use model_com, only : ioread,iowrite
+      use model_com, only : im,jm
+      use domain_decomp, only : grid, am_i_root
+      use domain_decomp, only : pack_data, unpack_data
+      use nudge_com
+      implicit none
+
+      integer kunit   !@var kunit unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+!@var ioerr 1 (or -1) if there is (or is not) an error in i/o
+      integer, intent(inout) :: ioerr
+
+      select case (iaction)
+
+      case (:iowrite)            ! output to standard restart file
+      
+        u18(:,:,:)=dble(u1(:,:,:))
+        u28(:,:,:)=dble(u2(:,:,:))
+        v18(:,:,:)=dble(v1(:,:,:))
+        v28(:,:,:)=dble(v2(:,:,:))
+        un18(:,:,:)=0.d0
+        un18(:,1:JM-1,1:nlevnc)=dble(un1(:,1:JM-1,1:nlevnc))
+        un28(:,:,:)=0.d0
+        un28(:,1:JM-1,1:nlevnc)=dble(un2(:,1:JM-1,1:nlevnc))
+        vn18(:,:,:)=0.d0
+        vn18(:,1:JM-1,1:nlevnc)=dble(vn1(:,1:JM-1,1:nlevnc))
+        vn28(:,:,:)=0.d0
+        vn28(:,1:JM-1,1:nlevnc)=dble(vn2(:,1:JM-1,1:nlevnc))
+        pl8(:)=0.d0
+        pl8(1:nlevnc)=dble(pl(1:nlevnc))
+
+        write (kunit,err=10) u18,u28,v18,v28,un18,un28,vn18,vn28,pl8,
+     &  zirk,step_rea,ncidu,ncidv,plid,uid,vid,tau
+
+      case (ioread:)            ! input from restart file
+
+        read (kunit,err=10)  u18,u28,v18,v28,un18,un28,vn18,vn28,pl8,
+     &  zirk,step_rea,ncidu,ncidv,plid,uid,vid,tau
+
+        u1(:,:,:)=sngl(u18(:,:,:))
+        u2(:,:,:)=sngl(u28(:,:,:))
+        v1(:,:,:)=sngl(v18(:,:,:))
+        v2(:,:,:)=sngl(v28(:,:,:))
+        un1(:,1:JM-1,1:nlevnc)=sngl(un18(:,1:JM-1,1:nlevnc))
+        un2(:,1:JM-1,1:nlevnc)=sngl(un28(:,1:JM-1,1:nlevnc))
+        vn1(:,1:JM-1,1:nlevnc)=sngl(vn18(:,1:JM-1,1:nlevnc))
+        vn2(:,1:JM-1,1:nlevnc)=sngl(vn28(:,1:JM-1,1:nlevnc))
+        pl(1:nlevnc)=sngl(pl8(1:nlevnc))
+
+      end select
+
+      return
+ 10   ioerr=1
+
+      return
+      end subroutine io_nudge
