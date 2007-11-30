@@ -46,8 +46,8 @@ close MODELERC;
 
 `mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR}`;
 
-#my $rundecks = ["E1M20","E1oM20","E1F20","E001tr"];
-my $rundecks = ["E1M20"];
+my $rundecks = ["E1M20","E1oM20","E1F20","E001tr"];
+#my $rundecks = ["E1M20"];
 
 my $configurations;
 
