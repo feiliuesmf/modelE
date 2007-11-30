@@ -46,7 +46,8 @@ close MODELERC;
 
 `mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR}`;
 
-my $rundecks = ["E1M20","E1oM20","E1F20","E001tr"];
+#my $rundecks = ["E1M20","E1oM20","E1F20","E001tr"];
+my $rundecks = ["E1M20"];
 
 my $configurations;
 
@@ -173,9 +174,22 @@ foreach my $rundeck (@$rundecks) {
 		chomp($numLinesFound);
 
 		my $lineRange = $LINES_EXPECTED -> {$rundeck};
+		my $lineMin = $lineRange -> [0];
+		my $lineMax = $lineRange -> [1];
+		print REPORT "Rundeck $rundeck ($configuration, $duration). \n";
 		if ($numLinesFound <  ($lineRange -> [0]) or $numLinesFound > ($lineRange -> [1])) {
 		    print REPORT "Rundeck $rundeck ($configuration, $duration) failed on $npes processors.\n";
-		    print LOG "failed (found $numLinesFound <>= @$lineRange) ";
+		    print LOG "failed (found $lineMin < $numLinesFound < $lineMax) \n";
+		    my $resultsDir = $env{RESULTS_DIRECTORY};
+		    my $mess = `cd $resultsDir; $cmp $reference.$duration $rundeck.$configuration.$duration$suffix | head -100`;
+		    print LOG "$mess\n";
+		    my $buildLogTail = `tail -20 $resultsDir/$rundeck.$configuration.buildlog`;
+		    print LOG "\nTail of Build Log:\n";
+		    print LOG "$buildLogTail\n";
+		    my $runLogTail = `tail -20 $resultsDir/$rundeck.$configuration.runlog`;
+		    print LOG "\nTail of Run Log:\n";
+		    print LOG "$runLogTail\n";
+
 		    if ($configuration eq "SERIAL") {$newSerial = 1;}
 		    else {$consistent = 0;}
 		}

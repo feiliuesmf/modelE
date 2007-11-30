@@ -51,6 +51,9 @@ sub compileRundeck {
   if (@_) {$expName = shift}
   else {$expName = "$rundeck.$configuration"};
 
+  my $logFile = "$resultsDir/$expName.buildlog";
+  unlink($logFile); # delete it
+
   my $commandString = <<EOF;
   export MODELERC;
   cd $installDir/decks;
@@ -66,7 +69,7 @@ EOF
     $commandString .= "cp $binDir/CMPE002 $resultsDir/CMPE002.$rundeck;\n";
   }
 
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "datamove", STDOUT_LOG_FILE => "$resultsDir/$expName.buildlog"}));
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "datamove", STDOUT_LOG_FILE => "$logFile"}));
 }
 
 sub runConfiguration {
@@ -83,6 +86,9 @@ sub runConfiguration {
     my $expName = "$rundeck.$configuration";
 
     my $suffix;
+    my $logFile = "$resultsDir/$expName.runlog";
+    unlink($logFile); # delete it
+
     if ($configuration eq "SERIAL" or $configuration eq "SERIALMP") {
 	$suffix = "";
     }
@@ -107,7 +113,7 @@ sub runConfiguration {
     rm $resultsDir/$expName.1dy$suffix;
     cp fort.2 $resultsDir/$expName.1dy$suffix;
 EOF
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$resultsDir/$expName.runlog", NUM_PROCS => $npes}));
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes}));
 }
 
 sub runSetup {
