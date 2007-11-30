@@ -143,7 +143,7 @@ C****
 C**** Initialize FV dynamical core (ESMF component) if requested
 C****
 #ifdef USE_FVCORE
-      Call Initialize(fv, vm, grid%esmf_grid, clock,fv_config)
+      Call Initialize(fv, istart, vm, grid%esmf_grid, clock,fv_config)
 #endif
 
       if (AM_I_ROOT())
@@ -248,7 +248,6 @@ C**** Initialise total energy (J/m^2)
       ! Using FV instead
          IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
       call Run(fv, clock)
-
 
       CALL SDRAG (DTsrc)
          if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
