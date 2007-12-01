@@ -21,10 +21,10 @@ module SparseCommunicator_mod
       private
       integer :: mpiCommmunicator
       integer :: mpiRank
-      integer, allocatable :: mpiCounts(:)
-      integer, allocatable :: mpiDispls(:)
-      integer, allocatable :: localOffsets(:)
-      integer, allocatable :: globalOffsets(:)
+      integer, pointer :: mpiCounts(:)
+      integer, pointer :: mpiDispls(:)
+      integer, pointer :: localOffsets(:)
+      integer, pointer :: globalOffsets(:)
    end type SparseCommunicator_type
 
    integer, parameter :: NOT_FOUND = -1
