@@ -28,6 +28,8 @@
       public ent_cell_print
       public ent_initialize
 
+      public ent_set_forcings_single
+
       type entcelltype_public
         private
         type(entcelltype), pointer :: entcell
