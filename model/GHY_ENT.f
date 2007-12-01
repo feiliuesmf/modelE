@@ -164,7 +164,7 @@ ccc   private accumulators:
 ccc   input fluxes
       real*8, public :: pr,htpr,prs,htprs,srht,trht
 ccc   input bc''s
-      real*8, public :: ts,qs,pres,rho,vsm,ch,qm1
+      real*8, public :: ts,qs,pres,rho,ch,qm1,vs,vs0,tprime,qprime
 !@var dt earth time step (s)
       real*8, public :: dt
 
@@ -308,13 +308,13 @@ ccc data for tracers
 #ifdef TRACERS_WATER
 ccc should be passed from elsewhere
 !@var ntgm maximal number of tracers that can by passesd to HGY
-      integer, parameter, public :: ntgm = 3
+      integer, parameter, public :: ntgm = ntm
 !@var ntg actual number of tracers passed to ground hydrology
       integer, public :: ntg
 !@var trpr flux of tracers in precipitation (?/m^2 s)
 !@var tr_w amount of tracers in the soil (?)
 !@var tr_wsn amount of tracers in the snow (?)
-      real*8, public :: trpr(ntgm), tr_surf(ntgm),
+      real*8, public :: trpr(ntgm), trdd(ntgm), tr_surf(ntgm),
      &     tr_w(ntgm,0:ngm,2), tr_wsn(ntgm,nlsn,2)
 ccc tracers output:
 !@var tr_evap flux of tracers to atm due to evaporation (?/m^2 s)
@@ -352,15 +352,16 @@ C***
      &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
      &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
      &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
-     &     ,top_index,top_stdev,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk
+     &     ,top_index,top_stdev,tp,trht,ts,tsn1,w,ws,wsn,xinfc,xk
      &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
+     &     ,vs,vs0,tprime,qprime
 
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
-     &     ,trpr, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
+     &     ,trpr,trdd, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
      &     ,atr_evap,atr_rnff,atr_g
 #endif
 c     not sure if it works with derived type. if not - comment the
@@ -713,11 +714,12 @@ ccc   local variables
       !real*8 betadl(ngm) ! used in evaps_limits only
       real*8 pot_evap_can
 !!!      real*8 cnc         ! local cnc from veg_conductance, nyk
+      real*8 v_qprime    ! local variable
 #ifdef EVAP_VEG_GROUND
       real*8 evap_max_vegsoil
 #endif
 c     cna is the conductance of the atmosphere
-      cna=ch*vsm
+      cna=ch*vs
       rho3=rho/rhow ! i.e divide by rho_water to get flux in m/s
 
 ccc make sure that important vars are initialized (needed for ibv hack)
@@ -817,7 +819,10 @@ c     fr(k) is the fraction of roots in layer k
         acna=cna                ! return to old diagnostics
         acnc=cnc                ! return to old diagnostics
 !        agpp=gpp                !nyk 4/25/03.  Put in subroutine accm.
-        pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+c       pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+        pot_evap_can = betat*rho3*ch*(
+     &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+     &                 -(vs-vs0)*qprime)
         evap_max_dry(ibv) = 0.d0
         if ( betad > 0.d0 .and. pot_evap_can > 0.d0 ) then
           do k=1,n
@@ -878,12 +883,19 @@ c     calculate bare soil, canopy and snow mixing ratios
 #endif
 
 c     potential evaporation for bare and vegetated soil and snow
-      epb  = rho3*cna*(qb-qs)
-      epbs = rho3*cna*(qbs-qs)
-      epv  = rho3*cna*(qv-qs)
-      epvs = rho3*cna*(qvs-qs)
+c     epb  = rho3*cna*(qb-qs)
+c     epbs = rho3*cna*(qbs-qs)
+c     epv  = rho3*cna*(qv-qs)
+c     epvs = rho3*cna*(qvs-qs)
+      v_qprime=(vs-vs0)*qprime
+      epb  = rho3*ch*( vs*(qb-qs) -v_qprime )
+      epbs = rho3*ch*( vs*(qbs-qs)-v_qprime )
+      epv  = rho3*ch*( vs*(qv-qs) -v_qprime )
+      epvs = rho3*ch*( vs*(qvs-qs)-v_qprime )
+
 #ifdef EVAP_VEG_GROUND
-      epvg  = rho3*cna*(qvg-qs) ! actually not correct !
+c     epvg  = rho3*cna*(qvg-qs) ! actually not correct !
+      epvg  = rho3*ch*( vs*(qvg-qs)-v_qprime )
 #endif
 
 c     bare soil evaporation
@@ -947,13 +959,25 @@ cccccccccccccccccccccccccccccccccccccccc
       subroutine sensible_heat
 !@sum computes sensible heat for bare/vegetated soil and snow
       implicit none
-      real*8 cna
+      real*8 cna,v_tprime
 
-      cna=ch*vsm
-      snsh(1)=sha*rho*cna*(tp(1,1)-ts+tfrz)     ! bare soil
-      snsh(2)=sha*rho*cna*(tp(0,2)-ts+tfrz)     ! canopy
-      snshs(1) = sha*rho*cna*(tsn1(1)-ts+tfrz)  ! bare soil snow
-      snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)  ! canopy snow
+c     cna=ch*vs
+c     snsh(1)=sha*rho*cna*(tp(1,1)-ts+tfrz)     ! bare soil
+c     snsh(2)=sha*rho*cna*(tp(0,2)-ts+tfrz)     ! canopy
+c     snshs(1) = sha*rho*cna*(tsn1(1)-ts+tfrz)  ! bare soil snow
+c     snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)  ! canopy snow
+c     dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
+
+      cna=ch*vs
+      v_tprime=(vs-vs0)*tprime
+      snsh(1)=sha*rho*ch*(vs*(tp(1,1)-ts+tfrz)-v_tprime)
+                                                ! bare soil
+      snsh(2)=sha*rho*ch*(vs*(tp(0,2)-ts+tfrz)-v_tprime)
+                                                ! canopy
+      snshs(1)=sha*rho*ch*(vs*(tsn1(1)-ts+tfrz)-v_tprime)
+                                                ! bare soil snow
+      snshs(2)=sha*rho*ch*(vs*(tsn1(2)-ts+tfrz)-v_tprime)
+                                                 ! canopy snow
       dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
 
       end subroutine sensible_heat
@@ -965,7 +989,7 @@ c**** obtains qs by successive approximation.
 c**** calculates evaporation.
 c**** input:
 c**** ch - heat conductivity coefficient from ground to surface
-c**** vsm - surface layer wind speed, m s-1
+c**** vs - surface layer wind speed, m s-1
 c**** rho - air density, kg m-3
 c**** eddy - transfer coefficient from surface to first atmosphere
 c**** theta - water saturation of layers and canopy
@@ -1685,7 +1709,7 @@ c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       !use vegetation, only: update_veg_locals
-      use ent_mod, only: entcelltype_public, ent_set_forcings,
+      use ent_mod, only: entcelltype_public, ent_set_forcings_single,
      &     ent_get_exports, ent_fast_processes
 !@var longi,latj corresponding coordinate of the cell
       type(entcelltype_public) entcell
@@ -1693,7 +1717,7 @@ c**** soils28   common block     9/25/90
       real*8 dtm,tb0,tc0,dtr,tot_w1
       integer limit,nit
       real*8 dum1, dum2, dumrad
-      real*8 :: no_data = -1.d30
+      real*8 :: no_data(1) = -1.d30
 
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
@@ -1756,20 +1780,21 @@ ccc accm0 was not called here in older version - check
 
         if ( process_vege ) then
 
-          call ent_set_forcings( entcell,
+          call ent_set_forcings_single( entcell,
+     &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
      &         canopy_air_humidity=qsat(tp(0,2),lhe,pres),
      &         surf_pressure=pres,
-     &         surf_CO2=Ca,
+     &         surf_CO2=Ca, fol_CO2=1.d30,
  !    &       precip=pr,
      &         heat_transfer_coef=ch,
-     &         wind_speed=vsm,
+     &         wind_speed=vs,
      &         total_visible_rad=vis_rad,
      &         direct_visible_rad=direct_vis_rad,
      &         cos_solar_zenith_angle=cosz1,
  !    &         soil_water=w(1:ngm,2),
-     &         soil_temp30cm=no_data,
-     &         soil_moist30cm=no_data,
+     &         soil_temp=no_data,
+     &         soil_moist=no_data,
      &         soil_matric_pot=h(1:ngm,2),
      &         soil_ice_fraction=fice(1:ngm,2) 
      &         )
@@ -1783,7 +1808,7 @@ ccc unpack necessary data
      &         canopy_conductance=cnc,
      &         beta_soil_layers=betadl,
      &         shortwave_transmit=TRANS_SW,
-     &         foliage_CO2=Ci,
+     &         leafinternal_CO2=Ci,
      &         foliage_humidity=Qf,
      &         canopy_gpp=GPP
      &         )
@@ -2030,10 +2055,12 @@ c**** calculation of penman value of potential evaporation, aepp
 c     h0=-atrg/dt+srht+trht
 ccc   h0=-thrm(2)+srht+trht
       el0=elh*1d-3
-      cpfac=sha*rho * ch*vsm
+      ! cpfac=sha*rho * ch*vs
       qsats=qsat(ts,lhe,pres)
       dqdt = dqsatdt(ts,lhe)*qsats
-      epen=(dqdt*h0+cpfac*(qsats-qs))/(el0*dqdt+sha)
+      ! epen=(dqdt*h0+cpfac*(qsats-qs))/(el0*dqdt+sha)
+      epen=(dqdt*h0+sha*rho*ch*
+     &      ( vs*(qsats-qs)-(vs-vs0)*qprime ))/(el0*dqdt+sha)
       aepp=epen*dt
       abetap=1.d0
       if (aepp.gt.0.d0) abetap=(aevapw+aevapd+aevapb)/aepp
@@ -2125,7 +2152,7 @@ c****
 c**** finally, calculate max time step for top layer bare soil
 c**** and canopy interaction with surface layer.
 c**** use timestep based on coefficient of drag
-      cna=ch*vsm
+      cna=ch*vs
       rho3=.001d0*rho
       betas(1:2) = 1.d0 ! it''s an overkill but it makes the things
                         ! simpler.
@@ -2194,7 +2221,7 @@ cc    write(ichn,1021)
       write(ichn,1023)'j= ',mod(ijdebug,1000),
      *     'snowf= ',drips(1),'tg= ',0.d0-tfrz,'qs= ',qs
       write(ichn,1043)'t1= ',0.d0-tfrz,'vg= ',0.d0,'ch= ',ch
-      write(ichn,1044)'vsm= ',vsm
+      write(ichn,1044)'vs= ',vs
       write(ichn,1022)
       write(ichn,1021)
       write(ichn,1014)'bare soil   fb = ',fb
@@ -2550,6 +2577,31 @@ ccc (to make the data compatible with snow model)
       end subroutine check_wc
 
 
+      subroutine ghy_tracers_drydep
+!@sum applies dry deposit flux to tracers in upper layers of
+!@+   canopy, soil and snow
+ccc input from outside:
+ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
+!@var m number of tracers (=ntg)
+      integer m
+
+      m = ntg
+
+      if ( process_vege ) then
+        ! +drydep
+        tr_w(:m,0,2) = tr_w(:m,0,2) + trdd(:m)*(1-fm*fr_snow(2))*dts
+        tr_wsn(:m,1,2) = tr_wsn(:m,1,2) + trdd(:m)*fm*fr_snow(2)*dts
+      endif
+
+      if ( process_bare ) then
+        ! +drydep
+        tr_w(:m,1,1) = tr_w(:m,1,1) + trdd(:m)*(1-fr_snow(1))*dts
+        tr_wsn(:m,1,1) = tr_wsn(:m,1,1) + trdd(:m)*fr_snow(1)*dts
+      endif
+
+      end subroutine ghy_tracers_drydep
+
+
       subroutine ghy_tracers
 ccc will need the following data from GHY:
 ccc rnff(k,ibv) - underground runoff fro layers 1:n
@@ -2568,6 +2620,7 @@ ccc 3. propagate them through the soil
 ccc input from outside:
 ccc pr - precipitation (m/s) ~ (10^3 kg /m^2 /s)
 ccc trpr(ntgm) - flux of tracers (kg /m^2 /s)
+ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
 ccc tr_surf(ntgm) - surface concentration of tracers (kg/m^3 H2O)
 
 ccc **************************************************
@@ -2585,7 +2638,7 @@ ccc internal vars:
 !@var flux_snow_tot water flux between snow layers * fr_snow (m/s)
       real*8 flux_snow_tot(0:nlsn,2)
 !@var flux_dt amount of water moved in current context (m)
-      real*8 flux_dt, err, evap_tmp(ntgm)
+      real*8 flux_dt, err, evap_tmp(ntgm), flux_dtm(ntgm)
       integer ibv,i
 !@var m = ntg number of ground tracers (to make notations shorter)
       integer m,mc
@@ -2593,6 +2646,8 @@ ccc internal vars:
 #ifdef TRACERS_SPECIAL_O18
       real*8, external :: fracvl
 #endif
+!@var tol error tolerance for each type of tracer
+      real*8 tol(ntg)
 
 ccc for debug
       real*8 tr_w_o(ntgm,0:ngm,2), tr_wsn_o(ntgm,nlsn,2)
@@ -2601,6 +2656,15 @@ ccc for debug
 
       !m = 2 !!! testing
       m = ntg
+
+ccc set error tolerance for each time of tracer (can be increased
+ccc if model stops due to round-off error)
+      do mc=1,m
+         tol(mc) = ( sum(tr_w(mc,:,:))/(size(tr_w,2)*size(tr_w,3))
+     &       +   sum(tr_wsn(mc,:,:))/(size(tr_wsn,2)*size(tr_wsn,3))
+     &       + trpr(mc)*dts + trdd(mc)*dts + tr_surf(mc)*1.d-8*dts )
+     &       *1.d-10 + 1.d-32
+      enddo
 
 !!! for test only
 !      trpr(:) = .5d0 * pr
@@ -2645,6 +2709,10 @@ ccc reset accumulators to 0
       tr_evap(:m,1:2) = 0.d0
       tr_rnff(:m,1:2) = 0.d0
 
+ccc apply dry deposit tracers here (may need to be removed outside
+ccc but will keep it here for now for compatibility with conservation tests
+      call ghy_tracers_drydep
+
 ccc canopy
       tr_wcc(:m,:) = 0.d0
  !!!test
@@ -2658,24 +2726,29 @@ ccc canopy
         call check_wc(tr_wcc(1,2))
 
       ! +- evap
+      !gg if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
+      evap_tmp(:m) = 0.d0
+      forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &     evap_tmp(mc) = fc(0)+pr
       if ( evapvw >= 0.d0 ) then  ! no dew
-        evap_tmp(:m) = fc(0)+pr
+        !!!evap_tmp(:m) = fc(0)+pr
 #ifdef TRACERS_SPECIAL_O18
         if ( evap_tmp(1)*dts < wi(0,2) .and. tp(0,2) > 0.d0 ) then
           do mc=1,m
 ccc loops...
-            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(0,2),ntixw(mc))
+            evap_tmp(mc) = evap_tmp(mc) * fracvl(tp(0,2),ntixw(mc))
           enddo
         endif
 #endif
         tr_evap(:m,2) = tr_evap(:m,2) + evap_tmp(:m)*tr_wcc(:m,2)
         tr_w(:m,0,2) = tr_w(:m,0,2) - evap_tmp(:m)*tr_wcc(:m,2)*dts
       else  ! dew adds tr_surf to canopy
-        tr_evap(:m,2) = tr_evap(:m,2) + (fc(0)+pr)*tr_surf(:m)
-        tr_w(:m,0,2) = tr_w(:m,0,2) - (fc(0)+pr)*tr_surf(:m)*dts
+        tr_evap(:m,2) = tr_evap(:m,2) + evap_tmp(:m)*tr_surf(:m)
+        tr_w(:m,0,2) = tr_w(:m,0,2) - evap_tmp(:m)*tr_surf(:m)*dts
         wi(0,2) = wi(0,2) - (fc(0)+pr)*dts
         tr_wcc(:m,2) = tr_w(:m,0,2)/wi(0,2)
       endif
+      !gg end if
       call check_wc(tr_wcc(1,2))
 
       ! -drip
@@ -2692,18 +2765,28 @@ ccc snow
       tr_wsnc(:m,:,:) = 0.d0 !!! was 1000
 
       ! dew
+      !gg if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
+
       if ( process_bare .and. evapbs < 0.d0 ) then
         flux_dt = - evapbs*fr_snow(1)*dts
-        tr_evap(:m,1) = tr_evap(:m,1) - flux_dt/dts*tr_surf(:m)
-        tr_wsn(:m,1,1) = tr_wsn(:m,1,1) + flux_dt*tr_surf(:m)
+        flux_dtm(:m) = 0.d0
+        forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &       flux_dtm(mc) = flux_dt
+        tr_evap(:m,1) = tr_evap(:m,1) - flux_dtm(:m)/dts*tr_surf(:m)
+        tr_wsn(:m,1,1) = tr_wsn(:m,1,1) + flux_dtm(:m)*tr_surf(:m)
         wsni(1,1) = wsni(1,1) + flux_dt
       endif
       if ( process_vege .and. evapvs < 0.d0 ) then
         flux_dt = - evapvs*fm*fr_snow(2)*dts
-        tr_evap(:m,2) = tr_evap(:m,2) - flux_dt/dts*tr_surf(:m)
-        tr_wsn(:m,1,2) = tr_wsn(:m,1,2) + flux_dt*tr_surf(:m)
+        flux_dtm(:m) = 0.d0
+        forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &       flux_dtm(mc) = flux_dt
+        tr_evap(:m,2) = tr_evap(:m,2) - flux_dtm(:m)/dts*tr_surf(:m)
+        tr_wsn(:m,1,2) = tr_wsn(:m,1,2) + flux_dtm(:m)*tr_surf(:m)
         wsni(1,2) = wsni(1,2) + flux_dt
       endif
+
+      !gg end if
 
       do ibv=i_bare,i_vege
         ! init tr_wsnc
@@ -2776,15 +2859,24 @@ ccc snow
           wi(1,ibv) = wi(1,ibv) + flmlt_scale(ibv)*dts
         endif
         ! evap
+        !gg if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
+
+        flux_dtm(:m) = 0.d0
         if ( ibv == 1 ) then
-          flux_dt = max( evapbs*fr_snow(1)*dts, 0.d0 )
+          forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &         flux_dtm(mc) = max( evapbs*fr_snow(1)*dts, 0.d0 )
         else
-          flux_dt = max( evapvs*fm*fr_snow(2)*dts, 0.d0 )
+          forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &         flux_dtm(mc) = max( evapvs*fm*fr_snow(2)*dts, 0.d0 )
         endif
 !!! test
 !        tr_wsnc(:m,1,ibv) = 1000.d0
-        tr_wsn(:m,1,ibv) = tr_wsn(:m,1,ibv) - tr_wsnc(:m,1,ibv)*flux_dt
-        tr_evap(:m,ibv)= tr_evap(:m,ibv) + tr_wsnc(:m,1,ibv)*flux_dt/dts
+        tr_wsn(:m,1,ibv) = tr_wsn(:m,1,ibv)
+     &       - tr_wsnc(:m,1,ibv)*flux_dtm(:m)
+        tr_evap(:m,ibv)= tr_evap(:m,ibv)
+     &       + tr_wsnc(:m,1,ibv)*flux_dtm(:m)/dts
+
+        !gg end if
       enddo
 
 !!!! for test
@@ -2797,18 +2889,24 @@ cddd      print '(a,10(e12.4))', 'tr_wsn_2 '
 cddd     &     , tr_wsn(1,:,2) - wsn(:,2) * fr_snow(2) * 1000.d0
 cddd     &     , fr_snow(2), nsn(2)+0.d0, flux_snow_tot(0:nlsn,2)*dts
 
-
 ccc soil layers
   !>>    tr_wc(:m,1:n,1:2) = 0.d0
   !>    tr_wc(:m,1:n,1:2) = 1000.d0  !!! was 0
 
       ! add dew to bare soil
+      !gg if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
+
       if ( process_bare .and. evapb < 0.d0 ) then
         flux_dt = - evapb*(1.d0-fr_snow(1))*dts
-        tr_evap(:m,1) = tr_evap(:m,1) - flux_dt/dts*tr_surf(:m)
-        tr_w(:m,1,1) = tr_w(:m,1,1) + flux_dt*tr_surf(:m)
+        flux_dtm(:m) = 0.d0
+        forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &       flux_dtm(mc) = flux_dt
+        tr_evap(:m,1) = tr_evap(:m,1) - flux_dtm(:m)/dts*tr_surf(:m)
+        tr_w(:m,1,1) = tr_w(:m,1,1) + flux_dtm(:m)*tr_surf(:m)
         wi(1,1) = wi(1,1) + flux_dt
       endif
+
+      !gg end if
 
       do ibv=i_bare,i_vege
         ! initial tr_wc
@@ -2826,6 +2924,8 @@ ccc soil layers
         if ( wi(1,ibv) > 0.d0 )
      &       tr_wc(:m,1,ibv) = tr_w(:m,1,ibv)/wi(1,ibv)
         call check_wc(tr_wc(1,1,ibv))
+
+
         ! sweep down
         do i=2,n
           if ( f(i,ibv) < 0.d0 ) then
@@ -2839,6 +2939,8 @@ ccc soil layers
      &           - tr_wc(:m,i-1,ibv)*flux_dt
           endif
         enddo
+
+
         ! sweep up
         do i=n-1,1,-1
           if ( f(i+1,ibv) > 0.d0 ) then
@@ -2856,18 +2958,23 @@ ccc soil layers
 
 ccc evap from bare soil
       if ( process_bare .and. evapb >= 0.d0 ) then
-        evap_tmp(:m) = evapb*(1.d0-fr_snow(1))
+        evap_tmp(:m) = 0.d0
+        forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &       evap_tmp(mc) = evapb*(1.d0-fr_snow(1))
+        !gg if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
 #ifdef TRACERS_SPECIAL_O18
         if ( evap_tmp(1)*dts < wi(1,1) .and. tp(1,1) > 0.d0 ) then
           do mc=1,m
 ccc loops...
-            evap_tmp(mc) = evap_tmp(mc) * fracvl( tp(1,1),ntixw(mc))
+            evap_tmp(mc) = evap_tmp(mc) * fracvl(tp(1,1),ntixw(mc))
           enddo
         endif
 #endif
         tr_w(:m,1,1) = tr_w(:m,1,1) - evap_tmp(:m)*tr_wc(:m,1,1)*dts
         tr_evap(:m,1) = tr_evap(:m,1) + evap_tmp(:m)*tr_wc(:m,1,1)
+        !gg endif
       endif
+
 
 ccc runoff
       do ibv=i_bare,i_vege
@@ -2886,9 +2993,13 @@ ccc !!! include surface runoff !!!
 ccc transpiration
       if ( process_vege ) then
         do i=1,n
-          flux_dt = fd*(1.-fr_snow(2)*fm)*evapdl(i,2)*dts
-          tr_evap(:m,2) = tr_evap(:m,2) + tr_wc(:m,i,2)*flux_dt/dts
-          tr_w(:m,i,2) = tr_w(:m,i,2) - tr_wc(:m,i,2)*flux_dt
+          !gg if (tr_wd_TYPE(ntixw(n)).eq.nWATER) THEN
+          flux_dtm(:m) = 0.d0
+          forall(mc=1:m, tr_wd_TYPE(ntixw(mc)) == nWATER)
+     &         flux_dtm(mc) = fd*(1.-fr_snow(2)*fm)*evapdl(i,2)*dts
+          tr_evap(:m,2) = tr_evap(:m,2) + tr_wc(:m,i,2)*flux_dtm(:m)/dts
+          tr_w(:m,i,2) = tr_w(:m,i,2) - tr_wc(:m,i,2)*flux_dtm(:m)
+          !gg end if
         enddo
       endif
 
@@ -2903,29 +3014,50 @@ cddd      print *, 'tr_wsn 2 ', tr_wsn(1,:,2)
 cddd      print *, 'evap ', tr_evap(1,:)*dts
 cddd      print *, 'runoff ', tr_rnff(1,:)*dts
 
-      do ibv=i_bare,i_vege
-        do i=1,n
-          if ( tr_w(1,i,ibv) < 0.d0 ) then
-c            print *,'EEEEG ', tr_w(1,i,ibv), ibv, i
-            !call abort
-            tr_w(1,i,ibv) = 0.d0
-          endif
-        enddo
-        do i=1,nlsn
-          if ( tr_wsn(1,i,ibv) < 0.d0 ) then
-c            print *,'EEEES ', tr_wsn(1,i,ibv),
-c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
-            tr_wsn(1,i,ibv) = 0.d0
-          endif
-        enddo
-        err = trpr(1)*dts
-     &       + sum( tr_w_o(1,:,ibv) ) + sum( tr_wsn_o(1,:,ibv) )
-     &       - sum( tr_w(1,:,ibv) ) - sum( tr_wsn(1,:,ibv) )
-     &       - tr_evap(1,ibv)*dts - tr_rnff(1,ibv)*dts
-        !print *,'err ', err
-        if ( abs( err ) > 1.d-10 ) !-10  ! was -16
-     &   write(0,*) 'ghy tracers not conserved at',ijdebug,' err=',err
-!!!  &       call stop_model("ghy tracers not conserved",255)
+      do mc=1,m
+         do ibv=i_bare,i_vege
+            do i=1,n
+               if ( tr_w(mc,i,ibv) < 0.d0 ) then
+                  if ( tr_w(mc,i,ibv) < -tol(mc) ) then
+                     print *,'GHY:tr_w<0 ', tr_w(mc,i,ibv), ibv, i
+                     call stop_model("GHY:tr_w<0",255)
+                  endif
+                  tr_w(mc,i,ibv) = 0.d0
+               endif
+            enddo
+            do i=1,nlsn
+               if ( tr_wsn(mc,i,ibv) < 0.d0 ) then
+                  if ( tr_wsn(mc,i,ibv) < -tol(mc) ) then
+                     print *,'GHY:tr_wsn<0 ', tr_wsn(mc,i,ibv),
+     &                    ibv, i, flmlt(ibv), fr_snow(ibv)
+                  endif
+                  tr_wsn(mc,i,ibv) = 0.d0
+               endif
+            enddo
+            err = trpr(mc)*dts + trdd(mc)*dts
+     &           + sum( tr_w_o(mc,:,ibv) ) + sum( tr_wsn_o(mc,:,ibv) )
+     &           - sum( tr_w(mc,:,ibv) ) - sum( tr_wsn(mc,:,ibv) )
+     &           - tr_evap(mc,ibv)*dts - tr_rnff(mc,ibv)*dts
+                                !print *,'err ', err
+            if ( abs( err ) > tol(mc) ) then
+               write(0,*)
+     $              'ghy tracers not conserved at',ijdebug,' err=',err
+               write(99,*)
+     $              'ghy tracers not conserved at',ijdebug,' err=',err
+     $              ,"mc= ",mc, "ibv= ",ibv
+     $              ,"value =",trpr(mc)*dts
+     &              + sum(tr_w_o(mc,:,ibv) ) + sum( tr_wsn_o(mc,:,ibv))
+               write(99,*) "tr_w_o",tr_w_o(mc,:,ibv)
+     $              ,"tr_wsn_o",tr_wsn_o(mc,:,ibv)
+     $              ,"tr_w",tr_w(mc,:,ibv)
+     $              ,"tr_wsn",tr_wsn(mc,:,ibv)
+     $              ,"trpr(mc)*dts",trpr(mc)*dts
+     $              ,"trdd(mc)*dts",trdd(mc)*dts
+     $              ,"tr_evap*tds",tr_evap(mc,ibv)*dts
+     $              ,"tr_rnff",tr_rnff(mc,ibv)*dts
+!!!            call stop_model("ghy tracers not conserved",255)
+            endif
+         enddo
       enddo
 
 !!! hack
@@ -3034,9 +3166,10 @@ c    &       'GHY: water conservation problem in veg. soil',255)
      &       + rnf(1)*max(tp(1,1),0.d0) )
      &       - srht - trht + thrm_tot(1) + snsh_tot(1)
 
-        if ( abs( error_energy ) > 1.d-5 )
-c    &       call stop_model('GHY: energy conservation problem',255)
-     &       write(0,*)'GHY:bare soil error_energy',ijdebug,error_energy
+        if ( abs( error_energy ) > 1.d-5 ) then
+          write(0,*)'GHY:bare soil error_energy',ijdebug,error_energy
+          !call stop_model('GHY: energy conservation problem',255)
+        endif
       endif
 
       ! vegetated soil
@@ -3048,14 +3181,63 @@ c    &       call stop_model('GHY: energy conservation problem',255)
      &       + rnf(2)*max(tp(1,2),0.d0) )
      &       - srht - trht + thrm_tot(2) + snsh_tot(2)
 
-       if ( abs( error_energy ) > 1.d-5)
-c    &   call stop_model('GHY: energy cons problem in veg. soil',255)
-     &       write(0,*)'GHY:veg soil error_energy',ijdebug,error_energy
+        if ( abs( error_energy ) > 1.d-5) then
+          write(0,*)'GHY:veg soil error_energy',ijdebug,error_energy
+          !call stop_model('GHY: energy cons problem in veg. soil',255)
+        endif
       endif
 
       ghy_debug%energy(:) = total_energy(:)
 
       end subroutine check_energy
+
+
+      subroutine restrict_snow (wsn_max)
+!@sum remove the snow in excess of WSN_MAX and dump its water into
+!@+   runoff, keeping associated heat in the soil
+      real*8 :: wsn_max,wsn_tot,d_wsn,eta,dw(2:3),dh(2:3)
+      integer :: ibv
+
+      do ibv=i_bare,i_vege
+
+        if ( fr_snow(ibv) <= 0.d0 ) cycle
+        wsn_tot = sum( wsn(1:nsn(ibv),ibv) )
+        if ( wsn_tot <= WSN_MAX ) cycle
+
+         ! check if snow structure ok for thick snow
+        if ( nsn(ibv) < 3)
+     &       call stop_model("remove_extra_snow: nsn<3",255)
+
+        d_wsn = wsn_tot - WSN_MAX
+
+        ! do not remove too much at a time (for now 24mm / day)
+        d_wsn = min( d_wsn, 1.d-3*dts/3600.d0 )
+
+        !print *,"restricting snow: wsn_tot = ", wsn_tot,ijdebug
+        !print *,"before:",hsn(1:3, ibv),fr_snow(ibv) ,ht(1,ibv)
+              ! fraction of snow to be removed:
+        eta = d_wsn/sum(wsn(2:3,ibv))
+        dw(2:3) = eta*wsn(2:3, ibv)
+        dh(2:3) = eta*hsn(2:3, ibv)
+        !print *,"dw,dh:",dw,dh
+        wsn(2:3, ibv)  = wsn(2:3, ibv) - dw(2:3)
+        hsn(2:3, ibv)  = hsn(2:3, ibv) - dh(2:3)
+        dzsn(2:3, ibv) = (1.d0-eta)*dzsn(2:3, ibv)
+
+        rnf(ibv) = rnf(ibv)   + sum(dw(2:3))*fr_snow(ibv)/dts
+        ht(1,ibv) = ht(1,ibv) + sum(dh(2:3))*fr_snow(ibv)
+     &       - sum(dw(2:3))*fr_snow(ibv)*max(tp(1,ibv),0.d0)*shw
+        !print *,"after:",hsn(1:3, ibv),fr_snow(ibv) ,ht(1,ibv)
+
+#ifdef TRACERS_WATER
+        tr_rnff(1:ntg,ibv) = tr_rnff(1:ntg,ibv) +
+     &       eta*(tr_wsn(1:ntg,2,ibv)+tr_wsn(1:ntg,3,ibv))
+        tr_wsn(1:ntg,2:3,ibv) = (1.d0-eta)*tr_wsn(1:ntg,2:3,ibv)
+#endif
+
+      end do
+
+      end subroutine restrict_snow
 
 
       end module sle001

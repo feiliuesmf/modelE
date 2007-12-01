@@ -135,7 +135,7 @@ c**** check whether ground hydrology data exist at this point.
       real*8, dimension(N_COVERTYPES) :: craddata !Crown radius (m)
       real*8, dimension(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1) :: cpooldata !Carbon pools in individuals
       integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
-      real*8, dimension(N_SOIL_TYPES,I0:I1,J0:J1) :: soil_texture
+      real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture
       real*8, dimension(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
       !-----Local---------
       integer i,j
