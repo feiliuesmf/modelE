@@ -112,6 +112,7 @@ C****
      *     ,imaxj,lmm,ze,dxvo,dypo
       USE DIAG_COM, only : qdiag,acc_period
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
+      USE GEOM, only : lat_dg, lon_dg, dlat
       USE ODIAG
 #ifdef TRACERS_OCEAN
       USE TRDIAG_COM, only : to_per_mil
@@ -716,35 +717,37 @@ c      WRITE(TITLE(63:80),'(A6,I4)') JMON0,JYEAR0
 
 C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
       WRITE(6,'(A)') " Key horizontal mass stream function diags:"
-      GSMAX=0
-      GSMIN=100.
-      DO J=30,33
-        DO I=20,24
-          IF (SFIJM(I,J).GT.GSMAX) GSMAX=SFIJM(I,J)
-          IF (SFIJM(I,J).LT.GSMIN) GSMIN=SFIJM(I,J)
+
+      GSMAX=0 ; GSMIN=100.
+      CKMAX=0 ; CKMIN=100.
+      ACMAX=0 ; ACMIN=100.
+      DO J=2,JM-1
+        DO I=1,IM
+          if (lat_dg(j,2).ge.24 .and. lat_dg(j,2).le.38 .and. lon_dg(i
+     $         ,2).ge.-80 .and. lon_dg(i,2).le.-60) then
+            IF (SFIJM(I,J).GT.GSMAX) GSMAX=SFIJM(I,J)
+            IF (SFIJM(I,J).LT.GSMIN) GSMIN=SFIJM(I,J)
+          end if
+          if (lat_dg(j,2).ge.24 .and. lat_dg(j,2).le.38 .and. lon_dg(i
+     $         ,2).ge.135 .and. lon_dg(i,2).le.155) then
+            IF (SFIJM(I,J).GT.CKMAX) CKMAX=SFIJM(I,J)
+            IF (SFIJM(I,J).LT.CKMIN) CKMIN=SFIJM(I,J) 
+          end if
+          if (lat_dg(j,2).ge.-72 .and. lat_dg(j,2).le.-54
+     $         .and. lon_dg(i,2).ge.-65-0.5*dlat .and. lon_dg(i,2).le.
+     $         -65+0.5*dlat) then
+            IF (SFIJM(I,J).GT.ACMAX) ACMAX=SFIJM(I,J)
+            IF (SFIJM(I,J).LT.ACMIN) ACMIN=SFIJM(I,J)
+          end if
         END DO
       END DO
-      WRITE(6,'(a,F10.3)') " Gulf Stream (MAX in (20-24,30-33)):", GSMAX
-     *     -GSMIN
-      CKMAX=0
-      CKMIN=100.
-      DO J=30,33
-        DO I=63,67
-          IF (SFIJM(I,J).GT.CKMAX) CKMAX=SFIJM(I,J)
-          IF (SFIJM(I,J).LT.CKMIN) CKMIN=SFIJM(I,J)
-        END DO
-      END DO
-      WRITE(6,'(a,F10.3)') " Kuroshio    (MAX in (63-67,30-33)):", CKMAX
-     *     -CKMIN
-      ACMAX=0
-      ACMIN=100.
-      I=23
-      DO J=6,10
-        IF (SFIJM(I,J).GT.ACMAX) ACMAX=SFIJM(I,J)
-        IF (SFIJM(I,J).LT.ACMIN) ACMIN=SFIJM(I,J)
-      END DO
-      WRITE(6,'(a,F10.3)') " ACC               (Drakes Passage):", ACMAX
-     *     -ACMIN
+
+      WRITE(6,'(a,F10.3)') " Gulf Stream (MAX in (24-38N,60-80W)):",
+     *     GSMAX-GSMIN
+      WRITE(6,'(a,F10.3)') " Kuroshio  (MAX in (24-38N,135-150E)):",
+     *     CKMAX-CKMIN
+      WRITE(6,'(a,F10.3)') " ACC                 (Drakes Passage):",
+     *     ACMAX-ACMIN
 C****
       IF (QDIAG) THEN
 C****
