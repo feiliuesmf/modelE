@@ -190,10 +190,10 @@ contains
     call ESMFL_StateGetPointerToData ( fv % export,fv % q,'Q',rc=rc)
     VERIFY_(rc)
     Call get(modelE_grid, J_STRT=J_0, J_STOP=J_1)
-    Allocate(fv % Qtr(IM,J_0:J_1,LM))
+!!$    Allocate(fv % Qtr(IM,J_0:J_1,LM))
 
 
-    Qarray = ESMF_ArrayCreate(fv % Qtr, ESMF_DATA_REF, RC=rc)
+    Qarray = ESMF_ArrayCreate(fv % q, ESMF_DATA_REF, RC=rc)
     VERIFY_(rc)
         call ESMF_FieldDataMapSetDefault(datamap, dataRank=3, rc=rc)
     Qfield = ESMF_FieldCreate( grid, Qarray, horzRelloc=ESMF_CELL_CENTER, &
