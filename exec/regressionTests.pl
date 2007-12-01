@@ -175,16 +175,12 @@ foreach my $rundeck (@$rundecks) {
 		my $lineRange = $LINES_EXPECTED -> {$rundeck};
 		my $lineMin = $lineRange -> [0];
 		my $lineMax = $lineRange -> [1];
-		print REPORT "Rundeck $rundeck ($configuration, $duration). \n";
 		if ($numLinesFound <  ($lineRange -> [0]) or $numLinesFound > ($lineRange -> [1])) {
 		    print REPORT "Rundeck $rundeck ($configuration, $duration) failed on $npes processors.\n";
-		    print LOG "failed (found $lineMin < $numLinesFound < $lineMax) \n";
+		    print REPORT "   CMPE002 (found $lineMin < $numLinesFound < $lineMax) \n";
 		    my $resultsDir = $env{RESULTS_DIRECTORY};
 		    my $mess = `cd $resultsDir; $cmp $reference.$duration $rundeck.$configuration.$duration$suffix | head -100`;
-		    print LOG "$mess\n";
-		    my $buildLogTail = `tail -20 $resultsDir/$rundeck.$configuration.buildlog`;
-		    print LOG "\nTail of Build Log:\n";
-		    print LOG "$buildLogTail\n";
+		    print REPORT "$mess\n";
 
 		    if ($configuration eq "SERIAL") {$newSerial = 1;}
 		    else {$consistent = 0;}
@@ -205,6 +201,14 @@ foreach my $rundeck (@$rundecks) {
 	    `cd $env{RESULTS_DIRECTORY}; cp $rundeck.SERIAL.1* $env{BASELINE_DIRECTORY}/.; `;
 	}
     }
+    else {
+	foreach my $configuration (@{$configurations -> {$rundeck}}) {
+	    my $buildLogTail = `tail -20 $resultsDir/$rundeck.$configuration.buildlog`;
+	    print REPORT "\nTail of Build Log for $rundeck.$configuration:\n";
+	    print REPORT "$buildLogTail\n";
+	}
+    }
+
 }
 
 close REPORT;
