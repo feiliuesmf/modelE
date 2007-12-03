@@ -1,4 +1,3 @@
-#include "rundeck_opts.h"
       block data blkdat
 c
       include 'dimensions.h'
@@ -26,8 +25,8 @@ c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
-      data baclin,batrop/3600.,120./,diagfq/365./          ! 2deg full global
-c     data baclin,batrop/1800., 60./,diagfq/365./          ! 2deg full global
+c     data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
+      data baclin,batrop/1800., 60./,diagfq/365./          ! 2deg full global
 c
 c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (m/s) for momentum dissipation
@@ -37,11 +36,12 @@ c --- 'vertmx' = scale velocity for vertical momentum mixing (m/s)
 c     data thkdff/.005/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
       data thkdff/.10/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
 c
-c     data diapyc/2.e-7/ !diapycnal diffusivity times buoyancy freq. (m^2/s^2)
-      data diapyc/2.e-5/ !diapycnal diffusivity (m^2/s)
+c --- 'diapyc' = diapycnal diffusivity times buoyancy freq. (m^2/s^2) !no more
+c --- 'diapyc' = diapycnal diffusivity (m^2/s)
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- 'thkmin' = minimum mixed-layer thickness (m)
 c --- 'acurcy' = permissible roundoff error in column integral calc.
+      data diapyc/2.e-5/
       data h1/98060./,thkmin/5./,acurcy/1.e-11/,botmin/30./
 c
 c --- slip=+1  for free-slip boundary cond., slip=-1  for non-slip cond.
@@ -76,9 +76,7 @@ c
 c --- 'itest,jtest' = grid point where detailed diagnostics are desired
 c     data itest,jtest/174,41/
 c     data itest,jtest/163,133/
-c     data itest,jtest/109,94/
-c     data itest,jtest/93,14/
-      data itest,jtest/100,100/
+      data itest,jtest/104,46/
 c
 c ---      equatn   --  the i index of the equator
 c
@@ -89,11 +87,7 @@ c --- thermo      use thermodynamic forcing functions
 c --- windf       use wind stress forcing function
 c --- relax       activate lateral boundary nudging
 c
-#if defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
-      data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
-#else    
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
-#endif
 c
 c --- 'lp' = logical unit number for printer output
       data lp/6/

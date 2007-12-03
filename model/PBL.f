@@ -41,11 +41,6 @@
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : Mtrac
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-      USE obio_incom, only : awan
-#endif
-#endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
 
@@ -406,15 +401,6 @@ C****
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
       real*8 wspdf,delt
-#endif
-#ifdef TRACERS_GASEXCH_Natassa
-      real*8 :: Sc_gas
-#ifdef TRACERS_GASEXCH_CFC_Natassa
-      real*8, external :: sc_cfc,sol_cfc
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-      real*8, external :: sc_co2,sol_co2
-#endif
 #endif
 
 c**** get input from pbl_args structure
@@ -791,138 +777,29 @@ ccc dust emission from earth
 #endif
 
 
+
+
 #ifdef TRACERS_GASEXCH_Natassa
-
 #ifdef TRACERS_GASEXCH_CO2_Natassa
-      IF (ocean) THEN  ! OCEAN
-      !---------------------------------------------------------------
-      !TRANSFER VELOCITY
-      !---------------------------------------------------------------
-      !Schmidt number for gas
-       Sc_gas=sc_co2(tg1)
-      !wind speed ws: magn. of surf. wind modified by buoyancy flux (m/s)
-      !compute transfer velocity Kw only over ocean
-      if (Sc_gas .le. 0.) then
-        write(*,'(a,2i4,a,2f9.3)')
-     .          'warning: Sc_gas negtv, at ',ilong,jlat,
-     .          ', Sc_gas,temp_c=',Sc_gas,tg1
-         pbl_args%Kw_gas=1.e-10
-      else
-         pbl_args%Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * ws * ws * awan !units of m/s
-      endif
-
-      !---------------------------------------------------------------
-      !gas SOLUBILITY
-      !---------------------------------------------------------------
-      !alpha --solubility of CO2 in seawater
-      !in mol/m^3/picoatm
-       pbl_args%alpha_gas=sol_co2(tg1,pbl_args%alati)
-      !convert to mol/m^3/atm
-       pbl_args%alpha_gas=pbl_args%alpha_gas*1.e+12   !?? units
-
-      !---------------------------------------------------------------
-      !psurf is in mb. multiply with 10.197e-4 to get atm
-      !include molecular weights for air and CO2
-       pbl_args%beta_gas=pbl_args%alpha_gas*(psurf*10.197e-4)*mair*1.e-3
-     &                   /(tr_mm(itr)*1.e-3)
-       !!atmCO2=368.6D0  !defined in obio_forc
-!!!    pbl_args%beta_gas = pbl_args%beta_gas * tr_mm(itr)*1.e-3/rhows * atmCO2
-
-cwatson        xco2 = atmCO2*1013.0/stdslp
-cwatson       deltco2 = (xco2-pCO2_ij)*ff*1.0245E-3
-cwatson       deltaco2=atmCO2*1013.0/stdslp*ff*1.0245E-3  !beta_gas
-cwatson               - pCO2_ij *ff*1.0245E-3       !trconstflx(itr)
-cwatson ff is actually alpha_gas
-
-      !trsf is really sfac = pbl_args%Kw_gas * pbl_args%beta_gas
-      !units are such that flux comes out to (m/s)(kg/kg)
-       trsf = pbl_args%Kw_gas * pbl_args%beta_gas
-
-       trcnst = pbl_args%Kw_gas * pbl_args%trconstflx(itr)*byrho   ! convert to (conc * m/s)
-
-cdiag write(*,'(a,2i3,14e12.4)')'PBL, Kw ',
-cdiag.    ilong,jlat,tg1,Sc_gas,ws,pbl_args%Kw_gas,mair
-cdiag.   ,psurf*10.197e-4,pbl_args%alati,pbl_args%alpha_gas
-cdiag.   ,pbl_args%beta_gas,atmCO2
-cdiag.   ,rhows,pbl_args%trconstflx(itr),trsf,trcnst
-
-      ENDIF
+       IF (ocean) THEN  ! OCEAN only
+          call TRACERS_GASEXCH_CO2_Natassa_PBL(tg1,ws,
+     .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
+     .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
+     .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
+       ENDIF
 #endif   /* TRACERS_GASEXCH_CO2_Natassa */
 
-
 #ifdef TRACERS_GASEXCH_CFC_Natassa
-
-      IF (ocean) THEN  ! OCEAN
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !OCMIP implementation www.ipsl.jussieu.fr/OCMIP
-      !F=Kw*Csat - Kw*Csurf=
-      !  Kw*alpha*pbl_args%trs - Kw*pbl_args%trs
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !new treatment for units
-      !F=Kw*Csat -Kw*Csurf
-      ! =Kw*alpha*mol_weight_air/mol_weight_cfc11*surfp*Cair  !!!TERM_1*Cair
-      ! -Kw*rho_water/mol_weight_cfc11*Csurf                  !!!TERM_2
-      !
-      ! where, Kw                in m/s
-      !        alpha                mol/m^3/atm
-      !        mol_weight_air       Kg_air
-      !        mol_weight_cfc11     Kg_CFC-11
-      !        surfp                atm
-      !        Cair                 Kg_CFC-11/Kg_air
-      !        rho_water            Kg_water/m^3
-      !        Csurf                Kg_CFC-11/Kg_water
-      !then F is in  (mol/m^3)(m/s)
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      !---------------------------------------------------------------
-      !TRANSFER VELOCITY
-      !---------------------------------------------------------------
-      ! compute Schmidt number for gas
-      ! use ground temperature in deg C including skin effects
-      Sc_gas=sc_cfc(tg1,11)
-
-      !wind speed ws: magn. of surf. wind modified by buoyancy flux (m/s)
-      !compute transfer velocity Kw
-      !only over ocean
-
-      if (Sc_gas .le. 0.) then
-        write(*,'(a,2i4,a,2f9.3)')
-     .          'warning: Sc_gas negtv, at ',ilong,jlat,
-     .          ', Sc_gas,temp_c=',Sc_gas,tg1
-         pbl_args%Kw_gas=1.e-10
-      else
-         pbl_args%Kw_gas=
-     &       1.d0/3.6e+5*0.337d0*ws*ws*(Sc_gas/660.d0)**(-0.5d0)
-      endif
-
-      !---------------------------------------------------------------
-      !gas SOLUBILITY
-      !---------------------------------------------------------------
-      !alpha --solubility of CFC (11 or 12) in seawater
-      !in mol/m^3/picoatm
-       pbl_args%alpha_gas=sol_cfc(tg1,sss_loc,11)
-      !convert to mol/m^3/atm
-       pbl_args%alpha_gas=pbl_args%alpha_gas*1.e+12
-
-      !---------------------------------------------------------------
-      !psurf is in mb. multiply with 10.197e-4 to get atm
-      !include molecular weights for air and CFC-11
-       pbl_args%beta_gas=pbl_args%alpha_gas*(psurf*10.197e-4)*mair*1.e-3
-     &                   /(tr_mm(itr)*1.e-3)
-!!!    pbl_args%beta_gas = pbl_args%beta_gas * tr_mm(itr)*1.e-3/rhows
-
-      !trsf is really sfac = pbl_args%Kw_gas * pbl_args%beta_gas
-      !units are such that flux comes out to (m/s)(kg/kg)
-       trsf = pbl_args%Kw_gas * pbl_args%beta_gas
-
-       trcnst = pbl_args%Kw_gas * pbl_args%trconstflx(itr)*byrho ! convert to (conc * m/s)
-
+      IF (ocean) THEN  ! OCEAN only
+       call TRACERS_GASEXCH_CFC_Natassa_PBL(tg1,ws,
+     .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
+     .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
+     .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
       ENDIF
-
 #endif /* TRACERS_GASEXCH_CFC_Natassa */
 #endif /* TRACERS_GASEXCH_Natassa */
+
+
 
 C**** solve tracer transport equation
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
@@ -931,8 +808,11 @@ C**** solve tracer transport equation
      *       pbl_args%tr_evap_max(itr),fr_sat,
 #endif
      *       dtime,n)
-      if (itr.eq.1.and.ilong.eq.6.and.jlat.eq.28) print*,"pbl1",tr(:,1)
-     *,q(:)
+
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+        !case where atmCO2 is constant
+        tr(:,itr)=atmCO2            !ppmv(uatm)
+#endif
 
 #ifdef TRACERS_DRYDEP
 C**** put in a check to prevent unphysical solutions. If too much

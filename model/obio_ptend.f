@@ -1,4 +1,4 @@
-      subroutine obio_ptend(vrbos,kmax)
+      subroutine obio_ptend(vrbos,kmax,i,j)
 
 c  Computes tendencies of biological particles (units/hr)
 c  tracer
@@ -23,7 +23,7 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,wshc,rikd,rmuplsr,det
      .                    ,gcmax1d,covice_ij,atmFe_ij
      .                    ,temp1d,wsdet,tzoo,p1d
-     .                    ,pnoice2
+     .                    ,pnoice2,rhs
 
       implicit none
 
@@ -43,7 +43,7 @@ c  P(9) = herbivores (mg chl m-3)
 
       logical vrbos
 
-      real term,rhs(kdm,12,12)
+      real term
       character bio_var*7(12)
       data (bio_var(nt),nt=1,12) /
      .  ' NO3   ',' NH4   ',' SiO2  ',' Iron  ','Diatom ','Chlphy ',
@@ -118,9 +118,17 @@ cdiag    endif
           rhs(k,nt,ntyp) = term
           P_tend(k,nt) = term      !!nonlin term takes into accountP(ntyp),P(5:8)
 
-          term = -dphy(nt) * pnoice
+!         if (vrbos .and. nt.eq.7) write(*,'(a,2i5,5e12.4)')
+!    .     'CYANOBACTERIA3 ',nt,k,gzoo,obio_P(k,nt),ptot,
+!    .      zoo(nt),P_tend(k,nt)
+
+          term = -dphy(nt) * pnoice           !death of phytoplankton
           rhs(k,nt,nt) = term
           P_tend(k,nt) = P_tend(k,nt) + term
+
+!         if (vrbos .and. nt.eq.7) write(*,'(a,2i5,4e12.4)')
+!    .     'CYANOBACTERIA4 ',nt,k,drate,dphy(n),
+!    .     obio_P(k,nt),P_tend(k,nt)
 
 cdiag      if (vrbos) then
 cdiag       if(k.eq.1 .and. nt.eq.nnut+1) write(101,'(a,a)')
@@ -136,7 +144,7 @@ cdiag      endif
          exc = greff*gzoo
 
          term = tfac(k)*remin(1)*det(k,1)/cnratio * pnoice
-         rhs(k,1,ntyp+1) = term
+         rhs(k,1,ntyp+1) = term    !put this in diff column
          P_tend(k,1) = term
 
          term = bn(k)*(exc + regen*dzoo2) * pnoice
@@ -144,7 +152,7 @@ cdiag      endif
          P_tend(k,2) = term
 
          term = tfac(k)*remin(2)*det(k,2) * pnoice
-         rhs(k,3,ntyp+2) = term
+         rhs(k,3,ntyp+2) = term    !put this in diff column
          P_tend(k,3) = term
 
          term = bf*(exc + regen*dzoo2) * pnoice    
@@ -152,11 +160,12 @@ cdiag      endif
          P_tend(k,4) = P_tend(k,4) + term
 
          term = tfac(k)*remin(3)*det(k,3) * pnoice
-         rhs(k,4,ntyp+3) = term                    
+         rhs(k,4,ntyp+3) = term                        !put this in diff column
          P_tend(k,4) = P_tend(k,4) + term
 
          term = -Fescav(k)
-         rhs(k,4,4) = rhs(k,4,4) + term      !!!! THIS IS BEING CHANGED AGAIN !!!
+         rhs(k,4,13) = term             !this should actually be rhs(4,4) but we
+                                        !have already defined it so let it be rhs(4,13)
          P_tend(k,4) = P_tend(k,4) + term
  
 cdiag    if (vrbos) then
@@ -270,10 +279,10 @@ cdiag   endif
         ! Silicate
         rmms = obio_P(k,3)/(rks(nt)+obio_P(k,3)) 
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           rhs(k,nt+nnut,1) = rmml
-           rhs(k,nt+nnut,2) = rmmn
-           rhs(k,nt+nnut,3) = rmms
-           rhs(k,nt+nnut,4) = rmmf
+           !rhs(k,nt+nnut,1) = rmml
+           !rhs(k,nt+nnut,2) = rmmn
+           !rhs(k,nt+nnut,3) = rmms
+           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmms,rmmf)
         rlimice = min(rmmlice,rmmn,rmms,rmmf)
         grate = rmuplsr(k,nt)*rlim*pnoice2
@@ -285,7 +294,7 @@ cdiag   endif
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
         term = gro(k,nt)
-        rhs(k,nt+nnut,nt+nnut) = term
+        rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
       endif
@@ -322,9 +331,9 @@ cdiag   endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmlice = tirrqice/(tirrqice+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           rhs(k,nt+nnut,1) = rmml
-           rhs(k,nt+nnut,2) = rmmn
-           rhs(k,nt+nnut,4) = rmmf
+           !rhs(k,nt+nnut,1) = rmml
+           !rhs(k,nt+nnut,2) = rmmn
+           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         rlimice = min(rmmlice,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim * pnoice2
@@ -335,7 +344,7 @@ cdiag   endif
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
         term = gro(k,nt)
-        rhs(k,nt+nnut,nt+nnut) = term             !!!!!ERROR corrected
+        rhs(k,nt+nnut,13) = term  
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
       endif
 !!#endif
@@ -345,7 +354,6 @@ cdiag   endif
       if (nchl > 2) then
 ! Cyanobacteria
         nt = 3
-
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
         tnit = obio_P(k,1)/(rkn(nt)+obio_P(k,1))      !nitrate
@@ -357,31 +365,44 @@ cdiag   endif
         framm = rnut2/rmmn
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           rhs(k,nt+nnut,1) = rmml
-           rhs(k,nt+nnut,2) = rmmn
-           rhs(k,nt+nnut,4) = rmmf
+           !rhs(k,nt+nnut,1) = rmml
+           !rhs(k,nt+nnut,2) = rmmn
+           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         rlimnfix = min(rmml,rmmf)         !limitation for N2 fixation
         rlimrkn = min(rmml,rkn(nt),rmmf)   !limitation at kn
+
         grate = rmuplsr(k,nt)*rlim
         rmu4(nt) = grate*framm*pnoice2
         rmu3(nt) = grate*(1.0-framm)*pnoice2
         rfix = 0.25*exp(-(75.0*obio_P(k,nt+nnut)))
         rfix = max(rfix,0.0)
 c        rfix = min(rfix,0.2)
+
         gratenfix1 = rmuplsr(k,nt)*rlimnfix*rfix  !N fix
         graterkn = rmuplsr(k,nt)*rlimrkn
         gratenlim = graterkn - grate
         gratenfix = min(gratenlim,gratenfix1)  !N fix cannot exceed kn
         gratenfix = max(gratenfix,0.0)
+
         rmuf(nt) = (grate+gratenfix)*rmmf * pnoice
         gron = grate*obio_P(k,nt+nnut)
         gronfix = gratenfix*obio_P(k,nt+nnut)
         gro(k,nt) = gron + gronfix
 
         term = gro(k,nt) * pnoice
-        rhs(k,nt+nnut,nt+nnut) = term
+        rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
+
+!       if (vrbos) write(*,'(a,2i5,11e12.4)')
+!    .   'CYANOBACTERIA1: ',nt,k,rmuplsr(k,nt),rlim,rlimnfix,rlimrkn,
+!    .    rfix,gratenfix,gronfix,obio_P(k,nt+nnut),gron,gro(k,nt),
+!    .    P_tend(k,nt+nnut)
+!       if (vrbos) write(*,'(a,2i5,14e12.4)')
+!    .  'CYANOBACTERIA2:',nt,k,tirrq(k),rikd(k,nt),rmml,obio_P(k,4),
+!    .   rkf(nt),rmmf,rkn(nt),rnut1,rnut2,tmp,tnit,rmmn,obio_P(k,1),
+!    .   obio_P(k,2)
+
       endif
 !!#endif
 
@@ -402,9 +423,9 @@ c        rfix = min(rfix,0.2)
         framm = rnut2/rmmn
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           rhs(k,nt+nnut,1) = rmml
-           rhs(k,nt+nnut,2) = rmmn
-           rhs(k,nt+nnut,4) = rmmf
+           !rhs(k,nt+nnut,1) = rmml
+           !rhs(k,nt+nnut,2) = rmmn
+           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim
         rmu4(nt) = grate*framm * pnoice2
@@ -413,7 +434,7 @@ c        rfix = min(rfix,0.2)
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
         term = gro(k,nt) * pnoice
-        rhs(k,nt+nnut,nt+nnut) = term
+        rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
         gcmax1d(k) = max(gcmax1d(k),grate)
       endif
@@ -436,9 +457,9 @@ c        rfix = min(rfix,0.2)
         framm = rnut2/rmmn
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           rhs(k,nt+nnut,1) = rmml
-           rhs(k,nt+nnut,2) = rmmn
-           rhs(k,nt+nnut,4) = rmmf
+           !rhs(k,nt+nnut,1) = rmml
+           !rhs(k,nt+nnut,2) = rmmn
+           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim
         rmu4(nt) = grate*framm * pnoice2
@@ -447,7 +468,7 @@ c        rfix = min(rfix,0.2)
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
         term = gro(k,nt) * pnoice2
-        rhs(k,nt+nnut,nt) = term
+        rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
       endif
 !!#endif
@@ -468,23 +489,23 @@ cdiag.  ,P_tend(k,8),P_tend(k,9)
         upn = 0.0
         upa = 0.0
         upf = 0.0
-        do nt = 1,nnut
+        do nt = 1,nchl
          term = bn(k)*(rmu3(nt)*obio_P(k,nnut+nt))
+         rhs(k,1,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upn = upn + term
-         rhs(k,1,nnut+nt)=-term
 
          term = bn(k)*(rmu4(nt)*obio_P(k,nnut+nt))
+         rhs(k,2,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upa = upa + term
-         rhs(k,2,nnut+nt)=-term
 
          term = bf*(rmuf(nt)*obio_P(k,nnut+nt))
+         rhs(k,4,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upf = upf + term
-         rhs(k,4,nnut+nt)=-term
         enddo
 
         term = bs*(rmu5(1)*obio_P(k,nnut+1))    
+        rhs(k,3,nnut+1) = -term   !use - sign here because that is how it goes in P_tend
         ups = term
-        rhs(k,3,nnut+1)=-term
 
 cdiag  if(vrbos)then
 cdiag     if(k.eq.1) write(106,'(a,a)')
@@ -504,25 +525,25 @@ cdiag  endif
        endif !tirrq(k) .gt. 0.0
       enddo  !kmax
   
-      call obio_carbon(vrbos,kmax)
+      call obio_carbon(vrbos,kmax,i,j)
  
 cdiag if (vrbos) then
 cdiag  do k=1,1
-cdiag   write (*,107) k,(bio_var(l),l=1,6),
+cdiag   write (*,107) k,(bio_var(l),l=1,9),
 cdiag.   (bio_var(nt),obio_P(k,nt),P_tend(k,nt),
-cdiag.    (rhs(k,nt,l),l=1,6),nt=1,9),
+cdiag.    (rhs(k,nt,l),l=1,16),nt=1,9),
 cdiag.   (bio_var(nt),det(k,nt-9),D_tend(k,nt-9),
 cdiag.    (rhs(k,nt,l),l=1,6),nt=10,12)
+cdiag
 cdiag   write (*,107) k,(bio_var(l),l=7,12),
 cdiag.   (bio_var(nt),obio_P(k,nt),P_tend(k,nt),
-cdiag.    (rhs(k,nt,l),l=7,12),nt=1,9),
+cdiag.    (rhs(k,nt,l),l=9,16),nt=1,9),
 cdiag.   (bio_var(nt),det(k,nt-9),D_tend(k,nt-9),
 cdiag.    (rhs(k,nt,l),l=7,12),nt=10,12)
 cdiag  end do
 cdiag end if
  107  format (/'lyr',i3,4x,'amount   tndcy   ',
-     .    6(2x,a7)/(a7,2es9.1,2x,6es9.1))
-
+     .    9(2x,a7)/(a7,2es9.1,2x,6es9.1))
 
 !compute here rates but all detritus update done inside the update routine
 

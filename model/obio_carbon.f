@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      subroutine obio_carbon(vrbos,kmax)
+      subroutine obio_carbon(vrbos,kmax,i,j)
 c
 c  Computes carbon cycling.  Uses Aumont et al (2002; JGR) for
 c  semi-labile DOC (because of basic similarities in model
@@ -21,7 +21,7 @@ c
 
       USE obio_com, only : bn,C_tend,cnratio,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,gro,pnoice,pCO2_ij
-     .                    ,temp1d,saln1d,dp1d,pnoice2
+     .                    ,temp1d,saln1d,dp1d,pnoice2,rhs,alk1d
 
 #ifdef TRACERS_GASEXCH_CO2_Natassa
 
@@ -46,6 +46,8 @@ c
 
       logical vrbos
 
+      real term
+
 
 
       do nt=1,ncar
@@ -65,30 +67,49 @@ c
         rmmzoo = obio_P(k,ntyp)/(Pzo+obio_P(k,ntyp))
 
         docexcz = excz*rmmzoo*obio_P(k,ntyp)  !zoopl production DOC
-        P_tend(k,ntyp) = P_tend(k,ntyp) - docexcz*pnoice
+        term = - docexcz*pnoice
+        rhs(k,ntyp,14) = term
+        P_tend(k,ntyp) = P_tend(k,ntyp) + term
+
         rndep = rlamdoc*(obio_P(k,1)/(rkdoc1 + obio_P(k,1)))
         docdep = car(k,1)/(rkdoc2+car(k,1))
         docbac = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
         docdet = tfac(k)*rlampoc*det(k,1)        !detrital production DOC
 
-        C_tend(k,1) = (docexcz*mgchltouMC
+        term = (docexcz*mgchltouMC
      .                   +  docdet/uMtomgm3-docbac)*pnoice
+        rhs(k,13,14) = term
+        C_tend(k,1) = term
 
         !adjust detritus
-        D_tend(k,1) = D_tend(k,1) - docdet  !carbon/nitrogen detritus
+        term = - docdet !carbon/nitrogen detritus
+        rhs(k,10,14) = term
+        D_tend(k,1) = D_tend(k,1) + term  
 
         !equivalent amount of DOC from detritus goes into 
         !nitrate, bypassing DON
-        P_tend(k,1) = P_tend(k,1) + docdet/cnratio
+        term = docdet/cnratio
+        rhs(k,1,14) = term
+        P_tend(k,1) = P_tend(k,1) + term 
 
         !---------------------------------------------------------------
         !DIC
         dicresz = tzoo*resz*obio_P(k,ntyp) !zoopl production DIC (resp)
-        P_tend(k,ntyp) = P_tend(k,ntyp) - dicresz*pnoice
-        C_tend(k,2) = (dicresz*mgchltouMC + docbac
-     .                  + tfac(k)*remin(1)*det(k,1)/uMtomgm3)
-     .                  * pnoice
+        term = - dicresz*pnoice
+        rhs(k,ntyp,15) =  term
+        P_tend(k,ntyp) = P_tend(k,ntyp) + term
 
+        term = dicresz*mgchltouMC * pnoice
+        rhs(k,14,15) = term
+        C_tend(k,2) = term
+
+        term = docbac * pnoice
+        rhs(k,14,14) = term
+        C_tend(k,2) = C_tend(k,2) + term
+     
+        term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice
+        rhs(k,14,10) = term
+        C_tend(k,2) = C_tend(k,2) + term
 
 cdiag   if (vrbos .and. k.eq.1)then
 cdiag      if (nstep.eq.120)write(909,'(a)')
@@ -120,8 +141,15 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
          totgro = gro(k,nt)*obio_P(k,nt+nnut)
           docexcp = excp*totgro   !phyto production DOC
            dicresp = resp*totgro   !phyto production DIC
-            P_tend(k,nt+nnut) = P_tend(k,nt+nnut) -
-     .                         (docexcp+dicresp)*pnoice
+
+            term = - docexcp * pnoice
+            rhs(k,nt+nnut,14) = term
+            P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
+
+            term = - dicresp * pnoice
+            rhs(k,nt+nnut,15) = term
+            P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
+
            sumdoc = sumdoc + docexcp
           sumutk = sumutk + totgro
          sumres = sumres + dicresp
@@ -133,17 +161,21 @@ cdiag.        nstep,k,nt,gro(k,nt),obio_P(k,nt+nnut),resp,
 cdiag.        sumres,sumutk,mgchltouMC
 cdiag        endif
         enddo !nt
-        C_tend(k,1) = C_tend(k,1) 
-     .              + sumdoc * mgchltouMC * pnoice
-        C_tend(k,2) = C_tend(k,2) 
-     .              + ((sumres-sumutk)*mgchltouMC) * pnoice
+
+        term = sumdoc * mgchltouMC * pnoice     !phyto prod DOC
+        rhs(k,13,5) = term        
+        C_tend(k,1) = C_tend(k,1) + term
+
+        term = ((sumres-sumutk)*mgchltouMC) * pnoice     !phyto prod DIC
+        rhs(k,14,5) = term
+        C_tend(k,2) = C_tend(k,2) + term
 
       enddo !k=1,kmax
 
 cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'2: ', nstep,C_tend(1,2)
 
 c pCO2
-      call ppco2tab(temp1d(1),saln1d(1),car(1,2),pCO2_ij)
+      call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
 
 cdiag   if (vrbos) then
 cdiag   do nt = 1,nchl
@@ -164,25 +196,30 @@ cdiag   endif
 
 c Update DIC for sea-air flux of CO2
 
+!this is for gas exchange + ocean biology: MAKE SURE!!!!
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CO2_Natassa)
       !when ocean biology + CO2 gas exch
       k = 1
       do nt=1,ntm
-      C_tend(k,2) = C_tend(k,2)
-     .            + tracflx1d(nt) * trcfrq  ! kg/m2/s
-     .            * 3600.0                  ! kg/m2/hr
-     .            / tr_mm(nt)/1.e-3/dp1d(k) ! mol/m3/hr
-     .            * 1000.0*pnoice        !units of uM/hr
+      term = tracflx1d(nt)           ! kg/m2/s
+     .     * 3600.0                  ! kg/m2/hr
+     .     /dp1d(k)
+!    .     / tr_mm(nt)/1.e-3/dp1d(k) ! mol/m3/hr
+!    .     * 1.e6                    ! micro-mol/m3/hr
+     .     * 1000.0*pnoice           !units of uM/hr (=mili-mol/lt/hr)
+      rhs(k,14,16) = term
+      C_tend(k,2) = C_tend(k,2) + term
 
-       if (vrbos)
-     . write(6,'(a,i7,i3,4e12.4)')
-     .  'obio_carbon:',nstep,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),
-     .   tracflx1d(nt)*trcfrq*3600./tr_mm(nt)/1.e-3/dp1d(1)
+         if (vrbos)
+     .   write(6,'(a,3i7,i3,4e12.4)')
+     .     'obio_carbon (coupled):',
+     .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term
 
       enddo
 
 #else
 
+!this is for only ocean biology but no gas exchange: MAKE SURE!!!!
 #ifdef TRACERS_OceanBiology
       !when ocean biology but no CO2 gas exch
       !atmco2 is set to constant
@@ -194,13 +231,13 @@ c Update DIC for sea-air flux of CO2
         scco2arg=1.d-10
         rkwco2=1.d-10
       else
-        scco2arg = (scco2/660.0)**(-0.5)
-        rkwco2 = awan*wssq*scco2arg           !units of m/s
+        scco2arg = (scco2/660.0)**(-0.5)      !Schmidt number
+        rkwco2 = awan*wssq*scco2arg           !transfer coeff (units of m/s)
       endif
       tk = 273.15+Ts
       tk100 = tk*0.01
       tk1002 = tk100*tk100
-      ff = exp(-162.8301 + 218.2968/tk100  +
+      ff = exp(-162.8301 + 218.2968/tk100  +    !solubility
      .         90.9241*log(tk100) - 1.47696*tk1002 +
      .         saln1d(k) * (.025695 - .025225*tk100 +
      .         0.0049867*tk1002))
@@ -208,13 +245,15 @@ c Update DIC for sea-air flux of CO2
       xco2 = atmCO2*1013.0/stdslp
       deltco2 = (xco2-pCO2_ij)*ff*1.0245E-3
       flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
-      flxmolm3h = flxmolm3*3600.0                !units of mol/m3/hr
+      flxmolm3h = flxmolm3*3600.0           !units of mol/m3/hr
+      term = flxmolm3h*1000.0*pnoice        !units of uM/hr (=mili-mol/lt/hr)
+      rhs(k,14,16) = term
+      C_tend(k,2) = C_tend(k,2) + term
 
       if (vrbos)
-     . write(6,'(a,i7,6e12.4)')
-     .  'obio_carbon:',nstep,Ts,scco2arg,wssq,rkwco2,xco2,flxmolm3h
+     . write(6,'(a,3i7,8e12.4)')'obio_carbon(watson):',
+     .   nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,term
 
-      C_tend(k,2) = C_tend(k,2) + flxmolm3h*1000.0*pnoice !units of uM/hr
 #endif
 
 #endif
@@ -225,7 +264,7 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'3: ', nstep,C_tend(1,2)
       end
 
 c ---------------------------------------------------------------------------
-      subroutine ppco2tab(T,S,car1D,pco21D)
+      subroutine ppco2tab(T,S,car1D,TA,pco21D)
  
 c  Computes pCO2 in the surface layer and delta pCO2 with the
 c  atmosphere using OCMIP protocols.  Uses pre-computed look-up
@@ -239,6 +278,7 @@ c
 
       USE obio_incom, only : it0inc,idicinc,itainc,pco2tab
      .                      ,nt0,nsal,ndic,nta
+      USE obio_dim, only: ALK_CLIM
 
       implicit none
 
@@ -253,7 +293,7 @@ c Get pco2
        Tsfc = T
         sal = S
         DIC = car1D     !uM
-         TA = tabar*S/Sbar  !adjust alk for salinity
+        if (ALK_CLIM.eq.0) TA = tabar*S/Sbar  !adjust alk for salinity
         it0 = nint((Tsfc+2.0)*2.0)/it0inc + 1
        isal = nint((sal-30.0)*2.0) + 1
        idic = (nint(DIC-1800.0))/idicinc + 1

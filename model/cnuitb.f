@@ -23,8 +23,8 @@ c --- boost = 1 to within 30 m of bottom, then increases linearly to 2
       boost(pbot1,pbot2,p1,p2)=max(1.,2.-min(pbot1-p1,pbot2-p2)
      .  /(30.*onem))
 c --- boost = 1 to within 100 m of bottom, then increases linearly to 3
-ccc      boost(pbot1,pbot2,p1,p2)=max(1.,3.-min(pbot1-p1,pbot2-p2)
-ccc     .  /(50.*onem))
+c     boost(pbot1,pbot2,p1,p2)=max(1.,3.-min(pbot1-p1,pbot2-p2)
+c    .  /(50.*onem))
 c
 c --- ------------------------------------------------------
 c --- continuity equation (flux-corrected transport version)
@@ -530,6 +530,10 @@ c
       bolusu(i,j,k)=delt1*thkdff*(util1(i,j)-util1(i-1,j))*scuy(i,j)
      .   *boost(pbot(i,j),pbot(i-1,j),p(i,j,k),p(i-1,j,k))
 c
+c --- suppress uphill fluxes into 'perched' cells
+      if (p(i  ,j,k).gt.pbot(i-1,j)) bolusu(i,j,k)=max(0.,bolusu(i,j,k))
+      if (p(i-1,j,k).gt.pbot(i  ,j)) bolusu(i,j,k)=min(0.,bolusu(i,j,k))
+c
 c --- confine interface smoothing to isopycnic coord. subdomain
 ccc      bolusu(i,j,k)=bolusu(i,j,k)*min(1.,max(.1,
 ccc     .   2.-(max(th3d(i,j,km-1),th3d(i-1,j,km-1))-theta(k-1))*hymar))
@@ -547,6 +551,10 @@ c
       do 141 i=ifv(j,l),ilv(j,l)
       bolusv(i,j,k)=delt1*thkdff*(util2(i,j)-util2(i,ja ))*scvx(i,j)
      .   *boost(pbot(i,j),pbot(i,ja ),p(i,j,k),p(i,ja ,k))
+c
+c --- suppress uphill fluxes into 'perched' cells
+      if (p(i,j  ,k).gt.pbot(i,ja )) bolusv(i,j,k)=max(0.,bolusv(i,j,k))
+      if (p(i,ja ,k).gt.pbot(i,j  )) bolusv(i,j,k)=min(0.,bolusv(i,j,k))
 c
 c --- confine interface smoothing to isopycnic coord. subdomain
 ccc      bolusv(i,j,k)=bolusv(i,j,k)*min(1.,max(.1,

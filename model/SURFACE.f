@@ -92,6 +92,7 @@ C****
      *     ,trsrfflx,trsource
 #ifdef TRACERS_GASEXCH_Natassa
      *     ,TRGASEX,GTRACER
+      USE TRACER_COM, only : tr_mm
 #endif
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
@@ -624,6 +625,11 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
 #ifdef TRACERS_WATER
         endif
 #endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+        !need to redo this here because the previous line has changed trconstflx to zero.
+        !because we have no sources. is there a better way to do this?
+        trconstflx(nx)=trgrnd(nx)
+#endif
       end do
 #endif
 C =====================================================================
@@ -836,15 +842,30 @@ C****
 C**** Calculate Tracer Gas Exchange
 C****
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
+#ifdef TRACERS_GASEXCH_CFC_Natassa
           TRGASEX(n,ITYPE,I,J) =
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     &         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
-     &               * dxyp(j)*ptype
+     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
+     .               * dxyp(j)*ptype 
          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     &         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
-     &               * dxyp(j)*ptype*dtsurf
-
+     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
+     .               * dxyp(j)*ptype*dtsurf 
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+          !this is modeled in complete accordance to what Watson is doing
+          TRGASEX(n,ITYPE,I,J) =
+     .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
+     .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)
+     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
+     .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
+     .               * dxyp(j)*ptype 
+         taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
+     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
+     .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
+     .               * dxyp(j)*ptype*dtsurf 
+#endif
        END IF
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)

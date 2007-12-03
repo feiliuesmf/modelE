@@ -61,6 +61,9 @@
       real atmFe,atmFe_all
       common /biron/atmFe(idm,jdm),atmFe_all(idm,jdm,12) !surface iron deposition
 
+      real alk
+      common /balk/alk(idm,jdm,kdm)    !alkalinity from climatology in 'umol/kg'
+
 
       real, parameter :: atmCO2=368.6          !uatm for year 2000
                    !     atmCO2=371.3          !uatm or ppmv (equivalent); 

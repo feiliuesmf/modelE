@@ -18,6 +18,7 @@ c
       real :: actot450,atot450
 
 c  Compute acdom
+      if (nl450.eq.0) stop 'obio_daysetrad: nl450=0'
       !!m = indext2
       do k = 1,kdm
         actot450 = 0.0

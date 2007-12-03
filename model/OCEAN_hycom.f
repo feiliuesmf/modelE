@@ -8,12 +8,16 @@
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : atrac
+
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      USE obio_forc, only : avgq
+      USE obio_com,  only : gcmax
+#endif
 #endif
       integer istart
 #include "dimensions.h"
 #include "dimension2.h"
 #include "cpl.h"
-
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
 c
@@ -95,6 +99,12 @@ c
       USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
 #ifdef TRACERS_GASEXCH_Natassa
       USE TRACER_GASEXCH_COM, only : atrac
+
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      USE obio_forc, only : avgq
+      USE obio_com,  only : gcmax
+#endif
+
 #endif
       IMPLICIT NONE
 #include "dimensions.h"
@@ -108,6 +118,11 @@ c
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
+#ifdef TRACERS_GASEXCH_Natassa
+!@var TRNHEADER Character string label for individual records
+      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX"
+#endif
+
 #ifdef TRACERS_OCEAN
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN02"
@@ -115,17 +130,11 @@ c
       write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
      *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
 #endif
-
 c
 css   write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
 css  *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
 c
       write(*,'(a,i9,f9.0)')'chk ocean write at nstep/day=',nstep,time
-
-      write(*,'(a,5e12.4)')'OCEAN_hycom1: ',
-     .    dp(100,100,1),u(100,100,1),v(100,100,1),
-     .    temp(100,100,1),saln(100,100,1)
-
       write (MODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
      . 'u,v,dp,t,s,th,tb,ub,vb,pb,pb,psi,thk,mxl,uf,vf,df,tcr3+o18+a8'
       SELECT CASE (IACTION)
@@ -136,15 +145,28 @@ css#ifdef TRACERS_OCEAN
 css       WRITE (kunit,err=10) TRMODULE_HEADER,tracer
 css#endif
         WRITE (kunit,err=10) MODULE_HEADER,nstep,time
+!    . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
      . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
+
+
 #ifdef TRACERS_GASEXCH_Natassa
+      write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
+      write (TRNMODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
+     *     'atrac,avgq,gcmax'
+
+      WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+     . ,avgq,gcmax
 #endif
+#endif
+
+
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
           CASE (IRSFICNO)   ! initial conditions (no ocean data)
@@ -153,7 +175,6 @@ css#endif
 css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
-            print *,' calling geopar'
             call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
@@ -162,16 +183,15 @@ c
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
      . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
-#ifdef TRACERS_GASEXCH_Natassa
-     . ,atrac
-#endif
+
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
-
-      write(*,'(a,5e12.4)')'OCEAN_hycom2: ',
-     .    dp(100,100,1),u(100,100,1),v(100,100,1),
-     .    temp(100,100,1),saln(100,100,1)
-
+      i=100
+      j=100
+      do k=1,2*kk
+      write(*,'(a,i2,2f8.4,f7.1,2f6.2)') ' tst1 k=',k,
+     .    u(i,j,k),v(i,j,k),dp(i,j,k)/onem,temp(i,j,k),saln(i,j,k)
+      enddo
       nstep=nstep0
       time=time0
 c
@@ -180,6 +200,36 @@ c
      *             ,MODULE_HEADER
               GO TO 10
             END IF
+
+
+cnat  go to 111
+#ifdef TRACERS_GASEXCH_Natassa
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,atrac
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+     . ,avgq,gcmax
+#endif
+      nstep0=time0*86400./baclin+.0001
+      write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
+      i=100
+      j=100
+      do k=1,kdm
+      write(*,'(a,i2,6(e12.4,1x))') ' tst1 k=',k,
+     .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
+     .    tracer(i,j,k,1),tracer(i,j,k,15)
+      enddo
+      nstep=nstep0
+      time=time0
+
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
+
+ 111  continue
+
 #ifdef TRACERS_OCEAN
             READ (kunit,err=10) TRHEADER,TRMO,TXMO,TYMO,TZMO
             IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
@@ -188,6 +238,9 @@ c
               GO TO 10
             END IF
 #endif
+
+
+
           CASE (irsficnt) ! restarts (never any tracer data)
 css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
@@ -200,36 +253,50 @@ c
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
      . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
-#ifdef TRACERS_GASEXCH_Natassa
-     . ,atrac
-#endif
+
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
-
-      write(*,'(a,5e12.4)')'OCEAN_hycom2: ',
-     .    dp(100,100,1),u(100,100,1),v(100,100,1),
-     .    temp(100,100,1),saln(100,100,1)
-
+      i=100
+      j=100
+      do k=1,2*kk
+      write(*,'(a,5f8.2)') ' tst2',
+     .    u(i,j,k),v(i,j,k),dp(i,j,k)/onem,temp(i,j,k),saln(i,j,k)
+      enddo
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
               GO TO 10
             END IF
+
+cnat  go to 222
+#ifdef TRACERS_GASEXCH_Natassa
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,atrac
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+     . ,avgq,gcmax
+#endif
+
+      nstep0=time0*86400./baclin+.0001
+      write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
+      i=100
+      j=100
+      do k=1,kdm
+      write(*,'(a,6(e12.4,1x))') ' tst2',
+     .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
+     .   tracer(i,j,k,1),tracer(i,j,k,15)
+      enddo
+
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
+
+ 222  continue
+
           END SELECT
       END SELECT
-
-!#ifdef TRACERS_restart_Natassa
-!      print*, '********************************************************'
-!      print*, '********************************************************'
-!      print*, '********************************************************'
-!      print*, '************ RESTARTING FROM AN OLD TRACER RUN *********'
-!      print*, '************** SETTING TRACERS TO ZERO *****************'
-!      print*, '********************************************************'
-!      print*, '********************************************************'
-!      print*, '********************************************************'
-!      tracer = 0.
-!#endif
-
 
       RETURN
  10   IOERR=1

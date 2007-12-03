@@ -11,13 +11,17 @@
      .                    ,wind
      .                    ,atmFe_all
      .                    ,owind,osolz
+     .                    ,alk
       USE obio_com,  only: gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
      .                    ,P_tend,D_tend,C_tend,saln1d
      .                    ,pCO2,pCO2_ij,p1d,wsdet
+     .                    ,rhs,alk1d
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate
+     . ,itime,iyear1,jdendofm,jyear,jday,aMON
+     . ,xlabel,lrunid
 
       USE FILEMANAGER, only: openunit,closeunit
 
@@ -35,10 +39,10 @@
 #include "common_blocks.h"
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
-      integer iu_pco2
+      integer iu_pco2,ll
       real    tot
 
-      character string*24
+      character string*80
 
       logical vrbos,noon,errcon
 
@@ -90,14 +94,24 @@
          ihr0 = int(hour_of_day/2)
 
       if (diagno) then
-       do 16 lgth=60,1,-1
-         if (flnmovt(lgth:lgth).ne.' ') go to 17
- 16    continue
-       stop '(bioinit:flnmovt)'
- 17    write (string,'(i6.6)') int(time+.001)
-!      open(16,file=flnmovt(1:lgth)//'pco2_out.'//string(1:6)
-!    .        ,status='unknown')
-       call openunit('pco2_out.'//string(1:6),iu_pco2)
+!       do 16 lgth=60,1,-1
+!         if (flnmovt(lgth:lgth).ne.' ') go to 17
+! 16    continue
+!       stop '(bioinit:flnmovt)'
+! 17    write (string,'(i6.6)') int(time+.001)
+!!      open(16,file=flnmovt(1:lgth)//'pco2_out.'//string(1:6)
+!!    .        ,status='unknown')
+        if (nstep.eq.1) then
+         write(string,'(a3,i4.4,2a)') amon,0,'.',xlabel(1:lrunid)
+       elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
+         write(*,*) 'mismatching archive date in agcm/ogcm=',
+     .      (itime+1.)/nday,time
+         stop 'mismatching archive date'
+       else
+         write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
+       endif
+
+       call openunit('pco2.'//string,iu_pco2)
 
       endif  !diagno
 
@@ -129,6 +143,7 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
            dp1d(k)=dpinit(i,j,k)/onem
             avgq1d(k)=avgq(i,j,k)
              gcmax1d(k)=gcmax(i,j,k)
+              alk1d(k)=alk(i,j,k)
               do nt=1,ntyp+n_inert
              obio_P(k,nt)=tracer(i,j,k,nt)
             enddo
@@ -173,6 +188,7 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
         car(k,nt)=   car(kmax,nt)
        enddo
       enddo
+
 
        !OASIM spectral irradiance data just above the surface
        !Eda and Esa fields have ihr=1:12, ie every 2hrs
@@ -220,7 +236,13 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 !      atmFe_ij=atmFe_all(i,j,l0)*w0 + atmFe_all(i,j,l1)*w1
 !    .         +atmFe_all(i,j,l2)*w2 + atmFe_all(i,j,l3)*w3
 
-       atmFe_ij=atmFe_all(i,j,JMON)
+       !atmospheric deposition iron * solubility
+       atmFe_ij=atmFe_all(i,j,JMON)*0.02
+
+cdiag  if (vrbos) then
+cdiag    write(*,'(a,i5,2i4,6e12.4)')'obio forcing ',
+cdiag.   nstep,i,j,Eda2(7,6),Esa2(7,6),solz,sunz,wind,atmFe_ij
+cdiag  endif
 
 #ifdef TRACERS_GASEXCH_CO2_Natassa
        do nt=1,ntm
@@ -269,6 +291,7 @@ cdiag    endif
          rmud = 0.0
          iyear=2001
 
+
          !compute the ocean albedo but we do not need it yet
          !before we couple to atmosphere
          call obio_ocalbedo
@@ -292,7 +315,6 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
          endif
          if (tot .ge. 0.1) call obio_sfcirr(noon,vrbos)
 
-
       !check
       if (vrbos) then
         write(lp,'(a,3i9)')
@@ -303,7 +325,7 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
 
          ichan=2
          write(lp,'(a)')'Eda'
-         write(lp,'(2i5,4e12.4)')ichan,ihr0,
+         write(lp,'(2i5,4e12.4)')ichan,ihr0,   
      .        Eda(i,j,ichan,ihr0,JMON),
      .        Eda2(ichan,ihr0),Ed(ichan),rod(ichan)
 
@@ -315,7 +337,6 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
      .  k,dp1d(k),u(i,j,k+mm),v(i,j,k+mm),
      .    temp(i,j,k+mm),saln(i,j,k+mm)
         enddo
-
 
         write(lp,'(a)')
      .'    k     P(1)      P(2)         P(3)       P(4)         P(5) '
@@ -340,11 +361,10 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
      .   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
        endif
 
-
-         if (vrbos)
-     .     write(lp,106)nstep,'dir dwn irr,diff dwn irr',
-     .                  (ichan,Ed(ichan),Es(ichan),
-     .                  tot,ichan=1,nlt)
+!        if (vrbos)
+!    .     write(lp,106)nstep,'dir dwn irr,diff dwn irr',
+!    .                  (ichan,Ed(ichan),Es(ichan),
+!    .                  tot,ichan=1,nlt)
  106  format(i9,a/(28x,i3,3(1x,es9.2)))
 
 
@@ -360,9 +380,9 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
 
          if (tot .ge. 0.1) call obio_edeu(vrbos,kmax)
 
-         if (vrbos)
-     .     write(lp,107)nstep,' k   avgq    tirrq',
-     .                 (k,avgq1d(k),tirrq(k),k=1,kdm)
+cdiag    if (vrbos)
+cdiag.     write(lp,107)nstep,' k   avgq    tirrq',
+cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(28x,i3,2(1x,es9.2)))
 
 
@@ -393,7 +413,7 @@ cdiag.                       car(k,1),car(k,2),k=1,kdm)
 cdiag     endif
        !------------------------------------------------------------
 
-       call obio_ptend(vrbos,kmax)
+       call obio_ptend(vrbos,kmax,i,j)
 
        !------------------------------------------------------------
 cdiag  if (vrbos)then
@@ -408,6 +428,7 @@ cdiag.     D_tend(k,3),C_tend(k,1),C_tend(k,2),k=1,kdm)
 cdiag  endif
  108  format(i6,a/(12x,i3,11(1x,es9.2)))
  109  format(i6,a/(12x,i3,7(1x,es9.2)))
+
        !------------------------------------------------------------
 
        !update biology from m to n level
@@ -442,6 +463,16 @@ cdiag.    (k,p(i,j,k+1)/onem,det(k,1),det(k,2),det(k,3),
 cdiag.                       car(k,1),car(k,2),k=1,kdm)
 cdiag     endif
 
+       !------------------------------------------------------------
+
+      if (vrbos) then
+       print*, 'OBIO TENDENCIES, 1-16, 1,7'
+       do k=1,1
+        write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=1,7)
+         print*, 'OBIO TENDENCIES, 1-16, 8,14'
+        write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=8,14)
+       enddo
+      endif
 
        !------------------------------------------------------------
        !update tracer array
@@ -465,11 +496,13 @@ cdiag     endif
        pCO2(i,j)=pCO2_ij
 
        if (diagno) then
-         write(iu_pco2,'(3i7,19e12.4)')
+         write(iu_pco2,'(3i7,21e12.4)')
      .     nstep,i,j
      .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
      .    ,covice_ij,obio_P(1,1:ntyp),det(1,1:ndet),car(1,1)
+     .    ,dpmixl(i,j)/onem,alk1d(1)
        endif
+
 
  1000 continue
 c$OMP END PARALLEL DO

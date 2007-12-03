@@ -94,6 +94,7 @@ c
 
       USE TRACER_GASEXCH_COM, only : atracflx,atrac,tracflx
 #endif
+
       USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : fsss,tfrez
       USE GEOM, only : dxyp
@@ -101,16 +102,14 @@ c
       USE CONSTANT, only : lhm,shi,shw
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
-
-#ifdef TRACERS_OceanBiology
+#ifdef TRACERS_OceanBiology 
       USE obio_dim
       USE obio_forc, only:    avgq,awind,owind,asolz,osolz
       USE obio_com,  only:    gcmax,pCO2,dobio
 
-      USE PBLCOM, only : wsavg
-      USE RAD_COM,   only: COSZ1
-#endif
-
+      USE PBLCOM, only : wsavg 
+      USE RAD_COM,   only: COSZ1 
+#endif 
 c
       implicit none
 c
@@ -123,7 +122,7 @@ c
 #include "kprf_arrays.h"
 c
       real sum,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
-     .    ,sigocn,kappaf,check,apehyc,pechg_hyc_bolus
+     .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv,den_str
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
@@ -240,14 +239,6 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
       aswflx(ia,ja)=aswflx(ia,ja)+(solar(1,ia,ja)*(1.-rsi(ia,ja))!J/m*m=>W/m*m
      .                            +solar(3,ia,ja)*    rsi(ia,ja))
      .                                 /(3600.*real(nhr))
-#ifdef TRACERS_OceanBiology
-      asolz(ia,ja)=asolz(ia,ja)                            ! 
-     .            +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr))    !
-      awind(ia,ja)=awind(ia,ja)                            ! 
-     .            +wsavg(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cdiag write(*,'(a,2i5,2e12.4)')
-cdiag.        'hycom2, o_ awind:', ia,ja,wsavg(ia,ja),awind(ia,ja)
-#endif
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
@@ -259,6 +250,14 @@ cdiag.        'hycom2, o_ awind:', ia,ja,wsavg(ia,ja),awind(ia,ja)
      .  iatest,jatest,TRGASEX(nt,1,iatest,jatest),
      .  atracflx(iatest,jatest,nt)
       enddo
+#endif
+#ifdef TRACERS_OceanBiology
+      asolz(ia,ja)=asolz(ia,ja)                            !
+     .            +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr))    !
+      awind(ia,ja)=awind(ia,ja)                            !
+     .            +wsavg(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cdiag write(*,'(a,2i5,2e12.4)')
+cdiag.        'hycom2, o_ awind:', ia,ja,wsavg(ia,ja),awind(ia,ja)
 #endif
  29   continue
 c$OMP END PARALLEL DO
@@ -290,16 +289,16 @@ c
       call flxa2o(aemnp,oemnp)                    !E - P everywhere
       call flxa2o(austar,ustar)                   !friction velocity
       call flxa2o(aswflx,sswflx)                  ! shortwave flux
-#ifdef TRACERS_OceanBiology    
-      call flxa2o(asolz,osolz)
-      call flxa2o(awind,owind)
-cdiag write(*,'(a,2i5,e12.4)')
-cdiag.   'hycom2, wind at (109,94):', 109,94,owind(109,94)
-#endif
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       call flxa2o(atracflx(:,:,nt),tracflx2(:,:,nt)) !tracer flux
       enddo
+#endif
+#ifdef TRACERS_OceanBiology
+      call flxa2o(asolz,osolz)
+      call flxa2o(awind,owind)
+cdiag write(*,'(a,2i5,e12.4)')
+cdiag.   'hycom2, wind at (109,94):', 109,94,owind(109,94)
 #endif
 c
       call system_clock(before)
@@ -315,30 +314,40 @@ c$OMP PARALLEL SHARED(mo0)
 c$    mo0=OMP_GET_NUM_THREADS()
 c$OMP END PARALLEL
 c$    call OMP_SET_DYNAMIC(.false.)
-ccc   call OMP_SET_NUM_THREADS(max(mo0,16))
-c$OMP PARALLEL SHARED(mo1)
-ccc   mo1=OMP_GET_NUM_THREADS()
-c$OMP END PARALLEL
 c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0
-ccc     . ,' =======  number of threads:',mo1,' ======='
+c
+ccc$  call OMP_SET_NUM_THREADS(max(mo0,16))
+ccc$  OMP PARALLEL SHARED(mo1)
+ccc$  mo1=OMP_GET_NUM_THREADS()
+ccc$  OMP END PARALLEL
+ccc$  write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
+ccc$     . ,' =======  number of threads:',mo1,' ======='
 c
       lp=6
 c
 c --- compute eqn.of state check values
 c
-      check=36.719718               ! T:[-2:30],S:[18:38]
-      check=36.876506               ! T:[-2:32],S:[16:38]
-      if (abs(sigocn(4.,35.)-check).gt..0001) then
+      if (pref.eq.2.e7) then
+        chk_rho=36.719718               ! T:[-2:30],S:[18:38]
+        chk_rho=36.876506               ! T:[-2:32],S:[16:38]
+c ---   chk_kap: t= 1.0, s=34.5, p=0 bar, kap_t(4.5,34.5,1.e7)= 0.08728276
+        chk_kap=0.08728276
+      elseif (pref.eq.0.) then
+        chk_rho=27.786223
+c ---   chk_kap: t= 1.0, s=34.5, p=0 pascal, kap_t(4.5,34.5,1.e7)=-0.09080282
+        chk_kap=-0.09080282
+      else
+        stop 'wrong pref'
+      endif
+c
+      if (abs(sigocn(4.,35.)-chk_rho).gt..0001) then
        write (lp,'(/2(a,f11.6))') 'error -- sigocn(t=4,s=35) should be',
-     . check,', not',sigocn(4.,35.)
+     . chk_rho,', not',sigocn(4.,35.)
 css     stop
       end if
-c --- reference: t= 0.0, s=34.0, p=0 bar,kap(4.5,34.5,1.e7)=  0.11954594
-c --- reference: t= 1.0, s=34.5, p=0 bar, kap_t(4.5,34.5,1.e7)= 0.08728276
-      check=0.08728276
-      if (abs(kappaf(4.5,34.5,1.e7)-check).gt..00001) then
+      if (abs(kappaf(4.5,34.5,1.e7)-chk_kap).gt..00001) then
         write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
-     .  '  should be',check,', not',kappaf(4.5,34.5,1.e7)
+     .  '  should be',chk_kap,', not',kappaf(4.5,34.5,1.e7)
       stop
       end if
 c
@@ -492,6 +501,7 @@ c
       trcadv_time = 0.0
       if (dotrcr) then
         call system_clock(before)      ! time elapsed since last system_clock
+
 c --- zero-out accumulated flux
 c     this should be done at the beginning of the 'long' time interval
 #ifdef TRACERS_GASEXCH_Natassa
@@ -505,6 +515,7 @@ c     this should be done at the beginning of the 'long' time interval
       enddo
       enddo
 #endif
+
 c --- initialization of tracer transport arrays (incl. dpinit):
         call tradv0(m,mm)
 cdiag print *,'past tradv0'
@@ -524,7 +535,7 @@ c12     tracer(i,j,1,1)=1.              !  surface ventilation tracer
 cc$OMP END PARALLEL DO
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
-      end if !dotrcr
+      end if
 c
 c --- accumulate tracer flux over 'long' time period
 c     this should be done at every time step (of the long interval)
@@ -616,43 +627,11 @@ c --- long time step tracer advection: build up mass flux time integral
 cdiag print *,'past tradv1'
 c
         if (mod(nstep,trcfrq).eq.0) then
-cdiag     if (nstep.gt.40) then
-cdiag     do j=1,jj
-cdiag     do l=1,isp(j)
-cdiag     do i=ifp(j,l),ilp(j,l)
-cdiag     do k=1,kdm
-cdiag     km=k+mm
-cdiag      write(lp,'(a,3i4,2e12.4)')
-cdiag.    'befor tradv2 ',i,j,k,dp(i,j,km)/onem,
-cdiag.     tracer(i,j,k,15)
-cdiag     enddo
-cdiag     enddo
-cdiag     enddo
-cdiag     enddo
-cdiag     endif
-
           dotrcr=.true.         !  start tracer advection/turb.mixing cycle
           write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
-      
           call tradv2(n,nn)
-
-cdiag     if (nstep.gt.40) then
-cdiag     do j=1,jj
-cdiag     do l=1,isp(j)
-cdiag     do i=ifp(j,l),ilp(j,l)
-cdiag     do k=1,kdm
-cdiag     km=k+mm
-cdiag      write(lp,'(a,3i4,2e12.4)')
-cdiag.    'after tradv2 ',i,j,k,dp(i,j,km)/onem,
-cdiag.     tracer(i,j,k,15)
-cdiag     enddo
-cdiag     enddo
-cdiag     enddo
-cdiag     enddo
-cdiag     endif
-
         end if
         trcadv_time = trcadv_time + real(after-before)/real(rate)
 
@@ -674,7 +653,7 @@ cdiag  enddo
 cdiag  call obio_limits('aftr trcadv')
 #endif
 
-      end if  !trcout
+      end if !trcout
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape) q=hyc_pechg1(dp(1,1,k1m),th3d(1,1,k1m),32)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -807,6 +786,7 @@ cdiag.     tracer(itest,jtest,k,9)
 cdiag  enddo
 cdiag  call obio_limits('aftr hybgen')
 #endif
+
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
      . write (501,103) time,'  APE change due to vert.regridding:',
@@ -947,10 +927,11 @@ c
      .   ,'hybgen',int(1000.*hybgen_time)
 c
       if (mod(nstep,5).eq.0) call flush(lp)
-c
+
 #ifdef TRACERS_OceanBiology
       if (dobio .or. diagno) call obio_trint
 #endif
+
 c
       if (.not.diagno) go to 23
 c
@@ -1024,6 +1005,7 @@ c$OMP PARALLEL DO
       osiav(i,j)=osiav(i,j)+odmsi(i,j)*baclin*dtsrc/(3600.*real(nhr)) !kg/m2=>kg*.5*hr/m2
       omlhc(i,j)=spcifh*max(dp(i,j,k1n)/onem,thkmin)/thref  ! J/(m2*C)
       oogeoza(i,j)=(montg(i,j,1)+thref*pbavg(i,j,m))*g/(thref*onem) ! m^2/s^2
+
 #ifdef TRACERS_GASEXCH_Natassa
       !here we define the tracer that participates in the
       !gas exchange flux.
@@ -1035,13 +1017,16 @@ c$OMP PARALLEL DO
       enddo
 #endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
+      !in this case, the tracer is not really active ocean tracer, because it is being
+      !handled by the bgcm and it is only at the surface
       do nt=1,ntm
       otrac(i,j,nt)=otrac(i,j,nt)
-     .             +pCO2(i,j)
+     .             +pCO2(i,j)                 !pCO2 is in ppmv(uatm)
      .             *baclin/(3600.*real(nhr))
       enddo
 #endif
 #endif
+
  201  continue
 c$OMP END PARALLEL DO
 c
@@ -1083,19 +1068,21 @@ c     call findmx(ipa,sss,iia,iia,jja,'osss')
 c     call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
 c     call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
-c     if (time.le.1)
-c    .write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
-c    . iatest,jatest,' output raw uo,vo,ice,focean day=',time,nstep
-c    . ,((uosurf(i,j)*100.,i=iatest-2,iatest+2)
-c    . , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
-c    . ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
-c    . , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
+cdiag if (time.le.1)
+cdiag.write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
+cdiag. iatest,jatest,' output raw uo,vo,ice,focean day=',time,nstep
+cdiag. ,((uosurf(i,j)*100.,i=iatest-2,iatest+2)
+cdiag. , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
+cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
+cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c
 c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ia=1,iia
       do 204 ja=1,jja
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
+<<<<<<< hycom2.f
+=======
         gtempr(1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
@@ -1105,6 +1092,7 @@ c$OMP PARALLEL DO PRIVATE(tf)
      .      iatest,jatest,atrac(iatest,jatest,nt)
         enddo
 #endif
+>>>>>>> 2.5
         tf=tfrez(sss(ia,ja),0.)
         dmsi(1,ia,ja)=utila(ia,ja)                        !kg/m2 per agcm step
         dhsi(1,ia,ja)=utila(ia,ja)                        !J/m2 per agcm step
@@ -1116,6 +1104,14 @@ c --- evenly distribute new ice over open water and sea ice
           dmsi(2,ia,ja)=dmsi(1,ia,ja)
           dssi(2,ia,ja)=dssi(1,ia,ja)
         endif
+#ifdef TRACERS_GASEXCH_Natassa
+        do nt=1,ntm
+        GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
+        if (ia.eq.iatest.and.ja.eq.jatest)
+     .  write(6,'(a,2i5,e12.4)')'hycom, atrac at point ',
+     .      iatest,jatest,atrac(iatest,jatest,nt)
+        enddo
+#endif
       endif
  204  continue
 c$OMP END PARALLEL DO
@@ -1125,17 +1121,17 @@ c --- enhance flow through Denmark Strait
       den_str=.08/(2.**(abs(j-41)+abs(i-(j-9))))
       uosurf(i,j)=uosurf(i,j)-den_str
       vosurf(i,j)=vosurf(i,j)-den_str
-c     if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
+cdiag if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
       enddo
       enddo
 c
-c     if (time.le.1)
-c    .write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
-c    . iatest,jatest,' output enh. uo,vo,ice,focean day=',time,nstep
-c    . ,((uosurf(i,j)*100.,i=iatest-2,iatest+2)
-c    . , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
-c    . ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
-c    . , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
+cdiag if (time.le.1)
+cdiag.write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
+cdiag. iatest,jatest,' output enh. uo,vo,ice,focean day=',time,nstep
+cdiag. ,((uosurf(i,j)*100.,i=iatest-2,iatest+2)
+cdiag. , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
+cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
+cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c     call prtmsk(ipa,uosurf,util3(31,31),iia,10,15,0.,1000.,'uo(mm/s)')
 c     call prtmsk(ipa,vosurf,util3(31,31),iia,10,15,0.,1000.,'vo(mm/s)')
 c

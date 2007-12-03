@@ -30,7 +30,7 @@ c
       j=jtest
 cdiag write (lp,108) nstep,itest,jtest,
 cdiag.'  entering mxkprf:  temp    saln    dens    thkns    dpth',(k,
-cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn)+thbase,
+cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
 cdiag.  dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
 cdiag if (dotrcr) write (lp,110) nstep,itest,jtest,
 cdiag.'  entering mxkprf:  thkns   tracer1    tracer2    tracer3',
@@ -191,7 +191,7 @@ c
             do i=ifp(j,l),ilp(j,l)
               tmix(i,j)=tmix(i,j)/dpmixl(i,j)
               smix(i,j)=smix(i,j)/dpmixl(i,j)
-              thmix(i,j)=sigocn(tmix(i,j),smix(i,j))-thbase
+              thmix(i,j)=sigocn(tmix(i,j),smix(i,j))
            enddo
 c
           enddo
@@ -265,7 +265,7 @@ c
       j=jtest
 cdiag write (lp,108) nstep,itest,jtest,
 cdiag.'   exiting mxkprf:  temp    saln    dens    thkns    dpth',(k,
-cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn)+thbase,
+cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
 cdiag.  dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
 cdiag if (dotrcr) write (lp,110) nstep,itest,jtest,
 cdiag.'   exiting mxkprf:  thkns   tracer1    tracer2    tracer3',
@@ -388,6 +388,7 @@ c-----------------------------------------------------------------------------
 c                                                                             
       real, parameter :: difmax = 9999.0e-4  !maximum diffusion/viscosity     
       real, parameter :: acormin= 2.5453e-6  !minimum abs(corio), i.e. 1 degN     
+      real, parameter :: wndmix= 10.         !minimum diffusion=10cm2/s in layer 1
 c
 c --- local variables for giss mixing
 c
@@ -531,7 +532,7 @@ c --- modify t and s
 c
 css     saln(i,j,kn)=saln(i,j,kn)+dsaln
         saln(i,j,kn)=max(0.,saln(i,j,kn)+dsaln)
-        th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))-thbase
+        th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
 c
       enddo
 c
@@ -577,7 +578,7 @@ c --- set 1-d array values; use cgs units
           v1d (k)=50.0*(v(i,j,kn)+v(i  ,jb ,kn))
           if (k.eq.1) then
             thsum=th3d(i,j,kn)
-            th1d(k)=1.0+0.001*(thsum+thbase)
+            th1d(k)=1.0+0.001*thsum
           else
             deltaz=z1d(k)-z1d(k-1)
             s2(k-1)=((u1d(k-1)-u1d(k))**2+(v1d(k-1)-v1d(k))**2)/
@@ -592,7 +593,7 @@ c --- set 1-d array values; use cgs units
      &            dsiglocds(temp(i,j,kn  ),saln(i,j,kn  ),p(i,j,k)))*
      &           (saln(i,j,kn-1)-saln(i,j,kn))
               thsum=thsum-alfadt-betads
-              th1d(k)=1.0+0.001*(thsum+thbase)
+              th1d(k)=1.0+0.001*thsum
             else
               alfadt=0.0005*
      &           (dsigdt(temp(i,j,kn-1),saln(i,j,kn-1))+
@@ -602,10 +603,10 @@ c --- set 1-d array values; use cgs units
      &           (dsigds(temp(i,j,kn-1),saln(i,j,kn-1))+
      &            dsigds(temp(i,j,kn  ),saln(i,j,kn  )))*
      &           (saln(i,j,kn-1)-saln(i,j,kn))
-              th1d(k)=1.0+0.001*(th3d(i,j,kn)+thbase)
+              th1d(k)=1.0+0.001*th3d(i,j,kn)
             endif
             dens=1.0+0.001*(sigloc(temp(i,j,kn),saln(i,j,kn),
-     &           p(i,j,k)+0.5*dp(i,j,kn))+thbase)
+     &           p(i,j,k)+0.5*dp(i,j,kn)))
             an2(k-1)=-980.0*(alfadt+betads)/
      &             (deltaz*dens)
             ria(k-1)=-980.0*(alfadt+betads)/
@@ -1202,8 +1203,15 @@ cdiag     tmpk(k)=tmp
 c
  22   continue
 c
-c --- stop if DIFFUSIVITY IS NEGATIVE.
       do k =1,klist(i,j)-1
+c --- set min DIFFUSIVITY in layer 1
+      if (k.eq.1) then
+        akm(1)=max(akm(1),wndmix)
+        akh(1)=max(akh(1),wndmix)
+        aks(1)=max(aks(1),wndmix)
+      endif
+c
+c --- stop if DIFFUSIVITY IS NEGATIVE.
       if ((akm(k).lt.0.).or.(akh(k).lt.0.).or.(aks(k).lt.0.)) then
           write(lp,*) "Diffusivity is negative."
         write(lp,*) "k=",k
@@ -1538,7 +1546,7 @@ c --- modify t and s; set old value arrays at p points for initial iteration
         if (k.le.klist(i,j)) then
           temp(i,j,kn)=temp(i,j,kn)+dtemp
           saln(i,j,kn)=saln(i,j,kn)+dsaln
-          th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))-thbase
+          th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
           told (k)=temp(i,j,kn)
           sold (k)=saln(i,j,kn)
           if (locsig) then
@@ -1624,7 +1632,7 @@ c --- averaged over -2*epsilon*zgrid, but no more than 8m.
             wq=min(hwide(1),wref)*qwref
             uref=uold(1)*wq
             vref=vold(1)*wq
-            bref=-g*thref*(thold(1)+thbase)*wq
+            bref=-g*thref*thold(1)*wq
             wt=0.0
             do ka=2,k
               wt=wt+wq
@@ -1634,13 +1642,13 @@ c --- averaged over -2*epsilon*zgrid, but no more than 8m.
               wq=min(1.0-wt,hwide(ka)*qwref)
               uref=uref+uold(ka)*wq
               vref=vref+vold(ka)*wq
-              bref=bref-g*thref*(thold(ka)+thbase)*wq
+              bref=bref-g*thref*thold(ka)*wq
             enddo
           endif
           zrefo=zref
 c
           ritop(k)=(zref-zgrid(i,j,k))*
-     &             (bref+g*thref*(thold(k)+thbase))
+     &             (bref+g*thref*thold(k))
           dvsq(k)=(uref-uold(k))**2+(vref-vold(k))**2
 *
 *         if (i.eq.itest.and.j.eq.jtest) then
@@ -1653,7 +1661,7 @@ c
 *           write(lp,'(i2,f9.2,f6.2,4f7.3,2f7.3,f9.4,f7.4)')
 *    &         k,zgrid(i,j,k),zref,
 *    &         uold(k),uref,vold(k),vref,
-*    &         -g*thref*(thold(k)+thbase),bref,
+*    &         -g*thref*thold(k),bref,
 *    &         ritop(k),dvsq(k)
 *           call flush(lp)
 *         endif
@@ -2163,7 +2171,7 @@ c
             wq=min(hwide(klist(i,j)),wref)*qwref
             uref=uold(klist(i,j))*wq*wq
             vref=vold(klist(i,j))*wq*wq
-            bref=-g*thref*(thold(klist(i,j))+thbase)*wq
+            bref=-g*thref*thold(klist(i,j))*wq
             wt=0.0
             q=wq
             do ka=k,2,-1
@@ -2180,13 +2188,13 @@ c
                 uref=uref+uold(ka)*wq
                 vref=vref+vold(ka)*wq
               endif
-              bref=bref-g*thref*(thold(ka)+thbase)*wq
+              bref=bref-g*thref*thold(ka)*wq
             enddo !ka
           endif
           zrefo=zref
 c
           ritop(k)=max(epsil,-(zgridb(k)-zref)*
-     &            (bref+g*thref*(thold(k)+thbase)))
+     &            (bref+g*thref*thold(k)))
           dvsq(k)=(uref-uold(k))**2+(vref-vold(k))**2
           dbloc(k+1)=-g*thref*(thold(k)-thold(k+1))
 c
@@ -2200,7 +2208,7 @@ cdiag       endif
 cdiag       write(lp,'(i2,f9.2,f6.2,4f7.3,2f7.3,f9.4,f7.4)')
 cdiag&         k,zgridb(k),zref,
 cdiag&         uold(k),uref,vold(k),vref,
-cdiag&         -g*thref*(thold(k)+thbase),bref,
+cdiag&         -g*thref*thold(k),bref,
 cdiag&         ritop(k),dvsq(k)
 cdiag       call flush(lp)
 cdiag     endif
@@ -2570,7 +2578,7 @@ c --- reset old variables in preparation for next iteration
             sold(k)=s1dn(k)
             if (locsig) then
               if (k.eq.1) then
-                thold(k)=sigocn(told(k),sold(k))-thbase
+                thold(k)=sigocn(told(k),sold(k))
               else
                 alfadt(k)=0.5*
      &                   (dsiglocdt(told(k-1),sold(k-1),p(i,j,k))+
@@ -2583,7 +2591,7 @@ c --- reset old variables in preparation for next iteration
                 thold(k)=thold(k-1)-alfadt(k)-betads(k)
               endif
             else
-              thold(k)=sigocn(told(k),sold(k))-thbase
+              thold(k)=sigocn(told(k),sold(k))
             endif
             if (iter.lt.niter) then
               uold(k)=u1dn(k)
@@ -2797,7 +2805,7 @@ c --- adjust t, s, th, arrays
         kn=k+nn
         temp(i,j,kn)=t1dn(k)
         saln(i,j,kn)=s1dn(k)
-        th3d(i,j,kn)=sigocn(t1dn(k),s1dn(k))-thbase
+        th3d(i,j,kn)=sigocn(t1dn(k),s1dn(k))
         if (dotrcr) then
           do ktr=1,ntrcr
             tracer(i,j,k,ktr)=tr1dn(k,ktr)

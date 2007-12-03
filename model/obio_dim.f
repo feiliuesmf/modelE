@@ -46,4 +46,10 @@
 
       integer, parameter :: nrg=13    !number of oceanographic basins
 
+      integer, parameter :: ALK_CLIM=0    !0-Alk is function of Salinity
+                                          !1-Alk is from climatology (GLODAP annmean)
+                                          !2-Alk is prognostic
+      integer, parameter :: IRON_from=0   !0-Iron from GOCART model
+                                          !1-Iron from Ron Miller's dust fluxes
+
       END MODULE obio_dim

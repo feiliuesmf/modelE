@@ -125,7 +125,7 @@ c
       hyc_pechg1=0.
       do 8 k=1,kk
  8    hyc_pechg1=hyc_pechg1+
-     .  (varian(k)-varian(k-1))/(1000.+theta(k)+thbase)
+     .  (varian(k)-varian(k-1))/(1000.+theta(k))
 c
 c --- report result in units of joules (kg m^2/sec^2)
       hyc_pechg1=.5*hyc_pechg1/g
@@ -267,7 +267,7 @@ c
       hyc_pechg2=0.
       do 8 k=1,kk
  8    hyc_pechg2=hyc_pechg2
-     .  +(varian(k)-varian(k-1))/(1000.+theta(k)+thbase)
+     .  +(varian(k)-varian(k-1))/(1000.+theta(k))
 c
 c --- report result in units of watts (kg m^2/sec^3)
       hyc_pechg2=.5*hyc_pechg2/(g*delt1)

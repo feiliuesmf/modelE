@@ -565,13 +565,6 @@ cdiag       endif
         else !.not.thermo
           dtemp=0.0
           dsaln=0.0
-#ifdef TRACERS_GASEXCH_Natassa
-            if (dotrcr) then
-              do ktr=1,ntm
-               dtracer(ktr)=0.0
-              enddo
-            endif
-#endif
         endif
 c
 c --- modify t and s
@@ -579,17 +572,13 @@ c --- modify t and s
         saln(i,j,kn)=saln(i,j,kn)+dsaln
         th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
         if (dotrcr) then
          do ktr=1,ntm
-#ifdef TRACERS_GASEXCH_CFC_Natassa
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
-     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
-#endif
          enddo
         endif
+#endif
 #endif
 c
       enddo
@@ -1375,7 +1364,6 @@ ccc   use mod_xc  ! HYCOM communication interface
       USE obio_dim, only : ntyp,n_inert,ndet,ncar
 #endif
 #endif
-
 c
 c --- hycom version 2.1
       implicit none
@@ -1648,25 +1636,17 @@ c --- modify t and s; set old value arrays at p points for initial iteration
           saln(i,j,kn)=saln(i,j,kn)+dsaln
           th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
         if (dotrcr) then
          do ktr=1,ntm
-#ifdef TRACERS_GASEXCH_CFC_Natassa
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
           if(i.eq.109.and.j.eq.94)
-     .     write(6,'(a,i4,3e12.4)')'mxkpp: add dtracer ',
+     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
      .      ktr,tracer(i,j,k,ktr)-dtracer(ktr),dtracer(ktr),
      .          tracer(i,j,k,ktr)
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
-     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
-          if(i.eq.109.and.j.eq.94)
-     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
-     .      ktr,tracer(i,j,k,ntyp+n_inert+ndet+ncar)-dtracer(ktr),
-     .      dtracer(ktr),tracer(i,j,k,ntyp+n_inert+ndet+ncar)
-#endif
          enddo
         endif
+#endif
 #endif
           told (k)=temp(i,j,kn)
           sold (k)=saln(i,j,kn)
@@ -2887,7 +2867,6 @@ c
         do ktr=1,ntrcr
 cdiag     if (i.eq.itest .and. j.eq.jtest) write (*,'(a,i2/1p(8e10.1))')
 cdiag.      'old tracer',ktr,(tr1do(k,ktr),k=1,nlayer)
-          !tracer flux imposed at air-sea intfc
           ghatflux=0.
 #ifdef TRACERS_GASEXCH_Natassa
 #ifdef TRACERS_GASEXCH_CFC_Natassa
@@ -2897,16 +2876,6 @@ cdiag.      'old tracer',ktr,(tr1do(k,ktr),k=1,nlayer)
      .    write(6,'(a,i5,2e12.4)')
      .            'mxkpp, ghatflux at pt(109,94) and nt=',
      .             ktr,tracflx(i,j,ktr),ghatflux
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-          !only DIC has surface flux
-          if (ktr.eq.ntyp+n_inert+ndet+ncar) then
-             ghatflux=-tracflx(i,j,1)*thref    !because ntm=1
-             if(i.eq.109.and.j.eq.94)
-     .             write(6,'(a,i5,2e12.4)')
-     .            'mxkpp, ghatflux at pt(109,94) and nt=',
-     .             ktr,tracflx(i,j,1),ghatflux
-          endif
 #endif
 #endif
           call tridrhs(hm,

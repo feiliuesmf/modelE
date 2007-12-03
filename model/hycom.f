@@ -1,26 +1,4 @@
       subroutine OCEANS
-      use DOMAIN_DECOMP, only: AM_I_ROOT
-      use hybrid_mpi_omp_coupler, only: gatherDistributedQuantities
-      use hybrid_mpi_omp_coupler, only: scatterDistributedQuantities
-      use hybrid_mpi_omp_coupler, only: startMultiThreaded
-      use hybrid_mpi_omp_coupler, only: startSingleThreaded
-
-      call gatherDistributedQuantities()
-      if (AM_I_ROOT()) then
-         call startMultiThreaded()
-
-        !---------------------
-        call OCEANS_internal
-        !---------------------
-
-        call startSingleThreaded()
-      end if
-      call scatterDistributedQuantities()
-
-      end subroutine OCEANS
-
-
-      subroutine OCEANS_internal
 c
 c --- ------------------------------
 c --- MICOM-based hybrid ocean model
@@ -104,11 +82,14 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      ! From FLUXES
-      USE hybrid_mpi_omp_coupler, only: e0,prec,eprec,evapor,flowo
-     . ,eflowo,dmua,dmva
+      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
      . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
      . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
+<<<<<<< hycom.f
+     . ,gmelt,egmelt,solar
+      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE, only : fsss,tfrez
+=======
      . ,gmelt,egmelt,solar,gtempr
       ! From SEAICE_COM
       USE hybrid_mpi_omp_coupler, only : rsi,msi
@@ -117,7 +98,9 @@ c
       ! From MODEL_COM
       USE hybrid_mpi_omp_coupler, only : focean
 
+>>>>>>> 2.12
       USE GEOM, only : dxyp
+      USE MODEL_COM, only : focean
       USE CONSTANT, only : lhm,shi,shw
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
@@ -135,7 +118,7 @@ c
       real sum,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
      .    ,sigocn,kappaf,check,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
-     .    ,thkchg,flxdiv
+     .    ,thkchg,flxdiv,den_str
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
       external rename
@@ -279,20 +262,20 @@ c
      . check,', not',sigocn(4.,35.)
 css     stop
       end if
-c --- reference: t= 0.0, s=34.0, p=0 bar,kap(4.5,34.5,1.e7)=  0.11954594
-c     check=.11954594
-c     check=0.
-c     if (abs(kappaf(4.5,34.5,1.e7)-check).gt..00001) then
-c       write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
-c    .  '  should be',check,', not',kappaf(4.5,34.5,1.e7)
-css     stop
-c     end if
+c --- reference: t= 0.0, s=34.0, p=0 bar,kap(4.5,34.5,1.e7)= 0.11954594
+      check=.11954594
+c --- reference: t= 1.0, s=34.5, p=0 bar,kap_t(4.5,34.5,1.e7)=0.08728276
+      check=.08728276
+      if (abs(kappaf(4.5,34.5,1.e7)-check).gt..00001) then
+        write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
+     .  '  should be',check,', not',kappaf(4.5,34.5,1.e7)
+      stop
+      end if
 c
       write (lp,109) thkdff,temdff,veldff,viscos,diapyc,vertmx
  109  format (' turb. flux parameters:',1p/
      .  ' thkdff,temdff,veldff =',3e9.2/
      .  ' viscos,diapyc,vertmx =',3e9.2)
-      write (lp,'(a,1p,e11.3)') 'thbase =',thbase
 c
 c --- 'lstep' = number of barotropic time steps per baroclinic time step.
 c --- lstep   m u s t   be even.
@@ -322,6 +305,7 @@ css   call inicon                ! moved to agcm
         stop 'wrong kprf: kpp=gis=false'
       endif
 c
+      mixfrq=int(43200./baclin+.0001)
       trcfrq=int(43200./baclin+.0001)
       write (lp,'(a,2i4)') 'trcfrq set to',trcfrq
       if (trcout) dotrcr=.true.
@@ -409,6 +393,10 @@ c
 c --- letter 'm' refers to mid-time level (example: dp(i,j,km) )
 c --- letter 'n' refers to old and new time level
 c
+c     open(202,file='ip.array',form='unformatted',status='unknown')
+c     write(202) ip,iu,iv,ifp,ilp,isp
+c     close(202)
+c
       nsaveo=0
       do 15 nsub=1,nstepi
       m=mod(nstep  ,2)+1
@@ -425,7 +413,7 @@ c
      .                                    diagno=.true. ! end of month
 c
       if (nstep.eq.1) diagno=.true.
-      diag_ape=diagno
+      diag_ape=.false.
 c
       trcadv_time = 0.0
       if (dotrcr) then
@@ -657,12 +645,14 @@ c --- find the largest distance from a tencm layer from bottom
  707    continue
 c
 c       call findmx(ip,util2,idm,ii,jj,'lowest')
+        call findmx(ip,osst,ii,ii,jj,'osst')
+        call findmx(ip,osss,ii,ii,jj,'osss')
 c       call findmx(iu,usf,ii,ii,jj,'u_ocn')
 c       call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
         call findmx(ipa,aflxa2o,iia,iia,jja,'aflxa2o')
         call findmx(ipa,asst,iia,iia,jja,'asst')
-        call findmx(ipa,sss,iia,iia,jja,'asss')
+        call findmx(ipa,sss,iia,iia,jja,'osss')
         call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
         call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
@@ -740,15 +730,13 @@ ccc     .     'mx.lay. salin. (.01 mil)')
       do 77 j=1,jj1
       do 77 l=1,isu(j)
       do 77 i=ifu(j,l),ilu(j,l)
-c77   util1(i,j)=u(i,j,k1n)+ubavg(i,j,n)
- 77   util1(i,j)=u(i,j,k1n)
+ 77   util1(i,j)=u(i,j,k1n)+ubavg(i,j,n)
 ccc      call prtmsk(iu,util1,util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'u vel. (mm/s), layer 1')
       do 78 i=1,ii1
       do 78 l=1,jsv(i)
       do 78 j=jfv(i,l),jlv(i,l)
-c78   util2(i,j)=v(i,j,k1n)+vbavg(i,j,n)
- 78   util2(i,j)=v(i,j,k1n)
+ 78   util2(i,j)=v(i,j,k1n)+vbavg(i,j,n)
 ccc      call prtmsk(iv,util2,util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'v vel. (mm/s), layer 1')
 ccc      call prtmsk(iu,ubavg(1,1,n),util3,idm,ii1,jj1,0.,1000.,
@@ -756,7 +744,7 @@ ccc     .     'barotrop. u vel. (mm/s)')
 ccc      call prtmsk(iv,vbavg(1,1,n),util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'barotrop. v vel. (mm/s)')
  23   continue
-c
+
 c --- accumulate fields for agcm
 c$OMP PARALLEL DO
       do 201 j=1,jj
@@ -779,19 +767,22 @@ c
       end if
       nsaveo=0
 c
+      print *,' after 15'
 c$OMP PARALLEL DO
       do 88 j=1,jj
       do 87 l=1,isu(j)
       do 87 i=ifu(j,l),ilu(j,l)
-c87   usf(i,j)=u(i,j,k1n)+ubavg(i,j,n)
- 87   usf(i,j)=u(i,j,k1n)
+ 87   usf(i,j)=u(i,j,k1n)+ubavg(i,j,n)
 c
       do 88 l=1,isv(j)
       do 88 i=ifv(j,l),ilv(j,l)
-c88   vsf(i,j)=v(i,j,k1n)+vbavg(i,j,n)
- 88   vsf(i,j)=v(i,j,k1n)
+ 88   vsf(i,j)=v(i,j,k1n)+vbavg(i,j,n)
 c$OMP END PARALLEL DO
 c
+c     call findmx(ip,osst,ii,ii,jj,'osst')
+c     call findmx(ip,osss,ii,ii,jj,'osss')
+c     call findmx(iu,usf,ii,ii,jj,'u_ocn')
+c     call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
       call ssto2a(osst,asst)
       call ssto2a(osss,sss)
@@ -800,14 +791,10 @@ css   call iceo2a(omlhc,mlhc)
       call ssto2a(osiav,utila)                 !kg/m*m per agcm time step
       call veco2a(usf,vsf,uosurf,vosurf)
 c
-      call findmx(ip,osst,ii,ii,jj,'osst')
-      call findmx(ip,osss,ii,ii,jj,'osss')
-c     call findmx(iu,usf,ii,ii,jj,'u_ocn')
-c     call findmx(iv,vsf,ii,ii,jj,'v_ocn')
-c     call findmx(ipa,asst,iia,iia,jja,'asst')
-c     call findmx(ipa,sss,iia,iia,jja,'asss')
-c     call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
-c     call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
+      call findmx(ipa,asst,iia,iia,jja,'asst')
+      call findmx(ipa,sss,iia,iia,jja,'osss')
+      call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
+      call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
 c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ia=1,iia
@@ -829,6 +816,15 @@ c --- evenly distribute new ice over open water and sea ice
       endif
  204  continue
 c$OMP END PARALLEL DO
+c --- enhance flow through Denmark Strait
+      do j=39,43
+      do i=j-10,j-8
+      den_str=.08/(2.**(abs(j-41)+abs(i-(j-9))))
+      uosurf(i,j)=uosurf(i,j)-den_str
+      vosurf(i,j)=vosurf(i,j)-den_str
+      enddo
+      enddo
+c
       call system_clock(afogcm)
       if (abs(time-(itime+1.)/nday).gt..01) then
         write(*,'(a,2f10.3)') 'stop: agcm/ogcm date after ogcm'
@@ -850,21 +846,3 @@ c> Apr. 2001 - eliminated stmt_funcs.h
 c> June 2001 - corrected sign error in diaflx
 c> July 2001 - replaced archiving statements by 'call archiv'
 c> Oct  2004 - map ice mass to agcm, and then calculate E
-
-!!! I am putting the following routine here as a hack, since it has to be
-!!! present somewhere among ocean routines
-!!! it may actually get filled with the real data when porting to ESMF
-!!! is complete.
-!!! If you think there is better place to put this routine, please move
-!!! it there - I.A.
-      SUBROUTINE ALLOC_OCEAN(grid)
-!@sum dummy routine for allocation of ocean arrays
-      USE DOMAIN_DECOMP, only : DIST_GRID
-      use hybrid_mpi_omp_coupler, only: init_hybrid_coupler
-      IMPLICIT NONE
-      TYPE (DIST_GRID), INTENT(IN) :: grid
-
-      call init_hybrid_coupler()
-
-      END SUBROUTINE ALLOC_OCEAN
-

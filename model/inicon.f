@@ -4,7 +4,12 @@ c
 c --- hycom version 0.9
       USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
+<<<<<<< inicon.f
+     .      ,gtemp,sss,mlhc
+
+=======
      .      ,gtemp,sss,mlhc,gtempr
+>>>>>>> 2.7
 #ifdef TRACERS_GASEXCH_Natassa
      .      ,GTRACER
 
@@ -269,22 +274,6 @@ c
 c
       delt1=baclin+baclin
 css   call newbot
-c
-c$OMP PARALLEL DO
-      do i=1,ii
-      do j=1,jj
-      if (i.lt.ii) then
-        scp2i(i,j)=1./scp2(i,j)
-        scvyi(i,j)=1./scvy(i,j)
-      end if
-c
-      if (i.gt.1) then
-        scuxi(i,j)=1./scux(i,j)
-        scq2i(i,j)=1./scq2(i,j)
-      endif
-      enddo
-      enddo
-c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO
       do 21 j=1,jj

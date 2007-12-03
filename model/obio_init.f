@@ -7,7 +7,7 @@ c
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,Eda,Esa,atmFe_all
+      USE obio_forc, only : ihra,Eda,Esa,atmFe_all,alk
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,rmu4,rmu3,rmu5,rmuf
      .                    ,zoo,dphy,gro,viscfac
@@ -103,6 +103,7 @@ c  Diatoms
       nt = 1
       rmumax(nt) = 1.50       !u max in /day at 20C
       obio_wsd(nt)    = 0.75  !sinking rate in m/day
+      obio_wsd(nt)    = 0.50  !sinking rate in m/day   !!change Oct27,2008
       rik(1,nt)  = 90.0       !low light-adapted Ik (<50 uE/m2/s)
       rik(2,nt)  = 93.0       !medium light-adapted Ik (50-200 uE/m2/s)
       rik(3,nt)  = 184.0      !high light adapted Ik (>200 uE/m2/s)
@@ -261,6 +262,7 @@ c      hc = 1.0/(h*c)
         rlam = float(lam(nl))
         excdom(nl) = exp(-Sdom*(rlam-rlam450))
        enddo
+       if (nl450.eq.0) stop 'obio_init: nl450=0'
        !First time thru set ihra to 1 to assure correct value read in
        !from restart file
        do j=1,jj
@@ -411,7 +413,8 @@ c  Read in factors to compute average irradiance
       print*, '    '
       print*, 'reading iron data.....'
 
-      open(unit=iu_bio,file='atmFedirect'
+      if (IRON_from.eq.0) then
+      open(unit=iu_bio,file='atmFedirect0'
      . ,form='unformatted',status='old',access='direct' 
      . ,recl=idm*jdm*8/4)
       do imon=1,12  !1 year of monthly values
@@ -419,6 +422,53 @@ c  Read in factors to compute average irradiance
        read (iu_bio,rec=nrec)((atmFe_all(i,j,imon),i=1,idm),j=1,jdm)
       enddo
       close(iu_bio)
+      endif
+
+      if (IRON_from.eq.1) then
+      call openunit('atmFedirect1',iu_bio)
+      do imon=1,12  !1 year of monthly values
+       do j=1,jdm
+        do i=1,idm
+        read(iu_bio,'(e12.4)')atmFe_all(i,j,imon)
+        enddo
+       enddo
+      enddo
+      call closeunit(iu_bio)
+      endif
+
+!read in alkalinity annual mean file
+      if (ALK_CLIM.eq.1) then      !read from climatology
+      call openunit('alkalindirect',iu_bio)
+      do k=1,kdm
+       do j=1,jdm
+        do i=1,idm
+         read(iu_bio,'(f12.8)')alk(i,j,k)
+        enddo
+       enddo
+      enddo
+      call closeunit(iu_bio)
+      else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
+      alk = 0.
+      endif
+
+! printout some key information
+      write(*,*)'**************************************************'
+      write(*,*)'**************************************************'
+      write(*,*)'**************************************************'
+      write(*,*)'           INITIALIZATION                         '
+
+      write(*,*)'ALK_CLIM = ', ALK_CLIM
+      if (ALK_CLIM.eq.0) write(*,*) 'ALKALINITY, from SALINITY'
+      if (ALK_CLIM.eq.1) write(*,*) 'ALKLNTY, GLODAP annmean'
+      if (ALK_CLIM.eq.2) write(*,*) 'ALKALINITY prognostic'
+
+      write(*,*)'IRON_from = ', IRON_from
+      if (IRON_from.eq.0) write(*,*) 'IRON FLUXES, GOCART model'
+      if (IRON_from.eq.1) write(*,*) 'IRON FLUXES, R.Miller dustfluxes'
+
+      write(*,*)'**************************************************'
+      write(*,*)'**************************************************'
+      write(*,*)'**************************************************'
 
       return
       end

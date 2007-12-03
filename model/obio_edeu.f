@@ -40,6 +40,7 @@ c  final is quanta for phytoplankton growth.
       data bbc / 0.002, 0.00071, 0.0032, 0.00071, 0.0029,
      .           0.0,   0.0,     0.0,    0.0,     0.0/
  
+      if (nl450.eq.0) stop 'obio_edeu: nl450=0'
       do k=1,kdm
       tirrq(k) = 0.0
       enddo
@@ -111,12 +112,18 @@ cdiag   if(vrbos)write(932,'(2i7,2e12.4)')nstep,nl,Ed(nl),Es(nl)
           fac = 0.0
           do ntr = 1,nchl
              fac = fac + fchl(ntr)*facirr(ih,ich,ntr,icd)
+
+cdiag        if(vrbos)
+cdiag.         write(lp,'(a,3i7,e12.4,4i7,2e12.4)')
+cdiag.        'edeu diag: ',
+cdiag.        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
+cdiag.        facirr(ih,ich,ntr,icd),fac
           enddo
  
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
 
-cdiag     if(vrbos .and. k.eq.1)write(701,'(2i7,4e12.4)')
-cdiag.        nstep,k,fac,Etopq,Ebotq,rmus
+cdiag     if(vrbos)write(lp,'(a,2i7,5e12.4)')'edeu diag: ',
+cdiag.        nstep,k,fac,Etopq,Ebotq,rmus,tirrq(k)
 
        enddo  !k
  

@@ -115,7 +115,7 @@ c$OMP END PARALLEL DO
 c
 cdiag if (itest.gt.0.and.jtest.gt.0)
 cdiag. write (lp,101) nstep,itest,jtest,k,' th,t,s,dp bfore advec ',
-cdiag.  th3d(itest,jtest,kn)+thbase,temp(itest,jtest,kn),
+cdiag.  th3d(itest,jtest,kn),temp(itest,jtest,kn),
 cdiag.   saln(itest,jtest,kn),dp(itest,jtest,kn)/onem
  101  format (i9,2i5,i3,a,3f8.3,f9.3)
 c
@@ -149,17 +149,17 @@ c --- time smoothing of thermodynamic variable(s) (part 2)
 c
 c --- recover t/s from density/spiciness
       if (dp(i,j,km).gt.onemm) then
-        temp(i,j,km)=tofspi(th3d(i,j,km)+thbase,spice(i,j,m),spcoef)
+        temp(i,j,km)=tofspi(th3d(i,j,km),spice(i,j,m),spcoef)
         saln(i,j,km)=spice(i,j,m)-spcoef*temp(i,j,km)
       end if
       if (dp(i,j,kn).gt.onemm) then
-        tnew=tofspi(th3d(i,j,kn)+thbase,spice(i,j,n),spcoef)
+        tnew=tofspi(th3d(i,j,kn),spice(i,j,n),spcoef)
         snew=spice(i,j,n)-spcoef*tnew
         if (tnew.lt.-9. and. dp(i,j,kn).gt.onecm)
      .   write (lp,'(2i5,i3,a,4f8.2/36x,a,4f8.2)') i,j,k,
-     .    ' bad th,t,s,dp combo   old:',util3(i,j)+thbase,
+     .    ' bad th,t,s,dp combo   old:',util3(i,j),
      .     temp(i,j,kn),saln(i,j,kn),dpold(i,j,k)/onem,'new:',
-     .      th3d(i,j,kn)+thbase,tnew,snew,dp(i,j,kn)/onem
+     .      th3d(i,j,kn),tnew,snew,dp(i,j,kn)/onem
         temp(i,j,kn)=tnew
         saln(i,j,kn)=snew
       end if
@@ -175,7 +175,7 @@ c$OMP END PARALLEL DO
 c
 cdiag if (itest.gt.0.and.jtest.gt.0)
 cdiag. write (lp,101) nstep,itest,jtest,k,' th,t,s,dp after advec ',
-cdiag.  th3d(itest,jtest,kn)+thbase,temp(itest,jtest,kn),
+cdiag.  th3d(itest,jtest,kn),temp(itest,jtest,kn),
 cdiag.   saln(itest,jtest,kn),dp(itest,jtest,kn)/onem
 c
 c --- --------------------------------------
@@ -237,16 +237,16 @@ c$OMP PARALLEL DO PRIVATE(jb,factor,pmid)
 c
 c --- reconcile -temp- and -th3d-
       if (tscnsv.gt.0.)
-     .  th3d(i,j,kn)=tscnsv*(sigocn(temp(i,j,kn),saln(i,j,kn))-thbase)
+     .  th3d(i,j,kn)=tscnsv*(sigocn(temp(i,j,kn),saln(i,j,kn)))
      .          +(1.-tscnsv)*th3d(i,j,kn)
       if (tscnsv.lt.1.)
-     .  temp(i,j,kn)=tofsig(th3d(i,j,kn)+thbase,saln(i,j,kn))
+     .  temp(i,j,kn)=tofsig(th3d(i,j,kn),saln(i,j,kn))
  146  continue
 c$OMP END PARALLEL DO
 c
 cdiag if (itest.gt.0.and.jtest.gt.0)
 cdiag. write (lp,101) nstep,itest,jtest,k,' th,t,s,dp after mixing',
-cdiag.  th3d(itest,jtest,kn)+thbase,temp(itest,jtest,kn),
+cdiag.  th3d(itest,jtest,kn),temp(itest,jtest,kn),
 cdiag.   saln(itest,jtest,kn),dp(itest,jtest,kn)/onem
 c
       if (globcor) then
@@ -298,10 +298,10 @@ c$OMP PARALLEL DO
         do 17 i=ifp(j,l),ilp(j,l)
 ccc        temp(i,j,km)=temp(i,j,km)+corrtm
 ccc        saln(i,j,km)=saln(i,j,km)+corrsm
-ccc        th3d(i,j,km)=sig(temp(i,j,km),saln(i,j,km))-thbase
+ccc        th3d(i,j,km)=sig(temp(i,j,km),saln(i,j,km))
         temp(i,j,kn)=temp(i,j,kn)+corrtn
         saln(i,j,kn)=saln(i,j,kn)+corrsn
- 17     th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))-thbase
+ 17     th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
 c$OMP END PARALLEL DO
 c
       end if				!  globcor = .true.
@@ -310,6 +310,8 @@ c
       call cpy_p(temp(1,1,kn))
       call cpy_p(saln(1,1,km))
       call cpy_p(saln(1,1,kn))
+      call cpy_p(th3d(1,1,km))
+      call cpy_p(th3d(1,1,kn))
  1    continue				!  k loop
 c
 c --- convert mass fluxes to density coord. prior to time integration

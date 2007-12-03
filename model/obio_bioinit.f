@@ -298,7 +298,8 @@ c  read NOAA 2001 atlas data
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
       file_dir='/explore/nobackup/aromanou/RUNS/'
-      call openunit(file_dir//'rno3_correctini.asc',iu_bioinit)
+!     call openunit(file_dir//'rno3_correctini.asc',iu_bioinit)
+      call openunit(file_dir//'nitoa195x180_20w.asc',iu_bioinit)
       do ichan=1,kdm
        do j=1,jdm
         do i=1,idm
@@ -309,7 +310,8 @@ c  read NOAA 2001 atlas data
       enddo
       call closeunit(iu_bioinit)
 
-      call openunit(file_dir//'so2_correctini.asc',iu_bioinit)
+!     call openunit(file_dir//'so2_correctini.asc',iu_bioinit)
+      call openunit(file_dir//'siloa195x180_20w.asc',iu_bioinit)
       do ichan=1,kdm
        do j=1,jdm
         do i=1,idm
@@ -320,7 +322,8 @@ c  read NOAA 2001 atlas data
       enddo
       call closeunit(iu_bioinit)
      
-      call openunit(file_dir//'dic_correctini.asc',iu_bioinit)
+!     call openunit(file_dir//'dic_correctini.asc',iu_bioinit)
+      call openunit(file_dir//'dic195x180_20w.asc',iu_bioinit)
       dicmin = 1.e30
       dicmax =-1.e30
       do ichan=1,kdm

@@ -22,15 +22,110 @@
 
       END MODULE TRACER_GASEXCH_COM
 
+c ---------------------------------------------------------------------
+c ---------------------------------------------------------------------
+
+      SUBROUTINE TRACERS_GASEXCH_CFC_Natassa_PBL(tg1,ws,
+     . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
+     . beta_gas,trsf,trcnst,ilong,jlat)
+
+      USE CONSTANT, only:    rhows,mair
+      USE TRACER_COM, only : ntm,trname,tr_mm
+      
+      implicit none
+
+      integer :: ilong,jlat,itr
+      real*8  :: tg1,ws,psurf,trconstflx,byrho,trsf,trcnst
+      real*8  :: alati,Kw_gas,alpha_gas,beta_gas
+      real*8  :: Sc_gas
+      real*8, external :: sc_cfc,sol_cfc
+      
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !OCMIP implementation www.ipsl.jussieu.fr/OCMIP
+      !F=Kw*Csat - Kw*Csurf=
+      !  Kw*alpha*trs - Kw*trs
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !new treatment for units
+      !F=Kw*Csat -Kw*Csurf
+      ! =Kw*alpha*mol_weight_air/mol_weight_cfc11*surfp*Cair  !!!TERM_1*Cair
+      ! -Kw*rho_water/mol_weight_cfc11*Csurf                  !!!TERM_2
+      !
+      ! where, Kw                in m/s
+      !        alpha                mol/m^3/atm
+      !        mol_weight_air       Kg_air
+      !        mol_weight_cfc11     Kg_CFC-11
+      !        surfp                atm
+      !        Cair                 Kg_CFC-11/Kg_air
+      !        rho_water            Kg_water/m^3
+      !        Csurf                Kg_CFC-11/Kg_water
+      !then F is in  (mol/m^3)(m/s)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      !---------------------------------------------------------------
+      !TRANSFER VELOCITY
+      !---------------------------------------------------------------
+      ! compute Schmidt number for gas
+      ! use ground temperature in deg C including skin effects
+      Sc_gas=sc_cfc(tg1,11)
+
+      !wind speed ws: magn. of surf. wind modified by buoyancy flux (m/s)
+      !compute transfer velocity Kw
+      !only over ocean
+
+      if (Sc_gas .le. 0.) then
+        write(*,'(a,2i4,a,2f9.3)')
+     .          'warning: Sc_gas negtv, at ',ilong,jlat,
+     .          ', Sc_gas,temp_c=',Sc_gas,tg1
+         Kw_gas=1.e-10
+      else
+         Kw_gas=
+     &       1.d0/3.6e+5*0.337d0*ws*ws*(Sc_gas/660.d0)**(-0.5d0)
+      endif
+
+
+      !---------------------------------------------------------------
+      !gas SOLUBILITY
+      !---------------------------------------------------------------
+      !alpha --solubility of CFC (11 or 12) in seawater
+      !in mol/m^3/picoatm
+       alpha_gas=sol_cfc(tg1,sss_loc,11)
+      !convert to mol/m^3/atm
+       alpha_gas=alpha_gas*1.e+12
+
+      !---------------------------------------------------------------
+      !psurf is in mb. multiply with 10.197e-4 to get atm
+      !include molecular weights for air and CFC-11
+       beta_gas=alpha_gas*(psurf*10.197e-4)*mair*1.e-3
+     &                   /(tr_mm(itr)*1.e-3)
+!!!    beta_gas = beta_gas * tr_mm(itr)*1.e-3/rhows
+
+      !trsf is really sfac = Kw_gas * beta_gas
+      !units are such that flux comes out to (m/s)(kg/kg)
+       trsf = Kw_gas * beta_gas
+
+       trcnst = Kw_gas * trconstflx(itr)*byrho ! convert to (conc * m/s)
+
+      RETURN
+      END SUBROUTINE TRACERS_GASEXCH_CFC_Natassa_PBL
+
+c ---------------------------------------------------------------------
+c ---------------------------------------------------------------------
+
 c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c $Revision: 2.1 $
-c $Date: 2007/05/01 22:23:22 $   ;  $State: Exp $
+c $Revision: 2.2 $
+c $Date: 2007/12/03 22:23:20 $   ;  $State: Exp $
 c $Author: aromanou $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_CFC.f,v $
+c Revision 2.2  2007/12/03 22:23:20  aromanou
+c *** empty log message ***
+c
 c Revision 2.1  2007/05/01 22:23:22  aromanou
 c Ocean Biogeochemistry based on Watson Gregg's model is now implemented.
 c (no whales, shrimp or human swimmers, yet though).
@@ -126,12 +221,15 @@ c-----------------------------------------------------------------------
 c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c  $Revision: 2.1 $
-c  $Date: 2007/05/01 22:23:22 $   ;  $State: Exp $
+c  $Revision: 2.2 $
+c  $Date: 2007/12/03 22:23:20 $   ;  $State: Exp $
 c  $Author: aromanou $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_CFC.f,v $
+c  Revision 2.2  2007/12/03 22:23:20  aromanou
+c  *** empty log message ***
+c
 c  Revision 2.1  2007/05/01 22:23:22  aromanou
 c  Ocean Biogeochemistry based on Watson Gregg's model is now implemented.
 c  (no whales, shrimp or human swimmers, yet though).

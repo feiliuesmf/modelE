@@ -26,8 +26,8 @@ c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
-      data baclin,batrop/3600.,120./,diagfq/365./          ! 2deg full global
-c     data baclin,batrop/1800., 60./,diagfq/365./          ! 2deg full global
+c     data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
+      data baclin,batrop/1800., 60./,diagfq/30./          ! 2deg full global
 c
 c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (m/s) for momentum dissipation
@@ -76,6 +76,7 @@ c
 c --- 'itest,jtest' = grid point where detailed diagnostics are desired
 c     data itest,jtest/174,41/
 c     data itest,jtest/163,133/
+c     data itest,jtest/104,46/
       data itest,jtest/100,100/
 c
 c ---      equatn   --  the i index of the equator
@@ -89,7 +90,7 @@ c --- relax       activate lateral boundary nudging
 c
 #if defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
-#else
+#else     
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
 #endif
 c

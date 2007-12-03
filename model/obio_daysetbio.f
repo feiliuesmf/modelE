@@ -45,6 +45,10 @@ c  Additional T-dependent factor for cyanobacteria
        tfac2 = temp1d(k)*0.029411 + 0.55823
        tfac2 = min(tfac2,1.0)
        rmuplsr(k,nt) = tfac2*rmuplsr(k,nt)
+
+!      if (vrbos) write(*,'(a,2i5,3e12.4)')
+!    .  'CYANOBACTERIA0: ',nt,k,temp1d(k),tfac2,rmuplsr(k,nt)
+
       endif
 !#endif
 
