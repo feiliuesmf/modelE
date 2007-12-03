@@ -790,8 +790,9 @@ C****
       USE CONSTANT, only : undef
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-      USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj
+      USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj,ze
       USE DIAG_COM, only : qdiag,acc_period,zoc1
+      USE GEOM, only : lat_dg,dlat
       USE ODIAG
       IMPLICIT NONE
       REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
@@ -834,15 +835,27 @@ c          WRITE (6,922) ZOC1(L+1),(NINT(SFM(J,L,KB)),J=JEQ,JM-1)
 c        END DO
       END DO
 
-C**** Output Key diagnostics: North Atl. overturning
-      WRITE(6,'(A46,F6.2)') " North Atlantic overturning: 900m 48N: ",
-     *     SFM(35,9,1)
-C**** Output Key diagnostics: North Pacific overturning
-      WRITE(6,'(A46,F6.2)') " North Pacific overturning:  900m 48N: ",
-     *     SFM(35,9,2)
-C**** Output Key diagnostics: AABW production
-      WRITE(6,'(A46,F6.2)') " Antarctic Bottom Water production:"
-     *     //" 3000m 54S: ",SFM(10,12,4)
+C**** Output Key diagnostics
+      do L=LMO/2,LMO-1
+        do J=2,JM-1
+C**** North Atl. + North Pac. overturning
+          if (lat_dg(j+1,2).gt.48-0.5*dlat .and. lat_dg(j+1,2).lt.
+     *         48+0.5*dlat .and. 0.5*(ZE(L)+ZE(L-1)).le.900 .and. 0.5
+     *         *(ZE(L)+ZE(L+1)).gt.900) then 
+             WRITE(6,'(A46,F6.2)') 
+     *            " North Atlantic overturning: 900m 48N: ",SFM(j,l,1)
+             WRITE(6,'(A46,F6.2)') 
+     *            " North Pacific overturning:  900m 48N: ",SFM(j,l,2)
+          end if
+C**** AABW production
+          if (lat_dg(j+1,2).ge.-52-0.5*dlat .and. lat_dg(j+1,2).lt.
+     *         -52+0.5*dlat .and. 0.5*(ZE(L)+ZE(L-1)).le.3000 .and. 0.5
+     *         *(ZE(L)+ZE(L+1)).gt.3000) then 
+             WRITE(6,'(A46,F6.2)') " Antarctic Bottom Water production:"
+     *            //" 3000m 52S: ",SFM(j,l,4)
+          end if
+        end do
+      end do
 
 C****
 C**** Calculate Salt Stream Function and write it
