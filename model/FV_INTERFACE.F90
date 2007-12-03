@@ -471,7 +471,6 @@ contains
     NIdyn_fv = DTsrc / (DT)
     do istep = 1, NIdyn_fv
 
-       call printSnapshot(fv)
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc )
 
@@ -483,7 +482,6 @@ contains
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
-       call printSnapshot(fv)
     end do
 
     gz  = phi
@@ -502,17 +500,18 @@ contains
 
     call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, GEOS_RecordPhase, rc=rc)
     ! Now move the file into a more useful name
+    if (AM_I_ROOT()) then
     ! 1) FV names restarts as: fvcore_internal_checkoint.YYYYMMDD_HHMMz.bin
-    call ESMF_ClockGet(clock, currTime=currentTime, rc=rc)
-    call ESMF_TimeGet(currentTime, YY=year, MM= month, &
-         DD=day, H=hour, M=minute, &
-         S=second, rc=rc)
-    write(suffix,'(".",i4.4,i2.2,i2.2,"_",i2.2,i2.2,"z.bin")'), &
-         & year, month, day, hour, minute
-    call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // FVCORE_INTERNAL_RESTART)
-!!$    call system('mv ' // TENDENCIES_FILE // suffix // ' ' // TENDENCIES_FILE)
-
-    call saveTendencies(fv)
+       call ESMF_ClockGet(clock, currTime=currentTime, rc=rc)
+       call ESMF_TimeGet(currentTime, YY=year, MM= month, &
+            DD=day, H=hour, M=minute, &
+            S=second, rc=rc)
+       write(suffix,'(".",i4.4,i2.2,i2.2,"_",i2.2,i2.2,"z.bin")'), &
+            & year, month, day, hour, minute
+       call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // FVCORE_INTERNAL_RESTART)
+    end if
+       
+       call saveTendencies(fv)
 
   end subroutine checkpoint
 
