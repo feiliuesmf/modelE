@@ -7,6 +7,7 @@
       SAVE
 
 
+
 #include "dimensions.h"
 #include "dimension2.h"
 
@@ -117,12 +118,24 @@ c ---------------------------------------------------------------------
 c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c $Revision: 2.2 $
-c $Date: 2007/12/03 22:23:20 $   ;  $State: Exp $
+c $Revision: 2.3 $
+c $Date: 2007/12/03 22:40:36 $   ;  $State: Exp $
 c $Author: aromanou $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_CFC.f,v $
+c Revision 2.3  2007/12/03 22:40:36  aromanou
+c 1) Ocean_hycom.f : Full gas exchage between CO2 in the ocean and CO2 in the atmosphere. Ocean
+c    arays are mapped on the atmospheric grid before the gas exchange computation.
+c 2) PBL.f : Separate routines for PBL code for CO2 and CFC exchange: TRACER_GASEXCH_CO2.f,
+c TRACER_GASEXCH_CFC.f.
+c 3) atmospheric CO2 is kept constant here (very special case: check PBL.f)
+c 4) Implementation for using Ron Miller's dust fluxes or GOCART dust fluxes
+c 5) Recalcuate phytoplankton sinking rates in obio_update.f
+c 6) relevant rundeck is E3arobio7.R
+c
+c ****my last commit should be the same as this one, but had no commentary, so I redid it!
+c
 c Revision 2.2  2007/12/03 22:23:20  aromanou
 c *** empty log message ***
 c
@@ -221,12 +234,24 @@ c-----------------------------------------------------------------------
 c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c  $Revision: 2.2 $
-c  $Date: 2007/12/03 22:23:20 $   ;  $State: Exp $
+c  $Revision: 2.3 $
+c  $Date: 2007/12/03 22:40:36 $   ;  $State: Exp $
 c  $Author: aromanou $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_CFC.f,v $
+c  Revision 2.3  2007/12/03 22:40:36  aromanou
+c  1) Ocean_hycom.f : Full gas exchage between CO2 in the ocean and CO2 in the atmosphere. Ocean
+c     arays are mapped on the atmospheric grid before the gas exchange computation.
+c  2) PBL.f : Separate routines for PBL code for CO2 and CFC exchange: TRACER_GASEXCH_CO2.f,
+c  TRACER_GASEXCH_CFC.f.
+c  3) atmospheric CO2 is kept constant here (very special case: check PBL.f)
+c  4) Implementation for using Ron Miller's dust fluxes or GOCART dust fluxes
+c  5) Recalcuate phytoplankton sinking rates in obio_update.f
+c  6) relevant rundeck is E3arobio7.R
+c
+c  ****my last commit should be the same as this one, but had no commentary, so I redid it!
+c
 c  Revision 2.2  2007/12/03 22:23:20  aromanou
 c  *** empty log message ***
 c

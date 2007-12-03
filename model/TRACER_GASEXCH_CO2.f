@@ -16,6 +16,7 @@
       SAVE
 
 
+
       real*8 atracflx(iia,jja,ntm),atrac(iia,jja,ntm)
       common /gasexch1/atracflx,atrac
 

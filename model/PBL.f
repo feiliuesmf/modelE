@@ -166,10 +166,13 @@ c**** output
         real*8, dimension(ntm) :: tr_evap_max
 #endif
 
+
 #ifdef TRACERS_GASEXCH_Natassa
         real*8  :: alati,Kw_gas,alpha_gas,beta_gas
 #endif
 #endif
+
+
       end type t_pbl_args
 
 

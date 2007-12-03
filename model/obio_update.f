@@ -81,12 +81,14 @@ cdiag      endif
      ,          (obio_P(k,nnut+nt)-rhs(k,nnut+nt,16))/obio_deltat
            enddo
 
+
 cdiag      if (vrbos) then
 cdiag        do k=1,kmax
 cdiag        write(*,'(a,3i5,3e12.4)')'aftr sinking',
 cdiag.       kmax,nt,k,obio_P(k,nnut+nt),p1d(k),obio_ws(k,nt)
 cdiag        enddo
 cdiag      endif
+
 
        enddo
 
