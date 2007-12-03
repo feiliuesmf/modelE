@@ -489,6 +489,7 @@ contains
 
   subroutine checkpoint(fv, clock)
     use GEOS_mod, only: GEOS_RecordPhase
+    use DOMAIN_DECOMP, only: AM_I_ROOT
     Type (FV_Core),    intent(inout) :: fv
     type (esmf_clock), intent(in) :: clock
     integer :: rc
