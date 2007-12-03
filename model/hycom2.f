@@ -1096,7 +1096,7 @@ c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ja=1,jja
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
-        gtempr(1,1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
+        gtempr(1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
