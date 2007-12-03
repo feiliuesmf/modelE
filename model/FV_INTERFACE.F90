@@ -344,7 +344,7 @@ contains
        call readArr(iunit, fv % dPT_old)
        call readArr(iunit, fv % PE_old)
        call readArr(iunit, fv % dT_old)
-       if (AM_I_ROOT()) close(iunit)
+       if (AM_I_ROOT()) call closeunit(iunit)
        call compute_tendencies(fv)
     case default
        call stop_model('ISTART option not supported',istart)
@@ -530,7 +530,7 @@ contains
     call saveArr(iunit, fv % PE_old)
     call saveArr(iunit, fv % dT_old)
 
-    if (am_i_root()) close(iunit)
+    if (am_i_root()) call closeunit(iunit)
 
   contains
 
@@ -628,7 +628,7 @@ contains
 !!$    write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
     write(iunit,*)'FVCORE_LAYOUT_FILE:               ', FVCORE_LAYOUT
     write(iunit,*)'RUN_DT:                           ', DT
-    close(iunit)
+    call closeunit(iunit)
 
     call esmf_configloadfile(config, config_file, rc=rc)
     VERIFY_(rc)
