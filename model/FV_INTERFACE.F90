@@ -611,6 +611,7 @@ contains
 
   !----------------------------
   function load_configuration(config_file) result( config )
+    use ESMF_mod
     use FILEMANAGER
     Use MODEL_COM,  only: DT
     character(len=*), parameter :: Iam="FV_INTERFACE::loadconfiguration"
@@ -618,6 +619,7 @@ contains
     type (esmf_config)           :: config
 
     integer :: iunit
+    type (ESMF_VM) :: vm
 
     config = esmf_configcreate(rc=rc)
     VERIFY_(rc)
@@ -631,6 +633,8 @@ contains
     write(iunit,*)'RUN_DT:                           ', DT
     call closeUnit(iunit)
 
+    Call ESMF_VMGetGlobal(vm, rc)
+    call esmF_VMbarrier(vm, rc)
     call esmf_configloadfile(config, config_file, rc=rc)
     VERIFY_(rc)
 
