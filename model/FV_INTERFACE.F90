@@ -346,6 +346,7 @@ contains
        call readArr(iunit, fv % dT_old)
        if (AM_I_ROOT()) call closeunit(iunit)
        call compute_tendencies(fv)
+       if (AM_I_ROOT()) call closeUnit(iunit)
     case default
        call stop_model('ISTART option not supported',istart)
     end select
@@ -511,8 +512,9 @@ contains
             & year, month, day, hour, minute
        call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // FVCORE_INTERNAL_RESTART)
     end if
+
+    call saveTendencies(fv)
        
-       call saveTendencies(fv)
 
   end subroutine checkpoint
 
@@ -628,7 +630,7 @@ contains
 !!$    write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
     write(iunit,*)'FVCORE_LAYOUT_FILE:               ', FVCORE_LAYOUT
     write(iunit,*)'RUN_DT:                           ', DT
-    call closeunit(iunit)
+    call closeUnit(iunit)
 
     call esmf_configloadfile(config, config_file, rc=rc)
     VERIFY_(rc)
