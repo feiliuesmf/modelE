@@ -53,7 +53,7 @@ C          ,UG,VG,WG,W2_1
 #endif
 c
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
-      REAL*8 ttop,qtop,tgrndv,qgrnd,qgrnd_sat,utop,vtop,ufluxs,vfluxs
+      REAL*8 qtop,utop,vtop,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 !@var uocean,vocean ocean/ice velocities for use in drag calulation
@@ -70,7 +70,7 @@ c
 !@var ELHX   = latent heat for saturation humidity (J/kg)
 !@var dskin  = skin-bulk SST difference (C)
 !@VAR QSOL   = solar heating (W/m2)
-      real*8 zs1,tgv,tkv,psi,qg_sat,qg_aver,hemi
+      real*8 zs1,psi,hemi
 !@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
       logical pole
 
@@ -206,11 +206,7 @@ c     ENDIF
 
   !    ppbl=pedn(l,i,j)  ! - not used anywhere ?
       coriol=sinp(j)*omega2
-      ttop=tkv
       qtop=q(i,j,1)
-      tgrndv=tgv
-      qgrnd_sat=qg_sat
-      qgrnd=qg_aver
 
       utop=0. ; vtop=0. ;  ug=0. ; vg=0.
       ! pole and hemi are determined before pbl is called

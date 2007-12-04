@@ -1293,11 +1293,13 @@ C****
         if (ioerr.eq.1) goto 800
       END SELECT
 C**** Check consistency of starting time
-      IF (ISTART.ge.3.and.(MOD(IHRI-IHRX,8760).ne.0)) THEN
-        WRITE (6,*) ' Difference in hours between ',
+      IF (ISTART.ge.3) THEN
+        IF( (MOD(IHRI-IHRX,8760).ne.0) ) THEN
+         WRITE (6,*) ' Difference in hours between ',
      *       'Starting date and Data date:',MOD(IHRI-IHRX,8760)
-        WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
-        call stop_model('INPUT: start date inconsistent with data',255)
+         WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
+         call stop_model('INPUT: start date inconsistent with data',255)
+        ENDIF
       END IF
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.

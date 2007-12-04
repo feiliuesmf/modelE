@@ -101,16 +101,16 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
 !@var ASNALB snow albedo for old snow
 !@var AOIALB seaice albedo                            (original version)
 !@var ALIALB land ice albedo
-      REAL*8 ::
+      REAL*8, parameter ::
 C                        VIS  NIR1  NIR2  NIR3  NIR4  NIR5    NIR
      *     ASNALB(7)=(/.60d0,.55d0,.55d0,.30d0,.10d0,.05d0, .35d0/),
      *     AOIALB(7)=(/.55d0,.50d0,.45d0,.25d0,.10d0,.05d0, .30d0/),
      *     ALIALB(7)=(/.60d0,.55d0,.50d0,.30d0,.10d0,.05d0, .35d0/)
 C**** shorthand for the 2 band version
-      REAL*8 ASNVIS,ASNNIR, AOIVIS,AOINIR, ALIVIS,ALINIR
-      EQUIVALENCE (ASNVIS,ASNALB(1)),(ASNNIR,ASNALB(7))
-      EQUIVALENCE (AOIVIS,AOIALB(1)),(AOINIR,AOIALB(7))
-      EQUIVALENCE (ALIVIS,ALIALB(1)),(ALINIR,ALIALB(7))
+!      do we need these? they are not used
+!      REAL*8, parameter :: ASNVIS=ASNALB(1), ASNNIR=ASNALB(7),
+!     &     AOIVIS=AOIALB(1), AOINIR=AOIALB(7),
+!     &     ALIVIS=ALIALB(1), ALINIR=ALIALB(7)
 
 C**** variables that control snow aging calculation (over land)
 !@var AGEXPF exponent in snowage calculation depends on hemi/surf type
@@ -319,30 +319,12 @@ C**** output
      *   ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI,KKZSNO,FDZICE,AHMZOI
 
 C**** local variables for albedos for each surface type
-      REAL*8 BOCVIS,BEAVIS,BOIVIS,BLIVIS,BOCNIR,BEANIR,BOINIR,BLINIR,
-     +       XOCVIS,XEAVIS,XOIVIS,XLIVIS,XOCNIR,XEANIR,XOINIR,XLINIR,
-     +       EXPSNE,EXPSNO,EXPSNL,BSNVIS,BSNNIR,XSNVIS,XSNNIR,
-!nu  +       BVSOIL,BNSOIL,BVVEGE,BNVEGE,XVSOIL,XNSOIL,XVVEGE,XNVEGE,
-     +       BVSURF,BNSURF,XVSURF,XNSURF   !nu ,SEAVIS,SEANIR
+      REAL*8 BOCVIS,BOCNIR,BLIVIS,BLINIR,XOCVIS,XOCNIR,
+     &     EXPSNE,EXPSNO,EXPSNL
 
 C**** arrays needed if 6 band albedo is used
       REAL*8, dimension(6) :: BOCVN,BEAVN,BOIVN,BLIVN,BSNVN,BVNSUR,
      *                        XOCVN,XEAVN,XOIVN,XLIVN,XSNVN,XVNSUR
-
-C**** Equivalence 2 band variables to 6 band array for easier passing
-      EQUIVALENCE
-     *     (BOCVN(1),BOCVIS),(BOCVN(2),BOCNIR),
-     *     (BEAVN(1),BEAVIS),(BEAVN(2),BEANIR),
-     *     (BOIVN(1),BOIVIS),(BOIVN(2),BOINIR),
-     *     (BLIVN(1),BLIVIS),(BLIVN(2),BLINIR),
-     *     (BSNVN(1),BSNVIS),(BSNVN(2),BSNNIR),
-     *     (XOCVN(1),XOCVIS),(XOCVN(2),XOCNIR),
-     *     (XEAVN(1),XEAVIS),(XEAVN(2),XEANIR),
-     *     (XOIVN(1),XOIVIS),(XOIVN(2),XOINIR),
-     *     (XLIVN(1),XLIVIS),(XLIVN(2),XLINIR),
-     *     (XSNVN(1),XSNVIS),(XSNVN(2),XSNNIR),
-     *     (BVNSUR(1),BVSURF),(BVNSUR(2),BNSURF),
-     *     (XVNSUR(1),XVSURF),(XVNSUR(2),XNSURF)
 
 C**** variables used for sea ice albedo calculation (6 bands, Hansen)
       REAL*8, dimension(6) :: almp6,alsf6
@@ -420,7 +402,9 @@ C
       XOCVIS=XOCVIS*(1.D0-FRFOAM)+FRFOAM*AVFOAM
       BOCNIR=BOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
       XOCNIR=XOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
-      DO L=3,6                  ! fill in higher bands
+      BOCVN(1)=BOCVIS
+      XOCVN(1)=XOCVIS
+      DO L=2,6                  ! fill in higher bands
         BOCVN(L)=BOCNIR         ! 1/2 already equivalenced
         XOCVN(L)=XOCNIR
       END DO
@@ -729,7 +713,8 @@ C****   and mean albedo=80%, i.e. AMEAN = .585*BLIVIS+.415*BLINIR = .80
           END IF
           BLIVIS=.95d0
           BLINIR=(AMEAN-.585d0*BLIVIS)/.415d0
-          DO L=3,6  ! fill in higher bands
+          BLIVN(1)=BLIVIS
+          DO L=2,6  ! fill in higher bands
             BLIVN(L)=BLINIR
           END DO
         END IF
@@ -777,7 +762,7 @@ c**** Reduce the Land Ice albedo by dalbsn
 
 C**** write some BXA for diagnostic output (in WRITER) (replaces equiv.)
       BXA(1)=EXPSNE ; BXA(2)=EXPSNO ; BXA(3)=EXPSNL
-      BXA(4)=BSNVIS ; BXA(5)=BSNNIR ; BXA(6)=XSNVIS ; BXA(7)=XSNNIR
+      BXA(4)=BSNVN(1); BXA(5)=BSNVN(2); BXA(6)=XSNVN(1); BXA(7)=XSNVN(2)
 
 C**** calculate final variables always over 6-bands
       DO L=1,6

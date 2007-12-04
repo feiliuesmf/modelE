@@ -1121,6 +1121,7 @@ C****
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
       rms=0. ; rms0=0. ; debug=.false.
+      area=0.
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
       KKI=0.
  10   KKI=KKI+1
