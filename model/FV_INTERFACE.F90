@@ -346,7 +346,6 @@ contains
        call readArr(iunit, fv % dT_old)
        if (AM_I_ROOT()) call closeunit(iunit)
        call compute_tendencies(fv)
-       if (AM_I_ROOT()) call closeUnit(iunit)
     case default
        call stop_model('ISTART option not supported',istart)
     end select
