@@ -155,12 +155,15 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
 !@sum findunit finds available unit
       implicit none
       integer, intent(out) :: unit
+      logical :: opened
 
 !ia next line is needed for Absoft compiler on Linux (compiler bug?)
       unit = 0
       do unit=MINUNIT,MAXUNIT
         if ( unit > 98 .and. unit < 103 ) cycle
-        if ( .not. Units(unit)%in_use ) return
+        !if ( .not. Units(unit)%in_use ) return
+        inquire( unit=unit, opened=opened )
+        if ( .not. opened ) return
       enddo
       write(6,*) "FILEMANAGER: Maximum file number reached"
       call print_open_units
