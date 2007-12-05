@@ -22,6 +22,7 @@ $CMRUNDIR="/u/cmrun";
 $EXECDIR="/u/exec";
 $SAVEDISK="/raid1";
 $GCMSEARCHPATH="/u/cmrun";
+$NETCDFHOME="/usr/bin";
 $MAILTO="";
 $UMASK=002;
 $MIN_STACK=0;
@@ -51,6 +52,7 @@ if ( -f $modelerc ) {
 	$GCMSEARCHPATH = $1 if /^ *GCMSEARCHPATH *= *(\S+)/;
 	$MAILTO = $1 if /^ *MAILTO *= *(\S+)/;
 	$UMASK = oct "$1" if /^ *UMASK *= *(\S+)/;
+	$NETCDFHOME = $1 if /^ *NETCDFHOME *= *(\S+)/;
     }
     close MODELERC;
 } else {
@@ -103,6 +105,8 @@ $CMRUN = $CMRUNDIR;
 $DeckDir = `pwd`; chop $DeckDir;
 $umask_inv = $UMASK ^ 0777;
 $umask_str = sprintf "%lo", $UMASK;
+$NETCDFBIN = "$NETCDFHOME/bin";
+$netcdf_template_file = "$runID.nctemp";
 
 ## check if this run is already running
 if ( -f $lockfile ) {
@@ -161,6 +165,11 @@ if ( ! ( -d $runID && -r $runID && -w $runID && -x $runID ) ) {
     print "Couldn't create the link $runID\n";
     print "or run directory has wrong permissions. Aborting setup.\n";
     exit 1;
+}
+
+## If NetCDF template file is present copy it to run directory
+if ( -s $netcdf_template_file ) {
+    `cp $netcdf_template_file $runID/nctemp`;
 }
 
 ## Switching to Run directory
@@ -345,6 +354,7 @@ print <<`EOC`;
     . ./runtime_opts
     echo "-99" > run_status
     echo "INPUT not yet completed" >> run_status
+    if [ -s nctemp ] ; then $NETCDFBIN/ncgen -b -o nctemp.nc nctemp ; fi
     ./"$runID"ln
     NP=$nproc
     $run_command ./"$runID".exe -i I >> ${runID}.PRT
@@ -413,6 +423,7 @@ print RUNID <<EOF;
     echo '-99' > run_status
     echo 'INPUT not yet completed' >> run_status
     . ./runtime_opts
+    if [ -s nctemp ] ; then $NETCDFBIN/ncgen -b -o nctemp.nc nctemp ; fi
     ./${runID}ln
     $run_command ./${runID}.exe -i ./\$IFILE > \$PRTFILE
     rc=`head -1 run_status`
