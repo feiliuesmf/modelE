@@ -623,7 +623,6 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       call io_rsf(iu_RSF,Itime,iowrite,ioerr)
       IF (AM_I_ROOT()) call closeunit(iu_RSF)
 #ifdef USE_FVCORE
-         call Checkpoint(fv, clock) !! ok ??
          call Finalize(fv, clock)
 #endif
       if (AM_I_ROOT()) then
