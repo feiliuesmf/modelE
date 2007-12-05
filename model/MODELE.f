@@ -824,7 +824,7 @@ C****
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
-c$$$      USE MODEL_COM, only: clock
+      USE CONSTANT, only : hrday
       USE ESMF_MOD, only: ESMF_Clock
 #endif
       USE ATMDYN, only : init_ATMDYN,CALC_AMPK
@@ -860,6 +860,7 @@ c$$$      USE MODEL_COM, only: clock
 #endif
 #ifdef USE_FVCORE
       type (ESMF_Clock) :: clock
+      integer :: minti,minte
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1037,13 +1038,6 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       if(is_set_param("Kradia")) call get_param( "Kradia", Kradia )
-
-#ifdef USE_FVCORE
-      ! need a clock to satisfy ESMF interfaces
-      clock = init_app_clock( (/ YEARI, MONTHI, DATEI, HOURI, 0, 0 /),
-     &                        (/ YEARE, MONTHE, DATEE, HOURE, 0, 0 /),
-     &             interval = int(dt) )
-#endif
 
 C***********************************************************************
 C****                                                               ****
@@ -1477,6 +1471,15 @@ C****
      *        write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
         call stop_model('INPUT: DT inappropriately set',255)
       end if
+#else
+C**** need a clock to satisfy ESMF interfaces
+      call getdte(itimei,nday,iyear1,YEARI,MONTHI,jday,DATEI,HOURI,amon)
+      MINTI = nint(mod( mod(Itimei*hrday/Nday,hrday) * 60d0, 60d0))
+      call getdte(itimee,nday,iyear1,YEARE,MONTHE,jday,DATEE,HOURE,amon)
+      MINTE = nint(mod( mod(Itimee*hrday/Nday,hrday) * 60d0, 60d0))
+      clock = init_app_clock( (/ YEARI, MONTHI, DATEI, HOURI, MINTI,0/),
+     &                        (/ YEARE, MONTHE, DATEE, HOURE, MINTE,0/),
+     &             interval = int(dt) )
 #endif
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
