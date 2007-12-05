@@ -382,10 +382,8 @@ contains
 
     call saveTendencies(fv)
     call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc )
-    call saveTendencies(fv)
 
     Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
-
 
   end subroutine finalize
 
