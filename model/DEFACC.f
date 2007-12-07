@@ -4544,7 +4544,7 @@ c
 c
       k=k+1
       IJK_UV=k
-      name_ijk(k) = 'U*V'
+      name_ijk(k) = 'UxV'
       lname_ijk(k) = 'U-WIND*V-WIND'
       units_ijk(k) = 'm**2/s**2'
       scale_ijk(k) = 1.
@@ -4552,7 +4552,7 @@ c
 c
       k=k+1
       IJK_VQ=k
-      name_ijk(k) = 'V*Q'
+      name_ijk(k) = 'VxQ'
       lname_ijk(k) = 'V-WIND*SPECIFIC HUMIDITY'
       units_ijk(k) = '(m/s)*kg/kg'
       scale_ijk(k) = 1.
@@ -4560,15 +4560,15 @@ c
 c
       k=k+1
       IJK_VT=k
-      name_ijk(k) = 'V*T'
+      name_ijk(k) = 'VxT'
       lname_ijk(k) = 'V-WIND*TEMPERATURE'
-      units_ijk(k) = '(m/s)*K)'
+      units_ijk(k) = '(m/s)*K'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 c
       k=k+1
       IJK_UU=k
-      name_ijk(k) = 'U*U'
+      name_ijk(k) = 'UxU'
       lname_ijk(k) = 'U-WIND*U-WIND'
       units_ijk(k) = 'm**2/s**2'
       scale_ijk(k) = 1.
@@ -4576,7 +4576,7 @@ c
 c
       k=k+1
       IJK_VV=k
-      name_ijk(k) = 'V*V'
+      name_ijk(k) = 'VxV'
       lname_ijk(k) = 'V-WIND*V-WIND'
       units_ijk(k) = 'm**2/s**2'
       scale_ijk(k) = 1.
@@ -4584,8 +4584,8 @@ c
 c
       k=k+1
       IJK_TT=k
-      name_ijk(k) = 'T*T'
-      lname_ijk(k) = 'TEMPERATURE* TEMPERATURE'
+      name_ijk(k) = 'TxT'
+      lname_ijk(k) = 'TEMPERATURE*TEMPERATURE'
       units_ijk(k) = 'K**2'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
