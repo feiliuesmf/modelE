@@ -1,7 +1,6 @@
 #define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
 #define RETURN_(status) If (Present(rc)) rc=status; return
 
-
 !#define NO_FORCING
 
 
@@ -350,7 +349,6 @@ contains
        call stop_model('ISTART option not supported',istart)
     end select
 
-
   contains
 
     subroutine readArr(iunit, arr)
@@ -380,14 +378,23 @@ contains
     type (esmf_clock), intent(in) :: clock
     integer :: rc
     
-    call checkpoint(fv, clock)
-  ! call saveTendencies(fv)
-  ! call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc )
+    call saveTendencies(fv)
+    call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc )
 
     Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
 
   end subroutine finalize
 
+  subroutine clearTendencies(fv)
+    Implicit None
+    Type (FV_CORE) :: fv
+
+    fv % dudt = 0
+    fv % dvdt = 0
+    fv % dtdt = 0
+    fv % dpedt = 0
+
+  end subroutine clearTendencies
 
   ! Compute tendencies
   ! ------------------
@@ -417,16 +424,8 @@ contains
        Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv % PE_old), fv % dpedt)
 
 #ifdef NO_FORCING
-    fv % dudt = 0
-    fv % dvdt = 0
-    fv % dTdt = 0
-    fv % dPEdt = 0
+       call clearTendencies()
 #endif
-
-!!$$    call write_profile(real(fv % dudt,8),'Tendency U')
-!!$$    call write_profile(real(fv % dVdt,8),'Tendency V')
-!!$$    call write_profile(real(fv % dTdt,8),'Tendency T')
-!!$$    call write_profile(real(fv % dPEdt,8),'Tendency PE')
 
   end subroutine compute_tendencies
 
@@ -474,6 +473,7 @@ contains
     do istep = 1, NIdyn_fv
 
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
+       call clearTendencies(fv)
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc )
 
        call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
@@ -487,6 +487,7 @@ contains
     end do
 
     gz  = phi
+
   end subroutine run_fv
 
   subroutine checkpoint(fv, clock)
@@ -532,7 +533,7 @@ contains
     call saveArr(iunit, fv % PE_old)
     call saveArr(iunit, fv % dT_old)
 
-    if (am_i_root()) call closeunit(iunit)
+    if (AM_I_ROOT()) call closeunit(iunit)
 
   contains
 
@@ -827,6 +828,7 @@ contains
       real*8, intent(out) :: U_d(:,:,:), V_d(:,:,:)
 
       Call HALO_UPDATE(grid, U_b, FROM=NORTH)
+      Call HALO_UPDATE(grid, V_b, FROM=NORTH)
       Call Regrid_B_to_D(Reverse(U_b), Reverse(V_b), U_d, V_d)
 
     End Subroutine ComputeRestartVelocities
@@ -1138,11 +1140,13 @@ contains
          & J_STRT=J_0, J_STOP=J_1)
     Allocate(Ua_halo(IM,J_0h:J_1h,LM), Va_halo(IM,J_0h:J_1h,LM))
 
+    write(*,*)'CHECKING: ', J_0, size(U_a,2), size(V_a,2)
     Ua_halo(:,J_0:J_1,:) = U_a
     Va_halo(:,J_0:J_1,:) = V_a
+
     Call Halo_Update(grid, Ua_halo,FROM=SOUTH)
     Call Halo_Update(grid, Va_halo,FROM=SOUTH)
-
+    
     Do k = 1, LM
        Do j = j_0STGR, j_1STGR
           im1 = IM
@@ -1157,6 +1161,7 @@ contains
     end do
 
     Deallocate(Ua_halo, Va_halo)
+
 
   end subroutine Regrid_A_to_B
 
