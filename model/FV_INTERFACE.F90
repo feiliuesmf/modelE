@@ -379,7 +379,7 @@ contains
     integer :: rc
     
     call saveTendencies(fv)
-    call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc )
+    call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc=rc )
 
     Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
 
@@ -680,7 +680,6 @@ contains
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
 
     ! Check to see if restart file already exists
-    print*,'Looking for an FV restart ...',istart
     select case (istart)
     case (FROM_LATEST_SAVE_FILE)
        inquire(file=FVCORE_INTERNAL_RESTART, EXIST=exist)
