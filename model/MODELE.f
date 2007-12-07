@@ -128,6 +128,7 @@ C**** INITIALIZE TIME PARAMETERS
       CALL DAILY(.false.)                  ! not end_of_day
       CALL daily_RAD(.false.)
       if (istart.le.9) call reset_diag(0)
+      if(Kradia==10) call daily_OCEAN(.false.) ! to test OCLIM
       if (Kradia.le.0) then
         CALL daily_EARTH(.false.)          ! not end_of_day
         CALL daily_OCEAN(.false.)          ! not end_of_day
@@ -156,7 +157,7 @@ C****
 C**** Open and position output history files if needed
 C****
 C**** Monthly files
-      if (Kradia.ne.0) then
+      if (Kradia.ne.0 .and. Kradia<10) then
         write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
         if (Kradia.gt.0) aDATE(4:7)='    '
         call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
@@ -206,7 +207,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
         IF ( JDAY.eq.1+JDendOfM(Jmon-1) ) then
           write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
-          if (Kradia.ne.0) then
+          if (Kradia.ne.0 .and. Kradia<10) then
             if (Kradia.gt.0) aDATE(4:7)='    '
             call closeunit( iu_RAD )
             call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
@@ -227,6 +228,7 @@ C**** reset sub-daily diag files
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
 C****
+      if(Kradia>9) go to 100 ! to test daily/monthly procedures fast
       CALL CHECKT ('DYNAM0')
       if (kradia.le.0) then                   ! full model,kradia le 0
          MODD5D=MOD(Itime-ItimeI,NDA5D)
@@ -432,14 +434,15 @@ C****
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
-      Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
+  100 Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
       IF (MOD(Itime,NDAY).eq.0) THEN      ! NEW DAY
       if (kradia.gt.0) then               ! radiative forcing run
         CALL DAILY(.false.)
-        CALL daily_RAD(.true.)
+        if(Kradia<10)  CALL daily_RAD(.true.)
+        if(Kradia==10) CALL daily_OCEAN(.true.) ! to test OCLIM
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
       else                                ! full model, kradia le 0
            CALL DIAG5A (1,0)
