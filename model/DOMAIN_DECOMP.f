@@ -496,7 +496,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
         lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
       End Do
       Deallocate(AI)
-      print *,"lookup_pet = ", lookup_pet
 #endif
 
       END SUBROUTINE INIT_APP
@@ -606,6 +605,9 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       grd_dum%J_STRT        = J0_DUM
       grd_dum%J_STOP        = J1_DUM
+      WRITE(*,*)'PE ',MY_PET,'has latitudes ',J0_DUM,'-',J1_DUM
+      call ESMF_DElayoutBarrier(layout, rc)
+
 cddd      IF (RANK_LAT > 0) THEN
 cddd        grd_dum%J_STRT_SKP = J0_DUM
 cddd      ELSE
