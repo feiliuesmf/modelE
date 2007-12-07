@@ -1140,7 +1140,6 @@ contains
          & J_STRT=J_0, J_STOP=J_1)
     Allocate(Ua_halo(IM,J_0h:J_1h,LM), Va_halo(IM,J_0h:J_1h,LM))
 
-    write(*,*)'CHECKING: ', J_0, size(U_a,2), size(V_a,2)
     Ua_halo(:,J_0:J_1,:) = U_a
     Va_halo(:,J_0:J_1,:) = V_a
 
