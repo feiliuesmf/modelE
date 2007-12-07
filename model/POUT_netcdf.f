@@ -25,7 +25,7 @@ C**** have to wait.
      &    ,open_out,def_dim_out,set_dim_out,close_out
      &    ,status_out,varid_out,out_fid
      &    ,ndims_out,dimids_out,file_dimlens,var_name
-     &    ,units,long_name,missing,real_att_name,real_att
+     &    ,units,long_name,missing,missing8,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
      &    ,iu_ij,im,jm,lm,lm_req,im_data,iu_ijl
      &    ,iu_ijk,iu_il,iu_j,iu_jc,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
@@ -76,6 +76,7 @@ C**** have to wait.
 
 !@param missing value to substitute for missing data
       real, parameter :: missing=-1.e30
+      real*8, parameter :: missing8=-1.d30
 !@var def_missing flag whether to define a missing data attribute
       logical :: def_missing=.false.
 !@var write_whole_array flag whether to write the entire array
@@ -298,7 +299,7 @@ c Does not currently have the capability to write any real_atts.
          prog_dtype=nf_double
          if(write_whole_array) then
             n = product(file_dimlens(dimids_out(1:ndims_out)))
-            if(any(var(1:n).eq.missing)) def_missing=.true.
+            if(any(var(1:n).eq.missing8)) def_missing=.true.
          else ! we can only check var(:,...,:,1) at this point,
 c so just assume that there will be some missing values
             def_missing=.true.
@@ -997,7 +998,7 @@ c
 !@auth M. Kelley
 !@ver  1.0
       USE GEOM, only : lon_dg,lat_dg
-      USE DIAG_COM, only : plm
+      USE DIAG_COM, only : plm,ple
       USE NCOUT, only : im,jm,lm,iu_ijk,set_dim_out,def_dim_out,out_fid
      *     ,outfile,units,ndims_out,open_out,var_name
       IMPLICIT NONE
@@ -1024,6 +1025,7 @@ C**** set dimensions
       dim_name='lonb'; call def_dim_out(dim_name,im)
       dim_name='latb'; call def_dim_out(dim_name,jm-1)
       dim_name='p'; call def_dim_out(dim_name,lm)
+      dim_name='ple'; call def_dim_out(dim_name,lm)
 
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
@@ -1041,7 +1043,9 @@ C**** set dimensions
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='p'; call wrtdarr(plm)
-
+      dim_name='ple'; call set_dim_out(dim_name,1)
+      units='mb'
+      var_name='ple'; call wrtdarr(ple)
       return
       end subroutine open_ijk
 
@@ -1080,6 +1084,8 @@ C**** set dimensions
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
 !@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
       INTEGER, INTENT(IN) :: IJGRID
+!@var KGRID = 1 for layer centers, 2 for layer edges
+      INTEGER, parameter :: KGRID=1 ! not yet received as an argument
 
       character(len=30) :: dim_name
 
@@ -1118,8 +1124,13 @@ c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
         dim_name = 'latb'
         call set_dim_out(dim_name,2)
       end if
-      dim_name = 'p'
-      call set_dim_out(dim_name,3)
+      if(kgrid.eq.1) then
+        dim_name = 'p'
+        call set_dim_out(dim_name,3)
+      else
+        dim_name = 'ple'
+        call set_dim_out(dim_name,3)
+      endif
 
       var_name=sname
       long_name=lname
