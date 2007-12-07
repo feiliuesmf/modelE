@@ -144,7 +144,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL, INTENT(IN) :: end_of_day
 
-      INTEGER n,J,I,LSTMON,m,m1,JR
+      INTEGER n,J,I,LSTMON,m,m1,JR,YEAR_OCN
       REAL*8 RSICSQ,ZIMIN,ZIMAX,Z1OMIN,RSINEW,TIME,FRAC,MSINEW,OPNOCN
      *     ,TFO
 !@var JDLAST julian day that OCLIM was last called
@@ -188,9 +188,9 @@ C****
 C**** READ IN OBSERVED OCEAN DATA
 
       IF (JMON.EQ.IMON0) GO TO 400
-      IF (IMON0.EQ.0) THEN
+      IF (IMON0.EQ.0 .or. (JMON==1.and.ocn_cycl>2)) THEN
 C****   READ IN LAST MONTH'S END-OF-MONTH DATA
-        if (ocn_cycl.ge.1) then
+        if (ocn_cycl.ge.1 .and. ocn_cycl.le.2) then
           LSTMON=JMON-1
           if (lstmon.eq.0) lstmon = 12
           CALL READT_PARALLEL
@@ -210,8 +210,10 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
             IF(M.NE.LSTMON)
      &         call stop_model('Read error: ocean data',255)
           end if
-        else   !  if (ocn_cycl.eq.0) then
-          LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
+        else   !  if (ocn_cycl==0.or.ocn_cycl>2) then
+          YEAR_OCN=JYEAR
+          if(ocn_cycl>2) YEAR_OCN=ocn_cycl
+          LSTMON=JMON-1+(YEAR_OCN-IYEAR1)*JMperY
   300     read (iu_OSST) M
           if (m.lt.lstmon) go to 300
           CALL BACKSPACE_PARALLEL( iu_OSST )
@@ -234,7 +236,7 @@ C****   COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       IMON0=JMON
-      if (ocn_cycl.ge.1) then
+      if (ocn_cycl.eq.1 .or. ocn_cycl.eq.2) then
         if (jmon.eq.1) then
           if (ocn_cycl.eq.1) CALL REWIND_PARALLEL( iu_OSST )
           CALL REWIND_PARALLEL( iu_SICE )
@@ -259,7 +261,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
           IF(JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
         end if
-      else   !  if (ocn_cycl.eq.0) then
+      else   !  if (ocn_cycl==0 .or. ocn_cyc>2) then
         CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
         AOST  = TEMP_LOCAL(:,:,1)
@@ -272,6 +274,12 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
      *  WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
         IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
+        if(ocn_cycl>2 .and. jmon==12) then
+          do m=12,0,-1
+            CALL BACKSPACE_PARALLEL( iu_OSST )
+            CALL BACKSPACE_PARALLEL( iu_SICE )
+          end do
+        end if
       end if
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO J=J_0,J_1
@@ -489,7 +497,7 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
      *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
 C**** save diagnostics
             AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
-     *           -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))  
+     *           -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
             AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*(MSINEW-MSI(I,J))
             AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
@@ -660,7 +668,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      &    STAT=IER)
 
       call alloc_ODEEP(grid)
- 
+
       END SUBROUTINE ALLOC_OCEAN
 
 
@@ -1103,7 +1111,7 @@ C****
       USE FLUXES, only : fwsim,msicnv,mlhc
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,J_IMPLM,J_IMPLH
      *     ,jreg,aij=>aij_loc,j_imelt,j_hmelt,j_smelt, ij_fwio, NREG,
-     *     KAJ 
+     *     KAJ
       USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       INTEGER I,J,JR,N
@@ -1138,7 +1146,7 @@ C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
                 MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
      *               -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
-C**** save diagnostics 
+C**** save diagnostics
                 AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
      *               -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
                 AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
