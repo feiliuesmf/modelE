@@ -380,7 +380,7 @@ C**** intermediate calculation for pressure gradient terms
 C****
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
-      INTEGER I,J,n,k,ip1,im1,l
+      INTEGER I,J,ip1,im1
       REAL*8 USINP,DMUINP,duA,dvA
 
 C**** Declare a new grid data type grid_NXY (to handle do j=1,ny1 type
@@ -764,7 +764,7 @@ C****
 !@+    At some point this will change (USIDT/VSIDT on ice grid, and RSI
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : byshi,lhm,grav
+      USE CONSTANT, only : byshi,lhm,grav,tf
       USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH
@@ -819,12 +819,13 @@ C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 
       INTEGER J_0, J_1, J_0S, J_1S, J_0H, J_1H
-      LOGICAL :: HAVE_NORTH_POLE
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 C**** Get grid parameters
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S ,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO =J_1H ,
-     &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Regularise ice concentration gradients to prevent advection errors
       DO J=J_0S, J_1S
@@ -1321,7 +1322,7 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
      *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
               GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
      *             (XSI(1:2)*(SNOWI(I,J)+ACE1I))+LHM)*BYSHI
-              GTEMPR(2,I,J) = GTEMP(1,2,I,J)
+              GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef TRACERS_WATER
               GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
      *             -SSI(1,I,J))
@@ -1334,9 +1335,21 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
             DO I=2,IM           ! North pole
               APRESS(I,JM)=APRESS(1,JM)
               GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
-              GTEMPR(2,I,J) = GTEMP(1,2,I,J)
+              GTEMPR(2,I,JM)   = GTEMPR(2,1,JM)
 #ifdef TRACERS_WATER
               GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
+#endif
+            END DO
+          END IF
+        END IF
+        IF (HAVE_SOUTH_POLE) THEN
+          IF (FOCEAN(1,1).gt.0) THEN
+            DO I=2,IM           ! North pole
+              APRESS(I,1)=APRESS(1,1)
+              GTEMP(1:2,2,I,1)= GTEMP(1:2,2,1,1)
+              GTEMPR(2,I,1)   = GTEMPR(2,1,1)
+#ifdef TRACERS_WATER
+              GTRACER(:,2,I,1)=GTRACER(:,2,1,1)
 #endif
             END DO
           END IF
@@ -1368,7 +1381,7 @@ C****
       USE PARAM
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
-      INTEGER k,i,j
+      INTEGER k
 
 C**** setup ice dynamics grid
 C**** Currently using ATM grid:
@@ -1561,7 +1574,7 @@ C**** set properties for TICIJ diagnostics
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
       REAL*8, DIMENSION(IMIC,JMIC) :: Q,ADENOM
-      INTEGER I,J,L,N,KXLB,ijgrid,IP1,k1,k
+      INTEGER I,J,L,N,KXLB,IP1,k1,k
       CHARACTER XLB*30
       CHARACTER TITLE*80,lname*50,sname*30,units*50
       character*50 :: unit_string

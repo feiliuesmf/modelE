@@ -7,7 +7,7 @@
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
 !@+    PRECIP_OC,OCEANS
-      USE CONSTANT, only : lhm,rhows,rhoi,shw,shi,by12,byshi
+      USE CONSTANT, only : lhm,rhows,rhoi,shw,shi,by12,byshi,tf
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP, only : GRID, GET,
      *                          DREAD_PARALLEL,
@@ -158,9 +158,10 @@ C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
 
       INTEGER :: J_0,J_1
-      LOGICAL :: HAVE_NORTH_POLE
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       IF (KOCEAN.EQ.1) GO TO 500
       if(.not.(end_of_day.or.itime.eq.itimei.or.off_line)) return
@@ -406,7 +407,7 @@ C**** SET DEFAULTS IF NO OCEAN ICE
 #endif
               SNOWI(I,J)=0.
               GTEMP(1:2,2,I,J)=TFO
-              GTEMPR(2,I,J) = GTEMP(1,2,I,J)
+              GTEMPR(2,I,J) = TFO+TF
             END IF
             FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
      *           ,I,J)))
@@ -427,8 +428,26 @@ C**** REPLICATE VALUES AT POLE (for prescribed data only)
             TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
 #endif
             GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
-            GTEMPR(2,I,JM) = GTEMP(1,2,I,JM)
+            GTEMPR(2,I,JM)=GTEMPR(2,1,JM)
             FWSIM(I,JM)=FWSIM(1,JM)
+          END DO
+        END IF
+      END IF
+      IF(HAVE_SOUTH_POLE) THEN
+        IF (FOCEAN(1,1).gt.0) THEN
+          DO I=2,IM
+            SNOWI(I,1)=SNOWI(1,1)
+            TOCEAN(1,I,1)=TOCEAN(1,1,1)
+            RSI(I,1)=RSI(1,1)
+            MSI(I,1)=MSI(1,1)
+            HSI(:,I,1)=HSI(:,1,1)
+            SSI(:,I,1)=SSI(:,1,1)
+#ifdef TRACERS_WATER
+            TRSI(:,:,I,1)=TRSI(:,:,1,1)
+#endif
+            GTEMP(1:2,2,I,1)=GTEMP(1:2,2,1,1)
+            GTEMPR(2,I,1)=GTEMPR(2,1,1)
+            FWSIM(I,1)=FWSIM(1,1)
           END DO
         END IF
       END IF
@@ -687,7 +706,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
      *     ,iyear1,ioreadnt,jmpery
       USE GEOM, only : imaxj
-
+      USE CONSTANT, only : tf
 #ifdef TRACERS_GASEXCH_Natassa
       USE FLUXES, only : GTRACER,TRGASEX
 #endif
@@ -799,7 +818,7 @@ C**** Set fluxed arrays for oceans
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-          GTEMPR(1,I,J) = GTEMP(1,1,I,J)
+          GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
           SSS(I,J) = SSS0
 #ifdef TRACERS_WATER
           gtracer(:,1,i,j)=trw0(:)
@@ -828,7 +847,7 @@ C****
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : twopi,edpery,shw,rhows
+      USE CONSTANT, only : twopi,edpery,shw,rhows,tf
       USE MODEL_COM, only : im,jm,kocean,focean,jday
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_toc2,ij_tgo2
@@ -879,7 +898,7 @@ C**** set gtemp array for ocean temperature
       DO I=1,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
-          GTEMPR(1,I,J) = GTEMP(1,1,I,J)
+          GTEMPR(1,I,J)    = TOCEAN(1,I,J)+TF
           MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
         END IF
       END DO
@@ -892,7 +911,7 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : rhows,shw
+      USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
       USE DIAG_COM, only : aj=>aj_loc,j_implm,j_implh,oa,
@@ -963,7 +982,7 @@ C**** Additional mass (precip) is balanced by deep removal
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
-          GTEMPR(1,I,J)=GTEMP(1,1,I,J)
+          GTEMPR(1,I,J) =TOCEAN(1,I,J)+TF
         END IF
       END DO
       END DO
@@ -977,7 +996,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
 !@calls OCEAN:OSOURC
-      USE CONSTANT, only : rhows,shw
+      USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
@@ -1085,7 +1104,7 @@ C**** assume const mean tracer conc over freshwater amount
 #endif
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-          GTEMPR(1,I,J) = GTEMP(1,1,I,J)
+          GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
         END IF
       END DO
       END DO

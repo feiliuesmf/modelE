@@ -4237,7 +4237,7 @@ C****
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : byshi,lhm
+      USE CONSTANT, only : byshi,lhm,tf
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
 #endif
@@ -4281,7 +4281,7 @@ C****
             SO= S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             TO= TEMGS(GO,SO)
             GTEMP(1,1,I,J)= TO
-            GTEMPR(1,I,J) = GTEMP(1,1,I,J)
+            GTEMPR(1,I,J) = TO+TF
             SSS(I,J) = 1d3*SO
             MLHC(I,J)= MO(I,J,1)*SHCGS(GO,SO)
             IF (LMM(I,J).gt.1) THEN
@@ -4323,41 +4323,35 @@ C**** do poles
         VOSURF(1,JM) = UO(IVNP,JM,1)*COSI(1) - UO(IM,JM,1)*SINI(1)
         DO I=2,IM
           GTEMP(:,1,I,JM)=GTEMP(:,1,1,JM)
-          GTEMPR(1,I,JM) =GTEMP(1,1,I,JM)
+          GTEMPR(1,I,JM) =GTEMPR(1,1,JM) 
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
           UOSURF(I,JM) = UO(IM,JM,1)*COSU(I) + UO(IVNP,JM,1)*SINU(I)
           VOSURF(I,JM) = UO(IVNP,JM,1)*COSI(I) - UO(IM,JM,1)*SINI(I)
           OGEOZA(I,JM)=OGEOZA(1,JM)
-#ifdef TRACERS_WATER
-          GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
-#endif
-#ifdef TRACERS_GASEXCH_Natassa
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
 #endif
         END DO
       END IF
       end if
 
-c     if (HAVE_SOUTH_POLE) then
-c     IF (FOCEAN(1,1).gt.0) THEN
-c       DO I=2,IM
-c         GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
-c         GTEMPR(1,I,1) = GTEMP(1,1,I,1)
-c         SSS(I,1)=SSS(1,1)
-c         MLHC(I,1)=MLHC(1,1)
-c         UOSURF(I,1) = UO(IM,1,1)*COSU(1) - UO(IVSP,1,1)*SINU(1)
-c         VOSURF(I,0) = UO(IVSP,1,1)*COSI(I) - UO(IM,1,1)*SINI(I)
-c         OGEOZA(I,1)=OGEOZA(1,1)
-#ifdef TRACERS_WATER
-c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
+      if (HAVE_SOUTH_POLE) then
+      IF (FOCEAN(1,1).gt.0) THEN
+        DO I=2,IM
+          GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
+          GTEMPR(1,I,1) =GTEMPR(1,1,1)
+          SSS(I,1)=SSS(1,1)
+          MLHC(I,1)=MLHC(1,1)
+          UOSURF(I,1) = UO(IM,1,1)*COSU(1) - UO(IVSP,1,1)*SINU(1)
+          VOSURF(I,0) = UO(IVSP,1,1)*COSI(I) - UO(IM,1,1)*SINI(I)
+          OGEOZA(I,1)=OGEOZA(1,1)
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
+          GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
-c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
-#endif
-c       END DO
-c     END IF
-c     end if
+        END DO
+      END IF
+      end if
 
       RETURN
 C****
@@ -4431,7 +4425,6 @@ c GISS-ESMF EXCEPTIONAL CASE - OT2AT not needed yet - nothing done yet
       REAL*8, INTENT(OUT), DIMENSION(NF,IMA,JMA) :: FIELDA
 !@var FIELDO array on oceanic tracer grid
       REAL*8, INTENT(IN), DIMENSION(NF,IMO,JMO) :: FIELDO
-      REAL*8 RAT
       INTEGER I,J
 
 C**** currently no need for interpolation,

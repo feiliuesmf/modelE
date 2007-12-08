@@ -105,7 +105,7 @@ C**** Geometry
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 AAA
-      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
+      INTEGER :: J_0,J_1,J_0S,J_1S
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -348,17 +348,13 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
      &         AV,BV,CV,VRT,U_tmp
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &         FXYa,FXY1a
-      REAL*8, DIMENSION(2:NX1-1,JM) :: AV_GLOB,BV_GLOB,CV_GLOB
-      REAL*8, DIMENSION(NX1) :: CUU,URT         !CUU,
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &         CVV                     !CVV,
-      REAL*8, DIMENSION(2:NX1-1,JM) :: VRT_GLOB, U_TMP_GLOB
+      REAL*8, DIMENSION(NX1) :: URT
       REAL*8, PARAMETER :: BYRAD2 = 1./(RADIUS*RADIUS)
-      INTEGER I,J,J1,J2,IMD,JMD
+      INTEGER I,J
       REAL*8 DELXY,DELXR,DELX2,DELY2,DELYR,ETAMEAN,ZETAMEAN,AA1,AA2
      *     ,AA3,AA4,AA5,AA6,AA9
 
-      INTEGER :: J_0,J_1, J_0S,J_1S, J_0H,J_1H, J_0STG,J_1STG
+      INTEGER :: J_0,J_1, J_0S,J_1S, J_0H,J_1H
 
 C**** Replaces NYPOLE in loops.
       INTEGER :: J_NYP
@@ -547,24 +543,6 @@ C**(ETA and ZETA were updted above)
       CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),UICE(2,J,1),
      &               NXLCYC-1)
 
-c      DO I=2,NXLCYC
-c       CUU(I)=CU(I,J)
-c      END DO
-c      URT(2)=URT(2)/BU(2,J)
-c      DO I=3,NXLCYC
-c       IMD=I-1
-c       CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
-c       URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
-c      END DO
-c      DO I=1,NXLCYC-2
-c       J1=NXLCYC-I
-c       J2=J1+1
-c       URT(J1)=URT(J1)-CUU(J1)*URT(J2)
-c      END DO
-c      DO I=2,NXLCYC
-c       UICE(I,J,1)=URT(I)
-c      END DO
-
  1200 CONTINUE
 
       DO I=2,NXLCYC
@@ -647,21 +625,6 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
 
        CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid, 2, NYPOLE)
 
-
-c      DO J=J_0S,J_NYP
-c      CVV(J)=CV(J,I)
-c      END DO
-c      VRT(2)=VRT(2)/BV(2,I)
-c      DO J=3,NYPOLE
-c      JMD=J-1
-c      CVV(J)=CVV(J)/(BV(J,I)-AV(J,I)*CVV(JMD))
-c      VRT(J)=(VRT(J)-AV(J,I)*VRT(JMD))/(BV(J,I)-AV(J,I)*CVV(JMD))
-c      END DO
-c      DO J=1,NYPOLE-2
-c      J1=NYPOLE-J
-c      J2=J1+1
-c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
-c      END DO
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
         UICE(I,J,1)=U_tmp(I,J)     ! VRT(J)   !
@@ -783,20 +746,6 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
 
        CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid, 2, NYPOLE)
 
-c      DO J=J_0S,J_NYP
-c      CVV(J)=CV(J,I)
-c      END DO
-c      VRT(2)=VRT(2)/BV(2,I)
-c      DO J=3,NYPOLE
-c      JMD=J-1
-c      CVV(J)=CVV(J)/(BV(J,I)-AV(J,I)*CVV(JMD))
-c      VRT(J)=(VRT(J)-AV(J,I)*VRT(JMD))/(BV(J,I)-AV(J,I)*CVV(JMD))
-c      END DO
-c      DO J=1,NYPOLE-2
-c      J1=NYPOLE-J
-c      J2=J1+1
-c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
-c      END DO
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
         VICE(I,J,1)=U_tmp(I,J)   ! VRT(J)   !
@@ -884,23 +833,6 @@ c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
         CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),VICE(2,J,1),
      &               NXLCYC-1)
 
-c        DO I=2,NXLCYC
-c          CUU(I)=CU(I,J)
-c        END DO
-c        URT(2)=URT(2)/BU(2,J)
-c        DO I=3,NXLCYC
-c          IMD=I-1
-c          CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
-c          URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
-c        END DO
-c        DO I=1,NXLCYC-2
-c          J1=NXLCYC-I
-c          J2=J1+1
-c          URT(J1)=URT(J1)-CUU(J1)*URT(J2)
-c        END DO
-c        DO I=2,NXLCYC
-c          VICE(I,J,1)=URT(I)
-c        END DO
  1201 CONTINUE
 
       DO J=J_0S,J_NYP
@@ -918,8 +850,8 @@ c        END DO
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       IMPLICIT NONE
-      REAL*8 :: dlat,dlon,phit,phiu,hemi,fjeq,acor,acoru
-      INTEGER I,J,n,k,kki,sumk,l
+      REAL*8 :: dlat,dlon,phit,phiu,fjeq,acor,acoru
+      INTEGER I,J,k
       INTEGER :: J_0,J_1,J_0S,J_1S
 
 C****
@@ -1245,8 +1177,6 @@ C**** to ALLOC_ICEDYN.
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
-
-      INTEGER :: I,J,L
 
       If (init) Then
          Return ! Only invoke once

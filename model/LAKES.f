@@ -516,7 +516,7 @@ C**** Set GTEMP arrays for lakes
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =GTEMP(1,1,I,J)
+            GTEMPR(1,I,J) =TLAKE(I,J)+TF
             IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*DXYP(J))
      *           THEN
               GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
@@ -736,7 +736,7 @@ C****
 !@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0 (based on LB265)
-      USE CONSTANT, only : shw,rhow,teeny,bygrav
+      USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland,dtsrc
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
@@ -1002,7 +1002,7 @@ C**** Set GTEMP array for lakes
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =GTEMP(1,1,I,J)
+            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
@@ -1244,7 +1244,7 @@ C****
 !@sum  daily_LAKE does lake things at the beginning of every day
 !@auth G. Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny
+      USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
       USE LAKES, only : kdirec,minmld,variable_lk
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
@@ -1487,7 +1487,7 @@ C**** Set GTEMP array for lakes
         DO I=1,IMAXJ(J)
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =GTEMP(1,1,I,J)
+            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
@@ -1504,7 +1504,7 @@ C****
 !@sum  PRECIP_LK driver for applying precipitation/melt to lake fraction
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow,shw,teeny
+      USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET,NORTH,SOUTH
       USE GEOM, only : imaxj,dxyp,bydxyp
@@ -1567,7 +1567,7 @@ C**** simelt is given as kg, so divide by area
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
           GTEMP(1,1,I,J)=TLAKE(I,J)
-          GTEMPR(1,I,J) =GTEMP(1,1,I,J)
+          GTEMPR(1,I,J) =TLAKE(I,J)+TF
           IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*DXYP(J))
      *         THEN
             GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
@@ -1606,7 +1606,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
 !@calls
-      USE CONSTANT, only : rhow,shw,teeny
+      USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,dtsrc,itlake,itlkice
       USE DOMAIN_DECOMP, only : GRID, GET,GLOBALSUM, HALO_UPDATE,
@@ -1781,7 +1781,7 @@ C**** Resave prognostic variables
 #endif
         GTEMP(1,1,I,J)=TLAKE(I,J)
         GTEMP(2,1,I,J)=TLK2       ! diagnostic only
-        GTEMPR(1,I,J) =GTEMP(1,1,I,J)
+        GTEMPR(1,I,J) =TLAKE(I,J)+TF
 
 C**** Open lake diagnostics
         AJ(J,J_WTR1, ITLAKE)=AJ(J,J_WTR1, ITLAKE)+MLAKE(1)*POLAKE

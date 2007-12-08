@@ -297,7 +297,7 @@ C****
 !@ver  1.0
 !@calls ODFFUS
       USE FILEMANAGER
-      USE CONSTANT, only : sday
+      USE CONSTANT, only : sday,tf
       USE MODEL_COM, only : im,jm,focean,jmon,jday,jdate,itocean
      *     ,itoice
       USE GEOM, only : imaxj
@@ -365,7 +365,7 @@ C**** Set first layer thickness
             AJ(J,J_FTHERM,ITOICE )=AJ(J,J_FTHERM,ITOICE )-(RTGO(1,I,J)
      *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*RSI(I,J)
             GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
-            GTEMPR(1,I,J) = GTEMP(1,1,I,J)
+            GTEMPR(1,I,J)    = TOCEAN(1,I,J)+TF
           END IF
         END DO
       END DO

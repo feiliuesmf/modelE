@@ -70,7 +70,7 @@ c**** Please, use this structure to pass all your arguments to PBL
 c**** Don''t use global variables for that purpose !
       type t_pbl_args
         ! input:
-        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
+        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi,tr4
         real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
         real*8 tg,elhx,qsol,sss_loc
         logical :: pole,ocean,ddml_eq_1

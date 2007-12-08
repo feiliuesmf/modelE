@@ -87,7 +87,7 @@ C****
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
-     *     ,uosurf,vosurf,uisurf,visurf,ogeoza
+     *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
 #ifdef TRACERS_ON
      *     ,trsrfflx,trsource
 #ifdef TRACERS_GASEXCH_Natassa
@@ -145,10 +145,10 @@ C****
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *     TGRND,TGRN2
+     *     TGRND,TGRN2,TGR4
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
-      REAL*8 QSAT,DQSATDT
+      REAL*8 QSAT,DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
       real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0
@@ -269,14 +269,15 @@ C****
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 
-C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
+C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
       DO J=J_0,J_1
       DO I=1,IM
         TGRND(2,I,J)=GTEMP(1,2,I,J)
         TGRND(3,I,J)=GTEMP(1,3,I,J)
-C       TGRND(4,I,J)=GTEMP(1,4,I,J)
         TGRN2(2,I,J)=GTEMP(2,2,I,J)
         TGRN2(3,I,J)=GTEMP(2,3,I,J)
+        TGR4(2,I,J)=GTEMPR(2,I,J)**4
+        TGR4(3,I,J)=GTEMPR(3,I,J)**4
       END DO
       END DO
 
@@ -288,8 +289,7 @@ C**** Zero out fluxes summed over type and surface time step
       TREVAPOR = 0. ; TRUNOE = 0.
 #endif
 #ifdef TRACERS_DRYDEP
-      TRDRYDEP = 0.
-      dtr_dd=0.
+      TRDRYDEP = 0. ; dtr_dd=0.
 #endif
 #ifdef TRACERS_AMP
       DTR_AMPe(J_0:J_1,:) = 0.d0
@@ -349,7 +349,7 @@ C****
 !$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, 
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS, SHEAT,SRHEAT,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS, 
-!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,dlwdt,
+!$OMP*  THV1,TG,TG1,TG2,TR4,TRHDT,TRHEAT,Z1BY6L,dlwdt,
 !$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,WS0,QSRF,pbl_args,jr,tmp
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,totflux,trs,trsfac,trconstflx,trgrnd
@@ -440,6 +440,7 @@ C****
       IF (PTYPE.gt.0) THEN
       TG1=GTEMP(1,1,I,J)
       TG2=GTEMP(2,1,I,J)   ! diagnostic only
+      TR4=GTEMPR(1,I,J)**4
       IF (FLAKE(I,J).gt.0) THEN
 C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
         IF (MWL(I,J).lt.MINMLD*RHOW*FLAKE(I,J)*DXYP(J)) THEN
@@ -513,6 +514,7 @@ C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
       SNOW=SNOWI(I,J)
       TG1=TGRND(2,I,J)
       TG2=TGRN2(2,I,J)
+      TR4=TGR4(2,I,J)
       MSI1 = SNOW+ACE1I ! snow and first layer ice mass (kg/m^2)
       ACE2=MSI(I,J) ! second (physical) layer ice mass (kg/m^2)
       dF1dTG = 2./(ACE1I*BYRLI+SNOW*BYRLS)
@@ -544,6 +546,7 @@ C****
       SNOW=SNOWLI(I,J)
       TG1=TGRND(3,I,J)
       TG2=GTEMP(2,3,I,J)
+      TR4=TGR4(3,I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
       CDTERM=TG2
@@ -568,6 +571,7 @@ C****
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
       pbl_args%TG=TG   ! actual ground temperature
+      pbl_args%TR4=TR4 ! radiative temperature K^4
       pbl_args%ELHX=ELHX   ! relevant latent heat
       pbl_args%QSOL=SRHEAT   ! solar heating
       pbl_args%TGV=TG*(1.+QG_SAT*deltx)
@@ -688,6 +692,7 @@ C**** Adjust ground variables to account for skin effects
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (pbl_args%ocean) QG_SAT=0.98d0*QG_SAT
       TG1 = TG - TF
+      TR4=(sqrt(sqrt(TR4))+pbl_args%dskin)**4
 
 C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RHOSRF=100.*PS/(RGAS*pbl_args%TSV)
@@ -704,6 +709,7 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
      *                      RCDQDWS*pbl_args%qprime)
       TRHEAT=TRHR(0,I,J)-STBO*(TG*TG)*(TG*TG)
+c      TRHEAT=TRHR(0,I,J)-STBO*TR4
 
 C**** CASE (1) ! FLUXES USING EXPLICIT TIME STEP FOR OCEAN POINTS
       if ( ITYPE == 1) then
@@ -724,6 +730,7 @@ C**** CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
         dQGdTG=QG_SAT*DQSATDT(TG,ELHX) ! d(QG)/dTG
         dEVdTG = -dQGdTG*LHE*RCDQWS ! d(EVHEAT)/dTG
         dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
+c        dTRdTG = -4*STBO*sqrt(sqrt(TR4))**3 ! d(TRHEAT)/dTG
         dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
 
         T2DEN = HCG2+DTSURF*dF1dTG
@@ -753,6 +760,7 @@ C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
         DQGDTG=QG_SAT*DQSATDT(TG,ELHX)
         DEVDTG=-RCDQWS*LHE*DQGDTG
         DTRDTG=-4.*STBO*TG*TG*TG
+c        DTRDTG=-4.*STBO*sqrt(sqrt(TR4))**3
         DF0DTG=DSHDTG+DEVDTG+DTRDTG
         DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
         DTG=(F0-F1)*DTSURF/(HCG1-DTSURF*DFDTG)
@@ -946,8 +954,10 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
 
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
+      TGR4(ITYPE,I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
       dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*(TG1+TF)**4)
+c      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*TR4
 C**** final fluxes
       DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE

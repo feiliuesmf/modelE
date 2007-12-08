@@ -12,15 +12,12 @@
 
       SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args)
 !@sum  PBL calculate pbl profiles for each surface type
+!@+        Contains code common for all surfaces
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
 !@var TDN1 downdraft temperature in K, (i,j)
 !@var QDN1 downdraft humidity in kg/kg, (i,j)
-
-C    input: ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
-C    output:US,VS,WS,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
-C          ,UG,VG,WG,W2_1
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM, only : t,q,u,v,ls1
@@ -53,8 +50,7 @@ C          ,UG,VG,WG,W2_1
 #endif
 c
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
-      REAL*8 qtop,utop,vtop,ufluxs,vfluxs
-     *     ,tfluxs,qfluxs,psitop,psisrf
+      REAL*8 qtop,utop,vtop,ufluxs,vfluxs,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 !@var uocean,vocean ocean/ice velocities for use in drag calulation
 !@var evap_max maximal evaporation from unsaturated soil
@@ -86,7 +82,6 @@ c
 !@var KMS    = momentum transport coefficient at ZGS (m**2/s)
 !@var KHS    = heat transport coefficient at ZGS (m**2/s)
 !@var KHQ    = moist transport coefficient at ZGS (m**2/s)
-!@var PPBL   = pressure at DBL (mb)
 !@var USTAR  = friction speed (square root of momentum flux) (m/s)
 !@var CM     = drag coefficient (dimensionless surface momentum flux)
 !@var CH     = Stanton number   (dimensionless surface heat flux)
@@ -204,7 +199,6 @@ c     ELSE
 
 c     ENDIF
 
-  !    ppbl=pedn(l,i,j)  ! - not used anywhere ?
       coriol=sinp(j)*omega2
       qtop=q(i,j,1)
 

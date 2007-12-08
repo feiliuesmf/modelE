@@ -968,7 +968,7 @@ C     OUTPUT DATA
 #endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : gtemp,nstype
+      USE FLUXES, only : gtemp,nstype,gtempr
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, HERE
@@ -1075,6 +1075,7 @@ C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
 C**** GTEMP(1)  GROUND TEMPERATURE ARRAY OVER ALL SURFACE TYPES (C)
+C**** GTEMPR RADIATIVE TEMPERATURE ARRAY OVER ALL SURFACE TYPES (K)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****
 C**** VDATA  1-11 RATIOS FOR THE 11 VEGETATION TYPES (1)
@@ -1101,6 +1102,7 @@ C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
      *     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
      *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
+c     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
      *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
@@ -1940,6 +1942,12 @@ C****
       TRSURF(2,I,J) = STBO*TGOI**4  !  ocean ice
       TRSURF(3,I,J) = STBO*TGLI**4  !  land ice
       TRSURF(4,I,J) = STBO*TGE**4  !  soil
+c      TRHR(0,I,J)=STBO*(POCEAN*GTEMPR(1,I,J)**4+POICE*GTEMPR(2,I,J)**4+
+c     +  PLICE*GTEMPR(3,I,J)**4+PEARTH*GTEMPR(4,I,J)**4)-TRNFLB(1)
+c      TRSURF(1,I,J) = STBO*GTEMPR(1,I,J)**4  !  ocean
+c      TRSURF(2,I,J) = STBO*GTEMPR(2,I,J)**4  !  ocean ice
+c      TRSURF(3,I,J) = STBO*GTEMPR(3,I,J)**4  !  land ice
+c      TRSURF(4,I,J) = STBO*GTEMPR(4,I,J)**4  !  soil
       DO L=1,LM
         SRHR(L,I,J)=SRFHRL(L)
         TRHR(L,I,J)=-TRFCRL(L)

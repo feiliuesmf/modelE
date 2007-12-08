@@ -1063,7 +1063,7 @@ c**** wearth+aiearth are used in radiation only
       aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
      &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
       gtemp(1,4,i,j)=tearth(i,j)
-      gtempr(4,i,j) =gtemp(1,4,i,j)
+      gtempr(4,i,j) =tearth(i,j)+tf
 c**** calculate fluxes using implicit time step for non-ocean points
       uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
       vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(pbl_args%vs) !-vocean)
@@ -1942,7 +1942,7 @@ c**** set gtemp array
         do i=1,im
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tearth(i,j)
-            gtempr(4,i,j) =gtemp(1,4,i,j)
+            gtempr(4,i,j) =tearth(i,j)+tf
           end if
         end do
       end do
@@ -3820,7 +3820,7 @@ c**** wearth+aiearth are used in radiation only
           aiearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*ficeb +
      &         fv*w_ij(1,2,i,j)*ficev )
           gtemp(1,4,i,j)=tearth(i,j)
-          gtempr(4,i,j) =gtemp(1,4,i,j)
+          gtempr(4,i,j) =tearth(i,j)+tf
 
 #ifdef TRACERS_WATER
       ! I use vegetated ground insted of canopy since canopy has 0 H2O

@@ -93,7 +93,7 @@ C**** sea ice melt and iceberg/glacial melt.
 
 !@var GTEMP ground temperature (upper two levels) over surface type (C)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTEMP
-!@var GTEMPR radiative ground temperature over surface type (C)
+!@var GTEMPR radiative ground temperature over surface type (K)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GTEMPR
 !@var SSS sea surface salinity on atmospheric grid (ppt)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSS

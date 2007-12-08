@@ -10,7 +10,7 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : teeny,rhoi,grav
+      USE CONSTANT, only : teeny,rhoi,grav,tf
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
      *     ,jday,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
@@ -111,7 +111,7 @@ C**** pond_melt accumulates in melt season only
 C**** set gtemp array
         MSI(I,J)=MSI2
         GTEMP(1:2,2,I,J)=TSIL(1:2)
-        GTEMPR(2,I,J) = GTEMP(1,2,I,J)
+        GTEMPR(2,I,J)   =TSIL(1)+TF
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
@@ -645,7 +645,7 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:addice
-      USE CONSTANT, only : lhm,byshi
+      USE CONSTANT, only : lhm,byshi,tf
       USE MODEL_COM, only : im,jm,focean,kocean,fland
      *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
@@ -793,7 +793,7 @@ C**** save implicit mass-flux diagnostics
         END IF
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
-        GTEMPR(2,I,J) = GTEMP(1,2,I,J)
+        GTEMPR(2,I,J)   =TSIL(1)+TF
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
@@ -835,21 +835,37 @@ C**** Save sea ice tracer amount
       END DO
       END DO
 
-C**** replicate ice values at the north pole
+C**** replicate ice values at the poles
       IF (HAVE_NORTH_POLE) THEN
         DO I=2,IM
-        RSI(I,JM)=RSI(1,JM)
+          RSI(I,JM)=RSI(1,JM)
           MSI(I,JM)=MSI(1,JM)
           HSI(:,I,JM)=HSI(:,1,JM)
           SSI(:,I,JM)=SSI(:,1,JM)
           SNOWI(I,JM)=SNOWI(1,JM)
           GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
-          GTEMPR(2,I,JM) = GTEMP(1,2,I,JM)
+          GTEMPR(2,I,JM)=GTEMPR(2,1,JM)
 #ifdef TRACERS_WATER
           TRSI(:,:,I,JM) = TRSI(:,:,1,JM)
           GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM)
 #endif
           FWSIM(I,JM) = FWSIM(1,JM)
+        END DO
+      END IF
+      IF (HAVE_SOUTH_POLE) THEN
+        DO I=2,IM
+          RSI(I,1)=RSI(1,1)
+          MSI(I,1)=MSI(1,1)
+          HSI(:,I,1)=HSI(:,1,1)
+          SSI(:,I,1)=SSI(:,1,1)
+          SNOWI(I,1)=SNOWI(1,1)
+          GTEMP(1:2,2,I,1)=GTEMP(1:2,2,1,1)
+          GTEMPR(2,I,1)=GTEMPR(2,1,1)
+#ifdef TRACERS_WATER
+          TRSI(:,:,I,1) = TRSI(:,:,1,1)
+          GTRACER(:,2,I,1) = GTRACER(:,2,1,1)
+#endif
+          FWSIM(I,1) = FWSIM(1,1)
         END DO
       END IF
 C****
@@ -897,7 +913,7 @@ C****
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : byshi,lhm,shi,rhows
+      USE CONSTANT, only : byshi,lhm,shi,rhows,tf
       USE MODEL_COM, only : im,jm,kocean,focean,flake0
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
      *     ,lmi,snow_ice
@@ -981,7 +997,7 @@ C**** set GTEMP etc. array for ice
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
      *       (XSI(1:2)*MSI1)+LHM)*BYSHI
-        GTEMPR(2,I,J) = GTEMP(1,2,I,J)
+        GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #endif
@@ -1190,7 +1206,7 @@ C****
       SUBROUTINE daily_ice
 !@sum daily_ice performs ice processes that are needed everyday
 !@auth Gavin Schmidt
-      USE CONSTANT, only : byshi,lhm
+      USE CONSTANT, only : byshi,lhm,tf
       USE MODEL_COM, only : jm,jday
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : flag_dsws,pond_melt,msi,hsi,ssi,rsi,snowi
@@ -1233,7 +1249,7 @@ C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
      *       (XSI(1:2)*MSI1)+LHM)*BYSHI
-        GTEMPR(2,I,J) = GTEMP(1,2,I,J)
+        GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #endif

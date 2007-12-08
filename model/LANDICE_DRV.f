@@ -9,7 +9,7 @@
 !@sum  init_ice initialises landice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : edpery,sday,lhm
+      USE CONSTANT, only : edpery,sday,lhm,tf
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
       USE GEOM, only : dxyp,imaxj
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
@@ -57,7 +57,7 @@ C**** set GTEMP array for landice
         DO I=1,IM
           IF (FLICE(I,J).gt.0) THEN
             GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-            GTEMPR(3,I,J) = GTEMP(1,3,I,J)
+            GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef TRACERS_WATER
             if (istart.ge.9) then
             IF (SNOWLI(I,J).gt.1d-5) THEN
@@ -222,6 +222,7 @@ C****
 !@ver  1.0
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
+      USE CONSTANT, only : tf
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr
 #ifdef TRACERS_WATER
@@ -294,7 +295,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-        GTEMPR(3,I,J) = GTEMP(1,3,I,J)
+        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
         EDWNIMP(I,J)=EDWNIMP(I,J)+ERUN2*PLICE*DXYPJ
@@ -333,6 +334,7 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
 !@auth Original Development team
 !@ver  1.0
 !@calls LANDICE:LNDICE
+      USE CONSTANT, only : tf
       USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE LANDICE, only : lndice,ace1li,ace2li
@@ -417,7 +419,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-        GTEMPR(3,I,J) = GTEMP(1,3,I,J)
+        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
         EDWNIMP(I,J)=EDWNIMP(I,J)+EDIFS*PLICE*DXYPJ
