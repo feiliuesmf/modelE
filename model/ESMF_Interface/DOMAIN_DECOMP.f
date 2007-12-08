@@ -470,13 +470,13 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       call INIT_GRID(grd_dum,IM,JM,LM,vm=vm)
       Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0,vm=vm)
+
+      WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
+     &     RANK_LON
 #else
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
 #endif
-
-      WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
-     &     RANK_LON
 
 #ifdef DEBUG_DECOMP
       IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
@@ -605,8 +605,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       grd_dum%J_STRT        = J0_DUM
       grd_dum%J_STOP        = J1_DUM
-      WRITE(*,*)'PE ',MY_PET,'has latitudes ',J0_DUM,'-',J1_DUM
 #ifdef USE_ESMF
+      WRITE(*,*)'PE ',MY_PET,'has latitudes ',J0_DUM,'-',J1_DUM
       call ESMF_DElayoutBarrier(layout, rc)
 #endif
 
@@ -3419,7 +3419,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 1)
 #else
-      arr_glob(grd_dum%J_STRT:grd_dum%J_STOP) = 
+      arr_glob(grd_dum%J_STRT:grd_dum%J_STOP) =
      &     arr(grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
@@ -3450,7 +3450,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
 #else
-      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) = 
+      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
@@ -3496,7 +3496,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
 #else
-      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) = 
+      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
 #endif
 
@@ -3535,7 +3535,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
 #else
-      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:) = 
+      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:)
 #endif
 
@@ -3554,7 +3554,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_ESMF
       Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
 #else
-      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:) = 
+      arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
 #endif
 
