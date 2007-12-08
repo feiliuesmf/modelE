@@ -4,12 +4,7 @@ c
 c --- hycom version 0.9
       USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
-<<<<<<< inicon.f
-     .      ,gtemp,sss,mlhc
-
-=======
      .      ,gtemp,sss,mlhc,gtempr
->>>>>>> 2.7
 #ifdef TRACERS_GASEXCH_Natassa
      .      ,GTRACER
 
@@ -255,7 +250,7 @@ c$OMP PARALLEL DO
       enddo
 #endif
         gtemp(1,1,ia,ja)=asst(ia,ja)
-        gtempr(1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
+        gtempr(1,ia,ja)=asst(ia,ja)+273.16d0 !radia. temp (K) SHOULD BE ADJUSTED
         if (sss(ia,ja).le.10.) then
           write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja
      . ,' sss=',sss(ia,ja),' sst=',asst(ia,ja),' focean=',focean(ia,ja)

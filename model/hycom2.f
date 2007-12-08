@@ -1081,9 +1081,7 @@ c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ja=1,jja
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
-<<<<<<< hycom2.f
-=======
-        gtempr(1,ia,ja)=asst(ia,ja)   ! radiative temp SHOULD BE ADJUSTED
+        gtempr(1,ia,ja)=asst(ia,ja)+273.16d0 !radia. temp (K) SHOULD BE ADJUSTED
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
@@ -1092,7 +1090,6 @@ c$OMP PARALLEL DO PRIVATE(tf)
      .      iatest,jatest,atrac(iatest,jatest,nt)
         enddo
 #endif
->>>>>>> 2.5
         tf=tfrez(sss(ia,ja),0.)
         dmsi(1,ia,ja)=utila(ia,ja)                        !kg/m2 per agcm step
         dhsi(1,ia,ja)=utila(ia,ja)                        !J/m2 per agcm step
