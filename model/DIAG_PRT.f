@@ -1404,7 +1404,7 @@ c
       k = KAJK
 c
       k = k + 1
-      jk_dudt_econv = k                       ; jgrid_jk(k) = 2
+      jk_dudt_econv = k                       ; jgrid_jk(k) = jgrid_u
       sname_jk(k) = 'dudt_eddy_conv'
       lname_jk(k) = 'DU/DT BY EDDY CONVERGENCE (CP)'
       units_jk(k) = '10**-6 m/s^2'
@@ -1418,7 +1418,7 @@ c
       ia_jk(k) = ia_dga
       pow_jk(k) = 9
       k = k + 1
-      jk_dudt_epdiv = k                       ; jgrid_jk(k) = 2
+      jk_dudt_epdiv = k                       ; jgrid_jk(k) = jgrid_u
       sname_jk(k) = 'dudt_epdiv'
       lname_jk(k) = 'DU/DT BY ELIASSEN-PALM DIVERGENCE (CP)'
       units_jk(k) = 'm/s^2'
@@ -1501,7 +1501,7 @@ c
       sname_jk(k) = 'nt_sheat_eddy'
       lname_jk(k) = 'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*SHA*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = SHA*XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 11
       k = k + 1
       jk_dyn_conv_dse = k                     ; jgrid_jk(k) = 1
@@ -1511,13 +1511,13 @@ c
       scale_jk(k) = 1d2*BYGRAV
       pow_jk(k) = -2
       k = k + 1
-      jk_seke = k                             ; jgrid_jk(k) = 2
+      jk_seke = k                             ; jgrid_jk(k) = jgrid_ke
       sname_jk(k) = 'stand_eddy_ke'
       lname_jk(k) = 'STANDING EDDY KINETIC ENERGY'
       units_jk(k) = 'm^2/s^2'
       scale_jk(k) = .5
       k = k + 1
-      jk_eke = k                              ; jgrid_jk(k) = 2
+      jk_eke = k                              ; jgrid_jk(k) = jgrid_ke
       sname_jk(k) = 'eddy_ke'
       lname_jk(k) = 'EDDY KINETIC ENERGY'
       units_jk(k) = 'm^2/s^2'
@@ -1527,49 +1527,49 @@ c
       sname_jk(k) = 'nt_dse_stand_eddy'
       lname_jk(k) = 'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 11
       k = k + 1
       jk_nt_dse_e = k                         ; jgrid_jk(k) = 2
       sname_jk(k) = 'nt_dse_eddy'
       lname_jk(k) = 'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 11
       k = k + 1
       jk_tot_nt_dse = k                       ; jgrid_jk(k) = 2
       sname_jk(k) = 'tot_nt_dse'
       lname_jk(k) = 'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 12
       k = k + 1
       jk_nt_lh_e = k                          ; jgrid_jk(k) = 2
       sname_jk(k) = 'nt_lh_e'
       lname_jk(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*lhe*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = lhe*XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 10
       k = k + 1
       jk_nt_lh_se = k
       sname_jk(k) = 'nt_lh_stand_eddy'        ; jgrid_jk(k) = 2
       lname_jk(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*lhe*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = lhe*XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 9
       k = k + 1
       jk_nt_see = k                           ; jgrid_jk(k) = 2
       sname_jk(k) = 'nt_se_eddy'
       lname_jk(k) = 'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 11
       k = k + 1
       jk_tot_nt_se = k                        ; jgrid_jk(k) = 2
       sname_jk(k) = 'tot_nt_se'
       lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      scale_jk(k) = XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 12
       k = k + 1
       jk_nt_am_stand_eddy = k                 ; jgrid_jk(k) = 2
@@ -1692,7 +1692,7 @@ c Check the count
 
       REAL*8, DIMENSION(JM) ::
      &     BYDAPO,COSBYPDA,COSBYPV,DXCOSV,ONESPO
-     &    ,DXYPPO,BYDASQR
+     &    ,DXYPPO,BYDASQR,BYDXYU,BYDXYKE
       REAL*8, DIMENSION(JM+LM) :: ONES
       REAL*8, DIMENSION(JM,LM) :: AX,BX,CX,DX,VX,EX
       REAL*8, DIMENSION(JM,LM) :: BYPDSIG,BYPVDSIG,BYP,BYPV
@@ -1765,12 +1765,20 @@ C**** INITIALIZE CERTAIN QUANTITIES
       ONESPO(JM)=FIM
       BYDAPO(JM)=BYDAPO(JM)*BYIM
 
+      if(jgrid_u.eq.2) then
+        bydxyu(:) = bydxyv(:)
+        bydxyke(:) = bydxyv(:)
+      else
+        bydxyu(:) = bydxyp(:)
+        bydxyke(:) = bydxyp(:)
+      endif
+
       DO 50 J=2,JM
       DXCOSV(J)=DXV(J)*COSV(J)
    50 CONTINUE
       DO J=1,JM
         BYP(J,1)=IDACC(ia_dga)/(APJ(J,1)+teeny)
-        BYPV(J,1)=IDACC(ia_dga)/(.25*APJ(J,2)+teeny)
+        BYPV(J,1)=IDACC(ia_dga)/(APJ(J,2)+teeny)
       ENDDO
       DO L=2,LS1-1
          BYP(:,L) = BYP(:,1)
@@ -1942,7 +1950,7 @@ C**** U AND V WINDS, STREAM FUNCTION
      &    PLM,AJK(1,1,n),SCALET,ONES,ONES,KM,2,JGRID_JK(n))
       DO 100 K=1,KM
       DO 100 J=2,JM
-  100 AX(J,K)=AJK(J,K,JK_V)-.25*VX(J,K)
+  100 AX(J,K)=AJK(J,K,JK_V)-VX(J,K)
       n = jk_Vstar
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &    PLM,AX,SCALET,ONES,ONES,KM,2,JGRID_JK(n))
@@ -1962,7 +1970,7 @@ c
      &     PM,AX,SCALET,DXV,ONES,KM,2,JGRID_JK(n))
       DO 110 K=1,KM
       DO 110 J=2,JM
-  110 BX(J,K)=AX(J,K)+.25*DX(J,K)
+  110 BX(J,K)=AX(J,K)+DX(J,K)
       n = jk_psi_tem
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
       CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
@@ -2158,17 +2166,17 @@ C****
 C**** DYNAMIC CONVERGENCE OF ENERGY
 C****
       DO 370 K=1,KM
-C     CX(1,K)=-BX(2,K)*.25*DXV(2)
+C     CX(1,K)=-BX(2,K)*DXV(2)
       CX(1,K)=0.
-      CX(JM,K)=BX(JM,K)*.25*DXV(JM)
-C     DX(1,K)=-(AJK(2,K,JK_TOTNTGEO)-AJK(2,K,JK_ZMFNTGEO))*.25*DXV(2)
+      CX(JM,K)=BX(JM,K)*DXV(JM)
+C     DX(1,K)=-(AJK(2,K,JK_TOTNTGEO)-AJK(2,K,JK_ZMFNTGEO))*DXV(2)
       DX(1,K)=0.
       DX(JM,K)=(AJK(JM,K,JK_TOTNTGEO)-
-     &     AJK(JM,K,JK_ZMFNTGEO))*.25*DXV(JM)
+     &     AJK(JM,K,JK_ZMFNTGEO))*DXV(JM)
       DO 370 J=2,JM-1
-      CX(J,K)=(BX(J,K)*DXV(J)-BX(J+1,K)*DXV(J+1))*.25
+      CX(J,K)=(BX(J,K)*DXV(J)-BX(J+1,K)*DXV(J+1))
       DX(J,K)=((AJK(J,K,JK_TOTNTGEO)-AJK(J,K,JK_ZMFNTGEO))*DXV(J) -
-     *  (AJK(J+1,K,JK_TOTNTGEO)-AJK(J+1,K,JK_ZMFNTGEO))*DXV(J+1))*.25
+     *  (AJK(J+1,K,JK_TOTNTGEO)-AJK(J+1,K,JK_ZMFNTGEO))*DXV(J+1))
   370 CONTINUE
 
       DO K=1,KM-1
@@ -2256,7 +2264,7 @@ C**** VERTICAL TRANSPORT OF KINETIC ENERGY
       n = jk_totvtke
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
-     &     PM,AJK(1,1,n),SCALET,BYDXYV,ONES,KM-1,2,JGRID_JK(n))
+     &     PM,AJK(1,1,n),SCALET,BYDXYKE,ONES,KM-1,2,JGRID_JK(n))
 C**** VERTICAL TRANSPORT OF ANGULAR MOMENTUM BY LARGE SCALE MOTIONS
       n = jk_vtameddy
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
@@ -2267,7 +2275,7 @@ C**** VERTICAL TRANSPORT OF ANGULAR MOMENTUM BY LARGE SCALE MOTIONS
       END DO
       END DO
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
-     &     PM,AX,SCALET,BYDXYV,ONES,KM-1,2,JGRID_JK(n))
+     &     PM,AX,SCALET,BYDXYU,ONES,KM-1,2,JGRID_JK(n))
       n = jk_totvtam
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
       DO K=1,KM-1
@@ -2276,7 +2284,7 @@ C**** VERTICAL TRANSPORT OF ANGULAR MOMENTUM BY LARGE SCALE MOTIONS
       END DO
       END DO
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
-     &     PM,AX,SCALET,BYDXYV,ONES,KM-1,2,JGRID_JK(n))
+     &     PM,AX,SCALET,BYDXYU,ONES,KM-1,2,JGRID_JK(n))
 C**** VERTICAL TRANSPORT OF POTENTIAL VORTICITY TOTAL AND BY EDDIES
       n = jk_vtpv
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
@@ -2302,7 +2310,7 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
   490 CONTINUE
       DO 500 K=1,KM
       DO 500 J=2,JM-1
-  500 AX(J,K)=AJK(J,K,JK_DPA)*(AX(J,K)+.25*DX(J,K))
+  500 AX(J,K)=AJK(J,K,JK_DPA)*(AX(J,K)+DX(J,K))
       n = jk_nt_eqgpv
       SCALET = scale_jk(n)
       CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
@@ -2472,7 +2480,7 @@ C**** output full or approximate version
      &  AJK(J,K,JK_ZMFNTMOM))*DXV(J)-(AJK(J+1,K,JK_TOTNTMOM)-
      *  AJK(J+1,K,JK_ZMFNTMOM))*DXV(J+1))/
      &        (AJK(J,K,JK_DPA)*DXYP(J))+
-     *  .125*((AJK(J,K,JK_VTAMEDDY)-AJK(J,K-1,JK_VTAMEDDY))/
+     *  .5*((AJK(J,K,JK_VTAMEDDY)-AJK(J,K-1,JK_VTAMEDDY))/
      &        (AJK(J,K,JK_DPB)*DXYV(J)+teeny)+
      * (AJK(J+1,K,JK_VTAMEDDY)-AJK(J+1,K-1,JK_VTAMEDDY))/
      &        (AJK(J+1,K,JK_DPB)*DXYV(J+1)+teeny))
@@ -2563,7 +2571,7 @@ C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
       cx = 0.
       do k=2,km-1
       do j=2,jm-1
-        if (AJK(J,K,JK_DPA).gt.0.) CX(J,K)=.25*(
+        if (AJK(J,K,JK_DPA).gt.0.) CX(J,K)=(
      &     (AJK(J,  K,JK_TOTNTSH)-AJK(J,  K,JK_ZMFNTSH))*DXV(J)-
      &     (AJK(J+1,K,JK_TOTNTSH)-AJK(J+1,K,JK_ZMFNTSH))*DXV(J+1))/
      &     (AJK(J,K,JK_DPA)*DXYP(J))+
@@ -2930,10 +2938,10 @@ C**** scale with density for m^2/s^2 unit. Note that RHO is really a JK.
       BDN=0.
       DO L=1,LM
       BUP=AJL(J,L,JL_EPFLXV)*BYDAPO(J)
-      AX(J,L)=4.*BYDAPO(J)*
+      AX(J,L)=BYDAPO(J)*
      &     (AJL(J+1,L,JL_EPFLXN)*DXV(J+1)/APJ(J+1,2)-
      &      AJL(J  ,L,JL_EPFLXN)*DXV(J) /APJ(J  ,2))
-     *   +.125*(BUP-BDN)/(DSIG(L)*APJ(J,1))
+     *   +.5*(BUP-BDN)/(DSIG(L)*APJ(J,1))
       BDN=BUP
       ENDDO
       ENDDO
@@ -4485,7 +4493,7 @@ c**** length of growing season   (not quite right ???)
 c**** precipitable water
       else if (k.eq.ij_colh2o) then
         igrid = 2; jgrid = 2; irange = ir_ij(ij_prec)
-        byiacc = .1*.25*100.*bygrav/(idacc(ia_dga)+teeny)
+        byiacc = .1*100.*bygrav/(idacc(ia_dga)+teeny)
         anum = 0.
         do l=1,lm
         do j=1,jm
@@ -4788,9 +4796,9 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
         DO L=1,LM
           ZNDE16=ZNDE16+(SHA*AJK(J,L,JK_ZMFNTSH)+AJK(J,L,JK_ZMFNTGEO))
         END DO
-        ZNDE16=4.*ZNDE16*DXV(J)*byim
+        ZNDE16=ZNDE16*DXV(J)*byim
         DO I=1,IM
-          SENTDSE(I,J)=4.*SENTDSE(I,J)*DXV(J)
+          SENTDSE(I,J)=SENTDSE(I,J)*DXV(J)
           TENTDSE(I,J)=AIJ(I,J,IJ_DSEV)-ZNDE16-SENTDSE(I,J)
         END DO
       END DO

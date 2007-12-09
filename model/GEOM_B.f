@@ -76,6 +76,11 @@ C**** some B-grid conservation quantities
 !@var  FCOR latitudinally varying coriolis parameter
       REAL*8, DIMENSION(JM) :: FCOR
 
+!@var JG_U, JG_KE lat. grids on which U-wind and KE are defined
+!@+   (1 for primary latitudes, 2 for secondary latitudes)
+!@+   Information for diagnostics.
+      integer, parameter :: jg_u=2, jg_ke=2
+
       real*8 :: acor,acor2,polwt
 
       CONTAINS

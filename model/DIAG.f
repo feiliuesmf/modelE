@@ -595,7 +595,7 @@ C****
       I=IM
       DO IP1=1,IM
         AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
-     *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
+     *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)*.125
         I=IP1
       END DO
       END DO
@@ -622,7 +622,7 @@ C****
         AIJ(I,J,IJ_VJET)=AIJ(I,J,IJ_VJET)+V(I,J,JET)
         I=IP1
       END DO
-      APJ(J,2)=APJ(J,2)+P4I
+      APJ(J,2)=APJ(J,2)+P4I*.25
       DO L=1,LM
         PU4I=0.
         PV4I=0.
@@ -637,14 +637,14 @@ C****
           T4=TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L)
           Z4=PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L)
           AIJ(I,J,IJ_DSEV)=AIJ(I,J,IJ_DSEV)+P4*(SHA*T4+Z4)*V(I,J,L)
-     *         *DSIG(L)*DXV(J)
+     *         *DSIG(L)*DXV(J)*0.0625d0
           SP2=PLIJ(L,IP1,J-1)+PLIJ(L,IP1,J)
-          AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+SP2
+          AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+.125*SP2
      *         *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
           I=IP1
         END DO
-        AJL(J,L,JL_ZMFNTMOM)=AJL(J,L,JL_ZMFNTMOM)+PU4I*PV4I/P4I
-        AJL(J,L,JL_TOTNTMOM)=AJL(J,L,JL_TOTNTMOM)+PUV4I
+        AJL(J,L,JL_ZMFNTMOM)=AJL(J,L,JL_ZMFNTMOM)+.25*PU4I*PV4I/P4I
+        AJL(J,L,JL_TOTNTMOM)=AJL(J,L,JL_TOTNTMOM)+.25*PUV4I
       END DO
       END DO
 C****
@@ -883,8 +883,8 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF(L.GE.LS1-1) PITIJ=0.
       SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
   874 IM1=I
-      AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+
-     &     (.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU
+      AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+.25*
+     &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU)
   878 CONTINUE
 
 C**** ACCUMULATE TIME USED IN DIAGA
@@ -973,7 +973,7 @@ c      REAL*8 :: ADIURNSUM,HDIURNSUM
      &     LUP,MBEGIN,N,NM,KM
 
       REAL*8 ::
-     &     BYDP,BYFIM,DP,DPDN,
+     &     BYDP,BYFIM,DP,DPDN,DP4,
      &     DPE,DPI,DPK,DPSQI,DPUP,DPUV,DUTI,DUTK,DVTI,DVTK,FIMI,
      &     PAI,PAK,PDN,PHIPI,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
      &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
@@ -1230,14 +1230,16 @@ C**** INTERPOLATE HERE
   330 PUP=PL(L+1)
       IF (LUP.EQ.L) PUP=PM(K+1)
       DP=PDN-PUP
+      DP4=.25*DP
       PUK=PUK+DP*U(I,J,L)
       PVK=PVK+DP*V(I,J,L)
-      PT4K=PT4K+DP*(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))
-      PZ4K=PZ4K+DP*(PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L))
-      PQ4K=PQ4K+DP*(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))
+      PT4K=PT4K+(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))*DP4
+      PZ4K=PZ4K+(PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L))
+     &     *DP4
+      PQ4K=PQ4K+(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))*DP4
       DUTK=DUTK+DP*DUT(I,J,L)
       DVTK=DVTK+DP*DVT(I,J,L)
-      PS4K=PS4K+DP*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
+      PS4K=PS4K+(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))*DP4
 C**** FOR AMIP 2
       AMRHT=.25*(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))
       AMRHQ=.25*(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))
@@ -1281,7 +1283,7 @@ C**** ACCUMULATE HERE
       AIJK(I,J,K,IJK_T)  =AIJK(I,J,K,IJK_T)  +PT4K
       AIJK(I,J,K,IJK_Q)  =AIJK(I,J,K,IJK_Q)  +PQ4K
       AIJK(I,J,K,IJK_R)  =AIJK(I,J,K,IJK_R)  +
-     *     PQ4K/QSAT(0.25*PT4K/DPK,LHE,PMO(K))
+     *     PQ4K/QSAT(PT4K/DPK,LHE,PMO(K))
       AIJK(I,J,K,IJK_PF)  =AIJK(I,J,K,IJK_PF)+1.
 C     *  *  *  FOR AMIP 2  *  *  *
       AIJK(I,J,K,IJK_UV)=AIJK(I,J,K,IJK_UV)+AMUV
@@ -1327,7 +1329,7 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
      *   STJK(J,K)*DXYS(J))
          UJK(J,K)=PUI/DPI
          VJK(J,K)=PVI/DPI
-         PSIJK(J,K)=.25*SHETH(K)/DPI
+         PSIJK(J,K)=SHETH(K)/DPI
          UVJK(J,K)=(PUVI-PUI*PVI/DPI)/DPI
          IF (IDACC(4).EQ.1) AJK(J,K,JK_UINST)=UJK(J,K)
          AJK(J,K,JK_TOTDUDT)=UJK(J,K)-AJK(J,K,JK_UINST)
@@ -1611,7 +1613,7 @@ C**** SPECIAL CASES;  L=1,L=LM
   680 UK=U(I,J,L)
       VK=V(I,J,L)
 C**** MERIDIONAL AVERAGING
-  690 W4=W(I,J-1,K)+W(IP1,J-1,K)+W(I,J,K)+W(IP1,J,K)
+  690 W4=.25*(W(I,J-1,K)+W(IP1,J-1,K)+W(I,J,K)+W(IP1,J,K))
       W4I=W4I+W4
       UKI=UKI+UK
       WU4I=WU4I+W4*UK
@@ -1619,7 +1621,7 @@ C**** MERIDIONAL AVERAGING
       FIMI=FIMI+1.
   700 I=IP1
       BYFIM=1./(FIMI+teeny)
-         WUJK(J,K)=.25*(WU4I-W4I*UKI*BYFIM)*BYFIM*BYDXYV(J)
+         WUJK(J,K)=(WU4I-W4I*UKI*BYFIM)*BYFIM*BYDXYV(J)
       AJK(J,K-1,JK_TOTVTKE)=AJK(J,K-1,JK_TOTVTKE)+WKE4I
       AJK(J,K-1,JK_VTAMEDDY)=AJK(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
   710 AJK(J,K-1,JK_TOTVTAM)=AJK(J,K-1,JK_TOTVTAM)+WU4I   !+W4I*UEARTH
@@ -1644,9 +1646,9 @@ C****
       DO 740 IP1=1,IM
       PS=.5*(P(I,J)+P(IP1,J))+PTOP
       IF (PM(K).GE.PS) GO TO 740
-      W2=W(I,J,K)+W(IP1,J,K)
+      W2=.5*(W(I,J,K)+W(IP1,J,K))
       W2I=W2I+W2
-      PV2=DUT(I,J,K-1)+DUT(I,J,K)
+      PV2=.5*(DUT(I,J,K-1)+DUT(I,J,K))
       PV2I=PV2I+PV2
       WPV4I=WPV4I+W2*PV2
       FIMI=FIMI+1.

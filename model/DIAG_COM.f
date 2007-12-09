@@ -527,6 +527,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
 #endif
 
+!@var JGRID_U, JGRID_KE latitudes at which U-wind and KE diags are defined
+!@+   (1 for primary latitudes, 2 for secondary latitudes)
+!@+   In future, can be other than the values in GEOM if requested.
+      integer, public :: jgrid_u, jgrid_ke
+      integer, parameter, public ::
+     &     igridc=0,igride=1,jgridc=0,jgride=2,kgridc=0,kgride=4,
+     &     ijkgridc=igridc+jgridc+kgridc
+
 !@var SNAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajlx), public :: sname_jl
 !@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics

@@ -1062,11 +1062,13 @@ C**** set dimensions
       return
       end subroutine close_ijk
 
-      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS_IN,XIJK,XJK,XK,IJGRID)
+      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS_IN,XIJK,XJK,XK
+     &     ,IJKGRID)
 !@sum  POUT_IJK output lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE NCOUT
+      USE DIAG_COM, only : igride,jgride,kgride
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
@@ -1082,10 +1084,10 @@ C**** set dimensions
       REAL*8, DIMENSION(JM,LM), INTENT(INOUT) :: XJK
 !@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
-!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
-      INTEGER, INTENT(IN) :: IJGRID
-!@var KGRID = 1 for layer centers, 2 for layer edges
-      INTEGER, parameter :: KGRID=1 ! not yet received as an argument
+!@var IJKGRID contains IGRID,JGRID,KGRID in successive bits
+      INTEGER, INTENT(IN) :: IJKGRID
+!@var IGRID,JGRID,KGRID = 1 for centers, 2 for edges
+      INTEGER :: IGRID,JGRID,KGRID,IJKG
 
       character(len=30) :: dim_name
 
@@ -1093,7 +1095,14 @@ C**** set dimensions
 
       out_fid = iu_ijk
 
-      if (ijgrid.eq.2) then
+      ijkg = ijkgrid
+      kgrid = ijkg/kgride
+      ijkg = ijkg - kgride*kgrid
+      jgrid = ijkg/jgride
+      ijkg = ijkg - jgride*jgrid
+      igrid = ijkg
+
+      if (jgrid.eq.1) then
 c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
       lpack = 1
       jpack = 0
@@ -1113,24 +1122,26 @@ c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
 ! (re)set shape of output array
       ndims_out = 3
 
-      if (ijgrid.eq.1) then
+      if (igrid.eq.0) then
         dim_name = 'longitude'
-        call set_dim_out(dim_name,1)
-        dim_name = 'latitude'
-        call set_dim_out(dim_name,2)
       else
         dim_name = 'lonb'
-        call set_dim_out(dim_name,1)
-        dim_name = 'latb'
-        call set_dim_out(dim_name,2)
       end if
-      if(kgrid.eq.1) then
+      call set_dim_out(dim_name,1)
+
+      if (jgrid.eq.0) then
+        dim_name = 'latitude'
+      else
+        dim_name = 'latb'
+      end if
+      call set_dim_out(dim_name,2)
+
+      if(kgrid.eq.0) then
         dim_name = 'p'
-        call set_dim_out(dim_name,3)
       else
         dim_name = 'ple'
-        call set_dim_out(dim_name,3)
       endif
+      call set_dim_out(dim_name,3)
 
       var_name=sname
       long_name=lname
@@ -1138,7 +1149,7 @@ c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
 
       call wrtdarr(xijk)
 
-      if (ijgrid.eq.2) then
+      if (jgrid.eq.1) then
 c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
       lpack = 1 + ((jm-1)*lm)/jm
       jpack = (jm-1)*lm - (lpack-1)*jm
