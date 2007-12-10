@@ -459,6 +459,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       RANK_LAT = my_pet
       RANK_LON = 0
 #else
+      MY_PET = 0
       NPES = 1
       NP_LON = 1
       NP_LAT = 1
@@ -470,7 +471,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       call INIT_GRID(grd_dum,IM,JM,LM,vm=vm)
       Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0,vm=vm)
-
       WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
      &     RANK_LON
 #else
@@ -606,6 +606,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%J_STRT        = J0_DUM
       grd_dum%J_STOP        = J1_DUM
 #ifdef USE_ESMF
+      ! ifdef prevents this from appearing during run of CMP*.
       WRITE(*,*)'PE ',MY_PET,'has latitudes ',J0_DUM,'-',J1_DUM
       call ESMF_DElayoutBarrier(layout, rc)
 #endif
