@@ -882,10 +882,12 @@ c idacc-indices of various processes
 
         CASE (IOREAD_SINGLE)      !
 !ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
-          if (AM_I_ROOT())
-     *       READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
-          CALL UNPACK_COLUMN(grid, REAL(AFLX4,KIND=8),
-     *                                          AFLX_ST)
+          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
+          if (AM_I_ROOT()) then
+             READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
+             AFLX_ST_glob = AFLX_ST_glob + AFLX4
+          end if
+          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
           CALL ESMF_BCAST(grid,idac1)
           CALL ESMF_BCAST(grid,monac1)
           IDACC(2) = IDACC(2) + IDAC1(2)
