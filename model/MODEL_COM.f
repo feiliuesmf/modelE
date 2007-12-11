@@ -373,7 +373,7 @@ C****
 
       CALL GETTIME(MNOW,CRATE)
       MINC  = MNOW - MLAST
-      if(minc.lt.0) minc=minc+100*(huge(minc)/crate) ! system_clock reset
+      if(minc.lt.-200) minc=minc+100*(huge(minc)/crate) ! system_clock reset
       TIMING(MSUM)  = TIMING(MSUM) + MINC
       MLAST = MNOW
       RETURN
