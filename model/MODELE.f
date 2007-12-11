@@ -570,10 +570,12 @@ C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (MNOW,MDIAG)
+        TOTALT=SUM(TIMING(1:NTIMEACC))
         DO M=1,NTIMEACC
-          PERCENT(M) = 100d0*TIMING(M)/(MNOW-MSTART+.00001)
+          PERCENT(M) = 100d0*TIMING(M)/(TOTALT+.00001)
         END DO
-        TOTALT=(MNOW-MSTART)/(60.*100.)           ! in minutes
+c        TOTALT=(MNOW-MSTART)/(60.*100.) ! wrong when clock rolls over
+        TOTALT=TOTALT/(60.*100.)           ! in minutes
         DTIME = NDAY*TOTALT/(Itime-Itime0)        ! minutes/day
         WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
