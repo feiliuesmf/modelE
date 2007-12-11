@@ -130,10 +130,10 @@ open(REPORT,">Report");
 
 
 my $LINES_EXPECTED;
-$LINES_EXPECTED -> {E1M20}   = [95,97];
-$LINES_EXPECTED -> {E1oM20}  = [120,122];
-$LINES_EXPECTED -> {E1F20}   = [95,97];
-$LINES_EXPECTED -> {E001tr}  = [103,105];
+$LINES_EXPECTED -> {E1M20}   = [94,96];
+$LINES_EXPECTED -> {E1oM20}  = [119,120];
+$LINES_EXPECTED -> {E1F20}   = [94,96];
+$LINES_EXPECTED -> {E001tr}  = [102,104];
 
 foreach my $rundeck (@$rundecks) {
     next if $rundeck eq "SERIAL" or $rundeck eq "SERIALMP";
