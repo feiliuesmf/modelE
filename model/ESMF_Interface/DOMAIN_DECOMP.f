@@ -606,8 +606,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%J_STRT        = J0_DUM
       grd_dum%J_STOP        = J1_DUM
 #ifdef USE_ESMF
-      ! ifdef prevents this from appearing during run of CMP*.
-      WRITE(*,*)'PE ',MY_PET,'has latitudes ',J0_DUM,'-',J1_DUM
       call ESMF_DElayoutBarrier(layout, rc)
 #endif
 
