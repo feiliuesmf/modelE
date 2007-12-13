@@ -59,7 +59,13 @@ SOIL=S4X50093.ext TOPO=Z72X46N.2deg_rfn              !!! hycom
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR.2deghycom         !!! hycom
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=radfil33k                   !     8/2003 version
+RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN4=LWTables33k.1b              ! rad.tables and history files
+RADN5=H2Ocont_Ma_2000             ! H2O continuum table
+! other available H2O continuum tables:
+!    RADN5=H2Ocont_Ma_2004
+!    RADN5=H2Ocont_Roberts
+!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
 RADN3=miescatpar.abcdv2
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates

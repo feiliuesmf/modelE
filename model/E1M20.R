@@ -67,7 +67,13 @@ RVR=RD_modelE_M.RVR               ! river direction file
 TOP_INDEX=top_index_72x46.ij.ext  ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=radfil33k                   !     8/2003 version
+RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN4=LWTables33k.1b              ! rad.tables and history files
+RADN5=H2Ocont_Ma_2000             ! H2O continuum table
+! other available H2O continuum tables:
+!    RADN5=H2Ocont_Ma_2004
+!    RADN5=H2Ocont_Roberts
+!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
 RADN3=miescatpar.abcdv2
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
@@ -190,11 +196,12 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! the "frozen (or 'slush') version" of 2006 paper E1M20 -> EfzM20
 !     -------------------------------------------          ======
 !     replace in "Object modules"     the 4 files
-! CLOUDS2    PBL    ATURB    RADIATION    by:
-! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1
-!     replace in "Data input files:" OSST/SICE by
+! CLOUDS2    PBL    ATURB    RADIATION    RAD_DRV      by:
+! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1 RAD_DRV_E1
+!     replace in "Data input files:" OSST/SICE/RADN2   by:
 ! OSST=OST4X5.B.1975-84avg.Hadl1.1
 ! SICE=SICE4X5.B.1975-84avg.Hadl1.1
+! RADN2=radfil33k  ! RADN4 and RADN5 are not used
 !     set in &&PARAMETERS : U00ice=.59,U00wtrX=1.39,
 !                           dalbsnX=.015, ! (was set to that value by mistake)
 !                           variable_lk=0 ! lake fractions are fixed in time

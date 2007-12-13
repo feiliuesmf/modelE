@@ -35,23 +35,23 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION_E1        ! radiation modules
+RAD_COM RAD_DRV_E1 RADIATION_E1        ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
 advfct|-r8|                         ! advection
-archyb|-r8|                         ! continuity eqn. 
-barotp|-r8|                         ! barotropic eqn. 
+archyb|-r8|                         ! continuity eqn.
+barotp|-r8|                         ! barotropic eqn.
 bigrid|-r8|                         ! basin grid
 blkd10|-r8| blkpp2|-r8|             ! block data
 cnuitb|-r8|                         ! continuity eqn.
 cpler |-r8|                         ! coupler
-dpthuv|-r8| dpudpv|-r8|             ! off-center depth  
+dpthuv|-r8| dpudpv|-r8|             ! off-center depth
 eic8  |-r8|                         ! ice forming
 geopar|-r8|                         ! geography related parameters
-hybg05|-r8|                         ! grid generator 
+hybg05|-r8|                         ! grid generator
 inirfn|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
 matinv|-r8| mxkprf|-r8|             ! KPP mixing scheme
 momtum|-r8|                         ! momemtum Eqn.
@@ -59,15 +59,15 @@ prtetc|-r8|                         ! print routines, etc.
 reflux|-r8|                         ! flux conversion
 sigetc|-r8|                         ! eqn.of state, etc.
 thermf|-r8|                         ! thermal forcing
-trcadv|-r8|                         ! tracer advection 
-tsadvc|-r8|                         ! T/S advection 
+trcadv|-r8|                         ! tracer advection
+tsadvc|-r8|                         ! T/S advection
 
 Data input files:
 AIC=AIC.RES_M20A.D771201    !initial conditions (atm.) needs GIC,OIC ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955 ! initial conditions (ground) and 300 year spin-up
 CDN=CD4X500S.ext
   ! VEG=V72X46.1.cor2.ext
-VEG=V72X46.1.cor2_no_crops.ext 
+VEG=V72X46.1.cor2_no_crops.ext
 CROPS=CROPS_72X46N.cor4.ext  ! veg. fractions, crops history
 SOIL=S4X50093.ext TOPO=Z72X46N.2deg_rfn_20w              !!! hycom
 REG=REG4X5           ! special regions-diag

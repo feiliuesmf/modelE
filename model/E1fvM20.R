@@ -24,7 +24,7 @@ MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
-FV_INTERFACE	                    ! FV dynamical core wrapper
+FV_INTERFACE                     ! FV dynamical core wrapper
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
@@ -68,7 +68,13 @@ RVR=RD_modelE_M.RVR               ! river direction file
 TOP_INDEX=top_index_72x46.ij      ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=radfil33k                   !     8/2003 version
+RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN4=LWTables33k.1b              ! rad.tables and history files
+RADN5=H2Ocont_Ma_2000             ! H2O continuum table
+! other available H2O continuum tables:
+!    RADN5=H2Ocont_Ma_2004
+!    RADN5=H2Ocont_Roberts
+!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
 RADN3=miescatpar.abcdv2
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
@@ -181,109 +187,3 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
    YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  /
-
-! Instructions for related rundeck types
-! ++++++++++++++++++++++++++++++++++++++
-
-! the "frozen version" of 2006 paper E1fvM20 -> EfzM20
-!     ------------------------------          ======
-!     replace 4 files in "Object modules"             
-! CLOUDS2->CLOUDS2_E1 PBL->PBL_E1 ATURB->ATURB_E1 RADIATION->RADIATION_E1
-!     replace in "Data input files:" OSST/SICE by
-! OSST=OST4X5.B.1975-84avg.Hadl1.1
-! SICE=SICE4X5.B.1975-84avg.Hadl1.1
-!     set in &&PARAMETERS : U00ice=.59,U00wtrX=1.39,dalbsnX=.015,all 1880->1979
-
-! Alternate simple ocean parameterizations
-! ========================================
-
-! prescribed annually varying ocean                E1fvM20 -> E1vM20
-! ---------------------------------                         ======
-!     replace in "Data input files:" OSST/SICE by      
-! OSST=OST4X5.B.1871.M02.Hadl1.1  ! ocean data   Feb 1871 - present
-! SICE=SICE4X5.B.1871.M02.Hadl1.1 ! ocean data   Feb 1871 - present
-!     set in &&PARAMETERS : ocn_cycl=0 , Kvflxo=0
-!     set in &INPUTZ : IYEAR1=1871 (i.e. the year mentioned in OSST/SICE)
-
-! q-flux run based on E1fvM20 with 65m ocn (sensitivity runs) E1fvM20 -> E1qsM20
-! --------------------------------------                             =======
-!     need last 5-10 yrs of VFLXO-files and final rsf from E1M20   
-!     replace section 1 of "Data input files" by the 3 lines:
-! AIC=E1M20/1JAN1960.rsfE1M20.MXL65m      ! made by aux/mkOTSPEC  (65m)
-! OHT=E1M20/OTSPEC.E1M20.MXL65m.1951-1960 ! made by aux/mkOTSPEC  (65m)
-! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
-!     set in &&PARAMETERS : KOCEAN=1
-!     replace the the namelist &INPUTZ by
-! &INPUTZ
-!   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
-!   YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-!   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,
-! /
-
-! q-flux run based on E1M20 with 250m ocean                 E1M20 -> E1qM20
-! -----------------------------------------                          ======
-!     need last 5-10 yrs of VFLXO-files and final rsf from E1M20   
-!     replace section 1 of "Data input files" by the 3 lines:
-! AIC=E1M20/1JAN1960.rsfE1M20.MXL250m      ! made by aux/mkOTSPEC  (250m)
-! OHT=E1M20/OTSPEC.E1M20.MXL250m.1951-1960 ! made by aux/mkOTSPEC  (250m)
-! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
-!     set in &&PARAMETERS : KOCEAN=1 , KCOPY=3  (to create *.odaE1qM20 files)
-!     replace the the namelist &INPUTZ by
-! &INPUTZ
-!   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
-!   YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-!   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,HOURE=1,
-! /
-
-! q-flux run with diffusion into deep ocean (needs E1qM20)  E1qM20 -> E1qdM20
-! -----------------------------------------                           =======
-!     need last 10 yrs of oda-files and final rsf from E1qM20 (KCOPY=3)
-!     replace in "Object modules" :                          OCNML -> OCNDEEP
-!     replace section 1 of "Data input files" by the 5 lines:
-! AIC=E1qM20/1JAN1931.rsfE1qM20
-! OHT=E1M20/OTSPEC.E1M20.MXL250m.1951-1960
-! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
-! TG3M=E1qM20/TG3M.E1qM20  ! made by E1M20_bin/mkdeep.exe (gmake auxdeep ...)
-! EDDY=ED4X5 ! eddy diffusion for mixing into deep ocean
-!     set in &&PARAMETERS : KOCEAN=1 , KCOPY=2
-!     replace the the namelist &INPUTZ by
-! &INPUTZ
-!   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
-!   YEARE=2001,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-!   ISTART=4,IRANDI=0, YEARE=1901,MONTHE=1,HOURE=1,
-! /
-! Note: may start also from an earlier qdM20-model run with ISTART=8
-
-! Changes in resolution
-! =====================
-
-! example of change of VERTICAL layering                    E1M20 -> E1M12
-!            ---------------------------                             =====
-!     replace in "Object modules" (resolution) line 1 by           
-! RES_M12 DIAG_RES_M FFT72
-!     replace section in "Data input files" AIC by
-! AIC=AIC.RES_M12.D771201   ! observed init cond   (atm. only)       ISTART=2
-! In &&PARAMETERS : Retune U00ice/U00wtrX if necessary
-! [ for higher resolution in the stratosphere, retune X_SDRAG,C_SDRAG or
-!   switch to a model with a gravity wave drag parameterization ]
-
-! example of change of HORIZONTAL grid                      E1M20 -> E1F12
-!            -------------------------                               =====
-!     replace in "Object modules" (resolution) line 1 by          
-! RES_F12 DIAG_RES_F FFT144
-!     replace all files in "Data input files", sections 1 and 2
-!     M->F 72X46->144X90 72x46->144x90 e.g.
-! AIC=AIC.RES_F12.D771201    ! obs.atm. init cond (needs GIC); use ISTART=2
-! GIC=GIC.144X90.DEC01.1     ! initial ground conditions
-! OSST=OST_144x90.B.1946_55avg.Hadl1 ! prescr. climatological ocean (1 yr data)
-! SICE=SICE_144x90.B.1946_55avg.Hadl1 ! prescr. climatological sea ice
-! OCNML=Z1O.B144X90         ! mixed layer depth,needed for post-processing only
-! CDN=CD144X90 VEG=V144X90_no_crops.ext CROPS=CROPS_144X90N_nocasp.ext
-! SOIL=S144X900098M                     TOPO=Z144X90N_nocasp
-! REG=REG2X2.5_CAFE     ! special regions-diag
-! RVR=RD_modelE_F.RVR      ! river direction file
-! TOP_INDEX=top_index_144x90.ij.ext
-!     set in &&PARAMETERS : DT=225. DT_XUfilter=225. DT_XVfilter=225.
-!                          ..._yr=1950 (to be consistent with OSST)
-!                          retune U00ice/U00wtrX (if necessary)
-!             [ in F20:    retune X_SDRAG,C_SDRAG (if necessary) ]

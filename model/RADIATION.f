@@ -296,15 +296,31 @@ C------------------------------------------
      D             ,TRAX(LX,33,5),DBLN(30),TCLMIN
 
 C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
-      REAL*8 ::
-     A     TAUTBL(1008,8,19),PLANCK(124:373,33),XKCFC(12,8,16:19)
-     B    ,TAUWV0(1008,8,19),H2OCN8(33,8,14),H2OCF8(33,8,5)
-     D             ,ULOX(19,15),DUX(19,15)
-     E
-     F            ,XUCH4(9,15),XUN2O(9,15),XTRUP(24,3,15),XTRDN(24,3,15)
-     G             ,CXUO3(7,15),CXUCO2(7,15),XTU0(24,3)
-     H             ,XTD0(24,3),XUCH40(9),XUN2O0(9)
-      REAL*4 :: DXTRUA(24,3,4,13),DXTRDA(24,3,4,13),SAX(4,13)
+#ifndef USE_RADIATION_E1
+      INTEGER, PARAMETER :: NGUX=1024, NTX=8, NPX=19
+      REAL*8, dimension(NGUX,NTX,NPX) :: TAUTBL,TAUWV0,TAUCD0
+      REAL*8  PLANCK(124:373,33), H2O(100),FCO2(100)
+      REAL*8  XKCFC(12,8,17:20),ULOX(19,16),DUX(19,16), XTFAC(11,9)
+      REAL*8  XTU0(24,3),XTD0(24,3), XTRUP(24,15,3),XTRDN(24,15,3)
+      REAL*8, dimension(24,15,11,3) ::
+     *        DXUP2,DXUP3,DXUP6,DXUP7,DXUP8,DXUP9      ! dim(24,15,11,3)
+     *       ,DXDN2,DXDN3,DXDN6,DXDN7,DXDN8,DXDN9      ! dim(24,15,11,3)
+      REAL*8, dimension(24,15,3) :: DXUP13,DXDN13
+#else
+      INTEGER, PARAMETER :: NGUX=1008, NTX=8, NPX=19
+      REAL*8, dimension(NGUX,NTX,NPX) :: TAUTBL,TAUWV0
+      REAL*8 PLANCK(124:373,33)
+      REAL*8 XKCFC(12,8,16:19),ULOX(19,15),DUX(19,15)
+      REAL*8 XTU0(24,3),XTD0(24,3), XTRUP(24,3,15),XTRDN(24,3,15)
+      REAL*8 XUCH4(9,15),XUN2O(9,15),CXUO3(7,15),CXUCO2(7,15)
+      REAL*8 XUCH40(9),XUN2O0(9)
+      REAL*4 DXTRUA(24,3,4,13),DXTRDA(24,3,4,13),SAX(4,13)
+#endif
+c---------------------------------------------------------------------
+C         Default h2o continuum is Ma 2000.  Other options: Ma 2004
+C         Roberts, MT_CKD model (Mlawer/Tobin_Clough/Kneizys/Davies)
+C---------------------------------------------------------------------
+      REAL*8 H2OCN8(33,8,14),H2OCF8(33,8,5)
 
 C            RADDAT_AERCLD_MIEPAR          read from            radfile3
       REAL*8 ::
@@ -616,6 +632,8 @@ C     for setbak/getbak only   1      2      3       4       5
 !@var KUFH2O,KUFCO2 H2O,CO2 column absorb.scaling
 !@var KCSELF,KCFORN H2O_ContSelf-Broadening,CO2_ContForeign-Broadening
       INTEGER :: KWVCON=1, KUFH2O=1,  KUFCO2=1,  KCSELF=1,  KCFORN=1
+!@var XCSELF,XCFORN scaling factors for Cont.Broadening (Deflt: Ma 2000)
+      REAL*8 :: XCSELF=1. , XCFORN=1.
 
 !@var ICE012 pick ice droplet type: 0 liquid, 1 ice non-spher, 2 ice Mie
       INTEGER :: ICE012=1
@@ -852,7 +870,10 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
       CHARACTER*80 EPSTAG,TITLE
 
       REAL*4 OZONLJ(44,46),R72X46(72,46),VTAUR4(1800,24)
-      REAL*8 :: EJMLAT(47),E20LAT(20),filler(784)
+      REAL*8 :: EJMLAT(47),E20LAT(20)
+#ifdef USE_RADIATION_E1
+      REAL*8 :: filler(784)
+#endif
       INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,KK,NN,IYEAR,IMONTH,JJDAYS,JYEARS
      *     ,JJDAYG,JYEARG,yr2S0i
       REAL*8 :: WAVNA,WAVNB,PFWI,TKOFPF,SUMV,EPK,EPL,DEP,SFNORM,D,O,Q,S
@@ -944,15 +965,42 @@ C-----------------------------------------------------------------------
 CR(2)    Reads in Merged k-Distribution Tau Tables for Thermal Radiation
 C        CFCs, H2O Continuum Tau Table, Merged k-Distr Planck Flux Table
 C
-C        (Reads: TAUTBL,TAUWV0,PLANCK,XKCFC,H2OCN8,H2OCF8
+C        (Reads: TAUCD0,TAUTBL,TAUWV0,PLANCK,XKCFC,H2OCN8,H2OCF8
 c                DUCH4,SDUCH4,DUN2O,SDUN2O,ULOX,DUX      used in TAUGAS)
 C       ----------------------------------------------------------------
 
       NRFU=NRFUN(2)
-      READ(NRFU) TAUTBL,filler,  TAUWV0,filler, PLANCK, XKCFC,
+#ifdef USE_RADIATION_E1
+      READ(NRFU) TAUTBL,filler,TAUWV0,filler, PLANCK, XKCFC,
      *            H2OCN8,H2OCF8, XUN2O,XUN2O0, XUCH4,XUCH40,
-     *            XTRUP,XTU0, XTRDN,XTD0, CXUCO2,CXUO3, ULOX,DUX
+     *            XTRUP,XTU0,XTRDN,XTD0, CXUCO2,CXUO3, ULOX,DUX
       READ(NRFU) DXTRUA,DXTRDA,SAX
+#else
+      READ(NRFU) title,TAUTBL
+      READ(NRFU) title,TAUWV0
+      READ(NRFU) title,TAUCD0
+      READ(NRFU) title,PLANCK
+      READ(NRFU) title,XKCFC
+      READ(NRFU) title,ULOX,DUX
+
+      NRFU=NRFUN(4)
+      READ(NRFU) title,XTRUP,XTRDN,XTU0,XTD0
+      READ(NRFU) title,XTFAC
+      READ(NRFU) title,DXUP2,DXDN2    ! CO2
+      READ(NRFU) title,DXUP3,DXDN3    ! O3
+      READ(NRFU) title,DXUP6,DXDN6    ! N2O
+      READ(NRFU) title,DXUP7,DXDN7    ! CH4
+      READ(NRFU) title,DXUP8,DXDN8    ! CFC11
+      READ(NRFU) title,DXUP9,DXDN9    ! CFC12
+      READ(NRFU) title,DXUP13,DXDN13  ! SO2
+
+C**** H2O Continuum Tau Tables (Ma_2000 or Ma_2004,Roberts,MT_CKD)
+      NRFU=NRFUN(5)
+      READ(NRFU) title,H2OCN8,XCSELF
+      if(Am_I_Root()) write(6,*) title,' scaling factor:',XCSELF
+      READ(NRFU) title,H2OCF8,XCFORN
+      if(Am_I_Root()) write(6,*) title,' scaling factor:',XCFORN
+#endif
 
 C        Define Window Flux to Brightness Temperature Conversion Factors
 C        ---------------------------------------------------------------
@@ -1852,7 +1900,7 @@ C                                         ------------------------------
         FFLUX(:)=0.D0
         NUV=1
         DO I=1,NWSUV,2          ! by twos to account for histogram
- 140      IF(WSOLAR(I+1) <= UVWAVL(NUV)) THEN 
+ 140      IF(WSOLAR(I+1) <= UVWAVL(NUV)) THEN
             FFLUX(NUV)=FFLUX(NUV)+FSOLAR(I)*(WSOLAR(I+1)-WSOLAR(I))
             FSOLAR(I:I+1)=FSOLAR(I:I+1)*UVFACT(NUV)
           ELSE
@@ -1862,7 +1910,7 @@ C                                         ------------------------------
           END IF
         END DO
         UVNORM = SUM(FFLUX(:)*(1d0-UVFACT(:)))
-        IF (MADLUV==0) UVNORM=UVNORM*CORFAC 
+        IF (MADLUV==0) UVNORM=UVNORM*CORFAC
         IF (KSNORM==0) S00WM2=S00WM2-UVNORM
       ENDIF
 C                  -----------------------------------------------------
@@ -1954,7 +2002,7 @@ C                                         ------------------------------
         FFLUX(:)=0.D0
         NUV=1
         DO I=1,NWSUV,2          ! by twos to account for histogram
- 240      IF(WSOLAR(I+1) <= UVWAVL(NUV)) THEN 
+ 240      IF(WSOLAR(I+1) <= UVWAVL(NUV)) THEN
             FFLUX(NUV)=FFLUX(NUV)+FSOLAR(I)*(WSOLAR(I+1)-WSOLAR(I))
             FSOLAR(I:I+1)=FSOLAR(I:I+1)*UVFACT(NUV)
           ELSE
@@ -1964,7 +2012,7 @@ C                                         ------------------------------
           END IF
         END DO
         UVNORM = SUM(FFLUX(:)*(1d0-UVFACT(:)))
-        IF (MADLUV==0) UVNORM=UVNORM*CORFAC 
+        IF (MADLUV==0) UVNORM=UVNORM*CORFAC
         IF (KSNORM==0) FLXSUM=FLXSUM-UVNORM
       ENDIF
 
@@ -4372,7 +4420,1108 @@ C                     --------------------------------------------------
       RETURN
       end subroutine GETEPS
 
+#ifndef USE_RADIATION_E1
+      SUBROUTINE TAUGAS
+      IMPLICIT NONE
+C     ----------------------------------------------------------
+C     TAUGAS INPUT REQUIRES:  L1,NL,PL,DPL,TLM,ULGAS,    TAUCD0
+C                             TAUTBL,TAUWV0,XKCFC,H2OCN8,H2OCF8
+C                             ULOX,DUX,XTRUP,XTU0,XTRDN,XTD0
+C                             DXUP2,DXDN2,DXUP3,DXDN3,DXUP6,DXDN6
+C                             DXUP7,DXDN7,DXUP8,DXDN8,DXUP9,DXDN9
+C                             DXUP13,DXDN13
+C     TAUGAS OUTPUT DATA IS:  TRGXLK,XTRU,XTRD
+C     ----------------------------------------------------------
 
+      INTEGER, PARAMETER :: NPU2=14, NPU=5
+      REAL*8, PARAMETER :: TLOX=181.d0, DTX=23.d0, P0=1013.25d0
+
+      REAL*8, PARAMETER :: PX(NPX)= (/1000d0, 750d0, 500d0, 300d0,
+     *        200d0, 100d0, 50d0, 20d0, 10d0,   5d0,   2d0,   1d0,
+     *         .5d0,  .2d0, .1d0,.03d0,.01d0,.003d0,.001d0/)
+
+      INTEGER, PARAMETER :: NGX(4) = (/12,12, 8,33/),
+     *                     IG1X(4) = (/ 2,14,26, 1/)
+      REAL*8, PARAMETER :: PDPU2(NPU2) = (/1.d4, 1.d5,2.d5,5.d5,
+     *           1.d6,2.d6,5.d6, 1.d7,2.d7,5.d7, 1.d8,2.d8,5.d8, 1.d9/)
+      REAL*8, PARAMETER ::  PU(NPU) = (/  50.,200.,800.,3200.,12800./)
+      INTEGER, PARAMETER :: IGASX(21) = (/ 1, 2, 3, 1, 1, 2, 2, 3, 3, 6,
+     *     6, 6, 7, 7,13,13, 8, 8, 9, 9, 1/)
+      INTEGER, PARAMETER :: KGX(21) =   (/ 1, 2, 3, 2, 3, 1, 3, 1, 2, 1,
+     *     2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 4/)
+      INTEGER, PARAMETER :: NUX(16) = (/25, 9, 9, 9, 9, 5, 5, 5, 5, 2, 2
+     *     ,2 , 2, 2, 2,2/)
+      INTEGER, PARAMETER :: IGUX(16) = (/ 0,300,408,480,588,660,720,760
+     *     ,820,880,904,928,944,968,984,1008/)
+
+      REAL*8, PARAMETER ::  XKCFCW(8,2) = RESHAPE( (/
+     + 11.0, 11.7, 11.5, 10.9, 10.3, 9.90, 9.90, 9.90,
+     + 5.75, 5.72, 5.95, 5.95, 5.90, 6.51, 6.51, 6.51 /)
+     *     , (/8,2/) )
+
+      REAL*8, PARAMETER ::  P24(24) = (/
+     $ .100D+04,.973D+03,.934D+03,.865D+03,.752D+03,.603D+03,
+     $ .439D+03,.283D+03,.156D+03,.754D+02,.350D+02,.162D+02,
+     $ .754D+01,.350D+01,.162D+01,.743D+00,.340D+00,.152D+00,
+     $ .701D-01,.347D-01,.159D-01,.750D-02,.350D-02,.100D-02/)
+      REAL*8, PARAMETER ::  DP24(24) = (/
+     $     24.4,32.0,46.6,89.8,136.8,162.0,165.4,146.9,106.5,55.2,25.6
+     *     ,11.9,5.52,2.56,1.20,.551,.256,.119,.0452,.0256,.0119,.005,
+     *     .003,.002/)
+      REAL*8, PARAMETER ::  DLSQ2 =.1505d0,  ULMNH2=2.060d0,
+     *     ULMNCH=-.8105d0, ULMNN2=-1.521d0, ULMNF1=-4.780d0,
+     *     ULMNO3=-1.393d0, ULMNCO= 1.529d0, ULMNF2=-4.524d0,
+     *     USO2S=.042d0
+      REAL*8 XTU(24,3),XTD(24,3),DXUP(24,3,15),DXDN(24,3,15)
+      INTEGER MLGAS(21)
+      INTEGER I,IM,L,LL,IP,IULOW,IU,IPX,IAA,ITX
+     *     ,IGAS,NG,KK,IK1,IK2,IPU,IK,NU,IUA
+     *     ,IUB,IH2O0,IG  ,ICDlow,ICO20, IUW,IU1,IU2
+     *     ,i2u1,i2u2,i3u1,i3u2,i6u1,i6u2,i7u1,i7u2,i8u1,i8u2,i9u1,i9u2
+
+      REAL*8 UH2O, UH2OL,UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
+     *     ,DUH2,DU1,DU2,DUCO,D2U1,D2U2,DUO3,D3U1,D3U2,DUCH,D7U1,D7U2
+     *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2
+     *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
+     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PRAT,PRATT,PU2, U,UP,UGAS, FNU1
+     *     ,UAA,UAB,UBA,UBB, WPB, WT,WTB,WTPU, XA,XB,XK,XUA,XUB
+     *     ,WAA,WAB,WBA,WBB,WAAA,WAAB,WABA,WABB,WBAA,WBAB,WBBA,WBBB
+
+C                          MLGAS DEF.
+C                          ----------
+C     H2O: 1,4,5   CO2: 2,6,7   O3: 3,8,9   N2O: 10,11,12   CH4: 13,14
+C     SO2: 15,16   CFC: 17-20   WVCON: 21
+
+      MLGAS(:)=1  !  1:21
+
+C              KWVCON = ON/OFF flag for water vapor continuum absorption
+C              ---------------------------------------------------------
+      IF(KWVCON < 1) MLGAS(21)=0
+
+C**** Find XTU and XTD
+      UH2O = 1d-10 + SUM(ULGAS(L1:NL,1))
+      IF (UH2O < 1.1d-10) THEN  ! low water vapor
+        IUlow    = 1
+        XTU(:,:) = XTU0(:,:)                                  ! 1:24,1:3
+        XTD(:,:) = XTD0(:,:)                                  ! 1:24,1:3
+        GO TO 180
+      END IF
+
+      IUlow = 0                 ! with water vapor
+      UH2OL = max( log10(UH2O) , log10(228d0) )
+      UCO2L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,2)))
+      UO3LL = LOG10 (1d-10 + SUM(ULGAS(L1:NL,3)))
+      UCH4L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,7)))
+      UN2OL = LOG10 (1d-10 + SUM(ULGAS(L1:NL,6)))
+      UCF1L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,8)))
+      UCF2L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,9)))
+      USO2  = SUM(ULGAS(L1:NL,13))
+
+      ICDLOW=0
+      if(UCO2L < -9.958607315d0) ICDlow = 1  ! if UCO2<1.1d-10 (low CO2)
+
+      DUH2=UH2OL-ULMNH2
+      IF(DUH2.LT.0.) DUH2=0.D0
+      IU1=DUH2/DLSQ2+1.D0
+      IF(IU1.LT.1) IU1=1
+      IF(IU1.GT.14) IU1=14
+!!!!  DUH2=max( UH2OL-ULMNH2 , 0.d0)
+!!!!  IU1=DUH2/DLSQ2+1 ; if(IU1 > 14) IU1=14
+      IU2=IU1+1
+      DU1=DUH2-(IU1-1)*DLSQ2
+      DU2=DLSQ2-DU1
+
+      DUCO=UCO2L-ULMNCO
+      IF(DUCO.LT.0.) DUCO=0.
+      I2U1=DUCO/DLSQ2+1
+      IF(I2U1.LT.1) I2U1=1
+      IF(I2U1.GT.10) I2U1=10
+      I2U2=I2U1+1
+      D2U1=DUCO-(I2U1-1)*DLSQ2
+      D2U2=DLSQ2-D2U1
+
+      DUO3=UO3LL-ULMNO3
+      IF(DUO3.LT.0.) DUO3=0.
+      I3U1=DUO3/DLSQ2+1
+      IF(I3U1.LT.1) I3U1=1
+      IF(I3U1.GT.10) I3U1=10
+      I3U2=I3U1+1
+      D3U1=DUO3-(I3U1-1)*DLSQ2
+      D3U2=DLSQ2-D3U1
+
+      DUCH=UCH4L-ULMNCH
+      IF(DUCH.LT.0.) DUCH=DUCH*.57
+      IF(DUCH.LT.-.68) DUCH=-.68
+      I7U1=DUCH/DLSQ2+1
+      IF(I7U1.LT.1) I7U1=1
+      IF(I7U1.GT.10) I7U1=10
+      I7U2=I7U1+1
+      D7U1=DUCH-(I7U1-1)*DLSQ2
+      D7U2=DLSQ2-D7U1
+
+      DUN2=UN2OL-ULMNN2
+      IF(DUN2.LT.0.) DUN2=DUN2*.5
+      IF(DUN2.LT.-.56) DUN2=-.56
+      I6U1=DUN2/DLSQ2+1
+      IF(I6U1.LT.1) I6U1=1
+      IF(I6U1.GT.10) I6U1=10
+      I6U2=I6U1+1
+      D6U1=DUN2-(I6U1-1)*DLSQ2
+      D6U2=DLSQ2-D6U1
+
+      DUF1=UCF1L-ULMNF1
+      IF(DUF1.LT.-.25) DUF1=-.25
+      I8U1=DUF1/DLSQ2+1
+      IF(I8U1.LT.1) I8U1=1
+      IF(I8U1.GT.10) I8U1=10
+      I8U2=I8U1+1
+      D8U1=DUF1-(I8U1-1)*DLSQ2
+      D8U2=DLSQ2-D8U1
+
+      DUF2=UCF2L-ULMNF2
+      IF(DUF2.LT.-.2) DUF2=-.2
+      I9U1=DUF2/DLSQ2+1
+      IF(I9U1.LT.1) I9U1=1
+      IF(I9U1.GT.10) I9U1=10
+      I9U2=I9U1+1
+      D9U1=DUF2-(I9U1-1)*DLSQ2
+      D9U2=DLSQ2-D9U1
+
+      DO 160 IM=1,3
+      DO 160 IUW=IU1,IU2
+      DO 160 I=1,24
+      SUM1=DXUP2(I,IUW,I2U2,IM)*D2U1+DXUP2(I,IUW,I2U1,IM)*D2U2+
+     $     DXUP3(I,IUW,I3U2,IM)*D3U1+DXUP3(I,IUW,I3U1,IM)*D3U2+
+     $     DXUP7(I,IUW,I7U2,IM)*D7U1+DXUP7(I,IUW,I7U1,IM)*D7U2+
+     $     DXUP6(I,IUW,I6U2,IM)*D6U1+DXUP6(I,IUW,I6U1,IM)*D6U2+
+     $     DXUP8(I,IUW,I8U2,IM)*D8U1+DXUP8(I,IUW,I8U1,IM)*D8U2+
+     $     DXUP9(I,IUW,I9U2,IM)*D9U1+DXUP9(I,IUW,I9U1,IM)*D9U2
+      SUM2=DXDN2(I,IUW,I2U2,IM)*D2U1+DXDN2(I,IUW,I2U1,IM)*D2U2+
+     $     DXDN3(I,IUW,I3U2,IM)*D3U1+DXDN3(I,IUW,I3U1,IM)*D3U2+
+     $     DXDN7(I,IUW,I7U2,IM)*D7U1+DXDN7(I,IUW,I7U1,IM)*D7U2+
+     $     DXDN6(I,IUW,I6U2,IM)*D6U1+DXDN6(I,IUW,I6U1,IM)*D6U2+
+     $     DXDN8(I,IUW,I8U2,IM)*D8U1+DXDN8(I,IUW,I8U1,IM)*D8U2+
+     $     DXDN9(I,IUW,I9U2,IM)*D9U1+DXDN9(I,IUW,I9U1,IM)*D9U2
+
+      DXUP(I,IUW,IM)=SUM1/DLSQ2+DXUP13(I,IUW,IM)*USO2/USO2S
+      DXDN(I,IUW,IM)=SUM2/DLSQ2+DXDN13(I,IUW,IM)*USO2/USO2S
+  160 CONTINUE
+
+      DO 170 IM=1,3
+      DO 170 I=1,24
+      XTU(I,IM)=((XTRUP(I,IU2,IM)+DXUP(I,IU2,IM))*DU1+
+     $           (XTRUP(I,IU1,IM)+DXUP(I,IU1,IM))*DU2)/DLSQ2
+      XTD(I,IM)=((XTRDN(I,IU2,IM)+DXDN(I,IU2,IM))*DU1+
+     $           (XTRDN(I,IU1,IM)+DXDN(I,IU1,IM))*DU2)/DLSQ2
+  170 CONTINUE
+
+C**** Find XTRU and XTRD from XTU and XTD
+  180 XTRU(L1:NL,1:4)=1. ; XTRD(L1:NL,1:4)=1.            ! defaults
+      IP=2
+      DO 190 L=L1,NL
+      PLL=PL(L)
+      IF(PLL >= P24(1)) THEN                             ! PLL>P24_bot
+        PRAT = DPL(L)/DP24(1)
+        XTRU(L,2:4)=1-PRAT*(1 - XTU(1,1:3))
+        XTRD(L,2:4)=1-PRAT*(1 - XTD(1,1:3))
+        GO TO 190
+      ENDIF
+      DO WHILE (PLL < P24(IP))
+        IP=IP+1
+        IF(IP > 24) GO TO 200                 ! deflts for PLL<P24_top
+      END DO                                     ! P24(IP)<PLL<P24(IP-1)
+      WT = (P24(IP) - PLL) / (P24(IP) - P24(IP-1))
+      PRAT        = DPL(L) / (DP24(IP-1)*WT + DP24(IP)*(1-WT))
+      XTRU(L,2:4) = 1-PRAT*(1 - (XTU(IP-1,1:3)*WT + XTU(IP,1:3)*(1-WT)))
+      XTRD(L,2:4) = 1-PRAT*(1 - (XTD(IP-1,1:3)*WT + XTD(IP,1:3)*(1-WT)))
+  190 CONTINUE
+      XTRD(NL,2:4)= 1
+
+C**** Find TRGXLK
+  200 TRGXLK(L1:NL,1:33)=0.D0
+      IPX=2
+      DO 600 L=L1,NL
+C         Locate model layer pressure between IPX and IPX-1
+  280 CONTINUE
+      WPB = (PL(L)-PX(IPX))/(PX(IPX-1)-PX(IPX))
+      IF(WPB >= 0 .or. IPX >= NPX) GO TO 290
+      IPX = IPX+1
+      GO TO 280
+C         Locate model layer temperature between ITX and ITX+1
+  290 CONTINUE
+      WTB = (TLM(L)-TLOX)/DTX + 1
+      ITX = WTB  ;  IF(ITX < 1) ITX=1  ;  IF(ITX >= NTX) ITX=NTX-1
+      WTB = WTB-ITX
+
+      WBB = WPB*WTB
+      WBA = WPB-WBB
+      WAB = WTB-WBB
+      WAA = 1 - (WBB+WBA+WAB)
+
+      DO 500 IGAS=1,21
+      IF(MLGAS(IGAS) < 1) GO TO 500
+      KK   = IG1X(KGX(IGAS))
+      NG   = NGX (KGX(IGAS))
+      UGAS = ULGAS(L,IGASX(IGAS))
+      IF(IGAS == 17.OR.IGAS == 18) UGAS = UGAS + ULGAS(L,11)
+
+      IF(IGAS < 21) GO TO 375
+
+C     IGAS = 21                   Apply water vapor continuum absorption
+C     ---------                   --------------------------------------
+C                  KCSELF = ON/FF flag for H2O self broadening continuum
+C                  -----------------------------------------------------
+      IF(KCSELF <= 0) GO TO 335
+
+      DO 330 IK1=1,2
+      if (IK1==1) then
+          IK2=1 ;       U = UGAS*1.15d0  ! thermal K-domain 1
+      else ! IK1=2
+             IK2=33 ;   U = UGAS*XCSELF  ! thermal K-domain 2-33
+      end if
+      PU2 = PL(L)/DPL(L) * U**2
+      IF (PU2 > PDPU2(1)) THEN
+        IPU=2
+        do while (PU2>PDPU2(IPU) .and. IPU<NPU2) ; IPU=IPU+1 ; end do
+        WTPU   = (PU2-PDPU2(IPU-1))/(PDPU2(IPU)-PDPU2(IPU-1))
+        DO IK=IK1,IK2
+          TAUT1 = WTPU*(H2OCN8(IK,ITX,IPU)-H2OCN8(IK,ITX,IPU-1))+
+     +            H2OCN8(IK,ITX,IPU-1)
+          TAUT2 = WTPU*(H2OCN8(IK,ITX+1,IPU)-H2OCN8(IK,ITX+1,IPU-1))+
+     +            H2OCN8(IK,ITX+1,IPU-1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
+      ELSE
+        WTPU   = PU2/PDPU2(1)
+        DO IK=IK1,IK2
+          TAUT1 = WTPU*H2OCN8(IK,ITX,1)
+          TAUT2 = WTPU*H2OCN8(IK,ITX+1,1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
+      END IF
+  330 CONTINUE
+
+C               KCFORN = ON/FF flag for H2O foreign broadening continuum
+C               --------------------------------------------------------
+  335 IF(KCFORN < 1) GO TO 500
+      KK=IG1X(KGX(IGAS))
+      DO 370 IK1=1,2
+      if(IK1==1) then
+         IK2=1      ;   U = UGAS*1.15d0
+      else ! IK1=2
+             IK2=33 ;   U = UGAS*XCFORN
+      end if
+      UP=PL(L)/P0*U
+      IF(UP > PU(1)) THEN
+        IPU=2
+        DO WHILE (UP>PU(IPU) .and. IPU<NPU) ; IPU=IPU+1 ; END DO
+        WTPU=(UP-PU(IPU-1))/(PU(IPU)-PU(IPU-1))
+        DO IK=IK1,IK2
+          TAUT1=WTPU*(H2OCF8(IK,ITX,IPU)-H2OCF8(IK,ITX,IPU-1))+
+     +          H2OCF8(IK,ITX,IPU-1)
+          TAUT2=WTPU*(H2OCF8(IK,ITX+1,IPU)-H2OCF8(IK,ITX+1,IPU-1))+
+     +          H2OCF8(IK,ITX+1,IPU-1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
+      ELSE
+        DO IK=IK1,IK2
+          WTPU=UP/PU(1)
+          TAUT1=WTPU*H2OCF8(IK,ITX,1)
+          TAUT2=WTPU*H2OCF8(IK,ITX+1,1)
+          TRGXLK(L,KK) = TRGXLK(L,KK) + (WTB*(TAUT2-TAUT1) + TAUT1)
+          KK=KK+1
+        END DO
+      END IF
+  370 CONTINUE
+      GO TO 500
+
+  375 IF(IGAS < 17) GO TO 385
+C                               IGAS=17-20       Chloro Fluoro Carbons
+C                               ----------       ---------------------
+      DO IK=1,NG
+        XA=WTB*(XKCFC(IK,ITX+1,IGAS)-XKCFC(IK,ITX,IGAS))+
+     +     XKCFC(IK,ITX,IGAS)
+        XB=WTB*(XKCFC(IK,ITX+1,IGAS)-XKCFC(IK,ITX,IGAS))+
+     +     XKCFC(IK,ITX,IGAS)
+        XK=WPB*(XA-XB)+XB
+        TAUCF=XK*UGAS
+        TRGXLK(L,KK)=TRGXLK(L,KK)+TAUCF
+        KK=KK+1
+      END DO
+      GO TO 500
+
+  385 CONTINUE               !  IGAS=1-16        H2O,CO2,O3,N2O,CH4,SO2
+C                               ---------        ----------------------
+      NU = NUX(IGAS)
+      XUA = (UGAS-ULOX(IPX  ,IGAS)) / DUX(IPX  ,IGAS)
+      XUB = (UGAS-ULOX(IPX-1,IGAS)) / DUX(IPX-1,IGAS)
+C     IF(NU <= 1) then  ;  XUA = 0  ;  XUB = 0  ;  endif
+      IUA = XUA
+      IUB = XUB
+
+      QAA = 1
+      QAB = 1
+      IF(XUA <= 0)  then
+         XUA = 0
+         IUA = 0
+         QAA = UGAS /  ULOX(IPX,IGAS)
+         QAB = UGAS / (ULOX(IPX,IGAS)+DUX(IPX,IGAS))
+      endif
+      IF(XUA >= NU-1)  then
+         XUA = NU-1
+         IUA = NU-2
+         QAA = UGAS / (ULOX(IPX,IGAS)+DUX(IPX,IGAS)*(NU-2))
+         QAB = UGAS / (ULOX(IPX,IGAS)+DUX(IPX,IGAS)*(NU-1))
+      endif
+      QBA = 1
+      QBB = 1
+      IF(XUB <= 0)  then
+         XUB = 0
+         IUB = 0
+         QBA = UGAS /  ULOX(IPX-1,IGAS)
+         QBB = UGAS / (ULOX(IPX-1,IGAS)+DUX(IPX-1,IGAS))
+      endif
+      IF(XUB >= NU-1)  then
+         XUB = NU-1
+         IUB = NU-2
+         QBA = UGAS / (ULOX(IPX-1,IGAS)+DUX(IPX-1,IGAS)*(NU-2))
+         QBB = UGAS / (ULOX(IPX-1,IGAS)+DUX(IPX-1,IGAS)*(NU-1))
+      endif
+      UAB = XUA-IUA
+      UBB = XUB-IUB
+      UAA = 1-UAB
+      UBA = 1-UBB
+
+      WAAA = WAA*UAA*QAA
+      WAAB = WAA*UAB*QAB
+      WABA = WAB*UAA*QAA
+      WABB = WAB*UAB*QAB
+      WBAA = WBA*UBA*QBA
+      WBAB = WBA*UBB*QBB
+      WBBA = WBB*UBA*QBA
+      WBBB = WBB*UBB*QBB
+
+      IH2O0=0
+      IF( (IGAS==6.OR.IGAS==8.OR.IGAS==10.OR.IGAS==13.OR.IGAS==15)
+     +   .and. IULOW == 1 ) IH2O0=1
+
+      ICO20=0
+      IF( (IGAS==4.OR.IGAS==9.OR.IGAS==11) .and. ICDLOW==1 ) ICO20=1
+
+      DO 430 IG=1,NG
+      IF(IH2O0 == 0 .and. ICO20 == 0) THEN
+      TAUIPG = WAAA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX)
+     +       + WAAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
+      ELSE IF (ICO20 == 1) THEN
+      TAUIPG = WAAA*TAUCD0(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX) ! low CO2
+     +       + WAAB*TAUCD0(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUCD0(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUCD0(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUCD0(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUCD0(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUCD0(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUCD0(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
+      ELSE   !! if (ICO20 == 0 .and. IH2O0 == 1)
+      TAUIPG = WAAA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX)  ! low WV
+     +       + WAAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
+      ENDIF
+
+      TAUSUM=TRGXLK(L,KK)+TAUIPG
+      IF(TAUSUM > 0) TRGXLK(L,KK)=TAUSUM
+      KK=KK+1
+  430 CONTINUE
+  500 CONTINUE
+C                               CFC11 and CFC12 Window Absorption (1997)
+C                               ----------------------------------------
+
+      IF(MLGAS(17) == 1.OR.MLGAS(18) == 1) THEN
+        XK=WTB*(XKCFCW(ITX+1,1)-XKCFCW(ITX,1))+XKCFCW(ITX,1)
+        TAU11=XK*(ULGAS(L,8)+ULGAS(L,11))
+        TRGXLK(L,1)=TRGXLK(L,1)+TAU11
+      ENDIF
+      IF(MLGAS(19) == 1.OR.MLGAS(20) == 1) THEN
+        XK=WTB*(XKCFCW(ITX+1,2)-XKCFCW(ITX,2))+XKCFCW(ITX,2)
+        TAU12=XK*ULGAS(L,9)
+        TRGXLK(L,1)=TRGXLK(L,1)+TAU12
+      ENDIF
+  600 CONTINUE
+
+      RETURN
+      END SUBROUTINE TAUGAS
+
+      SUBROUTINE THERML
+      IMPLICIT NONE
+C     ------------------------------------------------------------------
+C             Top-cloud Thermal Scattering Correction Control Parameters
+C             ----------------------------------------------------------
+C
+C             ECLTRA = 1.0  Scattering correction is enabled
+C             with KCLDEM = 1, Rigorous scattering correction is applied
+C             with KCLDEM = 0, Approximate scattering correction is used
+C
+C             ECLTRA = 0.0  No scattering correction is used
+C                                          (Independent of KCLDEM value)
+C
+C     ------------------------------------------------------------------
+C                                   Lower Edge Temperature Interpolation
+C                                   ------------------------------------
+C     TLGRAD=1.0  (Default)
+C                 Layer-mean temperatures (TLM) supplied by GCM are used
+C                 to define the layer edge temperature TLT (top) and TLB
+C                 (bottom) using overall atmospheric temperature profile
+C                 to establish temperature gradient within each layer so
+C                 as to minimize the temperature discontinuities between
+C                 layer edges and to conserve layer thermal energy.
+C
+C     TLGRAD=0.0  This results in isothermal layers with TLT = TLB = TLM
+C
+C     TLGRAD<0.0  TLT and TLB are used as specified, without any further
+C                 adjustments.  This is mainly for off-line use when the
+C                 temperature profile (TLM,TLT,TLB) can be fully defined
+C                 from a continuous temperature profile.
+C
+C     NOTE:       TLGRAD can also accommodate values between 0.0 and 1.0
+C
+C     PTLISO      (Default PTLISO=2.5mb)
+C                 Pressure level above which model layers are defined to
+C                 be isothermal.  This is appropriate for optically thin
+C                 layers where emitted flux depends on mean temperature.
+C     ------------------------------------------------------------------
+      REAL*8 :: PX(9)=(/1001.,973.,934.,865.,752.,603.,439.,283.,156./)
+      REAL*8 :: ALG2=.30103d0, TAUMNL=-2.20412d0
+
+      REAL*8, PARAMETER :: R6=.16666667D0, R24=4.1666667D-02
+      REAL*8, PARAMETER :: A=0.3825D0,B=0.5742D0,C=0.0433D0
+
+      REAL*8 TA,TB,TC,P1,P2,P3,P4,DT1CPT,DTHALF,CLTAUX,CLTAUS,CLCOSB
+     *     ,CTX,DT2,DT1,CTG,DG2,DG1,WT1,WT2,WT3,WT4,WT5,WT6,WT7
+     *     ,WT8,BG,DNACUM,DNBCUM,DNCCUM,TAUAG,TAUAP,TAUBP,TAUCP,TAUAX
+     *     ,TAUBX,TAUCX,XTRDL,BTOP,BBOT,BBAR,TX,PLBN,F,TAUA,TAUB,TAUC
+     *     ,BDIF,BBTA,BBTB,BBTC,TRANA,TRANB,TRANC,DEC
+     *     ,DEB,DEA,COALB1,COALB2,COALB3,FDNABC,UNA,UNB,UNC,FUNABC
+     *     ,PFW,DPF,CTP,DP1,DP2,TAUBG,TAUCG,DDFLUX,XTRUL
+     *     ,FSUM,XFSUM,PLL,DTAU0,TAUPLG,AP1,AP2,XTF,XTFACN
+      REAL*8 ENA(LX),ENB(LX),ENC(LX), TRA(LX),TRB(LX),TRC(LX)
+      REAL*8 DNA(LX),DNB(LX),DNC(LX), WTLB(LX),WTLT(LX)
+      REAL*8 RIJTCK(6,33), FDXTCK(3,33),FEMTCK(3,33),ALBTCK(3,33)
+      REAL*8 CLPI0(33),CLPI0K
+      INTEGER K,L,LL,II,ITL,ICT,IT1,IT2,IP1,IP2,ICG,IG1,IG2,IMOL
+     *     ,IPF,ICP,ITLT(LX),ITLB(LX),IP,IPX0,ITAU1,ITAU2,LTOPA
+     *     ,LCL(LX),ia,iaa,ic,iu,lvlo,lvhi,lskip,lcbot,nclds,icomb
+
+C-----------------------------------------------------------------------
+C                                   Layer edge temperature interpolation
+C-----------------------------------------------------------------------
+      if (TLGRAD < 0.D0) GO TO 130
+      TA = TLM(L1)
+      TB = TLM(L1+1)
+      P1 = PLB(L1)
+      P2 = PLB(L1+1)
+      P3 = PLB(L1+2)
+      DT1CPT = .5*TA*(P1**.286d0-P2**.286d0) / PL(L1)**.286d0
+      DTHALF = (TA-TB)*(P1-P2)/(P1-P3)
+      if (DTHALF > DT1CPT) DTHALF = DT1CPT
+      TLB(L1) = TA+DTHALF*TLGRAD
+      TLT(L1) = TA-DTHALF*TLGRAD
+      DO L = L1+1,NL-1
+        TC = TLM(L+1)
+        P4 = PLB(L+2)
+        DTHALF = .5*((TA-TB)/(P1-P3)+(TB-TC)/(P2-P4))*(P2-P3)*TLGRAD
+        TLB(L) = TB+DTHALF
+        TLT(L) = TB-DTHALF
+        TA = TB
+        TB = TC
+        P1 = P2
+        P2 = P3
+        P3 = P4
+      END DO
+      DTHALF = (TA-TB)*(P2-P3)/(P1-P3)*TLGRAD
+      TLB(NL) = TC+DTHALF
+      TLT(NL) = TC-DTHALF
+      DO L = NL,L1,-1
+        if (PLB(L) > PTLISO) GO TO 130
+        TLT(L) = TLM(L)
+        TLB(L) = TLM(L)
+      END DO
+  130 CONTINUE
+      TLB(NL+1) = TLT(NL)
+
+C     ------------------------------------------------------------------
+C                   weight assignments for Planck function interpolation
+C                    (Effective range is from TK = 124 K to TK = 373 K)
+C     ------------------------------------------------------------------
+
+      DO 140 L=L1,NL
+      ITLB(L) = TLB(L)
+      WTLB(L) = TLB(L)-ITLB(L)
+      if (ITLB(L) < 124) ITLB(L) = 124
+      if (ITLB(L) > 372) ITLB(L) = 372
+      ITLT(L) = TLT(L)
+      WTLT(L) = TLT(L)-ITLT(L)
+      if (ITLT(L) < 124) ITLT(L) = 124
+      if (ITLT(L) > 372) ITLT(L) = 372
+  140 CONTINUE
+
+      if (LTOPCL==0) GO TO 180
+
+      DO 170 K=1,33
+      CLTAUX=TXCTPG(K)+TRGXLK(LTOPCL,K)+1d-10
+      CLTAUS=TSCTPG(K)
+      CLCOSB=TGCTPG(K)
+      CLPI0K=CLTAUS*ECLTRA/CLTAUX
+      CLPI0(K)=CLPI0K
+      CTX=CLTAUX*10.D0
+      if (CLTAUX >= 3.D0) then
+        CTX=CLTAUX*2 + 24
+        if (CTX > 47.999999D0) CTX=47.999999D0
+      end if
+      ICT=CTX
+      DT2=CTX-ICT
+      DT1=1.D0-DT2
+      IT1=ICT+1
+      IT2=ICT+2
+      CTP=CLPI0K*20.D0
+      ICP=CTP
+      DP2=CTP-ICP
+      DP1=1.D0-DP2
+      IP1=ICP+1
+      IP2=ICP+2
+      CTG=CLCOSB*20.D0
+      ICG=CTG
+      DG2=CTG-ICG
+      DG1=1.D0-DG2
+      IG1=ICG+1
+      IG2=ICG+2
+      WT1=DT1*DP1*DG1
+      WT2=DT2*DP1*DG1
+      WT3=DT2*DP2*DG1
+      WT4=DT1*DP2*DG1
+      WT5=DT1*DP1*DG2
+      WT6=DT2*DP1*DG2
+      WT7=DT2*DP2*DG2
+      WT8=DT1*DP2*DG2
+      RIJTCK(:,K)=WT1*RIJTPG(:,IT1,IP1,IG1)+WT2*RIJTPG(:,IT2,IP1,IG1) ! 1:6
+     +           +WT3*RIJTPG(:,IT2,IP2,IG1)+WT4*RIJTPG(:,IT1,IP2,IG1)
+     +           +WT5*RIJTPG(:,IT1,IP1,IG2)+WT6*RIJTPG(:,IT2,IP1,IG2)
+     +           +WT7*RIJTPG(:,IT2,IP2,IG2)+WT8*RIJTPG(:,IT1,IP2,IG2)
+      FEMTCK(:,K)=WT1*FEMTPG(:,IT1,IP1,IG1)+WT2*FEMTPG(:,IT2,IP1,IG1) ! 1:3
+     +           +WT3*FEMTPG(:,IT2,IP2,IG1)+WT4*FEMTPG(:,IT1,IP2,IG1)
+     +           +WT5*FEMTPG(:,IT1,IP1,IG2)+WT6*FEMTPG(:,IT2,IP1,IG2)
+     +           +WT7*FEMTPG(:,IT2,IP2,IG2)+WT8*FEMTPG(:,IT1,IP2,IG2)
+      FDXTCK(:,K)=WT1*FDXTPG(:,IT1,IP1,IG1)+WT2*FDXTPG(:,IT2,IP1,IG1)
+     +           +WT3*FDXTPG(:,IT2,IP2,IG1)+WT4*FDXTPG(:,IT1,IP2,IG1)
+     +           +WT5*FDXTPG(:,IT1,IP1,IG2)+WT6*FDXTPG(:,IT2,IP1,IG2)
+     +           +WT7*FDXTPG(:,IT2,IP2,IG2)+WT8*FDXTPG(:,IT1,IP2,IG2)
+  170 CONTINUE
+
+  180 CONTINUE
+      TRDFLB(:)=0.D0
+      TRUFLB(:)=0.D0
+
+      BG=BGFEMT(1)
+      TOTLZF(1:3)=0.D0
+!sl   TRSLTS=0.D0
+!sl   TRSLTG=0.D0
+!sl   TRSLBS=0.D0
+
+C     ------------------------------------------------------------------
+C                                                      LOOP OVER K-BANDS
+C     ------------------------------------------------------------------
+      K=0
+      IMOL=0
+  200 CONTINUE
+      K=K+1
+      if (K > 33) GO TO 300
+      BG=BGFEMT(K)
+      if (K > 1 .and. K < 14) IMOL=1
+      if (K > 13 .and. K < 26) IMOL=2
+      if (K > 25) IMOL=3
+      DFLB(NL+1,K)=0.D0
+      DNACUM=0.D0
+      DNBCUM=0.D0
+      DNCCUM=0.D0
+C**** Find top layer with absorbers: LtopA
+      DO 210 L=NL,L1,-1
+      LTOPA=L
+      TAUAG=TRGXLK(L,K)
+      TAUAP=TRCALK(L,K)+TRAALK(L,K)+TRBALK(L,K)+TRDALK(L,K)+TRVALK(L,K)
+      TAUAX=TAUAG+TAUAP
+      if (TAUAX > 1.D-06) GO TO 211
+      DFLB(L,K)=0.D0
+      ENA(L)=0.D0
+      DNA(L)=0.D0
+      TRA(L)=1.D0
+      ENB(L)=0.D0
+      DNB(L)=0.D0
+      TRB(L)=1.D0
+      ENC(L)=0.D0
+      DNC(L)=0.D0
+      TRC(L)=1.D0
+  210 CONTINUE
+      UFLB(L1:NL+1,K)=BG                 ! no absorbers in whole column
+      TRUFLB(L1:NL+1)=TRUFLB(L1:NL+1)+BG
+      TOTLZF(1)=TOTLZF(1)+BG
+      TOTLZF(2)=TOTLZF(2)+BG
+      TOTLZF(3)=TOTLZF(3)+BG
+      GO TO 200                        ! next K
+
+  211 CONTINUE
+      FSUM=0.
+      XFSUM=0.
+      XTFACN=0.
+      IPX0=9
+C     ------------------------------------------------------------------
+C                                              DOWNWARD FLUX COMPUTATION
+C     ------------------------------------------------------------------
+      DO 250 L=LTOPA,L1,-1
+      BTOP = PLANCK(ITLT(L),K)-
+     -      (PLANCK(ITLT(L),K)-PLANCK(ITLT(L)+1,K))*WTLT(L)
+      BBOT = PLANCK(ITLB(L),K)-
+     -      (PLANCK(ITLB(L),K)-PLANCK(ITLB(L)+1,K))*WTLB(L)
+      TAUAG=TRGXLK(L,K)
+      TAUAP=TRCALK(L,K)+TRAALK(L,K)+TRBALK(L,K)+TRDALK(L,K)+TRVALK(L,K)
+      TAUAX=TAUAG+TAUAP
+      IF(TAUAP.LT..003) GO TO 219
+      PLL=PL(L)
+      DO 217 IP=IPX0,1,-1
+      IP1=IP
+      IF(PLL.LT.PX(IP)) GO TO 218
+  217 CONTINUE
+  218 CONTINUE
+      IF(IP1.EQ.9) IP1=8
+      IP2=IP1+1
+      IPX0=IP2
+      TAUPLG=DLOG10(TAUAP)
+      DTAU0=TAUPLG-TAUMNL
+C     IF(DTAU0.LT.0.) DTAU0=0.
+      ITAU1=DTAU0/ALG2+1
+      IF(ITAU1.LT.1) ITAU1=1
+      IF(ITAU1.GT.10) ITAU1=10
+      ITAU2=ITAU1+1
+      DT1=DTAU0-(ITAU1-1)*ALG2
+      DT2=ALG2-DT1
+      AP1=(XTFAC(ITAU2,IP1)*DT1+XTFAC(ITAU1,IP1)*DT2)/ALG2
+      AP2=(XTFAC(ITAU2,IP2)*DT1+XTFAC(ITAU1,IP2)*DT2)/ALG2
+      XTF=(AP2*(PLL-PX(IP1))+AP1*(PX(IP2)-PLL))/(PX(IP2)-PX(IP1))
+      FSUM=FSUM+XTF/(1.+1.75*XFSUM**2)**2
+      XTFACN=FSUM
+      IF(XTFACN.GT.1.) XTFACN=1.
+      IF(XTFACN.LT.0.) XTFACN=0.
+      XFSUM=XFSUM+XTF
+  219 CONTINUE
+
+      XTRDL=XTRD(L,IMOL+1)
+      XTRDL=XTRDL+XTFACN*(1.-XTRDL)
+
+C               Optically thin limit emission/transmission approximation
+C               --------------------------------------------------------
+
+      IF (TAUAX >= 1.D-04) GO TO 220
+      TAUBX=TAUAX+TAUAX
+      TAUCX=10.D0*TAUAX
+      BBAR=0.5D0*(BTOP+BBOT)
+      TRA(L)=1.D0-TAUAX
+      ENA(L)=BBAR*TAUAX
+      DNA(L)=ENA(L)
+      TX=TRA(L)*XTRDL ! ; if(TX > 1) TX=1
+      DNACUM=DNACUM*TX+DNA(L)
+      TRB(L)=1.D0-TAUBX
+      ENB(L)=BBAR*TAUBX
+      DNB(L)=ENB(L)
+      TX=TRB(L)*XTRDL ! ; if(TX > 1) TX=1
+      DNBCUM=DNBCUM*TX+DNB(L)
+      TRC(L)=1.D0-TAUCX
+      ENC(L)=BBAR*TAUCX
+      DNC(L)=ENC(L)
+      TX=TRC(L)*XTRDL ! ; if(TX > 1) TX=1
+      DNCCUM=DNCCUM*TX+DNC(L)
+      GO TO 230
+
+C                     TAUB absorber-dependent extinction path adjustment
+C                     --------------------------------------------------
+
+  220 PLBN=PLB(L)
+      ICOMB=0
+      IF (TAUAG > TAUAP) THEN
+        ICOMB=1
+        TAUAG=TAUAX
+      END IF
+      TAUBG=TAUAG+TAUAG
+      TAUCG=10.D0*TAUAG
+
+      F=1
+      if (IMOL==3 .and. PLBN>500 .and. TAUAG>.05d0 .and. TAUAG<.25) then
+        F=23.71D0*TAUAG**2-7.113D0*TAUAG+1.296D0
+        GO TO 221
+      end if
+
+      if (TAUAG > .1D0) then
+        if      (IMOL==1) then
+          if (PLBN > 250.D0) then
+            F=.761D0
+            if (TAUAG < 3.D0) F=.92D0-.053D0*TAUAG
+            if (TAUAG < .2D0) F=1.091D0-.906D0*TAUAG
+          else
+            F=.718D0
+            if (TAUAG < 2.5D0) F=.90D0-.073D0*TAUAG
+            if (TAUAG < .2D0) F=1.115D0-1.146D0*TAUAG
+          end if
+        else if (IMOL==2) then
+          if (PLBN > 250.D0) then
+            F=.590D0
+            if (TAUAG < 3.5D0) F=.93D0-.097D0*TAUAG
+            if (TAUAG < .2D0) F=1.089D0-.894D0*TAUAG
+          else
+            F=.703D0
+            if (TAUAG < 3.5D0) F=.92D0-.062D0*TAUAG
+            if (TAUAG < .2D0) F=1.092D0-.924D0*TAUAG
+          end if
+        else if (IMOL==3) then
+          if (PLBN > 250.D0) then
+            F=.982D0
+            if (TAUAG < .5D0) F=.99D0-.016D0*TAUAG
+            if (TAUAG < .2D0) F=1.013D0-.132D0*TAUAG
+          else
+            F=.748D0
+            if (TAUAG < 3.7D0) F=.97D0-.060D0*TAUAG
+            if (TAUAG < .2D0) F=1.042D0-.420D0*TAUAG
+          end if
+        end if
+      end if
+  221 TAUBG=TAUBG*F
+
+C                     TAUC absorber-dependent extinction path adjustment
+C                     --------------------------------------------------
+      F=1
+      if (IMOL==3 .and. PLBN>500 .and. TAUAG>.01d0 .and. TAUAG<.25) then
+        F=26.14D0*TAUAG**2-6.796D0*TAUAG+1.065D0
+        GO TO 222
+      end if
+
+      if (TAUAG > .01D0) then
+        if      (IMOL==1) then
+          if (PLBN > 250.D0) then
+            F=.712D0
+            if (TAUAG < .37D0) F=.96D0-.67D0*TAUAG
+            if (TAUAG < .02D0) F=1.053D0-5.34D0*TAUAG
+          else
+            F=.536D0
+            if (TAUAG < .47D0) F=.87D0-.71D0*TAUAG
+            if (TAUAG < .02D0) F=1.144D0-14.42D0*TAUAG
+          end if
+        else if (IMOL==2) then
+          if (PLBN > 250.D0) then
+            F=.710D0
+            if (TAUAG < .75D0) F=.95D0-.32D0*TAUAG
+            if (TAUAG < .02D0) F=1.056D0-5.64D0*TAUAG
+          else
+            F=.487D0
+            if (TAUAG < .70D0) F=.90D0-.59D0*TAUAG
+            if (TAUAG < .02D0) F=1.112D0-11.18D0*TAUAG
+          end if
+        else if (IMOL==3) then
+          if (PLBN > 250.D0) then
+            F=.961D0
+            if (TAUAG < .5D0) F=.98D0-.039D0*TAUAG
+            if (TAUAG < .02D0) F=1.021D0-2.08D0*TAUAG
+          else
+            F=.777D0
+            if (TAUAG < .70D0) F=.98D0-.29D0*TAUAG
+            if (TAUAG < .02D0) F=1.026D0-2.58D0*TAUAG
+          end if
+        end if
+      end if
+  222 TAUCG=TAUCG*F
+
+      IF (ICOMB==0) THEN
+        TAUBP=TAUAP+TAUAP
+        TAUCP=10.D0*TAUAP
+        TAUA=TAUAG+TAUAP
+        TAUB=TAUBG+TAUBP
+        TAUC=TAUCG+TAUCP
+      ELSE
+        TAUA=TAUAG
+        TAUB=TAUBG
+        TAUC=TAUCG
+      END IF
+
+      if (L==LTOPCL .and. KCLDEM==1) GO TO 225
+
+      BDIF=BBOT-BTOP
+      BBTA=BDIF/TAUA
+      BBTB=BDIF/TAUB
+      BBTC=BDIF/TAUC
+
+C            Optically thick limit non-scattering emission approximation
+C            -----------------------------------------------------------
+
+      if (TAUA > 9.D0) then
+        TRA(L)=0.D0
+        TRB(L)=0.D0
+        TRC(L)=0.D0
+        ENA(L)=BTOP+BBTA
+        ENB(L)=BTOP+BBTB
+        ENC(L)=BTOP+BBTC
+        DNA(L)=BBOT-BBTA
+        DNB(L)=BBOT-BBTB
+        DNC(L)=BBOT-BBTC
+        DNACUM=BBOT-BBTA
+        DNBCUM=BBOT-BBTB
+        DNCCUM=BBOT-BBTC
+        GO TO 230
+      end if
+
+      if (TAUA < 0.5D0) then
+        TRANA = 1 - TAUA + (.5 - R6*TAUA + R24*(TAUA*TAUA))*(TAUA*TAUA)
+      else
+        TRANA = EXP(-TAUA)
+      end if
+      if (TAUB < 0.5D0) then
+        TRANB = 1 - TAUB + (.5 - R6*TAUB + R24*(TAUB*TAUB))*(TAUB*TAUB)
+      else
+        TRANB = EXP(-TAUB)
+      end if
+      if (TAUC < 0.5D0) then
+        TRANC = 1 - TAUC + (.5 - R6*TAUC + R24*(TAUC*TAUC))*(TAUC*TAUC)
+      else
+        TRANC = EXP(-TAUC)
+      end if
+
+      TRA(L)=TRANA
+      ENA(L)=BTOP+BBTA-(BBOT+BBTA)*TRANA
+      DNA(L)=BBOT-BBTA-(BTOP-BBTA)*TRANA
+      TX=TRANA*XTRDL ! ; if(TX > 1) TX=1
+      DNACUM=DNACUM*TX+DNA(L)
+      TRB(L)=TRANB
+      ENB(L)=BTOP+BBTB-(BBOT+BBTB)*TRANB
+      DNB(L)=BBOT-BBTB-(BTOP-BBTB)*TRANB
+      TX=TRANB*XTRDL ! ; if(TX > 1) TX=1
+      DNBCUM=DNBCUM*TX+DNB(L)
+      TRC(L)=TRANC
+      ENC(L)=BTOP+BBTC-(BBOT+BBTC)*TRANC
+      DNC(L)=BBOT-BBTC-(BTOP-BBTC)*TRANC
+      TX=TRANC*XTRDL ! ; if(TX > 1) TX=1
+      DNCCUM=DNCCUM*TX+DNC(L)
+      GO TO 230
+
+C                          ---------------------------------------------
+C                          Top-cloud multiple scattering corrections for
+C                          emitted, transmitted, and reflected radiances
+C                          and fluxes at the top-cloud (L=LTOPCL) level.
+C                          ---------------------------------------------
+
+  225 CONTINUE
+      IF (ICOMB==1) THEN
+        TAUBP=TAUAP*(TAUBG/TAUAG)
+        TAUCP=TAUAP*(TAUCG/TAUAG)
+        TAUBG=TRGXLK(L,K)*(TAUBG/TAUAG)
+        TAUCG=TRGXLK(L,K)*(TAUCG/TAUAG)
+        TAUAG=TAUAG-TAUAP
+      END IF
+      TRA(L)=EXP(-TAUAG-TAUAP*FDXTCK(3,K))
+      TRB(L)=EXP(-TAUBG-TAUBP*FDXTCK(2,K))
+      TRC(L)=EXP(-TAUCG-TAUCP*FDXTCK(1,K))
+      DEC=C*DNCCUM*RIJTCK(1,K)+B*DNBCUM*RIJTCK(2,K)+A*DNACUM*RIJTCK(3,K)
+      DEB=C*DNCCUM*RIJTCK(2,K)+B*DNBCUM*RIJTCK(4,K)+A*DNACUM*RIJTCK(5,K)
+      DEA=C*DNCCUM*RIJTCK(3,K)+B*DNBCUM*RIJTCK(5,K)+A*DNACUM*RIJTCK(6,K)
+      ALBTCK(1,K)=C*RIJTCK(1,K)+B*RIJTCK(2,K)+A*RIJTCK(3,K)
+      ALBTCK(2,K)=C*RIJTCK(2,K)+B*RIJTCK(4,K)+A*RIJTCK(5,K)
+      ALBTCK(3,K)=C*RIJTCK(3,K)+B*RIJTCK(5,K)+A*RIJTCK(6,K)
+      COALB1=1.D0-ALBTCK(1,K)
+      COALB2=1.D0-ALBTCK(2,K)
+      COALB3=1.D0-ALBTCK(3,K)
+      TAUA=TAUAG+TAUAP*FEMTCK(3,K)
+      TAUB=TAUBG+TAUBP*FEMTCK(2,K)
+      TAUC=TAUCG+TAUCP*FEMTCK(1,K)
+      TRANA=EXP(-TAUA)
+      TRANB=EXP(-TAUB)
+      TRANC=EXP(-TAUC)
+      BDIF=BBOT-BTOP
+      BBTA=BDIF/TAUA
+      BBTB=BDIF/TAUB
+      BBTC=BDIF/TAUC
+      ENA(L)=(BTOP+BBTA-(BBOT+BBTA)*TRANA)*COALB3
+      DNA(L)=(BBOT-BBTA-(BTOP-BBTA)*TRANA)*COALB3
+      TX=TRA(L)*XTRDL ! ; if(TX > 1) TX=1
+      DNACUM=DNACUM*TX+DNA(L)
+      ENB(L)=(BTOP+BBTB-(BBOT+BBTB)*TRANB)*COALB2
+      DNB(L)=(BBOT-BBTB-(BTOP-BBTB)*TRANB)*COALB2
+      TX=TRB(L)*XTRDL ! ; if(TX > 1) TX=1
+      DNBCUM=DNBCUM*TX+DNB(L)
+      ENC(L)=(BTOP+BBTC-(BBOT+BBTC)*TRANC)*COALB1
+      DNC(L)=(BBOT-BBTC-(BTOP-BBTC)*TRANC)*COALB1
+      TX=TRC(L)*XTRDL ! ; if(TX > 1) TX=1
+      DNCCUM=DNCCUM*TX+DNC(L)
+      ENC(L)=ENC(L)+DEC
+      ENB(L)=ENB(L)+DEB
+      ENA(L)=ENA(L)+DEA
+  230 CONTINUE
+      FDNABC=A*DNACUM+B*DNBCUM+C*DNCCUM
+      TRDFLB(L)=TRDFLB(L)+FDNABC
+      DFLB(L,K)=FDNABC
+  250 CONTINUE
+
+C             Old form of scattering correction is skipped when KCLDEM=1
+C             ----------------------------------------------------------
+
+      if (KCLDEM==0 .and. LTOPCL > 0) then
+        ENA(LTOPCL)=ENA(LTOPCL)*(1-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
+        ENB(LTOPCL)=ENB(LTOPCL)*(1-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
+        ENC(LTOPCL)=ENC(LTOPCL)*(1-TRCTCA(K))+TRCTCA(K)*DFLB(LTOPCL+1,K)
+      end if
+
+!sl   ------------------------------------------------------------------
+!sl                                       SURFACE LAYER FLUX COMPUTATION
+!sl   with TAUSL,FTAUSL=0 defaults, surface layer calculation is skipped
+!sl   ------------------------------------------------------------------
+
+      DFSL(K)=FDNABC
+!sl   TAUA=TAUSL(K)+FTAUSL(K)
+!sl   if (TAUA > 1.D-06) GO TO 24
+      BG=BG+FDNABC*TRGALB(K)
+      UNA=BG
+      UNB=BG
+      UNC=BG
+      FUNABC=BG
+!sl   GO TO 245
+!sl24 CONTINUE
+!sl   ITS=TSL
+!sl   WTS=TSL-ITS
+!sl   WTS1=1-WTS
+!sl   BS = PLANCK(ITS,K)*WTS1 + PLANCK(ITS+1,K)*WTS
+!sl   TA=EXP(-TAUA)
+!sl   TB=TA*TA
+!sl   TC=(TB*TB*TA)**2
+!sl   DNA(1)=(DNA(1)-BS)*TA+BS
+!sl   DNB(1)=(DNB(1)-BS)*TB+BS
+!sl   DNC(1)=(DNC(1)-BS)*TC+BS
+!sl   FDNABC=A*DNA(1)+B*DNB(1)+C*DNC(1)
+!sl   BG=BGFEMT(K)+FDNABC*TRGALB(K)
+!sl   UNA=(BG-BS)*TA+BS
+!sl   UNB=(BG-BS)*TB+BS
+!sl   UNC=(BG-BS)*TC+BS
+!sl   FUNABC=A*UNA+B*UNB+C*UNC
+!sl   BSP = PLANCK(ITS+1,K)*WTS1 + PLANCK(ITS+2,K)*WTS
+!sl   BSM = PLANCK(ITS-1,K)*WTS1 + PLANCK(ITS  ,K)*WTS
+!sl   SLABS=1.D0-A*TA-B*TB-C*TC
+!sl   TRSLTS=TRSLTS+(BSP-BSM)*SLABS
+!sl   TRSLTG=TRSLTG+BGFEMD(K)*SLABS
+!sl   TRSLBS=TRSLBS+BS*SLABS
+
+C     ------------------------------------------------------------------
+C                                                UPWARD FLUX COMPUTATION
+C     ------------------------------------------------------------------
+
+  245 DO 260 L=L1,NL
+      TRUFLB(L)=TRUFLB(L)+FUNABC
+      UFLB(L,K)=FUNABC
+
+C       ----------------------------------------------------------------
+C       At top-cloud level, find  component of  upwelling flux reflected
+C       downward by cloud bottom and add to downwelling flux below cloud
+C       ----------------------------------------------------------------
+
+      if (L==LTOPCL .and. KCLDEM==1) then
+        DEC=C*UNC*RIJTCK(1,K)+B*UNB*RIJTCK(2,K)+A*UNA*RIJTCK(3,K)
+        DEB=C*UNC*RIJTCK(2,K)+B*UNB*RIJTCK(4,K)+A*UNA*RIJTCK(5,K)
+        DEA=C*UNC*RIJTCK(3,K)+B*UNB*RIJTCK(5,K)+A*UNA*RIJTCK(6,K)
+        DO LL=L,L1,-1
+          DNA(LL)=DNA(LL)+DEA
+          DNB(LL)=DNB(LL)+DEB
+          DNC(LL)=DNC(LL)+DEC
+          DDFLUX=A*DEA+B*DEB+C*DEC
+          TRDFLB(LL)=TRDFLB(LL)+DDFLUX
+          DFLB(LL,K)=DFLB(LL,K)+DDFLUX
+          if (LL == L1) exit ! LL-loop
+          DEA=DEA*TRA(LL-1)
+          DEB=DEB*TRB(LL-1)
+          DEC=DEC*TRC(LL-1)
+        END DO
+      end if
+      XTRUL=XTRU(L,IMOL+1)
+      TX=TRA(L)*XTRUL ! ; if(TX > 1) TX=1
+      UNA=UNA*TX+ENA(L)
+      TX=TRB(L)*XTRUL ! ; if(TX > 1) TX=1
+      UNB=UNB*TX+ENB(L)
+      TX=TRC(L)*XTRUL ! ; if(TX > 1) TX=1
+      UNC=UNC*TX+ENC(L)
+      FUNABC=A*UNA+B*UNB+C*UNC
+  260 CONTINUE
+
+      if (K==1) then
+        TRUFTW=FUNABC
+        TRDFGW=TRDFLB(1)
+        TRUFGW=BG
+        WINDZF(1)=UNA
+        WINDZF(2)=UNB
+        WINDZF(3)=UNC
+      end if
+
+      TRUFLB(NL+1)=TRUFLB(NL+1)+FUNABC
+      UFLB(NL+1,K)=FUNABC
+      UFSL(K)=UFLB(1,K)
+      TOTLZF(1)=TOTLZF(1)+UNA
+      TOTLZF(2)=TOTLZF(2)+UNB
+      TOTLZF(3)=TOTLZF(3)+UNC
+
+      GO TO 200  !  next K
+  300 CONTINUE
+
+      TRNFLB(L1:NL+1) = TRUFLB(L1:NL+1) - TRDFLB(L1:NL+1)
+      TRFCRL(L1:NL)   = TRNFLB(L1+1:NL+1) - TRNFLB(L1:NL)
+
+C**** Window region and spectr. integrated total flux diagnostics
+      DO 390 II=0,3
+      if (II > 0) then
+        PFW = TOTLZF(II) ; IF (PFW < 1) PFW=1
+        if (PFW > 899.999d0) PFW=899.999d0
+        IPF=PFW
+        TOTLZT(II) = TKPFT(IPF) + (PFW-IPF)*(TKPFT(IPF+1)-TKPFT(IPF))
+
+        PFW = 10*WINDZF(II)
+      else
+        PFW = 10*TRUFTW
+      end if
+        IF (PFW < 1.0001d-2) PFW=1.0001d-2
+        IF (PFW > 719.999d0) PFW=719.999d0
+        IPF=PFW
+        IF (PFW < 1) THEN
+          PFW = 100.*PFW
+          IPF = PFW ; DPF = PFW-IPF         ! IPF=  1- 99
+        ELSE IF (PFW < 10) THEN
+          PFW = 10.*PFW
+          IPF = PFW ; DPF = PFW-IPF
+          IPF = IPF + 90                    ! IPF=100-189
+        ELSE
+          IPF = PFW ; DPF = PFW-IPF
+          IPF = IPF + 180                   ! IPF=190-899
+        END IF
+      if (II > 0) then
+        WINDZT(II) = TKPFW(IPF) + DPF*(TKPFW(IPF+1)-TKPFW(IPF))
+      else
+        BTEMPW     = TKPFW(IPF) + DPF*(TKPFW(IPF+1)-TKPFW(IPF))
+      end if
+  390 CONTINUE
+
+      RETURN
+      END SUBROUTINE THERML
+#else
+!     old version of TAUGAS and THERML
       SUBROUTINE TAUGAS
       IMPLICIT NONE
 C     ----------------------------------------------------------
@@ -4390,8 +5539,7 @@ C     CO2,CH4,CFC11,CFC12,CFC.. are scaled by XXGAS: H2O    CO2   O3
 C        O2  NO2  N2O    CH4     F11     F12  N2C    F11+  F12+  SO2
      *  1d0, 1d0, 1d0, .65d0,  1.5d0,  1.1d0, 1d0, 1.5d0,  1d0,  1d0/)
 
-      INTEGER, PARAMETER :: NTX=8, NPX=19, NGUX=1008, NPUX=19, NPU2=14,
-     *     NPU=5
+      INTEGER, PARAMETER :: NPU2=14, NPU=5
       REAL*8, PARAMETER :: TLOX=181.d0, DTX=23.d0, P0=1013.25d0
 
       REAL*8, PARAMETER :: PX(NPX)= (/1000d0, 750d0, 500d0, 300d0,
@@ -4978,26 +6126,6 @@ C**** Collect cloud and aerosol LW-absorption and cloud levels
       CSUM=0             ! cloud LW-absorption - column amount
       NCLDS=0            ! number of layers containing clouds
       LCL(:)=0           ! cloud levels top->bottom
-#ifndef USE_RADIATION_E1
-      DO L=NL,L1,-1
-        if (TRCALK(L,1) > 1.E-2) then              ! Clouds
-          SUMA(L)=TRCALK(L,1)
-          CSUM=CSUM+SUMA(L)
-          NCLDS=NCLDS+1
-          LCL(NCLDS)=L
-          IF (PL(L)<50 .and. CSUM>PL(L)*.005 .and. LSKIP==0) LSKIP=L
-          IF (               CSUM>.69        .and. LSKIP==0) LSKIP=L
-        end if
-        SUMA(NL+1)=SUMA(NL+1)+TRAALK(L,1)          ! atm.aerosols
-        SUMA(NL+2)=SUMA(NL+2)+TRBALK(L,1)          ! bkground aerosols
-        SUMA(NL+3)=SUMA(NL+3)+TRDALK(L,1)          ! dust aerosols
-        if (TRVALK(L,1) > 1.E-4) then              ! volc.aerosols
-          SUMA(NL+4)=SUMA(NL+4)+TRVALK(L,1)
-          if (LVLO==0) LVHI=L
-          LVLO=L
-        end if
-      END DO
-#endif
 
 C**** Modify XTRD if clouds are present
       LCBOT=0
@@ -5128,12 +6256,6 @@ C                     --------------------------------------------------
 
   220 PLBN=PLB(L)
       ICOMB=0
-#ifndef USE_RADIATION_E1
-      IF (TAUAG > TAUAP) THEN
-        ICOMB=1
-        TAUAG=TAUAX
-      END IF
-#endif
       TAUBG=TAUAG+TAUAG
       TAUCG=10.D0*TAUAG
 
@@ -5494,7 +6616,7 @@ C**** Window region and spectr. integrated total flux diagnostics
 
       RETURN
       END SUBROUTINE THERML
-
+#endif
       SUBROUTINE SOLAR0
       IMPLICIT NONE
 

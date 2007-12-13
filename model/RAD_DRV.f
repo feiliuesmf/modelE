@@ -357,14 +357,14 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
 !g95     *     ,FSXAER,FTXAER    ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN
+     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN,REFDRY
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
       USE RADPAR, only : rcomp1, writer, writet,ref_mult
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
+     *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
@@ -392,7 +392,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     "RADN9","RADNA","RADNB","RADNC","RADND",
      *     "RADNE"/)
 !@var QBIN true if files for radiation input files are binary
-      LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.FALSE.,.TRUE.,.TRUE.
+      LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
 
       INTEGER J_0,J_1,J_1S
@@ -414,6 +414,8 @@ C**** sync radiation parameters from input
       call sync_param( "CFC12X", CFC12X )
       call sync_param( "XGHGX", XGHGX )
       call sync_param( "H2OstratX", H2OstratX )
+      call sync_param( "O3X", O3X )
+      call sync_param( "CLDX", CLDX )
       call sync_param( "H2ObyCH4", H2ObyCH4 )
       call sync_param( "S0_yr", S0_yr )
       call sync_param( "ghg_yr", ghg_yr )
@@ -425,6 +427,7 @@ C**** sync radiation parameters from input
       call sync_param( "dALBsnX", dALBsnX )
       call sync_param( "albsn_yr", albsn_yr )
       call sync_param( "aermix", aermix , 13 )
+      call sync_param( "REFdry", REFdry , 8 )
       call sync_param( "FS8OPX", FS8OPX , 8 )
       call sync_param( "FT8OPX", FT8OPX , 8 )
       call sync_param( "RHfix", RHfix )
@@ -766,9 +769,11 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
       call updBCd(1990) ; depoBC_1990 = depoBC
 C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
-        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE                ! not used in GCM
-        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE    ! obsolete O3 data
-        IF (IU.EQ.5) CYCLE                 ! obsolete trop. aerosol data
+        IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
+        IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
+#ifdef USE_RADIATION_E1
+        IF (IU==4 .OR.IU==5 ) CYCLE
+#endif
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
       LS1_loc=1  ! default
@@ -779,9 +784,11 @@ C     ------------------------------------------------------------------
       if (am_i_root()) CALL WRITER(6,0)  ! print rad. control parameters
 C***********************************************************************
       DO IU=1,14
-        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE                ! not used in GCM
-        IF (IU.EQ.4.OR.IU.EQ.10.OR.IU.EQ.11) CYCLE    ! obsolete O3 data
-        IF (IU.EQ.5) CYCLE                 ! obsolete trop. aerosol data
+        IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
+        IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
+#ifdef USE_RADIATION_E1
+        IF (IU==4 .OR.IU==5 ) CYCLE
+#endif
         call closeunit(NRFUN(IU))
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers
@@ -837,7 +844,7 @@ C**** Read in the factors used for alterations:
 #endif
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
-     *     ,ghg_yr,co2ppm,Volc_yr
+     *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr
       USE DIAG_COM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
@@ -862,6 +869,7 @@ C**** FULGAS gets set initially, and updated daily for time-varying GHGs
       end if
       IF(.not. end_of_day .and. H2OstratX.GE.0.)
      *     FULGAS(1)=FULGAS(1)*H2OstratX
+      IF(.not. end_of_day .or. O3_yr==0.) FULGAS(3)=FULGAS(3)*O3x
 
 C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
@@ -918,7 +926,7 @@ C     OUTPUT DATA
       USE RADPAR, only : writer,rcompx
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix
+     *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
@@ -1102,13 +1110,13 @@ C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
      *     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
      *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
-c     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
+c     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
      *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
-     *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
+     *     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
 C****   output data: really needed only if kradia=2
      *     ,srhra,trhra                                ! 2(LM+LM_REQ+1)}
-C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
+C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 24 (+4)) => RAD_COM.f
      *     ,iy
           if (qcheck) then
             write(out_line,*) 'reading RADfile at Itime',Itime,it,iy
@@ -1310,13 +1318,17 @@ CCC       STOP 'In Radia: Grnd Temp out of range'
       END DO
 C****
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
+C**** kradia=1: instantaneous forcing - LS1_loc is not used
+C**** kradia>1: adjusted forcing, i.e. T adjusts in L=LS1_loc->LM+3
+      if(kradia>1) LS1_loc=LTROPO(I,J)+3-kradia ! favorite:kradia=3
+      if(kradia>3) LS1_loc=1                    ! favorite:kradia=3
       kdeliq=0   ! initialize mainly for l>lm
       if (kradia.gt.0) then     ! rad forcing model
         do l=1,lm
           tlm(l) = T(i,j,l)*pk(l,i,j)
           shl(l) = QR(l,i,j)
-          tauwc(l) = CLDinfo(l,1,i,j)
-          tauic(l) = CLDinfo(l,2,i,j)
+          tauwc(l) = cldx*CLDinfo(l,1,i,j)
+          tauic(l) = cldx*CLDinfo(l,2,i,j)
           SIZEWC(L)= CLDinfo(l,3,i,j)
           SIZEIC(L)= SIZEWC(L)
         end do
@@ -1366,16 +1378,16 @@ C**** Determine large scale and moist convective cloud cover for radia
           TOTCLD(L)=1.
           AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
 C**** save 3D cloud fraction as seen by radiation
-          AIJK(I,J,L,IJL_CF)=AIJK(I,J,L,IJL_CF)+1.
+          if(cldx>0) AIJK(I,J,L,IJL_CF)=AIJK(I,J,L,IJL_CF)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
             SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)
             IF(SVLAT(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUMCL
+              TAUWC(L)=cldx*TAUMCL
               OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
-              TAUIC(L)=TAUMCL
+              TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
@@ -1383,11 +1395,11 @@ C**** save 3D cloud fraction as seen by radiation
             SIZEWC(L)=CSIZSS(L,I,J)
             SIZEIC(L)=CSIZSS(L,I,J)
             IF(SVLHX(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUSSL
+              TAUWC(L)=cldx*TAUSSL
               OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
-              TAUIC(L)=TAUSSL
+              TAUIC(L)=cldx*TAUSSL
               OPTDI=OPTDI+TAUIC(L)
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
@@ -2083,9 +2095,10 @@ C**** save all input data to disk if kradia<0
      &     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      &     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
      &     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
+c     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
      &     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      &     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
-     &     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
+     &     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
 C****   output data: really needed only if kradia=2
      &     ,srhra,trhra                                ! 2(LM+LM_REQ+1)
      &     ,itime

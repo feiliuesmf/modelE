@@ -68,7 +68,13 @@ SOIL=S4X50093.ext TOPO=Z72X46N_gas.1_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD_modelE_M.RVR      ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=radfil33k                   !     8/2003 version
+RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN4=LWTables33k.1b              ! rad.tables and history files
+RADN5=H2Ocont_Ma_2000             ! H2O continuum table
+! other available H2O continuum tables:
+!    RADN5=H2Ocont_Ma_2004
+!    RADN5=H2Ocont_Roberts
+!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
 RADN3=miescatpar.abcdv2
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
@@ -185,8 +191,10 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 ! the "frozen (or 'slush') version" of 2006 paper E1oM20 -> EofzM20
 !     -------------------------------------------           =======
 !     replace in "Object modules"     the 4 files
-! CLOUDS2    PBL    ATURB    RADIATION    by:
-! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1
+! CLOUDS2    PBL    ATURB    RADIATION    RAD_DRV       by:
+! CLOUDS2_E1 PBL_E1 ATURB_E1 RADIATION_E1 RAD_DRV_E1
+!     replace in "Data input files:" RADN2          by:
+! RADN2=radfil33k  ! RADN4 and RADN5 are not used
 !     set in &&PARAMETERS : variable_lk=0 ! lake fractions are fixed in time
 !                           river_fac=1.04
 !                           wsn_max=0.    ! do not restrict snow depth

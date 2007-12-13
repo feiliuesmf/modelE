@@ -36,7 +36,7 @@ C**** exactly the same as the default values.
       real*8 :: paleo_orb_yr = -50.  ! (i.e. 2000AD)
 
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs
-      INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+23)
+      INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+24)
 !@var RQT Radiative equilibrium temperatures above model top
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RQT
 !@var Tchg Total temperature change in adjusted forcing runs
@@ -71,11 +71,11 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RCLD ! saved in rsf
 !@var O3_tracer_save 3D ozone saved elsewhere for use in radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_tracer_save!saved rsf
-!@var rad_to_chem save 3D quantities from radiation code for use in 
+!@var rad_to_chem save 3D quantities from radiation code for use in
 !@+   chemistry (or rest of model). 1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,
 !@+   5=CFC11+CFC12
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_chem !saved in rsf
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_file              
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_file
 !@var KLIQ Flag indicating dry(0)/wet(1) atmosphere (memory feature)
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:,:) :: KLIQ ! saved in rsf
 !@dbparam Ikliq 0,1,-1 initialize kliq as dry,equil,current model state
@@ -119,8 +119,8 @@ C**** exactly the same as the default values.
       INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
       INTEGER :: crops_yr = -1
-!@dbparam H2OstratX stratospheric water vapour multiplication factor
-      REAL*8 :: H2OstratX = 1.
+!@dbparam H2OstratX strat_water_vapor, cloud, Ozone scaling factor
+      REAL*8 :: H2OstratX = 1. , cldX = 1. , O3X = 1.
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
       REAL*8 :: H2ObyCH4 = 1.
 !@var dH2O  zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
@@ -144,7 +144,7 @@ C**** exactly the same as the default values.
 !@var FS8OPX_lat multiplicative factors for altering FS8OPX by latitude
 !@+ for non-transient runs. (aerosol regional forcing) SOLAR
 !@var FT8OPX_lat multiplicative factors for altering FT8OPX by latitude
-!@+ for non-transient runs. (aerosol regional forcing) THERMAL 
+!@+ for non-transient runs. (aerosol regional forcing) THERMAL
       real*8, dimension(8,46):: FS8OPX_lat,FT8OPX_lat !rad not model grid
                                                 !8 groups of aerosols
 #endif
@@ -158,7 +158,7 @@ C**** using the rad_forc_lev parameter.
 !@dbparam cloud_rad_forc = 1 for calculation of cloud radiative forcing
       INTEGER :: cloud_rad_forc = 0
 
-!@var co2ppm Current CO2 level as seen by radiation 
+!@var co2ppm Current CO2 level as seen by radiation
       REAL*8 :: co2ppm = 280.    ! set a resaonable default value
 
 C**** Local variables initialised in init_RAD
@@ -249,8 +249,8 @@ C**** Local variables initialised in init_RAD
       USE PARAM
       USE DOMAIN_DECOMP, ONLY : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY : UNPACK_COLUMN, PACK_COLUMN
-      USE DOMAIN_DECOMP, ONLY : UNPACK_BLOCK , PACK_BLOCK 
-      USE DOMAIN_DECOMP, ONLY : UNPACK_DATA  , PACK_DATA  
+      USE DOMAIN_DECOMP, ONLY : UNPACK_BLOCK , PACK_BLOCK
+      USE DOMAIN_DECOMP, ONLY : UNPACK_DATA  , PACK_DATA
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
       IMPLICIT NONE
 
@@ -385,13 +385,13 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_COLUMN(grid, TRHR_glob, TRHR)
           CALL UNPACK_COLUMN(grid, TRSURF_glob, TRSURF)
           CALL UNPACK_COLUMN(grid,  FSF_glob,  FSF)
-  
+
           CALL UNPACK_DATA( grid, SALB_glob     , SALB)
           CALL UNPACK_DATA( grid, FSRDIR_glob   , FSRDIR)
           CALL UNPACK_DATA( grid, SRVISSURF_glob, SRVISSURF)
           CALL UNPACK_DATA( grid, SRDN_glob     ,   SRDN)
           CALL UNPACK_DATA( grid, CFRAC_glob    ,  CFRAC)
-  
+
           CALL UNPACK_COLUMN(grid, RCLD_glob          ,RCLD)
 #ifdef TRACERS_SPECIAL_Shindell
           CALL UNPACK_COLUMN(grid, O3_tracer_save_glob,

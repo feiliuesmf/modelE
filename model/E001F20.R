@@ -52,7 +52,13 @@ SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5_CAFE     ! special regions-diag
 RVR=RD_modelE_F.RVR      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
-RADN2=radfil33k                   !     8/2003 version
+RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN4=LWTables33k.1b              ! rad.tables and history files
+RADN5=H2Ocont_Ma_2000             ! H2O continuum table
+! other available H2O continuum tables:
+!    RADN5=H2Ocont_Ma_2004
+!    RADN5=H2Ocont_Roberts
+!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
 RADN3=miescatpar.abcdv2
 ! RADN4,RADN5,RADNA,RADNB are no longer used
 TAero_PRE=sep2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols

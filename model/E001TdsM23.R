@@ -1,15 +1,15 @@
 E001TdsM23.R GISS Model E                                gas 06/00
 
-modelE1 (3.0) with Drew Shindell tropospheric and stratospheric 
+modelE1 (3.0) with Drew Shindell tropospheric and stratospheric
 chemistry. (based upon E012TdsSjM23.R)
 
 ************************************************************
-Please note this rundeck is provided to show how to run with 
+Please note this rundeck is provided to show how to run with
 chemistry tracers on. You should check on the GCM tuning and
 boundary conditions before using in production simulations.
 ************************************************************
 
-You might need to increase your stacksize to get it to run in 
+You might need to increase your stacksize to get it to run in
 parallel. Try 'unlimit stacksize' or increase to the proper amount.
 
 Preprocessor Options
@@ -20,10 +20,10 @@ Preprocessor Options
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
-!  OFF #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file 
+!  OFF #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 !  OFF #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 !  OFF #define EDGAR_HYDE_SOURCES       ! use EDGAR-HYDE tracers sources instead
-!  OFF #define regional_Ox_tracers      ! turns on regional Ox tracers   
+!  OFF #define regional_Ox_tracers      ! turns on regional Ox tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 End Preprocessor Options
@@ -50,7 +50,7 @@ TRCHEM_family                       ! tracer family chemistry
 TRCHEM_fastj2                       ! used for stratosphere chem version
 TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 ! TRACERS_AEROSOLS_Koch_e4
-! COSMO_SOURCES   
+! COSMO_SOURCES
 ! ----------------------------------
 TRDRYDEP                            ! tracer dry deposition from Harvard CTM
 TRACERS                             ! generic tracer code
@@ -69,7 +69,7 @@ LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN ICEDYN_DRV                   ! dynamic ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION_E1        ! radiation modules
+RAD_COM RAD_DRV_E1 RADIATION_E1        ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_RES_M                          ! diagnostics (resolution dependent)
@@ -136,10 +136,10 @@ BC_dep=BC.Dry+Wet.depositions.ann
 ! choose these for strat+trop chem model
 !-----------------------------------------------
 MOLEC=chem_files/ds4_moleculesE
-JPLRX=chem_files/ds4_jpl00_T25_SSS 
+JPLRX=chem_files/ds4_jpl00_T25_SSS
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
-SPECFJ=chem_files/jv_spec00_25.dat         
+SPECFJ=chem_files/jv_spec00_25.dat
 N2O_IC=gsin/N2O_IC_M23_4x5_6.17
 CFC_IC=gsin/CFC_IC_M23_4x5_6.17
 CH4_IC=gsin/CH4_IC_M23_4x5_6.17
@@ -161,15 +161,15 @@ LAI10=chem_files/lai10.global
 LAI11=chem_files/lai11.global
 LAI12=chem_files/lai12.global
 Ox_IC=gsin/Ox_init_cond_M23_4x5 !see README in /usr/people/cmrun/gsin
-! fltran file used if rad_FL.ne.0:   
+! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
 ! next one needed only if correct_strat_Ox=.true.
 Ox_corr=gsin/corrOx_modelE_v4
 !----------Default emissions case (giss/geia)------------------------
-CO_01=CO_sources/CO_GEIA_industrial_head       
-CO_02=CO_sources/CO_GEIA_biomass_burning_head  
-Alkenes_01=gsin/Alkenes_GEIA_industrial_head   
+CO_01=CO_sources/CO_GEIA_industrial_head
+CO_02=CO_sources/CO_GEIA_biomass_burning_head
+Alkenes_01=gsin/Alkenes_GEIA_industrial_head
 Alkenes_02=gsin/Alkenes_GEIA_biomass_burning_head
 Alkenes_03=gsin/Alkenes_GEIA_vegetation_head
 Paraffin_01=gsin/Paraffin_GEIA_industrial_head
@@ -190,7 +190,7 @@ CH4_08=methane/gcm_data/CH4_GEIA_Coal_Burning_header
 CH4_09=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
 CH4_10=methane/gcm_data/CH4_GEIA_Rice_header
 CH4_11=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
-Isoprene_01=gsin/Isoprene_GEIA_vegetation_head 
+Isoprene_01=gsin/Isoprene_GEIA_vegetation_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
 SO2_FIELD=so2_conc
@@ -209,7 +209,7 @@ SO2_FIELD=so2_conc
 ! OC_FOSSIL_FUEL=OC_ff2000.AEROCOM_DEC03
 ! OC_BIOMASS=OC_fire2000.AEROCOM_DEC03
 ! TERPENE=terp
-! BE7_COSMO=Be23m1phi700.dat 
+! BE7_COSMO=Be23m1phi700.dat
 
 Label and Namelist:
 E001TdsM23 (sample rundeck with Shindell chemistry tracers)
