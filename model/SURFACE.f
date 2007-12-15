@@ -889,6 +889,8 @@ C****
           trc_flux=pbl_args%ss2_flux
         case ('M_SSS_SS')
           trc_flux=(pbl_args%ss1_flux+pbl_args%ss2_flux)
+        case default
+          trc_flux=0
         end select
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+

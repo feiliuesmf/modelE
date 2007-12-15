@@ -375,6 +375,8 @@ C**** fixed datasets are used, it can happen over land as well.
         case ('M_DDD_DU')
           trc_flux=sum(pbl_args%dust_flux(1:4))
 #endif
+        case default
+          trc_flux=0
         end select
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
