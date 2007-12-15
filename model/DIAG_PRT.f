@@ -6047,7 +6047,7 @@ c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
         WRITE(TITLEX(31:33),'(I3)') L
         TITLEL(L) = TITLEX//XLB
       END DO
-     CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
      *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
 
       k=ijl_cdwm

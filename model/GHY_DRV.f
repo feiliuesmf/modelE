@@ -367,12 +367,14 @@ C**** fixed datasets are used, it can happen over land as well.
           trc_flux=pbl_args%ss2_flux
         case ('M_SSS_SS')
           trc_flux=(pbl_args%ss1_flux+pbl_args%ss2_flux)
+#ifdef TRACERS_AMP
         case ('M_DD1_DU')
           trc_flux=sum(pbl_args%dust_flux(1:2))
         case ('M_DD2_DU')
           trc_flux=sum(pbl_args%dust_flux(3:4))
         case ('M_DDD_DU')
           trc_flux=sum(pbl_args%dust_flux(1:4))
+#endif
         end select
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
