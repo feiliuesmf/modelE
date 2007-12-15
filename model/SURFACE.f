@@ -111,8 +111,8 @@ C****
      *     ,trdrydep
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
-     *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf, 
-     *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap, 
+     *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
+     *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd, dtr_dd
@@ -122,7 +122,7 @@ C****
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE TRACERS_DUST, only : hbaij,ricntd
+      USE tracers_dust, only : hbaij,ricntd
 #endif
 #endif
       USE SOIL_DRV, only: earth
@@ -136,7 +136,7 @@ C****
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
      *     ,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
-     *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG 
+     *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
      *     ,dT2,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER
      *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS
@@ -346,9 +346,9 @@ C****
 !$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,
 !$OMP*  HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
 !$OMP*  KR, MA1,MSI1, PS,P1K,PLAND,PWATER,
-!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, 
+!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1,
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS, SHEAT,SRHEAT,
-!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS, 
+!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,
 !$OMP*  THV1,TG,TG1,TG2,TR4,TRHDT,TRHEAT,Z1BY6L,dlwdt,
 !$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,WS0,QSRF,pbl_args,jr,tmp
 #if defined(TRACERS_ON)
@@ -855,10 +855,10 @@ C****
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
-     .               * dxyp(j)*ptype 
+     .               * dxyp(j)*ptype
          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
-     .               * dxyp(j)*ptype*dtsurf 
+     .               * dxyp(j)*ptype*dtsurf
 #endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
           !this is modeled in complete accordance to what Watson is doing
@@ -868,11 +868,11 @@ C****
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
-     .               * dxyp(j)*ptype 
+     .               * dxyp(j)*ptype
          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
-     .               * dxyp(j)*ptype*dtsurf 
+     .               * dxyp(j)*ptype*dtsurf
 #endif
        END IF
 #endif
@@ -1112,7 +1112,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_zpbl1:idd_zpbl8)=ptype*pbl_args%z(1:8)
                 tmp(idd_uabl1:idd_uabl8)=ptype*uabl(1:8,i,j,itype)
                 tmp(idd_vabl1:idd_vabl8)=ptype*vabl(1:8,i,j,itype)
-                tmp(idd_uvabl1:idd_uvabl8)=ptype*sqrt( 
+                tmp(idd_uvabl1:idd_uvabl8)=ptype*sqrt(
      *               uabl(1:8,i,j,itype)*uabl(1:8,i,j,itype)+
      *               vabl(1:8,i,j,itype)*vabl(1:8,i,j,itype))
                 tmp(idd_tabl1:idd_tabl8)=ptype*tabl(1:8,i,j,itype)
