@@ -4508,8 +4508,8 @@ c**** column atmospheric temperature
       else if (k.eq.ij_tatm) then
         do j=2,jm
         do i=1,im
-          anum(i,j) = .25*sum(aijk(i,j,1:lm,ijk_t))/
-     /                    sum(aijk(i,j,1:lm,ijk_dp)) - TF
+          anum(i,j) = sum(aijk(i,j,1:lm,ijk_t))/
+     /                sum(aijk(i,j,1:lm,ijk_dp)) - TF
         end do
         end do
 
@@ -6249,7 +6249,7 @@ c**** Collect temperatures and pressures (on the secondary grid)
           dp=aijk(i,j,l,ijk_dp)
           plb(l)=plb(l+1)+dp/idacc(ia_dga)
           tlm(l)=ts
-          if(dp.gt.0.) tlm(l)=.25*aijk(i,j,l,ijk_t)/dp - tf
+          if(dp.gt.0.) tlm(l)=aijk(i,j,l,ijk_t)/dp - tf
         end do
 c**** find edge temperatures (assume continuity and given means)
         tlb(0)=ts ; plb(0)=plbmsu(1) ; tlb(1)=ts
