@@ -163,14 +163,24 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
       Resp(:,:,:) = 0.d0
 
 *---Step 1a: TEMPERATURE AND MOISTURE CONSTRAINTS ON DECOMP 
-! temperature dependence
+! TEMPERATURE DEPENDENCE
+      !* Original CASA.
 !            bgtemp(:) = (Q10 ** ((Soiltemp(:) - 30.d0) / 10.d0))  !original CASA function -PK
-        !**function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
+      !* Function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
         !allows for variable Q10 rather than fixed 
-            bgtemp(:) = 0.56d0+
-     &      (1.46d0*atan(PI*0.0309d0*(Soiltemp(:)-15.7d0))) / PI
+!            bgtemp(:) = 0.56d0+
+!     &      (1.46d0*atan(PI*0.0309d0*(Soiltemp(:)-15.7d0))) / PI
 
-! moisture dependence 
+      !* Linear fit to Del Grosso ftemp. Min=0.125 @Soiltemp=0, Max=1.0 @Soiltemp=30 degC- NK
+!      bgtemp = max(0.125d0, min(1.d0,
+!     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:))) !linear -NK
+      bgtemp = max(0.125d0, 
+     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:)) !linear, no upper cap -NK
+      
+      !* S-function fit to Del Grosso. - NK
+!      bgtemp=1.15d0*(1.d0/(1.d0+EXP(-0.14d0*(Soiltemp(:)-17.d0))))
+
+! MOISTURE DEPENDENCE
 * mimic calculation of bevap in surphy.F to get Wlim
 * but use Soilmoist,Soiltemp instead of h2osoi,tsoi 
 *   watdry = water content when evapotranspiration stops = wp
@@ -187,7 +197,8 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !               Wlim(n) = min( max(Soilmoist(n)-watdry,0.d0) /  !original CASA function -PK
 !     &                   (watopt-watdry), 1.d0)
         !**function RWC from DelGrosso et al., 2005** -PK 2/07
-               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
+!               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry) 
+               Wlim(n) = (Soilmoist(n)-watdry)/(watsat - watdry) !Made this REW instead of Wlim - NK
             else
                Wlim = 0.01d0
             end if
@@ -195,8 +206,9 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 
 !           bgmoist(:) = 0.25d0 + 0.75d0*Wlim(:)  !original CASA function -PK
         !**functions f(RWC), Rh from DelGrosso et al. (Biogeoch. 73, 2005)** -PK 2/07
-           bgmoist(:) = 5.d0 *
-     &                 (0.287d0+(atan(PI*0.009d0*(Wlim(:)-17.47d0)))/PI)
+!           bgmoist(:) = 5.d0 *
+!     &                 (0.287d0+(atan(PI*0.009d0*(Wlim(:)-17.47d0)))/PI)
+           bgmoist(:) = min(1.d0,0.01d0 + (1-0.01d0)/(0.7-0.d0)*Wlim(:)) !linear - NK
            atmp(:) = bgtemp(:) * bgmoist(:)
 
 *---Step 1b: DETERMINE loss of C FROM EACH DEAD POOL (donor) PER TIMESTEP
