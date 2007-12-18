@@ -5806,7 +5806,7 @@ c
       name_ijk(k) = 'z'
       lname_ijk(k) = 'HEIGHT'
       units_ijk(k) = 'm'
-      scale_ijk(k) = 0.25*BYGRAV
+      scale_ijk(k) = BYGRAV
 
       return
       END SUBROUTINE IJK_TITLES
