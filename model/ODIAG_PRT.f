@@ -799,6 +799,7 @@ C****
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
       
+#ifdef TRACERS_OCEAN
       do n=1,ntm
       DO L=1,12
         LNAME="VERT. DIFF. "//trname(n)
@@ -825,6 +826,7 @@ C****
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
       enddo
+#endif
 
 C****
 C**** Simple scaled OIJ diagnostics
