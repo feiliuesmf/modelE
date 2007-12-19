@@ -1,6 +1,7 @@
 #define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
 #define RETURN_(status) If (Present(rc)) rc=status; return
 
+#if defined(USE_FVCORE)
 !#define NO_FORCING
 
 
@@ -19,6 +20,7 @@ module FV_INTERFACE_MOD
 
   ! except for
 
+  public :: Write_Profile
   public :: FV_CORE                ! Derived type to encapsulate FV + modelE data
   public :: Init_app_clock         ! modelE does not use ESMF clocks, but ESMF requires one
   public :: Initialize             ! Uses modelE data to initialize the FV gridded component
@@ -178,8 +180,8 @@ contains
     call allocateFvExport3D ( fv % export,'TH' )
     call allocateFvExport3D ( fv % export,'PLE' )
     call allocateFvExport3D ( fv % export,'Q' )
-    call allocateFvExport3D ( fv % export,'MFX_A' )
-    call allocateFvExport3D ( fv % export,'MFY_A' )
+    call allocateFvExport3D ( fv % export,'MFX' )
+    call allocateFvExport3D ( fv % export,'MFY' )
     call allocateFvExport3D ( fv % export,'MFZ' )
 
 
@@ -447,18 +449,18 @@ contains
     USE DOMAIN_DECOMP, only: grid, halo_update, get, grid, NORTH
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
     USE MODEL_COM, only : NIdyn, DT, DTSRC
-    USE SOMTQ_COM, only: TMOM, MZ
+    USE SOMTQ_COM, only: QMOM, TMOM, MZ
     USE ATMDYN, only: CALC_AMP, CALC_PIJL, AFLUX, COMPUTE_MASS_FLUX_DIAGS
     USE DYNAMICS, only: MA, PHI, GZ
     USE DYNAMICS, ONLY: PU, PV, CONV
-    USE DYNAMICS, ONLY: SD, AFLUX
+    USE DYNAMICS, ONLY: SD, AFLUX, PUA, PVA, SDA
 
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
     type (ESMF_TimeInterval) :: timeInterval
 
     REAL*8, DIMENSION(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM) :: PIJL
-    integer :: istep, NS, NIdyn_fv
+    integer :: L,istep, NS, NIdyn_fv
     integer :: rc
 
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
@@ -481,6 +483,7 @@ contains
 
        call accumulate_mass_fluxes(fv)
        TMOM = 0 ! for now
+       QMOM = 0 ! for now
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
@@ -1037,6 +1040,10 @@ contains
     fv % dT_old = DryTemp_GISS()
     fv % dPT_old = DeltPressure_DryTemp_GISS()
 
+#if defined(USE_FV_Q)
+    Q(:,j_0:j_1,:) = Reverse(fv % Q)
+#endif
+
   End Subroutine Copy_FV_export_to_modelE
 
   subroutine ConvertPressure_GISS2FV_r4(P_giss, P_fv)
@@ -1153,7 +1160,7 @@ contains
              u_b(i,j,k) = (Ua_halo(im1,j-1,k) + Ua_halo(i,j-1,k) + Ua_halo(im1,j,k) + Ua_halo(i,j,k))/4
              v_b(i,j,k) = (Va_halo(im1,j-1,k) + Va_halo(i,j-1,k) + Va_halo(im1,j,k) + Va_halo(i,j,k))/4
              im1 = i
- 
+
           End do
        end do
     end do
@@ -1496,22 +1503,36 @@ contains
 
   subroutine accumulate_mass_fluxes(fv)
     Use Resolution, only: IM,JM,LM,LS1
+    USE GEOM, ONLY: DYP, DXV, DXYP, IMAXJ, BYIM
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
     USE MODEL_COM, only: DTsrc,DT,DSIG
     USE DOMAIN_DECOMP, only: get, grid, NORTH, SOUTH, HALO_UPDATE
-    Use Constant, only: radius,pi,grav
+!   Use Constant, only: radius,pi,grav
     implicit none
     type (FV_core) :: fv
     real*4, Dimension(:,:,:), Pointer :: PLE, mfx_X, mfx_Y, mfx_Z
     integer :: J_0, J_1
     integer :: J_0S, J_1S
     integer :: J_0H, J_1H
-    integer :: i,im1,j,l
+    integer :: i,im1,j,l,k
     integer :: rc
     logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
     real*8 :: DTLF, DTfac
-    real*8 :: area,dlon,dlat,LAT
+    real*8 :: area,dlon,dlat,acap,rcap
+    real*8 :: rX,rY,rZ
+    real*8 :: sum1, sum2, mySum
+    real*8, allocatable :: sine(:),cosp(:),cose(:)
+
+    REAL*8 PVS,PVN
+    REAL*8 PVSA(LM),PVNA(LM)
+    REAL*8 TMPim1(IM)
+
+    real*8, parameter :: grav=9.80
+    real*8, parameter :: pi=3.14159265358979323846
+    real*8, parameter :: radius= 6376000.00000000
+
+
 
     DTfac = DT
 
@@ -1521,44 +1542,87 @@ contains
 
     ! Horizontal and Vertical mass fluxes
     !---------------
+    !     \item {\tt MFX}:       Mass-Weighted U-Wind on C-Grid (Pa m^2/s)
+    !     \item {\tt MFY}:       Mass-Weighted V-wind on C-Grid (Pa m^2/s)
+    !     \item {\tt MFZ}:       Vertical mass flux (kg/(m^2*s))
 
-    call ESMFL_StateGetPointerToData ( fv % export,mfx_X,'MFX_A',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,mfx_X,'MFX',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % export,mfx_Y,'MFY_A',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv % export,mfx_Y,'MFY',rc=rc)
     VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,mfx_Z,'MFZ',rc=rc)
     VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,PLE,'PLE',rc=rc)
     VERIFY_(rc)
-   
-!     \item {\tt MFX}:       Mass-Weighted U-Wind on C-Grid (Pa m^2/s)
-!     \item {\tt MFY}:       Mass-Weighted V-wind on C-Grid (Pa m^2/s)
-!     \item {\tt MFZ}:       Vertical mass flux (kg/(m^2*s))
+
+    allocate ( sine(jm) )
+    allocate ( cosp(jm) )
+    allocate ( cose(jm) )
+    dlon = 2.0*pi/im
+    dlat = pi/(jm-1)
+    do j=2,jm
+         sine(j) = sin(-0.5*pi + ((j-1)-0.5)*(pi/(jm-1)))
+    enddo
+    cosp( 1) =  0.0
+    cosp(jm) =  0.0
+    do j=2,jm-1
+         cosp(j) = (sine(j+1)-sine(j)) / dlat
+    enddo
+    do j=2,jm
+       cose(j) = 0.5 * (cosp(j-1) + cosp(j))
+    enddo
+       cose(1) = cose(2)
+
+    PU(1:IM,J_0:J_1,1:LM) = mfx_X
+    PV(1:IM,J_0:J_1,1:LM) = mfx_Y
+
 #ifdef NO_MASS_FLUX
     mfx_X = 0
     mfx_Y = 0
     mfx_Z = 0
 #endif
-    call Regrid_A_to_B(Reverse(mfx_X), Reverse(mfx_Y), PU(:,J_0:J_1,:), PV(:,J_0:J_1,:))
-    PU = PU/PRESSURE_UNIT_RATIO
-    PV = PV/PRESSURE_UNIT_RATIO
- 
+    PU = Reverse(PU)/PRESSURE_UNIT_RATIO
+    PV = Reverse(PV)/PRESSURE_UNIT_RATIO
     mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
-    dlon = 2.0*pi/im
-    dlat = pi/(jm-1)
+
+! Adjust area scale factors between FV and GISS
     do l=1,lm
        do j=j_0,j_1
-          LAT = ((-pi/2.0) + (j-0.5)*dlat )
           do i=1,im
-             area = radius**2 * dlon * COS(LAT) * 2 * sin(dlat/2)
-             mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (Pa m^2/s)
+             PU(i,j,l) = PU(i,j,l)*DYP(j)/(radius*dlat) 
+          enddo
+          do i=1,im
+             PV(i,j,l) = PV(i,j,l)*DXV(j)/(cose(j)*radius*dlon)
           enddo
        enddo
     enddo
-    SD(:,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
-
+! Shift C-grid PU to Eastward orientation for GISS
+    do l=1,lm
+       do j=j_0,j_1
+          im1 = 1
+          do i=im,1,-1
+             TMPim1(i) = PU(im1,j,l)
+             im1 = i
+          enddo
+          PU(:,j,l) = TMPim1
+       enddo
+    enddo
+! Change Units of vertical mass fluxes
+    do l=0,lm
+       do j=j_0,j_1
+          area = DXYP(j)
+          do i=1,im
+             mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (mb m^2/s)
+          enddo
+       enddo
+    enddo
+    SD(1:IM,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
     ! Surface Pressure tendency - vert integral of horizontal convergence
-    PIT(:,J_0:J_1) = mfx_Z(:,:,1) + sum(SD(:,J_0:J_1,1:LM-1),3)
+    PIT(1:IM,J_0:J_1) = mfx_Z(:,:,0) + sum(SD(1:IM,J_0:J_1,1:LM-1),3)
+
+    deallocate ( sine )
+    deallocate ( cosp )
+    deallocate ( cose )
 
     ! Recopy into CONV to support prior usage
     CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
@@ -1566,7 +1630,6 @@ contains
 
     PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)*DTfac
     PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)*DTfac
-
     SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)*DTfac
 
   end subroutine accumulate_mass_fluxes
@@ -1786,3 +1849,92 @@ contains
 
 
 end module dynamics_save
+
+#else
+
+module FV_INTERFACE_MOD
+  implicit none
+  private
+  public :: DryTemp_GISS, Write_Profile
+
+contains
+
+  Subroutine Write_Profile(arr, name)
+    Use RESOLUTION,    Only: IM, JM, LM
+    Use DOMAIN_DECOMP, Only: grid, PACK_DATA, AM_I_ROOT
+    Real*8, intent(in) :: arr(:,:,:)
+    character(len=*), intent(in) :: name
+
+    Integer :: k, km
+    Real*8 :: rng(3,LM)
+    Real*8 :: arr_global(IM,JM,size(arr,3))
+    Real*8 :: arr_tmp(IM,grid % j_STRT_HALO:grid % J_stop_HALO,size(arr,3))
+
+    arr_tmp(:,grid % J_strt:grid % J_STOP,:)=arr
+
+    Call PACK_DATA(grid, arr_tmp, arr_global)
+
+    IF (AM_I_ROOT()) Then
+       rng(1,:) = MINVAL(MINVAL(arr_global,DIM=1),DIM=1)
+       rng(2,:) = MAXVAL(MAXVAL(arr_global,DIM=1),DIM=1)
+       rng(3,:) = SUM(SUM(arr_global,DIM=1),DIM=1)/(IM*JM)
+
+       print*,'***********'
+       print*,'stats for ',trim(name)
+       km = size(arr,3)
+
+       Do k = 1, km
+          Write(*,'(a,i4.0,3(f21.9,1x))')'k:',k,rng(:,k)
+       End Do
+       print*,'***********'
+       print*,' '
+    End IF
+
+  End Subroutine Write_Profile
+
+  function PKZ_GISS() Result(PKZ)
+    USE RESOLUTION, only: IM, LM, LS1
+    Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
+    use DOMAIN_DECOMP, only: grid, get
+    USE CONSTANT, only: KAPA
+
+    REAL*8 :: PE
+    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
+
+    INTEGER :: L, j_0, j_1
+
+    call get(grid, J_STRT=J_0, J_STOP=J_1)
+
+    Do L = 1, LM
+
+       If (L < LS1) THEN
+          PKZ(:,:,L) = (SIG(L)*P(:,J_0:J_1) + Ptop) ** KAPA
+       Else
+          PKZ(:,:,L) = (SIG(L)*PSFMPT + Ptop) ** KAPA
+       End IF
+
+    End Do
+
+  end function PKZ_GISS
+
+  ! Convert Potential Temperature into (dry) Temperature
+  function DryTemp_GISS() Result(T_dry)
+    USE RESOLUTION, only: IM, LM, LS1
+    Use MODEL_COM, only: T
+    USE DOMAIN_DECOMP, only: grid, GET
+
+    REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
+
+    INTEGER :: J_0,J_1
+    Call Get(grid, J_STRT=J_0, J_STOP=J_1)
+
+    PKZ = PKZ_GISS()
+    T_dry = PKZ * T(:,J_0:J_1,:)
+
+  end function DryTemp_GISS
+
+end module FV_INTERFACE_MOD
+
+#endif
+
