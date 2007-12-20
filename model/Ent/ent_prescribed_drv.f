@@ -66,8 +66,9 @@
       call prescr_get_crownrad(popdata,craddata)
       call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &     laidata,hdata,dbhdata,popdata,cpooldata)
-      call prescr_get_soil_types(IM,JM,I0,I1,J0,J1,
-     &     soil_color,soil_texture)
+      call prescr_get_soilcolor(soil_color)
+      call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
+     &     soil_texture)
 
       !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
       !print*,'hdata',hdata
@@ -295,35 +296,16 @@
       end subroutine prescr_get_carbonplant
 
 !*************************************************************************
-
-      subroutine prescr_get_soil_types(im,jm,I0,I1,J0,J1,
-     &     soil_color,soil_texture)
+      subroutine prescr_get_soiltexture(im,jm,I0,I1,J0,J1,
+     &     soil_texture)
       !* Return arrays of GISS soil color and texture.
       use FILEMANAGER, only : openunit,closeunit
       integer, intent(in) :: im,jm,I0,I1,J0,J1
-      integer, intent(out) :: soil_color(N_COVERTYPES)
       real*8, intent(out) :: soil_texture(N_SOIL_TEXTURES,I0:I1,J0:J1)
       !------
-#ifdef PFT_MODEL_ENT
-!--- ever_ES_broad ever_LS_borad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_arctic c4crops 
-!----sand bdirt
-!KIM - temp. values
-      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
-     $     (/ 2, 2,  2, 2, 2, 2, 2
-     &     ,2, 2, 2, 2 ,2, 2, 1, 2 /)
-#else
-      !* bsand tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
-      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
-     $     (/1, 2, 2,  2, 2, 2, 2, 2
-     &     ,2, 2, 2, 2 /)
-#endif
       real*8 :: buf(im,jm,N_SOIL_TEXTURES)
       integer :: iu_SOIL
       integer k
-
-      soil_color(:) = soil_color_prescribed(:)
 
       call openunit("soil_textures",iu_SOIL,.true.,.true.)
       print *,IM,JM,N_COVERTYPES !#DEBUG
@@ -343,7 +325,7 @@
 !     &           ,'sum(soiltextures)=',sum(soil_texture(:,i,j))
 !        enddo
 !      enddo
-      end subroutine prescr_get_soil_types
+      end subroutine prescr_get_soiltexture
 !*************************************************************************
       end module ent_prescribed_drv
 

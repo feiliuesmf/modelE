@@ -15,6 +15,7 @@
       public prescr_calc_shc,prescr_plant_cpools
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
+     &     ,prescr_get_soilcolor
 
 !*********************************************************************
 !--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
@@ -492,6 +493,19 @@ c**** calculate root fraction afr averaged over vegetation types
 
       end function wooddensity_gcm3
 !*************************************************************************
+      subroutine prescr_get_soilcolor(soil_color)
+      !* Return arrays of GISS soil color and texture.
+      integer, intent(out) :: soil_color(N_COVERTYPES)
+      !------
 
+      !* bsand tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
+      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
+     $     (/1, 2, 2,  2, 2, 2, 2, 2
+     &     ,2, 2, 2, 2 /)
+
+      soil_color(:) = soil_color_prescribed(:)
+
+      end subroutine prescr_get_soilcolor
+!*************************************************************************
       end module ent_prescr_veg
 
