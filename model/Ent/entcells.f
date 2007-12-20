@@ -382,7 +382,7 @@
      ivegdata,popdens,laidata,hdata,dbhdata,craddata,
      icpooldata,nmdata,
      ifracrootdata,soildata,albedodata,soil_texture,
-     iCi_ini, CNC_ini, Tcan_ini, Qf_ini)
+     iCi_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribed soil C, N pools -PK
 
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
@@ -399,7 +399,9 @@
       integer,intent(in) :: soildata(N_COVERTYPES)
       real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
       real*8,intent(in) :: soil_texture(N_SOIL_TEXTURES) !soil texture fractions.
-      real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini 
+      real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,intent(in) :: Tpool_ini(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  !soil pools, in g/m2 -PK
+      
       !-----Local---------
       integer :: ncov, pft
       type(patch),pointer :: pp, pp_tmp
@@ -431,7 +433,7 @@
          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
-          call assign_patch(pp,Ci_ini, CNC_ini)
+          call assign_patch(pp,Ci_ini, CNC_ini, Tpool_ini)
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(ncov) > EPS ) then 

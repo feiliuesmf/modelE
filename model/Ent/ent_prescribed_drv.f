@@ -13,7 +13,8 @@
      &     init_canopy_physical,
      &     prescr_vegdata,
      &     prescr_get_vdata, prescr_get_laidata, 
-     &     prescr_update_vegcrops, prescr_veg_albedodata
+     &     prescr_update_vegcrops, prescr_veg_albedodata,
+     &     prescr_soilpools  !for prescribing soil C, N pools -PK 12/07
 
       contains
 
@@ -33,6 +34,60 @@
       Qf_ini(:,:) = 0.d0             !Should be a forcing from land surface model.
 
       end subroutine init_canopy_physical
+      
+!***************************************************************************
+      subroutine prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini)
+      !this routine reads in total soil pool amounts (measured), 
+      !and individual soil pool fractions (modeled pft-dependent values from spinup runs),
+      !then prescribes individual amounts **all amounts in g/m2** -PK 12/07   
+!      use FILEMANAGER, only : openunit,closeunit
+      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8,intent(out) :: 
+     &      Tpool_ini(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,I0:I1,J0:J1)  !prescribed soil pools
+      !-----Local------
+!      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
+!      real*4 :: soilC_data(N_CASA_LAYERS,IM,JM)
+!      integer :: iu_SOILCARB  !and pft? (for reading in pool fractions)
+!      character*80 :: title
+      integer :: i,n
+      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !measured total C_org pool
+      real*8, dimension(N_CASA_LAYERS,NPOOLS-NLIVE) :: Cpool_fracs  !modeled soil C_org pool fractions
+
+      Tpool_ini(:,:,:,:,:) = 0.d0  !initialize all pools to zero
+      
+!***for eventual reading of global data***      
+!      call openunit("SOILCARB",iu_SOILCARB,.true.,.true.)  !globally gridded binary dataset
+!      read (iu_SOILCARB) title, soilC_data
+!      .....add code to also read in pft-specific pool fractions (e.g., array of arrays?) 
+!      do n=1,N_CASA_LAYERS 
+!       do i=NLIVE+1,NPOOLS
+!        Tpool_ini(CARBON,i,n,...,...) = Cpool_fracs(n,i-NLIVE,pft?)*soilC_data(n,...,...)
+!       end do
+!      end do
+
+!####temporary hack (for site-specific runs)####
+!for now, external file should be named as below and should be organized as follows:
+!(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
+!(2) first non-header row should have total site-measured pool (in g/m2);
+!(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
+      open(unit=500,file='soilC_prescr.csv',status='old') 
+      
+      read(500,*)  !skip optional header row(s)
+      read(500,*) total_Cpool(:)
+      do i=1,NPOOLS-NLIVE
+        read(500,*) Cpool_fracs(:,i)
+      end do
+!####
+      
+      do n=1,N_CASA_LAYERS 
+       do i=NLIVE+1,NPOOLS
+        Tpool_ini(CARBON,i-NLIVE,n,I0:I1,J0:J1) =
+     &          Cpool_fracs(n,i-NLIVE)*total_Cpool(n)
+       end do
+      end do
+
+      end subroutine prescr_soilpools
+      
 !***************************************************************************
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,

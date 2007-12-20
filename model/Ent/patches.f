@@ -38,47 +38,31 @@
 
       !*********************************************************************
       subroutine assign_patch(pp,
-     &     Ci_ini, CNC_ini)
+     &     Ci_ini, CNC_ini, Tpool_ini)
      
-      use ent_const  !added for convenience when assigning Tpool (below) -PK 10/8/07
+      use ent_const  !for assigning Tpool -PK 12/07
       
       !Eventually may want to include all patch variables as optional vars.
       type(patch),pointer :: pp
       real*8 :: Ci_ini, CNC_ini
       
-      !added these for prescribing Tpool  -PK 10/8/07
+      !for prescribed soil C_org (or N) pools, in g/m2  -PK
       integer :: i, n
-      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !total soil C_org pool (data), in g/m2
-      real*8, dimension(N_CASA_LAYERS,NPOOLS-NLIVE) :: Cpool_fracs  !9 "dead" (soil C) pools
+      real*8, dimension(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS) :: Tpool_ini
 
       pp%Ci = Ci_ini
       pp%GCANOPY = CNC_ini
 
-      
-#ifdef PRESCR_SOILCARB
-      !to prescribe soil C_org pools from external file -PK 12/17/07
-      !values based on proportion of total in each pool after spinups
-      
-      !file containing prescribed values -- arranged in 1 or 2 columns (layer 1, layer 2)
-      !1st non-header row has total site-measured pool, in g/m2;
-      !9 subsequent rows correspond to 9 soil pools  
-      open(unit=500,file='soilC_prescr.csv',status='old')
-
-      read(500,*)  !skip header row(s)
-      read(500,*) total_Cpool(:)
-      do i=1,NPOOLS-NLIVE
-        read(500,*) Cpool_fracs(:,i)
-      end do
-      
+#ifdef PRESCR_SOILCARB  !PK 
       do n=1,N_CASA_LAYERS 
        do i=NLIVE+1,NPOOLS
-        pp%Tpool(CARBON,i,n) = Cpool_fracs(n,i-NLIVE)*total_Cpool(n) 
+        pp%Tpool(CARBON,i,n) = Tpool_ini(CARBON,i-NLIVE,n)  
        end do
       end do
-      write(501,*) pp%Tpool(CARBON,:,:)  !optional test
+#else
+      pp%Tpool(:,:,:) = 0.d0  
 #endif
-
-      ! pp%Tpool(CARBON,i,ii) = Tpool_prescr(ii,i-NLIVE) 
+      print*, 'soil C pools: ', pp%Tpool(CARBON,:,:)  !optional test -PK
 
       end subroutine assign_patch
       !*********************************************************************
