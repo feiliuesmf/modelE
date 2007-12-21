@@ -1830,6 +1830,11 @@ c**** time step for ground hydrology
 c spgsn is the specific gravity of snow
       spgsn=.1d0
 
+c**** cosday, sinday should be defined (reset once a day in daily_earth)
+      jday=1+mod(itime/nday,365)
+      cosday=cos(twopi/edpery*jday)
+      sinday=sin(twopi/edpery*jday)
+
 ccc read and initialize vegetation here
       call init_vegetation(redogh,istart)
 
@@ -1888,9 +1893,9 @@ c****
 c code transplanted from subroutine input
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
-        jday=1+mod(itime/nday,365)
-        cosday=cos(twopi/edpery*jday)
-        sinday=sin(twopi/edpery*jday)
+        !jday=1+mod(itime/nday,365)
+        !cosday=cos(twopi/edpery*jday)
+        !sinday=sin(twopi/edpery*jday)
 
         do j=J_0,J_1
         do i=1,im
@@ -1993,9 +1998,9 @@ ccc!!! restart file (without snow model data)
             hsn_ij(:,:,i,j)   = 0.
             fr_snow_ij(:,i,j) = 0.
           else
-            jday=1+mod(itime/nday,365)
-            cosday=cos(twopi/edpery*jday)
-            sinday=sin(twopi/edpery*jday)
+            !jday=1+mod(itime/nday,365)
+            !cosday=cos(twopi/edpery*jday)
+            !sinday=sin(twopi/edpery*jday)
 
             !w(1:ngm,1) =   wbare(1:ngm,i,j)
             !w(0:ngm,2) =   wvege(0:ngm,i,j)
