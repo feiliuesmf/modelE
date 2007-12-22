@@ -70,7 +70,7 @@
 !(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
 !(2) first non-header row should have total site-measured pool (in g/m2);
 !(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
-      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !unformatted dataset
+      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
       read(iu_SOILCARB,*)  !skip optional header row(s)
       read(iu_SOILCARB,*) total_Cpool(:)
       do i=1,NPOOLS-NLIVE
