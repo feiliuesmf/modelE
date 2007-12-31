@@ -379,7 +379,7 @@ contains
     Type (FV_Core) :: fv
     type (esmf_clock), intent(in) :: clock
     integer :: rc
-    
+
     call saveTendencies(fv)
     call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc=rc )
 
@@ -482,9 +482,12 @@ contains
        call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
 
        call accumulate_mass_fluxes(fv)
-       TMOM = 0 ! for now
-       QMOM = 0 ! for now
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
+
+       call reset_tmom 
+#if defined(USE_FV_Q)
+       call reset_qmom 
+#endif
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
     end do
@@ -554,7 +557,7 @@ contains
            & j_strt_halo = j_0h, j_stop_halo = j_1h)
       allocate(globalArr(IM,JM,size(arr,3)))
       allocate(padArr(1:IM,j_0h:j_1h, size(arr,3)))
-      
+
       padArr(:,j_0:j_1,:) = arr(:,:,:)
       call pack_data(grid, padArr, globalArr)
       if (AM_I_ROOT()) write(iunit) globalArr
@@ -714,56 +717,56 @@ contains
     ! from scratch.
     unit = GetFile(rst_file, form="unformatted", rc=rc)
     VERIFY_(rc)
-    
+
     ! 1) Start date
     Call write_start_date(clock, unit)
-    
+
     ! 2) Grid size
     Call WRITE_PARALLEL( (/ IM, JM, LM, LS1-1, N_TRACERS /), unit )
-    
+
     ! 3) Pressure coordinates
     ! Keep in mind that L is reversed between these two models
-    
+
     Call Compute_ak_bk(ak, bk, sige, Ptop, PSFMPT, unit)
     Call WRITE_PARALLEL( ak, unit)
     Call WRITE_PARALLEL( bk, unit)
-    
+
     Call GET(grid, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
-    
+
     ! 4) 3D fields velocities
     Allocate(U_d(IM, J_0:J_1, LM))
     Allocate(V_d(IM, J_0:J_1, LM))
-    
+
     write(*,*)'Calling ComputeRestartVelocities()'
     Call ComputeRestartVelocities(unit, grid, U, V, U_d, V_d)
-    
+
 !!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
-    
+
     Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(:,J_0:J_1,:))
     Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(:,J_0:J_1,:))
-    
+
     Deallocate(V_d)
     Deallocate(U_d)
-    
+
     ! Compute potential temperature from modelE (1 mb -> 1 pa ref)
     Allocate(PT(IM, J_0:J_1, LM))
     Call ConvertPotTemp_GISS2FV(VirtualTemp(T(:,J_0:J_1,:), Q(:,J_0:J_1,:)), PT)
     Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
     Deallocate(PT)
-    
+
     ! Compute PE, PKZ from modelE
     Allocate(PKZ(IM, J_0:J_1, LM))
     Allocate(PE(IM, J_0:J_1, LM+1))
     Call ComputePressureLevels(unit, grid, VirtualTemp(T, Q), P, SIG, SIGE, Ptop, KAPA, PE, PKZ )
-    
+
     Call GEOS_VarWrite(unit, grid % ESMF_GRID, PE)
     Call GEOS_VarWrite(unit, grid % ESMF_GRID, PKZ)
-    
+
     Deallocate(PE)
     Deallocate(PKZ)
-    
+
     Call Free_File(unit)
-          
+
   CONTAINS
 
     ! Computes virtual pot. temp. from pot. temp. and specific humidity
@@ -918,6 +921,81 @@ contains
   End Subroutine Create_Restart_File
 
 
+  subroutine reset_tmom
+
+      USE MODEL_COM, only : im,jm,lm,t
+      USE DOMAIN_DECOMP, ONLY: grid
+      USE SOMTQ_COM, only : mz,tmom,qmom
+      USE DYNAMICS, only : pmid,pedn
+      implicit none
+
+      integer :: i,j,l
+      REAL*8 :: rdsig
+
+      INTEGER :: I_0, I_1, J_1, J_0
+
+!**** Extract useful local domain parameters from "grid"
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+
+      tmom = 0 ! except for vertical slopes:
+      DO J=J_0,J_1
+        DO I=1,IM
+          RDSIG=(PMID(1,I,J)-PEDN(2,I,J))/(PMID(1,I,J)-PMID(2,I,J))
+          TMOM(MZ,I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
+          DO L=2,LM-1
+            RDSIG=(PMID(L,I,J)-PEDN(L+1,I,J))/(PMID(L-1,I,J)-PMID(L+1,I,J))
+            TMOM(MZ,I,J,L)=(T(I,J,L+1)-T(I,J,L-1))*RDSIG
+          END DO
+          RDSIG=(PMID(LM,I,J)-PEDN(LM+1,I,J))/(PMID(LM-1,I,J)-PMID(LM,I,J))
+          TMOM(MZ,I,J,LM)=(T(I,J,LM)-T(I,J,LM-1))*RDSIG
+        END DO
+      END DO
+
+      return
+ 
+  end subroutine reset_tmom
+
+  subroutine reset_qmom
+
+      USE MODEL_COM, only : im,jm,lm,q
+      USE DOMAIN_DECOMP, ONLY: grid
+      USE SOMTQ_COM, only : mz,tmom,qmom
+      USE DYNAMICS, only : pmid,pedn
+      implicit none
+
+      integer :: i,j,l
+      REAL*8 :: rdsig
+
+      INTEGER :: I_0, I_1, J_1, J_0
+
+!**** Extract useful local domain parameters from "grid"
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+
+      qmom = 0 ! except for vertical slopes:
+      DO J=J_0,J_1
+        DO I=1,IM
+          RDSIG=(PMID(1,I,J)-PEDN(2,I,J))/(PMID(1,I,J)-PMID(2,I,J))
+          QMOM(MZ,I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
+          IF(Q(I,J,1)+QMOM(MZ,I,J,1).LT.0.) QMOM(MZ,I,J,1)=-Q(I,J,1)
+          DO L=2,LM-1
+            RDSIG=(PMID(L,I,J)-PEDN(L+1,I,J))/(PMID(L-1,I,J)-PMID(L+1,I,J))
+            QMOM(MZ,I,J,L)=(Q(I,J,L+1)-Q(I,J,L-1))*RDSIG
+            IF(Q(I,J,L)+QMOM(MZ,I,J,L).LT.0.) QMOM(MZ,I,J,L)=-Q(I,J,L)
+          END DO
+          RDSIG=(PMID(LM,I,J)-PEDN(LM+1,I,J))/(PMID(LM-1,I,J)-PMID(LM,I,J))
+          QMOM(MZ,I,J,LM)=(Q(I,J,LM)-Q(I,J,LM-1))*RDSIG
+          IF(Q(I,J,LM)+QMOM(MZ,I,J,LM).LT.0.) QMOM(MZ,I,J,LM)=-Q(I,J,LM)
+        END DO
+      END DO
+ 
+  end subroutine reset_qmom
+
   function PKZ_GISS() Result(PKZ)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
@@ -992,7 +1070,7 @@ contains
     Use Resolution, only: IM,JM,LM,LS1
     USE DYNAMICS, ONLY: PUA,PVA,SDA, PU, PV, SD
     Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
-    Use MODEL_COM, only : SIGE, Ptop, P
+    Use MODEL_COM, only : Ptop, P
     USE DOMAIN_DECOMP, only: grid, GET, SOUTH, NORTH, HALO_UPDATE
     Use ATMDYN, only: CALC_AMPK
     USE GEOM
@@ -1033,7 +1111,7 @@ contains
 
     call ConvertPressure_FV2GISS(PLE, fv % PE_old)
     ! Just need surface pressure - Ptop
-    P(:,J_0:J_1) = (fv % PE_old(:,:,1) - Ptop)/SIGE(1)
+    P(:,J_0:J_1) = fv % PE_old(:,:,1) - Ptop
     CALL CALC_AMPK(LS1-1)
 
     ! Preserve state information for later computation of tendencies.
@@ -1151,7 +1229,7 @@ contains
 
     Call Halo_Update(grid, Ua_halo,FROM=SOUTH)
     Call Halo_Update(grid, Va_halo,FROM=SOUTH)
-    
+
     Do k = 1, LM
        Do j = j_0STGR, j_1STGR
           im1 = IM
@@ -1589,7 +1667,7 @@ contains
     do l=1,lm
        do j=j_0,j_1
           do i=1,im
-             PU(i,j,l) = PU(i,j,l)*DYP(j)/(radius*dlat) 
+             PU(i,j,l) = PU(i,j,l)*DYP(j)/(radius*dlat)
           enddo
           do i=1,im
              PV(i,j,l) = PV(i,j,l)*DXV(j)/(cose(j)*radius*dlon)
