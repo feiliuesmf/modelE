@@ -23,6 +23,11 @@
 //
 // Netcdf output is written to the file nctemp.nc in the run directory.
 // For now, this filename cannot be changed.
+// In ESMF multiprocessor mode, local data residing on processor N is
+// written to nctempNNN.nc unless the "gathering" versions of output
+// routines are called (see INST_netcdf.f for details).  See the
+// "coordinate variable" section below for important instructions on
+// multiprocessor nctempNNN.nc output.
 
 netcdf nctemp {
 
@@ -89,9 +94,19 @@ variables:
 	float lat(lat) ;
 		lat:long_name = "latitude" ;
 		lat:units = "degrees_north" ;
+                lat:grid = "cj" ;
 	float p(p) ;
 		p:long_name = "pressure" ;
 		p:units = "mb" ;
+// NOTE: for a multiprocessor run in which processor N outputs its own
+// local copy of model variables to nctempNNN.nc, a valid "grid" attribute
+// must be present for any coordinate undergoing domain decomposition.
+// You are free to name your coordinates anything you like - the "grid"
+// attribute associates them with particular directions in modelE.
+// Currently modelE is decomposed over latitude j, for which valid "grid"
+// values are "cj" and "ej" (center/edge in the j direction).  This
+// attribute is not necessary if you use modelE routines that gather
+// data to the root processor before output.
 
 // ---------------------------------------------------------------------
 data:
