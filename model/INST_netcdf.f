@@ -48,6 +48,7 @@ c may be preferable to employ an offline version of inst_ncout_stitch.
       private
       public ::
      &     inst_ncout_open,inst_ncout_close,inst_setup_var
+     &    ,inst_ncout_open_global
      &    ,varid,status,fid,srt,cnt
      &    ,xij_glob,xijl_glob,xlij_glob
 
