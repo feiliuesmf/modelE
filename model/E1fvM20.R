@@ -48,6 +48,8 @@ POUT                                ! post-processing output
 Data input files:
     ! start up from restart file of earlier run
 ! AIC=1DECxxxx.rsfEyyyy           ! initial conditions (atm./ground), no GIC, ISTART=8
+! AICfv=1DECxxxx.fvEyyyy          ! initial conditions (fv internal) only for ISTART=9
+! AICdfv=1DECxxxx.dfvEyyyy        ! tendencies                       only for ISTART=9
     ! or start up from observed conditions
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
@@ -157,10 +159,12 @@ dalbsnX=.024
 o3_yr=-1880                                        ! =1979 , also change OSST,SICE
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
-DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_XUfilter=0. ! Shapiro filter on U in E-W direction; (not used)
+DT_XVfilter=0. ! Shapiro filter on V in E-W direction; (not used)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
+
+MFILTR=0 ! no slp-filter needed for fv dynamics
 
 DTsrc=1800.     ! cannot be changed after a run has been started
 ! parameters that may have to be changed in emergencies:

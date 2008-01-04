@@ -109,8 +109,8 @@ module FV_INTERFACE_MOD
 
   character(len=*), parameter :: TENDENCIES_FILE = 'tendencies_checkpoint'
 
-  integer, parameter :: FROM_OBSERVED_DATA = 2
-  integer, parameter :: FROM_LATEST_SAVE_FILE = 10
+  integer, parameter :: initial_start = 8
+  integer, parameter :: extend_run = 9
 
 contains
 
@@ -325,7 +325,7 @@ contains
          &   fv % PE_old(IM,J_0:J_1,LM+1))
 
     select case (istart)
-    case (FROM_OBSERVED_DATA)
+    case (:initial_start)
        ! Do a cold start.  Set Old = Current.
        fv % dudt=0
        fv % dvdt=0
@@ -337,7 +337,7 @@ contains
        fv % dPT_old = DeltPressure_DryTemp_GISS()
        fv % dT_old = DryTemp_GISS()
        fv % PE_old   = EdgePressure_GISS()
-    case (FROM_LATEST_SAVE_FILE)
+    case (extend_run:)
        ! input couplings are in a file somewhere and already read in
        if (AM_I_ROOT()) call openunit(TENDENCIES_FILE, iunit, qbin=.true.,qold=.true.)
        call readArr(iunit, fv % U_old)
@@ -347,8 +347,8 @@ contains
        call readArr(iunit, fv % dT_old)
        if (AM_I_ROOT()) call closeunit(iunit)
        call compute_tendencies(fv)
-    case default
-       call stop_model('ISTART option not supported',istart)
+!!  case default
+!!     call stop_model('ISTART option not supported',istart)
     end select
 
   contains
@@ -375,13 +375,20 @@ contains
 
   End Subroutine allocate_tendency_storage
 
-  subroutine finalize(fv, clock)
+  subroutine finalize(fv, clock, fv_fname, fv_dfname)
+    USE DOMAIN_DECOMP, only: am_I_root
     Type (FV_Core) :: fv
     type (esmf_clock), intent(in) :: clock
     integer :: rc
+    character(len=*), intent(in) :: fv_fname, fv_dfname
 
-    call saveTendencies(fv)
+    call saveTendencies(fv, fv_dfname)
     call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc=rc )
+
+    if (AM_I_ROOT()) then
+       call system('mv ' // FVCORE_INTERNAL_RESTART // ' ' // trim(fv_fname) )
+       call system('rm ' // TENDENCIES_FILE )
+    end if
 
     Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
 
@@ -484,10 +491,11 @@ contains
        call accumulate_mass_fluxes(fv)
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
 
-       call reset_tmom 
+       call reset_tmom
 #if defined(USE_FV_Q)
-       call reset_qmom 
+       call reset_qmom
 #endif
+
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
     end do
@@ -496,7 +504,7 @@ contains
 
   end subroutine run_fv
 
-  subroutine checkpoint(fv, clock)
+  subroutine checkpoint(fv, clock, fv_fname, fv_dfname)
     use GEOS_mod, only: GEOS_RecordPhase
     use DOMAIN_DECOMP, only: AM_I_ROOT
     Type (FV_Core),    intent(inout) :: fv
@@ -507,6 +515,7 @@ contains
     character(len=len(SUFFIX_TEMPLATE)) :: suffix
     Type (ESMF_Time)  :: currentTime
     integer :: year, month, day, hour, minute, second
+    character(len=*), intent(in) :: fv_fname, fv_dfname
 
     call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, GEOS_RecordPhase, rc=rc)
     ! Now move the file into a more useful name
@@ -518,20 +527,21 @@ contains
             S=second, rc=rc)
        write(suffix,'(".",i4.4,i2.2,i2.2,"_",i2.2,i2.2,"z.bin")'), &
             & year, month, day, hour, minute
-       call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // FVCORE_INTERNAL_RESTART)
+       call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // trim(fv_fname) )
     end if
 
-    call saveTendencies(fv)
+    call saveTendencies(fv, fv_dfname)
 
   end subroutine checkpoint
 
-  subroutine saveTendencies(fv)
+  subroutine saveTendencies(fv, fv_dfname)
     use DOMAIN_DECOMP, only: AM_I_ROOT
     use FILEMANAGER
     type (fv_core),    intent(inout) :: fv
     integer :: iunit
+    character(len=*), intent(in) :: fv_dfname
 
-    if (AM_I_ROOT()) call openunit(TENDENCIES_FILE, iunit, qbin=.true.)
+    if (AM_I_ROOT()) call openunit(trim(fv_dfname) , iunit, qbin=.true.)
 
     call saveArr(iunit, fv % U_old)
     call saveArr(iunit, fv % V_old)
@@ -685,9 +695,8 @@ contains
     Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
 
-    ! Check to see if restart file already exists
-    select case (istart)
-    case (FROM_LATEST_SAVE_FILE)
+    if(istart .ge. extend_run) then
+    ! Check to see if restart file exists
        inquire(file=FVCORE_INTERNAL_RESTART, EXIST=exist)
        if (exist) then
           if (AM_I_ROOT()) then
@@ -695,23 +704,10 @@ contains
           end if
           return
        end if
-    case (FROM_OBSERVED_DATA)
-       ! Forcing creation of FV restart from GISS data for now
-!!$       ! possibly exists from somewhere else?
-!!$       inquire(file=rst_file,EXIST=exist)
-!!$       if (exist) then
-!!$          if (AM_I_ROOT()) Then
-!!$             print*,'Apparently a restart file for FV already exists: ',trim(rst_file)
-!!$             print*,'Returning to main program'
-!!$             print*,' '
-!!$          end if
-!!$          return
-!!$       end if
-    case default
        ! Uh oh
-       call stop_model('ISTART value not supported for FV restart.',ISTART)
+       call stop_model('fv part of restart file not found',255)
        return
-    end select
+    end if
 
     ! If we got to here, then this means then we'll have to create a restart file
     ! from scratch.
@@ -955,7 +951,7 @@ contains
       END DO
 
       return
- 
+
   end subroutine reset_tmom
 
   subroutine reset_qmom
@@ -993,16 +989,17 @@ contains
           IF(Q(I,J,LM)+QMOM(MZ,I,J,LM).LT.0.) QMOM(MZ,I,J,LM)=-Q(I,J,LM)
         END DO
       END DO
- 
+
+      return
+
   end subroutine reset_qmom
 
   function PKZ_GISS() Result(PKZ)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
+    Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
     use DOMAIN_DECOMP, only: grid, get
     USE CONSTANT, only: KAPA
 
-    REAL*8 :: PE
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: L, j_0, j_1
@@ -1972,11 +1969,10 @@ contains
 
   function PKZ_GISS() Result(PKZ)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
+    Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
     use DOMAIN_DECOMP, only: grid, get
     USE CONSTANT, only: KAPA
 
-    REAL*8 :: PE
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: L, j_0, j_1

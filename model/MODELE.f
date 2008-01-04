@@ -64,6 +64,7 @@ C**** Command line options
       Character(Len=*), Parameter :: fv_config = 'fv_config.rc'
       Type (FV_CORE) :: fv
       Type (ESMF_CLOCK) :: clock
+      character(len=28) :: fv_fname, fv_dfname
 #endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
@@ -191,7 +192,9 @@ C**** write restart information alternately onto 2 disk files
          call io_rsf(iu_RSF,Itime,iowrite,ioerr)
          IF (AM_I_ROOT()) call closeunit(iu_RSF)
 #ifdef USE_FVCORE
-         call Checkpoint(fv, clock)
+         fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
+         fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
+         call Checkpoint(fv, clock, fv_fname, fv_dfname)
 #endif
          if (AM_I_ROOT())
      *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
@@ -557,6 +560,11 @@ C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
      *           ,iu_RSF,.true.,.false.)
             call io_rsf(iu_RSF,Itime,iowrite_mon,ioerr)
             IF (AM_I_ROOT()) call closeunit(iu_RSF)
+#ifdef USE_FVCORE
+            fv_fname  = '1'//aDATE(8:14)//'.fv'//XLABEL(1:LRUNID)
+            fv_dfname = '1'//aDATE(8:14)//'.dfv'//XLABEL(1:LRUNID)
+            call Checkpoint(fv, clock, fv_fname, fv_dfname)
+#endif
           END IF
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
           IF (KCOPY.GT.2) THEN
@@ -628,7 +636,9 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       call io_rsf(iu_RSF,Itime,iowrite,ioerr)
       IF (AM_I_ROOT()) call closeunit(iu_RSF)
 #ifdef USE_FVCORE
-         call Finalize(fv, clock)
+         fv_fname='fv.' ; write(fv_fname(4:4),'(i1)') kdisk
+         fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
+         call Finalize(fv, clock, fv_fname, fv_dfname)
 #endif
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
@@ -866,6 +876,7 @@ C****
 #ifdef USE_FVCORE
       type (ESMF_Clock) :: clock
       integer :: minti,minte
+      character(len=1) :: suffix
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1348,6 +1359,10 @@ C****        mainly used for REPEATS and delayed EXTENSIONS
       CASE (1:9)                      !  diag.arrays are not read in
         call openunit("AIC",iu_AIC,.true.,.true.)
         if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
+#ifdef USE_FVCORE
+        call system('cp AICfv  fv_internal_restart.dat')
+        call system('cp AICdfv tendencies_checkpoint')
+#endif
         if(istart.le.8) then         !  initial start of rad.forcing run
           call io_label(iu_AIC,Itime,ItimeX,irerun,ioerr)
           if (Kradia.gt.0) call io_rad (iu_AIC,irsfic,ioerr)
@@ -1401,6 +1416,11 @@ C**** CHOOSE DATA SET TO RESTART ON
       END SELECT
   430 continue
       call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.true.)
+#ifdef USE_FVCORE
+        write(suffix,'(i1)') kdisk
+        call system('cp  fv.'// suffix // ' fv_internal_restart.dat')
+        call system('cp dfv.'// suffix // ' tendencies_checkpoint')
+#endif
       CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
       call io_rsf(iu_RSF,Itime,ioread,ioerr)
       call closeunit(iu_RSF)
@@ -1470,11 +1490,13 @@ C**** Check consistency of DTsrc (with NDAY) and dt (with NIdyn)
 #ifndef USE_FVCORE
 C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
 C****
-      NIdyn = 2*nint(.5*dtsrc/dt)
-      if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
-        if (AM_I_ROOT())
+      if(istart>0) then
+        NIdyn = 2*nint(.5*dtsrc/dt)
+        if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
+          if (AM_I_ROOT())
      *        write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
-        call stop_model('INPUT: DT inappropriately set',255)
+          call stop_model('INPUT: DT inappropriately set',255)
+        end if
       end if
 #else
 C**** need a clock to satisfy ESMF interfaces
@@ -1947,4 +1969,4 @@ C**** check tracers
 
       return
       end subroutine print_restart_info
-      
+
