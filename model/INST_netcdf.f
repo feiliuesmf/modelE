@@ -144,7 +144,12 @@ c create the local file for this processor
       integer :: n,ivar
 c get the id number for this variable
       status = nf_inq_varid(fid,trim(varname),varid)
-      if(status.ne.nf_noerr) return
+      if(status.ne.nf_noerr) then
+        varid=-1
+        srt(:)=1
+        cnt(:)=0
+        return
+      endif
 c check whether this variable is already in the database
       ivar=0
       do n=1,nvar
