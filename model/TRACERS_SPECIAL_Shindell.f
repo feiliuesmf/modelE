@@ -17,10 +17,17 @@
 #ifdef GFED_3D_BIOMASS 
      &                     ,LbbGFED     =6
       real*8, allocatable, dimension(:,:,:,:) :: GFED_BB
+!@param boimass_Tyr1, biomass_Tyr2 the starting and ending years
+!@+     for transient biomass burning emissions (= means non transient)
+      integer :: biomass_Tyr1=0,biomass_Tyr2=0
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
       REAL*8, PARAMETER ::  GLTic = 1.d-9 ! pppv
 #endif   
+
+!@param aircraft_Tyr1, aircraft_Tyr2 the starting and ending years
+!@+     for transient NOx aircraft emissions (= means non transient)
+      integer :: aircraft_Tyr1=0,aircraft_Tyr2=0
 
 #ifdef INTERACTIVE_WETLANDS_CH4
 !@dbparam nn_or_zon approach to use for expanding wetlands 1=
@@ -725,7 +732,8 @@ C
       USE TRACER_COM, only: itime_tr0,trname,n_NOx,nAircraft, 
      & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
      & num_sectors,n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
-      use TRACER_SOURCES, only: Laircr
+     & ,kstep
+      use TRACER_SOURCES, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
       use param, only: sync_param
 C
       IMPLICIT NONE
@@ -735,7 +743,6 @@ c
 !@var pres local pressure variable
       integer, parameter :: nanns=0,nmons=1
       integer, dimension(nmons) :: mon_units, imon
-      integer :: jdlast=0
       integer l,i,j,iu,k,ll,nt,ns,nsect,nn
       character*80 :: title
       character*12, dimension(nmons) :: mon_files=(/'NOx_AIRCRAFT'/)
@@ -743,11 +750,8 @@ c
       character*124 :: tr_sectors_are
       character*32 :: pname
       logical :: LINJECT
-      logical :: ifirst=.true.
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
-      real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb ! for monthly sources
-!     real*8 tlca(im,jm,Laircr,nmons),tlcb(im,jm,Laircr,nmons)      
-      real*8 frac, bySperHr      
+      real*8 bySperHr      
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,1)
      &                                     :: src
       REAL*8, DIMENSION(LM)                :: pres
@@ -755,38 +759,36 @@ c
      & (/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
      &    410.60,355.99,307.42,264.36,226.32,193.30,165.10,
      &    141.01,120.44,102.87,87.866,75.048/)
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
       INTEGER :: J_1, J_0, J_0H, J_1H
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
 c
 C**** Local parameters and variables and arguments:
-c
+      logical :: trans_emis=.false.
+      integer :: yr1=0, yr2=0
+ 
 C**** Aircraft NOx source input is monthly, on 19 levels. Therefore:
 C     19x12=228 records. Read it in here and interpolated each day.
 
       if (itime < itime_tr0(n_NOx)) return
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
+      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
 C****
 C**** Monthly sources are interpolated to the current day
 C**** The titles of the input files say this is in KG/m2/s, so no
 C**** conversion is necessary:
 C****
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,Laircr,nmons),
-     &           tlcb(im,j_0H:j_1H,Laircr,nmons))
-        ifirst=.false.
-      endif  
+      call sync_param("aircraft_Tyr1",aircraft_Tyr1)
+      call sync_param("aircraft_Tyr2",aircraft_Tyr2)
       k = 1
+      if(aircraft_Tyr1==aircraft_Tyr2)then
+        trans_emis=.false.; yr1=0; yr2=0
+      else
+        trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
+      endif
       call openunit(mon_files(k),mon_units(k),mon_bins(k))
-      call read_monthly_3Dsources(Laircr,mon_units(k),jdlast,
-     *    tlca(:,:,:,k),tlcb(:,:,:,k),src(:,:,:,k),frac,imon(k))
+      call read_monthly_3Dsources(Laircr,mon_units(k),
+     & src(:,:,:,k),trans_emis,yr1,yr2)
       call closeunit(mon_units(k))
-      jdlast = jday
-      write(out_line,*)
-     &'NOx from aircraft interpolated to current day',frac
-      call write_parallel(trim(out_line)) 
 C====
 C====   Place aircraft sources onto model levels:
 C====
@@ -881,16 +883,12 @@ c
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
       integer, parameter :: ncalls=3
-      integer, dimension(ncalls):: mon_units, imon
+      integer, dimension(ncalls):: mon_units
       integer i,j,iu,k,l,nc
-      integer, dimension(ncalls)  :: jdlast=(/0,0,0/)  
       character*80 :: title
       CHARACTER(LEN=*),  INTENT(IN) :: fn
       character(len=300) :: out_line
       logical, dimension(ncalls) :: mon_bins=(/.true.,.true.,.true./)
-CCnoCClogical, dimension(ncalls) :: ifirst=(/.true.,.true.,.true./)
-      logical :: ifirst=.true.     
-      real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb
       REAL*8, DIMENSION(LM)    :: pres,srcLout
       REAL*8, DIMENSION(Lsulf) :: srcLin
       REAL*8, 
@@ -898,11 +896,11 @@ CCnoCClogical, dimension(ncalls) :: ifirst=(/.true.,.true.,.true./)
      &                                                         :: src
       real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &      field
-      real*8 :: frac
-      save jdlast,tlca,tlcb,mon_units,imon,ifirst
+      logical :: trans_emis=.false.
       INTEGER :: J_1, J_0, J_0H, J_1H
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       select case(trim(fn))
       case('DMS_FIELD') ; nc=1
@@ -916,20 +914,10 @@ C**** Input file is monthly, on LM levels.
 C     Read it in here and interpolated each day.
 C     Interpolation in the vertical.
 C
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,Lsulf,ncalls),
-     &           tlcb(im,j_0H:j_1H,Lsulf,ncalls))
-        ifirst     = .false.
-      endif       
       call openunit(trim(fn),mon_units(nc),mon_bins(nc))
-      call read_monthly_3Dsources(Lsulf,mon_units(nc),jdlast(nc),
-     *   tlca(:,:,:,nc),tlcb(:,:,:,nc),src(:,:,:,nc),frac,imon(nc))
+      call read_monthly_3Dsources(Lsulf,mon_units(nc),
+     &   src(:,:,:,nc),trans_emis,0,0)
       call closeunit(mon_units(nc))
-      jdlast(nc) = jday
-      write(out_line,*)
-     &trim(fn)//' interpolated to current day',frac
-      call write_parallel(trim(out_line)) 
 C====
 C====   Place field onto model levels
 C====              
@@ -944,89 +932,176 @@ C
       END SUBROUTINE read_aero
 C
 C
-      SUBROUTINE read_monthly_3Dsources(Ldim,iu,jdlast,tlca,tlcb,data1,
-     & frac,imon)
+
+      SUBROUTINE read_monthly_3Dsources
+     & (Ldim,iu,data1,trans_emis,yr1,yr2)
 !@sum Read in monthly sources and interpolate to current day
-!@+   Calling routine must have the lines:
-!@+      real*8 tlca(im,jm,Ldim,nm),tlcb(im,jm,Ldim,nm)
-!@+      integer imon(nm)   ! nm=number of files that will be read
-!@+      data jdlast /0/
-!@+      save jdlast,tlca,tlcb,imon
-!@+   Input: iu, the fileUnit#; jdlast
-!@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others / Greg Faluvegi
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
+      USE TRACER_COM, only: kstep
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP, only : GRID,GET,READT_PARALLEL,REWIND_PARALLEL
-     & ,write_parallel
+     & ,write_parallel,backspace_parallel
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
-      integer Ldim,L,imon,iu,jdlast
+      integer Ldim,L,imon,iu,ipos,k,nn
       character(len=300) :: out_line
-      real*8 :: frac
+      real*8 :: frac, alpha
       real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     A2D,B2D,dummy
       real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::
-     &     tlca,tlcb,data1
+     &     tlca,tlcb,data1,sfc_a,sfc_b
+      logical, intent(in):: trans_emis
+      integer, intent(in):: yr1,yr2
      
       integer :: J_0, J_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)     
+
+C No doubt this code can be combined/compressed, but I am going to
+C do the transient and non-transient cases separately for the moment:
+
+! -------------- non-transient emissions ----------------------------!
+      if(.not.trans_emis) then
 C
-      if (jdlast == 0) then   ! NEED TO READ IN FIRST MONTH OF DATA
-        imon=1                ! imon=January
-        if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-          do L=1,Ldim*11
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,dummy,1)
-          end do
-          DO L=1,Ldim
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,A2D,1)
-            tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-          END DO
-          CALL REWIND_PARALLEL( iu )
-        else              ! JDAY is in Jan 16 to Dec 16, get first month
-  120     imon=imon+1
-          if (jday > idofm(imon) .AND. imon <= 12) go to 120
-          do L=1,Ldim*(imon-2)
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,dummy,1)
-          end do
-          DO L=1,Ldim
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,A2D,1)
-            tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-          END DO
-          if (imon == 13)  CALL REWIND_PARALLEL( iu )
-        end if
-      else                         ! Do we need to read in second month?
-        if (jday /= jdlast+1) then ! Check that data is read in daily
-          if (jday /= 1 .OR. jdlast /= 365) then
-            write(out_line,*)'Bad day values in read_monthly_3Dsources'
-     &      //': JDAY,JDLAST=',JDAY,JDLAST
-            call write_parallel(trim(out_line),crit=.true.) 
-            call stop_model('Bad values in read_monthly_3Dsources',255)
-          end if
-          imon=imon-12             ! New year
-          go to 130
-        end if
-        if (jday <= idofm(imon)) go to 130
-        imon=imon+1                ! read in new month of data
-        if (imon == 13) then
-          CALL REWIND_PARALLEL( iu  )
-        else  
-          do L=1,Ldim*(imon-1)
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,dummy,1)
-          end do
-        endif
+      imon=1                ! imon=January
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        write(6,*) 'Not using this first record:'
+        call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo  
+        call rewind_parallel(iu)
+      else              ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        write(6,*) 'Not using this first record:'
+        call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-2))
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo   
+        if(imon==13) call rewind_parallel(iu)
       end if
-      DO L=1,Ldim
-        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,B2D,1)
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
         tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
-      END DO
-  130 continue
+      enddo 
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
       data1(:,J_0:J_1,:) =
      & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      write(out_line,*) '3D source monthly factor=',frac
+      call write_parallel(trim(out_line))
+
+! --------------- transient emissions -------------------------------!
+      else
+        ipos=1
+        alpha=0.d0 ! before start year, use start year value
+        if(jyear>yr2.or.(jyear==yr2.and.jday>=183))then
+          alpha=1.d0 ! after end year, use end year value
+          ipos=(yr2-yr1)/kstep
+        endif
+        do k=yr1,yr2-kstep,kstep
+          if(jyear>k .or. (jyear==k.and.jday>=183)) then
+            if(jyear<k+kstep .or. (jyear==k+kstep.and.jday<183))then
+              ipos=1+(k-yr1)/kstep ! (integer artithmatic)
+              alpha=(365.d0*(0.5+real(jyear-1-k))+jday) /
+     &              (365.d0*real(kstep))
+              exit
+            endif
+          endif
+        enddo
+!
+! read the two necessary months from the first decade:
+!
+      imon=1                ! imon=January
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+      else              ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        write(6,*) 'Not using this first record:' 
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        if(imon==13)then
+          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+        endif
+      end if
+CCCCC write(6,*) 'Not using this first record:'
+CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+      enddo
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      sfc_a(:,J_0:J_1,:) =
+     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      call rewind_parallel( iu )
+
+      ipos=ipos+1
+      imon=1                ! imon=January
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+      else              ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        if(imon==13)then
+          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+        endif
+      end if
+CCCCCCwrite(6,*) 'Not using this first record:'
+CCCCCCcall readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+      enddo
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      sfc_b(:,J_0:J_1,:) =
+     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+
+! now interpolate between the two time periods:
+
+      data1(:,J_0:J_1,:) =
+     & sfc_a(:,J_0:J_1,:)*(1.d0-alpha) + sfc_b(:,J_0:J_1,:)*alpha
+
+      write(out_line,*) '3D source at',
+     &100.d0*alpha,' % of period ',k,' to ',k+kstep,
+     &' and monthly fraction= ',frac 
+      call write_parallel(trim(out_line))
+
+      endif ! transient or not
+
       return
       end subroutine read_monthly_3Dsources
 
@@ -1520,57 +1595,55 @@ C
       USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm,
      & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
      & num_sectors,n_max_sect,num_regions,ef_fact,ef_fact3D
-      use TRACER_SOURCES, only: LbbGFED,GFED_BB
-      use param, only; sync_param
+      use TRACER_SOURCES, only: LbbGFED,GFED_BB,biomass_Tyr1,
+     & biomass_Tyr2
+      use param, only: sync_param
 C
       IMPLICIT NONE
 c
 !@var pres local pressure variable
       integer :: mon_units,l,i,j,iu,k,ll,luse,ns,nsect,nn
-      integer, dimension(ntm) :: jdlast, imon
       integer, intent(in) :: nt ! the tracer index
       character*80 :: title
       character*40 :: mon_files
       character(len=300) :: out_line
       character*124 :: tr_sectors_are
       character*32 :: pname
-      logical :: ifirst=.true.
       logical :: mon_bins=.true. ! binary file?
-      real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb ! for monthly sources
+      logical :: trans_emis=.false.
+      integer :: yr1=0, yr2=0
       real*8 frac, PIfact, bySperHr, a, b, c, ha, hb, hc
       REAL*8,DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LbbGFED,ntm)
      &                                     ::src
       REAL*4, PARAMETER, DIMENSION(LbbGFED) :: zmid =
      & (/ 50.  ,300., 750.,1500.,2500., 4500./)
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1 ,
      &               I_STRT=I_0, I_STOP=I_1 )
+      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       if (itime < itime_tr0(nt)) return
 
       mon_files=trim(trname(nt))//'_IIASA_BBURN'
       bySperHr=1.d0/3600.d0
 
+      call sync_param("biomass_Tyr1",biomass_Tyr1)
+      call sync_param("biomass_Tyr2",biomass_Tyr2)
+      if(biomass_Tyr1==biomass_Tyr2)then
+        trans_emis=.false.; yr1=0; yr2=0
+      else
+        trans_emis=.true.; yr1=biomass_Tyr1; yr2=biomass_Tyr2
+      endif
+
 C****
 C**** Monthly sources are interpolated to the current day
 C**** Conversion is from KG/4x5grid/HR to KG/m2/s:
 C****
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,LbbGFED,ntm),
-     &           tlcb(im,j_0H:j_1H,LbbGFED,ntm))
-        ifirst=.false.
-      endif
       call openunit(mon_files,mon_units,mon_bins)
-      call read_monthly_3Dsources(LbbGFED,mon_units,jdlast(nt),
-     &tlca(:,:,:,nt),tlcb(:,:,:,nt),src(:,:,:,nt),frac,imon(nt))
+      call read_monthly_3Dsources(LbbGFED,mon_units,
+     & src(:,:,:,nt),trans_emis,yr1,yr2)
       call closeunit(mon_units)
-      jdlast(nt) = jday
-      write(out_line,*)
-     &trname(nt)//' from biomass burn interp to current day',frac
-      call write_parallel(trim(out_line))
 
       do L=1,LbbGFED; do j=j_0,j_1; do i=1,IM
         GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr

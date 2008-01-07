@@ -267,6 +267,10 @@ SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
 SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL'
 !-fit-here--|                                                              |---
 !-----
+aircraft_Tyr1=1990 ! for non-transient emissions,
+aircraft_Tyr2=1990 ! set these two equal or omit them.
+biomass_Tyr1= 1990 ! for non-transient emissions,
+biomass_Tyr2= 1990 ! set these two equal or omit them.
 
 
 ocn_cycl=1      ! =0 if ocean varies from year to year

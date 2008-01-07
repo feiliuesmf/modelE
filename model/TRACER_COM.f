@@ -868,15 +868,21 @@ C****
       integer, parameter :: nt3Dsrcmax=6
 !@var sfc_src array holds tracer sources that go into trsource( )
 !@+ maybe wasteful of memory, but works for now...
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: sfc_src
+      real*8, allocatable, dimension(:,:,:,:) :: sfc_src
 !@var ssname holds source name, read from file header, e.g. to be
 !@+ placed into lname and sname arrays.
 !@var freq frequency (annual? monthly?) read from emis file header
 !@var res horiz. resolution (M? F?) read from emis file header
 !@var nameT tracer name read from emis file header (should match trname)
-      character*50, dimension(ntm,ntsurfsrcmax) :: ssname
-      character*10, dimension(ntm,ntsurfsrcmax) :: nameT
-      character*1, dimension(ntm,ntsurfsrcmax) :: freq,res
+!@var ty_start starting year/decade for a transient emissions file
+!@var ty_end     ending year/decade for a transient emissions file
+      character*30, dimension(ntm,ntsurfsrcmax) :: ssname ! some maybe
+      character*10, dimension(ntm,ntsurfsrcmax) :: nameT  ! need not be
+      character*1, dimension(ntm,ntsurfsrcmax) :: freq,res ! arrays
+      character*9, dimension(ntm,ntsurfsrcmax) :: Tyears   ! here...
+      integer, dimension(ntm,ntsurfsrcmax) :: ty_start,ty_end
+!@param kstep number of years assumed between transient emissions slices
+      integer, parameter :: kstep=10 ! assume decadal transient emissions
 ! ---- section for altering tracers sources by sector/region ----
 !@param n_max_sect maximum number of sectors for emissions altering
 !@param n_max_reg  maximum number of regions for emissions altering

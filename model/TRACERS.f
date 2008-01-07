@@ -1440,23 +1440,25 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       subroutine read_sfc_sources(n,nsrc)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
-      USE MODEL_COM, only: itime,jday,im
+      USE MODEL_COM, only: itime,jday,jyear,im,jm
       USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
       USE TRACER_COM,only:itime_tr0,trname,sfc_src,ntm,ntsurfsrcmax,
-     & freq,nameT,ssname
+     & freq,nameT,ssname,ty_start,ty_end,kstep
    
       implicit none
       
-      integer,dimension(ntm) :: jdlast2=0
-      integer :: iu,ns
+      integer :: iu,ns,k,ipos
       integer, intent(in) :: nsrc,n
       character*80 :: fname
       character*2 :: fnum
       character(len=300) :: out_line
       logical,dimension(ntm,ntsurfsrcmax) :: ifirst2=.true.
+      real*8 :: alpha
+      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     & sfc_a,sfc_b
       
-      save ifirst2,jdlast2
+      save ifirst2
 
       INTEGER :: J_1, J_0, J_0H, J_1H
 
@@ -1478,29 +1480,71 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         endif
         fname=trim(trname(n))//'_'//fnum
         call openunit(fname,iu,.true.)
-        call read_emis_header(n,ns,iu)
+        call read_emis_header(n,ns,iu) ! maybe just ROOT should do?
 
 ! now read the data: (should be in kg/m2/s please)
+ 
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns)==ty_end(n,ns))then 
 
-        select case(freq(n,ns))
-        case('a')        ! annual file, only read first time
-          if(ifirst2(n,ns)) then
-            call readt_parallel(grid,iu,fname,0,sfc_src(:,:,n,ns),1)
-            write(out_line,*)
-     &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' ann source read.'
-            call write_parallel(trim(out_line))
+          select case(freq(n,ns))
+          case('a')        ! annual file, only read first time
+            if(ifirst2(n,ns)) then
+              call readt_parallel(grid,iu,fname,0,sfc_src(:,:,n,ns),1)
+              write(out_line,*)trim(nameT(n,ns)),
+     &        ' ',trim(ssname(n,ns)),' ann source read.'
+              call write_parallel(trim(out_line))
+              ifirst2(n,ns) = .false.
+            endif
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iu,sfc_src(:,:,n,ns))
+            ifirst2(n,ns) = .false. ! needed?
+          end select
+
+! --------------- transient emissions -------------------------------!
+        else                
+          select case(freq(n,ns))
+          case('a')        ! annual file, only read first time + new steps
+            ipos=1
+            alpha=0.d0 ! before start year, use start year value
+            if(jyear>ty_end(n,ns).or.
+     &      (jyear==ty_end(n,ns).and.jday>=183))then
+              alpha=1.d0 ! after end year, use end year value     
+              ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
+            endif
+            do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
+!should do!   if(jyear==k .and. jday==183)ifirst2(n,ns)=.true.
+              if(jyear>k .or. (jyear==k.and.jday>=183)) then
+                if(jyear<k+kstep.or.(jyear==k+kstep.and.jday<183))then
+                  ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
+                  alpha=(365.d0*(0.5+real(jyear-1-k))+jday) / 
+     &                  (365.d0*real(kstep))
+                  exit
+                endif
+              endif
+            enddo
+!should do! if(ifirst2(n,ns)) then
+              call readt_parallel(grid,iu,fname,0,sfc_a(:,:),ipos)
+              call readt_parallel(grid,iu,fname,0,sfc_b(:,:),1)
+!should do! endif
+            sfc_src(:,:,n,ns)=sfc_a(:,:)*(1.d0-alpha)+sfc_b(:,:)*alpha
+            if(alpha>0.d0)then 
+              write(out_line,*)
+     &        trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+     &        100.d0*alpha,' % of period ',k,' to ',k+kstep
+              call write_parallel(trim(out_line))
+            endif
             ifirst2(n,ns) = .false.
-          endif
-        case('m')        ! monthly file, interpolate to now
-          call read_mon_src_2(n,ns,iu,jdlast2(n),sfc_src(:,:,n,ns))
-          ifirst2(n,ns) = .false. ! needed?
-        end select
 
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iu,sfc_src(:,:,n,ns))
+            ifirst2(n,ns) = .false. ! needed?
+          end select
+
+        endif
         call closeunit(iu)
 
       enddo
-
-      jdlast2(n) = jday
 
       return
       end subroutine read_sfc_sources
@@ -1538,6 +1582,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       case(6) ; message='read_emis_header: problem with source'
       case(7) ; message='read_emis_header: problem with res'
       case(8) ; message='read_emis_header: M and F are choices for res'
+      case(9) ; message='read_emis_header: transient years seem wrong'
+      case(10); message='read_emis_header: trans yrs not 10 years apart'
       end select
       if(error > 0) then
         write(out_line,*) trim(header)
@@ -1555,7 +1601,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@+  header and reports back the meta-data. 
 !@auth Greg Faluvegi
      
-      use TRACER_COM, only : trname,freq,nameT,res,ssname
+      use TRACER_COM, only : trname,freq,nameT,res,ssname,Tyears,
+     & ty_start,ty_end
 
       implicit none
 
@@ -1587,10 +1634,25 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       read(str(n1+1:n1+1),*)res(n,ns)
       if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F')error=8
 
+      str = str(n1+3:)            ! optional transient years
+      n1 = scan( str, '=')
+      if(str(1:n1-1) /= 'y')then
+        ty_start(n,ns)=0; ty_end(n,ns)=0
+      else 
+        read(str(n1+1:n1+9),*)Tyears(n,ns)
+        read(Tyears(n,ns)(1:4),'(I4)')ty_start(n,ns)
+        read(Tyears(n,ns)(6:9),'(I4)')ty_end(n,ns)
+        if(ty_start(n,ns) /= ty_end(n,ns))then
+          if(ty_start(n,ns) < 0 .or. ty_start(n,ns) > 3000)error=9
+          if(ty_end(n,ns)   < 0 .or. ty_end(n,ns)   > 3000)error=9
+          if(ty_end(n,ns)-ty_start(n,ns) < 10)error=10 ! decades expected
+        endif
+      endif
+
       end subroutine parse_header
 
 
-      SUBROUTINE read_mon_src_2(n,ns,iu,jdlast,data)
+      SUBROUTINE read_mon_src_2(n,ns,iu,data)
 !@sum Read in monthly sources and interpolate to current day
 !@+   Calling routine must have the lines:
 !@+      integer imon(nm)   ! nm=number of files that will be read
@@ -1607,43 +1669,123 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT, write_parallel,
-     & READT_PARALLEL, REWIND_PARALLEL
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
-      USE TRACER_COM, only: ssname,nameT
+     & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
+      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM,jyear
+      USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,kstep
 
       implicit none
 
       real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     tlca,tlcb,data
-      real*8 :: frac
-      integer ::  imon,iu,jdlast,n,ns
+      real*8 :: frac,alpha
+      integer ::  imon,iu,n,ns,ipos,k,nn
       character*80 :: junk
       character(len=300) :: out_line
+      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     & sfc_a,sfc_b
 
       integer :: J_0, J_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-      imon=1
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,12)
-        CALL REWIND_PARALLEL( iu );if (AM_I_ROOT()) read( iu ) junk
-      else            ! JDAY is in Jan 16 to Dec 16, get first month
-  120   imon=imon+1
-        if (jday > idofm(imon) .AND. imon <= 12) go to 120
-        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,imon-1)
-        if (imon == 13)then
-          CALL REWIND_PARALLEL( iu );if (AM_I_ROOT()) read( iu ) junk
-        endif
-      end if
-      CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlcb,1)
+! -------------- non-transient emissions ----------------------------!
+      if(ty_start(n,ns)==ty_end(n,ns))then
+        imon=1
+        if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+          call readt_parallel(grid,iu,nameunit(iu),0,tlca,12)
+          call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
+        else            ! JDAY is in Jan 16 to Dec 16, get first month
+          do while(jday > idofm(imon) .AND. imon <= 12)
+            imon=imon+1
+          enddo
+          call readt_parallel(grid,iu,nameunit(iu),0,tlca,imon-1)
+          if (imon == 13)then
+            call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
+          endif
+        end if
+        call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
 
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      data(:,J_0:J_1) = tlca(:,J_0:J_1)*frac + tlcb(:,J_0:J_1)*(1.-frac)
-      write(out_line,*)
-     &trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' interp to now ',frac
-      call write_parallel(trim(out_line))
+c****   Interpolate two months of data to current day
+        frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+        data(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+        write(out_line,*)
+     &  trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' interp to now ',frac
+        call write_parallel(trim(out_line))
+! --------------- transient emissions -------------------------------!
+      else 
+        ipos=1
+        alpha=0.d0 ! before start year, use start year value
+        if(jyear>ty_end(n,ns).or.
+     &  (jyear==ty_end(n,ns).and.jday>=183))then
+          alpha=1.d0 ! after end year, use end year value
+          ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
+        endif
+        do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
+          if(jyear>k .or. (jyear==k.and.jday>=183)) then
+            if(jyear<k+kstep .or. (jyear==k+kstep.and.jday<183))then
+              ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
+              alpha=(365.d0*(0.5+real(jyear-1-k))+jday) /
+     &              (365.d0*real(kstep))
+              exit
+            endif
+          endif
+        enddo
+!
+! read the two necessary months from the first decade:
+!
+        imon=1
+        if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+         call readt_parallel(grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+12)
+         do nn=1,12; call backspace_parallel(iu); enddo
+        else            ! JDAY is in Jan 16 to Dec 16, get first month
+         do while(jday > idofm(imon) .AND. imon <= 12)
+           imon=imon+1
+         enddo
+         call  readt_parallel
+     &   (grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+imon-1)
+         if (imon == 13)then
+           do nn=1,12; call backspace_parallel(iu); enddo               
+         endif
+        end if
+        call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
+c****   Interpolate two months of data to current day
+        frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+        sfc_a(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+        call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
+
+        ipos=ipos+1
+        imon=1
+        if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+         call readt_parallel(grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+12)
+         do nn=1,12; call backspace_parallel(iu); enddo
+        else            ! JDAY is in Jan 16 to Dec 16, get first month
+         do while(jday > idofm(imon) .AND. imon <= 12)
+           imon=imon+1
+         enddo
+         call readt_parallel
+     &   (grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+imon-1)
+         if (imon == 13)then
+           do nn=1,12; call backspace_parallel(iu); enddo
+         endif
+        end if
+        call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
+c****   Interpolate two months of data to current day
+        frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+        sfc_b(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+
+! now interpolate between the two time periods:
+
+        data(:,:)=sfc_a(:,:)*(1.d0-alpha)+sfc_b(:,:)*alpha
+
+        if(alpha>0.d0)then 
+          write(out_line,*)
+     &    trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+     &    100.d0*alpha,' % of period ',k,' to ',k+kstep,
+     &    ' and monthly fraction= ',frac
+          call write_parallel(trim(out_line))
+        endif
+ 
+      endif
 
       return
       end subroutine read_mon_src_2
