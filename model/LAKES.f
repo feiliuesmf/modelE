@@ -293,7 +293,10 @@ C**** Only mix if there is a second layer!
         TRLT(:)=TRLAKEL(:,1)+TRLAKEL(:,2)
 #endif
 C**** Test for static stability
-        IF ((TMAXRHO-TLK1)*(TLK2-TLK1).lt.0) THEN
+C**** DRHO=RHO(TLK2)-RHO(TLK1)~=(TLK2-TLK1)*dRHOdT((TLK1+TLK2)/2)
+C**** Assumes a parabolic density function going through MAXRHO at
+C**** TMAXRHO, and RHO0 at T=0. (reasonable up to about 12 C)
+        IF ((TMAXRHO-0.5*(TLK1+TLK2))*(TLK2-TLK1).lt.0) THEN
 C**** mix uniformly and set MLD to minimum
           MLAKE(1)=MIN(MLT,MAX(MINMLD*RHOW,MLT-HLAKE*RHOW))
           MLAKE(2)=MLT-MLAKE(1)
@@ -304,26 +307,23 @@ C**** mix uniformly and set MLD to minimum
           TRLAKEL(:,2)=TRLT(:)*MLAKE(2)/MLT
 #endif
         ELSE ! not unstable, implicitly diffuse heat + entrain
-C**** reduce mixing if there is ice cover, no mixing if temperature
-C**** gradient is negative and deep water is at max density.
-          IF (TLK2.lt.TLK1 .and. TLK2.gt.TMAXRHO) THEN
-            DTK=2.*KVLAKE*(1.-ROICE)*DTSRC*RHOW**2
-            E1N=(ELAKE(1)+DTK*HLT/(MLT*MLAKE(2)))/
-     *           (1.+DTK/(MLAKE(1)*MLAKE(2)))
-            E2N=(ELAKE(2)+DTK*HLT/(MLT*MLAKE(1)))/
-     *           (1.+DTK/(MLAKE(1)*MLAKE(2)))
-            ELAKE(1)=E1N
-            ELAKE(2)=E2N
+C**** reduce mixing if there is ice cover
+          DTK=2.*KVLAKE*(1.-ROICE)*DTSRC*RHOW**2
+          E1N=(ELAKE(1)+DTK*HLT/(MLT*MLAKE(2)))/
+     *         (1.+DTK/(MLAKE(1)*MLAKE(2)))
+          E2N=(ELAKE(2)+DTK*HLT/(MLT*MLAKE(1)))/
+     *         (1.+DTK/(MLAKE(1)*MLAKE(2)))
+          ELAKE(1)=E1N
+          ELAKE(2)=E2N
 #ifdef TRACERS_WATER
 C**** diffuse tracers using same KV as for heat?
-            TR1N(:)=(TRLAKEL(:,1)+DTK*TRLT(:)/(MLT*MLAKE(2)))/
-     *           (1.+DTK/(MLAKE(1)*MLAKE(2)))
-            TR2N(:)=(TRLAKEL(:,2)+DTK*TRLT(:)/(MLT*MLAKE(1)))/
-     *           (1.+DTK/(MLAKE(1)*MLAKE(2)))
-            TRLAKEL(:,1)=TR1N(:)
-            TRLAKEL(:,2)=TR2N(:)
+          TR1N(:)=(TRLAKEL(:,1)+DTK*TRLT(:)/(MLT*MLAKE(2)))/
+     *         (1.+DTK/(MLAKE(1)*MLAKE(2)))
+          TR2N(:)=(TRLAKEL(:,2)+DTK*TRLT(:)/(MLT*MLAKE(1)))/
+     *         (1.+DTK/(MLAKE(1)*MLAKE(2)))
+          TRLAKEL(:,1)=TR1N(:)
+          TRLAKEL(:,2)=TR2N(:)
 #endif
-          END IF
 C**** entrain deep water if there is available TKE
 C**** take a factor of TKE and calculate change in PE
           IF (TKE.gt.0) THEN
@@ -333,7 +333,7 @@ C**** take a factor of TKE and calculate change in PE
 C**** DRHO=RHO(TLK2)-RHO(TLK1)~=(TLK2-TLK1)*dRHOdT(TLK1)
 C**** Assumes a parabolic density function going through MAXRHO at
 C**** TMAXRHO, and RHO0 at T=0. (reasonable up to about 12 C)
-            DRHO=(TLK2-TLK1)*2d0*BFAC*(TMAXRHO-TLK1)
+            DRHO=(TLK2-TLK1)*2d0*BFAC*(TMAXRHO-0.5*(TLK1+TLK2))
             DML=ATKE*BYGRAV/(DRHO*0.5*H1)
             IF (DML*RHOW.lt.MLAKE(2)) THEN
               DHML=DML*ELAKE(2)/H2
@@ -522,6 +522,13 @@ C**** Set GTEMP arrays for lakes
               GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
      *             *FLAKE(I,J)*DXYP(J))/(SHW*(MWL(I,J)-MLDLK(I,J)
      *             *RHOW*FLAKE(I,J)*DXYP(J)))
+C**** If starting from a possibly corrupted rsf file, check Tlk2
+              IF(GTEMP(2,1,I,J)>TLAKE(I,J)+1.and.GTEMP(2,1,I,J)>10) THEN
+                WRITE(6,*) "Warning: Unphysical Tlk2 fixed",I,J,GTEMP(:
+     *               ,1,I,J)
+                GTEMP(2,1,I,J)=GTEMP(1,1,I,J)  ! set to Tlk1
+                GML(I,J)=TLAKE(I,J)*SHW*MWL(I,J)
+              END IF
             ELSE
               GTEMP(2,1,I,J)=TLAKE(I,J)
             END IF
