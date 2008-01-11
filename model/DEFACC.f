@@ -2515,6 +2515,24 @@ c
       iw_ij(k) = iw_soil     !Weight over land
 c     iw  built-in
 c
+      k=k+1 ! nyk 1/10/08
+      IJ_RAUTO = k    !kg[C]/m2/s original units
+      lname_ij(k) = 'AUTOTROPHIC RESPIRATION'
+      units_ij(k) = 'g[C]/m2/day'
+      name_ij(k) = 'rauto'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/s to g/day
+      iw_ij(k) = iw_soil     !Weight over land
+c
+      k=k+1 ! nyk 1/10/08
+      IJ_CLAB = k    !kg[C]/m2/s
+      lname_ij(k) = 'PLANT LABILE CARBON'
+      units_ij(k) = 'kg[C]/m2'
+      name_ij(k) = 'rauto'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      iw_ij(k) = iw_soil     !Weight over land
+c
       k=k+1 ! nyk 5/12/03
       IJ_DLEAF = k    !kg[C]/m2, IJ_DLEAF is accumulated daily.
 !      lname_ij(k) = 'LEAF MASS CHANGE'

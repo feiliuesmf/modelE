@@ -1258,7 +1258,8 @@ c***********************************************************************
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
      *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
      *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
-     *     ,ij_gpp,ij_pblht,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23
+     *     ,ij_gpp,ij_rauto,ij_clab
+     *     ,ij_pblht,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23
      *     ,ij_g24,ij_g25,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
@@ -1289,7 +1290,7 @@ c***********************************************************************
      &    ,fv,fb,atrg,ashg,alhg
      &    ,abetad,abetav,abetat
      &    ,abetap,abetab,abeta
-     &    ,acna,acnc,agpp
+     &    ,acna,acnc,agpp,arauto,aclab
      &    ,aevap,aevapw,aevapd,aevapb
      &    ,aruns,arunu,aeruns,aerunu,aflmlt,aintercep
      &    ,aepc,aepb,aepp,zw,tbcs
@@ -1397,6 +1398,8 @@ ccc the following values are returned by PBL
       aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
       aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
       aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp
+      aij(i,j,ij_rauto)=aij(i,j,ij_rauto)+arauto
+      aij(i,j,ij_clab)=aij(i,j,ij_clab)+aclab/nisurf
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
       aij(i,j,ij_g27)=aij(i,j,ij_g27)+abetat/nisurf
       aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp

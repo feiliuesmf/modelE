@@ -150,7 +150,8 @@ ccc   main accumulators
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
-     &      , agpp,aflmlt,aintercep
+     &     ,agpp,arauto,aclab  !Ent DGVM accumulators
+     &     ,aflmlt,aintercep
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -213,7 +214,7 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad,betadl(ngm)
-      real*8 gpp,dts,trans_sw
+      real*8 gpp,rauto,clab,dts,trans_sw
 
 ccc fractions of dry,wet,covered by snow canopy
 !@var fd effective fraction of dry canopy (=0 if dew)
@@ -340,10 +341,13 @@ C***
 C***   Thread Private Common Block GHYTPC
 C***
       COMMON /GHYTPC/
-     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
+     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc
+     &     ,agpp,arauto,aclab
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
-     &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
+     &     ,ashg,atrg,betad,betat,ch
+     &     ,gpp,rauto,clab
+     &     ,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
      &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
      &     ,evapbs,evapdl,evapvd,evapvs,evapvw,evapvg,f !evapor,
@@ -1904,6 +1908,8 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 !!!
         call check_water(1)
         call check_energy(1)
+
+        
         call accm
         call reth
         call retp
@@ -1934,6 +1940,7 @@ C**** finalise surface tracer concentration here
 
       enddo
 
+      call ent_get_exports(entcell,C_labile=clab,R_auto=rauto)
       call accm(1)
       call hydra
       call wtab  ! for gcm diag. only
@@ -2001,8 +2008,14 @@ ccc   max in the following expression removes extra drip because of dew
       aepc=aepc+( epvg*(1.d0-fr_snow(2)) )*fv*dts
 #endif
       aepb=aepb+( epb*(1.d0-fr_snow(1)) + epbs*fr_snow(1) )*fb*dts
-      !Accumulate GPP, nyk, like evap_tot(2)
-      agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
+
+      !Ent veg accumulators. nyk
+      !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
+      !## Need to pass fr_snow to Ent.
+!      agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
+      agpp = agpp + gpp*dts
+      arauto = arauto + rauto*dts
+      aclab = clab !Instantaneous.
 
       dedifs=f(2,1)*tp(2,1)
       if(f(2,1).lt.0.d0) dedifs=f(2,1)*tp(1,1)
@@ -2098,7 +2111,9 @@ c zero out accumulations
       abeta=0.d0  ! not accumulated : do we need it?
       acna=0.d0   ! not accumulated : do we need it?
       acnc=0.d0   ! not accumulated : do we need it?
-      agpp=0.d0   ! new accumulator, nyk 4/25/03
+      agpp=0.d0   ! Ent DGVM , nyk 4/25/03
+      arauto=0.d0 ! Ent DGVM
+      aclab=0.d0  ! Ent DGVM
       aevapw=0.d0              ! evap from wet canopy
       aevapd=0.d0              ! evap from dry canopy
       aevapb=0.d0              ! evap from bare soil (no snow)
