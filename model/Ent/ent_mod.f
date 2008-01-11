@@ -18,6 +18,7 @@
       !--- public constants ---
       public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TEXTURES, N_BPOOLS
       public N_PFT, N_CASA_LAYERS  !added last one -PK
+      public PTRACE, NPOOLS, NLIVE
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
@@ -1167,6 +1168,20 @@ cddd      end subroutine ent_cell_update_single
       ! added new data to restore checkpoint after sumcohort was removed...
       call copy_vars( buf(dc:), nn,  c%Ci,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%gcanopy,  flag ); dc = dc + nn
+
+      ! new data jan 10 2008
+      call copy_vars( buf(dc:), nn,  c%C_fol   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_fol   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_sw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_sw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_hw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_hw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_lab   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_lab   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_froot ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_froot ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_croot ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_croot ,  flag ); dc = dc + nn
 
       n = dc
 
