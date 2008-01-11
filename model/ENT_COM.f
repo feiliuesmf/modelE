@@ -71,6 +71,7 @@
               call ent_cell_unpack(buffer, entcells(i,j))
             endif
             deallocate( buffer )
+            !this print will not work on mpi!!
             !call ent_cell_print(999,entcells(i,j))
           endif
 
@@ -123,6 +124,8 @@
             write(kunit) size(buffer)
             write(kunit) buffer
             deallocate(buffer)
+            !this print will not work on mpi!!
+            !call ent_cell_print(990+counter,entcells(i,j))
           endif
         enddo
       enddo

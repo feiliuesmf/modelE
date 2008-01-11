@@ -1718,6 +1718,7 @@ c**** soils28   common block     9/25/90
       integer limit,nit
       real*8 dum1, dum2, dumrad
       real*8 :: no_data(1) = -1.d30
+      real*8 :: sbgc_temp(1), sbgc_moist(1)
 
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
@@ -1780,6 +1781,9 @@ ccc accm0 was not called here in older version - check
 
         if ( process_vege ) then
 
+          sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
+          sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
+
           call ent_set_forcings_single( entcell,
      &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
@@ -1793,8 +1797,8 @@ ccc accm0 was not called here in older version - check
      &         direct_visible_rad=direct_vis_rad,
      &         cos_solar_zenith_angle=cosz1,
  !    &         soil_water=w(1:ngm,2),
-     &         soil_temp=no_data,
-     &         soil_moist=no_data,
+     &         soil_temp=sbgc_temp,
+     &         soil_moist=sbgc_moist,
      &         soil_matric_pot=h(1:ngm,2),
      &         soil_ice_fraction=fice(1:ngm,2) 
      &         )
@@ -1812,6 +1816,8 @@ ccc unpack necessary data
      &         foliage_humidity=Qf,
      &         canopy_gpp=GPP
      &         )
+
+          !print *, "trans_sw", ijdebug, trans_sw, cosz1
 
 !!! test
 !!!          cnc = 0.d0

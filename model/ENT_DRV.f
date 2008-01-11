@@ -137,6 +137,8 @@ c**** check whether ground hydrology data exist at this point.
       integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
       real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture
       real*8, dimension(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
+      real*8, dimension(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,I0:I1,J0:J1)::     
+     &     Tpool_ini
       !-----Local---------
       integer i,j
       real*8 heat_capacity
@@ -176,12 +178,15 @@ cddd      enddo
       call init_canopy_physical(I0, I1, J0, J1,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
 
+      !!! hack
+      Tpool_ini = 0.d0
+
       !Translate gridded data to Entdata structure
       !GISS data:  a patch per vegetation cover fraction, one cohort per patch
       call ent_cell_set(entcells, vegdata, popdata, laidata,
      &     hdata, dbhdata, craddata, cpooldata, nmdata, rootprofdata, 
      &     soildata, albedodata, soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)
 
       !!! hack to set constant heat capacity
 cddd      do j=j0,j1
