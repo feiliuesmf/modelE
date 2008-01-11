@@ -420,6 +420,11 @@ C**** Accumulate tracer distribution diagnostics
          CALL CHECKT ('T3DSRC')
 #endif
       end if                                  ! full model,kradia le 0
+
+#ifdef USE_FVCORE
+      Call Compute_Tendencies(fv)
+#endif
+
 C****
 C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
 C****
@@ -491,11 +496,6 @@ cddd     &           h_ghy_j_2-h_ghy_j_1+h_lake_j_2-h_lake_j_1
       end if   ! kradia: full model (or rad.forcing run)
       CALL UPDTYPE
       END IF   !  NEW DAY
-
-#ifdef USE_FVCORE
-      Call Compute_Tendencies(fv)
-#endif
-
       if (kradia.le.0) then   ! full model
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS

@@ -6,7 +6,7 @@
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,focean
+      USE MODEL_COM, only : im,jm
       USE STATIC_OCEAN, only : tocean
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
@@ -29,8 +29,7 @@ C**** Check for NaN/INF in ocean data
 C**** Check for reasonable values for ocean variables
       DO J=J_0, J_1
         DO I=1,IM
-          IF (FOCEAN(I,J).gt.0 .and. TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1
-     *         ,I,J).gt.50.) THEN
+          IF (TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1,I,J).gt.50.) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J)
             QCHECKO = .TRUE.
           END IF
