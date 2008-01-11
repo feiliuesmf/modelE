@@ -140,8 +140,10 @@
 
       Atot = min(Je1, Jc1, Js1)
       if (Atot.lt.0.d0) then 
+#ifdef OFFLINE
         write(997,*) "Error, Atot<0.0:",Je1,Jc1,Js1,ca,gb,rh,IPAR,Pa,
      &       pspar,sunlitshaded
+#endif
         Atot = 0.d0
 !        return
       endif
@@ -214,9 +216,6 @@
 
       gs = BallBerry(Atot, rh, cs, pspar)
 
-#ifdef DEBUG
-      write(96,*) "IPAR",IPAR,Atot,Anet,Respveg(pspar%Nleaf,Tl),gs
-#endif
 !      if (if_ci.eq.1) ci = calc_ci(ca, gb, gs, Anet, IPAR, pspar)
 
       !Solving:
@@ -337,7 +336,7 @@
 !      Cip = Pa * 1d-06 * 350.d0 * .7d0  !###Dummy check @350 ppm
       Je_light = Je(IPAR,Cip,pspar)
 
-#ifdef DEBUG
+#ifdef DEBUG_ENT
       write(995,*) ca,rh,gb,IPAR, Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
      &     pspar%Gammastar,Cip, Je_light
 #endif
@@ -383,7 +382,7 @@
       !Cip = Pa *1.D-06 * 350.d0 *.7d0 !Dummy prescribed ci.
       Jc_RuBP = Jc(Cip,O2,pspar)
 
-#ifdef DEBUG      
+#ifdef DEBUG_ENT
       write(993,*) ca,rh,gb,Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
      &     pspar%Gammastar,Cip, Jc_RuBP
 #endif      

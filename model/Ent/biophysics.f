@@ -363,9 +363,11 @@
      &         + Resp_growth
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
         cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
-        
+
+#ifdef OFFLINE        
         write(999,*) cop%GPP,cop%R_root,Resp_maint,Resp_growth,
      &       cop%R_auto,vegpar%Ntot, cop%h
+#endif
 
         !* Accumulate uptake. - * PUT THIS IN A SUBROUTINE OR FUNCTION C_lab_update
         !* SHOULD AFFECT SENESCENCE OR DEATH OF PLANT *!

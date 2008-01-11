@@ -219,6 +219,7 @@
             tmp_pft = pp%tallest%pft
             tmp_senescefrac = pp%tallest%senescefrac
           endif
+#ifdef OFFLINE          
           write(995,'(i5,3(1pe16.8),i5,100(1pe16.8))')  !Fluxes are positive up.
      &         patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 
      &         pp%cellptr%coszen,
@@ -231,21 +232,7 @@
           if (pp%GPP.lt.0.d0) then
             print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
           endif
-          !*** PREVIOUS DIAGNOSTICS ***!
-!          write(995,'(i5,2(1pe16.8),i5,100(1pe16.8))')  !Fluxes are positive up.
-!     &         patchnum,pp%cellptr%IPARdir + pp%cellptr%IPARdif, 
-!     &         pp%cellptr%coszen,
-!     &         pp%tallest%pft,pp%lai, pp%Tpool(CARBON,:,:), 
-!     &         pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
-!     &         pp%GPP,pp%R_auto,pp%Soil_resp,
-!     &         pp%NPP,pp%CO2flux,pp%GCANOPY, pp%tallest%C_lab,
-!     &         pp%tallest%senescefrac
-
-          !* Nancy's diagnostics *!
-!          write(996,*) pp%tallest%pft, pp%lai, pp%Tpool(CARBON,:),
-!     &         pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
-!     &         pp%GPP, pp%R_auto, pp%Soil_resp, pp%NPP, pp%CO2flux,
-!     &         pp%GCANOPY
+#endif
           !*********************************************************!
         else 
           pp%CO2flux = UNDEF
