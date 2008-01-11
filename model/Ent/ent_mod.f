@@ -18,7 +18,7 @@
       !--- public constants ---
       public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TEXTURES, N_BPOOLS
       public N_PFT, N_CASA_LAYERS  !added last one -PK
-      public PTRACE, NPOOLS, NLIVE
+      public PTRACE, NPOOLS, NLIVE, CARBON  
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings

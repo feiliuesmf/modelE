@@ -62,8 +62,10 @@
 #else
       pp%Tpool(:,:,:) = 0.d0  
 #endif
-      print*, 'soil C pools: ', pp%Tpool(CARBON,:,:)  !optional test -PK
 
+#ifdef OFFLINE  
+      print*, 'soil C pools: ', pp%Tpool(CARBON,:,:)  !optional test -PK
+#endif
       end subroutine assign_patch
       !*********************************************************************
       subroutine delete_patch(gp, pp)
