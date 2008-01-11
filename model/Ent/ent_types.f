@@ -331,7 +331,7 @@
 !         real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
-         !*  IMPORT-PRESCRIBED, EXPORT-SIMULATED - BIOMASS POOLS (g-C/cohort)
+         !*  IMPORT-PRESCRIBED, EXPORT-SIMULATED - BIOMASS POOLS (g-C/m^2)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
          real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
          real*8 :: C_w           ! Sapwood+dead wood carbon (=rho_wood*sw_vol) (units?)

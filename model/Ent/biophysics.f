@@ -275,7 +275,7 @@
       Qf = pp%cellptr%Qf
 
       !* ZERO SOME OUTPUT VARIABLES AT PATCH LEVEL
-      pp%TRANS_SW = 0.
+      pp%TRANS_SW = 1.d0 !Case of zero LAI.
       !* Time-stepped outputs:  CNC, Ci, Qf.
 
       !* INITIALIZE SUMMARY OUTPUT VARIABLES *!
@@ -1595,7 +1595,8 @@
         abssl=0.0D0
         fracsl=0
       endif
-      TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
+!      TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
+      TRANS_SW = ((1.d0-fracsl)*abssh + fracsl*abssl)
 !      write(110,*) TRANS_SW,I0dr,I0df,abssh, abssl, sbeta, sigma, kbl
 
 

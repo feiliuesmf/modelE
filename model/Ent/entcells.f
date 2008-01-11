@@ -55,12 +55,12 @@
       ecp%R_root = 0.d0  !PK 5/15/07
       ecp%N_up = 0.d0
 
-      !--Patch-level properties--!
+      !--Patch-level properties, to be calculated from patch averages --!
       ecp%z0 = 0.d0
       ecp%albedo(:) = 0.d0
       ecp%betad = 0.d0
       ecp%betadl(:) = 0.d0
-      ecp%TRANS_SW = 0.d0
+      ecp%TRANS_SW = 0.d0 
       ecp%CO2flux = 0.d0
       ecp%Soil_resp = 0.d0
       ecp%Tpool(:,:,:) = 0.d0

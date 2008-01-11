@@ -283,7 +283,7 @@
             !* Flux variables for GCM/EWB - patch total
             pp%z0 = 0.0d0    !## Get GISS z0 ######!
             pp%albedo = 0.0d0!## Get GISS albveg ##!
-            pp%TRANS_SW = 0.0d0 !## Calculate ##!
+            pp%TRANS_SW = 1.0d0 !## Calculate for zero veg.##!
             pp%GCANOPY = 0.d0 !
             pp%CO2flux = 0.d0 
             pp%Ci = 0.0127D0  !Initial value not zero.

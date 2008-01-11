@@ -796,7 +796,8 @@
         fracsl=0
       endif
 
-      TRANS_SW = 1.d0 - ((1.d0-fracsl)*abssh + fracsl*abssl)
+!      TRANS_SW = 1.d0 - ((1.d0-fracsl)*abssh + fracsl*abssl)
+      TRANS_SW = ((1.d0-fracsl)*abssh + fracsl*abssl)
 
 !      write(110,*) TRANS_SW,I0dr,I0df,abssh, abssl, sbeta, sigma, kbl
 
