@@ -109,6 +109,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
       use ghy_com, only : ngm, imt, nlsn, LS_NFRAC
+      use ent_mod, only: PTRACE,NPOOLS,N_CASA_LAYERS,NLIVE,CARBON  !for soil bgc diags
 
 
       implicit none
@@ -150,7 +151,7 @@ ccc   main accumulators
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
-     &     ,agpp,arauto,aclab  !Ent DGVM accumulators
+     &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
      &     ,aflmlt,aintercep
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
@@ -215,6 +216,7 @@ ccc   tsn1 is private
 
       real*8 betat,betad,betadl(ngm)
       real*8 gpp,rauto,clab,dts,trans_sw
+      real*8 R_soil,soilCpools(PTRACE,NPOOLS,N_CASA_LAYERS)  !soil resp, C_org pools -PK  
 
 ccc fractions of dry,wet,covered by snow canopy
 !@var fd effective fraction of dry canopy (=0 if dew)
@@ -342,7 +344,7 @@ C***   Thread Private Common Block GHYTPC
 C***
       COMMON /GHYTPC/
      &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc
-     &     ,agpp,arauto,aclab
+     &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
      &     ,ashg,atrg,betad,betat,ch
@@ -361,6 +363,7 @@ C***
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
      &     ,vs,vs0,tprime,qprime
+     &     ,R_soil,soilCpools
 
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
@@ -1909,7 +1912,7 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
         call check_water(1)
         call check_energy(1)
 
-        
+
         call accm
         call reth
         call retp
@@ -1940,7 +1943,8 @@ C**** finalise surface tracer concentration here
 
       enddo
 
-      call ent_get_exports(entcell,C_labile=clab,R_auto=rauto)
+      call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
+     &                     soilresp=R_soil, soilcpools=soilCpools)
       call accm(1)
       call hydra
       call wtab  ! for gcm diag. only
@@ -1965,7 +1969,7 @@ c**** reth, and hydra.
       integer, intent(in), optional :: flag
       real*8 qsats
       real*8 cpfac,dedifs,dqdt,el0,epen,h0
-      integer k
+      integer k, ii, nn
 #ifdef TRACERS_WATER
       real*8 tot_w1
 #endif
@@ -2016,7 +2020,15 @@ ccc   max in the following expression removes extra drip because of dew
       agpp = agpp + gpp*dts
       arauto = arauto + rauto*dts
       aclab = clab !Instantaneous.
-
+      asoilresp = asoilresp + R_soil*dts  !accumulated soil respiration  
+      !instantaneous pool/column-integrated soil C_org (g/m2)
+      do nn=1,N_CASA_LAYERS
+       do ii=NLIVE+1,NPOOLS
+        asoilCpoolsum =  asoilCpoolsum + 
+     &                   soilCpools(CARBON,ii,nn)
+       end do 
+      end do
+     
       dedifs=f(2,1)*tp(2,1)
       if(f(2,1).lt.0.d0) dedifs=f(2,1)*tp(1,1)
       aedifs=aedifs-dts*shw*dedifs*fb
@@ -2114,6 +2126,8 @@ c zero out accumulations
       agpp=0.d0   ! Ent DGVM , nyk 4/25/03
       arauto=0.d0 ! Ent DGVM
       aclab=0.d0  ! Ent DGVM
+      asoilresp = 0.d0         ! Ent DGVM (soil bgc)
+      asoilCpoolsum = 0.d0     ! Ent DGVM (soil bgc)
       aevapw=0.d0              ! evap from wet canopy
       aevapd=0.d0              ! evap from dry canopy
       aevapb=0.d0              ! evap from bare soil (no snow)

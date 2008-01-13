@@ -2525,13 +2525,31 @@ c
       iw_ij(k) = iw_soil     !Weight over land
 c
       k=k+1 ! nyk 1/10/08
-      IJ_CLAB = k    !kg[C]/m2/s
+      IJ_CLAB = k    !kg[C]/m2
       lname_ij(k) = 'PLANT LABILE CARBON'
       units_ij(k) = 'kg[C]/m2'
-      name_ij(k) = 'rauto'
+      name_ij(k) = 'C_lab'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d0
       iw_ij(k) = iw_soil     !Weight over land
+c
+      k=k+1 !PK 1/11/08
+      IJ_SOILRESP = k    !kg[C]/m2/s in Ent
+      lname_ij(k) = 'SOIL RESPIRATION'
+      units_ij(k) = 'g[C]/m2/day'
+      name_ij(k) = 'soilresp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/m2/s to g/m2/d
+      iw_ij(k) = iw_soil     !weight over land
+c
+      k=k+1 !PK 1/11/08
+      IJ_SOILCPOOLSUM = k    !g[C]/m2 in Ent
+      lname_ij(k) = 'SOIL ORGANIC CARBON POOL'
+      units_ij(k) = 'kg[C]/m2'
+      name_ij(k) = 'soilCpool'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-3    !scale from g/m2 to kg/m2
+      iw_ij(k) = iw_soil     !weight over land
 c
       k=k+1 ! nyk 5/12/03
       IJ_DLEAF = k    !kg[C]/m2, IJ_DLEAF is accumulated daily.

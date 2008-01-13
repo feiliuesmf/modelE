@@ -396,6 +396,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SSI1,IJ_SSI2,IJ_SMFX,     ! IJ_MSU2,IJ_MSU2R,
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, 
      *     IJ_GPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, !VEG DIAGNOSTICS
+     *     IJ_SOILRESP, IJ_SOILCPOOLSUM, !additional veg diags (soil bgc)
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
      *     IJ_HTSOIL, IJ_HTSNOW, IJ_AINTRCP,
      *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
