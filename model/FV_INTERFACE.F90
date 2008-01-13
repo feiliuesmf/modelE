@@ -483,7 +483,7 @@ contains
 
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
        call clearTendencies(fv)
-       call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc )
+       call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc=rc )
 
        call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
        call ESMF_ClockAdvance(clock, timeInterval, rc=rc)

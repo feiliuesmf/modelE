@@ -3050,7 +3050,7 @@ C**** open units and position
 
 C**** position correctly
         do kunit=1,kddunit
-          call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
+          call io_POS(iu_SUBDD(kunit),Itime-1,im*jm,Nsubdd)
         end do
 
       end if
