@@ -952,17 +952,16 @@ C     OUTPUT DATA
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
      *     ,ij_srvis,j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n
-     *     ,il_r70n,ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2
-     *     ,idd_cl1,idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
-     *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
-     *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
+     *     ,il_r70n,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
+     *     ,idd_absa,j5s,j5n,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
+     *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
      *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
      *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk=>aijk_loc,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
-     &     ,adiurn_dust,j_trnfp0,j_trnfp1
+     *     ,adiurn_dust,j_trnfp0,j_trnfp1
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -1460,24 +1459,8 @@ c***             DO INCH=1,NRAD
 c***               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
 c***               IH=IHM
 c***               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-               DIURN_part(7,J,KR)=DIURN_part(7,J,KR)+TOTCLD(7)
-               DIURN_part(6,J,KR)=DIURN_part(6,J,KR)+TOTCLD(6)
-               DIURN_part(5,J,KR)=DIURN_part(5,J,KR)+TOTCLD(5)
-               DIURN_part(4,J,KR)=DIURN_part(4,J,KR)+TOTCLD(4)
-               DIURN_part(3,J,KR)=DIURN_part(3,J,KR)+TOTCLD(3)
-               DIURN_part(2,J,KR)=DIURN_part(2,J,KR)+TOTCLD(2)
-               DIURN_part(1,J,KR)=DIURN_part(1,J,KR)+TOTCLD(1)
+               DIURN_part(1:7,J,KR)=DIURN_part(1:7,J,KR)+TOTCLD(1:7)
                DIURN_part(8,J,KR)=DIURN_part(8,J,KR)+CLDCV
-c***               IHM = IHM+(JDATE-1)*HR_IN_DAY
-c***               IF(IHM.GT.HR_IN_MONTH) CYCLE
-c***               HDIURN_part(IHM,7,KR,J)=HDIURN_part(IHM,7,KR,J)+TOTCLD(7)
-c***               HDIURN_part(IHM,6,KR,J)=HDIURN_part(IHM,6,KR,J)+TOTCLD(6)
-c***               HDIURN_part(IHM,5,KR,J)=HDIURN_part(IHM,5,KR,J)+TOTCLD(5)
-c***               HDIURN_part(IHM,4,KR,J)=HDIURN_part(IHM,4,KR,J)+TOTCLD(4)
-c***               HDIURN_part(IHM,3,KR,J)=HDIURN_part(IHM,3,KR,J)+TOTCLD(3)
-c***               HDIURN_part(IHM,2,KR,J)=HDIURN_part(IHM,2,KR,J)+TOTCLD(2)
-c***               HDIURN_part(IHM,1,KR,J)=HDIURN_part(IHM,1,KR,J)+TOTCLD(1)
-c***               HDIURN_part(IHM,8,KR,J)=HDIURN_part(IHM,8,KR,J)+CLDCV
            END IF
          END DO
       end if ! kradia le 0 (full model)
@@ -2067,8 +2050,7 @@ C****
 
       CALL GLOBALSUM(grid, DIURN_part, DIURNSUM, ALL=.true.)
 
-      idx = (/ IDD_CL1, IDD_CL2, IDD_CL3, IDD_CL4, IDD_CL5, IDD_CL6,
-     &     IDD_CL7, IDD_CCV /)
+      idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
 
       DO INCH=1,NRAD
          IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
@@ -2135,15 +2117,6 @@ c***               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
      +              (1.-ALB(I,J,1))
                DIURN_partb(3,J,KR)=DIURN_partb(3,J,KR)+
      +              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
-c***               IHM = IHM+(JDATE-1)*HR_IN_DAY
-c***               IF(IHM.GT.HR_IN_MONTH) CYCLE
-c***               HDIURN_partb(IHM,1,KR,J)=HDIURN_partb(IHM,1,KR,J)+
-c***     *              (1.-SNFS(3,I,J)/S0)
-c***               HDIURN_partb(IHM,2,KR,J)=HDIURN_partb(IHM,2,KR,J)+
-c***     *              (1.-ALB(I,J,1))
-c***               HDIURN_partb(IHM,3,KR,J)=HDIURN_partb(IHM,3,KR,J)+
-c***     *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
-c***             END DO
            END IF
          END DO
 
@@ -2496,12 +2469,7 @@ C**** daily diagnostics
       DO J=J_0,J_1
         DO KR=1,NDIUPT
           IF(J .EQ. IJDD(2,KR)) THEN
-C****            ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+
-C****     *           S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
             DIURN_part(1,J,KR)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
-C****            HDIURN(IHM,IDD_ISW,KR)=HDIURN(IHM,IDD_ISW,KR)+
-C****     *           S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
-c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
           ENDIF
         ENDDO
       ENDDO

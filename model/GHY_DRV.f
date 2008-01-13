@@ -592,12 +592,14 @@ c***********************************************************************
 !@+   hydrology driver
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
+      use socpbl, only : npbl=>n
       use veg_drv, only : cosday,sinday
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 !      USE pbl_drv,ONLY : dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,
 !     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
 #endif
+      
       use diag_com, only : idd_ts,idd_tg1,idd_qs
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
@@ -608,22 +610,9 @@ c***********************************************************************
 #endif
 #ifdef TRACERS_DUST
      *     ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon
-     *     ,idd_rifl,idd_zpbl1,idd_zpbl2,idd_zpbl3,idd_zpbl4
-     *     ,idd_zpbl5,idd_zpbl6,idd_zpbl7,idd_zpbl8
-     *     ,idd_uabl1,idd_uabl2,idd_uabl3,idd_uabl4,idd_uabl5
-     *     ,idd_uabl6,idd_uabl7,idd_uabl8,idd_vabl1,idd_vabl2
-     *     ,idd_vabl3,idd_vabl4,idd_vabl5,idd_vabl6,idd_vabl7
-     *     ,idd_vabl8,idd_uvabl1,idd_uvabl2,idd_uvabl3
-     *     ,idd_uvabl4,idd_uvabl5,idd_uvabl6,idd_uvabl7
-     *     ,idd_uvabl8,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4
-     *     ,idd_tabl5,idd_tabl6,idd_tabl7,idd_tabl8,idd_qabl1
-     *     ,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
-     *     ,idd_qabl7,idd_qabl8,idd_zhat1,idd_zhat2,idd_zhat3
-     *     ,idd_zhat4,idd_zhat5,idd_zhat6,idd_zhat7,idd_e1,idd_e2
-     *     ,idd_e3,idd_e4,idd_e5,idd_e6,idd_e7,idd_km1,idd_km2
-     *     ,idd_km3,idd_km4,idd_km5,idd_km6,idd_km7,idd_ri1,idd_ri2
-     *     ,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
-     &     ,idd_emis,idd_emis2,idd_grav,idd_turb
+     *     ,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,idd_tabl1
+     *     ,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,idd_emis
+     *     ,idd_emis2,idd_grav,idd_turb
 #endif
       implicit none
       private
@@ -656,7 +645,7 @@ c***********************************************************************
       INTEGER,PARAMETER :: n_idxd=6
 #else
 #ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: n_idxd=92
+      INTEGER,PARAMETER :: n_idxd=12+10*npbl
 #endif
 #endif
 
@@ -839,23 +828,12 @@ C**** halo update u and v for distributed parallelization
         idxd=(/ idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
 #ifdef TRACERS_DUST
      &      ,idd_emis,   idd_emis2,  idd_turb,   idd_grav,   idd_ws2
-     &      ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl
-     &      ,idd_zpbl1,  idd_zpbl2,  idd_zpbl3,  idd_zpbl4,  idd_zpbl5
-     &      ,idd_zpbl6,  idd_zpbl7,  idd_zpbl8,  idd_uabl1,  idd_uabl2
-     &      ,idd_uabl3,  idd_uabl4,  idd_uabl5,  idd_uabl6,  idd_uabl7
-     &      ,idd_uabl8,  idd_vabl1,  idd_vabl2,  idd_vabl3,  idd_vabl4
-     &      ,idd_vabl5,  idd_vabl6,  idd_vabl7,  idd_vabl8,  idd_uvabl1
-     &      ,idd_uvabl2, idd_uvabl3, idd_uvabl4, idd_uvabl5, idd_uvabl6
-     &      ,idd_uvabl7, idd_uvabl8, idd_tabl1,  idd_tabl2,  idd_tabl3
-     &      ,idd_tabl4,  idd_tabl5,  idd_tabl6,  idd_tabl7,  idd_tabl8
-     &      ,idd_qabl1,  idd_qabl2,  idd_qabl3,  idd_qabl4,  idd_qabl5
-     &      ,idd_qabl6,  idd_qabl7,  idd_qabl8,  idd_zhat1,  idd_zhat2
-     &      ,idd_zhat3,  idd_zhat4,  idd_zhat5,  idd_zhat6,  idd_zhat7
-     &      ,idd_e1,     idd_e2,     idd_e3,     idd_e4,     idd_e5
-     &      ,idd_e6,     idd_e7,     idd_km1,    idd_km2,    idd_km3
-     &      ,idd_km4,    idd_km5,    idd_km6,    idd_km7,    idd_ri1
-     &      ,idd_ri2,    idd_ri3,    idd_ri4,    idd_ri5,    idd_ri6
-     &      ,idd_ri7
+     &      ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl,
+     &       (idd_zpbl1+i-1,i=1,npbl), (idd_uabl1+i-1,i=1,npbl),
+     *       (idd_vabl1+i-1,i=1,npbl), (idd_uvabl1+i-1,i=1,npbl),
+     *       (idd_tabl1+i-1,i=1,npbl), (idd_qabl1+i-1,i=1,npbl),  
+     *       (idd_zhat1+i-1,i=1,npbl-1), (idd_e1+i-1,i=1,npbl-1),
+     *       (idd_km1+i-1,i=1,npbl-1), (idd_ri1+i-1,i=1,npbl-1)
 #endif
      &      /)
       END IF
@@ -1536,107 +1514,24 @@ c**** quantities accumulated hourly for diagDD
      &             +ptype*grav*(ts-(tg1+tf))*pbl_args%zgs
      &             /(ws*ws*(tg1+tf))
 
-              tmp(idd_zpbl1)=+ptype*pbl_args%z(1)
-              tmp(idd_zpbl2)=+ptype*pbl_args%z(2)
-              tmp(idd_zpbl3)=+ptype*pbl_args%z(3)
-              tmp(idd_zpbl4)=+ptype*pbl_args%z(4)
-              tmp(idd_zpbl5)=+ptype*pbl_args%z(5)
-              tmp(idd_zpbl6)=+ptype*pbl_args%z(6)
-              tmp(idd_zpbl7)=+ptype*pbl_args%z(7)
-              tmp(idd_zpbl8)=+ptype*pbl_args%z(8)
-
-              tmp(idd_uabl1)=+ptype*uabl(1,i,j,itype)
-              tmp(idd_uabl2)=+ptype*uabl(2,i,j,itype)
-              tmp(idd_uabl3)=+ptype*uabl(3,i,j,itype)
-              tmp(idd_uabl4)=+ptype*uabl(4,i,j,itype)
-              tmp(idd_uabl5)=+ptype*uabl(5,i,j,itype)
-              tmp(idd_uabl6)=+ptype*uabl(6,i,j,itype)
-              tmp(idd_uabl7)=+ptype*uabl(7,i,j,itype)
-              tmp(idd_uabl8)=+ptype*uabl(8,i,j,itype)
-
-              tmp(idd_vabl1)=+ptype*vabl(1,i,j,itype)
-              tmp(idd_vabl2)=+ptype*vabl(2,i,j,itype)
-              tmp(idd_vabl3)=+ptype*vabl(3,i,j,itype)
-              tmp(idd_vabl4)=+ptype*vabl(4,i,j,itype)
-              tmp(idd_vabl5)=+ptype*vabl(5,i,j,itype)
-              tmp(idd_vabl6)=+ptype*vabl(6,i,j,itype)
-              tmp(idd_vabl7)=+ptype*vabl(7,i,j,itype)
-              tmp(idd_vabl8)=+ptype*vabl(8,i,j,itype)
-
-              tmp(idd_uvabl1)=
-     *             +ptype*sqrt( uabl(1,i,j,itype)*uabl(1,i,j,itype)
-     *             +            vabl(1,i,j,itype)*vabl(1,i,j,itype))
-              tmp(idd_uvabl2)=
-     *             +ptype*sqrt( uabl(2,i,j,itype)*uabl(2,i,j,itype)
-     *             +            vabl(2,i,j,itype)*vabl(2,i,j,itype))
-              tmp(idd_uvabl3)=
-     *             +ptype*sqrt( uabl(3,i,j,itype)*uabl(3,i,j,itype)
-     *             +            vabl(3,i,j,itype)*vabl(3,i,j,itype))
-              tmp(idd_uvabl4)=
-     *             +ptype*sqrt( uabl(4,i,j,itype)*uabl(4,i,j,itype)
-     *             +            vabl(4,i,j,itype)*vabl(4,i,j,itype))
-              tmp(idd_uvabl5)=
-     *             +ptype*sqrt( uabl(5,i,j,itype)*uabl(5,i,j,itype)
-     *             +            vabl(5,i,j,itype)*vabl(5,i,j,itype))
-              tmp(idd_uvabl6)=
-     *             +ptype*sqrt( uabl(6,i,j,itype)*uabl(6,i,j,itype)
-     *             +            vabl(6,i,j,itype)*vabl(6,i,j,itype))
-              tmp(idd_uvabl7)=
-     *             +ptype*sqrt( uabl(7,i,j,itype)*uabl(7,i,j,itype)
-     *             +            vabl(7,i,j,itype)*vabl(7,i,j,itype))
-              tmp(idd_uvabl8)=
-     *             +ptype*sqrt( uabl(8,i,j,itype)*uabl(8,i,j,itype)
-     *             +            vabl(8,i,j,itype)*vabl(8,i,j,itype))
-
-              tmp(idd_tabl1)=+ptype*tabl(1,i,j,itype)
-              tmp(idd_tabl2)=+ptype*tabl(2,i,j,itype)
-              tmp(idd_tabl3)=+ptype*tabl(3,i,j,itype)
-              tmp(idd_tabl4)=+ptype*tabl(4,i,j,itype)
-              tmp(idd_tabl5)=+ptype*tabl(5,i,j,itype)
-              tmp(idd_tabl6)=+ptype*tabl(6,i,j,itype)
-              tmp(idd_tabl7)=+ptype*tabl(7,i,j,itype)
-              tmp(idd_tabl8)=+ptype*tabl(8,i,j,itype)
-
-              tmp(idd_qabl1)=+ptype*qabl(1,i,j,itype)
-              tmp(idd_qabl2)=+ptype*qabl(2,i,j,itype)
-              tmp(idd_qabl3)=+ptype*qabl(3,i,j,itype)
-              tmp(idd_qabl4)=+ptype*qabl(4,i,j,itype)
-              tmp(idd_qabl5)=+ptype*qabl(5,i,j,itype)
-              tmp(idd_qabl6)=+ptype*qabl(6,i,j,itype)
-              tmp(idd_qabl7)=+ptype*qabl(7,i,j,itype)
-              tmp(idd_qabl8)=+ptype*qabl(8,i,j,itype)
-
-              tmp(idd_zhat1)=+ptype*pbl_args%zhat(1)
-              tmp(idd_zhat2)=+ptype*pbl_args%zhat(2)
-              tmp(idd_zhat3)=+ptype*pbl_args%zhat(3)
-              tmp(idd_zhat4)=+ptype*pbl_args%zhat(4)
-              tmp(idd_zhat5)=+ptype*pbl_args%zhat(5)
-              tmp(idd_zhat6)=+ptype*pbl_args%zhat(6)
-              tmp(idd_zhat7)=+ptype*pbl_args%zhat(7)
-
-              tmp(idd_e1)=+eabl(1,i,j,itype)*ptype
-              tmp(idd_e2)=+eabl(2,i,j,itype)*ptype
-              tmp(idd_e3)=+eabl(3,i,j,itype)*ptype
-              tmp(idd_e4)=+eabl(4,i,j,itype)*ptype
-              tmp(idd_e5)=+eabl(5,i,j,itype)*ptype
-              tmp(idd_e6)=+eabl(6,i,j,itype)*ptype
-              tmp(idd_e7)=+eabl(7,i,j,itype)*ptype
-
-              tmp(idd_km1)=+ptype*pbl_args%km(1)
-              tmp(idd_km2)=+ptype*pbl_args%km(2)
-              tmp(idd_km3)=+ptype*pbl_args%km(3)
-              tmp(idd_km4)=+ptype*pbl_args%km(4)
-              tmp(idd_km5)=+ptype*pbl_args%km(5)
-              tmp(idd_km6)=+ptype*pbl_args%km(6)
-              tmp(idd_km7)=+ptype*pbl_args%km(7)
-
-              tmp(idd_ri1)=+ptype*pbl_args%gh(1)/(pbl_args%gm(1)+1.d-20)
-              tmp(idd_ri2)=+ptype*pbl_args%gh(2)/(pbl_args%gm(2)+1.d-20)
-              tmp(idd_ri3)=+ptype*pbl_args%gh(3)/(pbl_args%gm(3)+1.d-20)
-              tmp(idd_ri4)=+ptype*pbl_args%gh(4)/(pbl_args%gm(4)+1.d-20)
-              tmp(idd_ri5)=+ptype*pbl_args%gh(5)/(pbl_args%gm(5)+1.d-20)
-              tmp(idd_ri6)=+ptype*pbl_args%gh(6)/(pbl_args%gm(6)+1.d-20)
-              tmp(idd_ri7)=+ptype*pbl_args%gh(7)/(pbl_args%gm(7)+1.d-20)
+              tmp(idd_zpbl1:idd_zpbl1+npbl-1)=ptype*pbl_args%z(1:npbl)
+              tmp(idd_uabl1:idd_uabl1+npbl-1)=ptype*uabl(1:npbl,i,j
+     *             ,itype)
+              tmp(idd_vabl1:idd_vabl1+npbl-1)=ptype*vabl(1:npbl,i,j
+     *             ,itype)
+              tmp(idd_uvabl1:idd_uvabl1+npbl-1)=ptype*sqrt(
+     *             uabl(1:npbl,i,j,itype)*uabl(1:npbl,i,j,itype)+
+     *             vabl(1:npbl,i,j,itype)*vabl(1:npbl,i,j,itype))
+              tmp(idd_tabl1:idd_tabl1+npbl-1)=ptype*tabl(1:npbl,i,j
+     *             ,itype)
+              tmp(idd_qabl1:idd_qabl1+npbl-1)=ptype*qabl(1:npbl,i,j
+     *             ,itype)
+              tmp(idd_zhat1:idd_zhat1+npbl-2)=ptype
+     *             *pbl_args%zhat(1:npbl-1)
+              tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,i,j,itype)*ptype
+              tmp(idd_km1:idd_km1+npbl-2)=ptype*pbl_args%km(1:npbl-1)
+              tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
+     *             /(pbl_args%gm(1:npbl-1)+1d-20)
 #endif
 
               ADIURN_part(J,idxd(:),kr)=ADIURN_part(J,idxd(:),kr) +

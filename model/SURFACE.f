@@ -37,6 +37,7 @@ C****
 #endif
 #endif
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
+      USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args
       USE DIAG_COM, only : oa,aij=>aij_loc
      *     ,tdiurn,aj=>aj_loc,aregj=>aregj_loc,adiurn,ndiupt,jreg
@@ -45,8 +46,8 @@ C****
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc
      *     ,ij_f0oi,ij_evapi,ij_f0li,ij_evapli,j_evap,j_evhdt
      *     ,j_tsrf,j_shdt,j_trhdt,j_type,j_tg1,j_tg2,ijdd,idd_spr
-     *     ,idd_pt5,idd_pt4,idd_pt3,idd_pt2,idd_pt1,idd_ts,idd_tg1
-     *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
+     *     ,idd_pt5,idd_ts,idd_tg1
+     *     ,idd_q5,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG,ij_dskin
@@ -62,22 +63,8 @@ C****
 #endif
 #ifdef TRACERS_DUST
      *     ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon
-     *     ,idd_rifl,idd_zpbl1,idd_zpbl2,idd_zpbl3,idd_zpbl4
-     *     ,idd_zpbl5,idd_zpbl6,idd_zpbl7,idd_zpbl8
-     *     ,idd_uabl1,idd_uabl2,idd_uabl3,idd_uabl4,idd_uabl5
-     *     ,idd_uabl6,idd_uabl7,idd_uabl8,idd_vabl1,idd_vabl2
-     *     ,idd_vabl3,idd_vabl4,idd_vabl5,idd_vabl6,idd_vabl7
-     *     ,idd_vabl8,idd_uvabl1,idd_uvabl2,idd_uvabl3
-     *     ,idd_uvabl4,idd_uvabl5,idd_uvabl6,idd_uvabl7
-     *     ,idd_uvabl8,idd_tabl1,idd_tabl2,idd_tabl3,idd_tabl4
-     *     ,idd_tabl5,idd_tabl6,idd_tabl7,idd_tabl8,idd_qabl1
-     *     ,idd_qabl2,idd_qabl3,idd_qabl4,idd_qabl5,idd_qabl6
-     *     ,idd_qabl7,idd_qabl8,idd_zhat1,idd_zhat2,idd_zhat3
-     *     ,idd_zhat4,idd_zhat5,idd_zhat6,idd_zhat7,idd_e1,idd_e2
-     *     ,idd_e3,idd_e4,idd_e5,idd_e6,idd_e7,idd_km1,idd_km2
-     *     ,idd_km3,idd_km4,idd_km5,idd_km6,idd_km7,idd_ri1,idd_ri2
-     *     ,idd_ri3,idd_ri4,idd_ri5,idd_ri6,idd_ri7
-     &     ,idd_grav,idd_turb
+     *     ,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,idd_tabl1
+     *     ,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,idd_grav,idd_turb
 #endif
       USE LANDICE, only : z1e,z2li,hc1li,hc2li
       USE LANDICE_COM, only : snowli
@@ -133,6 +120,7 @@ C****
       IMPLICIT NONE
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
+     *     ,ii
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
      *     ,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
@@ -184,7 +172,7 @@ C**** some shorthand indices and arrays for diurn diags
       INTEGER,PARAMETER :: n_idxd=5
 #else
 #ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: n_idxd=89
+      INTEGER,PARAMETER :: n_idxd=9+10*npbl
 #endif
 #endif
 
@@ -206,7 +194,6 @@ C**** some shorthand indices and arrays for diurn diags
       INTEGER :: idxd(n_idxd)
 #endif
       REAL*8 :: tmp(NDIUVAR)
-      INTEGER :: ii, ivar
       REAL*8, DIMENSION(n_idx4, NDIUPT) :: DIURNSUM
       REAL*8, DIMENSION(n_idx3, NDIUPT) :: DIURNSUMb
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -223,9 +210,7 @@ C****
      *               J_STRT=J_0,        J_STOP=J_1)
 
 C**** Initialise constant indices
-      idx1 = (/ IDD_SPR,
-     &     IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1,
-     &     IDD_Q5,  IDD_Q4,  IDD_Q3,  IDD_Q2,  IDD_Q1 /)
+      idx1 = (/ IDD_SPR, (IDD_PT5+ii-1,ii=1,5), (IDD_Q5+ii-1,ii=1,5) /)
       idx2 = (/ IDD_TS,  IDD_TG1, IDD_QS,  IDD_QG,  IDD_SWG,
      &          IDD_LWG, IDD_SH,  IDD_LH,  IDD_HZ0, IDD_UG,
      &          IDD_VG,  IDD_WG,  IDD_US,  IDD_VS,  IDD_WS,
@@ -238,25 +223,16 @@ C**** Initialise constant indices
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       IF (adiurn_dust == 1) THEN
-        idxd=(/idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf
+        idxd=(/idd_wtke, idd_wd, idd_wm, idd_wsgcm, idd_wspdf
 #ifdef TRACERS_DUST
-     *     ,idd_ws2,    idd_ustar,  idd_us3,    idd_stress, idd_lmon
-     *     ,idd_rifl,   idd_zpbl1,  idd_zpbl2,  idd_zpbl3,  idd_zpbl4
-     *     ,idd_zpbl5,  idd_zpbl6,  idd_zpbl7,  idd_zpbl8,  idd_uabl1
-     *     ,idd_uabl2,  idd_uabl3,  idd_uabl4,  idd_uabl5,  idd_uabl6
-     *     ,idd_uabl7,  idd_uabl8,  idd_vabl1,  idd_vabl2,  idd_vabl3
-     *     ,idd_vabl4,  idd_vabl5,  idd_vabl6,  idd_vabl7,  idd_vabl8
-     *     ,idd_uvabl1, idd_uvabl2, idd_uvabl3, idd_uvabl4, idd_uvabl5
-     *     ,idd_uvabl6, idd_uvabl7, idd_uvabl8, idd_tabl1,  idd_tabl2
-     *     ,idd_tabl3,  idd_tabl4,  idd_tabl5,  idd_tabl6,  idd_tabl7
-     *     ,idd_tabl8,  idd_qabl1,  idd_qabl2,  idd_qabl3,  idd_qabl4
-     *     ,idd_qabl5,  idd_qabl6,  idd_qabl7,  idd_qabl8,  idd_zhat1
-     *     ,idd_zhat2,  idd_zhat3,  idd_zhat4,  idd_zhat5,  idd_zhat6
-     *     ,idd_zhat7,  idd_e1,     idd_e2,     idd_e3,     idd_e4
-     *     ,idd_e5,     idd_e6,     idd_e7,     idd_km1,    idd_km2
-     *     ,idd_km3,    idd_km4,    idd_km5,    idd_km6,    idd_km7
-     *     ,idd_ri1,    idd_ri2,    idd_ri3,    idd_ri4,    idd_ri5
-     &     ,idd_ri6,    idd_ri7,    idd_grav,   idd_turb
+     *       ,idd_ws2, idd_ustar, idd_us3, idd_stress, idd_lmon,
+     *       idd_rifl,
+     *       (idd_zpbl1+ii-1,ii=1,npbl), (idd_uabl1+ii-1,ii=1,npbl),
+     *       (idd_vabl1+ii-1,ii=1,npbl), (idd_uvabl1+ii-1,ii=1,npbl),
+     *       (idd_tabl1+ii-1,ii=1,npbl), (idd_qabl1+ii-1,ii=1,npbl),  
+     *       (idd_zhat1+ii-1,ii=1,npbl-1), (idd_e1+ii-1,ii=1,npbl-1),
+     *       (idd_km1+ii-1,ii=1,npbl-1), (idd_ri1+ii-1,ii=1,npbl-1),
+     *       idd_grav,   idd_turb
 #endif
      &       /)
       END IF
@@ -413,8 +389,10 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              tmp(IDD_SPR)=PS
-             tmp(IDD_PT1-4:IDD_PT1)=PSK*T(I,J,5:1)
-             tmp(IDD_Q1-4:IDD_Q1)=Q(I,J,5:1)
+             do ii=1,5
+               tmp(IDD_PT5+ii-1)=PSK*T(I,J,ii)
+               tmp(IDD_Q5+ii-1) =Q(I,J,ii)
+             end do
              DIURN_part(1:n_idx1,J,kr)=DIURN_part(1:n_idx1,J,kr)+
      &            tmp(idx1(:))
            END IF
@@ -931,7 +909,11 @@ C****
           taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) +
      &         ptype*rtsdt*pbl_args%dep_vel(n)
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
-     &         ptype*rtsdt* pbl_args%gs_vel(n)
+     &         ptype*rtsdt*pbl_args%gs_vel(n)
+          if (n=n_Be7) then 
+            BE7D_acc(i.j)=BE7D_acc(i.j)+ptype*rtsdt*pbl_args%dep_vel(n)
+     *           +ptype*rtsdt* pbl_args%gs_vel(n)
+          end if
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-
      &         ptype*rtsdt*dxyp(j)*pbl_args%dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-
@@ -1109,19 +1091,24 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_rifl)=
      &               +ptype*grav*(ts-tg)*pbl_args%zgs/(ws*ws*tg)
 
-                tmp(idd_zpbl1:idd_zpbl8)=ptype*pbl_args%z(1:8)
-                tmp(idd_uabl1:idd_uabl8)=ptype*uabl(1:8,i,j,itype)
-                tmp(idd_vabl1:idd_vabl8)=ptype*vabl(1:8,i,j,itype)
-                tmp(idd_uvabl1:idd_uvabl8)=ptype*sqrt(
-     *               uabl(1:8,i,j,itype)*uabl(1:8,i,j,itype)+
-     *               vabl(1:8,i,j,itype)*vabl(1:8,i,j,itype))
-                tmp(idd_tabl1:idd_tabl8)=ptype*tabl(1:8,i,j,itype)
-                tmp(idd_qabl1:idd_qabl8)=ptype*qabl(1:8,i,j,itype)
-                tmp(idd_zhat1:idd_zhat7)=ptype*pbl_args%zhat(1:7)
-                tmp(idd_e1:idd_e7)=eabl(1:7,i,j,itype)*ptype
-                tmp(idd_km1:idd_km7)=ptype*pbl_args%km(1:7)
-                tmp(idd_ri1:idd_ri7)=ptype*pbl_args%gh(1:7)
-     *               /(pbl_args%gm(1:7)+1d-20)
+                tmp(idd_zpbl1:idd_zpbl1+npbl-1)=ptype*pbl_args%z(1:npbl)
+                tmp(idd_uabl1:idd_uabl1+npbl-1)=ptype*uabl(1:npbl,i,j
+     *               ,itype)
+                tmp(idd_vabl1:idd_vabl1+npbl-1)=ptype*vabl(1:npbl,i,j
+     *               ,itype)
+                tmp(idd_uvabl1:idd_uvabl1+npbl-1)=ptype*sqrt(
+     *               uabl(1:npbl,i,j,itype)*uabl(1:npbl,i,j,itype)+
+     *               vabl(1:npbl,i,j,itype)*vabl(1:npbl,i,j,itype))
+                tmp(idd_tabl1:idd_tabl1+npbl-1)=ptype*tabl(1:npbl,i,j
+     *               ,itype)
+                tmp(idd_qabl1:idd_qabl1+npbl-1)=ptype*qabl(1:npbl,i,j
+     *               ,itype)
+                tmp(idd_zhat1:idd_zhat1+npbl-2)=ptype
+     *               *pbl_args%zhat(1:npbl-1)
+                tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,i,j,itype)*ptype
+                tmp(idd_km1:idd_km1+npbl-2)=ptype*pbl_args%km(1:npbl-1)
+                tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
+     *               /(pbl_args%gm(1:npbl-1)+1d-20)
 #endif
                 DIURN_partd(:,J,kr)=DIURN_partd(:,J,kr)+tmp(idxd(:))
               END IF
@@ -1247,7 +1234,7 @@ C****
 
 
 C****
-C**** dycamic vegetation time step
+C**** dynamic vegetation time step
 C****
 !!! probably don't need this call unless something can be done
 !   separately from ground hydrology on i,j grid

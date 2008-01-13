@@ -241,7 +241,7 @@ CCC  &    'Be7     ','Be10    ','GLT     '/)
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
     (defined TRACERS_DUST)
-      integer, parameter :: ntm=20,Ntm_dust=4
+      integer, parameter :: ntm=20,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
@@ -651,7 +651,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      &     'Silt2   ','Silt3   ','Silt4   '/)
 #else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: Ntm=23,Ntm_dust=23,Ntm_min=20,Ntm_quhe=3
+      INTEGER,PARAMETER :: ntm=23,ntm_dust=23,ntm_min=20,ntm_quhe=3
       CHARACTER*8,PARAMETER :: TrName(Ntm)=(/
      &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
