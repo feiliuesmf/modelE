@@ -26,6 +26,7 @@ C****
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+     $     ,tr_mm, n_Be7, n_Be10
 #ifdef TRACERS_DRYDEP
      *     ,dodrydep
 #endif
@@ -72,6 +73,7 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
+      USE COSMO_SOURCES, only : BE7D_acc 
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
@@ -79,7 +81,6 @@ C****
      *     ,trsrfflx,trsource
 #ifdef TRACERS_GASEXCH_Natassa
      *     ,TRGASEX,GTRACER
-      USE TRACER_COM, only : tr_mm
 #endif
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer
@@ -116,7 +117,7 @@ C****
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
-
+      
       IMPLICIT NONE
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
@@ -909,11 +910,12 @@ C****
           taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) +
      &         ptype*rtsdt*pbl_args%dep_vel(n)
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
-     &         ptype*rtsdt*pbl_args%gs_vel(n)
-          if (n=n_Be7) then 
-            BE7D_acc(i.j)=BE7D_acc(i.j)+ptype*rtsdt*pbl_args%dep_vel(n)
+     &         ptype*rtsdt* pbl_args%gs_vel(n)
+          if (n .eq. n_Be7) then 
+            BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt*pbl_args%dep_vel(n)
      *           +ptype*rtsdt* pbl_args%gs_vel(n)
           end if
+
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-
      &         ptype*rtsdt*dxyp(j)*pbl_args%dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-

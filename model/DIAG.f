@@ -2976,7 +2976,25 @@ C****
      *     n_water, n_HDO 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
+
+      USE TRACER_COM, only : trm
+      USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc 
+
+
+#endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch
+     $     ),tr_mm
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRACER_COM, only : n_Ox
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE TRACER_COM, only : n_SO4
+#ifdef TRACERS_HETCHEM
+     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3
+
      *     ,Ntm_dust
+
 #endif
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
@@ -3014,6 +3032,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       subroutine init_subdd(aDATE)
 !@sum init_subdd initialise sub daily diags and position files
 !@auth Gavin Schmidt
+      USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
       implicit none
       character*14, intent(in) :: adate
       character*12 name
@@ -3056,6 +3075,8 @@ C**** position correctly
       end if
 C**** initialise special subdd accumulation
       P_acc=0.
+      BE7W_acc=0.
+      BE7D_acc=0.
 
       return
       end subroutine init_subdd
@@ -3074,7 +3095,7 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
         if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *       "ALL") then
           select case (namedd(k)(1:1))
-          case ("U", "V", "W", "C") ! velocities on model layers
+          case ("U", "V", "W", "C", "D", "O", "B") ! velocities/tracers on model layers
             kunit=kunit+1
             write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
             call openunit(name,iu_SUBDD(kunit),.true.,.false.)
@@ -3084,18 +3105,6 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
               call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
      *             aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
             end do
-#ifdef TRACERS_SPECIAL_Shindell
-          case ("O")                ! Ox tracer
-            kunit=kunit+1
-            write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
-            call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-#endif
-#ifdef TRACERS_SPECIAL_O18
-          case ("D")                ! HDO tracer
-            kunit=kunit+1
-            write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
-            call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-#endif
           end select
         else                    ! single file per name
           kunit=kunit+1
@@ -3135,7 +3144,9 @@ C****
 !@+                    U*, V*, W*, C*  (on any model level)
 !@+                    Ox*         (on any model level with chemistry)
 !@+                    D*          (HDO on any model level)
+!@+                    B*          (BE7 on any model level)
 !@+                    SO4
+!@+                    7BEW, 7BED, BE7ATM, EVAP
 !@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP  ! aerosol
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
 !@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
@@ -3172,6 +3183,9 @@ C****
 #endif
 #ifdef TRACERS_DUST
      &     ,dust_flux2_glob
+#endif
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only : Be7d_acc, Be7w_acc
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -3374,6 +3388,13 @@ c          data=sday*prec/dtsrc
           end do
           end do
 #endif
+#ifdef TRACERS_COSMO
+          case ("7BEW")
+             data=Be7w_acc
+
+          case ("7BED")
+             data=Be7d_acc
+#endif
         case default
           goto 10
         end select
@@ -3552,6 +3573,56 @@ C**** write out
             end if
           end do
 #endif
+
+#ifdef TRACERS_COSMO
+        case ("B")        ! Be7 tracer 
+          if (namedd(k)(2:4) .eq. "ALL") then
+            kunit=kunit+1
+            do kp=1,LmaxSUBDD
+              do j=J_0,J_1
+                do i=1,imaxj(j)
+                  data(i,j)=1.d6*trm(i,j,kp,n_Be7)*mair/
+     *                 (tr_mm(n_Be7)*am(kp,i,j)*dxyp(j))
+                end do
+              end do
+C**** fix polar values
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+C**** write out
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+            end do
+            cycle
+          end if
+C**** get model level
+          do l=1,lm
+            if (l.lt.10) then
+              write(namel,'(I1)') l
+            else
+              write(namel,'(I2)') l
+            end if
+            if (trim(namedd(k)(2:5)) .eq. trim(namel)) then
+              kunit=kunit+1
+              do j=J_0,J_1
+                do i=1,imaxj(j)
+                  data(i,j)=1d6*trm(i,j,l,n_Be7)*mair/
+     *                 (tr_mm(n_Be7)*am(l,i,j)*dxyp(j))
+                end do
+              end do
+C**** fix polar values
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
+C**** write out
+              !call writei(iu_subdd(kunit),itime,data,im*jm)
+              call writei_parallel(grid,
+     &             iu_subdd(kunit),nameunit(iu_subdd(kunit)),data,itime)
+              cycle
+            end if
+          end do
+#endif
+
+
 #ifdef TRACERS_SPECIAL_O18
         case ("D")        ! HDO tracer (permil)
           if (namedd(k)(2:4) .eq. "ALL") then
