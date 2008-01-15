@@ -133,6 +133,11 @@ C_SDRAG=0.     ! no constant sdrag
 P_SDRAG=.01    ! lin. sdrag above .01mb (top 2 layers) except near poles
 PP_SDRAG=1.    ! lin. sdrag above 1.mb near poles
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000037 !the default is 15d-6
+PCONPEN=400.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000003 ! parameter for GW Moist Convective drag
+CMTN=0.25      ! default is 0.5
 
 KOCEAN=0
 U00ice=.85   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
@@ -157,12 +162,6 @@ NSUBDD=0        ! saving sub-daily diags
 Kvflxo=0        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=0
-
-DEFTHRESH=0.000015  ! deformation threshold (default = 15d-6)
-PBREAK=200.         ! p level for breaking gravity waves
-CDEF=3.             ! parameter for GW DEF drag
-CMTN=.5             ! parameter for GW MTN drag
-CMC=0.0000002       ! parameter for GW Moist Convective drag
 
 to_volume_MixRat=1,1,1,1,1,1,1,1,1   ! for tracer printout
 &&END_PARAMETERS
