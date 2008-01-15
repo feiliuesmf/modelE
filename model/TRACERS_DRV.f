@@ -9962,11 +9962,13 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      print*,"in tr3dsrc",ntm,itime_tr0(1:ntm),itime
 
 C**** All sources are saved as kg/s
       do n=1,ntm
-
+         print*,"pre-select",itime,itime_tr0(n)
       if (itime.lt.itime_tr0(n)) cycle
+      print*,"in select",trname(n)
       select case (trname(n))
 
       case default
@@ -10223,17 +10225,27 @@ c cosmogenic src
           tr3Dsource(i,j,l,1,n) = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
         end do; end do; end do
+        print*, "just calculated be7"
+        print*, "be7_src_param2 = ", be7_src_param
+        print*, "tr3Dsource(1,1,1,1,1) = ", tr3Dsource(1,1,1,1,1)
         call apply_tracer_3Dsource(1,n)
 C****
       case ('Be10')
 c 0.52 is ratio of Be10 to Be7 production
 c tr_mm(n_Be10)/tr_mm(n_Be7)= 10./7. is ratio of molecular weights
 c cosmogenic src
-        do l=1,lm; do j=J_0,J_1; do i=1,im
-          tr3Dsource(i,j,l,1,n)=0.52d0 * be7_src_param * am(l,i,j)
-     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
+         do l=1,lm; do j=J_0,J_1; do i=1,im
+          tr3Dsource(i,j,l,1,n)=be7_src_param * am(l,i,j)
+     *         * be10_src_3d(i,j,l) 
         end do; end do; end do
         call apply_tracer_3Dsource(1,n)
+
+         
+c        do l=1,lm; do j=J_0,J_1; do i=1,im
+c          tr3Dsource(i,j,l,1,n)=0.52d0 * be7_src_param * am(l,i,j)
+c     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
+c        end do; end do; end do
+c        call apply_tracer_3Dsource(1,n)
 C****
 #endif
       case('Pb210')
