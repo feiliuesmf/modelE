@@ -73,7 +73,6 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
-      USE COSMO_SOURCES, only : BE7D_acc 
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
@@ -97,6 +96,9 @@ C****
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
+#endif
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only : BE7D_acc 
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
@@ -911,11 +913,10 @@ C****
      &         ptype*rtsdt*pbl_args%dep_vel(n)
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
      &         ptype*rtsdt* pbl_args%gs_vel(n)
-          if (n .eq. n_Be7) then 
-            BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt*pbl_args%dep_vel(n)
-     *           +ptype*rtsdt* pbl_args%gs_vel(n)
-          end if
-
+#ifdef TRACERS_COSMO
+          if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
+     *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)
+#endif
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-
      &         ptype*rtsdt*dxyp(j)*pbl_args%dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-

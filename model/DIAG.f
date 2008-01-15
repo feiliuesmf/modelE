@@ -2976,31 +2976,16 @@ C****
      *     n_water, n_HDO 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-
-      USE TRACER_COM, only : trm
-      USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc 
-
-
-#endif
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch
-     $     ),tr_mm
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRACER_COM, only : n_Ox
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-      USE TRACER_COM, only : n_SO4
-#ifdef TRACERS_HETCHEM
-     *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3
-
      *     ,Ntm_dust
-
 #endif
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
 #endif
 #ifdef TRACERS_WATER
      &     ,dowetdep, trw0
+#endif
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc 
 #endif
 #endif
       IMPLICIT NONE
@@ -3032,7 +3017,9 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       subroutine init_subdd(aDATE)
 !@sum init_subdd initialise sub daily diags and position files
 !@auth Gavin Schmidt
+#ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
+#endif
       implicit none
       character*14, intent(in) :: adate
       character*12 name
@@ -3075,8 +3062,10 @@ C**** position correctly
       end if
 C**** initialise special subdd accumulation
       P_acc=0.
+#ifdef TRACERS_COSMO
       BE7W_acc=0.
       BE7D_acc=0.
+#endif
 
       return
       end subroutine init_subdd
