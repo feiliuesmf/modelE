@@ -285,7 +285,9 @@ c**** prescribed dust emission
       use pbl_drv, only : t_pbl_args
       use ghy_com, only : tearth
       use somtq_com, only : mz
+#ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc
+#endif
       USE TRACER_COM
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
@@ -471,10 +473,10 @@ ccc accumulate tracer dry deposition
      &         ptype*rtsdt*pbl_args%dep_vel(n)
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
      &         ptype*rtsdt* pbl_args%gs_vel(n)
-          if (n .eq. n_Be7) then 
-            BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt*pbl_args%dep_vel(n)
-     *           +ptype*rtsdt* pbl_args%gs_vel(n)
-          end if
+#ifdef TRACERS_COSMO
+          if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
+     *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)
+#endif
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-
      &         ptype*rtsdt*dxyp(j)*pbl_args%dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-

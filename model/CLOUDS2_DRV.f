@@ -19,7 +19,6 @@
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE RANDOM
       USE RAD_COM, only : cosz1
-      USE COSMO_SOURCES, only : BE7W_acc 
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
 #ifdef CLD_AER_CDNC
      *     ,oldno,oldnl,smfpm
@@ -57,7 +56,7 @@
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1,n_Be10
-     $     ,n_Be7
+     $     ,n_Be7,n_clay,n_clayilli,n_sil1quhe
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
 #else
@@ -66,16 +65,12 @@
      &     ,Ntm_dust
 #endif
 #ifdef TRACERS_DUST
-     &     ,n_clay,imDust
+     &     ,imDust
 #else
-#ifdef TRACERS_MINERALS
-     &     ,n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-     &     ,n_sil1quhe
 #endif
 #endif
-#endif
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only : BE7W_acc 
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
@@ -1307,10 +1302,10 @@ C**** diagnostics
      *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*bydxyp(j)
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
      *         trprec(n,i,j)*bydxyp(j)
-          if (n .eq. n_Be7) then 
-            BE7W_acc(i,j)=BE7W_acc(i,j)+trprec(n,i,j)*bydxyp(j)
-
-          end if
+#ifdef TRACERS_COSMO
+          if (n .eq. n_Be7) BE7W_acc(i,j)=BE7W_acc(i,j)+
+     *         trprec(n,i,j)*bydxyp(j)
+#endif
 #ifdef TRDIAG_WETDEPO
 c     ..........
 c     accumulates special wet depo diagnostics
