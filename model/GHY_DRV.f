@@ -140,6 +140,7 @@ ccc set i,j - independent stuff for tracers
 !@sum tracers code to be called before the i,j cell is processed
       use model_com, only : dtsrc
       use pbl_drv, only : t_pbl_args
+      
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : sday
@@ -284,6 +285,8 @@ c**** prescribed dust emission
       use pbl_drv, only : t_pbl_args
       use ghy_com, only : tearth
       use somtq_com, only : mz
+      USE COSMO_SOURCES, only : BE7D_acc
+      USE TRACER_COM
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
       use sle001, only : nsn,fb,fv
@@ -468,6 +471,10 @@ ccc accumulate tracer dry deposition
      &         ptype*rtsdt*pbl_args%dep_vel(n)
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
      &         ptype*rtsdt* pbl_args%gs_vel(n)
+          if (n .eq. n_Be7) then 
+            BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt*pbl_args%dep_vel(n)
+     *           +ptype*rtsdt* pbl_args%gs_vel(n)
+          end if
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-
      &         ptype*rtsdt*dxyp(j)*pbl_args%dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-
