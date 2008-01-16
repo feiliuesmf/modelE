@@ -26,7 +26,7 @@
 
       call sync_param("variable_phi",variable_phi)
 
-      CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, J_STRT)
+      CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
       
       ALLOCATE(be7_src_3d (1:im, J_0H:J_1H, 1:lm))
@@ -34,7 +34,7 @@
       ALLOCATE(BE7W_acc (1:im, J_0H:J_1H))
       ALLOCATE(BE7D_acc (1:im, J_0H:J_1H))
  
-      if (variable_phi .eq. 0) call read_Be_source_noAlph
+      if (variable_phi .eq. 0) call read_Be_source_noAlpha
       print*, "variable_phi = ", variable_phi
 
       if (variable_phi .eq. 1) call read_Be_source
