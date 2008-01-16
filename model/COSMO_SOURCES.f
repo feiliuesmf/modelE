@@ -166,9 +166,12 @@ C**** multiply by air mass to put in the right units
       do l=1,lm; do j=J_0,J_1; do i=1,im
          be7_src_3d = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
+         
+         be10_src_3d = be7_src_param * am(l,i,j) * be10_src_3d(i,j,l)
+         
 
-         be10_src_3d = 0.52d0 * be7_src_param * am(l,i,j)
-     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
+!         be10_src_3d = 0.52d0 * be7_src_param * am(l,i,j)
+!     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
 
         end do; end do; end do
 
