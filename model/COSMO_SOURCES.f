@@ -26,14 +26,15 @@
 
       call sync_param("variable_phi",variable_phi)
 
-      CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, J_STRT)
+      
       
       ALLOCATE(be7_src_3d (1:im, J_0H:J_1H, 1:lm))
       ALLOCATE(be10_src_3d (1:im, J_0H:J_1H, 1:lm))
       ALLOCATE(BE7W_acc (1:im, J_0H:J_1H))
       ALLOCATE(BE7D_acc (1:im, J_0H:J_1H))
  
-      if (variable_phi .eq. 0) call read_Be_source_noAlpha
+      if (variable_phi .eq. 0) call read_Be_source_noAlph
       print*, "variable_phi = ", variable_phi
 
       if (variable_phi .eq. 1) call read_Be_source
@@ -65,9 +66,9 @@
 C**** constants used in file to make numbers neater
       real*8 :: tfacti, tfact2
       real*8 :: be7_src_param=1 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1, J_0
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** Open source file
       call openunit('BE7_COSMO_NO_ALPHA', iuc, .false., .true.)
@@ -77,12 +78,12 @@ C**** ibe has units atoms/g/s
       call closeunit(iuc)
 
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
-      do l=1,lm; do j=J_0H,J_1H; do i=1,im
+      do l=1,lm; do j=J_0,J_1; do i=1,im
         be7_src_3d(i,j,l)=ibe(j,l)*dxyp(j)*(tr_mm(n_Be7)*tfacti/avog)
       end do ; end do ; end do
 
 C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0H,J_1H; do i=1,im
+      do l=1,lm; do j=J_0,J_1; do i=1,im
          be7_src_3d = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
 
@@ -113,9 +114,10 @@ C**** multiply by air mass to put in the right units
 C**** constants used in file to make numbers neater
       real*8 :: tfacti, tfact2, tfacti_10
       real*8 :: be7_src_param=1 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1, J_0
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+!      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 c      ALLOCATE(ibe (1:im, J_0H:J_1H))
 c      ALLOCATE(ibm (1:im, J_0H:J_1H))
 c      ALLOCATE(ibe_10 (1:im, J_0H:J_1H))
@@ -137,7 +139,7 @@ C**** ibe has units atoms/g/s
       
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "converting"
-      do l=1,lm; do j=J_0H,J_1H ; do i=1,im
+      do l=1,lm; do j=J_0,J_1 ; do i=1,im
          be7_src_3d(i,j,l)=ibe(j,l)*dxyp(j)*(tr_mm(n_Be7)*tfacti/avog)
       end do ; end do ; end do
 
@@ -153,9 +155,9 @@ C**** ibe has units atoms/g/s
       call closeunit(iuc)
       print*, "closed be10 cosmo file"
       
-C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
+C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       print*, "converting"
-      do l=1,lm; do j=J_0H,J_1H ; do i=1,im
+      do l=1,lm; do j=J_0,J_1 ; do i=1,im
          be10_src_3d(i,j,l)=ibe_10(j,l)*dxyp(j)*(tr_mm(n_Be10)*tfacti_10
      $        /avog)
 !         if (i .eq. 1) then
@@ -165,7 +167,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "finished converting"
 
 C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0H,J_1H; do i=1,im
+      do l=1,lm; do j=J_0,J_1; do i=1,im
          be7_src_3d = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
          
@@ -244,9 +246,9 @@ C**** multiply by air mass to put in the right units
       real :: slope(npress), slope_1(npress)
       real :: slope_2(npress), slope_3(npress), slope_4(npress) 
       integer :: iuc, i, j, k, l, m, n, iphi, ipc
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1, J_0
 
-      CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      CALL GET(grid,J_STRT=J_0, J_STOP=J_1)
 
 ! files needed:
 !     BE_DAILY_PROD = Be23_TEST_all_UsoskinLinear_v3.dat = contains production values for all vertical layers, all pc values and all phi values (units are atoms/g/s).
@@ -323,10 +325,10 @@ c     value and that day's phi value
 !      print*, "phi values: ", phi_low, phi_hi, iphi
       
 
-      do j = J_0H,J_1H
+      do j = J_0,J_1
          do i = 1,IM
             pc_month =  pc_table(i,j,jmon)
-            if ((i .eq. 10) .and. (j .eq. J_1H)) then
+            if ((i .eq. 10) .and. (j .eq. J_1)) then
                print*, "pc_month = ", pc_month, jmon,i,j
             end if
             
@@ -339,7 +341,7 @@ c     value and that day's phi value
                   exit
                end if
             end do
-            if ((i .eq. 10) .and. (j .eq. J_1H)) then
+            if ((i .eq. 10) .and. (j .eq. J_1)) then
                print*, "pc values (n. pole): ", pc_month, pc_low, pc_hi,
      $              ipc
             end if
@@ -407,9 +409,9 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
                  print*, "tr_mm(n_Be7) = ", tr_mm(n_Be7)
                  print*, " "
               end if
-              if ((i .eq. 37) .and. (j .eq. J_1H)) then
+              if ((i .eq. 37) .and. (j .eq. J_1)) then
                  print*, "itime = ", itime, "be7_src_3d (n. pole) = ",
-     $                be7_src_3d(37,J_1H,k)
+     $                be7_src_3d(37,J_1,k)
               end if
            end do 
             
@@ -417,7 +419,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       end do
    
 C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0H,J_1H; do i=1,im
+      do l=1,lm; do j=J_0,J_1; do i=1,im
          be7_src_3d = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
 
