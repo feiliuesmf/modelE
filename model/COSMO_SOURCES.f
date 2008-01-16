@@ -52,7 +52,7 @@
 !@sum of the Beer production files
 !@auth C Salyk
       USE CONSTANT, only : avog
-      USE COSMO_SOURCES, only: be7_src_3d
+      USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: dxyp
       USE DOMAIN_DECOMP, only : GRID, get
@@ -64,6 +64,7 @@
       integer iuc, j,i,l
 C**** constants used in file to make numbers neater
       real*8 :: tfacti, tfact2
+      real*8 :: be7_src_param=1 
       INTEGER :: J_1H, J_0H
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
@@ -81,7 +82,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       end do ; end do ; end do
 
 C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0,J_1; do i=1,im
+      do l=1,lm; do j=J_0H,J_1H; do i=1,im
          be7_src_3d = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
 
@@ -111,6 +112,7 @@ C**** multiply by air mass to put in the right units
       integer iuc, j,i,l
 C**** constants used in file to make numbers neater
       real*8 :: tfacti, tfact2, tfacti_10
+      real*8 :: be7_src_param=1 
       INTEGER :: J_1H, J_0H
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
@@ -163,7 +165,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "finished converting"
 
 C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0,J_1; do i=1,im
+      do l=1,lm; do j=J_0H,J_1H; do i=1,im
          be7_src_3d = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
          
@@ -219,6 +221,7 @@ C**** multiply by air mass to put in the right units
       USE GEOM, only: dxyp
       USE MODEL_COM, only : jday, jmon, itime
       USE CONSTANT, only : avog
+      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
       USE DOMAIN_DECOMP, only : GRID, get
       USE COSMO_SOURCES, only : be7_src_3d
@@ -235,12 +238,12 @@ C**** multiply by air mass to put in the right units
       real*8 pc_month
       real*4, dimension(im,jm,nmonths) :: pc_table
       real*8, dimension(lm) :: new_prod, new_prod1, new_prod2, scr_prod
-       
+      real*8 :: be7_src_param=1 
       real :: phi_hi, phi_low, pc_hi, pc_low
       real :: delta_pc, delta_phi, delta_phi_1, delta_pc_3
       real :: slope(npress), slope_1(npress)
       real :: slope_2(npress), slope_3(npress), slope_4(npress) 
-      integer :: iuc, i, j, k, m, n, iphi, ipc
+      integer :: iuc, i, j, k, l, m, n, iphi, ipc
       INTEGER :: J_1H, J_0H
 
       CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
@@ -414,7 +417,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       end do
    
 C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0,J_1; do i=1,im
+      do l=1,lm; do j=J_0H,J_1H; do i=1,im
          be7_src_3d = be7_src_param * am(l,i,j) *
      *         be7_src_3d(i,j,l)
 
