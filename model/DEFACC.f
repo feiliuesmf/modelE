@@ -4959,8 +4959,8 @@ c
 
 C**** define levels strings
       do l=1,lm
-        if (lm.lt.10) write(lst(1:2),'(I1,X)') l
-        if (lm.ge.10) write(lst(1:2),'(I2)') l
+        if (l.lt.10) write(lst(1:2),'(I1,X)') l
+        if (l.ge.10) write(lst(1:2),'(I2)') l
       end do
 c
       do k=1,NDIUVAR
