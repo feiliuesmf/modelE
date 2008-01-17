@@ -2973,7 +2973,7 @@ C****
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm, trm, trname, mass2vol, n_Ox, n_SO4, 
      *     n_SO4_d1,n_SO4_d2,n_SO4_d3,n_clay,n_clayilli,n_sil1quhe,
-     *     n_water, n_HDO 
+     *     n_water, n_HDO, n_Be7 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      *     ,Ntm_dust
