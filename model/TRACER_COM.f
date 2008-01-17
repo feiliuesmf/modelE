@@ -761,55 +761,30 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_N_OCS_1=0,n_M_SSS_SS=0,n_M_SSS_SU=0,
      *     n_H2SO4=0
 
-!@var 3D on-line radical array for interactive aerosol and gas
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: no3_live
+C**** standard tracer and tracer moment arrays
 
-C****    The following are set in tracer_IC
+!@var TRM: Tracer array (kg)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trm
+
+!@var TRMOM: Second order moments for tracers (kg)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
+
+!@var TRDN1: lowest level downdraft tracer concentration (kg/kg)
+       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trdn1
+
+#ifdef TRACERS_WATER
+!@var TRWM tracer in cloud liquid water amount (kg)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trwm
+#endif
+
+C**** The following general arrays are set in tracer_IC
+
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       logical, dimension(ntm) :: t_qlimit
 !@var trdecay radioactive decay constant (1/s) (=0 for stable tracers)
       real*8, dimension(ntm) :: trdecay
 !@dbparam ITIME_TR0: start time for each tracer (hours)
       integer, dimension(ntm) :: itime_tr0
-!@var MTRACE: timing index for tracers
-      integer mtrace
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP)
-!@var MCHEM: timing index for chemistry
-      integer mchem
-!@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
-c for gas phase sulfur chemistry used by aerosol and chemistry models
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
-!@dbparam imAER 0 determines emission choice: 0 present-day, 1 AEROCOM,
-c  2 Bond/Streets past, present, future using sector inputs; 3 historic
-      integer :: imAER = 1
-!@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
-      integer :: imPI = 0
-!@dbparam aer_int_yr indicates year of emission
-      integer :: aer_int_yr = 0
-!@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
-      real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
-#endif
-!@dbparam rnsrc is 0=standard, 1=Conen&Robertson, 2=modified Schery&Wasiolek
-      integer :: rnsrc = 0
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-!@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
-      INTEGER :: imDUST=0
-!@param kim dimension 1 of lookup table for mean surface wind speed integration
-!@param kjm dimension 2 of lookup table for mean surface wind speed integration
-      INTEGER,PARAMETER :: kim=234,kjm=234
-!@var table1 array for lookup table for calculation of mean surface wind speed
-!@+          local to each grid box
-      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: table1
-!@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
-!@var x21 index of table1 for sub grid scale velocity scale (sigma)
-      REAL*8 :: x11(kim),x21(kjm)
-#endif
 #ifdef TRACERS_ON
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
       integer, dimension(ntm) :: ntm_power
@@ -828,35 +803,60 @@ c  2 Bond/Streets past, present, future using sector inputs; 3 historic
       real*8, dimension(ntm)  :: HSTAR
 #endif
 #endif
-C**** Note units for these parameters!
-C**** Example: clay dust; trpdens=2.5d3, trradius=0.73d-6
-C****          silt dust; trpdens=2.65d3, trradius=6.1d-6
-C****
+
 !@var trpdens tracer particle density (kg/m^3)
 !@+               (=0 for non-particle tracers)
       real*8, dimension(ntm) :: trpdens
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-!@param DenQuarz particle density of quartz
-!@param DenHema particle density of hematite
-      REAL*8,PARAMETER :: DenQuarz=2.62D3,DenHema=5.3D3
-#endif
-#ifdef TRACERS_QUARZHEM
-!@dbparam FreeFe free iron to total iron (free+structural) ratio in minerals
-      REAL*8 :: FreeFe=0.5D0
-!@dbparam FrHeQu fraction of hematite in quartz/hematite aggregate
-      REAL*8 :: FrHeQu=0.1D0
-#endif
 !@var trradius tracer effective radius (m) (=0 for non particle tracers)
       real*8, dimension(ntm) :: trradius
 
-!@var TRM: Tracer array (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trm
+!@var tr_wd_TYPE: tracer wet dep type (gas, particle, water)
+      integer, dimension(ntm) :: tr_wd_TYPE
+!@var tr_RKD: Henry's Law coefficient (in mole/Joule please !)
+      real*8, dimension(ntm) :: tr_RKD
+!@var tr_DHD: coefficient of temperature-dependence term of Henry's
+!@+   Law coefficient (in Joule/mole please !)
+      real*8, dimension(ntm) :: tr_DHD
+!@var fq_aer fraction of aerosol that condenses
+      real*8 fq_aer(ntm)
+!@var rc_washt aerosol washout rate
+      REAL*8 :: rc_washt(ntm)=1.D-1
 
-!@var TRMOM: Second order moments for tracers (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
+!@var isdust: index array for testing if tracer is a dust type
+      integer, dimension(ntm) :: isdust
 
-!@var TRDN1: lowest level downdraft tracer concentration (kg/kg)
-       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trdn1
+C**** parameters for tr_wd_TYPE
+!@param nGAS   index for wetdep tracer type = gas
+!@param nPART  index for wetdep tracer type = particle/aerosol
+!@param nWATER index for wetdep tracer type = water
+      integer, parameter :: nGAS=1, nPART=2, nWATER=3
+
+#ifdef TRACERS_WATER
+!@param nWD_TYPES number of tracer types for wetdep purposes
+      integer, parameter :: nWD_TYPES=3 !(gas,particle,water)
+!@param tr_evap_fact fraction of re-evaporation of raindrops by tracer type
+C note, tr_evap_fact is not dimensioned as NTM:
+      REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
+     *     (/1.d0, 0.5d0,  1.d0/)
+!@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation
+      real*8, dimension(ntm) :: tr_H2ObyCH4
+!@var dowetdep true if tracer has some form of wet deposition
+      logical, dimension(ntm) :: dowetdep
+#endif
+
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+!@var TRW0 default tracer concentration in water (kg/kg)
+      real*8, dimension(ntm) :: trw0
+!@var NTROCN scaling power factor for ocean/ice tracer concentrations
+      integer, dimension(ntm) :: ntrocn
+#endif
+
+#ifdef TRACERS_OCEAN
+!@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)
+      real*8, dimension(ntm) :: trglac
+#endif
+
+C**** Diagnostic indices and meta-data
 
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: ntsurfsrcmax=15
@@ -869,6 +869,89 @@ C****
 !@var sfc_src array holds tracer sources that go into trsource( )
 !@+ maybe wasteful of memory, but works for now...
       real*8, allocatable, dimension(:,:,:,:) :: sfc_src
+
+!@var MTRACE: timing index for tracers
+!@var MCHEM: timing index for chemistry (if needed)
+      integer mtrace, mchem
+
+C**** EVERYTHING BELOW HERE IS TRACER SPECIFIC. PLEASE THINK 
+C**** ABOUT MOVING IT ELSEWHERE
+
+!@var 3D on-line radical array for interactive aerosol and gas
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: no3_live
+
+#ifdef TRACERS_SPECIAL_O18
+C**** Water isotope specific parameters
+
+!@dbparam supsatfac factor controlling super saturation for isotopes
+      real*8 :: supsatfac = 2d-3
+!@var iso_index indexing taking actual tracer number to isotope
+!@+   fractionation number (1=water,2=h2o18,3=hdo,4=hto,5=h2o17)
+      integer :: iso_index(5)
+#endif
+
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP)
+C**** Chemistry specific 3-D arrays
+
+!@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
+c for gas phase sulfur chemistry used by aerosol and chemistry models
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_AMP)
+C**** Aerosol specific switches and arrays
+
+!@dbparam imAER 0 determines emission choice: 0 present-day, 1 AEROCOM,
+c  2 Bond/Streets past, present, future using sector inputs; 3 historic
+      integer :: imAER = 1
+!@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
+      integer :: imPI = 0
+!@dbparam aer_int_yr indicates year of emission
+      integer :: aer_int_yr = 0
+!@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
+      real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
+#endif
+
+C**** tracer specific switches
+
+!@dbparam rnsrc is a switch for Radon sources 
+!@+       0=standard, 1=Conen&Robertson, 2=modified Schery&Wasiolek
+      integer :: rnsrc = 0
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+C**** Dust specific switches and arrays
+
+!@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
+      INTEGER :: imDUST=0
+!@param kim dimension 1 of lookup table for mean surface wind speed integration
+!@param kjm dimension 2 of lookup table for mean surface wind speed integration
+      INTEGER,PARAMETER :: kim=234,kjm=234
+!@var table1 array for lookup table for calculation of mean surface wind speed
+!@+          local to each grid box
+      REAL*8, DIMENSION(Kim,Kjm) :: table1
+!@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
+!@var x21 index of table1 for sub grid scale velocity scale (sigma)
+      REAL*8 :: x11(kim),x21(kjm)
+#endif
+
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+!@param DenQuarz particle density of quartz
+!@param DenHema particle density of hematite
+      REAL*8,PARAMETER :: DenQuarz=2.62D3,DenHema=5.3D3
+#endif
+#ifdef TRACERS_QUARZHEM
+!@dbparam FreeFe free iron to total iron (free+structural) ratio in minerals
+      REAL*8 :: FreeFe=0.5D0
+!@dbparam FrHeQu fraction of hematite in quartz/hematite aggregate
+      REAL*8 :: FrHeQu=0.1D0
+#endif
+
+C**** arrays that could be general, but are only used by chemistry
+
 !@var ssname holds source name, read from file header, e.g. to be
 !@+ placed into lname and sname arrays.
 !@var freq frequency (annual? monthly?) read from emis file header
@@ -883,6 +966,7 @@ C****
       integer, dimension(ntm,ntsurfsrcmax) :: ty_start,ty_end
 !@param kstep number of years assumed between transient emissions slices
       integer, parameter :: kstep=10 ! assume decadal transient emissions
+
 ! ---- section for altering tracers sources by sector/region ----
 !@param n_max_sect maximum number of sectors for emissions altering
 !@param n_max_reg  maximum number of regions for emissions altering
@@ -920,22 +1004,7 @@ C****
       real*8, dimension(IM,JM) :: ef_REG_IJ_glob
       real*4, dimension(IM,JM) :: ef_REG_IJ_glob4
 ! --- end of source-altering section ----------------------------
-!@param nGAS   index for wetdep tracer type = gas
-!@param nPART  index for wetdep tracer type = particle/aerosol
-!@param nWATER index for wetdep tracer type = water
-!@+       (original condense method)
-      integer, parameter :: nGAS=1, nPART=2, nWATER=3
-!@var tr_wd_TYPE: tracer wet dep type (gas, particle, water)
-      integer, dimension(ntm) :: tr_wd_TYPE
-!@var tr_RKD: Henry's Law coefficient (in mole/Joule please !)
-      real*8, dimension(ntm) :: tr_RKD
-!@var tr_DHD: coefficient of temperature-dependence term of Henry's
-!@+   Law coefficient (in Joule/mole please !)
-      real*8, dimension(ntm) :: tr_DHD
-!@var fq_aer fraction of aerosol that condenses
-      real*8 fq_aer(ntm)
-!@var rc_washt aerosol washout rate
-      REAL*8 :: rc_washt(Ntm)=1.D-1
+
 !@param nChemistry index for tracer chemistry 3D source
 !@param nStratwrite index for tracer stratosphic overwrite 3D source
 !@param nOther index for tracer misc. 3D source
@@ -949,42 +1018,12 @@ C****
 
 #ifdef TRACERS_GASEXCH_Natassa
 !@var ocmip_cfc: CFC-11 emissions estimated from OCMIP surf.conc.
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ocmip_cfc
+      !60years (1939--1998) OCMIP surfc. concentr. converted to
+      !global averaged emission rates
+      !each value corresponds to the annual value
+      REAL*8, DIMENSION(67,NTM) :: ocmip_cfc
 #endif
 
-#ifdef TRACERS_WATER
-!@param nWD_TYPES number of tracer types for wetdep purposes
-      integer, parameter :: nWD_TYPES=3 !(gas,particle,water)
-!@param tr_evap_fact fraction of re-evaporation of raindrops by tracer type
-C note, tr_evap_fact is not dimensioned as NTM:
-      REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
-     *     (/1.d0, 0.5d0,  1.d0/)
-!@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation
-      real*8, dimension(ntm) :: tr_H2ObyCH4
-!@var dowetdep true if tracer has some form of wet deposition
-      logical, dimension(ntm) :: dowetdep
-!@var TRWM tracer in cloud liquid water amount (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trwm
-#ifdef TRACERS_SPECIAL_O18
-!@dbparam supsatfac factor controlling super saturation for isotopes
-      real*8 :: supsatfac = 2d-3
-!@var iso_index indexing taking actual tracer number to isotope
-!@+   fractionation number (1=water,2=h2o18,3=hdo,4=hto,5=h2o17)
-      integer :: iso_index(5)
-#endif
-#endif
-
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-!@var TRW0 default tracer concentration in water (kg/kg)
-      real*8, dimension(ntm) :: trw0
-!@var NTROCN scaling power factor for ocean/ice tracer concentrations
-      integer, dimension(ntm) :: ntrocn
-#endif
-
-#ifdef TRACERS_OCEAN
-!@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)
-      real*8, dimension(ntm) :: trglac
-#endif
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       integer, parameter :: rhet=3
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
@@ -1020,13 +1059,6 @@ C****
      *                trdn1(NTM,IM,J_0H:J_1H),
      *              sfc_src(IM,J_0H:J_1H,ntm,ntsurfsrcmax))
 
-#ifdef TRACERS_GASEXCH_Natassa
-      !60years (1939--1998) OCMIP surfc. concentr. converted to
-      !global averaged emission rates
-      !each value corresponds to the annual value
-      ALLOCATE(ocmip_cfc(67,NTM))
-#endif
-
 #ifdef TRACERS_WATER
       ALLOCATE(        trwm(IM,J_0H:J_1H,LM,NTM) )
 #endif
@@ -1039,11 +1071,6 @@ C****
     (defined TRACERS_AMP)
       ALLOCATE(  rsulf1(IM,J_0H:J_1H,LM),rsulf2(IM,J_0H:J_1H,LM),
      *           rsulf3(IM,J_0H:J_1H,LM),rsulf4(IM,J_0H:J_1H,LM) )
-#endif
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      ALLOCATE(table1(Kim,Kjm),STAT=ier)
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
