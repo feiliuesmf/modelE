@@ -10345,7 +10345,7 @@ C****
       case ('Be7')
 c cosmogenic src
         do l=1,lm; do j=J_0,J_1; do i=1,im
-          tr3Dsource(i,j,l,1,n) = be7_src_3d(i,j,l)
+          tr3Dsource(i,j,l,1,n) = am(l,i,j)*be7_src_3d(i,j,l)
         end do; end do; end do
         print*, "just calculated be7"
         print*, "be7_src_param2 = ", be7_src_param
@@ -10360,7 +10360,7 @@ c 0.52 is ratio of Be10 to Be7 production
 c tr_mm(n_Be10)/tr_mm(n_Be7)= 10./7. is ratio of molecular weights
 c cosmogenic src
         do l=1,lm; do j=J_0,J_1; do i=1,im
-           tr3Dsource(i,j,l,1,n) = be10_src_3d(i,j,l)
+           tr3Dsource(i,j,l,1,n) = am(l,i,j)*be10_src_3d(i,j,l)
         end do; end do; end do
         print*, "just calculated be10"
         print*, "be7_src_param2 = ", be7_src_param
