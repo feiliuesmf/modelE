@@ -1337,8 +1337,7 @@ C**** Convert to UV-grid
       DEFRM2(I,J)=.25*DEFRM2(I,J)*BYDXYV(J)
       DEFRM(I,J)=SQRT(DEFRM1(I,J)**2+DEFRM2(I,J)**2)
   120 I=IP1
-C**** Set 
-deformation to zero near the poles
+C**** Set deformation to zero near the poles
       if (haveLatitude(grid, J=2)) DEFRM(1:IM,2) = 0.
       if (haveLatitude(grid, J=3)) DEFRM(1:IM,3) = 0.
 
