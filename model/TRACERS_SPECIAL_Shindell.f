@@ -213,10 +213,9 @@ C**** linearly in time (at 1% increase per year)
       USE MODEL_COM, only: itime,itime0,DTsrc,im,jm
       USE GEOM, only: dxyp,IMAXJ  
       USE DYNAMICS, only: am
-      USE TRACER_COM, only: trname,trm,n_GLT
+      USE TRACER_COM, only: trname,trm,n_GLT,vol2mass
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
-      USE TRCHEM_Shindell_COM,only: bymass2vol
       USE DOMAIN_DECOMP, ONLY : GET, grid, write_parallel
       
       IMPLICIT NONE
@@ -236,12 +235,12 @@ C**** linearly in time (at 1% increase per year)
       by_s_in_yr = 1.d0/(365.d0*24.d0*60.d0*60.d0)
 
 C initial source is an overwriting of GLTic pppv, then add
-C 1% every year, linearly in time. (note: bymass2vol should
+C 1% every year, linearly in time. (note: vol2mass should
 C just be 1 for this tracer, but kept it in here, in case
 C we change that.)
       new_mr = GLTic*(1.d0 + Itime*DTsrc*by_s_in_yr*1.d-2)! pppv
       do j=J_0,J_1; do i=1,imaxj(j)
-        new_mass=new_mr*bymass2vol(n_GLT)*am(1,i,j)*DXYP(j) ! kg
+        new_mass=new_mr*vol2mass(n_GLT)*am(1,i,j)*DXYP(j) ! kg
         tr3Dsource(i,j,1,1,n_GLT)=(new_mass-trm(i,j,1,n_GLT))*bydtsrc
         !i.e. tr3Dsource in kg/s 
       end do   ; end do
@@ -1118,7 +1117,7 @@ C
       USE GEOM, only       : dxyp
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
-      USE TRACER_COM, only : trm, TR_MM, n_CH4, nStratwrite
+      USE TRACER_COM, only : trm, n_CH4, nStratwrite, mass2vol
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
      *     ch4_init_nh,fix_CH4_chemistry,pfix_CH4_S,pfix_CH4_N
@@ -1149,16 +1148,16 @@ C       Initial latitudinal gradient for CH4:
         IF(J < JEQ)THEN ! Southern Hemisphere
           select case(fix_CH4_chemistry)
           case default
-            CH4INIT=ch4_init_sh*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
+            CH4INIT=ch4_init_sh*mass2vol(n_CH4)*1.d-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_S*TR_MM(n_CH4)*bymair*DXYP(J)
+            CH4INIT=pfix_CH4_S*mass2vol(n_CH4)*DXYP(J)
           end select
         ELSE             ! Northern Hemisphere
           select case(fix_CH4_chemistry)
           case default
-            CH4INIT=ch4_init_nh*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
+            CH4INIT=ch4_init_nh*mass2vol(n_CH4)*1.d-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_N*TR_MM(n_CH4)*bymair*DXYP(J)
+            CH4INIT=pfix_CH4_N*mass2vol(n_CH4)*DXYP(J)
           end select
         ENDIF
         select case(icall)
@@ -1182,17 +1181,17 @@ c     mixing ratios to 1.79 (observed):
           select case(fix_CH4_chemistry)
           case default
             CH4INIT=
-     &      ch4_init_sh/1.79d0*TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+     &      ch4_init_sh/1.79d0*mass2vol(n_CH4)*1.E-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_S/1.79d0*TR_MM(n_CH4)*bymair*DXYP(J)
+            CH4INIT=pfix_CH4_S/1.79d0*mass2vol(n_CH4)*DXYP(J)
           end select
         ELSE             ! Northern Hemisphere
           select case(fix_CH4_chemistry)
           case default
             CH4INIT=
-     &      ch4_init_nh/1.79d0*TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+     &      ch4_init_nh/1.79d0*mass2vol(n_CH4)*1.E-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_N/1.79d0*TR_MM(n_CH4)*bymair*DXYP(J)
+            CH4INIT=pfix_CH4_N/1.79d0*mass2vol(n_CH4)*DXYP(J)
           end select
         ENDIF
         IF((J <= JS).OR.(J > JN)) THEN                 ! extratropics

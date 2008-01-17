@@ -30,7 +30,8 @@ c
      &                        n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
      &                        n_SO4,n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nStratwrite,rsulf1,rsulf2,
-     &                        rsulf3,rsulf4,TR_MM,trname
+     &                        rsulf3,rsulf4,TR_MM,trname,
+     *                        mass2vol,vol2mass
 #ifdef SHINDELL_STRAT_CHEM
      &                        ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                        n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
@@ -741,7 +742,7 @@ C       Calculate sulfate sink, and cap it at 90% of N2O5:
         if(wprod_sulf > 0.9d0*y(n_N2O5,L))wprod_sulf=0.9d0*y(n_N2O5,L)
         prod_sulf=wprod_sulf*pfactor
         TAJLS(J,L,jls_N2O5sulf)=TAJLS(J,L,jls_N2O5sulf)
-     &  -(prod_sulf*bymass2vol(n_N2O5))
+     &  -(prod_sulf*vol2mass(n_N2O5))
 
 C*****************************************************************
 c        g signifies gas phase
@@ -902,7 +903,7 @@ C from the following changes is to prevent negative tracer mass:
 
 C -- HCHO --
 c       Gas phase NO3 + HCHO -> HNO3 + CO yield of HCHO & CO:
-        changeL(L,n_HCHO)=changeHCHO*pfactor*bymass2vol(n_HCHO)
+        changeL(L,n_HCHO)=changeHCHO*pfactor*vol2mass(n_HCHO)
         if(-changeL(L,n_HCHO) > trm(I,J,L,n_HCHO))then
           changeL(L,n_HCHO)=-.95d0*trm(I,J,L,n_HCHO)
           changeHCHO=changeL(L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
@@ -913,7 +914,7 @@ c       Gas phase NO3 + HCHO -> HNO3 + CO yield of HCHO & CO:
         ENDIF
         wprodHCHO=changeHCHO
 C -- CO --
-        changeL(L,n_CO)=gprodHNO3*bymass2vol(n_CO)
+        changeL(L,n_CO)=gprodHNO3*vol2mass(n_CO)
         IF((trm(i,j,l,n_CO)+changeL(l,n_CO)) < 1.d0)
      &  changeL(l,n_CO) = 1.d0 - trm(i,j,l,n_CO)
         wprodCO=gwprodHNO3   ! <<< note
@@ -923,13 +924,13 @@ C -- CO --
           TAJLS(J,L,jls_COd)=TAJLS(J,L,jls_COd)+changeL(L,n_CO)
         endif       
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
-        changeL(L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
+        changeL(L,n_HNO3)=changeHNO3*pfactor*vol2mass(n_HNO3)
         IF((trm(i,j,l,n_HNO3)+changeL(l,n_HNO3)) < 1.d0) THEN
           changeL(l,n_HNO3) = 1.d0 - trm(i,j,l,n_HNO3)
           changeHNO3=changeL(L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
         END IF
 #ifdef TRACERS_HETCHEM
-        changeL(L,n_N_d1)=changeN_d1*pfactor*bymass2vol(n_N_d1)
+        changeL(L,n_N_d1)=changeN_d1*pfactor*vol2mass(n_N_d1)
         if(i==36.and.j==28.and.l==1) then
           write(out_line,*)'Mchange L 2 ', changeL(L,n_N_d1),changeN_d1
           call write_parallel(trim(out_line),crit=.true.)
@@ -938,32 +939,32 @@ C -- HNO3 --  (HNO3 from gas and het phase rxns )
           changeL(l,n_N_d1) = 1.d0 - trm(i,j,l,n_N_d1)
           changeN_d1=changeL(L,n_N_d1)*mass2vol(n_N_d1)*bypfactor
         END IF
-        changeL(L,n_N_d2)=changeN_d2*pfactor*bymass2vol(n_N_d2)
+        changeL(L,n_N_d2)=changeN_d2*pfactor*vol2mass(n_N_d2)
         IF((trm(i,j,l,n_N_d2)+changeL(l,n_N_d2)) < 1.d0) THEN
           changeL(l,n_N_d2) = 1.d0 - trm(i,j,l,n_N_d2)
           changeN_d2=changeL(L,n_N_d2)*mass2vol(n_N_d2)*bypfactor
         END IF
-        changeL(L,n_N_d3)=changeN_d3*pfactor*bymass2vol(n_N_d3)
+        changeL(L,n_N_d3)=changeN_d3*pfactor*vol2mass(n_N_d3)
         IF((trm(i,j,l,n_N_d3)+changeL(l,n_N_d3)) < 1.d0) THEN
           changeL(l,n_N_d3) = 1.d0 - trm(i,j,l,n_N_d3)
           changeN_d3=changeL(L,n_N_d3)*mass2vol(n_N_d3)*bypfactor
         END IF
 #endif
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
-        changeL(L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
+        changeL(L,n_N2O5)=changeN2O5*pfactor*vol2mass(n_N2O5)
         IF((trm(i,j,l,n_N2O5)+changeL(l,n_N2O5)) < 1.d0) THEN
           changeL(l,n_N2O5) = 1.d0 - trm(i,j,l,n_N2O5)
           changeN2O5=changeL(L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
         END IF
 c -- NOx --   (NOx from gas phase rxns)
-        changeL(L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
+        changeL(L,n_NOx)=changeNOx*pfactor*vol2mass(n_NOx)
         IF((trm(i,j,l,n_NOx)+changeL(l,n_NOx)) < 1.d0) THEN
           changeL(l,n_NOx) = 1.d0 - trm(i,j,l,n_NOx)
           changeNOx=changeL(L,n_NOx)*mass2vol(n_NOx)*bypfactor
         END IF
 C -- Alkenes --  (Alkenes from gas phase rxns)
         changeL(L,n_Alkenes)=
-     &  changeAlkenes*pfactor*bymass2vol(n_Alkenes)
+     &  changeAlkenes*pfactor*vol2mass(n_Alkenes)
         IF((trm(i,j,l,n_Alkenes)+changeL(l,n_Alkenes)) < 1.d0)THEN
           changeL(l,n_Alkenes) = 1.d0 - trm(i,j,l,n_Alkenes)
           changeAlkenes=changeL(L,n_Alkenes)*mass2vol(n_Alkenes)
@@ -971,7 +972,7 @@ C -- Alkenes --  (Alkenes from gas phase rxns)
         END IF
 c -- Isoprene -- (Isoprene from gas phase rxns)
         changeL(L,n_Isoprene)=
-     &  changeIsoprene*pfactor*bymass2vol(n_Isoprene)
+     &  changeIsoprene*pfactor*vol2mass(n_Isoprene)
         IF((trm(i,j,l,n_Isoprene)+changeL(l,n_Isoprene)) < 1.d0)
      &  THEN
           changeL(l,n_Isoprene) = 1.d0 - trm(i,j,l,n_Isoprene)
@@ -980,7 +981,7 @@ c -- Isoprene -- (Isoprene from gas phase rxns)
         END IF
 c -- AlkylNit -- (AlkylNit from gas phase rxns)
         changeL(L,n_AlkylNit)=
-     &  changeAlkylNit*pfactor*bymass2vol(n_AlkylNit)
+     &  changeAlkylNit*pfactor*vol2mass(n_AlkylNit)
         IF((trm(i,j,l,n_AlkylNit)+changeL(l,n_AlkylNit)) < 1.d0)
      &  THEN
           changeL(l,n_AlkylNit) = 1.d0 - trm(i,j,l,n_AlkylNit)
@@ -1257,19 +1258,19 @@ C Make sure nighttime chemistry changes are not too big:
          if(error)call stop_model('nighttime chem: big changes',255)
 
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
-         changeL(L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
+         changeL(L,n_HNO3)=changeHNO3*pfactor*vol2mass(n_HNO3)
          IF((trm(i,j,l,n_HNO3)+changeL(l,n_HNO3)) < 1.d0) THEN
            changeL(l,n_HNO3) = 1.d0 - trm(i,j,l,n_HNO3)
            changeHNO3=changeL(L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
          END IF
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
-         changeL(L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
+         changeL(L,n_N2O5)=changeN2O5*pfactor*vol2mass(n_N2O5)
          IF((trm(i,j,l,n_N2O5)+changeL(l,n_N2O5)) < 1.d0) THEN
            changeL(l,n_N2O5) = 1.d0 - trm(i,j,l,n_N2O5)
            changeN2O5=changeL(L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
          END IF
 c -- NOx --   (NOx from gas phase rxns)
-         changeL(L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
+         changeL(L,n_NOx)=changeNOx*pfactor*vol2mass(n_NOx)
          IF((trm(i,j,l,n_NOx)+changeL(l,n_NOx)) < 1.d0) THEN
            changeL(l,n_NOx) = 1.d0 - trm(i,j,l,n_NOx)
            changeNOx=changeL(L,n_NOx)*mass2vol(n_NOx)*bypfactor
@@ -1278,7 +1279,7 @@ c --  Ox --   ( Ox from gas phase rxns)
          if(pres2(l) > 1.0.and.pres2(l) < 25.0)then
            changeOx=-(rr(7,L)*y(nNO2,L) + y(n_H2O2,L)*0.7d0*1.4d-11*
      &     exp(-2000./TA(L)))*y(n_Ox,L)*dt2*2.5d0
-           changeL(L,n_Ox)=changeOx*pfactor*bymass2vol(n_Ox)
+           changeL(L,n_Ox)=changeOx*pfactor*vol2mass(n_Ox)
            IF((trm(i,j,l,n_Ox)+changeL(l,n_Ox)) < 1.d0) THEN
              changeL(l,n_Ox) = 1.d0 - trm(i,j,l,n_Ox)
              changeOx=changeL(L,n_Ox)*mass2vol(n_Ox)*bypfactor
@@ -1291,27 +1292,27 @@ c --  Ox --   ( Ox from gas phase rxns)
          endif
 c -- ClONO2 --   (ClONO2 from gas and het phase rxns)
          changeL(L,n_ClONO2)=changeClONO2*pfactor*
-     &   bymass2vol(n_ClONO2)
+     &   vol2mass(n_ClONO2)
          IF((trm(i,j,l,n_ClONO2)+changeL(l,n_ClONO2)) < 1.d0) THEN
            changeL(l,n_ClONO2) = 1.d0 - trm(i,j,l,n_ClONO2)
            changeClONO2=changeL(L,n_ClONO2)*mass2vol(n_ClONO2)*
      &     bypfactor
          END IF
 c -- ClOx --   (ClOx from gas and het phase rxns)
-         changeL(L,n_ClOx)=changeClOx*pfactor*bymass2vol(n_ClOx)
+         changeL(L,n_ClOx)=changeClOx*pfactor*vol2mass(n_ClOx)
          IF((trm(i,j,l,n_ClOx)+changeL(l,n_ClOx)) < 1.d0) THEN
            changeL(l,n_ClOx) = 1.d0 - trm(i,j,l,n_ClOx)
            changeClOx=changeL(L,n_ClOx)*mass2vol(n_ClOx)*bypfactor
          END IF
          if(pscX > 0.9d0)then
 c -- HOCl --   (HOCl from het phase rxns)
-           changeL(L,n_HOCl)=changeHOCl*pfactor*bymass2vol(n_HOCl)
+           changeL(L,n_HOCl)=changeHOCl*pfactor*vol2mass(n_HOCl)
            IF((trm(i,j,l,n_HOCl)+changeL(l,n_HOCl)) < 1.d0) THEN
              changeL(l,n_HOCl) = 1.d0 - trm(i,j,l,n_HOCl)
              changeHOCl=changeL(L,n_HOCl)*mass2vol(n_HOCl)*bypfactor
            END IF
 c -- HCl --   (HCl from het phase rxns)
-           changeL(L,n_HCl)=changeHCl*pfactor*bymass2vol(n_HCl)
+           changeL(L,n_HCl)=changeHCl*pfactor*vol2mass(n_HCl)
            IF((trm(i,j,l,n_HCl)+changeL(l,n_HCl)) < 1.d0) THEN
              changeL(l,n_HCl) = 1.d0 - trm(i,j,l,n_HCl)
              changeHCl=changeL(L,n_HCl)*mass2vol(n_HCl)*bypfactor
@@ -1658,12 +1659,12 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             ! -- ClOx --
             tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_ClOx)=(1.d-11*ClOxalt(l)
-     &      *tr_mm(n_ClOx)*bymair*am(L,i,j)*dxyp(j)
+     &      *vol2mass(n_ClOx)*am(L,i,j)*dxyp(j)
      &      -trm(i,j,L,n_ClOx))*bydtsrc    
             ! -- BrOx --
             tr3Dsource(i,j,L,nChemistry,n_BrOx)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_BrOx)=(1.d-11*BrOxalt(l)
-     &      *tr_mm(n_BrOx)*bymair*am(L,i,j)*dxyp(j)
+     &      *vol2mass(n_BrOx)*am(L,i,j)*dxyp(j)
      &      -trm(i,j,L,n_BrOx))*bydtsrc
             ! -- NOx --
             if(PIfact(n_NOx) /= 1.) ! what's this for? I forget.
@@ -1758,7 +1759,7 @@ C         previous stratospheric value by 70% here: GSF/DTS 9.15.03:
           ! here 70. = 1.4E-7/2.0E-9
           changeL(L,n_HO2NO2)=FACT1*70.d0*PIfact(n_HO2NO2)
      &                                         - trm(I,J,L,n_HO2NO2)
-          changeL(L,n_CO)=(COlat(J3)*COalt(L)*1.d-9*bymass2vol(n_CO)
+          changeL(L,n_CO)=(COlat(J3)*COalt(L)*1.d-9*vol2mass(n_CO)
      &    *AM(L,I,J)*DXYP(J))*0.4d0*PIfact(n_CO)-trm(I,J,L,n_CO)!<<40%
           changeL(L,n_PAN)     = FACT1*1.d-4*PIfact(n_PAN)
      &                           - trm(I,J,L,n_PAN)
@@ -1796,7 +1797,7 @@ C to 1.79:
             if(j <= jm/2)then; PIfact(n_CH4)=pfix_CH4_S
             else             ; PIfact(n_CH4)=pfix_CH4_N
             end if
-            changeL(L,n_CH4)=am(l,i,j)*dxyp(j)*TR_MM(n_CH4)*bymair
+            changeL(L,n_CH4)=am(l,i,j)*dxyp(j)*vol2mass(n_CH4)
      &      *PIfact(n_CH4)  - trm(I,J,L,n_CH4)
           case default
             ! also ensure that strat overwrite is only a sink:

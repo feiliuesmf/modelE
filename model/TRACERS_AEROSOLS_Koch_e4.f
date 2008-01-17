@@ -1598,7 +1598,7 @@ c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
       USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2
+     *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2,mass2vol
       USE CLOUDS, only: PL,NTIX,NTX,DXYPJ
       USE MODEL_COM, only: dtsrc,coupled_chem
 c
@@ -1688,14 +1688,14 @@ c modified Henry's Law coefficient assuming pH of 4.5
 c mole of tracer, used to limit so4 production
       trmol(is)=1000.*tm(l,isx)/tr_mm(is)*fcloud
 c partial pressure of gas x henry's law coefficient
-      pph(is)=mair*1.d-3*ppas/tr_mm(is)/amass*
+      pph(is)=mass2vol(is)*1.d-3*ppas/amass*
      *   tr_rkd(is)*exp(-tr_dhd(is)*tfac)
 c the following is from Phil:
 c      reduction in partial pressure as species dissolves
       henry_const(is)=rkdm(is)*exp(-tr_dhd(is)*tfac)
       pph(is)=pph(is)/(1+(henry_const(is)*clwc*gasc*temp))
 c again all except tmcl(n)
-      trdr(is)=mair*ppas/tr_mm(is)/amass*bygasc
+      trdr(is)=mass2vol(is)*ppas/amass*bygasc
      *    /temp*1.D-3  !M/kg
 c dissolved moles
       trdmol(is)=trdr(is)*1000./tr_mm(is)
@@ -1713,15 +1713,14 @@ c modified Henry's Law coefficient assuming pH of 4.5
 c mole of tracer, used to limit so4 production
       trmol(ih)=1000.*tm(l,ihx)/tr_mm(ih)*fcloud
 c partial pressure of gas x henry's law coefficient
-      pph(ih)=mair*1.D-3*ppas/tr_mm(ih)/amass*
+      pph(ih)=mass2vol(ih)*1.D-3*ppas/amass*
      *   tr_rkd(ih)*exp(-tr_dhd(ih)*tfac)
 c the following is from Phil:
 c      reduction in partial pressure as species dissolves
       henry_const(ih)=rkdm(ih)*exp(-tr_dhd(ih)*tfac)
       pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))
 c all except tmcl(n)
-      trdr(ih)=mair*ppas/tr_mm(ih)
-     *    /amass*bygasc/temp*1.D-3  !M/kg
+      trdr(ih)=mass2vol(ih)*ppas/amass*bygasc/temp*1.D-3  !M/kg
 c dissolved moles
       trdmol(ih)=trdr(ih)*1000./tr_mm(ih)
 

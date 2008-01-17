@@ -14,8 +14,7 @@
      &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo
       USE SEAICE, only : tfrez
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,trname,trradius,tr_mm
-     &     ,tr_wd_TYPE, nWATER
+      USE TRACER_COM, only : ntm,trname,trradius,tr_wd_TYPE, nWATER
 #ifdef TRACERS_SPECIAL_O18
      *     ,iso_index, n_water
 #endif
@@ -667,8 +666,6 @@ C**** get fractionation for isotopes
           trcnst=trc1*trcnst
           trsf  =trs1*trsf
           pbl_args%frack(itr)=trs1  ! save for output
-          if (itr.eq.1.and.ilong.eq.6.and.jlat.eq.28) print*,"pbl0",trs1
-     *         ,ws,ws0,pbl_args%trconstflx(itr),pbl_args%trsfac(itr)
 #endif
         end if
 #endif

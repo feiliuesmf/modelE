@@ -16,7 +16,7 @@
       USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
      & UNPACK_DATAj,write_parallel
       USE CONSTANT, only: mair,mwat,sday
-      USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm,itime
+      USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
@@ -38,7 +38,7 @@
 #endif /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
-     & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
+     &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,corrOxIN,corrOx,LcorrOx,PcorrOx
      &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry,which_trop,
@@ -106,6 +106,7 @@ C****
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1)
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
+
       itime_tr0=itime
       t_qlimit = .true.
       trdecay = 0.
@@ -123,6 +124,7 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       tr_RKD = 0.
       tr_DHD = 0.
       fq_aer = 0.
+      isdust = 0
 #ifdef TRACERS_WATER
       trli0 = 0.
       trsi0 = 0.
@@ -143,6 +145,21 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 #endif
 #ifdef TRACERS_OCEAN
       trglac = 0.
+#endif
+
+C**** Synchronise tracer related paramters from rundeck
+
+C**** Get itime_tr0 from rundeck if it exists
+      call sync_param("itime_tr0",itime_tr0,ntm)
+C**** Get to_volume_MixRat from rundecks if it exists
+      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
+#ifdef TRACERS_WATER
+C**** Decide on water tracer conc. units from rundeck if it exists
+      call sync_param("to_per_mil",to_per_mil,ntm)
+#endif
+#ifdef TRACERS_SPECIAL_O18
+C**** set super saturation parameter for isotopes if needed
+      call sync_param("supsatfac",supsatfac)
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
@@ -178,10 +195,29 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       call sync_param("exclude_us_eu",exclude_us_eu)
       call sync_param("nn_or_zon",nn_or_zon)
 #endif
-      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+      PRES(1:LM)=PMIDL00(1:LM) 
 C**** initialise source arrays
        oh_live(:,:,:) =0.d0  ;  no3_live(:,:,:)=0.d0
 #endif /* TRACERS_SPECIAL_Shindell */
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_AMP)
+C**** decide on emissions
+      call sync_param("imAER",imAER)
+C**** decide if preindustrial emissions
+      call sync_param("imPI",imPI)
+C**** determine year of emissions
+      call sync_param("aer_int_yr",aer_int_yr)
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+C**** decide on AEROCOM or interactive emissions
+      CALL sync_param('imDUST',imDUST)
+#endif
+#ifdef TRACERS_QUARZHEM
+      CALL sync_param('FreeFe',FreeFe)
+      CALL sync_param('FrHeQu',FrHeQu)
+#endif
 
 C**** Define a max layer for some optionally trop/strat tracers
       LTOP = LM
@@ -264,7 +300,6 @@ C**** Define individual tracer characteristics
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
 #endif
-
 
       case ('SF6')
       n_SF6 = n
@@ -1053,6 +1088,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Silt1')
       n_silt1=n
           ntm_power(n)=-9
@@ -1064,6 +1101,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Silt2')
       n_silt2=n
           ntm_power(n)=-9
@@ -1075,6 +1114,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Silt3')
       n_silt3=n
           ntm_power(n)=-9
@@ -1086,6 +1127,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Silt4')
       n_silt4=n
           ntm_power(n)=-9
@@ -1097,6 +1140,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
 #else
 #ifdef TRACERS_MINERALS
       CASE('ClayIlli')          ! http://webmineral.com/data/Illite.shtml
@@ -1110,6 +1155,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('ClayKaol')       ! http://www.webmineral.com/data/Kaolinite.shtml
       n_claykaol=n
           ntm_power(n)=-9
@@ -1121,6 +1168,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('ClaySmec')       ! http://www.webmineral.com/data/Rectorite.shtml
       n_claysmec=n
           ntm_power(n)=-9
@@ -1132,6 +1181,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('ClayCalc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_claycalc=n
           ntm_power(n)=-9
@@ -1143,6 +1194,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('ClayQuar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_clayquar=n
           ntm_power(n)=-9
@@ -1154,6 +1207,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil1Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil1quar=n
           ntm_power(n)=-9
@@ -1165,6 +1220,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil1Feld')       ! http://www.mindat.org/min-1624.html
       n_sil1feld=n
           ntm_power(n)=-9
@@ -1176,6 +1233,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil1Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil1calc=n
           ntm_power(n)=-9
@@ -1187,6 +1246,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil1Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil1hema=n
           ntm_power(n)=-9
@@ -1198,6 +1259,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil1Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil1gyps=n
           ntm_power(n)=-9
@@ -1209,6 +1272,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil2Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil2quar=n
           ntm_power(n)=-9
@@ -1220,6 +1285,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil2Feld')       ! http://www.mindat.org/min-1624.html
       n_sil2feld=n
           ntm_power(n)=-9
@@ -1231,6 +1298,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil2Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil2calc=n
           ntm_power(n)=-9
@@ -1242,6 +1311,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil2Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil2hema=n
           ntm_power(n)=-9
@@ -1253,6 +1324,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil2Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil2gyps=n
           ntm_power(n)=-9
@@ -1264,6 +1337,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil3Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil3quar=n
           ntm_power(n)=-9
@@ -1275,6 +1350,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil3Feld')       ! http://www.mindat.org/min-1624.html
       n_sil3feld=n
           ntm_power(n)=-9
@@ -1286,6 +1363,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil3Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil3calc=n
           ntm_power(n)=-9
@@ -1297,6 +1376,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil3Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil3hema=n
           ntm_power(n)=-9
@@ -1308,6 +1389,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil3Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil3gyps=n
           ntm_power(n)=-9
@@ -1319,6 +1402,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
 #endif  /* TRACERS_MINERALS */
 #ifdef TRACERS_QUARZHEM
       CASE('Sil1QuHe')
@@ -1332,6 +1417,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil2QuHe')
       n_sil2quhe=n
           ntm_power(n)=-9
@@ -1343,6 +1430,8 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
       CASE('Sil3QuHe')
       n_sil3quhe=n
           ntm_power(n)=-9
@@ -1354,8 +1443,11 @@ CCC#endif
           rc_washt(n)=5.D-1
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+          isdust(n) = 1
+
 #endif  /* TRACERS_QUARZHEM */
 #endif  /* TRACERS_DUST */
+
 C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('H2SO4')
       n_H2SO4 = n
@@ -1894,12 +1986,10 @@ C**** Any tracers that dry deposits needs the surface concentration:
 #endif
       end if
 #endif /* TRACERS_DRYDEP */
-#ifdef TRACERS_SPECIAL_Shindell
-C**** Define the conversion from mass to volume units here so it is not
-C**** done each hour:
-      mass2vol(n)  =mair/TR_MM(n)
-      bymass2vol(n)=TR_MM(n)/mair
-#endif
+
+C**** Define the conversion from mass to volume units here 
+      mass2vol(n) = mair/tr_mm(n)
+      vol2mass(n) = tr_mm(n)/mair
 
       end do
 
@@ -8061,8 +8151,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE DOMAIN_DECOMP, only: AM_I_ROOT
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday
-      USE resolution,ONLY : Im,Jm,Lm,Ls1,Psf,Ptop
-      USE MODEL_COM, only: itime,jday,JEQ,sig,dtsrc,q,wm,flice,jyear
+      USE resolution,ONLY : Im,Jm,Lm,Ls1
+      USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
@@ -8073,7 +8163,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      * UNPACK_DATA
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
-     *   tr_mm,rnsrc
+     *   tr_mm,rnsrc,vol2mass
 #if (defined TRACERS_AEROSOLS_Koch)||(defined TRACERS_OM_SP)||\
     (defined TRACERS_AMP)
      *   ,imAER,n_SO2,imPI,aer_int_yr
@@ -8102,7 +8192,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM,ch4icx,
      &  COalt,JCOlat,OxIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
-     &  ,bymass2vol,use_rad_n2o,use_rad_cfc,use_rad_ch4
+     &  ,use_rad_n2o,use_rad_cfc,use_rad_ch4
 #ifdef SHINDELL_STRAT_CHEM
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt,N2OICX,CFCIC
      &  ,PIratio_N2O,PIratio_CFC
@@ -8202,7 +8292,7 @@ C****
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 #ifdef SHINDELL_STRAT_CHEM
-      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+      PRES(1:LM)=PMIDL00(1:LM) 
 #endif
       do n=1,ntm
       if (itime.eq.itime_tr0(n)) then
@@ -8381,7 +8471,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
         case ('O3')
           do l=1,lm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*dxyp(j)*20.d-9*tr_mm(n)/mair
+            trm(:,j,l,n) = am(l,:,j)*dxyp(j)*20.d-9*vol2mass(n)
           enddo; enddo
 #ifdef TRACERS_SPECIAL_Lerner
           do l=lm,lm+1-nstrtc,-1
@@ -8389,11 +8479,11 @@ C**** ESMF: Each processor reads the global array: N2Oic
             do j=J_0,J_1
             if (tlt0m(j,lr,5) /= 0.) then
             trm(:,j,l,n) =
-     *          tlt0m(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
+     *          tlt0m(j,lr,1)*am(l,:,j)*dxyp(j)*vol2mass(n)
             trmom(mz,:,j,l,n)  =
-     *          tltzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
+     *          tltzm(j,lr,1)*am(l,:,j)*dxyp(j)*vol2mass(n)
             trmom(mzz,:,j,l,n)  =
-     *         tltzzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
+     *         tltzzm(j,lr,1)*am(l,:,j)*dxyp(j)*vol2mass(n)
             end if
             end do
           end do
@@ -8544,25 +8634,25 @@ c**** earth
         case ('ClOx')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClOxalt(l)
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-11*ClOxalt(l)
           end do; end do; end do
 
         case ('BrOx')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*BrOxalt(l)
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-11*BrOxalt(l)
           end do; end do; end do
 
         case ('HCl')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*HClalt(l)
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-11*HClalt(l)
           end do; end do; end do
 
         case ('ClONO2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClONO2alt(l)
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-11*ClONO2alt(l)
           end do; end do; end do
 #endif
         case ('N2O5')
@@ -8591,13 +8681,13 @@ c**** earth
 #endif
         case('N_d1','N_d2','N_d3')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-14
           end do; end do; end do
 
 #ifdef TRACERS_NITRATE
         case('NH3','NH4','NO3p')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-14
           end do; end do; end do
 #endif
         case ('H2O2')
@@ -8608,7 +8698,7 @@ c**** earth
 #ifdef SHINDELL_STRAT_EXTRA
         case ('GLT')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = GLTic*bymass2vol(n)*am(l,i,j)*dxyp(j)
+            trm(i,j,l,n) = GLTic*vol2mass(n)*am(l,i,j)*dxyp(j)
           end do; end do; end do
 #endif
 
@@ -8633,7 +8723,7 @@ c**** earth
           end do; end do; end do
 
         case('CO')
-C         COlat=ppbv, COalt=no unit, TR_MM(n)*bymair=ratio of mol.wt.,
+C         COlat=ppbv, COalt=no unit, vol2mass(n)=ratio of mol.wt.,
 C         AM=kg/m2, and DXYP=m2:
           DO L=1,LM
             select case(PI_run)
@@ -8648,7 +8738,7 @@ C         AM=kg/m2, and DXYP=m2:
             DO J=J_0,J_1
               J2=MAX(1,NINT(float(J)*float(JCOlat)*BYJM))
               DO I=1,IM
-                trm(i,j,l,n)=COlat(J2)*COalt(L)*1.D-9*TR_MM(n)*bymair*
+                trm(i,j,l,n)=COlat(J2)*COalt(L)*1.D-9*vol2mass(n)*
      &          am(L,I,J)*DXYP(J)*ICfactor
               END DO
             END DO
@@ -8662,7 +8752,7 @@ C         AM=kg/m2, and DXYP=m2:
           end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-11*ICfactor
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*4.d-11*ICfactor
           end do; end do; end do
 
         case ('Isoprene')
@@ -8672,7 +8762,7 @@ C         AM=kg/m2, and DXYP=m2:
           end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ICfactor
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-11*ICfactor
           end do; end do; end do
 
         case ('AlkylNit')
@@ -8682,7 +8772,7 @@ C         AM=kg/m2, and DXYP=m2:
           end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-10*ICfactor
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*2.d-10*ICfactor
           end do; end do; end do
 
         case('Alkenes')
@@ -8692,7 +8782,7 @@ C         AM=kg/m2, and DXYP=m2:
           end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-10*ICfactor
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*4.d-10*ICfactor
           end do; end do; end do
 
         case('Paraffin')
@@ -8702,7 +8792,7 @@ C         AM=kg/m2, and DXYP=m2:
           end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-10*ICfactor
+     &      am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-10*ICfactor
           end do; end do; end do
 #endif
 
@@ -8710,9 +8800,9 @@ C         AM=kg/m2, and DXYP=m2:
         case ('CO2n')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-13
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*2.d-13
             else
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-13
             end if
           end do; end do; end do
 #endif
@@ -8722,9 +8812,9 @@ C         AM=kg/m2, and DXYP=m2:
         case ('CFCn')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-13
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*2.d-13
             else
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-13
             end if
           end do; end do; end do
 #endif
@@ -8779,24 +8869,24 @@ C         AM=kg/m2, and DXYP=m2:
         case ('BrONO2','HBr','HOBr')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-13
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*2.d-13
             else
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-13
             end if
           end do; end do; end do
 
         case ('HOCl')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-11
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-11
             else
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-11
             end if
           end do; end do; end do
 
         case('DMS')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-13
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-13
           end do; end do; end do
 
         case('MSA', 'SO2', 'SO4', 'SO4_d1', 'SO4_d2', 'SO4_d3',
@@ -8804,7 +8894,7 @@ C         AM=kg/m2, and DXYP=m2:
      *         'OCI1', 'OCI2', 'OCI3', 'OCA1','OCA2', 'OCA3', 'OCA4',
      *         'seasalt1', 'seasalt2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-14
           end do; end do; end do
 
 #ifdef TRACERS_AMP
@@ -8820,14 +8910,14 @@ C         AM=kg/m2, and DXYP=m2:
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
      *    'M_OCS_OC','N_OCS_1 ','NH3','H2SO4')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14!23
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-14!23
           end do; end do; end do
 
         case('M_AKK_SU','M_ACC_SU','M_DD1_DU',
      *    'M_SSA_SS','M_SSC_SS','M_BC1_BC','M_OCC_OC',
      *    'M_SSS_SS','M_SSS_SU')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14!32
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-14!32
           end do; end do; end do
 #endif
 
@@ -9530,7 +9620,7 @@ C**** Distribute source over ice-free land
         if (trname(n).eq.'SF6'  .or. trname(n).eq.'CFCn') then
 C         Make sure index KY=1 in year that tracer turns on
           ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
-          base = (0.3d-12)*tr_mm(n)/mair !pptm
+          base = (0.3d-12)*vol2mass(n) !pptm
           x = base*ky*steppy
           airm = (psf-pmtop)*100.*bygrav*AREAG !(kg/m**2 X m**2 = kg)
           anngas = x*airm/steppy

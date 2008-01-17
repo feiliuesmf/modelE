@@ -65,23 +65,23 @@ C**** functions
 ! conversion molecule/cm3 -> umol/m3: 1.d6 * 1.d6 /6.022e23
       yS =  1.d6 * 1.d6 /6.022e23
       yM    = YI(1,11)/(YI(1,1)*1.38d-19) * yS
-      YI(1,3) = trm(i,j,l,n_NH3)*yM*(mair/TR_MM(n_NH3))*
+      YI(1,3) = trm(i,j,l,n_NH3)*yM*mass2vol(n_NH3)*
      *        BYDXYP(J)*BYAM(L,I,J)        ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
-      YI(1,3) = YI(1,3) + (trm(i,j,l,n_NH4)*yM*(mair/TR_MM(n_NH4))*
+      YI(1,3) = YI(1,3) + (trm(i,j,l,n_NH4)*yM*mass2vol(n_NH4)*
      *        BYDXYP(J)*BYAM(L,I,J))        ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
 c#ifdef TRACERS_HETCHEM
 c      YI(1,4) = (trm(i,j,l,n_SO4)+trm(i,j,l,n_SO4_d1)+
 c     *          trm(i,j,l,n_SO4_d2)+trm(i,j,l,n_SO4_d3))
-c     *         * yM*(mair/TR_MM(n_SO4))*
+c     *         * yM*mass2vol(n_SO4)*
 c     *       BYDXYP(J)*BYAM(L,I,J)        ! H2SO4    + SO4-- (p)   [umol/m^3 air]
 c#else
-      YI(1,4) = trm(i,j,l,n_SO4)*yM*(mair/TR_MM(n_SO4))*
+      YI(1,4) = trm(i,j,l,n_SO4)*yM*mass2vol(n_SO4)*
      *         BYDXYP(J)*BYAM(L,I,J)        ! H2SO4    + SO4-- (p)   [umol/m^3 air]
 c#endif
 #ifdef  TRACERS_SPECIAL_Shindell
-      YI(1,5) = trm(i,j,l,n_HNO3)*yM*(mair/TR_MM(n_HNO3))*
+      YI(1,5) = trm(i,j,l,n_HNO3)*yM*mass2vol(n_HNO3)*
      *         BYDXYP(J)*BYAM(L,I,J)        ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
-      YI(1,5) =YI(1,5)+ (trm(i,j,l,n_NO3p)*yM*(mair/TR_MM(n_NO3p))*
+      YI(1,5) =YI(1,5)+ (trm(i,j,l,n_NO3p)*yM*mass2vol(n_NO3p)*
      *         BYDXYP(J)*BYAM(L,I,J) )      ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
 #else 
 !off-line HNO3
@@ -136,15 +136,15 @@ c#endif
       YO(1,9)  = MAX(YO(1,9),1.D-30)
 ! Nitrate production   
       tr3Dsource(i,j,l,1,n_NO3p)= ((YO(1,20)
-     *        /(yM*(mair/TR_MM(n_NO3p))* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_NO3p)* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NO3p)) /dtsrc
 ! Ammonia residual
       tr3Dsource(i,j,l,1,n_NH3) = ((YO(1,10)
-     *        /(yM*(mair/TR_MM(n_NH3))* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_NH3)* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NH3)) /dtsrc
 ! Ammonium production
       tr3Dsource(i,j,l,1,n_NH4) = ((YO(1,19) 
-     *        /(yM*(mair/TR_MM(n_NH4))* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_NH4)* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NH4))/dtsrc
 ! Aerosol Water [ug/m3]
 
@@ -156,7 +156,7 @@ c      trm(i,j,l,n_AW) = YO(1,12) *AVOL * 1.d-9
 #ifdef  TRACERS_SPECIAL_Shindell
 ! Nitric Acid residual
       tr3Dsource(i,j,l,3,n_HNO3) =((YO(1,9)
-     *        /(yM*(mair/TR_MM(n_HNO3))* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_HNO3)* BYDXYP(J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_HNO3))/dtsrc
 #endif
 

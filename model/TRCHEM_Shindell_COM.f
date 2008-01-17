@@ -526,8 +526,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
 !@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
 !@var BYFJM = 1/JM
-!@var mass2vol local array to convert between mass and volume units.
-!@var bymass2vol local array to convert between mass and volume units.
 !@var MODPHOT if MODPHOT=0 do photolysis, else skip it
 !@var TX temperature variable for master chem
 !@var ta, pres local arrays to hold temperature,pressure
@@ -664,7 +662,6 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(p_2,LM)        :: chemrate, photrate 
       REAL*8, DIMENSION(2*LM)          :: O3_FASTJ    
       REAL*8, DIMENSION(ny,LM)         :: dest, prod
-      REAL*8, DIMENSION(NTM)           :: mass2vol,bymass2vol
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
 #ifdef SHINDELL_STRAT_CHEM
       REAL*8                            :: SF3_fact,SF2_fact

@@ -26,7 +26,7 @@ C****
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
-     $     ,tr_mm, n_Be7, n_Be10
+     $     ,n_Be7, n_Be10
 #ifdef TRACERS_DRYDEP
      *     ,dodrydep
 #endif

@@ -2971,7 +2971,7 @@ C****
       USE DIAG_COM, only : kgz_max,pmname,P_acc
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm, trm, tr_mm, trname, n_Ox, n_SO4, 
+      USE TRACER_COM, only : ntm, trm, trname, mass2vol, n_Ox, n_SO4, 
      *     n_SO4_d1,n_SO4_d2,n_SO4_d3,n_clay,n_clayilli,n_sil1quhe,
      *     n_water, n_HDO 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -3017,9 +3017,6 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       subroutine init_subdd(aDATE)
 !@sum init_subdd initialise sub daily diags and position files
 !@auth Gavin Schmidt
-#ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
-#endif
       implicit none
       character*14, intent(in) :: adate
       character*12 name
@@ -3172,12 +3169,6 @@ C****
 #endif
 #ifdef TRACERS_DUST
      &     ,dust_flux2_glob
-#endif
-#ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only : Be7d_acc, Be7w_acc
-#endif
-#ifdef TRACERS_ON
-      USE TRACER_COM
 #endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
@@ -3522,8 +3513,8 @@ C**** fix polar values for W only (calculated on tracer points)
             do kp=1,LmaxSUBDD
               do j=J_0,J_1
                 do i=1,imaxj(j)
-                  data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mair/
-     *                 (tr_mm(n_Ox)*am(kp,i,j)*dxyp(j))
+                  data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mass2vol(n_Ox)/
+     *                 (am(kp,i,j)*dxyp(j))
                 end do
               end do
 C**** fix polar values
@@ -3547,8 +3538,8 @@ C**** get model level
               kunit=kunit+1
               do j=J_0,J_1
                 do i=1,imaxj(j)
-                  data(i,j)=1d6*trm(i,j,l,n_Ox)*mair/
-     *                 (tr_mm(n_Ox)*am(l,i,j)*dxyp(j))
+                  data(i,j)=1d6*trm(i,j,l,n_Ox)*mass2vol(n_Ox)/
+     *                 (am(l,i,j)*dxyp(j))
                 end do
               end do
 C**** fix polar values
@@ -3570,8 +3561,8 @@ C**** write out
             do kp=1,LmaxSUBDD
               do j=J_0,J_1
                 do i=1,imaxj(j)
-                  data(i,j)=1.d6*trm(i,j,kp,n_Be7)*mair/
-     *                 (tr_mm(n_Be7)*am(kp,i,j)*dxyp(j))
+                  data(i,j)=1.d6*trm(i,j,kp,n_Be7)* mass2vol(n_Be7)/
+     *                 (am(kp,i,j)*dxyp(j))
                 end do
               end do
 C**** fix polar values
@@ -3595,8 +3586,8 @@ C**** get model level
               kunit=kunit+1
               do j=J_0,J_1
                 do i=1,imaxj(j)
-                  data(i,j)=1d6*trm(i,j,l,n_Be7)*mair/
-     *                 (tr_mm(n_Be7)*am(l,i,j)*dxyp(j))
+                  data(i,j)=1d6*trm(i,j,l,n_Be7)*mass2vol(n_Be7)/
+     *                 (am(l,i,j)*dxyp(j))
                 end do
               end do
 C**** fix polar values

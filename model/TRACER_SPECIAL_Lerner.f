@@ -393,7 +393,7 @@ C     n_O3=tracer number for linoz O3
 C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
       real*8 TLPARM(lz_linoz,18,12,nctable)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLT0M, TLTZM, TLTZZM
-      real*8 tmmvv(ntm),dsol
+      real*8 dsol
 !@var lbc Top layer for ozone boundary conditions in troposphere
       integer lbc
       real*8 dtchem
@@ -436,7 +436,6 @@ C**** Calculate level for tropophere ozone chem
         end if
       end do
 C**** Get other useful things
-      tmmvv(n_O3) = mair/tr_mm(n_O3)
       dtchem = dtsrc
 
       call set_prather_constants
@@ -477,7 +476,7 @@ c
       USE DYNAMICS, only: am   ! Air mass of each box (kg/m^2)
       USE TRACER_COM
 cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
-      USE LINOZ_CHEM_COM, only: lbc,dtchem,tmmvv
+      USE LINOZ_CHEM_COM, only: lbc,dtchem
       USE FLUXES, only: tr3Dsource
       implicit none
       real*8, parameter :: taubc=172800.d0  !in seconds
@@ -495,7 +494,7 @@ c lower boundary condition : relax each species to tmrbc(n)
 c using a lifetime of taubc(n) for lowest lbc levels
 
       coeff = 1.0-exp(-dtchem/taubc)
-      ratio = tmrbc / tmmvv(n)
+      ratio = tmrbc / mass2vol(n)
 cc      najl = jls_3Dsource(ns,n)
         do l=1,lbc
         do j=J_0,J_1
@@ -555,7 +554,7 @@ c
 !@+ can go beyond +1,-1 for more extreme situations
 !@+ (but remember this is a linear approximation)
 !@+ use dsol=0.0 for 'standard linoz' runs
-
+      USE CONSTANT, only : avog
       USE MODEL_COM, only: itime,im,jm,lm,t
       USE DOMAIN_DECOMP, only: GRID, GET
       USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
@@ -563,7 +562,7 @@ c
       USE TRACER_COM
 cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
       USE PRATHER_CHEM_COM, only: nstrtc
-      USE LINOZ_CHEM_COM, only: dtchem,tmmvv,tlT0M,TLTZM,TLTZZM,dsol
+      USE LINOZ_CHEM_COM, only: dtchem,tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
       implicit none
       real*8 dcolo3(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
@@ -596,11 +595,11 @@ c   dcolo3 = ozone column (in DU) in given layer
 c   colo3 =  ozone column above layer + half of column in layer
             if (l.eq.lm) then           !top model layer
               dcolo3(i,j,l) = trm(i,j,l,n) / dxyp(j) *
-     &          6.022d23/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
+     &          avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
               colo3(i,j,l) = dcolo3(i,j,l)*0.5
             else
               dcolo3(i,j,l) = trm(i,j,l,n)/ dxyp(J) *
-     &          6.022d23/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
+     &          avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
               colo3(i,j,l) = colo3(i,j,l+1) +
      &          (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
             endif
@@ -609,18 +608,18 @@ c ****** O3 Chemistry  ******
 c store tracer mass before chemistry
             T0Mold=trm(i,j,l,n)
 c climatological P-L:
-            climpml=tlT0M(j,lr,4)/tmmvv(n)*am(l,i,j)*dxyp(j)
+            climpml=tlT0M(j,lr,4)/mass2vol(n)*am(l,i,j)*dxyp(j)
 c local ozone feedback:
             dero3=tlT0M(j,lr,5)
-            climo3=tlT0M(j,lr,1)/tmmvv(n)*am(l,i,j)*dxyp(j)
+            climo3=tlT0M(j,lr,1)/mass2vol(n)*am(l,i,j)*dxyp(j)
 c column ozone feedback:
-            derco3=tlT0M(j,lr,7)/tmmvv(n)*am(l,i,j)*dxyp(j)
+            derco3=tlT0M(j,lr,7)/mass2vol(n)*am(l,i,j)*dxyp(j)
             dco3=(colo3(i,j,l)-tlT0M(j,lr,3))
 c temperature feedback: T is potential temp, need to convert
-            dertmp=tlT0M(j,lr,6)/tmmvv(n)*am(l,i,j)*dxyp(j)
+            dertmp=tlT0M(j,lr,6)/mass2vol(n)*am(l,i,j)*dxyp(j)
             dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
-            dersol = tlT0M(j,lr,8)/tmmvv(n)*am(l,i,j)*dxyp(j)
+            dersol = tlT0M(j,lr,8)/mass2vol(n)*am(l,i,j)*dxyp(j)
 c calulate steady-state ozone:
 c           sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
             sso3=climo3 -

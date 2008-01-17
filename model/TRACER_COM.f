@@ -790,6 +790,10 @@ C**** The following general arrays are set in tracer_IC
       integer, dimension(ntm) :: ntm_power
 !@var TR_MM: molecular mass of each tracer (g/mole)
       real*8, dimension(ntm) :: tr_mm
+!@var mass2vol: mass to volume ratio = mair/tr_mm
+      real*8, dimension(ntm) :: mass2vol
+!@var vol2mass: volume to mass ratio = tr_mm/mair
+      real*8, dimension(ntm) :: vol2mass
 !@var needtrs: true if surface tracer value from PBL is required
       logical, dimension(ntm) :: needtrs
 #ifdef TRACERS_DRYDEP

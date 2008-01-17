@@ -28,41 +28,10 @@
       logical :: T=.TRUE. , F=.FALSE.
       character*50 :: unit_string
 
-C**** Get itime_tr0 from rundeck if it exists
-      call sync_param("itime_tr0",itime_tr0,ntm)
-C**** Get to_volume_MixRat from rundecks if it exists
-      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
-#ifdef TRACERS_WATER
-C**** Decide on water tracer conc. units from rundeck if it exists
-      call sync_param("to_per_mil",to_per_mil,ntm)
-#endif
-#ifdef TRACERS_SPECIAL_O18
-C**** set super saturation parameter for isotopes if needed
-      call sync_param("supsatfac",supsatfac)
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
-C**** decide on emissions
-      call sync_param("imAER",imAER)
-C**** decide if preindustrial emissions
-      call sync_param("imPI",imPI)
-C**** determine year of emissions
-      call sync_param("aer_int_yr",aer_int_yr)
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-C**** decide on AEROCOM or interactive emissions
-      CALL sync_param('imDUST',imDUST)
-#endif
-#ifdef TRACERS_QUARZHEM
-      CALL sync_param('FreeFe',FreeFe)
-      CALL sync_param('FrHeQu',FrHeQu)
-#endif
-
-C**** Get factor to convert from mass mixing ratio to volume mr
+C**** Get factor to convert from mass to volume mr if necessary
       do n=1,ntm
         if (to_volume_MixRat(n) .eq.1) then
-          MMR_to_VMR(n) = mair/tr_mm(n)
+          MMR_to_VMR(n) = mass2vol(n)
           cmr(n) = 'V/V air'
         else
           MMR_to_VMR(n) = 1.d0
