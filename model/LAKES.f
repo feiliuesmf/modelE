@@ -330,9 +330,6 @@ C**** take a factor of TKE and calculate change in PE
             ATKE=0.2d0*TKE      ! 20% of TKE is available for mixing
             H1=MLAKE(1)/RHOW
             H2=MLAKE(2)/RHOW
-C**** DRHO=RHO(TLK2)-RHO(TLK1)~=(TLK2-TLK1)*dRHOdT(TLK1)
-C**** Assumes a parabolic density function going through MAXRHO at
-C**** TMAXRHO, and RHO0 at T=0. (reasonable up to about 12 C)
             DRHO=(TLK2-TLK1)*2d0*BFAC*(TMAXRHO-0.5*(TLK1+TLK2))
             DML=ATKE*BYGRAV/(DRHO*0.5*H1)
             IF (DML*RHOW.lt.MLAKE(2)) THEN
