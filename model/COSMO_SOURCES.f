@@ -10,7 +10,7 @@
 !@var be7_src_param global multiplier of be7_src_3d to match obs
       real*8 :: be7_src_param=1    !default value
       real*8, allocatable, dimension(:,:) :: BE7W_acc, BE7D_acc 
-      INTEGER :: J_1H, J_0H, variable_phi
+      INTEGER :: variable_phi
 
       END MODULE COSMO_SOURCES
 
@@ -57,7 +57,6 @@
       USE TRACER_COM
       USE GEOM, only: dxyp
       USE DOMAIN_DECOMP, only : GRID, get
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer, parameter :: layers=23
@@ -84,13 +83,16 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
 
 C**** multiply by air mass to put in the right units
       do l=1,lm; do j=J_0,J_1; do i=1,im
-         be7_src_3d = be7_src_param * am(l,i,j) *
-     *         be7_src_3d(i,j,l)
+         be10_src_3d(i,j,l) = 0.52d0 * be7_src_param * be7_src_3d(i,j,l)
+     $        * tr_mm(n_Be10)/tr_mm(n_Be7)
+          end do; end do; end do
 
-         be10_src_3d = 0.52d0 * be7_src_param * am(l,i,j)
-     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
+         print*, "be7_src_param = ", be7_src_param
+         print*, "tr_mm(n_Be10)/tr_mm(n_Be7) = ", tr_mm(n_Be10)
+     $        /tr_mm(n_Be7)
+         print*, "be7_src_3d(10,24,1) = ",be7_src_3d(10,24,1) 
+         print*, "be10_src_3d(10,24,1) = ",be10_src_3d(10,24,1)
 
-        end do; end do; end do
 
       END SUBROUTINE read_Be_source_noAlpha
 
@@ -103,7 +105,6 @@ C**** multiply by air mass to put in the right units
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: dxyp
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE DOMAIN_DECOMP, only : GRID, get
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
@@ -160,24 +161,9 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       do l=1,lm; do j=J_0,J_1 ; do i=1,im
          be10_src_3d(i,j,l)=ibe_10(j,l)*dxyp(j)*(tr_mm(n_Be10)*tfacti_10
      $        /avog)
-!         if (i .eq. 1) then
-!            print*, "i,j,k =", i, j, l
-!         end if
+
       end do ; end do ; end do
       print*, "finished converting"
-
-C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0,J_1; do i=1,im
-         be7_src_3d = be7_src_param * am(l,i,j) *
-     *         be7_src_3d(i,j,l)
-         
-         be10_src_3d = be7_src_param * am(l,i,j) * be10_src_3d(i,j,l)
-         
-
-!         be10_src_3d = 0.52d0 * be7_src_param * am(l,i,j)
-!     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
-
-        end do; end do; end do
 
       
       END SUBROUTINE read_Be_source
@@ -223,7 +209,6 @@ C**** multiply by air mass to put in the right units
       USE GEOM, only: dxyp
       USE MODEL_COM, only : jday, jmon, itime
       USE CONSTANT, only : avog
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
       USE DOMAIN_DECOMP, only : GRID, get
       USE COSMO_SOURCES, only : be7_src_3d
@@ -332,7 +317,7 @@ c     value and that day's phi value
                print*, "pc_month = ", pc_month, jmon,i,j
             end if
             
-            do n = 1,npc
+            do n = 2,npc
                if ((pc_month .lt. pc_list(n)) .and. (pc_month
      $              .ge. pc_list(n-1))) then
                   pc_low = pc_list(n-1) 
@@ -389,14 +374,14 @@ c     created:
                   print*, "new_prod = ", new_prod(1)
                end if
 
-! calculate Be7 production from SCR if JDAY = Jan.20:
-c      if (jday .eq. 20) then
-c         slope_4 = (be7_scr(:,ipc+1) - be7_scr(:,ipc))/(pc_hi - pc_low
-c     $        )
-c         scr_prod(:) = be7_scr(:,ipc) + (slope_4*delta_pc_3)
-c         
-c         new_prod = new_prod + scr_prod
-c      end if
+!     calculate Be7 production from SCR if JDAY = Jan.20:
+               if (jday .eq. 20) then
+                  slope_4 = (be7_scr(:,ipc+1) - be7_scr(:,ipc))/(pc_hi -
+     $                 pc_low)
+                  scr_prod(:) = be7_scr(:,ipc) + (slope_4*delta_pc_3)
+                  
+                  new_prod = new_prod + scr_prod
+               end if
             
 
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
@@ -418,13 +403,6 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
          end do
       end do
    
-C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0,J_1; do i=1,im
-         be7_src_3d = be7_src_param * am(l,i,j) *
-     *         be7_src_3d(i,j,l)
-
-        end do; end do; end do
-
 
       print*, "closing update_daily_phi"
 
