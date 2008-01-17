@@ -1175,9 +1175,9 @@ C****
 C**** conservation diagnostic
         CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
 
+C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
         call addEnergyAsLocalHeat(DKE,T,PK, diagIndex=JL_dTdtsdrg)
 
-C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
         DO L=1,LM
           DO J=J_0,J_1
