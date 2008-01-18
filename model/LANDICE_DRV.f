@@ -107,7 +107,7 @@ C**** This information could be read in from a file.
 
 C**** integrate area (which will depend on resolution/landmask)
 C**** Antarctica melt area
-      FWAREA_part=0.
+      FWAREA_part=0. ; loc_gla = .false.
       DO J=MAX(J_0,JML),MIN(J_1,JMU)
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
@@ -122,7 +122,7 @@ C**** Antarctica melt area
       CALL GLOBALSUM(grid, FWAREA_part, FWAREA_SH, all=.true.)
 
 C**** Greenland melt area
-      FWAREA_part=0.
+      FWAREA_part=0. ; loc_glg = .false.
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
