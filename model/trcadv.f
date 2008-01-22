@@ -16,7 +16,7 @@ c
 c
 c --- initialize arrays
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 k=1,kk
 c
@@ -56,7 +56,7 @@ c
         stop '(n=oddev required in tradv1)'
       end if
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 5 j=1,jj
       do 5 k=1,kk
 c
@@ -104,7 +104,7 @@ c
         ufxcum(iatls,jatl,k)=-ufxcum(ipacn,jpac,k)
       end do
 c
-c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv)
+c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv) SCHEDULE(STATIC,jchunk)
       do 9 j=1,jj
       jb=mod(j,jj)+1
       do 9 l=1,isp(j)
@@ -257,7 +257,7 @@ c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
       parameter (epsil=1.e-11,onemu=1.e-6)
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 21 j=1,jj
       do 21 k=1,kk
       do 21 l=1,isp(j)
@@ -290,13 +290,13 @@ cdiag end if
 cdiag end do
  103  format (i3,4f14.1)
 cc c
-cc c$OMP PARALLEL DO
+cc c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 cc       do 6 j=1,jdm
 cc       do 6 i=1,idm
 cc  6    flxdiv(i,j)=0.
 cc c$OMP END PARALLEL DO
 cc       do 5 k=1,kk
-cc c$OMP PARALLEL DO PRIVATE(jb)
+cc c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
 cc       do 9 j=1,jj
 cc       jb=mod(j,jj)+1
 cc       do 9 l=1,isp(j)
@@ -319,6 +319,7 @@ c
 c --- get vertical flux by summing -fld- over upstream slab of thickness -w-
 c
 c$OMP PARALLEL DO PRIVATE(jb,amount,slab,dslab,kp,a,b,c,dx,fcdx,yl,yr)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 26 j=1,jj
       jb=mod(j     ,jj)+1
       do 26 l=1,isp(j)
@@ -450,7 +451,7 @@ c
 c
       do 4 k=1,kk
 c
-c$OMP PARALLEL DO SHARED(k)
+c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 14 j=1,jj
       bforej(j)=0.
       do 14 l=1,isp(j)
@@ -463,6 +464,7 @@ c
       call cpy_p(fld(1,1,k))
 c
 c$OMP PARALLEL DO PRIVATE(ja,jaa,jb,q,ia,ib) SHARED(k)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 11 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -528,7 +530,7 @@ cdiag call findmx(ip,fmx,idm,ii1,jj,string(1:8))
 cdiag write (string,'(a6,i2)') 'fmn k=',k
 cdiag call findmx(ip,fmx,idm,ii1,jj,string(1:8))
 
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 22 j=1,jj
       do 22 l=1,isp(j)
       flx(ifp(j,l)  ,j)=0.
@@ -538,7 +540,7 @@ c$OMP PARALLEL DO
   22  continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(j,wrap)
+c$OMP PARALLEL DO PRIVATE(j,wrap) SCHEDULE(STATIC,jchunk)
       do 33 i=1,ii1
       wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
@@ -563,7 +565,7 @@ cdiag.  u(i+1,j,k),fld(i+1,j,k)
  101  format(a,2i5,i3,f18.3/1pe39.2/0pf19.3,1pe11.2,0pf9.3,
      .1pe11.2,0pf9.3/1pe39.2/0pf39.3)
 c
-c$OMP PARALLEL DO PRIVATE(jb,q,amount) SHARED(k)
+c$OMP PARALLEL DO PRIVATE(jb,q,amount) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 61 j=1,jj
       jb=mod(j     ,jj)+1
       if (recovr) vlumj(j)=0.
@@ -595,7 +597,7 @@ c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- pos. (neg.) change in -fld- to the sum of all incoming (outgoing) fluxes
 c
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k)
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 12 j=1,jj
       jb=mod(j     ,jj)+1
       do 12 l=1,isp(j)
@@ -614,7 +616,7 @@ c
       call cpy_p(flp)
       call cpy_p(fln)
 c
-c$OMP PARALLEL DO PRIVATE(ja,clip)
+c$OMP PARALLEL DO PRIVATE(ja,clip) SCHEDULE(STATIC,jchunk)
       do 8 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -643,7 +645,7 @@ cdiag write (lp,101) 'advem(2)',i,j,k,fld(i-1,j,k),u(i,j,k),
 cdiag. fld(i,j-1,k),v(i,j,k),fld(i,j,k),v(i,j+1,k),fld(i,j+1,k),
 cdiag.  u(i+1,j,k),fld(i+1,j,k)
 c
-c$OMP PARALLEL DO PRIVATE(jb,amount,q) SHARED(k)
+c$OMP PARALLEL DO PRIVATE(jb,amount,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 62 j=1,jj
       jb=mod(j     ,jj)+1
       do 62 l=1,isp(j)
@@ -674,7 +676,7 @@ c
         if (vlume.ne.0.) then
           clip=clip/vlume
           write (lp,'(i2,a,1pe11.3)') k,'  tracer drift in fct3d',-clip
-c$OMP PARALLEL DO SHARED(k)
+c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
           do 13 j=1,jj
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
@@ -683,7 +685,7 @@ c$OMP END PARALLEL DO
         end if
       end if
 c
-cc$OMP PARALLEL DO SHARED(k)
+cc$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 15 j=1,jj
       afterj(j)=0.
       do 15 l=1,isp(j)
@@ -707,7 +709,7 @@ c
 ccc   if (q.gt.1.1 .or. q.lt..9) stop '(excessive nonconservation)'
       if (q.gt.2.0 .or. q.lt..5) stop '(excessive nonconservation)'
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 20 j=1,jj
       do 20 k=1,kk
       do 20 l=1,isp(j)

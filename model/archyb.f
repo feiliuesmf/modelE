@@ -36,13 +36,13 @@ c --- check if ogcm date matches agcm date
         write(flnm,'(a3,i4.4,2a)') amon,Jyear,'.out',xlabel(1:lrunid)
       endif
 c
-      write (lp,*) 'shown below: sea surface height'
-      call zebra(srfhgt,idm,ii1,jj)
+c     write (lp,*) 'shown below: sea surface height'
+c     call zebra(srfhgt,idm,ii1,jj)
       write (lp,*) 'shown below: sea surface temperature'
       call zebra(temp(1,1,1+nn),idm,ii1,jj)
 c
       if (jdate.lt.100) then
-        write (intvl,'(a,i2.2)') ' ',jdate
+        write (intvl,'(i3.3)') jdate
       else
         stop 'jdate >100'
       endif
@@ -72,7 +72,7 @@ c
 c
       if (smooth) then
 c
-c$OMP PARALLEL DO
+cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do j=1,jj
          do k=1,kk
           do l=1,isp(j)
@@ -82,14 +82,14 @@ c$OMP PARALLEL DO
           end do
         end do
        end do
-c$OMP END PARALLEL DO
+cc$OMP END PARALLEL DO
 c
        do k=2,kk
         call psmo1(p(1,1,k),pbot)
        end do
 c
       dpsmo=huge
-c$OMP PARALLEL DO
+cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
        do j=1,jj
         do k=1,kk
          do l=1,isp(j)
@@ -99,7 +99,7 @@ c$OMP PARALLEL DO
          end do
         end do
        end do
-c$OMP END PARALLEL DO
+cc$OMP END PARALLEL DO
 c
       end if                            !  smooth
 c
@@ -187,7 +187,7 @@ c --- output time-averaged fields
 c
       factor=baclin/(jdate*86400.)
 c
-c$OMP PARALLEL DO
+cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 55 j=1,jj
       do 55 l=1,isp(j)
       do 55 i=ifp(j,l),ilp(j,l)
@@ -196,11 +196,11 @@ c$OMP PARALLEL DO
       sflxav(i,j)=sflxav(i,j)*factor
       brineav(i,j)=brineav(i,j)*factor
  55   continue
-c$OMP END PARALLEL DO
+cc$OMP END PARALLEL DO
 c
       do 58 k=1,kk
 c
-c$OMP PARALLEL DO
+cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 59 j=1,jj
       do 591 l=1,isu(j)
       do 591 i=ifu(j,l),ilu(j,l)
@@ -223,7 +223,7 @@ c
 c --- convert diapycnal thickness changes into actual interface fluxes
       if (k.gt.1) diaflx(i,j,k)=diaflx(i,j,k)+diaflx(i,j,k-1)
  59   continue
-c$OMP END PARALLEL DO
+cc$OMP END PARALLEL DO
 ccc      write (lp,'(a,i3)') 'shown below: N.Atl. diaflx, bottm of layer',k
 ccc      call zebra(diaflx(1,int(.8*jdm),k),idm,idm/3,idm/3)
 c
@@ -241,7 +241,7 @@ c
       write (lp,100)     '  diaflx_'//intvl,k,no
  58   continue
 c
-c$OMP PARALLEL DO
+cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 56 j=1,jj
       do 561 l=1,isu(j)
       do 561 i=ifu(j,l),ilu(j,l)
@@ -255,10 +255,10 @@ c$OMP PARALLEL DO
       sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)
       dpmxav(i,j)=dpmxav(i,j)*factor
  56   oiceav(i,j)=oiceav(i,j)*factor
-c$OMP END PARALLEL DO
+cc$OMP END PARALLEL DO
 c
-      write (lp,'(3a)') 'shown below: ',intvl,'- day SSH average'
-      call zebra(sfhtav,idm,ii1,jj)
+c     write (lp,'(3a)') 'shown below: ',intvl,'- day SSH average'
+c     call zebra(sfhtav,idm,ii1,jj)
       write (lp,'(3a)') 'shown below: ',intvl,'- day SST average'
       call zebra(temav,idm,ii1,jj)
 c
@@ -286,28 +286,28 @@ c
       do 57 k=1,kk
       no=no+1
       call r8tor4(uav(1,1,k),real4)
-      write (nop,rec=no) '   uav_'//intvl,k,real4
-      write (lp,100)     '   uav_'//intvl,k,no
+      write (nop,rec=no) '     uav_'//intvl,k,real4
+      write (lp,100)     '     uav_'//intvl,k,no
       no=no+1
       call r8tor4(vav(1,1,k),real4)
-      write (nop,rec=no) '   vav_'//intvl,k,real4
-      write (lp,100)     '   vav_'//intvl,k,no
+      write (nop,rec=no) '     vav_'//intvl,k,real4
+      write (lp,100)     '     vav_'//intvl,k,no
       no=no+1
       call r8tor4(dpav(1,1,k),real4)
-      write (nop,rec=no) '  dpav_'//intvl,k,real4
-      write (lp,100)     '  dpav_'//intvl,k,no
+      write (nop,rec=no) '    dpav_'//intvl,k,real4
+      write (lp,100)     '    dpav_'//intvl,k,no
       no=no+1
       call r8tor4(temav(1,1,k),real4)
-      write (nop,rec=no) ' temav_'//intvl,k,real4
-      write (lp,100)     ' temav_'//intvl,k,no
+      write (nop,rec=no) '   temav_'//intvl,k,real4
+      write (lp,100)     '   temav_'//intvl,k,no
       no=no+1
       call r8tor4(salav(1,1,k),real4)
-      write (nop,rec=no) ' salav_'//intvl,k,real4
-      write (lp,100)     ' salav_'//intvl,k,no
+      write (nop,rec=no) '   salav_'//intvl,k,real4
+      write (lp,100)     '   salav_'//intvl,k,no
       no=no+1
       call r8tor4(th3av(1,1,k),real4)
-      write (nop,rec=no) 'th3dav_'//intvl,k,real4
-      write (lp,100)     'th3dav_'//intvl,k,no
+      write (nop,rec=no) '  th3dav_'//intvl,k,real4
+      write (lp,100)     '  th3dav_'//intvl,k,no
  57   continue
 c
 c --- time-averaged surface fluxes:
@@ -336,7 +336,7 @@ c
  100  format (9x,a,' (layer',i3,') archived as record',i5)
       write (lp,*) no,' records archived'
 c
-c$OMP PARALLEL DO
+cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 60 j=1,jj
 c
       do 601 i=1,ii
@@ -366,7 +366,7 @@ c
       vflxav(i,j,k)=0.
  602  diaflx(i,j,k)=0.
  60   continue
-c$OMP END PARALLEL DO
+cc$OMP END PARALLEL DO
 c
       return
       end
@@ -380,11 +380,11 @@ c
       real real8(idm,jdm)
       real*4 real4(idm,jdm)
 c
-c$OMP PARALLEL DO
+cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=1,jdm
       do 1 i=1,idm
  1    real4(i,j)=real8(i,j)
-c$OMP END PARALLEL DO
+cc$OMP END PARALLEL DO
 c
       return
       end

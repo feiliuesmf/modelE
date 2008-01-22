@@ -34,13 +34,13 @@ c --- read basin depth array
       rewind (9)
       read (9) iz,jz,((real4(i,j),i=1,iz),j=1,jz)
       close (unit=9)
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=1,jj
       do 9 i=1,ii
  9    depths(i,j)=real4(i,j)
 c$OMP END PARALLEL DO
 c
-cccc$OMP PARALLEL DO
+cccc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c     do 7 j=1,jj
 c     do 7 i=1,ii
 c7    if (depths(i,j).gt.0.) depths(i,j)=max(botmin.,depths(i,j))
@@ -89,7 +89,7 @@ c
       read (33) iz,jz,lat4,lon4
       close(33)
 c
-c$OMP PARALLEL DO PRIVATE(n)
+c$OMP PARALLEL DO PRIVATE(n) SCHEDULE(STATIC,jchunk)
       do 8 j=1,jj
       do 8 n=1,4
       do 8 i=1,ii
@@ -97,13 +97,13 @@ c$OMP PARALLEL DO PRIVATE(n)
  8    lonij(i,j,n)=lon4(i,j,n)
 c$OMP end PARALLEL DO
 c
-      write (lp,*) 'shown below: latitude of vorticity points'
-      call zebra(latij(1,1,4),idm,ii,jj)
-      write (lp,*) 'shown below: longitude of vorticity points'
-      call zebra(lonij(1,1,4),idm,ii,jj)
+c     write (lp,*) 'shown below: latitude of vorticity points'
+c     call zebra(latij(1,1,4),idm,ii,jj)
+c     write (lp,*) 'shown below: longitude of vorticity points'
+c     call zebra(lonij(1,1,4),idm,ii,jj)
 c
 c --- define coriolis parameter and grid size
-c$OMP PARALLEL DO PRIVATE(ja,jb)
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 56 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -194,7 +194,7 @@ c --- initialize some arrays
 c
 css   if (nstep0.eq.0) then
       write (lp,*) 'laying out arrays in memory ...'
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 209 j=1,jj
       do 209 i=1,ii
       p(i,j,1)=huge
@@ -295,7 +295,7 @@ c
  209  continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 210 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 210 l=1,isq(j)
@@ -324,7 +324,7 @@ c --- located upstream and downstream (in i direction) of p points.
 c --- initialize  depthu,dpu,utotn,pgfx  upstream and downstream of p points
 c --- as well as at lateral neighbors of interior u points.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb)
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 156 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -349,7 +349,7 @@ c
  156  continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 158 j=1,jj
       do 158 l=1,isp(j)
       do 158 i=ifp(j,l),ilp(j,l)+1
@@ -432,7 +432,7 @@ css   endif                    ! end of nstep=0
 c
 c --- set 'glue' to values > 1 in regions where extra viscosity is needed
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb)
+c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb) SCHEDULE(STATIC,jchunk)
       do 154 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -470,7 +470,7 @@ c$OMP END PARALLEL DO
 c
 c --- read in all weights
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 11 ja=1,jjo
       do 11 ia=1,iio
 11    ocellsz(ia,ja)=scp2(ia,ja)

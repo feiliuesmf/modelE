@@ -4,7 +4,7 @@ c
 c
       data dp00  /   3.0  / ! deep    z-level spacing minimum thickness (m)
       data locsig/ .false./ ! locally-referenced pot. density for stability
-      data jerlv0/   2    / ! initial jerlov water type (1 to 5; 0 to use KPAR) 
+      data jerlv0/   0    / ! initial jerlov water type (1 to 5; 0 to use KPAR) 
       data cb    /   3.e-3/ ! coefficient of quadratic bottom friction  
       data tmljmp/   0.2  / ! equivalent temperature jump across mixed-layer (degC)
       data rigr  /   0.25 / ! PWP:     critical gradient richardson number
@@ -24,7 +24,7 @@ c
       data difsmo/ .false./ ! K-PROF:  activate horiz smooth diff coeffs
       data difm0 /  50.e-4/ ! KPP:     max viscosity   due to shear instability (m**2/s)  
       data difs0 /  50.e-4/ ! KPP:     max diffusivity due to shear instability (m**2/s)  
-      data difmiw/   1.e-4/ ! KPP:     background/internal wave viscosity       (m**2/s)  
+      data difmiw/   3.e-5/ ! KPP:     background/internal wave viscosity       (m**2/s)  
       data difsiw/   1.e-5/ ! KPP:     background/internal wave diffusivity     (m**2/s)  
       data dsfmax/  10.e-4/ ! KPP:     salt fingering diffusivity factor        (m**2/s)  
       data rrho0 /   1.9  / ! KPP:     salt fingering rp=(alpha*delT)/(beta*delS)         
@@ -34,6 +34,6 @@ c
       data c11   /   5.0  / ! KPP:     value for turb velocity scale                      
       data hblflg/   1    / ! KPP:     b. layer interpolation flag (1=lin.,2=quad.)       
       data niter /   2    / ! KPP:     iterations for semi-implicit soln. (2 recomended)  
-      data mxlkpp/ .false./
-      data mxlgis/ .true./
+      data mxlkpp/ .true./
+      data mxlgis/ .false./
       end

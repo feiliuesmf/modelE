@@ -33,7 +33,7 @@ c
 ccc   data uvscal/1.e9/                        !  velocity x mesh size  --  cgs
 c
 c$OMP PARALLEL DO PRIVATE(ja,colinr,cloutr,pinteg,siga,sigb,phi,plo,
-c$OMP+ pa,pb,q,oldsig)
+c$OMP+ pa,pb,q,oldsig) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -123,6 +123,7 @@ cdiag.   (signew(itest,jtest,k),k=1,knew)
 c
 c$OMP PARALLEL DO PRIVATE(ja,colinu,colinv,cloutu,cloutv,uinteg,vinteg,
 c$OMP+ siga,sigb,phi,plo,pa,pb,q,delp,uold,vold) SHARED(abort)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 21 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c

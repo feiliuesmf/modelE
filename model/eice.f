@@ -18,7 +18,7 @@ c
      .     thkinv,brntop,brnbot
       integer imx(jdm),jmx(jdm),k1
       logical dosmoo,pump
-      data pump/.false./
+      data pump/.true./
 c
 c --- tmelt  = melting point (deg)
 c --- thin   = min. ice thickness (m)
@@ -40,7 +40,7 @@ c --- brnbot = bottom of depth interval over which to distribute brine
 c
       data thin/0.2/,rhoice/917./,thkmax/10./
      .    ,kice/2.04/,fusion/334.e3/,rate/5.e-6/,dtdflx/0.05/
-     .    ,brntop/20./ brnbot/200./
+     .    ,brntop/20./ brnbot/300./
 c
 c --- energy loan: add extra energy to the ocean to keep SST from dropping
 c --- below tmelt in winter. return this borrowed energy to the 'energy bank'
@@ -51,7 +51,7 @@ c
       totalx=0.
       dosmoo=.false.
 c$OMP PARALLEL DO PRIVATE(tmxl,tmelt,borrow,paybak,saldif,dpth
-c$OMP+  ,top,bot,thkinv,kn)
+c$OMP+  ,top,bot,thkinv,kn) SCHEDULE(STATIC,jchunk)
 c$OMP+ REDUCTION(+:total) SHARED(dosmoo,equatn)
       do 10 j=1,jj
       do 10 l=1,isp(j)

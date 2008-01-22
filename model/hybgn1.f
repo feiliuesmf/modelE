@@ -39,8 +39,12 @@ c
 ccc   parameter (slak=1./86400.)	! intfc nudging time scale: 1 day
 c
       data (dplist(k),k=1,kdm)/
-     .    5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,14.9,15.0,15.0,
-     .   15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0/     !  265.5 total
+c    .    5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,14.9,15.0,15.0,
+c    .   15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0/     !  265.5 total
+     .     5., 7., 9.,11.,13.,15.,17.,19., 21., 23.,
+     .    25.,27.,29.,32.,37.,46.,63.,96.,161.,290./            !  946
+c    .     5., 7., 9.,11.,13.,15.,17., 19., 21., 23.,
+c    .    25.,27.,30.,35.,44.,61.,94.,159.,288.,545./           !  1448
 c
 c --- linear taper function for slak
       tapr(q)=1.+9.*max(0.,1.-.02e-4*q)		!  q = pressure (Pa)
@@ -59,7 +63,7 @@ cdiag end if
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
  106  format (i9,2i5,a/(33x,i3,2(f8.1,f8.3)))
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 19 j=1,jj
       do 19 k=1,kk
       do 19 l=1,isp(j)
@@ -250,6 +254,7 @@ c
 c --- try to restore isopycnic conditions by moving layer interfaces
 c
       dpsum=0.
+      dp0=huge
       do 8 k=1,kk
       ntot3=ntot3+1
 c
@@ -262,8 +267,8 @@ c --- optional: reduce spacing of z layers near equator, but hide transition
 c --- in a subtropical latitude band where z layers are least likely to exist
       if (k.gt.1) dp0=dp0*max(.6,min(1.,(abs(latij(i,j,3))+5.)*.04))
 c
-c --- shrink layer thickness in shallow regions, mimicking sigma coordinate
-      dp0=min(dp0,5.*pbot(i,j)/float(kk))
+c --- reduce layer thickness in shallow spots, creating sigma coord. effect
+      if (4*k.lt.kk) dp0=dp0*min(1.,pbot(i,j)/(200.*onem)+.4)
       dpsum=dpsum+dp0
 c
 c --- maintain constant thickness in layer 1
@@ -590,7 +595,7 @@ c
 c$OMP END PARALLEL DO
       if (abort) stop '(error in hybgen -- q out of bounds)'
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 k=1,kk
       do 1 l=1,isp(j)
@@ -598,7 +603,7 @@ c$OMP PARALLEL DO
  1    p(i,j,k+1)=p(i,j,k)+dpold(i,j,k)
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 88 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 88 k=2,kk+1
@@ -613,7 +618,7 @@ c
  88   continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=1,jj
       do 9 k=1,kk
       do 9 l=1,isp(j)
@@ -703,7 +708,7 @@ cc  13   continue
 cc c$OMP END PARALLEL DO
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c$OMP PARALLEL DO PRIVATE(ja,pold,pnew,uold,vold,totuv,
-c$OMP+ tdcyuv,phi,plo,pa,pb,uvintg,kn)
+c$OMP+ tdcyuv,phi,plo,pa,pb,uvintg,kn) SCHEDULE(STATIC,jchunk)
       do 13 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c

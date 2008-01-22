@@ -8,21 +8,29 @@ c
       include 'dimension2.h'
       include 'common_blocks.h'
 c
-      integer mask(idm,jdm),jcyc,iz,jz
+      integer mask(idm,jdm),jcyc,iz,jz,iter
       real pold(idm,jdm),q,dpmin,dpmn(jdm),clip,flxhi,flxlo,dtinv,old,
-     .     hymar,pbot1,pbot2,p1,p2,hyc_pechg1,hyc_pechg2
-ccc  .    ,boost
-      character text*20
+     .     hymar,boost,pbot1,pbot2,p1,p2,hyc_pechg1,hyc_pechg2,pa,pb
       external hyc_pechg1,hyc_pechg2
+      character text*20
+      logical abort
+      integer, parameter :: itmax = 5
 c
-ccc   boost(pbot1,pbot2,p1,p2)=max(1.,1.5-min(pbot1-p1,pbot2-p2)
-ccc  .  /min(3.*tenm,.125*(pbot1+pbot2)))
+c --- boost = 1 to within 15 m of bottom, then increases linearly to 1.5
+c     boost(pbot1,pbot2,p1,p2)=max(1.,1.5-min(pbot1-p1,pbot2-p2)
+c    .  /(30.*onem))
+c --- boost = 1 to within 30 m of bottom, then increases linearly to 2
+c     boost(pbot1,pbot2,p1,p2)=max(1.,2.-min(pbot1-p1,pbot2-p2)
+c    .  /(30.*onem))
+c --- boost = 1 to within 100 m of bottom, then increases linearly to 3
+      boost(pbot1,pbot2,p1,p2)=max(1.,3.-min(pbot1-p1,pbot2-p2)
+     .  /(50.*onem))
 c
 c --- ------------------------------------------------------
 c --- continuity equation (flux-corrected transport version)
 c --- ------------------------------------------------------
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 41 j=1,jj
 c
       do 74 l=1,isp(j)
@@ -46,7 +54,10 @@ c --- uflux/vflux = low-order (diffusive) mass fluxes at old time level.
 c --- uflux2/vflux2 = 'antidiffusive' fluxes, defined as high-order minus low-
 c --- order fluxes. high-order fluxes are second-order in space, time-centered.
 c
-c$OMP PARALLEL DO PRIVATE(ja,q)
+      call cpy_p(dp(1,1,kn))
+      call cpy_p(pold)
+c
+c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 12 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -75,9 +86,16 @@ c
  12   vflx(i,j,k)=vflux(i,j)
 c$OMP END PARALLEL DO
 c
+      if (beropn .and.
+     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+     .  write(*,104) nstep,
+     . ' cnuity1 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+ 104  format (i9,a,i2,2es15.7)
+c
 c --- advance -dp- field using low-order (diffusive) flux values
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 19 j=1,jj
       jb=mod(j     ,jj)+1
       dpmn(j)=999.
@@ -110,7 +128,7 @@ ccc      write (text,'(a9,i3,i8)') 'vflux  k=',k,nstep
 ccc      call compare(vflux,mask,text)
 c
       dpmin=999.
-c$OMP PARALLEL DO REDUCTION(min:dpmin)
+c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
       do 191 j=1,jj
  191  dpmin=min(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
@@ -121,7 +139,7 @@ c
         do 190 i=ifp(j,l),ilp(j,l)
         if (dp(i,j,kn).eq.dpmin) then
           write (lp,100) nstep,i,j,k,19,dpmin/onem
- 100      format (i9,' i,j,k=',2i5,i3,' neg. dp (m) in loop ',i2,f9.2)
+ 100      format (i9,' i,j,k=',2i5,i3,' neg. dp (m) in loop ',i3,f9.2)
           iz=i
           jz=j
         end if
@@ -151,7 +169,9 @@ c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- pos. (neg.) change in -dp- to the sum of all incoming (outgoing) fluxes
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb)
+      call cpy_p(dp(1,1,kn))
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb) SCHEDULE(STATIC,jchunk)
       do 26 j=1,jj
       do 26 l=1,isp(j)
       do 26 i=ifp(j,l),ilp(j,l)
@@ -170,15 +190,13 @@ c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb)
      .                          dp(i,ja,kn),dp(i,jb,kn)))
 c
       jb=mod(j     ,jj)+1
-      util1(i,j)=(util1(i,j)-dp(i,j,kn))
+      util1(i,j)=(util1(i,j)-dp(i,j,kn))*scp2(i,j)
      ./((max(0.,uflux2(i,j))-min(0.,uflux2(i+1,j))
-     .  +max(0.,vflux2(i,j))-min(0.,vflux2(i,jb ))+epsil)
-     .*delt1*scp2i(i,j))
+     .  +max(0.,vflux2(i,j))-min(0.,vflux2(i,jb ))+epsil)*delt1)
 c
- 26   util2(i,j)=(util2(i,j)-dp(i,j,kn))
+ 26   util2(i,j)=(util2(i,j)-dp(i,j,kn))*scp2(i,j)
      ./((min(0.,uflux2(i,j))-max(0.,uflux2(i+1,j))
-     .  +min(0.,vflux2(i,j))-max(0.,vflux2(i,jb ))-epsil)
-     .*delt1*scp2i(i,j))
+     .  +min(0.,vflux2(i,j))-max(0.,vflux2(i,jb ))-epsil)*delt1)
 c$OMP END PARALLEL DO
 c
 c --- limit antidiffusive fluxes
@@ -186,7 +204,10 @@ c --- (keep track in -utotn,vtotn- of discrepancy between high-order
 c --- fluxes and the sum of low-order and clipped antidiffusive fluxes.
 c --- this will be used later to restore nondivergence of barotropic flow)
 c
-c$OMP PARALLEL DO PRIVATE(ja,clip)
+      call cpy_p(util1)
+      call cpy_p(util2)
+c
+c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 29 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -213,9 +234,15 @@ c
  29   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
 c$OMP END PARALLEL DO
 c
+      if (beropn .and.
+     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+     .  write(*,104) nstep,
+     . ' cnuity2 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+c
 c --- evaluate effect of antidiffusive fluxes on -dp- field
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 15 j=1,jj
       jb=mod(j     ,jj)+1
       dpmn(j)=999.
@@ -228,7 +255,7 @@ c$OMP PARALLEL DO PRIVATE(jb)
 c$OMP END PARALLEL DO
 c
       dpmin=999.
-c$OMP PARALLEL DO REDUCTION(min:dpmin)
+c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
       do 149 j=1,jj
  149  dpmin=min(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
@@ -248,11 +275,15 @@ c --- recovering fluxes lost in the flux limiting process.
 c --- treat these fluxes as an 'upstream' barotropic correction to
 c --- the sum of diffusive and antidiffusive fluxes obtained so far.
 c
+      call cpy_p(p(1,1,kk+1))
+c
       do 77 k=1,kk
       km=k+mm
       kn=k+nn
 c
-c$OMP PARALLEL DO PRIVATE(ja,q)
+      call cpy_p(dp(1,1,kn))
+c
+c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 45 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -277,7 +308,7 @@ c
  45   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 14 j=1,jj
       jb=mod(j     ,jj)+1
       dpmn(j)=999.
@@ -290,7 +321,7 @@ c$OMP PARALLEL DO PRIVATE(jb)
 c$OMP END PARALLEL DO
 c
       dpmin=999.
-c$OMP PARALLEL DO REDUCTION(min:dpmin)
+c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
       do 139 j=1,jj
  139  dpmin=min(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
@@ -303,36 +334,106 @@ c
  140  continue
       end if
 c
+      if (beropn .and.
+     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+     .  write(*,104) nstep,
+     . ' cnuity3 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+c
  77   continue
 c
 c --- add bottom-pressure restoring term arising from split-explicit treatment
-c --- of continuity equation (step 4 in appendix B of 1992 BRHS paper)
+c --- of continuity equation (step 4 in appendix B of 1992 BRHS paper).
+c --- iterate a few times (mimicking an iterative poisson solver) to spawn
+c --- mass fluxes approximately consistent with required column stretching
 c
-c$OMP PARALLEL DO
+      dtinv=1./delt1
+      do 18 iter=1,itmax
+c
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 36 j=1,jj
       dpmn(j)=0.
       do 36 l=1,isp(j)
       do 36 i=ifp(j,l),ilp(j,l)
-      util3(i,j)=abs(p(i,j,kk+1)-pbot(i,j))
- 36   dpmn(j)=max(dpmn(j),util3(i,j))
+      util3(i,j)=(pbot(i,j)-p(i,j,kk+1))*scp2(i,j)
+      util1(i,j)=1./p(i,j,kk+1)
+ 36   dpmn(j)=max(dpmn(j),abs(util3(i,j)))
 c$OMP END PARALLEL DO
 c
-      dpmin=0.
-c$OMP PARALLEL DO REDUCTION(max:dpmin)
-      do 37 j=1,jj
- 37   dpmin=max(dpmin,dpmn(j))
+      if (iter.eq.itmax) then
+        dpmin=0.
+c$OMP PARALLEL DO REDUCTION(max:dpmin) SCHEDULE(STATIC,jchunk)
+        do 37 j=1,jj
+ 37     dpmin=max(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
 c
-      if (dpmin.gt.2.*onem) then
-      do 38 j=1,jj
-      do 38 l=1,isp(j)
-      do 38 i=ifp(j,l),ilp(j,l)
-      if (util3(i,j).eq.dpmin) write (lp,'(i9,2i5,a,f9.2,a)')
-     .   nstep,i,j,'  warning - large pbot correction:',dpmin/onem,' m'
+        do 38 j=1,jj
+        do 38 l=1,isp(j)
+        do 38 i=ifp(j,l),ilp(j,l)
+        if (abs(util3(i,j)).eq.dpmin) write (lp,105)
+     .   nstep,i,j,'  largest pbot correction after',itmax,
+     .    ' iterations:',scp2i(i,j)*util3(i,j)/onecm,' cm'
+ 105    format (i9,2i5,a,i3,a,f7.1,a)
  38     continue
-      end if
+      end if				!  last iteration
 c
-c$OMP PARALLEL DO PRIVATE(kn,old)
+      call cpy_p(util1)
+      call cpy_p(util3)
+c
+      do 20 k=1,kk
+      kn=k+nn
+c
+      call cpy_p(dp(1,1,kn))
+c
+c$OMP PARALLEL DO PRIVATE(ja,q) SCHEDULE(STATIC,jchunk)
+      do 21 j=1,jj
+      ja=mod(j-2+jj,jj)+1
+c
+      do 22 l=1,isu(j)
+      do 22 i=ifu(j,l),ilu(j,l)
+      uflux(i,j)=.25*(util3(i,j)-util3(i-1,j))
+      if (uflux(i,j).ge.0.) then
+        q=dp(i-1,j,kn)*util1(i-1,j)
+      else
+        q=dp(i  ,j,kn)*util1(i  ,j)
+      end if
+      uflux(i,j)=uflux(i,j)*q
+ 22   uflx(i,j,k)=uflx(i,j,k)+uflux(i,j)*dtinv
+c
+      do 21 l=1,isv(j)
+      do 21 i=ifv(j,l),ilv(j,l)
+      vflux(i,j)=.25*(util3(i,j)-util3(i,ja ))
+      if (vflux(i,j).ge.0.) then
+        q=dp(i,ja ,kn)*util1(i,ja )
+      else
+        q=dp(i,j  ,kn)*util1(i,j  )
+      end if
+      vflux(i,j)=vflux(i,j)*q
+ 21   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
+      do 23 j=1,jj
+      jb=mod(j     ,jj)+1
+      do 23 l=1,isp(j)
+      do 23 i=ifp(j,l),ilp(j,l)
+      dp(i,j,kn)=dp(i,j,kn)-(uflux(i+1,j)-uflux(i,j)
+     .                      +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
+ 23   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
+c$OMP END PARALLEL DO
+c
+      if (beropn .and.
+     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+     .  write(*,104) nstep,
+     . ' cnuity4 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+c
+ 20   continue				!  k loop
+ 18   continue				!  iter
+c
+c --- now stretch the grid to take care of the residual pbot discrepancy
+c
+c$OMP PARALLEL DO PRIVATE(kn,old) SCHEDULE(STATIC,jchunk)
       do 39 j=1,jj
       do 39 l=1,isp(j)
       do 39 k=1,kk
@@ -340,114 +441,264 @@ c$OMP PARALLEL DO PRIVATE(kn,old)
       do 39 i=ifp(j,l),ilp(j,l)
       old=dp(i,j,kn)
       dp(i,j,kn)=dp(i,j,kn)*pbot(i,j)/p(i,j,kk+1)
-      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-old)                ! diapyc.flux
+      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-old)		! diapyc.flux
  39   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
 c$OMP END PARALLEL DO
 c
-c --- ---------------------------------------------
-c --- laplacian interface smoothing (=> bolus flux)
-c --- ---------------------------------------------
+c --- -----------------------------------
+c --- interface smoothing (=> bolus flux)
+c --- -----------------------------------
 c
       if (thkdff.eq.0.) return
 c
-      if (nstep.eq.1 .or. diagno)
-     .  q=hyc_pechg1(dp(1,1,k1n),th3d(1,1,k1n),31)
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c     if (diagno)
+c    .  q=hyc_pechg1(dp(1,1,k1n),th3d(1,1,k1n),32)
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c --- diagnostic use only
-c     if (nstep.eq.1 .or. diagno) then
-c       call pechng1(dp(1,1,k1n),th3d(1,1,k1n))
-c       call ape    (dp(1,1,k1n),th3d(1,1,k1n))
-c     end if
-c
-      dtinv=1./delt1
       hymar=1./(10.*sigjmp)
 c
-      do 13 k=kk,2,-1
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
+      do 8 j=1,jj
+      do 9 l=1,isu(j)
+      do 9 i=ifu(j,l),ilu(j,l)
+      utotn (i,j  )=0.
+ 9    bolusu(i,j,1)=0.
+      do 8 l=1,isv(j)
+      do 8 i=ifv(j,l),ilv(j,l)
+      vtotn (i,j  )=0.
+ 8    bolusv(i,j,1)=0.
+c$OMP END PARALLEL DO
+c
+      do 13 k=2,kk
       km=k+mm
-      kn=k+nn
 c
-c$OMP PARALLEL DO PRIVATE(flxhi,flxlo,ia,ib,ja,jb)
-      do 151 j=1,jj
+      call cpy_p(p(1,1,k))
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,pa,pb) SHARED(k)
+c$OMP+ SCHEDULE(STATIC,jchunk)
+      do 131 j=1,jj
       ja=mod(j-2+jj,jj)+1
-      do 141 l=1,isu(j)
-      do 141 i=ifu(j,l),ilu(j,l)
-      uflux(i,j)=delt1*thkdff*(p(i-1,j,k)-p(i,j,k))*scuy(i,j)
-ccc     .   *boost(pbot(i,j),pbot(i-1,j),p(i,j,k),p(i-1,j,k))
-c --- confine interface smoothing to isopycnic coord. subdomain
-      uflux(i,j)=uflux(i,j)*min(1.,max(.1,
-     .   2.-(max(th3d(i,j,km-1),th3d(i-1,j,km-1))-theta(k-1))*hymar))
-ccc  .   2.-(max(th3d(i,j,km  ),th3d(i-1,j,km  ))-theta(k  ))*hymar))
-c --- prevent intertwining of interfaces
-      flxhi= .25*min((p(i  ,j,k+1)-p(i  ,j,k  ))*scp2(i  ,j),
-     .               (p(i-1,j,k  )-p(i-1,j,k-1))*scp2(i-1,j))
-      flxlo=-.25*min((p(i-1,j,k+1)-p(i-1,j,k  ))*scp2(i-1,j),
-     .               (p(i  ,j,k  )-p(i  ,j,k-1))*scp2(i  ,j))
-      uflux(i,j)=min(flxhi,max(flxlo,uflux(i,j)))
-c --- add bolus flux to mass flux
-      uflx(i,j,k-1)=uflx(i,j,k-1)+uflux(i,j)*dtinv
- 141  uflx(i,j,k  )=uflx(i,j,k  )-uflux(i,j)*dtinv
-c
-      do 151 l=1,isv(j)
-      do 151 i=ifv(j,l),ilv(j,l)
-      vflux(i,j)=delt1*thkdff*(p(i,ja ,k)-p(i,j,k))*scvx(i,j)
-ccc     .   *boost(pbot(i,j),pbot(i,ja ),p(i,j,k),p(i,ja ,k))
-c --- confine interface smoothing to isopycnic coord. subdomain
-      vflux(i,j)=vflux(i,j)*min(1.,max(.1,
-     .   2.-(max(th3d(i,j,km-1),th3d(i,ja ,km-1))-theta(k-1))*hymar))
-ccc  .   2.-(max(th3d(i,j,km  ),th3d(i,ja ,km  ))-theta(k  ))*hymar))
-c --- prevent intertwining of interfaces
-      flxhi= .25*min((p(i,j  ,k+1)-p(i,j  ,k  ))*scp2(i,j  ),
-     .               (p(i,ja ,k  )-p(i,ja ,k-1))*scp2(i,ja ))
-      flxlo=-.25*min((p(i,ja ,k+1)-p(i,ja ,k  ))*scp2(i,ja ),
-     .               (p(i,j  ,k  )-p(i,j  ,k-1))*scp2(i,j  ))
-      vflux(i,j)=min(flxhi,max(flxlo,vflux(i,j)))
-c --- add bolus flux to mass flux
-      vflx(i,j,k-1)=vflx(i,j,k-1)+vflux(i,j)*dtinv
- 151  vflx(i,j,k  )=vflx(i,j,k  )-vflux(i,j)*dtinv
-c$OMP END PARALLEL DO
-c
-c$OMP PARALLEL DO PRIVATE(jb)
-      do 18 j=1,jj
       jb=mod(j     ,jj)+1
-      do 18 l=1,isp(j)
-      do 18 i=ifp(j,l),ilp(j,l)
-      pold(i,j)=p(i,j,k)
- 18   p(i,j,k)=p(i,j,k)-(uflux(i+1,j)-uflux(i,j)
-     .                  +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
+      do 131 l=1,isp(j)
+      do 131 i=ifp(j,l),ilp(j,l)
+      ia=max(  1,i-1)
+      ib=min(ii1,i+1)
+      util1(i,j)=p(i,j,k)
+      util2(i,j)=p(i,j,k)
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- in preparation for biharmonic smoothing, compute 2nd derivatives
+c --- of pressure in x,y direction. store in -util1,util2- resp.
+c --- don't allow grid points elevated by topography to affect derivatives.
+c --- disable next 22 lines to switch from biharm. to laplacian smoothing
+      pa=p(ia,j,k)
+      pb=p(ib,j,k)
+      if   (float(ip(ia,j))*pbot(ia,j).lt.p(i,j,k)) then
+        pa=p(i,j,k)
+        if (float(ip(ib,j))*pbot(ib,j).gt.p(i,j,k)) pa=p(ib,j,k)
+      end if
+      if   (float(ip(ib,j))*pbot(ib,j).lt.p(i,j,k)) then
+        pb=p(i,j,k)
+        if (float(ip(ia,j))*pbot(ia,j).gt.p(i,j,k)) pb=p(ia,j,k)
+      end if
+      util1(i,j)=util1(i,j)-.5*(pa+pb)
+      pa=p(i,ja,k)
+      pb=p(i,jb,k)
+      if   (float(ip(i,ja))*pbot(i,ja).lt.p(i,j,k)) then
+        pa=p(i,j,k)
+        if (float(ip(i,jb))*pbot(i,jb).gt.p(i,j,k)) pa=p(i,jb,k)
+      end if
+      if   (float(ip(i,jb))*pbot(i,jb).lt.p(i,j,k)) then
+        pb=p(i,j,k)
+        if (float(ip(i,ja))*pbot(i,ja).gt.p(i,j,k)) pb=p(i,ja,k)
+      end if
+      util2(i,j)=util2(i,j)-.5*(pa+pb)
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ 131  continue
 c$OMP END PARALLEL DO
 c
-cdiag if (itest.gt.0.and.jtest.gt.0)
-cdiag.write (lp,'(i9,3i4,'' intfc.depth diffusion -- p_old,p_new ='',
-cdiag.2f9.3)') nstep,itest,jtest,k,pold(itest,jtest)/onem,p(itest,
-cdiag.jtest,k)/onem
+      call cpy_p(util1)
+      call cpy_p(util2)
+c
+c$OMP PARALLEL DO PRIVATE(flxhi,flxlo,ja,jb) SCHEDULE(STATIC,jchunk)
+      do 16 j=1,jj
+      ja=mod(j-2+jj,jj)+1
+      jb=mod(j     ,jj)+1
+c
+      do 151 l=1,isu(j)
+      do 151 i=ifu(j,l),ilu(j,l)
+      bolusu(i,j,k)=delt1*thkdff*(util1(i,j)-util1(i-1,j))*scuy(i,j)
+     .   *boost(pbot(i,j),pbot(i-1,j),p(i,j,k),p(i-1,j,k))
+c
+c --- suppress uphill fluxes into 'perched' cells
+      if (p(i  ,j,k).gt.pbot(i-1,j)) bolusu(i,j,k)=max(0.,bolusu(i,j,k))
+      if (p(i-1,j,k).gt.pbot(i  ,j)) bolusu(i,j,k)=min(0.,bolusu(i,j,k))
+c
+c --- confine interface smoothing to isopycnic coord. subdomain
+ccc      bolusu(i,j,k)=bolusu(i,j,k)*min(1.,max(.1,
+ccc     .   2.-(max(th3d(i,j,km-1),th3d(i-1,j,km-1))-theta(k-1))*hymar))
+ccc     .   2.-(max(th3d(i,j,km  ),th3d(i-1,j,km  ))-theta(k  ))*hymar))
+c
+c --- keep interfaces from going underground
+      flxhi= .25*(pbot(i-1,j)-p(i-1,j,k))*scp2(i-1,j)
+      flxlo=-.25*(pbot(i  ,j)-p(i  ,j,k))*scp2(i  ,j)
+      bolusu(i,j,k)=min(flxhi,max(flxlo,bolusu(i,j,k)))
+c
+c --- difference of 2 interface 'pressure fluxes' becomes thickness flux
+ 151  bolusu(i,j,k-1)=bolusu(i,j,k-1)-bolusu(i,j,k)
+c
+      do 141 l=1,isv(j)
+      do 141 i=ifv(j,l),ilv(j,l)
+      bolusv(i,j,k)=delt1*thkdff*(util2(i,j)-util2(i,ja ))*scvx(i,j)
+     .   *boost(pbot(i,j),pbot(i,ja ),p(i,j,k),p(i,ja ,k))
+c
+c --- suppress uphill fluxes into 'perched' cells
+      if (p(i,j  ,k).gt.pbot(i,ja )) bolusv(i,j,k)=max(0.,bolusv(i,j,k))
+      if (p(i,ja ,k).gt.pbot(i,j  )) bolusv(i,j,k)=min(0.,bolusv(i,j,k))
+c
+c --- confine interface smoothing to isopycnic coord. subdomain
+ccc      bolusv(i,j,k)=bolusv(i,j,k)*min(1.,max(.1,
+ccc     .   2.-(max(th3d(i,j,km-1),th3d(i,ja ,km-1))-theta(k-1))*hymar))
+ccc     .   2.-(max(th3d(i,j,km  ),th3d(i,ja ,km  ))-theta(k  ))*hymar))
+c
+c --- keep interfaces from going underground
+      flxhi= .25*(pbot(i,ja )-p(i,ja ,k))*scp2(i,ja )
+      flxlo=-.25*(pbot(i,j  )-p(i,j  ,k))*scp2(i,j  )
+      bolusv(i,j,k)=min(flxhi,max(flxlo,bolusv(i,j,k)))
+c
+c --- difference of 2 interface 'pressure fluxes' becomes thickness flux
+ 141  bolusv(i,j,k-1)=bolusv(i,j,k-1)-bolusv(i,j,k)
+ 16   continue
+c$OMP END PARALLEL DO
 c
  13   continue
 c
-c$OMP PARALLEL DO PRIVATE(kn)
-      do 17 j=1,jj
-      do 17 l=1,isp(j)
-      do 17 k=1,kk
+      do 10 k=1,kk
       kn=k+nn
-      do 17 i=ifp(j,l),ilp(j,l)
-ccc      p(i,j,k+1)=max(p(i,j,k),min(p(i,j,k+1),p(i,j,kk+1)))
-      dp(i,j,kn)=p(i,j,k+1)-p(i,j,k)
- 17   continue
+c
+c --- at each grid point, determine the ratio of the largest permissible
+c --- mass loss to the sum of all outgoing bolus fluxes
+c
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
+      do 261 j=1,jj
+      jb=mod(j     ,jj)+1
+      do 261 l=1,isp(j)
+      do 261 i=ifp(j,l),ilp(j,l)
+      util2(i,j)=-dp(i,j,kn)*scp2(i,j)
+     ./(min(0.,bolusu(i,j,k))-max(0.,bolusu(i+1,j,k))
+     . +min(0.,bolusv(i,j,k))-max(0.,bolusv(i,jb ,k))-epsil)
+ 261  continue
 c$OMP END PARALLEL DO
-      if (nstep.eq.1 .or. diagno)
-     . write (501,103) time,'  APE change due to intfc smoothing:',
-     .  hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),31)
- 103  format (f9.1,a,-12p,f9.3,' TW')
 c
-c --- diagnostic use only
-c     if (nstep.eq.1 .or. diagno) then
-c       call ape    (dp(1,1,k1n),th3d(1,1,k1n))
-c       call pechng2(dp(1,1,k1n),th3d(1,1,k1n))
+c --- limit bolus fluxes (fct-style)
+c
+      call cpy_p(util2)
+c
+c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
+      do 291 j=1,jj
+      ja=mod(j-2+jj,jj)+1
+c
+      do 281 l=1,isu(j)
+      do 281 i=ifu(j,l),ilu(j,l)
+      if (bolusu(i,j,k).ge.0.) then
+        clip=min(1.,util2(i-1,j))
+      else
+        clip=min(1.,util2(i  ,j))
+      end if
+c --- clipped part of bolus flux is kept to restore zero column integral later
+      utotn(i,j)=utotn(i,j)+bolusu(i,j,k)*(1.-clip)
+      bolusu(i,j,k)=bolusu(i,j,k)*clip
+c --- add bolus component to total mass flux
+ 281  uflx(i,j,k)=uflx(i,j,k)+bolusu(i,j,k)*dtinv
+c
+      do 291 l=1,isv(j)
+      do 291 i=ifv(j,l),ilv(j,l)
+      if (bolusv(i,j,k).ge.0.) then
+        clip=min(1.,util2(i,ja ))
+      else
+        clip=min(1.,util2(i,j  ))
+      end if
+c --- clipped part of bolus flux is kept to restore zero column integral later
+      vtotn(i,j)=vtotn(i,j)+bolusv(i,j,k)*(1.-clip)
+      bolusv(i,j,k)=bolusv(i,j,k)*clip
+c --- add bolus component to total mass flux
+ 291  vflx(i,j,k)=vflx(i,j,k)+bolusv(i,j,k)*dtinv
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
+      do 181 j=1,jj
+      jb=mod(j     ,jj)+1
+      do 181 l=1,isp(j)
+      do 181 i=ifp(j,l),ilp(j,l)
+      dp(i,j,kn)=dp(i,j,kn)-(bolusu(i+1,j,k)-bolusu(i,j,k)
+     .                      +bolusv(i,jb ,k)-bolusv(i,j,k))*scp2i(i,j)
+ 181  p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
+c$OMP END PARALLEL DO
+c
+ 10   continue
+c
+      call cpy_p(p(1,1,kk+1))
+c
+      do 7 k=1,kk
+      kn=k+nn
+c
+      call cpy_p(dp(1,1,kn))
+c
+c --- restore zero column integral of bolus fluxes by recovering fluxes
+c --- lost in the flux limiting process. treat these as an 'upstream'
+c --- barotropic correction to the bolus fluxes.
+c
+c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
+      do 145 j=1,jj
+      ja=mod(j-2+jj,jj)+1
+c
+      do 144 l=1,isu(j)
+      do 144 i=ifu(j,l),ilu(j,l)
+      if (utotn(i,j).ge.0.) then
+        q=dp(i-1,j,kn)/p(i-1,j,kk+1)
+      else
+        q=dp(i  ,j,kn)/p(i  ,j,kk+1)
+      end if
+      uflux(i,j)=utotn(i,j)*q
+c --- add correction to total mass flux
+ 144  uflx(i,j,k)=uflx(i,j,k)+uflux(i,j)*dtinv
+c
+      do 145 l=1,isv(j)
+      do 145 i=ifv(j,l),ilv(j,l)
+      if (vtotn(i,j).ge.0.) then
+        q=dp(i,ja ,kn)/p(i,ja ,kk+1)
+      else
+        q=dp(i,j  ,kn)/p(i,j  ,kk+1)
+      end if
+      vflux(i,j)=vtotn(i,j)*q
+c --- add correction to total mass flux
+ 145  vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
+      do 182 j=1,jj
+      jb=mod(j     ,jj)+1
+      do 182 l=1,isp(j)
+      do 182 i=ifp(j,l),ilp(j,l)
+ 182  dp(i,j,kn)=dp(i,j,kn)-(uflux(i+1,j)-uflux(i,j)
+     .                      +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
+c$OMP END PARALLEL DO
+c
+      if (beropn .and.
+     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+     .  write(*,104) nstep,
+     . ' cnuity5 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+c
+ 7    continue
+c
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c     if (diagno) then
+c       q=hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),32)
+c       write (lp,103) time,'  APE change due to intfc smoothing:',q
 c     end if
-c
-c --- to conserve tracer, project it from mid (mm) onto new (nn) thknss field
-c
-c     if (trcout) call recast(dp(1,1,1+mm),dp(1,1,1+nn))
-c
+ 103  format (f9.1,a,-12p,f9.3,' TW')
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       return
       end
 c
@@ -470,3 +721,8 @@ c> Sep. 2003 - added call to -recast- to improve tracer conservation
 c> Dec. 2003 - confined interface smoothing to isopycnic coord. subdomain
 c> Jan. 2004 - boosted thickness diffusion near sea floor (loops 141,151)
 c> June 2004 - amended def'n of flxlo,flxhi in intfc.smoothing (loops 141,151)
+c> Mar. 2006 - added bering strait exchange logic
+c> Mar. 2006 - upgraded to biharmonic thickness diffusion
+c> Apr. 2006 - iterate to find mass fluxes consistent with botm.pres restor.
+c> June 2006 - changed handling of clipped parts of bolus fluxes
+c> July 2006 - fixed bug in bolus flux computation (kn undefined in loop 7)

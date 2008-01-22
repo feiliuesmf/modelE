@@ -35,7 +35,7 @@ ccc      mxing=.true.				!  mix every time step
 c
 c --- continuity equation
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 843 j=1,jj
       jb=mod(j     ,jj)+1
       do 843 l=1,isp(j)
@@ -57,6 +57,7 @@ c
 c
       if (mxing) then
 c$OMP PARALLEL DO PRIVATE(ja,jb,u_ja,u_jb,dpu_ja,dpu_jb)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 822 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -98,7 +99,7 @@ c
 c
       call cpy_p(pbavg(1,1,nl))
 c
-c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue)
+c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue) SCHEDULE(STATIC,jchunk)
       do 841 j=1,jj
       jb=mod(j     ,jj)+1
       do 841 l=1,isu(j)
@@ -147,6 +148,7 @@ c
 c
       if (mxing) then
 c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,v_ia,v_ib,dpv_ia,dpv_ib)
+c$OMP+ SCHEDULE(STATIC,jchunk) 
       do 823 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -186,7 +188,7 @@ c --- lateral turb. momentum flux (at vorticity points)
 c$OMP END PARALLEL DO
       end if				!  mxing = .true.
 c
-c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue)
+c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue) SCHEDULE(STATIC,jchunk)
       do 842 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 842 l=1,isv(j)

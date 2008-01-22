@@ -12,22 +12,15 @@ ccc     .   24.02, 24.70, 25.28, 25.77, 26.18, 26.52, 26.80, 27.03,
 ccc     .   27.22, 27.38, 27.52, 27.64, 27.74, 27.82, 27.88, 27.92/
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- s i g m a _ 2
-c     data theta/30.90,31.87,32.75,33.54,34.24,34.85,35.37,35.80,
-c    .           36.15,36.43,36.65,36.82,36.95,37.05,37.13,37.20/    !light
-ccc   data theta/31.20,32.51,33.54,34.35,34.99,35.50,35.91,36.24,
-ccc  .           36.50,36.70,36.85,36.96,37.04,37.10,37.15,37.20/    !medium
-c     data theta/31.85,33.22,34.26,35.04,35.62,36.05,36.37,36.61,
-c    .           36.79,36.92,37.01,37.07,37.11,37.14,37.17,37.20/    !heavy
       data theta/
-     .   29.02,29.89,30.71,31.48,32.20,32.87,33.49,34.06,34.58,35.05,
-     .   35.47,35.84,36.16,36.43,36.65,36.82,36.95,37.05,37.13,37.20/
+     .  28.50,29.71,30.82,31.83,32.74,33.55,34.26,34.87,35.38,35.80,
+     .  36.14,36.41,36.62,36.78,36.90,36.99,37.07,37.16,37.28,37.45/  !vhv
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
-c     data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
-      data baclin,batrop/1800., 60./,diagfq/30./          ! 2deg full global
+      data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
 c
 c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (m/s) for momentum dissipation
@@ -37,11 +30,12 @@ c --- 'vertmx' = scale velocity for vertical momentum mixing (m/s)
 c     data thkdff/.005/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
       data thkdff/.10/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
 c
-c --- 'diapyc' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
+c --- 'diapyc' = diapycnal diffusivity (m^2/s)
+c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- 'thkmin' = minimum mixed-layer thickness (m)
 c --- 'acurcy' = permissible roundoff error in column integral calc.
-      data diapyc/2.e-7/
+      data diapyn/3.e-7/,diapyc/1.e-2/
       data h1/98060./,thkmin/5./,acurcy/1.e-11/,botmin/30./
 c
 c --- slip=+1  for free-slip boundary cond., slip=-1  for non-slip cond.

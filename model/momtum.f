@@ -8,7 +8,8 @@ c
       include 'common_blocks.h'
 c
       real stress(idm,jdm),stresx(idm,jdm),stresy(idm,jdm),
-     .     dpmx(idm,jdm),visc(idm,jdm),vort(idm,jdm),oneta(idm,jdm),
+     .     dpmxu(idm,jdm),dpmxv(idm,jdm),dpmx(idm,jdm),
+     .     visc(idm,jdm),vort(idm,jdm),oneta(idm,jdm),
      .     wgtia(idm,jdm),wgtib(idm,jdm),wgtja(idm,jdm),wgtjb(idm,jdm),
      .     dpxy,dpia,dpib,dpja,dpjb,visca,viscb,ptopl,pbotl,cutoff,q,
      .     dt1inv,phi,plo,ubot,vbot,thkbop,thk,thka,thkb,avg,slab,
@@ -28,7 +29,7 @@ c --- --------------------
 c --- hydrostatic equation
 c --- --------------------
 c
-c$OMP PARALLEL DO PRIVATE(km)
+c$OMP PARALLEL DO PRIVATE(km) SCHEDULE(STATIC,jchunk)
       do 81 j=1,jj
       do 81 l=1,isp(j)
 c
@@ -51,7 +52,7 @@ c --- store (1+eta) (= p_total/p_prime) in -oneta-
 c
 c --- m_prime in lowest layer:
  80   montg(i,j,kk)=psikk(i,j)+(p(i,j,kk+1)*(thkk(i,j)-thstar(i,j,kk))
-     .              -pbavg(i,j,m)*(thstar(i,j,kk)+thbase))*thref**2
+     .              -pbavg(i,j,m)*thstar(i,j,kk))*thref**2
 c
 c --- m_prime in remaining layers:
       do 81 k=kk-1,1,-1
@@ -65,7 +66,7 @@ cdiag do j=jtest-1,jtest+1
 cdiag do i=itest-1,itest+1
 cdiag if (ip(i,j).gt.0) write (lp,103) nstep,i,j,
 cdiag. '    temp    saln  thstar   thkns    dpth   montg',
-cdiag.  (k,temp(i,j,k+mm),saln(i,j,k+mm),thstar(i,j,k)+thbase,
+cdiag.  (k,temp(i,j,k+mm),saln(i,j,k+mm),thstar(i,j,k),
 cdiag.   dp(i,j,k+mm)/onem,p(i,j,k+1)/onem,montg(i,j,k)/g,k=1,kk)
 cdiag end do
 cdiag end do
@@ -81,6 +82,7 @@ c --- bottom drag (standard bulk formula)
 c
       thkbop=thkbot*onem
 c$OMP PARALLEL DO PRIVATE(kn,jb,phi,plo,ubot,vbot,botvel)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 804 j=1,jj
       jb=mod(j     ,jj)+1
       do 804 l=1,isp(j)
@@ -108,7 +110,7 @@ c
 c --- store r.h.s. of barotropic u/v eqn. in -ubrhs,vbrhs-
 c --- time-interpolate wind stress
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb)
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 70 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -144,9 +146,11 @@ c --- the old  momeq2.f  starts here
 c
       cutoff=5.*onem
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 814 j=1,jj
       do 814 i=1,ii
+      dpmxu(i,j)=0.
+      dpmxv(i,j)=0.
       dl2u(i,j)=0.
       dl2v(i,j)=0.
       vort(i,j)=huge			!  diagnostic use
@@ -163,50 +167,43 @@ c --- store total (barotropic plus baroclinic) flow at old and mid time in
 c --- -utotn,vtotn- and -utotm,vtotm- respectively. store minimum thickness
 c --- values for use in pot.vort. calculation in -dpmx-.
 c
-c$OMP PARALLEL DO
-      do 812 j=1,jj
-      do 812 i=1,ii
- 812  dpmx(i,j)=2.*cutoff
-c$OMP END PARALLEL DO
-c
-c$OMP PARALLEL DO SHARED(k)
+c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 807 j=1,jj
       do 807 l=1,isu(j)
       do 807 i=ifu(j,l),ilu(j,l)
-      dpmx(i,j  )=max(dpmx(i,j  ),dp(i,j,km)+dp(i-1,j,km))
-ccc   dpmx(i,jb )=max(dpmx(i,jb ),dp(i,j,km)+dp(i-1,j,km))
+      dpmxu(i,j)=dp(i,j,km)+dp(i-1,j,km)
       utotm(i,j)=u(i,j,km)+ubavg(i,j,m)
       utotn(i,j)=u(i,j,kn)+ubavg(i,j,n)
       uflux(i,j)=utotm(i,j)*max(dpu(i,j,km),cutoff)
  807  pu(i,j,k+1)=pu(i,j,k)+dpu(i,j,km)
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(jb)
-      do 802 j=1,jj
-      jb=mod(j     ,jj)+1
-      do 802 l=1,isu(j)
-      do 802 i=ifu(j,l),ilu(j,l)
- 802  dpmx(i,jb )=max(dpmx(i,jb ),dp(i,j,km)+dp(i-1,j,km))
-c$OMP END PARALLEL DO
-c
-c$OMP PARALLEL DO PRIVATE(ja) SHARED(k)
+c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 808 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 808 l=1,isv(j)
       do 808 i=ifv(j,l),ilv(j,l)
-      dpmx(i  ,j)=max(dpmx(i  ,j),dp(i,j,km)+dp(i,ja ,km))
-      dpmx(i+1,j)=max(dpmx(i+1,j),dp(i,j,km)+dp(i,ja ,km))
+      dpmxv(i,j)=dp(i,j,km)+dp(i,ja ,km)
       vtotm(i,j)=v(i,j,km)+vbavg(i,j,m)
       vtotn(i,j)=v(i,j,kn)+vbavg(i,j,n)
       vflux(i,j)=vtotm(i,j)*max(dpv(i,j,km),cutoff)
  808  pv(i,j,k+1)=pv(i,j,k)+dpv(i,j,km)
 c$OMP END PARALLEL DO
 c
+c$OMP PARALLEL DO PRIVATE(ia,ja) SCHEDULE(STATIC,jchunk)
+      do 803 j=1,jj
+      ja=mod(j-2+jj,jj)+1
+      do 803 i=1,ii
+      ia=max(1,i-1)
+ 803  dpmx(i,j)=max(2.*cutoff,dpmxu(i,j),dpmxu(i  ,ja ),
+     .                        dpmxv(i,j),dpmxv(ia ,j  ))
+c$OMP END PARALLEL DO
+c
 c --- define auxiliary velocity fields (via,vib,uja,ujb) to implement
 c --- sidewall friction along near-vertical bottom slopes. wgtja,wgtjb,wgtia,
 c --- wgtib indicate the extent to which a sidewall is present.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SHARED(k)
+c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 806 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -242,7 +239,7 @@ c --- (to switch from biharmonic to laplacian friction, delete previous line)
 c$OMP END PARALLEL DO
 c
 c --- vorticity, pot.vort., defor. at lateral boundary points
-c$OMP PARALLEL DO PRIVATE(ja,i)
+c$OMP PARALLEL DO PRIVATE(ja,i) SCHEDULE(STATIC,jchunk)
       do 885 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -259,7 +256,7 @@ c
  885  defor2(i+1,j)=(vtotn(i,j)*(1.-slip)*scvy(i,j))**2*scq2i(i+1,j)
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,j,jb)
+c$OMP PARALLEL DO PRIVATE(ia,j,jb) SCHEDULE(STATIC,jchunk)
       do 886 i=1,ii1
 c
 c --- if i=1, i-1 must point to zero-filled row (same for i+1 in case i=ii1)
@@ -283,7 +280,7 @@ c
 c --- vorticity, pot.vort., defor. at interior points (incl. promontories).
 c --- defor1 = du/dx-dv/dy at mass points, defor2 = dv/dx+du/dy at vort. points
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 63 j=1,jj
       jb=mod(j     ,jj)+1
       do 63 l=1,isp(j)
@@ -295,7 +292,7 @@ c$OMP PARALLEL DO PRIVATE(jb)
 c$OMP END PARALLEL DO
 c
 c --- vorticity, pot.vort., defor. at interior points (incl. promontories)
-c$OMP PARALLEL DO PRIVATE(ja,jb)
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 64 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -316,7 +313,7 @@ c
 c --- define auxiliary del2 fields (dl2via,dl2vib,dl2uja,dl2ujb) to imple-
 c --- ment biharmonic sidewall friction along near-vertical bottom slopes.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib)
+c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SCHEDULE(STATIC,jchunk)
       do 906 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -355,7 +352,7 @@ c --- ----------
 c
 c --- deformation-dependent eddy viscosity coefficient
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 37 j=1,jj
       jb=mod(j     ,jj)+1
       do 37 l=1,isu(j)
@@ -367,6 +364,7 @@ c$OMP PARALLEL DO PRIVATE(jb)
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,dpxy,dpja,dpjb,visca,viscb)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 822 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -425,7 +423,7 @@ c
 c --- pressure force in x direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 c
-c$OMP PARALLEL DO SHARED(k)
+c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 96 j=1,jj
       do 96 l=1,isu(j)
       do 96 i=ifu(j,l),ilu(j,l)
@@ -436,7 +434,7 @@ c$OMP PARALLEL DO SHARED(k)
      .      /(dp(i,j,km)+dp(i-1,j,km)+epsil))
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb)
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 98 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -460,6 +458,7 @@ c
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO PRIVATE(jb,ptopl,pbotl) SHARED(k)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 6 j=1,jj
       jb=mod(j     ,jj)+1
       do 6 l=1,isu(j)
@@ -523,7 +522,7 @@ c --- ----------
 c
 c --- deformation-dependent eddy viscosity coefficient
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 38 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 38 l=1,isv(j)
@@ -534,7 +533,7 @@ c$OMP PARALLEL DO PRIVATE(ja)
  38   continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(j,ja,jb)
+c$OMP PARALLEL DO PRIVATE(j,ja,jb) SCHEDULE(STATIC,jchunk)
       do 821 i=1,ii1
       do 821 l=1,jsv(i)
       j=jfv(i,l)
@@ -549,6 +548,7 @@ c
 c --- longitudinal turb. momentum flux (at mass points)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib,dpxy,dpia,dpib,visca,viscb)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 823 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -606,7 +606,7 @@ c
 c --- pressure force in y direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 c
-c$OMP PARALLEL DO PRIVATE(ja) SHARED(k)
+c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 97 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 97 l=1,isv(j)
@@ -618,7 +618,7 @@ c$OMP PARALLEL DO PRIVATE(ja) SHARED(k)
      .      /(dp(i,j,km)+dp(i,ja ,km)+epsil))
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib)
+c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SCHEDULE(STATIC,jchunk)
       do 99 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -645,6 +645,7 @@ c
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,ptopl,pbotl) SHARED(k)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 7 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -703,7 +704,7 @@ c
 c
       dt1inv = 1./delt1
 c
-c$OMP PARALLEL DO PRIVATE(kn)
+c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
       do j=1,jj
         do 14 k=1,kk
         kn=k+nn
@@ -731,6 +732,7 @@ c --- time step and use them to force barotropic flow field.
 c
       slab=onem*vertmx*delt1
 c$OMP PARALLEL DO PRIVATE(km,kn,kan,q,thk,thka,thkb,avg,olda,oldb)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do j=1,jj
 c
       do 31 l=1,isu(j)
@@ -816,7 +818,7 @@ c
       km=k+mm
       kn=k+nn
 c
-c$OMP PARALLEL DO SHARED(k)
+c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 22 j=1,jj
 c
       do 24 l=1,isu(j)
@@ -841,7 +843,7 @@ c --- build up time integral of velocity field
 c$OMP END PARALLEL DO
       end do
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 867 j=1,jj
 c
       do 865 l=1,isu(j)

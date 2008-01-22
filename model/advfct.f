@@ -41,7 +41,7 @@ c --- compute low-order and antidiffusive (high-minus-low order) fluxes
 c
       call cpy_p(fld)
 c
-c$OMP PARALLEL DO PRIVATE(ja,jaa,jb,q)
+c$OMP PARALLEL DO PRIVATE(ja,jaa,jb,q) SCHEDULE(STATIC,jchunk)
       do 3 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -74,7 +74,7 @@ c
  3    van(i,j)=.5*q*v(i,j)-fly(i,j)
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 22 j=1,jj
       do 22 l=1,isp(j)
       flx(ifp(j,l)  ,j)=0.
@@ -84,7 +84,7 @@ c$OMP PARALLEL DO
  22   continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(j,wrap)
+c$OMP PARALLEL DO PRIVATE(j,wrap) SCHEDULE(STATIC,jchunk)
       do 33 i=1,ii1
       wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
@@ -101,7 +101,7 @@ c$OMP PARALLEL DO PRIVATE(j,wrap)
  33   continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib)
+c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SCHEDULE(STATIC,jchunk)
       do 11 j=1,jj
       do 11 l=1,isp(j)
       do 11 i=ifp(j,l),ilp(j,l)
@@ -126,7 +126,7 @@ cdiag.,fly(i,j),fld(i,j),fly(i,jb ),fld(i,jb ),flx(i+1,j),fld(i+1,j)
   101 format(a,2i5,f20.3/1pe39.2/0pf21.3,1pe9.2,0pf9.3,1pe9.2,0pf9.3/
      .  1pe39.2/0pf39.3)
 c
-c$OMP PARALLEL DO PRIVATE(jb,q,amount)
+c$OMP PARALLEL DO PRIVATE(jb,q,amount) SCHEDULE(STATIC,jchunk)
       do 61 j=1,jj
       jb=mod(j     ,jj)+1
       vlumj(j)=0.
@@ -149,7 +149,7 @@ c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- pos. (neg.) change in -fld- to the sum of all incoming (outgoing) fluxes
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 12 j=1,jj
       jb=mod(j     ,jj)+1
       do 12 l=1,isp(j)
@@ -168,7 +168,7 @@ c
       call cpy_p(flp)
       call cpy_p(fln)
 c
-c$OMP PARALLEL DO PRIVATE(ja,clip)
+c$OMP PARALLEL DO PRIVATE(ja,clip) SCHEDULE(STATIC,jchunk)
       do 8 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -198,7 +198,7 @@ cdiag jb=mod(j     ,jj)+1
 cdiag write (lp,101) 'advem (2)',i,j,fld(i-1,j),flx(i,j),fld(i,ja )
 cdiag.,fly(i,j),fld(i,j),fly(i,jb ),fld(i,jb ),flx(i+1,j),fld(i+1,j)
 c
-c$OMP PARALLEL DO PRIVATE(jb,amount,q)
+c$OMP PARALLEL DO PRIVATE(jb,amount,q) SCHEDULE(STATIC,jchunk)
       do 62 j=1,jj
       jb=mod(j     ,jj)+1
       do 62 l=1,isp(j)
@@ -218,7 +218,7 @@ c
       if (recovr) then
         vlume=0.
         clip=0.
-c$OMP PARALLEL DO REDUCTION(+:vlume,clip)
+c$OMP PARALLEL DO REDUCTION(+:vlume,clip) SCHEDULE(STATIC,jchunk)
         do 19 j=1,jj
         vlume=vlume+vlumj(j)
  19     clip=clip+clipj(j)
@@ -227,7 +227,7 @@ c
         if (vlume.ne.0.) then
           clip=clip/vlume
 cdiag     write (lp,'(a,1pe11.3)') 'tracer drift in advem:',-clip
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
           do 13 j=1,jj
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)

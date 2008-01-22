@@ -16,7 +16,7 @@ c
       character fmt*12,char2*2
       data fmt/'(i4,1x,75i1)'/
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 17 j=1,jj
       do 17 i=1,ii
       ip(i,j)=0
@@ -29,6 +29,7 @@ c
 c --- fill single-width inlets
  16   nfill=0
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib,nzero) REDUCTION(+:nfill)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 15 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -54,7 +55,7 @@ c$OMP END PARALLEL DO
 c
  888  continue
 c --- mass points are defined where water depth is greater than zero
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 i=1,ii
       if (depth(i,j).gt.0.) ip(i,j)=1
@@ -62,14 +63,14 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c
 c --- u,v points are located halfway between any 2 adjoining mass points
-c$OMP PARALLEL DO PRIVATE(ia)
+c$OMP PARALLEL DO PRIVATE(ia) SCHEDULE(STATIC,jchunk)
       do 3 j=1,jj
       do 3 i=1,ii
       ia=mod(i-2+ii,ii)+1
       if (ip(ia,j).gt.0.and.ip(i,j).gt.0) iu(i,j)=1
   3   continue
 c$OMP END PARALLEL DO
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 4 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 4 i=1,ii
@@ -78,7 +79,7 @@ c$OMP PARALLEL DO PRIVATE(ja)
 c$OMP END PARALLEL DO
 c
 c --- 'interior' q points require water on all 4 sides.
-c$OMP PARALLEL DO PRIVATE(ja,ia)
+c$OMP PARALLEL DO PRIVATE(ja,ia) SCHEDULE(STATIC,jchunk)
       do 5 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 5 i=1,ii
@@ -89,7 +90,7 @@ c$OMP END PARALLEL DO
 c
 c --- 'promontory' q points require water on 3 (or at least 2 diametrically 
 c --- opposed) sides
-c$OMP PARALLEL DO PRIVATE(ja,ia)
+c$OMP PARALLEL DO PRIVATE(ja,ia) SCHEDULE(STATIC,jchunk)
       do 10 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 10 i=1,ii
