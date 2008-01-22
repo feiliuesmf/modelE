@@ -1,4 +1,10 @@
+#include "rundeck_opts.h"
       subroutine mxkprf(m,n,mm,nn,k1m,k1n)
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : tracflx
+#endif
 ccc   use mod_xc    ! HYCOM communication interface
 ccc   use mod_pipe  ! HYCOM debugging interface
 c
@@ -26,8 +32,8 @@ c
  108  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
  109  format (i9,2i5,a/(33x,i3,f8.3,f8.1,3x,f8.3,f8.1))
  110  format (i9,2i5,a/(33x,i3,0pf8.3,1p,2e11.3))
-      i=itest
-      j=jtest
+cdiag i=itest
+cdiag j=jtest
 cdiag write (lp,108) nstep,itest,jtest,
 cdiag.'  entering mxkprf:  temp    saln    dens    thkns    dpth',(k,
 cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
@@ -261,8 +267,8 @@ c
 !$OMP   END PARALLEL DO
       endif                                           ! diagno
 c
-      i=itest
-      j=jtest
+cdiag i=itest
+cdiag j=jtest
 cdiag write (lp,108) nstep,itest,jtest,
 cdiag.'   exiting mxkprf:  temp    saln    dens    thkns    dpth',(k,
 cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
@@ -310,8 +316,18 @@ c
 c***************************************************************************
       subroutine mxgisaij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : tracflx
+
+#ifdef TRACERS_OceanBiology
+      USE obio_dim, only : ntyp,n_inert,ndet,ncar
+#endif
+#endif
 c
 c --- hycom version 2.1
+      USE MODEL_COM, only: jmon
       implicit none
 c
       include 'dimensions.h'
@@ -388,7 +404,6 @@ c-----------------------------------------------------------------------------
 c                                                                             
       real, parameter :: difmax = 9999.0e-4  !maximum diffusion/viscosity     
       real, parameter :: acormin= 2.5453e-6  !minimum abs(corio), i.e. 1 degN     
-      real, parameter :: wndmix= 10.         !minimum diffusion=10cm2/s in layer 1
 c
 c --- local variables for giss mixing
 c
@@ -406,6 +421,11 @@ c
      &     dzth,d2zth,rdzlndzth,al0deep,thsum,dens,
      &     beta_b,beta_r,frac_b,frac_r,qspcifh,hbl,
      &     epson2,epson2_bot,eplatidep
+#ifdef TRACERS_GASEXCH_Natassa
+     &    ,dtracer(ntm)
+
+      integer ktr
+#endif
       real akm(kdm),akh(kdm),aks(kdm),aldeep(kdm),tmpk(kdm)
       real an2(kdm),an,acorio,zbot
 c
@@ -420,8 +440,8 @@ c
       integer ifnofsmall
 c
       integer            jtheta_r0,jtheta_r1,itheta_r0,itheta_r1
-c     common/mxgissij_b/ jtheta_r0,jtheta_r1,itheta_r0,itheta_r1
-c     save  /mxgissij_b/ !bugfix, reduces optimization of *theta_r*
+      common/mxgissij_b/ jtheta_r0,jtheta_r1,itheta_r0,itheta_r1
+      save  /mxgissij_b/ !bugfix, reduces optimization of *theta_r*
 c
       integer k1,jrlv
 c
@@ -451,7 +471,7 @@ c --- locate lowest substantial mass-containing layer.
         p(i,j,k+1)=pij(k+1)
       enddo
       do k=kk,1,-1
-        if (dpmm(k).gt.tencm) then
+        if (dpmm(k).gt.onecm) then
           exit
         endif
       enddo
@@ -466,8 +486,8 @@ c --- shortwave flux penetration depends on kpar or jerlov water type.
 c
       if     (jerlv0.eq.0) then
         beta_r = 2.0/onem
-        beta_b = ( akpar(i,j,ls0)*ws0+akpar(i,j,ls1)*ws1
-     &            +akpar(i,j,ls2)*ws2+akpar(i,j,ls3)*ws3)/onem
+        beta_b = akpar(i,j,jmon)/onem
+        beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
         frac_r = 1.0 - frac_b
       else
@@ -497,6 +517,14 @@ c
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k)
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+              do ktr=1,ntm
+              dtracer(ktr)=tracflx(i,j,ktr)*  !tracflx units: kg/m2/s
+     &            trcfrq*baclin*g*qdpmm(k)    !dtracer units: kg/kg
+              enddo
+            endif
+#endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k,
 cdiag&          0.,1.-swfrac(k+1),dtemp,dsaln
@@ -511,6 +539,13 @@ cdiag       endif
      &               delt1*g*qspcifh*qdpmm(k)
             endif
             dsaln=0.0
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+              do ktr=1,ntm
+               dtracer(ktr)=0.0
+              enddo
+            endif
+#endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k,
 cdiag&          1.-swfrac(k),1.-swfrac(k+1),dtemp
@@ -519,20 +554,43 @@ cdiag       endif
           else !k.gt.klist(i,j)
             dtemp=0.0
             dsaln=0.0
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+              do ktr=1,ntm
+               dtracer(ktr)=0.0
+              enddo
+            endif
+#endif
           endif
         else !.not.thermo
           dtemp=0.0
           dsaln=0.0
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+              do ktr=1,ntm
+               dtracer(ktr)=0.0
+              enddo
+            endif
+#endif
         endif
 c
 c --- modify t and s
         temp(i,j,kn)=temp(i,j,kn)+dtemp
-        if (saln(i,j,kn).lt.0.) 
-     . write(*,'(i8,a,2i4,f8.4)')nstep,' neg s=',i,j,kn,saln(i,j,kn)
-c
-css     saln(i,j,kn)=saln(i,j,kn)+dsaln
-        saln(i,j,kn)=max(0.,saln(i,j,kn)+dsaln)
+        saln(i,j,kn)=saln(i,j,kn)+dsaln
         th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
+#ifdef TRACERS_GASEXCH_Natassa
+        if (dotrcr) then
+         do ktr=1,ntm
+#ifdef TRACERS_GASEXCH_CFC_Natassa
+           tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
+     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
+#endif
+         enddo
+        endif
+#endif
 c
       enddo
 c
@@ -681,7 +739,7 @@ c --- Check that "slq2" has been set to 0 where it might have been negative.
       if (slq2.lt.0.) then
         write(lp,*) "************************************************"
         write(lp,*) "Error detected in turbulence module." 
-        write(lp,*) "'slq2' negative in turb_2 subroutine"
+        write(lp,*) "'slq2' negative in turb_2 routine"
      &               //" after interpolation."
         write(lp,*) "k=",k,"     slq2=",slq2
         write(lp,*) "sm=",sm,"   sh=",sh,"   ss=",ss
@@ -1095,7 +1153,6 @@ c
             write(lp,*) "v_back=",v_back(k),
      &                   " t_back=",t_back(k),
      &                   " s_back=",s_back(k)
-c Natassa
               write(lp,*) "tmp_back=",tmp_back
               write(lp,*) "b1=",b1
               write(lp,*) "back_ri1=",back_ri1
@@ -1203,15 +1260,8 @@ cdiag     tmpk(k)=tmp
 c
  22   continue
 c
-      do k =1,klist(i,j)-1
-c --- set min DIFFUSIVITY in layer 1
-      if (k.eq.1) then
-        akm(1)=max(akm(1),wndmix)
-        akh(1)=max(akh(1),wndmix)
-        aks(1)=max(aks(1),wndmix)
-      endif
-c
 c --- stop if DIFFUSIVITY IS NEGATIVE.
+      do k =1,klist(i,j)-1
       if ((akm(k).lt.0.).or.(akh(k).lt.0.).or.(aks(k).lt.0.)) then
           write(lp,*) "Diffusivity is negative."
         write(lp,*) "k=",k
@@ -1255,6 +1305,12 @@ c
  9000 format(12(1pe11.3))
 c
  101  format(i9,3i4,'absorbup,dn,dtemp,dsaln ',2f6.3,2f10.6)
+c
+c
+cdiag     if (i.eq.itest.and.j.eq.jtest) then
+cdiag       print '(2i4,a/(10f8.2))',i,j,'  dpmm =',(dpmm(k)/onem,k=1,nbl)
+cdiag       print '(2i4,a,i5)',i,j,'  klist =',klist(i,j)
+cdiag     end if
 c
       return   
       end
@@ -1310,8 +1366,18 @@ c***************************************************************************
 c
       subroutine mxkppaij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : tracflx
+
+#ifdef TRACERS_OceanBiology
+      USE obio_dim, only : ntyp,n_inert,ndet,ncar
+#endif
+#endif
 c
 c --- hycom version 2.1
+      USE MODEL_COM, only: jmon
       implicit none
 c
       include 'dimensions.h'
@@ -1423,6 +1489,11 @@ c
      &     vctyh,difsh,difth,zrefo,qspcifh,hbblmin,hbblmax,
      &     beta_b,beta_r,frac_b,frac_r,
      &     x0,x1,x2,y0,y1,y2
+#ifdef TRACERS_GASEXCH_Natassa
+     &    ,dtracer(ntm)
+
+      integer ktr
+#endif
       real     sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds
       external sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds
 c
@@ -1477,8 +1548,8 @@ c --- shortwave flux penetration depends on kpar or jerlov water type.
 c
       if     (jerlv0.eq.0) then
         beta_r = 2.0/onem
-        beta_b = ( akpar(i,j,ls0)*ws0+akpar(i,j,ls1)*ws1
-     &            +akpar(i,j,ls2)*ws2+akpar(i,j,ls3)*ws3)/onem
+        beta_b = akpar(i,j,jmon)/onem
+        beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
         frac_r = 1.0 - frac_b
       else
@@ -1514,6 +1585,14 @@ c
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k) 
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+            do ktr=1,ntm
+               dtracer(ktr)=tracflx(i,j,ktr)*  !tracflx units: kg/m2/s
+     &            trcfrq*baclin*g*qdpmm(k)     !dtracer units: kg/kg
+            enddo
+            endif
+#endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k, 
 cdiag&          0.,1.-swfrac(k+1),dtemp,dsaln
@@ -1528,6 +1607,13 @@ cdiag       endif
      &               delt1*g*qspcifh*qdpmm(k)
             endif
             dsaln=0.0
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+            do ktr=1,ntm
+               dtracer(ktr)=0.0
+            enddo
+            endif
+#endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k,
 cdiag&          1.-swfrac(k),1.-swfrac(k+1),dtemp
@@ -1536,10 +1622,24 @@ cdiag       endif
           else !k.gt.klist(i,j)
             dtemp=0.0
             dsaln=0.0
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+            do ktr=1,ntm
+               dtracer(ktr)=0.0
+            enddo
+            endif
+#endif
           endif 
         else !.not.thermo
           dtemp=0.0
           dsaln=0.0
+#ifdef TRACERS_GASEXCH_Natassa
+            if (dotrcr) then
+            do ktr=1,ntm
+               dtracer(ktr)=0.0
+            enddo
+            endif
+#endif
         endif
 c
 c --- modify t and s; set old value arrays at p points for initial iteration
@@ -1547,6 +1647,27 @@ c --- modify t and s; set old value arrays at p points for initial iteration
           temp(i,j,kn)=temp(i,j,kn)+dtemp
           saln(i,j,kn)=saln(i,j,kn)+dsaln
           th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
+#ifdef TRACERS_GASEXCH_Natassa
+        if (dotrcr) then
+         do ktr=1,ntm
+#ifdef TRACERS_GASEXCH_CFC_Natassa
+           tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
+          if(i.eq.109.and.j.eq.94)
+     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
+     .      ktr,tracer(i,j,k,ktr)-dtracer(ktr),dtracer(ktr),
+     .          tracer(i,j,k,ktr)
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
+     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
+          if(i.eq.109.and.j.eq.94)
+     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
+     .      ktr,tracer(i,j,k,ntyp+n_inert+ndet+ncar)-dtracer(ktr),
+     .      dtracer(ktr),tracer(i,j,k,ntyp+n_inert+ndet+ncar)
+#endif
+         enddo
+        endif
+#endif
           told (k)=temp(i,j,kn)
           sold (k)=saln(i,j,kn)
           if (locsig) then
@@ -1715,9 +1836,8 @@ c --- shear instability plus background internal wave contributions
         do k=2,klist(i,j)+1
           if     (shinst) then
 c ---       standard KPP shear instability profile
-            rigr=max(0.0,dbloc(k)*(zgrid(i,j,k-1)-zgrid(i,j,k))/
-     &                            (shsq(k)+epsil))
-            ratio=min(rigr/rinfty,1.0)
+            ratio=min(max(0.0,dbloc(k)*(zgrid(i,j,k-1)-zgrid(i,j,k))/
+     &                            (shsq(k)+epsil))/rinfty,1.0)
             fri=(1.0-ratio*ratio)
             fri=fri*fri*fri
             vcty(i,j,k)=min(difm0*fri+dflmiw,difmax)
@@ -2299,7 +2419,7 @@ c
      &                abs(corio(i,jb ))+abs(corio(i+1,jb )))
               hmonob(i,j)=-cmonob*ustarb(i,j)**3/(vonk*bfbot)
             endif
-            if     (hblflg.eq.0) then                         !nearest intf.
+            if     (k.eq.klist(i,j)   .or. hblflg.eq.0) then  !nearest intf.
               hbbl = zgridb(k+1)-0.5*hwide(k+1)
             elseif (k.gt.klist(i,j)-2 .or. hblflg.eq.1) then  !linear
               hbbl = zgridb(k+1)-
@@ -2613,6 +2733,16 @@ c
  105  format(25x,'   thick   u old   u new   v old   v new'
      &     /(i9,i2,2i5,i3,1x,f10.2,4f8.3))
 c
+c --- incisive code change: only mix to depth of mixed layer
+c --- was mix to the last mass layer
+c
+c     klist(i,j)=nbl
+      klist(i,j)=min(nbl+1,nlayer)
+cdiag     if (i.eq.itest.and.j.eq.jtest) then
+cdiag       print '(2i4,a/(10f8.2))',i,j,'  dpmm =',(dpmm(k)/onem,k=1,nbl)
+cdiag       print '(2i4,a,i5)',i,j,'  klist =',klist(i,j)
+cdiag     end if
+c
       return
       end
 c
@@ -2621,6 +2751,15 @@ c
       subroutine mxkprfbij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
 c
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : tracflx
+
+#ifdef TRACERS_OceanBiology
+      USE obio_dim, only : ntyp,n_inert,ndet,ncar
+#endif
+#endif
 c --- hycom version 2.1
       implicit none
 c
@@ -2740,7 +2879,28 @@ c
         do ktr=1,ntrcr
 cdiag     if (i.eq.itest .and. j.eq.jtest) write (*,'(a,i2/1p(8e10.1))')
 cdiag.      'old tracer',ktr,(tr1do(k,ktr),k=1,nlayer)
+          !tracer flux imposed at air-sea intfc
           ghatflux=0.
+#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
+          !tracflx positive in the +p direction (into the ocean)
+          ghatflux=-tracflx(i,j,ktr)*thref
+          if(i.eq.109.and.j.eq.94)
+     .    write(6,'(a,i5,2e12.4)')
+     .            'mxkpp, ghatflux at pt(109,94) and nt=',
+     .             ktr,tracflx(i,j,ktr),ghatflux
+#endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+          !only DIC has surface flux
+          if (ktr.eq.ntyp+n_inert+ndet+ncar) then
+             ghatflux=-tracflx(i,j,1)*thref    !because ntm=1
+             if(i.eq.109.and.j.eq.94)
+     .             write(6,'(a,i5,2e12.4)')
+     .            'mxkpp, ghatflux at pt(109,94) and nt=',
+     .             ktr,tracflx(i,j,1),ghatflux
+          endif
+#endif
+#endif
           call tridrhs(hm,
      &        tr1do(1,ktr),diffs,ghat,ghatflux,tri,nlayer,rhs,
      &              trcfrq*baclin)
@@ -2850,12 +3010,12 @@ c --- tridiagonal matrix solution arrays
      &     rhs(kdm)          ! right-hand-side terms
 c
       real presu
-      integer nlayer
+      integer nlayer,ka
 c
       nlayer=1
       presu=0.
-      do k=1,kk
-        u1do(k)=0.
+c --- incisive code change: only mix to depth of mixed layer
+      do k=1,max(klist(i,j),klist(i-1,j))
         if (presu.lt.depthu(i,j)-tencm) then
           diffm(k+1)=.5*(vcty(i,j,k+1)+vcty(i-1,j,k+1))
           u1do(k)=u(i,j,k+nn)
@@ -2877,6 +3037,12 @@ c
       diffm(k)=0.
       u1do(k)=u1do(k-1)
       zm(k)=zm(k-1)-.5*hm(k-1)
+c
+      do k=nlayer+1,kk+1
+        ka=min(k,kk)
+        u1do(k)=u(i,j,ka+nn)
+        u1dn(k)=u1do(k)
+      end do
 c
 c --- compute factors for coefficients of tridiagonal matrix elements.
       do k=1,nlayer
@@ -2958,13 +3124,13 @@ c --- tridiagonal matrix solution arrays
      &     rhs(kdm)          ! right-hand-side terms
 c
       real presv
-      integer nlayer
+      integer nlayer,ka
 c
       ja=mod(j-2+jj,jj)+1
       nlayer=1
       presv=0.
-      do k=1,kk
-        v1do(k)=0.
+c --- incisive code change: only mix to depth of mixed layer
+      do k=1,max(klist(i,j),klist(i,ja ))
         if (presv.lt.depthv(i,j)-tencm) then
           diffm(k+1)=.5*(vcty(i,j,k+1)+vcty(i,ja ,k+1))
           v1do(k)=v(i,j,k+nn)
@@ -2986,6 +3152,12 @@ c
       diffm(k)=0.
       v1do(k)=v1do(k-1)
       zm(k)=zm(k-1)-.5*hm(k-1)
+c
+      do k=nlayer+1,kk+1
+        ka=min(k,kk)
+        v1do(k)=v(i,j,ka+nn)
+        v1dn(k)=v1do(k)
+      end do
 c
 c --- compute factors for coefficients of tridiagonal matrix elements.
 c
@@ -3129,3 +3301,5 @@ c> Jan  2004 - added latdiw to KPP and MY
 c> Jan  2004 - added bblkpp to KPP (bottom boundary layer)
 c> Jan  2004 - cv can now depend on bouyancy freqency
 c> Jan  2004 - added hblflg to KPP
+c> Nov  2006 - use KPP in mixed layer only 
+c> Nov  2006 - enhance dift 3 times in the Southern Ocean

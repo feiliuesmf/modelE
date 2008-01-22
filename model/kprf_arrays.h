@@ -27,7 +27,7 @@
      & betabl,        ! blue extinction coefficient
      & redfac         ! fract. of penetr. red light
 
-      real, dimension (1:idm,1:jdm,4) ::
+      real, dimension (1:idm,1:jdm,12) ::
      & akpar          ! photosynthetically available radiation coefficent
 
 c --- kpp variables

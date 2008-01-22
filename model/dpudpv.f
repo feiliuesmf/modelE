@@ -17,7 +17,7 @@ c
         call cpy_p(p(1,1,k+1))
       end do
 c
-c$OMP PARALLEL DO PRIVATE(ja,kmn)
+c$OMP PARALLEL DO PRIVATE(ja,kmn) SCHEDULE(STATIC,jchunk)
       do j=1,jj
       ja=mod(j-2+jj,jj)+1
 c

@@ -10,8 +10,6 @@ c
 #include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
 c
-cdiag tta=0.
-cdiag tto=0.
 c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
@@ -20,19 +18,8 @@ c
       do 17 n=1,nlisto2a(ia,ja)
  17   flda(ia,ja)=flda(ia,ja)+fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
      .                                              *wlisto2a(ia,ja,n)
-cdiag tta=tta+flda(ia,ja)*ofrac(ia,ja)*agcmgdsz(ja)
  16   continue
 c$OMP END PARALLEL DO             
-c
-cdiag      do 18 io=1,iio
-cdiag      do 18 jo=1,jjo
-cdiag 18   tto=tto+fldo(io,jo)*ocellsz(io,jo)
-cdiag      if (tto.ne.0.) then
-cdiag        write(*,'(a,2e16.4,f12.8)')'chk bud ssto2a=',tta,tto,tta/tto
-cdiag      else
-cdiag        write(*,'(a,2e16.4)') 'chk bud ssto2a=',tta,tto
-cdiag      endif
-cdiag      if (abs(tta-tto)/tta.gt. 0.1) stop 'budget'
 c
       return
       end
@@ -62,19 +49,9 @@ c
      .                                          *wtaua2o(i,j,n)
  7    sward(i,j)=sward(i,j)-tauya(itaua2o(i,j,n),jtaua2o(i,j,n))
      .                                          *wtaua2o(i,j,n)
-cdiag tto=tto+eward(i,j)*ocellsz(i,j)
  6    continue
 c$OMP END PARALLEL DO
 c
-cdiag tta=0.
-cc$OMP PARALLEL DO REDUCTION(+:tta)
-cdiag do 8 ia=1,iia
-cdiag do 8 ja=1,jja
-cdiag 8    tta=tta+tauxa(ia,ja)*agcmocn(ia,ja)
-cc$OMP END PARALLEL DO
-cdiag  if (tto.ne.0.)
-cdiag  .write(*,'(a,2e16.4,f12.8)')'chk bud veca2o=',tta,tto,tta/tto
-c     
 c --- rotate sward/eward to fit onto Panam grid
 c$OMP PARALLEL DO
       do 9 j=1,jj
@@ -97,13 +74,6 @@ c
 #include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tta,tto
 c
-cdiag      tto=0.
-cdiag      tta=0.
-cdiag      do 18 ia=1,iia
-cdiag      do 18 ja=1,jja
-cdiag      tta=tta+flda(ia,ja)*agcmocn(ia,ja)
-cdiag 18   continue
-c
 c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
@@ -114,16 +84,9 @@ c
       fldo(i,j)=fldo(i,j)+flda(ilista2o(i,j,n),jlista2o(i,j,n))
      .                        *wlista2o(i,j,n)
  9    continue
-cdiag      tto=tto+fldo(i,j)*ocellsz(i,j)
  8    continue
 c$OMP END PARALLEL DO
 c
-cdiag      if (tto.ne.0.) then
-cdiag        write(*,'(a,2e16.4,a,f12.8)')'chk bud flxa2m=',tta,tto
-cdiag     .                                          ,' %=',tta/tto
-cdiag      else
-cdiag        write(*,'(a,2e16.4)')'chk bud flxa2m=',tta,tto
-cdiag      endif
       return
       end
 c
@@ -158,10 +121,6 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
      .           -(tauxo(i,j)+tauxo(i+1,j))*coso(i,j))/(2.*sine)
       eward(i,j)=((tauyo(i,j)+tauyo(i ,jb))*coso(i,j)
      .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
-c     if (max(abs(nward(i,j)),abs(eward(i,j))).gt.1.e4)
-c    .   write(*,'(2i3,8es10.2)') i,j,tauyo(i,j),tauyo(i ,jb)
-c    .      ,tauxo(i,j),tauxo(i+1,j)
-c    . ,tauyo(i,j),tauyo(i ,jb),tauxo(i,j),tauxo(i+1,j)
       endif
  12   continue
 c$OMP END PARALLEL DO           
@@ -183,6 +142,33 @@ c
      .          ,jlisto2a_n(ia,ja,n))*wlisto2a_n(ia,ja,n)
  16   continue
 c$OMP END PARALLEL DO
+c
+      return
+      end
+c
+      subroutine tempro2a(fldo,flda)
+c --- mapping sqrt(sqrt(temp**4)) from 'o' grid to 'a' grid, unit: K
+c
+c --- fldo:  input field from ogcm grid
+c     flda: output field onto agcm grid
+c
+      implicit none
+#include "dimensions.h"
+#include "dimension2.h"
+#include "a2o.h"
+      real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
+c
+c$OMP PARALLEL DO
+      do 16 ja=1,jja
+      do 16 ia=1,iia
+      flda(ia,ja)=0.
+c
+      do 17 n=1,nlisto2a(ia,ja)
+ 17   flda(ia,ja)=flda(ia,ja)+(fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
+     .    +273.16d0)**4*wlisto2a(ia,ja,n)
+      flda(ia,ja)=sqrt(sqrt(flda(ia,ja)))       ! Kelvin for radiation
+ 16   continue
+c$OMP END PARALLEL DO             
 c
       return
       end

@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
       USE MODEL_COM, only : im,jm,focean
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,gtempr
 #ifdef TRACERS_GASEXCH_Natassa
      .                  ,GTRACER,TRGASEX
 
@@ -43,6 +43,7 @@ c
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0.) THEN
           GTEMP(1,1,I,J)=asst(I,J)
+          gtempr(1,ia,ja)=atempr(ia,ja)
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         GTRACER(nt,1,I,J)=atrac(I,J,nt)
@@ -146,14 +147,11 @@ css#ifdef TRACERS_OCEAN
 css       WRITE (kunit,err=10) TRMODULE_HEADER,tracer
 css#endif
         WRITE (kunit,err=10) MODULE_HEADER,nstep,time
-!    . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
-     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
-     . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
-     . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
-
+     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
 #ifdef TRACERS_GASEXCH_Natassa
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
@@ -167,7 +165,6 @@ css#endif
 #endif
 #endif
 
-
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
           CASE (IRSFICNO)   ! initial conditions (no ocean data)
@@ -178,21 +175,14 @@ css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
             call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
-     . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
-     . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
+     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
-      i=100
-      j=100
-      do k=1,2*kk
-      write(*,'(a,i2,2f8.4,f7.1,2f6.2)') ' tst1 k=',k,
-     .    u(i,j,k),v(i,j,k),dp(i,j,k)/onem,temp(i,j,k),saln(i,j,k)
-      enddo
       nstep=nstep0
       time=time0
 c
@@ -212,13 +202,6 @@ cnat  go to 111
 #endif
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
-      i=100
-      j=100
-      do k=1,kdm
-      write(*,'(a,i2,6(e12.4,1x))') ' tst1 k=',k,
-     .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
-     .    tracer(i,j,k,1),tracer(i,j,k,15)
-      enddo
       nstep=nstep0
       time=time0
 
@@ -240,29 +223,19 @@ cnat  go to 111
             END IF
 #endif
 
-
-
           CASE (irsficnt) ! restarts (never any tracer data)
 css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
             call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk
+     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
-     . ,asst,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
-     . ,scpx,scux,scvx,scqx,scpy,scuy,scvy,scqy,scp2,scu2,scv2,scq2
-
+     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk ocean read at nstep/day=',nstep0,time0
-      i=100
-      j=100
-      do k=1,2*kk
-      write(*,'(a,5f8.2)') ' tst2',
-     .    u(i,j,k),v(i,j,k),dp(i,j,k)/onem,temp(i,j,k),saln(i,j,k)
-      enddo
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
@@ -279,21 +252,12 @@ cnat  go to 222
 
       nstep0=time0*86400./baclin+.0001
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
-      i=100
-      j=100
-      do k=1,kdm
-      write(*,'(a,6(e12.4,1x))') ' tst2',
-     .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
-     .   tracer(i,j,k,1),tracer(i,j,k,15)
-      enddo
-
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
               GO TO 10
             END IF
 #endif
-
  222  continue
 
           END SELECT

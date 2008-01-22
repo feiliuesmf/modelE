@@ -27,7 +27,7 @@ c
 ccc      if (mod(time+.0001,30.).lt..0002) then            !  once a month
 ccc        totl=0.
 ccc        eptt=0.
-cccc$OMP PARALLEL DO REDUCTION(+:totl,eptt)
+cccc$OMP PARALLEL DO REDUCTION(+:totl,eptt) SCHEDULE(STATIC,jchunk)
 ccc        do 8 j=1,jj
 ccc        do 8 k=1,kk
 ccc        do 8 l=1,isp(j)
@@ -49,7 +49,7 @@ ccc     .  '  => precip bias(%):',100.*pcpcor
 ccc      end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c$OMP PARALLEL DO PRIVATE(kn)
+c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
       do 66 j=1,jj
       do 66 k=1,kk
       kn=k+nn
@@ -69,7 +69,7 @@ c
       smean=0.
 c
 c$OMP PARALLEL DO PRIVATE(thknss,vpmx,prcp,exchng,
-c$OMP. radfl,radflw,radfli,evap,evapw,evapi)
+c$OMP. radfl,radflw,radfli,evap,evapw,evapi) SCHEDULE(STATIC,jchunk)
       do 85 j=1,jj
 c
       watcol(j)=0.
@@ -112,6 +112,7 @@ c
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO REDUCTION(+:watcum,empcum,slfcum)
+c$OMP+ SCHEDULE(STATIC,jchunk)
       do 83 j=1,jj
       watcum=watcum+watcol(j)
       empcum=empcum+empcol(j)
@@ -120,7 +121,7 @@ c$OMP PARALLEL DO REDUCTION(+:watcum,empcum,slfcum)
 c$OMP END PARALLEL DO
 c
       if (nstep.eq.nstep0+1 .or. diagno) then
-c$OMP PARALLEL DO REDUCTION(+:rmean,tmean,smean)
+c$OMP PARALLEL DO REDUCTION(+:rmean,tmean,smean) SCHEDULE(STATIC,jchunk)
       do 82 j=1,jj
       rmean=rmean+rhocol(j)
       tmean=tmean+temcol(j)
@@ -149,7 +150,7 @@ c
       smean=0.
       tmean=0.
       vmean=0.
-c$OMP PARALLEL DO PRIVATE(kn,boxvol)
+c$OMP PARALLEL DO PRIVATE(kn,boxvol) SCHEDULE(STATIC,jchunk)
 c$OMP+ REDUCTION(+:rmean,smean,tmean,vmean)
       do 84 j=1,jj
       do 84 k=kk,1,-1

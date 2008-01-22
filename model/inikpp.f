@@ -98,7 +98,7 @@ c
       include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 199 j=1,jj
       do 199 l=1,isp(j)
       do 199 i=ifp(j,l),ilp(j,l)

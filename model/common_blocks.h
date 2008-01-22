@@ -162,7 +162,8 @@ c --- 'thkdff' = diffusion velocity (cm/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (cm/s) for momentum dissipation
 c --- 'temdff' = diffusion velocity (cm/s) for temp/salin. mixing
 c --  'viscos' is nondimensional, used in deformation-dependent viscosity
-c --- 'diapyc' = diapycnal diffusivity times buoyancy freq. (cm**2/s**2)
+c --- 'diapyc' = diapycnal diffusivity (m^2/s)
+c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'trcfrq' = number of time steps between tracer transport calculations
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- slip = +1  for free-slip boundary cond., slip = -1  for non-slip cond.
@@ -181,13 +182,13 @@ c ---' salmin' = minimum salinity allowed in an isopycnic layer
 c --- 'acurcy' = permissible roundoff error in column integral calc.
 c --- 'nhr   ' = coupling freq. in hours
 c
-      common/parms1/thbase,theta(kdm),baclin,batrop,thkdff,
-     .              veldff,temdff,viscos,diapyc,vertmx,h1,slip,cbar,
+      common/parms1/sigma(kdm),theta(kdm),baclin,batrop,thkdff,veldff,
+     .              temdff,viscos,diapyc,diapyn,vertmx,h1,slip,cbar,
      .              diagfq,wuv1,wuv2,wts1,wts2,acurcy,wbaro,thkmin,
      .              thkbot,botmin,ekman,sigjmp,salmin(kdm)
-      real theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
-     .     diapyc,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,acurcy,
-     .     wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
+      real sigma,theta,baclin,batrop,thkdff,veldff,temdff,viscos,
+     .     diapyc,diapyn,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,
+     .     acurcy,wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
 c
       common/parms2/trcfrq,ntracr,nhr,mixfrq
       integer       trcfrq,ntracr,nhr,mixfrq

@@ -17,7 +17,7 @@ c --- function for determining depth at u,v points
 c
       call cpy_p(pbot)
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb)
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -38,7 +38,7 @@ c
       end do
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 153 l=1,isq(j)

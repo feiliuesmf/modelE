@@ -43,7 +43,7 @@ c --- compute low-order and part of antidiffusive fluxes
 c
       call cpy_p(fld)
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb,q,ia,ib)
+c$OMP PARALLEL DO PRIVATE(ja,jb,q,ia,ib) SCHEDULE(STATIC,jchunk)
       do 11 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -81,7 +81,7 @@ c
    11 fmn(i,j)=min(fld(i,j),fld(ia,j),fld(ib,j),fld(i,ja),fld(i,jb))
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 22 j=1,jj
       do 22 l=1,isp(j)
       flx(ifp(j,l)  ,j)=0.
@@ -89,7 +89,7 @@ c$OMP PARALLEL DO
   22  continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(j,wrap)
+c$OMP PARALLEL DO PRIVATE(j,wrap) SCHEDULE(STATIC,jchunk)
       do 33 i=1,ii1
       wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
@@ -106,7 +106,7 @@ cdiag write (lp,'(''advem (1)''2i5,f22.3/1pe39.2/0pf21.3,1pe9.2,0pf9.3,
 cdiag.1pe9.2,0pf9.3/1pe39.2/0pf39.3)') i,j,fld(i-1,j),u(i,j),fld(i,j-1),
 cdiag.v(i,j),fld(i,j),v(i,j+1),fld(i,j+1),u(i+1,j),fld(i+1,j)
 c
-c$OMP PARALLEL DO PRIVATE(jb,q,amount)
+c$OMP PARALLEL DO PRIVATE(jb,q,amount) SCHEDULE(STATIC,jchunk)
       do 61 j=1,jj
       jb=mod(j     ,jj)+1
       vlumj(j)=0.
@@ -128,7 +128,7 @@ c
 c
 c --- finish computation of antidiffusive fluxes
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 8 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -145,7 +145,7 @@ c$OMP END PARALLEL DO
 c
 c---- limit antidiffusive fluxes
 c
-c$OMP PARALLEL DO PRIVATE(jb)
+c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 16 j=1,jj
       jb=mod(j     ,jj)+1
       do 16 l=1,isp(j)
@@ -162,7 +162,7 @@ c
       call cpy_p(flp)
       call cpy_p(fln)
 c
-c$OMP PARALLEL DO PRIVATE(ja)
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 18 j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -185,7 +185,7 @@ cdiag write (lp,'(''advem (2)''2i5,f22.3/1pe39.2/0pf21.3,1pe9.2,0pf9.3,
 cdiag.1pe9.2,0pf9.3/1pe39.2/0pf39.3)') i,j,fld(i-1,j),u(i,j),fld(i,ja ),
 cdiag.v(i,j),fld(i,j),v(i,jb ),fld(i,jb ),u(i+1,j),fld(i+1,j)
 c
-c$OMP PARALLEL DO PRIVATE(jb,amount,q)
+c$OMP PARALLEL DO PRIVATE(jb,amount,q) SCHEDULE(STATIC,jchunk)
       do 62 j=1,jj
       jb=mod(j     ,jj)+1
       do 62 l=1,isp(j)
@@ -205,7 +205,7 @@ c
       if (recovr) then
         vlume=0.
         clip=0.
-c$OMP PARALLEL DO REDUCTION(+:vlume,clip)
+c$OMP PARALLEL DO REDUCTION(+:vlume,clip) SCHEDULE(STATIC,jchunk)
         do 19 j=1,jj
         vlume=vlume+vlumj(j)
  19     clip=clip+clipj(j)
@@ -214,7 +214,7 @@ c
         if (vlume.ne.0.) then
           clip=clip/vlume
 cdiag     write (lp,'(a,1pe11.3)') 'tracer drift in advem:',-clip
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
           do 13 j=1,jj
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
