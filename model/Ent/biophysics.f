@@ -330,7 +330,7 @@
           cop%Ci = Ci
           cop%GPP = GPP         !kg-C/m2-ground/s
           if (GPP.lt.0.d0) then
-            print *,"BAD GPP:",vegpar%alai,cop%lai
+            print *,"BAD GPP:",cop%GPP,vegpar%alai,cop%lai
           endif
         else !Zero LAI, no photosynthesis
           vegpar%alai = cop%LAI

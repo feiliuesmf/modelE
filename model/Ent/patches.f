@@ -416,7 +416,10 @@
       integer, intent(in) :: soil_type
       !---
 
-      if ( area > 1.d0 ) call stop_model("patch_construct: area >1",255)
+      if ( area > 1.d0 ) then 
+        print *, "patch area > 1, area=",area
+        call stop_model("patch_construct: area >1",255)
+      endif
       ! allocate memory
       allocate( pp )
       allocate( pp%LAIpft(N_COVERTYPES) )  !remove -- have made into scalar -PK 6/28/06

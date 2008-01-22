@@ -219,6 +219,7 @@
             tmp_pft = pp%tallest%pft
             tmp_senescefrac = pp%tallest%senescefrac
           endif
+!#define OFFLINE 1
 #ifdef OFFLINE          
           write(995,'(i5,3(1pe16.8),i5,100(1pe16.8))')  !Fluxes are positive up.
      &         patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 

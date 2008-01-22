@@ -164,9 +164,9 @@
       do k=1,N_COVERTYPES-2  !## Skip algae and grac4 #HACK
         read(iu_VEG) title , buf
         vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
-        print *,"read VEG:", title
+        !print *,"read VEG:", title
       end do
-      print *,"vdata", vdata(:,I0:I1,J0:J1) !#DEBUG
+      !print *,"vdata", vdata(:,I0:I1,J0:J1) !#DEBUG
       call closeunit(iu_VEG)
       end subroutine prescr_get_vdata
 
@@ -197,20 +197,20 @@
 
       call openunit("CROPS",iu_CROPS,.true.,.true.)
       do while( year2 < year )
-        print *, "Got here in prescr_get_cropdata"
+        !print *, "Got here in prescr_get_cropdata"
         year1 = year2
         crop1(:,:) = crop2(:,:)
         read (iu_CROPS,end=10) title , crop4
         read(title,*) year2 !Read year integer out of character array title
-        print *,"read CROPS:",title,year2
+        !print *,"read CROPS:",title,year2
         crop2(I0:I1,J0:J1) = crop4(I0:I1,J0:J1)
       enddo
       wt = (year-year1)/(real(year2-year1,kind=8))
  10   continue
       call closeunit(iu_CROPS)
 
-      cropdata(:,:) = crop1(:,:)
-     &     + wt * (crop2(:,:) - crop1(:,:))
+      cropdata(:,:) = max(0.d0, crop1(:,:)
+     &     + wt * (crop2(:,:) - crop1(:,:)))  !Set min to zero, since no land mask yet -nyk 1/22/08
 #else
       !*TEMPORARY ZERO OUT CROPDATA IFDEF *!
       do i=I0,I1
@@ -247,15 +247,16 @@
             vegdata(:,i,j) = 0.d0
             vegdata(:,i,j) = 1.d0
           else
-            crops_old = vegdata(9,i,j)
+            crops_old = vegdata(CROPS+COVEROFFSET,i,j)
             if ( crops_old == 1.d0 ) then
               call stop_model("incompatible crops: old=1, new<1",255)
             endif
             vegdata(:,i,j) = vegdata(:,i,j)
      $           * (1.d0-cropdata(i,j))/(1.d0-crops_old)
-            vegdata(9,i,j) = cropdata(i,j)
+            vegdata(CROPS+COVEROFFSET,i,j) = cropdata(i,j)
           endif
         end do
+        !write(*,*) vegdata(CROPS+COVEROFFSET,:,j)
       end do
 
       DEALLOCATE(cropdata)
@@ -364,10 +365,10 @@
       integer k
 
       call openunit("soil_textures",iu_SOIL,.true.,.true.)
-      print *,IM,JM,N_COVERTYPES !#DEBUG
+      !print *,IM,JM,N_COVERTYPES !#DEBUG
       read(iu_SOIL) buf
       call closeunit(iu_SOIL)
-      print *,"soil fractions:",buf(I0,J0,:)!#DEBUG
+      !print *,"soil fractions:",buf(I0,J0,:)!#DEBUG
 
       do k=1,N_SOIL_TEXTURES
         soil_texture(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1,k)

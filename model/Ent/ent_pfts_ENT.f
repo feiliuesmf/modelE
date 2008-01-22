@@ -27,7 +27,8 @@
       !* 15- C4 crops
       !* 16 - crops broadleaf woody
 
-!KIM-temp.
+      integer, parameter :: GRASSC3PER = 11
+      integer, parameter :: GRASSC4 = 12
       integer, parameter :: GRASSC3 = 13 !Was 10
       integer, parameter :: CROPS = 15 !Was 13
 

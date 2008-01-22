@@ -460,7 +460,8 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       popdata(:) = 0.0 !Zero initialize, and zero bare soil.
       do pft=1,N_PFT
         n = pft + COVEROFFSET
-        if (pft.eq.GRASSC3) then
+        if ((pft.eq.GRASSC3).or.(pft.eq.GRASSC4).or.(pft.eq.GRASSC3PER))
+     &       then
           popdata(n) = 1.0      !Grass is just a large ensemble
         else
           wooddens = wooddensity_gcm3(pft)

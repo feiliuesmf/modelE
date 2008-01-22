@@ -11,6 +11,7 @@
       implicit none
       save
 
+#define OFFLINE 1
       !************************************************************************
       !* INTEGRATION - TIME STEPS
       integer,parameter :: T_SUB=12  !Number of sub-time steps in a year
