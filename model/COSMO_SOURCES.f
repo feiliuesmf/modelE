@@ -40,8 +40,8 @@
       if (variable_phi .eq. 1) call read_Be_source
       print*, "variable_phi = ", variable_phi
          
-!      if (variable_phi .eq. 2) call update_annual_phi
-!      print*, "variable_phi = ", variable_phi
+      if (variable_phi .eq. 2) call update_annual_phi
+      print*, "variable_phi = ", variable_phi
       
       if (variable_phi .eq. 3) call update_daily_phi   
       print*, "variable_phi = ", variable_phi
@@ -169,34 +169,120 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       END SUBROUTINE read_Be_source
 
       
-!      SUBROUTINE update_annual_phi
+      SUBROUTINE update_annual_phi
 !@sum interpolates betw. diff. Be7 production values for each year to get correct Be7 
 !@production corresponding to phi value for a given year.
 !@auth C Field
-!      phi_yr = model_yr + 0.5
-!      do i = 1,nyrs
-!         if (phi_yr .eq. year(i)) then
-!            phi = phi_record(i)
-!         end if
-!      end do
+
+      USE FILEMANAGER, only: openunit,closeunit
+      USE GEOM, only: dxyp
+      USE MODEL_COM, only : jyear
+      USE CONSTANT, only : avog
+      USE TRACER_COM
+      USE DOMAIN_DECOMP, only : GRID, get
+      USE COSMO_SOURCES, only : be7_src_3d, be10_src_3d
+     
+      IMPLICIT NONE
+      character title*80
+      integer, parameter :: npress=23, nlat=46, nphi=21
+      integer, parameter :: nyrs=105
+      real :: year(nyrs), phi_record(nyrs), phi_yr, phi_list(nphi), phi
+      real*8 :: be7_prod(1:nphi,1:nlat,1:npress)
+      real*8 :: be10_prod(1:nphi,1:nlat,1:npress)
+      real*8 :: slope_10(1:nlat, 1:npress)
+      real*8 :: slope_7(1:nlat, 1:npress)
+      real*8 :: tfacti_10, tfacti_7, delta_phi
+      real*8 :: be7_src_param=1 
+      real*8, allocatable, dimension(:,:) :: ibe_10, ibe_7
+      integer :: iuc, i, j, k, l, n, J_1, J_0
+ 
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      ALLOCATE(ibe_10 (J_0:J_1, 1:lm))
+      ALLOCATE(ibe_7 (J_0:J_1, 1:lm))
       
-!      do i = 1,nphi
-!      if ((be7_phi(i) .lt. phi) .and.(be7_phi(i+1) .gt. phi)) then
-            
-!           delta_phi = phi - be7_phi(i)
-            
-!     slope=(be7_src_prod_alpha(:,:,:,i+1)-be7_src_prod_alpha(:,:,:,i)))/((be7_phi(i+1))-(be7_phi(i)))
+
+      print*, "reading file for annual Be10 prod"
+      call openunit('BE10_ANN_PROD', iuc, .false., .true.)
+      print*, "opened"
+      read(iuc,*) tfacti_10
+      print*, "read tfacti_10"
+      print*, "tfacti_10 = ", tfacti_10
+      read(iuc,*) be10_prod
+      print*, "be10 prod: ", be10_prod(15,12,12)
+ 20   call closeunit(iuc)
       
-!     new_prod = be7_src_prod_alpha(:,:,:,i)+(slope(:,:,:)*delta_phi)
-            
-            
-!         else if (be7_phi(i) .eq. phi) then
-!            new_prod = be7_src_prod_alpha(:,:,:,i)
-!         end if
-!      end do
+      print*, "reading file for annual Be7 prod"
+      call openunit('BE7_ANN_PROD', iuc, .false., .true.)
+      print*, "opened"
+      read(iuc,*) tfacti_7
+      print*, "read tfacti_7"
+      print*, "tfacti_7 = ", tfacti_7
+      read(iuc,*) be7_prod
+      print*, "be7 prod: ", be7_prod(15,12,12)
+ 30   call closeunit(iuc)
+
+      print*, "reading file for annual phi values"
+      call openunit('PHI_ANN', iuc, .false., .true.)
+      do i = 1,nyrs
+         read(iuc,*) year(i), phi_record(i)
+c         print*, "phi_record (1) = ", phi_record(1)
+      end do
+      call closeunit(iuc)  
+
+      phi_yr = jyear + 0.5
+      print*, "phi_yr = ", phi_yr
+      do i = 1,nyrs
+         if (phi_yr .eq. year(i)) then
+            phi = phi_record(i)
+         end if
+      end do
       
+      phi_list(1) = 0.
+      do n = 2,nphi
+         phi_list(n) = phi_list(n-1) + 50.
+c         print*, "Phi = ", phi_list(n)
+      end do
+
+
+      do i = 1,nphi
+         if ((phi_list(i) .le. phi) .and.(phi_list(i+1) .gt. phi)) then
+            print*, "phi values: ", phi, phi_list(i), phi_list(i+1)
+            delta_phi = phi - phi_list(i)
+            print*, "10: ", be10_prod(i+1,12,12), be10_prod(i,12,12)
+            print*, "7: ", be7_prod(i+1,12,12), be7_prod(i,12,12)
+            
+            slope_10=(be10_prod(i+1,:,:)-be10_prod(i,:,:))/((phi_list(i
+     $           +1))-(phi_list(i)))
+            print*, "slope 10 = ", slope_10(2,4)
+           
+            slope_7=(be7_prod(i+1,:,:)-be7_prod(i,:,:))/((phi_list(i+1))
+     $           -(phi_list(i)))
+            print*, "slope 7 = ", slope_7(2,4)
+            
+            ibe_10(:,:) = be10_prod(i,:,:)+(slope_10(:,:)*delta_phi)
+            ibe_7(:,:) = be7_prod(i,:,:)+(slope_7(:,:)*delta_phi)
+            print*, "ibes: ", ibe_10(2,4), ibe_7(2,4)
+            
+          end if
+      end do
+ 
+C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
+      print*, "converting units for Be10 and Be7"
+      do l=1,lm; do j=J_0,J_1; do i=1,im
+         be10_src_3d(i,j,l)=ibe_10(j,l)*dxyp(j)*(tr_mm(n_Be10)*tfacti_10
+     $        /avog)
+         
+         be7_src_3d(i,j,l)=ibe_7(j,l)*dxyp(j)*(tr_mm(n_Be7)*tfacti_7
+     $        /avog)
+      end do ; end do ; end do
       
-!      END SUBROUTINE update_annual_phi
+      print*, "be7_src_param = ", be7_src_param
+      print*, "tr_mm(n_Be10)/tr_mm(n_Be7) = ", tr_mm(n_Be10)
+     $     /tr_mm(n_Be7)
+      print*, "be7_src_3d(10,24,1) = ",be7_src_3d(10,24,1) 
+      print*, "be10_src_3d(10,24,1) = ",be10_src_3d(10,24,1)
+      
+      END SUBROUTINE update_annual_phi
 
 
  
@@ -242,17 +328,17 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       print*, "reading files for daily phi"
       call openunit('BE7_DAILY_PROD', iuc, .false., .true.)
       print*, "opened"
-      read(iuc,*,end=20) (((be7_prod(i,j,k), i=1,npress), j=1,npc), k=1
+      read(iuc,*,end=50) (((be7_prod(i,j,k), i=1,npress), j=1,npc), k=1
      $     ,nphi)
  !     print*, be7_prod(1,1,1)
- 20   call closeunit(iuc)
+ 50   call closeunit(iuc)
 
       print*, "reading files for SCR production"
       call openunit('BE7_SCR_PROD', iuc, .false., .true.)
       print*, "opened"
-      read(iuc,*,end=40) ((be7_scr(i,j), i=1,npress), j=1,npc)
+      read(iuc,*,end=60) ((be7_scr(i,j), i=1,npress), j=1,npc)
  !     print*, be7_scr(1,1)
- 40   call closeunit(iuc)
+ 60   call closeunit(iuc)
       
       print*, "reading"
       call openunit('PC_LOOKUP', iuc, .true., .true.)
