@@ -8118,9 +8118,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       do n=1,ntm
         if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
- !          print*, "calling init_cosmo"
           call init_cosmo
-          print*, "called init_cosmo" 
           exit
         end if
       end do
@@ -9348,7 +9346,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
      $     ,flake0
       USE DOMAIN_DECOMP, only : grid, get, write_parallel
-      USE COSMO_SOURCES, only : variable_phi
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -9368,7 +9365,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4, rad_FL,
      & dms_offline,so2_offline,sulfate,PIratio_indus
 #endif
-
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only : variable_phi
+#endif
 
       IMPLICIT NONE
       INTEGER n,iact,last_month,kk
@@ -9435,7 +9434,6 @@ C**** Tracer specific call for CH4
 #endif
 
 #ifdef TRACERS_COSMO
-      print*, "selecting variable phi"
       if (variable_phi .eq. 0) then
          call read_Be_source_noAlpha
          print*, "called old version of Be source"
@@ -9582,7 +9580,7 @@ C**** at the start of any day
       implicit none
       integer :: i,j,ns,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  steph,stepx,stepp,tmon,bydt,tnew,scca(im)
+     *  tmon,bydt,tnew,scca(im)
       REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
@@ -10079,19 +10077,16 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow,blay
       INTEGER J_0, J_1
-      INTEGER :: ltpp
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      print*,"in tr3dsrc",ntm,itime_tr0(1:ntm),itime
        
 C**** All sources are saved as kg/s
       do n=1,ntm
-         print*,"pre-select",itime,itime_tr0(n)
       if (itime.lt.itime_tr0(n)) cycle
-      print*,"in select",trname(n)
+
       select case (trname(n))
 
       case default
@@ -10130,7 +10125,7 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('SO2')
 C**** three 3D sources (aircraft, volcanos and biomass) read in from files
-c  Laki
+c  Laki: resolution dependent!
 c     if (JYEAR.eq.1783) then
 c      do j=1,10
 c      if (JMON.eq.LAKI_MON(j).and.JDAY.eq.LAKI_DAY(j)) then
@@ -10138,8 +10133,7 @@ c      do l=1,5
 c       SO2_src_3d(33,40,l,1)=SO2_src_3d(33,40,l,1)+LAKI_AMT_T(j)
 c    *          /sday*1000.d0/5.d0
 c      end do
-c      ltpp=LTROPO(33,40)
-c      do l=ltpp+1,ltpp+3
+c      do l=LTROPO(33,40)+1,LTROPO(33,40)+3
 c       SO2_src_3d(33,40,l,1)=SO2_src_3d(33,40,l,1)+LAKI_AMT_S(j)
 c    *          /sday*1000.d0/3.d0
 c      end do
@@ -10347,31 +10341,15 @@ c cosmogenic src
         do l=1,lm; do j=J_0,J_1; do i=1,im
           tr3Dsource(i,j,l,1,n) = am(l,i,j)*be7_src_3d(i,j,l)
         end do; end do; end do
-        print*, "just calculated be7"
-        print*, "be7_src_param2 = ", be7_src_param
-        print*, "tr3Dsource(1,1,1,1,1) = ", J_0,
-     *       tr3Dsource(10,J_0,15,1,n),am(15,10,J_0),
-     *       be7_src_3d(10,J_0,15)
 
         call apply_tracer_3Dsource(1,n)
 C****
       case ('Be10')
-c 0.52 is ratio of Be10 to Be7 production
-c tr_mm(n_Be10)/tr_mm(n_Be7)= 10./7. is ratio of molecular weights
 c cosmogenic src
         do l=1,lm; do j=J_0,J_1; do i=1,im
            tr3Dsource(i,j,l,1,n) = am(l,i,j)*be10_src_3d(i,j,l)
         end do; end do; end do
-        print*, "just calculated be10"
-        print*, "be7_src_param2 = ", be7_src_param
-        print*, "tr3Dsource(1,1,1,1,1) = ", J_0,
-     *       tr3Dsource(10,J_0,15,1,n),am(15,10,J_0),
-     *       be10_src_3d(10,J_0,15)
            
-c          tr3Dsource(i,j,l,1,n)=0.52d0 * be7_src_param * am(l,i,j)
-c     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
-c        end do; end do; end do
-
         call apply_tracer_3Dsource(1,n)
 C****
 #endif
