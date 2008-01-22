@@ -40,7 +40,7 @@
       clayfrac = pp%cellptr%soil_texture(3) !in GHY.f, texture order is sand,loam,clay,peat(+bedrock) -PK 7/13/06
       sandfrac = pp%cellptr%soil_texture(1)
 ! use siltfrac = 1 - (clayfrac + sandfrac) or 0.4*"loam" for now -PK 6/14/06
-      siltfrac = 0.4*pp%cellptr%soil_texture(2)  !**hack** -PK
+      siltfrac = pp%cellptr%soil_texture(2)  !changed to match eq. in forcings preprocessing file  
       Tpool(:,:,:) = pp%Tpool(:,:,:) !Added - NYK 7/27/06
 !       print *, __FILE__,__LINE__,'Tpool=',Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
       
@@ -172,10 +172,10 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !     &      (1.46d0*atan(PI*0.0309d0*(Soiltemp(:)-15.7d0))) / PI
 
       !* Linear fit to Del Grosso ftemp. Min=0.125 @Soiltemp=0, Max=1.0 @Soiltemp=30 degC- NK
-!      bgtemp = max(0.125d0, min(1.d0,
-!     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:))) !linear -NK
-      bgtemp = max(0.125d0, 
-     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:)) !linear, no upper cap -NK
+      bgtemp = max(0.125d0, min(1.d0,
+     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:))) !linear -NK
+!      bgtemp = max(0.125d0, 
+!     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:)) !linear, no upper cap -NK
       
       !* S-function fit to Del Grosso. - NK
 !      bgtemp=1.15d0*(1.d0/(1.d0+EXP(-0.14d0*(Soiltemp(:)-17.d0))))
@@ -197,7 +197,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !               Wlim(n) = min( max(Soilmoist(n)-watdry,0.d0) /  !original CASA function -PK
 !     &                   (watopt-watdry), 1.d0)
         !**function RWC from DelGrosso et al., 2005** -PK 2/07
-!               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry) 
+!               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
                Wlim(n) = (Soilmoist(n)-watdry)/(watsat - watdry) !Made this REW instead of Wlim - NK
             else
                Wlim = 0.01d0
