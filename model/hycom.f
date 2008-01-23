@@ -556,7 +556,7 @@ c     this should be done at every time step (of the long interval)
       do l=1,isp(j)
       do i=ifp(j,l),ilp(j,l)
       tracflx(i,j,nt) = tracflx(i,j,nt)
-     .                + tracflx2(i,j,nt)*1./float(trcfrq)
+     .                + tracflx2(i,j,nt)
       enddo
       enddo
       enddo
