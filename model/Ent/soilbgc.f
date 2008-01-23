@@ -40,7 +40,7 @@
       clayfrac = pp%cellptr%soil_texture(3) !in GHY.f, texture order is sand,loam,clay,peat(+bedrock) -PK 7/13/06
       sandfrac = pp%cellptr%soil_texture(1)
 ! use siltfrac = 1 - (clayfrac + sandfrac) or 0.4*"loam" for now -PK 6/14/06
-      siltfrac = pp%cellptr%soil_texture(2)  !changed to match eq. in forcings preprocessing file  
+      siltfrac = 0.4d0*pp%cellptr%soil_texture(2)  !hack to allow use of GCM soil textures -PK  
       Tpool(:,:,:) = pp%Tpool(:,:,:) !Added - NYK 7/27/06
 !       print *, __FILE__,__LINE__,'Tpool=',Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
       
