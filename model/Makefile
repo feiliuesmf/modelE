@@ -116,10 +116,20 @@ ifeq ($(USE_ENT),YES)
 SUBDIRS = Ent
 FSRC_ENT = ent_mod.f ent_GISSveg.f ent.f \
 cohorts.f patches.f entcells.f \
-biophysics.f canopyradiation.f \
+canopyradiation.f \
 growthallometry.f reproduction.f phenology.f \
 disturbance.f soilbgc.f ent_const.f \
 ent_types.f  ent_pfts.f ent_prescribed_updates.f ent_prescribed_drv.f
+ifeq ($(PS_MODEL),FBB)
+FSRC_ENT += FBBphotosynthesis.f  canopyspitters.f 
+      ifeq ($(PFT_MODEL),ENT)
+      FSRC_ENT += FBBpfts_ENT.f
+      else
+      FSRC_ENT += FBBpfts.f
+      endif
+else
+FSRC_ENT += biophysics.f
+endif
 OBJS_IN_SUBDIRS = $(patsubst %, Ent/%, $(FSRC_ENT:.f=.o))
 endif
 
