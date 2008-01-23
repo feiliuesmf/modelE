@@ -118,12 +118,18 @@ c ---------------------------------------------------------------------
 c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c $Revision: 2.3 $
-c $Date: 2007/12/03 22:40:36 $   ;  $State: Exp $
+c $Revision: 2.4 $
+c $Date: 2008/01/23 15:13:14 $   ;  $State: Exp $
 c $Author: aromanou $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_CFC.f,v $
+c Revision 2.4  2008/01/23 15:13:14  aromanou
+c
+c
+c updated version of the ocean-biology code. Separate record for ocean biology
+c and gas exchange tracers in OCEAN_hycom.f
+c
 c Revision 2.3  2007/12/03 22:40:36  aromanou
 c 1) Ocean_hycom.f : Full gas exchage between CO2 in the ocean and CO2 in the atmosphere. Ocean
 c    arays are mapped on the atmospheric grid before the gas exchange computation.
@@ -160,7 +166,7 @@ c Revision 1.1  1998/07/07 15:22:00  orr
 c Initial revision
 c
 c ---------------------------------------------------------------------
-      REAL FUNCTION sol_cfc(pt,ps,kn)
+      REAL*8 FUNCTION sol_cfc(pt,ps,kn)
 c-------------------------------------------------------------------
 c
 c     CFC 11 and 12 Solubilities in seawater
@@ -234,12 +240,18 @@ c-----------------------------------------------------------------------
 c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c  $Revision: 2.3 $
-c  $Date: 2007/12/03 22:40:36 $   ;  $State: Exp $
+c  $Revision: 2.4 $
+c  $Date: 2008/01/23 15:13:14 $   ;  $State: Exp $
 c  $Author: aromanou $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_CFC.f,v $
+c  Revision 2.4  2008/01/23 15:13:14  aromanou
+c
+c
+c  updated version of the ocean-biology code. Separate record for ocean biology
+c  and gas exchange tracers in OCEAN_hycom.f
+c
 c  Revision 2.3  2007/12/03 22:40:36  aromanou
 c  1) Ocean_hycom.f : Full gas exchage between CO2 in the ocean and CO2 in the atmosphere. Ocean
 c     arays are mapped on the atmospheric grid before the gas exchange computation.
@@ -272,7 +284,7 @@ c  Revision 1.1  1998/07/07 15:22:00  orr
 c  Initial revision
 c 
 c  ---------------------------------------------------------------------
-      REAL FUNCTION sc_cfc(t,kn)
+      REAL*8 FUNCTION sc_cfc(t,kn)
 c---------------------------------------------------
 c     CFC 11 and 12 Schmidt number 
 c     as a function of temperature. 

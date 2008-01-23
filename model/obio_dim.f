@@ -52,4 +52,7 @@
       integer, parameter :: IRON_from=0   !0-Iron from GOCART model
                                           !1-Iron from Ron Miller's dust fluxes
 
+      integer, parameter :: atmCO2_case=0 !0- atmCO2=const, defined in obio_forc
+                                          !1- atmCO2=varies,defined in obio_forc
+
       END MODULE obio_dim

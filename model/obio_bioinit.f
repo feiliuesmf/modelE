@@ -65,8 +65,8 @@ c  Carbon type 2    = DIC
       real dic(idm,jdm,kgrd)
       real dicmod(idm,jdm,kdm)
       character*2 ntchar
-!     character*28 file_dir   !discover
-      character*32 file_dir   !explorer
+      character*21 file_dir   !discover
+!     character*32 file_dir   !explorer
 
       common /refin/ ipcrs(idm,jdm)
       common /bir/ ir(idm,jdm),nir(nrg)
@@ -297,7 +297,8 @@ c  read NOAA 2001 atlas data
 !mismatch of the noaa grid and the hycom grid. To fill in have to do
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
-      file_dir='/explore/nobackup/aromanou/RUNS/'
+!     file_dir='/explore/nobackup/aromanou/RUNS/'
+      file_dir='/gpfsm/dnb1/aromanou/'
 !     call openunit(file_dir//'rno3_correctini.asc',iu_bioinit)
       call openunit(file_dir//'nitoa195x180_20w.asc',iu_bioinit)
       do ichan=1,kdm

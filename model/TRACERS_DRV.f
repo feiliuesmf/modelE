@@ -8223,6 +8223,10 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_AGE_OCEAN
       USE OCEAN, only: MO,DXYPO
 #endif
+#ifdef TRACERS_GASEXCH_CO2_Natassa
+      USE obio_forc, only: atmCO2
+#endif
+
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,kk
       CHARACTER*80 title
@@ -8797,11 +8801,10 @@ C         AM=kg/m2, and DXYP=m2:
 #ifdef TRACERS_GASEXCH_CO2_Natassa
         case ('CO2n')
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            if(l.ge.LS1) then
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*2.d-13
-            else
-              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-13
-            end if
+             !units: [am]=kg_air/m2, [dxyp]=m2, [tr_mm]=kg_CO2,
+             !       [bymair]=1/kg_air, [atmCO2]=ppmv=10^(-6)kg_CO2/kg_air
+             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)
+     .                    * atmCO2*1.d-6
           end do; end do; end do
 #endif
 
@@ -9719,9 +9722,9 @@ C**** Source over Australia and New Zealand
         i=66; j=15
         IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
 
+#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
         !print out global average for each time step before weighing
         !in the OCMIP values
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
         sarea  = 0.
         trsource_glbavg(n)=0.
         sarea_prt(:)  = 0.

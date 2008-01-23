@@ -422,9 +422,11 @@ c
      &     beta_b,beta_r,frac_b,frac_r,qspcifh,hbl,
      &     epson2,epson2_bot,eplatidep
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
      &    ,dtracer(ntm)
 
       integer ktr
+#endif
 #endif
       real akm(kdm),akh(kdm),aks(kdm),aldeep(kdm),tmpk(kdm)
       real an2(kdm),an,acorio,zbot
@@ -518,12 +520,14 @@ c
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k)
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
               do ktr=1,ntm
               dtracer(ktr)=tracflx(i,j,ktr)*  !tracflx units: kg/m2/s
      &            trcfrq*baclin*g*qdpmm(k)    !dtracer units: kg/kg
               enddo
             endif
+#endif
 #endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k,
@@ -540,11 +544,13 @@ cdiag       endif
             endif
             dsaln=0.0
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
               do ktr=1,ntm
                dtracer(ktr)=0.0
               enddo
             endif
+#endif
 #endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k,
@@ -555,22 +561,26 @@ cdiag       endif
             dtemp=0.0
             dsaln=0.0
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
               do ktr=1,ntm
                dtracer(ktr)=0.0
               enddo
             endif
 #endif
+#endif
           endif
         else !.not.thermo
           dtemp=0.0
           dsaln=0.0
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
               do ktr=1,ntm
                dtracer(ktr)=0.0
               enddo
             endif
+#endif
 #endif
         endif
 c
@@ -579,17 +589,13 @@ c --- modify t and s
         saln(i,j,kn)=saln(i,j,kn)+dsaln
         th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
         if (dotrcr) then
          do ktr=1,ntm
-#ifdef TRACERS_GASEXCH_CFC_Natassa
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
-     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
-#endif
          enddo
         endif
+#endif
 #endif
 c
       enddo
@@ -1490,9 +1496,11 @@ c
      &     beta_b,beta_r,frac_b,frac_r,
      &     x0,x1,x2,y0,y1,y2
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
      &    ,dtracer(ntm)
 
       integer ktr
+#endif
 #endif
       real     sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds
       external sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds
@@ -1586,12 +1594,14 @@ c
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k) 
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=tracflx(i,j,ktr)*  !tracflx units: kg/m2/s
      &            trcfrq*baclin*g*qdpmm(k)     !dtracer units: kg/kg
             enddo
             endif
+#endif
 #endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k, 
@@ -1608,11 +1618,13 @@ cdiag       endif
             endif
             dsaln=0.0
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=0.0
             enddo
             endif
+#endif
 #endif
 cdiag       if (i.eq.itest.and.j.eq.jtest) then
 cdiag         write (lp,101) nstep,i+i0,j+j0,k,
@@ -1623,22 +1635,26 @@ cdiag       endif
             dtemp=0.0
             dsaln=0.0
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=0.0
             enddo
             endif
 #endif
+#endif
           endif 
         else !.not.thermo
           dtemp=0.0
           dsaln=0.0
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=0.0
             enddo
             endif
+#endif
 #endif
         endif
 c
@@ -1648,25 +1664,17 @@ c --- modify t and s; set old value arrays at p points for initial iteration
           saln(i,j,kn)=saln(i,j,kn)+dsaln
           th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
         if (dotrcr) then
          do ktr=1,ntm
-#ifdef TRACERS_GASEXCH_CFC_Natassa
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
           if(i.eq.109.and.j.eq.94)
      .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
      .      ktr,tracer(i,j,k,ktr)-dtracer(ktr),dtracer(ktr),
      .          tracer(i,j,k,ktr)
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-           tracer(i,j,k,ntyp+n_inert+ndet+ncar)=
-     .     tracer(i,j,k,ntyp+n_inert+ndet+ncar)+dtracer(ktr)
-          if(i.eq.109.and.j.eq.94)
-     .     write(6,'(a,3e12.4)')'mxkpp: add dtracer ',
-     .      ktr,tracer(i,j,k,ntyp+n_inert+ndet+ncar)-dtracer(ktr),
-     .      dtracer(ktr),tracer(i,j,k,ntyp+n_inert+ndet+ncar)
-#endif
          enddo
         endif
+#endif
 #endif
           told (k)=temp(i,j,kn)
           sold (k)=saln(i,j,kn)
@@ -2889,16 +2897,6 @@ cdiag.      'old tracer',ktr,(tr1do(k,ktr),k=1,nlayer)
      .    write(6,'(a,i5,2e12.4)')
      .            'mxkpp, ghatflux at pt(109,94) and nt=',
      .             ktr,tracflx(i,j,ktr),ghatflux
-#endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-          !only DIC has surface flux
-          if (ktr.eq.ntyp+n_inert+ndet+ncar) then
-             ghatflux=-tracflx(i,j,1)*thref    !because ntm=1
-             if(i.eq.109.and.j.eq.94)
-     .             write(6,'(a,i5,2e12.4)')
-     .            'mxkpp, ghatflux at pt(109,94) and nt=',
-     .             ktr,tracflx(i,j,1),ghatflux
-          endif
 #endif
 #endif
           call tridrhs(hm,

@@ -64,9 +64,9 @@
       real alk
       common /balk/alk(idm,jdm,kdm)    !alkalinity from climatology in 'umol/kg'
 
-
       real, parameter :: atmCO2=368.6          !uatm for year 2000
-                   !     atmCO2=371.3          !uatm or ppmv (equivalent); 
+                   !     atmCO2=280.           !uatm for preindustial runs
+                   !     atmCO2=371.3          !uatm or ppmv (equivalent);
                                                !global mean
                                                !2000-2003 from OCMIP
 

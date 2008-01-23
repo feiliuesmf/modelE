@@ -1021,11 +1021,13 @@ C**** arrays that could be general, but are only used by chemistry
      &     nVolcanic = 6
 
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
 !@var ocmip_cfc: CFC-11 emissions estimated from OCMIP surf.conc.
       !60years (1939--1998) OCMIP surfc. concentr. converted to
       !global averaged emission rates
       !each value corresponds to the annual value
       REAL*8, DIMENSION(67,NTM) :: ocmip_cfc
+#endif
 #endif
 
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
