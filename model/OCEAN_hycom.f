@@ -38,12 +38,12 @@ c         enddo
 c       endif
 c21   continue
 c
-      if (istart.gt.2) then               !istart=2 has done this in inirfn
+      if (istart.gt.2) then               !istart=2 has done this inicon
       DO J=1,JM
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0.) THEN
           GTEMP(1,1,I,J)=asst(I,J)
-          gtempr(1,ia,ja)=atempr(ia,ja)
+          gtempr(1,I,J)=atempr(I,J)
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         GTRACER(nt,1,I,J)=atrac(I,J,nt)
