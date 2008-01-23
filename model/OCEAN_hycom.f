@@ -234,20 +234,30 @@ c
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15)
       enddo
-#else
-#ifdef TRACERS_GASEXCH_Natassa
-      READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac
-#endif
-#ifdef TRACERS_OceanBiology
-      READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,avgq,gcmax
-#endif
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
               GO TO 10
             END IF
+#else
+#ifdef TRACERS_GASEXCH_Natassa
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,atrac
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
+#ifdef TRACERS_OceanBiology
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,avgq,gcmax
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
 #endif
 
 #ifdef TRACERS_OCEAN
@@ -295,21 +305,30 @@ c
      .    tracer(i,j,k,1),tracer(i,j,k,15)
       enddo
       write(*,*)'atrac at (36,23) =',atrac(36,23,1)
-#else
-#ifdef TRACERS_GASEXCH_Natassa
-      READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac
-#endif
-#ifdef TRACERS_OceanBiology
-      READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,avgq,gcmax
-#endif
-
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
               GO TO 10
             END IF
+#else
+#ifdef TRACERS_GASEXCH_Natassa
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,atrac
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
+#ifdef TRACERS_OceanBiology
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,avgq,gcmax
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
 #endif
 
  222  continue
