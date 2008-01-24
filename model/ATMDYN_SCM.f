@@ -8,8 +8,8 @@
       public init_ATMDYN, DYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
-     &     ,getTotalEnergy
-     &     ,addEnergyAsDiffuseHeat
+     &     ,getTotalEnergy,SDRAG   
+     &     ,addEnergyAsDiffuseHeat,addEnergyAsLocalHeat     
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -26,10 +26,10 @@
 
 
       SUBROUTINE DYNAM
-      USE MODEL_COM, only : im,lm,t,p,q,ls1
+      USE MODEL_COM, only : im,lm,t,p,q,ls1,NSTEPSCM     
       USE SOMTQ_COM, only : tmom,mz
-      USE DYNAMICS, only : pmid,pedn
       USE DOMAIN_DECOMP, only : grid
+      USE DYNAMICS, only : PMID,PEDN     
 
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -37,24 +37,148 @@
 
       INTEGER L
 
+
+      call pass_SCMDATA
+
+      CALL CALC_PIJL(LM,P,PIJL)
+      CALL CALC_AMPK(LM)
+
+      call SCM_FORCN
+
+      CALL tq_zmom_init(T,Q,PMID,PEDN)
+
       DO L=1,LM
          TZ(:,:,L)  = TMOM(MZ,:,:,L)
       ENDDO
-                     
 
-      CALL CALC_PIJL(LM,P,PIJL)
-      CALL CALC_AMPK(LS1-1)
-      CALL tq_zmom_init(T,Q,pmid,pedn)
       CALL PGF_SCM(T,TZ,PIJL)
 
+      call FCONV
 
       return
       END SUBROUTINE DYNAM
 
+      SUBROUTINE SCM_FORCN
+c     apply advective forcings from ARM Variational analysis to T and Q
+
+      USE RESOLUTION , only : LM
+      USE MODEL_COM , only : P,T,Q,PTOP,SIG,NSTEPSCM,DTSRC        
+     &                ,I_TARG,J_TARG
+      USE DYNAMICS, only : PK
+      USE CONSTANT , only : KAPA 
+
+      USE SCMCOM , only : SG_HOR_TMP_ADV, SG_VER_S_ADV, SG_HOR_Q_ADV,
+     &              SG_VER_Q_ADV,iu_scm_prt      
+      USE CLOUDS , only : SCM_DEL_T, SCM_DEL_Q
+
+      IMPLICIT NONE
+
+
+
+      INTEGER L
+
+cccccc is there some other variable they keep or function for doing this
+c     write(0,*) 'enter SCM_FORCN     dtsrc ',dtsrc 
+      do L = 1,LM
+         T(I_TARG,J_TARG,L) = T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG) 
+c        write(iu_scm_prt,*) 'FORCN -old tq  ',L,T(I_TARG,J_TARG,L),
+c    &               Q(I_TARG,J_TARG,L)*1000.0 
+      enddo
+     
+
+      do L = 1,LM
+c        write(iu_scm_prt,*) 'tadvs ',L,SG_HOR_TMP_ADV(L),
+c    *                       SG_VER_S_ADV(L)
+         SCM_DEL_T(L) = SG_HOR_TMP_ADV(L)*DTSRC + SG_VER_S_ADV(L)*DTSRC   
+         T(I_TARG,J_TARG,L) = T(I_TARG,J_TARG,L) + SCM_DEL_T(L)
+c        write(iu_scm_prt,*) 'add tadv delT T ',L,SCM_DEL_T(L),
+c    &               T(I_TARG,J_TARG,L)    
+      enddo   
+      do L = 1,LM
+c        write(iu_scm_prt,*) 'qadvs ',L,SG_HOR_Q_ADV(L),SG_VER_Q_ADV(L) 
+         SCM_DEL_Q(L) = SG_HOR_Q_ADV(L)*DTSRC + SG_VER_Q_ADV(L)*DTSRC    
+         Q(I_TARG,J_TARG,L) = Q(I_TARG,J_TARG,L) + SCM_DEL_Q(L)
+         if (Q(I_TARG,J_TARG,L).lt.0.0) then
+            write(99,51) NSTEPSCM,I_TARG,J_TARG,L,Q(I_TARG,J_TARG,L)
+  51        format(1x,'SCM_FORCN NSTEP  I_TARG J_TARG L Q ',
+     &               4(i5),f10.7) 
+            SCM_DEL_Q(L) = -Q(I_TARG,J_TARG,L)
+            Q(I_TARG,J_TARG,L) = 0.0
+         endif
+      enddo
+    
+      do L = 1,LM
+c        write(iu_scm_prt,*) 'FORCN - new tq  ',L,T(I_TARG,J_TARG,L),
+c    &               Q(I_TARG,J_TARG,L)*1000.0 
+         T(I_TARG,J_TARG,L) = T(I_TARG,J_TARG,L)/PK(L,I_TARG,J_TARG)    
+      enddo
 
 
 
 
+      RETURN
+
+      END SUBROUTINE SCM_FORCN 
+
+  
+      SUBROUTINE FCONV
+C*****
+C     for single column model
+C     compute CONV=Horizontal Mass Convergence
+C     as filled in subroutine AFLUX in the GCM for use in
+C     the CONDSE and MSTCNV Subroutines
+C     Use the Wind Divergence from the ARM data
+C     CONV = Wind Divergence*dSigma*P*DelArea
+C
+C     NOTE:    Wind Divergence is calculated for the area of the
+C              ARM site. Therefore we need to take into account the
+C              difference between the GCM grid box area and the ARM
+C              Site.   Oklahoma site (SGP)  300 x 365 KM = 109500KM**2
+C                      GCM 2 x 2.5 degrees (smaller for SGP)
+C                          ~ 222.63 * 2223.42 = 49739.01 KM**2
+C                     SGP/GCM = 2.2
+C                     
+c              Note: for NSA  domain for the variational analysis
+c                    is  230KM (longitudinal) x 100KM (latitudinal)
+c                          230x100 = 23000
+c                    GCM 2x2.5 degree grid box ~ 21266
+c               area/box = (sin(q1)-sin(q2))*2(pi)R**2/144
+c                        72 degrees-71degrees
+c                    ARMFAC = NSA/GCM = 23000/21266 ~ 1.08
+c   
+c              What about for TWP site ? ? ?
+c
+c
+c
+  
+      USE RESOLUTION , only : LM
+
+      USE MODEL_COM , only : P,DSIG, I_TARG, J_TARG   
+      USe GEOM , only : DXYP
+   
+      USE SCMCOM , only : SG_WINDIV, SG_CONV    
+   
+      IMPLICIT NONE
+
+
+      real*4 ARMFAC 
+      integer L
+
+      DATA ARMFAC/1.0/
+c     DATA ARMFAC/2.2/
+c     DATA ARMFAC/1.08/
+      
+
+c     want to fill SD (IDUM,JDUM)  check out 
+
+      DO L=1,LM
+         SG_CONV(L) = SG_WINDIV(L)*DSIG(L)*P(I_TARG,J_TARG)
+     &                 *DXYP(J_TARG)*ARMFAC
+      ENDDO
+
+      return
+
+      end SUBROUTINE FCONV  
 
       SUBROUTINE CALC_PIJL(lmax,p,pijl)
 !@sum  CALC_PIJL Fills in P as 3-D
@@ -97,7 +221,6 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_HALO= J_0H,
@@ -118,7 +241,6 @@ C**** Fill in polar boxes
 !$OMP  PARALLEL DO PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
       DO J=J_0H,J_1 ! filling halo for P is faster than PDSIG
 
-       !write(6,*) 'CALC_AMPK J= ',J 
         DO I=1,IM
 
           CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
@@ -175,83 +297,16 @@ c**** Extract domain decomposition info
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 
-C**** (Pressure gradient)/density at first layer and surface
-C**** to be used in the PBL, at the promary grids
-
-      ! for dPdy/rho at non-pole grids
-      CALL HALO_UPDATE(grid, P,   FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(grid, ZATMO, FROM=SOUTH+NORTH)
-
-      DO I=1,IM
-        DO J=J_0S,J_1S
-          by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-          DPDY_BY_RHO(I,J)=(100.*(P(I,J+1)-P(I,J-1))*SIG(1)*by_rho1
-     2         +PHI(I,J+1,1)-PHI(I,J-1,1))*BYDYP(J)*.5d0
-          DPDY_BY_RHO_0(I,J)=(100.*(P(I,J+1)-P(I,J-1))*by_rho1
-     2         +ZATMO(I,J+1)-ZATMO(I,J-1))*BYDYP(J)*.5d0
-        END DO
-      END DO
-
-      ! for dPdx/rho at non-pole grids
-
-      DO J=J_0S,J_1S
-        IM1=IM-1
-        I=IM
-        DO IP1=1,IM
-          by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-          DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
-     2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
-          DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
-     2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
-          IM1=I
-          I=IP1
-        END DO
-      END DO
-
-      ! at poles
-
-      IF (haveLatitude(grid, J=1)) THEN
-        hemi = -1.; J1 = 2
-        dpx1=0. ; dpy1=0.
-        dpx0=0. ; dpy0=0.
-        DO K=1,IM
-          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
-          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
-          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
-          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
-        END DO
-        DPDX_BY_RHO(1,1)  =dpx1*BYIM
-        DPDY_BY_RHO(1,1)  =dpy1*BYIM
-        DPDX_BY_RHO_0(1,1)=dpx0*BYIM
-        DPDY_BY_RHO_0(1,1)=dpy0*BYIM
-      END IF
-
-      If (haveLatitude(grid, J=JM)) THEN
-          hemi= 1.; J1=JM-1
-        dpx1=0. ; dpy1=0.
-        dpx0=0. ; dpy0=0.
-        DO K=1,IM
-          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
-          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
-          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
-          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
-        END DO
-        DPDX_BY_RHO(1,JM)  =dpx1*BYIM
-        DPDY_BY_RHO(1,JM)  =dpy1*BYIM
-        DPDX_BY_RHO_0(1,JM)=dpx0*BYIM
-        DPDY_BY_RHO_0(1,JM)=dpy0*BYIM
-      END IF
+      RETURN
 
       END SUBROUTINE PGRAD_PBL
+      
+      SUBROUTINE SDRAG(DT1)
+      REAL*8, INTENT(IN) :: DT1 
+      return
+      END SUBROUTINE SDRAG 
+
+
 
       SUBROUTINE PGF_SCM (T,SZ,P)
 !@SCM-version    For SCM need to calculate geopotential height. 
@@ -262,14 +317,14 @@ C**** to be used in the PBL, at the promary grids
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
      *     ,zatmo,sig,modd5k,bydsig
-     &     ,do_polefix
+     &     ,do_polefix,I_TARG,J_TARG   
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
       USE DYNAMICS, only : gz,pu,pit,phi,spa,dut,dvt
-      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, Only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE DOMAIN_DECOMP, only : haveLatitude
+      USE SCMCOM, only : iu_scm_prt
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM):: T
@@ -307,7 +362,6 @@ C****
 !$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
 !$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
       DO J=J_0,J_1
-c     write(98,*) 'PGF_SCM  J= ',J
       DO I=1,IMAXJ(J)
         PIJ=P(I,J,1)
         PDN=PIJ+PTOP
@@ -373,6 +427,9 @@ C**** SET POLAR VALUES FROM THOSE AT I=1
       DO L=1,LM
         GZ(:,:,L)=PHI(:,:,L)
       END DO
+c     do L=1,LM
+c        write(iu_scm_prt,*) 'PGF_SCM  L GZ ',L,GZ(I_TARG,J_TARG,L)
+c     enddo
 !$OMP END PARALLEL DO
 C****
 C
@@ -422,14 +479,14 @@ C**** Find WMO Definition of Tropopause to Nearest L
       end do
       end do
 !$OMP  END PARALLEL DO
-      IF (haveLatitude(grid, J=1)) THEN
-        PTROPO(2:IM,1) = PTROPO(1,1)
-        LTROPO(2:IM,1) = LTROPO(1,1)
-      END IF
-      IF (haveLatitude(grid,J=JM)) THEN
-        PTROPO(2:IM,JM)= PTROPO(1,JM)
-        LTROPO(2:IM,JM)= LTROPO(1,JM)
-      END IF
+c     IF (haveLatitude(grid, J=1)) THEN
+c       PTROPO(2:IM,1) = PTROPO(1,1)
+c       LTROPO(2:IM,1) = LTROPO(1,1)
+c     END IF
+c     IF (haveLatitude(grid,J=JM)) THEN
+c       PTROPO(2:IM,JM)= PTROPO(1,JM)
+c       LTROPO(2:IM,JM)= LTROPO(1,JM)
+c     END IF
 
       END SUBROUTINE CALC_TROP
 
@@ -685,14 +742,50 @@ c     end do
 !$OMP  END PARALLEL DO
 
       end subroutine addEnergyAsDiffuseHeat
+     
 
+C***** Add in dissipiated KE as heat locally
+      subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)
+!@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use CONSTANT, only: SHA
+      use GEOM, only: IDIJ, IDJJ, RAPJ, IMAXJ, KMAXJ
+      use MODEL_COM, only: LM
+      use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
+      use DIAG_COM, only: ajl => ajl_loc
+      implicit none
+      real*8 :: deltaKE(:,grid%j_strt_halo:,:)
+      real*8 :: T(:,grid%j_strt_halo:,:)
+      real*8 :: PK(:,:,grid%j_strt_halo:)
+      integer, optional, intent(in) :: diagIndex
 
+c     integer :: i, j, k, l
+c     real*8 :: ediff
+c     integer :: J_0, J_1
 
-
- 
+c     call get(grid, J_STRT=J_0, J_STOP=J_1)
+c     CALL HALO_UPDATE(grid, deltaKE, FROM=NORTH)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+c     DO L=1,LM
+c       DO J=J_0,J_1
+c         DO I=1,IMAXJ(J)
+c           ediff=0.
+c           DO K=1,KMAXJ(J)     ! loop over surrounding vel points
+c             ediff=ediff+deltaKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+c           END DO
+c           ediff = ediff / (SHA*PK(L,I,J))
+c           T(I,J,L)=T(I,J,L)-ediff
+c           if (present(diagIndex)) then
+c             AJL(J,L,diagIndex) = AJL(J,L,diagIndex) - ediff
+c           end if
+c         END DO
+c       END DO
+c     END DO
+!$OMP  END PARALLEL DO
+      end subroutine addEnergyAsLocalHeat
 
       end module ATMDYN
-
 
 
       module ATMDYN_QDYNAM
@@ -708,30 +801,4 @@ c     end do
 
 
       end module ATMDYN_QDYNAM
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
