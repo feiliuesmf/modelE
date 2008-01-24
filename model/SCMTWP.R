@@ -16,6 +16,9 @@ Preprocessor Options
 #define SCM                          ! run as Single Column Model
 End Preprocessor Options
 
+Run Options
+STACKSIZE=262144
+
 Object modules: (in order of decreasing priority)
 RES_F40  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
 MODEL_COM GEOM_B IORSF       ! model variables and geometry
