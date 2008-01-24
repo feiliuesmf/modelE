@@ -62,7 +62,7 @@
        end do
       end do
 #else
-      pp%Tpool(:,:,:,:) = 0.d0  
+      pp%Tpool(:,:,:) = 0.d0  
 #endif
 
 #ifdef OFFLINE  
