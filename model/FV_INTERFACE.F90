@@ -345,7 +345,10 @@ contains
        call readArr(iunit, fv % dPT_old)
        call readArr(iunit, fv % PE_old)
        call readArr(iunit, fv % dT_old)
-       if (AM_I_ROOT()) call closeunit(iunit)
+       if (AM_I_ROOT()) then 
+         call closeunit(iunit)
+         call system('rm ' // TENDENCIES_FILE ) ! clean up
+       end if
        call compute_tendencies(fv)
 !!  case default
 !!     call stop_model('ISTART option not supported',istart)
@@ -387,7 +390,6 @@ contains
 
     if (AM_I_ROOT()) then
        call system('mv ' // FVCORE_INTERNAL_RESTART // ' ' // trim(fv_fname) )
-       call system('rm ' // TENDENCIES_FILE )
     end if
 
     Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
@@ -457,10 +459,10 @@ contains
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
     USE MODEL_COM, only : NIdyn, DT, DTSRC
     USE SOMTQ_COM, only: QMOM, TMOM, MZ
-    USE ATMDYN, only: CALC_AMP, CALC_PIJL, AFLUX, COMPUTE_MASS_FLUX_DIAGS
+    USE ATMDYN, only: CALC_AMP, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
     USE DYNAMICS, only: MA, PHI, GZ
     USE DYNAMICS, ONLY: PU, PV, CONV
-    USE DYNAMICS, ONLY: SD, AFLUX, PUA, PVA, SDA
+    USE DYNAMICS, ONLY: SD, PUA, PVA, SDA
 
     Type (FV_CORE)    :: fv
     Type (ESMF_Clock) :: clock
@@ -718,7 +720,7 @@ contains
     Call write_start_date(clock, unit)
 
     ! 2) Grid size
-    Call WRITE_PARALLEL( (/ IM, JM, LM, LS1-1, N_TRACERS /), unit )
+    Call WRITE_PARALLEL( (/ IM, JM, LM, LM+1-LS1, N_TRACERS /), unit )
 
     ! 3) Pressure coordinates
     ! Keep in mind that L is reversed between these two models
@@ -813,7 +815,7 @@ contains
       pkz=0
 
       CALL pkez(1, IM, LM, J_0, J_1, 1, LM, 1, IM, PE_trans(:,:,j_0:j_1), &
-           &  PK(:,j_0:j_1,:), KAPA, LS1-1, PELN(:,:,j_0:j_1), pkz(:,j_0:j_1,:), .true.)
+           &  PK(:,j_0:j_1,:), KAPA, LM+1-LS1, PELN(:,:,j_0:j_1), pkz(:,j_0:j_1,:), .true.)
 
       deallocate(pe_trans, pk, peln)
 
