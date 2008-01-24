@@ -735,11 +735,11 @@ c     integer :: J_0, J_1
 c     call get(grid, J_STRT=J_0, J_STOP=J_1)
 
 c     ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
-!$OMP  PARALLEL DO PRIVATE (L)
+c!$OMP  PARALLEL DO PRIVATE (L)
 c     do l=1,lm
 c       T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
 c     end do
-!$OMP  END PARALLEL DO
+c!$OMP  END PARALLEL DO
 
       end subroutine addEnergyAsDiffuseHeat
      
@@ -766,7 +766,7 @@ c     integer :: J_0, J_1
 
 c     call get(grid, J_STRT=J_0, J_STOP=J_1)
 c     CALL HALO_UPDATE(grid, deltaKE, FROM=NORTH)
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+C!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
 c     DO L=1,LM
 c       DO J=J_0,J_1
 c         DO I=1,IMAXJ(J)
@@ -782,7 +782,7 @@ c           end if
 c         END DO
 c       END DO
 c     END DO
-!$OMP  END PARALLEL DO
+C!$OMP  END PARALLEL DO
       end subroutine addEnergyAsLocalHeat
 
       end module ATMDYN
