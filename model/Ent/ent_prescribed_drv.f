@@ -39,51 +39,82 @@
       subroutine prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini)
       !this routine reads in total soil pool amounts (measured), 
       !and individual soil pool fractions (modeled pft-dependent values from spinup runs),
-      !then prescribes individual amounts **all amounts in g/m2** -PK 12/07   
+      !then prescribes individual amounts **all carbon amounts should be in g/m2** -PK 12/07   
       use FILEMANAGER, only : openunit,closeunit
       integer,intent(in) :: IM,JM,I0,I1,J0,J1
       real*8,intent(out) :: 
-     &      Tpool_ini(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,I0:I1,J0:J1)  !prescribed soil pools
+     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  !prescribed soil pools, g/m2
+     &                I0:I1,J0:J1)
       !-----Local------
 !      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
-!      real*4 :: soilC_data(N_CASA_LAYERS,IM,JM)
-      integer :: iu_SOILCARB  !and pft? (for reading in pool fractions)
-!      character*80 :: title
-      integer :: i,n
-      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !measured total C_org pool
-      real*8, dimension(N_CASA_LAYERS,NPOOLS-NLIVE) :: Cpool_fracs  !modeled soil C_org pool fractions
+      real*4 :: soilC_data(N_CASA_LAYERS,IM,JM)
+      integer :: iu_SOILCARB
+      character*80 :: title
+      integer :: n,nn,p
+      !real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
+      real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
 
-      Tpool_ini(:,:,:,:,:) = 0.d0  !initialize all pools to zero
+!***for now define for 8 GISS pfts, one-layer only -PK 1/23/08***
+      Cpool_fracs(1,:,1) = (/   !tundra (for now=C3 grass)
+     & 0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     & 0.009848682,0.014675189,0.692995043,0.184450822 /)
+      Cpool_fracs(2,:,1) = (/   !C3 grass (Vaira)
+     & 0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     & 0.009848682,0.014675189,0.692995043,0.184450822 /)
+      Cpool_fracs(3,:,1) = (/   !shrub (for now=savanna)
+     & 0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
+     & 0.007522776,0.022795146,0.57388576,0.190450989 /)
+      Cpool_fracs(4,:,1) = (/   !savanna (Tonzi)
+     & 0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
+     & 0.007522776,0.022795146,0.57388576,0.190450989 /)
+      Cpool_fracs(5,:,1) = (/   !decid broadl (MMSF)
+     & 0.005387981,0.062119495,0.004371574,0.050484497,0.280263607,
+     & 0.007488613,0.032152921,0.406417963,0.151313349 /)
+      Cpool_fracs(6,:,1) = (/   !evergr needl (for now=decid broadl)
+     & 0.005387981,0.062119495,0.004371574,0.050484497,0.280263607,
+     & 0.007488613,0.032152921,0.406417963,0.151313349 /)
+      Cpool_fracs(7,:,1) = (/   !trop rainf (for now=decid broadl)
+     & 0.005387981,0.062119495,0.004371574,0.050484497,0.280263607,
+     & 0.007488613,0.032152921,0.406417963,0.151313349 /)
+      Cpool_fracs(8,:,1) = (/   !crops (for now=C3 grass)
+     & 0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     & 0.009848682,0.014675189,0.692995043,0.184450822 /)
+!***      
+      Tpool_ini(:,:,:,:,:,:) = 0.d0  !initialize all pools to zero
       
-!***for eventual reading of global data***      
-!      call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.)  !globally gridded binary dataset
-!      read (iu_SOILCARB) title, soilC_data
-!      .....add code to also read in pft-specific pool fractions (e.g., array of arrays?) 
-!      do n=1,N_CASA_LAYERS 
-!       do i=NLIVE+1,NPOOLS
-!        Tpool_ini(CARBON,i,n,...,...) = Cpool_fracs(n,i-NLIVE,pft?)*soilC_data(n,...,...)
-!       end do
-!      end do
+      !read in ISRIC-WISE 4x5 dataset      
+      call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.)  !globally gridded binary dataset
+      read (iu_SOILCARB) title, soilC_data  !data in kg/m2 (converted to g/m2 below)
+      
+      !assign Tpool_ini values (pft-specific)
+      do p=1,N_PFT
+       do n=1,N_CASA_LAYERS 
+        do nn=NLIVE+1,NPOOLS
+          Tpool_ini(p,CARBON,nn,n,I0:I1,J0:J1) =
+     &         Cpool_fracs(p,nn-NLIVE,n) * soilC_data(n,I0:I1,J0:J1)*1d3  
+        end do
+       end do
+      end do
 
 !####temporary hack (for site-specific runs)####
 !for now, external file should be named as below and should be organized as follows:
 !(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
 !(2) first non-header row should have total site-measured pool (in g/m2);
 !(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
-      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
-      read(iu_SOILCARB,*)  !skip optional header row(s)
-      read(iu_SOILCARB,*) total_Cpool(:)
-      do i=1,NPOOLS-NLIVE
-        read(iu_SOILCARB,*) Cpool_fracs(:,i)
-      end do
-!####
+!      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
+!      read(iu_SOILCARB,*)  !skip optional header row(s)
+!      read(iu_SOILCARB,*) total_Cpool(:)
+!      do i=1,NPOOLS-NLIVE
+!        read(iu_SOILCARB,*) Cpool_fracs(:,i)
+!      end do
       
-      do n=1,N_CASA_LAYERS 
-       do i=NLIVE+1,NPOOLS
-        Tpool_ini(CARBON,i-NLIVE,n,I0:I1,J0:J1) =
-     &          Cpool_fracs(n,i-NLIVE)*total_Cpool(n)
-       end do
-      end do
+!      do n=1,N_CASA_LAYERS 
+!       do i=NLIVE+1,NPOOLS
+!        Tpool_ini(CARBON,i-NLIVE,n,I0:I1,J0:J1) =
+!     &          Cpool_fracs(n,i-NLIVE)*total_Cpool(n)
+!       end do
+!      end do
+!####
 
       call closeunit(iu_SOILCARB)
 

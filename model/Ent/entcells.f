@@ -400,7 +400,8 @@
       real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !patch, NOTE:snow
       real*8,intent(in) :: soil_texture(N_SOIL_TEXTURES) !soil texture fractions.
       real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
-      real*8,intent(in) :: Tpool_ini(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  !soil pools, in g/m2 -PK
+      real*8,intent(in) ::
+     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  !prescribed soil pools, g/m2 -PK
       
       !-----Local---------
       integer :: ncov, pft
@@ -433,7 +434,7 @@
          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
-          call assign_patch(pp,Ci_ini, CNC_ini, Tpool_ini)
+          call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)  !added pft here -PK 1/23/08
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(ncov) > EPS ) then 

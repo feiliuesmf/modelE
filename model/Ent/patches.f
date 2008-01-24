@@ -38,17 +38,19 @@
 
       !*********************************************************************
       subroutine assign_patch(pp,
-     &     Ci_ini, CNC_ini, Tpool_ini)
+     &     Ci_ini, CNC_ini, pft, Tpool_ini)
      
       use ent_const  !for assigning Tpool -PK 12/07
       
       !Eventually may want to include all patch variables as optional vars.
       type(patch),pointer :: pp
+      integer, intent(in) :: pft
       real*8 :: Ci_ini, CNC_ini
       
-      !for prescribed soil C_org (or N) pools, in g/m2  -PK
+      !for prescribed soil C_org (or N) pools  -PK
       integer :: i, n
-      real*8, dimension(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS) :: Tpool_ini
+      real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS) ::
+     &         Tpool_ini  !in g/m2 -PK
 
       pp%Ci = Ci_ini
       pp%GCANOPY = CNC_ini
@@ -56,15 +58,15 @@
 #ifdef PRESCR_SOILCARB  !PK 
       do n=1,N_CASA_LAYERS 
        do i=NLIVE+1,NPOOLS
-        pp%Tpool(CARBON,i,n) = Tpool_ini(CARBON,i-NLIVE,n)  
+        pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
        end do
       end do
 #else
-      pp%Tpool(:,:,:) = 0.d0  
+      pp%Tpool(:,:,:,:) = 0.d0  
 #endif
 
 #ifdef OFFLINE  
-      print*, 'soil C pools: ', pp%Tpool(CARBON,:,:)  !optional test -PK
+!      print*, 'soil C pools: ', pp%Tpool(:,CARBON,:,:)  !optional test -PK
 #endif
       end subroutine assign_patch
       !*********************************************************************

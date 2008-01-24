@@ -559,7 +559,7 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
       real*8, dimension(:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
       real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini 
-      real*8,dimension(:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      real*8,dimension(:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
 
       call init_simple_entcell( entcell%entcell,
      &     veg_fraction, pft_population_density, leaf_area_index,
@@ -600,7 +600,7 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_BANDS,N_COVERTYPES
       real*8, dimension(:,:)  ::    soil_texture ! dim=N_SOIL_TEXTURES
       real*8, dimension(:) :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
-      real*8,dimension(:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      real*8,dimension(:,:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
       !---
       integer n, nc
 
@@ -613,7 +613,7 @@ cddd      call zero_entcell(entcell%entcell)
      &       pft_cpool(:,:,n), pft_nmdata, pft_froots, 
      &       pft_soil_type, vegalbedo(:,:,n), soil_texture(:,n),
      &       Ci_ini(n), CNC_ini(n), Tcan_ini(n), Qf_ini(n),
-     &       Tpool_ini(:,:,:,n))
+     &       Tpool_ini(:,:,:,:,n))
       enddo
       
       end subroutine ent_cell_set_array_1d
@@ -649,7 +649,7 @@ cddd      call zero_entcell(entcell%entcell)
       real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
       real*8, dimension(:,:,:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
       real*8, dimension(:,:) :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
-      real*8,dimension(:,:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      real*8,dimension(:,:,:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
       !---
       integer i, j, ic, jc
 
@@ -672,7 +672,7 @@ cddd      call zero_entcell(entcell%entcell)
      &         pft_froots,
      &         pft_soil_type,vegalbedo(:,:,i,j), soil_texture(:,i,j),
      &         Ci_ini(i,j), CNC_ini(i,j), Tcan_ini(i,j), Qf_ini(i,j),
-     &         Tpool_ini(:,:,:,i,j))
+     &         Tpool_ini(:,:,:,:,i,j))
         enddo
       enddo
       
