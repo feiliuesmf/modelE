@@ -108,6 +108,7 @@ C**** This information could be read in from a file.
 C**** integrate area (which will depend on resolution/landmask)
 C**** Antarctica melt area
       FWAREA_part=0. ; loc_gla = .false.
+#ifndef SCM
       DO J=MAX(J_0,JML),MIN(J_1,JMU)
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
@@ -119,10 +120,12 @@ C**** Antarctica melt area
           END IF
         END DO
       END DO
+#endif
       CALL GLOBALSUM(grid, FWAREA_part, FWAREA_SH, all=.true.)
 
 C**** Greenland melt area
       FWAREA_part=0. ; loc_glg = .false.
+#ifndef SCM
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
@@ -132,6 +135,7 @@ C**** Greenland melt area
         END IF
       END DO
       CALL GLOBALSUM(grid, FWAREA_part, FWAREA_NH, all=.true.)
+#endif
 
 C**** Intialise gmelt fluxes
       GMELT = 0. ; EGMELT = 0.
@@ -181,6 +185,7 @@ C**** not used until at least one full year has passed)
       FAC_NH=DTsrc/(EDPERY*SDAY*FWAREA_NH)
 
 C**** Set GL MELT arrays
+#ifndef SCM
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF (LOC_GLA(I,J)) THEN
@@ -203,6 +208,7 @@ C**** Set GL MELT arrays
           END IF
         END DO
       END DO
+#endif
 
       end if
 

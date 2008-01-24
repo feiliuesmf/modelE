@@ -443,6 +443,7 @@ c**** get input from pbl_args structure
       tsave(:)=t(:)
       qsave(:)=q(:)
       esave(:)=e(:)
+
 #ifdef TRACERS_ON
       trsave(:,1:pbl_args%ntx)=tr(:,1:pbl_args%ntx)
 #endif
@@ -589,6 +590,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         end do
         end if
         ustar0=ustar
+cc      WRITE(0,*) 'advanc iter t(1),q(1) ',iter,t(1),q(1)
 
       end do ! end of iter loop
 
@@ -835,6 +837,7 @@ C**** with maximum allowed flux.
       vs  = v(1)
       tsv = t(1)
       qsrf  = q(1)
+
       kms = km(1)
       khs = kh(1)
       kqs = kq(1)
@@ -1926,11 +1929,22 @@ c     rhs(n-1)=0.
          dia(i)=1.-(sub(i)+sup(i))
       end do
 
+cccc
+c changes for using aturb with SCM
+#ifdef SCM
+c     factx=(dpdxr-dpdxr0)/(z(n)-z(1))
+c     facty=(dpdyr-dpdyr0)/(z(n)-z(1))
+      do i=2,n-1
+c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
+        rhs(i) = t0(i)
+      end do
+#else
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
         rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       end do
+#endif
 
       facth  = ch*usurf*dzh(1)/kh(1)
       sup(1) = -1.
@@ -2207,15 +2221,21 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
          dia(i)=1.-(sub(i)+sup(i))
       end do
 
+#ifndef SCM
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
+#endif
       do i=2,n-1
+ccc for SCM use ug and vg and not dpdx,dpdy
+#ifdef SCM
+        rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
+        rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
+#else
         dpdx=factx*(z(i)-z(1))+dpdxr0
         dpdy=facty*(z(i)-z(1))+dpdyr0
         rhs(i)=u0(i)+dtime*(coriol*v(i)-dpdx)
         rhs1(i)=v0(i)-dtime*(coriol*u(i)+dpdy)
-c       rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
-c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
+#endif
       end do
 
       usurf  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
@@ -2359,7 +2379,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 
       subroutine uv_eqn_sta(u,v,z,km,dz,dzh,
      2            ustar,cm,utop,vtop,coriol,uocean,vocean,n
-     &            ,dpdxr,dpdyr,dpdxr0,dpdyr0)
+     &            ,dpdxr,dpdyr,dpdxr0,dpdyr0,ug,vg)
 !@sum  uv_eqn_sta computes the static solutions of the u and v
 !@+    between the surface and the first GCM layer.
 !@+    The boundary conditions at the bottom are:
@@ -2397,6 +2417,8 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
       integer :: i,j,iter  !@var i,j,iter loop variable
+c**** passed for SCM
+      real*8 ug,vg
 
       do i=2,n-1
           sub(i)=-1./(dz(i)*dzh(i-1))*km(i-1)
@@ -2408,12 +2430,16 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
 c      write(99,*) factx,facty
       do i=2,n-1
-        dpdx=factx*(z(i)-z(1))+dpdxr0
-        dpdy=facty*(z(i)-z(1))+dpdyr0
-        rhs(i)=(coriol*v(i)-dpdx)
-        rhs1(i)=-(coriol*u(i)+dpdy)
-c       rhs(i)=coriol*(v(i)-vg)
-c       rhs1(i)=-coriol*(u(i)-ug)
+ccc if running SCM then use ug and vg instead of dpdx,dpdy
+#ifdef SCM
+            rhs(i)=coriol*(v(i)-vg)
+            rhs1(i)=-coriol*(u(i)-ug)
+#else    
+            dpdx=factx*(z(i)-z(1))+dpdxr0
+            dpdy=facty*(z(i)-z(1))+dpdyr0
+            rhs(i)=(coriol*v(i)-dpdx)
+            rhs1(i)=-(coriol*u(i)+dpdy)
+#endif      
       end do
 
       usurf  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
@@ -2488,7 +2514,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
      2          ttop,qtop,coriol,cm,ch,cq,ustar,uocean,vocean,
      3          ilong,jlat,itype
      &          ,dpdxr,dpdyr,dpdxr0,dpdyr0
-     &          ,u,v,t,q,e)
+     &          ,u,v,t,q,e,ug,vg)
 !@sum  inits initializes the winds, virtual potential temperature,
 !@+    and humidity using static solutions of the GISS 2000
 !@+    turbulence model at level 2
@@ -2511,6 +2537,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 !@var  ilong  longitude identifier
 !@var  jlat  latitude identifier
 !@var  itype  surface type
+!@var  ug,vg  passed for scm
 
 !@var  iprint longitude for diagnostics
 !@var  jprint latitude for diagnostics
@@ -2543,10 +2570,14 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n), intent(out) :: u,v,t,q
       real*8, dimension(n-1), intent(out) :: e
+c****  passed for scm
+      real*8  ug,vg   
+
 !!      common/pbluvtq/u,v,t,q,e
 
 !!!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
+  
 
       dbl=1000.d0 !initial guess of dbl
       z0m=zgrnd
@@ -2642,7 +2673,7 @@ c Initialization for iteration:
 
         call uv_eqn_sta(u,v,z,km,dz,dzh,ustar,cm,utop,vtop,coriol,
      &                  uocean,vocean,n
-     &                  ,dpdxr,dpdyr,dpdxr0,dpdyr0)
+     &                  ,dpdxr,dpdyr,dpdxr0,dpdyr0,ug,vg)
 
         call tcheck(t,tgrnd,n)
         call tcheck(q,qgrnd,n)
@@ -2680,6 +2711,7 @@ c     call check1(ustar,1,ilong,jlat,1)
      4              utop,vtop,ttop,qtop,
      5              dtime,bgrid,ilong,jlat,iter,itype,n)
       endif
+
 
       return
       end subroutine inits

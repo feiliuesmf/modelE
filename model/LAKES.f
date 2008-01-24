@@ -570,7 +570,11 @@ C**** Create integral direction array KDIREC from CDIREC
       CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)  ! fixed
 
       ! Use unusual loop bounds to fill KDIREC in halo
+#ifdef SCM
+      DO J=J_0,J_1
+#else
       DO J=MAX(1,J_0-1),MIN(JM,J_1+1)
+#endif
       DO I=1,IM
 C**** KD: -16 = blank, 0-8 directions >8 named rivers
         KD= ICHAR(CDIREC(I,J)) - 48
@@ -625,7 +629,11 @@ C****
 C**** From each box calculate the downstream river box
 C****
       ! odd bounds to fill IFLOW and JFLOW in halo
+#ifdef SCM
+        DO J=J_0H,J_1H
+#else
         DO J=MAX(2,J_0H), MIN(JM-1,J_1H)
+#endif
         DO I=1,IM
           SELECT CASE (KDIREC(I,J))
           CASE (0)
@@ -700,8 +708,15 @@ C****
       SPMIN = .15d0
       SPMAX = 5.
       DZDH1 = .00005
+#ifdef SCM
+      DO JU = J_0, J_1
+#else
       DO JU = J_0, J_1S
+#endif
         DO IU=1,IMAXJ(JU)
+#ifdef SCM
+          DZDH = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
+#else
           IF(KDIREC(IU,JU).gt.0) THEN
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
@@ -709,6 +724,7 @@ C****
           ELSE
             DZDH  = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
           END IF
+#endif
           SPEED = SPEED0*DZDH/DZDH1
           IF(SPEED.lt.SPMIN)  SPEED = SPMIN
           IF(SPEED.gt.SPMAX)  SPEED = SPMAX

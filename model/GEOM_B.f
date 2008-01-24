@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE GEOM
 !@sum  GEOM contains spherical geometric variables and arrays
 !@auth Original development team
@@ -98,6 +99,7 @@ C**** some B-grid conservation quantities
 
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
+
       DLAT_DG=180./JM                     ! even spacing (default)
       IF (JM.eq.46) DLAT_DG=180./(JM-1)   ! 1/2 box at pole for 4x5
 cc    IF (JM.eq.24) DLAT_DG=180./(JM-1)   ! 1/2 box at pole, orig 8x10
@@ -252,15 +254,26 @@ C**** Conditions at non-polar points
           IDJJ(K,J)=J
           RAVJ(K+2,J)=RAPVN(J)
           RAPJ(K+2,J)=RAVPN(J)  ! = .25
+#ifdef SCM
+          IDJJ(K+2,J)=J
+#else
           IDJJ(K+2,J)=J+1
+#endif
         END DO
         IM1=IM
         DO I=1,IM
+#ifdef SCM
+          IDIJ(1,I,J)=I
+          IDIJ(2,I,J)=I
+          IDIJ(3,I,J)=I
+          IDIJ(4,I,J)=I
+#else 
           IDIJ(1,I,J)=IM1
           IDIJ(2,I,J)=I
           IDIJ(3,I,J)=IM1
           IDIJ(4,I,J)=I
           IM1=I
+#endif
         END DO
       END DO
       

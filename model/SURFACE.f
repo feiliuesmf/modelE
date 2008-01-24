@@ -447,8 +447,13 @@ C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
           else if (j==jm) then
             uocean = uosurf(im,jm)  ; vocean = uosurf(ivnp,jm)
           else
+#ifdef SCM
+            uocean = uosurf(i,j)
+            vocean = vosurf(i,j)
+#else if
             uocean = 0.5*(uosurf(i,j)+uosurf(im1,j))
             vocean = 0.5*(vosurf(i,j)+vosurf(i,j-1))
+#endif
           end if
         else
           uocean=0. ; vocean=0.
@@ -485,8 +490,13 @@ C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
      *             *sinip(k))
             end do
           else
+#ifdef SCM
+            uocean = uisurf(i,j)
+            vocean = visurf(i,j)
+#else if
             uocean = 0.5*(uisurf(i,j)+uisurf(im1,j))
             vocean = 0.5*(visurf(i,j)+visurf(i,j-1))
+#endif
           end if
         else
           uocean = 0. ; vocean =0.

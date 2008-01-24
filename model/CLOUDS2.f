@@ -7,6 +7,18 @@
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
       USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
+#ifdef SCM
+     &                      ,I_TARG,J_TARG
+      USE SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
+     &                   SCM_DEL_Q,iu_scm_prt
+      USE SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
+     &                    TPALL,PRCCGRP,PRCCICE,MCCOND,
+     &                    PRESAV,LHPSAV,PREMC,LHPMC
+#endif
+! 5/7/07 including SCM changes and capturing convective condensate  a. wolf
+!        running with dry convection instead of ATURB
+
+
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname
@@ -39,8 +51,8 @@ C**** parameters and constants
 !@param COETAU multiplier for convective cloud optical thickness
       REAL*8, PARAMETER :: CCMUL=1.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
-      REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND
       REAL*8 :: RTEMP,CMX,RCLDX,CONTCE1,CONTCE2
+      REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 !@var PLAND land fraction
@@ -401,11 +413,10 @@ c for sulfur chemistry
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM,CONDP
-     *     ,DDR,SMDNL,QMDNL,CONDP1,CONDV,HEAT1
+     *     ,DDR,SMDNL,QMDNL,CONDP1,CONDV,HEAT1,CONDGP,CONDIP   
 #ifdef CLD_AER_CDNC
      *     ,CONDPC
 #endif
-      REAL*8 :: CONDGP,CONDIP
 !@var DM change in air mass
 !@var COND,CONDGP,CONDIP condensate
 !@var CDHEAT heating due to condensation
@@ -582,6 +593,26 @@ C**** initiallise arrays of computed ouput
       CSIZEL=RWCLDOX*10.*(1.-PEARTH)+10.*PEARTH ! droplet rad in stem
       SAVWL=0.
       SAVWL1=0.
+#ifdef SCM
+      if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+          do L=1,LM
+             WCUDEEP(L,1) = 0.d0
+             WCUDEEP(L,2) = 0.d0
+          enddo
+          do K=1,LM
+             do IC=1,2
+                do L=1,LM
+                   PRCCDEEP(L,IC,K) = 0.d0
+                   NPRCCDEEP(L,IC,K) = 0.d0
+                   TPALL(L,IC,K) = 0.d0
+                   MCCOND(L,IC,K) = 0.d0
+                   PRCCGRP(L,IC,K) = 0.d0
+                   PRCCICE(L,IC,K) = 0.d0
+                enddo
+             enddo
+          enddo
+      endif
+#endif
       SAVE1L=0.
       SAVE2L=0.
 #ifdef TRACERS_WATER
@@ -763,6 +794,8 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
         CDHEAT(L)=0.
         CONDP(L)=0.
         CONDP1(L)=0.
+        CONDGP(L)=0.
+        CONDIP(L)=0.
         CONDV(L)=0.
         HEAT1(L)=0.
         DM(L)=0.
@@ -773,6 +806,11 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
         DET(L)=0.
         BUOY(L)=0.
         WCU(L)=0.
+#ifdef SCM
+        if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+            WCUALL(L,IC,LMIN) = 0.
+        endif
+#endif
         DDR(L)=0.
         SMDNL(L)=0.
         QMDNL(L)=0.
@@ -820,8 +858,12 @@ C     ENDIF
       FMP2=FMP2*min(1d0,DTsrc/3600.d0)    ! use 1 hr adjustment time
       IF(MPLUME.GT.FMP2) MPLUME=FMP2
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
+C     for SCM running with Dry Convection instead of ATURB - WTURB
+c     is not filled - so MPLUME is unchanged
+#ifndef SCM
       TTURB=HPBL/WTURB(LMIN)
       IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
+#endif
       IF(ITYPE.EQ.2) THEN     ! cal. MPLUME for 1st plume and 2nd plume
       FCTYPE=1.
       IF(MPLUME.GT.FMP0) FCTYPE=FMP0/MPLUME
@@ -872,6 +914,8 @@ C        MC1=.FALSE.
         CDHEAT(L)=0.
         CONDP(L)=0.
         CONDP1(L)=0.
+        CONDGP(L)=0.
+        CONDIP(L)=0.
         CONDV(L)=0.
         HEAT1(L)=0.
         DM(L)=0.
@@ -882,6 +926,11 @@ C        MC1=.FALSE.
         DET(L)=0.
         BUOY(L)=0.
         WCU(L)=0.
+#ifdef SCM
+        if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+            WCUALL(L,IC,LMIN) = 0.
+        endif
+#endif
         DDR(L)=0.
         SMDNL(L)=0.
         QMDNL(L)=0.
@@ -1413,6 +1462,22 @@ C****
       WCU(L)=WCU(L-1)+HDEP*W2TEM
       IF (WCU(L).GE.0.D0) WCU(L)=MIN(50.D0,WCU(L))
       IF (WCU(L).LT.0.D0) WCU(L)=MAX(-50.D0,WCU(L))
+#ifdef SCM
+      if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+c         save cumulus updraft speed and plume temperature
+          WCUALL(L,IC,LMIN) = WCU(L)
+          TPALL(L,IC,LMIN) = TP                              ! Save plume temp
+c         write(iu_scm_prt,885) LMIN,ic,L,WCU(L), WCUALL(L,IC,LMIN)
+c885      format(1x,'mstcnv  lmin ic l wcu wcuall ',
+c    *      i5,i5,i5,2(f12.6))
+      endif
+#endif
+
+
+
+
+
+
 C     WRITE (6,342) L,LMIN,IC,WCU(L-1),WCU(L),ENT(L),DET(L),
 C    *  BUOY(L),COND(L),TVL(L),TVP
 C 342 FORMAT(1X,'L LMIN IC WCU1 WCU ENT DET BUOY COND,TVL TVP=',
@@ -1501,29 +1566,36 @@ c      write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
       ELSE ! mixed phase
         FG=(TP-TI)/(TF-TI)
         FI=1.-FG
-        CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+        CONDIP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
-        CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
+        CONDGP(L)=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
-        CONDP1(L)=FG*CONDGP+FI*CONDIP
+        CONDP1(L)=FG*CONDGP(L)+FI*CONDIP(L)  
         WV=WCU(L)+DWCU
         DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
         DCI=MIN(DCI,1.D-2)
         DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
         DCG=MIN(DCG,1.D-2)
-        CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+        CONDIP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
-        CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
+        CONDGP(L)=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
-        CONDP(L)=FG*CONDGP+FI*CONDIP
+        CONDP(L)=FG*CONDGP(L)+FI*CONDIP(L)   
       ENDIF
 c convert condp to the same units as cond
       CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
       CONDP1(L)=.01d0*CONDP1(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
+c#ifdef SCM
+c     if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+c         write(iu_scm_prt,339)  LMIN,IC,L,COND(L),CONDP1(L),CONDP(L),
+c    *               CONDGP(L),CONDIP(L)
+c339      format(1x,'LMIN IC L COND p1 p gp ip ',3(i5),5(f10.6))
+c     endif
+c#endif
       IF(CONDP1(L).GT.COND(L)) CONDP1(L)=COND(L)
       IF(CONDP(L).GT.CONDP1(L)) CONDP(L)=CONDP1(L)
       CONDV(L)=COND(L)-CONDP1(L)       ! part of COND transported up
@@ -1540,6 +1612,25 @@ C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
       IF(MC1.AND.MCCONT.GT.1) THEN
         IF (.NOT.RFMC1) GO TO 160
       END IF
+#ifdef SCM
+      if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+          IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+c           write(iu_scm_prt,887) LMIN,LMAX,IC
+c887        format(1x,'mstcnv -- deep lmin lmax ic ',i5,i5,i5)
+            DO L=LMIN,LMAX
+                WCUDEEP(L,IC) = WCU(L)
+                IF(IC.EQ.1) THEN
+                  SAVWL(L)=WCU(L)
+                ELSE
+                  SAVWL1(L)=WCU(L)
+                END IF
+c               write(iu_scm_prt,888) ic,L,WCUDEEP(L,ic)
+c888            format(1x,'mstcnv--  deep  ic l wcudeep ',
+c    *                     i5,i5,f10.4)
+            ENDDO
+          ENDIF
+      endif
+#endif
 C     IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
 C       DO L=LMIN,LMAX                 ! for checking WCU and ENT
 C       IF(IC.EQ.1) THEN
@@ -1888,6 +1979,30 @@ C****
       IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN      ! always?
         DO L=LMAX,LMIN,-1
           IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
+#ifdef SCM
+          if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+cccc  in g/m3
+c            PRCCDEEP(L,IC,LMIN) = FMC1*1.d5*CONDP(L) *         ! save COND
+c    *             BYAM(L)*PL(L)/(RGAS*TL(L))
+c            NPRCCDEEP(L,IC,LMIN) = FMC1*1.d5*(COND(l)-CONDP(L)) *
+c    *             BYAM(L)*PL(L)/(RGAS*TL(L))
+cccc  in kg/kg
+             PRCCDEEP(L,IC,LMIN) = FMC1*CONDP(L)*BYAM(L)       ! save COND
+             NPRCCDEEP(L,IC,LMIN) = FMC1*(COND(l)-CONDP(L))*
+     *             BYAM(L)
+             PRCCGRP(L,IC,LMIN) = FMC1*CONDGP(L)*BYAM(L)
+             PRCCICE(L,IC,LMIN) = FMC1*CONDIP(L)*BYAM(L)
+
+c            write(iu_scm_prt,889) lmin,ic,FMC1,L,
+c    *              PRCCDEEP(L,IC,LMIN)*1000.,
+c    *              NPRCCDEEP(L,IC,LMIN)*1000.,TPALL(L,IC,LMIN),
+c    *              PRCCGRP(L,IC,LMIN)*1000.,
+c    *              PRCCICE(L,IC,LMIN)*1000.
+c889         format(1x,
+c    *        'mc--dp lmin ic fmc1 l prcc nprcc tp grp ice',
+c    *              2(i4),f8.3,i4,f9.5,f9.5,f8.2,f9.5,f9.5)
+          endif
+#endif
           FCLW=0.
           IF (COND(L).GT.0) FCLW=(COND(L)-CONDP(L))/COND(L)
           SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)*FMC1
@@ -1908,6 +2023,13 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
+#ifdef SCM
+      if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+          do L=1,LM
+             MCCOND(L,IC,LMIN) = COND(L)*FMC1*BYAM(L)
+          enddo
+      endif
+#endif
       PRCP=COND(LMAX)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
@@ -1930,8 +2052,14 @@ C since a fraction (FCLW) of TRCOND was removed above.
       DO 540 L=LMAX-1,1,-1
 C     IF(PRCP.LE.0.) GO TO 530    ! moved to after computing CLDMCL
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
+#ifdef SCM
+c     for SCM running with Dry Convection instead of ATURB WTURB
+c     not filled -- set TRATIO=1
+      TRATIO = 1.d0
+#else
       TTURB=HPBL/WTURB(L)
       TRATIO=TTURB/DTsrc
+#endif
       FCLOUD=CCMUL*CCM(L)*BYPBLM*TRATIO
       IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(L)*BYPBLM
       IF(LMIN.GT.DCL) FCLOUD=CCMUL*CCM(L)/AIRM0
@@ -2500,6 +2628,10 @@ C**** initialise vertical arrays
       PREP=0.
       PREBAR=0.
       LHP=0.
+#ifdef SCM
+      LHPSAV=0.
+      PRESAV=0.
+#endif
       QHEAT=0.
       CLDSSL=0
       TAUSSL=0
@@ -2586,7 +2718,7 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
         IF(TL(L).GT.269.16) THEN ! OC/SI/LI clouds: water above -4
           FUNIO=0.
         ELSE
-C         FUNIO=1.-EXP(-((TL(L)-269.16d0)/15.)**2)
+c         FUNIO=1.-EXP(-((TL(L)-269.16d0)/15.)**2)
           FUNIO=1.-EXP(-((TL(L)-269.16d0)/RTEMP)**2)
         END IF
         IF(TL(L).GT.263.16) THEN ! land clouds water: above -10
@@ -2647,6 +2779,15 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
       SVLHXL(L)=LHX
       TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
       TH(L)=TL(L)/PLK(L)
+#ifdef SCM
+c     preserving T for difference from before updating with ARM data
+      if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+          TH(L) = SCM_SAVE_T(L)*PLK(L)+SCM_DEL_T(L)+
+     &            HCHANG/(SHA*FSSL(L)+teeny)
+          TH(L) = TH(L)/PLK(L)
+      endif
+#endif
+
       ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
 C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
@@ -2814,9 +2955,14 @@ c     if (r6.gt.r6c) then
       endif
 !end routine for QAUT as a function of N,LWC
 #endif
-        CM=CM*CMX
+        CM=CM*CMX  
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
+#ifdef SCM
+       if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+           PRESAV(L)=PREP(L)*DTsrc
+       endif
+#endif
 #ifdef CLD_AER_CDNC
 c       if(CM.ne.0.) write(6,*)"QAUT",CM,QAUT,QCRIT,PREP(L),L
 #endif
@@ -2893,7 +3039,14 @@ C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
         END IF
       ELSE
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
-        IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
+        IF (WMX(L).GT.0.) then
+            PREP(L)=WMX(L)*BYDTsrc
+#ifdef SCM
+            if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+               PRESAV(L)=PREP(L)*DTsrc
+            endif
+#endif
+        ENDIF
         ER(L)=(1.-RH(L))**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
      *       ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0

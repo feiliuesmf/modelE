@@ -670,6 +670,10 @@ c****
       use model_com, only : t,p,q,dtsrc,nisurf,jdate
      *     ,jday,jhour,nday,itime,jeq,u,v
      *     ,im,jm
+#ifdef SCM
+     *     ,I_TARG,J_TARG,NSTEPSCM
+      use SCMCOM , only : ASH,ALH,iu_scm_prt
+#endif
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
       use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
@@ -1066,6 +1070,22 @@ C**** calculate correction for different TG in radiation and surface
      *     **4)
       dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
       dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+
+#ifdef SCM
+c     if SCM overwrite sensible and latent heat fluxes with ARM
+c        values 
+      if (i.eq.I_TARG .and. j.eq.J_TARG) then
+c        write(iu_scm_prt,980) NSTEPSCM,ash*1800.,shdt,
+c    &                (alh*1800.00/2500000.0),
+c    &                 aevap
+c980     format(/1x,'EARTH NSTEP ARMsh GCMsh ARMLH GCMevp ',
+c    &           i5,f12.3,f12.3,f12.5,f12.5)
+         dth1(i,j)=dth1(i,j)+ash*pbl_args%dtsurf*ptype/(sha*ma1*p1k)
+         dq1(i,j) =dq1(i,j)+alh*pbl_args%dtsurf*ptype/(ma1*lhe)
+c        write(iu_scm_prt,981) dth1(i,j),dq1(i,j)
+c981     format(1x,'EARTH        dth1 dq1 ',f9.4,f9.5)
+      endif
+#endif
   !    qsavg(i,j)=qsavg(i,j)+qs*ptype
 c**** save runoff for addition to lake mass/energy resevoirs
       runoe (i,j)=runoe (i,j)+ aruns+ arunu

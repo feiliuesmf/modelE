@@ -10,6 +10,9 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice,jyear,jmon
+#ifdef SCM
+     &     ,I_TARG,J_TARG,NSTEPSCM
+#endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET
       USE DOMAIN_DECOMP, only : CHECKSUM, NORTH,SOUTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
@@ -128,6 +131,12 @@
      *     ,cteml,cd3dl,cl3dl,ci3dl,cdn3dl,cre3dl,smlwp
      *     ,wmclwp,wmctwp
 #endif
+#ifdef SCM
+      USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T,
+     *                    iu_scm_prt
+      USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
+     &                     TPALL,PRCSS,PRCMC
+#endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
@@ -187,7 +196,7 @@ c     *           ULS,VLS,UMC,VMC,TLS,QLS,TMC,QMC
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
 
-      INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
+      INTEGER I,J,K,L,N,LL  !@var I,J,K,L,N loop variables
       INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
@@ -353,6 +362,7 @@ C
 C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
       CALL HALO_UPDATE(grid, U, from= NORTH)
       CALL HALO_UPDATE(grid, V, from= NORTH)
+      
 C
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -481,7 +491,6 @@ C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS FOR MSTCNV
 C****
       DEBUG = .FALSE.   ! use for individual box diags in clouds
-c      debug=j.eq.38    ! .and. (i.eq.12.or.i.eq.37)
       PEARTH=FEARTH(I,J)
       PLAND=FLAND(I,J)
       TS=TSAVG(I,J)
@@ -493,7 +502,26 @@ c      debug=j.eq.38    ! .and. (i.eq.12.or.i.eq.37)
       TSV=TS*(1+QS*DELTX)
 !!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
       DCL=INT(DCLEV(I,J)+.5)
-
+#ifdef SCM
+      if (I.eq.I_TARG .and. J.eq.J_TARG) then
+          do LL=1,LM
+             do L=1,LM
+                WCUALL(L,1,LL)=0.
+                WCUALL(L,2,LL)=0.
+                TPALL(L,1,LL)=0.
+                TPALL(L,2,LL)=0.
+                PRCCDEEP(L,1,LL) = 0.0
+                PRCCDEEP(L,2,LL)  = 0.0
+                NPRCCDEEP(L,1,LL) = 0.0
+                NPRCCDEEP(L,2,LL) = 0.0
+             enddo
+          enddo
+          do L=1,LM
+             WCUDEEP(L,1) = 0.0
+             WCUDEEP(L,2) = 0.0
+          enddo
+      endif
+#endif
       DO K=1,KMAX
         RA(K)=RAVJ(K,J)
         IDI(K)=IDIJ(K,I,J)
@@ -506,6 +534,12 @@ C**** PRESSURES, AND PRESSURE TO THE KAPA
       AIRM(:)=PDSIG(:,I,J)
       BYAM(:)=1./AIRM(:)
       WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
+#ifdef SCM
+ccccc  for SCM run with DRY convection - zero out WTURB
+ccccc WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
+      WTURB(:) = 0.d0
+#endif
+
 #ifdef CLD_ER_CDNC
         SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
 #endif
@@ -563,6 +597,8 @@ Cred *    ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*1.d-3*BYGRAV
      *    ETAL(L+1)=.5*ENTCON*(GZIL(I,L+2)-GZIL(I,L))*1.d-3*BYGRAV
         IF(L.LE.LM-2) GZL(L+1)=ETAL(L+1)/ENTCON
       END DO
+
+
       ETAL(LM)=ETAL(LM-1)
       ETAL(1)=0.     ! not used
       GZL(LM)=GZL(LM-1)
@@ -628,8 +664,9 @@ cECON      E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
 cECON     *     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
 
 C**** MOIST CONVECTION
-      CALL MSTCNV(IERR,LERR,i,j)
 
+      CALL MSTCNV(IERR,LERR,i,j)
+    
 cECON  E1 = ( sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum((WML(:)*(LHE
 cECON *     -SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))*AIRM(:)))*100.*BYGRAV
 
@@ -857,6 +894,12 @@ C****
       END DO
       WMX(:)=WML(:)+SVWMXL(:)
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
+#ifdef SCM
+      if (I.eq.I_TARG .and. J.eq.J_TARG) then
+         AQ(:) = ((SCM_SAVE_Q(:)+SCM_DEL_Q(:))-QTOLD(:,I,J))
+     &               *BYDTsrc
+      endif
+#endif
       RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
       FSSL(:)=FSS(:,I,J)
       DO L=1,LM
@@ -1157,6 +1200,14 @@ C**** accumulate precip specially for SUBDD
 C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
+#ifdef SCM
+c**** save total precip for time step (in mm/hr) for SCM
+      if (I.eq.I_TARG .and. J.eq.J_TARG) then
+          PRCSS = PRECSS(I,J)*(3600./DTsrc)
+          PRCMC = (PREC(I,J)-PRECSS(I,J))*(3600./DTsrc)
+      endif
+#endif
+
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of precipitation (in mm/day):
       call running_average(prcp*sday*byDTsrc,I,J,1.d0,n__prec)
@@ -1286,7 +1337,7 @@ C**** TRACERS: Use only the active ones
           endif
           end if
 #endif
-#ifdef TRACERS_AMP
+#ifdef TRACERS_AMP          
            if (trname(n).eq."M_ACC_SU") then
            AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
            endif
@@ -1594,8 +1645,10 @@ C**** Accumulate AISCCP array
 
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
+c
 C
 CAOO      J=1
+#ifndef SCM
       IF(HAVE_SOUTH_POLE) THEN
         DO K=1,IM ! KMAXJ(J)
           IDI(K)=IDIJ(K,1,1)
@@ -1657,6 +1710,16 @@ C**** First half of loop cycle for j=j_1 for internal blocks
           END DO
         ENDIF
       END DO       !LM
+#else
+      I=I_TARG
+      J=J_TARG
+      DO L=1,LM
+         DO K=1,2 ! KMAXJ(J)
+            U(I,J,L)=U(I,J,L)+UKM(K,I,J,L)
+            V(I,J,L)=V(I,J,L)+VKM(K,I,J,L)
+         END DO
+      END DO
+#endif
 
 !$OMP  END PARALLEL DO
 C
@@ -1673,6 +1736,7 @@ CAOO      J=JM
           END DO
         END DO
       END IF
+
 C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later

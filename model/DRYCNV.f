@@ -62,6 +62,7 @@ C
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
+
       if(LBASE_MAX.GE.LM) call stop_model('DRYCNV: LBASE_MAX.GE.LM',255)
 
       ! update w2gcm at 1st GCM layer
@@ -245,6 +246,32 @@ C***  ...first update halo (J_0-1 values) of UKM,VKM, and PLIJ.
       call halo_update_column(grid,PLIJ, from=SOUTH) 
       call halo_update_column(grid,LRANG,from=SOUTH)
 
+#ifdef SCM
+C
+c     write(0,*) 'scm really update winds '
+      i=I_TARG
+      j=J_TARG
+        KMAX=KMAXJ(J)
+        DO K=1,KMAX
+           IDJ(K)=IDJJ(K,J)
+           RA(K) =RAVJ(K,J)
+        END DO
+c       DO I=1,IM
+          LMIN=LRANG(1,I,J)
+          LMAX=LRANG(2,I,J)
+          DO L=LMIN,LMAX
+          DO K=1,KMAX
+            IDI(K)=IDIJ(K,I,J)
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
+            AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *            UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+c           write(0,*) 'new winds L K u v   ',L,K,
+c    *              u(idi(k),idj(k),l),
+c    *              v(idi(k),idj(k),l)
+          END DO ; END DO
+c       END DO
+#else
       IF (HAVE_SOUTH_POLE) then
        J=1
        DO K=1,KMAXJ(J)
@@ -345,7 +372,7 @@ C**** First half of loop cycle for j=j_1 for internal blocks
           END DO
         END DO
       ENDIF   !END NORTH POLE
-
+#endif
 
 C***
 
@@ -370,6 +397,9 @@ C**** Save additional changes in KE for addition as heat later
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,u,v,t,q,qcheck
+#ifdef SCM
+     *                      ,I_TARG,J_TARG
+#endif
       USE DOMAIN_DECOMP, only : grid, get
       USE DOMAIN_DECOMP, only : halo_update,checksum
       USE DOMAIN_DECOMP, only : halo_update_column,checksum_column
@@ -402,7 +432,7 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE       )
-
+  
       do j=j_0,j_1
         do i=1,imaxj(j)
           t(i,j,1) = t(i,j,1) + dth1(i,j)
@@ -440,6 +470,22 @@ C   *....update halo (J_0-1 values) of  byam, uflux1, vflux1.
       Call HALO_UPDATE(grid, vflux1, from=SOUTH)
       Call HALO_UPDATE(grid, byam(1,:,:), from=SOUTH)
 
+
+#ifdef SCM
+cccc if SCM - update winds ????
+      i = I_TARG
+      j= J_TARG
+      do k=1,2
+c        write(0,*) 'in atm_diff  winds scm  k idij idjj ravj ',
+c    *      k,idij(k,I_TARG,J_TARG),idjj(k,J_TARG),ravj(k,j_TARG) 
+c        write(0,*) 'uflux  ',uflux1(I_TARG,J_TARG),
+c    *            '  vflux  ',vflux1(I_TARG,J_TARG)
+         u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
+     *          ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
+         v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
+     *          ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
+      enddo
+#else
 c**** SOUTH POLE BOX
       if (HAVE_SOUTH_POLE) then
       j=1
@@ -523,6 +569,7 @@ c***        end do
             end do
           end do
         ENDIF   !.not. NORTH POLE
+#endif
 
 C**** save change of KE for addition as heat later
       do j=J_0STG, J_1STG

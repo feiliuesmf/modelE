@@ -1860,6 +1860,11 @@ C****
       INTEGER I,IDACC9,K,KQ,L,MNOW,N
       INTEGER :: J_0, J_1
 
+#ifdef SCM
+c     write(0,*) 'SCM no diags   DIAG7A '
+      return
+#endif
+
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       IDACC9=IDACC(9)+1
@@ -1964,6 +1969,11 @@ C****
      *     ,conserv_MLI,conserv_HLI
       INTEGER MNOW
       INTEGER NT
+
+#ifdef SCM
+c     write(0,*) 'SCM - no diags   DIAGCA'
+      return
+#endif
 
 C**** ATMOSPHERIC ANGULAR MOMENTUM
       CALL conserv_DIAG(M,conserv_AM,icon_AM)
@@ -2613,6 +2623,11 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
       INTEGER :: J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
+#ifdef SCM
+c     write(0,*) 'SCM no diags    DIAG5A'
+      return
+#endif
+
       CALL GET(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -2936,6 +2951,11 @@ C****
       IMPLICIT NONE
 
       INTEGER :: I,IDACC5,N,NM
+
+#ifdef SCM
+c     write(0,*) 'SCM no diags    DIAG4A'
+      return
+#endif
 
       IF (IDACC(4).LE.0.OR.IDACC(7).LE.0) RETURN
       NM=1+IM/2

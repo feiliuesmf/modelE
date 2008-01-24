@@ -21,6 +21,9 @@
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM, only : t,q,u,v,ls1
+#ifdef SCM            
+     &                      ,I_TARG,J_TARG
+#endif
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -216,12 +219,19 @@ c     ENDIF
      2                        hemi*u(idij(k,i,j),idjj(k,j),L)*siniv(k))
         end do
       else
+#ifndef SCM
         do k=1,kmaxj(j)
           utop = utop + u(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
           vtop = vtop + v(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
           ug   = ug   + u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
           vg   = vg   + v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
         end do
+#else if
+       utop = u(i,j,1)
+       vtop = v(i,j,1)
+       ug = utop
+       vg = vtop
+#endif
       endif
 
       upbl(:)=uabl(:,i,j,itype)
@@ -395,6 +405,7 @@ C**** ignore ocean currents for initialisation.
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
+      real*8 ug,vg
 
       integer :: J_1, J_0
       integer :: J_1H, J_0H
@@ -404,7 +415,6 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,       J_STOP=J_1)
-
 
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
@@ -512,12 +522,15 @@ c ******************************************************************
             else
 c ******************************************************************
 c     Away from the poles:
+#ifndef SCM
               do k=1,kmaxj(j)
                 utop = utop + u(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
                 vtop = vtop + v(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
               end do
+#endif
 c ******************************************************************
             endif
+           
 
             qtop=q(i,j,1)
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
@@ -529,12 +542,17 @@ c ******************************************************************
             dpdyr  = DPDY_BY_RHO(i,j)
             dpdxr0 = DPDX_BY_RHO_0(i,j)
             dpdyr0 = DPDY_BY_RHO_0(i,j)
-
+#ifdef SCM
+            utop = u(i,j,1)   
+            vtop = v(i,j,1)   
+            ug = utop
+            vg = vtop
+#endif
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,ustar,
      3                 uocean,vocean,ilong,jlat,itype
      &                 ,dpdxr,dpdyr,dpdxr0,dpdyr0
-     &                 ,upbl,vpbl,tpbl,qpbl,epbl)
+     &                 ,upbl,vpbl,tpbl,qpbl,epbl,ug,vg)
             cmgs(i,j,itype)=cm
             chgs(i,j,itype)=ch
             cqgs(i,j,itype)=cq

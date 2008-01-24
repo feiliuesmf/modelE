@@ -895,6 +895,16 @@ C**** Define CO2 (ppm) for rest of model
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha
       USE MODEL_COM
+#ifdef SCM
+      USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
+     *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
+     *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
+#endif
+
+
+
+
+
       USE GEOM
       USE ATMDYN, only : CALC_AMPK
       USE RADPAR
@@ -1077,6 +1087,7 @@ C****
       J_1S = grid%J_STOP_SKP
       J_0STG = grid%J_STRT_STGR
       J_1STG = grid%J_STOP_STGR
+
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -1182,11 +1193,15 @@ c         JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
          sumda_psum(JM)=im*dxyp(jm)*rsi(1,jm)
          tauda_psum(JM)=im*dxyp(jm)*rsi(1,jm)*depobc_1990(1,46)
       END IF
+#ifdef SCM
+      xdalbs = 0.d0
+#else
       CALL GLOBALSUM(grid, sumda_psum,sumda,all=.true.)
       CALL GLOBALSUM(grid, tauda_psum,tauda,all=.true.)
-
+      
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
+#endif
 
       if(kradia.le.0) then
       IF (QCHECK) THEN
@@ -1960,6 +1975,23 @@ C**** Save fluxes at four levels surface, P0, P1, LTROPO
       TNFS(3,I,J)=TRNFLB(LM+LM_REQ+1)
       SNFS(4,I,J)=SRNFLB(LTROPO(I,J)) ! LTROPO
       TNFS(4,I,J)=TRNFLB(LTROPO(I,J))
+
+#ifdef SCM
+      if (I.eq.I_TARG .and. J.eq.J_TARG) then
+          do L=1,LM
+             SRFHRLCOL(L) = SRFHRL(L) * COSZ1(I,J)
+             TRFCRLCOL(L) = TRFCRL(L)
+          enddo
+          SRNFLBBOT = SRNFLB(1) * COSZ1(I,J)            ! Surface
+          SRNFLBTOP = SRNFLB(LM+LM_REQ+1) * COSZ1(I,J)  ! P0 = TOA
+          SRDFLBBOT = SRDFLB(1) * COSZ1(I,J)
+          SRDFLBTOP = SRDFLB(LM+LM_REQ+1) * COSZ1(I,J)
+          TRUFLBTOP = TRUFLB(LM+LM_REQ+1)
+          TRUFLBBOT = TRUFLB(1)
+          TRDFLBBOT = TRDFLB(1)
+      endif
+#endif
+
 C****
       TRINCG(I,J)=TRDFLB(1)
       BTMPW(I,J)=BTEMPW-TF

@@ -40,12 +40,18 @@ c$$$      USE MODEL_COM, only: clock
      &     ,trdynam
 #endif
       USE ATMDYN_QDYNAM, only : QDYNAM
+#ifdef SCM
+      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
+     &    SCM_DEL_Q,iu_scm_prt,iu_scm_diag
+#endif
+
       use soil_drv, only : conserv_wtg, conserv_htg
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: mpi_err, MDUM = 0
+
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,TOTALT , oa_glob(im,jm,koa)
@@ -72,7 +78,16 @@ C**** Command line options
       real*8 w_ghy_j_2(jm),w_ghy_j_1(jm), w_lake_j_2(jm),w_lake_j_1(jm)
       real*8 h_ghy_j_2(jm),h_ghy_j_1(jm), h_lake_j_2(jm),h_lake_j_1(jm)
 
+#ifdef SCM
+c     Hard Code J - cannot get syncparam to work here ???? 
+      J_TARG = 39
+      call init_app(grid,im,jm,lm,J_TARG)
+#else
+C****
+C****
       call init_app(grid,im,jm,lm)
+#endif
+
       call alloc_drv()
 C****
 C**** Processing command line options
@@ -86,6 +101,7 @@ C****
 C**** INITIALIZATIONS
 C****
          CALL TIMER (MNOW,MDUM)
+
 
 #ifdef USE_FVCORE
       CALL INPUT (istart,ifile,clock)
@@ -125,6 +141,9 @@ C****
          END DO
 C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
+#ifdef SCM
+      NSTEPSCM=ITIME-ITIMEI
+#endif
          MODD5K=1000
       CALL DAILY(.false.)                  ! not end_of_day
       CALL daily_RAD(.false.)
@@ -174,10 +193,13 @@ C**** Initiallise file for sub-daily diagnostics, controlled by
 C**** space-separated string segments in SUBDD & SUBDD1 in the rundeck
       call init_subdd(aDATE)
       call sys_flush(6)
+
 C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
+
+
       DO WHILE (Itime.lt.ItimeE)
 
 c$$$         call test_save(__LINE__, itime)
@@ -246,6 +268,22 @@ C**** Initialize pressure for mass fluxes used by tracers and Q
 
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
+#ifdef SCM
+      NSTEPSCM = ITIME-ITIMEI
+      write(0,*) 'NSTEPSCM ',NSTEPSCM
+      do L=1,LM
+         SCM_SAVE_T(L) = T(I_TARG,J_TARG,L)
+         SCM_SAVE_Q(L) = Q(I_TARG,J_TARG,L)
+      enddo
+c     do L=1,LM
+c        write(iu_scm_prt,'(a13,i3,4(f9.3))')
+c    &              'before dynam ',
+c    &               L,T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG),
+c    &               Q(I_TARG,J_TARG,L)*1000.0,
+c    &               U(I_TARG,J_TARG,L),V(I_TARG,J_TARG,L)
+c     enddo 
+#endif
+
 
 #ifndef USE_FVCORE
       CALL DYNAM()
@@ -267,9 +305,13 @@ C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
       call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
+#ifdef SCM
+       do L=1,LM
+          CONV(I_TARG,J_TARG,L) = SG_CONV(L)
+       enddo
+#endif
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
       call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
-
 C**** Scale WM mixing ratios to conserve liquid water
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1
@@ -327,13 +369,13 @@ C**** RADIATION, SOLAR AND THERMAL
          CALL TIMER (MNOW,MRAD)
       if (kradia.le.0) then                    ! full model,kradia le 0
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
+         IF (MODD5S.EQ.0) CALL DIAGCA (4)
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
 C****
 C**** NOTE THAT FLUXES ARE APPLIED IN TOP-DOWN ORDER SO THAT THE
 C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
 C****
-         IF (MODD5S.EQ.0) CALL DIAGCA (4)
 C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
       CALL PRECIP_SI
       CALL PRECIP_LI
@@ -399,7 +441,7 @@ C**** SEA LEVEL PRESSURE FILTER
            IDACC(10)=IDACC(10)+1
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
            CALL DIAGCA (1)
-        CALL FILTER
+           CALL FILTER
            CALL CHECKT ('FILTER')
            CALL TIMER (MNOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
@@ -517,6 +559,11 @@ C**** ZERO OUT INTEGRATED QUANTITIES
 C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****
+#ifdef SCM
+c*****call scm diagnostics every time step
+      call scm_diag
+#endif
+
       IF (MOD(Itime-ItimeI,NDA4).EQ.0) CALL DIAG4A ! at hr 23 E-history
 C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
@@ -525,6 +572,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
         NIPRNT=NIPRNT-1
         call set_param( "NIPRNT", NIPRNT, 'o' )
       END IF
+
       end if   ! full model ; kradia le 0
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
@@ -647,6 +695,10 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       end if
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
+#ifdef SCM
+      call closeunit(iu_scm_prt)
+      call closeunit(iu_scm_diag)
+#endif
       IF (AM_I_ROOT())
      *   WRITE (6,'(/////4(1X,33("****")/)//,A,I8
      *             ///4(1X,33("****")/))')
@@ -805,6 +857,12 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00
+#ifdef SCM
+     *     ,I_TARG,J_TARG
+#endif
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt
+#endif
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
@@ -1194,6 +1252,15 @@ C****                                                    currently
 
          CALL HALO_UPDATE(grid, U, FROM=NORTH)
          CALL HALO_UPDATE(grid, V, FROM=NORTH)
+#ifdef SCM
+        DO J=J_0S,J_1S
+        DO I=1,IM
+          WSAVG(I,J)=SQRT(U(I,J,1)**2+V(I,J,1)**2)
+          USAVG(I,J)=U(I,J,1)
+          VSAVG(I,J)=V(I,J,1)
+        END DO
+        END DO
+#else 
         DO J=J_0S,J_1S
         IM1=IM
         DO I=1,IM
@@ -1205,7 +1272,37 @@ C****                                                    currently
         IM1=I
         END DO
         END DO
+#endif
         CDM=.001d0
+
+#ifdef SCM
+c      enter SCM part of INPUT 
+       call openunit("scm.prt",iu_scm_prt,.false.,.false.)
+       call sync_param( "I_TARG",I_TARG)
+       call sync_param( "J_TARG",J_TARG)
+       write(0,*) 'I/J Targets set ',I_TARG,J_TARG
+
+c      write(iu_scm_prt,*) 'before scm inputs L u v '
+c      do L=1,LM
+c         write(iu_scm_prt,'(a6,i5,2(f9.3))') 'l u v ',l,
+c    &         u(i_targ,j_targ,l),v(i_targ,j_targ,l)
+c      enddo
+
+       if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
+     &      (J_TARG.lt.2 .or. J_TARG.gt.89)) then
+             write(0,*) 'Invalid grid coordinates for selected box ',
+     &             I_TARG,J_TARG
+             STOP 100
+       endif
+!      read scm data and initialize model 
+!      note:  usavg,vsavg and wsavg filled from here
+       call init_scmdata
+c      write(iu_scm_prt,*) 'return from init_scmdata'
+c      do L=1,LM
+c         write(iu_scm_prt,'(a6,i5,2(f10.4))') 'l u v ',l,
+c    &         u(i_targ,j_targ,l),v(i_targ,j_targ,l)
+c      enddo
+#endif
 
         CALL CALC_AMPK(LM)
 
@@ -1600,6 +1697,7 @@ C**** Ensure that no round off error effects land with ice and earth
         END IF
       END DO
       END DO
+      
       If (HAVE_SOUTH_POLE) Then
          FLAND(2:IM,1)=FLAND(1,1)
          FEARTH(2:IM,1)=FEARTH(1,1)
@@ -1622,7 +1720,6 @@ C****
 #ifdef USE_ENT
       CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
 #endif
-
       if (Kradia.gt.0) then   !  radiative forcing run
         !CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
         !CALL init_module_ent(iniENT,grid,jday,dxyp)
@@ -1764,6 +1861,7 @@ C****
 C**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
 C****
 C**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
+#ifndef SCM
       SMASS=0.
       DO J=J_0,J_1
         SPRESS(J)=0.
@@ -1786,6 +1884,7 @@ C****   except if it was just done (restart from itime=itimei)
          IF (ABS(DELTAP).gt.1d-6)
      *      WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
       end if
+#endif
 
       IF (.not.end_of_day) RETURN
 

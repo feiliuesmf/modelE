@@ -689,6 +689,11 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 !@var partial : accum period is complete (if =0) or partial (if =1)
       INTEGER, INTENT(IN) :: partial
 
+#ifdef SCM
+c     write(0,*) 'SCM no diags   print_diags'
+      return
+#endif
+
       CALL DIAG_GATHER
 
       IF (AM_I_ROOT()) THEN

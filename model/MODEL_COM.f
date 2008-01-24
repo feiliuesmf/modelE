@@ -70,6 +70,9 @@ c$$$#endif
       REAL*8 :: DT_XVfilter=0. ! V-filter is NOT used in E-W direction
       REAL*8 :: DT_YUfilter=0. ! U-filter is NOT used in N-S direction
       REAL*8 :: DT_YVfilter=0. ! V-filter is NOT used in N-S direction
+!     Target Coordinates for SCM 
+      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list   
+      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM 
 !@var QUVfilter: True if any of DT_[XY][UV]filter are not=0
       LOGICAL :: QUVfilter
 !@dbparam ang_uv =1 to conserve ang mom in UVfilter
