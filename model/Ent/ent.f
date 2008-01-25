@@ -135,25 +135,31 @@
       type(entcelltype) :: ecp
       !-----local--------
       type(patch),pointer :: pp
+      !TIMESTRUCT should be used once it is ready!
       real*8 :: time            !temp. for Phenology
       logical :: dailyupdate    !temp. for Phenology
-       
-      if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily, later use timestruct
+      logical :: monthlyupdate  !temp. for Phenology
+
+!temporay time contoroller
+      if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
          dailyupdate=.true.
       else 
          dailyupdate=.false.
       end if
-
+      if (mod(time,2592000.d0) .EQ. 0.d0) then !temporarily, 86400*30 =2592000 
+         monthlyupdate=.true.
+      else 
+         monthlyupdate=.false.
+      end if     
 
       !* Loop through patches
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         call photosynth_cond(dtsec, pp)
         call uptake_N(dtsec, pp) !?
-        !call growth(...)
-        call phenology_stats(dtsec,pp,dailyupdate)
+        call phenology_stats(time,dtsec,pp,dailyupdate)
         if (dailyupdate) then
-           call phenology_update(pp)
+           call phenology_update(dtsec,pp,dailyupdate,monthlyupdate)
            call litter(pp) 
         end if
 !        call litter(dtsec, pp) !Moved to call after phenology_update on daily time step.

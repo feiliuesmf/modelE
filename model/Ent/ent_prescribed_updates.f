@@ -170,7 +170,7 @@
           pp => pp%younger
         end do
       endif
- 
+
       call summarize_entcell(entcell)
 
       call entcell_update_shc(entcell)
@@ -208,6 +208,13 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 
       if (ASSOCIATED(pp)) then
 
+#ifdef PFT_MODEL_ENT
+        !* ALBEDO *!
+        if ( ASSOCIATED(pp%tallest) ) then ! update if have vegetation
+          call prescr_veg_albedo(hemi, pp%tallest%pft, 
+     &         jday, pp%albedo)
+        endif
+#else
         !* LAI *AND* BIOMASS - carbon pools *!
         laipatch = 0.d0         !Initialize for summing
         cpool(:) = 0.d0
@@ -247,7 +254,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           call prescr_veg_albedo(hemi, pp%tallest%pft, 
      &         jday, pp%albedo)
         endif
-
+#endif
       endif
       end subroutine prescr_phenology
 
