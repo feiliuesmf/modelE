@@ -1378,7 +1378,8 @@ ccc the following values are returned by PBL
       aij(i,j,ij_rauto)=aij(i,j,ij_rauto)+arauto
       aij(i,j,ij_clab)=aij(i,j,ij_clab)+aclab/nisurf
       aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp  
-      aij(i,j,ij_soilCpoolsum)=asoilCpoolsum/nisurf
+      aij(i,j,ij_soilCpoolsum)=aij(i,j,ij_soilCpoolsum)
+     &     + asoilCpoolsum/nisurf
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
       aij(i,j,ij_g27)=aij(i,j,ij_g27)+abetat/nisurf
       aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp

@@ -109,7 +109,6 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
       use ghy_com, only : ngm, imt, nlsn, LS_NFRAC
-      use ent_mod, only: PTRACE,NPOOLS,N_CASA_LAYERS,NLIVE,CARBON  !for soil bgc diags
 
 
       implicit none
@@ -215,8 +214,7 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad,betadl(ngm)
-      real*8 gpp,rauto,clab,dts,trans_sw
-      real*8 R_soil,soilCpools(PTRACE,NPOOLS,N_CASA_LAYERS)  !soil resp, C_org pools -PK  
+      real*8 gpp,dts,trans_sw
 
 ccc fractions of dry,wet,covered by snow canopy
 !@var fd effective fraction of dry canopy (=0 if dew)
@@ -348,7 +346,7 @@ C***
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
      &     ,ashg,atrg,betad,betat,ch
-     &     ,gpp,rauto,clab
+     &     ,gpp
      &     ,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
      &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
@@ -363,7 +361,6 @@ C***
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
      &     ,vs,vs0,tprime,qprime
-     &     ,R_soil,soilCpools
 
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
@@ -1775,7 +1772,7 @@ ccc normal case (both present)
 cddd      print '(a,10(e12.4))', 'ghy_temp_b ',
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 ccc accm0 was not called here in older version - check
-      call accm(0)
+      call accm(flag=0)
       do while ( dtr > 0.d0 )
         nit=nit+1
         if(nit.gt.limit)go to 900
@@ -1913,7 +1910,7 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
         call check_energy(1)
 
 
-        call accm
+        call accm(entcell)
         call reth
         call retp
 cddd      print '(a,i6,10(e12.4))', 'ghy_temp ', ijdebug,
@@ -1951,9 +1948,9 @@ C**** finalise surface tracer concentration here
 
       enddo
 
-      call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
-     &                     soilresp=R_soil, soilcpools=soilCpools)
-      call accm(1)
+!      call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
+!     &                     soilresp=R_soil, soilcpools=soilCpools)
+      call accm(flag=1)
       call hydra
       call wtab  ! for gcm diag. only
       return
@@ -1968,16 +1965,21 @@ C**** finalise surface tracer concentration here
       end subroutine advnc
 
 
-      subroutine accm( flag )
+      subroutine accm( entcell, flag )
 c**** accumulates gcm diagnostics
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c**** the following lines were originally called before retp,
 c**** reth, and hydra.
+      use ent_mod, only: PTRACE,NPOOLS,N_CASA_LAYERS,NLIVE,CARBON  !for soil bgc diags
+     &     ,entcelltype_public,ent_get_exports
+      type(entcelltype_public), optional :: entcell
       integer, intent(in), optional :: flag
       real*8 qsats
       real*8 cpfac,dedifs,dqdt,el0,epen,h0
-      integer k, ii, nn
+      real*8 rauto,clab
+      real*8 R_soil,soilCpools(PTRACE,NPOOLS,N_CASA_LAYERS)  !soil resp, C_org pools -PK  
+      integer k
 #ifdef TRACERS_WATER
       real*8 tot_w1
 #endif
@@ -2022,20 +2024,20 @@ ccc   max in the following expression removes extra drip because of dew
       aepb=aepb+( epb*(1.d0-fr_snow(1)) + epbs*fr_snow(1) )*fb*dts
 
       !Ent veg accumulators. nyk
-      !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
-      !## Need to pass fr_snow to Ent.
-!      agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
       agpp = agpp + gpp*dts
-      arauto = arauto + rauto*dts
-      aclab = clab !Instantaneous.
-      asoilresp = asoilresp + R_soil*dts  !accumulated soil respiration  
-      !instantaneous pool/column-integrated soil C_org (g/m2)
-      do nn=1,N_CASA_LAYERS
-       do ii=NLIVE+1,NPOOLS
-        asoilCpoolsum =  asoilCpoolsum + 
-     &                   soilCpools(CARBON,ii,nn)
-       end do 
-      end do
+      if ( present(entcell) ) then
+        call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
+     &       soilresp=R_soil, soilcpools=soilCpools)
+        !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
+        !## Need to pass fr_snow to Ent.
+!        agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
+        arauto = arauto + rauto*dts
+        aclab = clab            !Instantaneous.
+        asoilresp = asoilresp + R_soil*dts !accumulated soil respiration  
+        !instantaneous pool/column-integrated soil C_org (g/m2)
+        asoilCpoolsum =
+     &       sum( soilCpools(CARBON,NLIVE+1:NPOOLS,1:N_CASA_LAYERS) )
+      endif
      
       dedifs=f(2,1)*tp(2,1)
       if(f(2,1).lt.0.d0) dedifs=f(2,1)*tp(1,1)
