@@ -1710,6 +1710,8 @@ C**** First half of loop cycle for j=j_1 for internal blocks
           END DO
         ENDIF
       END DO       !LM
+
+!$OMP  END PARALLEL DO
 #else
       I=I_TARG
       J=J_TARG
@@ -1721,7 +1723,6 @@ C**** First half of loop cycle for j=j_1 for internal blocks
       END DO
 #endif
 
-!$OMP  END PARALLEL DO
 C
 CAOO      J=JM
       IF(HAVE_NORTH_POLE) THEN
