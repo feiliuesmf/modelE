@@ -1794,7 +1794,7 @@ ccc accm0 was not called here in older version - check
           call ent_set_forcings_single( entcell,
      &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
-     &         canopy_air_humidity=qsat(tp(0,2),lhe,pres),
+     &         canopy_air_humidity=qs ! actually Qf  qsat(tp(0,2),lhe,pres),
      &         surf_pressure=pres,
      &         surf_CO2=Ca, fol_CO2=1.d30,
  !    &       precip=pr,
