@@ -145,18 +145,20 @@
       !----Local------
       type(patch),pointer :: pp
 
+      if (.not.do_giss_lai) then
       ! update with external data first
-      if ( associated(laidata) )
-     &     call entcell_update_lai(entcell, laidata)
+        if ( associated(laidata) )
+     &       call entcell_update_lai(entcell, laidata)
 
-      if ( associated(hdata) )
-     &     call entcell_update_height(entcell, hdata)
-
-      if ( associated(albedodata) )
-     &     call entcell_update_albedo(entcell, albedodata)
-
-      if ( associated(cropsdata) )
-     &     call entcell_update_crops(entcell, cropsdata)
+        if ( associated(hdata) )
+     &       call entcell_update_height(entcell, hdata)
+        
+        if ( associated(albedodata) )
+     &       call entcell_update_albedo(entcell, albedodata)
+        
+        if ( associated(cropsdata) )
+     &       call entcell_update_crops(entcell, cropsdata)
+      endif
 
       ! and then do GISS phenology if required
       if ( do_giss_phenology ) then
@@ -165,6 +167,7 @@
         pp => entcell%oldest
         do while (ASSOCIATED(pp))
           !* LAI, ALBEDO *!
+          !print *,"Got here: Updating prescribed phenology.",do_giss_lai
           call prescr_phenology(jday,hemi, pp, do_giss_lai)
           call summarize_patch(pp)
           pp => pp%younger
@@ -187,7 +190,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       subroutine prescr_phenology(jday,hemi,pp,do_giss_lai)
       !* DAILY TIME STEP *!
       !* Calculate new LAI and albedo for given jday, for prescr vegetation. *!
-      !* TBA:  THIS ROUTINE WILL ALSO UPDATE LIVE BIOMASS POOLS.           *!
+      !* Update biomass pools.
       use ent_pfts
       use ent_prescr_veg, only : prescr_calc_lai,prescr_plant_cpools,
      &     prescr_veg_albedo
@@ -207,14 +210,6 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 !     &   ,hemi,present(laidata)
 
       if (ASSOCIATED(pp)) then
-
-#ifdef PFT_MODEL_ENT
-        !* ALBEDO *!
-        if ( ASSOCIATED(pp%tallest) ) then ! update if have vegetation
-          call prescr_veg_albedo(hemi, pp%tallest%pft, 
-     &         jday, pp%albedo)
-        endif
-#else
         !* LAI *AND* BIOMASS - carbon pools *!
         laipatch = 0.d0         !Initialize for summing
         cpool(:) = 0.d0
@@ -223,6 +218,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           if ( do_giss_lai ) then
             lai_old = cop%LAI
             cop%LAI = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
+            !print *,'Got here, updating LAI. LAI=', cop%LAI
             !* Calculate senescence factor for next time step litterfall routine.
             if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
               cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/lai_old)
@@ -254,7 +250,6 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
           call prescr_veg_albedo(hemi, pp%tallest%pft, 
      &         jday, pp%albedo)
         endif
-#endif
       endif
       end subroutine prescr_phenology
 

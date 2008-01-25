@@ -15,7 +15,8 @@
       private
       save
 
-      public ent_ecosystem_dynamics, ent_integrate_GISS, ent_biophysics
+      public ent_ecosystem_dynamics,  ent_biophysics
+      !public ent_integrate_GISS,
       public ent_integrate !Added by KIM
 
       contains
@@ -78,46 +79,45 @@
         end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
-      subroutine ent_integrate_GISS(ecp, dtsec)
+!      subroutine ent_integrate_GISS(ecp, dtsec)
 !@sum Ent biophysics/biogeochemistry - THIS SUBROUTINE WILL NOT BE NEEDED.
-      use reproduction
-      use cohorts
-      use patches
-      use biophysics, only : photosynth_cond
-      use growthallometry, only : uptake_N
-      use phenology, only : litter
-      use soilbgc, only : soil_bgc
-      use phenology, only : phenology_update
-      use canopyrad, only : recalc_radpar
-      use entcells, only : summarize_entcell, entcell_print
-
-      implicit none
-      type(entcelltype) :: ecp
-      real*8 :: dtsec  !dt in seconds
-!      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
-      !-----local--------
-      type(patch),pointer :: pp
-
-      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
-      do while (ASSOCIATED(pp)) 
-        call photosynth_cond(dtsec, pp)
-        call uptake_N(dtsec, pp) !Dummy
-        call litter(pp)  !Update litter pools
-        call soil_bgc(dtsec, pp)
-        pp%CO2flux = -pp%NPP + pp%Soil_resp
-        pp%age = pp%age + dtsec
-        call summarize_patch(pp)
-        pp => pp%younger  !changed to => (!) -PK 7/11/06
-      end do
-      call summarize_entcell(ecp)
-
-
-      end subroutine ent_integrate_GISS
+!      use reproduction
+!      use cohorts
+!      use patches
+!      use biophysics, only : photosynth_cond
+!      use growthallometry, only : uptake_N
+!      use phenology, only : litter
+!      use soilbgc, only : soil_bgc
+!      use phenology, only : phenology_update
+!      use canopyrad, only : recalc_radpar
+!      use entcells, only : summarize_entcell, entcell_print
+!
+!      implicit none
+!      type(entcelltype) :: ecp
+!      real*8 :: dtsec  !dt in seconds
+!!      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
+!      !-----local--------
+!      type(patch),pointer :: pp
+!
+!      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
+!      do while (ASSOCIATED(pp)) 
+!        call photosynth_cond(dtsec, pp)
+!        call uptake_N(dtsec, pp) !Dummy
+!        call litter(pp)  !Update litter pools
+!        call soil_bgc(dtsec, pp)
+!        pp%CO2flux = -pp%NPP + pp%Soil_resp
+!        pp%age = pp%age + dtsec
+!        call summarize_patch(pp)
+!        pp => pp%younger  !changed to => (!) -PK 7/11/06
+!      end do
+!      call summarize_entcell(ecp)
+!
+!      end subroutine ent_integrate_GISS
 
       !*********************************************************************
 
-      subroutine ent_integrate(dtsec, ecp, time)
-!@sum Ent biophysics/biogeochemistry
+      subroutine ent_integrate(dtsec, ecp, time, config)
+!@sum Ent biophysics/biogeochemistry/patch dynamics
       use reproduction
       use cohorts
       use patches
@@ -133,10 +133,12 @@
       real*8 :: dtsec  !dt in seconds
       !type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
+      real*8 :: time            !temp. for Phenology
+      type(ent_config) :: config
       !-----local--------
+      integer :: patchnum
       type(patch),pointer :: pp
       !TIMESTRUCT should be used once it is ready!
-      real*8 :: time            !temp. for Phenology
       logical :: dailyupdate    !temp. for Phenology
       logical :: monthlyupdate  !temp. for Phenology
 
@@ -146,6 +148,7 @@
       else 
          dailyupdate=.false.
       end if
+
       if (mod(time,2592000.d0) .EQ. 0.d0) then !temporarily, 86400*30 =2592000 
          monthlyupdate=.true.
       else 
@@ -153,32 +156,50 @@
       end if     
 
       !* Loop through patches
+      patchnum = 0
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
+        patchnum = patchnum + 1
         call photosynth_cond(dtsec, pp)
-        call uptake_N(dtsec, pp) !?
-        call phenology_stats(time,dtsec,pp,dailyupdate)
-        if (dailyupdate) then
-           call phenology_update(dtsec,pp,dailyupdate,monthlyupdate)
-           call litter(pp) 
-        end if
-!        call litter(dtsec, pp) !Moved to call after phenology_update on daily time step.
+
+        if (config%do_phenology) then
+          !call uptake_N(dtsec, pp) !?
+          !call growth(...)
+          call phenology_stats(dtsec,pp,dailyupdate,time)
+          if (dailyupdate) then
+            call phenology_update(dtsec,pp,dailyupdate,monthlyupdate)
+            call litter(pp) 
+          end if
+        endif
+
         call soil_bgc(dtsec, pp)
         pp%CO2flux = -pp%NPP + pp%Soil_resp
+
         pp%age = pp%age + dtsec
+
         call summarize_patch(pp)
+          !*********** DIAGNOSTICS FOR PLOTTING ********************!
+#define OFFLINE 1
+#ifdef OFFLINE          
+        call ent_diagnostics(patchnum, pp)
+#endif
+          !*********************************************************!
         pp => pp%younger 
       end do 
+
+      if (config%do_patchdynamics) then
+         !  call patch_dynamics(pp)
+      endif !do_patchdynamics
 
       call summarize_entcell(ecp)
 
 #ifdef DEBUG      !# DEBUG
       print *,"End of ent_biophysics"
       call entcell_print(6, ecp)
-      print *,"*"
-      !write(90,*) ecp%GCANOPY
-      !write(90,*) ecp%GCANOPY
-      !write(91,*) ecp%Ci
+#endif
+
+#ifdef OFFLINE
+      call ent_diagnostics_entcell(ecp)
 #endif
 
       end subroutine ent_integrate
@@ -200,8 +221,6 @@
       !---Local--------
       type(patch),pointer :: pp
       integer :: patchnum
-      integer tmp_pft
-      real*8  tmp_senescefrac
        
       patchnum = 0
       pp => ecp%oldest
@@ -219,26 +238,9 @@
         ! if ( dailyupdate ) call litter(pp) 
           
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
-          tmp_pft = -1
-          tmp_senescefrac = 0
-          if ( ASSOCIATED(pp%tallest) ) then
-            tmp_pft = pp%tallest%pft
-            tmp_senescefrac = pp%tallest%senescefrac
-          endif
-!#define OFFLINE 1
+#define OFFLINE 1
 #ifdef OFFLINE          
-          write(995,'(i5,3(1pe16.8),i5,100(1pe16.8))')  !Fluxes are positive up.
-     &         patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 
-     &         pp%cellptr%coszen,
-     &         tmp_pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
-     &         pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
-     &         pp%TRANS_SW,
-     &         pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
-     &         pp%NPP,pp%CO2flux,pp%GCANOPY,
-     &         tmp_senescefrac
-          if (pp%GPP.lt.0.d0) then
-            print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
-          endif
+          call ent_diagnostics(patchnum,pp)
 #endif
           !*********************************************************!
         else 
@@ -256,9 +258,6 @@
       print *,"End of ent_biophysics"
       call entcell_print(6, ecp)
       print *,"*"
-      !write(90,*) ecp%GCANOPY
-      !write(90,*) ecp%GCANOPY
-      !write(91,*) ecp%Ci
 #endif
       end subroutine ent_biophysics
       !*********************************************************************
@@ -318,5 +317,49 @@
 
 
 !*****************************************************************************
- 
+      subroutine ent_diagnostics(patchnum, pp)
+      !*********** DIAGNOSTICS FOR PLOTTING ********************!
+      implicit none
+      integer :: patchnum
+      type(patch),pointer :: pp
+      integer :: tmp_pft
+      real*8 :: tmp_senescefrac
+
+      tmp_pft = -1
+      tmp_senescefrac = 0
+      if ( ASSOCIATED(pp%tallest) ) then
+        tmp_pft = pp%tallest%pft
+        tmp_senescefrac = pp%tallest%senescefrac
+      endif
+!#define OFFLINE 1
+!#ifdef OFFLINE          
+      write(995,'(i5,3(1pe16.8),i5,100(1pe16.8))') !Fluxes are positive up.
+     &     patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 
+     &     pp%cellptr%coszen,
+     &     tmp_pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
+     &     pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
+     &     pp%TRANS_SW,
+     &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
+     &     pp%NPP,pp%CO2flux,pp%GCANOPY,
+     &     tmp_senescefrac
+      if (pp%GPP.lt.0.d0) then
+        print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
+      endif
+!#endif
+      end subroutine ent_diagnostics
+          !*********************************************************!
+
+      subroutine ent_diagnostics_entcell(ecp)
+      implicit none
+      type(entcelltype) :: ecp
+
+      write(996,*) ecp%area,ecp%IPARdir,ecp%IPARdif,ecp%LAI,ecp%fv
+     &     ,ecp%Tpool(CARBON,:,:)
+     &     ,ecp%C_fol, ecp%C_w, ecp%C_froot, ecp%C_root, ecp%C_lab
+     &     ,ecp%TRANS_SW
+     &     ,ecp%Ci, ecp%GPP,ecp%R_auto,ecp%Soil_resp
+     &     ,ecp%NPP,ecp%CO2flux,ecp%GCANOPY
+
+      end subroutine ent_diagnostics_entcell
+
       end module ent

@@ -32,13 +32,13 @@
       contains
 
       !*********************************************************************
-      subroutine phenology_stats(time,dtsec, pp, dailyupdate)
+      subroutine phenology_stats(dtsec, pp, dailyupdate,time)
 !@sum Update statstics for phneology_update    
-
-      real*8 :: time
-      real*8 :: dtsec           !dt in seconds
+      real*8,intent(in) :: dtsec           !dt in seconds
       type(patch) :: pp
       logical, intent(in) :: dailyupdate
+      real*8,intent(in) :: time
+      !--Local-----
       type(cohort), pointer :: cop
  
       !temperature constrain for cold-deciduous PFTs (Botta et al. 1997)

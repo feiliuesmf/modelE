@@ -447,7 +447,8 @@
       ! i.e. flags, array dimensions etc. They assumed to be constant
       ! during the run but may change from run to run
         logical do_soilresp       ! do soil respiration
-
+        logical do_phenology
+        logical do_patchdynamics
       end type ent_config
 
 

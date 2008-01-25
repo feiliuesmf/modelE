@@ -82,42 +82,42 @@
 !     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum
      &     ,3.27d0),            !Ponca Ntot/LA average (actually seasonal curve); Rd not large deviance from direct daily Ntot 
      &     pspartype(2          !SHRUB
-     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,.9d0               !1-leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,17d0               !Vmax25, CLM 
      &     ,9d0                !m, CLM
      &     ,.002d0              !b, CLM
      &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ),
      &     pspartype(2          !SAVANNA
-     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,.9d0               !1-leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,24d0               !Vmax25, CLM
      &     ,5d0                !m, CLM
      &     ,.002d0              !b, CLM
      &     ,4d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ),
      &     pspartype(2          !SHRUB
-     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,.9d0               !1-leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,17d0               !Vmax25, CLM 
      &     ,9d0                !m, CLM
      &     ,.002d0              !b, CLM
      &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ),
      &     pspartype(2          !SHRUB
-     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,.9d0               !1-leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,17d0               !Vmax25, CLM 
      &     ,9d0                !m, CLM
      &     ,.002d0              !b, CLM
      &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ),
      &     pspartype(2          !SHRUB
-     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,.9d0               !1-leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,17d0               !Vmax25, CLM 
      &     ,9d0                !m, CLM
      &     ,.002d0              !b, CLM
      &     ,2d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ),
      &     pspartype(2          !SHRUB
-     &     ,.9d0               !leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
+     &     ,.9d0               !1-leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
      &     ,17d0               !Vmax25, CLM 
      &     ,9d0                !m, CLM
      &     ,.002d0              !b, CLM
@@ -170,28 +170,28 @@
      &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004)
      &     ,9.d0               !m, CLM BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
-     &     ,0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ,6.7d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (20 mg-N/g-leaf)/(300 cm2/g-leaf) =6.7 g-N/m2-leaf
      &     ),
      &     pspartype(1          !6. EVERGRNEEDLE
      &     ,0.93d0               !leaf VIS 1-albedo,CLM NET all, Table 3.1 (Oleson, et al 2004)
      &     ,47.d0               !Vmax25, CLM NET temperate 51, NET boreal 43, Table 8.2 (Oleson, et al 2004)
      &     ,6.d0               !m, CLM NET all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
-     &     ,0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ,2.8d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997: (14 mg-N/g-leaf)/(50 cm2/g-leaf) = 2.8 g-N/m2-leaf
      &     ),
      &     pspartype(1          !7. TROPRAINF
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BET & BDT tropical, Table 3.1 (Oleson, et al 2004)
      &     ,75.d0               !Vmax25, CLM BET tropical 75, BDT tropical 40, Table 8.2 (Oleson, et al 2004)
      &     ,9.d0               !m, CLM BET & BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
-     &     ,0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ,8.0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (16 mg-N/g-leaf)/(200 cm2/g-leaf)=8 g-N/m2-leaf
      &     ),
      &     pspartype(2          !8. CROPS
      &     ,0.89d0               !leaf VIS 1-albedo,CLM Crop1 & Crop2, Table 3.1 (Oleson, et al 2004)
      &     ,50.d0               !Vmax25, CLM Crop1, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0               !m, CLM Crop1, Table 8.2 (Oleson, et al 2004)
+     &     ,9.d0                !m, CLM Crop1, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
-     &     ,0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
+     &     ,10.d0               !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (42 mg-N/g-leaf)/(400 cm2/g-leaf) =10.5 g-N/m2-leaf
      &     )
      &/)
 #endif

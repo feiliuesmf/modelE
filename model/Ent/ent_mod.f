@@ -131,17 +131,24 @@ cddd      end interface ent_cell_update
 
 !*************************************************************************
       subroutine ent_initialize(
-     &     do_soilresp
+     &     do_soilresp, do_phenology, do_patchdynamics
      &     )
 !@sum initializes Ent module. This subroutine should set all the flags
 !@+   and all the variables that are constant during the run.
       logical, optional :: do_soilresp
+      logical, optional :: do_phenology
+      logical, optional :: do_patchdynamics
 
       ! first set some defaults:
       config%do_soilresp = .false.
+      config%do_phenology = .false.
+      config%do_patchdynamics = .false.
 
       ! now overwrite defaults with explicitly passed values
       if ( present(do_soilresp) ) config%do_soilresp = do_soilresp
+      if ( present(do_phenology) ) config%do_phenology = do_phenology
+      if ( present(do_patchdynamics) ) config%do_patchdynamics = 
+     &     do_patchdynamics
 
       end subroutine ent_initialize
 
@@ -275,7 +282,7 @@ cddd      end interface ent_cell_update
 ! insert any needed input parameters here
      &     time) !KIM - for phenology:
                  !KIM - consiquently time is added in subroutines *_1d & *_2d 
-      use ent, only : ent_integrate_GISS, ent_integrate
+      use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
 !@+   Right now (before real dynamic vegetation is implemented)
@@ -294,11 +301,11 @@ cddd      end interface ent_cell_update
       
       !call ent_update_veg_structure( entcell%entcell, jday )
 
-#ifdef PFT_MODEL_ENT
-      call ent_integrate(dt, entcell%entcell, time) 
-#else
-      call ent_integrate_GISS(entcell%entcell,dt)
-#endif
+!#ifdef PFT_MODEL_ENT
+      call ent_integrate(dt, entcell%entcell, time,config) 
+!#else
+!      call ent_integrate_GISS(entcell%entcell,dt)
+!#endif
 
       end subroutine ent_seasonal_update_single
 

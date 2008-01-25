@@ -192,10 +192,11 @@
       vdata(:,:,:) = 0.d0
       call openunit("VEG",iu_VEG,.true.,.true.)
 
-      do k=1,N_COVERTYPES-2  !## Skip algae and grac4 #HACK
+      do k=1,N_COVERTYPES-N_OTHER  !## Skip algae and grac4 #HACK
+        print *,k
         read(iu_VEG) title , buf
         vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
-        !print *,"read VEG:", title
+        print *,"read VEG:", title
       end do
       !print *,"vdata", vdata(:,I0:I1,J0:J1) !#DEBUG
       call closeunit(iu_VEG)
