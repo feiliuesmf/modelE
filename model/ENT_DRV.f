@@ -19,7 +19,7 @@
       subroutine init_module_ent(iniENT, Jday, Jyear, focean1)
 !@sum initializes vegetation
       use param
-      use ent_com, only : entcells
+      use ent_com, only : entcells,Cint,Qfol,cnc_ij
       use model_com, only : focean
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
@@ -72,6 +72,13 @@
 
         call set_vegetation_data( entcells, ! (I_0:I_1,J_0:J_1),
      &       IM, JM, I_0, I_1, J_0, J_1, jday, jyear )
+
+        ! probably it is ok to initialize these here since 
+        ! if .not. iniENT we should read everything from restart file
+        Cint(:,:)=0.0127D0      ! internal CO2
+        Qfol(:,:)=3.D-6         ! surface mixing ratio
+        cnc_ij(:,:) = 0.d0
+
       endif
 
       ! the following parts of the code should be implemented

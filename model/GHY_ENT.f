@@ -1794,7 +1794,7 @@ ccc accm0 was not called here in older version - check
           call ent_set_forcings_single( entcell,
      &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
-     &         canopy_air_humidity=qs ! actually Qf  qsat(tp(0,2),lhe,pres),
+     &         canopy_air_humidity=Qf,  ! qsat(tp(0,2),lhe,pres),
      &         surf_pressure=pres,
      &         surf_CO2=Ca, fol_CO2=1.d30,
  !    &       precip=pr,
@@ -1820,7 +1820,7 @@ ccc unpack necessary data
      &         beta_soil_layers=betadl,
      &         shortwave_transmit=TRANS_SW,
      &         leafinternal_CO2=Ci,
-     &         foliage_humidity=Qf,
+!     &         foliage_humidity=Qf,
      &         canopy_gpp=GPP
      &         )
 
@@ -1836,7 +1836,7 @@ ccc unpack necessary data
           betadl = 0.d0
           TRANS_SW = 1.d0
           Ci = 0.d0
-          Qf = 0.d0
+!          Qf = 0.d0
           GPP = 0.d0
         endif
 
@@ -1921,6 +1921,14 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
 !!! insted of this call should compute Qf and pass it to Ent
 !!!        call update_veg_locals(evap_tot(2), rho, rhow, ch, vsm,qs)
+
+        !Qf=evap_tot(2)/(rho/rhow*ch*vsm)+qs ! - old
+        Qf=( evap_tot(2)/(rho/rhow*ch) + (vs-vs0)*qprime )/vs + qs
+
+! the above formula is based on:
+!        pot_evap_can = betat*rho3*ch*(
+!     &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+!     &                 -(vs-vs0)*qprime)
 
 #ifdef TRACERS_WATER
 C**** finalise surface tracer concentration here
