@@ -36,7 +36,8 @@
       end subroutine init_canopy_physical
       
 !***************************************************************************
-      subroutine prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini)
+      subroutine prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini
+     &     ,do_soilinit)
       !this routine reads in total soil pool amounts (measured), 
       !and individual soil pool fractions (modeled pft-dependent values from spinup runs),
       !then prescribes individual amounts **all carbon amounts should be in g/m2** -PK 12/07   
@@ -45,6 +46,7 @@
       real*8,intent(out) :: 
      &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  !prescribed soil pools, g/m2
      &                I0:I1,J0:J1)
+      logical,intent(in) :: do_soilinit
       !-----Local------
 !      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
       real*4 :: soilC_data(N_CASA_LAYERS,IM,JM)
@@ -54,47 +56,50 @@
       !real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
       real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
 
-!***for now define for 8 GISS pfts, one-layer only -PK 1/23/08***
-      Cpool_fracs(1,:,1) = (/   !tundra (for now=C3 grass)
-     & 0.001891469,0.078919906,0.000456561,0.016762327,0.,
-     & 0.009848682,0.014675189,0.692995043,0.184450822 /)
-      Cpool_fracs(2,:,1) = (/   !C3 grass (Vaira)
-     & 0.001891469,0.078919906,0.000456561,0.016762327,0.,
-     & 0.009848682,0.014675189,0.692995043,0.184450822 /)
-      Cpool_fracs(3,:,1) = (/   !shrub (for now=savanna)
-     & 0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
-     & 0.007522776,0.022795146,0.57388576,0.190450989 /)
-      Cpool_fracs(4,:,1) = (/   !savanna (Tonzi)
-     & 0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
-     & 0.007522776,0.022795146,0.57388576,0.190450989 /)
-      Cpool_fracs(5,:,1) = (/   !decid broadl (MMSF)
-     & 0.005387981,0.062119495,0.004371574,0.050484497,0.280263607,
-     & 0.007488613,0.032152921,0.406417963,0.151313349 /)
-      Cpool_fracs(6,:,1) = (/   !evergr needl (for now=decid broadl)
-     & 0.005387981,0.062119495,0.004371574,0.050484497,0.280263607,
-     & 0.007488613,0.032152921,0.406417963,0.151313349 /)
-      Cpool_fracs(7,:,1) = (/   !trop rainf (for now=decid broadl)
-     & 0.005387981,0.062119495,0.004371574,0.050484497,0.280263607,
-     & 0.007488613,0.032152921,0.406417963,0.151313349 /)
-      Cpool_fracs(8,:,1) = (/   !crops (for now=C3 grass)
-     & 0.001891469,0.078919906,0.000456561,0.016762327,0.,
-     & 0.009848682,0.014675189,0.692995043,0.184450822 /)
-!***      
       Tpool_ini(:,:,:,:,:,:) = 0.d0  !initialize all pools to zero
+
+      if (.not.do_soilinit) then
+        Cpool_fracs(:,:,:) = 0.d0
+      else
+!***  for now define for 8 GISS pfts, one-layer only -PK 1/23/08***
+        Cpool_fracs(1,:,1) = (/ !tundra (for now=C3 grass)
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822 /)
+        Cpool_fracs(2,:,1) = (/ !C3 grass (Vaira)
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822 /)
+        Cpool_fracs(3,:,1) = (/ !shrub (for now=savanna)
+     &       0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
+     &       0.007522776,0.022795146,0.57388576,0.190450989 /)
+        Cpool_fracs(4,:,1) = (/ !savanna (Tonzi)
+     &       0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
+     &       0.007522776,0.022795146,0.57388576,0.190450989 /)
+        Cpool_fracs(5,:,1) = (/ !decid broadl (MMSF)
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349 /)
+        Cpool_fracs(6,:,1) = (/ !evergr needl (for now=decid broadl)
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349 /)
+        Cpool_fracs(7,:,1) = (/ !trop rainf (for now=decid broadl)
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349 /)
+        Cpool_fracs(8,:,1) = (/ !crops (for now=C3 grass)
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822 /)
+!***  
+        !read in ISRIC-WISE 4x5 dataset      
+        call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.) !globally gridded binary dataset
+        read (iu_SOILCARB) title, soilC_data !data in kg/m2 (converted to g/m2 below)
       
-      !read in ISRIC-WISE 4x5 dataset      
-      call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.)  !globally gridded binary dataset
-      read (iu_SOILCARB) title, soilC_data  !data in kg/m2 (converted to g/m2 below)
-      
-      !assign Tpool_ini values (pft-specific)
-      do p=1,N_PFT
-       do n=1,N_CASA_LAYERS 
-        do nn=NLIVE+1,NPOOLS
-          Tpool_ini(p,CARBON,nn,n,I0:I1,J0:J1) =
-     &         Cpool_fracs(p,nn-NLIVE,n) * soilC_data(n,I0:I1,J0:J1)*1d3  
+        !assign Tpool_ini values (pft-specific)
+        do p=1,N_PFT
+          do n=1,N_CASA_LAYERS 
+            do nn=NLIVE+1,NPOOLS
+              Tpool_ini(p,CARBON,nn,n,I0:I1,J0:J1) =
+     &             Cpool_fracs(p,nn-NLIVE,n) * soilC_data(n,I0:I1,J0:J1)*1d3  
+            end do
+          end do
         end do
-       end do
-      end do
 
 !####temporary hack (for site-specific runs)####
 !for now, external file should be named as below and should be organized as follows:
@@ -115,15 +120,16 @@
 !       end do
 !      end do
 !####
-
-      call closeunit(iu_SOILCARB)
+        call closeunit(iu_SOILCARB)
+      endif !Read in initialization
 
       end subroutine prescr_soilpools
       
 !***************************************************************************
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
-     &     craddata,cpooldata,rootprofdata,soil_color,soil_texture)
+     &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
+     &     Tpooldata,do_soilinit)
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
@@ -138,6 +144,9 @@
       real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
       integer,intent(out) :: soil_color(N_COVERTYPES)
       real*8,intent(out) :: soil_texture(N_SOIL_TEXTURES,I0:I1,J0:J1)
+      real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
+     &     I0:I1,J0:J1):: Tpooldata !in g/m2 -PK
+      logical,intent(in) :: do_soilinit
       !-----Local------
 
       call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
@@ -156,7 +165,7 @@
       call prescr_get_soilcolor(soil_color)
       call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
-
+      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
       !print*,'hdata',hdata
       !print*,'nmdata',nmdata

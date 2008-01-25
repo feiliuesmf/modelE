@@ -142,19 +142,6 @@
       logical :: dailyupdate    !temp. for Phenology
       logical :: monthlyupdate  !temp. for Phenology
 
-!temporay time contoroller
-      if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
-         dailyupdate=.true.
-      else 
-         dailyupdate=.false.
-      end if
-
-      if (mod(time,2592000.d0) .EQ. 0.d0) then !temporarily, 86400*30 =2592000 
-         monthlyupdate=.true.
-      else 
-         monthlyupdate=.false.
-      end if     
-
       !* Loop through patches
       patchnum = 0
       pp => ecp%oldest 
@@ -163,6 +150,19 @@
         call photosynth_cond(dtsec, pp)
 
         if (config%do_phenology) then
+!temporay time contoroller
+          if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
+            dailyupdate=.true.
+          else 
+            dailyupdate=.false.
+          end if
+
+          if (mod(time,2592000.d0) .EQ. 0.d0) then !temporarily, 86400*30 =2592000 
+            monthlyupdate=.true.
+          else 
+            monthlyupdate=.false.
+          end if     
+
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
           call phenology_stats(dtsec,pp,dailyupdate,time)
@@ -236,10 +236,11 @@
         ! Litter is updated daily in ent_prescribe_vegupdates.
         ! is do_soilresp flag ok or different flag is needed ?
         ! if ( dailyupdate ) call litter(pp) 
-          
+
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
 #define OFFLINE 1
 #ifdef OFFLINE          
+          call summarize_patch(pp)
           call ent_diagnostics(patchnum,pp)
 #endif
           !*********************************************************!

@@ -46,24 +46,24 @@
       type(patch),pointer :: pp
       integer, intent(in) :: pft
       real*8 :: Ci_ini, CNC_ini
-      
-      !for prescribed soil C_org (or N) pools  -PK
-      integer :: i, n
       real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS) ::
      &         Tpool_ini  !in g/m2 -PK
+      !----Local-------
+      !for prescribed soil C_org (or N) pools  -PK
+      integer :: i, n
 
       pp%Ci = Ci_ini
       pp%GCANOPY = CNC_ini
 
-#ifdef PRESCR_SOILCARB  !PK 
+!#ifdef PRESCR_SOILCARB  !PK  - Condition should be unnecessary, since Tpool should at least be initialized to zero.
       do n=1,N_CASA_LAYERS 
        do i=NLIVE+1,NPOOLS
         pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
        end do
       end do
-#else
-      pp%Tpool(:,:,:) = 0.d0  
-#endif
+!#else
+!      pp%Tpool(:,:,:) = 0.d0  
+!#endif
 
 #ifdef OFFLINE  
 !      print*, 'soil C pools: ', pp%Tpool(:,CARBON,:,:)  !optional test -PK
