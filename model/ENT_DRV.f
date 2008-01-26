@@ -50,7 +50,9 @@
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
       ! ask Max if OK
       call ent_initialize(
-     &     do_soilresp=.false.
+     &     do_soilresp=.true.
+     &     ,do_phenology=.false.
+     &     ,do_patchdynamics=.false.
      &     )
 
       if (iniENT ) then
@@ -144,8 +146,8 @@ c**** check whether ground hydrology data exist at this point.
       integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
       real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture
       real*8, dimension(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
-      real*8, dimension(PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,I0:I1,J0:J1)::     
-     &     Tpool_ini
+      real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
+     &     I0:I1,J0:J1):: Tpool_ini
       !-----Local---------
       integer i,j
       real*8 heat_capacity
@@ -177,7 +179,7 @@ cddd      enddo
       call prescr_vegdata(jday, year, 
      &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
      &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
-     &     soildata,soil_texture)
+     &     soildata,soil_texture,Tpool_ini,.true.)
       !print *,"popdata in ent_GISS_init: ",popdata
       !vegdata(1:2,:,:) = 0.0
       !vegdata(3,:,:) = 1.0
@@ -186,7 +188,7 @@ cddd      enddo
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
 
       !!! hack
-      Tpool_ini = 0.d0
+      !!!Tpool_ini = 0.d0
 
       !Translate gridded data to Entdata structure
       !GISS data:  a patch per vegetation cover fraction, one cohort per patch

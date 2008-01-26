@@ -1714,7 +1714,7 @@ ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       !use vegetation, only: update_veg_locals
       use ent_mod, only: entcelltype_public, ent_set_forcings_single,
-     &     ent_get_exports, ent_fast_processes
+     &     ent_get_exports, ent_fast_processes, ent_seasonal_update
 !@var longi,latj corresponding coordinate of the cell
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
@@ -1809,7 +1809,8 @@ ccc accm0 was not called here in older version - check
 
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
-          call ent_fast_processes( entcell, dt )
+          !!! call ent_fast_processes( entcell, dt )
+          call ent_seasonal_update( entcell, dt, 0.d0) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
