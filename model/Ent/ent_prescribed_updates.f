@@ -167,7 +167,6 @@
         pp => entcell%oldest
         do while (ASSOCIATED(pp))
           !* LAI, ALBEDO *!
-          !print *,"Got here: Updating prescribed phenology.",do_giss_lai
           call prescr_phenology(jday,hemi, pp, do_giss_lai)
           call summarize_patch(pp)
           pp => pp%younger

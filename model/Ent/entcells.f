@@ -450,7 +450,7 @@
      &           cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
      &           cpooldata(ncov,HW),0.d0,
      &           cpooldata(ncov,LABILE),0.d0,
-     &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
+     &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,0.d0,0.d0,
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,0.d0, !added last 0 for R_root -PK 5/15/07
      &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0) !KIM-added for phenology/growth
           endif

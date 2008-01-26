@@ -363,7 +363,8 @@ c$$$     &           - Cactive * (1.0-(phenofactor-dphdt)) / ialloc
             cop%C_sw = Cactive *(h*qsw/ialloc)
             cop%C_froot = Cactive *(q/ialloc)  
             cop%C_lab = 0.001d0*( C_lab + dC_lab )  !g/individual -> kg/ind.
-   
+!            cop%C_repro = C_repro + dC_lab_repro  
+
             !update the dead pool
             Cdead= Cdead+dCdead
             cop%C_hw = Cdead * hw_fract
@@ -496,10 +497,10 @@ c$$$     &           - Cactive * (1.0-(phenofactor-dphdt)) / ialloc
             end if
 
             dCdead = gr_fract * (C_lab + dC_lab_growth)
-            dC_lab_growth = dc_lab_growth-
+!            dC_lab_repro = (r_fract+c_fract) * dC_lab_growth !Reproduction allocation should be (r_fract+c_fract)*NPP if NPP>0.0
+            dC_lab_growth = dC_lab_growth-
      &             (r_fract+c_fract+gr_fract)*(C_lab+dC_lab_growth) 
                    !(r_fract+c_fract)*C_lab to be saved for reproduction!
-           
          end if
       end if
 

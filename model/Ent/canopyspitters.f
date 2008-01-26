@@ -198,6 +198,7 @@
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
         call Respiration_autotrophic(dtsec, psdrvpar%Tc, cop)
+        call Allocate_NPP_to_labile(dtsec, cop)
 
         !* pp cohort flux summaries
         GCANOPYsum = GCANOPYsum + cop%GCANOPY
@@ -489,6 +490,38 @@
 
       end function Gs_from_Ci
 
+!################# NPP STORAGE ALLOCATION ######################################
+      subroutine Allocate_NPP_to_labile(dtsec,cop)
+!@sum Allocate_NPP_storage.  Allocates C_lab.
+!@sum If NPP is negative then C_lab is reduced by all of NPP, and if C_lab is
+!@sum is not enough, then the other biomass pools are reduced to compensate.
+!@sum Does not adjust LAI - TEMPORARY HACK.
+      real*8 :: dtsec
+      type(cohort) :: cop
+      !---Local-----
+      real*8 :: Cdiff
+
+      !* Accumulate uptake.*!
+      if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
+     &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
+        !Don't let C_lab go below zero.
+        cop%C_lab = EPS
+        !* NYK - TEMPORARY HACK - SHOULD CALL STRESS SUBROUTINE FOR SENESCENCE.
+        !*       Needs checks for negative NPP loss greater than C pools.
+        Cdiff = cop%NPP*dtsec/cop%n + (cop%C_lab - EPS)
+        cop%C_fol = cop%C_fol + 0.33d0*Cdiff
+        cop%C_froot = cop%C_froot + 0.33d0*Cdiff
+        cop%C_sw = cop%C_sw + 0.33d0*Cdiff
+        !cop%LAI = !should update
+      else
+!        if (cop%NPP.gt.0.d0) then
+!          cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
+!          cop%C_repro = cop%C_repro + 0.2d0*cop%NPP*dtsec/cop%n !(kg/individual) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
+!        else !Negative NPP is take only from C_lab
+          cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)          
+!        endif
+      endif
+      end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
 
       subroutine Respiration_autotrophic(dtsec,TcanopyC,cop)
@@ -500,7 +533,7 @@
       real*8,intent(in) :: TcanopyC
       type(cohort),pointer :: cop
       !----Local-----
-      real*8 :: Resp_maint, Cdiff
+      real*8 :: Resp_maint
 
       !NOTE: NEED TO FIX Canopy maintenance respiration for different
       !C:N ratios for the different pools.
@@ -524,22 +557,6 @@
      &     (Resp_maint+cop%R_root)/0.012D-6 )
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
-
-      !* Accumulate uptake. - * PUT THIS IN A SUBROUTINE OR FUNCTION C_lab_update
-      if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
-     &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
-        !Don't let C_lab go below zero.
-        cop%C_lab = EPS
-        !* NYK - TEMPORARY HACK - SHOULD CALL STRESS SUBROUTINE FOR SENESCENCE.
-        !*       Needs checks for negative NPP loss greater than C pools.
-        Cdiff = cop%NPP*dtsec/cop%n + (cop%C_lab - EPS)
-        cop%C_fol = cop%C_fol + 0.33d0*Cdiff
-        cop%C_froot = cop%C_froot + 0.33d0*Cdiff
-        cop%C_sw = cop%C_sw + 0.33d0*Cdiff
-        !cop%LAI = !should update
-      else
-        cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
-      endif
 
 !      write(96,*) TcanopyC,cop%GPP,cop%R_root,cop%R_auto,cop%C_fol
       end subroutine Respiration_autotrophic

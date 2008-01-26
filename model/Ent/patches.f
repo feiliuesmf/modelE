@@ -161,6 +161,8 @@
         pp%N_froot = pp%N_froot + (cop%N_froot) * nc
         pp%C_root = pp%C_root + (cop%C_froot + cop%C_croot) * nc
         pp%N_root = pp%N_root + (cop%N_froot + cop%N_croot) * nc
+!        pp%C_repro = pp%C_repro + cop%C_repro * nc 
+!        pp%N_repro = pp%N_repro + cop%N_repro * nc 
 
          !* FLUXES - TOTALS
         pp%Ci = pp%Ci + cop%Ci * cop%LAI !wtd average
@@ -261,6 +263,8 @@
       pp%N_froot = 0.d0
       pp%C_root = 0.d0
       pp%N_root = 0.d0
+!      pp%C_repro = 0.d0
+!      pp%N_repro = 0.d0
       pp%Ci = 0.d0
       pp%GCANOPY = 0.d0
       pp%GPP = 0.d0
@@ -476,7 +480,7 @@
       use cohorts, only : cohort_print
       integer, intent(in) :: iu
       type(patch), intent(in) :: pp
-      character*(*), optional, intent(in) :: prefix
+      character*(*), optional, intent(in) :: prefix !Optional text
       !---
       integer n, nc, m, i
       type(cohort),pointer :: cop

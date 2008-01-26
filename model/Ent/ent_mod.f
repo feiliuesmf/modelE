@@ -1189,6 +1189,8 @@ cddd      end subroutine ent_cell_update_single
       call copy_vars( buf(dc:), nn,  c%N_froot ,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%C_croot ,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%N_croot ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_repro ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_repro ,  flag ); dc = dc + nn
 
       n = dc
 

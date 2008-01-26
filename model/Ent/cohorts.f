@@ -12,8 +12,8 @@
       subroutine insert_cohort(pp,pft,n, h,
      &     nm,LAI,
      &     crown_dx, crown_dy,dbh, clump,LMA, root_d,fracroot,
-     &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
-     &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
+     &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw, C_lab, N_lab,
+     &     C_froot, N_froot, C_croot, N_croot, C_repro, N_repro,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix, 
      &     phenofactor_c, phenofactor_d, phenofactor, dphdt, CB_d) !KIM - 5 vars for phenology
@@ -26,6 +26,7 @@
       real*8 :: root_d,fracroot(N_DEPTH)
       real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
+     &     C_repro, N_repro,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
      &     phenofactor_c, phenofactor_d, phenofactor, dphdt, CB_d
@@ -45,6 +46,7 @@
      &       crown_dx, crown_dy,dbh, clump, LMA, root_d,fracroot,
      &       C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
+     &       C_repro, N_repro,
      &       Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &       N_up, C_to_Nfix,
      &       phenofactor_c, phenofactor_d, phenofactor, dphdt, CB_d)
@@ -132,6 +134,7 @@
      &     crown_dx, crown_dy,dbh, clump,LMA,root_d,fracroot,
      &     C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
+     &     C_repro, N_repro,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
      &     phenofactor_c, phenofactor_d, phenofactor, dphdt, CB_d)
@@ -145,6 +148,7 @@
      &     crown_dx, crown_dy,dbh, root_d, fracroot(:),clump,
      &     LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
+     &     C_repro, N_repro,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
      &     phenofactor_c, phenofactor_d, phenofactor, dphdt, CB_d
@@ -174,6 +178,8 @@
       cop%N_froot =  N_froot 
       cop%C_croot =  C_croot 
       cop%N_croot = N_croot
+      cop%C_repro =  C_repro
+      cop%N_repro = N_repro
       cop%Ci = Ci
       cop%GCANOPY =  GCANOPY 
       cop%GPP =  GPP 
@@ -244,6 +250,8 @@ cddd      end subroutine init_cohort_defaults
       cop%N_froot = 0.0
       cop%C_croot = 0.0
       cop%N_croot = 0.0
+      cop%C_repro = 0.0
+      cop%N_repro = 0.0
       
       !* FLUXES *!
       cop%Ci =  0.0127D0        !Initial value not zero.

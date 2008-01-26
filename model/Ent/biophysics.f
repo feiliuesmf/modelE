@@ -225,7 +225,7 @@
       real*8 :: TcanopyC,P_mbar,Ch,U,CosZen,Ca,betad,Qf
       real*8 :: GCANOPY,Ci,TRANS_SW,GPP ! ,NPP !,R_auto
       real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum,
-     &          R_rootsum  !PK 5/15/07
+     &          R_rootsum !, C_reprosum
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       real*8 :: Resp_maint      !Maintenance respiration temp variable
@@ -286,6 +286,7 @@
       R_autosum = 0.d0
       R_rootsum = 0.d0
       C_labsum = 0.d0
+!      C_reprosum = 0.d0
 
       !* LOOP THROUGH COHORTS *!
       cop => pp%tallest
@@ -383,7 +384,12 @@
           cop%C_sw = max(0.d0,cop%C_sw + 0.33d0*Cdiff)
           !cop%LAI = !should update
         else
-          cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
+!          if (cop%NPP.gt.0.d0) then
+!            cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
+!            cop%C_repro = cop%C_repro + 0.2d0*cop%NPP*dtsec/cop%n !(kg/individual) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
+!          else                  !Negative NPP is take only from C_lab
+            cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)          
+!          endif
         endif
 
         !* pp cohort flux summaries
@@ -394,7 +400,7 @@
         R_autosum = R_autosum + cop%R_auto
         R_rootsum = R_rootsum + cop%R_root  !PK 5/15/07
         C_labsum = C_labsum + cop%C_lab * cop%n !Sum for cohort.
-
+!        C_reprosum = C_reprosum + cop%C_repro * cop%n
         cop => cop%shorter
 
       end do
@@ -412,7 +418,7 @@
       !* Respiration should be from leaves and not draw down C_lab. ## Need to allocate respiration to leaves.##
 !      pp%C_lab = pp%C_lab + max(C_labsum, 0.d0)  !(kg/m2) ###Eventually need to convert to kg/individual.
       pp%C_lab = C_labsum!(kg/m2) ###Eventually need to convert to kg/individual.
-      
+!      pp%C_repro = C_reprosum
       end subroutine photosynth_cond
 
       !************************************************************************

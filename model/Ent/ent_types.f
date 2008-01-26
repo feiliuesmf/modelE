@@ -138,6 +138,8 @@
          real*8 :: N_froot        ! Fine root nitrogen
          real*8 :: C_croot        ! Coarse root carbon
          real*8 :: N_croot        ! Coarse root nitrogen
+         real*8 :: C_repro        ! Reproduction or seed carbon 
+         real*8 :: N_repro       ! Reproduction or seed nitrogen
          !real*8,pointer :: Bpool(PTRACE,NBpools) !Single plant pools of C and N. Replace previous non-array vars - NYK
 
          !* FLUXES (for whole cohort over area cover)
@@ -226,6 +228,8 @@
          real*8 :: N_froot        ! Fine root nitrogen
          real*8 :: C_root        ! Fine+coarse root carbon
          real*8 :: N_root        ! Fine+coarse root nitrogen
+!         real*8 :: C_repro      ! Reproduction or seed carbon
+!         real*8 :: N_repro      ! Reproduction or seed nitrogen
 
          !* EXPORT - FLUXES (whole patch)
          real*8 :: Ci             !*Internal foliage CO2 (mol/m3) 

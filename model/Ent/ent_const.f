@@ -123,14 +123,14 @@
 
       !************************************************************************
       !* COHORT Biomass pools
-      integer,parameter :: N_BPOOLS = 6 !foliage,sapwood,hardwood,labile, fine root,coarse root
+      integer,parameter :: N_BPOOLS = 7 !foliage,sapwood,hardwood,labile, fine root,coarse root
       integer,parameter :: FOL = 1   !FOLIAGE Array indices for array(N_BPOOLS)
       integer,parameter :: SW = 2    !SAPWOOD
       integer,parameter :: HW = 3    !HARDWOOD
       integer,parameter :: LABILE = 4 !LABILE
       integer,parameter :: FR = 5    !FINE ROOT
-      integer,parameter :: CR = 6    !COARSE ROOT
-
+      integer,parameter :: CR = 6 !COARSE ROOT
+      integer,parameter :: RP = 7 !REPRODUCTION
       !************************************************************************
       !* CASA SOIL CONSTANTS
       !* THESE SHOULD GO IN THE CASA MODULE BUT NEED TO BE USED IN ENT_TYPES.F
