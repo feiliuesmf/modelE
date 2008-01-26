@@ -129,7 +129,7 @@ c**** check whether ground hydrology data exist at this point.
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
       use ent_prescribed_drv, only : init_canopy_physical,prescr_vegdata
-      use ent_prescr_veg, only : prescr_calc_shc
+      use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       !Local variables
@@ -175,6 +175,8 @@ cddd      enddo
       !GISS data:  a patch per vegetation cover fraction, one cohort per patch
 !      call ent_cell_set(entcells, vegdata, popdata, laidata,
 !     &     hdata, nmdata, frootdata, soildata, albedodata, soil_texture)
+
+      call prescr_calcconst()
 
       call prescr_vegdata(jday, year, 
      &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
