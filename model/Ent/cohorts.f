@@ -41,7 +41,7 @@
       !* since most new cohorts will be shortest.
         !!ALLOCATE(newc)
         !!newc%pptr = pp
-        call cohort_construct(newc, pp, pft)
+      call cohort_construct(newc, pp, pft)
         call assign_cohort(newc,pft,n, h, nm, LAI,
      &       crown_dx, crown_dy,dbh, clump, LMA, root_d,fracroot,
      &       C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,

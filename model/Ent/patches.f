@@ -169,8 +169,8 @@
         pp%GCANOPY = pp%GCANOPY + cop%GCANOPY !total
         pp%GPP = pp%GPP + cop%GPP     !total
         pp%NPP = pp%NPP + cop%NPP     !total
-        pp%R_auto = pp%R_auto         !total
-        pp%R_root = pp%R_root         !total  !PK 5/15/07
+        pp%R_auto = pp%R_auto + cop%R_auto        !total
+        pp%R_root = pp%R_root + cop%R_root        !total 
         pp%N_up = pp%N_up + cop%N_up  !total
 !        pp%C_litter = pp%C_litter + cop%C_litter
 !        pp%N_litter = pp%N_litter + cop%N_litter  

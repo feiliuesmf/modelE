@@ -198,6 +198,7 @@
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
         call Respiration_autotrophic(dtsec, psdrvpar%Tc, cop)
+
         call Allocate_NPP_to_labile(dtsec, cop)
 
         !* pp cohort flux summaries
@@ -225,7 +226,7 @@
       !* Respiration should be from leaves and not draw down C_lab. ## Need to allocate respiration to leaves.##
 !      pp%C_lab = pp%C_lab + max(C_labsum, 0.d0)  !(kg/m2) ###Eventually need to convert to kg/individual.
       pp%C_lab = C_labsum!(kg/m2) ###Eventually need to convert to kg/individual.
-      
+
       end subroutine photosynth_cond
 
 
@@ -558,7 +559,6 @@
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 
-!      write(96,*) TcanopyC,cop%GPP,cop%R_root,cop%R_auto,cop%C_fol
       end subroutine Respiration_autotrophic
 
 !---------------------------------------------------------------------!
@@ -575,7 +575,7 @@
       real*8 :: T_k             !Temperature of canopy (Kelvin)
       real*8 :: n               !Density of individuals (no./m2)
       !---Local-------
-      real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
+      real*8,parameter :: k_CLM = 6.34d-07 *12.d0 !(s-1) rate from CLM. x12.d0 HACK##-nyk
 
       R_maint = pfpar(pft)%r * k_CLM * (C/CN) * 
      &     exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *

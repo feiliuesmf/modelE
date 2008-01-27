@@ -1117,7 +1117,9 @@
       real*8 :: n               !Density of individuals (no./m2)
       !---Local-------
       real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
-
+      !NOTE:  FBB version has 12.0 factor hack.  Friend CanopyResp based on
+      !       Ntot yields much larger maintenance respiration than that
+      !       based on CLM and C_fol.
       R_maint = pfpar(pft)%r * k_CLM * (C/CN) * 
      &     exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
      &     2.d6*n/28.5d0

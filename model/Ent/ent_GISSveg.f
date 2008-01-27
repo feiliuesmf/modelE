@@ -387,7 +387,7 @@ c**** calculate root fraction afr averaged over vegetation types
       do pft=1,N_PFT
         n = pft + COVEROFFSET
         if (pft.eq.GRASSC3) then
-          popdata(n) = 1.0      !Grass is just a large ensemble
+          popdata(n) = 1.0      !Grass ##HACK
         else
           wooddens = wooddensity_gcm3(pft)
           Blmax = 0.0419 * ((dbhdata(n))**1.56) * (wooddens**0.55)

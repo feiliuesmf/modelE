@@ -329,17 +329,19 @@
       type(patch),pointer :: pp
       !---Local------
       integer :: tmp_pft
-      real*8 :: tmp_senescefrac
+      real*8 :: tmp_n,tmp_senescefrac
       real*8 :: tmp_repro
       type(cohort),pointer :: cop
 
       tmp_pft = -1
+      tmp_n = -1
       tmp_senescefrac = 0.d0
       tmp_repro = 0.d0
 
       !call patch_print(6,pp)
       if ( ASSOCIATED(pp%tallest) ) then
         tmp_pft = pp%tallest%pft
+        tmp_n = pp%tallest%n
         tmp_senescefrac = pp%tallest%senescefrac
         cop => pp%tallest
         do while (ASSOCIATED(cop))
@@ -351,7 +353,7 @@
       write(995,'(i5,3(1pe16.8),i5,100(1pe16.8))') !Fluxes are positive up.
      &     patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 
      &     pp%cellptr%coszen,
-     &     tmp_pft,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
+     &     tmp_pft,tmp_n,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
      &     pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,tmp_repro,
      &     pp%TRANS_SW,
      &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,

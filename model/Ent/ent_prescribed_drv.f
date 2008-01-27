@@ -159,6 +159,7 @@
       call prescr_get_rootprof(rootprofdata)
       call prescr_get_woodydiameter(hdata,dbhdata)
       call prescr_get_pop(dbhdata,popdata)
+      print *,"popdata",popdata
       call prescr_get_crownrad(popdata,craddata)
       call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &     laidata,hdata,dbhdata,popdata,cpooldata)
