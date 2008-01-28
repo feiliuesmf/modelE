@@ -224,7 +224,7 @@ CCC      real*8 :: bgrid
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,u,v,t,q,e
 #if defined(TRACERS_ON)
-     &     ,tr,ptype
+     &     ,tr,ptype,trnradius,trndens,trnmm
 #endif
      &     )
 !@sum  advanc  time steps the solutions for the boundary layer variables
@@ -355,6 +355,7 @@ c  internals:
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
       real*8, intent(in) :: ptype
+      real*8, dimension(ntm), intent(in) :: trnradius,trndens,trnmm
       real*8, dimension(n,ntm), intent(inout) :: tr
 #endif
       
@@ -378,6 +379,7 @@ c**** other local vars
       real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1
       real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
+      real*8 :: tr_dens, tr_radius ! variable tracer density and size
       integer :: i,iter,ierr  !@var i,iter loop variable
 C****
       REAL*8,DIMENSION(n) :: z
@@ -633,7 +635,7 @@ C**** First, define some useful quantities
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts
-     &     ,pbl_args%dep_vel)
+     &     ,pbl_args%dep_vel,trnmm)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -643,6 +645,9 @@ C**** for all dry deposited tracers
 
 C**** loop over tracers
       do itr=1,pbl_args%ntx
+c     set tracer size and density (not necessarily constant anymore)
+         tr_radius = trnradius(itr)
+         tr_dens =   trndens(itr)
 C**** Define boundary conditions
 
 C****   1) default air mass tracers
@@ -677,9 +682,10 @@ C****   3) dry deposited tracers (including gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(pbl_args%ntix(itr))) then
 C****   get settling velocity
-          if (trradius(pbl_args%ntix(itr)).gt.0.) then
+    
+          if (trnradius(pbl_args%ntix(itr)).gt.0.) then
             pbl_args%gs_vel(pbl_args%ntix(itr))=vgs(rhosrf,rh1
-     &           ,pbl_args%ntix(itr))
+     &           ,pbl_args%ntix(itr),tr_radius,tr_dens)
           else
             pbl_args%gs_vel(pbl_args%ntix(itr))=0.
           end if

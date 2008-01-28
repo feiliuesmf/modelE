@@ -60,6 +60,20 @@
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE COSMO_SOURCES, only: be7_src_param
 #endif
+#if (defined TRACERS_AMP)
+      USE AERO_PARAM, only: DG_DD1, DG_DD2, DG_AKK,
+     & DG_DS1, DG_DS2, DG_SSA, DG_SSC, DG_ACC,
+     & DG_SSS, DG_OCC, DG_BC1, DG_BC2, DG_BC3,    
+     & DG_DBC, DG_BOC, DG_BCS, DG_OCS, DG_MXX,
+
+     & SOLU_DD1, SOLU_DD2, SOLU_AKK, SOLU_ACC,
+     & SOLU_DS1, SOLU_DS2, SOLU_SSA, SOLU_SSC,
+     & SOLU_SSS, SOLU_OCC, SOLU_BC1, SOLU_BC2, SOLU_BC3,    
+     & SOLU_DBC, SOLU_BOC, SOLU_BCS, SOLU_OCS, SOLU_MXX
+
+      USE AERO_ACTV, only: DENS_SULF, DENS_DUST, 
+     &          DENS_SEAS, DENS_BCAR, DENS_OCAR
+#endif
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
       integer :: l,k,kk,n,ntemp,n2,ltop,g,kr,n1
@@ -1447,7 +1461,7 @@ CCC#endif
 
 #endif  /* TRACERS_QUARZHEM */
 #endif  /* TRACERS_DUST */
-
+#ifdef TRACERS_AMP
 C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('H2SO4')
       n_H2SO4 = n
@@ -1465,7 +1479,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 62.
-          trpdens(n)=1.7d3
+          trpdens(n)=1.7d3   
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
@@ -1474,10 +1488,10 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 18.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)=1.7d3   
+          trradius(n)=3.d-7 
+          fq_aer(n)=1.   
+          tr_wd_TYPE(n) = nPART      
       case ('M_H2O')
       n_M_H2O = n
           ntm_power(n) = -4
@@ -1485,485 +1499,486 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = mwat
           trpdens(n)=1.d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART !nWater
+          fq_aer(n)=1.   
+          tr_wd_TYPE(n) = nPART !nWater     
       case ('M_AKK_SU')
       n_M_AKK_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 1
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_AKK * .5d-6
+          fq_aer(n)= SOLU_AKK 
           tr_wd_TYPE(n) = nPART
        case ('N_AKK_1')
       n_N_AKK_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_AKK * .5d-6
+          fq_aer(n) = SOLU_AKK
           tr_wd_TYPE(n) = nPART
        case ('M_ACC_SU')
       n_M_ACC_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 1
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)= DG_ACC * .5d-6
+          fq_aer(n) = SOLU_ACC
           tr_wd_TYPE(n) = nPART
        case ('N_ACC_1')
       n_N_ACC_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_ACC * .5d-6
+          fq_aer(n) = SOLU_ACC
           tr_wd_TYPE(n) = nPART
        case ('M_DD1_SU')
       n_M_DD1_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_DD1 * .5d-6
+          fq_aer(n) = SOLU_DD1
           tr_wd_TYPE(n) = nPART
        case ('M_DD1_DU')
       n_M_DD1_DU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.5d3
-          trradius(n)=0.5d-6
-          fq_aer(n)=0.
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DD1 * .5d-6
+          fq_aer(n)= SOLU_DD1
           tr_wd_TYPE(n) = nPART
        case ('N_DD1_1')
       n_N_DD1_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.5d3
-          trradius(n)=0.5d-6
-          fq_aer(n)=0.9
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DD1 * .5d-6
+          fq_aer(n)= SOLU_DD1
           tr_wd_TYPE(n) = nPART
        case ('M_DS1_SU')
       n_M_DS1_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_DS1 * .5d-6
+          fq_aer(n) = SOLU_DS1
           tr_wd_TYPE(n) = nPART
        case ('M_DS1_DU')
       n_M_DS1_DU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.5d3
-          trradius(n)=.5d-6
-          fq_aer(n)=1.
+          trpdens(n)= DENS_DUST                 
+          trradius(n)=DG_DS1 * .5d-6
+          fq_aer(n) = SOLU_DS1
           tr_wd_TYPE(n) = nPART
        case ('N_DS1_1')
       n_ N_DS1_1= n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=3.5d3
-          trradius(n)=.5d-6
-          fq_aer(n)=1.
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DS1 * .5d-6
+          fq_aer(n) = SOLU_DS1
           tr_wd_TYPE(n) = nPART
        case ('M_DD2_SU')
       n_M_DD2_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_DD2 * .5d-6
+          fq_aer(n) = SOLU_DD2
           tr_wd_TYPE(n) = nPART
        case ('M_DD2_DU')
       n_M_DD2_DU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.65d3
-          trradius(n)=1.5d-6
-          fq_aer(n)=0.
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DD2 * .5d-6
+          fq_aer(n)= SOLU_DD2 
           tr_wd_TYPE(n) = nPART
        case ('N_DD2_1')
       n_N_DD2_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.65d3
-          trradius(n)=1.5d-6
-          fq_aer(n)=0.9
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DD2 * .5d-6
+          fq_aer(n)= SOLU_DD2
           tr_wd_TYPE(n) = nPART
         case ('M_DS2_SU')
       n_M_DS2_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_DS2 * .5d-6
+          fq_aer(n) = SOLU_DS2
+          tr_wd_TYPE(n) = nPART 
       case ('M_DS2_DU')
       n_M_DS2_DU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.65d3
-          trradius(n)=1.5d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DS2 * .5d-6
+          fq_aer(n) = SOLU_DS2
+          tr_wd_TYPE(n) = nPART 
       case ('N_DS2_1')
       n_N_DS2_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.65d3
-          trradius(n)=1.5d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DS2 * .5d-6
+          fq_aer(n) = SOLU_DS2
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSA_SU')
       n_M_SSA_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_SSA * .5d-6
+          fq_aer(n) = SOLU_SSA
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSA_SS')
       n_M_SSA_SS = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 75.
-          trpdens(n)=2.2d3
-          trradius(n)=4.4d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SEAS
+          trradius(n)=DG_SSA * .5d-6
+          fq_aer(n) = SOLU_SSA
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSC_SS')
       n_M_SSC_SS = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 75.
-          trpdens(n)=2.2d3
-          trradius(n)=5.d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SEAS
+          trradius(n)=DG_SSC * .5d-6
+          fq_aer(n) = SOLU_SSC
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSS_SS')
       n_M_SSS_SS = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 75.
-          trpdens(n)=2.2d3
-          trradius(n)=5.d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SEAS
+          trradius(n)=DG_SSS * .5d-6
+          fq_aer(n) = SOLU_SSS
+          tr_wd_TYPE(n) = nPART 
       case ('M_SSS_SU')
       n_M_SSS_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 75.
-          trpdens(n)=2.2d3
-          trradius(n)=5.d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_SSS * .5d-6
+          fq_aer(n) = SOLU_SSS
+          tr_wd_TYPE(n) = nPART 
       case ('M_OCC_SU')
       n_M_OCC_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_OCC * .5d-6
+          fq_aer(n) = SOLU_OCC
+          tr_wd_TYPE(n) = nPART 
       case ('M_OCC_OC')
       n_M_OCC_OC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 1
           tr_mm(n) = 15.6
-          trpdens(n)=1.5d3
-          trradius(n)=3.d-7
-          fq_aer(n)=0.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_OCAR
+          trradius(n)=DG_OCC * .5d-6
+          fq_aer(n)= SOLU_OCC
+          tr_wd_TYPE(n) = nPART 
       case ('N_OCC_1')
       n_N_OCC_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.5d3
-          trradius(n)=3.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_OCAR
+          trradius(n)=DG_OCC * .5d-6
+          fq_aer(n)= SOLU_OCC
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC1_SU')
       n_M_BC1_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_BC1 * .5d-6
+          fq_aer(n) = SOLU_BC1
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC1_BC')
       n_M_BC1_BC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 1
           tr_mm(n) = 12.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=0.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BC1 * .5d-6
+          fq_aer(n)= SOLU_BC1
+          tr_wd_TYPE(n) = nPART 
       case ('N_BC1_1')
       n_N_BC1_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BC1 * .5d-6
+          fq_aer(n)= SOLU_BC1
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC2_SU')
       n_M_BC2_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_BC2 * .5d-6
+          fq_aer(n) = SOLU_BC2
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC2_BC')
       n_M_BC2_BC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 12.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BC2 * .5d-6
+          fq_aer(n) = SOLU_BC2
+          tr_wd_TYPE(n) = nPART 
       case ('N_BC2_1')
       n_N_BC2_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BC2 * .5d-6
+          fq_aer(n) = SOLU_BC2
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC3_SU')
       n_M_BC3_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_BC3 * .5d-6
+          fq_aer(n) = SOLU_BC3
+          tr_wd_TYPE(n) = nPART 
       case ('M_BC3_BC')
       n_M_BC3_BC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 12.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BC3 * .5d-6
+          fq_aer(n) = SOLU_BC3
+          tr_wd_TYPE(n) = nPART       
       case ('N_BC3_1')
       n_N_BC3_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.3d3
-          trradius(n)= 1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)= DG_BC3 * .5d-6
+          fq_aer(n) = SOLU_BC3
+          tr_wd_TYPE(n) = nPART 
       case ('M_DBC_SU')
       n_M_DBC_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_DBC * .5d-6
+          fq_aer(n) = SOLU_DBC
+          tr_wd_TYPE(n) = nPART 
       case ('M_DBC_BC')
       n_M_DBC_BC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_DBC * .5d-6
+          fq_aer(n)= SOLU_DBC
+          tr_wd_TYPE(n) = nPART 
       case ('M_DBC_DU')
       n_M_DBC_DU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.5D3
-          trradius(n)=.5d-6
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DBC * .5d-6
+          fq_aer(n)= SOLU_DBC
+          tr_wd_TYPE(n) = nPART 
       case ('N_DBC_1')
       n_N_DBC_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=0.5
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_DBC * .5d-6
+          fq_aer(n)= SOLU_DBC
+          tr_wd_TYPE(n) = nPART 
       case ('M_BOC_SU')
       n_M_BOC_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_BOC * .5d-6
+          fq_aer(n) = SOLU_BOC
+          tr_wd_TYPE(n) = nPART 
       case ('M_BOC_BC')
       n_M_BOC_BC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 12.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=0.6
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BOC * .5d-6
+          fq_aer(n)= SOLU_BOC
+          tr_wd_TYPE(n) = nPART 
       case ('M_BOC_OC')
       n_M_BOC_OC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6
-          trpdens(n)=1.5d3
-          trradius(n)=3.d-7
-          fq_aer(n)=0.6
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_OCAR
+          trradius(n)=DG_BOC * .5d-6
+          fq_aer(n)= SOLU_BOC
+          tr_wd_TYPE(n) = nPART 
       case ('N_BOC_1')
       n_N_BOC_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.5d3
-          trradius(n)=3.d-7
-          fq_aer(n)=0.6
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BOC * .5d-6
+          fq_aer(n)= SOLU_BOC
           tr_wd_TYPE(n) = nPART
       case ('M_BCS_SU')
       n_M_BCS_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_BCS * .5d-6
+          fq_aer(n) = SOLU_BCS
+          tr_wd_TYPE(n) = nPART       
       case ('M_BCS_BC')
       n_M_BCS_BC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 12.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BCS * .5d-6
+          fq_aer(n) = SOLU_BCS
+          tr_wd_TYPE(n) = nPART       
       case ('N_BCS_1')
       n_N_BCS_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_BCS * .5d-6
+          fq_aer(n) = SOLU_BCS
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_SU')
       n_M_MXX_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_MXX * .5d-6
+          fq_aer(n) = SOLU_MXX
           tr_wd_TYPE(n) = nPART
       case ('M_MXX_BC')
       n_M_MXX_BC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 12.
-          trpdens(n)=1.3d3
-          trradius(n)=1.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_BCAR
+          trradius(n)=DG_MXX * .5d-6
+          fq_aer(n) = SOLU_MXX
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_OC')
       n_M_MXX_OC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6
-          trpdens(n)=1.5d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_OCAR
+          trradius(n)=DG_MXX * .5d-6
+          fq_aer(n) = SOLU_MXX
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_DU')
       n_M_MXX_DU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=2.5d3
-          trradius(n)=.5d-6
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_DUST
+          trradius(n)=DG_MXX * .5d-6
+          fq_aer(n) = SOLU_MXX
+          tr_wd_TYPE(n) = nPART       
       case ('M_MXX_SS')
       n_M_MXX_SS = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 75.
-          trpdens(n)=2.2d3
-          trradius(n)=4.4d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SEAS
+          trradius(n)=DG_MXX * .5d-6
+          fq_aer(n) = SOLU_MXX
+          tr_wd_TYPE(n) = nPART       
       case ('N_MXX_1')
       n_N_MXX_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SEAS
+          trradius(n)=DG_MXX * .5d-6
+          fq_aer(n) = SOLU_MXX
+          tr_wd_TYPE(n) = nPART       
       case ('M_OCS_SU')
       n_M_OCS_SU = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 96.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_SULF
+          trradius(n)=DG_OCS * .5d-6
+          fq_aer(n) = SOLU_OCS
+          tr_wd_TYPE(n) = nPART       
       case ('M_OCS_OC')
       n_M_OCS_OC = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6
-          trpdens(n)=1.5d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
-          tr_wd_TYPE(n) = nPART
+          trpdens(n)= DENS_OCAR
+          trradius(n)=DG_OCS * .5d-6
+          fq_aer(n) = SOLU_OCS
+          tr_wd_TYPE(n) = nPART       
       case ('N_OCS_1')
       n_N_OCS_1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 1.
-          trpdens(n)=1.5d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.
+          trpdens(n)= DENS_OCAR
+          trradius(n)=DG_OCS * .5d-6
+          fq_aer(n) = SOLU_OCS
           tr_wd_TYPE(n) = nPART
+#endif /* TRACERS_AMP */
 #endif /* TRACERS_ON */
       end select
 
@@ -5446,14 +5461,14 @@ c NO3 clear sky longwave radiative forcing
 c#endif
 #ifdef TRACERS_AMP
         case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',!DS1,DD2
      *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',!DD2,DS2,SSA
-     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC
+     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC  
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',!BC1,BC2,BC3
      *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',!BC3,DBC
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC   
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',!BCS,MXX
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
      *    'M_OCS_OC','N_OCS_1 ','M_SSS_SS','M_SSS_SU')
@@ -6741,7 +6756,7 @@ c     end do
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c Surface industrial emissions
         k = k + 1
-        ijts_source(1,n) = k  ! 3dsource?
+        ijts_source(1,n) = k  
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Surf_src_'//trim(trname(n))

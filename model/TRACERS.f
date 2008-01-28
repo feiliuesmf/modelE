@@ -711,16 +711,16 @@ C****
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz,pmid,pk
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
-     *     ,trname
+     *     ,trname,trpdens
 #ifdef TRACERS_AMP
      *     ,AMP_MODES_MAP,ntmAMP
-      USE AERO_DIAM, only : DIAM
+      USE AMP_AEROSOL, only : DIAM, AMP_dens
 #endif
       USE TRDIAG_COM, only : tajls=>tajls_loc,jls_grav
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
-     *     ,vgs
+     *     ,vgs,tr_radius,tr_dens
       real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       integer n,najl,i,j,l
       integer :: J_0, J_1
@@ -736,12 +736,23 @@ C**** Gravitational settling
           do i=1,imaxj(j)
             fluxd=0.
             do l=lm,1,-1        ! loop down
+
+               tr_dens = trpdens(n)
+               tr_radius = trradius(n)
+
 #ifdef TRACERS_AMP
       if (n.le.ntmAMP) then
-      if(AMP_MODES_MAP(n).gt.0) 
-     &      trradius(n)=DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
+        if(AMP_MODES_MAP(n).gt.0) then
+        if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
+     &      tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
+
+          call AMPtrdens(i,j,l,n)
+
+          tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+
+        endif   
       endif 
-#endif         
+#endif  
               told(i,j,l)=trm(i,j,l,n)
 C**** air density + relative humidity (wrt water)
               press=pmid(l,i,j)
@@ -751,18 +762,13 @@ C**** air density + relative humidity (wrt water)
 
 C**** calculate stoke's velocity (including possible hydration effects
 C**** and slip correction factor)
-              stokevdt=dtsrc*vgs(airden,rh,n)
+              stokevdt=dtsrc*vgs(airden,rh,n,tr_radius,tr_dens)
 
               fluxu=fluxd       ! from previous level
 
 C**** Calculate height differences using geopotential
               if (l.eq.1) then  ! layer 1
                 fgrfluxd=0.     ! calc now done in PBL
-c               fgrfluxd=stokevdt*grav/(gz(i,j,l)-zatmo(i,j))
-c#ifdef TRACERS_DRYDEP
-c               taijn(i,j,tij_gsdep,n) = taijn(i,j,tij_gsdep,n) +
-c     *             fgrfluxd*trm(i,j,l,n)*bydxyp(j)
-c#endif
               else              ! above layer 1
                 fgrfluxd=stokevdt*grav/(gz(i,j,l)-gz(i,j,l-1))
               end if
@@ -770,11 +776,11 @@ c#endif
               trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu
               if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu
               trmom(zmoms,i,j,l,n) = trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
+              
             end do
           end do
           end do
 !$OMP END PARALLEL DO
-
           najl = jls_grav(n)
           IF (najl > 0) THEN
             do l=1,lm
@@ -790,16 +796,16 @@ C****
       return
       end subroutine trgrav
 
-      REAL*8 FUNCTION vgs(airden,rh1,n)
+      REAL*8 FUNCTION vgs(airden,rh1,n,tr_radius,tr_dens)
 !@sum vgs returns settling velocity for tracers (m/s)
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : visc_air,by3,pi,gasc,avog,rt2,deltx
      *     ,mair,grav
       USE MODEL_COM, only : itime
-      USE TRACER_COM, only : itime_tr0,trradius,trpdens,trname
+      USE TRACER_COM, only : itime_tr0,trname
       IMPLICIT NONE
       real*8, parameter :: s1=1.247d0, s2=0.4d0, s3=1.1d0
-      real*8, intent(in) ::  airden,rh1
+      real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
       integer, intent(in) :: n
@@ -809,7 +815,7 @@ C****
       real*8 r_h,den_h,rh
 #endif
 C**** calculate stoke's velocity
-      vgs=2.*grav*trpdens(n)*trradius(n)**2/(9.*visc_air)
+      vgs=2.*grav*tr_dens*tr_radius**2/(9.*visc_air)
 
 #ifdef TRACERS_AEROSOLS_Koch
 c need to hydrate the sea salt before determining settling
@@ -819,11 +825,11 @@ c need to hydrate the sea salt before determining settling
      *     then
         rh=max(0.01d0,min(rh1,0.99d0))
 c hydrated radius
-        r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
-     *       + trradius(n)**3)**by3
+        r_h=(c1*tr_radius**(c2)/(c3*tr_radius**(c4)-log10(rh))
+     *       + tr_radius**3)**by3
 c hydrated density
-        den_h=((r_h**3 - trradius(n)**3)*1000.d0
-     *       + trradius(n)**3*trpdens(n))/r_h**3
+        den_h=((r_h**3 - tr_radius**3)*1000.d0
+     *       + tr_radius**3*tr_dens)/r_h**3
         vgs=2.*grav*den_h*r_h**2/(9.*visc_air)
       end if
 #endif
@@ -831,7 +837,7 @@ C**** slip correction factor
 c wmf is the additional velocity if the particle size is small compared
 c   to the mean free path of the air; important in the stratosphere
       frpath=1d-3*mair/(pi*rt2*avog*airden*(dair)**2.)
-      wmf=frpath/trradius(n)*(s1+s2*exp(-s3*trradius(n)/frpath))
+      wmf=frpath/tr_radius*(s1+s2*exp(-s3*tr_radius/frpath))
       vgs=(1.d0+wmf)*vgs
 C****
       return

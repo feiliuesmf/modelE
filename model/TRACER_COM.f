@@ -298,16 +298,16 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       integer, parameter :: ntm=56,ntmAMP=51,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',!DS1,DD2
      *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',!DD2,DS2,SSA
-     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC
+     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC  
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',!BC1,BC2,BC3
      *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',!BC3,DBC
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC   
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',!BCS,MXX
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',  
      *    'DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,1 ,1,  !AKK
@@ -334,12 +334,37 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0 ,0 ,15,0 ,0 , !BCS,MXX
      *    0 ,0 , 0,16/)
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,16,17,18,19,20,
-     *    21,      24,   26,27,28,29,30,
+     *    21,      24,   26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44,45,46,47,48,49,50,
      *    51,52,53,54   /)
+
+      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !AKK
+     *    6 ,6 ,8 ,8 ,8,  !ACC,DD1
+     *    11,11,11,14,14, !DS1,DD2
+     *    14,17,17,17,20, !DD2,DS2,SSA
+     *    20,22,          !SSA,SSC
+     *    23,23,23,26,26, !OCC,BC1
+     *    26,29,29,29,32, !BC1,BC2,BC3
+     *    32,32,35,35,35, !BC3,DBC
+     *    35,39,39,39,39, !DBC,BOC
+     *    43,43,43,46,46, !BCS,MXX
+     *    46,46,46,46/)
+      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !AKK
+     *    6 ,6 ,9 ,9 ,9,  !ACC,DD1
+     *    12,12,12,15,15, !DS1,DD2
+     *    15,18,18,18,21, !DD2,DS2,SSA
+     *    21,22,          !SSA,SSC
+     *    24,24,24,27,27, !OCC,BC1
+     *    27,30,30,30,33, !BC1,BC2,BC3
+     *    33,33,37,37,37, !BC3,DBC
+     *    37,41,41,41,41, !DBC,BOC
+     *    44,44,44,50,50, !BCS,MXX
+     *    50,50,50,50/)
 #endif
 #ifdef TRACERS_AMP_M2
       integer, parameter :: ntm=56,ntmAMP=51,ntm_dust=4
@@ -354,7 +379,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    'M_OCS_OC','N_OCS_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
      *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',      
      *    'DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,1 ,1,  !AKK
@@ -376,21 +401,46 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0 ,0,           !SSA,SSC
      *    0 ,0 ,9 ,0 , 0, !OCC,BC1
      *    10,0 ,0 ,11,0 , !BC1,BC2,OSC
-     *    0 ,12,0 ,0 ,0 , !BC3,DBC
+     *    0 ,12,0 ,0 ,0 , !DBC
      *    13,0 ,0 ,0 ,14, !DBC,BOC
      *    0 ,0 ,15,0 ,0 , !BCS,MXX
      *    0 ,0 ,0 ,16/)
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,16,17,18,19,20,
-     *    21,      24,  26,27,28,29,30,
+     *    21,      24,  26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44,45,46,47,48,49,50,
      *    51,52,53,54   /)
+
+      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !AKK
+     *    6 ,6 ,8 ,8 ,8,  !ACC,DD1
+     *    11,11,11,14,14, !DS1,DD2
+     *    14,17,17,17,20, !DD2,DS2,SSA
+     *    20,22,          !SSA,SSC
+     *    23,23,23,26,26, !OCC,BC1
+     *    26,29,29,29,32, !BC1,BC2
+     *    32,32,35,35,35, !OSC,DBC
+     *    35,39,39,39,39, !DBC,BOC
+     *    43,43,43,46,46, !BCS,MXX
+     *    46,46,46,46/)
+      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !AKK
+     *    6 ,6 ,9 ,9 ,9,  !ACC,DD1
+     *    12,12,12,15,15, !DS1,DD2
+     *    15,18,18,18,21, !DD2,DS2,SSA
+     *    21,22,          !SSA,SSC
+     *    24,24,24,27,27, !OCC,BC1
+     *    27,30,30,30,33, !BC1,BC2
+     *    33,33,37,37,37, !OCS,DBC
+     *    37,41,41,41,41, !DBC,BOC
+     *    44,44,44,50,50, !BCS,MXX
+     *    50,50,50,50/)
 #endif
 #ifdef TRACERS_AMP_M3
       integer, parameter :: ntm=46,ntmAMP=41,ntm_dust=4
-      character*8, parameter :: trname(ntm)=(/
+      character*8, parameter :: trname(ntm)=(/     
      *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',
      *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
@@ -399,7 +449,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BOC_SU',
      *    'M_BOC_BC','M_BOC_OC','N_BOC_1 ','M_MXX_SU','M_MXX_BC',
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',  
      *    'DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,1 ,1,  !AKK
@@ -422,22 +472,45 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0 ,0 ,12,0 ,0 , !BOC,MXX
      *    0 ,0 ,0 ,13/)
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15      ,18   ,20,
-     *    21,22,23,24,25,26,27,28,29,30,
+     *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44  /)
+
+      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !AKK
+     *    6 ,6 ,8 ,8 ,8,  !ACC,DD1
+     *    11,11,11,14,14, !DS1,DD2
+     *    14,17,17,17,20, !DD2,DS2,SSA
+     *    20,22,          !SSA,SSC
+     *    23,23,23,26,26, !OCC,BC1
+     *    26,29,29,29,32, !BC1,BC2,BOC
+     *    32,32,32,36,36, !BOC,MXX
+     *    36,36,36,36/)
+
+      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !AKK
+     *    6 ,6 ,9 ,9 ,9,  !ACC,DD1
+     *    12,12,12,15,15, !DS1,DD2
+     *    15,18,18,18,21, !DD2,DS2,SSA
+     *    21,22,          !SSA,SSC
+     *    24,24,24,27,27, !OCC,BC1
+     *    27,30,30,30,34, !BC1,BC2,BOC
+     *    34,34,34,40,40, !BOC,MXX
+     *    40,40,40,40/)
+ 
 #endif
 #ifdef TRACERS_AMP_M4
       integer, parameter :: ntm=39,ntmAMP=34,ntm_dust=4
-      character*8, parameter :: trname(ntm)=(/
-     *    'M_NO3   ','M_NH4   ','M_H2O   ','M_ACC_SU','N_ACC_1 ',
-     *    'M_DD1_SU','M_DD1_DU','N_DD1_1 ','M_DS1_SU','M_DS1_DU',
-     *    'N_DS1_1 ','M_DD2_SU','M_DD2_DU','N_DD2_1 ','M_DS2_SU',
-     *    'M_DS2_DU','N_DS2_1 ','M_SSS_SU','M_SSS_SS',
-     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',
-     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_MXX_SU',
-     *    'M_MXX_BC','M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ',
+      character*8, parameter :: trname(ntm)=(/     
+     *    'M_NO3   ','M_NH4   ','M_H2O   ','M_ACC_SU','N_ACC_1 ',  
+     *    'M_DD1_SU','M_DD1_DU','N_DD1_1 ','M_DS1_SU','M_DS1_DU',  
+     *    'N_DS1_1 ','M_DD2_SU','M_DD2_DU','N_DD2_1 ','M_DS2_SU',  
+     *    'M_DS2_DU','N_DS2_1 ','M_SSS_SU','M_SSS_SS',             
+     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',  
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_MXX_SU',  
+     *    'M_MXX_BC','M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ',  
      *    'H2SO4   ','DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,1 ,1,  !ACC
@@ -458,26 +531,43 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0, 0, 0 ,0 ,9  !MXX
      *    /)
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,16,17,18,19,
-     *    21,22,23,24,25,26,27,28,29,30,
+     *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35   /)
+      integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !ACC
+     *    6 ,6 ,6 ,9 ,9,  !DD1
+     *    9 ,12,12,12,15, !DS1,DD2
+     *    15,15,18,18,    !DD2,DS2,SSA
+     *    20,20,20,23,23, !SSA,SSC
+     *    23,26,26,26,29, !OCC,BC1
+     *    29,29,29,29,29/)
 
+      integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
+     *    0 ,0 ,0 ,4 ,4,  !ACC
+     *    7 ,7 ,7 ,10,10,  !DD1
+     *    10,13,13,13,16, !DS1,DD2
+     *    16,16,19,19,    !DD2,DS2,SSA
+     *    21,21,21,24,24, !SSA,SSC
+     *    24,27,27,27,33, !OCC,BC1
+     *    33,33,33,33,33/)
+ 
 #endif
 #ifdef TRACERS_AMP_M5
       integer, parameter :: ntm=50,ntmAMP=45,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ',                      !DS1
      *    'M_SSA_SU',                                            !SSA
-     *    'M_SSA_SS','M_SSC_SS',                                 !SSA,SSC
+     *    'M_SSA_SS','M_SSC_SS',                                 !SSA,SSC  
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',!BC1,BC2,BC3
      *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',!BC3,DBC
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC   
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',!BCS,MXX
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',  
      *    'DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,1 ,1,  !AKK
@@ -504,9 +594,9 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0, 0, 13,0 ,0, !BCS,MXX
      *    0,0,0,14/)
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,      18,   20,
-     *    21,22,23,24,25,26,27,28,29,30,
+     *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44,45,46,47,48   /)
 #endif
@@ -514,16 +604,16 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       integer, parameter :: ntm=50,ntmAMP=45,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ',                      !DS1
      *    'M_SSA_SU',                                            !SSA
-     *    'M_SSA_SS','M_SSC_SS',                                 !SSA,SSC
+     *    'M_SSA_SS','M_SSC_SS',                                 !SSA,SSC  
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_OCS_SU',!BC1,BC2,OCS
      *    'M_OCS_OC','N_OCS_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',!OCS,DBC
-     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC
+     *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC   
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',!BCS,MXX
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',  
      *    'DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,1 ,1,  !AKK
@@ -550,9 +640,9 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0 ,0 ,13,0 ,0 , !BCS,MXX
      *    0 ,0 ,0 ,14/)
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,      18,   20,
-     *    21,22,23,24,25,26,27,28,29,30,
+     *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44,45,46,47,48   /)
 #endif
@@ -560,15 +650,15 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       integer, parameter :: ntm=40,ntmAMP=35,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ',                      !DS1
      *    'M_SSA_SU',                                            !SSA
-     *    'M_SSA_SS','M_SSC_SS',                                 !SSA,SSC
+     *    'M_SSA_SS','M_SSC_SS',                                 !SSA,SSC  
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ',           !BC1,BC2
-     *    'M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',           !BOC
+     *    'M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',           !BOC   
      *    'M_MXX_SU','M_MXX_BC',                                 !MXX
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',  
      *    'DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,1 ,1,  !AKK
@@ -593,23 +683,23 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    0, 0,          !MXX
      *    0, 0, 0,11/)   !MXX
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
      *    11,12,13,14,15,      18,   20,
-     *    21,22,23,24,25,26,27,28,29,30,
+     *    21,22,23,24,25,26,27,28,29,30,        
      *    31,32,33,34,35,36,37,38/)
 #endif
 #ifdef TRACERS_AMP_M8
       integer, parameter :: ntm=33,ntmAMP=28,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'M_NO3   ','M_NH4   ','M_H2O   ',
-     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
+     *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1  
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ',                      !DS1
      *    'M_SSS_SU',                                            !SSS
      *    'M_SSS_SS',                                            !SSS
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
-     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ',           !BC1,BC2
+     *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ',           !BC1,BC2  
      *    'M_MXX_SU','M_MXX_BC',                                 !MXX
-     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',
+     *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','H2SO4   ',  
      *    'DMS     ','SO2     ','H2O2_s  ','NH3     '/)
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,       !
@@ -630,11 +720,11 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *    6, 0, 0, 7, 0,  !BC1,BC2
      *    0,0,0,0,8,/)    !MXX
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,
-     *    6 ,7 ,8 ,9 ,10,
-     *    11,12,13,15,16,
+     *    1 ,2 ,3 ,4 ,5 ,        
+     *    6 ,7 ,8 ,9 ,10,        
+     *    11,12,13,15,16,        
      *    17,18,19,20,21,
-     *    22,23,24,25,26,
+     *    22,23,24,25,26,        
      *    27,28,29   /)
 #endif
 #else

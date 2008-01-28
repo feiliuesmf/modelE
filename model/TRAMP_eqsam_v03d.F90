@@ -146,8 +146,8 @@ implicit none
 !___________________________________________________________________________________________________________________________________
 real,parameter                                :: RH_HIST_DW=1.50                                    ! mean value for mixture of wet (2) and dry (1) gridboxes (needed for HYSTERESIS)
 real,parameter                                :: T0=298.15,T1=298.0,AVO=6.03e23,R=82.0567e-6,     & ! in cu.m*atm/deg/mole
-                                                 r_kcal  = 1.986E-3, TINY= 1.e-5                                 ! Ideal gas constant [kcal K-1.mole-1]
-real,parameter                                :: RHMAX=1.- TINY,RHMIN=0.0001                            ! restrict to max / min RH
+                                                 r_kcal  = 1.986E-3                                 ! Ideal gas constant [kcal K-1.mole-1]
+real,parameter                                :: RHMAX=0.99,RHMIN=0.0001                            ! restrict to max / min RH
 real,parameter                                :: MWNH4=18.,MWSO4=96.,MWNO3=62.,MWCl=35.5            ! mole mass of species considered
 real,parameter                                :: MWNa=23.0,MWCa=40.1,MWN=14.0, MWS=32.1
 real,parameter                                :: MWH20=55.51*18.01,ZERO=0.0
@@ -679,7 +679,7 @@ do il=1,loop
       yo(il,20) = PNO3                                                ! particulate nitrate  (p=a+s)     [umol/m^3]
       yo(il,21) = PSO4                                                ! particulate sulfate  (p=a+s)     [umol/m^3]
       yo(il,22) = RATIONS                                             ! mol ratio Nitrate/Sulfate (p)           [-]
-      yo(il,23) = GAMA                                                ! activity coefficient (e.g. NH4NO3)     [-]
+      yo(il,23) = GAMA                                                ! activity coefficient (e.g. NH4NO3)           [-]
       yo(il,24) = ZIONIC                                              ! ionic strength (aq)                [mol/kg]
       yo(il,26) = PMt                                                 ! total PM (liquids & solids)        [ug/m^3]
       yo(il,27) = PMs                                                 ! total PM (solid)                   [ug/m^3]

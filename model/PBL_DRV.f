@@ -36,6 +36,12 @@
       USE PBLCOM
       use QUSDEF, only : mz
       use SOMTQ_COM, only : tmom
+      USE TRACER_COM, only: trradius,trpdens,ntm,tr_mm
+#ifdef TRACERS_AMP
+     & ,AMP_MODES_MAP,ntmAMP
+      USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
+#endif
+ 
  
       IMPLICIT NONE
 
@@ -49,7 +55,7 @@
       REAL*8 Ts,ts_guess
 
 #ifdef TRACERS_ON
-      integer nx
+      integer nx,n
 #endif
 c
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
@@ -105,6 +111,7 @@ c
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(npbl,pbl_args%ntx) :: tr
+      real*8, dimension(ntm) :: trnradius,trndens,trnmm
 #endif
 
 ccc extract data needed in driver from the pbl_args structure
@@ -239,10 +246,31 @@ c     ENDIF
       tpbl(:)=tabl(:,i,j,itype)
       qpbl(:)=qabl(:,i,j,itype)
       epbl(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
+
 #ifdef TRACERS_ON
       do nx=1,pbl_args%ntx
         tr(:,nx)=trabl(:,pbl_args%ntix(nx),i,j,itype)
       end do
+
+      do n = 1,ntm
+           trnradius(n) = trradius(n)
+           trndens(n)   = trpdens(n)
+           trnmm(n)     = tr_mm(n)
+#ifdef TRACERS_AMP
+      if (n.le.ntmAMP) then
+        if(AMP_MODES_MAP(n).gt.0) then
+           if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.)
+     &        trnradius(n)=DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
+       
+           call AMPtrdens(i,j,l,n)
+           call AMPtrmass(i,j,l,n)
+
+          trndens(n) =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+          trnmm(n)   =AMP_TR_MM(i,j,l,AMP_MODES_MAP(n))
+        endif
+      endif 
+#endif
+      enddo
 #endif
 
       cm=cmgs(i,j,itype)
@@ -297,7 +325,7 @@ c     ENDIF
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
-     &     ,tr,ptype
+     &     ,tr,ptype,trnradius,trndens,trnmm
 #endif
      &     )
 

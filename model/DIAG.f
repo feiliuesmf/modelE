@@ -3376,15 +3376,10 @@ c          data=sday*prec/dtsrc
           data=tdiurn(:,:,6)
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
-          do j=J_0,J_1
-          do i=1,imaxj(j)
           data=trm(:,:,1,n_SO4)
 #ifdef TRACERS_HETCHEM
      *     +trm(:,:,1,n_SO4_d1)+trm(:,:,1,n_SO4_d2)+trm(:,:,1,n_SO4_d3)
 #endif
-
-          end do
-          end do
 #endif
 #ifdef CLD_AER_CDNC
         case ("CLWP")             !LWP (kg m-2)

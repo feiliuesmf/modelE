@@ -135,7 +135,8 @@ C*********************************************************************
 
 
 #ifdef TRACERS_DRYDEP
-      SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL)
+      SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL
+     &                       ,trnmm)
 !@sum  get_dep_vel computes the Bulk surface reistance to
 !@+    tracer dry deposition using a resistance-in-series model
 !@+    from a portion of the Harvard CTM dry deposition routine.
@@ -153,7 +154,7 @@ C
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf     
       USE RAD_COM,     only: COSZ1,cfrac,srdn
-      USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname, tr_mm,
+      USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname,
      & dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
 #ifdef TRACERS_SPECIAL_Shindell
      & , n_NOx
@@ -204,12 +205,12 @@ C
 !@var OBK Monin-Obukhov length (m) (now is the PBL lmonin variable)
 !@var ZHH boundary layer depth (m) ("mixing depth") (PBL dbl variable)
 !@var USTARR Friction velocity (m s-1) (PBL ustar variable)
-!@var tr_mm_temp temporary variable to hold tr_mm(k), etc.
+!@var tr_mm_temp temporary variable to hold trnmm(k), etc.
 !@var SUNCOS Cosine of solar zenith angle
 !@var IOLSON integer index for olson surface types?
 !@var VD deposition velocity temp array   (s m-1)
       REAL*8,  DIMENSION(ntm,NTYPE) :: RSURFACE
-      REAL*8,  DIMENSION(ntm)   :: TOTA,VD,HSTAR,F0
+      REAL*8,  DIMENSION(ntm)   :: TOTA,VD,HSTAR,F0,trnmm
       REAL*8,  DIMENSION(NTYPE) :: RI,RLU,RAC,RGSS,RGSO,RCLS,RCLO
       REAL*8 :: RT,RAD0,RIX,GFACT,GFACI,RDC,RIXX,RLUXX,RGSX,RCLX,VDS,
      &       DTMP1,DTMP2,DTMP3,DTMP4,CZH,DUMMY1,DUMMY2,DUMMY3,DUMMY4,
@@ -389,7 +390,7 @@ C*    are from equations (6)-(9) of Wesely [1989].
 
             DO K = 1,ntm
              if(dodrydep(K))then
-              tr_mm_temp = tr_mm(k)*1.d-3
+              tr_mm_temp = trnmm(k)*1.d-3
 #ifdef TRACERS_SPECIAL_Shindell
               ! For NOx, use NO2 mol. wt. to get collision diameter:
               if(trname(K) == 'NOx') tr_mm_temp = 4.4d-2
@@ -521,7 +522,7 @@ C       Please see comments in land case above:
         RDC = 100.d0*(1.+1000.d0/(RAD0 + 10.d0))
         DO K = 1,ntm
          if(dodrydep(K)) then
-          tr_mm_temp = tr_mm(k)*1.d-3
+          tr_mm_temp = trnmm(k)*1.d-3
 #ifdef TRACERS_SPECIAL_Shindell
 c         For NOx, use NO2 molecular weight to get collision diameter:
           if(trname(K) == 'NOx') tr_mm_temp = 4.4d-2
