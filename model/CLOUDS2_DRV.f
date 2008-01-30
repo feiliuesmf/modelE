@@ -540,9 +540,9 @@ ccccc WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
       WTURB(:) = 0.d0
 #endif
 
-#ifdef CLD_ER_CDNC
-        SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
-#endif
+!#ifdef CLD_AER_CDNC
+!       SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
+!#endif
 C**** other fields where L is the leading index
       SVLHXL(:)=SVLHX(:,I,J)
       TTOLDL(:)=TTOLD(:,I,J)

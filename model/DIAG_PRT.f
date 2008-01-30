@@ -5963,7 +5963,7 @@ C****
           NI = 0
           FLAT = 0.
           DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
 c      if (AIJK(I,J,L,K).gt.5.d0)
 c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
             FLAT = FLAT+SMAP(I,J,L)
@@ -5988,7 +5988,7 @@ c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
           NI = 0
           FLAT = 0.
           DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
             FLAT = FLAT+SMAP(I,J,L)
             NI = NI+1
           END DO
@@ -6011,7 +6011,7 @@ c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
           NI = 0
           FLAT = 0.
           DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
             FLAT = FLAT+SMAP(I,J,L)
             NI = NI+1
           END DO
@@ -6034,7 +6034,7 @@ c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
           NI = 0
           FLAT = 0.
           DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
             FLAT = FLAT+SMAP(I,J,L)
             NI = NI+1
           END DO
@@ -6057,7 +6057,7 @@ c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
           NI = 0
           FLAT = 0.
           DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
             FLAT = FLAT+SMAP(I,J,L)
             NI = NI+1
           END DO
@@ -6080,7 +6080,7 @@ c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
           NI = 0
           FLAT = 0.
           DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
             FLAT = FLAT+SMAP(I,J,L)
             NI = NI+1
           END DO
