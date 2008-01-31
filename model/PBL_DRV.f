@@ -21,7 +21,7 @@
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM, only : t,q,u,v,ls1
-#ifdef SCM            
+#ifdef SCM
      &                      ,I_TARG,J_TARG
 #endif
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
@@ -31,7 +31,7 @@
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
 #ifdef TRACERS_ON
       USE TRACER_COM, only : trdn1
-     &     trradius,trpdens,ntm,tr_mm
+     &    ,trradius,trpdens,ntm,tr_mm
 #endif
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
@@ -41,8 +41,8 @@
      & ,AMP_MODES_MAP,ntmAMP
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
 #endif
- 
- 
+
+
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
@@ -261,14 +261,14 @@ c     ENDIF
         if(AMP_MODES_MAP(n).gt.0) then
            if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.)
      &        trnradius(n)=DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
-       
+
            call AMPtrdens(i,j,l,n)
            call AMPtrmass(i,j,l,n)
 
           trndens(n) =AMP_dens(i,j,l,AMP_MODES_MAP(n))
           trnmm(n)   =AMP_TR_MM(i,j,l,AMP_MODES_MAP(n))
         endif
-      endif 
+      endif
 #endif
       enddo
 #endif
@@ -505,7 +505,7 @@ C**** fix roughness length for ocean ice that turned to land ice
         else
           elhx=lhs
         endif
-C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION 
+C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
         call HALO_UPDATE(grid, u, from=NORTH)
         call HALO_UPDATE(grid, v, from=NORTH)
         do j=J_0,J_1
@@ -558,7 +558,7 @@ c     Away from the poles:
 #endif
 c ******************************************************************
             endif
-           
+
 
             qtop=q(i,j,1)
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
@@ -571,8 +571,8 @@ c ******************************************************************
             dpdxr0 = DPDX_BY_RHO_0(i,j)
             dpdyr0 = DPDY_BY_RHO_0(i,j)
 #ifdef SCM
-            utop = u(i,j,1)   
-            vtop = v(i,j,1)   
+            utop = u(i,j,1)
+            vtop = v(i,j,1)
             ug = utop
             vg = vtop
 #endif
@@ -630,7 +630,7 @@ c For ITYPE=3 (land ice; frozen on land since last time step):
 c  If there was no computation made for land ice at the last time step,
 c  this time step may start from land result. If there was no
 c  land ice nor land computation at the last time step, nothing
-c  need be done. 
+c  need be done.
 c
 c For ITYPE=4 (land; melted land ice since last time step):
 c  If there was no computation made for land at the last time step,
@@ -747,7 +747,7 @@ ccc???
       cmgs(i,j,itype_out)=cmgs(i,j,itype_in)
       chgs(i,j,itype_out)=chgs(i,j,itype_in)
       cqgs(i,j,itype_out)=cqgs(i,j,itype_in)
-      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)      
+      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)
 
       return
       end subroutine setbl
