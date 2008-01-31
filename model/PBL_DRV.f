@@ -31,12 +31,12 @@
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
 #ifdef TRACERS_ON
       USE TRACER_COM, only : trdn1
+     &     trradius,trpdens,ntm,tr_mm
 #endif
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
       use QUSDEF, only : mz
       use SOMTQ_COM, only : tmom
-      USE TRACER_COM, only: trradius,trpdens,ntm,tr_mm
 #ifdef TRACERS_AMP
      & ,AMP_MODES_MAP,ntmAMP
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
