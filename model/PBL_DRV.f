@@ -233,7 +233,7 @@ c     ENDIF
           ug   = ug   + u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
           vg   = vg   + v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
         end do
-#else if
+#else
        utop = u(i,j,1)
        vtop = v(i,j,1)
        ug = utop

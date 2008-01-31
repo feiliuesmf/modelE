@@ -87,7 +87,7 @@ c**** Tracer input/output
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
 !@var ntix index array to map local tracer number to global
-!@var trprime anomalous tracer concentration in downdraft 
+!@var trprime anomalous tracer concentration in downdraft
         real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
         real*8, dimension(ntm) :: trdn1,trprime
         integer ntx
@@ -358,7 +358,7 @@ c  internals:
       real*8, dimension(ntm), intent(in) :: trnradius,trndens,trnmm
       real*8, dimension(n,ntm), intent(inout) :: tr
 #endif
-      
+
 c**** local vars for input from pbl_args
       real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
       real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
@@ -463,9 +463,9 @@ c**** get input from pbl_args structure
       tgskin=tg                 ! initially assume no skin/bulk difference
       dskin=0
       ts=t(1)/(1+q(1)*deltx)
-      
+
       call getl1(e,zhat,dzh,lscale,n)
-      
+
       if(ddml_eq_1) then
         tdns=pbl_args%tdns
         qdns=pbl_args%qdns
@@ -486,7 +486,7 @@ c**** get input from pbl_args structure
         if(iter.gt.1) then
           call getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
 C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes
-          if (itype.eq.1 .and. skin_effect.gt.0) then 
+          if (itype.eq.1 .and. skin_effect.gt.0) then
 c estimate net flux and ustar_oc from current tg,qg etc.
             ts=t(1)/(1+q(1)*deltx)
             rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
@@ -500,7 +500,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
             tgskin=0.5*(tgskin+(tg+dskin))   ! smooth changes in iteration
             tgskin=max(tgskin,tf+tfrez(sss_loc))  ! prevent unphysical values
             dskin=tgskin-tg ! net dskin diagnostic
-            qgrnd=qsat(tgskin,elhx,psurf) 
+            qgrnd=qsat(tgskin,elhx,psurf)
             if (ocean) qgrnd=0.98d0*qgrnd  ! use ocean adjustment
             tgrnd=tgskin*(1.+qgrnd*deltx)
           endif
@@ -511,7 +511,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
-#endif 
+#endif
      3             km,kh,kq,dzh,itype,n)
 #ifdef TRACERS_ON
         kqsave=kq
@@ -560,7 +560,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
      &       ,evap_max,fr_sat,ws0,qprime,qdns,ddml_eq_1)
 
         call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,ws,tgrnd,ttop,dtime
-     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns,ddml_eq_1) 
+     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns,ddml_eq_1)
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
      *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
@@ -682,7 +682,7 @@ C****   3) dry deposited tracers (including gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(pbl_args%ntix(itr))) then
 C****   get settling velocity
-    
+
           if (trnradius(pbl_args%ntix(itr)).gt.0.) then
             pbl_args%gs_vel(pbl_args%ntix(itr))=vgs(rhosrf,rh1
      &           ,pbl_args%ntix(itr),tr_radius,tr_dens)
@@ -918,7 +918,7 @@ C**** tracer code output
      2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *                 fac_cq_tr,
-#endif 
+#endif
      3                 km,kh,kq,dzh,itype,n)
 !@sum computes USTAR,TSTAR and QSTAR
 !@+   Momentum flux = USTAR*USTAR
@@ -942,7 +942,7 @@ C**** tracer code output
       real*8, intent(out) :: z0h,z0q,cm,ch,cq
 #ifdef TRACERS_SPECIAL_O18
       real*8, intent(out) :: fac_cq_tr(ntm)
-#endif 
+#endif
 
 
       real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
@@ -984,7 +984,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       call dflux(lmonin,ustar,vel1,ts,z0m,z0h,z0q,zgs,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *     fac_cq_tr,
-#endif 
+#endif
      *     itype)
 
       return
@@ -1094,7 +1094,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
      *                 cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *                 fac_cq_tr,
-#endif 
+#endif
      *                 itype)
 !@sum   dflux computes (dimensionless) surface fluxes of momemtun,
 !@+     heat and moisture (drag coefficient, Stanton number,
@@ -1131,14 +1131,14 @@ cgav  use constant, only :: nu=>visc_air_kin
       real*8 :: cq_tr(ntm),z0q_tr(ntm),Sc_tr,get_diff_rel
       integer :: itr
 #endif
-      
+
       real*8 :: nu,num,nuh,nuq
       real*8 dm,ustar,dum,T
       real*8, parameter :: Sc=0.595d0, Pr=0.71d0
 
 C**** comment out for temperature dependence
       nu=1.5d-5
-C**** uncomment for temperature dependence of nu 
+C**** uncomment for temperature dependence of nu
 C**** Kinematic viscosity of dry air - Andreas (1989) CRREL Rep. 89-11
        T = ts-tf   ! deg C
 !       nu=1.326d-5*(1.+T*(6.542d-3+T*(8.301d-6-4.84d-9*T)))   !m2/s
@@ -1177,7 +1177,7 @@ C**** calculate different z0q for different diffusivities
               call getzhq(ustar,z0m,Sc_tr,nu,1.3d-4,z0q_tr(itr))
             end if
           end do
-#endif          
+#endif
 
       else
 c *********************************************************************
@@ -1202,7 +1202,7 @@ c *********************************************************************
       end do
       do itr=1,ntm
         if (tr_wd_TYPE(itr).eq.nWater)
-     *       fac_cq_tr(itr)=cq_tr(itr)/cq_tr(n_Water) 
+     *       fac_cq_tr(itr)=cq_tr(itr)/cq_tr(n_Water)
       end do
 #endif
 
@@ -1211,28 +1211,28 @@ c *********************************************************************
 
       subroutine getzhq(ustar,z0m,ScPr,nu,z0min,z0hq)
 !@sum calculate z0hq heat/humidity roughness length
-!@+   modified from eqs 5.24, 5.27 and 5.35 in Brutsaert (1982) 
+!@+   modified from eqs 5.24, 5.27 and 5.35 in Brutsaert (1982)
+!!*** uncomment and remove z0min for original HR97 code
       implicit none
       real*8, intent(in) :: ustar,z0m,ScPr,z0min,nu
       real*8, intent(out) :: z0hq
-      real*8, parameter :: z0=0.00023d0 ! rough limit (m)
-      real*8 r0q,beta,fac_smooth,fac_rough,X
+!!    real*8, parameter :: z0=0.00023d0 ! rough limit (m)
+      real*8 r0q,beta,fac_smooth,X      !! ,fac_rough
 
 C**** functional dependence on Sc,Pr for smooth, rough surfaces
       fac_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
-      fac_rough(X) = -7.3d0*kappa*sqrt(X)
 
-C**** uncomment and remove z0min for original HR97 code
-c      if (ustar.le.0.20d0) then  ! smooth regime
+!!    fac_rough(X) = -7.3d0*kappa*sqrt(X)
+!!     if (ustar.le.0.20d0) then                ! smooth regime
          z0hq=nu*fac_smooth(ScPr)/ustar + z0min
-c      else    ! rough regime
-c        r0q=sqrt(sqrt(ustar*z0m/nu))
-c        z0hq=7.4d0*z0m*exp(fac_rough(ScPr)*r0q)
-c        if (ustar.lt.0.2d0) then ! intermediate regime (lin. interp.)
-c          beta=(ustar-0.02d0)/0.18d0
-c          z0hq=(1.-beta)*(nu*fac_smooth(ScPr)/ustar+z0min)+beta*z0hq
-c        endif
-c      endif
+!!     else                                     ! rough regime
+!!       r0q=sqrt(sqrt(ustar*z0m/nu))
+!!       z0hq=7.4d0*z0m*exp(fac_rough(ScPr)*r0q)
+!!       if (ustar.lt.0.2d0) then ! intermediate regime (lin. interp.)
+!!         beta=(ustar-0.02d0)/0.18d0
+!!         z0hq=(1.-beta)*(nu*fac_smooth(ScPr)/ustar+z0min)+beta*z0hq
+!!       endif
+!!     endif
 
       return
       end subroutine getzhq
@@ -2083,7 +2083,7 @@ c****             - ( 1 - fr_sat ) * flux_max
 
       subroutine tr_eqn(tr0,tr,kq,dz,dzh,sfac,constflx,trtop,
 #ifdef TRACERS_WATER
-     *     tr_evap_max,fr_sat, 
+     *     tr_evap_max,fr_sat,
 #endif
      *     dtime,n)
 !@sum tr_eqn integrates differential eqn for tracers (tridiag. method)
@@ -2440,12 +2440,12 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
 #ifdef SCM
             rhs(i)=coriol*(v(i)-vg)
             rhs1(i)=-coriol*(u(i)-ug)
-#else    
+#else
             dpdx=factx*(z(i)-z(1))+dpdxr0
             dpdy=facty*(z(i)-z(1))+dpdyr0
             rhs(i)=(coriol*v(i)-dpdx)
             rhs1(i)=-(coriol*u(i)+dpdy)
-#endif      
+#endif
       end do
 
       usurf  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
@@ -2577,13 +2577,13 @@ c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n), intent(out) :: u,v,t,q
       real*8, dimension(n-1), intent(out) :: e
 c****  passed for scm
-      real*8  ug,vg   
+      real*8  ug,vg
 
 !!      common/pbluvtq/u,v,t,q,e
 
 !!!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
-  
+
 
       dbl=1000.d0 !initial guess of dbl
       z0m=zgrnd
@@ -2656,7 +2656,7 @@ c Initialization for iteration:
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
-#endif 
+#endif
      3             km,kh,kq,dzh,itype,n)
         !! dbl=.375d0*sqrt(ustar*abs(lmonin)/omega)
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
@@ -3503,7 +3503,7 @@ C**** k thermal cond. 0.596 W/mK (35 psu, 20 deg, 0 press)
 !@var fc fraction of solar absorbed in micro-layer
       real*8 :: fc
 
-C**** calculate micro-layer thickness (m) 
+C**** calculate micro-layer thickness (m)
 C**** Cap ustar so that it doesn't get too small in low wind conditions
 C**** ustar_oc > 0.00098 corresponding to tau > 0.001 N/m2
       del = lam*visc_wtr_kin/max(ustar_oc,0.00098d0)
@@ -3518,6 +3518,6 @@ C**** fraction of solar absorbed (Fairall et al, 1996)
 
 C**** delta SST = skin - bulk (+ve for flux going down)
 C**** includes occurences of warm skin temperatures (generally < 0.01 C)
-      deltaSST=(Qnet + fc*Qsol)*del*byk 
+      deltaSST=(Qnet + fc*Qsol)*del*byk
 
       end function deltaSST

@@ -98,7 +98,7 @@ C****
      *     ,trdrydep
 #endif
 #ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only : BE7D_acc 
+      USE COSMO_SOURCES, only : BE7D_acc
 #endif
       USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
@@ -119,7 +119,7 @@ C****
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
-      
+
       IMPLICIT NONE
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
@@ -232,7 +232,7 @@ C**** Initialise constant indices
      *       idd_rifl,
      *       (idd_zpbl1+ii-1,ii=1,npbl), (idd_uabl1+ii-1,ii=1,npbl),
      *       (idd_vabl1+ii-1,ii=1,npbl), (idd_uvabl1+ii-1,ii=1,npbl),
-     *       (idd_tabl1+ii-1,ii=1,npbl), (idd_qabl1+ii-1,ii=1,npbl),  
+     *       (idd_tabl1+ii-1,ii=1,npbl), (idd_qabl1+ii-1,ii=1,npbl),
      *       (idd_zhat1+ii-1,ii=1,npbl-1), (idd_e1+ii-1,ii=1,npbl-1),
      *       (idd_km1+ii-1,ii=1,npbl-1), (idd_ri1+ii-1,ii=1,npbl-1),
      *       idd_grav,   idd_turb
@@ -450,7 +450,7 @@ C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
 #ifdef SCM
             uocean = uosurf(i,j)
             vocean = vosurf(i,j)
-#else if
+#else
             uocean = 0.5*(uosurf(i,j)+uosurf(im1,j))
             vocean = 0.5*(vosurf(i,j)+vosurf(i,j-1))
 #endif
@@ -493,7 +493,7 @@ C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
 #ifdef SCM
             uocean = uisurf(i,j)
             vocean = visurf(i,j)
-#else if
+#else
             uocean = 0.5*(uisurf(i,j)+uisurf(im1,j))
             vocean = 0.5*(visurf(i,j)+visurf(i,j-1))
 #endif
