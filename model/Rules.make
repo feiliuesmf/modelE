@@ -433,7 +433,7 @@ LIBS += -mp -L${ESMFLIBDIR} -lesmf -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
 -lfmpi -lmpi -threads \
 ${NETCDF_STUBS}
 else
-LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf  -lmpi \
+LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf -lmpi \
 -lmpi++  -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -threads \
 ${NETCDF_STUBS}
 endif

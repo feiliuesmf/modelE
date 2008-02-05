@@ -58,5 +58,8 @@ c set-up for MPI implementation
 #ifdef TRACERS_ON
       call alloc_trdiag_com
 #endif
+#ifdef NUDGE_ON
+      call alloc_nudge(grid)
+#endif
 
       end subroutine alloc_drv
