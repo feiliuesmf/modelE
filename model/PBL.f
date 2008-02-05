@@ -646,8 +646,8 @@ C**** for all dry deposited tracers
 C**** loop over tracers
       do itr=1,pbl_args%ntx
 c     set tracer size and density (not necessarily constant anymore)
-         tr_radius = trnradius(itr)
-         tr_dens =   trndens(itr)
+         tr_radius = trnradius(pbl_args%ntix(itr))
+         tr_dens =   trndens(pbl_args%ntix(itr))
 C**** Define boundary conditions
 
 C****   1) default air mass tracers
