@@ -83,10 +83,12 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
-     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
-     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
-     . ,gmelt,egmelt,solar,gtempr
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE HYCOM_ATM !, only : gather_atm, scatter_atm
+!      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
+!     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
+!     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
+!     . ,gmelt,egmelt,solar,gtempr
 #ifdef TRACERS_GASEXCH_Natassa
      . ,TRGASEX,GTRACER
 
@@ -95,10 +97,10 @@ c
       USE TRACER_GASEXCH_COM, only : atracflx,atrac,tracflx
 #endif
 
-      USE SEAICE_COM, only : rsi,msi
-      USE SEAICE, only : fsss,tfrez
-      USE GEOM, only : dxyp
-      USE MODEL_COM, only : focean
+      !USE SEAICE_COM, only : rsi,msi
+      USE SEAICE, only : fsss,tfrez ! number, function - ok
+      USE GEOM, only : dxyp ! ok
+      !USE MODEL_COM, only : focean
       USE CONSTANT, only : lhm,shi,shw
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
@@ -110,16 +112,27 @@ c
       USE PBLCOM, only : wsavg 
       USE RAD_COM,   only: COSZ1 
 #endif 
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
 c
+      USE KPRF_ARRAYS
+      USE HYCOM_CPLER
       implicit none
 c
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
-#include "cpl.h"
-#include "a2o.h"
+!!#include "common_blocks.h"
+!!#include "cpl.h"
+c --- accumulate fields in the coupler      
+      real*8 ataux(iia,jja),atauy(iia,jja),aflxa2o(iia,jja)
+     .      ,aemnp(iia,jja),aice(iia,jja),asalt(iia,jja)
+     .      ,austar(iia,jja),aswflx(iia,jja)
+!!! afogcm,nsavea should be initialized properly !
+      integer :: afogcm=0,nsavea=0,nsaveo
+!!#include "a2o.h"
 #include "kprf_scalars.h"
-#include "kprf_arrays.h"
+!!#include "kprf_arrays.h"
 c
       real sum,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
@@ -173,6 +186,11 @@ ccc      if (master) call pipe_init(.true.)
 ccc      if (slave) call pipe_init(.false.)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
+      ! move to global atm grid
+      call gather_atm
+
+      if (AM_I_ROOT()) then
+
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 cdiag write(*,'(a,i8,7i5,a)')'chk =',
 cdiag.    Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
@@ -274,7 +292,7 @@ c    .  ,flowo(ia,ja),gmelt(ia,ja),melti(ia,ja),dxyp(ja),focean(ia,ja)
 c    .  ,runosi(ia,ja),runpsi(ia,ja)
 c
       nsavea=nsavea+1
-      if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) return
+      if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) goto 9666
       if (nsavea*24/nday.ne.nhr) then
         write(*,'(a,4i4,i8)')
      .  'nonmatching b.c. accumulation periods: agcm/ogcm:',
@@ -1149,6 +1167,11 @@ c
         stop ' stop: dates in agcm/ogcm do not match'
       end if
 c
+
+      endif ! AM_I_ROOT
+ 9666 continue
+      call scatter_atm
+
       return
       end
 c

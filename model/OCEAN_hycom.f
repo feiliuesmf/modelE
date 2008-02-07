@@ -1,7 +1,10 @@
 #include "rundeck_opts.h"
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-      USE MODEL_COM, only : im,jm,focean
-      USE FLUXES, only : gtemp,gtempr
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE HYCOM_ATM, only : gather_atm,scatter_atm, focean,gtemp,gtempr,
+     &     asst,atempr,im,jm
+!!      USE MODEL_COM, only : im,jm,focean
+!!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_Natassa
      .                  ,GTRACER,TRGASEX
 
@@ -14,11 +17,21 @@
       USE obio_forc, only : avgq
       USE obio_com,  only : gcmax
 #endif
+      USE HYCOM_DIM
+      implicit none
 
-      integer istart
-#include "dimensions.h"
-#include "dimension2.h"
-#include "cpl.h"
+      logical, intent(in) :: iniOCEAN
+      integer, intent(in) :: istart
+!!#include "dimensions.h"
+!!#include "dimension2.h"
+!!#include "cpl.h"
+      integer i,j
+
+      ! move to global atm grid
+      call gather_atm
+
+      if (AM_I_ROOT()) then ! work on global grids here
+      
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
 c
@@ -38,6 +51,7 @@ c         enddo
 c       endif
 c21   continue
 c
+
       if (istart.gt.2) then               !istart=2 has done this inicon
       DO J=1,JM
       DO I=1,IM
@@ -53,6 +67,29 @@ c
       END DO
       END DO
       endif
+
+!!! I guess I had a good reason for commenting this out... 
+!!! (probably should done in inicon) IA
+
+!!!! the following is already done in inicon
+!!      if (istart.gt.2) then               !istart=2 has done this in inirfn
+!!      DO J=1,JM
+!!      DO I=1,IM
+!!        IF (FOCEAN(I,J).gt.0.) THEN
+!!          GTEMP(1,1,I,J)=asst(I,J)
+!!! GTEMPR ??
+!!#ifdef TRACERS_GASEXCH_Natassa
+!!        do nt=1,ntm
+!!        GTRACER(nt,1,I,J)=atrac(I,J,nt)
+!!        enddo
+!!#endif
+!!        END IF
+!!      END DO
+ !!     END DO
+!!      endif
+
+      endif ! AM_I_ROOT
+      call scatter_atm
 c
       END SUBROUTINE init_OCEAN
 c
@@ -61,6 +98,8 @@ c
 !@auth Gavin Schmidt
 !@ver  1.0
 css   ENTRY ODYNAM
+      !! fix later: implicit none
+
       ENTRY ODIFS
       ENTRY io_ocdiag
       ENTRY init_ODEEP
@@ -80,7 +119,7 @@ css   entry io_ocean(iu_GIC,ioread,ioerr)
 css   entry CHECKO(SUBR)
 c
       ENTRY ADVSI_DIAG
-      entry alloc_ocean
+!!      entry alloc_ocean
 c --- not calling ice dynamics
 css      ENTRY DYNSI
 css      ENTRY ADVSI
@@ -96,9 +135,15 @@ c
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
 !@ver  1.0       
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE HYCOM_ATM, only : gather_atm,scatter_atm,
+     &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
-      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
+!!      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
+      USE HYCOM_DIM, only : kk,iia,jja
+      USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
+     &     ,onem
 #ifdef TRACERS_GASEXCH_Natassa
       USE TRACER_GASEXCH_COM, only : atrac
 #endif
@@ -107,19 +152,22 @@ c
       USE obio_forc, only : avgq
       USE obio_com,  only : gcmax
 #endif
-
+      USE HYCOM_ARRAYS_GLOB
       IMPLICIT NONE
-#include "dimensions.h"
-#include "dimension2.h"
-#include "common_blocks.h"
-#include "cpl.h"
+!!#include "dimensions.h"
+!!#include "dimension2.h"
+!!#include "common_blocks.h"
+!!#include "cpl.h"
+      !!! hack
+      !!!real asst
 c
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
+      INTEGER, intent(in) :: kunit   !@var kunit unit number of read/write
+      INTEGER, intent(in) :: iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
+      integer i,j,k
 #ifdef TRACERS_GASEXCH_Natassa
 !@var TRNHEADER Character string label for individual records
       CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX"
@@ -132,6 +180,12 @@ c
       write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
      *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
 #endif
+
+      ! move to global atm grid
+      call gather_atm
+
+      if (AM_I_ROOT()) then ! work on global grids here
+
 c
 css   write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
 css  *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
@@ -204,7 +258,7 @@ c       ------------------------------------------------------------------------
 css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
-            call geopar
+            !!call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
@@ -275,7 +329,7 @@ css         READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
 css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
             print*,'restarts (never any tracer data -irsficnt)'
-            call geopar
+            !!call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer(:,:,:,1),dpinit,oddev
@@ -336,8 +390,11 @@ c
           END SELECT
       END SELECT
 
+      endif ! AM_I_ROOT
+      call scatter_atm
       RETURN
  10   IOERR=1
+      call scatter_atm
       RETURN
 C****
       END SUBROUTINE io_ocean
@@ -345,20 +402,28 @@ c
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@ver  1.0
-      USE MODEL_COM, only : im,jm
-      USE FLUXES, only : gtemp
-      USE MODEL_COM, only : focean
-
+!!      USE MODEL_COM, only : im,jm
+!!      USE FLUXES, only : gtemp
+!!      USE MODEL_COM, only : focean
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE HYCOM_ATM, only : gather_atm, focean,gtemp,im,jm
       IMPLICIT NONE
       integer i,j
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
+      call gather_atm
+      if (AM_I_ROOT()) then
+
       print *,'SUBR=',SUBR
       write(*,'(10f7.2)') ((gtemp(1,1,i,j),i=1,10),j=15,20)
       write(*,'(a)') 'focean'
       write(*,'(10f7.2)') ((focean(i,j),i=1,10),j=15,20)
+
+      endif ! AM_I_ROOT
+      ! no need to sctter since nothing changed
+
       END SUBROUTINE CHECKO
 c
 
@@ -367,6 +432,7 @@ c
 !@auth Original Development Team
 !@ver  1.0
 C****
+      implicit none
       RETURN
       END SUBROUTINE daily_OCEAN
 c
@@ -396,5 +462,249 @@ css      END
 c
       subroutine gather_odiags
 C     nothing to gather - ocean prescribed
+      implicit none
       return
       end subroutine gather_odiags
+
+
+      subroutine alloc_ocean
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE HYCOM_DIM, only : init_hycom_grid, alloc_hycom_dim
+      USE HYCOM_ARRAYS, only : alloc_hycom_arrays
+
+      !use hycom_dim_glob, only : alloc_hycom_dim_glob
+      USE HYCOM_ARRAYS_GLOB, only : alloc_hycom_arrays_glob
+
+      USE KPRF_ARRAYS, only : alloc_kprf_arrays
+      USE HYCOM_ATM, only : alloc_hycom_atm
+      implicit none
+      
+
+      ! seems like this is ok place to create ocean grid since nobody
+      ! uses it before this call...
+      call init_hycom_grid
+
+      
+
+      call alloc_hycom_atm
+
+      call alloc_hycom_dim
+      call alloc_hycom_arrays
+
+      !call alloc_hycom_dim_glob
+      call alloc_hycom_arrays_glob
+
+      call alloc_kprf_arrays
+
+      !!call reset_hycom_arrays
+
+      !if (AM_I_ROOT()) then
+        call geopar
+      !endif
+
+      end subroutine alloc_ocean
+
+#ifdef THIS_PART_IS_NOT_READY
+      subroutine reset_hycom_arrays
+      USE HYCOM_DIM, only : ii,jj,kk
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS, only : sswflx
+      USE HYCOM_SCALARS, only : lp,huge
+      implicit none
+
+      integer i,j,k,ja,jb,ia
+      real :: zero = 0.
+      
+
+      write (*,*) 'laying out arrays in memory ...'
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
+      do 209 j=1,jj
+      do 209 i=1,ii
+      p(i,j,:)=huge
+      pv(i,j,1)=huge
+      pbot(i,j)=huge
+      ubavg(i,j,:)=huge
+      vbavg(i,j,:)=huge
+       utotm(i,j)=huge
+      vtotm(i,j)=huge
+      utotn(i,j)=huge
+      vtotn(i,j)=huge
+      uflux (i,j)=huge
+      vflux (i,j)=huge
+      uflux1(i,j)=huge
+      vflux1(i,j)=huge
+      uflux2(i,j)=huge
+      vflux2(i,j)=huge
+      uflux3(i,j)=huge
+      vflux3(i,j)=huge
+      uja(i,j)=huge
+      ujb(i,j)=huge
+      via(i,j)=huge
+      vib(i,j)=huge
+      pgfx(i,j)=huge
+      pgfy(i,j)=huge
+      depthu(i,j)=huge
+      depthv(i,j)=huge
+      tprime(i,j)=huge
+c
+      srfhgt(i,j)=zero
+      dpmixl(i,j)=zero
+      oice(i,j)=zero
+      taux(i,j)=zero
+      tauy(i,j)=zero
+      oflxa2o(i,j)=zero
+      osalt(i,j)=zero
+      oemnp(i,j)=zero
+      ustar(i,j)=zero
+      sswflx(i,j)=zero
+c
+      ubavav(i,j)=zero
+      vbavav(i,j)=zero
+      pbavav(i,j)=zero
+      sfhtav(i,j)=zero
+      dpmxav(i,j)=zero
+      oiceav(i,j)=zero
+      eminpav(i,j)=zero
+      surflav(i,j)=zero
+      sflxav(i,j)=zero
+      brineav(i,j)=zero
+c
+      u  (i,j,:   )=huge
+      v  (i,j,:   )=huge
+      uflx(i,j,:)=huge
+      vflx(i,j,:)=huge
+      ufxcum(i,j,:)=huge
+      vfxcum(i,j,:)=huge
+      dpinit(i,j,:)=huge
+      dpold (i,j,:)=huge
+      dp (i,j,:   )=huge
+      dpu(i,j,k   )=huge
+      dpv(i,j,k   )=huge
+      p (i,j,:)=huge
+      pu(i,j,:)=huge
+      pv(i,j,:)=huge
+c
+      th3d(i,j,:)=huge
+      thermb(i,j,:)=huge
+      thstar(i,j,:)=huge
+!      do nt=1,ntrcr
+        tracer(i,j,:,:)=zero
+!      end do
+      uav(i,j,:)=zero
+      vav(i,j,:)=zero
+      dpuav(i,j,:)=zero
+      dpvav(i,j,:)=zero
+      dpav (i,j,:)=zero
+      temav(i,j,:)=zero
+      salav(i,j,:)=zero
+      th3av(i,j,:)=zero
+      uflxav(i,j,:)=zero
+      vflxav(i,j,:)=zero
+      diaflx(i,j,:)=zero
+ 209  continue
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
+      do 210 j=1,jj
+      !!ja=mod(j-2+jj,jj)+1
+      !!do 210 l=1,isq(j)
+      !!do 210 i=ifq(j,l),ilq(j,l)
+      do i=1,ii
+      pbot(i  ,j  )=0.
+      !pbot(i-1,j  )=0.
+      !pbot(i  ,ja )=0.
+      !pbot(i-1,ja )=0.
+      p(i  ,j  ,1)=0.
+      !p(i-1,j  ,1)=0.
+      !p(i  ,ja ,1)=0.
+      !p(i-1,ja ,1)=0.
+      do 210 k=1,kk
+      dp(i  ,j  ,:   )=0.
+      dp(i  ,j  ,k+kk)=0.
+      !dp(i-1,j  ,k   )=0.
+      !dp(i-1,j  ,k+kk)=0.
+      !dp(i  ,ja ,k   )=0.
+      !dp(i  ,ja ,k+kk)=0.
+      !dp(i-1,ja ,k   )=0.
+ !210  !dp(i-1,ja ,k+kk)=0.
+ 210  continue
+c$OMP END PARALLEL DO
+c
+c --- initialize  u,ubavg,utotm,uflx,uflux,uflux2/3,uja,ujb  at points
+c --- located upstream and downstream (in i direction) of p points.
+c --- initialize  depthu,dpu,utotn,pgfx  upstream and downstream of p points
+c --- as well as at lateral neighbors of interior u points.
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
+      do 156 j=1,jj
+      do 156 i=1,ii !ifu(j,l),ilu(j,l)
+      pu(i,j,:)=0.
+c
+      depthu(i,j)=0.
+      utotn (i,j)=0.
+      pgfx  (i,j)=0.
+      dpu(i,j,:   )=0.
+c
+ 156  continue
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
+      do 158 j=1,jj
+      !do 158 l=1,isp(j)
+      do 158 i=1,ii !ifp(j,l),ilp(j,l)+1
+      depthu(i,j)=0.
+      utotn (i,j)=0.
+      pgfx  (i,j)=0.
+      ubavg(i,j,1)=0.
+      ubavg(i,j,2)=0.
+      ubavg(i,j,3)=0.
+      utotm (i,j)=0.
+      uflux (i,j)=0.
+      uflux2(i,j)=0.
+      uflux3(i,j)=0.
+      uja(i,j)=0.
+      ujb(i,j)=0.
+c
+      dpu(:,:,:)=0.
+      uflx(:,:,:)=0.
+      ufxcum(:,:,:)=0.
+      u(:,:,:)=0.
+c$OMP END PARALLEL DO
+c
+c --- initialize  v,vbavg,vtotm,vflx,vflux,vflux2/3,via,vib  at points
+c --- located upstream and downstream (in j direction) of p points.
+c --- initialize  depthv,dpv,vtotn,pgfy  upstream and downstream of p points
+c --- as well as at lateral neighbors of interior v points.
+c
+      pv(:,:,:)=0.
+c
+      depthv(:,:)=0.
+      vtotn (:,:)=0.
+      pgfy  (:,:)=0.
+c
+      depthv(:,:)=0.
+      vtotn (:,:)=0.
+      pgfy  (:,:)=0.
+c
+      dpv(:,:,:   )=0.
+c
+      depthv(:,:)=0.
+      vtotn (:,:)=0.
+      pgfy  (:,:)=0.
+      vbavg(:,:,:)=0.
+      vtotm (:,:)=0.
+      vflux (:,:)=0.
+      vflux2(:,:)=0.
+      vflux3(:,:)=0.
+      via(:,:)=0.
+      vib(:,:)=0.
+c
+      dpv(:,:,:   )=0.
+      vflx(:,:,:)=0.
+      vfxcum(:,:,:)=0.
+      v(:,:,:   )=0.
+      write (*,*) '... array layout completed'
+css   endif                    ! end of nstep=0
+
+      end subroutine reset_hycom_arrays
+#endif

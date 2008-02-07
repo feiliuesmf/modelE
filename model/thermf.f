@@ -3,11 +3,15 @@ c
       USE SEAICE, only : fsss
 c
 c --- hycom version 0.9
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : baclin,thref,watcum,empcum,nstep,nstep0
+     &     ,diagno,lp,area,spcifh,avgbot,g,onem,slfcum
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 c
       real thknss,radfl,radflw,radfli,vpmx,prcp,prcpw,prcpi,
      .     evap,evapw,evapi,exchng,target,old,

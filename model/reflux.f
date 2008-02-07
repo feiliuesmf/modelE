@@ -8,10 +8,13 @@ c
 c --- input  variables: uflxo,vflxo,sigold,pold,kold,thetn
 c --- output variables: uflxn,vflxn,signew,pnew,knew
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : acurcy
+      USE HYCOM_ARRAYS_GLOB
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       integer kold,knew,ko
 c

@@ -1,11 +1,16 @@
+!#include "hycom_mpi_hacks.h"
       subroutine momtum(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9 -- cyclic and noncyclic b.c. combined
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+      include 'bering.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real stress(idm,jdm),stresx(idm,jdm),stresy(idm,jdm),
      .     dpmxu(idm,jdm),dpmxv(idm,jdm),dpmx(idm,jdm),

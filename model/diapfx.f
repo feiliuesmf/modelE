@@ -1,11 +1,15 @@
       subroutine diapfl(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9.2
+      USE HYCOM_DIM, only : jj,kk,isp,ifp,ilp,idm,kdm,ntrcr
+      USE HYCOM_SCALARS, only : diapyc,nstep,dotrcr,onemm,g,baclin,onem
+     &     ,epsil,mixfrq,sigjmp,thref,lp,acurcy
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real flxu(kdm),flxl(kdm),pdot(kdm),flngth(kdm),clip(kdm),
      .     ennsq,alfa,beta,q,qmin,qmax,amount,salt,froglp,small,delp,

@@ -1,15 +1,17 @@
       subroutine dpudpv(mmnn)
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
+      USE HYCOM_DIM, only : kk,jj,isu,ifu,ilu,isv,ifv,ilv
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
 c --- ----------------------------------
 c --- define layer depth at  u,v  points
 c --- ----------------------------------
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       integer mmnn,kmn
 c

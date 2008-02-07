@@ -2,12 +2,16 @@
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
+      USE HYCOM_DIM, only : jj,isp,ifp,ilp
+      USE HYCOM_SCALARS, only :epsil,onem
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
       integer    nzehat,nustar
@@ -91,11 +95,15 @@ c
 c
       subroutine initurb
 c
+      USE HYCOM_DIM, only : jj,isp,ifp,ilp
+      USE HYCOM_SCALARS, only : onem
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)

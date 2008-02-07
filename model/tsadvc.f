@@ -1,11 +1,15 @@
       subroutine tsadvc(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 1.0 -- cyclic in j
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : wts1,onemm,wts2,delt1,lp,nstep,itest
+     &     ,jtest,diagno,temdff,theta
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real smin,smax,tmin,tmax,sminn,smaxx,tminn,tmaxx,posdef,flxdiv
      .    ,offset,factor,q,pold,pmid,pnew,snew,tnew

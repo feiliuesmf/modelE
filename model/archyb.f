@@ -1,3 +1,4 @@
+!#include "hycom_mpi_hacks.h"
       subroutine archiv(n,nn)
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
@@ -5,12 +6,17 @@ c
       USE MODEL_COM, only :
      *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
      * ,xlabel,lrunid
+      USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
+     &     ,thref
+      USE HYCOM_DIM, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
+     &     ,ifu,ilu,isv,ifv,ilv,ii,idm,j_0h,j_1h,kdm
+      USE HYCOM_ARRAYS_GLOB
 c
       implicit none
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
-#include "cpl.h"
+!!#include "common_blocks.h"
+!!!#include "cpl.h"
 c
       integer no,nop,length,nt
       real factor,vol,tts2,temavg,sst,dpsmo(idm,jdm,kdm)
@@ -51,7 +57,7 @@ c
       no=4096 
       inquire (iolength=irecl)  real4(1,1) ! length of an unformatted real*4  
                                            ! irecl=1 on COMPAQ, irecl=4 on SGI
-      length=((irecl*idm*jdm+no+15)/no)*no
+      length=((irecl*idm*JDM+no+15)/no)*no
 c
       write (lp,'(a/9x,a)') 'storing history data in',flnm
 c
@@ -60,7 +66,7 @@ c
       no=1
       length4=length
       idm4=idm
-      jdm4=jdm
+      jdm4=JDM
       kdm4=kdm
       nstep4=nstep
       time4=time
@@ -373,8 +379,9 @@ c
 c
       subroutine r8tor4(real8,real4)
 c
+      USE HYCOM_DIM
       implicit none
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
 c
       real real8(idm,jdm)

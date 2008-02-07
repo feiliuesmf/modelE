@@ -6,11 +6,16 @@ c
       USE SEAICE, only : fsss,tfrez
       USE CONSTANT, only : lhm,shi,shw
 c
+      USE HYCOM_DIM,only : jj,isp,ifp,ilp,kk,j_0h,j_1h,idm,jdm
+      USE HYCOM_SCALARS, only : thkmin,onem,lp,nstep,delt1,g,spcifh
+     &     ,equatn,epsil
+      USE HYCOM_ARRAYS_GLOB
+c
       implicit none
 c
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 c
       real tmelt,thin,rhoice,kice,fusion,saldif,rate,tmxl,dpth,thkmax,
      .     paybak,borrow,total,totalx,qmax,qmx(jdm),heatfx,dtdflx,

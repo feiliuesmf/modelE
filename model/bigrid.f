@@ -1,3 +1,4 @@
+! global?
       subroutine bigrid(depth)
 c
 c --- set loop bounds for irregular basin in c-grid configuration
@@ -7,8 +8,10 @@ c
 c --- this version works for both cyclic and noncyclic domains.
 c --- land barrier at i=ii and/or j=jj signals closed-basin conditions
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : lp
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real depth(idm,jdm)
@@ -135,8 +138,10 @@ c --- if(j,k) gives row index of first point in column j for k-th section
 c --- il(j,k) gives row index of last point
 c --- is(j) gives number of sections in column j (maximum: ms)
 c
+      USE HYCOM_SCALARS, only : lp
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       integer ipt(idm,jdm),if(jdm,ms),il(jdm,ms),is(jdm)
@@ -181,8 +186,10 @@ c --- jf(i,k) gives column index of first point in row i for k-th section
 c --- jl(i,k) gives column index of last point
 c --- js(i) gives number of sections in row i (maximum: ms)
 c
+      USE HYCOM_SCALARS, only : lp
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       integer jpt(idm,jdm),jf(idm,ms),jl(idm,ms),js(idm)

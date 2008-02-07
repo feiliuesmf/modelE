@@ -9,13 +9,17 @@ ccc   use mod_xc    ! HYCOM communication interface
 ccc   use mod_pipe  ! HYCOM debugging interface
 c
 c --- hycom version 2.1
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
-      include 'kprf_arrays.h'
+!!      include 'kprf_arrays.h'
 c
 c ------------------------------------
 c --- k-profile vertical mixing model
@@ -288,11 +292,13 @@ c***************************************************************************
 c
       subroutine mxkprfaj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
+      USE HYCOM_DIM
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 c
 c --- calculate viscosity and diffusivity
@@ -328,13 +334,17 @@ ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
       USE MODEL_COM, only: jmon
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
-      include 'kprf_arrays.h'
+!!      include 'kprf_arrays.h'
 c
 c--------------------------------------------------------------------
 c --- nasa giss vertical mixing model, single j-row (part A)
@@ -1324,11 +1334,13 @@ c***************************************************************************
 c
       subroutine mxkprfbj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
+      USE HYCOM_DIM
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
 c --- final mixing at p points
 c
@@ -1345,11 +1357,13 @@ c***************************************************************************
 c
       subroutine mxkprfcj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
+      USE HYCOM_DIM
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
 c --- final velocity mixing at u,v points
 c
@@ -1384,13 +1398,17 @@ ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
       USE MODEL_COM, only: jmon
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
-      include 'kprf_arrays.h'
+!!      include 'kprf_arrays.h'
 c
 c -----------------------------------------------------------------
 c --- kpp vertical diffusion, single j-row (part A)
@@ -2769,13 +2787,17 @@ c
 #endif
 #endif
 c --- hycom version 2.1
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
-      include 'kprf_arrays.h'
+!!      include 'kprf_arrays.h'
 c
 c -------------------------------------------------------------
 c --- k-profile vertical diffusion, single j-row (part B)
@@ -2980,13 +3002,17 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
-      include 'kprf_arrays.h'
+!!      include 'kprf_arrays.h'
 c
 c -------------------------------------------------------------------------
 c --- k-profile vertical diffusion, single j-row, momentum at u grid points
@@ -3094,13 +3120,17 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
-      include 'kprf_arrays.h'
+!!      include 'kprf_arrays.h'
 c
 c --------------------------------------------------------------------------
 c --- k-profile vertical diffusion, single j-row , momentum at v grid points
@@ -3209,11 +3239,12 @@ c
       subroutine wscale(i,j,zlevel,dnorm,bfsfc,wm,ws,isb)
 ccc   use mod_xc  ! HYCOM communication interface
 c
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 c
       integer isb

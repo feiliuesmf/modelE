@@ -4,15 +4,19 @@ c --- hycom version 0.9.12
 c --- this version allows switching between T/S and rho/S conservation
 c --- and between pcm and ppm
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
+     &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
 c --- ---------------------
 c --- hybrid grid generator (coordinate restoration exclusively by "dilution")
 c --- ---------------------
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,
      .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,scalt,scals,
@@ -63,6 +67,9 @@ cdiag end if
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
  106  format (i9,2i5,a/(33x,i3,2(f8.1,f8.3)))
 c
+!!! hack dp0 not defined !!! (not needed any more ?)
+      dp0 = 0
+
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 19 j=1,jj
       do 19 k=1,kk
@@ -813,7 +820,7 @@ c
         nwrk3=0
         ntot2=0
         ntot3=0
-        do j=1,jdm
+        do j=1,JDM
           nwrk2=nwrk2+nwrk2d(j)
           nwrk3=nwrk3+nwrk3d(j)
           ntot2=ntot2+ntot2d(j)
@@ -1081,6 +1088,7 @@ c              \  x                       for x > x1
 c
 c --- if x = delp/dp0 >>  0, cushn*dp0 returns -delp-
 c --- if x = delp/dp0 <<  0, cushn*dp0 returns -dp0-
+      implicit none
 c
       real delp,dp0,qq,x1,factor
 ccc   parameter (x1=4.)                 !  used in Bleck&Benjamin 1993

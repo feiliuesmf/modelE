@@ -5,9 +5,10 @@ c ------------------------------------------------------------------
 c
       subroutine tridcof(diff,tri,nlayer,tcu,tcc,tcl)
 ccc   use mod_xc  ! HYCOM communication interface
+      USE HYCOM_DIM
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
 c --- compute coefficients for tridiagonal matrix (dimension=kdm).
@@ -45,9 +46,10 @@ c --- in the bottom layer
 
       subroutine tridrhs(h,yo,diff,ghat,ghatflux,tri,nlayer,rhs,delt1)
 ccc   use mod_xc  ! HYCOM communication interface
+      USE HYCOM_DIM
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
 c --- compute right hand side of tridiagonal matrix for scalar fields:
@@ -103,8 +105,12 @@ c --- note: if surface and bottom fluxes are nonzero, the following must apply
 c ---    surface layer needs +delt1*surfaceflux/(h(1)*bet)
 c ---    bottom  layer needs +tri(nlayer,1)*diff(nlayer+1)*yo(nlayer+1))/bet
 c
-      include 'dimensions.h'
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : lp
+      implicit none
+!!      include 'dimensions.h'
       include 'dimension2.h'
+      integer itest,jtest
       common/testpt/itest,jtest
 c
 c --- input

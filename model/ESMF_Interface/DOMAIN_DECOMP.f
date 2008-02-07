@@ -389,6 +389,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          INTEGER, DIMENSION(:), POINTER :: DJ_MAP
          INTEGER :: DJ
          INTEGER :: log_unit ! for debugging
+         LOGICAL :: BC_PERIODIC
       END TYPE DIST_GRID
 
       TYPE (DIST_GRID) :: GRID, GRID_TRANS
@@ -508,10 +509,10 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       END SUBROUTINE DESTROY_GRID
 
 #ifdef USE_ESMF
-      SUBROUTINE INIT_GRID(grd_dum,IM,JM, LM,width,vm,J_SCM)
+      SUBROUTINE INIT_GRID(grd_dum,IM,JM, LM,width,vm,J_SCM,bc_periodic)
       USE ESMF_CUSTOM_MOD, Only : modelE_vm
 #else
-      SUBROUTINE INIT_GRID(grd_dum,IM,JM,LM,width,J_SCM)
+      SUBROUTINE INIT_GRID(grd_dum,IM,JM,LM,width,J_SCM,bc_periodic)
 #endif
       USE FILEMANAGER, Only : openunit
       IMPLICIT NONE
@@ -519,6 +520,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER, INTENT(IN) :: IM, JM,LM
       INTEGER, OPTIONAL, INTENT(IN) :: J_SCM ! single column model
       INTEGER, OPTIONAL :: width
+      LOGICAL, OPTIONAL, INTENT(IN) :: bc_periodic
       integer, parameter :: numDims=2
 #ifdef USE_ESMF
       TYPE (ESMF_VM), INTENT(IN), Target, Optional :: vm
@@ -657,6 +659,12 @@ cddd      ENDIF
         grd_dum%HAVE_EQUATOR    = .false.
       endif
 
+      if ( present(bc_periodic) ) then
+        grd_dum%BC_PERIODIC = bc_periodic
+      else
+        grd_dum%BC_PERIODIC = .false.
+      endif
+
       END SUBROUTINE INIT_GRID
 
       SUBROUTINE GET(grd_dum, I_STRT, I_STOP,
@@ -707,7 +715,8 @@ cddd      ENDIF
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_ESMF
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
 
       END SUBROUTINE HALO_UPDATE_1D
@@ -720,7 +729,8 @@ cddd      ENDIF
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_ESMF
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_2D
 
@@ -732,7 +742,8 @@ cddd      ENDIF
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_ESMF
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATEj_2D
 
@@ -747,7 +758,8 @@ cddd      ENDIF
 
 #ifdef USE_ESMF
 
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_3D
 
@@ -760,7 +772,8 @@ cddd      ENDIF
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_ESMF
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_2D
 
@@ -774,7 +787,8 @@ cddd      ENDIF
       INTEGER :: L
 
 #ifdef USE_ESMF
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_3D
 
@@ -819,7 +833,8 @@ cddd      ENDIF
       INTEGER :: L
 
 #ifdef USE_ESMF
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 6, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 6, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_7D
 
@@ -4909,32 +4924,42 @@ C--------------------------------
 
       End Function CreateDist_MPI_Type
 
-      Subroutine GetNeighbors(rank, npes, pe_south, pe_north)
+      Subroutine GetNeighbors(rank, npes, pe_south,pe_north,bc_periodic)
       Integer, Intent(In)  :: rank
       Integer, Intent(In)  :: npes
       Integer, Intent(Out) :: pe_south
       Integer, Intent(Out) :: pe_north
+      Logical, Intent(In)  :: bc_periodic
 
-      If (rank > 0) Then
-        pe_south = rank - 1
-      Else
-        pe_south = MPI_PROC_NULL
-      End If
+cddd      If (rank > 0) Then
+cddd        pe_south = rank - 1
+cddd      Else
+cddd        pe_south = MPI_PROC_NULL
+cddd      End If
+cddd
+cddd      If (rank < npes-1) Then
+cddd        pe_north = rank + 1
+cddd      Else
+cddd        pe_north = MPI_PROC_NULL
+cddd      End If
 
-      If (rank < npes-1) Then
-        pe_north = rank + 1
-      Else
-        pe_north = MPI_PROC_NULL
-      End If
+      pe_south = mod( npes + rank - 1, npes)
+      pe_north = mod(        rank + 1, npes)
+
+      if ( .not. bc_periodic ) then
+        if ( rank == 0      ) pe_south = MPI_PROC_NULL
+        if ( rank == npes-1 ) pe_north = MPI_PROC_NULL
+      endif
 
       End Subroutine GetNeighbors
 
-      Subroutine sendrecv(grid, arr, shp, dist_idx, from)
+      Subroutine sendrecv(grid, arr, shp, dist_idx, from, bc_periodic_)
       Type (Esmf_Grid) :: grid
       Real(Kind=8) :: arr(*)
       Integer :: shp(:)
       Integer :: dist_idx
       Integer, optional :: from
+      Logical, optional :: bc_periodic_
 
       Integer :: new_type
       Integer :: npy, npx, px, py, pe_south, pe_north
@@ -4942,6 +4967,7 @@ C--------------------------------
       Integer :: USABLE_FROM
       Integer :: status(MPI_STATUS_SIZE), ier
       Integer :: n, sz
+      Logical :: bc_periodic
 
       IF(.NOT.PRESENT(FROM)) THEN
         USABLE_FROM = ALL
@@ -4949,6 +4975,11 @@ C--------------------------------
         USABLE_FROM = FROM
       ENDIF
 
+      if ( present(bc_periodic_) ) then
+        bc_periodic = bc_periodic_
+      else
+        bc_periodic = .false.
+      endif
       ! create a new mpi type for use in communication
       !-------------------------------
       new_type = CreateDist_MPI_Type(MPI_DOUBLE_PRECISION, shp,dist_idx)
@@ -4957,7 +4988,7 @@ C--------------------------------
       !-------------------------------
       call ESMF_GRID_MY_PE_LOC(grid,  px,  py)
       call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
-      Call GetNeighbors(py, npy, pe_south, pe_north)
+      Call GetNeighbors(py, npy, pe_south, pe_north, bc_periodic)
 
       sz = Product(shp(1:dist_idx-1))
       n  = shp(dist_idx)

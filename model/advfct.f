@@ -1,3 +1,4 @@
+!#include "hycom_mpi_hacks.h"
       subroutine advfct(iord,fld,u,v,scal,scali,dt,fco,fc)
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
@@ -11,8 +12,10 @@ c  scali  - inverse of scal
 c  dt     - temporal increment
 c  fco,fc - depth of the layer at previous and new time step
 c
+      USE HYCOM_DIM
+
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real fld(idm,jdm),u(idm,jdm),v(idm,jdm),scal(idm,jdm),

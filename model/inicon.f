@@ -2,9 +2,16 @@
       subroutine inicon
 c
 c --- hycom version 0.9
-      USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
+
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      use hycom_atm, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
-     .      ,gtemp,sss,mlhc,gtempr
+     .      ,gtemp,sss,gtempr,focean,asst,atempr
+
+!      USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
+!     .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
+!     .      ,gtemp,sss,mlhc,gtempr
 #ifdef TRACERS_GASEXCH_Natassa
      .      ,GTRACER
 
@@ -17,16 +24,23 @@ c --- hycom version 0.9
 #endif
 #endif
 
-      USE MODEL_COM, only : focean
+!      USE MODEL_COM, only : focean
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS, only : akpar
+      USE HYCOM_CPLER, only : tempro2a, ssto2a
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
       include 'state_eqn.h'
-      include 'kprf_arrays.h'
-      include 'a2o.h'
-      include 'cpl.h'
+!!!! check next two lines
+!!      include 'kprf_arrays.h'
+!!      include 'a2o.h'
+!!      include 'a2o.h' ! looks like not needed
+!!       include 'cpl.h'
+      !! only asst is needed from cpl.h - should be made local
+!!      real*8 asst(iia,jja) ! looks like the only thing needed from cpl.h
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
 #ifdef TRACERS_GASEXCH_Natassa
@@ -37,6 +51,10 @@ c
       real*4 real4(idm,jdm)
       external tofsig,kappaf,sigocn,sofsig
       data spval/-99.99/
+      character title*80
+
+!!! not sure why I added this line ... IA
+!!!      asst(:,:) = 0.d0
 c
 c --- set minimum salinity for each isopycnic layer
       cold=-2.5
@@ -45,7 +63,7 @@ c --- set minimum salinity for each isopycnic layer
       write(*,'(a/(10f6.2))') 'chk salmin(2:kk)=',salmin(2:kk)
 c
       if (nstep0.eq.0) then                ! start from Levitus
-        call geopar
+        !!call geopar
         delt1=baclin
 c
 c --- read mixed layer temperature

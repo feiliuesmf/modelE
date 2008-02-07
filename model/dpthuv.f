@@ -3,11 +3,14 @@ c
 c --- define water depth (bottom pressure) at  u,v  points and barotp.pot.vort.
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
+      USE HYCOM_DIM, only : jj,ifu,isu,ilu,isv,ifv,ilv,isq,ifq,ilq
+      USE HYCOM_SCALARS, only : onem
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real uvdep,a,b,damp
       data damp/5.e-6/		!  inverse time scale for coastal wave damping

@@ -2,11 +2,18 @@
 c
 c --- micom version 2.9
 c --- hycom version 0.9
+      USE DOMAIN_DECOMP, only : halo_update,NORTH,SOUTH
+      USE HYCOM_DIM, only : ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
+     &     ,ip,idm,j_0h,j_1h,ii1,JDM
+      USE HYCOM_SCALARS, only : acurcy,nstep,delt1,lp,onecm,epsil,thkdff
+     &     ,sigjmp,onem
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+      include 'bering.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       integer mask(idm,jdm),jcyc,iz,jz,iter
       real pold(idm,jdm),q,dpmin,dpmn(jdm),clip,flxhi,flxlo,dtinv,old,

@@ -1,6 +1,7 @@
       subroutine advem(iord,fld,u,v,scal,scali,dt,fco,fc)
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
+      USE HYCOM_DIM
       implicit none
 c
 c combined monotone scheme, for details see section 3.3 (eqs. 34 to 37)
@@ -13,7 +14,7 @@ c  scali  - inverse of scal
 c  dt     - temporal increment
 c  fco,fc - depth of the layer at previous and new time step
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real fld(idm,jdm),u(idm,jdm),v(idm,jdm),scal(idm,jdm),

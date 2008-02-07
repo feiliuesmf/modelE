@@ -93,6 +93,8 @@ c
 c
 c --- saturation specific humidity (lowe, j.appl.met., 16, 100-103, 1976)
 c
+      implicit none
+      real, intent(in) :: t
       qsatur=.622e-3*(6.107799961e+00+t*(4.436518521e-01
      .            +t*(1.428945805e-02+t*(2.650648471e-04
      .            +t*(3.031240396e-06+t*(2.034080948e-08
@@ -104,9 +106,11 @@ c
 c
 c --- compressibility coefficient kappa^(theta) from sun et al. (1999)
 c
+      USE HYCOM_SCALARS, only : thref
+      USE HYCOM_ARRAYS_GLOB
       implicit none
-      include 'dimensions.h'
-      include 'common_blocks.h'
+!!      include 'dimensions.h'
+!!      include 'common_blocks.h'
       real t,s,prs,tdif,sdif
 c
       include 'state_eqn.h'
@@ -130,6 +134,7 @@ c
 c --- locally referenced sigma, a fit towards Jackett & McDougall (1995)
 c --- t: potential temperature; s: psu; prs: pressure
 c
+      implicit none
       include 'state_eqn.h'
 c
       real t,s,prs,c1p,c2p,c3p,c4p,c5p,c6p,c7p
@@ -151,6 +156,7 @@ c
 c --- locally referenced sigma, a fit towards Jackett & McDougall (1995)
 c --- t: potential temperature; s: psu; prs: pressure
 c
+      implicit none
       include 'state_eqn.h'
 c
       real t,s,prs,c2p,c4p,c5p,c6p,c7p
@@ -172,6 +178,7 @@ c
 c --- locally referenced sigma, a fit towards Jackett & McDougall (1995)
 c --- t: potential temperature; s: psu; prs: pressure
 c
+      implicit none
       include 'state_eqn.h'
 c
       real t,s,prs,c3p,c5p,c7p
@@ -191,8 +198,9 @@ c
 c
 c --- exchange information across bering strait seam
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'bering.h'
 c
       real field(idm,jdm),sign
@@ -201,6 +209,43 @@ c --- exchange p-point values (half grid size away from seam)
       if (beropn) then
         field(iatls,jatl)=field(ipacs,jpac)
         field(ipacn,jpac)=field(iatln,jatl)
+      endif
+      return
+      end
+
+      subroutine cpy_p_par(field)
+c
+c --- exchange information across bering strait seam
+c
+      USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
+      USE HYCOM_DIM
+      implicit none
+!!      include 'dimensions.h'
+      include 'bering.h'
+c
+      real field(I_0h:I_1H,J_0H:J_1H)
+      real a(1),b(2)
+c
+c --- exchange p-point values (half grid size away from seam)
+      if (beropn) then
+        a(1) = field(ipacs,jpac)
+        b(1) = field(iatln,jatl)
+
+        if ( jpac>=J_0 .and. jpac<=J_1 )
+     &       call send_to_j(ogrid,a,jatl,1)
+        if ( jatl>=J_0 .and. jatl<=J_1 )
+     &       call send_to_j(ogrid,b,jpac,2)
+
+        if ( jatl>=J_0 .and. jatl<=J_1 )
+     &       call recv_from_j(ogrid,a,jpac,1)
+        if ( jpac>=J_0 .and. jpac<=J_1 )
+     &       call recv_from_j(ogrid,b,jatl,2)
+
+        field(iatls,jatl)=a(1)
+        field(ipacn,jpac)=b(1)
+
+        !field(iatls,jatl)=field(ipacs,jpac)
+        !field(ipacn,jpac)=field(iatln,jatl)
       endif
       return
       end
@@ -221,10 +266,13 @@ c --- input: 3-d arrays of  h y b r i d  layer thickness and density anomaly.
 c --- results from pechg1 are stored in 'nunit' for later use by pechg2.
 c --- use different values of 'nunit' for nested APE process diagnostics.
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g
+      USE HYCOM_ARRAYS_GLOB
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real slithk
       integer nscli,nunit,lgth
@@ -356,10 +404,13 @@ c --- input: 3-d arrays of  h y b r i d  layer thickness and density anomaly.
 c --- results from pechg1 representing 'before' state are read from 'nunit'.
 c --- use different values of 'nunit' for nested APE process diagnostics.
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g,delt1
+      USE HYCOM_ARRAYS_GLOB
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real slithk
       integer nscli,nunit,lgth
@@ -495,14 +546,17 @@ c>
 c> Dec. 2004 - fixed bug in loop 9 (excluded interfaces on shallow bottom)
 c
       subroutine totals(dp1,field1,dp2,field2,text)
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : lp
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
 c --- compute volume integral of 2 fields (field1,field2), each associated
 c --- with its own layer thickness field (dp1,dp2)
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real dp1(idm,jdm,kdm),dp2(idm,jdm,kdm),field1(idm,jdm,kdm),
      .     field2(idm,jdm,kdm),sum1j(jdm),sum2j(jdm),sum1,sum2
@@ -541,8 +595,10 @@ c --- fieldf -- output field containing ii rows
 c
 c --- use this entry to operate on -p- points
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : lp
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       integer numcrs,numfin,newrows,icrs,ifin,ieqcrs,ieqfin,

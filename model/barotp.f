@@ -1,11 +1,16 @@
       subroutine barotp(m,n,mm,nn,k1m,k1n)
 c
 c --- version 2.8.2
+      USE HYCOM_DIM, only : jj,isp,ifp,ilp,iu,isu,ifu,ilu,iv,isv,ifv,ilv
+     &     ,ii
+      USE HYCOM_SCALARS, only : lstep,wbaro,dlt,slip,thref,veldff,nstep
+      USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-      include 'dimensions.h'
+      include 'bering.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
+!!      include 'common_blocks.h'
 c
       real q,utndcy,vtndcy,damp,uglue,vglue,
      .     u_ja,u_jb,v_ia,v_ib,dpu_ja,dpu_jb,dpv_ia,dpv_ib,hfharm

@@ -2,12 +2,16 @@
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : pi
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
 c -----------------------------------------------
@@ -34,7 +38,7 @@ c --- initialize viscosity and diffusivity arrays
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do j=1,jdm
         do k=1,kdm+1
-          do i=1,idm
+          do i=1,ii
             vcty(i,j,k)=difmiw
             dift(i,j,k)=difsiw
             difs(i,j,k)=difsiw
@@ -637,6 +641,8 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 1.0
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
 c --- Replace the numerical value of 6.25 by 1/(tpvot**2) .
@@ -684,10 +690,10 @@ c --- Take \tau_pv/\tau as being calculated in the smshsc routine instead.
 c --- From the printed notes Canuto gave me on 980601 have:
 c ---          \tau_pv = {2 \over 5} \tau  (B.1) or parameter(tpvot = 0.4)
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
       real ri,rid,slq2,sm,sh,sc,c_y0,c_y00
@@ -835,14 +841,16 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 1.0
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none  
 c
       real fct_sal,c_n,c_c,c_y,sm,sh,sc,bb,rit,ric
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
       common /bb/rit,ric
@@ -863,12 +871,14 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 1.0
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none   
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
 c --- .eW SUBROUTI.e WHICH calculates the "p's" from the timescale ratios.
@@ -1094,12 +1104,14 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 1.0
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
       real fct_sal,xx,val,xst,eps,sm,sh,sc
@@ -1165,12 +1177,14 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 1.0
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
       implicit none
 c
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
 c

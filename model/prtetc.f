@@ -3,11 +3,17 @@ c
 c --- Delete 'array' elements outside 'mask'. Then
 c --- break 'array' into sections, each 'nchar' characters wide, for printing.
 c
+      implicit none
+      integer lp
       common/linepr/lp
 c
+      integer idm,ii,jj
       character title*(*)
-      real array(idm,1),work(idm,1)
+      real array(idm,1),work(idm,1),offset,scale
       integer mask(idm,1)
+      !--- local vars
+      real cvmgp,cvmgz,a,b,c
+      integer nchar,ncols,n,j1,j2,i,j,ic
       data nchar/76/
 ccc   data nchar/80/
 ccc   data nchar/132/
@@ -39,10 +45,15 @@ ccc 2    write (lp,'(32i4)') (int(work(i,j)),j=j1,j2)
 c
       subroutine linout(value,char,index)
 c
+      implicit none
+      real value
+      integer index
+      integer lp
       common/linepr/lp
 c
-      parameter (length=77)
+      integer, parameter :: length=77
       character*1 char,line(length)
+      integer l,n
       common/lnout/line
 c
 c --- replace n-th element of array 'line' by character 'char', where
@@ -72,8 +83,10 @@ c
 c --- call 'pipe_init' initially from both code versions undergoing testing.
 c --- one version must set master=.true., the other must set master=.false.
 c
+      implicit none
       logical master,slave
 c
+      integer iunit,lpunit
       common/cmp_pipe/iunit,lpunit,slave
       iunit=39
       lpunit=38
@@ -95,9 +108,13 @@ c
 c
       subroutine compare(field,mask,what)
 c
-#include "dimensions.h"
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS_GLOB
+      implicit none
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 c
 c --- call this routine from anywhere in the code (from both versions, of
 c --- course) to check whether data stored in 'field' are identical
@@ -106,6 +123,7 @@ c
       integer mask(idm,jdm)
       character*20 what,which
       logical slave,fail
+      integer iunit,lpunit
       common/cmp_pipe/iunit,lpunit,slave
 c
       if (nstep.le.24) return                ! don't start right away
@@ -144,10 +162,11 @@ c
       end
 c
       subroutine compare_r4(field,mask,what)
+      USE HYCOM_DIM, only : idm,jdm
 c
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 c
 c --- call this routine from anywhere in the code (from both versions, of
 c --- course) to check whether data stored in 'field' are identical
@@ -197,10 +216,16 @@ c
 c
 c --- write out a standard menu of arrays for testing
 c
-#include "dimensions.h"
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : nstep
+      USE HYCOM_ARRAYS_GLOB
+      implicit none
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 c
+      integer iunit,lpunit
+      logical slave
       common/cmp_pipe/iunit,lpunit,slave
       character text*20,info*(*)
 c
@@ -232,17 +257,21 @@ c
 c
 c --- find maximum and minimum in 'array'. only check points where mask > 0
 c
+      USE HYCOM_DIM, only : jchunk
       implicit none
       integer jmax
       parameter (jmax=2000)
       integer lp,i,j,idm,ii,jj,mask(idm,jj),ipos,jpos,ineg,jneg,
-     .        jpoj(jmax),ipoj(jmax),jnej(jmax),inej(jmax),jchunk
+     .        jpoj(jmax),ipoj(jmax),jnej(jmax),inej(jmax)
       real array(idm,jj),difpos,difneg,difpoj(jmax),difnej(jmax),huge
       character name*(*)
       data huge/1.e33/
       common/linepr/lp
-      common/chunksize/jchunk
 c
+!!! hack : not defined ?
+      ipos = 0 ; jpos = 0
+      ineg = 0 ;jneg = 0
+
       if (jj.gt.jmax) stop '(error subr.findmx -- jmax < jj)'
 c
 c$OMP PARALLEL DO PRIVATE(difpos,difneg,ipos,jpos,ineg,jneg)
@@ -305,10 +334,13 @@ c
 c --- write 5 x 5 point cluster of grid point values centered on (iz,jz)
 c --- input parameters: k = layer index; mn = time slot index, i.e., mm or nn
 c
+      USE HYCOM_DIM, only : kk
+      USE HYCOM_SCALARS, only : lp,onem
+      USE HYCOM_ARRAYS_GLOB
       implicit none
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 c
       integer mn,ks,iz,jz
 c
@@ -379,8 +411,10 @@ c
 c --- write 9 x 9 point cluster of 'array' values centered on (iz,jz).
 c --- the printed numbers actually represent (array(i,j) + offset) * scale
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : lp
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real array(idm,jdm),scale,offset
@@ -406,6 +440,7 @@ c
 c --- write 9 x 9 point cluster of 'array' values centered on (iz,jz).
 c --- the printed numbers actually represent (array(i,j) + offset) * scale
 c
+      USE HYCOM_SCALARS, only : lp
       implicit none
 c
       real array(idm,jdm),scale,offset
@@ -429,8 +464,10 @@ c
 c
 c --- write 7 x 7 point cluster of 'array' values centered on (iz,jz).
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : lp
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real array(idm,jdm),scale,offset
@@ -456,8 +493,9 @@ c
 c --- psmo1 is specially set up for interface smoothing.
 c --- it only alters -alist- values that don't coincide with -pbot-.
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -517,8 +555,9 @@ c --- this routine is set up to smooth data carried at -p- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -558,8 +597,9 @@ c --- this routine is set up to smooth data carried at -u- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -599,8 +639,9 @@ c --- this routine is set up to smooth data carried at -v- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -639,8 +680,9 @@ c --- this routine is set up to smooth data carried at -p- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -706,8 +748,9 @@ c --- this routine is set up to smooth data carried at -p- points
 c 
 c --- this version works for both cyclic-in-j and noncyclic domains
 c 
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
@@ -747,8 +790,9 @@ c --- this routine is set up to smooth data carried at -u- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
@@ -788,8 +832,9 @@ c --- this routine is set up to smooth data carried at -v- points
 c 
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
+      USE HYCOM_DIM
       implicit none
-      include 'dimensions.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
@@ -837,6 +882,7 @@ c
 c --- ii  may be smaller than  idim, the first (row) dimension of 'array'
 c --- in the calling program. thus, plotting of partial arrays is possible.
 c
+      USE HYCOM_SCALARS, only : lp
       implicit none
       integer lgth,idim,ii,jj,i,j
       parameter (lgth=1600)
@@ -915,9 +961,15 @@ c
 c
 c --- simulate a contour line plot on the printer
 c
+      USE HYCOM_SCALARS, only : lp
+      implicit none
+      integer lp
       common/linepr/lp
 c
-      real array(idim,jj)
+      integer idim,ii,jj
+      real array(idim,jj),dec
+      integer i,j,n,k,nchar,ia,ja
+      real ratio,xinc,yinc,x,y,dx,dy,dxdy,value
       character*1 digit(130),dig(20)
       data dig/'0',' ','1',' ','2',' ','3',' ','4',' ',
      .         '5',' ','6',' ','7',' ','8',' ','9',' '/

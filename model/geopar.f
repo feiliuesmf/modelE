@@ -1,3 +1,4 @@
+!global ?
       subroutine geopar
 c
 c --- set up model parameters related to geography
@@ -5,13 +6,24 @@ c
 c --- hycom version 0.9 -- cyclic in j
 css   USE GEOM, only : dxyp
 c
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE HYCOM_DIM, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
+     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
+     &     ,iia,jja,idm,jdm
+      USE HYCOM_SCALARS, only : lp,pi,area,avgbot,huge,flnmlat,flnmdep
+     &     ,flnma2o,flnmo2a,flnmo2a_e,flnmo2a_n,flnmcoso,flnmbas
+     &     ,flnma2o_tau
+      USE HYCOM_ARRAYS_GLOB
+      USE KPRF_ARRAYS
+      USE HYCOM_CPLER
       implicit none
-      include 'dimensions.h'
+      include 'bering.h'
+!!      include 'dimensions.h'
       include 'dimension2.h'
-      include 'common_blocks.h'
-      include 'cpl.h'
-      include 'a2o.h'
-      include 'kprf_arrays.h'
+!!      include 'common_blocks.h'
+!!      include 'cpl.h' ! apparently not needed ??
+!!!!      include 'a2o.h'
+!!      include 'kprf_arrays.h'
 c
       real realat,sphdis,glufac,zero
       integer idim,jdim,length,iz,jz,nt
@@ -59,11 +71,15 @@ c     do i=72,74
 c     depths(i,175)=798.
 c     end do
 c
-      write (lp,*) 'shown below: bottom depth'
-      call zebra(depths,idm,ii1,jj)
+      if (AM_I_ROOT()) then ! print only on root
+        write (lp,*) 'shown below: bottom depth'
+        call zebra(depths,idm,ii1,jj)
+      endif
 c
 c --- determine do-loop limits for u,v,p,q points
       call bigrid(depths)
+
+      if (AM_I_ROOT()) then
 ccc      do 3 i=1,ii1
 ccc 3    write (lp,'('' i='',i3,'' jfp,jlp='',7(1x,2i5))') i,
 ccc     . (jfp(i,l),jlp(i,l),l=1,jsp(i))
@@ -470,6 +486,9 @@ c$OMP END PARALLEL DO
 c
 c --- read in all weights
 c
+
+!!! ocellsz(ia,ja) is not used anywhere. can be deleted ? - IA
+
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 11 ja=1,jjo
       do 11 ia=1,iio
@@ -480,6 +499,9 @@ c     open(301,file='agcmgdsz.8bin',status='unknown',form='unformatted')
 c     write(301)dxyp
 c     close(301)
 c
+
+!!! it would be cleaner to move the following part to cpler.f -IA
+
       if (iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.10249200 .or.
      .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.10249200 .or.
      .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.2079936 ) then
@@ -530,6 +552,7 @@ c --- 1:8: NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       enddo 
       close(34)
 c
+      endif ! AM_I_ROOT
       return
       end
 c
