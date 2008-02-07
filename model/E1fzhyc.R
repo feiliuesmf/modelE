@@ -43,12 +43,16 @@ DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_RES_M                          ! diagnostics (resolution dependent)
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
+hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8| hycom_atm|-r8|
+hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
+hycom_scalars|-r8|
 hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
 advfct|-r8|                         ! advection
 archyb|-r8|                         ! continuity eqn.
 barotp|-r8|                         ! barotropic eqn.
 bigrid|-r8|                         ! basin grid
-blkdat|-r8| blkprf|-r8|             ! block data
+!blkdat|-r8| 
+blkprf|-r8|             ! block data
 cnuity|-r8|                         ! continuity eqn.
 cpler |-r8|                         ! coupler
 diapfx|-r8|                         ! diapycnal diffusion
