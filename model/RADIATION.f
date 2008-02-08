@@ -371,9 +371,10 @@ C--------------------------------------   have to handle 1 point in time
 !@+   MADGHG   =  1          Enables UPDGHG update. MADGHG=0: no update
 !@+   MADSUR   =  1   Reads  Vegetation,Topography data    RFILEC,RFILED
 !@+   MADBAK   if 1          Adds background aerosols
+!@+   MADO2A   if > 0      call set/geto2a,  activating O2 solar heating
 !     ------------------------------------------------------------------
       INTEGER :: MADO3M=1,MADAER=1,MADDST=1,MADVOL=1,MADEPS=1,MADLUV=1
-      INTEGER :: MADGHG=1,MADSUR=0,MADBAK=0 ! MADSUR=1 for OFF-line only
+      INTEGER :: MADGHG=1,MADSUR=0,MADBAK=0,MADO2A=0                   
 
 !     ------------------------------------------------------time control
 !@var KYEARx,KJDAYx if both are 0   : data are updated to current yr/day
@@ -2835,6 +2836,11 @@ C-----------------
 
       if ( present(GETO2A_flag) ) goto 777
 
+      if (mado2a==0) then
+        ZTABLE(:,:)=0.
+        return
+      end if
+
       IF(IFIRST==1) THEN
         NL0=NL
         DO N=1,NL0
@@ -4099,7 +4105,6 @@ C
 C     Define Solar,Thermal Cloud Single Scattering Albedo: SRCQPI( 6,15)
 C                                                          TRCQPI(33,15)
 C-----------------------------------------------------------------------
-      !INTEGER, INTENT(IN) :: JYEARE,JJDAYE
 
       TRCQAB(:,:)=TRCQEX(:,:)-TRCQSC(:,:)   ! 1:33,1:15
       TRCQPI(:,:)=TRCQSC(:,:)/TRCQEX(:,:)
@@ -4354,12 +4359,8 @@ C                 Select ISCCP-Based Cloud Heterogeneity Time Dependence
 C                 ------------------------------------------------------
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: JYEARE,JJDAYE
-      REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
-     *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
-     *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
-     *     ,SCTGCB,TCTAUW,TCTAUC,ALWATK,WTI,WTW,ALICEK,TRCTCI,XJDAY,XMO
-     *     ,WTMJ,WTMI
-      INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
+      REAL*8 XJDAY,XMO,WTMJ,WTMI
+      INTEGER MI,MJ
 
       XJDAY=JJDAYE-0.999D0
       XMO=XJDAY/30.5D0+.5D0
@@ -4393,12 +4394,7 @@ C                     KCLDEP =  3  Uses: Column EPCOL(72,46) Climatology
 C                     KCLDEP =  4  Uses: Ht Dep EPLOW, EPMID, EPHIG Data
 C                     --------------------------------------------------
       IMPLICIT NONE
-      REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
-     *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
-     *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
-     *     ,SCTGCB,TCTAUW,TCTAUC,ALWATK,WTI,WTW,ALICEK,TRCTCI,XJDAY,XMO
-     *     ,WTMJ,WTMI
-      INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
+      INTEGER L
 
       IF(KCLDEP == 0)  CLDEPS(L1:NL) = 0
       IF(KCLDEP == 1)  CLDEPS(L1:NL) = EPSCON
@@ -6630,6 +6626,8 @@ C**** Window region and spectr. integrated total flux diagnostics
       NMWAVB(1:16)=NMKWAV(2:17)
 
       TCLMIN=MIN(TAUIC0,TAUWC0)
+
+      call SETO2A
 
       RETURN
       END SUBROUTINE SOLAR0
