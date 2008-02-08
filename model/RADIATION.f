@@ -374,7 +374,12 @@ C--------------------------------------   have to handle 1 point in time
 !@+   MADO2A   if > 0      call set/geto2a,  activating O2 solar heating
 !     ------------------------------------------------------------------
       INTEGER :: MADO3M=1,MADAER=1,MADDST=1,MADVOL=1,MADEPS=1,MADLUV=1
-      INTEGER :: MADGHG=1,MADSUR=0,MADBAK=0,MADO2A=0                   
+      INTEGER :: MADGHG=1,MADSUR=0,MADBAK=0 ! MADSUR=1 for OFF-line use
+#ifdef USE_RADIATION_E1
+      INTEGER :: MADO2A=0
+#else
+      INTEGER :: MADO2A=1
+#endif
 
 !     ------------------------------------------------------time control
 !@var KYEARx,KJDAYx if both are 0   : data are updated to current yr/day
