@@ -607,7 +607,7 @@ C**** snow cover diagnostic now matches that seen by the radiation
             AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUNOSI(I,J)*POICE
 #ifdef TRACERS_WATER
             TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     *                                       +TRUNOSI(I,J,:)*POICE
+     *                                       +TRUNOSI(:,I,J)*POICE
 #endif
           END IF
 
