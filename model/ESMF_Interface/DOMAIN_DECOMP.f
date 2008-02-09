@@ -389,6 +389,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          INTEGER, DIMENSION(:), POINTER :: DJ_MAP
          INTEGER :: DJ
          INTEGER :: log_unit ! for debugging
+         !@var lookup_pet index of PET for a given J
+         INTEGER, DIMENSION(:), POINTER :: lookup_pet
          LOGICAL :: BC_PERIODIC
       END TYPE DIST_GRID
 
@@ -410,8 +412,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: RANK_LON
 !@var RANK_LAT_RANK index of _this_ process in meridional set.
       INTEGER :: RANK_LAT
-!@var lookup_pet index of PET for a given J
-      INTEGER, DIMENSION(:), POINTER :: lookup_pet
 
       TYPE (ESMF_DELayout) :: ESMF_LAYOUT_def
       Integer :: pe
@@ -438,11 +438,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER             :: rc
       INTEGER             :: pet
       CHARACTER(LEN=20) :: buffer
-
-#ifdef USE_ESMF
-      Type (ESMF_Axisindex), Pointer :: AI(:,:)
-      INTEGER :: p
-#endif
 
 #ifdef USE_ESMF
       ! Initialize ESMF
@@ -485,19 +480,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       CALL openunit(TRIM(buffer), grd_dum%log_unit)
 #endif
 
-      ! set lookup table PET(J)
-      Allocate(lookup_pet(1:JM))
-      lookup_pet(:) = 0
-#ifdef USE_ESMF
-      Allocate(AI(NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grd_dum%ESMF_GRID, globalAI=AI,
-     &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
-      Do p = 1, npes
-        lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
-      End Do
-      Deallocate(AI)
-#endif
 
       END SUBROUTINE INIT_APP
 
@@ -540,7 +522,10 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Type (ESMF_DELayout)::layout
       REAL*8 :: deltaZ
       INTEGER :: L
+      Type (ESMF_Axisindex), Pointer :: AI(:,:)
+      INTEGER :: p
 #endif
+
       grid_size(1)=IM;   grid_size(2)=JM
       range_min(1)=0.;   range_min(2)=-90.
       range_max(1)=360.; range_max(2)=90.
@@ -664,6 +649,20 @@ cddd      ENDIF
       else
         grd_dum%BC_PERIODIC = .false.
       endif
+
+      ! set lookup table PET(J)
+      Allocate(grd_dum%lookup_pet(1:JM))
+      grd_dum%lookup_pet(:) = 0
+#ifdef USE_ESMF
+      Allocate(AI(NPES,3))
+      Call ESMF_GridGetAllAxisIndex(grd_dum%ESMF_GRID, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
+      Do p = 1, npes
+        grd_dum%lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
+      End Do
+      Deallocate(AI)
+#endif
 
       END SUBROUTINE INIT_GRID
 
@@ -5152,7 +5151,7 @@ cddd      End If
       INTEGER :: ier
 #ifdef USE_ESMF
       call MPI_Send(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
+     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
 #endif
       end subroutine SEND_TO_J_1D
 
@@ -5164,7 +5163,7 @@ cddd      End If
       INTEGER :: ier
 #ifdef USE_ESMF
       call MPI_Send(arr, 1, MPI_INTEGER,
-     &     lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
+     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
 #endif
       end subroutine ISEND_TO_J_0D
 
@@ -5176,7 +5175,7 @@ cddd      End If
 #ifdef USE_ESMF
       INTEGER :: ier, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
+     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
 #endif
       end subroutine RECV_FROM_J_1D
 
@@ -5188,7 +5187,7 @@ cddd      End If
 #ifdef USE_ESMF
       INTEGER :: ier, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, 1, MPI_INTEGER,
-     &     lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
+     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
 #endif
       end subroutine IRECV_FROM_J_0D
 
