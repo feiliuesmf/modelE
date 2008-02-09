@@ -361,10 +361,10 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
-      USE RADPAR, only : rcomp1, writer, writet,ref_mult
+      USE RADPAR, only : rcomp1, writer, writet
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx
+     *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
@@ -451,6 +451,7 @@ C**** sync radiation parameters from input
       call sync_param( "rad_forc_lev", rad_forc_lev )
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "ref_mult", ref_mult )
+      REFdry = REFdry*ref_mult
       if (istart.le.0) return
 
 C**** Set orbital parameters appropriately

@@ -715,9 +715,6 @@ CKoch   DRYM2G=(/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 1.000,1.000/)
 
      * ,DENAER=(/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 2.000,2.000/)
 
-!@dbparm ref_mult factor to control REFDRY from rundeck
-      INTEGER :: ref_mult=1d0
-
 C     TROP AEROSOL 1850 BACKGROUND, INDUSTRIAL & BIO-BURNING PARAMETERS
       REAL*8, dimension(13) :: AERMIX=(/
 C      Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
@@ -3099,7 +3096,7 @@ C     ------------------------------------------------------------------
 
       IF(MADAER <= 0) GO TO 150
       DO 110 NA=1,4
-      AREFF=REFDRY(NA)*ref_mult
+      AREFF=REFDRY(NA)
 !nu   IF(KRHAER(NA) < 0) AREFF=REFWET(NA)
       CALL GETMIE(NA,AREFF,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
      +                    ,TRHQAB(1,1,NA),Q55DRY(NA))
@@ -3120,7 +3117,7 @@ C     Set size BCI (NA=5) = Black Carbon (Industrial) (Nominal Reff=0.1)
 C     Set size BCB (NA=6) = Black Carbon (BioBurning) (Nominal Reff=0.1)
 C     ------------------------------------------------------------------
       DO 120 NA=5,6
-      AREFF=REFDRY(NA)*ref_mult
+      AREFF=REFDRY(NA)
       CALL GETMIE(NA,AREFF,SRBQEX(1,NA),SRBQSC(1,NA),SRBQCB(1,NA)
      +                    ,TRBQAB(1,NA),Q55DRY(NA))
       DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
@@ -8350,7 +8347,7 @@ C
 C
 C                                (4E)  10-Comp Aerosol Qx, Qs, g, Pi0
 C                                ------------------------------------
-      WRITE(KW,6450) KWTRAB,(N,N=1, 6),(REFDRY(N)*ref_mult,N=1, 6)
+      WRITE(KW,6450) KWTRAB,(N,N=1, 6),(REFDRY(N),N=1, 6)
       WRITE(KW,6451)
       DO 435 K=1,6
       WRITE(KW,6452) K,(SRHQEX(K,1,N),N=1, 4),(SRBQEX(K,N),N=5, 6)
