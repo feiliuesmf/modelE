@@ -2443,7 +2443,7 @@ C**** WIND: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
 C**** Depending on whether EP fluxes have been specially calculated
 C**** output full or approximate version
       IF (KEP.gt.0) THEN
-        CALL EPFLXP
+        if (kdiag(3).ne.7) CALL EPFLXP
       ELSE ! these are not very good
       AX=0.
       BX=0.
