@@ -8,8 +8,6 @@
 
       implicit none
 
-      SAVE
-
 
 #include "dimensions.h"
 #include "dimension2.h"
@@ -53,98 +51,116 @@ c
       real, parameter :: dratez2=0.5/24.0     !zooplankton death rate/hr
       real, parameter :: regen=0.25           !regeneration fraction
 
-      real rmu4     !growth on ammonium, NH4
-      real rmu3     !growth on nitrate, NO4
-      real rmu5     !growth on silica
-      real rmuf     !growth on iron
-      real zoo      !herbivores (zooplankton)
-      real dphy     !death rate of phytoplankton
       real co2mon(26,12)        !26 years 1979-2004, 12 months
-      real viscfac
-      common /bptend1/ rmu4(nchl),rmu3(nchl),rmu5(nchl),rmuf(nchl)
-      common /bptend2/ zoo(ntyp),dphy(ntyp),viscfac(kdm)
-!$OMP THREADPRIVATE(/bptend1/)
-!$OMP THREADPRIVATE(/bptend2/)
 
       integer npst,npnd   !starting and ending array index for PAR
-      real WtoQ           !Watts/m2 to quanta/m2/s conversion
       data npst,npnd /3,17/
+
+      real WtoQ           !Watts/m2 to quanta/m2/s conversion
       common /bwq/ WtoQ(nlt)
 
 ! reduced rank arrays for obio_model calculations
       integer ihra_ij
-      real temp1d,dp1d,obio_P,det,car,avgq1d,gcmax1d,atmFe_ij,covice_ij
+      common /reducarr2/ihra_ij
+!$OMP THREADPRIVATE(/reducarr2/)
+
+      real temp1d,dp1d,obio_P,det,car,avgq1d,gcmax1d
      .    ,saln1d,p1d,alk1d
       common /reducarr1/temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp+n_inert)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
      .                 ,alk1d(kdm)
-      common /reducarr2/ihra_ij
-      common /reducarr3/atmFe_ij,covice_ij
 !$OMP THREADPRIVATE(/reducarr1/)
-!$OMP THREADPRIVATE(/reducarr2/)
+
+      real atmFe_ij,covice_ij
+      common /reducarr3/atmFe_ij,covice_ij
 !$OMP THREADPRIVATE(/reducarr3/)
 
 
       integer inwst,inwnd,jnwst,jnwnd     !starting and ending indices 
                                           !for daylight 
                                           !in i and j directions
-      real    acdom
-
       common /bnwi/  inwst,inwnd,jnwst,jnwnd
+
+      real    acdom
       common /bcdom/ acdom(kdm,nlt)       !absorptio coefficient of CDOM
 
 
-      real P_tend,rmuplsr,D_tend
-      real obio_ws,bn,tfac,pnoice,pnoice2
-      real wsdet,rikd
-      real Fescav
-      real tzoo
-      common /bkpt/ P_tend(kdm,ntyp+n_inert)!bio tendency (dP/dt)
-      common /bgro/ rmuplsr(kdm,nchl)   !growth+resp rate
-      common /bkws/ obio_ws(kdm,nchl)   !phyto sinking rate
-      common /bzoo/ tzoo                !herbivore T-dependence
-      common /bkwsdet2/ wsdet(kdm+1,ndet) !detrital sinking rate
-      common /btfac/ tfac(kdm)          !phyto T-dependence
-      common /bpnoice/ pnoice,pnoice2   !pct ice-free
-      common /bbn/ bn(kdm)              !N:chl ratio
-      common /bikd/ rikd(kdm,nchl)      !photoadaption state
-
+      real P_tend                             !bio tendency (dP/dt)
+      common /bkpt/ P_tend(kdm,ntyp+n_inert)
 !$OMP THREADPRIVATE(/bkpt/)
-!$OMP THREADPRIVATE(/bkws/)
-!$OMP THREADPRIVATE(/bkwsdet2/)
-!$OMP THREADPRIVATE(/bbn/)
-!$OMP THREADPRIVATE(/bpnoice/)
-!$OMP THREADPRIVATE(/btfac/)
-!$OMP THREADPRIVATE(/bikd/)
+
+      real rmuplsr                            !growth+resp rate
+      common /bgro/ rmuplsr(kdm,nchl)   
 !$OMP THREADPRIVATE(/bgro/)
-!$OMP THREADPRIVATE(/bzoo/)
 
-C if NCHL_DEFINED > 3
-      real wshc,gcmax
-
-      common /bwshc/ wshc(kdm)             !cocco sinking rate
-      common /bgcmax/ gcmax(idm,jdm,kdm)   !cocco max growth rate
-      common /bscav/ Fescav(kdm)           !iron scavenging rate
-!$OMP THREADPRIVATE(/bscav/)
-!$OMP THREADPRIVATE(/bwshc/)
-
-C endif
-
-      common /bdtend/ D_tend(kdm,ndet)     !detrtial tendency
+      real D_tend                             !detrtial tendency
+      common /bdtend/ D_tend(kdm,ndet)     
 !$OMP THREADPRIVATE(/bdtend/)
 
+      real obio_ws                            !phyto sinking rate
+      common /bkws/ obio_ws(kdm+1,nchl)   
+!$OMP THREADPRIVATE(/bkws/)
 
-      real :: C_tend
-      real :: pCO2, pCO2_ij
-      common /bctend/ C_tend(kdm,ncar)      !carbon tendency
-      common /bco2/ pCO2(idm,jdm)           !partial pressure of CO2
-      common /bco2ij/ pCO2_ij               !partial pressure of CO2
+      real bn                                 !N:chl ratio
+      common /bbn/ bn(kdm)              
+!$OMP THREADPRIVATE(/bbn/)
+
+      real tfac                               !phyto T-dependence
+      common /btfac/ tfac(kdm)          
+!$OMP THREADPRIVATE(/btfac/)
+
+      real pnoice,pnoice2                     !pct ice-free
+      common /bpnoice/ pnoice,pnoice2   
+!$OMP THREADPRIVATE(/bpnoice/)
+
+      real wsdet                              !detrital sinking rate
+      common /bkwsdet2/ wsdet(kdm+1,ndet) 
+!$OMP THREADPRIVATE(/bkwsdet2/)
+
+      real rikd                               !photoadaption state
+      common /bikd/ rikd(kdm,nchl)      
+!$OMP THREADPRIVATE(/bikd/)
+
+      real tzoo                               !herbivore T-dependence
+      common /bzoo/ tzoo                
+!$OMP THREADPRIVATE(/bzoo/)
+
+      real tzoo2d,tfac3d,rmuplsr3d,rikd3d,bn3d,obio_wsd2d,obio_wsh2d
+     .    ,wshc3d,Fescav3d
+      common /daysetbio_3darr/ tzoo2d(idm,jdm),tfac3d(idm,jdm,kdm)
+     .     ,rmuplsr3d(idm,jdm,kdm,nchl),rikd3d(idm,jdm,kdm,nchl)
+     .     ,bn3d(idm,jdm,kdm),obio_wsd2d(idm,jdm,nchl)
+     .     ,obio_wsh2d(idm,jdm,nchl)
+     .     ,wshc3d(idm,jdm,kdm),Fescav3d(idm,jdm,kdm)
+
+
+      real Fescav
+      common /bscav/ Fescav(kdm)           !iron scavenging rate
+!$OMP THREADPRIVATE(/bscav/)
+
+
+C if NCHL_DEFINED > 3
+      real wshc                            !cocco sinking rate
+      common /bwshc/ wshc(kdm)             
+!$OMP THREADPRIVATE(/bwshc/)
+
+      real gcmax                           !cocco max growth rate
+      common /bgcmax/ gcmax(idm,jdm,kdm)   
+C endif
+
+
+      real :: C_tend                        !carbon tendency
+      common /bctend/ C_tend(kdm,ncar)      
 !$OMP THREADPRIVATE(/bctend/)
+
+      real :: pCO2, pCO2_ij                 !partial pressure of CO2
+      common /bco2/ pCO2(idm,jdm)           
+      common /bco2ij/ pCO2_ij               
 !$OMP THREADPRIVATE(/bco2ij/)
 
-      real :: gro
-      common /bgro2D/ gro(kdm,nchl)         !realized growth rate
+      real :: gro                           !realized growth rate
+      common /bgro2D/ gro(kdm,nchl)         
 !$OMP THREADPRIVATE(/bgro2D/)
 
       integer :: day_of_month, hour_of_day

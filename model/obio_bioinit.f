@@ -466,9 +466,6 @@ c     write(6,*)'avg deep DIC = ',dicavg
  
 c  Detritus (set to 0 for start up)
       write(6,*)'Detritus...'
-      cnratio = 106.0/16.0*12.0    !C:N ratio (ugl:uM)
-      csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
-      cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
 
       do j=1,jj
        do l=1,isp(j)
@@ -548,31 +545,28 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-      do nt=1,ntyp+n_inert+ndet+ncar
-!       ntunit=90+nt
-        ntchar='00'
-        if(nt.le.9)write(ntchar,'(i1)')nt
-        if(nt.gt.9)write(ntchar,'(i2)')nt
-        print*,'BIO: saving initial tracer fields '
-     .        ,'bioinit_tracer'//ntchar
-!       open(unit=ntunit,file=flnmovt(1:lgth)//'bioinit_tracer'//ntchar,
-!    .       status='unknown')
+!     do nt=1,ntyp+n_inert+ndet+ncar
+!       ntchar='00'
+!       if(nt.le.9)write(ntchar,'(i1)')nt
+!       if(nt.gt.9)write(ntchar,'(i2)')nt
+!       print*,'BIO: saving initial tracer fields '
+!    .        ,'bioinit_tracer'//ntchar
 
 
-        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
 
-        do k=1,kdm
-        do j=1,jj				!  do not parallelize
-        do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
-           write(iu_bioinit,'(3i4,2e12.4)')
-     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-        enddo
-        enddo
-        enddo
-        enddo
-      call closeunit(iu_bioinit)
-      enddo
+!       do k=1,kdm
+!       do j=1,jj				!  do not parallelize
+!       do l=1,isp(j)
+!       do i=ifp(j,l),ilp(j,l)
+!          write(iu_bioinit,'(3i4,2e12.4)')
+!    .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+!       enddo
+!       enddo
+!       enddo
+!       enddo
+!     call closeunit(iu_bioinit)
+!     enddo
 
       if (save4ini) then
       print*, '   '

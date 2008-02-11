@@ -4,7 +4,7 @@ c  Sets daily parameters for bio.
 c
 
       USE obio_dim
-      USE obio_incom, only : rmumax,cchl,cnratio,obio_wsd
+      USE obio_incom, only : rmumax,cchl,cnratio,obio_wsd,obio_wsh
      .                      ,Fescavrate,rik
       USE obio_com,   only : tfac,rmuplsr,rikd,bn,wshc,Fescav
      .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo
@@ -15,8 +15,10 @@ c
 #include "common_blocks.h"
 
       integer :: nt,ikd
-      real :: tfac20,tfact,tfac2,rlightlo,rlighthi,rmidq,cchld,fac
+      real :: tfac20,tfact,tfac2,rlightlo,rlighthi,rmidq,fac
      .       ,gcmaxd,wstmp
+      real :: cchld       !mean C:chl ratio for the day
+
       logical vrbos
 
       tfac20 = 0.34722*0.851*1.066**20.0
@@ -64,6 +66,10 @@ c  Zooplankton grazing temperature dependence
 c  do not divide by 24: it is a factor
       k = 1
       tzoo = 0.06*exp(0.1*temp1d(k)) + 0.70
+
+      if (vrbos) write(*,*)'daysetbio: ',
+     .   nstep,i,j,k,temp1d(k),tzoo
+
 c
 c  Set N:chl ratio and photoadaptation
       rlightlo = 25.0  !threshold for low light adaptation (quanta/m2/s)
@@ -126,6 +132,7 @@ c  Adjustable sinking rate for cocco's: range = 0.3 to 1.4 m/day
        wstmp = 0.752*gcmaxd + 0.225
        obio_wsd(nt) = max(wstmp,0.3)
        obio_wsd(nt) = min(obio_wsd(nt),1.4)
+       obio_wsh(nt) = obio_wsd(nt)/24.0
        wshc(k) = obio_wsd(nt)/24.0
       enddo
       do k = 1,kdm

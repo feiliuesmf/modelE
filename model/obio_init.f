@@ -9,8 +9,7 @@ c
       USE obio_incom
       USE obio_forc, only : ihra,Eda,Esa,atmFe_all,alk
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
-     .                    ,C_tend,wsdet,rmu4,rmu3,rmu5,rmuf
-     .                    ,zoo,dphy,gro,viscfac
+     .                    ,C_tend,wsdet,gro
 
 
       implicit none  
@@ -52,7 +51,7 @@ c  Degrees to radians conversion
       pi = dacos(-1.0D0)
       pi2 = pi*2.0
       rad = 180.0D0/pi
- 
+
       do nt = 1,nchl
        rkn(nt) = 0.0
        rks(nt) = 0.0
@@ -324,7 +323,6 @@ c  Read in factors to compute average irradiance
 
 !ifst part from ptend.f
        do k=1,kdm
-        viscfac(k) = 0.0
 
          do nt=1,nchl
           obio_ws(k,nt) = 0.0
@@ -344,23 +342,14 @@ c  Read in factors to compute average irradiance
           C_tend(k,nt) = 0.0
          enddo
        enddo
+       do nt=1,nchl
+        obio_ws(kdm+1,nt)=0.0
+       enddo
        do nt=1,ndet
         wsdet(kdm+1,nt) = 0.0
        enddo
  
     
-       do nt=1,nchl
-        rmu4(nt) = 0.0
-        rmu3(nt) = 0.0
-        rmu5(nt) = 0.0
-        rmuf(nt) = 0.0
-       enddo
-
-       do nt=1,ntyp
-        zoo(nt)  = 0.0
-        dphy(nt) = 0.0
-       enddo
-
 !ifst part from ppco2tab.f
        ALLOCATE (pco2tab(nt0,nsal,ndic,nta))
 

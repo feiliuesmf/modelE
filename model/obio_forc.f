@@ -4,8 +4,6 @@
 
       implicit none
 
-      SAVE 
-
 #include "dimensions.h"
 #include "dimension2.h"
 
@@ -17,8 +15,10 @@
 
       real asolz(iia,jja)
       real osolz(idm,jdm)
-      real sunz               !solar zenith angle
       real solz               !mean cosine solar zenith angle
+      real sunz               !solar zenith angle
+      common /brod1/ solz,sunz
+!$OMP THREADPRIVATE(/brod1/)
 
       !real Eda(idm,jdm,nlt,nhn,12)    !direct downwelling irradiance
       !real Esa(idm,jdm,nlt,nhn,12)    !diffuse downwelling irradiance
@@ -28,6 +28,7 @@
       real Eda2,Esa2,Ed,Es 
       common /beda2/ Eda2(nlt,nhn),Esa2(nlt,nhn)
       common /beds/  Ed(nlt),Es(nlt)
+!$OMP THREADPRIVATE(/beda2/)
 !$OMP THREADPRIVATE(/beds/)
 
       real awind      !wind speed from modelE (see hycom2.f)
@@ -38,22 +39,25 @@
       real    rod,ros       !surface reflectance for
                             !direct (rod) and diffuse (ros)
                             !components separately
-      common /brod/ rod(nlt),ros(nlt),solz,sunz
-!$OMP THREADPRIVATE(/brod/)
+      common /brod2/ rod(nlt),ros(nlt)
+!$OMP THREADPRIVATE(/brod2/)
 
       real wind               !surface wind from atmos
-      common /bwind/wind
+      common /bwind/ wind
 !$OMP THREADPRIVATE(/bwind/)
 
-      real tirrq  !total mean irradiance in quanta
+      real tirrq3d
+      common /btirrq/ tirrq3d(idm,jdm,kdm)
+      real tirrq                   !total mean irradiance in quanta
       common /blte/ tirrq(kdm)
 !$OMP THREADPRIVATE(/blte/)
 
-      integer ihra !counter for daylight hours
+      integer ihra                 !counter for daylight hours
       common /bhra/ ihra(idm,jdm)
 
-      real rmud          !downwelling irradiance average cosine
+      real rmud                    !downwelling irradiance average cosine
       common /bmud /rmud 
+!$OMP THREADPRIVATE(/bmud/)
 
       real avgq    !mean daily irradiance in quanta
       common /bavq/ avgq(idm,jdm,kdm)

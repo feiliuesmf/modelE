@@ -6,15 +6,14 @@
 
       implicit none
 
-      SAVE
-
 
 
       real :: rmumax                !max phyto growth rate at 20oC, d/
-      real :: obio_wsd,obio_wsh     !phyto sinking rate m/d, m/h
       real :: rik                   !light saturation parameter umol quanta/m2/s
-      common /bphy/ rmumax(nchl),obio_wsd(nchl),
-     .              obio_wsh(nchl),rik(3,nchl)
+      common /bphy/ rmumax(nchl),rik(3,nchl)
+      real :: obio_wsd,obio_wsh     !phyto sinking rate m/d, m/h
+      common /bphy2/ obio_wsd(nchl),obio_wsh(nchl)
+!$OMP THREADPRIVATE(/bphy2/)
 
       real :: rkn,rks     !half-saturation constants for nitrogen, silica (uM)
       real :: rkf         !half-saturation constant for iron (nM)
@@ -33,8 +32,7 @@
       common /bcdp/ cardeep(ncar)          !carbon deep BC
 
       real :: cchl        !C:chl ratio g:g for 3 light states
-      real :: cchld       !mean C:chl ratio for the day
-      common /bcchl/ cchl(3),cchld
+      common /bcchl/ cchl(3)
 
       real :: cnratio     !C:N ratio
       real :: csratio     !C:Si ratio
@@ -78,11 +76,15 @@ C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
 
 
       integer lam               !wavelength in nm
+      common /blam/ lam(nlt)  
+
       real facirr               !array of factors to compute mean irradiance w/in water column
-      real aw,bw                !absorption,scattering coefficients of water
-      real ac,bc                !absorption and scattering coefficients of chlorophyll
       common /bfac/ facirr(nh,nch,5,ncd)  
-      common /bwat/ aw(nlt),bw(nlt),lam(nlt)  
+
+      real aw,bw                !absorption,scattering coefficients of water
+      common /bwat/ aw(nlt),bw(nlt)
+
+      real ac,bc                !absorption and scattering coefficients of chlorophyll
       common /bopt/ ac(nchl,nlt),bc(nchl,nlt)
 
       real, parameter :: solFe=0.02    !solubility of iron
@@ -90,8 +92,6 @@ C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
 c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
 
 !save from moved ifst parts
-      integer nl450
-      real excdom,bbw,Dmax,rd,ru,rmus,rmuu,rn,roair,wfac
        integer, parameter :: it0inc=1,nt0=80/it0inc,isalinc=1,nsal=20
        integer, parameter :: idicinc=2,ndic=(650+idicinc)/idicinc
        integer, parameter :: itainc=2,nta=(500+itainc)/itainc
@@ -102,7 +102,10 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
        !real pco2tab
        !common /bpco2tab/pco2tab(nt0,nsal,ndic,nta)
 
+      integer nl450
       common/exifst1/nl450
+
+      real excdom,bbw,Dmax,rd,ru,rmus,rmuu,rn,roair,wfac
       common/exifst2/excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu
      .             ,rn,roair,wfac(nlt)
 

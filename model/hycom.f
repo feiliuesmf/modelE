@@ -263,10 +263,10 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
      .                 + TRGASEX(nt,1,ia,ja)*airdns    !(kg/kg)(m/s) -> kg/m2/s
      .                 * dtsrc/(real(nhr)*3600.)
 !srctimstp/coupltimstp
-      if (ia.eq.iatest.and.ja.eq.jatest)
-     .write(6,'(a,2i5,2e12.4)')'hycomp, TRGASEX, atracflx at point',
-     .  iatest,jatest,TRGASEX(nt,1,iatest,jatest),
-     .  atracflx(iatest,jatest,nt)
+!     if (ia.eq.iatest.and.ja.eq.jatest)
+!     if (nstep.eq.25)
+!    .write(6,'(a,3i5,2e12.4)')'hycom, TRGASEX, atracflx at nstep,i,j=',
+!    .  nstep,ia,ja,TRGASEX(nt,1,ia,ja),atracflx(ia,ja,nt)
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -573,13 +573,22 @@ c     this should be done at every time step (of the long interval)
       do j=1,jj
       do l=1,isp(j)
       do i=ifp(j,l),ilp(j,l)
-      tracflx(i,j,nt) = tracflx(i,j,nt)
-     .                + tracflx2(i,j,nt)
+!     tracflx(i,j,nt) = tracflx(i,j,nt)
+!    .                + tracflx2(i,j,nt)
+      !do not accumulate
+      tracflx(i,j,nt) = tracflx2(i,j,nt)
+!     if (nstep.eq.25)
+!    .write(6,'(a,4i5,2e12.4)')'hycom, tracflx at nstep,nt=',
+!    .    nstep,nt,i,j,tracflx2(i,j,nt),
+!    .    tracflx(i,j,nt)
       enddo
       enddo
       enddo
-      write(6,'(a,i5,2e12.4)')'hycomp, tracflx at pt(109,94) and nt=',
-     .    nt,tracflx2(109,94,nt),tracflx(109,94,nt)
+cdiag write(6,'(a,4i5,2e12.4)')'hycom, tracflx at nstep,nt,i,j=',
+cdiag.    nstep,nt,109,94,tracflx2(109,94,nt),tracflx(109,94,nt)
+cdiag write(6,'(a,4i5,2e12.4)')'hycom, tracflx at nstep,nt=',
+cdiag.    nstep,nt,itest,jtest,tracflx2(itest,jtest,nt),
+cdiag.    tracflx(itest,jtest,nt)
       enddo
 #endif
 c
@@ -1113,9 +1122,10 @@ c$OMP PARALLEL DO PRIVATE(tf)
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
-        if (ia.eq.iatest.and.ja.eq.jatest)
-     .  write(6,'(a,2i5,e12.4)')'hycom, atrac at point ',
-     .      iatest,jatest,atrac(iatest,jatest,nt)
+!       if (ia.eq.iatest.and.ja.eq.jatest)
+!       if (nstep.eq.25)
+!    .  write(6,'(a,3i5,e12.4)')'hycom, atrac at nstep,i,j=',
+!    .      nstep,ia,ja,atrac(ia,ja,nt)
         enddo
 #endif
         tf=tfrez(sss(ia,ja),0.)
@@ -1133,8 +1143,10 @@ c --- evenly distribute new ice over open water and sea ice
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
         if (ia.eq.iatest.and.ja.eq.jatest)
-     .  write(6,'(a,2i5,e12.4)')'hycom, atrac at point ',
-     .      iatest,jatest,atrac(iatest,jatest,nt)
+!    .  write(6,'(a,3i5,e12.4)')
+     .  write(6,*)
+     .      'hycom, atrac at nstep,i,j=',
+     .      nstep,iatest,jatest,atrac(iatest,jatest,nt)
         enddo
 #endif
       endif

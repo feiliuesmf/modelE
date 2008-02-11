@@ -29,7 +29,8 @@ cdiag write(lp,'(a,i3,i5,a,i3,2e12.4)')
 cdiag.  'total intgrl and mean for tracer ',ntr,nstep,', k= ',
 cdiag.   k,sum,sum/sum_area
         enddo
-      write(lp,'(a,i3,i5,e12.4)')
+!     write(lp,'(a,i3,i5,e12.4)')
+      write(lp,*)
      .  'total intgrl for tracer ',ntr,nstep,summ
       enddo
 

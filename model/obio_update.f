@@ -1,10 +1,10 @@
-      subroutine obio_update(vrbos,kmax,errcon)
+      subroutine obio_update(vrbos,kmax,errcon,i,j)
  
 c  Performs updating of biological particles, uses mid-point
 c  leap frog method.
 
       USE obio_dim
-      USE obio_incom,only: wsdeth,obio_wsh
+      USE obio_incom,only: wsdeth
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
@@ -64,8 +64,9 @@ c   in update.F, but P has not been updated yet
 
 cdiag      if (vrbos) then
 cdiag        do k=1,kmax
-cdiag        write(*,'(a,3i5,3e12.4)')'befr sinking',
-cdiag.       kmax,nt,k,obio_P(k,nnut+nt),p1d(k),obio_ws(k,nt)
+cdiag        write(*,*)'befr sinking',
+cdiag.       nstep,kmax,nt,i,j,k,obio_P(k,nnut+nt),
+cdiag.       p1d(k),obio_ws(k,nt)
 cdiag        enddo
 cdiag      endif
 
@@ -84,13 +85,14 @@ cdiag      endif
 
 cdiag      if (vrbos) then
 cdiag        do k=1,kmax
-cdiag        write(*,'(a,3i5,3e12.4)')'aftr sinking',
-cdiag.       kmax,nt,k,obio_P(k,nnut+nt),p1d(k),obio_ws(k,nt)
+cdiag        write(*,*)'aftr sinking',
+cdiag.       nstep,kmax,nt,i,j,k,obio_P(k,nnut+nt),
+cdiag.       p1d(k),obio_ws(k,nt)
 cdiag        enddo
 cdiag      endif
 
 
-       enddo
+       enddo   !nchl
 
 
        !detrital settling
@@ -116,6 +118,12 @@ cdiag       enddo
 cdiag       write(400,'(a,3i5,2e12.4)')
 cdiag.     'bfre bcdond: ',nstep,kmax,k,wsdet(k,nt),p1d(k)
 cdiag     endif
+cdiag      if (vrbos) then
+cdiag        do k=1,kmax
+cdiag        write(*,*)'befr settling: ',
+cdiag.       nstep,kmax,nt,i,j,k,wsdet(k,nt),p1d(k),det(k,nt)
+cdiag        enddo
+cdiag      endif
 
           !no flux through the sea floor
 !         do k=1,kmax
@@ -127,13 +135,6 @@ cdiag     endif
 !sequastration studies. 
 !(sediment=stuff(bottom layer)-stuff(layer above)
 
-cdiag     if (vrbos) then
-cdiag       do k=1,kdm
-cdiag          write(400,'(a,3i5,2e12.4)')
-cdiag.         'bfre advc1d: ',nt,kmax,k,wsdet(k,nt),det(k,nt)
-cdiag       enddo
-cdiag     endif
-
           do k=1,kmax
            rhs(k,nnut+nchl+nzoo+nt,16)=det(k,nt)
           enddo
@@ -144,14 +145,15 @@ cdiag     endif
      .            (det(k,nt)-rhs(k,nnut+nchl+nzoo+nt,16))/obio_deltat
           enddo
 
-cdiag     if (vrbos) then
-cdiag       do k=1,kdm
-cdiag          write(400,'(a,3i5,2e12.4)')
-cdiag.         'aftr advc1d: ',nt,kmax,k,wsdet(k,nt),det(k,nt)
-cdiag       enddo
-cdiag     endif
+cdiag      if (vrbos) then
+cdiag        do k=1,kmax
+cdiag        write(*,*)'aftr settling: ',
+cdiag.       nstep,kmax,nt,i,j,k,wsdet(k,nt),p1d(k),det(k,nt)
+cdiag        enddo
+cdiag      endif
 
-       end do
+
+       end do  !ndet
 
 
       return

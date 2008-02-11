@@ -85,7 +85,7 @@ c  Includes spectral dependence of foam reflectance derived from Frouin
 c  et al., 1996 (JGR)
  
       USE obio_dim
-      USE obio_incom,only : rad,lam,aw,bw,rn,wfac,roair
+      USE obio_incom,only : rad,rn,wfac,roair
       USE obio_forc, only : sunz,rod,ros,wind
 
       implicit none
@@ -116,8 +116,8 @@ c  Foam and diffuse reflectance
        rosps = 0.066
       endif
  
-cdiag if(vrbos)write(888,'(i5,4e12.4)')
-cdiag.         nstep,wind,rof,rosps,sunz
+c     if(vrbos)write(*,*)'ocalbedo: ',
+c    .         nstep,wind,rof,rosps,sunz
 
 c  Direct
 c   Fresnel reflectance for sunz < 40, wind < 2 m/s
@@ -150,7 +150,8 @@ c  Reflectance totals
       do nl = 1,nlt
        rod(nl) = rospd + rof*wfac(nl)
        ros(nl) = rosps + rof*wfac(nl)
-cdiag if(vrbos)write(889,'(i5,2e12.4)')nstep,rod(nl),ros(nl)
+c     if(vrbos)write(*,*)'ocalbedo: ',
+c    .   nstep,nl,rod(nl),ros(nl)
       enddo
  
       return

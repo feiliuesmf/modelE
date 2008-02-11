@@ -12,12 +12,17 @@
      .                    ,atmFe_all
      .                    ,owind,osolz
      .                    ,alk
+     .                    ,tirrq3d
       USE obio_com,  only: gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
      .                    ,P_tend,D_tend,C_tend,saln1d
      .                    ,pCO2,pCO2_ij,p1d,wsdet
      .                    ,rhs,alk1d
+     .                    ,tzoo,tfac,rmuplsr,rikd,bn,wshc,Fescav
+     .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
+     .                    ,bn3d,obio_wsd2d,obio_wsh2d,wshc3d,Fescav3d 
+     .                    ,acdom
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate
      . ,itime,iyear1,jdendofm,jyear,jday,aMON
@@ -115,8 +120,8 @@
 
       endif  !diagno
 
-c$OMP PARALLEL DO PRIVATE(km,Eda2,Esa2,rmud,iyear,kmax
-c$OMP.                   ,vrbos,errcon,tot,noon)
+c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon)
+c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
        do 1000 j=1,jj
        do 1000 l=1,isp(j)
@@ -143,7 +148,21 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
            dp1d(k)=dpinit(i,j,k)/onem
             avgq1d(k)=avgq(i,j,k)
              gcmax1d(k)=gcmax(i,j,k)
+              tirrq(k)=tirrq3d(i,j,k)
               alk1d(k)=alk(i,j,k)
+              !----daysetbio/daysetrad arrays----!
+              tzoo=tzoo2d(i,j)
+              tfac(k)=tfac3d(i,j,k)
+              do nt=1,nchl
+                rmuplsr(k,nt)=rmuplsr3d(i,j,k,nt)
+                rikd(k,nt)=rikd3d(i,j,k,nt)
+                obio_wsd(nt)=obio_wsd2d(i,j,nt)
+                obio_wsh(nt)=obio_wsh2d(i,j,nt)
+              enddo
+              bn(k)=bn3d(i,j,k)
+              wshc(k)=wshc3d(i,j,k)
+              Fescav(k)=Fescav3d(i,j,k)
+              !----daysetbio arrays----!
               do nt=1,ntyp+n_inert
              obio_P(k,nt)=tracer(i,j,k,nt)
             enddo
@@ -250,16 +269,16 @@ cdiag  endif
        enddo
 #endif
 
+
        !------------------------------------------------------------
        !at the beginning of each day only
        if (hour_of_day.eq.1) then
 
 
          if (day_of_month.eq.1)ihra_ij=1
-          call obio_daysetrad
+          call obio_daysetrad(vrbos,i,j)
           ihra_ij = 0
           call obio_daysetbio(vrbos)
-
 
          if (day_of_month.eq.1)ihra_ij=1
 cdiag    if (vrbos) then
@@ -281,9 +300,11 @@ cdiag    endif
        endif   !end of calculations for the beginning of day
 
 
+
        !------------------------------------------------------------
        if (mod(hour_of_day,2) .eq. 0) then
        !only every 2 hrs
+
          do ichan = 1,nlt
            Ed(ichan) = 0.0
            Es(ichan) = 0.0
@@ -318,30 +339,33 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
       !check
       if (vrbos) then
         write(lp,'(a,3i9)')
-     .       'Biotest: counter days,   i,j,nstep=',i,j,nstep
+     .       'obio_model: counter days,   i,j,nstep=',i,j,nstep
         write(lp,'(3(a,i9))')'hour of day=',hour_of_day,
      .                       ', day of month=',day_of_month,
      .                       ', ihr0=',ihr0
 
          ichan=2
-         write(lp,'(a)')'Eda'
-         write(lp,'(2i5,4e12.4)')ichan,ihr0,   
-     .        Eda(i,j,ichan,ihr0,JMON),
-     .        Eda2(ichan,ihr0),Ed(ichan),rod(ichan)
+cdiag    write(lp,'(a)')'Eda'
+!        write(lp,'(2i5,4e12.4)')ichan,ihr0,   
+cdiag    write(lp,*)ichan,ihr0,   
+cdiag.        Eda(i,j,ichan,ihr0,JMON),
+cdiag.        Eda2(ichan,ihr0),Ed(ichan),rod(ichan)
 
 
-        write(lp,'(a)')
-     .'    k     dp          u            v         temp         saln'
-        do k=1,kdm
-        write(lp,'(i5,5e12.4)')
-     .  k,dp1d(k),u(i,j,k+mm),v(i,j,k+mm),
-     .    temp(i,j,k+mm),saln(i,j,k+mm)
-        enddo
+cdiag   write(lp,'(a)')
+cdiag.'    k     dp          u            v         temp         saln'
+cdiag   do k=1,kdm
+!       write(lp,'(i5,5e12.4)')
+cdiag   write(lp,*)
+cdiag.  k,dp1d(k),u(i,j,k+mm),v(i,j,k+mm),
+cdiag.    temp(i,j,k+mm),saln(i,j,k+mm)
+cdiag   enddo
 
         write(lp,'(a)')
      .'    k     P(1)      P(2)         P(3)       P(4)         P(5) '
         do k=1,kdm
         write(lp,'(i5,7e12.4)')
+!       write(lp,*)
      .   k,obio_P(k,1),obio_P(k,2),obio_P(k,3),obio_P(k,4),
      .   obio_P(k,5),obio_P(k,6),obio_P(k,7)
         enddo
@@ -350,21 +374,24 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
      .'    k     P(8)      P(9)         P(11)      P(12)        P(13)'
         do k=1,kdm
         write(lp,'(i5,7e12.4)')
+!       write(lp,*)
      .   k,obio_P(k,8),obio_P(k,9),det(k,1),det(k,2),
      .   det(k,3),car(k,1),car(k,2)
         enddo
 
         write(lp,'(2a)')
-     .'    Ed          Es          solz         sunz',
-     .'       atmFe       wind'
-        write(lp,'(6e12.4)')
-     .   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
+cdiag.'    Ed          Es          solz         sunz',
+cdiag.'       atmFe       wind'
+!       write(lp,'(6e12.4)')
+cdiag   write(lp,*)
+cdiag.   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
        endif
 
-!        if (vrbos)
-!    .     write(lp,106)nstep,'dir dwn irr,diff dwn irr',
-!    .                  (ichan,Ed(ichan),Es(ichan),
-!    .                  tot,ichan=1,nlt)
+cdiag    if (vrbos)
+cdiag.     write(lp,106)nstep,'dir dwn irr,diff dwn irr',
+cdiag.     write(lp,*)nstep,'dir dwn irr,diff dwn irr',
+cdiag.                  (ichan,Ed(ichan),Es(ichan),
+cdiag.                  tot,ichan=1,nlt)
  106  format(i9,a/(28x,i3,3(1x,es9.2)))
 
 
@@ -382,6 +409,7 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
 
 cdiag    if (vrbos)
 cdiag.     write(lp,107)nstep,' k   avgq    tirrq',
+cdiag.     write(lp,*)nstep,' k   avgq    tirrq',
 cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(28x,i3,2(1x,es9.2)))
 
@@ -413,6 +441,9 @@ cdiag.                       car(k,1),car(k,2),k=1,kdm)
 cdiag     endif
        !------------------------------------------------------------
 
+cdiag  if (vrbos)write(*,*)'bfre obio_ptend: ',
+cdiag.     nstep,(k,tirrq(k),k=1,kmax)
+
        call obio_ptend(vrbos,kmax,i,j)
 
        !------------------------------------------------------------
@@ -432,7 +463,7 @@ cdiag  endif
        !------------------------------------------------------------
 
        !update biology from m to n level
-       call obio_update(vrbos,kmax,errcon)
+       call obio_update(vrbos,kmax,errcon,i,j)
        if (errcon) then
           write (*,'(a,2i5)') 'error update at i,j =',i,j
           do k=1,kdm
@@ -440,7 +471,6 @@ cdiag  endif
           enddo
           stop
        endif
-
 
 cdiag     if (vrbos) then
 cdiag     write (lp,*)'     '
@@ -490,7 +520,23 @@ cdiag     endif
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)
         gcmax(i,j,k)=gcmax1d(k)
+        tirrq3d(i,j,k)=tirrq(k)
        enddo !k
+
+       !update daysetbio/daysetrad arrays
+       tzoo2d(i,j)=tzoo
+       do k=1,kdm
+         tfac3d(i,j,k)=tfac(k)
+         do nt=1,nchl
+           rmuplsr3d(i,j,k,nt)=rmuplsr(k,nt)
+           rikd3d(i,j,k,nt)=rikd(k,nt)
+           obio_wsd2d(i,j,nt)=obio_wsd(nt)
+           obio_wsh2d(i,j,nt)=obio_wsh(nt)
+         enddo
+         bn3d(i,j,k)=bn(k)
+         wshc3d(i,j,k)=wshc(k)
+         Fescav3d(i,j,k)=Fescav(k)
+       enddo
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij

@@ -22,8 +22,6 @@
 
       implicit none
 
-      SAVE
-
       integer, parameter :: nnut=4
      .                     ,nchl=4
      .                     ,nzoo=1

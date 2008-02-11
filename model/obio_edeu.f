@@ -78,6 +78,7 @@ cdiag   if(vrbos)write(932,'(2i7,2e12.4)')nstep,nl,Ed(nl),Es(nl)
              a  = aw(nl) + acdom(k,nl) + actot
              bt = bw(nl) + bctot
              bb = bbw*bw(nl) + bbctot
+             bb = max(bb,0.0002)
              if (Edtop(nl) .ge. 1.0E-4 .or. Estop(nl) .ge. 1.0E-4)then
               call radmod(zd,Edtop(nl),Estop(nl),rmud,a,bt,bb,
      .                    Dmax,Edz(nl,k),Esz(nl,k),Euz(nl,k))
@@ -122,8 +123,8 @@ cdiag.        facirr(ih,ich,ntr,icd),fac
  
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
 
-cdiag     if(vrbos)write(lp,'(a,2i7,5e12.4)')'edeu diag: ',
-cdiag.        nstep,k,fac,Etopq,Ebotq,rmus,tirrq(k)
+c         if(vrbos)write(lp,'(a,2i7,5e12.4)')'edeu diag: ',
+c    .        nstep,k,fac,Etopq,Ebotq,rmus,tirrq(k)
 
        enddo  !k
  
@@ -162,8 +163,6 @@ c  3.9% in Euz for a > 0.004 and bb > 0.00063
 
       implicit none
 
-
-      save
 
       real cd,a,bt,rmud,Edz,Edtop
      .    ,zd,au,Bu,bb,Cu,as,Bs,Cs,Bd,Fd,bquad,cquad
@@ -240,7 +239,6 @@ cc  upwelling irradiance a depth, i.e., that rmud = rmus, is not
 cc  valid at the surface, and a full treatment of diffuse and direct
 cc  path lengths is required.  
 cc
-c      save
 c#include "gloparam.F.h"
 c#include "radpth.h"
 c#include "comlte.h"

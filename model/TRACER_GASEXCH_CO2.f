@@ -24,6 +24,9 @@
       common /gasexch2/tracflx
   
       real*8 tracflx1d(ntm)
+      common /gasexch3/tracflx1d
+!$OMP THREADPRIVATE(/gasexch3/)
+
 
       END MODULE TRACER_GASEXCH_COM
 

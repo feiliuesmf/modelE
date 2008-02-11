@@ -16,9 +16,8 @@ c  P(9) = herbivores (mg chl m-3)
       USE obio_incom,only: cnratio,cfratio,remin,obio_wsh
      .                    ,wsdeth,rkn,rks,rkf,Rm
       USE obio_forc, only: tirrq
-      USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend,C_tend
-     .                    ,rmu4,rmu3,rmu5,rmuf,zoo,dphy,gro,viscfac
-     .                    ,rlamz,dratez1,dratez2,bn
+      USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend
+     .                    ,gro,rlamz,dratez1,dratez2,bn
      .                    ,greff,pnoice,drate,tfac,regen,Fescav
      .                    ,wshc,rikd,rmuplsr,det
      .                    ,gcmax1d,covice_ij,atmFe_ij
@@ -33,13 +32,24 @@ c  P(9) = herbivores (mg chl m-3)
 
       integer nt,kmax
 
+      real rmu4(nchl)     !growth on ammonium, NH4
+      real rmu3(nchl)     !growth on nitrate, NO4
+      real rmu5(nchl)     !growth on silica
+      real rmuf(nchl)     !growth on iron
+      real zoo(ntyp)      !herbivores (zooplankton)
+      real dphy(ntyp)     !death rate of phytoplankton
+      real viscfac(kdm)
+
+
+
       real bs,cchlratio,bf,ptot
-      real Pzoo,Gzoo,Dzoo1,Dzoo2,exc,dphyt
+      real Pzoo,Gzoo,Dzoo1,Dzoo2,exc
       real tirrqice,upn,upa,upf,ups
 
       real rnut2,tnit,tmp,rnut1,rmmn,framm,rmml,rmmlice,rmms
       real rmmf,rlim,rlimice,grate,rlimnfix,rlimrkn,rfix,gratenfix1
       real graterkn,gratenlim,gratenfix,gron,gronfix
+      real dphyt
 
       logical vrbos
 
@@ -49,7 +59,22 @@ c  P(9) = herbivores (mg chl m-3)
      .  ' NO3   ',' NH4   ',' SiO2  ',' Iron  ','Diatom ','Chlphy ',
      .  'Cyanob ','Coccol ','Herbiv ','N/Cdet ','Silica ','Fe_det '/
 
-      rhs=0.
+
+       rhs=0.0
+       obio_ws = 0.0
+       P_tend = 0.0
+       D_tend = 0.0
+       wsdet = 0.0
+       rmu4 = 0.0
+       rmu3 = 0.0
+       rmu5 = 0.0
+       rmuf = 0.0
+       zoo  = 0.0
+       dphy = 0.0
+       gro = 0.0
+       viscfac = 0.0
+
+
 
 !define no ice points based on covice (here: covice_ij)
       pnoice=1.-covice_ij
@@ -96,18 +121,9 @@ c  Start Model Space Loop
          P_tend(k,ntyp) = term
 
 cdiag    if (vrbos)
-cdiag.   write(200,'(3i5,10(1x,es8.2))')
-cdiag.        nstep,k,ntyp,obio_P(k,ntyp),tzoo,Rm,rlamz,
+cdiag.   write(*,*)'ptend1: ',
+cdiag.        nstep,i,j,k,ntyp,obio_P(k,ntyp),tzoo,Rm,rlamz,
 cdiag.        ptot,Pzoo,dratez1,dratez2,greff,P_tend(k,ntyp)
-
-cdiag    if (vrbos) then
-cdiag       if(k.eq.1) write(100,'(a,a)')
-cdiag.         'nstep    k  dp1d(k) atmFe_ij P_tend(k,4) ptot '
-cdiag.        ,' gzoo   dzoo1   dzoo2  P_tend(k,ntyp)'
-cdiag       write(100,'(2i5,8(1x,es8.2))')nstep,k,dp1d(k),
-cdiag.      atmFe_ij,P_tend(k,4),ptot,gzoo,dzoo1,dzoo2,P_tend(k,ntyp)
-cdiag    endif
-
 
          do nt = nnut+1,ntyp-nzoo
           !fraction of grazing for this group
@@ -118,17 +134,17 @@ cdiag    endif
           rhs(k,nt,ntyp) = term
           P_tend(k,nt) = term      !!nonlin term takes into accountP(ntyp),P(5:8)
 
-!         if (vrbos .and. nt.eq.7) write(*,'(a,2i5,5e12.4)')
-!    .     'CYANOBACTERIA3 ',nt,k,gzoo,obio_P(k,nt),ptot,
-!    .      zoo(nt),P_tend(k,nt)
+cdiag     if (vrbos) write(*,*)
+cdiag.     'obio_ptend2: ',nstep,nt,i,j,k,gzoo,obio_P(k,nt),ptot,
+cdiag.      zoo(nt),P_tend(k,nt)
 
           term = -dphy(nt) * pnoice           !death of phytoplankton
           rhs(k,nt,nt) = term
           P_tend(k,nt) = P_tend(k,nt) + term
 
-!         if (vrbos .and. nt.eq.7) write(*,'(a,2i5,4e12.4)')
-!    .     'CYANOBACTERIA4 ',nt,k,drate,dphy(n),
-!    .     obio_P(k,nt),P_tend(k,nt)
+cdiag     if (vrbos) write(*,*)
+cdiag.     'obio_ptend3: ',nstep,nt,i,j,k,drate,dphy(nt),
+cdiag.     obio_P(k,nt),P_tend(k,nt)
 
 cdiag      if (vrbos) then
 cdiag       if(k.eq.1 .and. nt.eq.nnut+1) write(101,'(a,a)')
@@ -176,6 +192,10 @@ cdiag       write(102,'(2i5,10(1x,es8.2))')nstep,k,
 cdiag.         dp1d(k),tfac(k),det(k,1),bn(k),exc,det(k,3),
 cdiag.         P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4)
 cdiag    endif
+cdiag    if (vrbos) write(*,*)'ptend4: ',
+cdiag.     nstep,i,j,k,dp1d(k),tfac(k),det(k,1),bn(k),exc,det(k,3),
+cdiag.     P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4)
+
 
          dphyt = 0.0
          do nt = nnut+1,ntyp-nzoo
@@ -235,11 +255,18 @@ cdiag    write(103,'(2i5,10(1x,es8.2))')nstep,k,dp1d(k),
 cdiag.   dphyt,dzoo1,dzoo2,dphy(nnut+1),zoo(nnut+1),tfac(k),
 cdiag.   D_tend(k,1),D_tend(k,2),D_tend(k,3)
 cdiag    endif
+cdiag    if (vrbos) write(*,*)'ptend5 :',
+cdiag.   nstep,i,j,k,
+cdiag.   dp1d(k),dphyt,dzoo1,dzoo2,dphy(nnut+1),zoo(nnut+1),tfac(k),
+cdiag.   D_tend(k,1),D_tend(k,2),D_tend(k,3)
 
        enddo !kmax
 
 c Day: Grow
       do k = 1,kmax
+
+cdiag if(vrbos)
+cdiag.write(*,*)'obio_ptend6: ',nstep,i,j,k,tirrq(k)
 
       if (tirrq(k) .gt. 0.0)then
         bs = 2.0*bn(k)
@@ -263,6 +290,10 @@ cdiag     write(104,'(9(1x,es8.2))')dp1d(k),tirrq(k),
 cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
 cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 cdiag   endif
+        if (vrbos)
+     .    write(*,*)'ptend7 :', nstep,i,j,k,dp1d(k),tirrq(k),
+     .                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
+     .                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
@@ -317,6 +348,10 @@ cdiag     write(105,'(9(1x,es8.2))')dp1d(k),tirrq(k),
 cdiag.               obio_P(k,1),obio_P(k,2),obio_P(k,4),rkn(nt),
 cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 cdiag   endif
+        if (vrbos)
+     .    write(*,*)'ptend8: ',nstep,i,j,k,dp1d(k),tirrq(k),
+     .               obio_P(k,1),obio_P(k,2),obio_P(k,4),rkn(nt),
+     .                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
@@ -394,14 +429,15 @@ c        rfix = min(rfix,0.2)
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-!       if (vrbos) write(*,'(a,2i5,11e12.4)')
-!    .   'CYANOBACTERIA1: ',nt,k,rmuplsr(k,nt),rlim,rlimnfix,rlimrkn,
-!    .    rfix,gratenfix,gronfix,obio_P(k,nt+nnut),gron,gro(k,nt),
-!    .    P_tend(k,nt+nnut)
-!       if (vrbos) write(*,'(a,2i5,14e12.4)')
-!    .  'CYANOBACTERIA2:',nt,k,tirrq(k),rikd(k,nt),rmml,obio_P(k,4),
-!    .   rkf(nt),rmmf,rkn(nt),rnut1,rnut2,tmp,tnit,rmmn,obio_P(k,1),
-!    .   obio_P(k,2)
+cdiag   if (vrbos) write(*,*)
+cdiag.   'obio_ptend9: ',nt,i,j,k,rmuplsr(k,nt),rlim,rlimnfix,rlimrkn,
+cdiag.    rfix,gratenfix,gronfix,obio_P(k,nt+nnut),gron,gro(k,nt),
+cdiag.    P_tend(k,nt+nnut)
+
+cdiag   if (vrbos) write(*,*)
+cdiag.  'obio_ptend10: ',nt,i,j,k,tirrq(k),rikd(k,nt),rmml,obio_P(k,4),
+cdiag.   rkf(nt),rmmf,rkn(nt),rnut1,rnut2,tmp,tnit,rmmn,obio_P(k,1),
+cdiag.   obio_P(k,2)
 
       endif
 !!#endif
@@ -480,8 +516,8 @@ cdiag.          nstep,gro(1,nt),obio_P(1,nt+nnut)
 cdiag   enddo
 cdiag   endif
 
-cdiag  if(vrbos)write(904,'(2i5,6e12.4)')
-cdiag.  nstep,k,tirrq(k),P_tend(k,5),P_tend(k,6),P_tend(k,7) 
+cdiag  if(vrbos)write(*,*)'ptend11: ',
+cdiag.  nstep,i,j,k,tirrq(k),P_tend(k,5),P_tend(k,6),P_tend(k,7) 
 cdiag.  ,P_tend(k,8),P_tend(k,9)
 
 
@@ -517,6 +553,12 @@ cdiag. rmu3(4),obio_P(k,nnut+1),obio_P(k,nnut+2),obio_P(k,nnut+3),
 cdiag. obio_P(k,nnut+4),P_tend(k,1),P_tend(k,1) - upn
 cdiag  endif
 
+cdiag  if(vrbos)write(*,*)'obio_ptend12: ',
+cdiag. nstep,i,j,k,dp1d(k),bn(k),rmu3(1),rmu3(2),rmu3(3),rmu3(4),
+cdiag. obio_P(k,5),obio_P(k,6),obio_P(k,7),obio_P(k,8),
+cdiag. P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4),
+cdiag. upn,upa,upf,ups
+
         P_tend(k,1) = P_tend(k,1) - upn
         P_tend(k,2) = P_tend(k,2) - upa
         P_tend(k,3) = P_tend(k,3) - ups
@@ -525,7 +567,23 @@ cdiag  endif
        endif !tirrq(k) .gt. 0.0
       enddo  !kmax
   
+cdiag if(vrbos) then
+cdiag do k=1,kdm
+cdiag  write(*,*)'obio_ptend13: ',
+cdiag. nstep,i,j,k,tirrq(k),gro(k,1),gro(k,2),
+cdiag. gro(k,3),gro(k,4),P_tend(k,8),P_tend(k,9)
+cdiag enddo
+cdiag endif
+
       call obio_carbon(vrbos,kmax,i,j)
+
+cdiag if(vrbos) then
+cdiag do k=1,kdm
+cdiag  write(*,*)'obio_ptend14: ',
+cdiag.  nstep,i,j,k,P_tend(k,8),P_tend(k,9)
+cdiag enddo
+cdiag endif
+
  
 cdiag if (vrbos) then
 cdiag  do k=1,1
@@ -559,6 +617,9 @@ c Sinking rate temperature (viscosity) dependence (also convert to /hr)
       nt = 4
       do k = 1,kmax
         obio_ws(k,nt) = wshc(k)*viscfac(k)*pnoice
+      enddo
+      do nt = 1,nchl
+        obio_ws(kmax+1,nt)=obio_ws(kmax,nt)
       enddo
       do nt = 1,ndet
        do k = 1,kmax

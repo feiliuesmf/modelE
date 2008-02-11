@@ -19,7 +19,7 @@ c
      .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
      .                      ,excz,resz,remin,excp,resp
 
-      USE obio_com, only : bn,C_tend,cnratio,obio_P,P_tend,car
+      USE obio_com, only : bn,C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,gro,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,pnoice2,rhs,alk1d
 
@@ -153,13 +153,13 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
            sumdoc = sumdoc + docexcp
           sumutk = sumutk + totgro
          sumres = sumres + dicresp
-cdiag        if (vrbos .and. k.eq.1)then
-cdiag           if (nstep.eq.120)write(911,'(a)')
-cdiag. 'nstep,k,nt,gro(k,nt),P(k,nt),resp,sumres,sumutk,mgchltouMC'
-cdiag         write(911,'(3i7,6e12.4)')
-cdiag.        nstep,k,nt,gro(k,nt),obio_P(k,nt+nnut),resp,
-cdiag.        sumres,sumutk,mgchltouMC
-cdiag        endif
+
+cdiag    if (vrbos .and. k.eq.1)
+!        if(nstep.ge.48.and.nstep.lt.50)write(*,*)
+!    .   'obio_carbon1:',
+!    .   nstep,nt+nnut,i,j,k,gro(k,nt),obio_P(k,nt+nnut),totgro,
+!    .   excp,docexcp,resp,dicresp,sumdoc,sumutk,sumres
+
         enddo !nt
 
         term = sumdoc * mgchltouMC * pnoice     !phyto prod DOC
@@ -211,7 +211,8 @@ c Update DIC for sea-air flux of CO2
       C_tend(k,2) = C_tend(k,2) + term
 
          if (vrbos)
-     .   write(6,'(a,3i7,i3,4e12.4)')
+!    .   write(6,'(a,3i7,i3,4e12.4)')
+     .   write(6,*)
      .     'obio_carbon (coupled):',
      .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term
 

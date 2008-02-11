@@ -6,6 +6,7 @@
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_Natassa
+        USE FLUXES, only : 
      .                  ,GTRACER,TRGASEX
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
@@ -14,7 +15,7 @@
 #endif
 
 #ifdef TRACERS_OceanBiology
-      USE obio_forc, only : avgq
+      USE obio_forc, only : avgq,tirrq3d
       USE obio_com,  only : gcmax
 #endif
       USE HYCOM_DIM
@@ -149,7 +150,7 @@ c
 #endif
 
 #ifdef TRACERS_OceanBiology
-      USE obio_forc, only : avgq
+      USE obio_forc, only : avgq,tirrq3d
       USE obio_com,  only : gcmax
 #endif
       USE HYCOM_ARRAYS_GLOB
@@ -167,10 +168,10 @@ c
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
+#if defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
       integer i,j,k
-#ifdef TRACERS_GASEXCH_Natassa
 !@var TRNHEADER Character string label for individual records
-      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX"
+      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIO"
 #endif
 
 #ifdef TRACERS_OCEAN
@@ -196,18 +197,18 @@ c
 
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
-      write (TRNMODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
-     *     'atrac,avgq,gcmax'
+      write (TRNMODULE_HEADER(lhead+1:80),'(a24)')
+     *     'atrac,avgq,gcmax,tirrq3d'
 #else
 #ifdef TRACERS_GASEXCH_Natassa
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
-      write (TRNMODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
+      write (TRNMODULE_HEADER(lhead+1:80),'(a5)')
      *     'atrac'
 #endif
 #ifdef TRACERS_OceanBiology
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
-      write (TRNMODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
-     *     'avgq,gcmax'
+      write (TRNMODULE_HEADER(lhead+1:80),'(a18)')
+     *     'avgq,gcmax,tirrq3d'
 #endif
 #endif
 
@@ -228,13 +229,13 @@ css#endif
 
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
-     . ,atrac,avgq,gcmax
+     . ,atrac,avgq,gcmax,tirrq3d
       i=100
       j=100
       do k=1,kdm
-      write(*,'(a,i2,6(e12.4,1x))') ' tst1a k=',k,
+      write(*,'(a,i2,7(e12.4,1x))') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
-     .    tracer(i,j,k,1),tracer(i,j,k,15)
+     .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_Natassa
@@ -243,7 +244,7 @@ css#endif
 #endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
-     . ,avgq,gcmax
+     . ,avgq,gcmax,tirrq3d
 #endif
 #endif
 
@@ -279,14 +280,14 @@ c
 
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac,avgq,gcmax
+     . ,atrac,avgq,gcmax,tirrq3d
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
       i=100
       j=100
       do k=1,kdm
-      write(*,'(a,i2,6(e12.4,1x))') ' tst1b k=',k,
+      write(*,'(a,i2,7(e12.4,1x))') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
-     .    tracer(i,j,k,1),tracer(i,j,k,15)
+     .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -305,7 +306,7 @@ c
 #endif
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,avgq,gcmax
+     . ,avgq,gcmax,tirrq3d
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -349,14 +350,14 @@ c
       go to 222
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac,avgq,gcmax
+     . ,atrac,avgq,gcmax,tirrq3d
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
       i=100
       j=100
       do k=1,kdm
-      write(*,'(a,i2,6(e12.4,1x))') ' tst2 k=',k,
+      write(*,'(a,i2,7(e12.4,1x))') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
-     .    tracer(i,j,k,1),tracer(i,j,k,15)
+     .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k)
       enddo
       write(*,*)'atrac at (36,23) =',atrac(36,23,1)
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
@@ -376,7 +377,7 @@ c
 #endif
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,avgq,gcmax
+     . ,avgq,gcmax,tirrq3d
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER

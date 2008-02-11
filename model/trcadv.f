@@ -114,7 +114,8 @@ c
         ufxcum(iatls,jatl,k)=-ufxcum(ipacn,jpac,k)
       end do
 c
-c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv) SCHEDULE(STATIC,jchunk)
+c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv,ka,verdiv) 
+c$OMP.            SCHEDULE(STATIC,jchunk)
       do 9 j=1,jj
       jb=mod(j,jj)+1
       do 9 l=1,isp(j)
