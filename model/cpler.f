@@ -1,7 +1,30 @@
       module hycom_cpler
-      USE HYCOM_DIM, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
+      USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       implicit none
+      private
 !!#include "a2o.h"
+
+      public ssto2a,veca2o,flxa2o,veco2a,tempro2a
+
+      public nwgta2o,nwgta2o2,nwgto2a
+
+      public wlista2o,wtaua2o
+     .    ,wlisto2a
+     .    ,wlisto2a_e
+     .    ,wlisto2a_n
+     .    ,ofrac,agcmgdsz
+     .    ,ocellsz,coso,sino
+     .     ,ilista2o,jlista2o
+     .                                 ,nlista2o
+     .       ,itaua2o, jtaua2o
+     .                                 , ntaua2o
+     .     ,ilisto2a,jlisto2a
+     .                                 ,nlisto2a
+     .     ,ilisto2a_e,jlisto2a_e
+     .                                 ,nlisto2a_e
+     .     ,ilisto2a_n,jlisto2a_n
+     .                                 ,nlisto2a_n
+
 
       integer nwgta2o,nwgta2o2,nwgto2a
       parameter (nwgta2o=18,nwgta2o2=18,nwgto2a=39)
@@ -31,7 +54,7 @@ c
 c --- fldo:  input field from ogcm grid
 c     flda: output field onto agcm grid
 c
-      !USE HYCOM_DIM
+      !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
 #include "dimension2.h"
@@ -56,7 +79,7 @@ c
 c --- tauxa/tauya: input taux (E-ward)/tauy (N-ward) on agcm grid (N/m*m)
 c --- tauxo/tauyo:output taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)
 c    
-      !USE HYCOM_DIM
+      !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
 #include "dimension2.h"
@@ -97,7 +120,7 @@ c
 c --- mapping flux-like field from agcm to ogcm
 c     input: flda (W/m*m), output: fldo (W/m*m)
 c
-      !USE HYCOM_DIM
+      !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
 #include "dimension2.h"
@@ -124,7 +147,7 @@ c
 c --- tauxo/tauyo: input taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)
 c --- tauxa/tauya:output taux (E-ward)/tauy (N-ward) on agcm grid (N/m*m)
 c    
-      !USE HYCOM_DIM
+      !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
 #include "dimension2.h"
@@ -183,7 +206,7 @@ c
 c --- fldo:  input field from ogcm grid
 c     flda: output field onto agcm grid
 c
-      !USE HYCOM_DIM
+      !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
 #include "dimension2.h"

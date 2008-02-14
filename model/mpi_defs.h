@@ -40,4 +40,7 @@
 #define MPI_Send mpi_send_
 #define MPI_Recv mpi_recv_
 
+#define MPI_Allgather mpi_allgather_
+#define MPI_ABORT mpi_abort_
+
 #endif

@@ -3,7 +3,7 @@ c
 c --- define water depth (bottom pressure) at  u,v  points and barotp.pot.vort.
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
-      USE HYCOM_DIM, only : jj,ifu,isu,ilu,isv,ifv,ilv,isq,ifq,ilq
+      USE HYCOM_DIM_GLOB, only : jj,ifu,isu,ilu,isv,ifv,ilv,isq,ifq,ilq
       USE HYCOM_SCALARS, only : onem
       USE HYCOM_ARRAYS_GLOB
       implicit none

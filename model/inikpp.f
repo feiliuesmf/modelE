@@ -2,7 +2,7 @@
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM, only : jj,isp,ifp,ilp
+      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp
       USE HYCOM_SCALARS, only :epsil,onem
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -95,7 +95,7 @@ c
 c
       subroutine initurb
 c
-      USE HYCOM_DIM, only : jj,isp,ifp,ilp
+      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp
       USE HYCOM_SCALARS, only : onem
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -106,8 +106,12 @@ c
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
+      !write(750,*) isp
+      !write(751,*) ifp
+      !write(752,*) ilp
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 199 j=1,jj
+       !write(0,*) j
       do 199 l=1,isp(j)
       do 199 i=ifp(j,l),ilp(j,l)
 c --- map shallow depths ('brown' water) to high jerlov numbers

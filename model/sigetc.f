@@ -198,7 +198,7 @@ c
 c
 c --- exchange information across bering strait seam
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'bering.h'
@@ -218,34 +218,59 @@ c
 c --- exchange information across bering strait seam
 c
       USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
-      USE HYCOM_DIM
+      USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H,I_0H,I_1H
       implicit none
 !!      include 'dimensions.h'
       include 'bering.h'
 c
-      real field(I_0h:I_1H,J_0H:J_1H)
-      real a(1),b(2)
+      real field(I_0H:I_1H,J_0H:J_1H)
+      real a(1),b(1)
+      integer, save :: count1=1, count2=1
 c
+      !write(0,*) "ok ",__FILE__,__LINE__
+
 c --- exchange p-point values (half grid size away from seam)
       if (beropn) then
-        a(1) = field(ipacs,jpac)
-        b(1) = field(iatln,jatl)
+        !a(1) = field(ipacs,jpac)
+        !b(1) = field(iatln,jatl)
+        !write(0,*) "ok ",__FILE__,__LINE__
 
-        if ( jpac>=J_0 .and. jpac<=J_1 )
-     &       call send_to_j(ogrid,a,jatl,1)
-        if ( jatl>=J_0 .and. jatl<=J_1 )
-     &       call send_to_j(ogrid,b,jpac,2)
 
-        if ( jatl>=J_0 .and. jatl<=J_1 )
-     &       call recv_from_j(ogrid,a,jpac,1)
-        if ( jpac>=J_0 .and. jpac<=J_1 )
-     &       call recv_from_j(ogrid,b,jatl,2)
+        if ( jpac>=J_0 .and. jpac<=J_1 ) then
+          !write(0,*) "sending to jatl",count1,J_0,J_1,jatl
+          a(1) = field(ipacs,jpac)
+          call send_to_j(ogrid,a,jatl,1)
+          !write(0,*) "sent to jatl"
+        endif
+        if ( jatl>=J_0 .and. jatl<=J_1 ) then
+          b(1) = field(iatln,jatl)
+          call send_to_j(ogrid,b,jpac,2)
+        endif
 
-        field(iatls,jatl)=a(1)
-        field(ipacn,jpac)=b(1)
+        !write(0,*) "ok ",__FILE__,__LINE__
+
+
+        if ( jatl>=J_0 .and. jatl<=J_1 ) then
+          !write(0,*) "receiving from jpac",count1,J_0,J_1,jpac
+          call recv_from_j(ogrid,a,jpac,1)
+          !write(0,*) "received from jpac"
+          field(iatls,jatl)=a(1)
+          endif
+        if ( jpac>=J_0 .and. jpac<=J_1 ) then
+          call recv_from_j(ogrid,b,jatl,2)
+          field(ipacn,jpac)=b(1)
+          endif
+
+        !write(0,*) "ok ",__FILE__,__LINE__
+
+
+        !!field(iatls,jatl)=a(1)
+        !!field(ipacn,jpac)=b(1)
 
         !field(iatls,jatl)=field(ipacs,jpac)
         !field(ipacn,jpac)=field(iatln,jatl)
+        count1 = count1+1
+        count2 = count2+1
       endif
       return
       end
@@ -266,7 +291,7 @@ c --- input: 3-d arrays of  h y b r i d  layer thickness and density anomaly.
 c --- results from pechg1 are stored in 'nunit' for later use by pechg2.
 c --- use different values of 'nunit' for nested APE process diagnostics.
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -404,7 +429,7 @@ c --- input: 3-d arrays of  h y b r i d  layer thickness and density anomaly.
 c --- results from pechg1 representing 'before' state are read from 'nunit'.
 c --- use different values of 'nunit' for nested APE process diagnostics.
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g,delt1
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -546,7 +571,7 @@ c>
 c> Dec. 2004 - fixed bug in loop 9 (excluded interfaces on shallow bottom)
 c
       subroutine totals(dp1,field1,dp2,field2,text)
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -595,7 +620,7 @@ c --- fieldf -- output field containing ii rows
 c
 c --- use this entry to operate on -p- points
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'

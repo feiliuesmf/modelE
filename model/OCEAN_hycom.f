@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP, only: AM_I_ROOT,ESMF_BCAST
       USE HYCOM_ATM, only : gather_atm,scatter_atm, focean,gtemp,gtempr,
      &     asst,atempr,im,jm
 !!      USE MODEL_COM, only : im,jm,focean
@@ -19,6 +19,7 @@
       USE obio_com,  only : gcmax
 #endif
       USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : delt1
       implicit none
 
       logical, intent(in) :: iniOCEAN
@@ -91,6 +92,10 @@ c
 
       endif ! AM_I_ROOT
       call scatter_atm
+
+!!! hack needed for serial inicon
+      CALL ESMF_BCAST(ogrid, delt1 )
+
 c
       END SUBROUTINE init_OCEAN
 c
@@ -142,7 +147,7 @@ c
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
 !!      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
-      USE HYCOM_DIM, only : kk,iia,jja
+      USE HYCOM_DIM_GLOB, only : kk,iia,jja
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
      &     ,onem
 #ifdef TRACERS_GASEXCH_Natassa
@@ -473,7 +478,7 @@ C     nothing to gather - ocean prescribed
       USE HYCOM_DIM, only : init_hycom_grid, alloc_hycom_dim
       USE HYCOM_ARRAYS, only : alloc_hycom_arrays
 
-      !use hycom_dim_glob, only : alloc_hycom_dim_glob
+      USE HYCOM_DIM_GLOB, only : alloc_hycom_dim_glob
       USE HYCOM_ARRAYS_GLOB, only : alloc_hycom_arrays_glob
 
       USE KPRF_ARRAYS, only : alloc_kprf_arrays
@@ -492,7 +497,7 @@ C     nothing to gather - ocean prescribed
       call alloc_hycom_dim
       call alloc_hycom_arrays
 
-      !call alloc_hycom_dim_glob
+      call alloc_hycom_dim_glob
       call alloc_hycom_arrays_glob
 
       call alloc_kprf_arrays
@@ -507,7 +512,7 @@ C     nothing to gather - ocean prescribed
 
 #ifdef THIS_PART_IS_NOT_READY
       subroutine reset_hycom_arrays
-      USE HYCOM_DIM, only : ii,jj,kk
+      USE HYCOM_DIM_GLOB, only : ii,jj,kk
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS, only : sswflx
       USE HYCOM_SCALARS, only : lp,huge

@@ -112,7 +112,7 @@ c
       USE PBLCOM, only : wsavg 
       USE RAD_COM,   only: COSZ1 
 #endif 
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
 c
@@ -189,7 +189,9 @@ c
       ! move to global atm grid
       call gather_atm
 
-      if (AM_I_ROOT()) then
+      call scatter_hycom_arrays ! actually not needed yet ...
+
+      if (AM_I_ROOT()) then ! work on global grids here
 
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 cdiag write(*,'(a,i8,7i5,a)')'chk =',
@@ -292,7 +294,15 @@ c    .  ,flowo(ia,ja),gmelt(ia,ja),melti(ia,ja),dxyp(ja),focean(ia,ja)
 c    .  ,runosi(ia,ja),runpsi(ia,ja)
 c
       nsavea=nsavea+1
+
+      endif ! root
+
+      call scatter_hycom_arrays
+
       if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) goto 9666
+
+      if (AM_I_ROOT()) then
+
       if (nsavea*24/nday.ne.nhr) then
         write(*,'(a,4i4,i8)')
      .  'nonmatching b.c. accumulation periods: agcm/ogcm:',
@@ -326,8 +336,18 @@ c
       agcm_time = real(bfogcm-afogcm)/real(rate)
       write (lp,99009) agcm_time,' sec for AGCM bfor ocn step ',nstep
 99009 format (f12.3,a,i8)
+
+      endif ! root
 c
+!hack hack !!! copied from inicon:
+cddd      if (nstep0.eq.0) then
+cddd        delt1=baclin
+cddd      else
+cddd        delt1=baclin+baclin
+cddd      endif
+
       if (nstep.eq.0 .or. nstep.eq.nstep0) then
+
 c
 c$OMP PARALLEL SHARED(mo0)
 c$    mo0=OMP_GET_NUM_THREADS()
@@ -402,7 +422,7 @@ c
 css   call geopar                ! moved to agcm for zero start or below
 css   call inicon                ! moved to agcm
       if (mxlkpp) then
-        call inikpp                 ! kpp
+        if (AM_I_ROOT()) call inikpp                 ! kpp
         if (mxlgis) stop 'wrong kprf: kpp=gis=true'
         print *,'chk: mxlkpp=true'
         write(*,'(a,2f9.3)')' chk qkpar=',
@@ -440,7 +460,8 @@ c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
         write (lp,'(a,f16.8,i10,f16.8)')'mismatch date found '
      . ,int((nstep0+nstepi-1)*baclin/3600),itime*24/nday
      . ,(nstep0+nstepi-1)*baclin/3600.-itime*24/nday
-        write (lp,'(/(a,i9,a,i9,a,f7.1,a))')'chk model start step',nstep0
+        write (lp,'(/(a,i9,a,i9,a,f7.1,a))')'chk model start step'
+     &       ,nstep0
      . ,' changed to: '
      . ,int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1
      . ,' (day '
@@ -458,7 +479,9 @@ c
       else
         write (lp,'(/(a,i9))') 'chk model starts at steps',nstep
       endif
+
 c
+      if (AM_I_ROOT()) then
 c$OMP PARALLEL DO
       do j=1,jj
       do i=1,ii
@@ -468,11 +491,13 @@ c$OMP PARALLEL DO
       enddo
       enddo
 c$OMP END PARALLEL DO
+      endif ! root
 c
       endif       ! if (nstep=0 or nstep=nstep0) 
 c
       if (nstepi.le.0) stop 'wrong nstepi'
 c
+      if (AM_I_ROOT()) then
 c     print *,' shown below oice'
 c     call zebra(oice,iio,iio,jjo)
 c     print *,' shown below aflxa2o'
@@ -509,8 +534,18 @@ c     open(202,file='ip.array',form='unformatted',status='unknown')
 c     write(202) ip,iu,iv,ifp,ilp,isp
 c     close(202)
 c
+
+
+      endif ! root
+
+      call scatter_hycom_arrays
+
       nsaveo=0
       do 15 nsub=1,nstepi
+
+
+        !if (AM_I_ROOT()) then ! work on global grids here
+
       m=mod(nstep  ,2)+1
       n=mod(nstep+1,2)+1
       mm=(m-1)*kk
@@ -519,6 +554,8 @@ c
       k1n=1+nn
       nstep=nstep+1
       time=time0+(nstep-nstep0)*baclin/86400.
+
+        if (AM_I_ROOT()) then ! work on global grids here
 c
       diagno=.false.
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
@@ -545,6 +582,7 @@ c     this should be done at the beginning of the 'long' time interval
       enddo
 #endif
 
+
 c --- initialization of tracer transport arrays (incl. dpinit):
         call tradv0(m,mm)
 cdiag print *,'past tradv0'
@@ -565,6 +603,7 @@ cc$OMP END PARALLEL DO
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
       end if
+
 c
 c --- accumulate tracer flux over 'long' time period
 c     this should be done at every time step (of the long interval)
@@ -598,6 +637,7 @@ c
 
       before = after
       ocnbio_time=0.0
+
 
       if (dobio) then
 cdiag  do k=1,kdm
@@ -636,6 +676,7 @@ cdiag  call obio_limits('aftr obio_model')
 
       endif
 
+
       call system_clock(after)
       ocnbio_time = real(after-before)/real(rate)
 
@@ -649,7 +690,25 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  103  format (f9.1,a,-12p,f9.3,' TW')
 c
       call system_clock(before)
+
+
+      endif ! root
+
+      call scatter_hycom_arrays
+
+cddd!!! just checking...
+cddd      call gather_hycom_arrays
+cddd
+cddd      if (AM_I_ROOT()) then ! work on global grids here
+
       call cnuity(m,n,mm,nn,k1m,k1n)
+
+      call gather_hycom_arrays
+
+      if (AM_I_ROOT()) then ! work on global grids here
+
+        call hycom_arrays_checksum
+
       call system_clock(after)
       cnuity_time = real(after-before)/real(rate)
 c     call sstbud(0,'  initialization',temp(1,1,k1n))
@@ -1067,8 +1126,15 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c
       nsaveo=nsaveo+1
+
+      endif ! root
+
       delt1=baclin+baclin
+
  15   continue
+
+      if (AM_I_ROOT()) then ! work on global grids here
+
       if (nsaveo*baclin.ne.nhr*3600) then
             print *, ' ogcm saved over hr=',nsaveo*baclin/3600.
             stop ' stop: ogcm saved over hr'

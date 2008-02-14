@@ -1,7 +1,7 @@
       subroutine advem(iord,fld,u,v,scal,scali,dt,fco,fc)
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 c
 c combined monotone scheme, for details see section 3.3 (eqs. 34 to 37)

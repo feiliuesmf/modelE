@@ -2,7 +2,7 @@
       subroutine momtum(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9 -- cyclic and noncyclic b.c. combined
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       implicit none

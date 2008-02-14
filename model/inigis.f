@@ -2,7 +2,7 @@
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : pi
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS

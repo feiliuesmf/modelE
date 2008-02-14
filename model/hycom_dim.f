@@ -85,21 +85,21 @@ c
 
       ! leave these global for time being
 
-cddd      allocate(
-cddd     . ip(I_0H:I_1H,J_0H:J_1H),iu(I_0H:I_1H,J_0H:J_1H),iv(I_0H:I_1H,J_0H:J_1H),iq(I_0H:I_1H,J_0H:J_1H),
-cddd     .ifp(J_0H:J_1H,ms),ilp(J_0H:J_1H,ms),isp(J_0H:J_1H),jfp(I_0H:I_1H,ms),jlp(I_0H:I_1H,ms),jsp(I_0H:I_1H),
-cddd     .ifq(J_0H:J_1H,ms),ilq(J_0H:J_1H,ms),isq(J_0H:J_1H),jfq(I_0H:I_1H,ms),jlq(I_0H:I_1H,ms),jsq(I_0H:I_1H),
-cddd     .ifu(J_0H:J_1H,ms),ilu(J_0H:J_1H,ms),isu(J_0H:J_1H),jfu(I_0H:I_1H,ms),jlu(I_0H:I_1H,ms),jsu(I_0H:I_1H),
-cddd     .ifv(J_0H:J_1H,ms),ilv(J_0H:J_1H,ms),isv(J_0H:J_1H),jfv(I_0H:I_1H,ms),jlv(I_0H:I_1H,ms),jsv(I_0H:I_1H),
-cddd     .msk(I_0H:I_1H,J_0H:J_1H) )
-
       allocate(
-     . ip(idm,jdm),iu(idm,jdm),iv(idm,jdm),iq(idm,jdm),
-     .ifp(jdm,ms),ilp(jdm,ms),isp(jdm),jfp(idm,ms),jlp(idm,ms),jsp(idm),
-     .ifq(jdm,ms),ilq(jdm,ms),isq(jdm),jfq(idm,ms),jlq(idm,ms),jsq(idm),
-     .ifu(jdm,ms),ilu(jdm,ms),isu(jdm),jfu(idm,ms),jlu(idm,ms),jsu(idm),
-     .ifv(jdm,ms),ilv(jdm,ms),isv(jdm),jfv(idm,ms),jlv(idm,ms),jsv(idm),
-     .msk(idm,jdm) )
+     . ip(I_0H:I_1H,J_0H:J_1H),iu(I_0H:I_1H,J_0H:J_1H),iv(I_0H:I_1H,J_0H:J_1H),iq(I_0H:I_1H,J_0H:J_1H),
+     .ifp(J_0H:J_1H,ms),ilp(J_0H:J_1H,ms),isp(J_0H:J_1H),jfp(I_0H:I_1H,ms),jlp(I_0H:I_1H,ms),jsp(I_0H:I_1H),
+     .ifq(J_0H:J_1H,ms),ilq(J_0H:J_1H,ms),isq(J_0H:J_1H),jfq(I_0H:I_1H,ms),jlq(I_0H:I_1H,ms),jsq(I_0H:I_1H),
+     .ifu(J_0H:J_1H,ms),ilu(J_0H:J_1H,ms),isu(J_0H:J_1H),jfu(I_0H:I_1H,ms),jlu(I_0H:I_1H,ms),jsu(I_0H:I_1H),
+     .ifv(J_0H:J_1H,ms),ilv(J_0H:J_1H,ms),isv(J_0H:J_1H),jfv(I_0H:I_1H,ms),jlv(I_0H:I_1H,ms),jsv(I_0H:I_1H),
+     .msk(I_0H:I_1H,J_0H:J_1H) )
+
+cddd      allocate(
+cddd     . ip(idm,jdm),iu(idm,jdm),iv(idm,jdm),iq(idm,jdm),
+cddd     .ifp(jdm,ms),ilp(jdm,ms),isp(jdm),jfp(idm,ms),jlp(idm,ms),jsp(idm),
+cddd     .ifq(jdm,ms),ilq(jdm,ms),isq(jdm),jfq(idm,ms),jlq(idm,ms),jsq(idm),
+cddd     .ifu(jdm,ms),ilu(jdm,ms),isu(jdm),jfu(idm,ms),jlu(idm,ms),jsu(idm),
+cddd     .ifv(jdm,ms),ilv(jdm,ms),isv(jdm),jfv(idm,ms),jlv(idm,ms),jsv(idm),
+cddd     .msk(idm,jdm) )
 
       end subroutine alloc_hycom_dim
 

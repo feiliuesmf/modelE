@@ -7,9 +7,10 @@ c --- hycom version 0.9 -- cyclic in j
 css   USE GEOM, only : dxyp
 c
       USE DOMAIN_DECOMP, only: AM_I_ROOT
-      USE HYCOM_DIM, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
-     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
-     &     ,iia,jja,idm,jdm
+cddd      USE HYCOM_DIM_GLOB, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
+cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
+cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,pi,area,avgbot,huge,flnmlat,flnmdep
      &     ,flnma2o,flnmo2a,flnmo2a_e,flnmo2a_n,flnmcoso,flnmbas
      &     ,flnma2o_tau
@@ -32,6 +33,8 @@ c
 c --- 'glufac' = regional viscosity enhancement factor
       data glufac/3./
       data zero/0./
+
+      write(0,*) "ok ",__FILE__,__LINE__
 c
 c --- read basin depth array
       write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
@@ -71,13 +74,64 @@ c     do i=72,74
 c     depths(i,175)=798.
 c     end do
 c
+      !write(0,*) "ok ",__FILE__,__LINE__
       if (AM_I_ROOT()) then ! print only on root
         write (lp,*) 'shown below: bottom depth'
         call zebra(depths,idm,ii1,jj)
       endif
+
+      !write(0,*) "ok ",__FILE__,__LINE__
 c
 c --- determine do-loop limits for u,v,p,q points
       call bigrid(depths)
+
+      !write(0,*) "ok ",__FILE__,__LINE__
+
+!! copy hycom_dim arrays to global grid
+      call gather_hycom_dim
+
+cddd      if (AM_I_ROOT()) then
+cddd      write(700,*)  ip
+cddd
+cddd
+cddd      write(802,*) ip(:,:),iu(:,:),iv(:,:),iq(:,:),
+cddd     .ifp(:,:),ilp(:,:),isp(:),jfp(:,:),jlp(:,:),jsp(:),
+cddd     .ifq(:,:),ilq(:,:),isq(:),jfq(:,:),jlq(:,:),jsq(:),
+cddd     .ifu(:,:),ilu(:,:),isu(:),jfu(:,:),jlu(:,:),jsu(:),
+cddd     .ifv(:,:),ilv(:,:),isv(:),jfv(:,:),jlv(:,:),jsv(:),
+cddd     .msk(:,:)
+cddd
+cddd      write(701,*)  ip
+cddd      write(702,*)  iu
+cddd      write(703,*)  iv
+cddd      write(704,*)  iq
+cddd      write(705,*)  ifp
+cddd      write(706,*)  ilp
+cddd      write(707,*)  isp
+cddd      write(708,*)  jfp
+cddd      write(709,*)  jlp
+cddd      write(710,*)  jsp
+cddd      write(711,*)  ifq
+cddd      write(712,*)  ilq
+cddd      write(713,*)  isq
+cddd      write(714,*)  jfq
+cddd      write(715,*)  jlq
+cddd      write(716,*)  jsq
+cddd      write(717,*)  ifu
+cddd      write(718,*)  ilu
+cddd      write(719,*)  isu
+cddd      write(720,*)  jfu
+cddd      write(721,*)  jlu
+cddd      write(722,*)  jsu
+cddd      write(723,*)  ifv
+cddd      write(724,*)  ilv
+cddd      write(725,*)  isv
+cddd      write(726,*)  jfv
+cddd      write(727,*)  jlv
+cddd      write(728,*)  jsv
+cddd      write(729,*)  msk
+cddd
+cddd      endif
 
       if (AM_I_ROOT()) then
 ccc      do 3 i=1,ii1

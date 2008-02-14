@@ -4,7 +4,7 @@ c --- hycom version 0.9.12
 c --- this version allows switching between T/S and rho/S conservation
 c --- and between pcm and ppm
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
      &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge
       USE HYCOM_ARRAYS_GLOB

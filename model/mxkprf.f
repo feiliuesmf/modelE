@@ -9,7 +9,7 @@ ccc   use mod_xc    ! HYCOM communication interface
 ccc   use mod_pipe  ! HYCOM debugging interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -292,7 +292,7 @@ c***************************************************************************
 c
       subroutine mxkprfaj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_ARRAYS_GLOB
       implicit none
 c
@@ -334,7 +334,7 @@ ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
       USE MODEL_COM, only: jmon
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -1334,7 +1334,7 @@ c***************************************************************************
 c
       subroutine mxkprfbj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_ARRAYS_GLOB
       implicit none
 c
@@ -1357,7 +1357,7 @@ c***************************************************************************
 c
       subroutine mxkprfcj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_ARRAYS_GLOB
       implicit none
 c
@@ -1398,7 +1398,7 @@ ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
       USE MODEL_COM, only: jmon
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -2787,7 +2787,7 @@ c
 #endif
 #endif
 c --- hycom version 2.1
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -3002,7 +3002,7 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -3120,7 +3120,7 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS

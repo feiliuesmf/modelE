@@ -1,4 +1,4 @@
-! global?
+#include "hycom_mpi_hacks.h"
       subroutine bigrid(depth)
 c
 c --- set loop bounds for irregular basin in c-grid configuration
@@ -8,6 +8,7 @@ c
 c --- this version works for both cyclic and noncyclic domains.
 c --- land barrier at i=ii and/or j=jj signals closed-basin conditions
 c
+      !USE DOMAIN_DECOMP, only : halo_update
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp
       implicit none
@@ -20,7 +21,7 @@ c
       data fmt/'(i4,1x,75i1)'/
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 17 j=1,jj
+      do 17 j=J_0H,J_1H !1,jj
       do 17 i=1,ii
       ip(i,j)=0
       iq(i,j)=0
@@ -33,7 +34,8 @@ c --- fill single-width inlets
  16   nfill=0
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib,nzero) REDUCTION(+:nfill)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 15 j=1,jj
+      do 15 j=J_0,J_1 !1,jj
+      ! for now depth() is global array, so leave ja,jb as they are
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
       do 15 i=1,ii
@@ -59,23 +61,26 @@ c
  888  continue
 c --- mass points are defined where water depth is greater than zero
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 2 j=1,jj
+      do 2 j=J_0H,J_1H !1,jj
       do 2 i=1,ii
-      if (depth(i,j).gt.0.) ip(i,j)=1
+      if (depth(i,mod(j-1+jj,jj)+1).gt.0.) ip(i,j)=1
   2   continue
 c$OMP END PARALLEL DO
+      !call halo_update(ogrid, ip)
 c
 c --- u,v points are located halfway between any 2 adjoining mass points
 c$OMP PARALLEL DO PRIVATE(ia) SCHEDULE(STATIC,jchunk)
-      do 3 j=1,jj
+      do 3 j=J_0,J_1 !1,jj
       do 3 i=1,ii
       ia=mod(i-2+ii,ii)+1
       if (ip(ia,j).gt.0.and.ip(i,j).gt.0) iu(i,j)=1
   3   continue
 c$OMP END PARALLEL DO
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
-      do 4 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 4 j=J_0,J_1 !1,jj
+      !ja=mod(j-2+jj,jj)+1
+      !ja = j-1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 4 i=1,ii
       if (ip(i,ja).gt.0.and.ip(i,j).gt.0) iv(i,j)=1
   4   continue
@@ -83,8 +88,10 @@ c$OMP END PARALLEL DO
 c
 c --- 'interior' q points require water on all 4 sides.
 c$OMP PARALLEL DO PRIVATE(ja,ia) SCHEDULE(STATIC,jchunk)
-      do 5 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 5 j=J_0,J_1 !1,jj
+      !ja=mod(j-2+jj,jj)+1
+      !ja = j-1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 5 i=1,ii
       ia=mod(i-2+ii,ii)+1
       if (min(ip(i,j),ip(ia,j),ip(i,ja),ip(ia,ja)).gt.0) iq(i,j)=1
@@ -94,8 +101,10 @@ c
 c --- 'promontory' q points require water on 3 (or at least 2 diametrically 
 c --- opposed) sides
 c$OMP PARALLEL DO PRIVATE(ja,ia) SCHEDULE(STATIC,jchunk)
-      do 10 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 10 j=J_0,J_1 !1,jj
+      !ja=mod(j-2+jj,jj)+1
+      !ja = j-1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 10 i=1,ii
       ia=mod(i-2+ii,ii)+1
       if ((ip(i ,j).gt.0.and.ip(ia,ja).gt.0).or.
@@ -144,8 +153,9 @@ c
 !!      include 'dimensions.h'
       include 'dimension2.h'
 c
-      integer ipt(idm,jdm),if(jdm,ms),il(jdm,ms),is(jdm)
-      do 1 j=1,jj
+      integer ipt(idm,J_0H:J_1H),if(J_0H:J_1H,ms),il(J_0H:J_1H,ms),
+     &     is(J_0H:J_1H)
+      do 1 j=J_0,J_1 !1,jj
       is(j)=0
       do 4 k=1,ms
       if(j,k)=0
@@ -157,6 +167,7 @@ c
       if (i.le.ii) go to 3
       go to 1
  2    if (k.gt.ms) then
+      write(0,*) "k,ms", k,ms
       write (lp,'('' error in indxi - ms too small at i,j ='',2i5)') i,j
       write (lp,'('' j-th line of ipt array:'',/(7(1x,10i1)))')
      .   (ipt(l,j),l=1,ii)
@@ -178,7 +189,7 @@ c
       end
 c
 c
-      subroutine indxj(jpt,jf,jl,js)
+      subroutine indxj(jpt_loc,jf,jl,js)
 c
 c --- input array jpt contains 1 at grid point locations, 0 elsewhere
 c --- output is arrays jf, jl, js  where
@@ -186,13 +197,18 @@ c --- jf(i,k) gives column index of first point in row i for k-th section
 c --- jl(i,k) gives column index of last point
 c --- js(i) gives number of sections in row i (maximum: ms)
 c
+      USE DOMAIN_DECOMP, only : pack_data, esmf_bcast
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
 c
-      integer jpt(idm,jdm),jf(idm,ms),jl(idm,ms),js(idm)
+      integer jpt_loc(idm,J_0H:J_1H),jf(idm,ms),jl(idm,ms),js(idm)
+      integer jpt(idm,JDM)
+
+      call pack_data(ogrid, jpt_loc, jpt)
+      call esmf_bcast(ogrid, jpt)
       do 1 i=1,ii
       js(i)=0
       do 4 k=1,ms

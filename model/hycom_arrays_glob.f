@@ -1,7 +1,7 @@
 c   -----------------------------------------------------------------------------
       module hycom_arrays_glob
 
-      !use hycom_dim
+      !USE HYCOM_DIM_GLOB
 
       implicit none
       private
@@ -39,7 +39,7 @@ cddd      public msk
 
 
       public scatter_hycom_arrays, gather_hycom_arrays,
-     &     alloc_hycom_arrays_glob
+     &     alloc_hycom_arrays_glob, hycom_arrays_checksum
 
       public u
       public v
@@ -296,7 +296,7 @@ c --- relax       activate lateral boundary nudging
 c --- trcout      advect tracer and save results in history/restart file
 c --- dotrcr      perform column physics operations on tracer array(s)
 c
-      logical diagno,thermo,windf,relax,trcout,dotrcr
+!!      logical diagno,thermo,windf,relax,trcout,dotrcr
 !!      common/swtchs/diagno,thermo,windf,relax,trcout,dotrcr
 c
 !!      c o m m o n  /frcing/                   !  monthly forcing fields
@@ -322,13 +322,15 @@ c
 
       subroutine scatter_hycom_arrays
       use hycom_arrays_glob_renamer
-      use hycom_dim, only : ogrid
+      USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
 
       !return
 
+      !write(0,*) "ok ",__FILE__,__LINE__
       !!!call unpack_data( ogrid,  u, u_loc )
       call unpack_data( ogrid,  u, u_loc )
+      !write(0,*) "ok ",__FILE__,__LINE__
       call unpack_data( ogrid,  v, v_loc )
       call unpack_data( ogrid,  dp, dp_loc )
       call unpack_data( ogrid,  dpold, dpold_loc )
@@ -370,6 +372,7 @@ c
       call unpack_data( ogrid,  vflux2, vflux2_loc )
       call unpack_data( ogrid,  uflux3, uflux3_loc )
       call unpack_data( ogrid,  vflux3, vflux3_loc )
+      !write(0,*) "ok ",__FILE__,__LINE__
       call unpack_data( ogrid,  uflx, uflx_loc )
       call unpack_data( ogrid,  vflx, vflx_loc )
       call unpack_data( ogrid,  bolusu, bolusu_loc )
@@ -459,10 +462,10 @@ c
 
       subroutine gather_hycom_arrays
       use hycom_arrays_glob_renamer
-      use hycom_dim, only : ogrid
+      USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP, ONLY: PACK_DATA
 
-      return
+      !return
 
       call pack_data( ogrid,  u_loc, u )
       call pack_data( ogrid,  v_loc, v )
@@ -594,7 +597,7 @@ c
 
 
       subroutine alloc_hycom_arrays_glob
-      use hycom_dim, only : idm,jdm,kdm,ntrcr
+      USE HYCOM_DIM, only : idm,jdm,kdm,ntrcr
 
       allocate( 
      . u(idm,jdm,2*kdm),v(idm,jdm,2*kdm) 
@@ -832,6 +835,146 @@ c
       klist = 0
 
       end subroutine alloc_hycom_arrays_glob
+
+
+      subroutine hycom_arrays_checksum
+
+      write(801,*) __FILE__,__LINE__,sum(u(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(v(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dp(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpold(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpu(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpv(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(p(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(pu(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(pv(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(latij(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(lonij(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(corio(:,:))
+      write(801,*) __FILE__,__LINE__,sum(potvor(:,:))
+      write(801,*) __FILE__,__LINE__,sum(temp(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(saln(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(th3d(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(thstar(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(thermb(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(psikk(:,:))
+      write(801,*) __FILE__,__LINE__,sum(thkk(:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpmixl(:,:))
+      write(801,*) __FILE__,__LINE__,sum(srfhgt(:,:))
+      write(801,*) __FILE__,__LINE__,sum(montg(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(defor1(:,:))
+      write(801,*) __FILE__,__LINE__,sum(defor2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(ubavg(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(vbavg(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(pbavg(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(ubrhs(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vbrhs(:,:))
+      write(801,*) __FILE__,__LINE__,sum(utotm(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vtotm(:,:))
+      write(801,*) __FILE__,__LINE__,sum(utotn(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vtotn(:,:))
+      write(801,*) __FILE__,__LINE__,sum(uflux(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vflux(:,:))
+      write(801,*) __FILE__,__LINE__,sum(uflux1(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vflux1(:,:))
+      write(801,*) __FILE__,__LINE__,sum(uflux2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vflux2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(uflux3(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vflux3(:,:))
+      write(801,*) __FILE__,__LINE__,sum(uflx(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(vflx(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(bolusu(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(bolusv(:,:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(uav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(vav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpuav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpvav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(temav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(salav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(th3av(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(ubavav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vbavav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(pbavav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(sfhtav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(uflxav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(vflxav(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(diaflx(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(sflxav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(brineav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(eminpav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(surflav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(ufxcum(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(vfxcum(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpinit(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(dpmxav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(oiceav(:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(util1(:,:))
+      write(801,*) __FILE__,__LINE__,sum(util2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(util3(:,:))
+      write(801,*) __FILE__,__LINE__,sum(util4(:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(scpx(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scpy(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scux(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scuy(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scvx(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scvy(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scqx(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scqy(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scu2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scv2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scp2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scq2(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scuxi(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scvyi(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scp2i(:,:))
+      write(801,*) __FILE__,__LINE__,sum(scq2i(:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(pgfx(:,:))
+      write(801,*) __FILE__,__LINE__,sum(pgfy(:,:))
+      write(801,*) __FILE__,__LINE__,sum(gradx(:,:))
+      write(801,*) __FILE__,__LINE__,sum(grady(:,:))
+      write(801,*) __FILE__,__LINE__,sum(depthu(:,:))
+      write(801,*) __FILE__,__LINE__,sum(depthv(:,:))
+      write(801,*) __FILE__,__LINE__,sum(pvtrop(:,:))
+      write(801,*) __FILE__,__LINE__,sum(depths(:,:))
+      write(801,*) __FILE__,__LINE__,sum(drag(:,:))
+      write(801,*) __FILE__,__LINE__,sum(glue(:,:))
+      write(801,*) __FILE__,__LINE__,sum(dampu(:,:))
+      write(801,*) __FILE__,__LINE__,sum(dampv(:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(uja(:,:))
+      write(801,*) __FILE__,__LINE__,sum(ujb(:,:))
+      write(801,*) __FILE__,__LINE__,sum(via(:,:))
+      write(801,*) __FILE__,__LINE__,sum(vib(:,:))
+      write(801,*) __FILE__,__LINE__,sum(pbot(:,:))
+      write(801,*) __FILE__,__LINE__,sum(tracer(:,:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(tprime(:,:))
+      write(801,*) __FILE__,__LINE__,sum(sgain(:,:))
+      write(801,*) __FILE__,__LINE__,sum(surflx(:,:))
+      write(801,*) __FILE__,__LINE__,sum(salflx(:,:))
+      write(801,*) __FILE__,__LINE__,sum(odmsi(:,:))
+      write(801,*) __FILE__,__LINE__,sum(omlhc(:,:))
+      write(801,*) __FILE__,__LINE__,sum(dmfz(:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(klist(:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(taux(:,:))
+      write(801,*) __FILE__,__LINE__,sum(tauy(:,:))
+      write(801,*) __FILE__,__LINE__,sum(oemnp(:,:))
+      write(801,*) __FILE__,__LINE__,sum(oflxa2o(:,:))
+      write(801,*) __FILE__,__LINE__,sum(oice(:,:))
+      write(801,*) __FILE__,__LINE__,sum(ustar(:,:))
+      write(801,*) __FILE__,__LINE__,sum(ustarb(:,:))
+      write(801,*) __FILE__,__LINE__,sum(osalt(:,:))
+c
+      write(801,*) __FILE__,__LINE__,sum(freshw(:,:))
+      write(801,*) __FILE__,__LINE__,sum(diafor(:,:))
+
+      end subroutine hycom_arrays_checksum
 
       end module hycom_arrays_glob
 c

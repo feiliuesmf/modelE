@@ -1,8 +1,8 @@
       subroutine barotp(m,n,mm,nn,k1m,k1n)
 c
 c --- version 2.8.2
-      USE HYCOM_DIM, only : jj,isp,ifp,ilp,iu,isu,ifu,ilu,iv,isv,ifv,ilv
-     &     ,ii
+      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp,iu,isu,ifu,ilu,iv,isv
+     &     ,ifv,ilv,ii
       USE HYCOM_SCALARS, only : lstep,wbaro,dlt,slip,thref,veldff,nstep
       USE HYCOM_ARRAYS_GLOB
       implicit none

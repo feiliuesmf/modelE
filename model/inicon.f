@@ -3,7 +3,7 @@
 c
 c --- hycom version 0.9
 
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       use hycom_atm, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
      .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi

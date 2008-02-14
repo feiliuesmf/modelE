@@ -8,7 +8,7 @@ c
 c --- input  variables: uflxo,vflxo,sigold,pold,kold,thetn
 c --- output variables: uflxn,vflxn,signew,pnew,knew
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : acurcy
       USE HYCOM_ARRAYS_GLOB
       implicit none

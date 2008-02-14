@@ -1,5 +1,5 @@
       module HYCOM_SCALARS
-      use hycom_dim
+      USE HYCOM_DIM_GLOB
 
       implicit none
 
@@ -210,6 +210,8 @@ c
 c
 c --- use 'huge' to initialize array portions that the code should never access
       data huge/1.e33/
+!!! temporary value for debug (for checksums to make sense)
+!!!      data huge/0.e0/
       data nhr/1/                        ! couple every nhr hours
       data oddev/-1/
 c

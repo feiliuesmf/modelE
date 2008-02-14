@@ -1,5 +1,6 @@
       module kprf_arrays
-      use hycom_dim
+      USE HYCOM_DIM_GLOB
+      !USE HYCOM_DIM_GLOB_loc, only : I_0H,I_1H,J_0H,J_1H
 
       implicit none
 
@@ -149,46 +150,46 @@ c
       contains
 
 !!! switch to this when doing parallelization
-      subroutine alloc_kprf_arrays_local
-
-      allocate(
-     & klstsv(I_0H:I_1H,J_0H:J_1H),
-     & jerlov(I_0H:I_1H,J_0H:J_1H) )
-
-      allocate(
-     & t1sav(I_0H:I_1H,J_0H:J_1H,2),
-     & s1sav(I_0H:I_1H,J_0H:J_1H,2),
-     & tmlb(I_0H:I_1H,J_0H:J_1H,2),
-     & smlb(I_0H:I_1H,J_0H:J_1H,2) )
-
-      allocate(
-     & hekman(I_0H:I_1H,J_0H:J_1H),
-     & hmonob(I_0H:I_1H,J_0H:J_1H),
-     & dpbl(I_0H:I_1H,J_0H:J_1H),
-     & dpbbl(I_0H:I_1H,J_0H:J_1H),
-     & dpmold(I_0H:I_1H,J_0H:J_1H),
-     & tmix(I_0H:I_1H,J_0H:J_1H),
-     & smix(I_0H:I_1H,J_0H:J_1H),
-     & thmix(I_0H:I_1H,J_0H:J_1H),
-     & umix(I_0H:I_1H,J_0H:J_1H),  vmix(I_0H:I_1H,J_0H:J_1H) )
-
-      allocate(
-     & akpar(I_0H:I_1H,J_0H:J_1H,4) )
-
-      allocate(
-     & zgrid(I_0H:I_1H,J_0H:J_1H,kdm+1)
-     &,vcty(I_0H:I_1H,J_0H:J_1H,kdm+1)
-     &,difs(I_0H:I_1H,J_0H:J_1H,kdm+1)
-     &,dift(I_0H:I_1H,J_0H:J_1H,kdm+1)
-     &,ghats(I_0H:I_1H,J_0H:J_1H,kdm+1) )
-
-      allocate(
-     & buoflx(I_0H:I_1H,J_0H:J_1H),
-     & bhtflx(I_0H:I_1H,J_0H:J_1H),
-     & mixflx(I_0H:I_1H,J_0H:J_1H),
-     & sswflx(I_0H:I_1H,J_0H:J_1H) )
-
-      end subroutine alloc_kprf_arrays_local
+cddd      subroutine alloc_kprf_arrays_local
+cddd
+cddd      allocate(
+cddd     & klstsv(I_0H:I_1H,J_0H:J_1H),
+cddd     & jerlov(I_0H:I_1H,J_0H:J_1H) )
+cddd
+cddd      allocate(
+cddd     & t1sav(I_0H:I_1H,J_0H:J_1H,2),
+cddd     & s1sav(I_0H:I_1H,J_0H:J_1H,2),
+cddd     & tmlb(I_0H:I_1H,J_0H:J_1H,2),
+cddd     & smlb(I_0H:I_1H,J_0H:J_1H,2) )
+cddd
+cddd      allocate(
+cddd     & hekman(I_0H:I_1H,J_0H:J_1H),
+cddd     & hmonob(I_0H:I_1H,J_0H:J_1H),
+cddd     & dpbl(I_0H:I_1H,J_0H:J_1H),
+cddd     & dpbbl(I_0H:I_1H,J_0H:J_1H),
+cddd     & dpmold(I_0H:I_1H,J_0H:J_1H),
+cddd     & tmix(I_0H:I_1H,J_0H:J_1H),
+cddd     & smix(I_0H:I_1H,J_0H:J_1H),
+cddd     & thmix(I_0H:I_1H,J_0H:J_1H),
+cddd     & umix(I_0H:I_1H,J_0H:J_1H),  vmix(I_0H:I_1H,J_0H:J_1H) )
+cddd
+cddd      allocate(
+cddd     & akpar(I_0H:I_1H,J_0H:J_1H,4) )
+cddd
+cddd      allocate(
+cddd     & zgrid(I_0H:I_1H,J_0H:J_1H,kdm+1)
+cddd     &,vcty(I_0H:I_1H,J_0H:J_1H,kdm+1)
+cddd     &,difs(I_0H:I_1H,J_0H:J_1H,kdm+1)
+cddd     &,dift(I_0H:I_1H,J_0H:J_1H,kdm+1)
+cddd     &,ghats(I_0H:I_1H,J_0H:J_1H,kdm+1) )
+cddd
+cddd      allocate(
+cddd     & buoflx(I_0H:I_1H,J_0H:J_1H),
+cddd     & bhtflx(I_0H:I_1H,J_0H:J_1H),
+cddd     & mixflx(I_0H:I_1H,J_0H:J_1H),
+cddd     & sswflx(I_0H:I_1H,J_0H:J_1H) )
+cddd
+cddd      end subroutine alloc_kprf_arrays_local
 
       subroutine alloc_kprf_arrays
 

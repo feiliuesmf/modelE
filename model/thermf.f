@@ -3,7 +3,7 @@ c
       USE SEAICE, only : fsss
 c
 c --- hycom version 0.9
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : baclin,thref,watcum,empcum,nstep,nstep0
      &     ,diagno,lp,area,spcifh,avgbot,g,onem,slfcum
       USE HYCOM_ARRAYS_GLOB

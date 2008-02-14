@@ -45,7 +45,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8| hycom_atm|-r8|
 hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
-hycom_scalars|-r8|
+hycom_scalars|-r8| hycom_dim_glob|-r8|
 hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
 advfct|-r8|                         ! advection
 archyb|-r8|                         ! continuity eqn.

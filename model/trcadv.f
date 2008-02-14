@@ -9,7 +9,7 @@ c --- tradv1 - builds up time integral of horizontal mass fluxes
 c --- tradv2 - performs the actual transport operation
 c ---          (should be called immediately  b e f o r e  diapfl)
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,oddev
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -47,7 +47,7 @@ c
 c
 c --- build up time integrals of horiz. mass fluxes
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,oddev,delt1
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -85,7 +85,7 @@ c
 c
 c --- advect tracer over 'mixfrq' time steps
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,oddev
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -243,7 +243,7 @@ c  scal   - grid cell size
 c  scali  - inverse of scal
 c  fco,fc - depth of the layer at previous and new time step
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'

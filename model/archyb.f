@@ -8,8 +8,8 @@ c
      * ,xlabel,lrunid
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
      &     ,thref
-      USE HYCOM_DIM, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
-     &     ,ifu,ilu,isv,ifv,ilv,ii,idm,j_0h,j_1h,kdm
+      USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
+     &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
 c
       implicit none
@@ -379,7 +379,7 @@ c
 c
       subroutine r8tor4(real8,real4)
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
 #include "dimension2.h"

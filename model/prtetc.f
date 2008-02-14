@@ -108,7 +108,7 @@ c
 c
       subroutine compare(field,mask,what)
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -162,7 +162,7 @@ c
       end
 c
       subroutine compare_r4(field,mask,what)
-      USE HYCOM_DIM, only : idm,jdm
+      USE HYCOM_DIM_GLOB, only : idm,jdm
 c
 !!#include "dimensions.h"
 #include "dimension2.h"
@@ -216,7 +216,7 @@ c
 c
 c --- write out a standard menu of arrays for testing
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : nstep
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -257,7 +257,7 @@ c
 c
 c --- find maximum and minimum in 'array'. only check points where mask > 0
 c
-      USE HYCOM_DIM, only : jchunk
+      USE HYCOM_DIM_GLOB, only : jchunk
       implicit none
       integer jmax
       parameter (jmax=2000)
@@ -334,7 +334,7 @@ c
 c --- write 5 x 5 point cluster of grid point values centered on (iz,jz)
 c --- input parameters: k = layer index; mn = time slot index, i.e., mm or nn
 c
-      USE HYCOM_DIM, only : kk
+      USE HYCOM_DIM_GLOB, only : kk
       USE HYCOM_SCALARS, only : lp,onem
       USE HYCOM_ARRAYS_GLOB
       implicit none
@@ -411,7 +411,7 @@ c
 c --- write 9 x 9 point cluster of 'array' values centered on (iz,jz).
 c --- the printed numbers actually represent (array(i,j) + offset) * scale
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'
@@ -464,7 +464,7 @@ c
 c
 c --- write 7 x 7 point cluster of 'array' values centered on (iz,jz).
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'
@@ -493,7 +493,7 @@ c
 c --- psmo1 is specially set up for interface smoothing.
 c --- it only alters -alist- values that don't coincide with -pbot-.
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
@@ -555,7 +555,7 @@ c --- this routine is set up to smooth data carried at -p- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
@@ -597,7 +597,7 @@ c --- this routine is set up to smooth data carried at -u- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
@@ -639,7 +639,7 @@ c --- this routine is set up to smooth data carried at -v- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
@@ -680,7 +680,7 @@ c --- this routine is set up to smooth data carried at -p- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
@@ -748,7 +748,7 @@ c --- this routine is set up to smooth data carried at -p- points
 c 
 c --- this version works for both cyclic-in-j and noncyclic domains
 c 
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
@@ -790,7 +790,7 @@ c --- this routine is set up to smooth data carried at -u- points
 c
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'
@@ -832,7 +832,7 @@ c --- this routine is set up to smooth data carried at -v- points
 c 
 c --- this version works for both cyclic-in-j and noncyclic domains
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
       include 'dimension2.h'

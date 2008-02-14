@@ -1,7 +1,7 @@
       subroutine dpudpv(mmnn)
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
-      USE HYCOM_DIM, only : kk,jj,isu,ifu,ilu,isv,ifv,ilv
+      USE HYCOM_DIM_GLOB, only : kk,jj,isu,ifu,ilu,isv,ifv,ilv
       USE HYCOM_ARRAYS_GLOB
       implicit none
 c

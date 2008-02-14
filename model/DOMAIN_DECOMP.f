@@ -235,6 +235,7 @@
       PUBLIC :: PACK_DATAj
       interface PACK_DATAj
          module procedure PACKj_2D     ! (j,k)
+         module procedure IPACKj_2D    ! (j,k)
          module procedure PACKj_3D     ! (j,k,l)
          module procedure PACKj_4D     ! (j,k,l,m)
       end interface
@@ -3593,6 +3594,29 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       RETURN
       END SUBROUTINE PACKj_2D
+
+      SUBROUTINE IPACKj_2D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      INTEGER, INTENT(IN) ::
+     &        ARR(grd_dum%j_strt_halo:,:)
+      INTEGER, INTENT(INOUT) :: ARR_GLOB(:,:)
+
+      INTEGER :: k
+
+#ifdef USE_ESMF
+      do k=1,size(arr,2)
+        call arraygather(grd_dum,arr(:,k),arr_glob(:,k))
+      end do
+#else
+      arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:)=
+     & arr(grd_dum%J_STRT:grd_dum%J_STOP,:)
+#endif
+
+      RETURN
+      END SUBROUTINE IPACKj_2D
+
 
       SUBROUTINE PACKj_3D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE

@@ -1,7 +1,9 @@
 c   -----------------------------------------------------------------------------
       module hycom_arrays
 
-      use hycom_dim
+      USE HYCOM_DIM
+
+      implicit none
 
 !!      include 'bering.h'
 c
@@ -130,7 +132,7 @@ c --- relax       activate lateral boundary nudging
 c --- trcout      advect tracer and save results in history/restart file
 c --- dotrcr      perform column physics operations on tracer array(s)
 c
-      logical diagno,thermo,windf,relax,trcout,dotrcr
+!!      logical diagno,thermo,windf,relax,trcout,dotrcr
 !!      common/swtchs/diagno,thermo,windf,relax,trcout,dotrcr
 c
 !!      c o m m o n  /frcing/                   !  monthly forcing fields

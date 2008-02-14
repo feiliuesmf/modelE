@@ -1,27 +1,35 @@
+#include "hycom_mpi_hacks.h"
       subroutine cnuity(m,n,mm,nn,k1m,k1n)
 c
 c --- micom version 2.9
 c --- hycom version 0.9
-      USE DOMAIN_DECOMP, only : halo_update,NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : halo_update,NORTH,SOUTH,checksum
       USE HYCOM_DIM, only : ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
-     &     ,ip,idm,j_0h,j_1h,ii1,JDM
+     &     ,ip,idm,ii1,JDM
+      USE HYCOM_DIM, only : ogrid,j_0,j_1,j_0h,j_1h
       USE HYCOM_SCALARS, only : acurcy,nstep,delt1,lp,onecm,epsil,thkdff
      &     ,sigjmp,onem
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS, only : utotn,vtotn,dp,utotm,u,ubavg,scuy,depthu
+     &     ,uflux,uflux2,dpu,uflx,vtotm,v,scvx,depthv,vflux
+     &     ,vflux2,dpv,vflx,dpold,scp2i,vbavg,util1,util2,scp2,p
+     &     ,util3,pbot,diaflx,bolusu,bolusv
       implicit none
 c
       include 'bering.h'
 !!      include 'dimensions.h'
       include 'dimension2.h'
-!!      include 'common_blocks.h'
+!!      include 'common_blocks.h' 
 c
-      integer mask(idm,jdm),jcyc,iz,jz,iter
-      real pold(idm,jdm),q,dpmin,dpmn(jdm),clip,flxhi,flxlo,dtinv,old,
+      integer mask(idm,J_0H:J_1H),jcyc,iz,jz,iter
+      real pold(idm,J_0H:J_1H),q,dpmin,dpmn(J_0H:J_1H),clip,flxhi,flxlo,
+     &     dtinv,old,
      .     hymar,boost,pbot1,pbot2,p1,p2,hyc_pechg1,hyc_pechg2,pa,pb
       external hyc_pechg1,hyc_pechg2
       character text*20
       logical abort
       integer, parameter :: itmax = 5
+      !!integer ja_,jb_
+cddd      integer my_pet
 c
 c --- boost = 1 to within 15 m of bottom, then increases linearly to 1.5
 c     boost(pbot1,pbot2,p1,p2)=max(1.,1.5-min(pbot1-p1,pbot2-p2)
@@ -37,9 +45,27 @@ c --- ------------------------------------------------------
 c --- continuity equation (flux-corrected transport version)
 c --- ------------------------------------------------------
 c
+!!! for debugging (checksums)
+      !!pold = 0
+      !!mask = 0
+      !!dpmn = 0
+
+cddd      my_pet = 0
+cddd      if ( j_0 == 91 ) my_pet = 1
+cddd
+cddd      write(900+my_pet,*) "bounds="
+cddd     &     , ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
+cddd     &     ,ip,idm,ii1,JDM
+cddd     &     ,j_0,j_1,j_0h,j_1h
+cddd
+cddd      write(0,*) "ok ",__FILE__,__LINE__
+      call checksum(ogrid,dp,__LINE__,__FILE__,921)
+
+      !write(0,*) "ok ",__FILE__,__LINE__
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 41 j=1,jj
+      do 41 j=J_0,J_1
 c
+      !write(0,*) my_pet, j, isp(j)
       do 74 l=1,isp(j)
       do 74 i=ifp(j,l),ilp(j,l)
  74   pold(i,j)=0.
@@ -52,6 +78,48 @@ c
       do 41 i=ifv(j,l),ilv(j,l)
  41   vtotn(i,j)=0.
 c$OMP END PARALLEL DO
+
+      call checksum(ogrid,pold,__LINE__,__FILE__,921)
+      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
+!      call checksum(ogrid,,__LINE__,__FILE__,921)
+!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!
+      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
+      call checksum(ogrid,dp,__LINE__,__FILE__,921)
+      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,u,__LINE__,__FILE__,921)
+      call checksum(ogrid,ubavg,__LINE__,__FILE__,921)
+      call checksum(ogrid,scuy,__LINE__,__FILE__,921)
+      call checksum(ogrid,depthu,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpu,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,v,__LINE__,__FILE__,921)
+      call checksum(ogrid,scvx,__LINE__,__FILE__,921)
+      call checksum(ogrid,depthv,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpv,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpold,__LINE__,__FILE__,921)
+      call checksum(ogrid,scp2i,__LINE__,__FILE__,921)
+      call checksum(ogrid,vbavg,__LINE__,__FILE__,921)
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
+      call checksum(ogrid,p,__LINE__,__FILE__,921)
+      call checksum(ogrid,util3,__LINE__,__FILE__,921)
+      call checksum(ogrid,pbot,__LINE__,__FILE__,921)
+      call checksum(ogrid,diaflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,bolusu,__LINE__,__FILE__,921)
+      call checksum(ogrid,bolusv,__LINE__,__FILE__,921)
+!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!
+
 c
       do 76 k=1,kk
       km=k+mm
@@ -61,12 +129,27 @@ c --- uflux/vflux = low-order (diffusive) mass fluxes at old time level.
 c --- uflux2/vflux2 = 'antidiffusive' fluxes, defined as high-order minus low-
 c --- order fluxes. high-order fluxes are second-order in space, time-centered.
 c
-      call cpy_p(dp(1,1,kn))
-      call cpy_p(pold)
+      !write(0,*) "ok ",__FILE__,__LINE__
+      call cpy_p_par(dp(:,:,kn))
+      !write(0,*) "ok ",__FILE__,__LINE__
+
+      call cpy_p_par(pold)
 c
+      call checksum(ogrid,dp,__LINE__,__FILE__,921)
+      call checksum(ogrid,pold,__LINE__,__FILE__,921)
+
+      !write(0,*) "ok ",__FILE__,__LINE__
+      call halo_update(ogrid,dp,SOUTH)
+      call halo_update(ogrid,pold,SOUTH)
+      call checksum(ogrid,dp,__LINE__,__FILE__,921)
+      call checksum(ogrid,pold,__LINE__,__FILE__,921)
+
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 12 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+!!      do 12 j=1,jj
+      do 12 j=J_0,J_1
+!!      ja=mod(j-2+jj,jj)+1
+        !ja = j-1
+        ja = PERIODIC_INDEX(j-1, jj)
 c
       do 11 l=1,isu(j)
       do 11 i=ifu(j,l),ilu(j,l)
@@ -93,18 +176,31 @@ c
  12   vflx(i,j,k)=vflux(i,j)
 c$OMP END PARALLEL DO
 c
-      if (beropn .and.
-     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
-     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,104) nstep,
-     . ' cnuity1 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+cddd      if (beropn .and.
+cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+cddd     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+cddd     .  write(*,104) nstep,
+cddd     . ' cnuity1 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
  104  format (i9,a,i2,2es15.7)
+
+      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
 c
 c --- advance -dp- field using low-order (diffusive) flux values
 c
+      call halo_update(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 19 j=1,jj
-      jb=mod(j     ,jj)+1
+      !!do 19 j=1,jj
+      do 19 j=J_0,J_1
+      !!jb=mod(j     ,jj)+1
+        !jb = j+1
+        jb = PERIODIC_INDEX(j+1, jj)
       dpmn(j)=999.
       do 19 l=1,isp(j)
       do 19 i=ifp(j,l),ilp(j,l)
@@ -136,12 +232,12 @@ ccc      call compare(vflux,mask,text)
 c
       dpmin=999.
 c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
-      do 191 j=1,jj
+      do 191 j=J_0,J_1
  191  dpmin=min(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
 c
       if (dpmin.lt.-onem) then
-        do 190 j=1,jj
+      do 190 j=J_0,J_1
         do 190 l=1,isp(j)
         do 190 i=ifp(j,l),ilp(j,l)
         if (dp(i,j,kn).eq.dpmin) then
@@ -176,19 +272,43 @@ c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- pos. (neg.) change in -dp- to the sum of all incoming (outgoing) fluxes
 c
-      call cpy_p(dp(1,1,kn))
+      call cpy_p_par(dp(:,:,kn))
 c
+      !write(930+my_pet,*) dp
+      call halo_update(ogrid,dp)
+
+      !write(940+my_pet,*) dp
+      !write(950+my_pet,*)  vflux2
+      call halo_update(ogrid,vflux2,NORTH)
+      !write(960+my_pet,*)  vflux2
+
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+      call checksum(ogrid,dp,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
+
+      !write(922,*) "bounds=",isp,ifp,ilp,ip,j_0,j_1
+      !write(910+my_pet,*) "bounds=",j_0,j_1,kn,delt1
 c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb) SCHEDULE(STATIC,jchunk)
-      do 26 j=1,jj
+      !!do 26 j=1,jj
+      do 26 j=J_0,J_1
       do 26 l=1,isp(j)
       do 26 i=ifp(j,l),ilp(j,l)
       ia=max( 1,i-1)
       if (ip(ia,j).eq.0) ia=i
       ib=min(ii,i+1)
       if (ip(ib,j).eq.0) ib=i
-      ja=mod(j-2+jj,jj)+1
+      !ja_=mod(j-2+jj,jj)+1
+      !ja = j-1
+      !ja_ = ja
+      ja = PERIODIC_INDEX(j-1, jj)
       if (ip(i,ja).eq.0) ja=j
-      jb=mod(j     ,jj)+1
+      !jb_=mod(j     ,jj)+1
+      !jb = j+1
+      !jb_ = jb
+      jb = PERIODIC_INDEX(j+1, jj)
       if (ip(i,jb).eq.0) jb=j
       util1(i,j)=max(dp(i,j,kn),dp(ia,j,kn),dp(ib,j,kn),
      .                          dp(i,ja,kn),dp(i,jb,kn))
@@ -196,27 +316,46 @@ c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb) SCHEDULE(STATIC,jchunk)
      .           min(dp(i,j,kn),dp(ia,j,kn),dp(ib,j,kn),
      .                          dp(i,ja,kn),dp(i,jb,kn)))
 c
-      jb=mod(j     ,jj)+1
+      !!jb=mod(j     ,jj)+1
+      !jb = j+1
+      jb = PERIODIC_INDEX(j+1, jj)
       util1(i,j)=(util1(i,j)-dp(i,j,kn))*scp2(i,j)
      ./((max(0.,uflux2(i,j))-min(0.,uflux2(i+1,j))
      .  +max(0.,vflux2(i,j))-min(0.,vflux2(i,jb ))+epsil)*delt1)
 c
- 26   util2(i,j)=(util2(i,j)-dp(i,j,kn))*scp2(i,j)
+      util2(i,j)=(util2(i,j)-dp(i,j,kn))*scp2(i,j)
      ./((min(0.,uflux2(i,j))-max(0.,uflux2(i+1,j))
      .  +min(0.,vflux2(i,j))-max(0.,vflux2(i,jb ))-epsil)*delt1)
+ 26    continue
 c$OMP END PARALLEL DO
 c
 c --- limit antidiffusive fluxes
 c --- (keep track in -utotn,vtotn- of discrepancy between high-order
 c --- fluxes and the sum of low-order and clipped antidiffusive fluxes.
 c --- this will be used later to restore nondivergence of barotropic flow)
+
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+
+      call cpy_p_par(util1)
+      call cpy_p_par(util2)
+
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+
 c
-      call cpy_p(util1)
-      call cpy_p(util2)
-c
+      call halo_update(ogrid,util1,SOUTH)
+      call halo_update(ogrid,util2,SOUTH)
+
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+
 c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 29 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 29 j=J_0,j_1
+      !!do 29 j=1,jj
+      !!ja=mod(j-2+jj,jj)+1
+        !ja = j-1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 28 l=1,isu(j)
       do 28 i=ifu(j,l),ilu(j,l)
@@ -240,18 +379,25 @@ c
       vflux(i,j)=vflux2(i,j)*clip
  29   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
 c$OMP END PARALLEL DO
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+
 c
-      if (beropn .and.
-     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
-     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,104) nstep,
-     . ' cnuity2 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+cddd      if (beropn .and.
+cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+cddd     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+cddd     .  write(*,104) nstep,
+cddd     . ' cnuity2 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
 c --- evaluate effect of antidiffusive fluxes on -dp- field
 c
+      call halo_update(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 15 j=1,jj
-      jb=mod(j     ,jj)+1
+      !!do 15 j=1,jj
+      do 15 j=J_0,J_1
+      !!jb=mod(j     ,jj)+1
+        !jb = j+1
+        jb = PERIODIC_INDEX(j+1, jj)
       dpmn(j)=999.
       do 15  l=1,isp(j)
       do 15  i=ifp(j,l),ilp(j,l)
@@ -263,12 +409,12 @@ c$OMP END PARALLEL DO
 c
       dpmin=999.
 c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
-      do 149 j=1,jj
+      do 149 j=J_0,J_1
  149  dpmin=min(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
 c
       if (dpmin.lt.-onem) then
-      do 150 j=1,jj
+      do 150 j=J_0,J_1
       do 150 l=1,isp(j)
       do 150 i=ifp(j,l),ilp(j,l)
       if (dp(i,j,kn).eq.dpmin) write (lp,100) nstep,i,j,k,15,dpmin/onem
@@ -281,18 +427,60 @@ c --- restore nondivergence of vertically integrated mass flow by
 c --- recovering fluxes lost in the flux limiting process.
 c --- treat these fluxes as an 'upstream' barotropic correction to
 c --- the sum of diffusive and antidiffusive fluxes obtained so far.
+!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!
+      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
+      call checksum(ogrid,dp,__LINE__,__FILE__,921)
+      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,u,__LINE__,__FILE__,921)
+      call checksum(ogrid,ubavg,__LINE__,__FILE__,921)
+      call checksum(ogrid,scuy,__LINE__,__FILE__,921)
+      call checksum(ogrid,depthu,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpu,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,v,__LINE__,__FILE__,921)
+      call checksum(ogrid,scvx,__LINE__,__FILE__,921)
+      call checksum(ogrid,depthv,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpv,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpold,__LINE__,__FILE__,921)
+      call checksum(ogrid,scp2i,__LINE__,__FILE__,921)
+      call checksum(ogrid,vbavg,__LINE__,__FILE__,921)
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
+      call checksum(ogrid,p,__LINE__,__FILE__,921)
+      call checksum(ogrid,util3,__LINE__,__FILE__,921)
+      call checksum(ogrid,pbot,__LINE__,__FILE__,921)
+      call checksum(ogrid,diaflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,bolusu,__LINE__,__FILE__,921)
+      call checksum(ogrid,bolusv,__LINE__,__FILE__,921)
+!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!
+
 c
-      call cpy_p(p(1,1,kk+1))
+      call cpy_p_par(p(:,:,kk+1))
 c
       do 77 k=1,kk
       km=k+mm
       kn=k+nn
 c
-      call cpy_p(dp(1,1,kn))
+      call cpy_p_par(dp(:,:,kn))
 c
+      call halo_update(ogrid,dp,SOUTH)
+      call halo_update(ogrid,p,SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 45 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 45 j=J_0,J_1
+      !!do 45 j=1,jj
+      !!ja=mod(j-2+jj,jj)+1
+        !ja = j-1
+        ja = PERIODIC_INDEX(j-1, jj)
 c
       do 44 l=1,isu(j)
       do 44 i=ifu(j,l),ilu(j,l)
@@ -315,9 +503,13 @@ c
  45   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
 c$OMP END PARALLEL DO
 c
+      call halo_update(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 14 j=1,jj
-      jb=mod(j     ,jj)+1
+      !!do 14 j=1,jj
+      do 14 j=J_0,J_1
+      !!jb=mod(j     ,jj)+1
+        !jb = j+1
+        jb = PERIODIC_INDEX(j+1, jj)
       dpmn(j)=999.
       do 14 l=1,isp(j)
       do 14 i=ifp(j,l),ilp(j,l)
@@ -329,23 +521,23 @@ c$OMP END PARALLEL DO
 c
       dpmin=999.
 c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
-      do 139 j=1,jj
+      do 139 j=J_0,J_1
  139  dpmin=min(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
 c
       if (dpmin.lt.-onem) then
-      do 140 j=1,jj
+      do 140 j=J_0,J_1
       do 140 l=1,isp(j)
       do 140 i=ifp(j,l),ilp(j,l)
       if (dp(i,j,kn).eq.dpmin) write (lp,100) nstep,i,j,k,14,dpmin/onem
  140  continue
       end if
 c
-      if (beropn .and.
-     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
-     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,104) nstep,
-     . ' cnuity3 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+cddd      if (beropn .and.
+cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+cddd     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+cddd     .  write(*,104) nstep,
+cddd     . ' cnuity3 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
  77   continue
 c
@@ -358,7 +550,7 @@ c
       do 18 iter=1,itmax
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 36 j=1,jj
+      do 36 j=J_0,J_1
       dpmn(j)=0.
       do 36 l=1,isp(j)
       do 36 i=ifp(j,l),ilp(j,l)
@@ -370,11 +562,11 @@ c
       if (iter.eq.itmax) then
         dpmin=0.
 c$OMP PARALLEL DO REDUCTION(max:dpmin) SCHEDULE(STATIC,jchunk)
-        do 37 j=1,jj
+      do 37 j=J_0,J_1
  37     dpmin=max(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
 c
-        do 38 j=1,jj
+      do 38 j=J_0,J_1
         do 38 l=1,isp(j)
         do 38 i=ifp(j,l),ilp(j,l)
         if (abs(util3(i,j)).eq.dpmin) write (lp,105)
@@ -384,17 +576,23 @@ c
  38     continue
       end if				!  last iteration
 c
-      call cpy_p(util1)
-      call cpy_p(util3)
+      call cpy_p_par(util1)
+      call cpy_p_par(util3)
 c
       do 20 k=1,kk
       kn=k+nn
 c
-      call cpy_p(dp(1,1,kn))
+      call cpy_p_par(dp(:,:,kn))
 c
+      call halo_update(ogrid,dp,SOUTH)
+      call halo_update(ogrid,util1,SOUTH)
+      call halo_update(ogrid,util3,SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SCHEDULE(STATIC,jchunk)
-      do 21 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      !!do 21 j=1,jj
+      do 21 j=J_0,J_1
+      !!ja=mod(j-2+jj,jj)+1
+        !ja = j-1
+        ja = PERIODIC_INDEX(j-1, jj)
 c
       do 22 l=1,isu(j)
       do 22 i=ifu(j,l),ilu(j,l)
@@ -419,9 +617,13 @@ c
  21   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
 c$OMP END PARALLEL DO
 c
+      call halo_update(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 23 j=1,jj
-      jb=mod(j     ,jj)+1
+      !!do 23 j=1,jj
+      do 23 j=J_0,J_1
+      !!jb=mod(j     ,jj)+1
+        !jb = j+1
+        jb = PERIODIC_INDEX(j+1, jj)
       do 23 l=1,isp(j)
       do 23 i=ifp(j,l),ilp(j,l)
       dp(i,j,kn)=dp(i,j,kn)-(uflux(i+1,j)-uflux(i,j)
@@ -429,11 +631,11 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
  23   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
 c$OMP END PARALLEL DO
 c
-      if (beropn .and.
-     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
-     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,104) nstep,
-     . ' cnuity4 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+cddd      if (beropn .and.
+cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+cddd     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+cddd     .  write(*,104) nstep,
+cddd     . ' cnuity4 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
  20   continue				!  k loop
  18   continue				!  iter
@@ -441,7 +643,7 @@ c
 c --- now stretch the grid to take care of the residual pbot discrepancy
 c
 c$OMP PARALLEL DO PRIVATE(kn,old) SCHEDULE(STATIC,jchunk)
-      do 39 j=1,jj
+      do 39 j=J_0,J_1
       do 39 l=1,isp(j)
       do 39 k=1,kk
       kn=k+nn
@@ -466,7 +668,7 @@ c
       hymar=1./(10.*sigjmp)
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 8 j=1,jj
+      do 8 j=J_0,J_1
       do 9 l=1,isu(j)
       do 9 i=ifu(j,l),ilu(j,l)
       utotn (i,j  )=0.
@@ -480,13 +682,24 @@ c
       do 13 k=2,kk
       km=k+mm
 c
-      call cpy_p(p(1,1,k))
+      call cpy_p_par(p(:,:,k))
 c
+      call halo_update(ogrid,p)
+      call halo_update(ogrid,pbot)
 c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,pa,pb) SHARED(k)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 131 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      !!do 131 j=1,jj
+      do 131 j=J_0,J_1
+      !!ja=mod(j-2+jj,jj)+1
+      !ja_=mod(j-2+jj,jj)+1
+        !ja = j-1
+        !ja_ = ja
+        ja = PERIODIC_INDEX(j-1, jj)
+      !!jb=mod(j     ,jj)+1
+      !jb_=mod(j     ,jj)+1
+      !jb = j+1
+      !jb_ = jb
+        jb = PERIODIC_INDEX(j+1, jj)
       do 131 l=1,isp(j)
       do 131 i=ifp(j,l),ilp(j,l)
       ia=max(  1,i-1)
@@ -524,13 +737,22 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  131  continue
 c$OMP END PARALLEL DO
 c
-      call cpy_p(util1)
-      call cpy_p(util2)
+      call cpy_p_par(util1)
+      call cpy_p_par(util2)
 c
+      call halo_update(ogrid,util2,SOUTH)
+      call halo_update(ogrid,pbot,SOUTH)
+      call halo_update(ogrid,p,SOUTH)
+      call halo_update(ogrid,scp2,SOUTH)
 c$OMP PARALLEL DO PRIVATE(flxhi,flxlo,ja,jb) SCHEDULE(STATIC,jchunk)
-      do 16 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+!!! this omp instruction was removed is it correct ? c$OMP. SHARED(k)
+      !!do 16 j=1,jj
+      do 16 j=J_0,J_1
+      !!ja=mod(j-2+jj,jj)+1
+        !ja = j-1
+        ja = PERIODIC_INDEX(j-1, jj)
+      !!jb=mod(j     ,jj)+1
+      !!  jb = j+1
 c
       do 151 l=1,isu(j)
       do 151 i=ifu(j,l),ilu(j,l)
@@ -586,9 +808,13 @@ c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- mass loss to the sum of all outgoing bolus fluxes
 c
+      call halo_update(ogrid,bolusv,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
-      do 261 j=1,jj
-      jb=mod(j     ,jj)+1
+      !!do 261 j=1,jj
+      do 261 j=J_0,J_1
+      !!jb=mod(j     ,jj)+1
+        !jb = j+1
+        jb = PERIODIC_INDEX(j+1, jj)
       do 261 l=1,isp(j)
       do 261 i=ifp(j,l),ilp(j,l)
       util2(i,j)=-dp(i,j,kn)*scp2(i,j)
@@ -599,11 +825,15 @@ c$OMP END PARALLEL DO
 c
 c --- limit bolus fluxes (fct-style)
 c
-      call cpy_p(util2)
+      call cpy_p_par(util2)
 c
+      call halo_update(ogrid,util2,SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 291 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      !!do 291 j=1,jj
+      do 291 j=J_0,J_1
+      !!ja=mod(j-2+jj,jj)+1
+        !ja = j-1
+        ja = PERIODIC_INDEX(j-1, jj)
 c
       do 281 l=1,isu(j)
       do 281 i=ifu(j,l),ilu(j,l)
@@ -632,9 +862,13 @@ c --- add bolus component to total mass flux
  291  vflx(i,j,k)=vflx(i,j,k)+bolusv(i,j,k)*dtinv
 c$OMP END PARALLEL DO
 c
+      call halo_update(ogrid,bolusv,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
-      do 181 j=1,jj
-      jb=mod(j     ,jj)+1
+      !!do 181 j=1,jj
+      do 181 j=J_0,J_1
+      !!jb=mod(j     ,jj)+1
+        !jb = j+1
+        jb = PERIODIC_INDEX(j+1, jj)
       do 181 l=1,isp(j)
       do 181 i=ifp(j,l),ilp(j,l)
       dp(i,j,kn)=dp(i,j,kn)-(bolusu(i+1,j,k)-bolusu(i,j,k)
@@ -644,20 +878,25 @@ c$OMP END PARALLEL DO
 c
  10   continue
 c
-      call cpy_p(p(1,1,kk+1))
+      call cpy_p_par(p(:,:,kk+1))
 c
       do 7 k=1,kk
       kn=k+nn
 c
-      call cpy_p(dp(1,1,kn))
+      call cpy_p_par(dp(:,:,kn))
 c
 c --- restore zero column integral of bolus fluxes by recovering fluxes
 c --- lost in the flux limiting process. treat these as an 'upstream'
 c --- barotropic correction to the bolus fluxes.
 c
+      call halo_update(ogrid,dp,SOUTH)
+      call halo_update(ogrid,p,SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
-      do 145 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      !!do 145 j=1,jj
+      do 145 j=J_0,J_1
+      !!ja=mod(j-2+jj,jj)+1
+        !ja = j-1
+        ja = PERIODIC_INDEX(j-1, jj)
 c
       do 144 l=1,isu(j)
       do 144 i=ifu(j,l),ilu(j,l)
@@ -682,20 +921,24 @@ c --- add correction to total mass flux
  145  vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
 c$OMP END PARALLEL DO
 c
+      call halo_update(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
-      do 182 j=1,jj
-      jb=mod(j     ,jj)+1
+      !!do 182 j=1,jj
+      do 182 j=J_0,J_1
+      !!jb=mod(j     ,jj)+1
+        !jb = j+1
+        jb = PERIODIC_INDEX(j+1, jj)
       do 182 l=1,isp(j)
       do 182 i=ifp(j,l),ilp(j,l)
  182  dp(i,j,kn)=dp(i,j,kn)-(uflux(i+1,j)-uflux(i,j)
      .                      +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
 c$OMP END PARALLEL DO
 c
-      if (beropn .and.
-     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
-     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
-     .  write(*,104) nstep,
-     . ' cnuity5 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
+cddd      if (beropn .and.
+cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
+cddd     .max(abs(uflx(ipacs,jpac,k)-uflx(iatln,jatl,k))*acurcy,1.))
+cddd     .  write(*,104) nstep,
+cddd     . ' cnuity5 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
  7    continue
 c
@@ -706,6 +949,46 @@ c       write (lp,103) time,'  APE change due to intfc smoothing:',q
 c     end if
  103  format (f9.1,a,-12p,f9.3,' TW')
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!
+      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
+      call checksum(ogrid,dp,__LINE__,__FILE__,921)
+      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,u,__LINE__,__FILE__,921)
+      call checksum(ogrid,ubavg,__LINE__,__FILE__,921)
+      call checksum(ogrid,scuy,__LINE__,__FILE__,921)
+      call checksum(ogrid,depthu,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpu,__LINE__,__FILE__,921)
+      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
+      call checksum(ogrid,v,__LINE__,__FILE__,921)
+      call checksum(ogrid,scvx,__LINE__,__FILE__,921)
+      call checksum(ogrid,depthv,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpv,__LINE__,__FILE__,921)
+      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,dpold,__LINE__,__FILE__,921)
+      call checksum(ogrid,scp2i,__LINE__,__FILE__,921)
+      call checksum(ogrid,vbavg,__LINE__,__FILE__,921)
+      call checksum(ogrid,util1,__LINE__,__FILE__,921)
+      call checksum(ogrid,util2,__LINE__,__FILE__,921)
+      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
+      call checksum(ogrid,p,__LINE__,__FILE__,921)
+      call checksum(ogrid,util3,__LINE__,__FILE__,921)
+      call checksum(ogrid,pbot,__LINE__,__FILE__,921)
+      call checksum(ogrid,diaflx,__LINE__,__FILE__,921)
+      call checksum(ogrid,bolusu,__LINE__,__FILE__,921)
+      call checksum(ogrid,bolusv,__LINE__,__FILE__,921)
+!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!
+
+
+
       return
       end
 c

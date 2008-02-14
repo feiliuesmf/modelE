@@ -1,7 +1,7 @@
       subroutine tsadvc(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 1.0 -- cyclic in j
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : wts1,onemm,wts2,delt1,lp,nstep,itest
      &     ,jtest,diagno,temdff,theta
       USE HYCOM_ARRAYS_GLOB

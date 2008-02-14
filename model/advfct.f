@@ -12,7 +12,7 @@ c  scali  - inverse of scal
 c  dt     - temporal increment
 c  fco,fc - depth of the layer at previous and new time step
 c
-      USE HYCOM_DIM
+      USE HYCOM_DIM_GLOB
 
       implicit none
 !!      include 'dimensions.h'
