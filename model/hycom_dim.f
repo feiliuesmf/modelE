@@ -86,12 +86,17 @@ c
       ! leave these global for time being
 
       allocate(
-     . ip(I_0H:I_1H,J_0H:J_1H),iu(I_0H:I_1H,J_0H:J_1H),iv(I_0H:I_1H,J_0H:J_1H),iq(I_0H:I_1H,J_0H:J_1H),
-     .ifp(J_0H:J_1H,ms),ilp(J_0H:J_1H,ms),isp(J_0H:J_1H),jfp(I_0H:I_1H,ms),jlp(I_0H:I_1H,ms),jsp(I_0H:I_1H),
-     .ifq(J_0H:J_1H,ms),ilq(J_0H:J_1H,ms),isq(J_0H:J_1H),jfq(I_0H:I_1H,ms),jlq(I_0H:I_1H,ms),jsq(I_0H:I_1H),
-     .ifu(J_0H:J_1H,ms),ilu(J_0H:J_1H,ms),isu(J_0H:J_1H),jfu(I_0H:I_1H,ms),jlu(I_0H:I_1H,ms),jsu(I_0H:I_1H),
-     .ifv(J_0H:J_1H,ms),ilv(J_0H:J_1H,ms),isv(J_0H:J_1H),jfv(I_0H:I_1H,ms),jlv(I_0H:I_1H,ms),jsv(I_0H:I_1H),
-     .msk(I_0H:I_1H,J_0H:J_1H) )
+     . ip(I_0H:I_1H,J_0H:J_1H),iu(I_0H:I_1H,J_0H:J_1H), 
+     . iv(I_0H:I_1H,J_0H:J_1H),iq(I_0H:I_1H,J_0H:J_1H),
+     . ifp(J_0H:J_1H,ms),ilp(J_0H:J_1H,ms),isp(J_0H:J_1H),
+     . jfp(I_0H:I_1H,ms),jlp(I_0H:I_1H,ms),jsp(I_0H:I_1H),
+     . ifq(J_0H:J_1H,ms),ilq(J_0H:J_1H,ms),isq(J_0H:J_1H), 
+     . jfq(I_0H:I_1H,ms),jlq(I_0H:I_1H,ms),jsq(I_0H:I_1H),
+     . ifu(J_0H:J_1H,ms),ilu(J_0H:J_1H,ms),isu(J_0H:J_1H),
+     . jfu(I_0H:I_1H,ms),jlu(I_0H:I_1H,ms),jsu(I_0H:I_1H),
+     . ifv(J_0H:J_1H,ms),ilv(J_0H:J_1H,ms),isv(J_0H:J_1H), 
+     . jfv(I_0H:I_1H,ms),jlv(I_0H:I_1H,ms),jsv(I_0H:I_1H),
+     . msk(I_0H:I_1H,J_0H:J_1H) )
 
 cddd      allocate(
 cddd     . ip(idm,jdm),iu(idm,jdm),iv(idm,jdm),iq(idm,jdm),
