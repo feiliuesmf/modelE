@@ -386,7 +386,8 @@
         else
 !          if (cop%NPP.gt.0.d0) then
 !            cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
-!            cop%C_repro = cop%C_repro + 0.2d0*cop%NPP*dtsec/cop%n !(kg/individual) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
+!            cop%pptr%Reproduction(cop%pft) = cop%pptr%Reproduction(cop%pft) 
+!      &       + 0.2d0*cop%NPP*dtsec !(kg/patch area) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
 !          else                  !Negative NPP is take only from C_lab
             cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)          
 !          endif

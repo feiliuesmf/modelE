@@ -110,7 +110,7 @@
       integer :: pft
       real*8 :: fracrootCASA(N_CASA_LAYERS)  !to map fracroot to fracrootCASA -PK 7/07
 
-      !* Zero out summary variables *!
+      !* Zero out cohort summary variables *!
       call zero_patch_cohortsum(pp)
       pp%Tpool(:,1:NLIVE,:) = 0.d0 !###
 
@@ -161,8 +161,6 @@
         pp%N_froot = pp%N_froot + (cop%N_froot) * nc
         pp%C_root = pp%C_root + (cop%C_froot + cop%C_croot) * nc
         pp%N_root = pp%N_root + (cop%N_froot + cop%N_croot) * nc
-!        pp%C_repro = pp%C_repro + cop%C_repro * nc 
-!        pp%N_repro = pp%N_repro + cop%N_repro * nc 
 
          !* FLUXES - TOTALS
         pp%Ci = pp%Ci + cop%Ci * cop%LAI !wtd average
@@ -176,7 +174,6 @@
 !        pp%N_litter = pp%N_litter + cop%N_litter  
 !        pp%C_to_Nfix = pp%C_to_Nfix + cop%C_to_Nfix
 
-         !* REPRODUCTION
         !*- - - - - end cohort summary variables - - - - - - - - - - - - -
 
         !* CASA pools * These are redundant but not 1-1 with the cohort pools.
@@ -263,8 +260,6 @@
       pp%N_froot = 0.d0
       pp%C_root = 0.d0
       pp%N_root = 0.d0
-!      pp%C_repro = 0.d0
-!      pp%N_repro = 0.d0
       pp%Ci = 0.d0
       pp%GCANOPY = 0.d0
       pp%GPP = 0.d0
@@ -284,7 +279,8 @@
 
             pp%age=0.d0
             pp%area = 0.d0
-            
+            pp%Reproduction(:) = 0.d0
+
             !* Structural variables *!
             call zero_patch_cohortsum(pp)
 
@@ -432,6 +428,7 @@
       allocate( pp%betadl(N_DEPTH) )
       allocate( pp%fracroot(N_DEPTH) )
 !      allocate( pp%LAIpft(N_COVERTYPES))
+      allocate( pp%Reproduction(N_PFT) ) 
 
       ! set pointers
       pp%cellptr => parent_entcell

@@ -1189,8 +1189,6 @@ cddd      end subroutine ent_cell_update_single
       call copy_vars( buf(dc:), nn,  c%N_froot ,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%C_croot ,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%N_croot ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_repro ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%N_repro ,  flag ); dc = dc + nn
 
       n = dc
 
@@ -1204,7 +1202,6 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,      
-     &     fol_CO2,
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -1226,7 +1223,6 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
-     &     fol_CO2,
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -1248,7 +1244,6 @@ cddd      end subroutine ent_cell_update_single
       entcell%entcell%Qf = canopy_air_humidity
       entcell%entcell%P_mbar = surf_pressure
       entcell%entcell%Ca = surf_CO2
-      entcell%entcell%Cf = fol_CO2
       entcell%entcell%Ch = heat_transfer_coef
       entcell%entcell%U = wind_speed
       entcell%entcell%IPARdif = total_visible_rad-direct_visible_rad
@@ -1274,7 +1269,6 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,                 
-     &     fol_CO2,
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -1296,7 +1290,6 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
-     &     fol_CO2,
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -1322,7 +1315,6 @@ cddd      end subroutine ent_cell_update_single
         entcell(i)%entcell%Qf = canopy_air_humidity(i)
         entcell(i)%entcell%P_mbar = surf_pressure(i)
         entcell(i)%entcell%Ca = surf_CO2(i)
-        entcell(i)%entcell%Cf = fol_CO2(i)
         entcell(i)%entcell%Ch = heat_transfer_coef(i)
         entcell(i)%entcell%U = wind_speed(i)
         entcell(i)%entcell%IPARdif = total_visible_rad(i)-
@@ -1350,7 +1342,6 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,      
      &     surf_pressure,            
      &     surf_CO2,                 
-     &     fol_CO2,                 
      &     heat_transfer_coef,       
      &     wind_speed,               
      &     total_visible_rad,
@@ -1372,7 +1363,6 @@ cddd      end subroutine ent_cell_update_single
      &     canopy_air_humidity,
      &     surf_pressure,
      &     surf_CO2,
-     &     fol_CO2,                 
      &     heat_transfer_coef,
      &     wind_speed,
      &     total_visible_rad,
@@ -1400,7 +1390,6 @@ cddd      end subroutine ent_cell_update_single
           entcell(i,j)%entcell%Qf = canopy_air_humidity(i,j)
           entcell(i,j)%entcell%P_mbar = surf_pressure(i,j)
           entcell(i,j)%entcell%Ca = surf_CO2(i,j)
-          entcell(i,j)%entcell%Cf = fol_CO2(i,j)
           entcell(i,j)%entcell%Ch = heat_transfer_coef(i,j)
           entcell(i,j)%entcell%U = wind_speed(i,j)
           entcell(i,j)%entcell%IPARdif = total_visible_rad(i,j)-

@@ -363,7 +363,12 @@ c$$$     &           - Cactive * (1.0-(phenofactor-dphdt)) / ialloc
             cop%C_sw = Cactive *(h*qsw/ialloc)
             cop%C_froot = Cactive *(q/ialloc)  
             cop%C_lab = 0.001d0*( C_lab + dC_lab )  !g/individual -> kg/ind.
-!            cop%C_repro = C_repro + dC_lab_repro  
+
+            !Add reproductive fluxes to patch-level reproductive/seed pool.
+            !Yeonjoo:  To avoid having a daily accumulator for reproductive fluxes,
+            !  the reproductive pool as well as C_lab are accumulated in the biophysics routine.
+            !  Please fix the constant fractions in canopyspitters.f to the named constants you use.
+!            cop%pptr%Reproduction(cop%pft) = (C_repro + dC_lab_repro*cop%n)*dtsec !
 
             !update the dead pool
             Cdead= Cdead+dCdead

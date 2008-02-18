@@ -7,7 +7,7 @@
 
 !@auth N. Kiang
 
-!#define OFFLINE TRUE
+#define OFFLINE TRUE
 
       !Ent MODULES TO USE
       use ent_const
@@ -241,7 +241,6 @@
         ! if ( dailyupdate ) call litter(pp) 
 
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
-!#define OFFLINE 1
 #ifdef OFFLINE          
           call summarize_patch(pp)
           call ent_diagnostics(patchnum,pp)
@@ -330,13 +329,11 @@
       !---Local------
       integer :: tmp_pft
       real*8 :: tmp_n,tmp_senescefrac
-      real*8 :: tmp_repro
       type(cohort),pointer :: cop
 
       tmp_pft = -1
       tmp_n = -1
       tmp_senescefrac = 0.d0
-      tmp_repro = 0.d0
 
       !call patch_print(6,pp)
       if ( ASSOCIATED(pp%tallest) ) then
@@ -345,7 +342,6 @@
         tmp_senescefrac = pp%tallest%senescefrac
         cop => pp%tallest
         do while (ASSOCIATED(cop))
-          tmp_repro = tmp_repro + cop%C_repro
           cop => cop%shorter
         end do
       endif
@@ -354,7 +350,8 @@
      &     patchnum,pp%cellptr%IPARdir,pp%cellptr%IPARdif, 
      &     pp%cellptr%coszen,
      &     tmp_pft,tmp_n,pp%lai, pp%h, pp%Tpool(CARBON,:,:), 
-     &     pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,tmp_repro,
+     &     pp%C_fol, pp%C_w, pp%C_froot, pp%C_root, pp%C_lab,
+     &     pp%Reproduction(tmp_pft),
      &     pp%TRANS_SW,
      &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
      &     pp%NPP,pp%CO2flux,pp%GCANOPY,

@@ -116,7 +116,6 @@
 !      ecp%Qv = 0.0               !Canopy air specif humidity (kg vapor/ kg air)
       ecp%P_mbar = 0.d0         !Atmospheric pressure (mb)
       ecp%Ca = 0.d0             !@Atmos CO2 conc at surface height (mol/m3).
-      ecp%Cf = 0.d0             !Foliage surface CO2 conc (mol/m3).
       ecp%Soilmoist(:) = 0.d0   !Soil moisture (volumetric fraction), depth-structured  -PK 6/28/06
       ecp%Soiltemp(:) = 0.d0    !Soil temp (Celsius), depth-structured 
       ecp%fice = 0.d0           !Fraction of soil layer that is ice
@@ -450,7 +449,7 @@
      &           cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
      &           cpooldata(ncov,HW),0.d0,
      &           cpooldata(ncov,LABILE),0.d0,
-     &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,0.d0,0.d0,
+     &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,0.d0, !added last 0 for R_root -PK 5/15/07
      &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0) !KIM-added for phenology/growth
           endif

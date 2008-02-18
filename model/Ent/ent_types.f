@@ -138,8 +138,6 @@
          real*8 :: N_froot        ! Fine root nitrogen
          real*8 :: C_croot        ! Coarse root carbon
          real*8 :: N_croot        ! Coarse root nitrogen
-         real*8 :: C_repro        ! Reproduction or seed carbon 
-         real*8 :: N_repro       ! Reproduction or seed nitrogen
          !real*8,pointer :: Bpool(PTRACE,NBpools) !Single plant pools of C and N. Replace previous non-array vars - NYK
 
          !* FLUXES (for whole cohort over area cover)
@@ -154,9 +152,6 @@
 !         real*8 :: C_litter       ! C in litterfall
 !         real*8 :: N_litter       ! N in litterfall
          real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts
-
-         !* REPRODUCTION
-         !real*8 :: ------        ! ASK PAUL
 
          !* PHENOLOGY - KIM
          real*8 :: phenofactor   !phenofactor_c * phenofactor_d
@@ -228,8 +223,6 @@
          real*8 :: N_froot        ! Fine root nitrogen
          real*8 :: C_root        ! Fine+coarse root carbon
          real*8 :: N_root        ! Fine+coarse root nitrogen
-!         real*8 :: C_repro      ! Reproduction or seed carbon
-!         real*8 :: N_repro      ! Reproduction or seed nitrogen
 
          !* EXPORT - FLUXES (whole patch)
          real*8 :: Ci             !*Internal foliage CO2 (mol/m3) 
@@ -271,6 +264,9 @@
 
          !* Variables for biophysics and biogeochemistry
          type(canradtype) :: crad !Data structure for light profile
+         
+         !* Reproductive pools *!
+         real*8,pointer :: Reproduction(:) !Reproductive/seed pools array of length N_PFT (kgC/m2-patch) 
 
          !* Disturbance values
          real*8 :: fuel
@@ -405,7 +401,6 @@
          real*8 :: Qf           !*Foliage surface vapor mixing ratio (kg/kg)
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
-         real*8 :: Cf           !Foliage surface CO2 conc (mol/m3) !-NK
          !next two now explicitly depth-structured (see above) -PK
          real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
          real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)

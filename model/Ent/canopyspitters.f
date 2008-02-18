@@ -52,7 +52,7 @@
       !@sum Farquhar-Ball-Berry version of photosynth_cond.
       !@sum Calculates photosynthesis, autotrophic respiration, conductance,
       !@sum looping through cohorts.
-      !@sum Inputs:  met drivers, radiation, Cf, Tcanopy
+      !@sum Inputs:  met drivers, radiation, Ca, Tcanopy
       !@sum Outputs:  GPP, NPP, respiration components
       use ent_const
       use ent_types
@@ -70,9 +70,8 @@
       type(psdrvtype) :: psdrvpar !Met biophysics drivers, except for radiation.
       real*8 :: ci_umol !umol/mol, Leaf internal CO2 
       real*8 :: ca_umol !umol/mol, Ambient air CO2
-      real*8 :: cf_umol !umol/mol, Foliage surface CO2 !NOTE: This is only used by Friend & Kiang biophysics.
       real*8 :: TsurfK, TcanK,Pa !,rh
-      real*8 :: CosZen,betad
+      real*8 :: CosZen !,betad
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       real*8 :: Gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
@@ -139,19 +138,15 @@
 !     &     Pa,pp%cellptr%TairC,gasc
       molconc_to_umol = gasc * (pp%cellptr%TcanopyC + KELVIN)/Pa * 1d6
       ci_umol = pp%cellptr%Ci * molconc_to_umol
-      ca_umol = pp%cellptr%Ca * molconc_to_umol !This isn't used, but may be to calculated next cf.
-      cf_umol = pp%cellptr%Cf * molconc_to_umol !##HACK - NEED TO CALC AND SAVE Cf
+      ca_umol = pp%cellptr%Ca * molconc_to_umol  !NOT USED
       TcanK = pp%cellptr%TcanopyC + KELVIN
       TsurfK = pp%cellptr%TairC + KELVIN
-      call biophysdrv_setup(cf_umol,ci_umol,
+      call biophysdrv_setup(ca_umol,ci_umol,
      &     pp%cellptr%TcanopyC,Pa,
      &     min(1.d0,  !RH
      &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
      &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0)),
      &     psdrvpar)
-!      psdrvpar%cf = cf_umol !##HACK - NEED TO CALC AND SAVE Cf
-!      psdrvpar%Tc = pp%cellptr%TcanopyC
-!      psdrvpar%Pa = Pa
 !      psdrvpar%rh = min(1.d0,
 !     &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
 !     &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0))
@@ -162,7 +157,6 @@
       !* LOOP THROUGH COHORTS *!
       cop => pp%tallest
       do while (ASSOCIATED(cop))
-        call calc_Pspar(cop%pft, psdrvpar%Pa, psdrvpar%Tc,O2pres) 
 
         !* Assign vegpar
 
@@ -171,12 +165,15 @@
      i         ,cop%fracroot(:)
      i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
      o         , cop%stressH2Ol(:))
-          betad = cop%stressH2O
-
+!          betad = cop%stressH2O
+!          write(999,*) pp%cellptr%Soilmp, cop%stressH2O
+          call calc_Pspar(cop%pft, psdrvpar%Pa, psdrvpar%Tc,O2pres
+     i         ,cop%stressH2O) 
+          
           call canopyfluxes(dtsec, cop%pft
      &         ,pp%albedo(1),pp%LAI,cop%LAI,IPAR*4.05 !4.05 see canopyfluxes comments.
      &         ,CosZen,fdir
-     &         ,Gb,ca_umol,cf_umol
+     &         ,Gb,ca_umol
      &         ,psdrvpar
      &         ,GCANOPY,Anet,Atot,Rd !NOTE: Ci should be cohort level
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
@@ -233,7 +230,7 @@
 !---------------------------------------------------------------------------
       subroutine canopyfluxes(dt, pft
      i     ,canalbedo,LAIcanopy,LAIcohort,IPAR,CosZen,fdir
-     i     ,Gb,ca,cf
+     i     ,Gb,ca
      i     ,psdrvpar
      o     ,Gs,Anet,Atot,Rd,TRANS_SW)
 !     i     ,if_ci)
@@ -265,7 +262,6 @@
       real*8,intent(in) :: fdir !Fraction of PAR that is direct
       real*8,intent(in) :: Gb   !Canopy boundary layer conductance of water vapor (mol m-2 s-1)
       real*8,intent(in) :: ca   !CO2 mole fraction at reference height (umol mol-1)
-      real*8,intent(in) :: cf   !CO2 mole fraction at canopy surface (umol mol-1)
 !      real*8,intent(in) :: Tc   !Canopy (foliage) temperature (Celsius)
 !      real*8,intent(in) :: rh   !Relative humidity (fraction)
 !      real*8,intent(in) :: Pa   !Atmospheric pressure (Pa)
@@ -289,14 +285,11 @@
       call canopy_rad_setup(pft,CosZen,fdir,IPAR,
      &     LAIcanopy,canalbedo,cradpar) 
 
-      !Set up initial conditions for Collatz photosynthesis/conductance.
-      !call init_Collatz(cf, ci)
-
       !Calculate net photosynthesis, integrate vertically with Simpson's Rule.
-      !call qsimp(cradpar%LAI,cradpar,cf,ci,Tc,Pa,rh,Anet,Gsint) 
+      !call qsimp(cradpar%LAI,cradpar,ci,Tc,Pa,rh,Anet,Gsint) 
       !### LAIcanopy for radiation and LAIcohort for photosynthesis need to be distinguished.
-      call qsimp(cradpar%LAI,cradpar,psdrvpar,ca,Gb,Atot,Gsint,Rdint) 
-!      write(993,*) cradpar,psdrvpar,ca,cf,Gb,Atot,Gsint,Rdint
+      call qsimp(cradpar%LAI,cradpar,psdrvpar,Gb,Atot,Gsint,Rdint) 
+!      write(993,*) cradpar,psdrvpar,ca,Gb,Atot,Gsint,Rdint
       !Calculate conductance and ci at the canopy level
 !      call Gs_bound(dt, LAI,Gsint, Gs) !Limit rate of change of Gs.
 !      Ciconc = calc_Ci_canopy(ca,Gb,Gs,Anet,LAI,IPAR)
@@ -355,7 +348,6 @@
      i     Lcum                 !Cumulative LAI from top of canopy (m2/m2)
      i     ,crp                !Canopy radiation parameters 
      i     ,psp                 !Photosynthesis met drivers
-     i     ,ca                  !Ambient air CO2 conc (umol/mol)
      i     ,Gb                  !Leaf boundary layer conductance (mol/m2/s)
      o     ,Alayer              !Leaf Net assimilation of CO2 in layer (umol m-2 s-1)
      o     ,gslayer            !Leaf Conductance of water vapor in layer (mol m-2 s-1)
@@ -364,7 +356,7 @@
       real*8,intent(in) :: Lcum
       type(canraddrv) :: crp
       type(psdrvtype) :: psp
-      real*8,intent(in) :: ca, Gb
+      real*8,intent(in) :: Gb
       !real*8,intent(in):: cs,Tl,Pa,rh
       !real*8,intent(inout) :: ci
       real*8,intent(out) :: Alayer !Flux for single leaf
@@ -387,10 +379,10 @@
       !Calculate photosynthesis and stomatal conductance.
 !      write(991,*) 'sunlit'
       sunlitshaded = 1
-      call pscondleaf(crp%pft,Isl,psp,ca,Gb,gssl,Asl,Rdsl,sunlitshaded)
+      call pscondleaf(crp%pft,Isl,psp,Gb,gssl,Asl,Rdsl,sunlitshaded)
 !      write(992,*) 'shaded'
       sunlitshaded = 2
-      call pscondleaf(crp%pft,Ish,psp,ca,Gb,gssh,Ash,Rdsh,sunlitshaded)
+      call pscondleaf(crp%pft,Ish,psp,Gb,gssh,Ash,Rdsh,sunlitshaded)
       !call Collatz(crp%pft, Isl,cs,Tl,rh, Pa,ci,gssl,Asl)
       !call Collatz(crp%pft, Ish,cs,Tl,rh, Pa,ci,gssh,Ash)
                    
@@ -515,12 +507,13 @@
         cop%C_sw = cop%C_sw + 0.33d0*Cdiff
         !cop%LAI = !should update
       else
-!        if (cop%NPP.gt.0.d0) then
-!          cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
-!          cop%C_repro = cop%C_repro + 0.2d0*cop%NPP*dtsec/cop%n !(kg/individual) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
-!        else !Negative NPP is take only from C_lab
+        if (cop%NPP.gt.0.d0) then
+          cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
+          cop%pptr%Reproduction(cop%pft) = 
+     &         cop%pptr%Reproduction(cop%pft) + 0.2d0*cop%NPP*dtsec !(kg/m2-patch) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
+        else !Negative NPP is taken only from C_lab
           cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)          
-!        endif
+        endif
       endif
       end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
@@ -824,7 +817,7 @@
 !#############################################################################
 !###################### INTEGRATION ##########################################
 
-      subroutine qsimp(Xlim,crp,psp,ca,Gb,S,Sg,Sr)
+      subroutine qsimp(Xlim,crp,psp,Gb,S,Sg,Sr)
 !----------------------------------------------------------------------!
 ! qsimp calculates canopy photosynthesis by increasing the number of
 ! layers in the integration until the result (S) changes by less than
@@ -836,9 +829,8 @@
       real*8,intent(in) :: Xlim
       type(canraddrv) :: crp
       type(psdrvtype) :: psp
-      real*8,intent(in) :: ca
       real*8,intent(in) :: Gb
-      !real*8,intent(in) :: cf, ci,T,P,RH
+      !real*8,intent(in) :: ca, ci,T,P,RH
       real*8,intent(out) :: S,Sg,Sr
 !----------------------------------------------------------------------!
 !Local variables
@@ -868,7 +860,7 @@
       OSr= -1.D30 !NK
       layers=1
       do 11 IT=1,MAXIT
-         CALL TRAPZD(A,B,Ac,Bc,ST,STg,STr,IT,layers,crp,psp,ca,Gb)
+         CALL TRAPZD(A,B,Ac,Bc,ST,STg,STr,IT,layers,crp,psp,Gb)
          S=(4.D0*ST-OST)/3.D0
          Sg=(4.D0*STg-OSTg)/3.D0 !NK
          Sr=(4.D0*STr-OSTr)/3.D0 !NK
@@ -886,9 +878,7 @@
       end subroutine qsimp
 
 !======================================================================
-!      subroutine trapzd(L1,L2,S,Sg,N,layers
-!     $     ,crp,cf,ci,T,P,RH)
-      subroutine trapzd(L1,L2,L1c,L2c,S,Sg,Sr,N,layers,crp,psp,ca,Gb)
+      subroutine trapzd(L1,L2,L1c,L2c,S,Sg,Sr,N,layers,crp,psp,Gb)
 !----------------------------------------------------------------------!
 ! Integrates canopy photosynthesis over canopy layers using Simpson's
 ! Rule (Press et al., 19??).
@@ -901,7 +891,7 @@
       integer N,layers
       type(canraddrv) :: crp 
       type(psdrvtype) :: psp
-      real*8,intent(in) :: ca,Gb
+      real*8,intent(in) :: Gb
       !-----Local------------------
       integer L
       real*8 DEL,X,SUM,SUMg,SUMr,RCL
@@ -912,8 +902,8 @@
       real*8 Rdleaf1,Rdleaf2 !Mean leaf respiration at L1, L2 (umol[CO2]/m2/s)
 
       if(N.eq.1)then
-         call photosynth_sunshd(L1,crp,psp,ca,Gb,Aleaf1,gleaf1,Rdleaf1)
-         call photosynth_sunshd(L2,crp,psp,ca,Gb,Aleaf2,gleaf2,Rdleaf2)
+         call photosynth_sunshd(L1,crp,psp,Gb,Aleaf1,gleaf1,Rdleaf1)
+         call photosynth_sunshd(L2,crp,psp,Gb,Aleaf2,gleaf2,Rdleaf2)
 !         S=0.5D0*(L2-L1)*(Aleaf1+Aleaf2)
 !         Sg=0.5d0*(L2-L1)*(gleaf1+gleaf2)
 !         Sr=0.5d0*(L2-L1)*(Rdleaf1+Rdleaf2)
@@ -929,7 +919,7 @@
          SUMg=0.d0
          SUMr=0.d0
          do 11 L=1,layers
-           call photosynth_sunshd(X,crp,psp,ca,Gb,Aleaf1,gleaf1,Rdleaf1)
+           call photosynth_sunshd(X,crp,psp,Gb,Aleaf1,gleaf1,Rdleaf1)
            SUM = SUM + Aleaf1
            SUMg = SUMg + gleaf1
            SUMr = SUMr + Rdleaf1

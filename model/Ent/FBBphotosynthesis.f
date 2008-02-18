@@ -33,6 +33,7 @@
       real*8 :: m               !Slope of Ball-Berry equation
       real*8 :: b               !Intercept of Ball-Berry equation (mol m-2 s-1)
       real*8 :: Nleaf           !g-N/m^2[leaf] - May want to take this from Tpool instead.
+      real*8 :: stressH2O       !Water stress factor (fraction, 1=no stress)
       end type photosynthpar
 
       private
@@ -54,13 +55,13 @@
       end subroutine init_ci
       
 !-----------------------------------------------------------------------------
-      subroutine biophysdrv_setup(cf,ci,Tc,Pa,rh,psdrvpar)
+      subroutine biophysdrv_setup(ca,ci,Tc,Pa,rh,psdrvpar)
       !* Set up met drivers for photosynthesis.
       implicit none
-      real*8,intent(in) :: cf, ci, Tc, Pa, rh
+      real*8,intent(in) :: ca, ci, Tc, Pa, rh
       type(psdrvtype),intent(out) :: psdrvpar
 
-      psdrvpar%cf = cf
+      psdrvpar%ca = ca
       psdrvpar%ci = ci
       psdrvpar%Tc = Tc
       psdrvpar%Pa = Pa
@@ -68,13 +69,12 @@
 
       end subroutine biophysdrv_setup
 !-----------------------------------------------------------------------------
-      subroutine pscondleaf(pft,IPAR,psp,ca,Gb,gsout,Aout,Rdout
+      subroutine pscondleaf(pft,IPAR,psp,Gb,gsout,Aout,Rdout
      &     ,sunlitshaded)
       implicit none
       integer,intent(in) :: pft
       real*8,intent(in) :: IPAR !umol m-2 s-1
       type(psdrvtype) :: psp
-      real*8,intent(in) :: ca !Ambient air CO2 (umol mol-1)
       real*8,intent(in) :: Gb !mol m-2 s-1
       real*8,intent(out) :: gsout, Aout, Rdout !ci in psp
       integer,intent(in) :: sunlitshaded
@@ -82,9 +82,6 @@
       real*8 :: ci, cs
       real*8,parameter :: LOW_LIGHT_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
       
-!      call Collatz(pft,IPAR,psp%cf,psp%Tc,psp%Pa,psp%rh,psp%ci,
-!     &     gsout,Aout)
-
 !      if (IPAR.lt.LOW_LIGHT_LIMIT) then
 !        Rdout = Respveg(pftpar(pft)%Nleaf,psp%Tc)  !Should be only leaf respiration!
 !        Aout = 0.d0
@@ -92,7 +89,7 @@
 !        gsout = pftpar(pft)%b
 !        psp%ci = ca             !Dummy assignment, no need to solve for ci 
 !      else
-        call Photosynth_analyticsoln(pft,IPAR,ca,ci,
+        call Photosynth_analyticsoln(pft,IPAR,psp%ca,ci,
      &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
         psp%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
 !      endif
@@ -200,6 +197,7 @@
       real*8,intent(out) :: Anet !Leaf net photosynthesis (CO2 uptake, micromol m-2 s-1)
       !-----Local-----------------
       type(photosynthpar) :: pspar
+      real*8 :: stressH2O 
 !      type(metdatatype) :: mdat
       real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa)
       real*8 :: Atot            !Gross assimilation (umol m-2 s-1)
@@ -209,7 +207,8 @@
 
 !      call load_metdata(IPAR,ca,Ta,rh,O2conc)
 
-      call calc_Pspar(pft, Pa, Tl, O2pres)
+      stressH2O = 1.d0 !Dummy no stress
+      call calc_Pspar(pft, Pa, Tl, O2pres, stressH2O)
 
       Atot = Farquhar(IPAR,ci*Pa*1.d-06,O2pres,Tl,pspar) 
       Anet = Atot - Respveg(pspar%Nleaf,Tl)
@@ -918,15 +917,17 @@ cddd
       
 !=================================================
 
-      subroutine calc_Pspar(pft, Pa, Tl, O2pres)
-      !@sum calc_Pspar Collatz photosynthesis parameters. GLOBAL TO MODULE.
+      subroutine calc_Pspar(pft, Pa, Tl, O2pres,stressH2O)
+      !@sum calc_Pspar Collatz photosynthesis parameters in type pspar, which
+      !@sum is GLOBAL TO MODULE.
       !@sum Later need to replace these with von Caemmerer book Arrhenius
-      !@sum function sensitivies (her Table 2.3)
+      !@sum function sensitivities (her Table 2.3)
       implicit none
       integer,intent(in) :: pft  !Plant functional type, 1=C3 grassland
-      real*8 :: Pa  !Atmospheric pressure (Pa)
-      real*8 :: Tl  !Leaf temperature (Celsius)
-      real*8 :: O2pres !O2 partial pressure in leaf (Pa)
+      real*8,intent(in) :: Pa  !Atmospheric pressure (Pa)
+      real*8,intent(in) :: Tl  !Leaf temperature (Celsius)
+      real*8,intent(in) :: O2pres !O2 partial pressure in leaf (Pa)
+      real*8,intent(in) :: stressH2O
 !      type(photosynthpar),intent(inout) :: pspar !Moved to global to module.
       integer :: p
       !Below parameters are declared at top of module, though only used here.
@@ -945,12 +946,12 @@ cddd
       pspar%Kc = Kc*Q10fn(KcQ10,Tl) !(Collatz, eq. A12)
       pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
       pspar%Gammastar = calc_CO2compp(O2pres,Tl) !(Pa) (Collatz)
-      pspar%m = pftpar(p)%m     !Slope of Ball-Berry equation (Collatz)
+      pspar%m = stressH2O*pftpar(p)%m     !Slope of Ball-Berry equation (Collatz)
       pspar%b = pftpar(p)%b     !Intercept of Ball-Berry equation (mol m-2 s-1) (Collatz)
       pspar%Nleaf = pftpar(p)%Nleaf !g-N/m^2[leaf] Needed for foliar respiration.
       !pspar%Nleaf = pftpar(p)%Nleaf * phenology factor !Here can adjust Nleaf according
                                 !to foliage N pools or phenology factor.
-!      write(*,*) "Tl, pspar:",Tl, pspar
+      pspar%stressH2O = stressH2O
 
       end subroutine calc_Pspar
 
@@ -1005,6 +1006,7 @@ cddd
       real*8 :: Anet            !Leaf net photosynthesis (CO2 uptake, micromol m-2 s-1)
       !-----Local-----------------
       type(photosynthpar) :: pspar
+      real*8 :: stressH2O 
 !      type(metdatatype) :: mdat
       real*8,parameter :: O2conc=209 !O2 mole fraction in leaf (mmol mol-1)
       real*8 :: cs     !CO2 concentration at leaf surface (umol mol-1)
@@ -1014,8 +1016,8 @@ cddd
 
       cs = ca      !Assign CO2 concentration at leaf surface
                    !More rigorously, cs should also be solved for.
-
-      call calc_Pspar(pft, Pa, Tl, O2conc*Pa*1.d-06)
+      stressH2O = 1.d0 !Dummy no stress
+      call calc_Pspar(pft, Pa, Tl, O2conc*Pa*1.d-06, stressH2O)
 
       Anet = Farquhar(IPAR,ci*Pa*1.d-06,O2conc*Pa*1.d-06,Tl,pspar) 
      &     - Respveg(pspar%Nleaf,Tl)

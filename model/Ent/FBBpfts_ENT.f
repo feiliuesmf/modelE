@@ -117,7 +117,8 @@
      &     pspartype(1          !11. GRASSC3 - perennial
      &    ,.86d0                !PARabsorb, Collatz et al. (1991)
 !     &     ,.89d0               !from leaf VIS 1-albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
-     &     ,56.4d0              !Vcmax25, Wang et al (2007) GCB Fluxnet inversion avg of grass+tree 50.1 & 56.4 umol m-2 s-1
+!     &     ,56.4d0              !Vcmax25, Wang et al (2007) GCB Fluxnet inversion avg of grass+tree 50.1 & 56.4 umol m-2 s-1
+     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
 !     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
