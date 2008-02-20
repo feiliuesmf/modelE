@@ -686,6 +686,10 @@
 #  endif
 #endif
 
+#ifdef CHECK_OCEAN_HYCOM
+      call check_hycom(i,tt)
+#endif
+
       enddo
 
       print *," ------     Comparing data     -----"
@@ -696,3 +700,62 @@
 
       end
 
+#ifdef CHECK_OCEAN_HYCOM
+      subroutine check_hycom(i,tt)
+      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_SCALARS
+      use CMP
+      implicit none
+      integer, intent(in) :: i
+      logical, intent(in) :: tt
+
+      check("u_o",u)
+      check("v_o",v)
+      check("dp",dp)
+      check("temp",temp)
+      check("saln",saln)
+      check("th3d",th3d)
+      check("thermb",thermb)
+      check("ubavg",ubavg)
+      check("vbavg",vbavg)
+      check("pbavg",pbavg)
+      check("pbot",pbot)
+      check("psikk",psikk)
+      check("thkk",thkk)
+      check("dpmixl",dpmixl)
+      check("uflxav",uflxav)
+      check("vflxav",vflxav)
+      check("diaflx",diaflx)
+      check("tracer",tracer)
+      check("dpinit",dpinit)
+      !check("oddev",oddev)
+      check("uav",uav)
+      check("vav",vav)
+      check("dpuav",dpuav)
+      check("dpvav",dpvav)
+      check("dpav",dpav)
+      check("temav",temav)
+      check("salav",salav)
+      check("th3av",th3av)
+      check("ubavav",ubavav)
+      check("vbavav",vbavav)
+      check("pbavav",pbavav)
+      check("sfhtav",sfhtav)
+      check("eminpav",eminpav)
+      check("surflav",surflav)
+      check("sflxav",sflxav)
+      check("brineav",brineav)
+      check("dpmxav",dpmxav)
+      check("oiceav",oiceav)
+      !check("asst",asst)
+      !check("atempr",atempr)
+      !check("sss",sss)
+      !check("ogeoza",ogeoza)
+      !check("uosurf",uosurf)
+      !check("vosurf",vosurf)
+      !check("dhsi",dhsi)
+      !check("dmsi",dmsi)
+      !check("dssi",dssi)
+
+      end subroutine check_hycom
+#endif
