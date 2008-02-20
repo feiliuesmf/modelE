@@ -82,7 +82,9 @@
       public asst
       public atempr
 
-
+      public ataux,atauy,aflxa2o
+     .     ,aemnp,aice,asalt
+     .     ,austar,aswflx
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: EVAPOR
@@ -124,11 +126,17 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: asst
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: atempr
 
-      !private
+      ! accumulators for output on atmospheric grid
+      ! (shouldn't these actually be accumulated on ocean grid
+      !  and then interpolated to atmospheric grid?)
+      real*8, allocatable, dimension(:,:) :: ataux,atauy,aflxa2o
+     .     ,aemnp,aice,asalt
+     .     ,austar,aswflx
 
       contains
 
       subroutine alloc_hycom_atm
+      USE HYCOM_DIM, only : iia,jja ! actually should use IM,JM !!
 
       ALLOCATE( PREC( im, jm ) )
       ALLOCATE( EVAPOR( im, jm , NSTYPE ) )
@@ -166,6 +174,10 @@
 
       ALLOCATE( asst( im, jm ) )
       ALLOCATE( atempr( im, jm ) )
+
+      ALLOCATE( ataux(iia,jja),atauy(iia,jja),aflxa2o(iia,jja)
+     .     ,aemnp(iia,jja),aice(iia,jja),asalt(iia,jja)
+     .     ,austar(iia,jja),aswflx(iia,jja) )
 
       end subroutine alloc_hycom_atm
 

@@ -124,10 +124,6 @@ c
 #include "dimension2.h"
 !!#include "common_blocks.h"
 !!#include "cpl.h"
-c --- accumulate fields in the coupler      
-      real*8 ataux(iia,jja),atauy(iia,jja),aflxa2o(iia,jja)
-     .      ,aemnp(iia,jja),aice(iia,jja),asalt(iia,jja)
-     .      ,austar(iia,jja),aswflx(iia,jja)
 !!! afogcm,nsavea should be initialized properly !
       integer :: afogcm=0,nsavea=0,nsaveo
 !!#include "a2o.h"
