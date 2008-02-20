@@ -6,6 +6,7 @@ c --- hycom version 0.9
       USE DOMAIN_DECOMP, only : halo_update,NORTH,SOUTH,checksum
       USE HYCOM_DIM, only : ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
      &     ,ip,idm,ii1,JDM
+     &     ,jchunk
       USE HYCOM_DIM, only : ogrid,j_0,j_1,j_0h,j_1h
       USE HYCOM_SCALARS, only : acurcy,nstep,delt1,lp,onecm,epsil,thkdff
      &     ,sigjmp,onem

@@ -2,6 +2,7 @@
 c
 c --- hycom version 0.9.2
       USE HYCOM_DIM_GLOB, only : jj,kk,isp,ifp,ilp,idm,kdm,ntrcr
+     &     ,jchunk
       USE HYCOM_SCALARS, only : diapyc,nstep,dotrcr,onemm,g,baclin,onem
      &     ,epsil,mixfrq,sigjmp,thref,lp,acurcy
       USE HYCOM_ARRAYS_GLOB

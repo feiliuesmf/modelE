@@ -95,7 +95,7 @@ c
 c
       subroutine initurb
 c
-      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp
+      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp,jchunk
       USE HYCOM_SCALARS, only : onem
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS

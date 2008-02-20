@@ -6,7 +6,7 @@ c
       USE SEAICE, only : fsss,tfrez
       USE CONSTANT, only : lhm,shi,shw
 c
-      USE HYCOM_DIM_GLOB,only : jj,isp,ifp,ilp,kk,idm,jdm
+      USE HYCOM_DIM_GLOB,only : jj,isp,ifp,ilp,kk,idm,jdm,jchunk
       USE HYCOM_SCALARS, only : thkmin,onem,lp,nstep,delt1,g,spcifh
      &     ,equatn,epsil
       USE HYCOM_ARRAYS_GLOB

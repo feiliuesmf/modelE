@@ -1,5 +1,5 @@
 !global ?
-      subroutine geopar
+      subroutine geopar(iniOCEAN)
 c
 c --- set up model parameters related to geography
 c
@@ -26,6 +26,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
 !!!!      include 'a2o.h'
 !!      include 'kprf_arrays.h'
 c
+      logical, intent(in) :: iniOCEAN
       real realat,sphdis,glufac,zero
       integer idim,jdim,length,iz,jz,nt
       character util(idm*jdm+14)*2,preambl(5)*79
@@ -34,7 +35,7 @@ c --- 'glufac' = regional viscosity enhancement factor
       data glufac/3./
       data zero/0./
 
-      write(0,*) "ok ",__FILE__,__LINE__
+      !write(0,*) "ok ",__FILE__,__LINE__
 c
 c --- read basin depth array
       write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
@@ -262,7 +263,9 @@ c
 c
 c --- initialize some arrays
 c
-css   if (nstep0.eq.0) then
+      ! uncommented by IA
+      !if (nstep0.eq.0) then
+      if (iniOCEAN) then
       write (lp,*) 'laying out arrays in memory ...'
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 209 j=1,jj
@@ -498,7 +501,8 @@ c
       v(i,j,k   )=0.
  168  v(i,j,k+kk)=0.
       write (lp,*) '... array layout completed'
-css   endif                    ! end of nstep=0
+      ! uncommented by IA
+      endif                    ! end of nstep=0
 c
 c --- set 'glue' to values > 1 in regions where extra viscosity is needed
 c

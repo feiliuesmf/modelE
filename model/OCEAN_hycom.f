@@ -32,6 +32,8 @@
       ! move to global atm grid
       call gather_atm
 
+             call geopar(iniOCEAN)
+
       if (AM_I_ROOT()) then ! work on global grids here
       
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
@@ -505,7 +507,7 @@ C     nothing to gather - ocean prescribed
       !!call reset_hycom_arrays
 
       !if (AM_I_ROOT()) then
-        call geopar
+ !!!       call geopar
       !endif
 
       end subroutine alloc_ocean
