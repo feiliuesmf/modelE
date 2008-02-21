@@ -442,7 +442,7 @@ c -----------------------------------------------------------------
 ! note that the nudging was never updated for MPI/ESMF, so for the
 ! moment neither is this routine. This was just put in to try and
 ! fix an irreproducibility issue when nudging is on.
-      use model_com, only : ioread,iowrite
+      use model_com, only : ioread,iowrite,irerun
       use model_com, only : im,jm
       use domain_decomp, only : grid, am_i_root
       use domain_decomp, only : pack_data, unpack_data, esmf_bcast
@@ -481,7 +481,7 @@ C      J_1H = grid%J_STOP_HALO
         if(am_i_root()) write (kunit,err=10) u18,u28,v18,v28,un18,un28,
      &      vn18,vn28,pl8,zirk,step_rea,ncidu,ncidv,plid,uid,vid,tau
 
-      case (ioread:)            ! input from restart file
+      case (ioread,irerun)      ! input from restart file (not for irsfic)
 
         if(am_i_root()) read (kunit,err=10)  u18,u28,v18,v28,un18,un28,
      &      vn18,vn28,pl8,zirk,step_rea,ncidu,ncidv,plid,uid,vid,tau
