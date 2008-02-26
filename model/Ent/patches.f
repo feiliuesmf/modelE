@@ -174,6 +174,10 @@
 !        pp%N_litter = pp%N_litter + cop%N_litter  
 !        pp%C_to_Nfix = pp%C_to_Nfix + cop%C_to_Nfix
 
+        pp%betad = pp%betad + cop%stressH2O*cop%LAI
+        do ia=1,N_DEPTH
+          pp%betadl(ia) = pp%betadl(ia) + cop%stressH2Ol(ia)*cop%LAI
+        end do
         !*- - - - - end cohort summary variables - - - - - - - - - - - - -
 
         !* CASA pools * These are redundant but not 1-1 with the cohort pools.
@@ -201,8 +205,13 @@
 !      pp%n = nsum                          !* Total individuals *!
 
       !* NITROGEN status and LEAF */
-      pp%nm = pp%nm / pp%LAI    !wtd average
-      pp%LMA = pp%LMA / pp%LAI  !wtd avg
+      if (pp%LAI.gt.0.d0) then
+        pp%nm = pp%nm / pp%LAI  !wtd average
+        pp%LMA = pp%LMA / pp%LAI !wtd avg
+      else
+        pp%nm = 0.d0
+        pp%LMA = 0.d0
+      endif
 
       !* GEOMETRY - WEIGHTED AVERAGES
       pp%h = pp%h / nsum        !wtd avg
@@ -212,8 +221,17 @@
       CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
 
       !* FLUXES 
-      pp%Ci = pp%Ci / pp%LAI !wtd average
-!
+      if (pp%LAI.gt.0.d0) then
+        pp%Ci = pp%Ci / pp%LAI  !wtd average
+        
+        pp%betad = pp%betad/pp%LAI
+        pp%betadl = pp%betadl/pp%LAI
+      else
+        pp%Ci = 0.d0
+        pp%betad = 0.d0
+        pp%betadl(:) = 0.0d0
+      endif
+      
       !* Flux variables for GCM/EWB - patch total
       !pp%z0 =0.d0               !## Dummy ##!
       !##### call get_patchalbedo(jday,pp)######
@@ -267,7 +285,8 @@
       pp%R_auto = 0.d0
       pp%R_root = 0.d0  !PK 5/15/07
       pp%N_up = 0.d0
-
+      pp%betad = 0.d0
+      pp%betadl(:) = 0.d0
       end subroutine zero_patch_cohortsum
       !*********************************************************************
 

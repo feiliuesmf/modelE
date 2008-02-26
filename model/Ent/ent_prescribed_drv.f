@@ -88,7 +88,7 @@
      &       0.009848682,0.014675189,0.692995043,0.184450822 /)
 !***  
         !read in ISRIC-WISE 4x5 dataset      
-        call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.) !globally gridded binary dataset
+        call openunit("SOILCARB",iu_SOILCARB,.true.,.true.) !globally gridded binary dataset
         read (iu_SOILCARB) title, soilC_data !data in kg/m2 (converted to g/m2 below)
       
         !assign Tpool_ini values (pft-specific)
@@ -96,7 +96,8 @@
           do n=1,N_CASA_LAYERS 
             do nn=NLIVE+1,NPOOLS
               Tpool_ini(p,CARBON,nn,n,I0:I1,J0:J1) =
-     &             Cpool_fracs(p,nn-NLIVE,n) * soilC_data(n,I0:I1,J0:J1)*1d3  
+     &             Cpool_fracs(p,nn-NLIVE,n)
+     &             * soilC_data(n,I0:I1,J0:J1)*1d3  
             end do
           end do
         end do

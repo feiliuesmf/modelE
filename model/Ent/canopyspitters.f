@@ -161,6 +161,9 @@
         !* Assign vegpar
 
         if (cop%LAI.gt.0.d0) then
+!          cop%stressH2O = water_stress2(cop%pft, N_DEPTH, 
+!     i         pp%cellptr%Soilmoist(:), thetasat, thetamin,
+!     i         cop%fracroot(:), pp%cellptr%fice(:)) 
           cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
      i         ,cop%fracroot(:)
      i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
@@ -173,7 +176,7 @@
           call canopyfluxes(dtsec, cop%pft
      &         ,pp%albedo(1),pp%LAI,cop%LAI,IPAR*4.05 !4.05 see canopyfluxes comments.
      &         ,CosZen,fdir
-     &         ,Gb,ca_umol
+     &         ,Gb
      &         ,psdrvpar
      &         ,GCANOPY,Anet,Atot,Rd !NOTE: Ci should be cohort level
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
@@ -230,7 +233,7 @@
 !---------------------------------------------------------------------------
       subroutine canopyfluxes(dt, pft
      i     ,canalbedo,LAIcanopy,LAIcohort,IPAR,CosZen,fdir
-     i     ,Gb,ca
+     i     ,Gb
      i     ,psdrvpar
      o     ,Gs,Anet,Atot,Rd,TRANS_SW)
 !     i     ,if_ci)
@@ -261,7 +264,7 @@
       real*8,intent(in) :: CosZen !Cosine ofSolar zenith angle
       real*8,intent(in) :: fdir !Fraction of PAR that is direct
       real*8,intent(in) :: Gb   !Canopy boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8,intent(in) :: ca   !CO2 mole fraction at reference height (umol mol-1)
+!      real*8,intent(in) :: ca   !CO2 mole fraction at reference height (umol mol-1)
 !      real*8,intent(in) :: Tc   !Canopy (foliage) temperature (Celsius)
 !      real*8,intent(in) :: rh   !Relative humidity (fraction)
 !      real*8,intent(in) :: Pa   !Atmospheric pressure (Pa)
@@ -340,6 +343,44 @@
       if (betad < EPS2) betad=0.d0
 
       end function water_stress
+
+!----------------------------------------------------------------------!
+      function water_stress2(pft, nlayers, thetas, thetasat, thetamin, 
+     &     fracroot, fice) Result(betad)
+
+      implicit none
+      integer,intent(in) :: pft  !Plant functional type number.
+      integer,intent(in) :: nlayers !Number of soil layers
+      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
+      real*8,intent(in) :: thetasat  !Saturated soil water (vol.water/vol.soil)
+                                !Equals porosity
+      real*8,intent(in) :: thetamin !Hygroscopic H2O cont(vol.water/vol.soil)
+      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
+      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
+      real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
+      !Local vars
+      integer :: k
+      real*8 :: s  !Normalized soil moisture, s=thetas/thetasat
+      real*8 :: betak  !Stress value for layer k
+
+      !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
+      betad = 0.d0
+      do k = 1,nlayers
+        s = thetas(k)/thetasat
+        if (s.ge.pfpar(pft)%sstar) then
+          betak = 1.d0  !No stress
+        else if ((s.lt.pfpar(pft)%sstar).and.
+     &         (s.gt.(pfpar(pft)%swilt))) then
+          betak = (s-pfpar(pft)%swilt)/
+     &         (pfpar(pft)%sstar-pfpar(pft)%swilt) !Just linear
+        else
+          betak = 0.d0
+        end if
+        betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
+      end do
+      if (betad < EPS2) betad=0.d0
+
+      end function water_stress2
 
 !################## PHOTOSYNTHESIS #########################################
 
