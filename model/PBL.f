@@ -46,7 +46,7 @@
       private
 
       ! public parameters
-      public n,zgs,XCDpbl,kappa,emax,skin_effect
+      public n,zgs,XCDpbl,kappa,emax,skin_effect,ustar_min
 
       ! public interfaces
       public advanc,inits,ccoeff0
@@ -208,8 +208,9 @@ CCC      real*8 :: bgrid
 
 !@var smax,smin,cmax,cmin limits on drag coeffs.
 !@var emax limit on turbulent kinetic energy
+!@var ustar_min limit on surface friction speed 
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
-     *     cmin=smin*smin,emax=1.d5
+     *     cmin=smin*smin,emax=1.d5,ustar_min=5d-2
 
 !@param twoby3 2/3 constant
       real*8, parameter :: twoby3 = 2d0/3d0
@@ -946,7 +947,6 @@ C**** tracer code output
 
 
       real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
-      real*8, parameter :: ustar_min=1.d-2
 
       dz     = dzh(1)
       vel1   = sqrt(u(1)*u(1)+v(1)*v(1))

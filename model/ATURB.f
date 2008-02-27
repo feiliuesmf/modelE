@@ -25,7 +25,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke,pmid
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
       USE DOMAIN_DECOMP, ONLY : halo_update_column
-      USE DOMAIN_DECOMP, ONLY : halo_update       
+      USE DOMAIN_DECOMP, ONLY : halo_update
       USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc
      *     ,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
@@ -33,7 +33,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE TRDIAG_COM, only: tajln=>tajln_loc,jlnt_turb
       USE FLUXES, only : trflux1
 #endif
-      USE SOCPBL, only : b1,b123,prt,kappa,zgs
+      USE SOCPBL, only : b1,b123,prt,kappa,zgs,ustar_min
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
      *     ,e_3d=>egcm,w2_3d=>w2gcm !,t2_3d=>t2gcm
       USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
@@ -44,7 +44,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       integer, intent(in) :: lbase_min,lbase_max
       real*8, intent(in) :: dtime
 
-      real*8, parameter :: ustar_min=.01d0,qmin=1.d-12,pblp_max=400.!mb
+      real*8, parameter :: qmin=1.d-12,pblp_max=400.!mb
       integer, parameter :: itest= 1,jtest=11
       logical, parameter :: call_diag=.false.
 
@@ -55,12 +55,12 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,w2,uw,vw,wt,wq,z
       real*8, dimension(lm+1) :: ze
 
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     u_3d_old,rho_3d,rhoe_3d,dz_3d
      &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
      &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
      &    ,wt_3d,v_3d_old
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     tvsurf,uflux_bgrid,vflux_bgrid,dz0
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
@@ -385,7 +385,7 @@ C**** calculate possible energy loss
           tpe0=-tflux1(i,j)*dtime*sha
           tpe1=0.
           do l=1,lm
-            tpe0=tpe0+t_3d(i,j,l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg    
+            tpe0=tpe0+t_3d(i,j,l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg
             tpe1=tpe1+t(l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg/(1.d0+deltx
      *           *q(l))
           end do
@@ -496,15 +496,15 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
       CALL HALO_UPDATE(grid, u_3d, from=NORTH)
 
 C**** Use halo values of plij from southern neighbor to complete that
-C     neighbor's update of AJL in this process (i.e. using PLIJ 
+C     neighbor's update of AJL in this process (i.e. using PLIJ
 C     contribution at J_0-1 to finish accumulation into AJL(J_0,:,:) )
         CALL HALO_UPDATE_COLUMN(grid, PLIJ, from=SOUTH)
- 
+
 ! ACCUMULATE DIAGNOSTICS for u and v
 C*** Adapt  use of idjj stencil to do correct calculation in distributed
 C    parallel version.
 
-C Contribution at southern border        
+C Contribution at southern border
       IF (HAVE_SOUTH_POLE) THEN
         J=1
       ELSE
@@ -542,7 +542,7 @@ C Contribution at southern border
 C**** J_1 computation (add only k=1,2 contributions to ajl when j_1 is
 C     NOT the north pole -- k=3,4 contr. to be added by southern neighbor).
       if (HAVE_NORTH_POLE) THEN
-        J=JM 
+        J=JM
         KMAX=KMAXJ(J)
         DO I=1,IMAXJ(J)
           DO L=1,LM
@@ -634,13 +634,13 @@ C**** Save additional changes in KE for addition as heat later
       implicit none
 
       integer, intent(in) :: im,jm,lm
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(in) :: tvsurf
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(out) :: dz0
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(in) :: tv
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(out) :: rho,rhoe,dz,dze
 
       real*8 :: temp0,temp1,temp1e,pl1,pl,pl1e,ple,plm1e
@@ -738,7 +738,7 @@ C****
 
       implicit none
 
-      integer, intent(in) :: ldbl,i,j,n 
+      integer, intent(in) :: ldbl,i,j,n
       real*8, dimension(n), intent(in) ::
      &   dz,u,v,t,q,ke,dtdz,dqdz,an2,as2
      &   ,wt_nl,wq_nl,kh,km,e,lscale,z
@@ -833,7 +833,7 @@ C****
       real*8, dimension(n) :: sub,dia,sup,rhs
       real*8 :: alpha
       integer :: j  !@var j loop variable
-      logical, intent(in) :: qlimit 
+      logical, intent(in) :: qlimit
 
       !sub(j)*x_jm1_kp1+dia(j)*x_j_kp1+sup(j)*x_jp1_kp1 = rhs(j)
       !k refers to time step, j refers to main grid
@@ -857,7 +857,7 @@ c calls to this routine.
       ! wt(2)=-p1(2)*(T(2)-T(1))/dz(1)+wt_nl(2)
       ! wt(1)=-tvflx, therefore,flux_bot(the quantity used below)
       !       flux_bot=rhoe(1)*tvflx+rhoe(2)*wt_nl(2)
-      
+
       alpha=dtime*p1(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
       sup(1)=-alpha
@@ -959,7 +959,7 @@ c calls to this routine.
       integer, intent(in) :: lm
       real*8, dimension(im, grid%j_strt_halo:grid%j_stop_halo,lm),
      &                  intent(inout) ::  u,v
-      real*8, dimension(lm,im, grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im, grid%j_strt_halo:grid%j_stop_halo),
      &                  intent(out) :: u_a,v_a
 
       real*8, dimension(im) :: ra
@@ -975,7 +975,7 @@ c calls to this routine.
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
 !     polar boxes
 
-C**** Update halos of U and V 
+C**** Update halos of U and V
       CALL HALO_UPDATE(grid,u, from=NORTH)
       CALL HALO_UPDATE(grid,v, from=NORTH)
 
@@ -1078,7 +1078,7 @@ C****
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP, only : grid, get
       USE DOMAIN_DECOMP, only : halo_update_column
-      USE DOMAIN_DECOMP, only : halo_update       
+      USE DOMAIN_DECOMP, only : halo_update
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj,cosiv,siniv
 
@@ -1087,14 +1087,14 @@ C****
       integer, intent(in) :: lm
       real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo)  ::
      &          u_a,v_a
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm), 
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm),
      &        intent(out) :: u,v
 
       real*8, dimension(im) :: ra
       integer, dimension(im) :: idj
       real*8 :: HEMI,rak,ck,sk,uk,vk
       integer :: i,j,l,k,idik,idjk,kmax
-      integer :: j_0, j_1, j_0s, j_1S  
+      integer :: j_0, j_1, j_0s, j_1S
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       call get(grid, J_STRT=J_0,   J_STOP=J_1,
@@ -1165,7 +1165,7 @@ C****
         END DO
         END DO
         END DO
-      end if     !north pole     
+      end if     !north pole
 
 !     non polar boxes (skip J_1 box --> computed below)
       DO J=J_0S,J_1-1
@@ -1227,9 +1227,9 @@ c**** J_1 box
       implicit none
 
       integer, intent(in) :: lm
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo)
      &         ::  s1,s2,s3,s4,s5
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo), 
+      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
      &        intent(out) :: sb1,sb2,sb3,sb4,sb5
 
       real*8, dimension(im) :: ra
@@ -1277,7 +1277,7 @@ C   ......first skip j_1 (do later below)
             END DO
           END DO
         END DO
-      End If        
+      End If
 
       DO j=J_0,J_1-1
         KMAX=KMAXJ(J)
@@ -1363,7 +1363,7 @@ C**** Halo updates from the south
       subroutine zze(dz,dze,dz0,z,ze,n)
 !@sum finds the layer middle and edge heights, z and ze
 !@var  z vertical coordinate of mid points
-!@var  ze vertical coordinate at edges 
+!@var  ze vertical coordinate at edges
 !@var  dz(l) z(l+1) - z(l)
 !@var  dze(l) ze(l+1) - ze(l)
 !@var  dz0 z(1) - ze(1)
@@ -1517,7 +1517,7 @@ C**** Halo updates from the south
      &    ,ustar2,wstar3,zzi,tau_pt,w2j,zil,phih1,by_phim1,wm1,pr1
      &    ,cgh1,cgq1,km_n,kh_n,pr,cgh,cgq,zl,phih,by_phim,wm,kz
       integer :: j  !@var j loop variable
-      
+
       !@ Non-local model: Holtslag and Boville, 1993.
       !@ Local model: Cheng et al. 2002.
       ustar2=ustar*ustar
@@ -1747,9 +1747,9 @@ c     if((ldbl.gt.1).and.(dbl-z(ldbl-1).lt.z(ldbl)-dbl)) then
 c       ldbl=ldbl-1
 c     endif
 c     write(98,'(2i4,9e14.4)') ldbl,ldbl_max,dbl,dbl_min
-c     write(98,'(9e14.4)') z(1),z(2),z(3),z(4) 
-c     write(98,'(i4,9e14.4)') 
+c     write(98,'(9e14.4)') z(1),z(2),z(3),z(4)
+c     write(98,'(i4,9e14.4)')
 c     call flush(98)
-    
+
       return
       end subroutine find_pbl_top
