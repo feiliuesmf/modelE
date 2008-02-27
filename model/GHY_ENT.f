@@ -108,8 +108,11 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
-      use ghy_com, only : ngm, imt, nlsn, LS_NFRAC
-
+      use ghy_com, only : ngm, imt, nlsn, LS_NFRAC !, wsn_max
+#ifdef TRACERS_WATER
+     *     ,ntixw
+      use tracer_com, only : ntm,tr_wd_TYPE,nWater
+#endif
 
       implicit none
       save
@@ -561,6 +564,8 @@ c     add gravitational potential to hl
       do k=1,n
         do ibv=i_bare,i_vege
           h(k,ibv)=h(k,ibv)+zc(k)
+          !print *,"MAT POT",h(k,ibv),h(k,ibv)-zc(k), w(k,ibv)/ws(k,ibv)
+          !write(922,*) h(k,ibv)-zc(k), w(k,ibv)/ws(k,ibv)
         end do
       end do
       return
@@ -954,6 +959,13 @@ c     compute transpiration for separate layers (=0 for bare soil)
           evapdl(k,2) = evapvd*betadl(k)/betad
         end do
       endif
+
+cddd      if ( process_vege ) then
+cddd        print *,"EVAPVD=", evapvd
+cddd        print *,"BETADL=", betadl
+cddd        print *,"H=", h(:,2)
+cddd        print *
+cddd      endif
 
       return
 cccccccccccccccccccccccccccccccccccccccc
@@ -1793,7 +1805,7 @@ ccc accm0 was not called here in older version - check
      &         canopy_temperature=tp(0,2),
      &         canopy_air_humidity=Qf,  ! qsat(tp(0,2),lhe,pres),
      &         surf_pressure=pres,
-     &         surf_CO2=Ca, fol_CO2=1.d30,
+     &         surf_CO2=Ca, ! fol_CO2=1.d30,
  !    &       precip=pr,
      &         heat_transfer_coef=ch,
      &         wind_speed=vs,
@@ -1822,6 +1834,7 @@ ccc unpack necessary data
      &         canopy_gpp=GPP
      &         )
 
+          !print *,"CNS=",cnc
           !print *, "trans_sw", ijdebug, trans_sw, cosz1
 
 !!! test

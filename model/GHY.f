@@ -153,7 +153,8 @@ ccc   main accumulators
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
-     &      , agpp,aflmlt,aintercep
+     &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
+     &     ,aflmlt,aintercep
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -337,7 +338,8 @@ C***
 C***   Thread Private Common Block GHYTPC
 C***
       COMMON /GHYTPC/
-     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
+     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc
+     &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
      &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
@@ -2007,7 +2009,11 @@ c zero out accumulations
       abeta=0.d0  ! not accumulated : do we need it?
       acna=0.d0   ! not accumulated : do we need it?
       acnc=0.d0   ! not accumulated : do we need it?
-      agpp=0.d0   ! new accumulator, nyk 4/25/03
+      agpp=0.d0   ! Ent DGVM , nyk 4/25/03
+      arauto=0.d0 ! Ent DGVM
+      aclab=0.d0  ! Ent DGVM
+      asoilresp = 0.d0         ! Ent DGVM (soil bgc)
+      asoilCpoolsum = 0.d0     ! Ent DGVM (soil bgc)
       aevapw=0.d0              ! evap from wet canopy
       aevapd=0.d0              ! evap from dry canopy
       aevapb=0.d0              ! evap from bare soil (no snow)

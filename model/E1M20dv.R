@@ -29,7 +29,7 @@ QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_ENT_DRV GHY_ENT                 ! land surface and soils
+GHY_COM GHY_DRV GHY_ENT                 ! land surface and soils
 !VEG_DRV VEG_COM VEGETATION          ! vegetation
 ENT_DRV ENT_COM
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
