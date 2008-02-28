@@ -27,7 +27,7 @@
 
 
       type psdrvtype
-      real*8 :: cf              !CO2 mole fraction at canopy surface (umol mol-1)
+      real*8 :: ca              !Surface CO2 mole fraction (umol mol-1)
       real*8 :: ci              !Leaf internal CO2 mole fraction (umol mol-1)
       real*8 :: Tc              !Canopy (foliage) temperature (Celsius)
       real*8 :: Pa              !Atmospheric pressure (Pa)
@@ -38,6 +38,25 @@
       !=======CONSTANTS========!
 !      integer,parameter :: N_PFT = 16 !In ent_const.f
 
+!*********************************************************************
+!* Ent PFTs
+!* 1.  evergreen broadleaf early successional
+!* 2.  evergreen broadleaf late successional
+!* 3.  evergreen needleleaf early successional
+!* 4.  evergreen needleleaf late successional
+!* 5.  cold deciduous broadleaf early successional
+!* 6.  cold deciduous broadleaf late successional
+!* 7.  drought deciduous broadleaf
+!* 8.  decidous needleleaf
+!* 9.  cold adapted shrub
+!* 10.  arid adapted shrub
+!* 11.  C3 grass - perennial
+!* 12.  C4 grass - perennial
+!* 13.  C3 grass - annual
+!* 14.  arctic C3 grass
+!* 15.  crops - C4 herbaceous
+!* 16.  crops - broadleaf woody
+!*********************************************************************
 
       type(pspartype),parameter :: pftpar(N_PFT) = !PFT parameters for Ent veg types
      &!     pft PARabsorb Vcmax Kc Ko KcQ10 KoQ10 Gammastar  m b !Rdc RdH
