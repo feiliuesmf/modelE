@@ -2312,7 +2312,9 @@ c**** calculate the layer centers, based on the boundaries.
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
       !fb=afb(i0,j0)
       !fv=1.-fb
-      !call get_fb_fv( fb, fv, i0, j0 )
+#ifndef USE_ENT
+      call get_fb_fv( fb, fv, i0, j0 )
+#endif
 c****
       do ibv=1,2
         do k=1,n
