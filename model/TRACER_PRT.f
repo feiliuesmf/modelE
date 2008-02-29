@@ -462,6 +462,9 @@ C****
      *     jls_3Dsource, jlnt_conc, jlnt_mass, jlnt_nt_tot, jlnt_nt_mm,
      *     jlnt_lscond,  jlnt_turb,  jlnt_vt_tot, jlnt_vt_mm, jlnt_mc,
      *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls
+#ifdef TRACERS_SPECIAL_Lerner
+      USE TRDIAG_COM, only : jls_source
+#endif
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : jlnt_cldh2o
 #endif
@@ -522,7 +525,7 @@ C**** Note: why are jtpow defined here AND in units definition above?
 C**** there is needless scope for inconsistency....
 
       DO 400 N=1,NTM
-      IF (itime.LT.itime_tr0(N)) cycle
+c     IF (itime.LT.itime_tr0(N)) cycle
 C****
 C**** TRACER CONCENTRATION
 C****
@@ -722,8 +725,10 @@ C**** total chemical change for O3
         k=jls_3Dsource(1,n_O3)
         a(:,:) = tajls(:,:,jls_3Dsource(1,n_O3))
      *         + tajls(:,:,jls_3Dsource(2,n_O3))
-        sname = 'Total_Chem_change'//trname(n_O3)
-        lname = 'TOTAL CHANGE OF O3 BY CHEMISTRY'
+     *         + tajls(:,:,jls_3Dsource(3,n_O3))
+     *         + tajls(:,:,jls_source(1,n_O3))
+        sname = 'Total_change_chem+depo'//trname(n_O3)
+        lname = 'Total Change of O3 by Chemistry and deposition'
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname,sname,units_jls(k),plm,a
      *     ,scalet,onespo,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))

@@ -6,15 +6,16 @@
 C**** Stratospheric chemistry: consolidated commons
 C**** These variables are used by both ozone and strat chem routines
       USE MODEL_COM, only: jm,lm
-!@var NSTRTC=# of strat chem layers (counting top down)
-      integer, parameter :: nstrtc=lm-1
       INTEGER, ALLOCATABLE, DIMENSION(:) :: jlatmd
       real*8 p0l(lm+1)
+!@dbparam NSTRTC # of strat chem layers (counting top down) (=12 for M23)
+      integer :: nstrtc=12
 
       contains
       subroutine set_prather_constants
       USE MODEL_COM, only: jm,lm,pednl00 ! ,psfmpt,sige,ptop
       USE DOMAIN_DECOMP, only : GRID, GET
+      USE PARAM
       implicit none
       real*8 yedge(GRID%J_STRT_HALO:GRID%J_STOP_HALO+1)
       real*8 yedge1,yedgen,xlatmd
@@ -22,6 +23,8 @@ C**** These variables are used by both ozone and strat chem routines
 
       INTEGER :: J_1,  J_0
       INTEGER :: J_1H, J_0H
+
+      call sync_param("NSTRTC",NSTRTC)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -140,7 +143,6 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE DOMAIN_DECOMP, only: GRID, GET
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
-      USE DYNAMICS, only: ltropo
       USE TRACER_COM
 cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
       USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
@@ -177,7 +179,6 @@ C-----TSCPARM->TLtrm contains mean loss freq in grid box:
         f1l = tltzm(j,lr,nsc)  ! FOM of loss freq from tables
         f2l = tltzzm(j,lr,nsc)  ! SOM of loss freq from tables
         do 130 i=1,imaxj(j)
-          if (l.le.ltropo(i,j)) go to 130
           if (trm(i,j,l,n).le.0.) go to 130
 C------Couple the moments of the loss freq with moments of the tracer:
 C       dSo  = dt*( So*Lo + Sz*Lz/3 + Szz*Lzz/5)
@@ -270,7 +271,7 @@ C---- CTM layers LM down
 !@var CH4_src CH4 surface sources and sinks (kg/s)
       integer, parameter :: nch4src=14
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
-!@var frqlos chemical loss rate for methane
+!@var frqlos chemical loss rate for methane in troposphere
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
 
       END MODULE CH4_SOURCES
@@ -282,7 +283,7 @@ C---- CTM layers LM down
       USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
       USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT, ESMF_BCAST
       USE GEOM, only: imaxj
-      USE DYNAMICS, only: ltropo
+      USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
       USE CH4_SOURCES, only : frqlos
       USE FLUXES, only: tr3Dsource
@@ -363,9 +364,9 @@ C**** Apply the chemistry
   551   continue
       endif 
 
+      do l=1,lm-nstrtc
       do j=J_0,J_1
-      do i=1,imaxj(j)
-        do l=1,ltropo(i,j)
+        do i=1,imaxj(j)
           tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
         end do
       end do
@@ -386,19 +387,22 @@ C     n_O3=tracer number for linoz O3
       USE CONSTANT, only: mair
       USE MODEL_COM, only: im,jm,lm,pednl00,dtsrc
       USE TRACER_COM, only: ntm,tr_mm
-      USE PRATHER_CHEM_COM, only: set_prather_constants
+      USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc
       implicit none
+      integer lmtc    !=11 for lm=23
 !@param lz_linoz Number of heights in linoz tables
-      integer, PARAMETER :: lz_linoz=25,nctable=8,lz_lx=lz_linoz+5
+      integer, PARAMETER :: lz_linoz=25,nctable=7,lz_lx=lz_linoz+5
 C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
       real*8 TLPARM(lz_linoz,18,12,nctable)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLT0M, TLTZM, TLTZZM
       real*8 dsol
-!@var lbc Top layer for ozone boundary conditions in troposphere
-      integer lbc
-      real*8 dtchem
 !@var PS,F Used in STRT2M
       real*8 PS(lz_lx+1)
+C**** Harvard troposphere production and loss rates, deposition vel
+!@var O3trop_Loss, O3trop_Prod, O3_DepVel: production and loss
+!@+       rates, deposition vel from L. Mickley
+      real*4 O3trop_Loss(im,jm,lm,12),
+     *       O3trop_Prod(im,jm,lm,12),O3_DepVel(im,jm,12)
 
       contains
       SUBROUTINE LINOZ_SETUP(n_O3)
@@ -406,9 +410,12 @@ C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
-      integer iu,j,k,l,m,n,n_O3,nl
+      integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
       real*8    XPSD,XPSLM1,XPSL
+
+      call set_prather_constants
+      lmtc = lm-nstrtc
 
       call openunit('LINOZ_TABLE',iu,.false.,.true.)
       read (iu,'(a)')   titlch
@@ -426,19 +433,37 @@ C**** Needed for linoz chemistry
       if (AM_I_ROOT()) write(6,'(a)') ' linoz tables read'
       call closeunit(iu)
 
-C**** Calculate level for tropophere ozone chem
-      do l=1,lm
-        if (pednl00(l+1) .le. 900.)then
-          lbc = l
-          if (AM_I_ROOT()) write(6,'(a,i3,f8.1)')
-     *     ' Top layer for tropo O3 chem is ',lbc, pednl00(l)
-          exit
-        end if
-      end do
-C**** Get other useful things
-      dtchem = dtsrc
-
-      call set_prather_constants
+C****
+C**** Harvard troposphere rate data (L.Mickley)
+C****
+C     Loss rates
+      call openunit('LO3_Trop_loss',iu,.true.,.true.)
+      do m = 1,12
+        read (iu) TITLCH,
+     *  (((O3trop_Loss(i,j,l,m),i=1,im),j=1,jm),l=1,lmtc)
+      enddo
+      call closeunit(iu)
+      if (AM_I_ROOT()) write(6,*) TITLCH
+      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)') 'O3 trop loss rates read'
+C     Production rates
+      call openunit('LO3_Trop_prod',iu,.true.,.true.)
+      do m = 1,12
+        read (iu) TITLCH,
+     *  (((O3trop_Prod(i,j,l,m),i=1,im),j=1,jm),l=1,lmtc)
+      enddo
+      call closeunit(iu)
+      if (AM_I_ROOT()) write(6,*) TITLCH
+      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)') 
+     *     'O3 trop production rates read'
+C     Deposition velocities
+      call openunit('LINOZ_Dep_vel',iu,.true.,.true.)
+      do m = 1,12
+         read(iu) TITLCH,((O3_DepVel(i,j,m),i=1,im),j=1,jm)
+      enddo
+      call closeunit(iu)
+      if (AM_I_ROOT()) write(6,*) TITLCH
+      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)') 
+     *     'O3 deposition velocities read'
 
 C**** This code moved from STRT2M to go faster
 c-----------------------------------------------------------------------
@@ -464,66 +489,108 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       end MODULE LINOZ_CHEM_COM
 
 
-      SUBROUTINE Trop_chem_O3(ns,n)
+      SUBROUTINE Trop_chem_O3(nsp,nsl,n)
 c
 c-----------------------------------------------------------------------
-c   Lower boundary conditions for Linearized Strat. Chem.
+c   Troposphere is forced by Harvard tables
 c-----------------------------------------------------------------------
 c
-      USE MODEL_COM, only: jm,itime
+      USE MODEL_COM, only: jm,jmon,t,itime,dtsrc
       USE DOMAIN_DECOMP, only: GRID, GET
+      USE CONSTANT, only : grav,rgas
       USE GEOM, only: imaxj,dxyp
-      USE DYNAMICS, only: am   ! Air mass of each box (kg/m^2)
+      USE DYNAMICS, only: pmid,pk,pdsig
       USE TRACER_COM
-cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
-      USE LINOZ_CHEM_COM, only: lbc,dtchem
+      USE LINOZ_CHEM_COM, only: O3trop_Prod,O3trop_Loss,lmtc
       USE FLUXES, only: tr3Dsource
       implicit none
-      real*8, parameter :: taubc=172800.d0  !in seconds
-      real*8, parameter :: tmrbc=20.0d-9    !mixing ratio
-      integer i,j,l,n,najl,ns
-      real*8 coeff,ratio,T0Mold,dmass,sdmass,scalmom
-
+      integer i,j,l,n,nsp,nsl
+      real*8 rprod,rloss,factor,tk
+C**** dz = -dP/rhoG; rho=PRT; Deposition velocity
+      real*8 dz(im,jm)
       INTEGER :: J_1, J_0
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-c lower boundary condition : relax each species to tmrbc(n)
-c using a lifetime of taubc(n) for lowest lbc levels
-
-      coeff = 1.0-exp(-dtchem/taubc)
-      ratio = tmrbc / mass2vol(n)
-cc      najl = jls_3Dsource(ns,n)
-        do l=1,lbc
+C**** Convert from kg/cm3/s to kg
+        do l=1,lmtc
         do j=J_0,J_1
-        sdmass = 0.
         do i=1,imaxj(j)
-          T0Mold=trm(i,j,l,n)
-          dmass = (ratio*am(l,i,j)*dxyp(j)-trm(i,j,l,n))*coeff
-          if(trm(i,j,l,n) + dmass .lt.0.) then
-            write(6,'(a,3i4,2f20.2,i9)')
-     *        ' Negative tracer in Trop_chem_O3',
-     *        i,j,l,trm(i,j,l,n),dmass,itime
-              dmass = -trm(i,j,l,n)
-cc              trm(i,j,l,n) = 0.d0
-cc            else
-cc              trm(i,j,l,n) = trm(i,j,l,n) + dmass
+          tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
+          dz(i,j) = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
+          factor = dtsrc*dxyp(j)*dz(i,j)*1.d6    !/cm3->/m3
+          rprod = O3trop_Prod(i,j,l,jmon)*factor     ! unit=kg
+          rloss = O3trop_Loss(i,j,l,jmon)*factor*trm(i,j,l,n)
+          if(trm(i,j,l,n) +(rprod-rloss).lt.0.) then
+            write(6,'(a,3i3,4e14.3)') ' Negative O3 due to trop chem',
+     *             i,j,l,trm(i,j,l,n),rprod,rloss,itime
+            rloss = trm(i,j,l,n)+rprod
+cc          scalmom = max(1.d0-rloss/(trm(i,j,l,n)+1.d-40),0.d0)
+cc          trm(i,j,l,n) = 0.d0 !trm=0 here avoids possible roundoff
+          else
+cc          scalmom = max(1.d0-rloss/(trm(i,j,l,n)+1.d-40),0.d0)
+cc          trm(i,j,l,n) = trm(i,j,l,n) + (rprod-rloss)
           end if
-          tr3Dsource(i,j,l,ns,n) = dmass/dtchem
-cc          sdmass = sdmass+dmass
-c scale moments by fractional change in total tracer mass
-cc          if (dmass.lt.0.d0) then
-cc            scalmom = trm(i,j,l,n)/T0Mold
-cc            trmom(1:nmom,I,J,L,n) = trmom(1:nmom,I,J,L,n) * scalmom
-cc          end if
+          tr3Dsource(i,j,l,nsp,n) = rprod/dtsrc
+          tr3Dsource(i,j,l,nsl,n) = -rloss/dtsrc
         enddo
-cc          tajls(j,l,najl) = tajls(j,l,najl) + sdmass
         enddo
         enddo
       RETURN
       END SUBROUTINE Trop_chem_O3
+
+
+      SUBROUTINE linoz_depo(ns,n)
+C****
+C**** Deposition from layer 1
+C**** Deposition Velocity is in cm/sec.  Convert to kg
+C****
+      USE DOMAIN_DECOMP, only: GRID, GET
+      USE LINOZ_CHEM_COM, only: O3_DepVel
+      USE MODEL_COM, only: im,jm,jmon,t,itime,dtsrc
+      USE DYNAMICS, only: pmid,pk,pdsig
+      USE TRACER_COM
+      USE CONSTANT, only : grav,rgas
+      USE GEOM, only: imaxj
+      USE QUSDEF, only : mz,mzz
+      USE FLUXES, only: trsource
+      implicit none
+      integer i,j,l,n,ns
+      INTEGER :: J_1, J_0
+      real*8 tmsurf,dmass,tk
+C**** dz = -dP/rhoG; rho=PRT; Deposition velocity
+      real*8 dz(im,jm)
+
+C**** Extract useful local domain parameters from "grid"
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      l=1
+      do j=j_0,j_1
+        do i=1,imaxj(j)
+c         write(*,*)' pdsig',l,i,j,pdsig(l,i,j)
+          tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
+          dz(i,j) = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
+          tmsurf = max(0.d0,trm(i,j,l,n)
+     *                -trmom(mz,I,J,L,n)+trmom(mzz,I,J,L,n))
+          dmass = -O3_DepVel(i,j,jmon)*tmsurf*dtsrc/(dz(i,j)*100.)
+          if(trm(i,j,l,n) + dmass .lt.0.) then
+            write(6,'(a,3i3,2f12.0,3E12.3,i9,e12.3,2f7.1)')
+     *      ' Negative O3 from deposition', i,j,l,trm(i,j,l,n),
+     *      dmass,O3_DepVel(i,j,jmon),dz(i,j),tmsurf,itime
+     *      ,pdsig(l,i,j),tk,pmid(l,i,j)
+            dmass = -trm(i,j,l,n)
+c           trm(i,j,l,n) = 0.d0
+          else
+c           trm(i,j,l,n) = trm(i,j,l,n) + dmass
+          end if
+          trsource(i,j,ns,n) = dmass/dtsrc
+        enddo
+      enddo
+      RETURN
+      END
 
 
       SUBROUTINE Strat_chem_O3(ns,n)
@@ -547,22 +614,23 @@ c  4- ozone (P-L) for climatological ozone, v/v/s
 c  5- d(P-L) / dO3, 1/s
 c  6- d(P-L) / dT, v/v/s/K
 c  7- d(P-L) / d(column O3), v/v/s/DU
-c  8- d(P-L) / d(sol.flx.) (-)
-c
-!@var dsol variable which describes portion of solar cycle being modeled
-!@+ +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
-!@+ can go beyond +1,-1 for more extreme situations
-!@+ (but remember this is a linear approximation)
-!@+ use dsol=0.0 for 'standard linoz' runs
+cXX8- d(P-L) / d(sol.flx.) (-)   <<<XXX not in this version>>>
+cXXXXX DSOL NOT USED XXXXX
+c!@var dsol variable describes portion of solar cycle being modeled
+c!@+ +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
+c!@+ can go beyond +1,-1 for more extreme situations
+c!@+ (but remember this is a linear approximation)
+c!@+ use dsol=0.0 for 'standard linoz' runs
+cXXXXX DSOL NOT USED XXXXX
+
       USE CONSTANT, only : avog
-      USE MODEL_COM, only: itime,im,jm,lm,t
+      USE MODEL_COM, only: itime,im,jm,lm,t,dtsrc
       USE DOMAIN_DECOMP, only: GRID, GET
       USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,dxyp
       USE TRACER_COM
-cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
       USE PRATHER_CHEM_COM, only: nstrtc
-      USE LINOZ_CHEM_COM, only: dtchem,tlT0M,TLTZM,TLTZZM,dsol
+      USE LINOZ_CHEM_COM, only: tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
       implicit none
       real*8 dcolo3(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
@@ -571,7 +639,6 @@ cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
      &  climo3,climpml,dersol
       real*8 dmass,T0Mold
       integer i,j,l,lr,n,ns,najl   ,kx
-
       INTEGER :: J_1, J_0
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -583,11 +650,8 @@ c start at top layer and continue to lowest layer for strat. chem
       DO 330 l = lm,lm+1-nstrtc,-1
         LR = LM+1-L
         DO 320 J=J_0,J_1
-            if (tlT0M(j,lr,5) == 0.) then
-              go to 320
-            end if
+            if (tlT0M(j,lr,5) == 0.) go to 320
           do 310 i=1,imaxj(j)
-            if (l.le.ltropo(i,j)) go to 310  ! stay above tropopause
             if (trm(i,j,l,n).le.0.d0) goto 310
 
 c calculate ozone column above box (and save)
@@ -619,13 +683,13 @@ c temperature feedback: T is potential temp, need to convert
             dertmp=tlT0M(j,lr,6)/mass2vol(n)*am(l,i,j)*dxyp(j)
             dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
-            dersol = tlT0M(j,lr,8)/mass2vol(n)*am(l,i,j)*dxyp(j)
+CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*am(l,i,j)*dxyp(j)
 c calulate steady-state ozone:
-c           sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
-            sso3=climo3 -
-     *        (climpml+dco3*derco3+dtmp*dertmp+dsol*dersol)/dero3
+            sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
+CXXX        sso3=climo3 -
+CXXX *        (climpml+dco3*derco3+dtmp*dertmp+dsol*dersol)/dero3
 c change in ozone mass due to chemistry:
-            dmass=(sso3-T0Mold)*(1.0-exp(dero3*dtchem))
+            dmass=(sso3-T0Mold)*(1.0-exp(dero3*dtsrc))
 c update ozone mass
             if (T0Mold+dmass.lt.0.) then
                write(6,'(a,3i4,2f20.2,i9)')
@@ -636,7 +700,7 @@ cc               trm(i,j,l,n) = 0.d0
 cc            else
 cc               trm(i,j,l,n) = T0Mold + dmass
             end if
-            tr3Dsource(i,j,l,ns,n) = dmass/dtchem
+            tr3Dsource(i,j,l,ns,n) = dmass/dtsrc
 cc            tajls(j,l,najl) = tajls(j,l,najl) + dmass
 c scale moments by fractional change in total tracer mass
 cc        if (dmass.lt.0.d0) then
@@ -1404,7 +1468,7 @@ C****    But what WOULD be correct???
       SUBROUTINE get_wofsy_gas_IC(cgas,gasjl)
 C**** Input data are from Wofsy
 C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
-      USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop,jmon0
+      USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop,amonth,jmon0
       USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
@@ -1451,7 +1515,7 @@ C**** process
       if (AM_I_ROOT()) 
      *   write(6,'(a,i3,2f9.2)') ' Read Wofsy data at month', jmon0,xj,t
       call closeunit(iu)
-C**** Scale to a particular value (in this case, 1)
+C**** Scale to a particular value
       scale = 1.
       if (trim(cgas) == 'CH4') then
         scale = 1.
@@ -1537,8 +1601,8 @@ C**** Write GAS concentration on GCM grid boxes to disk (to check)
 C****
       call openunit('CH4check',iu,.true.)
       TITLEW =
-     * 'Wolfsy CH4 1995 CONCENTRATION January 1 for 23 layers'
-      WRITE (iu) TITLEW,GASJL
+     * 'Wolfsy CH4 1995 CONCENTRATION for '//amonth(jmon0)//' 1'
+      WRITE (iu) TITLEW,sngl(GASJL)
       call closeunit(iu)
 
       RETURN

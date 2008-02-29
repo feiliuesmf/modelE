@@ -189,7 +189,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_SPECIAL_Shindell
       INTEGER,PARAMETER :: ktaijs=476
 #else
+#ifdef TRACERS_SPECIAL_Lerner
+      INTEGER,PARAMETER :: ktaijs=205
+#else
       INTEGER,PARAMETER :: ktaijs=1183
+#endif
 #endif
 #endif
 #endif
@@ -412,7 +416,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_QUARZHEM
       INTEGER,PARAMETER :: ktajls=45
 #else
-      INTEGER, PARAMETER :: ktajls=36   ! default
+      INTEGER, PARAMETER :: ktajls=38   ! default
 #endif
 #endif
 #endif

@@ -41,10 +41,10 @@ C**** Each tracer has a variable name and a unique index
      *     'CFC11   ','14CO2   ','CH4     ','O3      ','Water   '/)
 #else
 #if defined TRACERS_SPECIAL_Lerner
-      integer, parameter :: ntm=9
+      integer, parameter :: ntm=10
       character*8, parameter :: trname(ntm)= (/
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
-     *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
+     *     'CFC11   ','14CO2   ','CH4     ','O3      ','SF6_c   '/)
 #else
 #if (defined TRACERS_DUST) && (defined SHINDELL_STRAT_CHEM) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
@@ -809,6 +809,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 
 !@var N_XXX: variable names of indices for tracers (init = 0)
       integer ::
+     *                 n_SF6_c=0,                                        
      *     n_Air=0,    n_SF6=0,   n_Rn222=0, n_CO2=0,      n_N2O=0,
      *     n_CFC11=0,  n_14CO2=0, n_CH4=0,   n_O3=0,       n_water=0,
      *     n_H2O18=0,  n_HDO=0,   n_HTO=0,   n_Ox=0,       n_NOx=0,

@@ -385,6 +385,7 @@ C**** Define individual tracer characteristics
           n_MPtable(n) = 3
           tcscale(n_MPtable(n)) = 1.
 #endif
+
 #ifdef TRACERS_SPECIAL_Shindell
 C**** determine initial CH4 distribution if set from rundeck
 C**** This is only effective with a complete restart.
@@ -419,11 +420,18 @@ C         Interpolate CH4 altitude-dependence to model resolution:
       n_O3 = n
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
+          ntsurfsrc(n) = 1
 #ifdef TRACERS_SPECIAL_Lerner
 C**** Get solar variability coefficient from namelist if it exits
           dsol = 0.
           call sync_param("dsol",dsol)
 #endif
+
+      case ('SF6_c')
+      n_SF6_c = n
+          ntm_power(n) = -14
+          tr_mm(n) = 146.01d0
+          ntsurfsrc(n) = 1
 #endif /* TRACERS_ON */
       case ('Water')
       n_Water = n
@@ -2078,11 +2086,11 @@ C****
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
 
-      case ('SF6')
+      case ('SF6','SF6_c')
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Layer_1_source_of_'//trname(n)
-        lname_jls(k) = 'SF6 CFC-GRID SOURCE, LAYER 1'
+        lname_jls(k) = trim(trname(n))//' CFC-GRID SOURCE, LAYER 1'
         jls_ltop(k) = 1
         jls_power(k) = -3.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -2361,16 +2369,30 @@ C****
 
       case ('O3')
        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Deposition_L1'//trname(n)
+        lname_jls(k) = 'Change of O3 by Deposition in Layer 1'
+        jls_ltop(k) = 1
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+       k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
-        lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN TROPOSPHERE'
+        sname_jls(k) = 'Strat_Chem_change_'//trname(n)
+        lname_jls(k) = 'Change of O3 by Chemistry in Stratos'
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_3Dsource(2,n) = k
-        sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
-        lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN STRATOS'
+        sname_jls(k) = 'Trop_Chem_Prod_change_'//trname(n)
+        lname_jls(k) = 'Change of O3 by Chem Prod. in Troposphere'
+        jls_ltop(k) = lm
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+       k = k + 1
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'Trop_Chem_Loss_change_'//trname(n)
+        lname_jls(k) = 'Change of O3 by Chem Loss in Troposphere'
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -3590,13 +3612,13 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
 
-      case ('SF6')
+      case ('SF6','SF6_c')
       k = k+1
         ijts_source(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SF6 Layer 1 SOURCE'
-        sname_ijts(k) = 'SF6_CFC-GRID_SOURCE_LAYER_1'
+        lname_ijts(k) = trim(trname(n))//' Layer 1 SOURCE'
+        sname_ijts(k) = trim(trname(n))//'_CFC-GRID_SOURCE_LAYER_1'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -4026,21 +4048,39 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('O3')
       k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'O3 deposition, layer 1'
+        sname_ijts(k) = 'O3_deposition_L1'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k + 1
         ijts_3Dsource(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'O3 Tropospheric Chemistry'
-        sname_ijts(k) = 'O3_trop_chem'
-        ijts_power(k) = -10.
+        lname_ijts(k) = 'O3 Stratospheric Chem.'
+        sname_ijts(k) = 'O3_strat_chem'
+        ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(2,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'O3 Stratospheric Chemistry'
-        sname_ijts(k) = 'O3_strat_chem'
-        ijts_power(k) = -10.
+        lname_ijts(k) = 'O3 Tropo. Chem. Production'
+        sname_ijts(k) = 'O3_trop_chem_prod'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k + 1
+        ijts_3Dsource(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'O3 Tropo. Chemistry Loss'
+        sname_ijts(k) = 'O3_trop_chem_loss'
+        ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -6883,7 +6923,7 @@ C**** set some defaults
 #endif
 
 
-      case ('SF6')
+      case ('SF6','SF6_c')
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
@@ -7031,12 +7071,17 @@ C**** set some defaults
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('O3')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Tropos. Chem'
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Deposition'
+      itcon_3Dsrc(1,N) = 14
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Stratos. Chem'
       qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Stratos. Chem'
+      itcon_3Dsrc(2,N) = 15
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Trop.Chem Prod'
       qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_3Dsrc(3,N) = 16
+      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(4) = 'Trop.Chem Loss'
+      qsum(itcon_3Dsrc(3,N)) = .true.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -8163,7 +8208,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 !@auth Jean Lerner
       USE DOMAIN_DECOMP, only: AM_I_ROOT
 #ifdef TRACERS_ON
-      USE CONSTANT, only: mair,rhow,sday
+      USE CONSTANT, only: mair,rhow,sday,grav
       USE resolution,ONLY : Im,Jm,Lm,Ls1
       USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear
 #ifdef TRACERS_WATER
@@ -8243,7 +8288,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 
       IMPLICIT NONE
-      INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,kk
+      INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,kk,ls,lt
       CHARACTER*80 title
       CHARACTER*300 out_line
       REAL*8 CFC11ic,conv
@@ -8255,6 +8300,11 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       REAL*4, DIMENSION(jm,lm)    ::  N2Oic   !each proc. reads global array
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                      CH4ic
+#ifdef TRACERS_SPECIAL_Lerner
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *                                                     icCFC
+      REAL*8 stratm,xlat,pdn,pup
+#endif
 
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
       REAL*8 :: dummy
@@ -8350,7 +8400,7 @@ C**** set some defaults for water tracers
              enddo
           endif
 
-        case ('SF6')
+        case ('SF6','SF6_c')
           ! defaults ok
 
         case ('Be7', 'Be10', 'Pb210', 'Rn222')
@@ -8422,6 +8472,40 @@ C**** ESMF: Each processor reads the global array: N2Oic
           do j=J_0,J_1
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*CFC11ic
           enddo; enddo
+#ifdef TRACERS_SPECIAL_Lerner
+        stratm = 101.9368
+        DO J=J_0,18          !! resolution dependent (needs to be fixed)
+          icCFC(J) = 220.d-12*136.5/29.029
+        enddo
+        DO J=29,J_1          !! resolution dependent (needs to be fixed)
+          icCFC(J) = 235.d-12*136.5/29.029
+        enddo
+        DO J=19,28          !! resolution dependent (needs to be fixed)
+          XLAT = (J-18.5)/10.          !! resolution dependent (needs to be fixed)
+          icCFC(J) = (220.d-12 + XLAT*15.d-12)*136.5/29.029
+        enddo
+C****
+      trm(:,j_0,:,n) = 0.
+      trm(:,j_1,:,n) = 0.
+      DO J=J_0,J_1
+      DO I=1,IM
+        PUP = STRATM*GRAV
+        DO LS=LM,1,-1
+          PDN = PUP + AM(ls,I,J)*GRAV
+          IF(PDN.GT.10000.d0)  GO TO 450
+          trm(I,J,LS,N) = 
+     *      AM(ls,I,J)*DXYP(J)*icCFC(J)*.5*(PUP+PDN)/10000.d0
+          PUP = PDN
+        enddo
+  450   CONTINUE
+        trm(I,J,LS,N) = AM(ls,I,J)*DXYP(J)*icCFC(J)*
+     *    (1.-.5*(10000.-PUP)*(10000.-PUP)/(10000.*(PDN-PUP)))
+        DO LT=1,LS-1
+          trm(I,J,LT,N) = AM(lt,I,J)*DXYP(J)*icCFC(J)
+        enddo
+      enddo; enddo
+#endif
+
 
         case ('14CO2')   !!! this tracer is supposed to start 10/16
 #ifdef TRACERS_SPECIAL_Lerner
@@ -9364,6 +9448,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
      $     ,flake0
       USE DOMAIN_DECOMP, only : grid, get, write_parallel
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only : variable_phi
+#endif
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -9409,10 +9496,8 @@ C**** Initialize tables for linoz
 C**** Initialize tables for Prather StratChem tracers
       do n=1,ntm
         if (trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
-     *      trname(n).eq."CFC11") then
-          if (itime.ge.itime_tr0(n))
+     *      trname(n).eq."CFC11")
      *    call stratchem_setup(n_MPtable(n),trname(n))
-        end if
       end do
       end if  ! iact=0
 
@@ -9561,7 +9646,7 @@ C**** at the start of any day
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
-     *  ,dtsrc,jmon
+     *  ,dtsrc,jmon,nday
       USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, write_parallel
      * ,AM_I_ROOT
 
@@ -9626,21 +9711,24 @@ C**** All sources are saved as kg/s
 C****
 C**** Surface Sources of SF6 and CFCn (Same grid as CFC11)
 C****
-      case ('SF6','CFC11','CFCn')
+      case ('SF6','CFC11','CFCn','SF6_c')
         trsource(:,:,:,n)=0
 C**** SF6 source increases each year by .3pptv/year
+C**** SF6_c source is constant, same as first year SF6, but always
 C**** CFCnsource increases each year so that the glbavg is from obs
 C**** CFC source is the same each year
 C**** Distribute source over ice-free land
         steppy = 1./(sday*JDperY)
-        if (trname(n).eq.'SF6'  .or. trname(n).eq.'CFCn') then
+        if (trname(n).eq.'SF6' .or. trname(n).eq.'CFCn' .or.
+     *      trname(n).eq.'SF6_c') then
 C         Make sure index KY=1 in year that tracer turns on
-          ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
+          ky = 1 + (itime-itime_tr0(n))/(nday*JDperY)
+          if (trname(n).eq.'SF6_c') ky = 1
           base = (0.3d-12)*vol2mass(n) !pptm
-          x = base*ky*steppy
+          x = base*ky
           airm = (psf-pmtop)*100.*bygrav*AREAG !(kg/m**2 X m**2 = kg)
-          anngas = x*airm/steppy
-        else
+          anngas = x*airm
+        else if (trname(n).eq.'CFC11') then
           anngas = 310.d6
         endif
 C GISS-ESMF EXCEPTIONAL CASE
@@ -9874,15 +9962,21 @@ C****
         trsource(:,j,1,n) = (am(1,:,j)*dxyp(j)*462.2d-9
      *   -trm(:,j,1,n))*bydt
       end do
+C****
+C**** Linoz Deposition from layer 1
+C****
+      case ('O3')
+      call linoz_depo(1,n)
 #endif
 C****
 C**** Sources and sinks for 14C02
 C**** NOTE: This tracer is supposed to start on 10/16
+C**** Decay is a function of the number of months since itime_tr0
 C**** The tracer is reset to specific values in layer 1 only if
 C****   this results in a sink
 C****
       case ('14CO2')
-      tmon = (itime-itime_tr0(n))*jmpery/(hrday*jdpery)  !(12./8760.)
+      tmon = (itime-itime_tr0(n))*jmpery/(nday*jdpery)
       trsource(:,J_0:J_1,1,n) = 0.
       do j=J_0,J_1
          if (j <= jm/2) then
@@ -10116,28 +10210,24 @@ C****
       call apply_tracer_3Dsource(1,n)
       call Strat_chem_Prather(2,n)
       call apply_tracer_3Dsource(2,n,.false.)
-cc      call DIAGTCA(itcon_3Dsrc(2,n),n)
 C****
       case ('O3')
       tr3Dsource(:,J_0:J_1,:,:,n) = 0.
-      call Trop_chem_O3(1,n)
-      call apply_tracer_3Dsource(1,n)
-cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
-      call Strat_chem_O3(2,n)
-      call apply_tracer_3Dsource(2,n)
-cc      call DIAGTCA(itcon_3Dsrc(2,n),n)
+      call Trop_chem_O3(2,3,n)
+        call apply_tracer_3Dsource(2,n,.false.)
+        call apply_tracer_3Dsource(3,n,.false.)
+      call Strat_chem_O3(1,n)
+        call apply_tracer_3Dsource(1,n,.false.)
 C****
       case ('N2O')
       tr3Dsource(:,J_0:J_1,:,:,n) = 0.
       call Strat_chem_Prather(1,n)
       call apply_tracer_3Dsource(1,n,.FALSE.)
-cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
       case ('CFC11')
       tr3Dsource(:,J_0:J_1,:,:,n) = 0.
       call Strat_chem_Prather(1,n)
       call apply_tracer_3Dsource(1,n,.FALSE.)
-cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
