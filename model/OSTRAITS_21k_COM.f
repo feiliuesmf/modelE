@@ -13,22 +13,6 @@
       IMPLICIT NONE
       SAVE
 C**** These values are highly resolution dependent
-C**** MODERN
-C****     Strait           From         To       LM    Width
-C****     ------           ----         --       --    -----
-C****  1  Fury & Hecla   19,42 ES    20,40 WN     2    20000
-C****  2  Nares          22,43 EN    24,44 WS     5     5000
-C****  3  Gibraltar      35,32 EN    37,33 WS     5    25000
-C****  4  English        36,36 EN    37,37 WS     2    35000
-C****  5  Kattegat       38,38 EN    40,38 WS     2    60000
-C****  6  Bosporous      42,33 EN    43,34 WS     2     6000
-C****  7  Red Sea        44,29 ES    45,28 WN     6   250000
-C****  8  Bab al Mandab  45,28 ES    46,27 WN     6    25000
-C****  9  Hormuz         47,30 ES    49,29 WN     2   100000  ! 50000
-C**** 10  Malacca        56,25 EN    58,24 WS     3    50000
-C**** 11  Korea          62,32 EN    63,33 WS     4   170000
-C**** 12  Soya-kaikyo    64,34 EN    65,35 WS     2    40000
-C**** 12alt Tsugaru      64,34 EN    66,34 WS     4    20000
 C****
 C**** LGM 21 kyr 
 C****     Strait           From         To       LM    Width
@@ -129,6 +113,7 @@ C**** Bab-al-Mandab: (45,28) to (46,27)
       SF(27,L,3) = SF(27,L,3) - OLNST(L+1,n_STbam)*FACST
 C**** Korea: (63,31) to (63,33)
       SF(31,L,2) = SF(31,L,2) + OLNST(L+1,n_STkor)*FACST
+      SF(32,L,2) = SF(32,L,2) + OLNST(L+1,n_STkor)*FACST
 
       RETURN
       END
@@ -152,9 +137,6 @@ C**** Red Sea: (44,29) to (45,28)
 C**** Bab-al-Mandab: (45,28) to (46,27)
       IF (J.eq.28) SF(45,28) = SF(45,28) + SUM(OLNST(1:LMST(n_STbam)
      *     ,n_STbam))*FACST
-C**** Korea: (63,31) to (63,33)
-      IF (J.eq.33) SF(62,33) = SF(62,33)+SUM(OLNST(1:LMST(n_STkor)
-     *     ,n_STkor))*FACST
 
       RETURN
       END
@@ -181,6 +163,8 @@ C**** Bab-al-Mandab: (45,28) to (46,27)
 C**** Korea: (63,31) to (63,33)
       X(31,2,KQ) = X(31,2,KQ) + SOLNST(n_STkor)*SCALE
       X(31,4,KQ) = X(31,4,KQ) + SOLNST(n_STkor)*SCALE
+      X(32,2,KQ) = X(32,2,KQ) + SOLNST(n_STkor)*SCALE
+      X(32,4,KQ) = X(32,4,KQ) + SOLNST(n_STkor)*SCALE
 
 C**** Calculate transport through straits from one basin to another
 C****
