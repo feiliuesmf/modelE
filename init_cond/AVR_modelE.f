@@ -53,7 +53,7 @@ C****
       else
         print*,"AVR72X46 calculates the AVRX coefficients for "
         print*,"ocean polar filter."
-        print*,"AVR_modelE <filein> opt:<fileout>"
+        print*,"AVR_modelE <topo filein> opt:<avr fileout>"
         print*,"Contains info to do AVR144X92 but req's recompiling"
         go to 999
       endif
