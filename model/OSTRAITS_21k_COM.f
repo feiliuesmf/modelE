@@ -23,8 +23,8 @@ C****  1  Gibraltar      35,32 EN    37,33 WS     5    25000
 C****  X  English       Above ground/under ice
 C****  X  Kattegat      Above ground/under ice
 C****  X  Bosporous     Black Sea -> Lake
-C****  2  Red Sea        44,29 ES    45,28 WN     6   250000
-C****  3  Bab al Mandab  45,28 ES    46,27 WN     6    25000
+C****  2  Red Sea        44,29 ES    45,28 WN     5   250000
+C****  3  Bab al Mandab  45,28 ES    46,27 WN     2    25000
 C****  X  Hormuz         Above ground
 C****  X  Malacca        Above ground
 C****  4  Korea          63,31 EN    63,33 WS     4    85000 (Tsushima gone)
