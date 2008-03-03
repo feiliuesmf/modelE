@@ -8208,7 +8208,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 !@auth Jean Lerner
       USE DOMAIN_DECOMP, only: AM_I_ROOT
 #ifdef TRACERS_ON
-      USE CONSTANT, only: mair,rhow,sday,grav
+      USE CONSTANT, only: mair,rhow,sday,grav,tf
       USE resolution,ONLY : Im,Jm,Lm,Ls1
       USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear
 #ifdef TRACERS_WATER
@@ -8227,7 +8227,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      *   ,imAER,n_SO2,imPI,aer_int_yr
 #endif
 #ifdef TRACERS_WATER
-     *  ,trwm,trw0,tr_wd_TYPE,nWATER
+     *  ,trwm,trw0,tr_wd_TYPE,nWATER,n_HDO,n_H2O18
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
       USE SEAICE, only : xsi,ace1i
@@ -8239,7 +8239,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
       USE GEOM, only: dxyp,bydxyp,lat_dg
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
-      USE PBLCOM, only: npbl,trabl,qabl
+      USE PBLCOM, only: npbl,trabl,qabl,tsavg
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
@@ -8288,11 +8288,13 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 
       IMPLICIT NONE
+      real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,kk,ls,lt
       CHARACTER*80 title
       CHARACTER*300 out_line
       REAL*8 CFC11ic,conv
       REAL*8 :: trinit =1., tmominit=0.
+      real*8 tracerTs
 
       REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                    ic14CO2
@@ -8370,7 +8372,7 @@ C**** set some defaults for air mass tracers
 
 #ifdef TRACERS_WATER
 C**** set some defaults for water tracers
-      trwm(:,J_0:J_1,:,n)=0.
+      trwm(:,J_0:J_1,:,n)=0. ! cloud liquid water
       trlake(n,:,:,J_0:J_1)=0.
       trsi(n,:,:,J_0:J_1)=0.
       trlndi(n,:,J_0:J_1)=0.
@@ -8649,12 +8651,19 @@ c     tmominit = 0.
 
         do j=J_0,J_1
           do i=1,im
+            tracerTs=trw0(n)
+c Define a simple d18O based on Tsurf for GIC, put dD on meteoric water line
+            if(trname(n).eq."H2O18") tracerTs=TRW0(n_H2O18)*(1.+1d-3*
+     *           ((tsavg(i,j)-(tf+tracerT0))*d18oT_slope))
+            if(trname(n).eq."HDO") tracerTs=TRW0(n_HDO)*(1.+(1d-3*
+     *           (((tsavg(i,j)-(tf+tracerT0))*d18oT_slope)*8+1d1)))
 C**** lakes
             if (flake(i,j).gt.0) then
-              trlake(n,1,i,j)=trw0(n)*mldlk(i,j)*rhow*flake(i,j)*dxyp(j)
+              trlake(n,1,i,j)=tracerTs*mldlk(i,j)*rhow*flake(i,j)
+     *             *dxyp(j)
               if (mwl(i,j)-mldlk(i,j)*rhow*flake(i,j)*dxyp(j).gt.1d-10
      *             *mwl(i,j)) then
-                trlake(n,2,i,j)=trw0(n)*mwl(i,j)-trlake(n,1,i,j)
+                trlake(n,2,i,j)=tracerTs*mwl(i,j)-trlake(n,1,i,j)
               else
                 trlake(n,2,i,j)=0.
               end if
@@ -8689,12 +8698,12 @@ c**** earth
             !!!if (fearth(i,j).gt.0) then
             if (focean(i,j) < 1.d0) then
               conv=rhow         ! convert from m to kg/m^2
-              tr_w_ij  (n,:,:,i,j)=trw0(n)*w_ij (:,:,i,j)*conv
+              tr_w_ij  (n,:,:,i,j)=tracerTs*w_ij (:,:,i,j)*conv
               tr_wsn_ij(n,1:nsn_ij(1,i,j),1,i,j)=
-     &             trw0(n)*wsn_ij(1:nsn_ij(1,i,j),1,i,j)
+     &             tracerTs*wsn_ij(1:nsn_ij(1,i,j),1,i,j)
      &             *fr_snow_ij(1,i,j)*conv
               tr_wsn_ij(n,1:nsn_ij(2,i,j),2,i,j)=
-     &             trw0(n)*wsn_ij(1:nsn_ij(2,i,j),2,i,j)
+     &             tracerTs*wsn_ij(1:nsn_ij(2,i,j),2,i,j)
      &             *fr_snow_ij(2,i,j)*conv
               !trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
               gtracer (n,4,i,j)=trw0(n)
@@ -8707,6 +8716,13 @@ c**** earth
             end if
           end do
           end do
+          if (AM_I_ROOT()) then
+            if(trname(n).eq."H2O18") write(6,'(A52,f6.2,A15,f8.4,A18)')
+     *           ,"Initialized trlake tr_w_ij tr_wsn_ij using Tsurf at"
+     *           ,tracerT0,"degC, 0 permil",d18oT_slope
+     *           ,"permil d18O/degC"
+          endif
+
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -9064,7 +9080,7 @@ C**** Initialise pbl profile if necessary
 
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 C**** Initialise ocean tracers if necessary
-      call tracer_ic_ocean
+c      call tracer_bc_ocean ! ANL :: 12/07
 #endif
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
