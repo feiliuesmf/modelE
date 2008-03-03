@@ -187,9 +187,9 @@ c
 
       call scatter_hycom_arrays ! actually not needed yet ...
 
+      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
       if (AM_I_ROOT()) then ! work on global grids here
 
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 cdiag write(*,'(a,i8,7i5,a)')'chk =',
 cdiag.    Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
 c
@@ -751,7 +751,11 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       before = after
+      endif ! AM_I_ROOT
+
       call tsadvc(m,n,mm,nn,k1m,k1n)
+
+      if (AM_I_ROOT()) then
       call system_clock(after)
       tsadvc_time = real(after-before)/real(rate)
 c

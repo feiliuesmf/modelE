@@ -63,6 +63,8 @@
       PUBLIC :: CHECKSUM_COLUMN ! K, I, J
 !@var GLOBALSUM output a bit-reproducible global-hemisphere-zonal sum for an array
       PUBLIC :: GLOBALSUM
+!@var GLOBALMIN determine max value across pes
+      PUBLIC :: GLOBALMIN
 !@var GLOBALMAX determine max value across pes
       PUBLIC :: GLOBALMAX
 !@var ARRAYSCATTER scatter a global array to a decomposed array
@@ -89,6 +91,11 @@
       PUBLIC :: WRITEI_PARALLEL
       PUBLIC :: TRANSP
       PUBLIC :: TRANSPOSE_COLUMN
+!@var GLOBALMIN Generic wrapper for Real
+      INTERFACE GLOBALMIN
+        MODULE PROCEDURE GLOBALMIN_R
+      END INTERFACE
+
 !@var GLOBALMAX Generic wrapper for Real/integer
       INTERFACE GLOBALMAX
         MODULE PROCEDURE GLOBALMAX_R
@@ -3387,6 +3394,22 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       END SUBROUTINE LOG_PARALLEL
 
+      SUBROUTINE GLOBALMIN_R(grd_dum, val, val_min)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN)  :: grd_dum
+      REAL*8,            INTENT(IN)  :: val
+      REAL*8,            INTENT(OUT) :: val_min
+
+      INTEGER  :: ier
+
+#ifdef USE_ESMF
+      CALL MPI_Allreduce(val, val_min, 1, MPI_DOUBLE_PRECISION,MPI_MIN,
+     &     MPI_COMM_WORLD, ier)
+#else
+      val_min = val
+#endif
+
+      END SUBROUTINE
 
       SUBROUTINE GLOBALMAX_R(grd_dum, val, val_max)
       IMPLICIT NONE
