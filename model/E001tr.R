@@ -10,7 +10,7 @@ functional rundeck.
 
 
 E001tr: ModelE1 (3.0) (based on B402A with sample tracers)
- Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, linearizedO3, Water
+ Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, linearizedO3, SF6_c, Water
 23 lyrs, top at 85km - 1979 atmosphere/ocean
 gravity wave drag;     uses dry convection (rather than turbulence)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
@@ -132,7 +132,10 @@ CO2_LAND_USE=CO2_sources/gcm_data/CO2DEF_HOU_4X5
 CO2_VEG=CO2_sources/gcm_data/CO2VEG_MON_4X5          ! Monthly source
 CO2_OCEAN=CO2_sources/gcm_data/CO2_4X5_Ocean_flux02  ! Monthly source
 14CO2_IC_DATA=workshop.14co2                         ! for 14CO2 Oct. 1963
-LINOZ_TABLE=chemtab_solfb_31aug01.txt       ! linoz O3 coefficients
+LINOZ_TABLE=O3_linoz_coeff                !linoz coefficients for stratosphere
+LO3_Trop_loss=linoz/LOx_IJ_M23_trop_L11   !Troposphere ozone chemical loss (Harvard
+LO3_Trop_prod=linoz/POx_IJ_M23_trop_L11   !Troposphere ozone chemical production (Harvard)
+LINOZ_Dep_vel=linoz/O3dv_IJ.bin           !Deposition velocity for O3 (Harvard)
 N2O_TABLE=N2Oloss.table                     ! Stratosphere tracer forcing
 CFC11_TABLE=F11loss.table                   ! Stratosphere tracer forcing
 CH4_TABLE=CH4chem.table                     ! Stratosphere tracer forcing
@@ -172,6 +175,7 @@ PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000035 !the default is 15d-6
 PCONPEN=500.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003
+CMTN=0.25
 
 xCDpbl=1.
 cond_scheme=1   ! 2 = more elaborate conduction scheme (GHY, Nancy Kiang)
@@ -222,8 +226,10 @@ isccp_diags=0   ! use =0 to save cpu time
 nda5d=1         ! use =7 to save cpu time
 nda5s=1         ! use =7 to save cpu time
 
-itime_tr0=8016,8016,8016,8016,8016,8016,15696,8016,8016,8016,
+itime_tr0=8016,8016,8016,8016,8016,8016,15696,8016,8016,8016,8016,
 to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
+nstrtc=12                    ! Number of layers for Prather stratosphere chemistry (LM=23)
+
 &&END_PARAMETERS
 
  &INPUTZ
