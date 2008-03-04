@@ -478,7 +478,7 @@ C****
       write(title,*) "AVR parameters: NSEGM=",NSEGM,",INDM=",INDM
       write(2) title,NSEGM,INDM      
       TITLE = 'Polar Filter Reduction Matrix ' //
-     *        'Z72X46N_9KY_nobs, 13L, Lmin=2 '
+     *        trim(filein)// ', 13L, Lmin=2 '
       WRITE (2) TITLE,NSEG,IMIN,ILEN,INDEX,REDUCO
       CLOSE (2)
 
