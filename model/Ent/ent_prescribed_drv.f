@@ -52,8 +52,8 @@
       real*4 :: soilC_data(N_CASA_LAYERS,IM,JM)
       integer :: iu_SOILCARB
       character*80 :: title
-      integer :: n,nn,p
-      !real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
+      integer :: n,nn,p, i
+      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
       real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
 
       Tpool_ini(:,:,:,:,:,:) = 0.d0  !initialize all pools to zero
@@ -86,9 +86,33 @@
         Cpool_fracs(8,:,1) = (/ !crops (for now=C3 grass)
      &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
      &       0.009848682,0.014675189,0.692995043,0.184450822 /)
+
+#ifdef SOILCARB_SITE
+!####temporary hack (for site-specific runs)####
+!for now, external file should be named as below and should be organized as follows:
+!(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
+!(2) first non-header row should have total site-measured pool (in g/m2);
+!(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
+      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
+      read(iu_SOILCARB,*)  !skip optional header row(s)
+      read(iu_SOILCARB,*) total_Cpool(:)
+      do i=1,NPOOLS-NLIVE
+        read(iu_SOILCARB,*) Cpool_fracs(GRASSC3,i,:)
+      end do
+
+      do p=1,N_PFT      
+       do n=1,N_CASA_LAYERS 
+        do i=NLIVE+1,NPOOLS
+         Tpool_ini(p,CARBON,i-NLIVE,n,I0:I1,J0:J1) =
+     &          Cpool_fracs(p,i-NLIVE,n)*total_Cpool(n)
+        end do
+       end do
+      end do
+!####
+#else
 !***  
         !read in ISRIC-WISE 4x5 dataset      
-        call openunit("SOILCARB",iu_SOILCARB,.true.,.true.) !globally gridded binary dataset
+        call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.) !globally gridded binary dataset
         read (iu_SOILCARB) title, soilC_data !data in kg/m2 (converted to g/m2 below)
       
         !assign Tpool_ini values (pft-specific)
@@ -101,26 +125,7 @@
             end do
           end do
         end do
-
-!####temporary hack (for site-specific runs)####
-!for now, external file should be named as below and should be organized as follows:
-!(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
-!(2) first non-header row should have total site-measured pool (in g/m2);
-!(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
-!      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
-!      read(iu_SOILCARB,*)  !skip optional header row(s)
-!      read(iu_SOILCARB,*) total_Cpool(:)
-!      do i=1,NPOOLS-NLIVE
-!        read(iu_SOILCARB,*) Cpool_fracs(:,i)
-!      end do
-      
-!      do n=1,N_CASA_LAYERS 
-!       do i=NLIVE+1,NPOOLS
-!        Tpool_ini(CARBON,i-NLIVE,n,I0:I1,J0:J1) =
-!     &          Cpool_fracs(n,i-NLIVE)*total_Cpool(n)
-!       end do
-!      end do
-!####
+#endif
         call closeunit(iu_SOILCARB)
       endif !Read in initialization
 
