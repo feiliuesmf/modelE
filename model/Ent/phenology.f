@@ -230,9 +230,9 @@
 !@sum Update the vegetation state and carbon pools.
 !@sum i.e., LAI, senescefrac, DBH, height &
 !@sum carbon pools of foliage, sapwood, fineroot, hardwood, coarseroot
-
+      
       use ent_prescr_veg
-  
+      implicit none
       type(patch),pointer :: pp 
       type(cohort), pointer :: cop
       real*8 :: dtsec
@@ -244,7 +244,7 @@
       ! dphdt difference between today's (unpdated) and yesterday's phenofact (unitless)
       real*8 :: dphdt
       real*8 :: C_fol_old
-      real*8 :: C_fol
+!      real*8 :: C_fol
       real*8 :: C_lab
       ! Cactive active carbon pool, including foliage, sapwood and fine root (gC/pool/individual)
       real*8 :: Cactive
@@ -268,8 +268,8 @@
       real*8 :: dC_fol_litter
       ! dC_fol sum of dC_fol_growth+dC_fol_litter
       real*8 :: dC_fol
-      real*8 :: Closs(PTRACE,NPOOLS) !Litter per cohort.
-      real*8 :: Clossacc(PTRACE,NPOOLS) !Litter accumulator.
+!      real*8 :: Closs(PTRACE,NPOOLS) !Litter per cohort.
+!      real*8 :: Clossacc(PTRACE,NPOOLS) !Litter accumulator.
       ! qsw 
       real*8 :: qsw
       ! dbh diameter at the breast height (cm)
@@ -420,9 +420,9 @@ c$$$     &           - Cactive * (1.0-(phenofactor-dphdt)) / ialloc
 
       use ent_prescr_veg
 
-      real*8 :: dtsec        
+!      real*8 :: dtsec        
 
-      type(cohort),pointer :: cop
+!      type(cohort),pointer :: cop
       integer, intent(in) :: pft
       real*8, intent(in) :: dbh
       real*8, intent(in) :: phenofactor
@@ -438,9 +438,9 @@ c$$$     &           - Cactive * (1.0-(phenofactor-dphdt)) / ialloc
       real*8 :: dC_lab_growth_active
       real*8 :: dCdead
       
-      real*8 :: phehofactor_old
+!      real*8 :: phehofactor_old
       real*8 :: Cactive_pot
-      real*8 :: Cactive_inc
+!      real*8 :: Cactive_inc
 
       !r_fract: fraction of excess c going to seed reproduction 
       real*8 :: r_fract 

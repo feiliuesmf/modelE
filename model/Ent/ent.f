@@ -359,7 +359,8 @@
       if (pp%GPP.lt.0.d0) then
         print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
       endif
-      write(999,*) pp%cellptr%betad, pp%cellptr%betadl
+!      write(999,*) pp%cellptr%Soilmp, pp%Soilmoist
+!     &     ,pp%cellptr%betad, pp%cellptr%betadl
 
       end subroutine ent_diagnostics
           !*********************************************************!

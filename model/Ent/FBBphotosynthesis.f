@@ -336,7 +336,7 @@
       Je_light = Je(IPAR,Cip,pspar)
 
 #ifdef DEBUG_ENT
-      write(995,*) ca,rh,gb,IPAR, Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
+      write(996,*) ca,rh,gb,IPAR, Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
      &     pspar%Gammastar,Cip, Je_light
 #endif
       end subroutine Ci_Je
@@ -947,6 +947,7 @@ cddd
       pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
       pspar%Gammastar = calc_CO2compp(O2pres,Tl) !(Pa) (Collatz)
       pspar%m = stressH2O*pftpar(p)%m     !Slope of Ball-Berry equation (Collatz)
+!      pspar%m = pftpar(p)%m     !Slope of Ball-Berry equation (Collatz)
       pspar%b = pftpar(p)%b     !Intercept of Ball-Berry equation (mol m-2 s-1) (Collatz)
       pspar%Nleaf = pftpar(p)%Nleaf !g-N/m^2[leaf] Needed for foliar respiration.
       !pspar%Nleaf = pftpar(p)%Nleaf * phenology factor !Here can adjust Nleaf according
@@ -1037,7 +1038,7 @@ cddd
       !----Local-----
       
       gsw = pspar%m*Anet*rh/cs + pspar%b
-      if (gsw < 0.0) gsw = 0.d0
+      if (gsw < pspar%b) gsw = pspar%b
 
       end function BallBerry
 

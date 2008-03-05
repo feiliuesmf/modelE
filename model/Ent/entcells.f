@@ -405,6 +405,7 @@
       !-----Local---------
       integer :: ncov, pft
       type(patch),pointer :: pp, pp_tmp
+      real*8 :: sandfrac,clayfrac,smpsat,bch,watsat,watdry
 
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("init_simple_entcell 1",255)
@@ -462,6 +463,21 @@
 
       ! soil textures for CASA
       ecp%soil_texture(:) = soil_texture(:)
+
+      !Soil porosity and wilting? hygroscopic? point for water stress2 calculation. From soilbgc.f.
+      sandfrac = pp%cellptr%soil_texture(1)
+      clayfrac = pp%cellptr%soil_texture(3)
+      watsat =  0.489d0 - 0.00126d0*sandfrac !porosity, saturated soil fraction
+      smpsat = -10.d0*(10.d0**(1.88d0-0.0131d0*sandfrac))
+      bch = 2.91d0 + 0.159d0*clayfrac
+      watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
+!      watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
+      ecp%soil_Phi = watsat
+      ecp%soil_dry = watdry
+
+#ifdef OFFLINE
+      write(*,*) "soil_Phi, soil_dry",ecp%soil_Phi, ecp%soil_dry
+#endif
 
       call summarize_entcell(ecp)
 

@@ -212,7 +212,7 @@
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
-         !* DIAGNOSTICS - BIOMASS POOLS (g-C/cohort)
+         !* DIAGNOSTICS - BIOMASS POOLS (kg-C/m^2-ground = sum kg-C/cohorts)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
          real*8 :: N_fol          ! Foliage nitrogen (gN/m2-gnd)
          real*8 :: C_w           ! Sapwood+hardwood carbon (=rho_wood*sw_vol) (units?)
@@ -382,6 +382,7 @@
          real*8 :: heat_capacity ! total veg. heat capacity
          !* IMPORT - SOIL
          real*8 :: soil_Phi      !Soil porosity (m3/m3)
+         real*8 :: soil_dry     !Soil wetness "when evapotranspiration stops"
          real*8 :: soildepth    !Soil depth (m)
          real*8 :: theta_max    !Saturated soil water volume (m/m)
          real*8 :: k_sat        !Saturated hydraulic conductivity

@@ -79,30 +79,30 @@
      &!        pst,hwilt,sstar,swilt,nf,sla,r,lrage,woodage,lit_C2N,lignin,phenotype ! 
      &!        b1Cf, b2Cf, b1Cd, b2Cd, b1Ht, b2Ht
      &     (/
-     &     pftype(1,   -100.d0,  .50d0, .30d0,  1.4d0, !tundra
+     &     pftype(1,   -153.d0,  .50d0, .30d0,  1.4d0, !tundra
      &     22.5d0, 0.6d0, 2.8d0, 5.5d0, 50.0d0,0.15d0,1,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
-     &     pftype(2,   -153.d0,  .45d0, .27d0,  1.5d0, !grassC3
-     &     37.5d0, 0.6d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,4,
+     &     pftype(2,   -2030.d0,  .30d0, .10d0,  1.5d0, !grassC3 !hwilt=Vaira grassland final senescence soilmp layer2
+     &     41.1d0, 0.6d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,4, !Reich 1997 Figure 3b and Ponca, but 41.1 sla for Reich equation cited by CLM, leaf longevity 0.5 yr
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
 !     &     pftype(2,   -100.d0,  .45d0, .27d0,  2.9d0, !grassC3 !NK Ponca nf and SLA
 !     &     10.0d0, 0.6d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,4),
-     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0, !shrub
+     &     pftype(2,   -153.d0,  .65d0, .22d0,  1.3d0, !shrub
      &     32.5d0, 1.d0, 1.25d0, 5.5d0, 57.5d0, 0.15d0,3,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
-     &     pftype(2,   -100.d0,  .65d0, .22d0,  1.3d0, !savanna
+     &     pftype(2,   -2030.d0,  .65d0, .22d0,  1.3d0, !savanna
      &     32.5d0, 1.d0, 1.8d0, 25.d0, 50.0d0, 0.15d0,3,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
-     &     pftype(1,   -100.d0,  .55d0, .29d0,  1.5d0, !decidforest
+     &     pftype(1,   -153.d0,  .55d0, .29d0,  1.5d0, !decidforest
      &     30.d0, 0.85d0, 1.5d0, 42.5d0, 50.0d0, 0.2d0,2,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
-     &     pftype(1,   -100.d0,  .60d0, .25d0,  0.9d0, !evergrneedle
+     &     pftype(1,   -153.d0,  .60d0, .25d0,  0.9d0, !evergrneedle
      &     10.d0, 0.9d0, 5.d0,42.0d0, 80.0d0,0.25d0,1,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
-     &     pftype(1,   -100.d0,  .55d0, .26d0,  1.1d0, !troprainf
+     &     pftype(1,   -153.d0,  .55d0, .26d0,  1.1d0, !troprainf
      &     25.d0, 0.733d0, 1.8d0, 41.0d0, 40.0d0, 0.2d0,1,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
-     &     pftype(2,   -100.d0,  .45d0, .27d0,  1.3d0, !crops
+     &     pftype(2,   -153.d0,  .45d0, .27d0,  1.3d0, !crops
      &     60.d0, 0.6d0, 1.1d0, 58.0d0, 52.5d0, 0.16d0,4,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0)
 !     &     pftype(1,   -100.d0,  .50d0, .30d0,  0.76d0)&

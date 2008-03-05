@@ -153,7 +153,8 @@
 !      Ch = pp%cellptr%Ch
 !      U = pp%cellptr%U
 
-      
+      !Soil porosity and hygroscopic point for water stress2 calculation. From soilbgc.f.
+
       !* LOOP THROUGH COHORTS *!
       cop => pp%tallest
       do while (ASSOCIATED(cop))
@@ -161,15 +162,17 @@
         !* Assign vegpar
 
         if (cop%LAI.gt.0.d0) then
-!          cop%stressH2O = water_stress2(cop%pft, N_DEPTH, 
-!     i         pp%cellptr%Soilmoist(:), thetasat, thetamin,
-!     i         cop%fracroot(:), pp%cellptr%fice(:)) 
           cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
      i         ,cop%fracroot(:)
      i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
      o         , cop%stressH2Ol(:))
+          !* Can't use water_stress2 until have Soilmoist all layers.
+!          cop%stressH2O = water_stress2(cop%pft, N_DEPTH, 
+!     i         pp%cellptr%Soilmoist(:), pp%cellptr%soil_Phi, 
+!     i         pp%cellptr%soil_dry, 
+!     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 !          betad = cop%stressH2O
-!          write(999,*) pp%cellptr%Soilmp, cop%stressH2O
+
           call calc_Pspar(cop%pft, psdrvpar%Pa, psdrvpar%Tc,O2pres
      i         ,cop%stressH2O) 
           
@@ -337,7 +340,8 @@
       betad = 0.d0
       do k = 1,nlayers
         betadl(k) = (1.d0-fice(k))*fracroot(k)
-     &       *max((hwilt-soilmp(k))/hwilt,0.d0)
+!     &       *max((hwilt-soilmp(k))/hwilt,0.d0) !R&A original
+     &       *min(1.d0,max((hwilt-soilmp(k))/(hwilt + 25.d0),0.d0))  !With unstressed range to h=-25 m.
         betad = betad + betadl(k) 
       end do
       if (betad < EPS2) betad=0.d0
@@ -346,7 +350,8 @@
 
 !----------------------------------------------------------------------!
       function water_stress2(pft, nlayers, thetas, thetasat, thetamin, 
-     &     fracroot, fice) Result(betad)
+     &     fracroot, fice, betadl) Result(betad)
+      !  thetasat = watsat = 0.489d0 - 0.00126d0*sandfrac  !From soilbgc.f
 
       implicit none
       integer,intent(in) :: pft  !Plant functional type number.
@@ -357,7 +362,9 @@
       real*8,intent(in) :: thetamin !Hygroscopic H2O cont(vol.water/vol.soil)
       real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
       real*8,intent(in) :: fice(:)  !Fraction of ice in layer
+      real*8,intent(out) :: betadl(:) !Water stress in layers
       real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
+
       !Local vars
       integer :: k
       real*8 :: s  !Normalized soil moisture, s=thetas/thetasat
@@ -376,6 +383,7 @@
         else
           betak = 0.d0
         end if
+        betadl(k) = (1.d0-fice(k))*fracroot(k)*betak
         betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
       end do
       if (betad < EPS2) betad=0.d0
@@ -477,6 +485,7 @@
       subroutine Gs_bound(dt, LAI, Gsnew, Gsinout)  
       !@sum Gs_bound Limit rate of change of Gs (umol m-2 s-1)
       ! Required change in canopy conductance to reach equilibrium (m/s).
+      implicit none
       real*8,intent(in) :: dt, LAI
       real*8,intent(in) :: Gsnew !Canopy conductance of curr time step (mol m-2 s-1)
       real*8,intent(inout) :: Gsinout !Bounded canopy conductance (mol m-2 s-1)
@@ -507,6 +516,7 @@
 !---------------------------------------------------------------------------
       function Gs_from_Ci(Anet,Ca,Gb,Gs,Ci,IPAR) Result(gsout)
       !Inversion of calc_Ci_canopy
+      implicit none
       real*8 :: Anet !Leaf net assimilation of CO2 (umol m-2 s-1)
       real*8 :: ca !Ambient air CO2 mole fraction at surface reference height (umol mol-1)
       real*8 :: gb !Canopy boundary layer conductance of water vapor (mol m-2 s-1)
@@ -530,6 +540,7 @@
 !@sum If NPP is negative then C_lab is reduced by all of NPP, and if C_lab is
 !@sum is not enough, then the other biomass pools are reduced to compensate.
 !@sum Does not adjust LAI - TEMPORARY HACK.
+      implicit none
       real*8 :: dtsec
       type(cohort) :: cop
       !---Local-----
@@ -568,22 +579,24 @@
       real*8,intent(in) :: TcanopyC
       type(cohort),pointer :: cop
       !----Local-----
-      real*8 :: Resp_maint
+      real*8 :: Resp_maint, C2N
 
       !NOTE: NEED TO FIX Canopy maintenance respiration for different
       !C:N ratios for the different pools.
       !* Maintenance respiration - root
+      C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
+      !* Assume root C:N same as foliage C:N
       cop%R_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
-     &     pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)
+     &     C2N,TcanopyC+Kelvin,cop%n)
       !* Maintenance respiration - leaf + sapwood + storage
       Resp_maint = 0.012D-6 * ( !kg-C/m2/s
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
-     &     Resp_can_maint(cop%pft, cop%C_fol,pfpar(cop%pft)%lit_C2N,
+     &     Resp_can_maint(cop%pft, cop%C_fol,C2N,
      &     TcanopyC+Kelvin,cop%n) !Foliage
-     &     + Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - need to get C:N
-     &     900.d0,TcanopyC+Kelvin,cop%n) 
+     &     + Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - C:N from CLM
+     &     330.d0,TcanopyC+Kelvin,cop%n) 
      &     + Resp_can_maint(cop%pft,cop%C_lab, !Storage
-     &     pfpar(cop%pft)%lit_C2N,TcanopyC+Kelvin,cop%n)  )
+     &     C2N,TcanopyC+Kelvin,cop%n)  )
       !* Total respiration : maintenance + growth
       cop%R_auto =  
      &     Resp_maint 
@@ -600,7 +613,7 @@
      &     Result(R_maint)
       !Canopy maintenance respiration (umol/m2-ground/s)
       !Based on biomass amount (total N in pool). From CLM3.0.
-
+      implicit none
       integer :: pft            !Plant functional type.
       real*8 :: C               !g-C/individual  !not per m2 -PK 5/15/07
                                 !Can be leaf, stem, or root pools.
@@ -647,7 +660,7 @@
       real*8 :: Rmaint !Canopy maintenance respiration rate (umol/m2/s)
       real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33
 
-      growth_r = pfpar(pft)%r * 0.5d0  !NYK's hack - chec
+      growth_r = pfpar(pft)%r * 0.5d0    !Factor 0.5 gives growth_r=0.3 for C3 grass.
       R_growth = max(0.d0, growth_r * (Acan - Rmaint))
       end function Resp_can_growth
 
@@ -991,7 +1004,7 @@
       real*8, parameter :: RVAP = 1d3 * GASC/MWAT !gas constant for water vapour (461.5 J/K kg)
 !@var A,B,C   expansion coefficients for QSAT
       REAL*8, PARAMETER :: A=6.108d0*MRAT    !3.797915d0
-      REAL*8, PARAMETER :: B= 1./(RVAP*TF)   !7.93252d-6
+      REAL*8, PARAMETER :: B= 1./(RVAP*TFRZ)   !7.93252d-6
       REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
 C**** Note that if LH is considered to be a function of temperature, the
 C**** correct argument in QSAT is the average LH from t=0 (C) to TM, ie.
