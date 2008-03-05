@@ -579,33 +579,43 @@
       real*8,intent(in) :: TcanopyC
       type(cohort),pointer :: cop
       !----Local-----
-      real*8 :: Resp_maint, C2N
+      real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
+      real*8 ::Resp_growth, C2N, TcanopyK
 
       !NOTE: NEED TO FIX Canopy maintenance respiration for different
       !C:N ratios for the different pools.
-      !* Maintenance respiration - root
+
+      TcanopyK = TcanopyC + Kelvin
       C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
-      !* Assume root C:N same as foliage C:N
-      cop%R_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
-     &     C2N,TcanopyC+Kelvin,cop%n)
+
       !* Maintenance respiration - leaf + sapwood + storage
-      Resp_maint = 0.012D-6 * ( !kg-C/m2/s
+      Resp_fol = 0.012D-6 * !kg-C/m2/s
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
      &     Resp_can_maint(cop%pft, cop%C_fol,C2N,
-     &     TcanopyC+Kelvin,cop%n) !Foliage
-     &     + Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - C:N from CLM
-     &     330.d0,TcanopyC+Kelvin,cop%n) 
-     &     + Resp_can_maint(cop%pft,cop%C_lab, !Storage
-     &     C2N,TcanopyC+Kelvin,cop%n)  )
-      !* Total respiration : maintenance + growth
-      cop%R_auto =  
-     &     Resp_maint 
-     &     + cop%R_root         !PK 5/15/07 
-     &     + 0.012D-6 * Resp_can_growth(cop%pft, cop%GPP/0.012D-6,
-     &     (Resp_maint+cop%R_root)/0.012D-6 )
+     &     TcanopyK,cop%n) !Foliage
+      Resp_sw = 0.012D-6 *  !kg-C/m2/s
+     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996)
+     &     330.d0,TcanopyK,cop%n) 
+      Resp_lab = 0.012D-6 * !kg-C/m2/s
+     &     Resp_can_maint(cop%pft,cop%C_lab, !Storage
+     &     C2N,TcanopyK,cop%n)
+      !* Assume root C:N same as foliage C:N
+      Resp_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
+     &     C2N,TcanopyK,cop%n)
+      Resp_maint = Resp_root + Resp_fol + Resp_sw + Resp_lab
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
+
+      !* Growth respiration
+      Resp_growth = 0.012D-6 * Resp_can_growth(cop%pft, 
+     &     cop%GPP/0.012D-6,(Resp_maint)/0.012D-6 )
+
+      !* Total respiration : maintenance + growth
+      cop%R_auto =  Resp_maint + Resp_growth
+      cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 
+!      write(999,*) Resp_fol,Resp_sw,Resp_lab,Resp_root,Resp_maint
+!     &     ,Resp_growth
       end subroutine Respiration_autotrophic
 
 !---------------------------------------------------------------------!

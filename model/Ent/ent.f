@@ -355,7 +355,7 @@
      &     pp%TRANS_SW,
      &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
      &     pp%NPP,pp%CO2flux,pp%GCANOPY,
-     &     tmp_senescefrac
+     &     tmp_senescefrac, pp%tallest%C_sw,pp%tallest%n,pp%tallest%h
       if (pp%GPP.lt.0.d0) then
         print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
       endif

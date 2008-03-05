@@ -84,11 +84,11 @@
      &     1.8d0,41.0d0, 40.d0, 0.2d0, 1,
      &     0.0395d0, 1.560d0, 0.1017d0, 2.306d0, 34.62d0, -0.0232d0),
      ! !* 3 - evergreen needleleaf early successional
-     &     pftype(1, -153.d0, .55d0, .25d0, 0.9d0, 10.0d0, 0.9d0, 
+     &     pftype(1, -153.d0, .55d0, .25d0, 0.9d0, 18.0d0, 0.9d0, 
      &     5.0d0, 42.0d0, 80.d0, 0.25d0, 1,
      &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 27.14d0, -0.0388d0),
      ! !* 4 - evergreen needleleaf late successional
-     &     pftype(1, -153.d0, .55d0, .25d0, 0.85d0,10.0d0, 0.9d0, 
+     &     pftype(1, -153.d0, .55d0, .25d0, 0.85d0,18.0d0, 0.9d0, 
      &     5.0d0, 42.0d0, 80.d0, 0.25d0, 1,
      &     0.0450d0, 1.683d0, 0.1617d0, 2.1536d0, 22.79d0, -0.0445d0),
      ! !* 5 - cold deciduous broadleaf early successional

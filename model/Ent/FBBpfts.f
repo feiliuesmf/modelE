@@ -109,7 +109,8 @@
      &     ,9.d0               !m, Hyytiala value.  CLM NET is 6.0, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,2.8d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997: (14 mg-N/g-leaf)/(50 cm2/g-leaf) = 2.8 g-N/m2-leaf
-     &     ,2.9d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+!     &     ,2.9d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+     &     ,0.66d0                 !Nleaf (gN/m2-leaf). Reich (1997) for SLA of 18 m2/kg. This give C:N of 84!  Biome-BGC is 42, CLM 29.
      &     ),
      &     pspartype(1          !7. TROPRAINF
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BET & BDT tropical, Table 3.1 (Oleson, et al 2004)
