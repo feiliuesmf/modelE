@@ -226,7 +226,7 @@ isccp_diags=0   ! use =0 to save cpu time
 nda5d=1         ! use =7 to save cpu time
 nda5s=1         ! use =7 to save cpu time
 
-itime_tr0=8016,8016,8016,8016,8016,8016,15696,8016,8016,8016,8016,
+itime_tr0=8016,8016,8016,8016,8016,8016,15696,8016,8016,8016
 to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
 nstrtc=12                    ! Number of layers for Prather stratosphere chemistry (LM=23)
 
