@@ -182,6 +182,11 @@ C
           WRITE(iu) SIGE
           call closeunit(iu)
           call openunit('scm.output',iu_scm_diag,.true.,.false.)
+          if (SCM_ATURB_FLAG.eq.0) then
+              write(iu_scm_prt,*) 'RUN with DRYCNV routine '
+          elseif (SCM_ATURB_FLAG.eq.1) then
+              write(iu_scm_prt,*) 'RUN with ATURB routine '
+          endif
       endif
 
 
