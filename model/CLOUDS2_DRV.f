@@ -133,7 +133,7 @@
 #endif
 #ifdef SCM
       USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T,
-     *                    iu_scm_prt
+     *                    SCM_ATURB_FLAG,iu_scm_prt
       USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
      &                     TPALL,PRCSS,PRCMC
 #endif
@@ -535,9 +535,13 @@ C**** PRESSURES, AND PRESSURE TO THE KAPA
       BYAM(:)=1./AIRM(:)
       WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
 #ifdef SCM
-ccccc  for SCM run with DRY convection - zero out WTURB
-ccccc WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
-      WTURB(:) = 0.d0
+      if (SCM_ATURB_FLAG.eq.0) then
+c****     for SCM run with DRY convection - zero out WTURB
+          WTURB(:) = 0.d0
+      else     
+c****     for SCM run with ATURB
+          WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
+      endif
 #endif
 
 !#ifdef CLD_AER_CDNC
