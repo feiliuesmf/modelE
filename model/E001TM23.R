@@ -5,8 +5,9 @@ E1jalTM23: Differences from original TRACERS_SPECIAL_Lerner include:
   New tracer (SF6_c) with constant source
   parameter NSTRTC replaces ltropo
   Better initial distribution of CFC-11
+  Air tracer removed
 Based on E001M23
- Air mass, SF6, Rn222, CO2, N2O, CFC-11, 14CO2, CH4, linearizedO3, SF6_c
+ SF6, Rn222, CO2, N2O, CFC-11, 14CO2, CH4, linearizedO3, SF6_c
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
@@ -182,8 +183,8 @@ NSUBDD=0        ! saving sub-daily diags
 KCOPY=2         ! saving acc + rsf
 isccp_diags=0
 
-to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
-itime_tr0=30624,30624,30624,30624,30624,31344,30624,30624,30624,30624,
+to_volume_MixRat=1,1,1,1,1,1,1,1,1   ! for tracer printout
+itime_tr0=30624,30624,30624,30624,39360,31344,30624,30624,30624
 nstrtc=12                    ! Number of layers for Prather stratosphere chemistry (LM=23)
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
@@ -212,4 +213,3 @@ o3_yr=-1880
  &END
 
 
-AIC=AIC/AIC.RES_M23.D771201

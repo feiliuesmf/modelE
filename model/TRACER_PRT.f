@@ -1130,7 +1130,7 @@ C**** Fill in the undefined pole box duplicates
 C**** Fill in maplet indices for tracer concentrations
       k = 0
       do n=1,ntm
-      if (itime.lt.itime_tr0(n)) cycle
+c     if (itime.lt.itime_tr0(n)) cycle
       do l=1,lm
         k = k+1
         iord(k) = l
@@ -1205,7 +1205,7 @@ C**** Fill in maplet indices for sources and sinks
       do kx=1,ktaijs
         if (index(lname_ijts(kx),'unused').gt.0) cycle
         n = ijts_index(kx)
-        if (itime.lt.itime_tr0(n)) cycle
+c       if (itime.lt.itime_tr0(n)) cycle
         k = k+1
         iord(k) = kx
         nt(k) = kx

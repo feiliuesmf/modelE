@@ -9985,7 +9985,7 @@ C****
       call linoz_depo(1,n)
 #endif
 C****
-C**** Sources and sinks for 14C02
+C**** Sources and sinks for 14CO2
 C**** NOTE: This tracer is supposed to start on 10/16
 C**** Decay is a function of the number of months since itime_tr0
 C**** The tracer is reset to specific values in layer 1 only if
