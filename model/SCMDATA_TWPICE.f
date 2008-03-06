@@ -9,7 +9,8 @@ C-------------------------------------------------------------------------------
       SUBROUTINE init_scmdata
 
 !     read data from file store time history and set up initial conditions
-      USE SCMCOM , only : NARM,TAUARM,NRINIT,IKT, AMEANPS, SG_T, SG_Q,
+      USE SCMCOM , only : SCM_SURFACE_FLAG,NARM,TAUARM,NRINIT,IKT, 
+     &                  AMEANPS, SG_T, SG_Q,
      &                  SG_U,SG_V,ASWINDSPD,AQS,AVS,AUS,ATSAIR,ATSKIN,
      &                  iu_scm_prt    
       USE RESOLUTION , only : LM
@@ -23,6 +24,17 @@ C-------------------------------------------------------------------------------
 
       INTEGER L,I,J       
 
+      if (SCM_SURFACE_FLAG.eq.0) then
+          write(0,*) 
+     &        'SCM set to run with GCM calculated surface fluxes'
+          write(iu_scm_prt,*) 
+     &        'SCM set to run with GCM calculated surface fluxes'
+      else if (SCM_SURFACE_FLAG.eq.1) then
+          write(0,*) 
+     &        'SCM set to run with ARM prescribed surface fluxes'
+          write(iu_scm_prt,*) 
+     &        'SCM set to run with ARM prescribed surface fluxes'
+      endif
       NARM = 6                        ! for 30 min time steps from 3-hourly input 
       TAUARM = 0                      ! not used for now 
       NRINIT = 48                     ! when to reinitialize t,q profiles to data
@@ -752,6 +764,9 @@ c            write(iu_scm_prt,310) L,Q(I_TARG,J_TARG,L),SG_T(L),
 c    &                     T(I_TARG,J_TARG,L)
 c310         format(1x,'NEW ICS  L Q SGT T ',i5,E10.4,f9.2,f8.2)
           enddo 
+          QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
+          TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)
+          GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
       endif
 
       do L=1,LM
@@ -765,9 +780,11 @@ c
       WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)
       USAVG(I_TARG,J_TARG) = AUS
       VSAVG(I_TARG,J_TARG) = AVS
-      QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
-      TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)
-      GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+      if (SCM_SURFACE_FLAG.eq.1) then
+          QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
+          TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)
+          GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+      endif
  
       return 
 
