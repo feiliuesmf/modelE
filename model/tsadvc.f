@@ -9,7 +9,7 @@ c --- hycom version 1.0 -- cyclic in j
       USE HYCOM_DIM, only : ii, jj, kk, idm, jdm, kdm,
      &     J_0, J_1, I_0H, J_0H, ogrid,
      &     ip, iu, iv, iq, ifp, ilp, isp, ifq, ilq, isq,
-     &     ifu, ilu, isu, ifv, ilv, isv
+     &     ifu, ilu, isu, ifv, ilv, isv, jchunk
 
       use hycom_arrays_glob_renamer
       USE DOMAIN_DECOMP, only : get,AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
