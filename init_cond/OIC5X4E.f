@@ -97,10 +97,10 @@ c      Call GetEnv ('IFDIR',IFDIR)
       IFDIR  = '/discover/nobackup/projects/giss/prod_input_files'
       FILEIT = Trim(OBS)   // '/WOA98/TO1X1.MC'
       FILEIS = Trim(OBS)   // '/WOA98/SO1X1.MC'
-      FILEIZ = Trim(IFDIR) // '/Z72X46N_gas.1_nocasp_21k_ice5g'
+      FILEIZ = Trim(IFDIR) // '/Z72X46N_gas.1_nocasp' !_21k_ice5g'
       FILEIO = Trim(IFDIR) // '/OFTABLE_NEW'
       FILEII = Trim(IFDIR) // '/GIC.E046D3M20A.1DEC1955'
-      FILOUT = Trim(IFDIR) // '/OIC5X4_21k_ice5g'
+      FILOUT = Trim(IFDIR) // '/OIC5X4_0k' !_21k_ice5g'
 C****
 C**** Read WOA98 temperature and salinity data MC DataFiles
 C****
@@ -366,10 +366,10 @@ C****
      *        'TITLE,MO,G0,GZ,S0,SZ'
       Write (20) TITLE,
      *  (((Sngl(MO(I,J,L)),I=1,IM),J=1,JM),L=1,LMO),
-     *  (((Sngl(G0(I,J,L)),I=1,IM),J=1,JM),L=1,LMO),
-     *  (((Sngl(GZ(I,J,L)),I=1,IM),J=1,JM),L=1,LMO),
-     *  (((Sngl(S0(I,J,L)*1d-3),I=1,IM),J=1,JM),L=1,LMO),
-     *  (((Sngl(SZ(I,J,L)*1d-3),I=1,IM),J=1,JM),L=1,LMO)
+     *  (((Sngl(G0(L,I,J)),I=1,IM),J=1,JM),L=1,LMO),
+     *  (((Sngl(GZ(L,I,J)),I=1,IM),J=1,JM),L=1,LMO),
+     *  (((Sngl(S0(L,I,J)*1d-3),I=1,IM),J=1,JM),L=1,LMO),
+     *  (((Sngl(SZ(L,I,J)*1d-3),I=1,IM),J=1,JM),L=1,LMO)
 C**** Liquid Ocean Mass (kg/m^2)
 C     TITLE = 'LIQUID OCEAN MASS (kg/m^2) of Layer  1 at    6 m  ' //
 C    *        'WOA98    1900:1997/12/01      '
@@ -403,6 +403,9 @@ C     Write (TITLE(40:43),982) Nint(.5*(ZOE(L)+ZOE(L-1)))
 C     Write (20) TITLE,Sngl(SZ(L,:,:))
 C 850 Write (0,983) Trim(TITLE),SZ(L,1,30)
       Close (20)
+      print*,"Test s0m ",s0(1,4,1),g0(1,4,1),mo(4,1,1)
+      print*,"Test s0m ",s0(1,1,4),g0(1,1,4),mo(1,4,1)
+
       GoTo 999
 C****
   943 Format (' WOA98 data is filled from ',A,'.  I,J,KMC+1:KMNEW =',
@@ -412,7 +415,9 @@ C****
   981 Format (I2)
   982 Format (I4)
   983 Format (1X,A,F20.10)
-  999 End
+      
+
+ 999  End
 
 C**** C540C.FOR   Atmosphere-Ocean Model Common Blocks    2007/12/13
 C****
@@ -437,6 +442,7 @@ C**** Read in FIXDCB: FOCEAN, FLAKE, FGRND, FGICE, ZATMO, ZOCEAN, ZLAKE
       Read (11)  !  skip FGICE
       Read (11)  !  skip ZATMO
       Call READR4 (11,IM*JM,ZOCEAN,ZOCEAN)
+      print*, "ANL!!",focean(1,4),zocean(1,4)
       Close (11)
 C****
 C**** Calculate arrays for ocean layering
