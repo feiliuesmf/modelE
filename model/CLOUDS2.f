@@ -10,7 +10,7 @@
 #ifdef SCM
      &                      ,I_TARG,J_TARG
       USE SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
-     &                   SCM_DEL_Q,iu_scm_prt
+     &                   SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt
       USE SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
      &                    TPALL,PRCCGRP,PRCCICE,MCCOND,
      &                    PRESAV,LHPSAV,PREMC,LHPMC
@@ -860,10 +860,16 @@ C     ENDIF
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
 C     for SCM running with Dry Convection instead of ATURB - WTURB
 c     is not filled - so MPLUME is unchanged
-#ifndef SCM
+#ifdef SCM
+      if (SCM_ATURB_FLAG.eq.1) then
+          TTURB=HPBL/WTURB(LMIN)
+          IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
+      endif
+#else
       TTURB=HPBL/WTURB(LMIN)
       IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
-#endif
+#endif 
+
       IF(ITYPE.EQ.2) THEN     ! cal. MPLUME for 1st plume and 2nd plume
       FCTYPE=1.
       IF(MPLUME.GT.FMP0) FCTYPE=FMP0/MPLUME
@@ -2053,9 +2059,15 @@ C since a fraction (FCLW) of TRCOND was removed above.
 C     IF(PRCP.LE.0.) GO TO 530    ! moved to after computing CLDMCL
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
 #ifdef SCM
-c     for SCM running with Dry Convection instead of ATURB WTURB
-c     not filled -- set TRATIO=1
-      TRATIO = 1.d0
+      if (SCM_ATURB_FLAG.eq.0) then
+c         for SCM running with Dry Convection instead of ATURB WTURB
+c         not filled -- set TRATIO=1
+          TRATIO = 1.d0
+      else
+c         for SCM running with ATURB
+          TTURB=HPBL/WTURB(L)
+          TRATIO=TTURB/DTsrc
+      endif
 #else
       TTURB=HPBL/WTURB(L)
       TRATIO=TTURB/DTsrc
