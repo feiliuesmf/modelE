@@ -1183,6 +1183,7 @@ C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
 C****
       IF (ISTART.LE.2) THEN
+
 C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
@@ -1281,6 +1282,7 @@ c      enter SCM part of INPUT
        call sync_param( "I_TARG",I_TARG)
        call sync_param( "J_TARG",J_TARG)
        write(0,*) 'I/J Targets set ',I_TARG,J_TARG
+       write(iu_scm_prt,*) 'I/J Targets set ',I_TARG,J_TARG
 
 c      write(iu_scm_prt,*) 'before scm inputs L u v '
 c      do L=1,LM
@@ -1297,6 +1299,7 @@ c      enddo
 !      read scm data and initialize model 
 !      note:  usavg,vsavg and wsavg filled from here
        call init_scmdata
+       write(0,*) 'return from init_scmdata'
 c      write(iu_scm_prt,*) 'return from init_scmdata'
 c      do L=1,LM
 c         write(iu_scm_prt,'(a6,i5,2(f10.4))') 'l u v ',l,
