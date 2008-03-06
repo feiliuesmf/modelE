@@ -286,7 +286,7 @@ c        CALL CHECKO ('STADVI')
 
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
-     *     ,iu_TOPO,II,JJ
+     *     ,iu_TOPO,II,JJ,flagij
       REAL*4, DIMENSION(IM,JM,LMO):: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
@@ -419,25 +419,40 @@ C**** Calculate layer mass from column mass and check for consistency
 C**** if there is a problem try nearest neighbour
       IF((LMM(I,J).GT.0).AND.(ABS(MO(I,J,1)/ZE(1)-1d3).GT.5d1)) THEN
         WRITE (6,931) I,J,LMIJ,MO(I,J,1),ZE(1)
-        II=0 ; JJ=0
-        IF (MO4(I,J+1,1).gt.0 .and. LMM(I,J+1).ge.LMM(I,J)) THEN
-          II=I ; JJ=J+1
-        ELSEIF (MO4(I+1,J,1).gt.0 .and. LMM(I+1,J).ge.LMM(I,J)) THEN
-          II=I+1 ; JJ=J
-        ELSEIF (MO4(I,J-1,1).gt.0 .and. LMM(I,J-1).ge.LMM(I,J)) THEN
-          II=I ; JJ=J-1
-        ELSEIF (MO4(I-1,J,1).gt.0 .and. LMM(I-1,J).ge.LMM(I,J)) THEN
-          II=I-1 ; JJ=J
-        ELSEIF (MO4(I+1,J+1,1).gt.0 .and. LMM(I+1,J+1).ge.LMM(I,J)) THEN
-          II=I+1 ; JJ=J+1
-        ELSEIF (MO4(I-1,J+1,1).gt.0 .and. LMM(I-1,J+1).ge.LMM(I,J)) THEN
-          II=I-1 ; JJ=J+1
-        ELSEIF (MO4(I+1,J-1,1).gt.0 .and. LMM(I+1,J-1).ge.LMM(I,J)) THEN
-          II=I+1 ; JJ=J-1
-        ELSEIF (MO4(I-1,J-1,1).gt.0 .and. LMM(I-1,J-1).ge.LMM(I,J)) THEN
-          II=I-1 ; JJ=J-1
-        END IF
-        IF (II.ne.0) THEN
+        II=0 ; JJ=0 ; flagij=0
+
+        do j1=0,2
+          do i1=0,4
+            if(flagij.eq.0) then
+              if(j1.eq.0) jj=j
+              if(j1.eq.1) jj=j-1
+              if(j1.eq.2) jj=j+1
+              
+              if(i1.eq.0) ii=i
+              if(i1.eq.1) ii=i-1
+              if(i1.eq.2) ii=i+1
+              if(i1.eq.3) ii=i-2
+              if(i1.eq.4) ii=i+2
+              if(i1.eq.5) ii=i-3
+              if(i1.eq.6) ii=i+3
+              if(ii.gt.im) ii=ii-im
+              if(ii.lt.1) ii=ii+im
+              if(jj.gt.jm) then
+                jj=jm
+                if(ii.le.im/2) ii=ii+im/2
+                if(ii.gt.im/2) ii=ii-im/2
+              endif
+              if(jj.lt.1) then
+                jj=1
+                if(ii.le.im/2) ii=ii+im/2
+                if(ii.gt.im/2) ii=ii-im/2
+              endif
+              IF ((MO4(II,JJ,1).gt.0) .and. (LMM(II,JJ).ge.LMM(I,J))) 
+     *             flagij=1
+            endif
+          enddo
+        enddo
+        IF (flagij.ne.0) THEN
           MO(I,J,1:LMM(I,J))=MO4(II,JJ,1:LMM(I,J))
           G0M4(I,J,1:LMM(I,J))=G0M4(II,JJ,1:LMM(I,J))
           S0M4(I,J,1:LMM(I,J))=S0M4(II,JJ,1:LMM(I,J))
