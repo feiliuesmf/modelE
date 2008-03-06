@@ -73,9 +73,8 @@
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
 !     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum
-!     &     ,2.2d0              !Nleaf (gN/m2-leaf) from Reich (1997) C:N of 29 for SLA of 16 m2/kg-C.  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves); Rd not large deviance from direct daily Ntot 
 !     &     ,0.82d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
-     &     ,1.0d0              !Nleaf (gN/m2-leaf) from Reich (1997) C:N of ~24 for SLA of 41.1 m2/kg-C (leaf longevity 0.5 yr).  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves); Rd not large deviance from direct daily Ntot 
+     &     ,3.27d0              !Nleaf (gN/m2-leaf). Ponca winter wheat.
      &     ),
      &     pspartype(2          !3. SHRUB
      &     ,.9d0               !leaf VIS 1-albedo,CLM BES & BDS temperate 0.93, BDS 0.90, Table 3.1 (Oleson, et al 2004)
@@ -97,20 +96,23 @@
      &     ),
      &     pspartype(1          !5. DECIDFOREST
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
-     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004)
+!     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004)
+     &     ,63.d0               !Vcmax for Walker Branch spp, Wilson et al (2001) PlantCellEnv.  Quercus prinus 63, Quercus alba 60, Acer Rubrum 37, Acer saccharum 42, Nyssa sylvatica 39
      &     ,9.d0               !m, CLM BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,6.7d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (20 mg-N/g-leaf)/(300 cm2/g-leaf) =6.7 g-N/m2-leaf
-     &     ,1.25d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+!     &     ,1.25d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+!     &     ,0.634d0                 !Nleaf (gN/m2-leaf). Reich (1997) for SLA of 30 m2/kg (leaf 1yr). This give C:N of 52.  Biome-BGC is 42, CLM 29.
+     &     ,3.1d0               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
      &     ),
      &     pspartype(1          !6. EVERGRNEEDLE
      &     ,0.93d0               !leaf VIS 1-albedo,CLM NET all, Table 3.1 (Oleson, et al 2004)
-     &     ,47.d0               !Vmax25, CLM NET temperate 51, NET boreal 43, Table 8.2 (Oleson, et al 2004)
+     &     ,47.d0               !Vmax25, CLM NET temperate 51, NET boreal 43, Table 8.2 (Oleson, et al 2004). Aalto et al (2002) Pinus sylvestris 48.
      &     ,9.d0               !m, Hyytiala value.  CLM NET is 6.0, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,2.8d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997: (14 mg-N/g-leaf)/(50 cm2/g-leaf) = 2.8 g-N/m2-leaf
 !     &     ,2.9d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
-     &     ,0.66d0                 !Nleaf (gN/m2-leaf). Reich (1997) for SLA of 18 m2/kg. This give C:N of 84!  Biome-BGC is 42, CLM 29.
+     &     ,1.8d0               !Nleaf (gN/m2-leaf). Pinus sylvestris, Pensa and Sellin (2002).
      &     ),
      &     pspartype(1          !7. TROPRAINF
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BET & BDT tropical, Table 3.1 (Oleson, et al 2004)

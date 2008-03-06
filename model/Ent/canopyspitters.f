@@ -614,8 +614,10 @@
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 
-!      write(999,*) Resp_fol,Resp_sw,Resp_lab,Resp_root,Resp_maint
-!     &     ,Resp_growth
+#ifdef OFFLINE
+      write(998,*) Resp_fol,Resp_sw,Resp_lab,Resp_root,Resp_maint
+     &     ,Resp_growth
+#endif
       end subroutine Respiration_autotrophic
 
 !---------------------------------------------------------------------!
@@ -625,14 +627,14 @@
       !Based on biomass amount (total N in pool). From CLM3.0.
       implicit none
       integer :: pft            !Plant functional type.
-      real*8 :: C               !g-C/individual  !not per m2 -PK 5/15/07
+      real*8 :: C               !kg-C/individual  !not per m2 -PK 5/15/07
                                 !Can be leaf, stem, or root pools.
       real*8 :: CN              !C:N ratio of the respective pool
 !      real*8 :: R_maint !Canopy maintenance respiration rate (umol/m2/s)
       real*8 :: T_k             !Temperature of canopy (Kelvin)
       real*8 :: n               !Density of individuals (no./m2)
       !---Local-------
-      real*8,parameter :: k_CLM = 6.34d-07 *12.d0 !(s-1) rate from CLM. x12.d0 HACK##-nyk
+      real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
 
       R_maint = pfpar(pft)%r * k_CLM * (C/CN) * 
      &     exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
@@ -663,7 +665,7 @@
 !---------------------------------------------------------------------!
       real*8 function Resp_can_growth(pft,Acan,Rmaint) Result(R_growth)
       !Canopy growth respiration (umol/m2/s)
-      !Based on photosynthetic activity. From CLM3.0.
+      !Based on photosynthetic activity. From CLM3.0.= 0.25*(Acan-Rmaint)
       !Fixed to min 0.d0 like ED2. - NYK
       integer :: pft
       real*8 :: Acan !Canopy photosynthesis rate (umol/m2/s)
