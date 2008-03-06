@@ -79,8 +79,12 @@ C SCM DATA as provided from ARM variational analysis
 !@var ATSWIN ARM TOA SW INS (W/m**2)
       REAL*8 ATSWIN
   
-
-
+!@var SCM_SURFACE_FLAG 0-use GCM calculated surface fluxes,
+!                      1-use SCM prescribed surface fluxes  
+      INTEGER SCM_SURFACE_FLAG
+!@var SCM_ATURB_FLAG   0-run with dry convection routine
+!                      1-run with aturb routine
+      INTEGER SCM_ATURB_FLAG
 !@var NARM #of GCM time steps per ARM time step
       INTEGER NARM
 !@var NRINIT #of GCM time steps between reinitializing T,Q 
@@ -91,7 +95,6 @@ C SCM DATA as provided from ARM variational analysis
       INTEGER IKT
       INTEGER iu_scm_prt,iu_scm_diag    
    
-
       
       INTEGER MCT
 
@@ -134,3 +137,27 @@ C SCM DATA as provided from ARM variational analysis
 
 
       end module SCMCOM
+c
+c    
+      subroutine ALLOC_SCM_COM()
+   
+      USE SCMCOM, only : SCM_SURFACE_FLAG,SCM_ATURB_FLAG
+
+
+!@var SCM_SURFACE FLAG   0-run with GCM calculated surface fluxes
+!                       1-run with ARM prescribed surface fluxes
+
+      SCM_SURFACE_FLAG = 1     
+
+!@var SCM_ATURB_FLAG     0-run with DRYCNV dry convection routine 
+!                        1-run with ATURB turbulence routine    
+      SCM_ATURB_FLAG = 1
+      if (SCM_ATURB_FLAG.eq.0) then
+          write(0,*) 'RUN with DRYCNV routine '
+      elseif (SCM_ATURB_FLAG.eq.1) then
+          write(0,*) 'RUN with ATURB routine '
+      endif    
+  
+      return
+
+      end subroutine ALLOC_SCM_COM
