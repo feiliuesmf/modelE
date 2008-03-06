@@ -38,7 +38,7 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm=11
       character*8, parameter :: trname(ntm)= (/
      *                'SF6     ','Rn222   ','CO2     ','N2O     ',
-     *     'CFC11   ','14CO2   ','CH4     ','O3      ','SF6_c   ',/
+     *     'CFC11   ','14CO2   ','CH4     ','O3      ','SF6_c   ',
      *     'Air     ','Water   '/)
 #else
 #if defined TRACERS_SPECIAL_Lerner
