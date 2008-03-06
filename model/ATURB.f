@@ -19,6 +19,10 @@
       USE MODEL_COM, only :
      *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
      *     ,pmtop
+#ifdef SCM
+     *     ,I_TARG,J_TARG,NSTEPSCM
+      USE SCMCOM, only : iu_scm_prt
+#endif
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
@@ -132,7 +136,18 @@ C****
       ! integrate equations other than u,v at agrids
 
       ! get u_3d_agrid and v_3d_agrid
+#ifndef SCM
       call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
+#else
+      do j=J_0,J_1
+         do i=1,imaxj(j)
+            do L=1,LM
+               u_3d_agrid(L,i,j) = u_3d(i,j,L)
+               v_3d_agrid(L,i,j) = v_3d(i,j,L)
+            enddo
+         enddo
+      enddo
+#endif
 
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &     ,dz0,im,jm,lm)
@@ -437,10 +452,27 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
 !$OMP  END PARALLEL DO
 
       ! integrate U,V equations at bgrids
+#ifndef SCM
       call ave_uv_to_bgrid(uflux1,vflux1,uflux_bgrid,vflux_bgrid,1)
       call ave_s_to_bgrid(km_3d,dz_3d,dze_3d,rho_3d,rhoe_3d,
      &  km_3d_bgrid,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,
      &  rhoe_3d_bgrid,lm)
+#else
+      do j=J_0,J_1
+         do i=1,imaxj(j)
+            uflux_bgrid(i,j) = uflux1(i,j)
+            vflux_bgrid(i,j) = vflux1(i,j)
+            do L=1,LM
+               km_3d_bgrid(L,i,j) = km_3d(L,i,j)
+               dz_3d_bgrid(L,i,j) = dz_3d(L,i,j)
+               dze_3d_bgrid(L,i,j) = dze_3d(L,i,j)
+               rho_3d_bgrid(L,i,j) = rho_3d(L,i,j)
+               rhoe_3d_bgrid(L,i,j) = rhoe_3d(L,i,j)
+            enddo
+         enddo
+      enddo
+#endif 
+
 
 !$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,rho,rhoe,u0,v0,km,dze,dz,
 !$OMP*   bydzerho,rhoebydz,uflx,vflx,p4,flux_bot,flux_top)
@@ -510,6 +542,7 @@ C Contribution at southern border
       ELSE
         J=J_0H
       END IF
+
       KMAX=KMAXJ(J)
       DO I=1,IMAXJ(J)
         DO L=1,LM
