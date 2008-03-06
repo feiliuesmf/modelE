@@ -62,4 +62,7 @@ c set-up for MPI implementation
       call alloc_nudge(grid)
 #endif
 
+#ifdef SCM 
+      call alloc_scm_com()
+#endif
       end subroutine alloc_drv
