@@ -201,9 +201,9 @@
       call entcell_print(6, ecp)
 #endif
 
-#ifdef OFFLINE
-      call ent_diagnostics_entcell(ecp)
-#endif
+!#ifdef OFFLINE
+!      call ent_diagnostics_entcell(ecp)
+!#endif
 
       end subroutine ent_integrate
 

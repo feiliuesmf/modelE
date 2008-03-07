@@ -1122,8 +1122,8 @@
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 
-      write(998,*) Resp_fol,Resp_sw,Resp_lab,Resp_root,Resp_maint
-     &     ,Resp_growth
+!      write(998,*) Resp_fol,Resp_sw,Resp_lab,Resp_root,Resp_maint
+!     &     ,Resp_growth
       end subroutine Respiration_autotrophic
 
 !---------------------------------------------------------------------!

@@ -95,7 +95,7 @@
      &     4.35d0, 0.6d0, 1.5d0, 42.5d0, 50.0d0, 0.2d0,2, !SLA for Quercus ilex, Mediavilla & Escudero(2003)
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
      &     pftype(1,   -153.d0,  .60d0, .25d0,  0.9d0, !evergrneedle
-     &     5.9d0, 0.9d0, 5.d0,42.0d0, 80.0d0,0.25d0,1,   !SLA for Pinus sylvestris, Pensa and Sellin (2002).SLA-CLM 10.
+     &     5.9d0, 1.2d0, 5.d0,42.0d0, 80.0d0,0.25d0,1,   !SLA for Pinus sylvestris, Pensa and Sellin (2002).SLA-CLM 10.
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
      &     pftype(1,   -153.d0,  .55d0, .26d0,  1.1d0, !troprainf
      &     25.d0, 0.733d0, 1.8d0, 41.0d0, 40.0d0, 0.2d0,1,
