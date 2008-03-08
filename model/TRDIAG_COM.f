@@ -416,7 +416,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_QUARZHEM
       INTEGER,PARAMETER :: ktajls=45
 #else
-      INTEGER, PARAMETER :: ktajls=38   ! default
+      INTEGER, PARAMETER :: ktajls=39   ! default
 #endif
 #endif
 #endif
