@@ -972,7 +972,7 @@ C     OUTPUT DATA
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
      *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk=>aijk_loc,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
-     *     ,adiurn_dust,j_trnfp0,j_trnfp1
+     *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_fsrdir, ij_srvissurf
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -2214,6 +2214,8 @@ C****
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) -TNFS(3,I,J)+TNFS(1,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(3,I,J)*CSZ2)
+         AIJ(I,J,IJ_FSRDIR) =AIJ(I,J,IJ_FSRDIR) + FSRDIR(I,J)
+         AIJ(I,J,IJ_SRVISSURF) =AIJ(I,J,IJ_SRVISSURF) + SRVISSURF(I,J)
 C**** CRF diags if required
          if (cloud_rad_forc.gt.0) then
            AIJ(I,J,IJ_SWCRF)=AIJ(I,J,IJ_SWCRF)+

@@ -1367,6 +1367,24 @@ c
       ir_ij(k) = ir_0_710
 c
       k=k+1 !
+      IJ_FSRDIR = k ! FSRDIR (W/m**2)                         2 RD
+      lname_ij(k) = 'DIRECT VISIBLE SOLAR RADIATION AT SURFACE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'fsrdir'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_SRVISSURF = k ! SRVISSURF (W/m**2)                         2 RD
+      lname_ij(k) = 'TOTAL VISIBLE SOLAR RADIATION AT SURFACE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srvissurf'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
       IJ_SRNFG = k   ! SRNFG (W/m**2)                          2 RD
       lname_ij(k) = 'NET SOLAR RADIATION, SURF'
       units_ij(k) = 'W/m^2'
