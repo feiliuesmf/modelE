@@ -1695,7 +1695,7 @@ ccc                               currently using only topography part
 c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
-      use constant, only : twopi,rhow,edpery,sha,lhe,tf
+      use constant, only : twopi,rhow,edpery,sha,lhe,tf,shw_kg=>shw
       use DOMAIN_DECOMP, only : GRID, DIST_GRID
       use DOMAIN_DECOMP, only : GET,READT_PARALLEL, DREAD_PARALLEL
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
@@ -1718,6 +1718,7 @@ c**** modifications needed for split of bare soils into 2 types
 #ifndef USE_ENT
       use veg_drv, only : init_vegetation
       use veg_com, only : vdata
+      use veg_com, only : ala
 #endif
       implicit none
 
@@ -1755,6 +1756,8 @@ C**** define local grid
       logical present_land
       integer init_flake
       integer kk
+      integer :: reset_canopy_ic=0
+      real*8 :: aa, ht_cap_can, fice_can
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -1787,6 +1790,7 @@ c**** read rundeck parameters
 #ifdef USE_ENT
       call sync_param( "vegCO2X_off", vegCO2X_off)
 #endif
+      call sync_param( "reset_canopy_ic", reset_canopy_ic )
 
 c**** set number of layers for vegetation module
       nl_soil = ngm
@@ -1961,6 +1965,43 @@ c**** set gtemp array
           end if
         end do
       end do
+
+c**** set vegetation temperature to tearth(i,j) if requested
+c**** in this case also set canopy water and water tracers to 0
+      if ( reset_canopy_ic .ne. 0 .and. istart < 9 ) then
+        do j=J_0,J_1
+          do i=1,im
+            present_land = .false.
+            if (variable_lk==0) then
+              if ( fearth(i,j) > 0.d0 ) present_land = .true.
+            else
+              if ( focean(i,j) < 1.d0 ) present_land = .true.
+            endif
+
+            if( .not. present_land ) cycle
+
+            call get_fb_fv( fb, fv, i, j )
+            if ( fv <= 0.d0 ) cycle
+
+#ifdef USE_ENT
+            !!! probably will not work
+            call ent_get_exports( entcells(i,j),
+     &           canopy_heat_capacity=ht_cap_can )
+#else
+            aa=ala(1,i,j)
+            ht_cap_can=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
+#endif
+            ! assume canopy completey dry
+            w_ij(0,2,i,j) = 0.d0
+            fice_can = 0.d0
+            call temperature_to_heat( ht_ij(0,2,i,j),
+     &           tearth(i,j), fice_can, w_ij(0,2,i,j), ht_cap_can )
+#ifdef TRACERS_WATER
+            tr_w_ij(:,0,2,i,j) = 0.d0
+#endif
+          enddo
+        enddo
+      endif
 
 C GISS-ESMF EXCEPTIONAL CASE
 C-BMP Global sum on evap_max_ij
