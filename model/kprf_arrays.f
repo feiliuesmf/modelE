@@ -174,7 +174,7 @@ cddd     & thmix(I_0H:I_1H,J_0H:J_1H),
 cddd     & umix(I_0H:I_1H,J_0H:J_1H),  vmix(I_0H:I_1H,J_0H:J_1H) )
 cddd
 cddd      allocate(
-cddd     & akpar(I_0H:I_1H,J_0H:J_1H,4) )
+cddd     & akpar(I_0H:I_1H,J_0H:J_1H,12) )
 cddd
 cddd      allocate(
 cddd     & zgrid(I_0H:I_1H,J_0H:J_1H,kdm+1)
@@ -215,7 +215,7 @@ cddd      end subroutine alloc_kprf_arrays_local
      & umix(IDM,JDM),  vmix(IDM,JDM) )
 
       allocate(
-     & akpar(IDM,JDM,4) )
+     & akpar(IDM,JDM,12) )
 
       allocate(
      & zgrid(IDM,JDM,kdm+1)
