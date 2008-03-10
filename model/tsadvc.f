@@ -112,15 +112,18 @@ c
  490  continue
 !     call stencl(kn)
       end if
-c
-      call advem(2,temp(1,1,kn),uflx(1,1,k),vflx(1,1,k),scp2,scp2i,
-     .           delt1,util1,util2)
-c
-      call advem(2,saln(1,1,kn),uflx(1,1,k),vflx(1,1,k),scp2,scp2i,
-     .           delt1,util1,util2)
 
-      endif ! AM_I_ROOT
-      call scatter_hycom_arrays
+      end if !AM_I_ROOT
+c
+      call advem(2,temp_loc(1,J_0H,kn),uflx_loc(1,J_0H,k),
+     .           vflx_loc(1,J_0H,k),
+     .           scp2_loc(1,J_0H),scp2i_loc(1,J_0H),
+     .           delt1,util1_loc(1,J_0H),util2_loc(1,J_0H))
+c
+      call advem(2,saln_loc(1,J_0H,kn),uflx_loc(1,J_0H,k),
+     .           vflx_loc(1,J_0H,k),
+     .           scp2_loc(1,J_0H),scp2i_loc(1,J_0H),
+     .           delt1,util1_loc(1,J_0H),util2_loc(1,J_0H))
 c
 c$OMP PARALLEL DO PRIVATE(pold,pmid,pnew) SCHEDULE(STATIC,jchunk)
       do 46 j=J_0,J_1

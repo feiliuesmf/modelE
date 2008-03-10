@@ -1,7 +1,11 @@
+#include "hycom_mpi_hacks.h"
       subroutine advem(iord,fld,u,v,scal,scali,dt,fco,fc)
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
+      USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
+     &                          haveLatitude,GLOBALSUM
+
       implicit none
 c
 c combined monotone scheme, for details see section 3.3 (eqs. 34 to 37)
@@ -17,11 +21,17 @@ c
 !!      include 'dimensions.h'
       include 'dimension2.h'
 c
-      real fld(idm,jdm),u(idm,jdm),v(idm,jdm),scal(idm,jdm),
-     .     scali(idm,jdm),fco(idm,jdm),fc(idm,jdm)
-      real fmx(idm,jdm),fmn(idm,jdm),flp(idm,jdm),fln(idm,jdm),
-     .     flx(idm,jdm),fly(idm,jdm),u1(idm,jdm),v1(idm,jdm),
-     .     flxdiv(idm,jdm),clipj(jdm),vlumj(jdm)
+      real fld(idm,J_0H:J_1H),u(idm,J_0H:J_1H),
+     .     v(idm,J_0H:J_1H),scal(idm,J_0H:J_1H),
+     .     scali(idm,J_0H:J_1H),fco(idm,J_0H:J_1H),
+     .     fc(idm,J_0H:J_1H)
+      real fmx(idm,J_0H:J_1H),fmn(idm,J_0H:J_1H),
+     .     flp(idm,J_0H:J_1H),fln(idm,J_0H:J_1H),
+     .     flx(idm,J_0H:J_1H),fly(idm,J_0H:J_1H)
+      real u1(idm,J_0H:J_1H),v1(idm,J_0H:J_1H),
+     .     flxdiv(idm,J_0H:J_1H),clipj(J_0H:J_1H),
+     .     vlumj(J_0H:J_1H)
+
       real dt,onemu,q,clip,vlume,amount,bfore,after
       integer iord,itest,jtest,ip1,im1,jp1,jm1
       logical wrap,recovr
@@ -42,11 +52,16 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- compute low-order and part of antidiffusive fluxes
 c
-      call cpy_p(fld)
+      fmx=0.d0; fmn=0.d0; fly=0.d0;
+      flp=0.d0; fln=0.d0;
+
+      call cpy_p_par(fld)
+      
+      CALL HALO_UPDATE(ogrid,fld, FROM=SOUTH+NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,q,ia,ib) SCHEDULE(STATIC,jchunk)
-      do 11 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 11 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 2 l=1,isu(j)
       do 2 i=ifu(j,l),ilu(j,l)
@@ -74,16 +89,16 @@ c
       if (ip(ia,j).eq.0) ia=i
       ib=min(ii,i+1)
       if (ip(ib,j).eq.0) ib=i
-      ja=mod(j-2+jj,jj)+1
+      ja = PERIODIC_INDEX(j-1, jj)
       if (ip(i,ja).eq.0) ja=j
-      jb=mod(j     ,jj)+1
+      jb = PERIODIC_INDEX(j+1, jj)
       if (ip(i,jb).eq.0) jb=j
       fmx(i,j)=max(fld(i,j),fld(ia,j),fld(ib,j),fld(i,ja),fld(i,jb))
    11 fmn(i,j)=min(fld(i,j),fld(ia,j),fld(ib,j),fld(i,ja),fld(i,jb))
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 22 j=1,jj
+      do 22 j=J_0,J_1
       do 22 l=1,isp(j)
       flx(ifp(j,l)  ,j)=0.
       flx(ilp(j,l)+1,j)=0.
@@ -95,9 +110,13 @@ c$OMP PARALLEL DO PRIVATE(j,wrap) SCHEDULE(STATIC,jchunk)
       wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
       j=jfp(i,l)
-      if (j.gt.1 .or. .not.wrap) fly(i,j)=0.
+      if (haveLatitude(ogrid, J=j)) then
+        if (j.gt.1 .or. .not.wrap) fly(i,j)=0.
+      endif
       j=mod(jlp(i,l),jj)+1
-      if (j.gt.1 .or. .not.wrap) fly(i,j)=0.
+      if (haveLatitude(ogrid, J=j)) then
+        if (j.gt.1 .or. .not.wrap) fly(i,j)=0.
+      endif
    33 continue
 c$OMP END PARALLEL DO
 c
@@ -106,10 +125,12 @@ cdiag j=jtest
 cdiag write (lp,'(''advem (1)''2i5,f22.3/1pe39.2/0pf21.3,1pe9.2,0pf9.3,
 cdiag.1pe9.2,0pf9.3/1pe39.2/0pf39.3)') i,j,fld(i-1,j),u(i,j),fld(i,j-1),
 cdiag.v(i,j),fld(i,j),v(i,j+1),fld(i,j+1),u(i+1,j),fld(i+1,j)
+
+      CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb,q,amount) SCHEDULE(STATIC,jchunk)
-      do 61 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 61 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       vlumj(j)=0.
       clipj(j)=0.
       do 61 l=1,isp(j)
@@ -126,12 +147,16 @@ c$OMP PARALLEL DO PRIVATE(jb,q,amount) SCHEDULE(STATIC,jchunk)
 c$OMP END PARALLEL DO
 c
       if (iord.le.1) go to 100
+
+      CALL HALO_UPDATE(ogrid,flxdiv, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,fco,    FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,fc,     FROM=SOUTH)
 c
 c --- finish computation of antidiffusive fluxes
 c
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
-      do 8 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 8 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 7 l=1,isu(j)
       do 7 i=ifu(j,l),ilu(j,l)
@@ -146,9 +171,12 @@ c$OMP END PARALLEL DO
 c
 c---- limit antidiffusive fluxes
 c
+
+      CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
+c
 c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
-      do 16 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 16 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 16 l=1,isp(j)
       do 16 i=ifp(j,l),ilp(j,l)
       flp(i,j)=(fmx(i,j)-fld(i,j))*fc(i,j)*scal(i,j)/( (onemu
@@ -160,12 +188,15 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
    16 continue
 c$OMP END PARALLEL DO
 c
-      call cpy_p(flp)
-      call cpy_p(fln)
+      call cpy_p_par(flp)
+      call cpy_p_par(fln)
+
+      CALL HALO_UPDATE(ogrid,fln, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,flp, FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
-      do 18 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 18 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 17 l=1,isu(j)
       do 17 i=ifu(j,l),ilu(j,l)
@@ -179,6 +210,8 @@ c
      .        +min(0.,fly(i,j))*min(1.,flp(i,ja ),fln(i,j))
    18 continue
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
 cdiag i=itest
 cdiag j=jtest
@@ -187,8 +220,8 @@ cdiag.1pe9.2,0pf9.3/1pe39.2/0pf39.3)') i,j,fld(i-1,j),u(i,j),fld(i,ja ),
 cdiag.v(i,j),fld(i,j),v(i,jb ),fld(i,jb ),u(i+1,j),fld(i+1,j)
 c
 c$OMP PARALLEL DO PRIVATE(jb,amount,q) SCHEDULE(STATIC,jchunk)
-      do 62 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 62 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 62 l=1,isp(j)
       do 62 i=ifp(j,l),ilp(j,l)
       flxdiv(i,j)=(flx(i+1,j)-flx(i,j)+fly(i,jb )-fly(i,j))*dt
@@ -207,16 +240,19 @@ c
         vlume=0.
         clip=0.
 c$OMP PARALLEL DO REDUCTION(+:vlume,clip) SCHEDULE(STATIC,jchunk)
-        do 19 j=1,jj
-        vlume=vlume+vlumj(j)
- 19     clip=clip+clipj(j)
+!       do 19 j=J_0,J_1
+!       vlume=vlume+vlumj(j)
+!19     clip=clip+clipj(j)
 c$OMP END PARALLEL DO
 c
+        call GLOBALSUM(ogrid,vlumj,vlume, all=.true.)
+        call GLOBALSUM(ogrid,clipj,clip,  all=.true.)
+
         if (vlume.ne.0.) then
           clip=clip/vlume
 cdiag     write (lp,'(a,1pe11.3)') 'tracer drift in advem:',-clip
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-          do 13 j=1,jj
+          do 13 j=J_0,J_1
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
    13     fld(i,j)=fld(i,j)+clip
