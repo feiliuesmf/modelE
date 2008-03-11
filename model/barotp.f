@@ -10,7 +10,8 @@ c --- version 2.8.2
 c
       include 'bering.h'
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!      include 'dimension2.h'   ! TNL 
+      integer i,j,l,m,n,mm,nn,k1m,k1n,ia,ib,ja,jb
 !!      include 'common_blocks.h'
 c
       real q,utndcy,vtndcy,damp,uglue,vglue,
