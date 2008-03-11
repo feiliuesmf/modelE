@@ -1756,7 +1756,7 @@ C**** define local grid
       logical present_land
       integer init_flake
       integer kk
-      integer :: reset_canopy_ic=0
+      integer :: reset_canopy_ic=0, reset_snow_ic=0
       real*8 :: aa, ht_cap_can, fice_can
 
 C****
@@ -1791,6 +1791,7 @@ c**** read rundeck parameters
       call sync_param( "vegCO2X_off", vegCO2X_off)
 #endif
       call sync_param( "reset_canopy_ic", reset_canopy_ic )
+      call sync_param( "reset_snow_ic", reset_snow_ic )
 
 c**** set number of layers for vegetation module
       nl_soil = ngm
@@ -2091,6 +2092,21 @@ c****     copy soils prognostic quantities to model variables
         end do
         end do
       end if
+
+
+c**** remove all land snow from initial conditions
+c**** (useful when changing land/vegetation mask)
+      if ( reset_snow_ic .ne. 0 .and. istart < 9 ) then
+        do j=J_0,J_1
+          do i=1,im
+            nsn_ij(:, i, j) = 1
+            wsn_ij(:, :, i, j) = 0.d0
+            hsn_ij(:, :, i, j) = 0.d0
+            dzsn_ij(:, :, i, j) = 0.d0
+            fr_snow_ij(:, i, j) = 0.d0
+          enddo
+        enddo
+      endif
 
 !!! hack - remove underwater snow
 !!! (should not be present in restart file in the first place!)
