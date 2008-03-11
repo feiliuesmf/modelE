@@ -121,7 +121,8 @@ c
       implicit none
 c
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h" ! TNL
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb
 !!#include "common_blocks.h"
 !!#include "cpl.h"
 !!! afogcm,nsavea should be initialized properly !
