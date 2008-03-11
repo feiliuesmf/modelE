@@ -14,7 +14,8 @@ c
 c
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"    ! TNL
+      integer i,j,k,l,n,nn,kn
 !!#include "common_blocks.h"
 !!!#include "cpl.h"
 c
@@ -382,7 +383,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"  ! TNL
+      integer i,j
 c
       real real8(idm,jdm)
       real*4 real4(idm,jdm)
