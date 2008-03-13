@@ -18,7 +18,8 @@ c --- hycom version 0.9
 c
       include 'bering.h'
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'  ! TNL
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ib,ja,jb
 !!      include 'common_blocks.h' 
 c
       integer mask(idm,J_0H:J_1H),jcyc,iz,jz,iter
