@@ -14,7 +14,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l,n,nn
 !!      include 'common_blocks.h'
 c
 c --- initialize arrays
@@ -52,7 +53,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l,n,nn
 !!      include 'common_blocks.h'
 c
       if (n.ne.oddev) then
@@ -91,7 +93,8 @@ c
       implicit none
       include 'bering.h'
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l,n,nn,ib,jb
 !!      include 'common_blocks.h'
 c
       real vertfx(idm,jdm,kdm),hordiv(idm,jdm,kdm),
@@ -247,7 +250,8 @@ c
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l,ia,ib,ja,jb
 c
       real fld(idm,jdm,kdm),u(idm,jdm,kdm),v(idm,jdm,kdm),
      .     w(idm,jdm,kdm),fco(idm,jdm,kdm),fc(idm,jdm,kdm),

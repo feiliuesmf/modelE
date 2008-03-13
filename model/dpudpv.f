@@ -11,7 +11,8 @@ c --- define layer depth at  u,v  points
 c --- ----------------------------------
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l,ja
 !!      include 'common_blocks.h'
 c
       integer mmnn,kmn

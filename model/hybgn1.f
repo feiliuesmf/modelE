@@ -15,7 +15,8 @@ c --- hybrid grid generator (coordinate restoration exclusively by "dilution")
 c --- ---------------------
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja
 !!      include 'common_blocks.h'
 c
       real delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,

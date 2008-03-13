@@ -10,7 +10,8 @@ c --- version 2.8 -- cyclic and noncyclic b.c. combined
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer i,j,l,ja,jb
 !!      include 'common_blocks.h'
 c
       real uvdep,a,b,damp

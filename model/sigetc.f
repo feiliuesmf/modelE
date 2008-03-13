@@ -296,7 +296,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l,n
 !!      include 'common_blocks.h'
 c
       real slithk
@@ -434,7 +435,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l,n
 !!      include 'common_blocks.h'
 c
       real slithk
@@ -580,7 +582,8 @@ c --- compute volume integral of 2 fields (field1,field2), each associated
 c --- with its own layer thickness field (dp1,dp2)
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j,k,l
 !!      include 'common_blocks.h'
 c
       real dp1(idm,jdm,kdm),dp2(idm,jdm,kdm),field1(idm,jdm,kdm),
@@ -624,7 +627,8 @@ c
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'      ! TNL
+      integer i,j
 c
       integer numcrs,numfin,newrows,icrs,ifin,ieqcrs,ieqfin,
      .        ipcrs(idm,jdm)

@@ -18,7 +18,8 @@ c --- hycom version 1.0 -- cyclic in j
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ja,jb
 !!      include 'common_blocks.h'
 c
       real smin,smax,tmin,tmax,sminn,smaxx,tminn,tmaxx,posdef,flxdiv

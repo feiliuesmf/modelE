@@ -16,7 +16,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 !!      include 'kprf_arrays.h'
@@ -297,7 +298,8 @@ ccc   use mod_xc  ! HYCOM communication interface
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,l,m,n,mm,nn,k1m,k1n
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 c
@@ -341,7 +343,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,m,n,mm,nn,kn,k1m,k1n,jb
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 !!      include 'kprf_arrays.h'
@@ -1339,7 +1342,8 @@ ccc   use mod_xc  ! HYCOM communication interface
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,l,m,n,mm,nn,k1m,k1n
 !!      include 'common_blocks.h'
 c
 c --- final mixing at p points
@@ -1362,7 +1366,8 @@ ccc   use mod_xc  ! HYCOM communication interface
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,l,m,n,mm,nn,k1m,k1n
 !!      include 'common_blocks.h'
 c
 c --- final velocity mixing at u,v points
@@ -1405,7 +1410,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,m,n,mm,nn,kn,k1m,k1n,jb
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 !!      include 'kprf_arrays.h'
@@ -2794,7 +2800,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,m,n,mm,nn,kn,k1m,k1n
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 !!      include 'kprf_arrays.h'
@@ -3009,7 +3016,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,m,n,mm,nn,kn,k1m,k1n
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 !!      include 'kprf_arrays.h'
@@ -3127,7 +3135,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,m,n,mm,nn,kn,k1m,k1n,ja
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 !!      include 'kprf_arrays.h'
@@ -3243,7 +3252,8 @@ c
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
 c

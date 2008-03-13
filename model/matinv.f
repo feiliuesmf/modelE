@@ -9,7 +9,8 @@ ccc   use mod_xc  ! HYCOM communication interface
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer k
 c
 c --- compute coefficients for tridiagonal matrix (dimension=kdm).
 c --- Note: tcu(1) = 0. and tcl(kdm+1) = 0. are necessary conditions.
@@ -50,7 +51,8 @@ ccc   use mod_xc  ! HYCOM communication interface
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer k 
 c
 c --- compute right hand side of tridiagonal matrix for scalar fields:
 c --- =  yo (old field) 
@@ -109,7 +111,8 @@ c
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer k
       integer itest,jtest
       common/testpt/itest,jtest
 c

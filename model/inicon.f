@@ -31,7 +31,8 @@ c --- hycom version 0.9
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'  ! TNL
+      integer i,j,k,l,m,n,mm,ia,ja
 !!      include 'common_blocks.h'
       include 'state_eqn.h'
 !!!! check next two lines

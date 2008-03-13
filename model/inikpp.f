@@ -9,7 +9,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer i,j
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
@@ -101,7 +102,8 @@ c
       USE KPRF_ARRAYS
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer i,j,l
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'

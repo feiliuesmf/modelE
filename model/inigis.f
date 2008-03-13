@@ -9,7 +9,8 @@ c --- hycom version 2.1
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer i,j,k
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
@@ -691,7 +692,7 @@ c --- From the printed notes Canuto gave me on 980601 have:
 c ---          \tau_pv = {2 \over 5} \tau  (B.1) or parameter(tpvot = 0.4)
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL, not used
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
@@ -848,7 +849,7 @@ c
       real fct_sal,c_n,c_c,c_y,sm,sh,sc,bb,rit,ric
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL, not used
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
@@ -876,7 +877,7 @@ c --- hycom version 1.0
       implicit none   
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL not used
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
@@ -1109,7 +1110,8 @@ c --- hycom version 1.0
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer i
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
@@ -1182,7 +1184,8 @@ c --- hycom version 1.0
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer m
 !!      include 'common_blocks.h'
 !!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'

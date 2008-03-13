@@ -113,7 +113,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"    ! TNL
+      integer i,j
 !!#include "common_blocks.h"
 c
 c --- call this routine from anywhere in the code (from both versions, of
@@ -165,7 +166,8 @@ c
       USE HYCOM_DIM_GLOB, only : idm,jdm
 c
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"    ! TNL
+      integer i,j
 !!#include "common_blocks.h"
 c
 c --- call this routine from anywhere in the code (from both versions, of
@@ -221,7 +223,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"    ! TNL
+      integer k,m,n,mm,nn,km,kn
 !!#include "common_blocks.h"
 c
       integer iunit,lpunit
@@ -339,7 +342,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"    ! TNL
+      integer i,j,k
 !!#include "common_blocks.h"
 c
       integer mn,ks,iz,jz
@@ -415,7 +419,8 @@ c
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j
 c
       real array(idm,jdm),scale,offset
       character what*12
@@ -468,7 +473,8 @@ c
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j
 c
       real array(idm,jdm),scale,offset
       character what*12
@@ -496,7 +502,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
       real,intent(IN)    :: pbot(idm,jdm)
@@ -558,7 +565,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
       real blist(idm,jdm)
@@ -600,7 +608,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
       real blist(idm,jdm)
@@ -642,7 +651,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
       real blist(idm,jdm)
@@ -683,7 +693,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
       real blist(idm,jdm)
@@ -751,7 +762,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
       real*4 blist(idm,jdm)
@@ -793,7 +805,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
       real*4 blist(idm,jdm)
@@ -835,7 +848,8 @@ c
       USE HYCOM_DIM_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
       real*4 blist(idm,jdm)

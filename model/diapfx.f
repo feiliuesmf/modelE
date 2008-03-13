@@ -9,7 +9,8 @@ c --- hycom version 0.9.2
       implicit none
 c
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'   ! TNL
+      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n
 !!      include 'common_blocks.h'
 c
       real flxu(kdm),flxl(kdm),pdot(kdm),flngth(kdm),clip(kdm),

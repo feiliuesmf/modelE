@@ -57,7 +57,8 @@ c
       !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"  ! TNL
+      integer n,ia,ja
 !!#include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
 c
@@ -82,7 +83,8 @@ c
       !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"  ! TNL
+      integer i,j,l,n
 !!#include "a2o.h"
       real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
      .    ,sward(iio,jjo),eward(iio,jjo),tta,tto
@@ -123,7 +125,8 @@ c
       !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"  ! TNL
+      integer i,j,l,n
 !!#include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tta,tto
 c
@@ -150,7 +153,8 @@ c
       !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"   ! TNL
+      integer i,j,l,n,ia,ja,jb
 !!#include "a2o.h"
       real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
      .      ,nward(iio,jjo),eward(iio,jjo),tta,tto,sine
@@ -209,7 +213,8 @@ c
       !USE HYCOM_DIM_GLOB
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"   ! TNL
+      integer n,ia,ja
 !!#include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
 c

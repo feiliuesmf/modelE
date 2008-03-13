@@ -13,7 +13,8 @@ c
       USE HYCOM_ARRAYS_GLOB
       implicit none
 !!      include 'dimensions.h'
-      include 'dimension2.h'
+!!    include 'dimension2.h'    ! TNL
+      integer i,j,k,l,ja
 !!      include 'common_blocks.h'
 c
       integer kold,knew,ko
