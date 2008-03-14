@@ -927,11 +927,11 @@ c**** Interpolate two months of data to current day
 
       CALL CHECK4(gtracer(1,1,1,J_0),NTM,4,IM,nJ,SUBR,'GTRACE')
       do n=1,ntm
-        CALL CHECK4(trmom(1,1,J_0,1,n),NMOM,IM,nJ,LM,SUBR,
+        CALL CHECK4(trmom(:,:,J_0:J_1,:,n),NMOM,IM,nJ,LM,SUBR,
      *       'X'//trname(n))
-        CALL CHECK3(trm(1,J_0,1,n),IM,nJ,LM,SUBR,trname(n))
+        CALL CHECK3(trm(:,J_0:J_1,:,n),IM,nJ,LM,SUBR,trname(n))
 #ifdef TRACERS_WATER
-        CALL CHECK3(trwm(1,J_0,1,n),IM,nJ,LM,SUBR,'WM'//trname(n))
+        CALL CHECK3(trwm(:,J_0:J_1,:,n),IM,nJ,LM,SUBR,'WM'//trname(n))
 #endif
 
 C**** check for negative tracer amounts (if t_qlimit is set)
