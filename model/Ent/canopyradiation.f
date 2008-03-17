@@ -1381,7 +1381,7 @@
 !@sum then get the gort input at patch level, note the whole Entcell share the 
 !@sum same input radiation  
 !@sum note in calculating clumping indices, dbh is not needed
-      
+      use patches, only : patch_print
       type(patch),pointer :: pp
       type(gort_input),dimension(:),pointer :: gin
 
