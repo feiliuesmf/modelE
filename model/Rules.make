@@ -393,7 +393,7 @@ F90FLAGS = -O2 -qfree -qsuffix=cpp=F90 -qmaxmem=16384 -WF,-DMACHINE_IBM
 # one may need to add -bmaxstack:0x1000000 if rusns out of stack
 LFLAGS = -O2 # -bmaxdata:0x10000000
 # no guarantee that the following line gives correct info
-F90_VERSION = $(shell what /usr/lpp/xlf/bin/xlfentry | tail -1)
+F90_VERSION = $(shell $(F90) -qversion 2>&1)
 endif
 
 endif
