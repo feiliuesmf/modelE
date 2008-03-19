@@ -100,7 +100,7 @@
       ! total number of individuals (may want to do by biomass of cohort)
       ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
       use cohorts, only: calc_CASArootfrac  !PK 7/07
-      use canopyrad
+      !use canopyrad
       implicit none
       type(patch),pointer :: pp
       !-----Local variables-------
