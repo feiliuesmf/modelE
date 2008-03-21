@@ -3,6 +3,7 @@
       module vegetation
 
       use constant, only : zero,tfrz=>tf,gasc
+      use ghy_com, only : ngm, imt
 
       implicit none
       save
@@ -11,6 +12,22 @@
 
 c**** public functions:
       public veg_conductance, update_veg_locals
+      public t_vegcell
+
+ccc t_vegcell is a hack to pass vegetation-related data to 
+ccc ground hydrology. Basically it is an equivalent of entcell.
+      type t_vegcell
+        real*8 fr(ngm)
+        real*8 snowm
+        real*8 ws_can
+        real*8 shc_can
+        real*8 alaie,rs,nm,nf,alai,vh
+     &     ,alait(11),vfraction(11)
+     &     ,fdir,parinc,vegalbedo,sbeta,Ci,Qf ! added by adf, nyk
+     &     ,Ca     ! nyk
+     &     ,cond_scheme,vegCO2X_off  !nyk
+     &     ,cnc
+      end type t_vegcell
 
 ccc   rundeck parameters  5/1/03 nyk
 !@dbparam cond_scheme selects vegetation conductance scheme:
@@ -80,7 +97,8 @@ ccc   rundeck parameters  5/1/03 nyk
 
 
       subroutine veg_conductance(
-     &      cnc_out 
+     &     vegcell
+     &     ,cnc_out 
      &     ,gpp_out 
      &     ,trans_sw_out
      &     ,betad_in ! evaporation efficiency
@@ -89,10 +107,31 @@ ccc   rundeck parameters  5/1/03 nyk
      $     ,dt_in  ! GHY time step
      &     )
       implicit none
+      type(t_vegcell) :: vegcell
       real*8, intent(out) :: cnc_out
       real*8, intent(out) :: gpp_out
       real*8, intent(out) :: trans_sw_out
       real*8, intent(in) :: betad_in,tcan_in,qv_in,dt_in
+
+
+      alaie         = vegcell%alaie       
+      rs            = vegcell%rs          
+      nm            = vegcell%nm          
+      nf            = vegcell%nf          
+      alai          = vegcell%alai        
+      vh            = vegcell%vh          
+      alait         = vegcell%alait       
+      vfraction(:)  = vegcell%vfraction(:)
+      fdir          = vegcell%fdir        
+      parinc        = vegcell%parinc      
+      vegalbedo     = vegcell%vegalbedo   
+      sbeta         = vegcell%sbeta       
+      Ci            = vegcell%Ci          
+      Qf            = vegcell%Qf          
+      Ca            = vegcell%Ca          
+cddd      cond_scheme   = vegcell%cond_scheme 
+cddd      vegCO2X_off   = vegcell%vegCO2X_off 
+      cnc           = vegcell%cnc         
 
       ! call stop_model("veg_conductance called",255)
 
@@ -110,6 +149,26 @@ ccc   rundeck parameters  5/1/03 nyk
         call veg(dt_in, gpp_out, trans_sw_out)
       endif
       cnc_out = CNC
+
+      vegcell%alaie         = alaie       
+      vegcell%rs            = rs          
+      vegcell%nm            = nm          
+      vegcell%nf            = nf          
+      vegcell%alai          = alai        
+      vegcell%vh            = vh          
+      vegcell%alait         = alait       
+      vegcell%vfraction(:)  = vfraction(:)
+      vegcell%fdir          = fdir        
+      vegcell%parinc        = parinc      
+      vegcell%vegalbedo     = vegalbedo   
+      vegcell%sbeta         = sbeta       
+      vegcell%Ci            = Ci          
+      vegcell%Qf            = Qf          
+      vegcell%Ca            = Ca          
+      vegcell%cond_scheme   = cond_scheme 
+      vegcell%vegCO2X_off   = vegCO2X_off 
+      vegcell%cnc           = cnc         
+
       end subroutine veg_conductance
 
 
@@ -588,19 +647,22 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 
       !----------------------------------------------------------------
-      subroutine update_veg_locals(evap_tot2, rho, rhow, ch, vsm,qs)
+      subroutine update_veg_locals(evap_tot2, rho, rhow, ch, vsm,qs
+     &     ,qf_out)
       !Update vegetation input variables that require values external
       !to vegetation module to update.  For values that change within
       !the smaller time step of the GHY modules.
 
       real*8,intent(in):: evap_tot2
       real*8,intent(in):: rho, rhow, ch, vsm, qs
+      real*8, intent(out) :: qf_out
       real*8 rho3,cna
       
       !adf Get new Qf
       rho3=rho/rhow
       cna=ch*vsm
       Qf=evap_tot2/(rho3*cna)+qs  ! New mixing ratio for next timestep (adf)
+      qf_out = Qf
       end subroutine update_veg_locals
       !----------------------------------------------------------------
 

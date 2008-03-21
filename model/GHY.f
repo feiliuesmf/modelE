@@ -122,6 +122,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
 c**** public functions:
       public hl0, set_snow, advnc, evap_limits, xklh
+      public get_soil_properties
 
 ccc   physical constants and global model parameters
 ccc   converting constants from 1/kg to 1/m^3
@@ -159,6 +160,9 @@ ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
      &     ,abetad,abetav,abetat,abetap,abetab,abeta
+ccc   output from former retp2
+      real*8, public :: tg2av,wtr2av,ace2av
+
 !@var zw water table (not computed ?)
       real*8, public :: zw(2)
 
@@ -166,9 +170,10 @@ ccc   private accumulators:
       real*8 aedifs
 
 ccc   input fluxes
-      real*8, public :: pr,htpr,prs,htprs,srht,trht
+      real*8 :: pr,htpr,prs,htprs,srht,trht
 ccc   input bc''s
-      real*8, public :: ts,qs,pres,rho,ch,qm1,vs,vs0,tprime,qprime
+      real*8 :: ts,qs,pres,rho,ch,qm1,vs,vs0,tprime,qprime
+      public ts,qs ! needed in ghy_diag
 !@var dt earth time step (s)
       real*8, public :: dt
 
@@ -178,19 +183,25 @@ ccc   soil prognostic variables
       real*8, public :: w(0:ngm,LS_NFRAC),ht(0:ngm,LS_NFRAC),dz(ngm)
 
 ccc   soil properties which need to be passed in:
-      real*8, public :: q(imt,ngm),qk(imt,ngm),sl,fv,fb
+      real*8 :: q(imt,ngm),qk(imt,ngm),sl,fv,fb
+      public fb,fv ! should move to vegcell !
 
 ccc   topographic info which is passed in
-      real*8, public :: top_index, top_stdev
+      real*8 :: top_index, top_stdev
 
 ccc   soil internal variables wchich need to be passed from/to ghinij
-      real*8, public :: zb(ng),zc(ng),fr(ng),snowm !veg alaie, rs,
+      real*8 :: zb(ng),zc(ng),fr(ng),snowm !veg alaie, rs,
      &     ,thets(0:ng,2),thetm(0:ng,2),ws(0:ngm,2),shc(0:ng,2)
      &     ,thm(0:64,imt-1)
+      public thm
 !veg     &     ,nm,nf,vh ! added by adf ! ,alai
+!@var ws_can canopy water holding capacity (m) - input from veg
+!@var shc_can canopy heat capacity (J/C/m^2) - input from veg
+      real*8, public :: ws_can,shc_can
 !@var n the worst choice for global name: number of soil layers
 !@var nth some magic number computed in hl0, used in ghinij and hydra
-      integer, public :: n,nth
+      integer, public  :: n
+      integer :: nth
 
 ccc   soil internal variables wchich need to be passed to driver anyway
       real*8, public :: snowd(2),tp(0:ngm,2),fice(0:ngm,2)
@@ -206,14 +217,15 @@ ccc   soil internal variables wchich need to be passed to driver anyway
 
 ccc   snow prognostic variables
 !!!      integer, parameter, public :: nlsn=3
-      integer, public :: nsn(2)
-      real*8, public ::  dzsn(nlsn+1,2),wsn(nlsn,2),hsn(nlsn,2)
+      integer :: nsn(2)
+      real*8 ::  dzsn(nlsn+1,2),wsn(nlsn,2),hsn(nlsn,2)
      &     ,fr_snow(2)
+      public nsn,hsn,fr_snow ! needed in ghy_diag
 ccc   tsn1 is private
 !@var tsn1 temperature of the upper layer of snow (C)
       real*8 tsn1(2)
 
-      real*8 betat,betad
+      real*8 betat,betad,betadl(ngm)
       real*8 gpp,dts,trans_sw
 !xxx      real*8, public :: cnc
 
@@ -262,7 +274,7 @@ ccc   put here some data needed for print-out during the crash
       type (debug_data_str) debug_data
 
 ccc   evaporation limiting data which one needs to pass the pbl
-      real*8, public :: evap_max_sat, evap_max_nsat, fr_sat
+      real*8 :: evap_max_sat, evap_max_nsat, fr_sat
 
 ccc   potential evaporation
 !@var epb,epbs,epv,epvs potential evaporation (b-bare, v-vege, s-snow)
@@ -300,7 +312,7 @@ ccc   i.e. they are not multiplied by any fr_...
 !@var snsh_tot total sens. heat(weighted with fr_snow,fm)(bare/veg)(m/s)
 !@var thrm_tot total T^4 heat (weighted with fr_snow,fm)(bare/veg)(m/s)
       real*8 evap_tot(2), snsh_tot(2), thrm_tot(2)
-      public evap_tot ! for debug only !
+      !!!public evap_tot ! for debug only !
 
 ccc data for tracers
 !@var flux_snow water flux between snow layers (>0 down) (m/s)
@@ -326,6 +338,12 @@ ccc tracers output:
 !@var tr_evap flux of tracers to atm due to evaporation
 !@var tr_evap flux of tracers due to runoff
       real*8, public :: atr_evap(ntgm),atr_rnff(ntgm),atr_g(ntgm)
+#endif
+
+#ifdef USE_ENT
+ccc the following variables are needed for the interface with 
+ccc dynamic vegetation module, i.e. Ent
+      real*8, public :: Ci,cnc
 #endif
 
 ccc the data below this line is not in GHYTPC yet !
@@ -679,13 +697,22 @@ c     solve for alph0 in s=((1+alph0)**n-1)/alph0
       end subroutine hl0
 
 
-      subroutine evap_limits( compute_evap, evap_max_out, fr_sat_out )
+      subroutine evap_limits(
+#ifndef USE_ENT
+     &     vegcell,
+#endif
+     &     compute_evap, evap_max_out, fr_sat_out )
 !@sum computes maximal evaporation fluxes for current soil properties
 !@calls cond
-      use vegetation, only : veg_conductance
+#ifndef USE_ENT
+      use vegetation, only : veg_conductance, t_vegcell
+#endif
 !@var compute_evap if .true. compute evap, else just evap_max,fr_sat
 !@var evap_max_out max evaporation from unsaturated soil
 !@var fr_sat_out fraction of saturated soil
+#ifndef USE_ENT
+      type(t_vegcell) :: vegcell
+#endif
       logical, intent(in) :: compute_evap
       real*8, intent(out) :: evap_max_out, fr_sat_out
 ccc   local variables
@@ -708,10 +735,12 @@ ccc   local variables
       integer ibv, k
 !@var hw the wilting point (m)
       real*8, parameter :: hw = -100.d0
-!@var betadl transpiration efficiency for each soil layer
-      real*8 betadl(ngm) ! used in evaps_limits only
+!!! !@var betadl transpiration efficiency for each soil layer
+      !real*8 betadl(ngm) ! used in evaps_limits only
       real*8 pot_evap_can
+#ifndef USE_ENT
       real*8 cnc         ! local cnc from veg_conductance, nyk
+#endif
       real*8 v_qprime    ! local variable
 #ifdef EVAP_VEG_GROUND
       real*8 evap_max_vegsoil
@@ -725,7 +754,9 @@ ccc make sure that important vars are initialized (needed for ibv hack)
       evap_max_snow(:) = 0.d0
       evap_max_wet(:) = 0.d0
       evap_max_dry(:) = 0.d0
+#ifndef USE_ENT
       betadl(:) = 0.d0
+#endif
       betad = 0.d0
       abetad = 0.d0
       acna = 0.d0
@@ -777,6 +808,10 @@ ccc !!! it''s a hack should call it somewhere else !!!
 c     betad is the the root beta for transpiration.
 c     hw is the wilting point.
 c     fr(k) is the fraction of roots in layer k
+#ifdef USE_ENT
+        betad = sum( betadl(1:n) )
+        if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
+#else
         betad=0.d0
         do 30 k=1,n
           betadl(k)=(1.d0-fice(k,2))*fr(k)*max((hw-h(k,2))/hw,zero)
@@ -787,7 +822,8 @@ c     fr(k) is the fraction of roots in layer k
 c     Get canopy conductivity cnc and gpp
         qv  = qsat(tp(0,2)+tfrz,lhe,pres) ! for cond_scheme==2
         call veg_conductance(
-     &       cnc
+     &       vegcell
+     &       ,cnc
      &       ,gpp
      &       ,trans_sw       !nyk
      &       ,betad          ! evaporation efficiency
@@ -795,7 +831,7 @@ c     Get canopy conductivity cnc and gpp
      &       ,qv
      &       ,dts
      &       )
-
+#endif
         !print *,"HGY_COND: ",ijdebug, cnc, betadl
         !print *,"GHY_FORCINGS: ", ijdebug, tp(0,2)
 
@@ -1669,7 +1705,133 @@ ccc check for under/over-saturation
       end subroutine apply_fluxes
 
 
-      subroutine advnc
+      subroutine get_soil_properties( q_in, dz_in,
+     &     thets_out, thetm_out, shc_out )
+!@var shc_soil_texture specific heat capacity of soil texture (J/K/M^3)
+      real*8, parameter :: shc_soil_texture(imt)
+     &     = (/2d6,2d6,2d6,2.5d6,2.4d6/)
+      real*8, intent(in) :: q_in(:,:), dz_in(:)
+      real*8, intent(out) ::
+     &     thets_out(:), thetm_out(:), shc_out(:)
+      integer k,i
+
+      do k=1,ngm
+        thets_out(k) = 0.d0
+        thetm_out(k) = 0.d0
+        shc_out(k) = 0.d0
+        if ( dz_in(k) <= 0.d0 ) exit
+        do i=1,imt-1
+          thets_out(k)=thets_out(k)+q_in(i,k)*thm(0,i)
+          thetm_out(k)=thetm_out(k)+q_in(i,k)*thm(nth,i)
+        end do
+        do i=1,imt
+          shc_out(k)=shc_out(k)+q_in(i,k)*shc_soil_texture(i)
+        end do
+        shc_out(k)=(1.-thets_out(k))*shc_out(k)*dz_in(k)
+      enddo
+      
+      end subroutine get_soil_properties
+
+
+      subroutine init_step
+!@sum set some variables which have to be set once per time step
+!@+   (actually just moving the stuff from ghinij)
+
+      integer k,ibv,i
+
+      n=0
+      do k=1,ngm
+        if(dz(k).le.0.) exit
+        n=k
+      end do
+
+      if(n.le.0) then
+         !write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
+         call stop_model("GHY:init_step : n <= 0" ,255)
+      end if
+
+c**** calculate the boundaries, based on the thicknesses.
+      zb(1)=0.
+      do k=1,n
+        zb(k+1)=zb(k)-dz(k)
+      end do
+c**** calculate the layer centers, based on the boundaries.
+      do k=1,n
+        zc(k)=.5*(zb(k)+zb(k+1))
+      end do
+c**** fb,fv: bare, vegetated fraction (1=fb+fv)
+      !fb=afb(i0,j0)
+      !fv=1.-fb
+#ifndef USE_ENT
+      !!call get_fb_fv( fb, fv, i0, j0 )
+#endif
+c****
+cddd      do ibv=1,2
+cddd        do k=1,n
+cddd          thets(k,ibv)=0.
+cddd          thetm(k,ibv)=0.
+cddd          do i=1,imt-1
+cddd            thets(k,ibv)=thets(k,ibv)+q(i,k)*thm(0,i)
+cddd            thetm(k,ibv)=thetm(k,ibv)+q(i,k)*thm(nth,i)
+cddd          end do
+cddd          ws(k,ibv)=thets(k,ibv)*dz(k)
+cddd        end do
+cddd      end do
+cddd!veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
+cddd  !    wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
+cddd
+cddd      do ibv=1,2
+cddd        do k=1,n
+cddd          shc(k,ibv)=0.
+cddd          do i=1,imt
+cddd            shc(k,ibv)=shc(k,ibv)+q(i,k)*shc_soil_texture(i)
+cddd          end do
+cddd          shc(k,ibv)=(1.-thets(k,ibv))*shc(k,ibv)*dz(k)
+cddd        end do
+cddd      end do
+
+      do ibv=1,2
+        call get_soil_properties( q, dz,
+     &     thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
+        do k=1,n
+          ws(k,ibv)=thets(k,ibv)*dz(k)
+        enddo
+      enddo
+
+c****
+      call xklh(1)
+c****
+
+c****
+c shc(0,2) is the heat capacity of the canopy
+!veg      aa=ala(1,i0,j0)
+!veg      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+c****
+c htpr is the heat of precipitation.
+c shtpr is the specific heat of precipitation.
+c htprs is the heat of large scale precipitation
+      htprs = 0.
+      if(pr.gt.0.) htprs = htpr/pr*prs
+c****
+      end subroutine init_step
+
+
+      subroutine advnc(
+#ifdef USE_ENT
+     &      entcell,
+     &     Ca, cosz1, vis_rad, direct_vis_rad,
+     &     Qf,
+#else
+     &     vegcell,
+#endif
+     &     w_in,ht_in,          ! main prognostic
+     &     nsn_in,dzsn_in,wsn_in,hsn_in,fr_snow_in, ! snow model prognostic
+     &     top_index_in,top_stdev_in,dz_in,q_in,qk_in,sl_in, ! constatns
+     &     fb_in,fv_in,               ! constatns
+     &     pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in, ! forcing fluxes
+     &     ts_in,qs_in,pres_in,rho_in,ch_in,        ! forcing parameters
+     &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in ! forcing parameters
+     &     )
 c**** advances quantities by one time step.
 c**** input:
 c**** dt - time step, s
@@ -1698,11 +1860,128 @@ c**** retp,reth,fl,flg,runoff,sink,sinkh,fllmt,flh,flhg.
 c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      use vegetation, only: update_veg_locals
+#ifdef USE_ENT
+      use ent_mod, only: entcelltype_public, ent_set_forcings_single,
+     &     ent_get_exports, ent_fast_processes, ent_seasonal_update
+!@var longi,latj corresponding coordinate of the cell
+      type(entcelltype_public) entcell
+      real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
+      real*8, intent(inout) :: Qf
+#else
+      use vegetation, only: update_veg_locals,t_vegcell
+      ! arguments
+      type(t_vegcell) :: vegcell
+#endif
+      real*8 :: w_in(0:ngm,LS_NFRAC),ht_in(0:ngm,LS_NFRAC)
+      integer :: nsn_in(2)
+      real*8 :: dzsn_in(nlsn,2),wsn_in(nlsn,2),hsn_in(nlsn,2)
+     &     ,fr_snow_in(2)
+      real*8 :: top_index_in, top_stdev_in
+      real*8 :: dz_in(ngm),q_in(imt,ngm),qk_in(imt,ngm),sl_in
+      real*8 :: fb_in,fv_in
+      real*8 :: pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in
+      real*8 :: ts_in,qs_in,pres_in,rho_in,ch_in
+      real*8 :: qm1_in,vs_in,vs0_in,tprime_in,qprime_in
+      ! end of arguments
 
       real*8 dtm,tb0,tc0,dtr,tot_w1
       integer limit,nit
-      real*8 dum1, dum2
+      real*8 dum1, dum2, dumrad
+      real*8 :: no_data(1) = -1.d30
+      real*8 :: sbgc_temp(1), sbgc_moist(1)
+
+
+      ! get stuff from vegcell
+#ifndef USE_ENT
+      fr(1:ngm)   = vegcell%fr(:)   
+      snowm   = vegcell%snowm  
+      ws(0,2)  = vegcell%ws_can 
+      shc(0,2) = vegcell%shc_can
+#endif
+
+      ! copy args to global vars
+      w      =w_in
+      ht     =ht_in
+      nsn    =nsn_in
+      dzsn(1:nlsn,:)   =dzsn_in
+      wsn    =wsn_in
+      hsn    =hsn_in
+      fr_snow=fr_snow_in
+      top_index=top_index_in
+      top_stdev=top_stdev_in
+      dz     =dz_in
+      q      =q_in
+      qk     =qk_in
+      sl     =sl_in
+      fb     =fb_in
+      fv     =fv_in
+      pr     = pr_in
+      htpr   = htpr_in  
+      prs    = prs_in   
+      htprs  = htprs_in 
+      srht   = srht_in  
+      trht   = trht_in  
+      ts     = ts_in    
+      qs     = qs_in    
+      pres   = pres_in  
+      rho    = rho_in   
+      ch     = ch_in    
+      qm1    = qm1_in   
+      vs     = vs_in    
+      vs0    = vs0_in   
+      tprime = tprime_in
+      qprime = qprime_in
+
+      call init_step
+
+
+
+cddd       write(933,*) "before"
+cddd       write(933,*) "w             ", w             
+cddd       write(933,*) "ht            ", ht            
+cddd       write(933,*) "nsn           ", nsn           
+cddd       !write(933,*) "dzsn(1:nlsn,:)", dzsn(1:nlsn,:)
+cddd       write(933,*) "wsn           ", wsn           
+cddd       write(933,*) "hsn           ", hsn           
+cddd       write(933,*) "fr_snow       ", fr_snow       
+cddd       write(933,*) "top_index     ", top_index     
+cddd       write(933,*) "top_stdev     ", top_stdev     
+cddd       write(933,*) "dz            ", dz            
+cddd       write(933,*) "q             ", q             
+cddd       write(933,*) "qk            ", qk            
+cddd       write(933,*) "sl            ", sl            
+cddd       write(933,*) "fb            ", fb            
+cddd       write(933,*) "fv            ", fv            
+cddd       write(933,*) "pr            ", pr            
+cddd       write(933,*) "htpr          ", htpr          
+cddd       write(933,*) "prs           ", prs           
+cddd       write(933,*) "htprs         ", htprs         
+cddd       write(933,*) "srht          ", srht          
+cddd       write(933,*) "trht          ", trht          
+cddd       write(933,*) "ts            ", ts            
+cddd       write(933,*) "qs            ", qs            
+cddd       write(933,*) "pres          ", pres          
+cddd       write(933,*) "rho           ", rho           
+cddd       write(933,*) "ch            ", ch            
+cddd       write(933,*) "qm1           ", qm1           
+cddd       write(933,*) "vs            ", vs            
+cddd       write(933,*) "vs0           ", vs0           
+cddd       write(933,*) "tprime        ", tprime        
+cddd       write(933,*) "qprime        ", qprime        
+
+
+
+
+
+
+
+
+
+
+      
+
+
+
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
       dtr=dt
@@ -1713,6 +1992,15 @@ ccc reset main water/heat fluxes, so they are always initialized
       fh(:,:) = 0.d0
       fc(:) = 0.d0
       fch(:) = 0.d0
+#ifdef USE_ENT
+ccc get necessary data from ent
+      call ent_get_exports( entcell,
+     &     canopy_max_H2O=ws_can,
+     &     canopy_heat_capacity=shc_can,
+     &     fraction_of_vegetated_soil=fv
+     &     )
+      fb = 1.d0 - fv
+#endif
 ccc normal case (both present)
       i_bare = 1; i_vege = 2
       process_bare = .true.; process_vege = .true.
@@ -1724,6 +2012,13 @@ ccc normal case (both present)
         i_vege = 1
         process_vege = .false.
       endif
+
+#ifdef USE_ENT
+      ! copy input parameters to local arrays
+      ws(0,2) = ws_can
+      shc(0,2) = shc_can
+      snowm = 0.d0 !!!! wrong !!! but leave it for testing
+#endif
 
 !debug debug!
 !      pr = 0.d0
@@ -1739,7 +2034,7 @@ ccc normal case (both present)
 cddd      print '(a,10(e12.4))', 'ghy_temp_b ',
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 ccc accm0 was not called here in older version - check
-      call accm(0)
+      call accm(flag=0)
       do while ( dtr > 0.d0 )
         nit=nit+1
         if(nit.gt.limit)go to 900
@@ -1748,7 +2043,79 @@ ccc accm0 was not called here in older version - check
 !debug
 !        fm = 1.d0
 !!!
+#ifdef USE_ENT
+!!!! insert new canopy conductance here (call to Ent)
+
+        if ( process_vege ) then
+
+          sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
+          sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
+
+
+          !Qf = 0.d0
+cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
+cddd     &         vis_rad,direct_vis_rad,cosz1,sbgc_temp,sbgc_moist,
+cddd     &         h(1:ngm,2),fice(1:ngm,2) 
+
+          call ent_set_forcings_single( entcell,
+     &       air_temperature=ts-tfrz,
+     &         canopy_temperature=tp(0,2),
+     &         canopy_air_humidity=Qf,  ! qsat(tp(0,2),lhe,pres),
+     &         surf_pressure=pres,
+     &         surf_CO2=Ca, ! fol_CO2=1.d30,
+ !    &       precip=pr,
+     &         heat_transfer_coef=ch,
+     &         wind_speed=vs,
+     &         total_visible_rad=vis_rad,
+     &         direct_visible_rad=direct_vis_rad,
+     &         cos_solar_zenith_angle=cosz1,
+ !    &         soil_water=w(1:ngm,2),
+     &         soil_temp=sbgc_temp,
+     &         soil_moist=sbgc_moist,
+     &         soil_matric_pot=h(1:ngm,2),
+     &         soil_ice_fraction=fice(1:ngm,2) 
+     &         )
+
+!!!! dt is not correct at the moment !!
+!!! should eventualy call gdtm(dtm) first ...
+          !!! call ent_fast_processes( entcell, dt )
+          call ent_seasonal_update( entcell, dt, 0.d0) 
+
+ccc unpack necessary data
+          call ent_get_exports( entcell,
+     &         canopy_conductance=cnc,
+     &         beta_soil_layers=betadl,
+     &         shortwave_transmit=TRANS_SW,
+     &         leafinternal_CO2=Ci,
+!     &         foliage_humidity=Qf,
+     &         canopy_gpp=GPP
+     &         )
+
+          !print *,"CNS=",cnc
+          !print *, "trans_sw", ijdebug, trans_sw, cosz1
+
+!!! test
+!!!          cnc = 0.d0
+!!!          TRANS_SW = 1.d0
+!!!          betadl = .1d0
+
+        else
+          cnc = 0.d0
+          betadl = 0.d0
+          TRANS_SW = 1.d0
+          Ci = 0.d0
+!          Qf = 0.d0
+          GPP = 0.d0
+        endif
+
+!        print *,"HGY_COND: ",ijdebug, cnc, betadl, Ci, Qf
+!        print *,"GHY_FORCINGS: ", ijdebug, tp(0,2),
+!     &       vis_rad, direct_vis_rad, cosz1
+
         call evap_limits( .true., dum1, dum2 )
+#else
+        call evap_limits( vegcell, .true., dum1, dum2 )
+#endif
         call sensible_heat
 !debug debug!
 !        evapb = 0.d0
@@ -1806,8 +2173,14 @@ c     call fhlmt
 #ifdef TRACERS_WATER
         call ghy_tracers
 #endif
-        call apply_fluxes
 
+cddd        write(933,*) "evap fluxes", cnc, evapvg,evapvw,evapvd,evapvs,
+cddd     &       evapb,evapbs
+cddd        write(933,*) "betadl", betadl,betad
+cddd        write(933,*) "runoff fluxes",rnf,rnff
+
+
+        call apply_fluxes
 cddd      print '(a,10(e12.4))', 'tr_w_1 '
 cddd     &     , tr_w(1,:,1) - w(:,1) * 1000.d0
 cddd      print '(a,10(e12.4))', 'tr_w_2 '
@@ -1816,13 +2189,28 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
         ! if(wsn_max>0) call restrict_snow (wsn_max)
         call check_water(1)
         call check_energy(1)
+#ifdef USE_ENT
+        call accm(entcell)
+#else
         call accm
+#endif
         call reth
         call retp
 cddd      print '(a,i6,10(e12.4))', 'ghy_temp ', ijdebug,
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
-        call update_veg_locals(evap_tot(2), rho, rhow, ch, vs,qs)
+#ifdef USE_ENT
+        !Qf=evap_tot(2)/(rho/rhow*ch*vsm)+qs ! - old
+        Qf=( evap_tot(2)/(rho/rhow*ch) + (vs-vs0)*qprime )/vs + qs
+
+! the above formula is based on:
+!        pot_evap_can = betat*rho3*ch*(
+!     &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+!     &                 -(vs-vs0)*qprime)
+#else
+        call update_veg_locals(evap_tot(2), rho, rhow, ch, vs,qs
+     &       ,vegcell%Qf)
+#endif
 
 #ifdef TRACERS_WATER
 C**** finalise surface tracer concentration here
@@ -1845,9 +2233,54 @@ C**** finalise surface tracer concentration here
 
       enddo
 
-      call accm(1)
+      call accm(flag=1)
       call hydra
       call wtab  ! for gcm diag. only
+
+      ! copy prognostic vars back to output
+      w_in      =w
+      ht_in     =ht
+      nsn_in    =nsn
+      dzsn_in   =dzsn(1:nlsn,:)
+      wsn_in    =wsn
+      hsn_in    =hsn
+      fr_snow_in=fr_snow
+
+
+cddd       write(933,*) "after"
+cddd       write(933,*) "w             ", w             
+cddd       write(933,*) "ht            ", ht            
+cddd       write(933,*) "nsn           ", nsn           
+cddd       !write(933,*) "dzsn(1:nlsn,:)", dzsn(1:nlsn,:)
+cddd       write(933,*) "wsn           ", wsn           
+cddd       write(933,*) "hsn           ", hsn           
+cddd       write(933,*) "fr_snow       ", fr_snow       
+cddd       write(933,*) "top_index     ", top_index     
+cddd       write(933,*) "top_stdev     ", top_stdev     
+cddd       write(933,*) "dz            ", dz            
+cddd       write(933,*) "q             ", q             
+cddd       write(933,*) "qk            ", qk            
+cddd       write(933,*) "sl            ", sl            
+cddd       write(933,*) "fb            ", fb            
+cddd       write(933,*) "fv            ", fv            
+cddd       write(933,*) "pr            ", pr            
+cddd       write(933,*) "htpr          ", htpr          
+cddd       write(933,*) "prs           ", prs           
+cddd       write(933,*) "htprs         ", htprs         
+cddd       write(933,*) "srht          ", srht          
+cddd       write(933,*) "trht          ", trht          
+cddd       write(933,*) "ts            ", ts            
+cddd       write(933,*) "qs            ", qs            
+cddd       write(933,*) "pres          ", pres          
+cddd       write(933,*) "rho           ", rho           
+cddd       write(933,*) "ch            ", ch            
+cddd       write(933,*) "qm1           ", qm1           
+cddd       write(933,*) "vs            ", vs            
+cddd       write(933,*) "vs0           ", vs0           
+cddd       write(933,*) "tprime        ", tprime        
+cddd       write(933,*) "qprime        ", qprime        
+
+
       return
   900 continue
       write(99,*)'limit exceeded'
@@ -1860,15 +2293,28 @@ C**** finalise surface tracer concentration here
       end subroutine advnc
 
 
-      subroutine accm( flag )
+      subroutine accm(
+#ifdef USE_ENT
+     &     entcell,
+#endif
+     &     flag )
 c**** accumulates gcm diagnostics
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c**** the following lines were originally called before retp,
 c**** reth, and hydra.
+#ifdef USE_ENT
+      use ent_mod, only: PTRACE,NPOOLS,N_CASA_LAYERS,NLIVE,CARBON  !for soil bgc diags
+     &     ,entcelltype_public,ent_get_exports
+      type(entcelltype_public), optional :: entcell
+#endif
       integer, intent(in), optional :: flag
       real*8 qsats
       real*8 cpfac,dedifs,dqdt,el0,epen,h0
+#ifdef USE_ENT
+      real*8 rauto,clab
+      real*8 R_soil,soilCpools(PTRACE,NPOOLS,N_CASA_LAYERS)  !soil resp, C_org pools -PK  
+#endif
       integer k
 #ifdef TRACERS_WATER
       real*8 tot_w1
@@ -1912,9 +2358,26 @@ ccc   max in the following expression removes extra drip because of dew
       aepc=aepc+( epvg*(1.d0-fr_snow(2)) )*fv*dts
 #endif
       aepb=aepb+( epb*(1.d0-fr_snow(1)) + epbs*fr_snow(1) )*fb*dts
+#ifdef USE_ENT
+      !Ent veg accumulators. nyk
+      agpp = agpp + gpp*dts
+      if ( present(entcell) ) then
+        call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
+     &       soilresp=R_soil, soilcpools=soilCpools)
+        !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
+        !## Need to pass fr_snow to Ent.
+!        agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
+        arauto = arauto + rauto*dts
+        aclab = clab            !Instantaneous.
+        asoilresp = asoilresp + R_soil*dts !accumulated soil respiration  
+        !instantaneous pool/column-integrated soil C_org (g/m2)
+        asoilCpoolsum =
+     &       sum( soilCpools(CARBON,NLIVE+1:NPOOLS,1:N_CASA_LAYERS) )
+      endif
+#else
       !Accumulate GPP, nyk, like evap_tot(2)
       agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
-
+#endif
       dedifs=f(2,1)*tp(2,1)
       if(f(2,1).lt.0.d0) dedifs=f(2,1)*tp(1,1)
       aedifs=aedifs-dts*shw*dedifs*fb
@@ -1985,6 +2448,21 @@ ccc   h0=-thrm(2)+srht+trht
       abetap=max(abetap,zero)
 ccc   computing surface temperature from thermal radiation fluxes
       tbcs = sqrt(sqrt( atrg/(dt*stbo) )) - tfrz
+ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
+      tg2av=0.d0
+      wtr2av=0.d0
+      ace2av=0.d0
+      do k=2,n
+        tg2av = tg2av + (fb*tp(k,1) + fv*tp(k,2))*dz(k)
+        wtr2av = wtr2av + fb*w(k,1)*(1.d0-fice(k,1))
+     &       + fv*w(k,2)*(1.d0-fice(k,2))
+        ace2av = ace2av + fb*w(k,1)*fice(k,1)
+     &       + fv*w(k,2)*fice(k,2)
+      enddo
+      tg2av = tg2av/sum(dz(2:n))
+      ! convert to kg/m^2
+      wtr2av = wtr2av * 1000.d0
+      ace2av = ace2av * 1000.d0
       return
 !      entry accm0
  778  continue

@@ -633,9 +633,9 @@ c***********************************************************************
       public ground_e
       public init_gh
       public earth
-      public conserv_wtg
-      public conserv_htg
-      public conserv_wtg_1
+      !public conserv_wtg
+      !public conserv_htg
+      !public conserv_wtg_1
       public checke
       public snow_cover
 
@@ -693,14 +693,15 @@ c****
       !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
       use sle001, only : advnc,evap_limits,
-     &    pr,htpr,prs,htprs,w,snowd,tp,fice,
-     &    fv,fb,ashg,alhg,
+!!!     &    pr,htpr,prs,htprs,
+     &     w,snowd,tp,fice,
+     &    ashg,alhg, !fv,fb,
      &    aevap,abetad,
      &    aruns,arunu,aeruns,aerunu,
-     &    tbcs,af0dt,af1dt,
-     &    qm1,qs,
-     &    pres,rho,ts,ch,srht,trht
-     &   ,vs,vs0,tprime,qprime
+     &    tbcs,af0dt,af1dt
+!!!     &    qm1,qs,
+!!!     &    pres,rho,ts,ch,srht,trht
+!!!     &   ,vs,vs0,tprime,qprime
 #ifndef USE_ENT
       use veg_drv, only: veg_save_cell,veg_set_cell
 #endif
@@ -732,6 +733,18 @@ c****
       !use ent_mod, only : ent_prescribe_vegupdate
       use ent_drv, only : update_vegetation_data
 #endif
+
+
+      use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
+     *     ,top_index_ij,top_dev_ij
+     &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
+     &     ,hsn_ij,fr_snow_ij,shc_soil_texture
+#ifdef USE_ENT
+     &     ,Qf_ij
+#endif
+#ifndef USE_ENT
+      use vegetation, only : t_vegcell
+#endif
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -740,7 +753,7 @@ c****
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
      *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij
      *     ,spring,q1,dlwdt
-
+      real*8 fb,fv
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
 
@@ -771,7 +784,10 @@ c****
 
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 qg_sat
+#ifndef USE_ENT
+      type (t_vegcell) vegcell
+#endif
+      real*8 qg_sat,ts,qs
 
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
@@ -887,7 +903,8 @@ C**** halo update u and v for distributed parallelization
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
 !$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,dlwdt,
-!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat,jr,kr,tmp
+!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat,jr,kr,tmp,
+!$OMP*   fb,fv,vegcell
 #ifdef TRACERS_DUST
 !$OMP*   ,n,n1
 #endif
@@ -925,7 +942,7 @@ c****
 
       tfs=tf*ptype
       ma1=am(1,i,j)
-      qm1=q1*ma1
+      !!!qm1=q1*ma1
 c     rhosrf=100.*ps/(rgas*tsv)
 c     rhosrf=100.*ps/(rgas*tkv)
 c****
@@ -937,13 +954,13 @@ c****
       endif
       itype=4
 
-      pr=prec(i,j)/(dtsrc*rhow)
+      !!!pr=prec(i,j)/(dtsrc*rhow)
 C**** This variable was originally assoicated with super-saturated
 C**** large-scale precip, but has not worked for many moons.
 C**** If you want to reinstate it, uncomment this calculation.
 c      prs=precss(i,j)/(dtsrc*rhow)
-      prs=0.
-      htpr=eprec(i,j)/dtsrc
+      !!!prs=0.
+      !!!htpr=eprec(i,j)/dtsrc
 
 ccc tracers variables
 
@@ -1016,19 +1033,19 @@ c**** calculate rhosrf*cdm*ws
 c***********************************************************************
 c****
 c  define extra variables to be passed in surfc:
-      pres   = ps
+      !!!!pres   = ps
       !veg_pres = ps
-      rho    = rhosrf
-      vs     = pbl_args%ws
-      vs0    = pbl_args%ws0
-      tprime = pbl_args%tprime
-      qprime = pbl_args%qprime
+      !!!rho    = rhosrf
+      !!!vs     = pbl_args%ws
+      !!!vs0    = pbl_args%ws0
+      !!!tprime = pbl_args%tprime
+      !!!qprime = pbl_args%qprime
       !veg_ws = pbl_args%ws
-      ch     = cdh
+      !!!ch     = cdh
       !veg_ch = cdh
-      srht   = srheat
+      !!!srht   = srheat
       !veg_srht = srheat
-      trht   = trheat
+      !!!trht   = trheat
 #ifndef USE_ENT
       veg_pres = ps
       veg_ws = pbl_args%ws
@@ -1043,13 +1060,13 @@ c     call qsbal
 
 #ifdef USE_ENT
 ccc stuff needed for dynamic vegetation
-      Ca = CO2X*CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
+      Ca = CO2X*CO2ppm*(1.0D-06)*ps*100.0/gasc/ts
       if (vegCO2X_off==0) Ca = Ca * CO2X
 !!      vis_rad        = SRVISSURF(i,j)
       vis_rad        = SRVISSURF(i,j)*cosz1(i,j)*.82
       direct_vis_rad = vis_rad * FSRDIR(i,j)
       cos_zen_angle = cosz1(i,j)
-      call ghinij (i,j)
+!!!!      call ghinij (i,j)
       !call veg_set_cell(i,j)
 !i move the following part inside GHY
 !i      call ent_get_value( i, j,
@@ -1057,25 +1074,80 @@ ccc stuff needed for dynamic vegetation
 !i     &     canopy_heat_capacity=shc_can,
 !i     &     fraction_of_vegetated_soil=fv )
 !i      fb = 1.d0 - fv
-      call advnc( entcells(i,j), Ca,
-     &     cos_zen_angle, vis_rad, direct_vis_rad )
-      call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
+!!!!      call advnc( entcells(i,j), Ca,
+!!!!     &     cos_zen_angle, vis_rad, direct_vis_rad )
+!!!!      call evap_limits( vegcell,
+!!!!     &     .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
       !call veg_save_cell(i,j)
-      call ghy_save_cell(i,j)
+!!!!      call ghy_save_cell(i,j)
 #else
-      call ghinij (i,j)
-      call veg_set_cell(i,j)
+      !call ghinij (i,j)
+      !snowd(1:2) = snowbv(1:2,i,j)
+      call veg_set_cell( vegcell, i,j, ps, pbl_args%tsv/(1.+qs*deltx) )
+      !call veg_set_cell(  i,j  )
+#endif
 ! snow / var lakes problem at this cell (underwater snow in initial data)
 !      if (i==47 .and. j==33) then
 !        print *,i,j
 !      endif
-      call advnc
-      call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
-
-      call veg_save_cell(i,j)
-      call ghy_save_cell(i,j)
+      call get_fb_fv( fb, fv, i, j )
+      call advnc(
+#ifdef USE_ENT
+     &     entcells(i,j), Ca,
+     &     cos_zen_angle, vis_rad, direct_vis_rad,
+     &     Qf_ij(i,j),
+#else
+     &     vegcell,
 #endif
+     &     w_ij(0:ngm,1:LS_NFRAC,i,j),
+     &     ht_ij(0:ngm,1:LS_NFRAC,i,j),
+     &     nsn_ij    (1:2, i, j),
+     &     dzsn_ij   (1:nlsn, 1:2, i, j),
+     &     wsn_ij    (1:nlsn, 1:2, i, j),
+     &     hsn_ij    (1:nlsn, 1:2, i, j),
+     &     fr_snow_ij(1:2, i, j),
+     &     top_index_ij(i, j),
+     &     top_dev_ij(i, j),
+     &     dz_ij(i,j,1:ngm),
+     &     q_ij(i,j,1:imt,1:ngm),
+     &     qk_ij(i,j,1:imt,1:ngm),
+     &     sl_ij(i,j),
+     &     fb,
+     &     fv,
+     &     prec(i,j)/(dtsrc*rhow),
+     &     eprec(i,j)/dtsrc,
+     &     0.d0,
+     &     0.d0,
+     &     srheat,
+     &     trheat,
+     &     pbl_args%tsv/(1.+qs*deltx),
+     &     pbl_args%qsrf,
+     &     ps,
+     &     rhosrf,
+     &     cdh,
+     &     q1*ma1,
+     &     pbl_args%ws,
+     &     pbl_args%ws0,
+     &     pbl_args%tprime,
+     &     pbl_args%qprime )
+
+
+
+
+      call evap_limits(
+#ifndef USE_ENT
+     &     vegcell,
+#endif
+     &     .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
+
+#ifndef USE_ENT
+      if ( fv > 0 ) call veg_save_cell(i,j)
+#endif
+      !call veg_save_cell(i,j)
+      !call ghy_save_cell(i,j)
+      if ( fb > 0 ) snowbv(1,i,j)   = snowd(1)
+      if ( fv > 0 ) snowbv(2,i,j)   = snowd(2)
 
       tg1=tbcs
 
@@ -1334,6 +1406,7 @@ c***********************************************************************
      &    ,aruns,arunu,aeruns,aerunu,aflmlt,aintercep
      &    ,aepc,aepb,aepp,zw,tbcs
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
+     &    ,tg2av,wtr2av,ace2av
 
       use ghy_com, only : gdeep, fearth
       USE CLOUDS_COM, only : DDMS
@@ -1368,7 +1441,7 @@ c***********************************************************************
 #endif
 
       real*8 timez
-      real*8 trhdt,tg2av,wtr2av,ace2av,tg1,shdt,ptype,srheat,srhdt
+      real*8 trhdt,tg1,shdt,ptype,srheat,srhdt
       real*8 warmer,spring,trheat,evhdt
       integer, parameter :: itype=4
       integer :: kr,jr
@@ -1462,7 +1535,7 @@ ccc accumulate total heat storage
       trhdt=trheat*dtsurf-atrg
 c           for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
-      call retp2 (tg2av,wtr2av,ace2av)
+      !!!call retp2 (tg2av,wtr2av,ace2av)
       gdeep(i,j,1)=tg2av
       gdeep(i,j,2)=wtr2av
       gdeep(i,j,3)=ace2av
@@ -1704,7 +1777,9 @@ c**** modifications needed for split of bare soils into 2 types
      &     ,focean
       use lakes_com, only : flake
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
-      use sle001
+!      use sle001, only : w,ht,snowd, nsn,dzsn,wsn,hsn,fr_snow, dt,
+!     &     hl0, set_snow
+      use sle001, only : hl0, dt
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
       use fluxes, only : gtracer
@@ -1757,7 +1832,7 @@ C**** define local grid
       integer init_flake
       integer kk
       integer :: reset_canopy_ic=0, reset_snow_ic=0
-      real*8 :: aa, ht_cap_can, fice_can
+      real*8 :: aa, ht_cap_can, fice_can, fb, fv
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -1890,73 +1965,26 @@ c**** check whether ground hydrology data exist at this point.
 
       call hl0
 
-c****
-c      print *,' '
-c      print *,'soils parameters'
-c      sdstnc=100.
-c      print *,'interstream distance (m) sdstnc:',sdstnc
-c      c1=90.
-c      print *,'canopy conductance related parameter c1:',c1
-c      prfr=.1d0
-c      print *,'fraction (by area) of precipitation prfr:',prfr
-c      print *,' '
-c****
-c code transplanted from subroutine input
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
-        !jday=1+mod(itime/nday,365)
-        !cosday=cos(twopi/edpery*jday)
-        !sinday=sin(twopi/edpery*jday)
 
         do j=J_0,J_1
-        do i=1,im
-          present_land = .false.
-          if (variable_lk==0) then
-            if ( fearth(i,j) > 0.d0 ) present_land = .true.
-          else
-            if ( focean(i,j) < 1.d0 ) present_land = .true.
-          endif
+          do i=1,im
+            w_ij(:,:,i,j)=0.d0
+            ht_ij(:,:,i,j)=0.d0
+            snowbv(:,i,j)=0.d0
+            if ( focean(i,j) >= 1.d0 ) cycle
+            if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 
-          if( .not. present_land ) then
-
-            w_ij(:,:,i,j)=0.
-            ht_ij(:,:,i,j)=0.
-            snowbv(:,i,j)=0.
-
-          else
-ccc   ??? remove next 5 lines? -check the old version
-            !w(1:ngm,1) =   wbare(1:ngm,i,j)
-            !w(0:ngm,2) =   wvege(0:ngm,i,j)
-            !ht(0:ngm,1) = htbare(0:ngm,i,j)
-            !ht(0:ngm,2) = htvege(0:ngm,i,j)
-            w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
-            ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i,j)
-            snowd(1:2) =  snowbv(1:2,i,j)
-
-c**** compute soil heat capacity and ground water saturation gws
-            call ghinij (i,j)
-c**** fill in soils common blocks
-            snowdp=snowe(i,j)/rhow
-            wtr1=wearth(i,j)
-            ace1=aiearth(i,j)
-            tg1 =tearth(i,j)
-            wtr2=wtr1
-            ace2=ace1
-            tg2 =tg1
-c           wtr2=gdata(i,j,9)   ! this cannot be right
-c           ace2=gdata(i,j,10)
-c           tg2 =gdata(i,j,8)
-            call ghinht (snowdp, tg1,tg2, wtr1,wtr2, ace1,ace2)
-
-c**** copy soils prognostic quantities to model variables
-            w_ij(0:ngm,1:LS_NFRAC,i,j) = w(0:ngm,1:LS_NFRAC)
-            ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
-            snowbv(1:2,i,j)   = snowd(1:2)
-          end if
-        end do
+            call old_gic_2_modele(
+     &           w_ij(:,:,i,j), ht_ij(:,:,i,j),snowbv(:,i,j),
+     &           wearth(i,j), aiearth(i,j), tearth(i,j), snowe(i,j) )
+          
+          end do
         end do
         write (*,*) 'ground hydrology data was made from ground data'
       end if
+
 c**** set gtemp array
       do j=J_0,J_1
         do i=1,im
@@ -2031,65 +2059,44 @@ ccc!!! restart file (without snow model data)
 
       if (inisnow) then
         do j=J_0,J_1
-        do i=1,im
-          present_land = .false.
-          if (variable_lk==0) then
-            if ( fearth(i,j) > 0.d0 ) present_land = .true.
-          else
-            if ( focean(i,j) < 1.d0 ) present_land = .true.
-          endif
-          if( .not. present_land ) then
+          do i=1,im
             nsn_ij(:,i,j)     = 1
-            !isn_ij(:,i,j)     = 0
-            dzsn_ij(:,:,i,j)  = 0.
-            wsn_ij(:,:,i,j)   = 0.
-            hsn_ij(:,:,i,j)   = 0.
-            fr_snow_ij(:,i,j) = 0.
-          else
-            !jday=1+mod(itime/nday,365)
-            !cosday=cos(twopi/edpery*jday)
-            !sinday=sin(twopi/edpery*jday)
+            dzsn_ij(:,:,i,j)  = 0.d0
+            wsn_ij(:,:,i,j)   = 0.d0
+            hsn_ij(:,:,i,j)   = 0.d0
+            fr_snow_ij(:,i,j) = 0.d0
+            if ( focean(i,j) >= 1.d0 ) cycle
+            if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 
-            !w(1:ngm,1) =   wbare(1:ngm,i,j)
-            !w(0:ngm,2) =   wvege(0:ngm,i,j)
-            !ht(0:ngm,1) = htbare(0:ngm,i,j)
-            !ht(0:ngm,2) = htvege(0:ngm,i,j)
-            w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
-            ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i,j)
-            snowd(1:2) =  snowbv(1:2,i,j)
+cddd            w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
+cddd            ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i,j)
+cddd            snowd(1:2) =  snowbv(1:2,i,j)
+cddd
+cddd            call ghinij (i,j)
+cddd            call set_snow
+cddd
+cddd            nsn_ij    (1:2, i, j)         = nsn(1:2)
+cddd            !isn_ij    (1:2, i, j)         = isn(1:2)
+cddd            dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
+cddd            wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
+cddd            hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
+cddd            fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
+cddd
+cddd            w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
+cddd            ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
+cddd            snowbv(1:2,i,j)   = snowd(1:2)
 
-            call ghinij (i,j)
-            call set_snow
+            call set_snow1( w_ij (1:ngm,1:LS_NFRAC,i,j) ,
+     &           ht_ij(1:ngm,1:LS_NFRAC,i,j) ,
+     &           snowbv(1:2,i,j), q_ij(i,j,:,:), dz_ij(i,j,:),
+     &           nsn_ij    (1:2, i, j),
+     &           dzsn_ij   (1:nlsn, 1:2, i, j),
+     &           wsn_ij    (1:nlsn, 1:2, i, j),
+     &           hsn_ij    (1:nlsn, 1:2, i, j),
+     &           fr_snow_ij(1:2, i, j) )
 
-!!!! hack
-!            do kk=1,6
-!              do ibv=1,LS_NFRAC
-!                if ( w(kk,ibv) < thetm(kk,ibv)*dz(kk) ) then
-!                  print *,"corrected w ",i,j,kk,ibv, w(kk,ibv)
-!                  w(kk,ibv) = thetm(kk,ibv)*dz(kk)
-!                endif
-!                print *,i,j,kk,ibv, w(kk,ibv),thetm(kk,ibv)*dz(kk)
-!              enddo
-!            enddo
 
-            nsn_ij    (1:2, i, j)         = nsn(1:2)
-            !isn_ij    (1:2, i, j)         = isn(1:2)
-            dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
-            wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
-            hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
-            fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
-
-c****     copy soils prognostic quantities to model variables
-            ! wbare(1:ngm,i,j) = w(1:ngm,1)
-            ! wvege(0:ngm,i,j) = w(0:ngm,2)
-            !htbare(0:ngm,i,j) = ht(0:ngm,1)
-            !htvege(0:ngm,i,j) = ht(0:ngm,2)
-            w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
-            ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
-            snowbv(1:2,i,j)   = snowd(1:2)
-
-          end if
-        end do
+          end do
         end do
       end if
 
@@ -2140,7 +2147,6 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
         enddo
       enddo
 
-      jday=1+mod(itime/nday,365)
       ! initialize underwater fraction for variable lakes
       if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 9 )
      &     call init_underwater_soil
@@ -2186,6 +2192,201 @@ ccc still not quite correct (assumes fw=1)
 
       return
       end subroutine init_gh
+
+
+      subroutine old_gic_2_modele(
+     &           w, ht,snowbv,
+     &           wearth, aiearth, tearth, snowe )
+      real*8 :: w(:,:), ht(:,:),snowbv(:),
+     &           wearth, aiearth, tearth, snowe
+
+      call stop_model(
+     &     "conversion old_gic_2_modele not supported yet",255)
+
+      end subroutine old_gic_2_modele
+
+
+      subroutine set_snow1( w, ht, snowd, q, dz,
+     &     nsn, dzsn, wsn, hsn, fr_snow )
+!@sum set_snow extracts snow from the first soil layer and initializes
+!@+   snow model prognostic variables
+!@+   should be called when model restarts from the old restart file
+!@+   ( which doesn''t contain new snow model (i.e. 3 layer) data )
+c
+c input:
+c snowd(2) - landsurface snow depth
+c w(k,2)   - landsurface water in soil layers
+c ht(k,2)  - landsurface heat in soil layers
+c fsn      - heat of fusion
+c shi      - specific heat of ice
+c shc(k,2) - heat capacity of soil layers
+c
+c output:
+c dzsn(lsn,2) - snow layer thicknesses
+c wsn(lsn,2)  - snow layer water equivalent depths
+c hsn(lsn,2)  - snow layer heat contents
+c tsn1(2)     - snow top temperature
+c isn(2)      - 0 if no snow, 1 if snow
+c nsn(2)      - number of snow layers
+c snowd(2)
+c w(k,2)
+c ht(k,2)
+c
+c calling sequence:
+c
+c     assignment of w,ht,snowd
+c     call ghinij(i,j,wfc1)
+c     call set_snow
+c note: only to be called when initializing from landsurface
+c       prognostic variables without the snow model.
+c
+      use constant, only : rhow
+     &     ,shi_kg=>shi,lhm
+      use snow_model, only: snow_redistr, snow_fraction
+      use ghy_com, only : ngm
+      use sle001, only : get_soil_properties
+      real*8, intent(inout) :: w(:,:), ht(:,:), snowd(:), q(:,:), dz(:)
+      integer, intent(out) :: nsn(:)
+      real*8, intent(out) :: dzsn(:,:), wsn(:,:), hsn(:,:), fr_snow(:)
+      !---
+!@var shi heat capacity of pure ice (J/m^3 C)
+      real*8, parameter :: shi= shi_kg * rhow
+!@var fsn latent heat of melt (J/m^3)
+      real*8, parameter :: fsn= lhm * rhow
+      real*8 thetm(ngm,2), thets(ngm,2), shc(ngm,2), tsn1(2), fice(2)
+
+
+      integer ibv
+
+c outer loop over ibv
+      do ibv=1,2
+
+        call get_soil_properties( q, dz,
+     &     thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
+
+c initalize all cases to nsn=1
+        nsn(ibv)=1
+
+
+ccc since we don''t know what kind of data we are dealing with,
+ccc better check it
+
+        if( snowd(ibv) .gt. w(1,ibv)-dz(1)*thetm(1,ibv)  ) then
+          write(99,*) 'snowd corrected: old=', snowd(ibv)
+          snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
+          write(99,*) '                 new=', snowd(ibv)
+          if ( snowd(ibv) .lt. -0.001d0 )
+     &         call stop_model('set_snow: neg. snow',255)
+          if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
+        endif
+
+
+c if there is no snow, set isn=0.  set snow variables to 0.d0
+        if(snowd(ibv).le.0.d0)then
+          dzsn(1,ibv)=0.d0
+          wsn(1,ibv)=0.d0
+          hsn(1,ibv)=0.d0
+          tsn1(ibv)=0.d0
+          fr_snow(ibv) = 0.d0
+        else
+
+
+c given snow, set isn=1.d0
+c!!!        dzsn(1,ibv)=snowd(ibv)/spgsn
+c!!!  replacing prev line considering rho_snow = 200
+          dzsn(1,ibv)=snowd(ibv) * 5.d0
+          wsn(1,ibv)=snowd(ibv)
+c!!! actually have to compute fr_snow and modify dzsn ...
+          fr_snow(ibv) = 1.d0
+
+c given snow, temperature of first layer can''t be positive.
+c the top snow temperature is the temperatre of the first layer.
+cddd          if(fsn*w(1,ibv)+ht(1,ibv).lt.0.d0)then
+cddd            tsn1(ibv)=(ht(1,ibv)+w(1,ibv)*fsn)/(shc(1,ibv)+w(1,ibv)*shi)
+cddd          else
+cddd            tsn1(ibv)=0.d0
+cddd          endif
+cddd          print *,"tsn = ", tsn1(ibv)
+          call heat_to_temperature(tsn1(ibv),
+     &         fice(ibv), ht(1,ibv), w(1,ibv), shc(1,ibv))
+cddd          print *,"      ", tsn1(ibv)
+          tsn1(ibv) = min( tsn1(ibv), 0.d0 )
+
+c use snow temperature to get the heat of the snow
+cddd          hsn(1,ibv)=tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+cddd          print *,"hsn = ", hsn(1,ibv)
+          call temperature_to_heat(hsn(1,ibv),
+     &         tsn1(ibv), 1.d0, wsn(1,ibv), 0.d0)
+cddd          print *,"      ", hsn(1,ibv)
+
+          ! hack to get identical results
+          hsn(1,ibv)=tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+
+c subtract the snow from the landsurface prognositic variables
+          w(1,ibv)=w(1,ibv)-wsn(1,ibv)
+          ht(1,ibv)=ht(1,ibv)-hsn(1,ibv)
+
+ccc and now limit all the snow to 5cm water equivalent
+          if ( snowd(ibv) .gt. 0.05d0 ) then
+            snowd(ibv) = 0.05d0
+            dzsn(1,ibv)= snowd(ibv) * 5.d0
+            wsn(1,ibv)= snowd(ibv)
+            hsn(1,ibv)= tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+          endif
+
+ccc and now limit all the snow to 50cm water equivalent (for debug)
+cddd          if ( snowd(ibv) .gt. 0.0005d0 ) then
+cddd            snowd(ibv) = 0.5d0
+cddd            dzsn(1,ibv)= snowd(ibv) * 5.d0
+cddd            wsn(1,ibv)= snowd(ibv)
+cddd            hsn(1,ibv)= tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+cddd          endif
+
+ccc redistribute snow over the layers and recompute fr_snow
+ccc (to make the data compatible with snow model)
+          if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
+     &        call stop_model("ERR in init_snow: NaN", 255)
+
+          call snow_fraction(dzsn(:,ibv), nsn(ibv), 0.d0, 0.d0,
+     &         1.d0, fr_snow(ibv) )
+          if ( fr_snow(ibv) > 0.d0 ) then
+            call snow_redistr(dzsn(:,ibv), wsn(:,ibv), hsn(:,ibv),
+     &           nsn(ibv), 1.d0/fr_snow(ibv) )
+            if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
+     &        call stop_model("ERR in init_snow 2: NaN", 255)
+          else
+            snowd(ibv) = 0.d0
+            dzsn(1,ibv)=0.d0
+            wsn(1,ibv)=0.d0
+            hsn(1,ibv)=0.d0
+            tsn1(ibv)=0.d0
+            fr_snow(ibv) = 0.d0
+          endif
+
+        endif
+!!! debug : check if  snow is redistributed correctly
+        if ( dzsn(1,ibv) > 0.d0 .and. dzsn(1,ibv) < .099d0) then
+          call stop_model("set_snow: error in dz",255)
+        endif
+
+        if ( dzsn(1,ibv) > 0.d0 ) then
+          if (  wsn(1,ibv)/dzsn(1,ibv)  < .1d0)
+     &         call stop_model("set_snow: error in dz",255)
+        endif
+
+
+      enddo
+
+            if ( .not. ( hsn(1,1) > 0. .or.  hsn(1,1) <= 0. ) )
+     &        call stop_model("ERR in init_snow 2: NaN", 255)
+            if ( .not. ( hsn(1,2) > 0. .or.  hsn(1,2) <= 0. ) )
+     &        call stop_model("ERR in init_snow 2: NaN", 255)
+
+
+
+      return
+      end subroutine set_snow1
+
 
 
       subroutine reset_gh_to_defaults( reset_prognostic )
@@ -2274,328 +2475,329 @@ ccc ugly, should fix later
       end subroutine reset_gh_to_defaults
 
 
-      subroutine ghinij (i0,j0)
-c**** input:
-c**** avh(i,j) - array of vegetation heights
-c**** spgsn - specific gravity of snow
-c**** output:
-c**** vh - vegetation height
-c**** snowm - snow masking depth
-c**** wfcap - water field capacity of top soil layer, m
-c****
-      use snow_model, only : i_earth,j_earth
-      use sle001, only : dz,qk,ng,zb,zc,q,sl,xklh !spgsn,
-     *     ,fb,fv,prs,ijdebug,n
-     *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
-     *     ,htpr
-     *     ,top_index,top_stdev
-     &     ,w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-#ifdef USE_ENT
-     &     ,Ci, Qf, cnc
-#endif
-      use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
-     *     ,top_index_ij,top_dev_ij
-     &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
-     &     ,hsn_ij,fr_snow_ij,shc_soil_texture
-#ifdef USE_ENT
-     &     ,Ci_ij, Qf_ij, cnc_ij
-#endif
-      !use veg_com, only: afb
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
-!      use veg_drv, only : veg_set_cell
-
-      implicit none
-      integer i0,j0
-!      real*8 wfcap
-      integer k,ibv,i
-      real*8 shtpr
-!----------------------------------------------------------------------!
-      !real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
-
-
-      ijdebug=i0*1000+j0
-      i_earth = i0
-      j_earth = j0
-
-ccc extracting ghy prognostic vars
-      !w(1:ngm,1) =  wbare(1:ngm,i0,j0)
-      !w(0:ngm,2) =  wvege(0:ngm,i0,j0)
-      !ht(0:ngm,1) = htbare(0:ngm,i0,j0)
-      !ht(0:ngm,2) = htvege(0:ngm,i0,j0)
-      w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i0,j0)
-      ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i0,j0)
-      snowd(1:2)  = snowbv(1:2,i0,j0)
-ccc extracting snow variables
-      nsn(1:2)          = nsn_ij    (1:2, i0, j0)
-      !isn(1:2)          = isn_ij    (1:2, i0, j)
-      dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i0, j0)
-      wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i0, j0)
-      hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i0, j0)
-      fr_snow(1:2)      = fr_snow_ij(1:2, i0, j0)
-#ifdef USE_ENT
-ccc extracting vegetation prognostic variables
-      cnc = cnc_ij(i0,j0)
-      Ci = Ci_ij(i0,j0)
-      Qf = Qf_ij(i0,j0)
-#endif
-ccc setting vegetation
- !     call veg_set_cell(i0,j0)
-
-ccc passing topmodel parameters
-      top_index = top_index_ij(i0, j0)
-      top_stdev = top_dev_ij(i0, j0)
-c**** set up layers
-      dz(1:ngm)=dz_ij(i0,j0,1:ngm)
-      q(1:imt,1:ngm)=q_ij(i0,j0,1:imt,1:ngm)
-      qk(1:imt,1:ngm)=qk_ij(i0,j0,1:imt,1:ngm)
-      sl=sl_ij(i0,j0)
-
-      n=0
-      do k=1,ngm
-        if(dz(k).le.0.) exit
-        n=k
-      end do
-
-      if(n.le.0) then
-         write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
-         call stop_model('stopped in GHY_DRV.f',255)
-      end if
-
-c**** calculate the boundaries, based on the thicknesses.
-      zb(1)=0.
-      do k=1,n
-        zb(k+1)=zb(k)-dz(k)
-      end do
-c**** calculate the layer centers, based on the boundaries.
-      do k=1,n
-        zc(k)=.5*(zb(k)+zb(k+1))
-      end do
-c**** fb,fv: bare, vegetated fraction (1=fb+fv)
-      !fb=afb(i0,j0)
-      !fv=1.-fb
-#ifndef USE_ENT
-      call get_fb_fv( fb, fv, i0, j0 )
-#endif
-c****
-      do ibv=1,2
-        do k=1,n
-          thets(k,ibv)=0.
-          thetm(k,ibv)=0.
-          do i=1,imt-1
-            thets(k,ibv)=thets(k,ibv)+q(i,k)*thm(0,i)
-            thetm(k,ibv)=thetm(k,ibv)+q(i,k)*thm(nth,i)
-          end do
-          ws(k,ibv)=thets(k,ibv)*dz(k)
-        end do
-      end do
-!veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
-  !    wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
-c****
-      call xklh(1)
-c****
-
-      do ibv=1,2
-        do k=1,n
-          shc(k,ibv)=0.
-          do i=1,imt
-            shc(k,ibv)=shc(k,ibv)+q(i,k)*shc_soil_texture(i)
-          end do
-          shc(k,ibv)=(1.-thets(k,ibv))*shc(k,ibv)*dz(k)
-        end do
-      end do
-c****
-c shc(0,2) is the heat capacity of the canopy
-!veg      aa=ala(1,i0,j0)
-!veg      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
-c****
-c htpr is the heat of precipitation.
-c shtpr is the specific heat of precipitation.
-      shtpr=0.
-      if(pr.gt.0.)shtpr=htpr/pr
-c htprs is the heat of large scale precipitation
-      htprs=shtpr*prs
-c****
-      return
-      end subroutine ghinij
-
-
-      subroutine ghy_save_cell(i,j)
-      use sle001, only : w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-#ifdef USE_ENT
-     $     ,cnc,Ci,Qf
-#endif
-      use ghy_com, only : ngm,nlsn,LS_NFRAC
-     &     ,dz_ij,w_ij,ht_ij,snowbv
-     &     ,nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
-#ifdef USE_ENT
-     $     ,cnc_ij,Ci_ij,Qf_ij
-#endif
-      implicit none
-      integer, intent(in) :: i,j
-
-      !wbare(1:ngm,i,j) = w(1:ngm,1)
-      !wvege(0:ngm,i,j) = w(0:ngm,2)
-      !htbare(0:ngm,i,j) = ht(0:ngm,1)
-      !htvege(0:ngm,i,j) = ht(0:ngm,2)
-      w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
-      ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
-      snowbv(1:2,i,j)   = snowd(1:2)
-ccc copy snow variables back to storage
-      nsn_ij    (1:2, i, j)         = nsn(1:2)
-      !isn_ij    (1:2, i, j)         = isn(1:2)
-      dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
-      wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
-      hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
-      fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
-#ifdef USE_ENT
-ccc saving vegetation prognostic variables
-      cnc_ij(i,j) = cnc
-      Ci_ij(i,j) = Ci
-      Qf_ij(i,j) = Qf
-#endif
-      end subroutine ghy_save_cell
+cddd      subroutine ghinij (i0,j0)
+cdddc**** input:
+cdddc**** avh(i,j) - array of vegetation heights
+cdddc**** spgsn - specific gravity of snow
+cdddc**** output:
+cdddc**** vh - vegetation height
+cdddc**** snowm - snow masking depth
+cdddc**** wfcap - water field capacity of top soil layer, m
+cdddc****
+cddd      use snow_model, only : i_earth,j_earth
+cddd      use sle001, only : dz,qk,ng,zb,zc,q,sl,xklh !spgsn,
+cddd     *     ,fb,fv,prs,ijdebug,n
+cddd     *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
+cddd     *     ,htpr
+cddd     *     ,top_index,top_stdev
+cddd     &     ,w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
+cddd#ifdef USE_ENT
+cddd     &     ,Ci, Qf, cnc
+cddd#endif
+cddd      use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
+cddd     *     ,top_index_ij,top_dev_ij
+cddd     &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
+cddd     &     ,hsn_ij,fr_snow_ij,shc_soil_texture
+cddd#ifdef USE_ENT
+cddd     &     ,Ci_ij, Qf_ij, cnc_ij
+cddd#endif
+cddd#ifndef USE_ENT
+cddd      use veg_com, only: afb
+cddd#endif
+cddd      USE DOMAIN_DECOMP, ONLY : GRID, GET
+cddd!      use veg_drv, only : veg_set_cell
+cddd
+cddd      implicit none
+cddd      integer i0,j0
+cddd!      real*8 wfcap
+cddd      integer k,ibv,i
+cddd      real*8 shtpr
+cddd!----------------------------------------------------------------------!
+cddd      !real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
+cddd
+cddd
+cddd      ijdebug=i0*1000+j0
+cddd      i_earth = i0
+cddd      j_earth = j0
+cddd
+cdddccc extracting ghy prognostic vars
+cddd      !w(1:ngm,1) =  wbare(1:ngm,i0,j0)
+cddd      !w(0:ngm,2) =  wvege(0:ngm,i0,j0)
+cddd      !ht(0:ngm,1) = htbare(0:ngm,i0,j0)
+cddd      !ht(0:ngm,2) = htvege(0:ngm,i0,j0)
+cddd      w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i0,j0)
+cddd      ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i0,j0)
+cddd      snowd(1:2)  = snowbv(1:2,i0,j0)
+cdddccc extracting snow variables
+cddd      nsn(1:2)          = nsn_ij    (1:2, i0, j0)
+cddd      !isn(1:2)          = isn_ij    (1:2, i0, j)
+cddd      dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i0, j0)
+cddd      wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i0, j0)
+cddd      hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i0, j0)
+cddd      fr_snow(1:2)      = fr_snow_ij(1:2, i0, j0)
+cddd#ifdef USE_ENT
+cdddccc extracting vegetation prognostic variables
+cddd      cnc = cnc_ij(i0,j0)
+cddd      Ci = Ci_ij(i0,j0)
+cddd      Qf = Qf_ij(i0,j0)
+cddd#endif
+cdddccc setting vegetation
+cddd !     call veg_set_cell(i0,j0)
+cddd
+cdddccc passing topmodel parameters
+cddd      top_index = top_index_ij(i0, j0)
+cddd      top_stdev = top_dev_ij(i0, j0)
+cdddc**** set up layers
+cddd      dz(1:ngm)=dz_ij(i0,j0,1:ngm)
+cddd      q(1:imt,1:ngm)=q_ij(i0,j0,1:imt,1:ngm)
+cddd      qk(1:imt,1:ngm)=qk_ij(i0,j0,1:imt,1:ngm)
+cddd      sl=sl_ij(i0,j0)
+cddd
+cddd      n=0
+cddd      do k=1,ngm
+cddd        if(dz(k).le.0.) exit
+cddd        n=k
+cddd      end do
+cddd
+cddd      if(n.le.0) then
+cddd         write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
+cddd         call stop_model('stopped in GHY_DRV.f',255)
+cddd      end if
+cddd
+cdddc**** calculate the boundaries, based on the thicknesses.
+cddd      zb(1)=0.
+cddd      do k=1,n
+cddd        zb(k+1)=zb(k)-dz(k)
+cddd      end do
+cdddc**** calculate the layer centers, based on the boundaries.
+cddd      do k=1,n
+cddd        zc(k)=.5*(zb(k)+zb(k+1))
+cddd      end do
+cdddc**** fb,fv: bare, vegetated fraction (1=fb+fv)
+cddd!!! I think we still need this
+cddd      fb=afb(i0,j0)
+cddd      fv=1.-fb
+cddd      call get_fb_fv( fb, fv, i0, j0 )
+cdddc****
+cddd      do ibv=1,2
+cddd        do k=1,n
+cddd          thets(k,ibv)=0.
+cddd          thetm(k,ibv)=0.
+cddd          do i=1,imt-1
+cddd            thets(k,ibv)=thets(k,ibv)+q(i,k)*thm(0,i)
+cddd            thetm(k,ibv)=thetm(k,ibv)+q(i,k)*thm(nth,i)
+cddd          end do
+cddd          ws(k,ibv)=thets(k,ibv)*dz(k)
+cddd        end do
+cddd      end do
+cddd!veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
+cddd  !    wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
+cdddc****
+cddd      call xklh(1)
+cdddc****
+cddd
+cddd      do ibv=1,2
+cddd        do k=1,n
+cddd          shc(k,ibv)=0.
+cddd          do i=1,imt
+cddd            shc(k,ibv)=shc(k,ibv)+q(i,k)*shc_soil_texture(i)
+cddd          end do
+cddd          shc(k,ibv)=(1.-thets(k,ibv))*shc(k,ibv)*dz(k)
+cddd        end do
+cddd      end do
+cdddc****
+cdddc shc(0,2) is the heat capacity of the canopy
+cddd!veg      aa=ala(1,i0,j0)
+cddd!veg      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+cdddc****
+cdddc htpr is the heat of precipitation.
+cdddc shtpr is the specific heat of precipitation.
+cddd      shtpr=0.
+cddd      if(pr.gt.0.)shtpr=htpr/pr
+cdddc htprs is the heat of large scale precipitation
+cddd      htprs=shtpr*prs
+cdddc****
+cddd      return
+cddd      end subroutine ghinij
 
 
-      subroutine ghinht (snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2)
-c**** initializes new ground (w,ht,snw) from old (t,w,ice,snw)
-c**** evaluates the heat in the soil layers based on the
-c**** temperatures.
-c**** input:
-c**** w - water in soil layers, m
-c**** tp - temperature of layers, c
-c**** fice - fraction of ice of layers
-c**** fsn - heat of fusion of water
-c**** shc - specific heat capacity of soil
-c**** shi - specific heat capacity of ice
-c**** shw - specific heat capcity of water
-c**** snowd - snow depth, equivalent water m
-c**** output:
-c**** ht - heat in soil layers
-c**** add calculation of wfc2
-c**** based on combination of layers 2-n, as in retp2
-      use sle001, only : tp, ht, w, shc, fice, snowd, ws, fb, fv,
-     &    n, dz, fsn, thetm, shi, shw, ijdebug
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
-      implicit none
+cddd      subroutine ghy_save_cell(i,j)
+cddd      use sle001, only : w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
+cddd#ifdef USE_ENT
+cddd     $     ,cnc,Ci,Qf
+cddd#endif
+cddd      use ghy_com, only : ngm,nlsn,LS_NFRAC
+cddd     &     ,dz_ij,w_ij,ht_ij,snowbv
+cddd     &     ,nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
+cddd#ifdef USE_ENT
+cddd     $     ,cnc_ij,Ci_ij,Qf_ij
+cddd#endif
+cddd      implicit none
+cddd      integer, intent(in) :: i,j
+cddd
+cddd      !wbare(1:ngm,i,j) = w(1:ngm,1)
+cddd      !wvege(0:ngm,i,j) = w(0:ngm,2)
+cddd      !htbare(0:ngm,i,j) = ht(0:ngm,1)
+cddd      !htvege(0:ngm,i,j) = ht(0:ngm,2)
+cddd      w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
+cddd      ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
+cddd      snowbv(1:2,i,j)   = snowd(1:2)
+cdddccc copy snow variables back to storage
+cddd      nsn_ij    (1:2, i, j)         = nsn(1:2)
+cddd      !isn_ij    (1:2, i, j)         = isn(1:2)
+cddd      dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
+cddd      wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
+cddd      hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
+cddd      fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
+cddd#ifdef USE_ENT
+cdddccc saving vegetation prognostic variables
+cddd      cnc_ij(i,j) = cnc
+cddd      Ci_ij(i,j) = Ci
+cddd      Qf_ij(i,j) = Qf
+cddd#endif
+cddd      end subroutine ghy_save_cell
 
-      real*8 snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2
-      real*8 wfc1, wfc2, wet1, wet2, wmin, fbv
-      integer k, ibv, ll
 
-      wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
-      wfc2=0.
-      fbv=fb
-      do 30 ibv=1,2
-      do 20 k=2,n
-      wfc2=wfc2+fbv*ws(k,ibv)
-   20 continue
-      fbv=fv
-   30 continue
-      wfc1=1000.*wfc1
-      wfc2=1000.*wfc2
-      fice(0,2)=1.
-      fice(1,1)=(ace1+snowdp*1000.)/(wtr1+ace1+snowdp*1000.+1.d-20)
-      fice(1,2)=fice(1,1)
-      tp(0,2)=tg1
-c**** w = snow(if top layer) + wmin + (wmax-wmin)*(wtr+ice)/wfc
-      w(0,2)=0.
-      do ibv=1,2
-        w(1,ibv)=snowdp
-        wmin=thetm(1,ibv)*dz(1)
-        wet1=(wtr1+ace1)/(wfc1+1.d-20)
-        if(wet1.gt.1.) wet1=1.
-        w(1,ibv)=w(1,ibv)+wmin+(ws(1,ibv)-wmin)*wet1
-        snowd(ibv)=snowdp
-        tp(1,ibv)=tg1
-        do k=2,n
-          fice(k,ibv)=ace2/(wtr2+ace2+1.d-20)
-          wmin=thetm(k,ibv)*dz(k)
-          wet2=(wtr2+ace2)/(wfc2+1.d-20)
-          if(wet2.gt.1.) wet2=1.
-          w(k,ibv)=wmin+(ws(k,ibv)-wmin)*wet2
-          tp(k,ibv)=tg2
-        end do
-      end do
-c****
-!!!      entry ghexht
-c****
-c**** compute ht (heat w/m+2)
-      do ibv=1,2
-        ll=2-ibv
-        do k=ll,n
-          if(tp(k,ibv)) 2,4,6
- 2        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shi)-w(k,ibv)*fsn
-          cycle
- 4        ht(k,ibv)=-fice(k,ibv)*w(k,ibv)*fsn
-          cycle
- 6        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shw)
-        end do
-      end do
-      if(ijdebug.eq.0)then
-       write(99,*)'ghinht id check',ijdebug
-       write(99,*)'tg1,tg2',tg1,tg2
-       write(99,*)'tp',tp
-       write(99,*)'ht',ht
-       write(99,*)'w',w
-       write(99,*)'wtr1,wtr2',wtr1,wtr2
-       write(99,*)'ace1,ace2',ace1,ace2
-       write(99,*)'wfc1,wfc2',wfc1,wfc2
-       write(99,*)'shc',shc
-       write(99,*)'fice',fice
-      endif
-      return
-      end subroutine ghinht
+cddd      subroutine ghinht (snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2)
+cdddc**** initializes new ground (w,ht,snw) from old (t,w,ice,snw)
+cdddc**** evaluates the heat in the soil layers based on the
+cdddc**** temperatures.
+cdddc**** input:
+cdddc**** w - water in soil layers, m
+cdddc**** tp - temperature of layers, c
+cdddc**** fice - fraction of ice of layers
+cdddc**** fsn - heat of fusion of water
+cdddc**** shc - specific heat capacity of soil
+cdddc**** shi - specific heat capacity of ice
+cdddc**** shw - specific heat capcity of water
+cdddc**** snowd - snow depth, equivalent water m
+cdddc**** output:
+cdddc**** ht - heat in soil layers
+cdddc**** add calculation of wfc2
+cdddc**** based on combination of layers 2-n, as in retp2
+cddd      use sle001, only : tp, ht, w, shc, fice, snowd, ws, fb, fv,
+cddd     &    n, dz, fsn, thetm, shi, shw, ijdebug
+cddd      USE DOMAIN_DECOMP, ONLY : GRID, GET
+cddd      implicit none
+cddd
+cddd      real*8 snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2
+cddd      real*8 wfc1, wfc2, wet1, wet2, wmin, fbv
+cddd      integer k, ibv, ll
+cddd
+cddd      wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
+cddd      wfc2=0.
+cddd      fbv=fb
+cddd      do 30 ibv=1,2
+cddd      do 20 k=2,n
+cddd      wfc2=wfc2+fbv*ws(k,ibv)
+cddd   20 continue
+cddd      fbv=fv
+cddd   30 continue
+cddd      wfc1=1000.*wfc1
+cddd      wfc2=1000.*wfc2
+cddd      fice(0,2)=1.
+cddd      fice(1,1)=(ace1+snowdp*1000.)/(wtr1+ace1+snowdp*1000.+1.d-20)
+cddd      fice(1,2)=fice(1,1)
+cddd      tp(0,2)=tg1
+cdddc**** w = snow(if top layer) + wmin + (wmax-wmin)*(wtr+ice)/wfc
+cddd      w(0,2)=0.
+cddd      do ibv=1,2
+cddd        w(1,ibv)=snowdp
+cddd        wmin=thetm(1,ibv)*dz(1)
+cddd        wet1=(wtr1+ace1)/(wfc1+1.d-20)
+cddd        if(wet1.gt.1.) wet1=1.
+cddd        w(1,ibv)=w(1,ibv)+wmin+(ws(1,ibv)-wmin)*wet1
+cddd        snowd(ibv)=snowdp
+cddd        tp(1,ibv)=tg1
+cddd        do k=2,n
+cddd          fice(k,ibv)=ace2/(wtr2+ace2+1.d-20)
+cddd          wmin=thetm(k,ibv)*dz(k)
+cddd          wet2=(wtr2+ace2)/(wfc2+1.d-20)
+cddd          if(wet2.gt.1.) wet2=1.
+cddd          w(k,ibv)=wmin+(ws(k,ibv)-wmin)*wet2
+cddd          tp(k,ibv)=tg2
+cddd        end do
+cddd      end do
+cdddc****
+cddd!!!      entry ghexht
+cdddc****
+cdddc**** compute ht (heat w/m+2)
+cddd      do ibv=1,2
+cddd        ll=2-ibv
+cddd        do k=ll,n
+cddd          if(tp(k,ibv)) 2,4,6
+cddd 2        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shi)-w(k,ibv)*fsn
+cddd          cycle
+cddd 4        ht(k,ibv)=-fice(k,ibv)*w(k,ibv)*fsn
+cddd          cycle
+cddd 6        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shw)
+cddd        end do
+cddd      end do
+cddd      if(ijdebug.eq.0)then
+cddd       write(99,*)'ghinht id check',ijdebug
+cddd       write(99,*)'tg1,tg2',tg1,tg2
+cddd       write(99,*)'tp',tp
+cddd       write(99,*)'ht',ht
+cddd       write(99,*)'w',w
+cddd       write(99,*)'wtr1,wtr2',wtr1,wtr2
+cddd       write(99,*)'ace1,ace2',ace1,ace2
+cddd       write(99,*)'wfc1,wfc2',wfc1,wfc2
+cddd       write(99,*)'shc',shc
+cddd       write(99,*)'fice',fice
+cddd      endif
+cddd      return
+cddd      end subroutine ghinht
 
-      subroutine retp2 (tg2av,wtr2av,ace2av)
-c**** evaluates the mean temperature in the soil layers 2-ngm
-c**** as well as the water and ice content.
-c**** input:
-c**** w - water in soil layers, m
-c**** ht - heat in soil layers
-c**** fsn - heat of fusion of water
-c**** shc - specific heat capacity of soil
-c**** shi - specific heat capacity of ice
-c**** shw - specific heat capcity of water
-c**** output:
-c**** tg2av - temperature of layers 2 to ngm, c
-c**** ice2av - ice amount in layers 2 to ngm, kg/m+2
-c**** wtr2av - water in layers 2 to ngm, kg/m+2
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
-      use sle001
-      implicit none
-      real*8 tg2av,wtr2av,ace2av, wc,htc,shcc,tpc,ficec,ftp
-      integer k, ibv
-      tg2av=0.
-      wtr2av=0.
-      ace2av=0.
-      do 3500 ibv=1,2
-      wc=0.
-      htc=0.
-      shcc=0.
-      do k=2,n
-        wc=wc+w(k,ibv)
-        htc=htc+ht(k,ibv)
-        shcc=shcc+shc(k,ibv)
-      end do
-      tpc=0.
-      ficec=0.
-      if(wc.ne.0.)  ficec=-htc/(fsn*wc)
-      if(fsn*wc+htc.ge.0.)go to 3430
-      tpc=(htc+wc*fsn)/(shcc+wc*shi)
-      ficec=1.
-      go to 3440
- 3430 if(htc.le.0.) go to 3440
-      tpc=htc/(shcc+wc*shw)
-      ficec=0.
- 3440 continue
-      ftp=fb
-      if(ibv.eq.2) ftp=fv
-      tg2av=tg2av+tpc*ftp
-      wtr2av=wtr2av+wc*ftp*1000.*(1.-ficec)
-      ace2av=ace2av+wc*ftp*1000.*ficec
- 3500 continue
-      return
-      end subroutine retp2
+cddd      subroutine retp2 (tg2av,wtr2av,ace2av)
+cdddc**** evaluates the mean temperature in the soil layers 2-ngm
+cdddc**** as well as the water and ice content.
+cdddc**** input:
+cdddc**** w - water in soil layers, m
+cdddc**** ht - heat in soil layers
+cdddc**** fsn - heat of fusion of water
+cdddc**** shc - specific heat capacity of soil
+cdddc**** shi - specific heat capacity of ice
+cdddc**** shw - specific heat capcity of water
+cdddc**** output:
+cdddc**** tg2av - temperature of layers 2 to ngm, c
+cdddc**** ice2av - ice amount in layers 2 to ngm, kg/m+2
+cdddc**** wtr2av - water in layers 2 to ngm, kg/m+2
+cddd      USE DOMAIN_DECOMP, ONLY : GRID, GET
+cddd      use sle001
+cddd      implicit none
+cddd      real*8 tg2av,wtr2av,ace2av, wc,htc,shcc,tpc,ficec,ftp
+cddd      integer k, ibv
+cddd      tg2av=0.
+cddd      wtr2av=0.
+cddd      ace2av=0.
+cddd      do 3500 ibv=1,2
+cddd      wc=0.
+cddd      htc=0.
+cddd      shcc=0.
+cddd      do k=2,n
+cddd        wc=wc+w(k,ibv)
+cddd        htc=htc+ht(k,ibv)
+cddd        shcc=shcc+shc(k,ibv)
+cddd      end do
+cddd      tpc=0.
+cddd      ficec=0.
+cddd      if(wc.ne.0.)  ficec=-htc/(fsn*wc)
+cddd      if(fsn*wc+htc.ge.0.)go to 3430
+cddd      tpc=(htc+wc*fsn)/(shcc+wc*shi)
+cddd      ficec=1.
+cddd      go to 3440
+cddd 3430 if(htc.le.0.) go to 3440
+cddd      tpc=htc/(shcc+wc*shw)
+cddd      ficec=0.
+cddd 3440 continue
+cddd      ftp=fb
+cddd      if(ibv.eq.2) ftp=fv
+cddd      tg2av=tg2av+tpc*ftp
+cddd      wtr2av=wtr2av+wc*ftp*1000.*(1.-ficec)
+cddd      ace2av=ace2av+wc*ftp*1000.*ficec
+cddd 3500 continue
+cddd      return
+cddd      end subroutine retp2
 
       subroutine checke(subr)
 !@sum  checke checks whether arrays are reasonable over earth
@@ -2792,7 +2994,8 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghy_com, only : snoage, snoage_def,fearth, wsn_max
+      use ghy_com, only : snoage, snoage_def,fearth, wsn_max,
+     &     q_ij,dz_ij,ngm
 #ifdef USE_ENT
      &     ,aalbveg
 #else
@@ -2802,12 +3005,13 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use surf_albedo, only: albvnh, updsur  !nyk
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       !use sle001, only : fb,fv,ws
-      use sle001, only : ws
+      use sle001, only : get_soil_properties
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
 #else
       use veg_drv, only : veg_set_cell
+      use vegetation, only : t_vegcell
 #endif
       !!use ent_com, only : entcells
       !!use ent_mod, only : ent_get_exports
@@ -2819,12 +3023,17 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
       real*8 fb, fv, ws_can
+      real*8 thetm(ngm,2), thets(ngm,2), shc(ngm,2)
+      integer ibv
 #ifdef USE_ENT
 !      integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
 !      integer :: JEQUATOR=JM/2
+#else
+      type(t_vegcell) :: vegcell
 #endif
 C**** define local grid
       integer J_0, J_1
+      real*8 ws11,ws12
 
 C**** Extract useful local domain parameters from "grid"
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -2898,16 +3107,32 @@ c**** find leaf-area index & water field capacity for ground layer 1
             end if
 #endif
 
-            call ghinij(i,j)
+!!!            call ghinij(i,j)
+            do ibv=1,2
+              call get_soil_properties( q_ij(i,j,:,:), dz_ij(i,j,:),
+     &             thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
+            enddo
+            
 #ifndef USE_ENT
-            call veg_set_cell(i,j,.true.)
-            ws_can = ws(0,2)
+            call veg_set_cell(vegcell, i,j, 1.d0, 1.d0, .true.)
+            !call veg_set_cell(i,j, .true.)
+!!!            !ws_can = ws(0,2)
+!!!            ws_can = vegcell%ws_can
+            !ws_can = ws(0,2)
+            ws_can = vegcell%ws_can
 #else
             call ent_get_exports( entcells(i,j),canopy_max_H2O=ws_can )
 #endif
             call get_fb_fv( fb, fv, i, j )
-            wfc1=fb*ws(1,1)+fv*(ws_can+ws(1,2))
+!!!            wfc1=fb*ws(1,1)+fv*(ws_can+ws(1,2))
+cddd            wfc1=fb*thets(1,1)*dz_ij(i,j,1) +
+cddd     &           fv*( ws_can + thets(1,2)*dz_ij(i,j,1) )
+            ws11 = thets(1,1)*dz_ij(i,j,1)
+            ws12 = thets(1,2)*dz_ij(i,j,1)
+            wfc1=fb*ws11 +
+     &           fv*( ws_can + ws12 )
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
+cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
 
          !!! this diag belongs to Ent - commenting out
 #ifndef USE_ENT
@@ -3087,12 +3312,16 @@ c****
 
       end subroutine ground_e
 
+
+      end module soil_drv
+
+
       subroutine conserv_wtg(waterg)
 !@sum  conserv_wtg calculates zonal ground water incl snow
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : fim, focean
+      use model_com, only : fim, focean, jm
       use geom, only : imaxj,DXYP
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       !use veg_com, only : afb
@@ -3148,7 +3377,7 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : fim, focean, im
+      use model_com, only : fim, focean, im, jm
       use geom, only : imaxj
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
       !use veg_com, only : afb
@@ -3204,7 +3433,7 @@ c****
 !@sum  conserv_htg calculates zonal ground energy incl. snow energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      use model_com, only : fim, focean
+      use model_com, only : fim, focean, jm
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth
@@ -3254,7 +3483,6 @@ ccc     &     sum(heatg(1:jm)*dxyp(1:jm))/(sum(dxyp(1:jm))*im)
       end subroutine conserv_htg
 
 
-      end module soil_drv
 
       subroutine check_ghy_conservation( flag )
 ccc debugging program: cam be put at the beginning and at the end
@@ -3604,7 +3832,7 @@ cddd      sinday=sin(twopi/edpery*jday)
 #endif
       use GEOM, only : BYDXYP
       USE DOMAIN_DECOMP, ONLY : GRID, GET
-      use soil_drv, only : conserv_wtg_1,snow_cover
+      use soil_drv, only : snow_cover ! conserv_wtg_1
       use snow_drvm, only : snow_cover_same_as_rad
 
       implicit none

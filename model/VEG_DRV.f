@@ -422,17 +422,18 @@ C****
       end subroutine reset_veg_to_defaults
 
 
-      subroutine veg_set_cell (i0,j0,ghy_data_only)
+      subroutine veg_set_cell (vegcell,i0,j0,pres,ts,ghy_data_only)
+      !subroutine veg_set_cell (i0,j0,ghy_data_only)
 !@sum resets the vegetation module to a new cell i0,j0
       use constant, only : gasc
       use ghy_com, only : ngm
-      use sle001, only : fr,snowm,ws,shc,shw,pres,ts
-      use vegetation, only : alaie,rs,nm,nf,alai,vh
-     &     ,alait,vfraction
-     &     ,fdir,parinc,vegalbedo,sbeta,Ci,Qf ! added by adf, nyk
-     &     ,Ca     ! nyk
-     &     ,cond_scheme,vegCO2X_off  !nyk
-     &     ,cnc
+      use sle001, only : shw !,pres,ts !fr,snowm, ws,shc,
+      use vegetation, only :  ! alaie,rs,nm,nf,alai,vh
+     &     ! alait,vfraction 
+     &     !!!Qf,!Ci, ! added by adf, nyk !fdir,parinc,vegalbedo,sbeta,!Ci,
+     &     !Ca,     ! nyk
+     &     cond_scheme,vegCO2X_off  !nyk
+     &     !,cnc
       use rad_com, only : cosz1, CO2X, CO2ppm  !nyk
      &    ,FSRDIR,SRVISSURF  !adf, nyk
       use veg_com, only :
@@ -440,11 +441,13 @@ C****
      &     ,cnc_ij
      &     ,aalbveg    ! nyk
      &     ,afr,avh,anm,anf,ala,alaif,alaf,vdata,acs
-
+      use vegetation, only : t_vegcell
 
       implicit none
 
+      type(t_vegcell) :: vegcell
       integer, intent(in) :: i0,j0
+      real*8, intent(in)  :: pres,ts
 !@var ghy_data_only set only ghy data (no call to vegetatin expected)
       logical, optional :: ghy_data_only
       real*8, parameter :: spgsn=.1d0
@@ -453,39 +456,40 @@ C****
 !      real*8 aalbveg0, sfv  !nyk
 !      integer northsouth,iv  !nyk
 !      real*8 alaic,vh,shtpr,alai  ! adf
-      real*8 alaic
+      real*8 alaic, alai
 
       ! call stop_model("veg_set_cell called", 255)
 
 c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
       do l=1,ngm
-        fr(l)=afr(l,i0,j0)
+        vegcell%fr(l)=afr(l,i0,j0)
       end do
 c**** vh: vegetation height
-      vh=avh(i0,j0)
-      nm=anm(i0,j0) ! mean canopy nitrogen (g/m2[leaf]) (adf)
-      nf=anf(i0,j0) ! canopy nitrogen factor (adf)
-      snowm=vh*spgsn
+      vegcell%vh=avh(i0,j0)
+      vegcell%nm=anm(i0,j0)     ! mean canopy nitrogen (g/m2[leaf]) (adf)
+      vegcell%nf=anf(i0,j0)     ! canopy nitrogen factor (adf)
+      vegcell%snowm=vegcell%vh*spgsn
 
 c**** alai: leaf area index
       alai=ala(1,i0,j0)+cosday*ala(2,i0,j0)+sinday*ala(3,i0,j0)
       alai=max(alai,1.d0)
       !lai by functional type, not normalized by cover fraction!
       alaif(:,i0,j0) = 0.d0
-      alait(:) = 0.d0
-      vfraction(:) = 0.d0
+      vegcell%alait(:) = 0.d0
+      vegcell%vfraction(:) = 0.d0
       do L=1,11
         if ( L==9 .or. L==10 ) cycle
         alaif(L,i0,j0)=alaf(1,L,i0,j0)+
      &       cosday*alaf(2,L,i0,j0)+sinday*alaf(3,L,i0,j0) !save ij
-        alait(L) = alaif(L,i0,j0)  !for VEGETATION.f
-        vfraction(L)=vdata(i0,j0,L+1) !for VEGETATION.f
+        vegcell%alait(L) = alaif(L,i0,j0)  !for VEGETATION.f
+        vegcell%vfraction(L)=vdata(i0,j0,L+1) !for VEGETATION.f
       end do
 
       alaic=5.0
-      alaie=alaic*(1.-exp(-alai/alaic))
+      vegcell%alaie=alaic*(1.-exp(-alai/alaic))
 c**** rs: minimum stomatal resistance
-      rs=alai/(acs(1,i0,j0)+cosday*acs(2,i0,j0)+sinday*acs(3,i0,j0))
+      vegcell%rs=alai/
+     &     (acs(1,i0,j0)+cosday*acs(2,i0,j0)+sinday*acs(3,i0,j0))
 c???  cnc=alai/rs   redefined before being used (qsbal,cond)
 
       !---------------------------------------------------------
@@ -509,11 +513,13 @@ c???  cnc=alai/rs   redefined before being used (qsbal,cond)
 !      write (99,*) 'aalbveg ghinij', aalbveg(i0,j0) !nyk
       !---------------------------------------------------------
 
-      ws(0,2)=.0001d0*alai
+      !ws(0,2)=.0001d0*alai
+      vegcell%ws_can = .0001d0*alai
 !!!      ws(0,2)=can_w_capacity(i0,j0)*alai
 c shc(0,2) is the heat capacity of the canopy
       aa=ala(1,i0,j0)
-      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+      !shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+      vegcell%shc_can=(.010d0+.002d0*aa+.001d0*aa**2)*shw
 
 ! This is a hack to prevent the program from using uninitialized
 ! radiation arrays at the beginning of the run.
@@ -527,9 +533,9 @@ c shc(0,2) is the heat capacity of the canopy
 !----------------------------------------------------------------------!
       if (cond_scheme.eq.2) then  !new conductance scheme
 ! Sine of solar elevation (rad).
-        sbeta=cosz1(i0,j0)
+        vegcell%sbeta=cosz1(i0,j0)
 ! adf Fraction of solar radiation at ground that is direct beam.
-        fdir=FSRDIR(i0,j0)
+        vegcell%fdir=FSRDIR(i0,j0)
 ! nyk Calculate incident PAR, photosynthetically active radiation.
 !     *SRVISSURF is from SRDVIS:
 !     = incident visible solar radiation (dir+dif) on the surface
@@ -538,25 +544,27 @@ c shc(0,2) is the heat capacity of the canopy
 !     *SRDVIS is normalized to solar zenith = 0.
 !     *From integrating solar flux density (TOA) over solar spectrum,
 !       PAR(400-700 nm) is ~ 82% of the flux density of SRDVIS.
-        parinc=0.82*SRVISSURF(i0,j0)*sbeta
+        vegcell%parinc=0.82*SRVISSURF(i0,j0)*vegcell%sbeta
 ! nyk Get vegetation grid albedo, temporary until canopy scheme in place
-        vegalbedo = aalbveg(i0,j0)
+        vegcell%vegalbedo = aalbveg(i0,j0)
 ! Internal foliage CO2 concentration (mol/m3).
-        Ci=Cint(i0,j0)
+        vegcell%Ci=Cint(i0,j0)
 ! Foliage surface mixing ratio (kg/kg).
-        Qf=Qfol(i0,j0)
-        CNC = cnc_ij(i0,j0)
+        vegcell%Qf=Qfol(i0,j0)
+        !!!Qf=Qfol(i0,j0)
+        vegcell%CNC = cnc_ij(i0,j0)
 ! Atmospheric CO2 concentration at land surface (mol/m3)
         if (vegCO2X_off==0) then  !Default
-           Ca = CO2X*CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
+           vegcell%Ca = CO2X*CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
         else
-           Ca = CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
+           vegcell%Ca = CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
         endif
 !        write(99,*) "vegCO2X_off,CO2X,CO2ppm,Ca,pres,gasc,ts",
 !     %       vegCO2X_off,CO2X,CO2ppm,Ca,pres,gasc,ts
 !        stop
       end if
 !----------------------------------------------------------------------!
+      vegcell%alai = alai
       return
       end subroutine veg_set_cell
 

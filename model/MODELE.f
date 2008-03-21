@@ -45,7 +45,7 @@ c$$$      USE MODEL_COM, only: clock
      &    SCM_DEL_Q,iu_scm_prt,iu_scm_diag
 #endif
 
-      use soil_drv, only : conserv_wtg, conserv_htg
+      !use soil_drv, only : conserv_wtg, conserv_htg
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart

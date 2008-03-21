@@ -1944,7 +1944,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
      *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI
      *     ,icon_HLI,title_con
-      USE SOIL_DRV, only: conserv_WTG,conserv_HTG
+      !USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
       INTEGER, INTENT(IN) :: M
@@ -1966,7 +1966,7 @@ C****
       EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
-     *     ,conserv_MLI,conserv_HLI
+     *     ,conserv_MLI,conserv_HLI,conserv_WTG,conserv_HTG
       INTEGER MNOW
       INTEGER NT
 
