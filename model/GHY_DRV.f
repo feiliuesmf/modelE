@@ -904,7 +904,7 @@ C**** halo update u and v for distributed parallelization
 !$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,dlwdt,
 !$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat,jr,kr,tmp,
-!$OMP*   fb,fv,vegcell
+!$OMP*   fb,fv,vegcell,ts,qs
 #ifdef TRACERS_DUST
 !$OMP*   ,n,n1
 #endif

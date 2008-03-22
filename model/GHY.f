@@ -378,6 +378,7 @@ C***
 
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
+     &     ,betadl,ws_can,shc_can,tg2av,wtr2av,ace2av
 #ifdef TRACERS_WATER
      &     ,trpr,trdd, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
      &     ,atr_evap,atr_rnff,atr_g
