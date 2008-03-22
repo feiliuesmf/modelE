@@ -1810,6 +1810,7 @@ c**** modifications needed for split of bare soils into 2 types
       character conpt(npts)*10
 #ifdef TRACERS_WATER
       real*8 trsoil_tot,wsoil_tot,fm
+      integer n
 #endif
 c****
 cgsfc      REAL*8::TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)

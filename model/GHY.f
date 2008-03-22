@@ -174,6 +174,7 @@ ccc   input fluxes
 ccc   input bc''s
       real*8 :: ts,qs,pres,rho,ch,qm1,vs,vs0,tprime,qprime
       public ts,qs ! needed in ghy_diag
+      public qm1 ! needed by tracers
 !@var dt earth time step (s)
       real*8, public :: dt
 
