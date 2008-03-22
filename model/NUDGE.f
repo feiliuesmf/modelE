@@ -147,7 +147,11 @@ c -----------------------------------------------------------------
             status=NF_CLOSE('v'//trim(nstr1)//'.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u'//trim(nstr2)//'.nc',NCNOWRIT,ncidu)
+            if ( status .ne. NF_NOERR )
+     &           call stop_model("NUDGE_PREP: error opening u-file",255)
             status=NF_OPEN('v'//trim(nstr2)//'.nc',NCNOWRIT,ncidv)
+            if ( status .ne. NF_NOERR )
+     &           call stop_model("NUDGE_PREP: error opening v-file",255)
 
             status=NF_INQ_VARID(ncidu,'level',plid)
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
@@ -359,7 +363,11 @@ c -----------------------------------------------------------------
 
       if(am_i_root()) then
             status=NF_OPEN('u'//trim(nstr1)//'.nc',NCNOWRIT,ncidu)
+            if ( status .ne. NF_NOERR )
+     &           call stop_model("NUDGE_INIT: error opening u-file",255)
             status=NF_OPEN('v'//trim(nstr1)//'.nc',NCNOWRIT,ncidv)
+            if ( status .ne. NF_NOERR )
+     &           call stop_model("NUDGE_INIT: error opening v-file",255)
 
             status=NF_INQ_VARID(ncidu,'level',plid)
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
