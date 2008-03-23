@@ -1,3 +1,4 @@
+#include "mpi_defs.h"
 module SparseCommunicator_mod
    
    implicit none

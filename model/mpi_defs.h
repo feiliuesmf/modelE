@@ -43,4 +43,12 @@
 #define MPI_Allgather mpi_allgather_
 #define MPI_ABORT mpi_abort_
 
+#define mpi_comm_size mpi_comm_size_
+#define mpi_gather mpi_gather_
+#define mpi_gatherV mpi_gatherv_
+#define mpi_GatherV mpi_gatherv_
+#define mpi_ScatterV mpi_scatterv_
+
+
 #endif
+
