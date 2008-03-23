@@ -1397,7 +1397,7 @@ C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
-        iniSNOW = .TRUE.      ! extract snow data from first soil layer
+        !iniSNOW = .TRUE.      ! extract snow data from first soil layer
         iniPBL=.TRUE.
         if (ioerr.eq.1) goto 800
       END SELECT
