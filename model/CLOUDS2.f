@@ -413,7 +413,7 @@ c for sulfur chemistry
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM,CONDP
-     *     ,DDR,SMDNL,QMDNL,CONDP1,CONDV,HEAT1,CONDGP,CONDIP   
+     *     ,DDR,SMDNL,QMDNL,CONDP1,CONDV,HEAT1,CONDGP,CONDIP
 #ifdef CLD_AER_CDNC
      *     ,CONDPC
 #endif
@@ -527,10 +527,11 @@ c for sulfur chemistry
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
 !@param RHOG,RHOIP density of graupel and ice particles
 !@param ITMAX max iteration index
-!@param CN0 constant use in computing FLAMW, etc
+!@param CN0, CN0I, CN0G constants use in computing FLAMW, etc
 !@param PN tuning exponential for computing WV
 !@param AIRM0 air mass used to compute convective cloud cover
       REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0,AIRM0=100.d0
+      REAL*8,  PARAMETER :: CN0I=3.d6,CN0G=4.d4
 #ifdef CLD_AER_CDNC
       REAL*8 RHO   ! air density
 !CN0 is the No parameter in the Marshall-Palmer distribution
@@ -549,7 +550,7 @@ c for sulfur chemistry
 !@var HPBL, PBLM PBL height (m) and air mass in PBL (mb)
       REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW
      *     ,VT,CONDMU,HPBL,PBLM,TTURB,TRATIO,BYPBLM,DWCU,FLMCM
-     *     ,UMTEMP,VMTEMP
+     *     ,UMTEMP,VMTEMP,TIG
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
@@ -868,7 +869,7 @@ c     is not filled - so MPLUME is unchanged
 #else
       TTURB=HPBL/WTURB(LMIN)
       IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
-#endif 
+#endif
 
       IF(ITYPE.EQ.2) THEN     ! cal. MPLUME for 1st plume and 2nd plume
       FCTYPE=1.
@@ -1019,7 +1020,8 @@ C****
       LDRAFT=LM
       EVPSUM=0.
       DDRAFT=0.
-      LFRZ=0
+C     LFRZ=0
+      LFRZ=1                    ! preventing blow-up
       LMAX=LMIN
 C     CONTCE=.3
 C     IF(IC.EQ.2) CONTCE=.6
@@ -1153,8 +1155,8 @@ C**** save plume temperature after possible condensation
      *  HEAT1(L)=HEAT1(L)+LHM*CONDV(L-1)*BYSHA/PLK(L)
       CONDMU=100.*COND(L)*PL(L)/(CCM(L-1)*TL(L)*RGAS)
       FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
-      FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
-      FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
+      FLAMG=(400.d0*PI*CN0G/(CONDMU+teeny))**.25
+      FLAMI=(100.d0*PI*CN0I/(CONDMU+teeny))**.25
 #ifdef CLD_AER_CDNC
 !@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
@@ -1515,8 +1517,10 @@ C     IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN
       IF(WV.LT.0.d0) WV=0.d0
       DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
       DCG=MIN(DCG,1.D-2)
-      DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
+      DCI=((WV/11.72)*(PL(L)/1000.)**.4)**2.439
       DCI=MIN(DCI,1.D-2)
+      TIG=TF-4.*WCU(LFRZ)
+      IF(TIG.LT.TI-10.d0) TIG=TI-10.d0
       IF (TP.GE.TF) THEN ! water phase
         DDCW=6d-3/FITMAX
         IF(PLAND.LT..5) DDCW=1.5d-3/FITMAX
@@ -1559,38 +1563,41 @@ c     if (CONDP(L).lt.0.d0)
 c    *write(6,*)"Mup",CONDP(L),CONDPC(L),CONDMU,DCW,MCDNCW,RCLD_C,L
 c      write(6,*)"Mup",CONDP(L),DCW,FLAMW,CONDMU,L
 #endif
-      ELSE IF (TP.LE.TI) THEN ! pure ice phase
-        CONDP1(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+C     ELSE IF (TP.LE.TI) THEN ! pure ice phase
+      ELSE IF (TP.LE.TIG) THEN ! pure ice phase, use TIG instead of TI
+        CONDP1(L)=RHOIP*(PI*by6)*CN0I*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
         WV=WCU(L)+DWCU
-        DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
+        DCI=((WV/11.72)*(PL(L)/1000.)**.4)**2.439
         DCI=MIN(DCI,1.D-2)
-        CONDP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+        CONDP(L)=RHOIP*(PI*by6)*CN0I*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
       ELSE ! mixed phase
-        FG=(TP-TI)/(TF-TI)
+C       FG=(TP-TI)/(TF-TI)     ! use TIG instead TI
+        FG=(TP-TIG)/(TF-TIG)
+        IF(TL(LMIN).LE.TF.OR.TL(LMIN+1).LE.TF) FG=0.d0
         FI=1.-FG
-        CONDIP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+        CONDIP(L)=RHOIP*(PI*by6)*CN0I*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
-        CONDGP(L)=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
+        CONDGP(L)=RHOG*(PI*by6)*CN0G*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
-        CONDP1(L)=FG*CONDGP(L)+FI*CONDIP(L)  
+        CONDP1(L)=FG*CONDGP(L)+FI*CONDIP(L)
         WV=WCU(L)+DWCU
-        DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
+        DCI=((WV/11.72)*(PL(L)/1000.)**.4)**2.439
         DCI=MIN(DCI,1.D-2)
         DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
         DCG=MIN(DCG,1.D-2)
-        CONDIP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+        CONDIP(L)=RHOIP*(PI*by6)*CN0I*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
-        CONDGP(L)=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
+        CONDGP(L)=RHOG*(PI*by6)*CN0G*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
-        CONDP(L)=FG*CONDGP(L)+FI*CONDIP(L)   
+        CONDP(L)=FG*CONDGP(L)+FI*CONDIP(L)
       ENDIF
 c convert condp to the same units as cond
       CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
@@ -2967,7 +2974,7 @@ c     if (r6.gt.r6c) then
       endif
 !end routine for QAUT as a function of N,LWC
 #endif
-        CM=CM*CMX  
+        CM=CM*CMX
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
 #ifdef SCM
