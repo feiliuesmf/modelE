@@ -136,7 +136,8 @@ ccc set i,j - independent stuff for tracers
       end subroutine ghy_tracers_set_step
 
 
-      subroutine ghy_tracers_set_cell(i,j,ptype,qg,evap_max,pbl_args)
+      subroutine ghy_tracers_set_cell(i,j,ptype,qg,evap_max,pbl_args
+     &  ,qm1)
 !@sum tracers code to be called before the i,j cell is processed
       use model_com, only : dtsrc
       use pbl_drv, only : t_pbl_args
@@ -154,12 +155,13 @@ ccc set i,j - independent stuff for tracers
 #endif
 #endif
 #ifdef TRACERS_WATER
-      use sle001, only : qm1
+      !!!use sle001, only : qm1
 #endif
       implicit none
       integer, intent(in) :: i,j
       real*8, intent(in) :: qg,evap_max,ptype
       type (t_pbl_args), intent(inout) :: pbl_args
+      real*8, intent(in) :: qm1
       integer n,nx,nsrc
 
 c**** pass indices of tracer arrays to PBL
@@ -1014,7 +1016,7 @@ ccc actually PBL needs evap (kg/m^2*s) / rho_air
 c**** call tracers stuff
 #ifdef TRACERS_ON
       call ghy_tracers_set_cell(i,j,ptype,pbl_args%qg_sat
-     &     ,pbl_args%evap_max,pbl_args)
+     &     ,pbl_args%evap_max,pbl_args, q1*ma1)
 #endif
       call pbl(i,j,itype,ptype,pbl_args)
 c****
