@@ -128,17 +128,19 @@ c -----------------------------------------------------------------
 c   Opening of the files to be read
 c -----------------------------------------------------------------
 
-        if (zirk.lt.10) then
-           write(nstr1,'(I1)') zirk
-        elseif (zirk.lt.100) then
-           write(nstr1,'(I2)') zirk
-        endif
+!        if (zirk.lt.10) then
+!           write(nstr1,'(I1)') zirk
+!        elseif (zirk.lt.100) then
+!           write(nstr1,'(I2)') zirk
+!        endif
+            write(nstr1,'(I0)') zirk
 
-        if (zirk+1.lt.10) then
-           write(nstr2,'(I1)') zirk +1
-        elseif (zirk+1.lt.100) then
-           write(nstr2,'(I2)') zirk + 1
-        endif
+!        if (zirk+1.lt.10) then
+!           write(nstr2,'(I1)') zirk +1
+!        elseif (zirk+1.lt.100) then
+!           write(nstr2,'(I2)') zirk + 1
+!        endif
+            write(nstr2,'(I0)') zirk + 1
 
       print*, '  I N    N U D G E : OPEN NF FILES','  u',nstr2,'.nc'
 
@@ -147,11 +149,11 @@ c -----------------------------------------------------------------
             status=NF_CLOSE('v'//trim(nstr1)//'.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u'//trim(nstr2)//'.nc',NCNOWRIT,ncidu)
-            if ( status .ne. NF_NOERR )
-     &           call stop_model("NUDGE_PREP: error opening u-file",255)
+            if ( status .ne. NF_NOERR ) call stop_model(
+     &           "NUDGE_PREP: error opening: u"//trim(nstr2)//'.nc',255)
             status=NF_OPEN('v'//trim(nstr2)//'.nc',NCNOWRIT,ncidv)
-            if ( status .ne. NF_NOERR )
-     &           call stop_model("NUDGE_PREP: error opening v-file",255)
+            if ( status .ne. NF_NOERR ) call stop_model(
+     &           "NUDGE_PREP: error opening: v"//trim(nstr2)//'.nc',255)
 
             status=NF_INQ_VARID(ncidu,'level',plid)
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
@@ -355,19 +357,20 @@ c -----------------------------------------------------------------
 c   Opening of the files to be read
 c -----------------------------------------------------------------
 
-        if (zirk.lt.10) then
-           write(nstr1,'(I1)') zirk
-        elseif (zirk.lt.100) then
-           write(nstr1,'(I2)') zirk
-        endif
+!        if (zirk.lt.10) then
+!           write(nstr1,'(I1)') zirk
+!        elseif (zirk.lt.100) then
+!           write(nstr1,'(I2)') zirk
+!        endif
+      write(nstr1,'(I0)') zirk
 
       if(am_i_root()) then
             status=NF_OPEN('u'//trim(nstr1)//'.nc',NCNOWRIT,ncidu)
-            if ( status .ne. NF_NOERR )
-     &           call stop_model("NUDGE_INIT: error opening u-file",255)
+            if ( status .ne. NF_NOERR ) call stop_model(
+     &           "NUDGE_INIT: error opening: u"//trim(nstr1)//'.nc',255)
             status=NF_OPEN('v'//trim(nstr1)//'.nc',NCNOWRIT,ncidv)
-            if ( status .ne. NF_NOERR )
-     &           call stop_model("NUDGE_INIT: error opening v-file",255)
+            if ( status .ne. NF_NOERR ) call stop_model(
+     &           "NUDGE_INIT: error opening: v"//trim(nstr1)//'.nc',255)
 
             status=NF_INQ_VARID(ncidu,'level',plid)
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
