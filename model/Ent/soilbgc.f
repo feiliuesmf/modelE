@@ -172,10 +172,12 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !     &      (1.46d0*atan(PI*0.0309d0*(Soiltemp(:)-15.7d0))) / PI
 
       !* Linear fit to Del Grosso ftemp. Min=0.125 @Soiltemp=0, Max=1.0 @Soiltemp=30 degC- NK
-      bgtemp = max(0.125d0, min(1.d0,
-     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:))) !linear -NK
 !      bgtemp = max(0.125d0, 
 !     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:)) !linear, no upper cap -NK
+      bgtemp = max(0.125d0, min(1.d0,
+     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:))) !linear, Del Grosso intercept -NK
+!      bgtemp = max(0.046d0, min(1.d0,
+!     &     0.046d0 + (1.d0-0.046d0)/(30.d0-0.d0)*Soiltemp(:))) !linear, log-fitted intercept to original Del Grosso data -NK
       
       !* S-function fit to Del Grosso. - NK
 !      bgtemp=1.15d0*(1.d0/(1.d0+EXP(-0.14d0*(Soiltemp(:)-17.d0))))

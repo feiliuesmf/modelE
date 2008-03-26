@@ -590,9 +590,10 @@
 
       !* Maintenance respiration - leaf + sapwood + storage
       Resp_fol = 0.012D-6 * !kg-C/m2/s
-!     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
+!!     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
      &     Resp_can_maint(cop%pft, cop%C_fol,C2N,
      &     TcanopyK,cop%n) !Foliage
+!     &     cop%LAI*1.d0!*exp(308.56d0*(1/71.02d0  - (1/(TcanopyK-227.13d0)))) !Temp factor 1 at TcanopyC=25
       Resp_sw = 0.012D-6 *  !kg-C/m2/s
      &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996)
      &     330.d0,TcanopyK,cop%n) 
@@ -614,6 +615,7 @@
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 
+!#define OFFLINE 1
 #ifdef OFFLINE
       write(998,*) Resp_fol,Resp_sw,Resp_lab,Resp_root,Resp_maint
      &     ,Resp_growth
@@ -625,9 +627,16 @@
      &     Result(R_maint)
       !Canopy maintenance respiration (umol/m2-ground/s)
       !Based on biomass amount (total N in pool). From CLM3.0.
+      !C3 vs. C4:  Byrd et al. (1992) showed no difference in maintenance
+      ! respiration costs between C3 and C4 leaves in a lab growth study.
+      ! Also, maintenance (dark) respiration showed no relation to
+      ! leaf nitrogen content (assimilation and growth respiration did 
+      ! respond to leaf N content). In lab conditions, leaf dark respiration
+      ! was about 1 umol-CO2 m-2 s-1 for an N range of ~70 to 155 mmol-N m-2.
+
       implicit none
       integer :: pft            !Plant functional type.
-      real*8 :: C               !kg-C/individual  !not per m2 -PK 5/15/07
+      real*8 :: C               !g-C/individual 
                                 !Can be leaf, stem, or root pools.
       real*8 :: CN              !C:N ratio of the respective pool
 !      real*8 :: R_maint !Canopy maintenance respiration rate (umol/m2/s)
@@ -635,10 +644,13 @@
       real*8 :: n               !Density of individuals (no./m2)
       !---Local-------
       real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
+      real*8,parameter :: k_Ent = 2.d0 !Correction factor to k_CLM until find where they got their k_CLM.
+      real*8,parameter :: ugBiomass_per_gC = 2.d6
+      real*8,parameter :: ugBiomass_per_umolCO2 = 28.5
 
-      R_maint = pfpar(pft)%r * k_CLM * (C/CN) * 
+      R_maint = n * pfpar(pft)%r * k_Ent * k_CLM * (C/CN) *   !C in CLM is g-C/individual
      &     exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
-     &     2.d6*n/28.5d0
+     &     ugBiomass_per_gC/ugBiomass_per_umolCO2
       !Note:  CLM calculates this per individual*population/area_fraction
       !      to give flux per area of pft cover rather than per ground area.
       end function Resp_can_maint
@@ -672,7 +684,8 @@
       real*8 :: Rmaint !Canopy maintenance respiration rate (umol/m2/s)
       real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33
 
-      growth_r = pfpar(pft)%r * 0.5d0    !Factor 0.5 gives growth_r=0.3 for C3 grass.
+!      growth_r = pfpar(pft)%r * 0.5d0    !Factor 0.5 gives growth_r=0.3 for C3 grass.
+      growth_r = 0.3d0   
       R_growth = max(0.d0, growth_r * (Acan - Rmaint))
       end function Resp_can_growth
 

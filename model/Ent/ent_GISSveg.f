@@ -387,7 +387,7 @@ c**** calculate root fraction afr averaged over vegetation types
       do pft=1,N_PFT
         n = pft + COVEROFFSET
         if (pft.eq.GRASSC3) then
-          popdata(n) = 1.0      !Grass ##HACK
+          popdata(n) = 10.0      !Grass ##HACK
         else
           wooddens = wooddensity_gcm3(pft)
           Blmax = 0.0419 * ((dbhdata(n))**1.56) * (wooddens**0.55)
@@ -464,7 +464,7 @@ c**** calculate root fraction afr averaged over vegetation types
       !----Local------
 
       ! just in case, set to 0 to avoid possible NaNs
-      cpool(:) = 0.d0
+      cpool(:) = 0.d0 !g-C/individual plant
       
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br

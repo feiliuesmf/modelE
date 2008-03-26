@@ -109,6 +109,7 @@
       integer :: ia  !array index
       integer :: pft
       real*8 :: fracrootCASA(N_CASA_LAYERS)  !to map fracroot to fracrootCASA -PK 7/07
+      real*8 :: gCindiv_to_kgCm2
 
       !* Zero out cohort summary variables *!
       call zero_patch_cohortsum(pp)
@@ -151,16 +152,19 @@
         !* Do fracroot(:) outside this loop, below.
 
          !* BIOMASS POOLS - TOTALS
-        pp%C_fol = pp%C_fol + cop%C_fol * nc !Total
-        pp%N_fol = pp%N_fol + cop%N_fol * nc
-        pp%C_w = pp%C_w + (cop%C_sw  + cop%C_hw) * nc
-        pp%N_w = pp%N_w + (cop%N_sw  + cop%N_hw) * nc
-        pp%C_lab = pp%C_lab + cop%C_lab * nc 
-        pp%N_lab = pp%N_lab + cop%N_lab * nc 
-        pp%C_froot = pp%C_froot + (cop%C_froot) * nc
-        pp%N_froot = pp%N_froot + (cop%N_froot) * nc
-        pp%C_root = pp%C_root + (cop%C_froot + cop%C_croot) * nc
-        pp%N_root = pp%N_root + (cop%N_froot + cop%N_croot) * nc
+        gCindiv_to_kgCm2 = 1d-3 * nc !Convert gC/individ to kg-C/m^2
+        pp%C_fol = pp%C_fol + cop%C_fol * gCindiv_to_kgCm2
+        pp%N_fol = pp%N_fol + cop%N_fol * gCindiv_to_kgCm2
+        pp%C_w = pp%C_w + (cop%C_sw  + cop%C_hw) * gCindiv_to_kgCm2
+        pp%N_w = pp%N_w + (cop%N_sw  + cop%N_hw) * gCindiv_to_kgCm2
+        pp%C_lab = pp%C_lab + cop%C_lab * gCindiv_to_kgCm2
+        pp%N_lab = pp%N_lab + cop%N_lab * gCindiv_to_kgCm2
+        pp%C_froot = pp%C_froot + (cop%C_froot) * gCindiv_to_kgCm2
+        pp%N_froot = pp%N_froot + (cop%N_froot) * gCindiv_to_kgCm2
+        pp%C_root = pp%C_root + 
+     &       (cop%C_froot + cop%C_croot) * gCindiv_to_kgCm2
+        pp%N_root = pp%N_root + 
+     &       (cop%N_froot + cop%N_croot) * gCindiv_to_kgCm2
 
          !* FLUXES - TOTALS
         pp%Ci = pp%Ci + cop%Ci * cop%LAI !wtd average
@@ -184,15 +188,15 @@
        do ia=1,N_CASA_LAYERS  !loop over all CASA layers -PK 7/07
         if (ia.eq.1) then  !only top CASA layer has leaves & wood
          pp%Tpool(CARBON,LEAF,ia) = pp%Tpool(CARBON,LEAF,ia)
-     &        + cop%C_fol * cop%n    !kg-C/m^2-ground
+     &        + cop%C_fol * cop%n    
          pp%Tpool(CARBON,WOOD,ia) = pp%Tpool(CARBON,WOOD,ia)  !note: phenology.f uses C_croot instead of C_sw -PK 7/07
-     &       + (cop%C_sw + cop%C_hw) * cop%n
+     &       + (cop%C_sw + cop%C_hw)* cop%n 
         else    
          pp%Tpool(CARBON,LEAF,ia) = 0.d0  
          pp%Tpool(CARBON,WOOD,ia) = 0.d0
         end if 
          pp%Tpool(CARBON,FROOT,ia) = pp%Tpool(CARBON,FROOT,ia)
-     &        + fracrootCASA(ia)*cop%C_froot * cop%n
+     &        + fracrootCASA(ia)*cop%C_froot * cop%n 
        end do  !N_CASA_LAYERS
         !* Tpool(NITROGEN,:,:) gets updated in casa_bgfluxes.f
 

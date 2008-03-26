@@ -98,19 +98,20 @@
 
      &     pspartype(1          !5. COLD DECIDUOUS BROADLEAF EARLY SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
-     &     ,51.d0               !Vmax25, CLM BDT temperate, Table 8.2 (Oleson, et al 2004)
+     &     ,60.d0               !Vmax25, CLM BDT temperate, Table 8.2 (Oleson, et al 2004)
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,6.0d0               !Nleaf (gN/m2-leaf). Low Est. from Reich 1997 (big range).
-     &     ,1.25d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+     &     ,3.1d0),               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
 
      &     pspartype(1          !6. COLD DECIDUOUS BROADLEAF LATE SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
-     &     ,51.d0               !Vmax25, CLM BDT boreal, Table 8.2 (Oleson, et al 2004)
+     &     ,51.d0               !Vmax25, CLM BDT boreal, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51.
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,6.7d0                !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
-     &     ,1.3d0),               !Nleaf (gN/m2-leaf). Increment Friend&Kiang (2005), Table 1.
+!     &     ,1.3d0),              !Nleaf (gN/m2-leaf). Increment Friend&Kiang (2005), Table 1.
+     &     ,1.25d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 
      &     pspartype(1          !7. DROUGHT DECIDUOUS BROADLEAF 
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate & tropical, Table 3.1 (Oleson, et al 2004)
@@ -167,12 +168,13 @@
      &    ,.86d0                !PARabsorb, Collatz et al. (1991)
 !     &     ,.89d0               !leaf VIS albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
 !     &     ,43.d0               !Vmax25, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
-     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
+!     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
+     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
 !     &     ,9d0                !m, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
 !     &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
-     &     ,1.0d0),              !Nleaf (gN/m2-leaf) from Reich (1997) C:N of ~24 for SLA of 41.1 m2/kg-C (leaf longevity 0.5 yr).  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves).
+     &     ,3.27d0),              !Nleaf (gN/m2-leaf) from Reich (1997) C:N of ~24 for SLA of 41.1 m2/kg-C (leaf longevity 0.5 yr).  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves).
 
      &     pspartype(1          !14. GRASSC3 - arctic
      &     ,.89d0               !from leaf VIS 1-albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
@@ -187,14 +189,15 @@
      &     ,50d0               !Vmax25, CLM Crop1, Table 8.2 (Oleson, et al 2004)
      &     ,9.d0               !m, CLM Crop1, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
-     &     ,4.0d0),              !Round up high from Ponca Ntot/LA average (actually seasonal curve); Rd not large deviance from direct daily Ntot 
+     &     ,2.5d0),                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+!     &     ,4.0d0),              !Round up high from Ponca Ntot/LA average (actually seasonal curve); Rd not large deviance from direct daily Ntot 
 
      &     pspartype(1          !16. CROPS - BROADLEAF WOODY
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT, Table 3.1 (Oleson, et al 2004)
      &     ,51.d0               !Vmax25, CLM BDT temperate, Table 8.2 (Oleson, et al 2004)
      &     ,9.d0               !m, CLM BDT temperate, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
-     &     ,3.27d0)              !Ponca Ntot/LA average (actually seasonal curve); Rd not large deviance from direct daily Ntot 
+     &     ,3.1d0)               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
      &/)
 
 

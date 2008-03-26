@@ -55,8 +55,8 @@
      &!     pft PARabsorb Vcmax Kc Ko KcQ10 KoQ10 Gammastar  m b !Rdc RdH
      &     (/
      &     pspartype(1          !1. TUNDRA
-     &     ,.89d0               !from leaf VIS albedo,CLM C3 arctic grass, Table 3.1 (Oleson, et al 2004)
-     &     ,43.d0               !Vmax25, CLM
+     &     ,.90d0               !from leaf VIS albedo,CLM C3 boreal shrub, Table 3.1 (Oleson, et al 2004)
+     &     ,33.d0               !Vmax25, CLM arctic C3 grass 43, boreal shrub 33, Table 8.2 (Oleson, et al 2004)
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,7d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
@@ -68,8 +68,8 @@
 !     &     ,100d0                !Vcmax, Sellers II (1996)
 !     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
 !     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
-     &     ,56.4d0                !Vcmax, Wang et al (2007) GCB, from inversion of flux data for oak-grass. Xu blue oak leaf chamber Vcmax reaches ~100.
-!     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+!     &     ,56.4d0                !Vcmax, Wang et al (2007) GCB, from inversion of flux data for oak-grass. Xu blue oak leaf chamber Vcmax reaches ~100.
+     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
 !     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum
@@ -86,17 +86,18 @@
      &     ),
      &     pspartype(2          !4. SAVANNA
      &     ,.89d0               !leaf VIS 1-albedo,CLM BDT 0.90, grass 0.89, Table 3.1 (Oleson, et al 2004)
-     &     ,32d0                !Vmax25, CLM C4 grass 24, BDT tropical 40,  Table 8.2 (Oleson, et al 2004)
+!     &     ,32d0                !OLD VALUE Vmax25, CLM C4 grass 24, BDT tropical 40,  Table 8.2 (Oleson, et al 2004)
 !     &     ,47.d0              !Vmax25, CLM C3 grass 43, BDT temperate 51, Table 8.2 (Oleson, et al 2004)
-!     &     ,56.4.d0             !Vcmax, Wang et al (2007) GCB, from inversion of flux data for oak-grass.
+     &     ,56.4d0             !Vcmax, Wang et al (2007) GCB, from inversion of flux data for oak-grass.
      &     ,9d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,4d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
-     &     ,1.03d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+!     &     ,1.03d0              !OLD VALUE Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
+     &     ,3.12d0              !Nleaf (gN/m2-leaf) Weighted average of deciduous broadleaf (87.2%) and C3 grassland (12.8%). Weights match inferred from Wang Vcmax inversion.
      &     ),
      &     pspartype(1          !5. DECIDFOREST
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
-     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). 
+     &     ,60.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
 !     &     ,63.d0               !Vcmax for Walker Branch spp, Wilson et al (2001) PlantCellEnv.  Quercus prinus 63, Quercus alba 60, Acer Rubrum 37, Acer saccharum 42, Nyssa sylvatica 39.  These average to 51.
      &     ,9.d0               !m, CLM BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
@@ -115,7 +116,7 @@
      &     ),
      &     pspartype(1          !7. TROPRAINF
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BET & BDT tropical, Table 3.1 (Oleson, et al 2004)
-     &     ,75.d0               !Vmax25, CLM BET tropical 75, BDT tropical 40, Table 8.2 (Oleson, et al 2004)
+     &     ,75.d0               !Vmax25, CLM BET tropical 75, BDT tropical 40, Table 8.2 (Oleson, et al 2004). ED is only 12.5 umol m-2 s-1, Reich 25.
      &     ,9.d0               !m, CLM BET & BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,8.0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (16 mg-N/g-leaf)/(200 cm2/g-leaf)=8 g-N/m2-leaf
