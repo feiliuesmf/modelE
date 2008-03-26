@@ -1,3 +1,4 @@
+#include "hycom_mpi_hacks.h"
       subroutine reflux(uflxo,vflxo,sigold,pold,
      .                  uflxn,vflxn,signew,pnew,thetn,kold,knew)
 c
@@ -8,22 +9,24 @@ c
 c --- input  variables: uflxo,vflxo,sigold,pold,kold,thetn
 c --- output variables: uflxn,vflxn,signew,pnew,knew
 c
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS, only : acurcy
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH
       implicit none
 !!      include 'dimensions.h'
-!!    include 'dimension2.h'    ! TNL
+!!      include 'dimension2.h'      ! TNL
       integer i,j,k,l,ja
 !!      include 'common_blocks.h'
 c
       integer kold,knew,ko
 c
-      real uflxo(idm,jdm,kold),vflxo(idm,jdm,kold),
-     .     sigold(idm,jdm,kold),pold(idm,jdm,kold+1)
+c-------------------------------------------------------------
+      real uflxo(idm,J_0H:J_1H,kold),vflxo(idm,J_0H:J_1H,kold),
+     .     sigold(idm,J_0H:J_1H,kold),pold(idm,J_0H:J_1H,kold+1)
 c
-      real uflxn(idm,jdm,knew),vflxn(idm,jdm,knew),
-     .     signew(idm,jdm,knew),pnew(idm,jdm,knew+1),
+      real uflxn(idm,J_0H:J_1H,knew),vflxn(idm,J_0H:J_1H,knew),
+     .     signew(idm,J_0H:J_1H,knew),pnew(idm,J_0H:J_1H,knew+1),
      .     thetn(knew)
 c
       real cloutu(idm),cloutv(idm),cloutr(idm),
@@ -31,6 +34,7 @@ c
      .     uold(idm,kdm),vold(idm,kdm),oldsig(idm,kdm),
      .     pinteg,uinteg,vinteg,phi,plo,pa,pb,siga,sigb,q,
      .     plft,prgt,pblft,pbrgt,delp,uvscal
+
       logical abort
       data abort/.false./
       data uvscal/1.e5/                        !  velocity x mesh size  --  SI
@@ -38,8 +42,8 @@ ccc   data uvscal/1.e9/                        !  velocity x mesh size  --  cgs
 c
 c$OMP PARALLEL DO PRIVATE(ja,colinr,cloutr,pinteg,siga,sigb,phi,plo,
 c$OMP+ pa,pb,q,oldsig) SCHEDULE(STATIC,jchunk)
-      do 1 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 1 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 1 l=1,isp(j)
 c
@@ -124,12 +128,14 @@ cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' old density profile:',
 cdiag.   (sigold(itest,jtest,k),k=1,kold)
 cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' new density profile:',
 cdiag.   (signew(itest,jtest,k),k=1,knew)
+       CALL HALO_UPDATE(ogrid,pold, FROM=SOUTH)
+       CALL HALO_UPDATE(ogrid,pnew, FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,colinu,colinv,cloutu,cloutv,uinteg,vinteg,
 c$OMP+ siga,sigb,phi,plo,pa,pb,q,delp,uold,vold) SHARED(abort)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 21 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 21 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 24 k=1,kold
       do 24 i=1,ii

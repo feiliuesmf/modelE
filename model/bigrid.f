@@ -8,13 +8,12 @@ c
 c --- this version works for both cyclic and noncyclic domains.
 c --- land barrier at i=ii and/or j=jj signals closed-basin conditions
 c
-      !USE DOMAIN_DECOMP, only : halo_update
+      !USE DOMAIN_DECOMP, only : HALO_UPDATE
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp
       implicit none
-!!    include 'dimensions.h'
-!!    include 'dimension2.h'      ! TNL
-      integer i,j,k1n,ia,ib,ja,jb
+!!      include 'dimensions.h'
+      include 'dimension2.h'
 c
       real depth(idm,jdm)
       integer nfill,nzero,jsec,jfrst,jlast
@@ -71,19 +70,23 @@ c$OMP END PARALLEL DO
 c
 c --- u,v points are located halfway between any 2 adjoining mass points
 c$OMP PARALLEL DO PRIVATE(ia) SCHEDULE(STATIC,jchunk)
-      do 3 j=J_0,J_1 !1,jj
+      !do 3 j=J_0,J_1 !1,jj  mkb
+      do 3 j=J_0H,J_1H !1,jj
       do 3 i=1,ii
       ia=mod(i-2+ii,ii)+1
-      if (ip(ia,j).gt.0.and.ip(i,j).gt.0) iu(i,j)=1
+      ! if (ip(ia,j).gt.0.and.ip(i,j).gt.0) iu(i,j)=1 mkb
+      if (depth(ia,mod(j-1+jj,jj)+1).gt.0.and.
+     &    depth(i,mod(j-1+jj,jj)+1).gt.0) iu(i,j)=1
   3   continue
 c$OMP END PARALLEL DO
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
-      do 4 j=J_0,J_1 !1,jj
-      !ja=mod(j-2+jj,jj)+1
-      !ja = j-1
-      ja = PERIODIC_INDEX(j-1, jj)
+!     do 4 j=J_0,J_1 !1,jj   mkb
+      do 4 j=J_0H,J_1H !1,jj
+      ja=mod(j-2+jj,jj)+1
       do 4 i=1,ii
-      if (ip(i,ja).gt.0.and.ip(i,j).gt.0) iv(i,j)=1
+      !if (ip(i,ja).gt.0.and.ip(i,j).gt.0) iv(i,j)=1 mkb
+      if (depth(i,mod(ja-1+jj,jj)+1).gt.0.and.
+     &    depth(i,mod(j-1+jj,jj)+1).gt.0) iv(i,j)=1
   4   continue
 c$OMP END PARALLEL DO
 c
@@ -151,9 +154,8 @@ c
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
-!!    include 'dimensions.h'
-!!    include 'dimension2.h'    ! TNL
-      integer i,j,k,l
+!!      include 'dimensions.h'
+      include 'dimension2.h'
 c
       integer ipt(idm,J_0H:J_1H),if(J_0H:J_1H,ms),il(J_0H:J_1H,ms),
      &     is(J_0H:J_1H)
@@ -203,9 +205,8 @@ c
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
-!!    include 'dimensions.h'
-!!    include 'dimension2.h'  ! TNL
-      integer i,j,k,l
+!!      include 'dimensions.h'
+      include 'dimension2.h'
 c
       integer jpt_loc(idm,J_0H:J_1H),jf(idm,ms),jl(idm,ms),js(idm)
       integer jpt(idm,JDM)

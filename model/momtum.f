@@ -1,27 +1,34 @@
-!#include "hycom_mpi_hacks.h"
+#include "hycom_mpi_hacks.h"
       subroutine momtum(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9 -- cyclic and noncyclic b.c. combined
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH,NORTH,
+     &                          haveLatitude
       implicit none
 c
       include 'bering.h'
 !!      include 'dimensions.h'
-!!    include 'dimension2.h'  ! TNL
-      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ib,ja,jb
+      include 'dimension2.h'
 !!      include 'common_blocks.h'
 c
-      real stress(idm,jdm),stresx(idm,jdm),stresy(idm,jdm),
-     .     dpmxu(idm,jdm),dpmxv(idm,jdm),dpmx(idm,jdm),
-     .     visc(idm,jdm),vort(idm,jdm),oneta(idm,jdm),
-     .     wgtia(idm,jdm),wgtib(idm,jdm),wgtja(idm,jdm),wgtjb(idm,jdm),
+      real stress(idm,J_0H:J_1H),stresx(idm,J_0H:J_1H),
+     .     stresy(idm,J_0H:J_1H),dpmxu(idm,J_0H:J_1H),
+     .     dpmxv(idm,J_0H:J_1H),dpmx(idm,J_0H:J_1H),
+     .     visc(idm,J_0H:J_1H),vort(idm,J_0H:J_1H),
+     .     oneta(idm,J_0H:J_1H),wgtia(idm,J_0H:J_1H),
+     .     wgtib(idm,J_0H:J_1H),wgtja(idm,J_0H:J_1H),
+     .     wgtjb(idm,J_0H:J_1H),
      .     dpxy,dpia,dpib,dpja,dpjb,visca,viscb,ptopl,pbotl,cutoff,q,
      .     dt1inv,phi,plo,ubot,vbot,thkbop,thk,thka,thkb,avg,slab,
      .     olda,oldb,boost,pbot1,pbot2,p1,p2,botvel,drcoef
-      real dl2u(idm,jdm),dl2uja(idm,jdm),dl2ujb(idm,jdm),
-     .     dl2v(idm,jdm),dl2via(idm,jdm),dl2vib(idm,jdm)
+
+      real dl2u(idm,J_0H:J_1H),dl2uja(idm,J_0H:J_1H),
+     .     dl2ujb(idm,J_0H:J_1H),dl2v(idm,J_0H:J_1H),
+     .     dl2via(idm,J_0H:J_1H),dl2vib(idm,J_0H:J_1H)
+
       integer kan,jcyc
       character text*20
       real kappaf,hfharm
@@ -36,7 +43,7 @@ c --- hydrostatic equation
 c --- --------------------
 c
 c$OMP PARALLEL DO PRIVATE(km) SCHEDULE(STATIC,jchunk)
-      do 81 j=1,jj
+      do 81 j=J_0,J_1
       do 81 l=1,isp(j)
 c
       do 82 k=1,kk
@@ -78,7 +85,7 @@ cdiag end do
 cdiag end do
  103  format (i9,2i5,a/(i19,3f8.2,2f8.1,f8.3))
 c
-      call dpudpv(mm)
+      call pardpudpv(mm)
 c
 c +++ ++++++++++++++++++
 c +++ momentum equations
@@ -86,11 +93,14 @@ c +++ ++++++++++++++++++
 c
 c --- bottom drag (standard bulk formula)
 c
+      CALL HALO_UPDATE(ogrid,v,     FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,vbavg, FROM=NORTH)
+
       thkbop=thkbot*onem
 c$OMP PARALLEL DO PRIVATE(kn,jb,phi,plo,ubot,vbot,botvel)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 804 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 804 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 804 l=1,isp(j)
 c
       do 800 i=ifp(j,l),ilp(j,l)
@@ -115,11 +125,17 @@ c$OMP END PARALLEL DO
 c
 c --- store r.h.s. of barotropic u/v eqn. in -ubrhs,vbrhs-
 c --- time-interpolate wind stress
+
+      CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,pvtrop, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,ubavg,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,depthu, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,tauy  , FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
-      do 70 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 70 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
 c
       do 69 l=1,isu(j)
       do 69 i=ifu(j,l),ilu(j,l)
@@ -153,7 +169,7 @@ c
       cutoff=5.*onem
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 814 j=1,jj
+      do 814 j=J_0,J_1
       do 814 i=1,ii
       dpmxu(i,j)=0.
       dpmxv(i,j)=0.
@@ -174,7 +190,7 @@ c --- -utotn,vtotn- and -utotm,vtotm- respectively. store minimum thickness
 c --- values for use in pot.vort. calculation in -dpmx-.
 c
 c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 807 j=1,jj
+      do 807 j=J_0,J_1
       do 807 l=1,isu(j)
       do 807 i=ifu(j,l),ilu(j,l)
       dpmxu(i,j)=dp(i,j,km)+dp(i-1,j,km)
@@ -183,10 +199,12 @@ c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       uflux(i,j)=utotm(i,j)*max(dpu(i,j,km),cutoff)
  807  pu(i,j,k+1)=pu(i,j,k)+dpu(i,j,km)
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,dp  , FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 808 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 808 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 808 l=1,isv(j)
       do 808 i=ifv(j,l),ilv(j,l)
       dpmxv(i,j)=dp(i,j,km)+dp(i,ja ,km)
@@ -195,10 +213,12 @@ c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       vflux(i,j)=vtotm(i,j)*max(dpv(i,j,km),cutoff)
  808  pv(i,j,k+1)=pv(i,j,k)+dpv(i,j,km)
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,dpmxu  , FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ia,ja) SCHEDULE(STATIC,jchunk)
-      do 803 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 803 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 803 i=1,ii
       ia=max(1,i-1)
  803  dpmx(i,j)=max(2.*cutoff,dpmxu(i,j),dpmxu(i  ,ja ),
@@ -208,11 +228,15 @@ c
 c --- define auxiliary velocity fields (via,vib,uja,ujb) to implement
 c --- sidewall friction along near-vertical bottom slopes. wgtja,wgtjb,wgtia,
 c --- wgtib indicate the extent to which a sidewall is present.
+
+      CALL HALO_UPDATE(ogrid,depthu, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(ogrid,utotn,  FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(ogrid,vtotn,  FROM=NORTH+SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 806 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 806 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
 c
       do 805 l=1,isu(j)
       do 805 i=ifu(j,l),ilu(j,l)
@@ -243,11 +267,13 @@ c
      .    -.25*(vtotn(i,jb )+vtotn(i,ja )+via(i,j)+vib(i,j))
 c --- (to switch from biharmonic to laplacian friction, delete previous line)
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,dp, FROM=SOUTH)
 c
 c --- vorticity, pot.vort., defor. at lateral boundary points
 c$OMP PARALLEL DO PRIVATE(ja,i) SCHEDULE(STATIC,jchunk)
-      do 885 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 885 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 885 l=1,isv(j)
       i=ifv(j,l)
@@ -261,6 +287,13 @@ c
      ./max(8.*cutoff,4.*(dp(i,j,km)+dp(i,ja ,km)),dpmx(i,j),dpmx(i+1,j))
  885  defor2(i+1,j)=(vtotn(i,j)*(1.-slip)*scvy(i,j))**2*scq2i(i+1,j)
 c$OMP END PARALLEL DO
+   
+      CALL HALO_UPDATE(ogrid,dpmx,  FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp,    FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dpmx,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,utotn, FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ia,j,jb) SCHEDULE(STATIC,jchunk)
       do 886 i=1,ii1
@@ -270,25 +303,37 @@ c --- if i=1, i-1 must point to zero-filled row (same for i+1 in case i=ii1)
 c
       do 886 l=1,jsu(i)
       j=jfu(i,l)
-      jb=mod(j     ,jj)+1
-      vort(i,j  )=-utotm(i,j)*(1.-slip)*scux(i,j)*scq2i(i,j  )
-      potvor(i,j  )=(vort(i,j  )+corio(i,j  )) * 8.
-     ./max(8.*cutoff,4.*(dp(i,j,km)+dp(ia ,j,km)),dpmx(i,j),dpmx(i,jb ))
-      defor2(i,j  )=(utotn(i,j)*(1.-slip)*scux(i,j))**2*scq2i(i,j  )
+      if (haveLatitude(ogrid, J=j)) then
+        jb = PERIODIC_INDEX(j+1, jj)
+        !jb=mod(j     ,jj)+1
+        vort(i,j  )=-utotm(i,j)*(1.-slip)*scux(i,j)*scq2i(i,j  )
+        potvor(i,j  )=(vort(i,j  )+corio(i,j  )) * 8.
+     .  /max(8.*cutoff,4.*(dp(i,j,km)+dp(ia ,j,km)),dpmx(i,j),
+     .   dpmx(i,jb ))
+        defor2(i,j  )=(utotn(i,j)*(1.-slip)*scux(i,j))**2*scq2i(i,j  )
+      endif
       j=jlu(i,l)
       jb=mod(j     ,jj)+1
-      vort(i,jb )= utotm(i,j)*(1.-slip)*scux(i,j)*scq2i(i,jb )
-      potvor(i,jb )=(vort(i,jb )+corio(i,jb )) * 8.
-     ./max(8.*cutoff,4.*(dp(i,j,km)+dp(ia ,j,km)),dpmx(i,j),dpmx(i,jb ))
- 886  defor2(i,jb )=(utotn(i,j)*(1.-slip)*scux(i,j))**2*scq2i(i,jb )
+      if (haveLatitude(ogrid, J=jb)) then
+        j = PERIODIC_INDEX(jb-1, jj)
+        vort(i,jb )= utotm(i,j)*(1.-slip)*scux(i,j)*scq2i(i,jb )
+        potvor(i,jb )=(vort(i,jb )+corio(i,jb )) * 8.
+     .  /max(8.*cutoff,4.*(dp(i,j,km)+dp(ia ,j,km)),dpmx(i,j),
+     .   dpmx(i,jb ))
+        defor2(i,jb )=(utotn(i,j)*(1.-slip)*scux(i,j))**2*scq2i(i,jb )
+      endif
+ 886  continue
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,vtotn, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,scvx,  FROM=NORTH)
 c
 c --- vorticity, pot.vort., defor. at interior points (incl. promontories).
 c --- defor1 = du/dx-dv/dy at mass points, defor2 = dv/dx+du/dy at vort. points
 c
 c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
-      do 63 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 63 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 63 l=1,isp(j)
       do 63 i=ifp(j,l),ilp(j,l)
       util3(i,j)=.5*(p(i,j,k+1)+p(i,j,k))*oneta(i,j)
@@ -296,12 +341,18 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
      .            -(vtotn(i,jb )*scvx(i,jb )-vtotn(i,j)*scvx(i,j)))**2
      .            *scp2i(i,j)
 c$OMP END PARALLEL DO
+      
+      CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp,    FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dpmx,  FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,ujb,   FROM=SOUTH)
 c
 c --- vorticity, pot.vort., defor. at interior points (incl. promontories)
 c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
-      do 64 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 64 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
       do 64 l=1,isq(j)
       do 64 i=ifq(j,l),ilq(j,l)
       vort(i,j)=(vtotm(i,j)*scvy(i,j)-vtotm(i-1,j)*scvy(i-1,j)
@@ -315,14 +366,16 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
      .            +ujb(i,ja )*scux(i,j)-uja(i,j)*scux(i,ja ))**2
      .            *scq2i(i,j)
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,dl2u,  FROM=SOUTH+NORTH)
 c
 c --- define auxiliary del2 fields (dl2via,dl2vib,dl2uja,dl2ujb) to imple-
 c --- ment biharmonic sidewall friction along near-vertical bottom slopes.
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SCHEDULE(STATIC,jchunk)
-      do 906 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 906 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
 c
       do 905 l=1,isu(j)
       do 905 i=ifu(j,l),ilu(j,l)
@@ -357,10 +410,12 @@ c --- u equation
 c --- ----------
 c
 c --- deformation-dependent eddy viscosity coefficient
+
+      CALL HALO_UPDATE(ogrid,defor2, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
-      do 37 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 37 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 37 l=1,isu(j)
       do 37 i=ifu(j,l),ilu(j,l)
       visc(i,j)=max(veldff,viscos*
@@ -368,12 +423,18 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
      .   *boost(pbot(i,j),pbot(i-1,j),p(i,j,k),p(i-1,j,k))
  37   continue
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,dpu,  FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,visc, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,scqx, FROM=      NORTH)
+
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,dpxy,dpja,dpjb,visca,viscb)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 822 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 822 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
 c
       do 820 l=1,isu(j)
       visc(ifu(j,l)-1,j)=visc(ifu(j,l),j)
@@ -430,7 +491,7 @@ c --- pressure force in x direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 c
 c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 96 j=1,jj
+      do 96 j=J_0,J_1
       do 96 l=1,isu(j)
       do 96 i=ifu(j,l),ilu(j,l)
       util1(i,j)=max(0.,min(depthu(i,j)-pu(i,j,k),h1))
@@ -439,11 +500,14 @@ c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
      .      *(p(i,j,k+1)*p(i-1,j,k+1)-p(i,j,k)*p(i-1,j,k))*thref**2
      .      /(dp(i,j,km)+dp(i-1,j,km)+epsil))
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,pgfx,  FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,util1, FROM=SOUTH+NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
-      do 98 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 98 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
 c
       do 98 l=1,isu(j)
       do 98 i=ifu(j,l),ilu(j,l)
@@ -462,11 +526,15 @@ c
      .  (pgfx (i-1,j)+pgfx (i+1,j)+pgfx (i,ja)+pgfx (i,jb))/
      .  (util1(i-1,j)+util1(i+1,j)+util1(i,ja)+util1(i,jb)+epsil))/h1
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,vtotm,  FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,vflux,  FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,potvor, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb,ptopl,pbotl) SHARED(k)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 6 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 6 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 6 l=1,isu(j)
       do 6 i=ifu(j,l),ilu(j,l)
 c
@@ -496,8 +564,8 @@ c
 c$OMP END PARALLEL DO
 c
 c --- set baroclinic velocity to zero one point away from bering strait seam
-      u(ipacs,jpac,kn)=0.
-      u(iatln,jatl,kn)=0.
+      if (haveLatitude(ogrid, J=jpac)) u(ipacs,jpac,kn)=0.
+      if (haveLatitude(ogrid, J=jatl)) u(iatln,jatl,kn)=0.
 c
 cdiag write (lp,100) nstep
 cdiag do jcyc=jtest-1,jtest+1
@@ -527,10 +595,14 @@ c --- v equation
 c --- ----------
 c
 c --- deformation-dependent eddy viscosity coefficient
+
+      CALL HALO_UPDATE(ogrid,defor1  , FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,pbot  ,   FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,p  ,      FROM=SOUTH)  !mkb get it only for that k
 c
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
-      do 38 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 38 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 38 l=1,isv(j)
       do 38 i=ifv(j,l),ilv(j,l)
       visc(i,j)=max(veldff,viscos*
@@ -538,26 +610,40 @@ c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
      .   *boost(pbot(i,j),pbot(i,ja ),p(i,j,k),p(i,ja ,k))
  38   continue
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,visc, FROM=SOUTH+NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(j,ja,jb) SCHEDULE(STATIC,jchunk)
       do 821 i=1,ii1
       do 821 l=1,jsv(i)
       j=jfv(i,l)
       ja=mod(j-2+jj,jj)+1
-      if (j.ne.1  .or. jlv(i,jsv(i)).ne.jj) visc(i,ja)=visc(i,j)
+      if (haveLatitude(ogrid, J=ja)) then
+        if (j.ne.1  .or. jlv(i,jsv(i)).ne.jj) 
+     &     visc(i,ja)=visc( i,PERIODIC_INDEX(ja+1, jj) )
+      endif
       j=jlv(i,l)
       jb=mod(j     ,jj)+1
-      if (j.ne.jj .or. jfv(i,     1).ne.1 ) visc(i,jb)=visc(i,j)
+      if (haveLatitude(ogrid, J=jb)) then
+        if (j.ne.jj .or. jfv(i,     1).ne.1 )
+     &     visc(i,jb)=visc( i,PERIODIC_INDEX(jb-1, jj) )
+      endif
  821  continue
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,visc, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,dl2v, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,dpv,  FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH)
+
 c
 c --- longitudinal turb. momentum flux (at mass points)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib,dpxy,dpia,dpib,visca,viscb)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 823 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 823 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
 c
       do 825 l=1,isp(j)
       do 825 i=ifp(j,l),ilp(j,l)
@@ -611,10 +697,15 @@ c$OMP END PARALLEL DO
 c
 c --- pressure force in y direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
+
+      CALL HALO_UPDATE(ogrid,montg, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,thstar, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,p, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp, FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 97 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 97 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 97 l=1,isv(j)
       do 97 i=ifv(j,l),ilv(j,l)
       util2(i,j)=max(0.,min(depthv(i,j)-pv(i,j,k),h1))
@@ -623,11 +714,14 @@ c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
      .      *(p(i,j,k+1)*p(i,ja ,k+1)-p(i,j,k)*p(i,ja ,k))*thref**2
      .      /(dp(i,j,km)+dp(i,ja ,km)+epsil))
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,pgfy,  FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,util2, FROM=SOUTH+NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,ia,ib) SCHEDULE(STATIC,jchunk)
-      do 99 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 99 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
       do 99 l=1,isv(j)
       do 99 i=ifv(j,l),ilv(j,l)
 c
@@ -649,12 +743,19 @@ c
      .  (pgfy (ia ,j)+pgfy (ib ,j)+pgfy (i,ja )+pgfy (i,jb ))/
      .  (util2(ia ,j)+util2(ib ,j)+util2(i,ja )+util2(i,jb )+epsil))/h1
 c$OMP END PARALLEL DO
+
+      CALL HALO_UPDATE(ogrid,p,      FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,drag,   FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,utotm,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,uflux,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,vflux1, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,vtotm,  FROM=SOUTH+NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb,ptopl,pbotl) SHARED(k)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 7 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 7 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
       do 7 l=1,isv(j)
       do 7 i=ifv(j,l),ilv(j,l)
 c
@@ -711,7 +812,7 @@ c
       dt1inv = 1./delt1
 c
 c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
-      do j=1,jj
+      do j=J_0,J_1
         do 14 k=1,kk
         kn=k+nn
 c
@@ -731,7 +832,7 @@ c
       end do
 c$OMP END PARALLEL DO
 c
-      call dpudpv(nn)
+      call pardpudpv(nn)
 c
 c --- extract barotropic velocities generated during most recent baroclinic
 c --- time step and use them to force barotropic flow field.
@@ -739,7 +840,7 @@ c
       slab=onem*vertmx*delt1
 c$OMP PARALLEL DO PRIVATE(km,kn,kan,q,thk,thka,thkb,avg,olda,oldb)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do j=1,jj
+      do j=J_0,J_1
 c
       do 31 l=1,isu(j)
 c
@@ -825,7 +926,7 @@ c
       kn=k+nn
 c
 c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 22 j=1,jj
+      do 22 j=J_0,J_1
 c
       do 24 l=1,isu(j)
       do 24 i=ifu(j,l),ilu(j,l)
@@ -850,7 +951,7 @@ c$OMP END PARALLEL DO
       end do
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 867 j=1,jj
+      do 867 j=J_0,J_1
 c
       do 865 l=1,isu(j)
       do 865 i=ifu(j,l),ilu(j,l)
@@ -902,3 +1003,4 @@ c> Apr. 2001 - eliminated stmt_funcs.h
 c> Dec. 2001 - added 'glue' to lateral mixing operation
 c> Jan. 2004 - boosted viscosity near sea floor (loops 37,38)
 c> Mar. 2006 - added bering strait exchange logic
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

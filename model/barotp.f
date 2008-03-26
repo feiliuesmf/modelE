@@ -1,24 +1,28 @@
+#include "hycom_mpi_hacks.h"
       subroutine barotp(m,n,mm,nn,k1m,k1n)
 c
 c --- version 2.8.2
-      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp,iu,isu,ifu,ilu,iv,isv
+      USE HYCOM_DIM, only : jj,isp,ifp,ilp,iu,isu,ifu,ilu,iv,isv
      &     ,ifv,ilv,ii
      &     ,jchunk
       USE HYCOM_SCALARS, only : lstep,wbaro,dlt,slip,thref,veldff,nstep
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH
+      USE HYCOM_ARRAYS_GLOB, only : scatter_hycom_arrays,
+     &                              gather_hycom_arrays
+
       implicit none
 c
       include 'bering.h'
 !!      include 'dimensions.h'
-!!      include 'dimension2.h'   ! TNL 
-      integer i,j,l,m,n,mm,nn,k1m,k1n,ia,ib,ja,jb
+      include 'dimension2.h'
 !!      include 'common_blocks.h'
 c
       real q,utndcy,vtndcy,damp,uglue,vglue,
      .     u_ja,u_jb,v_ia,v_ib,dpu_ja,dpu_jb,dpv_ia,dpv_ib,hfharm
       external hfharm
       integer lll,ml,nl,mn,ll,kan,jcyc
-      logical vthenu,mxing
+      logical vthenu,mxing, doThis
       character text*20
       data damp/1.e-6/			!  newtonian damping
 c
@@ -26,6 +30,8 @@ c --- ------------------------------------------------------------------------
 c --- advance barotropic equations from baroclinic time level -m- to level -n-
 c --- ------------------------------------------------------------------------
 c
+!call scatter_hycom_arrays
+
       ml=n
       nl=3
 c
@@ -41,10 +47,13 @@ ccc      if (mod(4*lll,lstep).eq.0) mxing=.true.
 ccc      mxing=.true.				!  mix every time step
 c
 c --- continuity equation
+      CALL HALO_UPDATE(ogrid,scvx,   FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,vbavg,  FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
-      do 843 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 843 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 843 l=1,isp(j)
       do 843 i=ifp(j,l),ilp(j,l)
  843  pbavg(i,j,nl)=(1.-wbaro)*pbavg(i,j,ml)+wbaro*pbavg(i,j,nl)
@@ -63,11 +72,17 @@ c
  900  continue
 c
       if (mxing) then
+
+      CALL HALO_UPDATE(ogrid,depthu, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,ubavg,  FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,scuy,   FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,scq2,   FROM=SOUTH+NORTH)   !only NORTH
+
 c$OMP PARALLEL DO PRIVATE(ja,jb,u_ja,u_jb,dpu_ja,dpu_jb)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 822 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 822 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
 c
       do 824 l=1,isp(j)
       do 824 i=ifp(j,l),ilp(j,l)
@@ -101,14 +116,18 @@ c --- lateral turb. momentum flux (at vorticity points)
  822  continue
 c$OMP END PARALLEL DO
 c
-      call cpy_p(uflux1)
+      call cpy_p_par(uflux1(I_0H,J_0H))
       end if				!  mxing = .true.
 c
-      call cpy_p(pbavg(1,1,nl))
+      call cpy_p_par(pbavg(I_0H,J_0H,nl))
+
+      CALL HALO_UPDATE(ogrid,vbavg,  FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,pvtrop, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue) SCHEDULE(STATIC,jchunk)
-      do 841 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 841 j=J_0,J_1
+      jb= PERIODIC_INDEX(j+1, jj)
       do 841 l=1,isu(j)
       do 841 i=ifu(j,l),ilu(j,l)
       utndcy=-thref*(pbavg(i,j,nl)-pbavg(i-1,j,nl))*scuxi(i,j)
@@ -124,10 +143,14 @@ c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue) SCHEDULE(STATIC,jchunk)
      . +(1.+wbaro)*dlt*(utndcy+utotn(i,j)-util1(i,j))
 c$OMP END PARALLEL DO
 c
+      doThis=.false.
+      if(doThis) then
+      !mkb: obtain these on root and do this only on root
       if (abs(ubavg(ipacs,jpac,nl)+ubavg(iatln,jatl,nl)).gt.
      .    abs(ubavg(ipacs,jpac,nl)-ubavg(iatln,jatl,nl))*1.e-12)
      .  write(*,'(2i4,a,1p,2e15.7)') nstep,lll,' barotp WRONG ubavg_nl '
      .  ,ubavg(ipacs,jpac,nl),ubavg(iatln,jatl,nl)
+      endif  ! doThis
 c
 cdiag write (lp,100) nstep
 cdiag do jcyc=jtest,jtest+1
@@ -154,11 +177,16 @@ c
  901  continue
 c
       if (mxing) then
+
+      CALL HALO_UPDATE(ogrid,vbavg,  FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,scvy,   FROM=NORTH)
+
 c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,v_ia,v_ib,dpv_ia,dpv_ib)
 c$OMP+ SCHEDULE(STATIC,jchunk) 
-      do 823 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
+      do 823 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb= PERIODIC_INDEX(j+1, jj)
 c
       do 825 l=1,isp(j)
       do 825 i=ifp(j,l),ilp(j,l)
@@ -194,10 +222,16 @@ c --- lateral turb. momentum flux (at vorticity points)
  823  continue
 c$OMP END PARALLEL DO
       end if				!  mxing = .true.
+
+      CALL HALO_UPDATE(ogrid,pbavg,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,ubavg,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,depthu, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,glue,   FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,vflux1, FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue) SCHEDULE(STATIC,jchunk)
-      do 842 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 842 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
       do 842 l=1,isv(j)
       do 842 i=ifv(j,l),ilv(j,l)
       vtndcy=-thref*(pbavg(i,j,nl)-pbavg(i,ja ,nl))*scvyi(i,j)
@@ -244,6 +278,8 @@ c
 c
  840  continue
 c
+!call gather_hycom_arrays
+
       return
       end
 c

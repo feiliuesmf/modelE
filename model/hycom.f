@@ -121,8 +121,7 @@ c
       implicit none
 c
 !!#include "dimensions.h"
-!!#include "dimension2.h" ! TNL
-      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb
+#include "dimension2.h"
 !!#include "common_blocks.h"
 !!#include "cpl.h"
 !!! afogcm,nsavea should be initialized properly !
@@ -754,7 +753,11 @@ c
       before = after
       endif ! AM_I_ROOT
 
+      call scatter_hycom_arrays
+   
       call tsadvc(m,n,mm,nn,k1m,k1n)
+
+      call gather_hycom_arrays
 
       if (AM_I_ROOT()) then
       call system_clock(after)
@@ -770,7 +773,13 @@ ccc      write (string,'(a12,i8)') 'tsadvc, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+      endif ! AM_I_ROOT
+
+      call scatter_hycom_arrays
       call momtum(m,n,mm,nn,k1m,k1n)
+      call gather_hycom_arrays
+
+      if (AM_I_ROOT()) then
       call system_clock(after)
       momtum_time = real(after-before)/real(rate)
 c
@@ -778,7 +787,13 @@ ccc      write (string,'(a12,i8)') 'momtum, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+      endif ! AM_I_ROOT
+
+      call scatter_hycom_arrays
       call barotp(m,n,mm,nn,k1m,k1n)
+      call gather_hycom_arrays
+
+      if (AM_I_ROOT()) then
       call system_clock(after)
       barotp_time = real(after-before)/real(rate)
 c
