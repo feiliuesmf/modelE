@@ -24,20 +24,21 @@ C
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm,n_N2O,
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
-     &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem
+     &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem,mass2vol,
+     &                   vol2mass
 #ifdef regional_Ox_tracers
      &         ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s,regOx_e,regOx_w
 #endif
 #ifdef TRACERS_HETCHEM
      &                  ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
-      USE TRCHEM_Shindell_COM, only: chemrate,photrate,mass2vol,
+      USE TRCHEM_Shindell_COM, only: chemrate,photrate,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nr,nn,dt2,nss,ks,dest,prod,
      &                   ny,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
-     &                   prnchg,y,bymass2vol,kss,nps,kps,nds,kds,
+     &                   prnchg,y,kss,nps,kps,nds,kds,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop
 #ifdef SHINDELL_STRAT_CHEM
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
@@ -817,7 +818,7 @@ c Loops to calculate tracer changes:
 
       do igas=1,nlast ! TRACER LOOP -----------------
       
-       dxbym2v=dxyp(J)/mass2vol(igas)
+       dxbym2v=dxyp(J)*vol2mass(igas)
        do L=1,maxl
          conc2mass=rMAbyM(L)*dxbym2v
          changeL(L,igas)=
@@ -833,9 +834,9 @@ c Loops to calculate tracer changes:
          
 #ifdef regional_Ox_tracers    
          if(igas == n_Ox)then
-           Oxloss(L)=dest(igas,L)*dxyp(J)*AM(L,I,J)*bymass2vol(igas)
+           Oxloss(L)=dest(igas,L)*dxyp(J)*AM(L,I,J)*vol2mass(igas)
      &     /y(nM,L)
-           Oxprod(L)=prod(igas,L)*dxyp(J)*AM(L,I,J)*bymass2vol(igas)
+           Oxprod(L)=prod(igas,L)*dxyp(J)*AM(L,I,J)*vol2mass(igas)
      &     /y(nM,L)
            TAJLS(J,L,jls_Oxprod)=TAJLS(J,L,jls_Oxprod)+prod(igas,L)
            TAJLS(J,L,jls_Oxloss)=TAJLS(J,L,jls_Oxloss)+dest(igas,L)
@@ -1065,7 +1066,7 @@ c Conserve ClOx with respect to HOCl:
 #ifdef SHINDELL_STRAT_CHEM
 c Separate N2O change for N cons, leave out N2O->N2+O fromm cons:
       sv_changeN2O(1:maxl)=
-     &-chemrate(87,1:maxl)*dxyp(J)*rMAbyM(1:maxl)/mass2vol(n_N2O)
+     &-chemrate(87,1:maxl)*dxyp(J)*rMAbyM(1:maxl)*vol2mass(n_N2O)
 #endif
 
 c Ensure nitrogen conservation,
@@ -1122,7 +1123,7 @@ c First check for nitrogen loss > 100% :
 #endif
 #ifdef TRACERS_HETCHEM
         changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(i,j,l,1,1)
-     &  *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+     &  *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
         if(i == iprn .and. j == jprn) then
           write(out_line,*)
      &    changeL(L,n_HNO3),krate(i,j,l,1,1),y(n_HNO3,l)
@@ -1196,12 +1197,12 @@ c          reduce N destruction to match NOx prodcution:
            if(changeL(L,n_ClONO2) < 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioD
            changeL(L,n_ClOx)=changeL(L,n_ClOx)+vClONO2*
-     &     (mass2vol(n_ClONO2)/mass2vol(n_ClOx)) !ensure Cl cons
+     &     (mass2vol(n_ClONO2)*vol2mass(n_ClOx)) !ensure Cl cons
            vBrONO2=changeL(L,n_BrONO2)*(1.d0-ratioD)
            if(changeL(L,n_BrONO2) < 0.d0)changeL(L,n_BrONO2)=
      &     changeL(L,n_BrONO2)*ratioD
            changeL(L,n_BrOx)=changeL(L,n_BrOx)+vBrONO2*
-     &     (mass2vol(n_BrONO2)/mass2vol(n_BrOx)) !ensure Br cons
+     &     (mass2vol(n_BrONO2)*vol2mass(n_BrOx)) !ensure Br cons
 #endif
           endif
 
@@ -1210,7 +1211,7 @@ c          reduce NOx production to match N loss:
            changeL(L,n_NOx)=changeL(L,n_NOx)*ratio
 #ifdef SHINDELL_STRAT_CHEM
            changeL(L,n_NOx)=changeL(L,n_NOx)-
-     &     2.d0*sv_changeN2O(L)*mass2vol(n_N2O)/mass2vol(n_NOx)
+     &     2.d0*sv_changeN2O(L)*mass2vol(n_N2O)*vol2mass(n_NOx)
 #endif
           endif
          else       ! NOx destroyed (net change is negative):
@@ -1255,12 +1256,12 @@ c          reduce N production to match NOx loss:
            if(changeL(L,n_ClONO2) > 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioP
            changeL(L,n_ClOx)=changeL(L,n_ClOx)+vClONO2*
-     &     (mass2vol(n_ClONO2)/mass2vol(n_ClOx)) !ensure Cl cons
+     &     (mass2vol(n_ClONO2)*vol2mass(n_ClOx)) !ensure Cl cons
            vBrONO2=changeL(L,n_BrONO2)*(1.d0-ratioP)
            if(changeL(L,n_BrONO2) > 0.d0)changeL(L,n_BrONO2)=
      &     changeL(L,n_BrONO2)*ratioP
            changeL(L,n_BrOx)=changeL(L,n_BrOx)+vBrONO2*
-     &     (mass2vol(n_BrONO2)/mass2vol(n_BrOx)) !ensure Br cons
+     &     (mass2vol(n_BrONO2)*vol2mass(n_BrOx)) !ensure Br cons
 #endif
           endif
           if (ratio <= 1.d0 .and. ratio > 0.d0)then
@@ -1268,19 +1269,19 @@ c          reduce NOx destruction to match N production:
            changeL(L,n_NOx)=changeL(L,n_NOx)*ratio
 #ifdef SHINDELL_STRAT_CHEM
            changeL(L,n_NOx)=changeL(L,n_NOx)-
-     &     2.d0*sv_changeN2O(L)*mass2vol(n_N2O)/mass2vol(n_NOx)
+     &     2.d0*sv_changeN2O(L)*mass2vol(n_N2O)*vol2mass(n_NOx)
 #endif
           endif
          endif
 #ifdef TRACERS_HETCHEM
          changeL(L,n_HNO3)=changeL(L,n_HNO3)-(krate(i,j,l,1,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
          changeL(L,n_N_d1)=changeL(L,n_N_d1)+(krate(i,j,l,2,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
          changeL(L,n_N_d2)=changeL(L,n_N_d2)+(krate(i,j,l,3,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
          changeL(L,n_N_d3)=changeL(L,n_N_d3)+(krate(i,j,l,4,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)/mass2vol(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
 #endif
 
         end if ! skipped section above if ratio very close to one
@@ -1303,8 +1304,8 @@ c         rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
           NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
           NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
           changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
-     &    *(dxyp(J)*rMAbyM(L))/(mass2vol(n_NOx))
-          conc2mass=dxyp(J)*rMAbyM(L)/mass2vol(n_Ox)
+     &    *(dxyp(J)*rMAbyM(L))*vol2mass(n_NOx)
+          conc2mass=dxyp(J)*rMAbyM(L)*vol2mass(n_Ox)
           changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
           if(NprodOx <  0.) then ! necessary?
             TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+NprodOx*conc2mass
@@ -1327,7 +1328,7 @@ c back to the gas phase:
         IF(PRES(L)<245.d0 .and. PRES(L)>=31.6d0 .and.
      &  (J<=JSS+1 .or. J>=JNN+1) .and. ta(L)<=T_thresh)
      &  changeL(L,n_HNO3)=changeL(L,n_HNO3)-
-     &  2.0d-3*y(n_HNO3,L)*(dxyp(J)*rMAbyM(L))/(mass2vol(n_HNO3))
+     &  2.0d-3*y(n_HNO3,L)*(dxyp(J)*rMAbyM(L))*vol2mass(n_HNO3)
       enddo
 #endif
 
