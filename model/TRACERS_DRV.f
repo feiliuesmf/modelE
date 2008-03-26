@@ -8210,7 +8210,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf
       USE resolution,ONLY : Im,Jm,Lm,Ls1
-      USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear
+      USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear,
+     & PMIDL00
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
@@ -9652,6 +9653,7 @@ c      if (COUPLED_CHEM.ne.1) call get_O3_offline
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C**** at the start of any day
+
       call tracer_IC
 
       return
