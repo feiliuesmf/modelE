@@ -32,6 +32,7 @@ $nproc=1;
 $flag_wait=0;
 $MPIDISTR="";
 $debugger="";
+$QSUB_STRING="";
 
 ## if $HOME/.modelErc is present get settings from there
 
@@ -53,6 +54,7 @@ if ( -f $modelerc ) {
 	$MAILTO = $1 if /^ *MAILTO *= *(\S+)/;
 	$UMASK = oct "$1" if /^ *UMASK *= *(\S+)/;
 	$NETCDFHOME = $1 if /^ *NETCDFHOME *= *(\S+)/;
+	$QSUB_STRING = $1 if /^ *QSUB_STRING *= *([^ ^#][^#]*).*\n/;
     }
     close MODELERC;
 } else {
@@ -66,6 +68,7 @@ print "GCMSEARCHPATH = $GCMSEARCHPATH\n";
 print "SAVEDISK = $SAVEDISK\n";
 print "MAILTO = $MAILTO\n";
 printf "UMASK = %03lo\n", $UMASK;
+print "QSUB_STRING = $QSUB_STRING\n";
 
 while ($_ = $ARGV[0], /^-/) {
     shift;
@@ -326,8 +329,10 @@ if ( ! defined $pid ) {
 
 if ( $mpi ) {
     $run_command = $mpi_run;
+    $qsub_command = $QSUB_STRING;
 } else {
     $run_command = $omp_run; # serial also fits here
+    $qsub_command = "";
 }
 
 ## a hack to run setup in debugger
@@ -357,7 +362,11 @@ print <<`EOC`;
     if [ -s nctemp ] ; then $NETCDFBIN/ncgen -b -o nctemp.nc nctemp ; fi
     ./"$runID"ln
     NP=$nproc
-    $run_command ./"$runID".exe -i I >> ${runID}.PRT
+    echo "#!/bin/sh" > setup_command
+    echo cd `pwd` >> setup_command
+    echo "$run_command ./"$runID".exe -i I >> ${runID}.PRT" >> setup_command
+    chmod 755 setup_command
+    $qsub_command ./setup_command
     rc=`head -1 run_status`
     rm -f AIC GIC OIC
     ./"$runID"uln
