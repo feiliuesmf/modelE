@@ -240,11 +240,6 @@ c
       if (recovr) then
         vlume=0.
         clip=0.
-c$OMP PARALLEL DO REDUCTION(+:vlume,clip) SCHEDULE(STATIC,jchunk)
-!       do 19 j=J_0,J_1
-!       vlume=vlume+vlumj(j)
-!19     clip=clip+clipj(j)
-c$OMP END PARALLEL DO
 c
         call GLOBALSUM(ogrid,vlumj,vlume, all=.true.)
         call GLOBALSUM(ogrid,clipj,clip,  all=.true.)
