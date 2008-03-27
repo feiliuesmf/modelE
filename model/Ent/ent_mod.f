@@ -23,7 +23,7 @@
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
-      public ent_fast_processes,ent_seasonal_update,ent_vegcover_update
+      public ent_fast_processes,ent_run,ent_vegcover_update
       public ent_cell_set !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
@@ -94,10 +94,10 @@ cddd      end interface ent_cell_update
         module procedure ent_fast_processes_array_2d
       end interface
 
-      interface ent_seasonal_update
-        module procedure ent_seasonal_update_single
-        module procedure ent_seasonal_update_array_1d
-        module procedure ent_seasonal_update_array_2d
+      interface ent_run
+        module procedure ent_run_single
+        module procedure ent_run_array_1d
+        module procedure ent_run_array_2d
       end interface
 
       interface ent_vegcover_update
@@ -277,7 +277,7 @@ cddd      end interface ent_cell_update
 
 !*************************************************************************
 
-      subroutine ent_seasonal_update_single(entcell,
+      subroutine ent_run_single(entcell,
      &     dt,
 ! insert any needed input parameters here
      &     time) !KIM - for phenology:
@@ -307,10 +307,10 @@ cddd      end interface ent_cell_update
 !      call ent_integrate_GISS(entcell%entcell,dt)
 !#endif
 
-      end subroutine ent_seasonal_update_single
+      end subroutine ent_run_single
 
 
-      subroutine ent_seasonal_update_array_1d(entcell, dt,time)
+      subroutine ent_run_array_1d(entcell, dt,time)
       type(entcelltype_public), intent(inout) :: entcell(:)
       real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
@@ -319,13 +319,13 @@ cddd      end interface ent_cell_update
 
       nc = size(entcell)
       do n=1,nc
-        call ent_seasonal_update_single( entcell(n), dt, time)
+        call ent_run_single( entcell(n), dt, time)
       enddo
 
-      end subroutine ent_seasonal_update_array_1d
+      end subroutine ent_run_array_1d
 
 
-      subroutine ent_seasonal_update_array_2d(entcell,dt,time)
+      subroutine ent_run_array_2d(entcell,dt,time)
       type(entcelltype_public), intent(inout) :: entcell(:,:)
       real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
@@ -338,11 +338,11 @@ cddd      end interface ent_cell_update
 
       do j=1,jc
         do i=1,ic
-          call ent_seasonal_update_single( entcell(i,j), dt, time ) 
+          call ent_run_single( entcell(i,j), dt, time ) 
         enddo
       enddo
 
-      end subroutine ent_seasonal_update_array_2d
+      end subroutine ent_run_array_2d
 
 !*************************************************************************
 
