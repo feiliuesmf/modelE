@@ -2017,8 +2017,9 @@ c**** in this case also set canopy water and water tracers to 0
 
 #ifdef USE_ENT
             !!! probably will not work
-            call ent_get_exports( entcells(i,j),
-     &           canopy_heat_capacity=ht_cap_can )
+         call stop_model("reset_canopy_ic not implemented for Ent",255)
+!            call ent_get_exports( entcells(i,j),
+!     &           canopy_heat_capacity=ht_cap_can )
 #else
             aa=ala(1,i,j)
             ht_cap_can=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
