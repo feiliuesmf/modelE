@@ -54,7 +54,7 @@ if ( -f $modelerc ) {
 	$MAILTO = $1 if /^ *MAILTO *= *(\S+)/;
 	$UMASK = oct "$1" if /^ *UMASK *= *(\S+)/;
 	$NETCDFHOME = $1 if /^ *NETCDFHOME *= *(\S+)/;
-	$QSUB_STRING = $1 if /^ *QSUB_STRING *= *([^ ^#][^#]*).*\n/;
+	$QSUB_STRING = $1 if /^ *QSUB_STRING *= *\"?([^ ^#][^#^"]*).*\n/;
     }
     close MODELERC;
 } else {
