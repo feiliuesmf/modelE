@@ -119,7 +119,7 @@
         do p=1,N_PFT
           do n=1,N_CASA_LAYERS 
             do nn=NLIVE+1,NPOOLS
-              Tpool_ini(p,CARBON,nn,n,I0:I1,J0:J1) =
+              Tpool_ini(p,CARBON,nn-NLIVE,n,I0:I1,J0:J1) =
      &             Cpool_fracs(p,nn-NLIVE,n)
      &             * soilC_data(n,I0:I1,J0:J1)*1d3  
             end do
