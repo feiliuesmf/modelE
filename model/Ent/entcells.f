@@ -434,7 +434,9 @@
          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
-          call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)  !added pft here -PK 1/23/08
+          !! seems like assign_patch is needed only for vegetated patches
+          !! - moving it below ( popdens(ncov) > EPS )
+          !!call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)  !added pft here -PK 1/23/08
           !## Supply also geometry, clumping index
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(ncov) > EPS ) then 
@@ -443,6 +445,7 @@
               call patch_print(6,pp,"ERROR ")
               call stop_model("init_simple_entcell: wrong pft",255)
             endif
+            call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
      &           nmdata(ncov),laidata(ncov),
      &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,0.d0,
