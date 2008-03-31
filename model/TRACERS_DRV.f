@@ -4144,6 +4144,38 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef BC_ALB
+c BC impact on grain size
+c         k = k + 1
+c         ijts_alb(2,n) = k
+c         ijts_index(k) = n
+c         ia_ijts(k) = ia_rad
+c         lname_ijts(k) = 'BC impact on grain size'
+c         sname_ijts(k) = 'grain_BC'
+c         ijts_power(k) = -9.
+c         units_ijts(k) = unit_string(ijts_power(k),' ')
+c         scale_ijts(k) = 10.**(-ijts_power(k))
+c BC impact on albedo 
+          k = k + 1
+          ijts_alb(1,n) = k
+          ijts_index(k) = n
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'BC impact on albedo (%)'
+          sname_ijts(k) = 'alb_BC'
+          ijts_power(k) = -12.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c SW forcing from albedo change
+        k = k + 1
+        ijts_alb(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BCalb SW radiative forcing'
+        sname_ijts(k) = 'swf_BCALB'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
         IF (diag_rad /= 1) THEN
 c BCI optical thickness
@@ -6672,6 +6704,19 @@ c**** additional wet deposition diagnostics
 
 C**** Additional Special IJ diagnostics
 C**** (not necessary associated with a particular tracer)
+#ifdef TRACERS_AEROSOLS_Koch
+        IF (diag_rad.eq.1) THEN
+          k = k + 1
+          ijs_ai = k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = 'Aerosol Index'
+          sname_ijts(k) = 'ain_CSN'
+          ijts_power(k) = -2.
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+         ENDIF
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       k = k+1
         ijs_flash=k
@@ -9078,10 +9123,9 @@ C**** Initialise pbl profile if necessary
       end if
       end do
 #endif
-
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+#if (defined TRACERS_WATER) && (defined TRACERS_OCEAN)
 C**** Initialise ocean tracers if necessary
-c      call tracer_bc_ocean ! ANL :: 12/07
+      call tracer_bc_ocean ! ANL :: 12/07
 #endif
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -9159,7 +9203,7 @@ C    Initialize:
 #endif
 C Put aircraft for so2 and BC
       if (imPI.eq.0) then
-      if (imAER.ne.1) then
+      if (imAER.ne.1.and.imAER.ne.3) then
       if ( AM_I_ROOT() ) then
 C    Initialize:
           so2_src_3d(:,:,:,2)= 0.d0
@@ -9185,7 +9229,8 @@ c 4.d0d-4 converts to kg S
 c (for BC multiply this by 0.1)
       so2_src_3d(:,j_0:j_1,:,2)=craft(:,j_0:j_1,:)*4.0d-4
      *  *tr_mm(n_SO2)/32.d0/2.3d0/sday
-      bci_src_3D(:,j_0:j_1,:)=so2_src_3D(:,j_0:j_1,:,2)*0.1d0
+      bci_src_3D(:,j_0:j_1,:)=so2_src_3D(:,j_0:j_1,:,2)*0.1d0/2.d0
+c divide by 2 because BC = 0.1 x S, not SO2
       endif
       endif
 c volcano - continuous
@@ -9330,7 +9375,9 @@ c convert from year to second
        ccnv=1.d0/(sday*365.d0)
        OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*ccnv
 c convert sectoral OC emissions to OM
-       if (imAER.eq.2) OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*1.3d0
+c  for all Bond emissions
+       if (imAER.eq.2.or.imAER.eq.0) 
+     *  OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*1.3d0
        BCI_src(:,j_0:j_1)=BCI_src(:,j_0:j_1)*ccnv
       endif  !imAER=0,1,2
       endif  !imPI
@@ -9413,7 +9460,8 @@ c 1.3 converts OC to OM
        OCI_src(:,j_0:j_1,1:4)=OCI_src5(:,j_0:j_1,1:4)
      * *1.3d0/(sday*365.d0)
 #endif
-
+       endif  ! OC or BC tracers exist !----
+      if (imAER.ne.3) then  !else read in daily
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
 c read in NH3 emissions
 c Industrial
@@ -9439,6 +9487,7 @@ c Industrial
       end do
       call closeunit(iuc)
 #endif
+      endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c **** reads in files for dust/mineral tracers
@@ -9627,10 +9676,13 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('SO2')
         call read_hist_SO2(iact)
+        call get_aircraft_SO2   ! this does SO2 and BCIA
         case ('BCII')  !this does BC and OC
         call read_hist_BCOC(iact)
 c       case ('BCB')  ! this does BCB and OCB
 c       call get_hist_BM(iact)
+        case ('NH3')
+        call read_hist_NH3(iact)
         end select
         end do
         endif
@@ -10261,8 +10313,10 @@ c     endif
 c End Laki code
       tr3Dsource(:,J_0:J_1,:,1,n) = so2_src_3d(:,J_0:J_1,:,1)*0.975d0
       call apply_tracer_3Dsource(1,n) ! volcanos
-      tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,2)
-      if (imAER.eq.0.or.imAER.eq.2) call apply_tracer_3Dsource(2,n) ! aircraft
+      if (imAER.ne.3)
+     *tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,2)
+      if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3) 
+     * call apply_tracer_3Dsource(2,n) ! aircraft
 #ifndef EDGAR_1995
       tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=so2t_src(:,J_0:J_1,1:lmAER)
      *     *0.975d0
@@ -10313,8 +10367,10 @@ c      enddo ; enddo
 
        case ('BCIA')
 C**** aircraft source for fresh industrial BC
-      tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
-      call apply_tracer_3Dsource(2,n) ! aircraft
+      if (imAER.ne.3) tr3Dsource(:,J_0:J_1,:,2,n) 
+     *   = BCI_src_3d(:,J_0:J_1,:)
+      if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3) 
+     *  call apply_tracer_3Dsource(2,n) ! aircraft
 
        case ('BCB')
 C**** biomass source for BC
@@ -10711,6 +10767,7 @@ c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
             endif
             if (FCLOUD.LT.1.D-16) fq=0.d0
             if (FCLOUD.LT.1.D-16) thlaw=0.d0
+            if (fq0.eq.0.) fq=0.d0
 #ifdef TRACERS_SPECIAL_Shindell
             if(t_qlimit(NTIX(N)).and.fq.gt.1.)fq=1.!no negative tracers
 #endif

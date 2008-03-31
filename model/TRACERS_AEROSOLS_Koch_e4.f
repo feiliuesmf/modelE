@@ -7,7 +7,14 @@
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
 !@param lmAER maximum height for AEROCOM emissions (RESOLUTION DEPENDENT?)
-      INTEGER, PARAMETER :: lmAER = 7    
+      INTEGER, PARAMETER :: lmAER = 7   
+!@param Laircr the number of layers of aircraft data read from file
+
+      INTEGER, PARAMETER ::
+     &                      Laircrs      =19
+!@param aircrafts_Tyr1, aircrafts_Tyr2 the starting and ending years
+!@+     for transient SO2 aircraft emissions (= means non transient)
+      integer :: aircrafts_Tyr1=0,aircrafts_Tyr2=0      
 !@var DMSinput           DMS ocean source (kg/s/m2)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMSinput ! DMSinput(im,jm,12)
 c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
@@ -74,6 +81,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !var NH3_src_con Ammonium sources
       REAL*8, ALLOCATABLE, DIMENSION(:,:)       ::
      & NH3_src_con, NH3_src_cyc
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hnh3_con,hnh3_cyc
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
 
@@ -106,6 +114,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * ,snosiz
      * ,craft,so2t_src, off_HNO3,off_SS
      * ,NH3_src_con, NH3_src_cyc
+     * ,hnh3_con,hnh3_cyc
 #ifdef TRACERS_RADON
      * ,rn_src
 #endif
@@ -160,6 +169,8 @@ c Nitrate aerosols
 ! I,J
       allocate(  NH3_src_con(IM,J_0H:J_1H) )
       allocate(  NH3_src_cyc(IM,J_0H:J_1H) )
+      allocate( hnh3_cyc(IM,J_0H:J_1H,2), STAT=IER )
+      allocate( hnh3_con(IM,J_0H:J_1H,2), STAT=IER )
 c off line 
       allocate(  off_HNO3(IM,J_0H:J_1H,LM)     )
       allocate(  off_SS(IM,J_0H:J_1H,LM)     )
@@ -676,8 +687,8 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
        BCBt_src(:,:)=BCB_src(:,:,1,jmon)
        OCBt_src(:,:)=OCB_src(:,:,1,jmon)
        SO2t_src(:,:,:)=SO2_biosrc_3D(:,:,:,jmon)
-       if (ihyr.le.1990.and.imAER.eq.3) then
-       tfac=0.5d0*(1.d0+real(ihyr-1875)/115.d0)
+       if (ihyr.le.2000.and.imAER.eq.3) then
+       tfac=0.5d0*(1.d0+real(ihyr-1875)/125.d0)
        do j=MAX(j_0,15),MIN(j_1,29)
        BCBt_src(:,j)=BCB_src(:,j,1,jmon)*tfac
        OCBt_src(:,j)=OCB_src(:,j,1,jmon)*tfac
@@ -699,7 +710,7 @@ c historic BC emissions
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,8) :: 
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,16) :: 
      * hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm
       save jb1,jb2
@@ -722,48 +733,87 @@ c   then open new files
       hoc(:,:,:)=0.0
       hoc_all(:,:,:)=0.0
       hbc_all(:,:,:)=0.0
-      if (ihyr.ge.1875.and.ihyr.lt.1900) then
-      jb1=1875
-      jb2=1900
+      if (ihyr.ge.1850.and.ihyr.lt.1860) then
+      jb1=1850
+      jb2=1860
       irr=1
-      else if (ihyr.ge.1900.and.ihyr.lt.1925) then
-      jb1=1900
-      jb2=1925
+      else if (ihyr.ge.1860.and.ihyr.lt.1870) then
+      jb1=1860
+      jb2=1870
       irr=2
-      else if (ihyr.ge.1925.and.ihyr.lt.1950) then
-      jb1=1925
-      jb2=1950
+      else if (ihyr.ge.1870.and.ihyr.lt.1880) then
+      jb1=1870
+      jb2=1880
       irr=3
-      else if (ihyr.ge.1950.and.ihyr.lt.1960) then
+      else if (ihyr.ge.1880.and.ihyr.lt.1890) then
+      jb1=1880
+      jb2=1890
+      irr=4
+      else if (ihyr.ge.1890.and.ihyr.lt.1900) then
+      jb1=1890
+      jb2=1900
+      irr=5
+      else if (ihyr.ge.1900.and.ihyr.lt.1910) then
+      jb1=1900
+      jb2=1910
+      irr=6
+      else if (ihyr.ge.1910.and.ihyr.le.1920) then
+      jb1=1910
+      jb2=1920
+      irr=7
+      else if (ihyr.ge.1920.and.ihyr.le.1930) then
+      jb1=1920
+      jb2=1930
+      irr=8
+      else if (ihyr.ge.1930.and.ihyr.le.1940) then
+      jb1=1930
+      jb2=1940
+      irr=9
+      else if (ihyr.ge.1940.and.ihyr.le.1950) then
+      jb1=1940
+      jb2=1950
+      irr=10
+      else if (ihyr.ge.1950.and.ihyr.le.1960) then
       jb1=1950
       jb2=1960
-      irr=4
-      else if (ihyr.ge.1960.and.ihyr.lt.1970) then
+      irr=11
+      else if (ihyr.ge.1960.and.ihyr.le.1970) then
       jb1=1960
       jb2=1970
-      irr=5
-      else if (ihyr.ge.1970.and.ihyr.lt.1980) then
+      irr=12
+      else if (ihyr.ge.1970.and.ihyr.le.1980) then
       jb1=1970
       jb2=1980
-      irr=6
+      irr=13
       else if (ihyr.ge.1980.and.ihyr.le.1990) then
       jb1=1980
       jb2=1990
-      irr=7
+      irr=14
+      else if (ihyr.ge.1990.and.ihyr.le.2000) then
+      jb1=1990
+      jb2=2000
+      irr=15
       endif
       call openunit('BC_INDh',iuc, .false.,.true.)
-      do ip=1,7326
-      read(iuc,*) ii,jj,iy,xbcff,xbcbm,xombm
+      do ip=1,22754 !14040
+      read(iuc,*) ii,jj,iy,xbcff
       if (jj<j_0 .or. jj>j_1) cycle
-      hbc_all(ii,jj,iy)=xbcff+xbcbm
-      hoc_all(ii,jj,iy)=xbcff*2.d0+xombm
+      hbc_all(ii,jj,iy)=xbcff
+      end do
+      call closeunit(iuc)
+      call openunit('OC_INDh',iuc, .false.,.true.)
+      do ip=1,19676 !14040
+      read(iuc,*) ii,jj,iy,xbcff
+      if (jj<j_0 .or. jj>j_1) cycle
+      hoc_all(ii,jj,iy)=xbcff
       end do
       call closeunit(iuc)
       hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
       hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
 c kg/year to kg/s
       hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/(365.d0*24.d0*3600.d0)
-      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)/(365.d0*24.d0*3600.d0)
+c OM=1.4 x OC
+      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)/(365.d0*24.d0*3600.d0)*1.4d0
       endif
 c interpolate to model year
 c    
@@ -776,29 +826,26 @@ c
      * +d2*hoc(:,j_0:j_1,1))/d3
   
       end subroutine read_hist_BCOC
-
+      
       SUBROUTINE read_hist_SO2(iact)
-c historic SO2 emissions
+c historic BC emissions
       USE MODEL_COM, only: jyear, jday,im,jm
-      USE DOMAIN_DECOMP, only : GRID, GET,AM_I_ROOT
-     * ,UNPACK_DATA
       USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP, only :  GRID, GET 
       USE TRACER_COM, only: aer_int_yr
-      USE AEROSOL_SOURCES, only: SO2_src,hso2
+      USE AEROSOL_SOURCES, only: SO2_src,nomsrc
+     * ,hso2
       USE GEOM, only: dxyp
       implicit none
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,j_0,j_1,nn,j_0h,j_1h
-      real*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,8) :: 
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
+     * iy,ip, j_0,j_1,j_0h,j_1h
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) :: 
      * hso2_all
-c     real*4, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,8) :: 
-c    *  hso2_all_read
-      real*8, DIMENSION(im,jm,8) :: hso2_all_glob
-      real*4, DIMENSION(im,jm,8) :: hso2_all_read
-      real*8 d1,d2,d3
+      real*8 d1,d2,d3,xso2ff
       save jb1,jb2
-
+      
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
-     *      J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+     *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
       SO2_src(:,:,:)=0.d0
 
@@ -810,57 +857,190 @@ c    *  hso2_all_read
 c if run just starting or if it is a new year
 c   then open new files
       if (iact.eq.0.or.jday.eq.1) then
-      if (ihyr.ge.1875.and.ihyr.lt.1900) then
-      jb1=1875
+       hso2_all(:,:,:)=0.0
+       hso2(:,:,:)=0.0
+      if (ihyr.ge.1890.and.ihyr.lt.1900) then
+      jb1=1890
       jb2=1900
       irr=1
-      else if (ihyr.ge.1900.and.ihyr.lt.1925) then
+      else if (ihyr.ge.1900.and.ihyr.lt.1910) then
       jb1=1900
-      jb2=1925
+      jb2=1910
       irr=2
-      else if (ihyr.ge.1925.and.ihyr.lt.1950) then
-      jb1=1925
-      jb2=1950
+      else if (ihyr.ge.1910.and.ihyr.le.1920) then
+      jb1=1910
+      jb2=1920
       irr=3
-      else if (ihyr.ge.1950.and.ihyr.lt.1960) then
+      else if (ihyr.ge.1920.and.ihyr.le.1930) then
+      jb1=1920
+      jb2=1930
+      irr=4
+      else if (ihyr.ge.1930.and.ihyr.le.1940) then
+      jb1=1930
+      jb2=1940
+      irr=5
+      else if (ihyr.ge.1940.and.ihyr.le.1950) then
+      jb1=1940
+      jb2=1950
+      irr=6
+      else if (ihyr.ge.1950.and.ihyr.le.1960) then
       jb1=1950
       jb2=1960
-      irr=4
-      else if (ihyr.ge.1960.and.ihyr.lt.1970) then
+      irr=7
+      else if (ihyr.ge.1960.and.ihyr.le.1970) then
       jb1=1960
       jb2=1970
-      irr=5
-      else if (ihyr.ge.1970.and.ihyr.lt.1980) then
+      irr=8
+      else if (ihyr.ge.1970.and.ihyr.le.1980) then
       jb1=1970
       jb2=1980
-      irr=6
+      irr=9
       else if (ihyr.ge.1980.and.ihyr.le.1990) then
       jb1=1980
       jb2=1990
-      irr=7
+      irr=10
+      else if (ihyr.ge.1990.and.ihyr.le.2000) then
+      jb1=1990
+      jb2=2000
+      irr=11
       endif
-      if(AM_I_ROOT( ))then      
-      call openunit('SO2_INDh',iuc, .true.,.true.)
-      read(iuc) hso2_all_read
-      call closeunit(iuc)
-      endif
-      hso2_all_glob(:,:,:)=hso2_all_read(:,:,:)
-      call UNPACK_DATA( grid, hso2_all_glob, hso2_all )
-      hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
-c kg S/m2/year to kg SO2/s
-      do j=j_0,j_1
-      hso2(:,j,1:2)=hso2(:,j,1:2)
-     *    *dxyp(j)*2.d0
-     *    /(365.d0*24.d0*3600.d0)
+      call openunit('SO2_INDh',iuc, .false.,.true.)
+      do ip=1,10661
+      read(iuc,*) ii,jj,iy,xso2ff
+      if (jj<j_0 .or. jj>j_1) cycle
+      hso2_all(ii,jj,iy)=xso2ff
       end do
+      call closeunit(iuc)
+      hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
+c kg/year to kg/s and x2 to convert from S to SO2
+      hso2(:,j_0:j_1,1:2)=hso2(:,j_0:j_1,1:2)  
+     *  *2.d0/(365.d0*24.d0*3600.d0)
       endif
 c interpolate to model year
+c    
       d1=real(ihyr-jb1)
       d2=real(jb2-ihyr)
       d3=real(jb2-jb1)
-      SO2_src(:,:,1)=(d1*hso2(:,:,2)+d2*hso2(:,:,1))/d3
+      SO2_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
+     * +d2*hso2(:,j_0:j_1,1))/d3
+  
+      end subroutine read_hist_SO2    
+      
+      SUBROUTINE read_hist_NH3(iact)
+c historic BC emissions
+      USE MODEL_COM, only: jyear, jday,im,jm
+      USE CONSTANT, only: sday
+      USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP, only :  GRID, GET 
+      USE TRACER_COM, only: aer_int_yr
+      USE AEROSOL_SOURCES, only: NH3_src_con,
+     * NH3_src_cyc,hnh3_cyc,hnh3_con
+      USE GEOM, only: dxyp
+      implicit none
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
+     * iy,ip, j_0,j_1,j_0h,j_1h
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) :: 
+     * hnh3_con_all,hnh3_cyc_all
+      real*8 d1,d2,d3,xso2ff
+      save jb1,jb2
+      
+      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+     *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      
+      NH3_src_con(:,:)=0.d0
+      NH3_src_cyc(:,:)=0.d0
 
-      end subroutine read_hist_SO2
+      if (aer_int_yr.eq.0) then
+      ihyr=jyear
+      else
+      ihyr=aer_int_yr
+      endif
+c if run just starting or if it is a new year
+c   then open new files
+      if (iact.eq.0.or.jday.eq.1) then
+       hnh3_con_all(:,:,:)=0.0
+       hnh3_con(:,:,:)=0.0
+       hnh3_cyc_all(:,:,:)=0.0
+       hnh3_cyc(:,:,:)=0.0
+      if (ihyr.ge.1890.and.ihyr.lt.1900) then
+      jb1=1890
+      jb2=1900
+      irr=1
+      else if (ihyr.ge.1900.and.ihyr.lt.1910) then
+      jb1=1900
+      jb2=1910
+      irr=2
+      else if (ihyr.ge.1910.and.ihyr.le.1920) then
+      jb1=1910
+      jb2=1920
+      irr=3
+      else if (ihyr.ge.1920.and.ihyr.le.1930) then
+      jb1=1920
+      jb2=1930
+      irr=4
+      else if (ihyr.ge.1930.and.ihyr.le.1940) then
+      jb1=1930
+      jb2=1940
+      irr=5
+      else if (ihyr.ge.1940.and.ihyr.le.1950) then
+      jb1=1940
+      jb2=1950
+      irr=6
+      else if (ihyr.ge.1950.and.ihyr.le.1960) then
+      jb1=1950
+      jb2=1960
+      irr=7
+      else if (ihyr.ge.1960.and.ihyr.le.1970) then
+      jb1=1960
+      jb2=1970
+      irr=8
+      else if (ihyr.ge.1970.and.ihyr.le.1980) then
+      jb1=1970
+      jb2=1980
+      irr=9
+      else if (ihyr.ge.1980.and.ihyr.le.2000) then
+      jb1=1980
+      jb2=1990
+      irr=10
+      else if (ihyr.ge.1990.and.ihyr.le.2000) then
+      jb1=1990
+      jb2=2000
+      irr=11
+      endif
+      call openunit('NH3SOURCE_CYC',iuc, .false.,.true.)
+      do ip=1,8909
+      read(iuc,*) ii,jj,iy,xso2ff
+      if (jj<j_0 .or. jj>j_1) cycle
+      hnh3_cyc_all(ii,jj,iy)=xso2ff
+      end do
+      call closeunit(iuc)
+      call openunit('NH3SOURCE_CON',iuc, .false.,.true.)
+      do ip=1,29532
+      read(iuc,*) ii,jj,iy,xso2ff
+      if (jj<j_0 .or. jj>j_1) cycle
+      hnh3_con_all(ii,jj,iy)=xso2ff
+      end do
+      call closeunit(iuc)
+      hnh3_con(:,j_0:j_1,1:2)=hnh3_con_all(:,j_0:j_1,irr:irr+1)
+      hnh3_cyc(:,j_0:j_1,1:2)=hnh3_cyc_all(:,j_0:j_1,irr:irr+1)
+c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
+      hnh3_con(:,j_0:j_1,1:2)=hnh3_con(:,j_0:j_1,1:2)  
+     *  *1.2142/(sday*30.4*12.)
+      hnh3_cyc(:,j_0:j_1,1:2)=hnh3_cyc(:,j_0:j_1,1:2)  
+     *  *1.2142/(sday*30.4*12.)
+      endif
+c interpolate to model year
+c    
+      d1=real(ihyr-jb1)
+      d2=real(jb2-ihyr)
+      d3=real(jb2-jb1)
+      NH3_src_con(:,j_0:j_1)=(d1*hnh3_con(:,j_0:j_1,2)
+     * +d2*hnh3_con(:,j_0:j_1,1))/d3
+      NH3_src_cyc(:,j_0:j_1)=(d1*hnh3_cyc(:,j_0:j_1,2)
+     * +d2*hnh3_cyc(:,j_0:j_1,1))/d3
+  
+      end subroutine read_hist_NH3      
+      
 
       subroutine read_SO2_source(nt)
 !@sum reads in  biomass SO2 source
@@ -1206,7 +1386,9 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       CALL SULFDUST
 c calculation of heterogeneous reaction rates: SO2 on seasalt
 c      CALL SULFSEAS 
-      CALL GET_O3_OFFLINE
+c     if (COUPLED_CHEM.ne.1) then
+c     CALL GET_O3_OFFLINE
+c     endif
 #endif
 #endif
       dtt=dtsrc
@@ -1336,7 +1518,11 @@ c SO2 production from DMS
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 #ifdef TRACERS_HETCHEM
+      if (COUPLED_CHEM.ne.1) then
       o3mc = o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYDXYP(J)*BYAM(L,I,J)
+      else
+      o3mc = trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYDXYP(J)*BYAM(L,I,J)
+      endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       do 33 n=1,ntm
@@ -1365,11 +1551,13 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 #endif        
 #endif        
 c diagnostics to save oxidant fields
-#ifdef TRACERS_SPECIAL_Shindell
-          najl = jls_OHcon
-#else
+c No need to accumulate Shindell version here because it
+c   is done elsewhere
+c#ifdef TRACERS_SPECIAL_Shindell
+c         najl = jls_OHcon
+c#else
           najl = jls_OHconk
-#endif
+c#endif
           tajls(j,l,najl) = tajls(j,l,najl)+oh(i,j,l)
           najl = jls_HO2con
           tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)
@@ -1980,3 +2168,281 @@ c melting snow
        rads=DMAX1(rads,100.d0)
       RETURN
       END SUBROUTINE GRAINS
+      
+            SUBROUTINE get_aircraft_SO2
+!@sum  get_aircraft_SO2 to define the 3D source of SO2 from aircraft
+!@auth Drew Shindell? / Greg Faluvegi / Jean Learner
+!@ver  1.0 (based on DB396Tds3M23)
+!! taken from get_aircraft_NOx by Shindell/Faluvegi
+c
+C**** GLOBAL parameters and variables:
+C
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop,psf,sig
+      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE CONSTANT, only: sday,hrday
+      USE FILEMANAGER, only: openunit,closeunit
+      USE FLUXES, only: tr3Dsource
+      USE GEOM, only: dxyp
+      USE TRACER_COM, only: itime_tr0,trname,n_SO2,n_BCIA
+      use AEROSOL_SOURCES, only: Laircrs,aircrafts_Tyr1,aircrafts_Tyr2
+      use param, only: sync_param
+C
+      IMPLICIT NONE
+c
+!@var nanns,nmons: number of annual and monthly input files
+!@var l,ll dummy loop variable
+!@var pres local pressure variable
+      integer, parameter :: nanns=0,nmons=1
+      integer, dimension(nmons) :: mon_units, imon
+      integer l,i,j,iu,k,ll,nt,ns,nsect,nn
+      character*80 :: title
+      character*12, dimension(nmons) :: mon_files=(/'SO2_AIRCRAFT'/)
+      character(len=300) :: out_line
+      character*124 :: tr_sectors_are
+      character*32 :: pname
+      logical :: LINJECTS
+      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
+      real*8 bySperHr
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircrs,1)
+     &                                     :: src
+      REAL*8, DIMENSION(LM)                :: pres
+      REAL*4, PARAMETER, DIMENSION(Laircrs) :: PAIRL =
+     & (/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
+     &    410.60,355.99,307.42,264.36,226.32,193.30,165.10,
+     &    141.01,120.44,102.87,87.866,75.048/)
+      INTEGER :: J_1, J_0, J_0H, J_1H
+c
+C**** Local parameters and variables and arguments:
+      logical :: trans_emis=.false.
+      integer :: yr1=0, yr2=0
+C**** Aircraft NOx source input is monthly, on 19 levels. Therefore:
+C     19x12=228 records. Read it in here and interpolated each day.
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+C****
+C**** Monthly sources are interpolated to the current day
+C**** The titles of the input files say this is in KG/m2/s, so no
+C**** conversion is necessary:
+C****
+      call sync_param("aircrafts_Tyr1",aircrafts_Tyr1)
+      call sync_param("aircrafts_Tyr2",aircrafts_Tyr2)
+      k = 1
+      if(aircrafts_Tyr1==aircrafts_Tyr2)then
+        trans_emis=.false.; yr1=0; yr2=0
+      else
+        trans_emis=.true.; yr1=aircrafts_Tyr1; yr2=aircrafts_Tyr2
+      endif
+      call openunit(mon_files(k),mon_units(k),mon_bins(k))
+      call read_mon_3D(Laircrs,mon_units(k),
+     & src(:,:,:,k),trans_emis,yr1,yr2)
+      call closeunit(mon_units(k))
+C====
+C====   Place aircraft sources onto model levels:
+C====
+      tr3Dsource(:,J_0:J_1,:,2,n_SO2) = 0.d0
+      tr3Dsource(:,J_0:J_1,:,2,n_BCIA) = 0.d0
+      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+      DO J=J_0,J_1
+       DO I=1,IM
+c multiply N by 3.3 to get NOx
+c divide NOx emission by 35 to get S, *2 to get SO2
+c divide NOx emission by 350 to get BC
+        tr3Dsource(i,j,1,2,n_SO2) = SRC(I,J,1,1)*dxyp(j)*3.3d0/35.d0
+     *  *2.d0
+        tr3Dsource(i,j,1,2,n_BCIA) = SRC(I,J,1,1)*dxyp(j)*3.3d0/350.d0
+        DO LL=2,Laircrs
+          LINJECTS=.TRUE.
+          DO L=1,LM
+           IF(PAIRL(LL) > PRES(L).AND.LINJECTS) THEN
+             tr3Dsource(i,j,l,2,n_SO2) =
+     &  tr3Dsource(i,j,l,2,n_SO2) + SRC(I,J,LL,1)*dxyp(j)/35.d0*2.d0
+     *       *3.3d0
+             tr3Dsource(i,j,l,2,n_BCIA) =
+     &  tr3Dsource(i,j,l,2,n_BCIA) + SRC(I,J,LL,1)*dxyp(j)/350.d0
+     *       *3.3d0
+             LINJECTS=.FALSE.
+           ENDIF
+          ENDDO ! L
+        ENDDO   ! LL
+       END DO   ! I
+      END DO    ! J
+      return
+      END SUBROUTINE get_aircraft_SO2
+      
+      SUBROUTINE read_mon_3D
+     & (Ldim,iu,data1,trans_emis,yr1,yr2)
+!@sum Read in monthly sources and interpolate to current day
+!@auth Jean Lerner and others / Greg Faluvegi
+! taken from TRACERS_SPECIAL_Shindell, in case we
+!  we run aerosols independent of gases
+      USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
+      USE TRACER_COM, only: kstep
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP, only : GRID,GET,READT_PARALLEL,REWIND_PARALLEL
+     & ,write_parallel,backspace_parallel
+      implicit none
+!@var Ldim how many vertical levels in the read-in file?
+!@var L dummy vertical loop variable
+      integer Ldim,L,imon,iu,ipos,k,nn
+      character(len=300) :: out_line
+      real*8 :: frac, alpha
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     A2D,B2D,dummy
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::
+     &     tlca,tlcb,data1,sfc_a,sfc_b
+      logical, intent(in):: trans_emis
+      integer, intent(in):: yr1,yr2
+
+      integer :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+C No doubt this code can be combined/compressed, but I am going to
+C do the transient and non-transient cases separately for the moment:
+
+! -------------- non-transient emissions ----------------------------!
+      if(.not.trans_emis) then
+C
+      imon=1                ! imon=January
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        write(6,*) 'Not using this first record:'
+        call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        call rewind_parallel(iu)
+      else              ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        write(6,*) 'Not using this first record:'
+        call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-2))
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        if(imon==13) call rewind_parallel(iu)
+      end if
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+      enddo
+c**** Interpolate two months of data to current day
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      data1(:,J_0:J_1,:) =
+     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      write(out_line,*) '3D source monthly factor=',frac
+      call write_parallel(trim(out_line))
+
+! --------------- transient emissions -------------------------------!
+      else
+        ipos=1
+        alpha=0.d0 ! before start year, use start year value
+        if(jyear>yr2.or.(jyear==yr2.and.jday>=183))then
+          alpha=1.d0 ! after end year, use end year value
+          ipos=(yr2-yr1)/kstep
+        endif
+        do k=yr1,yr2-kstep,kstep
+          if(jyear>k .or. (jyear==k.and.jday>=183)) then
+            if(jyear<k+kstep .or. (jyear==k+kstep.and.jday<183))then
+              ipos=1+(k-yr1)/kstep ! (integer artithmatic)
+              alpha=(365.d0*(0.5+real(jyear-1-k))+jday) /
+     &              (365.d0*real(kstep))
+              exit
+            endif
+          endif
+        enddo
+!
+! read the two necessary months from the first decade:
+!
+      imon=1                ! imon=January
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+      else              ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        if(imon==13)then
+          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+        endif
+      end if
+CCCCC write(6,*) 'Not using this first record:'
+CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+      enddo
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      sfc_a(:,J_0:J_1,:) =
+     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      call rewind_parallel( iu )
+
+      ipos=ipos+1
+      imon=1                ! imon=January
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+      else              ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+        enddo
+        if(imon==13)then
+          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+        endif
+      end if
+CCCCCCwrite(6,*) 'Not using this first record:'
+CCCCCCcall readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+      enddo
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      sfc_b(:,J_0:J_1,:) =
+     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+
+! now interpolate between the two time periods:
+
+      data1(:,J_0:J_1,:) =
+     & sfc_a(:,J_0:J_1,:)*(1.d0-alpha) + sfc_b(:,J_0:J_1,:)*alpha
+
+      write(out_line,*) '3D source at',
+     &100.d0*alpha,' % of period ',k,' to ',k+kstep,
+     &' and monthly fraction= ',frac
+      call write_parallel(trim(out_line))
+
+      endif ! transient or not
+
+      return
+      end subroutine read_mon_3D
+      
+

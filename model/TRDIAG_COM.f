@@ -104,6 +104,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP)
       INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
+      INTEGER ijs_ai
 #ifdef regional_Ox_tracers
       INTEGER ijs_Oxloss, ijs_Oxprod
 #endif
@@ -257,6 +258,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_isrc(ntsurfsrcmax,ntm)
 !@var ijts_aq tracer independent array for TAIJS aqueous change
       INTEGER ijts_aq(ntm)
+#ifdef BC_ALB
+!@var ijts_alb BC impact on snow/ice albedo, grain size,sw and lw radiation
+      INTEGER ijts_alb(2,ntm)
+#endif
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(2,ntm)
 !@var ijts_3Dtau 3D tracer independent array for TAIJS hydrated opt. thick.

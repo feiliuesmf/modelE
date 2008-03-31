@@ -625,7 +625,7 @@ c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
       end if
 #ifndef TRACERS_NITRATE
       NTRACE=6
-      TRRDRY(1:NTRACE)=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0/)
+      TRRDRY(1:NTRACE)=(/ .15d0, .44d0, 1.7d0, .2d0, .08d0, .08d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4, 5,6/)
       KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0/)
@@ -637,7 +637,7 @@ C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
 #else
       NTRACE=7
-      TRRDRY(1:NTRACE)=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0, 0.3d0/)
+      TRRDRY(1:NTRACE)=(/.15d0,.44d0, 1.7d0, .2d0, .08d0, .08d0,0.15d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4, 5,6,3/)
       KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0,1/)
@@ -1002,6 +1002,9 @@ c    *     ,SNFST0,TNFST0
       USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau
      &     ,ijts_tausub,ijts_fcsub,ijts_3dtau,ijts_sqex,ijts_sqexsub
      &     ,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub,diag_rad
+#ifdef BC_ALB
+     *     ,ijts_alb
+#endif 
 #endif
       IMPLICIT NONE
 C
@@ -1027,6 +1030,10 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 !@+   which ntrace fields are not defined
       REAL*8,DIMENSION(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     snfst_ozone,tnfst_ozone
+#ifdef BC_ALB
+      REAL*8,DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *     ALBNBC,NFSNBC 
+#endif
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRS,SRHRS
@@ -1045,6 +1052,9 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 RANDXX ! temporary
       REAL*8 QSAT
+#ifdef BC_ALB
+      REAL*8 dALBsn1
+#endif
       LOGICAL NO_CLOUD_ABOVE, set_clayilli,set_claykaol,set_claysmec,
      &     set_claycalc,set_clayquar
 C
@@ -1580,6 +1590,11 @@ c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
       dALBsn = xdalbs*depobc(ilon,jlat)
+c to use on-line tracer albedo impact, set Xdalb=0. in rundeck
+#if (defined TRACERS_AEROSOLS_Koch) && (defined BC_ALB)
+      call GET_BC_DALBEDO(i,j,dALBsn1)
+      dALBsn=dALBsn1
+#endif
       if (poice.gt.0.) then
         zoice=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
@@ -1721,7 +1736,15 @@ C**** Ozone:
       TNFST_ozone(2,I,J)=TRNFLB(LFRC)
       use_tracer_ozone=onoff*LM
 #endif
-
+#ifdef BC_ALB
+      dalbsn=0.d0
+      CALL RCOMPX
+      NFSNBC(I,J)=SRNFLB(LM+LM_REQ+1)
+c     NFSNBC(I,J)=SRNFLB(LFRC)
+      ALBNBC(I,J)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
+c set for BC-albedo effect
+      dALBsn=dALBsn1
+#endif
 C**** Optional calculation of CRF using a clear sky calc.
       if (cloud_rad_forc.gt.0) then
         FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
@@ -2236,6 +2259,15 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
          if (ntrace.gt.0) then
+#ifdef BC_ALB
+      if (ijts_alb(1,n_BCIA).gt.0)
+     * TAIJS(I,J,ijts_alb(1,n_BCIA))=TAIJS(I,J,ijts_alb(1,n_BCIA))
+     *   + 100.d0*(ALBNBC(I,J)-ALB(I,J,1))
+      if (ijts_alb(2,n_BCIA).gt.0)
+     & taijs(i,j,ijts_alb(2,n_BCIA))
+     &     =taijs(i,j,ijts_alb(2,n_BCIA))
+     &         +(SNFS(3,I,J)-NFSNBC(I,J))*CSZ2
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
 c          snfst0(:,:,i,j)=0.D0
 c          tnfst0(:,:,i,j)=0.D0
