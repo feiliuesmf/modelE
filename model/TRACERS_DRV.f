@@ -9460,7 +9460,6 @@ c 1.3 converts OC to OM
        OCI_src(:,j_0:j_1,1:4)=OCI_src5(:,j_0:j_1,1:4)
      * *1.3d0/(sday*365.d0)
 #endif
-       endif  ! OC or BC tracers exist !----
       if (imAER.ne.3) then  !else read in daily
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
 c read in NH3 emissions
