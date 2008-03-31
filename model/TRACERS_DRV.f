@@ -8290,7 +8290,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
-      INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,kk,ls,lt
+      INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
       CHARACTER*80 title
       CHARACTER*300 out_line
       REAL*8 CFC11ic,conv
@@ -9230,10 +9230,6 @@ c volcano - explosive, for AeroCom
       so2_src_3d(:,j_0:j_1,:,1)=so2_src_3d(:,j_0:j_1,:,1)+
      * volc_exp(:,j_0:j_1,:)
       endif
-! -- skip if BC and OC tracers omitted : -------------
-      kk=0
-      do n=1,ntm; if(trname(n)(1:2)=='BC' .or. 
-     &trname(n)(1:2)=='OC') kk=1; enddo ;if(kk==1)then
 ! ----------------------------------------------------
 c read in BC and OC sources
 c Industrial BC/OC
@@ -9249,6 +9245,7 @@ c  !else use historic emissions
        if (jj<j_0 .or. jj>j_1) cycle
        BCI_src1(ii,jj)=carbstuff
        end do
+
        call closeunit(iuc)
        BCI_src(:,J_0:J_1)=BCI_src1(:,J_0:J_1)
        BCI_src2(:,:)=0.d0
@@ -9285,6 +9282,7 @@ c  !else use historic emissions
        call closeunit(iuc)
        BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src4(:,J_0:J_1)
        endif  !imAER=2
+
        OCI_src1(:,:)=0.d0
        OCI_src(:,:,1)= 0.d0
        call openunit('OC_BIOFUEL',iuc,.false.,.true.)
@@ -9363,12 +9361,7 @@ c  (otherwise it is done in get_hist_BM, across boundary layer)
       BCB_src(:,j_0:j_1,1:7,:)=BCB_src(:,j_0:j_1,1:7,:)*ccnv
       OCB_src(:,j_0:j_1,1:7,:)=OCB_src(:,j_0:j_1,1:7,:)*ccnv  !*1.3d0
       endif
-      endif  ! OC or BC tracers exist !----
 #endif
-! -- skip if BC and OC tracers omitted : -------------
-      kk=0
-      do n=1,ntm; if(trname(n)(1:2)=='BC' .or.
-     &trname(n)(1:2)=='OC') kk=1; enddo ;if(kk==1)then
 ! ---------------------------------------------------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
@@ -9420,7 +9413,6 @@ c 1.3 converts OC to OM
        OCI_src(:,j_0:j_1,1:4)=OCI_src5(:,j_0:j_1,1:4)
      * *1.3d0/(sday*365.d0)
 #endif
-       endif  ! OC or BC tracers exist !----
 
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
 c read in NH3 emissions
