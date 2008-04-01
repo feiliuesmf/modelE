@@ -93,6 +93,8 @@ c$$$#endif
       INTEGER :: ANG_SDRAG=1  ! default: SDRAG does conserve ang.mom
 !@dbparam Wc_JDRAG critical velocity for J.Hansen/Judith Perlwitz drag
       REAL*8 :: Wc_JDRAG=30.d0  !  if 0.: no JDRAG-feature in Sdrag
+!@dbparam wmax imposed limit for stratospheric winds (m/s) in SDRAG
+      real*8 :: wmax=200.d0
 !@dbparam do_polefix if =1 : u,v tendencies are corrected near the pole
       INTEGER :: do_polefix=1     ! default is to enable corrections
 

@@ -141,6 +141,7 @@ C_SDRAG=0.     ! no constant sdrag
 P_SDRAG=.1     ! lin. sdrag above .1 mb (top 2 layers) except near poles
 PP_SDRAG=.1    ! lin. sdrag above .1 mb near poles (top 2 layers)
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
+WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used
 PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000030 !the default is 15d-6
 PCONPEN=400.   ! penetrating convection defn for GWDRAG

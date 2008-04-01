@@ -12,7 +12,7 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M53                             ! horiz/vert resolution
+RES_M53 DIAG_RES_M FFT72            ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -38,14 +38,13 @@ DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-OCEAN OCNML                         ! ocean modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
+OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_RES_M                          ! diagnostics (resolution dependent)
-CONST FFT72 UTILDBL SYSTEM          ! utilities
+CONST UTILDBL SYSTEM                ! utilities
 POUT                                ! post-processing output
 
 Data input files:
@@ -88,15 +87,15 @@ O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
 O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
 O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
 O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2004_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
+O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
+O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
+O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij
 MSU_wts=MSU.RSS.weights.data
-CO2_IC=CO2ijl_IC_Jan1_scale334_M23  !wofsy+B140TQaM9
+CO2_IC=CO2ijl_IC_Jan1_scale334_M53  !wofsy+B140TQaM9
 CO2_FOS_FUEL=CO2_sources/gcm_data/CO2FOS_MRL_4X5
 CO2_FERT=CO2_sources/gcm_data/CO2fert01_4X5
 CO2_REGROWTH=CO2_sources/gcm_data/CO2_Nforest_4X5
@@ -104,12 +103,15 @@ CO2_LAND_USE=CO2_sources/gcm_data/CO2DEF_HOU_4X5
 CO2_VEG=CO2_sources/gcm_data/CO2VEG_MON_4X5          ! Monthly source
 CO2_OCEAN=CO2_sources/gcm_data/CO2_4X5_Ocean_flux02  ! Monthly source
 14CO2_IC_DATA=workshop.14co2                         ! for 14CO2 Oct. 1963
-LINOZ_TABLE=chemtab_solfb_31aug01.txt       ! linoz O3 coefficients
+LINOZ_TABLE=O3_linoz_coeff                !linoz coefficients for stratosphere
+LO3_Trop_loss=linoz/LOx_IJ_M53_trop_L25   !Troposphere ozone chemical loss (Harvard
+LO3_Trop_prod=linoz/POx_IJ_M53_trop_L25   !Troposphere ozone chemical production (Harvard)
+LINOZ_Dep_vel=linoz/O3dv_IJ.bin           !Deposition velocity for O3 (Harvard)
 N2O_TABLE=N2Oloss.table                     ! Stratosphere tracer forcing
 CFC11_TABLE=F11loss.table                   ! Stratosphere tracer forcing
 CH4_TABLE=CH4chem.table                     ! Stratosphere tracer forcing
 CH4_TROP_FRQ=CLIM.RUN.OHCH4.FRQ      !tropo loss frequency table (9 layers, n-grid)
-N2O_IC=N2O_Shindell_Jan9293_M23             !initial conditions
+N2O_IC=N2O_Shindell_Jan9293_M53y            !initial conditions
 CH4_IC=Wofsy_data_CH4       !wofsy jl initial conditions
 CH4_ANIMALS=methane/gcm_data/CH4ANIMLS_4X5      ! Annual
 CH4_COALMINE=methane/gcm_data/CH4COAL_4X5       ! Annual
@@ -131,8 +133,9 @@ R=00BG/B
 X_SDRAG=.0075,.00075  ! used for lin. sdrag above P_SDRAG mb
 C_SDRAG=0.     ! no constant sdrag
 P_SDRAG=.01    ! lin. sdrag above .01mb (top 2 layers) except near poles
-PP_SDRAG=1.    ! lin. sdrag above 1.mb near poles
+PP_SDRAG=1.1   ! lin. sdrag above 1.mb near poles
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
+WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used
 PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000037 !the default is 15d-6
 PCONPEN=400.   ! penetrating convection defn for GWDRAG
@@ -148,14 +151,15 @@ KSIALB=0        ! 6-band albedo (Hansen) (=1 A.Lacis orig. 6-band alb)
 KSOLAR=2
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=180. ! Shapiro filter on U in E-W direction; usually same as DT (below)
-DT_XVfilter=180. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 LMCM=26              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters
-DT=180.,             ! from default: DTsrc=3600.,
+DTsrc = 1800.        ! half-hour physics time step (default: DTsrc=3600.)
+DT=450.,             ! dynamic time step
 NIsurf=4,            ! number of surface time steps
 
 NSUBDD=0        ! saving sub-daily diags
@@ -164,6 +168,8 @@ KCOPY=2         ! saving acc + rsf
 isccp_diags=0
 
 to_volume_MixRat=1,1,1,1,1,1,1,1,1   ! for tracer printout
+itime_tr0=30624,30624,30624,30624,39360,31344,30624,30624,30624
+nstrtc=28                    ! Number of layers for Prather stratosphere chemistry (LM=53)
 &&END_PARAMETERS
 
  &INPUTZ

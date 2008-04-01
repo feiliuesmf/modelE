@@ -1972,7 +1972,7 @@ C**** to be used in the PBL, at the promary grids
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,sha
       USE MODEL_COM, only : im,jm,lm,ls1,u,v,t,q,x_sdrag,csdragl,lsdrag
-     *     ,lpsdrag,ang_sdrag,itime,Wc_Jdrag
+     *     ,lpsdrag,ang_sdrag,itime,Wc_Jdrag,wmax
       USE GEOM, only : cosv,imaxj,kmaxj,idij,idjj,rapj,dxyv,dxyn,dxys
      *     ,rapvs,rapvn
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtsdrg
@@ -1998,9 +1998,8 @@ C**** regime (but not above P_CSDRAG)
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)    ::
      *        ang_mom, sum_airm
-!@param wmax imposed limit for stratospheric winds (m/s)
-      real*8, parameter :: wmax = 200.d0 , wmaxp = wmax*3.d0/4.d0
-      real*8 wmaxj,xjud
+!@var wmaxp =.75*wmax,the imposed limit for stratospheric winds (m/s)
+      real*8 wmaxp,wmaxj,xjud
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2013,6 +2012,7 @@ c**** Extract domain decomposition info
       ang_mom=0. ;  sum_airm=0. ; dke=0. ; dut=0.
 C*
       DUT=0. ; DVT=0.
+      wmaxp = wmax*3.d0/4.d0
 c***  The following halo is not needed because PDSIG halo is up to date
 c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
       DO L=LS1,LM
@@ -2027,7 +2027,8 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
         TL=T(I,J,L)*PK(L,I,J)   ! not quite correct - should be on UV grid
 C**** check T to make sure it stayed within physical bounds
         if (TL.lt.100..or.TL.gt.373.) then
-          write(99,*) 'SDRAG:',itime,i,j,l,'T,U,V=',TL,U(I,J,L),V(I,J,L)
+          write(99,'(a,i8,3i4,a,3f10.2)') 
+     *    ' SDRAG:',itime,i,j,l,'  T,U,V=',TL,U(I,J,L),V(I,J,L)
           call stop_model('Stopped in ATMDYN::SDRAG',11)
         end if
         RHO=PEDN(L+1,I,J)/(RGAS*TL)   ! not quite correct - should be on UV grid

@@ -731,7 +731,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,NIsurf,iyear1
      $     ,LS1,IRAND,ItimeI,PSTRAT,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM,dt
+     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
      &     ,do_polefix,pednl00,pmidl00
       USE DOMAIN_DECOMP, only: AM_I_ROOT
@@ -754,6 +754,7 @@ C**** Rundeck parameters:
       call sync_param( "PP_SDRAG", PP_SDRAG )
       call sync_param( "ANG_SDRAG", ANG_SDRAG )
       call sync_param( "Wc_Jdrag", Wc_Jdrag )
+      call sync_param( "wmax", wmax )
       call sync_param( "do_polefix", do_polefix )
       call sync_param( "NDASF", NDASF )
       call sync_param( "NDA4", NDA4 ) !!
