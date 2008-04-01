@@ -22,6 +22,13 @@ c
 c     cumulus updraft speed
       real*8   WCUSCM(LM,2),WCUALL(LM,2,LM)
       real*8   WCUDEEP(LM,2)
+C--- Added by J.W. starting ---C
+      real*8   MPLUMESCM(LM,2),MPLUMEALL(LM,2,LM)
+      real*8   MPLUMEDEEP(LM,2)
+      real*8   ENTSCM(LM,2),ENTALL(LM,2,LM)
+      real*8   ENTDEEP(LM,2)
+      real*8   DETRAINDEEP(LM,2,LM)
+C--- Added by J.W. ending ---C
 c
 c     precipitating and non-precipitating convective condensate for
 c     deep convection 

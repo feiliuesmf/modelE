@@ -14,7 +14,10 @@ c     save diagnostics for run of MODELE SCM
       USE RAD_COM, only : srhr,trhr
       USE PBLCOM, only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG
       USE FLUXES, only : GTEMP 
-      USE DYNAMICS, only : PK 
+C     USE DYNAMICS, only : PK 
+C--- Added by J.W. starting ---C
+      USE DYNAMICS, only : PK,GZ
+C--- Added by J.W. ending ---C
       USE CONSTANT, only : SHA, GRAV   
       USE GEOM, only : dxyp 
       USE FILEMANAGER, only : openunit,closeunit
@@ -143,6 +146,13 @@ c             PRESAV(LM)        SCM Large Scale Precip by layer (kg/kg)
 c             PREMC(LM)         SCM MSTCNV Precip by layer (kg/kg)
 c             LHPSAV(LM)        SCM Phase of Precip for SS
 c             LHPMC(LM)         SCM Phase of Precip for MC
+C--- Added by J.W. starting ---C
+c             ENTSCM(LM,2)        SCM Entrainment rate for 2 two plume types
+c             ENTDEEP(LM,2)       SCM Entrainment rate for deep convection - 2 plumes
+c             MPLUMESCM(LM,2)        SCM Mass flux for 2 two plume types
+c             MPLUMEDEEP(LM,2)       SCM Mass flux for deep convection - 2 plumes
+c             DETRAINDEEP(LM,2,LM)  SCM Detrained convective condensate for Deep conv
+C--- Added by J.W. ending ---C
 c             WCUSCM(LM,2)        SCM Cumulus updraft speed for 2 two plume types
 c             WCUDEEP(LM,2)       SCM  Cumulus updraft speed for deep convection - 2 plumes
 c             PRCCDEEP(LM,2,LM)   SCM Precipitating convective condensate for Deep conv
@@ -169,6 +179,9 @@ c             cldbdz(18,18)       SCM (cld diagnostics) cld base vs cld thicknes
 c             cldtdz(18,18)       SCM (cld diagnostics) cld top vs cld thickness
 c            
 C              
+C--- Added by J.W. starting ---C
+      real*8 GZPRT(LM)
+C--- Added by J.W. ending ---C
       real*8 TPRT(LM), QPRT(LM) ,TSURF, TSKIN, WMCOL(LM)    
       real*8 TDIFF,QDIFF
       real*8 PCOL, SVLHXCOL(LM),SVLATCOL(LM)    
@@ -195,6 +208,9 @@ C
       TSKIN = GTEMP(1,4,I_TARG,J_TARG)
       
       do L = 1,LM
+C--- Added by J.W. starting ---C
+         GZPRT(L) = GZ(I_TARG,J_TARG,L)
+C--- Added by J.W. ending ---C
          TPRT(L) = T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG) 
          QPRT(L) = Q(I_TARG,J_TARG,L)
          WMCOL(L) = WM(I_TARG,J_TARG,L)
@@ -208,6 +224,12 @@ C
       enddo      
 
       do L=1,LM
+C--- Added by J.W. starting ---C
+         ENTSCM(L,1) = 0.0
+         ENTSCM(L,2) = 0.0
+         MPLUMESCM(L,1) = 0.0
+         MPLUMESCM(L,2) = 0.0
+C--- Added by J.W. ending ---C
          WCUSCM(L,1) = 0.0
          WCUSCM(L,2) = 0.0
       enddo
@@ -229,6 +251,10 @@ c    *               'WCUPLUM found   ic lmin iplum ',i5,i5,i5)
          if (IPLUM.gt.0) then
              do L=1,LM
                 WCUSCM(L,ic) = WCUALL(L,ic,IPLUM) 
+C--- Added by J.W. starting ---C
+                MPLUMESCM(L,ic) = MPLUMEALL(L,ic,IPLUM)
+                ENTSCM(L,ic) = ENTALL(L,ic,IPLUM)
+C--- Added by J.W. ending ---C
              enddo
          endif
       enddo
@@ -269,6 +295,12 @@ cc    WRITE(97) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
      *           ATSWDN,ATSWIN,SG_ARSCL,PRESAV,PREMC,LHPSAV,LHPMC,
      *           WCUSCM,WCUDEEP,PRCCDEEP,NPRCCDEEP,TPALL,MCCOND,
      *           PRCCGRP,PRCCICE   
+C--- Added by J.W. starting ---C
+     *           ,MPLUMESCM,MPLUMEDEEP
+     *           ,GZPRT
+     *           ,ENTSCM,ENTDEEP
+     *           ,DETRAINDEEP
+C--- Added by J.W. ending ---C
 
 c     WRITE(3) TAU,P,fqI,totcldareaI,mnptopI,mntauI,bxtauI,bxptopI,
 c    *         cldbdz,cldtdz

@@ -135,6 +135,11 @@
       USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T,
      *                    SCM_ATURB_FLAG,iu_scm_prt
       USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
+C--- Added by J.W. starting ---C
+     &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
+     &                    ENTSCM,ENTALL,ENTDEEP,
+     &                    DETRAINDEEP,
+C--- Added by J.W. ending ---C
      &                     TPALL,PRCSS,PRCMC
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
@@ -508,6 +513,14 @@ C****
              do L=1,LM
                 WCUALL(L,1,LL)=0.
                 WCUALL(L,2,LL)=0.
+C--- Added by J.W. starting ---C
+                MPLUMEALL(L,1,LL)=0.
+                MPLUMEALL(L,2,LL)=0.
+                ENTALL(L,1,LL)=0.
+                ENTALL(L,2,LL)=0.
+                DETRAINDEEP(L,1,LL) = 0.0
+                DETRAINDEEP(L,2,LL) = 0.0
+C--- Added by J.W. ending ---C
                 TPALL(L,1,LL)=0.
                 TPALL(L,2,LL)=0.
                 PRCCDEEP(L,1,LL) = 0.0
@@ -519,6 +532,12 @@ C****
           do L=1,LM
              WCUDEEP(L,1) = 0.0
              WCUDEEP(L,2) = 0.0
+C--- Added by J.W. starting ---C
+             MPLUMEDEEP(L,1) = 0.0
+             MPLUMEDEEP(L,2) = 0.0
+             ENTDEEP(L,1) = 0.0
+             ENTDEEP(L,2) = 0.0
+C--- Added by J.W. ending ---C
           enddo
       endif
 #endif
