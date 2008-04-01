@@ -197,18 +197,18 @@ SO2_FIELD=so2_conc
 ! --------Dorothy's------------------------------
 ! DMS_SEA=DMS.dat
 ! AER_CHEM=trace_gas_3D_fields_E
-! AER_NO3=NO3_12
 ! SO2_IND=SO2_1990.EDGAR3.2
 ! SO2_BIOMASS=SO2_bio2000.AEROCOM_DEC03
 ! SO2_VOLCANO=SO2_volc_conti2000.AEROCOM_FEB12
 ! AIRCRAFT=MM_fuel_2015_subsonic_M31
 ! BC_BIOFUEL=BC_bf2000.AEROCOM_DEC03
 ! BC_FOSSIL_FUEL=BC_ff2000.AEROCOM_DEC03
-! BC_BIOMASS=carb_biom
 ! OC_BIOFUEL=OC_bf2000.AEROCOM_DEC03
 ! OC_FOSSIL_FUEL=OC_ff2000.AEROCOM_DEC03
-! OC_BIOMASS=OC_fire2000.AEROCOM_DEC03
+! BC_BIOMASS=BC_Biomass_1997-2001
+! OC_BIOMASS=OM_Biomass_1997-2001
 ! TERPENE=terp
+! -------cosmogenic--------------------
 ! BE7_COSMO=Be23m1phi700.dat
 
 Label and Namelist:
@@ -324,6 +324,7 @@ cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1979
 dalbsnX=.015
 o3_yr   =1979
+aer_int_yr=1995
 !-------------------------------------------------------------------------
 !-------------------------------------------------------------------------
 COUPLED_CHEM=0     ! to couple chemistry and aerosols
