@@ -9460,8 +9460,8 @@ c 1.3 converts OC to OM
        OCI_src(:,j_0:j_1,1:4)=OCI_src5(:,j_0:j_1,1:4)
      * *1.3d0/(sday*365.d0)
 #endif
-      if (imAER.ne.3) then  !else read in daily
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
+      if (imAER.ne.3) then  !else read in daily
 c read in NH3 emissions
 c Industrial
       NH3_src_con(:,:)=0.d0
@@ -9485,8 +9485,8 @@ c Industrial
       NH3_src_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/dxyp(j)
       end do
       call closeunit(iuc)
-#endif
       endif
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c **** reads in files for dust/mineral tracers
