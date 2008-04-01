@@ -89,6 +89,10 @@
 !        gsout = pftpar(pft)%b
 !        psp%ci = ca             !Dummy assignment, no need to solve for ci 
 !      else
+cddd      print *,"called Photosynth_analyticsoln",
+cddd     &     pft,IPAR,psp%ca,ci,
+cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
+
         call Photosynth_analyticsoln(pft,IPAR,psp%ca,ci,
      &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
         psp%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
@@ -130,7 +134,7 @@
 
 !      call calc_Pspar(pft, Pa, Tl, O2pres, pspar) !Moved up a module to reduce computation.
       Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
-      
+
       call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, Cie, Je1)
       call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, Cic, Jc1)
       call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, Cis, Js1)
@@ -469,7 +473,8 @@
 
       end function Tresponse
 !=================================================
-      real*8 function ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar) Result(ci)
+      real*8 function ci_cubic_old(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
+     &     Result(ci)
       !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
       !@sum ci (umol/mol)
       !@sum For the case of assimilation being of the form:
@@ -577,6 +582,9 @@
       if ( nroots<1 ) call stop_model("ci_cubic: no solution",255)
       ci = maxval( cixx(1:nroots) )
 
+      !!print *,"ci, A", ci, a*(ci - gamol)/(e*ci + fmol) - Rd
+      !!print *,"cs ",ca- (a*(ci - gamol)/(e*ci + fmol) - Rd)*1.37d0*rb
+      !!print *,"m,rh,b,rb",m,rh,b,rb
 #endif
 
 !#define DEBUG_CUBIC
@@ -594,9 +602,11 @@
       !do i=1,nroots
       !ci = cixx(i)
       print *,"-----------------"
-      print *,"a,gammamol,fmol,Rd", a,gamol,fmol,Rd
+      print *,"a,gammamol,fmol,Rd,e", a,gamol,fmol,Rd,e
       print *,"ci", ci
 
+      print *,(ci - gamol),(e*ci + fmol),a,Rd
+      print *,"m,rh,b,rb",m,rh,b,rb
       A_ = a*(ci - gamol)/(e*ci + fmol) - Rd
       cs_ = ca - A_*C3_*rb
       rs_ = 1./(m*A_*rh/cs_ + b)
@@ -662,9 +672,9 @@
 #endif
       ! testing new solution for "ci"
       !ci_ = ci_cubic1(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
-      end function ci_cubic
+      end function ci_cubic_old
 
-      real*8 function ci_cubic1(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)Result(ci)
+      real*8 function ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)Result(ci)
       !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
       !@sum ci (umol/mol)
       !@sum For the case of assimilation being of the form:
@@ -704,8 +714,10 @@
         ! this can happen only for very low humidity
         ! probably should never happen in the real world, but if it does,
         ! this case should be considered separately
+        print *,"!!! A_d_asymp >= 0.d0 !!!", A_d_asymp
+        A_d_asymp = -1.d30 !!! hack
         print *,"K<b*Ra: m,rh,b,Ra:",pspar%m,rh,b,Ra
-        call stop_model("ci_cubic: rh too small ?",255)
+        !!call stop_model("ci_cubic: rh too small ?",255)
       endif
 
       Y= f1/e1
@@ -722,6 +734,8 @@
 
         call cubicroot(c3, c2, c1, c, cixx, nroots)
 
+        !!print *,"roots= ", cixx(1:nroots)
+
         ! find minimal root above the asymptotic value
         A = 1.d30
         do i=1,nroots
@@ -736,7 +750,7 @@
           ! just in case, check consistency
           if ( ci < 0.d0 ) call stop_model("ci_cubic: ci<0",255)
           if ( cs < 0.d0 ) call stop_model("ci_cubic: cs<0",255)
-          print *,'QQQQ ',A
+          !!print *,'QQQQ ',A,ci
           return
         endif
 
@@ -756,13 +770,13 @@
       cs = ca - A*Ra
       Rs = 1.d0 / ( b)
       ci = cs - A*Rs
-      print *,"q ", ci, cs, A, Rs, Ra
+      !!print *,"q ", ci, cs, A, Rs, Ra
       ! just in case, check consistency
       if ( ci < 0.d0 ) call stop_model("ci_cubic: q: ci<0",255)
       if ( cs < 0.d0 ) call stop_model("ci_cubic: q: cs<0",255)
-      print *,'QQQQ ',A
+      !!print *,'QQQQ ',A,ci
 
-      end function ci_cubic1
+      end function ci_cubic
 
 
       subroutine Baldocchi(c3,c2,c1,c)
@@ -1037,6 +1051,8 @@ cddd
       real*8 :: gsw !Leaf conductance of water vapor (mol m-2 s-1)
       !----Local-----
       
+      ! just in case check cs (remove after debugging ?)
+      if ( cs <= 0.d0 ) call stop_model("BallBerry: cs <= 0", 255)
       gsw = pspar%m*Anet*rh/cs + pspar%b
       if (gsw < pspar%b) gsw = pspar%b
 
