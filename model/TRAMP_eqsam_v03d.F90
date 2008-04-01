@@ -1,7 +1,9 @@
 subroutine eqsam_v03d(yi,yo,nca,nco,iopt,loop,imax,ipunit,in)
 !
 implicit none
-!___________________________________________________________________________________________________________________________________
+!
+!@auth Swen Metzger/Susanne Bauer/Doug Wright
+___________________________________________________________________________________________________________________________________
 !      Written by Swen Metzger 3/11/99. Modified 2002, 2003.
 !
 !      Department of Atmospheric Chemistry, Max-Planck-Institute for Chemistry.
