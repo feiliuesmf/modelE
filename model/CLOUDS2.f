@@ -12,6 +12,11 @@
       USE SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
      &                   SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt
       USE SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
+C--- Added by J.W. starting ---C
+     &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
+     &                    ENTSCM,ENTALL,ENTDEEP,
+     &                    DETRAINDEEP,
+C--- Added by J.W. ending ---C
      &                    TPALL,PRCCGRP,PRCCICE,MCCOND,
      &                    PRESAV,LHPSAV,PREMC,LHPMC
 #endif
@@ -599,10 +604,19 @@ C**** initiallise arrays of computed ouput
           do L=1,LM
              WCUDEEP(L,1) = 0.d0
              WCUDEEP(L,2) = 0.d0
+C--- Added by J.W. starting ---C
+             MPLUMEDEEP(L,1) = 0.d0
+             MPLUMEDEEP(L,2) = 0.d0
+             ENTDEEP(L,1) = 0.d0
+             ENTDEEP(L,2) = 0.d0
+C--- Added by J.W. ending ---C
           enddo
           do K=1,LM
              do IC=1,2
                 do L=1,LM
+C--- Added by J.W. starting ---C
+                   DETRAINDEEP(L,IC,K) = 0.d0
+C--- Added by J.W. ending ---C
                    PRCCDEEP(L,IC,K) = 0.d0
                    NPRCCDEEP(L,IC,K) = 0.d0
                    TPALL(L,IC,K) = 0.d0
@@ -810,6 +824,10 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
 #ifdef SCM
         if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
             WCUALL(L,IC,LMIN) = 0.
+C--- Added by J.W. starting ---C
+            MPLUMEALL(L,IC,LMIN) = 0.
+            ENTALL(L,IC,LMIN) = 0.
+C--- Added by J.W. ending ---C
         endif
 #endif
         DDR(L)=0.
@@ -936,6 +954,10 @@ C        MC1=.FALSE.
 #ifdef SCM
         if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
             WCUALL(L,IC,LMIN) = 0.
+C--- Added by J.W. starting ---C
+            MPLUMEALL(L,IC,LMIN) = 0.
+            ENTALL(L,IC,LMIN) = 0.
+C--- Added by J.W. ending ---C
         endif
 #endif
         DDR(L)=0.
@@ -1474,6 +1496,10 @@ C****
       if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
 c         save cumulus updraft speed and plume temperature
           WCUALL(L,IC,LMIN) = WCU(L)
+C--- Added by J.W. starting ---C
+          MPLUMEALL(L,IC,LMIN) = CCM(L-1)
+          ENTALL(L,IC,LMIN) = 1000.D0*ENT(L)
+C--- Added by J.W. ending ---C
           TPALL(L,IC,LMIN) = TP                              ! Save plume temp
 c         write(iu_scm_prt,885) LMIN,ic,L,WCU(L), WCUALL(L,IC,LMIN)
 c885      format(1x,'mstcnv  lmin ic l wcu wcuall ',
@@ -1632,6 +1658,10 @@ c           write(iu_scm_prt,887) LMIN,LMAX,IC
 c887        format(1x,'mstcnv -- deep lmin lmax ic ',i5,i5,i5)
             DO L=LMIN,LMAX
                 WCUDEEP(L,IC) = WCU(L)
+C--- Added by J.W. starting ---C
+                MPLUMEDEEP(L,IC) = CCM(L-1)
+                ENTDEEP(L,IC) = 1000.D0*ENT(L)
+C--- Added by J.W. ending ---C
                 IF(IC.EQ.1) THEN
                   SAVWL(L)=WCU(L)
                 ELSE
@@ -1992,6 +2022,11 @@ C****
       IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN      ! always?
         DO L=LMAX,LMIN,-1
           IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
+C--- Added by J.W. starting ---C
+          FCLW=0.
+          IF (COND(L).GT.0) FCLW=(COND(L)-CONDP(L))/COND(L)
+          SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)*FMC1
+C--- Added by J.W. ending ---C
 #ifdef SCM
           if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
 cccc  in g/m3
@@ -2005,6 +2040,9 @@ cccc  in kg/kg
      *             BYAM(L)
              PRCCGRP(L,IC,LMIN) = FMC1*CONDGP(L)*BYAM(L)
              PRCCICE(L,IC,LMIN) = FMC1*CONDIP(L)*BYAM(L)
+C--- Added by J.W. starting ---C
+             DETRAINDEEP(L,IC,LMIN) = SVWMXL(L)
+C--- Added by J.W. ending ---C
 
 c            write(iu_scm_prt,889) lmin,ic,FMC1,L,
 c    *              PRCCDEEP(L,IC,LMIN)*1000.,
@@ -2016,9 +2054,11 @@ c    *        'mc--dp lmin ic fmc1 l prcc nprcc tp grp ice',
 c    *              2(i4),f8.3,i4,f9.5,f9.5,f8.2,f9.5,f9.5)
           endif
 #endif
-          FCLW=0.
-          IF (COND(L).GT.0) FCLW=(COND(L)-CONDP(L))/COND(L)
-          SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)*FMC1
+C--- Commented by J.W. starting ---C
+C         FCLW=0.
+C         IF (COND(L).GT.0) FCLW=(COND(L)-CONDP(L))/COND(L)
+C         SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)*FMC1
+C--- Commented by J.W. ending ---C
           COND(L)=CONDP(L)
 #ifdef TRACERS_WATER
 C**** Apportion cloud tracers and condensation
