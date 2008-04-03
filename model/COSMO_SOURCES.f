@@ -185,7 +185,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       IMPLICIT NONE
       character title*80
       integer, parameter :: npress=23, nlat=46, nphi=21
-      integer, parameter :: nyrs=105
+      integer, parameter :: nyrs=1002
       real :: year(nyrs), phi_record(nyrs), phi_yr, phi_list(nphi), phi
       real*8 :: be7_prod(1:nphi,1:nlat,1:npress)
       real*8 :: be10_prod(1:nphi,1:nlat,1:npress)
@@ -208,7 +208,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       print*, "read tfacti_10"
       print*, "tfacti_10 = ", tfacti_10
       read(iuc,*) be10_prod
-      print*, "be10 prod: ", be10_prod(15,12,12)
+      print*, "be10 prod: ", be10_prod(12,12,12)
  20   call closeunit(iuc)
       
       print*, "reading file for annual Be7 prod"
@@ -218,14 +218,14 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       print*, "read tfacti_7"
       print*, "tfacti_7 = ", tfacti_7
       read(iuc,*) be7_prod
-      print*, "be7 prod: ", be7_prod(15,12,12)
+      print*, "be7 prod: ", be7_prod(12,12,12)
  30   call closeunit(iuc)
 
       print*, "reading file for annual phi values"
       call openunit('PHI_ANN', iuc, .false., .true.)
       do i = 1,nyrs
          read(iuc,*) year(i), phi_record(i)
-c         print*, "phi_record (1) = ", phi_record(1)
+c        print*, "phi_record (1) = ", phi_record(1)
       end do
       call closeunit(iuc)  
 
@@ -234,38 +234,56 @@ c         print*, "phi_record (1) = ", phi_record(1)
       do i = 1,nyrs
          if (phi_yr .eq. year(i)) then
             phi = phi_record(i)
+            print*, "found phi_record: ", phi
          end if
       end do
       
       phi_list(1) = 0.
       do n = 2,nphi
          phi_list(n) = phi_list(n-1) + 50.
-c         print*, "Phi = ", phi_list(n)
+         print*, "Phi = ", phi_list(n)
       end do
 
 
-      do i = 1,nphi
+      do i = 1,nphi-1
          if ((phi_list(i) .le. phi) .and.(phi_list(i+1) .gt. phi)) then
             print*, "phi values: ", phi, phi_list(i), phi_list(i+1)
             delta_phi = phi - phi_list(i)
+            print*, "delta_phi = ", delta_phi
             print*, "10: ", be10_prod(i+1,12,12), be10_prod(i,12,12)
             print*, "7: ", be7_prod(i+1,12,12), be7_prod(i,12,12)
-            
+
+            print*, "be10 =", (be10_prod(i+1,12,12)-be10_prod(i,12,12))
+            print*, "diff phi =", ((phi_list(i+1))-(phi_list(i)))
+
             slope_10=(be10_prod(i+1,:,:)-be10_prod(i,:,:))/((phi_list(i
      $           +1))-(phi_list(i)))
-            print*, "slope 10 = ", slope_10(2,4)
+            print*, "slope 10 = ", slope_10(12,12)
            
             slope_7=(be7_prod(i+1,:,:)-be7_prod(i,:,:))/((phi_list(i+1))
      $           -(phi_list(i)))
-            print*, "slope 7 = ", slope_7(2,4)
+            print*, "slope 7 = ", slope_7(12,12)
             
-            ibe_10(:,:) = be10_prod(i,:,:)+(slope_10(:,:)*delta_phi)
-            ibe_7(:,:) = be7_prod(i,:,:)+(slope_7(:,:)*delta_phi)
-            print*, "ibes: ", ibe_10(2,4), ibe_7(2,4)
+            ibe_10(J_0:J_1,:) = be10_prod(i,J_0:J_1,:)
+     *           +(slope_10(:,:)*delta_phi)
+            ibe_7(J_0:J_1,:) = be7_prod(i,J_0:J_1,:)
+     *           +(slope_7(:,:)*delta_phi)
+            print*, "ibes: ", ibe_10(J_0:J_1,12), ibe_7(J_0:J_1,12)
+            print*, "J_0 = ", J_0
             
-          end if
+         else if (phi_list(nphi) .le. phi) then
+            print*, "phi values: ", phi, phi_list(nphi)
+            delta_phi = 0.
+            
+            ibe_10(J_0:J_1,:) = be10_prod(nphi,J_0:J_1,:)
+            ibe_7(J_0:J_1,:) = be7_prod(nphi,J_0:J_1,:)
+            print*, "ibes: ", ibe_10(J_0,12), ibe_7(J_0,12)
+            print*, 'J_0 = ', J_0
+            
+            
+         end if
       end do
- 
+      
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "converting units for Be10 and Be7"
       do l=1,lm; do j=J_0,J_1; do i=1,im
@@ -279,8 +297,9 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "be7_src_param = ", be7_src_param
       print*, "tr_mm(n_Be10)/tr_mm(n_Be7) = ", tr_mm(n_Be10)
      $     /tr_mm(n_Be7)
-      print*, "be7_src_3d(10,24,1) = ",be7_src_3d(10,24,1) 
-      print*, "be10_src_3d(10,24,1) = ",be10_src_3d(10,24,1)
+      print*, "be7_src_3d(J_0,12,12) = ",be7_src_3d(J_0,12,12) 
+      print*, "be10_src_3d(J_0,12,12) = ",be10_src_3d(J_0,12,12)
+      print*, "J_0 = ", J_0
       
       END SUBROUTINE update_annual_phi
 
@@ -384,6 +403,8 @@ c     value and that day's phi value
       end if
         print*, "phi_day = ", phi_day
 
+c        phi_day = daily_phi(1)
+
       do m = 2,nphi
          if ((phi_day .lt. phi_list(m)) .and. (phi_day .ge. phi_list(m-1
      $        ))) then
@@ -393,6 +414,11 @@ c     value and that day's phi value
             exit 
          end if
       end do
+
+c      phi_low = phi_list(14)
+c      phi_hi = phi_list(15)
+c      iphi = 14
+
 !      print*, "phi values: ", phi_low, phi_hi, iphi
       
 
