@@ -1216,7 +1216,7 @@ contains
     Real*8, intent(out),Dimension(:,grid % J_STRT:,:) :: U_b, V_b
 
     Real*8, allocatable, dimension(:,:,:) :: Ua_halo, Va_halo
-    Integer :: i,j,k,im1
+    Integer :: i,j,k,ip1
     integer :: j_0stgr, j_1stgr,J_0h,J_1h,J_0,J_1
 
     Call Get(grid, J_STRT_STGR=j_0stgr, J_STOP_STGR=j_1stgr, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, &
@@ -1231,12 +1231,12 @@ contains
 
     Do k = 1, LM
        Do j = j_0STGR, j_1STGR
-          im1 = IM
-          Do i = 1, IM
+          i = IM
+          Do ip1 = 1, IM
 
-             u_b(i,j,k) = (Ua_halo(im1,j-1,k) + Ua_halo(i,j-1,k) + Ua_halo(im1,j,k) + Ua_halo(i,j,k))/4
-             v_b(i,j,k) = (Va_halo(im1,j-1,k) + Va_halo(i,j-1,k) + Va_halo(im1,j,k) + Va_halo(i,j,k))/4
-             im1 = i
+             u_b(i,j,k) = (Ua_halo(ip1,j-1,k) + Ua_halo(i,j-1,k) + Ua_halo(ip1,j,k) + Ua_halo(i,j,k))/4
+             v_b(i,j,k) = (Va_halo(ip1,j-1,k) + Va_halo(i,j-1,k) + Va_halo(ip1,j,k) + Va_halo(i,j,k))/4
+             i = ip1
 
           End do
        end do
@@ -1281,8 +1281,8 @@ contains
           im1 = IM
           Do i = 1, IM
 
-             u_a(im1,j,k) = (ub_halo(im1,j,k) + ub_halo(i,j,k) + ub_halo(im1,j+1,k) + ub_halo(i,j+1,k))/4
-             v_a(im1,j,k) = (vb_halo(im1,j,k) + vb_halo(i,j,k) + vb_halo(im1,j+1,k) + vb_halo(i,j+1,k))/4
+             u_a(i,j,k) = (ub_halo(im1,j,k) + ub_halo(i,j,k) + ub_halo(im1,j+1,k) + ub_halo(i,j+1,k))/4
+             v_a(i,j,k) = (vb_halo(im1,j,k) + vb_halo(i,j,k) + vb_halo(im1,j+1,k) + vb_halo(i,j+1,k))/4
              im1 = i
 
           End do
@@ -1343,7 +1343,7 @@ contains
     Real*8, intent(out) :: U_d(:,grid % j_strt:,:)
     Real*8, intent(out) :: V_d(:,grid % j_strt:,:)
 
-    Integer :: i, j, k, ip1
+    Integer :: i, j, k, im1
     Integer :: j_0, j_1, j_0s, j_1s
     Logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -1375,10 +1375,10 @@ contains
 ! U-grid
     Do k = 1, LM
        Do j = j_0s, j_1
-          i = IM
-          Do ip1 = 1, IM
-             U_d(i,j,k) = (U_b(i,j,k) + U_b(ip1,j,k)) /2
-             i = ip1
+          im1 = IM
+          Do i = 1, IM
+             U_d(i,j,k) = (U_b(i,j,k) + U_b(im1,j,k)) /2
+             im1 = i
           End Do
        !  U_d(:,j,:) = (U_b(:,j,:) + CSHIFT(U_b(:,j,:),1,1))/2
        End Do
