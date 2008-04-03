@@ -1750,7 +1750,7 @@ C****
 C
 C**** Initialize nudging
 #ifdef NUDGE_ON
-      CALL NUDGE_INIT
+      if (istart.gt.0) CALL NUDGE_INIT
 #endif
 #ifdef TRACERS_AMP
       CALL SETUP_CONFIG
