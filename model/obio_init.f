@@ -12,11 +12,14 @@ c
      .                    ,C_tend,wsdet,gro
 
 
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars, only : nstep
       implicit none  
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       integer iu_bio
       integer nt,nl
@@ -28,7 +31,7 @@ c
 
 
       real planck,c,hc,oavo,rlamm,rlam450,Sdom,rlam,hcoavo
-     .    ,rnn,rbot,t,tlog,fac,a0,a1,a2,a3,b0,b1,b2,b3
+     .    ,rnn,rbot,t,tlog,fac,a0,a1,a2,a3,b0,b1,b2,b3,pi
 
       character*50 title
 !     character*50 cfle

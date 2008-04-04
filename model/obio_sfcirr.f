@@ -9,11 +9,14 @@ c  in light, and computes average cosine for direct irradiance.
       USE obio_forc,  only :rmud,Ed,Es,solz,rod,ros
       USE obio_com,   only :npst,npnd,hour_of_day,day_of_month
  
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars, only : lp
       implicit none
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       integer iprt,nl
       real rn,sirr,rsza,sinszaw,szaw,rmudl

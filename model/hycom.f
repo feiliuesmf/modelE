@@ -90,7 +90,7 @@ c
 !     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
 !     . ,gmelt,egmelt,solar,gtempr
 #ifdef TRACERS_GASEXCH_Natassa
-     . ,TRGASEX,GTRACER
+      USE FLUXES, only : TRGASEX,GTRACER
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 

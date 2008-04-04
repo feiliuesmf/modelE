@@ -7,11 +7,14 @@
 !!#endif
 
 
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars, only : lp
       implicit none
  
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       data trminima/0.,0.,0.,0.,0.,0.,0.,0.,0.,0.2,1913./
       data trmaxima/40.,0.6,108.,3.5,3.,0.6,0.4,0.3,0.8,16.3,2400./

@@ -7,11 +7,13 @@ c
       USE obio_com, only : npst,npnd,obio_P,avgq1d,ihra_ij
      .                    ,acdom
 
+      USE hycom_dim
+      USE hycom_arrays
       implicit none
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
 
       integer :: nl,nt

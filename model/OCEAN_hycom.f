@@ -6,8 +6,7 @@
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_Natassa
-        USE FLUXES, only : 
-     .                  ,GTRACER,TRGASEX
+      USE FLUXES, only : GTRACER,TRGASEX
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
@@ -63,9 +62,7 @@ c
           GTEMP(1,1,I,J)=asst(I,J)
           gtempr(1,I,J)=atempr(I,J)
 #ifdef TRACERS_GASEXCH_Natassa
-        do nt=1,ntm
-        GTRACER(nt,1,I,J)=atrac(I,J,nt)
-        enddo
+        GTRACER(1:ntm,1,I,J)=atrac(I,J,1:ntm)
 #endif
         END IF
       END DO
@@ -149,7 +146,7 @@ c
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
 !!      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
-      USE HYCOM_DIM_GLOB, only : kk,iia,jja
+      USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
      &     ,onem
 #ifdef TRACERS_GASEXCH_Natassa

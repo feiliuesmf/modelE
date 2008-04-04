@@ -2,9 +2,10 @@
 
       USE obio_dim
 
+      USE hycom_dim
       implicit none
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
 
 

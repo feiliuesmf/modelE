@@ -1,9 +1,12 @@
       subroutine obio_trint
 
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars, only : lp, nstep
       implicit none
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       integer ntr
       real sum,sum_area,summ

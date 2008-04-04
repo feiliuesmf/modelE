@@ -9,10 +9,13 @@ c
       USE obio_com,   only : tfac,rmuplsr,rikd,bn,wshc,Fescav
      .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo
 
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars, only : nstep
       implicit none
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       integer :: nt,ikd
       real :: tfac20,tfact,tfac2,rlightlo,rlighthi,rmidq,fac

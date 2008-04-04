@@ -13,7 +13,7 @@ c --- hycom version 0.9
 !     .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
 !     .      ,gtemp,sss,mlhc,gtempr
 #ifdef TRACERS_GASEXCH_Natassa
-     .      ,GTRACER
+      USE FLUXES, only : GTRACER
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 

@@ -11,11 +11,13 @@ c  leap frog method.
      .                   ,rhs
 
 
+      USE hycom_dim
+      USE hycom_arrays
       implicit none
  
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h" 
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       integer :: nt,kmax
       real    :: Pnew,Dnew,Cnew

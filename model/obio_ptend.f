@@ -24,11 +24,14 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,temp1d,wsdet,tzoo,p1d
      .                    ,pnoice2,rhs
 
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars, only : nstep
       implicit none
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       integer nt,kmax
 

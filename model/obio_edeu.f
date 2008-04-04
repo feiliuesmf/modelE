@@ -18,11 +18,13 @@ c  final is quanta for phytoplankton growth.
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
 
+      USE hycom_dim
+      USE hycom_arrays
       implicit none
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
       integer nl,ih,icd,ich,ntr,kmax
 

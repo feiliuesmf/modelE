@@ -4,12 +4,13 @@
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
 
+      USE hycom_dim
       implicit none
 
       SAVE
 
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
 
 

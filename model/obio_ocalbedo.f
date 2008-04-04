@@ -6,11 +6,13 @@ c  Albedo is provided as direct (albd) and diffuse (albs).
   
       USE obio_dim
 
+      USE hycom_dim
+      USE hycom_arrays
       implicit none
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
 !     parameter(nltgmao=8)
 !     real albd(nltgmao),albs(nltgmao)
@@ -88,11 +90,13 @@ c  et al., 1996 (JGR)
       USE obio_incom,only : rad,rn,wfac,roair
       USE obio_forc, only : sunz,rod,ros,wind
 
+      USE hycom_dim
+      USE hycom_arrays
       implicit none
 
 
-      include 'dimensions.h'
-      include 'common_blocks.h'
+!!      include 'dimensions.h'
+!!      include 'common_blocks.h'
 
       integer nl
       real cn,rof,rosps,rospd,rtheta

@@ -33,10 +33,13 @@ c  Carbon type 2    = DIC
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax
  
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars
       implicit none
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
 
 
@@ -600,10 +603,13 @@ c       13 -- Mediterranean/Black Seas
 
       USE obio_dim
 
+      USE hycom_dim
+      USE hycom_arrays
+      USE hycom_scalars, only : onem
       implicit none
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!!#include "common_blocks.h"
 
 
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp

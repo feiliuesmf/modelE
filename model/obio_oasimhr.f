@@ -8,9 +8,10 @@ c
       USE obio_forc, only :Eda2,Esa2,Ed,Es
       USE obio_com,  only :inwst,inwnd,jnwst,jnwnd
 
+      USE hycom_dim
       implicit none
 
-#include "dimensions.h"
+!!#include "dimensions.h"
 #include "dimension2.h"
 
       integer ihr,ihs,nl,i0,j0
