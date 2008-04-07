@@ -1367,10 +1367,10 @@ c
       ir_ij(k) = ir_0_710
 c
       k=k+1 !
-      IJ_FSRDIR = k ! FSRDIR (W/m**2)                         2 RD
+      IJ_SRVDIR = k ! FSRDIR*SRVISSURF (W/m**2)                         2 RD
       lname_ij(k) = 'DIRECT VISIBLE SOLAR RADIATION AT SURFACE'
       units_ij(k) = 'W/m^2'
-      name_ij(k) = 'fsrdir'
+      name_ij(k) = 'srvdir'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_710
