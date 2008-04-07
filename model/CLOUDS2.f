@@ -2041,7 +2041,7 @@ cccc  in kg/kg
              PRCCGRP(L,IC,LMIN) = FMC1*CONDGP(L)*BYAM(L)
              PRCCICE(L,IC,LMIN) = FMC1*CONDIP(L)*BYAM(L)
 C--- Added by J.W. starting ---C
-             DETRAINDEEP(L,IC,LMIN) = SVWMXL(L)
+             DETRAINDEEP(L,IC,LMIN) = FCLW*COND(L)*BYAM(L)*FMC1
 C--- Added by J.W. ending ---C
 
 c            write(iu_scm_prt,889) lmin,ic,FMC1,L,
