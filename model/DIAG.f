@@ -3159,7 +3159,7 @@ C****
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4
-!@+                    7BEW, 7BED, BE7ATM, EVAP
+!@+                    7BEW, 7BED, BE7ATM
 !@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP  ! aerosol
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
 !@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
@@ -3388,9 +3388,11 @@ c          data=sday*prec/dtsrc
 #ifdef TRACERS_COSMO
         case ("7BEW")
           data=Be7w_acc
+          Be7w_acc=0.
 
         case ("7BED")
           data=Be7d_acc
+          Be7d_acc=0.
 #endif
         case default
           goto 10
