@@ -97,10 +97,10 @@ c      Call GetEnv ('IFDIR',IFDIR)
       IFDIR  = '/discover/nobackup/projects/giss/prod_input_files'
       FILEIT = Trim(OBS)   // '/WOA98/TO1X1.MC'
       FILEIS = Trim(OBS)   // '/WOA98/SO1X1.MC'
-      FILEIZ = Trim(IFDIR) // '/Z72X46N_gas.1_nocasp' !_21k_ice5g'
+      FILEIZ = Trim(IFDIR) // '/Z72X46N_gas.1_nocasp_21k_ice5g'
       FILEIO = Trim(IFDIR) // '/OFTABLE_NEW'
       FILEII = Trim(IFDIR) // '/GIC.E046D3M20A.1DEC1955'
-      FILOUT = Trim(IFDIR) // '/OIC5X4_0k' !_21k_ice5g'
+      FILOUT = Trim(IFDIR) // '/OIC5X4_21k_ice5g'
 C****
 C**** Read WOA98 temperature and salinity data MC DataFiles
 C****
@@ -403,8 +403,15 @@ C     Write (TITLE(40:43),982) Nint(.5*(ZOE(L)+ZOE(L-1)))
 C     Write (20) TITLE,Sngl(SZ(L,:,:))
 C 850 Write (0,983) Trim(TITLE),SZ(L,1,30)
       Close (20)
-      print*,"Test s0m ",s0(1,4,1),g0(1,4,1),mo(4,1,1)
-      print*,"Test s0m ",s0(1,1,4),g0(1,1,4),mo(1,4,1)
+
+      do i=1,im
+        do j=1,jm
+          do l=1,lmo
+            if((mo(i,j,l).gt.0).and.(s0(l,i,j).lt.0) ) print*
+     *           ,"ijl s0 g0 mo",i,j,l,s0(l,i,j),g0(l,i,j),mo(i,j,l)
+          enddo
+        enddo
+      enddo
 
       GoTo 999
 C****
