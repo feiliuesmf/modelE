@@ -231,7 +231,7 @@ c      CLOSE (2)
 
       call writefile(filein,fileout,nsegn,ind)
 
-      WRITE (6,*) 'Output written on unit 2:  ',trim(filein)
+      WRITE (6,*) 'Output written on unit 2:  ',trim(fileout)
 C****
   901 FORMAT ('0',9X,13I4/' LENNOF = ',13I4/)
   929 FORMAT (' J,L,NSEG=',3I3,12(I5,I3))
