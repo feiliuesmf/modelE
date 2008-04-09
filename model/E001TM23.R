@@ -136,17 +136,19 @@ E001TM23 (Ejal1T+New ozone; add SF6_c; NSTRTC replaces ltropo)
 R=00BG/B
 
 &&PARAMETERS
-X_SDRAG=.00025,.000025  ! used for lin. sdrag above P_SDRAG mb
+X_SDRAG=.0005,.00005  ! used for lin. sdrag above P_SDRAG mb
 C_SDRAG=0.     ! no constant sdrag
-P_SDRAG=.1     ! lin. sdrag above .1 mb (top 2 layers) except near poles
-PP_SDRAG=.1    ! lin. sdrag above .1 mb near poles (top 2 layers)
+P_SDRAG=.01     ! lin. sdrag above p_sdrag mb (top layer for M23) except near poles
+PP_SDRAG=.1    ! lin. sdrag above  pp_sdrag mb near poles (top 5 layers for M23)
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
 WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used
+
 PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000030 !the default is 15d-6
 PCONPEN=400.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003 ! parameter for GW Moist Convective drag
 CMTN=0.25      ! default is 0.5
+CDEF=1.5       ! deformation drag coefficient
 
 KOCEAN=0
 Kvflxo=0        ! saving VFLXO (daily)
