@@ -1,9 +1,9 @@
 #!/bin/ksh
-echo "usage: ${0##*/} [ B|C dlat_dg (to be executed in ../aux)"
+echo "usage: ${0##*/} [ B|C dlat_dg (to be executed in ../init_cond)"
 
 # pick appropriate fortran compiler and data file directory
 FC=f90 ; base=/u/cmrun
-if [[ $( hostname ) = charney* ]] ;  then FC='f90 -convert big_endian' 
+if [[ $( hostname ) = charney* ]] ;  then FC='f90 -convert big_endian'
     base=/work/gcm ; fi
 if [[ $( hostname ) = palm* ]] ;     then FC='ifort -convert big_endian'
    base=/explore/nobackup/projects/GISS/prod_input_files ; fi
