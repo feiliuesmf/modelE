@@ -71,6 +71,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_INIT
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
       USE AERO_SETUP
+      USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
       USE DOMAIN_DECOMP,only: GRID, GET
 
       IMPLICIT NONE
@@ -97,8 +98,7 @@ C**** functions
       DIAM(:,J_0:J_1,:,:)       = 0.d0
       AMP_dens(:,J_0:J_1,:,:)   = 0.d0
       AMP_TR_MM(:,J_0:J_1,:,:)   = 0.d0
-      WUP = 0.5 ! [m/s] calculated in CLOUDS2.f but not in _E1
-
+ 
 
 
 
@@ -118,6 +118,8 @@ C**** functions
       PRES= pmid(l,i,j)*100.                  ! pmid in [hPa]
       TSTEP=dtsrc
       ZHEIGHT1 = GZ(i,j,l) /1000./9.81
+      WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
+
 c avol [m3/gb] mass of air pro m3      
       AVOL = am(l,i,j)*dxyp(j)/mair*1000.d0*gasc*tk/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
