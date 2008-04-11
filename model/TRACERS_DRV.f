@@ -9125,7 +9125,7 @@ C**** Initialise pbl profile if necessary
 #endif
 #if (defined TRACERS_WATER) && (defined TRACERS_OCEAN)
 C**** Initialise ocean tracers if necessary
-      call tracer_bc_ocean ! ANL :: 12/07
+      call tracer_ic_ocean
 #endif
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
