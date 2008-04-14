@@ -3081,8 +3081,8 @@ C**** position correctly
 
 C**** define lst
       do l=1,lm
-        if (l.lt.10) write(lst(1:2),'(I1,X)') l
-        if (l.ge.10) write(lst(1:2),'(I2)') l
+        if (l.lt.10) write(lst(l)(1:2),'(I1,X)') l
+        if (l.ge.10) write(lst(l)(1:2),'(I2)') l
       end do
 
 C**** initialise special subdd accumulation
@@ -3228,7 +3228,7 @@ C****
 
       kunit=0
 C**** depending on namedd string choose what variables to output
-      do k=1,kdd
+      nameloop: do k=1,kdd
 
 C**** simple diags (one record per file)
         select case (namedd(k))
@@ -3545,7 +3545,7 @@ C**** get model level
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
               call write_data(data,kunit,polefix)
-              cycle
+              cycle nameloop
             end if
           end do
         end select
@@ -3702,7 +3702,7 @@ C**** this prevents tokens that are not caught from messing up the file data
           kunit=kunit+1
         end select
 
-      end do ! end of  k=1,kdd loop
+      end do nameloop ! end of  k=1,kdd loop
 c****
       return
       end subroutine get_subdd
