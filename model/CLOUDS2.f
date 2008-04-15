@@ -1641,7 +1641,7 @@ c#endif
       COND(L)=COND(L)-CONDV(L)         ! CONDP1(L)
 C       WRITE(6,*) L,DWCU,WCU(L),CONDV(L),CONDP1(L),CONDP(L),COND(L)
 #ifdef TRACERS_WATER
-      FQCONDV=CONDV(L)/(COND(L)+CONDV(L))
+      FQCONDV=CONDV(L)/(COND(L)+CONDV(L)+teeny)
       TRCONDV(:,L)=FQCONDV*TRCOND(:,L)
       TRCOND (:,L)=TRCOND(:,L)-TRCONDV(:,L)
 #endif
