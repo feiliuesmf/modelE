@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       module HYCOM_SCALARS
       USE HYCOM_DIM_GLOB
 

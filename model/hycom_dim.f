@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 c-----------------------------------------------------------------------------
       module hycom_dim
       USE DOMAIN_DECOMP, only : DIST_GRID
@@ -20,11 +21,17 @@ c-----------------------------------------------------------------------------
      .ifv,ilv,isv,jfv,jlv,jsv,
      .msk
 
-      integer idm,jdm,kdm,ms,iia,jja,iio,jjo,ntrcr,iold
+      integer idm,jdm,kdm,ms,iia,jja,iio,jjo,iold
       real equato
-      parameter (idm=195,jdm=180,kdm=20,ms=15,ntrcr=1,equato=115.
+      parameter (idm=195,jdm=180,kdm=20,ms=15,equato=115.
      .          ,iold=181)
       parameter (iia=72,jja=46,iio=idm,jjo=jdm)
+
+#ifdef TRACERS_OceanBiology
+      integer, parameter :: ntrcr = 15
+#else
+      integer, parameter :: ntrcr = 1
+#endif
 c
 c --- ms-1  = max. number of interruptions of any grid row or column by land
 c

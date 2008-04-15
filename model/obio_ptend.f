@@ -14,7 +14,7 @@ c  P(9) = herbivores (mg chl m-3)
  
       USE obio_dim
       USE obio_incom,only: cnratio,cfratio,remin,obio_wsh
-     .                    ,wsdeth,rkn,rks,rkf,Rm
+     .                    ,wsdeth,rkn,rks,rkf,Rm,phygross
       USE obio_forc, only: tirrq
       USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend
      .                    ,gro,rlamz,dratez1,dratez2,bn
@@ -22,10 +22,10 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,wshc,rikd,rmuplsr,det
      .                    ,gcmax1d,covice_ij,atmFe_ij
      .                    ,temp1d,wsdet,tzoo,p1d
-     .                    ,pnoice2,rhs
+     .                    ,rhs,pp2_1d
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : nstep
       implicit none
 
@@ -81,9 +81,6 @@ c  P(9) = herbivores (mg chl m-3)
 
 !define no ice points based on covice (here: covice_ij)
       pnoice=1.-covice_ij
-      pnoice2=pnoice
-      !pnoice=1.  !Watson prefers that we do not change pnoice
-
 
 !tendency terms are computed in the mid-level (m)
 
@@ -293,10 +290,10 @@ cdiag     write(104,'(9(1x,es8.2))')dp1d(k),tirrq(k),
 cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
 cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 cdiag   endif
-        if (vrbos)
-     .    write(*,*)'ptend7 :', nstep,i,j,k,dp1d(k),tirrq(k),
-     .                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
-     .                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
+cdiag   if (vrbos)
+cdiag.    write(*,*)'ptend7 :', nstep,i,j,k,dp1d(k),tirrq(k),
+cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
+cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
@@ -319,8 +316,8 @@ cdiag   endif
            !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmms,rmmf)
         rlimice = min(rmmlice,rmmn,rmms,rmmf)
-        grate = rmuplsr(k,nt)*rlim*pnoice2
-     .          + rmuplsr(k,nt)*rlimice*(1.0-pnoice2)
+        grate = rmuplsr(k,nt)*rlim*pnoice
+     .          + rmuplsr(k,nt)*rlimice*(1.0-pnoice)
         rmu4(nt) = grate*framm
         rmu3(nt) = grate*(1.0-framm)
         rmu5(nt) = grate*rmms
@@ -330,6 +327,10 @@ cdiag   endif
         term = gro(k,nt)
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
+
+        !Net primary production
+        pp2_1d(k,nt) = gro(k,nt)
+     .               / phygross*max(p1d(k+1),1.e-3)*cchlratio
 
       endif
 
@@ -351,10 +352,10 @@ cdiag     write(105,'(9(1x,es8.2))')dp1d(k),tirrq(k),
 cdiag.               obio_P(k,1),obio_P(k,2),obio_P(k,4),rkn(nt),
 cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 cdiag   endif
-        if (vrbos)
-     .    write(*,*)'ptend8: ',nstep,i,j,k,dp1d(k),tirrq(k),
-     .               obio_P(k,1),obio_P(k,2),obio_P(k,4),rkn(nt),
-     .                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
+cdiag   if (vrbos)
+cdiag.    write(*,*)'ptend8: ',nstep,i,j,k,dp1d(k),tirrq(k),
+cdiag.               obio_P(k,1),obio_P(k,2),obio_P(k,4),rkn(nt),
+cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
@@ -374,8 +375,8 @@ cdiag   endif
            !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         rlimice = min(rmmlice,rmmn,rmmf)
-        grate = rmuplsr(k,nt)*rlim * pnoice2
-     .        + rmuplsr(k,nt)*rlimice * (1.0-pnoice2)
+        grate = rmuplsr(k,nt)*rlim * pnoice
+     .        + rmuplsr(k,nt)*rlimice * (1.0-pnoice)
         rmu4(nt) = grate*framm
         rmu3(nt) = grate*(1.0-framm)
         rmuf(nt) = grate*rmmf
@@ -411,8 +412,8 @@ cdiag   endif
         rlimrkn = min(rmml,rkn(nt),rmmf)   !limitation at kn
 
         grate = rmuplsr(k,nt)*rlim
-        rmu4(nt) = grate*framm*pnoice2
-        rmu3(nt) = grate*(1.0-framm)*pnoice2
+        rmu4(nt) = grate*framm*pnoice
+        rmu3(nt) = grate*(1.0-framm)*pnoice
         rfix = 0.25*exp(-(75.0*obio_P(k,nt+nnut)))
         rfix = max(rfix,0.0)
 c        rfix = min(rfix,0.2)
@@ -467,15 +468,20 @@ cdiag.   obio_P(k,2)
            !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim
-        rmu4(nt) = grate*framm * pnoice2
-        rmu3(nt) = grate*(1.0-framm) * pnoice2
-        rmuf(nt) = grate*rmmf * pnoice2
+        rmu4(nt) = grate*framm * pnoice
+        rmu3(nt) = grate*(1.0-framm) * pnoice
+        rmuf(nt) = grate*rmmf * pnoice
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
         term = gro(k,nt) * pnoice
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
         gcmax1d(k) = max(gcmax1d(k),grate)
+
+        !Net primary production
+        pp2_1d(k,nt) = gro(k,nt)
+     .               / phygross*max(p1d(k+1),1.e-3)*cchlratio*pnoice
+
       endif
 !!#endif
 
@@ -501,14 +507,19 @@ cdiag.   obio_P(k,2)
            !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim
-        rmu4(nt) = grate*framm * pnoice2
-        rmu3(nt) = grate*(1.0-framm) * pnoice2
-        rmuf(nt) = grate*rmmf * pnoice2
+        rmu4(nt) = grate*framm * pnoice
+        rmu3(nt) = grate*(1.0-framm) * pnoice
+        rmuf(nt) = grate*rmmf * pnoice
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
-        term = gro(k,nt) * pnoice2
+        term = gro(k,nt) * pnoice
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
+
+        !Net primary production
+        pp2_1d(k,nt) = gro(k,nt)
+     .               / phygross*max(p1d(k+1),1.e-3)*cchlratio*pnoice
+
       endif
 !!#endif
 

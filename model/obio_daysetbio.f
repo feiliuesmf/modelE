@@ -9,8 +9,8 @@ c
       USE obio_com,   only : tfac,rmuplsr,rikd,bn,wshc,Fescav
      .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : nstep
       implicit none
 !!#include "dimensions.h"

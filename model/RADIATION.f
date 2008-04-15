@@ -148,6 +148,7 @@ C----------------
       INTEGER use_tracer_ozone
       LOGICAL*4 :: flags
 
+
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
      A              PLB,HLB,TLB,TLT,TLM,SHL,RHL,ULGAS
      B             ,TAUWC,TAUIC,SIZEWC,SIZEIC,CLDEPS
@@ -6917,6 +6918,10 @@ cc      ALLGCB(K)=SGPG
 
       KLAM=KSLAM(K)
       DKS0X=DKS0(K)*S0COSZ
+
+!     write(*,'(a,3i5,3(e12.4,1x))')'RADIATION1: ',
+!    .     ILON,JLAT,K,DKS0(K),S0COSZ,DKS0X
+
       RBNB=SRBALB(KLAM)
       RBNX=SRXALB(KLAM)
       RCNB=0.D0
@@ -7192,6 +7197,9 @@ C     ------------------------------------------------------------------
       SRTVIS=DKS0X*(TANX+XANX)
       SRXVIS=SRXVIS+DKS0X*XANX
 
+!     write(*,'(a,3i5,3(e12.4,1x))')'RADIATION2: ',
+!    . ILON,JLAT,K,XANX,DKS0X,SRXVIS
+
 C     ------------------------------------------------------------------
 C     UV absorption by O3 and O2 within solar spectral band DKS0(15)=.05
 C     ------------------------------------------------------------------
@@ -7199,6 +7207,8 @@ C     ------------------------------------------------------------------
       K=15
       DKS0X=DKS0(K)*S0COSZ
       SRKINC(K)=DKS0X
+!     write(*,'(a,3i5,3(e12.4,1x))')'RADIATION3: ',
+!    . ILON,JLAT,K,DKS0(K),S0COSZ,DKS0X
 
       N=NL+1
       ATOPX=0.D0

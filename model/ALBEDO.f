@@ -1,10 +1,14 @@
-        
+#include "rundeck_opts.h"       
       MODULE SURF_ALBEDO
 !@sum SURF_ALBEDO contains parameters/variables needed for albedo calc
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
       implicit none
       save
       private
+
+#ifdef OBIO_RAD_coupling
+!     logical, external :: myalbedo
+#endif 
 
       public get_albedo_data, getsur, updsur, albvnh
 !@var NKBAND number of K-bands
@@ -290,9 +294,21 @@ C     -------------------
      o     BGFEMD,BGFEMT,
      o     DTRUFG,FTRUFG
      &     )
+
 !@sum GETSUR computes surface albedo for each grid box
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
+
+#ifdef OBIO_RAD_coupling
+      USE obio_forc, only : obio_bocvn,obio_xocvn
+
+cc      REAL*8 LOC_CHL
+cc      logical key
+cc      integer counter
+#endif
+
       implicit none
+
+
 !********* start  in/out *****************************
 C**** config data
       REAL*8 SNOAGE_FAC_MAX
@@ -408,6 +424,25 @@ C
         BOCVN(L)=BOCNIR         ! 1/2 already equivalenced
         XOCVN(L)=XOCNIR
       END DO
+
+#ifdef OBIO_RAD_coupling
+cc      key = myalbedo(WMAG,COSZ,BOCVN,XOCVN,LOC_CHL)
+cc!      write(*,*) key
+cc!      do counter=1, 6
+cc!        write(*,*) BOCVN(counter), XOCVN(counter)
+cc!      end do
+cc          IF(JLAT .EQ.10 .AND. ILON .EQ.10) THEN
+cc!             print *, 'Just test output of bocvn and xocvn'
+cc!        DO L=1,6
+cc                 print *, "test",BOCVN(1), XOCVN(1)
+cc!         END DO
+cc          END IF
+!use bocvn and xocvn computed by the obio_ocalbedo routine
+      DO L=2,6                  ! fill in higher bands
+      BOCVN(L) = obio_bocvn(L)
+      XOCVN(L) = obio_xocvn(L)
+      ENDDO
+#endif
 
 C**** For lakes increase albedo if lakes are very shallow
 C**** This is a fix to prevent lakes from overheating when they

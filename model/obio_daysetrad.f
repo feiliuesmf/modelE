@@ -7,8 +7,8 @@ c
       USE obio_com, only : npst,npnd,obio_P,avgq1d,ihra_ij
      .                    ,acdom
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       implicit none
 
 !!#include "dimensions.h"

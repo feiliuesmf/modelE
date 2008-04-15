@@ -33,8 +33,8 @@ c  Carbon type 2    = DIC
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax
  
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars
       implicit none
 !!#include "dimensions.h"
@@ -603,8 +603,8 @@ c       13 -- Mediterranean/Black Seas
 
       USE obio_dim
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : onem
       implicit none
 !!#include "dimensions.h"

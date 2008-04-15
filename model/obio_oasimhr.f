@@ -8,7 +8,7 @@ c
       USE obio_forc, only :Eda2,Esa2,Ed,Es
       USE obio_com,  only :inwst,inwnd,jnwst,jnwnd
 
-      USE hycom_dim
+      USE hycom_dim_glob
       implicit none
 
 !!#include "dimensions.h"

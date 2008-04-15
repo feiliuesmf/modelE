@@ -1,7 +1,7 @@
       subroutine obio_trint
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : lp, nstep
       implicit none
 !!#include "dimensions.h"

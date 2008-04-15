@@ -7,8 +7,8 @@
 !!#endif
 
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : lp
       implicit none
  

@@ -21,7 +21,7 @@ c
 
       USE obio_com, only : bn,C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,gro,pnoice,pCO2_ij
-     .                    ,temp1d,saln1d,dp1d,pnoice2,rhs,alk1d
+     .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
 #ifdef TRACERS_GASEXCH_CO2_Natassa
 
@@ -31,8 +31,8 @@ c
 
 #endif
       
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : nstep
       implicit none
 

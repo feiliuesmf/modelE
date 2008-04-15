@@ -926,6 +926,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
+
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -934,6 +935,9 @@ C     OUTPUT DATA
      &          ,BTEMPW ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
+#ifdef TRACERS_OceanBiology
+     &          ,SRXNIR,SRDNIR
+#endif
       USE RADPAR, only : writer,rcompx
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
@@ -941,6 +945,9 @@ C     OUTPUT DATA
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
+#ifdef TRACERS_OceanBiology
+     *     ,FSRDIF,DIRNIR,DIFNIR
+#endif
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -991,6 +998,10 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, HERE
       USE RAD_COSZ0, only : COSZT,COSZS
+
+#ifdef OBIO_RAD_coupling
+         USE obio_forc, only : chl
+#endif
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
@@ -1342,6 +1353,7 @@ CCC       STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 C****
+
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
 C**** kradia=1: instantaneous forcing - LS1_loc is not used
 C**** kradia>1: adjusted forcing, i.e. T adjusts in L=LS1_loc->LM+3
@@ -2040,6 +2052,16 @@ C****
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface
       SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface
+#ifdef TRACERS_OceanBiology
+      FSRDIF(I,J)=SRDVIS*(1-SRXVIS) ! diffuse visible solar at surface
+
+      DIRNIR(I,J)=SRXNIR            ! direct beam nir solar at surface            
+      DIFNIR(I,J)=SRDNIR*(1-SRXNIR) ! diffuse     nir solar at surface            
+     
+      write(*,'(a,2i5,6e12.4)')'RAD_DRV: ',
+     .    I,J,FSRDIR(I,J),SRVISSURF(I,J),FSRDIF(I,J),
+     .        DIRNIR(I,J),SRDNIR,DIFNIR(I,J)
+#endif
 C**** Save clear sky/tropopause diagnostics here
       AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+OPNSKY*
      *     SRDFLB(1)*CSZ2

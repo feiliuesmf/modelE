@@ -1,8 +1,9 @@
+#include "rundeck_opts.h"
       MODULE obio_forc
 
       USE obio_dim
 
-      USE hycom_dim
+      USE hycom_dim_glob
       implicit none
 
 !!#include "dimensions.h"
@@ -74,5 +75,16 @@
                    !     atmCO2=371.3          !uatm or ppmv (equivalent);
                                                !global mean
                                                !2000-2003 from OCMIP
+#ifdef OBIO_RAD_coupling
+      real, ALLOCATABLE :: chl_3d(:,:,:)
+
+      real obio_bocvn,obio_xocvn   !albedo bands that are used in modelE
+      common /alb_rad/ obio_bocvn(6),obio_xocvn(6)
+!$OMP THREADPRIVATE(/alb_rad/)
+
+      real chl
+      common /alb_rad_chl/chl
+!$OMP THREADPRIVATE(/alb_rad_chl/)
+#endif
 
       END MODULE obio_forc

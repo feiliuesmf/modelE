@@ -6,9 +6,8 @@
 
       USE obio_dim
 
-      USE hycom_dim
+      USE hycom_dim_glob
       implicit none
-
 
 !!#include "dimensions.h"
 #include "dimension2.h"
@@ -111,8 +110,8 @@ c
       common /btfac/ tfac(kdm)          
 !$OMP THREADPRIVATE(/btfac/)
 
-      real pnoice,pnoice2                     !pct ice-free
-      common /bpnoice/ pnoice,pnoice2   
+      real pnoice                    !pct ice-free
+      common /bpnoice/ pnoice  
 !$OMP THREADPRIVATE(/bpnoice/)
 
       real wsdet                              !detrital sinking rate
@@ -169,5 +168,10 @@ C endif
       real :: rhs
       common /brhs/ rhs(kdm,14,16)
 !$OMP THREADPRIVATE(/brhs/)
+
+      real :: pp2_1d,pp2tot_day              
+      common /bpp2/ pp2_1d(kdm,nchl)           !net primary production
+      common /bpp2tot/ pp2tot_day(idm,jdm)     !net pp total per day          
+!$OMP THREADPRIVATE(/bpp2/)
 
       END MODULE obio_com

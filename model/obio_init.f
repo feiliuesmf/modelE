@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 c ----------------------------------------------------------------
       subroutine obio_init
 c --- biological/light setup
@@ -8,12 +9,15 @@ c
       USE obio_dim
       USE obio_incom
       USE obio_forc, only : ihra,Eda,Esa,atmFe_all,alk
+#ifdef OBIO_RAD_coupling
+     .                      ,chl_3d
+#endif
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro
 
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : nstep
       implicit none  
 
@@ -399,6 +403,18 @@ c  Read in factors to compute average irradiance
       enddo
       close(iu_bio)
 
+!     open(unit=iu_bio,file='testit.asc',status='unknown')
+!     do j=1,jdm
+!     do i=1,idm
+!      do ichan=1,nlt
+!       write(iu_bio,'(4e12.4)')Eda(i,j,ichan,7,1),Eda(i,j,ichan,7,7)
+!    .                ,Esa(i,j,ichan,7,1),Esa(i,j,ichan,7,7)
+!      enddo
+!     enddo
+!     enddo
+!     close(iu_bio)
+!     stop
+
 
 
 !read in atmospheric iron deposition (this will also be changed later...)
@@ -443,6 +459,24 @@ c  Read in factors to compute average irradiance
       alk = 0.
       endif
 
+#ifdef OBIO_RAD_coupling
+!read in seawifs chlorophyl for obio_rad coupling
+      print*, '    '
+      print*, 'reading SEAWIFS chlorophyll data.....'
+
+      ALLOCATE (chl_3d(idm,jdm,12))
+
+      call openunit('CHL_DATA',iu_bio)
+      do k=1,12
+       do j=1,jdm
+        do i=1,idm
+         read(iu_bio,'(e12.4)')chl_3d(i,j,k)
+        enddo
+       enddo
+      enddo
+      call closeunit(iu_bio)
+#endif
+
 ! printout some key information
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
@@ -458,6 +492,9 @@ c  Read in factors to compute average irradiance
       if (IRON_from.eq.0) write(*,*) 'IRON FLUXES, GOCART model'
       if (IRON_from.eq.1) write(*,*) 'IRON FLUXES, R.Miller dustfluxes'
 
+#ifdef OBIO_RAD_coupling
+      print*, 'OBIO - RADIATION COUPLING'
+#endif
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'

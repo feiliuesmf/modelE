@@ -9,8 +9,8 @@ c  in light, and computes average cosine for direct irradiance.
       USE obio_forc,  only :rmud,Ed,Es,solz,rod,ros
       USE obio_com,   only :npst,npnd,hour_of_day,day_of_month
  
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars, only : lp
       implicit none
 

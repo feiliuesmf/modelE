@@ -13,6 +13,9 @@
      .                    ,owind,osolz
      .                    ,alk
      .                    ,tirrq3d
+#ifdef OBIO_RAD_coupling
+     .                    ,chl_3d,chl
+#endif
       USE obio_com,  only: gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
@@ -22,10 +25,10 @@
      .                    ,tzoo,tfac,rmuplsr,rikd,bn,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,bn3d,obio_wsd2d,obio_wsh2d,wshc3d,Fescav3d 
-     .                    ,acdom
+     .                    ,acdom,pp2_1d,pp2tot_day
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate
-     . ,itime,iyear1,jdendofm,jyear,jday,aMON
+     . ,itime,iyear1,jdendofm,jyear,aMON
      . ,xlabel,lrunid
 
       USE FILEMANAGER, only: openunit,closeunit
@@ -37,8 +40,8 @@
 
 
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       USE hycom_scalars
       implicit none
 
@@ -272,6 +275,9 @@ cdiag  endif
        enddo
 #endif
 
+#ifdef OBIO_RAD_coupling
+       chl = chl_3d(i,j,JMON)
+#endif
 
        !------------------------------------------------------------
        !at the beginning of each day only
@@ -541,15 +547,36 @@ cdiag     endif
          Fescav3d(i,j,k)=Fescav(k)
        enddo
 
+       !compute total primary production per day
+        if (hour_of_day.eq.1) then
+          pp2tot_day(i,j)=0.
+        else
+          do nt=1,nchl
+          do k=1,kdm
+            if (p1d(kdm+1).gt.200.)     !total depth > 200m
+     .        pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)
+          enddo
+          enddo
+       endif
+cdiag  if (vrbos) then
+cdiag  do nt=1,nchl
+cdiag  do k=1,kdm
+cdiag    write(*,'(a,7i5,3e12.4)')'PRIMARY PRODUCTIVITY ',
+cdiag.       nstep,day_of_month,hour_of_day,i,j,k,nt,
+cdiag.       p1d(kdm+1),pp2_1d(k,nt),pp2tot_day(i,j)
+cdiag  enddo
+cdiag  enddo
+cdiag  endif
+
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
 
        if (diagno) then
-         write(iu_pco2,'(3i7,21e12.4)')
+         write(iu_pco2,'(3i7,22e12.4)')
      .     nstep,i,j
      .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
      .    ,covice_ij,obio_P(1,1:ntyp),det(1,1:ndet),car(1,1)
-     .    ,dpmixl(i,j)/onem,alk1d(1)
+     .    ,dpmixl(i,j)/onem,alk1d(1),pp2tot_day(i,j)
        endif
 
 

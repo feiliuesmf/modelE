@@ -18,8 +18,8 @@ c  final is quanta for phytoplankton growth.
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
 
-      USE hycom_dim
-      USE hycom_arrays
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
       implicit none
 
 !!#include "dimensions.h"
