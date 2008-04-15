@@ -98,7 +98,7 @@ DTFIX=300
 X_SDRAG=.0005,.00005  ! used for lin. sdrag above P_SDRAG mb
 C_SDRAG=0.     ! no constant sdrag
 P_SDRAG=.01     ! lin. sdrag above p_sdrag mb (top layer for M23) except near poles
-PP_SDRAG=.1    ! lin. sdrag above  pp_sdrag mb near poles (top 5 layers for M23)
+PP_SDRAG=4.6   ! lin. sdrag above  pp_sdrag mb near poles (top 5 layers for M23)
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
 WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used
 
