@@ -123,6 +123,11 @@ cddd      end interface ent_cell_update
         module procedure copy_vars_i_array
       end interface
 
+      interface ent_prescribe_vegupdate
+        module procedure ent_prescribe_vegupdate_1d
+        module procedure ent_prescribe_vegupdate_2d
+      end interface
+
 
       !---- global data ----
       type(ent_config) config
@@ -154,7 +159,85 @@ cddd      end interface ent_cell_update
 
 !*************************************************************************
 !---- interfaces to run the model one time step --------------------------
-      subroutine ent_prescribe_vegupdate(entcell,hemi,jday,year,
+      subroutine ent_prescribe_vegupdate_1d(entcell,hemi,jday,year,
+     &     update_crops, do_giss_phenology, do_giss_lai,
+     &     laidata, hdata, albedodata, cropsdata)
+!@sum updates prescribed vegatation parameters. This parameters can
+!@+   be passed directly in form of arrays like laidata or one can
+!@+   set a flag requesting certain action like do_giss_phenology.
+!@+   All arguments except entcell are optional.
+      use ent_prescribed_updates, only:  entcell_vegupdate
+      type(entcelltype_public), intent(inout) :: entcell(:)
+      integer, intent(in), optional, target :: hemi(:)
+      integer,intent(in), optional :: jday,year
+      logical, intent(in), optional :: update_crops
+      logical, intent(in), optional :: do_giss_phenology
+      logical, intent(in), optional :: do_giss_lai
+      real*8, intent(in), optional, target :: laidata(:,:)
+      real*8, intent(in), optional, target :: hdata(:,:)
+      real*8, intent(in), optional, target :: albedodata(:,:,:)
+      real*8, intent(in), optional, target :: cropsdata(:)
+      !---
+      real*8, allocatable :: cropsdata_loc(:)
+      real*8, pointer :: laidata_1(:), hdata_1(:),
+     &     albedodata_1(:,:), cropsdata_1
+      integer :: hemi_1, jday_1
+      logical :: do_giss_phenology_1, do_giss_lai_1
+      integer i, ic, j, jc
+
+!      write(780,*) __FILE__,__LINE__,present(hemi)
+
+      ic = size(entcell,1)
+      !jc = size(entcell,2)
+
+      if ( present(update_crops) ) then
+        if ( update_crops ) then
+          if ( .not. present(year) )
+     &         call stop_model("ent_prescribe_vegupdate: need year",255)
+          allocate ( cropsdata_loc(ic) )
+          ! insert call to get_crops here
+          ! maybe we can avoid it ? I mean could we always
+          ! pass cropdata from the driver?
+        endif
+      endif
+
+      ! set defaults
+      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
+      do_giss_phenology_1 = .false.
+      do_giss_lai_1 = .true.
+      hemi_1 = -32768
+      jday_1 = -32768
+
+      ! now set optional arguments
+      if ( present(do_giss_phenology) )
+     &     do_giss_phenology_1 = do_giss_phenology
+      if ( present(do_giss_lai) )
+     &     do_giss_lai_1 = do_giss_lai
+      if ( present(jday) ) jday_1 = jday
+         
+      !do j=1,jc
+        do i=1,ic
+          ! skip uninitialized cells (no land)
+          if ( .not. associated(entcell(i)%entcell) ) cycle
+
+          if ( present(laidata) ) laidata_1 => laidata(:,i)
+          if ( present(hdata) ) hdata_1 => hdata(:,i)
+          if ( present(albedodata) ) albedodata_1 => albedodata(:,:,i)
+          if ( present(cropsdata) ) cropsdata_1 => cropsdata(i)
+          if ( present(hemi) ) hemi_1 = hemi(i)
+
+!          write(780,*) __FILE__,__LINE__,hemi_1
+          
+          call entcell_vegupdate(entcell(i)%entcell, hemi_1,
+     &         jday_1, do_giss_phenology_1, do_giss_lai_1, 
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
+        enddo
+      !enddo
+
+      end subroutine ent_prescribe_vegupdate_1d
+ 
+
+      subroutine ent_prescribe_vegupdate_2d(entcell,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai,
      &     laidata, hdata, albedodata, cropsdata)
 !@sum updates prescribed vegatation parameters. This parameters can
@@ -229,8 +312,9 @@ cddd      end interface ent_cell_update
         enddo
       enddo
 
-      end subroutine ent_prescribe_vegupdate
-      
+      end subroutine ent_prescribe_vegupdate_2d
+
+     
 !*************************************************************************
 
       subroutine ent_fast_processes_single(entcell, dt)
