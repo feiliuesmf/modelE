@@ -1,6 +1,6 @@
-E1arobio_mpi.R GISS Model E  2007 modelE              aromanou 03/05/08
+E1arobio5.R GISS Model E  2007 modelE              aromanou 03/05/08
 
-E1arobio_mpi: obio + gas exch + radiation coupling
+E1arobio5: obio + gas exch + radiation coupling
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -18,7 +18,8 @@ Preprocessor Options
 #define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
 #define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
 #define TRACERS_OceanBiology
-!!#define OBIO_RAD_coupling           ! Boris Skorodumov code for chl-rad coupling
+#define OBIO_RAD_coupling           ! 
+#define CHL_from_SeaWIFs            ! 
 !!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
 End Preprocessor Options
 
@@ -99,7 +100,7 @@ obio_bioinit|-r8|                   !
 obio_daysetrad|-r8|                 ! 
 obio_daysetbio|-r8|                 ! 
 obio_ocalbedo|-r8|                  ! 
-obio_oasimhr|-r8|                   ! 
+!!!obio_oasimhr|-r8|                   ! never being used
 obio_sfcirr|-r8|                    ! 
 obio_limits|-r8|                    ! 
 obio_edeu|-r8|                      ! 
@@ -181,7 +182,7 @@ CHL_DATA=seawifs_chl_195x180_20w.asc     !Gregg's seawifs in hycom grid;
 
 
 Label and Namelist:
-E1arobio_mpi (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio5 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 

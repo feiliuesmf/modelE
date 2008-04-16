@@ -148,6 +148,12 @@ C----------------
       INTEGER use_tracer_ozone
       LOGICAL*4 :: flags
 
+#ifdef OBIO_RAD_coupling
+#ifdef CHL_from_SeaWIFs
+      REAL*8    :: LOC_CHL
+#endif 
+#endif 
+
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
      A              PLB,HLB,TLB,TLT,TLM,SHL,RHL,ULGAS
@@ -1722,6 +1728,11 @@ C--------------------------------  (GETSUR sets albedo needed by GETCLD)
      i     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,zmp,
      i     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
      i     flags,
+#ifdef OBIO_RAD_coupling
+#ifdef CHL_from_SeaWIFs
+     .     LOC_CHL,
+#endif
+#endif
      o     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,
      o     BGFEMD,BGFEMT,
      o     DTRUFG,FTRUFG

@@ -8,9 +8,14 @@ c
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,Eda,Esa,atmFe_all,alk
+      USE obio_forc, only : ihra,atmFe_all,alk
 #ifdef OBIO_RAD_coupling
+#ifdef CHL_from_SeaWIFs
      .                      ,chl_3d
+#endif
+     .                      ,eda_frac,esa_frac
+#else
+     .                      ,Eda,Esa
 #endif
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro
@@ -36,6 +41,7 @@ c
 
       real planck,c,hc,oavo,rlamm,rlam450,Sdom,rlam,hcoavo
      .    ,rnn,rbot,t,tlog,fac,a0,a1,a2,a3,b0,b1,b2,b3,pi
+     .    ,dummy
 
       character*50 title
 !     character*50 cfle
@@ -293,6 +299,7 @@ c      hc = 1.0/(h*c)
 c  Read in factors to compute average irradiance
 ! (this part originally done inside obio_edeu)
 
+      print*, '    '
       print*,'Reading factors for mean irradiance at depth...'
       print*,'nh,nch,ncd=',nh,nch,ncd
 
@@ -310,6 +317,7 @@ c  Read in factors to compute average irradiance
       call closeunit(iu_fac)
       print*,'nstep, facirr(10,18,1)=',nstep,facirr4(10,18,1,1)
       print*,'nstep, facirr(10,18,1)=',nstep,facirr(10,18,1,1)
+      print*, '    '
 
 
 !ifst part from ocalbedo.f
@@ -364,6 +372,7 @@ c  Read in factors to compute average irradiance
 !    .       ,status='old')
 
        call openunit('pco2table',iu_bio)
+      print*, '    '
        print*, 'obio_init, pco2tbl: ',nta,ndic,nsal,nt0
        do nl=1,nta
         do k=1,ndic
@@ -377,10 +386,22 @@ c  Read in factors to compute average irradiance
        call closeunit(iu_bio)
        print*,'BIO: read pCO2 table: ',
      .        pco2tab(1,1,1,1),pco2tab(50,10,100,100)
+      print*, '    '
 
+#ifdef OBIO_RAD_coupling
+      print*, '    '
+      print*, 'reading Eda and Esa spectral ratios.....'
+      print*, '    '
+      open(unit=iu_bio,file='eda_esa_ratios',status='unknown')
+      do ichan=1,nlt
+       read(iu_bio,'(3f13.8)')dummy,eda_frac(ichan),esa_frac(ichan)
+      enddo
+      close(iu_bio)
+#else
 !read in light (this will be changed later to be passed from atmosphere
       print*, '    '
       print*, 'reading OASIM data.....'
+      print*, '    '
 
       ALLOCATE (Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12))
 
@@ -414,12 +435,13 @@ c  Read in factors to compute average irradiance
 !     enddo
 !     close(iu_bio)
 !     stop
-
+#endif  /*OBIO_RAD_coupling*/
 
 
 !read in atmospheric iron deposition (this will also be changed later...)
       print*, '    '
       print*, 'reading iron data.....'
+      print*, '    '
 
       if (IRON_from.eq.0) then
       open(unit=iu_bio,file='atmFedirect0'
@@ -460,9 +482,11 @@ c  Read in factors to compute average irradiance
       endif
 
 #ifdef OBIO_RAD_coupling
+#ifdef CHL_from_SeaWIFs
 !read in seawifs chlorophyl for obio_rad coupling
       print*, '    '
       print*, 'reading SEAWIFS chlorophyll data.....'
+      print*, '    '
 
       ALLOCATE (chl_3d(idm,jdm,12))
 
@@ -475,6 +499,7 @@ c  Read in factors to compute average irradiance
        enddo
       enddo
       call closeunit(iu_bio)
+#endif
 #endif
 
 ! printout some key information

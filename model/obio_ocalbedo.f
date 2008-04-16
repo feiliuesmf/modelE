@@ -1,28 +1,12 @@
 #include "rundeck_opts.h"      
-       subroutine obio_ocalbedo(vrbos)
+       subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl)
  
 c  Computes ocean surface albedo from solar zenith angle (solz)
 c  and wind speed (wind, m/s).
 c  Albedo is provided as direct (albd) and diffuse (albs).
-  
-      USE obio_dim
-
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
-      implicit none
-
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
-
-!     parameter(nltgmao=8)
-!     real albd(nltgmao),albs(nltgmao)
- 
-      logical vrbos
-
 c  Derive surface reflectance as a function of solz and wind
 c  for OASIM Bands
-      call sfcrfl(vrbos)
+c     call sfcrfl    ----- combine with this routine
  
 !the rest is not done yet--do be completed later with the coupling?
 c  Albedo at GMAO Bands
@@ -75,12 +59,7 @@ c  Albedo at GMAO Bands
 !     albd(8) = albd(8)/float(n)
 !     albs(8) = albs(8)/float(n)
 c
-      return
-      end
-
-c------------------------------------------------------------------
-      subroutine sfcrfl(vrbos)
- 
+c  subroutine obio_sfcrfl(vrbos)
 c  Computes surface reflectance for direct (rod) and diffuse (ros)
 c  components separately, as a function of sunz, wind speed or
 c  stress.
@@ -89,18 +68,9 @@ c  et al., 1996 (JGR)
  
       USE obio_dim
       USE obio_incom,only : rad,rn,wfac,roair
-      USE obio_forc, only : sunz,rod,ros,wind
-#ifdef OBIO_RAD_coupling
-     .          ,chl,obio_bocvn,obio_xocvn
-#endif
+      USE obio_forc, only : rod,ros
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
       implicit none
-
-
-!!      include 'dimensions.h'
-!!      include 'common_blocks.h'
 
       integer nl
       real cn,rof,rosps,rospd,rtheta
@@ -113,6 +83,12 @@ c  et al., 1996 (JGR)
 !@sum They are used to be used for getting 6 band approximation based on 33
 !@sum Watson Gregg band calculations
 !@sum band_6(j) = Sum(band_33(i)*weight(i))/Sum(part_sum(i))
+
+      real*8, intent(in)  :: wind, solz, chl
+      real*8 :: sunz
+ 
+      real*8, dimension(6), intent(out) :: bocvn
+      real*8, dimension(6), intent(out) :: xocvn
 
       real*8 :: sum1, sum2
       real*8 :: refl, ref
@@ -196,12 +172,12 @@ c    .   nstep,nl,rod(nl),ros(nl)
 
       refl = ref(chl)
 
-!      obio_bocvn(1) = sum2/part_sum(1) + 0.02
-!      obio_bocvn(1) = sum2/part_sum(1) + 0.0214577
-!      obio_bocvn(1) = sum2/part_sum(1)
+!      bocvn(1) = sum2/part_sum(1) + 0.02
+!      bocvn(1) = sum2/part_sum(1) + 0.0214577
+!      bocvn(1) = sum2/part_sum(1)
 
-       obio_bocvn(1) = sum2/part_sum(1) + refl
-       obio_xocvn(1) = sum1/part_sum(1)
+       bocvn(1) = sum2/part_sum(1) + refl
+       xocvn(1) = sum1/part_sum(1)
 
 !diffuse spectral reflectance average
 ! c=0.03   0.0404007
@@ -212,8 +188,8 @@ c    .   nstep,nl,rod(nl),ros(nl)
 ! c=10.0   0.012881
 ! Average : 0.0214577 
 
-      obio_bocvn(2) = weight(18)*ros(18)/part_sum(2)
-      obio_xocvn(2) = weight(18)*rod(18)/part_sum(2)
+      bocvn(2) = weight(18)*ros(18)/part_sum(2)
+      xocvn(2) = weight(18)*rod(18)/part_sum(2)
 
       sum1 = 0.0
       sum2 = 0.0
@@ -221,8 +197,8 @@ c    .   nstep,nl,rod(nl),ros(nl)
        sum1 = sum1+weight(nl)*rod(nl)
        sum2 = sum2+weight(nl)*ros(nl)
       enddo
-      obio_bocvn(3) = sum2/part_sum(3)
-      obio_xocvn(3) = sum1/part_sum(3)
+      bocvn(3) = sum2/part_sum(3)
+      xocvn(3) = sum1/part_sum(3)
 
 
       sum1 = 0.0
@@ -231,8 +207,8 @@ c    .   nstep,nl,rod(nl),ros(nl)
        sum1 = sum1+weight(nl)*rod(nl)
        sum2 = sum2+weight(nl)*ros(nl)
       enddo
-      obio_bocvn(4) = sum2/part_sum(4)
-      obio_xocvn(4) = sum1/part_sum(4)
+      bocvn(4) = sum2/part_sum(4)
+      xocvn(4) = sum1/part_sum(4)
 
       sum1 = 0.0
       sum2 = 0.0
@@ -240,8 +216,8 @@ c    .   nstep,nl,rod(nl),ros(nl)
        sum1 = sum1+weight(nl)*rod(nl)
        sum2 = sum2+weight(nl)*ros(nl)
       enddo
-      obio_bocvn(5) = sum2/part_sum(5)
-      obio_xocvn(5) = sum1/part_sum(5)
+      bocvn(5) = sum2/part_sum(5)
+      xocvn(5) = sum1/part_sum(5)
 
 
       sum1 = 0.0
@@ -250,8 +226,8 @@ c    .   nstep,nl,rod(nl),ros(nl)
        sum1 = sum1+weight(nl)*rod(nl)
        sum2 = sum2+weight(nl)*ros(nl)
       enddo
-      obio_bocvn(6) = sum2/part_sum(6)
-      obio_xocvn(6) = sum1/part_sum(6)
+      bocvn(6) = sum2/part_sum(6)
+      xocvn(6) = sum1/part_sum(6)
 
 #endif
 

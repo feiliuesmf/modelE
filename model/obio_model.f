@@ -1,11 +1,12 @@
 #include "rundeck_opts.h"
+
       subroutine obio_model(mm)
 
 ! main biology routine
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only: Eda,Esa,Eda2,Esa2,solz,tirrq,Ed,Es
+      USE obio_forc, only: solz,tirrq,Ed,Es
      .                    ,rmud,atmFe,avgq,ihra,sunz,rod,ros
 !    .                    ,solz_all,solz2,sunz2
      .                    ,wind
@@ -14,7 +15,14 @@
      .                    ,alk
      .                    ,tirrq3d
 #ifdef OBIO_RAD_coupling
+     .                    ,eda_frac,esa_frac
+     .                    ,ovisdir,ovisdif,onirdir,onirdif
+     .                    ,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
+#ifdef CHL_from_SeaWIFs
      .                    ,chl_3d,chl
+#endif
+#else
+     .                    ,Eda,Esa,Eda2,Esa2
 #endif
       USE obio_com,  only: gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
@@ -215,6 +223,12 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
       enddo
 
 
+#ifdef OBIO_RAD_coupling
+       ovisdir_ij=ovisdir(i,j)
+       ovisdif_ij=ovisdif(i,j)
+       onirdir_ij=onirdir(i,j)
+       onirdif_ij=onirdif(i,j)
+#else
        !OASIM spectral irradiance data just above the surface
        !Eda and Esa fields have ihr=1:12, ie every 2hrs
 !      do ihr=1,nhn
@@ -236,6 +250,7 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
          Esa2(ichan,ihr)=Esa(i,j,ichan,ihr,JMON)
         enddo
        enddo
+#endif
 
        !solz is read inside hycom.f and forfun.f
 !      do ihr=1,12
@@ -276,7 +291,9 @@ cdiag  endif
 #endif
 
 #ifdef OBIO_RAD_coupling
+#ifdef CHL_from_SeaWIFs
        chl = chl_3d(i,j,JMON)
+#endif
 #endif
 
        !------------------------------------------------------------
@@ -324,7 +341,7 @@ cdiag    endif
 
          !compute the ocean albedo but we do not need it yet
          !before we couple to atmosphere
-         call obio_ocalbedo
+         !!!!!call obio_ocalbedo
 
 
 cdiag    if (vrbos)
@@ -335,9 +352,20 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
          !only call obio_sfcirr for points in light
          tot = 0.0
          do ichan = 1,nlt
+#ifdef OBIO_RAD_coupling
+          if (ichan .le. 18) then     !visible + uv
+              Ed(ichan) = ovisdir_ij * eda_frac(ichan)
+              Es(ichan) = ovisdif_ij * esa_frac(ichan)
+          else               !nir
+              Ed(ichan) = onirdir_ij * eda_frac(ichan)
+              Es(ichan) = onirdif_ij * esa_frac(ichan)
+          endif
+          tot = tot + Ed(ichan)+Es(ichan)
+#else
           Ed(ichan) = Eda2(ichan,ihr0)
           Es(ichan) = Esa2(ichan,ihr0)
           tot = tot + Eda2(ichan,ihr0)+Esa2(ichan,ihr0)
+#endif
          enddo
          noon=.false.
          if (hour_of_day.eq.12)then

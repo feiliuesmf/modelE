@@ -22,22 +22,50 @@
       common /brod1/ solz,sunz
 !$OMP THREADPRIVATE(/brod1/)
 
+#ifdef OBIO_RAD_coupling 
+      real eda_frac,esa_frac
+      common /frac_oasim/eda_frac(nlt),esa_frac(nlt)
+
+      real avisdir,avisdif,anirdir,anirdif
+      real ovisdir,ovisdif,onirdir,onirdif
+      common /rada2o/  avisdir(iia,jja),avisdif(iia,jja)
+     .                ,anirdir(iia,jja),anirdif(iia,jja)
+     .                ,ovisdir(idm,jdm),ovisdif(idm,jdm)
+     .                ,onirdir(idm,jdm),onirdif(idm,jdm)
+      real ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
+      common /rada2o_ij/ ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
+!$OMP THREADPRIVATE(/rada2o_ij/)
+
+#ifdef CHL_from_SeaWIFs
+      real, ALLOCATABLE :: chl_3d(:,:,:)
+      real achl(iia,jja)
+      real chl
+      common /alb_rad_chl/chl
+!$OMP THREADPRIVATE(/alb_rad_chl/)
+#endif
+
+!      real obio_bocvn,obio_xocvn   !albedo bands that are used in modelE
+!      common /alb_rad/ obio_bocvn(6),obio_xocvn(6)
+!!$OMP THREADPRIVATE(/alb_rad/)
+
+#else
       !real Eda(idm,jdm,nlt,nhn,12)    !direct downwelling irradiance
       !real Esa(idm,jdm,nlt,nhn,12)    !diffuse downwelling irradiance
       !common /beda/  Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12)
       real, ALLOCATABLE :: Eda(:,:,:,:,:),Esa(:,:,:,:,:)
-
       real Eda2,Esa2,Ed,Es 
       common /beda2/ Eda2(nlt,nhn),Esa2(nlt,nhn)
-      common /beds/  Ed(nlt),Es(nlt)
 !$OMP THREADPRIVATE(/beda2/)
+#endif
+
+      real Ed,Es 
+      common /beds/  Ed(nlt),Es(nlt)
 !$OMP THREADPRIVATE(/beds/)
 
       real awind      !wind speed from modelE (see hycom2.f)
       real owind      !wind speed in hycom grid (see hycom2.f)
       common /owind/  awind(iia,jja),owind(idm,jdm)
      
-
       real    rod,ros       !surface reflectance for
                             !direct (rod) and diffuse (ros)
                             !components separately
@@ -75,16 +103,5 @@
                    !     atmCO2=371.3          !uatm or ppmv (equivalent);
                                                !global mean
                                                !2000-2003 from OCMIP
-#ifdef OBIO_RAD_coupling
-      real, ALLOCATABLE :: chl_3d(:,:,:)
-
-      real obio_bocvn,obio_xocvn   !albedo bands that are used in modelE
-      common /alb_rad/ obio_bocvn(6),obio_xocvn(6)
-!$OMP THREADPRIVATE(/alb_rad/)
-
-      real chl
-      common /alb_rad_chl/chl
-!$OMP THREADPRIVATE(/alb_rad_chl/)
-#endif
 
       END MODULE obio_forc

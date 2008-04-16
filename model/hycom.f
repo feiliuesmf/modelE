@@ -107,10 +107,17 @@ c
 #ifdef TRACERS_OceanBiology 
       USE obio_dim
       USE obio_forc, only:    avgq,awind,owind,asolz,osolz
+     .                       ,avisdir,avisdif,anirdir,anirdif
+     .                       ,ovisdir,ovisdif,onirdir,onirdif
       USE obio_com,  only:    gcmax,pCO2,dobio
 
       USE PBLCOM, only : wsavg 
-      USE RAD_COM,   only: COSZ1 
+      USE RAD_COM,   only: COSZ1
+     .           ,FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
+#endif 
+#ifdef CHL_from_SeaWIFs 
+      USE MODEL_COM, only: JMON
+      USE obio_forc, only: chl_3d,achl
 #endif 
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
@@ -213,6 +220,10 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 #ifdef TRACERS_OceanBiology
           awind(ia,ja)=0.
           asolz(ia,ja)=0.
+          avisdir(ia,ja)=0.
+          avisdif(ia,ja)=0.
+          anirdir(ia,ja)=0.
+          anirdif(ia,ja)=0.
 #endif
  28     continue
 c$OMP END PARALLEL DO
@@ -272,7 +283,15 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
      .            +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr))    !
       awind(ia,ja)=awind(ia,ja)                            !
      .            +wsavg(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cdiag write(*,'(a,2i5,2e12.4)')
+      avisdir(ia,ja)=avisdir(ia,ja)                        !
+     . +FSRDIR(ia,ja)*SRVISSURF(ia,ja)*dtsrc/(3600.*real(nhr))    !
+      avisdif(ia,ja)=avisdif(ia,ja)                        !
+     .            +FSRDIF(ia,ja)*dtsrc/(3600.*real(nhr))    !
+      anirdir(ia,ja)=anirdir(ia,ja)                        !
+     .            +DIRNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
+      anirdif(ia,ja)=anirdif(ia,ja)                        !
+     .            +DIFNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cdiag write(*,'(a,2i5,4e12.4)')
 cdiag.        'hycom2, o_ awind:', ia,ja,wsavg(ia,ja),awind(ia,ja)
 #endif
  29   continue
@@ -322,6 +341,10 @@ c
 #ifdef TRACERS_OceanBiology
       call flxa2o(asolz,osolz)
       call flxa2o(awind,owind)
+      call flxa2o(avisdir,ovisdir)
+      call flxa2o(avisdif,ovisdif)
+      call flxa2o(anirdir,ovisdir)
+      call flxa2o(anirdif,onirdif)
 cdiag write(*,'(a,2i5,e12.4)')
 cdiag.   'hycom2, wind at (109,94):', 109,94,owind(109,94)
 #endif
@@ -1180,6 +1203,9 @@ css   call iceo2a(omlhc,mlhc)
       do nt=1,ntm
       call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
       enddo
+#endif
+#ifdef CHL_from_SeaWIFs       
+      call ssto2a(chl_3d(:,:,JMON),achl(:,:))
 #endif
 c
 c     call findmx(ipa,asst,iia,iia,jja,'asst')

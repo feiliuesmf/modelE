@@ -926,6 +926,11 @@ C     INPUT DATA  (i,j) dependent
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
+#ifdef OBIO_RAD_coupling 
+#ifdef CHL_from_SeaWIFs
+     .             ,LOC_CHL
+#endif
+#endif
 
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
@@ -1000,7 +1005,9 @@ C     OUTPUT DATA
       USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef OBIO_RAD_coupling
-         USE obio_forc, only : chl
+#ifdef CHL_from_SeaWIFs
+      USE obio_forc, only : achl
+#endif
 #endif
 
 #ifdef TRACERS_ON
@@ -1353,6 +1360,14 @@ CCC       STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 C****
+
+#ifdef OBIO_RAD_coupling
+#ifdef CHL_from_SeaWIFs
+      if (POCEAN.gt.0) then
+          LOC_CHL = achl(I,J)
+      end if
+#endif
+#endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
 C**** kradia=1: instantaneous forcing - LS1_loc is not used
@@ -2058,9 +2073,9 @@ C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       DIRNIR(I,J)=SRXNIR            ! direct beam nir solar at surface            
       DIFNIR(I,J)=SRDNIR*(1-SRXNIR) ! diffuse     nir solar at surface            
      
-      write(*,'(a,2i5,6e12.4)')'RAD_DRV: ',
-     .    I,J,FSRDIR(I,J),SRVISSURF(I,J),FSRDIF(I,J),
-     .        DIRNIR(I,J),SRDNIR,DIFNIR(I,J)
+cdiag write(*,'(a,2i5,6e12.4)')'RAD_DRV: ',
+cdiag.    I,J,FSRDIR(I,J),SRVISSURF(I,J),FSRDIF(I,J),
+cdiag.        DIRNIR(I,J),SRDNIR,DIFNIR(I,J)
 #endif
 C**** Save clear sky/tropopause diagnostics here
       AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+OPNSKY*
