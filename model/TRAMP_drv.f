@@ -51,7 +51,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       SUBROUTINE MATRIX_DRV
       USE TRACER_COM
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPp,ijts_AMPe
-     $             ,ijts_AMPm,
+     $             ,ijts_AMPm,ijts_AMPext,
      $             tajln=>tajln_loc,itcon_AMP,itcon_AMPe,itcon_AMPm
      $             ,itcon_surf
       USE AMP_AEROSOL
@@ -244,6 +244,14 @@ c - 2d PRT Diagnostic
        end select
 
       enddo !n
+c - N_SSA, N_SSC, M_SSA_SU
+        taijs(i,j,ijts_AMPext(l,1))=taijs(i,j,ijts_AMPext(l,1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j))
+        taijs(i,j,ijts_AMPext(l,2))=taijs(i,j,ijts_AMPext(l,2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j))
+        taijs(i,j,ijts_AMPext(l,3))=taijs(i,j,ijts_AMPext(l,3)) +  DIAM(i,j,l,SEAS_MODE_MAP(1)) 
+        taijs(i,j,ijts_AMPext(l,4))=taijs(i,j,ijts_AMPext(l,4)) +  DIAM(i,j,l,SEAS_MODE_MAP(2)) 
+        taijs(i,j,ijts_AMPext(l,5))=taijs(i,j,ijts_AMPext(l,5)) + (AERO(22) *AVOL *byam(l,i,j)) 
+        taijs(i,j,ijts_AMPext(l,6))=taijs(i,j,ijts_AMPext(l,6)) + (AERO(25) *AVOL *byam(l,i,j)) 
+
       ENDDO !i
       ENDDO !j
       ENDDO !l

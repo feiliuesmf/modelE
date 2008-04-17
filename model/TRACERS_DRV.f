@@ -3578,6 +3578,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #ifdef TRACERS_AMP
       ijts_AMPe(:)=0
       ijts_AMPp(:,:)=0
+      ijts_AMPext(:,:)=0
       ijts_AMPm(:,:,:)=0
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
@@ -6900,6 +6901,73 @@ c- 3D diagnostic per mode
       end do
       end select
       end do
+c - Tracer independent Diagnostic
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPext(l,1)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a13,i2.2)') 'N_SSA ACTI L=',L
+         write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_N_SSA_',L
+         ijts_power(k) = -2.
+         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPext(l,2)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a13,i2.2)') 'N_SSC ACTI L=',L
+         write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_N_SSC_',L
+         ijts_power(k) = -2.
+         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPext(l,3)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a13,i2.2)') 'N_SSA DIAM L=',L
+         write(sname_ijts(k),'(a13,i2.2)') 'DIAM___N_SSA_',L
+         ijts_power(k) = -2.
+         units_ijts(k) = unit_string(ijts_power(k),'m')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPext(l,4)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a13,i2.2)') 'N_SSC DIAM L=',L
+         write(sname_ijts(k),'(a13,i2.2)') 'DIAM___N_SSC_',L
+         ijts_power(k) = -2.
+         units_ijts(k) = unit_string(ijts_power(k),'m')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPext(l,5)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a10,i2.2)') 'N_SSA_1_L=',L
+         write(sname_ijts(k),'(a8,i2.2)')  'N_SSA_1_L_',L
+         ijts_power(k) = -10.
+         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      do L=1,LTOP
+        k = k + 1
+         ijts_AMPext(l,6)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a10,i2.2)') 'N_SSC_1_L=',L
+         write(sname_ijts(k),'(a8,i2.2)')  'N_SSC_1_L_',L
+         ijts_power(k) = -10.
+         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
 #endif
       if (k .gt. ktaijs) then
        if (AM_I_ROOT())
@@ -8353,7 +8421,10 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      *                                                     icCFC
       REAL*8 stratm,xlat,pdn,pup
 #endif
-
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      REAL*4, DIMENSION(im,jm,366) :: DMS_AER_global, SS1_AER_global
+     *                             , SS2_AER_global
+#endif
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
       REAL*8 :: dummy
 #endif
@@ -9145,42 +9216,45 @@ c read in DMS source
   8    continue
         call closeunit(mon_unit)
 
-c I've commented out this, don't know how to do netcdf
-c     else  !AEROCOM run for now these are in
-c        status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
-c        status=NF_INQ_VARID(ncidu,'dms',id1)
-c         start(1)=1
-c         start(2)=1
-c         start(3)=1
-c         count(1)=im
-c         count(2)=jm
-c         count(3)=366
-c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER)
-c         status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
+      else  ! AEROCOM DMS
+         status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
+         status=NF_INQ_VARID(ncidu,'dms',id1)
+         start(1)=1
+         start(2)=1
+         start(3)=1
+         count(1)=im
+         count(2)=jm
+         count(3)=366
+         status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER_global)
+         status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
+         DMS_AER(:,J_0:J_1,:) = DMS_AER_global(:,J_0:J_1,:)
       endif
  901  FORMAT(3X,2(I4),E11.3,5F9.2)
 c read in AEROCOM seasalt
       if (imAER.eq.1) then
-c        status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
-c        status=NF_INQ_VARID(ncidu,'salt',id1)
-c         start(1)=1
-c         start(2)=1
-c         start(3)=1
-c         count(1)=im
-c         count(2)=jm
-c         count(3)=366
-c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER)
-c         status=NF_CLOSE('SALT1',NCNOWRIT,ncidu)
-c        status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
-c        status=NF_INQ_VARID(ncidu,'salt',id1)
-c         start(1)=1
-c         start(2)=1
-c         start(3)=1
-c         count(1)=im
-c         count(2)=jm
-c         count(3)=366
-c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER)
-c         status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
+         status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
+         status=NF_INQ_VARID(ncidu,'salt',id1)
+         start(1)=1
+         start(2)=1
+         start(3)=1
+         count(1)=im
+         count(2)=jm
+         count(3)=366
+         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER_global)
+         status=NF_CLOSE('SALT1',NCNOWRIT,ncidu)
+         SS1_AER(:,J_0:J_1,:) = SS1_AER_global(:,J_0:J_1,:)
+
+        status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
+        status=NF_INQ_VARID(ncidu,'salt',id1)
+         start(1)=1
+         start(2)=1
+         start(3)=1
+         count(1)=im
+         count(2)=jm
+         count(3)=366
+         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER_global)
+         status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
+         SS2_AER(:,J_0:J_1,:) = SS2_AER_global(:,J_0:J_1,:)
       endif
 
 c read in SO2 emissions
@@ -9340,6 +9414,7 @@ c  !else use historic emissions
        call closeunit(iuc)
        OCI_src(:,J_0:J_1,1)=OCI_src1(:,J_0:J_1)
        OCI_src2(:,:)=0.d0
+
        call openunit('OC_FOSSIL_FUEL',iuc,.false.,.true.)
        do
        read(iuc,*) ii,jj,carbstuff
@@ -9349,6 +9424,7 @@ c  !else use historic emissions
        end do
        call closeunit(iuc)
        OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src2(:,J_0:J_1)
+
        if (imAER.eq.2) then
        OCI_src3(:,:)=0.d0
        call openunit('OC_IND',iuc,.false.,.true.)
@@ -9374,6 +9450,7 @@ c  !else use historic emissions
 c convert from year to second
        ccnv=1.d0/(sday*365.d0)
        OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*ccnv
+
 c convert sectoral OC emissions to OM
 c  for all Bond emissions
        if (imAER.eq.2.or.imAER.eq.0) 
@@ -10181,6 +10258,7 @@ c!OMSP
          do j=J_0,J_1
           trsource(:,j,1,n) = OCI_src(:,j,1)+OCT_src(:,j,jmon)
          end do
+
 #endif
 #endif
       end select
