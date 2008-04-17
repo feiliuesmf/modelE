@@ -117,6 +117,10 @@ C**** fluxes associated with variable lake fractions
 !@var DGML energy associated with DMWLDF (J)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DGML
 
+C**** array of Chlorophyll data for use in ocean albedo calculation
+!@var CHL Chlorophyll concentration data (Unit?)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CHL
+
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
@@ -277,6 +281,7 @@ C**** fluxes associated with variable lake fractions
      &          MSICNV  ( I_0H:I_1H , J_0H:J_1H ),
      &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
+     &          CHL     ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT=IER)
 
 

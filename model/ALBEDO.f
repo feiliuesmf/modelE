@@ -285,29 +285,14 @@ C     -------------------
      i     AGESN,POCEAN,POICE,PEARTH,PLICE,PLAKE,ZLAKE,
      i     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,ZMP,
      i     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
-     i     FLAGS,
-#ifdef OBIO_RAD_coupling
-#ifdef CHL_from_SeaWIFs
-#endif
-     .     LOC_CHL,
-#endif
+     i     FLAGS,LOC_CHL,
      o     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,
      o     BGFEMD,BGFEMT,
      o     DTRUFG,FTRUFG
      &     )
-
 !@sum GETSUR computes surface albedo for each grid box
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
-
       implicit none
-
-#ifdef OBIO_RAD_coupling
-#ifdef CHL_from_SeaWIFs
-      REAL*8 LOC_CHL
-#endif
-#endif
-
-
 
 !********* start  in/out *****************************
 C**** config data
@@ -320,7 +305,7 @@ C**** input from driver
       REAL*8 AGESN(3),POCEAN,POICE,PEARTH,PLICE,PLAKE,ZLAKE,
      *     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,ZMP,
      *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(12),
-     &     dalbsn
+     &     dalbsn,LOC_CHL
       LOGICAL*4 :: FLAGS
 C**** output
       REAL*8 BXA(7),PRNB(6,4),PRNX(6,4),SRBALB(6),SRXALB(6),TRGALB(33),
@@ -426,7 +411,6 @@ C
       END DO
 
 #ifdef OBIO_RAD_coupling
-#ifdef CHL_from_SeaWIFs
 
       IF(JLAT .EQ.10 .AND. ILON .EQ.10) THEN
         DO L=1,6                  
@@ -442,7 +426,6 @@ C
         ENDDO
       END IF
 
-#endif
 #endif
 
 C**** For lakes increase albedo if lakes are very shallow

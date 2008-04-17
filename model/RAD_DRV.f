@@ -847,6 +847,7 @@ C**** Read in the factors used for alterations:
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr
       USE DIAG_COM, only : iwrite,jwrite,itwrite
+      USE FLUXES, only : chl
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
 
@@ -885,6 +886,11 @@ C**** Save initial rad forcing alterations:
 C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
+#ifdef CHL_from_Seawifs
+C**** Read in Seawifs files here:
+      CHL(:,:)=0.1d0    ! rough default for the time being 
+#endif
+
       RETURN
       END SUBROUTINE daily_RAD
 
@@ -896,16 +902,6 @@ C**** Define CO2 (ppm) for rest of model
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha
       USE MODEL_COM
-#ifdef SCM
-      USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
-     *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
-     *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
-#endif
-
-
-
-
-
       USE GEOM
       USE ATMDYN, only : CALC_AMPK
       USE RADPAR
@@ -925,12 +921,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
-#ifdef OBIO_RAD_coupling 
-#ifdef CHL_from_SeaWIFs
-     .             ,LOC_CHL
-#endif
-#endif
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC,LOC_CHL
 
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
@@ -964,6 +955,11 @@ C     OUTPUT DATA
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
+#ifdef SCM
+      USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
+     *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
+     *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
+#endif
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,jreg,aij=>aij_loc
      *     ,ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
 #ifndef NO_HDIURN
@@ -998,17 +994,11 @@ C     OUTPUT DATA
 #endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : gtemp,nstype,gtempr
+      USE FLUXES, only : gtemp,nstype,gtempr,chl
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, HERE
       USE RAD_COSZ0, only : COSZT,COSZS
-
-#ifdef OBIO_RAD_coupling
-#ifdef CHL_from_SeaWIFs
-      USE obio_forc, only : achl
-#endif
-#endif
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
@@ -1359,15 +1349,9 @@ CCC       STOP 'In Radia: Grnd Temp out of range'
           ICKERR=ICKERR+1
         END IF
       END DO
-C****
 
-#ifdef OBIO_RAD_coupling
-#ifdef CHL_from_SeaWIFs
-      if (POCEAN.gt.0) then
-          LOC_CHL = achl(I,J)
-      end if
-#endif
-#endif
+C**** Set Chlorophyll concentration
+      if (POCEAN.gt.0) LOC_CHL = chl(I,J)
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
 C**** kradia=1: instantaneous forcing - LS1_loc is not used
