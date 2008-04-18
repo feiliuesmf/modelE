@@ -306,7 +306,7 @@ C**** input from driver
      *     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,ZMP,
      *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(12),
      &     dalbsn,LOC_CHL
-      LOGICAL*4 :: FLAGS
+      LOGICAL*4 :: FLAGS, vrbos
 C**** output
       REAL*8 BXA(7),PRNB(6,4),PRNX(6,4),SRBALB(6),SRXALB(6),TRGALB(33),
      &     BGFEMD(33),BGFEMT(33),
@@ -412,19 +412,21 @@ C
 
 #ifdef OBIO_RAD_coupling
 
-      IF(JLAT .EQ.10 .AND. ILON .EQ.10) THEN
-        DO L=1,6                  
-          print*, 'BEFORE OCALBEDO: ', BOCVN(L), XOCVN(L)
-        ENDDO
-      END IF
+C**** call routine to calculate Gregg version of albedo, including
+C**** Chlorophyll effect
 
-      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,LOC_CHL)
+      vrbos=.false.
+c      IF(JLAT .EQ.10 ) THEN
+c        print*, 'BEFORE OCALBEDO: ', WMAG,COSZ,LOC_CHL
+c        print*, 'BEFORE OCALBEDO: ', ILON,(BOCVN(L), XOCVN(L), L=1,6)
+c        vrbos=.true.
+c      END IF
 
-      IF(JLAT .EQ.10 .AND. ILON .EQ.10) THEN
-        DO L=1,6                  
-          print*, 'AFTER OCALBEDO: ', BOCVN(L), XOCVN(L)
-        ENDDO
-      END IF
+      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,LOC_CHL,vrbos)
+
+c      IF(JLAT .EQ.10 ) THEN
+c        print*, 'AFTER OCALBEDO: ', ILON, (BOCVN(L), XOCVN(L), L=1,6)
+c      END IF
 
 #endif
 

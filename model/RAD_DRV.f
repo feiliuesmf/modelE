@@ -886,7 +886,7 @@ C**** Save initial rad forcing alterations:
 C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
-#ifdef CHL_from_Seawifs
+#ifdef CHL_from_SeaWIFs
 C**** Read in Seawifs files here:
       CHL(:,:)=0.1d0    ! rough default for the time being 
 #endif
