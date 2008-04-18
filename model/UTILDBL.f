@@ -11,7 +11,7 @@ C****
 C**** THBAR(T1,T2) = (ln(T1) - ln(T2))/(1/T2 - 1/T1)
 C****              = T1*g(x) with x=T1/T2 , g(x)=ln(x)/(x-1)
 C****      g(x) is replaced by a rational function
-C****           (a+bx+cxx+dxxx+cx**4)/(e+fx+gxx)
+C****           (a+bx+cxx+dxxx+xxxx)/(e+fx+gxx)
 C****      approx.error <1.E-6 for x between .9 and 1.7
 C****
       IMPLICIT NONE
