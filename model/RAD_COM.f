@@ -168,6 +168,14 @@ C**** using the rad_forc_lev parameter.
 !@var co2ppm Current CO2 level as seen by radiation
       REAL*8 :: co2ppm = 280.    ! set a resaonable default value
 
+#ifdef CHL_from_SeaWIFs
+!@var ACHL,ECHL1,ECHL0,BCHL,CCHL arrays for the reading in chlorophyll
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ACHL,ECHL1,ECHL0,BCHL,
+     *     CCHL
+!@var iu_CHL unit for chlorophyll file
+      INTEGER iu_CHL
+#endif
+
 C**** Local variables initialised in init_RAD
 !@var PLB0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
@@ -202,7 +210,9 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_OceanBiology
      *     ,FSRDIF,DIRNIR,DIFNIR
 #endif
-
+#ifdef CHL_from_SeaWIFs
+     *     ,achl,echl1,echl0,bchl,cchl
+#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -241,6 +251,13 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
      &     ttausv_save(Im,J_0H:J_1H,Ntm,Lm),
      &     ttausv_cs_save(Im,J_0H:J_1H,Ntm,Lm),
+#endif
+#ifdef CHL_from_SeaWIFs
+     &         ACHL(IM,J_0H:J_1H),   
+     &         ECHL1(IM,J_0H:J_1H),
+     &         ECHL0(IM,J_0H:J_1H),
+     &         BCHL(IM,J_0H:J_1H),
+     &         CCHL(IM,J_0H:J_1H),
 #endif
      *     STAT=IER)
 

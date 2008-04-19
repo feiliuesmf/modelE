@@ -374,6 +374,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
+#ifdef CHL_from_SeaWIFs
+     *     ,iu_CHL
+#endif
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
@@ -777,6 +780,12 @@ C**** set up unit numbers for 14 more radiation input files
 #endif
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
+
+#ifdef CHL_from_SeaWIFs
+C**** open chlorophyll data
+      call openunit("CHL_DATA",iu_CHL,.true.,.true.)
+#endif
+
       LS1_loc=1  ! default
 C***********************************************************************
 C     Main Radiative Initializations
@@ -836,8 +845,13 @@ C**** Read in the factors used for alterations:
 !@sum  daily_RAD sets radiation parameters that change every day
 !@auth G. Schmidt
 !@calls RADPAR:RCOMPT
-      USE DOMAIN_DECOMP, only : am_I_root
-      USE MODEL_COM, only : jday,jyear
+      USE CONSTANT, only : by12
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP, only : am_I_root,GRID,GET,READT_PARALLEL
+     *     ,REWIND_PARALLEL
+      USE MODEL_COM, only : jday,jyear,im,jm,focean,jmon,JDendOfM
+     *     ,JDmidOfM, jdate 
+      USE GEOM, only : imaxj
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
 #ifdef ALTER_RADF_BY_LAT
@@ -846,10 +860,26 @@ C**** Read in the factors used for alterations:
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr
-      USE DIAG_COM, only : iwrite,jwrite,itwrite
+#ifdef CHL_from_SeaWIFs
+     *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
+#endif
+      use DIAG_COM, only : iwrite,jwrite,itwrite
       USE FLUXES, only : chl
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
+!@var TEMP_LOCAL stores ACHL+ECHL1 to avoid the use of common block
+      REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
+!@var IMON0 current month for CHL climatology reading
+      INTEGER, SAVE :: IMON0 = 0
+      INTEGER :: LSTMON,I,J
+      REAL*8 TIME
+
+      INTEGER :: J_0,J_1
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       JDAYR=JDAY
       JYEARR=JYEAR
@@ -887,8 +917,51 @@ C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
 #ifdef CHL_from_SeaWIFs
-C**** Read in Seawifs files here:
-      CHL(:,:)=0.1d0    ! rough default for the time being 
+C**** Read in Seawifs files here
+c      CHL(:,:)=0.1d0    ! rough default for the time being 
+
+      IF (JMON.NE.IMON0) THEN
+      IF (IMON0==0 .or. JMON==1) THEN
+C**** READ IN LAST MONTH'S END-OF-MONTH DATA
+        LSTMON=JMON-1
+        if (lstmon.eq.0) lstmon = 12		
+        CALL READT_PARALLEL
+     *       (grid,iu_CHL,NAMEUNIT(iu_CHL),IM*JM,ECHL0,LSTMON)
+      ELSE
+C**** COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
+        ECHL0=ECHL1
+      END IF
+C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
+      IMON0=JMON
+      if (jmon.eq.1) CALL REWIND_PARALLEL( iu_CHL )
+      CALL READT_PARALLEL
+     *     (grid,iu_CHL,NAMEUNIT(iu_CHL),0,TEMP_LOCAL,1)
+      ACHL  = TEMP_LOCAL(:,:,1)
+      ECHL1 = TEMP_LOCAL(:,:,2)
+
+C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
+      DO J=J_0,J_1
+        DO I=1,IMAXJ(J)
+          BCHL(I,J)=ECHL1(I,J)-ECHL0(I,J)
+          CCHL(I,J)=3.*(ECHL1(I,J)+ECHL0(I,J))-6.*ACHL(I,J)	
+        END DO
+      END DO
+      END IF
+C**** Calculate CHL for current day
+      TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
+      DO J=J_0,J_1
+        DO I=1,IMAXJ(J)
+          IF (FOCEAN(I,J).gt.0) THEN
+C**** CHL always uses quadratic fit	
+            CHL(I,J)=ACHL(I,J)+BCHL(I,J)*TIME
+     *           +CCHL(I,J)*(TIME**2-BY12)
+            if (CHL(I,J).lt. 0) CHL(I,J)=0. ! just in case
+          END IF
+        END DO
+      END DO
+C**** REPLICATE VALUES AT POLE
+      IF(HAVE_NORTH_POLE .AND. FOCEAN(1,JM).gt.0) CHL(2:IM,JM)=CHL(1,JM)
+      IF(HAVE_SOUTH_POLE .AND. FOCEAN(1, 1).gt.0) CHL(2:IM, 1)=CHL(1, 1)
 #endif
 
       RETURN
