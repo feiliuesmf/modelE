@@ -1217,14 +1217,15 @@ c *********************************************************************
       real*8, intent(in) :: ustar,z0m,ScPr,z0min,nu
       real*8, intent(out) :: z0hq
 !!    real*8, parameter :: z0=0.00023d0 ! rough limit (m)
-      real*8 r0q,beta,fac_smooth,X      !! ,fac_rough
+      real*8 r0q,beta,fac_smooth_ScPr !,X,fac_smooth    !! ,fac_rough
 
 C**** functional dependence on Sc,Pr for smooth, rough surfaces
-      fac_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
+      !fac_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
+      fac_smooth_ScPr = 30.*exp(-13.6d0*kappa*ScPr**twoby3)
 
 !!    fac_rough(X) = -7.3d0*kappa*sqrt(X)
 !!     if (ustar.le.0.20d0) then                ! smooth regime
-         z0hq=nu*fac_smooth(ScPr)/ustar + z0min
+         z0hq=nu*fac_smooth_ScPr/ustar + z0min
 !!     else                                     ! rough regime
 !!       r0q=sqrt(sqrt(ustar*z0m/nu))
 !!       z0hq=7.4d0*z0m*exp(fac_rough(ScPr)*r0q)
