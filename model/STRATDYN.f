@@ -50,7 +50,7 @@ C**** momentum passes through model top.
 !@dbparam ang_gwd =1 ang mom. lost by GWDRAG is added in below PTOP
       INTEGER :: ang_gwd = 1 ! default: GWDRAG does conserve AM
 
-!@var PK,PMID local P**Kapa, pmid arrays 
+!@var PK,PMID local P**Kapa, pmid arrays
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK, PMID
 !@param NM number of gravity wave drag sources
       INTEGER, PARAMETER :: NM=9
@@ -68,7 +68,7 @@ C**** accumulated in the routines contained herein
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : twopi,kapa
-      USE MODEL_COM, only : im,jm,lm,do_gwdrag,pednl00,pmidl00 
+      USE MODEL_COM, only : im,jm,lm,do_gwdrag,pednl00,pmidl00
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,AM_I_ROOT,
      *                          NORTH, SOUTH, PACK_DATA,
      *                          DREAD_PARALLEL,
@@ -638,7 +638,7 @@ C
             PDSIG(L,I,J)=DP(L)
             PMID(L,I,J)=PL(L)
           END DO
-        END DO 
+        END DO
       END DO
 !$OMP END PARALLEL DO
 
@@ -800,7 +800,7 @@ C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
 C.... if Froude number (U0/BV0*ZSD) > 1
 C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
         IF (ZVAR.GT.(XFROUD*W0/BV0)**2) ZVAR=(XFROUD*W0/BV0)**2
-        P0=(PL(1)*DP(1)+PL(2)*DP(2))/(DP(1)+DP(2)) 
+        P0=(PL(1)*DP(1)+PL(2)*DP(2))/(DP(1)+DP(2))
         WT(1)=ZWT(I,J)
         MU(1)=-CMTN*EK(1,J)/(H0*ROTK)*P0*BV0*W0*ZVAR
         IF(MU(1)*(UL(LBREAK)*UR(1)+VL(LBREAK)*VR(1)).GE.0.) MU(1)=0.
@@ -961,7 +961,9 @@ C****
 C**** INCIDENT FLUX FOR MTN WAVES
       LN=LD(1)
       IF (MU(1).LT.MUB(LN,1)) MU(1)=MUB(LN,1)
-      IF (LN.LE.LM.AND.BVF(LN).LT.1.E-5) MU(1)=0.
+      IF (LN.LE.LM) THEN
+        IF (BVF(LN).LT.1.E-5) MU(1)=0.
+      END IF
 C**** INCIDENT FLUX FOR SHR AND MC WAVES
       DO N=2,NM
         LN=LD(N)
@@ -1229,7 +1231,7 @@ C****
       REAL*8, INTENT(INOUT),
      *     DIMENSION(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PDSIG
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     DEFRM1,DEFRM2  ! ,DEF1A,DEF2A
 !      CHARACTER*80 TITLE
       INTEGER I,J,L,IP1,IM1

@@ -39,8 +39,9 @@ CONST UTILDBL SYSTEM                ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=AIC.RES_M23.D771201
-GIC=GIC.E046D3M20A.1DEC1955.ext
+! AIC=AIC.RES_M23.D771201
+! GIC=GIC.E046D3M20A.1DEC1955.ext
+AIC=1JAN1881.rsfE001M23
 OSST=OST4X5.B.1876-85avg.Hadl1.1
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! ocn
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
@@ -165,7 +166,7 @@ o3_yr=-1880
  &INPUTZ
    YEARI=1880,MONTHI=1,DATEI=1,HOURI=0,  !  from default: IYEAR1=YEARI
    YEARE=1890,MONTHE=1,DATEE=1,HOURE=0,    KDIAG=0,2,2,9*0,9,
-   ISTART=2,IRANDI=0, YEARE=1880,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=8,IRANDI=0, YEARE=1880,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
 
 ! Alternate simple ocean parameterizations  (all require a preliminary run with

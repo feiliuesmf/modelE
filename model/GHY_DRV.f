@@ -141,7 +141,7 @@ ccc set i,j - independent stuff for tracers
 !@sum tracers code to be called before the i,j cell is processed
       use model_com, only : dtsrc
       use pbl_drv, only : t_pbl_args
-      
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : sday
@@ -362,7 +362,7 @@ ccc accumulate tracer evaporation and runoff
         n=ntix(nx)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-C**** technicallly some of these are ocean emissions, but if 
+C**** technicallly some of these are ocean emissions, but if
 C**** fixed datasets are used, it can happen over land as well.
 
         select case (trname(n))
@@ -612,7 +612,7 @@ c***********************************************************************
 !      USE pbl_drv,ONLY : dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,
 !     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
 #endif
-      
+
       use diag_com, only : idd_ts,idd_tg1,idd_qs
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
@@ -882,7 +882,7 @@ C**** halo update u and v for distributed parallelization
      &      ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl,
      &       (idd_zpbl1+i-1,i=1,npbl), (idd_uabl1+i-1,i=1,npbl),
      *       (idd_vabl1+i-1,i=1,npbl), (idd_uvabl1+i-1,i=1,npbl),
-     *       (idd_tabl1+i-1,i=1,npbl), (idd_qabl1+i-1,i=1,npbl),  
+     *       (idd_tabl1+i-1,i=1,npbl), (idd_qabl1+i-1,i=1,npbl),
      *       (idd_zhat1+i-1,i=1,npbl-1), (idd_e1+i-1,i=1,npbl-1),
      *       (idd_km1+i-1,i=1,npbl-1), (idd_ri1+i-1,i=1,npbl-1)
 #endif
@@ -1208,7 +1208,7 @@ C**** calculate correction for different TG in radiation and surface
 
 #ifdef SCM
 c     if SCM overwrite sensible and latent heat fluxes with ARM
-c        values 
+c        values
       if (i.eq.I_TARG .and. j.eq.J_TARG) then
          if (SCM_SURFACE_FLAG.eq.1) then
 c           write(iu_scm_prt,980) NSTEPSCM,ash*1800.,shdt,
@@ -1510,7 +1510,7 @@ ccc the following values are returned by PBL
       aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp
       aij(i,j,ij_rauto)=aij(i,j,ij_rauto)+arauto
       aij(i,j,ij_clab)=aij(i,j,ij_clab)+aclab/nisurf
-      aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp  
+      aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp
       aij(i,j,ij_soilCpoolsum)=aij(i,j,ij_soilCpoolsum)
      &     + asoilCpoolsum/nisurf
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
@@ -1982,7 +1982,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
             call old_gic_2_modele(
      &           w_ij(:,:,i,j), ht_ij(:,:,i,j),snowbv(:,i,j),
      &           wearth(i,j), aiearth(i,j), tearth(i,j), snowe(i,j) )
-          
+
           end do
         end do
         write (*,*) 'ground hydrology data was made from ground data'
@@ -2471,7 +2471,7 @@ ccc ugly, should fix later
       ht_ij(:,2,i,j)= (/ -0.13991376d+05, -0.53165599d+05,
      &     0.65443775d+06,  0.29276050d+07,  0.81455096d+07,
      &     0.21575081d+08,  0.45952255d+08 /)
-      snowbv(:,i,j)= (/  0.00000000d+00,  0.65458111d-04 /)
+      snowbv(1:2,i,j)= (/  0.00000000d+00,  0.65458111d-04 /)
 
       enddo
       enddo
@@ -2847,7 +2847,7 @@ c**** check for nan/inf in earth data
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hb')
       call check3(ht_ij(0:ngm,2,I_0:I_1,J_0:J_1),ngm+1,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hv')
-      call check3(snowbv(1:ngm,I_0:I_1,J_0:J_1),2    ,
+      call check3(snowbv(1:LS_nfrac,I_0:I_1,J_0:J_1),2    ,
      *                 (I_1-I_0+1),(J_1-J_0+1),subr,'sn')
 
 c**** check for reasonable temperatures over earth
@@ -3116,7 +3116,7 @@ c**** find leaf-area index & water field capacity for ground layer 1
               call get_soil_properties( q_ij(i,j,:,:), dz_ij(i,j,:),
      &             thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
             enddo
-            
+
 #ifndef USE_ENT
             call veg_set_cell(vegcell, i,j, 1.d0, 1.d0, .true.)
             !call veg_set_cell(i,j, .true.)
@@ -4389,4 +4389,4 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
       fv=1.d0 - fb
 #endif
       end subroutine get_fb_fv
- 
+
