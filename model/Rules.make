@@ -368,8 +368,8 @@ F90 = g95
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_MAC -DCOMPILER_G95
-FFLAGS = -O2 # -cpp
-F90FLAGS = -O2 -f free
+FFLAGS = -O2 -fendian=big # -cpp
+F90FLAGS = -O2 -ffree-form -fendian=big
 LFLAGS =
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
