@@ -862,9 +862,9 @@ C**** Read in the factors used for alterations:
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
+      USE FLUXES, only : chl
 #endif
       use DIAG_COM, only : iwrite,jwrite,itwrite
-      USE FLUXES, only : chl
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
 !@var TEMP_LOCAL stores ACHL+ECHL1 to avoid the use of common block
@@ -918,7 +918,6 @@ C**** Define CO2 (ppm) for rest of model
 
 #ifdef CHL_from_SeaWIFs
 C**** Read in Seawifs files here
-c      CHL(:,:)=0.1d0    ! rough default for the time being 
 
       IF (JMON.NE.IMON0) THEN
       IF (IMON0==0 .or. JMON==1) THEN
@@ -1067,7 +1066,10 @@ C     OUTPUT DATA
 #endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : gtemp,nstype,gtempr,chl
+      USE FLUXES, only : gtemp,nstype,gtempr
+#ifdef OBIO_RAD_coupling
+     .                  ,chl
+#endif
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, HERE
@@ -1423,8 +1425,10 @@ CCC       STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 
+#ifdef OBIO_RAD_coupling
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) LOC_CHL = chl(I,J)
+#endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
 C**** kradia=1: instantaneous forcing - LS1_loc is not used
@@ -2122,12 +2126,12 @@ C****
 
       SRDN(I,J) = SRDFLB(1)     ! save total solar flux at surface
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
-      FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface
+      FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface **coefficient
       SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface
-#ifdef TRACERS_OceanBiology
+#ifdef OBIO_RAD_coupling
       FSRDIF(I,J)=SRDVIS*(1-SRXVIS) ! diffuse visible solar at surface
 
-      DIRNIR(I,J)=SRXNIR            ! direct beam nir solar at surface            
+      DIRNIR(I,J)=SRXNIR*SRDNIR     ! direct beam nir solar at surface            
       DIFNIR(I,J)=SRDNIR*(1-SRXNIR) ! diffuse     nir solar at surface            
      
 cdiag write(*,'(a,2i5,6e12.4)')'RAD_DRV: ',

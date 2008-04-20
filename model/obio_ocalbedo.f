@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"      
 
       subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl,vrbos)
+
 c  Computes ocean surface albedo from solar zenith angle (solz)
 c  and wind speed (wind, m/s).
 c  Albedo is provided as direct (albd) and diffuse (albs).

@@ -1,6 +1,6 @@
-E1arobio5.R GISS Model E  2007 modelE              aromanou 03/05/08
+E1arobio_mpi.R GISS Model E  2007 modelE              aromanou 04/18/08
 
-E1arobio5: obio + gas exch + radiation coupling
+E1arobio_mpi: obio + gas exch + radiation coupling 
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -17,9 +17,10 @@ Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
 #define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
-#define TRACERS_OceanBiology
-#define OBIO_RAD_coupling           ! 
-#define CHL_from_SeaWIFs            ! 
+#define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
+#define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
+#define CHL_from_OBIO               ! interactive CHL 
+!!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs
 !!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
 End Preprocessor Options
 
@@ -100,7 +101,6 @@ obio_bioinit|-r8|                   !
 obio_daysetrad|-r8|                 ! 
 obio_daysetbio|-r8|                 ! 
 obio_ocalbedo|-r8|                  ! 
-!!!obio_oasimhr|-r8|                   ! never being used
 obio_sfcirr|-r8|                    ! 
 obio_limits|-r8|                    ! 
 obio_edeu|-r8|                      ! 
@@ -177,12 +177,12 @@ facirr=facirr.asc                        !
 alkalindirect=alk195x180_20w.asc         !
 eda_esa_ratios=eda_esa_ratios.asc        ! ratios of radiation spectral components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-CHL_DATA=seawifs_chl_195x180_20w.asc     !Gregg's seawifs in hycom grid;
-                                         !CHL_WG_4x5 in Gary'socean grid
+CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
+                                         !to be used with CHL_from_SeaWIFs
 
 
 Label and Namelist:
-E1arobio5 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio_mpi (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 

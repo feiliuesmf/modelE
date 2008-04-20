@@ -116,11 +116,11 @@ c
 #ifdef OBIO_RAD_coupling
       USE obio_forc, only:    avisdir,avisdif,anirdir,anirdif
      .                       ,ovisdir,ovisdif,onirdir,onirdif
+#ifdef CHL_from_OBIO
+      USE FLUXES, only: chl
+      USE obio_com, only: tot_chlo
 #endif
-#ifdef CHL_from_SeaWIFs 
-      USE MODEL_COM, only: JMON
-      USE obio_forc, only: chl_3d,achl
-#endif 
+#endif
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
@@ -300,8 +300,6 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
 
 !     write(*,*)'hycom, fsrdir:',nstep,ia,ja,
 !    .     FSRDIR(ia,ja),SRVISSURF(ia,ja),avisdir(ia,ja)
-      write(*,*)'hycom, fsrdir:',nstep,ia,ja,
-     .     avisdir(ia,ja)
 
 #endif
  29   continue
@@ -1220,8 +1218,8 @@ css   call iceo2a(omlhc,mlhc)
       call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
       enddo
 #endif
-#ifdef CHL_from_SeaWIFs       
-      call ssto2a(chl_3d(:,:,JMON),achl(:,:))
+#ifdef CHL_from_OBIO
+      call ssto2a(tot_chlo,chl)
 #endif
 c
 c     call findmx(ipa,asst,iia,iia,jja,'asst')

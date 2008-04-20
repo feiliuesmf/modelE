@@ -18,9 +18,6 @@
      .                    ,eda_frac,esa_frac
      .                    ,ovisdir,ovisdif,onirdir,onirdif
      .                    ,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
-#ifdef CHL_from_SeaWIFs
-     .                    ,chl_3d,chl
-#endif
 #else
      .                    ,Eda,Esa,Eda2,Esa2
 #endif
@@ -34,6 +31,7 @@
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,bn3d,obio_wsd2d,obio_wsh2d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day
+     .                    ,tot_chlo
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate
      . ,itime,iyear1,jdendofm,jyear,aMON
@@ -290,12 +288,6 @@ cdiag  endif
        enddo
 #endif
 
-#ifdef OBIO_RAD_coupling
-#ifdef CHL_from_SeaWIFs
-       chl = chl_3d(i,j,JMON)
-#endif
-#endif
-
        !------------------------------------------------------------
        !at the beginning of each day only
        if (hour_of_day.eq.1) then
@@ -361,18 +353,24 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
               Es(ichan) = onirdif_ij * esa_frac(ichan)
           endif
           tot = tot + Ed(ichan)+Es(ichan)
+
+cdiag if (nstep.eq.12)
+cdiag.write(*,'(a,4i5,3e12.4)')'obio_model: ',
+cdiag.           nstep,i,j,ichan,
+cdiag.           ovisdir_ij,eda_frac(ichan),Ed(ichan)
+
 #else
           Ed(ichan) = Eda2(ichan,ihr0)
           Es(ichan) = Esa2(ichan,ihr0)
           tot = tot + Eda2(ichan,ihr0)+Esa2(ichan,ihr0)
 #endif
-         enddo
+         enddo  !ichan
          noon=.false.
          if (hour_of_day.eq.12)then
           if (i.eq.itest.and.j.eq.jtest)noon=.true.
          endif
          if (tot .ge. 0.1) call obio_sfcirr(noon,vrbos)
-
+      
       !check
       if (vrbos) then
         write(lp,'(a,3i9)')
@@ -381,18 +379,10 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
      .                       ', day of month=',day_of_month,
      .                       ', ihr0=',ihr0
 
-         ichan=2
-cdiag    write(lp,'(a)')'Eda'
-!        write(lp,'(2i5,4e12.4)')ichan,ihr0,   
-cdiag    write(lp,*)ichan,ihr0,   
-cdiag.        Eda(i,j,ichan,ihr0,JMON),
-cdiag.        Eda2(ichan,ihr0),Ed(ichan),rod(ichan)
-
-
 cdiag   write(lp,'(a)')
 cdiag.'    k     dp          u            v         temp         saln'
 cdiag   do k=1,kdm
-!       write(lp,'(i5,5e12.4)')
+cdiag   write(lp,'(i5,5e12.4)')
 cdiag   write(lp,*)
 cdiag.  k,dp1d(k),u(i,j,k+mm),v(i,j,k+mm),
 cdiag.    temp(i,j,k+mm),saln(i,j,k+mm)
@@ -573,6 +563,12 @@ cdiag     endif
          bn3d(i,j,k)=bn(k)
          wshc3d(i,j,k)=wshc(k)
          Fescav3d(i,j,k)=Fescav(k)
+       enddo
+
+       !compute total chlorophyl at surface layer
+       tot_chlo(i,j)=0.
+       do nt=1,nchl
+          tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
 
        !compute total primary production per day

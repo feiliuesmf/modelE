@@ -26,8 +26,8 @@
       real eda_frac,esa_frac
       common /frac_oasim/eda_frac(nlt),esa_frac(nlt)
 
-      real avisdir,avisdif,anirdir,anirdif
-      real ovisdir,ovisdif,onirdir,onirdif
+      real*8 avisdir,avisdif,anirdir,anirdif
+      real*8 ovisdir,ovisdif,onirdir,onirdif
       common /rada2o/  avisdir(iia,jja),avisdif(iia,jja)
      .                ,anirdir(iia,jja),anirdif(iia,jja)
      .                ,ovisdir(idm,jdm),ovisdif(idm,jdm)
@@ -35,19 +35,6 @@
       real ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
       common /rada2o_ij/ ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
 !$OMP THREADPRIVATE(/rada2o_ij/)
-
-#ifdef CHL_from_SeaWIFs
-      real, ALLOCATABLE :: chl_3d(:,:,:)
-      real achl(iia,jja)
-      real chl
-      common /alb_rad_chl/chl
-!$OMP THREADPRIVATE(/alb_rad_chl/)
-#endif
-
-!      real obio_bocvn,obio_xocvn   !albedo bands that are used in modelE
-!      common /alb_rad/ obio_bocvn(6),obio_xocvn(6)
-!!$OMP THREADPRIVATE(/alb_rad/)
-
 #else
       !real Eda(idm,jdm,nlt,nhn,12)    !direct downwelling irradiance
       !real Esa(idm,jdm,nlt,nhn,12)    !diffuse downwelling irradiance

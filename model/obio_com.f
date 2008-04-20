@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE obio_com
 !@sum  obio_com contains the parameters, arrays and definitions
 !@+    necessary for the OceanBiology routines
@@ -173,5 +174,10 @@ C endif
       common /bpp2/ pp2_1d(kdm,nchl)           !net primary production
       common /bpp2tot/ pp2tot_day(idm,jdm)     !net pp total per day          
 !$OMP THREADPRIVATE(/bpp2/)
+
+#ifdef CHL_from_OBIO
+      real ::  tot_chlo             
+      common /totchlo/ tot_chlo(idm,jdm)       !tot chlorophyl at surf. layer
+#endif
 
       END MODULE obio_com

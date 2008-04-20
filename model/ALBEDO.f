@@ -411,23 +411,21 @@ C
       END DO
 
 #ifdef OBIO_RAD_coupling
-
 C**** call routine to calculate Gregg version of albedo, including
 C**** Chlorophyll effect
 
-      vrbos=.false.
-c      IF(JLAT .EQ.10 ) THEN
-c        print*, 'BEFORE OCALBEDO: ', WMAG,COSZ,LOC_CHL
-c        print*, 'BEFORE OCALBEDO: ', ILON,(BOCVN(L), XOCVN(L), L=1,6)
-c        vrbos=.true.
-c      END IF
+      do L=1,6
+      write(*,'(a,2i5,2d12.4)')'BEFORE OCALBEDO: ', 
+     .        ILON,JLAT,BOCVN(L), XOCVN(L)
+      enddo
 
+      vrbos=.false.
       call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,LOC_CHL,vrbos)
 
-c      IF(JLAT .EQ.10 ) THEN
-c        print*, 'AFTER OCALBEDO: ', ILON, (BOCVN(L), XOCVN(L), L=1,6)
-c      END IF
-
+      do L=1,6
+      write(*,'(a,2i5,2d12.4)')'AFTER OCALBEDO: ', 
+     .        ILON, JLAT, BOCVN(L), XOCVN(L)
+      enddo
 #endif
 
 C**** For lakes increase albedo if lakes are very shallow
