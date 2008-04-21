@@ -329,7 +329,7 @@ C**** arrays needed if 6 band albedo is used
 
 C**** variables used for sea ice albedo calculation (6 bands, Hansen)
       REAL*8, dimension(6) :: almp6,alsf6
-      REAL*8 :: patchy,snagfac
+      REAL*8 :: patchy,snagfac,dummy(33)
 
 C     -----------------------------------------------------------------
 C     Ocean Albedo Dependence on Zenith Angle and Wind Speed
@@ -414,18 +414,28 @@ C
 C**** call routine to calculate Gregg version of albedo, including
 C**** Chlorophyll effect
 
+      vrbos=.false.
+      if (ILON.eq.37.and.JLAT.eq.23) vrbos=.true.
+
+      if (vrbos) then
       do L=1,6
-      write(*,'(a,2i5,2d12.4)')'BEFORE OCALBEDO: ', 
+      write(*,'(a,2i5,2d12.4)')'BEFOR OCALBEDO: ', 
      .        ILON,JLAT,BOCVN(L), XOCVN(L)
       enddo
+      endif
 
-      vrbos=.false.
-      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,LOC_CHL,vrbos)
+      !call obio_ocalbedo with hycgr=.false. because the
+      !calculation is done on the amtos grid here and we
+      !need to return bocvn,xocvn but dont return rod and ros
+      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
+     .                    LOC_CHL,dummy,dummy,.false.,vrbos)
 
+      if (vrbos) then
       do L=1,6
       write(*,'(a,2i5,2d12.4)')'AFTER OCALBEDO: ', 
      .        ILON, JLAT, BOCVN(L), XOCVN(L)
       enddo
+      endif
 #endif
 
 C**** For lakes increase albedo if lakes are very shallow

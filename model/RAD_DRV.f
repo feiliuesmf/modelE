@@ -377,6 +377,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL
 #endif
+#ifdef OBIO_RAD_coupling
+     *     ,wfac
+#endif
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
@@ -397,6 +400,17 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@var QBIN true if files for radiation input files are binary
       LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
+
+#ifdef OBIO_RAD_coupling
+      integer, parameter :: nlt=33
+      real*8 :: pi, rad, roair, rn,
+     *     aw(nlt), bw(nlt), saw, sbw
+      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, t, tlog, fac, rlam
+      integer :: nl,ic , iu_bio, lambda, lam(nlt)
+      character title*50
+      data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
+      data b0,b1,b2,b3 /5.026d0, -0.01138d0, 9.552d-6, -2.698d-9/
+#endif
 
       INTEGER J_0,J_1,J_1S
       LOGICAL HAVE_NORTH_POLE, HAVE_SOUTH_POLE
@@ -829,6 +843,37 @@ C**** Read in the factors used for alterations:
         read(iu2,'(a6,8D8.3)') skip,(FT8OPX_lat(nn,n),nn=1,8)
       enddo
       call closeunit(iu2)
+#endif
+
+#ifdef OBIO_RAD_coupling
+      pi = dacos(-1.0D0)
+      rad = 180.0D0/pi
+      rn = 1.341d0  ! index of refraction of pure seawater
+      roair = 1.2D3 ! density of air g/m3  SHOULD BE INTERACTIVE?
+
+      call openunit('cfle1',iu_bio)
+      do ic = 1,6
+        read(iu_bio,'(a50)')title
+      enddo
+      do nl = 1,nlt
+        read(iu_bio,20) lambda,saw,sbw
+        lam(nl) = lambda
+        aw(nl) = saw
+        bw(nl) = sbw
+        if (lam(nl) .lt. 900) then
+          t = exp(-(aw(nl)+0.5*bw(nl)))
+          tlog = dlog(1.0D-36+t)
+          fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
+          wfac(nl) = max(0d0,min(fac,1d0))
+        else
+          rlam = float(lam(nl))
+          fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
+          wfac(nl) = max(fac,0d0)
+        endif
+      enddo
+      print*,'RAD_DRV, wfac initializ= ', wfac
+      call closeunit(iu_bio)
+ 20   format(i5,f15.4,f10.4)
 #endif
 
       RETURN

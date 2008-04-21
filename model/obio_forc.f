@@ -53,11 +53,11 @@
       real owind      !wind speed in hycom grid (see hycom2.f)
       common /owind/  awind(iia,jja),owind(idm,jdm)
      
-      real    rod,ros       !surface reflectance for
-                            !direct (rod) and diffuse (ros)
-                            !components separately
-      common /brod2/ rod(nlt),ros(nlt)
-!$OMP THREADPRIVATE(/brod2/)
+!     real    rod,ros       !surface reflectance for
+!                           !direct (rod) and diffuse (ros)
+!                           !components separately
+!     common /brod2/ rod(nlt),ros(nlt)
+!!$OMP THREADPRIVATE(/brod2/)
 
       real wind               !surface wind from atmos
       common /bwind/ wind

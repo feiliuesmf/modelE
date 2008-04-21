@@ -7,7 +7,7 @@
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: solz,tirrq,Ed,Es
-     .                    ,rmud,atmFe,avgq,ihra,sunz,rod,ros
+     .                    ,rmud,atmFe,avgq,ihra,sunz
 !    .                    ,solz_all,solz2,sunz2
      .                    ,wind
      .                    ,atmFe_all
@@ -57,7 +57,8 @@
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer iu_pco2,ll
-      real    tot
+      real    tot,dummy(6),dummy1
+      real    rod(nlt),ros(nlt)
 
       character string*80
 
@@ -333,7 +334,9 @@ cdiag    endif
 
          !compute the ocean albedo but we do not need it yet
          !before we couple to atmosphere
-         !!!!!call obio_ocalbedo
+         !has to have hygr =  .true. 
+         call obio_ocalbedo(wind,solz,dummy,dummy,dummy1,
+     .                      rod,ros,.true.,vrbos)
 
 
 cdiag    if (vrbos)
@@ -369,7 +372,7 @@ cdiag.           ovisdir_ij,eda_frac(ichan),Ed(ichan)
          if (hour_of_day.eq.12)then
           if (i.eq.itest.and.j.eq.jtest)noon=.true.
          endif
-         if (tot .ge. 0.1) call obio_sfcirr(noon,vrbos)
+         if (tot .ge. 0.1) call obio_sfcirr(noon,rod,ros,vrbos)
       
       !check
       if (vrbos) then

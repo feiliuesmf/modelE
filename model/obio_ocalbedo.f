@@ -1,6 +1,18 @@
 #include "rundeck_opts.h"      
 
-      subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl,vrbos)
+      subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl,
+     .                         rod,ros,hycgr,vrbos)
+
+***********************************************************************
+***** this routine is used by both atmosphere and ocean at each (i,j)
+***** where implicitly it is assumed that
+***** wind,solz,bocvn,xocvn,chl are in the atmos gird if hycgr=.false. 
+***** wind,solz,                are in the ocean gird if hycgr=.true.
+***** when this routine is called from within hycom, it does not compute
+***** albedo coefficients. Those are computed on the atmos grid.
+***** when this routine is called from within ocean, it does not pass
+***** reflectances
+***********************************************************************
 
 c  Computes ocean surface albedo from solar zenith angle (solz)
 c  and wind speed (wind, m/s).
@@ -9,6 +21,8 @@ c  Derive surface reflectance as a function of solz and wind
 c  Includes spectral dependence of foam reflectance derived from Frouin
 c  et al., 1996 (JGR)
       USE FILEMANAGER
+      USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
+!!!   USE obio_incom, only : wfac_o
       implicit none
 
       integer nl
@@ -44,50 +58,20 @@ C**** gband is the distribution of the 31 bands for the 6 band GISS code
       integer :: gband(7) = (/ 1, 18, 19, 23, 26, 30, 32 /)
 c      real*8 :: part_sum(6) = (/0.526854,0.0643897,0.196531,0.066281,
 c     .                        0.066922,0.0497974/)
-      logical vrbos
-
-C**** this should be initialised somewhere else, but is here for now to
-C**** decouple from obio.
+      logical vrbos,hycgr
 
       integer, parameter :: nlt=33
-      real*8 :: pi, rad, roair, rn, rod(nlt),ros(nlt), wfac(nlt),
-     *     aw(nlt), bw(nlt), saw, sbw
+      real*8 :: pi, rad, roair, rn,
+     *     aw(nlt), bw(nlt), saw, sbw, rod(nlt),ros(nlt)
       real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, t, tlog, fac, rlam
       integer :: ic , iu_bio, ngiss, lambda, lam(nlt)
-      character title*50
-      data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
-      data b0,b1,b2,b3 /5.026d0, -0.01138d0, 9.552d-6, -2.698d-9/
 
       pi = dacos(-1.0D0)
       rad = 180.0D0/pi
       rn = 1.341d0  ! index of refraction of pure seawater
       roair = 1.2D3 ! density of air g/m3  SHOULD BE INTERACTIVE?
 
-      call openunit('cfle1',iu_bio)
-      do ic = 1,6
-        read(iu_bio,'(a50)')title
-      enddo
-      do nl = 1,nlt
-        read(iu_bio,20) lambda,saw,sbw
-        lam(nl) = lambda
-        aw(nl) = saw
-        bw(nl) = sbw
-        if (lam(nl) .lt. 900) then
-          t = exp(-(aw(nl)+0.5*bw(nl)))
-          tlog = alog(1.0D-36+t)
-          fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
-          wfac(nl) = max(0d0,min(fac,1d0))
-        else
-          rlam = float(lam(nl))
-          fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
-          wfac(nl) = max(fac,0d0)
-        endif
-      enddo
-      call closeunit(iu_bio)
- 20   format(i5,f15.4,f10.4)
 
-C**** end initialisation
-      
       sunz=acos(solz)*rad  !in degs
 
 c  Foam and diffuse reflectance
@@ -105,8 +89,6 @@ c  Foam and diffuse reflectance
         rosps = 0.066d0
       endif
       
-      if(vrbos)write(*,*)'ocalbedo: ', wind,rof,rosps,sunz
-
 c  Direct
 c   Fresnel reflectance for sunz < 40, wind < 2 m/s
       if (sunz .lt. 40.0 .or. wind .lt. 2.0) then
@@ -132,14 +114,28 @@ c   Fresnel reflectance for sunz < 40, wind < 2 m/s
         b = -7.14D-4*wind + 0.0618d0
         rospd = a*exp(b*(sunz-40.0))
       endif
-      if(vrbos)write(*,*)'ocalbedo: ', rospd
 
 c  Reflectance totals
       do nl = 1,nlt
         rod(nl) = rospd + rof*wfac(nl)
         ros(nl) = rosps + rof*wfac(nl)
-        if(vrbos)write(*,*)'ocalbedo: ', nl,rod(nl),ros(nl),rof,wfac(nl)
       enddo
+
+      if(vrbos.and..not.hycgr)then
+      do nl=1,33
+          write(*,'(a,i5,8d12.4)')'ocalbedo A:', 
+     .    nl,wfac(nl),wind,sunz,rof,rosps,rospd,rod(nl),ros(nl)
+      enddo
+      endif
+      if(vrbos.and.hycgr)then
+      do nl=1,33
+          write(*,'(a,i5,8d12.4)')'ocalbedo O:', 
+     .    nl,wfac(nl),wind,sunz,rof,rosps,rospd,rod(nl),ros(nl)
+      enddo
+      endif
+
+      if (hycgr) return  !we do not compute albedo coefs
+                         !from within hycom, but from atmos
       
 !diffuse spectral reflectance average
 ! c=0.03   0.0404007
@@ -168,7 +164,7 @@ c  Reflectance totals
 C**** add chlorophyll term
       refl = ref(chl)
       bocvn(1) = bocvn(1) + refl
-      if (vrbos) print*,"ocalbedo:",refl,chl
+      if (vrbos) write(*,*)'ocalbedo, atmos refl,chl:',refl,chl
 
       return
       end subroutine obio_ocalbedo

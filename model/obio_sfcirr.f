@@ -1,4 +1,4 @@
-      subroutine obio_sfcirr(noon,vrbos)
+      subroutine obio_sfcirr(noon,rod,ros,vrbos)
  
 c  Computes irradiance just below sea surface (i.e., accounts
 c  for surface reflectance), determines array portion that is
@@ -6,7 +6,7 @@ c  in light, and computes average cosine for direct irradiance.
  
       USE obio_dim
       USE obio_incom, only :rad
-      USE obio_forc,  only :rmud,Ed,Es,solz,rod,ros
+      USE obio_forc,  only :rmud,Ed,Es,solz
       USE obio_com,   only :npst,npnd,hour_of_day,day_of_month
  
       USE hycom_dim_glob
@@ -20,11 +20,14 @@ c  in light, and computes average cosine for direct irradiance.
 
       integer iprt,nl
       real rn,sirr,rsza,sinszaw,szaw,rmudl
+      real rod(nlt),ros(nlt)
       logical noon,vrbos
 
       data rn /1.341/  !refractive index of seawater
       data iprt /13/
  
+      if (vrbos) write(*,*)'obio_sfcirr, rod= ',rod
+
 c  Compute irradiance for the day, for this hour
       do nl = 1,nlt
        Ed(nl) = Ed(nl)*(1.0-rod(nl))

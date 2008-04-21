@@ -355,12 +355,6 @@ c
       call flxa2o(avisdif,ovisdif)
       call flxa2o(anirdir,onirdir)
       call flxa2o(anirdif,onirdif)
-cdiag do j=1,jj
-cdiag do i=1,ii
-cdiag write(*,*)'hycom, ovisdir: ',
-cdiag.           nstep,i,j,ovisdir(i,j)
-cdiag enddo
-cdiag enddo
 #endif
 c
       call system_clock(before)

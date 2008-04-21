@@ -105,8 +105,10 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       integer nl450
       common/exifst1/nl450
 
-      real excdom,bbw,Dmax,rd,ru,rmus,rmuu,rn,roair,wfac
+      real excdom,bbw,Dmax,rd,ru,rmus,rmuu,rn,roair
+!    .             ,wfac_o
       common/exifst2/excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu
-     .             ,rn,roair,wfac(nlt)
+     .             ,rn,roair
+!    .             ,wfac_o(nlt)
 
       END MODULE obio_incom

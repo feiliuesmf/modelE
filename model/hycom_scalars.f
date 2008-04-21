@@ -191,7 +191,7 @@ c --- 'itest,jtest' = grid point where detailed diagnostics are desired
 c     data itest,jtest/174,41/
 c     data itest,jtest/163,133/
 c     data itest,jtest/104,46/
-      data itest,jtest/100,100/
+      data itest,jtest/122,1/     !greenwich at equator
 c
 c ---      equatn   --  the i index of the equator
 c
