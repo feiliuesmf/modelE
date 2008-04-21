@@ -306,7 +306,6 @@ C****
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 C**** Create interpolated table for this resolution
-      if (AM_I_ROOT()) THEN
         if (ifirst ) then
          call openunit('CH4_TROP_FRQ',infile,.true.,.true.)
          call get_Trop_chem_CH4_freq(infile,FRQfile)
@@ -341,12 +340,12 @@ C**** FOR END OF YEAR, USE FIRST RECORD
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
         IF (HAVE_SOUTH_POLE) THEN
-         do l=1,lm
+         do l=1,lm-nstrtc
             frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
          end do
         ENDIF
         IF (HAVE_NORTH_POLE) THEN
-         do l=1,lm
+         do l=1,lm-nstrtc
             frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
          end do
         ENDIF
@@ -354,16 +353,7 @@ C**** AVERAGE POLES
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
         frqlos(:,:,:) = frqlos(:,:,:)*tune
 C**** Apply the chemistry
-        call ESMF_BCAST( grid, frqlos)
   550   continue
-      else
-        if (mod(jday,5).gt.0 .and. .not.ifirst) go to 551
-        if (mod(itime,nday).ne.0 .and. .not.ifirst) go to 551
-        ifirst = .false.
-        call ESMF_BCAST( grid, frqlos)
-  551   continue
-      endif 
-
       do l=1,lm-nstrtc
       do j=J_0,J_1
         do i=1,imaxj(j)
@@ -1350,7 +1340,6 @@ C**** Output: temporary file for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
 C****    CHECK IT with checkfile=.true.!!!
       USE MODEL_COM, only: im,jm,lm,psf,pmidl00
-      USE DOMAIN_DECOMP, only: GRID, GET
       USE FILEMANAGER, only: openunit,closeunit
       USE lhntr_com, only: LHNTR,LHNTR0
       implicit none
@@ -1365,15 +1354,8 @@ C****    CHECK IT with checkfile=.true.!!!
       real*8 :: sigo(lmo) = (/.974264d0,.907372d0,.796957d0,.640124d0,
      *    .470418d0,.318899d0,.195759d0,.094938d0,.016897d0/)
 
-      INTEGER :: J_1, J_0
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-
 !     initialize
       pold(:) = sigo(:)*(psf-10.)+10.
-!!! not sure if my fix to next line is correct, can somebody check? I.A.
       pnew(:) = pmidl00(1:lm)    ! sig(:)*psfmpt+ptop
       wta = 1.
 !     find a top for the output data (a drop sloppy!)
@@ -1415,7 +1397,7 @@ C**** confirmation check at i=1 for last tau
      *   ((fold(j,l),j=1,kmo,imo),l=1,lmo),(rlat(j),j=1,jmo),
      *   sngl(pold),1.,1.
         call closeunit(ifileA)
-        do j=J_0,J_1;  rlat(j) = j;  end do
+        do j=1,jm;  rlat(j) = j;  end do
         title = 'new'
         call openunit('OHCH4_FRQ_check_out',ifilea,.true.)
         write (ifileA) title,jm,lm,1,1,
