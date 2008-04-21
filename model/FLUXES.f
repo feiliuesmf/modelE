@@ -283,7 +283,9 @@ C**** fluxes associated with variable lake fractions
      &          MSICNV  ( I_0H:I_1H , J_0H:J_1H ),
      &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
+#ifdef OBIO_RAD_coupling
      &          CHL     ( I_0H:I_1H , J_0H:J_1H ),
+#endif
      &   STAT=IER)
 
 
