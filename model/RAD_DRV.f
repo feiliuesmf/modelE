@@ -965,7 +965,7 @@ C**** Define CO2 (ppm) for rest of model
 C**** Read in Seawifs files here
 
       IF (JMON.NE.IMON0) THEN
-      IF (IMON0==0 .or. JMON==1) THEN
+      IF (IMON0==0) THEN
 C**** READ IN LAST MONTH'S END-OF-MONTH DATA
         LSTMON=JMON-1
         if (lstmon.eq.0) lstmon = 12		
