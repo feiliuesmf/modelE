@@ -102,7 +102,7 @@ C**** Prather stratospheric chemistry
         end do
       end do
       call closeunit(iu)
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      *     write(6,'(2A)') ' STRATCHEM TABLES READ for ',tname
 
       call set_prather_constants
@@ -305,23 +305,24 @@ C****
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
+C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
+      if(.not.ifirst .and. (mod(jday,5)>0 .or. mod(itime,nday).ne.0) )
+     *  go to 550                           !  no need to update frqlos
+
 C**** Create interpolated table for this resolution
+      if (AM_I_ROOT()) THEN
         if (ifirst ) then
          call openunit('CH4_TROP_FRQ',infile,.true.,.true.)
          call get_Trop_chem_CH4_freq(infile,FRQfile)
         end if
 C**** Read chemical loss rate dataset (5-day frequency)
-        if (mod(jday,5).gt.0 .and. .not.ifirst) go to 550
-        if (mod(itime,nday).ne.0 .and. .not.ifirst) go to 550
-        ifirst = .false.
   510   continue
         read (FRQfile,end=515) taux,frqlos
         tauy = nint(taux)+(jyear-1950)*8760.
 c       IF (itime+ 60..gt.tauy+120.) go to 510
         IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
         IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
-          if (AM_I_ROOT()) 
-     &       write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,
+          write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,
      &       JYEAR
           call stop_model(
      &       'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4',255)
@@ -335,25 +336,25 @@ C**** FOR END OF YEAR, USE FIRST RECORD
         rewind (FRQfile)
         tauy = nint(taux)+(jyear-1950)*8760.
   518   continue
-        if (AM_I_ROOT()) WRITE(6,'(2A,2F10.0,2I10)')
+        WRITE(6,'(2A,2F10.0,2I10)')
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
-        IF (HAVE_SOUTH_POLE) THEN
-         do l=1,lm-nstrtc
-            frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
-         end do
-        ENDIF
-        IF (HAVE_NORTH_POLE) THEN
-         do l=1,lm-nstrtc
-            frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
-         end do
-        ENDIF
+        do l=1,lm
+          frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
+        end do
+        do l=1,lm
+          frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
+        end do
 
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
         frqlos(:,:,:) = frqlos(:,:,:)*tune
+      end if ! am_I_root
+      ifirst = .false.
+      call ESMF_BCAST( grid, frqlos)
+
 C**** Apply the chemistry
-  550   continue
+  550 continue
       do l=1,lm-nstrtc
       do j=J_0,J_1
         do i=1,imaxj(j)
@@ -443,7 +444,7 @@ C     Production rates
       enddo
       call closeunit(iu)
       if (AM_I_ROOT()) write(6,*) TITLCH
-      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)') 
+      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)')
      *     'O3 trop production rates read'
 C     Deposition velocities
       call openunit('LINOZ_Dep_vel',iu,.true.,.true.)
@@ -452,7 +453,7 @@ C     Deposition velocities
       enddo
       call closeunit(iu)
       if (AM_I_ROOT()) write(6,*) TITLCH
-      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)') 
+      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)')
      *     'O3 deposition velocities read'
 
 C**** This code moved from STRT2M to go faster
@@ -1494,7 +1495,7 @@ C**** process
         read(iu,*) xj,t,(GASx(3,l),l=1,62) !north
         read(iu,*) xj,t,(GASx(1,l),l=1,62) !south
       end do
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      *   write(6,'(a,i3,2f9.2)') ' Read Wofsy data at month', jmon0,xj,t
       call closeunit(iu)
 C**** Scale to a particular value
@@ -1518,7 +1519,7 @@ C**** Keep step function except at two transition points (+/1 15 deg)
       DO 210 K=29,90
       do j=1,19
         If ((J>=J_0).and.(J<=J_1)) GASJK(J,     K) = GASW(1,K-28)
-        If ((JM+1-j>=J_0).and.(JM+1-j<=J_1)) 
+        If ((JM+1-j>=J_0).and.(JM+1-j<=J_1))
      &       GASJK(JM+1-j,K) = GASW(3,K-28)
       end do
       DO j = 21,26
