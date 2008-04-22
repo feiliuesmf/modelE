@@ -301,16 +301,14 @@ C---- CTM layers LM down
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
       if(.not.ifirst .and. (mod(jday,5)>0 .or. mod(itime,nday).ne.0) )
      *  go to 550                           !  no need to update frqlos
 
 C**** Create interpolated table for this resolution
-      if (AM_I_ROOT()) THEN
+      IF (AM_I_ROOT()) THEN
         if (ifirst ) then
          call openunit('CH4_TROP_FRQ',infile,.true.,.true.)
          call get_Trop_chem_CH4_freq(infile,FRQfile)
@@ -349,7 +347,7 @@ C**** AVERAGE POLES
 
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
         frqlos(:,:,:) = frqlos(:,:,:)*tune
-      end if ! am_I_root
+      END IF ! AM_i_ROOT
       ifirst = .false.
       call ESMF_BCAST( grid, frqlos)
 
