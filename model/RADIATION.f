@@ -147,7 +147,7 @@ C----------------
       REAL*8  O3_IN(LX)
       INTEGER use_tracer_ozone
       LOGICAL*4 :: flags
-!@var LOC_CHL local chlorophyll value (unit?) for albedo calculation (optional) 
+!@var LOC_CHL local chlorophyll value (unit?) for albedo calculation (optional)
       REAL*8    :: LOC_CHL
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
@@ -4466,7 +4466,7 @@ C     ----------------------------------------------------------
      *     ULMNCH=-.8105d0, ULMNN2=-1.521d0, ULMNF1=-4.780d0,
      *     ULMNO3=-1.393d0, ULMNCO= 1.529d0, ULMNF2=-4.524d0,
      *     USO2S=.042d0
-      REAL*8 XTU(24,3),XTD(24,3),DXUP(24,3,15),DXDN(24,3,15)
+      REAL*8 XTU(24,3),XTD(24,3),DXUP(24,15,3),DXDN(24,15,3)
       INTEGER MLGAS(21)
       INTEGER I,IM,L,LL,IP,IULOW,IU,IPX,IAA,ITX
      *     ,IGAS,NG,KK,IK1,IK2,IPU,IK,NU,IUA
