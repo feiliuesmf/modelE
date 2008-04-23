@@ -45,6 +45,7 @@
 #endif
      *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
      *     ij_fwoc,p_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
+     *     ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
@@ -745,6 +746,16 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
      &         (DPHASHLW(L)+DGSHLW(L))*BYDSIG(L)
           AJL(J,L,JL_MCDEEP)=AJL(J,L,JL_MCDEEP)+
      &         (DPHADEEP(L)+DGDEEP(L))*BYDSIG(L)
+C*** Begin Accumulate 3D convective latent heating
+         if(lh_diags.eq.1) then
+          AIJK(I,J,L,IJL_MCTLH)=AIJK(I,J,L,IJL_MCTLH)+
+     &         (DPHASE(L)+DGDSM(L))
+          AIJK(I,J,L,IJL_MCDLH)=AIJK(I,J,L,IJL_MCDLH)+
+     &         (DPHADEEP(L)+DGDEEP(L))
+          AIJK(I,J,L,IJL_MCSLH)=AIJK(I,J,L,IJL_MCSLH)+
+     &         (DPHASHLW(L)+DGSHLW(L))
+         endif
+C*** End Accumulate 3D convective latent heating
           AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_MCDFLX)=AJL(J,L,JL_MCDFLX)+DDMFLX(L)
@@ -1238,6 +1249,11 @@ C**** update running-average of precipitation (in mm/day):
 
       DO L=1,LM
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+SSHR(L)
+C*** Begin Accumulate 3D heating by large scale condensation --
+       if(lh_diags.eq.1) then
+        AIJK(I,J,L,IJL_LLH)=AIJK(I,J,L,IJL_LLH)+SSHR(L)
+       endif
+C*** End Accumulate 3D heating by large scale condensation --
         AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
         AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
