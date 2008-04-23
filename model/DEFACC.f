@@ -4539,8 +4539,8 @@ c
       end subroutine jk_defs
 
       subroutine ijk_defs
-      use CONSTANT, only : bygrav,tf
-      use MODEL_COM, only : qcheck
+      use CONSTANT, only : bygrav,tf,sha
+      use MODEL_COM, only : qcheck,dtsrc
       use DIAG_COM
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
@@ -4686,6 +4686,47 @@ c
       scale_ijk(k) = 100.
       off_ijk(k)   = 0.
       jgrid_ijk(k) =  ijkgridc
+c
+CC    Written out 3D latent heating profiles
+      if (lh_diags.eq.1) then
+
+      k=k+1
+      IJL_LLH=k    ! exception - large scale condensation latent heating is on model layers
+      name_ijk(k) = 'LLH'
+      lname_ijk(k) = 'Heating by Large Scale Condensation' !'DTX(SS)*P'
+      units_ijk(k) = 'W/(m^2*mb)'
+      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
+      jgrid_ijk(k) = 1
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_MCTLH=k    ! exception - total convective latent heating is on model layers
+      name_ijk(k) = 'CTLH'
+      lname_ijk(k) = 'Heating by Moist Convection' !'DTX(SS)*P'
+      units_ijk(k) = 'W/(m^2*mb)'
+      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
+      jgrid_ijk(k) = 1
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_MCDLH=k    ! exception - deep convective latent heating is on model layers
+      name_ijk(k) = 'CDLH'
+      lname_ijk(k) = 'Heating by Deep Convection' !'DTX(SS)*P'
+      units_ijk(k) = 'W/(m^2*mb)'
+      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
+      jgrid_ijk(k) = 1
+      off_ijk(k)   = 0.
+c
+      k=k+1
+      IJL_MCSLH=k    ! exception - shallow convective latent heating is on model layers
+      name_ijk(k) = 'CSLH'
+      lname_ijk(k) = 'Heating by Shallow Convection' !'DTX(SS)*P'
+      units_ijk(k) = 'W/(m^2*mb)'
+      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
+      jgrid_ijk(k) = 1
+      off_ijk(k)   = 0.
+
+      endif
 c
 #ifdef CLD_AER_CDNC
       k=k+1
