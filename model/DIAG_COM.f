@@ -489,6 +489,9 @@ C****      names, indices, units, idacc-numbers, etc.
 !@dbparam isccp_diags: if 1 accumulate ISCCP cloud data (default 0)
       INTEGER, public :: isccp_diags = 0
 
+!@dbparam lh_diags: if 1 accumulate 3D latent heating profiles (default 0)
+      INTEGER, public :: lh_diags = 0
+
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
       REAL*8, DIMENSION(KAIJ), public :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
@@ -589,6 +592,7 @@ C****      names, indices, units, idacc-numbers, etc.
      &     IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q, IJK_R,
      *     IJK_W, IJK_PF, IJL_CF ,IJK_UV, IJK_VQ, IJK_VT, IJK_UU,
      *     IJK_VV, IJK_TT
+     *    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
 #ifdef CLD_AER_CDNC
      *    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      *    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
