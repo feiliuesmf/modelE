@@ -3882,6 +3882,7 @@ C****
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE diag_com,ONLY : adiurn_dust
+      USE diag_com,only : lh_diags
       USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
@@ -3905,6 +3906,7 @@ C**** Initialise resolution dependent diagnostic parameters
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
       call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
+      call sync_param( "lh_diags",lh_diags)
 
       IF(ISTART.LT.1) THEN  ! initialize for post-processing
         call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
