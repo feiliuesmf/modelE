@@ -61,10 +61,8 @@ c     .                        0.066922,0.0497974/)
       logical vrbos,hycgr
 
       integer, parameter :: nlt=33
-      real*8 :: pi, rad, roair, rn,
-     *     aw(nlt), bw(nlt), saw, sbw, rod(nlt),ros(nlt)
-      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, t, tlog, fac, rlam
-      integer :: ic , iu_bio, ngiss, lambda, lam(nlt)
+      real*8 :: pi, rad, roair, rn, rod(nlt),ros(nlt)
+      integer :: ngiss
 
       pi = dacos(-1.0D0)
       rad = 180.0D0/pi
