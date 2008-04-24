@@ -72,9 +72,6 @@ C**** Calls to individual i/o routines
 #ifdef TRACERS_ON
         call io_tracer (kunit,iact,ioerr)
 #endif
-#ifdef NUDGE_ON
-        call io_nudge (kunit,iaction,ioerr)
-#endif
       end if
       if(skip_diag) go to 10
       call io_diags  (kunit,it,iaction,ioerr)
