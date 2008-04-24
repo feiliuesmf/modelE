@@ -1048,9 +1048,7 @@ C     OUTPUT DATA
      &          ,BTEMPW ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
-#ifdef TRACERS_OceanBiology
      &          ,SRXNIR,SRDNIR
-#endif
       USE RADPAR, only : writer,rcompx
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
@@ -1058,9 +1056,7 @@ C     OUTPUT DATA
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
-#ifdef TRACERS_OceanBiology
      *     ,FSRDIF,DIRNIR,DIFNIR
-#endif
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif

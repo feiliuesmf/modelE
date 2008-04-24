@@ -57,11 +57,12 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF
 !@var SRDN Total incident solar at surface (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRDN  ! saved in rsf
-#ifdef TRACERS_OceanBiology
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FSRDIF    !diffuse visible incident solar at surface
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DIRNIR    !direct  nir     incident solar at surface
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DIFNIR    !diffuse nir     incident solar at surface
-#endif
+!@var FSRDIF diffuse visible incident solar at surface
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FSRDIF
+!@var DIRNIR direct  nir     incident solar at surface
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DIRNIR
+!@var DIFNIR diffuse nir     incident solar at surface
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DIFNIR
 !@var srnflb_save  Net solar radiation (W/m^2)
 !@var trnflb_save  Net thermal radiation (W/m^2)
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: srnflb_save,trnflb_save
@@ -210,9 +211,7 @@ C**** Local variables initialised in init_RAD
      *     ,SRDN, CFRAC, RCLD, O3_tracer_save,rad_to_chem,rad_to_file
      *     ,KLIQ, COSZ1, dH2O, ALB, SALB, SINJ, COSJ,srnflb_save,
      *     trnflb_save, ttausv_save, ttausv_cs_save
-#ifdef TRACERS_OceanBiology
      *     ,FSRDIF,DIRNIR,DIFNIR
-#endif
 #ifdef CHL_from_SeaWIFs
      *     ,achl,echl1,echl0,bchl,cchl
 #endif
@@ -235,11 +234,9 @@ C**** Local variables initialised in init_RAD
      *     FSF(4,IM, J_0H:J_1H),
      *     FSRDIR(IM, J_0H:J_1H),
      *     SRVISSURF(IM, J_0H:J_1H),
-#ifdef TRACERS_OceanBiology
      *     FSRDIF(IM, J_0H:J_1H),
      *     DIRNIR(IM, J_0H:J_1H),
      *     DIFNIR(IM, J_0H:J_1H),
-#endif
      *     SRDN(IM, J_0H:J_1H),
      *     CFRAC(IM, J_0H:J_1H),
      *     RCLD(LM, IM, J_0H:J_1H),
