@@ -1,7 +1,7 @@
-SCMTWP.R GISS Model E    awolf 01/08
+SCMTWP.R GISS Model E      awolf 01/08   
 
 SCM: RUN GISS Model E as SCM  using one latitude band                   
-SCMTWP - 7/07 latest version of SCM with drycnv
+SCMTWP - 7/07 latest version of SCM with ATURB
 scm run using TWP ICE IOP data from Jan 2006 - with ARM Surface forcings 
 modelE1 (3.0) 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)     ?
 atmospheric composition from year 1979
@@ -15,9 +15,6 @@ Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define SCM                          ! run as Single Column Model
 End Preprocessor Options
-
-Run Options
-STACKSIZE=262144
 
 Object modules: (in order of decreasing priority)
 RES_F40  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
@@ -35,7 +32,7 @@ SURFACE  FLUXES                     ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils and use ARM surface forcings     
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-DRYCNV                              ! substitute for ATURB - turbulence in whole atmosphere
+ATURB                               ! ATURB - turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -177,5 +174,5 @@ Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
  &INPUTZ
    YEARI=2006,MONTHI=1,DATEI=19,HOURI=3, ! IYEAR1=YEARI (default) or earlier
    YEARE=2006,MONTHE=2,DATEE=12,HOURE=21,     KDIAG=12*0,9,
-   ISTART=2,IRANDI=0, YEARE=2006,MONTHE=1,DATEE=23,HOURE=3
+   ISTART=2,IRANDI=0, YEARE=2006,MONTHE=1,DATEE=26,HOURE=3
  &END
