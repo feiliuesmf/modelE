@@ -107,6 +107,7 @@ PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000030 !the default is 15d-6
 PCONPEN=400.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003
+CSHEAR=1.      ! Shear drag coefficient
 CMTN=0.25      ! default is 0.5
 CDEF=1.5       ! deformation drag coefficient
 

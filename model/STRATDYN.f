@@ -15,11 +15,12 @@ C****  ii) PK type variables should be done in dynamics and used here
       SAVE
 !@dbparam XCDNST parameters for GW drag (in param. database)
       REAL*8, DIMENSION(2) :: XCDNST(2)
+!@dbparam Cshear parameter for GW shear drag (in param. database)
 !@dbparam CMTN parameter for GW MTN drag (in param. database)
 !@dbparam CDEF parameter for GW DEF drag (in param. database)
-!@dbparma CMC parameter for GW M. Convective drag (in param. database)
+!@dbparam CMC parameter for GW M. Convective drag (in param. database)
 C**** (used to be FMC)
-      REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7
+      REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7, Cshear = 1.d0
 !@dbparam PBREAK p. level above which GW drag acts (in param. database)
       REAL*8 :: PBREAK = 500.   ! default is 500mb
 !@dbparam PCONPEN level of penetrating moist conv (in param. database)
@@ -75,7 +76,7 @@ C**** accumulated in the routines contained herein
      *                          READT_PARALLEL
       USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
-     *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ek, cmtn
+     *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ek, cmtn,Cshear,
      *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
@@ -105,6 +106,7 @@ C**** sync gwdrag parameters from input
       call sync_param( "CMTN", CMTN)
       call sync_param( "CDEF", CDEF)
       call sync_param( "CMC", CMC)
+      call sync_param( "CSHEAR", CSHEAR)
       call sync_param( "PBREAK", PBREAK)
       call sync_param( "PCONPEN", PCONPEN)
       call sync_param( "PBREAKTOP", PBREAKTOP)
@@ -553,7 +555,7 @@ C****
       USE CLOUDS_COM, only : airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef
      *     ,lbreak,ld2,lshr,pk,pmid, ek,qgwmtn, qgwshr, qgwdef, qgwcnv
-     *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
+     *     ,Cshear,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,rapvn,rapvs
      *     ,kmaxj,rapj,idij,idjj
       USE DIAG_COM, only : aij=>aij_loc
@@ -836,6 +838,7 @@ C**** WIND SHEAR: USE SHEAR BETWEEN 7 AND 8 UNLESS CRIT. LEVEL ABOVE..
         VR(2)=DV/(DW+ ERR)
         CN(2)=.5*((UL(L+1)+UL(L))*UR(2)+(VL(L+1)+VL(L))*VR(2))
         MU(2)=-FCORU*PLE(L+1)*DW*DW/(240.*H0*BVF(L+1))
+        mu(2)=mu(2)*Cshear
       END IF
 C**** MOIST CONVECTIVE MASS FLUX BEGINS TWO LEVELS ABOVE CLOUD...
 C**** AMPLITUDE DEPENDS ON |U(SOURCE)-C|.
