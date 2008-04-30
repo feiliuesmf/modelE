@@ -76,7 +76,7 @@ C**** accumulated in the routines contained herein
      *                          READT_PARALLEL
       USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
-     *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ek, cmtn,Cshear,
+     *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ek, cmtn,Cshear
      *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
