@@ -8,7 +8,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : ntm
 #endif
       USE OCEAN, only : im,jm,lmo
       USE SW2OCEAN, only : lsrpd
@@ -1112,8 +1112,8 @@ C**** Save surface values
 !@ver  1.0
       USE CONSTANT, only : grav,omega
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : t_qlimit
-      USE OCEAN, only : trmo,txmo,tymo,tzmo,ntm
+      USE OCN_TRACER_COM, only : t_qlimit, ntm
+      USE OCEAN, only : trmo,txmo,tymo,tzmo
 #endif
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
@@ -1879,7 +1879,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : grav,omega
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : t_qlimit
+      USE OCN_TRACER_COM, only : t_qlimit
 #endif
       USE OCEAN,only : lmo,dts,ze,sinpo
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst

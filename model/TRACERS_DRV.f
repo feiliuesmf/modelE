@@ -76,15 +76,14 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer :: l,k,kk,n,ntemp,n2,ltop,g,kr,n1
+      integer :: l,k,kk,n,ltop,g,kr,n1
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
-      character*10 CMR
       CHARACTER*17 :: cform
 #ifdef TRACERS_ON
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
 #endif
       character*50 :: unit_string
-#ifdef TRACERS_WATER
+#ifdef TRACERS_SPECIAL_O18
       real*8 fracls
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
@@ -165,8 +164,10 @@ C**** Synchronise tracer related paramters from rundeck
 
 C**** Get itime_tr0 from rundeck if it exists
       call sync_param("itime_tr0",itime_tr0,ntm)
+#ifdef TRACERS_ON
 C**** Get to_volume_MixRat from rundecks if it exists
       call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
+#endif
 #ifdef TRACERS_WATER
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
@@ -305,14 +306,6 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 137.37d0     !note units are in gr
           ntsurfsrc(n) = 1
           needtrs(n)=.true.
-#endif
-
-#ifdef TRACERS_AGE_OCEAN
-      case ('Age')
-      n_Age = n
-          ntm_power(n) = 1
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
 #endif
 
       case ('SF6')
@@ -2010,9 +2003,11 @@ C**** Any tracers that dry deposits needs the surface concentration:
       end if
 #endif /* TRACERS_DRYDEP */
 
+#ifdef TRACERS_ON
 C**** Define the conversion from mass to volume units here 
       mass2vol(n) = mair/tr_mm(n)
       vol2mass(n) = tr_mm(n)/mair
+#endif
 
       end do
 
@@ -8328,9 +8323,6 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
-#ifdef TRACERS_AGE_OCEAN
-     &     ,focean
-#endif
       USE DOMAIN_DECOMP, only : GRID,GET,UNPACK_COLUMN, write_parallel,
      * UNPACK_DATA
       USE SOMTQ_COM, only : qmom,mz,mzz
@@ -8393,9 +8385,6 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL
-#endif
-#ifdef TRACERS_AGE_OCEAN
-      USE OCEAN, only: MO,DXYPO
 #endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
       USE obio_forc, only: atmCO2
@@ -8769,11 +8758,13 @@ c     tmominit = 0.
         do j=J_0,J_1
           do i=1,im
             tracerTs=trw0(n)
+#ifdef TRACERS_SPECIAL_O18
 c Define a simple d18O based on Tsurf for GIC, put dD on meteoric water line
             if(trname(n).eq."H2O18") tracerTs=TRW0(n_H2O18)*(1.+1d-3*
      *           ((tsavg(i,j)-(tf+tracerT0))*d18oT_slope))
             if(trname(n).eq."HDO") tracerTs=TRW0(n_HDO)*(1.+(1d-3*
      *           (((tsavg(i,j)-(tf+tracerT0))*d18oT_slope)*8+1d1)))
+#endif
 C**** lakes
             if (flake(i,j).gt.0) then
               trlake(n,1,i,j)=tracerTs*mldlk(i,j)*rhow*flake(i,j)
@@ -8833,12 +8824,14 @@ c**** earth
             end if
           end do
           end do
+#ifdef TRACERS_SPECIAL_O18
           if (AM_I_ROOT()) then
             if(trname(n).eq."H2O18") write(6,'(A52,f6.2,A15,f8.4,A18)')
      *           ,"Initialized trlake tr_w_ij tr_wsn_ij using Tsurf at"
      *           ,tracerT0,"degC, 0 permil",d18oT_slope
      *           ,"permil d18O/degC"
           endif
+#endif
 
 #endif
 
@@ -9048,15 +9041,6 @@ C         AM=kg/m2, and DXYP=m2:
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*2.d-13
             else
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*1.d-13
-            end if
-          end do; end do; end do
-#endif
-
-#ifdef TRACERS_AGE_OCEAN
-      case ('Age')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
-            if(l.ge.LS1) then
-              trm(i,j,l,n) = 0.
             end if
           end do; end do; end do
 #endif

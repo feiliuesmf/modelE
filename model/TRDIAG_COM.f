@@ -8,7 +8,7 @@
       USE MODEL_COM, only: im,jm,lm
       USE DOMAIN_DECOMP, ONLY: grid
       USE DIAG_COM, only: npts !npts are conservation quantities
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
      *     , ntsurfsrcmax, nt3Dsrcmax
 #ifdef TRACERS_AMP
@@ -24,10 +24,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@dbparam to_volume_MixRat: For printout of tracer concentration
 !@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
+#ifdef TRACERS_ON
 #ifdef TRACERS_SPECIAL_Shindell
       INTEGER, DIMENSION(NTM) :: to_volume_MixRat=1
 #else
       INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0
+#endif
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@dbparam to_per_mil For printout of tracer concentration in permil

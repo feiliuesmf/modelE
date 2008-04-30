@@ -6,13 +6,8 @@
 !@ver  1.0
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
-#ifdef TRACERS_AGE_OCEAN
-     *     ,dtsrc,JDperY,JHOUR
-      USE CONSTANT, only: SDAY
-      USE OCEAN, only : DXYPO
-#endif
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : t_qlimit,ntm,n_age
+      USE OCN_TRACER_COM, only : t_qlimit,ntm
       USE OCEAN, only : trmo,txmo,tymo,tzmo
 C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : trmo_glob,txmo_glob,tymo_glob,tzmo_glob
@@ -238,21 +233,7 @@ c        CALL CHECKO ('STADVI')
       CALL OC_TDECAY
 
 #ifdef TRACERS_AGE_OCEAN
-!at each time step set surface tracer conc=0 and add 1 below
-!this is mass*age (kg*year)
-!age=1/(JDperY*24*3600) in years
-      TRMO(:,:,1,n_age)=0
-      TXMO(:,:,1,n_age)=0 ; TYMO(:,:,1,n_age)=0 ; TZMO(:,:,1,n_age)=0
-      DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
-        IF (FOCEAN(I,J).gt.0) THEN
-        DO L=2,LMO
-           TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age) +
-     +                   dtsrc/(JDperY*SDAY) * MO(I,J,L) * DXYPO(J)
-        ENDDO
-        ENDIF
-      ENDDO
-      ENDDO
+      CALL OCN_TR_AGE
 #endif
 #endif
         CALL TIMER (MNOW,MSGSO)
@@ -708,7 +689,7 @@ C****
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
           CASE (IRSFICNO)   ! initial conditions (no ocean data)
-            READ (kunit)
+            if(AM_I_ROOT()) READ (kunit)
           CASE (ioread,irerun,irsfic) ! restarts
            if(AM_I_ROOT()) then
             READ (kunit,err=10) HEADER,MO_glob,UO_glob,VO_glob
@@ -761,7 +742,7 @@ C****
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm, trname, t_qlimit
+      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE OCEAN, only : im,jm,lmo,dxypo,focean,imaxj, lmm, mo=>mo_glob
      *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
@@ -910,7 +891,7 @@ C****
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm, trname, t_qlimit
+      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE OCEAN
       USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
@@ -3435,7 +3416,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shi,lhm
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm,trname
+      USE OCN_TRACER_COM, only : ntm,trname
 #endif
       USE SW2OCEAN, only : lsrpd,fsr,fsrz
       USE SEAICE, only : fsss
@@ -3558,7 +3539,7 @@ C****
 !@ver  1.0
       USE GEOM, only : dxyp
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : ntm
 #ifdef TRACERS_WATER
       USE FLUXES, only : trpreca=>trprec,trunpsia=>trunpsi
 #endif
@@ -4253,8 +4234,8 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm,tf
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : trw0
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+      USE OCN_TRACER_COM, only : trw0, ntm
 #endif
       USE OCEAN, only : im,jm,IVSP,IVNP, imaxj,dxypo,lmm,
      *     COSU,SINU, COSI=>COSIC,SINI=>SINIC,
@@ -4264,12 +4245,11 @@ C****
 #endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
      *      gtempr
-#ifdef TRACERS_WATER
+#ifdef TRACERS_ON
      *     ,gtracer
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
-     *     ,GTRACER,TRGASEX
-      USE TRACER_COM, only : ntm
+     *     ,trgasex
 #endif
 
       use domain_decomp, only : grid, get
@@ -4277,10 +4257,7 @@ C****
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
-      integer :: j_0,j_1
-#ifdef TRACERS_GASEXCH_Natassa
-     .         ,n
-#endif
+      integer :: j_0,j_1,n
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       call get (grid, j_strt=j_0, j_stop=j_1,
@@ -4321,11 +4298,6 @@ C****
 
 #ifdef TRACERS_GASEXCH_Natassa
             GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
-cdiag       do n=1,ntm
-cdiag       write(6,'(a,3i5,5e12.4)')'OCNDYN, TRACER  ',
-cdiag.           I,J,n,GTRACER(n,1,I,J),TRMO(I,J,1,n),
-cdiag.           MO(I,J,n),DXYPO(J),TRGASEX(n,1,I,J)
-cdiag       enddo
 #endif
           END IF
 

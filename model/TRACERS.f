@@ -901,12 +901,13 @@ c**** Interpolate two months of data to current day
       data(:,J_0:J_1) = tlca(:,J_0:J_1)*frac + tlcb(:,J_0:J_1)*(1.-frac)
       return
       end subroutine read_monthly_sources
-
+#endif
 
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
 !@auth Gavin Schmidt
 !@ver  1.0
+#ifdef TRACERS_ON
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : ls1,im,jm,lm,q,wm
       USE GEOM, only : dxyp,imaxj
@@ -1008,11 +1009,9 @@ C**** check whether air mass is conserved
         end if
 #endif
       end do
-
+#endif
       return
       end subroutine checktr
-
-#endif
 
 
       SUBROUTINE io_tracer(kunit,iaction,ioerr)

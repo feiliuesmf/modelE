@@ -13,7 +13,7 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       Use MODEL_COM, Only: IM,JM, FIM,BYIM, IVNP,IVSP
       Use GEOM,      Only: imaxj
 #ifdef TRACERS_OCEAN
-      Use TRACER_COM, Only : ntm
+      Use OCN_TRACER_COM, Only : ntm
 #endif
       Use SparseCommunicator_mod
       Implicit None
@@ -342,7 +342,7 @@ C****
       USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
 #ifdef TRACERS_OCEAN
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
-      USE TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : ntm
 #endif
       USE OCEAN_DYN, only : DH,VBAR, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW

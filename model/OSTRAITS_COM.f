@@ -6,7 +6,7 @@
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-      USE TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : ntm
 #endif
       USE SEAICE, only : lmi
       USE OCEAN, only : lmo

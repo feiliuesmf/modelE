@@ -5,7 +5,7 @@
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : ntm
 #endif
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst

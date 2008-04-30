@@ -66,7 +66,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : teeny
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : t_qlimit
+      USE OCN_TRACER_COM, only : t_qlimit
 #endif
       USE OCEAN, only : dts,dxypo,bydxypo,mo=>mo_glob
      *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
@@ -706,7 +706,7 @@ c      END
 !@ver  1.0
       USE MODEL_COM, only : qcheck,dtsrc
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm, trname
+      USE OCN_TRACER_COM, only : ntm, trname
 #endif
       USE SEAICE, only : xsi,lmi
       USE STRAITS
