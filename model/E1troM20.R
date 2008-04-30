@@ -57,9 +57,9 @@ POUT                                ! post-processing output
 TRACER_COM TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-OCN_TRACER
+OCN_TRACER_COM OCN_TRACER           ! ocean tracer code 
 !!!!!!!use part below only for Natassa's gas exchange experiments !!!!!!
-!TRACER_GASEXCH_Natassa              ! tracer functions needed for gas exch expts
+!TRACER_GASEXCH_Natassa             ! tracer functions needed for gas exch expts
 !!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
