@@ -2119,14 +2119,14 @@ c**** (useful when changing land/vegetation mask)
         enddo
       endif
 
-!!! hack - remove underwater snow
+!!! hack - remove underwater snow + snow in landice boxes (dealt with separately)
 !!! (should not be present in restart file in the first place!)
       do j=J_0,J_1
         do i=1,im
           if ( fearth(i,j) == 0.d0 ) then
-            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 ) then
-              print *,"removing snow from ",i,j," : cell under water"
-            endif
+            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 .and. focean(i,j).gt.0
+     *           ) print *,"removing snow from ",i,j
+     *           ," : cell under water" 
             nsn_ij(:, i, j) = 1
             wsn_ij(:, :, i, j) = 0.d0
             hsn_ij(:, :, i, j) = 0.d0
