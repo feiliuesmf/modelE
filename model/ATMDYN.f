@@ -364,7 +364,7 @@ C**** and convert to WSAVE, units of m/s):
       USE TRACER_ADV
       USE TRDIAG_COM, only: TAJLN=>TAJLN_loc, TAIJN=>TAIJN_LOC,
      *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
-     *     tij_uflx,tij_vflx 
+     *     tij_uflx,tij_vflx
       IMPLICIT NONE
       REAL*8 DTLF,byncyc
       INTEGER N
@@ -374,7 +374,7 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
         IF (itime.LT.itime_tr0(N)) cycle
         sfbm = 0.; sbm = 0.; sbf = 0.
         sfcm = 0.; scm = 0.; scf = 0.
-        safv = 0.; sbfv = 0. 
+        safv = 0.; sbfv = 0.
 
         CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
 
@@ -708,7 +708,7 @@ C**** COMPUTE SD, SIGMA DOT                                             -------
 !$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
-        IF (haveLatitude(grid,J=1)) 
+        IF (haveLatitude(grid,J=1))
      *     SD(I,1,L)=SD(1,1,L)
  2450   IF (haveLatitude(grid,J=JM))
      *       SD(I,JM,L)=SD(1,JM,L)
@@ -749,7 +749,7 @@ c**** Extract domain decomposition info
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       ! 1st pass count warning/termination events
-      ! This avoides the need for 2 halo fills during normal
+      ! This avoids the need for 2 halo fills during normal
       ! execution.
       n_exception = 0
       outer_loop:  DO J=J_0,J_1
@@ -773,7 +773,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
         Do J = J_0, J_1
           DO I = 1, IMAXJ(J)
             IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
-              IM1 = 1 + MOD(I-1,IM)
+              IM1 = 1 + MOD(IM+I-2,IM)
               WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
      *             (U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
      *             V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
@@ -2027,7 +2027,7 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
         TL=T(I,J,L)*PK(L,I,J)   ! not quite correct - should be on UV grid
 C**** check T to make sure it stayed within physical bounds
         if (TL.lt.100..or.TL.gt.373.) then
-          write(99,'(a,i8,3i4,a,3f10.2)') 
+          write(99,'(a,i8,3i4,a,3f10.2)')
      *    ' SDRAG:',itime,i,j,l,'  T,U,V=',TL,U(I,J,L),V(I,J,L)
           call stop_model('Stopped in ATMDYN::SDRAG',11)
         end if
