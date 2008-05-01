@@ -50,7 +50,7 @@ c$$$      USE MODEL_COM, only: clock
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ACC,iu_RSF,iu_ODA
-      INTEGER :: mpi_err, MDUM = 0
+      INTEGER :: MDUM = 0
 
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
@@ -74,9 +74,6 @@ C**** Command line options
 #endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
-      ! tmp arrays
-      real*8 w_ghy_j_2(jm),w_ghy_j_1(jm), w_lake_j_2(jm),w_lake_j_1(jm)
-      real*8 h_ghy_j_2(jm),h_ghy_j_1(jm), h_lake_j_2(jm),h_lake_j_1(jm)
 
 #ifdef SCM
 c     Hard Code J - cannot get syncparam to work here ???? 
@@ -491,33 +488,10 @@ C****
         CALL daily_RAD(.true.)
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
            CALL TIMER (MNOW,MELSE)
-cddd           call conserv_wtg(w_ghy_j_1)
-cddd           call conserv_LKM(w_lake_j_1)
-cddd           call conserv_htg(h_ghy_j_1)
-cddd           call conserv_LKE(h_lake_j_1)
+
         call daily_LAKE
         call daily_EARTH(.true.)           ! end_of_day
-cddd           call conserv_wtg(w_ghy_j_2)
-cddd           call conserv_LKM(w_lake_j_2)
-cddd           call conserv_htg(h_ghy_j_2)
-cddd           call conserv_LKE(h_lake_j_2)
-cddd           print *,"GHY_LAKE_CONSERV:",
-cddd     &          sum( w_ghy_j_1+w_lake_j_1 ),
-cddd     &          sum( w_ghy_j_2-w_ghy_j_1+w_lake_j_2-w_lake_j_1 ),
-cddd     &          sum( h_ghy_j_1+h_lake_j_1 ),
-cddd     &          sum( h_ghy_j_2-h_ghy_j_1+h_lake_j_2-h_lake_j_1 )
-cddd            print *,"GHY_LAKE tot hgy, tot lake, d ghy, d lake",
-cddd     &          sum( w_ghy_j_1 ), sum( w_lake_j_1 ),
-cddd     &          sum( w_ghy_j_2-w_ghy_j_1 ),
-cddd     &          sum( w_lake_j_2-w_lake_j_1 )
-cddd  !          print *,"GHY_LAKE errors:",
-cddd  !   &           w_ghy_j_2-w_ghy_j_1+w_lake_j_2-w_lake_j_1
-cddd            print *,"GHY_LAKE_E tot hgy, tot lake, d ghy, d lake",
-cddd     &          sum( h_ghy_j_1 ), sum( h_lake_j_1 ),
-cddd     &          sum( h_ghy_j_2-h_ghy_j_1 ),
-cddd     &          sum( h_lake_j_2-h_lake_j_1 )
-cddd            print *,"GHY_LAKE errors:",
-cddd     &           h_ghy_j_2-h_ghy_j_1+h_lake_j_2-h_lake_j_1
+
         call daily_OCEAN(.true.)           ! end_of_day
         call daily_ICE
         call daily_LI
@@ -1660,6 +1634,19 @@ C**** Actual array is set from restart file.
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE ,2) ! Lake Depths
       ZATMO(:,J_0:J_1) = ZATMO(:,J_0:J_1)*GRAV                  ! Geopotential
       call closeunit(iu_TOPO)
+
+C**** Check polar uniformity
+      if (AM_I_ROOT()) then
+        do j=1,jm,jm-1  ! only polar boxes
+          do i=2,im
+            if (zatmo(i,j).ne.zatmo(1,j)) then
+              print*,"Polar topography not uniform, corrected",i,j
+     *             ,zatmo(i,j),zatmo(1,j)
+              zatmo(i,j)=zatmo(1,j)
+            end if
+          end do
+        end do
+      end if
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
