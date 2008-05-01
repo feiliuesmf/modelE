@@ -2124,9 +2124,9 @@ c**** (useful when changing land/vegetation mask)
       do j=J_0,J_1
         do i=1,im
           if ( fearth(i,j) == 0.d0 ) then
-            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 .and. focean(i,j).gt.0
-     *           ) print *,"removing snow from ",i,j
-     *           ," : cell under water" 
+!            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 ) 
+!      &           print *,"removing snow from ",i,j,
+!      &           " : cell under lake or land ice" 
             nsn_ij(:, i, j) = 1
             wsn_ij(:, :, i, j) = 0.d0
             hsn_ij(:, :, i, j) = 0.d0
