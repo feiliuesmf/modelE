@@ -399,6 +399,7 @@ C****
 #endif
 #ifdef TRACERS_DRYDEP
       real*8 vgs
+      logical hydrate
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -647,8 +648,8 @@ C**** for all dry deposited tracers
 C**** loop over tracers
       do itr=1,pbl_args%ntx
 c     set tracer size and density (not necessarily constant anymore)
-         tr_radius = trnradius(pbl_args%ntix(itr))
-         tr_dens =   trndens(pbl_args%ntix(itr))
+        tr_radius = trnradius(pbl_args%ntix(itr))
+        tr_dens =   trndens(pbl_args%ntix(itr))
 C**** Define boundary conditions
 
 C****   1) default air mass tracers
@@ -684,9 +685,16 @@ C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(pbl_args%ntix(itr))) then
 C****   get settling velocity
 
+C**** need to hydrate the sea salt before determining settling
+          hydrate = (trname(pbl_args%ntix(itr)).eq.'seasalt1'.or.
+     *         trname(pbl_args%ntix(itr)).eq.'seasalt2'.or.
+     *         trname(pbl_args%ntix(itr)).eq.'M_SSA_SS'.or.
+     *         trname(pbl_args%ntix(itr)).eq.'M_SSC_SS'.or.
+     *         trname(pbl_args%ntix(itr)).eq.'M_SSS_SS')
+
           if (trnradius(pbl_args%ntix(itr)).gt.0.) then
             pbl_args%gs_vel(pbl_args%ntix(itr))=vgs(rhosrf,rh1
-     &           ,pbl_args%ntix(itr),tr_radius,tr_dens)
+     &           ,tr_radius,tr_dens,hydrate)
           else
             pbl_args%gs_vel(pbl_args%ntix(itr))=0.
           end if

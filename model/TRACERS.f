@@ -724,6 +724,7 @@ C****
       real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       integer n,najl,i,j,l
       integer :: J_0, J_1
+      logical :: hydrate
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
@@ -731,7 +732,13 @@ C****
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Gravitational settling
 !$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
-!$OMP* fgrfluxd,fluxd,fluxu)
+!$OMP* fgrfluxd,fluxd,fluxu,hydrate)
+
+C**** need to hydrate the sea salt before determining settling
+          hydrate = (trname(n).eq.'seasalt1'.or.trname(n).eq.'seasalt2'
+     *         .or.trname(n).eq.'M_SSA_SS'.or. trname(n).eq.'M_SSC_SS'
+     *         .or.trname(n).eq.'M_SSS_SS')
+
           do j=J_0,J_1
           do i=1,imaxj(j)
             fluxd=0.
@@ -762,7 +769,7 @@ C**** air density + relative humidity (wrt water)
 
 C**** calculate stoke's velocity (including possible hydration effects
 C**** and slip correction factor)
-              stokevdt=dtsrc*vgs(airden,rh,n,tr_radius,tr_dens)
+              stokevdt=dtsrc*vgs(airden,rh,tr_radius,tr_dens,hydrate)
 
               fluxu=fluxd       ! from previous level
 
@@ -796,43 +803,40 @@ C****
       return
       end subroutine trgrav
 
-      REAL*8 FUNCTION vgs(airden,rh1,n,tr_radius,tr_dens)
+      REAL*8 FUNCTION vgs(airden,rh1,tr_radius,tr_dens,hydrate)
 !@sum vgs returns settling velocity for tracers (m/s)
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : visc_air,by3,pi,gasc,avog,rt2,deltx
      *     ,mair,grav
-      USE MODEL_COM, only : itime
-      USE TRACER_COM, only : itime_tr0,trname
       IMPLICIT NONE
-      real*8, parameter :: s1=1.247d0, s2=0.4d0, s3=1.1d0
       real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens
+      logical, intent(in) :: hydrate
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
-      integer, intent(in) :: n
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+C**** coefficients for slip factor calculation
+      real*8, parameter :: s1=1.247d0, s2=0.4d0, s3=1.1d0
+C**** coefficients for hydration radius if required 
       real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
      *     c4=-1.424d0
-      real*8 r_h,den_h,rh
-#endif
-C**** calculate stoke's velocity
-      vgs=2.*grav*tr_dens*tr_radius**2/(9.*visc_air)
+      real*8 dens, rad, rh
 
-#ifdef TRACERS_AEROSOLS_Koch
-c need to hydrate the sea salt before determining settling
-      if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2'
-     * .or.trname(n).eq.'M_SSA_SS'.or. trname(n).eq.'M_SSC_SS'
-     * .or.trname(n).eq.'M_SSS_SS')
-     *     then
+C**** Determine if hydration of aerosols is required
+      if (hydrate) then
         rh=max(0.01d0,min(rh1,0.99d0))
-c hydrated radius
-        r_h=(c1*tr_radius**(c2)/(c3*tr_radius**(c4)-log10(rh))
+C**** hydrated radius (reference?)
+        rad=(c1*tr_radius**(c2)/(c3*tr_radius**(c4)-log10(rh))
      *       + tr_radius**3)**by3
-c hydrated density
-        den_h=((r_h**3 - tr_radius**3)*1000.d0
-     *       + tr_radius**3*tr_dens)/r_h**3
-        vgs=2.*grav*den_h*r_h**2/(9.*visc_air)
+C**** hydrated density
+        dens=((rad**3 - tr_radius**3)*1000.d0
+     *       + tr_radius**3*tr_dens)/rad**3
+      else                      ! take dry values
+        dens = tr_dens
+        rad = tr_radius 
       end if
-#endif
+
+C**** calculate stoke's velocity
+      vgs=2.*grav*dens*rad**2/(9.*visc_air)
+
 C**** slip correction factor
 c wmf is the additional velocity if the particle size is small compared
 c   to the mean free path of the air; important in the stratosphere
