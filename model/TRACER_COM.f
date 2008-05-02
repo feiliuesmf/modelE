@@ -1142,7 +1142,6 @@ C**** arrays that could be general, but are only used by chemistry
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
-      INTEGER :: IER
 
 C****
 C**** Extract useful local domain parameters from "grid"

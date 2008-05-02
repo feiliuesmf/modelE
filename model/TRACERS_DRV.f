@@ -6980,6 +6980,16 @@ C****      routine DIAGTCB is used, this must be false).
 C**** 1:NPTS+1 ==> INST,  DYN,   COND,   RAD,   PREC,   LAND,  SURF,
 C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
 C**** First 12 are standard for all tracers and GCM
+C**** Later indices are configurable - you provide title and itcon
+C**** index (which is used wherever you want to check point)
+C**** For example, separate Moist convection/Large scale condensation
+c      itcon_mc(n)=xx
+c      qcon(itcon_mc(n))=.true.  ; conpts(yy) = 'MOIST CONV'
+c      qsum(itcon_mc(n)) = .false.
+c      itcon_ss(n)=xx
+c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
+c      qsum(itcon_ss(n)) = .false.
+
       QCON=(/ t,                                           !instant.
      *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
@@ -6991,10 +7001,6 @@ C**** First 12 are standard for all tracers and GCM
       do n=1,ntm
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
-        scale_inst(n)   = 10d0**(-kt_power_inst(n))
-        scale_change(n) = 10d0**(-kt_power_change(n))
-        inst_unit(n) = unit_string(kt_power_inst(n),  'kg/m^2)')
-         sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       end do
 
 C**** set some defaults
@@ -7006,1269 +7012,932 @@ C**** set some defaults
       itcon_surf(:,:)=0
       itcon_3Dsrc(:,:)=0
       itcon_decay(:)=0
+      itcon_wt(:)=0
 #ifdef TRACERS_DRYDEP
       itcon_dd(:,:)=0
 #endif
 
       k = 0
       do n=1,ntm
-      select case (trname(n))
+        select case (trname(n))
 
-      case ('Air')
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+        case ('Air','CO2n','CFCn', 'SF6', 'SF6_c')
+               ! nothing to do: use defaults
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
-      case ('CO2n')
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-#endif
+        case ('Rn222')
+          itcon_decay(n) = 13
+          qcon(itcon_decay(n)) = .true.; conpts(1) = 'DECAY'
+          qsum(itcon_decay(n)) = .true.
 
-#ifdef TRACERS_GASEXCH_CFC_Natassa
-      case ('CFCn')
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-#endif
+        case ('CO2')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
+          itcon_surf(2,N) = 14
+          qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Fertilization'
+          itcon_surf(3,N) = 15
+          qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Forest Regrowth'
+          itcon_surf(4,N) = 16
+          qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Land Use'
+          itcon_surf(5,N) = 17
+          qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'Ecosystem Exch'
+          itcon_surf(6,N) = 18
+          qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
 
-
-      case ('SF6','SF6_c')
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-
-      case ('Rn222')
-      itcon_decay(n) = 13
-      qcon(itcon_decay(n)) = .true.; conpts(1) = 'DECAY'
-      qsum(itcon_decay(n)) = .true.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-
-      case ('CO2')
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
-      itcon_surf(2,N) = 14
-      qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Fertilization'
-      itcon_surf(3,N) = 15
-      qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Forest Regrowth'
-      itcon_surf(4,N) = 16
-      qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Land Use'
-      itcon_surf(5,N) = 17
-      qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'Ecosystem Exch'
-      itcon_surf(6,N) = 18
-      qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
-      qsum(itcon_surf(1:6,N)) = .false.  ! prevent summing twice
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('N2O')
+        case ('N2O')   ! two versions dependent on configuration
 #ifdef TRACERS_SPECIAL_Lerner
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Reset in L1'
-      itcon_3Dsrc(1,N) = 14
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Reset in L1'
+          itcon_3Dsrc(1,N) = 14
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      kt_power_change(n) = -14
-      scale_change(n) = 10d0**(-kt_power_change(n))
-      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(nChemistry,N) = g
-      qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)='Chemistry'
-      qsum(itcon_3Dsrc(nChemistry,N))=.true.
-      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-      qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)='Overwrite'
-      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-      do kk=1,ntsurfsrc(n)
-        g=g+1; itcon_surf(kk,N) = g
-        qcon(itcon_surf(kk,N))=.true.; conpts(g-12)=trim(ssname(N,kk))
-      enddo
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+          kt_power_change(n) = -14
+
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)='
+     *         Chemistry'
+          qsum(itcon_3Dsrc(nChemistry,N))=.true.
+          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+          qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)
+     *         ='Overwrite'
+          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          do kk=1,ntsurfsrc(n)
+            g=g+1; itcon_surf(kk,N) = g
+            qcon(itcon_surf(kk,N))=.true.; conpts(g-12)=trim(ssname(N,kk
+     *           ))
+          enddo
 #endif
 
-      case ('CFC11')
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 Source'
-      itcon_3Dsrc(1,N) = 14
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+        case ('CFC11')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 Source'
+          itcon_3Dsrc(1,N) = 14
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
 
-      case ('14CO2')
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Bombs and drift'
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('CH4')
+        case ('14CO2')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Bombs and drift'
+          
+        case ('CH4')            ! two versions
 #ifdef TRACERS_SPECIAL_Shindell
-      kt_power_change(n) = -13
-      scale_change(n) = 10d0**(-kt_power_change(n))
-      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13; itcon_3Dsrc(nChemistry,N) = g
-      qcon(itcon_3Dsrc(nChemistry,N)) =.true.; conpts(g-12)='Chemistry'
-      qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-      g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-      qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)='Overwrite'
-      qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-      do kk=1,ntsurfsrc(n)
-        g=g+1; itcon_surf(kk,N) = g
-        qcon(itcon_surf(kk,N))=.true.; conpts(g-12)=trim(ssname(N,kk))
-      enddo
+          kt_power_change(n) = -13
+
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N)) =.true.
+          conpts(g-12)='Chemistry'
+          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+          qcon(itcon_3Dsrc(nStratwrite,N))=.true.
+          conpts(g-12)='Overwrite'
+          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          do kk=1,ntsurfsrc(n)
+            g=g+1; itcon_surf(kk,N) = g
+            qcon(itcon_surf(kk,N))=.true.
+            conpts(g-12)=trim(ssname(N,kk))
+          enddo
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        g=g+1; itcon_dd(n,1)= g
-        qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
-        qsum(itcon_dd(n,1)) = .false.
-      end if
+          if(dodrydep(n)) then
+            g=g+1; itcon_dd(n,1)= g
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
+            qsum(itcon_dd(n,1)) = .false.
+          end if
 #endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
 #else  /* not TRACERS_SPECIAL_Shindell */
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
-      itcon_surf(2,N) = 14
-      qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Coal Mine source'
-      itcon_surf(3,N) = 15
-      qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Gas Leak source'
-      itcon_surf(4,N) = 16
-      qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Gas Vent source'
-      itcon_surf(5,N) = 17
-      qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'City Dump source'
-      itcon_surf(6,N) = 18
-      qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Soil sink'
-      itcon_surf(7,N) = 19
-      qcon(itcon_surf(7,N)) = .true.; conpts(7) = 'Termite Source'
-      itcon_surf(8,N) = 20
-      qcon(itcon_surf(8,N)) = .true.; conpts(8) = 'Coal Combustion'
-      itcon_surf(9,N) = 21
-      qcon(itcon_surf(9,N)) = .true.; conpts(9) = 'Ocean source'
-      itcon_surf(10,N) = 22
-      qcon(itcon_surf(10,N)) = .true.; conpts(10) = 'Lake source'
-      itcon_surf(11,N) = 23
-      qcon(itcon_surf(11,N)) = .true.; conpts(11) ='Misc. Ground source'
-      itcon_surf(12,N) = 24
-      qcon(itcon_surf(12,N)) = .true.; conpts(12) = 'Biomass Burning'
-      itcon_surf(13,N) = 25
-      qcon(itcon_surf(13,N)) = .true.; conpts(13) = 'Rice source'
-      itcon_surf(14,N) = 26
-      qcon(itcon_surf(14,N)) = .true.; conpts(14) = 'Wetlands+Tundra'
-      qsum(itcon_surf(1:14,N)) = .false.  ! prevent summing twice
-      itcon_3Dsrc(1,N) = 27
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(15) = 'Tropos. Chem'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 28
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(16) = 'Stratos. Chem'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
+          itcon_surf(2,N) = 14
+          qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Coal Mine source'
+          itcon_surf(3,N) = 15
+          qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Gas Leak source'
+          itcon_surf(4,N) = 16
+          qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Gas Vent source'
+          itcon_surf(5,N) = 17
+          qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'City Dump source'
+          itcon_surf(6,N) = 18
+          qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Soil sink'
+          itcon_surf(7,N) = 19
+          qcon(itcon_surf(7,N)) = .true.; conpts(7) = 'Termite Source'
+          itcon_surf(8,N) = 20
+          qcon(itcon_surf(8,N)) = .true.; conpts(8) = 'Coal Combustion'
+          itcon_surf(9,N) = 21
+          qcon(itcon_surf(9,N)) = .true.; conpts(9) = 'Ocean source'
+          itcon_surf(10,N) = 22
+          qcon(itcon_surf(10,N)) = .true.; conpts(10) = 'Lake source'
+          itcon_surf(11,N) = 23
+          qcon(itcon_surf(11,N)) = .true.; conpts(11)
+     *         ='Misc. Ground source'
+          itcon_surf(12,N) = 24
+          qcon(itcon_surf(12,N)) = .true.; conpts(12) =
+     *         'Biomass Burning'
+          itcon_surf(13,N) = 25
+          qcon(itcon_surf(13,N)) = .true.; conpts(13) = 'Rice source'
+          itcon_surf(14,N) = 26
+          qcon(itcon_surf(14,N)) = .true.; conpts(14) =
+     *         'Wetlands+Tundra'
+          itcon_3Dsrc(1,N) = 27
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(15) = 'Tropos. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
+          itcon_3Dsrc(2,N) = 28
+          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(16) = 'Stratos. Chem'
+          qsum(itcon_3Dsrc(2,N)) = .true.
 #endif /* TRACERS_SPECIAL_Shindell */
 
-      case ('O3')
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Deposition'
-      itcon_3Dsrc(1,N) = 14
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Stratos. Chem'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 15
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Trop.Chem Prod'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-      itcon_3Dsrc(3,N) = 16
-      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(4) = 'Trop.Chem Loss'
-      qsum(itcon_3Dsrc(3,N)) = .true.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+        case ('O3')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Deposition'
+          itcon_3Dsrc(1,N) = 14
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Stratos. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
+          itcon_3Dsrc(2,N) = 15
+          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Trop.Chem Prod'
+          qsum(itcon_3Dsrc(2,N)) = .true.
+          itcon_3Dsrc(3,N) = 16
+          qcon(itcon_3Dsrc(3,N)) = .true.; conpts(4) = 'Trop.Chem Loss'
+          qsum(itcon_3Dsrc(3,N)) = .true.
 
-      case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
-     &      'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr',
-     &      'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes',
-     &      'Paraffin') ! N2O done above
-        select case (trname(n))
-        case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC',
-     &  'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
-     &  'NOx')
-          kt_power_change(n) = -14
-        case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin')
-          kt_power_change(n) = -13
-        case default
-          kt_power_change(n) = -12
-        end select
-        scale_change(n) = 10d0**(-kt_power_change(n))
-        sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-        g=13; itcon_3Dsrc(nChemistry,N) = g
-        qcon(itcon_3Dsrc(nChemistry,N)) = .true.
-        conpts(g-12) = 'Chemistry'
-        qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-        g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-        qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
-        conpts(g-12)='Overwrite'
-        qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-        select case(trname(n))
-        case ('NOx')
-          g=g+1; itcon_3Dsrc(nOther,N) = g
-          qcon(itcon_3Dsrc(nOther,N)) = .true.
-          conpts(g-12) = 'Lightning'
-          qsum(itcon_3Dsrc(nOther,N)) = .true.
-          g=g+1; itcon_3Dsrc(nAircraft,N) = g
-          qcon(itcon_3Dsrc(nAircraft,N)) = .true.
-          conpts(g-12) = 'Aircraft'
-          qsum(itcon_3Dsrc(nAircraft,N)) = .true.
-        end select
+          case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN' 
+     *         ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
+     *         ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
+     *         ,'Paraffin') ! N2O done above
+          select case (trname(n))
+            case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
+     *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
+     *           ,'BrONO2','NOx')
+              kt_power_change(n) = -14
+            case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin')
+              kt_power_change(n) = -13
+            case default
+              kt_power_change(n) = -12
+          end select
+
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+          conpts(g-12) = 'Chemistry'
+          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+          qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+          conpts(g-12)='Overwrite'
+          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          select case(trname(n))
+            case ('NOx')
+              g=g+1; itcon_3Dsrc(nOther,N) = g
+              qcon(itcon_3Dsrc(nOther,N)) = .true.
+              conpts(g-12) = 'Lightning'
+              qsum(itcon_3Dsrc(nOther,N)) = .true.
+              g=g+1; itcon_3Dsrc(nAircraft,N) = g
+              qcon(itcon_3Dsrc(nAircraft,N)) = .true.
+              conpts(g-12) = 'Aircraft'
+              qsum(itcon_3Dsrc(nAircraft,N)) = .true.
+          end select
 #ifdef GFED_3D_BIOMASS
-        select case(trname(n))
-        case('NOx','CO','Alkenes','Paraffin')
-          g=g+1; itcon_3Dsrc(nBiomass,N) = g
-          qcon(itcon_3Dsrc(nBiomass,N)) = .true.
-          conpts(g-12) = 'Biomass_Burning'
-          qsum(itcon_3Dsrc(nBiomass,N)) = .true.
-        end select
+          select case(trname(n))
+            case('NOx','CO','Alkenes','Paraffin')
+              g=g+1; itcon_3Dsrc(nBiomass,N) = g
+              qcon(itcon_3Dsrc(nBiomass,N)) = .true.
+              conpts(g-12) = 'Biomass_Burning'
+              qsum(itcon_3Dsrc(nBiomass,N)) = .true.
+          end select
 #endif
 #ifdef TRACERS_NITRATE
-        select case (trname(n))
-        case ('HNO3')
-          g=g+1; itcon_3Dsrc(3,N) = g
-          qcon(itcon_3Dsrc(3,N)) = .true.
-          conpts(g-12)='Nitrate Chemistry'
-          qsum(itcon_3Dsrc(3,N)) = .true.
-        end select
+          select case (trname(n))
+            case ('HNO3')
+              g=g+1; itcon_3Dsrc(3,N) = g
+              qcon(itcon_3Dsrc(3,N)) = .true.
+              conpts(g-12)='Nitrate Chemistry'
+              qsum(itcon_3Dsrc(3,N)) = .true.
+          end select
 #endif
-        do kk=1,ntsurfsrc(n)
-          g=g+1; itcon_surf(kk,N) = g
-          qcon(itcon_surf(kk,N))=.true.; conpts(g-12)=trim(ssname(N,kk))
-        enddo
+          do kk=1,ntsurfsrc(n)
+            g=g+1; itcon_surf(kk,N) = g
+            qcon(itcon_surf(kk,N))=.true.
+            conpts(g-12)=trim(ssname(N,kk))
+          end do
 #ifdef TRACERS_WATER
-        if(dowetdep(n)) then
-          g=g+1; itcon_mc(n) = g
-          qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
-          g=g+1; itcon_ss(n) = g
-          qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
-        end if
+          if(dowetdep(n)) then
+            g=g+1; itcon_mc(n) = g
+            qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
+            g=g+1; itcon_ss(n) = g
+            qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
+          end if
 #endif
 #ifdef TRACERS_DRYDEP
-        if(dodrydep(n)) then
-          g=g+1; itcon_dd(n,1)=g
-          qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
-        end if
-#endif
-        CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-        qcon(13:) = .false.  ! reset to defaults for next tracer
-        qsum(13:) = .false.  ! reset to defaults for next tracer
-
-
-#ifdef SHINDELL_STRAT_EXTRA
-      case ('GLT')
-      kt_power_change(n) = -17
-      scale_change(n) = 10d0**(-kt_power_change(n))
-      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
-      g=13 ; itcon_3Dsrc(1,N) = g
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'L1 overwriting'
-      qsum(itcon_3Dsrc(1,N)) = .false.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+          if(dodrydep(n)) then
+            g=g+1; itcon_dd(n,1)=g
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
+          end if
 #endif
 
-      case ('Water','H2O18', 'HDO', 'H2O17' )
-      itcon_mc(n) = 13
-      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 14
-      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+          case ('GLT')
+            kt_power_change(n) = -17
 
-      case ('HTO')
-      itcon_mc(n) = 13
-      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 14
-      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-      itcon_decay(n) = 15
-      qcon(itcon_decay(n)) = .true.; conpts(3) = 'DECAY'
-      qsum(itcon_decay(n)) = .true.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+            g=13 ; itcon_3Dsrc(1,N) = g
+            qcon(itcon_3Dsrc(1,N)) = .true.
+            conpts(g-12) = 'L1 overwriting'
+            qsum(itcon_3Dsrc(1,N)) = .false.
 
-      case ('DMS')
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Ocean Src'
-      qsum(itcon_surf(1,N))=.false.
-      itcon_3Dsrc(1,N) = 14
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Chem'
-      qsum(itcon_3Dsrc(1,N))= .true.
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+          case ('Water','H2O18', 'HDO', 'H2O17' )
+            itcon_mc(n) = 13
+            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 14
+            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 
-      case ('MSA')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) = 14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+          case ('HTO')
+            itcon_mc(n) = 13
+            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 14
+            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+            itcon_decay(n) = 15
+            qcon(itcon_decay(n)) = .true.; conpts(3) = 'DECAY'
+            qsum(itcon_decay(n)) = .true.
+
+          case ('DMS')
+            itcon_surf(1,N) = 13
+            qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Ocean Src'
+            qsum(itcon_surf(1,N))=.false.
+            itcon_3Dsrc(1,N) = 14
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Chem'
+            qsum(itcon_3Dsrc(1,N))= .true.
+
+          case ('MSA')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('SO2')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Volcanic src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aircraft src'
-      qsum(itcon_3Dsrc(2,N))=.true.
-      itcon_3Dsrc(3,N) = 15
-      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Biomass src'
-      qsum(itcon_3Dsrc(3,N))=.true.
-      itcon_3Dsrc(4,N) = 16
-      qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Chem src'
-      qsum(itcon_3Dsrc(4,N)) = .true.
-      itcon_3Dsrc(5,N) = 17
-      qcon(itcon_3Dsrc(5,N)) = .true.; conpts(5) = 'Chem sink'
-      qsum(itcon_3Dsrc(5,N)) = .true.
+          case ('SO2')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Volcanic src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aircraft src'
+            qsum(itcon_3Dsrc(2,N))=.true.
+            itcon_3Dsrc(3,N) = 15
+            qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Biomass src'
+            qsum(itcon_3Dsrc(3,N))=.true.
+            itcon_3Dsrc(4,N) = 16
+            qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Chem src'
+            qsum(itcon_3Dsrc(4,N)) = .true.
+            itcon_3Dsrc(5,N) = 17
+            qcon(itcon_3Dsrc(5,N)) = .true.; conpts(5) = 'Chem sink'
+            qsum(itcon_3Dsrc(5,N)) = .true.
 #ifdef EDGAR_1995
-      itcon_surf(1,N) = 18
-      qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'E95 Fossil fuel'
-      itcon_surf(2,N) =19
-      qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'E95 Industrial'
-      itcon_surf(3,N) = 20
-      qcon(itcon_surf(3,N)) = .true.; conpts(8) = 'E95 Waste hand.'
-      itcon_surf(4,N) = 21
-      qcon(itcon_surf(4,N)) = .true.; conpts(9) = 'E95 Biofuel'
-      itcon_surf(5,N) = 22
-      qcon(itcon_surf(5,N)) = .true.; conpts(10) = 'E95 Agr. waste.'
-      itcon_surf(6,N) = 23
-      qcon(itcon_surf(6,N)) = .true.; conpts(11) = 'E95 Biomass Burn'
-      itcon_mc(n) =24
-      qcon(itcon_mc(n)) = .true.  ; conpts(12) = 'MOIST CONV'
-      itcon_ss(n) =25
-      qcon(itcon_ss(n)) = .true.  ; conpts(13) = 'LS COND'
+            itcon_surf(1,N) = 18
+            qcon(itcon_surf(1,N)) = .true.; conpts(6) =
+     *           'E95 Fossil fuel'
+            itcon_surf(2,N) =19
+            qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'E95 Industrial'
+            itcon_surf(3,N) = 20
+            qcon(itcon_surf(3,N)) = .true.; conpts(8) =
+     *           'E95 Waste hand.'
+            itcon_surf(4,N) = 21
+            qcon(itcon_surf(4,N)) = .true.; conpts(9) = 'E95 Biofuel'
+            itcon_surf(5,N) = 22
+            qcon(itcon_surf(5,N)) = .true.; conpts(10) =
+     *           'E95 Agr. waste.'
+            itcon_surf(6,N) = 23
+            qcon(itcon_surf(6,N)) = .true.; conpts(11) =
+     *           'E95 Biomass Burn'
+            itcon_mc(n) =24
+            qcon(itcon_mc(n)) = .true.  ; conpts(12) = 'MOIST CONV'
+            itcon_ss(n) =25
+            qcon(itcon_ss(n)) = .true.  ; conpts(13) = 'LS COND'
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=26
-        qcon(itcon_dd(n,1)) = .true. ; conpts(14) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=26
+              qcon(itcon_dd(n,1)) = .true. ; conpts(14) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+            end if
 #endif
 #else  /* not EDGAR_1995 */
-      itcon_surf(1,N) = 18
-      qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
-      qsum(itcon_surf(1,N))=.false.
-      itcon_mc(n) =19
-      qcon(itcon_mc(n)) = .true.  ; conpts(7) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =20
-      qcon(itcon_ss(n)) = .true.  ; conpts(8) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+            itcon_surf(1,N) = 18
+            qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
+            qsum(itcon_surf(1,N))=.false.
+            itcon_mc(n) =19
+            qcon(itcon_mc(n)) = .true.  ; conpts(7) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =20
+            qcon(itcon_ss(n)) = .true.  ; conpts(8) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=21
-        qcon(itcon_dd(n,1)) = .true. ; conpts(9) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=21
+              qcon(itcon_dd(n,1)) = .true. ; conpts(9) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+            end if
 #endif
 #endif  /* EDGAR_1995 */
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('SO4')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'volcanic src'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-      itcon_3Dsrc(3,N) = 15
-      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'biomass src'
-      qsum(itcon_3Dsrc(3,N)) = .true.
+          case ('SO4')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'volcanic src'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_3Dsrc(3,N) = 15
+            qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'biomass src'
+            qsum(itcon_3Dsrc(3,N)) = .true.
 #ifdef EDGAR_1995
-      itcon_surf(1,N) = 16
-      qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'E95 Fossil fuel'
-      itcon_surf(2,N) = 17
-      qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'E95 Industrial'
-      itcon_surf(3,N) = 18
-      qcon(itcon_surf(3,N)) = .true.; conpts(6) = 'E95 Waste hand.'
-      itcon_surf(4,N) =19
-      qcon(itcon_surf(4,N)) = .true.; conpts(7) = 'E95 Biofuel'
-      itcon_surf(5,N) = 20
-      qcon(itcon_surf(5,N)) = .true.; conpts(8) = 'E95 Agr. waste.'
-      itcon_surf(6,N) = 21
-      qcon(itcon_surf(6,N)) = .true.; conpts(9) = 'E95 Biomass Burn'
-      itcon_mc(n) =22
-      qcon(itcon_mc(n)) = .true.  ; conpts(10) = 'MOIST CONV'
-      itcon_ss(n) =23
-      qcon(itcon_ss(n)) = .true.  ; conpts(11) = 'LS COND'
+            itcon_surf(1,N) = 16
+            qcon(itcon_surf(1,N)) = .true.; conpts(4) =
+     *           'E95 Fossil fuel'
+            itcon_surf(2,N) = 17
+            qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'E95 Industrial'
+            itcon_surf(3,N) = 18
+            qcon(itcon_surf(3,N)) = .true.; conpts(6) =
+     *           'E95 Waste hand.'
+            itcon_surf(4,N) =19
+            qcon(itcon_surf(4,N)) = .true.; conpts(7) = 'E95 Biofuel'
+            itcon_surf(5,N) = 20
+            qcon(itcon_surf(5,N)) = .true.; conpts(8) =
+     *           'E95 Agr. waste.'
+            itcon_surf(6,N) = 21
+            qcon(itcon_surf(6,N)) = .true.; conpts(9) =
+     *           'E95 Biomass Burn'
+            itcon_mc(n) =22
+            qcon(itcon_mc(n)) = .true.  ; conpts(10) = 'MOIST CONV'
+            itcon_ss(n) =23
+            qcon(itcon_ss(n)) = .true.  ; conpts(11) = 'LS COND'
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=24
-        qcon(itcon_dd(n,1)) = .true. ; conpts(12) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=25
-        qcon(itcon_dd(n,2)) = .true. ; conpts(13) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=24
+              qcon(itcon_dd(n,1)) = .true. ; conpts(12) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=25
+              qcon(itcon_dd(n,2)) = .true. ; conpts(13) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
 #else  /* not EDGAR_1995 */
-      itcon_surf(1,N) = 16
-      qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
-      qsum(itcon_surf(1,N)) = .false.
-      itcon_mc(n) =17
-      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =18
-      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+            itcon_surf(1,N) = 16
+            qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
+            qsum(itcon_surf(1,N)) = .false.
+            itcon_mc(n) =17
+            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =18
+            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=19
-        qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=20
-        qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=19
+              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=20
+              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
 #endif  /* EDGAR_1995 */
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('BCII')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aircraft source'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-      itcon_surf(1,N) = 15
-      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
-      qsum(itcon_surf(1,N)) = .false.
-      itcon_mc(n) = 16
-      qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 17
-      qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+          case ('BCII')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) =
+     *           'Aircraft source'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_surf(1,N) = 15
+            qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
+            qsum(itcon_surf(1,N)) = .false.
+            itcon_mc(n) = 16
+            qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 17
+            qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=18
-        qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=19
-        qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('BCIA')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Aircraft source'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) = 15
-      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 16
-      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=17
-        qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=18
-        qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('OCIA')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) = 14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('BCB', 'OCB')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Biomass src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) = 14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('OCII')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_surf(1,N) = 14
-      qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
-      qsum(itcon_surf(1,N)) = .false.
-      itcon_surf(2,N) = 15
-      qcon(itcon_surf(2,N)) = .true.; conpts(3) = 'Terpene src'
-      qsum(itcon_surf(2,N)) = .false.
-      itcon_mc(n) = 16
-      qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 17
-      qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=18
-        qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=19
-        qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-      case ('OCI3')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-      itcon_surf(1,N) = 15
-      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Terpene src'
-      qsum(itcon_surf(1,N)) = .false.
-      itcon_mc(n) = 16
-      qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 17
-      qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=18
-        qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=19
-        qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-      case ('OCI1','OCI2')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-      itcon_mc(n) = 15
-      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 16
-      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=17
-        qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=18
-        qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-      case ('OCA4')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) = 14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('OCA1','OCA2','OCA3')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Decay src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) = 14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-#ifdef TRACERS_HETCHEM
-      case ('SO4_d1', 'SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-#endif  /* TRACERS_HETCHEM */
-      case ('NH3','H2SO4')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-      case ('NH4')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-      case ('NO3p')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('Be7')
-      itcon_3Dsrc(1,N) =13
-      qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-      itcon_decay(n) = 18
-      qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
-      qsum(itcon_decay(n)) = .true.
-
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('Be10')
-      itcon_3Dsrc(1,N) =13
-      qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=18
+              qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=19
+              qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
 
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('Pb210')
-      itcon_3Dsrc(1,N) =13
-      qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'RADIO SRC'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+          case ('BCIA')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) =
+     *           'Aircraft source'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 15
+            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 16
+            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=17
+              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=18
+              qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
-      itcon_decay(n) = 18
-      qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
-      qsum(itcon_decay(n)) = .true.
-
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('H2O2_s')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Gas phase sink'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-      itcon_mc(n) =15
-      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =16
-      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+      
+          case ('OCIA')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=17
-        qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
 
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      CASE('seasalt1','seasalt2',
-     &     'Clay','Silt1','Silt2','Silt3','Silt4',
-     &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &     'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-      itcon_mc(n) =13
-      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =14
-      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+          case ('BCB', 'OCB')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Biomass src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=15
-        qcon(itcon_dd(n,1)) = .true. ; conpts(3) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=16
-        qcon(itcon_dd(n,2)) = .true. ; conpts(4) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCII')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_surf(1,N) = 14
+            qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
+            qsum(itcon_surf(1,N)) = .false.
+            itcon_surf(2,N) = 15
+            qcon(itcon_surf(2,N)) = .true.; conpts(3) = 'Terpene src'
+            qsum(itcon_surf(2,N)) = .false.
+            itcon_mc(n) = 16
+            qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 17
+            qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=18
+              qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=19
+              qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCI3')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_surf(1,N) = 15
+            qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Terpene src'
+            qsum(itcon_surf(1,N)) = .false.
+            itcon_mc(n) = 16
+            qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 17
+            qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=18
+              qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=19
+              qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCI1','OCI2')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_mc(n) = 15
+            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 16
+            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=17
+              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=18
+              qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCA4')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCA1','OCA2','OCA3')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Decay src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('SO4_d1', 'SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('NH3','H2SO4')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('NH4', 'NO3p')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('Be7', 'Be10')
+            itcon_3Dsrc(1,N) =13
+            qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+            if (trname(n).eq."Be7") then
+              itcon_decay(n) = 18
+              qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
+              qsum(itcon_decay(n)) = .true.
+            end if
+            
+          case ('Pb210')
+            itcon_3Dsrc(1,N) =13
+            qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'RADIO SRC'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+            itcon_decay(n) = 18
+            qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
+            qsum(itcon_decay(n)) = .true.
+            
+          case ('H2O2_s')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) =
+     *           'Gas phase sink'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_mc(n) =15
+            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =16
+            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=17
+              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+            end if
+#endif
+
+          case ('seasalt1','seasalt2', 'Clay','Silt1','Silt2','Silt3'
+     *         ,'Silt4','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
+     *         ,'ClayQuar','Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema'
+     *         ,'Sil1Gyps','Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema'
+     *         ,'Sil2Gyps','Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema'
+     *         ,'Sil3Gyps','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            itcon_mc(n) =13
+            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =14
+            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=15
+              qcon(itcon_dd(n,1)) = .true. ; conpts(3) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=16
+              qcon(itcon_dd(n,2)) = .true. ; conpts(4) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
 #ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      itcon_wt(n)=17
-      qcon(itcon_wt(n)) = .true. ; conpts(5) = 'WET DEP'
-      qsum(itcon_wt(n)) = .false.
-#endif
+            itcon_wt(n)=17
+            qcon(itcon_wt(n)) = .true. ; conpts(5) = 'WET DEP'
+            qsum(itcon_wt(n)) = .false.
 #endif  /* not TRACERS_WATER */
+
 c- Species including AMP  emissions - 2D sources and 3D sources
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-        case('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+          case('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC',
+     *         'M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU','M_DD2_DU',
+     *         'M_BOC_BC','M_BOC_OC',
+     *         'M_NO3   ','M_NH4   ','M_H2O   ','M_DD1_SU',
+     *         'M_DS1_SU','M_DS1_DU','M_DD2_SU',
+     *         'M_DS2_SU','M_DS2_DU','M_SSA_SU',
+     *         'M_OCC_SU','M_BC1_SU',
+     *         'M_BC2_SU','M_BC2_BC','M_BC3_SU',
+     *         'M_BC3_BC','M_DBC_SU','M_DBC_BC','M_DBC_DU',
+     *         'M_BOC_SU',
+     *         'M_BCS_SU','M_BCS_BC','M_MXX_SU','M_MXX_BC',
+     *         'M_MXX_OC','M_MXX_DU','M_MXX_SS','M_OCS_SU',
+     *         'M_OCS_OC','M_SSS_SU')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.;conpts(1)='Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
-       itcon_3Dsrc(1,n) = 18
-       qcon(itcon_3Dsrc(1,n)) = .true.; conpts(6) = 'AMP source'
-       qsum(itcon_3Dsrc(1,n)) = .true.
-       itcon_surf(1,n) = 19
-       qcon(itcon_surf(1,n)) = .true.; conpts(7) = 'Emission 2D AMP'
-       qsum(itcon_surf(1,n)) = .true.
-       itcon_3Dsrc(2,n) = 20
-       qcon(itcon_3Dsrc(2,n)) = .true.; conpts(8) = 'Emission 3D AMP'
-       qsum(itcon_3Dsrc(2,n)) = .true.
+            itcon_3Dsrc(1,n) = 18
+            qcon(itcon_3Dsrc(1,n)) = .true.; conpts(6) = 'AMP source'
+            qsum(itcon_3Dsrc(1,n)) = .true.
+            select case (trname(n))
+              case ('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC'
+     *             ,'M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU'
+     *             ,'M_DD2_DU')
+                itcon_surf(1,n) = 19
+                qcon(itcon_surf(1,n)) = .true.; conpts(7) =
+     *               'Emission 2D AMP'
+                qsum(itcon_surf(1,n)) = .true.
+            end select
+            select case (trname(n))
+              case ('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC'
+     *             ,'M_BOC_BC','M_BOC_OC')
+                itcon_3Dsrc(2,n) = 20
+                qcon(itcon_3Dsrc(2,n)) = .true.; conpts(8) =
+     *               'Emission 3D AMP'
+                qsum(itcon_3Dsrc(2,n)) = .true.
+            end select
 c Processes AMP Budget
-        itcon_AMP(1,n)=21
-        qcon(itcon_AMP(1,n)) = .true. ; conpts(9) = 'P1 Nucleation'
-        qsum(itcon_AMP(1,n)) = .true.
-        itcon_AMP(2,n)=22
-        qcon(itcon_AMP(2,n)) = .true. ; conpts(10) = 'P2 Coagulation'
-        qsum(itcon_AMP(2,n)) = .true.
-        itcon_AMP(3,n)=23
-        qcon(itcon_AMP(3,n)) = .true.;conpts(11) ='P3 Condensation'
-        qsum(itcon_AMP(3,n)) = .true.
-        itcon_AMP(4,n)=24
-        qcon(itcon_AMP(4,n)) = .true. ; conpts(12) = 'P4 Incloud'
-        qsum(itcon_AMP(4,n)) = .true.
-        itcon_AMP(5,n)=25
-        qcon(itcon_AMP(5,n)) = .true. ; conpts(13) = 'P5 Intermode Loss'
-        qsum(itcon_AMP(5,n)) = .true.
-        itcon_AMP(6,n)=26
-        qcon(itcon_AMP(6,n)) = .true. ; conpts(14) = 'P6 Mode Transf'
-        qsum(itcon_AMP(6,n)) = .true.
-        itcon_AMP(7,n)=27
-        qcon(itcon_AMP(7,n)) = .true. ; conpts(15) = 'P7 AMP Budget'
-        qsum(itcon_AMP(7,n)) = .true.
-c- Species including AMP  emissions - 2D sources
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-        case('M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU','M_DD2_DU')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
+            itcon_AMP(1,n)=21
+            qcon(itcon_AMP(1,n)) = .true.; conpts(9)='P1 Nucleation'
+            qsum(itcon_AMP(1,n)) = .true.
+            itcon_AMP(2,n)=22
+            qcon(itcon_AMP(2,n)) = .true.; conpts(10)='P2 Coagulation'
+            qsum(itcon_AMP(2,n)) = .true.
+            itcon_AMP(3,n)=23
+            qcon(itcon_AMP(3,n)) = .true.;conpts(11)='P3 Condensation'
+            qsum(itcon_AMP(3,n)) = .true.
+            itcon_AMP(4,n)=24
+            qcon(itcon_AMP(4,n)) = .true.;conpts(12)='P4 Incloud'
+            qsum(itcon_AMP(4,n)) = .true.
+            itcon_AMP(5,n)=25
+            qcon(itcon_AMP(5,n)) = .true.;conpts(13)='P5 Intermode Loss'
+            qsum(itcon_AMP(5,n)) = .true.
+            itcon_AMP(6,n)=26
+            qcon(itcon_AMP(6,n)) = .true.;conpts(14)='P6 Mode Transf'
+            qsum(itcon_AMP(6,n)) = .true.
+            itcon_AMP(7,n)=27
+            qcon(itcon_AMP(7,n)) = .true.;conpts(15)='P7 AMP Budget'
+            qsum(itcon_AMP(7,n)) = .true.
+
+          case ('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 '
+     *         ,'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ','N_BC2_1 ','N_BC3_1 '
+     *         ,'N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
+
+            kt_power_change(n) = 5
+            kt_power_inst(n) = 3
+
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
 #endif
-       itcon_3Dsrc(1,n) = 18
-       qcon(itcon_3Dsrc(1,n)) = .true.; conpts(6) = 'AMP source'
-       qsum(itcon_3Dsrc(1,n)) = .true.
-       itcon_surf(1,n) = 19
-       qcon(itcon_surf(1,n)) = .true.; conpts(7) = 'Emission AMP'
-       qsum(itcon_surf(1,n)) = .true.
-c Processes AMP Budget
-        itcon_AMP(1,n)=20
-        qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
-        qsum(itcon_AMP(1,n)) = .true.
-        itcon_AMP(2,n)=21
-        qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
-        qsum(itcon_AMP(2,n)) = .true.
-        itcon_AMP(3,n)=22
-        qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 Condensation'
-        qsum(itcon_AMP(3,n)) = .true.
-        itcon_AMP(4,n)=23
-        qcon(itcon_AMP(4,n)) = .true. ; conpts(11) = 'P4 Incloud'
-        qsum(itcon_AMP(4,n)) = .true.
-        itcon_AMP(5,n)=24
-        qcon(itcon_AMP(5,n)) = .true. ; conpts(12) = 'P5 Intermode Loss'
-        qsum(itcon_AMP(5,n)) = .true.
-        itcon_AMP(6,n)=25
-        qcon(itcon_AMP(6,n)) = .true. ; conpts(13) = 'P6 Mode Transf'
-        qsum(itcon_AMP(6,n)) = .true.
-        itcon_AMP(7,n)=26
-        qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
-        qsum(itcon_AMP(7,n)) = .true.
-       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+            itcon_AMPm(1,n)=18
+            qcon(itcon_AMPm(1,n)) = .true. ; conpts(6) = 'Mode Diameter'
+            qsum(itcon_AMPm(1,n)) = .false.
+            itcon_AMPm(2,n)=19
+            qcon(itcon_AMPm(2,n)) = .true. ; conpts(7) =
+     *           'Mode AktivPart'
+            qsum(itcon_AMPm(2,n)) = .false.
+c     Processes AMP Budget
+            itcon_AMP(1,n)=20
+            qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
+            qsum(itcon_AMP(1,n)) = .true.
+            itcon_AMP(2,n)=21
+            qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
+            qsum(itcon_AMP(2,n)) = .true.
+            itcon_AMP(3,n)=22
+            qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 NOTHING'
+            qsum(itcon_AMP(3,n)) = .true.
+            itcon_AMP(4,n)=23
+            qcon(itcon_AMP(4,n)) = .true.;conpts(11)='P4 Intermode Coag'
+            qsum(itcon_AMP(4,n)) = .true.
+            itcon_AMP(5,n)=24
+            qcon(itcon_AMP(5,n)) = .true.;conpts(12)='P5 Intramode Tr'
+            qsum(itcon_AMP(5,n)) = .true.
+            itcon_AMP(6,n)=25
+            qcon(itcon_AMP(6,n)) = .true.;conpts(13)='P6 Mode Transf'
+            qsum(itcon_AMP(6,n)) = .true.
+            itcon_AMP(7,n)=26
+            qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
+            qsum(itcon_AMP(7,n)) = .true.
 
-c- Species including AMP  emissions - 3D source
-        case('M_BOC_BC','M_BOC_OC')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-       itcon_3Dsrc(1,n) = 18
-       qcon(itcon_3Dsrc(1,n)) = .true.; conpts(6) = 'AMP source'
-       qsum(itcon_3Dsrc(1,n)) = .true.
-       itcon_3Dsrc(2,n) = 19
-       qcon(itcon_3Dsrc(2,n)) = .true.; conpts(7) = 'Emission AMP'
-       qsum(itcon_3Dsrc(2,n)) = .true.
-c Processes AMP Budget
-        itcon_AMP(1,n)=20
-        qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
-        qsum(itcon_AMP(1,n)) = .true.
-        itcon_AMP(2,n)=21
-        qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
-        qsum(itcon_AMP(2,n)) = .true.
-        itcon_AMP(3,n)=22
-        qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 Condensation'
-        qsum(itcon_AMP(3,n)) = .true.
-        itcon_AMP(4,n)=23
-        qcon(itcon_AMP(4,n)) = .true. ; conpts(11) = 'P4 Incloud'
-        qsum(itcon_AMP(4,n)) = .true.
-        itcon_AMP(5,n)=24
-        qcon(itcon_AMP(5,n)) = .true. ; conpts(12) = 'P5 Intermode Loss'
-        qsum(itcon_AMP(5,n)) = .true.
-        itcon_AMP(6,n)=25
-        qcon(itcon_AMP(6,n)) = .true. ; conpts(13) = 'P6 Mode Transf'
-        qsum(itcon_AMP(6,n)) = .true.
-        itcon_AMP(7,n)=26
-        qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
-        qsum(itcon_AMP(7,n)) = .true.
+        end select
 
-       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-      CASE('M_NO3   ','M_NH4   ','M_H2O   ',
-     *     'M_DD1_SU',
-     *     'M_DS1_SU','M_DS1_DU','M_DD2_SU',
-     *     'M_DS2_SU','M_DS2_DU','M_SSA_SU',
-     *     'M_OCC_SU','M_BC1_SU',
-     *     'M_BC2_SU','M_BC2_BC','M_BC3_SU',
-     *     'M_BC3_BC','M_DBC_SU','M_DBC_BC','M_DBC_DU',
-     *     'M_BOC_SU',
-     *     'M_BCS_SU','M_BCS_BC','M_MXX_SU','M_MXX_BC',
-     *     'M_MXX_OC','M_MXX_DU','M_MXX_SS','M_OCS_SU',
-     *     'M_OCS_OC','M_SSS_SU')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-        itcon_3Dsrc(1,n) = 18
-        qcon(itcon_3Dsrc(1,n)) = .true.; conpts(6) = 'AMP source'
-        qsum(itcon_3Dsrc(1,n)) = .true.
-c Processes AMP Budget
-        itcon_AMP(1,n)=19
-        qcon(itcon_AMP(1,n)) = .true. ; conpts(7) = 'P1 Nucleation'
-        qsum(itcon_AMP(1,n)) = .true.
-        itcon_AMP(2,n)=20
-        qcon(itcon_AMP(2,n)) = .true. ; conpts(8) = 'P2 Coagulation'
-        qsum(itcon_AMP(2,n)) = .true.
-        itcon_AMP(3,n)=21
-        qcon(itcon_AMP(3,n)) = .true.;conpts(9) ='P3 Condensation'
-        qsum(itcon_AMP(3,n)) = .true.
-        itcon_AMP(4,n)=22
-        qcon(itcon_AMP(4,n)) = .true. ; conpts(10) = 'P4 Incloud'
-        qsum(itcon_AMP(4,n)) = .true.
-        itcon_AMP(5,n)=23
-        qcon(itcon_AMP(5,n)) = .true. ; conpts(11) = 'P5 Intermode Loss'
-        qsum(itcon_AMP(5,n)) = .true.
-        itcon_AMP(6,n)=24
-        qcon(itcon_AMP(6,n)) = .true. ; conpts(12) = 'P6 Mode Transf'
-        qsum(itcon_AMP(6,n)) = .true.
-        itcon_AMP(7,n)=25
-        qcon(itcon_AMP(7,n)) = .true. ; conpts(13) = 'P7 AMP Budget'
-        qsum(itcon_AMP(7,n)) = .true.
+        scale_inst(n)   = 10d0**(-kt_power_inst(n))
+        scale_change(n) = 10d0**(-kt_power_change(n))
+        inst_unit(n) = unit_string(kt_power_inst(n),  'kg/m^2)')
+        sum_unit(n)  = unit_string(kt_power_change(n),'kg/m^2 s)')
 
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
+        CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+        qcon(13:) = .false.     ! reset to defaults for next tracer
+        qsum(13:) = .false.     ! reset to defaults for next tracer
 
-      CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
-     *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
-     *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
-     *     'N_MXX_1 ','N_OCS_1 ')
-
-      kt_power_change(n) = 5
-      scale_change(n) = 10d0**(-kt_power_change(n))
-      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2)')
-      kt_power_inst(n) = 3
-      scale_inst(n) = 10d0**(-kt_power_inst(n))
-      inst_unit(n) = unit_string(kt_power_inst(n),'kg/m^2)')
-cSUSA
-c      kt_power_change(n) = 5
-c      scale_change(n) = 10d0**(-kt_power_change(n))
-c      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2)')
-c      kt_power_inst(n) = 3
-c      scale_inst(n) = 10d0**(-kt_power_inst(n))
-c      inst_unit(n) = unit_string(kt_power_inst(n),'kg/m^2)')
-
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n,1)=16
-        qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-        qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=17
-        qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
-      end if
-#endif
-        itcon_AMPm(1,n)=18
-        qcon(itcon_AMPm(1,n)) = .true. ; conpts(6) = 'Mode Diameter'
-        qsum(itcon_AMPm(1,n)) = .false.
-        itcon_AMPm(2,n)=19
-        qcon(itcon_AMPm(2,n)) = .true. ; conpts(7) = 'Mode AktivPart'
-        qsum(itcon_AMPm(2,n)) = .false.
-c Processes AMP Budget
-        itcon_AMP(1,n)=20
-        qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
-        qsum(itcon_AMP(1,n)) = .true.
-        itcon_AMP(2,n)=21
-        qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
-        qsum(itcon_AMP(2,n)) = .true.
-        itcon_AMP(3,n)=22
-        qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 NOTHING'
-        qsum(itcon_AMP(3,n)) = .true.
-        itcon_AMP(4,n)=23
-        qcon(itcon_AMP(4,n)) = .true. ; conpts(11) ='P4 Intermode Coag'
-        qsum(itcon_AMP(4,n)) = .true.
-        itcon_AMP(5,n)=24
-        qcon(itcon_AMP(5,n)) = .true. ; conpts(12) ='P5 Intramode Tr'
-        qsum(itcon_AMP(5,n)) = .true.
-        itcon_AMP(6,n)=25
-        qcon(itcon_AMP(6,n)) = .true. ; conpts(13) = 'P6 Mode Transf'
-        qsum(itcon_AMP(6,n)) = .true.
-        itcon_AMP(7,n)=26
-        qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
-        qsum(itcon_AMP(7,n)) = .true.
-
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-C**** Here are some more examples of conservation diag configuration
-C**** Separate Moist convection/Large scale condensation
-c      itcon_mc(n)=xx
-c      qcon(itcon_mc(n))=.true.  ; conpts(yy) = 'MOIST CONV'
-c      qsum(itcon_mc(n)) = .false.
-c      itcon_ss(n)=xx
-c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
-c      qsum(itcon_ss(n)) = .false.
-
-       end select
-       end do
+      end do
 
 C**** print out total tracer diagnostic array size
 C

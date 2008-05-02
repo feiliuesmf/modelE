@@ -42,7 +42,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !!! WARNING: if new diagnostics are added, keep io_trdiag up-to-date !!!
 C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
-      real*8, allocatable, dimension(:,:,:,:)         :: taijln
+      real*8, allocatable, dimension(:,:,:,:) :: taijln
       real*8, allocatable, dimension(:,:,:,:) :: taijln_loc
       !real*4, dimension(IM,JM,LM,ntm)         :: taijln4
       !real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
@@ -64,23 +64,9 @@ C**** TAIJLN
 
 C**** TAIJN
 !@param KTAIJ number of 2D diags describing surface and column load along with wet and dry deposition
-#ifdef TRACERS_GASEXCH_Natassa
-      integer, parameter :: ktaij=7
-#else
-#ifdef TRACERS_WATER
-#ifdef TRACERS_DRYDEP
+!@+   please just increase this if needed - don't bother with pp options
       integer, parameter :: ktaij=18
-#else
-      integer, parameter :: ktaij=16
-#endif
-#else
-#ifdef TRACERS_DRYDEP
-      integer, parameter :: ktaij=6
-#else
-      integer, parameter :: ktaij=4
-#endif
-#endif
-#endif
+
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_surfbv,tij_mass
 !@var IJT_XX names for water-based taijn diagnostics
@@ -103,120 +89,12 @@ C**** TAIJN
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
-    (defined TRACERS_AMP)
-      INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
-      INTEGER ijs_ai
-#ifdef regional_Ox_tracers
-      INTEGER ijs_Oxloss, ijs_Oxprod
-#endif
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
+      INTEGER ijs_flash,ijs_CtoG, ijs_ai, ijs_Oxloss, ijs_Oxprod
       INTEGER, DIMENSION(LM) :: ijs_OH,ijs_NO3,ijs_HO2,ijs_JH2O2
-#endif
+
 !@param KTAIJS number of special lat/lon tracer diagnostics
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
-    (defined TRACERS_NITRATE) && (defined  EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=846
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
-    (defined TRACERS_NITRATE)
-      INTEGER,PARAMETER :: ktaijs=827
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
-    (defined  EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=837
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
-      INTEGER,PARAMETER :: ktaijs=818
-#else
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) &&\
-    (defined TRACERS_HETCHEM) && (defined  EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=498
-#else
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch) &&\
-    (defined TRACERS_HETCHEM)
-      INTEGER,PARAMETER :: ktaijs=479
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE) &&\
-    (defined EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=707
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE)
-      INTEGER,PARAMETER :: ktaijs=688
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined  EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=698
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch)
-      INTEGER,PARAMETER :: ktaijs=679
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=513
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)
-      INTEGER,PARAMETER :: ktaijs=494
-#else
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktaijs=495
-#else
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
-      INTEGER,PARAMETER :: ktaijs=476
-#else
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
-    (defined TRACERS_DUST)
-      INTEGER,PARAMETER :: ktaijs=663
-#else
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
-      INTEGER,PARAMETER :: ktaijs=660
-#else
-#ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: ktaijs=393
-#else
-#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: ktaijs=1222
-#else
-#ifdef TRACERS_MINERALS
-      INTEGER,PARAMETER :: ktaijs=1063
-#else
-#ifdef TRACERS_SPECIAL_Shindell
-      INTEGER,PARAMETER :: ktaijs=476
-#else
-#ifdef TRACERS_SPECIAL_Lerner
-      INTEGER,PARAMETER :: ktaijs=205
-#else
-      INTEGER,PARAMETER :: ktaijs=1183
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
+!@+   please just increase this if needed - don't bother with pp options
+      INTEGER,PARAMETER :: ktaijs=1300
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -239,11 +117,9 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
-#ifdef TRACERS_WATER
 !@param MaxDMc Maximum number of special wet depo diags for MC clouds
 !@param MaxDLs Maximum number of special wet depo diags for LS clouds
       INTEGER,PARAMETER :: MaxDMc=6,MaxDLs=6
-#endif
 !@param MaxSpec Maximum number special diagnostics not associated with specific
 !@+ tracer
       INTEGER,PARAMETER :: MaxSpec=3
@@ -260,10 +136,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_isrc(ntsurfsrcmax,ntm)
 !@var ijts_aq tracer independent array for TAIJS aqueous change
       INTEGER ijts_aq(ntm)
-#ifdef BC_ALB
 !@var ijts_alb BC impact on snow/ice albedo, grain size,sw and lw radiation
       INTEGER ijts_alb(2,ntm)
-#endif
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(2,ntm)
 !@var ijts_3Dtau 3D tracer independent array for TAIJS hydrated opt. thick.
@@ -292,28 +166,20 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
-#ifdef TRACERS_AMP 
-!@var ijts_AMPext desspecial diagnostic for not transported tracers
+!@var ijts_AMPext special diagnostic for not-transported tracers
       INTEGER ijts_AMPext(lm,6)
-!@var ijts_AMPm tracer idependent array for AMP modes
+!@var ijts_AMPm tracer independent array for AMP modes
       INTEGER ijts_AMPm(lm,2,Ntm)
-!@var ijts_AMPe tracer idependent array for emissions
+!@var ijts_AMPe tracer independent array for emissions
       INTEGER ijts_AMPe(Ntm)
-!@var ijts_AMPp tracer idependent array for AMP processes
+!@var ijts_AMPp tracer independent array for AMP processes
       INTEGER ijts_AMPp(7,Ntm)
-#endif
-#ifdef TRACERS_WATER
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
       INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
 !@var ijts_trdpls indices of taijs special wet depo diags for LS clouds
       INTEGER :: ijts_trdpls(MaxDLs,Ntm)
-#else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
 !@var ijts_wet tracer independent array for TAIJS wet depo diagnostics
       INTEGER :: ijts_wet(Ntm)
-#endif
-#endif
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
@@ -328,6 +194,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(ktaijs) :: ijts_power
 !@var ijts_index: tracer index associated with a TAIJS diagnostic
       INTEGER, DIMENSION(ktaijs) :: ijts_index
+
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
 !@var rts_save saves rts as global field for tracer diagnostics
       REAL*8 :: rts_save(Im,Jm)
@@ -336,24 +203,16 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
-#ifdef TRACERS_WATER
       INTEGER, PARAMETER :: ktajl=10
-#else
-      INTEGER, PARAMETER :: ktajl=9
-#endif
-     &     ,ktajlx=ktajl+2
+     &                     ,ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: TAJLN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN_loc
-      !REAL*4, DIMENSION(JM,LM,ktajlx,ntm)     :: TAJLN4
-      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN4_loc
 !@var jlnt_xx Names for TAJLN diagnostics
       INTEGER jlnt_conc,jlnt_mass,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
      &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond, jlnt_bebe,
-     &  jlnt_bepb
-#ifdef TRACERS_WATER
-     &     ,jlnt_cldh2o
-#endif
+     &  jlnt_bepb,jlnt_cldh2o
+
 !@var SNAME_JLN: Names of lat-sigma tracer JL diagnostics
       character(len=30), dimension(ktajlx,ntm) :: sname_jln
 !@var LNAME_JLN,UNITS_JLN: descriptions/units of tracer JL diagnostics
@@ -372,69 +231,14 @@ C**** TAJLN
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
-!@var jls_XXX index for non-tracer specific or special diags
-#ifdef regional_Ox_tracers
-      INTEGER jls_Oxloss, jls_Oxprod
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day,
-     &jls_COd,jls_COp,jls_Oxd,jls_Oxp
-#ifdef SHINDELL_STRAT_CHEM
-     &        ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
-#endif
-#endif
+!@+   please just increase this if needed - don't bother with pp options
+      INTEGER,PARAMETER :: ktajls=400
 
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
-    (defined  EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktajls=203
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
-      INTEGER,PARAMETER :: ktajls=184
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_NITRATE) &&\
-    (defined EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktajls=181
-#else
-#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined TRACERS_AEROSOLS_Koch) && (defined EDGAR_HYDE_SOURCES)
-      INTEGER,PARAMETER :: ktajls=181
-#else
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
-    (defined TRACERS_AMP)
-#ifdef regional_Ox_tracers
-      INTEGER, PARAMETER :: ktajls=176
-#else
-      INTEGER, PARAMETER :: ktajls=207
-#endif
-#else
-#ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: Ktajls=83
-#else
-#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: ktajls=325
-#else
-#ifdef TRACERS_MINERALS
-      INTEGER,PARAMETER :: ktajls=303
-#else
-#ifdef TRACERS_QUARZHEM
-      INTEGER,PARAMETER :: ktajls=45
-#else
-      INTEGER, PARAMETER :: ktajls=39   ! default
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
+!@var jls_XXX index for non-tracer specific or special diags
+      INTEGER jls_Oxloss, jls_Oxprod, jls_OHconk,jls_HO2con,jls_NO3
+     *     ,jls_phot,jls_incloud(2,ntm), jls_OHcon,jls_H2Omr
+     *     ,jls_N2O5sulf,jls_day,jls_COd,jls_COp,jls_Oxd,jls_Oxp
+     *     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -457,8 +261,6 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS_loc
-      !REAL*4, DIMENSION(JM,LM,ktajls)       :: TAJLS4
-      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS4_loc
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
 !@var jls_isrc tracer independent array for TAJLS interactive surface src. diags
@@ -471,18 +273,13 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(NTM) :: jls_grav
 !@var jls_prec tracer independent array for precipitation/wet dep
       INTEGER, DIMENSION(2,NTM) :: jls_prec
-#ifdef TRACERS_WATER
 !@var jls_trdpmc indices of tajls special wet depo diags for MC clouds
       INTEGER :: jls_trdpmc(MaxDMc,Ntm)
 !@var jls_trdpls indices of tajls special wet depo diags for LS clouds
       INTEGER :: jls_trdpls(MaxDLs,Ntm)
-#else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-!@var jls_wet tracer independent array for wet deposition
-      INTEGER,DIMENSION(NTM) :: jls_wet
-#endif
-#endif
+!@var jls_wet tracer independent array for wet deposition (for old dust)
+      INTEGER, DIMENSION(NTM) :: jls_wet
+
 !@var jls_spec index for TAJLS for special diagnostics not associated with
 !@var jls_spec single tracer
       INTEGER :: jls_spec(MaxSpec)
@@ -517,8 +314,6 @@ C**** include some extra troposphere only ones
 !@var TCONSRV conservation diagnostics for tracers
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV_loc
-      !REAL*4, DIMENSION(JM,ktcon,ntmxcon)   :: TCONSRV4
-      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV4_loc
 !@var SCALE_TCON scales for tracer conservation diagnostics
       REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
@@ -555,19 +350,12 @@ C**** include some extra troposphere only ones
       INTEGER, DIMENSION(ntmxcon) :: itcon_ampe
 !@var itcon_amp Index array for microphysical processes diags
       INTEGER, DIMENSION(2,ntmxcon) :: itcon_ampm
-#ifdef TRACERS_DRYDEP
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd
 !@var dtr_dd to save drydep change for conservation quantities
       REAL*8,ALLOCATABLE :: dtr_dd(:,:,:)
-#endif
-#ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
 !@var itcon_wt Index array for dust/mineral dust deposition conserv. diags
       INTEGER,DIMENSION(ntmxcon) :: itcon_wt
-#endif
-#endif
 #endif
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
@@ -735,13 +523,6 @@ C****
       USE TRDIAG_COM, only : tajls_loc,  tajls
       USE TRDIAG_COM, only : tconsrv_loc,tconsrv
 
-      !USE TRDIAG_COM, only : taijln4_loc, taijln4
-      !USE TRDIAG_COM, only : taijn4_loc,  taijn4
-      !USE TRDIAG_COM, only : taijs4_loc,  taijs4
-      !USE TRDIAG_COM, only : tajln4_loc,  tajln4
-      !USE TRDIAG_COM, only : tajls4_loc,  tajls4
-      !USE TRDIAG_COM, only : tconsrv4_loc,tconsrv4
-
       USE TRDIAG_COM, only : pdsigjl
 
       USE TRDIAG_COM, only : ktaij, ktaijs, ktajlx, ktajls, ktcon
@@ -763,10 +544,6 @@ C****
      *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
      *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*ntmxcon*ktcon
 !@var TA..4(...) dummy arrays for reading diagnostics files
-!     REAL*4 TAIJLN4(im,jm,lm,ntm),TAIJN4(im,jm,ktaij,ntm)
-!     REAL*4 TAIJS4(IM,JM,ktaijs),TAJLN4(JM,LM,ktajlx,NTM)
-!     REAL*4 TAJLS4(JM,LM,ktajls),TCONSRV4(JM,ktcon,ntmxcon)
-
       real*4, allocatable, dimension(:,:,:,:) :: taijln4
       real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
       real*4, allocatable, dimension(:,:,:,:) :: taijn4
@@ -924,17 +701,10 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAJLN(    JM,LM,ktajlx,ntm), stat=status )
       ALLOCATE ( TAJLS(    JM,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV(  JM,ktcon,ntmxcon), stat=status )
-
-      !ALLOCATE ( TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
-      !ALLOCATE ( TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
-      !ALLOCATE ( TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
-      !ALLOCATE ( TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
-      !ALLOCATE ( TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
-      !ALLOCATE ( TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
-
 #ifdef TRACERS_DRYDEP
       ALLOCATE (dtr_dd(J_0H:J_1H,Ntm,2),stat=status)
 #endif
 #endif
+
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM
