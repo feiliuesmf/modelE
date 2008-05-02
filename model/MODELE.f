@@ -869,7 +869,7 @@ C****
       USE GHY_COM, only : fearth
       USE SOIL_DRV, only: init_gh
       USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE, HaveLatitude
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
       USE CONSTANT, only : hrday
@@ -1636,15 +1636,22 @@ C**** Actual array is set from restart file.
       call closeunit(iu_TOPO)
 
 C**** Check polar uniformity
-      if (AM_I_ROOT()) then
-        do j=1,jm,jm-1  ! only polar boxes
-          do i=2,im
-            if (zatmo(i,j).ne.zatmo(1,j)) then
-              print*,"Polar topography not uniform, corrected",i,j
-     *             ,zatmo(i,j),zatmo(1,j)
-              zatmo(i,j)=zatmo(1,j)
-            end if
-          end do
+      if(haveLatitude(grid, J=1 )) then
+        do i=2,im
+          if (zatmo(i,1).ne.zatmo(1,1)) then
+            print*,"Polar topography not uniform, corrected",i,1
+     *           ,zatmo(i,1),zatmo(1,1)
+            zatmo(i,1)=zatmo(1,1)
+          end if
+        end do
+      end if
+      if (haveLatitude(grid, J=JM)) then
+        do i=2,im
+          if (zatmo(i,jm).ne.zatmo(1,jm)) then
+            print*,"Polar topography not uniform, corrected",i,jm
+     *           ,zatmo(i,jm),zatmo(1,jm)
+            zatmo(i,jm)=zatmo(1,jm)
+          end if
         end do
       end if
 
