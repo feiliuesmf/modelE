@@ -175,7 +175,7 @@ WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not us
 PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000035 !the default is 15d-6
 PCONPEN=500.   ! penetrating convection defn for GWDRAG
-CMC = 0.0000003
+CMC = 0.0000002 ! parameter for GW Moist Convective drag
 CSHEAR=1.     ! Shear drag coefficient
 CMTN=0.25
 
