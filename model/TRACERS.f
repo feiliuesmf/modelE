@@ -730,14 +730,14 @@ C****
 
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
-C**** Gravitational settling
-!$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
-!$OMP* fgrfluxd,fluxd,fluxu,hydrate)
-
 C**** need to hydrate the sea salt before determining settling
           hydrate = (trname(n).eq.'seasalt1'.or.trname(n).eq.'seasalt2'
      *         .or.trname(n).eq.'M_SSA_SS'.or. trname(n).eq.'M_SSC_SS'
      *         .or.trname(n).eq.'M_SSS_SS')
+
+C**** Gravitational settling
+!$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
+!$OMP* fgrfluxd,fluxd,fluxu)
 
           do j=J_0,J_1
           do i=1,imaxj(j)
