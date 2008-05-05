@@ -580,7 +580,7 @@ C****
      *   'R8 TACC(',ktacc,'),it'
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_MON,IOWRITE_SINGLE)  
+      CASE (IOWRITE,IOWRITE_SINGLE)  
 C***  PACK distributed arrays into global ones in preparation for output
         CALL PACK_DATA(grid,TAIJLN_loc, TAIJLN)
         CALL PACK_DATA(grid,TAIJN_loc, TAIJN )

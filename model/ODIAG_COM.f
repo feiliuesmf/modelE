@@ -124,7 +124,7 @@ C****
 !ny?  end if
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
+      CASE (IOWRITE)  ! output to standard restart file
         call gather_odiags ()
         IF (AM_I_ROOT())
      *    WRITE (kunit,err=10) MODULE_HEADER,
@@ -180,7 +180,7 @@ C**** accumulate diagnostics
 #endif
          end if
          call scatter_odiags ()
-        CASE (ioread,irerun)    ! restarts
+        CASE (ioread)    ! restarts
           IF (AM_I_ROOT()) then
             READ (kunit,err=10) HEADER,OIJ,OIJL,OL,OLNST,it
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN

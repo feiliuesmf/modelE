@@ -241,7 +241,7 @@ C****
       CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
 
       SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
+      CASE (IOWRITE)  ! output to standard restart file
         CALL PACK_DATA(grid_mic, icij, icij_glob)
         IF (AM_I_ROOT())
      &     WRITE (kunit,err=10) MODULE_HEADER,ICIJ_glob,it
@@ -301,7 +301,7 @@ C**** accumulate diagnostics
      &                                 +TICIJ4(:,J_0H_MIC:J_1H_MIC,:,:)
           deallocate( TICIJ4 )
 #endif
-        CASE (ioread,irerun)    ! restarts
+        CASE (ioread)    ! restarts
           if ( AM_I_ROOT() ) then
             READ (kunit,err=10) HEADER,ICIJ_GLOB,it
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
