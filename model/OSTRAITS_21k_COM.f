@@ -27,7 +27,7 @@ C****  2  Red Sea        44,29 ES    45,28 WN     5   250000
 C****  3  Bab al Mandab  45,28 ES    46,27 WN     2    25000
 C****  X  Hormuz         Above ground
 C****  X  Malacca        Above ground
-C****  4  Korea          63,31 EN    63,33 WS     4    85000 (Tsushima gone)
+C**** 4  Korea          63,31 EN    63,33 WS     4    17000!85000 makes deep salty (Tsushima gone)
 C****  X  Soya-kaikyo    Above ground
 
       INTEGER, PARAMETER :: NMST=4  !@param NMST no. of ocean straits
@@ -43,7 +43,7 @@ C****  X  Soya-kaikyo    Above ground
 !@var DIST distance along strait (m)
 !@var DISTPG distance between centre points of adjoining ocean boxes (m)
       REAL*8, DIMENSION(NMST) :: DIST,DISTPG,
-     *     WIST = (/  2.5d4, 2.5d5, 2.5d4, 8.5d4/)
+     *     WIST = (/  2.5d4, 2.5d5, 2.5d4, 1.7d5/)
 
 !@var XST,YST local coordinates [-1,1] for strait entry/exit points
       REAL*8, DIMENSION(NMST,2) :: XST = RESHAPE( (/
