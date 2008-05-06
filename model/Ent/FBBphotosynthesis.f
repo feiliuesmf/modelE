@@ -1,4 +1,4 @@
-!#define DEBUG 1
+can!#define DEBUG 1
       module  photcondmod
       !This version of photcondmod does leaf level
       !photosynthesis (Farquhar and von Caemmerer, 1982) and
@@ -12,6 +12,7 @@
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
+     &        ,photosyn_acclim
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
@@ -176,12 +177,13 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end subroutine Photosynth_analyticsoln
 !-----------------------------------------------------------------------------
 
-      subroutine Collatz(pft, IPAR,cs,Tl,Pa,rh,ci,gs,Anet)
+      subroutine Collatz(dtsec,pft,IPAR,cs,Tl,Pa,rh,ci,gs,Anet,Sacclim)
 !@sum Coupled photosynthesis/stomatal conductance at the leaf level
 !@sum after Collatz, G.J., et.al. (1991) AgForMet 54:107-136
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
       real*8,intent(in) :: IPAR            !Incident PAR (umol m-2 s-1) 
+      real*8,intent(in) :: dtsec
       !If PAR is not directly available, the following conversions may be
       !used:
       !  From total shortwave (W m-2) to PAR (umol m-2 s-1) (Monteith & Unsworth):
@@ -195,6 +197,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
       real*8,intent(in) :: rh   !Relative humidity
       real*8,intent(in) :: Pa   !Pressure (Pa)
+      real*8,intent(in) :: Sacclim ! state of acclimation/frost hardiness [deg C]
       !real*8,intent(in) :: gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
       real*8 :: ci              !Leaf internal CO2 mole fraction  (umol mol-1)
       real*8,intent(out) :: gs !Leaf stomatal conductance (mol-H2O m-2 s-1)
@@ -212,12 +215,12 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 !      call load_metdata(IPAR,ca,Ta,rh,O2conc)
 
       stressH2O = 1.d0 !Dummy no stress
-      call calc_Pspar(pft, Pa, Tl, O2pres, stressH2O)
+      call calc_Pspar(dtsec, pft, Pa, Tl, O2pres, stressH2O, Sacclim)
 
       Atot = Farquhar(IPAR,ci*Pa*1.d-06,O2pres,Tl,pspar) 
       Anet = Atot - Respveg(pspar%Nleaf,Tl)
 
-      gs = BallBerry(Atot, rh, cs, pspar)
+      gs = BallBerry(Anet, rh, cs, pspar)
 
 !      if (if_ci.eq.1) ci = calc_ci(ca, gb, gs, Anet, IPAR, pspar)
 
@@ -931,31 +934,51 @@ cddd
       
 !=================================================
 
-      subroutine calc_Pspar(pft, Pa, Tl, O2pres,stressH2O)
+      subroutine calc_Pspar(dtsec,pft,Pa,Tl,O2pres,stressH2O,Sacclim)
       !@sum calc_Pspar Collatz photosynthesis parameters in type pspar, which
       !@sum is GLOBAL TO MODULE.
       !@sum Later need to replace these with von Caemmerer book Arrhenius
       !@sum function sensitivities (her Table 2.3)
       implicit none
       integer,intent(in) :: pft  !Plant functional type, 1=C3 grassland
+      real*8, intent(in) :: dtsec
       real*8,intent(in) :: Pa  !Atmospheric pressure (Pa)
       real*8,intent(in) :: Tl  !Leaf temperature (Celsius)
       real*8,intent(in) :: O2pres !O2 partial pressure in leaf (Pa)
       real*8,intent(in) :: stressH2O
+      real*8,intent(in) :: Sacclim !state of acclimation/frost hardiness
 !      type(photosynthpar),intent(inout) :: pspar !Moved to global to module.
       integer :: p
+
+      !----Local-----
+      real*8 :: facclim ! acclimation/forst hardiness factor [-]
+      real*8 :: Tacclim ! threshold temperature for photosynthesis [deg C]
+      real*8 :: a_const ! factor to convert from Sacclim [degC] to facclim [-]
       !Below parameters are declared at top of module, though only used here.
 !      real*8,parameter :: Kc              !Michaelis-Menten constant for CO2 (Pa)
 !      real*8,parameter :: Ko              !Michaelis-Menten constant for O2 (Pa)
 !      real*8,parameter :: KcQ10           !Kc Q10 exponent
 !      real*8,parameter :: KoQ10           !Ko Q10 exponent
+      Tacclim = -5.93d0      ! Site specific threshold temperature for state of photsynt. acclim: 
+                           !    Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
+      a_const = 0.0595     ! Site specific; conversion (1/Sacclim_max)=1/16.8115
+                           !    estimated by using the max S from Hyytiala 1998
+
+      if (Sacclim > Tacclim) then ! photosynthesis occurs 
+         facclim = a_const * (Sacclim-Tacclim) 
+         if (facclim > 1.d0) facclim = 1.d0
+      elseif (Sacclim < -1E10)then
+         facclim = 1.d0   ! no acclimation for this pft and/or simualtion
+      else
+         facclim = 0.01d0 ! arbitrary min value so that photosynthesis is not set to zero
+      endif
 
       p = pft
       pspar%pft = pft
       pspar%PARabsorb = pftpar(p)%PARabsorb !Collatz et al. (1991)
-      !pspar%Vcmax = pftpar(p)%Vcmax/(1 + exp((-220.e03+703.*(Tl+Kelvin))
+!      pspar%Vcmax = pftpar(p)%Vcmax/(1 + exp((-220.e03+703.*(Tl+Kelvin))
 !     &     /(Rgas*(Tl+Kelvin))))
-      pspar%Vcmax = pftpar(p)%Vcmax * Q10fn(2.21d0, Tl)
+      pspar%Vcmax = pftpar(p)%Vcmax * Q10fn(2.21d0, Tl)* facclim
 
       pspar%Kc = Kc*Q10fn(KcQ10,Tl) !(Collatz, eq. A12)
       pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
@@ -971,7 +994,34 @@ cddd
       end subroutine calc_Pspar
 
 !-----------------------------------------------------------------------------
-      
+
+      subroutine photosyn_acclim(dtsec,Ta,Sacc)
+!@sum Model for state of acclimation/frost hardiness based 
+!@sum for boreal coniferous forests based on Repo et al (1990), 
+!@sum Hanninen & Kramer (2007),and  Makela et al (2006)
+      implicit none
+      real*8,intent(in) :: dtsec ! time step size [sec]
+      real*8,intent(in) :: Ta ! air temperature [deg C]
+      real*8,intent(inout) :: Sacc ! state of acclimation [deg C]
+
+      !----Local-----
+      real*8,parameter :: tau_inv = 2.22222e-6 ! inverse of time constant of delayed
+                                              ! response to ambient temperature [sec] = 125 hr 
+                                              ! Makela et al (2004) for Scots pine
+
+!      Use a first-order Euler scheme
+       Sacc = Sacc + dtsec*(tau_inv)*(Ta - Sacc) 
+
+!!     Predictor-corrector method requires temperature from next timestep
+!       Sacc_old = Sacc
+!       Sacc = Sacc_old + dtsec*(1/tau_acclim)*(Ta - Sacc ) 
+!       Sacc = Sacc_old + ((1/tau_acclim)*(Ta - Sacc_old)+
+!     &                     (1/tau_acclim)*(Ta_next - Sacc))*0.5d*dtsec
+
+      end subroutine photosyn_acclim
+
+!-----------------------------------------------------------------------------
+
       function Farquhar(IPAR,Cip,O2,Tl,pspar) Result(Assim)
 !@sum Photosynthesis at the leaf level (umol m-2 s-1)
 !@sum after Farquhar, et al.(1980) Planta, 149:78-90.
@@ -1002,7 +1052,8 @@ cddd
 !-----------------------------------------------------------------------------
 
 
-      function Farquhar_standalone(pft,IPAR,ca,Tl,rh,Pa,gb,ci,gs)
+      function Farquhar_standalone(dtsec,pft,IPAR,ca,Tl,rh,Pa,gb,ci,gs
+     i    ,Sacclim )
      o     Result(Anet)
 !@sum Photosynthesis at the leaf level.
 !@sum after Farquhar, et al.(1980) Planta, 149:78-90.
@@ -1016,6 +1067,8 @@ cddd
       real*8,intent(in) :: rh   !Relative humidity
       real*8,intent(in) :: Pa   !Pressure (Pa)
       real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+      real*8,intent(in) :: Sacclim ! state of acclimation/frost hardiness
+      real*8,intent(in) :: dtsec ! timestep size [sec]
       real*8,intent(inout) :: ci !Leaf internal CO2 mole fraction  (umol mol-1)
       real*8,intent(out) :: gs  !Leaf stomatal conductance (mol-H2O m-2 s-1)
       real*8 :: Anet            !Leaf net photosynthesis (CO2 uptake, micromol m-2 s-1)
@@ -1032,8 +1085,8 @@ cddd
       cs = ca      !Assign CO2 concentration at leaf surface
                    !More rigorously, cs should also be solved for.
       stressH2O = 1.d0 !Dummy no stress
-      call calc_Pspar(pft, Pa, Tl, O2conc*Pa*1.d-06, stressH2O)
-
+      call calc_Pspar(dtsec,pft,Pa,Tl,O2conc*Pa*1.d-06,stressH2O
+     i         ,Sacclim)
       Anet = Farquhar(IPAR,ci*Pa*1.d-06,O2conc*Pa*1.d-06,Tl,pspar) 
      &     - Respveg(pspar%Nleaf,Tl)
 
@@ -1059,7 +1112,7 @@ cddd
       end function BallBerry
 
 !-----------------------------------------------------------------------------
-      
+
       function calc_ci(ca,gb, gs,Anet,IPAR,pspar) Result(ci)
 !@sum Leaf internal CO2 conc (umol mol-1) assuming diffusive flux of CO2
 !@sum is at steady-state with biochemical uptake by photosynthesis and

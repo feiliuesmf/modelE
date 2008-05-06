@@ -159,6 +159,7 @@
          real*8 :: phenofactor_d !Drought deciduousness
          real*8 :: dphdt !change in phenofactor (needed for growth)
          real*8 :: CB_d !daily carbon balance
+         real*8 :: Sacclim ! state of acclimation/frost hardiness [deg C]
 
          !* PHYSIOLOGICAL STATUS *!  !NYK
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
@@ -448,6 +449,7 @@
       ! during the run but may change from run to run
         logical do_soilresp       ! do soil respiration
         logical do_phenology
+        logical do_frost_hardiness
         logical do_patchdynamics
       end type ent_config
 

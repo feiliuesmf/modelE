@@ -263,6 +263,7 @@ cddd      end subroutine init_cohort_defaults
       cop%phenofactor = 0.d0
       cop%dphdt = 0.d0
       cop%CB_d = 0.d0
+      cop%Sacclim = 0.d0 !MJP
 
       !* PHYSIOLOGICAL STATUS *!
       cop%stressH2O = 1.d0 !Default no stress.

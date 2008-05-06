@@ -129,9 +129,9 @@
       ecp%CosZen = 0.0          !cos of solar zenith angle
 
       !Phenology/Growth
-      ecp%soiltemp_10d = 20.0d0 !10-day running avergeage of soil temp (degC)
-      ecp%airtemp_10d = 20.0d0  !10-day running average of air temp (degC) 
-      ecp%soilmoist_10d = 20.0d0!10-day running average fo soil temp (degC)
+      ecp%soiltemp_10d = 0.7d0! for Hyytiala10-day running avergeage of soil temp (degC)
+      ecp%airtemp_10d = -3.17!for Hyytiala  !10-day running average of air temp (degC) 
+      ecp%soilmoist_10d = 0.5d0!10-day running average of soil moisture (-)
       ecp%gdd = 0.0d0 !growing degree day
       ecp%ncd = 0.0d0 !number of chilling day
       ecp%ld = 0.0d0  !day length (min)

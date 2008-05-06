@@ -136,22 +136,26 @@ cddd      end interface ent_cell_update
 
 !*************************************************************************
       subroutine ent_initialize(
-     &     do_soilresp, do_phenology, do_patchdynamics
-     &     )
+     &     do_soilresp, do_phenology, do_frost_hardiness, 
+     &     do_patchdynamics)
 !@sum initializes Ent module. This subroutine should set all the flags
 !@+   and all the variables that are constant during the run.
       logical, optional :: do_soilresp
       logical, optional :: do_phenology
+      logical, optional :: do_frost_hardiness
       logical, optional :: do_patchdynamics
 
       ! first set some defaults:
       config%do_soilresp = .false.
       config%do_phenology = .false.
+      config%do_frost_hardiness = .true.
       config%do_patchdynamics = .false.
 
       ! now overwrite defaults with explicitly passed values
       if ( present(do_soilresp) ) config%do_soilresp = do_soilresp
       if ( present(do_phenology) ) config%do_phenology = do_phenology
+      if ( present(do_frost_hardiness) ) config%do_frost_hardiness = 
+     &     do_frost_hardiness
       if ( present(do_patchdynamics) ) config%do_patchdynamics = 
      &     do_patchdynamics
 

@@ -103,7 +103,7 @@
 !
 !      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
 !      do while (ASSOCIATED(pp)) 
-!        call photosynth_cond(dtsec, pp)
+!        call photosynth_cond(dtsec, pp, config)
 !        call uptake_N(dtsec, pp) !Dummy
 !        call litter(pp)  !Update litter pools
 !        call soil_bgc(dtsec, pp)
@@ -149,15 +149,21 @@
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         patchnum = patchnum + 1
-        call photosynth_cond(dtsec, pp)
+        call photosynth_cond(dtsec, pp, config)
 
-        if (config%do_phenology) then
-!temporay time contoroller
+        if(config%do_phenology.or.config%do_frost_hardiness)then
+
+! temporary time controller
           if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
             dailyupdate=.true.
           else 
             dailyupdate=.false.
           end if
+          call phenology_stats(dtsec,pp,dailyupdate,time)
+
+        endif
+
+        if (config%do_phenology) then
 
           if (mod(time,2592000.d0) .EQ. 0.d0) then !temporarily, 86400*30 =2592000 
             monthlyupdate=.true.
@@ -167,7 +173,6 @@
 
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
-          call phenology_stats(dtsec,pp,dailyupdate,time)
           if (dailyupdate) then
             call phenology_update(dtsec,pp,dailyupdate,monthlyupdate)
             call litter(pp) 
@@ -231,7 +236,7 @@
         patchnum = patchnum + 1
         !print*,'NEXT PATCH'
         !print*,'Calling photosynth_cond'
-        call photosynth_cond(dtsec, pp)
+        call photosynth_cond(dtsec, pp, config)
         if (config%do_soilresp) then 
           !print*,'Calling soil_bgc'
           call soil_bgc(dtsec,pp)
@@ -328,18 +333,20 @@
       type(patch),pointer :: pp
       !---Local------
       integer :: tmp_pft
-      real*8 :: tmp_n,tmp_senescefrac
+      real*8 :: tmp_n,tmp_senescefrac,tmp_Sacclim
       type(cohort),pointer :: cop
 
       tmp_pft = -1
       tmp_n = -1
       tmp_senescefrac = 0.d0
+      tmp_Sacclim = -1
 
       !call patch_print(6,pp)
       if ( ASSOCIATED(pp%tallest) ) then
         tmp_pft = pp%tallest%pft
         tmp_n = pp%tallest%n
         tmp_senescefrac = pp%tallest%senescefrac
+        tmp_Sacclim = pp%tallest%Sacclim
         cop => pp%tallest
         do while (ASSOCIATED(cop))
           cop => cop%shorter
@@ -355,7 +362,7 @@
      &     pp%TRANS_SW,
      &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
      &     pp%NPP,pp%CO2flux,pp%GCANOPY,
-     &     tmp_senescefrac
+     &     tmp_senescefrac,tmp_Sacclim
       if (pp%GPP.lt.0.d0) then
         print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
       endif

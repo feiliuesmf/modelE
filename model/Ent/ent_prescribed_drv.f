@@ -229,6 +229,7 @@
       integer, intent(in) :: year
       integer, intent(in) :: IM, JM, I0, I1, J0, J1
       real*8, intent(out) :: cropdata(I0:I1,J0:J1)
+      integer i
       !----------
 #ifdef tempdebug
       integer :: iu_CROPS

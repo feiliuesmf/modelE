@@ -8,7 +8,7 @@
       use ent_types
       use ent_const
       use ent_pfts
-      use photcondmod, only : pscondleaf, ciMIN
+      use photcondmod, only : pscondleaf, ciMIN, photosyn_acclim
       use FarquharBBpspar
 
       implicit none
@@ -48,7 +48,7 @@
 
       contains
 !################## MAIN SUBROUTINE #########################################
-      subroutine photosynth_cond(dtsec, pp)
+      subroutine photosynth_cond(dtsec, pp, config)
       !@sum Farquhar-Ball-Berry version of photosynth_cond.
       !@sum Calculates photosynthesis, autotrophic respiration, conductance,
       !@sum looping through cohorts.
@@ -64,7 +64,8 @@
       implicit none
 
       real*8, intent(in) :: dtsec
-      type(patch),pointer :: pp  
+      type(patch),pointer :: pp
+      type(ent_config) :: config
       !----Local----------------!
       type(cohort),pointer :: cop
       type(psdrvtype) :: psdrvpar !Met biophysics drivers, except for radiation.
@@ -173,9 +174,21 @@
 !     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 !          betad = cop%stressH2O
 
-          call calc_Pspar(cop%pft, psdrvpar%Pa, psdrvpar%Tc,O2pres
-     i         ,cop%stressH2O) 
-          
+          if (config%do_frost_hardiness) then
+             if (pfpar(cop%pft)%phenotype==1) then !evergreen = 1
+                call photosyn_acclim(dtsec,pp%cellptr%airtemp_10d
+     &                               ,cop%Sacclim) 
+             else
+                cop%Sacclim = UNDEF
+             endif
+
+	  else
+             cop%Sacclim = UNDEF
+          endif
+
+          call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc,O2pres
+     i         ,cop%stressH2O,cop%Sacclim)
+
           call canopyfluxes(dtsec, cop%pft
      &         ,pp%albedo(1),pp%LAI,cop%LAI,IPAR*4.05 !4.05 see canopyfluxes comments.
      &         ,CosZen,fdir
