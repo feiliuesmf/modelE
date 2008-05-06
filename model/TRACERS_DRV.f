@@ -2441,7 +2441,7 @@ C**** special one unique to HTO
       end if
 #endif
 
-#ifdef TRACERS_NITRAE
+#ifdef TRACERS_NITRATE
        case ('HNO3')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
