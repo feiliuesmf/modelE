@@ -8496,7 +8496,7 @@ c**** earth
 #ifdef TRACERS_SPECIAL_O18
           if (AM_I_ROOT()) then
             if(trname(n).eq."H2O18") write(6,'(A52,f6.2,A15,f8.4,A18)')
-     *           ,"Initialized trlake tr_w_ij tr_wsn_ij using Tsurf at"
+     *            "Initialized trlake tr_w_ij tr_wsn_ij using Tsurf at"
      *           ,tracerT0,"degC, 0 permil",d18oT_slope
      *           ,"permil d18O/degC"
           endif
