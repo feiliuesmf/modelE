@@ -1182,9 +1182,10 @@ C****
       SLH=LHX*BYSHA
       DQEVP=DQRAT*COND(L)
       IF(DQEVP.GT.COND(L)) DQEVP=COND(L)
+      IF(DQEVP.GT.SMDN*PLK(L)/SLH) DQEVP=SMDN*PLK(L)/SLH
       IF (L.LT.LMIN) DQEVP=0.
       FSEVP = 0
-      IF (ABS(PLK(L)*SMDN).gt.teeny) FSEVP = SLH*DQEVP/(PLK(L)*SMDN)
+      IF (PLK(L)*SMDN.gt.teeny) FSEVP = SLH*DQEVP/(PLK(L)*SMDN)
       SMDN=SMDN-SLH*DQEVP/PLK(L)
       SMOMDN(xymoms)=SMOMDN(xymoms)*(1.-FSEVP)
       FQEVP = 0
