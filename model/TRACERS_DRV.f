@@ -2441,16 +2441,16 @@ C**** special one unique to HTO
       end if
 #endif
 
-#ifdef TRACERS_NITRATE
-       case ('HNO3')
-        k = k + 1
-        jls_3Dsource(nChemistry,n) = k
-        sname_jls(k) = 'chemistry_nitrat_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF HNO3 BY NITRAT C'
-        jls_ltop(k) = LTOP
-        jls_power(k) = 0.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
+!#ifdef TRACERS_NITRATE
+!       case ('HNO3')
+!        k = k + 1
+!        jls_3Dsource(nChemistry,n) = k
+!        sname_jls(k) = 'chemistry_nitrat_of'//trname(n)
+!        lname_jls(k) = 'CHANGE OF HNO3 BY NITRAT C'
+!        jls_ltop(k) = LTOP
+!        jls_power(k) = 0.
+!        units_jls(k) = unit_string(jls_power(k),'kg/s')
+!#endif
 
 #ifdef SHINDELL_STRAT_EXTRA
       case ('GLT')

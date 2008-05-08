@@ -268,11 +268,9 @@ c      print*,' STAUB', il,dustnc(36,28,1,nd)
         krate(:,J_0:J_1,:,5,il) = rxtnox(:,J_0:J_1,:,8,il)
       ENDDO ! il
 
-c      print*,' KRATE NR:,', krate(36,28,1,:,:)
-
       return
       end subroutine 
-#endif   ! TRACERS_SPECIAL_Shindell
+#endif  
 
 
 #ifdef TRACERS_AEROSOLS_Koch
@@ -628,4 +626,4 @@ C
 
       RETURN
       END
-#endif   ! TRACERS_AEROSOLS_Koch
+#endif   

@@ -3205,6 +3205,9 @@ C****
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pmb
       USE DOMAIN_DECOMP, only : GRID,GET
+#ifdef TRACERS_ON
+      USE TRACER_COM
+#endif
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       INTEGER :: I,J,K,L,kp,kunit,n,n1,n_fidx
