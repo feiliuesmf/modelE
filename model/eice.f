@@ -6,10 +6,11 @@ c
       USE SEAICE, only : fsss,tfrez
       USE CONSTANT, only : lhm,shi,shw
 c
-      USE HYCOM_DIM_GLOB,only : jj,isp,ifp,ilp,kk,idm,jdm,jchunk
+      USE HYCOM_DIM,only : isp,ifp,ilp,kk,idm,jchunk,
+     *                     J_0,J_1,J_0H,J_1H
       USE HYCOM_SCALARS, only : thkmin,onem,lp,nstep,delt1,g,spcifh
      &     ,equatn,epsil
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
 c
       implicit none
 c
@@ -19,10 +20,11 @@ c
 !!#include "common_blocks.h"
 c
       real tmelt,thin,rhoice,kice,fusion,saldif,rate,tmxl,dpth,thkmax,
-     .     paybak,borrow,total,totalx,qmax,qmx(jdm),heatfx,dtdflx,
-     .     icex(idm,jdm),work(idm,jdm),dm,salflx2(idm,jdm),top,bot,
+     .     paybak,borrow,total,totalx,qmax,qmx(J_0H:J_1H),heatfx,dtdflx,
+     .     icex(idm,J_0H:J_1H),work(idm,J_0H:J_1H),dm,
+     .     salflx2(idm,J_0H:J_1H),top,bot,
      .     thkinv,brntop,brnbot
-      integer imx(jdm),jmx(jdm),k1
+      integer imx(J_0H:J_1H),jmx(J_0H:J_1H),k1
       logical dosmoo,pump
       data pump/.true./
 c
@@ -59,7 +61,7 @@ c
 c$OMP PARALLEL DO PRIVATE(tmxl,tmelt,borrow,paybak,saldif,dpth
 c$OMP+  ,top,bot,thkinv,kn) SCHEDULE(STATIC,jchunk)
 c$OMP+ REDUCTION(+:total) SHARED(dosmoo,equatn)
-      do 10 j=1,jj
+      do 10 j=J_0,J_1
       do 10 l=1,isp(j)
       do 10 i=ifp(j,l),ilp(j,l)
 cdiag total=total+thkice(i,j)*scp2(i,j)

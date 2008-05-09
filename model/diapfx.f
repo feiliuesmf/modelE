@@ -1,11 +1,11 @@
       subroutine diapfl(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9.2
-      USE HYCOM_DIM_GLOB, only : jj,kk,isp,ifp,ilp,idm,kdm,ntrcr
-     &     ,jchunk
+      USE HYCOM_DIM, only : jj,kk,isp,ifp,ilp,idm,kdm,ntrcr
+     &     ,jchunk, J_0, J_1
       USE HYCOM_SCALARS, only : diapyc,nstep,dotrcr,onemm,g,baclin,onem
      &     ,epsil,mixfrq,sigjmp,thref,lp,acurcy,diapyn
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
       implicit none
 c
 !!      include 'dimensions.h'
@@ -43,7 +43,7 @@ c$OMP. told,trold,tflxl,tflxu,sflxl,sflxu,trflxl,trflxu,kmin,kmax,
 c$OMP. flngth,flxu,flxl,pdot,clipt,clips,cliptr,ka,kan,delp,amount,
 c$OMP. qmax,qmin,tndcyt,tndcys,tndtra,scale,clip,event)
 c$OMP. SCHEDULE(STATIC,jchunk)
-      do 31 j=1,jj
+      do 31 j=J_0, J_1
       do 31 l=1,isp(j)
       do 31 i=ifp(j,l),ilp(j,l)
 c
@@ -356,7 +356,7 @@ c
 ccc   write (lp,'(i9,7x,1p,e9.2,a)') nstep,salt*1.e-6/g,
 ccc  .  ' kg salt added in diapfl'
 c
-      call dpudpv(nn)
+      call pardpudpv(nn)
 c
       if (dotrcr) write (lp,'(a)') 'tracer diapycnal mixing done'
       return

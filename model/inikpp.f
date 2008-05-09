@@ -2,10 +2,10 @@
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp
+!     USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp
       USE HYCOM_SCALARS, only :epsil,onem
-      USE HYCOM_ARRAYS_GLOB
-      USE KPRF_ARRAYS
+!     USE HYCOM_ARRAYS_GLOB
+!     USE KPRF_ARRAYS
       implicit none
 c
 !!      include 'dimensions.h'
@@ -96,10 +96,10 @@ c
 c
       subroutine initurb
 c
-      USE HYCOM_DIM_GLOB, only : jj,isp,ifp,ilp,jchunk
+      USE HYCOM_DIM, only : J_0,J_1,isp,ifp,ilp,jchunk
       USE HYCOM_SCALARS, only : onem
-      USE HYCOM_ARRAYS_GLOB
-      USE KPRF_ARRAYS
+      USE HYCOM_ARRAYS,  only : latij, depths
+      USE KPRF_ARRAYS,   only : jerlov_loc, betard, betabl, redfac
       implicit none
 !!      include 'dimensions.h'
 !!    include 'dimension2.h'   ! TNL
@@ -112,15 +112,15 @@ c
       !write(751,*) ifp
       !write(752,*) ilp
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 199 j=1,jj
+      do 199 j=J_0,J_1
        !write(0,*) j
       do 199 l=1,isp(j)
       do 199 i=ifp(j,l),ilp(j,l)
 c --- map shallow depths ('brown' water) to high jerlov numbers
-      jerlov(i,j)=6-max(1,min(5,int(depths(i,j)/15.0)))
-      jerlov(i,j)=max(jerlv0,jerlov(i,j))
+      jerlov_loc(i,j)=6-max(1,min(5,int(depths(i,j)/15.0)))
+      jerlov_loc(i,j)=max(jerlv0,jerlov_loc(i,j))
 c --- reduce turbidity of subtropical oceans
-      if (abs(abs(latij(i,j,3))-25.).lt.20.) jerlov(i,j)=1
+      if (abs(abs(latij(i,j,3))-25.).lt.20.) jerlov_loc(i,j)=1
  199  continue
 c$OMP END PARALLEL DO
 c

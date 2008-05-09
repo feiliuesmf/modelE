@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 c-----------------------------------------------------------------------------
       module hycom_dim
-      USE DOMAIN_DECOMP, only : DIST_GRID
+      USE DOMAIN_DECOMP, only : DIST_GRID, aGrid => grid  ! aGrid is 'a' grd
 
       implicit none
 
@@ -12,7 +12,8 @@ c-----------------------------------------------------------------------------
       public idm,jdm,kdm,ms,iia,jja,iio,jjo,ntrcr,ii,jj,kk,ii1
       public equato,iold
       public I_0,  I_1,  J_0,  J_1, I_0H, I_1H, J_0H, J_1H
-      public ogrid
+      public aI_0, aI_1, aJ_0, aJ_1,aI_0H,aI_1H,aJ_0H,aJ_1H
+      public ogrid, aGrid
 
       public ip,iu,iv,iq,
      .ifp,ilp,isp,jfp,jlp,jsp,
@@ -55,8 +56,10 @@ c
       TYPE(DIST_GRID) :: ogrid   ! ocean (hycom) grid
       ! domain bounds
       integer :: I_0,  I_1,  J_0,  J_1
+      integer ::aI_0, aI_1, aJ_0, aJ_1
       ! domain bounds with halos
       integer :: I_0H, I_1H, J_0H, J_1H
+      integer ::aI_0H,aI_1H,aJ_0H,aJ_1H
       
       ! openmp decomposition parameter
       integer, public :: jchunk
@@ -71,6 +74,11 @@ c
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H ,
      &               I_STRT     =I_0,    I_STOP     =I_1,
      &               I_STRT_HALO=I_0H,   I_STOP_HALO=I_1H )
+      ! atmospheric grid
+      call get(aGrid, J_STRT      =aJ_0,    J_STOP      =aJ_1,
+     &                J_STRT_HALO =aJ_0H,   J_STOP_HALO =aJ_1H ,
+     &                I_STRT      =aI_0,    I_STOP      =aI_1,
+     &                I_STRT_HALO =aI_0H,   I_STOP_HALO =aI_1H )
  
       ! hack to work with older code on 1 cpu
       print *,"init_hycom_grid: i0,i1,j0,j1", I_0,I_1,J_0,J_1

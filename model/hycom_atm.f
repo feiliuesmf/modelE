@@ -2,6 +2,7 @@
 !@sum module for atmospheric variables to be passed to/from hylom.
 !@+   hycom will see them as global arrays
       USE MODEL_COM, only : im,jm
+      USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H
       use FLUXES, only: NSTYPE
 
       USE FLUXES, only : PREC_loc => PREC
@@ -40,6 +41,40 @@
 
       implicit none
       private
+
+      public PREC_loc
+      public EVAPOR_loc
+      public FLOWO_loc
+      public GMELT_loc
+      public MELTI_loc
+      public RUNOSI_loc
+      public RUNPSI_loc
+      public E0_loc
+      public EPREC_loc
+      public EFLOWO_loc
+      public EGMELT_loc
+      public EMELTI_loc
+      public ERUNOSI_loc
+      public SRUNOSI_loc
+      public SRUNPSI_loc
+      public SMELTI_loc
+      public DMUA_loc
+      public DMUI_loc
+      public DMVA_loc
+      public DMVI_loc
+      public SOLAR_loc
+      public SSS_loc
+      public UOSURF_loc
+      public VOSURF_loc
+      public OGEOZA_loc
+      public GTEMP_loc
+      public GTEMPR_loc
+      public DMSI_loc
+      public DHSI_loc
+      public DSSI_loc
+
+      public RSI_loc
+      public FOCEAN_loc
 
       public alloc_hycom_atm, gather_atm, scatter_atm
 
@@ -85,6 +120,9 @@
       public ataux,atauy,aflxa2o
      .     ,aemnp,aice,asalt
      .     ,austar,aswflx
+      public ataux_loc,atauy_loc,aflxa2o_loc
+     .     ,aemnp_loc,aice_loc,asalt_loc
+     .     ,austar_loc,aswflx_loc
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: EVAPOR
@@ -132,6 +170,9 @@
       real*8, allocatable, dimension(:,:) :: ataux,atauy,aflxa2o
      .     ,aemnp,aice,asalt
      .     ,austar,aswflx
+      real*8, allocatable, dimension(:,:) :: ataux_loc,atauy_loc
+     .     ,aflxa2o_loc,aemnp_loc,aice_loc,asalt_loc
+     .     ,austar_loc,aswflx_loc
 
       contains
 
@@ -178,6 +219,11 @@
       ALLOCATE( ataux(iia,jja),atauy(iia,jja),aflxa2o(iia,jja)
      .     ,aemnp(iia,jja),aice(iia,jja),asalt(iia,jja)
      .     ,austar(iia,jja),aswflx(iia,jja) )
+      ALLOCATE( ataux_loc(iia,aJ_0H:aJ_1H),atauy_loc(iia,aJ_0H:aJ_1H)
+     .     ,aflxa2o_loc(iia,aJ_0H:aJ_1H)
+     .     ,aemnp_loc(iia,aJ_0H:aJ_1H),aice_loc(iia,aJ_0H:aJ_1H),
+     .      asalt_loc(iia,aJ_0H:aJ_1H)
+     .     ,austar_loc(iia,aJ_0H:aJ_1H),aswflx_loc(iia,aJ_0H:aJ_1H) )
 
       end subroutine alloc_hycom_atm
 

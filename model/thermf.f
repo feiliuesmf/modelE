@@ -3,10 +3,11 @@ c
       USE SEAICE, only : fsss
 c
 c --- hycom version 0.9
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS, only : baclin,thref,watcum,empcum,nstep,nstep0
      &     ,diagno,lp,area,spcifh,avgbot,g,onem,slfcum
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
       implicit none
 c
 !!#include "dimensions.h"
@@ -16,8 +17,9 @@ c
 c
       real thknss,radfl,radflw,radfli,vpmx,prcp,prcpw,prcpi,
      .     evap,evapw,evapi,exchng,target,old,
-     .     rmean,tmean,smean,vmean,boxvol,emnp(idm,jdm),slfcol(jdm),
-     .     watcol(jdm),empcol(jdm),rhocol(jdm),temcol(jdm),salcol(jdm)
+     .     rmean,tmean,smean,vmean,boxvol,emnp(idm,J_0H:J_1H),
+     &     slfcol(J_0H:J_1H),watcol(J_0H:J_1H),empcol(J_0H:J_1H),
+     &     rhocol(J_0H:J_1H),temcol(J_0H:J_1H),salcol(J_0H:J_1H)
       integer iprime,ktop
       real qsatur,totl,eptt,salrlx
       external qsatur
@@ -55,7 +57,7 @@ ccc      end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
-      do 66 j=1,jj
+      do 66 j=J_0,J_1
       do 66 k=1,kk
       kn=k+nn
       do 66 l=1,isp(j)
@@ -75,7 +77,7 @@ c
 c
 c$OMP PARALLEL DO PRIVATE(thknss,vpmx,prcp,exchng,
 c$OMP. radfl,radflw,radfli,evap,evapw,evapi) SCHEDULE(STATIC,jchunk)
-      do 85 j=1,jj
+      do 85 j=J_0,J_1
 c
       watcol(j)=0.
       empcol(j)=0.
@@ -116,24 +118,17 @@ c
  85   continue
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO REDUCTION(+:watcum,empcum,slfcum)
-c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 83 j=1,jj
-      watcum=watcum+watcol(j)
-      empcum=empcum+empcol(j)
-      slfcum=slfcum+slfcol(j)
- 83   continue
-c$OMP END PARALLEL DO
+      call GLOBALSUM(ogrid,watcol,watcum, all=.true.)
+      call GLOBALSUM(ogrid,empcol,empcum, all=.true.)
+      call GLOBALSUM(ogrid,slfcol,slfcum, all=.true.)
 c
       if (nstep.eq.nstep0+1 .or. diagno) then
-c$OMP PARALLEL DO REDUCTION(+:rmean,tmean,smean) SCHEDULE(STATIC,jchunk)
-      do 82 j=1,jj
-      rmean=rmean+rhocol(j)
-      tmean=tmean+temcol(j)
-      smean=smean+salcol(j)
- 82   continue
-c$OMP END PARALLEL DO
+
+      call GLOBALSUM(ogrid,rhocol,rmean, all=.true.)
+      call GLOBALSUM(ogrid,temcol,tmean, all=.true.)
+      call GLOBALSUM(ogrid,salcol,smean, all=.true.)
 c
+      if( AM_I_ROOT() ) then
       write (lp,'(i9,''energy residual (w/m^2)'',f9.2)') nstep,
      .  watcum/(area*(nstep-nstep0))
       write (lp,'(9x,''resulting temp drift (deg/century):'',f9.3)')
@@ -150,26 +145,41 @@ css  .  slfcum*365.*86400.*g/onem
      .  slfcum*36500.*86400.*g/(avgbot*area*onem)
       write (lp,'(i9,a,3f9.3)') nstep,' mean surf. sig,temp,saln:',
      .    rmean/area,tmean/area,smean/area
+      end if ! AM_I_ROOT
 c
       rmean=0.
       smean=0.
       tmean=0.
       vmean=0.
+      ! reusing these arrays for next sums 
+      rhocol=0.; temcol=0.; salcol=0.; watcol=0.;
 c$OMP PARALLEL DO PRIVATE(kn,boxvol) SCHEDULE(STATIC,jchunk)
-c$OMP+ REDUCTION(+:rmean,smean,tmean,vmean)
-      do 84 j=1,jj
+      do 84 j=J_0,J_1
       do 84 k=kk,1,-1
       kn=k+nn
       if (nstep.eq.nstep0+1) kn=k+mm
       do 84 l=1,isp(j)
       do 84 i=ifp(j,l),ilp(j,l)
       boxvol=dp(i,j,kn)*scp2(i,j)
-      rmean=rmean+th3d(i,j,kn)*boxvol
-      smean=smean+saln(i,j,kn)*boxvol
-      tmean=tmean+temp(i,j,kn)*boxvol
- 84   vmean=vmean+boxvol
+      !--changing following to facilitate GLOBALSUM with bitwise reprocibility
+      ! rmean=rmean+th3d(i,j,kn)*boxvol
+      ! smean=smean+saln(i,j,kn)*boxvol
+      ! tmean=tmean+temp(i,j,kn)*boxvol
+      ! vmean=vmean+boxvol
+      !-----------------------------------------------
+      rhocol(j)=rhocol(j)+th3d(i,j,kn)*boxvol
+      salcol(j)=salcol(j)+saln(i,j,kn)*boxvol
+      temcol(j)=temcol(j)+temp(i,j,kn)*boxvol
+      watcol(j)=watcol(j)+boxvol
+ 84   continue
 c$OMP END PARALLEL DO
-      write (lp,'(i9,a,3f9.3)') nstep,' mean basin sig,temp,saln:',
+      call GLOBALSUM(ogrid,rhocol,rmean, all=.true.) 
+      call GLOBALSUM(ogrid,salcol,smean, all=.true.) 
+      call GLOBALSUM(ogrid,temcol,tmean, all=.true.) 
+      call GLOBALSUM(ogrid,watcol,vmean, all=.true.) 
+c
+      if( AM_I_ROOT() )
+     .    write (lp,'(i9,a,3f9.3)') nstep,' mean basin sig,temp,saln:',
      .    rmean/vmean,tmean/vmean,smean/vmean
       end if                                !  diagno = .true.
 c

@@ -480,7 +480,7 @@ C     nothing to gather - ocean prescribed
       USE HYCOM_DIM_GLOB, only : alloc_hycom_dim_glob
       USE HYCOM_ARRAYS_GLOB, only : alloc_hycom_arrays_glob
 
-      USE KPRF_ARRAYS, only : alloc_kprf_arrays
+      USE KPRF_ARRAYS, only : alloc_kprf_arrays, alloc_kprf_arrays_local
       USE HYCOM_ATM, only : alloc_hycom_atm
       implicit none
       
@@ -500,6 +500,7 @@ C     nothing to gather - ocean prescribed
       call alloc_hycom_arrays_glob
 
       call alloc_kprf_arrays
+      call alloc_kprf_arrays_local
 
       !!call reset_hycom_arrays
 

@@ -1,3 +1,4 @@
+#include "hycom_mpi_hacks.h"
 #include "rundeck_opts.h"
       subroutine OCEANS
 c
@@ -83,7 +84,7 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH
       USE HYCOM_ATM !, only : gather_atm, scatter_atm
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
@@ -122,8 +123,12 @@ c
 #endif
 #endif
       USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H,
+     &                       J_0,  J_1,  J_0H,  J_1H,
+     &      ogrid, isp_loc => isp, ifp_loc => ifp, ilp_loc => ilp
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
+      USE hycom_arrays_glob_renamer
 c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
@@ -145,6 +150,7 @@ c
      .    ,thkchg,flxdiv,den_str
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
+      integer ipa_loc(iia,aJ_0H:aJ_1H)
 #ifdef TRACERS_GASEXCH_Natassa
       integer nt
 #endif
@@ -174,6 +180,8 @@ c
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
      . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
      . ,utila(iia,jja)
+      real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
+     &    osiav_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_Natassa
      . ,otrac(idm,jdm,ntm),tracflx2(idm,jdm,ntm)
 #endif
@@ -192,12 +200,8 @@ ccc      if (slave) call pipe_init(.false.)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       ! move to global atm grid
-      call gather_atm
-
-      call scatter_hycom_arrays ! actually not needed yet ...
 
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-      if (AM_I_ROOT()) then ! work on global grids here
 
 cdiag write(*,'(a,i8,7i5,a)')'chk =',
 cdiag.    Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
@@ -205,15 +209,15 @@ c
       if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do 28 ia=1,iia
-        do 28 ja=1,jja
-          ataux(ia,ja)=0.
-          atauy(ia,ja)=0.
-        aflxa2o(ia,ja)=0.
-          aemnp(ia,ja)=0.
-          asalt(ia,ja)=0.
-          aice(ia,ja)=0.
-         austar(ia,ja)=0.
-         aswflx(ia,ja)=0.
+        do 28 ja=aJ_0,aJ_1
+          ataux_loc(ia,ja)=0.
+          atauy_loc(ia,ja)=0.
+        aflxa2o_loc(ia,ja)=0.
+          aemnp_loc(ia,ja)=0.
+          asalt_loc(ia,ja)=0.
+           aice_loc(ia,ja)=0.
+         austar_loc(ia,ja)=0.
+         aswflx_loc(ia,ja)=0.
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         atracflx(ia,ja,nt)=0.
@@ -236,39 +240,44 @@ c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c --- accumulate agcm fields over nhr 
       do 29 ia=1,iia
-      do 29 ja=1,jja
-      ipa(ia,ja)=0
-      if (focean(ia,ja).eq.0.) goto 29
-      ipa(ia,ja)=1
-c --- accumulate 
-      aemnp(ia,ja)=aemnp(ia,ja)                               ! kg/m*m => m/s
-     .+((prec(ia,ja)-evapor(ia,ja,1))*(1.-rsi(ia,ja))         ! open water
-     .+(flowo(ia,ja)+gmelt(ia,ja)+melti(ia,ja))/(dxyp(ja)*focean(ia,ja))!ocn/ice
-     .+(runosi(ia,ja)+runpsi(ia,ja))*rsi(ia,ja))*thref        ! ice
+      do 29 ja=aJ_0,aJ_1
+      ipa_loc(ia,ja)=0
+      if (focean_loc(ia,ja).eq.0.) goto 29
+      ipa_loc(ia,ja)=1
+c --- accumulate
+      aemnp_loc(ia,ja)=aemnp_loc(ia,ja)                               ! kg/m*m => m/s
+     .+((prec_loc(ia,ja)-evapor_loc(ia,ja,1))*(1.-rsi_loc(ia,ja))         ! open water
+     .+(flowo_loc(ia,ja)+gmelt_loc(ia,ja)+melti_loc(ia,ja))/
+     .                       (dxyp(ja)*focean_loc(ia,ja))!ocn/ice
+     .+(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref        ! ice
      .                                /(3600.*real(nhr))
-      aflxa2o(ia,ja)=aflxa2o(ia,ja)                           ! J/m*m => W/m*m
-     . +((e0(ia,ja,1)+eprec(ia,ja))*(1.-rsi(ia,ja))           ! ocean water
-     . +(eflowo(ia,ja)+egmelt(ia,ja)+emelti(ia,ja))
-     .                              /(dxyp(ja)*focean(ia,ja)) ! ocn or ice
+      aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                           ! J/m*m => W/m*m
+     . +((e0_loc(ia,ja,1)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))           ! ocean water
+     . +(eflowo_loc(ia,ja)+egmelt_loc(ia,ja)+emelti_loc(ia,ja))
+     .                              /(dxyp(ja)*focean_loc(ia,ja)) ! ocn or ice
 css  . +(erunosi(ia,ja)+erunpsi(ia,ja))*rsi(ia,ja))           ! ice
-     . + erunosi(ia,ja)*rsi(ia,ja))                           ! ice
+     . + erunosi_loc(ia,ja)*rsi_loc(ia,ja))                           ! ice
      .                                 /(3600.*real(nhr))
-      asalt(ia,ja)=asalt(ia,ja)                            ! kg/m*m/sec salt
-     .+((srunosi(ia,ja)+srunpsi(ia,ja))*rsi(ia,ja)         !
-     .   +smelti(ia,ja)/(dxyp(ja)*focean(ia,ja)))          !
+      asalt_loc(ia,ja)=asalt_loc(ia,ja)                            ! kg/m*m/sec salt
+     .+((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)         !
+     .   +smelti_loc(ia,ja)/(dxyp(ja)*focean_loc(ia,ja)))          !
      .                             /(3600.*real(nhr))
-       aice(ia,ja)= aice(ia,ja) + rsi(ia,ja)*dtsrc/(real(nhr)*3600.)
+       aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
+     .                                  dtsrc/(real(nhr)*3600.)
 c --- dmua on B-grid, dmui on C-grid; Nick aug04
-      ataux(ia,ja)=ataux(ia,ja)+(dmua(ia,ja,1)+dmui(ia,ja))    ! scaled by rsi 
+      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja,1)+
+     .                                         dmui_loc(ia,ja))    ! scaled by rsi 
      .                                     /(3600.*real(nhr))  ! kg/ms => N/m*m
-      atauy(ia,ja)=atauy(ia,ja)+(dmva(ia,ja,1)+dmvi(ia,ja))
+      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja,1)+
+     .                                         dmvi_loc(ia,ja))
      .                                     /(3600.*real(nhr))  ! kg/ms => N/m*m
-      austar(ia,ja)=austar(ia,ja)+(
-     . sqrt(sqrt((dmua(ia,ja,1)+dmui(ia,ja))**2
-     .          +(dmva(ia,ja,1)+dmvi(ia,ja))**2)/dtsrc*thref)) ! sqrt(T/r)=>m/s
+      austar_loc(ia,ja)=austar_loc(ia,ja)+(
+     . sqrt(sqrt((dmua_loc(ia,ja,1)+dmui_loc(ia,ja))**2
+     .          +(dmva_loc(ia,ja,1)+dmvi_loc(ia,ja))**2)/dtsrc*thref)) ! sqrt(T/r)=>m/s
      .                               *dtsrc/(real(nhr)*3600.)
-      aswflx(ia,ja)=aswflx(ia,ja)+(solar(1,ia,ja)*(1.-rsi(ia,ja))!J/m*m=>W/m*m
-     .                            +solar(3,ia,ja)*    rsi(ia,ja))
+      aswflx_loc(ia,ja)=aswflx_loc(ia,ja)+(solar_loc(1,ia,ja)*
+     .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m
+     .                         +solar_loc(3,ia,ja)*    rsi_loc(ia,ja))
      .                                 /(3600.*real(nhr))
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
@@ -316,15 +325,12 @@ c    .  ,prec(ia,ja),evapor(ia,ja,1),rsi(ia,ja)
 c    .  ,flowo(ia,ja),gmelt(ia,ja),melti(ia,ja),dxyp(ja),focean(ia,ja)
 c    .  ,runosi(ia,ja),runpsi(ia,ja)
 c
+      call gather_atm
+      call gather2_atm
+
       nsavea=nsavea+1
 
-      endif ! root
-
-      call scatter_hycom_arrays
-
       if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) goto 9666
-
-      if (AM_I_ROOT()) then
 
       if (nsavea*24/nday.ne.nhr) then
         write(*,'(a,4i4,i8)')
@@ -334,6 +340,8 @@ c
       end if
       nsavea=0
 c
+      if (AM_I_ROOT()) then
+
       call veca2o(ataux,atauy,taux,tauy)          !wind stress
       call flxa2o(aice,oice)                      !ice coverage
       call flxa2o(aflxa2o,oflxa2o)                !heatflux everywhere
@@ -356,15 +364,20 @@ c
       call flxa2o(anirdir,onirdir)
       call flxa2o(anirdif,onirdif)
 #endif
+
+      endif ! AM_I_ROOT
+
+      call scatter_kprf_arrays
 c
       call system_clock(before)
       call system_clock(count_rate=rate)
       bfogcm=before
       agcm_time = real(bfogcm-afogcm)/real(rate)
+
+      if (AM_I_ROOT()) then
       write (lp,99009) agcm_time,' sec for AGCM bfor ocn step ',nstep
 99009 format (f12.3,a,i8)
-
-      endif ! root
+      endif ! AM_I_ROOT
 c
 !hack hack !!! copied from inicon:
 cddd      if (nstep0.eq.0) then
@@ -388,14 +401,15 @@ ccc$  mo1=OMP_GET_NUM_THREADS()
 ccc$  OMP END PARALLEL
 ccc$  write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
 ccc$     . ,' =======  number of threads:',mo1,' ======='
-      write (lp,'(2(a,i5))') ' hycom thread count:',mo0
+      if (AM_I_ROOT())
+     &  write (lp,'(2(a,i5))') ' hycom thread count:',mo0
       jchunk=50
 c     if (mo0.eq.4) jchunk=50           !  jdm=180
 c     if (mo0.eq.6) jchunk=32           !  jdm=180
 c     if (mo0.eq.8) jchunk=23           !  jdm=180
       if (jchunk.lt.0) then
-        write (lp,*) 'you forgot to define jchunk'
-        stop
+        if (AM_I_ROOT()) write (lp,*) 'you forgot to define jchunk'
+        stop   ! proper mpi_abort
       end if
 c
       lp=6
@@ -412,21 +426,24 @@ c ---   chk_kap: t= 1.0, s=34.5, p=0 bar, kap_t(4.5,34.5,1.e7)= 0.08728276
 c ---   chk_kap: t= 1.0, s=34.5, p=0 pascal, kap_t(4.5,34.5,1.e7)=-0.09080282
         chk_kap=-0.09080282
       else
-        stop 'wrong pref'
+        stop 'wrong pref'    ! proper mpi_abort
       endif
 c
       if (abs(sigocn(4.,35.)-chk_rho).gt..0001) then
-       write (lp,'(/2(a,f11.6))') 'error -- sigocn(t=4,s=35) should be',
+      if (AM_I_ROOT())
+     & write (lp,'(/2(a,f11.6))') 'error -- sigocn(t=4,s=35) should be',
      . chk_rho,', not',sigocn(4.,35.)
 css     stop
       end if
       if (abs(kappaf(4.5,34.5,1.e7)-chk_kap).gt..00001) then
-        write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
+      if (AM_I_ROOT())
+     &  write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
      .  '  should be',chk_kap,', not',kappaf(4.5,34.5,1.e7)
       stop
       end if
 c
-      write (lp,109) thkdff,temdff,veldff,viscos,diapyc,vertmx
+      if (AM_I_ROOT())
+     & write (lp,109) thkdff,temdff,veldff,viscos,diapyc,vertmx
  109  format (' turb. flux parameters:',1p/
      .  ' thkdff,temdff,veldff =',3e9.2/
      .  ' viscos,diapyc,vertmx =',3e9.2)
@@ -438,18 +455,21 @@ c
       lstep=2*((lstep+1)/2)
       dlt=baclin/lstep
       nstepi=real(nhr)*3600./baclin + .0001
+
+      if (AM_I_ROOT()) then
       write (lp,'(i4,'' barotropic steps per baroclinic time step'')')
      .  lstep
       write (lp,*) "time0/nstep0=",time0,nstep0
       write (lp,'(''ogcm exchange w. agcm every step,hr'',2i5)')
      .  nstepi,nhr
+      endif ! AM_I_ROOT
 c
 c --- set up parameters defining the geographic environment
 c
 css   call geopar                ! moved to agcm for zero start or below
 css   call inicon                ! moved to agcm
       if (mxlkpp) then
-        if (AM_I_ROOT()) call inikpp                 ! kpp
+        call inikpp                 ! kpp
         if (mxlgis) stop 'wrong kprf: kpp=gis=true'
         print *,'chk: mxlkpp=true'
         write(*,'(a,2f9.3)')' chk qkpar=',
@@ -463,19 +483,23 @@ css   call inicon                ! moved to agcm
 c
       mixfrq=int(43200./baclin+.0001)
       trcfrq=int(43200./baclin+.0001)
-      write (lp,'(a,2i4)') 'trcfrq set to',trcfrq
+      if (AM_I_ROOT())
+     &  write (lp,'(a,2i4)') 'trcfrq set to',trcfrq
+
       if (trcout) dotrcr=.true.
 c
       watcum=0.
       empcum=0.
 c
       if (jyear-iyear1.le.20) then
-        write (lp,'(''starting date in ogcm/agcm '',2i5,'' hr '',2i12
+        if (AM_I_ROOT())
+     .  write (lp,'(''starting date in ogcm/agcm '',2i5,'' hr '',2i12
      .   /'' iyear1/jyear='',2i5)')
      .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday
      . ,int((nstep0+nstepi-1)*baclin)/3600,itime*24/nday,iyear1,jyear
       else
-        write (lp,'(''starting date in ogcm/agcm '',2i12
+        if (AM_I_ROOT())
+     .  write (lp,'(''starting date in ogcm/agcm '',2i12
      .   /'' iyear1/jyear='',2i5)') 
      .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday
      . ,iyear1,jyear,(nstep0+nstepi-1)*baclin/3600.,itime*24/nday
@@ -484,6 +508,7 @@ c
 c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
       if(abs(int((nstep0+nstepi-1)*baclin/3600)-itime*24/nday).gt.0)
      .                                                        then
+        if (AM_I_ROOT()) then
         write (lp,'(a,f16.8,i10,f16.8)')'mismatch date found '
      . ,int((nstep0+nstepi-1)*baclin/3600),itime*24/nday
      . ,(nstep0+nstepi-1)*baclin/3600.-itime*24/nday
@@ -494,12 +519,19 @@ c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
      . ,' (day '
      .,(int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1)
      .  *baclin/86400,')'
+
+        end if   ! AM_I_ROOT
+
         nstep0=int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)
      .                                         -nstepi+3600/baclin
+
         nstep=nstep0
         time0=nstep0*baclin/86400
         tavini=time0
 c
+! jtest may not be on root, need to broadcast dpini
+! dpini is used to compute thkchg which is used only for printing
+! caution: mkb comeback to this
       do 19 k=1,kk
  19   dpini(k)=dp(itest,jtest,k)+dp(itest,jtest,k+kk)
 c
@@ -508,40 +540,33 @@ c
       endif
 
 c
-      if (AM_I_ROOT()) then
-c$OMP PARALLEL DO
-      do j=1,jj
-      do i=1,ii
-      osst(i,j)=0.
-      osss(i,j)=0.
-      osiav(i,j)=0.
-      enddo
-      enddo
-c$OMP END PARALLEL DO
-      endif ! root
-c
       endif       ! if (nstep=0 or nstep=nstep0) 
 c
       if (nstepi.le.0) stop 'wrong nstepi'
 c
-      if (AM_I_ROOT()) then
 c     print *,' shown below oice'
 c     call zebra(oice,iio,iio,jjo)
 c     print *,' shown below aflxa2o'
 c     call zebra(aflxa2o,iia,iia,jja)
 c
-c$OMP PARALLEL DO PRIVATE(jb)
-      do 202 j=1,jj
-      jb=mod(j,jj)+1
-      do 202 l=1,isp(j)
-      do 202 i=ifp(j,l),ilp(j,l)
-      osst(i,j)=0.
-      osss(i,j)=0.
-      osiav(i,j)=0.
+      osst=0.  ;   osst_loc=0.;
+      osss=0.  ;   osss_loc=0.;
+      osiav=0. ;  osiav_loc=0.;
+
+      call scatter_hycom_arrays
+
+      CALL HALO_UPDATE(ogrid,corio_loc,     FROM=NORTH)
+      hekman_loc=0.;
 c
-      hekman(i,j)=ustar(i,j)*(cekman*4.0)/                ! kpp
-     &           (abs(corio(i,j  ))+abs(corio(i+1,j  ))+
-     &            abs(corio(i,jb ))+abs(corio(i+1,jb )))
+c$OMP PARALLEL DO PRIVATE(jb)
+      do 202 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
+      do 202 l=1,isp_loc(j)
+      do 202 i=ifp_loc(j,l),ilp_loc(j,l)
+c
+      hekman_loc(i,j)=ustar_loc(i,j)*(cekman*4.0)/                ! kpp
+     &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
+     &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       otrac(i,j,nt)=0.
@@ -561,17 +586,15 @@ c     open(202,file='ip.array',form='unformatted',status='unknown')
 c     write(202) ip,iu,iv,ifp,ilp,isp
 c     close(202)
 c
-
-
-      endif ! root
-
-      call scatter_hycom_arrays
+      call gather_kprf_arrays
 
       nsaveo=0
       do 15 nsub=1,nstepi
+! we need to call scatter, becase part of program in this loop is
+! on root
 
-
-        !if (AM_I_ROOT()) then ! work on global grids here
+      !call scatter_kprf_arrays
+      call scatter_hycom_arrays
 
       m=mod(nstep  ,2)+1
       n=mod(nstep+1,2)+1
@@ -581,8 +604,6 @@ c
       k1n=1+nn
       nstep=nstep+1
       time=time0+(nstep-nstep0)*baclin/86400.
-
-        if (AM_I_ROOT()) then ! work on global grids here
 c
       diagno=.false.
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
@@ -592,6 +613,7 @@ c
       diag_ape=.false.
 c
       trcadv_time = 0.0
+!---------------------below not implemented------------------
       if (dotrcr) then
         call system_clock(before)      ! time elapsed since last system_clock
 
@@ -629,7 +651,7 @@ c12     tracer(i,j,1,1)=1.              !  surface ventilation tracer
 cc$OMP END PARALLEL DO
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
-      end if
+      end if ! dotrcr  above if block is done only once
 
 c
 c --- accumulate tracer flux over 'long' time period
@@ -708,41 +730,42 @@ cdiag  call obio_limits('aftr obio_model')
       ocnbio_time = real(after-before)/real(rate)
 
 #endif
+!---------------------above not implemented------------------
+
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- available potential energy diagnostics:
-      if (diag_ape)
-     . write (501,'(f9.1,a,1p,e15.7)') time,'  APE (J):',
-     .  hyc_pechg1(dp(1,1,k1n),th3d(1,1,k1n),31)
+      if (diag_ape) then
+        call gather_hycom_arrays  !mkb check if all arrays are in
+        if (AM_I_ROOT())
+     .    write (501,'(f9.1,a,1p,e15.7)') time,'  APE (J):',
+     .    hyc_pechg1(dp(1,1,k1n),th3d(1,1,k1n),31)
+      end if ! diag_ape
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  103  format (f9.1,a,-12p,f9.3,' TW')
 c
-      call system_clock(before)
-
-
-      endif ! root
-
-      call scatter_hycom_arrays
-
 cddd!!! just checking...
 cddd      call gather_hycom_arrays
 cddd
 cddd      if (AM_I_ROOT()) then ! work on global grids here
 
+      call system_clock(before)
+
       call cnuity(m,n,mm,nn,k1m,k1n)
 
       call gather_hycom_arrays
-
       if (AM_I_ROOT()) then ! work on global grids here
-
         call hycom_arrays_checksum
+      end if ! AM_I_ROOT
 
       call system_clock(after)
       cnuity_time = real(after-before)/real(rate)
+
 c     call sstbud(0,'  initialization',temp(1,1,k1n))
 c
 ccc      write (string,'(a12,i8)') 'cnuity, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
+!---------------------below not implemented------------------
       if (trcout) then
         before = after
 c --- long time step tracer advection: build up mass flux time integral
@@ -777,40 +800,38 @@ cdiag  call obio_limits('aftr trcadv')
 #endif
 
       end if !trcout
+!---------------------above not implemented------------------
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      if (diag_ape) q=hyc_pechg1(dp(1,1,k1m),th3d(1,1,k1m),32)
+      if (diag_ape) then
+        call gather_hycom_arrays
+        if (AM_I_ROOT())
+     .    q=hyc_pechg1(dp(1,1,k1m),th3d(1,1,k1m),32)
+      endif  ! diag_ape
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       before = after
-      endif ! AM_I_ROOT
 
-      call scatter_hycom_arrays
-   
       call tsadvc(m,n,mm,nn,k1m,k1n)
 
-      call gather_hycom_arrays
-
-      if (AM_I_ROOT()) then
       call system_clock(after)
       tsadvc_time = real(after-before)/real(rate)
 c
 c     call sstbud(1,' horiz.advection',temp(1,1,k1n))
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      if (diag_ape)
-     . write (501,103) time,'  APE change due to time smoothing: ',
-     .  hyc_pechg2(dp(1,1,k1m),th3d(1,1,k1m),32)
+      if (diag_ape) then
+        call gather_hycom_arrays
+        if (AM_I_ROOT())
+     .    write (501,103) time,'  APE change due to time smoothing: ',
+     .    hyc_pechg2(dp(1,1,k1m),th3d(1,1,k1m),32)
+      end if ! diag_ape
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ccc      write (string,'(a12,i8)') 'tsadvc, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-      endif ! AM_I_ROOT
 
-      call scatter_hycom_arrays
       call momtum(m,n,mm,nn,k1m,k1n)
-      call gather_hycom_arrays
 
-      if (AM_I_ROOT()) then
       call system_clock(after)
       momtum_time = real(after-before)/real(rate)
 c
@@ -818,15 +839,12 @@ ccc      write (string,'(a12,i8)') 'momtum, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-      endif ! AM_I_ROOT
 
-      call scatter_hycom_arrays
       call barotp(m,n,mm,nn,k1m,k1n)
-      call gather_hycom_arrays
 
-      if (AM_I_ROOT()) then
       call system_clock(after)
       barotp_time = real(after-before)/real(rate)
+
 c
 ccc      write (string,'(a12,i8)') 'barotp, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
@@ -837,16 +855,21 @@ c     call system_clock(after)
 c     convec_time = real(after-before)/real(rate)
 c     call sstbud(2,' convec.adjustmt',temp(1,1,k1n))
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      if (diag_ape)
-     . write (501,103) time,'  APE change due to mass adjustment:',
+      if (diag_ape) then
+        call gather_hycom_arrays
+        if (AM_I_ROOT())
+     .  write (501,103) time,'  APE change due to mass adjustment:',
      .  hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),31)
+      end if ! diag_ape
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 ccc      write (string,'(a12,i8)') 'convec, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
 c     before = after
+
       call diapfl(m,n,mm,nn,k1m,k1n)
+
 c     call system_clock(after)
 c     diapfl_time = real(after-before)/real(rate)
 c     call sstbud(3,'   diapyc.mixing',temp(1,1,k1n))
@@ -869,10 +892,17 @@ c
 c
       before = after
 c     call mxlayr(m,n,mm,nn,k1m,k1n)
-      if (nstep*baclin.gt.12.*3600) call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hr
+
+      call gather_hycom_arrays
+      if (AM_I_ROOT()) then
+
+      if (nstep*baclin.gt.12.*3600) then
+         call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hr
+      end if
 c
       call system_clock(after)
       mxlayr_time = real(after-before)/real(rate)
+
 c     call sstbud(4,'  air-sea fluxes',tprime)
 c     call sstbud(5,'     entrainment',temp(1,1,k1n))
 
@@ -904,7 +934,13 @@ ccc      write (string,'(a12,i8)') 'mxlayr, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+      end if ! AM_I_ROOT
+
+      call scatter_hycom_arrays
       call hybgen(m,n,mm,nn,k1m,k1n)
+      call gather_hycom_arrays
+
+      if (AM_I_ROOT()) then
       call system_clock(after)
       hybgen_time = real(after-before)/real(rate)
 c
@@ -1314,3 +1350,20 @@ c> Apr. 2001 - eliminated stmt_funcs.h
 c> June 2001 - corrected sign error in diaflx
 c> July 2001 - replaced archiving statements by 'call archiv'
 c> Oct  2004 - map ice mass to agcm, and then calculate E
+c------------------------------------------------------------------
+      subroutine gather2_atm
+
+      USE HYCOM_ATM !, only : gather_atm, scatter_atm
+      USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA
+
+      call pack_data( grid,  ataux_loc,   ataux )
+      call pack_data( grid,  atauy_loc,   atauy )
+      call pack_data( grid,  aflxa2o_loc, aflxa2o )
+      call pack_data( grid,  aemnp_loc,   aemnp )
+      call pack_data( grid,  aice_loc,    aice )
+      call pack_data( grid,  asalt_loc,   asalt )
+      call pack_data( grid,  austar_loc,  austar )
+      call pack_data( grid,  aswflx_loc,  aswflx )
+
+      end subroutine gather2_atm
+c------------------------------------------------------------------
