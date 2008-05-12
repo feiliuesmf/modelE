@@ -18,7 +18,7 @@
       USE obio_com,  only : gcmax
 #endif
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : delt1
+      USE HYCOM_SCALARS, only : delt1, salmin
       implicit none
 
       logical, intent(in) :: iniOCEAN
@@ -94,6 +94,8 @@ c
 
 !!! hack needed for serial inicon
       CALL ESMF_BCAST(ogrid, delt1 )
+
+      CALL ESMF_BCAST(ogrid, salmin )
 
 c
       END SUBROUTINE init_OCEAN

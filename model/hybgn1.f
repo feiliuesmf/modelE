@@ -5,19 +5,11 @@ c --- hycom version 0.9.12
 c --- this version allows switching between T/S and rho/S conservation
 c --- and between pcm and ppm
 c
-      USE HYCOM_DIM_GLOB
-      USE HYCOM_DIM, only : J_0, J_1, ogrid,
-     &      isp_loc => isp,  ifp_loc => ifp,  ilp_loc => ilp,
-     &      isu_loc => isu,  isv_loc => isv,  ifu_loc => ifu,
-     &      ilu_loc => ilu,  ifv_loc => ifv,  ilv_loc => ilv  
+      USE HYCOM_DIM
       USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
      &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge
-      USE HYCOM_ARRAYS_GLOB
-      USE HYCOM_ARRAYS, only : p_loc => p, u_loc => u, v_loc => v,
-     &     pu_loc => pu, pv_loc => pv, dp_loc => dp,
-     &     dpold_loc => dpold, dpu_loc => dpu, dpv_loc => dpv,
-     &     depthu_loc => depthu, depthv_loc => depthv
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, AM_I_ROOT
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, GLOBALSUM, AM_I_ROOT
       implicit none
 c
 c --- ---------------------
@@ -45,7 +37,9 @@ c
       external sigocn,tofsig,dsigdt,dsigds,cushn
       integer lyr,k1,kp,iunit,lpunit,ko,nt
      .        ,ntot2,ntot3,nwrk2,nwrk3
-     .        ,ntot2d(jdm),ntot3d(jdm),nwrk2d(jdm),nwrk3d(jdm)
+     .        ,ntot2d(J_0H:J_1H),ntot3d(J_0H:J_1H)
+     .        ,nwrk2d(J_0H:J_1H),nwrk3d(J_0H:J_1H)
+      real :: anwrk, anwrkd(J_0H:J_1H)
       common/nmpipe/iunit,lpunit
       character info*16
       data uvscl/0.02/			!  2 cm/s
@@ -98,22 +92,19 @@ c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 19 j=J_0,J_1
       do 19 k=1,kk
-      do 19 l=1,isp_loc(j)
-      do 19 i=ifp_loc(j,l),ilp_loc(j,l)
- 19   p_loc(i,j,k+1)=p_loc(i,j,k)+dp_loc(i,j,k+nn)
+      do 19 l=1,isp(j)
+      do 19 i=ifp(j,l),ilp(j,l)
+ 19   p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
 c$OMP END PARALLEL DO
 c
       abort=.false.
-
-      call gather_hycom_arrays
-      if (AM_I_ROOT()) then
 
 c$OMP PARALLEL DO PRIVATE(torho,totem,tosal,kp,q,q1,q2,tem,sal,dsgdt,
 c$OMP+ dsgds,t_hat,s_hat,thhat,tup,sup,p_hat,tndrho,tndtem,tndsal,kn,
 c$OMP+ dens,ttem,ssal,pres,targt,dp0,dp0abv,dpsum,k1,tinteg,sinteg,phi,
 c$OMP+ plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,trac,vrbos,pold,pnew,info,
 c$OMP+ displ,totrc,tndtrc,scale,rhuppr) SHARED(abort)
-      do 12 j=1,jj
+      do 12 j=J_0, J_1
       ntot2=0
       ntot3=0
       nwrk2=0
@@ -630,45 +621,41 @@ c
  12   continue
 c$OMP END PARALLEL DO
 
-      end if ! AM_I_ROOT
-
-      call scatter_hycom_arrays
-
       if (abort) stop '(error in hybgen -- q out of bounds)'
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=J_0,J_1
       do 1 k=1,kk
-      do 1 l=1,isp_loc(j)
-      do 1 i=ifp_loc(j,l),ilp_loc(j,l)
- 1    p_loc(i,j,k+1)=p_loc(i,j,k)+dpold_loc(i,j,k)
+      do 1 l=1,isp(j)
+      do 1 i=ifp(j,l),ilp(j,l)
+ 1    p(i,j,k+1)=p(i,j,k)+dpold(i,j,k)
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,  p_loc,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,  p,  FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 88 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       do 88 k=2,kk+1
 c
-      do 881 l=1,isu_loc(j)
-      do 881 i=ifu_loc(j,l),ilu_loc(j,l)
- 881  pu_loc(i,j,k)=min(depthu_loc(i,j),.5*(p_loc(i,j,k)+
-     .                                      p_loc(i-1,j,k)))
+      do 881 l=1,isu(j)
+      do 881 i=ifu(j,l),ilu(j,l)
+ 881  pu(i,j,k)=min(depthu(i,j),.5*(p(i,j,k)+
+     .                                      p(i-1,j,k)))
 c
-      do 882 l=1,isv_loc(j)
-      do 882 i=ifv_loc(j,l),ilv_loc(j,l)
- 882  pv_loc(i,j,k)=min(depthv_loc(i,j),.5*(p_loc(i,j,k)+
-     .                                      p_loc(i,ja ,k)))
+      do 882 l=1,isv(j)
+      do 882 i=ifv(j,l),ilv(j,l)
+ 882  pv(i,j,k)=min(depthv(i,j),.5*(p(i,j,k)+
+     .                                      p(i,ja ,k)))
  88   continue
 c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=J_0,J_1
       do 9 k=1,kk
-      do 9 l=1,isp_loc(j)
-      do 9 i=ifp_loc(j,l),ilp_loc(j,l)
- 9    p_loc(i,j,k+1)=p_loc(i,j,k)+dp_loc(i,j,k+nn)
+      do 9 l=1,isp(j)
+      do 9 i=ifp(j,l),ilp(j,l)
+ 9    p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
 c$OMP END PARALLEL DO
 c
       call pardpudpv(nn)
@@ -755,12 +742,11 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c$OMP PARALLEL DO PRIVATE(ja,pold,pnew,uold,vold,totuv,
 c$OMP+ tdcyuv,phi,plo,pa,pb,uvintg,kn) SCHEDULE(STATIC,jchunk)
       do 13 j=J_0,J_1
-      ja = PERIODIC_INDEX(j-1, jj)
 c
 c --- integrate -u- over new depth intervals
 c
-      do 14 l=1,isu_loc(j)
-      do 14 i=ifu_loc(j,l),ilu_loc(j,l)
+      do 14 l=1,isu(j)
+      do 14 i=ifu(j,l),ilu(j,l)
 c
       pold(1)=0.
       pnew(1)=0.
@@ -768,9 +754,9 @@ c
 c
       do 15 k=1,kk
       kn=k+nn
-      uold(k)=u_loc(i,j,kn)
-      pold(k+1)=pu_loc(i,j,k+1)
-      pnew(k+1)=pnew(k)+dpu_loc(i,j,kn)
+      uold(k)=u(i,j,kn)
+      pold(k+1)=pu(i,j,k+1)
+      pnew(k+1)=pnew(k)+dpu(i,j,kn)
  15   totuv=totuv+uold(k)*(pold(k+1)-pold(k))
       tdcyuv=-totuv
 c
@@ -788,7 +774,7 @@ c
         if (pa.ge.phi) go to 17
  16     continue
  17     tdcyuv=tdcyuv+uvintg
-        u_loc(i,j,k+nn)=uvintg/(phi-plo)
+        u(i,j,k+nn)=uvintg/(phi-plo)
       end if
  18   continue
 c
@@ -799,8 +785,8 @@ c
 c
 c --- integrate -v- over new depth intervals
 c
-      do 24 l=1,isv_loc(j)
-      do 24 i=ifv_loc(j,l),ilv_loc(j,l)
+      do 24 l=1,isv(j)
+      do 24 i=ifv(j,l),ilv(j,l)
 c
       pold(1)=0.
       pnew(1)=0.
@@ -808,9 +794,9 @@ c
 c
       do 25 k=1,kk
       kn=k+nn
-      vold(k)=v_loc(i,j,kn)
-      pold(k+1)=pv_loc(i,j,k+1)
-      pnew(k+1)=pnew(k)+dpv_loc(i,j,kn)
+      vold(k)=v(i,j,kn)
+      pold(k+1)=pv(i,j,k+1)
+      pnew(k+1)=pnew(k)+dpv(i,j,kn)
  25   totuv=totuv+vold(k)*(pold(k+1)-pold(k))
       tdcyuv=-totuv
 c
@@ -828,7 +814,7 @@ c
         if (pa.ge.phi) go to 27
  26     continue
  27     tdcyuv=tdcyuv+uvintg
-        v_loc(i,j,k+nn)=uvintg/(phi-plo)
+        v(i,j,k+nn)=uvintg/(phi-plo)
       end if
  28   continue
 c
@@ -854,17 +840,25 @@ cdiag.     pv(itest,jtest,k+1)/onem,v(itest,jtest,k+nn),k=1,kk)
 cdiag end if
 c
       if (mod(time+.0001,1.).lt..0002) then
+!nwrk2=0
+!nwrk3=0
+!ntot2=0
+!ntot3=0
+!do j=1,JDM
+!nwrk2=nwrk2+nwrk2d(j)
+!nwrk3=nwrk3+nwrk3d(j)
+!ntot2=ntot2+ntot2d(j)
+!ntot3=ntot3+ntot3d(j)
+!end do
+        anwrkd(:) = nwrk2d(:)
+        call GLOBALSUM(ogrid,anwrkd,anwrk); nwrk2 = anwrk+0.1;
+        anwrkd(:) = nwrk3d(:)
+        call GLOBALSUM(ogrid,anwrkd,anwrk); nwrk3 = anwrk+0.1;
+        anwrkd(:) = ntot2d(:)
+        call GLOBALSUM(ogrid,anwrkd,anwrk); ntot2 = anwrk+0.1;
+        anwrkd(:) = ntot3d(:)
+        call GLOBALSUM(ogrid,anwrkd,anwrk); ntot3 = anwrk+0.1;
         if( AM_I_ROOT() ) then
-        nwrk2=0
-        nwrk3=0
-        ntot2=0
-        ntot3=0
-        do j=1,JDM
-          nwrk2=nwrk2+nwrk2d(j)
-          nwrk3=nwrk3+nwrk3d(j)
-          ntot2=ntot2+ntot2d(j)
-          ntot3=ntot3+ntot3d(j)
-        end do
         write (lp,'(a,f6.1,a,i9,a)') 'hybgen - grid restoration at',
      .   100.*float(nwrk3)/float(ntot3),' per cent of',ntot3,' points'
         write (lp,'(a,f6.1,a,i9,a)') 'hybgen - new bottom layer at',
