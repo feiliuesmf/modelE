@@ -1326,7 +1326,7 @@ C**** (do not flood more than 4.9% of land per day)
             end if
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
               IF (FLAKE(I,J).eq.0) HLAKE(I,J)=MAX(1d0,HLAKE(I,J))
-              IF (new_flake.gt.0 .and. (hlk.gt.0.4 .or. (hlk.gt.0.2 .and 
+              IF (new_flake.gt.1d-4 .and. (hlk.gt.0.4 .or. (hlk.gt.0.2 .and 
      *             . hlk+hlkic.gt.0.4)) ) THEN ! new or surviving lake
                 HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it wasn't set
 C**** adjust for fearth changes
