@@ -454,7 +454,7 @@ CPPFLAGS += -DMPILIB_DOUBLE_UNDERSCORE
 else
 ifeq ($(MPIDISTR),SCALI)
 LIBS += -mp -L${ESMFLIBDIR} -lesmf -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
--lfmpi -lmpi -threads \
+-lfmpi -lmpi -lstdc++ -threads \
 ${NETCDF_STUBS}
 else
 LIBS += -size_lp64 -mp -L${ESMFLIBDIR} -L${MPIDIR}/lib -lesmf -lmpi \
