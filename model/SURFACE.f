@@ -70,6 +70,7 @@ C****
       USE LANDICE, only : z1e,z2li,hc1li,hc2li
       USE LANDICE_COM, only : snowli
       USE SEAICE, only : xsi,ace1i,alami,byrli,byrls,solar_ice_frac
+     *     ,tfrez
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
       USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
@@ -463,6 +464,13 @@ C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
       SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
       ELHX=LHE
+
+C**** pass salinity (zero for lakes)
+      pbl_args%sss_loc=sss(i,j)
+c**** sanity check (to prevent rare anomalies that will be dealt with by
+C**** addice next time)
+      TG1=max(TG1,tfrez(sss(i,j)))
+
       END IF
 C****
 C**** OCEAN/LAKE ICE
@@ -566,7 +574,6 @@ C****
       pbl_args%ELHX=ELHX   ! relevant latent heat
       pbl_args%QSOL=SRHEAT   ! solar heating
       pbl_args%TGV=TG*(1.+QG_SAT*deltx)
-      IF (ITYPE.EQ.1) pbl_args%sss_loc=sss(I,J)
 
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
@@ -847,7 +854,7 @@ C****
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
      .               * dxyp(j)*ptype
-         taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
      .               * dxyp(j)*ptype*dtsurf
 #endif
@@ -860,7 +867,7 @@ C****
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
      .               * dxyp(j)*ptype
-         taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
      .               * dxyp(j)*ptype*dtsurf
