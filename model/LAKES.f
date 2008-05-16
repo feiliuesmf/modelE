@@ -1291,7 +1291,7 @@ C****
       integer i,j,J_0,J_1,jr,itm
       real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
      *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk
-     *     ,frsat,new_MLD,hlkic
+     *     ,frsat,new_MLD,hlkic,mwtot
 #ifdef TRACERS_WATER
      *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
      &     ,tottr(ntm)
@@ -1313,21 +1313,22 @@ C****
           IF (FLAKE(I,J)+FEARTH(I,J).gt.0 .and.FOCEAN(I,J).eq.0) THEN
             PLAKE=FLAKE(I,J)*(1.-RSI(I,J))
             PLKIC=FLAKE(I,J)*    RSI(I,J)
+C**** calculate new lake size based on total mass
+            mwtot=MWL(I,J)+PLKIC*(MSI(I,J)+SNOWI(I,J)+ACE1I)*DXYP(J)
             new_flake=min(0.95d0*(FLAKE(I,J)+FEARTH(I,J)),(9d0*PI
-     *           *(TANLK(I,J)*MWL(I,J)/RHOW)**2)**BY3/DXYP(J))
-C**** hack to prevent lakes fooding the snow in GHY
+     *           *(TANLK(I,J)*mwtot/RHOW)**2)**BY3/DXYP(J))
+C**** prevent lakes flooding the snow in GHY
 C**** (do not flood more than 4.9% of land per day)
             new_flake=min( new_flake, FLAKE(I,J)+.049d0*FEARTH(I,J) )
             hlk=0.
             hlkic=0.
             if (new_flake.gt.0) then
-              hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))
-              hlkic=(MSI(I,J)+SNOWI(I,J)+ACE1I)*RSI(I,J)/RHOW
+              hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))  ! new water height
+              hlkic=mwtot/(RHOW*new_flake*DXYP(J)) ! new height including ice
             end if
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
-              IF (FLAKE(I,J).eq.0) HLAKE(I,J)=MAX(1d0,HLAKE(I,J))
-              IF (new_flake.gt.1d-4 .and. (hlk.gt.0.4 .or. (hlk.gt.0.2 
-     *             .and. hlk+hlkic.gt.0.4)) ) THEN ! new or surviving lake
+              IF (new_flake.gt.0 .and. (hlk.gt.0.5 .or. (hlk.gt.0.3 
+     *             .and. hlkic.gt.0.5)) ) THEN ! new or surviving lake
                 HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it wasn't set
 C**** adjust for fearth changes
                 FRSAT=0.
