@@ -1534,7 +1534,214 @@ CCCCC!$OMP END PARALLEL DO
 
 #ifdef SHINDELL_STRAT_CHEM
       if(prnchg)then
-       GSF/DTS 9.15.03: 
+       DO J=J_0,J_1; DO I=1,IMAXJ(J)
+         ss27(1:LM,I,J)=ss(27,1:LM,I,J)
+       ENDDO; ENDDO
+       CALL PACK_COLUMN(grid,ss27,ss27_glob)
+       IF(AM_I_ROOT()) THEN
+         write(6,*) 'Map of O3 production from O2 (Herz & SRB)'
+         if(which_trop == 0)write(6,*)
+     &   'NOTE: lower limit of strat is actually LTROPO(I,J), however!'
+         write(6,'(a4,7(i10))') 'Jqq:',(Jqq,Jqq=3,44,6)
+         do Lqq=LM,LS1,-1 ! inconvenient to print down to LTROPO(I,J)
+           do jqq=1,JM
+             photO2_glob(Jqq,Lqq)=0.d0
+             do Iqq=1,IMAXJ(jqq)
+               photO2_glob(Jqq,Lqq)=photO2_glob(Jqq,Lqq)
+     &         +2.d0*ss27_glob(Lqq,Iqq,Jqq) ! makes 2 Os
+             enddo
+           enddo
+           write(6,'(i2,7(1x,E10.3))') 
+     &     Lqq,(photO2_glob(Jqq,Lqq)/REAL(IMAXJ(Jqq)),Jqq=3,44,6)
+         enddo
+       END IF ! end AM_I_ROOT
+      endif
+#endif
+
+CCCCCCCCCCCCCCCCCC END CHEMISTRY SECTION CCCCCCCCCCCCCCCCCCCCCCCCC
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C                 BEGIN OVERWRITING                              C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+C If fix_CH4_chemistry is turned on, reset the CH4 tracer everywhere
+C to initial conditions (in mixing ratio units) :
+      if(fix_CH4_chemistry == 1) call get_CH4_IC(1)
+   
+C If desired, use correction factors on stratospheric Ox:   
+      if(correct_strat_Ox) then
+        imonth= 1
+        DO m=2,12
+          IF((JDAY <= MDOFM(m)).AND.(JDAY > MDOFM(m-1))) THEN
+            imonth=m
+            EXIT
+          END IF
+        END DO
+        if(Itime == ItimeI) then
+          write(out_line,*)'Warning: Please remember that Ox'
+     &    //' stratospheric correction factors are on and change with'
+     &    //' time.'
+          call write_parallel(trim(out_line))
+        end if
+      end if
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C Special cases of overwriting, when doing stratospheric chemistry C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC     
+#ifdef SHINDELL_STRAT_CHEM      
+C N2O, CFC, and optional CH4 L=1 overwriting: with all these "fact"s
+C this looks complicated, but basically, you are either converting
+C from mixing ratio to KG (normal case) or from cm*atm to KG  
+C (interactive radiation case - for more on that conversion, see
+C the notes on O3MULT in the TRCHEM_Shindell_COM program):
+      PIfact(:)=1.d0     
+      if(PI_run == 1)then
+        PIfact(n_NOx)=PIratio_N
+        if(use_rad_n2o > 0 .or. use_rad_cfc > 0) then
+          write(out_line,*)
+     &    'warning: use_rad_{cfc,n2o} overrides PIfact({cfc,n2o})' 
+          call write_parallel(trim(out_line))
+        endif     
+        if(use_rad_n2o == 0) PIfact(n_N2O)=PIratio_N2O
+        if(use_rad_cfc == 0) PIfact(n_CFC)=PIratio_CFC
+      endif
+      fact2=n2o_pppv  ! default N2O mixing ratio overwrite
+      fact3=cfc_pppv  ! default CFC mixing ratio overwrite
+      fact7=fact_cfc
+      if(use_rad_cfc == 0)fact7=1.d0
+      do j=J_0,J_1
+       fact6=2.69d20*dxyp(j)*byavog
+       fact5=fact6 
+       fact4=fact6
+       do i=1,IMAXJ(j)
+        fact1=bymair*am(1,i,j)*dxyp(j)
+        if(use_rad_n2o == 0)fact4=fact1 
+        if(use_rad_cfc == 0)fact5=fact1
+        if(use_rad_n2o > 0)fact2=rad_to_chem(1,i,j,3)
+        if(use_rad_cfc > 0)fact3=rad_to_chem(1,i,j,5)
+        tr3Dsource(i,j,1,nChemistry,n_N2O)=0.d0
+        tr3Dsource(i,j,1,nChemistry,n_CFC)=0.d0
+        tr3Dsource(i,j,1,nStratwrite,n_N2O)=(fact2*fact4*
+     &  tr_mm(n_N2O)*PIfact(n_N2O) - trm(i,j,1,n_N2O))*bydtsrc
+        tr3Dsource(i,j,1,nStratwrite,n_CFC)=(fact3*fact5*fact7*
+     &  tr_mm(n_CFC)*PIfact(n_CFC) - trm(i,j,1,n_CFC))*bydtsrc
+        if(use_rad_ch4 > 0)then
+          tr3Dsource(i,j,1,nChemistry,n_CH4)=0.d0
+          tr3Dsource(i,j,1,nStratwrite,n_CH4)=(rad_to_chem(1,i,j,4)*
+     &    fact6*tr_mm(n_CH4)-trm(i,j,1,n_CH4))*bydtsrc
+        endif
+       end do
+      end do
+
+C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
+      !(Interpolate BrOx & ClOx altitude-dependence to model resolution)
+      CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PRES2,BrOxalt,.true.)
+      CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PRES2,ClOxalt,.true.)
+      do L=LS1,LM
+       if(pres2(L) < 0.1)then
+        do j=J_0,J_1         
+          do i=1,IMAXJ(j)
+            ! -- Ox --
+            tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
+            if(correct_strat_Ox) then
+             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(L,i,j,1)*
+     &       dxyp(j)*O3MULT*corrOx(J,L,imonth)-trm(i,j,L,n_Ox))*bydtsrc
+            else
+             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(L,i,j,1)*
+     &       dxyp(j)*O3MULT                   -trm(i,j,L,n_Ox))*bydtsrc
+            end if
+            ! -- ClOx --
+            tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
+            tr3Dsource(i,j,L,nStratwrite,n_ClOx)=(1.d-11*ClOxalt(l)
+     &      *vol2mass(n_CLOx)*am(L,i,j)*dxyp(j)
+     &      -trm(i,j,L,n_ClOx))*bydtsrc    
+            ! -- BrOx --
+            tr3Dsource(i,j,L,nChemistry,n_BrOx)=0.d0
+            tr3Dsource(i,j,L,nStratwrite,n_BrOx)=(1.d-11*BrOxalt(l)
+     &      *vol2mass(n_BrOx)*am(L,i,j)*dxyp(j)
+     &      -trm(i,j,L,n_BrOx))*bydtsrc
+            ! -- NOx --
+            if(PIfact(n_NOx) /= 1.) ! what's this for? I forget.
+     &      tr3Dsource(i,j,L,nChemistry,n_NOx)=0.d0 !75=1*300*2.5*.1
+            tr3Dsource(i,j,L,nStratwrite,n_NOx)=(75.d-11
+     &      *am(L,i,j)*dxyp(j)*PIfact(n_NOx)-trm(i,j,L,n_NOx))*bydtsrc 
+          end do ! I 
+        end do   ! J
+       end if    ! pressure
+      end do     ! L
+
+#else
+
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C No stratospheric chemistry; overwrite all tracers in stratosphere C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C W A R N I N G : This section should never be used if there is
+C chemistry done in the stratosphere, because the stratospheric
+C changes below assume that the changeL variable is zero for L>maxl
+C at this point in the code. Not the case if chemistry was done.
+C To put it another way, the overwritings below are explicitly 
+C functions of tracer mass UNCHANGED by chemistry !
+
+C determine pre-industrial factors, if any:
+      PIfact(:)=1.d0
+      if(PI_run == 1) then
+        do N=1,NTM
+          select case(trname(n))
+          case('NOx','HNO3','N2O5','HO2NO2')
+            PIfact(n)=PIratio_N
+          case('CO')
+            PIfact(n)=PIratio_CO_S
+          case('PAN','Isoprene','AlkylNit','Alkenes','Paraffin')
+            PIfact(n)=PIratio_other
+          end select
+        end do
+      endif
+
+C Calculate an average tropical CH4 value near 569 hPa::
+      CH4_569_part(:)=0.d0   
+      count_569_part(:)=0.d0
+      DO J=J_0,J_1
+        if(LAT_DG(J,1) >= -30. .and. LAT_DG(J,1) <= 30.)then
+          do I=1,IMAXJ(J)
+            count_569_part(J)=count_569_part(J)+1.d0
+            CH4_569_part(J)=CH4_569_part(J)+1.d6*bydxyp(j)*
+     &      (F569M*trm(I,J,L569M,n_CH4)*byam(L569M,I,J)+
+     &      F569P*trm(I,J,L569P,n_CH4)*byam(L569P,I,J))
+          end do
+        end if
+      END DO
+      CALL GLOBALSUM(grid,  CH4_569_part,  CH4_569, all=.true.)
+      CALL GLOBALSUM(grid,count_569_part,count_569, all=.true.)
+      if(count_569 <= 0.)call stop_model('count_569.le.0',255)
+      CH4_569 = CH4_569 / count_569
+
+      r179=1.d0/1.79d0 ! 1.79 is observed trop. CH4
+
+      do j=J_0,J_1
+       J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
+       do i=1,IMAXJ(J)
+         select case(which_trop)
+         case(0); maxl=ltropo(I,J)
+         case(1); maxl=ls1-1
+         case default; call stop_model('which_trop problem 5',255)
+         end select
+         changeL(:,:)=0.d0 ! initilize the change
+         
+         do L=maxl+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
+c         Update stratospheric ozone to amount set in radiation:
+          if(correct_strat_Ox) then
+            changeL(L,n_Ox)=rad_to_chem(L,I,J,1)*DXYP(J)*O3MULT
+     &      *corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
+          else
+            changeL(L,n_Ox)=rad_to_chem(L,I,J,1)*DXYP(J)*O3MULT
+     &                          - trm(I,J,L,n_Ox)
+          end if
+          byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
+          FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
+C         We think we have too little stratospheric NOx, so, to
+C         increase the flux into the troposphere, increasing
+C         previous stratospheric value by 70% here: GSF/DTS 9.15.03: 
           changeL(L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4*1.7d0*PIfact(n_NOx)
      &                                         - trm(I,J,L,n_NOx)
           changeL(L,n_N2O5)=  FACT1*PIfact(n_N2O5)- trm(I,J,L,n_N2O5)
