@@ -333,10 +333,10 @@ use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
 rad_interact_tr=1  ! 1=use calculated Ox in radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
 rad_forc_lev=1     ! use LTROPO(I,J) level for rad forcing diags.
-use_rad_n2o=0      ! use the radiation code's N2O (set ghg_yr=0)
-use_rad_cfc=0      ! use rad code cfc11+cfc12, adjusted  (set ghg_yr=0)
-use_rad_ch4=0      ! use rad code CH4, shut off sfc sources (set ghg_yr=0)
-rad_FL=0           ! use rad code insolation getting fastj2 photon flux (s0_yr=0)
+use_rad_n2o=0      ! use the radiation code's N2O 
+use_rad_cfc=0      ! use rad code cfc11+cfc12, adjusted 
+use_rad_ch4=0      ! use rad code CH4, shut off sfc sources 
+rad_FL=0           ! use rad code insolation getting fastj2 photon flux
 prather_limits=1   ! to avoid some negative tracers in sub-gridscale
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
