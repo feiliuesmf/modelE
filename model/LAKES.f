@@ -17,7 +17,7 @@ C****
 C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J),
 C****                         GZM -> TLAKE (deg C)
 !@var KDIREC directions for river flow
-C**** (0 no flow, 1-8 anti-clockwise from top RH corner
+C**** 0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: KDIREC
 !@var RATE rate of river flow downslope (fraction)
 !@var DHORZ horizontal distance to downstream box (m)
@@ -195,29 +195,36 @@ C**** FH2=-ACEF2*(TLK2-TFL)*SHW+ACEF2*LHM
           ELAKE(2)=ELAKE(2)-ACEF2*TLK2*SHW
           MLAKE(2)=MLAKE(2)-ACEF2
         END IF
-        FH1= ELAKE(1)-MLAKE(1)*TFL*SHW
+        FH1=ELAKE(1)-MLAKE(1)*TFL*SHW
         IF (FH1.lt.emin) THEN      ! all layer 2 froze, freeze layer 1
-          ACEF1   =FH1/(TFL*(SHI-SHW)-LHM)
-C**** limit freezing if lake is between 50 and 20cm depth
-          IF (MLAKE(1).lt.0.5d0*RHOW) THEN
-            ACEF1=MIN(ACEF1,MAX(0.5*(MLAKE(1)-0.2d0*RHOW),0d0))
-            if (qcheck) print*,"Lake freezing limited",ACEF1/RHOW
-     *           ,MLAKE(1)/RHOW
-          END IF
-          ENRGF1  =ACEF1*(TFL*SHI-LHM)
-          ELAKE(1)=ELAKE(1)-ENRGF1
-          MLAKE(1)=MLAKE(1)-ACEF1
-          FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW
-          IF (FH0.lt.-1d-8) THEN ! max. amount of lake frozen, cool ice
+          ACEF1=FH1/(TFL*(SHI-SHW)-LHM)
+C**** limit freezing if lake would end up below 50cm depth 
+C**** this implies ice will be colder than TFL
+          IF (MLAKE(1)-ACEF1.lt.0.5d0*RHOW) THEN
+            ENRGF1=FH1
+            ACEF1=MIN(MLAKE(1)-0.2d0*RHOW,MAX(0.4d0*MLAKE(1)+0.6d0*ACEF1
+     *           -0.2d0*RHOW,0d0))
+C**** force ice temp > -95 C. Sometimes occurs w. extreme super-cooled water
+            IF (ENRGF1.lt.ACEF1*(-95.*SHI-LHM)) ACEF1=ENRGF1/(-95.*SHI
+     *           -LHM)
             if (qcheck) then
               WRITE(out_line,*)
-     *           "Minimum lake level reached: rsi,mlake,elake",i0,j0
-     *           ,roice,mlake(1)/rhow,elake(1)
+     *             "Min lake level reached during frez: rsi,hlake,"//
+     *             "hice,tlk,tice",i0,j0,roice,mlake(1)/rhow,ACEF1/RHOW
+     *             ,elake(1)/(mlake(1)*shw),(enrgf1/acef1+lhm)/shi
               CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
-            endif
-            ENRGF1  =ENRGF1+FH0
-            ELAKE(1)=MLAKE(1)*TFL*SHW
+            END IF
+            IF (ACEF1.gt.MLAKE(1)) then ! water was too cold - nothing possible
+              write(6,*) "Lk. freeze impossible: i,j,Tw,Ti,hic,hlk = "
+     *             ,i0,j0,elake(1)/(mlake(1)*shw),(fh1/acef1+lhm)/shi
+     *             ,acef1/rhow,mlake(1)/rhow
+              call stop_model("Lake water too cold during LKSOURC",255)
+            END IF
+          ELSE
+            ENRGF1=ACEF1*(TFL*SHI-LHM)
           END IF
+          MLAKE(1)=MLAKE(1)-ACEF1
+          ELAKE(1)=MLAKE(1)*TFL*SHW
         END IF
       END IF
 #ifdef TRACERS_WATER
@@ -1145,7 +1152,7 @@ C****
       USE LAKES_COM
       USE GHY_COM, only : fearth
       IMPLICIT NONE
-      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
       INTEGER I,J,N !@var I,J loop variables
       CHARACTER*6, INTENT(IN) :: SUBR
       LOGICAL QCHECKL
@@ -1282,9 +1289,13 @@ C****
 #ifdef TRACERS_WATER
      *     ,dtrl,gtracer
 #endif
+      USE LANDICE_COM, only : mdwnimp,edwnimp
+#ifdef TRACERS_WATER
+     *     ,trdwnimp
+#endif
 
       USE DIAG_COM, only : aj=>aj_loc,j_run,j_erun,j_imelt,j_hmelt,
-     *     aregj=>aregj_loc,jreg
+     *     aregj=>aregj_loc,jreg,j_implm,j_implh
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH,
      *     GLOBALSUM
       IMPLICIT NONE
@@ -1318,17 +1329,17 @@ C**** calculate new lake size based on total mass
             new_flake=min(0.95d0*(FLAKE(I,J)+FEARTH(I,J)),(9d0*PI
      *           *(TANLK(I,J)*mwtot/RHOW)**2)**BY3/DXYP(J))
 C**** prevent lakes flooding the snow in GHY
-C**** (do not flood more than 4.9% of land per day)
+C**** do not flood more than 4.9% of land per day
             new_flake=min( new_flake, FLAKE(I,J)+.049d0*FEARTH(I,J) )
             hlk=0.
             hlkic=0.
             if (new_flake.gt.0) then
-              hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))  ! new water height
-              hlkic=mwtot/(RHOW*new_flake*DXYP(J)) ! new height including ice
+              hlk=MWL(I,J)/(RHOW*new_flake*DXYP(J))  ! potential new water height
+              hlkic=mwtot/(RHOW*new_flake*DXYP(J)) ! pot. new height including ice
             end if
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
-              IF (new_flake.gt.0 .and. (hlk.gt.0.5 .or. (hlk.gt.0.3 
-     *             .and. hlkic.gt.0.5)) ) THEN ! new or surviving lake
+              IF (new_flake.gt.0 .and. (hlk.gt.1. .or. (hlk.gt.0.5 
+     *             .and. hlkic.gt.1.)) ) THEN ! new or surviving lake
                 HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it wasn't set
 C**** adjust for fearth changes
                 FRSAT=0.
@@ -1462,23 +1473,33 @@ C**** remove/do not create lakes that are too small
 C**** transfer lake ice mass/energy for accounting purposes
                   IMLT=ACE1I+MSI(I,J)+SNOWI(I,J)
                   HMLT=SUM(HSI(:,I,J))
-                  MWL(I,J)=MWL(I,J)+PLKIC*IMLT*DXYP(J)
-                  GML(I,J)=GML(I,J)+PLKIC*HMLT*DXYP(J)
+                  MDWNIMP(I,J)=MDWNIMP(I,J)+PLKIC*IMLT*DXYP(J)
+                  EDWNIMP(I,J)=EDWNIMP(I,J)+PLKIC*HMLT*DXYP(J)
+c                  MWL(I,J)=MWL(I,J)+PLKIC*IMLT*DXYP(J)
+c                  GML(I,J)=GML(I,J)+PLKIC*HMLT*DXYP(J)
 #ifdef TRACERS_WATER
                   DO ITM=1,NTM
-                    TRLAKE(ITM,1,I,J)=TRLAKE(ITM,1,I,J)+TRLAKE(ITM,2,I,J
-     *                   )+RSI(I,J)*FLAKE(I,J)*SUM(TRSI(ITM,:,I,J))
-     *                   *DXYP(J)
+c                    TRLAKE(ITM,1,I,J)=TRLAKE(ITM,1,I,J)+TRLAKE(ITM,2,I,J
+c     *                   )+RSI(I,J)*FLAKE(I,J)*SUM(TRSI(ITM,:,I,J))
+c     *                   *DXYP(J)
+                    TRDWNIMP(ITM,I,J)=TRDWNIMP(ITM,I,J)+SUM(TRSI(ITM,:,I
+     *                   ,J))*PLKIC*DXYP(J)
                     TRSI(ITM,:,I,J)=0.
                   END DO
 #endif
 C**** save some diags
-                  AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*IMLT
-                  AJ(J,J_HMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*HMLT
+                  AJ(J,J_IMPLM,ITLKICE)=AJ(J,J_IMPLM,ITLKICE)+PLKIC*IMLT
+                  AJ(J,J_IMPLH,ITLKICE)=AJ(J,J_IMPLH,ITLKICE)+PLKIC*HMLT
+c                  AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*IMLT
+c                  AJ(J,J_HMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*HMLT
 C**** Accumulate regional diagnostics
-                  AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+PLKIC*IMLT
+c                  AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+PLKIC*IMLT
+c     *                 *DXYP(J)
+c                  AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+PLKIC*HMLT
+c     *                 *DXYP(J)
+                  AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+PLKIC*IMLT
      *                 *DXYP(J)
-                  AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+PLKIC*HMLT
+                  AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+PLKIC*HMLT
      *                 *DXYP(J)
 C****
                   RSI(I,J)=0.
@@ -1543,7 +1564,7 @@ C****
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
-      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
       INTEGER I,J,ITYPE
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: TRUN0
@@ -1659,7 +1680,7 @@ C**** grid box variables
       REAL*8, DIMENSION(2) :: MLAKE,ELAKE
 C**** fluxes
       REAL*8 EVAPO, FIDT, FODT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
-     *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2, U2RHO
+     *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2  ! , U2RHO
 C**** output from LKSOURC
       REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
 #ifdef TRACERS_WATER
@@ -1939,7 +1960,7 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKE
       INTEGER :: I,J
-      INTEGER :: FROM,J_0,J_1,J_0S,J_1S
+      INTEGER :: J_0,J_1,J_0S,J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
