@@ -3900,6 +3900,13 @@ cddd      sinday=sin(twopi/edpery*jday)
 
 
             dfrac = svflake(i,j) - flake(i,j)
+            ! hack to deal with round-off errors in flake()
+            if ( dfrac > fearth(i,j) ) then
+              print *,"GHY_DRV: inconsistent flake at",i,j,
+     &             "flake(i,j)+fearth(i,j)-svflake(i,j) = ",
+     &             flake(i,j)+fearth(i,j)-svflake(i,j)
+              dfrac = fearth(i,j)
+            endif
 
             tmp_before = ( ht_ij(0:ngm,3,i,j) )*svflake(i,j) +
      &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)-dfrac) +
