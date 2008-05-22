@@ -3864,15 +3864,6 @@ cddd      sinday=sin(twopi/edpery*jday)
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
 
-cddd      cosday=cos(twopi/edpery*jday)
-cddd      sinday=sin(twopi/edpery*jday)
-
-!!!   testing
-!!!      w_ij(0:ngm,3,:,:) = 0.d0
-
-!!! testing
-!!!      DGML(:,:) = 0.d0
-
       fearth_old = fearth + (flake - svflake)
 
       ! call conserv_wtg_1(w_before_j,fearth_old,svflake)
@@ -3884,55 +3875,33 @@ cddd      sinday=sin(twopi/edpery*jday)
 
           if ( svflake(i,j) == flake(i,j) ) cycle
 
-          !fb = afb(i,j)
-          !fv=1.d0-fb
           call get_fb_fv( fb, fv, i, j )
-
-          !print *,"UPDATING FRACTIONS: i,j= ",i,j
-          !print *,"fb, fv = ", fb, fv
 
           if ( flake(i,j) < svflake(i,j) ) then ! lake shrunk
             ! no external fluxes, just part of underwater fraction
             ! is transformed into a land fraction
 
             ! no changes to underwater fraction
-            ! just redistribute added quantities over lan fractions
+            ! just redistribute added quantities over land fractions
 
 
             dfrac = svflake(i,j) - flake(i,j)
-            ! hack to deal with round-off errors in flake()
-            if ( dfrac > fearth(i,j) ) then
-              print *,"GHY_DRV: inconsistent flake at",i,j,
-     &             "flake(i,j)+fearth(i,j)-svflake(i,j) = ",
-     &             flake(i,j)+fearth(i,j)-svflake(i,j)
-              dfrac = fearth(i,j)
-            endif
+            ! make sure old fearth >= 0 (i.e. remove round-off errors)
+            dfrac = min(dfrac, fearth(i,j))
 
             tmp_before = ( ht_ij(0:ngm,3,i,j) )*svflake(i,j) +
      &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)-dfrac) +
      &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j)-dfrac)
 
-            !print *,"before", sum(tmp_before)
-!     &           ,fr_snow_ij(1,i,j)*fb*fearth(i,j) +
-!     &           fr_snow_ij(2,i,j)*fv*fearth(i,j)
-
-            !print *,"shrinkrd"
-            !print *,"flake(i,j),svflake(i,j)", flake(i,j),svflake(i,j)
             do k=1,ngm
               dw  = dfrac*w_ij(k,3,i,j)
               dht = dfrac*ht_ij(k,3,i,j)
-              !print *,"w3", w_ij(k,3,i,j)
-              !print *,"ht3", ht_ij(k,3,i,j)
-              !print *,"w before", w_ij(k,1:2,i,j)
-              !print *,"ht before", ht_ij(k,1:2,i,j)
               w_ij(k,1:2,i,j) =
      &             (w_ij(k,1:2,i,j)*(fearth(i,j)-dfrac) + dw)
      &             / fearth(i,j)
               ht_ij(k,1:2,i,j) =
      &             (ht_ij(k,1:2,i,j)*(fearth(i,j)-dfrac) + dht)
      &             / fearth(i,j)
-              !print *,"w after", w_ij(k,1:2,i,j)
-              !print *,"ht after", ht_ij(k,1:2,i,j)
 #ifdef TRACERS_WATER
               dtr(:) = dfrac*tr_w_ij(:,k,3,i,j)
               do ibv=1,2
@@ -3944,18 +3913,12 @@ cddd      sinday=sin(twopi/edpery*jday)
             enddo
             !vegetation:
 cddd            if ( fv > 0.d0 ) then
-cddd              print *,"w3", w_ij(0,3,i,j)
-cddd              print *,"ht3", ht_ij(0,3,i,j)
-cddd              print *,"w before", w_ij(0,1:2,i,j)
-cddd              print *,"ht before", ht_ij(0,1:2,i,j)
 cddd              w_ij(0,2,i,j) =
 cddd     &             (w_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dw/fv)
 cddd     &             / fearth(i,j)
 cddd              ht_ij(0,2,i,j) =
 cddd     &             (ht_ij(0,2,i,j)*(fearth(i,j)-dfrac) + dht/fv)
 cddd     &             / fearth(i,j)
-cddd              print *,"w after", w_ij(0,1:2,i,j)
-cddd              print *,"ht after", ht_ij(0,1:2,i,j)
 cddd            endif
               w_ij(0,2,i,j) =
      &             (w_ij(0,2,i,j)*(fearth(i,j)-dfrac))
@@ -3984,9 +3947,6 @@ cddd            endif
             !print *,"after", (tmp_after), (tmp_after-tmp_before)
 
           else if ( flake(i,j) > svflake(i,j) ) then ! lake expanded
-          !else if ( .false. ) then ! comment out for now
-
-            !print *,"expanded"
 
             ! no need to change land values
             ! for underwater fraction:
@@ -4016,12 +3976,7 @@ cddd            endif
      &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)+dfrac) +
      &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j)+dfrac)
 
-            !print *,"exp_before", sum(tmp_before)
-
-            !print *,"flake(i,j),svflake(i,j)", flake(i,j),svflake(i,j)
-            !print *,"WLDF(i,j),dfrac/", i,j,DMWLDF(i,j),dfrac
             sum_water = DMWLDF(i,j)*dfrac/rhow
-            !!!!test sum_water = 0.d0
             if ( sum_water > 1.d-30 ) then
               ht_per_m3 = DGML(i,j)*BYDXYP(J)/sum_water
             else
@@ -4034,29 +3989,21 @@ cddd            endif
               tr_per_m3(:) = 0.d0
             endif
 #endif
-            !print *,"DGML, sum_water, ht_per_m3 ",
-   !  &           DGML(i,j),sum_water,ht_per_m3
             do k=ngm,1,-1  ! do not loop over canopy
               ! dw, dht - total amounts of water and heat added to
               ! underwater fraction
               dw_soil = dfrac*( fb*w_ij(k,1,i,j) + fv*w_ij(k,2,i,j) )
               dw  = min( dfrac*w_stor(k), sum_water + dw_soil )
               dw_lake = dw - dw_soil
-              !print *,"dw, dw_soil, dw_lake", dw, dw_soil, dw_lake
               dht_soil = dfrac*( fb*ht_ij(k,1,i,j) + fv*ht_ij(k,2,i,j) )
               dht_lake = dw_lake*ht_per_m3
               dht = dht_soil + dht_lake
-              !print *,"dht_soil, dht_lake, dht", dht_soil, dht_lake, dht
               sum_water = sum_water - dw_lake
-              !print *,"w before", w_ij(k,3,i,j)
-              !print *,"ht before", ht_ij(k,3,i,j)
 
               w_ij(k,3,i,j) =
      &             (w_ij(k,3,i,j)*svflake(i,j) + dw)/flake(i,j)
               ht_ij(k,3,i,j) =
      &             (ht_ij(k,3,i,j)*svflake(i,j) + dht)/flake(i,j)
-              !print *,"w after", w_ij(k,3,i,j)
-              !print *,"ht after", ht_ij(k,3,i,j)
 #ifdef TRACERS_WATER
               dtr_soil(:) =
      &             dfrac*(fb*tr_w_ij(:,k,1,i,j) + fv*tr_w_ij(:,k,2,i,j))
@@ -4082,9 +4029,6 @@ cddd            endif
             tmp_after = ( ht_ij(0:ngm,3,i,j) )*flake(i,j) +
      &           ( ht_ij(0:ngm,1,i,j) )*fb*(fearth(i,j)) +
      &           ( ht_ij(0:ngm,2,i,j) )*fv*(fearth(i,j))
-            !print *,"exp_after",(tmp_after),(tmp_after-tmp_before)
-
-
 
             ! change snow fraction
             if ( fearth(i,j) <= 0.d0 ) then
@@ -4092,8 +4036,6 @@ cddd            endif
      &             focean(i,j), fearth(i,j), flake(i,j), svflake(i,j)
               call stop_model("update_land_fractions: fearth<=0",255)
             endif
-
-            !print *,"FR_SNOW before",i,j,fr_snow_ij(1:2,i,j)
 
             fr_snow_ij(1:2,i,j) =
      &           fr_snow_ij(1:2,i,j)*(1.d0+dfrac/fearth(i,j))
@@ -4141,7 +4083,6 @@ c**** Also reset snow fraction for albedo computation
       enddo
 
       !call conserv_wtg_1(w_after_j,fearth,flake)
-
       !print *,"UPDATE_LF CONS_WTRG ", w_after_j-w_before_j
 
 
