@@ -1117,7 +1117,7 @@ C
       USE GEOM, only       : dxyp
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
-      USE TRACER_COM, only : trm, n_CH4, nStratwrite, mass2vol
+      USE TRACER_COM, only : trm, n_CH4, nStratwrite, vol2mass
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
      *     ch4_init_nh,fix_CH4_chemistry,pfix_CH4_S,pfix_CH4_N
@@ -1148,16 +1148,16 @@ C       Initial latitudinal gradient for CH4:
         IF(J < JEQ)THEN ! Southern Hemisphere
           select case(fix_CH4_chemistry)
           case default
-            CH4INIT=ch4_init_sh*mass2vol(n_CH4)*1.d-6*DXYP(J)
+            CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_S*mass2vol(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_S*vol2mass(n_CH4)*DXYP(J)
           end select
         ELSE             ! Northern Hemisphere
           select case(fix_CH4_chemistry)
           case default
-            CH4INIT=ch4_init_nh*mass2vol(n_CH4)*1.d-6*DXYP(J)
+            CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_N*mass2vol(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_N*vol2mass(n_CH4)*DXYP(J)
           end select
         ENDIF
         select case(icall)
@@ -1181,17 +1181,17 @@ c     mixing ratios to 1.79 (observed):
           select case(fix_CH4_chemistry)
           case default
             CH4INIT=
-     &      ch4_init_sh/1.79d0*mass2vol(n_CH4)*1.E-6*DXYP(J)
+     &      ch4_init_sh/1.79d0*vol2mass(n_CH4)*1.E-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_S/1.79d0*mass2vol(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_S/1.79d0*vol2mass(n_CH4)*DXYP(J)
           end select
         ELSE             ! Northern Hemisphere
           select case(fix_CH4_chemistry)
           case default
             CH4INIT=
-     &      ch4_init_nh/1.79d0*mass2vol(n_CH4)*1.E-6*DXYP(J)
+     &      ch4_init_nh/1.79d0*vol2mass(n_CH4)*1.E-6*DXYP(J)
           case(1)
-            CH4INIT=pfix_CH4_N/1.79d0*mass2vol(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_N/1.79d0*vol2mass(n_CH4)*DXYP(J)
           end select
         ENDIF
         IF((J <= JS).OR.(J > JN)) THEN                 ! extratropics
