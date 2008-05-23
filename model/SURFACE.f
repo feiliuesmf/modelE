@@ -116,6 +116,9 @@ C****
       USE tracers_dust, only : hbaij,ricntd
 #endif
 #endif
+#ifdef TRACERS_GASEXCH_Natassa
+      USE HYCOM_SCALARS, only: nstep
+#endif
       USE SOIL_DRV, only: earth
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
@@ -859,7 +862,8 @@ C****
      .               * dxyp(j)*ptype*dtsurf
 #endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
-          !this is modeled in complete accordance to what Watson is doing
+          !trgasex is modeled in complete accordance to what Watson is doing
+          !trgasex here is computed as mol/m2/sec
           TRGASEX(n,ITYPE,I,J) =
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
@@ -871,6 +875,11 @@ C****
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
      .               * dxyp(j)*ptype*dtsurf
+
+!    . write(*,'(a,3i5,5e12.4)')'SURFACE: ',
+!    .    nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
+!    .              pbl_args%alpha_gas,trgrnd(nx)
+
 #endif
        END IF
 #endif

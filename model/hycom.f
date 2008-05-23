@@ -184,7 +184,7 @@ c
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_Natassa
-     . ,otrac(idm,jdm,ntm),tracflx2(idm,jdm,ntm)
+     . ,otrac(idm,jdm,ntm)
 #endif
 
 #include "state_eqn.h"
@@ -283,13 +283,8 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
-     .                 + TRGASEX(nt,1,ia,ja)*airdns    !(kg/kg)(m/s) -> kg/m2/s
+     .                 + TRGASEX(nt,1,ia,ja)      ! in mol/m2/s
      .                 * dtsrc/(real(nhr)*3600.)
-!srctimstp/coupltimstp
-!     if (ia.eq.iatest.and.ja.eq.jatest)
-!     if (nstep.eq.25)
-!    .write(6,'(a,3i5,2e12.4)')'hycom, TRGASEX, atracflx at nstep,i,j=',
-!    .  nstep,ia,ja,TRGASEX(nt,1,ia,ja),atracflx(ia,ja,nt)
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -352,7 +347,15 @@ c
       call flxa2o(aswflx,sswflx)                  ! shortwave flux
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
-      call flxa2o(atracflx(:,:,nt),tracflx2(:,:,nt)) !tracer flux
+      call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) !tracer flux
+      enddo
+      do j=1,jj
+      do l=1,isp(j)
+      do i=ifp(j,l),ilp(j,l)
+!     write(*,'(a,3i5,e12.4)')'hycom, TRGASEX2: ',
+!    .  nstep,i,j,tracflx(i,j,ntm)
+      enddo
+      enddo
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -618,21 +621,6 @@ c
       if (dotrcr) then
         call system_clock(before)      ! time elapsed since last system_clock
 
-c --- zero-out accumulated flux
-c     this should be done at the beginning of the 'long' time interval
-#ifdef TRACERS_GASEXCH_Natassa
-      do j=1,jj
-      do l=1,isp(j)
-      do i=ifp(j,l),ilp(j,l)
-      do nt=1,ntm
-      tracflx(i,j,nt) = 0.
-      enddo
-      enddo
-      enddo
-      enddo
-#endif
-
-
 c --- initialization of tracer transport arrays (incl. dpinit):
         call tradv0(m,mm)
 cdiag print *,'past tradv0'
@@ -654,32 +642,6 @@ cc$OMP END PARALLEL DO
         trcadv_time = real(after-before)/real(rate)
       end if ! dotrcr  above if block is done only once
 
-c
-c --- accumulate tracer flux over 'long' time period
-c     this should be done at every time step (of the long interval)
-#ifdef TRACERS_GASEXCH_Natassa
-      do nt=1,ntm
-      do j=1,jj
-      do l=1,isp(j)
-      do i=ifp(j,l),ilp(j,l)
-!     tracflx(i,j,nt) = tracflx(i,j,nt)
-!    .                + tracflx2(i,j,nt)
-      !do not accumulate
-      tracflx(i,j,nt) = tracflx2(i,j,nt)
-!     if (nstep.eq.25)
-!    .write(6,'(a,4i5,2e12.4)')'hycom, tracflx at nstep,nt=',
-!    .    nstep,nt,i,j,tracflx2(i,j,nt),
-!    .    tracflx(i,j,nt)
-      enddo
-      enddo
-      enddo
-cdiag write(6,'(a,4i5,2e12.4)')'hycom, tracflx at nstep,nt,i,j=',
-cdiag.    nstep,nt,109,94,tracflx2(109,94,nt),tracflx(109,94,nt)
-cdiag write(6,'(a,4i5,2e12.4)')'hycom, tracflx at nstep,nt=',
-cdiag.    nstep,nt,itest,jtest,tracflx2(itest,jtest,nt),
-cdiag.    tracflx(itest,jtest,nt)
-      enddo
-#endif
 c
 #ifdef TRACERS_OceanBiology
       call system_clock(before)      ! time elapsed since last system_clock

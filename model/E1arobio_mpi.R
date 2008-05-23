@@ -1,6 +1,6 @@
-E1arobio_mpi.R GISS Model E  2007 modelE              aromanou 04/18/08
+E1arobio2.R GISS Model E  2007 modelE              aromanou 04/18/08
 
-E1arobio_mpi: obio + gas exch + radiation coupling 
+E1arobio2: obio + gas exch + radiation coupling 
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -19,7 +19,7 @@ Preprocessor Options
 #define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
 #define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
 #define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
-#define CHL_from_OBIO               ! interactive CHL 
+!!!!#define CHL_from_OBIO               ! interactive CHL 
 !!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs
 !!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
 End Preprocessor Options
@@ -182,7 +182,7 @@ CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
 
 
 Label and Namelist:
-E1arobio_mpi (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio2 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 
@@ -264,5 +264,5 @@ nssw=48
  &INPUTZ
    YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
    YEARE=1900,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-   ISTART=5,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=4,HOURE=0,IWRITE=1,JWRITE=1,
+   ISTART=5,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END

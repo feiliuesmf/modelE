@@ -286,6 +286,8 @@ cdiag  endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
        do nt=1,ntm
           tracflx1d(nt) = tracflx(i,j,nt)
+!         write(*,'(a,3i5,2e12.4)')'obio_model, tracflx:',
+!    .        nstep,i,j,tracflx(i,j,nt),tracflx1d(nt)
        enddo
 #endif
 

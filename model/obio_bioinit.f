@@ -68,7 +68,7 @@ c  Carbon type 2    = DIC
       real dic(idm,jdm,kgrd)
       real dicmod(idm,jdm,kdm)
       character*2 ntchar
-      character*21 file_dir   !discover
+      character*28 file_dir   !discover
 !     character*32 file_dir   !explorer
 
       common /refin/ ipcrs(idm,jdm)
@@ -301,7 +301,7 @@ c  read NOAA 2001 atlas data
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
 !     file_dir='/explore/nobackup/aromanou/RUNS/'
-      file_dir='/gpfsm/dnb1/aromanou/'
+      file_dir='/discover/nobackup/aromanou/'
 !     call openunit(file_dir//'rno3_correctini.asc',iu_bioinit)
       call openunit(file_dir//'nitoa195x180_20w.asc',iu_bioinit)
       do ichan=1,kdm

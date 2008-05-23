@@ -4,18 +4,11 @@
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
 
-      USE hycom_dim
+      USE hycom_dim_glob
       implicit none
-
-      SAVE
-
 
 !!#include "dimensions.h"
 #include "dimension2.h"
-
-
-      SAVE
-
 
 
       real*8 atracflx(iia,jja,ntm),atrac(iia,jja,ntm)
@@ -42,6 +35,7 @@ c ---------------------------------------------------------------------
       USE CONSTANT, only:    rhows,mair
       USE TRACER_COM, only : ntm,trname,tr_mm
       USE obio_incom, only : awan
+      USE HYCOM_SCALARS, only : nstep
       
       implicit none
 
@@ -111,9 +105,9 @@ cwatson ff is actually alpha_gas
 
        trcnst = Kw_gas * alpha_gas * 1.024e-3 * trconstflx * byrho   ! convert to (conc * m/s)
 
-cdiag write(*,'(a,2i7,10e12.4)')'PBL, Kw ',
-cdiag.  ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
-cdiag.  Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho
+!       write(*,'(a,3i7,10e12.4)')'PBL, Kw ',
+!    .   nstep,ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
+!    .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho
 
       RETURN
       END SUBROUTINE TRACERS_GASEXCH_CO2_Natassa_PBL

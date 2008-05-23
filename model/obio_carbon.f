@@ -199,23 +199,20 @@ cdiag   endif
 
 c Update DIC for sea-air flux of CO2
 
-!this is for gas exchange + ocean biology: MAKE SURE!!!!
+!this is for gas exchange + ocean biology
 #if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CO2_Natassa)
-      !when ocean biology + CO2 gas exch
       k = 1
       do nt=1,ntm
-      term = tracflx1d(nt)           ! kg/m2/s
-     .     * 3600.0                  ! kg/m2/hr
-     .     /dp1d(k)
-!    .     / tr_mm(nt)/1.e-3/dp1d(k) ! mol/m3/hr
-!    .     * 1.e6                    ! micro-mol/m3/hr
-     .     * 1000.0*pnoice           !units of uM/hr (=mili-mol/lt/hr)
+      term = tracflx1d(nt)           ! mol/m2/s
+     .     * 3600.D0                 ! mol/m2/hr
+     .     /dp1d(k)                  ! mol/m3/hr
+!    .     / tr_mm(nt)/1.D-3         ! mol/m3/hr
+     .     * 1000.D0*pnoice          !units of uM/hr (=mili-mol/m3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 
          if (vrbos)
-!    .   write(6,'(a,3i7,i3,4e12.4)')
-     .   write(6,*)
+     .   write(6,'(a,3i7,i3,4e12.4)')
      .     'obio_carbon (coupled):',
      .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term
 
@@ -235,7 +232,7 @@ c Update DIC for sea-air flux of CO2
         scco2arg=1.d-10
         rkwco2=1.d-10
       else
-        scco2arg = (scco2/660.0)**(-0.5)      !Schmidt number
+        scco2arg = (scco2/660.D0)**(-0.5)      !Schmidt number
         rkwco2 = awan*wssq*scco2arg           !transfer coeff (units of m/s)
       endif
       tk = 273.15+Ts
@@ -246,17 +243,18 @@ c Update DIC for sea-air flux of CO2
      .         saln1d(k) * (.025695 - .025225*tk100 +
      .         0.0049867*tk1002))
 
-      xco2 = atmCO2*1013.0/stdslp
-      deltco2 = (xco2-pCO2_ij)*ff*1.0245E-3
+      xco2 = atmCO2*1013.D0/stdslp
+      deltco2 = (xco2-pCO2_ij)*ff*1.0245D-3
       flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
-      flxmolm3h = flxmolm3*3600.0           !units of mol/m3/hr
-      term = flxmolm3h*1000.0*pnoice        !units of uM/hr (=mili-mol/lt/hr)
+      flxmolm3h = flxmolm3*3600.D0          !units of mol/m3/hr
+      term = flxmolm3h*1000.D0*pnoice       !units of uM/hr (=mili-mol/m^3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 
       if (vrbos)
-     . write(6,'(a,3i7,8e12.4)')'obio_carbon(watson):',
-     .   nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,term
+     . write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
+     .   nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
+     .   rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term
 
 #endif
 
