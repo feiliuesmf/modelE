@@ -456,6 +456,7 @@ c
       call unpack_data( ogrid,  osalt, osalt_loc )
       call unpack_data( ogrid,  freshw, freshw_loc )
       call unpack_data( ogrid,  diafor, diafor_loc )
+      call unpack_data( ogrid,  klist, klist_loc )
 
       end subroutine scatter_hycom_arrays
 
@@ -592,6 +593,7 @@ c
       call pack_data( ogrid,  osalt_loc, osalt )
       call pack_data( ogrid,  freshw_loc, freshw )
       call pack_data( ogrid,  diafor_loc, diafor )
+      call pack_data( ogrid,  klist_loc, klist )
 
       end subroutine gather_hycom_arrays
 

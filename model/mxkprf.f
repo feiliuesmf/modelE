@@ -1,3 +1,4 @@
+#include "hycom_mpi_hacks.h"
 #include "rundeck_opts.h"
       subroutine mxkprf(m,n,mm,nn,k1m,k1n)
 #ifdef TRACERS_GASEXCH_Natassa
@@ -9,10 +10,15 @@ ccc   use mod_xc    ! HYCOM communication interface
 ccc   use mod_pipe  ! HYCOM debugging interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS
-      USE HYCOM_ARRAYS_GLOB
-      USE KPRF_ARRAYS
+      USE HYCOM_ARRAYS
+      USE HYCOM_ARRAYS_GLOB, only : scatter_hycom_arrays,
+     &                              gather_hycom_arrays
+      USE KPRF_ARRAYS_LOC_RENAMER
+      USE KPRF_ARRAYS, only : scatter_kprf_arrays,
+     &                        gather_kprf_arrays
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH,NORTH
       implicit none
 c
 !!      include 'dimensions.h'
@@ -28,7 +34,8 @@ c --- (large, mc williams, doney)
 c ------------------------------------
 c
       integer ktr
-      real    delp,sigmlj,thtop,thbot,thjmp(kdm),sigocn,dsigdt,dsigds
+      real    delp,sigmlj,thtop,thbot,thjmp(kdm) 
+      real    sigocn,dsigdt,dsigds
       external sigocn,dsigdt,dsigds
       character text*12
 c
@@ -53,53 +60,187 @@ cdiag.  k=1,kk)
 c
 c --- diffusivity/viscosity calculation
 c
-!$OMP PARALLEL DO PRIVATE(j)
-!$OMP&             SHARED(m,n,mm,nn,k1m,k1n)
-cc !$OMP&         SCHEDULE(STATIC,jblk)
-      do j=1,jj
-        call mxkprfaj(m,n,mm,nn,k1m,k1n, j)
-      enddo
-!$OMP END PARALLEL DO
+! call scatter_kprf_arrays
+! call scatter_hycom_arrays
+
+      call mxkprfaj(m,n,mm,nn,k1m,k1n, j)
+
 c
 c --- optional spatial smoothing of viscosity and diffusivities on interior
 c --- interfaces.
 c
       if(difsmo) then
+        !caution: code in this if block has not been tested.
+        CALL HALO_UPDATE(ogrid, vcty,  FROM=NORTH)
+        CALL HALO_UPDATE(ogrid, dift,  FROM=NORTH)
+        CALL HALO_UPDATE(ogrid, difs,  FROM=NORTH)
         do k=2,kk
-          call psmoo(vcty(1,1,k))
-          call psmoo(dift(1,1,k))
-          call psmoo(difs(1,1,k))
+          call ParPsmoo(vcty(1,1,k))
+          call ParPsmoo(dift(1,1,k))
+          call ParPsmoo(difs(1,1,k))
         enddo
       endif
 c
-c ---   final mixing of variables at p points
+c --- final mixing of variables at p points
 c
-!$OMP PARALLEL DO PRIVATE(j)
-!$OMP&             SHARED(m,n,mm,nn,k1m,k1n)
-cc !$OMP&         SCHEDULE(STATIC,jblk)
-      do j=1,jj
-        call mxkprfbj(m,n,mm,nn,k1m,k1n, j)
-      enddo
-!$OMP END PARALLEL DO
+      call mxkprfbj(m,n,mm,nn,k1m,k1n, j)
 c
 c --- final velocity mixing at u,v points
 c
-!$OMP PARALLEL DO PRIVATE(j)
-!$OMP&             SHARED(m,n,mm,nn,k1m,k1n)
-cc !$OMP&         SCHEDULE(STATIC,jblk)
-      do j=1,jj
-        call mxkprfcj(m,n,mm,nn,k1m,k1n, j)
-      enddo
-!$OMP END PARALLEL DO
+      call mxkprfcj(m,n,mm,nn,k1m,k1n, j)
 c
       if (dotrcr) write (lp,'(a)') 'tracer kpp mixing done'
+
+      call mxk_a1(m,n,mm,nn,k1m,k1n,
+     &       delp,sigmlj,thtop,thbot,thjmp)
+c
+      if (diagno) then
+c
+c --- calculate bulk mixed layer t, s, theta
+c
+!$OMP   PARALLEL DO PRIVATE(j,l,i,k,delp)
+cc !$OMP&         SCHEDULE(STATIC,jblk)
+        do j=J_0,J_1
+          do l=1,isp(j)
+c
+            do i=ifp(j,l),ilp(j,l)
+              tmix(i,j)=temp(i,j,k1n)*dp(i,j,k1n)
+              smix(i,j)=saln(i,j,k1n)*dp(i,j,k1n)
+            enddo
+c
+            do k=2,kk
+              do i=ifp(j,l),ilp(j,l)
+                delp=min(p(i,j,k+1),dpmixl(i,j))
+     &              -min(p(i,j,k  ),dpmixl(i,j))
+                tmix(i,j)=tmix(i,j)+delp*temp(i,j,k+nn)
+                smix(i,j)=smix(i,j)+delp*saln(i,j,k+nn)
+              enddo
+            enddo
+c
+            do i=ifp(j,l),ilp(j,l)
+              tmix(i,j)=tmix(i,j)/dpmixl(i,j)
+              smix(i,j)=smix(i,j)/dpmixl(i,j)
+              thmix(i,j)=sigocn(tmix(i,j),smix(i,j))
+           enddo
+c
+          enddo
+        enddo
+c
+!$OMP   END PARALLEL DO
+c
+c --- calculate bulk mixed layer u
+c
+!$OMP   PARALLEL DO PRIVATE(j,l,i,k,delp)
+cc !$OMP&         SCHEDULE(STATIC,jblk)
+        do j=J_0,J_1
+          do l=1,isu(j)
+c
+            do i=ifu(j,l),ilu(j,l)
+              umix(i,j)=u(i,j,k1n)*2.*dpu(i,j,k1n)
+            enddo
+c
+            do k=2,kk
+              do i=ifu(j,l),ilu(j,l)
+                delp=
+     &             (min(p(i,j,k+1)+p(i-1,j,k+1),
+     &                  dpmixl(i,j)+dpmixl(i-1,j))
+     &             -min(p(i,j,k  )+p(i-1,j,k  ),
+     &                  dpmixl(i,j)+dpmixl(i-1,j)))
+                umix(i,j)=umix(i,j)+delp*u(i,j,k+nn)
+              enddo
+            enddo
+c
+            do i=ifu(j,l),ilu(j,l)
+              umix(i,j)=umix(i,j)/(dpmixl(i,j)+dpmixl(i-1,j))
+            enddo
+c
+          enddo
+        enddo
+!$OMP   END PARALLEL DO
+c
+c --- calculate bulk mixed layer v
+c
+      CALL HALO_UPDATE(ogrid, p  ,      FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid, dpmixl  , FROM=SOUTH)
+
+!$OMP   PARALLEL DO PRIVATE(j,ja,l,i,k,delp)
+cc !$OMP&         SCHEDULE(STATIC,jblk)
+        do j=1,jj
+          ja = PERIODIC_INDEX(j-1, jj)
+          do l=1,isv(j)
+c
+            do i=ifv(j,l),ilv(j,l)
+              vmix(i,j)=v(i,j,k1n)*2.*dpv(i,j,k1n)
+            enddo
+c
+            do k=2,kk
+              do i=ifv(j,l),ilv(j,l)
+                delp=
+     &             (min(p(i,j,k+1)+p(i,ja ,k+1),
+     &                  dpmixl(i,j)+dpmixl(i,ja ))
+     &             -min(p(i,j,k  )+p(i,ja ,k  ),
+     &                  dpmixl(i,j)+dpmixl(i,ja )))
+                vmix(i,j)=vmix(i,j)+delp*v(i,j,k+nn)
+              enddo
+            enddo
+c
+            do i=ifv(j,l),ilv(j,l)
+              vmix(i,j)=vmix(i,j)/(dpmixl(i,j)+dpmixl(i,ja ))
+            enddo
+c
+          enddo
+        enddo
+!$OMP   END PARALLEL DO
+      endif                                           ! diagno
+c
+cdiag i=itest
+cdiag j=jtest
+cdiag write (lp,108) nstep,itest,jtest,
+cdiag.'   exiting mxkprf:  temp    saln    dens    thkns    dpth',(k,
+cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
+cdiag.  dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
+cdiag if (dotrcr) write (lp,110) nstep,itest,jtest,
+cdiag.'   exiting mxkprf:  thkns   tracer1    tracer2    tracer3',
+cdiag. (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ktr),ktr=1,2),k=1,kk)
+cdiag write (lp,109) nstep,itest,jtest,
+cdiag.'   exiting mxkprf:    u     dp_u         v     dp_v',(k,
+cdiag. u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),dpv(i,j,k+nn)/onem,
+cdiag.  k=1,kk)
+c
+
+! call gather_kprf_arrays
+! call gather_hycom_arrays
+
+      return
+      end
+c
+c***************************************************************************
+c
+      subroutine mxk_a1(m,n,mm,nn,k1m,k1n,
+     &       delp,sigmlj,thtop,thbot,thjmp)
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : tracflx
+#endif
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS
+      USE KPRF_ARRAYS_LOC_RENAMER
+      implicit none
+
+      include 'kprf_scalars.h'
+      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n
+      real    delp,sigmlj,thtop,thbot,thjmp(kdm)
+      real     dsigdt
+      external dsigdt
 c
 c --- mixed layer diagnostics
 c
 c --- diagnose new mixed layer depth based on density jump criterion
 !$OMP   PARALLEL DO PRIVATE(kn,sigmlj,thtop,thbot,thjmp)
 cc !$OMP&         SCHEDULE(STATIC,jblk)
-        do j=1,jj
+        do j=J_0,J_1
           do l=1,isp(j)
 c
 c --- depth of mixed layer base set to interpolated depth where
@@ -175,126 +316,17 @@ c
         enddo
 c
 !$OMP   END PARALLEL DO
-c
-      if (diagno) then
-c
-c --- calculate bulk mixed layer t, s, theta
-c
-!$OMP   PARALLEL DO PRIVATE(j,l,i,k,delp)
-cc !$OMP&         SCHEDULE(STATIC,jblk)
-        do j=1,jj
-          do l=1,isp(j)
-c
-            do i=ifp(j,l),ilp(j,l)
-              tmix(i,j)=temp(i,j,k1n)*dp(i,j,k1n)
-              smix(i,j)=saln(i,j,k1n)*dp(i,j,k1n)
-            enddo
-c
-            do k=2,kk
-              do i=ifp(j,l),ilp(j,l)
-                delp=min(p(i,j,k+1),dpmixl(i,j))
-     &              -min(p(i,j,k  ),dpmixl(i,j))
-                tmix(i,j)=tmix(i,j)+delp*temp(i,j,k+nn)
-                smix(i,j)=smix(i,j)+delp*saln(i,j,k+nn)
-              enddo
-            enddo
-c
-            do i=ifp(j,l),ilp(j,l)
-              tmix(i,j)=tmix(i,j)/dpmixl(i,j)
-              smix(i,j)=smix(i,j)/dpmixl(i,j)
-              thmix(i,j)=sigocn(tmix(i,j),smix(i,j))
-           enddo
-c
-          enddo
-        enddo
-c
-!$OMP   END PARALLEL DO
-c
-c --- calculate bulk mixed layer u
-c
-!$OMP   PARALLEL DO PRIVATE(j,l,i,k,delp)
-cc !$OMP&         SCHEDULE(STATIC,jblk)
-        do j=1,jj
-          do l=1,isu(j)
-c
-            do i=ifu(j,l),ilu(j,l)
-              umix(i,j)=u(i,j,k1n)*2.*dpu(i,j,k1n)
-            enddo
-c
-            do k=2,kk
-              do i=ifu(j,l),ilu(j,l)
-                delp=
-     &             (min(p(i,j,k+1)+p(i-1,j,k+1),
-     &                  dpmixl(i,j)+dpmixl(i-1,j))
-     &             -min(p(i,j,k  )+p(i-1,j,k  ),
-     &                  dpmixl(i,j)+dpmixl(i-1,j)))
-                umix(i,j)=umix(i,j)+delp*u(i,j,k+nn)
-              enddo
-            enddo
-c
-            do i=ifu(j,l),ilu(j,l)
-              umix(i,j)=umix(i,j)/(dpmixl(i,j)+dpmixl(i-1,j))
-            enddo
-c
-          enddo
-        enddo
-!$OMP   END PARALLEL DO
-c
-c --- calculate bulk mixed layer v
-c
-!$OMP   PARALLEL DO PRIVATE(j,ja,l,i,k,delp)
-cc !$OMP&         SCHEDULE(STATIC,jblk)
-        do j=1,jj
-          ja=mod(j-2+jj,jj)+1
-          do l=1,isv(j)
-c
-            do i=ifv(j,l),ilv(j,l)
-              vmix(i,j)=v(i,j,k1n)*2.*dpv(i,j,k1n)
-            enddo
-c
-            do k=2,kk
-              do i=ifv(j,l),ilv(j,l)
-                delp=
-     &             (min(p(i,j,k+1)+p(i,ja ,k+1),
-     &                  dpmixl(i,j)+dpmixl(i,ja ))
-     &             -min(p(i,j,k  )+p(i,ja ,k  ),
-     &                  dpmixl(i,j)+dpmixl(i,ja )))
-                vmix(i,j)=vmix(i,j)+delp*v(i,j,k+nn)
-              enddo
-            enddo
-c
-            do i=ifv(j,l),ilv(j,l)
-              vmix(i,j)=vmix(i,j)/(dpmixl(i,j)+dpmixl(i,ja ))
-            enddo
-c
-          enddo
-        enddo
-!$OMP   END PARALLEL DO
-      endif                                           ! diagno
-c
-cdiag i=itest
-cdiag j=jtest
-cdiag write (lp,108) nstep,itest,jtest,
-cdiag.'   exiting mxkprf:  temp    saln    dens    thkns    dpth',(k,
-cdiag. temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
-cdiag.  dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
-cdiag if (dotrcr) write (lp,110) nstep,itest,jtest,
-cdiag.'   exiting mxkprf:  thkns   tracer1    tracer2    tracer3',
-cdiag. (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ktr),ktr=1,2),k=1,kk)
-cdiag write (lp,109) nstep,itest,jtest,
-cdiag.'   exiting mxkprf:    u     dp_u         v     dp_v',(k,
-cdiag. u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),dpv(i,j,k+nn)/onem,
-cdiag.  k=1,kk)
-c
+
       return
-      end
+      end subroutine mxk_a1
 c
 c***************************************************************************
 c
       subroutine mxkprfaj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM_GLOB
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_DIM, only: J_0, J_1, isp, ifp, ilp, ogrid
+      USE HYCOM_ARRAYS, only: v, corio
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH
       implicit none
 c
 !!      include 'dimensions.h'
@@ -302,9 +334,17 @@ c
       integer i,j,l,m,n,mm,nn,k1m,k1n
 !!      include 'common_blocks.h'
       include 'kprf_scalars.h'
+
+      CALL HALO_UPDATE(ogrid,v,       FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,corio,   FROM=NORTH)
 c
 c --- calculate viscosity and diffusivity
 c
+!$OMP PARALLEL DO PRIVATE(j)
+!$OMP&             SHARED(m,n,mm,nn,k1m,k1n)
+cc !$OMP&         SCHEDULE(STATIC,jblk)
+
+      do j=J_0, J_1
       do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
           if (mxlkpp) then
@@ -317,6 +357,9 @@ c
           end if
         enddo
       enddo
+      enddo
+
+!$OMP END PARALLEL DO
 c
       return
       end
@@ -1337,8 +1380,7 @@ c***************************************************************************
 c
       subroutine mxkprfbj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM_GLOB
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_DIM, only : J_0,J_1,isp,ifp,ilp
       implicit none
 c
 !!      include 'dimensions.h'
@@ -1348,11 +1390,19 @@ c
 c
 c --- final mixing at p points
 c
+!$OMP PARALLEL DO PRIVATE(j)
+!$OMP&             SHARED(m,n,mm,nn,k1m,k1n)
+cc !$OMP&         SCHEDULE(STATIC,jblk)
+
+      do j=J_0,J_1
       do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
           call mxkprfbij(m,n,mm,nn,k1m,k1n, i,j)
         enddo
       enddo
+      enddo
+
+!$OMP END PARALLEL DO
 c
       return
       end
@@ -1361,17 +1411,28 @@ c***************************************************************************
 c
       subroutine mxkprfcj(m,n,mm,nn,k1m,k1n, j)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM_GLOB
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_DIM, only : J_0,J_1,isu,ifu,ilu,
+     &                              isv,ifv,ilv,ogrid
+      USE HYCOM_ARRAYS, only : klist
+      USE KPRF_ARRAYS, only : vcty_loc
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH
       implicit none
 c
 !!      include 'dimensions.h'
 !!    include 'dimension2.h'    ! TNL
       integer i,j,l,m,n,mm,nn,k1m,k1n
 !!      include 'common_blocks.h'
+
+      CALL HALO_UPDATE(ogrid,  vcty_loc,   FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,  klist,      FROM=SOUTH)
 c
 c --- final velocity mixing at u,v points
 c
+!$OMP PARALLEL DO PRIVATE(j)
+!$OMP&             SHARED(m,n,mm,nn,k1m,k1n)
+cc !$OMP&         SCHEDULE(STATIC,jblk)
+
+      do j=J_0,J_1
       do l=1,isu(j)
         do i=ifu(j,l),ilu(j,l)
           call mxkprfciju(m,n,mm,nn,k1m,k1n, i,j)
@@ -1383,6 +1444,9 @@ c
           call mxkprfcijv(m,n,mm,nn,k1m,k1n, i,j)
         enddo
       enddo
+      end do
+
+!$OMP END PARALLEL DO
 c
       return
       end
@@ -1403,10 +1467,11 @@ ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
       USE MODEL_COM, only: jmon
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM, only: jj, kk, kdm
       USE HYCOM_SCALARS
-      USE HYCOM_ARRAYS_GLOB
-      USE KPRF_ARRAYS
+      USE HYCOM_ARRAYS
+      USE KPRF_ARRAYS_LOC_RENAMER
+
       implicit none
 c
 !!      include 'dimensions.h'
@@ -1530,10 +1595,101 @@ c
       external sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds
 c
       integer ka,kb,nlayer,ksave,iter,jrlv
+      logical dothis
 c
       include 'state_eqn.h'
+
+!===================================================================
+!mkb initialize
+      dothis = .false.
+      if ( dothis ) then
+
+      delta=0;
+      zrefmn=0;
+      zref=0;
+      wref=0;qwref=0;
+      uref=0;
+      vref=0;
+      bref=0;
+      swfrac=0;
+      shsq=0;
+      alfadt=0;
+      betads=0;
+      swfrml=0;
+      ritop=0;
+      dbloc=0;
+      dvsq=0;
+      zgridb=0;
+      hwide=0;
+      dpmm=0;
+      qdpmm=0;
+      pij=0;
+      case=0;
+      hbl=0;
+      hbbl=0;
+      rib=0;
+      rrho=0;
+      diffdd=0;
+      prandtl=0;
+      fri=0;
+      stable=0;
+      dkm1=0;
+      gat1=0;
+      dat1=0;
+      blmc=0;
+      wm=0;
+      ws=0;
+      dnorm=0;
+      tmn=0;
+      smn=0;
+      dsgdt=0;
+      buoyfs=0;
+      buoyfl=0;
+      buoysw=0;
+      bfsfc=0;
+      bfbot=0;
+      hekmanb=0;
+      cormn4=0;
+      dflsiw=0;
+      dflmiw=0;
+      bfq=0;
+      cvk=0;
+      ahbl=0;bhbl=0;chbl=0;dhbl=0;
 c
-      jb=mod(j,jj)+1
+      nbl=0;
+      nbbl=0;
+      kup2=0;kup=0;kdn=0;
+c
+      u1do=0;
+      u1dn=0;v1do=0;v1dn=0;t1do=0;
+      t1dn=0;s1do=0;s1dn=0;
+      diffm=0;difft=0;diffs=0;
+      ghat=0;zm=0;hm=0;dzb=0;
+c
+      uold=0;vold =0;told =0;
+      sold=0;thold=0;
+c
+c --- tridiagonal matrix solution arrays
+      tri=0;
+      tcu=0;
+      tcc=0;
+      tcl=0;
+      rhs=0;
+c
+      dtemp=0;dsaln=0;wq=0;wt=0;ratio=0;q=0;ghatflux=0;
+      dvdzup=0;dvdzdn=0;viscp=0;difsp=0;diftp=0;f1=0;sigg=0;
+      aa1=0;aa2=0;aa3=0;gm=0;gs=0;gt=0;
+      dkmp2=0;dstar=0;hblmin=0;hblmax=0;sflux1=0;vtsq=0;
+      vctyh=0;difsh=0;difth=0;zrefo=0;qspcifh=0;hbblmin=0;hbblmax=0;
+      beta_b=0;beta_r=0;frac_b=0;frac_r=0;
+      x0=0;x1=0;x2=0;y0=0;y1=0;y2=0;
+
+      ka=0;kb=0;nlayer=0;ksave=0;iter=0;jrlv=0;
+      end if  ! dothis
+!===================================================================
+c
+      jb = PERIODIC_INDEX(j+1, jj)
+
       cormn4 = 4.0e-5  !4 x min. coriolis magnitude (at 4N, 4S)
 c
       if     (latdiw) then
@@ -1552,7 +1708,7 @@ c ---   constant internal wave diffusion/viscosity
         dflsiw =   difsiw
         dflmiw =   difmiw
       endif
-c
+c     
 c --- locate lowest substantial mass-containing layer.
       pij(1)=p(i,j,1)
       do k=1,kk
@@ -2793,10 +2949,11 @@ c
 #endif
 #endif
 c --- hycom version 2.1
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM, only : kk, kdm, ntrcr
       USE HYCOM_SCALARS
-      USE HYCOM_ARRAYS_GLOB
-      USE KPRF_ARRAYS
+      USE HYCOM_ARRAYS
+      USE KPRF_ARRAYS_LOC_RENAMER
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
       implicit none
 c
 !!      include 'dimensions.h'
@@ -2970,19 +3127,27 @@ c --- check conservation of column integrals
       totemn=10.*pbot(i,j)
       tosaln=35.*pbot(i,j)
 c     if (abs(tndcyt).gt.1000.*acurcy*totemn) write (lp,101) i,j,
-      if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+      ! caution: may need to write from other processors, as well 
+      if (abs(tndcyt).gt.1.e-6*totemn) then
+      if ( AM_I_ROOT() ) write (lp,101) i,j,
      .  '  mxkprf - bad temp.intgl.',totemo,tndcyt,tndcyt/totemn
+      endif
+
 c     if (abs(tndcys).gt.1000.*acurcy*tosaln) write (lp,101) i,j,
-      if (abs(tndcys).gt.1.e-6*tosaln) write (lp,101) i,j,
+      if (abs(tndcys).gt.1.e-6*tosaln) then
+      if ( AM_I_ROOT() ) write (lp,101) i,j,
      .  '  mxkprf - bad saln.intgl.',tosalo,tndcys,tndcys/tosaln
+      endif
       if (dotrcr) then
         do ktr=1,ntrcr
           tndcyt=totrcn(ktr)-totrco(ktr)
           if (abs(tndcyt).lt.1.e-199) tndcyt=0.
           totemn=trscal(ktr)*pbot(i,j)
 c         if (abs(tndcyt).gt.1000.*acurcy*totemn) write (lp,101) i,j,
-          if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+          if (abs(tndcyt).gt.1.e-6*totemn) then
+          if ( AM_I_ROOT() ) write (lp,101) i,j,
      .    '  mxkprf - bad trcr.intgl.',totrco(ktr),tndcyt,tndcyt/totemn
+          end if
         end do
       end if
  101  format (2i5,a,1p,2e16.8,e9.1)
@@ -3009,10 +3174,11 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS
-      USE HYCOM_ARRAYS_GLOB
-      USE KPRF_ARRAYS
+      USE HYCOM_ARRAYS
+      USE KPRF_ARRAYS_LOC_RENAMER
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
       implicit none
 c
 !!      include 'dimensions.h'
@@ -3109,8 +3275,10 @@ c --- check conservation of column integrals
       tndcy=totn-toto
       totn=0.1*pbot(i,j)
 c     if (abs(tndcy).gt.1000.*acurcy*totn) write (lp,101) i,j,
-      if (abs(tndcy).gt.1.e-6*totn) write (lp,101) i,j,
+      if (abs(tndcy).gt.1.e-6*totn) then
+        if( AM_I_ROOT() ) write (lp,101) i,j,
      .  '  mxkprf - bad u intgl.',toto,tndcy,tndcy/totn
+      endif
  101  format (2i5,a,1p,2e16.8,e9.1)
 c
 cdiag if (i.eq.itest.and.j.eq.jtest) then
@@ -3128,10 +3296,11 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 2.1
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS
-      USE HYCOM_ARRAYS_GLOB
-      USE KPRF_ARRAYS
+      USE HYCOM_ARRAYS
+      USE KPRF_ARRAYS_LOC_RENAMER
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
       implicit none
 c
 !!      include 'dimensions.h'
@@ -3163,7 +3332,7 @@ c
       real presv
       integer nlayer,ka
 c
-      ja=mod(j-2+jj,jj)+1
+      ja = PERIODIC_INDEX(j-1, jj)
       nlayer=1
       presv=0.
 c --- incisive code change: only mix to depth of mixed layer
@@ -3230,8 +3399,10 @@ c --- check conservation of column integrals
       tndcy=totn-toto
       totn=0.1*pbot(i,j)
 c     if (abs(tndcy).gt.1000.*acurcy*totn) write (lp,101) i,j,
-      if (abs(tndcy).gt.1.e-6*totn) write (lp,101) i,j,
+      if (abs(tndcy).gt.1.e-6*totn) then
+        if( AM_I_ROOT() ) write (lp,101) i,j,
      .  '  mxkprf - bad v intgl.',toto,tndcy,tndcy/totn
+      end if
  101  format (2i5,a,1p,2e16.8,e9.1)
 c
 cdiag if (i.eq.itest.and.j.eq.jtest) then
@@ -3248,7 +3419,7 @@ c
       subroutine wscale(i,j,zlevel,dnorm,bfsfc,wm,ws,isb)
 ccc   use mod_xc  ! HYCOM communication interface
 c
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
       implicit none
 c
 !!      include 'dimensions.h'

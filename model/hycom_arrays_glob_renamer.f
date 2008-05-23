@@ -84,7 +84,7 @@ c    .,odhsi_loc => odhsi
      .,omlhc_loc => omlhc 
      .,dmfz_loc => dmfz
 c 
-     &,klist => klist
+     &,klist_loc => klist
 c  
      .,taux_loc => taux
      .,tauy_loc => tauy 
@@ -231,7 +231,7 @@ c
       public osalt_loc
       public freshw_loc
       public diafor_loc
-
+      public klist_loc
 
       end module hycom_arrays_glob_renamer
 

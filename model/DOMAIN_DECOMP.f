@@ -107,6 +107,7 @@
         MODULE PROCEDURE HALO_UPDATE_1D  ! J
         MODULE PROCEDURE HALO_UPDATE_2D  ! I,J
         MODULE PROCEDURE HALO_UPDATE_3D  ! I,J,K
+        MODULE PROCEDURE HALO_UPDATE_2Dint  ! I,J,K
       END INTERFACE
 
       INTERFACE HALO_UPDATEj
@@ -740,6 +741,19 @@ cddd      ENDIF
      &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_2D
+
+      SUBROUTINE HALO_UPDATE_2Dint(grd_dum, arr, from)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
+      INTEGER,            INTENT(INOUT) ::
+     &                    arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER, OPTIONAL, INTENT(IN)    :: from
+
+#ifdef USE_ESMF
+      Call sendrecv_int(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
+     &     ,grd_dum%BC_PERIODIC)
+#endif
+      END SUBROUTINE HALO_UPDATE_2Dint
 
       SUBROUTINE HALO_UPDATEj_2D(grd_dum, arr, from)
       IMPLICIT NONE
@@ -5060,6 +5074,69 @@ cddd      End If
       Call MPI_Type_Free(new_type, ier)
 
       End SUBROUTINE SendRecv
+
+      Subroutine sendrecv_int(grid, arr, shp, dist_idx, from, 
+     &     bc_periodic_)
+      Type (Esmf_Grid) :: grid
+      Integer :: arr(*)
+      Integer :: shp(:)
+      Integer :: dist_idx
+      Integer, optional :: from
+      Logical, optional :: bc_periodic_
+
+      Integer :: new_type
+      Integer :: npy, npx, px, py, pe_south, pe_north
+      Integer :: off(4)
+      Integer :: USABLE_FROM
+      Integer :: status(MPI_STATUS_SIZE), ier
+      Integer :: n, sz
+      Logical :: bc_periodic
+
+      IF(.NOT.PRESENT(FROM)) THEN
+        USABLE_FROM = ALL
+      ELSE
+        USABLE_FROM = FROM
+      ENDIF
+
+      if ( present(bc_periodic_) ) then
+        bc_periodic = bc_periodic_
+      else
+        bc_periodic = .false.
+      endif
+      ! create a new mpi type for use in communication
+      !-------------------------------
+      new_type = CreateDist_MPI_Type(MPI_INTEGER, shp,dist_idx)
+
+      ! Determine neigboring processes
+      !-------------------------------
+      call ESMF_GRID_MY_PE_LOC(grid,  px,  py)
+      call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
+      Call GetNeighbors(py, npy, pe_south, pe_north, bc_periodic)
+
+      sz = Product(shp(1:dist_idx-1))
+      n  = shp(dist_idx)
+      off(1) = 1
+      off(2) = 1+sz*1
+      off(3) = 1+sz*(n-2)
+      off(4) = 1+sz*(n-1)
+
+      IF(FILL(NORTH)) THEN
+        tag = max(MOD(tag,128),10) + 1
+        Call MPI_SendRecv(arr(off(2)), 1, new_type, pe_south, tag,
+     &                    arr(off(4)), 1, new_type, pe_north, tag,
+     &                    MPI_COMM_WORLD, status, ier)
+      End If
+
+      IF(FILL(SOUTH)) THEN
+        tag = max(MOD(tag,128),10) + 1
+        Call MPI_SendRecv(arr(off(3)), 1, new_type, pe_north, tag,
+     &                    arr(off(1)), 1, new_type, pe_south, tag,
+     &                    MPI_COMM_WORLD, status, ier)
+      End If
+
+      Call MPI_Type_Free(new_type, ier)
+
+      End SUBROUTINE SendRecv_int
 
       Subroutine gather(grid, arr_loc, arr_glob, shp, dist_idx, all)
       Type (Esmf_Grid) :: grid

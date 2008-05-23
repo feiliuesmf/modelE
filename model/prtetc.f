@@ -1,3 +1,4 @@
+#include "hycom_mpi_hacks.h"
       subroutine prtmsk(mask,array,work,idm,ii,jj,offset,scale,title)
 c
 c --- Delete 'array' elements outside 'mask'. Then
@@ -1014,3 +1015,47 @@ c
  100  format(1x,130a1)
       return
       end
+c
+      subroutine ParPsmoo(alist)
+c
+c --- ragged boundary version of basic 1-2-1 smoothing routine
+c --- smoothed array overwrites input array -alist- at points where ip > 0
+c --- this routine is set up to smooth data carried at -p- points
+c
+c --- this version works for both cyclic-in-j and noncyclic domains
+c
+      USE HYCOM_DIM
+      implicit none
+!!      include 'dimensions.h'
+!!    include "dimension2.h"    ! TNL
+      integer i,j,l,ia,ib,ja,jb
+c
+      real,intent(INOUT) :: alist(idm,J_0H:J_1H)
+      real blist(idm,J_0H:J_1H)
+      real,parameter :: wgt=.25
+c
+c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
+      do 1 j=J_0,J_1
+      do 1 l=1,isp(j)
+      do 1 i=ifp(j,l),ilp(j,l)
+      ja = PERIODIC_INDEX(j-1, jj)
+      if (ip(i,ja).eq.0) ja=j
+      jb = PERIODIC_INDEX(j+1, jj)
+      if (ip(i,jb).eq.0) jb=j
+ 1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
+c$OMP END PARALLEL DO
+c
+c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
+      do 2 j=J_0,J_1
+      do 2 l=1,isp(j)
+      do 2 i=ifp(j,l),ilp(j,l)
+      ia=max( 1,i-1)
+      if (ip(ia,j).eq.0) ia=i
+      ib=min(ii,i+1)
+      if (ip(ib,j).eq.0) ib=i
+ 2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
+c$OMP END PARALLEL DO
+      return
+      end
+c
+

@@ -5,7 +5,7 @@ c ------------------------------------------------------------------
 c
       subroutine tridcof(diff,tri,nlayer,tcu,tcc,tcl)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM_GLOB, only : kdm
       implicit none
 c
 !!      include 'dimensions.h'
@@ -47,7 +47,7 @@ c --- in the bottom layer
 
       subroutine tridrhs(h,yo,diff,ghat,ghatflux,tri,nlayer,rhs,delt1)
 ccc   use mod_xc  ! HYCOM communication interface
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM_GLOB, only : kdm
       implicit none
 c
 !!      include 'dimensions.h'
@@ -107,7 +107,7 @@ c --- note: if surface and bottom fluxes are nonzero, the following must apply
 c ---    surface layer needs +delt1*surfaceflux/(h(1)*bet)
 c ---    bottom  layer needs +tri(nlayer,1)*diff(nlayer+1)*yo(nlayer+1))/bet
 c
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM_GLOB, only : kdm
       USE HYCOM_SCALARS, only : lp
       implicit none
 !!      include 'dimensions.h'

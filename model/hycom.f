@@ -84,7 +84,8 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH,
+     &                         haveLatitude
       USE HYCOM_ATM !, only : gather_atm, scatter_atm
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
@@ -593,7 +594,7 @@ c
 ! we need to call scatter, becase part of program in this loop is
 ! on root
 
-      !call scatter_kprf_arrays
+      call scatter_kprf_arrays
       call scatter_hycom_arrays
 
       m=mod(nstep  ,2)+1
@@ -893,9 +894,6 @@ c
       before = after
 c     call mxlayr(m,n,mm,nn,k1m,k1n)
 
-      call gather_hycom_arrays
-      if (AM_I_ROOT()) then
-
       if (nstep*baclin.gt.12.*3600) then
          call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hr
       end if
@@ -923,6 +921,7 @@ cdiag.     tracer(itest,jtest,k,9)
 cdiag  enddo
 cdiag  call obio_limits('aftr kpp')
 #endif
+      if (AM_I_ROOT()) then
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
@@ -933,14 +932,11 @@ c
 ccc      write (string,'(a12,i8)') 'mxlayr, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
-      before = after
       end if ! AM_I_ROOT
+      before = after
 
-      call scatter_hycom_arrays
       call hybgen(m,n,mm,nn,k1m,k1n)
-      call gather_hycom_arrays
 
-      if (AM_I_ROOT()) then
       call system_clock(after)
       hybgen_time = real(after-before)/real(rate)
 c
@@ -966,6 +962,7 @@ cdiag  call obio_limits('aftr hybgen')
 #endif
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      if (AM_I_ROOT()) then
       if (diag_ape)
      . write (501,103) time,'  APE change due to vert.regridding:',
      .  hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),31)
@@ -973,6 +970,7 @@ c     call sstbud(6,' vert.regridding',temp(1,1,k1n))
 c
       if (dotrcr)
      .  write (lp,'(a)') 'tracer advection/turb.mixing cycle completed'
+      end if ! AM_I_ROOT
 c
 c ---------------------------------------------------------------------------
 c
@@ -983,24 +981,31 @@ c
 c --- after 1 day, check terms in time-integrated continuity eqn
 c
       if (abs(time-tavini-1.).lt..001) then
-      i=itest
-      j=jtest
-      jb=mod(j,jj)+1
-      write (lp,'(i9,2i5,a/a)') nstep,i,j,
+        CALL HALO_UPDATE(ogrid, vflxav,  FROM=NORTH)
+        i=itest
+        j=jtest
+        if (haveLatitude(ogrid, J=j)) then
+          jb = PERIODIC_INDEX(j+1, jj)
+          write (lp,'(i9,2i5,a/a)') nstep,i,j,
      . '  time-integrated continuity eqn diagnostics:',
      .  '     thknss_tndcy  horiz.flxdiv   vert.flxdiv      residuum'
-      do k=1,kk
-      km=k+mm
-      kn=k+nn
-      thkchg=dp(i,j,km)+dp(i,j,kn)-dpini(k)
-      flxdiv=(uflxav(i+1,j,k)-uflxav(i,j,k)
+          do k=1,kk
+            km=k+mm
+            kn=k+nn
+            thkchg=dp(i,j,km)+dp(i,j,kn)-dpini(k)
+            flxdiv=(uflxav(i+1,j,k)-uflxav(i,j,k)
      .       +vflxav(i,jb ,k)-vflxav(i,j,k))*scp2i(i,j)*delt1
-      write (lp,102) k,thkchg,flxdiv,-diaflx(i,j,k),
-     .  thkchg+flxdiv-diaflx(i,j,k)
+            write (lp,102) k,thkchg,flxdiv,-diaflx(i,j,k),
+     .      thkchg+flxdiv-diaflx(i,j,k)
  102  format (i3,4f14.1)
-      end do
+          end do
+        end if
       end if
 c
+      call gather_hycom_arrays
+      call gather_kprf_arrays
+      if (AM_I_ROOT()) then
+
       if (diagno .or. mod(time+.0001,1.).lt..0002) then    !  once a day
 c
 c --- make line printer plot of mean layer thickness

@@ -4,7 +4,7 @@ c
 c --- version 2.8.2
       USE HYCOM_DIM, only : jj,isp,ifp,ilp,iu,isu,ifu,ilu,iv,isv
      &     ,ifv,ilv,ii
-     &     ,jchunk
+     &     ,jchunk, ogrid,J_0,J_1,I_0H,I_1H,J_0H,J_1H
       USE HYCOM_SCALARS, only : lstep,wbaro,dlt,slip,thref,veldff,nstep
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH

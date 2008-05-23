@@ -1,7 +1,7 @@
 c   -----------------------------------------------------------------------------
       module hycom_arrays
 
-      USE HYCOM_DIM
+      ! USE HYCOM_DIM
 
       implicit none
 
@@ -157,6 +157,7 @@ c
       contains
 
       subroutine alloc_hycom_arrays
+      USE HYCOM_DIM, only : I_0H,I_1H,J_0H,J_1H,kdm,ntrcr
 
       print *,"alloc_hycom_arrays: halos", I_0H,I_1H,J_0H,J_1H
 

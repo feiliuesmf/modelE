@@ -1,5 +1,5 @@
       module kprf_arrays
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM, only : idm, jdm, kdm
       USE HYCOM_DIM, only : I_0H,I_1H,J_0H,J_1H
 
       implicit none

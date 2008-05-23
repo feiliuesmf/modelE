@@ -57,7 +57,7 @@ c
 c --- parallel version
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
       USE HYCOM_DIM, only : kk,jj,isu,ifu,ilu,isv,ifv,ilv
-     &     ,jchunk,ogrid
+     &     ,jchunk,ogrid,I_0H,I_1H,J_0H,J_1H,J_0,J_1
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, SOUTH
       implicit none
