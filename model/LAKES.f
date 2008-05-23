@@ -744,10 +744,10 @@ C**** Set conservation diagnostics for Lake mass and energy
       CONPT(4)="PREC+LAT M"
       CONPT(5)="SURFACE"   ; CONPT(8)="RIVERS"
       QCON=(/ F, F, F, T, T, F, F, T, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"LAK MASS","(KG/M^2)      ",
+      CALL SET_CON(QCON,CONPT,"LAK MASS","(KG/M^2)        ",
      *     "(10**-9 KG/SM^2)",1d0,1d9,icon_LKM)
       QCON=(/ F, F, F, T, T, F, F, T, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"LAK ENRG","(10**3 J/M^2) ",
+      CALL SET_CON(QCON,CONPT,"LAK ENRG","(10**3 J/M^2)   ",
      *     "(10**-3 W/M^2)  ",1d-3,1d3,icon_LKE)
 
 C**** assume that at the start GHY is in balance with LAKES
