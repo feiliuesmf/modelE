@@ -958,7 +958,7 @@ C****
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
-      REAL*8, DIMENSION(IM) :: PSEC,X1
+      REAL*8, DIMENSION(IM) :: PSEC,X1,X1tmp
       REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH,P00,AML,PDSIGL,PMIDL
       REAL*8, DIMENSION(LM+1) :: PEDNL
 c      REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),
@@ -1795,7 +1795,8 @@ C**** ACCUMULATE HERE
               DPUV=DPUV/SQRTDP
  2090         X1(I)=DPUV
             ENDDO
-            CALL FFTE (X1,X1)
+            CALL FFTE (X1,X1tmp)
+            X1=X1tmp
             IF (J.NE.JEQ) THEN
               DO N=1,NM
                 KE_part(N,J,KSPHER)=KE_part(N,J,KSPHER)+X1(N)*DXYV(J)
@@ -2594,7 +2595,7 @@ C****
 
       IMPLICIT NONE
       INTEGER :: M5,NDT
-      REAL*8, DIMENSION(IM) :: X
+      REAL*8, DIMENSION(IM) :: X, Xtmp
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
       REAL*8, DIMENSION
      &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
@@ -2695,7 +2696,8 @@ C**** CURRENT KINETIC ENERGY
           DO K = IZERO,LM,LM
             IF(K.EQ.IZERO)X(1:IM)=U(1:IM,J,L)*SQRTM(1:IM,J)
             IF(K.EQ.LM)   X(1:IM)=V(1:IM,J,L)*SQRTM(1:IM,J)
-            CALL FFTE (X,X)
+            CALL FFTE (X,Xtmp)
+            X=Xtmp
             IF (J.EQ.JEQ) THEN
               DO N=1,NM
                 KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+X(N)*DSIG(L)
@@ -2803,7 +2805,8 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
      *           (P(I,J)*PK(L,I,J))
           END DO
           GMSUM(J,L) = GMTMP * DXYP(J)
-          CALL FFTE (X,X)
+          CALL FFTE (X,Xtmp)
+          X=Xtmp
           DO N=1,NM
             VAR_part(N,JHEMI,L,J)=VAR_part(N,JHEMI,L,J)+X(N)*DXYP(J)
           END DO

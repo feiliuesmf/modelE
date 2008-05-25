@@ -348,9 +348,10 @@ c  internals:
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       integer, intent(in) :: ilong,jlat,itype
       !-- output:
-      real*8, intent(out) :: kms,kqs,z0m,z0h,z0q,w2_1
+      real*8, intent(out) :: kms,kqs,z0h,z0q,w2_1
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       !-- inout:
+      real*8, intent(inout) :: z0m
       real*8, dimension(n),   intent(inout) :: u,v,t,q
       real*8, dimension(n-1), intent(inout) :: e
 #if defined(TRACERS_ON)
