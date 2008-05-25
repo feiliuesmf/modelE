@@ -21,8 +21,11 @@ c  Derive surface reflectance as a function of solz and wind
 c  Includes spectral dependence of foam reflectance derived from Frouin
 c  et al., 1996 (JGR)
       USE FILEMANAGER
+#ifdef OBIO_RAD_coupling
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
-!!!   USE obio_incom, only : wfac_o
+#else
+      USE obio_incom, only : wfac
+#endif
       implicit none
 
       integer nl

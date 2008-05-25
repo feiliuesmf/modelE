@@ -317,21 +317,24 @@ c  Read in factors to compute average irradiance
       print*, '    '
 
 
+#ifndef OBIO_RAD_coupling
 !ifst part from ocalbedo.f
-!     rn = 1.341        !index of refraction of pure seawater
-!     roair = 1.2E3     !density of air g/m3
-!     do nl = 1,nlt
-!      if (lam(nl) .lt. 900)then
-!       t = exp(-(aw(nl)+0.5*bw(nl)))
-!       tlog = alog(1.0E-36+t)
-!       fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
-!       wfac(nl) = min(fac,1.0)
-!       wfac(nl) = max(fac,0.0)
-!      else
-!       fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
-!       wfac(nl) = max(fac,0.0)
-!      endif
-!     enddo
+!if obio-rad-coupling is defined this part is done inside RAD_COM.f and RAD_DRV.f
+      rn = 1.341        !index of refraction of pure seawater
+      roair = 1.2E3     !density of air g/m3
+      do nl = 1,nlt
+       if (lam(nl) .lt. 900)then
+        t = exp(-(aw(nl)+0.5*bw(nl)))
+        tlog = alog(1.0E-36+t)
+        fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
+        wfac(nl) = min(fac,1.0)
+        wfac(nl) = max(fac,0.0)
+       else
+        fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
+        wfac(nl) = max(fac,0.0)
+       endif
+      enddo
+#endif
 
 !ifst part from ptend.f
        do k=1,kdm

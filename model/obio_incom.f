@@ -106,9 +106,14 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       common/exifst1/nl450
 
       real excdom,bbw,Dmax,rd,ru,rmus,rmuu,rn,roair
-!    .             ,wfac_o
       common/exifst2/excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu
      .             ,rn,roair
-!    .             ,wfac_o(nlt)
+
+#ifndef OBIO_RAD_coupling
+      !if obio-rad-coupling is defined then this part is done 
+      !inside RAD_COM.f and RAD_DRV.f
+      real wfac(nlt)
+      common/exifst3/wfac
+#endif
 
       END MODULE obio_incom

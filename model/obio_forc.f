@@ -40,7 +40,7 @@
       !real Esa(idm,jdm,nlt,nhn,12)    !diffuse downwelling irradiance
       !common /beda/  Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12)
       real, ALLOCATABLE :: Eda(:,:,:,:,:),Esa(:,:,:,:,:)
-      real Eda2,Esa2,Ed,Es 
+      real Eda2,Esa2
       common /beda2/ Eda2(nlt,nhn),Esa2(nlt,nhn)
 !$OMP THREADPRIVATE(/beda2/)
 #endif

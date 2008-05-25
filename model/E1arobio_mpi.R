@@ -1,6 +1,6 @@
-E1arobio2.R GISS Model E  2007 modelE              aromanou 04/18/08
+E1arobio_disc.R GISS Model E  2007 modelE              aromanou 04/18/08
 
-E1arobio2: obio + gas exch + radiation coupling 
+E1arobio_disc: obio + gas exch + radiation coupling 
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -15,8 +15,8 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
-#define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
-#define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
+!#define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
+!#define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
 #define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
 #define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
 !!!!#define CHL_from_OBIO               ! interactive CHL 
@@ -54,6 +54,7 @@ POUT                                ! post-processing output
 hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8| hycom_atm|-r8|
 hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
 hycom_scalars|-r8| hycom_dim_glob|-r8|
+kprf_arrays_loc_renamer|r-8|
 hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
 advfct|-r8|                         ! advection
 archyb|-r8|                         ! continuity eqn.
@@ -182,7 +183,7 @@ CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
 
 
 Label and Namelist:
-E1arobio2 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio_disc (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 

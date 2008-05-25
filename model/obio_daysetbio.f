@@ -70,7 +70,7 @@ c  do not divide by 24: it is a factor
       k = 1
       tzoo = 0.06*exp(0.1*temp1d(k)) + 0.70
 
-      if (vrbos) write(*,*)'daysetbio: ',
+      if (vrbos) write(*,'(a,4i5,2d12.4)')'daysetbio: ',
      .   nstep,i,j,k,temp1d(k),tzoo
 
 c
