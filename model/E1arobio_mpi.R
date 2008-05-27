@@ -1,6 +1,6 @@
-E1arobio_disc.R GISS Model E  2007 modelE              aromanou 04/18/08
+E1arobio_mpi.R GISS Model E  2007 modelE              aromanou 04/18/08
 
-E1arobio_disc: obio + gas exch + radiation coupling 
+E1arobio_mpi: obio + gas exch + radiation coupling 
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -183,7 +183,7 @@ CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
 
 
 Label and Namelist:
-E1arobio_disc (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio_mpi (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 
