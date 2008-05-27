@@ -19,6 +19,7 @@
 #endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
+     &    , nstep0, nstep, time0, time
       implicit none
 
       logical, intent(in) :: iniOCEAN
@@ -96,6 +97,11 @@ c
       CALL ESMF_BCAST(ogrid, delt1 )
 
       CALL ESMF_BCAST(ogrid, salmin )
+      CALL ESMF_BCAST(ogrid, nstep0 )
+      CALL ESMF_BCAST(ogrid, nstep )
+      CALL ESMF_BCAST(ogrid, time0 )
+      CALL ESMF_BCAST(ogrid, time )
+
 
 c
       END SUBROUTINE init_OCEAN
