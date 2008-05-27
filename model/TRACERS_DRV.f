@@ -9334,7 +9334,7 @@ C**** Tracer specific call for CH4
          print*, "called new version of Be source"
       end if
 
-     if (variable_phi .eq. 2) then
+      if (variable_phi .eq. 2) then
          if ((jday .eq. 1) .or. (iact .eq. 0)) then 
             call update_annual_phi
             print*, "called update_annual_phi"
