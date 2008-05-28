@@ -653,11 +653,7 @@ cddd      ENDIF
         grd_dum%HAVE_EQUATOR    = .false.
       endif
 
-      if ( present(bc_periodic) ) then
-        grd_dum%BC_PERIODIC = bc_periodic
-      else
-        grd_dum%BC_PERIODIC = .false.
-      endif
+      grd_dum % BC_PERIODIC = isPeriodic(bc_periodic)
 
       ! set lookup table PET(J)
       Allocate(grd_dum%lookup_pet(1:JM))
@@ -5029,17 +5025,9 @@ cddd      End If
       Integer :: n, sz
       Logical :: bc_periodic
 
-      IF(.NOT.PRESENT(FROM)) THEN
-        USABLE_FROM = ALL
-      ELSE
-        USABLE_FROM = FROM
-      ENDIF
+      USABLE_FROM = usableFrom(from)
+      bc_periodic = isPeriodic(bc_periodic_)
 
-      if ( present(bc_periodic_) ) then
-        bc_periodic = bc_periodic_
-      else
-        bc_periodic = .false.
-      endif
       ! create a new mpi type for use in communication
       !-------------------------------
       new_type = CreateDist_MPI_Type(MPI_DOUBLE_PRECISION, shp,dist_idx)
@@ -5075,6 +5063,22 @@ cddd      End If
 
       End SUBROUTINE SendRecv
 
+! Helper function to handle optional arguments related to periodic boundaries
+      logical function isPeriodic(override)
+        logical, optional, intent(in) :: override
+
+        isPeriodic = .false.
+        if (present(override)) isPeriodic = override
+
+      end function isPeriodic
+
+! Helper function to handle optional arguments related to halo directions
+      integer function usableFrom(fromDirection)
+        integer, optional, intent(in) :: fromDirection
+        usableFrom = ALL
+        if (present(fromDirection)) usableFrom = fromDirection
+      end function usableFrom
+
       Subroutine sendrecv_int(grid, arr, shp, dist_idx, from, 
      &     bc_periodic_)
       Type (Esmf_Grid) :: grid
@@ -5092,17 +5096,8 @@ cddd      End If
       Integer :: n, sz
       Logical :: bc_periodic
 
-      IF(.NOT.PRESENT(FROM)) THEN
-        USABLE_FROM = ALL
-      ELSE
-        USABLE_FROM = FROM
-      ENDIF
-
-      if ( present(bc_periodic_) ) then
-        bc_periodic = bc_periodic_
-      else
-        bc_periodic = .false.
-      endif
+      USABLE_FROM = usableFrom(from)
+      bc_periodic = isPeriodic(bc_periodic_)
       ! create a new mpi type for use in communication
       !-------------------------------
       new_type = CreateDist_MPI_Type(MPI_INTEGER, shp,dist_idx)
