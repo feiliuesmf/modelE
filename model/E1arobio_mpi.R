@@ -168,13 +168,16 @@ n_o2a=n_o2a195x180.8bin            ! coupler weights for northward vel from ocea
 cososino=cososino195x180.8bin      ! cos/sin of i,j axis angle on ocean grid
 kpar=seawifs_kpar_195x180.tbin     ! monthly/annual seawifs_kpar data
 !!!!!!!!!!!!!!!!!!! obio  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-cfle1=abw25b.dat                         !
-cfle2=acbc25b.dat                        !
-pco2table=pco2.tbl.asc                   !
-oasimdirect=oasimdirect_20w_new          !
+cfle1=abw25b.dat                         ! seawater spectral absorp. and scatt. coefs
+cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp. and scatt. coefs
+pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from sst,sss,dic,alk
+nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
+silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
+dic_inicond=dic_glodap_annmean.asc         ! initial cond for dic (GLODAP)
+oasimdirect=oasimdirect_20w_new          ! spectral light components
 atmFedirect0=iron_gocart_195x180_20w.bin ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
-facirr=facirr.asc                        !
+facirr=facirr.asc                        ! factors for mean irradiance w/in water
 alkalindirect=alk195x180_20w.asc         !
 eda_esa_ratios=eda_esa_ratios.asc        ! ratios of radiation spectral components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

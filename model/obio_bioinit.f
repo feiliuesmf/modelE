@@ -1,5 +1,11 @@
       subroutine obio_bioinit
  
+!note: 
+!obio_bioinit is called only for a cold start and reads in INITIAL conditions and interpolates them
+!to the hycom grid. Such fields are nitrates,silicate,dic
+!obio_init  is called for every start of the run and reads in BOUNDARY conditions and interpolates 
+!them to hycom grid. such fields are iron,alkalinity,chlorophyl
+
 c based on /g6/aromanou/Watson_new/BioInit/rstbio.F
 
 c  Makes initialization data files for biological variables.
@@ -33,55 +39,21 @@ c  Carbon type 2    = DIC
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax
  
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
-      USE hycom_scalars
       implicit none
-!!#include "dimensions.h"
+#include "dimensions.h"
 #include "dimension2.h"
-!!#include "common_blocks.h"
+#include "common_blocks.h"
 
 
+      integer ir,nir,nt
+      integer iu_bioinit
 
-      integer igrd,jgrd,kgrd,ir,nir,nt,nerror,ierror,nflg,ntunit
-      parameter(igrd=360,jgrd=180,kgrd=nlt)
+      real rlon,rlat,dicmin,dicmax
+      real Fer(idm,jdm,kdm),dicmod(idm,jdm,kdm),dic(idm,jdm,kdm)
 
-      integer ichan,ilat,ilon,idic,lgth
-      integer kb(kgrd),ipcrs
-      integer iu_bioinit,iu_dpinit
-
-
-      real rno3min,rno3max,so2min,so2max
-      real dictot,rlon,rlat,dicavg,startdic
-      real rinc
-      real Fer(idm,jdm,kdm)
-      real rno3(idm,jdm,kgrd),so2(idm,jdm,kgrd)
-      real*4 real4(idm,jdm)
-      real dicmin,dicmax
-
-      logical save4ini   !switch for when we need to correct ini fields
-
-      real spval
-      data spval/-.03125/
-
-      integer jn,jjn,in,iin
-      real dic(idm,jdm,kgrd)
-      real dicmod(idm,jdm,kdm)
       character*2 ntchar
-!     character*28 file_dir   !discover
-      character*32 file_dir   !explorer
 
-      common /refin/ ipcrs(idm,jdm)
       common /bir/ ir(idm,jdm),nir(nrg)
-      real flag
-      !data flag /999.0E9/
-      data flag /-99./
-      data kb /0,10,20,30,50,75,100,125,150,200,250,300,400,500,600,
-     *700,800,900,1000,1100,1200,1300,1400,1500,1750,2000,2500,3000,
-     *3500,4000,4500,5000,5500/
- 
-   
-      save4ini=.false.
 
 c  Initialize
 
@@ -106,246 +78,51 @@ c$OMP PARALLEL DO
       enddo
 c$OMP END PARALLEL DO
 
-      nerror = 0
-      ierror = 0
- 
-      do 14 lgth=60,1,-1
-      if (flnmovt(lgth:lgth).ne.' ') go to 15
- 14   continue
-      stop '(bioinit:flnmovt)'
- 15   continue  
+      call bio_inicond('nitrates_inicond',tracer(:,:,:,1))
 
-c  read NOAA 2001 atlas data
-      if (save4ini) then
+      call bio_inicond('silicate_inicond',tracer(:,:,:,3))
 
- 
-!      open(4,file=flnmbio1,status='unknown')
-!      do ichan=1,kgrd
-!        do ilon=1,180
-!         do ilat=1,181
-!          read(4,*)real4(ilat,ilon)
-!          util3(ilat,ilon)=1.D0*real4(ilat,ilon)
-!         enddo
-!        enddo
-!        !!call refinp(xpivo,xpivn,util3,ipcrs,180,util1,idm,180)
-!
-!      if (ichan.eq.1) then
-!        do i=1,iold
-!        do j=1,jdm 
-!        ipo(i,j)=0.
-!        if (abs(util3(i,j)-spval).gt.2.) ipo(i,j)=1    ! define old ip
-!        enddo
-!        enddo
-!      endif
-!      call refinp(equato,equatn,ipo,util3,util1)
-!
-!c$OMP PARALLEL DO
-!        do ilon=1,jdm
-!         do ilat=1,idm
-!          rno3(ilat,ilon,ichan)=util1(ilat,ilon)
-!         enddo
-!        enddo
-!c$OMP END PARALLEL DO
-!
-!      enddo !ichan
-!      close(4)
-!      write(*,'(a,3i4,e12.4)')
-!     . 'BIO: bioinit: rno3 at test point',
-!     .    itest,jtest,1,rno3(itest,jtest,1)
-!
-!      open(4,file=flnmbio2,status='unknown')
-!      do ichan=1,kgrd
-!        do ilon=1,180
-!         do ilat=1,181
-!          read(4,*)real4(ilat,ilon)
-!          util3(ilat,ilon)=1.D0*real4(ilat,ilon)
-!         enddo
-!        enddo
-!        !!call refinp(xpivo,xpivn,util3,ipcrs,180,util1,idm,180)
-!      if (ichan.eq.1) then
-!        do i=1,iold
-!        do j=1,jdm
-!        ipo(i,j)=0.
-!        if (abs(util3(i,j)-spval).gt.2.) ipo(i,j)=1    ! define old ip
-!        enddo
-!        enddo
-!      endif
-!      call refinp(equato,equatn,ipo,util3,util1)
-!
-!c$OMP PARALLEL DO
-!        do ilon=1,jdm
-!         do ilat=1,idm
-!          so2(ilat,ilon,ichan)=util1(ilat,ilon)
-!         enddo
-!        enddo
-!c$OMP END PARALLEL DO
-!
-!      enddo !ichan
-!      close(4)
-!      write(*,'(a,3i4,e12.4)')
-!     .'BIO: bioinit: so2 at test point',itest,jtest,1,so2(itest,jtest,1)
-!
-!      ! save out rno3 and so2 fields
-!      !save out in ascii
-!      print*,'saving out in ',flnmovt(1:lgth)//'rno3_so2_init.dat'
-!      open(unit=120,file=flnmovt(1:lgth)//'rno3_so2_init.dat',
-!     .     status='unknown')
-!      rno3min= 1.e30
-!      rno3max=-1.e30
-!      so2min = 1.e30
-!      so2max =-1.e30
-!      do ichan=1,kgrd
-!       do j=1,jj			!  do not parallelize
-!        do l=1,isp(j)
-!         do i=ifp(j,l),ilp(j,l)
-!          !protect against non-existing values
-!          if (rno3(i,j,ichan).lt.0.)rno3(i,j,ichan)=0.
-!          if ( so2(i,j,ichan).lt.0.) so2(i,j,ichan)=0.
-!
-!          rno3min=min(rno3min,rno3(i,j,ichan))
-!          rno3max=max(rno3max,rno3(i,j,ichan))
-!          so2min =min(so2min,so2(i,j,ichan))
-!          so2max =max(so2max,so2(i,j,ichan))
-!          write(120,'(3i4,2e12.4)')
-!     .     i,j,ichan,rno3(i,j,ichan),so2(i,j,ichan)
-!         enddo
-!        enddo
-!       enddo
-!      enddo
-!      close(120)
-!
-!      write(*,'(a,4e12.4)')'BIO: bioinit: rno3,so2 min-max=',
-!     .       rno3min,rno3max,so2min,so2max
-!
-!      !read GLODAP data for dic
-!      open(4,file=flnmbio3,status='unknown')
-!      do ichan=1,kgrd
-!        do ilon=1,180
-!         do ilat=1,181
-!          read(4,*)real4(ilat,ilon)
-!          util3(ilat,ilon)=real4(ilat,ilon)
-!         enddo
-!        enddo
-!        !!call refinp(xpivo,xpivn,util3,ipcrs,180,util1,idm,180)
-!        if (ichan.eq.1) then
-!          do i=1,iold
-!          do j=1,jdm
-!          ipo(i,j)=0.
-!          if (abs(util3(i,j)-spval).gt.2.) ipo(i,j)=1    ! define old ip
-!          enddo
-!          enddo
-!        endif
-!        call refinp(equato,equatn,ipo,util3,util1)
-!
-!c$OMP PARALLEL DO
-!        do ilon=1,jdm
-!         do ilat=1,idm
-!          dic(ilat,ilon,ichan)=util1(ilat,ilon)
-!         enddo
-!        enddo
-!c$OMP END PARALLEL DO
-!
-!      enddo !ichan
-!      close(4)
-!      write(*,'(a,3i4,e12.4)')
-!     . 'BIO: bioinit: dic at test point',itest,jtest,1
-!     . ,dic(itest,jtest,1)
-!
-!! save out dic field
-!      write (lp,'(a/9x,a)') 'BIO: save dic init field',
-!     .   flnmovt(1:lgth)//'dic_init.dat'
-!
-!      !writeout in ascii
-!      print*,'saving out in ',flnmovt(1:lgth)//'dic_init.dat'
-!      open(unit=120,file=flnmovt(1:lgth)//'dic_init.dat',
-!     .     status='unknown')
-!      dicmin = 1.e30
-!      dicmax =-1.e30
-!      do ichan=1,kgrd
-!       do j=1,jj                        !  do not parallelize
-!        do l=1,isp(j)
-!         do i=ifp(j,l),ilp(j,l)
-!          !protect against non-existing values
-!          if (dic(i,j,ichan).lt.0.) dic(i,j,ichan)=0.
-!          dicmin =min(dicmin,dic(i,j,ichan))
-!          dicmax =max(dicmax,dic(i,j,ichan))
-!          write(120,'(3i4,e12.4)')i,j,ichan,dic(i,j,ichan)
-!         enddo
-!        enddo
-!       enddo
-!      enddo
-!      close(120)
-!
-!      write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
-!     .       dicmin,dicmax
-!
-      !save depths
-      print*,'saving out in dp_ini.asc'
-      call openunit('dp_ini.asc',iu_dpinit)
-       do j=1,jj                        !  do not parallelize
-       do l=1,isp(j)
-       do i=ifp(j,l),ilp(j,l)
-       do k=1,kdm
-        write(iu_dpinit,'(4i5,e12.4)')
-     .       nstep,i,j,k,dpinit(i,j,k)/onem
-       enddo
-       enddo
-       enddo
-       enddo
-       call closeunit(iu_dpinit)
- 
- 
-       else   !save4ini is false
+      call bio_inicond('dic_inicond',dic(:,:,:))
+
+!     call obio_inicond('alk_glodap_annmean.asc')
+!     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
+!     /archive/u/aromanou/Watson_new/BioInit/CHL_WG_4x5
+
+
 !!these rno3 and so2_init fields are not correct. There are void points due to
 !mismatch of the noaa grid and the hycom grid. To fill in have to do
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
-      file_dir='/explore/nobackup/aromanou/RUNS/'
-!     file_dir='/discover/nobackup/aromanou/'
-!     call openunit(file_dir//'rno3_correctini.asc',iu_bioinit)
-      call openunit(file_dir//'nitoa195x180_20w.asc',iu_bioinit)
-      do ichan=1,kdm
+      do k=1,kdm
        do j=1,jdm
         do i=1,idm
-         read(iu_bioinit,'(f12.8)')tracer(i,j,ichan,1)
-          if(tracer(i,j,ichan,1).le.0.)tracer(i,j,ichan,1)=0.085
+          if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085
         enddo
        enddo
       enddo
-      call closeunit(iu_bioinit)
 
-!     call openunit(file_dir//'so2_correctini.asc',iu_bioinit)
-      call openunit(file_dir//'siloa195x180_20w.asc',iu_bioinit)
-      do ichan=1,kdm
+      do k=1,kdm
        do j=1,jdm
         do i=1,idm
-         read(iu_bioinit,'(f12.8)')tracer(i,j,ichan,3)
-          if(tracer(i,j,ichan,3).le.0.)tracer(i,j,ichan,3)=0.297
+          if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297
         enddo
        enddo
       enddo
-      call closeunit(iu_bioinit)
      
-!     call openunit(file_dir//'dic_correctini.asc',iu_bioinit)
-      call openunit(file_dir//'dic195x180_20w.asc',iu_bioinit)
       dicmin = 1.e30
       dicmax =-1.e30
-      do ichan=1,kdm
+      do k=1,kdm
        do j=1,jdm
         do i=1,idm
-         read(iu_bioinit,'(f12.8)')dic(i,j,ichan)
-          if (dic(i,j,ichan).le.0.) dic(i,j,ichan)=1837.
-          dic(i,j,ichan)=max(dic(i,j,ichan),1837.)   !set minimum =1837
-          dicmin =min(dicmin,dic(i,j,ichan))
-          dicmax =max(dicmax,dic(i,j,ichan))
+          if (dic(i,j,k).le.0.) dic(i,j,k)=1837.
+          dic(i,j,k)=max(dic(i,j,k),1837.)   !set minimum =1837
+          dicmin =min(dicmin,dic(i,j,k))
+          dicmax =max(dicmax,dic(i,j,k))
         enddo
        enddo
       enddo
-      call closeunit(iu_bioinit)
       write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
      .       dicmin,dicmax
-
-      endif    !save4ini
 
 c  Obtain region indicators
       write(6,*)'calling fndreg...'
@@ -394,9 +171,6 @@ c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 c  Create arrays 
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
-
-      dictot = 0.0
-      idic = 0
 
 ! the following loop has parallelization problems....
 
@@ -454,21 +228,14 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 
          enddo
 
-
-cdiag do k=1,kdm
-cdiag  write(998,'(4i5,4e12.4)')
-cdiag.       nstep,i,j,k,dpinit(i,j,k)/onem,
-cdiag.       tracer(i,j,k,1),tracer(i,j,k,3),dicmod(i,j,k)
-cdiag enddo
-
  1000 continue
 
 
-c     dicavg = dictot/float(idic)
-c     write(6,*)'avg deep DIC = ',dicavg
- 
 c  Detritus (set to 0 for start up)
       write(6,*)'Detritus...'
+      cnratio = 106.0/16.0*12.0    !C:N ratio (ugl:uM)
+      csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
+      cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
 
       do j=1,jj
        do l=1,isp(j)
@@ -505,8 +272,6 @@ c    conversion from uM to mg/m3
         enddo
        enddo
       enddo
-      startdic = 2054.0
-      nflg = 0
 
       !only carbon components
       do j=1,jj
@@ -548,33 +313,25 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-!     do nt=1,ntyp+n_inert+ndet+ncar
-!       ntchar='00'
-!       if(nt.le.9)write(ntchar,'(i1)')nt
-!       if(nt.gt.9)write(ntchar,'(i2)')nt
-!       print*,'BIO: saving initial tracer fields '
-!    .        ,'bioinit_tracer'//ntchar
-
-
-!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-
-!       do k=1,kdm
-!       do j=1,jj				!  do not parallelize
-!       do l=1,isp(j)
-!       do i=ifp(j,l),ilp(j,l)
-!          write(iu_bioinit,'(3i4,2e12.4)')
-!    .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-!       enddo
-!       enddo
-!       enddo
-!       enddo
-!     call closeunit(iu_bioinit)
-!     enddo
-
-      if (save4ini) then
-      print*, '   '
-      stop 'WROTE OUT INI FIELDS. RESTART USING save4ini=.false.'
-      endif
+      do nt=1,ntyp+n_inert+ndet+ncar
+        ntchar='00'
+        if(nt.le.9)write(ntchar,'(i1)')nt
+        if(nt.gt.9)write(ntchar,'(i2)')nt
+        print*,'BIO: saving initial tracer fields '
+     .        ,'bioinit_tracer'//ntchar
+        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+        do k=1,kdm
+        do j=1,jj				!  do not parallelize
+        do l=1,isp(j)
+        do i=ifp(j,l),ilp(j,l)
+           write(iu_bioinit,'(3i4,2e12.4)')
+     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+        enddo
+        enddo
+        enddo
+        enddo
+      call closeunit(iu_bioinit)
+      enddo
 
       return
       end
@@ -603,13 +360,10 @@ c       13 -- Mediterranean/Black Seas
 
       USE obio_dim
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
-      USE hycom_scalars, only : onem
       implicit none
-!!#include "dimensions.h"
+#include "dimensions.h"
 #include "dimension2.h"
-!!#include "common_blocks.h"
+#include "common_blocks.h"
 
 
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
@@ -872,5 +626,420 @@ c  Total up points for check
       enddo
       write(6,*)'Total ocean points = ',ntot
  
+      return
+      end
+c------------------------------------------------------------------------------
+      subroutine bio_inicond(filename,fldo2)
+
+!read in a field and convert to ocean grid (using Shana's routine) 
+!convert to the new grid using dps from the model and the remap routine
+
+c --- mapping flux-like field from agcm to ogcm
+c     input: flda (W/m*m), output: fldo (W/m*m)
+c
+
+      USE FILEMANAGER, only: openunit,closeunit
+
+
+      implicit none
+
+#include "dimensions.h"
+#include "dimension2.h"
+#include "a2o.h"
+#include "common_blocks.h"
+
+      integer, parameter :: igrd=360,jgrd=180,nchan=33
+      integer iu_file,lgth
+      integer i1,j1,iii,jjj,isum,kmax
+      integer nodc_kmax
+
+      real data(igrd,jgrd,nchan)
+      real data2(iia,jja,nchan)
+      real data_min(nchan),data_max(nchan)
+      real sum1
+      real  dummy1(36,jja,nchan),dummy2(36,jja,nchan)
+      real fldo(iio,jjo,nchan)
+      real pinit(iio,jjo,kdm+1),fldo2(iio,jjo,kdm)
+      real nodc_depths(nchan),nodc_d(nchan)
+
+      character*80 filename
+
+      data nodc_depths/0,  10,  20,  30,  50,  75, 100, 125, 150, 200,
+     .          250, 300, 400, 500, 600, 700, 800, 900,1000,1100,1200,
+     .    1300,1400,1500,1750,2000,2500,3000,3500,4000,4500,5000,5500/
+
+!--------------------------------------------------------------
+      !read no3 files from Watson and convert to ascii
+      lgth=len_trim(filename)
+      print*, 'reading from file',filename(1:lgth)
+      call openunit(filename,iu_file,.false.,.true.)
+
+!NOTE: data starts from Greenwich
+!      missing values are -9999
+       do k=1,nchan
+       data_min(k)=1.e10
+       data_max(k)=-1.e10
+         do i=1,igrd
+           do j=1,jgrd
+             read(iu_file,'(e12.4)')data(i,j,k)
+             !preserve the mean for later
+              if (data(i,j,k)>0.) then
+                data_min(k)=min(data_min(k),data(i,j,k))
+                data_max(k)=max(data_max(k),data(i,j,k))
+             endif
+           enddo
+         enddo
+      enddo
+      call closeunit(iu_file)
+
+!--------------------------------------------------------------
+      print*, 'converting data from 1x1 to 4x5 deg resolution'
+      do k=1,nchan
+       i1=0
+       do i=1,igrd,5
+       i1=i1+1
+       j1=0
+       do j=1,jgrd,4
+       j1=j1+1
+
+        sum1=0.
+        isum=0
+        do iii=1,5
+        do jjj=1,4
+
+            if (data(i+iii-1,j+jjj-1,k).ge.0.) then
+               sum1=sum1+data(i+iii-1,j+jjj-1,k)
+               isum=isum+1
+            endif
+         enddo
+         enddo
+
+          if (isum.gt.0) then
+             data2(i1,j1,k)=sum1/float(isum)
+          else
+             data2(i1,j1,k)=-9999.
+          endif
+      enddo
+      enddo
+      enddo
+
+      !this is needed for dic
+      do k=1,nchan
+      do i=1,iia
+      do j=1,jja
+      if (data2(i,j,k).gt.0) then
+        if (data2(i,j,k)<data_min(k)) data2(i,j,k)=data_min(k)
+        if (data2(i,j,k)>data_max(k)) data2(i,j,k)=data_max(k)
+      endif
+      enddo
+      enddo
+      enddo
+
+      !set to zero so that interpolation works
+      do k=1,nchan
+      do i=1,iia
+      do j=1,jja
+        if (data2(i,j,k)<0.)data2(i,j,k)=0.
+      enddo
+      !make it 72x46x33
+      data2(i,46,k)=data2(i,45,k)
+      enddo
+      enddo
+
+      !--------------------------------------------------------
+      !***************** important! change to dateline
+      !move to dateline
+      dummy1=data2(1:36,:,:);
+      dummy2=data2(37:72,:,:);
+      data2(1:36,:,:)=dummy2;
+      data2(37:72,:,:)=dummy1;
+
+      !--------------------------------------------------------
+      print*, 'changing horizontal grid grid....'
+      do 8 k=1,nchan
+      do 8 j=1,jjo
+      do 8 i=1,iio
+
+      fldo(i,j,k)=0.
+c
+      do 9 n=1,nlista2o(i,j)
+      ia=ilista2o(i,j,n)
+      ja=jlista2o(i,j,n)
+      fldo(i,j,k)=fldo(i,j,k)+data2(ia,ja,k)*wlista2o(i,j,n)
+ 9    continue
+ 8    continue
+
+      !this is needed for dic
+      do k=1,nchan
+      do i=1,iio
+      do j=1,jjo
+        if (fldo(i,j,k)<data_min(k)) fldo(i,j,k)=data_min(k)
+        if (fldo(i,j,k)>data_max(k)) fldo(i,j,k)=data_max(k)
+      enddo
+      enddo
+      enddo
+
+      !--------------------------------------------------------
+      print*, 'interpolating to hycom vertical grid'
+      !use dpinit(i,j,k)/onem
+
+       pinit(:,:,1)=0.
+       do k=1,kdm
+       do j=1,jj
+       do l=1,isp(j)
+       do i=ifp(j,l),ilp(j,l)
+         pinit(i,j,k+1)=pinit(i,j,k)+dpinit(i,j,k)/onem
+       enddo
+       enddo
+       enddo
+       enddo
+
+       fldo2(:,:,:)=-9999.
+       do j=1,jj                       
+       do l=1,isp(j)
+       do i=ifp(j,l),ilp(j,l)
+
+          !match nodc and model bottom pressure
+          !the top match already
+          do k=2,kdm+1
+           if (pinit(i,j,k) .gt. pinit(i,j,k-1)) kmax=k
+          enddo
+
+          !model bottom at kmax+1
+          do k=1,nchan
+           if (nodc_depths(k) .le. pinit(i,j,min(21,kmax+1))) then
+               nodc_d(k)=nodc_depths(k)
+               nodc_kmax=k
+           endif
+          enddo
+          nodc_d(nodc_kmax+1)=pinit(i,j,kmax)
+
+!        call remap1d_pcm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
+!    .             fldo2(i,j,:),pinit(i,j,:),kdm,.false.,i,j)
+
+         call remap1d_plm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
+     .             fldo2(i,j,:),pinit(i,j,:),kdm,.false.,i,j)
+
+       enddo
+       enddo
+       enddo
+
+         
+      !--------------------------------------------------------
+
+        return
+  
+        end subroutine bio_inicond
+  
+      subroutine remap1d_plm(yold,xold,kold,ynew,xnew,knew,vrbos,i,j)
+c
+c --- consider two stepwise constant functions -yold,ynew- whose
+c --- discontinuities are at abscissa values -xold,xnew- respectively.
+c --- treat -ynew- as unknown. solve for -ynew- under the condition that
+c --- the integral over y*dx is preserved (integration based on PLM).
+c
+      implicit none
+      integer,intent(IN) :: kold,knew
+      integer,intent(IN) :: i,j                !  current location in horiz.grid
+      real,intent(IN)    :: yold(kold),xold(kold+1),xnew(knew+1)
+      real,intent(OUT)   :: ynew(knew)
+      logical,intent(IN) :: vrbos        !  if true, print diagnostics
+      integer k,ko,n
+      real colin,clout,slope,wgta,wgtb,wgtc,yinteg,
+     .     ylft(kold),yrgt(kold),xlo,xhi,ra,rb,ya,yb,q,plmslp,
+     .     yrka,ylk,yrk,ylkb
+      external plmslp
+      logical at_top
+      real,parameter    :: onemu=1.e-6, acurcy=1.e-6, flag=-999.
+      integer,parameter :: iter=2
+c
+      if (vrbos)
+     . write (*,101) i,j,' remap1d -- old profile:     x         y',
+     .  (k,xold(k),yold(k),k=1,kold),kold+1,xold(kold+1)
+ 101  format (2i5,a/(i30,f12.1,f10.2))
+c
+c --- column integrals (colin/clout) are computed for diagnostic purposes only
+      colin=0.
+      clout=0.
+      do 3 k=1,kold
+ 3    colin=colin+yold(k)*(xold(k+1)-xold(k))
+c
+c --- replace each flat segment of stairstep curve by
+c --- a slanting segment, using PLM-type limiters.
+c
+      ylft(   1)=yold(   1)
+      yrgt(   1)=yold(   1)
+      ylft(kold)=yold(kold)
+      yrgt(kold)=yold(kold)
+      do 6 n=1,iter                        !  iterate to optimize limiters
+      do 2 k=2,kold-1
+      if (n.eq.1) then
+        yrka=yold(k-1)
+        ylk=yold(k)
+        yrk=yold(k)
+        ylkb=yold(k+1)
+      else
+        yrka=yrgt(k-1)
+        ylk=ylft(k)
+        yrk=yrgt(k)
+        ylkb=ylft(k+1)
+      end if
+      wgta=max(onemu,xold(k  )-xold(k-1))
+      wgtb=max(onemu,xold(k+1)-xold(k  ))
+      wgtc=max(onemu,xold(k+2)-xold(k+1))
+      if (k.eq.     1) wgta=onemu
+      if (k.eq.kold-1) wgtc=onemu
+      slope=plmslp((wgtb*yrka+wgta*ylk)/(wgtb+wgta),
+     .     yold(k),(wgtb*ylkb+wgtc*yrk)/(wgtb+wgtc))
+      ylft(k)=yold(k)-slope
+ 2    yrgt(k)=yold(k)+slope
+      if (vrbos) print '(8x,a,12x,a,5x,a/(i3,f9.2,5x,2f9.2))',
+     .  'y','ylft','yrgt',(ko,yold(ko),ylft(ko),yrgt(ko),ko=1,kold)
+ 6    continue
+      if (vrbos) print '(a/(10f8.2))',
+     .  '  target values:',(ynew(ko),ko=1,knew)
+c
+c --- y in k-th interval now varies from ylft at xold(k) to yrgt at xold(k+1).
+c --- find ynew(k) by requiring
+c --- that the integral over y*dx from xnew(k) to xnew(k+1) be preserved.
+c
+      at_top=.true.
+      do 4 k=1,knew
+      yinteg=0.
+      xlo=xnew(k  )
+      xhi=xnew(k+1)
+ccc      if (vrbos) print '(a,2f9.3)','xlo,xhi =',xlo,xhi
+      if (xhi.gt.xlo) then
+        at_top=.false.
+        do 5 ko=1,kold
+        if (xold(ko).ge.xhi) go to 1
+c --- integrate over sloping portions of y(x) curve:
+        ra=max(xlo,min(xhi,xold(ko  )))
+        rb=max(xlo,min(xhi,xold(ko+1)))
+        ya=ylft(k)
+        yb=yrgt(k)
+        wgta=flag
+        wgtb=flag
+        if (xold(ko+1).ne.xold(ko)) then
+          if (ra.ge.xold(ko).and.ra.le.xold(ko+1)) then
+            wgta=(xold(ko+1)-ra)/(xold(ko+1)-xold(ko))
+            ya=ylft(ko)*wgta+yrgt(ko)*(1.-wgta)
+          end if
+          if (rb.ge.xold(ko).and.rb.le.xold(ko+1)) then
+            wgtb=(xold(ko+1)-rb)/(xold(ko+1)-xold(ko))
+            yb=ylft(ko)*wgtb+yrgt(ko)*(1.-wgtb)
+          end if
+        end if
+        yinteg=yinteg+.5*(ya+yb)*(rb-ra)
+ccc        if (vrbos) print '(2i4,4f9.3,3f11.1)',
+ccc     .    k,ko,ra,rb,wgta,wgtb,ya,yb,yinteg
+ 5      continue
+        yinteg=yinteg+yb*(xhi-rb)
+ccc        if (vrbos) print '(2i4,4f9.3,3f11.1)',
+ccc     .    k,0,rb,xhi,wgta,wgtb,yb,yb,yinteg
+ 1      ynew(k)=yinteg/(xhi-xlo)
+      else if (at_top) then
+        ynew(k)=yold(   1)
+      else                              !  at end
+        ynew(k)=yold(kold)
+      end if
+ccc      if (vrbos) print '(a,f11.1)','ynew =',ynew(k)
+      clout=clout+ynew(k)*(xnew(k+1)-xnew(k))
+ 4    continue
+c
+      if (abs(clout-colin).gt.acurcy*10.*xold(kold+1))
+     .  write (*,100) i,j,' remap1d - column intgl.error',
+     .   colin,clout,(clout-colin)/colin
+ 100  format (2i5,a,2es14.6,es9.1)
+c
+      if (vrbos)
+     . write (*,101) i,j,' remap1d -- new profile:     x         y',
+     .  (k,xnew(k),ynew(k),k=1,knew),knew+1,xnew(knew+1)
+      return
+      end
+c
+c
+      function plmslp(ylft,ymid,yrgt)
+c
+c --- get slope at point 'ymid' for piecewise linear interpolation
+      if (ymid.le.min(ylft,yrgt) .or.
+     .    ymid.ge.max(ylft,yrgt)) then
+        plmslp=0.
+      else if ((yrgt-ylft)*(ylft+yrgt-2.*ymid).gt.0.) then
+        plmslp=ymid-ylft
+      else
+        plmslp=yrgt-ymid
+      end if
+      return
+      end
+
+      subroutine remap1d_pcm(yold,xold,kold,ynew,xnew,knew,vrbos,i,j)
+c
+c --- consider two stepwise constant functions -yold,ynew- whose
+c --- discontinuities are at abscissa values -xold,xnew- respectively.
+c --- treat -ynew- as unknown. solve for -ynew- under the condition that
+c --- the integral over y*dx is preserved (integration based on PCM).
+c
+      implicit none
+      integer,intent(IN) :: kold,knew
+      integer,intent(IN) :: i,j                !  current location in horiz.grid
+      real,intent(IN)    :: yold(kold),xold(kold+1),xnew(knew+1)
+      real,intent(OUT)   :: ynew(knew)
+      logical,intent(IN) :: vrbos        !  if true, print diagnostics
+      integer k,ko
+      real colin,clout,colmx,yinteg,xlo,xhi,xa,xb
+      logical at_top
+      real,parameter    :: acurcy=1.e-6
+c
+      if (vrbos)
+     . write (*,101) i,j,' remap1d -- old profile:     x         y',
+     .  (k,xold(k),yold(k),k=1,kold),kold+1,xold(kold+1)
+ 101  format (2i5,a/(i30,f12.1,f10.3))
+c
+c --- column integrals (colin/clout) are computed for diagnostic purposes only
+      colin=0.
+      clout=0.
+      colmx=0.
+      do 3 k=1,kold
+      colmx=max(colmx,abs(yold(k)))
+ 3    colin=colin+yold(k)*(xold(k+1)-xold(k))
+c
+c --- find ynew(k) by requiring that the integral over y*dx
+c --- from xnew(k) to xnew(k+1) be preserved.
+c
+      at_top=.true.
+      do 4 k=1,knew
+      yinteg=0.
+      xlo=xnew(k  )
+      xhi=xnew(k+1)
+      if (xhi.gt.xlo) then
+        at_top=.false.
+        xb=xlo
+        do 5 ko=1,kold
+        xa=xb
+        xb=min(xhi,max(xlo,xold(ko+1)))
+        yinteg=yinteg+yold(ko)*(xb-xa)
+        if (xa.ge.xhi) go to 1
+ 5      continue
+        xa=xb
+        xb=xhi
+        yinteg=yinteg+yold(kold)*(xb-xa)
+ 1      ynew(k)=yinteg/(xhi-xlo)
+        clout=clout+yinteg
+      else if (at_top) then
+        ynew(k)=yold(   1)
+      else                              !  at end
+        ynew(k)=yold(kold)
+      end if
+ 4    continue
+c
+      if (abs(clout-colin).gt.acurcy*colmx*xold(kold+1))
+     .  write (*,100) i,j,' remap1d - column intgl.error',
+     .   colin,clout,(clout-colin)/colin
+ 100  format (2i5,a,2es14.6,es9.1)
+c
+      if (vrbos)
+     . write (*,101) i,j,' remap1d -- new profile:     x         y',
+     .  (k,xnew(k),ynew(k),k=1,knew),knew+1,xnew(knew+1)
       return
       end
