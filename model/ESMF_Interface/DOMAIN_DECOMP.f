@@ -4139,12 +4139,11 @@ C--------------------------------------
           ARR(:,:,J_0:J_1,:)=ARR_GLOB(:,:,J_0:J_1,:)
 #ifdef USE_ESMF
       else
-         call scatter(grd_dum % ESMF_GRID, arr_glob, arr, 
+         call scatter(grd_dum % ESMF_GRID, arr_glob, arr,
      &        shape(arr), dist_idx = 3)
 #endif
       end if
-      
-      call stop_model('got here',255)
+
       RETURN
       END SUBROUTINE UNPACK_COLUMN_3D
 
@@ -5065,7 +5064,7 @@ cddd      End If
 
       End SUBROUTINE SendRecv
 
-      Subroutine sendrecv_int(grid, arr, shp, dist_idx, from, 
+      Subroutine sendrecv_int(grid, arr, shp, dist_idx, from,
      &     bc_periodic_)
       Type (Esmf_Grid) :: grid
       Integer :: arr(*)
