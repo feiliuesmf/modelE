@@ -371,6 +371,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
+     *     ,calc_orb_par_sp,paleo_orb_par
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -458,6 +459,8 @@ C**** sync radiation parameters from input
       call sync_param( "KZSNOW", KZSNOW )
       call sync_param( "calc_orb_par", calc_orb_par )
       call sync_param( "paleo_orb_yr", paleo_orb_yr )
+      call sync_param( "calc_orb_par_sp", calc_orb_par_sp )
+      call sync_param( "paleo_orb_par", paleo_orb_par, 3 )
       call sync_param( "snoage_fac_max", snoage_fac_max )
       if(snoage_fac_max.lt.0. .or. snoage_fac_max.gt.1.) then
         write(out_line,*) 'set 0<snoage_fac_max<1, not',snoage_fac_max
@@ -478,6 +481,30 @@ C**** Set orbital parameters appropriately
         write(out_line,*)
         call write_parallel(trim(out_line),unit=6)
         write(out_line,*) " Orbital Parameters Calculated:"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear,"
+     *       (CE);", paleo_orb_yr," (BP)"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
+     *       " (default = ",eccn_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
+     *       obliq,
+     *       " (default = ",obliq_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f7.3,a,f7.3,a)')
+     *       "   Precession (degs from ve): ",
+     *       omegt," (default = ",omegt_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+      elseif(calc_orb_par_sp.eq.1) then
+        omegt=paleo_orb_par(3)
+        obliq=paleo_orb_par(2)
+        eccn=paleo_orb_par(1)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*) " Orbital Parameters Specified:"
         call write_parallel(trim(out_line),unit=6)
         write(out_line,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear,"
      *       (CE);", paleo_orb_yr," (BP)"
