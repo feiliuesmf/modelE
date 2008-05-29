@@ -37,7 +37,7 @@ C**** exactly the same as the default values.
 !@dbparam calc_orb_par_sp = 1 to directly specify orbital parameters
       integer :: calc_orb_par_sp = 0
 !@dbparam paleo_orb_par :: directly specifies orbital parameters
-      real*8, dimension(3) :: paleo_orb_par (/ eccn_def, obliq_def,
+      real*8, dimension(3) :: paleo_orb_par = (/ eccn_def, obliq_def,
      *     omegt_def /)
 
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs
