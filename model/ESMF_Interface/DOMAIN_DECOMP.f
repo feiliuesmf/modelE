@@ -4121,28 +4121,30 @@ C--------------------------------------
       REAL*8, INTENT(OUT) ::
      &        ARR(:,:,grd_dum%j_strt_halo:,:)
       INTEGER :: J_0, J_1, K, L
-      LOGICAL, OPTIONAL :: local
+      LOGICAL, OPTIONAL, intent(in) :: local
 
-      if (present(local)) then
-        if (local) then
+      logical :: local_
+
+
+#ifdef USE_ESMF
+      local_ = .false.
+      if (present(local)) local_ = local
+#else
+      local_ = .true.
+#endif
+
+      if (local_)then
           J_0=grd_dum%j_strt
           J_1=grd_dum%j_stop
           ARR(:,:,J_0:J_1,:)=ARR_GLOB(:,:,J_0:J_1,:)
-        else
-          do k=1,size(arr,1)
-            do l=1,size(arr,4)
-             call arrayscatter(grd_dum, arr(k,:,:,l),arr_glob(k,:,:,l))
-            end do
-          end do
-        end if
+#ifdef USE_ESMF
       else
-        do k=1,size(arr,1)
-          do l=1,size(arr,4)
-            call arrayscatter(grd_dum, arr(k,:,:,l), arr_glob(k,:,:,l))
-          end do
-        end do
+         call scatter(grd_dum % ESMF_GRID, arr_glob, arr, 
+     &        shape(arr), dist_idx = 3)
+#endif
       end if
-
+      
+      call stop_model('got here',255)
       RETURN
       END SUBROUTINE UNPACK_COLUMN_3D
 
@@ -5063,22 +5065,6 @@ cddd      End If
 
       End SUBROUTINE SendRecv
 
-! Helper function to handle optional arguments related to periodic boundaries
-      logical function isPeriodic(override)
-        logical, optional, intent(in) :: override
-
-        isPeriodic = .false.
-        if (present(override)) isPeriodic = override
-
-      end function isPeriodic
-
-! Helper function to handle optional arguments related to halo directions
-      integer function usableFrom(fromDirection)
-        integer, optional, intent(in) :: fromDirection
-        usableFrom = ALL
-        if (present(fromDirection)) usableFrom = fromDirection
-      end function usableFrom
-
       Subroutine sendrecv_int(grid, arr, shp, dist_idx, from, 
      &     bc_periodic_)
       Type (Esmf_Grid) :: grid
@@ -5309,6 +5295,22 @@ cddd      End If
      &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
 #endif
       end subroutine IRECV_FROM_J_0D
+
+! Helper function to handle optional arguments related to periodic boundaries
+      logical function isPeriodic(override)
+        logical, optional, intent(in) :: override
+
+        isPeriodic = .false.
+        if (present(override)) isPeriodic = override
+
+      end function isPeriodic
+
+! Helper function to handle optional arguments related to halo directions
+      integer function usableFrom(fromDirection)
+        integer, optional, intent(in) :: fromDirection
+        usableFrom = ALL
+        if (present(fromDirection)) usableFrom = fromDirection
+      end function usableFrom
 
       END MODULE DOMAIN_DECOMP
 
