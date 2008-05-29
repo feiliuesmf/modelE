@@ -707,7 +707,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
-     &     ,do_polefix,pednl00,pmidl00
+     &     ,do_polefix,pednl00,pmidl00,ij_debug
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE PARAM
       implicit none
@@ -748,6 +748,7 @@ C**** Rundeck parameters:
       call sync_param( "UOdrag", UOdrag )
       call sync_param( "IRAND", IRAND )
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
+      call sync_param( "ij_debug",ij_debug , 2)
 
 C**** Non-Rundeck parameters
 
@@ -1371,6 +1372,8 @@ C****
 C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
+c        iniSNOW = .TRUE.  ! Special for non-0k
+c        iniPBL=.TRUE.           ! Special for non-0k
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
         !iniSNOW = .TRUE.      ! extract snow data from first soil layer
         iniPBL=.TRUE.
@@ -1387,6 +1390,12 @@ C**** Check consistency of starting time
       END IF
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
+
+      IF (ISTART.eq.5) then
+        iniLAKE=.TRUE.
+        iniPBL=.TRUE.
+        iniSNOW = .TRUE.        ! extract snow data from first soil layer
+      endif
 
       CALL CALC_AMPK(LM)
 C****
@@ -1951,7 +1960,6 @@ C**** CORRECTED.
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
-
 
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
