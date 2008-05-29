@@ -60,6 +60,8 @@ c$$$#endif
       integer :: KOCEAN = 1, MFILTR = 1
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
+!@var ij_debug: if i > 0, print out some extra info on bad ij box
+      integer, dimension(2) :: ij_debug = (/ 0 , 1 /)
 
 !**** Controls on FLTRUV (momentum/velocity filter)
 !@dbparam DT_XUfilter dU is multiplied by dt/DT_XUfilter in E-W
