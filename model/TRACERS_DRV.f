@@ -8841,7 +8841,8 @@ C**** Initialise pbl profile if necessary
         end do
       end if
 
-      write(out_line,*) ' Tracer ',trname(n),' initialized at itime=',itime
+      write(out_line,*) ' Tracer ',trname(n),' initialized at itime='
+     *     ,itime
       call write_parallel(trim(out_line))
 
       end if
