@@ -34,6 +34,11 @@ C**** exactly the same as the default values.
       integer :: calc_orb_par = 0
 !@dbparam paleo_orb_yr is paleo year (BP) for orbital calc
       real*8 :: paleo_orb_yr = -50.  ! (i.e. 2000AD)
+!@dbparam calc_orb_par_sp = 1 to directly specify orbital parameters
+      integer :: calc_orb_par_sp = 0
+!@dbparam paleo_orb_par :: directly specifies orbital parameters
+      real*8, dimension(3) :: paleo_orb_par (/ eccn_def, obliq_def,
+     *     omegt_def /)
 
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs
       INTEGER, PARAMETER :: dimrad_sv=IM*JM*(7*LM+3*LM_REQ+24)
