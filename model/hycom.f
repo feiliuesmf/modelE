@@ -622,7 +622,11 @@ c
         call system_clock(before)      ! time elapsed since last system_clock
 
 c --- initialization of tracer transport arrays (incl. dpinit):
-        call tradv0(m,mm)
+        call gather_hycom_arrays
+        if (AM_I_ROOT()) then
+          call tradv0(m,mm)
+        endif
+        call scatter_hycom_arrays
 cdiag print *,'past tradv0'
         dotrcr=.false.
 c
@@ -632,12 +636,18 @@ c     call findmx(ip,temp(1,1,k1n),idm,ii,jj,'sst')
 c     call findmx(ip,saln(1,1,k1n),idm,ii,jj,'sss')
 c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
-cc$OMP PARALLEL DO
-c       do 12 j=1,jj
-c       do 12 l=1,isp(j)
-c       do 12 i=ifp(j,l),ilp(j,l)
-c12     tracer(i,j,1,1)=1.              !  surface ventilation tracer
-cc$OMP END PARALLEL DO
+#if defined(TRACERS_HYCOM_Ventilation)
+       call gather_hycom_arrays
+       if (AM_I_ROOT()) then
+c$OMP PARALLEL DO
+       do 12 j=1,jj
+       do 12 l=1,isp(j)
+       do 12 i=ifp(j,l),ilp(j,l)
+12     tracer(i,j,1,1)=1.              !  surface ventilation tracer
+c$OMP END PARALLEL DO
+      endif
+      call scatter_hycom_arrays
+#endif
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
       end if ! dotrcr  above if block is done only once
@@ -732,7 +742,15 @@ c
       if (trcout) then
         before = after
 c --- long time step tracer advection: build up mass flux time integral
-        if (n.eq.oddev) call tradv1(n,nn)
+
+        if (n.eq.oddev) then
+          call gather_hycom_arrays
+          if (AM_I_ROOT()) then
+            call tradv1(n,nn)
+          endif
+          call scatter_hycom_arrays
+
+        endif
 cdiag print *,'past tradv1'
 c
         if (mod(nstep,trcfrq).eq.0) then
@@ -740,7 +758,12 @@ c
           write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
-          call tradv2(n,nn)
+          call gather_hycom_arrays
+          if (AM_I_ROOT()) then
+            call tradv2(n,nn)
+          endif
+          call scatter_hycom_arrays
+
         end if
         trcadv_time = trcadv_time + real(after-before)/real(rate)
 

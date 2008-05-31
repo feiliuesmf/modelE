@@ -202,7 +202,8 @@ c --- thermo      use thermodynamic forcing functions
 c --- windf       use wind stress forcing function
 c --- relax       activate lateral boundary nudging
 c
-#if defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
+#if defined(TRACERS_HYCOM_Ventilation) \
+ || defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
 #else     
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
