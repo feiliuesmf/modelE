@@ -863,8 +863,9 @@ C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             rvrfl=.false.
 C**** Check for special case:
-            IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).ge.
-     &           0.95d0*(FLAKE(ID,JD)+FEARTH(ID,JD))) THEN
+            IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).gt.0 .and.
+     *           FLAKE(ID,JD).ge.0.95d0*(FLAKE(ID,JD)+FEARTH(ID,JD)))
+     *           THEN 
               MWLSILLD = RHOW*(HLAKE(ID,JD)+BYGRAV*MAX(ZATMO(IU,JU)
      *             -ZATMO(ID,JD),0d0))*DXYP(JD)*FLAKE(ID,JD)
               IF (MWL(ID,JD)-MWLSILLD.gt.0) THEN  ! potential back flux
