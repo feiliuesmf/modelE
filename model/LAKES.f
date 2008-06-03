@@ -571,7 +571,7 @@ C**** read in named rivers (if any)
 
 
 C**** Create integral direction array KDIREC from CDIREC
-      CALL HALO_UPDATE(GRID, FEARTH0, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FEARTH0, FROM=NORTH+SOUTH) ! fixed 
       CALL HALO_UPDATE(GRID, FLICE,  FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)  ! fixed
       CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)  ! fixed
@@ -1143,7 +1143,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,hlake,qcheck
+      USE MODEL_COM, only : im,jm,hlake,qcheck,focean
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
       USE GEOM, only : dxyp,imaxj
 #ifdef TRACERS_WATER
@@ -1151,7 +1151,6 @@ C****
 #endif
       USE LAKES
       USE LAKES_COM
-      USE GHY_COM, only : fearth
       IMPLICIT NONE
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
       INTEGER I,J,N !@var I,J loop variables
@@ -1172,7 +1171,7 @@ C**** Check for NaN/INF in lake data CALL CHECK3(MWL,IM,JM,1,SUBR,'mwl')
       QCHECKL = .FALSE.
       DO J=J_0S, J_1S
       DO I=1,IM
-        IF(FEARTH(I,J).gt.0.) THEN
+        IF(FOCEAN(I,J).eq.0.) THEN
 C**** check for negative mass
           IF (MWL(I,J).lt.0 .or. MLDLK(I,J).lt.0) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TSL,MWL,GML,MLD=',
@@ -1208,7 +1207,7 @@ C**** Check for neg tracers in lake
         if (t_qlimit(n)) then
          do j=J_0, J_1
           do i=1,imaxj(j)
-            if (fearth(i,j).gt.0) then
+            if (focean(i,j).eq.0) then
               if (trlake(n,1,i,j).lt.0 .or. trlake(n,2,i,j).lt.0) then
                 print*,"Neg tracer in lake after ",SUBR,i,j,trname(n)
      *               ,trlake(n,:,i,j)
@@ -1223,7 +1222,7 @@ C**** Check conservation of water tracers in lake
           errmax = 0. ; imax=1 ; jmax=1
           do j=J_0, J_1
           do i=1,imaxj(j)
-            if (fearth(i,j).gt.0) then
+            if (focean(i,j).eq.0) then
               if (flake(i,j).gt.0) then
                 relerr=max(
      *               abs(trlake(n,1,i,j)-mldlk(i,j)*rhow*flake(i,j)

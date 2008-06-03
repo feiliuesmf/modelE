@@ -57,7 +57,6 @@
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_COSMO)
-CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE COSMO_SOURCES, only: be7_src_param
 #endif
 #if (defined TRACERS_AMP)
@@ -238,7 +237,6 @@ C**** Define a max layer for some optionally trop/strat tracers
       LTOP = LM
 
 #if (defined TRACERS_COSMO)
-CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 C**** get rundeck parameter for cosmogenic source factor
       call sync_param("be7_src_param", be7_src_param)
 #endif
@@ -2828,61 +2826,23 @@ c gravitational settling of SO4
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-#ifdef TRACERS_HETCHEM
-        case ('SO4_d1')
-c gas phase source of SO4_d1
+        case ('SO4_d1', 'SO4_d2', 'SO4_d3')
+c gas phase source 
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'gas_phase_source_of'//trname(n)
-        lname_jls(k) = 'SO4_d1 gas phase source'
+        lname_jls(k) = trim(trname(n))//' gas phase source'
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c gravitational settling of SO4_d1
+c gravitational settling 
         k = k + 1
         jls_grav(n) = k
         sname_jls(k) = 'grav_sett_of'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of SO4_d1'
+        lname_jls(k) = 'Gravitational Settling of '//trname(n)
         jls_ltop(k) = LM
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-        case ('SO4_d2')
-c gas phase source of SO4_d2
-        k = k + 1
-        jls_3Dsource(1,n) = k
-        sname_jls(k) = 'gas_phase_source_of'//trname(n)
-        lname_jls(k) = 'SO4_d2 gas phase source'
-        jls_ltop(k) = LM
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c gravitational settling of SO4_d2
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of SO4_d2'
-        jls_ltop(k) = LM
-        jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-        case ('SO4_d3')
-c gas phase source of SO4_d3
-        k = k + 1
-        jls_3Dsource(1,n) = k
-        sname_jls(k) = 'gas_phase_source_of'//trname(n)
-        lname_jls(k) = 'SO4_d3 gas phase source'
-        jls_ltop(k) = LM
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c gravitational settling of SO4_d3
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of SO4_d3'
-        jls_ltop(k) = LM
-        jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 
         case ('Be7')
 c cosmogenic source from file
@@ -7988,21 +7948,21 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE CONSTANT, only: mair,rhow,sday,grav,tf
       USE resolution,ONLY : Im,Jm,Lm,Ls1
       USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear,
-     & PMIDL00
+     &     PMIDL00
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
       USE DOMAIN_DECOMP, only : GRID,GET,UNPACK_COLUMN, write_parallel,
-     * UNPACK_DATA
+     *     UNPACK_DATA
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
-     *   tr_mm,rnsrc,vol2mass
+     *     tr_mm,rnsrc,vol2mass
 #if (defined TRACERS_AEROSOLS_Koch)||(defined TRACERS_OM_SP)||\
     (defined TRACERS_AMP)
-     *   ,imAER,n_SO2,imPI,aer_int_yr
+     *     ,imAER,n_SO2,imPI,aer_int_yr
 #endif
 #ifdef TRACERS_WATER
-     *  ,trwm,trw0,tr_wd_TYPE,nWATER,n_HDO,n_H2O18
+     *     ,trwm,trw0,tr_wd_TYPE,nWATER,n_HDO,n_H2O18
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
       USE SEAICE, only : xsi,ace1i
@@ -8445,7 +8405,7 @@ C**** lakes
                 trlake(n,2,i,j)=0.
               end if
               gtracer(n,1,i,j)=trw0(n)
-            elseif (fearth(i,j).gt.0) then
+            elseif (focean(i,j).ne.0) then
               trlake(n,1,i,j)=trw0(n)*mwl(i,j)
               trlake(n,2,i,j)=0.
             else
@@ -10425,12 +10385,8 @@ C**** GLOBAL parameters and variables:
      *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p
       USE MODEL_COM, only  : dtsrc
 #endif
-c      USE CLOUDS, only: PL, NTIX
-c
       IMPLICIT NONE
-c
 C**** Local parameters and variables and arguments:
-c
 !@param BY298K unknown meaning for now (assumed= 1./298K)
 !@var Ppas pressure at current altitude (in Pascal=kg/s2/m)
 !@var TFAC exponential coeffiecient of tracer condensation temperature
