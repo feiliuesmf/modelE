@@ -85,7 +85,7 @@ c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH,
-     &                         haveLatitude
+     &                         haveLatitude, GLOBALSUM
       USE HYCOM_ATM !, only : gather_atm, scatter_atm
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
@@ -149,6 +149,8 @@ c
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv,den_str
+      real totlj(J_0H:J_1H), sumj(J_0H:J_1H), sumicej(J_0H:J_1H)
+      logical doThis
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
       integer ipa_loc(iia,aJ_0H:aJ_1H)
@@ -182,7 +184,7 @@ c
      . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
      . ,utila(iia,jja)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
-     &    osiav_loc(idm,J_0H:J_1H)
+     &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_Natassa
      . ,otrac(idm,jdm,ntm)
 #endif
@@ -372,6 +374,7 @@ c
       endif ! AM_I_ROOT
 
       call scatter_kprf_arrays
+      call scatter_hycom_arrays
 c
       call system_clock(before)
       call system_clock(count_rate=rate)
@@ -533,11 +536,11 @@ c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
         time0=nstep0*baclin/86400
         tavini=time0
 c
-! jtest may not be on root, need to broadcast dpini
 ! dpini is used to compute thkchg which is used only for printing
-! caution: mkb comeback to this
-      do 19 k=1,kk
- 19   dpini(k)=dp(itest,jtest,k)+dp(itest,jtest,k+kk)
+      if (haveLatitude(ogrid, J=jtest)) then
+        do 19 k=1,kk
+ 19     dpini(k)=dp_loc(itest,jtest,k)+dp_loc(itest,jtest,k+kk)
+      end if
 c
       else
         write (lp,'(/(a,i9))') 'chk model starts at steps',nstep
@@ -556,8 +559,6 @@ c
       osst=0.  ;   osst_loc=0.;
       osss=0.  ;   osss_loc=0.;
       osiav=0. ;  osiav_loc=0.;
-
-      call scatter_hycom_arrays
 
       CALL HALO_UPDATE(ogrid,corio_loc,     FROM=NORTH)
       hekman_loc=0.;
@@ -590,15 +591,8 @@ c     open(202,file='ip.array',form='unformatted',status='unknown')
 c     write(202) ip,iu,iv,ifp,ilp,isp
 c     close(202)
 c
-      call gather_kprf_arrays
-
       nsaveo=0
       do 15 nsub=1,nstepi
-! we need to call scatter, becase part of program in this loop is
-! on root
-
-      call scatter_kprf_arrays
-      call scatter_hycom_arrays
 
       m=mod(nstep  ,2)+1
       n=mod(nstep+1,2)+1
@@ -966,7 +960,7 @@ c
 c --- after 1 day, check terms in time-integrated continuity eqn
 c
       if (abs(time-tavini-1.).lt..001) then
-        CALL HALO_UPDATE(ogrid, vflxav,  FROM=NORTH)
+        CALL HALO_UPDATE(ogrid, vflxav_loc,  FROM=NORTH)
         i=itest
         j=jtest
         if (haveLatitude(ogrid, J=j)) then
@@ -977,59 +971,65 @@ c
           do k=1,kk
             km=k+mm
             kn=k+nn
-            thkchg=dp(i,j,km)+dp(i,j,kn)-dpini(k)
-            flxdiv=(uflxav(i+1,j,k)-uflxav(i,j,k)
-     .       +vflxav(i,jb ,k)-vflxav(i,j,k))*scp2i(i,j)*delt1
-            write (lp,102) k,thkchg,flxdiv,-diaflx(i,j,k),
-     .      thkchg+flxdiv-diaflx(i,j,k)
+            thkchg=dp_loc(i,j,km)+dp_loc(i,j,kn)-dpini(k)
+            flxdiv=(uflxav_loc(i+1,j,k)-uflxav_loc(i,j,k)
+     .      +vflxav_loc(i,jb ,k)-vflxav_loc(i,j,k))*scp2i_loc(i,j)*delt1
+            write (lp,102) k,thkchg,flxdiv,-diaflx_loc(i,j,k),
+     .      thkchg+flxdiv-diaflx_loc(i,j,k)
  102  format (i3,4f14.1)
           end do
         end if
       end if
 c
-      call gather_hycom_arrays
-      call gather_kprf_arrays
-      if (AM_I_ROOT()) then
-
+!------------------------------------------------------------
       if (diagno .or. mod(time+.0001,1.).lt..0002) then    !  once a day
 c
 c --- make line printer plot of mean layer thickness
-        index=-1
-        nflip=mod(nflip+1,2)
-        do 705 k=1+(kk-1)*nflip,kk-(kk-1)*nflip,1-2*nflip
-ccc     if (k.eq.kk-(kk-1)*nflip) index=1
-        sum=0.
-        totl=0.
-        do 706 j=1,jj
-        do 706 l=1,isp(j)
-        do 706 i=ifp(j,l),ilp(j,l)
-        totl=totl+oice(i,j)*scp2(i,j)
- 706    sum=sum+dp(i,j,k+nn)*scp2(i,j)
-css     call linout(sum/(area*onem),charac(k),index)
- 705    index=0
-c --- add ice extend (%) to plot
-css     call linout(100.*totl/area,'I',1)
+!----note: this section is not used for any thing, so we are
+!----      skipping this computation.
+        doThis = .false.
+
+        if( doThis ) then
+          index=-1
+          nflip=mod(nflip+1,2)
+          do 705 k=1+(kk-1)*nflip,kk-(kk-1)*nflip,1-2*nflip
+ccc       if (k.eq.kk-(kk-1)*nflip) index=1
+          sum=0.
+          totl=0.
+          do 706 j=1,jj
+          do 706 l=1,isp(j)
+          do 706 i=ifp(j,l),ilp(j,l)
+          totl=totl+oice(i,j)*scp2(i,j)
+ 706      sum=sum+dp(i,j,k+nn)*scp2(i,j)
+css       call linout(sum/(area*onem),charac(k),index)
+ 705      index=0
+c ---     add ice extend (%) to plot
+css       call linout(100.*totl/area,'I',1)
+        end if ! dothis
 c
 c --- diagnose mean sea surface height
-        sum=0.
-        sumice=0.
-        do 704 j=1,jj
-        do 704 l=1,isp(j)
-        do 704 i=ifp(j,l),ilp(j,l)
+        sumj(:)=0.; sumicej(:)=0.;
+        do 704 j=J_0,J_1
+        do 704 l=1,isp_loc(j)
+        do 704 i=ifp_loc(j,l),ilp_loc(j,l)
 c --- compute sea surface height (m)
-        srfhgt(i,j)=(montg(i,j,1)+thref*pbavg(i,j,m))/g
-        sumice=sumice+oice(i,j)*scp2(i,j)
- 704    sum=sum+srfhgt(i,j)*scp2(i,j)
-        write (lp,'(i9,'' mean sea srf.hgt. (mm):'',f9.2,f12.0)')nstep,
+        srfhgt_loc(i,j)=(montg_loc(i,j,1)+thref*pbavg_loc(i,j,m))/g
+        sumicej(j)=sumicej(j)+oice_loc(i,j)*scp2_loc(i,j)
+ 704    sumj(j)=sumj(j)+srfhgt_loc(i,j)*scp2_loc(i,j)
+         call GLOBALSUM(ogrid,sumicej,sumice, all=.true.)
+         call GLOBALSUM(ogrid,sumj,sum, all=.true.)
+
+        if (AM_I_ROOT())
+     .  write (lp,'(i9,'' mean sea srf.hgt. (mm):'',f9.2,f12.0)')nstep,
      .  sum*1.e3/area,sumice*1.e-6
 c
 c --- find the largest distance from a tencm layer from bottom
-        do 707 j=1,jj
-        do 707 l=1,isp(j)
-        do 707 i=ifp(j,l),ilp(j,l)
+        do 707 j=J_0,J_1
+        do 707 l=1,isp_loc(j)
+        do 707 i=ifp_loc(j,l),ilp_loc(j,l)
         do 709 k=1,kk
-        if (dp(i,j,k+nn).lt.tencm) then
-          util2(i,j)=(p(i,j,kk+1)-p(i,j,k))/onem
+        if (dp_loc(i,j,k+nn).lt.tencm) then
+          util2_loc(i,j)=(p_loc(i,j,kk+1)-p_loc(i,j,k))/onem
           goto 708
         endif
  709    continue
@@ -1049,6 +1049,7 @@ c       call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
 c       call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
       end if                      ! once a day
+!------------------------------------------------------------
 c
 c     write (*,'(2i5,2f8.1,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
 c    . itest,jtest,latij(itest,jtest,3),lonij(itest,jtest,3),
@@ -1082,6 +1083,7 @@ c
      .   +mxlayr_time
      .   +hybgen_time
 
+      if (AM_I_ROOT()) then
       write (lp,99009) ogcm_time,' sec for OGCM   at ocn step ',nstep
       write (lp,'(a/(5(4x,a,i5)))') 'timing (msec) by routine:'
      .   ,'cnuity',int(1000.*cnuity_time)
@@ -1095,6 +1097,7 @@ c
      .   ,'hybgen',int(1000.*hybgen_time)
 c
       if (mod(nstep,5).eq.0) call flush(lp)
+      end if  ! AM_I_ROOT
 
 #ifdef TRACERS_OceanBiology
       if (dobio .or. diagno) call obio_trint
@@ -1103,12 +1106,17 @@ c
 c
       if (.not.diagno) go to 23
 c
-      write (lp,100) nstep,int((time+.001)/365.),mod(time+.001,365.)
+      if (AM_I_ROOT())
+     .  write (lp,100) nstep,int((time+.001)/365.),mod(time+.001,365.)
  100  format (' ocn time step',i9,4x,'y e a r',i6,4x,'d a y',f9.2)
 c
 c --- output to history file
 c
-      call archiv(n,nn)
+      call gather_before_archive()
+
+      if (AM_I_ROOT()) then
+        call archiv(n,nn)
+
 c --- diagnose meridional overturning and heat flux
 c$OMP PARALLEL DO
         do 3 j=1,jj
@@ -1138,19 +1146,23 @@ ccc      call prtmsk(ip,srfhgt,util3,idm,ii1,jj1,0.,1./(thref*onecm),
 ccc     .     'sea surface height (cm)')
 ccc      call prtmsk(ip,dpmixl(1,1),util3,idm,ii1,jj1,0.,1./onem,
 ccc     .     'mixed layer depth (m)')
+
       call prtmsk(ip,temp(1,1,k1n),util3,idm,ii1,jj1,0.,10.,
      .     'mix.layer temp. (.1 deg)')
 ccc      call prtmsk(ip,saln(1,1,k1n),util3,idm,ii1,jj1,35.,100.,
 ccc     .     'mx.lay. salin. (.01 mil)')
+
       call prtmsk(ip,oice,util3,idm,ii1,jj1,0.,100.,
      .     'ice coverage (cm)')
         call prtmsk(ipa,asst,util3,iia,iia,jja,0.,1.,'asst ')
+
       do 77 j=1,jj1
       do 77 l=1,isu(j)
       do 77 i=ifu(j,l),ilu(j,l)
  77   util1(i,j)=u(i,j,k1n)+ubavg(i,j,n)
 ccc      call prtmsk(iu,util1,util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'u vel. (mm/s), layer 1')
+
       do 78 i=1,ii1
       do 78 l=1,jsv(i)
       do 78 j=jfv(i,l),jlv(i,l)
@@ -1161,18 +1173,27 @@ ccc      call prtmsk(iu,ubavg(1,1,n),util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'barotrop. u vel. (mm/s)')
 ccc      call prtmsk(iv,vbavg(1,1,n),util3,idm,ii1,jj1,0.,1000.,
 ccc     .     'barotrop. v vel. (mm/s)')
+
+      endif  !  AM_I_ROOT
+      call set_data_after_archiv()
+
  23   continue
 
 c --- accumulate fields for agcm
 c$OMP PARALLEL DO
-      do 201 j=1,jj
-      do 201 l=1,isp(j)
-      do 201 i=ifp(j,l),ilp(j,l)
-      osst(i,j)=osst(i,j)+temp(i,j,k1n)*baclin/(3600.*real(nhr))
-      osss(i,j)=osss(i,j)+saln(i,j,k1n)*baclin/(3600.*real(nhr))
-      osiav(i,j)=osiav(i,j)+odmsi(i,j)*baclin*dtsrc/(3600.*real(nhr)) !kg/m2=>kg*.5*hr/m2
-      omlhc(i,j)=spcifh*max(dp(i,j,k1n)/onem,thkmin)/thref  ! J/(m2*C)
-      oogeoza(i,j)=(montg(i,j,1)+thref*pbavg(i,j,m))*g/(thref*onem) ! m^2/s^2
+
+      do 201 j=J_0,J_1
+      do 201 l=1,isp_loc(j)
+      do 201 i=ifp_loc(j,l),ilp_loc(j,l)
+      osst_loc(i,j)=osst_loc(i,j)+temp_loc(i,j,k1n)*baclin/(3600.*
+     &                        real(nhr))
+      osss_loc(i,j)=osss_loc(i,j)+saln_loc(i,j,k1n)*baclin/(3600.*
+     &                        real(nhr))
+      osiav_loc(i,j)=osiav_loc(i,j)+odmsi_loc(i,j)*baclin*dtsrc/(3600.*
+     &                        real(nhr)) !kg/m2=>kg*.5*hr/m2
+      omlhc_loc(i,j)=spcifh*max(dp_loc(i,j,k1n)/onem,thkmin)/thref  ! J/(m2*C)
+      oogeoza_loc(i,j)=(montg_loc(i,j,1)+thref*pbavg_loc(i,j,m))*
+     &                        g/(thref*onem) ! m^2/s^2
 
 #ifdef TRACERS_GASEXCH_Natassa
       !here we define the tracer that participates in the
@@ -1200,19 +1221,22 @@ c$OMP END PARALLEL DO
 c
       nsaveo=nsaveo+1
 
-      endif ! root
-
       delt1=baclin+baclin
 
  15   continue
-
-      if (AM_I_ROOT()) then ! work on global grids here
 
       if (nsaveo*baclin.ne.nhr*3600) then
             print *, ' ogcm saved over hr=',nsaveo*baclin/3600.
             stop ' stop: ogcm saved over hr'
       end if
       nsaveo=0
+
+      call gather6hycom(osst,osss,osiav,oogeoza,
+     &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
+      call gather_hycom_arrays    !mkb 4
+      call gather_kprf_arrays
+
+      if (AM_I_ROOT()) then ! work on global grids here
 c
 c$OMP PARALLEL DO
       do 88 j=1,jj
@@ -1357,3 +1381,114 @@ c------------------------------------------------------------------
 
       end subroutine gather2_atm
 c------------------------------------------------------------------
+      subroutine gather_before_archive
+      USE HYCOM_ARRAYS_GLOB
+      use hycom_arrays_glob_renamer
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+
+      call pack_data( ogrid,  u_loc, u )
+      call pack_data( ogrid,  v_loc, v )
+      call pack_data( ogrid,  dp_loc, dp )
+      call pack_data( ogrid,  p_loc, p )
+      call pack_data( ogrid,  temp_loc, temp )
+      call pack_data( ogrid,  saln_loc, saln )
+      call pack_data( ogrid,  th3d_loc, th3d )
+      call pack_data( ogrid,  dpmixl_loc, dpmixl )
+      call pack_data( ogrid,  srfhgt_loc, srfhgt )
+      call pack_data( ogrid,  ubavg_loc, ubavg )
+      call pack_data( ogrid,  vbavg_loc, vbavg )
+      call pack_data( ogrid,  uav_loc, uav )
+      call pack_data( ogrid,  vav_loc, vav )
+      call pack_data( ogrid,  dpuav_loc, dpuav )
+      call pack_data( ogrid,  dpvav_loc, dpvav )
+      call pack_data( ogrid,  temav_loc, temav )
+      call pack_data( ogrid,  salav_loc, salav )
+      call pack_data( ogrid,  th3av_loc, th3av )
+      call pack_data( ogrid,  dpav_loc, dpav )
+      call pack_data( ogrid,  ubavav_loc, ubavav )
+      call pack_data( ogrid,  vbavav_loc, vbavav )
+      call pack_data( ogrid,  pbavav_loc, pbavav )
+      call pack_data( ogrid,  sfhtav_loc, sfhtav )
+      call pack_data( ogrid,  uflxav_loc, uflxav )
+      call pack_data( ogrid,  vflxav_loc, vflxav )
+      call pack_data( ogrid,  diaflx_loc, diaflx )
+      call pack_data( ogrid,  sflxav_loc, sflxav )
+      call pack_data( ogrid,  brineav_loc, brineav )
+      call pack_data( ogrid,  eminpav_loc, eminpav )
+      call pack_data( ogrid,  surflav_loc, surflav )
+      call pack_data( ogrid,  dpmxav_loc, dpmxav )
+      call pack_data( ogrid,  oiceav_loc, oiceav )
+      call pack_data( ogrid,  pbot_loc, pbot )
+      call pack_data( ogrid,  tracer_loc, tracer )
+      call pack_data( ogrid,  oice_loc, oice )
+      call pack_data( ogrid,  util1_loc, util1 )
+
+      end subroutine gather_before_archive
+c------------------------------------------------------------------
+      subroutine set_data_after_archiv
+
+      USE HYCOM_DIM, only : ii, J_0,  J_1, kk, ogrid 
+      USE HYCOM_ARRAYS_GLOB, only : p_glob => p, util1_glob => util1,
+     &                                           util2_glob => util2
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+
+      implicit none
+      integer :: i, j, k
+
+      call unpack_data( ogrid,  p_glob, p )
+      call unpack_data( ogrid,  util1_glob, util1 )
+      call unpack_data( ogrid,  util2_glob, util2 )
+
+      do 60 j=J_0, J_1
+c
+      do 601 i=1,ii
+      eminpav(i,j)=0.
+      surflav(i,j)=0.
+       sflxav(i,j)=0.
+      brineav(i,j)=0.
+c
+      ubavav(i,j)=0.
+      vbavav(i,j)=0.
+      pbavav(i,j)=0.
+      dpmxav(i,j)=0.
+      sfhtav(i,j)=0.
+ 601  oiceav(i,j)=0.
+c
+      do 60 k=1,kk
+      do 602 i=1,ii
+      uav(i,j,k)=0.
+      vav(i,j,k)=0.
+      dpuav(i,j,k)=0.
+      dpvav(i,j,k)=0.
+      dpav (i,j,k)=0.
+      temav(i,j,k)=0.
+      salav(i,j,k)=0.
+      th3av(i,j,k)=0.
+      uflxav(i,j,k)=0.
+      vflxav(i,j,k)=0.
+ 602  diaflx(i,j,k)=0.
+ 60   continue
+
+      end subroutine set_data_after_archiv
+c------------------------------------------------------------------
+      subroutine gather6hycom(osst,osss,osiav,oogeoza,
+     &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
+
+      USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
+      USE HYCOM_ARRAYS_GLOB, only : omlhc
+      USE hycom_arrays_glob_renamer, only : omlhc_loc
+      USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA
+      implicit none
+      real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm),oogeoza(idm,jdm)
+      real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
+     &     osiav_loc(idm,J_0H:J_1H),oogeoza_loc(idm,J_0H:J_1H)
+     
+      call pack_data( ogrid,  osst_loc,      osst    )
+      call pack_data( ogrid,  osss_loc,      osss    )
+      call pack_data( ogrid,  osiav_loc,     osiav   )
+      call pack_data( ogrid,  oogeoza_loc,   oogeoza )
+      call pack_data( ogrid,  omlhc_loc,     omlhc   )
+
+      end subroutine gather6hycom
