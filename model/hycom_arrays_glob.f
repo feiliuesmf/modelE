@@ -39,7 +39,7 @@ cddd      public msk
 
 
       public scatter_hycom_arrays, gather_hycom_arrays,
-     &     alloc_hycom_arrays_glob, hycom_arrays_checksum
+     &     alloc_hycom_arrays_glob, hycom_arrays_checksum_glob
 
       public u
       public v
@@ -839,7 +839,7 @@ c
       end subroutine alloc_hycom_arrays_glob
 
 
-      subroutine hycom_arrays_checksum
+      subroutine hycom_arrays_checksum_glob
 
       write(801,*) __FILE__,__LINE__,sum(u(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(v(:,:,:))
@@ -976,7 +976,7 @@ c
       write(801,*) __FILE__,__LINE__,sum(freshw(:,:))
       write(801,*) __FILE__,__LINE__,sum(diafor(:,:))
 
-      end subroutine hycom_arrays_checksum
+      end subroutine hycom_arrays_checksum_glob
 
       end module hycom_arrays_glob
 c
