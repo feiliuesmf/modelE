@@ -128,7 +128,7 @@ c --- time-interpolate wind stress
 
       CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,pvtrop, FROM=NORTH)
-      CALL HALO_UPDATE(ogrid,ubavg,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,ubavg(:,:,m),  FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,depthu, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,tauy  , FROM=SOUTH)
 c
@@ -200,7 +200,7 @@ c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
  807  pu(i,j,k+1)=pu(i,j,k)+dpu(i,j,km)
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,dp  , FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,km)  , FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 808 j=J_0,J_1
@@ -268,7 +268,7 @@ c
 c --- (to switch from biharmonic to laplacian friction, delete previous line)
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,dp, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,km), FROM=SOUTH)
 c
 c --- vorticity, pot.vort., defor. at lateral boundary points
 c$OMP PARALLEL DO PRIVATE(ja,i) SCHEDULE(STATIC,jchunk)
@@ -291,7 +291,7 @@ c$OMP END PARALLEL DO
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=NORTH)
       CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,dp,    FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,km),    FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,utotn, FROM=SOUTH)
 c
@@ -344,7 +344,7 @@ c$OMP END PARALLEL DO
       
       CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,dp,    FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,km),    FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(ogrid,ujb,   FROM=SOUTH)
 c
@@ -424,9 +424,9 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
  37   continue
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,dpu,  FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,dpu(:,:,km),  FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(ogrid,visc, FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH+NORTH)
+ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH+NORTH) ! not used?
       CALL HALO_UPDATE(ogrid,scqx, FROM=      NORTH)
 
 c
@@ -598,7 +598,7 @@ c --- deformation-dependent eddy viscosity coefficient
 
       CALL HALO_UPDATE(ogrid,defor1  , FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,pbot  ,   FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,p  ,      FROM=SOUTH)  !mkb get it only for that k
+      CALL HALO_UPDATE(ogrid,p(:,:,k)  ,      FROM=SOUTH)  !mkb get it only for that k
 c
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 38 j=J_0,J_1
@@ -633,8 +633,8 @@ c$OMP END PARALLEL DO
 
       CALL HALO_UPDATE(ogrid,visc, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,dl2v, FROM=NORTH)
-      CALL HALO_UPDATE(ogrid,dpv,  FROM=NORTH)
-      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dpv(:,:,km),  FROM=NORTH)
+ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH) ! not used?
 
 c
 c --- longitudinal turb. momentum flux (at mass points)
@@ -698,10 +698,10 @@ c
 c --- pressure force in y direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 
-      CALL HALO_UPDATE(ogrid,montg, FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,thstar, FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,p, FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,dp, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,montg(:,:,k), FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,thstar(:,:,k), FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,p(:,:,k+1), FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,km), FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 97 j=J_0,J_1
@@ -744,7 +744,7 @@ c
      .  (util2(ia ,j)+util2(ib ,j)+util2(i,ja )+util2(i,jb )+epsil))/h1
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,p,      FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,p(:,:,k:k+1), FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,drag,   FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,utotm,  FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,uflux,  FROM=SOUTH)
