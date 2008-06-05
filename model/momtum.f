@@ -93,7 +93,7 @@ c +++ ++++++++++++++++++
 c
 c --- bottom drag (standard bulk formula)
 c
-      CALL HALO_UPDATE(ogrid,v,     FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,v, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,vbavg, FROM=NORTH)
 
       thkbop=thkbot*onem
@@ -181,6 +181,9 @@ c --- spatial weighting function for pressure gradient calculation:
  814  util2(i,j)=0.
 c$OMP END PARALLEL DO
 c
+      CALL HALO_UPDATE(ogrid,dp(:,:,1+mm:kk+mm)  , FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,p(:,:,1:kk)  ,      FROM=SOUTH)
+
       do 9 k=1,kk
       km=k+mm
       kn=k+nn
@@ -200,7 +203,6 @@ c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
  807  pu(i,j,k+1)=pu(i,j,k)+dpu(i,j,km)
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,dp(:,:,km)  , FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 808 j=J_0,J_1
@@ -268,7 +270,6 @@ c
 c --- (to switch from biharmonic to laplacian friction, delete previous line)
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,dp(:,:,km), FROM=SOUTH)
 c
 c --- vorticity, pot.vort., defor. at lateral boundary points
 c$OMP PARALLEL DO PRIVATE(ja,i) SCHEDULE(STATIC,jchunk)
@@ -291,7 +292,6 @@ c$OMP END PARALLEL DO
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=NORTH)
       CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,dp(:,:,km),    FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,utotn, FROM=SOUTH)
 c
@@ -344,7 +344,6 @@ c$OMP END PARALLEL DO
       
       CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,dp(:,:,km),    FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(ogrid,ujb,   FROM=SOUTH)
 c
@@ -598,7 +597,6 @@ c --- deformation-dependent eddy viscosity coefficient
 
       CALL HALO_UPDATE(ogrid,defor1  , FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,pbot  ,   FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,p(:,:,k)  ,      FROM=SOUTH)  !mkb get it only for that k
 c
 c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 38 j=J_0,J_1
@@ -701,7 +699,6 @@ c --- ('scheme 2' from appendix -a- in bleck-smith paper)
       CALL HALO_UPDATE(ogrid,montg(:,:,k), FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,thstar(:,:,k), FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,p(:,:,k+1), FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,dp(:,:,km), FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 97 j=J_0,J_1
