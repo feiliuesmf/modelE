@@ -55,7 +55,7 @@ c
 c
       call cpy_p_par(dp(I_0H,J_0H,km))
       call cpy_p_par(dp(I_0H,J_0H,kn))
-      CALL HALO_UPDATE(ogrid,vflx, FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,vflx(:,:,k), FROM=NORTH)
 
 c
 c$OMP PARALLEL DO PRIVATE(jb,pold,pmid,flxdiv,offset)
@@ -210,9 +210,9 @@ c
       call cpy_p_par(saln(I_0H,J_0H,kn))
       call cpy_p_par(th3d(I_0H,J_0H,kn))
 
-      CALL HALO_UPDATE(ogrid,saln, FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(ogrid,temp, FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(ogrid,  dp, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,saln(:,:,kn), FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,temp(:,:,kn), FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,  dp(:,:,kn), FROM=SOUTH+NORTH)
 
 c
 c$OMP PARALLEL DO PRIVATE(ja,factor) SCHEDULE(STATIC,jchunk)
