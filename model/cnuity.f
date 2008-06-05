@@ -3,7 +3,7 @@
 c
 c --- micom version 2.9
 c --- hycom version 0.9
-      USE DOMAIN_DECOMP, only : halo_update,NORTH,SOUTH,checksum
+      USE DOMAIN_DECOMP, only : halo_update,NORTH,SOUTH
       USE HYCOM_DIM, only : ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
      &     ,ip,idm,ii1,JDM
      &     ,jchunk
@@ -47,23 +47,7 @@ c --- ------------------------------------------------------
 c --- continuity equation (flux-corrected transport version)
 c --- ------------------------------------------------------
 c
-!!! for debugging (checksums)
-      !!pold = 0
-      !!mask = 0
-      !!dpmn = 0
 
-cddd      my_pet = 0
-cddd      if ( j_0 == 91 ) my_pet = 1
-cddd
-cddd      write(900+my_pet,*) "bounds="
-cddd     &     , ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
-cddd     &     ,ip,idm,ii1,JDM
-cddd     &     ,j_0,j_1,j_0h,j_1h
-cddd
-cddd      write(0,*) "ok ",__FILE__,__LINE__
-      call checksum(ogrid,dp,__LINE__,__FILE__,921)
-
-      !write(0,*) "ok ",__FILE__,__LINE__
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 41 j=J_0,J_1
 c
@@ -81,46 +65,6 @@ c
  41   vtotn(i,j)=0.
 c$OMP END PARALLEL DO
 
-      call checksum(ogrid,pold,__LINE__,__FILE__,921)
-      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
-!      call checksum(ogrid,,__LINE__,__FILE__,921)
-!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!
-      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
-      call checksum(ogrid,dp,__LINE__,__FILE__,921)
-      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,u,__LINE__,__FILE__,921)
-      call checksum(ogrid,ubavg,__LINE__,__FILE__,921)
-      call checksum(ogrid,scuy,__LINE__,__FILE__,921)
-      call checksum(ogrid,depthu,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpu,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,v,__LINE__,__FILE__,921)
-      call checksum(ogrid,scvx,__LINE__,__FILE__,921)
-      call checksum(ogrid,depthv,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpv,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpold,__LINE__,__FILE__,921)
-      call checksum(ogrid,scp2i,__LINE__,__FILE__,921)
-      call checksum(ogrid,vbavg,__LINE__,__FILE__,921)
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
-      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
-      call checksum(ogrid,p,__LINE__,__FILE__,921)
-      call checksum(ogrid,util3,__LINE__,__FILE__,921)
-      call checksum(ogrid,pbot,__LINE__,__FILE__,921)
-      call checksum(ogrid,diaflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,bolusu,__LINE__,__FILE__,921)
-      call checksum(ogrid,bolusv,__LINE__,__FILE__,921)
-!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!
 
 c
       do 76 k=1,kk
@@ -137,14 +81,10 @@ c
 
       call cpy_p_par(pold)
 c
-      call checksum(ogrid,dp,__LINE__,__FILE__,921)
-      call checksum(ogrid,pold,__LINE__,__FILE__,921)
 
       !write(0,*) "ok ",__FILE__,__LINE__
       call halo_update(ogrid,dp,SOUTH)
       call halo_update(ogrid,pold,SOUTH)
-      call checksum(ogrid,dp,__LINE__,__FILE__,921)
-      call checksum(ogrid,pold,__LINE__,__FILE__,921)
 
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
 !!      do 12 j=1,jj
@@ -185,14 +125,6 @@ cddd     .  write(*,104) nstep,
 cddd     . ' cnuity1 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
  104  format (i9,a,i2,2es15.7)
 
-      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
 c
 c --- advance -dp- field using low-order (diffusive) flux values
 c
@@ -276,20 +208,9 @@ c --- pos. (neg.) change in -dp- to the sum of all incoming (outgoing) fluxes
 c
       call cpy_p_par(dp(:,:,kn))
 c
-      !write(930+my_pet,*) dp
       call halo_update(ogrid,dp)
-
-      !write(940+my_pet,*) dp
-      !write(950+my_pet,*)  vflux2
       call halo_update(ogrid,vflux2,NORTH)
-      !write(960+my_pet,*)  vflux2
 
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
-      call checksum(ogrid,dp,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
 
       !write(922,*) "bounds=",isp,ifp,ilp,ip,j_0,j_1
       !write(910+my_pet,*) "bounds=",j_0,j_1,kn,delt1
@@ -336,21 +257,11 @@ c --- (keep track in -utotn,vtotn- of discrepancy between high-order
 c --- fluxes and the sum of low-order and clipped antidiffusive fluxes.
 c --- this will be used later to restore nondivergence of barotropic flow)
 
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
-
       call cpy_p_par(util1)
       call cpy_p_par(util2)
-
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
-
 c
       call halo_update(ogrid,util1,SOUTH)
       call halo_update(ogrid,util2,SOUTH)
-
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
 
 c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 29 j=J_0,j_1
@@ -381,9 +292,6 @@ c
       vflux(i,j)=vflux2(i,j)*clip
  29   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
 c$OMP END PARALLEL DO
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
-
 c
 cddd      if (beropn .and.
 cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
@@ -431,40 +339,6 @@ c --- treat these fluxes as an 'upstream' barotropic correction to
 c --- the sum of diffusive and antidiffusive fluxes obtained so far.
 !!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!
-      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
-      call checksum(ogrid,dp,__LINE__,__FILE__,921)
-      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,u,__LINE__,__FILE__,921)
-      call checksum(ogrid,ubavg,__LINE__,__FILE__,921)
-      call checksum(ogrid,scuy,__LINE__,__FILE__,921)
-      call checksum(ogrid,depthu,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpu,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,v,__LINE__,__FILE__,921)
-      call checksum(ogrid,scvx,__LINE__,__FILE__,921)
-      call checksum(ogrid,depthv,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpv,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpold,__LINE__,__FILE__,921)
-      call checksum(ogrid,scp2i,__LINE__,__FILE__,921)
-      call checksum(ogrid,vbavg,__LINE__,__FILE__,921)
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
-      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
-      call checksum(ogrid,p,__LINE__,__FILE__,921)
-      call checksum(ogrid,util3,__LINE__,__FILE__,921)
-      call checksum(ogrid,pbot,__LINE__,__FILE__,921)
-      call checksum(ogrid,diaflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,bolusu,__LINE__,__FILE__,921)
-      call checksum(ogrid,bolusv,__LINE__,__FILE__,921)
-!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!
 
 c
       call cpy_p_par(p(:,:,kk+1))
@@ -951,43 +825,6 @@ c       write (lp,103) time,'  APE change due to intfc smoothing:',q
 c     end if
  103  format (f9.1,a,-12p,f9.3,' TW')
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!
-      call checksum(ogrid,utotn,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotn,__LINE__,__FILE__,921)
-      call checksum(ogrid,dp,__LINE__,__FILE__,921)
-      call checksum(ogrid,utotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,u,__LINE__,__FILE__,921)
-      call checksum(ogrid,ubavg,__LINE__,__FILE__,921)
-      call checksum(ogrid,scuy,__LINE__,__FILE__,921)
-      call checksum(ogrid,depthu,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpu,__LINE__,__FILE__,921)
-      call checksum(ogrid,uflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,vtotm,__LINE__,__FILE__,921)
-      call checksum(ogrid,v,__LINE__,__FILE__,921)
-      call checksum(ogrid,scvx,__LINE__,__FILE__,921)
-      call checksum(ogrid,depthv,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflux2,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpv,__LINE__,__FILE__,921)
-      call checksum(ogrid,vflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,dpold,__LINE__,__FILE__,921)
-      call checksum(ogrid,scp2i,__LINE__,__FILE__,921)
-      call checksum(ogrid,vbavg,__LINE__,__FILE__,921)
-      call checksum(ogrid,util1,__LINE__,__FILE__,921)
-      call checksum(ogrid,util2,__LINE__,__FILE__,921)
-      call checksum(ogrid,scp2,__LINE__,__FILE__,921)
-      call checksum(ogrid,p,__LINE__,__FILE__,921)
-      call checksum(ogrid,util3,__LINE__,__FILE__,921)
-      call checksum(ogrid,pbot,__LINE__,__FILE__,921)
-      call checksum(ogrid,diaflx,__LINE__,__FILE__,921)
-      call checksum(ogrid,bolusu,__LINE__,__FILE__,921)
-      call checksum(ogrid,bolusv,__LINE__,__FILE__,921)
-!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!
 
 
 
