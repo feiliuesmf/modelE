@@ -83,7 +83,7 @@ c
 c
 
       !write(0,*) "ok ",__FILE__,__LINE__
-      call halo_update(ogrid,dp,SOUTH)
+      call halo_update(ogrid,dp(:,:,kn),SOUTH)
       call halo_update(ogrid,pold,SOUTH)
 
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
@@ -208,7 +208,7 @@ c --- pos. (neg.) change in -dp- to the sum of all incoming (outgoing) fluxes
 c
       call cpy_p_par(dp(:,:,kn))
 c
-      call halo_update(ogrid,dp)
+      call halo_update(ogrid,dp(:,:,kn))
       call halo_update(ogrid,vflux2,NORTH)
 
 
@@ -342,6 +342,7 @@ c --- the sum of diffusive and antidiffusive fluxes obtained so far.
 
 c
       call cpy_p_par(p(:,:,kk+1))
+      call halo_update(ogrid,p(:,:,kk+1),SOUTH)
 c
       do 77 k=1,kk
       km=k+mm
@@ -349,8 +350,7 @@ c
 c
       call cpy_p_par(dp(:,:,kn))
 c
-      call halo_update(ogrid,dp,SOUTH)
-      call halo_update(ogrid,p,SOUTH)
+      call halo_update(ogrid,dp(:,:,kn),SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 45 j=J_0,J_1
       !!do 45 j=1,jj
@@ -460,7 +460,7 @@ c
 c
       call cpy_p_par(dp(:,:,kn))
 c
-      call halo_update(ogrid,dp,SOUTH)
+      call halo_update(ogrid,dp(:,:,kn),SOUTH)
       call halo_update(ogrid,util1,SOUTH)
       call halo_update(ogrid,util3,SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SCHEDULE(STATIC,jchunk)
@@ -560,7 +560,7 @@ c
 c
       call cpy_p_par(p(:,:,k))
 c
-      call halo_update(ogrid,p)
+      call halo_update(ogrid,p(:,:,k))
       call halo_update(ogrid,pbot)
 c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,pa,pb) SHARED(k)
 c$OMP+ SCHEDULE(STATIC,jchunk)
@@ -618,7 +618,7 @@ c
 c
       call halo_update(ogrid,util2,SOUTH)
       call halo_update(ogrid,pbot,SOUTH)
-      call halo_update(ogrid,p,SOUTH)
+      call halo_update(ogrid,p(:,:,k),SOUTH)
       call halo_update(ogrid,scp2,SOUTH)
 c$OMP PARALLEL DO PRIVATE(flxhi,flxlo,ja,jb) SCHEDULE(STATIC,jchunk)
 !!! this omp instruction was removed is it correct ? c$OMP. SHARED(k)
@@ -684,7 +684,7 @@ c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- mass loss to the sum of all outgoing bolus fluxes
 c
-      call halo_update(ogrid,bolusv,NORTH)
+      call halo_update(ogrid,bolusv(:,:,k),NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 261 j=1,jj
       do 261 j=J_0,J_1
@@ -738,7 +738,7 @@ c --- add bolus component to total mass flux
  291  vflx(i,j,k)=vflx(i,j,k)+bolusv(i,j,k)*dtinv
 c$OMP END PARALLEL DO
 c
-      call halo_update(ogrid,bolusv,NORTH)
+      call halo_update(ogrid,bolusv(:,:,k),NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 181 j=1,jj
       do 181 j=J_0,J_1
@@ -755,6 +755,7 @@ c
  10   continue
 c
       call cpy_p_par(p(:,:,kk+1))
+      call halo_update(ogrid,p(:,:,kk+1),SOUTH)
 c
       do 7 k=1,kk
       kn=k+nn
@@ -765,8 +766,7 @@ c --- restore zero column integral of bolus fluxes by recovering fluxes
 c --- lost in the flux limiting process. treat these as an 'upstream'
 c --- barotropic correction to the bolus fluxes.
 c
-      call halo_update(ogrid,dp,SOUTH)
-      call halo_update(ogrid,p,SOUTH)
+      call halo_update(ogrid,dp(:,:,kn),SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 145 j=1,jj
       do 145 j=J_0,J_1
