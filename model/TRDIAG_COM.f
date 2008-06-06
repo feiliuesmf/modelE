@@ -336,7 +336,7 @@ C**** include some extra troposphere only ones
       REAL*8, dimension(ntmxcon) :: SCALE_INST,SCALE_CHANGE
 !@var itcon_surf Index array for surface source/sink conservation diags
       INTEGER, DIMENSION(ntsurfsrcmax,ntmxcon) :: itcon_surf
-!@var itcon_3D Index array for 3D source/sink conservation diags
+!@var itcon_3Dsrc Index array for 3D source/sink conservation diags
       INTEGER, DIMENSION(nt3Dsrcmax,ntmxcon) :: itcon_3Dsrc
 !@var itcon_decay Index array for decay conservation diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_decay
