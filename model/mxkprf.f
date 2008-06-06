@@ -165,7 +165,8 @@ c
 
 !$OMP   PARALLEL DO PRIVATE(j,ja,l,i,k,delp)
 cc !$OMP&         SCHEDULE(STATIC,jblk)
-        do j=1,jj
+        !do j=1,jj
+        do j=J_0,J_1
           ja = PERIODIC_INDEX(j-1, jj)
           do l=1,isv(j)
 c
