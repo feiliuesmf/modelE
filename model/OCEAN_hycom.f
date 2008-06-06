@@ -20,6 +20,7 @@
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
      &    , nstep0, nstep, time0, time
+      USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
       implicit none
 
       logical, intent(in) :: iniOCEAN
@@ -92,6 +93,7 @@ c
 
       endif ! AM_I_ROOT
       call scatter_atm
+      call scatter_hycom_arrays
 
 !!! hack needed for serial inicon
       CALL ESMF_BCAST(ogrid, delt1 )
@@ -196,6 +198,7 @@ c
 
       ! move to global atm grid
       call gather_atm
+      call gather_hycom_arrays   !mkb Jun  6
 
       if (AM_I_ROOT()) then ! work on global grids here
 

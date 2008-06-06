@@ -182,7 +182,7 @@ c
 c
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
      . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
-     . ,utila(iia,jja)
+     . ,utila(iia,jja),usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_Natassa
@@ -323,7 +323,6 @@ c    .  ,prec(ia,ja),evapor(ia,ja,1),rsi(ia,ja)
 c    .  ,flowo(ia,ja),gmelt(ia,ja),melti(ia,ja),dxyp(ja),focean(ia,ja)
 c    .  ,runosi(ia,ja),runpsi(ia,ja)
 c
-      call gather_atm
       call gather2_atm
 
       nsavea=nsavea+1
@@ -373,8 +372,7 @@ c
 
       endif ! AM_I_ROOT
 
-      call scatter_kprf_arrays
-      call scatter_hycom_arrays
+      call scatter1_hycom_arrays
 c
       call system_clock(before)
       call system_clock(count_rate=rate)
@@ -1230,17 +1228,18 @@ c
 
       call gather6hycom(osst,osss,osiav,oogeoza,
      &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
-      call gather_hycom_arrays    !mkb 4
-      call gather_kprf_arrays
 
-      if (AM_I_ROOT()) then ! work on global grids here
 c
 c$OMP PARALLEL DO
-      do 88 j=1,jj
+      do 88 j=J_0,J_1
       do 88 i=1,ii
-      usf(i,j)=u(i,j,k1n)+ubavg(i,j,n)
- 88   vsf(i,j)=v(i,j,k1n)+vbavg(i,j,n)
+      usf_loc(i,j)=u_loc(i,j,k1n)+ubavg_loc(i,j,n)
+ 88   vsf_loc(i,j)=v_loc(i,j,k1n)+vbavg_loc(i,j,n)
 c$OMP END PARALLEL DO
+
+      call gather7hycom(usf_loc,vsf_loc,usf,vsf)
+
+      if (AM_I_ROOT()) then ! global grid
 c
 c     call findmx(ip,osst,ii,ii,jj,'osst')
 c     call findmx(ip,osss,ii,ii,jj,'osss')
@@ -1345,7 +1344,7 @@ c
 
       endif ! AM_I_ROOT
  9666 continue
-      call scatter_atm
+      call scatter2_atm
 
       return
       end
@@ -1364,8 +1363,9 @@ c> Oct  2004 - map ice mass to agcm, and then calculate E
 c------------------------------------------------------------------
       subroutine gather2_atm
 
-      USE HYCOM_ATM !, only : gather_atm, scatter_atm
+      USE HYCOM_ATM
       USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA
+     &      ,PACK_COLUMN, PACK_BLOCK
 
       call pack_data( grid,  ataux_loc,   ataux )
       call pack_data( grid,  atauy_loc,   atauy )
@@ -1376,7 +1376,36 @@ c------------------------------------------------------------------
       call pack_data( grid,  austar_loc,  austar )
       call pack_data( grid,  aswflx_loc,  aswflx )
 
+
+      call pack_block( grid,  GTEMP_loc, GTEMP )
+      call pack_column( grid,  GTEMPR_loc, GTEMPR )
+
+      call pack_column( grid,  DMSI_loc, DMSI )
+      call pack_column( grid,  DHSI_loc, DHSI )
+      call pack_column( grid,  DSSI_loc, DSSI )
+
+      call pack_data( grid,  FOCEAN_loc, FOCEAN )
+
       end subroutine gather2_atm
+c------------------------------------------------------------------
+      subroutine scatter2_atm
+
+      USE HYCOM_ATM
+      USE DOMAIN_DECOMP, ONLY: grid, UNPACK_DATA, UNPACK_COLUMN,
+     &     UNPACK_BLOCK
+
+      call unpack_data( grid,  SSS, SSS_loc )
+      call unpack_data( grid,  OGEOZA, OGEOZA_loc )
+      call unpack_data( grid,  UOSURF, UOSURF_loc )
+      call unpack_data( grid,  VOSURF, VOSURF_loc )
+
+       call unpack_block( grid,  GTEMP, GTEMP_loc )
+       call unpack_column( grid,  GTEMPR, GTEMPR_loc )
+       call unpack_column( grid,  DMSI, DMSI_loc )
+       call unpack_column( grid,  DHSI, DHSI_loc )
+       call unpack_column( grid,  DSSI, DSSI_loc )
+
+      end subroutine scatter2_atm
 c------------------------------------------------------------------
       subroutine gather_before_archive
       USE HYCOM_ARRAYS_GLOB
@@ -1476,7 +1505,7 @@ c------------------------------------------------------------------
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
       USE HYCOM_ARRAYS_GLOB, only : omlhc
       USE hycom_arrays_glob_renamer, only : omlhc_loc
-      USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
       implicit none
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm),oogeoza(idm,jdm)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
@@ -1490,7 +1519,19 @@ c------------------------------------------------------------------
 
       end subroutine gather6hycom
 c------------------------------------------------------------------
+      subroutine gather7hycom(usf_loc,vsf_loc,usf,vsf)
 
+      USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      implicit none
+      real :: usf_loc(idm,J_0H:J_1H), vsf_loc(idm,J_0H:J_1H)
+      real :: usf(idm,jdm), vsf(idm,jdm)
+
+      call pack_data( ogrid,  usf_loc,      usf    )
+      call pack_data( ogrid,  vsf_loc,      vsf    )
+
+      end subroutine gather7hycom
+c------------------------------------------------------------------
       subroutine hycom_arrays_checksum
       USE HYCOM_DIM, only: ogrid, J_0, J_1
       USE HYCOM_ARRAYS
@@ -1886,4 +1927,23 @@ c
 
       end subroutine hycom_arrays_checksum
 c------------------------------------------------------------------
+      subroutine scatter1_hycom_arrays
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+      USE HYCOM_ARRAYS_GLOB
+      use hycom_arrays_glob_renamer
+      USE KPRF_ARRAYS, ONLY: sswflx, sswflx_loc,
+     &                       akpar,  akpar_loc
 
+      call unpack_data( ogrid,  taux, taux_loc )
+      call unpack_data( ogrid,  tauy, tauy_loc )
+      call unpack_data( ogrid,  oice, oice_loc )
+      call unpack_data( ogrid,  oflxa2o, oflxa2o_loc )
+      call unpack_data( ogrid,  osalt, osalt_loc )
+      call unpack_data( ogrid,  oemnp, oemnp_loc )
+      call unpack_data( ogrid,  ustar, ustar_loc )
+
+      call unpack_data( ogrid,  sswflx, sswflx_loc )
+      call unpack_data( ogrid,  akpar,  akpar_loc )
+
+      end subroutine scatter1_hycom_arrays
