@@ -128,9 +128,18 @@ c --- time-interpolate wind stress
 
       CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,pvtrop, FROM=NORTH)
-      CALL HALO_UPDATE(ogrid,ubavg(:,:,m),  FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,depthu, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,ubavg,  FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,tauy  , FROM=SOUTH)
+
+      CALL HALO_UPDATE(ogrid,montg,  FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,thstar, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,p,      FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dp  , FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,dpu,  FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,dpv,  FROM=NORTH)
+
+      CALL HALO_UPDATE(ogrid,depthu, FROM=NORTH+SOUTH)
+      
 c
 c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 70 j=J_0,J_1
@@ -181,8 +190,6 @@ c --- spatial weighting function for pressure gradient calculation:
  814  util2(i,j)=0.
 c$OMP END PARALLEL DO
 c
-      CALL HALO_UPDATE(ogrid,dp(:,:,1+mm:kk+mm)  , FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,p(:,:,1:kk)  ,      FROM=SOUTH)
 
       do 9 k=1,kk
       km=k+mm
@@ -231,7 +238,6 @@ c --- define auxiliary velocity fields (via,vib,uja,ujb) to implement
 c --- sidewall friction along near-vertical bottom slopes. wgtja,wgtjb,wgtia,
 c --- wgtib indicate the extent to which a sidewall is present.
 
-      CALL HALO_UPDATE(ogrid,depthu, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(ogrid,utotn,  FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(ogrid,vtotn,  FROM=NORTH+SOUTH)
 c
@@ -423,7 +429,6 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
  37   continue
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,dpu(:,:,km),  FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(ogrid,visc, FROM=SOUTH+NORTH)
 ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH+NORTH) ! not used?
       CALL HALO_UPDATE(ogrid,scqx, FROM=      NORTH)
@@ -631,7 +636,6 @@ c$OMP END PARALLEL DO
 
       CALL HALO_UPDATE(ogrid,visc, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,dl2v, FROM=NORTH)
-      CALL HALO_UPDATE(ogrid,dpv(:,:,km),  FROM=NORTH)
 ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH) ! not used?
 
 c
@@ -696,9 +700,6 @@ c
 c --- pressure force in y direction
 c --- ('scheme 2' from appendix -a- in bleck-smith paper)
 
-      CALL HALO_UPDATE(ogrid,montg(:,:,k), FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,thstar(:,:,k), FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,p(:,:,k+1), FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 97 j=J_0,J_1
@@ -741,7 +742,6 @@ c
      .  (util2(ia ,j)+util2(ib ,j)+util2(i,ja )+util2(i,jb )+epsil))/h1
 c$OMP END PARALLEL DO
 
-      CALL HALO_UPDATE(ogrid,p(:,:,k:k+1), FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,drag,   FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,utotm,  FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,uflux,  FROM=SOUTH)
