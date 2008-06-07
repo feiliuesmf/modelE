@@ -1,0 +1,4 @@
+&input_parameters
+year = 1998,jday=1, jday2=365,IM=72, JM=46, I0=40, I1=40, J0=39, J1=39,I0f=40,I1f=40,J0f=39,J1f=39, force_VEG=true,do_soilinit=true
+/
+
