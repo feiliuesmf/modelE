@@ -624,7 +624,7 @@ C****
 #endif    /* TNL: inserted */
 #ifdef TRACERS_WATER
      *     ,gtracer
-      USE TRACER_COM, only :  trw0
+      USE TRACER_COM, only :  trw0, nWater, trname
 #endif
       USE PARAM
       USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
@@ -658,6 +658,20 @@ C**** we aren't getting that right anyway.
           CALL GLOBALSUM(grid, EDWNIMP, gsum, hsum ,ALL=.TRUE.)
           edwnimp_SH=hsum(1) ;  edwnimp_NH=hsum(2)
 
+          if(mdwnimp_NH.lt.0) then
+            write(99,*) "Limiting NH icesheet replacement mass/energy",
+     *           mdwnimp_NH,edwnimp_NH
+            mdwnimp_NH=0.
+            edwnimp_NH=0.
+          endif
+
+          if(mdwnimp_SH.lt.0) then
+            write(99,*) "Limiting SH icesheet replacement mass/energy",
+     *           mdwnimp_SH,edwnimp_SH
+            mdwnimp_SH=0.
+            edwnimp_SH=0.
+          endif  
+
 #ifdef TRACERS_WATER
           DO ITM=1,NTM
             CALL GLOBALSUM(grid, TRDWNIMP(ITM,:,:), gsum, hsum ,ALL=
@@ -667,6 +681,19 @@ C**** we aren't getting that right anyway.
      *           )*1000,(trdwnimp_SH(ITM)/mdwnimp_SH/trw0(itm)-1.)*1000
      *           ,trdwnimp_NH(ITM),mdwnimp_NH,trdwnimp_SH(ITM)
      *           ,mdwnimp_SH
+
+          if(trdwnimp_NH(itm).lt.0) then ! Should be nwater le 0?
+            write(99,*) "Limiting NH icesheet replacement"
+     *           ,trname(itm),trdwnimp_NH(itm)
+            trdwnimp_NH(itm)=0.
+          endif
+
+          if(trdwnimp_SH(itm).lt.0) then
+            write(99,*) "Limiting SH icesheet replacement"
+     *           ,trname(itm),trdwnimp_SH(itm)
+            trdwnimp_SH(itm)=0.
+          endif  
+
           END DO
 #endif
 
