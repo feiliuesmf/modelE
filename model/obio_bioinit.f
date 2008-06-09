@@ -39,10 +39,14 @@ c  Carbon type 2    = DIC
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax
  
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
+      USE hycom_scalars
+
       implicit none
-#include "dimensions.h"
+!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!#include "common_blocks.h"
 
 
       integer ir,nir,nt
@@ -52,37 +56,23 @@ c  Carbon type 2    = DIC
       real Fer(idm,jdm,kdm),dicmod(idm,jdm,kdm),dic(idm,jdm,kdm)
 
       character*2 ntchar
+      character*80 filename
 
       common /bir/ ir(idm,jdm),nir(nrg)
 
 c  Initialize
 
-c$OMP PARALLEL DO
-      do j=1,jj
-       do nt= 1,ntyp
-        do k = 1,kdm
-         do l=1,isp(j)
-          do i=ifp(j,l),ilp(j,l)
-           tracer(i,j,k,nt) = 0.0
-          enddo
-         enddo
-        enddo
-       enddo
-       do k = 1,kdm
-        do l=1,isp(j)
-         do i=ifp(j,l),ilp(j,l)
-         Fer(i,j,k) = 0.0
-         enddo
-        enddo
-       enddo
-      enddo
-c$OMP END PARALLEL DO
+      tracer(:,:,:,1:ntyp)=0.d0
+      Fer(:,:,:) = 0.d0
 
-      call bio_inicond('nitrates_inicond',tracer(:,:,:,1))
+      filename='nitrates_inicond'
+      call bio_inicond(filename,tracer(:,:,:,1))
 
-      call bio_inicond('silicate_inicond',tracer(:,:,:,3))
+      filename='silicate_inicond'
+      call bio_inicond(filename,tracer(:,:,:,3))
 
-      call bio_inicond('dic_inicond',dic(:,:,:))
+      filename='dic_inicond'
+      call bio_inicond(filename,dic(:,:,:))
 
 !     call obio_inicond('alk_glodap_annmean.asc')
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
@@ -313,25 +303,28 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-      do nt=1,ntyp+n_inert+ndet+ncar
-        ntchar='00'
-        if(nt.le.9)write(ntchar,'(i1)')nt
-        if(nt.gt.9)write(ntchar,'(i2)')nt
-        print*,'BIO: saving initial tracer fields '
-     .        ,'bioinit_tracer'//ntchar
-        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-        do k=1,kdm
-        do j=1,jj				!  do not parallelize
-        do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
-           write(iu_bioinit,'(3i4,2e12.4)')
-     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-        enddo
-        enddo
-        enddo
-        enddo
-      call closeunit(iu_bioinit)
-      enddo
+!     do nt=1,ntyp+n_inert+ndet+ncar
+!       ntchar='00'
+!       if(nt.le.9)write(ntchar,'(i1)')nt
+!       if(nt.gt.9)write(ntchar,'(i2)')nt
+!       print*,'BIO: saving initial tracer fields '
+!    .        ,'bioinit_tracer'//ntchar
+!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+!       do k=1,kdm
+!       do j=1,jj				!  do not parallelize
+!       do l=1,isp(j)
+!       do i=ifp(j,l),ilp(j,l)
+!          write(iu_bioinit,'(3i4,2e12.4)')
+!    .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+!       enddo
+!       enddo
+!       enddo
+!       enddo
+!     call closeunit(iu_bioinit)
+!     enddo
+      
+      print*,'INITIALIZATION'
+      call obio_trint
 
       return
       end
@@ -360,10 +353,14 @@ c       13 -- Mediterranean/Black Seas
 
       USE obio_dim
 
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
+      USE hycom_scalars
+
       implicit none
-#include "dimensions.h"
+!#include "dimensions.h"
 #include "dimension2.h"
-#include "common_blocks.h"
+!#include "common_blocks.h"
 
 
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
@@ -641,26 +638,34 @@ c
       USE FILEMANAGER, only: openunit,closeunit
 
 
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
+      USE hycom_scalars
+
+      USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
+
       implicit none
 
-#include "dimensions.h"
+!#include "dimensions.h"
 #include "dimension2.h"
-#include "a2o.h"
-#include "common_blocks.h"
+!#include "a2o.h"
+!#include "common_blocks.h"
 
-      integer, parameter :: igrd=360,jgrd=180,nchan=33
+      integer, parameter :: igrd=360,jgrd=180,kgrd=33
       integer iu_file,lgth
       integer i1,j1,iii,jjj,isum,kmax
       integer nodc_kmax
 
-      real data(igrd,jgrd,nchan)
-      real data2(iia,jja,nchan)
-      real data_min(nchan),data_max(nchan)
+      real data(igrd,jgrd,kgrd)
+      real data2(iia,jja,kgrd)
+      real data_min(kgrd),data_max(kgrd)
       real sum1
-      real  dummy1(36,jja,nchan),dummy2(36,jja,nchan)
-      real fldo(iio,jjo,nchan)
+      real dummy1(36,jja,kgrd),dummy2(36,jja,kgrd)
+      real fldo(iio,jjo,kgrd)
       real pinit(iio,jjo,kdm+1),fldo2(iio,jjo,kdm)
-      real nodc_depths(nchan),nodc_d(nchan)
+      real nodc_depths(kgrd),nodc_d(kgrd+1)
+
+      logical vrbos
 
       character*80 filename
 
@@ -671,12 +676,12 @@ c
 !--------------------------------------------------------------
       !read no3 files from Watson and convert to ascii
       lgth=len_trim(filename)
-      print*, 'reading from file',filename(1:lgth)
+      print*, 'bioinit: reading from file...',filename(1:lgth)
       call openunit(filename,iu_file,.false.,.true.)
 
 !NOTE: data starts from Greenwich
 !      missing values are -9999
-       do k=1,nchan
+       do k=1,kgrd
        data_min(k)=1.e10
        data_max(k)=-1.e10
          do i=1,igrd
@@ -693,8 +698,7 @@ c
       call closeunit(iu_file)
 
 !--------------------------------------------------------------
-      print*, 'converting data from 1x1 to 4x5 deg resolution'
-      do k=1,nchan
+      do k=1,kgrd
        i1=0
        do i=1,igrd,5
        i1=i1+1
@@ -723,20 +727,20 @@ c
       enddo
       enddo
 
-      !this is needed for dic
-      do k=1,nchan
-      do i=1,iia
-      do j=1,jja
-      if (data2(i,j,k).gt.0) then
-        if (data2(i,j,k)<data_min(k)) data2(i,j,k)=data_min(k)
-        if (data2(i,j,k)>data_max(k)) data2(i,j,k)=data_max(k)
-      endif
-      enddo
-      enddo
-      enddo
+!     !this is needed for dic
+!     do k=1,kgrd
+!     do i=1,iia
+!     do j=1,jja
+!     if (data2(i,j,k).gt.0) then
+!       if (data2(i,j,k)<data_min(k)) data2(i,j,k)=data_min(k)
+!       if (data2(i,j,k)>data_max(k)) data2(i,j,k)=data_max(k)
+!     endif
+!     enddo
+!     enddo
+!     enddo
 
       !set to zero so that interpolation works
-      do k=1,nchan
+      do k=1,kgrd
       do i=1,iia
       do j=1,jja
         if (data2(i,j,k)<0.)data2(i,j,k)=0.
@@ -755,46 +759,48 @@ c
       data2(37:72,:,:)=dummy1;
 
       !--------------------------------------------------------
-      print*, 'changing horizontal grid grid....'
-      do 8 k=1,nchan
-      do 8 j=1,jjo
-      do 8 i=1,iio
+c$OMP PARALLEL DO
+      do 8 j=1,jj
+      do 8 l=1,isp(j)
+      do 8 i=ifp(j,l),ilp(j,l)
 
+      do 9 k=1,kgrd
       fldo(i,j,k)=0.
 c
       do 9 n=1,nlista2o(i,j)
-      ia=ilista2o(i,j,n)
-      ja=jlista2o(i,j,n)
-      fldo(i,j,k)=fldo(i,j,k)+data2(ia,ja,k)*wlista2o(i,j,n)
+      fldo(i,j,k)=fldo(i,j,k)
+     .           +data2(ilista2o(i,j,n),jlista2o(i,j,n),k)
+     .                       *wlista2o(i,j,n)
  9    continue
  8    continue
+c$OMP END PARALLEL DO
 
-      !this is needed for dic
-      do k=1,nchan
-      do i=1,iio
-      do j=1,jjo
-        if (fldo(i,j,k)<data_min(k)) fldo(i,j,k)=data_min(k)
-        if (fldo(i,j,k)>data_max(k)) fldo(i,j,k)=data_max(k)
-      enddo
-      enddo
-      enddo
+!     !this is needed for dic
+!     do k=1,kgrd
+!     do i=1,iio
+!     do j=1,jjo
+!       if (fldo(i,j,k)<data_min(k)) fldo(i,j,k)=data_min(k)
+!       if (fldo(i,j,k)>data_max(k)) fldo(i,j,k)=data_max(k)
+!     enddo
+!     enddo
+!     enddo
 
       !--------------------------------------------------------
-      print*, 'interpolating to hycom vertical grid'
       !use dpinit(i,j,k)/onem
 
-       pinit(:,:,1)=0.
-       do k=1,kdm
-       do j=1,jj
-       do l=1,isp(j)
-       do i=ifp(j,l),ilp(j,l)
+       pinit(:,:,1)=0.d0
+c$OMP PARALLEL DO
+       do 10 j=1,jj
+       do 10 l=1,isp(j)
+       do 10 i=ifp(j,l),ilp(j,l)
+       do  k=1,kdm
          pinit(i,j,k+1)=pinit(i,j,k)+dpinit(i,j,k)/onem
        enddo
-       enddo
-       enddo
-       enddo
+ 10    continue
+c$OMP END PARALLEL DO
 
-       fldo2(:,:,:)=-9999.
+       fldo2(:,:,:)=-9999.d0
+c$OMP PARALLEL DO PRIVATE(kmax,nodc_d,nodc_kmax,vrbos)
        do j=1,jj                       
        do l=1,isp(j)
        do i=ifp(j,l),ilp(j,l)
@@ -806,23 +812,28 @@ c
           enddo
 
           !model bottom at kmax+1
-          do k=1,nchan
+          do k=1,kgrd
            if (nodc_depths(k) .le. pinit(i,j,min(21,kmax+1))) then
                nodc_d(k)=nodc_depths(k)
                nodc_kmax=k
            endif
+cdiag      write(*,'(a,3i5,2e12.4,i5)')'bioinit: ',
+cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
           enddo
-          nodc_d(nodc_kmax+1)=pinit(i,j,kmax)
+          nodc_d(nodc_kmax+1)=pinit(i,j,min(21,kmax+1))
 
 !        call remap1d_pcm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
 !    .             fldo2(i,j,:),pinit(i,j,:),kdm,.false.,i,j)
 
+    
+         vrbos=.false.
          call remap1d_plm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
-     .             fldo2(i,j,:),pinit(i,j,:),kdm,.false.,i,j)
+     .             fldo2(i,j,1:kdm),pinit(i,j,1:kdm+1),kdm,vrbos,i,j)
 
        enddo
        enddo
        enddo
+c$OMP END PARALLEL DO
 
          
       !--------------------------------------------------------
@@ -955,6 +966,7 @@ c
       if (vrbos)
      . write (*,101) i,j,' remap1d -- new profile:     x         y',
      .  (k,xnew(k),ynew(k),k=1,knew),knew+1,xnew(knew+1)
+
       return
       end
 c
