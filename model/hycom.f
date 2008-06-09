@@ -1947,3 +1947,14 @@ c------------------------------------------------------------------
       call unpack_data( ogrid,  akpar,  akpar_loc )
 
       end subroutine scatter1_hycom_arrays
+c------------------------------------------------------------------
+
+      subroutine scatter_tracer
+      USE HYCOM_ARRAYS, only : tracer_loc => tracer
+      USE HYCOM_ARRAYS_GLOB, only : tracer
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+ 
+      call unpack_data( ogrid,  tracer, tracer_loc )
+
+      end subroutine scatter_tracer
