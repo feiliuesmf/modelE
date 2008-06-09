@@ -38,6 +38,7 @@
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
       USE DOMAIN_DECOMP, only : GRID,GET, GLOBALSUM
+      use rad_com, only : paleo_orb_yr,calc_orb_par_sp,paleo_orb_par
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
@@ -85,10 +86,39 @@ C**** determined by the direction in the river flow file.
 C**** This information could be read in from a file.
       IF (JM.eq.46) THEN        ! 4x5
         JML=4 ; JMU=8 ; IML1=24 ; IMU1=36
-        IML2=69 ; IMU2=11 ; NBOX=10
+        IML2=69 ; IMU2=11 
+c     Default NH melt area
+        NBOX=10
         IFW(1:NBOX) = (/26,25,25,25,29,29,30,31,32,33/)
         JFW(1:NBOX) = (/39,40,41,42,39,40,40,40,41,42/)
         do_glmelt=.true.
+c**** LGM 21k Alternative
+        if( (paleo_orb_yr.gt.18000).and.(paleo_orb_yr.lt.24000) ) then
+          write(6,*) "Amending NH Glacial Melt appropriate to 21ka, LGM"
+          NBOX=27               ! For LGM 21k
+          IFW(1:9) = (/26,25,25,25,29,30,31,32,33/) ! Greenland
+          JFW(1:9) = (/39,40,41,42,39,40,40,41,42/) ! Greenland
+          IFW(10:22) = (/9,10,11,23,24,25,26,26,26,25,24,24,23/) ! LIS/N.Am
+          JFW(10:22) = (/38,37,36,34,34,34,34,36,37,38,39,40,41/) ! LIS/N.Am
+          IFW(23:27) = (/35,38,39,39,38/) ! Fenno-Scandian
+          JFW(23:27) = (/39,41,41,42,43/) ! Fenno-Scandian
+        endif
+        if( calc_orb_par_sp.ne.0 ) then ! EOCENE 55 MA ONLY
+          write(6,*)
+     *         "Amending NH Glacial Melt in LANDICE_DRV "
+     *         ,"appropriate to 55 Ma, Eocene currently"
+          write(0,*)
+     *         "Amending NH Glacial Melt in LANDICE_DRV "
+     *         ,"appropriate to 55 Ma, Eocene currently"
+          NBOX=6
+          IFW(1:2) = (/29,29/) ! Greenland
+          JFW(1:2) = (/39,38/) ! Greenland
+          IFW(3:5) = (/10,11,12 /) ! Rockis 
+          JFW(3:5) = (/40,39,38 /) ! Rockies 
+          IFW(6:6) = (/63 /) ! Proto-Himalaya
+          JFW(6:6) = (/38 /) ! Proto-Himalaya
+        endif
+
       ELSEIF (JM.eq.90) THEN    ! 2x2.5
         JML=7 ; JMU=11 ; IML1=48 ; IMU1=69
         IML2=136 ; IMU2=18 ; NBOX=18
