@@ -355,7 +355,7 @@ htmldoc: $(FSRCS_CPP)
 	rm -f $(FSRCS_CPP)
 
 clean:
-	rm -f *.LST *~ *.ERR *.CHK *.L *.cpp
+	rm -f *.LST *~ *.ERR *.CHK *.L *.cpp rundeck_opts.h
 
 vclean:
 	rm -f *.o *.mod *.vo *.inc .depend* *.sig *.sig1

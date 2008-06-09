@@ -128,7 +128,7 @@ $(GCMLIB): FORCE
 status:
 	echo "AUX build successful"
 clean:
-	rm -f *.LST *~ *.ERR *.CHK *.L
+	rm -f *.LST *~ *.ERR *.CHK *.L rundeck_opts.h
 
 vclean:
 	rm -f *.o *.mod *.vo *.inc .depend* *.sig
