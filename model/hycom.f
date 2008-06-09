@@ -1446,7 +1446,7 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  dpmxav_loc, dpmxav )
       call pack_data( ogrid,  oiceav_loc, oiceav )
       call pack_data( ogrid,  pbot_loc, pbot )
-      call pack_data( ogrid,  tracer_loc, tracer )
+! call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
 
