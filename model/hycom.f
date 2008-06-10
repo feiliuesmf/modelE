@@ -670,7 +670,11 @@ cdiag.     tracer(itest,jtest,k,9)
 cdiag  enddo
 cdiag  call obio_limits('bfre obio_model')
 
+         call gather_hycom_arrays
+         if (AM_I_ROOT()) then
          call obio_model(mm)
+         endif
+         call scatter_hycom_arrays
 
 cdiag  do k=1,kdm
 cdiag  km=k+mm

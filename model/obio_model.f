@@ -133,7 +133,7 @@
 
       endif  !diagno
 
-c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon)
+c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
        do 1000 j=1,jj
