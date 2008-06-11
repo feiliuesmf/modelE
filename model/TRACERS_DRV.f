@@ -16,7 +16,7 @@
       USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
      & UNPACK_DATAj,write_parallel
       USE CONSTANT, only: mair,mwat,sday
-      USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00
+      USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
@@ -53,7 +53,11 @@
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
-     & gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age
+     &gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
+     &ns_wet,nra_ch4
+#endif
+#ifdef BIOGENIC_EMISSIONS
+      use biogenic_emis, only: base_isopreneX
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_COSMO)
@@ -198,8 +202,12 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("PIratio_N2O",PIratio_N2O)
       call sync_param("PIratio_CFC",PIratio_CFC)
 #endif
+#ifdef BIOGENIC_EMISSIONS
+      call sync_param("base_isopreneX",base_isopreneX)
+#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       call sync_param("ice_age",ice_age)
+      call sync_param("ns_wet",ns_wet)
       call sync_param("int_wet_dist",int_wet_dist)
       call sync_param("topo_lim",topo_lim)
       call sync_param("sat_lim",sat_lim)
@@ -208,6 +216,14 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("sw_lim",sw_lim)
       call sync_param("exclude_us_eu",exclude_us_eu)
       call sync_param("nn_or_zon",nn_or_zon)
+      do n=1,nra_ch4
+       if(nday_ch4(n) > max_days .or. nday_ch4(n) < 1)
+     & call stop_model('nday_ch4 out of range',255)
+      end do
+      if(nisurf /= 1) call stop_model
+     &('nisurf no longer=1, please alter maxHR_ch4',255)
+      if(DTsrc /= 1800.) call stop_model
+     &('DTsrc no longer=1800, please alter maxHR_ch4',255)
 #endif
       PRES(1:LM)=PMIDL00(1:LM) 
 C**** initialise source arrays
@@ -250,7 +266,7 @@ C**** get rundeck parameter for cosmogenic source factor
 ! The following section will check for rundeck file of
 ! the form: trname_01, trname_02... and thereby define
 ! the ntsurfsrc(n). If those files exist it reads an
-! 80 char header to get information inclusing the 
+! 80 char header to get information including the 
 ! source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
 ! get set to zero if those files aren't found:
 ! (I can enclose this in an ifdef if it causes problems
@@ -376,7 +392,6 @@ C**** Define individual tracer characteristics
           n_MPtable(n) = 3
           tcscale(n_MPtable(n)) = 1.
 #endif
-
 #ifdef TRACERS_SPECIAL_Shindell
 C**** determine initial CH4 distribution if set from rundeck
 C**** This is only effective with a complete restart.
@@ -6692,6 +6707,17 @@ C**** (not necessary associated with a particular tracer)
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef BIOGENIC_EMISSIONS
+      k = k+1
+        ijs_isoprene=k
+        ijts_index(k) = ntm
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Interactive isoprene source'
+        sname_ijts(k) = 'Int_isop'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
       do L=1,LTOP
         k = k + 1
           ijs_OH(L)=k
@@ -7906,6 +7932,10 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL RDLAND
       CALL RDDRYCF
 #endif
+#ifdef BIOGENIC_EMISSIONS
+      CALL RDISOPCF
+      CALL RDISOBASE
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       call cheminit ! **** Initialize the chemistry ****
       call special_layers_init
@@ -8255,7 +8285,7 @@ C****
 
         case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
-         if(use_rad_ch4.le.0)then
+         if(use_rad_ch4 <= 0)then
           select case (fix_CH4_chemistry)
           case default
             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
@@ -9195,7 +9225,7 @@ c **** reads in files for dust/mineral tracers
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
      $     ,flake0
-      USE DOMAIN_DECOMP, only : grid, get, write_parallel
+      USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
@@ -9204,7 +9234,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
      & ntm_chem,
 #endif
-     & n_CH4,sfc_src,ntsurfsrc,ssname
+     & n_CH4,n_Isoprene,sfc_src,ntsurfsrc,ssname
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      * ,aer_int_yr,imAER
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
@@ -9330,6 +9360,14 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #else
          if(ntsurfsrc(n) > 0) call read_sfc_sources(n,ntsurfsrc(n))
 #endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+         if(ntsurfsrc(n) > 0) call read_ncep_for_wetlands(iact)
+#endif
+#ifdef BIOGENIC_EMISSIONS
+        else if (n==n_Isoprene)then
+          if(ntsurfsrc(n)>0 .and. am_i_root( ) )write(6,*)
+     &    'NOT reading Isoprene source because BIOGENIC_EMISSIONS on.'
+#endif
         else
           if(ntsurfsrc(n)>0) call read_sfc_sources(n,ntsurfsrc(n))
           select case (trname(n))
@@ -9411,6 +9449,9 @@ C**** at the start of any day
       USE GHY_COM, only : fearth
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair
       USE PBLCOM, only: tsavg
+#if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
+      USE TRACER_SOURCES, only: ns_wet,add_wet_src
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
       USE CO2_SOURCES, only: co2_src
       USE CH4_SOURCES, only: ch4_src
@@ -9770,12 +9811,26 @@ C****
 
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
-     &      'HCHO','HO2NO2','CO','CH4','PAN','Isoprene','AlkylNit',
+     &      'HCHO','HO2NO2','CO','PAN','Isoprene','AlkylNit',
      &      'Alkenes','Paraffin','HCl','HOCl','ClONO2','HBr','HOBr',
      &      'BrONO2','N2O','CFC')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(:,j,ns,n) = sfc_src(:,j,n,ns)*dxyp(j)
         end do ; end do
+      case ('CH4')
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1
+          trsource(:,j,ns,n) = sfc_src(:,j,n,ns)*dxyp(j)
+        end do ; end do
+#ifdef INTERACTIVE_WETLANDS_CH4
+        if(ntsurfsrc(n) > 0) then
+          call alter_wetlands_source(n,ns_wet)
+          do j=J_0,J_1
+            trsource(:,j,ns_wet,n)=trsource(:,j,ns_wet,n)+
+     &      add_wet_src(:,j)*dxyp(j)
+          enddo
+        endif
+#endif
+
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)

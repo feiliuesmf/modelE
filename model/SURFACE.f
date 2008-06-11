@@ -108,6 +108,9 @@ C****
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd, dtr_dd
 #endif
+#ifdef BIOGENIC_EMISSIONS
+     *     ,  ijs_isoprene
+#endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
@@ -911,6 +914,16 @@ C****
         tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
      *       trc_flux*dxyp(j)*ptype*dtsurf   ! why not for all aerosols?
 #endif
+#endif
+
+#ifdef BIOGENIC_EMISSIONS
+! Nadine Unger test code:
+        select case (trname(n))
+        case ('Isoprene')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+pbl_args%emisop*dxyp(j)*ptype
+          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
+     &    pbl_args%emisop*dxyp(j)*ptype*dtsurf
+        end select
 #endif
 
 #ifdef TRACERS_DRYDEP

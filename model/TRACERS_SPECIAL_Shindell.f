@@ -33,7 +33,9 @@
 !@dbparam nn_or_zon approach to use for expanding wetlands 1=
 !@+ zonal average, 0=nearest neighbor average
 !@dbparam int_wet_dist to turn on/off interacive SPATIAL wetlands
-!@dbparam ice_age if not = 0 allows no wetl emis for J >= ice_age
+!@dbparam ice_age if not = 0., allows no wetl emis for latitudes
+!@+ poleward of +/- ice_age in degrees
+!@dbparam ns_wet the number of source that is the wetlands src 
 !@dbparam exclude_us_eu to exclude (=1) the U.S. and E.U. from 
 !@+ interactive wetland distributiont
 !@dbparam topo_lim upper limit on topography for int wetl dist
@@ -44,8 +46,6 @@
 !@param nra_ch4 number of running averages needed for int-wetlands
 !@param nra_ncep # of ncep running averages needed for int-wetlands
 !@param maxHR_ch4 maximum number of sub-daily accumulations
-!@param fact_ncep for temp: nothing, for prec: 24 converts from model
-!@+     units kg/m2/hr to mm/day
 !@param nday_ncep number of days in ncep running averages
 !@param nday_ch4 number of days in running average
 !@var by_nday_ncep  1/real(nday_ncep)
@@ -63,21 +63,24 @@
 !@var i0ch4 ponter to current index in running sum of mode (prec,temp)
 !@var first_ncep whether in the first ncep averaging period (prec,temp)
 !@var first_mod whether in the first model averaging per.   (prec,temp)
+!@var PTBA variable to hold the pressure, temperature, beta, and alpha
+!@var PTBA1, PTBA2 for interpolations of PTBA
       ! next line: 1800=dtsrc, 1=nisurf, but since those are not
       ! parameters, I don't know how to soft-code this. There is a 
-      ! failsafe in the read_CH4_sources routine, however.
+      ! failsafe in the TRACERS_DRV, however.
       integer, parameter :: nra_ch4 = 5, maxHR_ch4=24*1*3600/1800,
      & nra_ncep=2, n__prec=1, n__temp=2, n__SW=3, n__SAT=4, n__gwet=5,
-     & max_days=28
-      integer :: int_wet_dist=0,exclude_us_eu=1,nn_or_zon=0,ice_age=0
-      real*8 :: topo_lim = 205.d0, sat_lim=-9.d0,
-     & gw_ulim=100.d0, gw_llim=18.d0, SW_lim=27.d0
-      real*8, parameter, dimension(nra_ncep) ::fact_ncep=(/24.d0,1.d0/)
+     & max_days=28, nncep=4
+      integer :: int_wet_dist=0,exclude_us_eu=1,nn_or_zon=0,ns_wet=11
+      real*8 :: topo_lim = 205.d0, sat_lim=-9.d0, 
+     & gw_ulim=100.d0, gw_llim=18.d0, SW_lim=27.d0, ice_age=0.d0
       integer, parameter, dimension(nra_ch4) :: 
      &                                  nday_ch4=(/28,14,14,14,28/)
       integer, parameter, dimension(nra_ncep):: nday_ncep=(/28,14/)
       real*8, dimension(nra_ch4)             :: by_nday_ch4
       real*8, dimension(nra_ncep)            :: by_nday_ncep
+      integer, dimension(nncep)      :: ncep_units,jmon_nc,jdlnc=0
+      logical, dimension(nncep)      :: nc_first=.true.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: day_ncep
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: DRA_ch4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: avg_model,PRS_ch4
@@ -87,10 +90,11 @@
      &                                          first_ncep
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: iHch4,iDch4,i0ch4,
      &                                          first_mod
+      real*8, allocatable, dimension(:,:,:) ::  PTBA,PTBA1,PTBA2
+      real*8, allocatable, dimension(:,:) :: add_wet_src
 #endif
 #endif
       END MODULE TRACER_SOURCES
-
 
 
       subroutine alloc_tracer_sources(grid)
@@ -101,14 +105,7 @@
       use domain_decomp, only : dist_grid, get, write_parallel
       use model_com, only     : im
       use tracer_com, only : ntm
-#ifdef INTERACTIVE_WETLANDS_CH4
-      use TRACER_SOURCES, only: maxHR_ch4,
-     & day_ncep,DRA_ch4,avg_model,PRS_ch4,avg_ncep,sum_ncep,HRA_ch4,
-     & iHch4,iDch4,i0ch4,first_mod,nra_ch4,nra_ncep,max_days
-#endif
-#ifdef GFED_3D_BIOMASS
-      use TRACER_SOURCES, only: GFED_BB,LbbGFED
-#endif
+      use tracer_sources
 
       IMPLICIT NONE
 
@@ -136,6 +133,10 @@
       allocate( avg_ncep(IM,J_0H:J_1H,nra_ncep) )
       allocate( sum_ncep(IM,J_0H:J_1H,nra_ncep) )
       allocate( HRA_ch4(IM,J_0H:J_1H,maxHR_ch4,nra_ch4) )
+      allocate( PTBA(IM,J_0H:J_1H,nncep) )
+      allocate( PTBA1(IM,J_0H:J_1H,nncep) )
+      allocate( PTBA2(IM,J_0H:J_1H,nncep) )
+      allocate( add_wet_src(IM,J_0H:J_1H) )
 #endif      
       
       return
@@ -174,7 +175,6 @@
       END MODULE LIGHTNING 
       
       
-          
       subroutine alloc_lightning(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
@@ -249,372 +249,7 @@ C we change that.)
       end subroutine overwrite_GLT
 #endif
 
-#ifdef hell_freezes_over
-! keeping this in for reference for now (regarding the
-! wetlands portion, which must be reinserted somewhere):
 
-      subroutine read_CH4_sources(nt,iact)
-!@sum reads in CH4 surface sources and sinks
-!@auth Jean Lerner
-C****
-C**** There are 3 monthly sources and 11 annual sources
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,NIsurf
-     &                     ,DTsrc,fland,itimei
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, pack_data,
-     &                         unpack_data, am_i_root, write_parallel
-      USE LAKES_COM, only: flake
-      USE CONSTANT, only: sday
-      USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE TRACER_COM, only: itime_tr0,trname
-      use TRACER_SOURCES, only: ch4_src,nCH4src
-#ifdef INTERACTIVE_WETLANDS_CH4      
-     &       ,nday_ncep,by_nday_ncep,first_ncep,iday_ncep,day_ncep
-     &       ,i0_ncep,avg_ncep,sum_ncep,fact_ncep,avg_model,nra_ncep
-     &       ,max_days,int_wet_dist,topo_lim,sat_lim,gw_ulim,gw_llim
-     &       ,SW_lim,exclude_us_eu,nra_ch4,first_mod,n__temp,n__sw
-     &       ,n__gwet,n__SAT,nn_or_zon,nday_ch4,ice_age
-#endif
-      use GEOM, only : lat_dg, lon_dg, imaxj
-      use ghy_com, only : top_dev_ij,fearth
-      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_indus,PIratio_bburn
-     & ,fix_CH4_chemistry
-      
-      implicit none
-      
-!@var nanns,nmons: number of annual and monthly input files
-!@var PIfact factor for altering source to preindustrial (or not)
-!@var adj Factors that tune the total amount of individual sources         
-
-      integer, parameter :: nanns=11,nmons=3,kwet=14
-      integer, dimension(nanns-3) :: ann_units
-      integer, dimension(nmons) :: mon_units, imon
-      integer :: jdlast=0
-      integer i,j,nt,iact,iu,k
-      character*80 :: title
-      character*12, dimension(nanns-3) :: ann_files =
-     *  (/'CH4_ANIMALS ','CH4_COALMINE','CH4_GASLEAK ','CH4_GASVENT ',
-     *    'CH4_CITYDUMP','CH4_SOIL_ABS','CH4_TERMITES','CH4_COALBURN'/)
-      character*8, dimension(nmons) :: mon_files =
-     *  (/'CH4_BURN','CH4_RICE','CH4_WETL'/)
-      character(len=300) :: out_line
-      logical, dimension(nanns-3) :: ann_bins=
-     * (/.true.,.true.,.true.,.true.,.true.,.true.,.true.,.true./)
-      logical :: ifirst=.true.
-      logical, dimension(nmons) :: mon_bins=(/.true.,.true.,.true./)
-      real*8 :: PIfact, frac 
-      real*8, dimension(nanns+nmons) :: adj=
-     *  (/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
-     *  7.2154, 3.5997e-5,17.330e-4,5.3558e-5,0.4369,0.7533,0.9818/)
-      real*8, allocatable, dimension(:,:,:) :: tlca, tlcb  ! for monthly sources
-      
-#ifdef INTERACTIVE_WETLANDS_CH4
-!@var PTBA variable to hold the pressure, temperature, beta, and alpha
-!@var PTBA1, PTBA2 for interpolations of PTBA
-!@var day_ncep_tmp temp array for computing running average
-!@var zm,zmcount temp variables for computing averages
-      integer, parameter :: nncep=4
-      integer, dimension(nncep):: ncep_units,jmon
-      integer n,m,ii,ix,jj
-      character*10, dimension(nncep) :: ncep_files =
-     & (/'PREC_NCEP ','TEMP_NCEP ','BETA_NCEP ','ALPHA_NCEP'/)
-      logical, dimension(nncep) :: ncep_bins = 
-     & (/.true.,.true.,.true.,.true./)
-      real*8, allocatable, dimension(:,:,:) :: PTBA1, PTBA2
-      real*8,dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nncep) :: 
-     &                                                            PTBA
-      real*8,dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nra_ncep)::
-     &                                                    day_ncep_tmp
-      real*8 :: zm,zmcount
-      real*8, dimension(IM,JM) :: src_glob
-#endif
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-#ifdef INTERACTIVE_WETLANDS_CH4
-     & ,jmon,PTBA1,PTBA2,ncep_units
-#endif
-
-      INTEGER :: J_1, J_0, J_0H, J_1H
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-
-      if (itime < itime_tr0(nt)) return
-      if (fix_CH4_chemistry == 1) return
-
-#ifdef INTERACTIVE_WETLANDS_CH4
-      by_nday_ncep(:)=1.d0/real(nday_ncep(:))
-C     some sanity checks:
-      if(nisurf /= 1) call stop_model
-     &('nisurf no longer=1, please alter maxHR_ch4',255)
-      if(DTsrc /= 1800.) call stop_model
-     &('DTsrc no longer=1800, please alter maxHR_ch4',255)
-      do n=1,nra_ch4
-       if(nday_ch4(n) > max_days .or. nday_ch4(n) < 1)
-     & call stop_model('nday_ch4 out of range',255)
-      end do
-      do n=1,nra_ncep
-       if(nday_ncep(n) > max_days .or. nday_ncep(n) < 1)
-     & call stop_model('nday_ncep out of range',255)
-      end do
-#endif
-C****
-C**** Annual Sources and sinks
-C**** Apply adjustment factors to bring sources into balance
-C**** Annual sources are in KG C/M2/Y
-C**** Sources need to be kg/m^2 s; convert /year to /s
-C****
-      if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
-#ifdef INTERACTIVE_WETLANDS_CH4
-        allocate(ptba1(im,j_0H:j_1H,nncep),ptba2(im,j_0H:j_1H,nncep))
-#endif
-        do k = 1,nanns-3  
-          call openunit(ann_files(k),ann_units(k),ann_bins(k))
-          iu=ann_units(k)
-          select case(PI_run)
-          case(1) ! pre-industrial
-            select case(k)
-            case(1)        ; PIfact=0.18d0 ! animals
-            case(6)        ; PIfact=0.38d0 ! soil abs
-            case(2,3,4,5,8); PIfact=PIratio_indus
-            case default; PIfact=1.d0
-            end select
-          case default
-            PIfact=1.d0
-          end select
-          call readt_parallel(grid,iu,nameunit(iu),0,CH4_src(:,:,k),1)
-          CH4_src(:,J_0:J_1,k)=CH4_src(:,J_0:J_1,k)*PIfact*adj(k)/
-     &    (sday*JDperY)
-C REDUCE SOME SOURCES MANUALLY:
-          if(ann_files(k) == 'CH4_CITYDUMP')
-     &    CH4_src(:,J_0:J_1,k)=CH4_src(:,J_0:J_1,k)*7.5d-1
-          if(ann_files(k) == 'CH4_GASLEAK ')
-     &    CH4_src(:,J_0:J_1,k)=CH4_src(:,J_0:J_1,k)*8.0d-1
-          if(ann_files(k) == 'CH4_ANIMALS ')
-     &    CH4_src(:,J_0:J_1,k)=CH4_src(:,J_0:J_1,k)*9.0d-1
-C-----------------------------
-          call closeunit(iu)
-        end do
-        ! 3 miscellaneous sources
-        k=nanns-2
-        CH4_src(:,J_0:J_1,k) = focean(:,J_0:J_1)*adj(k)/(sday*JDperY)
-        k=nanns-1
-        CH4_src(:,J_0:J_1,k) =  flake(:,J_0:J_1)*adj(k)/(sday*JDperY)
-        k=nanns
-        CH4_src(:,J_0:J_1,k) = fearth(:,J_0:J_1)*adj(k)/(sday*JDperY)
-        ifirst = .false.
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C****
-C**** Also, Apply adjustment factors to bring sources into balance
-C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
-C****
-      j = 0
-      do k = nanns+1,nCH4src
-        select case(PI_run)
-        case(1) ! pre-industrial
-          select case(k)
-          case(nanns+1); PIfact=PIratio_bburn
-          case(nanns+2); PIfact=PIratio_indus ! rice
-#ifndef INTERACTIVE_WETLANDS_CH4
-          case(nanns+3); PIfact=1.1d0         ! wetlands
-#endif
-          case default; PIfact=1.d0
-          end select
-        case default
-          PIfact=1.d0
-        end select
-        j = j+1
-        call openunit(mon_files(j),mon_units(j),mon_bins(j))
-        call read_mon_src_2(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),CH4_src(:,:,k),frac,imon(j))
-        call closeunit(mon_units(j))
-        CH4_src(:,J_0:J_1,k) = CH4_src(:,J_0:J_1,k)*adj(k)*PIfact
-C REDUCE SOME SOURCES MANUALLY:
-        if(mon_files(j) == 'CH4_RICE')
-     &  CH4_src(:,J_0:J_1,k)=CH4_src(:,J_0:J_1,k)*7.5d-1
-C-----------------------------
-      end do
-#ifdef INTERACTIVE_WETLANDS_CH4
-       do k = 1,nncep
-        call openunit(ncep_files(k),ncep_units(k),ncep_bins(k))
-        call read_mon_src_2(ncep_units(k),jdlast,
-     *    PTBA1(:,:,k),PTBA2(:,:,k),PTBA(:,:,k),frac,jmon(k))
-        call closeunit(ncep_units(k))
-      end do     
-#endif
-      jdlast = jday
-      write(out_line,*)
-     &trname(nt),'Sources interpolated to current day',frac
-      call write_parallel(trim(out_line))   
-C****
-C**** Zonal adjustment for combined wetlands and tundra
-C****
-      do j=J_0,J_1
-        if ((lat_dg(j,1) >= -30.) .and. (lat_dg(j,1) <= 30.))then
-          CH4_src(:,j,kwet) = CH4_src(:,j,kwet)*1.761d0
-        else
-          CH4_src(:,j,kwet) = CH4_src(:,j,kwet)*0.6585d0
-        endif
-      end do
-C****
-C**** Also, increase the wetlands + tundra CH4 emissions:
-C**** (limit positive):
-      do j=J_0,J_1; do i=1,im
-        CH4_src(i,j,kwet)=max(1.78d0*CH4_src(i,j,kwet),0.d0)
-      end do      ; end do
-C  
-#ifdef INTERACTIVE_WETLANDS_CH4
-C****
-C**** Adjust the wetlands+tundra CH4 source based on 1st layer ground
-C**** temperature from one week ago, precipitation from 2 weeks ago,
-C**** and B. Walter's regression coefficients.  I.e.:
-C**** 
-C**** CH4emis = CH4emis + (alpha*TempAnom + beta*PrecAnom)
-C****
-C
-C NCEP Precipitation(m=1) and Temperature(m=2) running averages:
-C
-      IF(Itime == ItimeI)first_ncep(:)=1      ! Initialize
-      IF(IACT <= 0) return ! avoid redundant accumulation on restarts...
-      do m=1,nra_ncep
-        if(m > nra_ncep)call stop_model('check on ncep index m',255)
-        if(first_ncep(m) == 1)then !accumulate first nday_ncep(m) days
-          iday_ncep(m) = iday_ncep(m) + 1
-          day_ncep(:,J_0:J_1,iday_ncep(m),m)=PTBA(:,J_0:J_1,m)
-          if(iday_ncep(m) == nday_ncep(m))then !end of averaging period
-            sum_ncep(:,J_0:J_1,m)=0.d0
-            do n=1,nday_ncep(m)
-              sum_ncep(:,J_0:J_1,m)=
-     &        sum_ncep(:,J_0:J_1,m) + day_ncep(:,J_0:J_1,n,m)
-            end do
-            first_ncep(m)= 0
-            iday_ncep(m) = 0
-            i0_ncep(m)   = 0
-            avg_ncep(:,J_0:J_1,m)=sum_ncep(:,J_0:J_1,m)*by_nday_ncep(m)
-          end if
-        else                     ! no longer first averaging period
-          i0_ncep(m) = i0_ncep(m) + 1
-          if(i0_ncep(m) > nday_ncep(m)) i0_ncep(m) = 1
-C         UPDATE RUNNING AVERAGE:
-          day_ncep_tmp(:,J_0:J_1,m) = PTBA(:,J_0:J_1,m)
-          sum_ncep(:,J_0:J_1,m)=
-     &    sum_ncep(:,J_0:J_1,m) - day_ncep(:,J_0:J_1,i0_ncep(m),m)
-          day_ncep(:,J_0:J_1,i0_ncep(m),m) = day_ncep_tmp(:,J_0:J_1,m)
-          sum_ncep(:,J_0:J_1,m)=
-     &    sum_ncep(:,J_0:J_1,m) + day_ncep(:,J_0:J_1,i0_ncep(m),m)
-          avg_ncep(:,J_0:J_1,m) = sum_ncep(:,J_0:J_1,m)*by_nday_ncep(m)
-        endif
-      end do ! m
-C
-C Don't alter source until enough statistics are built up:
-      do m=1,nra_ncep; if(first_ncep(m)==1) RETURN; end do
-      do j=J_0,J_1
-        if(j == 1 .or. j==jm) cycle
-        if(fearth(i,j) <= 0.) cycle
-        do i=1,IMAXJ(j); do m=1,nra_ch4 
-          if(first_mod(i,j,m) == 1) return
-        end do         ; end do
-      end do
-
-C Otherwise, apply the magnitude adjustments:
-      do m=1,nra_ncep
-        loop_j: do j=J_0,J_1
-          if(j == 1 .or. j==jm) cycle loop_j
-          loop_i: do i=1,imaxj(j)
-            if(fearth(i,j) <= 0.) cycle loop_i
-            CH4_src(i,j,kwet) = CH4_src(i,j,kwet) +
-     &      PTBA(i,j,m+nra_ncep) * (fact_ncep(m)*
-     &      avg_model(i,j,m) - avg_ncep(i,j,m))
-          end do loop_i
-        end do loop_j
-      end do
-  
-C Now, determine the distribution (spatial) adjustments:
-      if(int_wet_dist > 0)then
-C First, determine if there are new wetlands for given point:
-! Conditions of these two IF statements: point is within the limits
-! of topography, surface air temperature, downward SW radiation,
-! and ground wetness, and either (1) the exclusion of U.S. and E.U.
-! wetlands is turned off or (2) the point is outside those regions, 
-! AND this box has some land in it.
-       do j=J_0,J_1
-       if(j == 1 .or. j==jm) cycle
-       if(fearth(i,j) <= 0.) cycle
-       do i=1,imaxj(j)
-        if(exclude_us_eu == 0 .OR. .NOT.((lon_dg(i,1)
-     &   >= -122.5.and.lon_dg(i,1) <= -72.5.and.lat_dg(j,1) >= 34.0
-     &  .and.lat_dg(j,1) <= 46.5).or.(lon_dg(i,1) >= -12.5.and.
-     &  lon_dg(i,1) <= 17.5.and.lat_dg(j,1) >= 37.5.and.lat_dg(j,1)
-     &   <= 62.0)) .AND. fland(i,j) > 0.)then
-         if(top_dev_ij(i,j) < topo_lim .AND. avg_model(i,j,n__SAT)
-     &   > sat_lim .AND. avg_model(i,j,n__SW) > SW_lim .AND.
-     &   avg_model(i,j,n__gwet) > gw_llim .AND. 
-     &   avg_model(i,j,n__gwet) < gw_ulim) then
-          if(CH4_src(i,j,kwet) <= 0.)then
-           zm=0.d0; zmcount=0.d0
-           select case (nn_or_zon)
-           case(1) ! use zonal average
-             do ii=1,im
-              if(CH4_src(ii,j,kwet) > 0.d0)then
-                zm=zm+CH4_src(ii,j,kwet)
-                zmcount=zmcount+1.d0
-              endif
-             enddo
-           case(0) ! use nearest neighbors
-             call pack_data( grid, CH4_src(:,:,kwet), src_glob(:,:) )
-             if(am_i_root( )) then             
-               ix=0
-               do while(zmcount == 0.)
-                ix=ix+1
-                if(ix>im)call stop_model('ix>im int wetl dist',255)
-                do ii=i-ix,i+ix
-                 do jj=j-ix,j+ix
-                  if(ii > 0.and.ii <= im.and.jj > 0.and.jj <= jm.and.
-     &            CH4_src(ii,jj,kwet) > 0.)then
-                    zm=zm+CH4_src(ii,jj,kwet)
-                    zmcount=zmcount+1.d0
-                  endif
-                 enddo
-                enddo
-               enddo   
-             endif ! root
-           case default
-             call stop_model('problem with nn_or_zon',255)
-           end select
-           if(zmcount <= 0.)then
-             write(out_line,*)'zmcount for wetl src <= 0 @ IJ=',I,J
-             call write_parallel(trim(out_line),unit=666,crit=.true.) 
-             CH4_src(i,j,kwet)=0.d0
-           else
-             CH4_src(i,j,kwet)=zm/zmcount
-           end if
-          end if          ! end of no prescribed wetlands there
-         else             ! no wetlands should be here
-          CH4_src(i,j,kwet)=0.d0
-         end if           ! end wetlands criteria
-        end if            ! end U.S./E.U./land criteria
-       end do             ! i loop
-       end do             ! j loop
-      end if              ! Consider interactive welands distrbution?
-      
-C Limit wetlands source to be positive:
-      CH4_src(:,J_0:J_1,kwet)=max(CH4_src(:,J_0:J_1,kwet),0.d0) 
-C No emissions over glacier latitudes if desired:
-      if(ice_age /= 0) then
-        do j=MAX(J_0,ice_age),MIN(J_1,JM)
-          CH4_src(:,j,kwet)=0.d0
-        enddo
-      endif
-#endif
-      return
-      end subroutine read_CH4_sources
-#endif
-
-c
-c
       SUBROUTINE get_lightning_NOx
 !@sum  get_lightning_NOx to define the 3D source of NOx from lightning
 !@auth Colin Price / Greg Faluvegi
@@ -711,7 +346,6 @@ C        save tracer 3D source. convert from gN/min to kgN/s :
       END DO ! I
       END DO ! J
          
-C
       END SUBROUTINE get_lightning_NOx
 c
 c
@@ -940,7 +574,7 @@ C
       USE TRACER_COM, only: kstep
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP, only : GRID,GET,READT_PARALLEL,REWIND_PARALLEL
-     & ,write_parallel,backspace_parallel
+     & ,write_parallel,backspace_parallel,am_i_root
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
@@ -966,7 +600,7 @@ C do the transient and non-transient cases separately for the moment:
 C
       imon=1                ! imon=January
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        write(6,*) 'Not using this first record:'
+        if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*11)
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
@@ -977,7 +611,7 @@ C
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        write(6,*) 'Not using this first record:'
+        if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-2))
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
@@ -1019,7 +653,7 @@ c**** Interpolate two months of data to current day
 !
       imon=1                ! imon=January
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        write(6,*) 'Not using this first record:'
+        if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
      &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
         do L=1,Ldim
@@ -1031,7 +665,7 @@ c**** Interpolate two months of data to current day
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        write(6,*) 'Not using this first record:' 
+        if(am_i_root())write(6,*) 'Not using this first record:' 
         call readt_parallel
      &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
         do L=1,Ldim
@@ -1056,7 +690,7 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
       ipos=ipos+1
       imon=1                ! imon=January
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        write(6,*) 'Not using this first record:'
+        if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
      &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
         do L=1,Ldim
@@ -1068,7 +702,7 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        write(6,*) 'Not using this first record:'
+        if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
      &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
         do L=1,Ldim
@@ -1113,7 +747,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only  : im,jm,lm,ls1,JEQ,DTsrc
-      USE DOMAIN_DECOMP, only : GRID,GET, write_parallel
+      USE DOMAIN_DECOMP, only : GRID,GET, write_parallel,am_i_root
       USE GEOM, only       : dxyp
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
@@ -1208,11 +842,11 @@ c     mixing ratios to 1.79 (observed):
         end select
       end do   ! j
       end do   ! l
-C
+ 
       RETURN
       end subroutine get_CH4_IC
-C  
-C     
+   
+      
       SUBROUTINE calc_lightning(I,J,LMAX,LFRZ)
 !@sum calc_lightning to calculate lightning flash amount and cloud-
 !@+   to-ground amount, based on cloud top height. WARNING: this 
@@ -1320,8 +954,8 @@ C If flash is indeed in flashes/min, accumulate it in flashes:
        TAIJS(I,J,ijs_CtoG) =TAIJS(I,J,ijs_CtoG)  +    CG*60.d0
 
       END SUBROUTINE calc_lightning
-c
-c
+ 
+ 
       SUBROUTINE get_sza(I,J,tempsza)
 !@sum get_sza calculates the solar angle.  The intention is
 !@+   that this routine will only be used when the COSZ1 from the 
@@ -1376,8 +1010,8 @@ C     more representative throughout the 1 hour time step:
       RETURN
       END SUBROUTINE get_sza
 #endif
-C
-C
+ 
+ 
       SUBROUTINE LOGPINT(LIN,PIN,AIN,LOUT,POUT,AOUT,min_zero)
 !@sum LOGPINT does vertical interpolation of column variable,
 !@+   linearly in ln(P).
@@ -1440,8 +1074,8 @@ C
 C           
       RETURN
       END SUBROUTINE LOGPINT
-C
-C
+ 
+ 
 #ifdef TRACERS_ON
       SUBROUTINE special_layers_init
 !@sum special_layers_init determined special altitude levels that
@@ -1647,6 +1281,20 @@ C****
       do L=1,LbbGFED; do j=j_0,j_1; do i=1,IM
         GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
       enddo         ; enddo       ; enddo
+cDMK hardwire to reduce tropical burning for 1890
+c     do L=1,LbbGFED 
+c     do i=1,IM
+c     do j=j_0,MIN(j_1,15) 
+c       GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
+c     enddo          
+c     do j=MAX(j_0,15),MIN(j_1,29) 
+c       GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr*0.5d0
+c     enddo          
+c     do j=MAX(j_0,29),j_1 
+c       GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
+c     enddo          
+c     enddo        
+c     enddo
 
 ! Now, check for a sector definition:
 ! -- begin sector  stuff --
@@ -1760,3 +1408,308 @@ c
       return
       END SUBROUTINE dist_GFED_biomass_burning
 #endif
+
+
+#ifdef INTERACTIVE_WETLANDS_CH4
+      subroutine read_ncep_for_wetlands(iact)
+!@sum reads NCEP precip and temperature data and the coefficients
+!@+ used to parameterize CH4 wetlands emissions from these. Keeps
+!@+ running average of these. Calculated the portion to add to
+!@+ the CH4 source to be used later in subroutine alter_wetlands_source.
+!@auth Greg Faluvegi based on Jean Lerner
+
+      USE MODEL_COM, only: itime,im,jm,jday,itimei
+      USE DOMAIN_DECOMP, only: GRID, GET, am_i_root, write_parallel
+      USE FILEMANAGER, only: openunit,closeunit
+      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
+      USE TRACER_SOURCES, only: nday_ncep,by_nday_ncep,first_ncep,
+     &iday_ncep,day_ncep,i0_ncep,avg_ncep,sum_ncep,nra_ncep,max_days,
+     &PTBA,PTBA1,PTBA2,nncep,ncep_units,jmon_nc,jdlnc,nc_first
+ 
+      implicit none
+      
+      integer :: n,m,iact,i,j,k
+      character(len=300) :: out_line
+      real*8 :: frac
+      character*10, dimension(nncep) :: ncep_files =
+     & (/'PREC_NCEP ','TEMP_NCEP ','BETA_NCEP ','ALPHA_NCEP'/)
+      logical, dimension(nncep) :: ncep_bins =
+     & (/.true.,.true.,.true.,.true./)
+      real*8,dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nra_ncep)::
+     &                                                day_ncep_tmp
+
+      INTEGER :: J_1, J_0, J_0H, J_1H
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      if (fix_CH4_chemistry == 1) return ! don't bother if no CH4 chem
+
+      if(Itime == ItimeI)first_ncep(:)=1 ! Initialize
+
+      by_nday_ncep(:)=1.d0/real(nday_ncep(:))
+
+      do n=1,nra_ncep
+       if(nday_ncep(n) > max_days .or. nday_ncep(n) < 1)
+     & call stop_model('nday_ncep out of range',255)
+      end do
+
+! read the monthly data and interpolate to current day:   
+      
+      do k = 1,nncep
+CCCCC   if(nc_first(k))then
+          call openunit(ncep_files(k),ncep_units(k),ncep_bins(k))
+CCCCC     nc_first(k)=.false. 
+CCCCC   endif
+        call read_mon_src_3(ncep_units(k),PTBA(:,:,k),frac)
+CCCCC   jdlnc(k) = jday ! not used at the moment...
+        call closeunit(ncep_units(k))
+      end do
+      write(out_line,*)
+     &'NCEP for wetlands interpolated to current day',frac
+      call write_parallel(trim(out_line))
+
+! Then update running averages of NCEP Precip(m=1) & Temp(m=2)
+
+      IF(IACT <= 0) return ! avoid redundant accumulation on restarts
+
+      do m=1,nra_ncep
+        if(m > nra_ncep)call stop_model('check on ncep index m',255)
+        if(first_ncep(m) == 1)then !accumulate first nday_ncep(m) days
+          iday_ncep(m) = iday_ncep(m) + 1
+          day_ncep(:,J_0:J_1,iday_ncep(m),m)=PTBA(:,J_0:J_1,m)
+          if(iday_ncep(m) == nday_ncep(m))then !end of averaging period
+            sum_ncep(:,J_0:J_1,m)=0.d0
+            do n=1,nday_ncep(m)
+              sum_ncep(:,J_0:J_1,m)=
+     &        sum_ncep(:,J_0:J_1,m) + day_ncep(:,J_0:J_1,n,m)
+            end do
+            first_ncep(m)= 0
+            iday_ncep(m) = 0
+            i0_ncep(m)   = 0
+            avg_ncep(:,J_0:J_1,m)=sum_ncep(:,J_0:J_1,m)*by_nday_ncep(m)
+          end if
+        else                     ! no longer first averaging period
+          i0_ncep(m) = i0_ncep(m) + 1
+          if(i0_ncep(m) > nday_ncep(m)) i0_ncep(m) = 1
+          day_ncep_tmp(:,J_0:J_1,m) = PTBA(:,J_0:J_1,m)
+          sum_ncep(:,J_0:J_1,m)=
+     &    sum_ncep(:,J_0:J_1,m) - day_ncep(:,J_0:J_1,i0_ncep(m),m)
+          day_ncep(:,J_0:J_1,i0_ncep(m),m) = day_ncep_tmp(:,J_0:J_1,m)
+          sum_ncep(:,J_0:J_1,m)=
+     &    sum_ncep(:,J_0:J_1,m) + day_ncep(:,J_0:J_1,i0_ncep(m),m)
+          avg_ncep(:,J_0:J_1,m) = sum_ncep(:,J_0:J_1,m)*by_nday_ncep(m)
+        endif
+      end do ! m
+
+      return
+      end subroutine read_ncep_for_wetlands
+
+
+      subroutine alter_wetlands_source(n,ns_wet)
+!@sum alter_wetlands_source changes the magnitude of the CH4 wetlands
+!@+ (+ Tundra) source based on B.Walter's parameterization comparing
+!@+ 1st layer ground temperature from 1 week ago and precipitation 
+!@+ from 2 weeks ago, such that:
+!@+  CH4emis = CH4emis + (alpha*TempAnom + beta*PrecAnom)
+!@+ It then optionally allows for change in the wetlands source IJ
+!@+ distribution based on criteria for topography, surf. air temp.,
+!@+ downward SW radiation, land fraction, and ground wetness.
+!@+ You also have the option to exclude the U.S. and E.U. from 
+!@+ wetland distribution changes.
+!@auth Greg Faluvegi
+      USE MODEL_COM, only: itime,im,jm,fland,jday
+      USE DOMAIN_DECOMP, only: GRID, GET, pack_data,
+     &                         unpack_data, am_i_root, write_parallel
+      USE TRACER_COM, only: itime_tr0,trname,sfc_src,ntsurfsrcmax
+      use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
+     &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,
+     &   gw_ulim,gw_llim,SW_lim,exclude_us_eu,nra_ch4,first_mod,
+     &   n__temp,n__sw,n__gwet,n__SAT,nn_or_zon,ice_age,add_wet_src
+      use GEOM, only : lat_dg, lon_dg, imaxj
+      use ghy_com, only : top_dev_ij,fearth
+      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
+
+      implicit none
+      
+      integer, intent(in) :: n,ns_wet
+      integer i,j,nt,iact,iu,k
+      character(len=300) :: out_line
+      integer m,ii,ix,jj
+      real*8 :: zm,zmcount
+      real*8, dimension(IM,JM) :: src_glob
+
+      INTEGER :: J_1, J_0, J_0H, J_1H
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      if(ns_wet < 0 .or. ns_wet > ntsurfsrcmax)call stop_model
+     & ('problem with ns_wet parameter',255)
+
+! Don't alter the wetlands if:
+      ! -->  the tracer is not supposed to be on yet:
+      if (itime < itime_tr0(n)) return
+      ! --> the methane is supposed to be fixed value:
+      if (fix_CH4_chemistry == 1) return
+      ! --> the first averaging period isn't done for ncep vars:
+      do m=1,nra_ncep; if(first_ncep(m)==1) RETURN; end do
+
+! Otherwise calculate the magnitude adjustments (not at poles or
+! over water (/ice?) though. And not until the first averaging
+! period is through (first_mod criterion):
+      do m=1,nra_ncep
+        loop_j: do j=J_0,J_1
+          if(j == 1 .or. j==jm) cycle loop_j
+          loop_i: do i=1,imaxj(j)
+            add_wet_src(i,j)=0.d0
+            if(fearth(i,j) <= 0.) cycle loop_i
+            if(first_mod(i,j,m)/=1.and.sfc_src(i,j,n,ns_wet)/=0.)
+     &      add_wet_src(i,j) = add_wet_src(i,j) + PTBA(i,j,m+nra_ncep)*
+     &      (avg_model(i,j,m) - avg_ncep(i,j,m))
+          end do loop_i
+        end do loop_j
+      end do
+
+! Now, determine the distribution (spatial) adjustments:
+      if(int_wet_dist > 0)then ! if option is on
+
+! Determine if there are new wetlands for given point,
+! or remove existing wetlands:
+
+       do j=J_0,J_1
+       if(j == 1 .or. j==jm) cycle ! skip the poles
+       if(fearth(i,j) <= 0.) cycle ! and boxes with no land
+       do i=1,imaxj(j)
+
+         ! if either {(point is not in U.S. or E.U.) .or. (it is but 
+         ! the exclusion of U.S. and E.U. wetlands is OFF)} AND
+         ! (the point has some land):
+
+         if((exclude_us_eu == 0 .OR. .NOT.((lon_dg(i,1)
+     &   >= -122.5.and.lon_dg(i,1) <= -72.5.and.lat_dg(j,1) >= 34.0
+     &   .and.lat_dg(j,1) <= 46.5).or.(lon_dg(i,1) >= -12.5.and.
+     &   lon_dg(i,1) <= 17.5.and.lat_dg(j,1) >= 37.5.and.lat_dg(j,1)
+     &   <= 62.0))) .AND. (fland(i,j) > 0.))then
+
+           ! if the topography slope, surface are temp., SW radiation,
+           ! and ground wetness are within certain limits:
+
+           if(top_dev_ij(i,j) < topo_lim .AND. avg_model(i,j,n__SAT)
+     &     > sat_lim .AND. avg_model(i,j,n__SW) > SW_lim .AND.
+     &     avg_model(i,j,n__gwet) > gw_llim .AND.
+     &     avg_model(i,j,n__gwet) < gw_ulim) then
+
+             ! if no wetlands there yet:
+             
+             if(sfc_src(i,j,n,ns_wet) == 0.)then
+               zm=0.d0; zmcount=0.d0
+               select case (nn_or_zon)
+               case(1) ! use zonal average (of existing wetlands)
+                 do ii=1,im
+                  if(sfc_src(ii,j,n,ns_wet) > 0.d0)then
+                    zm=zm+sfc_src(ii,j,n,ns_wet)
+                    zmcount=zmcount+1.d0
+                  endif
+                 enddo
+               case(0) ! use nearest neighbor approach
+                 call pack_data
+     &           (grid,sfc_src(:,:,n,ns_wet),src_glob(:,:))
+                 if(am_i_root( )) then
+                   ix=0
+                   do while(zmcount == 0.)
+                     ix=ix+1
+                     if(ix>im)call stop_model('ix>im int wetl dist',255)
+                     do ii=i-ix,i+ix ;do jj=j-ix,j+ix
+                       if(ii>0.and.ii<=im.and.jj>0.and.jj<=jm .and.
+     &                 src_glob(ii,jj) > 0.)then
+                         zm=zm+src_glob(ii,jj)
+                         zmcount=zmcount+1.d0
+                       endif
+                     enddo           ;enddo
+                   enddo
+                 endif ! root
+               case default
+                 call stop_model('problem with nn_or_zon',255)
+               end select
+               if(zmcount <= 0.)then
+                 write(out_line,*)'zmcount for wetl src <= 0 @ IJ=',I,J
+                 call write_parallel(trim(out_line),unit=6,crit=.true.)
+                 add_wet_src(i,j)=-1.d0*sfc_src(i,j,n,ns_wet)
+               else
+                 add_wet_src(i,j)=zm/zmcount
+               end if
+             end if       ! end of no prescribed wetlands there
+           else           ! no wetlands should be here
+             add_wet_src(i,j)=-1.d0*sfc_src(i,j,n,ns_wet)
+           end if         ! end wetlands criteria
+         end if           ! end U.S./E.U./land criteria
+       end do             ! i loop
+       end do             ! j loop
+      end if              ! Consider interactive welands distrbution?
+
+! Limit wetlands source to be positive:
+      do j=J_0,J_1  
+        do i=1,imaxj(j)
+          if((sfc_src(i,j,n,ns_wet)+add_wet_src(i,j))<0.)
+     &    add_wet_src(i,j)=-1.d0*sfc_src(i,j,n,ns_wet)
+        enddo
+      enddo
+
+! Optionally disallow  emissions over glacier latitudes:
+      if(ice_age /= 0.) then
+        do j=J_0,J_1 
+          if(abs(lat_dg(j,1))>abs(ice_age))
+     &    add_wet_src(i,j)=-1.d0*sfc_src(i,j,n,ns_wet)
+        enddo
+      endif
+
+      return
+      end subroutine alter_wetlands_source
+
+
+      SUBROUTINE read_mon_src_3(iu,data,frac)
+!@sum Read in monthly sources and interpolate to current day
+! I know... yet another copy of this kind of routine...
+! I have them all combined in one, but there is a bug so I
+! can't commit it yet...
+!@auth Greg Faluvegi, Jean Lerner and others
+
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT, write_parallel,
+     & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
+      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM,jyear
+
+      implicit none
+
+      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     tlca,tlcb,data
+      real*8 :: frac,alpha
+      integer ::  imon,iu,k
+      character(len=300) :: out_line
+
+      integer :: J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      imon=1
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        call readt_parallel(grid,iu,nameunit(iu),0,tlca,12)
+        call rewind_parallel( iu )
+      else            ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        call readt_parallel(grid,iu,nameunit(iu),0,tlca,imon-1)
+        if (imon == 13)then
+          call rewind_parallel( iu )
+        endif
+      end if
+      call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
+
+c**** Interpolate two months of data to current day
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      data(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+
+      return
+      end subroutine read_mon_src_3
+#endif
+

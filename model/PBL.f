@@ -95,6 +95,9 @@ c**** Tracer input/output
 #ifdef TRACERS_SPECIAL_O18
         real*8, dimension(ntm) :: frack
 #endif
+#ifdef BIOGENIC_EMISSIONS
+        real*8 :: emisop 
+#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -724,6 +727,16 @@ C****   4) tracers with interactive sources
           call read_seasalt_sources(ws,itype,2,ilong,jlat
      &         ,pbl_args%ss2_flux)
           trcnst=(pbl_args%ss2_flux + pbl_args%ss1_flux)*byrho
+        end select
+#endif
+
+#ifdef BIOGENIC_EMISSIONS
+! Nadine Unger test code for biogenic emissions
+! emisop is in units kg C/m2/s
+        select case (trname(pbl_args%ntix(itr)))
+        case ('Isoprene')
+          call isoprene_emission(ilong,jlat,itype,pbl_args%emisop)
+          trcnst=pbl_args%emisop*byrho
         end select
 #endif
 

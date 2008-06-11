@@ -297,6 +297,9 @@ c**** prescribed dust emission
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
       USE trdiag_com,ONLY : rts_save
 #endif
+#ifdef BIOGENIC_EMISSIONS
+      use trdiag_com,ONLY : ijs_isoprene
+#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use constant, only : tf
       use tracer_sources, only : n__temp,n__sat,n__gwet
@@ -484,6 +487,14 @@ ccc accumulate tracer dry deposition
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-
      &         ptype*rtsdt*dxyp(j)* pbl_args%gs_vel(n)
         end if
+#endif
+#ifdef BIOGENIC_EMISSIONS
+        select case (trname(n))
+        case ('Isoprene')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+pbl_args%emisop*dxyp(j)*ptype
+          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
+     &    pbl_args%emisop*dxyp(j)*ptype*dtsurf
+        end select
 #endif
       end do
 

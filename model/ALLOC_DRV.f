@@ -22,6 +22,9 @@ c set-up for MPI implementation
       call alloc_lakes(grid)
       call alloc_lakes_com(grid)
       call alloc_landice_com(grid)
+#ifdef BIOGENIC_EMISSIONS
+      call alloc_biogenic_emis(grid)
+#endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call alloc_tracer_com(grid)
 #ifdef TRACERS_DRYDEP
