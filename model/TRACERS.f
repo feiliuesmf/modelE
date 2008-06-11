@@ -1554,7 +1554,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       case default ! nothing
       case(1) ; message='read_emis_header: missing header'
       case(2) ; message='read_emis_header: problem with freq'
-      case(3) ; message='read_emis_header: a and m are choiced for freq'
+      case(3) ; message='read_emis_header: a and m are choices for freq'
       case(4) ; message='read_emis_header: problem with tracer name'
       case(5) ; message='read_emis_header: tracer name mismatch'
       case(6) ; message='read_emis_header: problem with source'
