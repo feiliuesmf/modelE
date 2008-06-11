@@ -268,6 +268,11 @@ aircraft_Tyr2=1990 ! set these two equal or omit them.
 biomass_Tyr1= 1990 ! for non-transient emissions,
 biomass_Tyr2= 1990 ! set these two equal or omit them.
 
+! factor to tune the base isoprene emissions globally,
+! only when #defined BIOGENIC_EMISSIONS, otherwise use
+! a sector/region method above...
+base_isopreneX=1.d0
+
 ! ---- for interactive wetlands -----
 nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
