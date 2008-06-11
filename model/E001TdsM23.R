@@ -26,6 +26,9 @@ Preprocessor Options
 !  OFF #define regional_Ox_tracers      ! turns on regional Ox tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
+!  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
+!  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
+
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -40,6 +43,9 @@ STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 TRACER_COM TRACERS_DRV              ! common and driver for tracers
+TRDRYDEP                            ! tracer dry deposition from Harvard CTM
+TRACERS                             ! generic tracer code
+TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 ! ---TRACER SPECIFIC CODES----------
 TRACERS_SPECIAL_Shindell            ! routines specific to drew's 15-tracers
 TRCHEM_Shindell_COM                 ! Drew Shindell's tracers common
@@ -51,10 +57,8 @@ TRCHEM_fastj2                       ! used for stratosphere chem version
 TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 ! TRACERS_AEROSOLS_Koch_e4
 ! COSMO_SOURCES
+! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions
 ! ----------------------------------
-TRDRYDEP                            ! tracer dry deposition from Harvard CTM
-TRACERS                             ! generic tracer code
-TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
@@ -67,6 +71,7 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN ICEDYN_DRV                   ! dynamic ice modules
+SparseCommunicator_mod              ! sparse gather/scatter module
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV_E1 RADIATION_E1        ! radiation modules
@@ -194,22 +199,12 @@ Isoprene_01=gsin/Isoprene_GEIA_vegetation_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
 SO2_FIELD=so2_conc
-! --------Dorothy's------------------------------
-! DMS_SEA=DMS.dat
-! AER_CHEM=trace_gas_3D_fields_E
-! SO2_IND=SO2_1990.EDGAR3.2
-! SO2_BIOMASS=SO2_bio2000.AEROCOM_DEC03
-! SO2_VOLCANO=SO2_volc_conti2000.AEROCOM_FEB12
-! AIRCRAFT=MM_fuel_2015_subsonic_M31
-! BC_BIOFUEL=BC_bf2000.AEROCOM_DEC03
-! BC_FOSSIL_FUEL=BC_ff2000.AEROCOM_DEC03
-! OC_BIOFUEL=OC_bf2000.AEROCOM_DEC03
-! OC_FOSSIL_FUEL=OC_ff2000.AEROCOM_DEC03
-! BC_BIOMASS=BC_Biomass_1997-2001
-! OC_BIOMASS=OM_Biomass_1997-2001
-! TERPENE=terp
-! -------cosmogenic--------------------
-! BE7_COSMO=Be23m1phi700.dat
+! ----- for interactive wetlands -----
+PREC_NCEP=gsin/mean_prec_ncep_4x5
+TEMP_NCEP=gsin/mean_temp_ncep_4x5
+BETA_NCEP=gsin/beta_p_ch4_4x5
+ALPHA_NCEP=gsin/alpha_t_ch4_4x5
+!-----------------------------------------------
 
 Label and Namelist:
 E001TdsM23 (sample rundeck with Shindell chemistry tracers)
@@ -222,10 +217,10 @@ CO_01_sect='CO FFUEL'
 CO_02_sect='CO BBURN'
 Alkenes_01_sect='ALK FFUEL'
 Alkenes_02_sect='ALK BBURN'
-Alkenes_03_sect='ALK'
+Alkenes_03_sect='ALK VEG'
 Paraffin_01_sect='PAR FFUEL'
 Paraffin_02_sect='PAR BBURN'
-Paraffin_03_sect='PAR'
+Paraffin_03_sect='PAR VEG'
 NOx_01_sect='NOX FFUEL'
 NOx_02_sect='NOX BBURN'
 NOx_03_sect='NOX'
@@ -241,7 +236,7 @@ CH4_08_sect='CH4 FFUEL'
 CH4_09_sect='CH4 BBURN'
 CH4_10_sect='CH4'
 CH4_11_sect='CH4 WETL'
-Isoprene_01_sect='ISO'
+Isoprene_01_sect='ISO VEG'
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
@@ -263,8 +258,9 @@ SECT_06= 1.000, 1.000, 1.000, 1.000, 1.000 ! ISO
 SECT_07= 1.000, 1.000, 1.000, 1.000, 1.000 ! FFUEL
 SECT_08= 1.000, 1.000, 1.000, 1.000, 1.000 ! BBURN
 SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
+SECT_10= 1.000, 1.000, 1.000, 1.000, 1.000 ! VEG
 !       ---define-sectors-names/order------
-SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL'
+SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL VEG'
 !-fit-here--|                                                              |---
 !-----
 aircraft_Tyr1=1990 ! for non-transient emissions,
@@ -272,18 +268,36 @@ aircraft_Tyr2=1990 ! set these two equal or omit them.
 biomass_Tyr1= 1990 ! for non-transient emissions,
 biomass_Tyr2= 1990 ! set these two equal or omit them.
 
+! ---- for interactive wetlands -----
+nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
+int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
+ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
+ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
+exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
+topo_lim=205.d0 ! upper limit of topographic variation for new wetlands 
+sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
+gw_ulim=100.d0  ! upper limit on ground wetness for new wetlands
+gw_llim=18.d0   ! lower limit on ground wetness for new wetlands
+SW_lim=27.d0    ! lower limit on SW downward flux for new wetlands
+! -----------------------------------
+X_SDRAG=.0005,.00005  ! used for lin. sdrag above P_SDRAG mb
+C_SDRAG=0.     ! no constant sdrag
+P_SDRAG=.01     ! lin. sdrag above p_sdrag mb (top layer for M23) except near poles
+PP_SDRAG=4.6   ! lin. sdrag above  pp_sdrag mb near poles (top 5 layers for M23)
+ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
+WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000030 !the default is 15d-6
+PCONPEN=400.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000002 ! parameter for GW Moist Convective drag
+CSHEAR=1.      ! Shear drag coefficient
+CMTN=0.25      ! default is 0.5
+CDEF=1.5       ! deformation drag coefficient
+LMCM=16              ! max level of moist convection
+XCDNST=300.,10000.   ! strat. gw drag parameters
 
-ocn_cycl=1      ! =0 if ocean varies from year to year
-X_SDRAG=.00025,.000025  ! used for lin. sdrag above P_SDRAG mb
-C_SDRAG=0.      ! no constant sdrag
-P_SDRAG=.1      ! lin. sdrag above .1mb (top 2 layers) except near poles
-PP_SDRAG=.1     ! lin. sdrag above 1.mb near poles (top 4 layers)
-ANG_SDRAG=1     ! if =1: sdrag conserves ang mom.
-PBREAK = 200.   ! The level for GW breaking above.
-DEFTHRESH=0.000035 !the default is 15d-6
-PCONPEN=500.    ! penetrating convection defn for GWDRAG
-CMC = 0.0000003
 KOCEAN=0
+ocn_cycl=1      ! =0 if ocean varies from year to year
 U00ice  = .60   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 u00wtrx = 1.43  ! 1980 conditions (NEEDS TO BE VERIFIED!)
 cond_scheme=2   ! more elaborate conduction scheme (GHY, Nancy Kiang)
@@ -295,13 +309,11 @@ DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (bel
 DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
-LMCM=16              ! max level of moist convection
-XCDNST=300.,10000.   ! strat. gw drag parameters
 DTsrc = 1800.        ! half-hour physics time step (default: DTsrc=3600.)
 DT=450.,             ! dynamics time step
 NIsurf=1,            ! number of surface time steps
 Kvflxo=0             ! saving VFLXO (daily)
-Ndisk=480            ! i.e. 10 days on halem
+Ndisk=480            ! e.g. every 10 days
 NSUBDD=0             ! saving sub-daily diags :
 ! pick sub-daily frequency diags, next line ::
 SUBDD=' '
@@ -341,22 +353,23 @@ prather_limits=1   ! to avoid some negative tracers in sub-gridscale
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=-1   ! for setting fixed methane value for chemistry:
-pfix_CH4_S=1.750d-6    ! Southern Hemisphere
-pfix_CH4_N=1.855d-6    ! Northern Hemisphere
+pfix_CH4_S=1.750d-6    ! Southern Hemisphere (fix_CH4_chemistry=1)
+pfix_CH4_N=1.855d-6    ! Northern Hemisphere (fix_CH4_chemistry=1)
+ch4_init_sh=1.750      ! init cond, S.Hemi (fix_CH4_chemistry=0 ?)
+ch4_init_nh=1.855      ! init cond, N.Hemi (fix_CH4_chemistry=0 ?)
 scale_ch4_IC_file=1.d0 ! multiplicative factor on CH4 IC file (fix_CH4_chemistry=-1)
 
 ! To run a preindustrial case, alter the sulfate surface area, SST, & seaice
 ! files and the radiation years in this rundeck. Also, fix the ch4 chemistry
 ! to the appropriate value (0.73ppmv in both hemispheres?) Then, set PI_run=1
 ! and choose the various ratios for altering initial conditions, stratospheric
-! overwriting, and sources of the tracers below:
+! overwriting. Probably best to alter sources via the sectors set in the
+! rundeck instead, use these for initial conditions/overwriting:
 PI_run        =    0    ! 0 =no, 1=yes for running pre-industrial cases
 PIratio_N     = 0.667d0 ! {NOx, HNO3, N2O5, HO2NO2}
 PIratio_CO_T  = 0.333d0 ! CO in troposphere
 PIratio_CO_S  = 0.500d0 ! CO in stratosphere
 PIratio_other = 0.500d0 ! {PAN,Isoprene,AlkyNit,Alkenes,Paraffin}
-PIratio_indus = 0.000d0 ! factor for industrial sources
-PIratio_bburn = 0.100d0 ! factor for biomass burning sources
 PIratio_N2O   = 0.896d0 ! {N2O IC's and L=1 overwriting}
 PIratio_CFC   = 0.000d0 ! {CFC IC's and L=1 overwriting}
 !----------------------------------------------------------------------
