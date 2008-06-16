@@ -15,10 +15,11 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only    : LM
+      USE MODEL_COM, only     : LM,LS1
       USE CONSTANT, only      : radian
-      USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
-     &                          szamax,U0,NCFASTJ,iprn,jprn,prnrts
+      USE DYNAMICS, only      : LTROPO
+      USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jppj,zj,
+     &                 which_trop,szamax,U0,NCFASTJ,iprn,jprn,prnrts
 c
       IMPLICIT NONE
 c
@@ -26,12 +27,18 @@ C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var i,j,k dummy loop variables
 !@var NCFASTJ Number of levels in atmosphere
+!@var maxl trop/strat boundary level
       INTEGER, INTENT(IN) :: nslon, nslat
-      INTEGER i,j,k
+      INTEGER i,j,k,maxl
 C
 #ifdef SHINDELL_STRAT_CHEM
       call stop_model('SHINDELL_STRAT_CHEM use TRCHEM_fastj2',255)
 #endif
+      select case(which_trop)
+      case(0); maxl=ltropo(nslon,nslat)
+      case(1); maxl=ls1-1
+      case default; call stop_model('which_trop problem 3',255)
+      end select
 C
       zj(:,:)    =0.d0
       JFASTJ(:,:)=0.d0
@@ -40,11 +47,11 @@ C
 C
       if(SZA.le.szamax) then
         CALL CTM_ADJ(NSLON,NSLAT) !define pres & aerosol profiles
-        CALL INT_PROF(NSLON,NSLAT)!define    T &      O3 profiles
+        CALL INT_PROF(NSLON,NSLAT,maxl) !define T & O3 profiles
         IF(prnrts.and.NSLON.eq.iprn.and.NSLAT.eq.jprn)
      &  CALL PRTATM(NSLON,NSLAT)  ! Print out atmosphere
-        CALL JVALUE(NSLON,NSLAT)  ! Calculate Actinic flux
-        CALL JRATET(NSLON,NSLAT)  ! Calculate photolysis rates
+        CALL JVALUE(NSLON,NSLAT,maxl) ! Calculate Actinic flux
+        CALL JRATET(NSLON,NSLAT,maxl) ! Calculate photolysis rates
         JFASTJ(:,:)= zj(:,:)      ! photolysis rates returned
       end if ! sza
 c
@@ -62,7 +69,8 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only    : IM,JM,LM
-      USE TRCHEM_Shindell_COM, only:SALBFJ,RCLOUDFJ,jndlev,NCFASTJ,aer,
+      USE RAD_COM, only      : ALB
+      USE TRCHEM_Shindell_COM, only:RCLOUDFJ,jndlev,NCFASTJ,aer,
      &                          ZFASTJ,jaddlv,jaddto,PFASTJ,RFLECT,
      &                          odtmp,odsum,odmax,luselb,nlbatm,zlbatm
      &                          ,iprn,jprn
@@ -115,7 +123,7 @@ c Zero level indices
       enddo
 c
 c Set surface albedo
-      RFLECT = dble(1.-SALBFJ(NSLON,NSLAT))
+      RFLECT = dble(1.- ALB(NSLON,NSLAT,1))
       RFLECT = dmax1(0.d0,dmin1(1.d0,RFLECT))
 c
 c Scale optical depths as appropriate
@@ -161,7 +169,7 @@ c
       end SUBROUTINE ctm_adj
 c
 c
-      SUBROUTINE int_prof(NSLON,NSLAT)
+      SUBROUTINE int_prof(NSLON,NSLAT,maxl)
 !@sum int_prof to interpolate T and O3 onto model grid. Currently only a
 !@+   linear interpolation Oliver (23/05/97). Calculate the total number
 !@+   density and the ozone profile.
@@ -170,11 +178,10 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: JM, month=>JMON,ls1
-      USE DYNAMICS, only: LTROPO
+      USE MODEL_COM, only: JM, month=>JMON
       USE TRCHEM_Shindell_COM, only: O3_FASTJ,cboltz,dlogp,O3J,TJ,DBC,
      &                          OREF,TREF,BREF,DO3,DMFASTJ,NCFASTJ,
-     &                          PFASTJ,which_trop
+     &                          PFASTJ
 c
       IMPLICIT NONE
 c
@@ -184,8 +191,8 @@ C**** Local parameters and variables and arguments:
 !@var pstd Approximate pressures of levels for supplied data
 !@var tmp1,tmp2,ydgrd,month,tmpfra temporary variables
 !@var maxl LTROPO or LS1-1, depending on which_trop variable
-      INTEGER, INTENT(IN) :: nslon, nslat
-      INTEGER i,j,l,m,maxl
+      INTEGER, INTENT(IN) :: nslon, nslat, maxl
+      INTEGER i,j,l,m
       REAL*8, DIMENSION(51) :: pstd
       REAL*8 tmp1,tmp2,ydgrd,tmpfra
 c
@@ -241,11 +248,6 @@ c  Ozone  (extrapolate above 60 km)
       enddo
 c
 c     overwrite troposphere lvls of climatological O3 with GISS GCM O3:
-      select case(which_trop)
-      case(0); maxl=ltropo(nslon,nslat)
-      case(1); maxl=ls1-1
-      case default; call stop_model('which_trop problem 3',255)
-      end select
       do i=1,2*maxl
        O3J(i)=O3_FASTJ(i)
       enddo
@@ -261,15 +263,15 @@ c
       end SUBROUTINE int_prof
 C
 C
-      SUBROUTINE JRATET(NSLON,NSLAT)
+      SUBROUTINE JRATET(NSLON,NSLAT,maxl)
 !@sum JRATET Calculate & print J-values. The loop in this routine
-!@+   only covers the jpnl levels actually needed by the CTM.
+!@+   only covers the maxl levels actually needed by the CTM.
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 c
 C**** GLOBAL parameters and variables:
 C
-      USE TRCHEM_Shindell_COM, only:FFF,TFASTJ,VALJ,jpnl,NW1,NW2,jpdep,
+      USE TRCHEM_Shindell_COM, only:FFF,TFASTJ,VALJ,NW1,NW2,jpdep,
      &                              TQQ,QQQ,zpdep,PFASTJ,jppj,zj,
      &                              jfacta,NJVAL,jind
 c
@@ -279,12 +281,13 @@ C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var i,j,k,l,jgas dummy loop variables
 !@var QO2TOT,QO3TOT,QO31D,QO33P,QQQT,tfact temporary variables
-      INTEGER, INTENT(IN) :: nslon, nslat
+!@var maxl the tropopause level
+      INTEGER, INTENT(IN) :: nslon, nslat, maxl
       INTEGER i,j,k,l,jgas
       REAL*8 QO2TOT,QO3TOT,QO31D,QO33P,QQQT,tfact
       REAL*8 XSECO2,XSECO3,XSEC1D ! >>> FUNCTIONS <<<
 C
-      DO I=1,jpnl
+      DO I=1,maxl
        VALJ(1) = 0.d0
        VALJ(2) = 0.d0
        VALJ(3) = 0.d0
@@ -379,7 +382,7 @@ C---Print out atmosphere
       END SUBROUTINE PRTATM
 C
 C
-      SUBROUTINE JVALUE(nslon,nslat)
+      SUBROUTINE JVALUE(nslon,nslat,maxl)
 !@sum JVALUE Calculate actinic flux at each level for current SZA value.
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
@@ -388,7 +391,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: LM
-      USE TRCHEM_Shindell_COM, only: JPNL,NW1,NW2,FFF,WL,NCFASTJ,TJ,FL,
+      USE TRCHEM_Shindell_COM, only: NW1,NW2,FFF,WL,NCFASTJ,TJ,FL,
      &                          XQO2,XQO3
 c
       IMPLICIT NONE
@@ -398,13 +401,14 @@ C**** Local parameters and variables and arguments:
 !@var WAVE Effective wavelength of each wavelength bin
 !@var AVGF   Attenuation of beam at each level for each wavelength
 !@var nslon,nslat I and J spatial indicies passed from master chem
-      INTEGER, INTENT(IN) :: nslon, nslat
+!@var maxl the tropopause level
+      INTEGER, INTENT(IN) :: nslon, nslat, maxl
       INTEGER j,k
       REAL*8 WAVE
       REAL*8 XSECO2,XSECO3 ! >>> FUNCTIONS <<<
       REAL*8, DIMENSION(LM) :: AVGF
 C
-      DO J=1,jpnl
+      DO J=1,maxl
         DO K=NW1,NW2
          FFF(K,J) = 0.d0
         ENDDO
@@ -428,7 +432,7 @@ C-----------------------------------------
         CALL OPMIE(K,WAVE,AVGF)
 C-----------------------------------------
 c
-        DO J=1,jpnl
+        DO J=1,maxl
           FFF(K,J) = FFF(K,J) + FL(K)*AVGF(J)
         ENDDO
       ENDDO
