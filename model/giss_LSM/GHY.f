@@ -1868,7 +1868,7 @@ ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 #ifdef USE_ENT
       use ent_mod, only: entcelltype_public, ent_set_forcings_single,
-     &     ent_get_exports, ent_fast_processes, ent_run
+     &     ent_get_exports, ent_fast_processes, ent_seasonal_update !ent_run
 !@var longi,latj corresponding coordinate of the cell
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
@@ -2085,7 +2085,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dt, 0.d0) 
+          call ent_seasonal_update( entcell, dt, 0.d0)  ! ent_run
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
