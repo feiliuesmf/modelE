@@ -8,14 +8,15 @@ endif
 
 #CASE = $(MAKECMDGOALS)
 # online/offline source code
-ifeq ($(ONLINE),YES)
+
+#ifeq ($(ONLINE),YES)
 FSRCS = 
 F90SRCS = 
-else
-FSRCS = ent_prog.f gcm_utils.f gcm_system.f \
-ent_forcings.f ent_prescribed_drv.f
-F90SRCS = 
-endif
+#else
+#FSRCS = ent_prog.f gcm_utils.f gcm_system.f \
+#ent_forcings.f ent_prescribed_drv.f
+#F90SRCS = 
+#endif
 
 FSRCS += ent_prescribed_drv.f # needed for lsm_standalone
 
