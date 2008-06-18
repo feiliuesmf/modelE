@@ -324,13 +324,6 @@ C**** accumulate diagnostics
           CALL UNPACK_DATA(grid_MIC, TICIJ_GLOB, TICIJ)
           call ESMF_BCAST(grid_MIC, it)
 #endif
-        CASE (IRSFIC)  ! initial conditions
-          READ (kunit)
-#ifdef TRACERS_WATER
-          READ (kunit)
-#endif
-        CASE (IRSFICNT)  ! initial conditions (with no tracers)
-          READ (kunit)
         END SELECT
       END SELECT
 
