@@ -76,7 +76,7 @@ C**** Command line options
       real*8 :: initialTotalEnergy, finalTotalEnergy
 
 #ifdef SCM
-c     Hard Code J - cannot get syncparam to work here ???? 
+c     Hard Code J - cannot get syncparam to work here ????
       J_TARG = 39
       call init_app(grid,im,jm,lm,J_TARG)
 #else
@@ -278,7 +278,7 @@ c    &              'before dynam ',
 c    &               L,T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG),
 c    &               Q(I_TARG,J_TARG,L)*1000.0,
 c    &               U(I_TARG,J_TARG,L),V(I_TARG,J_TARG,L)
-c     enddo 
+c     enddo
 #endif
 
 
@@ -929,6 +929,9 @@ CCCC      INTEGER :: stdin ! used to read 'I' file
      &               J_STRT_HALO= J_0H, J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+#ifdef USE_ESMF
+      write(6,*) 'mpi-zone',J_0,' - ',J_1
+#endif
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
@@ -1237,7 +1240,7 @@ C****                                                    currently
           VSAVG(I,J)=V(I,J,1)
         END DO
         END DO
-#else 
+#else
         DO J=J_0S,J_1S
         IM1=IM
         DO I=1,IM
@@ -1253,7 +1256,7 @@ C****                                                    currently
         CDM=.001d0
 
 #ifdef SCM
-c      enter SCM part of INPUT 
+c      enter SCM part of INPUT
        call openunit("scm.prt",iu_scm_prt,.false.,.false.)
        call sync_param( "I_TARG",I_TARG)
        call sync_param( "J_TARG",J_TARG)
@@ -1272,7 +1275,7 @@ c      enddo
      &             I_TARG,J_TARG
              STOP 100
        endif
-!      read scm data and initialize model 
+!      read scm data and initialize model
 !      note:  usavg,vsavg and wsavg filled from here
        call init_scmdata
        write(0,*) 'return from init_scmdata'
@@ -1704,7 +1707,7 @@ C**** Ensure that no round off error effects land with ice and earth
         END IF
       END DO
       END DO
-      
+
       If (HAVE_SOUTH_POLE) Then
          FLAND(2:IM,1)=FLAND(1,1)
          FEARTH(2:IM,1)=FEARTH(1,1)
