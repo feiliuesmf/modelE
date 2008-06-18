@@ -24,7 +24,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : twopi
       USE MODEL_COM
-      USE GEOM, only : dlat,dlon,lon,sinip,cosip
+      USE GEOM, only : lon,sinip,cosip
       USE RAD_COM, only : cosd,sind,sinj,cosj
       USE DOMAIN_DECOMP, ONLY: grid
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
@@ -1046,7 +1046,7 @@ C**** REPLICATE VALUES AT POLE
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha
       USE MODEL_COM
-      USE GEOM
+      USE GEOM, only : dlat_dg, imaxj, dxyp, areag
       USE ATMDYN, only : CALC_AMPK
       USE RADPAR
      &  , only :  ! routines

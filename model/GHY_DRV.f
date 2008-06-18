@@ -13,6 +13,7 @@ c******************   TRACERS             ******************************
       use sle001,ONLY : aevap
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+     *     ,trname
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
@@ -22,11 +23,6 @@ c******************   TRACERS             ******************************
 #endif
 #ifdef TRACERS_WATER
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE
-#endif
-#if (defined TRACERS_WATER) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,trname
 #endif
 #ifdef TRACERS_DUST
      &     ,n_clay,imDust

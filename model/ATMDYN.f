@@ -410,7 +410,7 @@ C**** vertically integrated atmospheric fluxes
 !@ver  1.0
       USE MODEL_COM, only : im,imh,jm,lm,ls1,dsig,bydsig,byim
      &     ,zatmo,sige,do_polefix
-      USE GEOM
+      USE GEOM, only : dyp,dxv,polwt,imaxj
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
@@ -1889,7 +1889,7 @@ c**** Extract domain decomposition info
 
 
 C**** (Pressure gradient)/density at first layer and surface
-C**** to be used in the PBL, at the promary grids
+C**** to be used in the PBL, at the primary grids
 
       ! for dPdy/rho at non-pole grids
       CALL HALO_UPDATE(grid, P,   FROM=SOUTH+NORTH)

@@ -29,7 +29,7 @@
 !@+   vegetation module from GCM, then passes them to the initialization
 !@+   routine
       use ENT, only : ent_init
-      use GEOM : dxyp
+      use GEOM, only : dxyp
 
 
       call ent_init(

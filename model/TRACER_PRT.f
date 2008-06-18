@@ -255,8 +255,7 @@ C**** No need to save current value
       USE MODEL_COM, only:
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
-      USE GEOM, only:
-     &     areag,dlon,dxyp,lat_dg
+      USE GEOM, only: areag,dxyp,lat_dg
       USE TRACER_COM, only: ntm ,itime_tr0
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,

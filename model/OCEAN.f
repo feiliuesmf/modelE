@@ -18,7 +18,7 @@
       USE MODEL_COM, only : im,jm,lm,focean,fland,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
-      USE GEOM
+      USE GEOM, only : dxyp, imaxj
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
      *     ,cq=>cqgs,ipbl,roughl
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc

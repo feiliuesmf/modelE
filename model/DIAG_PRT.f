@@ -1656,7 +1656,7 @@ c Check the count
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
      &     PMTOP,PSFMPT,JHOUR,kep,req_fac_d,req_fac_m
       USE GEOM, only : JRANGE_HEMI,
-     &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
+     &     AREAG,BYDXYP,COSP,COSV,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
      &    ,BYDXYV,lat_dg
       USE DIAG_COM
       USE BDjkjl
@@ -5102,7 +5102,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
       USE GEOM, only :
-     &     areag,dlon,dxyp,dxyv,LAT_DG,WTJ
+     &     areag,dxyp,dxyv,LAT_DG,WTJ
       USE DIAG_COM, only :
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
      *     inc=>incj,xwon,ia_inst
@@ -5236,7 +5236,7 @@ C****
      &     im,jm,lm,fim,
      &     DT,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
      &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL,istrat
-      USE GEOM, only : DLON,DXYV
+      USE GEOM, only : DXYV
       USE DIAG_COM, only :
      &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u,klayer
      &     ,JK_DPB,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
@@ -5608,8 +5608,6 @@ C****
      &     im,jm,lm,fim,
      &     IDACC,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,NDA4,NDAY,Itime0,XLABEL,istrat
-      USE GEOM, only :
-     &     DLON
       USE DIAG_COM, only :
      &     energy,ned,nehist,hist_days,xwon,ia_inst,ia_d4a
       IMPLICIT NONE

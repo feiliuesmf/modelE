@@ -8,7 +8,7 @@
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
      *     ,teeny
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
+     *     ,ls1,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jyear,jmon

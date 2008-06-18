@@ -3372,7 +3372,6 @@ c
       subroutine jl_defs
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
       use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag,qcheck
-      use GEOM, only : dlon
       use DIAG_COM
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none

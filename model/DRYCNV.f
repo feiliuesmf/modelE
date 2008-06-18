@@ -6,12 +6,12 @@
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : lhe,sha,deltx
-      USE MODEL_COM
+      USE MODEL_COM, only : im,jm,lm,u,v,q,t
       USE DOMAIN_DECOMP, only : grid, get
       USE DOMAIN_DECOMP, only : halo_update, checksum
       USE DOMAIN_DECOMP, only : halo_update_column, checksum_column
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
-      USE GEOM
+      USE GEOM, only : imaxj, kmaxj, ravj, idij, idjj
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
       USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc,jl_trbdlht
@@ -40,7 +40,7 @@ C
       INTEGER  LRANG(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 C
       REAL*8, DIMENSION(NMOM) :: TMOMS,QMOMS
-      REAL*8 DOK,PKMS,QMS,TVMS,THETA,RDP,THM
+      REAL*8 PKMS,QMS,TVMS,THETA,RDP,THM
 
 #ifdef TRACERS_ON
       REAL*8, DIMENSION(NMOM,NTM) :: TRMOMS
