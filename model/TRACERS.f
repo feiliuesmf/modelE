@@ -1398,6 +1398,16 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
 
       RETURN
  10   IOERR=1
+
+#ifdef TRACERS_SPECIAL_Shindell
+      if(am_i_root()) deallocate(
+     &     Aijl_glob,corrOx_glob,ss_glob
+#ifdef INTERACTIVE_WETLANDS_CH4 
+     &    ,day_ncep_glob,DRA_ch4_glob,sum_ncep_glob
+     &    ,PRS_ch4_glob,HRA_ch4_glob,Iijch4_glob
+#endif
+     &     )
+#endif     
 #endif
       RETURN
       END SUBROUTINE io_tracer
