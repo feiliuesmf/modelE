@@ -70,8 +70,6 @@ C**** Local parameters and variables and arguments:
 !@var Oxcorr account for Ox change from within NOx partitioning
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
 !@var PRES local nominal pressure for regional Ox tracers
-!@param nlast either ntm or ntm-NregOx for chemistry loops
-      INTEGER, PARAMETER ::         nlast = ntm_chem
       INTEGER, INTENT(IN) :: I,J
       INTEGER :: L,iter,maxl,igas,maxT,Lz
       INTEGER :: J_0, J_1
@@ -511,7 +509,7 @@ C             REACTION RATES, CHEMICAL CHANGES
 c (chem1prn: argument before multip is index = number of call):
       
       if(prnrts .and. J==jprn .and. I==iprn)then
-        do igas=1,nlast
+        do igas=1,ntm_chem
           total=0.d0
           write(out_line,108)' Species: ',ay(igas)
           call write_parallel(trim(out_line),crit=jay)
@@ -798,7 +796,7 @@ c Loops to calculate tracer changes:
 
       rMAbyM(1:maxl)=AM(1:maxl,I,J)/y(nM,1:maxl)
 
-      do igas=1,nlast ! TRACER LOOP -----------------
+      do igas=1,ntm_chem ! TRACER LOOP -----------------
       
        dxbym2v=dxyp(J)*vol2mass(igas)
        do L=1,maxl
@@ -1303,7 +1301,7 @@ c back to the gas phase:
 
 c Print chemical changes in a particular grid box if desired:
       if(prnchg .and. J==jprn .and. I==iprn)then
-       do igas=1,nlast
+       do igas=1,ntm_chem
          changeA=changeL(Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
      &   bydxyp(J)*byam(lprn,I,J)
          if(y(igas,lprn) == 0.d0)then
@@ -1317,7 +1315,7 @@ c Print chemical changes in a particular grid box if desired:
            call write_parallel(trim(out_line),crit=jay)
          endif
 
-         if(igas == nlast)then
+         if(igas == ntm_chem)then
 #ifdef SHINDELL_STRAT_CHEM
          if(LPRN >= maxT+1)then
             write(out_line,155) ay(nH2O),': ',

@@ -57,10 +57,8 @@ C**** Local parameters and variables and arguments:
 !@param JN J around 30 N
 !@param JS J around 30 S
 !@param JNN,JSS Js for "high-lat" definition
-!@param nlast either ntm_chem or potential subset for chem loops
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
-      INTEGER, PARAMETER :: nlast = ntm_chem
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
       REAL*8, PARAMETER  :: bymair = 1.d0/mair
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
@@ -348,7 +346,7 @@ c Calculate M and set fixed ratios for O2 & H2:
 #endif
 
 c Tracers (converted from mass to number density):
-       do igas=1,nlast
+       do igas=1,ntm_chem
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      &   BYDXYP(J)*BYAM(L,I,J)
        enddo
@@ -1860,7 +1858,6 @@ C**** Local parameters and variables and arguments:
 !@param JN J around 30 N
 !@param JS J around 30 S
 !@param JNN,JSS Js for "high-lat" definition
-!@param nlast either ntm_chem or potential subset for chem loops
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
 !@var I,J passed horizontal position indicies
@@ -2080,13 +2077,11 @@ C**** Local parameters and variables and arguments:
 !@var checkmax logical: should I check for large tracers throughout?
 !@var checkNeg logical: should I check for negative tracers?
 !@var checkNaN logical: should I check for unreal tracers?
-!@var nlast either ntm or potential subset
 !@var maxL LTROPO(I,J) or LS1-1, depending upon which_trop variable
 
-      INTEGER, PARAMETER :: nlast= ntm_chem
       INTEGER                  :: L, igas, maxL
       INTEGER, INTENT(IN)      :: I,J
-      REAL*8, DIMENSION(nlast) :: tlimit
+      REAL*8, DIMENSION(ntm_chem) :: tlimit
       DATA tlimit/
      &9.d-5,1.d-5,1.d-7,3.d-6,1.d-1,1.d-6,3.d-6,1.d-1,1.d-1,1.d-1,
      &1.d-1, 1.d-1, 1.d-1, 1.d-1, 1.d-1
@@ -2137,7 +2132,7 @@ C check if ozone gets really big:
 c general check on maximum of tracers:
       IF(checkmax) THEN
       do L=1,LM
-       do igas=1,nlast
+       do igas=1,ntm_chem
         if(y(igas,L)/y(nM,L) > tlimit(igas)) then
           write(6,*) trname(igas),'@ I,J,L,Y :',I,J,L,y(igas,L)
           call stop_model('checktracer: tracer upper limit',255)
@@ -2149,7 +2144,7 @@ c general check on maximum of tracers:
 c check for negative tracers:
       IF(checkNeg) THEN
       do L=1,LM
-       do igas=1,nlast
+       do igas=1,ntm_chem
         if(y(igas,L) < 0.d0) THEN
           write(6,*)trname(igas),
      &    'negative @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
@@ -2162,7 +2157,7 @@ c check for negative tracers:
 c check for unreal (not-a-number) tracers (maybe SGI only?):
       IF(checkNaN) THEN
       do L=1,LM
-       do igas=1,nlast
+       do igas=1,ntm_chem
         if(.NOT.(y(igas,L) > 0.d0.OR.y(igas,L) <= 0.d0)) THEN
          write(6,*)trname(igas),
      &   'is not a number @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
