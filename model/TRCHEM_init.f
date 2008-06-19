@@ -685,11 +685,13 @@ C     bin5_1988 fastj2 bin#5 photon flux for year 1988
 
       TQQ = 0.d0
 
+#ifdef SHINDELL_STRAT_CHEM
       if(rad_FL == 0)then
         bin4_1991 = 9.431d+11
         bin4_1988 = 9.115E+11
         bin5_1988 = 5.305E+12
       endif
+#endif
 
 C Read in spectral data:
       READ(NJ1,'(A)') TITLE0
@@ -888,6 +890,7 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
           else
             DUMMY(1:NWWW)=FLX(1:NWWW)
           endif
+#ifdef SHINDELL_STRAT_CHEM
           if(yearx == 1988)then
             if(yearx == JYEAR)then
               bin4_1988=FL(4); bin5_1988=FL(5)
@@ -902,6 +905,9 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
             endif
           endif
           IF(yearx >= JYEAR.and.yearx >= 1991) exit
+#else
+          call stop_model('make sure rad_FL>0 works in trop-chem?',255)
+#endif
         end do
         call closeunit(iunit)
       endif
