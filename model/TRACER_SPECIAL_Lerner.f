@@ -1453,7 +1453,7 @@ C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
-      USE GEOM, only : DLAT_DG
+      USE GEOM, only : DLAT_DG,lat_dg
       implicit none
       integer j,jw,k,kstart,l,n,iu
       integer, parameter :: kmw=200
@@ -1509,30 +1509,22 @@ C**** Interpolate data GASW to GASJK on GCM latitudes
 C****
 C**** Below 14 km set all equal
 
-c GISS-ESMF EXCEPTIONAL CASE
-c   Usage of J-index issue
-
       GASJK(:,0:28) = GASW(1,1)
-C**** Keep step function except at two transition points (+/1 15 deg)
-      DO 210 K=29,90
-      do j=1,19
-        If ((J>=J_0).and.(J<=J_1)) GASJK(J,     K) = GASW(1,K-28)
-        If ((JM+1-j>=J_0).and.(JM+1-j<=J_1))
-     &       GASJK(JM+1-j,K) = GASW(3,K-28)
-      end do
-      DO j = 21,26
-        If ((J>=J_0).and.(J<=J_1)) GASJK(J,K)  = GASW(2,K-28)
-      END DO
-      DO J=20,27,7
-        If ((J>=J_0).and.(J<=J_1)) THEN
+C**** Keep step function except at two transition points (+/- 15 deg)
+      do j=j_0,j_1
+        if (lat_dg(j,1).gt.15+0.5*DLAT_DG) then ! nh
+          GASJK(J,29:90) = GASW(3,1:62)
+        elseif (lat_dg(j,1).lt.-15-0.5*DLAT_DG) then ! sh
+          GASJK(J,29:90) = GASW(1,1:62)
+        elseif (lat_dg(j,1).gt.-15+0.5*DLAT_DG .and. lat_dg(j,1).lt.15 
+     *         -0.5*DLAT_DG) then ! tropics
+          GASJK(J,29:90) = GASW(2,1:62)
+        else                    ! edge points
           W = 1. + (J-1)*DLAT_DG/90.
           JW=W
-          GASJK(J,K) = GASW(JW,K-28)*(JW+1-W) + GASW(JW+1,K-28)*(W-JW)
-        End If
-      END DO
-  210 continue
+          GASJK(J,29:90)=GASW(JW,1:62)*(JW+1-W)+GASW(JW+1,1:62)*(W-JW)
+        end if
 C**** Above, extend
-      do j=J_0,J_1
         GASJK(j,91:kmw) = GASJK(j,90)
       end do
 C**** Calculate data pressure levels (Pa)
@@ -1556,7 +1548,7 @@ C****
       PSUM = 0.
       CSUM = 0.
       if (l.eq.ls1) psurf = psf
-!     PUP  = pedn(l+1)  or pednl00(l+1), but then PDN above should be pednl00(1,i,j) also?
+!     PUP  = pednl00(l+1), but then PDN above should be pednl00(1) also?
       PUP  = (psurf-ptop)*SIGE(L+1)+ptop
   410 IF(P(K).LE.PUP)  GO TO 420
       PSUM = PSUM +  PDN-P(K)
