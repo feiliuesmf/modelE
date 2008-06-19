@@ -1,6 +1,6 @@
-E1jalTM23.R GISS Model E                                 gas 06/00
+E001TM23.R GISS Model E                                 gas 06/00
 
-E1jalTM23: Differences from original TRACERS_SPECIAL_Lerner include:
+E001TM23: Differences from original TRACERS_SPECIAL_Lerner include:
   Tropospheric ozone scheme from Loretta Mickley with deposition in layer 1
   New tracer (SF6_c) with constant source
   parameter NSTRTC replaces ltropo
