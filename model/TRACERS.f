@@ -1386,8 +1386,6 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
         END SELECT
       END SELECT
 
- 10   IOERR=1
-
 #ifdef TRACERS_SPECIAL_Shindell
       if(am_i_root()) deallocate(
      &     Aijl_glob,corrOx_glob,ss_glob
@@ -1399,6 +1397,7 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
 #endif     
 
       RETURN
+ 10   IOERR=1
 #endif
       RETURN
       END SUBROUTINE io_tracer
