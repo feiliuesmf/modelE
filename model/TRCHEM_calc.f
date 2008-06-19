@@ -14,9 +14,6 @@ C
       USE GEOM, only            : BYDXYP,dxyp,LAT_DG,LON_DG
       USE TRDIAG_COM, only : jls_OHcon,jls_day,tajls=>tajls_loc,
      & jls_Oxp,jls_Oxd,jls_COp,jls_COd,taijs=>taijs_loc,ijs_OH,ijs_HO2
-#ifdef regional_Ox_tracers
-     &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss
-#endif
 #ifdef SHINDELL_STRAT_CHEM
      &  ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
 #endif
@@ -26,9 +23,6 @@ C
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
      &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem,mass2vol,
      &                   vol2mass
-#ifdef regional_Ox_tracers
-     &         ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s,regOx_e,regOx_w
-#endif
 #ifdef TRACERS_HETCHEM
      &                  ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
@@ -77,12 +71,7 @@ C**** Local parameters and variables and arguments:
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
 !@var PRES local nominal pressure for regional Ox tracers
 !@param nlast either ntm or ntm-NregOx for chemistry loops
-      INTEGER, PARAMETER ::         nlast =
-#ifdef regional_Ox_tracers
-     &                              ntm_chem-NregOx
-#else
-     &                              ntm_chem
-#endif
+      INTEGER, PARAMETER ::         nlast = ntm_chem
       INTEGER, INTENT(IN) :: I,J
       INTEGER :: L,iter,maxl,igas,maxT,Lz
       INTEGER :: J_0, J_1
@@ -113,13 +102,6 @@ C**** Local parameters and variables and arguments:
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
      & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,byta,
      & diffCH3O2,fraQ2
-#ifdef regional_Ox_tracers
-!@var Oxloss Ox chemical loss for use with regional Ox tracers
-!@var Oxprod Ox chemical production for use with regional Ox tracers
-!@var nREG index of regional Ox tracer number
-      REAL*8, DIMENSION(LM) :: Oxloss, Oxprod
-      INTEGER nREG
-#endif
 
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1)
       
@@ -832,19 +814,6 @@ c Loops to calculate tracer changes:
            TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+dest(igas,L)*conc2mass        
          endif
          
-#ifdef regional_Ox_tracers    
-         if(igas == n_Ox)then
-           Oxloss(L)=dest(igas,L)*dxyp(J)*AM(L,I,J)*vol2mass(igas)
-     &     /y(nM,L)
-           Oxprod(L)=prod(igas,L)*dxyp(J)*AM(L,I,J)*vol2mass(igas)
-     &     /y(nM,L)
-           TAJLS(J,L,jls_Oxprod)=TAJLS(J,L,jls_Oxprod)+prod(igas,L)
-           TAJLS(J,L,jls_Oxloss)=TAJLS(J,L,jls_Oxloss)+dest(igas,L)
-           TAIJS(I,J,ijs_Oxprod)=TAIJS(I,J,ijs_Oxprod)+prod(igas,L)
-           TAIJS(I,J,ijs_Oxloss)=TAIJS(I,J,ijs_Oxloss)+dest(igas,L)
-         end if 
-#endif    
-
 c Set N2O5 to equilibrium when necessary (near ground,
 c N2O5 is thermally unstable, has a very short lifetime):
          if(igas == n_N2O5.and.(-dest(igas,L) >= y(n_N2O5,L)*0.75d0.or.
@@ -1404,24 +1373,6 @@ C Tracer masses & slopes are now updated in apply_tracer_3Dsource,
 C so here, just saved in changeL:
       do igas=1,ntm_chem
        do L=1,maxl
-#ifdef regional_Ox_tracers
-c*** calculate chemical changes for regional Ox tracers ***
-        if(igas > nlast) then
-          nREG=igas-nlast
-          changeL(L,igas)=trm(I,J,L,igas)*Oxloss(L)/trm(I,J,L,n_Ox)
-C ----- in region criterion -----
-          if(lat_dg(J,1) >= regOx_s(nREG).and.(lat_dg(J,1) < 
-     &    regOx_n(nREG).or.(lat_dg(J,1) == regOx_n(nREG).and.J == JM))
-     &                        .and.
-     &    PRES(L). <= regOx_b(nREG).and.(PRES(L) > regOx_t(nREG)
-     &    .or.(PRES(L) == regOx_t(nREG).and.L == maxl))
-     &                        .and.
-     &    lon_dg(I,1) >= regOx_w(nREG).and.(lon_dg(I,1) < 
-     &    regOx_e(nREG).or.(lon_dg(I,1) == regOx_e(nREG).and.I == IM)))
-C -------------------------------
-     &    changeL(L,igas)=changeL(L,igas)+Oxprod(L)    
-        end if
-#endif
 c Limit the change due to chemistry:
         if(changeL(L,igas) > 1.d20) then
           WRITE(out_line,*)

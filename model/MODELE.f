@@ -1067,9 +1067,6 @@ C****
 #ifdef SHINDELL_STRAT_EXTRA
       write(6,*) '...and Drew Shindell extra strat tracers'
 #endif
-#ifdef regional_Ox_tracers
-      write(6,*) '...and regional Ox tracers'
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       write(6,*) '...and interactive CH4 wetlands emissions'
 #endif

@@ -36,9 +36,6 @@ c
      &                        ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                        n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
 #endif
-#ifdef regional_Ox_tracers
-     &                        ,NregOx,n_OxREG1
-#endif
 #ifdef TRACERS_HETCHEM
      &                        ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
@@ -60,15 +57,10 @@ C**** Local parameters and variables and arguments:
 !@param JN J around 30 N
 !@param JS J around 30 S
 !@param JNN,JSS Js for "high-lat" definition
-!@param nlast either ntm_chem or ntm_chem-NregOx for chemistry loops
+!@param nlast either ntm_chem or potential subset for chem loops
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
-      INTEGER, PARAMETER :: nlast =
-#ifdef regional_Ox_tracers
-     &                              ntm_chem-NregOx
-#else
-     &                              ntm_chem
-#endif
+      INTEGER, PARAMETER :: nlast = ntm_chem
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
       REAL*8, PARAMETER  :: bymair = 1.d0/mair
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
@@ -121,9 +113,6 @@ C**** Local parameters and variables and arguments:
      &  changeOx,fraQ,CH4_569,count_569,thick
 #ifdef TRACERS_HETCHEM
       REAL*8 :: changeN_d1,changeN_d2,changeN_d3
-#endif
-#ifdef regional_Ox_tracers
-      REAL*8 :: sumOx, bysumOx
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       REAL*8 :: temp_SW
@@ -319,9 +308,6 @@ CCCC!$OMP* changehetClONO2, changeHOCl, changeHCl,
 CCCC!$OMP* chg106, chg107, chg108, chg109, fraQ,
 CCCC!$OMP* pscx, rmrclox, rmrbrox, rmrox, rmv,
 CCCC#endif
-CCCC#ifdef regional_Ox_tracers
-CCCC!$OMP* bysumOx, sumOx,     n2,
-CCCC#endif
 CCCC!$OMP* igas, inss, J, jay, L, LL, Lqq, maxl, N, error )
 CCCC!$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
 CCCC!$OMP* N_ALKYLNIT)
@@ -340,20 +326,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       end select
 
       DO L=1,LM
-#ifdef regional_Ox_tracers
-C      Per Volker: make sure the regional Ox tracers didn't
-C      diverge from total Ox:
-       sumOx  =0.d0
-       bysumOx=0.d0
-       do n2=n_OxREG1,ntm_chem
-         sumOx=sumOx+trm(i,j,l,n2)
-       end do
-       sumOx=MAX(sumOx,1.d-9) ! Per Drew: minimum to prevent NaN's
-       bysumOx=1.d0/sumOx 
-       do n2=n_OxREG1,ntm_chem
-         trm(i,j,l,n2)=trm(i,j,l,n2)*trm(i,j,l,n_Ox)*bysumOx
-       end do
-#endif
 c Initialize the 2D change variable:
        changeL(L,:)=0.d0
 c Save presure and temperature in local arrays:
@@ -1888,7 +1860,7 @@ C**** Local parameters and variables and arguments:
 !@param JN J around 30 N
 !@param JS J around 30 S
 !@param JNN,JSS Js for "high-lat" definition
-!@param nlast either ntm_chem or ntm_chem-NregOx for chemistry loops
+!@param nlast either ntm_chem or potential subset for chem loops
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
 !@var I,J passed horizontal position indicies
@@ -2096,9 +2068,6 @@ C**** GLOBAL parameters and variables:
       USE MODEL_COM, only  : Itime, LM, LS1
       USE DYNAMICS, only   : LTROPO
       USE TRACER_COM, only : ntm, trname, n_Ox, ntm_chem
-#ifdef regional_Ox_tracers
-     & ,NregOx
-#endif
       USE TRCHEM_Shindell_COM, only: y, nM, which_trop
 
       IMPLICIT NONE
@@ -2111,15 +2080,10 @@ C**** Local parameters and variables and arguments:
 !@var checkmax logical: should I check for large tracers throughout?
 !@var checkNeg logical: should I check for negative tracers?
 !@var checkNaN logical: should I check for unreal tracers?
-!@var nlast either ntm or ntm-NregOx
+!@var nlast either ntm or potential subset
 !@var maxL LTROPO(I,J) or LS1-1, depending upon which_trop variable
 
-      INTEGER, PARAMETER :: nlast=
-#ifdef regional_Ox_tracers
-     & ntm_chem-NregOx
-#else
-     & ntm_chem
-#endif
+      INTEGER, PARAMETER :: nlast= ntm_chem
       INTEGER                  :: L, igas, maxL
       INTEGER, INTENT(IN)      :: I,J
       REAL*8, DIMENSION(nlast) :: tlimit
