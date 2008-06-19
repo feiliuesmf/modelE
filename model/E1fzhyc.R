@@ -14,6 +14,7 @@ filters: U,V in E-W direction (after every dynamics time step)
 Preprocessor Options
 ! #define TRACERS_ON                  ! include tracers code
 ! #define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
+#define TRACERS_HYCOM_Ventilation
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
