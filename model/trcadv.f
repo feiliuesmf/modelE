@@ -1,3 +1,4 @@
+#include "hycom_mpi_hacks.h"
       subroutine tradv0(n,nn)
 c
 c --- online tracer advection routine designed for intermittent
@@ -9,9 +10,10 @@ c --- tradv1 - builds up time integral of horizontal mass fluxes
 c --- tradv2 - performs the actual transport operation
 c ---          (should be called immediately  b e f o r e  diapfl)
 c
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp,oddev
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
 !!      include 'dimensions.h'
 !!    include 'dimension2.h'      ! TNL
@@ -21,7 +23,7 @@ c
 c --- initialize arrays
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 1 j=1,jj
+      do 1 j=J_0, J_1
       do 1 k=1,kk
 c
       do 2 l=1,isu(j)
@@ -38,7 +40,8 @@ c
  1    continue
 c$OMP END PARALLEL DO
       oddev=n
-      write (lp,'(a)') 'tracer transport arrays initialized'
+      if(AM_I_ROOT() )
+     &  write (lp,'(a)') 'tracer transport arrays initialized'
       return
       end
 c
@@ -48,9 +51,10 @@ c
 c
 c --- build up time integrals of horiz. mass fluxes
 c
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp,oddev,delt1
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
 !!      include 'dimensions.h'
 !!    include 'dimension2.h'      ! TNL
@@ -65,7 +69,7 @@ c
       end if
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 5 j=1,jj
+      do 5 j=J_0, J_1
       do 5 k=1,kk
 c
       do 6 l=1,isu(j)
@@ -77,7 +81,8 @@ c
  7    vfxcum(i,j,k)=vfxcum(i,j,k)+vflx(i,j,k)*delt1
  5    continue
 c$OMP END PARALLEL DO
-      write (lp,'(a)') 'mass fluxes saved for tracer transport'
+      if(AM_I_ROOT() )
+     &  write (lp,'(a)') 'mass fluxes saved for tracer transport'
       return
       end
 c
@@ -87,9 +92,14 @@ c
 c
 c --- advect tracer over 'mixfrq' time steps
 c
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp,oddev
       USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS, only : ufxcum_loc => ufxcum,
+     &     vfxcum_loc => vfxcum, p_loc => p, dp_loc => dp,
+     &     scp2i_loc => scp2i, util1_loc => util1, util2_loc => util2,
+     &     tracer_loc => tracer, dpinit_loc => dpinit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH
       implicit none
       include 'bering.h'
 !!      include 'dimensions.h'
@@ -97,10 +107,12 @@ c
       integer i,j,k,l,n,nn,ib,jb
 !!      include 'common_blocks.h'
 c
-      real vertfx(idm,jdm,kdm),hordiv(idm,jdm,kdm),
-     .     coldiv(idm),verdiv,q,fluxdv,thkchg,
-     .     trcold(jdm,kdm),prold(jdm,kdm+1),
-     .     trcnew(jdm,kdm),prnew(jdm,kdm+1)
+      real vertfx(idm,J_0H:J_1H,kdm),hordiv(idm,J_0H:J_1H,kdm),
+     .     coldiv(idm),verdiv,q,fluxdv,thkchg 
+      real vertfx_glob(idm,jdm,kdm)
+
+!          trcold(jdm,kdm),prold(jdm,kdm+1),
+!          trcnew(jdm,kdm),prnew(jdm,kdm+1)
       integer ka,nt
       character string*18
 c
@@ -114,13 +126,17 @@ c
 c --- compute horizontal flux divergence (units: per transport time step)
 c
       do k=1,kk
-        ufxcum(iatls,jatl,k)=-ufxcum(ipacn,jpac,k)
+         call cpy_mJpacJatL(ufxcum_loc(I_0H,J_0H,k) )
+! ufxcum(iatls,jatl,k)=-ufxcum(ipacn,jpac,k)
       end do
+
+      CALL HALO_UPDATE(ogrid, vfxcum_loc, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv,ka,verdiv) 
 c$OMP.            SCHEDULE(STATIC,jchunk)
-      do 9 j=1,jj
-      jb=mod(j,jj)+1
+      do 9 j=J_0, J_1
+      jb = PERIODIC_INDEX(j+1, jj)
+! jb=mod(j,jj)+1
       do 9 l=1,isp(j)
 c
       do 10 i=ifp(j,l),ilp(j,l)
@@ -129,9 +145,9 @@ c
       do 11 k=1,kk
       do 11 i=ifp(j,l),ilp(j,l)
       ib=mod(i,ii)+1
-      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
-      hordiv(i,j,k)=(ufxcum(ib,j,k)-ufxcum(i,j,k)
-     .              +vfxcum(i,jb,k)-vfxcum(i,j,k))*scp2i(i,j)
+      p_loc(i,j,k+1)=p_loc(i,j,k)+dp_loc(i,j,k+nn)
+      hordiv(i,j,k)=(ufxcum_loc(ib,j,k)-ufxcum_loc(i,j,k)
+     .            +vfxcum_loc(i,jb,k)-vfxcum_loc(i,j,k))*scp2i_loc(i,j)
       coldiv(i)=coldiv(i)+hordiv(i,j,k)
 c
 cdiag if (i.eq.itest .and. j.eq.jtest) write (lp,103) i,j,k,
@@ -143,13 +159,13 @@ c
 c --- adjust initial layer thickness to cancel effect of column divergence
 c
       do 12 i=ifp(j,l),ilp(j,l)
-      util1(i,j)=(p(i,j,kk+1)+coldiv(i))/p(i,j,kk+1)
- 12   util2(i,j)=1./util1(i,j)
+      util1_loc(i,j)=(p_loc(i,j,kk+1)+coldiv(i))/p_loc(i,j,kk+1)
+ 12   util2_loc(i,j)=1./util1_loc(i,j)
 c
       do 13 k=1,kk
       do 13 i=ifp(j,l),ilp(j,l)
-      tracer(i,j,k,:)=tracer(i,j,k,:)*util2(i,j)
- 13   dpinit(i,j,k)=dpinit(i,j,k)*util1(i,j)
+      tracer_loc(i,j,k,:)=tracer_loc(i,j,k,:)*util2_loc(i,j)
+ 13   dpinit_loc(i,j,k)=dpinit_loc(i,j,k)*util1_loc(i,j)
 c
 c --- compute the various terms in the continuity equation integrated
 c --- over time interval since last call to -tradv0-
@@ -158,15 +174,19 @@ c ---        (dpfinl-dpinit) + hordiv + verdiv = 0
 c
       do 15 i=ifp(j,l),ilp(j,l)
  15   vertfx(i,j,1)=0.
+!     vertfx(i,j,1)=0.
 c
       do 16 k=1,kk
       ka=max(1,k-1)
       do 16 i=ifp(j,l),ilp(j,l)
-      verdiv=(dpinit(i,j,k)-dp(i,j,k+nn))-hordiv(i,j,k)
+      verdiv=(dpinit_loc(i,j,k)-dp_loc(i,j,k+nn))-hordiv(i,j,k)
  16   vertfx(i,j,k)=vertfx(i,j,ka)+verdiv	!  flx thru botm of lyr k
  9    continue
 c$OMP END PARALLEL DO
 c
+      call gather_vertfx(vertfx,vertfx_glob)
+      call gather_hycom_arrays
+      if (AM_I_ROOT()) then
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: check balance of terms in continuity eqn.
 cdiag i=itest
@@ -204,7 +224,7 @@ c       write (string,'(a,i2)') 'trcr_bef',nt
 c       call prt9x9(tracer(1,1,1,nt),itest,jtest,0.,100.,string)
 c       call prt9x9(u,itest,jtest,0.,100.,'usfc')
 c
-        call fct3d(2,tracer(1,1,1,nt),ufxcum,vfxcum,vertfx,
+        call fct3d(2,tracer(1,1,1,nt),ufxcum,vfxcum,vertfx_glob,
      .             scp2,scp2i,dpinit,dp(1,1,1+nn))
 c
 cdiag   do k=1,kk
@@ -225,6 +245,9 @@ cdiag.            dp(1,1,1+nn),tracer(1,1,1,2),'after fct3d')
 c
       write (lp,'(a)') 'tracer transport done'
 c
+      endif  ! AM_I_ROOT
+      call scatter_hycom_arrays
+
       return
       end
 c
@@ -742,3 +765,15 @@ c> Revision history:
 c>
 c> Feb. 2005 - added plm,ppm options to vertical flux calc'n (so far: pcm)
 c> Mar. 2006 - added bering strait exchange logic
+c------------------------------------------------------------------
+      subroutine gather_vertfx(vertfx,vertfx_glob)
+
+      USE HYCOM_DIM, only : idm, jdm, kdm, J_0H,  J_1H, ogrid
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      implicit none
+      real :: vertfx(idm,J_0H:J_1H,kdm), vertfx_glob(idm,jdm,kdm)
+
+      call pack_data( ogrid,  vertfx,      vertfx_glob    )
+
+      end subroutine gather_vertfx
+c------------------------------------------------------------------

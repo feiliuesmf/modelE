@@ -609,16 +609,12 @@ c
       diag_ape=.false.
 c
       trcadv_time = 0.0
-!---------------------below not implemented------------------
+
       if (dotrcr) then
         call system_clock(before)      ! time elapsed since last system_clock
 
 c --- initialization of tracer transport arrays (incl. dpinit):
-        call gather_hycom_arrays
-        if (AM_I_ROOT()) then
-          call tradv0(m,mm)
-        endif
-        call scatter_hycom_arrays
+        call tradv0(m,mm)
 cdiag print *,'past tradv0'
         dotrcr=.false.
 c
@@ -629,16 +625,12 @@ c     call findmx(ip,saln(1,1,k1n),idm,ii,jj,'sss')
 c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
 #if defined(TRACERS_HYCOM_Ventilation)
-       call gather_hycom_arrays
-       if (AM_I_ROOT()) then
 c$OMP PARALLEL DO
-       do 12 j=1,jj
-       do 12 l=1,isp(j)
-       do 12 i=ifp(j,l),ilp(j,l)
-12     tracer(i,j,1,1)=1.              !  surface ventilation tracer
+        do 12 j=J_0, J_1
+        do 12 l=1,isp_loc(j)
+        do 12 i=ifp_loc(j,l),ilp_loc(j,l)
+12      tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
 c$OMP END PARALLEL DO
-      endif
-      call scatter_hycom_arrays
 #endif
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
@@ -699,7 +691,6 @@ cdiag  call obio_limits('aftr obio_model')
       ocnbio_time = real(after-before)/real(rate)
 
 #endif
-!---------------------above not implemented------------------
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- available potential energy diagnostics:
@@ -731,18 +722,12 @@ c
 ccc      write (string,'(a12,i8)') 'cnuity, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
-!---------------------below not implemented------------------
       if (trcout) then
         before = after
 c --- long time step tracer advection: build up mass flux time integral
 
         if (n.eq.oddev) then
-          call gather_hycom_arrays
-          if (AM_I_ROOT()) then
-            call tradv1(n,nn)
-          endif
-          call scatter_hycom_arrays
-
+          call tradv1(n,nn)
         endif
 cdiag print *,'past tradv1'
 c
@@ -751,12 +736,7 @@ c
           write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
-          call gather_hycom_arrays
-          if (AM_I_ROOT()) then
-            call tradv2(n,nn)
-          endif
-          call scatter_hycom_arrays
-
+          call tradv2(n,nn)
         end if
         trcadv_time = trcadv_time + real(after-before)/real(rate)
 
@@ -779,7 +759,7 @@ cdiag  call obio_limits('aftr trcadv')
 #endif
 
       end if !trcout
-!---------------------above not implemented------------------
+
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape) then
         call gather_hycom_arrays
@@ -1450,7 +1430,7 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  dpmxav_loc, dpmxav )
       call pack_data( ogrid,  oiceav_loc, oiceav )
       call pack_data( ogrid,  pbot_loc, pbot )
-! call pack_data( ogrid,  tracer_loc, tracer )
+      call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
 

@@ -198,10 +198,6 @@ c
 
       ! move to global atm grid
       call gather_atm
-!!! actually the next line breaks restart for "Ventilation" tracers ...
-!!!      call scatter_tracer        ! caution: temporary fix
-                                 ! to allow Romanou to run with
-                                 ! global tracer
       call gather_hycom_arrays   !mkb Jun  6
 
       if (AM_I_ROOT()) then ! work on global grids here

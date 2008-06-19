@@ -275,6 +275,38 @@ c --- exchange p-point values (half grid size away from seam)
       return
       end
 c
+      subroutine cpy_mJpacJatL(field)
+c
+c --- copy information across bering strait seam
+c --- from jpac to jatl
+c ---     field(iatls,jatl) = - field(ipacn,jpac)
+c
+      USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
+      USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H,I_0H,I_1H
+      implicit none
+      include 'bering.h'
+c
+      real field(I_0H:I_1H,J_0H:J_1H)
+      real a(1),b(1)
+c
+c --- exchange p-point values (half grid size away from seam)
+        if ( jpac>=J_0 .and. jpac<=J_1 ) then
+          !write(0,*) "sending to jatl",J_0,J_1,jatl
+          a(1) = field(ipacn,jpac)
+          call send_to_j(ogrid,a,jatl,1)
+          !write(0,*) "sent to jatl"
+        endif
+
+        if ( jatl>=J_0 .and. jatl<=J_1 ) then
+          !write(0,*) "receiving from jpac",J_0,J_1,jpac
+          call recv_from_j(ogrid,a,jpac,1)
+          !write(0,*) "received from jpac" 
+          field(iatls,jatl)=a(1)
+        endif
+
+      return
+      end subroutine cpy_mJpacJatL
+c
 c
 c> Revision history:
 c>
