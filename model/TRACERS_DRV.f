@@ -8435,7 +8435,7 @@ C**** lakes
                 trlake(n,2,i,j)=0.
               end if
               gtracer(n,1,i,j)=trw0(n)
-            elseif (focean(i,j).ne.0) then
+            elseif (focean(i,j).eq.0) then
               trlake(n,1,i,j)=trw0(n)*mwl(i,j)
               trlake(n,2,i,j)=0.
             else
