@@ -7,6 +7,7 @@ CAOO   Just to test CVS
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
+      USE PARSER
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT,pack_data
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
@@ -64,6 +65,7 @@ c$$$      USE MODEL_COM, only: clock
 C**** Command line options
       LOGICAL :: qcrestart=.false.
       CHARACTER*32 :: ifile
+      integer :: iu_IFILE
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
       integer :: tloopbegin, tloopend
 #ifdef USE_FVCORE
@@ -75,17 +77,6 @@ C**** Command line options
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
 
-#ifdef SCM
-c     Hard Code J - cannot get syncparam to work here ????
-      J_TARG = 39
-      call init_app(grid,im,jm,lm,J_TARG)
-#else
-C****
-C****
-      call init_app(grid,im,jm,lm)
-#endif
-
-      call alloc_drv()
 C****
 C**** Processing command line options
 C****
@@ -94,6 +85,25 @@ C****
         call print_restart_info
         call stop_model("Terminated normally: printed restart info",-1)
       endif
+C****
+C**** Reading rundeck (I-file) options
+C****
+      call openunit(trim(ifile),iu_IFILE,.false.,.true.)
+      call parse_params(iu_IFILE)
+      call closeunit(iu_IFILE)
+
+#ifdef SCM
+c     Hard Code J - cannot get syncparam to work here ????
+      J_TARG = 39
+      call sync_param( "J_TARG", J_TARG )
+      call init_app(grid,im,jm,lm,J_TARG)
+#else
+C****
+C****
+      call init_app(grid,im,jm,lm)
+#endif
+
+      call alloc_drv()
 C****
 C**** INITIALIZATIONS
 C****
@@ -820,7 +830,7 @@ C****
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
-      USE PARSER
+      !USE PARSER
       USE CONSTANT, only : grav,kapa,sday,by3
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth0,fland
      *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia
@@ -919,6 +929,7 @@ C****
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
       integer ISTART_kradia, nl_soil
+      character*132 :: bufs
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
@@ -1077,7 +1088,13 @@ C****
 C****
 C**** Read parameters from the rundeck to database and namelist
 C****
-      call parse_params(iu_IFILE)
+      !call parse_params(iu_IFILE)
+      ! skip "&&PARAMETERS" section
+      do
+        read( iu_IFILE, *, err=910, end=910 ) bufs
+        if ( bufs == '&&END_PARAMETERS' ) exit
+      enddo
+        
       READ (iu_IFILE,NML=INPUTZ,ERR=900)
       call closeunit(iu_IFILE)
 
@@ -1801,6 +1818,8 @@ C****
       call stop_model('INPUT: ISTART-SPECIFICATION INVALID',255)
   900 write (6,*) 'Error in NAMELIST parameters'
       call stop_model('Error in NAMELIST parameters',255)
+  910 write (6,*) 'Error readin I-file'
+      call stop_model('Error reading I-file',255)
       END SUBROUTINE INPUT
 
       SUBROUTINE DAILY(end_of_day)
