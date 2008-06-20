@@ -194,7 +194,7 @@ C**** fluxes associated with variable lake fractions
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) 
 #ifdef TRACERS_DRYDEP
 !@var depo_turb_glob global array of flux due to dry turb. dep. of tracers
 !@+   [kg/m^2/s]
@@ -203,9 +203,9 @@ C**** fluxes associated with variable lake fractions
 !@+   [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: depo_grav_glob
 #endif
-!@var trs_glob global array of tracer mixing ratio at surface [kg/kg]
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: trs_glob
 #endif
+!@var trcsurf global array of tracer mixing ratio at surface [kg/kg]
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: trcsurf
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
 !@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
@@ -387,8 +387,8 @@ C**** fluxes associated with variable lake fractions
       ALLOCATE(depo_grav_glob(I_0H:I_1H,J_0H:J_1H,Nstype,Ntm)
      &     ,STAT = IER)
 #endif
-      ALLOCATE(trs_glob(I_0H:I_1H,J_0H:J_1H,Nstype,Ntm),STAT = IER)
 #endif
+      ALLOCATE(trcsurf(I_0H:I_1H,J_0H:J_1H,Ntm),STAT = IER)
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP)
       ALLOCATE(dust_flux2_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #endif

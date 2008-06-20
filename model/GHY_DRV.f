@@ -53,13 +53,13 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_DUST
      &     ,nDustEm2ij,nDustEm2jl
 #endif
-      use fluxes, only : trsource,trsrfflx
+      use fluxes, only : trsource,trsrfflx,trcsurf
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,prec,pprec,pevap,dust_flux_glob,trs_glob
+     &     ,prec,pprec,pevap,dust_flux_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
@@ -504,10 +504,7 @@ C**** Save surface tracer concentration whether calculated or not
      &           pbl_args%trs(nx)*ptype
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)+
      &           pbl_args%trs(nx)*ptype*rhosrf
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-            trs_glob(i,j,itype,n)=pbl_args%trs(nx)*ptype
-#endif
+            trcsurf(i,j,n)=trcsurf(i,j,n)+pbl_args%trs(nx)*ptype
           else
             taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
@@ -515,6 +512,8 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *bydxyp(j),0d0)*ptype*rhosrf
+            trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
+     *           ,1,n))*byam(1,i,j)*bydxyp(j),0d0)*ptype
           end if
         end if
       end do

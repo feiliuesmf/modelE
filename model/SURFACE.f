@@ -78,7 +78,7 @@ C****
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
 #ifdef TRACERS_ON
-     *     ,trsrfflx,trsource
+     *     ,trsrfflx,trsource,trcsurf
 #ifdef TRACERS_GASEXCH_Natassa
      *     ,TRGASEX,GTRACER
 #endif
@@ -87,7 +87,7 @@ C****
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,trs_glob,pprec,pevap
+     &     ,pprec,pevap
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
@@ -290,7 +290,7 @@ C****
 C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 #ifdef TRACERS_ON
-         trsrfflx = 0.
+         trsrfflx = 0. ; trcsurf = 0.
 #ifdef TRACERS_GASEXCH_Natassa
          trgasex(:,:,:,:) = 0.
 #endif
@@ -1170,10 +1170,7 @@ C**** Save surface tracer concentration whether calculated or not
      *           +trs(nx)*ptype
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
      *           +trs(nx)*ptype*rhosrf
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-            trs_glob(i,j,itype,n)=trs(nx)*ptype
-#endif
+            trcsurf(i,j,n)=trcsurf(i,j,n)+trs(nx)*ptype
           else
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
@@ -1181,6 +1178,8 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *bydxyp(j),0d0)*ptype*rhosrf
+            trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
+     *           ,1,n))*byam(1,i,j)*bydxyp(j),0d0)*ptype
           end if
 #ifdef TRACERS_GASEXCH_Natassa
           if (focean(i,j).gt.0.) then

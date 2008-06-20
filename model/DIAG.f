@@ -3185,9 +3185,12 @@ C****
       USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp
+#ifdef TRACERS_ON 
+     *     ,trcsurf
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,dust_flux_glob,trs_glob
+     &     ,dust_flux_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
@@ -3399,6 +3402,9 @@ c          data=sday*prec/dtsrc
         case ("7BED")
           data=Be7d_acc
           Be7d_acc=0.
+
+        case ("7BES")
+          data=1.d6*trcsurf(:,:,n_Be7)   ! 10^-6 kg/kg
 #endif
         case default
           goto 10
@@ -3632,11 +3638,8 @@ C**** first set: no 'if' tests
             CASE ('DUEMIS2')    ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
               data=dust_flux2_glob(:,:,n)
 #endif
-
             CASE ('DUTRS')      ! Mixing ratio of dust tracers at surface [kg/kg]
-              data=trs_glob(:,:,1,n1)+trs_glob(:,:,2,n1)
-     &             +trs_glob(:,:,3,n1)+trs_glob(:,:,4,n1)
-
+              data=trcsurf(:,:,n1)
             CASE ('DULOAD')     ! Dust load [kg/m^2]
               data=0.D0
               DO j=J_0,J_1
