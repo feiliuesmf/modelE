@@ -288,7 +288,7 @@
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
       use rad_com, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
-           fsrdir,srvissurf,srdn,cfrac,rcld,salb
+           fsrdir,srvissurf,srdn,cfrac,rcld,salb,trsurf
 #ifdef TRACERS_SPECIAL_Shindell
       use rad_com, only : O3_trac=>O3_tracer_save, rad_to_chem
 #endif
@@ -542,6 +542,7 @@
         check("srdn",srdn)
         check("cfrac",cfrac)
         check("rcld",rcld)
+        check("trsurf",trsurf)
 #ifdef TRACERS_SPECIAL_Shindell
         check("rad_to_chem",rad_to_chem)
         check("O3_trac",O3_trac)
