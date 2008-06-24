@@ -13,6 +13,7 @@
      *                          DREAD_PARALLEL,
      *                          MREAD_PARALLEL,
      *                          READT_PARALLEL,
+     *                          READ_PARALLEL,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
       USE MODEL_COM, only : im,jm,lm,focean,fland,flice
@@ -159,6 +160,7 @@ C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
 
       INTEGER :: J_0,J_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      INTEGER :: dummy
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -201,7 +203,7 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
      *           (grid,iu_OSST,NAMEUNIT(iu_OSST),IM*JM,EOST0,LSTMON)
           else ! if (ocn_cycl.eq.2) then
             LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
-  290       read (iu_OSST) M
+  290       call READ_PARALLEL(M, iu_OSST)
             if (m.lt.lstmon) go to 290
             CALL BACKSPACE_PARALLEL( iu_OSST )
             CALL MREAD_PARALLEL
@@ -215,10 +217,10 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           YEAR_OCN=JYEAR
           if(ocn_cycl>2) YEAR_OCN=ocn_cycl
           LSTMON=JMON-1+(YEAR_OCN-IYEAR1)*JMperY
-  300     read (iu_OSST) M
+  300     call READ_PARALLEL(M, iu_OSST)
           if (m.lt.lstmon) go to 300
           CALL BACKSPACE_PARALLEL( iu_OSST )
-  310     read (iu_SICE) m
+  310     call READ_PARALLEL(m, iu_SICE)
           if (m.lt.lstmon) go to 310
           CALL BACKSPACE_PARALLEL( iu_SICE )
           CALL MREAD_PARALLEL
@@ -241,7 +243,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         if (jmon.eq.1) then
           if (ocn_cycl.eq.1) CALL REWIND_PARALLEL( iu_OSST )
           CALL REWIND_PARALLEL( iu_SICE )
-          read (iu_SICE)
+          call READ_PARALLEL(dummy, iu_SICE)
         end if
         CALL READT_PARALLEL
      *           (grid,iu_SICE,NAMEUNIT(iu_SICE),0,TEMP_LOCAL,1)
