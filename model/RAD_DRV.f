@@ -922,7 +922,7 @@ C**** Read in the factors used for alterations:
       USE DOMAIN_DECOMP, only : am_I_root,GRID,GET,READT_PARALLEL
      *     ,REWIND_PARALLEL
       USE MODEL_COM, only : jday,jyear,im,jm,focean,jmon,JDendOfM
-     *     ,JDmidOfM, jdate 
+     *     ,JDmidOfM, jdate
       USE GEOM, only : imaxj
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
@@ -995,7 +995,7 @@ C**** Read in Seawifs files here
       IF (IMON0==0) THEN
 C**** READ IN LAST MONTH'S END-OF-MONTH DATA
         LSTMON=JMON-1
-        if (lstmon.eq.0) lstmon = 12		
+        if (lstmon.eq.0) lstmon = 12
         CALL READT_PARALLEL
      *       (grid,iu_CHL,NAMEUNIT(iu_CHL),IM*JM,ECHL0,LSTMON)
       ELSE
@@ -1014,7 +1014,7 @@ C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           BCHL(I,J)=ECHL1(I,J)-ECHL0(I,J)
-          CCHL(I,J)=3.*(ECHL1(I,J)+ECHL0(I,J))-6.*ACHL(I,J)	
+          CCHL(I,J)=3.*(ECHL1(I,J)+ECHL0(I,J))-6.*ACHL(I,J)
         END DO
       END DO
       END IF
@@ -1023,7 +1023,7 @@ C**** Calculate CHL for current day
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
-C**** CHL always uses quadratic fit	
+C**** CHL always uses quadratic fit
             CHL(I,J)=ACHL(I,J)+BCHL(I,J)*TIME
      *           +CCHL(I,J)*(TIME**2-BY12)
             if (CHL(I,J).lt. 0) CHL(I,J)=0. ! just in case
@@ -1155,7 +1155,7 @@ c    *     ,SNFST0,TNFST0
      &     ,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub,diag_rad
 #ifdef BC_ALB
      *     ,ijts_alb
-#endif 
+#endif
 #endif
       IMPLICIT NONE
 C
@@ -1183,7 +1183,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      &     snfst_ozone,tnfst_ozone
 #ifdef BC_ALB
       REAL*8,DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     ALBNBC,NFSNBC 
+     *     ALBNBC,NFSNBC
 #endif
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1360,7 +1360,7 @@ c         JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
 #else
       CALL GLOBALSUM(grid, sumda_psum,sumda,all=.true.)
       CALL GLOBALSUM(grid, tauda_psum,tauda,all=.true.)
-      
+
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
 #endif
@@ -1734,6 +1734,15 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TGOI=GTEMP(1,2,I,J)+TF
       TGLI=GTEMP(1,3,I,J)+TF
       TGE =GTEMP(1,4,I,J)+TF
+      if(poice.eq.0.)  TGOI=TF
+      if(plice.eq.0.)  TGLI=TF
+      if(pocean.eq.0..and.pearth.eq.0.) then
+        TGO=TF ; TGE=TF
+      else if (pocean.eq.0.) then
+        TGO=TGE
+      else if (pearth.eq.0) then
+        TGE=TGO
+      end if
       TSL=TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
@@ -2199,9 +2208,9 @@ C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
 #ifdef OBIO_RAD_coupling
       FSRDIF(I,J)=SRDVIS*(1-SRXVIS) ! diffuse visible solar at surface
 
-      DIRNIR(I,J)=SRXNIR*SRDNIR     ! direct beam nir solar at surface            
-      DIFNIR(I,J)=SRDNIR*(1-SRXNIR) ! diffuse     nir solar at surface            
-     
+      DIRNIR(I,J)=SRXNIR*SRDNIR     ! direct beam nir solar at surface
+      DIFNIR(I,J)=SRDNIR*(1-SRXNIR) ! diffuse     nir solar at surface
+
 cdiag write(*,'(a,2i5,6e12.4)')'RAD_DRV: ',
 cdiag.    I,J,FSRDIR(I,J),SRVISSURF(I,J),FSRDIF(I,J),
 cdiag.        DIRNIR(I,J),SRDNIR,DIFNIR(I,J)
@@ -2403,7 +2412,7 @@ C****
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) -TNFS(3,I,J)+TNFS(1,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(3,I,J)*CSZ2)
-         AIJ(I,J,ij_srvdir) =AIJ(I,J,ij_srvdir) 
+         AIJ(I,J,ij_srvdir) =AIJ(I,J,ij_srvdir)
      &        + FSRDIR(I,J)*SRVISSURF(I,J)
          AIJ(I,J,IJ_SRVISSURF) =AIJ(I,J,IJ_SRVISSURF) + SRVISSURF(I,J)
 C**** CRF diags if required
