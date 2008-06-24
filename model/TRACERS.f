@@ -1109,13 +1109,6 @@ C**** check whether air mass is conserved
 
       CASE (:IOWRITE) ! output to end-of-month restart file
       
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-       CALL pack_data(grid,pprec,pprec_glob)
-       CALL pack_data(grid,pevap,pevap_glob)
-       CALL pack_data(grid,hbaij,hbaij_glob)
-       CALL pack_data(grid,ricntd,ricntd_glob)
-#endif
         DO ITM=1,NTM
           CALL PACK_DATA(grid, TRM(:,:,:,ITM), TRM_GLOB(:,:,:,ITM))
           CALL PACK_COLUMN(grid, TRmom(:,:,:,:,ITM),
@@ -1129,11 +1122,18 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_WATER
      *       ,TRWM_glob
 #endif
+       END IF     !only root processor writes
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,hbaij_glob,ricntd_glob,pprec_glob,pevap_glob
+       CALL pack_data(grid,pprec,pprec_glob)
+       CALL pack_data(grid,pevap,pevap_glob)
+       CALL pack_data(grid,hbaij,hbaij_glob)
+       CALL pack_data(grid,ricntd,ricntd_glob)
+       header='For dust tracers: hbaij,ricntd,pprec,pevap'
+       IF (am_i_root()) WRITE(kunit,ERR=10) header,hbaij_glob,
+     &      ricntd_glob,pprec_glob,pevap_glob
 #endif
-       END IF     !only root processor writes
 
 #ifdef TRACERS_SPECIAL_Shindell       
        header='TRACERS_SPECIAL_Shindell: corrOx(j,L,12)'
@@ -1265,16 +1265,22 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_WATER
      *       ,TRWM_glob
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,hbaij_glob,ricntd_glob,pprec_glob,pevap_glob
-#endif
             IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
               PRINT*,"Discrepancy in module version ",HEADER,
      &                MODULE_HEADER
               GO TO 10
             END IF
           end if      ! AM_I_ROOT
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+          IF (am_i_root()) READ(kunit,ERR=10) header,hbaij_glob,
+     &         ricntd_glob,pprec_glob,pevap_glob
+          CALL unpack_data(grid,hbaij_glob,hbaij)
+          CALL unpack_data(grid,ricntd_glob,ricntd)
+          CALL unpack_data(grid,pprec_glob,pprec)
+          CALL unpack_data(grid,pevap_glob,pevap)
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
           if(am_i_root())read(kunit,err=10)header,corrOx_glob
@@ -1376,13 +1382,6 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
      &                              TRWM(:,:,:,  itm))
 #endif
         END DO
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        CALL unpack_data(grid,hbaij_glob,hbaij)
-        CALL unpack_data(grid,ricntd_glob,ricntd)
-        CALL unpack_data(grid,pprec_glob,pprec)
-        CALL unpack_data(grid,pevap_glob,pevap)
-#endif
         END SELECT
       END SELECT
 
