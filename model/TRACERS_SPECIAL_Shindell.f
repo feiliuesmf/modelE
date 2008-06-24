@@ -1299,7 +1299,7 @@ c     enddo
 ! Now, check for a sector definition:
 ! -- begin sector  stuff --
           tr_sectors_are = ' '
-          pname=trname(nt)//'_IIASA_BBURN_sect'
+          pname=trim(trname(nt))//'_IIASA_BBURN_sect'
           call sync_param(pname,tr_sectors_are)
           num_tr_sectors3D(nt,nBiomass)=0
           i=1
