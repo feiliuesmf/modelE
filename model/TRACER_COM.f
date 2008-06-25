@@ -984,7 +984,7 @@ C**** Water isotope specific parameters
       real*8 :: supsatfac = 2d-3
 !@var iso_index indexing taking actual tracer number to isotope
 !@+   fractionation number (1=water,2=h2o18,3=hdo,4=hto,5=h2o17)
-      integer :: iso_index(5)
+      integer :: iso_index(ntm)
 #endif
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
