@@ -1053,9 +1053,12 @@ C**** check whether air mass is conserved
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
 
-      REAL*8, DIMENSION(NMOM,IM,JM,LM,NTM) :: TRMOM_GLOB
-      REAL*8, DIMENSION(     IM,JM,LM,NTM) :: TRM_GLOB
-            
+      REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: TRMOM_GLOB
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: TRM_GLOB
+#ifdef TRACERS_WATER
+     &     ,TRWM_GLOB
+#endif
+  
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob,corrOx_glob
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
@@ -1075,19 +1078,17 @@ C**** check whether air mass is conserved
       INTEGER :: ITM,ITM1,ITM2
 #ifdef TRACERS_WATER
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACERW01"
-      REAL*8, DIMENSION(     IM,JM,LM,NTM) :: TRWM_GLOB
-
-      write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a,i2,a)')
-     *     'R8 TRM(im,jm,lm,',NTM,')',
-     *     ',TRmom(',NMOM,',im,jm,lm,',NTM,'),trwm(im,jm,lm,',NTM,')'
 #else
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACER01"
-
-      write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a)')
-     *           'R8 TRM(im,jm,lm,',NTM,')',
-     *  ',TRmom(',NMOM,',im,jm,lm,',NTM,')'
 #endif
 
+      if(am_i_root()) allocate(
+     &     TRM_GLOB(IM,JM,LM)
+     &    ,TRMOM_GLOB(NMOM,IM,JM,LM)
+#ifdef TRACERS_WATER
+     &    ,TRWM_GLOB(IM,JM,LM)
+#endif
+     &     )
 
 #ifdef TRACERS_SPECIAL_Shindell
       if(am_i_root()) allocate(
@@ -1110,19 +1111,26 @@ C**** check whether air mass is conserved
       CASE (:IOWRITE) ! output to end-of-month restart file
       
         DO ITM=1,NTM
-          CALL PACK_DATA(grid, TRM(:,:,:,ITM), TRM_GLOB(:,:,:,ITM))
-          CALL PACK_COLUMN(grid, TRmom(:,:,:,:,ITM),
-     &         TRmom_GLOB(:,:,:,:,ITM))
+          CALL PACK_DATA(grid, TRM(:,:,:,ITM), TRM_GLOB)
+          CALL PACK_COLUMN(grid, TRmom(:,:,:,:,ITM),TRmom_GLOB)
 #ifdef TRACERS_WATER
-          CALL PACK_DATA(grid, TRWM(:,:,:,ITM), TRWM_GLOB(:,:,:,ITM))
+          CALL PACK_DATA(grid, TRWM(:,:,:,ITM), TRWM_GLOB)
 #endif
+          IF (AM_I_ROOT()) THEN
+            write (MODULE_HEADER(lhead+1:80),'(a,a,i1,a,a)')
+     &           trname(itm),
+     &           ' R8 TRM(im,jm,lm),TRmom(',
+     &           NMOM,
+     &           ',im,jm,lm)',
+#ifdef TRACERS_WATER
+     &           ',trwm(im,jm,lm)'
+#endif
+            WRITE (kunit,err=10) MODULE_HEADER,TRM_glob,TRmom_glob
+#ifdef TRACERS_WATER
+     *           ,TRWM_glob
+#endif
+          END IF                !only root processor writes
         END DO
-        IF (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,TRM_glob,TRmom_glob
-#ifdef TRACERS_WATER
-     *       ,TRWM_glob
-#endif
-       END IF     !only root processor writes
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1260,17 +1268,26 @@ C**** check whether air mass is conserved
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread,irerun,irsfic,irsficno) ! restarts
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) HEADER,TRM_glob,TRmom_glob
+ 
+          DO ITM=1,NTM
+            if ( AM_I_ROOT() ) then
+              READ (kunit,err=10) HEADER,TRM_glob,TRmom_glob
 #ifdef TRACERS_WATER
-     *       ,TRWM_glob
+     *             ,TRWM_glob
 #endif
-            IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER,
-     &                MODULE_HEADER
-              GO TO 10
-            END IF
-          end if      ! AM_I_ROOT
+              IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
+                PRINT*,"Discrepancy in module version ",HEADER,
+     &               MODULE_HEADER
+                GO TO 10
+              ENDIF
+            endif               ! AM_I_ROOT
+C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
+            CALL UNPACK_DATA  (grid,   TRM_GLOB, TRM(:,:,:,  itm))
+            CALL UNPACK_COLUMN(grid, TRMOM_GLOB, TRmom(:,:,:,:,itm))
+#ifdef TRACERS_WATER
+            CALL UNPACK_DATA  (grid,  TRWM_GLOB, TRWM(:,:,:,  itm))
+#endif
+          ENDDO
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1371,32 +1388,24 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call ESMF_BCAST( grid, first_ncep)
 #endif
 #endif
-C**** ESMF: Copy global read data into the corresponding local (distributed) arrays.
-       DO ITM=1,NTM
-         CALL UNPACK_DATA  (grid,   TRM_GLOB(:,:,:,  itm),
-     &                              TRM(:,:,:,  itm))
-         CALL UNPACK_COLUMN(grid, TRMOM_GLOB(:,:,:,:,itm),
-     &                              TRmom(:,:,:,:,itm))
-#ifdef TRACERS_WATER
-         CALL UNPACK_DATA  (grid,  TRWM_GLOB(:,:,:,  itm),
-     &                              TRWM(:,:,:,  itm))
-#endif
-        END DO
         END SELECT
       END SELECT
 
-#ifdef TRACERS_SPECIAL_Shindell
-      if(am_i_root()) deallocate(
-     &     Aijl_glob,corrOx_glob,ss_glob
-#ifdef INTERACTIVE_WETLANDS_CH4 
-     &    ,day_ncep_glob,DRA_ch4_glob,sum_ncep_glob
-     &    ,PRS_ch4_glob,HRA_ch4_glob,Iijch4_glob
-#endif
-     &     )
-#endif     
-
+      call freemem
       RETURN
+
  10   IOERR=1
+      call freemem
+      RETURN
+
+      contains
+
+      subroutine freemem
+      if(am_i_root()) deallocate(TRM_GLOB,TRMOM_GLOB
+#ifdef TRACERS_WATER
+     &     ,TRWM_GLOB
+#endif
+     &     )
 
 #ifdef TRACERS_SPECIAL_Shindell
       if(am_i_root()) deallocate(
@@ -1408,7 +1417,8 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
      &     )
 #endif     
 #endif
-      RETURN
+      end subroutine freemem
+
       END SUBROUTINE io_tracer
 
 
