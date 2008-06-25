@@ -1471,6 +1471,7 @@ C**** adjust land surface fractions
 C**** remove/do not create lakes that are too small
                 IF (FLAKE(I,J).gt.0) THEN
 C**** transfer lake ice mass/energy for accounting purposes
+C**** do not add ice mass to river - instead use implicit array
                   IMLT=ACE1I+MSI(I,J)+SNOWI(I,J)
                   HMLT=SUM(HSI(:,I,J))
                   MDWNIMP(I,J)=MDWNIMP(I,J)+PLKIC*IMLT*DXYP(J)
@@ -1479,6 +1480,8 @@ c                  MWL(I,J)=MWL(I,J)+PLKIC*IMLT*DXYP(J)
 c                  GML(I,J)=GML(I,J)+PLKIC*HMLT*DXYP(J)
 #ifdef TRACERS_WATER
                   DO ITM=1,NTM
+                    TRLAKE(ITM,1,I,J)=SUM(TRLAKE(ITM,:,I,J))
+                    TRLAKE(ITM,2,I,J)=0.
 c                    TRLAKE(ITM,1,I,J)=TRLAKE(ITM,1,I,J)+TRLAKE(ITM,2,I,J
 c     *                   )+RSI(I,J)*FLAKE(I,J)*SUM(TRSI(ITM,:,I,J))
 c     *                   *DXYP(J)
