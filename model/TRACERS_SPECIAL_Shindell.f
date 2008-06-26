@@ -1250,10 +1250,9 @@ c
      &                                     ::src
       REAL*4, PARAMETER, DIMENSION(LbbGFED) :: zmid =
      & (/ 50.  ,300., 750.,1500.,2500., 4500./)
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
+      INTEGER :: J_1, J_0, J_0H, J_1H
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1 ,
-     &               I_STRT=I_0, I_STOP=I_1 )
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       if (itime < itime_tr0(nt)) return
@@ -1366,14 +1365,13 @@ c
       REAL*4, PARAMETER, DIMENSION(LbbGFED) :: zmid =
      & (/ 50.  ,300., 750.,1500.,2500., 4500./)
 
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
+      INTEGER :: J_1, J_0, J_0H, J_1H
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1 ,
-     &               I_STRT=I_0, I_STOP=I_1 )
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       fact_SO4=0.0375d0
 
-      do J=J_0,J_1 ; do I=I_0,I_1
+      do J=J_0,J_1 ; do I=1,IM
         do LL=1,LbbGFED
           Luse=0
           loop_L: do L=1,LM
