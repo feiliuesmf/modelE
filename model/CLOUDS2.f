@@ -26,7 +26,7 @@ C--- Added by J.W. ending ---C
 
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm,trname
+      USE TRACER_COM, only: ntm,trname,t_qlimit
 #ifdef TRACERS_WATER
      &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
      *     tr_evap_fact
@@ -1019,7 +1019,10 @@ C**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
 C**** This is a fix to prevent very occasional plumes that take out
 C**** too much tracer mass. This can impact tracers with very sharp
 C**** vertical gradients
-      TMP(1:NTX) = MIN(TMOLD(LMIN,1:NTX)*FPLUME,0.95d0*TM(LMIN,1:NTX))
+      do n=1,ntx
+        TMP(n) = TMOLD(LMIN,n)*FPLUME
+        if(t_qlimit(n)) TMP(n) = MIN(TMP(n),0.95d0*TM(LMIN,n))
+      enddo
       TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
         DTMR(LMIN,1:NTX)=-TMP(1:NTX)
       DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
@@ -2001,7 +2004,7 @@ c        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
       TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
-     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
+     &     ml(ldmin),cmneg(ldmin), nsub,t_qlimit(n),1, zdir,ierrt,lerrt)
       TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
 c        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
@@ -3498,7 +3501,10 @@ C**** ACCUMULATE SOME DIAGNOSTICS
 
       PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
 #ifdef TRACERS_WATER
-      TRPRSS(1:NTX)=MAX(0d0,TRPRBAR(1:NTX,1))
+      do n=1,ntx
+        TRPRSS(n)=TRPRBAR(n,1)
+        if(t_qlimit(n)) TRPRSS(n)=MAX(0d0,TRPRSS(n))
+      enddo
 #endif
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
