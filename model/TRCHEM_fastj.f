@@ -1,9 +1,9 @@
 #include "rundeck_opts.h"
-c  NOTE: Fastj photolysis scheme obtained from Oliver Wild (UCI) for
-c  incorporation into the GISS 4x5 GCM with 10 tracer chemistry.
-c  jlg. Sept. 98.
-c
-      SUBROUTINE photoj(nslon,nslat)
+!  NOTE: Fastj photolysis scheme obtained from Oliver Wild (UCI) for
+!  incorporation into the GISS 4x5 GCM with 10 tracer chemistry.
+!  jlg. Sept. 98.
+ 
+      subroutine photoj(nslon,nslat)
 !@sum photoj (jv_trop.f): FAST J-Value code, troposphere only
 !@+   (mjprather 6/96)
 !@+   uses special wavelength quadrature spectral data (jv_spec.dat)
@@ -12,25 +12,30 @@ c
 !@auth Oliver Wild/Lee Grenfell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on fastj000_M23p.f from model II)
 !@calls CTM_ADJ,INT_PROF,PRTATM,JVALUE,JRATET
-c
-C**** GLOBAL parameters and variables:
-C
-      USE MODEL_COM, only     : LM,LS1
-      USE CONSTANT, only      : radian
-      USE DYNAMICS, only      : LTROPO
-      USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jppj,zj,
-     &                 which_trop,szamax,U0,NCFASTJ,iprn,jprn,prnrts
-c
+
+!**** GLOBAL parameters and variables:
+      use domain_decomp,only : grid,get
+      use model_com, only    : LM,LS1
+      use constant, only     : radian
+      use dynamics, only     : ltropo
+      use trchem_sHINDELL_com, ONLY: sza,tfastj,jfastj,jppj,zj,
+     &            which_trop,szamax,U0,NCFASTJ,iprn,jprn,prnrts
+ 
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments:
+ 
+!**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var i,j,k dummy loop variables
 !@var NCFASTJ Number of levels in atmosphere
 !@var maxl trop/strat boundary level
-      INTEGER, INTENT(IN) :: nslon, nslat
-      INTEGER i,j,k,maxl
-C
+      integer, intent(IN) :: nslon, nslat
+      integer   :: i,j,k,maxl
+      logical   :: jay
+      integer   :: J_0, J_1
+
+      call get(grid, J_STRT=J_0,  J_STOP=J_1)
+      jay = (nslat >= J_0 .and. nslat <= J_1)
+
 #ifdef SHINDELL_STRAT_CHEM
       call stop_model('SHINDELL_STRAT_CHEM use TRCHEM_fastj2',255)
 #endif
@@ -39,230 +44,226 @@ C
       case(1); maxl=ls1-1
       case default; call stop_model('which_trop problem 3',255)
       end select
-C
-      zj(:,:)    =0.d0
-      JFASTJ(:,:)=0.d0
-      NCFASTJ = 2*LM+2 ! number of levels for clear-sky conditions.
-      U0 = DCOS(SZA*radian)
-C
-      if(SZA.le.szamax) then
-        CALL CTM_ADJ(NSLON,NSLAT) !define pres & aerosol profiles
-        CALL INT_PROF(NSLON,NSLAT,maxl) !define T & O3 profiles
-        IF(prnrts.and.NSLON.eq.iprn.and.NSLAT.eq.jprn)
-     &  CALL PRTATM(NSLON,NSLAT)  ! Print out atmosphere
-        CALL JVALUE(NSLON,NSLAT,maxl) ! Calculate Actinic flux
-        CALL JRATET(NSLON,NSLAT,maxl) ! Calculate photolysis rates
-        JFASTJ(:,:)= zj(:,:)      ! photolysis rates returned
+ 
+      zj(:,:)=0.d0
+      jfastj(:,:)=0.d0
+      ncfastj=2*LM+2 ! number of levels for clear-sky conditions.
+      u0=dcos(sza*radian)
+ 
+      if(SZA <= szamax) then
+        call ctm_adj(nslon,nslat)       !define pres & aerosol profiles
+        call int_prof(nslon,nslat,maxl) !define T & O3 profiles
+        if(prnrts .and. nslon==iprn .and. nslat==jprn)
+     &  call prtatm(nslon,nslat,jay)    ! Print out atmosphere
+        call jvalue(nslon,nslat,maxl)   ! Calculate Actinic flux
+        call jratet(nslon,nslat,maxl)   ! Calculate photolysis rates
+        jfastj(:,:)=zj(:,:)             ! photolysis rates returned
       end if ! sza
-c
+      
       return
-      end SUBROUTINE photoj
-C
-C
-      SUBROUTINE ctm_adj(NSLON,NSLAT)
+      end subroutine photoj
+ 
+ 
+      subroutine ctm_adj(nslon,nslat)
 !@sum ctm_adj to adapt the model input for the photolysis code; set up
 !@+   the appropriate pressure and aerosol profiles. The pressure at the
 !@+   bottom of CTM box (I,J,L) is given by   etaa(L) + etab(L)*P(I,J)
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
-c
-C**** GLOBAL parameters and variables:
-C
-      USE MODEL_COM, only    : IM,JM,LM
-      USE RAD_COM, only      : ALB
-      USE TRCHEM_Shindell_COM, only:RCLOUDFJ,jndlev,NCFASTJ,aer,
-     &                          ZFASTJ,jaddlv,jaddto,PFASTJ,RFLECT,
-     &                          odtmp,odsum,odmax,luselb,nlbatm,zlbatm
-     &                          ,iprn,jprn
-c
+ 
+!**** GLOBAL parameters and variables:
+      use model_com, only          : im,jm,lm
+      use rad_com, only            : alb
+      use trchem_sHINDELL_com, only: rcloudfj,jndlev,ncfastj,aer,
+     & zfastj,jaddlv,jaddto,pfastj,rflect,odtmp,odsum,odmax,luselb,
+     & nlbatm,zlbatm,iprn,jprn
+ 
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments:
+ 
+!**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var i,j dummy variables
 !@var MIEDX type of aerosol profile. See code for details.
 !@var ASTRAT0 dummy variable
-      INTEGER, INTENT(IN) :: nslon, nslat
-      INTEGER i,j,MIEDX
-      REAL*8 ASTRAT0
-C-----------------------------------------------------------------------
-c  Customise aerosol profile and scattering index
-c
-c     ASTRAT0  Extinction (/cm) always defined at 1000 nm = 1 micron
-c     MAER1    Lowest level to put aerosol in (inclusive)
-c     MAER2    Highest level to put aerosol in (inclusive)
-c     MIEDX    Type of aerosol scattering, currently 6 set up
-c
-C-----------------------------------------------------------------------
-C 1 Rayle 300 1.00 400 1.00  600 1.00  999 1.00 Rayleigh phase fn
-C 2 IsoEX 300 1.00 400 1.00  600 1.00  999 1.00 isotropic exact opt.dep.
-C 3 IsoEq 300 0.20 400 0.20  600 0.20  999 1.00 isotropic equiv.opt.dep.
-C 4 SBkgd 310 2.77 400 2.38  600 1.58  999 .680 bckgrdsulfte,r/s=.09/.6
-C 5 SVolc 310 2.69 400 2.55  600 2.18  999 1.46 volcnicsulfte,r/s=.08/.8
-C 6 W_Cld 300 2.05 400 2.08  600 2.10  999 2.15 wtr cloud,r/gam=10./0.15
-C-----------------------------------------------------------------------
-c USER DEFINES THIS VARIABLE:
-      MIEDX = 6
-c Pressure Levels:
+      integer, intent(IN) :: nslon, nslat
+      integer             :: i,j,miedx
+      real*8              :: astrat0
+
+!-----------------------------------------------------------------------
+!  Customise aerosol profile and scattering index
+!
+!     ASTRAT0  Extinction (/cm) always defined at 1000 nm = 1 micron
+!     MAER1    Lowest level to put aerosol in (inclusive)
+!     MAER2    Highest level to put aerosol in (inclusive)
+!     MIEDX    Type of aerosol scattering, currently 6 set up
+!
+!-----------------------------------------------------------------------
+! 1 Rayle 300 1.00 400 1.00  600 1.00  999 1.00 Rayleigh phase fn
+! 2 IsoEX 300 1.00 400 1.00  600 1.00  999 1.00 isotropic exact opt.dep.
+! 3 IsoEq 300 0.20 400 0.20  600 0.20  999 1.00 isotropic equiv.opt.dep.
+! 4 SBkgd 310 2.77 400 2.38  600 1.58  999 .680 bckgrdsulfte,r/s=.09/.6
+! 5 SVolc 310 2.69 400 2.55  600 2.18  999 1.46 volcnicsulfte,r/s=.08/.8
+! 6 W_Cld 300 2.05 400 2.08  600 2.10  999 2.15 wtr cloud,r/gam=10./0.15
+!-----------------------------------------------------------------------
+! USER DEFINES THIS VARIABLE:
+      miedx = 6
+
+! Pressure Levels:
       j=0
-      do i=1,LM
+      do i=1,lm
         j=2*i
         jndlev(i) = j ! centre of level we want J rate at
       enddo
-c
-c Associated altitudes
+ 
+! Associated altitudes
       zfastj(1) = 0.d0
-      do i=2,NCFASTJ
-        zfastj(i)= 16.d0*1.d+5*log10(PFASTJ(1)/PFASTJ(i))
+      do i=2,ncfastj
+        zfastj(i)= 16.d0*1.d+5*log10(pfastj(1)/pfastj(i))
       enddo
-c
-c Zero level indices
-      do i=1,NCFASTJ
+ 
+! Zero level indices
+      do i=1,ncfastj
         jaddlv(i) = 0
         jaddto(i) = 0
       enddo
-c
-c Set surface albedo
-      RFLECT = dble(1.- ALB(NSLON,NSLAT,1))
-      RFLECT = dmax1(0.d0,dmin1(1.d0,RFLECT))
-c
-c Scale optical depths as appropriate
-      odsum =   0.d0
-      do i=1,LM
-        odtmp(i) = RCLOUDFJ(i,nslon,nslat)
+ 
+! Set surface albedo
+      rflect = dble(1.- alb(nslon,nslat,1))
+      rflect = max(0.d0,min(1.d0,rflect))
+ 
+! Scale optical depths as appropriate
+      odsum = 0.d0
+      do i=1,lm
+        odtmp(i) = rcloudfj(i,nslon,nslat)
         odsum    = odsum + odtmp(i)
       enddo
-      if(odsum.gt.odmax) then
+      if(odsum > odmax) then
         odsum = odmax/odsum
-        do i=1,LM
+        do i=1,lm
           odtmp(i) = odtmp(i)*odsum
         enddo
       endif
-c
-c Lower boundary treatment; if cloud surface, zero ODs and set albedo
+ 
+! Lower boundary treatment; if cloud surface, zero ODs and set albedo
       nlbatm = 1
       if(luselb) then
-        do i=1,LM
-          if(odtmp(i).gt.zlbatm) nlbatm = (2*i)+1
+        do i=1,lm
+          if(odtmp(i) > zlbatm) nlbatm = (2*i)+1
           odtmp(i)=0.d0
         enddo
-        if(nlbatm.gt.1) RFLECT = 0.6d0     ! Effective cloud albedo
+        if(nlbatm > 1) rflect = 0.6d0     ! Effective cloud albedo
       endif
-c
-c Write the AER profile directly - interpolate for boundary points...
-c Or perhaps redefine if optical depths are provided directly
-c
-      do I=1,NCFASTJ
-        AER(I) = 0.d0
-      enddo
-c
+ 
+! Write the AER profile directly - interpolate for boundary points...
+! Or perhaps redefine if optical depths are provided directly
+ 
+      aer(1:ncfastj) = 0.d0
+ 
       do i=1,LM
-       if(odtmp(i).ne.0.d0) then
-        ASTRAT0 = odtmp(i)/(zfastj(jndlev(i)+1)-zfastj(jndlev(i)-1))
-        AER(jndlev(i)-1) = AER(jndlev(i)-1) + ASTRAT0*0.5d0
-        AER(jndlev(i))   = AER(jndlev(i))   + ASTRAT0
-        AER(jndlev(i)+1) = AER(jndlev(i)+1) + ASTRAT0*0.5d0
+       if(odtmp(i) /= 0.d0) then
+        astrat0 = odtmp(i)/(zfastj(jndlev(i)+1)-zfastj(jndlev(i)-1))
+        aer(jndlev(i)-1) = aer(jndlev(i)-1) + astrat0*0.5d0
+        aer(jndlev(i))   = aer(jndlev(i))   + astrat0
+        aer(jndlev(i)+1) = aer(jndlev(i)+1) + astrat0*0.5d0
        endif
       enddo
-c
+ 
       return
-      end SUBROUTINE ctm_adj
-c
-c
-      SUBROUTINE int_prof(NSLON,NSLAT,maxl)
+      end subroutine ctm_adj
+ 
+ 
+      subroutine int_prof(nslon,nslat,maxl)
 !@sum int_prof to interpolate T and O3 onto model grid. Currently only a
 !@+   linear interpolation Oliver (23/05/97). Calculate the total number
 !@+   density and the ozone profile.
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
-c
-C**** GLOBAL parameters and variables:
-C
-      USE MODEL_COM, only: JM, month=>JMON
-      USE TRCHEM_Shindell_COM, only: O3_FASTJ,cboltz,dlogp,O3J,TJ,DBC,
-     &                          OREF,TREF,BREF,DO3,DMFASTJ,NCFASTJ,
-     &                          PFASTJ
-c
+ 
+!**** GLOBAL parameters and variables:
+      use model_com, only: jm, month=>jmon
+      use trchem_sHINDELL_com, only: o3_fastj,cboltz,dlogp,o3j,tj,dbc,
+     &                   oref,tref,bref,do3,dmfastj,ncfastj,pfastj
+ 
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments:
+ 
+!**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var i,j,l,m dummy loop variables
 !@var pstd Approximate pressures of levels for supplied data
 !@var tmp1,tmp2,ydgrd,month,tmpfra temporary variables
 !@var maxl LTROPO or LS1-1, depending on which_trop variable
-      INTEGER, INTENT(IN) :: nslon, nslat, maxl
-      INTEGER i,j,l,m
-      REAL*8, DIMENSION(51) :: pstd
-      REAL*8 tmp1,tmp2,ydgrd,tmpfra
-c
+      integer, intent(IN) :: nslon, nslat, maxl
+      integer             :: i,j,l,m
+      real*8, dimension(51) :: pstd
+      real*8              :: tmp1,tmp2,ydgrd,tmpfra
+ 
       pstd(1) = 1000.d0
       ydgrd = -(90.-(float(nslat)*90./(float(JM)/2.))) !lat in degrees
       do i=2,51
         pstd(i) = pstd(i-1)*dlogp
       enddo
-c
-c Select appropriate monthly and latitudinal profiles
+ 
+! Select appropriate monthly and latitudinal profiles
       m = max(1,min(12,month))
       l = max(1,min(18,(int(ydgrd)+99)/10))
-c
-c Linear interpolation
-      do i=1,NCFASTJ
-        if(PFASTJ(i).ge.pstd(1)) then
-          tmpfra = (PFASTJ(i)-pstd(2))/(pstd(1)-pstd(2))
-          TJ(i) = (tref(1,l,m)-tref(2,l,m))*tmpfra + tref(2,l,m)
-          O3J(i) = (oref(1,l,m)-oref(2,l,m))*tmpfra + oref(1,l,m)
-          DBC(i) = (bref(1)-bref(2))*tmpfra + bref(1)
+ 
+! Linear interpolation
+      do i=1,ncfastj
+        if(pfastj(i) >= pstd(1)) then
+          tmpfra = (pfastj(i)-pstd(2))/(pstd(1)-pstd(2))
+          tj(i) = (tref(1,l,m)-tref(2,l,m))*tmpfra + tref(2,l,m)
+          o3j(i) = (oref(1,l,m)-oref(2,l,m))*tmpfra + oref(1,l,m)
+          dbc(i) = (bref(1)-bref(2))*tmpfra + bref(1)
         else
           do j=2,51
-            if(PFASTJ(i).ge.pstd(j)) then
-              tmpfra = (PFASTJ(i)-pstd(j))/(pstd(j-1)-pstd(j))
-c  Black carbon (assume constant above 80 km)
-              if(j.le.41) then
-                DBC(i) = (bref(j-1)-bref(j))*tmpfra + bref(j)
+            if(PFASTJ(i) >= pstd(j)) then
+              tmpfra = (pfastj(i)-pstd(j))/(pstd(j-1)-pstd(j))
+!  Black carbon (assume constant above 80 km)
+              if(j <= 41) then
+                dbc(i) = (bref(j-1)-bref(j))*tmpfra + bref(j)
               else
-                DBC(i) = bref(41)
+                dbc(i) = bref(41)
               end if
-c  Temperature  (assume constant above 80 km)
-              if(j.le.41) then
-                TJ(i) = (tref(j-1,l,m)-tref(j,l,m))*tmpfra + tref(j,l,m)
+!  Temperature (assume constant above 80 km)
+              if(j <= 41) then
+                tj(i) = (tref(j-1,l,m)-tref(j,l,m))*tmpfra + tref(j,l,m)
               else
-                TJ(i) = tref(41,l,m)
+                tj(i) = tref(41,l,m)
               endif
-c  Ozone  (extrapolate above 60 km)
-              if(j.le.31) then
-                O3J(i)=(oref(j-1,l,m)-oref(j,l,m))*tmpfra+oref(j,l,m)
+!  Ozone (extrapolate above 60 km)
+              if(j <= 31) then
+                o3j(i)=(oref(j-1,l,m)-oref(j,l,m))*tmpfra+oref(j,l,m)
               else
                 tmp1=oref(31,l,m)*(oref(31,l,m)/oref(30,l,m))**(j-31)
                 tmp2=oref(31,l,m)*(oref(31,l,m)/oref(30,l,m))**(j-32)
-                O3J(i)=(tmp2-tmp1)*tmpfra + tmp1
+                o3j(i)=(tmp2-tmp1)*tmpfra + tmp1
               endif
               go to 10
             endif
           enddo
-          write(6,*)'PFASTJ,i,pstd(51)',PFASTJ(i),i,pstd(51)
-          if(PFASTJ(i).lt.pstd(51))
+          write(6,*)'pfastj,i,pstd(51)',pfastj(i),i,pstd(51)
+          if(pfastj(i) < pstd(51))
      &    call stop_model('Need mesosphere data in int_prof.',255)
  10       continue
         endif
       enddo
-c
-c     overwrite troposphere lvls of climatological O3 with GISS GCM O3:
+ 
+! overwrite troposphere levels of climatological O3 with GISS GCM O3:
       do i=1,2*maxl
-       O3J(i)=O3_FASTJ(i)
+        o3j(i)=o3_fastj(i)
       enddo
-c
-c Calculate total and O3 number densities
-      do I=1,NCFASTJ
-        DMFASTJ(I)  = PFASTJ(I)/(cboltz*TJ(I))
-        DO3(I) = O3J(I)*1.d-6*DMFASTJ(I)
+ 
+! Calculate total and O3 number densities
+      do i=1,ncfastj
+        dmfastj(i)  = pfastj(i)/(cboltz*tj(i))
+        do3(i) = o3j(i)*1.d-6*dmfastj(i)
       enddo
-c
+ 
       return
  1000 format(1x,i2,2x,f8.3,2x,f5.3,2x,f7.3,2x,f7.4)
-      end SUBROUTINE int_prof
-C
-C
+      end subroutine int_prof
+ 
+ 
       SUBROUTINE JRATET(NSLON,NSLAT,maxl)
 !@sum JRATET Calculate & print J-values. The loop in this routine
 !@+   only covers the maxl levels actually needed by the CTM.
