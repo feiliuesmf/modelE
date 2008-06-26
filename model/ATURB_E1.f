@@ -334,7 +334,7 @@ C**** parallel to the case of Q
               p4(l)=-(rhoe(l+1)*wc_nl(l+1,n)-rhoe(l)*wc_nl(l,n))
      &             *bydzerho(l)
 C**** check on physicality of non-local fluxes....
-              if ( p4(l)*dtime+tr0ij(l,n).lt.0 ) then
+              if ( t_qlimit(n) .and. p4(l)*dtime+tr0ij(l,n).lt.0 ) then
                 p4(l)=-tr0ij(l,n)/dtime
                 wc_nl(l+1,n)=(tr0ij(l,n)/(dtime*bydzerho(l))+rhoe(l)
      *               *wc_nl(l,n))/rhoe(l+1)
@@ -342,7 +342,8 @@ C**** check on physicality of non-local fluxes....
             end do
             flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
 C**** fix first layer for rare tracer problems
-            if ( tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
+            if ( t_qlimit(n) .and.
+     &           tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
               flux_bot=tr0ij(1,n)/(dtime*bydzerho(1))
               wc_nl(2,n)=(flux_bot-rhoe(1)*trflx(n))/rhoe(2)
             end if
