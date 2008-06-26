@@ -73,7 +73,7 @@
       integer, parameter :: MAX_PARAMS = 256
       integer, parameter :: MAX_RPARAMS = 256
       integer, parameter :: MAX_IPARAMS = 310
-      integer, parameter :: MAX_CPARAMS = 90
+      integer, parameter :: MAX_CPARAMS = 200
       integer, parameter :: MAX_NAME_LEN = 32
       integer, parameter :: MAX_CHAR_LEN = 128
 
