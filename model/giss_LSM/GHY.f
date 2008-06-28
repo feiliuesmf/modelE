@@ -126,7 +126,7 @@ c**** public functions:
       public get_soil_properties
 
 ! stupp from ghy_com
-      integer, parameter, public :: ngm=6, imt=5, nlsn=3, LS_NFRAC=2 
+      integer, parameter, public :: ngm=6, imt=5, nlsn=3, LS_NFRAC=3
 
 ccc   physical constants and global model parameters
 ccc   converting constants from 1/kg to 1/m^3
@@ -1941,40 +1941,40 @@ c**** soils28   common block     9/25/90
       call init_step
 
 
-
-cddd       write(933,*) "before"
-cddd       write(933,*) "w             ", w             
-cddd       write(933,*) "ht            ", ht            
-cddd       write(933,*) "nsn           ", nsn           
-cddd       !write(933,*) "dzsn(1:nlsn,:)", dzsn(1:nlsn,:)
-cddd       write(933,*) "wsn           ", wsn           
-cddd       write(933,*) "hsn           ", hsn           
-cddd       write(933,*) "fr_snow       ", fr_snow       
-cddd       write(933,*) "top_index     ", top_index     
-cddd       write(933,*) "top_stdev     ", top_stdev     
-cddd       write(933,*) "dz            ", dz            
-cddd       write(933,*) "q             ", q             
-cddd       write(933,*) "qk            ", qk            
-cddd       write(933,*) "sl            ", sl            
-cddd       write(933,*) "fb            ", fb            
-cddd       write(933,*) "fv            ", fv            
-cddd       write(933,*) "pr            ", pr            
-cddd       write(933,*) "htpr          ", htpr          
-cddd       write(933,*) "prs           ", prs           
-cddd       write(933,*) "htprs         ", htprs         
-cddd       write(933,*) "srht          ", srht          
-cddd       write(933,*) "trht          ", trht          
-cddd       write(933,*) "ts            ", ts            
-cddd       write(933,*) "qs            ", qs            
-cddd       write(933,*) "pres          ", pres          
-cddd       write(933,*) "rho           ", rho           
-cddd       write(933,*) "ch            ", ch            
-cddd       write(933,*) "qm1           ", qm1           
-cddd       write(933,*) "vs            ", vs            
-cddd       write(933,*) "vs0           ", vs0           
-cddd       write(933,*) "tprime        ", tprime        
-cddd       write(933,*) "qprime        ", qprime        
-
+#ifdef PRINT_GHY_VARS
+       write(933,*) "before"
+       write(933,*) "w             ", w             
+       write(933,*) "ht            ", ht            
+       write(933,*) "nsn           ", nsn           
+       !write(933,*) "dzsn(1:nlsn,:)", dzsn(1:nlsn,:)
+       write(933,*) "wsn           ", wsn           
+       write(933,*) "hsn           ", hsn           
+       write(933,*) "fr_snow       ", fr_snow       
+       write(933,*) "top_index     ", top_index     
+       write(933,*) "top_stdev     ", top_stdev     
+       write(933,*) "dz            ", dz            
+       write(933,*) "q             ", q             
+       write(933,*) "qk            ", qk            
+       write(933,*) "sl            ", sl            
+       write(933,*) "fb            ", fb            
+       write(933,*) "fv            ", fv            
+       write(933,*) "pr            ", pr            
+       write(933,*) "htpr          ", htpr          
+       write(933,*) "prs           ", prs           
+       write(933,*) "htprs         ", htprs         
+       write(933,*) "srht          ", srht          
+       write(933,*) "trht          ", trht          
+       write(933,*) "ts            ", ts            
+       write(933,*) "qs            ", qs            
+       write(933,*) "pres          ", pres          
+       write(933,*) "rho           ", rho           
+       write(933,*) "ch            ", ch            
+       write(933,*) "qm1           ", qm1           
+       write(933,*) "vs            ", vs            
+       write(933,*) "vs0           ", vs0           
+       write(933,*) "tprime        ", tprime        
+       write(933,*) "qprime        ", qprime        
+#endif
 
 
 
@@ -2007,6 +2007,13 @@ ccc get necessary data from ent
      &     )
       fb = 1.d0 - fv
 #endif
+
+
+ccc make sure there are no round-off errors in fraction
+      if ( fv < .0001d0 ) fv = 0.d0
+      if ( fv > 1.d0 - .0001d0 ) fv = 1.d0
+      fb = 1.d0 - fv
+
 ccc normal case (both present)
       i_bare = 1; i_vege = 2
       process_bare = .true.; process_vege = .true.
@@ -2253,39 +2260,40 @@ C**** finalise surface tracer concentration here
       fr_snow_in=fr_snow
 
 
-cddd       write(933,*) "after"
-cddd       write(933,*) "w             ", w             
-cddd       write(933,*) "ht            ", ht            
-cddd       write(933,*) "nsn           ", nsn           
-cddd       !write(933,*) "dzsn(1:nlsn,:)", dzsn(1:nlsn,:)
-cddd       write(933,*) "wsn           ", wsn           
-cddd       write(933,*) "hsn           ", hsn           
-cddd       write(933,*) "fr_snow       ", fr_snow       
-cddd       write(933,*) "top_index     ", top_index     
-cddd       write(933,*) "top_stdev     ", top_stdev     
-cddd       write(933,*) "dz            ", dz            
-cddd       write(933,*) "q             ", q             
-cddd       write(933,*) "qk            ", qk            
-cddd       write(933,*) "sl            ", sl            
-cddd       write(933,*) "fb            ", fb            
-cddd       write(933,*) "fv            ", fv            
-cddd       write(933,*) "pr            ", pr            
-cddd       write(933,*) "htpr          ", htpr          
-cddd       write(933,*) "prs           ", prs           
-cddd       write(933,*) "htprs         ", htprs         
-cddd       write(933,*) "srht          ", srht          
-cddd       write(933,*) "trht          ", trht          
-cddd       write(933,*) "ts            ", ts            
-cddd       write(933,*) "qs            ", qs            
-cddd       write(933,*) "pres          ", pres          
-cddd       write(933,*) "rho           ", rho           
-cddd       write(933,*) "ch            ", ch            
-cddd       write(933,*) "qm1           ", qm1           
-cddd       write(933,*) "vs            ", vs            
-cddd       write(933,*) "vs0           ", vs0           
-cddd       write(933,*) "tprime        ", tprime        
-cddd       write(933,*) "qprime        ", qprime        
-
+#ifdef PRINT_GHY_VARS
+       write(933,*) "after"
+       write(933,*) "w             ", w             
+       write(933,*) "ht            ", ht            
+       write(933,*) "nsn           ", nsn           
+       !write(933,*) "dzsn(1:nlsn,:)", dzsn(1:nlsn,:)
+       write(933,*) "wsn           ", wsn           
+       write(933,*) "hsn           ", hsn           
+       write(933,*) "fr_snow       ", fr_snow       
+       write(933,*) "top_index     ", top_index     
+       write(933,*) "top_stdev     ", top_stdev     
+       write(933,*) "dz            ", dz            
+       write(933,*) "q             ", q             
+       write(933,*) "qk            ", qk            
+       write(933,*) "sl            ", sl            
+       write(933,*) "fb            ", fb            
+       write(933,*) "fv            ", fv            
+       write(933,*) "pr            ", pr            
+       write(933,*) "htpr          ", htpr          
+       write(933,*) "prs           ", prs           
+       write(933,*) "htprs         ", htprs         
+       write(933,*) "srht          ", srht          
+       write(933,*) "trht          ", trht          
+       write(933,*) "ts            ", ts            
+       write(933,*) "qs            ", qs            
+       write(933,*) "pres          ", pres          
+       write(933,*) "rho           ", rho           
+       write(933,*) "ch            ", ch            
+       write(933,*) "qm1           ", qm1           
+       write(933,*) "vs            ", vs            
+       write(933,*) "vs0           ", vs0           
+       write(933,*) "tprime        ", tprime        
+       write(933,*) "qprime        ", qprime        
+#endif
 
       return
   900 continue
