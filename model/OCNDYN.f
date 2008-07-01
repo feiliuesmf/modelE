@@ -251,7 +251,7 @@ c        CALL CHECKO ('STADVI')
       USE PARAM
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
-      USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
+      USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,dZO,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
@@ -318,14 +318,10 @@ C****
 C**** Arrays needed each ocean model run
 C****
       CALL GEOMO
-C**** Calculate ZE, SIGEO, DSIGO and SIGO
+C**** Calculate ZE
       DO 110 L=0,LMO
   110 ZE(L) = ZE1*(ZERAT**L-1d0)/(ZERAT-1d0)
-      SIGEO(0) = 0.
       DO 120 L=1,LMO
-      SIGEO(L) = ZE(L)/ZE(LMO)
-      DSIGO(L) = SIGEO(L) - SIGEO(L-1)
-      SIGO(L) = (SIGEO(L) + SIGEO(L-1))*5d-1
   120 dZO(L) = ZE(L) - ZE(L-1)
 C**** Read in table function for specific volume
       CALL openunit("OFTAB",iu_OFTAB,.TRUE.,.TRUE.)
