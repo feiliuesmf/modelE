@@ -393,7 +393,12 @@ C**** accumulate diagnostics
      *          *DXYP(J) 
            AREGJ(JR,J,J_SMELT)= AREGJ(JR,J,J_SMELT)+SALT*PWATER*DXYP(J) ! SMELT
            AREGJ(JR,J,J_IMELT)= AREGJ(JR,J,J_IMELT)+RUN0*PWATER*DXYP(J) ! IMELT
-C**** Update prognostic sea ice variables
+C**** Update prognostic sea ice variables + correction for rad. fluxes
+            if (roice.gt.rsi(i,j)) ! ice from ocean
+     *          call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),ROICE)
+            if (roice.lt.rsi(i,j)) ! ocean from ice
+     *          call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-ROICE)
+C****
             RSI(I,J)=ROICE
             MSI(I,J)=MSI2
             SNOWI(I,J)=SNOW
@@ -412,13 +417,6 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #endif
         END DO
         END DO
-
-cc      ELSE
-cc        MELTI=0. ; EMELTI=0. ; SMELTI=0.
-cc#ifdef TRACERS_WATER
-cc        TRMELTI=0.
-cc#endif
-cc      END IF
 C****
       RETURN
       END SUBROUTINE MELT_SI
@@ -784,6 +782,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         TRSI(:,:,I,J) = TRSIL(:,:)
 #endif
         IF (.not. QFIXR) THEN
+          if (roice.gt.rsi(i,j)) ! ice from ocean
+     *         call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),ROICE)
+          if (roice.lt.rsi(i,j)) ! ocean from ice
+     *         call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-ROICE)
           RSI(I,J)=ROICE
         ELSE
 C**** save implicit mass-flux diagnostics

@@ -1730,19 +1730,10 @@ C**** set radiative equilibirum extra tracer amount to zero
       end if
 C**** Zenith angle and GROUND/SURFACE parameters
       COSZ=COSZA(I,J)
-      TGO =GTEMP(1,1,I,J)+TF
+      TGO =GTEMP(1,1,I,J)+TF   ! GTEMPR?
       TGOI=GTEMP(1,2,I,J)+TF
       TGLI=GTEMP(1,3,I,J)+TF
       TGE =GTEMP(1,4,I,J)+TF
-      if(poice.eq.0.)  TGOI=TF
-      if(plice.eq.0.)  TGLI=TF
-      if(pocean.eq.0..and.pearth.eq.0.) then
-        TGO=TF ; TGE=TF
-      else if (pocean.eq.0.) then
-        TGO=TGE
-      else if (pearth.eq.0) then
-        TGE=TGO
-      end if
       TSL=TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
@@ -2728,6 +2719,30 @@ C**** daily diagnostics
       RETURN
       END SUBROUTINE RADIA
 
+      SUBROUTINE RESET_SURF_FLUXES(I,J,ITYPE_OLD,ITYPE_NEW,FTYPE_ORIG,
+     *     FTYPE_NOW)
+!@sum set incident solar and upward thermal fluxes appropriately 
+!@+   as fractions change to conserve energy, prevent restart problems
+!@auth Gavin Schmidt
+      use rad_com, only : fsf,trsurf
+      implicit none
+!@var itype_old, itype_new indices for the old type turning to new type
+      integer, intent(in) :: i,j,itype_old,itype_new
+!@var ftype_orig, ftype_now original and current fracs of the 'new' type
+      real*8, intent(in) :: ftype_orig, ftype_now  
+      real*8 :: delf ! change in fraction from old to new
+
+      delf = FTYPE_NOW-FTYPE_ORIG
+C**** Constrain fsf_1*ftype_1+fsf_2*ftype_2 to be constant      
+      FSF(ITYPE_NEW,I,J)=(FSF(ITYPE_NEW,I,J)*FTYPE_ORIG+
+     *     FSF(ITYPE_OLD,I,J)*DELF)/FTYPE_NOW
+
+C**** Same for upward thermal
+      TRSURF(ITYPE_NEW,I,J)=(TRSURF(ITYPE_NEW,I,J)*FTYPE_ORIG+
+     *     TRSURF(ITYPE_OLD,I,J)*DELF)/FTYPE_NOW
+
+      RETURN
+      END SUBROUTINE RESET_SURF_FLUXES
 
       SUBROUTINE GHGHST(iu)
 !@sum  reads history for nghg well-mixed greenhouse gases

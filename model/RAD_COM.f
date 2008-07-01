@@ -235,7 +235,7 @@ C**** Local variables initialised in init_RAD
      *     Tchg(LM+LM_REQ, IM, J_0H:J_1H),
      *     SRHR(0:LM, IM, J_0H:J_1H),
      *     TRHR(0:LM, IM, J_0H:J_1H),
-     *     TRSURF(1:4, IM, J_0H:J_1H),
+     *     TRSURF(4, IM, J_0H:J_1H),
      *     FSF(4,IM, J_0H:J_1H),
      *     FSRDIR(IM, J_0H:J_1H),
      *     SRVISSURF(IM, J_0H:J_1H),
@@ -276,6 +276,9 @@ C**** Local variables initialised in init_RAD
       dH2O = 0.
       SALB => ALB(:,:,1)
       SRVISSURF = 0
+      FSF=0
+      TRSURF=0
+
       RETURN
       END SUBROUTINE ALLOC_RAD_COM
 

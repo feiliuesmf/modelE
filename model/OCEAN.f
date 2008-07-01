@@ -390,6 +390,12 @@ C**** adjust enthalpy and salt so temperature/salinity remain constant
 #ifdef TRACERS_WATER
             TRSI(:,3:4,I,J)=TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
 #endif
+C**** adjust some radiative fluxes for changes in ice fraction
+            if (rsinew.gt.rsi(i,j)) ! ice from ocean
+     *           call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),RSINEW)
+            if (rsinew.lt.rsi(i,j)) ! ocean from ice
+     *           call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-RSINEW)
+C****
             RSI(I,J)=RSINEW
             MSI(I,J)=MSINEW
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE

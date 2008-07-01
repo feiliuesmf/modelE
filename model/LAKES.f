@@ -1302,7 +1302,7 @@ C****
       integer i,j,J_0,J_1,jr,itm
       real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
      *     ,fmsi4,fhsi2,fhsi3,fhsi4,imlt,hmlt,plake,plkic,hlk
-     *     ,frsat,new_MLD,hlkic,mwtot
+     *     ,frsat,new_MLD,hlkic,mwtot,flake_old,fearth_old,rsi_old
 #ifdef TRACERS_WATER
      *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
      &     ,tottr(ntm)
@@ -1310,7 +1310,6 @@ C****
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-C**** Experimental code: not yet fully functional
 C**** Update lake fraction as a function of lake mass at end of day
 C**** Assume lake is conical
 C****   => A = pi*(h*tanlk)^2, M=(1/3)*pi*rho*h*(h*tanlk)^2
@@ -1322,6 +1321,9 @@ C****
         DO I=1,IMAXJ(J)
           JR=JREG(I,J)
           IF (FLAKE(I,J)+FEARTH(I,J).gt.0 .and.FOCEAN(I,J).eq.0) THEN
+C**** Save original fractions
+            FLAKE_OLD=FLAKE(I,J); FEARTH_OLD=FEARTH(I,J)
+            RSI_OLD=RSI(I,J)
             PLAKE=FLAKE(I,J)*(1.-RSI(I,J))
             PLKIC=FLAKE(I,J)*    RSI(I,J)
 C**** calculate new lake size based on total mass
@@ -1519,7 +1521,20 @@ C****
                 END IF
               END IF
             END IF
-          END IF
+C**** Adjust some radiative fluxes for conservation and restartability
+C**** Complications due to ice or water going to earth if lake shrinks
+            if (FLAKE(I,J).gt.FLAKE_OLD) ! new lake from Earth frac
+     *           call RESET_SURF_FLUXES(I,J,4,1,FLAKE_OLD,FLAKE(I,J))
+            if (FLAKE_OLD.lt.FLAKE(I,J)) then ! lake shrinks
+! originally some open water
+              if (PLAKE.gt.0) call RESET_SURF_FLUXES(I,J,1,4,FEARTH_OLD,
+     *             FEARTH_OLD+PLAKE-FLAKE(I,J)*(1-RSI(I,J)))
+! originally some ice, now different
+              if (PLKIC.gt.0 .and. PLKIC.ne.FLAKE(I,J)*RSI(I,J)) 
+     *             call RESET_SURF_FLUXES(I,J,2,4,
+     *             FEARTH_OLD+PLAKE-FLAKE(I,J)*(1-RSI(I,J)),FEARTH(I,J)) 
+            end if
+          END IF   ! end loop of land points
         END DO
       END DO
 

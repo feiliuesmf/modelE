@@ -1320,6 +1320,12 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
               GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
      *             -SSI(1,I,J))
 #endif
+C**** adjust rad fluxes for change in ice fraction
+              if (rsi(i,j).gt.rsisave(i,j)) ! ice from ocean
+     *       call RESET_SURF_FLUXES(I,J,1,2,RSISAVE(I,J),RSI(I,J))
+              if (rsi(i,j).lt.rsisave(i,j)) ! ocean from ice
+     *       call RESET_SURF_FLUXES(I,J,2,1,1.-RSISAVE(I,J),1.-RSI(I,J))
+C****
             END IF
           END DO
         END DO
