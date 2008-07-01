@@ -3799,7 +3799,7 @@ c
       k=k+1
       jl_mcheat = k
       sname_jl(k) = 'tot_ht_mc' !
-      lname_jl(k) = 'TOTAL HEATING BY MOIST CONVECTION (Q1)'
+      lname_jl(k) = 'TOTAL HEATING BY MOIST CONVECTION (Q1-QR)'
       units_jl(k) = 'W/(m^2*mb)'
       pow_jl(k) = -2
       scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
@@ -3809,7 +3809,7 @@ c
       k=k+1
       jl_mcdeep = k
       sname_jl(k) = 'tot_ht_deepmc' !
-      lname_jl(k) = 'TOTAL HEATING BY DEEP MOIST CONVECTION (Q1)'
+      lname_jl(k) = 'TOTAL HEATING BY DEEP MOIST CONVECTION (Q1-QR)'
       units_jl(k) = 'W/(m^2*mb)'
       pow_jl(k) = -2
       scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
@@ -3819,7 +3819,7 @@ c
       k=k+1
       jl_mcshlw = k
       sname_jl(k) = 'tot_ht_shlwmc' !
-      lname_jl(k) = 'TOTAL HEATING BY SHALLOW MOIST CONVECTION (Q1)'
+      lname_jl(k) = 'TOTAL HEATING BY SHALLOW MOIST CONVECTION (Q1-QR)'
       units_jl(k) = 'W/(m^2*mb)'
       pow_jl(k) = -2
       scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
@@ -5012,7 +5012,7 @@ c
       use SOCPBL, only : npbl=>n
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
-      integer :: k,kk,l, lmax_dd0=5, lmax_dd2=11  ! why? 
+      integer :: k,kk,l, lmax_dd0=5, lmax_dd2=11  ! why?
       character*2 lst(lm)
 
 C**** define levels strings
