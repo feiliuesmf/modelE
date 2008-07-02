@@ -149,8 +149,9 @@ ccc   data needed for debugging
 ccc   public data
 ccc   main accumulators
       real*8, public :: atrg,ashg,aevap,alhg,aruns,arunu,aeruns,aerunu
-!@var tbcs surface temperature (C)
-      real*8, public ::  tbcs
+!@var tbcs radiative surface temperature (C)
+!@var tsns sensible surface temperature (C)
+      real*8, public ::  tbcs, tsns
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
@@ -369,7 +370,7 @@ C***
      &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
      &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
      &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
-     &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
+     &     ,snshs,srht,tbcs,tsns,theta,thetm,thets,thrm_tot,thrmsn !thm
      &     ,top_index,top_stdev,tp,trht,ts,tsn1,w,ws,wsn,xinfc,xk
      &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
@@ -2450,6 +2451,9 @@ ccc   h0=-thrm(2)+srht+trht
       abetap=max(abetap,zero)
 ccc   computing surface temperature from thermal radiation fluxes
       tbcs = sqrt(sqrt( atrg/(dt*stbo) )) - tfrz
+ccc   computing surface temperature from sensible heat fluxes (inst.)
+      tsns = ( ( snsh_tot(1)*fb + snsh_tot(2)*fv )
+     &     /(sha*rho*ch) + (vs-vs0)*tprime )/vs + ts - tfrz
 ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
       tg2av=0.d0
       wtr2av=0.d0

@@ -84,6 +84,10 @@ ccc evaporation limits from previous time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: evap_max_ij, fr_sat_ij,
      &     qg_ij
 
+!@var tsns_ij surface temperature corresponding to sensible heat flux (C)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: tsns_ij
+
+
 #ifdef TRACERS_WATER_OLD
 !@var TRBARE,TRVEGE tracers in bare and veg. soil fraction (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRBARE
@@ -195,6 +199,8 @@ cddd     *         STAT=IER)
      *                  fr_sat_ij(IM,J_0H:J_1H),
      *                      qg_ij(IM,J_0H:J_1H),
      *           STAT=IER)
+      ALLOCATE(     tsns_ij(IM,J_0H:J_1H),
+     *         STAT=IER)
 
 #ifdef USE_ENT
       ALLOCATE(     aalbveg(im,J_0H:J_1H),
@@ -254,12 +260,13 @@ C**** Initialize to zero
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH02"
 
       REAL*8, DIMENSION(IM,JM) :: SNOWE_glob, TEARTH_glob, WEARTH_glob,
      &                            AIEARTH_GLOB,evap_max_ij_glob,
      &                            fr_sat_ij_glob, qg_ij_glob
       REAL*8 :: SNOAGE_glob(3,IM,JM)
+      REAL*8 :: tsns_ij_glob(IM,JM)
 
       MODULE_HEADER(lhead+1:80) =
      *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
@@ -275,17 +282,33 @@ C**** Initialize to zero
         CALL PACK_DATA(grid, fr_sat_ij   , fr_sat_ij_glob)
         CALL PACK_DATA(grid, qg_ij       , qg_ij_glob)
         CALL PACK_COLUMN(grid, SNOAGE    , SNOAGE_glob)
+        CALL PACK_DATA(grid, tsns_ij     , tsns_ij_glob)
         IF (AM_I_ROOT())
      *     WRITE (kunit,err=10) MODULE_HEADER,SNOWE_glob,TEARTH_glob
      *       ,WEARTH_glob,AIEARTH_glob
      *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob,qg_ij_glob
+     &       ,tsns_ij_glob
       CASE (IOREAD:)            ! input from restart file
 cgsfc        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
 cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
-        if (AM_I_ROOT())
-     &    READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob,WEARTH_glob
-     &       ,AIEARTH_glob,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob
-     &       ,qg_ij_glob
+        if (AM_I_ROOT()) then
+          READ(kunit,err=10) HEADER
+          BACKSPACE kunit
+          if (HEADER(1:lhead) == "EARTH01" ) then ! hack to read old format
+              READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
+     &         ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
+     &         ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
+            tsns_ij_glob(:,:) = TEARTH_glob
+          else if (HEADER(1:lhead) == MODULE_HEADER(1:lhead)) then
+            READ(kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
+     &           ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
+     &           ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
+     &           ,tsns_ij_glob
+          else
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          end if
+        endif ! I_AM_ROOT
 
         CALL UNPACK_DATA(grid, SNOWE_glob       , SNOWE      )
         CALL UNPACK_DATA(grid, TEARTH_glob      , TEARTH     )
@@ -295,12 +318,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL UNPACK_DATA(grid, fr_sat_ij_glob   , fr_sat_ij  )
         CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )
         CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )
+        CALL UNPACK_DATA(grid, tsns_ij_glob     , tsns_ij      )
 
-        if (AM_I_ROOT() .and.
-     &      HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
       END SELECT
 
       RETURN
@@ -315,7 +334,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       USE DOMAIN_DECOMP, ONLY: GRID, GET, CHECKSUM_COLUMN
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA, PACK_COLUMN, AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY:  PACK_COLUMN, AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY: PACK_BLOCK, UNPACK_BLOCK
       USE DOMAIN_DECOMP, ONLY: UNPACK_COLUMN
 #ifdef TRACERS_WATER

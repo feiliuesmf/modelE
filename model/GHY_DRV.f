@@ -706,7 +706,7 @@ c****
      &    ashg,alhg, !fv,fb,
      &    aevap,abetad,
      &    aruns,arunu,aeruns,aerunu,
-     &    tbcs,af0dt,af1dt
+     &    tbcs,tsns,af0dt,af1dt
 !!!     &    qm1,qs,
 !!!     &    pres,rho,ts,ch,srht,trht
 !!!     &   ,vs,vs0,tprime,qprime
@@ -717,7 +717,7 @@ c****
      *     ,runoe,erunoe,gtemp,precss,gtempr
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
-     *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
+     *     canopy_temp_ij,snowe,tearth,tsns_ij,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
 #ifndef USE_ENT
       use vegetation, only :
@@ -1192,7 +1192,8 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 c**** snowe used in RADIATION
       snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
 c**** tearth used only internaly in GHY_DRV
-      tearth(i,j)=tg1
+      tearth(i,j) = tbcs
+      tsns_ij(i,j) = tsns
 c**** wearth+aiearth are used in radiation only
       wearth(i,j)=1000.*( fb*w(1,1)*(1.-fice(1,1)) +
      &     fv*(w(1,2)*(1.-fice(1,2))+w(0,2)*(1.-fice(0,2))) )
