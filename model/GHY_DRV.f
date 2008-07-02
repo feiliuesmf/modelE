@@ -1003,6 +1003,7 @@ c**** loop over ground time steps
 
       pbl_args%trhr0 = TRHR(0,I,J)
   !    trhr0 = TRHR(0,I,J)
+      pbl_args%tr4 = gtempr(4,I,J)**4
 
       rhosrf0=100.*ps/(rgas*pbl_args%tgv) ! estimated surface density
 C**** Obviously there are no ocean currents for earth points, but

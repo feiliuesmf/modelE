@@ -219,7 +219,7 @@ CCC      real*8 :: bgrid
       real*8, parameter :: twoby3 = 2d0/3d0
 
 !@dbparam skin_effect sets whether skin effects are used or not
-      integer :: skin_effect=0  ! Not used by default
+      integer :: skin_effect=1  ! Used by default
 
       CONTAINS
 
@@ -367,7 +367,7 @@ c  internals:
 c**** local vars for input from pbl_args
       real*8 :: evap_max,fr_sat,uocean,vocean,psurf,trhr0,tg,elhx,qsol
       real*8 :: dtime,sss_loc,dbl,ug,vg,tgrnd0,ttop,qgrnd_sat,qgrnd0
-      real*8 :: tdns,qdns,tprime,qprime
+      real*8 :: tdns,qdns,tprime,qprime,tr4
       logical :: ocean,ddml_eq_1
       real*8 :: gusti
 c**** local vars for output to pbl_args
@@ -376,7 +376,7 @@ c**** local vars for output to pbl_args
 c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
-      real*8 :: bgrid,an2,as2,dudz,dvdz,tau
+      real*8 :: bgrid,an2,as2,dudz,dvdz,tau,tgr4skin
       real*8 :: ws02
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
@@ -426,6 +426,7 @@ c**** get input from pbl_args structure
       psurf = pbl_args%psurf
       trhr0 = pbl_args%trhr0
       tg = pbl_args%tg
+      tr4 =  pbl_args%tr4
       elhx = pbl_args%elhx
       qsol = pbl_args%qsol
       sss_loc = pbl_args%sss_loc
@@ -467,6 +468,7 @@ c**** get input from pbl_args structure
       tgrnd=tgrnd0              ! use initial bulk ground temp
       qgrnd=qgrnd0              ! use initial sat humidity
       tgskin=tg                 ! initially assume no skin/bulk difference
+      tgr4skin=tr4              ! initially assume no skin/bulk difference
       dskin=0
       ts=t(1)/(1+q(1)*deltx)
 
@@ -497,15 +499,16 @@ c estimate net flux and ustar_oc from current tg,qg etc.
             ts=t(1)/(1+q(1)*deltx)
             rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
             Qnet= (lhe+tgskin*shv)*cq*rhosrf*(ws*(q(1)-qgrnd)
-     &           +(ws-ws0)*qprime)                          ! Latent
+     &           +(ws-ws0)*qprime)        ! Latent
      &           + sha*ch*rhosrf*(ws*(ts-tgskin)+(ws-ws0)*tprime) ! Sensible
-     &           +trhr0-stbo*(tgskin*tgskin)*(tgskin*tgskin) ! LW
+     &           +trhr0-stbo*tgr4skin     ! LW
 
             ustar_oc=ustar*sqrt(rhosrf*byrhows)
             dskin=deltaSST(Qnet,Qsol,ustar_oc)
             tgskin=0.5*(tgskin+(tg+dskin))   ! smooth changes in iteration
             tgskin=max(tgskin,tf+tfrez(sss_loc))  ! prevent unphysical values
             dskin=tgskin-tg ! net dskin diagnostic
+            tgr4skin=(sqrt(sqrt(tr4))+dskin)**4
             qgrnd=qsat(tgskin,elhx,psurf)
             if (ocean) qgrnd=0.98d0*qgrnd  ! use ocean adjustment
             tgrnd=tgskin*(1.+qgrnd*deltx)

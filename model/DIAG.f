@@ -3184,7 +3184,7 @@ C****
 #endif
       USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
-     *     ,gtemp
+     *     ,gtemp,gtempr
 #ifdef TRACERS_ON 
      *     ,trcsurf
 #endif
@@ -3311,10 +3311,9 @@ c          data=sday*prec/dtsrc
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              data(i,j)=STBO*(POCEAN*(GTEMP(1,1,I,J)+TF)**4+
-     *             POICE *(GTEMP(1,2,I,J)+TF)**4+
-     *             PLANDI*(GTEMP(1,3,I,J)+TF)**4+
-     *             PEARTH*(GTEMP(1,4,I,J)+TF)**4)
+              data(i,j)=STBO*(POCEAN*GTEMPR(1,I,J)**4+
+     *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
+     *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
@@ -3325,10 +3324,9 @@ c          data=sday*prec/dtsrc
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
               data(i,j)=-SUM(TRHR(0:LM,I,J))+
-     *             STBO*(POCEAN*(GTEMP(1,1,I,J)+TF)**4+
-     *             POICE *(GTEMP(1,2,I,J)+TF)**4+
-     *             PLANDI*(GTEMP(1,3,I,J)+TF)**4+
-     *             PEARTH*(GTEMP(1,4,I,J)+TF)**4)
+     *             STBO*(POCEAN*GTEMPR(1,I,J)**4+
+     *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
+     *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
         case ("ICEF")           ! ice fraction over open water (%)

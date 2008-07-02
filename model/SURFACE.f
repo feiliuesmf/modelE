@@ -712,8 +712,7 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       ! Including gustiness in the latent heat flux:
       EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
      *                      RCDQDWS*pbl_args%qprime)
-      TRHEAT=TRHR(0,I,J)-STBO*(TG*TG)*(TG*TG)
-c      TRHEAT=TRHR(0,I,J)-STBO*TR4
+      TRHEAT=TRHR(0,I,J)-STBO*TR4
 
 C**** CASE (1) ! FLUXES USING EXPLICIT TIME STEP FOR OCEAN POINTS
       if ( ITYPE == 1) then
@@ -733,8 +732,7 @@ C**** CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
         dSNdTG=-RCDHWS*SHA
         dQGdTG=QG_SAT*DQSATDT(TG,ELHX) ! d(QG)/dTG
         dEVdTG = -dQGdTG*LHE*RCDQWS ! d(EVHEAT)/dTG
-        dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
-c        dTRdTG = -4*STBO*sqrt(sqrt(TR4))**3 ! d(TRHEAT)/dTG
+        dTRdTG = -4*STBO*sqrt(sqrt(TR4))**3 ! d(TRHEAT)/dTG
         dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
 
         T2DEN = HCG2+DTSURF*dF1dTG
@@ -763,8 +761,7 @@ C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
         DSHDTG=-RCDHWS*SHA
         DQGDTG=QG_SAT*DQSATDT(TG,ELHX)
         DEVDTG=-RCDQWS*LHE*DQGDTG
-        DTRDTG=-4.*STBO*TG*TG*TG
-c        DTRDTG=-4.*STBO*sqrt(sqrt(TR4))**3
+        DTRDTG=-4.*STBO*sqrt(sqrt(TR4))**3
         DF0DTG=DSHDTG+DEVDTG+DTRDTG
         DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
         DTG=(F0-F1)*DTSURF/(HCG1-DTSURF*DFDTG)
@@ -982,8 +979,7 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
       TGR4(ITYPE,I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
-      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*(TG1+TF)**4)
-c      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*TR4
+      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*TR4)
 C**** final fluxes
       DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE

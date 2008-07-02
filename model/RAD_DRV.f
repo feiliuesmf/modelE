@@ -1134,7 +1134,7 @@ C     OUTPUT DATA
 #endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : gtemp,nstype,gtempr
+      USE FLUXES, only : nstype,gtempr
 #ifdef OBIO_RAD_coupling
      .                  ,chl
 #endif
@@ -1254,7 +1254,6 @@ C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
-C**** GTEMP(1)  GROUND TEMPERATURE ARRAY OVER ALL SURFACE TYPES (C)
 C**** GTEMPR RADIATIVE TEMPERATURE ARRAY OVER ALL SURFACE TYPES (K)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****
@@ -1281,8 +1280,7 @@ C****        1 - any changes here also go in later (look for 'iu_rad')
 C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
      *     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
-     *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
-c     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
+     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
      *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      *     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
@@ -1483,11 +1481,11 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
 
 C**** CHECK SURFACE TEMPERATURES
       DO IT=1,4
-        IF(GTEMP(1,IT,I,J)+TF.LT.124..OR.GTEMP(1,IT,I,J)+TF.GT.370.)
+        IF(GTEMPR(IT,I,J).LT.124..OR.GTEMPR(IT,I,J).GT.370.)
      *       THEN
           WRITE(6,*) 'In Radia: Time,I,J,L,IT,TL',ITime,I,J,L,IT
-     *         ,GTEMP(1,L,I,J)
-          WRITE(6,*) 'GTEMP:',GTEMP(:,:,I,J)
+     *         ,GTEMPR(L,I,J)
+          WRITE(6,*) 'GTEMPR:',GTEMPR(:,I,J)
 CCC       STOP 'In Radia: Grnd Temp out of range'
           ICKERR=ICKERR+1
         END IF
@@ -1657,7 +1655,7 @@ C**** TEMPERATURES
 C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
         IF(TLm(L).LT.124..OR.TLm(L).GT.370.) THEN
           WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
-          WRITE(6,*) 'GTEMP:',GTEMP(:,:,I,J)
+          WRITE(6,*) 'GTEMPR:',GTEMPR(:,I,J)
 CCC       STOP 'In Radia: Temperature out of range'
           ICKERR=ICKERR+1
         END IF
@@ -1730,10 +1728,10 @@ C**** set radiative equilibirum extra tracer amount to zero
       end if
 C**** Zenith angle and GROUND/SURFACE parameters
       COSZ=COSZA(I,J)
-      TGO =GTEMP(1,1,I,J)+TF   ! GTEMPR?
-      TGOI=GTEMP(1,2,I,J)+TF
-      TGLI=GTEMP(1,3,I,J)+TF
-      TGE =GTEMP(1,4,I,J)+TF
+      TGO =GTEMPR(1,I,J)
+      TGOI=GTEMPR(2,I,J)
+      TGLI=GTEMPR(3,I,J)
+      TGE =GTEMPR(4,I,J)
       TSL=TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
@@ -2126,18 +2124,12 @@ C****
       FSF(3,I,J)=FSRNFG(4)   !  land ice
       FSF(4,I,J)=FSRNFG(2)   !  soil
       SRHR(0,I,J)=SRNFLB(1)
-      TRHR(0,I,J)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4+
-     +  PEARTH*TGE**4)-TRNFLB(1)
-      TRSURF(1,I,J) = STBO*TGO**4  !  ocean
-      TRSURF(2,I,J) = STBO*TGOI**4  !  ocean ice
-      TRSURF(3,I,J) = STBO*TGLI**4  !  land ice
-      TRSURF(4,I,J) = STBO*TGE**4  !  soil
-c      TRHR(0,I,J)=STBO*(POCEAN*GTEMPR(1,I,J)**4+POICE*GTEMPR(2,I,J)**4+
-c     +  PLICE*GTEMPR(3,I,J)**4+PEARTH*GTEMPR(4,I,J)**4)-TRNFLB(1)
-c      TRSURF(1,I,J) = STBO*GTEMPR(1,I,J)**4  !  ocean
-c      TRSURF(2,I,J) = STBO*GTEMPR(2,I,J)**4  !  ocean ice
-c      TRSURF(3,I,J) = STBO*GTEMPR(3,I,J)**4  !  land ice
-c      TRSURF(4,I,J) = STBO*GTEMPR(4,I,J)**4  !  soil
+      TRHR(0,I,J)=STBO*(POCEAN*GTEMPR(1,I,J)**4+POICE*GTEMPR(2,I,J)**4+
+     +  PLICE*GTEMPR(3,I,J)**4+PEARTH*GTEMPR(4,I,J)**4)-TRNFLB(1)
+      TRSURF(1,I,J) = STBO*GTEMPR(1,I,J)**4  !  ocean
+      TRSURF(2,I,J) = STBO*GTEMPR(2,I,J)**4  !  ocean ice
+      TRSURF(3,I,J) = STBO*GTEMPR(3,I,J)**4  !  land ice
+      TRSURF(4,I,J) = STBO*GTEMPR(4,I,J)**4  !  soil
       DO L=1,LM
         SRHR(L,I,J)=SRFHRL(L)
         TRHR(L,I,J)=-TRFCRL(L)
@@ -2298,8 +2290,7 @@ C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime
      &     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      &     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
-     &     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
-c     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
+     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
      &     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      &     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      &     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
