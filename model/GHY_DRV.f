@@ -972,7 +972,7 @@ c      prs=precss(i,j)/(dtsrc*rhow)
 
 ccc tracers variables
 
-      tg1 = tearth(i,j)
+      tg1 = tsns_ij(i,j)
       srheat=fsf(itype,i,j)*cosz1(i,j)
 c****
 c**** boundary layer interaction
@@ -1157,7 +1157,7 @@ ccc stuff needed for dynamic vegetation
       if ( fb > 0 ) snowbv(1,i,j)   = snowd(1)
       if ( fv > 0 ) snowbv(2,i,j)   = snowd(2)
 
-      tg1=tbcs
+      tg1=tsns
 
 c**** computing ground humidity to be used on next time step
       !qg_ij(i,j) = qs  !!! - this seemed to work ok
@@ -1199,7 +1199,7 @@ c**** wearth+aiearth are used in radiation only
      &     fv*(w(1,2)*(1.-fice(1,2))+w(0,2)*(1.-fice(0,2))) )
       aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
      &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
-      gtemp(1,4,i,j)=tearth(i,j)
+      gtemp(1,4,i,j)=tsns_ij(i,j)
       gtempr(4,i,j) =tearth(i,j)+tf
 c**** calculate fluxes using implicit time step for non-ocean points
       uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
@@ -1413,7 +1413,7 @@ c***********************************************************************
      &    ,acna,acnc,agpp,arauto,aclab,asoilresp,asoilCpoolsum
      &    ,aevap,aevapw,aevapd,aevapb
      &    ,aruns,arunu,aeruns,aerunu,aflmlt,aintercep
-     &    ,aepc,aepb,aepp,zw,tbcs
+     &    ,aepc,aepb,aepp,zw,tbcs,tsns
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
      &    ,tg2av,wtr2av,ace2av
 
@@ -1501,7 +1501,8 @@ ccc the following values are returned by PBL
       srhdt=srheat*dtsurf
       trheat=trhr(0,i,j)
 
-      tg1=tbcs
+      !tg1=tbcs
+      tg1=tsns
       shdt=-ashg
       evhdt=-alhg
 
@@ -1999,7 +2000,7 @@ c**** set gtemp array
       do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).gt.0) then
-            gtemp(1,4,i,j)=tearth(i,j)
+            gtemp(1,4,i,j)=tsns_ij(i,j)
             gtempr(4,i,j) =tearth(i,j)+tf
           end if
         end do
@@ -2035,7 +2036,7 @@ c**** in this case also set canopy water and water tracers to 0
             w_ij(0,2,i,j) = 0.d0
             fice_can = 0.d0
             call temperature_to_heat( ht_ij(0,2,i,j),
-     &           tearth(i,j), fice_can, w_ij(0,2,i,j), ht_cap_can )
+     &           tsns_ij(i,j), fice_can, w_ij(0,2,i,j), ht_cap_can )
 #ifdef TRACERS_WATER
             tr_w_ij(:,0,2,i,j) = 0.d0
 #endif
@@ -2055,7 +2056,7 @@ ccc to something more appropriate
         do j=J_0,J_1
           do i=1,im
             if ( fearth(i,j) .le. 0.d0 ) cycle
-            qg_ij(i,j) = qsat(tearth(i,j)+tf,lhe,pedn(1,i,j))
+            qg_ij(i,j) = qsat(tsns_ij(i,j)+tf,lhe,pedn(1,i,j))
           enddo
         enddo
         fr_sat_ij(:,:) = 0.d0
@@ -2464,6 +2465,7 @@ ccc ugly, should fix later
 
       snowe(i,j)= 0.65458111d-01
       tearth(i,j)= -0.12476520d+00
+      tsns_ij(i,j)= -0.12476520d+00
       wearth(i,j)=  0.29203081d+02
       aiearth(i,j)=  0.93720329d-01
       w_ij(:,1,i,j) = (/0.d0,  0.17837750d-01,  0.40924843d-01,
@@ -3238,7 +3240,7 @@ c****
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
 
-      real*8 snow,tg1,tg2,f0dt,f1dt,evap,wtr1,wtr2,ace1,ace2
+      real*8 snow,f0dt,f1dt,evap,wtr1,wtr2,ace1,ace2
      *     ,pearth,enrgp,scove,fb,fv
       integer i,j,jr,k
 
@@ -3258,10 +3260,10 @@ C****
       if (pearth.gt.0) then
 
         snow=snowe(i,j)
-        tg1 = tearth(i,j)
+        !tg1 = tearth(i,j)
         wtr1= wearth(i,j)
         ace1=aiearth(i,j)
-        tg2=gdeep(i,j,1)
+        !tg2=gdeep(i,j,1)
         wtr2=gdeep(i,j,2)
         ace2=gdeep(i,j,3)
         f0dt=e0(i,j,4)
@@ -4102,6 +4104,7 @@ c**** Also reset snow fraction for albedo computation
       use ghy_com, only : ngm,imt,dz_ij,q_ij
      &     ,w_ij,ht_ij,fr_snow_ij,fearth,qg_ij,fr_snow_rad_ij
      &     ,shc_soil_texture,canopy_temp_ij,snowe,tearth,wearth,aiearth
+     &     ,tsns_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
       use TRACER_COM, only : ntm,needtrs,itime_tr0
@@ -4179,13 +4182,14 @@ c**** Also reset snow fraction for albedo computation
 c**** snowe used in RADIATION
           snowe(i,j) = 1000.*0.d0
 c**** tearth used only internaly in GHY_DRV
-          tearth(i,j)=tg1
+          tearth(i,j) = sqrt(sqrt(fb*(tpb+tf)**4 + fv*(tpv+tf)**4)) - tf
+          tsns_ij(i,j) = tg1
 c**** wearth+aiearth are used in radiation only
           wearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*(1.-ficeb) +
      &         fv*(w_ij(1,2,i,j)*(1.-ficev)) )
           aiearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*ficeb +
      &         fv*w_ij(1,2,i,j)*ficev )
-          gtemp(1,4,i,j)=tearth(i,j)
+          gtemp(1,4,i,j)=tsns_ij(i,j)
           gtempr(4,i,j) =tearth(i,j)+tf
 
 #ifdef TRACERS_WATER
