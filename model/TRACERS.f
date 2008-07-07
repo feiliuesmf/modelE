@@ -1121,9 +1121,9 @@ C**** check whether air mass is conserved
      &           trname(itm),
      &           ' R8 TRM(im,jm,lm),TRmom(',
      &           NMOM,
-     &           ',im,jm,lm)',
+     &           ',im,jm,lm)'
 #ifdef TRACERS_WATER
-     &           ',trwm(im,jm,lm)'
+     &           ,',trwm(im,jm,lm)'
 #endif
             WRITE (kunit,err=10) MODULE_HEADER,TRM_glob,TRmom_glob
 #ifdef TRACERS_WATER
