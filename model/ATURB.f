@@ -873,9 +873,6 @@ C****
       !k refers to time step, j refers to main grid
       !except p1(j) which is defined on the edge grid
 
-c GISS-ESMF EXCEPTIONAL CASE
-c This looks like a loop which is always over levels for all
-c calls to this routine.
       do j=2,n-1
           sub(j)=-dtime*p1(j)*rhoebydz(j)*bydzerho(j)
           sup(j)=-dtime*p1(j+1)*rhoebydz(j+1)*bydzerho(j)

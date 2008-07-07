@@ -808,9 +808,6 @@ C****
       !k refers to time step, j refers to main grid
       !except p1(j) which is defined on the edge grid
 
-c GISS-ESMF EXCEPTIONAL CASE
-c This looks like a loop which is always over levels for all
-c calls to this routine.
       do j=2,n-1
           sub(j)=-dtime*p1(j)*rhoebydz(j)*bydzerho(j)
           sup(j)=-dtime*p1(j+1)*rhoebydz(j+1)*bydzerho(j)
@@ -1345,9 +1342,6 @@ C**** Halo updates from the south
       real*8, dimension(n+1), intent(out) :: ze
       integer :: j  !@var j loop variable
 
-c GISS-ESMF EXCEPTIONAL CASE
-c This looks like a loop which is always over levels for all
-c calls to this routine.
       ze(1)=zgs
       do j=2,n+1
           ze(j)=ze(j-1)+dze(j-1)
@@ -1376,9 +1370,6 @@ c calls to this routine.
       real*8 :: l0,kz
       integer :: j  !@var j loop variable
 
-c GISS-ESMF EXCEPTIONAL CASE
-c This looks like a loop which is always over levels for all
-c calls to this routine.
       !@ Ref: Holtslag and Boville 1993, J. Climate, 6, 1825-1842.
       do j=1,n
         l0=30.+270.*exp(1.-1.d-3*ze(j))
