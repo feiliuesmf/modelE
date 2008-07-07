@@ -218,7 +218,7 @@ C**** fluxes associated with variable lake fractions
 !@sum   Initializes FLUXES''s arrays
 !@auth  Rosalinda de Fainchtein
 !@ver  1.0
-
+      USE CONSTANT, only : tf
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE FLUXES
 #ifdef TRACERS_ON
@@ -311,8 +311,8 @@ C**** fluxes associated with variable lake fractions
      &   STAT = IER)
        ALLOCATE( GTEMPR( NSTYPE, I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
-       GTEMP=0.   ! initialize at 0
-       GTEMPR=0.   ! initialize at 0
+       GTEMP=0.    ! initialize at 0 C
+       GTEMPR=TF   ! initialize at 273 K
 
 !TRACERS_ON**********************
 

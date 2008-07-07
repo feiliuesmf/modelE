@@ -305,7 +305,7 @@ C****
       USE LAKES_COM, only : flake
       USE FLUXES, only : sss,melti,emelti,smelti,gtemp,mlhc,fwsim
 #ifdef TRACERS_WATER
-     *     ,trmelti
+     *     ,trmelti,gtracer
 #endif
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET, GLOBALSUM
@@ -325,13 +325,10 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
-C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
-C**** We could put this in daily but it then we need an extra routine to
-C**** add fluxes to oceans/lakes.
-cc      IF (MOD(ITIME,NDAY).eq.0) THEN
-cc        DT=SDAY    ! if called more frequently this should change
-        DT=DTsrc    ! now do this every physics time step
-        DO J=J_0, J_1
+C**** CALCULATE LATERAL MELT (ALSO ELIMINATE SMALL AMOUNTS)
+C**** EVERY PHYSICS TIME STEP
+      DT=DTsrc   
+      DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
           POCEAN=FOCEAN(I,J)
@@ -370,15 +367,15 @@ C**** now include lat melt for lakes and any RSI < 1
      *           ,ENRGMAX,ENRGUSED,RUN0,SALT)
 
 C**** accumulate diagnostics
-           IF (FOCEAN(I,J).gt.0) THEN
-             AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SALT)*PWATER
-             AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)-ENRGUSED*PWATER
-             AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SALT*PWATER
+            IF (FOCEAN(I,J).gt.0) THEN
+              AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SALT)*PWATER
+              AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)-ENRGUSED*PWATER
+              AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SALT*PWATER
 #ifdef TRACERS_WATER
-             TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+              TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
      *                                        +TRUN0(:)*PWATER
 #endif
-           END IF
+            END IF
 
            AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED*ROICE*PWATER
            AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+    SALT*ROICE*PWATER
@@ -415,8 +412,17 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #ifdef TRACERS_WATER
           TRMELTI(:,I,J)=TRUN0(:)*PWATER*DXYP(J)
 #endif
+C**** Reset some defaults if all ice is gone
+          IF (ROICE.eq.0) THEN
+            GTEMP(:,2,I,J) = 0.
+            GTEMPR(2,I,J) = TF
+#ifdef TRACERS_WATER
+            GTRACER(:,2,I,J) = 0.
+#endif 
+          END IF
+C****
         END DO
-        END DO
+      END DO
 C****
       RETURN
       END SUBROUTINE MELT_SI
