@@ -16,7 +16,7 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname,trradius,tr_wd_TYPE, nWATER
 #ifdef TRACERS_SPECIAL_O18
-     *     ,iso_index, n_water
+     *     ,n_water
 #endif
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
@@ -330,7 +330,6 @@ c  internals:
 !@var  km    turbulent momentum tranport coefficient.
 !@var  kh    turbulent thermometric conductivity. computed
 !@var  ke    transport coefficient for the turbulent kinetic energy.
-!@var  ipbl  stores bl properties of last time step
 
 #ifdef TRACERS_GASEXCH_Natassa
 #ifdef TRACERS_GASEXCH_CO2_Natassa
