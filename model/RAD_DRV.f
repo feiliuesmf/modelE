@@ -1196,7 +1196,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
      *     ,LFRC,JTIME,n1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
-     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
+     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
      *     ,tauex5,tauex6,tausct,taugcb,dcdnc
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -1442,7 +1442,7 @@ C****
       DIURN_partb=0.
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J,JR, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
-!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
+!$OMP*   CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,taugcb,
 !$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
 !$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,
 #ifdef ALTER_RADF_BY_LAT
@@ -1478,16 +1478,20 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAKE=FLAKE(I,J)
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
+      ptype4(1) = pocean ! open ocean and open lake
+      ptype4(2) = poice  ! ocean/lake ice
+      ptype4(3) = plice  ! glacial ice
+      ptype4(4) = pearth ! non glacial ice covered soil
 
 C**** CHECK SURFACE TEMPERATURES
       DO IT=1,4
-        IF(GTEMPR(IT,I,J).LT.124..OR.GTEMPR(IT,I,J).GT.370.)
-     *       THEN
-          WRITE(6,*) 'In Radia: Time,I,J,L,IT,TL',ITime,I,J,L,IT
-     *         ,GTEMPR(L,I,J)
-          WRITE(6,*) 'GTEMPR:',GTEMPR(:,I,J)
-CCC       STOP 'In Radia: Grnd Temp out of range'
-          ICKERR=ICKERR+1
+        IF(ptype4(IT) > 0.) then
+          IF(GTEMPR(IT,I,J).LT.124..OR.GTEMPR(IT,I,J).GT.370.) then
+            WRITE(6,*) 'In Radia: Time,I,J,IT,TG1',ITime,I,J,IT
+     *         ,GTEMPR(IT,I,J)
+CCC         STOP 'In Radia: Grnd Temp out of range'
+            ICKERR=ICKERR+1
+          END IF
         END IF
       END DO
 
@@ -2712,7 +2716,7 @@ C**** daily diagnostics
 
       SUBROUTINE RESET_SURF_FLUXES(I,J,ITYPE_OLD,ITYPE_NEW,FTYPE_ORIG,
      *     FTYPE_NOW)
-!@sum set incident solar and upward thermal fluxes appropriately 
+!@sum set incident solar and upward thermal fluxes appropriately
 !@+   as fractions change to conserve energy, prevent restart problems
 !@auth Gavin Schmidt
       use rad_com, only : fsf,trsurf
@@ -2720,11 +2724,11 @@ C**** daily diagnostics
 !@var itype_old, itype_new indices for the old type turning to new type
       integer, intent(in) :: i,j,itype_old,itype_new
 !@var ftype_orig, ftype_now original and current fracs of the 'new' type
-      real*8, intent(in) :: ftype_orig, ftype_now  
+      real*8, intent(in) :: ftype_orig, ftype_now
       real*8 :: delf ! change in fraction from old to new
 
       delf = FTYPE_NOW-FTYPE_ORIG
-C**** Constrain fsf_1*ftype_1+fsf_2*ftype_2 to be constant      
+C**** Constrain fsf_1*ftype_1+fsf_2*ftype_2 to be constant
       FSF(ITYPE_NEW,I,J)=(FSF(ITYPE_NEW,I,J)*FTYPE_ORIG+
      *     FSF(ITYPE_OLD,I,J)*DELF)/FTYPE_NOW
 

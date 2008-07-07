@@ -49,7 +49,7 @@ C****
 
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, 
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
@@ -290,7 +290,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SIMELT
-      USE CONSTANT, only : sday
+      USE CONSTANT, only : sday,TF
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
@@ -303,7 +303,7 @@ C****
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE LAKES_COM, only : flake
-      USE FLUXES, only : sss,melti,emelti,smelti,gtemp,mlhc,fwsim
+      USE FLUXES, only : sss,melti,emelti,smelti,gtemp,gtempr,mlhc,fwsim
 #ifdef TRACERS_WATER
      *     ,trmelti,gtracer
 #endif
@@ -327,7 +327,7 @@ C****
 
 C**** CALCULATE LATERAL MELT (ALSO ELIMINATE SMALL AMOUNTS)
 C**** EVERY PHYSICS TIME STEP
-      DT=DTsrc   
+      DT=DTsrc
       DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -387,7 +387,7 @@ C**** accumulate diagnostics
            AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+    RUN0*(1.-ROICE)
      *          *PWATER
            AREGJ(JR,J,J_HMELT)= AREGJ(JR,J,J_HMELT)-ENRGUSED*PWATER ! HMELT
-     *          *DXYP(J) 
+     *          *DXYP(J)
            AREGJ(JR,J,J_SMELT)= AREGJ(JR,J,J_SMELT)+SALT*PWATER*DXYP(J) ! SMELT
            AREGJ(JR,J,J_IMELT)= AREGJ(JR,J,J_IMELT)+RUN0*PWATER*DXYP(J) ! IMELT
 C**** Update prognostic sea ice variables + correction for rad. fluxes
@@ -418,7 +418,7 @@ C**** Reset some defaults if all ice is gone
             GTEMPR(2,I,J) = TF
 #ifdef TRACERS_WATER
             GTRACER(:,2,I,J) = 0.
-#endif 
+#endif
           END IF
 C****
         END DO
@@ -697,7 +697,7 @@ C****
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE   )
 
       debug=.false.
- 
+
 C**** Initialize work array
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
@@ -752,7 +752,7 @@ C**** ice formation diagnostics on the atmospheric grid
      *         - POICE* SALTI
 #ifdef TRACERS_WATER
           TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     *                    - POCEAN*TRO(:) - POICE*TRI(:) 
+     *                    - POCEAN*TRO(:) - POICE*TRI(:)
 #endif
         END IF
 C**** open ocean diagnostics
