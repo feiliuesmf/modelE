@@ -61,7 +61,7 @@ cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL_loc
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER, public :: KAIJ=320 , KAIJX=KAIJ+400
+      INTEGER, PARAMETER, public :: KAIJ=324 , KAIJX=KAIJ+400
 !@var AIJ latitude/longitude diagnostics
       REAL*8, DIMENSION(IM,JM,KAIJ), public :: AIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ_loc
@@ -415,6 +415,10 @@ C****      names, indices, units, idacc-numbers, etc.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
+#endif
+#ifdef HTAP_LIKE_DIAGS
+      INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
+     &     ,IJ_HUSL
 #endif
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER, public ::
