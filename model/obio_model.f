@@ -56,7 +56,7 @@
 !!#include "common_blocks.h"
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
-      integer iu_pco2,ll
+      integer iu_pco2,ll,iu_tend
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 
@@ -133,6 +133,7 @@
        endif
 
        call openunit('pco2.'//string,iu_pco2)
+       call openunit('tend.'//string,iu_tend)
 
       endif  !diagno
 
@@ -558,6 +559,13 @@ cdiag     endif
         write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=8,14)
        enddo
       endif
+      if (diagno) then
+      do k=1,kdm
+      write(iu_tend,'(4i5,6e12.4)')
+     .    nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
+     .               ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
+      enddo
+      endif
 
        !------------------------------------------------------------
        !update tracer array
@@ -623,6 +631,7 @@ cdiag  endif
 c$OMP END PARALLEL DO
 
       if (diagno) call closeunit(iu_pco2)
+      if (diagno) call closeunit(iu_tend)
 
       return
       end

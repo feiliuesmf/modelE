@@ -198,16 +198,10 @@ c
 
       ! move to global atm grid
       call gather_atm
-      print*,'OCEAN_hycom, ena:'
-      call obio_trint
 !!!!!!call scatter_tracer        ! caution: temporary fix
                                  ! to allow Romanou to run with
                                  ! global tracer
-      print*,'OCEAN_hycom, dyo:'
-      call obio_trint
       call gather_hycom_arrays   !mkb Jun  6
-      print*,'OCEAN_hycom, tri:'
-      call obio_trint
 
       if (AM_I_ROOT()) then ! work on global grids here
 
