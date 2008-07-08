@@ -663,11 +663,24 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
+#ifdef SULF_ONLY_AEROSOLS
+        NTRACE=1
+        FS8OPX(1:NTRACE) = (/0d0/)
+        FT8OPX(1:NTRACE) = (/0d0/)
+#else
 c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
         FS8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0,  1d0 , 1d0/)
         FT8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0, 1.3d0, 1d0/)
+#endif
       end if
 #ifndef TRACERS_NITRATE
+#ifdef SULF_ONLY_AEROSOLS
+      NTRACE=1
+      TRRDRY(1:NTRACE)=(/.15d0/)
+      ITR(1:NTRACE) = (/1/)
+      KRHTRA(1:NTRACE)=(/1/)
+      NTRIX(1:NTRACE)=(/n_SO4/)
+#else
       NTRACE=6
       TRRDRY(1:NTRACE)=(/ .15d0, .44d0, 1.7d0, .2d0, .08d0, .08d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
@@ -677,8 +690,12 @@ C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX(1:NTRACE)=
      *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB/)
+#endif
 C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
+#else
+#ifdef SULF_ONLY_AEROSOLS
+      call stop_model('SULF_ONLY_AEROSOLS and TRACERS_NITRATE on',255)
 #else
       NTRACE=7
       TRRDRY(1:NTRACE)=(/.15d0,.44d0, 1.7d0, .2d0, .08d0, .08d0,0.15d0/)
@@ -692,6 +709,7 @@ C**** for the diagnostics
      *       n_NO3p/)
 C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
+#endif
 #endif
 #endif
 
