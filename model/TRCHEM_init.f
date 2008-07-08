@@ -9,6 +9,7 @@ C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
       USE MODEL_COM, only: Itime, ItimeI, IM, LM
       USE DOMAIN_DECOMP, ONLY : GET, grid, write_parallel
+      USE TRACER_COM, only: oh_live,no3_live
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &    ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,nr2,nr3,nmm,nhet,
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,nss,pHOx,pOx,pNOx,
@@ -64,6 +65,8 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
         yNO3(:,J_0:J_1,:)     =0.d0
         yXO2N(:,J_0:J_1,:)    =0.d0
         yRXPAR(:,J_0:J_1,:)   =0.d0
+        oh_live(:,J_0:J_1,:)  =0.d0
+        no3_live(:,J_0:J_1,:) =0.d0
 #ifdef SHINDELL_STRAT_CHEM
         pClOx(:,J_0:J_1,:)    =1.d0
         pClx(:,J_0:J_1,:)     =0.d0
