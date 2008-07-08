@@ -36,6 +36,7 @@ cdiag.   k,sum,sum/sum_area
       write(lp,*)
      .  'total intgrl for tracer ',ntr,nstep,summ
       enddo
+      print*,'   '
 
       return
       end

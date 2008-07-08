@@ -1,4 +1,4 @@
-      subroutine obio_daysetbio(vrbos)
+      subroutine obio_daysetbio(vrbos,i,j)
 c
 c  Sets daily parameters for bio.
 c
@@ -51,9 +51,6 @@ c  Additional T-dependent factor for cyanobacteria
        tfac2 = min(tfac2,1.0)
        rmuplsr(k,nt) = tfac2*rmuplsr(k,nt)
 
-!      if (vrbos) write(*,'(a,2i5,3e12.4)')
-!    .  'CYANOBACTERIA0: ',nt,k,temp1d(k),tfac2,rmuplsr(k,nt)
-
       endif
 !#endif
 
@@ -70,8 +67,8 @@ c  do not divide by 24: it is a factor
       k = 1
       tzoo = 0.06*exp(0.1*temp1d(k)) + 0.70
 
-      if (vrbos) write(*,'(a,4i5,2d12.4)')'daysetbio: ',
-     .   nstep,i,j,k,temp1d(k),tzoo
+cdiag if (vrbos) write(*,'(a,4i5,2d12.4)')'daysetbio: ',
+cdiag.   nstep,i,j,k,temp1d(k),tzoo
 
 c
 c  Set N:chl ratio and photoadaptation

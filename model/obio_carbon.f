@@ -51,8 +51,6 @@ c
 
       real term
 
-
-
       do nt=1,ncar
        do k=1,kdm
         C_tend(k,nt) = 0.0
@@ -180,15 +178,6 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'2: ', nstep,C_tend(1,2)
 c pCO2
       call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
 
-cdiag   if (vrbos) then
-cdiag   do nt = 1,nchl
-cdiag     write(802,'(i7,2e12.4)')
-cdiag.          nstep,gro(1,nt),obio_P(1,nt+nnut)
-cdiag   enddo
-cdiag   endif
-
-
-
 !!!!!!this is all needs to be done in the gas exchange routine
 
 !this part needs pco2_ij to be passed to atmosphere to compute the 
@@ -220,7 +209,7 @@ c Update DIC for sea-air flux of CO2
 
 #else
 
-!this is for only ocean biology but no gas exchange: MAKE SURE!!!!
+!this is for only ocean biology but no gas exchange: 
 #ifdef TRACERS_OceanBiology
       !when ocean biology but no CO2 gas exch
       !atmco2 is set to constant
@@ -259,8 +248,6 @@ c Update DIC for sea-air flux of CO2
 #endif
 
 #endif
-
-cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'3: ', nstep,C_tend(1,2)
 
       return
       end

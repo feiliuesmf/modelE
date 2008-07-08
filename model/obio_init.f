@@ -274,13 +274,13 @@ c      hc = 1.0/(h*c)
        if (nl450.eq.0) stop 'obio_init: nl450=0'
        !First time thru set ihra to 1 to assure correct value read in
        !from restart file
-       do j=1,jj
-       do l=1,isp(j)
-       do i=ifp(j,l),ilp(j,l)
-        ihra(i,j) = 1
-       enddo
-       enddo
-       enddo
+       !!do j=1,jj
+       !!do l=1,isp(j)
+       !!do i=ifp(j,l),ilp(j,l)
+        !!ihra(i,j) = 1
+       !!enddo
+       !!enddo
+       !!enddo
 
 !ifst part from edeu.f
        bbw = 0.5            !backscattering to forward scattering ratio

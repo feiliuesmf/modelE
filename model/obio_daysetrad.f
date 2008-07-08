@@ -9,6 +9,7 @@ c
 
       USE hycom_dim_glob
       USE hycom_arrays_glob
+      USE hycom_scalars, only : lp, nstep
       implicit none
 
 !!#include "dimensions.h"
@@ -33,10 +34,6 @@ c  Compute acdom
         atot450 = aw(nl450) + actot450
         do nl = npst,npnd
          acdom(k,nl) = 0.2*atot450*excdom(nl)
-
-!         if(vrbos)
-!    .    write(*,*)'daysetrad1',nstep,i,j,k,nl,acdom(k,nl)
-
         enddo
       enddo
  
@@ -46,8 +43,6 @@ c    (ihra set to 1 first time thru to preserve restart file values)
        if (ihra_ij .gt. 0)then
         avgq1d(k) = avgq1d(k)/float(ihra_ij)
        endif
-!         if(vrbos)
-!    .    write(*,*)'daysetrad2',nstep,i,j,k,avgq1d(k)
       enddo
 
       return

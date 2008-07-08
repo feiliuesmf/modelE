@@ -85,6 +85,7 @@ c
 
       real    acdom
       common /bcdom/ acdom(kdm,nlt)       !absorptio coefficient of CDOM
+!$OMP THREADPRIVATE(/bcdom/)
 
 
       real P_tend                             !bio tendency (dP/dt)
@@ -128,12 +129,13 @@ c
 !$OMP THREADPRIVATE(/bzoo/)
 
       real tzoo2d,tfac3d,rmuplsr3d,rikd3d,bn3d,obio_wsd2d,obio_wsh2d
-     .    ,wshc3d,Fescav3d
+     .    ,wshc3d,Fescav3d,acdom3d
       common /daysetbio_3darr/ tzoo2d(idm,jdm),tfac3d(idm,jdm,kdm)
      .     ,rmuplsr3d(idm,jdm,kdm,nchl),rikd3d(idm,jdm,kdm,nchl)
      .     ,bn3d(idm,jdm,kdm),obio_wsd2d(idm,jdm,nchl)
      .     ,obio_wsh2d(idm,jdm,nchl)
      .     ,wshc3d(idm,jdm,kdm),Fescav3d(idm,jdm,kdm)
+     .     ,acdom3d(idm,jdm,kdm,nlt)
 
 
       real Fescav

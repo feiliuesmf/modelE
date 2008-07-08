@@ -31,7 +31,7 @@
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,bn3d,obio_wsd2d,obio_wsh2d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day
-     .                    ,tot_chlo
+     .                    ,tot_chlo,acdom3d
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate
      . ,itime,iyear1,jdendofm,jyear,aMON
@@ -86,6 +86,9 @@
          write(lp,'(a,2i9,f10.3)')
      .            'nstep0,nstep,time=',nstep0,nstep,time
          call obio_init
+
+         print*,'WARM INITIALIZATION'
+         call obio_trint
        endif !for restart only
 
 !--------------------------------------------------------
@@ -175,6 +178,9 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
               bn(k)=bn3d(i,j,k)
               wshc(k)=wshc3d(i,j,k)
               Fescav(k)=Fescav3d(i,j,k)
+              do nt=1,nlt
+                acdom(k,nt)=acdom3d(i,j,k,nt)
+              enddo
               !----daysetbio arrays----!
               do nt=1,ntyp+n_inert
              obio_P(k,nt)=tracer(i,j,k,nt)
@@ -295,11 +301,29 @@ cdiag  endif
        !at the beginning of each day only
        if (hour_of_day.eq.1) then
 
-
          if (day_of_month.eq.1)ihra_ij=1
           call obio_daysetrad(vrbos,i,j)
           ihra_ij = 0
-          call obio_daysetbio(vrbos)
+          call obio_daysetbio(vrbos,i,j)
+
+             !fill in the 3d arrays to keep in memory for rest of the day
+             !when daysetbio is not called again
+             tzoo2d(i,j)=tzoo
+             do  k=1,kdm
+               tfac3d(i,j,k)=tfac(k)
+             do nt=1,nchl
+               rmuplsr3d(i,j,k,nt)=rmuplsr(k,nt)
+               rikd3d(i,j,k,nt)=rikd(k,nt)
+               obio_wsd2d(i,j,nt)=obio_wsd(nt)
+               obio_wsh2d(i,j,nt)=obio_wsh(nt)
+             enddo
+               bn3d(i,j,k)=bn(k)
+               wshc3d(i,j,k)=wshc(k)
+               Fescav3d(i,j,k)=Fescav(k)
+             do nt=1,nlt
+               acdom3d(i,j,k,nt)=acdom(k,nt)
+             enddo
+             enddo
 
          if (day_of_month.eq.1)ihra_ij=1
 cdiag    if (vrbos) then
@@ -436,7 +460,6 @@ cdiag.                  tot,ichan=1,nlt)
           tirrq(k) = 0.0
          enddo
 
-
          if (tot .ge. 0.1) call obio_edeu(vrbos,kmax)
 
 cdiag    if (vrbos)
@@ -555,20 +578,7 @@ cdiag     endif
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
 
-       !update daysetbio/daysetrad arrays
-       tzoo2d(i,j)=tzoo
-       do k=1,kdm
-         tfac3d(i,j,k)=tfac(k)
-         do nt=1,nchl
-           rmuplsr3d(i,j,k,nt)=rmuplsr(k,nt)
-           rikd3d(i,j,k,nt)=rikd(k,nt)
-           obio_wsd2d(i,j,nt)=obio_wsd(nt)
-           obio_wsh2d(i,j,nt)=obio_wsh(nt)
-         enddo
-         bn3d(i,j,k)=bn(k)
-         wshc3d(i,j,k)=wshc(k)
-         Fescav3d(i,j,k)=Fescav(k)
-       enddo
+       ihra(i,j)=ihra_ij
 
        !compute total chlorophyl at surface layer
        tot_chlo(i,j)=0.

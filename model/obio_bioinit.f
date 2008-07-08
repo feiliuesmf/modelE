@@ -323,7 +323,7 @@ c  Coccolithophore max growth rate
 !     call closeunit(iu_bioinit)
 !     enddo
       
-      print*,'INITIALIZATION'
+      print*,'COLD INITIALIZATION'
       call obio_trint
 
       return
