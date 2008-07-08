@@ -48,6 +48,9 @@ c
 #ifdef SHINDELL_STRAT_CHEM
      &                           ,jls_ClOcon,jls_H2Ocon
 #endif
+#ifdef HTAP_LIKE_DIAGS
+     & ,ijs_COp,ijs_COd,ijs_Oxd,ijs_Oxp
+#endif
       USE TRCHEM_Shindell_COM
 
       IMPLICIT NONE
@@ -108,7 +111,7 @@ C**** Local parameters and variables and arguments:
      &  gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,
      &  RVELN2O5,changeAldehyde,changeAlkenes,changeAlkylNit,
      &  changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5,
-     &  changeOx,fraQ,CH4_569,count_569,thick
+     &  changeOx,fraQ,CH4_569,count_569,thick, changeCO
 #ifdef TRACERS_HETCHEM
       REAL*8 :: changeN_d1,changeN_d2,changeN_d3
 #endif
@@ -295,7 +298,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
 CCCC!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT,
 CCCC!$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
 CCCC!$OMP* gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,rveln2o5,
-CCCC!$OMP* changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
+CCCC!$OMP* changeAldehyde,changeAlkenes,changeCO,changeIsoprene,changeHCHO,
 CCCC!$OMP* changeAlkylNit,changeHNO3,changeNOx,changeN2O5,changeOx,FACT_SO4,
 CCCC#ifdef TRACERS_HETCHEM
 CCCC!$OMP* changeN_d1,changeN_d2,changeN_d3,
@@ -880,13 +883,22 @@ c       Gas phase NO3 + HCHO -> HNO3 + CO yield of HCHO & CO:
         wprodHCHO=changeHCHO
 C -- CO --
         changeL(L,n_CO)=gprodHNO3*vol2mass(n_CO)
-        IF((trm(i,j,l,n_CO)+changeL(l,n_CO)) < 1.d0)
-     &  changeL(l,n_CO) = 1.d0 - trm(i,j,l,n_CO)
+        changeCO=changeL(L,n_CO)*mass2vol(n_CO)*bypfactor
+        if((trm(i,j,l,n_CO)+changeL(l,n_CO)) < 1.d0)then
+          changeL(l,n_CO) = 1.d0 - trm(i,j,l,n_CO)
+          changeCO=changeL(L,n_CO)*mass2vol(n_CO)*bypfactor
+        endif
         wprodCO=gwprodHNO3   ! <<< note
         if(changeL(L,n_CO) >= 0.) then  
           TAJLS(J,L,jls_COp)=TAJLS(J,L,jls_COp)+changeL(L,n_CO)
+#ifdef HTAP_LIKE_DIAGS
+          TAIJS(I,J,ijs_COp(L))=TAIJS(I,J,ijs_COp(L))+changeCO*cpd
+#endif
         else
           TAJLS(J,L,jls_COd)=TAJLS(J,L,jls_COd)+changeL(L,n_CO)
+#ifdef HTAP_LIKE_DIAGS
+          TAIJS(I,J,ijs_COd(L))=TAIJS(I,J,ijs_COd(L))+changeCO*cpd
+#endif
         endif       
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
         changeL(L,n_HNO3)=changeHNO3*pfactor*vol2mass(n_HNO3)
@@ -1252,8 +1264,14 @@ c --  Ox --   ( Ox from gas phase rxns)
            END IF
            if(changeL(L,n_Ox) >= 0.) then  
              TAJLS(J,L,jls_Oxp)=TAJLS(J,L,jls_Oxp)+changeL(L,n_Ox)
+#ifdef HTAP_LIKE_DIAGS
+             TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+changeOx*cpd
+#endif
            else
              TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+changeL(L,n_Ox)
+#ifdef HTAP_LIKE_DIAGS
+             TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+changeOx*cpd
+#endif
            endif 
          endif
 c -- ClONO2 --   (ClONO2 from gas and het phase rxns)
