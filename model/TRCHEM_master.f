@@ -1061,6 +1061,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME STRATOSPHERE CCCCCCCCCCCCCCCCCCCCCCC
        do L=maxl+1,LM ! (stratosphere)
 
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
+         bypfactor=1.D0/pfactor
          wprod_sulf=DT2*y(n_N2O5,L)*rr(105,L) !rxn on sulfate & PSCs
          if(wprod_sulf >= 0.5d0*y(n_N2O5,L))wprod_sulf=0.5d0*y(n_N2O5,L)
 
