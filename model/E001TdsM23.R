@@ -52,8 +52,8 @@ TRCHEM_Shindell_COM                 ! Drew Shindell's tracers common
 TRCHEM_calc                         ! chemical reaction calculations
 TRCHEM_init                         ! chemistry initialization, I/O
 TRCHEM_family                       ! tracer family chemistry
-! TRCHEM_fastj (not ready for MPI yet)! tracer chem photlysis code/rad transf
-TRCHEM_fastj2                       ! used for stratosphere chem version
+! TRCHEM_fastj ! troposphere-only version of tracer chem photlysis code/rad transf
+TRCHEM_fastj2                       ! used for trop+strat chem version
 TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 ! TRACERS_AEROSOLS_Koch_e4
 ! COSMO_SOURCES
