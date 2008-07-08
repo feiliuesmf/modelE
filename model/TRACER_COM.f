@@ -87,9 +87,17 @@ C**** Each tracer has a variable name and a unique index
 !@var ntm_chem number of drew-only tracers
 
 #ifdef SULF_ONLY_AEROSOLS
+#ifdef HTAP_LIKE_DIAGS
+      integer, parameter :: ntm=31,ntm_chem=25
+#else
       integer, parameter :: ntm=30,ntm_chem=25
+#endif
+#else
+#ifdef HTAP_LIKE_DIAGS
+      integer, parameter :: ntm=39,ntm_chem=25
 #else
       integer, parameter :: ntm=38,ntm_chem=25
+#endif
 #endif /* SULF_ONLY_AEROSOLS */
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
@@ -99,10 +107,19 @@ C**** Each tracer has a variable name and a unique index
      *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '
 #ifdef SULF_ONLY_AEROSOLS
+#ifdef HTAP_LIKE_DIAGS
+     *   ,'Air     '/)
+#else
      *    /)
+#endif
+#else
+#ifdef HTAP_LIKE_DIAGS
+     *   ,'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     ','Air     '/)
 #else
      *   ,'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
-     *    'OCII    ','OCIA    ','OCB     '/)
+     *    'OCII    ','OCIA    ','OCB     '           /)
+#endif
 #endif /* SULF_ONLY_AEROSOLS */
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
@@ -200,15 +217,46 @@ C**** Each tracer has a variable name and a unique index
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
      *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
 #else
+
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
-!@var ntm_chem number of drew-only tracers
+
+#ifdef SULF_ONLY_AEROSOLS     
+#ifdef HTAP_LIKE_DIAGS
+      integer, parameter :: ntm=21,ntm_chem=15
+#else    
       integer, parameter :: ntm=20,ntm_chem=15
+#endif /* HTAP_LIKE_DIAGS */
+#else 
+#ifdef HTAP_LIKE_DIAGS
+      integer, parameter :: ntm=29,ntm_chem=15
+#else
+      integer, parameter :: ntm=28,ntm_chem=15
+#endif /* HTAP_LIKE_DIAGS */
+#endif /* SULF_ONLY_AEROSOLS */
+
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
-     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '/)
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '
+#ifdef SULF_ONLY_AEROSOLS
+#ifdef HTAP_LIKE_DIAGS
+     *   ,'Air     '/)
+#else 
+     *              /)
+#endif /* HTAP_LIKE_DIAGS */
+#else 
+     *   ,'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     '
+#ifdef HTAP_LIKE_DIAGS
+     *   ,'Air     '/)
+#else 
+     *              /)
+#endif /* HTAP_LIKE_DIAGS */
+#endif /* SULF_ONLY_AEROSOLS */
+
 #else
+
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef SHINDELL_STRAT_CHEM
 #ifdef SHINDELL_STRAT_EXTRA
