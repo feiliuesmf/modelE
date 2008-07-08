@@ -58,6 +58,9 @@
 #ifdef TRACERS_DUST
      &     ,idd_wet
 #endif
+#ifdef HTAP_LIKE_DIAGS
+     &     ,IJ_MCamFX
+#endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1,n_Be10
      $     ,n_Be7,n_clay,n_clayilli,n_sil1quhe
@@ -760,6 +763,9 @@ C*** End Accumulate 3D convective latent heating
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_MCDFLX)=AJL(J,L,JL_MCDFLX)+DDMFLX(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
+#ifdef HTAP_LIKE_DIAGS
+          AIJ(I,J,IJ_MCamFX(L))=AIJ(I,J,IJ_MCamFX(L))+MCFLX(L)
+#endif
         END DO
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
