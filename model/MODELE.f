@@ -842,7 +842,7 @@ C****
      *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
-     *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00
+     *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
@@ -1105,6 +1105,8 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       if(is_set_param("Kradia")) call get_param( "Kradia", Kradia )
+      if(is_set_param("coupled_chem")) 
+     &call get_param( "coupled_chem", coupled_chem )
 
 C***********************************************************************
 C****                                                               ****
