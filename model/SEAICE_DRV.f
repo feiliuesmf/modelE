@@ -413,7 +413,7 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
           TRMELTI(:,I,J)=TRUN0(:)*PWATER*DXYP(J)
 #endif
 C**** Reset some defaults if all ice is gone
-          IF (ROICE.eq.0) THEN
+          IF (RSI(I,J).eq.0) THEN
             GTEMP(:,2,I,J) = 0.
             GTEMPR(2,I,J) = TF
 #ifdef TRACERS_WATER
