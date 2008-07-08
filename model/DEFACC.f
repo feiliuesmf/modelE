@@ -814,7 +814,7 @@ c
       use DIAG_COM
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
-      integer :: k,kk
+      integer :: k,kk,l
 c
       do k=1,kaij
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
@@ -3203,6 +3203,48 @@ c
       name_ij(k) = 'wsubwm'
       units_ij(k) = 'm/s'
       ia_ij(k) = ia_srf
+#endif
+#ifdef HTAP_LIKE_DIAGS
+      do L=1,LM
+        k=k+1        ! moist convective air mass flux
+        IJ_MCamFX(L) = k
+        write(lname_ij(k),'(a33,i2.2)')
+     & 'MOIST CONVECTIVE AIR MASS FLUX L=',L
+        units_ij(k) = '1e-4 kg/m2/s'
+        write(name_ij(k),'(a6,i2.2)') 'MCamFX',L
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.e4*100.*BYGRAV/DTsrc
+      enddo
+      do L=1,LM
+        k=k+1        ! layer temperature
+        IJ_TEMPL(L) = k
+        write(lname_ij(k),'(a20,i2.2)')
+     & 'LAYER TEMPERATURE L=',L
+        units_ij(k) = 'K'
+        write(name_ij(k),'(a5,i2.2)') 'TEMPL',L
+        ia_ij(k) = ia_dga
+        scale_ij(k) = 1.e0
+      enddo
+      do L=1,LM
+        k=k+1        ! grid box geometric height
+        IJ_GRIDH(L) = k
+        write(lname_ij(k),'(a18,i2.2)')
+     & 'GRID BOX HEIGHT L=',L
+        units_ij(k) = 'm'
+        write(name_ij(k),'(a5,i2.2)') 'GRIDH',L
+        ia_ij(k) = ia_dga
+        scale_ij(k) = 1.e0
+      enddo
+      do L=1,LM
+        k=k+1        ! layer specific humidity
+        IJ_HUSL(L) = k
+        write(lname_ij(k),'(a26,i2.2)')
+     & 'LAYER SPECIFIC HUMIDITY L=',L
+        units_ij(k) = 'kg/kg'
+        write(name_ij(k),'(a4,i2.2)') 'HUSL',L
+        ia_ij(k) = ia_dga
+        scale_ij(k) = 1.e0
+      enddo
 #endif
 c
       if (AM_I_ROOT()) then
