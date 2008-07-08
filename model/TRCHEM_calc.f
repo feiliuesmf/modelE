@@ -14,6 +14,9 @@ C
       USE GEOM, only            : BYDXYP,dxyp,LAT_DG,LON_DG
       USE TRDIAG_COM, only : jls_OHcon,jls_day,tajls=>tajls_loc,
      & jls_Oxp,jls_Oxd,jls_COp,jls_COd,taijs=>taijs_loc,ijs_OH,ijs_HO2
+#ifdef HTAP_LIKE_DIAGS
+     & ,ijs_COp,ijs_COd,ijs_Oxd,ijs_Oxp,ijs_CH4d
+#endif
 #ifdef SHINDELL_STRAT_CHEM
      &  ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
 #endif
@@ -26,7 +29,7 @@ C
 #ifdef TRACERS_HETCHEM
      &                  ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
-      USE TRCHEM_Shindell_COM, only: chemrate,photrate,
+      USE TRCHEM_Shindell_COM, only: chemrate,photrate,cpd,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nr,nn,dt2,nss,ks,dest,prod,
@@ -806,10 +809,22 @@ c Loops to calculate tracer changes:
          if(igas == n_CO)then
            TAJLS(J,L,jls_COp)=TAJLS(J,L,jls_COp)+prod(igas,L)*conc2mass
            TAJLS(J,L,jls_COd)=TAJLS(J,L,jls_COd)+dest(igas,L)*conc2mass       
+#ifdef HTAP_LIKE_DIAGS
+           TAIJS(I,J,ijs_COp(L))=TAIJS(I,J,ijs_COp(L))+prod(igas,L)*cpd
+           TAIJS(I,J,ijs_COd(L))=TAIJS(I,J,ijs_COd(L))+dest(igas,L)*cpd
+#endif
          endif
          if(igas == n_Ox)then
            TAJLS(J,L,jls_Oxp)=TAJLS(J,L,jls_Oxp)+prod(igas,L)*conc2mass
            TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+dest(igas,L)*conc2mass        
+#ifdef HTAP_LIKE_DIAGS
+           TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+prod(igas,L)*cpd
+           TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+dest(igas,L)*cpd
+         else if(igas==n_CH4)then
+           ! destruction only
+           TAIJS(I,J,ijs_CH4d(L))=
+     &     TAIJS(I,J,ijs_CH4d(L))+dest(igas,L)*cpd
+#endif
          endif
          
 c Set N2O5 to equilibrium when necessary (near ground,
@@ -1276,8 +1291,14 @@ c         rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
           changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
           if(NprodOx <  0.) then ! necessary?
             TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+NprodOx*conc2mass
+#ifdef HTAP_LIKE_DIAGS
+            TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+NprodOx*cpd
+#endif
           else 
             TAJLS(J,L,jls_Oxp)=TAJLS(J,L,jls_Oxp)+NprodOx*conc2mass
+#ifdef HTAP_LIKE_DIAGS
+            TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+NprodOx*cpd
+#endif
           endif 
           if(prnchg.and.J==jprn.and.I==iprn.and.l==lprn) then
             write(out_line,*) 'NOx loss & Ox gain due to rxns  w/ N '
@@ -1396,6 +1417,9 @@ C**** special diags not associated with a particular tracer
         if (y(nOH,L) > 0.d0 .and. y(nOH,L) < 1.d20)then
           TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
           TAIJS(I,J,ijs_OH(L))=TAIJS(I,J,ijs_OH(L))+y(nOH,L)
+#ifdef HTAP_LIKE_DIAGS
+     &                                             /y(nM,L)
+#endif
         end if
         if (y(nHO2,L) > 0.d0 .and. y(nHO2,L) < 1.d20)
      &  TAIJS(I,J,ijs_HO2(L))=TAIJS(I,J,ijs_HO2(L))+y(nHO2,L)
