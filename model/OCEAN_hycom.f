@@ -200,7 +200,7 @@ c
       call gather_atm
       print*,'OCEAN_hycom, ena:'
       call obio_trint
-      call scatter_tracer        ! caution: temporary fix
+!!!!!!call scatter_tracer        ! caution: temporary fix
                                  ! to allow Romanou to run with
                                  ! global tracer
       print*,'OCEAN_hycom, dyo:'
