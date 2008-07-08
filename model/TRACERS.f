@@ -1024,15 +1024,16 @@ C**** check whether air mass is conserved
 !@ver  1.0
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
+     &,coupled_chem
       USE DOMAIN_DECOMP, only : grid, AM_I_ROOT, PACK_DATA, UNPACK_DATA
      &,PACK_DATAj, UNPACK_DATAj, PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
      &,UNPACK_COLUMN, esmf_bcast
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     & yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ
+     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ,ydms,yso2,sulfate
 #ifdef SHINDELL_STRAT_CHEM
-     & ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
@@ -1185,6 +1186,23 @@ C**** check whether air mass is conserved
        header='TRACERS_SPECIAL_Shindell: yRXPAR(i,j,l)'
         call pack_data(grid,yRXPAR,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
+       header='TRACERS_SPECIAL_Shindell: ydms(i,j,l)'
+        call pack_data(grid,ydms,Aijl_glob)
+        if(am_i_root())write(kunit,err=10)header,Aijl_glob
+       header='TRACERS_SPECIAL_Shindell: ySO2(i,j,l)'
+        call pack_data(grid,ySO2,Aijl_glob)
+        if(am_i_root())write(kunit,err=10)header,Aijl_glob
+       header='TRACERS_SPECIAL_Shindell: sulfate(i,j,l)'
+        call pack_data(grid,sulfate,Aijl_glob)
+        if(am_i_root())write(kunit,err=10)header,Aijl_glob
+       if(coupled_chem == 1)then
+         header='TRACERS_SPECIAL_Shindell: oh_live(i,j,l)'
+          call pack_data(grid,oh_live,Aijl_glob)
+          if(am_i_root())write(kunit,err=10)header,Aijl_glob
+         header='TRACERS_SPECIAL_Shindell: no3_live(i,j,l)'
+          call pack_data(grid,no3_live,Aijl_glob)
+          if(am_i_root())write(kunit,err=10)header,Aijl_glob
+       endif
 #ifdef SHINDELL_STRAT_CHEM
        header='SHINDELL_STRAT_CHEM: SF3(i,j,l)'
         call pack_data(grid,SF3,Aijl_glob)
@@ -1328,6 +1346,18 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
           call unpack_data(grid,Aijl_glob,yAldehyde)
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
           call unpack_data(grid,Aijl_glob,yRXPAR)
+          if(am_i_root())read(kunit,err=10)header,Aijl_glob
+          call unpack_data(grid,Aijl_glob,ydms)
+          if(am_i_root())read(kunit,err=10)header,Aijl_glob
+          call unpack_data(grid,Aijl_glob,ySO2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_glob
+          call unpack_data(grid,Aijl_glob,sulfate)
+          if(coupled_chem == 1)then
+            if(am_i_root())read(kunit,err=10)header,Aijl_glob
+            call unpack_data(grid,Aijl_glob,oh_live)
+            if(am_i_root())read(kunit,err=10)header,Aijl_glob
+            call unpack_data(grid,Aijl_glob,no3_live)
+          endif
 #ifdef SHINDELL_STRAT_CHEM
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
           call unpack_data(grid,Aijl_glob,SF3)
