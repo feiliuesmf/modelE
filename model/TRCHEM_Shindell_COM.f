@@ -9,7 +9,7 @@ c
 #ifdef TRACERS_ON
       USE MODEL_COM, only  : im,jm,lm,psf,ptop,sig,sige,dsig,bydsig,
      &                       dtsrc,Itime,ItimeI,T,JEQ
-      USE CONSTANT, only   : pi, mair, mwat, radian
+      USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
@@ -61,6 +61,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@+     1.E4*2.69E19*48./6.02E26 where 1.E4 is cm2/m2, 2.69E19 is 
 !@+     molecules/cm3 at 1 atm pressure, 48. is molecular wt of O3,
 !@+     and 6.02E26 is Avogadro's number in molecules/Kmol.
+!@param cpd conversion from molecules/cm3 to mole/m
 !@param BYO3MULT = 1/O3MULT
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
@@ -250,7 +251,8 @@ C ----------------------------------------------
      &                      odmax        = 200.d0,
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
-     &                      byradian     = 1.d0/radian 
+     &                      byradian     = 1.d0/radian,
+     &                      cpd          = 1.d6/avog
 #ifdef SHINDELL_STRAT_CHEM
      &                     ,cfc_pppv     = 1722.d-12
      &                     ,n2o_pppv     = 290.d-9
