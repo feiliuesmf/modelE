@@ -122,6 +122,9 @@ C**** Some local constants
      *     ,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac,jl_epflxn,jl_epflxv
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
+#ifdef HTAP_LIKE_DIAGS
+     *     ,ij_templ,ij_gridh,ij_husl
+#endif
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,SD,pedn,am
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
@@ -358,6 +361,12 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
             JR=JREG(I,J)
             PIJ=PLIJ(L,I,J)
             AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
+#ifdef HTAP_LIKE_DIAGS
+            AIJ(I,J,IJ_TEMPL(L))=AIJ(I,J,IJ_TEMPL(L))+TX(I,J,L)
+            AIJ(I,J,IJ_HUSL(L))=AIJ(I,J,IJ_HUSL(L))+Q(I,J,L)
+            AIJ(I,J,IJ_GRIDH(L))=AIJ(I,J,IJ_GRIDH(L))+
+     &      rgas/grav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+#endif
             DO IT=1,NTYPE
               AJ(J,J_TX,IT)=AJ(J,J_TX,IT)+(TX(I,J,L)-TF)*FTYPE(IT,I,J)
      *             *DBYSD
@@ -2996,7 +3005,7 @@ C****
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm, trm, trname, mass2vol, n_Ox, n_SO4, 
      *     n_SO4_d1,n_SO4_d2,n_SO4_d3,n_clay,n_clayilli,n_sil1quhe,
-     *     n_water, n_HDO, n_Be7 
+     *     n_water, n_HDO, n_Be7, n_NOx 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      *     ,Ntm_dust
@@ -3112,7 +3121,7 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
         if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *       "ALL") then
           select case (namedd(k)(1:1))
-          case ("U", "V", "W", "C", "D", "O", "B") ! velocities/tracers on model layers
+          case ("U", "V", "W", "C", "D", "O", "B","N") ! velocities/tracers on model layers
             kunit=kunit+1
             write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
             call openunit(name,iu_SUBDD(kunit),.true.,.false.)
@@ -3158,7 +3167,7 @@ C****
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
 !@+                    U*, V*, W*, C*  (on any model level)
-!@+                    O*          (ozone on any model level)
+!@+                    O*, N*          (ozone,NOx on any model level)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4
@@ -3464,7 +3473,7 @@ C**** get pressure level
           end if
 
 C**** diagnostics on model levels 
-        case ("U","V","W","C","O","B","D")    ! velocity/clouds/tracers
+        case ("U","V","W","C","O","B","D","N")    ! velocity/clouds/tracers
           if (namedd(k)(2:4) .eq. "ALL") then
             kunit=kunit+1
             do kp=1,LmaxSUBDD
@@ -3483,6 +3492,13 @@ C**** diagnostics on model levels
                 do j=J_0,J_1
                   do i=1,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mass2vol(n_Ox)/
+     *                   (am(kp,i,j)*dxyp(j))
+                  end do
+                end do
+              case ("N")                ! NOx tracer (ppmv)
+                do j=J_0,J_1
+                  do i=1,imaxj(j)
+                    data(i,j)=1.d6*trm(i,j,kp,n_NOx)*mass2vol(n_NOx)/
      *                   (am(kp,i,j)*dxyp(j))
                   end do
                 end do
@@ -3530,6 +3546,13 @@ C**** get model level
                 do j=J_0,J_1
                   do i=1,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_Ox)*mass2vol(n_Ox)/
+     *                   (am(l,i,j)*dxyp(j))
+                  end do
+                end do
+              case ("N")                ! NOx tracer (ppmv)
+                do j=J_0,J_1
+                  do i=1,imaxj(j)
+                    data(i,j)=1.d6*trm(i,j,l,n_NOx)*mass2vol(n_NOx)/
      *                   (am(l,i,j)*dxyp(j))
                   end do
                 end do
