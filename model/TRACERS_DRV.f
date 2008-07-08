@@ -226,8 +226,6 @@ C**** set super saturation parameter for isotopes if needed
      &('DTsrc no longer=1800, please alter maxHR_ch4',255)
 #endif
       PRES(1:LM)=PMIDL00(1:LM) 
-C**** initialise source arrays
-       oh_live(:,:,:) =0.d0  ;  no3_live(:,:,:)=0.d0
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
@@ -6718,6 +6716,19 @@ C**** (not necessary associated with a particular tracer)
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
+#ifdef HTAP_LIKE_DIAGS
+      do L=1,LTOP
+        k = k + 1
+          ijs_OH(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a19,i2.2)') 'OH mixing ratio  L=',L
+          write(sname_ijts(k),'(a7,i2.2)') 'OH_vmr_',L
+          ijts_power(k) = -10.
+          units_ijts(k) = unit_string(ijts_power(k),'V/V air')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+#else
       do L=1,LTOP
         k = k + 1
           ijs_OH(L)=k
@@ -6729,6 +6740,7 @@ C**** (not necessary associated with a particular tracer)
           units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
+#endif
       do L=1,LTOP
         k = k + 1
           ijs_NO3(L)=k
@@ -6762,6 +6774,63 @@ C**** (not necessary associated with a particular tracer)
           units_ijts(k) = unit_string(ijts_power(k),'s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
+#ifdef HTAP_LIKE_DIAGS
+      do L=1,LTOP
+        k = k + 1
+          ijs_COp(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a21,i2.2)') 'CO production rate L=',L
+          write(sname_ijts(k),'(a7,i2.2)') 'COprod_',L
+          ijts_power(k) = 0.
+          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      end do
+      do L=1,LTOP
+        k = k + 1
+          ijs_COd(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a22,i2.2)') 'CO destruction rate L=',L
+          write(sname_ijts(k),'(a7,i2.2)') 'COdest_',L
+          ijts_power(k) = 0.
+          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      end do
+      do L=1,LTOP
+        k = k + 1
+          ijs_Oxp(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a21,i2.2)') 'Ox production rate L=',L
+          write(sname_ijts(k),'(a7,i2.2)') 'Oxprod_',L
+          ijts_power(k) = 0.
+          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      end do
+      do L=1,LTOP
+        k = k + 1
+          ijs_Oxd(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a22,i2.2)') 'Ox destruction rate L=',L
+          write(sname_ijts(k),'(a7,i2.2)') 'Oxdest_',L
+          ijts_power(k) = 0.
+          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      end do
+      do L=1,LTOP
+        k = k + 1
+          ijs_CH4d(L)=k
+          ijts_index(k) = ntm
+          ia_ijts(k) = ia_src
+          write(lname_ijts(k),'(a23,i2.2)') 'CH4 destruction rate L=',L
+          write(sname_ijts(k),'(a8,i2.2)') 'CH4dest_',L
+          ijts_power(k) = 0.
+          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      end do
+#endif
 #endif  /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -10867,11 +10936,9 @@ c DMM is number density of air in molecules/cm3
         rsulf3(i,j,l) = 1.9d-13*exp(520.d0*tt)
 
         rk4 = aa*((tt*300.d0)**(3.3d0))*dmm*d
-!greg   ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
         f=log10(0.5d12*rk4)
         ek4 = 1.d0/(1.d0 + (f*f))
 
-!greg   rsulf4(i,j,l) = (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
         rsulf4(i,j,l) = (rk4/(1.d0 + 0.5d12*rk4  ))*(0.45d0**ek4)
 
       endif
