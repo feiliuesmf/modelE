@@ -12,26 +12,22 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
       Use MODEL_COM, Only: IM,JM, FIM,BYIM, IVNP,IVSP
       Use GEOM,      Only: imaxj
+      Use OCEANRES,  Only: LMO, LMO_MIN, LSRPD, dZO        
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : ntm
 #endif
       Use SparseCommunicator_mod
       Implicit None
       Integer*4,Parameter ::
-     *  LMO=13,             !  @param LMO max # of ocean layers
-     *  LSRPD = 3,          !  deepest layer for solar radiation
 !!   *  IVSP = 3*IM/4,      !  V at south pole is stored in U(IVSP,1)
 !!   *  IVNP =   IM/4,      !  V at north pole is stored in U(IVNP,JM)
      *  JLATD = 180/(JM-1)  !  LATitudinal spacing in degrees
       Real*8,Parameter ::
-     *  ZE1   = 12,
-     *  ZERAT = 1.5,
      *  DLON  = TWOPI/IM,        !  LONgitudinal spacing in radians
      *  DLAT  = TWOPI*JLATD/360, !  LATitudinal spacing in radians
      *  FJEQ  = .5*(1+JM)        !  J coordinate of the EQuator
 
       Integer*4 ::
-     *  LMO_MIN = 1, !  @dbparam LMO_MIN min # of ocean layers
      *  OBottom_drag = 1,  !  @dbparam use ocean bottom drag routine
      *  OCoastal_drag = 1  !  @dbparam use ocean coastal drag routine
 
@@ -61,7 +57,6 @@ C**** ocean geometry (should this be in a separate module?)
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: COSVO
-      Real*8 dZO(LMO)  !  = ZE(L) - ZE(L-1)
       REAL*8, DIMENSION(0:LMO) :: ZE
       Real*8
      *  DXPGF(0:JM),! DXYV/dYPGF is north-south distance used in PGF

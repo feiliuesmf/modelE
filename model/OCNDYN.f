@@ -251,11 +251,12 @@ c        CALL CHECKO ('STADVI')
       USE PARAM
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
-      USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,lmm
-     *     ,lmu,lmv,hatmo,hocean,ze,dZO,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
+      USE OCEAN, only : im,jm,lmo,focean,lmm
+     *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+      USE OCEANRES, only : dZO
 #ifdef TRACERS_OCEAN
      *     ,oc_tracer_mean,ntm
 #endif
@@ -318,11 +319,14 @@ C****
 C**** Arrays needed each ocean model run
 C****
       CALL GEOMO
-C**** Calculate ZE
-      DO 110 L=0,LMO
-  110 ZE(L) = ZE1*(ZERAT**L-1d0)/(ZERAT-1d0)
-      DO 120 L=1,LMO
-  120 dZO(L) = ZE(L) - ZE(L-1)
+
+C**** Calculate ZE 
+
+      ZE(0) = 0d0
+      DO L = 1,LMO
+        ZE(L) = ZE(L-1) + dZO(L) 
+      END DO
+
 C**** Read in table function for specific volume
       CALL openunit("OFTAB",iu_OFTAB,.TRUE.,.TRUE.)
       READ  (iu_OFTAB) TITLE,VGSP
@@ -356,7 +360,7 @@ C**** Fix to 4 for temporary consistency
       write(6,*) "Fixed J1O:",J1O
 
 C**** Calculate LMM and modify HOCEAN
-      call sync_param("LMO_min",LMO_min)
+c      call sync_param("LMO_min",LMO_min)
       DO 170 J=1,JM    ! global arrays (fixed from now on)
       DO 170 I=1,IM
       LMM(I,J) =0
