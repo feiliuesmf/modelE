@@ -61,7 +61,7 @@ cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL_loc
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER, public :: KAIJ=324 , KAIJX=KAIJ+400
+      INTEGER, PARAMETER, public :: KAIJ=328 , KAIJX=KAIJ+400
 !@var AIJ latitude/longitude diagnostics
       REAL*8, DIMENSION(IM,JM,KAIJ), public :: AIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ_loc
