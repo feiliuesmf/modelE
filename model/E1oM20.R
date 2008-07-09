@@ -1,4 +1,6 @@
-E1oM20.R GISS Model E  coupled version          larissa   03/04/2004
+E1oM20.R GISS Model E  coupled version          larissa   07/03/2008
+
+E1oM20: 4x5x20 layers modelE version, 1880 atm.; 13 layers in the ocean
 
 E1oM20: replace this section by a description of what distinguishes this run ?
        Use as many lines as you need. Look carefully at all the possible    ?
@@ -21,6 +23,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
+RES_OV13                            ! ocean vertical resolution, 13 layers  
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -105,8 +108,8 @@ TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-E1oM20 (coupled version, 4x5, 20 lyrs, 1880 atm; use up to 72 (or 80) columns and ??
-up to 60 (or 52) columns here to describe your run)?<- col 53  to  72 ->   80 ->
+E1oM20 (1880 atm.,the current modelE version)
+
 DTFIX=300
 &&PARAMETERS
 ! parameters set for coupled ocean runs:

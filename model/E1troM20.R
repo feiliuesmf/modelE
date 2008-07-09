@@ -23,6 +23,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
+RES_OV13                            ! ocean vertical resolution, 13 layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
