@@ -126,7 +126,12 @@ C**** Each tracer has a variable name and a unique index
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM) &&\
     (defined TRACERS_NITRATE)
 !@var ntm_chem number of drew-only tracers
+#ifdef HTAP_LIKE_DIAGS
+      integer, parameter :: ntm=42,ntm_chem=15,ntm_dust=4
+#else
       integer, parameter :: ntm=41,ntm_chem=15,ntm_dust=4
+#endif
+
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
@@ -136,7 +141,12 @@ C**** Each tracer has a variable name and a unique index
      *    'OCII    ','OCIA    ','OCB     ',
      *    'Clay    ','Silt1   ','Silt2   ','Silt3   ','NH3     ',
      *    'NH4     ','NO3p    ','SO4_d1  ','SO4_d2  ','SO4_d3  ',
-     *    'N_d1    ','N_d2    ','N_d3    '/)
+     *    'N_d1    ','N_d2    ','N_d3    '
+#ifdef HTAP_LIKE_DIAGS
+     *   ,'Air     '/)
+#else
+     *              /)
+#endif
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) &&\
     (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
