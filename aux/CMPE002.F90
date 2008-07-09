@@ -179,9 +179,9 @@
 
       do m=1,num
         nerr = 0
-        print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points=",i8)', &
-           db(m)%im, db(m)%jm, db(m)%km,  db(m)%lm, trim(db(m)%name), &
-           db(m)%n
+        if(EPS>1) print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points=",i8)', &
+                    db(m)%im, db(m)%jm, db(m)%km,  db(m)%lm, trim(db(m)%name), &
+                    db(m)%n
         do n=1,db(m)%n
           select case( db(m)%type )
           case (TYPE_DOUBLE)
@@ -209,6 +209,9 @@
             if ( abs_val > 0.d0 ) rel_err = abs(err)/abs_val
           endif
           if (rel_err>EPS) then
+            if(nerr==0 .and. EPS.le.1) print '(" dims=  ",i6,3i4,"  name=  ",a16,"     tot. points=",i8)', &
+                                         db(m)%im, db(m)%jm, db(m)%km,  db(m)%lm, trim(db(m)%name), &
+                                         db(m)%n
             nn = n-1
             l = nn/(db(m)%im*db(m)%jm*db(m)%km)
             nn = mod( nn, db(m)%im*db(m)%jm*db(m)%km )
