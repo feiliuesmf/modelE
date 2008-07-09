@@ -340,7 +340,7 @@
         end if
 
         !* RESPIRATION FLUXES *!
-        call Respiration_autotrophic(dtsec, TcanopyC, cop)
+        call Respiration_autotrophic(dtsec,TcanopyC,cop,vegpar)
         call Allocate_NPP_to_labile(dtsec, cop)
 
         !* pp cohort flux summaries
@@ -1078,7 +1078,7 @@
       end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
 
-      subroutine Respiration_autotrophic(dtsec,TcanopyC,cop)
+      subroutine Respiration_autotrophic(dtsec,TcanopyC,cop,vegpar)
       !@sum Autotrophic respiration - updates cohort respiration,NPP,C_lab
       !@sum Returns kg-C/m^2/s
 
@@ -1086,6 +1086,7 @@
       real*8,intent(in) :: dtsec
       real*8,intent(in) :: TcanopyC
       type(cohort),pointer :: cop
+      type(veg_par_type) :: vegpar
       !----Local-----
       real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
       real*8 ::Resp_growth, C2N, TcanopyK
@@ -1094,7 +1095,8 @@
       !C:N ratios for the different pools.
 
       TcanopyK = TcanopyC + Kelvin
-      C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
+      !C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
+      C2N = 1/(vegpar%nm*1e-3 * pfpar(cop%pft)%SLA)
 
       !* Maintenance respiration - leaf + sapwood + storage
       Resp_fol = 0.012D-6 * !kg-C/m2/s
