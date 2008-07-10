@@ -103,7 +103,7 @@
 !
 !      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
 !      do while (ASSOCIATED(pp)) 
-!        call photosynth_cond(dtsec, pp, config)
+!        call photosynth_cond(dtsec, pp)
 !        call uptake_N(dtsec, pp) !Dummy
 !        call litter(pp)  !Update litter pools
 !        call soil_bgc(dtsec, pp)
@@ -149,7 +149,7 @@
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         patchnum = patchnum + 1
-        call photosynth_cond(dtsec, pp, config)
+        call photosynth_cond(dtsec, pp)
 
         if(config%do_phenology.or.config%do_frost_hardiness)then
 
@@ -159,7 +159,7 @@
           else 
             dailyupdate=.false.
           end if
-          call phenology_stats(dtsec,pp,dailyupdate,time)
+          call phenology_stats(dtsec,pp,config,dailyupdate,time)
 
         endif
 
@@ -236,7 +236,7 @@
         patchnum = patchnum + 1
         !print*,'NEXT PATCH'
         !print*,'Calling photosynth_cond'
-        call photosynth_cond(dtsec, pp, config)
+        call photosynth_cond(dtsec, pp)
         if (config%do_soilresp) then 
           !print*,'Calling soil_bgc'
           call soil_bgc(dtsec,pp)

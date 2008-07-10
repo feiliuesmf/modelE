@@ -13,6 +13,7 @@
       public litter   
       private growth_cpools
       private phenology_cpools
+      private photosyn_acclim
 
       !l_fract: fraction of leaves retained after leaf fall (unitless)
       real*8, parameter :: l_fract = 0.50d0 
@@ -32,12 +33,14 @@
       contains
 
       !*********************************************************************
-      subroutine phenology_stats(dtsec, pp, dailyupdate,time)
+      subroutine phenology_stats(dtsec, pp, config, dailyupdate, time)
 !@sum Update statstics for phneology_update    
       real*8,intent(in) :: dtsec           !dt in seconds
       type(patch) :: pp
+      type(ent_config) :: config
       logical, intent(in) :: dailyupdate
       real*8,intent(in) :: time
+
       !--Local-----
       type(cohort), pointer :: cop
  
@@ -158,9 +161,23 @@
          wat = min( max(soilmoist_10d-watdry,0.d0) 
      &         /(watsat-watdry), 1.d0)      
 
-!**************************    
+!**************************************************************
+!* Update photosynthetic acclimation factor for evergreen veg
+!**************************************************************
+
+         if (config%do_frost_hardiness) then
+            if (pfpar(cop%pft)%phenotype==1) then !evergreen = 1
+               call photosyn_acclim(dtsec,airtemp_10d,cop%Sacclim) 
+            else
+               cop%Sacclim = UNDEF
+            endif
+	 else
+             cop%Sacclim = UNDEF
+         endif
+
+!**************************************************************
 !* Update Phenology Factor
-!**************************
+!**************************************************************
 
          if (dailyupdate) then
             phenofactor_c=cop%phenofactor_c
@@ -672,7 +689,35 @@ c$$$     &           - Cactive * (1.0-(phenofactor-dphdt)) / ialloc
 !       print *, __FILE__,__LINE__,'pp%Tpool=',pp%Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
 
       end subroutine litter
- 
+
+!*********************************************************************
+
+      subroutine photosyn_acclim(dtsec,Ta,Sacc)
+!@sum Model for state of acclimation/frost hardiness based 
+!@sum for boreal coniferous forests based on Repo et al (1990), 
+!@sum Hanninen & Kramer (2007),and  Makela et al (2006)
+      implicit none
+      real*8,intent(in) :: dtsec ! time step size [sec]
+      real*8,intent(in) :: Ta ! air temperature [deg C]
+      real*8,intent(inout) :: Sacc ! state of acclimation [deg C]
+
+      !----Local-----
+      real*8,parameter :: tau_inv = 2.22222e-6 
+                          ! inverse of time constant of delayed
+                          ! response to ambient temperature [sec] = 125 hr 
+                          ! Makela et al (2004) for Scots pine
+
+!      Use a first-order Euler scheme
+       Sacc = Sacc + dtsec*(tau_inv)*(Ta - Sacc) 
+
+!!     Predictor-corrector method requires temperature from next timestep
+!       Sacc_old = Sacc
+!       Sacc = Sacc_old + dtsec*(1/tau_acclim)*(Ta - Sacc ) 
+!       Sacc = Sacc_old + ((1/tau_acclim)*(Ta - Sacc_old)+
+!     &                     (1/tau_acclim)*(Ta_next - Sacc))*0.5d*dtsec
+
+      end subroutine photosyn_acclim
+
 !*********************************************************************
       real*8 function dbh2Cfol(pft,dbh)
       integer,intent(in) :: pft

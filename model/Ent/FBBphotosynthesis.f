@@ -12,7 +12,6 @@ can!#define DEBUG 1
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
-     &        ,photosyn_acclim
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
@@ -940,10 +939,10 @@ cddd
       !@sum Later need to replace these with von Caemmerer book Arrhenius
       !@sum function sensitivities (her Table 2.3)
       implicit none
-      integer,intent(in) :: pft  !Plant functional type, 1=C3 grassland
-      real*8, intent(in) :: dtsec
-      real*8,intent(in) :: Pa  !Atmospheric pressure (Pa)
-      real*8,intent(in) :: Tl  !Leaf temperature (Celsius)
+      integer,intent(in) :: pft   !Plant functional type, 1=C3 grassland
+      real*8,intent(in) :: dtsec
+      real*8,intent(in) :: Pa     !Atmospheric pressure (Pa)
+      real*8,intent(in) :: Tl     !Leaf temperature (Celsius)
       real*8,intent(in) :: O2pres !O2 partial pressure in leaf (Pa)
       real*8,intent(in) :: stressH2O
       real*8,intent(in) :: Sacclim !state of acclimation/frost hardiness
@@ -959,18 +958,18 @@ cddd
 !      real*8,parameter :: Ko              !Michaelis-Menten constant for O2 (Pa)
 !      real*8,parameter :: KcQ10           !Kc Q10 exponent
 !      real*8,parameter :: KoQ10           !Ko Q10 exponent
-      Tacclim = -5.93d0      ! Site specific threshold temperature for state of photsynt. acclim: 
-                           !    Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
-      a_const = 0.0595     ! Site specific; conversion (1/Sacclim_max)=1/16.8115
-                           !    estimated by using the max S from Hyytiala 1998
+      Tacclim = -5.93d0 ! Site specific thres. temp.: state of photosyn.acclim
+                        ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
+      a_const = 0.0595  ! Site specific; conversion (1/Sacclim_max)=1/16.8115
+                        ! estimated by using the max S from Hyytiala 1998
 
       if (Sacclim > Tacclim) then ! photosynthesis occurs 
          facclim = a_const * (Sacclim-Tacclim) 
          if (facclim > 1.d0) facclim = 1.d0
-      elseif (Sacclim < -1E10)then
+      elseif (Sacclim < -1E10)then !UNDEFINED
          facclim = 1.d0   ! no acclimation for this pft and/or simualtion
       else
-         facclim = 0.01d0 ! arbitrary min value so that photosynthesis is not set to zero
+         facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
       endif
 
       p = pft
@@ -992,33 +991,6 @@ cddd
       pspar%stressH2O = stressH2O
 
       end subroutine calc_Pspar
-
-!-----------------------------------------------------------------------------
-
-      subroutine photosyn_acclim(dtsec,Ta,Sacc)
-!@sum Model for state of acclimation/frost hardiness based 
-!@sum for boreal coniferous forests based on Repo et al (1990), 
-!@sum Hanninen & Kramer (2007),and  Makela et al (2006)
-      implicit none
-      real*8,intent(in) :: dtsec ! time step size [sec]
-      real*8,intent(in) :: Ta ! air temperature [deg C]
-      real*8,intent(inout) :: Sacc ! state of acclimation [deg C]
-
-      !----Local-----
-      real*8,parameter :: tau_inv = 2.22222e-6 ! inverse of time constant of delayed
-                                              ! response to ambient temperature [sec] = 125 hr 
-                                              ! Makela et al (2004) for Scots pine
-
-!      Use a first-order Euler scheme
-       Sacc = Sacc + dtsec*(tau_inv)*(Ta - Sacc) 
-
-!!     Predictor-corrector method requires temperature from next timestep
-!       Sacc_old = Sacc
-!       Sacc = Sacc_old + dtsec*(1/tau_acclim)*(Ta - Sacc ) 
-!       Sacc = Sacc_old + ((1/tau_acclim)*(Ta - Sacc_old)+
-!     &                     (1/tau_acclim)*(Ta_next - Sacc))*0.5d*dtsec
-
-      end subroutine photosyn_acclim
 
 !-----------------------------------------------------------------------------
 
