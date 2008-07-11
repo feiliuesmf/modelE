@@ -179,13 +179,14 @@ C****
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
-      INTEGER I,J,N
+      INTEGER I,J
       REAL*8 coriol,ustar,Tm,Sm,Si,Ti,dh,mflux,hflux,sflux,fluxlim
      *     ,mlsh   !,mfluxmax
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: Trm,Tri,trflux,tralpha
 #ifdef TRACERS_SPECIAL_O18
       REAL*8 fracls
+      INTEGER N
 #endif
 #endif
       integer :: J_0, J_1
@@ -290,13 +291,13 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SIMELT
-      USE CONSTANT, only : sday,TF
+      USE CONSTANT, only : sday,TF,lhm,byshi
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
       USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,
      *     aregj=>aregj_loc,jreg,ij_fwio,ij_htio,ij_stio,aij=>aij_loc
-      USE SEAICE, only : simelt,tfrez
+      USE SEAICE, only : simelt,tfrez,xsi
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -414,8 +415,9 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #endif
 C**** Reset some defaults if all ice is gone
           IF (RSI(I,J).eq.0) THEN
-            GTEMP(:,2,I,J) = 0.
-            GTEMPR(2,I,J) = TF
+            GTEMP(:,2,I,J) = ((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
+     *       (XSI(1:2)*MSI(I,J))+LHM)*BYSHI
+            GTEMPR(2,I,J) = GTEMP(1,2,I,J) + TF
 #ifdef TRACERS_WATER
             GTRACER(:,2,I,J) = 0.
 #endif
