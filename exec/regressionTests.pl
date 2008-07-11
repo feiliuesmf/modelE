@@ -46,20 +46,25 @@ close MODELERC;
 
 `mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR}`;
 
-my $rundecks = ["E1M20","E1oM20","E1F20","E001tr"];
+my $HYCOM="E1fzhyc";
+my $rundecks = ["E1M20","E1oM20","E1F20","E001tr",$HYCOM,"E1arobio_mpi"];
+#my $rundecks = ["E1F20"];
 
 my $configurations;
 
 $configurations -> {"E1M20"}  = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
 $configurations -> {"E1oM20"} = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
 $configurations -> {"E1F20"}  = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
+#$configurations -> {"E1F20"}  = ["SERIAL", "MPI"];
 $configurations -> {"E001tr"} = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
+$configurations -> {$HYCOM} = ["SERIAL", "SERIALMP", "OPENMP", "MPI"];
 
 my $numProcessors;
     $numProcessors -> {E1M20}  -> {OPENMP} = [1,4];
     $numProcessors -> {E1oM20} -> {OPENMP} = [1,4];
     $numProcessors -> {E1F20}  -> {OPENMP} = [1,4];
     $numProcessors -> {E001tr} -> {OPENMP} = [1,4];
+    $numProcessors -> {$HYCOM} -> {OPENMP} = [1,4];
 
 my $level = "aggressive";
 
@@ -68,18 +73,21 @@ if ($level eq "gentle") { # 3 lats per proc
     $numProcessors -> {E1oM20} -> {MPI}    = [1,4,15];
     $numProcessors -> {E001tr} -> {MPI}    = [1,4,15];
     $numProcessors -> {E1F20}  -> {MPI}    = [1,4,30];
+    $numProcessors -> {$HYCOM}  -> {MPI}    = [1,2];
 }
 elsif ($level eq "aggressive") { # aggressive - 2 lats per proc
     $numProcessors -> {E1M20}  -> {MPI}    = [1,4,23];
     $numProcessors -> {E1oM20} -> {MPI}    = [1,4,15];
     $numProcessors -> {E001tr} -> {MPI}    = [1,4,23];
     $numProcessors -> {E1F20}  -> {MPI}    = [1,4,45];
+    $numProcessors -> {$HYCOM}  -> {MPI}    = [1,2];
 }
 else { # insane - 1 lat per proc
     $numProcessors -> {E1M20}  -> {MPI}    = [1,4,46];
     $numProcessors -> {E1oM20} -> {MPI}    = [1,4,46];
     $numProcessors -> {E001tr} -> {MPI}    = [1,4,46];
     $numProcessors -> {E1F20}  -> {MPI}    = [1,4,90];
+    $numProcessors -> {$HYCOM}  -> {MPI}    = [1];
 }
 
 setModuleEnvironment();
@@ -130,10 +138,17 @@ open(REPORT,">Report");
 
 
 my $LINES_EXPECTED;
-$LINES_EXPECTED -> {E1M20}   = [94,96];
-$LINES_EXPECTED -> {E1oM20}  = [119,120];
-$LINES_EXPECTED -> {E1F20}   = [94,96];
-$LINES_EXPECTED -> {E001tr}  = [102,104];
+#$LINES_EXPECTED -> {E1M20}   = [94,96];
+#$LINES_EXPECTED -> {E1oM20}  = [120,122];
+#$LINES_EXPECTED -> {E1F20}   = [94,96];
+#$LINES_EXPECTED -> {E001tr}  = [102,104];
+#$LINES_EXPECTED -> {$HYCOM}  = [139,141];
+
+$LINES_EXPECTED -> {E1M20}   = [4,5];
+$LINES_EXPECTED -> {E1oM20}  = [4,5];
+$LINES_EXPECTED -> {E1F20}   = [4,5];
+$LINES_EXPECTED -> {E001tr}  = [4,5];
+$LINES_EXPECTED -> {$HYCOM}  = [4,5];
 
 foreach my $rundeck (@$rundecks) {
     next if $rundeck eq "SERIAL" or $rundeck eq "SERIALMP";
@@ -175,7 +190,7 @@ foreach my $rundeck (@$rundecks) {
 		my $lineRange = $LINES_EXPECTED -> {$rundeck};
 		my $lineMin = $lineRange -> [0];
 		my $lineMax = $lineRange -> [1];
-		if ($numLinesFound <  ($lineRange -> [0]) or $numLinesFound > ($lineRange -> [1])) {
+		if (($numLinesFound <  ($lineRange -> [0])) or ($numLinesFound > ($lineRange -> [1]))) {
 		    print REPORT "Rundeck $rundeck ($configuration, $duration) failed on $npes processors.\n";
 		    print REPORT "   CMPE002 (found $lineMin < $numLinesFound < $lineMax) \n";
 		    my $resultsDir = $env{RESULTS_DIRECTORY};
