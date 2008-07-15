@@ -43,7 +43,9 @@
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
 
-      INTEGER, PARAMETER :: NBOXMAX=18
+      INTEGER, PARAMETER :: NBOXMAX=40
+      INTEGER, PARAMETER :: NBOX1 = 10
+      INTEGER, PARAMETER :: NBOX2 = 27
       INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
       INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
       REAL*8 FAC_SH,FAC_NH
@@ -88,9 +90,8 @@ C**** This information could be read in from a file.
         JML=4 ; JMU=8 ; IML1=24 ; IMU1=36
         IML2=69 ; IMU2=11 
 c     Default NH melt area
-        NBOX=10
-        IFW(1:NBOX) = (/26,25,25,25,29,29,30,31,32,33/)
-        JFW(1:NBOX) = (/39,40,41,42,39,40,40,40,41,42/)
+        IFW(1:NBOX1) = (/26,25,25,25,29,29,30,31,32,33/)
+        JFW(1:NBOX1) = (/39,40,41,42,39,40,40,40,41,42/)
         do_glmelt=.true.
 c**** LGM 21k Alternative
         if( (paleo_orb_yr.gt.18000).and.(paleo_orb_yr.lt.24000) ) then
