@@ -97,6 +97,7 @@ c
       USE HYCOM_ARRAYS_GLOB
       USE HYCOM_ARRAYS, only : ufxcum_loc => ufxcum,
      &     vfxcum_loc => vfxcum, p_loc => p, dp_loc => dp,
+     &     scp2_loc => scp2,
      &     scp2i_loc => scp2i, util1_loc => util1, util2_loc => util2,
      &     tracer_loc => tracer, dpinit_loc => dpinit
       USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH
@@ -174,7 +175,6 @@ c ---        (dpfinl-dpinit) + hordiv + verdiv = 0
 c
       do 15 i=ifp(j,l),ilp(j,l)
  15   vertfx(i,j,1)=0.
-!     vertfx(i,j,1)=0.
 c
       do 16 k=1,kk
       ka=max(1,k-1)
@@ -184,9 +184,6 @@ c
  9    continue
 c$OMP END PARALLEL DO
 c
-      call gather_vertfx(vertfx,vertfx_glob)
-      call gather_hycom_arrays
-      if (AM_I_ROOT()) then
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: check balance of terms in continuity eqn.
 cdiag i=itest
@@ -224,8 +221,8 @@ c       write (string,'(a,i2)') 'trcr_bef',nt
 c       call prt9x9(tracer(1,1,1,nt),itest,jtest,0.,100.,string)
 c       call prt9x9(u,itest,jtest,0.,100.,'usfc')
 c
-        call fct3d(2,tracer(1,1,1,nt),ufxcum,vfxcum,vertfx_glob,
-     .             scp2,scp2i,dpinit,dp(1,1,1+nn))
+        call fct3d(2,tracer_loc(I_0H,J_0H,1,nt),ufxcum_loc,vfxcum_loc,
+     .    vertfx,scp2_loc,scp2i_loc,dpinit_loc,dp_loc(I_0H,J_0H,1+nn))
 c
 cdiag   do k=1,kk
 cdiag     write (string,'(a,i2,a,i3)') 'trcr',nt,' aftr adv',k
@@ -233,7 +230,7 @@ cdiag     call findmx(ip,tracer(1,1,k,nt),idm,ii1,jj,string)
 cdiag   end do
 c
         do k=1,kk
-          call cpy_p(tracer(1,1,k,nt))
+          call cpy_p_par(tracer_loc(I_0H,J_0H,k,nt))
         end do
 c
 c       write (string,'(a,i2)') 'trcr_aft',nt
@@ -245,9 +242,6 @@ cdiag.            dp(1,1,1+nn),tracer(1,1,1,2),'after fct3d')
 c
       write (lp,'(a)') 'tracer transport done'
 c
-      endif  ! AM_I_ROOT
-      call scatter_hycom_arrays
-
       return
       end
 c
@@ -269,24 +263,45 @@ c  scal   - grid cell size
 c  scali  - inverse of scal
 c  fco,fc - depth of the layer at previous and new time step
 c
-      USE HYCOM_DIM_GLOB
+      USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH, SOUTH,
+     &                         haveLatitude, GLOBALSUM, esmf_bcast
       implicit none
 !!      include 'dimensions.h'
 !!    include 'dimension2.h'      ! TNL
       integer i,j,k,l,ia,ib,ja,jb
 c
-      real fld(idm,jdm,kdm),u(idm,jdm,kdm),v(idm,jdm,kdm),
-     .     w(idm,jdm,kdm),fco(idm,jdm,kdm),fc(idm,jdm,kdm),
-     .     fco1(idm,jdm,kdm),fc1(idm,jdm,kdm),
-     .     vertfx(idm,jdm,kdm),vertdv(idm,jdm,kdm),
-     .     scal(idm,jdm),scali(idm,jdm)
-      real fmx(idm,jdm),fmn(idm,jdm),flp(idm,jdm),fln(idm,jdm),
-     .     flx(idm,jdm),fly(idm,jdm),uan(idm,jdm),van(idm,jdm),
-     .     flxdiv(idm,jdm),clipj(jdm),vlumj(jdm)
+      real fld(idm,J_0H:J_1H,kdm),u(idm,J_0H:J_1H,kdm),
+     .     v(idm,J_0H:J_1H,kdm),w(idm,J_0H:J_1H,kdm), 
+     .     scal(idm,J_0H:J_1H),scali(idm,J_0H:J_1H),
+     .     fco1(idm,J_0H:J_1H,kdm),fc1(idm,J_0H:J_1H,kdm)
+
+      real fco(idm,J_0H:J_1H,kdm),fc(idm,J_0H:J_1H,kdm),
+     .     vertfx(idm,J_0H:J_1H,kdm),vertdv(idm,J_0H:J_1H,kdm)
+      real fmx(idm,J_0H:J_1H),fmn(idm,J_0H:J_1H),flp(idm,J_0H:J_1H),
+     .     fln(idm,J_0H:J_1H),flx(idm,J_0H:J_1H),fly(idm,J_0H:J_1H),
+     .     uan(idm,J_0H:J_1H),van(idm,J_0H:J_1H),
+     .     flxdiv(idm,J_0H:J_1H),clipj(J_0H:J_1H),vlumj(J_0H:J_1H)
+      real bforej(J_0H:J_1H),afterj(J_0H:J_1H)
+
+! Filling data for 2 HALO positions
+! We use 2 HALO operations to obtain data corresponding to 2nd HALO position.
+! After 1st HALO operation, the data is copied into a temporary array
+! such that data in j location corresponds to j-1 location in the fld array.
+! Next, after filling SOUTH HALO position in the temporary array, we copy data
+! corrsponding to J_0H position of the temporary array into J_0H-1 position
+! of the array with 2 SOUTH HALOs.
+      ! tfld = temporary arrays to store fld shifted in ja direction
+      ! fld2 array contains fld(i,jaa) data
+      ! i.e., fld(i,jaa,k)) = fld2(i,jaa))
+      ! k subscript is dropped to save memory
+
+      real fld2(idm,J_0H-1:J_1), tfld(idm,J_0H:J_1H)
+
       real a(kdm),b(kdm),c(kdm),athird,dx,fcdx,yl,yr
       real onemu,q,clip,vlume,amount,bfore,after,slab,dslab,thkchg,
-     .     fluxdv,epsil,bforej(jdm),afterj(jdm)
+     .     fluxdv,epsil
       integer iord,ip1,im1,jp1,jm1,kp,jaa,itest,jtest
       character string*16
       logical wrap,recovr
@@ -296,9 +311,11 @@ c
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
       parameter (epsil=1.e-11,onemu=1.e-6)
+
+!========================================================
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 21 j=1,jj
+      do 21 j=J_0, J_1
       do 21 k=1,kk
       do 21 l=1,isp(j)
       do 21 i=ifp(j,l),ilp(j,l)
@@ -360,8 +377,8 @@ c --- get vertical flux by summing -fld- over upstream slab of thickness -w-
 c
 c$OMP PARALLEL DO PRIVATE(jb,amount,slab,dslab,kp,a,b,c,dx,fcdx,yl,yr)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 26 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 26 j=J_0, J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 26 l=1,isp(j)
 c
 c --- fill massless cells with data from layer above or below
@@ -488,11 +505,14 @@ c$OMP END PARALLEL DO
 c
       bfore=0.
       after=0.
+
+      CALL HALO_UPDATE(ogrid,ip, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(ogrid,iv, FROM=SOUTH)
 c
       do 4 k=1,kk
 c
 c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 14 j=1,jj
+      do 14 j=J_0, J_1
       bforej(j)=0.
       do 14 l=1,isp(j)
       do 14 i=ifp(j,l),ilp(j,l)
@@ -501,14 +521,21 @@ c$OMP END PARALLEL DO
 c
 c --- compute antidiffusive (high- minus low-order) fluxes
 c
-      call cpy_p(fld(1,1,k))
+      call cpy_p_par(fld(I_0H,J_0H,k))
+
+      CALL HALO_UPDATE(ogrid,fld(:,:,k), FROM=NORTH)
+      CALL HALO_UPDATE(ogrid,fld(:,:,k), FROM=SOUTH)
+       fld2(:,J_0H:J_1) = fld(:,J_0H:J_1,k) 
+       tfld(:,J_0:J_1)  = fld(:,J_0H:J_1-1,k) 
+      CALL HALO_UPDATE(ogrid,tfld, FROM=SOUTH)
+       fld2(:,J_0H-1) = tfld(:,J_0H)
 c
 c$OMP PARALLEL DO PRIVATE(ja,jaa,jb,q,ia,ib) SHARED(k)
 c$OMP+ SCHEDULE(STATIC,jchunk)
-      do 11 j=1,jj
-      ja=mod(j-2+jj,jj)+1
-      jb=mod(j     ,jj)+1
-      jaa=mod(j-3+jj,jj)+1
+      do 11 j=J_0, J_1
+      ja  = PERIODIC_INDEX(j-1, jj)
+      jb  = PERIODIC_INDEX(j+1, jj)
+      jaa = PERIODIC_INDEX(j-2, jj)
 c
       do 2 l=1,isu(j)
       do 2 i=ifu(j,l),ilu(j,l)
@@ -533,7 +560,8 @@ c
       fly(i,j)=v(i,j,k)*q
       q=fld(i,ja ,k)+fld(i,j,k)				!  2nd order
       if (ip(i,jb )+iv(i,ja).eq.2)
-     .  q=1.125*q-.125*(fld(i,jb ,k)+fld(i,jaa,k))	!  4th order
+     .  q=1.125*q-.125*(fld(i,jb ,k)+fld2(i,jaa))	!  4th order
+!    .  q=1.125*q-.125*(fld(i,jb ,k)+fld(i,jaa,k))	!  4th order
  3    van(i,j)=.5*q*v(i,j,k)-fly(i,j)
 c
       do 11 l=1,isp(j)
@@ -542,9 +570,13 @@ c
       if (ip(ia,j).eq.0) ia=i
       ib=min(ii,i+1)
       if (ip(ib,j).eq.0) ib=i
-      ja=mod(j-2+jj,jj)+1
+      !ja=mod(j-2+jj,jj)+1
+      ja = PERIODIC_INDEX(j-1, jj)
+
       if (ip(i,ja).eq.0) ja=j
-      jb=mod(j     ,jj)+1
+      !jb=mod(j     ,jj)+1
+      jb = PERIODIC_INDEX(j+1, jj)
+
       if (ip(i,jb).eq.0) jb=j
       fmx(i,j)=max(fld(i,j,k),
      .   fld(ia,j,k),fld(ib,j,k),fld(i,ja,k),fld(i,jb,k))
@@ -571,7 +603,7 @@ cdiag write (string,'(a6,i2)') 'fmn k=',k
 cdiag call findmx(ip,fmx,idm,ii1,jj,string(1:8))
 
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 22 j=1,jj
+      do 22 j=J_0, J_1
       do 22 l=1,isp(j)
       flx(ifp(j,l)  ,j)=0.
       flx(ilp(j,l)+1,j)=0.
@@ -585,14 +617,18 @@ c$OMP PARALLEL DO PRIVATE(j,wrap) SCHEDULE(STATIC,jchunk)
       wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
       j=jfp(i,l)
-      if (j.gt.1 .or. .not.wrap) then
+      if (haveLatitude(ogrid, J=j)) then
+        if (j.gt.1 .or. .not.wrap) then
         fly(i,j)=0.
         van(i,j)=0.
+        end if
       end if
       j=mod(jlp(i,l),jj)+1
-      if (j.gt.1 .or. .not.wrap) then
+      if (haveLatitude(ogrid, J=j)) then
+        if (j.gt.1 .or. .not.wrap) then
         fly(i,j)=0.
         van(i,j)=0.
+        end if
       end if
    33 continue
 c$OMP END PARALLEL DO
@@ -604,10 +640,12 @@ cdiag. fld(i,j-1,k),v(i,j,k),fld(i,j,k),v(i,j+1,k),fld(i,j+1,k),
 cdiag.  u(i+1,j,k),fld(i+1,j,k)
  101  format(a,2i5,i3,f18.3/1pe39.2/0pf19.3,1pe11.2,0pf9.3,
      .1pe11.2,0pf9.3/1pe39.2/0pf39.3)
+
+      CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb,q,amount) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 61 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 61 j=J_0, J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       if (recovr) vlumj(j)=0.
       if (recovr) clipj(j)=0.
       do 61 l=1,isp(j)
@@ -636,10 +674,12 @@ c
 c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- pos. (neg.) change in -fld- to the sum of all incoming (outgoing) fluxes
+
+      CALL HALO_UPDATE(ogrid,van, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 12 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 12 j=J_0, J_1
+      jb  = PERIODIC_INDEX(j+1, jj)
       do 12 l=1,isp(j)
       do 12 i=ifp(j,l),ilp(j,l)
       flp(i,j)=(fmx(i,j)-fld(i,j,k))*fc(i,j,k)
@@ -653,12 +693,15 @@ c$OMP END PARALLEL DO
 c
 c---- limit antidiffusive fluxes
 c
-      call cpy_p(flp)
-      call cpy_p(fln)
+      call cpy_p_par(flp(I_0H,J_0H))
+      call cpy_p_par(fln(I_0H,J_0H))
+
+      CALL HALO_UPDATE(ogrid,flp, FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,fln, FROM=SOUTH)
 c
 c$OMP PARALLEL DO PRIVATE(ja,clip) SCHEDULE(STATIC,jchunk)
-      do 8 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+      do 8 j=J_0, J_1
+      ja  = PERIODIC_INDEX(j-1, jj)
 c
       do 7 l=1,isu(j)
       do 7 i=ifu(j,l),ilu(j,l)
@@ -684,10 +727,12 @@ cdiag j=jtest
 cdiag write (lp,101) 'advem(2)',i,j,k,fld(i-1,j,k),u(i,j,k),
 cdiag. fld(i,j-1,k),v(i,j,k),fld(i,j,k),v(i,j+1,k),fld(i,j+1,k),
 cdiag.  u(i+1,j,k),fld(i+1,j,k)
+
+      CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb,amount,q) SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 62 j=1,jj
-      jb=mod(j     ,jj)+1
+      do 62 j=J_0, J_1
+      jb  = PERIODIC_INDEX(j+1, jj)
       do 62 l=1,isp(j)
       do 62 i=ifp(j,l),ilp(j,l)
       flxdiv(i,j)=(flx(i+1,j)-flx(i,j)+fly(i,jb )-fly(i,j))*scali(i,j)
@@ -709,15 +754,17 @@ c
         vlume=0.
         clip=0.
 c
-        do 19 j=1,jj
-        vlume=vlume+vlumj(j)
- 19     clip=clip+clipj(j)
+        call GLOBALSUM(ogrid,vlumj,vlume, all=.true.)
+        call GLOBALSUM(ogrid,clipj,clip , all=.true.)
+!       do 19 j=J_0, J_1
+!       vlume=vlume+vlumj(j)
+!19     clip=clip+clipj(j)
 c
         if (vlume.ne.0.) then
           clip=clip/vlume
           write (lp,'(i2,a,1pe11.3)') k,'  tracer drift in fct3d',-clip
 c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
-          do 13 j=1,jj
+          do 13 j=J_0, J_1
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
  13       fld(i,j,k)=fld(i,j,k)+clip
@@ -726,19 +773,19 @@ c$OMP END PARALLEL DO
       end if
 c
 cc$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
-      do 15 j=1,jj
+      do 15 j=J_0, J_1
       afterj(j)=0.
       do 15 l=1,isp(j)
       do 15 i=ifp(j,l),ilp(j,l)
  15   afterj(j)=afterj(j)+fld(i,j,k)*fc(i,j,k)*scal(i,j)
 cc$OMP END PARALLEL DO
 c
-      do j=1,jj
-        bfore=bfore+bforej(j)
-        after=after+afterj(j)
-      end do
+      call compBforeAfter(bfore,after,bforej,afterj)
 c
  4    continue
+
+      call esmf_bcast(ogrid, bfore)
+      call esmf_bcast(ogrid, after)
 c
       if (bfore.ne.0.)
      . write (lp,'(a,1p,3e14.6,e11.1)') 'fct3d conservation:',
@@ -750,7 +797,7 @@ ccc   if (q.gt.1.1 .or. q.lt..9) stop '(excessive nonconservation)'
       if (q.gt.2.0 .or. q.lt..5) stop '(excessive nonconservation)'
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 20 j=1,jj
+      do 20 j=J_0, J_1
       do 20 k=1,kk
       do 20 l=1,isp(j)
       do 20 i=ifp(j,l),ilp(j,l)
@@ -759,21 +806,40 @@ c$OMP END PARALLEL DO
 c
       return
       end
-c
-c
-c> Revision history:
-c>
-c> Feb. 2005 - added plm,ppm options to vertical flux calc'n (so far: pcm)
-c> Mar. 2006 - added bering strait exchange logic
-c------------------------------------------------------------------
-      subroutine gather_vertfx(vertfx,vertfx_glob)
+!========================================================
+      subroutine compBforeAfter(bfore,after,bforej,afterj)
+
+      USE HYCOM_DIM, only : idm, jdm, kdm, J_0H,  J_1H, jj, ogrid 
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      implicit none
+
+      real bfore,after
+      real bforej(J_0H:J_1H),afterj(J_0H:J_1H)
+      real bforej_G(jdm),afterj_G(jdm)
+      integer j
+
+      call bforejAfterjGath(bforej,afterj,bforej_G,afterj_G)
+
+      !doing this on root for reproducibility
+      if (AM_I_ROOT()) then
+        do j=1,jj
+          bfore=bfore+bforej_G(j)
+          after=after+afterj_G(j)
+        end do
+      endif  ! AM_I_ROOT
+
+      end subroutine compBforeAfter
+!========================================================
+      subroutine bforejAfterjGath(bforej,afterj,bforej_G,afterj_G)
 
       USE HYCOM_DIM, only : idm, jdm, kdm, J_0H,  J_1H, ogrid
       USE DOMAIN_DECOMP, ONLY: PACK_DATA
       implicit none
-      real :: vertfx(idm,J_0H:J_1H,kdm), vertfx_glob(idm,jdm,kdm)
+      real :: bforej(J_0H:J_1H),afterj(J_0H:J_1H)
+      real :: bforej_G(jdm),afterj_G(jdm)
 
-      call pack_data( ogrid,  vertfx,      vertfx_glob    )
+      call pack_data( ogrid,  bforej,  bforej_G  )
+      call pack_data( ogrid,  afterj,  afterj_G  )
 
-      end subroutine gather_vertfx
-c------------------------------------------------------------------
+      end subroutine bforejAfterjGath
+!========================================================
