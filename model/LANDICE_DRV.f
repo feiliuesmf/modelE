@@ -46,6 +46,7 @@
       INTEGER, PARAMETER :: NBOXMAX=40
       INTEGER, PARAMETER :: NBOX1 = 10
       INTEGER, PARAMETER :: NBOX2 = 27
+      INTEGER, PARAMETER :: NBOX3 = 18
       INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
       INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
       REAL*8 FAC_SH,FAC_NH
@@ -122,10 +123,10 @@ c**** LGM 21k Alternative
 
       ELSEIF (JM.eq.90) THEN    ! 2x2.5
         JML=7 ; JMU=11 ; IML1=48 ; IMU1=69
-        IML2=136 ; IMU2=18 ; NBOX=18
-        IFW(1:NBOX) = (/50,50,51,51,51,52,53,56,56,57,58,59,60,61,62,63
+        IML2=136 ; IMU2=18
+        IFW(1:NBOX3) = (/50,50,51,51,51,52,53,56,56,57,58,59,60,61,62,63
      *       ,64,64/)
-        JFW(1:NBOX) = (/82,81,80,79,78,77,76,76,77,78,78,78,79,79,79,80
+        JFW(1:NBOX3) = (/82,81,80,79,78,77,76,76,77,78,78,78,79,79,79,80
      *       ,81,82/)
         do_glmelt=.true.
       ELSEIF (JM.eq.24) THEN    ! 8x10 (do nothing)
