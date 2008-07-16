@@ -104,6 +104,14 @@ c**** LGM 21k Alternative
           JFW(10:22) = (/38,37,36,34,34,34,34,36,37,38,39,40,41/) ! LIS/N.Am
           IFW(23:27) = (/35,38,39,39,38/) ! Fenno-Scandian
           JFW(23:27) = (/39,41,41,42,43/) ! Fenno-Scandian
+        elseif( (paleo_orb_yr.gt.8500).and.(paleo_orb_yr.lt.9500) )
+     *         then
+          write(6,*) "Amending NH Glacial Melt appropriate to 9ka, EH"
+          NBOX=15             ! For Early Holocene
+          IFW(1:9) = (/26,25,25,25,29,30,31,32,33/) ! Greenland
+          JFW(1:9) = (/39,40,41,42,39,40,40,41,42/) ! Greenland
+          IFW(10:15) = (/26,26,25,24,24,23/) ! LIS/N.Am
+          JFW(10:15) = (/36,37,38,39,40,41/) ! LIS/N.Am
         endif
         if( calc_orb_par_sp.ne.0 ) then ! EOCENE 55 MA ONLY
           write(6,*)
