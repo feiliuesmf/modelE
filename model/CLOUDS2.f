@@ -54,7 +54,7 @@ C**** parameters and constants
 !@param CCMUL1 multiplier for deep anvil cloud cover
 !@param CCMUL2 multiplier for shallow anvil cloud cover
 !@param COETAU multiplier for convective cloud optical thickness
-      REAL*8, PARAMETER :: CCMUL=1.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
+      REAL*8, PARAMETER :: CCMUL=2.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
       REAL*8 :: RTEMP,CMX,RCLDX,CONTCE1,CONTCE2
       REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND
@@ -537,8 +537,9 @@ c for sulfur chemistry
 !@param AIRM0 air mass used to compute convective cloud cover
       REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0,AIRM0=100.d0
       REAL*8,  PARAMETER :: CN0I=3.d6,CN0G=4.d4
-#ifdef CLD_AER_CDNC
       REAL*8 RHO   ! air density
+#ifdef CLD_AER_CDNC
+C     REAL*8 RHO   ! air density
 !CN0 is the No parameter in the Marshall-Palmer distribution
 #endif
       REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
@@ -880,13 +881,13 @@ C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
 C     for SCM running with Dry Convection instead of ATURB - WTURB
 c     is not filled - so MPLUME is unchanged
 #ifdef SCM
-      if (SCM_ATURB_FLAG.eq.1) then
-          TTURB=HPBL/WTURB(LMIN)
-          IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
-      endif
+C     if (SCM_ATURB_FLAG.eq.1) then  ! commented out by yao
+C         TTURB=HPBL/WTURB(LMIN)
+C         IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
+C     endif
 #else
-      TTURB=HPBL/WTURB(LMIN)
-      IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
+C     TTURB=HPBL/WTURB(LMIN)
+C     IF(TTURB/DTsrc.GT.1.) MPLUME=MPLUME*DTsrc/TTURB
 #endif
 
       IF(ITYPE.EQ.2) THEN     ! cal. MPLUME for 1st plume and 2nd plume
@@ -1350,7 +1351,7 @@ C     IF(IC.EQ.2.OR.(IC.EQ.1.AND.PL(L).GE.800.)) THEN
       IF(ENT(L).GT.0.D0) THEN
       FENTR=1000.D0*ENT(L)*GZL(L)*FPLUME
 C     FENTR=ETAL(L)*FPLUME
-      IF(FENTR+FPLUME.GT.1.) THEN          
+      IF(FENTR+FPLUME.GT.1.) THEN
         FENTR=1.-FPLUME
         ENT(L)=0.001d0*FENTR/(GZL(L)*FPLUME)
       END IF
@@ -2113,33 +2114,34 @@ C since a fraction (FCLW) of TRCOND was removed above.
 C     IF(PRCP.LE.0.) GO TO 530    ! moved to after computing CLDMCL
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
 #ifdef SCM
-      if (SCM_ATURB_FLAG.eq.0) then
+C     if (SCM_ATURB_FLAG.eq.0) then  ! commented out by yao
 c         for SCM running with Dry Convection instead of ATURB WTURB
 c         not filled -- set TRATIO=1
-          TRATIO = 1.d0
-      else
+C         TRATIO = 1.d0
+C     else
 c         for SCM running with ATURB
-          TTURB=HPBL/WTURB(L)
-          TRATIO=TTURB/DTsrc
-      endif
+C         TTURB=HPBL/WTURB(L)
+C         TRATIO=TTURB/DTsrc
+C     endif
 #else
-      TTURB=HPBL/WTURB(L)
-      TRATIO=TTURB/DTsrc
+C     TTURB=HPBL/WTURB(L)
+C     TRATIO=TTURB/DTsrc
 #endif
-      FCLOUD=CCMUL*CCM(L)*BYPBLM*TRATIO
-      IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(L)*BYPBLM
-      IF(LMIN.GT.DCL) FCLOUD=CCMUL*CCM(L)/AIRM0
+      RHO=PL(L)/(RGAS*TL(L))
+      FCLOUD=CCMUL*CCM(L)/(RHO*GRAV*WCU(L)*DTsrc+teeny)
+C     IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(L)*BYPBLM
+C     IF(LMIN.GT.DCL) FCLOUD=CCMUL*CCM(L)/AIRM0
       IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=5.d0*FCLOUD
       IF(L.LT.LMIN) THEN
-        FCLOUD=CCMUL*CCM(LMIN)*BYPBLM*TRATIO
-        IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(LMIN)*BYPBLM
-        IF(LMIN.GT.DCL) FCLOUD=CCM(LMIN)/AIRM0
+        FCLOUD=CCMUL*CCM(LMIN)/(RHO*GRAV*WCU(LMIN)*DTsrc+teeny)
+C       IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(LMIN)*BYPBLM
+C       IF(LMIN.GT.DCL) FCLOUD=CCM(LMIN)/AIRM0
       END IF
       IF(PLE(LMIN)-PLE(LMAX+1).LT.450.) THEN
         IF(L.EQ.LMAX-1) THEN
-          FCLOUD=CCMUL2*CCM(L)*BYPBLM*TRATIO
-          IF(TRATIO.GT.1.) FCLOUD=CCMUL2*CCM(L)*BYPBLM
-          IF(LMIN.GT.DCL) FCLOUD=CCMUL2*CCM(L)/AIRM0
+          FCLOUD=CCMUL2*CCM(L)/(RHO*GRAV*WCU(L)*DTsrc+teeny)
+C         IF(TRATIO.GT.1.) FCLOUD=CCMUL2*CCM(L)*BYPBLM
+C         IF(LMIN.GT.DCL) FCLOUD=CCMUL2*CCM(L)/AIRM0
         END IF
         IF(L.LT.LMIN) FCLOUD=0.
       ENDIF
@@ -2338,7 +2340,9 @@ C****
         IF(PLE(LMIN)-PLE(LMAX+1).LT.450.) THEN
           CLDMCL(1)=MIN(CLDMCL(1),FMC1)
         ELSE
-          CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYPBLM*FMC1,FMC1)
+          RHO=PL(1)/(RGAS*TL(1))
+          CLDMCL(1)=MIN(CLDMCL(1)+FMC1*CCM(LMIN)/(RHO*GRAV*WCU(LMIN)*
+     *              DTsrc+teeny),FMC1)
         END IF
       END IF
 C     IF(PRCP.GT.0.) CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
@@ -2398,7 +2402,7 @@ C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LMCMAX
          TL(L)=(SM(L)*BYAM(L))*PLK(L)
          TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
-         IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
+         IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM  ! pick up water path
 #ifdef CLD_AER_CDNC
          WMCTWP=WMCTWP+TEMWM
          IF(TL(L).GE.TF) WMCLWP=WMCLWP+TEMWM
@@ -3757,7 +3761,7 @@ c    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
         TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
         TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
         IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
-        IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
+        IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM      ! pick up water path
 #ifdef CLD_AER_CDNC
         SMLWP=WMSUM
 #endif
