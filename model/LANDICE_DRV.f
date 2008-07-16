@@ -44,9 +44,6 @@
       INTEGER, INTENT(IN) :: istart
 
       INTEGER, PARAMETER :: NBOXMAX=40
-      INTEGER, PARAMETER :: NBOX1 = 10
-      INTEGER, PARAMETER :: NBOX2 = 27
-      INTEGER, PARAMETER :: NBOX3 = 18
       INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
       INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
       REAL*8 FAC_SH,FAC_NH
@@ -88,16 +85,18 @@ C**** west coasts in the one grid box closest to the coast which is
 C**** determined by the direction in the river flow file.
 C**** This information could be read in from a file.
       IF (JM.eq.46) THEN        ! 4x5
+c     SH melt area
         JML=4 ; JMU=8 ; IML1=24 ; IMU1=36
         IML2=69 ; IMU2=11 
 c     Default NH melt area
-        IFW(1:NBOX1) = (/26,25,25,25,29,29,30,31,32,33/)
-        JFW(1:NBOX1) = (/39,40,41,42,39,40,40,40,41,42/)
+        NBOX=10                  ! check: nbox <= NBOXMAX=40
+        IFW(1:10) = (/26,25,25,25,29,29,30,31,32,33/)
+        JFW(1:10) = (/39,40,41,42,39,40,40,40,41,42/)
         do_glmelt=.true.
-c**** LGM 21k Alternative
+c**** LGM 21k Alternative for NH melt area
         if( (paleo_orb_yr.gt.18000).and.(paleo_orb_yr.lt.24000) ) then
           write(6,*) "Amending NH Glacial Melt appropriate to 21ka, LGM"
-          NBOX=27               ! For LGM 21k
+          NBOX=27               ! For LGM 21k, check nbox <= NBOXMAX=40
           IFW(1:9) = (/26,25,25,25,29,30,31,32,33/) ! Greenland
           JFW(1:9) = (/39,40,41,42,39,40,40,41,42/) ! Greenland
           IFW(10:22) = (/9,10,11,23,24,25,26,26,26,25,24,24,23/) ! LIS/N.Am
@@ -107,7 +106,7 @@ c**** LGM 21k Alternative
         elseif( (paleo_orb_yr.gt.8500).and.(paleo_orb_yr.lt.9500) )
      *         then
           write(6,*) "Amending NH Glacial Melt appropriate to 9ka, EH"
-          NBOX=15             ! For Early Holocene
+          NBOX=15             ! For Early Holocene,  check nbox <= NBOXMAX=40
           IFW(1:9) = (/26,25,25,25,29,30,31,32,33/) ! Greenland
           JFW(1:9) = (/39,40,41,42,39,40,40,41,42/) ! Greenland
           IFW(10:15) = (/26,26,25,24,24,23/) ! LIS/N.Am
@@ -120,21 +119,24 @@ c**** LGM 21k Alternative
           write(0,*)
      *         "Amending NH Glacial Melt in LANDICE_DRV "
      *         ,"appropriate to 55 Ma, Eocene currently"
-          NBOX=6
+          NBOX=6       ! check nbox <= NBOXMAX=40
           IFW(1:2) = (/29,29/) ! Greenland
           JFW(1:2) = (/39,38/) ! Greenland
-          IFW(3:5) = (/10,11,12 /) ! Rockis 
-          JFW(3:5) = (/40,39,38 /) ! Rockies 
+          IFW(3:5) = (/10,11,12 /) ! Rockies
+          JFW(3:5) = (/40,39,38 /) ! Rockies
           IFW(6:6) = (/63 /) ! Proto-Himalaya
           JFW(6:6) = (/38 /) ! Proto-Himalaya
         endif
 
       ELSEIF (JM.eq.90) THEN    ! 2x2.5
-        JML=7 ; JMU=11 ; IML1=48 ; IMU1=69
-        IML2=136 ; IMU2=18
-        IFW(1:NBOX3) = (/50,50,51,51,51,52,53,56,56,57,58,59,60,61,62,63
+c     SH melt area
+        JML=7 ; JMU=11 ; IML1= 48 ; IMU1=69
+                         IML2=136 ; IMU2=18   
+c     NH melt area
+        NBOX=18               ! check: nbox <= NBOXMAX=40
+        IFW(1:18) = (/50,50,51,51,51,52,53,56,56,57,58,59,60,61,62,63
      *       ,64,64/)
-        JFW(1:NBOX3) = (/82,81,80,79,78,77,76,76,77,78,78,78,79,79,79,80
+        JFW(1:18) = (/82,81,80,79,78,77,76,76,77,78,78,78,79,79,79,80
      *       ,81,82/)
         do_glmelt=.true.
       ELSEIF (JM.eq.24) THEN    ! 8x10 (do nothing)
@@ -680,7 +682,7 @@ C**** we aren't getting that right anyway.
      *           mdwnimp_SH,edwnimp_SH
             mdwnimp_SH=0.
             edwnimp_SH=0.
-          endif  
+          endif
 
 #ifdef TRACERS_WATER
           DO ITM=1,NTM
@@ -702,7 +704,7 @@ C**** we aren't getting that right anyway.
             write(99,*) "Limiting SH icesheet replacement"
      *           ,trname(itm),trdwnimp_SH(itm)
             trdwnimp_SH(itm)=0.
-          endif  
+          endif
 
           END DO
 #endif
