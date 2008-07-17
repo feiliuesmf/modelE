@@ -16,6 +16,9 @@ C****
      *     ,idacc,ndasf,fland,flice,focean,IVSP,IVNP
      *     ,nday,modrd,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
+#ifdef SCM
+     *     ,I_TARG,J_TARG
+#endif
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE DOMAIN_DECOMP, only : NORTH
       USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
@@ -24,6 +27,10 @@ C****
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
+#ifdef SCM
+      USE SCMDIAG, only : EVPFLX,SHFLX
+      USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
+#endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
      $     ,n_Be7, n_Be10
@@ -280,6 +287,11 @@ C**** Zero out fluxes summed over type and surface time step
 #ifdef TRACERS_AMP
       DTR_AMPe(J_0:J_1,:) = 0.d0
 #endif
+#ifdef SCM
+      EVPFLX= 0.0d0
+      SHFLX = 0.0d0
+#endif
+
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
@@ -382,6 +394,7 @@ C****
       THV1=T(I,J,1)*(1.+Q1*deltx)
       JR=JREG(I,J)
       MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
+
 
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
@@ -975,14 +988,44 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
-
+#ifdef SCM
+      if (J.eq.J_TARG.and.I.eq.I_TARG) then
+          if (SCM_SURFACE_FLAG.eq.0) then
+              EVPFLX = EVPFLX + EVAP*PTYPE/DTSURF
+              SHFLX = SHFLX + SHDT*PTYPE/DTSURF
+c             write(iu_scm_prt,*) 'srf  evpflx shflx ptype ',
+c    *                   EVPFLX,SHFLX,ptype
+          endif
+      endif
+#endif
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
       TGR4(ITYPE,I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
       dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*TR4)
 C**** final fluxes
+#ifdef SCM
+cccccc for SCM use ARM provided fluxes for designated box
+      if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
+           DTH1(I,J)=DTH1(I,J) 
+     &              +ash*DTSURF*ptype/(SHA*MA1*P1K)
+           DQ1(I,J)=DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
+           SHFLX = SHFLX + ASH*ptype
+           EVPFLX = EVPFLX + ALH*ptype
+           write(iu_scm_prt,980) I,PTYPE,DTH1(I,J),DQ1(I,J),
+     &           EVPFLX,SHFLX
+ 980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
+     &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)   
+      else
+           DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
+           DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
+c          write(iu_scm_prt,981) I,PTYPE,DTH1(I,J),DQ1(I,J) 
+c981       format(1x,'SURFACE GCM   I PTYPE DTH1 DQ1 ',
+c    &            i5,f9.4,f9.5,f9.6)
+      endif
+#else
       DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
+#endif
       DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
       DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
       uflux1(i,j)=uflux1(i,j)+PTYPE*RCDMWS*(US-UOCEAN)

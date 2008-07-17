@@ -315,6 +315,8 @@ C
      *              TRUFLBTOP,TRUFLBBOT,TRDFLBBOT
 120   format(1x,'rad  sw nbot top dbot top ',4(f10.2),
      *       '    lw utop bot dbot ',3(f10.2)) 
+      write(iu_scm_prt,125) EVPFLX,SHFLX
+125   format(1x,'EVPFLX SHFLX ',2(f10.3))
 
 c
       do L=1,LM
@@ -327,6 +329,12 @@ c
      +          f7.4,'  tauss mc ',2(f7.3),'  camtss mc ',
      +          2(f7.3),' arscl ',f6.2)
       enddo 
+c     do L=1,LM
+c        write(iu_scm_prt,150) L,SG_P(L),TPRT(L),QPRT(L)*1000.0,
+c    +           WMCOL(L)*1000.0,SVLHXCOL(L),PRESAV(L)*1000.,LHPSAV(L),
+c    +           PREMC(L)*1000.0,LHPMC(L)
+c150     format(1x,i3,f8.2,f8.2,f8.4,f8.5,f12.0,f8.5,f12.0,f8.5,f12.0)
+c     enddo
 
 
       RETURN 

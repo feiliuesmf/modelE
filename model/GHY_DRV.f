@@ -686,8 +686,11 @@ c****
      *     ,im,jm
      &     ,Jyear,Jmon,Jday,Jdate,Jhour
 #ifdef SCM
-     *     ,I_TARG,J_TARG,NSTEPSCM
+     &     ,I_TARG,J_TARG,NSTEPSCM
+#endif
+#ifdef SCM
       use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt
+      use SCMDIAG, only : EVPFLX,SHFLX
 #endif
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
@@ -1211,27 +1214,29 @@ c**** accumulate surface fluxes and prognostic and diagnostic quantities
 C**** calculate correction for different TG in radiation and surface
       dLWDT = pbl_args%dtsurf*(TRSURF(ITYPE,I,J)-STBO*(tearth(i,j)+TF)
      *     **4)
-      dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
-      dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
 
 #ifdef SCM
-c     if SCM overwrite sensible and latent heat fluxes with ARM
+c     if SCM use sensible and latent heat fluxes provided by ARM
 c        values
-      if (i.eq.I_TARG .and. j.eq.J_TARG) then
-         if (SCM_SURFACE_FLAG.eq.1) then
-c           write(iu_scm_prt,980) NSTEPSCM,ash*1800.,shdt,
-c    &                (alh*1800.00/2500000.0),
-c    &                 aevap
-c980        format(/1x,'EARTH NSTEP ARMsh GCMsh ARMLH GCMevp ',
-c    &           i5,f12.3,f12.3,f12.5,f12.5)
-            dth1(i,j)=dth1(i,j)
-     &              +ash*pbl_args%dtsurf*ptype/(sha*ma1*p1k)
-            dq1(i,j) =dq1(i,j)
-     &              +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
-c           write(iu_scm_prt,981) dth1(i,j),dq1(i,j)
-c981        format(1x,'EARTH        dth1 dq1 ',f9.4,f9.5)
-         endif
+      if ((i.eq.I_TARG.and.j.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
+           dth1(i,j)=dth1(i,j)
+     &             +ash*pbl_args%dtsurf*ptype/(sha*ma1*p1k)
+           dq1(i,j) =dq1(i,j)
+     &             +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
+           EVPFLX = EVPFLX + ALH*ptype
+           SHFLX = SHFLX + ASH*ptype
+           write(iu_scm_prt,981) i,ptype,dth1(i,j),dq1(i,j),EVPFLX,SHFLX
+ 981       format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',i5,
+     &            f9.4,f9.4,f9.5,f9.5,f9.5)
+      else    
+           dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
+           dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+c          write(iu_scm_prt,982) i,ptype,dth1(i,j),dq1(i,j)
+c982       format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
       endif
+#else
+      dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
+      dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
 #endif
   !    qsavg(i,j)=qsavg(i,j)+qs*ptype
 c**** save runoff for addition to lake mass/energy resevoirs
@@ -1402,6 +1407,13 @@ c***********************************************************************
 #endif
       use model_com, only : dtsrc,nisurf,jdate
      *     ,jday,jhour,nday,itime,jeq,modrd,itearth
+#ifdef SCM
+     &     ,I_TARG,J_TARG
+#endif
+#ifdef SCM
+      use SCMDIAG, only : EVPFLX,SHFLX
+      use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt
+#endif
       use DOMAIN_DECOMP, only : grid
       use geom, only : dxyp
       use rad_com, only : trhr,fsf, cosz1
@@ -1585,6 +1597,17 @@ c**** quantities accumulated for regions in diagj
         aregj(jr,j,j_tg1 ) =aregj(jr,j,j_tg1 ) + tg1   *ptype*dxyp(j)
         aregj(jr,j,j_tg2 ) =aregj(jr,j,j_tg2 ) + tg2av *ptype*dxyp(j)
       end if
+
+#ifdef SCM
+      if (J.eq.J_TARG.and.I.eq.I_TARG) then
+          if (SCM_SURFACE_FLAG.eq.0) then
+              EVPFLX = EVPFLX + aevap*PTYPE/DTSURF
+              SHFLX  = SHFLX  + SHDT *PTYPE/DTSURF
+c             write(iu_scm_prt,*) 'ghy_drv  evpflx shflx ptype ',
+c    &                  EVPFLX,SHFLX,ptype
+          endif
+      endif
+#endif
 
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
