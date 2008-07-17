@@ -1153,7 +1153,7 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : nstype,gtempr
-#ifdef OBIO_RAD_coupling
+#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
      .                  ,chl
 #endif
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
@@ -1513,7 +1513,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 
-#ifdef OBIO_RAD_coupling
+#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) LOC_CHL = chl(I,J)
 #endif

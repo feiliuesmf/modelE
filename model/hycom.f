@@ -160,6 +160,7 @@ c
 #ifdef TRACERS_OceanBiology
       integer ihr,ichan,hour_of_day,day_of_month,iyear
       integer bef,aft                   !  bio routine timing variables
+      real tata
 #endif
       external rename
       logical master,slave,diag_ape
@@ -1079,6 +1080,15 @@ c
       end if  ! AM_I_ROOT
 
 #ifdef TRACERS_OceanBiology
+      
+        do j=1,jj
+        do l=1,isp(j)
+        do i=ifp(j,l),ilp(j,l)
+        tata=tata+temp(i,j,1+mm)
+        enddo
+        enddo
+        enddo
+        print*,'DIAGNOSTIC sum_temp=', nstep,tata
       if (dobio .or. diagno) call obio_trint
 #endif
 

@@ -359,9 +359,9 @@ cdiag    endif
          iyear=2001
 
 
-         !compute the ocean albedo but we do not need it yet
-         !before we couple to atmosphere
-         !has to have hygr =  .true. 
+         !compute rod and ros only here. not ocean albedo.
+         !ocean albedo is computed in ALBEDO.f
+         !have to have hygr =  .true. 
          call obio_ocalbedo(wind,solz,dummy,dummy,dummy1,
      .                      rod,ros,.true.,vrbos)
 

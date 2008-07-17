@@ -410,7 +410,7 @@ C
         XOCVN(L)=XOCNIR
       END DO
 
-#ifdef OBIO_RAD_coupling
+#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
 C**** call routine to calculate Gregg version of albedo, including
 C**** Chlorophyll effect
 

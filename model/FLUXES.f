@@ -117,7 +117,7 @@ C**** fluxes associated with variable lake fractions
 !@var DGML energy associated with DMWLDF (J)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DGML
 
-#ifdef OBIO_RAD_coupling
+#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
 C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CHL
@@ -283,7 +283,7 @@ C**** fluxes associated with variable lake fractions
      &          MSICNV  ( I_0H:I_1H , J_0H:J_1H ),
      &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
-#ifdef OBIO_RAD_coupling
+#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
      &          CHL     ( I_0H:I_1H , J_0H:J_1H ),
 #endif
      &   STAT=IER)
