@@ -24,7 +24,7 @@
       CONTAINS
 
 #if defined(MACHINE_SGI) \
- || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
+ || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) && ! defined(COMPILER_NAG) ) \
  || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       FUNCTION RANDU (X)
@@ -37,7 +37,7 @@
       RETURN
       END FUNCTION RANDU
 #elif defined( MACHINE_IBM ) \
- || ( defined(MACHINE_MAC) && defined(COMPILER_NAG) ) \
+ || ( defined(COMPILER_NAG) ) \
  || ( defined(MACHINE_Linux) && defined(COMPILER_G95) ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_G95) ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
@@ -55,7 +55,7 @@
          GO TO 10
       END SELECT
       IX=IY
-      RANDU=DFLOAT(IY)*.465661287308D-9
+      RANDU=DBLE(IY)*.465661287308D-9
       RETURN
       END FUNCTION RANDU
 #else
@@ -144,7 +144,7 @@
 !@sum  exit_rc stops the run and sets a return code
 !@auth Reto A Ruedy
 !@ver  1.0 (SGI,IBM,Linux,DEC)
-#if ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+#if ( defined(COMPILER_NAG) )
       use f90_unix_proc
 #endif
       IMPLICIT NONE
@@ -166,6 +166,9 @@
 !@sum system call to flush corresponding I/O unit
 !@auth I. Aleinov
 !@ver  1.0 (SGI,IBM,Linux,DEC)
+#if ( defined(COMPILER_NAG) )
+      use f90_unix_io
+#endif
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: unit !@var unit 
 #if defined(MACHINE_SGI)
@@ -194,14 +197,14 @@
 !@var prog handler subroutine for given signal
       EXTERNAL prog
 #if defined(MACHINE_SGI) \
- || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
+ || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) && ! defined(COMPILER_NAG) ) \
  || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       call signal( sig, prog, -1 ) 
 #elif defined( MACHINE_IBM ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       call signal( sig, prog )
-#elif ( defined(MACHINE_MAC) && defined(COMPILER_NAG) ) \
+#elif ( defined(COMPILER_NAG) ) \
  || ( defined(MACHINE_Linux) && defined(COMPILER_G95) ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_G95) )
       ! do nothing if "signal" is not supported by NAG
@@ -215,7 +218,7 @@
 
       SUBROUTINE sys_abort
 !@sum system call to "abort" (to dump core)
-#if ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+#if ( defined(COMPILER_NAG) )
       use f90_unix_proc
 #endif
       call abort
@@ -226,12 +229,14 @@
 !@sum returns next argument on the command line
 !@+  arg - returned argument, or returns "" if no more arguments
 !@+  if opt==1 return arg only if it is an option (starts with -)
-#if ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+#if ( defined(COMPILER_NAG) )
       use f90_unix_env
 #endif
       implicit none
       character(*), intent(out) :: arg
+#if (! defined(COMPILER_NAG) )
       integer, external :: iargc
+#endif
       integer, intent(in) :: opt
       integer, save :: count = 1
       if ( count > iargc() ) then
