@@ -3093,7 +3093,7 @@ C**** position correctly
 
 C**** define lst
       do l=1,lm
-        if (l.lt.10) write(lst(l)(1:2),'(I1,X)') l
+        if (l.lt.10) write(lst(l)(1:2),'(I1,1X)') l
         if (l.ge.10) write(lst(l)(1:2),'(I2)') l
       end do
 
