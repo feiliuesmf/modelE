@@ -267,10 +267,10 @@ endif
 ifeq ($(COMPILER),nag)
 F90 = f95
 CPP = /usr/bin/cpp -P -traditional
-FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_NAG
-FFLAGS = -O2
-F90FLAGS = -O2 -free
+FFLAGS = -fpp -O0 -maxcontin=100 -kind=byte -dusty
+F90FLAGS = -fpp -O2 -free -kind=byte
 LFLAGS =
 # the following switch adds extra debugging
 ifeq ($(COMPILE_WITH_TRAPS),YES)
