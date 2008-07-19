@@ -63,7 +63,8 @@ cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
       INTEGER, PARAMETER, public :: KAIJ=328 , KAIJX=KAIJ+400
 !@var AIJ latitude/longitude diagnostics
-      REAL*8, DIMENSION(IM,JM,KAIJ), public :: AIJ
+      !REAL*8, DIMENSION(IM,JM,KAIJ), public :: AIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ_loc
 
 !@param KAIL number of AIL diagnostics
@@ -185,7 +186,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER, public :: KAIJK=28, kaijkx=kaijk+400
 !@var KAIJK lat/lon constant pressure diagnostics
-      REAL*8, DIMENSION(IM,JM,LM,KAIJK), public :: AIJK
+      !REAL*8, DIMENSION(IM,JM,LM,KAIJK), public :: AIJK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK_loc
 
 !@param NWAV_DAG number of components in spectral diagnostics
@@ -705,13 +707,13 @@ c idacc-indices of various processes
 !@ver  1.0
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
-      USE RESOLUTION, ONLY : IM,LM
+      USE RESOLUTION, ONLY : IM,JM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc, AFLX_ST
-     *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc
+     *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,AIJK,AIJ
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -752,6 +754,12 @@ c idacc-indices of various processes
 
       ALLOCATE( AIJK_loc(IM,J_0H:J_1H,LM,KAIJK),
      &         AFLX_ST(LM+LM_REQ+1,IM,J_0H:J_1H,5),
+     &         STAT = IER)
+
+      ! the following global arrays probably need to be allocated only
+      ! on root, but should check first
+      ALLOCATE( AIJK(IM,JM,LM,KAIJK),
+     &         AIJ(IM,JM,KAIJ),
      &         STAT = IER)
 
       RETURN

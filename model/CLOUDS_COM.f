@@ -172,11 +172,13 @@ C**** Initialise some output used in dynamics
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "CLD01"
-      REAL*8, DIMENSION(LM,IM,JM) :: TTOLD_glob,QTOLD_glob
+      REAL*8, ALLOCATABLE,  DIMENSION(:,:,:) :: TTOLD_glob,QTOLD_glob
      &                              ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
      &     ,OLDNO_glob,OLDNL_glob,SMFPM_glob
 #endif
+
+      call allocate_me
 
       write(MODULE_HEADER(lhead+1:80),'(a)')
      &'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
@@ -226,7 +228,29 @@ C***ESMF: Unpack global arrays into distributed local arrays.
 #endif
       END SELECT
 
+      call deallocate_me
       RETURN
  10   IOERR=1
+      call deallocate_me
       RETURN
+
+      contains
+      subroutine allocate_me
+      if (AM_I_ROOT()) then
+        ALLOCATE( TTOLD_glob(LM,IM,JM),
+     &       QTOLD_glob(LM,IM,JM),
+     &       SVLHX_glob(LM,IM,JM),
+     &       RHSAV_glob(LM,IM,JM),
+     &       CLDSAV_glob(LM,IM,JM) )
+      endif
+      end subroutine allocate_me
+      subroutine deallocate_me
+      if (AM_I_ROOT()) then
+        DEALLOCATE( TTOLD_glob,
+     &       QTOLD_glob,
+     &       SVLHX_glob,
+     &       RHSAV_glob,
+     &       CLDSAV_glob)
+      endif
+      end subroutine deallocate_me
       END SUBROUTINE io_clouds

@@ -262,11 +262,13 @@ C**** Initialize to zero
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH02"
 
-      REAL*8, DIMENSION(IM,JM) :: SNOWE_glob, TEARTH_glob, WEARTH_glob,
-     &                            AIEARTH_GLOB,evap_max_ij_glob,
-     &                            fr_sat_ij_glob, qg_ij_glob
-      REAL*8 :: SNOAGE_glob(3,IM,JM)
-      REAL*8 :: tsns_ij_glob(IM,JM)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWE_glob, TEARTH_glob,
+     &     WEARTH_glob, AIEARTH_GLOB,evap_max_ij_glob, fr_sat_ij_glob,
+     &     qg_ij_glob
+      REAL*8, ALLOCATABLE :: SNOAGE_glob(:,:,:)
+      REAL*8, ALLOCATABLE :: tsns_ij_glob(:,:)
+
+      call allocate_me
 
       MODULE_HEADER(lhead+1:80) =
      *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
@@ -322,9 +324,40 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       END SELECT
 
+      call deallocate_me
       RETURN
  10   IOERR=1
+      call deallocate_me
       RETURN
+
+      contains
+      subroutine allocate_me
+      if (AM_I_ROOT()) then
+        ALLOCATE( SNOAGE_glob(3,IM,JM),
+     &       tsns_ij_glob(IM,JM),
+     &       SNOWE_glob(IM,JM),
+     &       TEARTH_glob(IM,JM),
+     &       WEARTH_glob(IM,JM),
+     &       AIEARTH_GLOB(IM,JM),
+     &       evap_max_ij_glob(IM,JM),
+     &       fr_sat_ij_glob(IM,JM),
+     &       qg_ij_glob(IM,JM) )
+      endif
+      end subroutine allocate_me
+      subroutine deallocate_me
+      if (AM_I_ROOT()) then
+        DEALLOCATE( SNOAGE_glob,
+     &       tsns_ij_glob,
+     &       SNOWE_glob,
+     &       TEARTH_glob,
+     &       WEARTH_glob,
+     &       AIEARTH_GLOB,
+     &       evap_max_ij_glob,
+     &       fr_sat_ij_glob,
+     &       qg_ij_glob )
+      endif
+      end subroutine deallocate_me
+
       END SUBROUTINE io_earth
 
 
@@ -347,8 +380,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-      REAL*8 SNOWBV_GLOB(2,IM,JM)
-      REAL*8, DIMENSION(0:NGM,LS_NFRAC,IM,JM) :: W_GLOB,HT_GLOB
+      REAL*8, ALLOCATABLE ::  SNOWBV_GLOB(:,:,:)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: W_GLOB,HT_GLOB
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS03"
       INTEGER :: J_0H, J_1H
@@ -357,13 +390,15 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       integer m
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS03"
-      REAL*8 :: TRSNOWBV0_GLOB(NTM,2,IM,JM)
-      REAL*8 :: TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,IM,JM)
+      REAL*8, ALLOCATABLE :: TRSNOWBV0_GLOB(:,:,:,:)
+      REAL*8, ALLOCATABLE :: TR_W_GLOB  (:,:,:,:,:)
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a21,i3,a1,i2,a1,i2,a11,i3,a2)')
      *     'R8 dim(im,jm) TR_W(',NTM,',',NGM,',',LS_NFRAC
      *     ,'),TRSNOWBV(',ntm,'2)'
 #endif
+
+      call allocate_me
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
@@ -436,9 +471,36 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #endif
       END SELECT
 
+      call deallocate_me
       RETURN
  10   IOERR=1
+      call deallocate_me
       RETURN
+
+      contains
+      subroutine allocate_me
+      if (AM_I_ROOT()) then
+        ALLOCATE( SNOWBV_GLOB(2,IM,JM),
+     &       W_GLOB(0:NGM,LS_NFRAC,IM,JM),
+     &       HT_GLOB(0:NGM,LS_NFRAC,IM,JM) )
+#ifdef TRACERS_WATER
+     &       ALLOCATE( TRSNOWBV0_GLOB(NTM,2,IM,JM),
+     &       TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,IM,JM) )
+#endif
+      endif
+      end subroutine allocate_me
+      subroutine deallocate_me
+      if (AM_I_ROOT()) then
+        DEALLOCATE(SNOWBV_GLOB,
+     &       W_GLOB,
+     &       HT_GLOB )
+#ifdef TRACERS_WATER
+     &       DEALLOCATE( TRSNOWBV0_GLOB,
+     &       TR_W_GLOB )
+#endif
+      endif
+      end subroutine deallocate_me
+
       END SUBROUTINE io_soils
 
 
@@ -459,14 +521,14 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SNOW01"
-      INTEGER ::  NSN_IJ_GLOB(2,IM,JM)
-      REAL*8, DIMENSION(NLSN,2,IM,JM) :: DZSN_IJ_GLOB, WSN_IJ_GLOB
-     &                                  ,HSN_IJ_GLOB
-      REAL*8 :: FR_SNOW_IJ_GLOB(2,IM,JM)
+      INTEGER, ALLOCATABLE ::  NSN_IJ_GLOB(:,:,:)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: DZSN_IJ_GLOB,
+     &     WSN_IJ_GLOB, HSN_IJ_GLOB
+      REAL*8, ALLOCATABLE :: FR_SNOW_IJ_GLOB(:,:,:)
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSNOW01"
-      REAL*8 TR_WSN_IJ_GLOB(NTM,NLSN,2,IM,JM)
+      REAL*8, ALLOCATABLE ::  TR_WSN_IJ_GLOB(:,:,:,:,:)
 
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a)')'R8 dim(',NTM,',',NLSN,',2,IM,JM):TRSNW'
@@ -474,6 +536,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       write (MODULE_HEADER(lhead+1:80),'(a29,I1,a)') 'I dim(2,ijm):'//
      *  'Nsn, R8 dim(',NLSN,',2,ijm):dz,w,ht, Fsn(2,ijm)'
+
+      call allocate_me
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -529,9 +593,38 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #endif
       END SELECT
 
+      call deallocate_me
       RETURN
  10   IOERR=1
-      RETURN
+      call deallocate_me
+      RETURN      
+
+      contains
+      subroutine allocate_me
+      if (AM_I_ROOT()) then
+        ALLOCATE( NSN_IJ_GLOB(2,IM,JM),
+     &       DZSN_IJ_GLOB(NLSN,2,IM,JM),
+     &       WSN_IJ_GLOB(NLSN,2,IM,JM),
+     &       HSN_IJ_GLOB(NLSN,2,IM,JM),
+     &       FR_SNOW_IJ_GLOB(2,IM,JM) )
+#ifdef TRACERS_WATER
+        ALLOCATE( TR_WSN_IJ_GLOB(NTM,NLSN,2,IM,JM) )
+#endif
+      endif
+      end subroutine allocate_me
+      subroutine deallocate_me
+      if (AM_I_ROOT()) then
+        DEALLOCATE( NSN_IJ_GLOB,
+     &       DZSN_IJ_GLOB,
+     &       WSN_IJ_GLOB,
+     &       HSN_IJ_GLOB,
+     &       FR_SNOW_IJ_GLOB )
+#ifdef TRACERS_WATER
+        DEALLOCATE( TR_WSN_IJ_GLOB )
+#endif
+      endif
+      end subroutine deallocate_me
+
       END SUBROUTINE io_snow
 
 #ifdef USE_ENT
@@ -559,6 +652,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       real*8, dimension(im,jm) :: Ci_ij_glob, Qf_ij_glob, cnc_ij_glob
       integer :: force_init_ent=0
 
+      call allocate_me
 !!! hack
       call sync_param( "init_ent", force_init_ent)
 
@@ -587,8 +681,27 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
        endif
       end select
 
+      call deallocate_me
       return
  10   ioerr=1
+      call deallocate_me
       return
+
+      contains
+      subroutine allocate_me
+      if (AM_I_ROOT()) then
+        ALLOCATE( Ci_ij_glob(im,jm),
+     &       Qf_ij_glob(im,jm),
+     &       cnc_ij_glob(im,jm) )
+      endif
+      end subroutine allocate_me
+      subroutine deallocate_me
+      if (AM_I_ROOT()) then
+        DEALLOCATE( Ci_ij_glob,
+     &       Qf_ij_glob,
+     &       cnc_ij_glob )
+      endif
+      end subroutine deallocate_me
+
       end subroutine io_veg_related
 #endif
