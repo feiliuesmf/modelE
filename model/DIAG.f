@@ -3003,9 +3003,9 @@ C****
       USE DIAG_COM, only : kgz_max,pmname,P_acc
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm, trm, trname, mass2vol, n_Ox, n_SO4, 
+      USE TRACER_COM, only : ntm, trm, trname, mass2vol, n_Ox, n_SO4,
      *     n_SO4_d1,n_SO4_d2,n_SO4_d3,n_clay,n_clayilli,n_sil1quhe,
-     *     n_water, n_HDO, n_Be7, n_NOx 
+     *     n_water, n_HDO, n_Be7, n_NOx
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      *     ,Ntm_dust
@@ -3017,7 +3017,7 @@ C****
      &     ,dowetdep, trw0
 #endif
 #ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc 
+      USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
 #endif
 #endif
       IMPLICIT NONE
@@ -3194,7 +3194,7 @@ C****
       USE DYNAMICS, only : ptropo,am,wsave
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp,gtempr
-#ifdef TRACERS_ON 
+#ifdef TRACERS_ON
      *     ,trcsurf
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -3472,7 +3472,7 @@ C**** get pressure level
             cycle
           end if
 
-C**** diagnostics on model levels 
+C**** diagnostics on model levels
         case ("U","V","W","C","O","B","D","N")    ! velocity/clouds/tracers
           if (namedd(k)(2:4) .eq. "ALL") then
             kunit=kunit+1
@@ -3502,9 +3502,9 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*dxyp(j))
                   end do
                 end do
-#endif               
+#endif
 #ifdef TRACERS_COSMO
-              case ("B")                ! Be7 tracer 
+              case ("B")                ! Be7 tracer
                 do j=J_0,J_1
                   do i=1,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,kp,n_Be7)* mass2vol(n_Be7)/
@@ -3556,9 +3556,9 @@ C**** get model level
      *                   (am(l,i,j)*dxyp(j))
                   end do
                 end do
-#endif               
+#endif
 #ifdef TRACERS_COSMO
-              case ("B")                ! Be7 tracer 
+              case ("B")                ! Be7 tracer
                 do j=J_0,J_1
                   do i=1,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_Be7)* mass2vol(n_Be7)/
@@ -3676,7 +3676,7 @@ C**** first set: no 'if' tests
           end do
           cycle
 
-C**** other dust special cases 
+C**** other dust special cases
 
 #ifdef TRACERS_DRYDEP
           CASE ('DUDEPTURB')        ! Turb. deposition flux of dust tracers [kg/m^2/s]
@@ -3743,7 +3743,7 @@ c****
       real*4, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: data
       integer kunit
       logical :: polefix
-      
+
 c**** fix polar values
       if (polefix) then
         if(haveLatitude(grid, J=1 )) data(2:im,1) =data(1,1)
@@ -3751,7 +3751,7 @@ c**** fix polar values
       end if
       call writei_parallel(grid,iu_subdd(kunit),
      *     nameunit(iu_subdd(kunit)),data,itime)
-      
+
       end subroutine write_data
 
       end module subdaily
@@ -3848,7 +3848,7 @@ C****
 
             DO n=1,Ntm_dust
               n1=n_clay+n-1
-              
+
               tmp(idd_load1:idd_load1+lmax_dd2-1)
      *             =tmp(idd_load1:idd_load1+lmax_dd2-1)+trm(i,j
      *             ,1:lmax_dd2,n1)*bydxyp(j)
@@ -3859,8 +3859,8 @@ C****
      *             +lmax_dd2-1)+ttausv_save(i,j,n1,1:lmax_dd2)
               tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
      *             =tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
-     *             +ttausv_cs_save(i,j,n1,1:lmax_dd2) 
-              
+     *             +ttausv_cs_save(i,j,n1,1:lmax_dd2)
+
             END DO
 
             DIURN_partd(:,J,kr)=DIURN_partd(:,J,kr)+tmp(idxd(:))
@@ -4214,9 +4214,9 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE DIAG_COM
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRDIAG_COM, only: taijln, TAIJLN_loc, taijn,  TAIJN_loc,
-     *     taijs,  TAIJS_loc, TAJLN,  TAJLN_loc, TAJLS,  TAJLS_loc,
-     *     TCONSRV,TCONSRV_loc
+      USE TRDIAG_COM, only: TAIJLN_loc, TAIJN_loc, 
+     *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc
+   !  *     ,taijln,taijn,taijs,TAJLN,TAJLS,TCONSRV ! not needed ?? 
 #endif
       USE DOMAIN_DECOMP, only: grid, CHECKSUM
       IMPLICIT NONE
@@ -4229,8 +4229,8 @@ C**** Initiallise ice freeze diagnostics at beginning of run
         if (isum.eq.1) return
         go to 100
       end if
-      AJ_loc=0    ; AREGJ_loc=0
 
+      AJ_loc=0    ; AREGJ_loc=0
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AJK_loc=0   ; AIJK_loc=0
@@ -4239,18 +4239,15 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 #endif
       ADIURN=0 ; AISCCP=0
 #ifdef TRACERS_ON
-       TAJLN=0. ; TAJLS=0. ; TCONSRV=0.
+      !!! TAJLN=0. ; TAJLS=0. ; TCONSRV=0. ! not needed ?
        TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
-       TAIJLN=0.    ; TAIJN=0.     ; TAIJS=0.
+      !!! TAIJLN=0.    ; TAIJN=0.     ; TAIJS=0.  ! not needed ?
       TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
 #endif
       call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required
 
-      if (isum.eq.1) then ! prepare to add up acc-files
-         AJ=0 ; APJ=0 ; AJL=0 ; ASJL=0 ; AIJ=0 ; AJK=0 ; AIJK=0
-         return
-      end if
+      if (isum.eq.1) return ! just adding up acc-files
 
       AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 

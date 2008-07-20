@@ -5797,7 +5797,7 @@ C**** IJL diags are done separately
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
      *     ,ijl_cf,ijk_w,ia_rad,ia_dga
-     *     ,ia_src,lh_diags 
+     *     ,ia_src,lh_diags
      *     ,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
 #ifdef CLD_AER_CDNC
      *    ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
@@ -6419,7 +6419,7 @@ cddd#endif
      *     TCONSRV, TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
-      USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM
+      USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM,am_i_root
       USE CONSTANT, only : NaN
       IMPLICIT NONE
 cddd      INTEGER :: J_0, J_1, J_0H, J_1H
@@ -6428,6 +6428,8 @@ cddd#ifdef USE_ENT
 cddd      REAL*8, ALLOCATABLE :: fract_vege(:,:)
 cddd      INTEGER i,j
 cddd#endif
+
+      if(am_i_root()) call alloc_diag_com_glob
 
       CALL PACK_DATAj(GRID, AJ_loc,  AJ)
       CALL PACK_DATA(GRID, AREGJ_loc,  AREGJ)
@@ -6500,6 +6502,7 @@ cddd      DEALLOCATE(tmp)
      *     TCONSRV, TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
+      USE DOMAIN_DECOMP, ONLY : am_i_root
       IMPLICIT NONE
 
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
@@ -6521,7 +6524,7 @@ cddd      DEALLOCATE(tmp)
       CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc)
       CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc)
 #endif
-
+      if(am_i_root()) call dealloc_diag_com_glob
 
       END SUBROUTINE DIAG_SCATTER
 

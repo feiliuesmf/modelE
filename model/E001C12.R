@@ -42,7 +42,7 @@ POUT                                ! post-processing output
 
 Data input files:
 ! AIC=DEC1958.rsfB394M12.modelE.16 ! model init cond (atm. and ground) ISTART=7
-! AIC=AIC.RES_M12.D771201   ! observed init cond   (atm. only)       ISTART=2
+AIC=AIC.RES_C12.D771201   ! observed init cond   (atm. only)       ISTART=2
 GIC=GIC.8X10.modelE.1       ! initial ground conditions              ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
 ! OCNML=Z1O.B4X5.cor        ! mixed layer depth,needed for post-processing only
@@ -123,9 +123,8 @@ isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ
-   !  YEARI=1950,MONTHI=12,DATEI=1,HOURI=0, ! to be used with ISTART=2
-   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
+   YEARI=1950,MONTHI=12,DATEI=1,HOURI=0, ! to be used with ISTART=2
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   YEARE=1950,MONTHE=2,
-   ISTART=1,IRANDI=0, YEARE=1950,MONTHE=1,DATEE=1,HOURE=1,
+   YEARE=1951,MONTHE=2,
+   ISTART=2,IRANDI=0, YEARE=1950,MONTHE=12,DATEE=1,HOURE=1,
  &END
