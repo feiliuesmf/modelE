@@ -484,7 +484,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       W_GLOB(0:NGM,LS_NFRAC,IM,JM),
      &       HT_GLOB(0:NGM,LS_NFRAC,IM,JM) )
 #ifdef TRACERS_WATER
-     &       ALLOCATE( TRSNOWBV0_GLOB(NTM,2,IM,JM),
+        ALLOCATE( TRSNOWBV0_GLOB(NTM,2,IM,JM),
      &       TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,IM,JM) )
 #endif
       endif
@@ -495,7 +495,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       W_GLOB,
      &       HT_GLOB )
 #ifdef TRACERS_WATER
-     &       DEALLOCATE( TRSNOWBV0_GLOB,
+        DEALLOCATE( TRSNOWBV0_GLOB,
      &       TR_W_GLOB )
 #endif
       endif
