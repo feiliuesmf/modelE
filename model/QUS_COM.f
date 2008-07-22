@@ -55,8 +55,10 @@
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "QUS01"
-      REAL*8, DIMENSION(NMOM,IM,JM,LM) :: TMOM_GLOB, QMOM_GLOB
+      REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: TMOM_GLOB, QMOM_GLOB
 
+      IF(AM_I_ROOT())
+     &     ALLOCATE(TMOM_GLOB(NMOM,IM,JM,LM),QMOM_GLOB(NMOM,IM,JM,LM))
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)')
      * 'R8 dim(',nmom,',im,jm,lm):Tmom,Qmom'
 
@@ -79,9 +81,18 @@
         CALL UNPACK_COLUMN(grid, QMOM_GLOB, QMOM)
       END SELECT
 
+      call freespace
       RETURN
  10   IOERR=1
+      call freespace
       RETURN
+
+      contains
+
+      subroutine freespace
+      IF(AM_I_ROOT()) DEALLOCATE(TMOM_GLOB,QMOM_GLOB)
+      end subroutine freespace
+
       END SUBROUTINE io_somtq
 
       subroutine tq_zmom_init(t,q,pmid,pedn)
