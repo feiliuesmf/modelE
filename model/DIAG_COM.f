@@ -942,8 +942,8 @@ C**** The regular model (Kradia le 0)
       i_xtra = i_ida+9 + 5+8+1 + 1
 
       call alloc_diag_com_glob
-      if (AM_I_ROOT()) allocate (TDIURN_glob(IM, JM, KTD))
-      if (AM_I_ROOT()) allocate (OA_glob(IM, JM, KOA))
+      if (AM_I_ROOT()) allocate ( TDIURN_glob(IM, JM, KTD)
+     *                           ,OA_glob(IM, JM, KOA))
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
@@ -951,9 +951,6 @@ C**** The regular model (Kradia le 0)
      *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
 
         Call Gather_Diagnostics()
-
-        CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
-        CALL PACK_DATA(grid,  OA, OA_glob)
 
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
@@ -1078,10 +1075,12 @@ C**** The regular model (Kradia le 0)
       END SELECT
 
       call dealloc_diag_com_glob
+      if ( am_i_root() ) deallocate(TDIURN_glob, OA_glob)
       RETURN
 
  10   IOERR=1
       call dealloc_diag_com_glob
+      if ( am_i_root() ) deallocate(TDIURN_glob, OA_glob)
       RETURN
 
       Contains
@@ -1129,6 +1128,8 @@ C**** The regular model (Kradia le 0)
         CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
         CALL PACK_DATAj(grid, AJK_loc,    AJK)
         CALL PACK_DATA(grid,  AIJK_loc,   AIJK)
+        CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
+        CALL PACK_DATA(grid,  OA, OA_glob)
       End Subroutine Gather_Diagnostics
 
       Subroutine alloc_diag_r4
