@@ -677,6 +677,9 @@ endif
 	@echo preprocessing $<  $(MSG)
 	$(CPP) $(CPPFLAGS) $*.f > $*.f.cpp
 
+%.F90.cpp: %.F90
+	 @echo preprocessing $<  $(MSG)
+	 $(CPP) $(CPPFLAGS) $*.F90 > $*.F90.cpp
 
 # end of Pattern  rules
 
