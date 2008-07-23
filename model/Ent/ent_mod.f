@@ -1578,6 +1578,12 @@ cddd      end subroutine ent_cell_update_single
         fraction_of_vegetated_soil = entcell%entcell%fv
       endif
 
+      if ( present(C_labile) )
+     &     C_labile = entcell%entcell%C_lab
+
+      if ( present(R_auto) )
+     &     R_auto = entcell%entcell%R_auto
+
       if ( present(soilresp) )  !PK
      &     soilresp = entcell%entcell%Soil_resp
 
@@ -1684,6 +1690,11 @@ cddd      end subroutine ent_cell_update_single
 
       if ( present(canopy_max_H2O) )
      &     canopy_max_H2O(i) = entcell(i)%entcell%LAI * .0001d0 !!! GISS setting
+      if ( present(C_labile) )
+     &     C_labile(i) = entcell(i)%entcell%C_lab
+
+      if ( present(R_auto) )
+     &     R_auto(i) = entcell(i)%entcell%R_auto
 
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
@@ -1831,6 +1842,12 @@ cddd      end subroutine ent_cell_update_single
           fraction_of_vegetated_soil(i,j) = 0.d0
         endif
       endif
+
+      if ( present(C_labile) )
+     &     C_labile(i,j) = entcell(i,j)%entcell%C_lab
+
+      if ( present(R_auto) )
+     &     R_auto(i,j) = entcell(i,j)%entcell%R_auto
 
       if ( present(soilresp) )
      &     soilresp(i,j) = entcell(i,j)%entcell%Soil_resp
