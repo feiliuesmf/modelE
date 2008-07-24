@@ -549,7 +549,7 @@ C****
 C**** Gent-McWilliams fluxes (10^-2 kg/s*m)
 C****
       DO KK=0,2
-        DO L=1,13               !3
+        DO L=1,lmo               !3
 c     L =1,13!KCMF(K)
 !          L=KCMFfull(K) ! anl
 
@@ -608,7 +608,7 @@ C****
 C**** Gent-McWilliams Salt Fluxes
 C****
       DO KK=0,2
-        DO L=1,13               !3
+        DO L=1,lmo               !3
 c      L =KCMF(K)
 c          L=KCMFfull(K) ! anl
 
@@ -727,7 +727,7 @@ C****
 C****
 C**** Vertical Diffusion Coefficients (cm/s)
 C****
-      DO L=1,12
+      DO L=1,lmo-1
         LNAME="VERT. MOM. DIFF."
         UNITS="cm^2/s"
         IF (L.lt.10) THEN
@@ -751,7 +751,7 @@ C****
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
 
-      DO L=1,12
+      DO L=1,lmo-1
         LNAME="VERT. HEAT DIFF."
         UNITS="W/m^2"
         IF (L.lt.10) THEN
@@ -775,7 +775,7 @@ C****
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
 
-      DO L=1,12
+      DO L=1,lmo-1
         LNAME="VERT. SALT DIFF."
         UNITS="10^-6 kg/m^2"
         IF (L.lt.10) THEN
@@ -801,7 +801,7 @@ C****
       
 #ifdef TRACERS_OCEAN
       do n=1,ntm
-      DO L=1,12
+      DO L=1,lmo-1
         LNAME="VERT. DIFF. "//trname(n)
         UNITS=unit_string(ntrocn(n),'kg/s')
         IF (L.lt.10) THEN
@@ -1013,7 +1013,7 @@ c        END DO
       END DO
 
 C**** Output Key diagnostics
-      do L=LMO/2,LMO-1
+      do L=1,LMO-1
         do J=2,JM-1
 C**** North Atl. + North Pac. overturning
           if (lat_dg(j+1,2).gt.48-0.5*dlat .and. lat_dg(j+1,2).lt.
