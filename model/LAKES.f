@@ -616,7 +616,6 @@ C**** Also ensure that all ocean boxes are done properly
           KDIREC(I,J) = KD
           KD911(I,J)  = KDE
         END IF
-        if (kdirec(i,j).eq.0) print*,"kd911",i,j,kd911(i,j),kdirec(i,j)
 C**** Check for specified river mouths
         IF (KD.GE.17 .AND. KD.LE.42) THEN
           IF (FOCEAN(I,J).le.0) THEN
