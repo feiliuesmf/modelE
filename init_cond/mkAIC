@@ -39,3 +39,5 @@ ofile=$( ls -1t OUT* | head -1 )
 sfx=${ofile#OUT}
 mv $ofile AIC.${RES[0]%.f}.D771201_${TOP[0]}_$sfx
 rm -f TOPO
+rm -f NCARIC.144x73.D7712010
+
