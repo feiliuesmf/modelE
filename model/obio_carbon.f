@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      subroutine obio_carbon(vrbos,kmax,i,j)
+      subroutine obio_carbon(gro,vrbos,kmax,i,j)
 c
 c  Computes carbon cycling.  Uses Aumont et al (2002; JGR) for
 c  semi-labile DOC (because of basic similarities in model
@@ -20,7 +20,7 @@ c
      .                      ,excz,resz,remin,excp,resp
 
       USE obio_com, only : bn,C_tend,obio_P,P_tend,car
-     .                    ,tfac,det,D_tend,tzoo,gro,pnoice,pCO2_ij
+     .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
 #ifdef TRACERS_GASEXCH_CO2_Natassa
@@ -46,6 +46,7 @@ c
       real  :: docbac,docdet,dicresz,sumdoc,sumutk,sumres,totgro
       real  :: docexcp,dicresp,scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
+      real  :: gro(kdm,nchl)
 
       logical vrbos
 
@@ -139,7 +140,8 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
         sumres = 0.0
 
         do nt = 1,nchl
-         totgro = gro(k,nt)*obio_P(k,nt+nnut)
+         !!totgro = gro(k,nt)*obio_P(k,nt+nnut)
+         totgro = gro(k,nt)
           docexcp = excp*totgro   !phyto production DOC
            dicresp = resp*totgro   !phyto production DIC
 
@@ -156,10 +158,10 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
          sumres = sumres + dicresp
 
 cdiag    if (vrbos .and. k.eq.1)
-!        if(nstep.ge.48.and.nstep.lt.50)write(*,*)
-!    .   'obio_carbon1:',
-!    .   nstep,nt+nnut,i,j,k,gro(k,nt),obio_P(k,nt+nnut),totgro,
-!    .   excp,docexcp,resp,dicresp,sumdoc,sumutk,sumres
+         if(nstep.eq.12.and.k.eq.1)write(*,'(a,5i5,10e12.4)')
+     .   'obio_carbon1:',
+     .   nstep,nt+nnut,i,j,k,gro(k,nt),obio_P(k,nt+nnut),totgro,
+     .   excp,docexcp,resp,dicresp,sumdoc,sumutk,sumres
 
         enddo !nt
 

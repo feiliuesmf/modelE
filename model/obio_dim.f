@@ -53,4 +53,7 @@
       integer, parameter :: atmCO2_case=0 !0- atmCO2=const, defined in obio_forc
                                           !1- atmCO2=varies,defined in obio_forc
 
+c --- diagno_bio      output obio-model fields and diagnostic messages
+      logical, public:: diagno_bio
+
       END MODULE obio_dim

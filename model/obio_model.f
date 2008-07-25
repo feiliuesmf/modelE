@@ -33,7 +33,7 @@
      .                    ,acdom,pp2_1d,pp2tot_day
      .                    ,tot_chlo,acdom3d
 
-      USE MODEL_COM, only: JMON,jhour,nday,jdate
+      USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
      . ,itime,iyear1,jdendofm,jyear,aMON
      . ,xlabel,lrunid
 
@@ -65,6 +65,10 @@
       logical vrbos,noon,errcon
 
 !--------------------------------------------------------
+      diagno_bio=.false.
+      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12)
+     .                           diagno_bio=.true. ! end of month,mid-day
+
 !Cold initialization
        if (nstep.eq.1) then
         trcout=.true.
@@ -76,7 +80,7 @@
         !note: we do not initialize obio_P,det and car
         call obio_bioinit
 
-        diagno=.true.
+        diagno_bio=.true.
        endif  ! 
 
 
@@ -108,13 +112,13 @@
        !  hour_of_day=hour_of_day+1
        !endif
 
-       write(lp,'(a,i10,f9.3,2x,2i5)')
-     .    'BIO: nstep,time,day_of_month,hour_of_day=',
-     .    nstep,time,day_of_month,hour_of_day
+       write(lp,'(a,i15,1x,f9.3,2x,3i5)')
+     .    'BIO: nstep,time,day_of_month,hour_of_day,jday=',
+     .    nstep,time,day_of_month,hour_of_day,jday
 
          ihr0 = int(hour_of_day/2)
 
-      if (diagno) then
+      if (diagno_bio) then
 !       do 16 lgth=60,1,-1
 !         if (flnmovt(lgth:lgth).ne.' ') go to 17
 ! 16    continue
@@ -135,7 +139,10 @@
        call openunit('pco2.'//string,iu_pco2)
        call openunit('tend.'//string,iu_tend)
 
-      endif  !diagno
+       print*,' '
+       print*, 'BIO: saving in pco2 and tend files'
+       print*,' '
+      endif  !diagno_bio
 
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
@@ -559,7 +566,7 @@ cdiag     endif
         write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=8,14)
        enddo
       endif
-      if (diagno) then
+      if (diagno_bio) then
       do k=1,kdm
       write(iu_tend,'(4i5,6e12.4)')
      .    nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
@@ -618,7 +625,7 @@ cdiag  endif
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
 
-       if (diagno) then
+       if (diagno_bio) then
          write(iu_pco2,'(3i7,22e12.4)')
      .     nstep,i,j
      .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
@@ -630,8 +637,8 @@ cdiag  endif
  1000 continue
 c$OMP END PARALLEL DO
 
-      if (diagno) call closeunit(iu_pco2)
-      if (diagno) call closeunit(iu_tend)
+      if (diagno_bio) call closeunit(iu_pco2)
+      if (diagno_bio) call closeunit(iu_tend)
 
       return
       end
