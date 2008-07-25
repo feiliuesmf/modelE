@@ -910,7 +910,7 @@ C**** i.e. no outlet, max extent, more than 100m above original height
           IF (KDIREC(IU,JU).eq.0 .and. FLAKE(IU,JU).gt.0 .and.
      *          FLAKE(IU,JU).ge.0.95d0*(FLAKE(IU,JU)+FEARTH(IU,JU)).and.
      *          MWL(IU,JU).gt.RHOW*(HLAKE(IU,JU)+100.)*FLAKE(IU,JU)
-     *          *DXYP(JU)) THEN ! use emergency directions 
+     *          *DXYP(JU) .and. KD911(IU,JU).gt.0) THEN ! use emerg dirs 
             KD=KD911(IU,JU)
             JD=JFL911(IU,JU)
             ID=JFL911(IU,JU)
