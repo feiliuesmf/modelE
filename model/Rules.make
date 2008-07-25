@@ -626,7 +626,7 @@ ifeq ($(COMPARE_MODULES_HACK),YES)
 	    fi; \
 	 fi; done; fi 
 else
-	@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+	@if [ `ls | grep "\.mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
 	  echo $@ > $$i.sig1; fi; done; fi ; \
 	if [ -s $(DEPENDFILE) ] ; then \
