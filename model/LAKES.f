@@ -19,11 +19,16 @@ C****                         GZM -> TLAKE (deg C)
 !@var KDIREC directions for river flow
 C**** 0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: KDIREC
+!@var KD911 emergency directions for river flow
+C**** 1-8 anti-clockwise from top RH corner
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: KD911
 !@var RATE rate of river flow downslope (fraction)
 !@var DHORZ horizontal distance to downstream box (m)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RATE,DHORZ
 !@var IFLOW,JFLOW grid box indexes for downstream direction
       INTEGER, ALLOCATABLE, DIMENSION (:,:) :: IFLOW,JFLOW
+!@var IFL911,JFL911 grid box indexes for emergency downstream direction
+      INTEGER, ALLOCATABLE, DIMENSION (:,:) :: IFL911,JFL911
 !@param NRVRMX Max No. of specified rivers
       INTEGER, PARAMETER :: NRVRMX = 42
 !@var NRVR actual No. of specified rivers
@@ -377,15 +382,19 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@ver  1.0
       USE DOMAIN_DECOMP, only: DIST_GRID, GET
       USE MODEL_COM, only : IM, JM
-      USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW
+      USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW,
+     *     KD911,IFL911,JFL911 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       ALLOCATE ( KDIREC (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *            IFLOW  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *            JFLOW  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *            RATE   (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *            DHORZ  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     *            KD911 (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            IFLOW (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            JFLOW (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            IFL911(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            JFL911(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            RATE  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            DHORZ (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      *            )
       RETURN
       END SUBROUTINE ALLOC_LAKES
@@ -424,7 +433,7 @@ c***      Type (ESMF_HaloDirection) :: direction
       LOGICAL, INTENT(IN) :: inilake
       INTEGER, INTENT(IN) :: ISTART
 !@var I,J,I72,IU,JU,ID,JD loop variables
-      INTEGER I,J,I72,IU,JU,ID,JD,INM,KD
+      INTEGER I,J,I72,IU,JU,ID,JD,INM,KD,KDE
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       CHARACTER TITLEI*80, CDIREC(IM,JM)*1, CONPT(NPTS)*10
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1
@@ -547,7 +556,9 @@ C**** If starting from a possibly corrupted rsf file, check Tlk2
       END IF
 C****
 C**** Always initiallise River direction and Rate
-C**** Read in CDIREC: Number = octant direction, Letter = river mouth
+C**** Read in CDIREC: Number = octant direction
+C****                 upper case = river mouth
+C****                 lower case = emergency octant direction 
       call openunit("RVR",iu_RVR,.false.,.true.)
       READ  (iu_RVR,910) TITLEI
       WRITE (out_line,*) 'River Direction file read: ',TITLEI
@@ -570,21 +581,26 @@ C**** read in named rivers (if any)
  10   call closeunit (iu_RVR)
 
 
-C**** Create integral direction array KDIREC from CDIREC
+C**** Create integral direction array KDIREC/KD911 from CDIREC
       CALL HALO_UPDATE(GRID, FEARTH0, FROM=NORTH+SOUTH) ! fixed 
       CALL HALO_UPDATE(GRID, FLICE,  FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)  ! fixed
       CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)  ! fixed
 
-      ! Use unusual loop bounds to fill KDIREC in halo
+      ! Use unusual loop bounds to fill KDIREC/KD911 in halo
 #ifdef SCM
       DO J=J_0,J_1
 #else
       DO J=MAX(1,J_0-1),MIN(JM,J_1+1)
 #endif
       DO I=1,IM
-C**** KD: -16 = blank, 0-8 directions >8 named rivers
+C**** KD: -16 = blank, 0-8 directions >8 named rivers, >48 emerg. dir
         KD= ICHAR(CDIREC(I,J)) - 48
+        KDE=KD
+        IF (KDE.gt.48) THEN
+           KDE=KDE-48  ! emergency direction for no outlet boxes
+           KD=0        ! normally no outlet
+        END IF
 C**** If land but no ocean, and no direction, print warning
         IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
      *       FOCEAN(I,J).le.0 .and. (KD.gt.8 .or. KD.lt.0)) THEN
@@ -594,10 +610,13 @@ C**** If land but no ocean, and no direction, print warning
 C**** Default direction is down (if ocean box), or no outlet (if not)
 C**** Also ensure that all ocean boxes are done properly
         IF ((KD.lt.0 .or. KD.gt.8) .or. FOCEAN(I,J).eq.1.) THEN
-          KDIREC(I,J)=0.
+          KDIREC(I,J)=0
+          KD911(I,J) =0
         ELSE
           KDIREC(I,J) = KD
+          KD911(I,J)  = KDE
         END IF
+        if (kdirec(i,j).eq.0) print*,"kd911",i,j,kd911(i,j),kdirec(i,j)
 C**** Check for specified river mouths
         IF (KD.GE.17 .AND. KD.LE.42) THEN
           IF (FOCEAN(I,J).le.0) THEN
@@ -690,6 +709,39 @@ C****
             DHORZ(I,J) = DXP(J)
             IF(I.eq.IM)  IFLOW(I,J) = 1
           END SELECT
+C****
+          SELECT CASE (KD911(I,J))   ! emergency directions
+          CASE (1)
+            IFL911(I,J) = I+1
+            JFL911(I,J) = J+1
+            IF(I.eq.IM)  IFL911(I,J) = 1
+          CASE (2)
+            IFL911(I,J) = I
+            JFL911(I,J) = J+1
+          CASE (3)
+            IFL911(I,J) = I-1
+            JFL911(I,J) = J+1
+            IF(I.eq.1)  IFL911(I,J) = IM
+          CASE (4)
+            IFL911(I,J) = I-1
+            JFL911(I,J) = J
+            IF(I.eq.1)  IFL911(I,J) = IM
+          CASE (5)
+            IFL911(I,J) = I-1
+            JFL911(I,J) = J-1
+            IF(I.eq.1)  IFL911(I,J) = IM
+          CASE (6)
+            IFL911(I,J) = I
+            JFL911(I,J) = J-1
+          CASE (7)
+            IFL911(I,J) = I+1
+            JFL911(I,J) = J-1
+            IF(I.eq.IM)  IFL911(I,J) = 1
+          CASE (8)
+            IFL911(I,J) = I+1
+            JFL911(I,J) = J
+            IF(I.eq.IM)  IFL911(I,J) = 1
+          END SELECT
         END DO
       END DO
 C**** South Pole is a special case
@@ -711,10 +763,10 @@ C**** Calculate river flow RATE (per source time step)
 C****
       CALL HALO_UPDATE(GRID, zatmo, FROM=NORTH+SOUTH)
 
-      SPEED0= .35d0
-      SPMIN = .15d0
-      SPMAX = 5.
-      DZDH1 = .00005
+      SPEED0= .35d0  ! m/s
+      SPMIN = .15d0  ! m/s
+      SPMAX = 5.     ! m/s
+      DZDH1 = .00005 ! ratio 
 #ifdef SCM
       DO JU = J_0, J_1
 #else
@@ -777,7 +829,8 @@ C****
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
-      USE LAKES, only : kdirec,rate,iflow,jflow,river_fac
+      USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
+     *     kd911,ifl911,jfl911
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -787,7 +840,7 @@ C****
 
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
 !@var I,J,IU,JU,ID,JD loop variables
-      INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
+      INTEGER I,J,IU,JU,ID,JD,JR,ITYPE,KD
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
@@ -837,10 +890,12 @@ C****
 
 C**** Calculate fluxes downstream if lake mass is above sill height (HLAKE (m))
 C**** Also allow flow into ocean fraction of same box if KDIREC=0
-C**** SPECIAL CASE: If the downstream box has FLAKE=1 and KDIREC=0 (i.e.
+C**** SPECIAL CASE: If the downstream box has FLAKE=0.95 and KDIREC=0 (i.e.
 C**** no outlet) then the only way to prevent excess water build up is
 C**** to allow a back-flux. Take account of mean topography change as
 C**** well. This is mainly an issue for the Caspian and Aral Seas.
+C**** EMERGENCY CASE: If excess accumulation occurs anyway, use emergency
+C**** river direction (KD911). Only use for lakes 100m above orig depth. 
 C**** Loop now includes polar boxes
 
 ! note on MPI fixes: since different PEs can influence the downstream
@@ -851,21 +906,36 @@ C**** Loop now includes polar boxes
 
       DO JU=MAX(1,J_0H),MIN(JM,J_1H)
         DO IU=1,IMAXJ(JU)
-          IF (KDIREC(IU,JU).gt.0 .or.
-     *       (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))  THEN
+C**** determine whether we have an emergency:
+C**** i.e. no outlet, max extent, more than 100m above original height 
+          IF (KDIREC(IU,JU).eq.0 .and. FLAKE(IU,JU).gt.0 .and.
+     *          FLAKE(IU,JU).ge.0.95d0*(FLAKE(IU,JU)+FEARTH(IU,JU)).and.
+     *          MWL(IU,JU).gt.RHOW*(HLAKE(IU,JU)+100.)*FLAKE(IU,JU)
+     *          *DXYP(JU)) THEN ! use emergency directions 
+            KD=KD911(IU,JU)
+            JD=JFL911(IU,JU)
+            ID=JFL911(IU,JU)
+C**** MWLSILL/D mass associated with full lake (and downstream)
+            MWLSILL = RHOW*(HLAKE(IU,JU)+100.)*FLAKE(IU,JU)*DXYP(JU)
+          ELSE                  ! normal case
+            KD=KDIREC(IU,JU)
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
+C**** MWLSILL/D mass associated with full lake (and downstream)
+            MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
+          END IF
+C****
+          IF (KD.gt.0 .or. (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))
+     *         THEN
 
 ! only calculate for downstream interior boxes.
             IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE
 
-C**** MWLSILL/D mass associated with full lake (and downstream)
-            MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             rvrfl=.false.
 C**** Check for special case:
             IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).gt.0 .and.
      *           FLAKE(ID,JD).ge.0.95d0*(FLAKE(ID,JD)+FEARTH(ID,JD)))
-     *           THEN 
+     *           THEN
               MWLSILLD = RHOW*(HLAKE(ID,JD)+BYGRAV*MAX(ZATMO(IU,JU)
      *             -ZATMO(ID,JD),0d0))*DXYP(JD)*FLAKE(ID,JD)
               IF (MWL(ID,JD)-MWLSILLD.gt.0) THEN  ! potential back flux
@@ -1273,7 +1343,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
-      USE LAKES, only : kdirec,minmld,variable_lk
+      USE LAKES, only : minmld,variable_lk
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
