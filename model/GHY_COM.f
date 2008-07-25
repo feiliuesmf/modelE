@@ -391,7 +391,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS03"
       REAL*8, ALLOCATABLE :: TRSNOWBV0_GLOB(:,:,:,:)
-      REAL*8, ALLOCATABLE :: TR_W_GLOB  (:,:,:,:,:)
+      REAL*8, ALLOCATABLE, TARGET :: TR_W_GLOB  (:,:,:,:,:)
+      REAL*8, POINTER :: ptr4(:,:,:,:)
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a21,i3,a1,i2,a1,i2,a11,i3,a2)')
      *     'R8 dim(im,jm) TR_W(',NTM,',',NGM,',',LS_NFRAC
@@ -412,8 +413,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL PACK_COLUMN(grid, SNOWBV(1:2,1:IM,J_0H:J_1H), SNOWBV_GLOB)
 #ifdef TRACERS_WATER
         do m=1,LS_NFRAC
+          if (AM_I_ROOT()) ptr4 => TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM)
           CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,0:NGM,m,1:IM,J_0H:J_1H),
-     &         TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM))
+     &         ptr4 )
         enddo
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
@@ -462,7 +464,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
             END IF
           end if
           do m=1,LS_NFRAC
-            CALL UNPACK_BLOCK(grid,TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM),
+            if (AM_I_ROOT()) ptr4 => TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM)
+            CALL UNPACK_BLOCK(grid,ptr4,
      &           TR_W_IJ(1:NTM,0:NGM,m,1:IM,J_0H:J_1H) )
           enddo
           CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
@@ -528,7 +531,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSNOW01"
-      REAL*8, ALLOCATABLE ::  TR_WSN_IJ_GLOB(:,:,:,:,:)
+      REAL*8, ALLOCATABLE, TARGET ::  TR_WSN_IJ_GLOB(:,:,:,:,:)
+      REAL*8, POINTER :: ptr4(:,:,:,:)
 
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a)')'R8 dim(',NTM,',',NLSN,',2,IM,JM):TRSNW'
@@ -547,10 +551,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL PACK_COLUMN(grid, NSN_IJ,  NSN_IJ_GLOB)
         CALL PACK_COLUMN(grid, FR_SNOW_IJ,  FR_SNOW_IJ_GLOB)
 #ifdef TRACERS_WATER
-        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,1,:,:)
-     &                      , TR_WSN_IJ_GLOB(:,:,1,:,:) )
-        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,2,:,:)
-     &                      , TR_WSN_IJ_GLOB(:,:,2,:,:) )
+        if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
+        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,1,:,:), ptr4 )
+        if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
+        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,2,:,:), ptr4 )
 #endif
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER, NSN_IJ_glob, DZSN_IJ_glob
@@ -585,10 +589,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
             END IF
           end if
 
-          CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,1,:,:)
-     &                          , TR_WSN_IJ(:,:,1,:,:))
-          CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,2,:,:)
-     &                          , TR_WSN_IJ(:,:,2,:,:))
+          if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
+          CALL UNPACK_BLOCK(grid, ptr4, TR_WSN_IJ(:,:,1,:,:))
+          if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
+          CALL UNPACK_BLOCK(grid, ptr4, TR_WSN_IJ(:,:,2,:,:))
         END SELECT
 #endif
       END SELECT
