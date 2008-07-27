@@ -74,7 +74,6 @@ c  Initialize
       filename='dic_inicond'
       call bio_inicond(filename,dic(:,:,:))
 
-!     call obio_inicond('alk_glodap_annmean.asc')
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
 !     /archive/u/aromanou/Watson_new/BioInit/CHL_WG_4x5
 
@@ -303,25 +302,25 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-!     do nt=1,ntyp+n_inert+ndet+ncar
-!       ntchar='00'
-!       if(nt.le.9)write(ntchar,'(i1)')nt
-!       if(nt.gt.9)write(ntchar,'(i2)')nt
-!       print*,'BIO: saving initial tracer fields '
-!    .        ,'bioinit_tracer'//ntchar
-!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-!       do k=1,kdm
-!       do j=1,jj				!  do not parallelize
-!       do l=1,isp(j)
-!       do i=ifp(j,l),ilp(j,l)
-!          write(iu_bioinit,'(3i4,2e12.4)')
-!    .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-!       enddo
-!       enddo
-!       enddo
-!       enddo
-!     call closeunit(iu_bioinit)
-!     enddo
+      do nt=1,ntyp+n_inert+ndet+ncar
+        ntchar='00'
+        if(nt.le.9)write(ntchar,'(i1)')nt
+        if(nt.gt.9)write(ntchar,'(i2)')nt
+        print*,'BIO: saving initial tracer fields '
+     .        ,'bioinit_tracer'//ntchar
+        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+        do k=1,kdm
+        do j=1,jj				!  do not parallelize
+        do l=1,isp(j)
+        do i=ifp(j,l),ilp(j,l)
+           write(iu_bioinit,'(3i4,2e12.4)')
+     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+        enddo
+        enddo
+        enddo
+        enddo
+      call closeunit(iu_bioinit)
+      enddo
       
       print*,'COLD INITIALIZATION'
       call obio_trint

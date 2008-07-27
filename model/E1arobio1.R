@@ -1,10 +1,10 @@
-E1arobio1.R GISS Model E  2007 modelE              aromanou 01/17/08
+E1arobio1.R GISS Model E  2007 modelE              aromanou 06/09/08
 
-E1arobio1: modelE equiv to frozen version, coupled to hycom ocean model
+E1arobio1: obio + gas exch + radiation coupling 
+         modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
          (E1fzhy9 ssun run)
-         + ocean biology + gas exchange btw ocean and atmosphere
 
 modelE (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)
 ocean: hycom prior to MPI, partial kpp + refinement + topo_20w + advecting T/S
@@ -15,10 +15,13 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
-#define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
-#define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
+!!!!#define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
+!!!!#define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
+#define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
+!!!!#define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
+!!!!#define CHL_from_OBIO               ! interactive CHL 
+!!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs
 !!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
-#define TRACERS_OceanBiology
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -51,6 +54,7 @@ POUT                                ! post-processing output
 hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8| hycom_atm|-r8|
 hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
 hycom_scalars|-r8| hycom_dim_glob|-r8|
+kprf_arrays_loc_renamer|r-8|
 hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
 advfct|-r8|                         ! advection
 archyb|-r8|                         ! continuity eqn.
@@ -98,7 +102,6 @@ obio_bioinit|-r8|                   !
 obio_daysetrad|-r8|                 ! 
 obio_daysetbio|-r8|                 ! 
 obio_ocalbedo|-r8|                  ! 
-obio_oasimhr|-r8|                   ! 
 obio_sfcirr|-r8|                    ! 
 obio_limits|-r8|                    ! 
 obio_edeu|-r8|                      ! 
@@ -165,18 +168,26 @@ n_o2a=n_o2a195x180.8bin            ! coupler weights for northward vel from ocea
 cososino=cososino195x180.8bin      ! cos/sin of i,j axis angle on ocean grid
 kpar=seawifs_kpar_195x180.tbin     ! monthly/annual seawifs_kpar data
 !!!!!!!!!!!!!!!!!!! obio  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-cfle1=abw25b.dat                         !
-cfle2=acbc25b.dat                        !
-pco2table=pco2.tbl.asc                   !
-oasimdirect=oasimdirect_20w_new          !
-atmFedirect0=iron_gocart_195x180_20w.bin ! GOCART iron flux
+cfle1=abw25b.dat                         ! seawater spectral absorp. and scatt. coefs
+cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp. and scatt. coefs
+pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from sst,sss,dic,alk
+nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
+silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
+dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
+alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk (GLODAP)
+oasimdirect=oasimdirect_20w_new          ! spectral light components
+!!!!atmFedirect0=iron_gocart_195x180_20w.bin ! GOCART iron flux
+atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
-facirr=facirr.asc                        !
-alkalindirect=alk195x180_20w.asc         !
+facirr=facirr.asc                        ! factors for mean irradiance w/in water
+eda_esa_ratios=eda_esa_ratios.asc        ! ratios of radiation spectral components
+!!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
+                                         !to be used with CHL_from_SeaWIFs
 
 
 Label and Namelist:
-E1arobio1 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom + obio)
+E1arobio1 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 
@@ -257,6 +268,6 @@ nssw=48
 
  &INPUTZ
    YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
-   YEARE=1800,MONTHE=1,DATEE=30,HOURE=0,     KDIAG=13*0,
+   YEARE=1900,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
    ISTART=5,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END

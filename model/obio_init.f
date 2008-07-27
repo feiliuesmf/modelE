@@ -35,7 +35,6 @@ c
       real saw,sbw,sac,sbc
       real*4  facirr4(nh,nch,5,ncd)
 
-
       real planck,c,hc,oavo,rlamm,rlam450,Sdom,rlam,hcoavo
      .    ,rnn,rbot,t,tlog,fac,a0,a1,a2,a3,b0,b1,b2,b3,pi
      .    ,dummy
@@ -43,6 +42,7 @@ c
       character*50 title
 !     character*50 cfle
       character cacbc*11,cabw*10
+      character*80 filename
 
       data cacbc,cabw /'acbc25b.dat','abw25b.dat'/
 
@@ -432,14 +432,24 @@ c  Read in factors to compute average irradiance
       print*, '    '
 
       if (IRON_from.eq.0) then
-      open(unit=iu_bio,file='atmFedirect0'
-     . ,form='unformatted',status='old',access='direct' 
-     . ,recl=idm*jdm*8/4)
-      do imon=1,12  !1 year of monthly values
-       nrec=imon
-       read (iu_bio,rec=nrec)((atmFe_all(i,j,imon),i=1,idm),j=1,jdm)
-      enddo
-      close(iu_bio)
+!     open(unit=iu_bio,file='atmFedirect0'
+!    . ,form='unformatted',status='old',access='direct' 
+!    . ,recl=idm*jdm*8/4)
+!     do imon=1,12  !1 year of monthly values
+!      nrec=imon
+!      read (iu_bio,rec=nrec)((atmFe_all(i,j,imon),i=1,idm),j=1,jdm)
+!     enddo
+!     close(iu_bio)
+        filename='atmFe_inicond'
+        call bio_inicond2D(filename,atmFe_all(:,:,:),.true.)
+        do k=1,12
+        do j=1,jdm
+        do i=1,idm
+        write(*,'(a,3i5,e12.4)')'obio_bioinit, atmFe:',
+     .          i,j,k,atmFe_all(i,j,k)
+        enddo
+        enddo
+        enddo
       endif
 
       if (IRON_from.eq.1) then
@@ -456,17 +466,10 @@ c  Read in factors to compute average irradiance
 
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology
-      call openunit('alkalindirect',iu_bio)
-      do k=1,kdm
-       do j=1,jdm
-        do i=1,idm
-         read(iu_bio,'(f12.8)')alk(i,j,k)
-        enddo
-       enddo
-      enddo
-      call closeunit(iu_bio)
+        filename='alk_inicond'
+        call bio_inicond(filename,alk(:,:,:))
       else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
-      alk = 0.
+        alk = 0.
       endif
 
 ! printout some key information
@@ -499,3 +502,163 @@ c  Read in factors to compute average irradiance
 
       return
       end
+c------------------------------------------------------------------------------
+      subroutine bio_inicond2D(filename,fldo,dateline)
+
+!read in a field at 1x1 resolution
+!convert to 4x5 grid
+!convert to ocean grid (using Shana's routine) 
+!this routine only for (i,j,monthly) arrays
+
+c --- mapping flux-like field from agcm to ogcm
+c     input: flda (W/m*m), output: fldo (W/m*m)
+c
+
+      USE FILEMANAGER, only: openunit,closeunit
+
+
+      USE hycom_dim_glob
+      USE hycom_arrays_glob
+      USE hycom_scalars
+
+      USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
+
+      implicit none
+
+#include "dimension2.h"
+
+      integer, parameter :: igrd=360,jgrd=180,kgrd=12
+      integer iu_file,lgth
+      integer i1,j1,iii,jjj,isum,kmax
+      integer nodc_kmax
+
+      real data(igrd,jgrd,kgrd)
+      real data2(iia,jja,kgrd)
+      real data_min(kgrd),data_max(kgrd)
+      real sum1
+      real dummy1(36,jja,kgrd),dummy2(36,jja,kgrd)
+      real fldo(iio,jjo,kgrd)
+
+      logical vrbos,dateline
+
+      character*80 filename
+
+!--------------------------------------------------------------
+      lgth=len_trim(filename)
+      print*, 'obio_init: reading from file...',filename(1:lgth)
+      call openunit(filename,iu_file,.false.,.true.)
+
+!NOTE: data starts from Greenwich
+!      missing values are -9999
+!iron gocart data starts from dateline
+       do k=1,kgrd
+       data_min(k)=1.e10
+       data_max(k)=-1.e10
+         do i=1,igrd
+           do j=1,jgrd
+             read(iu_file,'(e12.4)')data(i,j,k)
+             !preserve the mean for later
+              if (data(i,j,k)>0.) then
+                data_min(k)=min(data_min(k),data(i,j,k))
+                data_max(k)=max(data_max(k),data(i,j,k))
+             endif
+           enddo
+         enddo
+      enddo
+      call closeunit(iu_file)
+
+!--------------------------------------------------------------
+      do k=1,kgrd
+       i1=0
+       do i=1,igrd,5
+       i1=i1+1
+       j1=0
+       do j=1,jgrd,4
+       j1=j1+1
+
+        sum1=0.
+        isum=0
+        do iii=1,5
+        do jjj=1,4
+
+            if (data(i+iii-1,j+jjj-1,k).ge.0.) then
+               sum1=sum1+data(i+iii-1,j+jjj-1,k)
+               isum=isum+1
+            endif
+         enddo
+         enddo
+
+          if (isum.gt.0) then
+             data2(i1,j1,k)=sum1/float(isum)
+          else
+             data2(i1,j1,k)=-9999.
+          endif
+      enddo
+      enddo
+      enddo
+
+!     !this is needed for dic
+!     do k=1,kgrd
+!     do i=1,iia
+!     do j=1,jja
+!     if (data2(i,j,k).gt.0) then
+!       if (data2(i,j,k)<data_min(k)) data2(i,j,k)=data_min(k)
+!       if (data2(i,j,k)>data_max(k)) data2(i,j,k)=data_max(k)
+!     endif
+!     enddo
+!     enddo
+!     enddo
+
+      !set to zero so that interpolation works
+      do k=1,kgrd
+      do i=1,iia
+      do j=1,jja
+        if (data2(i,j,k)<0.)data2(i,j,k)=0.
+      enddo
+      !make it 72x46x33
+      data2(i,46,k)=data2(i,45,k)
+      enddo
+      enddo
+
+      !--------------------------------------------------------
+      !***************** important! start from dateline
+      if (.not.dateline) then
+      !move to dateline
+      dummy1=data2(1:36,:,:);
+      dummy2=data2(37:72,:,:);
+      data2(1:36,:,:)=dummy2;
+      data2(37:72,:,:)=dummy1;
+      endif
+
+      !--------------------------------------------------------
+c$OMP PARALLEL DO
+      do 8 j=1,jj
+      do 8 l=1,isp(j)
+      do 8 i=ifp(j,l),ilp(j,l)
+
+      do 9 k=1,kgrd
+      fldo(i,j,k)=0.
+c
+      do 9 n=1,nlista2o(i,j)
+      fldo(i,j,k)=fldo(i,j,k)
+     .           +data2(ilista2o(i,j,n),jlista2o(i,j,n),k)
+     .                       *wlista2o(i,j,n)
+ 9    continue
+ 8    continue
+c$OMP END PARALLEL DO
+
+!     !this is needed for dic
+!     do k=1,kgrd
+!     do i=1,iio
+!     do j=1,jjo
+!       if (fldo(i,j,k)<data_min(k)) fldo(i,j,k)=data_min(k)
+!       if (fldo(i,j,k)>data_max(k)) fldo(i,j,k)=data_max(k)
+!     enddo
+!     enddo
+!     enddo
+
+      !--------------------------------------------------------
+
+        return
+  
+        end subroutine bio_inicond2D
