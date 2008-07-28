@@ -670,11 +670,23 @@ C**** we aren't getting that right anyway.
           CALL GLOBALSUM(grid, EDWNIMP, gsum, hsum ,ALL=.TRUE.)
           edwnimp_SH=hsum(1) ;  edwnimp_NH=hsum(2)
 
+#ifdef TRACERS_WATER
+          DO ITM=1,NTM
+            CALL GLOBALSUM(grid, TRDWNIMP(ITM,:,:), gsum, hsum ,ALL=
+     *           .TRUE.)
+            trdwnimp_SH(ITM)=hsum(1) ;  trdwnimp_NH(ITM)=hsum(2)
+          END DO
+#endif
+
+C*** prevent iceberg sucking
           if(mdwnimp_NH.lt.0) then
             write(99,*) "Limiting NH icesheet replacement mass/energy",
      *           mdwnimp_NH,edwnimp_NH
             mdwnimp_NH=0.
             edwnimp_NH=0.
+#ifdef TRACERS_WATER
+            trdwnimp_NH=0.
+#endif
           endif
 
           if(mdwnimp_SH.lt.0) then
@@ -682,30 +694,19 @@ C**** we aren't getting that right anyway.
      *           mdwnimp_SH,edwnimp_SH
             mdwnimp_SH=0.
             edwnimp_SH=0.
+#ifdef TRACERS_WATER
+            trdwnimp_SH=0.
+#endif
           endif
 
 #ifdef TRACERS_WATER
           DO ITM=1,NTM
-            CALL GLOBALSUM(grid, TRDWNIMP(ITM,:,:), gsum, hsum ,ALL=
-     *           .TRUE.)
-            trdwnimp_SH(ITM)=hsum(1) ;  trdwnimp_NH(ITM)=hsum(2)
-            print*,'Tracers:',(trdwnimp_NH(ITM)/mdwnimp_NH/trw0(itm)-1.
-     *           )*1000,(trdwnimp_SH(ITM)/mdwnimp_SH/trw0(itm)-1.)*1000
-     *           ,trdwnimp_NH(ITM),mdwnimp_NH,trdwnimp_SH(ITM)
-     *           ,mdwnimp_SH
-
-          if(trdwnimp_NH(itm).lt.0) then ! Should be nwater le 0?
-            write(99,*) "Limiting NH icesheet replacement"
-     *           ,trname(itm),trdwnimp_NH(itm)
-            trdwnimp_NH(itm)=0.
-          endif
-
-          if(trdwnimp_SH(itm).lt.0) then
-            write(99,*) "Limiting SH icesheet replacement"
-     *           ,trname(itm),trdwnimp_SH(itm)
-            trdwnimp_SH(itm)=0.
-          endif
-
+            if (mdwnimp_NH .gt. 0) print*,'Tracers(NH):',itm
+     *           ,(trdwnimp_NH(ITM)/mdwnimp_NH/trw0(itm)-1.)*1000
+     *           ,trdwnimp_NH(ITM),mdwnimp_NH
+            if (mdwnimp_SH .gt. 0)  print*,'Tracers(SH):',itm
+     *           ,(trdwnimp_SH(ITM)/mdwnimp_SH/trw0(itm)-1.)*1000
+     *           ,trdwnimp_SH(ITM),mdwnimp_SH
           END DO
 #endif
 
