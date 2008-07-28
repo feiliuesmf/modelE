@@ -22,7 +22,7 @@ C**** Each tracer has a variable name and a unique index
 
 !@var ntm_O18: Number of TRACERS_SPECIAL_O18 tracers.
 #ifdef TRACERS_SPECIAL_O18
-      integer, parameter :: ntm_o18=4
+      integer, parameter :: ntm_o18=3
 #else
       integer, parameter :: ntm_o18=0
 #endif  /* TRACERS_SPECIAL_O18 */
@@ -40,7 +40,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_SPECIAL_Lerner */
 !@var ntm_water: Number of TRACERS_WATER tracers.
 #ifdef TRACERS_WATER
-      integer, parameter :: ntm_water=2
+      integer, parameter :: ntm_water=1
 #else
       integer, parameter :: ntm_water=0
 #endif  /* TRACERS_WATER */
@@ -224,8 +224,11 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
 #endif  /* SHINDELL_STRAT_EXTRA */
 #endif  /* SHINDELL_STRAT_CHEM */
 #endif  /* TRACERS_SPECIAL_Shindell */
+#ifdef TRACERS_WATER
+     *    'Water   ',
+#endif  /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_O18
-     *     'Water   ','H2O18   ','HDO     ', 'H2O17   ',
+     *     'H2O18   ','HDO     ', 'H2O17   ',
 #endif  /* TRACERS_SPECIAL_O18 */
 #ifdef TRACERS_GASEXCH_CFC_Natassa
      *     'CFCn    ',
@@ -233,9 +236,6 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
 #ifdef TRACERS_GASEXCH_CO2_Natassa
      *     'CO2n    ',
 #endif  /* TRACERS_GASEXCH_CO2_Natassa */
-#ifdef TRACERS_WATER
-     *     'Air     ','Water   ',
-#endif  /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_Lerner
      *     'SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      ','SF6_c   ',
