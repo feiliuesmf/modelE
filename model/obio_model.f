@@ -355,8 +355,11 @@ cdiag    endif
 
 
        !------------------------------------------------------------
+#ifndef OBIO_RAD_coupling
+       !Eda and Esa OASIM data is given every 2hrs
        if (mod(hour_of_day,2) .eq. 0) then
        !only every 2 hrs
+#endif
 
          do ichan = 1,nlt
            Ed(ichan) = 0.0
@@ -370,7 +373,7 @@ cdiag    endif
          !ocean albedo is computed in ALBEDO.f
          !have to have hygr =  .true. 
          call obio_ocalbedo(wind,solz,dummy,dummy,dummy1,
-     .                      rod,ros,.true.,vrbos)
+     .                      rod,ros,.true.,vrbos,i,j)
 
 
 cdiag    if (vrbos)
@@ -392,7 +395,7 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
           tot = tot + Ed(ichan)+Es(ichan)
 
 cdiag if (nstep.eq.12)
-cdiag.write(*,'(a,4i5,3e12.4)')'obio_model: ',
+cdiag.write(*,'(a,4i5,3e12.4)')'obio_model, tirrq: ',
 cdiag.           nstep,i,j,ichan,
 cdiag.           ovisdir_ij,eda_frac(ichan),Ed(ichan)
 
@@ -400,6 +403,11 @@ cdiag.           ovisdir_ij,eda_frac(ichan),Ed(ichan)
           Ed(ichan) = Eda2(ichan,ihr0)
           Es(ichan) = Esa2(ichan,ihr0)
           tot = tot + Eda2(ichan,ihr0)+Esa2(ichan,ihr0)
+
+cdiag if (nstep.eq.12)
+cdiag.write(*,'(a,4i5,3e12.4)')'obio_model, tirrq: ',
+cdiag.           nstep,i,j,ichan,Ed(ichan)
+
 #endif
          enddo  !ichan
          noon=.false.
@@ -468,7 +476,7 @@ cdiag.                  tot,ichan=1,nlt)
           tirrq(k) = 0.0
          enddo
 
-         if (tot .ge. 0.1) call obio_edeu(vrbos,kmax)
+         if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
 cdiag    if (vrbos)
 cdiag.     write(lp,107)nstep,' k   avgq    tirrq',
@@ -479,7 +487,9 @@ cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
 
+#ifndef OBIO_RAD_coupling
        endif   !every even hour of the day
+#endif
 
        !------------------------------------------------------------
        !compute tendency terms on the m level

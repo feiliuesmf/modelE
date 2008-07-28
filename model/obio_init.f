@@ -442,17 +442,19 @@ c  Read in factors to compute average irradiance
 !     close(iu_bio)
         filename='atmFe_inicond'
         call bio_inicond2D(filename,atmFe_all(:,:,:),.true.)
-        do k=1,12
-        do j=1,jdm
-        do i=1,idm
-        write(*,'(a,3i5,e12.4)')'obio_bioinit, atmFe:',
-     .          i,j,k,atmFe_all(i,j,k)
-        enddo
-        enddo
-        enddo
+cdiag   do k=1,12
+cdiag   do j=1,jdm
+cdiag   do i=1,idm
+cdiag   write(*,'(a,3i5,e12.4)')'obio_bioinit, atmFe:',
+cdiag.          i,j,k,atmFe_all(i,j,k)
+cdiag   enddo
+cdiag   enddo
+cdiag   enddo
       endif
 
       if (IRON_from.eq.1) then
+      !this needs to be changed according to bio_inicond2D
+      !not done yet, because ron's iron fluxes too big.
       call openunit('atmFedirect1',iu_bio)
       do imon=1,12  !1 year of monthly values
        do j=1,jdm

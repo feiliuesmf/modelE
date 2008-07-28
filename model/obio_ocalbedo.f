@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"      
 
       subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl,
-     .                         rod,ros,hycgr,vrbos)
+     .                         rod,ros,hycgr,vrbos,i,j)
 
 ***********************************************************************
 ***** this routine is used by both atmosphere and ocean at each (i,j)
@@ -28,7 +28,7 @@ c  et al., 1996 (JGR)
 #endif
       implicit none
 
-      integer nl
+      integer nl,i,j
       real*8 cn,rof,rosps,rospd,rtheta
       real*8 sintr,rthetar,rmin,rpls,sinrmin,sinrpls,tanrmin
       real*8 tanrpls,sinp,tanp,a,b

@@ -1,4 +1,4 @@
-      subroutine obio_edeu(vrbos,kmax)
+      subroutine obio_edeu(kmax,vrbos,i,j)
  
 c  Model of irradiance in the water column.  Accounts for three 
 c  irradiance streams:
@@ -18,6 +18,7 @@ c  final is quanta for phytoplankton growth.
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
 
+      USE hycom_scalars
       USE hycom_dim_glob
       USE hycom_arrays_glob
       implicit none
@@ -55,7 +56,9 @@ c  1E6 to get uM or uEin
         Estop(nl) = Es(nl)
         Ebotq = Ebotq + (Edtop(nl)+Estop(nl))*WtoQ(nl)*1.0E6
 
-cdiag   if(vrbos)write(932,'(2i7,2e12.4)')nstep,nl,Ed(nl),Es(nl)
+cdiag    if (nstep.eq.12)
+cdiag.   write(*,'(a,4i7,2e12.4)')'obio_edeu1: ',
+cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
 
        enddo
 
@@ -125,8 +128,10 @@ cdiag.        facirr(ih,ich,ntr,icd),fac
  
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
 
-c         if(vrbos)write(lp,'(a,2i7,5e12.4)')'edeu diag: ',
-c    .        nstep,k,fac,Etopq,Ebotq,rmus,tirrq(k)
+cdiag     if(k.eq.1)
+cdiag.       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',
+cdiag.              nstep,i,j,k,fac,Etopq,
+cdiag.              Ebotq,rmus,tirrq(k)
 
        enddo  !k
  

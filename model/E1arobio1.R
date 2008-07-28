@@ -176,7 +176,6 @@ silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
 dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
 alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk (GLODAP)
 oasimdirect=oasimdirect_20w_new          ! spectral light components
-!!!!atmFedirect0=iron_gocart_195x180_20w.bin ! GOCART iron flux
 atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in water

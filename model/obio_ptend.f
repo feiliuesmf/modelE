@@ -268,10 +268,6 @@ c Day: Grow
 cdiag if(vrbos)
 cdiag.write(*,*)'obio_ptend6: ',nstep,i,j,k,tirrq(k)
 
-        if(nstep.le.24.and.k.eq.1)write(*,'(a,4i5,e12.4)')
-     .   'obio_ptend0:',
-     .   nstep,i,j,k,tirrq(k)
-
       if (tirrq(k) .gt. 0.0)then
         bs = 2.0*bn(k)
         cchlratio = bn(k)*cnratio
@@ -327,19 +323,6 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
         rmu5(nt) = grate*rmms
         rmuf(nt) = grate*rmmf
         gro(k,nt) = grate*obio_P(k,nt+nnut)
-
-        if(nstep.eq.12.and.k.eq.1)write(*,'(a,5i5,3e12.4)')
-     .   'obio_ptend1:',
-     .   nstep,nt,i,j,k,gro(k,nt),grate,obio_P(k,nt+nnut)
-
-        if(nstep.eq.12.and.k.eq.1)write(*,'(a,5i5,3e12.4)')
-     .   'obio_ptend2:',
-     .   nstep,nt,i,j,k,rmuplsr(k,nt),rlim,rlimice
-
-        if(nstep.eq.12.and.k.eq.1)write(*,'(a,5i5,5e12.4)')
-     .   'obio_ptend3:',
-     .   nstep,nt,i,j,k,rmml,rmmn,rmms,rmmf,rmmlice
-
 
         term = gro(k,nt)
         rhs(k,nt+nnut,13) = term
