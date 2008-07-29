@@ -104,7 +104,7 @@
       REAL*8 :: FMSI2, FMSI3, FHSI2, FHSI3,
      *     CMPRS, SNWF, RAIN, FREZI, MSI1, FSSI2, SNOW1, 
      *     FSSI3, MELTI, MELTS, SMELTI, SICE, HCMPRS, HSNOW,
-     *     HICE, HMELTI
+     *     HICE, HMELTI, HSNOW2
 #ifdef TRACERS_WATER
 !@var TRSIL tracer amount in ice layers (kg/m^2)
       REAL*8, DIMENSION(NTM,LMI), INTENT(INOUT) :: TRSIL
