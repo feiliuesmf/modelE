@@ -92,8 +92,12 @@ c
 c --- add energy to bring tmxl back to tmelt (only if tmxl < tmelt)
 c
         surflx(i,j)=surflx(i,j)+borrow
-        odmsi(i,j)=-borrow/                      ! odmsi: kg/m2/sec
-     .          (tmelt*shi-lhm*(1.-0.001*fsss*saln(i,j,k1n))) ! > 0
+c --- corrections and generalisation (see Schmidt et al, 2004)
+        odmsi(i,j)=-borrow/     ! odmsi: kg/m2/sec
+     .       (Ei(tmelt,fsss*saln(i,j,k1n))-tmelt*spcifh) ! > 0
+c       odhsi(i,j)=odmsi(i,j)*Ei(tmelt,fsss*saln(i,j,k1n)) ! ohmsi: J/m2/sec
+c       odssi(i,j)=odmsi(i,j)*fsss*saln(i,j,k1n)           ! odssi: kg/m2/sec
+
         salflx2(i,j)=                            ! salflx: g/m2/sec 
      .               odmsi(i,j)*saln(i,j,k1n)*(1.-fsss)
 c
