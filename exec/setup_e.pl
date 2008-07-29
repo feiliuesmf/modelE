@@ -193,7 +193,7 @@ open RFILE, "$DeckDir/$rfile" or die "can't open $DeckDir/$rfile";
 
 ## Check signature
 $_ = <RFILE>;
-if ( ! /^\s*$rfile/ ) {
+if ( ! /^\s*$runID/ ) {
     print "inconsistent Naming: $rfile is not $_\n" ;
     exit 1;
 }
