@@ -84,6 +84,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hnh3_con,hnh3_cyc
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
+!@dbparam tune_ss1, tune_ss2 factors to tune seasalt sources
+      real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
 
       END MODULE AEROSOL_SOURCES
 
@@ -1176,7 +1178,8 @@ c want kg seasalt/m2/s, for now in 2 size bins
       USE CONSTANT, only: sday
       USE GEOM, only: dxyp
       USE MODEL_COM, only: jday
-      USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER
+      USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER,tune_ss1,tune_ss2
+      use param, only: sync_param
       implicit none
       REAL*8 erate
       integer jread
@@ -1184,6 +1187,8 @@ c want kg seasalt/m2/s, for now in 2 size bins
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss
 c
+      call sync_param("tune_ss1",tune_ss1)
+      call sync_param("tune_ss2",tune_ss2)
       ss=0.
         erate=0.d0
        if (imAER.ne.1) then
@@ -1191,9 +1196,9 @@ c
 c Monahan 1971, bubble source, important for small (<10um) particles
         erate= 1.373d0 * swind**(3.41d0)
         if (ibin.eq.1) then
-          ss=erate*2.11d-14     ! submicron (0.1 < r_d < 1.)
+          ss=tune_ss1*erate*2.11d-14 ! submicron (0.1 < r_d < 1.)
         else
-          ss=erate*7.78d-14     ! supermicron (1. < r_d < 4.)
+          ss=tune_ss2*erate*7.78d-14 ! supermicron (1. < r_d < 4.)
         endif
 c     units are kg salt/m2/s
        endif
