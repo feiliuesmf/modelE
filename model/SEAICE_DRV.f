@@ -15,7 +15,7 @@
      *     ,jday,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
-     *     ,gtempr
+     *     ,gtempr,erunpsi
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
 #endif
@@ -33,7 +33,7 @@
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,POICE,SRUN0
+      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,POICE,SRUN0,ERUN0
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
@@ -60,6 +60,7 @@ C**** Initialize work array
       POICE=    RSI(I,J) *(1.-FLAND(I,J))
       RUNPSI(I,J)=0
       SRUNPSI(I,J)=0
+      ERUNPSI(I,J)=0
 #ifdef TRACERS_WATER
       TRUNPSI(:,I,J)=0
 #endif
@@ -84,7 +85,8 @@ C**** Initialize work array
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
-        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0,
+        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0
+     *       ,ERUN0,
 #ifdef TRACERS_WATER
      *       TRSIL,TRPRCP,TRUN0,
 #endif
@@ -93,6 +95,7 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
         SNOWI(I,J)  =SNOW
         RUNPSI(I,J) =RUN0
         SRUNPSI(I,J)=SRUN0
+        ERUNPSI(I,J)=ERUN0
         HSI(:,I,J)=HSIL(:)
         SSI(:,I,J)=SSIL(:)
 #ifdef TRACERS_WATER
@@ -156,14 +159,14 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
 !@calls iceocean,icelake
-      USE CONSTANT, only : rhow,rhows,lhm,omega,rhoi,byshi,shw
+      USE CONSTANT, only : rhow,rhows,omega,rhoi,byshi,shw
       USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
       USE GEOM, only : sinp,imaxj,dxyp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
 #endif
       USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
-     *     ,tfrez,debug
+     *     ,tfrez,debug,Ti
       USE SEAICE_COM, only : msi,hsi,ssi,rsi
 #ifdef TRACERS_WATER
      *     ,trsi
@@ -180,7 +183,7 @@ C****
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
       INTEGER I,J
-      REAL*8 coriol,ustar,Tm,Sm,Si,Ti,dh,mflux,hflux,sflux,fluxlim
+      REAL*8 coriol,ustar,Tm,Sm,Si,Tic,dh,mflux,hflux,sflux,fluxlim
      *     ,mlsh   !,mfluxmax
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: Trm,Tri,trflux,tralpha
@@ -218,22 +221,20 @@ c            mfluxmax = (MSI(I,J)-AC2OIM)/dtsrc
             IF (FOCEAN(I,J).gt.0) THEN
 C**** Ice lowest layer conditions
               Si = 1d3*SSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))
-              Ti = ((HSI(LMI,I,J)-SSI(LMI,I,J)*LHM)/(XSI(LMI)*MSI(I,J))
-     *             +LHM)*BYSHI
-C**** for the Salinity thermodynamics case (or something similar)
-c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
+              Tic = Ti(HSI(LMI,I,J)/(XSI(LMI)*MSI(I,J)),Si)
               IF (KOCEAN.ge.1) THEN
 C**** should we calculate ocean rho(Tm,Sm) here?
                 Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOWS))
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
-                call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mlsh,
+                call iceocean(Tic,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mlsh,
 #ifdef TRACERS_WATER
      *               Tri,Trm,trflux,tralpha,
 #endif
      *               mflux,sflux,hflux)
               ELSE ! for fixed SST assume freezing temp at base,implicit
-                hflux=alami*(Ti-tfrez(sss(i,j)))/(dh+alpha*dtsrc*alami
+! add salinity dependence?
+                hflux=alami*(Tic-tfrez(sss(i,j)))/(dh+alpha*dtsrc*alami
      *               *byshi/(XSI(LMI)*MSI(I,J)))
                 mflux=0.
                 sflux=0.
@@ -242,10 +243,10 @@ C**** should we calculate ocean rho(Tm,Sm) here?
 #endif
               END IF
             ELSE   ! for lakes (no salinity so solve directly)
-              Ti = (HSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))+LHM)*BYSHI
+              Tic =Ti(HSI(LMI,I,J)/(XSI(LMI)*MSI(I,J)),0d0)
               mlsh=SHW*MLDLK(I,J)*RHOW
               sflux = 0.
-              call icelake(Ti,Tm,dh,dtsrc,mlsh,
+              call icelake(Tic,Tm,dh,dtsrc,mlsh,
 #ifdef TRACERS_WATER
      *             Tri,Trm,trflux,tralpha,
 #endif
@@ -291,13 +292,13 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SIMELT
-      USE CONSTANT, only : sday,TF,lhm,byshi
+      USE CONSTANT, only : sday,TF
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
       USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,
      *     aregj=>aregj_loc,jreg,ij_fwio,ij_htio,ij_stio,aij=>aij_loc
-      USE SEAICE, only : simelt,tfrez,xsi
+      USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -415,8 +416,10 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #endif
 C**** Reset some defaults if all ice is gone
           IF (RSI(I,J).eq.0) THEN
-            GTEMP(:,2,I,J) = ((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
-     *       (XSI(1:2)*MSI(I,J))+LHM)*BYSHI
+            GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*ACE1I),1d3*SSI(1,I,J
+     *           )/(XSI(1)*ACE1I)) 
+            GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*ACE1I),1d3*SSI(2,I,J
+     *           )/(XSI(2)*ACE1I)) 
             GTEMPR(2,I,J) = GTEMP(1,2,I,J) + TF
 #ifdef TRACERS_WATER
             GTRACER(:,2,I,J) = 0.
@@ -651,7 +654,7 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:addice
-      USE CONSTANT, only : lhm,byshi,tf
+      USE CONSTANT, only : tf
       USE MODEL_COM, only : im,jm,focean,kocean,fland
      *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
@@ -923,10 +926,10 @@ C****
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : byshi,lhm,shi,rhows,tf
+      USE CONSTANT, only : rhows,tf
       USE MODEL_COM, only : im,jm,kocean,focean,flake0
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
-     *     ,lmi,snow_ice
+     *     ,lmi,snow_ice,Ti,Ei
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -986,12 +989,14 @@ C****   set defaults for no ice case
               SSI(1:2,I,J)=SSI0*XSI(1:2)*ACE1I
               SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
               TFO = -1.87d0  ! reasonable value, doesn't really matter
+              HSI(1:2,I,J)=Ei(TFO,1d3*SSI0)*XSI(1:2)*ACE1I
+              HSI(3:4,I,J)=Ei(TFO,1d3*SSI0)*XSI(3:4)*AC2OIM
             ELSE
               SSI(:,I,J)  = 0.
               TFO = 0.
+              HSI(1:2,I,J)=Ei(TFO,0d0)*XSI(1:2)*ACE1I
+              HSI(3:4,I,J)=Ei(TFO,0d0)*XSI(3:4)*AC2OIM
             END IF
-            HSI(1:2,I,J)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I+LHM*SSI(1:2,I,J)
-            HSI(3:4,I,J)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM+LHM*SSI(3:4,I,J)
 #ifdef TRACERS_WATER
             TRSI(:,:,I,J)=0.
 #endif
@@ -1005,8 +1010,10 @@ C**** set GTEMP etc. array for ice
       DO J=J_0, J_1
       DO I=1,IM
         MSI1=SNOWI(I,J)+ACE1I
-        GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
-     *       (XSI(1:2)*MSI1)+LHM)*BYSHI
+        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
+     *       )/(XSI(1)*MSI1)) 
+        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
+     *       )/(XSI(2)*MSI1)) 
         GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
@@ -1216,14 +1223,14 @@ C****
       SUBROUTINE daily_ice
 !@sum daily_ice performs ice processes that are needed everyday
 !@auth Gavin Schmidt
-      USE CONSTANT, only : byshi,lhm,tf
+      USE CONSTANT, only : tf
       USE MODEL_COM, only : jm,jday
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : flag_dsws,pond_melt,msi,hsi,ssi,rsi,snowi
 #ifdef TRACERS_WATER
      *     ,trsi
 #endif
-      USE SEAICE, only : ace1i,xsi,lmi
+      USE SEAICE, only : ace1i,xsi,lmi,Ti
       USE FLUXES, only : gtemp,fwsim,gtempr
 #ifdef TRACERS_WATER
      &     ,gtracer
@@ -1257,8 +1264,10 @@ C**** otherwise pond_melt is zero
 
 C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         MSI1=SNOWI(I,J)+ACE1I
-        GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
-     *       (XSI(1:2)*MSI1)+LHM)*BYSHI
+        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
+     *       )/(XSI(1)*MSI1)) 
+        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
+     *       )/(XSI(2)*MSI1)) 
         GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))

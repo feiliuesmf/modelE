@@ -31,6 +31,8 @@
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@param ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
       REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
+!@param alamdS salinity/temp coefficient for conductivity (J/(m*s)/psu)
+      real*8, parameter :: alamdS=0.117d0
 !@param RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
 !@var FLEADOC lead fraction for ocean ice (%)
@@ -40,8 +42,8 @@
 !@param BYRLI,BYRLS reciprical of density*lambda
       REAL*8, PARAMETER :: BYRLI = 1./(RHOI*ALAMI),
      *     BYRLS = 1./(RHOS*ALAMS)
-!@param MU coefficient of seawater freezing point w.r.t. salinity
-      REAL*8, PARAMETER :: MU = 0.054d0
+!@param MU coefficient of seawater freezing point w.r.t. salinity 
+      REAL*8, PARAMETER :: MU = 0.054d0   ! C/ppt
 !@param SSI0 default value for sea ice salinity (kg/kg) (=3.2ppt)
       REAL*8, PARAMETER :: SSI0 = 0.0032d0
 !@param FSSS fraction of ocean salinity found in new-formed ice
@@ -63,10 +65,13 @@
       INTEGER :: osurf_tilt = 1
 !@var DEBUG flag
       LOGICAL DEBUG
+!@var FORM formulation of sea ice thermodynamics (BP or SI)
+      CHARACTER*2 :: FORM = "SI"
 
       CONTAINS
 
-      SUBROUTINE PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0,
+      SUBROUTINE PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0
+     *     ,ERUN0,
 #ifdef TRACERS_WATER
      &     TRSIL,TRPRCP,TRUN0,
 #endif
@@ -94,10 +99,12 @@
       LOGICAL, INTENT(OUT) :: WETSNOW
 !@var RUN0 runoff from ice (kg/m^2)
 !@var SRUN0 salt in runoff from ice (kg/m^2)
-      REAL*8, INTENT(OUT) :: RUN0, SRUN0
+!@var ERUN0 energy in runoff from ice (J/m^2)
+      REAL*8, INTENT(OUT) :: RUN0, SRUN0, ERUN0
       REAL*8 :: FMSI2, FMSI3, FHSI2, FHSI3,
-     *     CMPRS, SNWF, RAIN, FREZI, MSI1, FSSI2, SNOW1,
-     *     FSSI3, MELTI, MELTS, SMELTI, SICE, HCMPRS, HSNOW, HICE
+     *     CMPRS, SNWF, RAIN, FREZI, MSI1, FSSI2, SNOW1, 
+     *     FSSI3, MELTI, MELTS, SMELTI, SICE, HCMPRS, HSNOW,
+     *     HICE, HMELTI
 #ifdef TRACERS_WATER
 !@var TRSIL tracer amount in ice layers (kg/m^2)
       REAL*8, DIMENSION(NTM,LMI), INTENT(INOUT) :: TRSIL
@@ -105,12 +112,12 @@
       REAL*8, DIMENSION(NTM), INTENT(IN) :: TRPRCP
 !@var TRUN0 tracer runoff from ice (kg/m^2)
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRUN0
-      REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3,FTRSI4,TRRMF
+      REAL*8, DIMENSION(NTM) :: FTRSI2,FTRSI3,TRRMF
      *     ,TRMELTI,TRMELTS,TRCMPRS,TRICE,TRSNOW
 #endif
 
       WETSNOW=.FALSE.
-      RUN0=0. ; SRUN0=0.
+      RUN0=0. ; SRUN0=0. ; ERUN0=0.
 #ifdef TRACERS_WATER
       TRUN0=0.
 #endif
@@ -131,7 +138,9 @@ C**** ACE1I=ACE1I + FREZI + CMPRS - FMSI2
 C**** SALTI=SALTI - SMELTI        - FSSI2
       IF (SNOW.gt.0) THEN ! apply fluxes to snow portion first
         SNOW1 = MIN(SNOW,XSI(1)*MSI1)
-        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)
+        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)  ! not const temp
+c        HSNOW = SNOW1*(Ti(HSIL(1)/(XSI(1)*MSI1),
+c     *       1d3*SSIL(1)/(XSI(1)*MSI1))*shi-lhm)
         HICE  = HSIL(1)-HSNOW
         SICE  = SSIL(1)
 #ifdef TRACERS_WATER
@@ -141,8 +150,7 @@ C**** SALTI=SALTI - SMELTI        - FSSI2
         MELTS=MAX(0d0,(HSNOW+ENRGP)*BYLHM+SNOW1+SNWF)
         IF (MELTS.gt.SNOW1+SNWF) THEN   ! all snow and some ice melts
           MELTS = SNOW1+SNWF
-          MELTI = MAX(0d0,(HICE+HSNOW+ENRGP)*BYLHM/(1.-SICE/(XSI(1)*MSI1
-     *         -SNOW1))+XSI(1)*MSI1-SNOW1)
+          MELTI = Mi(HICE+HSNOW+ENRGP,SICE,XSI(1)*MSI1-SNOW1) 
           SMELTI = MELTI*SICE/(XSI(1)*MSI1-SNOW1)
           FREZI = 0.
           HICE = HICE+HSNOW+ENRGP
@@ -186,21 +194,21 @@ C**** RAIN and MELT COMPRESSES SNOW INTO ICE
           SNOW1  = SNOW1 + SNWF - MELTS - CMPRS
 c         ACE1I = ACE1I + FREZI + CMPRS
         END IF
-      ELSE
+      ELSE  ! no existing snow
         HSNOW = MIN(ENRGP,0d0)  ! new snow
         HICE  = HSIL(1)+ENRGP-HSNOW
         SICE  = SSIL(1)
         MELTS = 0.
         CMPRS = 0.
-        MELTI = MAX(0d0,HICE*BYLHM/(1.-SICE/(XSI(1)*MSI1))+XSI(2)*MSI1)
-        SMELTI= MELTI*SICE/(XSI(2)*MSI1)
-        FREZI = MIN(RAIN,MAX(-HICE*BYLHM-XSI(2)*MSI1+SICE,0d0))
+        MELTI = Mi(HICE,SICE,XSI(1)*MSI1)
+        SMELTI= MELTI*SICE/(XSI(1)*MSI1)
+        FREZI = MIN(RAIN,MAX(-HICE*BYLHM-XSI(1)*MSI1+SICE,0d0))
         SNOW1 = SNWF
 c       ACE1I = ACE1I - MELTI + FREZI
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRPRCP(:)*SNWF/PRCP
         TRICE(:)  = TRSIL(:,1) + TRPRCP(:)*FREZI/PRCP
-        TRMELTI(:)= (MELTI-SMELTI)*TRICE(:)/(XSI(2)*MSI1-SICE)
+        TRMELTI(:)= (MELTI-SMELTI)*TRICE(:)/(XSI(1)*MSI1-SICE)
         TRICE(:)  = TRICE(:) - TRMELTI(:)
         TRRMF(:)  = TRPRCP(:)*(1.-(SNWF+FREZI)/PRCP)
         TRCMPRS(:) = 0.
@@ -238,9 +246,10 @@ C**** Calculate total snow and ice in upper layers
       ELSE ! some snow orignally in second layer
         SNOW = SNOW1 + (XSI(2)*MSI1-ACE1I)
         SICE = SSIL(2)
-        HSNOW = HSNOW + (HSIL(2)-LHM*SICE)*(XSI(2)*MSI1-ACE1I)/(XSI(2)
-     $       *MSI1)
-        HICE = HICE + (HSIL(2)-LHM*SICE)*ACE1I/(XSI(2)*MSI1) + LHM*SICE
+        HSNOW2 = (XSI(2)*MSI1-ACE1I)*(Ti(HSIL(2)/(XSI(2)*MSI1)
+     *       ,1d3*SSIL(2)/(XSI(2)*MSI1))*shi-lhm)
+        HSNOW = HSNOW + HSNOW2
+        HICE = HICE + HSIL(2)- HSNOW2
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRSNOW(:) + TRSIL(:,2)*(XSI(2)*MSI1-ACE1I)
      *       /(XSI(2)*MSI1-SSIL(2))
@@ -306,16 +315,15 @@ C**** Diagnostics for output
       RUN0 = MELTS+MELTI+(RAIN-FREZI) ! runoff mass to ocean
       IF (RUN0.lt.1d-13) RUN0=0. ! clean up roundoff errors
       SRUN0 = SMELTI             ! salt in runoff
-c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
+c     ERUN0 = HMELTI             ! energy of runoff
 
 #ifdef TRACERS_WATER
       TRUN0(:)=TRMELTS(:)+TRMELTI(:)+TRRMF(:)  ! tracer flux to ocean
 #endif
       END IF
 
- ! ice temp L=1,2,3,4
-      TSIL(1:2) = ((HSIL(1:2)-LHM*SSIL(1:2))/(XSI(1:2)*MSI1)+LHM)*BYSHI
-      TSIL(3:4) = ((HSIL(3:4)-LHM*SSIL(3:4))/(XSI(3:4)*MSI2)+LHM)*BYSHI
+ ! ice temp L=1,..LMI
+      call tice(hsil,ssil,msi1,msi2,tsil)
 
       RETURN
       END SUBROUTINE PREC_SI
@@ -361,7 +369,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       REAL*8, DIMENSION(NTM), INTENT(IN) :: FTROC
 !@var TRUN tracer runoff flux to ocean (kg/m^2)
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRUN
-      REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3,TRCMPRS,
+      REAL*8, DIMENSION(NTM) :: FTRSI2,FTRSI3,TRCMPRS,
      *     TRMELTI,TRMELTS,TRMELT3,TRMELT4,TRDEW,TRICE,TRSNOW
       INTEGER N
 #endif
@@ -381,7 +389,8 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       REAL*8 SMELTI, SMELT3, SMELT4, FSSI2, FSSI3, SICE
       REAL*8 FMSI2, FMSI3, FHSI2, FHSI3
       REAL*8 HC1, HC2, HC3, HC4, HICE, HSNOW, HCMPRS
-      REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F2, F3, FO
+      REAL*8 dF2dTI, dF3dTI, F2, F3, FO ! ,dF1dTI, dF4dTI
+      REAL*8 ALAM2,ALAM3
 
       FMSI2=0. ; FHSI2=0. ; FHSI3=0. ; FSSI2=0. ; FSSI3=0.
       MELTS=0. ; MELTI=0. ; MELT3=0. ; MELT4=0.
@@ -401,23 +410,31 @@ C**** Calculate solar fractions
 C****
 C**** OCEAN ICE, CALCULATE TSIL FROM ENTHALPY
 C****
- ! ice temp L=1,2,3,4
-      TSIL(1:2) = ((HSIL(1:2)-LHM*SSIL(1:2))/(XSI(1:2)*MSI1)+LHM)*BYSHI
-      TSIL(3:4) = ((HSIL(3:4)-LHM*SSIL(3:4))/(XSI(3:4)*MSI2)+LHM)*BYSHI
+ ! ice temp L=1,... Lmi
+      call tice(hsil,ssil,msi1,msi2,tsil)
 
       HC1 = SHI*XSI(1)*MSI1 ! heat capacity of ice L=1 (J/(degC*m^2))
       HC2 = SHI*XSI(2)*MSI1 ! heat capacity of ice L=2 (J/(degC*m^2))
       HC3 = SHI*XSI(3)*MSI2 ! heat capacity of ice L=3 (J/(degC*m^2))
       HC4 = SHI*XSI(4)*MSI2 ! heat capacity of ice L=4 (J/(degC*m^2))
 C**** CALCULATE AND APPLY DIFFUSIVE AND SURFACE ENERGY FLUXES
+      ALAM2=ALAMI  ; ALAM3=ALAMI  ! ; ALAM4=ALAMI
+      IF (FORM.eq."BP") THEN  ! salinity dependence of diffusion
+        ALAM2=ALAM2+ALAMDS*1d3*(SSIL(2)*XSI(3)*MSI2/(XSI(2)*MSI1)
+     *       +SSIL(3)*XSI(2)*MSI1/(XSI(3)*MSI2))/(TSIL(2)*XSI(3)*MSI2
+     *       +TSIL(3)*XSI(2)*MSI1)
+        ALAM3=ALAM3+ALAMDS*1d3*(SSIL(3)*XSI(4)/XSI(3)+SSIL(4)*XSI(3)
+     *       /XSI(4))/(TSIL(3)*XSI(4)+TSIL(4)*XSI(3))
+c        ALAM4=ALAM3+ALAMDS*1d3*SSIL(4)/(XSI(4)*MSI2*TSIL(4))
+      END IF
 C**** First layer flux calculated already as part of surface calculation
 c      dF1dTI = 2.*DTSRCE/(ACE1I*BYRLI+SNOW*BYRLS)
-      dF2dTI = ALAMI*RHOI*DTSRCE/(0.5*XSI(2)*MSI1+0.5*XSI(3)*MSI2)
+      dF2dTI = ALAM2*RHOI*DTSRCE/(0.5*XSI(2)*MSI1+0.5*XSI(3)*MSI2)
 C****          temperature derivative from F2 diffusive flux
-      dF3dTI = ALAMI*RHOI*DTSRCE*2./MSI2
+      dF3dTI = ALAM3*RHOI*DTSRCE*2./MSI2
 C****          temperature derivative from F3 diffusive flux
-      dF4dTI = ALAMI*RHOI*DTSRCE*2.*BYXSI(4)/MSI2
-C****          temperature derivative from F4 diffusive flux
+c      dF4dTI = ALAM4*RHOI*DTSRCE*2.*BYXSI(4)/MSI2  ! now in iceocean
+C****          temperature derivative from F4 diffusive flux 
 C**** EXPLCIIT DIFFUSIVE FLUXES
 CEXP  F2 = dF2dTI*(TSIL(2)-TSIL(3))+SROX(1)*FSRI(2)
 CEXP  F3 = dF3dTI*(TSIL(3)-TSIL(4))+SROX(1)*FSRI(3)
@@ -459,7 +476,9 @@ C**** MELTS,MELTI are the amounts of snow and ice melt
         DEWI = MAX(0d0,DEW)    ! >0 i.e. dew to second layer ice
         DEWS = DEW - DEWI      ! <0 remaining evap applied to snow
         HSNOW = HSIL(1) + HSIL(2)*MAX(1.-(ACE1I+DEWI)/(XSI(2)*MSI1+DEWI)
-     *       ,0d0)
+     *       ,0d0)  ! not correct
+c        HSNOW = HSIL(1) + (XSI(2)*MSI1+DEWI-ACE1I)*(Ti(HSIL(2)/(XSI(2)
+c     *       *MSI1+DEWI),1d3*SSIL(2)/(XSI(1)*MSI1+DEWI))*shi-lhm)
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRSIL(:,1) + TRSIL(:,2)*MAX(1.-(ACE1I-SICE)
      *       /(XSI(2)*MSI1-SICE),0d0)
@@ -467,7 +486,9 @@ C**** MELTS,MELTI are the amounts of snow and ice melt
       ELSE  ! first layer is snow and some ice
         DEWS = -MIN(SNOW,-(DEW-MAX(0d0,DEW))) ! <0 evap upto snow amount
         DEWI = DEW - DEWS       ! either sign, evap/dew applied to ice
-        HSNOW = HSIL(1)*MIN((SNOW+DEWS)/(XSI(1)*MSI1+DEW),1d0)
+        HSNOW = HSIL(1)*MIN((SNOW+DEWS)/(XSI(1)*MSI1+DEW),1d0) ! not correct
+c        HSNOW = (SNOW+DEWS)*(Ti(HSIL(1)/(XSI(1)*MSI1+DEW),1d3*SSIL(1)
+c     *       /(XSI(1)*MSI1+DEW))*shi-lhm) 
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRSIL(:,1)*MIN(SNOW/(XSI(1)*MSI1-SSIL(1)),1d0)
 #endif
@@ -492,7 +513,7 @@ C**** over multiple surface time steps
 C**** calculate melt in snow and ice layers
       HICE = HSIL(1)+HSIL(2)-HSNOW
       MELTS = MAX(0d0,HSNOW*BYLHM+SNOW+DEWS)  ! snow melt amount
-      MELTI = MAX(0d0,HICE*BYLHM/(1.-SICE/(ACE1I+DEWI))+ACE1I+DEWI)
+      MELTI = Mi(HICE,SICE,ACE1I+DEWI) 
       SMELTI= MELTI*SICE/(ACE1I+DEWI)
 C**** CMPRS is amount of snow turned to ice during melting
 C**** Calculate remaining snow and necessary mass flux using
@@ -525,10 +546,8 @@ C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI2 = -MELTI+DEWI+CMPRS  ! either up or down
 
 C**** Check for melting in levels 3 and 4
-      MELT3 = MAX(0d0,HSIL(3)*BYLHM/(1.-SSIL(3)/(XSI(3)*MSI2))+XSI(3)
-     *     *MSI2)
-      MELT4 = MAX(0d0,HSIL(4)*BYLHM/(1.-SSIL(4)/(XSI(4)*MSI2))+XSI(4)
-     *     *MSI2-FMOC)
+      MELT3 = Mi(HSIL(3),SSIL(3),XSI(3)*MSI2)
+      MELT4 = Mi(HSIL(4),SSIL(4),XSI(4)*MSI2-FMOC)
       SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2)
       SMELT4 = MELT4*SSIL(4)/(XSI(4)*MSI2-FMOC)
 #ifdef TRACERS_WATER
@@ -690,7 +709,7 @@ c    *                     BYZICX=1./(Z1I+Z2OIX)
 C**** Create new ice in ice-free ocean
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
-C****   TSIL=(ENRGFO/ACEFO + (1-S)*LHM)*BYSHI ! but hsi is primary var.
+C****   TSIL=Ti(ENRGFO/ACEFO,1d3*SALTO/ACEFO) ! but hsi is primary var.
         HSIL(1:2) =(ENRGFO/ACEFO)*XSI(1:2)*ACE1I
         HSIL(3:4) =(ENRGFO/ACEFO)*XSI(3:4)*AC2OIM
         SSIL(1:2) = (SALTO/ACEFO)*XSI(1:2)*ACE1I
@@ -739,10 +758,11 @@ C**** NEW ICE IS FORMED ON OPEN OCEAN AND POSSIBLY BELOW OLD SEA ICE
 C**** New formulation:
 C**** Split all upper mass layer fields into ice and snow components
         IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
-          HSNOW = (HSIL(1)-LHM*SSIL(1))*SNOW/(XSI(1)*MSI1)
+          HSNOW = SNOW*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)/(XSI(1)
+     *         *MSI1))*shi-lhm)
         ELSE
-          HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(SNOW-XSI(1)*MSI1)
-     *         /(XSI(2)*MSI1)
+          HSNOW = HSIL(1)+(SNOW-XSI(1)*MSI1)*(Ti(HSIL(2)/(XSI(2)*MSI1)
+     *         ,1d3*SSIL(2)/(XSI(2)*MSI1))*shi-lhm)
         END IF
         HICE  = HSIL(1)+HSIL(2)-HSNOW
 CC      SSNOW = 0.   ! always zero
@@ -857,11 +877,13 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         FRI(3:4)=XSI(3:4)*MSI2/(ACE1I+MSI2)
 C**** New formulation:
 C**** Split all upper mass layer fields into ice and snow components
+C**** Assume equal temperatures over snow and ice
         IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
-          HSNOW = (HSIL(1)-LHM*SSIL(1))*SNOW/(XSI(1)*MSI1)
+          HSNOW = SNOW*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)/(XSI(1)
+     *         *MSI1))*shi-lhm) 
         ELSE
-          HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(SNOW-XSI(1)*MSI1)
-     *         /(XSI(2)*MSI1)
+          HSNOW = HSIL(1)+(SNOW-XSI(1)*MSI1)*(Ti(HSIL(2)/(XSI(2)*MSI1)
+     *         ,1d3*SSIL(2)/(XSI(2)*MSI1))*shi-lhm)
         END IF
         HICE  = HSIL(1)+HSIL(2)-HSNOW
 CC      SSNOW = 0.   ! always zero
@@ -937,8 +959,7 @@ C**** Ensure that MSI2 does not get too small for fixed-SST case.
         END IF
       END IF
 C**** Calculate temperatures for diagnostics and radiation
-      TSIL(1:2)=((HSIL(1:2)-SSIL(1:2)*LHM)/(XSI(1:2)*MSI1)+LHM)*BYSHI
-      TSIL(3:4)=((HSIL(3:4)-SSIL(3:4)*LHM)/(XSI(3:4)*MSI2)+LHM)*BYSHI
+      call tice(hsil,ssil,msi1,msi2,tsil)
 
       RETURN
       END SUBROUTINE ADDICE
@@ -984,6 +1005,7 @@ C**** Calculate temperatures for diagnostics and radiation
       REAL*8, INTENT(INOUT), DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: TRUN0
 #endif
+      INTEGER L
 
 C**** Estimate DRSI
       DRSI=0.
@@ -1012,12 +1034,16 @@ C**** set defaults if no ice is left
         MSI2=AC2OIM
         IF (POCEAN.gt.0) THEN
           SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
-          SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
+          SSIL(3:LMI)=SSI0*XSI(3:LMI)*AC2OIM
         ELSE
           SSIL(:) = 0.
         END IF
-        HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I+LHM*SSIL(1:2)
-        HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM+LHM*SSIL(3:4)
+        DO L=1,2
+          HSIL(L)=(XSI(L)*ACE1I)*Ei(TFO,1d3*SSIL(L)/(XSI(L)*ACE1I))
+        END DO
+        DO L=3,LMI
+          HSIL(L)=(XSI(L)*AC2OIM)*Ei(TFO,1d3*SSIL(L)/(XSI(L)*AC2OIM))
+        END DO
         TSIL=TFO
 #ifdef TRACERS_WATER
         TRSIL(:,:)=0.
@@ -1053,7 +1079,7 @@ C****
       REAL*8, INTENT(INOUT), DIMENSION(NTM,LMI) :: TRSIL
 !@var TRFLUX tracer flux arising from sea salinity decay
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: TRFLUX
-      REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3,DTR12,TRSNOW,TRICE
+      REAL*8, DIMENSION(NTM) :: FTRSI2,FTRSI3,DTR12,TRSNOW,TRICE
       REAL*8, DIMENSION(NTM,3:LMI) :: DTRSI
       INTEGER N
 #endif
@@ -1066,6 +1092,7 @@ C****
 !@var dtssi decay time scale for sea ice salinity (days)
 !@var bydtssi decay constant for sea ice salinity (1/s)
       REAL*8, parameter :: dtssi=30.d0, bydtssi=1./(dtssi*sday)
+      REAL*8 :: rate,brine_frac
 
       DSSI = 0. ; DMSI = 0. ; DHSI = 0.
       DS12 = 0. ; DM12 = 0. ; DH12 = 0.
@@ -1078,53 +1105,98 @@ C**** salinity in sea ice decays if it is above threshold level ssi0
 C**** check first layer (default ice and snow)
 C**** New formulation:
 C**** Split all upper mass layer fields into ice and snow components
+C**** Assume equal temperatures over snow and ice
       MSI1=SNOW+ACE1I
       IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
-        HSNOW = (HSIL(1)-LHM*SSIL(1))*SNOW/(XSI(1)*MSI1)
+        HSNOW = SNOW*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)
+     *         /(XSI(1)*MSI1))*shi-lhm)
       ELSE
-        HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(XSI(2)*MSI1-ACE1I)
-     *       /(XSI(2)*MSI1)
+        HSNOW = HSIL(1)+(XSI(2)*MSI1-ACE1I)*(Ti(HSIL(2)
+     *       /(XSI(2)*MSI1),1d3*SSIL(2)/(XSI(2)*MSI1))*shi-lhm)
       END IF
       HICE  = HSIL(1)+HSIL(2)-HSNOW
 CC    SSNOW = 0.   ! always zero
       SICE  = SSIL(1)+SSIL(2)
-      TICE = ((HICE-LHM*SICE)/ACE1I+LHM)*BYSHI
+      TICE = Ti(HICE/ACE1I,1d3*SICE/ACE1I)
 #ifdef TRACERS_WATER
       TRSNOW(:) = TRSIL(:,1)*MIN(SNOW/(XSI(1)*MSI1-SSIL(1)),1d0)
      *     +TRSIL(:,2)*MAX(1.-(ACE1I-SICE)/(XSI(2)*MSI1-SSIL(2)),0d0)
       TRICE(:)  = TRSIL(:,1)+TRSIL(:,2)-TRSNOW(:)
 #endif
 
-C**** calculate removal of excess salinity
-      IF (SICE.GT.ssi0*ACE1I) THEN
-        DS12 = (SICE-ACE1I*ssi0)*DT*BYDTSSI
-        DM12 = DS12
-        DH12 = -DM12*TICE*SHI
+C**** brine removal is very sensitive to seaice thermodynamic
+C**** formulation
+      SELECT CASE (FORM)
+      CASE ("SI")               ! salinity only affects mass
+C**** calculate removal of excess salinity using simple decay
+        IF (SICE.GT.ssi0*ACE1I) THEN
+          DS12 = (SICE-ACE1I*ssi0)*DT*BYDTSSI
+          DM12 = DS12
+          DH12 = -DM12*TICE*SHI
 #ifdef TRACERS_WATER
 C**** no tracer removed if pure salt is lost
-c       DTR12(:) = (DM12-DS12)*TRICE(:)/(ACE1I-SICE)
-c       TRICE(:) = TRICE(:)-DT12(:)
+c         DTR12(:) = (DM12-DS12)*TRICE(:)/(ACE1I-SICE)
+c         TRICE(:) = TRICE(:)-DTR12(:)
 #endif
-        SICE=SICE-DS12
-        HICE=HICE-DH12
-      END IF
+          SICE=SICE-DS12
+          HICE=HICE-DH12
+        END IF
 
 C**** check remaining layers
-      DO L=3,LMI
-        IF (SSIL(L).GT.ssi0*XSI(L)*MSI2) THEN
-          DSSI(L) = (SSIL(L)-ssi0*XSI(L)*MSI2)*DT*BYDTSSI
-          DMSI(L) = DSSI(L)
-          TSIL(L) = ((HSIL(L)-LHM*SSIL(L))/(XSI(L)*MSI2)+LHM)*BYSHI
-          DHSI(L) = -DMSI(L)*TSIL(L)*SHI
+        DO L=3,LMI
+          IF (SSIL(L).GT.ssi0*XSI(L)*MSI2) THEN
+            DSSI(L)=(SSIL(L)-ssi0*XSI(L)*MSI2)*DT*BYDTSSI
+            DMSI(L)=DSSI(L)
+            TSIL(L)=Ti(HSIL(L)/(XSI(L)*MSI2),1d3*SSIL(L)/(XSI(L)*MSI2))
+            DHSI(L)=-DMSI(L)*TSIL(L)*SHI
 #ifdef TRACERS_WATER
 C**** no tracer removed if pure salt is lost
-c         DTRSI(:,L)=(DMSI(L)-DSSI(L))*TRSIL(:,L)/(XSI(L)*MSI2-SSIL(L))
-c         TRSIL(:,L)=TRSIL(:,L)-DTRSI(:,L)
+c           DTRSI(:,L)=(DMSI(L)-DSSI(L))*TRSIL(:,L)/(XSI(L)*MSI2-SSIL(L))
+c           TRSIL(:,L)=TRSIL(:,L)-DTRSI(:,L)
 #endif
-          SSIL(L) = SSIL(L) - DSSI(L)
-          HSIL(L) = HSIL(L) - DHSI(L)
-        END IF
-      END DO
+            SSIL(L) = SSIL(L) - DSSI(L)
+            HSIL(L) = HSIL(L) - DHSI(L)
+          END IF
+        END DO
+
+      CASE ("BP")               ! Brine pocket formulation
+C**** Assume basic gravity drainage. Flushing is not included.
+C**** first layer ice
+        brine_frac=-mu*(SICE/ACE1I)/TICE
+        if (brine_frac.gt.0.03d0) then ! drain
+          rate = DT*BYDTSSI*100.*(brine_frac-0.03d0) ! fractional loss
+          DM12 = rate*brine_frac*ACE1I
+          DS12 = rate*SICE
+          DH12 = rate*brine_frac*ACE1I*shw*Tice
+#ifdef TRACERS_WATER
+C**** tracers may be fractionated in the brine....(assume not for now)
+          DTR12(:) = (DM12-DS12)*TRICE(:)/(ACE1I-SICE)
+          TRICE(:) = TRICE(:)-DTR12(:)
+#endif
+          SICE=SICE-DS12
+          HICE=HICE-DH12
+        end if
+
+C**** check remaining layers
+        DO L=3,LMI
+          TSIL(L)=Ti(HSIL(L)/(XSI(L)*MSI2),1d3*SSIL(L)/(XSI(L)*MSI2))
+          brine_frac=-mu*SSIL(L)/(XSI(L)*MSI2)/TSIL(L)
+          if (brine_frac.gt.0.03d0) then ! drain
+            rate = DT*BYDTSSI*100.*(brine_frac-0.03d0) ! fractional loss
+            DMSI(L) = rate*brine_frac*(XSI(L)*MSI2)
+            DSSI(L) = rate*SSIL(L)
+            DHSI(L) = rate*brine_frac*(XSI(L)*MSI2)*shw*TSIL(L)
+#ifdef TRACERS_WATER
+C**** tracers may be fractionated in the brine....(assume not for now)
+            DTRSI(:,L)=(DMSI(L)-DSSI(L))*TRSIL(:,L)/
+     *          (XSI(L)*MSI2-SSIL(L))
+            TRSIL(:,L)=TRSIL(:,L)-DTRSI(:,L)
+#endif
+            SSIL(L) = SSIL(L) - DSSI(L)
+            HSIL(L) = HSIL(L) - DHSI(L)
+          end if
+        END DO
+      END SELECT
 
 C**** Calculate fluxes required to rebalance layers
 C**** Mass/heat/salt moves from layer 3 to 2
@@ -1221,10 +1293,9 @@ C****
 !@+  mflux = m   ; sflux = 1d-3 m Sib (kg/m^2/s)
 !@+  hflux = lam_i(Ti,Si) (Ti-Tb)/dh -m Lh(Tib,Sib)+m shw Tib  (J/m^2/s)
 !@+
+!@+  Formulations of salinty effects PI/SI/BP from Schmidt et al (2004)
+!@+
       implicit none
-!@var alamdS salinity coefficient for conductivity (from common?)
-      real*8, parameter :: alamdS=0.117d0
-
 !@var G_mole_T,G_mole_S molecular diffusion terms for heat/salt
 C****  G_mole_T = 12.5 * 13.8d0**(2d0/3d0) - 6. = 65.9d0
 C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
@@ -1279,17 +1350,20 @@ C****  g  = u* / ( G_turb + G_mole )
 C**** set conductivity term
 C**** Diffusive flux is implicit in ice !  + ml temperature (not used)
       rsg=rhows*shw*g_T    ! /(1.+alpha*dtsrc*rhows*shw*g_T/mlsh)
-c no salinity effects
-      alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
-c S thermo
-c      alamdh = (alami+alamdS*Si)/(dh+alpha*dtsrc*
-c     *          (alami+alamdS*Si)*byshi/(2.*rhoi*dh))
+
+      select case (form)
+      case ("SI")   ! "PI"      ! no salinity effects on diffusion
+        alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
+      case ("BP")               ! brine pocket impact on diffusion
+        alamdh = (alami+alamdS*Si/Ti)/(dh+alpha*dtsrc*
+     *           (alami+alamdS*Si/Ti)*byshi/(2.*rhoi*dh))
+      end select
 
 C**** solve for boundary values (uses Newton-Rapheson with bounds)
 C**** Estimate initial boundary salinity
       Sb0 = 0.75d0*Sm+0.25d0*Si
       do i=1,niter
-C**** we use the fill tfrez calc here, but assume for simplicity that
+C**** we use the full tfrez calc here, but assume for simplicity that
 C**** the gradient w.r.t. T is still = -mu below.
         Tb = tfrez(Sb0)   ! -mu*Sb0  ! freezing point at salinity Sb0
 C**** calculate left hand side of equation 2
@@ -1304,24 +1378,30 @@ C**** Similarly for temperature Tib
           else              ! it is a function of boundary value
             Sib = Sb0*fsss
           end if
-c no salinity effects
-c         lh = lhm + Tb*(shw-shi)
-c salinity effects only mass
-          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
-c S thermo
-c         lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
+
+          select case (form)
+c          case ("PI")           ! pure ice
+c            lh = lhm + Tb*(shw-shi)
+          case ("SI")           ! salinity effects only mass
+            lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
+          case ("BP")           ! brine pockets 
+            lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
+          end select
+c
           m = -left2/lh
 
-c no salinity effects
-c          dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
-c          dmdSi = 0.
-c salinity effects only mass
-          dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
-          dmdSi = -left2*lhm*1d-3/(lh*lh)
-c S thermo
-c         dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh + rsg
-c    *       ))/(lh*lh)
-c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
+          select case (form)
+c          case ("PI")           ! pure ice
+c            dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
+c            dmdSi = 0.
+          case ("SI")           ! salinity effects only mass
+            dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
+            dmdSi = -left2*lhm*1d-3/(lh*lh)
+          case ("BP")           ! brine pockets 
+            dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh+rsg))
+     *           /(lh*lh)
+            dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
+          end select
 
           if (qsfix) then   ! keep salinity in ice constant
             Sb = (rhows*g_S*Sm+m*Sib)/(rhows*g_S+m)
@@ -1334,12 +1414,16 @@ c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
           end if
         else                    ! melting
           Sib = Si
-c no salinity effects
-c         lh = lhm + Tb*shw - Ti*shi
-c salinity effects only mass
-          lh = lhm*(1.-Sib*1d-3) + Tb*shw - Ti*shi
-c S thermo
-c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
+
+          select case (form)
+c          case ("PI")           ! pure ice
+c            lh = lhm + Tb*shw - Ti*shi
+          case ("SI")           ! salinity effects only mass
+            lh = lhm*(1.-Sib*1d-3) + Tb*shw - Ti*shi
+          case ("BP")           ! brine pockets 
+            lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi)-shw*(Ti-Tb)
+          end select
+c
           m = -left2/lh
 
           Sb = (m*Sib+rhows*g_S*Sm)/(rhows*g_S+m)
@@ -1589,7 +1673,7 @@ C**** Be careful to avoid taking too much tracer from ocean box
 !@var Tri tracer concentration in snow ice
       REAL*8, DIMENSION(NTM) :: Tri, TRICE, TRSNOW, FTRSI2, FTRSI3
 #endif
-      REAL*8 DSNOW,Z0,MAXM,MAXME,Eoc,Esnow,Ei,Erat,Si,MSI1
+      REAL*8 DSNOW,Z0,MAXM,MAXME,Eoc,Esnow,Eic,Erat,Si,MSI1,Tf
       REAL*8 SICE,HICE,HSNOW,FMSI2,FMSI3,FHSI2,FSSI2,FHSI3,FSSI3
 
 C**** test for snow ice possibility      
@@ -1600,10 +1684,11 @@ C**** test for snow ice possibility
 
 C**** heat, salt, tracer amounts in snow, first layer ice
         IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
-          HSNOW = (HSIL(1)-LHM*SSIL(1))*(MSI1-ACE1I)/(XSI(1)*MSI1)
+          HSNOW = SNOW*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)
+     *         /(XSI(1)*MSI1))*shi-lhm)
         ELSE
-          HSNOW = HSIL(1) + (HSIL(2)-LHM*SSIL(2))*(XSI(2)*MSI1-ACE1I)
-     *         /(XSI(2)*MSI1)
+          HSNOW = HSIL(1)+(XSI(2)*MSI1-ACE1I)*(Ti(HSIL(2)
+     *         /(XSI(2)*MSI1),1d3*SSIL(2)/(XSI(2)*MSI1))*shi-lhm)
         END IF
         HICE  = HSIL(1)+HSIL(2)-HSNOW
         SICE  = SSIL(1)+SSIL(2)
@@ -1621,13 +1706,14 @@ C**** Si is the salinity only in the frozen sea water part
         else
           Si=fsss*Sm
         end if
-c        Ei=EICE(TFREZ(Sm),Si) 
-        Ei=-LHM*(1.-0.001d0*Si)+ Tfrez(Sm)*shi
+        Tf=Tfrez(Sm)
+        Eic=Ei(Tf,Si) 
         Esnow=HSNOW/SNOW
         Eoc=Tm*SHW
-C**** correction to ERAT to account for actual salinity in MAXM+DSNOW
-c       ERAT=(Esnow-Ei)/(Ei-Eoc)
-        ERAT=(Esnow-Ei+0.001d0*Si*LHM)/(Ei-Eoc)
+C**** There is a small error in Schmidt et al (2004) equation (12):
+C**** (Esnow-Ei(Tm,Si))/(Ei(Tm,Si)-Eoc) should be 
+C**** (Esnow-Ei(Tm, 0))/(Ei(Tm,Si)-Eoc)
+        ERAT=(Esnow-Ei(Tf,0d0))/(Eic-Eoc)
 
         MAXME=Z0*RHOI*ERAT/(1.+ERAT*(RHOWS-RHOI)/RHOWS)
         MAXM=MAX(0d0,MIN(MAXME,MAXM))   ! mass of sea water to be added
@@ -1712,6 +1798,103 @@ C**** output flux (positive down)
       END IF
       RETURN
       end subroutine snowice
+
+      SUBROUTINE TICE(HSIL,SSIL,MSI1,MSI2,TSIL)
+!@sum TICE returns array of ice temperatures from model variables
+!@auth Gavin Schmidt
+      IMPLICIT NONE
+      REAL*8, DIMENSION(LMI), INTENT(IN) :: HSIL, SSIL  ! J/m2, kg/m2
+      REAL*8, INTENT(IN) :: MSI1,MSI2  ! kg/m2
+      REAL*8, DIMENSION(LMI), INTENT(OUT) :: TSIL  ! deg C
+      INTEGER l
+
+      do l=1,2
+        TSIL(l)=Ti(HSIL(l)/(XSI(l)*MSI1),1d3*SSIL(l)/(XSI(l)*MSI1))
+      end do
+      do l=3,lmi
+        TSIL(l)=Ti(HSIL(l)/(XSI(l)*MSI2),1d3*SSIL(l)/(XSI(l)*MSI2))
+      end do
+
+      RETURN
+      END SUBROUTINE TICE
+
+      REAL*8 FUNCTION Ti(Ei,Si)
+!@sum Ti calulcates sea ice temperature as a function of internal 
+!@+   energy and salinity content depending on ice thermo formulation
+!@auth Jiping Liu/Gavin Schmidt
+      USE CONSTANT, only : lhm,shw,shi,byshi
+      IMPLICIT NONE
+!@var Ei internal energy of sea ice (J/kg)
+!@var Si salinity  of sea ice (10-3 kg/kg = ppt)
+!@var TI temperature (deg C)
+      REAL*8, INTENT(IN) :: Ei, Si
+      real*8 b,c,det,tm
+
+      select case (form)
+c      case ("PI")               ! pure ice 
+cc**** solve Ei = shi*Ti-lhm
+c        Ti=(Ei+lhm)*byshi
+      case ("SI")               ! salinity mass effect
+c**** solve Ei = shi*Ti-lhm*(1-1d-3*Si)
+        Ti=(Ei+lhm*(1.-1d-3*Si))*byshi
+      case ("BP")               ! Brine pocket formulation
+c**** solve Ei = shi*(Ti+mu*Si)-lhm*(1+mu*Si/Ti)-mu*Si*shw
+        Tm=-mu*Si
+        if(Ei .ge. shw*Tm) then ! at or above melting point
+          Ti=Tm
+        else                    ! solve quadratic, take most negative root
+          b=Tm*(shw-shi)-Ei-lhm
+          c=lhm*Tm
+          det=b*b-4d0*shi*c      ! > 0
+          Ti=-5d-1*(b + sqrt(det))*byshi
+        endif
+      end select
+
+      return
+      END FUNCTION Ti
+
+      REAL*8 FUNCTION Ei(Ti,Si)
+!@sum Calculation of energy of ice (J/kg) as a function of temp and salinity
+!@auth Gavin Schmidt
+      USE CONSTANT, only : shi, lhm, shw
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: Ti,Si   ! deg C and psu
+
+      select case (form)
+c      case ("PI")               ! no salinity effect
+c        Ei=Ti*shi-lhm
+      case ("SI")               ! salinity affects only mass
+        Ei=Ti*shi-lhm*(1.-1d-3*Si)
+      case ("BP")               ! brine pocket formulation
+        if (Si.gt.0) then  ! is this safe from T=0? (or T>-muS?)
+          Ei= (Ti+mu*Si)*shi-lhm*(1.+mu*Si/Ti)-shw*mu*Si
+        else
+          Ei= Ti*shi-lhm
+        end if
+      end select
+
+      RETURN
+      END FUNCTION Ei
+
+      REAL*8 FUNCTION Mi(HSI,SSI,MSI)
+!@sum Calculation of ice melt (kg/m2) as a function of hsi and salinity
+!@auth Gavin Schmidt
+      USE CONSTANT, only : lhm, shw, bylhm
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: HSI,SSI,MSI   ! J/m2, kg/m2, kg/m2
+
+      select case (form)
+c      case ("PI")               ! no salinity effect
+c        Mi=max(0d0,msi+hsi*bylhm)
+      case ("SI")               ! salinity affects only mass
+        Mi=max(0d0,msi+hsi*bylhm/(1.-ssi/msi))
+      case ("BP")               ! brine pocket formulation
+        Mi=0.
+        if (hsi+shw*mu*1d3*ssi.gt.0) Mi=msi
+      end select
+
+      RETURN
+      END FUNCTION Mi
 
       END MODULE SEAICE
 
@@ -1915,13 +2098,12 @@ C**** albedo calculations
 !@sum  CHECKI Checks whether Ice values are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : lhm,shi
       USE MODEL_COM
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname, t_qlimit
 #endif
-      USE SEAICE, only : lmi,xsi,ace1i
+      USE SEAICE, only : lmi,xsi,ace1i,Ti
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi
@@ -1967,10 +2149,10 @@ C**** Check for reasonable values for ice variables
           END IF
           IF ( (FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J).gt.0) THEN
           DO L=1,LMI
-            IF (L.le.2) TICE = ((HSI(L,I,J)-SSI(L,I,J)*LHM)/(XSI(L)
-     *           *(ACE1I+SNOWI(I,J)))+LHM)/SHI
-            IF (L.gt.2) TICE = ((HSI(L,I,J)-SSI(L,I,J)*LHM)/(XSI(L)
-     *           *MSI(I,J))+LHM)/SHI
+            IF (L.le.2) TICE = Ti(HSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J)))
+     *           ,1d3*SSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J))))
+            IF (L.gt.2) TICE = Ti(HSI(L,I,J)/(XSI(L)*MSI(I,J))
+     *           ,1d3*SSI(L,I,J)/(XSI(L)*MSI(I,J)))
             IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN
               WRITE(6,'(3a,3i3,6e12.4/1X,6e12.4)')
      *             'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,RSI(I,J)

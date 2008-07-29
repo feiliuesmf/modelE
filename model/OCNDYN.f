@@ -256,10 +256,10 @@ c        CALL CHECKO ('STADVI')
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
-      USE OCEANRES, only : dZO
 #ifdef TRACERS_OCEAN
      *     ,oc_tracer_mean,ntm
 #endif
+      USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
@@ -3414,12 +3414,11 @@ C****
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shi,lhm
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm,trname
 #endif
       USE SW2OCEAN, only : lsrpd,fsr,fsrz
-      USE SEAICE, only : fsss
+      USE SEAICE, only : fsss, Ei
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: ROICE,DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI
      *     ,SROX(2),SRUNO,SRUNI
@@ -3472,11 +3471,11 @@ C**** Remove insolation from layer 1 that goes to lower layers
       IF(GOO.lt.GFOO) THEN
 C**** Open ocean is below freezing, calculate
 C**** DMOO = mass of ocean that freezes over open fraction from
-C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHI-LHM*(1-SIOO))*DMOO
+C**** GOO*MOO = GFOO*(MOO-DMOO) + Ei(TFOO,SIOO*1d3)*DMOO
         TFOO = TFREZS(SOO)
         SIOO = FSSS*SOO
-        DMOO = MOO*(GOO-GFOO)/(TFOO*SHI-LHM*(1.-SIOO)-GFOO)
-        DEOO = (TFOO*SHI-LHM*(1.-SIOO))*DMOO
+        DMOO = MOO*(GOO-GFOO)/(Ei(TFOO,SIOO*1d3)-GFOO)
+        DEOO = Ei(TFOO,SIOO*1d3)*DMOO
         DSOO = SIOO*DMOO
 #ifdef TRACERS_OCEAN
         DTROO(:) = TMOO(:)*FRAC(:)*(DMOO-DSOO)/(MOO-SMOO)
@@ -3502,11 +3501,11 @@ C**** Remove insolation from layer 1 that goes to lower layers
         IF(GOI.LT.GFOI) THEN
 C**** Ocean underneath the ice is below freezing, calculate
 C**** DMOI = mass of ocean that freezes under sea ice fraction from
-C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHI-LHM*(1-SIOI))*DMOI
+C**** GOI*MOI = GFOI*(MOI-DMOI) + Ei(TFOI,SIOI*1d3)*DMOI
           TFOI = TFREZS(SOI)
           SIOI = FSSS*SOI
-          DMOI = MOI*(GOI-GFOI)/(TFOI*SHI-LHM*(1.-SIOI)-GFOI)
-          DEOI = (TFOI*SHI-LHM*(1.-SIOI))*DMOI
+          DMOI = MOI*(GOI-GFOI)/(Ei(TFOI,SIOI*1d3)-GFOI)
+          DEOI = Ei(TFOI,SIOI*1d3)*DMOI
           DSOI = SIOI*DMOI
 #ifdef TRACERS_OCEAN
           DTROI(:) = TMOI(:)*FRAC(:)*(DMOI-DSOI)/(MOI-SMOI)
@@ -3545,7 +3544,7 @@ C****
 #endif
 #endif
       USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
-     *     ,epreca=>eprec
+     *     ,epreca=>eprec, erunpsia=>erunpsi 
       USE OCEAN, only : im,jm,mo,g0m,s0m,bydxypo,focean,imaxj
 #ifdef TRACERS_OCEAN
      *     ,trmo,dxypo
@@ -3555,7 +3554,7 @@ C****
 
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *   PREC,EPREC,RUNPSI,RSI,SRUNPSI
+     *   PREC,EPREC,RUNPSI,RSI,SRUNPSI,ERUNPSI
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *   trprec,trunpsi
@@ -3579,6 +3578,7 @@ C**** of fluxes is necessary anyway
           EPREC  (I,J)=EPRECA  (I,J)*DXYP(J)             ! J
           RUNPSI (I,J)=RUNPSIA (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
           SRUNPSI(I,J)=SRUNPSIA(I,J)*DXYP(J)             ! kg
+          ERUNPSI(I,J)=ERUNPSIA(I,J)*DXYP(J)             ! J
           RSI    (I,J)=RSIA    (I,J)
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
@@ -3596,7 +3596,8 @@ C****
           IF(FOCEAN(I,J).gt.0. .and. PREC(I,J).gt.0.)  THEN
             MO (I,J,1)= MO(I,J,1) + ((1d0-RSI(I,J))*PREC(I,J) +
      *           RSI(I,J)*RUNPSI(I,J))*FOCEAN(I,J)
-            G0M(I,J,1)=G0M(I,J,1)+(1d0-RSI(I,J))*EPREC(I,J)*FOCEAN(I,J)
+            G0M(I,J,1)=G0M(I,J,1)+ ((1d0-RSI(I,J))*EPREC(I,J) +
+     *           RSI(I,J)*ERUNPSI(I,J))*FOCEAN(I,J)
             S0M(I,J,1)=S0M(I,J,1) + RSI(I,J)*SRUNPSI(I,J)*FOCEAN(I,J)
 #ifdef TRACERS_OCEAN
             TRMO(I,J,1,:)=TRMO(I,J,1,:)+((1d0-RSI(I,J))*TRPREC(:,I,J)
@@ -4233,7 +4234,7 @@ C****
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : byshi,lhm,tf
+      USE CONSTANT, only : tf
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       USE OCN_TRACER_COM, only : trw0, ntm
 #endif
@@ -4518,11 +4519,10 @@ C****
      *     ,trgmelt
 #endif
 #endif               /* TNL: inserted */
+      USE OCEANRES, only : maxgl
       use domain_decomp, only : grid,get
 
       IMPLICIT NONE
-!@var MAXL number of ocean levels over which GMELT is applied
-      INTEGER, PARAMETER :: MAXL=5
       REAL*8, INTENT(IN) :: DT  !@var DT timestep for GLMELT call
       REAL*8 DZ
       INTEGER I,J,L
@@ -4531,12 +4531,12 @@ C****
 
       call get (grid, J_STRT=j_0, J_STOP=j_1)
 
-      DO L=1,MAXL
+      DO L=1,MAXGL
 C**** divide over depth and scale for time step
-        DZ=DT*(ZE(L)-ZE(L-1))/(DTsrc*ZE(MAXL))
         DO J=j_0,j_1
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).GT.0. .and. GMELT(I,J).gt.0) THEN
+              DZ=DT*(ZE(L)-ZE(L-1))/(DTsrc*ZE(MIN(MAXGL,LMM(I,J))))
               MO(I,J,L) = MO(I,J,L)+GMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))
               G0M(I,J,L)=G0M(I,J,L)+EGMELT(I,J)*DZ
 #ifdef TRACERS_WATER  /* TNL: inserted */

@@ -757,7 +757,7 @@ C****
 !@+    At some point this will change (USIDT/VSIDT on ice grid, and RSI
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : byshi,lhm,grav,tf
+      USE CONSTANT, only : lhm,grav,tf
       USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH
@@ -770,7 +770,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
      *     ,ticij,ticij_tusi,ticij_tvsi
 #endif
       USE ICEDYN, only : grid_MIC
-      USE SEAICE, only : ace1i,xsi
+      USE SEAICE, only : ace1i,xsi,ti
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -1278,6 +1278,7 @@ C**** ensure that salinity is only associated with ice
             END IF
             SSI(2,I,J)=SICE-SSI(1,I,J)
 C**** correction of heat energy to compensate for salinity fix
+C**** IS THIS DIFFERENT FOR BP?
             HSI(1,I,J)=HSI(1,I,J)-(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
             HSI(2,I,J)=HSI(2,I,J)+(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
             DO L=3,LMI
@@ -1313,8 +1314,10 @@ C**** Set atmospheric arrays
 C**** set total atmopsheric pressure anomaly in case needed by ocean
               APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
      *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-              GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
-     *             (XSI(1:2)*(SNOWI(I,J)+ACE1I))+LHM)*BYSHI
+              GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I))
+     *             ,1d3*SSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I)))
+              GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I))
+     *             ,1d3*SSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I)))
               GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef TRACERS_WATER
               GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)

@@ -7,7 +7,7 @@
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
 !@+    PRECIP_OC,OCEANS
-      USE CONSTANT, only : lhm,rhows,rhoi,shw,shi,by12,byshi,tf
+      USE CONSTANT, only : rhows,rhoi,shw,shi,by12,byshi,tf
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP, only : GRID, GET,
      *                          DREAD_PARALLEL,
@@ -20,10 +20,8 @@
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
       USE GEOM, only : dxyp, imaxj
-      USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
-     *     ,cq=>cqgs,ipbl,roughl
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
-     *     ,lmi
+     *     ,lmi, Ei
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,trsi0,ntm
@@ -403,14 +401,14 @@ C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
             IF (TOCEAN(1,I,J).LT.TFO) TOCEAN(1,I,J)=TFO
 C**** SET DEFAULTS IF NO OCEAN ICE
             IF (RSI(I,J).LE.0.) THEN
-              HSI(1:2,I,J)=(SHI*TFO-LHM*(1.-SSI0))*XSI(1:2)*ACE1I
-              HSI(3:4,I,J)=(SHI*TFO-LHM*(1.-SSI0))*XSI(3:4)*AC2OIM
+              HSI(1:2  ,I,J)=Ei(TFO,1d3*SSI0)*XSI(1:2)*ACE1I
+              HSI(3:LMI,I,J)=Ei(TFO,1d3*SSI0)*XSI(3:LMI)*AC2OIM
               SSI(1:2,I,J)=SSI0*XSI(1:2)*ACE1I
-              SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
+              SSI(3:LMI,I,J)=SSI0*XSI(3:LMI)*AC2OIM
 #ifdef TRACERS_WATER
               DO N=1,NTM
                 TRSI(N,1:2,I,J)=TRSI0(N)*(1.-SSI0)*XSI(1:2)*ACE1I
-                TRSI(N,3:4,I,J)=TRSI0(N)*(1.-SSI0)*XSI(3:4)*AC2OIM
+                TRSI(N,3:LMI,I,J)=TRSI0(N)*(1.-SSI0)*XSI(3:LMI)*AC2OIM
               END DO
 #endif
               SNOWI(I,J)=0.
@@ -619,8 +617,11 @@ C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
         END IF
       ELSE
 C**** FLUXES COOL TGO TO FREEZING POINT FOR OCEAN AND FORM SOME ICE
-        ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFW*(SHI-SHW)-LHM)
-        ENRGFO=ACEFO*(TFW*SHI/(1.-SSI0)-LHM)
+C**** Solve TFW=(Eo-Eice)/(W-F)/SHW, w. mass of ice = F/(1-SSI0) 
+C**** and Eice=Ei(TFW,1d3*SSI0)*F/(1-SSI0)
+C**** Conserve FW mass and energy (not salt)
+        ACEFO=(ENRGO0+ENRGO-EOFRZ)/(Ei(TFW,1d3*SSI0)/(1.-SSI0)-TFW*SHW) ! fresh
+        ENRGFO = ACEFO*Ei(TFW,1d3*SSI0)/(1.-SSI0) ! energy of frozen ice
         IF (ROICE.LE.0.) THEN
           TGW=TFW
           RETURN
@@ -642,8 +643,8 @@ C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
       IF (EIW0+ENRGIW .LE. EFIW+emin) THEN ! freezing case
 C**** FLUXES WOULD COOL TGW TO FREEZING POINT AND FREEZE SOME MORE ICE
-        ACEFI = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM)
-        ENRGFI = ACEFI*(TFW*SHI/(1.-SSI0)-LHM) ! energy of frozen ice
+        ACEFI=(EIW0+ENRGIW-EFIW)/(Ei(TFW,1d3*SSI0)/(1.-SSI0)-TFW*SHW)  ! fresh
+        ENRGFI = ACEFI*Ei(TFW,1d3*SSI0)/(1.-SSI0) ! energy of frozen ice
       END IF
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       WTRW = WTRO  -(1.-ROICE)* ACEFO        -ROICE*(SMSI+ACEFI)
@@ -925,7 +926,7 @@ C****
       USE DIAG_COM, only : aj=>aj_loc,j_implm,j_implh,oa,
      *     aregj=>aregj_loc,jreg
       USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
-     *     ,emelti,smelti,fwsim,gtempr
+     *     ,emelti,smelti,fwsim,gtempr,erunpsi
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
@@ -1055,7 +1056,7 @@ C**** output from OSOURC
           SMSI = 0.
           IF (ROICE.gt.0) SMSI =FWSIM(I,J)/ROICE
           TFO  =tfrez(sss(i,j))
-C**** get ice-ocean fluxes from sea ice routine
+C**** get ice-ocean fluxes from sea ice routine (no salt)
           RUN0=RUNOSI(I,J)-SRUNOSI(I,J) ! fw, includes runoff+basal
           FIDT=ERUNOSI(I,J)
 c          SALT=SRUNOSI(I,J)
