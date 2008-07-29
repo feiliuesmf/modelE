@@ -17,7 +17,8 @@ C****
      *      JMO = 90, 
      *      LMO = 32, !  maximum number of ocean layers in a column
      *  LMO_MIN =  2, !  minimum number of ocean layers in a column
-     *    LSRPD =  3  !  deepest layer for penetrating solar radiation
+     *    LSRPD =  3, !  deepest layer for penetrating solar radiation
+     *    MAXGL = 12  !  maximum no. layers for depositing glac. melt
 C*** 
 C***
       Real*8,Parameter ::
