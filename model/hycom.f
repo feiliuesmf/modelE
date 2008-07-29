@@ -90,7 +90,7 @@ c
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
 !     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
-!     . ,gmelt,egmelt,solar,gtempr
+!     . ,gmelt,egmelt,solar,gtempr,erunpsi
 #ifdef TRACERS_GASEXCH_Natassa
       USE FLUXES, only : TRGASEX,GTRACER
 
@@ -259,8 +259,7 @@ c --- accumulate
      . +((e0_loc(ia,ja,1)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))           ! ocean water
      . +(eflowo_loc(ia,ja)+egmelt_loc(ia,ja)+emelti_loc(ia,ja))
      .                              /(dxyp(ja)*focean_loc(ia,ja)) ! ocn or ice
-css  . +(erunosi(ia,ja)+erunpsi(ia,ja))*rsi(ia,ja))           ! ice
-     . + erunosi_loc(ia,ja)*rsi_loc(ia,ja))                           ! ice
+     . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))    ! ice
      .                                 /(3600.*real(nhr))
       asalt_loc(ia,ja)=asalt_loc(ia,ja)                            ! kg/m*m/sec salt
      .+((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)         !
