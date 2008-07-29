@@ -632,7 +632,7 @@ C**** Initialize constants
         DXCOSV(J) = DXV(J)*COSV(J)
       END DO
 
-c GISS-ESMF EXCEPTIONAL CASE
+c GISS-ESMF EXCEPTIONAL CASE: OK AS A CONSTANT ON EACH PE
       DO JL=1,JM+LM
         ONES(JL)=1.
       END DO

@@ -710,7 +710,6 @@ C**** initialise some pbl common variables
           tflux(I,J)=0.
           qflux(I,J)=0.
 
-ccc???
           ipbl(i,j,:) = 0       ! - will be set to 1s when pbl is called
 
         end do
