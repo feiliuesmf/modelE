@@ -18,6 +18,7 @@
       USE FLUXES, only : EGMELT_loc => EGMELT
       USE FLUXES, only : EMELTI_loc => EMELTI
       USE FLUXES, only : ERUNOSI_loc => ERUNOSI
+      USE FLUXES, only : ERUNPSI_loc => ERUNPSI
       USE FLUXES, only : SRUNOSI_loc => SRUNOSI
       USE FLUXES, only : SRUNPSI_loc => SRUNPSI
       USE FLUXES, only : SMELTI_loc => SMELTI
@@ -55,6 +56,7 @@
       public EGMELT_loc
       public EMELTI_loc
       public ERUNOSI_loc
+      public ERUNPSI_loc
       public SRUNOSI_loc
       public SRUNPSI_loc
       public SMELTI_loc
@@ -95,6 +97,7 @@
       public ERUNOSI
       public SRUNOSI
       public SRUNPSI
+      public ERUNPSI
       public SMELTI
       public DMUA
       public DMUI
@@ -137,7 +140,8 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EGMELT
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EMELTI
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ERUNOSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::SRUNOSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ERUNPSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRUNOSI
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRUNPSI
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SMELTI
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMUA
@@ -192,6 +196,7 @@
       ALLOCATE( EGMELT( im, jm ) )
       ALLOCATE( EMELTI( im, jm ) )
       ALLOCATE( ERUNOSI( im, jm ) )
+      ALLOCATE( ERUNPSI( im, jm ) )
       ALLOCATE( SRUNOSI( im, jm ) )
       ALLOCATE( SRUNPSI( im, jm ) )
       ALLOCATE( SMELTI( im, jm ) )
@@ -242,6 +247,7 @@ cddd      ALLOCATE( EFLOWO_loc( I_0H:I_1H , J_0H:J_1H ) )
 cddd      ALLOCATE( EGMELT_loc( I_0H:I_1H , J_0H:J_1H ) )
 cddd      ALLOCATE( EMELTI_loc( I_0H:I_1H , J_0H:J_1H ) )
 cddd      ALLOCATE( ERUNOSI_loc( I_0H:I_1H , J_0H:J_1H ) )
+cddd      ALLOCATE( ERUNPSI_loc( I_0H:I_1H , J_0H:J_1H ) )
 cddd      ALLOCATE( SRUNOSI_loc( I_0H:I_1H , J_0H:J_1H ) )
 cddd      ALLOCATE( SRUNPSI_loc( I_0H:I_1H , J_0H:J_1H ) )
 cddd      ALLOCATE( SMELTI_loc( I_0H:I_1H , J_0H:J_1H ) )
@@ -283,6 +289,7 @@ cddd      end subroutine alloc_locals
       call pack_data( grid,  EGMELT_loc, EGMELT )
       call pack_data( grid,  EMELTI_loc, EMELTI )
       call pack_data( grid,  ERUNOSI_loc, ERUNOSI )
+      call pack_data( grid,  ERUNPSI_loc, ERUNPSI )
       call pack_data( grid,  SRUNOSI_loc, SRUNOSI )
       call pack_data( grid,  SRUNPSI_loc, SRUNPSI )
       call pack_data( grid,  SMELTI_loc, SMELTI )
@@ -326,6 +333,7 @@ cddd      end subroutine alloc_locals
       call unpack_data( grid,  EGMELT, EGMELT_loc )
       call unpack_data( grid,  EMELTI, EMELTI_loc )
       call unpack_data( grid,  ERUNOSI, ERUNOSI_loc )
+      call unpack_data( grid,  ERUNPSI, ERUNPSI_loc )
       call unpack_data( grid,  SRUNOSI, SRUNOSI_loc )
       call unpack_data( grid,  SRUNPSI, SRUNPSI_loc )
       call unpack_data( grid,  SMELTI, SMELTI_loc )

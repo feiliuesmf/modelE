@@ -22,7 +22,7 @@
 !@var RUNPSI run off from sea/lake ice after precip (kg/m^2)
 !@var ERUNPSI energy of run off from sea/lake ice after precip (J/m^2)
 !@var SRUNPSI salt in run off from sea/lake ice after precip (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RUNPSI, SRUNPSI   ! ,ERUNPSI (not yet)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RUNPSI, SRUNPSI, ERUNPSI
 !@var RUNOE run off from earth (kg/m^2)
 !@var ERUNOE energy of run off from earth (J/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RUNOE, ERUNOE
@@ -245,6 +245,7 @@ C**** fluxes associated with variable lake fractions
      &          SRUNOSI ( I_0H:I_1H , J_0H:J_1H ),
      &          RUNPSI  ( I_0H:I_1H , J_0H:J_1H ), 
      &          SRUNPSI ( I_0H:I_1H , J_0H:J_1H ),
+     &          ERUNPSI ( I_0H:I_1H , J_0H:J_1H ),
      &          RUNOE   ( I_0H:I_1H , J_0H:J_1H ), 
      &          ERUNOE  ( I_0H:I_1H , J_0H:J_1H ),
      &          fmsi_io ( I_0H:I_1H , J_0H:J_1H ),
