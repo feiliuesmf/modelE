@@ -4509,7 +4509,7 @@ C****
 !@auth Sukeshi Sheth/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : dtsrc
-      USE OCEAN, only : imaxj,jm,g0m,mo,ze,focean,dxypo
+      USE OCEAN, only : imaxj,jm,g0m,mo,ze,focean,dxypo,lmm
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
