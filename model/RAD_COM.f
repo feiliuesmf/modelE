@@ -246,8 +246,8 @@ C**** Local variables initialised in init_RAD
      *     CFRAC(IM, J_0H:J_1H),
      *     RCLD(LM, IM, J_0H:J_1H),
      *     O3_tracer_save(LM, IM, J_0H:J_1H),
-     *     rad_to_chem(LM, IM, J_0H:J_1H,5),
-     *     rad_to_file(LM, IM, J_0H:J_1H,5),
+     *     rad_to_chem(5, LM, IM, J_0H:J_1H),
+     *     rad_to_file(5, LM, IM, J_0H:J_1H),
      *     KLIQ(LM,4, IM, J_0H:J_1H),
      *     COSZ1(IM, J_0H:J_1H),
      *     dH2O(J_0H:J_1H, LM, 12),
@@ -318,7 +318,7 @@ C**** Local variables initialised in init_RAD
       REAL*8, DIMENSION(IM, JM) :: FSRDIR_GLOB, SRVISSURF_GLOB,
      &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
       REAL*8, DIMENSION(LM, IM, JM) :: RCLD_GLOB,O3_tracer_save_GLOB
-      REAL*8, DIMENSION(LM, IM, JM, 5) :: rad_to_chem_GLOB
+      REAL*8, DIMENSION(5,LM,IM,JM) :: rad_to_chem_GLOB
       REAL*8,DIMENSION(Im,Jm,Lm) :: srnflb_save_glob,trnflb_save_glob
 #ifdef TRACERS_ON
       REAL*8,DIMENSION(Im,Jm,Ntm,Lm) :: ttausv_save_glob,
@@ -378,7 +378,7 @@ C**** Local variables initialised in init_RAD
         CALL PACK_COLUMN(grid, RCLD          , RCLD_GLOB)
 #ifdef TRACERS_SPECIAL_Shindell
         CALL PACK_COLUMN(grid, O3_tracer_save, O3_tracer_save_GLOB)
-        CALL PACK_COLUMN(grid, rad_to_chem, rad_to_chem_GLOB)
+        CALL PACK_BLOCK(grid, rad_to_chem, rad_to_chem_GLOB)
 #endif
         CALL PACK_DATA(grid,srnflb_save,srnflb_save_glob)
         CALL PACK_DATA(grid,trnflb_save,trnflb_save_glob)
@@ -442,7 +442,7 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
           CALL UNPACK_COLUMN(grid, O3_tracer_save_glob,
      &         O3_tracer_save)
-          CALL UNPACK_COLUMN(grid, rad_to_chem_glob, rad_to_chem)
+          CALL UNPACK_BLOCK(grid, rad_to_chem_glob, rad_to_chem)
 #endif
           CALL UNPACK_DATA(grid,srnflb_save_glob,srnflb_save)
           CALL UNPACK_DATA(grid,trnflb_save_glob,trnflb_save)

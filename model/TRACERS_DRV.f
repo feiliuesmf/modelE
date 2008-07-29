@@ -8152,7 +8152,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_SPECIAL_Shindell
       character*4 ghg_name
       character*80 ghg_file
-      real*8, dimension(LM,IM,JM,5) :: rad_to_file_glob
+      real*8, dimension(5,LM,IM,JM) :: rad_to_file_glob
 !@var imonth dummy index for choosing the right month
 !@var ICfactor varying factor for altering initial conditions
       INTEGER imonth, J2
@@ -8288,15 +8288,15 @@ C**** ESMF: Each processor reads the global array: N2Oic
             write(ghg_name,'(I4)') JYEAR
             ghg_file='GHG_IC_'//ghg_name
             call openunit(ghg_file,iu_data,.true.,.true.)
-            do m=1,3;read(iu_data)title,rad_to_file_glob(:,:,:,m);enddo
+            do m=1,3;read(iu_data)title,rad_to_file_glob(m,:,:,:);enddo
             call closeunit(iu_data)
           endif
           do m=1,3
             call UNPACK_COLUMN
-     &      (grid, rad_to_file_glob(:,:,:,m), rad_to_file(:,:,:,m))
+     &      (grid, rad_to_file_glob(m,:,:,:), rad_to_file(m,:,:,:))
           end do
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(I,J,L,n) = rad_to_file(l,i,j,3)
+            trm(I,J,L,n) = rad_to_file(3,l,i,j)
           end do   ; end do   ; end do
 #endif
          endif
@@ -8384,15 +8384,15 @@ C****
             write(ghg_name,'(I4)') JYEAR
             ghg_file='GHG_IC_'//ghg_name
             call openunit(ghg_file,iu_data,.true.,.true.)
-            do m=1,4;read(iu_data)title,rad_to_file_glob(:,:,:,m);enddo
+            do m=1,4;read(iu_data)title,rad_to_file_glob(m,:,:,:);enddo
             call closeunit(iu_data)
           endif
           do m=1,4
             call UNPACK_COLUMN
-     &      (grid, rad_to_file_glob(:,:,:,m), rad_to_file(:,:,:,m))
+     &      (grid, rad_to_file_glob(m,:,:,:), rad_to_file(m,:,:,:))
           end do
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(I,J,L,n) = rad_to_file(l,i,j,4)
+            trm(I,J,L,n) = rad_to_file(4,l,i,j)
           end do   ; end do   ; end do
 #endif
          endif
@@ -8797,15 +8797,15 @@ C         AM=kg/m2, and DXYP=m2:
             write(ghg_name,'(I4)') JYEAR
             ghg_file='GHG_IC_'//ghg_name
             call openunit(ghg_file,iu_data,.true.,.true.)
-            do m=1,5;read(iu_data)title,rad_to_file_glob(:,:,:,m);enddo
+            do m=1,5;read(iu_data)title,rad_to_file_glob(m,:,:,:);enddo
             call closeunit(iu_data)
           endif
           do m=1,5
             call UNPACK_COLUMN
-     &      (grid, rad_to_file_glob(:,:,:,m), rad_to_file(:,:,:,m))
+     &      (grid, rad_to_file_glob(m,:,:,:), rad_to_file(m,:,:,:))
           end do
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(I,J,L,n) = rad_to_file(l,i,j,5)
+            trm(I,J,L,n) = rad_to_file(5,l,i,j)
           end do   ; end do   ; end do
 #endif
          endif

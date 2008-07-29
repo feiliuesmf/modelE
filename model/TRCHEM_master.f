@@ -136,7 +136,7 @@ C**** Local parameters and variables and arguments:
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Some variables defined especially for MPI compliance :         C 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8, dimension(LM,IM,JM,5) :: rad_to_file_glob
+      real*8, dimension(5,LM,IM,JM) :: rad_to_file_glob
       real*8, dimension(LM,IM,JM)   :: ss27_glob
       real*8 :: ss27(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(JM)         :: DU_O3_glob
@@ -163,26 +163,26 @@ C-------- special section for ghg runs ---------
       write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
       call write_parallel(trim(out_line))
       if(use_rad_ch4>0 .or. use_rad_n2o>0 .or. use_rad_cfc>0)then
-        rad_to_file(:,:,J_0:J_1,1)=rad_to_chem(:,:,J_0:J_1,1)
-        rad_to_file(:,:,J_0:J_1,2)=rad_to_chem(:,:,J_0:J_1,2)
+        rad_to_file(1,:,:,J_0:J_1)=rad_to_chem(1,:,:,J_0:J_1)
+        rad_to_file(2,:,:,J_0:J_1)=rad_to_chem(2,:,:,J_0:J_1)
         do j=J_0,J_1
-          rad_to_file(:,:,j,3)=rad_to_chem(:,:,j,3)*2.69e20*byavog*
+          rad_to_file(3,:,:,j)=rad_to_chem(3,:,:,j)*2.69e20*byavog*
      &    dxyp(j)*tr_mm(n_N2O) ! i.e. in trm units now!
-          rad_to_file(:,:,j,4)=rad_to_chem(:,:,j,4)*2.69e20*byavog*
+          rad_to_file(4,:,:,j)=rad_to_chem(4,:,:,j)*2.69e20*byavog*
      &    dxyp(j)*tr_mm(n_CH4) ! i.e. in trm units now!
-          rad_to_file(:,:,j,5)=rad_to_chem(:,:,j,5)*2.69e20*byavog*
+          rad_to_file(5,:,:,j)=rad_to_chem(5,:,:,j)*2.69e20*byavog*
      &    dxyp(j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
         enddo 
         do m=1,5
           call PACK_COLUMN
-     &    (grid, rad_to_file(:,:,:,m), rad_to_file_glob(:,:,:,m))
+     &    (grid, rad_to_file(m,:,:,:), rad_to_file_glob(m,:,:,:))
         end do
         if(AM_I_ROOT( ))then
           write(ghg_name,'(I4)') JYEAR  
           ghg_file='GHG_IC_'//ghg_name
           call openunit(ghg_file,iu,.true.,.false.)
           do j=1,5
-            write(iu)ghg_file,rad_to_file_glob(:,:,:,j)
+            write(iu)ghg_file,rad_to_file_glob(j,:,:,:)
           enddo
           call closeunit(iu)          
           write(6,*)'Stopping in masterchem to output inital'
@@ -276,7 +276,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
      &                            Q(I,J,LTROPO(I,J))*MWabyMWw
               if(use_rad_ch4 > 0) then
                 avgTT_CH4_part(J) = avgTT_CH4_part(J) + 
-     &          rad_to_chem(LTROPO(I,J),I,J,4)
+     &          rad_to_chem(4,LTROPO(I,J),I,J)
      &          *2.69d20*byavog*mair*BYAM(LTROPO(I,J),I,J)
               else
                 avgTT_CH4_part(J) = avgTT_CH4_part(J) +
@@ -1606,8 +1606,8 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
         fact1=bymair*am(1,i,j)*dxyp(j)
         if(use_rad_n2o == 0)fact4=fact1 
         if(use_rad_cfc == 0)fact5=fact1
-        if(use_rad_n2o > 0)fact2=rad_to_chem(1,i,j,3)
-        if(use_rad_cfc > 0)fact3=rad_to_chem(1,i,j,5)
+        if(use_rad_n2o > 0)fact2=rad_to_chem(3,1,i,j)
+        if(use_rad_cfc > 0)fact3=rad_to_chem(5,1,i,j)
         tr3Dsource(i,j,1,nChemistry,n_N2O)=0.d0
         tr3Dsource(i,j,1,nChemistry,n_CFC)=0.d0
         tr3Dsource(i,j,1,nStratwrite,n_N2O)=(fact2*fact4*
@@ -1616,7 +1616,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
      &  tr_mm(n_CFC)*PIfact(n_CFC) - trm(i,j,1,n_CFC))*bydtsrc
         if(use_rad_ch4 > 0)then
           tr3Dsource(i,j,1,nChemistry,n_CH4)=0.d0
-          tr3Dsource(i,j,1,nStratwrite,n_CH4)=(rad_to_chem(1,i,j,4)*
+          tr3Dsource(i,j,1,nStratwrite,n_CH4)=(rad_to_chem(4,1,i,j)*
      &    fact6*tr_mm(n_CH4)-trm(i,j,1,n_CH4))*bydtsrc
         endif
        end do
@@ -1633,10 +1633,10 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             ! -- Ox --
             tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
             if(correct_strat_Ox) then
-             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(L,i,j,1)*
+             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
      &       dxyp(j)*O3MULT*corrOx(J,L,imonth)-trm(i,j,L,n_Ox))*bydtsrc
             else
-             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(L,i,j,1)*
+             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
      &       dxyp(j)*O3MULT                   -trm(i,j,L,n_Ox))*bydtsrc
             end if
             ! -- ClOx --
@@ -1720,10 +1720,10 @@ C Calculate an average tropical CH4 value near 569 hPa::
          do L=maxl+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:
           if(correct_strat_Ox) then
-            changeL(L,n_Ox)=rad_to_chem(L,I,J,1)*DXYP(J)*O3MULT
+            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*DXYP(J)*O3MULT
      &      *corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
           else
-            changeL(L,n_Ox)=rad_to_chem(L,I,J,1)*DXYP(J)*O3MULT
+            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*DXYP(J)*O3MULT
      &                          - trm(I,J,L,n_Ox)
           end if
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
@@ -1828,7 +1828,7 @@ c Save new tracer Ox field for use in radiation or elsewhere:
          end do
          if(maxl < LM) then
            do l=maxl+1,LM
-             o3_tracer_save(l,i,j)=rad_to_chem(l,i,j,1)
+             o3_tracer_save(l,i,j)=rad_to_chem(1,l,i,j)
              DU_O3(J)=DU_O3(J)+o3_tracer_save(l,i,j)
            end do
          end if
@@ -1904,11 +1904,11 @@ C**** Local parameters and variables and arguments:
       Ltop=LM
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       rkext(:)=0.d0 ! initialize over L
-      if(rad_to_chem(1,I,J,2) /= 0.)call stop_model('kext prob 0',255)
+      if(rad_to_chem(2,1,I,J) /= 0.)call stop_model('kext prob 0',255)
       do L=2,Ltop
-        if(rad_to_chem(L,I,J,2) /= 0..and.rad_to_chem(L-1,I,J,2) == 0.)
+        if(rad_to_chem(2,L,I,J) /= 0..and.rad_to_chem(2,L-1,I,J) == 0.)
      &  LAXb=L
-        if(rad_to_chem(L,I,J,2) == 0..and.rad_to_chem(L-1,I,J,2) /= 0.)
+        if(rad_to_chem(2,L,I,J) == 0..and.rad_to_chem(2,L-1,I,J) /= 0.)
      &  LAXt=L-1
       end do
 #else
@@ -1992,11 +1992,11 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
           else
             if(pres(l) <= 150..and.pres(l) > 31.60)then
               if(l < LAXb) then
-                rkext(l)=5.d-2*rad_to_chem(LAXb,i,j,2)
+                rkext(l)=5.d-2*rad_to_chem(2,LAXb,i,j)
               else if(l > LAXt) then
                 rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(l,i,j,2)
+                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
               endif
             endif
             if(pres(l) <= 31.6d0.and.pres(l) >= 17.8d0)then
@@ -2005,7 +2005,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
               else if(l > LAXt) then
                 rkext(l)=2.0d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(l,i,j,2)
+                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
               endif
             endif
             if(pres(l) <= 17.8d0.and.pres(l) >= 10.0d0)then
@@ -2014,7 +2014,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
               else if(l > LAXt) then
                 rkext(l)=16.d0*8.33333d-2*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(l,i,j,2)
+                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
               endif
             endif
             if(pres(l) <= 10.0d0.and.pres(l) >= 4.6d0)then
@@ -2023,7 +2023,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
               else if(l > LAXt) then
                 rkext(l)=0.4d0*6.6667d-1*rkext(l-1)
               else
-                rkext(l)=0.5d-2*rad_to_chem(l,i,j,2)
+                rkext(l)=0.5d-2*rad_to_chem(2,l,i,j)
               endif
             endif
           endif
