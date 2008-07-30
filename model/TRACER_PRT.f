@@ -1212,7 +1212,7 @@ c       if (itime.lt.itime_tr0(n)) cycle
         name(k) = sname_ijts(kx)
         lname(k) = lname_ijts(kx)
         units(k) = units_ijts(kx)
-        irange(k) = ir_ijt(1)
+        irange(k) = ir_log2    ! should be the correct default
         iacc(k) = ia_ijts(kx)
         aij1(:,:,k) = taijs(:,:,kx)
         aij2(:,:,k) = 1.
