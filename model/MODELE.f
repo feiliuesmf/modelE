@@ -718,6 +718,8 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
      &     ,do_polefix,pednl00,pmidl00,ij_debug
+      USE RAD_COM, only : calc_orb_par,paleo_orb_yr,calc_orb_par_sp,
+     *     paleo_orb_par 
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE PARAM
       implicit none
