@@ -255,7 +255,6 @@ css#endif
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
 #else
 #ifdef TRACERS_GASEXCH_Natassa
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
@@ -267,7 +266,6 @@ css#endif
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
 #endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
@@ -279,7 +277,6 @@ css#endif
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
 #endif
 #endif
 
@@ -324,7 +321,6 @@ c
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -341,7 +337,6 @@ c
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -358,7 +353,6 @@ c
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -411,7 +405,6 @@ c
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
       write(*,*)'atrac at (36,23) =',atrac(36,23,1)
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -429,7 +422,6 @@ c
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -446,7 +438,6 @@ c
      .    dp(i,j,k)/onem,temp(i,j,k),avgq(i,j,k),gcmax(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d(i,j,k),ihra(i,j)
       enddo
-      call obio_trint
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
