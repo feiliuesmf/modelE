@@ -61,6 +61,9 @@ C**** 1-8 anti-clockwise from top RH corner
 !@dbparam variable_lk 1 if lakes are to be variable
 !@+       (temporary variable for development purposes)
       INTEGER :: variable_lk=0    ! default = 0
+!@dbparam lake_rise_max amount of lake rise (m) over sill level before 
+!@+       spillover into next box (only if lake covers >95% of box)
+      REAL*8 :: lake_rise_max = 1d2 ! default 100m
 
       CONTAINS
 
@@ -463,6 +466,7 @@ C**** Get parameters from rundeck
       call sync_param("river_fac",river_fac)
       call sync_param("init_flake",init_flake)
       call sync_param("variable_lk",variable_lk)
+      call sync_param("lake_rise_max",lake_rise_max)
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
       if ((init_flake.eq.1.and.istart.lt.9) .or. INILAKE) THEN
@@ -829,7 +833,7 @@ C****
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
-     *     kd911,ifl911,jfl911
+     *     kd911,ifl911,jfl911,lake_rise_max
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -894,7 +898,7 @@ C**** no outlet) then the only way to prevent excess water build up is
 C**** to allow a back-flux. Take account of mean topography change as
 C**** well. This is mainly an issue for the Caspian and Aral Seas.
 C**** EMERGENCY CASE: If excess accumulation occurs anyway, use emergency
-C**** river direction (KD911). Only use for lakes 100m above orig depth. 
+C**** river direction (KD911) if level is lake_rise_max m above orig depth. 
 C**** Loop now includes polar boxes
 
 ! note on MPI fixes: since different PEs can influence the downstream
@@ -908,14 +912,15 @@ C**** Loop now includes polar boxes
 C**** determine whether we have an emergency:
 C**** i.e. no outlet, max extent, more than 100m above original height 
           IF (KDIREC(IU,JU).eq.0 .and. FLAKE(IU,JU).gt.0 .and.
-     *          FLAKE(IU,JU).ge.0.95d0*(FLAKE(IU,JU)+FEARTH(IU,JU)).and.
-     *          MWL(IU,JU).gt.RHOW*(HLAKE(IU,JU)+100.)*FLAKE(IU,JU)
-     *          *DXYP(JU) .and. KD911(IU,JU).gt.0) THEN ! use emerg dirs 
+     *      FLAKE(IU,JU).ge.0.95d0*(FLAKE(IU,JU)+FEARTH(IU,JU)).and.
+     *      MWL(IU,JU).gt.RHOW*(HLAKE(IU,JU)+lake_rise_max)*FLAKE(IU,JU)
+     *      *DXYP(JU) .and. KD911(IU,JU).gt.0) THEN ! use emerg dirs 
             KD=KD911(IU,JU)
             JD=JFL911(IU,JU)
             ID=JFL911(IU,JU)
 C**** MWLSILL/D mass associated with full lake (and downstream)
-            MWLSILL = RHOW*(HLAKE(IU,JU)+100.)*FLAKE(IU,JU)*DXYP(JU)
+            MWLSILL = RHOW*(HLAKE(IU,JU)+lake_rise_max)*
+     *        FLAKE(IU,JU)*DXYP(JU)
           ELSE                  ! normal case
             KD=KDIREC(IU,JU)
             JD=JFLOW(IU,JU)
@@ -1255,13 +1260,14 @@ C**** check for reasonable lake surface temps
         END IF
 C**** Check total lake mass ( <0.4 m, >20x orig depth)
         IF(FLAKE(I,J).gt.0.) THEN
-          IF(MWL(I,J).lt.0.4d0*RHOW*DXYP(J)*FLAKE(I,J)) THEN
-            WRITE (6,*) 'After ',SUBR,
-     *           ': I,J,FLAKE,HLAKE,lake level low=',I,J,FLAKE(I,J),
-     *           HLAKE(I,J),MWL(I,J)/(RHOW*DXYP(J)*FLAKE(I,J))
-          END IF
-          IF(MWL(I,J).gt.RHOW*MAX(20.*HLAKE(I,J),3d1)*DXYP(J)*FLAKE(I,J)
-     *         )THEN
+!!         IF(MWL(I,J).lt.0.4d0*RHOW*DXYP(J)*FLAKE(I,J)) THEN
+!!           WRITE (6,*) 'After ',SUBR,
+!!    *           ': I,J,FLAKE,HLAKE,lake level low=',I,J,FLAKE(I,J),
+!!    *           HLAKE(I,J),MWL(I,J)/(RHOW*DXYP(J)*FLAKE(I,J))
+!!         END IF
+!          IF(MWL(I,J).gt.RHOW*MAX(20.*HLAKE(I,J),3d1)*DXYP(J)*FLAKE(I,J)
+           IF(MWL(I,J).gt.RHOW*(HLAKE(I,J)+lake_rise_max)*DXYP(J)*
+     *        FLAKE(I,J))THEN
             WRITE (6,*) 'After ',SUBR,
      *           ': I,J,FLAKE,HLAKE,lake level high=',I,J,FLAKE(I,J),
      *           HLAKE(I,J),MWL(I,J)/(RHOW*DXYP(J)*FLAKE(I,J))

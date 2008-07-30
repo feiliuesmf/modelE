@@ -2892,9 +2892,9 @@ c**** check for reasonable temperatures over earth
             wtrl=wearth(i,j)
             acel=aiearth(i,j)
             if ((tgl+60.)*(60.-tgl).le.0.) write (6,901) subr,i,j,itime
-     *           ,fearth(i,j),'tg1 ',snowe(i,j),tgl,wtrl,acel
+     *           ,fearth(i,j),'tg1 off',snowe(i,j),tgl,wtrl,acel
             if (wtrl.lt.0..or.acel.lt.0..or.(wtrl+acel).gt.x*wfcs(i
-     *           ,j)) write(6,901) subr,i,j,itime,fearth(i,j),'wtr '
+     *           ,j)) write(6,901) subr,i,j,itime,fearth(i,j),'wtr off'
      *           ,snowe(i,j),tgl,wtrl,acel,wfcs(i,j)
           end if
         end do
@@ -3012,8 +3012,8 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
      &     call stop_model('CHECKL: Earth variables out of bounds',255)
 
       return
- 901  format ('0gdata off, subr,i,j,i-time,pearth,',a7,2i4,i10,f5.2,1x
-     *     ,a4/' snw,x,tg1,wtr1,ice1, wfc1 ',6f12.4)
+ 901  format ('0subr,i,j,i-time,pearth,',a7,2i4,i10,f5.2,1x
+     *     ,a/' snw,tg1,wtr1,ice1 (wfc1)',5f12.4)
 
       end subroutine checke
 

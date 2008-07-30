@@ -806,13 +806,13 @@ C**** Check all ocean currents
           END DO
 C**** Check first layer ocean mass
           IF(MO(I,J,1).lt.2000. .or. MO(I,J,1).gt.20000.) THEN
-            IF (I == 47.and.(J == 33.or.J == 34)) GOTO 230 ! not Caspian
+!!          IF (I == 47.and.(J == 33.or.J == 34)) GOTO 230 ! not Caspian
             WRITE (6,*) 'After ',SUBR,': I,J,MO=',I,J,MO(I,J,1)
-            QCHECKO=.TRUE.
+!!          QCHECKO=.TRUE.
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
  230      SALIM = .045
-          IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
+!!        IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
           IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
      *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
      *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
@@ -821,7 +821,7 @@ C**** Check ocean salinity in each eighth box for the first layer
      *         1d3*S0M(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3*SXMO(I,J,1)/(MO(I
      *         ,J,1)*DXYPO(J)),1d3*SYMO(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3
      *         *SZMO(I,J,1)/(MO(I,J,1)*DXYPO(J))
-          QCHECKO=.TRUE.
+!!        QCHECKO=.TRUE.
  240      CONTINUE
         END IF
       END DO
@@ -958,13 +958,13 @@ C**** Check all ocean currents
           END DO
 C**** Check first layer ocean mass
           IF(MO(I,J,1).lt.2000. .or. MO(I,J,1).gt.20000.) THEN
-            IF (I == 47.and.(J == 33.or.J == 34)) GOTO 230 ! not Caspian
+!!          IF (I == 47.and.(J == 33.or.J == 34)) GOTO 230 ! not Caspian
             WRITE (6,*) 'After ',SUBR,': I,J,MO=',I,J,MO(I,J,1)
-            QCHECKO=.TRUE.
+!!          QCHECKO=.TRUE.
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
  230      SALIM = .045
-          IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
+!!        IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
           IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
      *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
      *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
@@ -973,7 +973,7 @@ C**** Check ocean salinity in each eighth box for the first layer
      *         1d3*S0M(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3*SXMO(I,J,1)/(MO(I
      *         ,J,1)*DXYPO(J)),1d3*SYMO(I,J,1)/(MO(I,J,1)*DXYPO(J)),1d3
      *         *SZMO(I,J,1)/(MO(I,J,1)*DXYPO(J))
-          QCHECKO=.TRUE.
+!!        QCHECKO=.TRUE.
  240      CONTINUE
         END IF
       END DO
