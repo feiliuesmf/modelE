@@ -1,4 +1,4 @@
-      subroutine obio_bioinit
+      subroutine obio_bioinit(nn)
  
 !note: 
 !obio_bioinit is called only for a cold start and reads in INITIAL conditions and interpolates them
@@ -323,7 +323,7 @@ c  Coccolithophore max growth rate
       enddo
       
       print*,'COLD INITIALIZATION'
-      call obio_trint
+      call obio_trint(nn)
 
       return
       end
@@ -926,8 +926,10 @@ ccc      if (vrbos) print '(a,2f9.3)','xlo,xhi =',xlo,xhi
 c --- integrate over sloping portions of y(x) curve:
         ra=max(xlo,min(xhi,xold(ko  )))
         rb=max(xlo,min(xhi,xold(ko+1)))
-        ya=ylft(k)
-        yb=yrgt(k)
+cnat    ya=ylft(k)
+cnat    yb=yrgt(k)
+        ya=ylft(ko)
+        yb=yrgt(ko)
         wgta=flag
         wgtb=flag
         if (xold(ko+1).ne.xold(ko)) then

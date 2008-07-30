@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_model(mm)
+      subroutine obio_model(nn,mm)
 
 ! main biology routine
 
@@ -78,7 +78,7 @@
         call obio_init
         !tracer array initialization.
         !note: we do not initialize obio_P,det and car
-        call obio_bioinit
+        call obio_bioinit(nn)
 
         diagno_bio=.true.
        endif  ! 
@@ -92,7 +92,7 @@
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint
+         call obio_trint(nn)
        endif !for restart only
 
 !--------------------------------------------------------

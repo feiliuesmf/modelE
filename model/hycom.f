@@ -160,7 +160,6 @@ c
 #ifdef TRACERS_OceanBiology
       integer ihr,ichan,hour_of_day,day_of_month,iyear
       integer bef,aft                   !  bio routine timing variables
-      real tata
 #endif
       external rename
       logical master,slave,diag_ape
@@ -406,8 +405,8 @@ ccc$  mo1=OMP_GET_NUM_THREADS()
 ccc$  OMP END PARALLEL
 ccc$  write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
 ccc$     . ,' =======  number of threads:',mo1,' ======='
-      if (AM_I_ROOT())
-     &  write (lp,'(2(a,i5))') ' hycom thread count:',mo0
+c$    if (AM_I_ROOT())
+c$   &  write (lp,'(2(a,i5))') ' hycom thread count:',mo0
       jchunk=50
 c     if (mo0.eq.4) jchunk=50           !  jdm=180
 c     if (mo0.eq.6) jchunk=32           !  jdm=180
@@ -641,9 +640,6 @@ c
       call system_clock(before)      ! time elapsed since last system_clock
       trcout = .true.
 
-      before = after
-      ocnbio_time=0.0
-
 
       if (dobio) then
 cdiag  do k=1,kdm
@@ -664,7 +660,7 @@ cdiag  call obio_limits('bfre obio_model')
 
          call gather_hycom_arrays
          if (AM_I_ROOT()) then
-         call obio_model(mm)
+         call obio_model(nn,mm)
          endif
          call scatter_hycom_arrays
 
@@ -686,9 +682,6 @@ cdiag  call obio_limits('aftr obio_model')
 
       endif
 
-
-      call system_clock(after)
-      ocnbio_time = real(after-before)/real(rate)
 
 #endif
 
@@ -1079,16 +1072,7 @@ c
       end if  ! AM_I_ROOT
 
 #ifdef TRACERS_OceanBiology
-      
-        do j=1,jj
-        do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
-        tata=tata+temp(i,j,1+mm)
-        enddo
-        enddo
-        enddo
-        print*,'DIAGNOSTIC sum_temp=', nstep,tata
-      if (dobio .or. diagno) call obio_trint
+      if (dobio .or. diagno) call obio_trint(nn)
 #endif
 
 c

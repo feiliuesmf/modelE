@@ -1,4 +1,4 @@
-      subroutine obio_trint
+      subroutine obio_trint(nn)
 
       USE hycom_dim_glob
       USE hycom_arrays_glob
