@@ -759,6 +759,10 @@ C**** Rundeck parameters:
       call sync_param( "IRAND", IRAND )
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
       call sync_param( "ij_debug",ij_debug , 2)
+      call sync_param( "calc_orb_par", calc_orb_par )
+      call sync_param( "paleo_orb_yr", paleo_orb_yr )
+      call sync_param( "calc_orb_par_sp", calc_orb_par_sp )
+      call sync_param( "paleo_orb_par", paleo_orb_par, 3 )
 
 C**** Non-Rundeck parameters
 

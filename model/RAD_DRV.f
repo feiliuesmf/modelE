@@ -457,10 +457,6 @@ C**** sync radiation parameters from input
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KSIALB", KSIALB )
       call sync_param( "KZSNOW", KZSNOW )
-      call sync_param( "calc_orb_par", calc_orb_par )
-      call sync_param( "paleo_orb_yr", paleo_orb_yr )
-      call sync_param( "calc_orb_par_sp", calc_orb_par_sp )
-      call sync_param( "paleo_orb_par", paleo_orb_par, 3 )
       call sync_param( "snoage_fac_max", snoage_fac_max )
       if(snoage_fac_max.lt.0. .or. snoage_fac_max.gt.1.) then
         write(out_line,*) 'set 0<snoage_fac_max<1, not',snoage_fac_max
