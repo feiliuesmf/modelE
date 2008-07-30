@@ -138,7 +138,7 @@ C**** ACE1I=ACE1I + FREZI + CMPRS - FMSI2
 C**** SALTI=SALTI - SMELTI        - FSSI2
       IF (SNOW.gt.0) THEN ! apply fluxes to snow portion first
         SNOW1 = MIN(SNOW,XSI(1)*MSI1)
-        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)  ! not const temp
+        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)  ! not correct
 c        HSNOW = SNOW1*(Ti(HSIL(1)/(XSI(1)*MSI1),
 c     *       1d3*SSIL(1)/(XSI(1)*MSI1))*shi-lhm)
         HICE  = HSIL(1)-HSNOW
@@ -420,11 +420,11 @@ C****
 C**** CALCULATE AND APPLY DIFFUSIVE AND SURFACE ENERGY FLUXES
       ALAM2=ALAMI  ; ALAM3=ALAMI  ! ; ALAM4=ALAMI
       IF (FORM.eq."BP") THEN  ! salinity dependence of diffusion
-        ALAM2=ALAM2+ALAMDS*1d3*(SSIL(2)*XSI(3)*MSI2/(XSI(2)*MSI1)
-     *       +SSIL(3)*XSI(2)*MSI1/(XSI(3)*MSI2))/(TSIL(2)*XSI(3)*MSI2
-     *       +TSIL(3)*XSI(2)*MSI1)
-        ALAM3=ALAM3+ALAMDS*1d3*(SSIL(3)*XSI(4)/XSI(3)+SSIL(4)*XSI(3)
-     *       /XSI(4))/(TSIL(3)*XSI(4)+TSIL(4)*XSI(3))
+        IF (SSIL(2).gt.0) ALAM2=ALAM2+ALAMDS*1d3*(SSIL(2)*XSI(3)*MSI2
+     *       /(XSI(2)*MSI1)+SSIL(3)*XSI(2)*MSI1/(XSI(3)*MSI2))/(TSIL(2)
+     *       *XSI(3)*MSI2+TSIL(3)*XSI(2)*MSI1)
+        IF (SSIL(3).gt.0) ALAM3=ALAM3+ALAMDS*1d3*(SSIL(3)*XSI(4)/XSI(3)
+     *       +SSIL(4)*XSI(3)/XSI(4))/(TSIL(3)*XSI(4)+TSIL(4)*XSI(3))
 c        ALAM4=ALAM3+ALAMDS*1d3*SSIL(4)/(XSI(4)*MSI2*TSIL(4))
       END IF
 C**** First layer flux calculated already as part of surface calculation
@@ -1053,7 +1053,7 @@ C****
       RETURN
       END SUBROUTINE SIMELT
 
-      SUBROUTINE SSIDEC(SNOW,MSI2,HSIL,SSIL,DT,
+      SUBROUTINE SSIDEC(SNOW,MSI2,HSIL,SSIL,DT,MELT12,
 #ifdef TRACERS_WATER
      &     TRSIL,TRFLUX,
 #endif
@@ -1069,8 +1069,9 @@ C****
 !@var MSI2 second mass layer ice thickness (kg/m^2)
 !@var MSI1 first mass layer ice thickness (kg/m^2)
 !@var DT source time step (s)
+!@var MELT12 surface melt this time step (kg/m2)
       REAL*8, INTENT(INOUT) :: MSI2
-      REAL*8, INTENT(IN) :: DT, SNOW
+      REAL*8, INTENT(IN) :: DT, SNOW, MELT12
 !@var MFLUX,SFLUX,HFLUX mass, salt and heat flux arising from
 !@+   sea salinity decay
       REAL*8, INTENT(OUT) :: MFLUX,HFLUX,SFLUX
@@ -1160,8 +1161,11 @@ c           TRSIL(:,L)=TRSIL(:,L)-DTRSI(:,L)
         END DO
 
       CASE ("BP")               ! Brine pocket formulation
-C**** Assume basic gravity drainage. Flushing is not included.
+C**** Assume basic gravity drainage. 
+C**** Flushing is not included yet - but will depend on MELT12
+C**** push down a fixed mass (inversely proportional to brine-frac)
 C**** first layer ice
+        IF (SICE.gt.0) THEN
         brine_frac=-mu*(SICE/ACE1I)/TICE
         if (brine_frac.gt.0.03d0) then ! drain
           rate = DT*BYDTSSI*100.*(brine_frac-0.03d0) ! fractional loss
@@ -1176,9 +1180,11 @@ C**** tracers may be fractionated in the brine....(assume not for now)
           SICE=SICE-DS12
           HICE=HICE-DH12
         end if
+        END IF
 
 C**** check remaining layers
         DO L=3,LMI
+          IF (SSIL(L).gt.0.) THEN
           TSIL(L)=Ti(HSIL(L)/(XSI(L)*MSI2),1d3*SSIL(L)/(XSI(L)*MSI2))
           brine_frac=-mu*SSIL(L)/(XSI(L)*MSI2)/TSIL(L)
           if (brine_frac.gt.0.03d0) then ! drain
@@ -1195,6 +1201,7 @@ C**** tracers may be fractionated in the brine....(assume not for now)
             SSIL(L) = SSIL(L) - DSSI(L)
             HSIL(L) = HSIL(L) - DHSI(L)
           end if
+          END IF
         END DO
       END SELECT
 
@@ -1351,13 +1358,13 @@ C**** set conductivity term
 C**** Diffusive flux is implicit in ice !  + ml temperature (not used)
       rsg=rhows*shw*g_T    ! /(1.+alpha*dtsrc*rhows*shw*g_T/mlsh)
 
-      select case (form)
-      case ("SI")   ! "PI"      ! no salinity effects on diffusion
+      if (form.eq."SI" .or. Si.eq.0.) then
+                                ! no salinity effects on diffusion
         alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
-      case ("BP")               ! brine pocket impact on diffusion
+      else                      ! brine pocket impact on diffusion
         alamdh = (alami+alamdS*Si/Ti)/(dh+alpha*dtsrc*
      *           (alami+alamdS*Si/Ti)*byshi/(2.*rhoi*dh))
-      end select
+      end if 
 
 C**** solve for boundary values (uses Newton-Rapheson with bounds)
 C**** Estimate initial boundary salinity
@@ -1385,7 +1392,11 @@ c            lh = lhm + Tb*(shw-shi)
           case ("SI")           ! salinity effects only mass
             lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
           case ("BP")           ! brine pockets 
-            lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
+            if (Sib.gt.0) then
+              lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
+            else
+              lh = lhm + Tb*(shw-shi)
+            end if
           end select
 c
           m = -left2/lh
@@ -1398,9 +1409,14 @@ c            dmdSi = 0.
             dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
             dmdSi = -left2*lhm*1d-3/(lh*lh)
           case ("BP")           ! brine pockets 
-            dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh+rsg))
-     *           /(lh*lh)
-            dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
+            if (Sib.gt.0) then
+              dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh+rsg)
+     *             )/(lh*lh)
+              dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
+            else
+              dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
+              dmdSi = 0.
+            end if
           end select
 
           if (qsfix) then   ! keep salinity in ice constant
@@ -1421,7 +1437,11 @@ c            lh = lhm + Tb*shw - Ti*shi
           case ("SI")           ! salinity effects only mass
             lh = lhm*(1.-Sib*1d-3) + Tb*shw - Ti*shi
           case ("BP")           ! brine pockets 
-            lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi)-shw*(Ti-Tb)
+            if (Sib.gt.0) then
+              lh = lhm*(1.+mu*Sib/Ti)+(Ti+mu*Sib)*(shw-shi)-shw*(Ti-Tb)
+            else
+              lh = lhm + Tb*shw - Ti*shi
+            end if
           end select
 c
           m = -left2/lh
