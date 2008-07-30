@@ -548,7 +548,7 @@ C**** Initialize work array
 
 C**** Decay sea ice salinity
         if (.not. qsfix .and. FOCEAN(I,J).gt.0) then
-          CALL SSIDEC(SNOW,MSI2,HSIL,SSIL,DTsrc,
+          CALL SSIDEC(SNOW,MSI2,HSIL,SSIL,DTsrc,MELT12,
 #ifdef TRACERS_WATER
      *         TRSIL,TRFLUX,
 #endif
