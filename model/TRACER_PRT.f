@@ -405,9 +405,10 @@ C****
       character*50 :: unit_string
       integer k,n,kpmax
 
+      k = ktajl
 !@var jlnt_xx Names for TAJL diagnostics
       do n=1,ntm
-      k = ktajl +1
+      k = k+1
         jlnt_nt_eddy = k
         sname_jln(k,n) = 'tr_nt_eddy_'//trname(n)
         lname_jln(k,n) = 'NORTHWARD TRANS. OF '//
