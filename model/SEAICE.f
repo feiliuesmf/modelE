@@ -66,7 +66,7 @@
 !@var DEBUG flag
       LOGICAL DEBUG
 !@var FORM formulation of sea ice thermodynamics (BP or SI)
-      CHARACTER*2 :: FORM = "SI"
+      CHARACTER*2 :: FORM = "SI"  ! "BP"
 
       CONTAINS
 
@@ -138,9 +138,8 @@ C**** ACE1I=ACE1I + FREZI + CMPRS - FMSI2
 C**** SALTI=SALTI - SMELTI        - FSSI2
       IF (SNOW.gt.0) THEN ! apply fluxes to snow portion first
         SNOW1 = MIN(SNOW,XSI(1)*MSI1)
-        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)  ! not correct
-c        HSNOW = SNOW1*(Ti(HSIL(1)/(XSI(1)*MSI1),
-c     *       1d3*SSIL(1)/(XSI(1)*MSI1))*shi-lhm)
+        HSNOW = SNOW1*(Ti(HSIL(1)/(XSI(1)*MSI1),
+     *       1d3*SSIL(1)/(XSI(1)*MSI1))*shi-lhm)
         HICE  = HSIL(1)-HSNOW
         SICE  = SSIL(1)
 #ifdef TRACERS_WATER
@@ -475,10 +474,8 @@ C**** MELTS,MELTI are the amounts of snow and ice melt
       IF (SNOW*XSI(2).gt.XSI(1)*ACE1I) THEN ! first layer is all snow
         DEWI = MAX(0d0,DEW)    ! >0 i.e. dew to second layer ice
         DEWS = DEW - DEWI      ! <0 remaining evap applied to snow
-        HSNOW = HSIL(1) + HSIL(2)*MAX(1.-(ACE1I+DEWI)/(XSI(2)*MSI1+DEWI)
-     *       ,0d0)  ! not correct
-c        HSNOW = HSIL(1) + (XSI(2)*MSI1+DEWI-ACE1I)*(Ti(HSIL(2)/(XSI(2)
-c     *       *MSI1+DEWI),1d3*SSIL(2)/(XSI(1)*MSI1+DEWI))*shi-lhm)
+        HSNOW = HSIL(1) + (XSI(2)*MSI1+DEWI-ACE1I)*(Ti(HSIL(2)/(XSI(2)
+     *       *MSI1+DEWI),1d3*SSIL(2)/(XSI(1)*MSI1+DEWI))*shi-lhm)
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRSIL(:,1) + TRSIL(:,2)*MAX(1.-(ACE1I-SICE)
      *       /(XSI(2)*MSI1-SICE),0d0)
@@ -486,9 +483,8 @@ c     *       *MSI1+DEWI),1d3*SSIL(2)/(XSI(1)*MSI1+DEWI))*shi-lhm)
       ELSE  ! first layer is snow and some ice
         DEWS = -MIN(SNOW,-(DEW-MAX(0d0,DEW))) ! <0 evap upto snow amount
         DEWI = DEW - DEWS       ! either sign, evap/dew applied to ice
-        HSNOW = HSIL(1)*MIN((SNOW+DEWS)/(XSI(1)*MSI1+DEW),1d0) ! not correct
-c        HSNOW = (SNOW+DEWS)*(Ti(HSIL(1)/(XSI(1)*MSI1+DEW),1d3*SSIL(1)
-c     *       /(XSI(1)*MSI1+DEW))*shi-lhm) 
+        HSNOW = (SNOW+DEWS)*(Ti(HSIL(1)/(XSI(1)*MSI1+DEW),1d3*SSIL(1)
+     *       /(XSI(1)*MSI1+DEW))*shi-lhm) 
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRSIL(:,1)*MIN(SNOW/(XSI(1)*MSI1-SSIL(1)),1d0)
 #endif
@@ -2145,18 +2141,19 @@ C**** albedo calculations
       real*8 relerr,errmax
 #endif
 
-      integer :: J_0, J_1
+      integer :: J_0, J_1, J_0H, J_1H
 C**** 
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+     *     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
 C**** Check for NaN/INF in ice data
-      CALL CHECK3(RSI,IM,JM,1,SUBR,'rsi')
-      CALL CHECK3(MSI,IM,JM,1,SUBR,'msi')
-      CALL CHECK3(HSI,LMI,IM,JM,SUBR,'hsi')
-      CALL CHECK3(SSI,LMI,IM,JM,SUBR,'ssi')
-      CALL CHECK3(SNOWI,IM,JM,1,SUBR,'sni')
+      CALL CHECK3B(RSI,IM,J_0H,J_1H,JM,1,SUBR,'rsi   ')
+      CALL CHECK3B(MSI,IM,J_0H,J_1H,JM,1,SUBR,'msi   ')
+      CALL CHECK3C(HSI,LMI,IM,J_0H,J_1H,SUBR,'hsi   ')
+      CALL CHECK3C(SSI,LMI,IM,J_0H,J_1H,SUBR,'ssi   ')
+      CALL CHECK3B(SNOWI,IM,J_0H,J_1H,JM,1,SUBR,'sni   ')
 
       QCHECKI = .FALSE.
 C**** Check for reasonable values for ice variables
