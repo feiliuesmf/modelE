@@ -158,13 +158,13 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
         jlq_power(k) = 10
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
 
-      end do
 
-      if (k.gt. ktajl) then
-        if (AM_I_ROOT()) write (6,*)
-     &   'tjl_defs: Increase ktajl=',ktajl,' to at least ',k
-        call stop_model('ktajl too small',255)
-      end if
+        if (k.gt. ktajl) then
+           if (AM_I_ROOT()) write (6,*)
+     &          'tjl_defs: Increase ktajl=',ktajl,' to at least ',k
+           call stop_model('ktajl too small',255)
+        end if
+      end do
 
 C**** CONTENTS OF TAIJLN(I,J,LM,N)  (SUM OVER TIME OF)
 C****        TML (M*M * KG TRACER/KG AIR)
@@ -434,6 +434,7 @@ C**** Tracers dry deposition flux.
 
       end do
 
+      RETURN
       END SUBROUTINE set_generic_tracer_diags
 
 
