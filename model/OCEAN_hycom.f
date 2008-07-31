@@ -538,6 +538,11 @@ C     nothing to gather - ocean prescribed
 
       USE KPRF_ARRAYS, only : alloc_kprf_arrays, alloc_kprf_arrays_local
       USE HYCOM_ATM, only : alloc_hycom_atm
+
+#ifdef TRACERS_OceanBiology
+      USE obio_forc, only: alloc_obio_forc
+#endif
+
       implicit none
       
 
@@ -558,11 +563,16 @@ C     nothing to gather - ocean prescribed
       call alloc_kprf_arrays
       call alloc_kprf_arrays_local
 
+#ifdef TRACERS_OceanBiology
+      call alloc_obio_forc
+#endif
+
       !!call reset_hycom_arrays
 
       !if (AM_I_ROOT()) then
  !!!       call geopar
       !endif
+
 
       end subroutine alloc_ocean
 
