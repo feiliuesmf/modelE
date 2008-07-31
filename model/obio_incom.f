@@ -6,7 +6,9 @@
 
       implicit none
 
-
+      integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
+      real,    ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dicmod,dic
+      real,    ALLOCATABLE, DIMENSION(:,:,:,:):: pco2tab
 
       real :: rmumax                !max phyto growth rate at 20oC, d/
       real :: rik                   !light saturation parameter umol quanta/m2/s
@@ -97,8 +99,6 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
        integer, parameter :: itainc=2,nta=(500+itainc)/itainc
 
 
-       !pco2 data file
-       real, ALLOCATABLE :: pco2tab(:,:,:,:)
        !real pco2tab
        !common /bpco2tab/pco2tab(nt0,nsal,ndic,nta)
 
@@ -115,5 +115,19 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       real wfac(nlt)
       common/exifst3/wfac
 #endif
+
+      contains
+
+      subroutine alloc_obio_incom
+
+      USE hycom_dim_glob
+
+!*******NEED TO DEALLOCATE LATER: only the first two lines
+
+      ALLOCATE(ir(idm,jdm))
+      ALLOCATE(Fer(idm,jdm,kdm),dicmod(idm,jdm,kdm),dic(idm,jdm,kdm))
+
+      end subroutine alloc_obio_incom
+
 
       END MODULE obio_incom

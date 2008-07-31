@@ -49,16 +49,17 @@ c  Carbon type 2    = DIC
 !#include "common_blocks.h"
 
 
-      integer ir,nir,nt
+      integer nir,nt
       integer iu_bioinit
 
       real rlon,rlat,dicmin,dicmax
-      real Fer(idm,jdm,kdm),dicmod(idm,jdm,kdm),dic(idm,jdm,kdm)
 
       character*2 ntchar
       character*80 filename
 
-      common /bir/ ir(idm,jdm),nir(nrg)
+      common /bir/ nir(nrg)
+
+      call alloc_obio_incom
 
 c  Initialize
 
@@ -351,6 +352,7 @@ c       13 -- Mediterranean/Black Seas
  
 
       USE obio_dim
+      USE obio_incom, only: ir
 
       USE hycom_dim_glob
       USE hycom_arrays_glob
@@ -367,8 +369,8 @@ c       13 -- Mediterranean/Black Seas
 
       real rlat,rlon
 
-      integer ir,nir
-      common /bir/ ir(idm,jdm),nir(nrg)
+      integer nir
+      common /bir/ nir(nrg)
 
       real antlat,rnpolat
       data antlat,rnpolat /-40.0, 40.0/
