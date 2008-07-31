@@ -1235,12 +1235,14 @@ C****
       real*8 relerr,errmax
 #endif
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     *               J_STRT_HALO=J_0H,J_STOP_HALO=J_1H,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
-C**** Check for NaN/INF in lake data CALL CHECK3(MWL,IM,JM,1,SUBR,'mwl')
-      CALL CHECK3(GML,IM,JM,1,SUBR,'gml')
-      CALL CHECK3(MLDLK,IM,JM,1,SUBR,'mld')
-      CALL CHECK3(TLAKE,IM,JM,1,SUBR,'tlk')
+C**** Check for NaN/INF in lake data 
+      CALL CHECK3B(MWL,IM,J_0H,J_1H,1,SUBR,'mwl')
+      CALL CHECK3B(GML,IM,J_0H,J_1H,1,SUBR,'gml')
+      CALL CHECK3B(MLDLK,IM,J_0H,J_1H,1,SUBR,'mld')
+      CALL CHECK3B(TLAKE,IM,J_0H,J_1H,1,SUBR,'tlk')
 
       QCHECKL = .FALSE.
       DO J=J_0S, J_1S
