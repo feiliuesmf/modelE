@@ -281,3 +281,18 @@ c     *     (/ 1d0 ,1.0319d0, 1.0164d0, 1.0319d0, 1.016399d0/)
       return
       end function
 #endif
+      
+      function calc_permil(Rsam,Msam,nTr)
+c**** Calculates concentration in per mille units
+      
+      USE TRACER_COM, only : trw0 ! amount in standard
+
+      real*8 Rsam ! amount in sample
+     *     ,Msam  ! mass of sample (amount of 'water' tracer)
+      integer nTr ! sample tracer number
+
+      calc_permil = 1.d3*(Rsam/(Msam*trw0(nTr))-1.)
+
+      return
+      end function
+     
