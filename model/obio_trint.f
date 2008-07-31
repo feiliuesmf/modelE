@@ -1,15 +1,17 @@
       subroutine obio_trint(nn)
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
+      USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr
+      USE hycom_arrays_glob, only : tracer,dp,scp2
       USE hycom_scalars, only : lp, nstep
       implicit none
 !!#include "dimensions.h"
-#include "dimension2.h"
+!!#include "dimension2.h"
 !!#include "common_blocks.h"
+      integer nn
 
       integer ntr
       real sum,sum_area,summ
+      integer i,j,k,l,kn
 
       print*,'   '
       do ntr=1,ntrcr

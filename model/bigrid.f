@@ -132,12 +132,12 @@ c
 c --- write out  -ip-  array
 c --- data are written in strips 75 points wide
       jsec=(jj-1)/75
-      do 9 jfrst=0,75*jsec,75
-      jlast=min(jj,jfrst+75)
-      write (char2,'(i2)') jlast-jfrst
-      fmt(8:9)=char2
-      write (lp,'(''ip array, cols'',i5,'' --'',i5)') jfrst+1,jlast
- 9    write (lp,fmt) (i,(10*ip(i,j),j=jfrst+1,jlast),i=1,ii)
+cddd      do 9 jfrst=0,75*jsec,75
+cddd      jlast=min(jj,jfrst+75)
+cddd      write (char2,'(i2)') jlast-jfrst
+cddd      fmt(8:9)=char2
+cddd      write (lp,'(''ip array, cols'',i5,'' --'',i5)') jfrst+1,jlast
+cddd 9    write (lp,fmt) (i,(10*ip(i,j),j=jfrst+1,jlast),i=1,ii)
 c
       return
       end

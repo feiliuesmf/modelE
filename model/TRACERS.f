@@ -1446,10 +1446,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &    ,PRS_ch4_glob,HRA_ch4_glob,Iijch4_glob
 #endif
      &     )
-#endif     
+   
 #endif
       end subroutine freemem
 
+#endif
       END SUBROUTINE io_tracer
 
 

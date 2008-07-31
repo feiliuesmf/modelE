@@ -47,7 +47,8 @@
 
 
       USE hycom_dim_glob
-      USE hycom_arrays_glob
+      USE hycom_arrays_glob, only : tracer,
+     &     oice,temp,saln,dpinit,p,dpmixl
       USE hycom_scalars
       implicit none
 
@@ -75,9 +76,11 @@
 
         write(lp,'(a)')'BIO:Ocean Biology starts ....'
 
+        write(0,*) "1"
         call obio_init
         !tracer array initialization.
         !note: we do not initialize obio_P,det and car
+        write(0,*) "2"
         call obio_bioinit(nn)
 
         diagno_bio=.true.
@@ -85,6 +88,7 @@
 
 
 !Warm initialization
+        write(0,*) "3"
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
          write(lp,'(a)')'For restart runs.....'
          write(lp,'(a,2i9,f10.3)')
@@ -94,7 +98,8 @@
          print*,'WARM INITIALIZATION'
          call obio_trint(nn)
        endif !for restart only
-
+        write(0,*) "4"
+        
 !--------------------------------------------------------
 
        day_of_month=jdate
@@ -146,6 +151,9 @@
 
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
+        write(0,*) "5"
+
+        !write(902,*) tracer(:,:,1,15)
 
        do 1000 j=1,jj
        do 1000 l=1,isp(j)
@@ -259,8 +267,13 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
        do ihr=1,nhn
         do ichan=1,nlt
+#ifndef OBIO_SPEED_HACKS
          Eda2(ichan,ihr)=Eda(i,j,ichan,ihr,JMON)
          Esa2(ichan,ihr)=Esa(i,j,ichan,ihr,JMON)
+#else
+         Eda2(ichan,ihr)=1.
+         Esa2(ichan,ihr)=1.
+#endif
         enddo
        enddo
 #endif
@@ -596,6 +609,8 @@ cdiag     endif
         do nt=1,ncar
          tracer(i,j,k,ntyp+n_inert+ndet+nt)=car(k,nt)
         enddo
+
+        print *,"ntyp+n_inert,ndet,ncar=",ntyp+n_inert,ndet,ncar
 
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)

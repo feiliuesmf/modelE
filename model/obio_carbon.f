@@ -31,8 +31,8 @@ c
 
 #endif
       
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
+      USE hycom_dim_glob, only : kdm
+      !USE hycom_arrays_glob
       USE hycom_scalars, only : nstep
       implicit none
 
@@ -51,6 +51,17 @@ c
       logical vrbos
 
       real term
+
+      !write(903,*) i,j,gro,vrbos,kmax
+cddd      write(904,*) i,j,dtsrc,wind,atmCO2,
+cddd     &     cnratio,rlamdoc,rkdoc1,rkdoc2
+cddd     .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
+cddd     .                      ,excz,resz,remin,excp,resp,
+cddd     &     bn,C_tend,obio_P,P_tend,car
+cddd     .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
+cddd     .                    ,temp1d,saln1d,dp1d,rhs,alk1d,
+cddd     &     ntm,tr_mm,
+cddd     &     tracflx1d
 
       do nt=1,ncar
        do k=1,kdm
@@ -251,6 +262,8 @@ c Update DIC for sea-air flux of CO2
 
 #endif
 
+      !write(901,*) i,j,C_tend(1,2)
+
       return
       end
 
@@ -320,7 +333,11 @@ c    .             'correction in ppco2tab, ita =',ita,nta,TA
        if (idic.lt. 1) idic= max(idic,1)
        if (ita.lt.  1) ita = max(ita,1)
 
+#ifndef OBIO_SPEED_HACKS
        pco21D = pco2tab(it0,isal,idic,ita)
+#else
+       pco21D = 440
+#endif
 
       return
       end

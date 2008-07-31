@@ -92,7 +92,7 @@ c
 !     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
 !     . ,gmelt,egmelt,solar,gtempr,erunpsi
 #ifdef TRACERS_GASEXCH_Natassa
-      USE FLUXES, only : TRGASEX,GTRACER
+      !USE FLUXES, only : TRGASEX !,GTRACER
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
@@ -111,9 +111,9 @@ c
       USE obio_forc, only:    avgq,awind,owind,asolz,osolz
       USE obio_com,  only:    gcmax,pCO2,dobio
 
-      USE PBLCOM, only : wsavg 
-      USE RAD_COM,   only: COSZ1
-     .           ,FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
+      !USE PBLCOM, only : wsavg 
+      !USE RAD_COM,   only: COSZ1
+      USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
 #endif 
 #ifdef OBIO_RAD_coupling
       USE obio_forc, only:    avisdir,avisdif,anirdir,anirdif
@@ -187,6 +187,7 @@ c
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_Natassa
      . ,otrac(idm,jdm,ntm)
+!     . ,otrac_loc(idm,J_0H:J_1H,ntm)
 #endif
 
 #include "state_eqn.h"
@@ -476,8 +477,8 @@ css   call inicon                ! moved to agcm
         call inikpp                 ! kpp
         if (mxlgis) stop 'wrong kprf: kpp=gis=true'
         print *,'chk: mxlkpp=true'
-        write(*,'(a,2f9.3)')' chk qkpar=',
-     .  1./akpar(itest,jtest,1),1./(betabl(2)*onem)
+cddd        write(*,'(a,2f9.3)')' chk qkpar=',
+cddd     .  1./akpar(itest,jtest,1),1./(betabl(2)*onem)
       elseif (mxlgis) then
         call inigis                 ! giss
         print *,'chk: mxlgis=true'
@@ -991,6 +992,8 @@ c --- compute sea surface height (m)
          call GLOBALSUM(ogrid,sumicej,sumice, all=.true.)
          call GLOBALSUM(ogrid,sumj,sum, all=.true.)
 
+      write(0,*) __FILE__,__LINE__
+
         if (AM_I_ROOT())
      .  write (lp,'(i9,'' mean sea srf.hgt. (mm):'',f9.2,f12.0)')nstep,
      .  sum*1.e3/area,sumice*1.e-6
@@ -1055,6 +1058,7 @@ c
      .   +mxlayr_time
      .   +hybgen_time
 
+      write(0,*) __FILE__,__LINE__
       if (AM_I_ROOT()) then
       write (lp,99009) ogcm_time,' sec for OGCM   at ocn step ',nstep
       write (lp,'(a/(5(4x,a,i5)))') 'timing (msec) by routine:'
@@ -1070,24 +1074,34 @@ c
 c
       if (mod(nstep,5).eq.0) call flush(lp)
       end if  ! AM_I_ROOT
+      write(0,*) __FILE__,__LINE__
 
 #ifdef TRACERS_OceanBiology
-      if (dobio .or. diagno) call obio_trint(nn)
+      if (AM_I_ROOT()) then
+        if (dobio .or. diagno) call obio_trint(nn)
+      endif
 #endif
 
 c
       if (.not.diagno) go to 23
 c
+      write(0,*) __FILE__,__LINE__
       if (AM_I_ROOT())
      .  write (lp,100) nstep,int((time+.001)/365.),mod(time+.001,365.)
  100  format (' ocn time step',i9,4x,'y e a r',i6,4x,'d a y',f9.2)
 c
 c --- output to history file
 c
+      write(0,*) __FILE__,__LINE__
+
       call gather_before_archive()
+      write(0,*) __FILE__,__LINE__
 
       if (AM_I_ROOT()) then
+        write(0,*) __FILE__,__LINE__
+
         call archiv(n,nn)
+      write(0,*) __FILE__,__LINE__
 
 c --- diagnose meridional overturning and heat flux
 c$OMP PARALLEL DO
@@ -1099,6 +1113,8 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c     call overtn(mm)
 c
+      write(0,*) __FILE__,__LINE__
+
       write (lp,105) nstep
  105  format (' step',i9,' -- archiving completed --')
 c
@@ -1111,6 +1127,8 @@ c
           jj1=jj
         end if
       end do
+      write(0,*) __FILE__,__LINE__
+
 c
 c --- output to line printer
 c
@@ -1167,28 +1185,38 @@ c$OMP PARALLEL DO
       oogeoza_loc(i,j)=(montg_loc(i,j,1)+thref*pbavg_loc(i,j,m))*
      &                        g/(thref*onem) ! m^2/s^2
 
+ 201  continue
+
 #ifdef TRACERS_GASEXCH_Natassa
+      if (AM_I_ROOT()) then
+      do j=1,jdm
+        do l=1,isp(j)
+          do i=ifp(j,l),ilp(j,l)
+
       !here we define the tracer that participates in the
       !gas exchange flux.
 #ifdef TRACERS_GASEXCH_CFC_Natassa
-      do nt=1,ntm
-      otrac(i,j,nt)=otrac(i,j,nt)
-     .            +tracer(i,j,1,nt)
-     .            *baclin/(3600.*real(nhr))
-      enddo
+            do nt=1,ntm
+              otrac(i,j,nt)=otrac(i,j,nt)
+     .             +tracer_loc(i,j,1,nt)
+     .             *baclin/(3600.*real(nhr))
+            enddo
 #endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
       !in this case, the tracer is not really active ocean tracer, because it is being
       !handled by the bgcm and it is only at the surface
-      do nt=1,ntm
-      otrac(i,j,nt)=otrac(i,j,nt)
-     .             +pCO2(i,j)                 !pCO2 is in ppmv(uatm)
+            do nt=1,ntm
+              otrac(i,j,nt)=otrac(i,j,nt)
+     .             +pCO2(i,j)   !pCO2 is in ppmv(uatm)
      .             *baclin/(3600.*real(nhr))
-      enddo
+            enddo
 #endif
+          enddo
+        enddo
+      enddo
+      endif
 #endif
 
- 201  continue
 c$OMP END PARALLEL DO
 c
       nsaveo=nsaveo+1
@@ -1343,6 +1371,7 @@ c------------------------------------------------------------------
       USE HYCOM_ATM
       USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA
      &      ,PACK_COLUMN, PACK_BLOCK
+      implicit none 
 
       call pack_data( grid,  ataux_loc,   ataux )
       call pack_data( grid,  atauy_loc,   atauy )
@@ -1362,6 +1391,9 @@ c------------------------------------------------------------------
       call pack_column( grid,  DSSI_loc, DSSI )
 
       call pack_data( grid,  FOCEAN_loc, FOCEAN )
+#ifdef TRACERS_GASEXCH_Natassa
+      call pack_block( grid,GTRACER_loc,GTRACER)
+#endif
 
       end subroutine gather2_atm
 c------------------------------------------------------------------
@@ -1370,6 +1402,8 @@ c------------------------------------------------------------------
       USE HYCOM_ATM
       USE DOMAIN_DECOMP, ONLY: grid, UNPACK_DATA, UNPACK_COLUMN,
      &     UNPACK_BLOCK
+      implicit none 
+
 
       call unpack_data( grid,  SSS, SSS_loc )
       call unpack_data( grid,  OGEOZA, OGEOZA_loc )
@@ -1381,6 +1415,9 @@ c------------------------------------------------------------------
        call unpack_column( grid,  DMSI, DMSI_loc )
        call unpack_column( grid,  DHSI, DHSI_loc )
        call unpack_column( grid,  DSSI, DSSI_loc )
+#ifdef TRACERS_GASEXCH_Natassa
+      call unpack_block( grid,GTRACER,GTRACER_loc)
+#endif
 
       end subroutine scatter2_atm
 c------------------------------------------------------------------
@@ -1389,6 +1426,8 @@ c------------------------------------------------------------------
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      implicit none 
+
 
       call pack_data( ogrid,  u_loc, u )
       call pack_data( ogrid,  v_loc, v )
@@ -1911,6 +1950,8 @@ c------------------------------------------------------------------
       use hycom_arrays_glob_renamer
       USE KPRF_ARRAYS, ONLY: sswflx, sswflx_loc,
      &                       akpar,  akpar_loc
+
+      implicit none 
 
       call unpack_data( ogrid,  taux, taux_loc )
       call unpack_data( ogrid,  tauy, tauy_loc )

@@ -2,11 +2,11 @@
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
       USE DOMAIN_DECOMP, only: AM_I_ROOT,ESMF_BCAST
       USE HYCOM_ATM, only : gather_atm,scatter_atm, focean,gtemp,gtempr,
-     &     asst,atempr,im,jm
+     &     asst,atempr,im,jm,GTRACER
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_Natassa
-      USE FLUXES, only : GTRACER,TRGASEX
+      USE FLUXES, only : TRGASEX !,GTRACER
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 

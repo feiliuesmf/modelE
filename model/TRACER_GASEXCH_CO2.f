@@ -1,5 +1,6 @@
 #include "rundeck_opts.h"
 
+#ifdef TRACERS_ON
       MODULE TRACER_GASEXCH_COM
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
@@ -169,3 +170,5 @@ c
 c
       RETURN 
       END 
+
+#endif

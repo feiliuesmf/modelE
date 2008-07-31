@@ -66,18 +66,24 @@ c  Initialize
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
 
+      write(0,*) "a1"
+
       filename='nitrates_inicond'
       call bio_inicond(filename,tracer(:,:,:,1))
+
+      write(0,*) "a2"
 
       filename='silicate_inicond'
       call bio_inicond(filename,tracer(:,:,:,3))
 
+      write(0,*) "a3"
       filename='dic_inicond'
       call bio_inicond(filename,dic(:,:,:))
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
 !     /archive/u/aromanou/Watson_new/BioInit/CHL_WG_4x5
 
+      write(0,*) "a4"
 
 !!these rno3 and so2_init fields are not correct. There are void points due to
 !mismatch of the noaa grid and the hycom grid. To fill in have to do
@@ -114,10 +120,13 @@ c  Initialize
       write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
      .       dicmin,dicmax
 
+      write(0,*) "a5"
 c  Obtain region indicators
       write(6,*)'calling fndreg...'
       call fndreg
  
+      write(0,*) "a6"
+
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
 c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 
@@ -220,6 +229,7 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 
  1000 continue
 
+            write(0,*) "a7"
 
 c  Detritus (set to 0 for start up)
       write(6,*)'Detritus...'
@@ -244,7 +254,7 @@ c  Detritus (set to 0 for start up)
         enddo
        enddo
       enddo
-
+      write(0,*) "a7.1"
 c  Carbon (set to 0 for start up)
 c   DIC is derived from GLODAP.  Using mean H from exp601,
 c   mean DIC for these values is computed.  Surface DIC is taken
@@ -263,6 +273,7 @@ c    conversion from uM to mg/m3
        enddo
       enddo
 
+      write(0,*) "a7.2"
       !only carbon components
       do j=1,jj
        do l=1,isp(j)
@@ -276,6 +287,7 @@ c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
        enddo
       enddo
 
+      write(0,*) "a7.3"
 c  Light saturation data
       write(6,*)'Light saturation data...'
       avgq = 0.0
@@ -290,6 +302,7 @@ c  Light saturation data
        enddo
       enddo
 
+      write(0,*) "a7.4"
 c  Coccolithophore max growth rate
       write(6,*)'Coccolithophore max growth rate...'
       do j=1,jj
@@ -302,7 +315,9 @@ c  Coccolithophore max growth rate
        enddo
       enddo
  
+      write(0,*) "a7.5"
       !save initialization
+#ifndef OBIO_SPEED_HACKS
       do nt=1,ntyp+n_inert+ndet+ncar
         ntchar='00'
         if(nt.le.9)write(ntchar,'(i1)')nt
@@ -322,6 +337,10 @@ c  Coccolithophore max growth rate
         enddo
       call closeunit(iu_bioinit)
       enddo
+#endif
+
+      write(0,*) "a8"
+
       
       print*,'COLD INITIALIZATION'
       call obio_trint(nn)

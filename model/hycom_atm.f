@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       module hycom_atm
 !@sum module for atmospheric variables to be passed to/from hylom.
 !@+   hycom will see them as global arrays
@@ -39,6 +41,14 @@
 
       USE SEAICE_COM, only : RSI_loc => RSI ! seems to be used for diags only?
       USE MODEL_COM, only : FOCEAN_loc => FOCEAN
+
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_COM, only : ntm
+      USE FLUXES, only : GTRACER_loc => GTRACER, TRGASEX_loc => TRGASEX
+      USE RAD_COM, only : COSZ1_loc => COSZ1
+      USE PBLCOM, only : wsavg_loc => wsavg
+#endif
+
 
       implicit none
       private
@@ -127,6 +137,13 @@
      .     ,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
 
+#ifdef TRACERS_GASEXCH_Natassa
+      public GTRACER, GTRACER_loc
+      public TRGASEX, TRGASEX_loc
+      public wsavg, wsavg_loc
+      public COSZ1, COSZ1_loc
+#endif
+
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: EVAPOR
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FLOWO
@@ -177,6 +194,15 @@
       real*8, allocatable, dimension(:,:) :: ataux_loc,atauy_loc
      .     ,aflxa2o_loc,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
+
+#ifdef TRACERS_GASEXCH_Natassa
+      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTRACER
+      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
+      real, ALLOCATABLE, DIMENSION(:,:) :: wsavg
+      real, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
+
+#endif
+
 
       contains
 
@@ -229,6 +255,14 @@
      .     ,aemnp_loc(iia,aJ_0H:aJ_1H),aice_loc(iia,aJ_0H:aJ_1H),
      .      asalt_loc(iia,aJ_0H:aJ_1H)
      .     ,austar_loc(iia,aJ_0H:aJ_1H),aswflx_loc(iia,aJ_0H:aJ_1H) )
+
+#ifdef TRACERS_GASEXCH_Natassa
+      ALLOCATE( GTRACER ( NTM , NSTYPE , im , jm ) )
+      GTRACER = 0
+      ALLOCATE( TRGASEX(NTM , NSTYPE , im , jm ) )
+      ALLOCATE( wsavg(im,jm) )
+      ALLOCATE( COSZ1(im,jm) )
+#endif
 
       end subroutine alloc_hycom_atm
 
@@ -308,6 +342,13 @@ cddd      end subroutine alloc_locals
        call pack_column( grid,  DHSI_loc, DHSI )
        call pack_column( grid,  DSSI_loc, DSSI )
 
+#ifdef TRACERS_GASEXCH_Natassa
+      call pack_block( grid,GTRACER_loc,GTRACER)
+      call pack_block( grid,TRGASEX_loc,TRGASEX)
+      call pack_data(  grid,wsavg_loc,wsavg)
+      call pack_data(  grid,COSZ1_loc,COSZ1)
+#endif
+
       ! these are not changed by hycom - no need to scatter
       call pack_data( grid,  RSI_loc, RSI )
       call pack_data( grid,  FOCEAN_loc, FOCEAN )
@@ -351,6 +392,10 @@ cddd      end subroutine alloc_locals
        call unpack_column( grid,  DMSI, DMSI_loc )
        call unpack_column( grid,  DHSI, DHSI_loc )
        call unpack_column( grid,  DSSI, DSSI_loc )
+
+#ifdef TRACERS_GASEXCH_Natassa
+      call unpack_block( grid,GTRACER,GTRACER_loc)
+#endif
 
       end subroutine scatter_atm
 
