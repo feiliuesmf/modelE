@@ -34,8 +34,16 @@ c --- dobio       activate Watson Gregg's ocean biology code
 !    .   '/g6/aromanou/NewGrid/20w/glodap181x180_20w.asc'/
 c
 
-
-
+      real, ALLOCATABLE, DIMENSION(:,:)    :: tzoo2d
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: tfac3d,bn3d,wshc3d
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: Fescav3d
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: obio_wsd2d,obio_wsh2d
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: rmuplsr3d,rikd3d
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: acdom3d
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: gcmax         !cocco max growth rate
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2          !partial pressure of CO2
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
 
       real, parameter :: obio_deltath = 1.0  !time step in hours
       !!real, parameter :: obio_deltat = obio_deltath*3600.0 !time step in seconds
@@ -128,16 +136,6 @@ c
       common /bzoo/ tzoo                
 !$OMP THREADPRIVATE(/bzoo/)
 
-      real tzoo2d,tfac3d,rmuplsr3d,rikd3d,bn3d,obio_wsd2d,obio_wsh2d
-     .    ,wshc3d,Fescav3d,acdom3d
-      common /daysetbio_3darr/ tzoo2d(idm,jdm),tfac3d(idm,jdm,kdm)
-     .     ,rmuplsr3d(idm,jdm,kdm,nchl),rikd3d(idm,jdm,kdm,nchl)
-     .     ,bn3d(idm,jdm,kdm),obio_wsd2d(idm,jdm,nchl)
-     .     ,obio_wsh2d(idm,jdm,nchl)
-     .     ,wshc3d(idm,jdm,kdm),Fescav3d(idm,jdm,kdm)
-     .     ,acdom3d(idm,jdm,kdm,nlt)
-
-
       real Fescav
       common /bscav/ Fescav(kdm)           !iron scavenging rate
 !$OMP THREADPRIVATE(/bscav/)
@@ -147,9 +145,6 @@ C if NCHL_DEFINED > 3
       real wshc                            !cocco sinking rate
       common /bwshc/ wshc(kdm)             
 !$OMP THREADPRIVATE(/bwshc/)
-
-      real gcmax                           !cocco max growth rate
-      common /bgcmax/ gcmax(idm,jdm,kdm)   
 C endif
 
 
@@ -157,8 +152,7 @@ C endif
       common /bctend/ C_tend(kdm,ncar)      
 !$OMP THREADPRIVATE(/bctend/)
 
-      real :: pCO2, pCO2_ij                 !partial pressure of CO2
-      common /bco2/ pCO2(idm,jdm)           
+      real :: pCO2_ij                 !partial pressure of CO2
       common /bco2ij/ pCO2_ij               
 !$OMP THREADPRIVATE(/bco2ij/)
 
@@ -172,12 +166,30 @@ C endif
       common /brhs/ rhs(kdm,14,16)
 !$OMP THREADPRIVATE(/brhs/)
 
-      real :: pp2_1d,pp2tot_day              
+      real :: pp2_1d          
       common /bpp2/ pp2_1d(kdm,nchl)           !net primary production
-      common /bpp2tot/ pp2tot_day(idm,jdm)     !net pp total per day          
 !$OMP THREADPRIVATE(/bpp2/)
 
-      real ::  tot_chlo             
-      common /totchlo/ tot_chlo(idm,jdm)       !tot chlorophyl at surf. layer
+
+
+      contains
+
+      subroutine alloc_obio_com
+
+      USE obio_dim
+      USE hycom_dim_glob
+
+      ALLOCATE(tzoo2d(idm,jdm))
+      ALLOCATE(tfac3d(idm,jdm,kdm),bn3d(idm,jdm,kdm))
+      ALLOCATE(wshc3d(idm,jdm,kdm),Fescav3d(idm,jdm,kdm))
+      ALLOCATE(obio_wsd2d(idm,jdm,nchl),obio_wsh2d(idm,jdm,nchl))
+      ALLOCATE(rmuplsr3d(idm,jdm,kdm,nchl),rikd3d(idm,jdm,kdm,nchl))
+      ALLOCATE(acdom3d(idm,jdm,kdm,nlt))
+      ALLOCATE(gcmax(idm,jdm,kdm))
+      ALLOCATE(pCO2(idm,jdm))           
+      ALLOCATE(pp2tot_day(idm,jdm))
+      ALLOCATE(tot_chlo(idm,jdm))
+
+      end subroutine alloc_obio_com
 
       END MODULE obio_com

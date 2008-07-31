@@ -7,20 +7,29 @@
       USE hycom_dim_glob
       implicit none
 
-!!#include "dimensions.h"
 #include "dimension2.h"
 
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx,atrac
 
-      real*8 atracflx(iia,jja,ntm),atrac(iia,jja,ntm)
-      common /gasexch1/atracflx,atrac
-
-      real*8   tracflx(idm,jdm,ntm)     !  tracer flux at air-sea intfc
-      common /gasexch2/tracflx
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
   
       real*8 tracflx1d(ntm)
       common /gasexch3/tracflx1d
 !$OMP THREADPRIVATE(/gasexch3/)
 
+
+      contains
+
+      subroutine alloc_tracer_gasexch_com
+
+      USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
+      USE hycom_dim_glob
+
+      ALLOCATE(tracflx(idm,jdm,ntm))
+
+      ALLOCATE(atracflx(iia,jja,ntm),atrac(iia,jja,ntm))
+
+      end subroutine alloc_tracer_gasexch_com
 
       END MODULE TRACER_GASEXCH_COM
 

@@ -539,8 +539,13 @@ C     nothing to gather - ocean prescribed
       USE KPRF_ARRAYS, only : alloc_kprf_arrays, alloc_kprf_arrays_local
       USE HYCOM_ATM, only : alloc_hycom_atm
 
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_GASEXCH_COM, only: alloc_tracer_gasexch_com
+#endif
+
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only: alloc_obio_forc
+      USE obio_com,  only: alloc_obio_com
 #endif
 
       implicit none
@@ -563,8 +568,12 @@ C     nothing to gather - ocean prescribed
       call alloc_kprf_arrays
       call alloc_kprf_arrays_local
 
+#ifdef TRACERS_GASEXCH_Natassa
+      call alloc_tracer_gasexch_com
+#endif
 #ifdef TRACERS_OceanBiology
       call alloc_obio_forc
+      call alloc_obio_com
 #endif
 
       !!call reset_hycom_arrays
