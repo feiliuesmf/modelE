@@ -52,7 +52,7 @@ C**** TAIJLN
       character(len=80), dimension(lm,ntm) :: lname_ijt = 'unused'
 !@var SCALE_IJT: printout scaling factor for tracer IJ diagnostics
       REAL*8, dimension(lm,ntm) :: scale_ijt
-!@var IR_IJT: range index of IJ diagnosts
+!@var IR_IJT: range index of IJ diagnostics
       integer, dimension(ntm) :: ir_ijt
 !@var IA_IJT: idacc-number for tracer IJ diags (same for all tracers)
       integer ia_ijt
@@ -207,7 +207,7 @@ C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
       INTEGER, PARAMETER :: ktajl=10
-     &                     ,ktajlx=ktajl+120   !changed from 2 to 120 
+     &                     ,ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: TAJLN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN_loc

@@ -405,10 +405,9 @@ C****
       character*50 :: unit_string
       integer k,n,kpmax
 
-      k = ktajl
 !@var jlnt_xx Names for TAJL diagnostics
       do n=1,ntm
-      k = k+1
+      k = ktajl+1
         jlnt_nt_eddy = k
         sname_jln(k,n) = 'tr_nt_eddy_'//trname(n)
         lname_jln(k,n) = 'NORTHWARD TRANS. OF '//
@@ -421,7 +420,6 @@ C****
         lname_jln(k,n) = 'VERTICAL TRANS. OF '//
      &     trim(trname(n))//' MASS BY EDDIES'
         jlq_power(k) = 10.
-      end do
 
       kpmax = k
 
@@ -430,11 +428,13 @@ C****
      &         ' to at least ',k
         call stop_model('ktajlx too small',255)
       end if
+
 C**** Construct UNITS string for output
-      do n=1,ntm
       do k=ktajl+1,kpmax
       units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),' kg/s')
-      end do; end do
+      end do
+
+      end do
 
       END SUBROUTINE JLt_TITLEX
 
