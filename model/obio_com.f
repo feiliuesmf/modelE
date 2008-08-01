@@ -10,28 +10,10 @@
       USE hycom_dim_glob
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-
-
 !this part is taken out of common_blocks.h in hycom
 c --- dobio       activate Watson Gregg's ocean biology code
       logical dobio
       data dobio/.true./
-
-      !these are defined in the rundeck for the coupled runs
-!     character*60 flnmoas,flnmsolz,flnmbio1,flnmbio2,flnmbio3
-
-!     data flnmoas/
-!    .   '/g6/aromanou/NewGrid/20w/oasim181x180_20w'/
-!     data flnmsolz/
-!    .   '/g6/aromanou/NewGrid/20w/solz_forbio_20w.dat'/
-!     data flnmbio1/
-!    .   '/g6/aromanou/NewGrid/20w/nitoa181x180_20w.asc'/
-!     data flnmbio2/
-!    .   '/g6/aromanou/NewGrid/20w/siloa181x180_20w.asc'/
-!     data flnmbio3/
-!    .   '/g6/aromanou/NewGrid/20w/glodap181x180_20w.asc'/
 c
 
       real, ALLOCATABLE, DIMENSION(:,:)    :: tzoo2d

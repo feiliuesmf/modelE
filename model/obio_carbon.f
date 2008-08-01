@@ -12,34 +12,25 @@ c
       USE MODEL_COM, only: dtsrc
 
       USE obio_dim
-
       USE obio_forc, only: wind,atmCO2
-
       USE obio_incom, only : cnratio,rlamdoc,rkdoc1,rkdoc2
      .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
      .                      ,excz,resz,remin,excp,resp
-
       USE obio_com, only : bn,C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
 #ifdef TRACERS_GASEXCH_CO2_Natassa
-
       USE TRACER_COM, only : ntm,tr_mm    !tracers involved in air-sea gas exch
-
       USE TRACER_GASEXCH_COM, only : tracflx1d
-
 #endif
       
       USE hycom_dim_glob, only : kdm
-      !USE hycom_arrays_glob
       USE hycom_scalars, only : nstep
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
 
+      integer :: i,j,k
 
       integer :: nt,kmax
       real  :: cchlratio,mgchltouMC,rmmzoo,docexcz,rndep,docdep
@@ -261,8 +252,6 @@ c Update DIC for sea-air flux of CO2
 #endif
 
 #endif
-
-      !write(901,*) i,j,C_tend(1,2)
 
       return
       end

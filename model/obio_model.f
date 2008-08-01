@@ -8,7 +8,6 @@
       USE obio_incom
       USE obio_forc, only: solz,tirrq,Ed,Es
      .                    ,rmud,atmFe,avgq,ihra,sunz
-!    .                    ,solz_all,solz2,sunz2
      .                    ,wind
      .                    ,atmFe_all
      .                    ,owind,osolz
@@ -47,14 +46,13 @@
 
 
       USE hycom_dim_glob
-      USE hycom_arrays_glob, only : tracer,
-     &     oice,temp,saln,dpinit,p,dpmixl
-      USE hycom_scalars
+      USE hycom_arrays_glob, only: tracer,dpinit,temp,saln,oice
+     .                            ,p,dpmixl
+      USE hycom_scalars, only: trcout,nstep,onem,nstep0
+     .                        ,time,lp,itest,jtest
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
+      integer i,j,k,l,nn,mm,km 
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer iu_pco2,ll,iu_tend
@@ -76,11 +74,9 @@
 
         write(lp,'(a)')'BIO:Ocean Biology starts ....'
 
-        write(0,*) "1"
         call obio_init
         !tracer array initialization.
         !note: we do not initialize obio_P,det and car
-        write(0,*) "2"
         call obio_bioinit(nn)
 
         diagno_bio=.true.
@@ -88,7 +84,6 @@
 
 
 !Warm initialization
-        write(0,*) "3"
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
          write(lp,'(a)')'For restart runs.....'
          write(lp,'(a,2i9,f10.3)')
@@ -98,8 +93,7 @@
          print*,'WARM INITIALIZATION'
          call obio_trint(nn)
        endif !for restart only
-        write(0,*) "4"
-        
+
 !--------------------------------------------------------
 
        day_of_month=jdate
@@ -154,7 +148,6 @@
 
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
-        write(0,*) "5"
 
         !write(902,*) tracer(:,:,1,15)
 
@@ -398,7 +391,6 @@ cdiag    endif
          call obio_ocalbedo(wind,solz,dummy,dummy,dummy1,
      .                      rod,ros,.true.,vrbos,i,j)
 
-         !write(915,*) "rod,ros", rod,ros
 
 cdiag    if (vrbos)
 cdiag.     write(lp,105)nstep,'surf refl dir, surf refl diff',
@@ -435,16 +427,10 @@ cdiag.           nstep,i,j,ichan,Ed(ichan)
 #endif
          enddo  !ichan
          noon=.false.
-
-          !write(914,*) "e1",Ed,Es
-
          if (hour_of_day.eq.12)then
           if (i.eq.itest.and.j.eq.jtest)noon=.true.
          endif
          if (tot .ge. 0.1) call obio_sfcirr(noon,rod,ros,vrbos)
-
-          !write(914,*) "e2",Ed,Es
-
       
       !check
       if (vrbos) then
@@ -505,9 +491,6 @@ cdiag.                  tot,ichan=1,nlt)
          do k=1,kdm
           tirrq(k) = 0.0
          enddo
-
-          !write(914,*) "e3",Ed,Es
-
 
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
@@ -629,8 +612,6 @@ cdiag     endif
         do nt=1,ncar
          tracer(i,j,k,ntyp+n_inert+ndet+nt)=car(k,nt)
         enddo
-
-        print *,"ntyp+n_inert,ndet,ncar=",ntyp+n_inert,ndet,ncar
 
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)

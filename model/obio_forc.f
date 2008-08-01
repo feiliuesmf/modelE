@@ -6,8 +6,6 @@
       USE hycom_dim_glob
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
 
       integer, ALLOCATABLE, DIMENSION(:,:) :: ihra            !counter for daylight hours
 
@@ -24,8 +22,6 @@
 #ifdef OBIO_RAD_coupling
       real*8, ALLOCATABLE, DIMENSION(:,:)    :: ovisdir,ovisdif
      .                                         ,onirdir,onirdif
-      real*8, ALLOCATABLE, DIMENSION(:,:)    :: avisdir,avisdif
-     .                                         ,anirdir,anirdif
 #endif
 #ifndef OBIO_RAD_coupling
       real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda,Esa       !direct,diffuse downwelling irradiance
@@ -53,12 +49,6 @@
       real Ed,Es 
       common /beds/  Ed(nlt),Es(nlt)
 !$OMP THREADPRIVATE(/beds/)
-
-!     real    rod,ros       !surface reflectance for
-!                           !direct (rod) and diffuse (ros)
-!                           !components separately
-!     common /brod2/ rod(nlt),ros(nlt)
-!!$OMP THREADPRIVATE(/brod2/)
 
       real wind               !surface wind from atmos
       common /bwind/ wind
@@ -99,8 +89,6 @@
 #ifdef OBIO_RAD_coupling
       ALLOCATE(ovisdir(idm,jdm),ovisdif(idm,jdm)
      .        ,onirdir(idm,jdm),onirdif(idm,jdm))
-      ALLOCATE(avisdir(iia,jja),avisdif(iia,jja)
-     .        ,anirdir(iia,jja),anirdif(iia,jja))
 #endif
 #ifndef OBIO_RAD_coupling
       ALLOCATE(Eda(idm,jdm,nlt,nhn,12))

@@ -9,14 +9,7 @@ c  in light, and computes average cosine for direct irradiance.
       USE obio_forc,  only :rmud,Ed,Es,solz
       USE obio_com,   only :npst,npnd,hour_of_day,day_of_month
  
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
-      USE hycom_scalars, only : lp
       implicit none
-
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
 
       integer iprt,nl
       real rn,sirr,rsza,sinszaw,szaw,rmudl
@@ -43,7 +36,7 @@ c  Noon print-out
         do nl = npst,npnd
          sirr = sirr + Ed(nl) + Es(nl)
         enddo
-        write(lp,'(a30,2i6,f10.2)')'Surface irradiance W/m2 = ',
+        write(*,'(a30,2i6,f10.2)')'Surface irradiance W/m2 = ',
      .     day_of_month,hour_of_day,sirr
       endif  !noon
  

@@ -18,15 +18,11 @@ c
      .                    ,C_tend,wsdet,gro
 
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
+      USE hycom_dim_glob, only : idm,jdm,kdm
       USE hycom_scalars, only : nstep
       implicit none  
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
-
+      integer i,j,k
       integer iu_bio
       integer nt,nl
       integer imon,ihr,nrec,ichan
@@ -522,16 +518,12 @@ c
       USE FILEMANAGER, only: openunit,closeunit
 
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
-      USE hycom_scalars
-
+      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
 
       implicit none
 
-#include "dimension2.h"
-
+      integer i,j,k,l,n
       integer, parameter :: igrd=360,jgrd=180,kgrd=12
       integer iu_file,lgth
       integer i1,j1,iii,jjj,isum,kmax

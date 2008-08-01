@@ -23,10 +23,8 @@ c  final is quanta for phytoplankton growth.
       !USE hycom_arrays_glob
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
 
+      integer i,j,k
       integer nl,ih,icd,ich,ntr,kmax
 
       real Ebotq,actot,bctot,bbctot,a,bt,bb
@@ -135,9 +133,7 @@ cdiag.        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
 cdiag.        facirr(ih,ich,ntr,icd),fac
           enddo
  
-          write(910,*) tirrq(k)
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
-          write(910,*) tirrq(k),Etopq,Ebotq,rmus
 
 cdiag     if(k.eq.1)
 cdiag.       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',

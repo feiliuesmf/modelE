@@ -2,22 +2,17 @@
 
 ! compute min max for each tracer and check if in bounds
 
-!!#ifdef TRACERS_OceanBiology
       USE obio_dim
-!!#endif
 
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
-      USE hycom_scalars, only : lp
+      USE hycom_dim_glob, only : kdm,jj,isp,ifp,ilp,ip,ntrcr
+      USE hycom_arrays_glob, only : tracer
       implicit none
  
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
-
       data trminima/0.,0.,0.,0.,0.,0.,0.,0.,0.,0.2,1913./
       data trmaxima/40.,0.6,108.,3.5,3.,0.6,0.4,0.3,0.8,16.3,2400./
+
+      integer i,j,k,l
 
       integer nt,ineg1,jneg1,ipos1,jpos1
       integer kneg1,kpos1
@@ -54,7 +49,7 @@
             endif
  1000      continue
           enddo
-       write(lp,'(a,a,i3,a,2(es9.2,1x,3i4))')
+       write(*,'(a,a,i3,a,2(es9.2,1x,3i4))')
      . name,', tracer=',nt,', min,max=',
      . tracer_min,ineg1,jneg1,kneg1,
      . tracer_max,ipos1,jpos1,kpos1

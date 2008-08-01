@@ -24,15 +24,11 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,temp1d,wsdet,tzoo,p1d
      .                    ,rhs,pp2_1d
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
+      USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
-
+      integer i,j,k
       integer nt,kmax
 
       real rmu4(nchl)     !growth on ammonium, NH4

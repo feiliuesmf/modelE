@@ -7,16 +7,11 @@ c
       USE obio_com, only : npst,npnd,obio_P,avgq1d,ihra_ij
      .                    ,acdom
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
+      USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : lp, nstep
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
-
-
+      integer :: i,j,k
       integer :: nl,nt
       real :: actot450,atot450
 

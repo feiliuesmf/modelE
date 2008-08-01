@@ -2,16 +2,12 @@
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr
       USE hycom_arrays_glob, only : tracer,dp,scp2
-      USE hycom_scalars, only : lp, nstep
+      USE hycom_scalars, only : nstep
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"
-!!#include "common_blocks.h"
-      integer nn
 
+      integer i,j,k,l,kn,nn
       integer ntr
       real sum,sum_area,summ
-      integer i,j,k,l,kn
 
       print*,'   '
       do ntr=1,ntrcr
@@ -30,12 +26,12 @@
         enddo
         enddo
         enddo
-cdiag write(lp,'(a,i3,i5,a,i3,2e12.4)')
+cdiag write(*,'(a,i3,i5,a,i3,2e12.4)')
 cdiag.  'total intgrl and mean for tracer ',ntr,nstep,', k= ',
 cdiag.   k,sum,sum/sum_area
         enddo
-!     write(lp,'(a,i3,i5,e12.4)')
-      write(lp,*)
+!     write(*,'(a,i3,i5,e12.4)')
+      write(*,*)
      .  'total intgrl for tracer ',ntr,nstep,summ
       enddo
       print*,'   '

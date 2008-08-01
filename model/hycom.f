@@ -97,6 +97,8 @@ c
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : atracflx,atrac,tracflx
+! tracflx needs local , 
+! scatter after call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) 
 #endif
 
       !USE SEAICE_COM, only : rsi,msi
@@ -108,8 +110,12 @@ c
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
 #ifdef TRACERS_OceanBiology 
       USE obio_dim
-      USE obio_forc, only:    avgq,awind,owind,asolz,osolz
-      USE obio_com,  only:    gcmax,pCO2,dobio
+      USE obio_forc, only:    awind,owind,asolz,osolz
+!awind,asolz - local to hycom.f
+!owind, osolz - can be broadcasted
+
+      USE obio_com,  only:    pCO2,dobio
+! need global pCO2
 
       !USE PBLCOM, only : wsavg 
       !USE RAD_COM,   only: COSZ1
@@ -400,14 +406,6 @@ c
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) !tracer flux
-      enddo
-      do j=1,jj
-      do l=1,isp(j)
-      do i=ifp(j,l),ilp(j,l)
-!     write(*,'(a,3i5,e12.4)')'hycom, TRGASEX2: ',
-!    .  nstep,i,j,tracflx(i,j,ntm)
-      enddo
-      enddo
       enddo
 #endif
 #ifdef TRACERS_OceanBiology

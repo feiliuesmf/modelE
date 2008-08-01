@@ -11,9 +11,6 @@ c
       USE hycom_dim_glob
       implicit none
 
-!!#include "dimensions.h"
-#include "dimension2.h"
-
       integer ihr,ihs,nl,i0,j0
       real    tot
 

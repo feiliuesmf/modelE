@@ -11,14 +11,10 @@ c  leap frog method.
      .                   ,rhs
 
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
       implicit none
- 
-!!#include "dimensions.h"
-#include "dimension2.h" 
-!!#include "common_blocks.h"
 
+      integer :: i,j,k
+ 
       integer :: nt,kmax
       real    :: Pnew,Dnew,Cnew
       logical :: vrbos,errcon
