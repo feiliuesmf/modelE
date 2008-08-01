@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE MODEL_COM
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
@@ -207,11 +208,17 @@ C**** slightly larger, to sample all points within the cycle
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
+#ifdef BLK_2MOM
+!@var WMICE cloud ice amount (kg water/kg air)
+#endif
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: U
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: V
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: T
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: Q
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: WM
+#ifdef BLK_2MOM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: WMICE
+#endif
 
 !**** Boundary condition arrays:
 !@var ZATMO,HLAKE Topography arrays: elevation (m), lake sill depth (m)
@@ -268,6 +275,9 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       USE MODEL_COM, ONLY : NTYPE
       USE MODEL_COM, ONLY : ZATMO,HLAKE,FLAND,FOCEAN,FLICE,FLAKE0,
      *                      FEARTH0,WFCS,P,U,V,T,Q,WM,FTYPE
+#ifdef BLK_2MOM
+     *  ,WMICE
+#endif
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: modelE_grid
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_SFACE
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_CENTER
@@ -310,6 +320,10 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       ALLOCATE(Q(IM,J_0H:J_1H,LM), STAT = IER)
 
       ALLOCATE(WM(IM,J_0H:J_1H,LM), STAT = IER)
+#ifdef BLK_2MOM
+      ALLOCATE(WMICE(IM,J_0H:J_1H,LM), STAT = IER)
+#endif
+
 
       ALLOCATE(FTYPE(NTYPE,IM,J_0H:J_1H), STAT = IER)
 
@@ -512,8 +526,14 @@ C**** keep track of min/max time over the combined diagnostic period
 !@var T_glob Work array for parallel I/O
 !@var Q_glob Work array for parallel I/O
 !@var WM_glob Work array for parallel I/O
+#ifdef BLK_2MOM
+!@var WMICE_glob Work array for parallel I/O
+#endif
 !@var P_glob Work array for parallel I/O
       REAL*8, DIMENSION(IM,JM,LM) :: U_glob,V_glob,T_glob,Q_glob,WM_glob
+#ifdef BLK_2MOM
+     *,WMICE_glob
+#endif
       REAL*8 :: P_glob(IM,JM)
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm,lm):u,v,t, p(im,jm),'//
@@ -526,14 +546,23 @@ C**** keep track of min/max time over the combined diagnostic period
         CALL PACK_DATA(grid, T, T_GLOB)
         CALL PACK_DATA(grid, Q, Q_GLOB)
         CALL PACK_DATA(grid, WM, WM_GLOB)
+#ifdef BLK_2MOM
+        CALL PACK_DATA(grid, WMICE, WMICE_GLOB)
+#endif
         CALL PACK_DATA(grid, P, P_GLOB)
         IF (AM_I_ROOT())
      &    WRITE (kunit,err=10) MODULE_HEADER,U_glob,V_glob,T_glob,
      &                         P_glob,Q_glob,WM_glob
+#ifdef BLK_2MOM
+     &   ,WMICE_glob
+#endif
       CASE (IOREAD:)          ! input from restart file
         if ( AM_I_ROOT() ) then
           READ (kunit,err=10) HEADER,U_glob,V_glob,T_glob,
      &                           P_glob,Q_glob,WM_glob
+#ifdef BLK_2MOM
+     &   ,WMICE_glob
+#endif
           IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
@@ -544,6 +573,9 @@ C**** keep track of min/max time over the combined diagnostic period
         CALL UNPACK_DATA(grid, T_GLOB, T)
         CALL UNPACK_DATA(grid, Q_GLOB, Q)
         CALL UNPACK_DATA(grid, WM_GLOB, WM)
+#ifdef BLK_2MOM
+        CALL UNPACK_DATA(grid, WMICE_GLOB, WMICE)
+#endif
         CALL UNPACK_DATA(grid, P_GLOB, P)
       END SELECT
       RETURN

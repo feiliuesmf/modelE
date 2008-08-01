@@ -26,8 +26,8 @@ C**** some arrays here for compatility with new clouds
 !@+   initialised as 1. for compatibility with previous clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSS
 #ifdef CLD_AER_CDNC
-!@var OLDNO, OLDNL old CDNC for ocean and land ,SMFPM:CTEI parameter
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNO,OLDNL,SMFPM
+!@var OLDNL old CDNC,OLDNI old ice crystal
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNL,OLDNI
 !@var LWC,Cld depth, cld tem,N, Re, LWP for 3 hrly diag save
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CL3D,CI3D,CD3D,CTEM
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CDN3D,CRE3D
@@ -76,7 +76,7 @@ C**** variables used (and saved) for gravity wave drag calculations
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
      *                       CLDSAV1,FSS,
 #ifdef CLD_AER_CDNC
-     *                       OLDNO,OLDNL,SMFPM,
+     *                       OLDNL,OLDNI,
      *                       CL3D,CI3D,CD3D,CTEM,CDN3D,CRE3D,CLWP,
 #endif
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
@@ -100,9 +100,8 @@ C**** variables used (and saved) for gravity wave drag calculations
      *            CLDSAV1(LM,IM,J_0H:J_1H),
      *                FSS(LM,IM,J_0H:J_1H),
 #ifdef CLD_AER_CDNC
-     *             OLDNO(LM,IM,J_0H:J_1H),
      *             OLDNL(LM,IM,J_0H:J_1H),
-     *             SMFPM(LM,IM,J_0H:J_1H),
+     *             OLDNI(LM,IM,J_0H:J_1H),
      *             CTEM(LM,IM,J_0H:J_1H),
      *             CD3D(LM,IM,J_0H:J_1H),
      *             CL3D(LM,IM,J_0H:J_1H),
@@ -132,11 +131,10 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@var FSS initialized to 1.
       FSS = 1.
 #ifdef CLD_AER_CDNC
-!@var OLDNO and OLDNL are initialized to 10.
-      OLDNO = 10.
+!@var OLDNL is initialized to 10.0 cm-3
+!@var OLDNI is initialised to 0.1 l^-1 or 10^-4 cm-3
       OLDNL = 10.
-!@var SMFPM is initialised to 0.5 (proxy for cloud top turbulence)
-      SMFPM = 0.5
+      OLDNI = 1.d-4
 #endif
 
       ALLOCATE(     DDM1(IM,J_0H:J_1H),
@@ -175,7 +173,7 @@ C**** Initialise some output used in dynamics
       REAL*8, ALLOCATABLE,  DIMENSION(:,:,:) :: TTOLD_glob,QTOLD_glob
      &                              ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
-     &     ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+     &     ,OLDNL_glob,OLDNI_glob
 #endif
 
       call allocate_me
@@ -191,15 +189,14 @@ C**** Initialise some output used in dynamics
         CALL PACK_COLUMN(grid, RHSAV,  RHSAV_glob)
         CALL PACK_COLUMN(grid, CLDSAV, CLDSAV_glob)
 #ifdef CLD_AER_CDNC
-        CALL PACK_COLUMN(grid, OLDNO, OLDNO_glob)
         CALL PACK_COLUMN(grid, OLDNL, OLDNL_glob)
-        CALL PACK_COLUMN(grid, SMFPM, SMFPM_glob)
+        CALL PACK_COLUMN(grid, OLDNI, OLDNI_glob)
 #endif
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,
      *       TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
-     *       ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+     *       ,OLDNL_glob,OLDNI_glob
 #endif
         END IF
 
@@ -208,7 +205,7 @@ C**** Initialise some output used in dynamics
            READ (kunit,err=10) HEADER,
      *          TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
-     *          ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+     *          ,OLDNL_glob,OLDNI_glob
 #endif
           IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
@@ -222,9 +219,8 @@ C***ESMF: Unpack global arrays into distributed local arrays.
         CALL UNPACK_COLUMN(grid, RHSAV_glob , RHSAV)
         CALL UNPACK_COLUMN(grid, CLDSAV_glob, CLDSAV)
 #ifdef CLD_AER_CDNC
-        CALL UNPACK_COLUMN(grid, OLDNO_glob , OLDNO)
         CALL UNPACK_COLUMN(grid, OLDNL_glob , OLDNL)
-        CALL UNPACK_COLUMN(grid, SMFPM_glob , SMFPM)
+        CALL UNPACK_COLUMN(grid, OLDNI_glob , OLDNI)
 #endif
       END SELECT
 
@@ -241,7 +237,12 @@ C***ESMF: Unpack global arrays into distributed local arrays.
      &       QTOLD_glob(LM,IM,JM),
      &       SVLHX_glob(LM,IM,JM),
      &       RHSAV_glob(LM,IM,JM),
-     &       CLDSAV_glob(LM,IM,JM) )
+     &       CLDSAV_glob(LM,IM,JM)  
+#ifdef CLD_AER_CDNC
+     &      ,OLDNL_glob(LM,IM,JM)  
+     &      ,OLDNI_glob(LM,IM,JM)  
+#endif
+     & )
       endif
       end subroutine allocate_me
       subroutine deallocate_me
@@ -250,7 +251,13 @@ C***ESMF: Unpack global arrays into distributed local arrays.
      &       QTOLD_glob,
      &       SVLHX_glob,
      &       RHSAV_glob,
-     &       CLDSAV_glob)
+     &       CLDSAV_glob 
+#ifdef CLD_AER_CDNC
+     &      ,OLDNL_glob 
+     &      ,OLDNI_glob 
+#endif
+     & )
+
       endif
       end subroutine deallocate_me
       END SUBROUTINE io_clouds

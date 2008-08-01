@@ -24,7 +24,7 @@
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
 #ifdef CLD_AER_CDNC
-     *     ,oldno,oldnl,smfpm
+     *     ,oldnl,oldni
      *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
@@ -60,6 +60,13 @@
 #endif
 #ifdef HTAP_LIKE_DIAGS
      &     ,IJ_MCamFX
+#endif
+#ifdef TRACERS_AMP
+#ifdef BLK_2MOM
+      USE AERO_CONFIG, only: NMODES
+      USE AMP_AEROSOL, only: NACTV
+     & ,NACTC
+#endif
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1,n_Be10
@@ -130,8 +137,10 @@
      *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
-     *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci
-     *     ,oldcdo,oldcdl,smfpml,sme
+     *     ,alwim,alwis,alwwm,alwws
+     *     ,nlsw,nlsi,nmcw,nmci
+     *     ,oldcdl,oldcdi
+     *     ,sme
      *     ,cteml,cd3dl,cl3dl,ci3dl,cdn3dl,cre3dl,smlwp
      *     ,wmclwp,wmctwp
 #endif
@@ -567,9 +576,6 @@ c****     for SCM run with ATURB
       endif
 #endif
 
-!#ifdef CLD_AER_CDNC
-!       SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
-!#endif
 C**** other fields where L is the leading index
       SVLHXL(:)=SVLHX(:,I,J)
       TTOLDL(:)=TTOLD(:,I,J)
@@ -578,9 +584,8 @@ C**** other fields where L is the leading index
       RH(:)=RHSAV(:,I,J)
 #ifdef CLD_AER_CDNC
         OLDCDL(:)=OLDNL(:,I,J)
-        OLDCDO(:)=OLDNO(:,I,J)  ! OLDN is for rsf save
-        SMFPML(:)=SMFPM(:,I,J)
-c       SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
+        OLDCDI(:)=OLDNI(:,I,J)  ! OLDNI is for rsf save
+        SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
         CTEML(:) =CTEM(:,I,J)
 c       if(l.eq.2)write(6,*)"CTEM_DRV",CTEML(L),SME(L),OLDCDL(L)
         CD3DL(:) =CD3D(:,I,J)
@@ -589,6 +594,14 @@ c       if(l.eq.2)write(6,*)"CTEM_DRV",CTEML(L),SME(L),OLDCDL(L)
         CDN3DL(:)=CDN3D(:,I,J)
         CRE3DL(:)=CRE3D(:,I,J)
         SMLWP=CLWP(I,J)
+#ifdef TRACERS_AMP    
+C**not sure if this needed
+#ifdef BLK_2MOM
+       do n=1,nmodes
+        NACTC(:,n)= NACTV(I,J,:,n)
+       enddo
+#endif
+#endif
 #endif
       FSSL(:)=FSS(:,I,J)
       DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
@@ -640,6 +653,17 @@ C**** TRACERS: Use only the active ones
       end do
       end do
 #endif
+#ifdef TRACERS_AMP
+#ifdef BLK_2M
+C** Add activated fraction, NACTV
+      do nx=1,nmodes
+      do l=1,lm
+        NACTC(l,nx)=NACTV(i,j,l,nx)
+      end do
+      end do
+#endif
+#endif
+
 C**** SURROUNDING WINDS
       DO L=1,LM
         DO K=1,KMAX
@@ -1218,9 +1242,8 @@ C**** WRITE TO GLOBAL ARRAYS
       RHSAV(:,I,J)=RH(:)
 #ifdef CLD_AER_CDNC
          OLDNL(:,I,J)=OLDCDL(:)
-         OLDNO(:,I,J)=OLDCDO(:)
-         SMFPM(:,I,J)=SMFPML(:)
-c        EGCM(:,I,J) =SME(:)
+         OLDNI(:,I,J)=OLDCDI(:)
+         EGCM(:,I,J) =SME(:)
          CTEM(:,I,J) =CTEML(:)
          CD3D(:,I,J) =CD3DL(:)
          CL3D(:,I,J) =CL3DL(:)
@@ -1228,6 +1251,13 @@ c        EGCM(:,I,J) =SME(:)
          CDN3D(:,I,J)=CDN3DL(:)
          CRE3D(:,I,J)=CRE3DL(:)
          CLWP(I,J) = SMLWP
+#ifdef TRACERS_AMP
+#ifdef BLK_2MOM
+       do n=1,nmodes
+        NACTV(I,J,:,n) =  NACTC(:,n)
+       enddo
+#endif
+#endif
 #endif
 
       TTOLD(:,I,J)=TH(:)

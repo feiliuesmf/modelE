@@ -58,6 +58,9 @@
       USE AERO_DIAM,   ONLY: DIAM, DIAM_HISTOGRAM
       USE AERO_ACTV,   ONLY: GETACTFRAC 
       USE AMP_AEROSOL, ONLY: NACTV  
+#ifdef BLK_2MOM 
+     *,NACTC
+#endif
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV, VDDEP_AERO  
       IMPLICIT NONE
 
@@ -901,6 +904,9 @@
           RSUM_ACTIV = 1.0D+00 / SUM ( NACT(:) + TINYDENOM ) 
           PIQTMP(:,PROD_INDEX_SULF) = ( NACT(:)*RSUM_ACTIV ) * AQSO4RATE
           NACTV(IXXX,IYYY,ILAY,:) = NACT(:)       ! [#/m] - Store for use outside this routine.
+#ifdef BLK_2MOM
+          NACTC(ILAY,:) = NACTV(IXXX,IYYY,ILAY,:)
+#endif
           !------------------------------------------------------------------------------------------------------------
           ! WRITE(40,'(/A,F15.6/)')'Total number activated (#/cm^3) = ', 1.0D-06/RSUM_ACTIV 
           ! DO I=1, NMODES

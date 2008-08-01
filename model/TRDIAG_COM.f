@@ -207,7 +207,7 @@ C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
       INTEGER, PARAMETER :: ktajl=10
-     &                     ,ktajlx=ktajl+2
+     &                     ,ktajlx=ktajl+120   !changed from 2 to 120 
 !@var TAJLN  vertical tracer diagnostics (all tracers)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: TAJLN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN_loc

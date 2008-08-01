@@ -2140,6 +2140,15 @@ c
 #ifdef CLD_AER_CDNC
 c
       k=k+1 !
+      IJ_WISUM = k ! ICE WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'ICE WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'iwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
       IJ_WMCLWP = k ! MC LIQUID WATER PATH (kg/m**2)             1 CL
       lname_ij(k) = 'MC LIQUID WATER PATH'
       units_ij(k) = '.1 kg/m^2'

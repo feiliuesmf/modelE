@@ -22,6 +22,11 @@ CAOO   Just to test CVS
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       USE DIAG_SERIAL, only : print_diags
+#ifdef BLK_2MOM
+      USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
+      USE mo_bulk2m_driver_gcm, ONLY: cleanup_bulk2m_driver
+#endif
+
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fv_core
       USE FV_INTERFACE_MOD, only: Initialize
@@ -39,6 +44,11 @@ c$$$      USE MODEL_COM, only: clock
      &     ,COMPUTE_WSAVE, getTotalEnergy, addEnergyAsDiffuseHeat
 #ifdef TRACERS_ON
      &     ,trdynam
+#endif
+#ifdef BLK_2MOM
+#ifdef TRACERS_AMP
+      USE AERO_CONFIG, ONLY: NMODES
+#endif
 #endif
       USE ATMDYN_QDYNAM, only : QDYNAM
 #ifdef SCM
@@ -74,6 +84,12 @@ C**** Command line options
       Type (ESMF_CLOCK) :: clock
       character(len=28) :: fv_fname, fv_dfname
 #endif
+#ifdef BLK_2MOM
+      LOGICAL      :: ldummy=.false.
+      INTEGER      :: il0,jl0,kl0,nm0
+      CHARACTER*20 :: bname='kuku.txt'
+      CHARACTER*15 :: sname='MODELE_mainV3: '
+#endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
 
@@ -108,6 +124,31 @@ C****
 C**** INITIALIZATIONS
 C****
          CALL TIMER (MNOW,MDUM)
+
+#ifdef BLK_2MOM
+C initialize microphysics
+c        print *,sname,'im        = ',im
+c        print *,sname,'jm        = ',jm
+c        print *,sname,'lm        = ',lm
+c        print *,sname,'dtsrc        = ',dtsrc
+         kl0=12;il0=im;jl0=jm ;il0=1;jl0=1;kl0=1
+#ifdef TRACERS_AMP
+         nm0=NMODES
+#endif
+c        print *,sname,'il0       = ',il0
+c        print *,sname,'jl0       = ',jl0
+c        print *,sname,'kl0       = ',kl0
+c        print *,sname,'nm0       = ',nm0
+        ldummy = init_bulk2m_driver(dtsrc,il0,jl0,kl0,nm0,bname)
+        if(ldummy) then
+          print *,sname,'BLK Initialization is completed...'
+        else
+          call stop_model("BLK Initialization is not completed: ",255)
+        endif
+c        print *,sname,'Before:istart,ifile = ',istart,ifile
+c        print *,sname,'Before:im,jm        = ',im,jm
+#endif
+
 
 
 #ifdef USE_FVCORE
@@ -690,6 +731,10 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       IF (Itime.ge.ItimeE) CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
+#ifdef BLK_2MOM
+      ldummy=cleanup_bulk2m_driver()
+#endif
+
       CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
 
       END
@@ -719,7 +764,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
      &     ,do_polefix,pednl00,pmidl00,ij_debug
       USE RAD_COM, only : calc_orb_par,paleo_orb_yr,calc_orb_par_sp,
-     *     paleo_orb_par 
+     *     paleo_orb_par
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE PARAM
       implicit none
@@ -851,6 +896,9 @@ C****
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
 #ifdef SCM
      *     ,I_TARG,J_TARG
+#endif
+#ifdef BLK_2MOM
+     * ,wmice
 #endif
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt
@@ -986,6 +1034,10 @@ C**** Auxiliary clouds arrays
       CLDSAV(:,:,:)=0.
       SVLHX (:,:,:)=0.
       WM    (:,:,:)=0.
+#ifdef BLK_2MOM
+      WMICE (:,:,:)=0.
+#endif
+
 C****    Ocean info saved for ocean heat transport calculations
          OA = 0.
 C**** All diagn. are enabled unless KDIAG is changed in the rundeck
@@ -1996,6 +2048,9 @@ C**** Check all prog. arrays for Non-numbers
         CALL CHECK3(Q,IM,JM,LM,SUBR,'q     ')
         CALL CHECK3(P,IM,JM,1,SUBR,'p     ')
         CALL CHECK3(WM,IM,JM,LM,SUBR,'wm    ')
+#ifdef BLK_2MOM
+        CALL CHECK3(WMICE,IM,JM,LM,SUBR,'wmice    ')
+#endif
 
         DO J=J_0,J_1
         DO I=1,IM
@@ -2015,6 +2070,12 @@ C**** Check all prog. arrays for Non-numbers
             print*,"After ",SUBR," WM < 0 ",i,j,WM(I,J,L)
             call stop_model('WM<0 in CHECKT',255)
           END IF
+#ifdef BLK_2MOM
+          IF (WMICE(I,J,L).lt.0.) then
+            print*,"After ",SUBR," WMICE < 0 ",i,j,WMICE(I,J,L)
+            call stop_model('WMICE<0 in CHECKT',255)
+          END IF
+#endif
         END DO
         END DO
         END DO

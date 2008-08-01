@@ -14,6 +14,10 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_dens   !density(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
+#ifdef BLK_2MOM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: NACTC      ! = 1.0D-30  ![#/m3](l,nmodes)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: NAERC      ! = 1.0D-30  ![#/m3](l,nmodes)
+#endif
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: DTR_AMPe   !(jm,ntmAMP) ! Emission diagnostic - hardcoded to 10 in TRDIAG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMP    !(7,jm,ntmAMP)
@@ -98,8 +102,10 @@ C**** functions
       DIAM(:,J_0:J_1,:,:)       = 0.d0
       AMP_dens(:,J_0:J_1,:,:)   = 0.d0
       AMP_TR_MM(:,J_0:J_1,:,:)   = 0.d0
- 
-
+#ifdef BLK_2MOM
+      NACTC(:,:)=0.d0
+      NAERC(:,:)=0.d0
+#endif
 
 
       DO L=1,LM                            
@@ -238,6 +244,12 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
 c - 3d acc output
         taijs(i,j,ijts_AMPm(l,1,n))=taijs(i,j,ijts_AMPm(l,1,n)) + DIAM(i,j,l,AMP_MODES_MAP(n))
         taijs(i,j,ijts_AMPm(l,2,n))=taijs(i,j,ijts_AMPm(l,2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL*byam(l,i,j))
+C** Surabi's addition to save as /cm-3 or just mult. std o/p by 1.2*1.e-16 to get units in cm-3
+c       taijs(i,j,ijts_AMPm(l,2,n))=taijs(i,j,ijts_AMPm(l,2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*1.e-6)
+c       if(NACTV(i,j,l,AMP_MODES_MAP(n)) .gt. 10.)
+c    *  write(6,*)"Aerosolconv",AVOL*byam(l,i,j),NACTV(i,j,l,AMP_MODES_MAP(n)),
+c    *l,i,j,n,dxyp(j),mair,gasc,tk,pres,am(l,i,j)
+
 c - 2d PRT Diagnostic
          DTR_AMPm(1,j,n)=DTR_AMPm(1,j,n)+(DIAM(i,j,l,AMP_MODES_MAP(n))*1d6*1d18)
          DTR_AMPm(2,j,n)=DTR_AMPm(2,j,n)+NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL
@@ -251,6 +263,16 @@ c - N_SSA, N_SSC, M_SSA_SU
         taijs(i,j,ijts_AMPext(l,4))=taijs(i,j,ijts_AMPext(l,4)) +  DIAM(i,j,l,SEAS_MODE_MAP(2)) 
         taijs(i,j,ijts_AMPext(l,5))=taijs(i,j,ijts_AMPext(l,5)) + (AERO(22) *AVOL *byam(l,i,j)) 
         taijs(i,j,ijts_AMPext(l,6))=taijs(i,j,ijts_AMPext(l,6)) + (AERO(25) *AVOL *byam(l,i,j)) 
+#ifdef BLK_2MOM
+      NACTC(l,:) = NACTV(i,j,l,:)
+c     NAERC(l,:) = AERO(AMP_AERO_MAP(n)) !trm(i,j,l,:)/AVOL
+      NAERC(l,:) = trm(i,j,l,:)/AVOL
+c     do n=1, ntmAMP
+c     if (NAERC(l,n).gt.0.0001) write(6,*)"ACTIV",NAERC(l,n),
+c    *AERO(AMP_AERO_MAP(n)),
+c    *trm(i,j,l,n),AVOL,i,j,l,n,NACTC(l,n)
+c     enddo
+#endif
 
       ENDDO !i
       ENDDO !j
@@ -384,6 +406,13 @@ c -----------------------------------------------------------------
       allocate(  NACTV(IM,J_0H:J_1H,LM,nmodes) )
       allocate(  VDDEP_AERO(IM,J_0H:J_1H,nmodes,2))
       
+#ifdef BLK_2MOM
+      NACTV      = 1.0D-30
+      allocate(  NACTC(LM,nmodes) )
+      NACTC      = 1.0D-30
+      allocate(  NAERC(LM,nmodes) )
+      NAERC      = 1.0D-30
+#endif
       return
       end subroutine alloc_tracer_amp_com
       

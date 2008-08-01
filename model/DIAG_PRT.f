@@ -5801,6 +5801,7 @@ C**** IJL diags are done separately
      *     ,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
 #ifdef CLD_AER_CDNC
      *    ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
+     *    ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis
 #endif
       use filemanager
       IMPLICIT NONE
@@ -6049,6 +6050,146 @@ C*** Begin *** 3-D latent heating diags ***
 C*** End 3-D latent heating ***
 
 #ifdef CLD_AER_CDNC
+C** Cold cloud part
+      k=ijl_reim
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_reis
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cdis
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cdim
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cwim
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+      k=ijl_cwis
+      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
+     *     trim(units_ijk(k))//")"
+      SMAP(:,:,:) = UNDEF
+      SMAPJK(:,:) = UNDEF
+      SMAPK(:)    = UNDEF
+      DO L=1,LM
+        DO J=1,JM
+          NI = 0
+          FLAT = 0.
+          DO I=1,IM
+            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
+            FLAT = FLAT+SMAP(I,J,L)
+            NI = NI+1
+          END DO
+          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+        END DO
+        WRITE(TITLEX(31:33),'(I3)') L
+        TITLEL(L) = TITLEX//XLB
+      END DO
+      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
+
+C*** Warm cloud part
       k=ijl_rewm
       TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
      *     trim(units_ijk(k))//")"
