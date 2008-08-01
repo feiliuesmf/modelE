@@ -176,8 +176,6 @@ CCC   TZT(:,:,:)= TZ(:,:,:)
       ENDDO
 !$OMP  END PARALLEL DO
       call calc_amp(pc,ma)
-C**** Update halo of PV from the north (needed in AADVT).
-      CALL HALO_UPDATE(grid, PV, from=NORTH)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
 CCC   tz(:,:,:) = tmom(mz,:,:,:)
@@ -664,7 +662,8 @@ C     Now Really Do  CONTINUITY EQUATION
 C
 C     COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
 C
-      CALL HALO_UPDATE(grid, PV, FROM=NORTH)
+      CALL HALO_UPDATE(GRID,PU ,FROM=SOUTH+NORTH) ! full halos needed later
+      CALL HALO_UPDATE(GRID,PV ,FROM=SOUTH+NORTH) 
 !$OMP  PARALLEL DO PRIVATE (I,J,L,IM1)
       DO 2400 L=1,LM
       DO 1510 J=J_0S,J_1S
@@ -2428,7 +2427,7 @@ C***** Add in dissipiated KE as heat locally
       USE DYNAMICS, only: ps,mb,ma
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : grid, GET, halo_update, south, north
       IMPLICIT NONE
       REAL*8 DTLF,byncyc,byma
       INTEGER I,J,L   !@var I,J,L loop variables
@@ -2441,6 +2440,7 @@ c**** Extract domain decomposition info
 
       DTLF=2.*DT
       CALL CALC_AMP(PS,MB)
+      CALL HALO_UPDATE(grid, MB, FROM=SOUTH+NORTH) ! for convenience later
       CALL AADVQ0 (1._8)  ! uses the fluxes pua,pva,sda from DYNAM
 C****
 C**** convert from concentration to mass units
