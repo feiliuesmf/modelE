@@ -322,11 +322,7 @@ c    .             'correction in ppco2tab, ita =',ita,nta,TA
        if (idic.lt. 1) idic= max(idic,1)
        if (ita.lt.  1) ita = max(ita,1)
 
-#ifndef OBIO_SPEED_HACKS
        pco21D = pco2tab(it0,isal,idic,ita)
-#else
-       pco21D = 440
-#endif
 
       return
       end

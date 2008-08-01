@@ -270,13 +270,8 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
        do ihr=1,nhn
         do ichan=1,nlt
-#ifndef OBIO_SPEED_HACKS
          Eda2(ichan,ihr)=Eda(i,j,ichan,ihr,JMON)
          Esa2(ichan,ihr)=Esa(i,j,ichan,ihr,JMON)
-#else
-         Eda2(ichan,ihr)=1.
-         Esa2(ichan,ihr)=1.
-#endif
         enddo
        enddo
 #endif

@@ -303,7 +303,6 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-#ifndef OBIO_SPEED_HACKS
       do nt=1,ntyp+n_inert+ndet+ncar
         ntchar='00'
         if(nt.le.9)write(ntchar,'(i1)')nt
@@ -323,7 +322,6 @@ c  Coccolithophore max growth rate
         enddo
       call closeunit(iu_bioinit)
       enddo
-#endif
 
       write(0,*) "a8"
 

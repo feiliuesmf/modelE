@@ -360,9 +360,8 @@ c  Read in factors to compute average irradiance
         wsdet(kdm+1,nt) = 0.0
        enddo
  
-#ifndef OBIO_SPEED_HACKS
 !ifst part from ppco2tab.f
-       ALLOCATE (pco2tab(nt0,nsal,ndic,nta))
+      ALLOCATE (pco2tab(nt0,nsal,ndic,nta))
 
 !      open(4,file='/explore/nobackup/aromanou/pco2.tbl.asc'
 !    .       ,status='old')
@@ -383,7 +382,6 @@ c  Read in factors to compute average irradiance
        print*,'BIO: read pCO2 table: ',
      .        pco2tab(1,1,1,1),pco2tab(50,10,100,100)
       print*, '    '
-#endif
 
 #ifdef OBIO_RAD_coupling
       print*, '    '
@@ -399,9 +397,6 @@ c  Read in factors to compute average irradiance
       print*, '    '
       print*, 'reading OASIM data.....'
       print*, '    '
-
-#ifndef OBIO_SPEED_HACKS
-      ALLOCATE (Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12))
 
       open(unit=iu_bio,file='oasimdirect'
      . ,form='unformatted',status='old',access='direct' 
@@ -421,7 +416,6 @@ c  Read in factors to compute average irradiance
       enddo
       enddo
       close(iu_bio)
-#endif
 #endif  /*OBIO_RAD_coupling*/
 
 
