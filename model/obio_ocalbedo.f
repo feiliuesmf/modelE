@@ -67,6 +67,10 @@ c     .                        0.066922,0.0497974/)
       real*8 :: pi, rad, roair, rn, rod(nlt),ros(nlt)
       integer :: ngiss
 
+cddd      write(915,*) i,j,wind,solz,bocvn,xocvn,chl,
+cddd     &     rod,ros,hycgr,vrbos,
+cddd     &     wfac
+
       pi = dacos(-1.0D0)
       rad = 180.0D0/pi
       rn = 1.341d0  ! index of refraction of pure seawater

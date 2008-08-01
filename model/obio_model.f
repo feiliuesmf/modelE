@@ -117,6 +117,9 @@
        !  hour_of_day=hour_of_day+1
        !endif
 
+       write(905,*) "obio_in", sum(tracflx),sum(tracer),
+     &     sum(oice),sum(temp),sum(saln),sum(dpinit),sum(p),sum(dpmixl)
+
        write(lp,'(a,i15,1x,f9.3,2x,3i5)')
      .    'BIO: nstep,time,day_of_month,hour_of_day,jday=',
      .    nstep,time,day_of_month,hour_of_day,jday
@@ -155,6 +158,13 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
         !write(902,*) tracer(:,:,1,15)
 
+        write(907,*) "obio_in1",sum(ihra),sum(atmFe),sum(oice),
+     &       sum(pCO2),sum(temp),sum(saln),sum(dpinit),sum(avgq),
+     &       sum(gcmax),sum(tirrq3d),sum(alk),sum(tzoo2d),sum(tfac3d),
+     &       sum(alk),sum(tzoo2d),sum(tzoo2d),sum(tfac3d),
+     &       sum(rmuplsr3d),sum(rikd3d),
+     &       sum(obio_wsd2d),sum(obio_wsh2d),sum(bn3d),sum(wshc3d),
+     &       sum(Fescav3d),sum(acdom3d),sum(tracer)
        do 1000 j=1,jj
        do 1000 l=1,isp(j)
        do 1000 i=ifp(j,l),ilp(j,l)
@@ -388,6 +398,7 @@ cdiag    endif
          call obio_ocalbedo(wind,solz,dummy,dummy,dummy1,
      .                      rod,ros,.true.,vrbos,i,j)
 
+         !write(915,*) "rod,ros", rod,ros
 
 cdiag    if (vrbos)
 cdiag.     write(lp,105)nstep,'surf refl dir, surf refl diff',
@@ -424,10 +435,16 @@ cdiag.           nstep,i,j,ichan,Ed(ichan)
 #endif
          enddo  !ichan
          noon=.false.
+
+          !write(914,*) "e1",Ed,Es
+
          if (hour_of_day.eq.12)then
           if (i.eq.itest.and.j.eq.jtest)noon=.true.
          endif
          if (tot .ge. 0.1) call obio_sfcirr(noon,rod,ros,vrbos)
+
+          !write(914,*) "e2",Ed,Es
+
       
       !check
       if (vrbos) then
@@ -488,6 +505,9 @@ cdiag.                  tot,ichan=1,nlt)
          do k=1,kdm
           tirrq(k) = 0.0
          enddo
+
+          !write(914,*) "e3",Ed,Es
+
 
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
@@ -664,6 +684,18 @@ c$OMP END PARALLEL DO
 
       if (diagno_bio) call closeunit(iu_pco2)
       if (diagno_bio) call closeunit(iu_tend)
+
+      write(905,*) "obio_out", sum(tracflx),sum(tracer),
+     &     sum(oice),sum(temp),sum(saln),sum(dpinit),sum(p),sum(dpmixl)
+      write(906,*) "tr_out", ( sum(tracer(:,:,:,i)), i=1,15 )
+        write(907,*) "obio_ou1",sum(ihra),sum(atmFe),sum(oice),
+     &       sum(pCO2),sum(temp),sum(saln),sum(dpinit),sum(avgq),
+     &       sum(gcmax),sum(tirrq3d),sum(alk),sum(tzoo2d),sum(tfac3d),
+     &       sum(alk),sum(tzoo2d),sum(tzoo2d),sum(tfac3d),
+     &       sum(rmuplsr3d),sum(rikd3d),
+     &       sum(obio_wsd2d),sum(obio_wsh2d),sum(bn3d),sum(wshc3d),
+     &       sum(Fescav3d),sum(acdom3d),sum(tracer)
+        !write(908,*) "tirrq3d", tirrq3d
 
       return
       end

@@ -18,9 +18,9 @@ c  final is quanta for phytoplankton growth.
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
 
-      USE hycom_scalars
-      USE hycom_dim_glob
-      USE hycom_arrays_glob
+      !USE hycom_scalars
+      USE hycom_dim_glob, only : kdm
+      !USE hycom_arrays_glob
       implicit none
 
 !!#include "dimensions.h"
@@ -42,6 +42,15 @@ c  final is quanta for phytoplankton growth.
 
       data bbc / 0.002, 0.00071, 0.0032, 0.00071, 0.0029,
      .           0.0,   0.0,     0.0,    0.0,     0.0/
+
+      !write(913,*) "edeu",i,j,Ed,Es
+cddd     &     sum(aw),sum(bw),sum(ac),sum(bc),sum(facirr),sum(lam),
+cddd     &     (Dmax),(bbw),
+cddd     &     (rmus),(nl450),
+cddd     &     sum(Ed),sum(Es),(rmud),sum(tirrq),
+cddd     &     sum(acdom),(npst),(npnd),sum(WtoQ),
+cddd     &     sum(dp1d),sum(avgq1d),
+cddd     &     sum(obio_P),sum(p1d)
  
       if (nl450.eq.0) stop 'obio_edeu: nl450=0'
       do k=1,kdm
@@ -126,7 +135,9 @@ cdiag.        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
 cdiag.        facirr(ih,ich,ntr,icd),fac
           enddo
  
+          write(910,*) tirrq(k)
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
+          write(910,*) tirrq(k),Etopq,Ebotq,rmus
 
 cdiag     if(k.eq.1)
 cdiag.       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',

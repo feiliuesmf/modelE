@@ -145,7 +145,7 @@ c
 #include "kprf_scalars.h"
 !!#include "kprf_arrays.h"
 c
-      real sum,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
+      real sum_,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv,den_str
@@ -222,22 +222,38 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
            aice_loc(ia,ja)=0.
          austar_loc(ia,ja)=0.
          aswflx_loc(ia,ja)=0.
+cddd#ifdef TRACERS_GASEXCH_Natassa
+cddd        do nt=1,ntm
+cddd        atracflx(ia,ja,nt)=0.
+cddd        enddo
+cddd#endif
+cddd#ifdef TRACERS_OceanBiology
+cddd          awind(ia,ja)=0.
+cddd          asolz(ia,ja)=0.
+cddd#endif
+cddd#ifdef OBIO_RAD_coupling
+cddd          avisdir(ia,ja)=0.
+cddd          avisdif(ia,ja)=0.
+cddd          anirdir(ia,ja)=0.
+cddd          anirdif(ia,ja)=0.
+cddd#endif
+ 28     continue
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
-        atracflx(ia,ja,nt)=0.
+        atracflx(:,:,nt)=0.
         enddo
 #endif
 #ifdef TRACERS_OceanBiology
-          awind(ia,ja)=0.
-          asolz(ia,ja)=0.
+          awind(:,:)=0.
+          asolz(:,:)=0.
 #endif
 #ifdef OBIO_RAD_coupling
-          avisdir(ia,ja)=0.
-          avisdif(ia,ja)=0.
-          anirdir(ia,ja)=0.
-          anirdif(ia,ja)=0.
+          avisdir(:,:)=0.
+          avisdif(:,:)=0.
+          anirdir(:,:)=0.
+          anirdif(:,:)=0.
 #endif
- 28     continue
+
 c$OMP END PARALLEL DO
       endif
 c
@@ -282,35 +298,70 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
      .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m
      .                         +solar_loc(3,ia,ja)*    rsi_loc(ia,ja))
      .                                 /(3600.*real(nhr))
-#ifdef TRACERS_GASEXCH_Natassa
-      do nt=1,ntm
-      atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
-     .                 + TRGASEX(nt,1,ia,ja)      ! in mol/m2/s
-     .                 * dtsrc/(real(nhr)*3600.)
-      enddo
-#endif
-#ifdef TRACERS_OceanBiology
-      asolz(ia,ja)=asolz(ia,ja)                            !
-     .            +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr))    !
-      awind(ia,ja)=awind(ia,ja)                            !
-     .            +wsavg(ia,ja)*dtsrc/(3600.*real(nhr))    !
-#endif
-#ifdef OBIO_RAD_coupling
-      avisdir(ia,ja)=avisdir(ia,ja)                        !
-     . +FSRDIR(ia,ja)*SRVISSURF(ia,ja)*dtsrc/(3600.*real(nhr))    !
-      avisdif(ia,ja)=avisdif(ia,ja)                        !
-     .            +FSRDIF(ia,ja)*dtsrc/(3600.*real(nhr))    !
-      anirdir(ia,ja)=anirdir(ia,ja)                        !
-     .            +DIRNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
-      anirdif(ia,ja)=anirdif(ia,ja)                        !
-     .            +DIFNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
-
-!     write(*,*)'hycom, fsrdir:',nstep,ia,ja,
-!    .     FSRDIR(ia,ja),SRVISSURF(ia,ja),avisdir(ia,ja)
-
-#endif
+cddd#ifdef TRACERS_GASEXCH_Natassa
+cddd      do nt=1,ntm
+cddd      atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
+cddd     .                 + TRGASEX(nt,1,ia,ja)      ! in mol/m2/s
+cddd     .                 * dtsrc/(real(nhr)*3600.)
+cddd      enddo
+cddd#endif
+cddd#ifdef TRACERS_OceanBiology
+cddd      asolz(ia,ja)=asolz(ia,ja)                            !
+cddd     .            +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cddd      awind(ia,ja)=awind(ia,ja)                            !
+cddd     .            +wsavg(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cddd#endif
+cddd#ifdef OBIO_RAD_coupling
+cddd      avisdir(ia,ja)=avisdir(ia,ja)                        !
+cddd     . +FSRDIR(ia,ja)*SRVISSURF(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cddd      avisdif(ia,ja)=avisdif(ia,ja)                        !
+cddd     .            +FSRDIF(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cddd      anirdir(ia,ja)=anirdir(ia,ja)                        !
+cddd     .            +DIRNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cddd      anirdif(ia,ja)=anirdif(ia,ja)                        !
+cddd     .            +DIFNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
+cddd
+cddd!     write(*,*)'hycom, fsrdir:',nstep,ia,ja,
+cddd!    .     FSRDIR(ia,ja),SRVISSURF(ia,ja),avisdir(ia,ja)
+cddd
+cddd#endif
  29   continue
 c$OMP END PARALLEL DO
+
+      call gather_atm
+      if (AM_I_ROOT()) then
+      do ia=1,iia
+        do ja=1,jja
+          if (focean(ia,ja) > 0.) then
+#ifdef TRACERS_GASEXCH_Natassa
+            do nt=1,ntm
+              atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
+     .             + TRGASEX(nt,1,ia,ja) ! in mol/m2/s
+     .             * dtsrc/(real(nhr)*3600.)
+            enddo
+#endif
+#ifdef TRACERS_OceanBiology
+            asolz(ia,ja)=asolz(ia,ja) !
+     .           +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            awind(ia,ja)=awind(ia,ja) !
+     .           +wsavg(ia,ja)*dtsrc/(3600.*real(nhr)) !
+#endif
+#ifdef OBIO_RAD_coupling
+            avisdir(ia,ja)=avisdir(ia,ja) !
+     .           +FSRDIR(ia,ja)*SRVISSURF(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            avisdif(ia,ja)=avisdif(ia,ja) !
+     .           +FSRDIF(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            anirdir(ia,ja)=anirdir(ia,ja) !
+     .           +DIRNIR(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            anirdif(ia,ja)=anirdif(ia,ja) !
+     .           +DIFNIR(ia,ja)*dtsrc/(3600.*real(nhr)) !
+#endif
+
+          endif
+        enddo
+      enddo
+      endif ! i am root
+
 c
 c     ia=iatest
 c     ja=jatest
@@ -571,12 +622,17 @@ c
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
 #ifdef TRACERS_GASEXCH_Natassa
-      do nt=1,ntm
-      otrac(i,j,nt)=0.
-      enddo
+cddd      do nt=1,ntm
+cddd      otrac(i,j,nt)=0.
+cddd      enddo
 #endif
  202  continue
 c$OMP END PARALLEL DO
+#ifdef TRACERS_GASEXCH_Natassa
+      otrac(:,:,:) = 0.d0
+#endif
+
+
 c
 c --- ---------------------
 c --- sub loop starts here
@@ -967,14 +1023,14 @@ c --- make line printer plot of mean layer thickness
           nflip=mod(nflip+1,2)
           do 705 k=1+(kk-1)*nflip,kk-(kk-1)*nflip,1-2*nflip
 ccc       if (k.eq.kk-(kk-1)*nflip) index=1
-          sum=0.
+          sum_=0.
           totl=0.
           do 706 j=1,jj
           do 706 l=1,isp(j)
           do 706 i=ifp(j,l),ilp(j,l)
           totl=totl+oice(i,j)*scp2(i,j)
- 706      sum=sum+dp(i,j,k+nn)*scp2(i,j)
-css       call linout(sum/(area*onem),charac(k),index)
+ 706      sum_=sum_+dp(i,j,k+nn)*scp2(i,j)
+css       call linout(sum_/(area*onem),charac(k),index)
  705      index=0
 c ---     add ice extend (%) to plot
 css       call linout(100.*totl/area,'I',1)
@@ -990,13 +1046,13 @@ c --- compute sea surface height (m)
         sumicej(j)=sumicej(j)+oice_loc(i,j)*scp2_loc(i,j)
  704    sumj(j)=sumj(j)+srfhgt_loc(i,j)*scp2_loc(i,j)
          call GLOBALSUM(ogrid,sumicej,sumice, all=.true.)
-         call GLOBALSUM(ogrid,sumj,sum, all=.true.)
+         call GLOBALSUM(ogrid,sumj,sum_, all=.true.)
 
       write(0,*) __FILE__,__LINE__
 
         if (AM_I_ROOT())
      .  write (lp,'(i9,'' mean sea srf.hgt. (mm):'',f9.2,f12.0)')nstep,
-     .  sum*1.e3/area,sumice*1.e-6
+     .  sum_*1.e3/area,sumice*1.e-6
 c
 c --- find the largest distance from a tencm layer from bottom
         do 707 j=J_0,J_1
@@ -1188,6 +1244,7 @@ c$OMP PARALLEL DO
  201  continue
 
 #ifdef TRACERS_GASEXCH_Natassa
+      !call gather_tracer
       if (AM_I_ROOT()) then
       do j=1,jdm
         do l=1,isp(j)
@@ -1198,7 +1255,7 @@ c$OMP PARALLEL DO
 #ifdef TRACERS_GASEXCH_CFC_Natassa
             do nt=1,ntm
               otrac(i,j,nt)=otrac(i,j,nt)
-     .             +tracer_loc(i,j,1,nt)
+     .             +tracer(i,j,1,nt)
      .             *baclin/(3600.*real(nhr))
             enddo
 #endif
@@ -1209,6 +1266,7 @@ c$OMP PARALLEL DO
               otrac(i,j,nt)=otrac(i,j,nt)
      .             +pCO2(i,j)   !pCO2 is in ppmv(uatm)
      .             *baclin/(3600.*real(nhr))
+              !write(912,*) pCO2(i,j),baclin,nhr,otrac(i,j,nt)
             enddo
 #endif
           enddo
@@ -1261,6 +1319,7 @@ css   call iceo2a(omlhc,mlhc)
 #ifdef TRACERS_GASEXCH_Natassa
       do nt=1,ntm
       call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
+      !write(911,*) sum(otrac(:,:,nt)), sum(atrac(:,:,nt))
       enddo
 #endif
 #ifdef CHL_from_OBIO
@@ -1309,11 +1368,11 @@ c --- evenly distribute new ice over open water and sea ice
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
-        if (ia.eq.iatest.and.ja.eq.jatest)
-!    .  write(6,'(a,3i5,e12.4)')
-     .  write(6,*)
-     .      'hycom, atrac at nstep,i,j=',
-     .      nstep,iatest,jatest,atrac(iatest,jatest,nt)
+cddd        if (ia.eq.iatest.and.ja.eq.jatest)
+cddd!    .  write(6,'(a,3i5,e12.4)')
+cddd     .  write(6,*)
+cddd     .      'hycom, atrac at nstep,i,j=',
+cddd     .      nstep,iatest,jatest,atrac(iatest,jatest,nt)
         enddo
 #endif
       endif
@@ -1976,3 +2035,13 @@ c------------------------------------------------------------------
       call unpack_data( ogrid,  tracer, tracer_loc )
 
       end subroutine scatter_tracer
+
+      subroutine gather_tracer
+      USE HYCOM_ARRAYS, only : tracer_loc => tracer
+      USE HYCOM_ARRAYS_GLOB, only : tracer
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+ 
+      call pack_data( ogrid,  tracer_loc, tracer )
+
+      end subroutine gather_tracer
