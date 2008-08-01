@@ -845,6 +845,10 @@ C**** Diagnostic indices and meta-data
 !@var MTRACE: timing index for tracers
 !@var MCHEM: timing index for chemistry (if needed)
       integer mtrace, mchem
+!@var MTRADV: timing index for tracer advection (if requested)
+#ifdef TRAC_ADV_CPU
+      integer mtradv
+#endif
 
 C**** EVERYTHING BELOW HERE IS TRACER SPECIFIC. PLEASE THINK 
 C**** ABOUT MOVING IT ELSEWHERE

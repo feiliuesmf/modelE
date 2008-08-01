@@ -17,6 +17,9 @@ CAOO   Just to test CVS
       USE GETTIME_MOD
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: mtrace
+#ifdef TRAC_ADV_CPU
+      USE TRACER_COM, only: mtradv
+#endif
 #endif
       USE DIAG_COM, only : oa,monacc,koa,acc_period
       USE SOIL_DRV, only: daily_earth, ground_e
@@ -371,7 +374,11 @@ C**** Scale WM mixing ratios to conserve liquid water
          CALL TIMER (MNOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
+#ifdef TRAC_ADV_CPU
+         CALL TIMER (MNOW,MTRADV)
+#else
          CALL TIMER (MNOW,MTRACE)
+#endif
 #endif
 C****
 C**** Calculate tropopause level and pressure
@@ -914,6 +921,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,mchem
 #endif
+#ifdef TRAC_ADV_CPU
+      USE TRACER_COM,only: MTRADV
+#endif
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG
@@ -1054,6 +1064,9 @@ C**** Other speciality descriptions can be added/used locally
       CALL SET_TIMER("       OTHER",MELSE)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       CALL SET_TIMER("     TRACERS",MTRACE)
+#ifdef TRAC_ADV_CPU
+      CALL SET_TIMER(" TRACER ADV.",MTRADV)
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       CALL SET_TIMER("   CHEMISTRY",MCHEM)
@@ -1143,6 +1156,7 @@ C****
       write(6,*) '...and nudging of meteorology'
 #endif
       ENDIF ! AM_I_ROOT()
+
 C****
 C**** Read parameters from the rundeck to database and namelist
 C****
