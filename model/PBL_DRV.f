@@ -152,7 +152,7 @@ c         ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
 c         ! DETERMINE VERTICAL LEVEL CORRESPONDING TO HEIGHT OF PBL:
 c         ! WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT
 c         ! KNOW THE INDEX OF THE LAYER.
-c         ustar=ustar_pbl(i,j,itype)
+c         ustar=ustar_pbl(itype,i,j)
 c         DBL=min(0.3d0*USTAR/OMEGA2,dbl_max_stable)
 c         if (dbl.le.ztop) then
 c           dbl=ztop
@@ -242,15 +242,15 @@ c     ENDIF
 #endif
       endif
 
-      upbl(:)=uabl(:,i,j,itype)
-      vpbl(:)=vabl(:,i,j,itype)
-      tpbl(:)=tabl(:,i,j,itype)
-      qpbl(:)=qabl(:,i,j,itype)
-      epbl(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
+      upbl(:)=uabl(:,itype,i,j)
+      vpbl(:)=vabl(:,itype,i,j)
+      tpbl(:)=tabl(:,itype,i,j)
+      qpbl(:)=qabl(:,itype,i,j)
+      epbl(1:npbl-1)=eabl(1:npbl-1,itype,i,j)
 
 #ifdef TRACERS_ON
       do nx=1,pbl_args%ntx
-        tr(:,nx)=trabl(:,pbl_args%ntix(nx),i,j,itype)
+        tr(:,nx)=trabl(:,pbl_args%ntix(nx),itype,i,j)
       end do
 
       do n = 1,ntm
@@ -274,9 +274,9 @@ c     ENDIF
       enddo
 #endif
 
-      cm=cmgs(i,j,itype)
-      ch=chgs(i,j,itype)
-      cq=cqgs(i,j,itype)
+      cm=cmgs(itype,i,j)
+      ch=chgs(itype,i,j)
+      cq=cqgs(itype,i,j)
       dpdxr  = DPDX_BY_RHO(i,j)
       dpdyr  = DPDY_BY_RHO(i,j)
       dpdxr0 = DPDX_BY_RHO_0(i,j)
@@ -330,26 +330,26 @@ c     ENDIF
 #endif
      &     )
 
-      uabl(:,i,j,itype)=upbl(:)
-      vabl(:,i,j,itype)=vpbl(:)
-      tabl(:,i,j,itype)=tpbl(:)
-      qabl(:,i,j,itype)=qpbl(:)
-      eabl(1:npbl-1,i,j,itype)=epbl(1:npbl-1)
+      uabl(:,itype,i,j)=upbl(:)
+      vabl(:,itype,i,j)=vpbl(:)
+      tabl(:,itype,i,j)=tpbl(:)
+      qabl(:,itype,i,j)=qpbl(:)
+      eabl(1:npbl-1,itype,i,j)=epbl(1:npbl-1)
 #ifdef TRACERS_ON
       do nx=1,pbl_args%ntx
-        trabl(:,pbl_args%ntix(nx),i,j,itype)=tr(:,nx)
+        trabl(:,pbl_args%ntix(nx),itype,i,j)=tr(:,nx)
       end do
 #endif
 
-      cmgs(i,j,itype)=pbl_args%cm
-      chgs(i,j,itype)=pbl_args%ch
-      cqgs(i,j,itype)=pbl_args%cq
-      ipbl(i,j,itype)=1  ! ipbl is used in subroutine init_pbl
+      cmgs(itype,i,j)=pbl_args%cm
+      chgs(itype,i,j)=pbl_args%ch
+      cqgs(itype,i,j)=pbl_args%cq
+      ipbl(itype,i,j)=1  ! ipbl is used in subroutine init_pbl
 
       psitop=atan2(vg,ug+teeny)
       psisrf=atan2(pbl_args%vs,pbl_args%us+teeny)
       psi   =psisrf-psitop
-      ustar_pbl(i,j,itype)=pbl_args%ustar
+      ustar_pbl(itype,i,j)=pbl_args%ustar
 C ******************************************************************
       TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
       if ( ts.lt.152d0 .or. ts.gt.423d0 ) then
@@ -516,7 +516,7 @@ C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
           do i=1,imaxj(j)
             tgrndv=tgvdat(i,j,itype)
             if (tgrndv.eq.0.) then
-              ipbl(i,j,itype)=0
+              ipbl(itype,i,j)=0
               go to 200
             endif
             ilong=i
@@ -582,23 +582,23 @@ c ******************************************************************
      3                 uocean,vocean,ilong,jlat,itype
      &                 ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &                 ,upbl,vpbl,tpbl,qpbl,epbl,ug,vg)
-            cmgs(i,j,itype)=cm
-            chgs(i,j,itype)=ch
-            cqgs(i,j,itype)=cq
+            cmgs(itype,i,j)=cm
+            chgs(itype,i,j)=ch
+            cqgs(itype,i,j)=cq
 
             do lpbl=1,npbl
-              uabl(lpbl,i,j,itype)=upbl(lpbl)
-              vabl(lpbl,i,j,itype)=vpbl(lpbl)
-              tabl(lpbl,i,j,itype)=tpbl(lpbl)
-              qabl(lpbl,i,j,itype)=qpbl(lpbl)
+              uabl(lpbl,itype,i,j)=upbl(lpbl)
+              vabl(lpbl,itype,i,j)=vpbl(lpbl)
+              tabl(lpbl,itype,i,j)=tpbl(lpbl)
+              qabl(lpbl,itype,i,j)=qpbl(lpbl)
             end do
 
             do lpbl=1,npbl-1
-              eabl(lpbl,i,j,itype)=epbl(lpbl)
+              eabl(lpbl,itype,i,j)=epbl(lpbl)
             end do
 
-            ipbl(i,j,itype)=1
-            ustar_pbl(i,j,itype)=ustar
+            ipbl(itype,i,j)=1
+            ustar_pbl(itype,i,j)=ustar
 
  200      end do
         end do
@@ -664,32 +664,32 @@ C****
 
 c ******* itype=1: Ocean
 
-          if (ipbl(i,j,1).eq.0) then
-            if (ipbl(i,j,2).eq.1) then
+          if (ipbl(1,i,j).eq.0) then
+            if (ipbl(2,i,j).eq.1) then
               call setbl(2,1,i,j)
-            elseif (ipbl(i,j,4).eq.1) then ! initialise from land
+            elseif (ipbl(4,i,j).eq.1) then ! initialise from land
               call setbl(4,1,i,j)
             endif
           endif
 
 c ******* itype=2: Ocean ice
 
-          if (ipbl(i,j,2).eq.0) then
-            if (ipbl(i,j,1).eq.1) call setbl(1,2,i,j)
+          if (ipbl(2,i,j).eq.0) then
+            if (ipbl(1,i,j).eq.1) call setbl(1,2,i,j)
           endif
 
 c ******* itype=3: Land ice
 
-          if (ipbl(i,j,3).eq.0) then
-            if (ipbl(i,j,4).eq.1) call setbl(4,3,i,j)
+          if (ipbl(3,i,j).eq.0) then
+            if (ipbl(4,i,j).eq.1) call setbl(4,3,i,j)
           endif
 
 c ******* itype=4: Land
 
-          if (ipbl(i,j,4).eq.0) then
-            if (ipbl(i,j,3).eq.1) then
+          if (ipbl(4,i,j).eq.0) then
+            if (ipbl(3,i,j).eq.1) then
               call setbl(3,4,i,j)
-            elseif (ipbl(i,j,1).eq.1) then
+            elseif (ipbl(1,i,j).eq.1) then
               call setbl(1,4,i,j)
             endif
           endif
@@ -710,7 +710,7 @@ C**** initialise some pbl common variables
           tflux(I,J)=0.
           qflux(I,J)=0.
 
-          ipbl(i,j,:) = 0       ! - will be set to 1s when pbl is called
+          ipbl(:,i,j) = 0       ! - will be set to 1s when pbl is called
 
         end do
       end do
@@ -731,23 +731,23 @@ C**** initialise some pbl common variables
       integer lpbl  !@var lpbl loop variable
 
       do lpbl=1,npbl-1
-        uabl(lpbl,i,j,itype_out)=uabl(lpbl,i,j,itype_in)
-        vabl(lpbl,i,j,itype_out)=vabl(lpbl,i,j,itype_in)
-        tabl(lpbl,i,j,itype_out)=tabl(lpbl,i,j,itype_in)
-        qabl(lpbl,i,j,itype_out)=qabl(lpbl,i,j,itype_in)
-        eabl(lpbl,i,j,itype_out)=eabl(lpbl,i,j,itype_in)
+        uabl(lpbl,itype_out,i,j)=uabl(lpbl,itype_in,i,j)
+        vabl(lpbl,itype_out,i,j)=vabl(lpbl,itype_in,i,j)
+        tabl(lpbl,itype_out,i,j)=tabl(lpbl,itype_in,i,j)
+        qabl(lpbl,itype_out,i,j)=qabl(lpbl,itype_in,i,j)
+        eabl(lpbl,itype_out,i,j)=eabl(lpbl,itype_in,i,j)
       end do
-      uabl(npbl,i,j,itype_out)=uabl(npbl,i,j,itype_in)
-      vabl(npbl,i,j,itype_out)=vabl(npbl,i,j,itype_in)
-      tabl(npbl,i,j,itype_out)=tabl(npbl,i,j,itype_in)
-      qabl(npbl,i,j,itype_out)=qabl(npbl,i,j,itype_in)
+      uabl(npbl,itype_out,i,j)=uabl(npbl,itype_in,i,j)
+      vabl(npbl,itype_out,i,j)=vabl(npbl,itype_in,i,j)
+      tabl(npbl,itype_out,i,j)=tabl(npbl,itype_in,i,j)
+      qabl(npbl,itype_out,i,j)=qabl(npbl,itype_in,i,j)
 #ifdef TRACERS_ON
-      trabl(:,:,i,j,itype_out)=trabl(:,:,i,j,itype_in)
+      trabl(:,:,itype_out,i,j)=trabl(:,:,itype_in,i,j)
 #endif
-      cmgs(i,j,itype_out)=cmgs(i,j,itype_in)
-      chgs(i,j,itype_out)=chgs(i,j,itype_in)
-      cqgs(i,j,itype_out)=cqgs(i,j,itype_in)
-      ustar_pbl(i,j,itype_out)=ustar_pbl(i,j,itype_in)
+      cmgs(itype_out,i,j)=cmgs(itype_in,i,j)
+      chgs(itype_out,i,j)=chgs(itype_in,i,j)
+      cqgs(itype_out,i,j)=cqgs(itype_in,i,j)
+      ustar_pbl(itype_out,i,j)=ustar_pbl(itype_in,i,j)
 
       return
       end subroutine setbl
@@ -811,7 +811,7 @@ C**** Check for NaN/INF in boundary layer data
       CALL CHECK3(usavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'usavg')
       CALL CHECK3(vsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'vsavg')
       CALL CHECK3(tauavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tauavg')
-      CALL CHECK3(ustar_pbl(I_0:I_1,J_0:J_1,1:4),Ilen,Jlen,4,SUBR,
+      CALL CHECK3(ustar_pbl(1:4,I_0:I_1,J_0:J_1),Ilen,Jlen,4,SUBR,
      *           'ustar')
 
       CALL CHECK3(uflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'uflux')

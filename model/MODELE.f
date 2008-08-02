@@ -1404,11 +1404,9 @@ C**** initialize egcm to be used in ATURB.f
         END DO
         END DO
 C**** Initialize surface friction velocity
-        DO ITYPE=1,4
         DO J=J_0,J_1
         DO I=1,IM
-          USTAR_pbl(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
-        END DO
+          USTAR_pbl(:,I,J)=WSAVG(I,J)*SQRT(CDM)
         END DO
         END DO
 C**** INITIALIZE VERTICAL SLOPES OF T,Q

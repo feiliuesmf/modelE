@@ -8888,10 +8888,10 @@ C**** Initialise pbl profile if necessary
         do ipbl=1,npbl
 #ifdef TRACERS_WATER
           if(tr_wd_TYPE(n).eq.nWATER)THEN
-            trabl(ipbl,n,:,j,it) = trinit*qabl(ipbl,:,j,it)
+            trabl(ipbl,n,it,:,j) = trinit*qabl(ipbl,it,:,j)
           ELSE
 #endif
-            trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
+            trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
 #ifdef TRACERS_WATER
           END IF
 #endif

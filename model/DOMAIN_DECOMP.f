@@ -310,7 +310,7 @@
       interface PACK_BLOCK
          module procedure IPACK_BLOCK_2D    ! (k,l,i,j  )
          module procedure  PACK_BLOCK_2D    ! (k,l,i,j  )
-         module procedure  PACK_BLOCK_3D    ! (k,l,i,j,m)
+         module procedure  PACK_BLOCK_3D    ! (k,l,m,i,j)
       end interface
 
 !@var UNPACK_BLOCK  Generic routine to unpack into a distributed
@@ -319,7 +319,7 @@
       interface UNPACK_BLOCK
          module procedure IUNPACK_BLOCK_2D    ! (k,l,i,j  )
          module procedure  UNPACK_BLOCK_2D    ! (k,l,i,j  )
-         module procedure  UNPACK_BLOCK_3D    ! (k,l,i,j,m)
+         module procedure  UNPACK_BLOCK_3D    ! (k,l,m,i,j)
       end interface
 
 !@var PACK_J Generic routine to pack  a global array
@@ -4023,6 +4023,25 @@ C------------------------------------
       RETURN
       END SUBROUTINE PACK_COLUMN_3D
 
+      SUBROUTINE PACK_BLOCK_3D(grd_dum,ARR,ARR_GLOB)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) ::
+     &        ARR(:,:,:,:,grd_dum%j_strt_halo:)
+      REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:,:)
+      INTEGER :: l,K
+
+#ifdef USE_ESMF
+      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 5)
+#else
+      arr_glob(:,:,:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     & arr(:,:,:,:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+
+      RETURN
+      END SUBROUTINE PACK_BLOCK_3D
+
 C*** Overloaded UNPACK_COLUMN routines:
 C--------------------------------------
       SUBROUTINE UNPACK_COLUMN_1D(grd_dum,ARR_GLOB,ARR,local)
@@ -4147,6 +4166,40 @@ C--------------------------------------
       RETURN
       END SUBROUTINE UNPACK_COLUMN_3D
 
+      SUBROUTINE UNPACK_BLOCK_3D(grd_dum,ARR_GLOB,ARR,local)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+
+      REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:,:)
+      REAL*8, INTENT(OUT) ::
+     &        ARR(:,:,:,:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1, K, L
+      LOGICAL, OPTIONAL, intent(in) :: local
+
+      logical :: local_
+
+
+#ifdef USE_ESMF
+      local_ = .false.
+      if (present(local)) local_ = local
+#else
+      local_ = .true.
+#endif
+
+      if (local_)then
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,:,:,:,J_0:J_1)=ARR_GLOB(:,:,:,:,J_0:J_1)
+#ifdef USE_ESMF
+      else
+         call scatter(grd_dum % ESMF_GRID, arr_glob, arr,
+     &        shape(arr), dist_idx = 5)
+#endif
+      end if
+
+      RETURN
+      END SUBROUTINE UNPACK_BLOCK_3D
+
 
       SUBROUTINE IPACK_BLOCK_2D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
@@ -4185,25 +4238,25 @@ C--------------------------------------
       END SUBROUTINE PACK_BLOCK_2D
 
 
-      SUBROUTINE PACK_BLOCK_3D(grd_dum,ARR,ARR_GLOB)
-      IMPLICIT NONE
-      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
-
-      REAL*8 , INTENT(IN) ::
-     &        ARR(:,:,:,grd_dum%j_strt_halo:,:)
-      REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:,:)
-      INTEGER :: K,L,M
-
-      DO M=1,SIZE(ARR,5)
-        DO L=1,SIZE(ARR,2)
-          DO K=1,SIZE(ARR,1)
-            CALL ARRAYGATHER(grd_dum,ARR(K,L,:,:,M),ARR_GLOB(K,L,:,:,M))
-          END DO
-        END DO
-      END DO
-
-      RETURN
-      END SUBROUTINE PACK_BLOCK_3D
+c      SUBROUTINE PACK_BLOCK_3D(grd_dum,ARR,ARR_GLOB)
+c      IMPLICIT NONE
+c      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+c
+c      REAL*8 , INTENT(IN) ::
+c     &        ARR(:,:,:,grd_dum%j_strt_halo:,:)
+c      REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:,:)
+c      INTEGER :: K,L,M
+c
+c      DO M=1,SIZE(ARR,5)
+c        DO L=1,SIZE(ARR,2)
+c          DO K=1,SIZE(ARR,1)
+c            CALL ARRAYGATHER(grd_dum,ARR(K,L,:,:,M),ARR_GLOB(K,L,:,:,M))
+c          END DO
+c        END DO
+c      END DO
+c
+c      RETURN
+c      END SUBROUTINE PACK_BLOCK_3D
 
 
       SUBROUTINE IUNPACK_BLOCK_2D(grd_dum,ARR_GLOB,ARR,local)
@@ -4268,42 +4321,42 @@ C--------------------------------------
       end if
       END SUBROUTINE UNPACK_BLOCK_2D
 
-      SUBROUTINE UNPACK_BLOCK_3D(grd_dum,ARR_GLOB,ARR,local)
-      IMPLICIT NONE
-      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
-
-      REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:,:)
-      REAL*8 , INTENT(OUT) ::
-     &        ARR(:,:,:,grd_dum%j_strt_halo:,:)
-      INTEGER :: J_0, J_1, K, L, M
-      LOGICAL, OPTIONAL :: local
-
-      if (present(local)) then
-        if (local) then
-          J_0=grd_dum%j_strt
-          J_1=grd_dum%j_stop
-          ARR(:,:,:,J_0:J_1,:)=ARR_GLOB(:,:,:,J_0:J_1,:)
-        else
-          do m=1,size(arr,5)
-            do l=1,size(arr,2)
-              do k=1,size(arr,1)
-                call arrayscatter(grd_dum,arr(k,l,:,:,m)
-     &                              ,arr_glob(k,l,:,:,m))
-              end do
-            end do
-          end do
-        end if
-      else
-        do m=1,size(arr,5)
-          do l=1,size(arr,2)
-            do k=1,size(arr,1)
-              call arrayscatter(grd_dum, arr(k,l,:,:,m)
-     &                            , arr_glob(k,l,:,:,m))
-            end do
-          end do
-        end do
-      end if
-      END SUBROUTINE UNPACK_BLOCK_3D
+c      SUBROUTINE UNPACK_BLOCK_3D(grd_dum,ARR_GLOB,ARR,local)
+c      IMPLICIT NONE
+c      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+c
+c      REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:,:)
+c      REAL*8 , INTENT(OUT) ::
+c     &        ARR(:,:,:,grd_dum%j_strt_halo:,:)
+c      INTEGER :: J_0, J_1, K, L, M
+c      LOGICAL, OPTIONAL :: local
+c
+c      if (present(local)) then
+c        if (local) then
+c          J_0=grd_dum%j_strt
+c          J_1=grd_dum%j_stop
+c          ARR(:,:,:,J_0:J_1,:)=ARR_GLOB(:,:,:,J_0:J_1,:)
+c        else
+c          do m=1,size(arr,5)
+c            do l=1,size(arr,2)
+c              do k=1,size(arr,1)
+c                call arrayscatter(grd_dum,arr(k,l,:,:,m)
+c     &                              ,arr_glob(k,l,:,:,m))
+c              end do
+c            end do
+c          end do
+c        end if
+c      else
+c        do m=1,size(arr,5)
+c          do l=1,size(arr,2)
+c            do k=1,size(arr,1)
+c              call arrayscatter(grd_dum, arr(k,l,:,:,m)
+c     &                            , arr_glob(k,l,:,:,m))
+c            end do
+c          end do
+c        end do
+c      end if
+c      END SUBROUTINE UNPACK_BLOCK_3D
 
 
 C*** Overloaded PACK_J routines:

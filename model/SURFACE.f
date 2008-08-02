@@ -431,7 +431,7 @@ C**** SSH does not work for qflux/fixed SST configurations
          END IF
 C****
       DO ITYPE=1,3       ! no earth type
-  !    ipbl(i,j,itype)=0
+  !    ipbl(itype,i,j)=0
 C****
 C**** OPEN OCEAN/LAKE
 C****
@@ -1173,20 +1173,20 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
      &               +ptype*grav*(ts-tg)*pbl_args%zgs/(ws*ws*tg)
 
                 tmp(idd_zpbl1:idd_zpbl1+npbl-1)=ptype*pbl_args%z(1:npbl)
-                tmp(idd_uabl1:idd_uabl1+npbl-1)=ptype*uabl(1:npbl,i,j
-     *               ,itype)
-                tmp(idd_vabl1:idd_vabl1+npbl-1)=ptype*vabl(1:npbl,i,j
-     *               ,itype)
+                tmp(idd_uabl1:idd_uabl1+npbl-1)=
+     *               ptype*uabl(1:npbl,itype,i,j)
+                tmp(idd_vabl1:idd_vabl1+npbl-1)=
+     *               ptype*vabl(1:npbl,itype,i,j)
                 tmp(idd_uvabl1:idd_uvabl1+npbl-1)=ptype*sqrt(
-     *               uabl(1:npbl,i,j,itype)*uabl(1:npbl,i,j,itype)+
-     *               vabl(1:npbl,i,j,itype)*vabl(1:npbl,i,j,itype))
-                tmp(idd_tabl1:idd_tabl1+npbl-1)=ptype*tabl(1:npbl,i,j
-     *               ,itype)
-                tmp(idd_qabl1:idd_qabl1+npbl-1)=ptype*qabl(1:npbl,i,j
-     *               ,itype)
+     *               uabl(1:npbl,itype,i,j)*uabl(1:npbl,itype,i,j)+
+     *               vabl(1:npbl,itype,i,j)*vabl(1:npbl,itype,i,j))
+                tmp(idd_tabl1:idd_tabl1+npbl-1)=
+     *               ptype*tabl(1:npbl,itype,i,j)
+                tmp(idd_qabl1:idd_qabl1+npbl-1)=
+     *               ptype*qabl(1:npbl,itype,i,j)
                 tmp(idd_zhat1:idd_zhat1+npbl-2)=ptype
      *               *pbl_args%zhat(1:npbl-1)
-                tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,i,j,itype)*ptype
+                tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,itype,i,j)*ptype
                 tmp(idd_km1:idd_km1+npbl-2)=ptype*pbl_args%km(1:npbl-1)
                 tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
      *               /(pbl_args%gm(1:npbl-1)+1d-20)

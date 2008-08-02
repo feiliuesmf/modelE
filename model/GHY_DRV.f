@@ -960,7 +960,7 @@ c****
 c**** earth
 c****
       if (ptype.le.0.) then
-  !      ipbl(i,j,4)=0
+  !      ipbl(4,i,j)=0
         cycle loop_i
       endif
       itype=4
@@ -1030,9 +1030,9 @@ c**** call tracers stuff
 #endif
       call pbl(i,j,itype,ptype,pbl_args)
 c****
-      cdm = pbl_args%cm ! cmgs(i,j,itype)
-      cdh = pbl_args%ch ! chgs(i,j,itype)
-      cdq = pbl_args%cq ! cqgs(i,j,itype)
+      cdm = pbl_args%cm ! cmgs(itype,i,j)
+      cdh = pbl_args%ch ! chgs(itype,i,j)
+      cdq = pbl_args%cq ! cqgs(itype,i,j)
 c***********************************************************************
 c**** calculate qs
       qs=pbl_args%qsrf
@@ -1725,20 +1725,20 @@ c**** quantities accumulated hourly for diagDD
      &             /(ws*ws*(tg1+tf))
 
               tmp(idd_zpbl1:idd_zpbl1+npbl-1)=ptype*pbl_args%z(1:npbl)
-              tmp(idd_uabl1:idd_uabl1+npbl-1)=ptype*uabl(1:npbl,i,j
-     *             ,itype)
-              tmp(idd_vabl1:idd_vabl1+npbl-1)=ptype*vabl(1:npbl,i,j
-     *             ,itype)
+              tmp(idd_uabl1:idd_uabl1+npbl-1)=
+     *             ptype*uabl(1:npbl,itype,i,j)
+              tmp(idd_vabl1:idd_vabl1+npbl-1)=
+     *             ptype*vabl(1:npbl,itype,i,j)
               tmp(idd_uvabl1:idd_uvabl1+npbl-1)=ptype*sqrt(
-     *             uabl(1:npbl,i,j,itype)*uabl(1:npbl,i,j,itype)+
-     *             vabl(1:npbl,i,j,itype)*vabl(1:npbl,i,j,itype))
-              tmp(idd_tabl1:idd_tabl1+npbl-1)=ptype*tabl(1:npbl,i,j
-     *             ,itype)
-              tmp(idd_qabl1:idd_qabl1+npbl-1)=ptype*qabl(1:npbl,i,j
-     *             ,itype)
+     *             uabl(1:npbl,itype,i,j)*uabl(1:npbl,itype,i,j)+
+     *             vabl(1:npbl,itype,i,j)*vabl(1:npbl,itype,i,j))
+              tmp(idd_tabl1:idd_tabl1+npbl-1)=
+     *             ptype*tabl(1:npbl,itype,i,j)
+              tmp(idd_qabl1:idd_qabl1+npbl-1)=
+     *             ptype*qabl(1:npbl,itype,i,j)
               tmp(idd_zhat1:idd_zhat1+npbl-2)=ptype
      *             *pbl_args%zhat(1:npbl-1)
-              tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,i,j,itype)*ptype
+              tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,itype,i,j)*ptype
               tmp(idd_km1:idd_km1+npbl-2)=ptype*pbl_args%km(1:npbl-1)
               tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
      *             /(pbl_args%gm(1:npbl-1)+1d-20)

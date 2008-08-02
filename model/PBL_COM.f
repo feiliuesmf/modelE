@@ -76,37 +76,37 @@
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-      REAL*8, DIMENSION(npbl,IM,JM,4) :: uabl_glob,vabl_glob,tabl_glob,
+      REAL*8, DIMENSION(npbl,4,IM,JM) :: uabl_glob,vabl_glob,tabl_glob,
      &     qabl_glob,eabl_glob
-      REAL*8, DIMENSION(IM,JM,4) :: cmgs_glob, chgs_glob, cqgs_glob
-      INTEGER, DIMENSION(IM,JM,4) :: ipbl_glob
+      REAL*8, DIMENSION(4,IM,JM) :: cmgs_glob, chgs_glob, cqgs_glob
+      INTEGER, DIMENSION(4,IM,JM) :: ipbl_glob
       INTEGER :: J_0, J_1
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
 #ifdef TRACERS_ON
 !@var TR_HEADER Character string label for tracer record
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRPBL01"
-      REAL*8, DIMENSION(npbl,ntm,im,jm,4) :: trabl_glob
+      REAL*8, DIMENSION(npbl,ntm,4,im,jm) :: trabl_glob
       write (TR_MODULE_HEADER(lhead+1:80),'(a7,i2,a,i2,a)') 'R8 dim(',
-     *     npbl,',',ntm,',ijm,4):TRt'
+     *     npbl,',',ntm,',4,ijm):TRt'
 #endif
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',npbl,
-     *  ',ijm,4):Ut,Vt,Tt,Qt,Et dim(ijm,4,3):Cmhq, I:Ipb(ijm,4)'
+     *  ',4,ijm):Ut,Vt,Tt,Qt,Et dim(4,ijm,3):Cmhq, I:Ipb(4,ijm)'
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_COLUMN(grid, uabl, uabl_glob)
-        CALL PACK_COLUMN(grid, vabl, vabl_glob)
-        CALL PACK_COLUMN(grid, tabl, tabl_glob)
-        CALL PACK_COLUMN(grid, qabl, qabl_glob)
-        CALL PACK_COLUMN(grid, eabl, eabl_glob)
+        CALL PACK_BLOCK(grid, uabl, uabl_glob)
+        CALL PACK_BLOCK(grid, vabl, vabl_glob)
+        CALL PACK_BLOCK(grid, tabl, tabl_glob)
+        CALL PACK_BLOCK(grid, qabl, qabl_glob)
+        CALL PACK_BLOCK(grid, eabl, eabl_glob)
 
-        CALL PACK_DATA(grid, cmgs, cmgs_glob)
-        CALL PACK_DATA(grid, chgs, chgs_glob)
-        CALL PACK_DATA(grid, cqgs, cqgs_glob)
-        CALL PACK_DATA(grid, ipbl, ipbl_glob)
+        CALL PACK_COLUMN(grid, cmgs, cmgs_glob)
+        CALL PACK_COLUMN(grid, chgs, chgs_glob)
+        CALL PACK_COLUMN(grid, cqgs, cqgs_glob)
+        CALL PACK_COLUMN(grid, ipbl, ipbl_glob)
 
 #ifdef TRACERS_ON
         CALL PACK_BLOCK(grid, trabl, trabl_glob)
@@ -131,16 +131,16 @@
           END IF
         end if
 
-        call UNPACK_COLUMN(grid, uabl_glob, uabl)
-        call UNPACK_COLUMN(grid, vabl_glob, vabl)
-        call UNPACK_COLUMN(grid, tabl_glob, tabl)
-        call UNPACK_COLUMN(grid, qabl_glob, qabl)
-        call UNPACK_COLUMN(grid, eabl_glob, eabl)
+        call UNPACK_BLOCK(grid, uabl_glob, uabl)
+        call UNPACK_BLOCK(grid, vabl_glob, vabl)
+        call UNPACK_BLOCK(grid, tabl_glob, tabl)
+        call UNPACK_BLOCK(grid, qabl_glob, qabl)
+        call UNPACK_BLOCK(grid, eabl_glob, eabl)
 
-        call UNPACK_DATA(grid, cmgs_glob, cmgs)
-        call UNPACK_DATA(grid, chgs_glob, chgs)
-        call UNPACK_DATA(grid, cqgs_glob, cqgs)
-        call UNPACK_DATA(grid, ipbl_glob, ipbl)
+        call UNPACK_COLUMN(grid, cmgs_glob, cmgs)
+        call UNPACK_COLUMN(grid, chgs_glob, chgs)
+        call UNPACK_COLUMN(grid, cqgs_glob, cqgs)
+        call UNPACK_COLUMN(grid, ipbl_glob, ipbl)
 #ifdef TRACERS_ON
         SELECT CASE (IACTION)
         CASE (IOREAD,IRERUN,IRSFIC,IRSFICNO)    ! restarts
@@ -184,10 +184,10 @@
      *       qsavg_glob,dclev_glob,usavg_glob,
      *       vsavg_glob,tauavg_glob,qgavg_glob,tgvavg_glob
       REAL*8, DIMENSION(LM,IM,JM) :: egcm_glob, w2gcm_glob
-      REAL*8, DIMENSION(IM,JM,4) :: ustar_pbl_glob
+      REAL*8, DIMENSION(4,IM,JM) :: ustar_pbl_glob
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(ijm):ws,ts,qs,'//
-     *  'LvlDC,us,vs,tau,u*(.,4),ke;w2(lijm),tgv,qg'
+     *  'LvlDC,us,vs,tau,u*(4,.),ke;w2(lijm),tgv,qg'
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
@@ -203,7 +203,7 @@
         CALL PACK_DATA(grid, tgvavg, tgvavg_glob)
         CALL PACK_DATA(grid, qgavg, qgavg_glob)
 
-        CALL PACK_DATA(grid, ustar_pbl, ustar_pbl_glob)
+        CALL PACK_COLUMN(grid, ustar_pbl, ustar_pbl_glob)
         CALL PACK_COLUMN(grid, egcm, egcm_glob)
         CALL PACK_COLUMN(grid, w2gcm, w2gcm_glob)
 
@@ -236,7 +236,7 @@
         call UNPACK_DATA(grid, tgvavg_glob, tgvavg)
         call UNPACK_DATA(grid, qgavg_glob, qgavg)
 
-        call UNPACK_DATA(grid, ustar_pbl_glob, ustar_pbl)
+        call UNPACK_COLUMN(grid, ustar_pbl_glob, ustar_pbl)
         call UNPACK_COLUMN(grid, egcm_glob, egcm)
         call UNPACK_COLUMN(grid, w2gcm_glob, w2gcm)
 
@@ -265,25 +265,25 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE(    uabl(npbl,    im,J_0H:J_1H,4),
-     *             vabl(npbl,    im,J_0H:J_1H,4),
-     *             tabl(npbl,    im,J_0H:J_1H,4),
-     *             qabl(npbl,    im,J_0H:J_1H,4),
-     *             eabl(npbl,    im,J_0H:J_1H,4),
+      ALLOCATE(    uabl(npbl,4,    im,J_0H:J_1H),
+     *             vabl(npbl,4,    im,J_0H:J_1H),
+     *             tabl(npbl,4,    im,J_0H:J_1H),
+     *             qabl(npbl,4,    im,J_0H:J_1H),
+     *             eabl(npbl,4,    im,J_0H:J_1H),
      *         STAT=IER)
       qabl=0.  ! initialise to make life easier
 
 #ifdef TRACERS_ON
-      ALLOCATE(    trabl(npbl,ntm,im,J_0H:J_1H,4),
+      ALLOCATE(    trabl(npbl,ntm,4,im,J_0H:J_1H),
      *         STAT=IER)
 #endif
 
-      ALLOCATE(    cmgs(im,J_0H:J_1H,4),
-     *             chgs(im,J_0H:J_1H,4),
-     *             cqgs(im,J_0H:J_1H,4),
-     *             ipbl(im,J_0H:J_1H,4),
+      ALLOCATE(    cmgs(4,im,J_0H:J_1H),
+     *             chgs(4,im,J_0H:J_1H),
+     *             cqgs(4,im,J_0H:J_1H),
+     *             ipbl(4,im,J_0H:J_1H),
      *         STAT=IER)
-      ipbl(:,J_0H:J_1H,:) = 0.
+      ipbl(:,:,J_0H:J_1H) = 0
 
       ALLOCATE(    roughl(im,J_0H:J_1H),
      *              wsavg(im,J_0H:J_1H),
@@ -299,7 +299,7 @@ C****
      *         STAT=IER)
       w2_l1(:,J_0H:J_1H) =0.
 
-      ALLOCATE(    ustar_pbl(im,J_0H:J_1H,4),
+      ALLOCATE(    ustar_pbl(4,im,J_0H:J_1H),
      *         STAT=IER)
 
       ALLOCATE(    egcm(lm,im,J_0H:J_1H),
