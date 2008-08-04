@@ -41,8 +41,15 @@ c  Carbon type 2    = DIC
  
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
      &     ,idm,jdm
+      USE hycom_dim, only : isp_l=>isp,ifp_l=>ifp,ilp_l=>ilp
+      USE hycom_dim, only : j_0,j_1
+      !USE hycom_arrays_glob, only : tracer_glob => tracer
       USE hycom_arrays_glob, only : tracer,dpinit
       USE hycom_scalars, only: onem
+
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+cddd      USE hycom_arrays_glob, only: gather_hycom_arrays,
+cddd     &     scatter_hycom_arrays
 
       implicit none
 
@@ -57,10 +64,17 @@ c  Carbon type 2    = DIC
       character*2 ntchar
       character*80 filename
 
+      !real dic_glob(iio,jjo,kdm)
+
       common /bir/ nir(nrg)
 
       call alloc_obio_incom
 
+      !call gather_hycom_arrays ! shoul remove later
+      call gather_tracer
+      call gather_dpinit
+
+      if (AM_I_ROOT()) then
 c  Initialize
 
       tracer(:,:,:,1:ntyp)=0.d0
@@ -74,6 +88,8 @@ c  Initialize
 
       filename='dic_inicond'
       call bio_inicond(filename,dic(:,:,:))
+
+      !dic(:,j_0h:j_1h,:) = dic_glob(:,:,:)
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
 !     /archive/u/aromanou/Watson_new/BioInit/CHL_WG_4x5
@@ -276,14 +292,18 @@ c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
        enddo
       enddo
 
+      endif
+      !call scatter_hycom_arrays
+      call scatter_tracer
+
 c  Light saturation data
       write(6,*)'Light saturation data...'
       avgq = 0.0
 
-      do j=1,jj
+      do j=j_0,j_1
        do k=1,kdm
-        do l=1,isp(j)
-         do i=ifp(j,l),ilp(j,l)
+        do l=1,isp_l(j)
+         do i=ifp_l(j,l),ilp_l(j,l)
           avgq(i,j,k) = 25.0
          enddo
         enddo
@@ -292,10 +312,10 @@ c  Light saturation data
 
 c  Coccolithophore max growth rate
       write(6,*)'Coccolithophore max growth rate...'
-      do j=1,jj
+      do j=j_0,j_1
        do k=1,kdm
-        do l=1,isp(j)
-         do i=ifp(j,l),ilp(j,l)
+        do l=1,isp_l(j)
+         do i=ifp_l(j,l),ilp_l(j,l)
           gcmax(i,j,k) = 0.0
          enddo
         enddo
@@ -303,29 +323,28 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-      do nt=1,ntyp+n_inert+ndet+ncar
-        ntchar='00'
-        if(nt.le.9)write(ntchar,'(i1)')nt
-        if(nt.gt.9)write(ntchar,'(i2)')nt
-        print*,'BIO: saving initial tracer fields '
-     .        ,'bioinit_tracer'//ntchar
-        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-        do k=1,kdm
-        do j=1,jj				!  do not parallelize
-        do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
-           write(iu_bioinit,'(3i4,2e12.4)')
-     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-        enddo
-        enddo
-        enddo
-        enddo
-      call closeunit(iu_bioinit)
-      enddo
+#ifndef OBIO_SPEED_HACKS
+cdiag do nt=1,ntyp+n_inert+ndet+ncar
+cdiag   ntchar='00'
+cdiag   if(nt.le.9)write(ntchar,'(i1)')nt
+cdiag   if(nt.gt.9)write(ntchar,'(i2)')nt
+cdiag   print*,'BIO: saving initial tracer fields '
+cdiag.        ,'bioinit_tracer'//ntchar
+cdiag   call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+cdiag   do k=1,kdm
+cdiag   do j=j_0,j_1				!  do not parallelize
+cdiag   do l=1,isp_l(j)
+cdiag   do i=ifp_l(j,l),ilp_l(j,l)
+cdiag      write(iu_bioinit,'(3i4,2e12.4)')
+cdiag.           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+cdiag   enddo
+cdiag   enddo
+cdiag   enddo
+cdiag   enddo
+cdiag call closeunit(iu_bioinit)
+cdiag enddo
+#endif
 
-      write(0,*) "a8"
-
-      
       print*,'COLD INITIALIZATION'
       call obio_trint(nn)
 
@@ -639,7 +658,6 @@ c
 
       USE FILEMANAGER, only: openunit,closeunit
 
-
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
       USE hycom_arrays_glob, only : dpinit
       USE hycom_scalars, only: onem
@@ -663,6 +681,7 @@ c
       real fldo(iio,jjo,kgrd)
       real pinit(iio,jjo,kdm+1),fldo2(iio,jjo,kdm)
       real nodc_depths(kgrd),nodc_d(kgrd+1)
+      !real dpinit(iio,jjo,kdm)
 
       logical vrbos
 
@@ -673,6 +692,7 @@ c
      .    1300,1400,1500,1750,2000,2500,3000,3500,4000,4500,5000,5500/
 
 !--------------------------------------------------------------
+
       !read no3 files from Watson and convert to ascii
       lgth=len_trim(filename)
       print*, 'bioinit: reading from file...',filename(1:lgth)
@@ -834,12 +854,11 @@ cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
        enddo
 c$OMP END PARALLEL DO
 
-         
       !--------------------------------------------------------
 
-        return
+       return
   
-        end subroutine bio_inicond
+       end subroutine bio_inicond
   
       subroutine remap1d_plm(yold,xold,kold,ynew,xnew,knew,vrbos,i,j)
 c

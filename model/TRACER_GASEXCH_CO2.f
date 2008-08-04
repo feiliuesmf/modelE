@@ -1,18 +1,35 @@
 #include "rundeck_opts.h"
 
-#ifdef TRACERS_ON
       MODULE TRACER_GASEXCH_COM
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
 
-      USE hycom_dim_glob
+      USE hycom_dim
       implicit none
 
 #include "dimension2.h"
 
+      private
+
+      public alloc_tracer_gasexch_com
+      public gather_tracer_gasexch_com_arrays
+      public scatter_tracer_gasexch_com_arrays
+
+      public
+     .  tracflx !  tracer flux at air-sea intfc
+
+      public 
+     .  tracflx_glob
+
+      public
+     .  tracflx1d
+
+      public atracflx,atrac
+
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx,atrac
 
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx_glob
   
       real*8 tracflx1d(ntm)
       common /gasexch3/tracflx1d
@@ -26,11 +43,31 @@
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
       USE hycom_dim_glob
 
-      ALLOCATE(tracflx(idm,jdm,ntm))
+      ALLOCATE(tracflx(idm,j_0h:j_1h,ntm))
+      ALLOCATE(tracflx_glob(idm,jdm,ntm))
 
       ALLOCATE(atracflx(iia,jja,ntm),atrac(iia,jja,ntm))
 
       end subroutine alloc_tracer_gasexch_com
+
+
+      subroutine gather_tracer_gasexch_com_arrays
+
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+
+      call pack_data( ogrid, tracflx,tracflx_glob )
+
+      end subroutine gather_tracer_gasexch_com_arrays
+
+      subroutine scatter_tracer_gasexch_com_arrays
+
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+
+      call unpack_data( ogrid, tracflx_glob,tracflx )
+
+      end subroutine scatter_tracer_gasexch_com_arrays
 
       END MODULE TRACER_GASEXCH_COM
 
@@ -170,5 +207,3 @@ c
 c
       RETURN 
       END 
-
-#endif

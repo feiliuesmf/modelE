@@ -9,17 +9,20 @@
 
       integer, ALLOCATABLE, DIMENSION(:,:) :: ihra            !counter for daylight hours
 
+      real, ALLOCATABLE, DIMENSION(:,:)    :: asolz
+      real, ALLOCATABLE, DIMENSION(:,:)    :: awind           !wind speed from modelE (see hycom2.f)
       real, ALLOCATABLE, DIMENSION(:,:)    :: osolz
       real, ALLOCATABLE, DIMENSION(:,:)    :: owind           !wind speed in hycom grid (see hycom2.f)
+
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:)    :: atmFe
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe_all       !surface iron deposition
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity from climatology in 'umol/kg'
 
-      real, ALLOCATABLE, DIMENSION(:,:)    :: asolz
-      real, ALLOCATABLE, DIMENSION(:,:)    :: awind           !wind speed from modelE (see hycom2.f)
 #ifdef OBIO_RAD_coupling
+      real*8, ALLOCATABLE, DIMENSION(:,:)    :: avisdir,avisdif
+     .                                         ,anirdir,anirdif
       real*8, ALLOCATABLE, DIMENSION(:,:)    :: ovisdir,ovisdif
      .                                         ,onirdir,onirdif
 #endif
@@ -74,26 +77,32 @@
 
       USE obio_dim
       USE hycom_dim_glob
-
-      ALLOCATE(osolz(idm,jdm))
-      ALLOCATE(owind(idm,jdm))
-      ALLOCATE(tirrq3d(idm,jdm,kdm))
-      ALLOCATE(ihra(idm,jdm))
-      ALLOCATE(avgq(idm,jdm,kdm))
-      ALLOCATE(atmFe(idm,jdm),atmFe_all(idm,jdm,12))
-      ALLOCATE(alk(idm,jdm,kdm))
+      USE hycom_dim, only : j_0h,j_1h
 
       ALLOCATE(asolz(iia,jja))
       ALLOCATE(awind(iia,jja))
+      ALLOCATE(osolz(idm,jdm))
+      ALLOCATE(owind(idm,jdm))
+
+      ALLOCATE(tirrq3d(idm,jdm,kdm))
+      ALLOCATE(ihra(idm,jdm))
+      ALLOCATE(avgq(idm,jdm,kdm))
+!      ALLOCATE(atmFe(idm,jdm),atmFe_all(idm,jdm,12))
+!      ALLOCATE(alk(idm,jdm,kdm))
+      ALLOCATE(atmFe(idm,jdm),atmFe_all(idm,j_0h:j_1h,12))
+      ALLOCATE(alk(idm,j_0h:j_1h,kdm))
+
 
 #ifdef OBIO_RAD_coupling
+      ALLOCATE(avisdir(iia,jja),avisdif(iia,jja)
+     .        ,anirdir(iia,jja),anirdif(iia,jja))
       ALLOCATE(ovisdir(idm,jdm),ovisdif(idm,jdm)
      .        ,onirdir(idm,jdm),onirdif(idm,jdm))
 #endif
-#ifndef OBIO_RAD_coupling
-      ALLOCATE(Eda(idm,jdm,nlt,nhn,12))
-      ALLOCATE(Esa(idm,jdm,nlt,nhn,12))
-#endif
+cddd#ifndef OBIO_RAD_coupling
+cddd      ALLOCATE(Eda(idm,jdm,nlt,nhn,12))
+cddd      ALLOCATE(Esa(idm,jdm,nlt,nhn,12))
+cddd#endif
 
       end subroutine alloc_obio_forc
 

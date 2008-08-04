@@ -160,10 +160,10 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
          sumres = sumres + dicresp
 
 cdiag    if (vrbos .and. k.eq.1)
-         if(nstep.eq.12.and.k.eq.1)write(*,'(a,5i5,10e12.4)')
-     .   'obio_carbon1:',
-     .   nstep,nt+nnut,i,j,k,gro(k,nt),obio_P(k,nt+nnut),totgro,
-     .   excp,docexcp,resp,dicresp,sumdoc,sumutk,sumres
+cdiag    if(nstep.eq.12.and.k.eq.1)write(*,'(a,5i5,10e12.4)')
+cdiag.   'obio_carbon1:',
+cdiag.   nstep,nt+nnut,i,j,k,gro(k,nt),obio_P(k,nt+nnut),totgro,
+cdiag.   excp,docexcp,resp,dicresp,sumdoc,sumutk,sumres
 
         enddo !nt
 
@@ -322,7 +322,11 @@ c    .             'correction in ppco2tab, ita =',ita,nta,TA
        if (idic.lt. 1) idic= max(idic,1)
        if (ita.lt.  1) ita = max(ita,1)
 
+#ifndef OBIO_SPEED_HACKS
        pco21D = pco2tab(it0,isal,idic,ita)
+#else
+       pco21D = 440
+#endif
 
       return
       end

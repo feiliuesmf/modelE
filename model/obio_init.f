@@ -246,7 +246,6 @@ c  here to actual ac*(440)
       call closeunit(iu_bio)
  30   format(i4,2f10.4)
 
-
 !ifst part from daysetrad.f
 c      h = 6.6256E-34   !Plancks constant J sec
        planck = 6.6256E-34   !Plancks constant J sec
@@ -312,7 +311,6 @@ c  Read in factors to compute average irradiance
       print*,'nstep, facirr(10,18,1)=',nstep,facirr(10,18,1,1)
       print*, '    '
 
-
 #ifndef OBIO_RAD_coupling
 !ifst part from ocalbedo.f
 !if obio-rad-coupling is defined this part is done inside RAD_COM.f and RAD_DRV.f
@@ -360,8 +358,9 @@ c  Read in factors to compute average irradiance
         wsdet(kdm+1,nt) = 0.0
        enddo
  
+#ifndef OBIO_SPEED_HACKS
 !ifst part from ppco2tab.f
-      ALLOCATE (pco2tab(nt0,nsal,ndic,nta))
+       ALLOCATE (pco2tab(nt0,nsal,ndic,nta))
 
 !      open(4,file='/explore/nobackup/aromanou/pco2.tbl.asc'
 !    .       ,status='old')
@@ -382,6 +381,7 @@ c  Read in factors to compute average irradiance
        print*,'BIO: read pCO2 table: ',
      .        pco2tab(1,1,1,1),pco2tab(50,10,100,100)
       print*, '    '
+#endif
 
 #ifdef OBIO_RAD_coupling
       print*, '    '
@@ -397,6 +397,9 @@ c  Read in factors to compute average irradiance
       print*, '    '
       print*, 'reading OASIM data.....'
       print*, '    '
+
+#ifndef OBIO_SPEED_HACKS
+      ALLOCATE (Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12))
 
       open(unit=iu_bio,file='oasimdirect'
      . ,form='unformatted',status='old',access='direct' 
@@ -416,8 +419,8 @@ c  Read in factors to compute average irradiance
       enddo
       enddo
       close(iu_bio)
+#endif
 #endif  /*OBIO_RAD_coupling*/
-
 
 !read in atmospheric iron deposition (this will also be changed later...)
       print*, '    '
@@ -448,6 +451,7 @@ cdiag   enddo
       if (IRON_from.eq.1) then
       !this needs to be changed according to bio_inicond2D
       !not done yet, because ron's iron fluxes too big.
+      call stop_model("obio_init:IRON_from.eq.1 not implemented",255)
       call openunit('atmFedirect1',iu_bio)
       do imon=1,12  !1 year of monthly values
        do j=1,jdm
@@ -512,9 +516,11 @@ c
       USE FILEMANAGER, only: openunit,closeunit
 
 
+!      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
+      USE hycom_dim, only : ogrid,j_0h,j_1h
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
-
+      USE DOMAIN_DECOMP, only: AM_I_ROOT,unpack_data !ESMF_BCAST
       implicit none
 
       integer i,j,k,l,n
@@ -528,11 +534,14 @@ c
       real data_min(kgrd),data_max(kgrd)
       real sum1
       real dummy1(36,jja,kgrd),dummy2(36,jja,kgrd)
-      real fldo(iio,jjo,kgrd)
+      real fldo(iio,j_0h:j_1h,kgrd)
+      real fldo_glob(iio,jjo,kgrd)
 
       logical vrbos,dateline
 
       character*80 filename
+
+      if ( AM_I_ROOT() ) then
 
 !--------------------------------------------------------------
       lgth=len_trim(filename)
@@ -628,12 +637,13 @@ c$OMP PARALLEL DO
       do 8 i=ifp(j,l),ilp(j,l)
 
       do 9 k=1,kgrd
-      fldo(i,j,k)=0.
+      fldo_glob(i,j,k)=0.
 c
-      do 9 n=1,nlista2o(i,j)
-      fldo(i,j,k)=fldo(i,j,k)
+      do 91 n=1,nlista2o(i,j)
+      fldo_glob(i,j,k)=fldo_glob(i,j,k)
      .           +data2(ilista2o(i,j,n),jlista2o(i,j,n),k)
      .                       *wlista2o(i,j,n)
+ 91   continue
  9    continue
  8    continue
 c$OMP END PARALLEL DO
@@ -649,7 +659,10 @@ c$OMP END PARALLEL DO
 !     enddo
 
       !--------------------------------------------------------
+      endif
 
-        return
+      !call ESMF_BCAST(ogrid, fldo)
+      call unpack_data(ogrid, fldo_glob, fldo)
+      return
   
-        end subroutine bio_inicond2D
+      end subroutine bio_inicond2D
