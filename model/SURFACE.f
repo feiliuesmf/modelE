@@ -32,8 +32,13 @@ C****
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
 #endif
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom
+#ifndef SKIP_TRACER_SRCS
+     *     ,ntsurfsrc
+#endif
+#ifdef TRACERS_COSMO
      $     ,n_Be7, n_Be10
+#endif
 #ifdef TRACERS_DRYDEP
      *     ,dodrydep
 #endif
@@ -85,7 +90,10 @@ C****
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
 #ifdef TRACERS_ON
-     *     ,trsrfflx,trsource,trcsurf
+     *     ,trsrfflx,trcsurf
+#ifndef SKIP_TRACER_SRCS
+     *     ,trsource
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
      *     ,TRGASEX,GTRACER
 #endif
@@ -108,6 +116,7 @@ C****
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc
 #endif
+#ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
      *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap,
@@ -118,6 +127,7 @@ C****
 #ifdef BIOGENIC_EMISSIONS
      *     ,  ijs_isoprene
 #endif
+#endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: DTR_AMPe
 #endif
@@ -638,10 +648,12 @@ C**** Calculate trsfac (set to zero for const flux)
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
 C**** Now send kg/m^2/s to PBL, and divided by rho there.
+#ifndef SKIP_TRACER_SRCS
           do nsrc=1,ntsurfsrc(n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
           trconstflx(nx)=totflux(nx)*bydxyp(j)   ! kg/m^2/s
+#endif /*SKIP_TRACER_SRCS*/
 
 #ifdef TRACERS_WATER
         endif
@@ -1199,6 +1211,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         END IF
 C****
 #ifdef TRACERS_ON
+#ifndef SKIP_TRACER_DIAGS
 C**** Save surface tracer concentration whether calculated or not
       nx=0
       do n=1,ntm
@@ -1244,6 +1257,7 @@ C**** Save surface tracer concentration whether calculated or not
 #endif
         end if
       end do
+#endif /*SKIP_TRACER_DIAGS*/
 #endif
 C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
