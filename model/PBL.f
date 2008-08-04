@@ -14,7 +14,10 @@
      &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo
       USE SEAICE, only : tfrez
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,trname,trradius,tr_wd_TYPE, nWATER
+#ifdef RUNTIME_NTM
+      USE TRACER_COM, only : maxntm
+#endif
+      USE TRACER_COM, only : ntm,trname,tr_wd_TYPE, nWATER
 #ifdef TRACERS_SPECIAL_O18
      *     ,n_water
 #endif
@@ -63,6 +66,12 @@
       integer, parameter :: n=8  !@param n  no of pbl. layers
       integer, parameter :: npbl=n
 
+#ifdef TRACERS_ON
+#ifndef RUNTIME_NTM
+      integer, parameter :: maxntm=ntm
+#endif
+#endif
+
 c**** t_pbl_args is a derived type structure which contains all
 c**** input/output arguments for PBL
 c**** Please, use this structure to pass all your arguments to PBL
@@ -88,12 +97,12 @@ c**** Tracer input/output
 !@var ntx number of tracers that need pbl calculation
 !@var ntix index array to map local tracer number to global
 !@var trprime anomalous tracer concentration in downdraft
-        real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-        real*8, dimension(ntm) :: trdn1,trprime
+        real*8, dimension(maxntm) :: trtop,trs,trsfac,trconstflx
+        real*8, dimension(maxntm) :: trdn1,trprime
         integer ntx
-        integer, dimension(ntm) :: ntix
+        integer, dimension(maxntm) :: ntix
 #ifdef TRACERS_SPECIAL_O18
-        real*8, dimension(ntm) :: frack
+        real*8, dimension(maxntm) :: frack
 #endif
 #ifdef BIOGENIC_EMISSIONS
         real*8 :: emisop 
@@ -160,12 +169,12 @@ c**** output
 #ifdef TRACERS_DRYDEP
 !@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
 !@var gs_vel gravitational settling velocity (m/s)
-        real*8, dimension(ntm) :: dep_vel,gs_vel
+        real*8, dimension(maxntm) :: dep_vel,gs_vel
 #endif
 
 #ifdef TRACERS_WATER
 !@var tr_evap_max maximum amount of tracer available in ground reservoir
-        real*8, dimension(ntm) :: tr_evap_max
+        real*8, dimension(maxntm) :: tr_evap_max
 #endif
 
 
