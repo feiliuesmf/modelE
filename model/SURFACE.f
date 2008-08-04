@@ -169,6 +169,7 @@ c**** input/output for PBL
       real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0
       logical pole
 c
+      logical :: lim_lake_evap,lim_dew ! for tracer convenience
 #ifdef TRACERS_ON
       real*8 totflux(ntm)
       integer n,nx,nsrc
@@ -178,7 +179,6 @@ c
       real*8 trc_flux
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim
-      logical :: lim_lake_evap,lim_dew
       real*8  TEV,tevap,dTQS,TDP,TDT1,frac
 #ifdef TRACERS_SPECIAL_O18
      *     ,FRACVL,FRACVS
