@@ -178,6 +178,7 @@ c
       real*8 trc_flux
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim
+      logical :: lim_lake_evap,lim_dew
       real*8  TEV,tevap,dTQS,TDP,TDT1,frac
 #ifdef TRACERS_SPECIAL_O18
      *     ,FRACVL,FRACVS
@@ -802,13 +803,17 @@ C**** CALCULATE EVAPORATION
       DQ1X =EVHDT/((LHE+TG1*SHV)*MA1)
       EVHDT0=EVHDT
 C**** Limit evaporation if lake mass is at minimum
+      lim_lake_evap=.false.
+      lim_dew=.false.
       IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
      *     (EVAPOR(I,J,1)-DQ1X*MA1).gt.EVAPLIM) THEN
         if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
      *     ,EVAPOR(I,J,1)-DQ1X*MA1,MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
         DQ1X=(EVAPOR(I,J,1)-EVAPLIM)*BYAM(1,I,J)
+        lim_lake_evap=.true.
       ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
         DQ1X=(Q1+DQ1(I,J))
+        lim_dew=.true.
       ELSE
         GO TO 3720
       END IF
@@ -852,15 +857,24 @@ C**** tracer flux is set by source tracer concentration
             END IF
           END IF
 C**** Limit evaporation if lake mass is at minimum
-          IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
-     *         (TREVAPOR(n,1,I,J)+TEVAP.gt.TEVAPLIM(NX))) THEN
+          IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0) THEN
+#ifdef WATER_PROPORTIONAL
+            if(lim_lake_evap) then
+#else
+            if( TREVAPOR(n,1,I,J)+TEVAP.gt.TEVAPLIM(NX)) THEN
+#endif
             IF (QCHECK) WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL"
      *           ,N,TREVAPOR(n,1,I,J)+TEVAP,TEVAPLIM(NX)
             TEVAP= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
+            endif
           END IF
           TDP = TEVAP*DXYP(J)*ptype
           TDT1 = trsrfflx(I,J,n)*DTSURF
+#ifdef WATER_PROPORTIONAL
+          if(lim_dew) then
+#else
           IF (TRM(I,J,1,n)+TDT1+TDP.lt.0..and.tdp.lt.0) THEN
+#endif
             IF (QCHECK) WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1
      *           ,n),TDT1
             TEVAP = -(TRM(I,J,1,n)+TDT1)/(DXYP(J)*ptype)
@@ -1353,8 +1367,20 @@ C****
 ! Z-moments should be set from PBL
         TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
         QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
+#ifdef WATER_PROPORTIONAL
+        if(fqevap.gt.0.) then
+          do n=1,ntm
+            trmom(:,i,j,1,n) = trmom(:,i,j,1,n)*(1.-fqevap)
+          enddo
+        endif
+#endif
         IF ( Q(I,J,1)+DQ1(I,J) .LT. qmin ) THEN
           QMOM(:,I,J,1)=0.
+#ifdef WATER_PROPORTIONAL
+          do n=1,ntm
+            trmom(:,i,j,1,n) = 0.
+          enddo
+#endif
         ENDIF
 c****   retrieve fluxes
         P1K=PK(1,I,J)
