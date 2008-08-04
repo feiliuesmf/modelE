@@ -21,7 +21,7 @@ c --- hycom version 0.9
       USE TRACER_GASEXCH_COM, only : atrac
 
 #if defined(TRACERS_GASEXCH_CO2_Natassa) && defined(TRACERS_OceanBiology)
-      USE obio_com, only : pCO2
+      USE obio_com, only : pCO2=>pCO2_glob
 #endif
 #endif
 

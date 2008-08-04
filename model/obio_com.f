@@ -24,6 +24,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: acdom3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: gcmax         !cocco max growth rate
       real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2          !partial pressure of CO2
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2_glob
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
 
@@ -160,6 +161,7 @@ C endif
 
       USE obio_dim
       USE hycom_dim_glob
+      USE hycom_dim, only : j_0h,j_1h
 
       ALLOCATE(tzoo2d(idm,jdm))
       ALLOCATE(tfac3d(idm,jdm,kdm),bn3d(idm,jdm,kdm))
@@ -168,10 +170,20 @@ C endif
       ALLOCATE(rmuplsr3d(idm,jdm,kdm,nchl),rikd3d(idm,jdm,kdm,nchl))
       ALLOCATE(acdom3d(idm,jdm,kdm,nlt))
       ALLOCATE(gcmax(idm,jdm,kdm))
-      ALLOCATE(pCO2(idm,jdm))           
+      ALLOCATE(pCO2(idm,j_0h:j_1h))           
+      ALLOCATE(pCO2_glob(idm,jdm))           
       ALLOCATE(pp2tot_day(idm,jdm))
       ALLOCATE(tot_chlo(idm,jdm))
 
       end subroutine alloc_obio_com
+
+      subroutine gather_pCO2
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+ 
+      call pack_data( ogrid, pCO2, pCO2_glob )
+
+      end subroutine gather_pCO2
+
 
       END MODULE obio_com

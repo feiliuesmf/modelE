@@ -45,11 +45,15 @@
 
 
 
-      USE hycom_dim_glob
-      USE hycom_arrays_glob, only: tracer,dpinit,temp,saln,oice
+      USE hycom_dim
+      USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest
+
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+cddd      USE hycom_arrays_glob, only: gather_hycom_arrays,
+cddd     &     scatter_hycom_arrays
       implicit none
 
       integer i,j,k,l,nn,mm,km 
@@ -63,6 +67,8 @@
 
       logical vrbos,noon,errcon
 
+      integer iout
+
 !--------------------------------------------------------
       diagno_bio=.false.
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12)
@@ -72,16 +78,16 @@
        if (nstep.eq.1) then
         trcout=.true.
 
-        write(lp,'(a)')'BIO:Ocean Biology starts ....'
+        if (AM_I_ROOT()) write(lp,'(a)')'BIO:Ocean Biology starts ....'
 
         call obio_init
-        !tracer array initialization.
+       !tracer array initialization.
         !note: we do not initialize obio_P,det and car
         call obio_bioinit(nn)
 
         diagno_bio=.true.
+        write(0,*) "obio: cold init ok"
        endif  ! 
-
 
 !Warm initialization
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
@@ -92,6 +98,7 @@
 
          print*,'WARM INITIALIZATION'
          call obio_trint(nn)
+        write(0,*) "obio: warm init ok"
        endif !for restart only
 
 !--------------------------------------------------------
@@ -110,9 +117,6 @@
        !else
        !  hour_of_day=hour_of_day+1
        !endif
-
-       write(905,*) "obio_in", sum(tracflx),sum(tracer),
-     &     sum(oice),sum(temp),sum(saln),sum(dpinit),sum(p),sum(dpmixl)
 
        write(lp,'(a,i15,1x,f9.3,2x,3i5)')
      .    'BIO: nstep,time,day_of_month,hour_of_day,jday=',
@@ -149,18 +153,15 @@
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
-        !write(902,*) tracer(:,:,1,15)
-
-        write(907,*) "obio_in1",sum(ihra),sum(atmFe),sum(oice),
-     &       sum(pCO2),sum(temp),sum(saln),sum(dpinit),sum(avgq),
-     &       sum(gcmax),sum(tirrq3d),sum(alk),sum(tzoo2d),sum(tfac3d),
-     &       sum(alk),sum(tzoo2d),sum(tzoo2d),sum(tfac3d),
-     &       sum(rmuplsr3d),sum(rikd3d),
-     &       sum(obio_wsd2d),sum(obio_wsh2d),sum(bn3d),sum(wshc3d),
-     &       sum(Fescav3d),sum(acdom3d),sum(tracer)
-       do 1000 j=1,jj
+       do 1000 j=j_0,j_1             !1,jj
        do 1000 l=1,isp(j)
        do 1000 i=ifp(j,l),ilp(j,l)
+
+         if( j<=90 ) then
+           iout = 820
+         else
+           iout = 821
+         endif
 
 cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 
@@ -169,6 +170,38 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 
        !surface forcing atmFe test case
        !atmFe(i,j)=0.
+
+!!!!
+#ifdef DEBUG_OBIO_MODEL
+       write(iout,*) "ij",i,j
+       write(iout,*) owind(i,j),__LINE__
+       write(iout,*) osolz(i,j),__LINE__
+       write(iout,*) sum(atmFe_all(i,j,:)),__LINE__
+       write(iout,*) sum(tracflx(i,j,:)),__LINE__
+       write(iout,*) ihra(i,j),__LINE__
+       write(iout,*) atmFe(i,j),__LINE__
+       write(iout,*) oice(i,j),__LINE__
+       write(iout,*) pCO2(i,j),__LINE__
+       write(iout,*) sum(temp(i,j,:)),__LINE__
+       write(iout,*) sum(saln(i,j,:)),__LINE__
+       write(iout,*) sum(dpinit(i,j,:)),__LINE__
+       write(iout,*) sum(avgq(i,j,:)),__LINE__
+       write(iout,*) sum(gcmax(i,j,:)),__LINE__
+       write(iout,*) sum(tirrq3d(i,j,:)),__LINE__
+       write(iout,*) sum(alk(i,j,:)),__LINE__
+       write(iout,*) tzoo2d(i,j),__LINE__
+       write(iout,*) sum(tfac3d(i,j,:)),__LINE__
+       write(iout,*) sum(rmuplsr3d(i,j,:,:)),__LINE__
+       write(iout,*) sum(rikd3d(i,j,:,:)),__LINE__
+       write(iout,*) sum(obio_wsd2d(i,j,:)),__LINE__
+       write(iout,*) sum(obio_wsh2d(i,j,:)),__LINE__
+       write(iout,*) sum(bn3d(i,j,:)),__LINE__
+       write(iout,*) sum(wshc3d(i,j,:)),__LINE__
+       write(iout,*) sum(Fescav3d(i,j,:)),__LINE__
+       write(iout,*) sum(acdom3d(i,j,:,:)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,:)),__LINE__
+#endif
+!!!!
 
        !fill in reduced rank arrays
        ihra_ij=ihra(i,j)
@@ -659,24 +692,52 @@ cdiag  endif
      .    ,dpmixl(i,j)/onem,alk1d(1),pp2tot_day(i,j)
        endif
 
+!!!!
+#ifdef #ifdef DEBUG_OBIO_MODEL
+       write(iout,*) ihra(i,j),__LINE__
+       write(iout,*) atmFe(i,j),__LINE__
+       write(iout,*) oice(i,j),__LINE__
+       write(iout,*) pCO2(i,j),__LINE__
+       write(iout,*) sum(temp(i,j,:)),__LINE__
+       write(iout,*) sum(saln(i,j,:)),__LINE__
+       write(iout,*) sum(dpinit(i,j,:)),__LINE__
+       write(iout,*) sum(avgq(i,j,:)),__LINE__
+       write(iout,*) sum(gcmax(i,j,:)),__LINE__
+       write(iout,*) sum(tirrq3d(i,j,:)),__LINE__
+       write(iout,*) sum(alk(i,j,:)),__LINE__
+       write(iout,*) tzoo2d(i,j),__LINE__
+       write(iout,*) sum(tfac3d(i,j,:)),__LINE__
+       write(iout,*) sum(rmuplsr3d(i,j,:,:)),__LINE__
+       write(iout,*) sum(rikd3d(i,j,:,:)),__LINE__
+       write(iout,*) sum(obio_wsd2d(i,j,:)),__LINE__
+       write(iout,*) sum(obio_wsh2d(i,j,:)),__LINE__
+       write(iout,*) sum(bn3d(i,j,:)),__LINE__
+       write(iout,*) sum(wshc3d(i,j,:)),__LINE__
+       write(iout,*) sum(Fescav3d(i,j,:)),__LINE__
+       write(iout,*) sum(acdom3d(i,j,:,:)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,1)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,2)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,3)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,4)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,5)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,6)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,7)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,8)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,9)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,10)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,11)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,12)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,13)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,14)),__LINE__
+       write(iout,*) sum(tracer(i,j,:,15)),__LINE__
+#endif
+!!!!
 
  1000 continue
 c$OMP END PARALLEL DO
 
       if (diagno_bio) call closeunit(iu_pco2)
       if (diagno_bio) call closeunit(iu_tend)
-
-      write(905,*) "obio_out", sum(tracflx),sum(tracer),
-     &     sum(oice),sum(temp),sum(saln),sum(dpinit),sum(p),sum(dpmixl)
-      write(906,*) "tr_out", ( sum(tracer(:,:,:,i)), i=1,15 )
-        write(907,*) "obio_ou1",sum(ihra),sum(atmFe),sum(oice),
-     &       sum(pCO2),sum(temp),sum(saln),sum(dpinit),sum(avgq),
-     &       sum(gcmax),sum(tirrq3d),sum(alk),sum(tzoo2d),sum(tfac3d),
-     &       sum(alk),sum(tzoo2d),sum(tzoo2d),sum(tfac3d),
-     &       sum(rmuplsr3d),sum(rikd3d),
-     &       sum(obio_wsd2d),sum(obio_wsh2d),sum(bn3d),sum(wshc3d),
-     &       sum(Fescav3d),sum(acdom3d),sum(tracer)
-        !write(908,*) "tirrq3d", tirrq3d
 
       return
       end

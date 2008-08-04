@@ -45,8 +45,17 @@
 #ifdef TRACERS_GASEXCH_Natassa
       USE TRACER_COM, only : ntm
       USE FLUXES, only : GTRACER_loc => GTRACER, TRGASEX_loc => TRGASEX
+#endif
+#ifdef TRACERS_OceanBiology
       USE RAD_COM, only : COSZ1_loc => COSZ1
       USE PBLCOM, only : wsavg_loc => wsavg
+#endif
+#ifdef OBIO_RAD_coupling
+      USE RAD_COM, only: FSRDIR_loc => FSRDIR
+     .                  ,FSRDIF_loc => FSRDIF
+     .                  ,DIRNIR_loc => DIRNIR
+     .                  ,DIFNIR_loc => DIFNIR
+     .                  ,SRVISSURF_loc => SRVISSURF
 #endif
 
 
@@ -140,8 +149,17 @@
 #ifdef TRACERS_GASEXCH_Natassa
       public GTRACER, GTRACER_loc
       public TRGASEX, TRGASEX_loc
+#endif
+#ifdef TRACERS_OceanBiology
       public wsavg, wsavg_loc
       public COSZ1, COSZ1_loc
+#endif
+#ifdef OBIO_RAD_coupling
+      public FSRDIR, FSRDIR_loc
+      public FSRDIF, FSRDIF_loc
+      public DIRNIR, DIRNIR_loc
+      public DIFNIR, DIFNIR_loc
+      public SRVISSURF, SRVISSURF_loc
 #endif
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
@@ -198,9 +216,16 @@
 #ifdef TRACERS_GASEXCH_Natassa
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTRACER
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
+#endif
+#ifdef TRACERS_OceanBiology
       real, ALLOCATABLE, DIMENSION(:,:) :: wsavg
       real, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
 
+#endif
+#ifdef OBIO_RAD_coupling
+      real, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR,FSRDIF
+      real, ALLOCATABLE, DIMENSION(:,:) :: DIRNIR,DIFNIR
+      real, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF    
 #endif
 
 
@@ -260,8 +285,17 @@
       ALLOCATE( GTRACER ( NTM , NSTYPE , im , jm ) )
       GTRACER = 0
       ALLOCATE( TRGASEX(NTM , NSTYPE , im , jm ) )
+#endif
+#ifdef TRACERS_OceanBiology
       ALLOCATE( wsavg(im,jm) )
       ALLOCATE( COSZ1(im,jm) )
+#endif
+#ifdef OBIO_RAD_coupling
+      ALLOCATE(FSRDIR(im,jm) )
+      ALLOCATE(FSRDIF(im,jm) )
+      ALLOCATE(DIRNIR(im,jm) )
+      ALLOCATE(DIFNIR(im,jm) )
+      ALLOCATE(SRVISSURF(im,jm) )
 #endif
 
       end subroutine alloc_hycom_atm
@@ -345,8 +379,17 @@ cddd      end subroutine alloc_locals
 #ifdef TRACERS_GASEXCH_Natassa
       call pack_block( grid,GTRACER_loc,GTRACER)
       call pack_block( grid,TRGASEX_loc,TRGASEX)
+#endif
+#ifdef TRACERS_OceanBiology
       call pack_data(  grid,wsavg_loc,wsavg)
       call pack_data(  grid,COSZ1_loc,COSZ1)
+#endif
+#ifdef OBIO_RAD_coupling
+      call pack_data(grid,FSRDIR_loc,FSRDIR)
+      call pack_data(grid,FSRDIF_loc,FSRDIF)
+      call pack_data(grid,DIRNIR_loc,DIRNIR)
+      call pack_data(grid,DIFNIR_loc,DIFNIR)
+      call pack_data(grid,SRVISSURF_loc,SRVISSURF)
 #endif
 
       ! these are not changed by hycom - no need to scatter

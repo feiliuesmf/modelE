@@ -2,9 +2,11 @@
 #include "rundeck_opts.h"
       subroutine mxkprf(m,n,mm,nn,k1m,k1n)
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
+#endif
 #endif
 ccc   use mod_xc    ! HYCOM communication interface
 ccc   use mod_pipe  ! HYCOM debugging interface
@@ -220,9 +222,11 @@ c
       subroutine mxk_a1(m,n,mm,nn,k1m,k1n,
      &       delp,sigmlj,thtop,thbot,thjmp)
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
+#endif
 #endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS
@@ -369,12 +373,10 @@ c***************************************************************************
       subroutine mxgisaij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
-
-#ifdef TRACERS_OceanBiology
-      USE obio_dim, only : ntyp,n_inert,ndet,ncar
 #endif
 #endif
 c
@@ -1457,12 +1459,10 @@ c
       subroutine mxkppaij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
-
-#ifdef TRACERS_OceanBiology
-      USE obio_dim, only : ntyp,n_inert,ndet,ncar
 #endif
 #endif
 c
@@ -2941,12 +2941,10 @@ c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 #ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_CFC_Natassa
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
-
-#ifdef TRACERS_OceanBiology
-      USE obio_dim, only : ntyp,n_inert,ndet,ncar
 #endif
 #endif
 c --- hycom version 2.1

@@ -85,7 +85,7 @@ c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH,
-     &                         haveLatitude, GLOBALSUM
+     &                         haveLatitude, GLOBALSUM, ESMF_BCAST
       USE HYCOM_ATM !, only : gather_atm, scatter_atm
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
@@ -96,7 +96,8 @@ c
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
-      USE TRACER_GASEXCH_COM, only : atracflx,atrac,tracflx
+      USE TRACER_GASEXCH_COM, only : atracflx,atrac,
+     &     tracflx=>tracflx_glob, scatter_tracer_gasexch_com_arrays
 ! tracflx needs local , 
 ! scatter after call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) 
 #endif
@@ -114,14 +115,14 @@ c
 !awind,asolz - local to hycom.f
 !owind, osolz - can be broadcasted
 
-      USE obio_com,  only:    pCO2,dobio
+      USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
 ! need global pCO2
 
       !USE PBLCOM, only : wsavg 
       !USE RAD_COM,   only: COSZ1
-      USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
 #endif 
 #ifdef OBIO_RAD_coupling
+      !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
       USE obio_forc, only:    avisdir,avisdif,anirdir,anirdif
      .                       ,ovisdir,ovisdif,onirdir,onirdif
 #ifdef CHL_from_OBIO
@@ -433,12 +434,6 @@ c
 99009 format (f12.3,a,i8)
       endif ! AM_I_ROOT
 c
-!hack hack !!! copied from inicon:
-cddd      if (nstep0.eq.0) then
-cddd        delt1=baclin
-cddd      else
-cddd        delt1=baclin+baclin
-cddd      endif
 
       if (nstep.eq.0 .or. nstep.eq.nstep0) then
 
@@ -713,11 +708,30 @@ cdiag.     tracer(itest,jtest,k,9)
 cdiag  enddo
 cdiag  call obio_limits('bfre obio_model')
 
-         call gather_hycom_arrays
-         if (AM_I_ROOT()) then
+        call scatter_tracer_gasexch_com_arrays
+        ! should scatter of course, but for now just BCAST
+        !!write(0,*) __FILE__,__LINE__
+        !!call gather_hycom_arrays
+        !!write(0,*) __FILE__,__LINE__
+        call ESMF_BCAST(ogrid, owind)
+        call ESMF_BCAST(ogrid, osolz)
+
+#ifdef OBIO_RAD_coupling
+        call ESMF_BCAST(ogrid, ovisdir)
+        call ESMF_BCAST(ogrid, ovisdif)
+        call ESMF_BCAST(ogrid, onirdir)
+        call ESMF_BCAST(ogrid, onirdif)
+#endif
+
+        !!call gather_hycom_arrays
+        !!write(0,*) __FILE__,__LINE__
+         !call gather_hycom_arrays
+         !if (AM_I_ROOT()) then
          call obio_model(nn,mm)
-         endif
-         call scatter_hycom_arrays
+         !endif
+         !call scatter_hycom_arrays
+         call gather_pCO2
+
 
 cdiag  do k=1,kdm
 cdiag  km=k+mm
@@ -1046,7 +1060,7 @@ c --- compute sea surface height (m)
          call GLOBALSUM(ogrid,sumicej,sumice, all=.true.)
          call GLOBALSUM(ogrid,sumj,sum_, all=.true.)
 
-      write(0,*) __FILE__,__LINE__
+      !write(0,*) __FILE__,__LINE__
 
         if (AM_I_ROOT())
      .  write (lp,'(i9,'' mean sea srf.hgt. (mm):'',f9.2,f12.0)')nstep,
@@ -1112,7 +1126,7 @@ c
      .   +mxlayr_time
      .   +hybgen_time
 
-      write(0,*) __FILE__,__LINE__
+      !write(0,*) __FILE__,__LINE__
       if (AM_I_ROOT()) then
       write (lp,99009) ogcm_time,' sec for OGCM   at ocn step ',nstep
       write (lp,'(a/(5(4x,a,i5)))') 'timing (msec) by routine:'
@@ -1128,7 +1142,7 @@ c
 c
       if (mod(nstep,5).eq.0) call flush(lp)
       end if  ! AM_I_ROOT
-      write(0,*) __FILE__,__LINE__
+      !write(0,*) __FILE__,__LINE__
 
 #ifdef TRACERS_OceanBiology
       if (AM_I_ROOT()) then
@@ -1139,23 +1153,18 @@ c
 c
       if (.not.diagno) go to 23
 c
-      write(0,*) __FILE__,__LINE__
       if (AM_I_ROOT())
      .  write (lp,100) nstep,int((time+.001)/365.),mod(time+.001,365.)
  100  format (' ocn time step',i9,4x,'y e a r',i6,4x,'d a y',f9.2)
 c
 c --- output to history file
 c
-      write(0,*) __FILE__,__LINE__
 
       call gather_before_archive()
-      write(0,*) __FILE__,__LINE__
 
       if (AM_I_ROOT()) then
-        write(0,*) __FILE__,__LINE__
 
         call archiv(n,nn)
-      write(0,*) __FILE__,__LINE__
 
 c --- diagnose meridional overturning and heat flux
 c$OMP PARALLEL DO
@@ -1167,7 +1176,6 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c     call overtn(mm)
 c
-      write(0,*) __FILE__,__LINE__
 
       write (lp,105) nstep
  105  format (' step',i9,' -- archiving completed --')
@@ -1181,7 +1189,6 @@ c
           jj1=jj
         end if
       end do
-      write(0,*) __FILE__,__LINE__
 
 c
 c --- output to line printer
@@ -2043,3 +2050,14 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  tracer_loc, tracer )
 
       end subroutine gather_tracer
+
+      subroutine gather_dpinit
+      USE HYCOM_ARRAYS, only : dpinit_loc => dpinit
+      USE HYCOM_ARRAYS_GLOB, only : dpinit
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+ 
+      call pack_data( ogrid,  dpinit_loc, dpinit )
+
+      end subroutine gather_dpinit
+      

@@ -3,11 +3,15 @@
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr
       USE hycom_arrays_glob, only : tracer,dp,scp2
       USE hycom_scalars, only : nstep
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
 
       integer i,j,k,l,kn,nn
       integer ntr
       real sum,sum_area,summ
+
+      !!! need to gather tracer etc. before calling this routine
+      if ( AM_I_ROOT() ) then
 
       print*,'   '
       do ntr=1,ntrcr
@@ -35,6 +39,8 @@ cdiag.   k,sum,sum/sum_area
      .  'total intgrl for tracer ',ntr,nstep,summ
       enddo
       print*,'   '
+
+      endif
 
       return
       end

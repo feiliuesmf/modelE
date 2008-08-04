@@ -21,6 +21,8 @@
       real trmaxima(11)
       character name*(*)
 
+      ! just in case, should debug later if needed
+      call stop_model("stopped in obio_limits",255)
 
       do nt=1,ntrcr
         tracer_min= 1.e30
