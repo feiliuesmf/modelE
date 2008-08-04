@@ -17,6 +17,9 @@
 #ifdef RUNTIME_NTM
       USE TRACER_COM, only : maxntm
 #endif
+#ifdef WATER_PROPORTIONAL
+      USE TRACER_COM, only : force_limit=>force_limit_pbl
+#endif
       USE TRACER_COM, only : ntm,trname,tr_wd_TYPE, nWATER
 #ifdef TRACERS_SPECIAL_O18
      *     ,n_water
@@ -660,6 +663,9 @@ C**** for all dry deposited tracers
       CALL dust_emission_constraints(itype,ptype,wsgcm,pbl_args)
 #endif
 
+#ifdef WATER_PROPORTIONAL
+      force_limit = .false.
+#endif
 C**** loop over tracers
       do itr=1,pbl_args%ntx
 c     set tracer size and density (not necessarily constant anymore)
@@ -2183,14 +2189,32 @@ c****             - ( 1 - fr_sat ) * flux_max
       sub(n)  = 0.
       rhs(n) = trtop
 
+#ifdef WATER_PROPORTIONAL
+      if( .not. force_limit ) then
+#endif
+
       call TRIDIAG(sub,dia,sup,rhs,tr,n)
+
+#ifdef WATER_PROPORTIONAL
+      endif
+#endif
 
 #ifdef TRACERS_WATER
 c**** Check as in q_eqn if flux is limited, and if it is, recalculate
 c**** profile
 
       if ( fr_sat .ge. 1. ) return   ! all soil is saturated
+
+#ifdef WATER_PROPORTIONAL
+      if (.not.force_limit) then
+#endif
+
       if ( constflx - sfac * tr(1) .le. tr_evap_max ) return
+
+#ifdef WATER_PROPORTIONAL
+      endif
+      force_limit = .true.
+#endif
 
 c**** Flux is too high, have to recompute with the following boundary
 c**** conditions at the bottom:
