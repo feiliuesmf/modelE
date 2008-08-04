@@ -711,3 +711,17 @@ C*** Unpack read global data into local distributed arrays
 
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM
+
+#ifdef TRACERS_ON
+      subroutine reset_trdiag
+      USE TRDIAG_COM, only: TAIJLN_loc, TAIJN_loc, 
+     *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc
+   !  *     ,taijln,taijn,taijs,TAJLN,TAJLS,TCONSRV ! not needed ?? 
+      implicit none
+      !!! TAJLN=0. ; TAJLS=0. ; TCONSRV=0. ! not needed ?
+       TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
+      !!! TAIJLN=0.    ; TAIJN=0.     ; TAIJS=0.  ! not needed ?
+      TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
+      return
+      end subroutine reset_trdiag
+#endif

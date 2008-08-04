@@ -4220,11 +4220,6 @@ C**** Initiallise ice freeze diagnostics at beginning of run
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DIAG_COM
       USE PARAM
-#ifdef TRACERS_ON
-      USE TRDIAG_COM, only: TAIJLN_loc, TAIJN_loc, 
-     *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc
-   !  *     ,taijln,taijn,taijs,TAJLN,TAJLS,TCONSRV ! not needed ?? 
-#endif
       USE DOMAIN_DECOMP, only: grid, CHECKSUM
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
@@ -4246,10 +4241,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 #endif
       ADIURN=0 ; AISCCP=0
 #ifdef TRACERS_ON
-      !!! TAJLN=0. ; TAJLS=0. ; TCONSRV=0. ! not needed ?
-       TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
-      !!! TAIJLN=0.    ; TAIJN=0.     ; TAIJS=0.  ! not needed ?
-      TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
+      call reset_trdiag
 #endif
       call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required
