@@ -711,6 +711,14 @@
       subroutine check_hycom(i,tt)
       USE HYCOM_ARRAYS_GLOB
       USE HYCOM_SCALARS
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_GASEXCH_COM, only : atrac
+#endif
+
+#ifdef TRACERS_OceanBiology
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com,  only : gcmax
+#endif
       use CMP
       implicit none
       integer, intent(in) :: i
@@ -763,6 +771,15 @@
       !check("dhsi",dhsi)
       !check("dmsi",dmsi)
       !check("dssi",dssi)
+#ifdef TRACERS_OceanBiology
+      check("avgq",avgq)
+      check("gcmax",gcmax)
+      check("tirrq3d",tirrq3d)
+      check("ihra",ihra)
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      check("atrac",atrac)
+#endif
 
       end subroutine check_hycom
 #endif
