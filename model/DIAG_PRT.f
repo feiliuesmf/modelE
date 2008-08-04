@@ -6554,11 +6554,6 @@ cddd#endif
      *     AREGJ_loc, APJ, APJ_loc, AJK,  AJK_loc, AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
      *     TSFREZ_loc, WT_IJ
-#ifdef TRACERS_ON
-      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
-     *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc
-#endif
       USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
       USE DOMAIN_DECOMP, ONLY : CHECKSUMj,CHECKSUM,am_i_root
       USE CONSTANT, only : NaN
@@ -6584,12 +6579,7 @@ cddd#endif
       CALL PACK_DATA (GRID, TSFREZ_loc,  TSFREZ)
 
 #ifdef TRACERS_ON
-      CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
-      CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
-      CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
-      CALL PACK_DATAj(GRID, TAJLN_loc , TAJLN)
-      CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
-      CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
+      call gather_trdiag
 #endif
 
 ! Now the external arrays
@@ -6637,11 +6627,6 @@ cddd      DEALLOCATE(tmp)
       USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc, AREGJ, AREGJ_loc,
      *     APJ, APJ_loc, AJK, AJK_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
      *     AJL,  AJL_loc, CONSRV, CONSRV_loc, TSFREZ, TSFREZ_loc
-#ifdef TRACERS_ON
-      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN , TAIJN_loc,
-     *     TAIJS , TAIJS_loc, TAJLN , TAJLN_loc, TAJLS , TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc
-#endif
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       USE DOMAIN_DECOMP, ONLY : am_i_root
       IMPLICIT NONE
@@ -6658,12 +6643,7 @@ cddd      DEALLOCATE(tmp)
       CALL UNPACK_DATA (GRID, TSFREZ,  TSFREZ_loc)
 
 #ifdef TRACERS_ON
-      CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
-      CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)
-      CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc)
-      CALL UNPACK_DATAj(GRID, TAJLN , TAJLN_loc)
-      CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc)
-      CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc)
+      call scatter_trdiag
 #endif
       if(am_i_root()) call dealloc_diag_com_glob
 

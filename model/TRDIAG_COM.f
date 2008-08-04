@@ -725,3 +725,37 @@ C*** Unpack read global data into local distributed arrays
       return
       end subroutine reset_trdiag
 #endif
+
+#ifdef TRACERS_ON
+      subroutine gather_trdiag
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
+     *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
+     *     TCONSRV, TCONSRV_loc
+      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj
+      implicit none
+      CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
+      CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
+      CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
+      CALL PACK_DATAj(GRID, TAJLN_loc , TAJLN)
+      CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
+      CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
+      return
+      end subroutine gather_trdiag
+#endif
+
+#ifdef TRACERS_ON
+      subroutine scatter_trdiag
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
+     *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
+     *     TCONSRV, TCONSRV_loc
+      USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
+      implicit none
+      CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
+      CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)
+      CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc)
+      CALL UNPACK_DATAj(GRID, TAJLN , TAJLN_loc)
+      CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc)
+      CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc)
+      return
+      end subroutine scatter_trdiag
+#endif
