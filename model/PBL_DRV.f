@@ -30,8 +30,10 @@
       USE CLOUDS_COM, only : ddm1
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : trdn1
-     &    ,trradius,trpdens,ntm,tr_mm
+      USE TRACER_COM, only : ntm,trdn1
+#ifdef TRACERS_DRYDEP
+     &    ,trradius,trpdens,tr_mm
+#endif
 #endif
 #ifdef TRACERS_AMP
      & ,AMP_MODES_MAP,ntmAMP
@@ -254,9 +256,11 @@ c     ENDIF
       end do
 
       do n = 1,ntm
+#ifdef TRACERS_DRYDEP
            trnradius(n) = trradius(n)
            trndens(n)   = trpdens(n)
            trnmm(n)     = tr_mm(n)
+#endif
 #ifdef TRACERS_AMP
       if (n.le.ntmAMP) then
         if(AMP_MODES_MAP(n).gt.0) then
