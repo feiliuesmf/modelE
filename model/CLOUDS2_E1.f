@@ -21,13 +21,19 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname,t_qlimit
 #ifdef TRACERS_WATER
-     &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
+     &     ,nGAS, nPART, nWATER, tr_wd_TYPE,
      *     tr_evap_fact
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,Ntm_dust
 #endif
+#endif
+#ifdef RUNTIME_NTM
+      USE TRACER_COM, only:
+     &   ntix=>ntix_cld,tm=>tm_col,tmom=>tmom_col
+     &   ,trdnl=>trdn_col,trwml=>trwm_col,trsvwml=>trsvwm_col
+     &   ,trprss=>trprss_cld,trprmc=>trprmc_cld
 #endif
 #endif
 #ifdef BLK_2MOM
@@ -93,7 +99,9 @@ C**** Set-able variables
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
+#ifndef RUNTIME_NTM
       integer, dimension(ntm) :: ntix
+#endif
       integer ntx
 #endif
 C**** ISCCP diag related variables
@@ -198,6 +206,7 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
      *  SMOMLS,QMOMLS
 
 #ifdef TRACERS_ON
+#ifndef RUNTIME_NTM
 !@var TM Vertical profiles of tracers
       REAL*8, DIMENSION(LM,NTM) :: TM
       REAL*8, DIMENSION(nmom,lm,ntm) :: TMOM
@@ -205,13 +214,16 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
       REAL*8, DIMENSION(NTM,LM) :: TRDNL
       COMMON/CLD_TRCCOM/TM,TMOM,TRDNL
 !$OMP  THREADPRIVATE (/CLD_TRCCOM/)
+#endif /*RUNTIME_NTM*/
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
+#ifndef RUNTIME_NTM
       REAL*8, DIMENSION(NTM,LM) :: TRWML, TRSVWML
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
       REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
+#endif /*RUNTIME_NTM*/
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for diagnostics
       REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
@@ -248,7 +260,9 @@ c for diagnostics
 #endif
 #endif
 #ifdef TRACERS_WATER
+#ifndef RUNTIME_NTM
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
+#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,DT_SULF_MC,DT_SULF_SS
 #endif
@@ -3949,7 +3963,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.24 2008/08/01 19:10:48 smenon Exp $
+!$Id: CLOUDS2_E1.f,v 1.25 2008/08/04 01:16:08 kelley Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov

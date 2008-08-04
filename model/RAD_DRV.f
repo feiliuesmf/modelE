@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
-
+#ifdef SKIP_TRACERS_RAD
+#undef TRACERS_ON
+#endif
 !@sum RAD_DRV contains drivers for the radiation related routines
 !@ver  1.0
 !@cont COSZ0, init_RAD, RADIA

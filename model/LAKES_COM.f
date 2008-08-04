@@ -1,5 +1,8 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
       MODULE LAKES_COM
 !@sum  LAKES_COM model variables for Lake/Rivers module
 !@auth Gavin Schmidt

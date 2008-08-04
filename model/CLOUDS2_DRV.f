@@ -69,8 +69,13 @@
 #endif
 #endif
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1,n_Be10
-     $     ,n_Be7,n_clay,n_clayilli,n_sil1quhe
+      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1
+#ifdef TRACERS_COSMO
+     *     ,n_Be10,n_Be7
+#endif
+#ifdef TRACERS_DUST
+     *     ,n_clay,n_clayilli,n_sil1quhe
+#endif
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
 #else
@@ -89,6 +94,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
 #endif
+#ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM,only: tajln=>tajln_loc,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss,taijn=>taijn_loc,tajls=>tajls_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
@@ -105,6 +111,7 @@
      &     ,jls_wet,ijts_wet,itcon_wt
 #endif
 #endif
+#endif /*SKIP_TRACER_DIAGS*/
       USE CLOUDS, only : tm,tmom,trdnl ! local  (i,j)
      *     ,ntx,ntix              ! global (same for all i,j)
 #ifdef TRACERS_WATER
@@ -924,8 +931,10 @@ C**** TRACERS: Use only the active ones
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
+#ifndef SKIP_TRACER_DIAGS
           tajln(j,l,jlnt_mc,n) = tajln(j,l,jlnt_mc,n) +
      &          (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
+#endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
@@ -1391,8 +1400,10 @@ C**** TRACERS: Use only the active ones
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
+#ifndef SKIP_TRACER_DIAGS
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &         tm(l,nx)-trm(i,j,l,n)*fssl(l)
+#endif  /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
@@ -1422,6 +1433,7 @@ C**** TRACERS: Use only the active ones
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
 C**** diagnostics
         if (dowetdep(n)) then
+#ifndef SKIP_TRACER_DIAGS
           if (jls_prec(1,n).gt.0) tajls(j,1,jls_prec(1,n))=tajls(j,1
      *         ,jls_prec(1,n))+trprec(n,i,j)*bydxyp(j)
           if (jls_prec(2,n).gt.0) tajls(j,1,jls_prec(2,n))=tajls(j,1
@@ -1432,6 +1444,7 @@ C**** diagnostics
           if (n .eq. n_Be7) BE7W_acc(i,j)=BE7W_acc(i,j)+
      *         trprec(n,i,j)*bydxyp(j)
 #endif
+#endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRDIAG_WETDEPO
 c     ..........
 c     accumulates special wet depo diagnostics
@@ -1617,6 +1630,7 @@ C
          call stop_model('ISCCP CLOUD TYPING ERROR',255)
       END IF
 
+#ifndef SKIP_TRACER_DIAGS
 #ifdef TRACERS_ON
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
@@ -1631,6 +1645,7 @@ C**** Save the conservation quantities for tracers
 #endif
       end do
 #endif
+#endif /*SKIP_TRACER_DIAGS*/
 
 C**** Delayed summations (to control order of summands)
 C

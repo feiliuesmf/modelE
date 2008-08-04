@@ -1,4 +1,8 @@
 #include "rundeck_opts.h"
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
 C23456789012345678901234567890123456789012345678901234567890123456789012
       MODULE LAKES
 !@sum  LAKES subroutines for Lakes and Rivers

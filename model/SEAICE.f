@@ -1,5 +1,8 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
       MODULE SEAICE
 !@sum  SEAICE contains all the sea ice related subroutines
 !@auth Original Development Team

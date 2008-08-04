@@ -1,5 +1,8 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
       MODULE LANDICE
 !@sum  LANDICE contains variables and routines dealing with land ice
 !@auth Original Development Team

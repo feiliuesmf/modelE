@@ -360,9 +360,11 @@ C**** and convert to WSAVE, units of m/s):
       USE MODEL_COM, only: im,jm,lm,itime,dt,byim
       USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
       USE TRACER_ADV
+#ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only: TAJLN=>TAJLN_loc, TAIJN=>TAIJN_LOC,
      *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
      *     tij_uflx,tij_vflx
+#endif
       IMPLICIT NONE
       REAL*8 DTLF,byncyc
       INTEGER N
@@ -377,6 +379,7 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
         CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
 
 C**** Flux diagnostics
+#ifndef SKIP_TRACER_DIAGS
         byncyc = 1./ncyc
         TAJLN(:,:,jlnt_nt_tot,n) = TAJLN(:,:,jlnt_nt_tot,n) + sbf(:,:)
         TAJLN(:,:,jlnt_nt_mm, n) = TAJLN(:,:,jlnt_nt_mm, n)
@@ -389,6 +392,7 @@ C**** Flux diagnostics
 C**** vertically integrated atmospheric fluxes
         TAIJN(:,:,tij_uflx,n) = TAIJN(:,:,tij_uflx,n) + safv(:,:)
         TAIJN(:,:,tij_vflx,n) = TAIJN(:,:,tij_vflx,n) + sbfv(:,:)
+#endif
 #endif
 
       ENDDO

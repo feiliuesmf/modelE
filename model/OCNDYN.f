@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_WATER
+#endif
       SUBROUTINE OCEANS
 !@sum  OCEANS integrates ocean source terms and dynamics
 !@auth Gary Russell/Gavin Schmidt

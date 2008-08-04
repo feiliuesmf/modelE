@@ -11,7 +11,9 @@
       USE TRACER_COM, only: ntm
 #endif
 #ifdef TRACERS_ON
+#ifndef SKIP_TRACER_SRCS
      *     ,ntsurfsrcmax,nt3Dsrcmax
+#endif
 #endif
       IMPLICIT NONE
 
@@ -125,7 +127,9 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
+#ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
+#endif
 !@var TRSRFFLX interactive surface sources/sinks for tracers (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trsrfflx
 !@var TRFLUX1 total surface flux for each tracer (kg/s)
@@ -133,7 +137,9 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: GTRACER
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
+#ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:):: tr3Dsource
+#endif
 
 #ifdef TRACERS_GASEXCH_Natassa
 !@var TRGASEX  tracer gas exchange over each type (kg/m^2)
@@ -319,9 +325,11 @@ C**** fluxes associated with variable lake fractions
 
 #ifdef TRACERS_ON
       !(I,J,:,:)  array
+#ifndef SKIP_TRACER_SRCS
       ALLOCATE(trsource (I_0H:I_1H,J_0H:J_1H,ntsurfsrcmax,NTM)
      &  ,STAT = IER)
       trsource = 0.
+#endif
 
       !(I,J,:) arrays
       ALLOCATE( trsrfflx( I_0H:I_1H , J_0H:J_1H , NTM    ),
@@ -329,8 +337,10 @@ C**** fluxes associated with variable lake fractions
      &   STAT = IER)
 
       !I-J-L-:-: array
+#ifndef SKIP_TRACER_SRCS
       ALLOCATE( tr3Dsource(I_0H:I_1H,J_0H:J_1H,LM,nt3Dsrcmax,NTM)
      &  ,STAT = IER)
+#endif
 
       !:-:-I-J arrays
       ALLOCATE( GTRACER ( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),

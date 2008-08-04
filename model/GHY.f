@@ -100,6 +100,10 @@ c**** Added decks parameter cond_scheme  5/1/03 nyk
 c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
 #include "rundeck_opts.h"
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
 
 !#define EVAP_VEG_GROUND
 !#define RAD_VEG_GROUND

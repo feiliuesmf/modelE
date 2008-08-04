@@ -1,4 +1,8 @@
 #include "rundeck_opts.h"
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
 
       MODULE GHY_COM
 !@sum  GHY_COM contains the areas used by the Ground Hydrology routines

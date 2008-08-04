@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_WATER
+#endif
       SUBROUTINE STPGF
 !@sum  STPGF calculates pressure gradient force through strait
 !@auth Gary Russell

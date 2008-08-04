@@ -1,5 +1,8 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
       MODULE STATIC_OCEAN
 !@sum  STATIC_OCEAN contains the ocean subroutines common to all Q-flux
 !@+    and fixed SST runs

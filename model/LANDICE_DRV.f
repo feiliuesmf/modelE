@@ -1,5 +1,8 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
 !@sum  LANDICE_DRV contains drivers for LANDICE related routines
 !@auth Gavin Schmidt
 !@ver  1.0

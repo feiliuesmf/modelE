@@ -1,4 +1,8 @@
 #include "rundeck_opts.h"
+#ifdef SKIP_TRACER_DIAGS
+#undef TRACERS_SPECIAL_O18
+#endif
+
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lerner/R. Ruedy/M. Kelley
 !@ver  1.0
@@ -3003,7 +3007,9 @@ C****
       USE DIAG_COM, only : kgz_max,pmname,P_acc
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm, trm, trname, mass2vol, n_Ox, n_SO4,
+#ifndef SKIP_TRACER_DIAGS
+      USE TRACER_COM, only : ntm, trm, trname
+     *     , mass2vol, n_Ox, n_SO4,
      *     n_SO4_d1,n_SO4_d2,n_SO4_d3,n_clay,n_clayilli,n_sil1quhe,
      *     n_water, n_HDO, n_Be7, n_NOx
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -3016,6 +3022,7 @@ C****
 #ifdef TRACERS_WATER
      &     ,dowetdep, trw0
 #endif
+#endif /* SKIP_TRACER_DIAGS */
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
 #endif

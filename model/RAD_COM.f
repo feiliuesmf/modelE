@@ -1,4 +1,7 @@
 #include "rundeck_opts.h"
+#ifdef SKIP_TRACERS_RAD
+#undef TRACERS_ON
+#endif
       MODULE RAD_COM
 !@sum  RAD_COM Model radiation arrays and parameters
 !@auth Original Development Team

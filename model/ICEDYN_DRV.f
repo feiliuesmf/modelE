@@ -2,7 +2,10 @@ C****
 C**** ICEDYN_DRV.f    Sea ICE DYNamics    2006/12/21
 C****
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
       MODULE ICEDYN_COM
 !@sum  ICEDYN_COM holds global variables for dynamic sea ice
 !@auth Gary Russell/Gavin Schmidt
