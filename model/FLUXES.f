@@ -14,6 +14,9 @@
 #ifndef SKIP_TRACER_SRCS
      *     ,ntsurfsrcmax,nt3Dsrcmax
 #endif
+#ifdef TRAC_ARRAYS_IN_TRACER_COM
+      use tracer_com, only : gtracer,trflux1,trsrfflx
+#endif
 #endif
       IMPLICIT NONE
 
@@ -130,12 +133,14 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 #ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
 #endif
+#ifndef TRAC_ARRAYS_IN_TRACER_COM
 !@var TRSRFFLX interactive surface sources/sinks for tracers (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trsrfflx
 !@var TRFLUX1 total surface flux for each tracer (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trflux1
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: GTRACER
+#endif /* TRAC_ARRAYS_IN_TRACER_COM */
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
 #ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:):: tr3Dsource
