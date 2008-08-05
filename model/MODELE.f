@@ -112,8 +112,6 @@ C****
       call closeunit(iu_IFILE)
 
 #ifdef SCM
-c     Hard Code J - cannot get syncparam to work here ????
-      J_TARG = 39
       call sync_param( "J_TARG", J_TARG )
       call init_app(grid,im,jm,lm,J_TARG)
 #else
