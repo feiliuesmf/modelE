@@ -540,15 +540,17 @@ C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
           uocean = 0. ; vocean =0.
         end if
       END IF
-      SNOW=SNOWI(I,J)
       TG1=TGRND(2,I,J)
       TG2=TGRN2(2,I,J)
       TR4=TGR4(2,I,J)
+      SNOW=SNOWI(I,J)
       MSI1 = SNOW+ACE1I ! snow and first layer ice mass (kg/m^2)
       ACE2=MSI(I,J) ! second (physical) layer ice mass (kg/m^2)
+C**** determine heat capacity etc for top ice layers
       dF1dTG = 2./(ACE1I*BYRLI+SNOW*BYRLS)
       HCG1 = SHI*XSI(1)*MSI1 ! heat capacity of top ice layer (J/C*m^2)
       HCG2 = SHI*XSI(2)*MSI1 ! heat capacity of second layer ice
+
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
 C**** fraction of solar radiation leaving layer 1 and 2
@@ -559,9 +561,6 @@ C**** fraction of solar radiation leaving layer 1 and 2
       END IF
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       ELHX=LHS
-
-      Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
-      CDENOM=1./(2.*Z1BY6L+Z2LI3L)
 
       END IF
 C****
@@ -765,7 +764,7 @@ C**** CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
         T2CON = DTSURF*(F1-F2)/T2DEN
         T2MUL = DTSURF*dF1dTG/T2DEN
 
-        DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
+        DFDTG=DF0DTG-dF1dTG
         DTG=(F0-F1)*DTSURF/(HCG1-DTSURF*DFDTG)
 
         IF (TG1+dTG .GT. 0.) dTG = -TG1
