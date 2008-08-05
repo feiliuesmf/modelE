@@ -147,14 +147,27 @@
      .     ,austar_loc,aswflx_loc
 
 #ifdef TRACERS_GASEXCH_Natassa
+      public atracflx_loc
       public GTRACER, GTRACER_loc
       public TRGASEX, TRGASEX_loc
 #endif
 #ifdef TRACERS_OceanBiology
+      public asolz_loc
+      public awind_loc
+      public asolz
+      public awind
       public wsavg, wsavg_loc
       public COSZ1, COSZ1_loc
 #endif
 #ifdef OBIO_RAD_coupling
+      public avisdir_loc
+      public avisdif_loc
+      public anirdir_loc
+      public anirdif_loc
+      public avisdir
+      public avisdif
+      public anirdir
+      public anirdif
       public FSRDIR, FSRDIR_loc
       public FSRDIF, FSRDIF_loc
       public DIRNIR, DIRNIR_loc
@@ -214,15 +227,24 @@
      .     ,austar_loc,aswflx_loc
 
 #ifdef TRACERS_GASEXCH_Natassa
+      real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTRACER
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
 #endif
 #ifdef TRACERS_OceanBiology
+      real, ALLOCATABLE, DIMENSION(:,:)    :: asolz
+      real, ALLOCATABLE, DIMENSION(:,:)    :: awind           !wind speed from modelE (see hycom2.f)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: asolz_loc
+      real, ALLOCATABLE, DIMENSION(:,:)    :: awind_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: wsavg
       real, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
 
 #endif
 #ifdef OBIO_RAD_coupling
+      real*8, ALLOCATABLE, DIMENSION(:,:)    :: avisdir,avisdif
+     .                                         ,anirdir,anirdif
+      real*8, ALLOCATABLE, DIMENSION(:,:) :: avisdir_loc,avisdif_loc
+     .     ,anirdir_loc,anirdif_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR,FSRDIF
       real, ALLOCATABLE, DIMENSION(:,:) :: DIRNIR,DIFNIR
       real, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF    
@@ -282,15 +304,24 @@
      .     ,austar_loc(iia,aJ_0H:aJ_1H),aswflx_loc(iia,aJ_0H:aJ_1H) )
 
 #ifdef TRACERS_GASEXCH_Natassa
+      ALLOCATE( atracflx_loc(iia,aJ_0H:aJ_1H,ntm) )
       ALLOCATE( GTRACER ( NTM , NSTYPE , im , jm ) )
       GTRACER = 0
       ALLOCATE( TRGASEX(NTM , NSTYPE , im , jm ) )
 #endif
 #ifdef TRACERS_OceanBiology
+      ALLOCATE(asolz(iia,jja))
+      ALLOCATE(awind(iia,jja))
+      ALLOCATE(asolz_loc(iia,aJ_0H:aJ_1H))
+      ALLOCATE(awind_loc(iia,aJ_0H:aJ_1H))
       ALLOCATE( wsavg(im,jm) )
       ALLOCATE( COSZ1(im,jm) )
 #endif
 #ifdef OBIO_RAD_coupling
+      ALLOCATE(avisdir(iia,jja),avisdif(iia,jja)
+     .        ,anirdir(iia,jja),anirdif(iia,jja))
+      ALLOCATE(avisdir_loc(iia,aJ_0H:aJ_1H),avisdif_loc(iia,aJ_0H:aJ_1H)
+     &     ,anirdir_loc(iia,aJ_0H:aJ_1H),anirdif_loc(iia,aJ_0H:aJ_1H) )
       ALLOCATE(FSRDIR(im,jm) )
       ALLOCATE(FSRDIF(im,jm) )
       ALLOCATE(DIRNIR(im,jm) )

@@ -323,7 +323,6 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-#ifndef OBIO_SPEED_HACKS
 cdiag do nt=1,ntyp+n_inert+ndet+ncar
 cdiag   ntchar='00'
 cdiag   if(nt.le.9)write(ntchar,'(i1)')nt
@@ -343,7 +342,6 @@ cdiag   enddo
 cdiag   enddo
 cdiag call closeunit(iu_bioinit)
 cdiag enddo
-#endif
 
       print*,'COLD INITIALIZATION'
       call obio_trint(nn)

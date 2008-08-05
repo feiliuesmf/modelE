@@ -86,7 +86,7 @@ cddd     &     scatter_hycom_arrays
         call obio_bioinit(nn)
 
         diagno_bio=.true.
-        write(0,*) "obio: cold init ok"
+        !write(0,*) "obio: cold init ok"
        endif  ! 
 
 !Warm initialization
@@ -98,7 +98,7 @@ cddd     &     scatter_hycom_arrays
 
          print*,'WARM INITIALIZATION'
          call obio_trint(nn)
-        write(0,*) "obio: warm init ok"
+        !write(0,*) "obio: warm init ok"
        endif !for restart only
 
 !--------------------------------------------------------
@@ -174,6 +174,12 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 !!!!
 #ifdef DEBUG_OBIO_MODEL
        write(iout,*) "ij",i,j
+#ifdef OBIO_RAD_coupling
+       write(iout,*) ovisdir(i,j),__LINE__
+       write(iout,*) ovisdif(i,j),__LINE__
+       write(iout,*) onirdir(i,j),__LINE__
+       write(iout,*) onirdif(i,j),__LINE__
+#endif
        write(iout,*) owind(i,j),__LINE__
        write(iout,*) osolz(i,j),__LINE__
        write(iout,*) sum(atmFe_all(i,j,:)),__LINE__

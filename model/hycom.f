@@ -111,7 +111,9 @@ c
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
 #ifdef TRACERS_OceanBiology 
       USE obio_dim
-      USE obio_forc, only:    awind,owind,asolz,osolz
+      USE obio_forc, only: awind,owind=>owind_glob,
+     &     asolz,osolz=>osolz_glob
+     &     ,scatter_obio_forc_arrays
 !awind,asolz - local to hycom.f
 !owind, osolz - can be broadcasted
 
@@ -124,7 +126,8 @@ c
 #ifdef OBIO_RAD_coupling
       !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
       USE obio_forc, only:    avisdir,avisdif,anirdir,anirdif
-     .                       ,ovisdir,ovisdif,onirdir,onirdif
+     &     ,ovisdir=>ovisdir_glob,ovisdif=>ovisdif_glob
+     &     ,onirdir=>onirdir_glob,onirdif=>onirdif_glob
 #ifdef CHL_from_OBIO
       USE FLUXES, only: chl
       USE obio_com, only: tot_chlo
@@ -229,37 +232,23 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
            aice_loc(ia,ja)=0.
          austar_loc(ia,ja)=0.
          aswflx_loc(ia,ja)=0.
-cddd#ifdef TRACERS_GASEXCH_Natassa
-cddd        do nt=1,ntm
-cddd        atracflx(ia,ja,nt)=0.
-cddd        enddo
-cddd#endif
-cddd#ifdef TRACERS_OceanBiology
-cddd          awind(ia,ja)=0.
-cddd          asolz(ia,ja)=0.
-cddd#endif
-cddd#ifdef OBIO_RAD_coupling
-cddd          avisdir(ia,ja)=0.
-cddd          avisdif(ia,ja)=0.
-cddd          anirdir(ia,ja)=0.
-cddd          anirdif(ia,ja)=0.
-cddd#endif
- 28     continue
 #ifdef TRACERS_GASEXCH_Natassa
         do nt=1,ntm
-        atracflx(:,:,nt)=0.
+        atracflx_loc(:,:,nt)=0.
         enddo
 #endif
 #ifdef TRACERS_OceanBiology
-          awind(:,:)=0.
-          asolz(:,:)=0.
+          awind_loc(:,:)=0.
+          asolz_loc(:,:)=0.
 #endif
 #ifdef OBIO_RAD_coupling
-          avisdir(:,:)=0.
-          avisdif(:,:)=0.
-          anirdir(:,:)=0.
-          anirdif(:,:)=0.
+          avisdir_loc(:,:)=0.
+          avisdif_loc(:,:)=0.
+          anirdir_loc(:,:)=0.
+          anirdif_loc(:,:)=0.
 #endif
+
+ 28     continue
 
 c$OMP END PARALLEL DO
       endif
@@ -305,69 +294,33 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
      .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m
      .                         +solar_loc(3,ia,ja)*    rsi_loc(ia,ja))
      .                                 /(3600.*real(nhr))
-cddd#ifdef TRACERS_GASEXCH_Natassa
-cddd      do nt=1,ntm
-cddd      atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
-cddd     .                 + TRGASEX(nt,1,ia,ja)      ! in mol/m2/s
-cddd     .                 * dtsrc/(real(nhr)*3600.)
-cddd      enddo
-cddd#endif
-cddd#ifdef TRACERS_OceanBiology
-cddd      asolz(ia,ja)=asolz(ia,ja)                            !
-cddd     .            +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cddd      awind(ia,ja)=awind(ia,ja)                            !
-cddd     .            +wsavg(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cddd#endif
-cddd#ifdef OBIO_RAD_coupling
-cddd      avisdir(ia,ja)=avisdir(ia,ja)                        !
-cddd     . +FSRDIR(ia,ja)*SRVISSURF(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cddd      avisdif(ia,ja)=avisdif(ia,ja)                        !
-cddd     .            +FSRDIF(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cddd      anirdir(ia,ja)=anirdir(ia,ja)                        !
-cddd     .            +DIRNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cddd      anirdif(ia,ja)=anirdif(ia,ja)                        !
-cddd     .            +DIFNIR(ia,ja)*dtsrc/(3600.*real(nhr))    !
-cddd
-cddd!     write(*,*)'hycom, fsrdir:',nstep,ia,ja,
-cddd!    .     FSRDIR(ia,ja),SRVISSURF(ia,ja),avisdir(ia,ja)
-cddd
-cddd#endif
- 29   continue
-c$OMP END PARALLEL DO
-
-      call gather_atm
-      if (AM_I_ROOT()) then
-      do ia=1,iia
-        do ja=1,jja
-          if (focean(ia,ja) > 0.) then
 #ifdef TRACERS_GASEXCH_Natassa
             do nt=1,ntm
-              atracflx(ia,ja,nt)= atracflx(ia,ja,nt)
-     .             + TRGASEX(nt,1,ia,ja) ! in mol/m2/s
+              atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
+     .             + TRGASEX_loc(nt,1,ia,ja) ! in mol/m2/s
      .             * dtsrc/(real(nhr)*3600.)
             enddo
 #endif
 #ifdef TRACERS_OceanBiology
-            asolz(ia,ja)=asolz(ia,ja) !
-     .           +COSZ1(ia,ja)*dtsrc/(3600.*real(nhr)) !
-            awind(ia,ja)=awind(ia,ja) !
-     .           +wsavg(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            asolz_loc(ia,ja)=asolz_loc(ia,ja) !
+     .           +COSZ1_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            awind_loc(ia,ja)=awind_loc(ia,ja) !
+     .           +wsavg_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
 #endif
 #ifdef OBIO_RAD_coupling
-            avisdir(ia,ja)=avisdir(ia,ja) !
-     .           +FSRDIR(ia,ja)*SRVISSURF(ia,ja)*dtsrc/(3600.*real(nhr)) !
-            avisdif(ia,ja)=avisdif(ia,ja) !
-     .           +FSRDIF(ia,ja)*dtsrc/(3600.*real(nhr)) !
-            anirdir(ia,ja)=anirdir(ia,ja) !
-     .           +DIRNIR(ia,ja)*dtsrc/(3600.*real(nhr)) !
-            anirdif(ia,ja)=anirdif(ia,ja) !
-     .           +DIFNIR(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
+     .           +FSRDIR_loc(ia,ja)*SRVISSURF_loc(ia,ja)
+     &           *dtsrc/(3600.*real(nhr)) !
+            avisdif_loc(ia,ja)=avisdif_loc(ia,ja) !
+     .           +FSRDIF_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            anirdir_loc(ia,ja)=anirdir_loc(ia,ja) !
+     .           +DIRNIR_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+            anirdif_loc(ia,ja)=anirdif_loc(ia,ja) !
+     .           +DIFNIR_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
 #endif
 
-          endif
-        enddo
-      enddo
-      endif ! i am root
+ 29   continue
+c$OMP END PARALLEL DO
 
 c
 c     ia=iatest
@@ -411,7 +364,9 @@ c
 #endif
 #ifdef TRACERS_OceanBiology
       call flxa2o(asolz,osolz)
+      write(701,*) awind
       call flxa2o(awind,owind)
+      write(702,*) owind
 #endif
 #ifdef OBIO_RAD_coupling
       call flxa2o(avisdir,ovisdir)
@@ -709,29 +664,9 @@ cdiag  enddo
 cdiag  call obio_limits('bfre obio_model')
 
         call scatter_tracer_gasexch_com_arrays
-        ! should scatter of course, but for now just BCAST
-        !!write(0,*) __FILE__,__LINE__
-        !!call gather_hycom_arrays
-        !!write(0,*) __FILE__,__LINE__
-        call ESMF_BCAST(ogrid, owind)
-        call ESMF_BCAST(ogrid, osolz)
-
-#ifdef OBIO_RAD_coupling
-        call ESMF_BCAST(ogrid, ovisdir)
-        call ESMF_BCAST(ogrid, ovisdif)
-        call ESMF_BCAST(ogrid, onirdir)
-        call ESMF_BCAST(ogrid, onirdif)
-#endif
-
-        !!call gather_hycom_arrays
-        !!write(0,*) __FILE__,__LINE__
-         !call gather_hycom_arrays
-         !if (AM_I_ROOT()) then
-         call obio_model(nn,mm)
-         !endif
-         !call scatter_hycom_arrays
-         call gather_pCO2
-
+        call scatter_obio_forc_arrays
+        call obio_model(nn,mm)
+        call gather_pCO2
 
 cdiag  do k=1,kdm
 cdiag  km=k+mm
@@ -765,11 +700,6 @@ c --- available potential energy diagnostics:
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  103  format (f9.1,a,-12p,f9.3,' TW')
 c
-cddd!!! just checking...
-cddd      call gather_hycom_arrays
-cddd
-cddd      if (AM_I_ROOT()) then ! work on global grids here
-
       call system_clock(before)
 
       call cnuity(m,n,mm,nn,k1m,k1n)
@@ -1248,7 +1178,10 @@ c$OMP PARALLEL DO
 
  201  continue
 
+! the following block is computed on global domain
+! maybe switch to local if this is really non-trivial accumulation
 #ifdef TRACERS_GASEXCH_Natassa
+      ! may need the next line for TRACERS_GASEXCH_CFC_Natassa
       !call gather_tracer
       if (AM_I_ROOT()) then
       do j=1,jdm
@@ -1435,6 +1368,12 @@ c------------------------------------------------------------------
       USE HYCOM_ATM
       USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA
      &      ,PACK_COLUMN, PACK_BLOCK
+#ifdef TRACERS_OceanBiology 
+      USE obio_forc, only: awind,asolz
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      USE TRACER_GASEXCH_COM, only: atracflx
+#endif
       implicit none 
 
       call pack_data( grid,  ataux_loc,   ataux )
@@ -1457,6 +1396,22 @@ c------------------------------------------------------------------
       call pack_data( grid,  FOCEAN_loc, FOCEAN )
 #ifdef TRACERS_GASEXCH_Natassa
       call pack_block( grid,GTRACER_loc,GTRACER)
+#endif
+
+
+
+#ifdef TRACERS_GASEXCH_Natassa
+      call pack_data( grid, atracflx_loc, atracflx )
+#endif
+#ifdef TRACERS_OceanBiology
+      call pack_data( grid, asolz_loc, asolz )
+      call pack_data( grid, awind_loc, awind )
+#endif
+#ifdef OBIO_RAD_coupling
+      call pack_data( grid, avisdir_loc, avisdir )
+      call pack_data( grid, avisdif_loc, avisdif )
+      call pack_data( grid, anirdir_loc, anirdir )
+      call pack_data( grid, anirdif_loc, anirdif )
 #endif
 
       end subroutine gather2_atm

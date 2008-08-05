@@ -163,17 +163,19 @@ C endif
       USE hycom_dim_glob
       USE hycom_dim, only : j_0h,j_1h
 
-      ALLOCATE(tzoo2d(idm,jdm))
-      ALLOCATE(tfac3d(idm,jdm,kdm),bn3d(idm,jdm,kdm))
-      ALLOCATE(wshc3d(idm,jdm,kdm),Fescav3d(idm,jdm,kdm))
-      ALLOCATE(obio_wsd2d(idm,jdm,nchl),obio_wsh2d(idm,jdm,nchl))
-      ALLOCATE(rmuplsr3d(idm,jdm,kdm,nchl),rikd3d(idm,jdm,kdm,nchl))
-      ALLOCATE(acdom3d(idm,jdm,kdm,nlt))
-      ALLOCATE(gcmax(idm,jdm,kdm))
+      ALLOCATE(tzoo2d(idm,j_0h:j_1h))
+      ALLOCATE(tfac3d(idm,j_0h:j_1h,kdm),bn3d(idm,j_0h:j_1h,kdm))
+      ALLOCATE(wshc3d(idm,j_0h:j_1h,kdm),Fescav3d(idm,j_0h:j_1h,kdm))
+      ALLOCATE(obio_wsd2d(idm,j_0h:j_1h,nchl),
+     &     obio_wsh2d(idm,j_0h:j_1h,nchl))
+      ALLOCATE(rmuplsr3d(idm,j_0h:j_1h,kdm,nchl),
+     &     rikd3d(idm,j_0h:j_1h,kdm,nchl))
+      ALLOCATE(acdom3d(idm,j_0h:j_1h,kdm,nlt))
+      ALLOCATE(gcmax(idm,j_0h:j_1h,kdm))
       ALLOCATE(pCO2(idm,j_0h:j_1h))           
       ALLOCATE(pCO2_glob(idm,jdm))           
-      ALLOCATE(pp2tot_day(idm,jdm))
-      ALLOCATE(tot_chlo(idm,jdm))
+      ALLOCATE(pp2tot_day(idm,j_0h:j_1h))
+      ALLOCATE(tot_chlo(idm,j_0h:j_1h))
 
       end subroutine alloc_obio_com
 
