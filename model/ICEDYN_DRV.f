@@ -773,7 +773,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
      *     ,ticij,ticij_tusi,ticij_tvsi
 #endif
       USE ICEDYN, only : grid_MIC
-      USE SEAICE, only : ace1i,xsi,ti
+      USE SEAICE, only : ace1i,xsi,Ti,Ei
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -803,7 +803,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
      *     ,cssi1(grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,cssi2(grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER I,J,L,IM1,IP1,K
-      REAL*8 SFASI,DMHSI,ASI,YRSI,XRSI,FRSI,SICE,TMP
+      REAL*8 SFASI,DMHSI,ASI,YRSI,XRSI,FRSI,SICE,TMP,TICE,ENRG
 !@var MHS mass/heat/salt content of sea ice
       REAL*8 MHS(NTRICE,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 C****
@@ -1281,9 +1281,14 @@ C**** ensure that salinity is only associated with ice
             END IF
             SSI(2,I,J)=SICE-SSI(1,I,J)
 C**** correction of heat energy to compensate for salinity fix
-C**** IS THIS DIFFERENT FOR BP?
-            HSI(1,I,J)=HSI(1,I,J)-(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
-            HSI(2,I,J)=HSI(2,I,J)+(MHS(1+2+LMI,I,J)-SSI(1,I,J))*LHM
+            TICE=Ti(HSI(1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J))),1d3*MHS(1+2
+     *           +LMI,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J))))
+            ENRG=XSI(1)*(ACE1I+SNOWI(I,J))*(
+     *         Ei(TICE,1d3*MHS(1+2+LMI,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J))))
+     *        -Ei(TICE,1d3*SSI(1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J)))) )
+            HSI(1,I,J)=HSI(1,I,J)-ENRG
+            HSI(2,I,J)=HSI(2,I,J)+ENRG
+C****
             DO L=3,LMI
                SSI(L,I,J) = MHS(L+2+LMI,I,J)
             END DO
