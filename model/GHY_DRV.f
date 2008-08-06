@@ -743,6 +743,11 @@ c****
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
      &     ghy_tracers_save_cell
 #endif
+#ifdef WATER_PROPORTIONAL
+      use tracer_com, only : ntm
+      use fluxes, only : gtracer,trevapor,trsrfflx
+      use geom, only : dxyp
+#endif
 #ifdef USE_ENT
       use ent_com, only : entcells
       !use ent_mod, only : ent_prescribe_vegupdate
@@ -1032,6 +1037,12 @@ c**** call tracers stuff
       call ghy_tracers_set_cell(i,j,ptype,pbl_args%qg_sat
      &     ,pbl_args%evap_max,pbl_args, q1*ma1)
 #endif
+#ifdef WATER_PROPORTIONAL
+#ifdef TRACERS_ON
+      call stop_model('GHY: should not get here',255)
+#endif
+      pbl_args%ntx = 0  ! tracers are activated in PBL, but GHY has none
+#endif
       call pbl(i,j,itype,ptype,pbl_args)
 c****
       cdm = pbl_args%cm ! cmgs(itype,i,j)
@@ -1275,6 +1286,16 @@ c**** update tracers
      & ,tg1,ts-tf,1.d2*abetad/real(nisurf)
 #endif
      & )
+#endif
+
+#ifdef WATER_PROPORTIONAL
+c calculate fluxes of atmosphere-only water tracers.
+c assume 1-way until up/down fluxes of vapor are available
+c as a PBL diagnostic.
+      trevapor(1:ntm,itype,i,j) = trevapor(1:ntm,itype,i,j) +
+     &     aevap*gtracer(1:ntm,itype,i,j)
+      trsrfflx(i,j,1:ntm)=trsrfflx(i,j,1:ntm)+dxyp(j)*ptype*
+     &     aevap*gtracer(1:ntm,itype,i,j)/(pbl_args%dtsurf)
 #endif
 
       end do loop_i
