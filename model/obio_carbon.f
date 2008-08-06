@@ -142,7 +142,7 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
         sumres = 0.0
 
         do nt = 1,nchl
-         !!totgro = gro(k,nt)*obio_P(k,nt+nnut)
+         !!totgro = gro(k,nt)*obio_P(k,nt+nnut)   !!false. corrected below
          totgro = gro(k,nt)
           docexcp = excp*totgro   !phyto production DOC
            dicresp = resp*totgro   !phyto production DIC

@@ -14,6 +14,7 @@
       if ( AM_I_ROOT() ) then
 
       print*,'   '
+      write(*,*)'nn=',nn
       do ntr=1,ntrcr
       summ=0.
         do k=1,kk
@@ -30,11 +31,7 @@
         enddo
         enddo
         enddo
-cdiag write(*,'(a,i3,i5,a,i3,2e12.4)')
-cdiag.  'total intgrl and mean for tracer ',ntr,nstep,', k= ',
-cdiag.   k,sum,sum/sum_area
         enddo
-!     write(*,'(a,i3,i5,e12.4)')
       write(*,*)
      .  'total intgrl for tracer ',ntr,nstep,summ
       enddo

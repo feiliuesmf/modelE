@@ -2208,7 +2208,6 @@ C****
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface **coefficient
       SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface
-#ifdef OBIO_RAD_coupling
       FSRDIF(I,J)=SRDVIS*(1-SRXVIS) ! diffuse visible solar at surface
 
       DIRNIR(I,J)=SRXNIR*SRDNIR     ! direct beam nir solar at surface
@@ -2217,7 +2216,6 @@ C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
 cdiag write(*,'(a,2i5,6e12.4)')'RAD_DRV: ',
 cdiag.    I,J,FSRDIR(I,J),SRVISSURF(I,J),FSRDIF(I,J),
 cdiag.        DIRNIR(I,J),SRDNIR,DIFNIR(I,J)
-#endif
 C**** Save clear sky/tropopause diagnostics here
       AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+OPNSKY*
      *     SRDFLB(1)*CSZ2

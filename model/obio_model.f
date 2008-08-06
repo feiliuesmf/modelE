@@ -291,6 +291,9 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        ovisdif_ij=ovisdif(i,j)
        onirdir_ij=onirdir(i,j)
        onirdif_ij=onirdif(i,j)
+
+       if (vrbos) print*,'obio_model, radiation:',
+     .    nstep,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
 #else
        !OASIM spectral irradiance data just above the surface
        !Eda and Esa fields have ihr=1:12, ie every 2hrs

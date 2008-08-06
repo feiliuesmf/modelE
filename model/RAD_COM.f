@@ -320,6 +320,7 @@ C**** Local variables initialised in init_RAD
       REAL*8  :: FSF_GLOB(4,IM,JM)
       REAL*8, DIMENSION(IM, JM) :: FSRDIR_GLOB, SRVISSURF_GLOB,
      &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
+      REAL*8, DIMENSION(IM, JM) :: FSRDIF_GLOB, DIRNIR_GLOB, DIFNIR_GLOB
       REAL*8, DIMENSION(LM, IM, JM) :: RCLD_GLOB,O3_tracer_save_GLOB
       REAL*8, DIMENSION(5,LM,IM,JM) :: rad_to_chem_GLOB
       REAL*8,DIMENSION(Im,Jm,Lm) :: srnflb_save_glob,trnflb_save_glob
@@ -375,6 +376,11 @@ C**** Local variables initialised in init_RAD
         CALL PACK_DATA( grid, SALB     , SALB_GLOB)
         CALL PACK_DATA( grid, FSRDIR   , FSRDIR_GLOB)
         CALL PACK_DATA( grid, SRVISSURF, SRVISSURF_GLOB)
+!!!
+        CALL PACK_DATA( grid, FSRDIF, FSRDIF_GLOB)
+        CALL PACK_DATA( grid, DIRNIR, DIRNIR_GLOB)
+        CALL PACK_DATA( grid, DIFNIR, DIFNIR_GLOB)
+!!!
         CALL PACK_DATA( grid, SRDN     ,   SRDN_GLOB)
         CALL PACK_DATA( grid, CFRAC    ,  CFRAC_GLOB)
 
@@ -396,6 +402,7 @@ C**** Local variables initialised in init_RAD
      *      ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
      *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,
      *       RCLD_GLOB,  TRSURF_GLOB
+     .      ,FSRDIF_GLOB, DIRNIR_GLOB, DIFNIR_GLOB
 #ifdef TRACERS_SPECIAL_Shindell
      *      ,O3_tracer_save_GLOB,rad_to_chem_GLOB
 #endif
@@ -413,6 +420,7 @@ C**** Local variables initialised in init_RAD
      *       ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
      *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,
      *        RCLD_GLOB ,TRSURF_GLOB
+     .      ,FSRDIF_GLOB, DIRNIR_GLOB, DIFNIR_GLOB
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,O3_tracer_save_GLOB,rad_to_chem_GLOB
 #endif
@@ -438,6 +446,9 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_DATA( grid, SALB_glob     , SALB)
           CALL UNPACK_DATA( grid, FSRDIR_glob   , FSRDIR)
           CALL UNPACK_DATA( grid, SRVISSURF_glob, SRVISSURF)
+          CALL UNPACK_DATA( grid, FSRDIF_glob, FSRDIF)
+          CALL UNPACK_DATA( grid, DIRNIR_glob, DIRNIR)
+          CALL UNPACK_DATA( grid, DIFNIR_glob, DIFNIR)
           CALL UNPACK_DATA( grid, SRDN_glob     ,   SRDN)
           CALL UNPACK_DATA( grid, CFRAC_glob    ,  CFRAC)
 
