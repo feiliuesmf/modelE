@@ -13,7 +13,7 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : teeny,rhoi,grav,tf
+      USE CONSTANT, only : teeny,grav,tf
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
      *     ,jday,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
@@ -162,14 +162,14 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
 !@calls iceocean,icelake
-      USE CONSTANT, only : rhow,rhows,omega,rhoi,byshi,shw
+      USE CONSTANT, only : rhow,rhows,omega,rhoi,shw
       USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
       USE GEOM, only : sinp,imaxj,dxyp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
 #endif
-      USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
-     *     ,tfrez,debug,Ti
+      USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alpha
+     *     ,tfrez,debug,Ti,dEidTi,alami
       USE SEAICE_COM, only : msi,hsi,ssi,rsi
 #ifdef TRACERS_WATER
      *     ,trsi
@@ -236,9 +236,9 @@ C**** should we calculate ocean rho(Tm,Sm) here?
 #endif
      *               mflux,sflux,hflux)
               ELSE ! for fixed SST assume freezing temp at base,implicit
-! add salinity dependence?
-                hflux=alami*(Tic-tfrez(sss(i,j)))/(dh+alpha*dtsrc*alami
-     *               *byshi/(XSI(LMI)*MSI(I,J)))
+                hflux=alami(Tic,Si)*(Tic-tfrez(sss(i,j)))/(dh+alpha
+     *               *dtsrc*alami(Tic,Si)/(dEidTi(Tic,Si)*XSI(LMI)*MSI(I
+     *               ,J)))
                 mflux=0.
                 sflux=0.
 #ifdef TRACERS_WATER
@@ -301,7 +301,7 @@ C****
       USE GEOM, only : dxyp,imaxj
       USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,
      *     aregj=>aregj_loc,jreg,ij_fwio,ij_htio,ij_stio,aij=>aij_loc
-      USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i
+      USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -779,7 +779,6 @@ C**** regional diagnostics
         AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)-
      *       (SALTO *POCEAN+SALTI *POICE)*DXYP(J)
 
-c        debug=i.eq.20.and.j.eq.37
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
 #ifdef TRACERS_WATER
@@ -848,6 +847,7 @@ C**** Save sea ice tracer amount
       end if
 
       END IF
+
       END DO
       END DO
 
@@ -1006,6 +1006,7 @@ C****   set defaults for no ice case
             pond_melt(i,j) = 0.
             flag_dsws(i,j) = .FALSE.
           END IF
+
         END DO
         END DO
       END IF

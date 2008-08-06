@@ -26,14 +26,12 @@
       REAL*8, PARAMETER :: Z1I = .1d0
 !@param ACE1I ice mass first layer (kg/m^2)
       REAL*8, PARAMETER :: ACE1I = Z1I*RHOI
-!@param HC1I heat capacity of first layer ice (J/m^2)
-      REAL*8, PARAMETER :: HC1I = ACE1I*SHI
 !@param Z2OIM min. thickness of 2nd layer ice (m) (if > 0)
       REAL*8, PARAMETER :: Z2OIM = .1d0    ! .4d0
 !@param AC2OIM min. ice mass 2nd layer (kg/m^2)   (if > 0)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
-!@param ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
-      REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
+!@param alami0,alams lambda coefficient for ice/snow J/(m*degC*sec)
+      REAL*8, PARAMETER :: alami0=2.1762d0, alams=0.35d0
 !@param alamdS salinity/temp coefficient for conductivity (J/(m*s)/psu)
       real*8, parameter :: alamdS=0.117d0
 !@param RHOS density of snow (kg/m^3)
@@ -42,9 +40,8 @@
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var FLEADLK lead fraction for lakes (%)
       REAL*8, PARAMETER :: FLEADLK = 0.
-!@param BYRLI,BYRLS reciprical of density*lambda
-      REAL*8, PARAMETER :: BYRLI = 1./(RHOI*ALAMI),
-     *     BYRLS = 1./(RHOS*ALAMS)
+!@param BYRLS reciprical of snow density*lambda
+      REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity 
       REAL*8, PARAMETER :: MU = 0.054d0   ! C/ppt
 !@param SSI0 default value for sea ice salinity (kg/kg) (=3.2ppt)
@@ -69,7 +66,8 @@
 !@var DEBUG flag
       LOGICAL DEBUG
 !@var FORM formulation of sea ice thermodynamics (BP or SI)
-      CHARACTER*2 :: FORM = "SI"  ! "BP"
+      CHARACTER*2 :: FORM = "SI"  
+c      CHARACTER*2 :: FORM = "BP"
 
       CONTAINS
 
@@ -390,7 +388,7 @@ c     ERUN0 = HMELTI             ! energy of runoff
       REAL*8 DEW, CMPRS, DEWS, DEWI
       REAL*8 SMELTI, SMELT3, SMELT4, FSSI2, FSSI3, SICE
       REAL*8 FMSI2, FMSI3, FHSI2, FHSI3
-      REAL*8 HC1, HC2, HC3, HC4, HICE, HSNOW, HCMPRS
+      REAL*8 HC2, HC3, HICE, HSNOW, HCMPRS ! HC1, HC4, 
       REAL*8 dF2dTI, dF3dTI, F2, F3, FO ! ,dF1dTI, dF4dTI
       REAL*8 ALAM2,ALAM3
 
@@ -415,27 +413,25 @@ C****
  ! ice temp L=1,... Lmi
       call tice(hsil,ssil,msi1,msi2,tsil)
 
-      HC1 = SHI*XSI(1)*MSI1 ! heat capacity of ice L=1 (J/(degC*m^2))
-      HC2 = SHI*XSI(2)*MSI1 ! heat capacity of ice L=2 (J/(degC*m^2))
-      HC3 = SHI*XSI(3)*MSI2 ! heat capacity of ice L=3 (J/(degC*m^2))
-      HC4 = SHI*XSI(4)*MSI2 ! heat capacity of ice L=4 (J/(degC*m^2))
+ ! effective heat capacities of ice (J/(degC*m^2))
+c      HC1 = dEidTi(tsil(1),1d3*(SSIL(1)/(XSI(1)*MSI1)))*XSI(1)*MSI1
+      HC2 = dEidTi(tsil(2),1d3*(SSIL(2)/(XSI(2)*MSI1)))*XSI(2)*MSI1
+      HC3 = dEidTi(tsil(3),1d3*(SSIL(3)/(XSI(3)*MSI2)))*XSI(3)*MSI2
+c      HC4 = dEidTi(tsil(4),1d3*(SSIL(4)/(XSI(4)*MSI2)))*XSI(4)*MSI2
 C**** CALCULATE AND APPLY DIFFUSIVE AND SURFACE ENERGY FLUXES
-      ALAM2=ALAMI  ; ALAM3=ALAMI  ! ; ALAM4=ALAMI
-      IF (FORM.eq."BP") THEN  ! salinity dependence of diffusion
-        IF (SSIL(2).gt.0) ALAM2=ALAM2+ALAMDS*1d3*(SSIL(2)*XSI(3)*MSI2
-     *       /(XSI(2)*MSI1)+SSIL(3)*XSI(2)*MSI1/(XSI(3)*MSI2))/(TSIL(2)
-     *       *XSI(3)*MSI2+TSIL(3)*XSI(2)*MSI1)
-        IF (SSIL(3).gt.0) ALAM3=ALAM3+ALAMDS*1d3*(SSIL(3)*XSI(4)/XSI(3)
-     *       +SSIL(4)*XSI(3)/XSI(4))/(TSIL(3)*XSI(4)+TSIL(4)*XSI(3))
-c        ALAM4=ALAM3+ALAMDS*1d3*SSIL(4)/(XSI(4)*MSI2*TSIL(4))
-      END IF
+      ALAM2 = Alami((TSIL(2)*XSI(3)*MSI2+TSIL(3)*XSI(2)*MSI1)/(XSI(3)
+     *     *MSI2+XSI(2)*MSI1), 1d3*(SSIL(2)*XSI(3)*MSI2
+     *       /(XSI(2)*MSI1)+SSIL(3)*XSI(2)*MSI1/(XSI(3)*MSI2))/(XSI(3)
+     *     *MSI2+XSI(2)*MSI1))
+      ALAM3 = Alami(TSIL(3)*XSI(4)+TSIL(4)*XSI(3),1d3*(SSIL(3)*XSI(4)
+     *     /XSI(3)+SSIL(4)*XSI(3)/XSI(4))/MSI2)
 C**** First layer flux calculated already as part of surface calculation
-c      dF1dTI = 2.*DTSRCE/(ACE1I*BYRLI+SNOW*BYRLS)
-      dF2dTI = ALAM2*RHOI*DTSRCE/(0.5*XSI(2)*MSI1+0.5*XSI(3)*MSI2)
+c      dF1dTI = 2.*DTSRCE/(ACE1I/(RHOI*ALAM1)+SNOW*BYRLS)
+      dF2dTI = 2.*ALAM2*RHOI*DTSRCE/(XSI(2)*MSI1+XSI(3)*MSI2)
 C****          temperature derivative from F2 diffusive flux
-      dF3dTI = ALAM3*RHOI*DTSRCE*2./MSI2
+      dF3dTI = 2.*ALAM3*RHOI*DTSRCE/MSI2
 C****          temperature derivative from F3 diffusive flux
-c      dF4dTI = ALAM4*RHOI*DTSRCE*2.*BYXSI(4)/MSI2  ! now in iceocean
+c      dF4dTI = 2.*ALAM4*RHOI*DTSRCE*BYXSI(4)/MSI2  ! now in iceocean
 C****          temperature derivative from F4 diffusive flux 
 C**** EXPLCIIT DIFFUSIVE FLUXES
 CEXP  F2 = dF2dTI*(TSIL(2)-TSIL(3))+SROX(1)*FSRI(2)
@@ -1043,6 +1039,7 @@ C**** set defaults if no ice is left
         DO L=3,LMI
           HSIL(L)=(XSI(L)*AC2OIM)*Ei(TFO,1d3*SSIL(L)/(XSI(L)*AC2OIM))
         END DO
+
         TSIL=TFO
 #ifdef TRACERS_WATER
         TRSIL(:,:)=0.
@@ -1359,10 +1356,10 @@ C**** Diffusive flux is implicit in ice !  + ml temperature (not used)
 
       if (form.eq."SI" .or. Si.eq.0.) then
                                 ! no salinity effects on diffusion
-        alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
+        alamdh = alami0/(dh+alpha*dtsrc*alami0*byshi/(2.*dh*rhoi))
       else                      ! brine pocket impact on diffusion
-        alamdh = (alami+alamdS*Si/Ti)/(dh+alpha*dtsrc*
-     *           (alami+alamdS*Si/Ti)*byshi/(2.*rhoi*dh))
+        alamdh = alami(Ti,Si)/(dh+alpha*dtsrc*
+     *           alami(Ti,Si)/(dEidTi(Ti,Si)*2.*rhoi*dh))
       end if 
 
 C**** solve for boundary values (uses Newton-Rapheson with bounds)
@@ -1516,7 +1513,7 @@ C**** Assume constant g_T = 1.3d-7, g_S = 0.025 * g_T m/s
 #endif
 
 C**** Diffusive flux is implicit in ice temperature
-      alamdh = alami/(dh+alpha*dtsrc*byshi*alami/(2.*dh*rhoi))
+      alamdh = alami0/(dh+alpha*dtsrc*byshi*alami0/(2.*dh*rhoi))
 C**** calculate left hand side of equation 2
       left2 = -alamdh*Ti - rsg*Tm    !/(1.+alpha*dtsrc*rsg/mlsh)
       if (left2.gt.0) then      ! freezing
@@ -1914,6 +1911,40 @@ c        Mi=max(0d0,msi+hsi*bylhm)
 
       RETURN
       END FUNCTION Mi
+
+      REAL*8 FUNCTION Alami(Ti,Si)
+!@sum Calculation of thermal diffusion of ice J/(m*degC*sec) =f(T,S)
+!@auth Gavin Schmidt
+      USE CONSTANT, only : shi, lhm, shw
+      IMPLICIT NONE
+!@param alamdS salinity/temp coefficient for conductivity (J/(m*s)/psu)
+      real*8, parameter :: alamdS=0.117d0
+      REAL*8, INTENT(IN) :: Ti,Si   ! deg C and psu
+
+      if (FORM.eq."SI" .or. Si.eq.0) then ! pure ice value
+        alami=alami0
+      else                      ! use brine fraction
+        alami=alami0+alamdS*Si/Ti
+      end if
+
+      RETURN
+      END FUNCTION Alami
+
+      REAL*8 FUNCTION dEidTi(Ti,Si)
+!@sum Calculation of effective specific heat of ice J/(kg degC) =f(T,S)
+!@auth Gavin Schmidt
+      USE CONSTANT, only : shi, lhm
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: Ti,Si   ! deg C and psu
+      
+      if (FORM.eq."SI" .or. Si.eq.0) then ! pure ice value
+        dEidTi=shi
+      else                      ! use brine fraction
+        dEidTi=shi+lhm*mu*Si/(Ti*Ti)
+      end if
+      
+      RETURN
+      END FUNCTION dEidTi
 
       END MODULE SEAICE
 

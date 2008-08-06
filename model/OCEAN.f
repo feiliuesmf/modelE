@@ -10,7 +10,7 @@
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
 !@+    PRECIP_OC,OCEANS
-      USE CONSTANT, only : rhows,rhoi,shw,shi,by12,byshi,tf
+      USE CONSTANT, only : rhows,rhoi,shw,by12,tf
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP, only : GRID, GET,
      *                          DREAD_PARALLEL,

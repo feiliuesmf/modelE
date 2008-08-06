@@ -81,9 +81,9 @@ C****
 #endif
       USE LANDICE, only : z1e,z2li,hc1li,hc2li
       USE LANDICE_COM, only : snowli
-      USE SEAICE, only : xsi,ace1i,alami,byrli,byrls,solar_ice_frac
-     *     ,tfrez
-      USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws
+      USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,solar_ice_frac
+     *     ,tfrez,dEidTi,alami
+      USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws,ssi
       USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
@@ -149,7 +149,7 @@ C****
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
      *     ,ii
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
-     *     ,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
+     *     ,ELHX,MSI2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
      *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
      *     ,dT2,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER
@@ -162,7 +162,7 @@ C****
       REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     TGRND,TGRN2,TGR4
       REAL*8, PARAMETER :: qmin=1.d-12
-      REAL*8, PARAMETER :: Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
+      REAL*8, PARAMETER :: Z2LI3L=Z2LI/(3.*ALAMI0), Z1LIBYL=Z1E/ALAMI0
       REAL*8 QSAT,DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
@@ -348,7 +348,7 @@ C**** Set up tracers for PBL calculation if required
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-!$OMP   PARALLEL DO PRIVATE (ACE2, CM,CH,CQ,
+!$OMP   PARALLEL DO PRIVATE (MSI2, CM,CH,CQ,
 !$OMP*  CDTERM,CDENOM,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
 !$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,
 !$OMP*  DT2, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
@@ -544,18 +544,19 @@ C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
       TG2=TGRN2(2,I,J)
       TR4=TGR4(2,I,J)
       SNOW=SNOWI(I,J)
-      MSI1 = SNOW+ACE1I ! snow and first layer ice mass (kg/m^2)
-      ACE2=MSI(I,J) ! second (physical) layer ice mass (kg/m^2)
+      MSI1=SNOW+ACE1I ! snow and first layer ice mass (kg/m^2)
+      MSI2=MSI(I,J)   ! second (physical) layer ice mass (kg/m^2)
 C**** determine heat capacity etc for top ice layers
-      dF1dTG = 2./(ACE1I*BYRLI+SNOW*BYRLS)
-      HCG1 = SHI*XSI(1)*MSI1 ! heat capacity of top ice layer (J/C*m^2)
-      HCG2 = SHI*XSI(2)*MSI1 ! heat capacity of second layer ice
+      dF1dTG = 2./(ACE1I/(RHOI*alami(TG1,1d3*((SSI(1,I,J)+SSI(2,I,J))
+     *     /ACE1I)))+SNOW*BYRLS)
+      HCG1 = dEidTi(TG1,1d3*(SSI(1,I,J)/(XSI(1)*MSI1)))*XSI(1)*MSI1
+      HCG2 = dEidTi(TG2,1d3*(SSI(2,I,J)/(XSI(2)*MSI1)))*XSI(2)*MSI1
 
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
 C**** fraction of solar radiation leaving layer 1 and 2
       IF (SRHEAT.gt.0) THEN ! only bother if there is sun
-        call solar_ice_frac(SNOW,ACE2,FLAG_DSWS(I,J),FSRI,2)
+        call solar_ice_frac(SNOW,MSI2,FLAG_DSWS(I,J),FSRI,2)
       ELSE
         FSRI(1:2) = 0
       END IF
