@@ -5,7 +5,7 @@
       !Ent MODULES TO USE
       use ent_const
       use ent_types
-
+      use patches, only : patch_print
       implicit none
       private
       save
