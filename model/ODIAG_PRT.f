@@ -1987,7 +1987,7 @@ C****
       DO KQ=2,3
         WRITE(6,908)
         DO KB=1,4
-          TITLE(1:50)=NAME(3+KB+4*(KQ-1))
+          TITLE(1:50)=NAME(3+KB+4*(KQ-2))
           WRITE (6,907) TITLE(1:72)
 C**** print out truncated series to PRT file
           WRITE(6,903) (NINT(VLAT(J)),J=JM,0,-INC)
