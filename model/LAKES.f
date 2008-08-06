@@ -1243,10 +1243,10 @@ C****
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
 C**** Check for NaN/INF in lake data 
-      CALL CHECK3B(MWL,IM,J_0H,J_1H,1,SUBR,'mwl')
-      CALL CHECK3B(GML,IM,J_0H,J_1H,1,SUBR,'gml')
-      CALL CHECK3B(MLDLK,IM,J_0H,J_1H,1,SUBR,'mld')
-      CALL CHECK3B(TLAKE,IM,J_0H,J_1H,1,SUBR,'tlk')
+      CALL CHECK3B(MWL,IM,J_0H,J_1H,JM,1,SUBR,'mwl')
+      CALL CHECK3B(GML,IM,J_0H,J_1H,JM,1,SUBR,'gml')
+      CALL CHECK3B(MLDLK,IM,J_0H,J_1H,JM,1,SUBR,'mld')
+      CALL CHECK3B(TLAKE,IM,J_0H,J_1H,JM,1,SUBR,'tlk')
 
       QCHECKL = .FALSE.
       DO J=J_0S, J_1S
