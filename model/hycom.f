@@ -106,7 +106,6 @@ c
       USE SEAICE, only : fsss,tfrez ! number, function - ok
       USE GEOM, only : dxyp ! ok
       !USE MODEL_COM, only : focean
-      USE CONSTANT, only : lhm,shi,shw
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
 #ifdef TRACERS_OceanBiology 
@@ -1294,10 +1293,12 @@ c$OMP PARALLEL DO PRIVATE(tf)
 #endif
         tf=tfrez(sss(ia,ja),0.)
         dmsi(1,ia,ja)=utila(ia,ja)                        !kg/m2 per agcm step
-        dhsi(1,ia,ja)=utila(ia,ja)                        !J/m2 per agcm step
-     .        *(tf*shi-lhm*(1-0.001*fsss*sss(ia,ja)))
+c --- this should be accumulated separately, no?
+        dhsi(1,ia,ja)=utila(ia,ja)*Ei(tf,fsss*sss(ia,ja)) !J/m2 per agcm step
         dssi(1,ia,ja)=1.d-3*dmsi(1,ia,ja)*sss(ia,ja)*fsss !kg/m2 per agcm step
 c --- evenly distribute new ice over open water and sea ice
+c --- this is not necessarily a good idea. What about weighting it
+c --- with respect to the ice/openwater flux ratio?
         if (aice(ia,ja).gt.1.e-3) then
           dhsi(2,ia,ja)=dhsi(1,ia,ja)
           dmsi(2,ia,ja)=dmsi(1,ia,ja)

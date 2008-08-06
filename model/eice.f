@@ -4,7 +4,6 @@ c --- estimate the ice formed (odmsi) in order to keep ocean above freezing
 c --- and corresponding saltflux (salflx2)
 c
       USE SEAICE, only : fsss,tfrez,Ei
-      USE CONSTANT, only : lhm,shi,shw
 c
       USE HYCOM_DIM,only : isp,ifp,ilp,kk,idm,jchunk,
      *                     J_0,J_1,J_0H,J_1H
