@@ -545,7 +545,15 @@
       type(cohort) :: cop
       !---Local-----
       real*8 :: Cdiff
-
+#ifdef PFT_MODEL_ENT
+      if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
+     &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
+        !Don't let C_lab go below zero.
+        cop%C_lab = EPS
+      else 
+        cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
+      endif
+#else
       !* Accumulate uptake.*!
       if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
      &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
@@ -567,6 +575,7 @@
           cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)          
         endif
       endif
+#endif
       end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
 

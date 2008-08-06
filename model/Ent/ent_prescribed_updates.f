@@ -131,7 +131,7 @@
 !@+   (see how it is used in ent_prescribe_vegupdate)
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell!,entcell_extract_pfts
-      use ent_prescr_veg, only : prescr_calc_shc
+      use ent_prescr_veg, only : prescr_calc_shc, prescr_veg_albedo
 
       type(entcelltype) :: entcell
       integer,intent(in) :: jday
@@ -169,6 +169,16 @@
           !* LAI, ALBEDO *!
           call prescr_phenology(jday,hemi, pp, do_giss_lai)
           call summarize_patch(pp)
+          pp => pp%younger
+        end do
+!KIM-temp      endif
+      else
+!KIM-temp: albedo needs to be prescribed even with do_phenology=.TRUE.
+!KIM-temp: since the subroutine for the prognostic albedo is not available.
+        pp => entcell%oldest
+        do while (ASSOCIATED(pp))
+          call prescr_veg_albedo(hemi, pp%tallest%pft, 
+     &         jday, pp%albedo)
           pp => pp%younger
         end do
       endif

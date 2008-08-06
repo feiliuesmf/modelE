@@ -7,7 +7,7 @@
 
 !@auth N. Kiang
 
-!#define OFFLINE TRUE
+#define OFFLINE TRUE
 
       !Ent MODULES TO USE
       use ent_const
@@ -127,7 +127,8 @@
       use growthallometry, only : uptake_N
       use phenology, only : litter
       use soilbgc, only : soil_bgc
-      use phenology, only : phenology_update, phenology_stats
+      use phenology, only : clim_stats, pheno_update, veg_update
+      use phenology, only : veg_init !KIM-temp.
       use canopyrad, only : recalc_radpar
       use entcells, only : summarize_entcell, entcell_print
 
@@ -136,13 +137,14 @@
       !type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
       real*8 :: time            !temp. for Phenology
-      type(ent_config) :: config
+      type(ent_config) :: config 
+
       !-----local--------
       integer :: patchnum
       type(patch),pointer :: pp
       !TIMESTRUCT should be used once it is ready!
       logical :: dailyupdate    !temp. for Phenology
-      logical :: monthlyupdate  !temp. for Phenology
+
 
       !* Loop through patches
       patchnum = 0
@@ -152,30 +154,27 @@
         call photosynth_cond(dtsec, pp)
 
         if(config%do_phenology.or.config%do_frost_hardiness)then
-
-! temporary time controller
+          if (time .EQ. 0.d0) then !temporarily
+             call veg_init(pp)
+          end if
           if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
             dailyupdate=.true.
           else 
             dailyupdate=.false.
           end if
-          call phenology_stats(dtsec,pp,config,dailyupdate,time)
-
+          call clim_stats(dtsec,pp,config,dailyupdate)
         endif
 
         if (config%do_phenology) then
 
-          if (mod(time,2592000.d0) .EQ. 0.d0) then !temporarily, 86400*30 =2592000 
-            monthlyupdate=.true.
-          else 
-            monthlyupdate=.false.
-          end if     
 
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
           if (dailyupdate) then
-            call phenology_update(dtsec,pp,dailyupdate,monthlyupdate)
+            call pheno_update(dtsec,pp)
+            call veg_update(dtsec,pp)
             call litter(pp) 
+
           end if
         endif
 

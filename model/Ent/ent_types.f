@@ -157,7 +157,7 @@
          real*8 :: phenofactor   !phenofactor_c * phenofactor_d
          real*8 :: phenofactor_c !Cold deciduousness
          real*8 :: phenofactor_d !Drought deciduousness
-         real*8 :: dphdt !change in phenofactor (needed for growth)
+         integer :: phenostatus
          real*8 :: CB_d !daily carbon balance
          real*8 :: Sacclim ! state of acclimation/frost hardiness [deg C]
 
@@ -425,11 +425,12 @@
          !PHENOLOGY - KIM
          real*8 :: soiltemp_10d
          real*8 :: airtemp_10d
-         real*8 :: soilmoist_10d          
+         real*8 :: paw_10d          
          real*8 :: gdd
          real*8 :: ncd
          real*8 :: ld
-         real*8 :: wat
+         real*8 :: light
+         real*8 :: light_prev
 
       end type entcelltype
 

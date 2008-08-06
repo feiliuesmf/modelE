@@ -131,11 +131,12 @@
       !Phenology/Growth
       ecp%soiltemp_10d = 0.7d0! for Hyytiala10-day running avergeage of soil temp (degC)
       ecp%airtemp_10d = -3.17!for Hyytiala  !10-day running average of air temp (degC) 
-      ecp%soilmoist_10d = 0.5d0!10-day running average of soil moisture (-)
+      ecp%paw_10d = 0.5d0!10-day running average of soil moisture (-)
       ecp%gdd = 0.0d0 !growing degree day
       ecp%ncd = 0.0d0 !number of chilling day
       ecp%ld = 0.0d0  !day length (min)
-      ecp%wat = 0.0d0 !volumetric soil moisture (unitless)
+      ecp%light = 0.0d0
+      ecp%light_prev = 0.0d0 
 
       end subroutine zero_entcell
 !**************************************************************************
@@ -455,7 +456,7 @@
      &           cpooldata(ncov,LABILE),0.d0,
      &           cpooldata(ncov,FR),0.d0,0.d0,0.d0,
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,0.d0, !added last 0 for R_root -PK 5/15/07
-     &           0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0) !KIM-added for phenology/growth
+     &           0.d0,0.d0,0.d0,0.d0,0.d0,1,0.d0) !KIM-added for phenology/growth
           endif
           call summarize_patch(pp)
 
