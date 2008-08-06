@@ -103,7 +103,7 @@ c
 #endif
 
       !USE SEAICE_COM, only : rsi,msi
-      USE SEAICE, only : fsss,tfrez ! number, function - ok
+      USE SEAICE, only : fsss,tfrez,Ei ! number, functions - ok
       USE GEOM, only : dxyp ! ok
       !USE MODEL_COM, only : focean
       USE MODEL_COM, only: dtsrc
