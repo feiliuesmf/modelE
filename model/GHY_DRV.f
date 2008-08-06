@@ -744,9 +744,10 @@ c****
      &     ghy_tracers_save_cell
 #endif
 #ifdef WATER_PROPORTIONAL
-      use tracer_com, only : ntm
+      use tracer_com, only : ntm,trm
       use fluxes, only : gtracer,trevapor,trsrfflx
       use geom, only : dxyp
+      use dynamics, only : am
 #endif
 #ifdef USE_ENT
       use ent_com, only : entcells
@@ -850,6 +851,9 @@ c**** input/output for PBL
       real*8 vis_rad, direct_vis_rad, cos_zen_angle
       integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
       integer :: JEQUATOR=JM/2
+#endif
+#ifdef WATER_PROPORTIONAL
+      real*8, dimension(ntm) :: trconcflx
 #endif
 
 C****   define local grid
@@ -1292,10 +1296,15 @@ c**** update tracers
 c calculate fluxes of atmosphere-only water tracers.
 c assume 1-way until up/down fluxes of vapor are available
 c as a PBL diagnostic.
+      if(aevap.ge.0.) then
+        trconcflx(1:ntm) = gtracer(1:ntm,itype,i,j)
+      else
+        trconcflx(1:ntm) = trm(i,j,1,1:ntm)/(dxyp(j)*am(1,i,j))
+      endif
       trevapor(1:ntm,itype,i,j) = trevapor(1:ntm,itype,i,j) +
-     &     aevap*gtracer(1:ntm,itype,i,j)
+     &     aevap*trconcflx(1:ntm)
       trsrfflx(i,j,1:ntm)=trsrfflx(i,j,1:ntm)+dxyp(j)*ptype*
-     &     aevap*gtracer(1:ntm,itype,i,j)/(pbl_args%dtsurf)
+     &     aevap*trconcflx(1:ntm)/(pbl_args%dtsurf)
 #endif
 
       end do loop_i
