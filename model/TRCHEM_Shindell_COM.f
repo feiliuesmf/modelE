@@ -13,7 +13,7 @@ c
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
-      USE TRACER_COM, only : ntm, trm, TR_MM
+      USE TRACER_COM, only : ntm, trm, TR_MM, ntm_soa
 
       IMPLICIT NONE
       SAVE
@@ -115,37 +115,37 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi  =    93,
      & n_tri =    11,
      & n_nst =     3,
-     & nc     =   53,     !formerly in param sub
-     & ny     =   51,     !formerly in param sub  
+     & nc     =   53+ntm_soa,     !formerly in param sub
+     & ny     =   51+ntm_soa,     !formerly in param sub  
      & numfam =    4,     !formerly in param sub  
-     & nC2O3=     26,
-     & nXO2=      27,    
-     & nXO2N=     28,
-     & nRXPAR=    29,
-     & nROR=      30,
-     & nAldehyde= 31,
-     & nH2O=      32,
-     & nCH3O2=    33,
-     & nH2=       34,
-     & nOH=       35,
-     & nHO2=      36,
-     & nO3=       37,
-     & nO=        38,
-     & nO1D=      39,
-     & nNO=       40,
-     & nNO2=      41,
-     & nNO3=      42,
-     & nHONO=     43,
-     & nCl2O2=    44,
-     & nClO=      45,
-     & nOClO=     46,
-     & nCl2=      47,
-     & nCl=       48,
-     & nBrCl=     49,
-     & nBrO=      50,
-     & nBr=       51,
-     & nO2=       52,
-     & nM=        53,     !you must always put nM last (highest number)
+     & nC2O3=     26+ntm_soa,
+     & nXO2=      27+ntm_soa,
+     & nXO2N=     28+ntm_soa,
+     & nRXPAR=    29+ntm_soa,
+     & nROR=      30+ntm_soa,
+     & nAldehyde= 31+ntm_soa,
+     & nH2O=      32+ntm_soa,
+     & nCH3O2=    33+ntm_soa,
+     & nH2=       34+ntm_soa,
+     & nOH=       35+ntm_soa,
+     & nHO2=      36+ntm_soa,
+     & nO3=       37+ntm_soa,
+     & nO=        38+ntm_soa,
+     & nO1D=      39+ntm_soa,
+     & nNO=       40+ntm_soa,
+     & nNO2=      41+ntm_soa,
+     & nNO3=      42+ntm_soa,
+     & nHONO=     43+ntm_soa,
+     & nCl2O2=    44+ntm_soa,
+     & nClO=      45+ntm_soa,
+     & nOClO=     46+ntm_soa,
+     & nCl2=      47+ntm_soa,
+     & nCl=       48+ntm_soa,
+     & nBrCl=     49+ntm_soa,
+     & nBrO=      50+ntm_soa,
+     & nBr=       51+ntm_soa,
+     & nO2=       52+ntm_soa,
+     & nM=        53+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ   =   28,
      & NJVAL  =   27,     !formerly read in from jv_spec00_15.dat
      & NLFASTJ=  400,     !400 is arbitrary for now
@@ -168,29 +168,29 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi  =    96,
      & n_tri =    14,
      & n_nst =     5,
-     & nc     =   35,     !formerly in param sub
-     & ny     =   33,     !formerly in param sub  
+     & nc     =   35+ntm_soa,     !formerly in param sub
+     & ny     =   33+ntm_soa,     !formerly in param sub  
      & numfam =    2,     !formerly in param sub  
-     & nC2O3=     16,
-     & nXO2=      17,    
-     & nXO2N=     18,
-     & nRXPAR=    19,
-     & nROR=      20,
-     & nAldehyde= 21,
-     & nH2O=      22,
-     & nCH3O2=    23,
-     & nH2=       24,
-     & nOH=       25,
-     & nHO2=      26,
-     & nO3=       27,
-     & nO=        28,
-     & nO1D=      29,
-     & nNO=       30,
-     & nNO2=      31,
-     & nNO3=      32,
-     & nHONO=     33,
-     & nO2=       34,
-     & nM=        35,     !you must always put nM last (highest number)
+     & nC2O3=     16+ntm_soa,
+     & nXO2=      17+ntm_soa,
+     & nXO2N=     18+ntm_soa,
+     & nRXPAR=    19+ntm_soa,
+     & nROR=      20+ntm_soa,
+     & nAldehyde= 21+ntm_soa,
+     & nH2O=      22+ntm_soa,
+     & nCH3O2=    23+ntm_soa,
+     & nH2=       24+ntm_soa,
+     & nOH=       25+ntm_soa,
+     & nHO2=      26+ntm_soa,
+     & nO3=       27+ntm_soa,
+     & nO=        28+ntm_soa,
+     & nO1D=      29+ntm_soa,
+     & nNO=       30+ntm_soa,
+     & nNO2=      31+ntm_soa,
+     & nNO3=      32+ntm_soa,
+     & nHONO=     33+ntm_soa,
+     & nO2=       34+ntm_soa,
+     & nM=        35+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ   =   16,
      & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
      & NLFASTJ=  350,     !350 is arbitrary for now
@@ -577,9 +577,11 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
 #ifdef SHINDELL_STRAT_CHEM
-      INTEGER, DIMENSION(n_fam)        :: nfam = (/37,40,44,50,0/)
+      INTEGER, DIMENSION(n_fam)        :: nfam = 
+     &     (/37+ntm_soa,40+ntm_soa,44+ntm_soa,50+ntm_soa,0/)
 #else
-      INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30,0,0/)
+      INTEGER, DIMENSION(n_fam)        :: nfam = 
+     &     (/27+ntm_soa,30+ntm_soa,0,0/)
 #endif
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
       INTEGER, DIMENSION(p_2)          :: ks

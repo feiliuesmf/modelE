@@ -60,6 +60,9 @@
       use biogenic_emis, only: base_isopreneX
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
+#ifdef TRACERS_AEROSOLS_SOA
+      USE TRACERS_SOA, only: n_soa_i,n_soa_e
+#endif  /* TRACERS_AEROSOLS_SOA */
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_param
 #endif
@@ -777,6 +780,55 @@ C This number wasn't adjusted when the vegetation source was added.
 
 #endif  /* TRACERS_SPECIAL_Shindell */
 
+#ifdef TRACERS_AEROSOLS_SOA
+      case ('isopp1g')
+          n_isopp1g = n
+          n_soa_i = n_isopp1g        !the first from the soa species
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
+          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_wd_TYPE(n) = nGAS
+#ifdef TRACERS_DRYDEP
+          HSTAR(n) = 1.d6
+#endif
+
+      case ('isopp1a')
+          n_isopp1a = n
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
+          trpdens(n) = 1.5d3         !kg/m3
+          trradius(n) = 3.d-7        !m
+          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+
+      case ('isopp2g')
+          n_isopp2g = n
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
+          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_wd_TYPE(n) = nGAS
+#ifdef TRACERS_DRYDEP
+          HSTAR(n) = 1.d6
+#endif
+
+      case ('isopp2a')
+          n_isopp2a = n
+          n_soa_e = n_isopp2a        !the last from the soa species
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
+          trpdens(n) = 1.5d3         !kg/m3
+          trradius(n) = 3.d-7        !m
+          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+
+#endif  /* TRACERS_AEROSOLS_SOA */
+
       case ('DMS')
       n_DMS = n
           ntm_power(n) = -12
@@ -991,7 +1043,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
-      case ('OCB') !Insoluble industrial organic mass
+      case ('OCB') !Biomass organic mass
       n_OCB = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
@@ -2492,7 +2544,7 @@ C**** special one unique to HTO
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LM
-        jls_power(k) = -1.
+        jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
@@ -2545,6 +2597,36 @@ C**** special one unique to HTO
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
 #endif
+
+#ifdef TRACERS_AEROSOLS_SOA
+      case ('isopp1g','isopp2g')
+c put in chemical production
+        k = k + 1
+        jls_3Dsource(nChemistry,n) = k
+        sname_jls(k) = 'chemistry_source_of_'//trname(n)
+        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      case ('isopp1a','isopp2a')
+c put in chemical production
+        k = k + 1
+        jls_3Dsource(nChemistry,n) = k
+        sname_jls(k) = 'chemistry_source_of_'//trname(n)
+        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of SOA
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of_'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of '//trname(n)
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif  /* TRACERS_AEROSOLS_SOA*/
 
       case ('DMS')
         k = k + 1
@@ -3836,6 +3918,20 @@ C**** This needs to be 'hand coded' depending on circumstances
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end select
 #endif
+
+#ifdef TRACERS_AEROSOLS_SOA
+      case ('isopp1g','isopp1a','isopp2g','isopp2a')
+c put in chemical production
+        k = k + 1
+        ijts_3Dsource(nChemistry,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trim(trname(n))//' chemical source'
+        sname_ijts(k) = trim(trname(n))//'_chemical_source'
+        ijts_power(k) = -17
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif  /* TRACERS_AEROSOLS_SOA*/
 
       case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
@@ -7284,6 +7380,30 @@ C**** set some defaults
           end if
 #endif
 
+#ifdef TRACERS_AEROSOLS_SOA
+          case ('isopp1g','isopp1a','isopp2g','isopp2a')
+            g=13; itcon_3Dsrc(nChemistry,N) = g
+            qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+            conpts(g-12) = 'Chemistry'
+            qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+            g=g+1; itcon_mc(n) = g
+            qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            g=g+1; itcon_ss(n) = g
+            qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              g=g+1; itcon_dd(n,1) = g
+              qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              g=g+1; itcon_dd(n,2) = g
+              qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
+
           case ('GLT')
             kt_power_change(n) = -17
 
@@ -8842,6 +8962,13 @@ C         AM=kg/m2, and DXYP=m2:
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*vol2mass(n)*5.d-14
           end do; end do; end do
 
+#ifdef TRACERS_AEROSOLS_SOA
+        case('isopp1g','isopp1a','isopp2g','isopp2a')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = 0.d0
+          end do; end do; end do
+#endif  /* TRACERS_AEROSOLS_SOA*/
+
 #ifdef TRACERS_AMP
         case('M_NO3   ','M_NH4   ','M_H2O   ','N_AKK_1 ',
      *    'N_ACC_1 ','M_DD1_SU','N_DD1_1 ',
@@ -10044,6 +10171,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+      USE TRACERS_SOA, only: n_soa_i,n_soa_e
+#endif  /* TRACERS_AEROSOLS_SOA */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: so2_src_3d,BCI_src_3d,BCB_src,
@@ -10418,6 +10548,9 @@ C**** Make sure that these 3D sources for all chem tracers start at 0.:
       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
       tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d3)  = 0.d0
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+      tr3Dsource(:,J_0:J_1,:,nChemistry,n_soa_i:n_soa_e)  = 0.d0
+#endif  /* TRACERS_AEROSOLS_SOA */
 
 C**** Call the model CHEMISTRY and OVERWRITEs:
       call masterchem ! does chemistry and over-writing.

@@ -28,6 +28,9 @@ c
      &                        n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
      &                        n_Isoprene,n_AlkylNit,n_Alkenes,
      &                        n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
+#ifdef TRACERS_AEROSOLS_SOA
+     &                        n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+#endif  /* TRACERS_AEROSOLS_SOA */
      &                        n_SO4,n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nStratwrite,rsulf1,rsulf2,
      &                        rsulf3,rsulf4,TR_MM,trname
@@ -52,6 +55,9 @@ c
      & ,ijs_COp,ijs_COd,ijs_Oxd,ijs_Oxp
 #endif
       USE TRCHEM_Shindell_COM
+#ifdef TRACERS_AEROSOLS_SOA
+      USE TRACERS_SOA, only: soa_aerosolphase
+#endif  /* TRACERS_AEROSOLS_SOA */
 
       IMPLICIT NONE
 
@@ -90,6 +96,9 @@ C**** Local parameters and variables and arguments:
 !@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
 !@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
+#ifdef TRACERS_AEROSOLS_SOA
+!@+   changeisopp1g,changeisopp2g,
+#endif  /* TRACERS_AEROSOLS_SOA */
 !@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
 !@+   calculate nighttime chemistry changes
 !@var rlossN,rprodN,ratioN variables for nitrogen conservation
@@ -111,6 +120,9 @@ C**** Local parameters and variables and arguments:
      &  gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,
      &  RVELN2O5,changeAldehyde,changeAlkenes,changeAlkylNit,
      &  changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5,
+#ifdef TRACERS_AEROSOLS_SOA
+     & changeisopp1g,changeisopp2g,
+#endif  /* TRACERS_AEROSOLS_SOA */
      &  changeOx,fraQ,CH4_569,count_569,thick, changeCO
 #ifdef TRACERS_HETCHEM
       REAL*8 :: changeN_d1,changeN_d2,changeN_d3
@@ -793,6 +805,13 @@ C Alkenes, Isoprene, and AlkylNit:
         if(-changeAlkenes > 0.75d0*y(n_Alkenes,L))changeAlkenes=
      &  -0.75d0*y(n_Alkenes,L)
 
+#ifdef TRACERS_AEROSOLS_SOA
+! No nighttime production from OH reactions, since no nighttime OH exist.
+! This should be improved in the future.
+        changeisopp1g=0.d0
+        changeisopp2g=0.d0
+#endif  /* TRACERS_AEROSOLS_SOA */
+
         changeIsoprene=-(rr(32,L)*yNO3(I,J,L)
      &                 +rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
         if(-changeIsoprene > 0.75d0*y(n_Isoprene,L))changeIsoprene=
@@ -865,6 +884,11 @@ C Apply Alkenes, AlkyNit, and Aldehyde changes here:
         y(n_Alkenes,L)  =y(n_Alkenes,L)  +changeAlkenes
         y(n_AlkylNit,L) =y(n_AlkylNit,L) +changeAlkylNit
         yAldehyde(I,J,L)=yAldehyde(I,J,L)+changeAldehyde
+
+#ifdef TRACERS_AEROSOLS_SOA
+        y(n_isopp1g,L)  =y(n_isopp1g,L)  +changeisopp1g
+        y(n_isopp2g,L)  =y(n_isopp2g,L)  +changeisopp2g
+#endif  /* TRACERS_AEROSOLS_SOA */
 
 C Note: the lower limit of 1 placed on the resulting tracer mass
 C from the following changes is to prevent negative tracer mass:
@@ -947,6 +971,24 @@ C -- Alkenes --  (Alkenes from gas phase rxns)
           changeAlkenes=changeL(L,n_Alkenes)*mass2vol(n_Alkenes)
      &    *bypfactor
         END IF
+#ifdef TRACERS_AEROSOLS_SOA
+C -- isopp1g --  (isopp1g from gas phase rxns)
+        changeL(L,n_isopp1g)=
+     &  changeisopp1g*pfactor*vol2mass(n_isopp1g)
+        IF((trm(i,j,l,n_isopp1g)+changeL(l,n_isopp1g)) < 0.d0)THEN
+          changeL(l,n_isopp1g) = 0.d0 - trm(i,j,l,n_isopp1g)
+          changeisopp1g=changeL(L,n_isopp1g)*mass2vol(n_isopp1g)
+     &    *bypfactor
+        END IF
+C -- isopp2g --  (isopp2g from gas phase rxns)
+        changeL(L,n_isopp2g)=
+     &  changeisopp2g*pfactor*vol2mass(n_isopp2g)
+        IF((trm(i,j,l,n_isopp2g)+changeL(l,n_isopp2g)) < 0.d0)THEN
+          changeL(l,n_isopp2g) = 0.d0 - trm(i,j,l,n_isopp2g)
+          changeisopp2g=changeL(L,n_isopp2g)*mass2vol(n_isopp2g)
+     &    *bypfactor
+        END IF
+#endif  /* TRACERS_AEROSOLS_SOA */
 c -- Isoprene -- (Isoprene from gas phase rxns)
         changeL(L,n_Isoprene)=
      &  changeIsoprene*pfactor*vol2mass(n_Isoprene)
@@ -1022,6 +1064,18 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeAlkenes)/y(n_Alkenes,L),' percent of'
      &    ,y(n_Alkenes,L),'(',1.d9*y(n_Alkenes,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_AEROSOLS_SOA
+          write(out_line,198) 'isopp1g ',': ',
+     &    changeisopp1g,' molecules produced; ',
+     &    100.d0*(changeisopp1g)/y(n_isopp1g,L),' percent of'
+     &    ,y(n_isopp1g,L),'(',1.d9*y(n_isopp1g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'isopp2g ',': ',
+     &    changeisopp2g,' molecules produced; ',
+     &    100.d0*(changeisopp2g)/y(n_isopp2g,L),' percent of'
+     &    ,y(n_isopp2g,L),'(',1.d9*y(n_isopp2g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_AEROSOLS_SOA */
           write(out_line,198) 'Isoprene',': ',
      &    changeIsoprene,' molecules produced; ',
      &    100.d0*(changeIsoprene)/y(n_Isoprene,L),' percent of'
@@ -1498,6 +1552,11 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
           ENDIF
         endif ! L > maxl
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+        pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
+        bypfactor=1.D0/pfactor
+        call soa_aerosolphase(L,changeL,bypfactor)
+#endif  /* TRACERS_AEROSOLS_SOA */
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Save chemistry changes for applying in apply_tracer_3Dsource.  C
@@ -1870,6 +1929,11 @@ C**** GLOBAL parameters and variables:
       USE DYNAMICS, only : LTROPO
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      &               r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,T_thresh
+#ifdef TRACERS_AEROSOLS_SOA
+      USE TRACER_COM, only: n_isopp1a,n_isopp2a
+      USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
+     &                       whichsoa,dH_isoprene
+#endif  /* TRACERS_AEROSOLS_SOA */
 
       IMPLICIT NONE
 
@@ -2068,6 +2132,16 @@ c         Reaction 2 on sulfate and PSCs:
         endif  
 #endif
       end do                  !  >>> END ALTITUDE LOOP <<<
+#ifdef TRACERS_AEROSOLS_SOA
+      do L=1,LM
+        kpart(L,n_isopp1a)=
+     &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp1a)),ta(L),
+     &              kpart_temp_ref(whichsoa(n_isopp1a)))
+        kpart(L,n_isopp2a)=
+     &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp2a)),ta(L),
+     &              kpart_temp_ref(whichsoa(n_isopp2a)))
+      enddo
+#endif  /* TRACERS_AEROSOLS_SOA */
  
       RETURN
       END SUBROUTINE Crates
@@ -2104,6 +2178,9 @@ C**** Local parameters and variables and arguments:
       DATA tlimit/
      &9.d-5,1.d-5,1.d-7,3.d-6,1.d-1,1.d-6,3.d-6,1.d-1,1.d-1,1.d-1,
      &1.d-1, 1.d-1, 1.d-1, 1.d-1, 1.d-1
+#ifdef TRACERS_AEROSOLS_SOA
+     &,1.d-1, 1.d-1, 1.d-1, 1.d-1
+#endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef SHINDELL_STRAT_CHEM
      &,1.d-1, 1.d-1, 1.d-1, 1.d-1, 1.d-1
      &,1.d-1, 1.d-1, 1.d-1, 1.d-1, 1.d-1/

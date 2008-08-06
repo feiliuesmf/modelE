@@ -17,6 +17,9 @@ C**** GLOBAL parameters and variables:
 #ifdef SHINDELL_STRAT_CHEM
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+      USE TRACERS_SOA, only: soa_init
+#endif  /* TRACERS_AEROSOLS_SOA */
 
       IMPLICIT NONE
 
@@ -57,7 +60,8 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
         pHOx(:,J_0:J_1,:)     =1.d0
         pOx(:,J_0:J_1,:)      =1.d0
         pNOx(:,J_0:J_1,:)     =1.d0
-        yCH3O2(:,J_0:J_1,:)   =1.d5
+!        yCH3O2(:,J_0:J_1,:)   =1.d5 ! this should be 1.d0 and not 1.d5. Or not?
+        yCH3O2(:,J_0:J_1,:)   =1.d0
         yC2O3(:,J_0:J_1,:)    =0.d0
         yROR(:,J_0:J_1,:)     =0.d0
         yXO2(:,J_0:J_1,:)     =0.d0
@@ -77,11 +81,23 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
 #endif
       END IF
 
+#ifdef TRACERS_AEROSOLS_SOA
+      call soa_init
+#endif  /* TRACERS_AEROSOLS_SOA */
+
  100  format(/3(50x,l1/),3(50x,i8/))
 #ifdef SHINDELL_STRAT_CHEM
+#ifdef TRACERS_AEROSOLS_SOA
+ 110  format(5(///10(a8)),(///7(a8)))
+#else
  110  format(5(///10(a8)),(///3(a8)))
+#endif  /* TRACERS_AEROSOLS_SOA */
+#else
+#ifdef TRACERS_AEROSOLS_SOA
+ 110  format(3(///10(a8)),(///9(a8)))
 #else
  110  format(3(///10(a8)),(///5(a8)))
+#endif  /* TRACERS_AEROSOLS_SOA */
 #endif
       return
       END SUBROUTINE cheminit

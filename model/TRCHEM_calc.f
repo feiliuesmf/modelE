@@ -22,6 +22,9 @@ C
 #endif
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
+#ifdef TRACERS_AEROSOLS_SOA
+     &                   n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+#endif  /* TRACERS_AEROSOLS_SOA */
      &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm,n_N2O,
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
      &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem,mass2vol,
@@ -42,6 +45,9 @@ C
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,T_thresh
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+       USE TRACERS_SOA, only: apartmolar,whichsoa
+#endif  /* TRACERS_AEROSOLS_SOA */
 c
       IMPLICIT NONE
 c
@@ -164,6 +170,12 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
         prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.42d0*chemrate(30,L)
         prod(n_HCHO,L)=prod(n_HCHO,L)-0.10d0*chemrate(31,L)
         prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.45d0*chemrate(31,L)
+#ifdef TRACERS_AEROSOLS_SOA
+        prod(n_isopp1g,L)=prod(n_isopp1g,L)+
+     &                    apartmolar(whichsoa(n_isopp1a))*chemrate(30,L)
+        prod(n_isopp2g,L)=prod(n_isopp2g,L)+
+     &                    apartmolar(whichsoa(n_isopp2a))*chemrate(30,L)
+#endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_HETCHEM
         dest(n_HNO3,l)=dest(n_HNO3,l)-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2
 #endif
