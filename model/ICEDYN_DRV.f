@@ -760,7 +760,7 @@ C****
 !@+    At some point this will change (USIDT/VSIDT on ice grid, and RSI
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : lhm,grav,tf
+      USE CONSTANT, only : grav,tf
       USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH
