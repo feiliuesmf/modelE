@@ -1077,7 +1077,9 @@ C**** Is this still necessary now that fluxes are saved?
 #ifdef TRACERS_OCEAN
      *     ,trmo1,txmo1,tymo1
 #endif
-      use domain_decomp, only : grid, get
+!      use domain_decomp, only : grid, get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       INTEGER I,J
@@ -1131,7 +1133,10 @@ C**** Save surface values
 #endif
       USE FLUXES, only : solar,dmua,dmva,dmui,dmvi
       USE SW2OCEAN, only : fsr,lsrpd
-      use domain_decomp, only : grid,get
+
+!      use domain_decomp, only : grid,get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
       use domain_decomp, only : HALO_UPDATE, NORTH, SOUTH
       use domain_decomp, only : HALO_UPDATE_COLUMN
       use domain_decomp, only : am_i_root,globalsum
@@ -2272,6 +2277,7 @@ C****
 !@ver  1.0
 
       USE DOMAIN_DECOMP, only : dist_grid,get
+!      USE OCEANR_DIM 
 
       USE KPP_COM
 

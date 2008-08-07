@@ -7,8 +7,8 @@ C****
 !@ver  2.0
       Use CONSTANT, Only: TWOPI,RADIUS,OMEGA
 
-      Use GEOM,  Only: IM,JM, DXYPA=>DXYP, zDXYPA=>BYDXYP
-      Use OCEAN, Only: DLON,DLAT,FJEQ, 
+      Use GEOM,  Only: DXYPA=>DXYP, zDXYPA=>BYDXYP
+      Use OCEAN, Only: IM,JM, DLON,DLAT,FJEQ, 
      *                 DXYP=>DXYPO, DXYVO, DXYS=>DXYSO, DXYN=>DXYNO,
      *                 DXP=>DXPO, DYP=>DYPO, DXV=>DXVO, DYV=>DYVO,
      *                 RLAT, COSV=>COSVO, SINP=>SINPO, COSP=>COSPO,

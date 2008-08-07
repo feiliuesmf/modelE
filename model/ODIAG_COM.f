@@ -86,7 +86,11 @@ C****
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irerun,irsficno,ioread_single,lhead
       USE ODIAG
-      USE DOMAIN_DECOMP, only: grid, AM_I_ROOT
+
+!      USE DOMAIN_DECOMP, only: grid, AM_I_ROOT
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -453,7 +457,10 @@ C****
 !@ver  1.0
 
       USE ODIAG
-      use domain_decomp, only : grid, pack_data
+
+!      use domain_decomp, only : grid, pack_data
+      use domain_decomp, only : pack_data
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
 
@@ -471,7 +478,10 @@ C****
 !@ver  1.0
 
       USE ODIAG
-      use domain_decomp, only : grid, unpack_data, ESMF_BCAST
+
+!      use domain_decomp, only : grid, unpack_data, ESMF_BCAST
+      use domain_decomp, only : unpack_data, ESMF_BCAST
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
 

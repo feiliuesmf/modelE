@@ -10,22 +10,22 @@ C****
 C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
-      Use MODEL_COM, Only: IM,JM, FIM,BYIM, IVNP,IVSP
       Use GEOM,      Only: imaxj
-      Use OCEANRES,  Only: LMO, LMO_MIN, LSRPD, dZO        
+      Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO        
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : ntm
 #endif
       Use SparseCommunicator_mod
       Implicit None
       Integer*4,Parameter ::
-!!   *  IVSP = 3*IM/4,      !  V at south pole is stored in U(IVSP,1)
-!!   *  IVNP =   IM/4,      !  V at north pole is stored in U(IVNP,JM)
+     *  IVSP = 3*IM/4,      !  V at south pole is stored in U(IVSP,1)
+     *  IVNP =   IM/4,      !  V at north pole is stored in U(IVNP,JM)
      *  JLATD = 180/(JM-1)  !  LATitudinal spacing in degrees
       Real*8,Parameter ::
      *  DLON  = TWOPI/IM,        !  LONgitudinal spacing in radians
      *  DLAT  = TWOPI*JLATD/360, !  LATitudinal spacing in radians
      *  FJEQ  = .5*(1+JM)        !  J coordinate of the EQuator
+      REAL*8, PARAMETER :: FIM=IM, BYIM=1./FIM
 
       Integer*4 ::
      *  OBottom_drag = 1,  !  @dbparam use ocean bottom drag routine
@@ -103,7 +103,10 @@ C**** ocean related parameters
       contains
 
       subroutine gather_ocean (icase)
-      use domain_decomp, only: grid, pack_data
+
+      use domain_decomp, only: pack_data
+      use OCEANR_DIM, only : grid=>ogrid
+
       integer, intent(in) :: icase
 
 c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
@@ -143,7 +146,10 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       end subroutine gather_ocean
 
       subroutine scatter_ocean (icase)
-      use domain_decomp, only: grid, unpack_data
+
+      use domain_decomp, only: unpack_data
+      use OCEANR_DIM, only : grid=>ogrid
+
       integer, intent(in) :: icase
 
 c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
@@ -322,7 +328,7 @@ C****
 C****
       END Module SW2OCEAN
 
-      SUBROUTINE alloc_ocean(grid)
+      SUBROUTINE alloc_ocean
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
@@ -330,8 +336,10 @@ C****
 
       USE DOMAIN_DECOMP, only : dist_grid,get
 
-      USE RESOLUTION, ONLY : IM,JM
-      USE OCEAN, only : LMO
+      USE OCEANR_DIM
+
+      USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
+
       USE OCEAN, only : MO,UO,VO,G0M,GXMO,GYMO,GZMO, OGEOZ,OGEOZ_SV
       USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
 #ifdef TRACERS_OCEAN
@@ -342,12 +350,18 @@ C****
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
 
       IMPLICIT NONE
-      TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
       INTEGER :: IER
+C*
+C**** Define the ocean (Russell) grid 
+C*
+      call init_oceanr_grid  
+C****
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+ 
+!      write (555,*) 
+!      write (555,*) ' alloc_ocean: halos', J_0H,J_1H
 
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -392,8 +406,8 @@ C**** Necessary initiallisation?
       MU=0. ; MV=0. ; MW=0. ; CONV=0.
 
 c??   call ALLOC_GM_COM(grid)
-      call ALLOC_KPP_COM(grid)
-      call alloc_odiag(grid)
+      call ALLOC_KPP_COM(ogrid)
+      call alloc_odiag(ogrid)
 
       return
       end subroutine alloc_ocean

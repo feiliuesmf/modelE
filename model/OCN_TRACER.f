@@ -33,8 +33,11 @@
       USE FLUXES, only : gtracer
 #endif
       USE FILEMANAGER, only : openunit,closeunit
-      USE DOMAIN_DECOMP, only : grid, get, haveLatitude, GLOBALSUM,
+
+!      USE DOMAIN_DECOMP, only : grid, get, haveLatitude, GLOBALSUM,
+      USE DOMAIN_DECOMP, only : get, haveLatitude, GLOBALSUM,
      *     ESMF_BCAST
+      USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
 
@@ -347,7 +350,11 @@ C****
       USE OCN_TRACER_COM, only : n_age
       USE OCEAN, only : trmo,txmo,tymo,tzmo, dxypo, mo, imaxj, focean,
      *     lmm
-      USE DOMAIN_DECOMP, only : grid,get
+
+!      USE DOMAIN_DECOMP, only : grid,get
+      USE DOMAIN_DECOMP, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
       integer i,j,l
 c**** Extract domain decomposition info
@@ -383,7 +390,11 @@ C****
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,lmm,trmo
       USE STRAITS, only : nmst,jst,trmst
-      USE DOMAIN_DECOMP, only : GET, GRID
+
+!      USE DOMAIN_DECOMP, only : GET, GRID
+      USE DOMAIN_DECOMP, only : GET
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 !@var OSALT zonal ocean tracer (kg/m^2)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OTR

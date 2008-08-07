@@ -6,8 +6,6 @@ C****
 C**** RES_OV32.f    2008/07/15
 C****
       Module OCEANRES
-      Use RESOLUTION, Only: IM,JM
-      Use MODEL_COM,  Only: IVSP,IVNP
       Implicit None
 C****
 C**** Vertical resolution of ocean

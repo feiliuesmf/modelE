@@ -303,7 +303,11 @@ C****
       USE STRAITS, only : dist,wist,nmst,distpg,rsist,rsixst,msist,hsist
      *     ,ssist,mmst,g0mst,s0mst,gxmst,sxmst,gzmst,szmst,must,lmst,ist
      *     ,jst,xst,yst
-      use domain_decomp, only: am_i_root, grid, get
+
+!      use domain_decomp, only: am_i_root, grid, get
+      use domain_decomp, only: am_i_root, get
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Use SparseCommunicator_mod
       IMPLICIT NONE
       INTEGER I,J,L,N,I1,J1,I2,J2, ier
@@ -807,7 +811,11 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
       USE STRAITS
-      use domain_decomp, only : grid,am_i_root
+
+!      use domain_decomp, only : grid,am_i_root
+      use domain_decomp, only : am_i_root
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -911,7 +919,11 @@ C****
 
       SUBROUTINE BCAST_straits (skip_tracers)
       USE STRAITS
-      use domain_decomp, only : grid,ESMF_BCAST
+
+!      use domain_decomp, only : grid,ESMF_BCAST
+      use domain_decomp, only : ESMF_BCAST
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
       logical, intent(in) :: skip_tracers
 

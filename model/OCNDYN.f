@@ -29,7 +29,10 @@ C?*** For serial GM/straits computations, pack data into global arrays
      *     ,toijl=>toijl_loc, toijl_conc,toijl_tflx,toijl_gmfl
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE DOMAIN_DECOMP, only : grid,get, haveLatitude
+
+!      USE DOMAIN_DECOMP, only : grid,get, haveLatitude
+      USE DOMAIN_DECOMP, only : get, haveLatitude
+      USE OCEANR_DIM, only : grid=>ogrid
 
 C?*** For serial ODIF/GM/straits computations:
       USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
@@ -266,7 +269,9 @@ c        CALL CHECKO ('STADVI')
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
 
-      USE DOMAIN_DECOMP, only : grid,get
+!      USE DOMAIN_DECOMP, only : grid,get
+      USE DOMAIN_DECOMP, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
@@ -896,7 +901,10 @@ C****
       USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE OCEAN
-      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
+!      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
       REAL*8 SALIM,GO1,SO1,relerr,errmax,temgs
       LOGICAL QCHECKO
@@ -1044,7 +1052,11 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shw
       USE OCEAN, only : im,jm,lmo,ivnp,fim,imaxj,focean,mo,uo,vo,lmm
-      USE DOMAIN_DECOMP, only : GRID, GET, SOUTH, HALO_UPDATE
+
+!      USE DOMAIN_DECOMP, only : GRID, GET, SOUTH, HALO_UPDATE
+      USE DOMAIN_DECOMP, only : GET, SOUTH, HALO_UPDATE
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 !@var OKE zonal ocean kinetic energy per unit area (J/m**2)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OKE
@@ -1088,7 +1100,11 @@ C****
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
       USE STRAITS, only : nmst,jst,g0mst
-      USE DOMAIN_DECOMP, only : GRID, GET
+
+!      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GET
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 !@var OCEANE zonal ocean potential enthalpy (J/m^2)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OCEANE
@@ -1127,7 +1143,11 @@ C****
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
       USE STRAITS, only : nmst,jst,mmst
-      USE DOMAIN_DECOMP, only : GRID, GET, pack_data
+
+!      USE DOMAIN_DECOMP, only : GRID, GET, pack_data
+      USE DOMAIN_DECOMP, only : GET, pack_data
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 !@var OMASS zonal ocean mass (kg/m^2)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OMASS
@@ -1170,7 +1190,11 @@ C****
 !@ver  1.0
       USE CONSTANT, only : radius,omega
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,uo,cosm,cosq,lmu
-      USE DOMAIN_DECOMP, only : GET, GRID
+
+!      USE DOMAIN_DECOMP, only : GET, GRID
+      USE DOMAIN_DECOMP, only : GET
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 !@var OAM ocean angular momentum divided by area (kg/s)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OAM
@@ -1220,7 +1244,11 @@ C****
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
       USE STRAITS, only : nmst,jst,s0mst
-      USE DOMAIN_DECOMP, only : GET, GRID
+
+!      USE DOMAIN_DECOMP, only : GET, GRID
+      USE DOMAIN_DECOMP, only : GET
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
 !@var OSALT zonal ocean salt (kg/m^2)
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OSALT
@@ -1262,7 +1290,11 @@ C**** Output: MM (kg), UM (kg*m/s), VM (kg*m/s)
 C****
       Use OCEAN, Only: IM,JM,LMO, IVSP,IVNP, DXYP=>DXYPO, COSU,SINU,
      *                 COSI=>COSIC,SINI=>SINIC, MO,UO,VO, VONP
-      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+
+!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
       Real*8,Intent(Out),
      *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: MM,UM,VM
@@ -1333,7 +1365,11 @@ C****
      *                  LMOM=>LMM, LMOU=>LMU, LMOV=>LMV,
      *                  COSU,SINU, COSI=>COSIC,SINI=>SINIC,
      *                  zDXYP=>BYDXYPO, MO,UO,VO, VONP
-      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+
+!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
       Real*8, !!! Intent(IN), (except for HALO_UPDATEs)
      *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: MM,UM,VM
@@ -1417,7 +1453,11 @@ C****
       Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM, ZOE=>ZE,dZO, DTO,
      *                 DXYP=>DXYPO,DYP=>DYPO,DXV=>DXVO, MO,UO,VO
       Use OCEAN_DYN, Only: MU,MV,MW, SMU,SMV,SMW, CONV
-      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+
+!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH,SOUTH
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
       Integer*4,Intent(In) :: NS     !  decrementing leap-frog step
       Logical*4,Intent(In) :: QEVEN  !  whether called from even step
@@ -1538,7 +1578,10 @@ C****
       Use OCEAN, Only: IM,JM,LMO,J1O, DLON, DXP=>DXPO, DYP=>DYPO,
      *  JMPF=>J40S  !  greatest J in SH where polar filter is applied
       Use FILEMANAGER, Only: OPENUNIT, CLOSEUNIT
-      Use DOMAIN_DECOMP, Only: GRID
+
+!      Use DOMAIN_DECOMP, Only: GRID
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
 C****
       Real*8,Intent(InOut) ::
@@ -1672,7 +1715,10 @@ C**** Output: MM2 (kg) = MM0 + DT*[CONV + MW(L-1) - MW(L)]
 C****
       Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM
       Use OCEAN_DYN, Only: MW, CONV
-      Use DOMAIN_DECOMP, Only: GRID
+
+!      Use DOMAIN_DECOMP, Only: GRID
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
       Real*8,Intent(Out):: MM2(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO)
       Real*8,Intent(In) :: MM0(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO)
@@ -1715,7 +1761,11 @@ C****
       Use OCEAN, Only: IM,JM,LMO, IVSP,IVNP, DXV=>DXVO,
      *                 COSU,SINU, SINxY,TANxY, MO,UO,VO
       Use OCEAN_DYN, Only: MU,MV,MW
-      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+
+!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH,SOUTH
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
       Real*8,Intent(Out),
      *  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: UM2,VM2
@@ -1990,7 +2040,11 @@ C****
      *                 FOCEAN, mZSOLID=>HOCEAN, DXPGF,DYPGF,
      *                 COSI=>COSIC,SINI=>SINIC, OPRESS,OGEOZ,OPBOT
       Use OCEAN_DYN, Only: VBAR,dH, GUP,GDN, SUP,SDN
-      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+
+!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
       Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
       Real*8,Intent(Out),
@@ -2133,7 +2187,11 @@ C****
       Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM,
      *                 G0M,GZM=>GZMO, S0M,SZM=>SZMO
       Use OCEAN_DYN, Only: MMI, GUP,GDN, SUP,SDN
-      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+
+!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+      USE OCEANR_DIM, only : grid=>ogrid
+
       Implicit None
       Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
       Integer*4 I,J,L,IMAX, J1,JN,JNH
@@ -2179,7 +2237,10 @@ C****       OIJL (kg) = diagnostic accumulation of tracer mass flux
 C****
       USE OCEAN, only : im,jm,lmo
       USE OCEAN_DYN, only : mb=>mmi,smu,smv,smw
-      use domain_decomp, only : grid, get
+
+!      use domain_decomp, only : grid, get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),     DIMENSION
@@ -2240,7 +2301,10 @@ C****             RX,RY,RZ (kg) = first moments of tracer mass
 C****                    M (kg) = ocean mass
 C****
       USE OCEAN, only : im,jm,lmo,lmm,focean
-      use domain_decomp, only : grid, get
+
+!      use domain_decomp, only : grid, get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
@@ -2413,7 +2477,10 @@ c****     rm     (kg) = tracer mass
 c****   rx,ry,rz (kg) = 1st moments of tracer mass
 c****     mo     (kg) = ocean mass
 c****
-      use DOMAIN_DECOMP, only : grid, get, halo_update
+!      use DOMAIN_DECOMP, only : grid, get, halo_update
+      use DOMAIN_DECOMP, only : get, halo_update
+      USE OCEANR_DIM, only : grid=>ogrid
+
       use DOMAIN_DECOMP, only : halo_update_column
       use DOMAIN_DECOMP, only : NORTH, SOUTH, AM_I_ROOT
       use OCEAN, only : im,jm,lmo,lmm,focean
@@ -2564,7 +2631,11 @@ c--------------------------------------------------------------
 c adv1d advects tracers in j-direction using the lin ups scheme
 c--------------------------------------------------------------
       use ocean, only: im,jm,lmo,lmm,focean
-      USE DOMAIN_DECOMP, only: grid, GET
+
+!      USE DOMAIN_DECOMP, only: grid, GET
+      USE DOMAIN_DECOMP, only: GET
+      USE OCEANR_DIM, only : grid=>ogrid
+
       USE DOMAIN_DECOMP, only: NORTH, SOUTH
       USE DOMAIN_DECOMP, only: HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP, only: CHECKSUM
@@ -2871,7 +2942,10 @@ C****             RX,RY,RZ (kg) = first moments of tracer mass
 C****                    M (kg) = ocean mass
 C****
       USE OCEAN, only : im,jm,lmo,lmm,focean
-      use domain_decomp, only : grid, get
+
+!      use domain_decomp, only : grid, get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
@@ -3051,7 +3125,10 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 !@ver  1.0
       Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
      *                 COSI=>COSIC,SINI=>SINIC
-      use domain_decomp, only : grid, get, halo_update, north, south
+
+!      use domain_decomp, only : grid, get, halo_update, north, south
+      use domain_decomp, only : get, halo_update, north, south
+      USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
       REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1
@@ -3146,7 +3223,9 @@ C****
 #ifdef TRACERS_OCEAN
      *     ,ntm,txmo,tymo
 #endif
-      use domain_decomp, only : grid, get
+!      use domain_decomp, only : grid, get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       INTEGER I,IM1,IP1,J,LMIN,L,N
@@ -3200,7 +3279,10 @@ C**** Reduce South-North gradient of tracers
       USE OCEAN, only : im,jm,ivnp,uo,vo,mo,dxyso,dxyno,dxyvo,
      *                  lmu,lmv,cosic,sinic,ratoc
       USE FLUXES, only : dmua,dmva,dmui,dmvi
-      use domain_decomp, only : grid, get, halo_update, north
+
+!      use domain_decomp, only : grid, get, halo_update, north
+      use domain_decomp, only : get, halo_update, north
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       INTEGER I,J,IP1
@@ -3295,7 +3377,10 @@ C**** Surface stress is applied to V component at the North Pole
       USE FLUXES, only : TRGASEX
 #endif
       USE SEAICE_COM, only : rsi
-      use domain_decomp, only : grid, get
+
+!      use domain_decomp, only : grid, get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       INTEGER I,J
@@ -3552,7 +3637,10 @@ C****
      *     ,trmo,dxypo
 #endif
       USE SEAICE_COM, only : rsia=>rsi
-      USE DOMAIN_DECOMP, only : grid,get
+
+!      USE DOMAIN_DECOMP, only : grid,get
+      USE DOMAIN_DECOMP, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -3636,7 +3724,9 @@ C****
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
 
-      USE DOMAIN_DECOMP, ONLY : grid, GET, AM_I_ROOT
+!      USE DOMAIN_DECOMP, ONLY : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : GET, AM_I_ROOT
+      USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
       USE DOMAIN_DECOMP, ONLY : haveLatitude
 
@@ -4255,7 +4345,9 @@ C****
      *     ,trgasex
 #endif
 
-      use domain_decomp, only : grid, get
+!      use domain_decomp, only : grid, get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       INTEGER I,J
@@ -4366,7 +4458,10 @@ C****
 c GISS-ESMF EXCEPTIONAL CASE - AT2OT not needed yet - nothing done yet
       USE MODEL_COM, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm,imaxj,ratoc
-      use domain_decomp, only : grid,get
+
+!      use domain_decomp, only : grid,get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
 !@var QCONSERV true if integrated field must be conserved
@@ -4521,8 +4616,10 @@ C****
      *     ,trgmelt
 #endif
 #endif               /* TNL: inserted */
+!      use domain_decomp, only : grid,get
+      use domain_decomp, only : get
+      USE OCEANR_DIM, only : grid=>ogrid
       USE OCEANRES, only : maxgl
-      use domain_decomp, only : grid,get
 
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT  !@var DT timestep for GLMELT call
@@ -4565,8 +4662,13 @@ C****
      *     ,symo,szmo,dxypo,oc_salt_mean,g0m
       USE STRAITS, only : s0mst,sxmst,szmst,nmst,lmst,g0mst,mmst,dist
      *     ,wist
-      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get, AM_I_ROOT,
+
+!      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get, AM_I_ROOT,
+!     *     ESMF_BCAST
+      use DOMAIN_DECOMP, only: GLOBALSUM, get, AM_I_ROOT,
      *     ESMF_BCAST
+      USE OCEANR_DIM, only : grid=>ogrid
+
       IMPLICIT NONE
       REAL*8 :: totalSalt,totalMass
 

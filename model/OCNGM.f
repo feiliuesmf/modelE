@@ -8,9 +8,11 @@
       USE KPP_COM, only : kpl,kpl_glob   
       USE OCEAN_DYN, only  : dh, vbar   
 
-      USE DOMAIN_DECOMP, ONLY : grid, GET, HALO_UPDATE, NORTH, SOUTH,
+!      USE DOMAIN_DECOMP, ONLY : grid, GET, HALO_UPDATE, NORTH, SOUTH,
+      USE DOMAIN_DECOMP, ONLY : GET, HALO_UPDATE, NORTH, SOUTH,
      *                          PACK_DATA, AM_I_ROOT,
      *                          ESMF_BCAST, UNPACK_DATA
+      USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
 
       SAVE
