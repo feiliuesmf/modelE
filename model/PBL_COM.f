@@ -95,7 +95,9 @@
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
+#ifdef TRACERS_ON
       if(am_i_root()) allocate(trabl_glob(npbl,ntm,4,im,jm))
+#endif
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -165,7 +167,9 @@
       RETURN
       contains
       subroutine freemem
+#ifdef TRACERS_ON
       if(am_i_root()) deallocate(trabl_glob)
+#endif
       end subroutine freemem
       END SUBROUTINE io_pbl
 
