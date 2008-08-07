@@ -152,8 +152,9 @@ C**** SALTI=SALTI - SMELTI        - FSSI2
           MELTS = SNOW1+SNWF
           MELTI = Mi(HICE+HSNOW+ENRGP,SICE,XSI(1)*MSI1-SNOW1) 
           SMELTI = MELTI*SICE/(XSI(1)*MSI1-SNOW1)
+          HMELTI = MELTI*Em(1d3*SICE/(XSI(1)*MSI1-SNOW1))
           FREZI = 0.
-          HICE = HICE+HSNOW+ENRGP
+          HICE = HICE+HSNOW+ENRGP-HMELTI
           HSNOW = 0.
           SNOW1 = 0.
           CMPRS = 0.
@@ -169,6 +170,7 @@ c         ACE1I = ACE1I - MELTI
         ELSE ! some snow remains
           MELTI =0.
           SMELTI=0.
+          HMELTI=0.
           FREZI=MIN(RAIN,MAX(-(HSNOW+ENRGP)*BYLHM-SNOW1-SNWF+MELTS,0d0))
           HICE  = HICE - LHM*FREZI
           HSNOW = HSNOW + ENRGP + LHM*FREZI
@@ -202,8 +204,10 @@ c         ACE1I = ACE1I + FREZI + CMPRS
         CMPRS = 0.
         MELTI = Mi(HICE,SICE,XSI(1)*MSI1)
         SMELTI= MELTI*SICE/(XSI(1)*MSI1)
+        HMELTI= MELTI*Em(1d3*SICE/(XSI(1)*MSI1))
         FREZI = MIN(RAIN,MAX(-HICE*BYLHM-XSI(1)*MSI1+SICE,0d0))
         SNOW1 = SNWF
+        HICE  = HICE  -HMELTI
 c       ACE1I = ACE1I - MELTI + FREZI
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRPRCP(:)*SNWF/PRCP
@@ -315,7 +319,7 @@ C**** Diagnostics for output
       RUN0 = MELTS+MELTI+(RAIN-FREZI) ! runoff mass to ocean
       IF (RUN0.lt.1d-13) RUN0=0. ! clean up roundoff errors
       SRUN0 = SMELTI             ! salt in runoff
-c     ERUN0 = HMELTI             ! energy of runoff
+      ERUN0 = HMELTI             ! energy of runoff
 
 #ifdef TRACERS_WATER
       TRUN0(:)=TRMELTS(:)+TRMELTI(:)+TRRMF(:)  ! tracer flux to ocean
@@ -384,17 +388,18 @@ c     ERUN0 = HMELTI             ! energy of runoff
       REAL*8, INTENT(INOUT) :: SNOW, MSI2
 !@var TSIL temperature of ice layers (C)
       REAL*8, DIMENSION(LMI) :: TSIL
-      REAL*8 MSI1, MELTS, MELTI, MELT3, MELT4, DSNOW
-      REAL*8 DEW, CMPRS, DEWS, DEWI
+      REAL*8 MSI1, MELTS, DSNOW, DEW, CMPRS, DEWS, DEWI
+      REAL*8 MELTI, MELT3, MELT4, FMSI2, FMSI3 
       REAL*8 SMELTI, SMELT3, SMELT4, FSSI2, FSSI3, SICE
-      REAL*8 FMSI2, FMSI3, FHSI2, FHSI3
+      REAL*8 HMELTI, HMELT3, HMELT4, FHSI2, FHSI3
       REAL*8 HC2, HC3, HICE, HSNOW, HCMPRS ! HC1, HC4, 
-      REAL*8 dF2dTI, dF3dTI, F2, F3, FO ! ,dF1dTI, dF4dTI
+      REAL*8 dF2dTI, dF3dTI, F2, F3 !, FO ,dF1dTI, dF4dTI
       REAL*8 ALAM2,ALAM3
 
       FMSI2=0. ; FHSI2=0. ; FHSI3=0. ; FSSI2=0. ; FSSI3=0.
       MELTS=0. ; MELTI=0. ; MELT3=0. ; MELT4=0.
       SMELTI=0 ; SMELT3=0.; SMELT4=0.
+      HMELTI=0 ; HMELT3=0.; HMELT4=0.
 #ifdef TRACERS_WATER
       FTRSI2=0. ; FTRSI3=0.
       TRMELTS=0. ; TRMELTI=0. ; TRMELT3=0. ; TRMELT4=0.
@@ -510,6 +515,8 @@ C**** calculate melt in snow and ice layers
       MELTS = MAX(0d0,HSNOW*BYLHM+SNOW+DEWS)  ! snow melt amount
       MELTI = Mi(HICE,SICE,ACE1I+DEWI) 
       SMELTI= MELTI*SICE/(ACE1I+DEWI)
+      HMELTI= MELTI*Em(1d3*SICE/(ACE1I+DEWI))
+      HICE = HICE - HMELTI
 C**** CMPRS is amount of snow turned to ice during melting
 C**** Calculate remaining snow and necessary mass flux using
 C**** SNOW =SNOW - MELTS + DEWS - CMPRS
@@ -545,10 +552,14 @@ C**** Check for melting in levels 3 and 4
       MELT4 = Mi(HSIL(4),SSIL(4),XSI(4)*MSI2-FMOC)
       SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2)
       SMELT4 = MELT4*SSIL(4)/(XSI(4)*MSI2-FMOC)
+      HMELT3 = MELT3*Em(1d3*SSIL(3)/(XSI(3)*MSI2))
+      HMELT4 = MELT4*Em(1d3*SSIL(4)/(XSI(4)*MSI2-FMOC))
 #ifdef TRACERS_WATER
       TRMELT3(:) = MELT3*TRSIL(:,3)/(XSI(3)*MSI2)
       TRMELT4(:) = MELT4*TRSIL(:,4)/(XSI(4)*MSI2-FMOC)
 #endif
+      HSIL(3) = HSIL(3)-HMELT3
+      HSIL(4) = HSIL(4)-HMELT4
 C***** Calculate consequential heat flux between layers
       IF (FMSI2.gt.0) THEN ! downward flux to thermal layer 3
         FHSI2 = FMSI2*(HICE+HCMPRS)/(ACE1I+DEWI-MELTI+CMPRS)
@@ -621,10 +632,9 @@ C**** Apply fluxes to lower layers
       TRSIL(:,4)=TRSIL(:,4)- TRMELT4(:)+ FTRSI3(:)
 #endif
 C**** Calculate additional runoff output fluxes
-      RUN = MELTS + MELTI + MELT3 + MELT4 ! mass flux to ocean
-      SRUN=        SMELTI +SMELT3 +SMELT4 ! salt flux to ocean
-c HMELT currently assumed to be zero since melting is at 0 deg
-      ERUN= SROX(2)        ! + HMELT
+      RUN = MELTS +  MELTI + MELT3 + MELT4 ! mass flux to ocean
+      SRUN=         SMELTI +SMELT3 +SMELT4 ! salt flux to ocean
+      ERUN= SROX(2)+HMELTI +HMELT3 +HMELT4 ! energy flux to ocean
 #ifdef TRACERS_WATER
       TRUN(:)=TRMELTS(:)+TRMELTI(:)+TRMELT3(:)+TRMELT4(:)
                                 ! tracer flux to ocean
@@ -1911,6 +1921,25 @@ c        Mi=max(0d0,msi+hsi*bylhm)
 
       RETURN
       END FUNCTION Mi
+
+      REAL*8 FUNCTION Em(Si)
+!@sum Calculation of the energy of ice melt (J/kg) as a function salinity
+!@auth Gavin Schmidt
+      USE CONSTANT, only : shw
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: Si ! psu
+
+      select case (form)
+c      case ("PI")               ! no salinity effect
+c        Em= 0.
+      case ("SI")               ! salinity affects only mass
+        Em= 0.
+      case ("BP")               ! brine pocket formulation
+        Em= -mu*Si*shw
+      end select
+
+      RETURN
+      END FUNCTION Em
 
       REAL*8 FUNCTION Alami(Ti,Si)
 !@sum Calculation of thermal diffusion of ice J/(m*degC*sec) =f(T,S)
