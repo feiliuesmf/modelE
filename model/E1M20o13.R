@@ -45,6 +45,7 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 SparseCommunicator_mod              ! sparse gather/scatter module
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
+OCEANR_DIM
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
 SNOW_DRV SNOW                       ! snow model
