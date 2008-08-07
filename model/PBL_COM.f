@@ -86,7 +86,7 @@
 #ifdef TRACERS_ON
 !@var TR_HEADER Character string label for tracer record
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRPBL01"
-      REAL*8, DIMENSION(npbl,ntm,4,im,jm) :: trabl_glob
+      REAL*8, DIMENSION(:,:,:,:,:), allocatable :: trabl_glob
       write (TR_MODULE_HEADER(lhead+1:80),'(a7,i2,a,i2,a)') 'R8 dim(',
      *     npbl,',',ntm,',4,ijm):TRt'
 #endif
@@ -94,6 +94,8 @@
      *  ',4,ijm):Ut,Vt,Tt,Qt,Et dim(4,ijm,3):Cmhq, I:Ipb(4,ijm)'
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      if(am_i_root()) allocate(trabl_glob(npbl,ntm,4,im,jm))
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -156,9 +158,15 @@
         END SELECT
 #endif
       END SELECT
+      call freemem
       RETURN
  10   IOERR=1
+      call freemem
       RETURN
+      contains
+      subroutine freemem
+      if(am_i_root()) deallocate(trabl_glob)
+      end subroutine freemem
       END SUBROUTINE io_pbl
 
       SUBROUTINE io_bldat(kunit,iaction,ioerr)
