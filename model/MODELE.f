@@ -120,6 +120,14 @@ C****
       call init_app(grid,im,jm,lm)
 #endif
 
+C****
+C**** Initialize exchange grid for diagnostics
+C****
+#ifdef CUBE_GRID
+      call init_xgrid(im,jm,ic,jc)
+#endif
+
+
 #ifdef TRACERS_ON
 #ifdef RUNTIME_NTM
 ! allocation of tracer arrays in physics modules needs to know NTM
