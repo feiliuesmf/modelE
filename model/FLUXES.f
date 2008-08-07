@@ -124,6 +124,11 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CHL
 #endif
+#ifdef CHL_from_SeaWIFs
+C**** array of Chlorophyll data for use in ocean albedo calculation
+!@var CHL Chlorophyll concentration data (mgr/m**3)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CHL
+#endif
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
@@ -291,6 +296,9 @@ C**** fluxes associated with variable lake fractions
      &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
 #if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
+     &          CHL     ( I_0H:I_1H , J_0H:J_1H ),
+#endif
+#ifdef CHL_from_SeaWIFs
      &          CHL     ( I_0H:I_1H , J_0H:J_1H ),
 #endif
      &   STAT=IER)

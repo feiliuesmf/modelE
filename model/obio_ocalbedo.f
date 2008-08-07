@@ -24,7 +24,12 @@ c  et al., 1996 (JGR)
 #ifdef OBIO_RAD_coupling
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
 #else
+#ifdef CHL_from_obio
       USE obio_incom, only : wfac
+#endif
+#endif
+#ifdef CHL_from_SeaWIFs
+      USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
 #endif
       implicit none
 

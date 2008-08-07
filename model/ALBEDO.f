@@ -437,6 +437,15 @@ C**** Chlorophyll effect
       enddo
       endif
 #endif
+#ifdef CHL_from_SeaWIFs
+      vrbos=.false.
+      if (ILON.eq.37.and.JLAT.eq.23) vrbos=.true.
+      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
+     .                    LOC_CHL,dummy,dummy,.false.,vrbos)
+
+                print*, 'CHL at i,j= ',ILON,JLAT,LOC_CHL
+      !!if(vrbos) print*, 'CHL at i,j= ',ILON,JLAT,LOC_CHL
+#endif
 
 C**** For lakes increase albedo if lakes are very shallow
 C**** This is a fix to prevent lakes from overheating when they
