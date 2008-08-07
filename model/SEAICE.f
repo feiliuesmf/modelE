@@ -1172,7 +1172,7 @@ C**** Flushing is not included yet - but will depend on MELT12
 C**** push down a fixed mass (inversely proportional to brine-frac)
 C**** first layer ice
         IF (SICE.gt.0) THEN
-        brine_frac=-mu*(SICE/ACE1I)/TICE
+        brine_frac=-mu*(1d3*SICE/ACE1I)/TICE
         if (brine_frac.gt.0.03d0) then ! drain
           rate = DT*BYDTSSI*100.*(brine_frac-0.03d0) ! fractional loss
           DM12 = rate*brine_frac*ACE1I
@@ -1192,7 +1192,7 @@ C**** check remaining layers
         DO L=3,LMI
           IF (SSIL(L).gt.0.) THEN
           TSIL(L)=Ti(HSIL(L)/(XSI(L)*MSI2),1d3*SSIL(L)/(XSI(L)*MSI2))
-          brine_frac=-mu*SSIL(L)/(XSI(L)*MSI2)/TSIL(L)
+          brine_frac=-mu*1d3*SSIL(L)/(XSI(L)*MSI2*TSIL(L))
           if (brine_frac.gt.0.03d0) then ! drain
             rate = DT*BYDTSSI*100.*(brine_frac-0.03d0) ! fractional loss
             DMSI(L) = rate*brine_frac*(XSI(L)*MSI2)
