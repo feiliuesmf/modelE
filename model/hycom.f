@@ -246,7 +246,6 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
           anirdir_loc(:,:)=0.
           anirdif_loc(:,:)=0.
 #endif
-
  28     continue
 
 c$OMP END PARALLEL DO
@@ -662,7 +661,10 @@ cdiag.     tracer(itest,jtest,k,9)
 cdiag  enddo
 cdiag  call obio_limits('bfre obio_model')
 
+
+#ifdef TRACERS_GASEXCH_Natassa
         call scatter_tracer_gasexch_com_arrays
+#endif
         call scatter_obio_forc_arrays
         call obio_model(nn,mm)
         call gather_pCO2

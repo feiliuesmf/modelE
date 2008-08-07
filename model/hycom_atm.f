@@ -57,6 +57,9 @@
      .                  ,DIFNIR_loc => DIFNIR
      .                  ,SRVISSURF_loc => SRVISSURF
 #endif
+#ifdef pCO2_ONLINE
+      USE PBL_DRV, only : t_pbl_args
+#endif
 
 
       implicit none

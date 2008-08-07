@@ -8,7 +8,9 @@
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
       real,    ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dicmod,dic
+#ifndef pCO2_ONLINE
       real,    ALLOCATABLE, DIMENSION(:,:,:,:):: pco2tab
+#endif
 
       real :: rmumax                !max phyto growth rate at 20oC, d/
       real :: rik                   !light saturation parameter umol quanta/m2/s
@@ -99,8 +101,10 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
        integer, parameter :: itainc=2,nta=(500+itainc)/itainc
 
 
+#ifndef pCO2_ONLINE
        !real pco2tab
        !common /bpco2tab/pco2tab(nt0,nsal,ndic,nta)
+#endif
 
       integer nl450
       common/exifst1/nl450

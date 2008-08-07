@@ -47,6 +47,7 @@ c  et al., 1996 (JGR)
       real*8 :: sum1, sum2, part_sum
       real*8 :: refl, ref
 
+!!!!!!!!!!  Boris' part !!!!!!!!!!!!!!!!!
 !@sum Those are the weights which were obtained by normalizing solar flux
 !@sum for the Lamda's range 0 - 4000 nm. We used Landau fitting function for it.
 !@sum They are used to be used for getting 6 band approximation based on 33
@@ -66,6 +67,7 @@ C**** gband is the distribution of the 31 bands for the 6 band GISS code
       integer :: gband(7) = (/ 1, 18, 19, 23, 26, 30, 32 /)
 c      real*8 :: part_sum(6) = (/0.526854,0.0643897,0.196531,0.066281,
 c     .                        0.066922,0.0497974/)
+!!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       logical vrbos,hycgr
 
       integer, parameter :: nlt=33
@@ -147,6 +149,7 @@ c  Reflectance totals
       if (hycgr) return  !we do not compute albedo coefs
                          !from within hycom, but from atmos
       
+!!!!!!!!!! Boris' part !!!!!!!!!!!!!!!!!
 !diffuse spectral reflectance average
 ! c=0.03   0.0404007
 ! c=0.1   0.0271808
@@ -176,6 +179,7 @@ C**** add chlorophyll term
       bocvn(1) = bocvn(1) + refl
       if (vrbos) write(*,*)'ocalbedo, atmos refl,chl:',refl,chl
 
+!!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       return
       end subroutine obio_ocalbedo
 

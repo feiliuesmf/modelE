@@ -692,6 +692,8 @@ cdiag  endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
+       if (vrbos) print*,'obio_model, pco2,tracflx=',
+     .     nstep,i,j,pCO2_ij,tracflx1d(1)
 
        if (diagno_bio) then
          write(iu_pco2,'(3i7,22e12.4)')

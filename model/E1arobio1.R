@@ -1,6 +1,6 @@
-E1arobio1.R GISS Model E  2007 modelE              aromanou 06/09/08
+E1arobio2.R GISS Model E  2007 modelE              aromanou 08/08/08
 
-E1arobio1: obio + gas exch + radiation coupling 
+E1arobio2: obio + gas exch + radiation coupling + pco2 online
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -15,10 +15,11 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
-!!!!#define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
-!!!!#define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
+#define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
+#define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
 #define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
-!!!!#define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
+#define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
+#define pCO2_ONLINE                 ! pCO2_seawater computed online      
 !!!!#define CHL_from_OBIO               ! interactive CHL 
 !!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs
 !!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
@@ -170,12 +171,14 @@ kpar=seawifs_kpar_195x180.tbin     ! monthly/annual seawifs_kpar data
 !!!!!!!!!!!!!!!!!!! obio  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 cfle1=abw25b.dat                         ! seawater spectral absorp. and scatt. coefs
 cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp. and scatt. coefs
-pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from sst,sss,dic,alk
+!!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from sst,sss,dic,alk
+                                            ! if not defined pCO2_ONLINE
 nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
 silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
 dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
 alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk (GLODAP)
-oasimdirect=oasimdirect_20w_new          ! spectral light components
+!!!oasimdirect=oasimdirect_20w_new          ! spectral light components 
+                                            ! if not defined OBIO_RAD_coupling
 atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in water
@@ -186,7 +189,7 @@ CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
 
 
 Label and Namelist:
-E1arobio1 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio2 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 
@@ -270,3 +273,7 @@ nssw=48
    YEARE=1900,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
    ISTART=5,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END
+### Information below describes your run. Do not delete! ###
+Mon Jul 28 20:40:02 EDT 2008
+Version 9.1
+CVS Repository: MAIN Branch
