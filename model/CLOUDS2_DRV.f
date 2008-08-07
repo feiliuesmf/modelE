@@ -934,9 +934,11 @@ C**** TRACERS: Use only the active ones
 #ifndef SKIP_TRACER_DIAGS
           tajln(j,l,jlnt_mc,n) = tajln(j,l,jlnt_mc,n) +
      &          (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
-#endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
+#endif
+#endif /*SKIP_TRACER_DIAGS*/
+#ifdef TRACERS_WATER
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
 #endif
       if (debug .and. nx.eq.1) print*,"drv1",i,l,tm(l,nx)
@@ -1403,9 +1405,11 @@ C**** TRACERS: Use only the active ones
 #ifndef SKIP_TRACER_DIAGS
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &         tm(l,nx)-trm(i,j,l,n)*fssl(l)
-#endif  /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
+#endif
+#endif  /*SKIP_TRACER_DIAGS*/
+#ifdef TRACERS_WATER
           trwm(i,j,l,n) = trwml(nx,l)
 #endif
           trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
@@ -1646,6 +1650,12 @@ C**** Save the conservation quantities for tracers
       end do
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
+
+#ifdef SKIP_TRACER_DIAGS
+#ifdef TRACERS_WATER
+      call trac_accum_clouds
+#endif
+#endif
 
 C**** Delayed summations (to control order of summands)
 C
