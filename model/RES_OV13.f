@@ -13,6 +13,8 @@ C****
 C**** Vertical resolution of ocean
 C****
       Integer*4,Parameter ::
+     *      IMO = 72,
+     *      JMO = 46, 
      *      LMO = 13, !  maximum number of ocean layers in a column
      *  LMO_MIN =  2, !  minimum number of ocean layers in a column
      *    LSRPD =  3, !  deepest layer for penetrating solar radiation
