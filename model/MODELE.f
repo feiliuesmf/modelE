@@ -120,6 +120,13 @@ C****
       call init_app(grid,im,jm,lm)
 #endif
 
+#ifdef TRACERS_ON
+#ifdef RUNTIME_NTM
+! allocation of tracer arrays in physics modules needs to know NTM
+      call read_tracer_config
+#endif
+#endif
+
       call alloc_drv()
 C****
 C**** INITIALIZATIONS
@@ -1722,10 +1729,6 @@ C****   READ SPECIAL REGIONS FROM UNIT 29
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-C**** Initialise tracer parameters and diagnostics
-       call init_tracer
-#endif
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
@@ -1810,6 +1813,12 @@ C**** Ensure that no round off error effects land with ice and earth
          FEARTH(2:IM,JM)=FEARTH(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+C**** Initialise tracer parameters and diagnostics
+       call init_tracer
+#endif
+
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
