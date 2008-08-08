@@ -1042,6 +1042,7 @@ C**** Calculate CHL for current day
 C**** CHL always uses quadratic fit
             CHL(I,J)=ACHL(I,J)+BCHL(I,J)*TIME
      *           +CCHL(I,J)*(TIME**2-BY12)
+      print*, 'RAD_DRV: CHL=',i,j,CHL(I,J)
             if (CHL(I,J).lt. 0) CHL(I,J)=0. ! just in case
           END IF
         END DO
@@ -1151,7 +1152,7 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : nstype,gtempr
-#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
      .                  ,chl
 #endif
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
@@ -1511,7 +1512,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 
-#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) LOC_CHL = chl(I,J)
 #endif

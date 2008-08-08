@@ -410,7 +410,7 @@ C
         XOCVN(L)=XOCNIR
       END DO
 
-#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
 C**** call routine to calculate Gregg version of albedo, including
 C**** Chlorophyll effect
 
@@ -436,15 +436,6 @@ C**** Chlorophyll effect
      .        ILON, JLAT, BOCVN(L), XOCVN(L)
       enddo
       endif
-#endif
-#ifdef CHL_from_SeaWIFs
-      vrbos=.false.
-      if (ILON.eq.37.and.JLAT.eq.23) vrbos=.true.
-      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
-     .                    LOC_CHL,dummy,dummy,.false.,vrbos)
-
-                print*, 'CHL at i,j= ',ILON,JLAT,LOC_CHL
-      !!if(vrbos) print*, 'CHL at i,j= ',ILON,JLAT,LOC_CHL
 #endif
 
 C**** For lakes increase albedo if lakes are very shallow
