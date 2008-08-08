@@ -1,4 +1,4 @@
-E1F40o13.R GISS Model E  coupled version          larissa   07/03/2008
+E1F40o13.R GISS Model E  coupled version          larissa   08/08/2008
 
 E1F40o13: 2x2.5x40 layers modelE version, 1850 atm.; 13 layers in the ocean
 
@@ -26,7 +26,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_F40                             ! horiz/vert resolution, 2x2.5deg, 40 layers -> .1mb
-RES_OV13                            ! ocean vertical resolution, 13 layers  
+RES_2Hx2_L13                        ! ocean horiz res 2x2.5deg, 13 vert layers  
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead

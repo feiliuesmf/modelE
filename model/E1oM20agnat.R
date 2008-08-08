@@ -1,4 +1,4 @@
-E1oM20agnat.R GISS Model E  coupled version          larissa   03/04/2004
+E1oM20agnat.R GISS Model E  coupled version          larissa   08/08/2008
 
 E1oM20agnat: replace this section by a description of what distinguishes this run ?
        Use as many lines as you need. Look carefully at all the possible    ?
@@ -23,7 +23,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-RES_OV13                            ! ocean vertical resolution, 13 layers
+RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 vert layers  
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead

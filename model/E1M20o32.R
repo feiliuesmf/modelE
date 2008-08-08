@@ -1,4 +1,4 @@
-E1M20o32.R GISS Model E  coupled version          larissa   07/23/2008
+E1M20o32.R GISS Model E  coupled version          larissa   08/08/2008
 
 E1M20o32: 4x5x20 layers modelE version, 1880 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.5X4.L32.D1201 
@@ -24,7 +24,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-RES_OV32                            ! ocean vertical resolution, 13 layers  
+RES_5x4_L32                         ! ocean horiz res 4x5deg, 32 vert layers  
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
