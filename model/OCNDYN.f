@@ -4394,6 +4394,8 @@ C****
 #ifdef TRACERS_GASEXCH_Natassa
             GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
 #endif
+          ELSE
+             SSS(I,J)=0.
           END IF
 
         END DO
