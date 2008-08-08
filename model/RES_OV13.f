@@ -6,15 +6,15 @@ C****
 C**** RES_OV13.f    2008/07/03
 C****
       Module OCEANRES
-      Use RESOLUTION, Only: IM,JM
+      Use RESOLUTION, Only: imo=>IM,jmo=>JM
       Use MODEL_COM,  Only: IVSP,IVNP
       Implicit None
 C****
 C**** Vertical resolution of ocean
 C****
       Integer*4,Parameter ::
-     *      IMO = 72,
-     *      JMO = 46, 
+!     *      IMO = 72,
+!     *      JMO = 46, 
      *      LMO = 13, !  maximum number of ocean layers in a column
      *  LMO_MIN =  2, !  minimum number of ocean layers in a column
      *    LSRPD =  3, !  deepest layer for penetrating solar radiation
