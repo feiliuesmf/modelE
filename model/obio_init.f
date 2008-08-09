@@ -5,6 +5,7 @@ c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
 
       USE obio_dim
       USE obio_incom
@@ -46,7 +47,7 @@ c
       data b0,b1,b2,b3 /5.026,-0.01138,9.552E-6,-2.698E-9/
 
 c 
-      print*, 'Ocean Biology setup starts'
+      if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
 
 c  Read in constants, light data
 c  Computes constants over entire run of model, reads in required
@@ -290,7 +291,6 @@ c      hc = 1.0/(h*c)
 
 c  Read in factors to compute average irradiance
 ! (this part originally done inside obio_edeu)
-
       print*, '    '
       print*,'Reading factors for mean irradiance at depth...'
       print*,'nh,nch,ncd=',nh,nch,ncd

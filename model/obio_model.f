@@ -64,6 +64,7 @@ cddd     &     scatter_hycom_arrays
       real    rod(nlt),ros(nlt)
 
       character string*80
+      character jstring*3
 
       logical vrbos,noon,errcon
 
@@ -142,12 +143,16 @@ cddd     &     scatter_hycom_arrays
          write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
        endif
 
-       call openunit('pco2.'//string,iu_pco2)
-       call openunit('tend.'//string,iu_tend)
-
        print*,' '
        print*, 'BIO: saving in pco2 and tend files'
        print*,' '
+       jstring='xxx'
+       if(j_1.lt.100)write(jstring(1:2),'(i2)')j_1
+       if(j_1.ge.100)write(jstring(1:3),'(i3)')j_1
+       print*, 'pco2.'//jstring//string
+       call openunit('pco2.'//jstring//string,iu_pco2)
+       call openunit('tend.'//jstring//string,iu_tend)
+
       endif  !diagno_bio
 
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
@@ -634,12 +639,13 @@ cdiag     endif
         write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=8,14)
        enddo
       endif
+
       if (diagno_bio) then
-      do k=1,kdm
-      write(iu_tend,'(4i5,6e12.4)')
-     .    nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
-     .               ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
-      enddo
+        do k=1,kdm
+        write(iu_tend,'(4i5,6e12.4)')
+     .      nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
+     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
+        enddo
       endif
 
        !------------------------------------------------------------
@@ -747,8 +753,11 @@ cdiag  endif
  1000 continue
 c$OMP END PARALLEL DO
 
-      if (diagno_bio) call closeunit(iu_pco2)
-      if (diagno_bio) call closeunit(iu_tend)
+      if (diagno_bio) then
+        call closeunit(iu_pco2)
+        call closeunit(iu_tend)
+      endif     ! diagno_bio
+
 
       return
       end
