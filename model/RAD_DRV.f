@@ -1107,6 +1107,9 @@ C     OUTPUT DATA
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
+#ifdef HTAP_LIKE_DIAGS
+     &     ,ttausv_sum,ttausv_count
+#endif
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
@@ -1448,6 +1451,10 @@ C**** SS clouds are considered as a block for each continuous cloud
       CALL BURN_RANDOM(SUM(IMAXJ(J_1+1:JM))*LM)
 
       end if                    ! kradia le 0
+ 
+#ifdef HTAP_LIKE_DIAGS
+      ttausv_count=ttausv_count+1.d0
+#endif
 
 C****
 C**** MAIN J LOOP
@@ -2043,6 +2050,15 @@ C**** Save optical depth diags
           END SELECT
         END IF
       end do
+#endif
+
+#ifdef HTAP_LIKE_DIAGS
+! this to accumulate daily SUM of optical thickness for 
+! each active tracer. Will become average in DIAG.f.
+      do n=1,NTRACE
+        if(ntrix(n) > 0) ttausv_sum(i,j,n)=
+     &  ttausv_sum(i,j,n) + sum(ttausv(1:LM,n))
+      enddo
 #endif
 
 #ifdef TRACERS_DUST

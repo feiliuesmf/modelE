@@ -3168,7 +3168,7 @@ C****
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD)
-!@+   Note that TMIN, TMAX can only be output once a day
+!@+   Note that TMIN, TMAX, AOD can only be output once a day
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
 !@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
@@ -3185,6 +3185,7 @@ C****
 !@+                    Clay, Silt1, Silt2, Silt3  ! dust
 !@+                    DUEMIS,DUDEPTURB,DUDEPGRAV,DUDEPWET,DUTRS,DULOAD
 !@+                    DUEMIS2
+!@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
 !@+
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
@@ -3224,9 +3225,15 @@ C****
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
+#ifdef HTAP_LIKE_DIAGS
+     & ,ttausv_sum,ttausv_count,ntrix
+#endif
+#ifdef HTAP_LIKE_DIAGS
+      USE RADPAR, only : NTRACE
+#endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pmb
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -3648,6 +3655,22 @@ C**** cases using all levels up to LmaxSUBDD
             call write_data(data,kunit,polefix)
           end do
           cycle
+
+#ifdef HTAP_LIKE_DIAGS
+C**** for AOD multiple tracers are written to one file 
+          case ('AOD') ! aerosol optical depths daily average
+            kunit=kunit+1
+            if(mod(itime+1,Nday).ne.0) cycle ! only at end of day
+            if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
+            do n=1,NTRACE
+              if(ntrix(n) > 0)then
+                data=ttausv_sum(:,:,n)/ttausv_count
+                polefix=.true.
+                call write_data(data,kunit,polefix)
+              endif
+            enddo
+            cycle
+#endif
 
 C**** cases where multiple records go to one file for dust
 
@@ -4273,7 +4296,10 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE DIAG_COM, only : aij=>aij_loc
      *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GRID,GET,am_i_root
+#ifdef HTAP_LIKE_DIAGS
+      USE RAD_COM, only:  ttausv_sum,ttausv_count
+#endif
       IMPLICIT NONE
       INTEGER I,J
       INTEGER :: J_0, J_1
@@ -4358,8 +4384,14 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
                TSFREZ(I,J,TF_DAY1)=365.
                TSFREZ(I,J,TF_LAST)=365.
             END IF
+#ifdef HTAP_LIKE_DIAGS
+            ttausv_sum(I,J,:)=0.d0 
+#endif
          END DO
       END DO
+#ifdef HTAP_LIKE_DIAGS
+      ttausv_count=0.d0
+#endif
 
       END SUBROUTINE daily_DIAG
 
