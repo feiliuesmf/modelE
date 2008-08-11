@@ -682,10 +682,10 @@ C =====================================================================
       pbl_args%trhr0 = TRHR(0,I,J)
       pbl_args%ocean = (ITYPE.eq.1 .and. FOCEAN(I,J).gt.0)
 #ifdef TRACERS_ON
-      pbl_args%trs(:) = trs(:)
-      pbl_args%trsfac(:) = trsfac(:)
-      pbl_args%trconstflx(:) = trconstflx(:)
-      pbl_args%ntix(:) = ntix(:)
+      pbl_args%trs(1:ntm) = trs(1:ntm)
+      pbl_args%trsfac(1:ntm) = trsfac(1:ntm)
+      pbl_args%trconstflx(1:ntm) = trconstflx(1:ntm)
+      pbl_args%ntix(1:ntm) = ntix(1:ntm)
       pbl_args%ntx = ntx
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -700,7 +700,7 @@ C**** Call pbl to calculate near surface profile
       CALL PBL(I,J,ITYPE,PTYPE,pbl_args)
 
 #ifdef TRACERS_ON
-      trs(:) = pbl_args%trs(:)
+      trs(1:ntm) = pbl_args%trs(1:ntm)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)

@@ -936,8 +936,9 @@ c**** copy output to pbl_args
 
 C**** tracer code output
 #ifdef TRACERS_ON
-      pbl_args%trs(:) = tr(1,:)
-      if (ddml_eq_1) pbl_args%trprime(:) = pbl_args%trdn1(:)-tr(1,:)
+      pbl_args%trs(1:ntm) = tr(1,1:ntm)
+      if (ddml_eq_1)
+     &     pbl_args%trprime(1:ntm) = pbl_args%trdn1(1:ntm)-tr(1,1:ntm)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       pbl_args%wsgcm=wsgcm

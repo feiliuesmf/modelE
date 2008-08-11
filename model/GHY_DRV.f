@@ -165,7 +165,7 @@ ccc set i,j - independent stuff for tracers
       integer n,nx,nsrc
 
 c**** pass indices of tracer arrays to PBL
-      pbl_args%ntix(:) = ntix(:)
+      pbl_args%ntix(1:ntm) = ntix(1:ntm)
       pbl_args%ntx = ntx
 C**** Set up tracers for PBL calculation if required
       do nx=1,ntx
