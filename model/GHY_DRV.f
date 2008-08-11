@@ -748,6 +748,7 @@ c****
       use fluxes, only : gtracer,trevapor,trsrfflx
       use geom, only : dxyp
       use dynamics, only : am
+      use pblcom, only : qabl,trabl
 #endif
 #ifdef USE_ENT
       use ent_com, only : entcells
@@ -853,7 +854,9 @@ c**** input/output for PBL
       integer :: JEQUATOR=JM/2
 #endif
 #ifdef WATER_PROPORTIONAL
-      real*8, dimension(ntm) :: trconcflx
+      real*8, dimension(ntm) :: conc1
+      integer :: lpbl,itr
+      real*8 :: trconcflx
 #endif
 
 C****   define local grid
@@ -1296,15 +1299,23 @@ c**** update tracers
 c calculate fluxes of atmosphere-only water tracers.
 c assume 1-way until up/down fluxes of vapor are available
 c as a PBL diagnostic.
-      if(aevap.ge.0.) then
-        trconcflx(1:ntm) = gtracer(1:ntm,itype,i,j)
-      else
-        trconcflx(1:ntm) = trm(i,j,1,1:ntm)/(dxyp(j)*am(1,i,j))
-      endif
-      trevapor(1:ntm,itype,i,j) = trevapor(1:ntm,itype,i,j) +
-     &     aevap*trconcflx(1:ntm)
-      trsrfflx(i,j,1:ntm)=trsrfflx(i,j,1:ntm)+dxyp(j)*ptype*
-     &     aevap*trconcflx(1:ntm)/(pbl_args%dtsurf)
+      conc1(1:ntm) = trm(i,j,1,1:ntm)/(q1*dxyp(j)*am(1,i,j)+1d-20)
+      do itr=1,ntm
+        if(aevap.ge.0.) then
+          trconcflx = gtracer(itr,itype,i,j)
+        else
+          trconcflx = conc1(itr)
+        endif
+        trevapor(itr,itype,i,j) = trevapor(itr,itype,i,j) +
+     &       aevap*trconcflx
+        trsrfflx(i,j,itr)=trsrfflx(i,j,itr)+dxyp(j)*ptype*
+     &       aevap*trconcflx/(pbl_args%dtsurf)
+c fill in pbl profile in case it is used to initialize
+c another surface type
+        do lpbl=1,npbl
+          trabl(lpbl,itr,itype,i,j)=conc1(itr)*qabl(lpbl,itype,i,j)
+        enddo
+      enddo ! itr
 #endif
 
       end do loop_i
