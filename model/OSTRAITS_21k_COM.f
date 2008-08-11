@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
-
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_WATER
+#endif
       MODULE STRAITS
 !@sum  STRAITS ocean strait related variables 
 !@+    RESOLUTION DEPENDENT: This version is for 72x46 - M
