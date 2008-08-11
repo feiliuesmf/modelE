@@ -1028,7 +1028,7 @@ C**** check whether air mass is conserved
      &,coupled_chem
       USE DOMAIN_DECOMP, only : grid, AM_I_ROOT, PACK_DATA, UNPACK_DATA
      &,PACK_DATAj, UNPACK_DATAj, PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
-     &,UNPACK_COLUMN, esmf_bcast
+     &,UNPACK_COLUMN, esmf_bcast, get
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -1065,11 +1065,13 @@ C**** check whether air mass is conserved
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob,corrOx_glob
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
 #ifdef INTERACTIVE_WETLANDS_CH4 
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
+     &     rHch4,rDch4,r0ch4,rfirst_mod
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE ::
      &     day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
      &     sum_ncep_glob,PRS_ch4_glob
-      INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: Iijch4_glob
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijch4_glob
 #endif
 #endif     
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1084,6 +1086,11 @@ C**** check whether air mass is conserved
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACER01"
 #endif
 
+      INTEGER :: J_0, J_1, J_1H, J_0H
+
+      CALL GET(grid,J_STRT=J_0,J_STOP=J_1, 
+     &         J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+
       if(am_i_root()) allocate(
      &     TRM_GLOB(IM,JM,LM)
      &    ,TRMOM_GLOB(NMOM,IM,JM,LM)
@@ -1096,16 +1103,21 @@ C**** check whether air mass is conserved
       if(am_i_root()) allocate(
      &     Aijl_glob(IM,JM,LM)
      &    ,corrOx_glob(JM,LM,12)
-     &    ,ss_glob(JPPJ,LM,IM,JM)
+     &    ,ss_glob(JPPJ,LM,IM,JM) )
 #ifdef INTERACTIVE_WETLANDS_CH4 
-     &    ,day_ncep_glob(IM,JM,max_days,nra_ncep)
+      if(am_i_root()) allocate(
+     &     day_ncep_glob(IM,JM,max_days,nra_ncep)
      &    ,DRA_ch4_glob(IM,JM,max_days,nra_ch4)
      &    ,sum_ncep_glob(IM,JM,nra_ncep)
      &    ,PRS_ch4_glob(IM,JM,nra_ch4)
      &    ,HRA_ch4_glob(IM,JM,maxHR_ch4,nra_ch4)
-     &    ,Iijch4_glob(IM,JM,nra_ch4)
-#endif
-     &     )
+     &    ,Rijch4_glob(IM,JM,nra_ch4) )
+      allocate( 
+     &     rfirst_mod(IM,J_0H:J_1H,nra_ch4) 
+     &    ,rHch4(IM,J_0H:J_1H,nra_ch4)
+     &    ,rDch4(IM,J_0H:J_1H,nra_ch4)
+     &    ,r0ch4(IM,J_0H:J_1H,nra_ch4) )
+#endif     
 #endif     
 
       SELECT CASE (IACTION)
@@ -1265,18 +1277,22 @@ C**** check whether air mass is conserved
           end do
         end do
         if(am_i_root())write(kunit,err=10)header,HRA_ch4_glob
-       header='INTERACTIVE_WETLANDS_CH4: i0ch4(i,j,#raC) (integer)'
-        call pack_data(grid,i0ch4(:,:,:),Iijch4_glob(:,:,:)) !integer
-        if(am_i_root())write(kunit,err=10)header,Iijch4_glob
-       header='INTERACTIVE_WETLANDS_CH4: iDch4(i,j,#raC) (integer)'
-        call pack_data(grid,iDch4(:,:,:),Iijch4_glob(:,:,:)) !integer
-        if(am_i_root())write(kunit,err=10)header,Iijch4_glob
-       header='INTERACTIVE_WETLANDS_CH4: iHch4(i,j,#raC) (integer)'
-        call pack_data(grid,iHch4(:,:,:),Iijch4_glob(:,:,:)) !integer
-        if(am_i_root())write(kunit,err=10)header,Iijch4_glob
-       header='INTERACTIVE_WETLANDS_CH4: first_mod(i,j,#raC) (integer)'
-        call pack_data(grid,first_mod(:,:,:),Iijch4_glob(:,:,:)) !integer
-        if(am_i_root())write(kunit,err=10)header,Iijch4_glob
+       header='INTERACTIVE_WETLANDS_CH4: i0ch4(i,j,#raC) (real)'
+        r0ch4(:,J_0:J_1,:)=REAL(i0ch4(:,J_0:J_1,:))
+        call pack_data(grid,r0ch4(:,:,:),Rijch4_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijch4_glob
+       header='INTERACTIVE_WETLANDS_CH4: iDch4(i,j,#raC) (real)'
+        rDch4(:,J_0:J_1,:)=REAL(iDch4(:,J_0:J_1,:))
+        call pack_data(grid,rDch4(:,:,:),Rijch4_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijch4_glob
+       header='INTERACTIVE_WETLANDS_CH4: iHch4(i,j,#raC) (real)'
+        rHch4(:,J_0:J_1,:)=REAL(iHch4(:,J_0:J_1,:))
+        call pack_data(grid,rHch4(:,:,:),Rijch4_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijch4_glob
+       header='INTERACTIVE_WETLANDS_CH4: first_mod(i,j,#raC) (real)'
+        rfirst_mod(:,J_0:J_1,:)=REAL(first_mod(:,J_0:J_1,:))
+        call pack_data(grid,rfirst_mod(:,:,:),Rijch4_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijch4_glob
        header='INTERACTIVE_WETLANDS_CH4: iday_ncep,i0_ncep,first_ncep'
         if(am_i_root())write(kunit,err=10)
      &  header,iday_ncep,i0_ncep,first_ncep
@@ -1403,14 +1419,18 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
             call unpack_data
      &      (grid,HRA_ch4_glob(:,:,itm,itm2),HRA_ch4(:,:,itm,itm2))
           end do             ;end do
-          if(am_i_root())read(kunit,err=10)header,Iijch4_glob
-          call unpack_data(grid,Iijch4_glob(:,:,:),i0ch4(:,:,:)) !integer
-          if(am_i_root())read(kunit,err=10)header,Iijch4_glob
-          call unpack_data(grid,Iijch4_glob(:,:,:),iDch4(:,:,:)) !integer
-          if(am_i_root())read(kunit,err=10)header,Iijch4_glob
-          call unpack_data(grid,Iijch4_glob(:,:,:),iHch4(:,:,:)) !integer
-          if(am_i_root())read(kunit,err=10)header,Iijch4_glob
-          call unpack_data(grid,Iijch4_glob(:,:,:),first_mod(:,:,:)) !integer
+          if(am_i_root())read(kunit,err=10)header,Rijch4_glob
+          call unpack_data(grid,Rijch4_glob(:,:,:),r0ch4(:,:,:))
+          i0ch4(:,J_0:J_1,:)=NINT(r0ch4(:,J_0:J_1,:))
+          if(am_i_root())read(kunit,err=10)header,Rijch4_glob
+          call unpack_data(grid,Rijch4_glob(:,:,:),rDch4(:,:,:)) 
+          iDch4(:,J_0:J_1,:)=NINT(rDch4(:,J_0:J_1,:))
+          if(am_i_root())read(kunit,err=10)header,Rijch4_glob
+          call unpack_data(grid,Rijch4_glob(:,:,:),rHch4(:,:,:)) 
+          iHch4(:,J_0:J_1,:)=NINT(rHch4(:,J_0:J_1,:))
+          if(am_i_root())read(kunit,err=10)header,Rijch4_glob
+          call unpack_data(grid,Rijch4_glob(:,:,:),rfirst_mod(:,:,:))
+          first_mod(:,J_0:J_1,:)=NINT(rfirst_mod(:,J_0:J_1,:))
           if(am_i_root())read(kunit,err=10)
      &    header,iday_ncep,i0_ncep,first_ncep
 C**** ESMF: Broadcast all non-distributed read arrays.
@@ -1439,14 +1459,12 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     )
 
 #ifdef TRACERS_SPECIAL_Shindell
-      if(am_i_root()) deallocate(
-     &     Aijl_glob,corrOx_glob,ss_glob
+      if(am_i_root()) deallocate(Aijl_glob,corrOx_glob,ss_glob)
 #ifdef INTERACTIVE_WETLANDS_CH4 
-     &    ,day_ncep_glob,DRA_ch4_glob,sum_ncep_glob
-     &    ,PRS_ch4_glob,HRA_ch4_glob,Iijch4_glob
+      if(am_i_root()) deallocate(day_ncep_glob,DRA_ch4_glob,
+     & sum_ncep_glob,PRS_ch4_glob,HRA_ch4_glob,Rijch4_glob )
+      deallocate( rfirst_mod,rHch4,rDch4,r0ch4)
 #endif
-     &     )
-   
 #endif
       end subroutine freemem
 
