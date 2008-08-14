@@ -2072,19 +2072,20 @@ C**** CORRECTED.
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      INTEGER :: J_0, J_1, J_0H, J_1H
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+     *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
-        CALL CHECK3(U,IM,JM,LM,SUBR,'u     ')
-        CALL CHECK3(V,IM,JM,LM,SUBR,'v     ')
-        CALL CHECK3(T,IM,JM,LM,SUBR,'t     ')
-        CALL CHECK3(Q,IM,JM,LM,SUBR,'q     ')
-        CALL CHECK3(P,IM,JM,1,SUBR,'p     ')
-        CALL CHECK3(WM,IM,JM,LM,SUBR,'wm    ')
+        CALL CHECK3B(U,IM,J_0H,J_1H,JM,LM,SUBR,'u     ')
+        CALL CHECK3B(V,IM,J_0H,J_1H,JM,LM,SUBR,'v     ')
+        CALL CHECK3B(T,IM,J_0H,J_1H,JM,LM,SUBR,'t     ')
+        CALL CHECK3B(Q,IM,J_0H,J_1H,JM,LM,SUBR,'q     ')
+        CALL CHECK3B(P,IM,J_0H,J_1H,JM,1,SUBR,'p     ')
+        CALL CHECK3B(WM,IM,J_0H,J_1H,JM,LM,SUBR,'wm    ')
 #ifdef BLK_2MOM
-        CALL CHECK3(WMICE,IM,JM,LM,SUBR,'wmice    ')
+        CALL CHECK3B(WMICE,IM,J_0H,J_1H,JM,LM,SUBR,'wmice    ')
 #endif
 
         DO J=J_0,J_1
@@ -2123,7 +2124,7 @@ C**** Check Ice arrays
 C**** Check Lake arrays
         CALL CHECKL(SUBR)
 C**** Check Earth arrays
-       CALL CHECKE(SUBR)
+        CALL CHECKE(SUBR)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** check tracers
         CALL CHECKTR(SUBR)
