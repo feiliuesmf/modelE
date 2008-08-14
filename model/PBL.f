@@ -715,7 +715,7 @@ C**** need to hydrate the sea salt before determining settling
 
           if (trnradius(pbl_args%ntix(itr)).gt.0.) then
             pbl_args%gs_vel(pbl_args%ntix(itr))=vgs(rhosrf,rh1
-     &           ,tr_radius,tr_dens,hydrate)
+     &           ,tr_radius,tr_dens,ts,hydrate)
           else
             pbl_args%gs_vel(pbl_args%ntix(itr))=0.
           end if
@@ -1159,7 +1159,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
 !@var Sc    = Schmidt (no relation) number (visc_air_kin/diff)
 !@var Pr    = Prandtl number (visc_air_kin/therm_diff)
 !@var fac_cq_tr = ratio of cq for water isotopes = f(Sc_tr)
-cgav  use constant, only :: nu=>visc_air_kin
+      USE CONSTANT, only : visc_air_kin
       implicit none
 
       real*8,  intent(in) :: lmonin,ustar0,vsurf,zgs,ts
@@ -1173,15 +1173,15 @@ cgav  use constant, only :: nu=>visc_air_kin
 #endif
 
       real*8 :: nu,num,nuh,nuq
-      real*8 dm,ustar,dum,T
+      real*8 dm,ustar,dum
       real*8, parameter :: Sc=0.595d0, Pr=0.71d0
 
-C**** comment out for temperature dependence
-      nu=1.5d-5
-C**** uncomment for temperature dependence of nu
-C**** Kinematic viscosity of dry air - Andreas (1989) CRREL Rep. 89-11
-       T = ts-tf   ! deg C
-!       nu=1.326d-5*(1.+T*(6.542d-3+T*(8.301d-6-4.84d-9*T)))   !m2/s
+C**** Kinematic viscosity
+#ifdef PBL_E1
+      nu=1.5d-5                 ! temperature independent (original E1 value)
+#else
+      nu=visc_air_kin(ts)       ! temperature dependent
+#endif
 
       num=0.135d0*nu
 
@@ -1197,8 +1197,7 @@ c *********************************************************************
         ustar = max(ustar0,1.0125d-5)  ! make sure not too small
 c Compute roughness lengths using smooth/rough surface formulation:
 
-C**** uncomment for COARE algorithm
-c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav
+c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
         z0m=num/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
 
 #ifdef USE_PBL_E1

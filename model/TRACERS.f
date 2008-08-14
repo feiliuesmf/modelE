@@ -770,7 +770,8 @@ C**** air density + relative humidity (wrt water)
 
 C**** calculate stoke's velocity (including possible hydration effects
 C**** and slip correction factor)
-              stokevdt=dtsrc*vgs(airden,rh,tr_radius,tr_dens,hydrate)
+              stokevdt=dtsrc*vgs(airden,rh,tr_radius,tr_dens,temp
+     *             ,hydrate)
 
               fluxu=fluxd       ! from previous level
 
@@ -804,13 +805,13 @@ C****
       return
       end subroutine trgrav
 
-      REAL*8 FUNCTION vgs(airden,rh1,tr_radius,tr_dens,hydrate)
+      REAL*8 FUNCTION vgs(airden,rh1,tr_radius,tr_dens,temp,hydrate)
 !@sum vgs returns settling velocity for tracers (m/s)
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : visc_air,by3,pi,gasc,avog,rt2,deltx
      *     ,mair,grav
       IMPLICIT NONE
-      real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens
+      real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens,temp ! Kelvin
       logical, intent(in) :: hydrate
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
@@ -836,7 +837,7 @@ C**** hydrated density
       end if
 
 C**** calculate stoke's velocity
-      vgs=2.*grav*dens*rad**2/(9.*visc_air)
+      vgs=2.*grav*dens*rad**2/(9.*visc_air(temp))
 
 C**** slip correction factor
 c wmf is the additional velocity if the particle size is small compared
