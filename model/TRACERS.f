@@ -738,8 +738,7 @@ C**** need to hydrate the sea salt before determining settling
 
 C**** Gravitational settling
 !$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
-!$OMP* fgrfluxd,fluxd,fluxu)
-
+!$OMP* fgrfluxd,fluxd,fluxu,tr_dens,tr_radius)
           do j=J_0,J_1
           do i=1,imaxj(j)
             fluxd=0.
@@ -749,17 +748,14 @@ C**** Gravitational settling
                tr_radius = trradius(n)
 
 #ifdef TRACERS_AMP
-      if (n.le.ntmAMP) then
-        if(AMP_MODES_MAP(n).gt.0) then
-        if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
-     &      tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
-
-          call AMPtrdens(i,j,l,n)
-
-          tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
-
-        endif   
-      endif 
+               if (n.le.ntmAMP) then
+                 if(AMP_MODES_MAP(n).gt.0) then
+                   if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
+     &                  tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
+                   call AMPtrdens(i,j,l,n)
+                   tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+                 endif   
+               endif 
 #endif  
               told(i,j,l)=trm(i,j,l,n)
 C**** air density + relative humidity (wrt water)
