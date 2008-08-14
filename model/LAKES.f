@@ -1851,7 +1851,7 @@ C**** no regional diagnostics required
         SROX(1)=SOLAR(1,I,J)      ! solar radiation open lake (J/m^2)
         SROX(2)=SOLAR(3,I,J)      ! solar radiation through ice (J/m^2)
         FSR2 =EXP(-MLDLK(I,J)*BYZETA)
-C**** get ice-ocean fluxes from sea ice routine (over ice fraction)
+C**** get ice-lake fluxes from sea ice routine (over ice fraction)
         RUN0 =RUNOSI(I,J) ! includes ACE2M + basal term
         FIDT =ERUNOSI(I,J)
 C**** calculate kg/m^2, J/m^2 from saved variables

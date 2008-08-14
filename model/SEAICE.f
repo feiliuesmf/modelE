@@ -1845,7 +1845,7 @@ C**** output flux (positive down)
       END SUBROUTINE TICE
 
       REAL*8 FUNCTION Ti(Ei,Si)
-!@sum Ti calulcates sea ice temperature as a function of internal 
+!@sum Ti calculates sea ice temperature as a function of internal 
 !@+   energy and salinity content depending on ice thermo formulation
 !@auth Jiping Liu/Gavin Schmidt
       USE CONSTANT, only : lhm,shw,shi,byshi

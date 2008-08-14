@@ -534,7 +534,7 @@ c latent heat of sublimation
 c heat of fusion
 	    xlf(k)  = xxls(k)-xxlv(k)
 c viscosity of air
-c schmit number
+c schmidt number
 	      mu(k) = 1.496E-6*tk3d(k)**1.5/(tk3d(k)+120.)/rho(k)	
 	      sc(k) = mu(k)/Dv(k)
 c psychometic corrections
