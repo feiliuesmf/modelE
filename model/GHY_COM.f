@@ -657,7 +657,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@var Ci_ij_glob work array for parallel_io
 !@var Qf_ij_glob work array for parallel_io
 !@var cnc_ij_glob work array for parallel_io
-      real*8, dimension(im,jm) :: Ci_ij_glob, Qf_ij_glob, cnc_ij_glob
+      real*8, allocatable, dimension(:,:) :: Ci_ij_glob, Qf_ij_glob,
+     &     cnc_ij_glob
       integer :: force_init_ent=0
 
       call allocate_me
