@@ -168,13 +168,14 @@ C****
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
-!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM,ltop)
+      ltop=lm
+#ifdef TRACERS_SPECIAL_Shindell
+      if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx') ltop=LS1-1
+#endif
+
+!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM)
       do j=J_0,J_1
         sstm = 0.
-        ltop=lm
-#ifdef TRACERS_SPECIAL_Shindell
-        if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx') ltop=LS1-1
-#endif
         do l=1,ltop
           stm = 0.
           do i=1,imaxj(j)
@@ -1127,6 +1128,7 @@ C**** Fill in the undefined pole box duplicates
         taijs (i,jm,:) = taijs(1,jm,:)
       end do
 
+      return
 C**** Fill in maplet indices for tracer concentrations
       k = 0
       do n=1,ntm
