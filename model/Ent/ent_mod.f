@@ -164,7 +164,7 @@ cddd      end interface ent_cell_update
 !*************************************************************************
 !---- interfaces to run the model one time step --------------------------
       subroutine ent_prescribe_vegupdate_1d(entcell,hemi,jday,year,
-     &     update_crops, do_giss_phenology, do_giss_lai,
+     &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
      &     laidata, hdata, albedodata, cropsdata)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
@@ -177,6 +177,7 @@ cddd      end interface ent_cell_update
       logical, intent(in), optional :: update_crops
       logical, intent(in), optional :: do_giss_phenology
       logical, intent(in), optional :: do_giss_lai
+      logical, intent(in), optional :: do_giss_albedo
       real*8, intent(in), optional, target :: laidata(:,:)
       real*8, intent(in), optional, target :: hdata(:,:)
       real*8, intent(in), optional, target :: albedodata(:,:,:)
@@ -186,7 +187,7 @@ cddd      end interface ent_cell_update
       real*8, pointer :: laidata_1(:), hdata_1(:),
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1
+      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
       integer i, ic, j, jc
 
 !      write(780,*) __FILE__,__LINE__,present(hemi)
@@ -209,6 +210,7 @@ cddd      end interface ent_cell_update
       nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
       do_giss_phenology_1 = .false.
       do_giss_lai_1 = .true.
+      do_giss_albedo_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
 
@@ -233,7 +235,8 @@ cddd      end interface ent_cell_update
 !          write(780,*) __FILE__,__LINE__,hemi_1
           
           call entcell_vegupdate(entcell(i)%entcell, hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1, 
+     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
+     &         do_giss_albedo_1,
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
         enddo
       !enddo
@@ -242,7 +245,7 @@ cddd      end interface ent_cell_update
  
 
       subroutine ent_prescribe_vegupdate_2d(entcell,hemi,jday,year,
-     &     update_crops, do_giss_phenology, do_giss_lai,
+     &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
      &     laidata, hdata, albedodata, cropsdata)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
@@ -255,6 +258,7 @@ cddd      end interface ent_cell_update
       logical, intent(in), optional :: update_crops
       logical, intent(in), optional :: do_giss_phenology
       logical, intent(in), optional :: do_giss_lai
+      logical, intent(in), optional :: do_giss_albedo
       real*8, intent(in), optional, target :: laidata(:,:,:)
       real*8, intent(in), optional, target :: hdata(:,:,:)
       real*8, intent(in), optional, target :: albedodata(:,:,:,:)
@@ -264,7 +268,7 @@ cddd      end interface ent_cell_update
       real*8, pointer :: laidata_1(:), hdata_1(:),
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1
+      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
       integer i, ic, j, jc
 
 !      write(780,*) __FILE__,__LINE__,present(hemi)
@@ -287,6 +291,7 @@ cddd      end interface ent_cell_update
       nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
       do_giss_phenology_1 = .false.
       do_giss_lai_1 = .true.
+      do_giss_albedo_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
 
@@ -311,7 +316,8 @@ cddd      end interface ent_cell_update
 !          write(780,*) __FILE__,__LINE__,hemi_1
           
           call entcell_vegupdate(entcell(i,j)%entcell, hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1, 
+     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
+     &         do_giss_albedo_1,
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
         enddo
       enddo

@@ -7,7 +7,7 @@
 
 !@auth N. Kiang
 
-#define OFFLINE TRUE
+!#define OFFLINE TRUE
 
       !Ent MODULES TO USE
       use ent_const

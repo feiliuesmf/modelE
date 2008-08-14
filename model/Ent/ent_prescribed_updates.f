@@ -122,7 +122,7 @@
      
 
       subroutine entcell_vegupdate(entcell, hemi, jday
-     &     ,do_giss_phenology, do_giss_lai
+     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
      &     ,laidata, hdata, albedodata, cropsdata )
 !@sum updates corresponding data on entcell level (and down). 
 !@+   everything except entcell is optional. coordinate-dependent
@@ -138,12 +138,16 @@
       integer,intent(in) :: hemi
       logical, intent(in) :: do_giss_phenology
       logical, intent(in) :: do_giss_lai
+      logical, intent(in) :: do_giss_albedo
       real*8,  pointer :: laidata(:)  !Array of length N_PFT
       real*8,  pointer :: hdata(:)  !Array of length N_PFT
       real*8,  pointer :: albedodata(:,:)
       real*8,  pointer :: cropsdata
       !----Local------
       type(patch),pointer :: pp
+
+cddd      print *,hemi, jday
+cddd     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
 
       if (.not.do_giss_lai) then
       ! update with external data first
@@ -160,6 +164,10 @@
      &       call entcell_update_crops(entcell, cropsdata)
       endif
 
+cddd      print *,"xx",hemi, jday
+cddd     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
+
+
       ! and then do GISS phenology if required
       if ( do_giss_phenology ) then
         if ( hemi<-2 .or. jday <-2 )
@@ -172,9 +180,15 @@
           pp => pp%younger
         end do
 !KIM-temp      endif
-      else
+        endif
+!IA      else
+cddd      print *,"xxx",hemi, jday
+cddd     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
+        if ( do_giss_albedo ) then
 !KIM-temp: albedo needs to be prescribed even with do_phenology=.TRUE.
 !KIM-temp: since the subroutine for the prognostic albedo is not available.
+        if ( hemi<-2 .or. jday <-2 )
+     &       call stop_model("entcell_vegupdate1: needs hemi,jday",255)
         pp => entcell%oldest
         do while (ASSOCIATED(pp))
           call prescr_veg_albedo(hemi, pp%tallest%pft, 
