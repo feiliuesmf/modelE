@@ -1507,10 +1507,10 @@ C****
 !@var dh distance from center of bottom ice layer to base of ice (m)
 !@var mlsh mixed layer specific heat capactity (J/m^2 C) (UNUSED)
       real*8, intent(in) :: Ti,Tm,dh,dtsrc,mlsh
-C**** Assume constant g_T = 1.3d-7, g_S = 0.025 * g_T m/s
-!@var rsg = rhow * shw * g_T turbulent energy flux (J/m^2 s)
+C**** Assume constant g_T = 1.3d-5, g_S = 0.025 * g_T m/s
+!@var rsg = rhow * shw * g_T turbulent energy flux (J/m^2 K s)
 !@var rgS = rhow * g_S turbulent tracer flux (kg/m^2 s)
-      real*8, parameter ::  rsg = rhow*shw*1.3d-7, rgS=rhow*3.2d-9
+      real*8, parameter ::  rsg = rhow*shw*1.3d-5, rgS=rhow*3.2d-7
       real*8 left2, lh, m, alamdh
 #ifdef TRACERS_WATER
 !@var Tri,Trm tracer concentration in ice and upper lake layer (kg/kg)
@@ -1864,16 +1864,20 @@ c        Ti=(Ei+lhm)*byshi
 c**** solve Ei = shi*Ti-lhm*(1-1d-3*Si)
         Ti=(Ei+lhm*(1.-1d-3*Si))*byshi
       case ("BP")               ! Brine pocket formulation
+        if (Si.gt.0) then
 c**** solve Ei = shi*(Ti+mu*Si)-lhm*(1+mu*Si/Ti)-mu*Si*shw
-        Tm=-mu*Si
-        if(Ei .ge. shw*Tm) then ! at or above melting point
-          Ti=Tm
-        else                    ! solve quadratic, take most negative root
-          b=Tm*(shw-shi)-Ei-lhm
-          c=lhm*Tm
-          det=b*b-4d0*shi*c      ! > 0
-          Ti=-5d-1*(b + sqrt(det))*byshi
-        endif
+          Tm=-mu*Si
+          if(Ei .ge. shw*Tm) then ! at or above melting point
+            Ti=Tm
+          else                  ! solve quadratic, take most negative root
+            b=Tm*(shw-shi)-Ei-lhm
+            c=lhm*Tm
+            det=b*b-4d0*shi*c   ! > 0
+            Ti=-5d-1*(b + sqrt(det))*byshi
+          end if
+        else
+          Ti=(Ei+lhm)*byshi  ! pure ice case
+        end if
       end select
 
       return
@@ -1915,8 +1919,12 @@ c        Mi=max(0d0,msi+hsi*bylhm)
       case ("SI")               ! salinity affects only mass
         Mi=max(0d0,msi+hsi*bylhm/(1.-ssi/msi))
       case ("BP")               ! brine pocket formulation
-        Mi=0.
-        if (hsi+shw*mu*1d3*ssi.gt.0) Mi=msi
+        if (ssi.gt.0) then
+          Mi=0.
+          if (hsi+shw*mu*1d3*ssi.gt.0) Mi=msi
+        else
+          Mi=max(0d0,msi+hsi*bylhm)
+        end if
       end select
 
       RETURN
