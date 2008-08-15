@@ -52,6 +52,7 @@
       call ent_initialize(
      &     do_soilresp=.true.
      &     ,do_phenology=.false.
+     &     ,do_frost_hardiness=.false.
      &     ,do_patchdynamics=.false.
      &     )
 
