@@ -716,9 +716,9 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
         ! this can happen only for very low humidity
         ! probably should never happen in the real world, but if it does,
         ! this case should be considered separately
-        print *,"!!! A_d_asymp >= 0.d0 !!!", A_d_asymp
+        !!print *,"!!! A_d_asymp >= 0.d0 !!!", A_d_asymp
         A_d_asymp = -1.d30 !!! hack
-        print *,"K<b*Ra: m,rh,b,Ra:",pspar%m,rh,b,Ra
+        !!print *,"K<b*Ra: m,rh,b,Ra:",pspar%m,rh,b,Ra
         !!call stop_model("ci_cubic: rh too small ?",255)
       endif
 
@@ -743,7 +743,14 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
         do i=1,nroots
           if ( cixx(i) < A .and. cixx(i) > A_d_asymp ) A = cixx(i)
         enddo
-        if ( A == 1.d30 ) call stop_model("ci_cubic: no solution",255)
+        if ( A == 1.d30 )  then
+          print *," m,rh,b,Ra:",pspar%m,rh,b,Ra
+          print *," A_d_asymp,K,gamol,f1,a1,e1,Rd",
+     &         A_d_asymp,K,gamol,f1,a1,e1,Rd
+          print *,"c3,c2,c1,c", c3,c2,c1,c
+          print *,"nroots,cixx",nroots,cixx(1:nroots)
+          call stop_model("ci_cubic: no solution",255)
+        endif
 
         if ( A >= 0 ) then
           cs = ca - A*Ra
@@ -839,7 +846,7 @@ cddd
       integer, intent(out) :: n     ! number of roots
       real*8 :: x0,x1,x2
       real*8 :: a0,a1,a2,Q1,R1,D1
-      real*8, parameter :: EPS0 = 1.d-15
+      real*8, parameter :: EPS0 = 1.d-8 ! 1.d-15
       real*8, parameter :: one3rd = 1.d0/3.d0
       real*8 :: arg, S, T
       complex*16 :: ST
@@ -861,7 +868,7 @@ cddd
           !write(*,*) "Cardano: returning",x0
           n = 1
         else
-          write(*,*) "What's this?"
+          !write(*,*) "What's this?"
           D1 = c*c - 4.d0*b*d
           
           if (D1 > 0.d0) then
