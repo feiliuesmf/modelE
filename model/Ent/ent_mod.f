@@ -1521,6 +1521,7 @@ cddd      end subroutine ent_cell_update_single
      &     albedo,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
+     &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
            !added next 2 -PK 7/07
@@ -1539,6 +1540,7 @@ cddd      end subroutine ent_cell_update_single
      &     C_labile,R_auto,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
+     &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     soilresp  
       real*8, dimension(:), optional, intent(out) ::
@@ -1577,6 +1579,12 @@ cddd      end subroutine ent_cell_update_single
       if ( present(canopy_heat_capacity) ) then
         !aa=ala(1,i0,j0)
         canopy_heat_capacity=entcell%entcell%heat_capacity
+        !call stop_model("not implemmented yet",255)
+      endif
+
+      if ( present(canopy_height) ) then
+        !aa=ala(1,i0,j0)
+        canopy_height=entcell%entcell%h
         !call stop_model("not implemmented yet",255)
       endif
 
@@ -1641,6 +1649,7 @@ cddd      end subroutine ent_cell_update_single
      &     albedo,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
+     &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
      &     soilresp,
@@ -1659,6 +1668,7 @@ cddd      end subroutine ent_cell_update_single
      &     R_auto,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
+     &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     soilresp
       real*8, dimension(:,:), optional, intent(out) ::
@@ -1706,6 +1716,10 @@ cddd      end subroutine ent_cell_update_single
         !aa=ala(1,i0,j0)
         !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
         call stop_model("not implemmented yet",255)
+      endif
+
+      if ( present(canopy_height) ) then
+        canopy_height(i) = entcell(i)%entcell%h
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
@@ -1766,6 +1780,7 @@ cddd      end subroutine ent_cell_update_single
      &     albedo,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
+     &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
      &     soilresp,
@@ -1784,6 +1799,7 @@ cddd      end subroutine ent_cell_update_single
      &     R_auto,
      &     canopy_max_H2O,
      &     canopy_heat_capacity,
+     &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     soilresp
       real*8, dimension(:,:,:), optional, intent(out) ::
@@ -1836,6 +1852,10 @@ cddd      end subroutine ent_cell_update_single
         !aa=ala(1,i0,j0)
         !canopy_heat_capacity=(.010d0+.002d0*aa+.001d0*aa**2)*shw
         call stop_model("not implemmented yet",255)
+      endif
+
+      if ( present(canopy_height) ) then
+        canopy_height(i,j) = entcell(i,j)%entcell%h
       endif
 
       if ( present(fraction_of_vegetated_soil) ) then
