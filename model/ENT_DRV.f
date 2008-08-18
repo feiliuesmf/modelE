@@ -20,6 +20,7 @@
 !@sum initializes vegetation
       use param
       use ent_com, only : entcells,Cint,Qfol,cnc_ij
+      use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use model_com, only : focean
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
@@ -55,6 +56,8 @@
      &     ,do_frost_hardiness=.false.
      &     ,do_patchdynamics=.false.
      &     )
+
+      call prescr_calcconst() ! moved above
 
       if (iniENT ) then
       ! initialize ent cells to something meaningful
@@ -177,7 +180,7 @@ cddd      enddo
 !      call ent_cell_set(entcells, vegdata, popdata, laidata,
 !     &     hdata, nmdata, frootdata, soildata, albedodata, soil_texture)
 
-      call prescr_calcconst()
+      !call prescr_calcconst() ! moved above
 
       call prescr_vegdata(jday, year, 
      &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
