@@ -16,7 +16,14 @@ C**** zonal mean diags
 C**** vertically integrated horizontal fluxes
       REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: safv,sbfv
 
-      real*8, parameter :: mrat_lim=0.375
+      real*8, parameter :: mrat_lim=0.25
+      real*8, parameter :: mrat_lim0=0.25
+
+c z_extra variables
+      logical :: do_z_extra
+      integer, dimension(:,:), allocatable :: lminzij,lmaxzij,
+     &     nstepz_extra
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:,:)   :: mw_extra
 
       contains
 
@@ -37,8 +44,9 @@ C**** vertically integrated horizontal fluxes
      &     mflx,mwdn,fdn,fdn0
       REAL*8, dimension(nmom,im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     fmomdn
-
-      INTEGER :: I,J,L,N,nc,ncxy
+      real*8, dimension(lm) :: ma1d,mw1d,rm1d
+      real*8, dimension(nmom,lm) :: rmom1d
+      INTEGER :: I,J,L,N,nc,ncxy,lmin,lmax,nl,istep
       integer :: jmin_x,jmax_x
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
@@ -165,6 +173,36 @@ c when flow out both sides would cause negative tracer mass, modify moments
           endif
 
         ENDDO                   ! l
+
+c
+c perform the extra z advection "against the grain"
+c
+        if(do_z_extra) then
+          do j=j_0,j_1
+          do i=1,im
+            if(nstepz_extra(i,j).eq.0) cycle
+            lmin = lminzij(i,j)
+            lmax = lmaxzij(i,j)
+            nl = lmax-lmin+1
+            mw1d(1:nl-1) = mw_extra(i,j,lmin:lmax-1)/nstepz_extra(i,j)
+            mw1d(nl) = 0d0      ! important
+            ma1d(1:nl) = ma(i,j,lmin:lmax)
+            rm1d(1:nl) = rm(i,j,lmin:lmax)
+            rmom1d(:,1:nl) = rmom(:,i,j,lmin:lmax)
+            do istep=1,nstepz_extra(i,j)
+              if(qlimit) then
+                call AADVQZ_COLUMN(rm1d,rmom1d,ma1d,mw1d,nl) ! qus1d calls checkfobs?
+              else
+                call AADVQZ2_COLUMN(rm1d,rmom1d,ma1d,mw1d,nl)
+              endif
+            enddo
+            ma(i,j,lmin:lmax) = ma1d(1:nl)
+            rm(i,j,lmin:lmax) = rm1d(1:nl)
+            rmom(:,i,j,lmin:lmax) = rmom1d(:,1:nl)
+          enddo ! i
+          enddo ! j
+        endif ! do_z_extra
+
       enddo                     ! ncyc
 
       RETURN
@@ -178,18 +216,19 @@ c when flow out both sides would cause negative tracer mass, modify moments
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
       USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
      &     ,halo_updatej, globalmax
-      USE DOMAIN_DECOMP, ONLY : NORTH, SOUTH, AM_I_ROOT
+      USE DOMAIN_DECOMP, ONLY : NORTH, SOUTH, AM_I_ROOT, here
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       real*8, intent(in) :: dt_dummy
       INTEGER :: i,j,l,n,nc,nbad,nbad_loc,ierr_loc,ierr,nc3d,ncxy
-     &     ,nstepj_dum,ncycxy_loc
+     &     ,nstepj_dum,ncycxy_loc,im1,lmin,lmax,nl,nstepz_dum,ierr_dum
       REAL*8 :: byn,ssp,snp,mvbyn,mwbyn,mpol,byn3d
       real*8, dimension(im) :: mubyn,am,mi
       integer, dimension(grid%j_strt_halo:grid%j_stop_halo) :: nstep_dum
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     ma2d,mb2d
-
+      real*8, dimension(lm) :: ma1d,mb1d,div1d,mw1d,mamin,wk1d1,wk1d2
+      real*8 :: mwlim
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -205,6 +244,13 @@ C****
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
+
+#ifdef USE_FVCORE
+      CALL HALO_UPDATE(grid, MU, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid, MV, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid, MW, FROM=SOUTH+NORTH)
+#endif
+
       DO L=1,LM
         IF (HAVE_SOUTH_POLE) MU(:,1,L) = 0.
         PV_SOUTH(:,L) = MV(:,J_0H,L)
@@ -213,9 +259,9 @@ C****
         END DO
         IF (HAVE_NORTH_POLE) MU(:,JM,L) = 0.
         IF (HAVE_NORTH_POLE) MV(:,JM,L) = 0.
-        MW(:,j_0:j_1,L) = -MW(:,j_0:j_1,L) ! accum phase should do the switch
+        MW(:,j_0h:j_1h,L) = -MW(:,j_0h:j_1h,L) ! accum phase should do the switch
       ENDDO
-      MW(:,j_0:j_1,LM) = 0.
+      MW(:,j_0h:j_1h,LM) = 0.
       CALL HALO_UPDATE(grid, MV, FROM=NORTH)
 
 c
@@ -236,6 +282,8 @@ c
         do l=1,lm
           ma(:,j_0h:j_1h,l) = mb(:,j_0h:j_1h,l)
         enddo
+        lminzij(:,:) = lm+1;
+        lmaxzij(:,:) = 0
         do nc=1,ncyc
 
 C**** check whether horizontal fluxes reduce mass too much
@@ -244,13 +292,13 @@ C**** check whether horizontal fluxes reduce mass too much
               i=1
               ma(i,j,l) = ma(i,j,l) + 
      &             byn*(mu(im ,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
-              if (ma(i,j,l).lt.mrat_lim*mb(i,j,l)) then
+              if (ma(i,j,l).lt.mrat_lim0*mb(i,j,l)) then
                 nbad_loc = nbad_loc + 1
               endif
               do i=2,im
                 ma(i,j,l) = ma(i,j,l) +
      &               byn*(mu(i-1,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
-                if (ma(i,j,l).lt.mrat_lim*mb(i,j,l)) then
+                if (ma(i,j,l).lt.mrat_lim0*mb(i,j,l)) then
                   nbad_loc = nbad_loc + 1
                 endif
               enddo
@@ -258,14 +306,14 @@ C**** check whether horizontal fluxes reduce mass too much
             if (HAVE_SOUTH_POLE) then
               ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
               ma(:,1 ,l) = ssp
-              if (ma(1,1,l).lt.mrat_lim*mb(1,1,l)) then
+              if (ma(1,1,l).lt.mrat_lim0*mb(1,1,l)) then
                 nbad_loc = nbad_loc + 1
               endif
             endif
             if (HAVE_NORTH_POLE) then
               snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
               ma(:,jm,l) = snp
-              if (ma(1,jm,l).lt.mrat_lim*mb(1,jm,l)) then
+              if (ma(1,jm,l).lt.mrat_lim0*mb(1,jm,l)) then
                 nbad_loc = nbad_loc + 1
               endif
             endif
@@ -280,7 +328,8 @@ c check courant numbers in the z direction
                 do i=1,im
                   mwbyn = mw(i,j,l)*byn
                   if((ma(i,j,l)-mwbyn)*(ma(i,j,l+1)+mwbyn).lt.0.) then
-                    nbad_loc = nbad_loc + 1
+                    lminzij(i,j) = min(lminzij(i,j),l)
+                    lmaxzij(i,j) = max(lmaxzij(i,j),l+1)
                   endif
                 enddo
               enddo
@@ -308,8 +357,6 @@ c update mass from z fluxes
               endif
             endif               ! nc.lt.ncyc
           enddo                 ! l
-          CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
-          IF(NBAD.GT.0) exit    ! nc loop
 
         enddo                   ! nc loop
       enddo                     ! nbad .gt. 0
@@ -325,27 +372,85 @@ C**** Divide the mass fluxes by the number of 3D cycles
         ENDDO
       endif
 
+      if(AM_I_ROOT()) then
+        if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
+      endif
+c
+c nstepz_extra determination, partitioning of vertical mass flux
+c
+c      mw_extra(:,:,:) = 0d0 ! zeroing not needed
+      do_z_extra = .false.
+      do j=j_0,j_1
+      do i=1,im
+        nstepz_extra(i,j) = 0
+        if(lminzij(i,j).ge.lm) cycle
+        im1=i-1
+        if(i.eq.1) im1=im
+        do_z_extra = .true.
+        lmin = lminzij(i,j)
+        lmax = lmaxzij(i,j)
+        nl = lmax-lmin+1
+        do l=lmin,lmax
+          div1d(1+l-lmin) = mu(im1,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l)
+        enddo
+        mb1d(1:nl) = mb(i,j,lmin:lmax)
+        mw1d(1:nl) = mw(i,j,lmin:lmax)
+c first determine the limit on the initial mass flux.
+c at this point, div1d only includes xy contributions.
+        ma1d(1:nl) = mb1d(1:nl)
+        mamin(1:nl) = ma1d(1:nl) + div1d(1:nl)
+        do nc3d=2,ncyc
+          ma1d(1:nl-1) = ma1d(1:nl-1) - mw1d(1:nl-1)
+          ma1d(2:nl  ) = ma1d(2:nl  ) + mw1d(1:nl-1)
+          if(lmin.gt.1 ) ma1d(1 ) = ma1d(1 ) + mw(i,j,lmin-1)
+          if(lmax.lt.lm) ma1d(nl) = ma1d(nl) - mw(i,j,lmax  )
+          ma1d(1:nl) = ma1d(1:nl) + div1d(1:nl)
+          mamin(1:nl) = min(ma1d(1:nl),mamin(1:nl))
+        enddo
+        do l=1,nl-1
+          if(mw1d(l).gt.0.) then
+            mwlim = min(mw1d(l),+mamin(l))
+          else
+            mwlim = max(mw1d(l),-mamin(l+1))
+          endif
+          div1d(l  ) = div1d(l  ) - mwlim
+          div1d(l+1) = div1d(l+1) + mwlim
+          mw1d(l) = mw1d(l) - mwlim
+          mw_extra(i,j,l-1+lmin) = mw1d(l)
+        enddo
+c div1d now includes xy + mwlim contributions
+        if(lmin.gt.1 ) div1d(1 ) = div1d(1 ) + mw(i,j,lmin-1)
+        if(lmax.lt.lm) div1d(nl) = div1d(nl) - mw(i,j,lmax  )
+        ma1d(1:nl) = mb1d(1:nl)
+        do nc3d=1,ncyc
+          ma1d(1:nl) = ma1d(1:nl) + div1d(1:nl)
+          call ZSTEP(MA1D,WK1D1,MW1D,WK1D2,nstepz_dum,NL)
+          nstepz_extra(i,j) = max(nstepz_extra(i,j),nstepz_dum)
+        enddo
+      enddo ! i
+      enddo ! j
+
 c
 c now determine the ncycxy for each level, and nstepx for each lat/level
 c
       ierr_loc = 0  ! for xstep errors
       do l=1,lm
-        if(ncyc.gt.1) mb2d(:,j_0h:j_1h) = mb(:,j_0h:j_1h,l)
         nstepx(j_0:j_1,l) = 1
         ncycxy(l) = 1
         nc3dloop: do nc3d=1,ncyc
+          if(nc3d.eq.1) then
+            ma2d(:,j_0h:j_1h) = mb(:,j_0h:j_1h,l)
+          else
+c            CALL HALO_UPDATE(grid, MB2D, FROM=SOUTH+NORTH)
+            ma2d(:,j_0h:j_1h) = mb2d(:,j_0h:j_1h)
+          endif
           nbad = 1
           do while(nbad.gt.0)
             if(ncycxy(l).gt.ncmax) exit nc3dloop
-            if(nc3d.eq.1) then
-              ma2d(:,j_0h:j_1h) = mb(:,j_0h:j_1h,l)
-            else
-              ma2d(:,j_0:j_1) = mb2d(:,j_0:j_1)
-              CALL HALO_UPDATE(grid, MA2D, FROM=SOUTH+NORTH) ! rarely needed
-            endif
             byn = 1./ncycxy(l)
             nbad = 0
             nstep_dum(j_0:j_1) = 1
+            ierr_dum = 0
             do nc=1,ncycxy(l)
 
 c check y direction courant numbers
@@ -402,20 +507,25 @@ c check mass ratios after y direction
               endif
               if(NBAD.GT.0) then
                 ncycxy(l) = ncycxy(l) + 1
+                if(nc3d.eq.1) then
+                  ma2d(:,j_0h:j_1h) = mb(:,j_0h:j_1h,l)
+                else
+                  ma2d(:,j_0h:j_1h) = mb2d(:,j_0h:j_1h)
+                endif
                 exit            ! nc loop
               endif
 
 C**** determine nstepx
               do j=J_0S,J_1S
                 mubyn(:) = mu(:,j,l)*byn
-                call XSTEP(j,l,ierr_loc,
+                call XSTEP(j,l,ierr_dum,
      &               ma2d(1,j),mubyn,nstepj_dum,am,mi)
                 nstep_dum(j) = max(nstep_dum(j),nstepj_dum)
-                if(nc.lt.ncycxy(l)) ma2d(:,j) = mi(:)
+                if(nc3d.lt.ncyc .or. nc.lt.ncycxy(l)) ma2d(:,j) = mi(:)
               enddo
 
 c update boundary airmasses to avoid layerwise mpi communication during iteration
-              if(nc.lt.ncycxy(l)) then
+              if(nc3d.lt.ncyc .or. nc.lt.ncycxy(l)) then
                 if(.not.have_south_pole) then
                   j=j_0h
                   i=1
@@ -444,19 +554,19 @@ c update boundary airmasses to avoid layerwise mpi communication during iteratio
 c now add the z mass tendency at this level
           if(nc3d.lt.ncyc) then
             if(l.eq.1) then     ! lowest layer
-              do j=J_0,J_1
+              do j=max(1,J_0H),min(JM,J_1H)
                 do i=1,im
                   mb2d(i,j) = ma2d(i,j)-mw(i,j,l)
                 enddo
               enddo
             else if(l.eq.lm) then ! topmost layer
-              do j=J_0,J_1
+              do j=max(1,J_0H),min(JM,J_1H)
                 do i=1,im
                   mb2d(i,j) = ma2d(i,j)+mw(i,j,l-1)
                 end do
               end do
             else                ! interior layers
-              do j=J_0,J_1
+              do j=max(1,J_0H),min(JM,J_1H)
                 do i=1,im
                   mb2d(i,j) = ma2d(i,j)+(mw(i,j,l-1)-mw(i,j,l))
                 enddo
@@ -465,7 +575,8 @@ c now add the z mass tendency at this level
           endif
 
           nstepx(j_0:j_1,l) = max(nstepx(j_0:j_1,l),nstep_dum(j_0:j_1))
-          
+          ierr_loc = max(ierr_loc,ierr_dum)
+
         enddo nc3dloop
 
 c globalmax of ncycxy. DOMAIN_DECOMP needs a vector version of globalmax
@@ -493,13 +604,29 @@ C**** Further divide the xy mass fluxes by the number of xy cycles at each level
      &     call stop_model('too many steps in xstep',255)
 
       if(AM_I_ROOT()) then
-        if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
         do l=1,lm
           if(ncycxy(l).gt.1)
      &         write(6,*) 'AADVQ0: ncycxy>1 at l= ',l,ncycxy(l)
         enddo
       endif
-      
+
+c
+c subtract mw_extra from mw so that mw never exceeds courant limits
+c
+      if(do_z_extra) then
+        do j=j_0,j_1
+        do i=1,im
+          if(nstepz_extra(i,j).gt.0) then
+            lmin = lminzij(i,j)
+            lmax = lmaxzij(i,j)-1
+            do l=lmin,lmax
+              mw(i,j,l) = mw(i,j,l) - mw_extra(i,j,l)
+            enddo
+          endif
+        enddo
+        enddo
+      endif
+
       RETURN
       END subroutine AADVQ0
 
@@ -519,7 +646,7 @@ C**** Further divide the xy mass fluxes by the number of xy cycles at each level
       integer :: nstep
       integer :: i,ns
       REAL*8 :: courmax
-      integer, parameter :: nstepmax=20 ! 60 needed for 0.5 degree resolution
+      integer, parameter :: nstepmax=40 ! 60 needed for 0.5 degree resolution
 c      ierr=0
       nstep=0
       courmax = 2.
@@ -566,6 +693,42 @@ c      ierr=0
       RETURN
       END SUBROUTINE XSTEP
 
+      SUBROUTINE ZSTEP (M0,ML,CM0,CM,NSTEP,NL)
+!@sum ZSTEP determines the number of Z timesteps for tracer dynamics
+!@+    using Courant limits
+!@auth M. Kelley
+!@ver  1.0
+      IMPLICIT NONE
+      integer :: nstep,nl
+      REAL*8, dimension(nl) :: m0,ml,cm0,cm  ! ml,cm are temporary arrays
+      integer :: ns,l
+      logical :: done
+      nstep=0
+      done = .false.
+      do while(.not.done)
+        nstep = nstep+1
+        cm(1:nl-1) = cm0(1:nl-1)/nstep
+        ml(1:nl)  = m0(1:nl)
+        done = .true.
+        nsloop: do ns=1,nstep
+          do l=1,nl-1
+            if((ml(l)-cm(l))*(ml(l+1)+cm(l)).lt.0.) then
+              done = .false.
+              exit nsloop
+            endif
+          enddo
+          if(ns.lt.nstep) then
+            ml(1:nl-1) = ml(1:nl-1)-cm(1:nl-1)
+            ml(2:nl  ) = ml(2:nl  )+cm(1:nl-1)
+          endif
+        enddo nsloop
+      enddo ! .not.done
+      m0(1:nl-1) = m0(1:nl-1)-cm0(1:nl-1)
+      m0(2:nl  ) = m0(2:nl  )+cm0(1:nl-1)
+      RETURN
+      END SUBROUTINE ZSTEP
+
+
       SUBROUTINE ALLOC_TRACER_ADV(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
@@ -599,6 +762,14 @@ C****
       ALLOCATE( safv(IM,J_0H:J_1H),
      *          sbfv(IM,J_0H:J_1H) )
   
+
+      allocate(lminzij(IM,J_0H:J_1H),
+     &         lmaxzij(IM,J_0H:J_1H),
+     &          nstepz_extra(IM,J_0H:J_1H)
+     &     )
+
+      allocate(mw_extra(im,j_0h:j_1h,lm))
+
       END SUBROUTINE ALLOC_TRACER_ADV
 
       subroutine aadvqx(rm,rmom,mass,mu,jmin,jmax,nstep,safv)
@@ -1744,3 +1915,207 @@ c**** Get useful local parameters for domain decomposition
       return
 c****
       end subroutine aadvqz2
+
+      subroutine aadvqz_column(rm,rmom,mass,mw,nl)
+!@sum  AADVQZ advection driver for z-direction
+!@auth Maxwell Kelley
+      use QUSDEF
+      implicit none
+      integer :: nl
+      REAL*8, dimension(nl) :: rm,mass,mw
+      REAL*8, dimension(nmom,nl) :: rmom
+      REAL*8, dimension(NMOM) :: fmomdn,fmomup
+      integer :: l,ll
+      real*8 :: frac1,fracm,fup,mold,mnew,bymnew,dm2,mwdn,fdn,fdn0
+      real*8 :: fup0,fup_pass,rm0,fupz_pass,fupzz_pass
+
+      mwdn = 0.
+      fdn = 0.
+      fdn0 = 0.
+      fmomdn(:) = 0.
+
+      do l=1,nl
+        if(mw(l).lt.0.) then  ! air mass flux is negative
+          ll=l+1
+          frac1=+1.
+        else                  ! air mass flux is positive
+          ll=l
+          frac1=-1.
+        endif
+        fracm=mw(l)/mass(ll)
+        frac1=fracm+frac1
+        fup=fracm*(rm(ll)-frac1*(rmom(mz,ll)-
+     &       (frac1+fracm)*rmom(mzz,ll)))
+        fmomup(mz)=mw(l)*(fracm*fracm*(rmom(mz,ll)
+     &       -3.*frac1*rmom(mzz,ll))-3.*fup)
+        fmomup(mzz)=mw(l)*(mw(l)*fracm**3 *rmom(mzz,ll)
+     &       -5.*(mw(l)*fup+fmomup(mz)))
+        fmomup(my)  = fracm*(rmom(my,ll)-frac1*rmom(myz,ll))
+        fmomup(myz) = mw(l)*
+     &       (fracm*fracm*rmom(myz,ll)-3.*fmomup(my))
+        fmomup(mx)  = fracm*(rmom(mx,ll)-frac1*rmom(mzx,ll))
+        fmomup(mzx) = mw(l)*
+     &       (fracm*fracm*rmom(mzx,ll)-3.*fmomup(mx))
+        fmomup(myy) = fracm*rmom(myy,ll)
+        fmomup(mxx) = fracm*rmom(mxx,ll)
+        fmomup(mxy) = fracm*rmom(mxy,ll)
+
+! flux limitations
+        fup0 = fup
+        fup_pass = fup
+        fupz_pass = fmomup(mz)
+        fupzz_pass = fmomup(mzz)
+        if(mw(l).gt.0.) then
+          if(fup.lt.0.) then
+            fup=0.
+            fup_pass=0.
+            fupz_pass=0
+            fupzz_pass=0.
+          elseif(fup.gt.rm(l)) then
+            fup=rm(l)
+            fup_pass = fup
+            fupz_pass=mw(l)*(-3.*fup)
+            fupzz_pass=mw(l)*(-5.*(mw(l)*fup+fupz_pass))
+          endif
+        elseif(mw(l).lt.0.) then
+          if(fup.gt.0.) then
+            fup=0.
+            fup0=0.
+            fmomup((/mz,mzz/))=0.
+          elseif(fup.lt.-rm(l+1)) then
+            fup=-rm(l+1)
+            fup0 = fup
+            fmomup(mz)=mw(l)*(-3.*fup)
+            fmomup(mzz)=mw(l)*(-5.*(mw(l)*fup+fmomup(mz)))
+          endif
+        endif
+
+        mold=mass(l)
+        mnew=mold+mwdn-mw(l)
+        bymnew = 1./mnew
+        dm2=mwdn+mw(l)
+        rm0=rm(l)+fdn0-fup0
+        rm(l)=rm(l)+fdn-fup
+      !
+        rmom(mz,l)=(rmom(mz,l)*mold-3.*(-dm2*rm0
+     &       +mold*(fdn0+fup0))+(fmomdn(mz)-fmomup(mz)))*bymnew
+        rmom(mzz,l) = (rmom(mzz,l)*mold*mold
+     &       +2.5*rm0*(mold*mold-mnew*mnew-3.*dm2*dm2)
+     &       +5.*(mold*(mold*(fdn0-fup0)-fmomdn(mz)
+     &       -fmomup(mz))+dm2*rmom(mz,l)*mnew)
+     &       +(fmomdn(mzz)-fmomup(mzz))) * (bymnew*bymnew)
+      ! cross moments
+        rmom(my,l)=rmom(my,l)+fmomdn(my)-fmomup(my)
+        rmom(myz,l)=(rmom(myz,l)*mold-3.*(-dm2*rmom(my,l) +
+     &       mold*(fmomdn(my)+fmomup(my))) +
+     &       (fmomdn(myz)-fmomup(myz)))*bymnew
+        rmom(mx,l)=rmom(mx,l)+fmomdn(mx)-fmomup(mx)
+        rmom(mzx,l)=(rmom(mzx,l)*mold-3.*(-dm2*rmom(mx,l) +
+     &       mold*(fmomdn(mx)+fmomup(mx))) +
+     &       (fmomdn(mzx)-fmomup(mzx)))*bymnew
+      !
+        rmom(myy,l)=rmom(myy,l)+fmomdn(myy)-fmomup(myy)
+        rmom(mxx,l)=rmom(mxx,l)+fmomdn(mxx)-fmomup(mxx)
+        rmom(mxy,l)=rmom(mxy,l)+fmomdn(mxy)-fmomup(mxy)
+
+        mass(l) = mnew
+
+! clean up roundoff errors
+        if(rm(l).le.0d0) then
+          rm(l)=0d0; rmom(:,l)=0d0
+        endif
+
+        mwdn = mw(l)
+        fdn = fup
+        fmomdn(:) = fmomup(:)
+
+        fdn0 = fup_pass
+        fmomdn(mz) = fupz_pass
+        fmomdn(mzz) = fupzz_pass
+
+      enddo ! l
+
+      return
+c****
+      end subroutine aadvqz_column
+
+      subroutine aadvqz2_column(rm,rmom,mass,mw,nl)
+!@sum  AADVQZ2_COLUMN version of AADVQZ_COLUMN without flux limiter
+!@auth Maxwell Kelley
+      use QUSDEF
+      implicit none
+      integer :: nl
+      REAL*8, dimension(nl) :: rm,mass,mw
+      REAL*8, dimension(nmom,nl) :: rmom
+      REAL*8, dimension(NMOM) :: fmomdn,fmomup
+      integer :: l,ll
+      real*8 :: frac1,fracm,fdn,fup,mwdn,mold,mnew,bymnew,dm2
+
+      mwdn = 0.
+      fdn = 0.
+      fmomdn(:) = 0.
+
+      do l=1,nl
+        if(mw(l).lt.0.) then    ! air mass flux is negative
+          ll=l+1
+          frac1=+1.
+        else                    ! air mass flux is positive
+          ll=l
+          frac1=-1.
+        endif
+        fracm=mw(l)/mass(ll)
+        frac1=fracm+frac1
+        fup=fracm*(rm(ll)-frac1*(rmom(mz,ll)-
+     &       (frac1+fracm)*rmom(mzz,ll)))
+        fmomup(mz)=mw(l)*(fracm*fracm*(rmom(mz,ll)
+     &       -3.*frac1*rmom(mzz,ll))-3.*fup)
+        fmomup(mzz)=mw(l)*(mw(l)*fracm**3 *rmom(mzz,ll)
+     &       -5.*(mw(l)*fup+fmomup(mz)))
+        fmomup(my)  = fracm*(rmom(my,ll)-frac1*rmom(myz,ll))
+        fmomup(myz) = mw(l)*
+     &       (fracm*fracm*rmom(myz,ll)-3.*fmomup(my))
+        fmomup(mx)  = fracm*(rmom(mx,ll)-frac1*rmom(mzx,ll))
+        fmomup(mzx) = mw(l)*
+     &       (fracm*fracm*rmom(mzx,ll)-3.*fmomup(mx))
+        fmomup(myy) = fracm*rmom(myy,ll)
+        fmomup(mxx) = fracm*rmom(mxx,ll)
+        fmomup(mxy) = fracm*rmom(mxy,ll)
+
+        mold=mass(l)
+        mnew=mold+mwdn-mw(l)
+        bymnew = 1./mnew
+        dm2=mwdn+mw(l)
+        rm(l)=rm(l)+fdn-fup
+      !
+        rmom(mz,l)=(rmom(mz,l)*mold-3.*(-dm2*rm(l)
+     &       +mold*(fdn+fup))+(fmomdn(mz)-fmomup(mz)))*bymnew
+        rmom(mzz,l) = (rmom(mzz,l)*mold*mold
+     &       +2.5*rm(l)*(mold*mold-mnew*mnew-3.*dm2*dm2)
+     &       +5.*(mold*(mold*(fdn-fup)-fmomdn(mz)
+     &       -fmomup(mz))+dm2*rmom(mz,l)*mnew)
+     &       +(fmomdn(mzz)-fmomup(mzz))) * (bymnew*bymnew)
+      ! cross moments
+        rmom(my,l)=rmom(my,l)+fmomdn(my)-fmomup(my)
+        rmom(myz,l)=(rmom(myz,l)*mold-3.*(-dm2*rmom(my,l) +
+     &       mold*(fmomdn(my)+fmomup(my))) +
+     &       (fmomdn(myz)-fmomup(myz)))*bymnew
+        rmom(mx,l)=rmom(mx,l)+fmomdn(mx)-fmomup(mx)
+        rmom(mzx,l)=(rmom(mzx,l)*mold-3.*(-dm2*rmom(mx,l) +
+     &       mold*(fmomdn(mx)+fmomup(mx))) +
+     &       (fmomdn(mzx)-fmomup(mzx)))*bymnew
+      !
+        rmom(myy,l)=rmom(myy,l)+fmomdn(myy)-fmomup(myy)
+        rmom(mxx,l)=rmom(mxx,l)+fmomdn(mxx)-fmomup(mxx)
+        rmom(mxy,l)=rmom(mxy,l)+fmomdn(mxy)-fmomup(mxy)
+
+        mass(l) = mnew
+
+        mwdn = mw(l)
+        fdn = fup
+        fmomdn(:) = fmomup(:)
+
+      enddo ! nl
+
+      return
+c****
+      end subroutine aadvqz2_column
