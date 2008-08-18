@@ -1896,6 +1896,7 @@ c**** soils28   common block     9/25/90
       real*8 dum1, dum2, dumrad
       real*8 :: no_data(1) = -1.d30
       real*8 :: sbgc_temp(1), sbgc_moist(1)
+      real*8 :: height_can
 
 
       ! get stuff from vegcell
@@ -2004,9 +2005,11 @@ ccc get necessary data from ent
       call ent_get_exports( entcell,
      &     canopy_max_H2O=ws_can,
      &     canopy_heat_capacity=shc_can,
-     &     fraction_of_vegetated_soil=fv
+     &     fraction_of_vegetated_soil=fv,
+     &     canopy_height=height_can
      &     )
       fb = 1.d0 - fv
+      snowm = height_can*.1d0 ! snow masking depth
 #endif
 ccc normal case (both present)
       i_bare = 1; i_vege = 2
