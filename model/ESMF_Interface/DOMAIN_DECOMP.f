@@ -7,12 +7,29 @@
 
 #define FILL(N) IAND(USABLE_FROM,N)==N
 
+#if ( defined USE_ESMF )  || ( defined USE_MPP )
+#define USE_MPI
+#endif
+
 #ifdef USE_ESMF
       use ESMF_Mod
 #endif
       use ESMF_CUSTOM_MOD, Only: NORTH, SOUTH
+
+#ifdef USE_MPP
+      use mpp_mod,         only : mpp_pe, mpp_npes, mpp_root_pe
+      use mpp_domains_mod, only : mpp_domains_init, MPP_DOMAIN_TIME
+      use mpp_domains_mod, only : mpp_domains_set_stack_size
+      use mpp_domains_mod, only : mpp_define_layout, mpp_define_mosaic
+      use mpp_domains_mod, only : domain2D
+      use mpp_domains_mod, only : mpp_get_compute_domain
+      use mpp_domains_mod, only : mpp_get_data_domain
+      use mpp_domains_mod, only : mpp_update_domains
+      use mpp_parameter_mod, only : WUPDATE, EUPDATE, SUPDATE, NUPDATE
+#endif
+
       IMPLICIT NONE
-#ifdef USE_ESMF
+#ifdef USE_MPI
 #include "mpif.h"
 #endif
       SAVE
@@ -31,6 +48,19 @@
       END TYPE ESMF_GRID
       INTEGER, PARAMETER :: ESMF_MAXSTR = 40
       INTEGER, PARAMETER :: ESMF_KIND_R8 = Selected_Real_Kind(15)
+#ifdef USE_MPP
+      type ESMF_AXISINDEX
+         sequence
+         integer :: min
+         integer :: max
+         integer :: stride
+      end type ESMF_AXISINDEX
+      integer, parameter :: ESMF_SUCCESS = 1
+#endif
+#endif
+
+#ifdef USE_MPP
+      public init_domain, UPDATE_HALO_2D
 #endif
 
 !aoo since DIST_GRID is public ESMF_GRID has to be public
@@ -71,7 +101,7 @@
       PUBLIC :: ARRAYSCATTER
 !@var ARRAYGATHER gather a decomposed array to a global array
       PUBLIC :: ARRAYGATHER
-#ifdef USE_ESMF
+#ifdef USE_MPI
       PUBLIC :: xESMF_ARRAYGATHER
       PUBLIC :: xESMF_ARRAYSCATTER
 #endif
@@ -164,7 +194,7 @@
         MODULE PROCEDURE LARRAYSCATTER_IJ
       END INTERFACE
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       INTERFACE xESMF_ARRAYGATHER
         MODULE PROCEDURE ESMF_ARRAYGATHER_J_int
         MODULE PROCEDURE ESMF_IARRAYGATHER_IJ
@@ -370,6 +400,9 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       TYPE DIST_GRID
 
          TYPE (ESMF_Grid) :: ESMF_GRID
+#ifdef USE_MPP
+         TYPE (domain2D ) :: domain
+#endif
          ! Parameters for Global domain
          INTEGER :: IM_WORLD        ! Number of Longitudes
          INTEGER :: JM_WORLD        ! Number of latitudes
@@ -435,15 +468,18 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       ! The initialization should proceed prior to any grid computations.
       SUBROUTINE INIT_APP(grd_dum,IM,JM,LM, J_SCM)
       USE FILEMANAGER, Only : openunit
+#ifndef USE_MPP
       USE ESMF_CUSTOM_MOD, Only: Initialize_App
 #ifdef USE_ESMF
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
 !AOO      USE ESMF_CUSTOM_MOD, Only: modelE_grid
+#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM, JM, LM
       INTEGER, OPTIONAL, INTENT(IN) :: J_SCM ! single column model
+#ifndef USE_MPP
       INTEGER             :: rc
       INTEGER             :: pet
       CHARACTER(LEN=20) :: buffer
@@ -479,6 +515,19 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
      &     RANK_LON
 #else
+      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
+      call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
+#endif
+#endif
+
+#ifdef USE_MPP
+      NP_LON = 1
+      NP_LAT = mpp_npes()
+      RANK_LAT = mpp_pe()
+      RANK_LON = 0
+      MY_PET=mpp_pe()
+      NPES=mpp_npes()
+      root=mpp_root_pe()
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
 #endif
@@ -531,14 +580,21 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       Type (ESMF_DELayout)::layout
       REAL*8 :: deltaZ
       INTEGER :: L
+#endif
+#ifdef USE_MPI
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
+#endif
       INTEGER :: p
+#ifdef USE_MPP
+      integer :: npx, npy, ng
+      integer :: isd, ied , jsd, jed
 #endif
 
       grid_size(1)=IM;   grid_size(2)=JM
       range_min(1)=0.;   range_min(2)=-90.
       range_max(1)=360.; range_max(2)=90.
 
+#ifndef USE_MPP
 #ifdef USE_ESMF
       grd_dum%ESMF_GRID = ESMF_GridCreateHorzLatLonUni(counts=grid_size,
      &     minGlobalCoordPerDim=range_min,
@@ -572,6 +628,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       RANK_LAT=my_pet
       Call ESMF_GRID_BOUNDS(grd_dum, RANK_LON, RANK_LAT,
      &        I0_DUM, I1_DUM, J0_DUM, J1_DUM)
+      write(*,*)'esmf-bounds',my_pet,I0_DUM, I1_DUM, J0_DUM, J1_DUM
 
 #else
       RANK_LON = 0
@@ -586,9 +643,31 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          J1_DUM = J_SCM
       end if
 #endif
+#endif
 
       width_ = HALO_WIDTH
       If (Present(width)) width_=width
+
+#ifdef USE_MPP
+      if (present(bc_periodic)) then
+         grd_dum % BC_PERIODIC = isPeriodic(bc_periodic)
+      else
+         grd_dum % BC_PERIODIC = .false.
+      endif
+      npx=IM+1; npy=JM+1; ng = width_;
+      call init_domain(grd_dum%domain,npx,npy,ng,grd_dum%bc_periodic)
+      RANK_LON=0
+      RANK_LAT=mpp_pe()
+      my_pet = mpp_pe()
+      NPES = mpp_npes()
+      root   = mpp_root_pe()
+      call mpp_get_compute_domain( grd_dum%domain,
+     &                         I0_DUM, I1_DUM, J0_DUM, J1_DUM)
+      !following includes halo regions
+      call mpp_get_data_domain( grd_dum%domain, isd, ied , jsd, jed)
+      write(*,*)'mpp-bounds',my_pet,I0_DUM, I1_DUM, J0_DUM, J1_DUM
+#endif
+
       grd_dum%IM_WORLD      = IM
       grd_dum%JM_WORLD      = JM
 
@@ -620,7 +699,7 @@ ccc I think the following will do the same and will be compatible with SCM
       grd_dum%J_STRT_SKP = max (   2, J0_DUM)
       grd_dum%J_STOP_SKP = min (JM-1, J1_DUM)
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
 #else
@@ -658,18 +737,63 @@ cddd      ENDIF
       ! set lookup table PET(J)
       Allocate(grd_dum%lookup_pet(1:JM))
       grd_dum%lookup_pet(:) = 0
-#ifdef USE_ESMF
+
+#ifdef USE_MPI
       Allocate(AI(NPES,3))
+
+#ifdef USE_MPP
+      Allocate(grd_dum%dj_map(0:npes-1))
+      Call GridGetAllAxisIndex(grd_dum%domain, AI)
+#else
       Call ESMF_GridGetAllAxisIndex(grd_dum%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
+#endif
       Do p = 1, npes
         grd_dum%lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
       End Do
+
+      do p=0, npes-1
+         grd_dum%dj_map(p)=AI(p+1,2)%max - AI(p+1,2)%min + 1
+      end do
+      grd_dum%dj=grd_dum%dj_map(my_pet)
+
       Deallocate(AI)
 #endif
 
       END SUBROUTINE INIT_GRID
+
+#ifdef USE_MPP
+      SUBROUTINE GridGetAllAxisIndex(domain, AI)
+
+      implicit none
+      TYPE (domain2D ) :: domain
+      Type (ESMF_Axisindex) :: AI(npes,3)
+
+      integer :: is, ie , js, je, myRank, ierr
+      integer :: Axistype, oldtypes(1), blockcounts(1)
+      INTEGER(KIND=MPI_ADDRESS_KIND):: offsets
+
+      call mpp_get_compute_domain( domain, is, ie , js, je)
+      myRank = mpp_pe()
+
+      AI(myRank+1,1)%min=is; AI(myRank+1,1)%max=ie;
+      AI(myRank+1,2)%min=js; AI(myRank+1,2)%max=je;
+
+      offsets=0
+      oldtypes(1)=MPI_INTEGER; blockcounts(1)=3;
+
+      call MPI_Type_create_struct(1,blockcounts, offsets, oldtypes,
+     &     Axistype, ierr)
+      call MPI_TYPE_COMMIT(Axistype, ierr)
+
+      call MPI_Allgather(AI(myRank+1,1),1, Axistype,
+     &          AI(1,1),1, Axistype,MPI_COMM_WORLD,ierr )
+      call MPI_Allgather(AI(myRank+1,2),1, Axistype,
+     &          AI(1,2),1, Axistype,MPI_COMM_WORLD,ierr )
+
+      END SUBROUTINE GridGetAllAxisIndex
+#endif
 
       SUBROUTINE GET(grd_dum, I_STRT, I_STOP,
      &                        I_STRT_HALO, I_STOP_HALO,
@@ -718,7 +842,7 @@ cddd      ENDIF
      &                        arr(grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
@@ -732,7 +856,7 @@ cddd      ENDIF
      &                    arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
@@ -745,7 +869,7 @@ cddd      ENDIF
      &                    arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv_int(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
@@ -758,7 +882,7 @@ cddd      ENDIF
      &                    arr(grd_dum%j_strt_halo:,:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
@@ -773,7 +897,7 @@ cddd      ENDIF
 
       INTEGER :: L
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
 
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
      &     ,grd_dum%BC_PERIODIC)
@@ -788,7 +912,7 @@ cddd      ENDIF
 
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
@@ -803,7 +927,7 @@ cddd      ENDIF
 
       INTEGER :: L
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
@@ -835,7 +959,7 @@ cddd      ENDIF
 
       INTEGER :: L
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, from)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_4D
@@ -849,7 +973,7 @@ cddd      ENDIF
 
       INTEGER :: L
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 6, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
@@ -1263,7 +1387,7 @@ cddd      ENDIF
       all_ = .false.
       If (Present(all)) all_ = all
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       If (all_) Then
          call MPI_Allreduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM,
      &        MPI_COMM_WORLD, status)
@@ -1295,9 +1419,6 @@ cddd      ENDIF
 
       INTEGER :: JSTRT, JSTOP
     ! now local
-#ifdef USE_ESMF
-      type (ESMF_Grid)                           :: GRID
-#endif
 
       i_0  = grd_dum%i_strt
       i_1  = grd_dum%i_stop
@@ -1326,7 +1447,7 @@ cddd      ENDIF
 
 #ifdef DEBUG_DECOMP
       If (Size(arr) /= grd_dum%j_stop_halo-grd_dum%j_strt_halo+1) Then
-#ifdef USE_ESMF
+#ifdef USE_MPI
         CALL MPI_ABORT(ier)
 #else
         STOP
@@ -1334,8 +1455,8 @@ cddd      ENDIF
       End If
 #endif
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 1)
+#ifdef USE_MPI
+      Call gather(grd_dum, arr, garr, shape(arr), 1)
 #else
       garr = 0.d0
       garr(j_0:j_1) = arr(j_0:j_1)
@@ -1362,7 +1483,7 @@ cddd      ENDIF
          EndIf
       EndIf
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       If (Present(all)) Then
          If (all) THEN
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
@@ -1395,7 +1516,7 @@ cddd      ENDIF
 
     ! now local
 #ifdef USE_ESMF
-      type (ESMF_Grid)                           :: GRID
+!     type (ESMF_Grid)                           :: GRID
 #endif
 
       i_0  = grd_dum%i_strt
@@ -1426,8 +1547,8 @@ cddd      ENDIF
         zon  = sum(arr(:,j_0:j_1),1)
       End If
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, zon, garr, shape(zon), 1)
+#ifdef USE_MPI
+      Call gather(grd_dum, zon, garr, shape(zon), 1)
 #else
       garr = 0.d0
       garr(j_0:j_1) = zon(j_0:j_1)
@@ -1454,7 +1575,7 @@ cddd      ENDIF
       EndIf
       If (Present(zsum)) zsum = zon
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
@@ -1487,7 +1608,7 @@ cddd      ENDIF
       LOGICAL :: istag_,iskip_
     ! now local
 #ifdef USE_ESMF
-      type (ESMF_Grid)                           :: GRID
+!     type (ESMF_Grid)                           :: GRID
 #endif
 
       i_0  = grd_dum%i_strt
@@ -1518,8 +1639,8 @@ cddd      ENDIF
          zon  = sum(arr(:,j_0:j_1,:),1)
       End If
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, zon, garr, shape(zon), 1)
+#ifdef USE_MPI
+      Call gather(grd_dum, zon, garr, shape(zon), 1)
 #else
       garr(:,:) = 0.d0
       garr(j_0:j_1,:)  = zon(j_0:j_1,:)
@@ -1560,12 +1681,12 @@ cddd      ENDIF
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
       Logical :: all_
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world)
 #endif
     ! now local
 #ifdef USE_ESMF
-      type (ESMF_Grid)                           :: GRID
+!     type (ESMF_Grid)                           :: GRID
 #endif
 
       all_ = .false.
@@ -1581,8 +1702,8 @@ cddd      ENDIF
       jb1 = jband(1)
       jb2 = jband(2)
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 2)
+#ifdef USE_MPI
+      Call gather(grd_dum, arr, garr, shape(arr), 2)
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
@@ -1605,12 +1726,12 @@ cddd      ENDIF
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
       Logical :: all_
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
     ! now local
 #ifdef USE_ESMF
-      type (ESMF_Grid)                           :: GRID
+!     type (ESMF_Grid)                           :: GRID
 #endif
 
       all_ = .false.
@@ -1626,8 +1747,8 @@ cddd      ENDIF
       jb1 = jband(1)
       jb2 = jband(2)
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 2)
+#ifdef USE_MPI
+      Call gather(grd_dum, arr, garr, shape(arr), 2)
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2,:),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
@@ -1648,12 +1769,12 @@ cddd      ENDIF
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, LM
       Logical :: all_
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
     ! now local
-#ifdef USE_ESMF
-      type (ESMF_Grid)                           :: GRID
+#ifdef USE_MPI
+!     type (ESMF_Grid)                           :: GRID
       Integer :: scnts(0:npes-1), sdspl(0:npes-1)
       Integer :: rcnts(0:npes-1), rdspl(0:npes-1)
       Integer ::  dik_map(0:npes-1), dik, dik_sum
@@ -1674,7 +1795,7 @@ cddd      ENDIF
       JM   = grd_dum%JM_WORLD
       LM =  SIZE(arr,3)
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
 ! Number of sums each processor computes is dik
       Do p = 0, npes-1
          dik_map(p)=(IM*LM)/npes
@@ -1781,8 +1902,8 @@ cddd      ENDIF
       End If
 
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 1)
+#ifdef USE_MPI
+      Call gather(grd_dum, arr, garr, shape(arr), 1)
 #else
       garr(:,:) = 0.d0
       garr(j_0:j_1,:) = arr(j_0:j_1,:)
@@ -1806,7 +1927,7 @@ cddd      ENDIF
          EndIf
       EndIf
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,Size(gsum),MPI_DOUBLE_PRECISION,root,
@@ -1833,7 +1954,7 @@ cddd      ENDIF
 
     ! now local
 #ifdef USE_ESMF
-      type (ESMF_Grid)                           :: GRID
+!     type (ESMF_Grid)                           :: GRID
 #endif
 
       i_0  = grd_dum%i_strt
@@ -1843,8 +1964,8 @@ cddd      ENDIF
       IM   = grd_dum%IM_WORLD
       JM   = grd_dum%JM_WORLD
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, arr, garr, shape(arr), 4, all=all)
+#ifdef USE_MPI
+      Call gather(grd_dum, arr, garr, shape(arr), 4, all=all)
       all_=.false.
       If (Present(all)) all_=all
       If (AM_I_ROOT() .or. all_)  gsum = SUM(garr,4)
@@ -1903,8 +2024,8 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, AOUT, AVAR, shape(AVAR), 2)
 #else
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=
      &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -1948,8 +2069,8 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, AOUT, AVAR, shape(AVAR), 2)
 #else
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
      &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -1993,8 +2114,8 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, AOUT, AVAR, shape(AVAR), 2)
       CALL ESMF_BCAST(grd_dum, M   )
 #else
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=
@@ -2041,8 +2162,8 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, AOUT, AVAR, shape(AVAR), 2)
       CALL ESMF_BCAST(grd_dum, M   )
 #else
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
@@ -2092,8 +2213,8 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, AOUT, AVAR, shape(AVAR), 2)
 #else
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=
      &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -2143,8 +2264,8 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, AOUT, AVAR, shape(AVAR), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, AOUT, AVAR, shape(AVAR), 2)
 #else
       AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
      &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -2181,11 +2302,11 @@ C****  convert from real*4 to real*8
       INTEGER :: IERR
 
 !!! not sure if it is implemented for real*4 ...
-#ifdef USE_ESMF
+#ifdef USE_MPI
 c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       !buf_glob = -99999999. ! not implemented
       buf8 = buf
-      Call gather(grd_dum%ESMF_GRID, buf8, buf_glob8, shape(buf), 2)
+      Call gather(grd_dum, buf8, buf_glob8, shape(buf), 2)
       buf_glob = buf_glob8
 #else
       buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
@@ -2208,9 +2329,10 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       subroutine ESMF_IArrayScatter_IJ(egrid, local_array, global_array)
       integer      , dimension (:,:) :: local_array, global_array
-      type (ESMF_Grid)      :: egrid
+!     type (ESMF_Grid)      :: egrid
+      type (DIST_GRID)      :: egrid
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
       type (ESMF_DELayout)                          :: layout
       integer, allocatable, dimension(:)            ::
@@ -2228,9 +2350,13 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer      , allocatable                    :: var(:)
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI,
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(egrid%domain, AI)
+#else
+      Call ESMF_GridGetAllAxisIndex(egrid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
 
       allocate (sendcounts(NPES), displs(0:NPES), stat=status)
 
@@ -2278,9 +2404,10 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 !-----------------------------------------------------------
       subroutine ESMF_LArrayScatter_IJ(egrid, local_array, global_array)
       logical      , dimension (:,:) :: local_array, global_array
-      type (ESMF_Grid)      :: egrid
+!     type (ESMF_Grid)      :: egrid
+      type (DIST_GRID)      :: egrid
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
       type (ESMF_DELayout)                          :: layout
       integer, allocatable, dimension(:)            ::
@@ -2298,9 +2425,13 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       Logical      , allocatable                    :: var(:)
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI,
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(egrid%domain, AI)
+#else
+      Call ESMF_GridGetAllAxisIndex(egrid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
       allocate (sendcounts(NPES), displs(0:NPES), stat=status)
 
       if (AM_I_ROOT()) then
@@ -2346,10 +2477,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #endif
       end subroutine ESMF_LArrayScatter_IJ
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
 !--------------------------------
       subroutine Esmf_IArrayGather_IJ(grid, local_array, global_array)
-      type (ESMF_Grid)      :: grid
+!     type (ESMF_Grid)      :: grid
+      type (DIST_GRID)      :: grid
       integer      , dimension (:,:) :: local_array, global_array
 
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
@@ -2369,9 +2501,13 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(grid%domain, AI)
+#else
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
 
       allocate (recvcounts(NPES), displs(0:NPES), stat=status)
 
@@ -2420,7 +2556,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 !--------------------------------
       subroutine Esmf_LArrayGather_IJ(e_grid, local_array, global_array)
-      type (ESMF_Grid)      :: e_grid
+!     type (ESMF_Grid)      :: e_grid
+      type (DIST_GRID)      :: e_grid
       logical      , dimension (:,:) :: local_array, global_array
 
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
@@ -2438,9 +2575,13 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       logical      , allocatable                    :: var(:)
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(e_grid, globalAI=AI,
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(e_grid%domain, AI)
+#else
+      Call ESMF_GridGetAllAxisIndex(e_grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
       allocate (recvcounts(NPES), displs(0:NPES), stat=status)
 
       allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
@@ -2487,7 +2628,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 !------------------------------------------------------------
 
       subroutine Esmf_ArrayGather_J_int(grid, local_array, global_array)
-      type (ESMF_Grid)      :: grid
+!     type (ESMF_Grid)      :: grid
+      type (DIST_GRID)      :: grid
       INTEGER, dimension (:) :: local_array, global_array
 
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
@@ -2507,9 +2649,13 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 
       Allocate(AI(1:NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(grid%domain, AI)
+#else
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
 
       allocate (recvcounts(NPES), displs(0:NPES), stat=status)
 
@@ -2557,8 +2703,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       real (kind=8), dimension (grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:)               :: global_array
 
-#ifdef USE_ESMF
-      Call Gather(grd_dum%ESMF_GRID, local_array, global_array,
+#ifdef USE_MPI
+      Call Gather(grd_dum, local_array, global_array,
      &     shape(local_array), 1)
 #else
       global_array(grd_dum%J_STRT:grd_dum%J_STOP) =
@@ -2574,8 +2720,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER, dimension (grd_dum%J_STRT_HALO:) :: local_array
       INTEGER, dimension (:)               :: global_array
 
-#ifdef USE_ESMF
-      call Esmf_ArrayGather_J_int(grd_dum%ESMF_GRID,
+#ifdef USE_MPI
+      call Esmf_ArrayGather_J_int(grd_dum,
      &     local_array(grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
@@ -2592,8 +2738,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       real (kind=8), dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:,:)               :: global_array
 
-#ifdef USE_ESMF
-      Call gather(grd_dum%ESMF_GRID, local_array, global_array,
+#ifdef USE_MPI
+      Call gather(grd_dum, local_array, global_array,
      &     shape(local_array), 2)
 
 #else
@@ -2610,8 +2756,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       logical, dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       logical, dimension (:,:)                    :: global_array
 
-#ifdef USE_ESMF
-          call Esmf_LArrayGather_IJ(grd_dum%ESMF_GRID,
+#ifdef USE_MPI
+          call Esmf_LArrayGather_IJ(grd_dum,
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
@@ -2629,8 +2775,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       integer, dimension (:,:)               :: global_array
 
-#ifdef USE_ESMF
-      call Esmf_IArrayGather_IJ(grd_dum%ESMF_GRID,
+#ifdef USE_MPI
+      call Esmf_IArrayGather_IJ(grd_dum,
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
@@ -2649,8 +2795,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       real (kind=8), dimension (grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:)               :: global_array
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, global_array, local_array,
+#ifdef USE_MPI
+      Call scatter(grd_dum, global_array, local_array,
      &     shape(local_array), 1)
 #else
       local_array(grd_dum%J_STRT:grd_dum%J_STOP) =
@@ -2666,8 +2812,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       real (kind=8), dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       real (kind=8), dimension (:,:)               :: global_array
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, global_array, local_array,
+#ifdef USE_MPI
+      Call scatter(grd_dum, global_array, local_array,
      &     shape(local_array), 2)
 #else
       local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
@@ -2683,8 +2829,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       integer, dimension (:,:)               :: global_array
 
-#ifdef USE_ESMF
-      call Esmf_IArrayScatter_IJ(grd_dum%ESMF_GRID,
+#ifdef USE_MPI
+      call Esmf_IArrayScatter_IJ(grd_dum,
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      & global_array)
 #else
@@ -2701,8 +2847,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       logical, dimension (:,grd_dum%J_STRT_HALO:) :: local_array
       logical, dimension (:,:)               :: global_array
 
-#ifdef USE_ESMF
-      call Esmf_LArrayScatter_IJ(grd_dum%ESMF_GRID,
+#ifdef USE_MPI
+      call Esmf_LArrayScatter_IJ(grd_dum,
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      & global_array)
 #else
@@ -2714,7 +2860,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 
     !---------------------------
-#ifdef USE_ESMF
+#ifdef USE_MPI
       subroutine ESMF_GRID_PE_LAYOUT  (GRID, NX, NY)
         type (ESMF_Grid), intent(IN) :: grid
         integer, intent(OUT)         :: NX, NY
@@ -2741,7 +2887,9 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
         integer :: status
 
+#ifdef USE_ESMF
         call ESMF_GridGet(grid, delayout=layout, rc=status)
+#endif
         NX0 = 0
         NY0 = my_pet
 
@@ -3040,7 +3188,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
            end if
         end if
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
         CALL MPI_BCAST(data, 1, MPI_INTEGER, root,
      &       MPI_COMM_WORLD, status)
 #endif
@@ -3111,7 +3259,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
            end if
         end if
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
         CALL MPI_BCAST(data, size(data), MPI_INTEGER, root,
      &       MPI_COMM_WORLD, status)
 #endif
@@ -3183,7 +3331,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
            end if
         end if
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
         CALL MPI_BCAST(data, Size(data), MPI_DOUBLE_PRECISION, root,
      &       MPI_COMM_WORLD, status)
 #endif
@@ -3238,7 +3386,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
         integer :: status
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
         R = .false.
         if (my_pet == root) R = .true.
 #else
@@ -3254,7 +3402,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         integer :: rank
         integer :: status
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
         R = .false.
         call MPI_COMM_RANK(MPI_COMM_WORLD, rank, status)
         if (rank == root) R = .true.
@@ -3279,8 +3427,10 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         integer :: nx, ny
         integer :: status
 
+#ifdef USE_MPI
 #ifdef USE_ESMF
         call ESMF_GridGet(grid, delayout=layout, rc=status)
+#endif
         deid = y_loc
 #else
         deid = 1
@@ -3322,7 +3472,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       integer :: status
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       call MPI_BARRIER(MPI_COMM_WORLD, status)
       if (present(rc)) then
          rc = ESMF_SUCCESS
@@ -3331,7 +3481,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       end subroutine ESMF_DELayoutBarrier
 
-#ifndef USE_ESMF
+#ifndef USE_MPI
       Subroutine ESMF_GRID_WORLD(grd, im, jm)
       Type (ESMF_GRID) :: grd
       Integer :: im, jm
@@ -3356,7 +3506,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
          WRITE(CHECKSUM_UNIT,*)'HERE: ',file, line
          CALL SYS_FLUSH(CHECKSUM_UNIT)
        End If
-#ifdef USE_ESMF
+#ifdef USE_MPI
        ALLOCATE(lines(npes))
        Call MPI_Allgather(line, 1, MPI_INTEGER, lines, 1, MPI_INTEGER,
      &      MPI_COMM_WORLD, ier)
@@ -3365,7 +3515,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
        Deallocate(lines)
 #endif
 #endif
-#ifdef USE_ESMF
+#ifdef USE_MPI
       CALL MPI_BARRIER(MPI_COMM_WORLD, ier)
 #endif
       END SUBROUTINE HERE
@@ -3412,7 +3562,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER  :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       CALL MPI_Allreduce(val, val_min, 1, MPI_DOUBLE_PRECISION,MPI_MIN,
      &     MPI_COMM_WORLD, ier)
 #else
@@ -3429,7 +3579,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER  :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION,MPI_MAX,
      &     MPI_COMM_WORLD, ier)
 #else
@@ -3446,7 +3596,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER  :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_INTEGER, MPI_MAX,
      &     MPI_COMM_WORLD, ier)
 #else
@@ -3463,8 +3613,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &        ARR(grd_dum%j_strt_halo:)
       REAL*8, INTENT(OUT) :: ARR_GLOB(grd_dum%JM_WORLD)
 
-#ifdef USE_ESMF
-      Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 1)
+#ifdef USE_MPI
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 1)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP) =
      &     arr(grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3494,8 +3644,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
       REAL*8, INTENT(INOUT) :: ARR_GLOB(:,:)
 
-#ifdef USE_ESMF
-      Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
+#ifdef USE_MPI
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3540,8 +3690,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:)
       INTEGER :: l
 
-#ifdef USE_ESMF
-      Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
+#ifdef USE_MPI
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -3579,8 +3729,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:)
       INTEGER :: l,m
 
-#ifdef USE_ESMF
-      Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
+#ifdef USE_MPI
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:)
@@ -3598,8 +3748,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:,:)
       INTEGER :: l,m
 
-#ifdef USE_ESMF
-      Call Gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
+#ifdef USE_MPI
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
@@ -3618,8 +3768,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER :: k
 
-#ifdef USE_ESMF
-      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 1)
+#ifdef USE_MPI
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:)=
      & arr(grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -3638,7 +3788,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER :: k
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       do k=1,size(arr,2)
         call arraygather(grd_dum,arr(:,k),arr_glob(:,k))
       end do
@@ -3661,8 +3811,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER :: k
 
-#ifdef USE_ESMF
-      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 1)
+#ifdef USE_MPI
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:)=
      & arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:)
@@ -3681,8 +3831,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER :: k
 
-#ifdef USE_ESMF
-      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 1)
+#ifdef USE_MPI
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=
      & arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
@@ -3700,8 +3850,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &        ARR(grd_dum%j_strt_halo:)
       INTEGER :: J_0, J_1
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 1)
+#ifdef USE_MPI
+      Call scatter(grd_dum, arr_glob, arr, shape(arr), 1)
 #else
       arr(grd_dum%J_STRT:grd_dum%J_STOP)=
      & arr_glob(grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3721,8 +3871,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: J_0, J_1
       LOGICAL, OPTIONAL :: local
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, arr_glob, arr, shape(arr), 2)
 #else
       arr(:,grd_dum%J_STRT:grd_dum%J_STOP)=
      & arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3850,8 +4000,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: J_0, J_1, L,M
       LOGICAL, OPTIONAL :: local
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, arr_glob, arr, shape(arr), 2)
 #else
       arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:)=
      & arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:)
@@ -3870,8 +4020,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: J_0, J_1, L,M
       LOGICAL, OPTIONAL :: local
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 2)
+#ifdef USE_MPI
+      Call scatter(grd_dum, arr_glob, arr, shape(arr), 2)
 #else
       arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=
      & arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
@@ -3893,8 +4043,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       LOGICAL :: local_
       INTEGER :: k
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 1)
+#ifdef USE_MPI
+      Call scatter(grd_dum, arr_glob, arr, shape(arr), 1)
 #else
       arr(grd_dum%J_STRT:grd_dum%J_STOP,:)=
      & arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -3914,8 +4064,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER :: k
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 1)
+#ifdef USE_MPI
+      Call scatter(grd_dum, arr_glob, arr, shape(arr), 1)
 #else
       arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:)=
      &     arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:)
@@ -3935,8 +4085,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       INTEGER :: k
 
-#ifdef USE_ESMF
-      Call scatter(grd_dum%ESMF_GRID, arr_glob, arr, shape(arr), 1)
+#ifdef USE_MPI
+      Call scatter(grd_dum, arr_glob, arr, shape(arr), 1)
 #else
       arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=
      &     arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
@@ -3956,8 +4106,8 @@ C------------------------------------
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:)
       integer :: K
 
-#ifdef USE_ESMF
-      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 2)
+#ifdef USE_MPI
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 2)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP)=
      &     arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3976,8 +4126,8 @@ C------------------------------------
       REAL*8, INTENT(INOUT) :: ARR_GLOB(:,:,:)
       INTEGER :: K
 
-#ifdef USE_ESMF
-      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 3)
+#ifdef USE_MPI
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 3)
 #else
       arr_glob(:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
      &     arr(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -4013,8 +4163,8 @@ C------------------------------------
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:)
       INTEGER :: l,K
 
-#ifdef USE_ESMF
-      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 3)
+#ifdef USE_MPI
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 3)
 #else
       arr_glob(:,:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
      & arr(:,:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -4032,8 +4182,9 @@ C------------------------------------
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:,:)
       INTEGER :: l,K
 
-#ifdef USE_ESMF
-      CALL gather(grd_dum%ESMF_GRID, arr, arr_glob, shape(arr), 5)
+#ifdef USE_MPI
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 5)
+      !mkb5
 #else
       arr_glob(:,:,:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
      & arr(:,:,:,:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -4145,7 +4296,7 @@ C--------------------------------------
       logical :: local_
 
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       local_ = .false.
       if (present(local)) local_ = local
 #else
@@ -4156,9 +4307,9 @@ C--------------------------------------
           J_0=grd_dum%j_strt
           J_1=grd_dum%j_stop
           ARR(:,:,J_0:J_1,:)=ARR_GLOB(:,:,J_0:J_1,:)
-#ifdef USE_ESMF
+#ifdef USE_MPI
       else
-         call scatter(grd_dum % ESMF_GRID, arr_glob, arr,
+         call scatter(grd_dum , arr_glob, arr,
      &        shape(arr), dist_idx = 3)
 #endif
       end if
@@ -4179,7 +4330,8 @@ C--------------------------------------
       logical :: local_
 
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
+      !mkb5
       local_ = .false.
       if (present(local)) local_ = local
 #else
@@ -4190,9 +4342,9 @@ C--------------------------------------
           J_0=grd_dum%j_strt
           J_1=grd_dum%j_stop
           ARR(:,:,:,:,J_0:J_1)=ARR_GLOB(:,:,:,:,J_0:J_1)
-#ifdef USE_ESMF
+#ifdef USE_MPI
       else
-         call scatter(grd_dum % ESMF_GRID, arr_glob, arr,
+         call scatter(grd_dum , arr_glob, arr,
      &        shape(arr), dist_idx = 5)
 #endif
       end if
@@ -4238,7 +4390,7 @@ C--------------------------------------
       END SUBROUTINE PACK_BLOCK_2D
 
 
-c      SUBROUTINE PACK_BLOCK_3D(grd_dum,ARR,ARR_GLOB)
+c      SUBROUTINE PACK_BLOCK_3D(grd_dum,ARR,ARR_GLOB)  mkbhat5
 c      IMPLICIT NONE
 c      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 c
@@ -4321,7 +4473,7 @@ c      END SUBROUTINE PACK_BLOCK_3D
       end if
       END SUBROUTINE UNPACK_BLOCK_2D
 
-c      SUBROUTINE UNPACK_BLOCK_3D(grd_dum,ARR_GLOB,ARR,local)
+c      SUBROUTINE UNPACK_BLOCK_3D(grd_dum,ARR_GLOB,ARR,local)   mkbhat5
 c      IMPLICIT NONE
 c      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 c
@@ -4529,7 +4681,7 @@ C--------------------------------
 
       INTEGER :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_DOUBLE_PRECISION,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4543,7 +4695,7 @@ C--------------------------------
 
       INTEGER :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4557,7 +4709,7 @@ C--------------------------------
 
       INTEGER :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4571,7 +4723,7 @@ C--------------------------------
 
       INTEGER :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4585,7 +4737,7 @@ C--------------------------------
 
       INTEGER :: ier
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4597,7 +4749,7 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_INTEGER,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4608,7 +4760,7 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:)
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4619,7 +4771,7 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:,:)
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4630,7 +4782,7 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:,:,:)
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4641,7 +4793,7 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:,:,:,:)
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
      &     MPI_COMM_WORLD, ier)
 #endif
@@ -4657,7 +4809,7 @@ C--------------------------------
       INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
       INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
-#ifdef USE_ESMF
+#ifdef USE_MPI
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,nk,k
@@ -4669,7 +4821,7 @@ C--------------------------------
       reverse_=.false.
       If (PRESENT(reverse)) reverse_=reverse
 
-#ifndef USE_ESMF
+#ifndef USE_MPI
       If (reverse_) Then
          X_IN(:,1:grid%JM_WORLD,:) = X_OUT(:,1:grid%JM_WORLD,:)
       Else
@@ -4682,9 +4834,13 @@ C--------------------------------
       END DO
 
       ALLOCATE(AI(0:npes-1,3))
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(grid%domain, AI)
+#else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
 
       DO p = 0, npes - 1
          J0(p) = AI(p,2)%min
@@ -4775,7 +4931,7 @@ C--------------------------------
       INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
       INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
-#ifdef USE_ESMF
+#ifdef USE_MPI
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ
@@ -4787,7 +4943,7 @@ C--------------------------------
       reverse_=.false.
       If (PRESENT(reverse)) reverse_=reverse
 
-#ifndef USE_ESMF
+#ifndef USE_MPI
       If (reverse_) Then
          X_IN(:,1:grid%JM_WORLD) = X_OUT(:,1:grid%JM_WORLD)
       Else
@@ -4800,9 +4956,13 @@ C--------------------------------
       END DO
 
       ALLOCATE(AI(0:npes-1,3))
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(grid%domain, AI)
+#else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
 
       DO p = 0, npes - 1
          J0(p) = AI(p,2)%min
@@ -4891,7 +5051,7 @@ C--------------------------------
       INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
       INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
       REAL*8, ALLOCATABLE :: sbuf(:,:), rbuf(:,:)
-#ifdef USE_ESMF
+#ifdef USE_MPI
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,k
@@ -4904,7 +5064,7 @@ C--------------------------------
       reverse_=.false.
       If (PRESENT(reverse)) reverse_=reverse
 
-#ifndef USE_ESMF
+#ifndef USE_MPI
       If (reverse_) Then
          X(:,:,1:grid%JM_WORLD,:) = X_TR(:,:,1:grid%JM_WORLD,:)
       Else
@@ -4918,9 +5078,13 @@ C--------------------------------
       END DO
 
       ALLOCATE(AI(0:npes-1,3))
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(grid%domain, AI)
+#else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+#endif
 
       DO p = 0, npes - 1
          J0(p) = AI(p,2)%min
@@ -5003,7 +5167,7 @@ C--------------------------------
 
       END SUBROUTINE TRANSPOSE_COLUMN
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       Function CreateDist_MPI_Type(base_type, counts, dist_idx)
      &     Result(new_type)
       Integer, Intent(In) :: base_type
@@ -5014,18 +5178,23 @@ C--------------------------------
       Integer :: stride, n_blocks, blocklen
       Integer :: ext_lb
       Integer :: base_byte_len, new_len
+      INTEGER(KIND=MPI_ADDRESS_KIND) disp(2)
       Integer :: vtype1, vtype2
       Integer :: ier
 
       n_blocks = Product(counts(dist_idx+1:))
       blocklen = Product(counts(:dist_idx-1))
       stride = counts(dist_idx) * blocklen
+      ext_lb = 0
 
       Call MPI_Type_vector(n_blocks, blocklen, stride, base_type,
      &     vtype1, ier)
-      Call MPI_Type_extent(base_type, base_byte_len, ier)
+      !Call MPI_Type_extent(base_type, base_byte_len, ier)
+      Call MPI_Type_get_extent(base_type, ext_lb, base_byte_len, ier)
       new_len = base_byte_len * blocklen
-      Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /),
+      !Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /),
+      disp(1)=0; disp(2)=new_len;
+      Call MPI_Type_create_struct(2, (/ 1, 1 /), disp,
      &     (/ vtype1, MPI_UB /), vtype2, ier)
       Call MPI_Type_Free(vtype1, ier)
 
@@ -5172,7 +5341,8 @@ cddd      End If
       End SUBROUTINE SendRecv_int
 
       Subroutine gather(grid, arr_loc, arr_glob, shp, dist_idx, all)
-      Type (Esmf_Grid) :: grid
+      !Type (Esmf_Grid) :: grid
+      Type (DIST_GRID) :: grid
       Real(Kind=8) :: arr_loc(*)
       Real(Kind=8) :: arr_glob(*)
       Integer :: shp(:),shp_glob(size(shp))
@@ -5192,9 +5362,13 @@ cddd      End If
 
 
       Allocate(AI(NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(grid%domain, AI)
+#else
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=ier)
+#endif
 
       allocate (rcounts(NPES), displs(NPES), stat=ier)
       Do p = 1, npes
@@ -5239,7 +5413,8 @@ cddd      End If
       End SUBROUTINE gather
 
       Subroutine scatter(grid, arr_glob, arr_loc, shp, dist_idx)
-      Type (Esmf_Grid) :: grid
+      !Type (Esmf_Grid) :: grid
+      Type (DIST_GRID) :: grid
       Real(Kind=8) :: arr_loc(*)
       Real(Kind=8) :: arr_glob(*)
       Integer :: shp(:),shp_glob(size(shp))
@@ -5257,8 +5432,12 @@ cddd      End If
 
 
       Allocate(AI(NPES,3))
-      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI,
+#ifdef USE_MPP
+      Call GridGetAllAxisIndex(grid%domain, AI)
+#else
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &   horzRelLoc=ESMF_CELL_CENTER, vertRelLoc=ESMF_CELL_CELL, rc=ier)
+#endif
 
       allocate (scounts(NPES), displs(NPES), stat=ier)
       Do p = 1, npes
@@ -5306,7 +5485,7 @@ cddd      End If
       Real*8, Intent(In) :: arr(:)
       Integer, Intent(In) :: j_dest, tag
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       call MPI_Send(arr, Size(arr), MPI_DOUBLE_PRECISION,
      &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
 #endif
@@ -5318,7 +5497,7 @@ cddd      End If
       Integer, Intent(In) :: arr
       Integer, Intent(In) :: j_dest, tag
       INTEGER :: ier
-#ifdef USE_ESMF
+#ifdef USE_MPI
       call MPI_Send(arr, 1, MPI_INTEGER,
      &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
 #endif
@@ -5329,7 +5508,7 @@ cddd      End If
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(In) :: arr(:)
       Integer, Intent(In) :: j_src, tag
-#ifdef USE_ESMF
+#ifdef USE_MPI
       INTEGER :: ier, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION,
      &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
@@ -5341,7 +5520,7 @@ cddd      End If
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(In) :: arr
       Integer, Intent(In) :: j_src, tag
-#ifdef USE_ESMF
+#ifdef USE_MPI
       INTEGER :: ier, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, 1, MPI_INTEGER,
      &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
@@ -5363,6 +5542,152 @@ cddd      End If
         usableFrom = ALL
         if (present(fromDirection)) usableFrom = fromDirection
       end function usableFrom
+
+#ifdef USE_MPP
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: domain_decomp_new --- SPMD parallel decompostion/communication module
+!-------------------------------------------------------------------------------
+! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv !
+!
+!     domain_decomp :: Setup domains
+!
+      subroutine init_domain(domain,npx,npy,ng,bc_periodic)
+
+      type(domain2D) :: domain
+      integer, intent(IN)  :: npx,npy,ng
+      logical :: bc_periodic
+
+      integer :: npes, grid_type
+      integer :: layout(2)
+      integer, allocatable :: pe_start(:), pe_end(:)
+
+      integer :: ios,nx,ny,n,num_alloc
+      character(len=32) :: type
+      integer :: num_contact, ntiles, npes_per_tile, tile
+      integer, allocatable, dimension(:)  :: npes_tile, tile1, tile2
+      integer, allocatable, dimension(:)  :: istart1,iend1,jstart1,jend1
+      integer, allocatable, dimension(:)  :: istart2,iend2,jstart2,jend2
+      integer, allocatable, dimension(:,:) :: layout2D, global_indices
+      integer :: is, ie, js, je, isd, ied, jsd, jed
+
+      npes = mpp_npes()
+      if ( bc_periodic ) then
+        grid_type = 4
+      else
+        grid_type = 7
+      end if
+      nx = npx-1
+      ny = npy-1
+
+      call mpp_domains_init(MPP_DOMAIN_TIME)
+
+      call mpp_domains_set_stack_size(1500000)
+
+      select case (grid_type)
+        case (4)   ! Cartesian, double periodic
+          ntiles = 1
+          num_contact = 2
+          npes_per_tile = npes/ntiles
+          call mpp_define_layout( (/1,npx-1,1,npy-1/), npes_per_tile, 
+     &      layout )
+          layout = (/1,npes_per_tile/) ! force decomp only in Lat-Direction
+        case (7)   ! Cartesian, channel, non-periodic
+          ntiles = 1
+          num_contact = 1
+          npes_per_tile = npes/ntiles
+          call mpp_define_layout( (/1,npx-1,1,npy-1/), npes_per_tile,
+     &     layout )
+          layout = (/1,npes_per_tile/) ! force decomp only in Lat-Direction
+      end select
+
+      allocate( layout2D(2,ntiles), global_indices(4,ntiles) )
+      allocate( npes_tile(ntiles) )
+      allocate(pe_start(ntiles),pe_end(ntiles))
+      npes_tile = npes_per_tile
+      do n = 1, ntiles
+            global_indices(:,n) = (/1,npx-1,1,npy-1/)
+            layout2D(:,n)         = layout
+            pe_start(n) = (n-1)*layout(1)*layout(2)
+            pe_end(n)   = pe_start(n) + layout(1)*layout(2) -1
+      end do
+      num_alloc=max(1,num_contact)
+      allocate( tile1(num_alloc), tile2(num_alloc) )
+      allocate( istart1(num_alloc), iend1(num_alloc) )
+      allocate( jstart1(num_alloc), jend1(num_alloc) )
+      allocate( istart2(num_alloc), iend2(num_alloc) )
+      allocate( jstart2(num_alloc), jend2(num_alloc) )
+
+      select case (grid_type)
+        case (4)   ! Cartesian, double periodic
+          !--- Contact line 1, between tile 1 (EAST) and tile 1 (WEST)
+          tile1(1) = 1; tile2(1) = 1
+          istart1(1) = nx; iend1(1) = nx;
+          jstart1(1) = 1;  jend1(1) = ny;
+          istart2(1) = 1;  iend2(1) = 1;
+          jstart2(1) = 1;  jend2(1) = ny;
+          !--- Contact line 2, between tile 1 (SOUTH) and
+          !    tile 1 (NORTH)  --- cyclic
+          tile1(2) = 1; tile2(2) = 1
+          istart1(2) = 1;  iend1(2) = nx; 
+          jstart1(2) = 1;   jend1(2) = 1;
+          istart2(2) = 1;  iend2(2) = nx;
+          jstart2(2) = ny;  jend2(2) = ny;
+          call mpp_define_mosaic(global_indices, layout2D,
+     &         domain, ntiles, num_contact, tile1, tile2,
+     &         istart1, iend1, jstart1, jend1, istart2, iend2,
+     &         jstart2, jend2,
+     &         pe_start=pe_start, pe_end=pe_end, symmetry=.true.,
+     &      shalo = ng, nhalo = ng, whalo = ng, ehalo = ng, name = type)
+
+        case (7)   ! Cartesian, channel
+          !--- Contact line 1, between tile 1 (EAST) and tile 1 (WEST)
+          tile1(1) = 1; tile2(1) = 1
+          istart1(1) = nx; iend1(1) = nx;
+          jstart1(1) = 1;  jend1(1) = ny;
+          istart2(1) = 1;  iend2(1) = 1;
+          jstart2(1) = 1;  jend2(1) = ny;
+          call mpp_define_mosaic(global_indices, layout2D,
+     &         domain, ntiles, num_contact, tile1, tile2,
+     &         istart1, iend1, jstart1, jend1, istart2, iend2,
+     &         jstart2, jend2,
+     &         pe_start=pe_start, pe_end=pe_end, symmetry=.true.,
+     &      shalo = ng, nhalo = ng, whalo = ng, ehalo = ng, name = type)
+
+      end select
+
+      deallocate(npes_tile, tile1, tile2)
+      deallocate(istart1,iend1,jstart1,jend1)
+      deallocate(istart2,iend2,jstart2,jend2)
+      deallocate(layout2D, global_indices)
+      deallocate(pe_start,pe_end)
+
+      !--- find the tile number
+      tile = mpp_pe()/npes_per_tile+1
+      call mpp_get_compute_domain( domain, is,  ie,  js,  je  )
+      call mpp_get_data_domain   ( domain, isd, ied, jsd, jed )
+
+!     tile=1
+!     write(*,200) tile, is, ie, js, je
+ 200  format(i4.4, ' ', i4.4, ' ', i4.4, ' ', i4.4, ' ', i4.4, ' ')
+
+      end subroutine init_domain
+
+      subroutine UPDATE_HALO_2D(array, domain, flags1)
+      real array(:,:)
+      type(domain2D) :: domain
+      integer, optional :: flags1
+
+      call mpp_update_domains ( array, domain, flags=SUPDATE+NUPDATE)
+      !call mpp_update_domains ( array, domain, flags=NUPDATE)
+      !call mpp_update_domains ( array, domain, flags=SUPDATE)
+
+      end subroutine UPDATE_HALO_2D
+!
+! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ !
+!-------------------------------------------------------------------------------
+#endif
 
       END MODULE DOMAIN_DECOMP
 

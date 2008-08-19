@@ -3,6 +3,10 @@
 !@ver  1.0
 !@cont THBAR,QSAT,DQSATDT,FILEMANAGER,READT,DREAD,MREAD
 
+#if ( defined USE_ESMF )  || ( defined USE_MPP )
+#define USE_MPI
+#endif
+
       FUNCTION THBAR (X,Y)
 !@sum  THBAR calculates mean temperature used in vertical differencing
 !@auth Gary Russell, Jean Lerner, Arakawa
@@ -699,12 +703,12 @@ C****      '(' is required, so it is inserted
       integer, parameter :: iu_err = 9
       integer :: mpi_err
       integer :: rank
-#ifdef USE_ESMF
+#ifdef USE_MPI
 #include "mpi_defs.h"
 #include "mpif.h"
 #endif
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       call MPI_COMM_RANK(MPI_COMM_WORLD, rank, mpi_err)
 #else
       rank =0
@@ -721,13 +725,13 @@ C****      '(' is required, so it is inserted
       call sys_flush(6)
 
       if ( retcode > 13 ) then
-#ifdef USE_ESMF
+#ifdef USE_MPI
         call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
 #else
         call sys_abort
 #endif
       else
-#ifdef USE_ESMF
+#ifdef USE_MPI
         call mpi_finalize(mpi_err)
 #endif
         call exit_rc (0)

@@ -29,7 +29,9 @@ CAOO   Just to test CVS
       USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
       USE mo_bulk2m_driver_gcm, ONLY: cleanup_bulk2m_driver
 #endif
-
+#ifdef USE_MPP
+      USE fms_mod,         only : fms_init, fms_end
+#endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fv_core
       USE FV_INTERFACE_MOD, only: Initialize
@@ -110,6 +112,10 @@ C****
       call openunit(trim(ifile),iu_IFILE,.false.,.true.)
       call parse_params(iu_IFILE)
       call closeunit(iu_IFILE)
+
+#ifdef USE_MPP
+      call fms_init( )
+#endif
 
 #ifdef SCM
       call sync_param( "J_TARG", J_TARG )
@@ -756,6 +762,9 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 #endif
 
       CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
+#ifdef USE_MPP
+      call fms_end( )
+#endif
 
       END
 

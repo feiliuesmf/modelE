@@ -431,6 +431,14 @@ else
 NETCDF_STUBS=-lnetcdf_stubs
 endif
 
+ifeq ($(MPP),YES)  
+CPPFLAGS += -DUSE_MPP
+FFLAGS += -I/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/include
+F90FLAGS += -I/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/include
+LIBS += -L/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/lib -lfvdycoreShared 
+LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -lfmpi -lmpi -lstdc++ -threads
+endif
+
 ifeq ($(ESMF),YES)
 ifeq ($(UNAME),OSF1)
 CPPFLAGS += -DUSE_ESMF

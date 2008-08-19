@@ -96,8 +96,13 @@ setup_script:
 	fi
 	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
+ifneq ($(MPP),YES)
 ifneq ($(ESMF),YES)
 	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)
+else
+	echo PRUN
+	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN) 
+endif
 else
 	echo PRUN
 	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN) 
