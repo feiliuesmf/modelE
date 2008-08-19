@@ -146,9 +146,6 @@
       !----Local------
       type(patch),pointer :: pp
 
-cddd      print *,hemi, jday
-cddd     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
-
       if (.not.do_giss_lai) then
       ! update with external data first
         if ( associated(laidata) )
@@ -163,10 +160,6 @@ cddd     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
         if ( associated(cropsdata) )
      &       call entcell_update_crops(entcell, cropsdata)
       endif
-
-cddd      print *,"xx",hemi, jday
-cddd     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
-
 
       ! and then do GISS phenology if required
       if ( do_giss_phenology ) then
