@@ -656,10 +656,14 @@
       real*8,parameter :: k_Ent = 2.d0 !Correction factor to k_CLM until find where they got their k_CLM.
       real*8,parameter :: ugBiomass_per_gC = 2.d6
       real*8,parameter :: ugBiomass_per_umolCO2 = 28.5
-
-      R_maint = n * pfpar(pft)%r * k_Ent * k_CLM * (C/CN) *   !C in CLM is g-C/individual
-     &     exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
-     &     ugBiomass_per_gC/ugBiomass_per_umolCO2
+      
+      if (T_k>228.15d0) then ! set to cut-off at 45 deg C 
+         R_maint = n * pfpar(pft)%r * k_Ent * k_CLM * (C/CN) *   !C in CLM is g-C/individual
+     &        exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
+     &        ugBiomass_per_gC/ugBiomass_per_umolCO2
+      else 
+         R_maint = 0.d0
+      endif
       !Note:  CLM calculates this per individual*population/area_fraction
       !      to give flux per area of pft cover rather than per ground area.
       end function Resp_can_maint
