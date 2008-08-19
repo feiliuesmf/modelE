@@ -9034,7 +9034,7 @@ C**** Initialise pbl profile if necessary
       end if
       end do
 #endif
-#if (defined TRACERS_WATER) && (defined TRACERS_OCEAN)
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 C**** Initialise ocean tracers if necessary
       call tracer_ic_ocean
 #endif

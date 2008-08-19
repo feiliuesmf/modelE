@@ -832,9 +832,10 @@ C**** Set fluxed arrays for oceans
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
           SSS(I,J) = SSS0
-#ifdef TRACERS_WATER
-          gtracer(:,1,i,j)=trw0(:)
-#endif
+! not possible with current ordering in INPUT
+!#ifdef TRACERS_WATER    
+!          gtracer(:,1,i,j)=trw0(:)
+!#endif
         ELSE
           SSS(I,J) = 0.
         END IF
