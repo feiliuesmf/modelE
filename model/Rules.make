@@ -436,7 +436,7 @@ CPPFLAGS += -DUSE_MPP
 FFLAGS += -I/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/include
 F90FLAGS += -I/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/include
 LIBS += -L/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/lib -lfvdycoreShared 
-LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl -lfmpi -lmpi -lstdc++ -threads
+LIBS += -lfmpi -lmpi
 endif
 
 ifeq ($(ESMF),YES)
