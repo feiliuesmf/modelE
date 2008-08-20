@@ -1834,6 +1834,10 @@ C**** Ensure that no round off error effects land with ice and earth
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
        call init_tracer
+#ifdef TRACERS_WATER
+C**** initiallise gtracer over oceans
+       call init_tracer_ocean
+#endif
 #endif
 
 C****
