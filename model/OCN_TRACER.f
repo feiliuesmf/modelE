@@ -302,12 +302,36 @@ C****
       end subroutine tracer_ic_ocean
 #endif
 
-#ifdef TRACERS_OCEAN
       subroutine init_tracer_ocean
-!@sum Initialise ocean tracer diagnostics (none so far)
+!@sum Initialise ocean tracer diagnostics and gtracer (ATM grid)
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : focean
+      USE OCEAN, only : imaxj, trmo
+      USE OCN_TRACER_COM, only : trw0
+      USE FLUXES, only : gtracer
+      USE DOMAIN_DECOMP, only : grid,get
+      IMPLICIT NONE
+      INTEGER i,j,n
+      INTEGER :: j_0,j_1
+
+      call get(grid,j_strt=j_0,j_stop=j_1)
+
+      do j=j_0,j_1
+        do i=1,imaxj(j)
+          if (focean(i,j).gt.0) then
+#ifdef TRACERS_WATER
+#ifdef TRACERS_OCEAN
+            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J)-
+     *            S0M(I,J,1))
+#else
+            GTRACER(:,1,I,J)=trw0(:)
+#endif
+          end if
+        end do
+      end do
+
       return
       end subroutine init_tracer_ocean
-#endif
 
 #ifdef TRACERS_OCEAN
       SUBROUTINE OC_TDECAY
