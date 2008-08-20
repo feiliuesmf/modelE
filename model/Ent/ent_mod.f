@@ -918,6 +918,7 @@ cddd      end subroutine ent_cell_update_single
       real*8, pointer :: dbuf(:)
       type(entcelltype_public), intent(in) :: entcell ! pointer ?
       !---
+      type(entcelltype), pointer :: ecp
       type(patch), pointer :: p  !@var p current patch
       type(cohort), pointer :: c !@var current cohort
       integer :: np              !@var np number of patches in the cell
@@ -934,11 +935,14 @@ cddd      end subroutine ent_cell_update_single
         return
       endif
 
+      ecp => entcell%entcell
+
       ! first compute number of patches and cohorts in the cell
       ! this actually can be save in the cell structure 
       ! for optimization ...
       ! also count the number of real*8 values to be saved
       ndbuf = 0
+      call copy_cell_vars(NULL, nn, ecp, 0); ndbuf = ndbuf + nn
       np = 0
       p => entcell%entcell%oldest      
       do while ( associated(p) )
@@ -972,6 +976,7 @@ cddd      end subroutine ent_cell_update_single
       ! for a while for debugging
       ! save cell vars here (if there are any...), i.e. 
       ! call copy_cell_vars(dbuf, nn, p, -1);
+      call copy_cell_vars(dbuf(dc+1:), nn, ecp, -1); dc = dc + nn
       np = 0
       p => entcell%entcell%oldest      
       do while ( associated(p) )
@@ -1008,6 +1013,7 @@ cddd      end subroutine ent_cell_update_single
       real*8, intent(inout) :: dbuf(0:)
       type(entcelltype_public), intent(out) :: entcell ! pointer ?
       !---
+      type(entcelltype), pointer :: ecp
       type(patch), pointer :: p, pprev  !@var p current patch
       type(cohort), pointer :: c, cprev !@var current cohort
       integer :: np              !@var np number of patches in the cell
@@ -1027,6 +1033,9 @@ cddd      end subroutine ent_cell_update_single
 
       if ( np <= 0 ) return  ! nothing to restore...
 
+      ecp => entcell%entcell
+
+      call copy_cell_vars(dbuf(dc:), nn, ecp, 1); dc = dc + nn
       nullify( pprev )
       do i=1,np
         !allocate( p )
@@ -1203,6 +1212,31 @@ cddd      end subroutine ent_cell_update_single
 
 !   i didn't include any i/o sub for cell since it looks like 
 !   patch will not have any i/o vars
+
+
+      subroutine copy_cell_vars(buf, n, entcell, flag)
+      real*8, intent(inout) :: buf(0:)
+      integer, intent(out) :: n
+      !type(patch), intent(inout):: p
+      type(entcelltype), intent(inout) :: entcell ! pointer ?
+!@var flag defines the actual action:
+!@+     -1 copy from patch to buffer
+!@+      1 copy from buffer to patch
+!@+      0 do nothing - just return the number of fields
+      integer, intent(in) :: flag
+      !---
+      integer dc, nn, i
+
+      dc = 0
+
+      ! include all cell variables that need i/o
+      ! actually soil_texture is BC, but store it to checkpoint for now ...
+      call copy_vars( buf(dc:), nn, entcell%soil_texture, flag)
+           dc = dc + nn
+      n = dc
+
+      end subroutine copy_cell_vars
+
 
       subroutine copy_patch_vars(buf, n, p, flag)
       real*8, intent(inout) :: buf(0:)
