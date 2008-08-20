@@ -627,15 +627,15 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       end if   ! full model ; kradia le 0
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
-C****    done at the end of (selected) months
-      IF (months.ge.NMONAV .and.   ! next 2 conditions are rarely needed
-     *    JDAY.eq.1+JDendOfM(JMON-1) .and. MOD(Itime,NDAY).eq.0) THEN
+C**** (after the end of a diagn. accumulation period)
+      IF (MOD(Itime,NDAY).eq.0) then 
+      IF (months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(JMON-1)) then
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
-      call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
-      acc_period=aDATE(1:12)
-      WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
-      if (kradia.le.0) call print_diags(0)
+        call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
+        acc_period=aDATE(1:12)
+        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
+        if (kradia.le.0) call print_diags(0)
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
@@ -688,7 +688,9 @@ c        TOTALT=(MNOW-MSTART)/(60.*100.) ! wrong when clock rolls over
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         TIMING = 0
         MSTART= MNOW
-      END IF
+
+      END IF ! beginning of accumulation period
+      END IF ! beginning of day
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
       CALL TIMER (MNOW,MDIAG)
@@ -1196,7 +1198,7 @@ C****
         read( iu_IFILE, *, err=910, end=910 ) bufs
         if ( bufs == '&&END_PARAMETERS' ) exit
       enddo
-        
+
       READ (iu_IFILE,NML=INPUTZ,ERR=900)
       call closeunit(iu_IFILE)
 
@@ -1207,7 +1209,7 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       if(is_set_param("Kradia")) call get_param( "Kradia", Kradia )
-      if(is_set_param("coupled_chem")) 
+      if(is_set_param("coupled_chem"))
      &call get_param( "coupled_chem", coupled_chem )
 
 C***********************************************************************
@@ -2086,7 +2088,7 @@ C**** CORRECTED.
       CHARACTER*6, INTENT(IN) :: SUBR
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H, J_1H
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
       IF (QCHECK) THEN
