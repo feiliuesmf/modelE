@@ -1,42 +1,14 @@
 c ifort zonalmean.f -o testzone -m64 -I/usr/local/netcdf-64bits-ifort-gcc/include -L/usr/local/netcdf-64bits-ifort-gcc/lib -lnetcdf
-c****
-
-
-
-c****
-      module zonaldata
-
-      integer  :: ncells
-      integer,parameter:: im=144,jm=90,ic=48,jc=48,ndomains=6
-      integer, pointer, dimension(:,:) :: azonal1,azonal2
-      integer, pointer, dimension(:,:) :: azonal3,azonal4
-      real*8, pointer, dimension(:,:) :: azonal5
-      integer, dimension(6) :: keymax 
-
-      interface init_xgrid
-      subroutine init_xgrid(im,jm,ic,jc,ncells,ndomains,
-     *     azonal1,azonal2,azonal3,azonal4,azonal5,keymax)
-      integer  :: ncells
-      integer:: im,jm,ic,jc,ndomains
-      integer, pointer, dimension(:,:) :: azonal1,azonal2
-      integer, pointer, dimension(:,:) :: azonal3,azonal4
-      real*8, pointer, dimension(:,:) :: azonal5
-      integer, dimension(6) :: keymax 
-      end subroutine init_xgrid
-      end interface 
-
-      end module zonaldata
-c****
-
 
 
 c****
       program testzone
-      use zonaldata
+      use ZONAL_COM
       implicit none
       include 'netcdf.inc'
       real*8 :: tcub(ic,jc,ndomains),zonal_mean_loc(ndomains,jm)
-      real*8 :: area_latband_loc(ndomains,jm),area(jc)
+      real*8 :: area_latband_loc(ndomains,jm),area_latband(jm)
+      real*8 :: zonal_mean(jm)
       integer :: itile,fid,vid,srt(3),cnt(3),status,ikey,jlat,i
       character*200 :: infi,infile
       character*1 :: istr
@@ -68,7 +40,7 @@ c
         status = nf_get_vara_double(fid,vid,srt,cnt,tcub(1,1,itile))
         status = nf_close(fid)
         
-        call zonalmean_cs(tcub(:,:,itile),1,ic,1,jc,jm,1,itile,
+        call zonalmean_cs(tcub(:,:,itile),1,ic,1,jc,jm,1,1,
      *       azonal1(itile,:),azonal2(itile,:),azonal3(itile,:),
      *       azonal4(itile,:),azonal5(itile,:),
      *       zonal_mean_loc(itile,:),
@@ -76,18 +48,26 @@ c
 
       enddo
 
+      
+      do jlat=1,jm
+         area_latband(jlat)=0.d0
+         do itile=1,ndomains
+            area_latband(jlat)=area_latband(jlat)
+     *           +area_latband_loc(itile,jlat)
+         enddo
+         write(25,*) area_latband(jlat)
+      enddo
 
       do jlat=1,jm
-         area(jlat)=0.d0
+         zonal_mean(jlat)=0.d0
          do itile=1,ndomains
-c     if (area_latband(jlat) .gt. 1.d-14) then
-c     zonal_mean_loc(jlat)=zonal_mean_loc(jlat)
-c     *       /area_latband(jlat)
-c     endif
-c     write(*,*) "zm=",zonal_mean(jlat)
-            area(jlat)=area(jlat)+area_latband_loc(itile,jlat)
+            if (area_latband(jlat) .gt. 1.d-14) then
+               zonal_mean(jlat)=zonal_mean(jlat)
+     *              +zonal_mean_loc(itile,jlat)
+     *              /area_latband(jlat)
+            endif
          enddo
-         write(25,*) area(jlat)
+         write(26,*) zonal_mean(jlat)
       enddo
       
 
@@ -248,31 +228,29 @@ c     calculate keymax = size of azonal
 
 
 c****
-c     Calculate Zonal mean for current domain
+c     Calculate Zonal mean for current domain - cubed sphere version     
 c****
-      subroutine zonalmean_cs(tcub,i0,i1,j0,j1,jm,IT,idomain,
+      subroutine zonalmean_cs(acub,i0,i1,j0,j1,jm,
      *     az1,az2,az3,az4,az5,zonal_mean,area_latband,maxkey)
-c     INPUT:    tcube          array to be summed
+c     INPUT:    acube          array to be summed
 c               i0,i1,j0,j1    boundaries of 2d domain
 c               jm             latitude max
 c               IT             index of quantity
-c               idomain        index of domain
 c               azonal1,azonal2,...
 c               azonal3,azonal4,...
 c               azonal5        contains reordered xarea 
 c               maxkey         size of azonal* arrays
-      implicit none
 
+      implicit none
       include 'netcdf.inc'
-      integer, intent(in) :: i0,i1,j0,j1,jm,IT
-      integer, intent(in) :: maxkey,idomain
+      integer, intent(in) :: i0,i1,j0,j1,jm
+      integer, intent(in) :: maxkey
       integer :: az1(maxkey),az2(maxkey),az3(maxkey),az4(maxkey)
       real*8 :: az5(maxkey)
-      real*8 :: tcub(i1-i0+1,j1-j0+1),zonal_mean(j1-j0+1)
+      real*8 :: acub(i1-i0+1,j1-j0+1),zonal_mean(j1-j0+1)
       real*8 :: area_latband(j1-j0+1)
       integer :: ikey,jlat,ic,jc
 
-      write(*,*) "*********************idomain=",idomain
       do jlat=1,jm
 c         write(*,*) "jlat=",jlat
          zonal_mean(jlat)=0.d0
@@ -285,10 +263,30 @@ c            write(*,*) "j=",az1(ikey)
                area_latband(jlat)=area_latband(jlat)
      *              +az5(ikey)
                zonal_mean(jlat)=zonal_mean(jlat)+az5(ikey)
-     *              *tcub(ic,jc)
+     *              *acub(ic,jc)
             endif
          enddo
       enddo
 
-      
+c
+c     TODO : might be accelerated using matrix-matrix product, kronecker matrix operator and precomputed
+c     matrices...Still need to find the right formula 
+c
+       
       end subroutine zonalmean_cs
+
+c****
+c     Calculate Zonal mean for current domain - latitude-longitude version
+c****
+c      subroutine zonalmean_latlon(aj,X,ftype,zonal_mean)
+c
+c     add increment to zonal mean : aj(j)=aj(j)+X(i,j)*ftype(i,j)
+c
+c      implicit none
+c      real*8, intend(in) :: ftype,X
+c      real*8, intend(out) :: aj
+c
+c      aj=aj+X*ftype
+c
+c      end subroutine zonalmean_latlon
+      
