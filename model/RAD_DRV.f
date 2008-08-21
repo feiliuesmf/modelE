@@ -1042,7 +1042,6 @@ C**** Calculate CHL for current day
 C**** CHL always uses quadratic fit
             CHL(I,J)=ACHL(I,J)+BCHL(I,J)*TIME
      *           +CCHL(I,J)*(TIME**2-BY12)
-      print*, 'RAD_DRV: CHL=',i,j,CHL(I,J)
             if (CHL(I,J).lt. 0) CHL(I,J)=0. ! just in case
           END IF
         END DO
@@ -1107,9 +1106,6 @@ C     OUTPUT DATA
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
-#ifdef HTAP_LIKE_DIAGS
-     &     ,ttausv_sum,ttausv_count
-#endif
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
@@ -1124,6 +1120,9 @@ C     OUTPUT DATA
      *     ,ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
 #ifndef NO_HDIURN
      *     hdiurn,
+#endif
+#ifdef CUBE_GRID
+     *     zonalmean,
 #endif
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
@@ -1155,7 +1154,7 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : nstype,gtempr
-#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
+#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
      .                  ,chl
 #endif
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
@@ -1176,6 +1175,11 @@ c    *     ,SNFST0,TNFST0
 #ifdef BC_ALB
      *     ,ijts_alb
 #endif
+#endif
+#ifdef CUBE_GRID
+      use zonal_com, only: ic,jc,ndomains,az1=>azonal1,
+     *     az2=>azonal2,az3=>azonal3,az4=>azonal4,
+     *     az5=>azonal5,keymax,ncells
 #endif
       IMPLICIT NONE
 C
@@ -1226,6 +1230,11 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 #ifdef BC_ALB
       REAL*8 dALBsn1
 #endif
+#ifdef CUBE_GRID
+      REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: X
+
+#endif
       LOGICAL NO_CLOUD_ABOVE, set_clayilli,set_claykaol,set_claysmec,
      &     set_claycalc,set_clayquar
 C
@@ -1261,6 +1270,9 @@ C
 
 C
 C****
+#ifdef CUBE_GRID
+      call GET_CUBE(grid,I_STRT=I_0,I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+#else
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       J_0 = grid%J_STRT
@@ -1269,6 +1281,7 @@ C****
       J_1S = grid%J_STOP_SKP
       J_0STG = grid%J_STRT_STGR
       J_1STG = grid%J_STOP_STGR
+#endif
 
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -1451,10 +1464,6 @@ C**** SS clouds are considered as a block for each continuous cloud
       CALL BURN_RANDOM(SUM(IMAXJ(J_1+1:JM))*LM)
 
       end if                    ! kradia le 0
- 
-#ifdef HTAP_LIKE_DIAGS
-      ttausv_count=ttausv_count+1.d0
-#endif
 
 C****
 C**** MAIN J LOOP
@@ -1519,7 +1528,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 
-#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
+#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) LOC_CHL = chl(I,J)
 #endif
@@ -2052,15 +2061,6 @@ C**** Save optical depth diags
       end do
 #endif
 
-#ifdef HTAP_LIKE_DIAGS
-! this to accumulate daily SUM of optical thickness for 
-! each active tracer. Will become average in DIAG.f.
-      do n=1,NTRACE
-        if(ntrix(n) > 0) ttausv_sum(i,j,n)=
-     &  ttausv_sum(i,j,n) + sum(ttausv(1:LM,n))
-      enddo
-#endif
-
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
         DO n=1,NTRACE
@@ -2335,7 +2335,60 @@ C****   output data: really needed only if kradia=2
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
-         DIURN_partb=0.
+      DIURN_partb=0.
+
+#ifdef CUBE_GRID
+
+C**** ZONAL MEANS FOR CUBED SPHERE
+
+c     Diurn_partb 
+      
+      X(:,:)= 1.d0-SNFS(3,:,:)/S0
+
+      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+     *     az1,az2,az3,az4,az5,
+     *     DIURN_partb(1,:,KR),keymax,0)
+
+      X(:,:)= 1.d0-ALB(:,:,1)
+
+      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+     *     az1,az2,az3,az4,az5,
+     *     DIURN_partb(2,:,KR),keymax,0)
+
+      X(:,:)= (SNFS(3,:,:)-SRHR(0,:,:))*CSZ2(:,:)
+
+      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+     *     az1,az2,az3,az4,az5,
+     *     DIURN_partb(3,:,KR),keymax,0)
+
+c     end Diurn_partb
+
+      do IT=1,NTYPE
+      X(:,:)=S0*CSZ2(:,:)*FTYPE(IT,:,:)
+
+      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+     *     az1,az2,az3,az4,az5,
+     *     azonal(:,J_SRINCP0,IT),keymax,1)
+
+      X(:,:)=(SNFS(3,:,:)*CSZ2(:,:)*FTYPE(IT,:,:)
+     
+      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+     *     az1,az2,az3,az4,az5,
+     *     azonal(:,J_SRNFP0,IT),keymax,1)    
+      enddo
+
+      X(:,:)=(SNFS(3,:,:)*CSZ2(:,:)*FTYPE(IT,:,:)
+      X(:,:)=(SRHR(0,:,:)*CSZ2(:,:)/
+     *     (ALB(:,:,1)+1.D-20))*FTYPE(IT,:,:)
+
+      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+     *     az1,az2,az3,az4,az5,
+     *     azonal(:,J_SRINCG,IT),keymax,1)    
+      enddo
+
+c     finish J_BRTEMP, J_TRINCG, J_HSURF, J_TRNFP0...
+
+#else
          DO 780 J=J_0,J_1
          DXYPJ=DXYP(J)
          DO L=1,LM
@@ -2618,6 +2671,7 @@ c move this diag outside rad time step for improved averaging
 c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
+#endif
 
       CALL GLOBALSUM(grid, DIURN_partb, DIURNSUMb, ALL=.true.)
 
