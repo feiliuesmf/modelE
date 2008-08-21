@@ -25,6 +25,10 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
 
+#ifdef CUBE_GRID
+      REAL*8, DIMENSION(jm,KAJ, NTYPE), public :: zonalmean
+#endif
+
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
 !@var place so its size could be allocated dynamically and still have
 !@var it preserved from call to call of DIAG5A
@@ -703,6 +707,7 @@ c idacc-indices of various processes
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc, AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc
+
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
