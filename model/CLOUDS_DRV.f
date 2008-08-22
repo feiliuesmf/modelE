@@ -107,6 +107,11 @@
       USE AMP_AEROSOL, only : AQsulfRATE
 #endif
       USE FILEMANAGER, only: openunit,closeunit
+
+#ifdef CUBE_GRID
+      use zonal_com, only: ic,jc,ndomains,az1=>az12,
+     *     az2=>az22,az3=>az23,keymax,ncells
+#endif
       IMPLICIT NONE
       integer rc
 
@@ -164,7 +169,7 @@ C**** parameters and variables for isccp diags
       real*8 skt,conv(lm),qv(lm)
       real*8 pfull(lm),at(lm),cc(lm),dtau_s(lm),dtau_c(lm)
       real*8 dem_s(lm),dem_c(lm),phalf(lm+1)
-      real*8 fq_isccp(ntau,npres),ctp,tauopt
+      real*8 fq_isccp(ntau,npres),ctp,tauopt,val
       integer itau,itrop,nbox,ibox
 C****
 
@@ -205,6 +210,9 @@ C**** Initialize
       idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
       idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
 
+#ifdef CUBE_GRID
+      CALL GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+#else
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H,
@@ -212,6 +220,7 @@ C**** define local grid
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
+#endif
 
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
@@ -516,9 +525,16 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
         END DO
+#ifdef CUBE_GRID
+        val=PRCPMC*FTYPE(IT,I,J)
+        call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
+     *       az12,az22,az32,azonal(:,J_PRCPMC,IT),area_latband(:),
+     *       keymax)
+#else
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
         END DO
+#endif
         AREGJ(JR,J,J_PRCPMC)=AREGJ(JR,J,J_PRCPMC)+PRCPMC*DXYP(J)
 
         DO KR=1,NDIUPT
@@ -724,9 +740,16 @@ C**** Error reports
 
 C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
+#ifdef CUBE_GRID
+        val=PRCPSS*FTYPE(IT,I,J)
+        call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
+     *       az12,az22,az32,azonal(:,J_PRCPSS,IT),area_latband(:),
+     *       keymax)
+#else
          DO IT=1,NTYPE
            AJ(J,J_PRCPSS,IT)=AJ(J,J_PRCPSS,IT)+PRCPSS*FTYPE(IT,I,J)
          END DO
+#endif
          AREGJ(JR,J,J_PRCPSS)=AREGJ(JR,J,J_PRCPSS)+PRCPSS*DXYP(J)
 
          DO KR=1,NDIUPT
@@ -762,9 +785,16 @@ cECON  if (abs(E-E1-ep).gt.0.01) print*,"energy err",i,j,E-E1-ep,
 cECON *     E,E1,ep,prcpss,lhp(1)
 
 C**** PRECIPITATION DIAGNOSTICS
+#ifdef CUBE_GRID
+        val=ENRGP*FTYPE(IT,I,J)
+        call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
+     *       az12,az22,az32,azonal(:,J_EPRCP,IT),area_latband(:),
+     *       keymax)
+#else
         DO IT=1,NTYPE
           AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)
         END DO
+#endif
         AREGJ(JR,J,J_EPRCP)=AREGJ(JR,J,J_EPRCP)+ENRGP*DXYP(J)
 
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
