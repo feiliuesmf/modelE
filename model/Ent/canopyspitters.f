@@ -653,7 +653,8 @@
       real*8 :: n               !Density of individuals (no./m2)
       !---Local-------
       real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
-      real*8,parameter :: k_Ent = 2.d0 !Correction factor to k_CLM until find where they got their k_CLM.
+!      real*8,parameter :: k_Ent = 2.d0 !Correction factor to k_CLM until find where they got their k_CLM.
+      real*8,parameter :: k_Ent = 1.d0 !Correction factor to k_CLM until find where they got their k_CLM.
       real*8,parameter :: ugBiomass_per_gC = 2.d6
       real*8,parameter :: ugBiomass_per_umolCO2 = 28.5
       

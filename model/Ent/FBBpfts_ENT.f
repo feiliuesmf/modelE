@@ -167,9 +167,9 @@
      &     pspartype(1          !13. GRASSC3 - annual
      &    ,.86d0                !PARabsorb, Collatz et al. (1991)
 !     &     ,.89d0               !leaf VIS albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
-!     &     ,43.d0               !Vmax25, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
+     &     ,43.d0               !Vmax25, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
 !     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
-     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+!     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
 !     &     ,9d0                !m, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
 !     &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
      &     ,11.d0               !m, X.Mo, et al. (2001)
