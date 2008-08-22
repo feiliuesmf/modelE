@@ -5,6 +5,8 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
+      USE OCEANRES, only : LMO 
+
       USE DOMAIN_DECOMP, ONLY : grid
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -218,6 +220,22 @@ C**** fluxes associated with variable lake fractions
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: DTRSI
 #endif
 
+! Arrays  MOA,UOA,VOA,G0M,S0M,OGEOZA,OGEOZ_SVA,TRMOA are ocean quantities
+!   after interpolation from ocean to atmospheric grid  
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MOA, UOA,VOA, G0MA, S0MA
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OGEOZ_A,OGEOZ_SV_A
+#ifdef TRACERS_OCEAN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRMOA
+#endif
+
+! Global arrays needed for interpolation from ocean to atmospheric grid  
+      REAL*8, DIMENSION(IM,JM,LMO) :: MOA_glob, UOA_glob, VOA_glob,
+     *     G0MA_glob, S0MA_glob
+      REAL*8, DIMENSION(IM,JM) :: OGEOZ_A_glob, OGEOZ_SV_A_glob 
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(IM,JM,LMO,NTM) :: TRMOA_glob
+#endif
+
       END MODULE FLUXES
 
       SUBROUTINE ALLOC_FLUXES(grd_dum)
@@ -226,6 +244,7 @@ C**** fluxes associated with variable lake fractions
 !@ver  1.0
       USE CONSTANT, only : tf
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
+
       USE FLUXES
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
@@ -262,6 +281,8 @@ C**** fluxes associated with variable lake fractions
      &          DMVI    ( I_0H:I_1H , J_0H:J_1H ),
      &          UI2rho  ( I_0H:I_1H , J_0H:J_1H ),
      &          OGEOZA  ( I_0H:I_1H , J_0H:J_1H ),
+     &          OGEOZ_A ( I_0H:I_1H , J_0H:J_1H ),
+     &          OGEOZ_SV_A ( I_0H:I_1H , J_0H:J_1H ),
      &          DTH1    ( I_0H:I_1H , J_0H:J_1H ),
      &          DQ1     ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT=IER )
@@ -409,5 +430,15 @@ C**** fluxes associated with variable lake fractions
       ALLOCATE( DTRSI( NTM ,    2   , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 #endif
+
+      ALLOCATE(   MOA(I_0H:I_1H,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   UOA(I_0H:I_1H,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   VOA(I_0H:I_1H,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( G0MA (I_0H:I_1H,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( S0MA (I_0H:I_1H,J_0H:J_1H,LMO), STAT = IER)
+#ifdef TRACERS_OCEAN
+      ALLOCATE( TRMOA(I_0H:I_1H,J_0H:J_1H,LMO,NTM), STAT = IER)
+#endif
+
 
       END SUBROUTINE ALLOC_FLUXES

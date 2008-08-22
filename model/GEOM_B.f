@@ -62,7 +62,7 @@ C**** some B-grid conservation quantities
       REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
 
 !@var SINIV,COSIV,SINIP,COSIP longitud. sin,cos for wind,pressure grid
-      REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP
+      REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP,SINU,COSU
 !@var  RAVJ scaling for A grid U/V to B grid points (func. of lat. j)
 !@var  RAPJ scaling for B grid -> A grid conversion (1/4,1/im at poles)
       REAL*8, DIMENSION(IM,JM) :: RAPJ,RAVJ
@@ -224,7 +224,11 @@ C**** Calculate relative directions of polar box to nearby U,V points
         LON(I)=DLON*(I-.5)
         SINIP(I)=SIN(LON(I))
         COSIP(I)=COS(LON(I))
+        SINU(I) =SIN (I*TWOPI/IM)
+        COSU(I) =COS (I*TWOPI/IM)
       END DO
+      SINU(IM) = 0
+      COSU(IM) = 1
 
 C**** Conditions at the poles
       DO J=1,JM,JM-1
