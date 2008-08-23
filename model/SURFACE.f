@@ -136,9 +136,11 @@ C****
       USE tracers_dust, only : hbaij,ricntd
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
-      USE HYCOM_SCALARS, only: nstep
-#endif
+!!! nstep from hicom is currently not used (and it shouldn't be used outside
+!!! of hycom)
+cddd#ifdef TRACERS_GASEXCH_Natassa
+cddd      USE HYCOM_SCALARS, only: nstep
+cddd#endif
       USE SOIL_DRV, only: earth
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)

@@ -345,7 +345,9 @@ c  internals:
 
 #ifdef TRACERS_GASEXCH_Natassa
 #ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifndef TRACERS_GASEXCH_CO2_Igor /* comment it out in my case - Igor */
       USE obio_forc, only : atmCO2
+#endif
 #endif
 #endif
 
@@ -829,12 +831,14 @@ ccc dust emission from earth
 
 #ifdef TRACERS_GASEXCH_Natassa
 #ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifndef TRACERS_GASEXCH_CO2_Igor /* hack for testing land-only */
        IF (ocean) THEN  ! OCEAN only
           call TRACERS_GASEXCH_CO2_Natassa_PBL(tg1,ws,
      .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
      .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
        ENDIF
+#endif   /* hack */
 #endif   /* TRACERS_GASEXCH_CO2_Natassa */
 
 #ifdef TRACERS_GASEXCH_CFC_Natassa
@@ -859,7 +863,10 @@ C**** solve tracer transport equation
 
 #ifdef TRACERS_GASEXCH_CO2_Natassa
         !case where atmCO2 is constant
+        !!! looks like a hack... why tr() is overwritten? -IA
+#ifndef TRACERS_GASEXCH_CO2_Igor /* comment it out for my case - Igor */
         tr(:,itr)=atmCO2            !ppmv(uatm)
+#endif
 #endif
 
 #ifdef TRACERS_DRYDEP

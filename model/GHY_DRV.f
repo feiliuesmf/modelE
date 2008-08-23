@@ -294,6 +294,9 @@ c**** prescribed dust emission
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
       use sle001, only : nsn,fb,fv
+#ifdef TRACERS_GASEXCH_CO2_Igor
+     &     ,agpp,arauto,asoilresp
+#endif
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
       USE trdiag_com,ONLY : rts_save
 #endif
@@ -331,6 +334,13 @@ c**** prescribed dust emission
 #endif
 
 ccc tracers
+
+#ifdef TRACERS_GASEXCH_CO2_Igor
+      !!! hack - assume 1 tracer
+      trsrfflx(i,j,1)=trsrfflx(i,j,1) +
+     &       (arauto+asoilresp-agpp)/dtsurf *dxyp(j)*ptype !!! agpp/dtsurf *dxyp(j)*ptype
+#endif
+
 #ifdef TRACERS_WATER
       do nx=1,ntg
         n = ntixw(nx)

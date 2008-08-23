@@ -8163,6 +8163,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
       USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE PARAM, only : get_param
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf
       USE resolution,ONLY : Im,Jm,Lm,Ls1
@@ -8235,7 +8236,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE AMP_AEROSOL
 #endif
 #ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifndef TRACERS_GASEXCH_CO2_Igor /* should use more general way to set atmCO2*/
       USE obio_forc, only: atmCO2
+#endif
 #endif
 
       IMPLICIT NONE
@@ -8301,7 +8304,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       real*4, DIMENSION(im,jm,lm) :: craft_read
       character*56 titleg
 #endif
-
+#ifdef TRACERS_GASEXCH_CO2_Igor
+      real*8 atmCO2
+#endif
       INTEGER J_0, J_1
       INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -8873,6 +8878,9 @@ C         AM=kg/m2, and DXYP=m2:
 
 #ifdef TRACERS_GASEXCH_CO2_Natassa
         case ('CO2n')
+#ifdef TRACERS_GASEXCH_CO2_Igor /* actually should use get_param by default*/
+          call get_param("atmCO2", atmCO2)
+#endif
           do l=1,lm; do j=J_0,J_1; do i=1,im
              !units: [am]=kg_air/m2, [dxyp]=m2, [tr_mm]=kg_CO2,
              !       [bymair]=1/kg_air, [atmCO2]=ppmv=10^(-6)kg_CO2/kg_air
