@@ -15,6 +15,9 @@ filters: U,V in E-W direction (after every dynamics time step)                ?
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
+!#define TRACERS_GASEXCH_CO2_Igor
+!#define TRACERS_GASEXCH_Natassa
+!#define TRACERS_GASEXCH_CO2_Natassa
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -45,6 +48,11 @@ RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST UTILDBL SYSTEM                ! utilities
 POUT                                ! post-processing output
+!!!!!!!!! Tracers
+!TRACER_COM TRACERS_DRV              ! configurable tracer code
+!TRACERS                             ! generic tracer code
+!TRDIAG_COM TRACER_PRT
+
 
 Data input files:
     ! start up from restart file of earlier run
@@ -186,6 +194,7 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2          ! until diurnal diagn. are fixed, nssw should be even
+! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 &&END_PARAMETERS
 
  &INPUTZ
