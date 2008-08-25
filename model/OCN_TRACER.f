@@ -306,7 +306,7 @@ C****
 !@sum Initialise ocean tracer diagnostics and gtracer (ATM grid)
 !@auth Gavin Schmidt
       USE MODEL_COM, only : focean
-      USE OCEAN, only : imaxj, trmo
+      USE OCEAN, only : imaxj, trmo, mo, s0m, dxypo
       USE OCN_TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
       USE DOMAIN_DECOMP, only : grid,get
@@ -325,6 +325,7 @@ C****
      *            S0M(I,J,1))
 #else
             GTRACER(:,1,I,J)=trw0(:)
+#endif
 #endif
           end if
         end do
