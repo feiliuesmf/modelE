@@ -544,10 +544,22 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
             tmp(IDD_MCP) =+PRCPMC
             tmp(IDD_DMC) =+CLDDEPIJ
             tmp(IDD_SMC) =+CLDSLWIJ
+#ifdef CUBE_GRID
+             DO iidx1=1,n_idx1
+             val=tmp(idx1(iidx1))
+             call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
+     *       az12,az22,az32, hdiurn_part(:,idx1(iidx1),KR),
+     *        area_latband(:),keymax)
+             call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
+     *       az12,az22,az32, adiurn_part(:,idx1(iidx1),KR),
+     *        area_latband(:),keymax)
+             END DO
+#else
             hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
             adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
+#endif
           END IF
         END DO
 #ifdef CLD_AER_CDNC
@@ -757,10 +769,22 @@ C**** Accumulate diagnostics of LSCOND
              tmp(IDD_PR)  =+PRCPSS
              tmp(IDD_ECND)=+HCNDSS
              tmp(IDD_SSP) =+PRCPSS
+#ifdef CUBE_GRID
+             DO iidx2=1,n_idx2
+             val=tmp(idx2(iidx2))
+             call zonalean_cs_loop(val,I,J,I_1,J_1,JM,
+     *       az12,az22,az32, hdiurn_part(:,idx2(iidx2),KR),
+     *        area_latband(:),keymax)
+             call zonalean_cs_loop(val,I,J,I_1,J_1,JM,
+     *       az12,az22,az32, adiurn_part(:,idx2(iidx2),KR),
+     *        area_latband(:),keymax)
+             END DO
+#else
              hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
              adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
+#endif
            END IF
          END DO
 
