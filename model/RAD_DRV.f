@@ -1106,6 +1106,9 @@ C     OUTPUT DATA
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
+#ifdef HTAP_LIKE_DIAGS
+     &     ,ttausv_sum,ttausv_count
+#endif
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
@@ -1154,7 +1157,7 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : nstype,gtempr
-#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
      .                  ,chl
 #endif
       USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
@@ -1465,6 +1468,10 @@ C**** SS clouds are considered as a block for each continuous cloud
 
       end if                    ! kradia le 0
 
+#ifdef HTAP_LIKE_DIAGS
+      ttausv_count=ttausv_count+1.d0
+#endif
+
 C****
 C**** MAIN J LOOP
 C****
@@ -1528,7 +1535,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 
-#if (defined OBIO_RAD_coupling) && (defined CHL_from_OBIO)
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) LOC_CHL = chl(I,J)
 #endif
@@ -2061,6 +2068,15 @@ C**** Save optical depth diags
       end do
 #endif
 
+#ifdef HTAP_LIKE_DIAGS
+! this to accumulate daily SUM of optical thickness for
+! each active tracer. Will become average in DIAG.f.
+      do n=1,NTRACE
+        if(ntrix(n) > 0) ttausv_sum(i,j,n)=
+     &  ttausv_sum(i,j,n) + sum(ttausv(1:LM,n))
+      enddo
+#endif
+
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
         DO n=1,NTRACE
@@ -2341,8 +2357,8 @@ C****
 
 C**** ZONAL MEANS FOR CUBED SPHERE
 
-c     Diurn_partb 
-      
+c     Diurn_partb
+
       X(:,:)= 1.d0-SNFS(3,:,:)/S0
 
       call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
@@ -2371,10 +2387,10 @@ c     end Diurn_partb
      *     azonal(:,J_SRINCP0,IT),keymax,1)
 
       X(:,:)=(SNFS(3,:,:)*CSZ2(:,:)*FTYPE(IT,:,:)
-     
+
       call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
      *     az1,az2,az3,az4,az5,
-     *     azonal(:,J_SRNFP0,IT),keymax,1)    
+     *     azonal(:,J_SRNFP0,IT),keymax,1)
       enddo
 
       X(:,:)=(SNFS(3,:,:)*CSZ2(:,:)*FTYPE(IT,:,:)
@@ -2383,7 +2399,7 @@ c     end Diurn_partb
 
       call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
      *     az1,az2,az3,az4,az5,
-     *     azonal(:,J_SRINCG,IT),keymax,1)    
+     *     azonal(:,J_SRINCG,IT),keymax,1)
       enddo
 
 c     finish J_BRTEMP, J_TRINCG, J_HSURF, J_TRNFP0...
