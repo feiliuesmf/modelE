@@ -1,10 +1,10 @@
 c****
       module ZONAL_COM
 
-c      USE MODEL_COM, only : im,jm 
+      USE MODEL_COM, only : im,jm 
       integer  :: ncells
-      integer,parameter:: im=144,jm=90,ic=48,jc=48,ndomains=6
-c      integer,parameter:: ic=48,jc=48,ndomains=6
+c      integer,parameter:: im=144,jm=90,ic=48,jc=48,ndomains=6
+      integer,parameter:: ic=48,jc=48,ndomains=6
 
       integer, pointer, dimension(:,:) :: az11,az21
       integer, pointer, dimension(:,:) :: az31,az41,az12,az22
