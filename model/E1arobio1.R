@@ -1,6 +1,6 @@
-E1arobio2.R GISS Model E  2007 modelE              aromanou 08/08/08
+E1arobio1.R GISS Model E  2007 modelE              aromanou 08/08/08
 
-E1arobio2: obio + gas exch + radiation coupling + pco2 online
+E1arobio1: obio + gas exch + radiation coupling + pco2 online
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -15,14 +15,14 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
-#define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
-#define TRACERS_GASEXCH_CO2_Natassa ! special tracers to be passed to ocean
+#define TRACERS_GASEXCH_ocean       ! special tracers to be passed to ocean
+#define TRACERS_GASEXCH_ocean_CO2   ! special tracers to be passed to ocean
 #define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
 #define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
 #define pCO2_ONLINE                 ! pCO2_seawater computed online      
 !!!!#define CHL_from_OBIO               ! interactive CHL 
 !!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs
-!!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
+!!!!#define TRACERS_GASEXCH_ocean_CFC   ! special tracers to be passed to ocean
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -189,7 +189,7 @@ CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
 
 
 Label and Namelist:
-E1arobio2 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio1 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 
@@ -266,6 +266,9 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=48
+
+!parameters that affect CO2 gas exchange
+atmCO2=368.6      !uatm for year 2000
 &&END_PARAMETERS
 
  &INPUTZ

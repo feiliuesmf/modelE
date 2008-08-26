@@ -38,7 +38,7 @@
 
       USE FILEMANAGER, only: openunit,closeunit
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : tracflx,tracflx1d
 #endif
@@ -360,7 +360,7 @@ cdiag    write(*,'(a,i5,2i4,6e12.4)')'obio forcing ',
 cdiag.   nstep,i,j,Eda2(7,6),Esa2(7,6),solz,sunz,wind,atmFe_ij
 cdiag  endif
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
        do nt=1,ntm
           tracflx1d(nt) = tracflx(i,j,nt)
 !         write(*,'(a,3i5,2e12.4)')'obio_model, tracflx:',

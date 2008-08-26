@@ -181,7 +181,7 @@ c**** output
 #endif
 
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         real*8  :: alati,Kw_gas,alpha_gas,beta_gas
 #endif
 #endif
@@ -322,7 +322,7 @@ c   output:
 !@var  ntx  number of tracers to loop over
 !@var  ntix index of tracers used in pbl
 #endif
-#if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_Natassa)
+#if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_ocean)
 !@var  alati SSS at i,j
 !@var  Kw_gas  gas exchange transfer velocity at i,j only over ocean
 !@var  alpha_gas  solubility of gas
@@ -343,8 +343,8 @@ c  internals:
 !@var  kh    turbulent thermometric conductivity. computed
 !@var  ke    transport coefficient for the turbulent kinetic energy.
 
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CO2
 #ifndef TRACERS_GASEXCH_CO2_Igor /* comment it out in my case - Igor */
       USE obio_forc, only : atmCO2
 #endif
@@ -829,8 +829,8 @@ ccc dust emission from earth
 
 
 
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CO2
 #ifndef TRACERS_GASEXCH_CO2_Igor /* hack for testing land-only */
        IF (ocean) THEN  ! OCEAN only
           call TRACERS_GASEXCH_CO2_Natassa_PBL(tg1,ws,
@@ -839,17 +839,17 @@ ccc dust emission from earth
      .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
        ENDIF
 #endif   /* hack */
-#endif   /* TRACERS_GASEXCH_CO2_Natassa */
+#endif   /* TRACERS_GASEXCH_ocean_CO2 */
 
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
       IF (ocean) THEN  ! OCEAN only
        call TRACERS_GASEXCH_CFC_Natassa_PBL(tg1,ws,
      .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
      .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
       ENDIF
-#endif /* TRACERS_GASEXCH_CFC_Natassa */
-#endif /* TRACERS_GASEXCH_Natassa */
+#endif /* TRACERS_GASEXCH_ocean_CFC */
+#endif /* TRACERS_GASEXCH_ocean */
 
 
 
@@ -861,7 +861,7 @@ C**** solve tracer transport equation
 #endif
      *       dtime,n)
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
         !case where atmCO2 is constant
         !!! looks like a hack... why tr() is overwritten? -IA
 #ifndef TRACERS_GASEXCH_CO2_Igor /* comment it out for my case - Igor */

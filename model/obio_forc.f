@@ -69,11 +69,12 @@
       common /bmud /rmud 
 !$OMP THREADPRIVATE(/bmud/)
 
-      real, parameter :: atmCO2=368.6          !uatm for year 2000
-                   !     atmCO2=280.           !uatm for preindustial runs
-                   !     atmCO2=371.3          !uatm or ppmv (equivalent);
-                                               !global mean
-                                               !2000-2003 from OCMIP
+      real atmCO2
+!     real, parameter :: atmCO2=368.6          !uatm for year 2000
+!                  !     atmCO2=280.           !uatm for preindustial runs
+!                  !     atmCO2=371.3          !uatm or ppmv (equivalent);
+!                                              !global mean
+!                                              !2000-2003 from OCMIP
 
       contains
 

@@ -1,8 +1,8 @@
 #include "hycom_mpi_hacks.h"
 #include "rundeck_opts.h"
       subroutine mxkprf(m,n,mm,nn,k1m,k1n)
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
@@ -221,8 +221,8 @@ c***************************************************************************
 c
       subroutine mxk_a1(m,n,mm,nn,k1m,k1n,
      &       delp,sigmlj,thtop,thbot,thjmp)
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
@@ -372,8 +372,8 @@ c
 c***************************************************************************
       subroutine mxgisaij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
@@ -480,8 +480,8 @@ c
      &     dzth,d2zth,rdzlndzth,al0deep,thsum,dens,
      &     beta_b,beta_r,frac_b,frac_r,qspcifh,hbl,
      &     epson2,epson2_bot,eplatidep
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
      &    ,dtracer(ntm)
 
       integer ktr
@@ -578,8 +578,8 @@ c
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k)
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
               do ktr=1,ntm
               dtracer(ktr)=tracflx(i,j,ktr)*  !tracflx units: kg/m2/s
@@ -602,8 +602,8 @@ cdiag       endif
      &               delt1*g*qspcifh*qdpmm(k)
             endif
             dsaln=0.0
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
               do ktr=1,ntm
                dtracer(ktr)=0.0
@@ -619,8 +619,8 @@ cdiag       endif
           else !k.gt.klist(i,j)
             dtemp=0.0
             dsaln=0.0
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
               do ktr=1,ntm
                dtracer(ktr)=0.0
@@ -632,8 +632,8 @@ cdiag       endif
         else !.not.thermo
           dtemp=0.0
           dsaln=0.0
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
               do ktr=1,ntm
                dtracer(ktr)=0.0
@@ -647,8 +647,8 @@ c --- modify t and s
         temp(i,j,kn)=temp(i,j,kn)+dtemp
         saln(i,j,kn)=saln(i,j,kn)+dsaln
         th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
         if (dotrcr) then
          do ktr=1,ntm
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
@@ -1458,8 +1458,8 @@ c***************************************************************************
 c
       subroutine mxkppaij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
@@ -1585,8 +1585,8 @@ c
      &     vctyh,difsh,difth,zrefo,qspcifh,hbblmin,hbblmax,
      &     beta_b,beta_r,frac_b,frac_r,
      &     x0,x1,x2,y0,y1,y2
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
      &    ,dtracer(ntm)
 
       integer ktr
@@ -1774,8 +1774,8 @@ c
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k) 
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_oceana
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=tracflx(i,j,ktr)*  !tracflx units: kg/m2/s
@@ -1798,8 +1798,8 @@ cdiag       endif
      &               delt1*g*qspcifh*qdpmm(k)
             endif
             dsaln=0.0
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=0.0
@@ -1815,8 +1815,8 @@ cdiag       endif
           else !k.gt.klist(i,j)
             dtemp=0.0
             dsaln=0.0
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=0.0
@@ -1828,8 +1828,8 @@ cdiag       endif
         else !.not.thermo
           dtemp=0.0
           dsaln=0.0
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             if (dotrcr) then
             do ktr=1,ntm
                dtracer(ktr)=0.0
@@ -1844,8 +1844,8 @@ c --- modify t and s; set old value arrays at p points for initial iteration
           temp(i,j,kn)=temp(i,j,kn)+dtemp
           saln(i,j,kn)=saln(i,j,kn)+dsaln
           th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
         if (dotrcr) then
          do ktr=1,ntm
            tracer(i,j,k,ktr)=tracer(i,j,k,ktr)+dtracer(ktr)
@@ -2940,8 +2940,8 @@ c
       subroutine mxkprfbij(m,n,mm,nn,k1m,k1n, i,j)
 ccc   use mod_xc  ! HYCOM communication interface
 c
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : tracflx
@@ -3074,8 +3074,8 @@ cdiag     if (i.eq.itest .and. j.eq.jtest) write (*,'(a,i2/1p(8e10.1))')
 cdiag.      'old tracer',ktr,(tr1do(k,ktr),k=1,nlayer)
           !tracer flux imposed at air-sea intfc
           ghatflux=0.
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
           !tracflx positive in the +p direction (into the ocean)
           ghatflux=-tracflx(i,j,ktr)*thref
           if(i.eq.109.and.j.eq.94)

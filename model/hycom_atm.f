@@ -42,7 +42,7 @@
       USE SEAICE_COM, only : RSI_loc => RSI ! seems to be used for diags only?
       USE MODEL_COM, only : FOCEAN_loc => FOCEAN
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE TRACER_COM, only : ntm
       USE FLUXES, only : GTRACER_loc => GTRACER, TRGASEX_loc => TRGASEX
 #endif
@@ -149,7 +149,7 @@
      .     ,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       public atracflx_loc
       public GTRACER, GTRACER_loc
       public TRGASEX, TRGASEX_loc
@@ -229,7 +229,7 @@
      .     ,aflxa2o_loc,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTRACER
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
@@ -306,7 +306,7 @@
      .      asalt_loc(iia,aJ_0H:aJ_1H)
      .     ,austar_loc(iia,aJ_0H:aJ_1H),aswflx_loc(iia,aJ_0H:aJ_1H) )
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       ALLOCATE( atracflx_loc(iia,aJ_0H:aJ_1H,ntm) )
       ALLOCATE( GTRACER ( NTM , NSTYPE , im , jm ) )
       GTRACER = 0
@@ -410,7 +410,7 @@ cddd      end subroutine alloc_locals
        call pack_column( grid,  DHSI_loc, DHSI )
        call pack_column( grid,  DSSI_loc, DSSI )
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       call pack_block( grid,GTRACER_loc,GTRACER)
       call pack_block( grid,TRGASEX_loc,TRGASEX)
 #endif
@@ -470,7 +470,7 @@ cddd      end subroutine alloc_locals
        call unpack_column( grid,  DHSI, DHSI_loc )
        call unpack_column( grid,  DSSI, DSSI_loc )
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       call unpack_block( grid,GTRACER,GTRACER_loc)
 #endif
 

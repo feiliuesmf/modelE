@@ -50,8 +50,8 @@
       integer, parameter :: IRON_from=0   !0-Iron from GOCART model
                                           !1-Iron from Ron Miller's dust fluxes
 
-      integer, parameter :: atmCO2_case=0 !0- atmCO2=const, defined in obio_forc
-                                          !1- atmCO2=varies,defined in obio_forc
+      integer, parameter :: atmCO2_case=0 !0- atmCO2=const, defined in rundeck
+                                          !1- atmCO2=varies,defined in rundeck  
 
 c --- diagno_bio      output obio-model fields and diagnostic messages
       logical, public:: diagno_bio

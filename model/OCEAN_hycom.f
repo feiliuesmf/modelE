@@ -3,12 +3,12 @@
       USE DOMAIN_DECOMP, only: AM_I_ROOT,ESMF_BCAST
       USE HYCOM_ATM, only : gather_atm,scatter_atm, focean,gtemp,gtempr,
      &     asst,atempr,im,jm
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      .    ,GTRACER
 #endif
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE FLUXES, only : TRGASEX !,GTRACER
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
@@ -66,7 +66,7 @@ c
         IF (FOCEAN(I,J).gt.0.) THEN
           GTEMP(1,1,I,J)=asst(I,J)
           gtempr(1,I,J)=atempr(I,J)
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         GTRACER(1:ntm,1,I,J)=atrac(I,J,1:ntm)
 #endif
         END IF
@@ -84,7 +84,7 @@ c
 !!        IF (FOCEAN(I,J).gt.0.) THEN
 !!          GTEMP(1,1,I,J)=asst(I,J)
 !!! GTEMPR ??
-!!#ifdef TRACERS_GASEXCH_Natassa
+!!#ifdef TRACERS_GASEXCH_ocean
 !!        do nt=1,ntm
 !!        GTRACER(nt,1,I,J)=atrac(I,J,nt)
 !!        enddo
@@ -164,7 +164,7 @@ c
       USE HYCOM_DIM, only : ogrid
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
      &     ,onem
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only : atrac
 #endif
 
@@ -187,7 +187,7 @@ c
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
-#if defined(TRACERS_GASEXCH_Natassa) || defined(TRACERS_OceanBiology)
+#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
       integer i,j,k
 !@var TRNHEADER Character string label for individual records
       CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIO"
@@ -235,12 +235,12 @@ c
       write (MODULE_HEADER(lhead+1:80),'(a,i8,f8.1,a)')
      . 'u,v,dp,t,s,th,tb,ub,vb,pb,pb,psi,thk,mxl,uf,vf,df,tcr3+o18+a8'
 
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a29)')
      *     'atrac,avgq,gcmax,tirrq3d,ihra'
 #else
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a5)')
      *     'atrac'
@@ -267,7 +267,7 @@ css#endif
      . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       i=100
@@ -279,7 +279,7 @@ css#endif
      &       ihra_glob(i,j)
       enddo
 #else
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac
       i=100
@@ -335,7 +335,7 @@ c
               GO TO 10
             END IF
 
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
@@ -353,7 +353,7 @@ c
               GO TO 10
             END IF
 #else
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac
       i=100
@@ -422,7 +422,7 @@ c
             END IF
 
       go to 222
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       write(*,'(a,i9,f9.0)')
@@ -442,7 +442,7 @@ c
               GO TO 10
             END IF
 #else
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac
       i=100
@@ -587,7 +587,7 @@ C     nothing to gather - ocean prescribed
       USE KPRF_ARRAYS, only : alloc_kprf_arrays, alloc_kprf_arrays_local
       USE HYCOM_ATM, only : alloc_hycom_atm
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only: alloc_tracer_gasexch_com
 #endif
 
@@ -616,7 +616,7 @@ C     nothing to gather - ocean prescribed
       call alloc_kprf_arrays
       call alloc_kprf_arrays_local
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       call alloc_tracer_gasexch_com
 #endif
 #ifdef TRACERS_OceanBiology

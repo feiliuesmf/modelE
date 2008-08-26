@@ -141,7 +141,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:):: tr3Dsource
 #endif
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
 !@var TRGASEX  tracer gas exchange over each type (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
 #endif
@@ -347,7 +347,7 @@ C**** fluxes associated with variable lake fractions
      &  STAT = IER)
       GTRACER=0.
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
 
       ALLOCATE( TRGASEX( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)

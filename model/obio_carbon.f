@@ -20,7 +20,7 @@ c
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
       USE TRACER_COM, only : ntm,tr_mm    !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : tracflx1d
 #endif
@@ -197,7 +197,7 @@ c pCO2
 c Update DIC for sea-air flux of CO2
 
 !this is for gas exchange + ocean biology
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CO2_Natassa)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
       k = 1
       do nt=1,ntm
       term = tracflx1d(nt)           ! mol/m2/s
@@ -401,12 +401,31 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.14 $
-c_ $Date: 2008/08/07 20:59:17 $   ;  $State: Exp $
+c_ $Revision: 2.15 $
+c_ $Date: 2008/08/26 00:00:44 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.15  2008/08/26 00:00:44  aromanou
+c_
+c_ changed names of precompiler options (CPP's) to prepare for full carbon
+c_ (ocean-land-atmosphere) coupling.
+c_
+c_ Ocean CPPs are:
+c_ TRACERS_GASEXCH_ocean         CPP for all ocean-atmos gas exch
+c_ TRACERS_GASEXCH_ocean_CO2     CPP for CO2 exchange btw ocean-atmos
+c_ TRACERS_GASEXCH_ocean_CFC     CPP for CFC exchange btw ocean-atmos
+c_ Please note that presently TRACERS_GASEXCH_ocean_CO2 and
+c_ TRACERS_GASEXCH_ocean_CFC cannot be used together (although it should be
+c_ easy to code).
+c_
+c_ Atmospheric concentration of CO2 (atmCO2) is set in the rundeck. This
+c_ is the case where atmCO2 is held constant.
+c_
+c_ Updated rundeck E1arobio1.R  to reflect all these changes
+c_ Also removed obsolete rundecks
+c_
 c_ Revision 2.14  2008/08/07 20:59:17  aromanou
 c_
 c_ pco2 is now computed online instead of using a look-up table
@@ -738,12 +757,31 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.14 $
-c_ $Date: 2008/08/07 20:59:17 $   ;  $State: Exp $
+c_ $Revision: 2.15 $
+c_ $Date: 2008/08/26 00:00:44 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.15  2008/08/26 00:00:44  aromanou
+c_
+c_ changed names of precompiler options (CPP's) to prepare for full carbon
+c_ (ocean-land-atmosphere) coupling.
+c_
+c_ Ocean CPPs are:
+c_ TRACERS_GASEXCH_ocean         CPP for all ocean-atmos gas exch
+c_ TRACERS_GASEXCH_ocean_CO2     CPP for CO2 exchange btw ocean-atmos
+c_ TRACERS_GASEXCH_ocean_CFC     CPP for CFC exchange btw ocean-atmos
+c_ Please note that presently TRACERS_GASEXCH_ocean_CO2 and
+c_ TRACERS_GASEXCH_ocean_CFC cannot be used together (although it should be
+c_ easy to code).
+c_
+c_ Atmospheric concentration of CO2 (atmCO2) is set in the rundeck. This
+c_ is the case where atmCO2 is held constant.
+c_
+c_ Updated rundeck E1arobio1.R  to reflect all these changes
+c_ Also removed obsolete rundecks
+c_
 c_ Revision 2.14  2008/08/07 20:59:17  aromanou
 c_
 c_ pco2 is now computed online instead of using a look-up table
@@ -830,12 +868,31 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.14 $
-c_ $Date: 2008/08/07 20:59:17 $   ;  $State: Exp $
+c_ $Revision: 2.15 $
+c_ $Date: 2008/08/26 00:00:44 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.15  2008/08/26 00:00:44  aromanou
+c_
+c_ changed names of precompiler options (CPP's) to prepare for full carbon
+c_ (ocean-land-atmosphere) coupling.
+c_
+c_ Ocean CPPs are:
+c_ TRACERS_GASEXCH_ocean         CPP for all ocean-atmos gas exch
+c_ TRACERS_GASEXCH_ocean_CO2     CPP for CO2 exchange btw ocean-atmos
+c_ TRACERS_GASEXCH_ocean_CFC     CPP for CFC exchange btw ocean-atmos
+c_ Please note that presently TRACERS_GASEXCH_ocean_CO2 and
+c_ TRACERS_GASEXCH_ocean_CFC cannot be used together (although it should be
+c_ easy to code).
+c_
+c_ Atmospheric concentration of CO2 (atmCO2) is set in the rundeck. This
+c_ is the case where atmCO2 is held constant.
+c_
+c_ Updated rundeck E1arobio1.R  to reflect all these changes
+c_ Also removed obsolete rundecks
+c_
 c_ Revision 2.14  2008/08/07 20:59:17  aromanou
 c_
 c_ pco2 is now computed online instead of using a look-up table

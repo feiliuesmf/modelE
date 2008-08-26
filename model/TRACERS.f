@@ -225,7 +225,7 @@ C**** Surface concentration by volume (units kg/m^3)
         units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^3')
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
 C**** Gas Exchange Solubility coefficient
       k = k+1
       tij_alpha = k

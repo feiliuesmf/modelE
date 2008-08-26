@@ -114,7 +114,7 @@
 #endif /* SHINDELL_STRAT_CHEM */
 #endif /* TRACERS_SPECIAL_Shindell */
 
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer i, iu_data
 #endif
 
@@ -303,7 +303,7 @@ C**** Define individual tracer characteristics
           ntm_power(n) = -2
           tr_mm(n) = mair
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
       case ('CO2n')
       n_CO2n = n
           ntm_power(n) = -6
@@ -313,7 +313,7 @@ C**** Define individual tracer characteristics
           needtrs(n)=.true.
 #endif
 
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
       case ('CFCn')
       n_CFCn = n
           ntm_power(n) = -12
@@ -2104,7 +2104,7 @@ C****
       do n=1,ntm
       select case (trname(n))
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
       case ('CO2n')
         k = k + 1
         jls_isrc(1,n) = k
@@ -2124,7 +2124,7 @@ C****
 #endif
 
 
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
       case ('CFCn')
         k = k + 1
         jls_source(1,n) = k
@@ -3636,7 +3636,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       do n=1,ntm
       select case (trname(n))
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
       case ('CO2n')
       k = k + 1
         ijts_isrc(1,n) = k
@@ -3650,7 +3650,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 #endif
 
 
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
       case ('CFCn')
       k = k+1
         ijts_source(1,n) = k
@@ -8140,7 +8140,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       end do
 #endif
 
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       !read in OCMIP based CFC-11 global emissions
       !=sum(dC/dt) for each hemisphere
       !these are *annual global averages* and need to be
@@ -8235,7 +8235,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL
 #endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
 #ifndef TRACERS_GASEXCH_CO2_Igor /* should use more general way to set atmCO2*/
       USE obio_forc, only: atmCO2
 #endif
@@ -8265,7 +8265,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       REAL*4, DIMENSION(im,jm,366) :: DMS_AER_global, SS1_AER_global
      *                             , SS2_AER_global
 #endif
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       REAL*8 :: dummy
 #endif
 
@@ -8876,7 +8876,7 @@ C         AM=kg/m2, and DXYP=m2:
           end do; end do; end do
 #endif
 
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
         case ('CO2n')
 #ifdef TRACERS_GASEXCH_CO2_Igor /* actually should use get_param by default*/
           call get_param("atmCO2", atmCO2)
@@ -8890,7 +8890,7 @@ C         AM=kg/m2, and DXYP=m2:
 #endif
 
 
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
         case ('CFCn')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             if(l.ge.LS1) then
@@ -9683,7 +9683,7 @@ C**** at the start of any day
      *  tmon,bydt,tnew,scca(im)
       REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer :: i_ocmip,imax
       real*8  :: factor
       real*8  :: trsource_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -9822,7 +9822,7 @@ C**** Source over Australia and New Zealand
         i=66; j=15
         IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
 
-#if defined(TRACERS_GASEXCH_Natassa) && defined(TRACERS_GASEXCH_CFC_Natassa)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
         !print out global average for each time step before weighing
         !in the OCMIP values
         sarea  = 0.

@@ -12,7 +12,7 @@ c --- hycom version 0.9
 !      USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
 !     .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
 !     .      ,gtemp,sss,mlhc,gtempr
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       !USE FLUXES, only : GTRACER
       use hycom_atm, only : GTRACER
 
@@ -20,7 +20,7 @@ c --- hycom version 0.9
 
       USE TRACER_GASEXCH_COM, only : atrac
 
-#if defined(TRACERS_GASEXCH_CO2_Natassa) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_GASEXCH_ocean_CO2) && defined(TRACERS_OceanBiology)
       USE obio_com, only : pCO2=>pCO2_glob
 #endif
 #endif
@@ -45,7 +45,7 @@ c
 !!      real*8 asst(iia,jja) ! looks like the only thing needed from cpl.h
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       integer nt
 #endif
       character text*24,preambl(5)*79
@@ -227,13 +227,13 @@ cc$OMP END PARALLEL DO
       call tempro2a(temp,atempr)
       call ssto2a(saln,sss)
 c     call ssto2a(omlhc,mlhc)
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
       do nt=1,ntm
          call ssto2a(tracer(:,:,1,nt),atrac)
       enddo
 #endif
-#if defined(TRACERS_GASEXCH_CO2_Natassa) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_GASEXCH_ocean_CO2) && defined(TRACERS_OceanBiology)
          call ssto2a(pCO2,atrac)
 #endif
 #endif
@@ -244,7 +244,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 22 ja=1,jja
       do 22 ia=1,iia
       if (focean(ia,ja).gt.0.) then
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
       GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
       enddo

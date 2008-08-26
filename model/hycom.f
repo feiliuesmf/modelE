@@ -91,7 +91,7 @@ c
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
 !     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
 !     . ,gmelt,egmelt,solar,gtempr,erunpsi
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       !USE FLUXES, only : TRGASEX !,GTRACER
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
@@ -163,7 +163,7 @@ c
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
       integer ipa_loc(iia,aJ_0H:aJ_1H)
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       integer nt
 #endif
 #ifdef TRACERS_OceanBiology
@@ -194,7 +194,7 @@ c
      . ,utila(iia,jja),usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      . ,otrac(idm,jdm,ntm)
 !     . ,otrac_loc(idm,J_0H:J_1H,ntm)
 #endif
@@ -231,7 +231,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
            aice_loc(ia,ja)=0.
          austar_loc(ia,ja)=0.
          aswflx_loc(ia,ja)=0.
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         do nt=1,ntm
         atracflx_loc(:,:,nt)=0.
         enddo
@@ -292,7 +292,7 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
      .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m
      .                         +solar_loc(3,ia,ja)*    rsi_loc(ia,ja))
      .                                 /(3600.*real(nhr))
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
             do nt=1,ntm
               atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
      .             + TRGASEX_loc(nt,1,ia,ja) ! in mol/m2/s
@@ -355,7 +355,7 @@ c
       call flxa2o(aemnp,oemnp)                    !E - P everywhere
       call flxa2o(austar,ustar)                   !friction velocity
       call flxa2o(aswflx,sswflx)                  ! shortwave flux
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
       call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) !tracer flux
       enddo
@@ -567,14 +567,14 @@ c
       hekman_loc(i,j)=ustar_loc(i,j)*(cekman*4.0)/                ! kpp
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
 cddd      do nt=1,ntm
 cddd      otrac(i,j,nt)=0.
 cddd      enddo
 #endif
  202  continue
 c$OMP END PARALLEL DO
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       otrac(:,:,:) = 0.d0
 #endif
 
@@ -662,7 +662,7 @@ cdiag  enddo
 cdiag  call obio_limits('bfre obio_model')
 
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         call scatter_tracer_gasexch_com_arrays
 #endif
         call scatter_obio_forc_arrays
@@ -1181,8 +1181,8 @@ c$OMP PARALLEL DO
 
 ! the following block is computed on global domain
 ! maybe switch to local if this is really non-trivial accumulation
-#ifdef TRACERS_GASEXCH_Natassa
-      ! may need the next line for TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+      ! may need the next line for TRACERS_GASEXCH_ocean_CFC
       !call gather_tracer
       if (AM_I_ROOT()) then
       do j=1,jdm
@@ -1191,14 +1191,14 @@ c$OMP PARALLEL DO
 
       !here we define the tracer that participates in the
       !gas exchange flux.
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
             do nt=1,ntm
               otrac(i,j,nt)=otrac(i,j,nt)
      .             +tracer(i,j,1,nt)
      .             *baclin/(3600.*real(nhr))
             enddo
 #endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
       !in this case, the tracer is not really active ocean tracer, because it is being
       !handled by the bgcm and it is only at the surface
             do nt=1,ntm
@@ -1255,7 +1255,7 @@ css   call iceo2a(omlhc,mlhc)
       call ssto2a(oogeoza,ogeoza)
       call ssto2a(osiav,utila)                 !kg/m*m per agcm time step
       call veco2a(usf,vsf,uosurf,vosurf)
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
       call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
       !write(911,*) sum(otrac(:,:,nt)), sum(atrac(:,:,nt))
@@ -1284,7 +1284,7 @@ c$OMP PARALLEL DO PRIVATE(tf)
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
         gtempr(1,ia,ja)=atempr(ia,ja)
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
 !       if (ia.eq.iatest.and.ja.eq.jatest)
@@ -1306,7 +1306,7 @@ c --- with respect to the ice/openwater flux ratio?
           dmsi(2,ia,ja)=dmsi(1,ia,ja)
           dssi(2,ia,ja)=dssi(1,ia,ja)
         endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         do nt=1,ntm
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
 cddd        if (ia.eq.iatest.and.ja.eq.jatest)
@@ -1374,7 +1374,7 @@ c------------------------------------------------------------------
 #ifdef TRACERS_OceanBiology 
       USE obio_forc, only: awind,asolz
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only: atracflx
 #endif
       implicit none 
@@ -1397,13 +1397,13 @@ c------------------------------------------------------------------
       call pack_column( grid,  DSSI_loc, DSSI )
 
       call pack_data( grid,  FOCEAN_loc, FOCEAN )
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       call pack_block( grid,GTRACER_loc,GTRACER)
 #endif
 
 
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       call pack_data( grid, atracflx_loc, atracflx )
 #endif
 #ifdef TRACERS_OceanBiology
@@ -1437,7 +1437,7 @@ c------------------------------------------------------------------
        call unpack_column( grid,  DMSI, DMSI_loc )
        call unpack_column( grid,  DHSI, DHSI_loc )
        call unpack_column( grid,  DSSI, DSSI_loc )
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       call unpack_block( grid,GTRACER,GTRACER_loc)
 #endif
 

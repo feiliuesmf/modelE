@@ -3373,7 +3373,7 @@ C**** Surface stress is applied to V component at the North Pole
 #endif
      *     ,dtrsi
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE FLUXES, only : TRGASEX
 #endif
       USE SEAICE_COM, only : rsi
@@ -3442,7 +3442,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         TRUNO(:)=0. ; TRUNI(:)=0.
 #endif
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         !note that TRGASEX is positive down i.e. same sign as
         !TRUNO, while TREVAPOR is positive up.
         TRUNO(:)=RATOC(J)*TRGASEX(:,1,I,J)
@@ -4341,7 +4341,7 @@ C****
 #ifdef TRACERS_ON
      *     ,gtracer
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      *     ,trgasex
 #endif
 
@@ -4391,7 +4391,7 @@ C****
 #endif
 #endif
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
             GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
 #endif
           ELSE
@@ -4413,7 +4413,7 @@ C**** do poles
           UOSURF(I,JM) = UO(IM,JM,1)*COSU(I) + UO(IVNP,JM,1)*SINU(I)
           VOSURF(I,JM) = UO(IVNP,JM,1)*COSI(I) - UO(IM,JM,1)*SINI(I)
           OGEOZA(I,JM)=OGEOZA(1,JM)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
 #endif
         END DO
@@ -4430,7 +4430,7 @@ C**** do poles
           UOSURF(I,1) = UO(IM,1,1)*COSU(1) - UO(IVSP,1,1)*SINU(1)
           VOSURF(I,0) = UO(IVSP,1,1)*COSI(I) - UO(IM,1,1)*SINI(I)
           OGEOZA(I,1)=OGEOZA(1,1)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
         END DO

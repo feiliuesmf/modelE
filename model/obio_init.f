@@ -6,10 +6,11 @@ c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE PARAM, only: get_param
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,atmFe_all,alk
+      USE obio_forc, only : ihra,atmFe_all,alk,atmCO2
 #ifdef OBIO_RAD_coupling
      .                      ,eda_frac,esa_frac
 #else
@@ -53,6 +54,8 @@ c  Read in constants, light data
 c  Computes constants over entire run of model, reads in required
 c  data files, and otherwise obtains one-time-only information
 c  necessary for the run.
+
+      call get_param("atmCO2",atmCO2)
  
 c  Degrees to radians conversion
       pi = dacos(-1.0D0)

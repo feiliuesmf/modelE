@@ -94,7 +94,7 @@ C****
 #ifndef SKIP_TRACER_SRCS
      *     ,trsource
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      *     ,TRGASEX,GTRACER
 #endif
 #ifdef TRACERS_WATER
@@ -138,7 +138,7 @@ C****
 #endif
 !!! nstep from hicom is currently not used (and it shouldn't be used outside
 !!! of hycom)
-cddd#ifdef TRACERS_GASEXCH_Natassa
+cddd#ifdef TRACERS_GASEXCH_ocean
 cddd      USE HYCOM_SCALARS, only: nstep
 cddd#endif
       USE SOIL_DRV, only: earth
@@ -316,7 +316,7 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 #ifdef TRACERS_ON
          trsrfflx = 0. ; trcsurf = 0.
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
          trgasex(:,:,:,:) = 0.
 #endif
 #endif
@@ -615,7 +615,7 @@ C**** set defaults
         trsfac(nx)=0.
         totflux(nx)=0.
         trconstflx(nx)=0.
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
           pbl_args%alati=sss(I,J)
           trgrnd(nx)=gtracer(n,itype,i,j)
@@ -661,7 +661,7 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
 #ifdef TRACERS_WATER
         endif
 #endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
         !need to redo this here because the previous line has changed trconstflx to zero.
         !because we have no sources. is there a better way to do this?
         trconstflx(nx)=trgrnd(nx)
@@ -887,12 +887,12 @@ C**** Limit evaporation if lake mass is at minimum
           TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
         END IF
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
 C****
 C**** Calculate Tracer Gas Exchange
 C****
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
           TRGASEX(n,ITYPE,I,J) =
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
@@ -902,7 +902,7 @@ C****
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
      .               * dxyp(j)*ptype*dtsurf
 #endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
           !trgasex is modeled in complete accordance to what Watson is doing
           !trgasex here is computed as mol/m2/sec
           TRGASEX(n,ITYPE,I,J) =
@@ -1249,7 +1249,7 @@ C**** Save surface tracer concentration whether calculated or not
             trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
      *           ,1,n))*byam(1,i,j)*bydxyp(j),0d0)*ptype
           end if
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
           if (focean(i,j).gt.0.) then
             taijn(i,j,tij_kw,n) = taijn(i,j,tij_kw,n)
      *                          + pbl_args%Kw_gas*ptype

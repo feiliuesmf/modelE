@@ -26,12 +26,12 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_o18=0
 #endif  /* TRACERS_SPECIAL_O18 */
-!@var ntm_gasexch: Number of TRACERS_GASEXCH_Natassa tracers.
-#ifdef TRACERS_GASEXCH_Natassa
+!@var ntm_gasexch: Number of TRACERS_GASEXCH_ocean tracers.
+#ifdef TRACERS_GASEXCH_ocean
       integer, parameter :: ntm_gasexch=1
 #else
       integer, parameter :: ntm_gasexch=0
-#endif  /* TRACERS_GASEXCH_Natassa */
+#endif  /* TRACERS_GASEXCH_ocean */
 !@var ntm_lerner: Number of TRACERS_SPECIAL_Lerner tracers.
 #ifdef TRACERS_SPECIAL_Lerner
       integer, parameter :: ntm_lerner=9
@@ -230,12 +230,12 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
 #ifdef TRACERS_SPECIAL_O18
      *     'H2O18   ','HDO     ', 'H2O17   ',
 #endif  /* TRACERS_SPECIAL_O18 */
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
      *     'CFCn    ',
-#endif  /* TRACERS_GASEXCH_CFC_Natassa */
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#endif  /* TRACERS_GASEXCH_ocean_CFC */
+#ifdef TRACERS_GASEXCH_ocean_CO2
      *     'CO2n    ',
-#endif  /* TRACERS_GASEXCH_CO2_Natassa */
+#endif  /* TRACERS_GASEXCH_ocean_CO2 */
 #ifdef TRACERS_SPECIAL_Lerner
      *     'SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      ','SF6_c   ',
@@ -992,8 +992,8 @@ C**** arrays that could be general, but are only used by chemistry
      &     nOther  = 3, nAircraft   = 4, nBiomass    = 5,
      &     nVolcanic = 6
 
-#ifdef TRACERS_GASEXCH_Natassa
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
 !@var ocmip_cfc: CFC-11 emissions estimated from OCMIP surf.conc.
       !60years (1939--1998) OCMIP surfc. concentr. converted to
       !global averaged emission rates

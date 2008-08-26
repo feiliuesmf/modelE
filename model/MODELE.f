@@ -1145,13 +1145,13 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       write(6,*) '...and Jean/David tracers and chemistry'
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       write(6,*) '          '
       write(6,*) '...and Natassa Romanou air-sea GAS EXCHANGE'
-#ifdef TRACERS_GASEXCH_CFC_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CFC
       write(6,*) '****CFC flux across air/sea interface****'
 #endif
-#ifdef TRACERS_GASEXCH_CO2_Natassa
+#ifdef TRACERS_GASEXCH_ocean_CO2
       write(6,*) '****CO2 flux across air/sea interface****'
 #endif
 #endif
