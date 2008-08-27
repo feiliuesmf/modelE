@@ -298,7 +298,11 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
         ! Enforce preferential utilization of ammonium
           rnut1 = min(tmp,tnit)
            rmmn = rnut1 + rnut2
-          framm = rnut2/rmmn
+          if ( rmmn .ne. 0.d0 ) then
+            framm = rnut2/rmmn
+          else
+            framm = 0.d0
+          endif
            rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmlice = tirrqice/(tirrqice+0.5*rikd(k,nt))
 
@@ -362,7 +366,11 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
         ! Enforce preferential utilization of ammonium
         rnut1 = min(tmp,tnit)
         rmmn = rnut1 + rnut2                         
-        framm = rnut2/rmmn                           
+        if ( rmmn .ne. 0.d0 ) then
+          framm = rnut2/rmmn                           
+        else
+          framm = 0.d0
+        endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmlice = tirrqice/(tirrqice+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
@@ -397,7 +405,11 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
         ! Enforce preferential utilization of ammonium
         rnut1 = min(tmp,tnit)
         rmmn = rnut1 + rnut2
-        framm = rnut2/rmmn
+        if ( rmmn .ne. 0.d0 ) then
+          framm = rnut2/rmmn
+        else
+          framm = 0.d0
+        endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
            !rhs(k,nt+nnut,1) = rmml
@@ -456,7 +468,11 @@ cdiag.   obio_P(k,2)
         ! Enforce preferential utilization of ammonium
         rnut1 = min(tmp,tnit)
         rmmn = rnut1 + rnut2
-        framm = rnut2/rmmn
+        if ( rmmn .ne. 0.d0 ) then
+          framm = rnut2/rmmn
+        else
+          framm = 0.d0
+        endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
            !rhs(k,nt+nnut,1) = rmml
@@ -495,7 +511,11 @@ cdiag.   obio_P(k,2)
         ! Enforce preferential utilization of ammonium
         rnut1 = min(tmp,tnit)
         rmmn = rnut1 + rnut2
-        framm = rnut2/rmmn
+        if ( rmmn .ne. 0.d0 ) then
+          framm = rnut2/rmmn
+        else
+          framm = 0.d0
+        endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
            !rhs(k,nt+nnut,1) = rmml

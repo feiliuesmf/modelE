@@ -21,7 +21,7 @@
       use param
       use ent_com, only : entcells,Cint,Qfol,cnc_ij
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
-      use model_com, only : focean
+      use model_com, only : focean, FLICE
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
       logical, intent(inout) :: iniENT
@@ -63,7 +63,8 @@
       ! initialize ent cells to something meaningful
         do j=J_0,J_1
           do i=I_0,I_1
-            if (focean(i,j) <= 0) then
+            !!if (focean(i,j) <= 0) then
+            if ( focean(i,j) + FLICE(I,J) < 1.d0 ) then
               !print *,"EARTH",i,j,focean(i,j)
               call ent_cell_construct( entcells(i,j) )
             else

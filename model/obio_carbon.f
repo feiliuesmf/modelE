@@ -360,6 +360,8 @@ c
 c  Constants
       dtco2 = 0.0
       pco2 = 0.0
+!!!! hack
+      pHmin = 0 ; pHmax = 0
       phlo = pHmin
       phhi = pHmax
       phlo = 1.D0   !range for pH
@@ -401,12 +403,18 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.15 $
-c_ $Date: 2008/08/26 00:00:44 $   ;  $State: Exp $
-c_ $Author: aromanou $ ;  $Locker:  $
+c_ $Revision: 2.16 $
+c_ $Date: 2008/08/27 02:13:51 $   ;  $State: Exp $
+c_ $Author: ialeinov $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.16  2008/08/27 02:13:51  ialeinov
+c_ Some fixes needed to run the Dynamic Vegetation together with OBIO
+c_ (and HYCOM). Mostly related to partial cells.
+c_ Aslo used some quick hacks to prevent zero divisions and uninitialized
+c_ variables in obio code - Natassa, please check.
+c_
 c_ Revision 2.15  2008/08/26 00:00:44  aromanou
 c_
 c_ changed names of precompiler options (CPP's) to prepare for full carbon
@@ -757,12 +765,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.15 $
-c_ $Date: 2008/08/26 00:00:44 $   ;  $State: Exp $
-c_ $Author: aromanou $ ;  $Locker:  $
+c_ $Revision: 2.16 $
+c_ $Date: 2008/08/27 02:13:51 $   ;  $State: Exp $
+c_ $Author: ialeinov $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.16  2008/08/27 02:13:51  ialeinov
+c_ Some fixes needed to run the Dynamic Vegetation together with OBIO
+c_ (and HYCOM). Mostly related to partial cells.
+c_ Aslo used some quick hacks to prevent zero divisions and uninitialized
+c_ variables in obio code - Natassa, please check.
+c_
 c_ Revision 2.15  2008/08/26 00:00:44  aromanou
 c_
 c_ changed names of precompiler options (CPP's) to prepare for full carbon
@@ -868,12 +882,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.15 $
-c_ $Date: 2008/08/26 00:00:44 $   ;  $State: Exp $
-c_ $Author: aromanou $ ;  $Locker:  $
+c_ $Revision: 2.16 $
+c_ $Date: 2008/08/27 02:13:51 $   ;  $State: Exp $
+c_ $Author: ialeinov $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.16  2008/08/27 02:13:51  ialeinov
+c_ Some fixes needed to run the Dynamic Vegetation together with OBIO
+c_ (and HYCOM). Mostly related to partial cells.
+c_ Aslo used some quick hacks to prevent zero divisions and uninitialized
+c_ variables in obio code - Natassa, please check.
+c_
 c_ Revision 2.15  2008/08/26 00:00:44  aromanou
 c_
 c_ changed names of precompiler options (CPP's) to prepare for full carbon

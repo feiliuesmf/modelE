@@ -175,6 +175,7 @@ c
 c$OMP END PARALLEL DO
 c
       do k=1,kk
+#ifdef HYCOM_UNFINISHED
       write (*,'(i5,a,2i5,a/7x,7(i3,3x),3x,7(i3,3x)/
      .  (/(7(i4,7f6.0,3x,7f6.0/))))') 
      .  k,' i,j=',itest,jtest,' input data (t,s,p,depth)'
@@ -183,6 +184,7 @@ c
      . ,   (saln(i,j,k),j=jtest-3,jtest+3),i=itest-3,itest+3)
      . ,(i,(p(i,j,k+1)/onem,j=jtest-3,jtest+3)
      . ,    (depths(i,j),j=jtest-3,jtest+3),i=itest-3,itest+3)
+#endif
 c
 c    .write (*,'(2i4,a,i2/(5(5f7.1,3x,5f7.1/)))')
 c    . itest,jtest,' input data (t,s,p,depth) at k',k,

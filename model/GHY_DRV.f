@@ -294,7 +294,7 @@ c**** prescribed dust emission
  !     use socpbl, only : dtsurf
       use geom, only : dxyp
       use sle001, only : nsn,fb,fv
-#ifdef TRACERS_GASEXCH_CO2_Igor
+#ifdef TRACERS_GASEXCH_land_CO2
      &     ,agpp,arauto,asoilresp
 #endif
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
@@ -313,6 +313,9 @@ c**** prescribed dust emission
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE tracers_dust,ONLY : hbaij,ricntd
+#endif
+#ifdef TRACERS_GASEXCH_land_CO2
+      USE FLUXES, only : TRGASEX
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -335,10 +338,15 @@ c**** prescribed dust emission
 
 ccc tracers
 
-#ifdef TRACERS_GASEXCH_CO2_Igor
+#ifdef TRACERS_GASEXCH_land_CO2
       !!! hack - assume 1 tracer
-      trsrfflx(i,j,1)=trsrfflx(i,j,1) +
-     &       (arauto+asoilresp-agpp)/dtsurf *dxyp(j)*ptype !!! agpp/dtsurf *dxyp(j)*ptype
+      n = 1
+      TRGASEX(n,4,I,J) =
+     &     (arauto+asoilresp-agpp)/dtsurf
+      trsrfflx(i,j,n)=trsrfflx(i,j,n) +
+     &     (arauto+asoilresp-agpp)/dtsurf *dxyp(j)*ptype
+      taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
+     &     + (arauto+asoilresp-agpp) * dxyp(j)*ptype
 #endif
 
 #ifdef TRACERS_WATER
@@ -3413,7 +3421,7 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : fim, focean, jm
+      use model_com, only : fim, focean, jm, flice
       use geom, only : imaxj,DXYP
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       !use veg_com, only : afb
@@ -3443,7 +3451,7 @@ C****
         waterg(j)=0
         do i=1,imaxj(j)
           !if (fearth(i,j).gt.0) then
-          if( focean(i,j) < 1.d0 ) then
+          if( focean(i,j) + flice(i,j) < 1.d0 ) then
             !fb=afb(i,j)
             !fv=(1.d0-fb)
             call get_fb_fv( fb, fv, i, j )
@@ -3525,7 +3533,7 @@ c****
 !@sum  conserv_htg calculates zonal ground energy incl. snow energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      use model_com, only : fim, focean, jm
+      use model_com, only : fim, focean, jm, flice
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth
@@ -3554,7 +3562,7 @@ C****
         heatg(j)=0
         do i=1,imaxj(j)
           !if (fearth(i,j).le.0) cycle
-          if ( focean(i,j) >= 1.d0 ) cycle
+          if ( focean(i,j) + flice(i,j) >= 1.d0 ) cycle
           !fb=afb(i,j)
           !fv=(1.d0-fb)
           call get_fb_fv( fb, fv, i, j )
