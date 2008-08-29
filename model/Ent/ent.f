@@ -200,7 +200,7 @@
       endif !do_patchdynamics
 
 
-#ifdef DEBUG      !# DEBUG
+#ifdef DEBUG
       print *,"End of ent_biophysics"
       call entcell_print(6, ecp)
 #endif
@@ -261,7 +261,7 @@
       end do
       call summarize_entcell(ecp)
 
-#ifdef DEBUG      !# DEBUG
+#ifdef DEBUG
       print *,"End of ent_biophysics"
       call entcell_print(6, ecp)
       print *,"*"
