@@ -2,118 +2,118 @@ c ifort zonalmean.f -o testzone -m64 -I/usr/local/netcdf-64bits-ifort-gcc/includ
 
 
 c****
-      program testzone
-      use ZONAL_COM
-      implicit none
-      include 'netcdf.inc'
-      real*8 :: tcub(ic,jc,ndomains),zonal_mean_loc(ndomains,jm)
-      real*8 :: area_latband_loc(ndomains,jm),area_latband(jm)
-      real*8 :: zonal_mean(jm)
-      integer :: itile,fid,vid,srt(3),cnt(3),status,ikey,jlat,i,j,itest
-      character*200 :: infi,infile
-      character*1 :: istr 
-      integer, dimension(ndomains) :: keymax_un,keymax_fo
-
-      call init_xgrid_unrolled(im,jm,ic,jc,ncells,ndomains,
-     *     az11,az21,az31,az41,az51,keymax_un)
-      write(*,*) "ncells=",ncells
-
-      call init_xgrid_loop(im,jm,ic,jc,ncells,ndomains,
-     *     az12,az22,az32,keymax_fo)
-
+c      program testzone
+c      use ZONAL_COM
+c      implicit none
+c      include 'netcdf.inc'
+c      real*8 :: tcub(ic,jc,ndomains),zonal_mean_loc(ndomains,jm)
+c      real*8 :: area_latband_loc(ndomains,jm),area_latband(jm)
+c      real*8 :: zonal_mean(jm)
+c      integer :: itile,fid,vid,srt(3),cnt(3),status,ikey,jlat,i,j,itest
+c      character*200 :: infi,infile
+c      character*1 :: istr 
+c      integer, dimension(ndomains) :: keymax_un,keymax_fo
+c
+c      call init_xgrid_unrolled(im,jm,ic,jc,ncells,ndomains,
+c     *     az11,az21,az31,az41,az51,keymax_un)
+c      write(*,*) "ncells=",ncells
+c
+c      call init_xgrid_loop(im,jm,ic,jc,ncells,ndomains,
+c     *     az12,az22,az32,keymax_fo)
+c
+cc      
+cc     read atmosphere data and calculate zonal mean for each domain
+cc
+c      infi='/Users/dgueyffier/fregrid/data/input/atmos_daily.tile'
+c
+c      do itile=1,ndomains
+c
+c        write(istr,'(i1)') itile
+c        infile=trim(infi)//istr//'.nc'
+c        write(*,*) infile
+c        status = nf_open(trim(infile),nf_nowrite,fid)
+c        write(*,*) "status=",status
+c        status = nf_inq_varid(fid,'t_surf',vid)
+c        if (status .ne. NF_NOERR) write(*,*) "ERROR"
+c        srt = (/ 1, 1, 1 /)
+c        cnt = (/ ic, jc, 1 /)
+c        status = nf_get_vara_double(fid,vid,srt,cnt,tcub(1,1,itile))
+c        status = nf_close(fid)
+c        
+c        call zonalmean_cs_unrolled(tcub(:,:,itile),
+c     *       1,ic,1,jc,jm,
+c     *       az11(itile,:),az21(itile,:),az31(itile,:),
+c     *       az41(itile,:),az51(itile,:),
+c     *       zonal_mean_loc(itile,:),
+c     *       area_latband_loc(itile,:),keymax_un(itile) )
+c
+c      enddo
+c
 c      
-c     read atmosphere data and calculate zonal mean for each domain
+c      do jlat=1,jm
+c         area_latband(jlat)=0.d0
+c         do itile=1,ndomains
+c            area_latband(jlat)=area_latband(jlat)
+c     *           +area_latband_loc(itile,jlat)
+c         enddo
+c         write(25,*) area_latband(jlat)
+c      enddo
 c
-      infi='/Users/dgueyffier/fregrid/data/input/atmos_daily.tile'
-
-      do itile=1,ndomains
-
-        write(istr,'(i1)') itile
-        infile=trim(infi)//istr//'.nc'
-        write(*,*) infile
-        status = nf_open(trim(infile),nf_nowrite,fid)
-        write(*,*) "status=",status
-        status = nf_inq_varid(fid,'t_surf',vid)
-        if (status .ne. NF_NOERR) write(*,*) "ERROR"
-        srt = (/ 1, 1, 1 /)
-        cnt = (/ ic, jc, 1 /)
-        status = nf_get_vara_double(fid,vid,srt,cnt,tcub(1,1,itile))
-        status = nf_close(fid)
-        
-        call zonalmean_cs_unrolled(tcub(:,:,itile),
-     *       1,ic,1,jc,jm,
-     *       az11(itile,:),az21(itile,:),az31(itile,:),
-     *       az41(itile,:),az51(itile,:),
-     *       zonal_mean_loc(itile,:),
-     *       area_latband_loc(itile,:),keymax_un(itile) )
-
-      enddo
-
-      
-      do jlat=1,jm
-         area_latband(jlat)=0.d0
-         do itile=1,ndomains
-            area_latband(jlat)=area_latband(jlat)
-     *           +area_latband_loc(itile,jlat)
-         enddo
-         write(25,*) area_latband(jlat)
-      enddo
-
-      do jlat=1,jm
-         zonal_mean(jlat)=0.d0
-         do itile=1,ndomains
-            if (area_latband(jlat) .gt. 1.d-14) then
-               zonal_mean(jlat)=zonal_mean(jlat)
-     *              +zonal_mean_loc(itile,jlat)
-     *              /area_latband(jlat)
-            endif
-         enddo
-         write(26,*) zonal_mean(jlat)
-      enddo
-
-
-c     zonal mean using folded loop
-
-      do itile=1,ndomains
-         itest=0
-         zonal_mean_loc(itile,:)=0.d0
-         area_latband_loc(itile,:)=0.d0
-
-         do i=1,ic
-            do j=1,jc
-               call zonalmean_cs_loop(tcub(i,j,itile),i,j,ic,jc,jm,
-     *              az12(itile,:),az22(itile,:),az32(itile,:),
-     *              zonal_mean_loc(itile,:),area_latband_loc(itile,:),
-     *              keymax_fo(itile),itest)
-            enddo
-         enddo
-         write(*,*) "itest=",itest
-      enddo
+c      do jlat=1,jm
+c         zonal_mean(jlat)=0.d0
+c         do itile=1,ndomains
+c            if (area_latband(jlat) .gt. 1.d-14) then
+c               zonal_mean(jlat)=zonal_mean(jlat)
+c     *              +zonal_mean_loc(itile,jlat)
+c     *              /area_latband(jlat)
+c            endif
+c         enddo
+c         write(26,*) zonal_mean(jlat)
+c      enddo
 c
-
-     
-      do jlat=1,jm
-         area_latband(jlat)=0.d0
-         do itile=1,ndomains
-            area_latband(jlat)=area_latband(jlat)
-     *           +area_latband_loc(itile,jlat)
-         enddo
-         write(27,*) area_latband(jlat)
-      enddo
-
-      do jlat=1,jm
-         zonal_mean(jlat)=0.d0
-         do itile=1,ndomains
-            if (area_latband(jlat) .gt. 1.d-14) then
-               zonal_mean(jlat)=zonal_mean(jlat)
-     *              +zonal_mean_loc(itile,jlat)
-     *              /area_latband(jlat)
-            endif
-         enddo
-         write(28,*) zonal_mean(jlat)
-      enddo
-
-      end program testzone
+c
+cc     zonal mean using folded loop
+c
+c      do itile=1,ndomains
+c         itest=0
+c         zonal_mean_loc(itile,:)=0.d0
+c         area_latband_loc(itile,:)=0.d0
+c
+c         do i=1,ic
+c            do j=1,jc
+c               call zonalmean_cs_loop(tcub(i,j,itile),i,j,ic,jc,jm,
+c     *              az12(itile,:),az22(itile,:),az32(itile,:),
+c     *              zonal_mean_loc(itile,:),area_latband_loc(itile,:),
+c     *              keymax_fo(itile),itest)
+c            enddo
+c         enddo
+c         write(*,*) "itest=",itest
+c      enddo
+cc
+c
+c     
+c      do jlat=1,jm
+c         area_latband(jlat)=0.d0
+c         do itile=1,ndomains
+c            area_latband(jlat)=area_latband(jlat)
+c     *           +area_latband_loc(itile,jlat)
+c         enddo
+c         write(27,*) area_latband(jlat)
+c      enddo
+c
+c      do jlat=1,jm
+c         zonal_mean(jlat)=0.d0
+c         do itile=1,ndomains
+c            if (area_latband(jlat) .gt. 1.d-14) then
+c               zonal_mean(jlat)=zonal_mean(jlat)
+c     *              +zonal_mean_loc(itile,jlat)
+c     *              /area_latband(jlat)
+c            endif
+c         enddo
+c         write(28,*) zonal_mean(jlat)
+c      enddo
+c
+c      end program testzone
 c****
 
 
