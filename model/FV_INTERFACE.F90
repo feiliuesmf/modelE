@@ -885,8 +885,8 @@ contains
       Write(unit,*)' ntotq: ',1
       Write(unit,*)'    nq: ',1
       Write(unit,*)'  imxy: ',IM
-      Write(unit,'(a,100(1x,I4))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
-      Write(unit,'(a,100(1x,I4))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
+      Write(unit,'(a,100(1x,I3))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
+      Write(unit,'(a,100(1x,I3))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
       Write(unit,*)'   kmyz: ',LM
       Call Free_File(unit)
 
