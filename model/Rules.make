@@ -576,7 +576,7 @@ FORCE:
 	@if [ "$<empty" = "empty" ]; then \
 	echo "No dependency for $@ : assuming it is a system module";\
 	else \
-	cmp -l $< $@ ; \
+	cmp $< $@ ; \
 	if ! cmp -s $< $@ ; then \
 	  echo "will copy $< to $@" ; \
 	  cp $< $@ ; \
@@ -637,7 +637,7 @@ endif
 	  if [ -f $$i\@$*\.smod ] && $(CMP_MOD) $$i.mod $$i\@$*\.smod ; then \
 	    cp -p $$i\@$*\.smod $$i.mod ; \
 	  else \
-	    cp -f $$i.mod $$i\@$*\.smod ; touch $$i.mod ; \
+	    cp -f $$i.mod $$i\@$*\.smod ; cp $$i\@$*\.smod $$i.mod ; \
 	  fi; \
 	done ; \
 	fi
@@ -684,6 +684,9 @@ endif
 %.f.cpp: %.f
 	@echo preprocessing $<  $(MSG)
 	$(CPP) $(CPPFLAGS) $*.f > $*.f.cpp
+
+%.o: %.c
+	cc -c -O2 -m64 $*.c
 
 %.F90.cpp: %.F90
 	 @echo preprocessing $<  $(MSG)
