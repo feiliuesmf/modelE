@@ -48,7 +48,7 @@ NO_COMMAND = echo "*****  Requested target is not supported on $(UNAME)"; \
              echo "*****  You have COMPILER=$(COMPILER)" ; exit 1;
 F90 = $(NO_COMMAND)
 FMAKEDEP = $(NO_COMMAND)
-CMP_MOD = $(NO_COMMAND)
+CMP_MOD = cmp -s
 F =  $(NO_COMMAND)
 U = $(NO_COMMAND)
 SETUP = $(SCRIPTS_DIR)/setup_e.pl
@@ -558,25 +558,34 @@ FFLAGSF += -I$(ESMF_Interface) $(INCS)
 endif
 CPPFLAGS+=$(INCS)
 
+ifeq ($(COMPARE_MODULES_HACK),NO)
+CMP_MOD = cmp -s
+endif
+
 #
 # Pattern  rules
 #
 
 FORCE:
 
-*.mod: FORCE
 
-%.mod: 
-	@echo $(ECHO_FLAGS) checking $@: \\c
-#	@echo 'called rule for $@, depends on $^ built from: '`cat $@.sig`
+*.mod: .obj_list
+
+%.mod:
+	@echo checking $@
 	@if [ "$<empty" = "empty" ]; then \
 	echo "No dependency for $@ : assuming it is a system module";\
 	else \
-	if [ ! -s $@.sig ] || [ "`cat $@.sig`" != "$<" ]; then \
-	echo "  dependencies for $@ have changed - recompiling"; \
-	echo "  name for $< "; \
-	rm -f $<; $(MAKE) $< RUN=$(RUN); else echo '  ok'; fi ; \
+	cmp -l $< $@ ; \
+	if ! cmp -s $< $@ ; then \
+	  echo "will copy $< to $@" ; \
+	  cp $< $@ ; \
+	fi ; \
 	fi
+
+%.smod:
+	@if [ ! -f $@ ] ; then rm -f $< ; $(MAKE) $< RUN=$(RUN); fi
+
 
 # Standard fortran
 # .timestemp is a hack to set proper times on .o and .mod
@@ -584,7 +593,6 @@ FORCE:
 ##%.o: %.f ESMF_Interface/ESMF_CUSTOM_MOD.o
 %.o: %.f
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
-	@touch .timestamp
 ifeq ($(MACHINE),MAC)
 	$(CPP) $(CPPFLAGS) $*.f | sed -n '/^#pragma/!p' > $*_cpp.f
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.f \
@@ -617,33 +625,22 @@ ifeq ($(COMPILER),pgi)
 else
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.f \
 	  $(COMP_OUTPUT)
-	echo "  name for $*.f "
 endif
 endif
 endif
 endif
 endif
-ifeq ($(COMPARE_MODULES_HACK),YES)
-	if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
-	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
-	  echo $@ > $$i.sig; \
-	  if [ -f $$i.old ] && $(CMP_MOD) $$i $$i.old; then \
-	    touch -r $$i.old $$i; \
-	    else \
-	    cp -f $$i $$i.old; \
-	    fi; \
-	 fi; done; fi 
-else
-	@if [ `ls | grep "\.mod" | tail -1` ] ; then for i in *.mod; \
-	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
-	  echo $@ > $$i.sig1; fi; done; fi ; \
-	if [ -s $(DEPENDFILE) ] ; then \
-	  perl -e 'while(<>){ if(/(\S+\.mod): *$@/){ `echo $@ > "$$1.sig"`;} }' $(DEPENDFILE) ; fi
-#	for i in `perl -e 'while(<>){ if(/(\S+\.mod): *$@/){ print "$$1\n";} }' $(DEPENDFILE)` ; \
-#	do echo $$i ; \
-#	done 
-endif
-	@touch -r .timestamp $@
+	@if [ -s $(DEPENDFILE) ] ; then \
+	for i in \
+	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
+	do \
+	  if [ -f $$i\@$*\.smod ] && $(CMP_MOD) $$i.mod $$i\@$*\.smod ; then \
+	    cp -p $$i\@$*\.smod $$i.mod ; \
+	  else \
+	    cp -f $$i.mod $$i\@$*\.smod ; touch $$i.mod ; \
+	  fi; \
+	done ; \
+	fi
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
 ifdef COMP_OUTPUT
 	@if [ -s $*.ERR ] ; then cat $*.ERR; else  rm -f $*.ERR; fi
@@ -651,7 +648,6 @@ endif
 
 %.o: %.F90
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
-	@touch .timestamp
 ifeq ($(MACHINE),MAC)
 	$(CPP) $(CPPFLAGS) $*.F90 | sed -n '/^#pragma/!p' > $*_cpp.F90
 	$(F90) -c $(F90FLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
@@ -666,15 +662,19 @@ ifeq ($(COMPILER),Absoft)
 else
 	$(F90) -c $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F90 \
 	  $(COMP_OUTPUT)
-	echo "  name for $*.F90 "
 endif
 endif
-	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
-	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
-	  echo $@ > $$i.sig1; fi; done; fi ; \
-	if [ -s $(DEPENDFILE) ] ; then \
-	perl -e 'while(<>){ if(/(\S+\.mod): *$@/){ `echo $@ > "$$1.sig"`;} }' $(DEPENDFILE) ; fi
-	@touch -r .timestamp $@
+	@if [ -s $(DEPENDFILE) ] ; then \
+	for i in \
+	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
+	do \
+	  if [ -f $$i\@$*\.smod ] && $(CMP_MOD) $$i.mod $$i\@$*\.smod ; then \
+	    cp -p $$i\@$*\.smod $$i.mod ; \
+	  else \
+	    cp -f $$i.mod $$i\@$*\.smod ; touch $$i.mod ; \
+	  fi; \
+	done ; \
+	fi
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
 ifdef COMP_OUTPUT
 	@if [ -s $*.ERR ] ; then cat $*.ERR; else  rm -f $*.ERR; fi

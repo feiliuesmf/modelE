@@ -66,6 +66,8 @@
 
       public t_pbl_args
 
+	!integer, public :: xxx
+
       integer, parameter :: n=8  !@param n  no of pbl. layers
       integer, parameter :: npbl=n
 

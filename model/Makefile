@@ -1,8 +1,6 @@
 # Makefile for Model E Atmosphere GCM B399+ 
 #
 .SUFFIXES:
-.SUFFIXES: .o .U .S .GCM .OCN .f .F
-.SUFFIXES:
 
 .PHONY: FORCE rundeck depend gcm setup clean vclean newstart exe cmp .R \
 htmldoc esmf_interface unit_tests
@@ -274,9 +272,10 @@ endif
 endif
 	echo 'running fmakedep'
 #	$(FMAKEDEP) $(INCS) -f $(DEPENDFILE)_tmp $(FSRCS_CPP) 
-	$(FMAKEDEP) -f $(DEPENDFILE)_tmp $(FSRCS_CPP) 
-	cat $(DEPENDFILE)_tmp >> $(DEPENDFILE)
-	rm -f $(FSRCS_CPP) $(DEPENDFILE)_tmp
+	$(FMAKEDEP) -f $(DEPENDFILE)_tmp $(FSRCS_CPP)
+	$(SCRIPTS_DIR)/pproc_dep.pl  $(DEPENDFILE)_tmp > $(DEPENDFILE)_tmp1
+	cat $(DEPENDFILE)_tmp1 >> $(DEPENDFILE)
+	rm -f $(FSRCS_CPP) $(DEPENDFILE)_tmp $(DEPENDFILE)_tmp1
 	echo '---------         done with dependencies             ---------'
 ifeq ($(IGNORE_DEPEND),YES)
 	-rm $(DEPENDFILE)
@@ -308,8 +307,16 @@ ESMF_Interface/esmf_custom_mod.mod: ESMF_Interface/ESMF_CUSTOM_MOD.F90
 # Create an executable
 gcm: $(BIN_DIR)/$(RUN).exe
 
+clean_obj_list:
+	echo $(OBJSA) > .obj_list_tmp
+	if [ -f .obj_list ] ; then \
+	  if ! cmp .obj_list_tmp .obj_list ; then \
+	    cp .obj_list_tmp .obj_list ; fi ; \
+	else \
+	  cp .obj_list_tmp .obj_list ; fi
+
 #$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface fvdycore $(OBJS)
-$(BIN_DIR)/$(RUN).exe: $(RUNDECK) esmf_interface modelsubdirs $(OBJS)
+$(BIN_DIR)/$(RUN).exe: $(RUNDECK) clean_obj_list esmf_interface modelsubdirs $(OBJS)
 	echo linking executable $(MSG)
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
              $(OBJS_IN_SUBDIRS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
@@ -358,7 +365,7 @@ clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L *.cpp rundeck_opts.h
 
 vclean:
-	rm -f *.o *.mod *.vo *.inc .depend* *.sig *.sig1
+	rm -f *.o *.mod *.vo *.inc .depend* *.sig *.sig1 *.smod .obj_list
 	$(MAKE) -C $(ESMF_Interface) clean
 ifeq ($(USE_ENT),YES)
 	$(MAKE) -C Ent clean
