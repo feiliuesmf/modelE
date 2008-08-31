@@ -70,6 +70,9 @@
       USE DOMAIN_DECOMP, only : pack_column, pack_data
       USE DOMAIN_DECOMP, only : unpack_column, unpack_data
       USE DOMAIN_DECOMP, only : pack_block , unpack_block
+#ifdef TRACERS_ON
+      use tracer_com, only : trname
+#endif
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -82,20 +85,19 @@
      &     cmgs_glob, chgs_glob, cqgs_glob
       INTEGER, DIMENSION(:,:,:), allocatable ::  ! (4,IM,JM)
      &     ipbl_glob
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, j_0h, j_1h, n
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
 #ifdef TRACERS_ON
 !@var TR_HEADER Character string label for tracer record
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRPBL01"
-      REAL*8, DIMENSION(:,:,:,:,:), allocatable :: trabl_glob
-      write (TR_MODULE_HEADER(lhead+1:80),'(a7,i2,a,i2,a)') 'R8 dim(',
-     *     npbl,',',ntm,',4,ijm):TRt'
+      REAL*8, DIMENSION(:,:,:,:), allocatable :: trabl_glob,trabl_loc
 #endif
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',npbl,
      *  ',4,ijm):Ut,Vt,Tt,Qt,Et dim(4,ijm,3):Cmhq, I:Ipb(4,ijm)'
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       if(am_i_root()) then
         allocate(uabl_glob(npbl,4,IM,JM))
@@ -108,9 +110,12 @@
         allocate(cqgs_glob(4,IM,JM))
         allocate(ipbl_glob(4,IM,JM))
 #ifdef TRACERS_ON
-        allocate(trabl_glob(npbl,ntm,4,im,jm))
+        allocate(trabl_glob(npbl,4,im,jm))
 #endif
       endif
+#ifdef TRACERS_ON
+      allocate(trabl_loc(npbl,4,im,j_0h:j_1h))
+#endif
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -125,17 +130,22 @@
         CALL PACK_COLUMN(grid, cqgs, cqgs_glob)
         CALL PACK_COLUMN(grid, ipbl, ipbl_glob)
 
-#ifdef TRACERS_ON
-        CALL PACK_BLOCK(grid, trabl, trabl_glob)
-#endif
         IF (AM_I_ROOT()) THEN
           WRITE (KUNIT,ERR=10) MODULE_HEADER,UABL_GLOB,VABL_GLOB
      *       ,TABL_GLOB,QABL_GLOB,EABL_GLOB,CMGS_GLOB
      *       ,CHGS_GLOB,CQGS_GLOB,IPBL_GLOB
-#ifdef TRACERS_ON
-          WRITE (KUNIT,ERR=10) TR_MODULE_HEADER,TRABL_GLOB
-#endif
         END IF
+#ifdef TRACERS_ON
+        do n=1,ntm
+          trabl_loc(:,:,:,:) = trabl(:,n,:,:,:)
+          CALL PACK_BLOCK(grid, trabl_loc, trabl_glob)
+          write (TR_MODULE_HEADER(lhead+1:80),'(a8,a8,i2,a)')
+     &         trname(n),
+     &         ' R8 dim(',npbl,',4,ijm):TRt'
+          IF (AM_I_ROOT()) write(kunit,err=10)
+     &         TR_MODULE_HEADER,TRABL_GLOB
+        enddo
+#endif
 
       CASE (IOREAD:)            ! input from restart file or restart
         if ( AM_I_ROOT() ) then
@@ -161,15 +171,18 @@
 #ifdef TRACERS_ON
         SELECT CASE (IACTION)
         CASE (IOREAD,IRERUN,IRSFIC,IRSFICNO)    ! restarts
-          if ( AM_I_ROOT() ) then
-            READ (KUNIT,ERR=10) TR_HEADER,TRABL_GLOB
+        do n=1,ntm
+          IF (AM_I_ROOT()) then
+            read(kunit,err=10) TR_HEADER,TRABL_GLOB
             IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in tracer module version ",TR_HEADER
      *             ,TR_MODULE_HEADER
               GO TO 10
             END IF
-          end if
-          CALL UNPACK_BLOCK(grid, TRABL_GLOB, TRABL)
+          ENDIF
+          CALL UNPACK_BLOCK(grid, trabl_glob, trabl_loc)
+          trabl(:,n,:,:,:) = trabl_loc(:,:,:,:)
+        enddo
         END SELECT
 #endif
       END SELECT
@@ -194,6 +207,9 @@
         deallocate(trabl_glob)
 #endif
       endif
+#ifdef TRACERS_ON
+      deallocate(trabl_loc)
+#endif
       end subroutine freemem
       END SUBROUTINE io_pbl
 
