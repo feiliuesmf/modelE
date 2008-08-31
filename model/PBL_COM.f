@@ -76,10 +76,12 @@
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-      REAL*8, DIMENSION(npbl,4,IM,JM) :: uabl_glob,vabl_glob,tabl_glob,
-     &     qabl_glob,eabl_glob
-      REAL*8, DIMENSION(4,IM,JM) :: cmgs_glob, chgs_glob, cqgs_glob
-      INTEGER, DIMENSION(4,IM,JM) :: ipbl_glob
+      real*8, dimension(:,:,:,:), allocatable :: ! (npbl,4,IM,JM)
+     &     uabl_glob,vabl_glob,tabl_glob,qabl_glob,eabl_glob
+      REAL*8, DIMENSION(:,:,:), allocatable ::   ! (4,IM,JM)
+     &     cmgs_glob, chgs_glob, cqgs_glob
+      INTEGER, DIMENSION(:,:,:), allocatable ::  ! (4,IM,JM)
+     &     ipbl_glob
       INTEGER :: J_0, J_1
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
@@ -95,9 +97,20 @@
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
+      if(am_i_root()) then
+        allocate(uabl_glob(npbl,4,IM,JM))
+        allocate(vabl_glob(npbl,4,IM,JM))
+        allocate(tabl_glob(npbl,4,IM,JM))
+        allocate(qabl_glob(npbl,4,IM,JM))
+        allocate(eabl_glob(npbl,4,IM,JM))
+        allocate(cmgs_glob(4,IM,JM))
+        allocate(chgs_glob(4,IM,JM))
+        allocate(cqgs_glob(4,IM,JM))
+        allocate(ipbl_glob(4,IM,JM))
 #ifdef TRACERS_ON
-      if(am_i_root()) allocate(trabl_glob(npbl,ntm,4,im,jm))
+        allocate(trabl_glob(npbl,ntm,4,im,jm))
 #endif
+      endif
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -167,9 +180,20 @@
       RETURN
       contains
       subroutine freemem
+      if(am_i_root()) then
+        deallocate(uabl_glob)
+        deallocate(vabl_glob)
+        deallocate(tabl_glob)
+        deallocate(qabl_glob)
+        deallocate(eabl_glob)
+        deallocate(cmgs_glob)
+        deallocate(chgs_glob)
+        deallocate(cqgs_glob)
+        deallocate(ipbl_glob)
 #ifdef TRACERS_ON
-      if(am_i_root()) deallocate(trabl_glob)
+        deallocate(trabl_glob)
 #endif
+      endif
       end subroutine freemem
       END SUBROUTINE io_pbl
 
