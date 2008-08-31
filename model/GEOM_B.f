@@ -69,7 +69,7 @@ C**** some B-grid conservation quantities
 !@var  IDJJ J index of adjacent U/V points for A grid (func. of lat. j)
       INTEGER, DIMENSION(IM,JM) :: IDJJ
 !@var  IDIJ I index of adjacent U/V points for A grid (func. of lat/lon)
-      INTEGER, DIMENSION(IM,IM,JM) :: IDIJ
+      INTEGER, DIMENSION(:,:,:), allocatable :: IDIJ
 !@var  KMAXJ varying number of adjacent velocity points
       INTEGER, DIMENSION(JM) :: KMAXJ
 !@var  IMAXJ varying number of used longitudes
@@ -90,12 +90,15 @@ C**** some B-grid conservation quantities
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
 !@ver  1.0 (B grid version)
+      use domain_decomp, only : grid
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
       REAL*8  :: RAVPO,LAT1,COSP1,DXP1
+
+      allocate(idij(im,im,grid%j_strt_halo:grid%j_stop_halo))
 
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
@@ -244,9 +247,11 @@ C**** Conditions at the poles
         RAVJ(1:KMAXJ(J),J)=RAVPO
         RAPJ(1:KMAXJ(J),J)=BYIM
         IDJJ(1:KMAXJ(J),J)=JVPO
-        DO K=1,KMAXJ(J)
-          IDIJ(K,1:IM,J)=K
-        END DO
+        if(j.ge.grid%j_strt_halo .and. j.le.grid%j_stop_halo) then
+          DO K=1,KMAXJ(J)
+            IDIJ(K,1:IM,J)=K
+          END DO
+        endif
       END DO
 C**** Conditions at non-polar points
       DO J=2,JM-1
@@ -264,21 +269,23 @@ C**** Conditions at non-polar points
           IDJJ(K+2,J)=J+1
 #endif
         END DO
-        IM1=IM
-        DO I=1,IM
+        if(j.ge.grid%j_strt_halo .and. j.le.grid%j_stop_halo) then
+          IM1=IM
+          DO I=1,IM
 #ifdef SCM
-          IDIJ(1,I,J)=I
-          IDIJ(2,I,J)=I
-          IDIJ(3,I,J)=I
-          IDIJ(4,I,J)=I
+            IDIJ(1,I,J)=I
+            IDIJ(2,I,J)=I
+            IDIJ(3,I,J)=I
+            IDIJ(4,I,J)=I
 #else 
-          IDIJ(1,I,J)=IM1
-          IDIJ(2,I,J)=I
-          IDIJ(3,I,J)=IM1
-          IDIJ(4,I,J)=I
-          IM1=I
+            IDIJ(1,I,J)=IM1
+            IDIJ(2,I,J)=I
+            IDIJ(3,I,J)=IM1
+            IDIJ(4,I,J)=I
+            IM1=I
 #endif
-        END DO
+          END DO
+        endif
       END DO
       
       RETURN
