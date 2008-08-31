@@ -16,8 +16,8 @@ C**** zonal mean diags
 C**** vertically integrated horizontal fluxes
       REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: safv,sbfv
 
-      real*8, parameter :: mrat_lim=0.25
-      real*8, parameter :: mrat_lim0=0.25
+      real*8, parameter :: mrat_limh=0.25
+      real*8, parameter :: mrat_limy=0.20 ! needs to be less than mrat_limh
 
 c z_extra variables
       logical :: do_z_extra
@@ -292,13 +292,13 @@ C**** check whether horizontal fluxes reduce mass too much
               i=1
               ma(i,j,l) = ma(i,j,l) + 
      &             byn*(mu(im ,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
-              if (ma(i,j,l).lt.mrat_lim0*mb(i,j,l)) then
+              if (ma(i,j,l).lt.mrat_limh*mb(i,j,l)) then
                 nbad_loc = nbad_loc + 1
               endif
               do i=2,im
                 ma(i,j,l) = ma(i,j,l) +
      &               byn*(mu(i-1,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
-                if (ma(i,j,l).lt.mrat_lim0*mb(i,j,l)) then
+                if (ma(i,j,l).lt.mrat_limh*mb(i,j,l)) then
                   nbad_loc = nbad_loc + 1
                 endif
               enddo
@@ -306,14 +306,14 @@ C**** check whether horizontal fluxes reduce mass too much
             if (HAVE_SOUTH_POLE) then
               ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
               ma(:,1 ,l) = ssp
-              if (ma(1,1,l).lt.mrat_lim0*mb(1,1,l)) then
+              if (ma(1,1,l).lt.mrat_limh*mb(1,1,l)) then
                 nbad_loc = nbad_loc + 1
               endif
             endif
             if (HAVE_NORTH_POLE) then
               snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
               ma(:,jm,l) = snp
-              if (ma(1,jm,l).lt.mrat_lim0*mb(1,jm,l)) then
+              if (ma(1,jm,l).lt.mrat_limh*mb(1,jm,l)) then
                 nbad_loc = nbad_loc + 1
               endif
             endif
@@ -486,7 +486,7 @@ c check mass ratios after y direction
               do j=J_0S,J_1S
                 do i=1,im
                   ma2d(i,j) = ma2d(i,j) + (mv(i,j-1,l)-mv(i,j,l))*byn
-                  if (ma2d(i,j).lt.mrat_lim*mb(i,j,l)) then
+                  if (ma2d(i,j).lt.mrat_limy*mb(i,j,l)) then
                     nbad = nbad + 1
                   endif
                 end do
@@ -494,14 +494,14 @@ c check mass ratios after y direction
               if (HAVE_SOUTH_POLE) then
                 ssp = sum(ma2d(:, 1)-mv(:,   1,l)*byn)*byim
                 ma2d(:,1 ) = ssp
-                if (ma2d(1,1).lt.mrat_lim*mb(1,1,l)) then
+                if (ma2d(1,1).lt.mrat_limy*mb(1,1,l)) then
                   nbad = nbad + 1
                 endif
               endif
               if (HAVE_NORTH_POLE) then
                 snp = sum(ma2d(:,jm)+mv(:,jm-1,l)*byn)*byim
                 ma2d(:,jm) = snp
-                if (ma2d(1,jm).lt.mrat_lim*mb(1,jm,l)) then
+                if (ma2d(1,jm).lt.mrat_limy*mb(1,jm,l)) then
                   nbad = nbad + 1
                 endif
               endif
@@ -646,7 +646,7 @@ c
       integer :: nstep
       integer :: i,ns
       REAL*8 :: courmax
-      integer, parameter :: nstepmax=40 ! 60 needed for 0.5 degree resolution
+      integer, parameter :: nstepmax=60 ! 40+ needed for 1 degree resolution
 c      ierr=0
       nstep=0
       courmax = 2.
