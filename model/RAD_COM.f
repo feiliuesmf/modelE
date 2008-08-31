@@ -324,29 +324,74 @@ C**** Local variables initialised in init_RAD
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
-      REAL*8 :: Tchg_glob(LM+LM_REQ,IM,JM)
-      REAL*8 :: RQT_glob(LM_REQ,IM,JM)
-      INTEGER :: kliq_glob(LM,4,IM,JM)
-      REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR_GLOB, TRHR_GLOB
-      REAL*8, DIMENSION(1:4,IM,JM) :: TRSURF_GLOB
-      REAL*8  :: FSF_GLOB(4,IM,JM)
-      REAL*8, DIMENSION(IM, JM) :: FSRDIR_GLOB, SRVISSURF_GLOB,
-     &           SRDN_GLOB, CFRAC_GLOB, SALB_GLOB
-      REAL*8, DIMENSION(IM, JM) :: FSRDIF_GLOB, DIRNIR_GLOB, DIFNIR_GLOB
-      REAL*8, DIMENSION(LM, IM, JM) :: RCLD_GLOB,O3_tracer_save_GLOB
-      REAL*8, DIMENSION(5,LM,IM,JM) :: rad_to_chem_GLOB
-      REAL*8,DIMENSION(Im,Jm,Lm) :: srnflb_save_glob,trnflb_save_glob
+      real*8, dimension(:,:,:), allocatable :: 
+     &     Tchg_glob !(LM+LM_REQ,IM,JM)
+     &    ,RQT_glob  !(LM_REQ,IM,JM)
+     &    ,RCLD_GLOB !(LM, IM, JM)
+     &    ,SRHR_GLOB !(0:LM,IM,JM)
+     &    ,TRHR_GLOB !(0:LM,IM,JM)
+     &    ,TRSURF_GLOB !(1:4,IM,JM)
+     &    ,FSF_GLOB    !(4,IM,JM)
+      integer, dimension(:,:,:,:), allocatable :: kliq_glob!(LM,4,IM,JM)
+      real*8, dimension(:,:), allocatable :: ! IM,JM arrays
+     &     FSRDIR_GLOB, SRVISSURF_GLOB,
+     &     SRDN_GLOB, CFRAC_GLOB, SALB_GLOB,
+     &     FSRDIF_GLOB, DIRNIR_GLOB, DIFNIR_GLOB
 #ifdef TRACERS_ON
-      REAL*8,DIMENSION(Im,Jm,Ntm,Lm) :: ttausv_save_glob,
-     &     ttausv_cs_save_glob
+#ifdef TRACERS_SPECIAL_Shindell
+      REAL*8,DIMENSION(:,:,:), allocatable :: !(LM, IM, JM)
+     &     O3_tracer_save_GLOB
+      REAL*8,DIMENSION(:,:,:,:), allocatable :: !(5,LM,IM,JM)
+     &     rad_to_chem_GLOB
+#endif
+#ifdef TRACERS_DUST
+      REAL*8,DIMENSION(:,:,:), allocatable :: !(Im,Jm,Lm)
+     &     srnflb_save_glob,trnflb_save_glob
+#endif
+      REAL*8,DIMENSION(:,:,:,:), allocatable :: ! (Im,Jm,Ntm,Lm)
+     &     ttausv_save_glob,ttausv_cs_save_glob
 #endif
 #ifdef HTAP_LIKE_DIAGS
-      REAL*8,DIMENSION(Im,Jm,Ntm) :: ttausv_sum_glob
+      REAL*8,DIMENSION(:,:,:), allocatable :: ttausv_sum_glob!(Im,Jm,Ntm)
 #endif
       INTEGER :: J_0,J_1
       INTEGER :: k
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      if(am_i_root()) then
+        allocate(Tchg_glob(LM+LM_REQ,IM,JM))
+        allocate(RQT_glob(LM_REQ,IM,JM))
+        allocate(kliq_glob(LM,4,IM,JM))
+        allocate(SRHR_GLOB(0:LM,IM,JM))
+        allocate(TRHR_GLOB(0:LM,IM,JM))
+        allocate(TRSURF_GLOB(1:4,IM,JM))
+        allocate(FSF_GLOB(4,IM,JM))
+        allocate(FSRDIR_GLOB(IM,JM),
+     &           SRVISSURF_GLOB(IM,JM),
+     &           SRDN_GLOB(IM,JM),
+     &           CFRAC_GLOB(IM,JM),
+     &           SALB_GLOB(IM,JM),
+     &           FSRDIF_GLOB(IM,JM),
+     &           DIRNIR_GLOB(IM,JM),
+     &           DIFNIR_GLOB(IM,JM))
+        allocate(RCLD_GLOB(LM,IM,JM))
+#ifdef TRACERS_ON
+#ifdef TRACERS_SPECIAL_Shindell
+        allocate(O3_tracer_save_GLOB(LM, IM, JM))
+        allocate(rad_to_chem_GLOB(5,LM,IM,JM))
+#endif
+#ifdef TRACERS_DUST
+        allocate(srnflb_save_glob(Im,Jm,Lm))
+        allocate(trnflb_save_glob(Im,Jm,Lm))
+#endif
+        allocate(ttausv_save_glob(Im,Jm,Ntm,Lm))
+        allocate(ttausv_cs_save_glob(Im,Jm,Ntm,Lm))
+#endif
+#ifdef HTAP_LIKE_DIAGS
+        allocate(ttausv_sum_glob(Im,Jm,Ntm))
+#endif
+      endif ! am_i_root
 
       if (kradia.gt.0) then
         write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a15,i2,a7)')
@@ -404,8 +449,10 @@ C**** Local variables initialised in init_RAD
         CALL PACK_COLUMN(grid, O3_tracer_save, O3_tracer_save_GLOB)
         CALL PACK_BLOCK(grid, rad_to_chem, rad_to_chem_GLOB)
 #endif
+#ifdef TRACERS_DUST
         CALL PACK_DATA(grid,srnflb_save,srnflb_save_glob)
         CALL PACK_DATA(grid,trnflb_save,trnflb_save_glob)
+#endif
 #ifdef TRACERS_ON
         CALL PACK_DATA(grid,ttausv_save,ttausv_save_glob)
         CALL PACK_DATA(grid,ttausv_cs_save,ttausv_cs_save_glob)
@@ -485,8 +532,10 @@ C**** Local variables initialised in init_RAD
      &         O3_tracer_save)
           CALL UNPACK_BLOCK(grid, rad_to_chem_glob, rad_to_chem)
 #endif
+#ifdef TRACERS_DUST
           CALL UNPACK_DATA(grid,srnflb_save_glob,srnflb_save)
           CALL UNPACK_DATA(grid,trnflb_save_glob,trnflb_save)
+#endif
 #ifdef TRACERS_ON
           CALL UNPACK_DATA(grid,ttausv_save_glob,ttausv_save)
           CALL UNPACK_DATA(grid,ttausv_cs_save_glob,ttausv_cs_save)
@@ -507,8 +556,45 @@ C**** Local variables initialised in init_RAD
         END SELECT
       END SELECT
       end if
-
+      call freemem
       RETURN
  10   IOERR=1
+      call freemem
       RETURN
+      contains
+      subroutine freemem
+      if(am_i_root()) then
+        deallocate(Tchg_glob)
+        deallocate(RQT_glob)
+        deallocate(kliq_glob)
+        deallocate(SRHR_GLOB)
+        deallocate(TRHR_GLOB)
+        deallocate(TRSURF_GLOB)
+        deallocate(FSF_GLOB)
+        deallocate(FSRDIR_GLOB,
+     &           SRVISSURF_GLOB,
+     &           SRDN_GLOB,
+     &           CFRAC_GLOB,
+     &           SALB_GLOB,
+     &           FSRDIF_GLOB,
+     &           DIRNIR_GLOB,
+     &           DIFNIR_GLOB)
+        deallocate(RCLD_GLOB)
+#ifdef TRACERS_ON
+#ifdef TRACERS_SPECIAL_Shindell
+        deallocate(O3_tracer_save_GLOB)
+        deallocate(rad_to_chem_GLOB)
+#endif
+#ifdef TRACERS_DUST
+        deallocate(srnflb_save_glob)
+        deallocate(trnflb_save_glob)
+#endif
+        deallocate(ttausv_save_glob)
+        deallocate(ttausv_cs_save_glob)
+#endif
+#ifdef HTAP_LIKE_DIAGS
+        deallocate(ttausv_sum_glob)
+#endif
+      endif
+      end subroutine freemem
       END SUBROUTINE io_rad

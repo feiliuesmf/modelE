@@ -530,14 +530,27 @@ C**** keep track of min/max time over the combined diagnostic period
 !@var WMICE_glob Work array for parallel I/O
 #endif
 !@var P_glob Work array for parallel I/O
-      REAL*8, DIMENSION(IM,JM,LM) :: U_glob,V_glob,T_glob,Q_glob,WM_glob
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: !(IM,JM,LM)
+     &     U_glob,V_glob,T_glob,Q_glob,WM_glob
 #ifdef BLK_2MOM
      *,WMICE_glob
 #endif
-      REAL*8 :: P_glob(IM,JM)
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: P_glob!(IM,JM)
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm,lm):u,v,t, p(im,jm),'//
      *  ' dim(im,jm,lm):q,MliqW'
+
+      if(am_i_root()) then
+        allocate(U_glob(IM,JM,LM))
+        allocate(V_glob(IM,JM,LM))
+        allocate(T_glob(IM,JM,LM))
+        allocate(P_glob(IM,JM))
+        allocate(Q_glob(IM,JM,LM))
+        allocate(WM_glob(IM,JM,LM))
+#ifdef BLK_2MOM
+        allocate(WMICE_glob(IM,JM,LM))
+#endif
+      endif
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
@@ -578,9 +591,25 @@ C**** keep track of min/max time over the combined diagnostic period
 #endif
         CALL UNPACK_DATA(grid, P_GLOB, P)
       END SELECT
+      call freemem
       RETURN
  10   IOERR=1
+      call freemem
       RETURN
+      contains
+      subroutine freemem
+      if(am_i_root()) then
+        deallocate(U_glob)
+        deallocate(V_glob)
+        deallocate(T_glob)
+        deallocate(P_glob)
+        deallocate(Q_glob)
+        deallocate(WM_glob)
+#ifdef BLK_2MOM
+        deallocate(WMICE_glob)
+#endif
+      endif
+      end subroutine freemem
       END SUBROUTINE io_model
 
       subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
