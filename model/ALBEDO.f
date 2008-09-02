@@ -329,7 +329,7 @@ C**** arrays needed if 6 band albedo is used
 
 C**** variables used for sea ice albedo calculation (6 bands, Hansen)
       REAL*8, dimension(6) :: almp6,alsf6
-      REAL*8 :: patchy,snagfac,dummy(33)
+      REAL*8 :: patchy,snagfac,dummy1(33),dummy2(33)
 
 C     -----------------------------------------------------------------
 C     Ocean Albedo Dependence on Zenith Angle and Wind Speed
@@ -428,7 +428,7 @@ C**** Chlorophyll effect
       !calculation is done on the amtos grid here and we
       !need to return bocvn,xocvn but dont return rod and ros
       call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
-     .                    LOC_CHL,dummy,dummy,.false.,vrbos)
+     .                    LOC_CHL,dummy1,dummy2,.false.,vrbos)
 
       if (vrbos) then
       do L=1,6
