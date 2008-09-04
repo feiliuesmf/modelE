@@ -79,6 +79,7 @@ MODEL_E_ROOT = ..
 MODEL_DIR = .
 DECKS_DIR = .
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
+CONFIG_DIR = $(MODEL_E_ROOT)/config
 
 RUNSRC  = E1M20
 RUN     =
@@ -215,7 +216,8 @@ endif
 #include rules here
 #
 
-sinclude $(MODEL_DIR)/Rules.make
+#sinclude $(MODEL_DIR)/Rules.make
+include $(CONFIG_DIR)/rules.mk
 
 
 #########             TARGETS               ########
