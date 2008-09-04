@@ -49,6 +49,11 @@
 #define mpi_GatherV mpi_gatherv_
 #define mpi_ScatterV mpi_scatterv_
 
+#define MPI_Type_get_extent mpi_type_get_extent_
+#define MPI_Type_create_struct mpi_type_create_struct_
+
+! hack for LAM MPI (which does not define MPI_ADDRESS_KIND)
+#define MPI_ADDRESS_KIND 8
 
 #endif
 
