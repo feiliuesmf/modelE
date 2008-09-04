@@ -10,11 +10,11 @@ C****
 C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
-      Use GEOM,      Only: imaxj
       Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO        
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : ntm
 #endif
+
       Use SparseCommunicator_mod
       Implicit None
       Integer*4,Parameter ::
@@ -37,7 +37,6 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
      *     , oc_tracer_mean(ntm) = -999. ! @dbparam mean tracer ratio of ocean
                                          ! Note: in permil for water isotopes
 #endif 
-
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)
 !@var VO N-S velocity on C-grid (m/s)
@@ -69,6 +68,8 @@ C**** ocean geometry (should this be in a separate module?)
      *  COSU(IM),  !  COSine of longitude of eastern edge of grid cell
      *  SINxY(JM), !  DLAT * SINe of latitude used by Coriolis force
      *  TANxY(JM)  !  DLAT * TANgent of latitude used by metric term
+!@var  IMAXJ varying number of used longitudes
+      INTEGER, DIMENSION(JM) :: IMAXJ
       INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV
 !@var RATOC,ROCAT Ratio of areas for converting atm. fluxes to ocean
       REAL*8, DIMENSION(JM) :: RATOC,ROCAT
@@ -352,6 +353,7 @@ C****
       IMPLICIT NONE
 
       INTEGER :: IER
+
 C*
 C**** Define the ocean (Russell) grid 
 C*
@@ -360,8 +362,8 @@ C****
 
       CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
  
-!      write (555,*) 
-!      write (555,*) ' alloc_ocean: halos', J_0H,J_1H
+      write (555,*) ' Subr. alloc_ocean: '
+      write (555,*) ' alloc_ocean: halos', J_0H,J_1H
 
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)

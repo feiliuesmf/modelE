@@ -3373,7 +3373,7 @@ C**** Surface stress is applied to V component at the North Pole
 #endif
      *     ,dtrsi
 #endif
-#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_Natassa
       USE FLUXES, only : TRGASEX
 #endif
       USE SEAICE_COM, only : rsi
@@ -3442,7 +3442,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         TRUNO(:)=0. ; TRUNI(:)=0.
 #endif
 
-#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_Natassa
         !note that TRGASEX is positive down i.e. same sign as
         !TRUNO, while TREVAPOR is positive up.
         TRUNO(:)=RATOC(J)*TRGASEX(:,1,I,J)
@@ -4330,24 +4330,31 @@ C****
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       USE OCN_TRACER_COM, only : trw0, ntm
 #endif
-      USE OCEAN, only : im,jm,IVSP,IVNP, imaxj,dxypo,lmm,
-     *     COSU,SINU, COSI=>COSIC,SINI=>SINIC,
-     *     focean,g0m,s0m,mo,ogeoz,uo,vo,ogeoz_sv
+      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE OCEANRES,   only : LMO_MIN
+
+      USE MODEL_COM, only : IVSP,IVNP, FOCEAN
+      Use GEOM,      only : IMAXJ 
+     *        , COSU,SINU, COSI=>COSIP,SINI=>SINIP
+!     *        , DXYPO=>DXYP
+
+      USE OCEAN, only : dxypo 
+
+      USE AFLUXES, only : MOA, UOA1,VOA1, G0MA,S0MA
+     *     , OGEOZ_A, OGEOZ_SV_A
 #ifdef TRACERS_OCEAN
-     *     ,trmo
+     *     , TRMOA
 #endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
      *      gtempr
 #ifdef TRACERS_ON
      *     ,gtracer
 #endif
-#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_Natassa
      *     ,trgasex
 #endif
 
-!      use domain_decomp, only : grid, get
-      use domain_decomp, only : get
-      USE OCEANR_DIM, only : grid=>ogrid
+      use domain_decomp, only : grid, get
 
       IMPLICIT NONE
       INTEGER I,J
@@ -4355,44 +4362,57 @@ C****
       integer :: j_0,j_1,n
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
+      if (LMO_MIN .lt. 2) then 
+        write (*,*) ' Subroutine TOC2SST (OCNDYN.f): '
+        write (*,*) ' Make minimum number of ocean layers equal to 2'
+        stop
+      end if 
+
       call get (grid, j_strt=j_0, j_stop=j_1,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
+      write (555,*) ' Subr. TOC2SST #1: ', J_0,J_1      
+
+!  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
+! 
+      call OG2AG
+
+      write (555,*) ' Subr. TOC2SST #2: ', J_0,J_1      
 C****
 C**** Note that currently everything is on same grid
 C****
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0.) THEN
-            GO= G0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
-            SO= S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
+            GO= G0MA(I,J,1)/(MOA(I,J,1)*DXYPO(J))
+            SO= S0MA(I,J,1)/(MOA(I,J,1)*DXYPO(J))
             TO= TEMGS(GO,SO)
             GTEMP(1,1,I,J)= TO
             GTEMPR(1,I,J) = TO+TF
             SSS(I,J) = 1d3*SO
-            MLHC(I,J)= MO(I,J,1)*SHCGS(GO,SO)
-            IF (LMM(I,J).gt.1) THEN
-              GO2= G0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
-              SO2= S0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
+            MLHC(I,J)= MOA(I,J,1)*SHCGS(GO,SO)
+!            IF (LMM(I,J).gt.1) THEN
+              GO2= G0MA(I,J,2)/(MOA(I,J,2)*DXYPO(J))
+              SO2= S0MA(I,J,2)/(MOA(I,J,2)*DXYPO(J))
               TO= TEMGS(GO2,SO2)
-            END IF
+!            END IF
             GTEMP(2,1,I,J)= TO
    ! atmospheric grid Ocean height
-            OGEOZA(I,J)=0.5*(OGEOZ(I,J)+OGEOZ_SV(I,J))
-            UOSURF(I,J)=UO(I,J,1)
-            VOSURF(I,J)=VO(I,J,1)
+            OGEOZA(I,J)=0.5*(OGEOZ_A(I,J)+OGEOZ_SV_A(I,J))
+            UOSURF(I,J)=UOA1(I,J)
+            VOSURF(I,J)=VOA1(I,J)
 
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
-            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J)-
-     *           S0M(I,J,1))
+            GTRACER(:,1,I,J)=TRMOA(I,J,1,:)/(MOA(I,J,1)*DXYPO(J)-
+     *           S0MA(I,J,1))
 #else
             GTRACER(:,1,I,J)=trw0(:)
 #endif
 #endif
 
-#ifdef TRACERS_GASEXCH_ocean
-            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
+#ifdef TRACERS_GASEXCH_Natassa
+            GTRACER(:,1,I,J)=TRMOA(I,J,1,:)/(MOA(I,J,1)*DXYPO(J))
 #endif
           ELSE
              SSS(I,J)=0.
@@ -4402,19 +4422,19 @@ C****
       END DO
 C**** do poles
       if (HAVE_NORTH_POLE) then
-      IF (FOCEAN(1,JM).gt.0) THEN
-        UOSURF(1,JM) = UO(IM,JM,1)*COSU(1) + UO(IVNP,JM,1)*SINU(1)
-        VOSURF(1,JM) = UO(IVNP,JM,1)*COSI(1) - UO(IM,JM,1)*SINI(1)
-        DO I=2,IM
-          GTEMP(:,1,I,JM)=GTEMP(:,1,1,JM)
-          GTEMPR(1,I,JM) =GTEMPR(1,1,JM) 
-          SSS(I,JM)=SSS(1,JM)
-          MLHC(I,JM)=MLHC(1,JM)
-          UOSURF(I,JM) = UO(IM,JM,1)*COSU(I) + UO(IVNP,JM,1)*SINU(I)
-          VOSURF(I,JM) = UO(IVNP,JM,1)*COSI(I) - UO(IM,JM,1)*SINI(I)
-          OGEOZA(I,JM)=OGEOZA(1,JM)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
-          GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
+      IF (FOCEAN(1,JMA).gt.0) THEN
+        UOSURF(1,JMA) = UOA1(IMA,JMA)*COSU(1) + UOA1(IVNP,JMA)*SINU(1)
+        VOSURF(1,JMA) = UOA1(IVNP,JMA)*COSI(1) - UOA1(IMA,JMA)*SINI(1)
+        DO I=2,IMA
+          GTEMP(:,1,I,JMA)=GTEMP(:,1,1,JMA)
+          GTEMPR(1,I,JMA) =GTEMPR(1,1,JMA) 
+          SSS(I,JMA)=SSS(1,JMA)
+          MLHC(I,JMA)=MLHC(1,JMA)
+          UOSURF(I,JMA) = UOA1(IMA,JMA)*COSU(I)+UOA1(IVNP,JMA)*SINU(I)
+          VOSURF(I,JMA) = UOA1(IVNP,JMA)*COSI(I)-UOA1(IMA,JMA)*SINI(I)
+          OGEOZA(I,JMA)=OGEOZA(1,JMA)
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
+          GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
 #endif
         END DO
       END IF
@@ -4422,15 +4442,15 @@ C**** do poles
 
       if (HAVE_SOUTH_POLE) then
       IF (FOCEAN(1,1).gt.0) THEN
-        DO I=2,IM
+        DO I=2,IMA
           GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
           GTEMPR(1,I,1) =GTEMPR(1,1,1)
           SSS(I,1)=SSS(1,1)
           MLHC(I,1)=MLHC(1,1)
-          UOSURF(I,1) = UO(IM,1,1)*COSU(1) - UO(IVSP,1,1)*SINU(1)
-          VOSURF(I,0) = UO(IVSP,1,1)*COSI(I) - UO(IM,1,1)*SINI(I)
+          UOSURF(I,1) = UOA1(IMA,1)*COSU(1) - UOA1(IVSP,1)*SINU(1)
+          VOSURF(I,0) = UOA1(IVSP,1)*COSI(I) - UOA1(IMA,1)*SINI(I)
           OGEOZA(I,1)=OGEOZA(1,1)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
         END DO
@@ -4658,10 +4678,11 @@ C****
 !@sum  ADJUST_MEAN_SALT sets the global mean salinity in the ocean
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE GEOM, only : dxyp,imaxj
+!      USE GEOM, only : dxyp,imaxj
+      USE GEOM, only : dxyp
       USE CONSTANT, only : grav
       USE OCEAN, only : im,jm,lmo,focean,lmm,mo,s0m,sxmo
-     *     ,symo,szmo,dxypo,oc_salt_mean,g0m
+     *     ,symo,szmo,dxypo,oc_salt_mean,g0m, imaxj
       USE STRAITS, only : s0mst,sxmst,szmst,nmst,lmst,g0mst,mmst,dist
      *     ,wist
 
@@ -4762,3 +4783,133 @@ C**** Check
 
       RETURN
       END SUBROUTINE ADJUST_MEAN_SALT
+
+      SUBROUTINE OG2AG
+!@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates 
+!!      them to the atmospheric grid, scatters them on the atmospheric grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE DOMAIN_DECOMP, only : AM_I_ROOT
+
+      IMPLICIT NONE
+
+      call gather_ocean1 ! mo,uo,vo,g0m,s0m,ogz's,tr
+!
+!!!  Do interpolation to the atmospheric grid
+!
+      if(AM_I_ROOT()) then
+        call INT_OG2AG
+      end if 
+
+      call scatter_ocean1
+      
+      RETURN
+      END SUBROUTINE OG2AG 
+
+      SUBROUTINE INT_OG2AG
+!@sum  INT_OG2AG is for interpolationof arrays from ocean grid 
+!!      to the atmospheric grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : im,jm
+      USE OCEANRES,   only : imo,jmo,lmo
+
+      USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
+     *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob
+#ifdef TRACERS_OCEAN
+     *     , TRMO_glob
+#endif
+
+      USE AFLUXES, only : MOA_glob, UOA1_glob,VOA1_glob, G0MA_glob
+     *     ,S0MA_glob, OGEOZ_A_glob, OGEOZ_SV_A_glob
+#ifdef TRACERS_OCEAN
+     *     , TRMOA_glob
+#endif
+      integer l 
+
+      write (555,*) ' Subr. OG2AG #1: ', imo, jmo      
+!
+!  NOTE: It is just a coping the arrays on ocean grid 
+!   to the arrays on the atmospheric grid (grids are the same) 
+!
+      DO L = 1,2
+        MOA_glob(:,:,L) = MO_glob(:,:,L)
+        G0MA_glob(:,:,L) = G0M_glob(:,:,L)
+        S0MA_glob(:,:,L) = S0M_glob(:,:,L)
+      END DO 
+
+      UOA1_glob(:,:) = UO_glob(:,:,1)
+      VOA1_glob(:,:) = VO_glob(:,:,1)
+      OGEOZ_A_glob(:,:) = OGEOZ_glob(:,:)
+      OGEOZ_SV_A_glob(:,:) = OGEOZ_SV_glob(:,:)
+
+#ifdef TRACERS_OCEAN
+      TRMOA_glob(:,:,1,:) = TRMO_glob(:,:,1,:)
+#endif
+      
+      RETURN
+      END SUBROUTINE INT_OG2AG 
+
+      SUBROUTINE gather_ocean1 
+
+      use domain_decomp, only: pack_data
+      use OCEANR_DIM, only : grid=>ogrid
+
+      USE OCEAN, only : MO, UO,VO, G0M
+     *     , S0M, OGEOZ,OGEOZ_SV
+#ifdef TRACERS_OCEAN
+     *     , TRMO
+#endif
+      USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
+     *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob
+#ifdef TRACERS_OCEAN
+     *     , TRMO_glob
+#endif
+
+      CALL PACK_DATA(grid,   MO   ,    MO_glob)
+      CALL PACK_DATA(grid,   UO   ,    UO_glob)
+      CALL PACK_DATA(grid,   VO   ,    VO_glob)
+
+      CALL PACK_DATA(grid,OGEOZ   , OGEOZ_glob)
+      CALL PACK_DATA(grid,OGEOZ_SV,OGEOZ_SV_glob)
+
+      CALL PACK_DATA(grid,  G0M   ,   G0M_glob)
+      CALL PACK_DATA(grid,  S0M   ,   S0M_glob)
+#ifdef TRACERS_OCEAN
+      CALL PACK_DATA(grid,  TRMO  ,  TRMO_glob)
+#endif
+
+      RETURN
+      END SUBROUTINE gather_ocean1
+
+      SUBROUTINE scatter_ocean1 
+
+      use domain_decomp, only: grid,unpack_data
+
+      USE AFLUXES, only : MOA, UOA1,VOA1, G0MA
+     *     , S0MA, OGEOZ_A,OGEOZ_SV_A
+     *     , MOA_glob, UOA1_glob,VOA1_glob, G0MA_glob
+     *     , S0MA_glob, OGEOZ_A_glob, OGEOZ_SV_A_glob
+#ifdef TRACERS_OCEAN
+     *     , TRMOA, TRMOA_glob
+#endif
+
+      CALL UNPACK_DATA(grid,       MOA_glob,  MOA )
+      CALL UNPACK_DATA(grid,       UOA1_glob, UOA1 )
+      CALL UNPACK_DATA(grid,       VOA1_glob, VOA1 )
+
+      CALL UNPACK_DATA(grid,    OGEOZ_A_glob, OGEOZ_A   )
+      CALL UNPACK_DATA(grid, OGEOZ_SV_A_glob, OGEOZ_SV_A)
+
+      CALL UNPACK_DATA(grid,      G0MA_glob,  G0MA )
+      CALL UNPACK_DATA(grid,      S0MA_glob,  S0MA )
+#ifdef TRACERS_OCEAN
+      CALL UNPACK_DATA(grid,     TRMOA_glob,  TRMOA)
+#endif
+
+      RETURN
+      END SUBROUTINE scatter_ocean1
+
+

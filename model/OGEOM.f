@@ -15,7 +15,7 @@ C****
      *                 RAMVS,RAMVN, zDXYP=>BYDXYPO, RATOC,ROCAT,
      *                 COSM,COSQ, SINxY,TANxY, DXPGF,DYPGF,
      *                 SINI=>SINIC, COSI=>COSIC, SINU,COSU,
-     *                 J1O, JMPF=>J40S
+     *                 J1O, JMPF=>J40S, IMAXJ
       Implicit None
       Integer*4 I,J
       Real*8 LATS, !  LATitude in radians at South edge of primary cell
@@ -102,5 +102,14 @@ C**** Calculate JMPF = greatest J in SH where polar filter is applied
         If (RLAT(J) > -40*TWOPI/360)  Then  !  find first J north of 40S
           JMPF = J-1  ;  Exit  ;  EndIf  ;  EndDo
 C****
+C**** Conditions at the poles
+      DO J=1,JM,JM-1
+        IMAXJ(J)=1
+      END DO
+C**** Conditions at non-polar points
+      DO J=2,JM-1
+        IMAXJ(J)=IM
+      END DO
+      
       Return
       End

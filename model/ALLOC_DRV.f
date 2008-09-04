@@ -8,6 +8,7 @@ c set-up for MPI implementation
       call alloc_dynamics(grid)
       call alloc_model_com(grid)
       call alloc_fluxes(grid)
+      call alloc_afluxes(grid)
       call alloc_clouds_com(grid)
       call alloc_ghy_com(grid)
       call alloc_pbl_com(grid)
