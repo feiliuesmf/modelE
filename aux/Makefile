@@ -4,13 +4,14 @@
 
 .SUFFIXES:
 
-.PHONY: clean vclean
+.PHONY: clean vclean FORCE
 
 MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
 DECKS_DIR = $(MODEL_E_ROOT)/decks
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 ESMF_Interface=$(MODEL_DIR)/ESMF_Interface
+CONFIG_DIR = $(MODEL_E_ROOT)/config
 
 RUN     =
 RUNDECK = $(DECKS_DIR)/$(RUN).R
@@ -36,7 +37,7 @@ qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 odeep: $(BIN_DIR)/mkdeep.exe
 
 # include file with implicit rules
-sinclude $(MODEL_DIR)/Rules.make
+include $(CONFIG_DIR)/rules.mk
 
 # look for .mod files in MODEL_DIR
 ifeq ($(COMPILER),Absoft)
@@ -50,6 +51,8 @@ endif
 #
 #  targets
 #
+
+FORCE:
 
 $(BIN_DIR)/CMPE002: CMPE002.F90 $(GCMLIB)
 	$(F90) $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)

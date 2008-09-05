@@ -11,6 +11,7 @@ MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
 DECKS_DIR = $(MODEL_E_ROOT)/decks
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
+CONFIG_DIR = $(MODEL_E_ROOT)/config
 
 # hack to prevent make from hanging
 DEPENDFILE=FILE_DOES_NOT_EXIST
@@ -22,7 +23,7 @@ include $(SCRIPTS_DIR)/modelErc
 sinclude ~/.modelErc         
 
 # include file with implicit rules
-sinclude $(MODEL_DIR)/Rules.make
+sinclude $(CONFIG_DIR)/rules.mk
 
 
 RES_FILE = UNDEFINED_RES_FILE

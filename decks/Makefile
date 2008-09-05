@@ -8,6 +8,7 @@ AUX_DIR = $(MODEL_E_ROOT)/aux
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 DECKS_DIR = $(shell pwd)
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
+CONFIG_DIR = $(MODEL_E_ROOT)/config
 
 USER = $(shell whoami)
 HOMEDIR = $(wildcard ~)
@@ -34,7 +35,7 @@ ALIAS_LIST = CMPE001 qc
 help:
 	$(MAKE) -C $(MODEL_DIR) help
 
-sinclude $(MODEL_DIR)/Rules.make
+sinclude $(CONFIG_DIR)/rules.mk
 
 rundeck:
 	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \

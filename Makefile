@@ -4,6 +4,7 @@
 # modelE directory structure
 MODEL_E_ROOT = .
 MODEL_DIR = $(MODEL_E_ROOT)/model
+CONFIG_DIR = $(MODEL_E_ROOT)/config
 
 ifeq ($(VERBOSE_OUTPUT),NO)
   MAKEFLAGS=-s
@@ -18,7 +19,7 @@ default:
 help:
 	$(MAKE) -C $(MODEL_DIR) help
 
-sinclude $(MODEL_DIR)/Rules.make
+sinclude $(CONFIG_DIR)/rules.mk
 
 update:
 	@if [ "$(RELEASE)" = "" ] ; then \

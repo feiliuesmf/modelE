@@ -1,4 +1,8 @@
 .SUFFIXES:
+
+MODEL_E_ROOT = ../..
+CONFIG_DIR = $(MODEL_E_ROOT)/config
+
 all:  ESMF_MOD.o ESMF_CUSTOM_MOD.o assert.o
 
 # dependencies
@@ -9,5 +13,5 @@ ESMF_CUSTOM_MOD.o: 	ESMF_CUSTOM_MOD.F90 assert.o ESMF_MOD.o assert.h
 clean:
 	rm *.o *.mod *.sig *.sig1
 
-include ../Rules.make
+include $(CONFIG_DIR)/rules.mk
 
