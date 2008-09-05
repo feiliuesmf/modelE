@@ -335,7 +335,7 @@ C****
 !@auth Rodger Abel
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, only : dist_grid,get
+      USE DOMAIN_DECOMP, only : dist_grid,get, grid
 
       USE OCEANR_DIM
 
@@ -410,6 +410,7 @@ C**** Necessary initiallisation?
 c??   call ALLOC_GM_COM(grid)
       call ALLOC_KPP_COM(ogrid)
       call alloc_odiag(ogrid)
+      call alloc_afluxes(grid)
 
       return
       end subroutine alloc_ocean
