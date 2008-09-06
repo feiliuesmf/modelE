@@ -415,6 +415,10 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
      *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
      *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
 
+!@var PLBA21 Vert. Layering for tropospheric aerosols (reference)
+      REAL*8, PARAMETER :: PLBA20(21)=(/
+     *  984.,964.,934.,884.,810.,710.,550.,390.,285.,210.,
+     *  150.,110., 80., 55., 35., 20., 10., 3.,  1.,0.3,0.1/)
 !@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
       REAL*8, PARAMETER :: PLBA09(10)=(/
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
@@ -504,6 +508,7 @@ C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
      C   ,SRTQEX(6,190,ITRMAX),SRTQSC(6,190,ITRMAX),SRTQCB(6,190,ITRMAX)
      D   ,TRTQAB(33,190,ITRMAX),RTINFO(190,15,ITRMAX)
      E   ,anssdd(72,46),mdpi(4,72,46),mdcur(5,72,46)
+     F   ,A6JDAY2(20,6,72,46)
 !new
 !new  save TSOIL,TVEGE                  (not implemented)
 !nu   DIMENSION PI0TRA(11)
@@ -1614,7 +1619,11 @@ C----------------------------------------------
       IF(KJDAYA > 0)             JJDAYA=KJDAYA
       IF(KYEARA.ne.0)            JYEARA=KYEARA
 C----------------------------------------------
-      IF(MADAER.ne.0) CALL UPDAER(JYEARA,JJDAYA)
+      IF(MADAER.eq.3) THEN
+      CALL UPDAER2(JYEARA,JJDAYA)
+      ELSE IF(MADAER.ne.0) THEN
+      CALL UPDAER(JYEARA,JJDAYA)
+      ENDIF
 C----------------------------------------------
 
       JJDAYD=JDAY
@@ -1736,7 +1745,6 @@ C--------------------------------
 
                       CALL SOLARM
 C--------------------------------
-
       RETURN
       END SUBROUTINE RCOMPX
 
@@ -3221,10 +3229,15 @@ C-----------------
   230 CONTINUE
 
       IF(MADAER <= 0) GO TO 500
-
+ 
       DO NA=1,6
+      IF(MADAER.eq.3) THEN
+      CALL REPART (A6JDAY2(1,NA,ILON,JLAT),PLBA20,21,    ! in
+     *             ATAULX(1,NA),PLB,NL+1)               ! out
+      ELSE
       CALL REPART (A6JDAY(1,NA,ILON,JLAT),PLBA09,10,    ! in
      *             ATAULX(1,NA),PLB,NL+1)               ! out
+      ENDIF
       END DO
 
       FSXTAU=FSTAER*FSAAER+1.D-10
@@ -3628,6 +3641,271 @@ C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
 
       RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
       END SUBROUTINE UPDAER
+      
+      SUBROUTINE UPDAER2(JYEARA,JJDAYA)
+
+C     ------------------------------------------------------------------
+C     Reads: XXX_Koch2008_kg_m2_72x46x20_1880-2000 aerosol kg/m2 data
+C     for SUL,NIT,OCA,BCA,BCB and
+C            SSA_Koch2008_kg_m2_72x46x20
+C
+C    Makes: A6YEAR2(72,46,12,0:12,6),A6JDAY2(20,6,72,46) (dry aerosol Tau)
+C     ------------------------------------------------------------------
+
+      USE FILEMANAGER, only : openunit,closeunit
+      implicit none
+
+      INTEGER, intent(in) :: jyeara,jjdaya
+      REAL*4 A6YEAR2(72,46,20,0:12,6) !  ,mddust(72,46)
+      REAL*4  SULDD(72,46,20,12,12),NITDD(72,46,20,12,12)
+      REAL*4  OCADD(72,46,20,12,12),BCADD(72,46,20,12,12)
+      REAL*4  BCBDD(72,46,20,12,12),SSADD(72,46,20,12)
+      REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
+      save A6YEAR2,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD,md1850,anfix ! ,mddust
+
+      CHARACTER*80 XTITLE
+      CHARACTER*40 :: RDFILE(7) = (/                !  Input file names
+     1            'SUL_Koch2008_kg_m2_72x46x20_1890-2000   '      
+     2           ,'SSA_Koch2008_kg_m2_72x46x20             '
+     3           ,'NIT_Bauer2008_kg_m2_72x46x20_1890-2000  '
+     4           ,'OCA_Koch2008_kg_m2_72x46x20_1890-2000   '
+     5           ,'BCA_Koch2008_kg_m2_72x46x20_1890-2000   '
+     6           ,'BCB_Koch2008_kg_m2_72x46x20_1890-2000   '
+     7           ,'low.dust.72x46.monthly.bin              '/)
+
+      CHARACTER*40 :: RDFGEN(7) = (/                ! generic names
+     * 'TAero_SUL','TAero_SSA','TAero_NIT','TAero_OCA','TAero_BCA',
+     * 'TAero_BCB','M_LowDust'/)
+
+C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
+C                   SO4    SEA    ANT    OCX    BCI    BCB   *BCB  *BCB
+C     DATA REFDRY/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 0.200,0.050/
+C
+C     DATA REFWET/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 0.200,0.050/
+C
+C     DATA DRYM2G/4.667, 0.866, 4.448, 5.018, 9.000, 9.000, 5.521,8.169/
+C
+CKoch DATA DRYM2G/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 5.521,8.169/
+C
+C     DATA RHTMAG/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/
+C
+CRH70 DATA WETM2G/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 5.521,8.169/
+C
+C     DATA Q55DRY/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.914,0.708/
+C
+C     DATA DENAER/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 1.300,1.300/
+C
+C     ------------------------------------------------------------------
+C          DRYM2G(I) = 0.75/DENAER(I)*Q55DRY(I)/REFDRY(I)
+C          WETM2G(I) = DRYM2G(I)*RHTMAG(I)
+C          RHTMAG(I) = Rel Humidity TAU Magnification factor  at RH=0.70
+C          REFWET(I) = Rel Humidity REFDRY Magnification      at RH=0.70
+C     ------------------------------------------------------------------
+      logical qexist
+      INTEGER, save :: IFILE=11, IFIRST=1, JYRNOW=0
+
+      INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
+      REAL*8 WTANI,WTOCB,WTBCB,wt75,swti,swtj,cwti,cwtj,xmi,wtmi,wtmj
+      REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
+      REAL*8 xsslt,byz ! ,xdust
+      IF(IFIRST==1) THEN
+C                                       READ Input Files
+C                                       --------------------------------
+      inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
+      if(qexist) RDFILE=RDFGEN              !     generic names are used
+      inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
+      if(.not.qexist) call stop_model('updaer: no TropAero files',255)
+
+!**** Sulfate
+      call openunit (RDFILE(1),ifile,.true.,.true.)    ! unformatted,old
+      DO 101 IDD=1,12
+      DO 101 M=1,12
+  101 READ (IFILE) XTITLE,SULDD(:,:,:,M,IDD)
+      call closeunit (ifile)
+!**** Sea salt
+      call openunit (RDFILE(2),ifile,.true.,.true.)
+      DO 102 M=1,12
+  102 READ (IFILE) XTITLE,SSADD(:,:,:,M)
+      call closeunit (ifile)
+!**** Nitrate
+      call openunit (RDFILE(3),ifile,.true.,.true.)
+      DO 103 IDD=1,12
+      DO 103 M=1,12
+  103 READ (IFILE) XTITLE,NITDD(:,:,:,M,IDD)
+      call closeunit (ifile)
+!**** Organic Carbon
+      call openunit (RDFILE(4),ifile,.true.,.true.)
+      DO 104 IDD=1,12
+      DO 104 M=1,12
+  104 READ (IFILE) XTITLE,OCADD(:,:,:,M,IDD)
+      call closeunit (ifile)
+!**** Black Carbon from Fossil and bio fuel
+      call openunit (RDFILE(5),ifile,.true.,.true.)
+      DO 105 IDD=1,12
+      DO 105 M=1,12
+  105 READ (IFILE) XTITLE,BCADD(:,:,:,M,IDD)
+      call closeunit (ifile)
+!**** Black Carbon from Biomass burning
+      call openunit (RDFILE(6),ifile,.true.,.true.)
+      DO 106 IDD=1,12
+      DO 106 M=1,12
+  106 READ (IFILE) XTITLE,BCBDD(:,:,:,M,IDD)
+      call closeunit (ifile)      
+C**** Prepare for aerosol indirect effect parameterization:
+C     - Collect the monthly aerosol number densities (an) for the time
+C       independent aerosols (desert dust and sea salt)       an:  /cm^3
+C     - Save the monthly 1850 mass densities (md) for the time dependent
+C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
+
+!!!   call openunit (RDFILE(5),ifile,.true.,.true.) !neglect desert dust
+!!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
+      xsslt=aermix(3)/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
+      byz = 1d-6/za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
+c      DO M=1,12
+!!!     READ (IFILE) XTITLE,mddust
+c      DO J=1,46
+c      DO I=1,72
+c        anfix(i,j,m) = 0. !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
+c     +               +    byz * SUM(PREDD(I,J,1:la720,M,3)) * Xsslt
+C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
+c        md1850(1,i,j,m) = byz * SUM(AERMIX(1)*PREDD(I,J,1:La720,M,1) +
+c     +                              AERMIX(2)*PREDD(I,J,1:La720,M,2))
+c        md1850(2,i,j,m) = byz * SUM(AERMIX(4)*PREDD(I,J,1:La720,M,4))
+c        md1850(3,i,j,m) = byz * SUM(AERMIX(5)*PREDD(I,J,1:La720,M,5) +
+c     +                              AERMIX(6)*PREDD(I,J,1:La720,M,6))
+c        md1850(4,i,j,m) = byz * SUM(AERMIX(7)*PREDD(I,J,1:La720,M,7))
+c      end do
+c      end do
+c      end do
+c      anfix(:,:,0) = anfix(:,:,12) ; md1850(:,:,:,0) = md1850(:,:,:,12)
+!!!   call closeunit (ifile)
+
+      IFIRST=0
+      ENDIF
+
+
+C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
+C     ------------------------------------------------------------------
+      if(JYEARA<0) then
+        JYEARX = -JYEARA
+      else
+        JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
+      end if
+
+      IF(JYEARX==JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
+
+      DO 114 M=1,12
+      A6YEAR2(:,:,:,M,1) = 0.
+      A6YEAR2(:,:,:,M,2) = SSADD(:,:,:,M)*1000*DRYM2G(2) !*AERMIX(3)
+      A6YEAR2(:,:,:,M,3) = 0.
+      A6YEAR2(:,:,:,M,4) = 0.
+      A6YEAR2(:,:,:,M,5) = 0.
+      A6YEAR2(:,:,:,M,6) = 0.
+  114 CONTINUE
+!****                                   Define 1849 Background  Dec data
+!      DO N=1,6
+!        A6YEAR2(:,:,:,0,N)=A6YEAR2(:,:,:,12,N)
+!      END DO
+
+      IF(JYEARX < 1890) THEN   !   (use 1890)
+       DO M=1,12          !    Add time dependent JYEAR SUI,OCI,BCI
+       A6YEAR2(:,:,:,M,1) = A6YEAR2(:,:,:,M,1)+
+     +                 SULDD(:,:,:,M,1)*1000*DRYM2G(1) !*AERMIX( 8)
+       A6YEAR2(:,:,:,M,3) = A6YEAR2(:,:,:,M,3)+
+     +                 NITDD(:,:,:,M,1)*1000*DRYM2G(3) !*AERMIX( 4)
+       A6YEAR2(:,:,:,M,4) = A6YEAR2(:,:,:,M,4)+
+     +                 OCADD(:,:,:,M,1)*1000*DRYM2G(4)  !*AERMIX(10)
+       A6YEAR2(:,:,:,M,5) = A6YEAR2(:,:,:,M,5)+
+     +                 BCADD(:,:,:,M,1)*1000*DRYM2G(5)  !*AERMIX(11)
+       A6YEAR2(:,:,:,M,6) = A6YEAR2(:,:,:,M,6)+
+     +                 BCBDD(:,:,:,M,1)*1000*DRYM2G(6)  !*AERMIX(13)
+       END DO
+      
+       ELSE IF(JYEARX > 2000) THEN   !   (use 1890)
+       DO M=1,12          !    Add time dependent JYEAR SUI,OCI,BCI
+       A6YEAR2(:,:,:,M,1) = A6YEAR2(:,:,:,M,1)+
+     +                 SULDD(:,:,:,M,12)*1000*DRYM2G(1) !*AERMIX( 8)
+       A6YEAR2(:,:,:,M,3) = A6YEAR2(:,:,:,M,3)+
+     +                 NITDD(:,:,:,M,12)*1000*DRYM2G(3) !*AERMIX( 4)
+       A6YEAR2(:,:,:,M,4) = A6YEAR2(:,:,:,M,4)+
+     +                 OCADD(:,:,:,M,12)*1000*DRYM2G(4)  !*AERMIX(10)
+       A6YEAR2(:,:,:,M,5) = A6YEAR2(:,:,:,M,5)+
+     +                 BCADD(:,:,:,M,12)*1000*DRYM2G(5)  !*AERMIX(11)
+       A6YEAR2(:,:,:,M,6) = A6YEAR2(:,:,:,M,6)+
+     +                 BCBDD(:,:,:,M,12)*1000*DRYM2G(6)  !*AERMIX(13)
+       END DO
+
+      ELSE IF(JYEARX.ge.1890.and.JYEARX.LE.2000) THEN           
+      IYS=INT((JYEARX-1890)/10.d0)+1
+      JYS=IYS+1
+      SWTJ=(JYEARX-1890)/10.d0-INT((JYEARX-1890)/10.d0)
+      SWTI=1.d0-SWTJ
+c     CALL STREND(JYEARX,IYS,JYS,SWTI,SWTJ)
+      DO 141 M=1,12            !    Add time dependent JYEAR 
+      DO 141 L=1,20            !   AERMIX scalings are removed
+      DO 141 J=1,46
+      DO 141 I=1,72
+      A6YEAR2(I,J,L,M,1)=A6YEAR2(I,J,L,M,1)+1000.D0*DRYM2G(1)*
+     +  (SWTI*SULDD(I,J,L,M,IYS)+SWTJ*SULDD(I,J,L,M,JYS)) !*AERMIX( 8)
+      A6YEAR2(I,J,L,M,3)=A6YEAR2(I,J,L,M,3)+1000.D0*DRYM2G(3)*
+     +  (SWTI*NITDD(I,J,L,M,IYS)+SWTJ*NITDD(I,J,L,M,JYS))
+      A6YEAR2(I,J,L,M,4)=A6YEAR2(I,J,L,M,4)+1000.D0*DRYM2G(4)*
+     +  (SWTI*OCADD(I,J,L,M,IYS)+SWTJ*OCADD(I,J,L,M,JYS))
+      A6YEAR2(I,J,L,M,5)=A6YEAR2(I,J,L,M,5)+1000.D0*DRYM2G(5)*
+     +  (SWTI*BCADD(I,J,L,M,IYS)+SWTJ*BCADD(I,J,L,M,JYS))
+      A6YEAR2(I,J,L,M,6)=A6YEAR2(I,J,L,M,6)+1000.D0*DRYM2G(6)*
+     +  (SWTI*BCBDD(I,J,L,M,IYS)+SWTJ*BCBDD(I,J,L,M,JYS))
+      IF(A6YEAR2(I,J,L,M,1) < 0.) A6YEAR2(I,J,L,M,1)=0.
+      IF(A6YEAR2(I,J,L,M,3) < 0.) A6YEAR2(I,J,L,M,3)=0.
+      IF(A6YEAR2(I,J,L,M,4) < 0.) A6YEAR2(I,J,L,M,4)=0.
+      IF(A6YEAR2(I,J,L,M,5) < 0.) A6YEAR2(I,J,L,M,5)=0.
+      IF(A6YEAR2(I,J,L,M,6) < 0.) A6YEAR2(I,J,L,M,6)=0.
+  141 CONTINUE
+      ENDIF
+      JYRNOW=JYEARX
+c     if(jyeara<0) then  ! cyclic case
+c       DO N=1,6
+c         A6YEAR2(:,:,:,0,N)=A6YEAR2(:,:,:,12,N)
+c       END DO
+c     end if
+
+C      A6JDAY is interpolated daily from A6YEAR seasonal data via JJDAYA
+C      -----------------------------------------------------------------
+
+  500 CONTINUE
+      XMI=(JJDAYA+JJDAYA+31-(JJDAYA+15)/61+(JJDAYA+14)/61)/61.D0
+      MI=XMI
+      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYA
+      WTMI=1.D0-WTMJ
+      IF(MI > 11) MI=0
+      MJ=MI+1
+      DO 510 J=1,46
+      DO 510 I=1,72
+      DO 510 N=1,6
+      DO 510 L=1,20
+      A6JDAY2(L,N,I,J)=WTMI*A6YEAR2(I,J,L,MI,N)+WTMJ*A6YEAR2(I,J,L,MJ,N)
+  510 CONTINUE
+
+C**** Needed for aerosol indirect effect parameterization in GCM
+c this needs to be re-done DMK
+c      byz=1d-9/za720
+c      do j=1,46
+c      do i=1,72
+C**** sea salt, desert dust
+c         anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
+C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
+c        mdpi(:,i,j) = WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
+c        mdcur(1,i,j) = SUM (A6JDAY(1:La720,1,I,J)) * byz/drym2g(1)
+c        mdcur(2,i,j) = SUM (A6JDAY(1:La720,3,I,J)) * byz/drym2g(3)
+c        mdcur(3,i,j) = SUM (A6JDAY(1:La720,4,I,J)) * byz/drym2g(4)
+c        mdcur(4,i,j) = SUM (A6JDAY(1:La720,6,I,J)) * byz/drym2g(6)
+c        mdcur(5,i,j) = SUM (A6JDAY(1:La720,5,I,J)) * byz/drym2g(5)
+c      end do
+c      end do
+
+      RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
+      END SUBROUTINE UPDAER2
+
 
 
       REAL*8 FUNCTION GLOPOP(JYEAR)
@@ -9728,7 +10006,11 @@ C
       JJDAY=JMONTH*30-15
       IF(JMONTH < 1) JJDAY=JDAY
       K=6
+      IF (MADAER.eq.3) THEN ! newer aerosol fields
+      IF(KAEROS==1.OR.KAEROS > 3) CALL UPDAER2(JYRREF,JJDAY)
+      ELSE
       IF(KAEROS==1.OR.KAEROS > 3) CALL UPDAER(JYRREF,JJDAY)
+      ENDIF
       IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST(JYRREF,JJDAY)
       IF(KAEROS==3.OR.KAEROS > 3) CALL UPDVOL(JYRREF,JJDAY)
 C
