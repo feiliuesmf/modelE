@@ -26,6 +26,6 @@ F90FLAGS += -I${ESMFINCLUDEDIR}
 LIBS += -L${ESMFLIBDIR} -lesmf
 
 # if we don't have netcdf library add netcdf_stubs
-ifdef NETCDFHOME
+ifndef NETCDFHOME
 LIBS +=  -lnetcdf_stubs
 endif
