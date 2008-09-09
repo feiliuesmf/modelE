@@ -1822,6 +1822,16 @@ c****
       end subroutine init_step
 
 
+      function ghy_albedo( albedo_6b ) result(alb)
+      real*8 albedo_6b(:), alb
+      real*8 fr_sn, alb_sn
+
+      fr_sn = fr_snow(1)*fb + fr_snow(2)*fv
+      alb_sn = .7d0  ! hack, should use something more accurate
+
+      alb = fr_sn*alb_sn + (1.d0-fr_sn)*(albedo_6b(1)+albedo_6b(2))*.5d0
+      end function ghy_albedo
+
       subroutine advnc(
 #ifdef USE_ENT
      &      entcell,
@@ -1895,6 +1905,7 @@ c**** soils28   common block     9/25/90
       real*8 dum1, dum2, dumrad
       real*8 :: no_data(1) = -1.d30
       real*8 :: sbgc_temp(1), sbgc_moist(1)
+      real*8 :: albedo_6b(6)
 
 
       ! get stuff from vegcell
@@ -2003,10 +2014,16 @@ ccc get necessary data from ent
       call ent_get_exports( entcell,
      &     canopy_max_H2O=ws_can,
      &     canopy_heat_capacity=shc_can,
-     &     fraction_of_vegetated_soil=fv
+     &     fraction_of_vegetated_soil=fv,
+     &     albedo=albedo_6b
      &     )
       fb = 1.d0 - fv
 #endif
+
+!!! hack for offline runs (should be disabled in GCM)
+      !print *,"srht before", srht
+      srht = srht*(1.d0 - ghy_albedo( albedo_6b ))
+      !print *,"srht after", srht
 
 
 ccc make sure there are no round-off errors in fraction
