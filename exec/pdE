@@ -67,7 +67,11 @@ fi
 
 do_uln=0 ; if [ ! -L TOPO ] ; then $RUNDIR/${runID}ln ; do_uln=1 ; fi
 echo cd `pwd` > pde_command
-echo "${prefix} $RUNDIR/${runID}.exe -i Ipd ${files} < Ipd > pd.PRT" >> pde_command
+if [ -f $RUNDIR/${runID}.wrapper ] ; then
+  echo "${prefix} $RUNDIR/${runID}.wrapper -i Ipd ${files} < Ipd > pd.PRT" >> pde_command
+else
+  echo "${prefix} $RUNDIR/${runID}.exe -i Ipd ${files} < Ipd > pd.PRT" >> pde_command
+fi
 chmod 755 pde_command
 
 if [ "${prefix}empty" != empty ] ; then
