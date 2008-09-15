@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l select=1:ncpus=4
+#PBS -l select=1:ncpus=4:proc=wood
 #PBS -l walltime=4:00:00
 #PBS -W group_list=a940a
 #PBS -N modelE_test
