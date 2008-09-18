@@ -3623,57 +3623,126 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+      USE RESOLUTION, only : ima=>im,jma=>jm 
+
+      USE OCEAN, only : imo=>im,jmo=>jm
+     *     , mo,g0m,s0m,bydxypo,focean,imaxj
+#ifdef TRACERS_OCEAN
+     *     , trmo,dxypo
+#endif
+
+      USE DOMAIN_DECOMP, only : get, pack_data,unpack_data
+     *     , AM_I_ROOT, agrid=>grid
+      USE OCEANR_DIM, only : ogrid
+
       USE GEOM, only : dxyp
+
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #ifdef TRACERS_WATER
-      USE FLUXES, only : trpreca=>trprec,trunpsia=>trunpsi
+      USE FLUXES,  only : aTRPREC=>TRPREC, aTRUNPSI=>TRUNPSI
+      USE OFLUXES, only : oTRPREC, oTRUNPSI
 #endif
 #endif
-      USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
-     *     ,epreca=>eprec, erunpsia=>erunpsi 
-      USE OCEAN, only : im,jm,mo,g0m,s0m,bydxypo,focean,imaxj
-#ifdef TRACERS_OCEAN
-     *     ,trmo,dxypo
-#endif
-      USE SEAICE_COM, only : rsia=>rsi
+      USE SEAICE_COM, only : aRSI=>RSI 
+      USE FLUXES, only : aPREC=>PREC, aEPREC=>EPREC 
+     *     , aRUNPSI=>RUNPSI, aSRUNPSI=>SRUNPSI, aERUNPSI=>ERUNPSI
 
-!      USE DOMAIN_DECOMP, only : grid,get
-      USE DOMAIN_DECOMP, only : get
-      USE OCEANR_DIM, only : grid=>ogrid
+      USE OFLUXES, only : oRSI, oPREC, oEPREC 
+     *     , oRUNPSI, oSRUNPSI, oERUNPSI
 
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
      *   PREC,EPREC,RUNPSI,RSI,SRUNPSI,ERUNPSI
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(NTM,IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
      *   trprec,trunpsi
 #endif
+
+      REAL*8, DIMENSION(IMA,JMA) :: aPREC_glob, aEPREC_glob
+     *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
+     *      , aRSI_glob
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRPREC_glob, aTRUNPSI_glob      
+#endif
+
+      REAL*8, DIMENSION(IMO,JMO) :: oPREC_glob, oEPREC_glob
+     *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
+     *      , oRSI_glob
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRPREC_glob, oTRUNPSI_glob      
+#endif
+
       INTEGER I,J
 
       integer :: J_0, J_1
 
-      call get (grid, J_STRT=J_0, J_STOP=J_1)
+      call get (ogrid, J_STRT=J_0, J_STOP=J_1)
 
 C**** save surface variables before any fluxes are added
       CALL KVINIT
+
+C***  Gather the precipitation arrays on atmospheric grid 
+C***    into the global arrays 
+
+      CALL PACK_DATA(agrid,    aPREC,    aPREC_glob)
+      CALL PACK_DATA(agrid,   aEPREC,   aEPREC_glob)
+      CALL PACK_DATA(agrid,  aRUNPSI,  aRUNPSI_glob)
+      CALL PACK_DATA(agrid, aSRUNPSI, aSRUNPSI_glob)
+      CALL PACK_DATA(agrid, aERUNPSI, aERUNPSI_glob)
+      CALL PACK_DATA(agrid,     aRSI,     aRSI_glob)
+#ifdef TRACERS_OCEAN
+      CALL PACK_DATA(agrid,  aTRPREC,  aTRPREC_glob)
+      CALL PACK_DATA(agrid, aTRUNPSI, aTRUNPSI_glob)
+#endif      
+C* 
+C***  Do interpolation to the ocean grid 
+C* 
+      if(AM_I_ROOT()) then
+        call INT_AG2OG_precip(
+     *       aRSI_glob, aPREC_glob,aEPREC_glob
+     *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
+     *     , oRSI_glob, oPREC_glob,oEPREC_glob
+     *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
+#ifdef TRACERS_OCEAN
+     *     , aTRPREC_glob, aTRUNPSI_glob 
+     *     , oTRPREC_glob, oTRUNPSI_glob 
+#endif 
+     *     )     
+      end if 
+      
+C***  Scatter the precipitation arrays to the ocean grid 
+
+      CALL UNPACK_DATA(ogrid,    oPREC_glob,    oPREC)
+      CALL UNPACK_DATA(ogrid,   oEPREC_glob,   oEPREC)
+      CALL UNPACK_DATA(ogrid,  oRUNPSI_glob,  oRUNPSI)
+      CALL UNPACK_DATA(ogrid, oSRUNPSI_glob, oSRUNPSI)
+      CALL UNPACK_DATA(ogrid, oERUNPSI_glob, oERUNPSI)
+      CALL UNPACK_DATA(ogrid,     oRSI_glob,     oRSI)
+#ifdef TRACERS_OCEAN
+      CALL UNPACK_DATA(ogrid,  oTRPREC_glob,  oTRPREC)
+      CALL UNPACK_DATA(ogrid, oTRUNPSI_glob, oTRUNPSI)
+#endif      
+C* 
+
 
 C**** Convert fluxes on atmospheric grid to oceanic grid
 C**** build in enough code to allow a different ocean grid.
 C**** Since the geometry differs on B and C grids, some processing
 C**** of fluxes is necessary anyway
+C****
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
-          PREC   (I,J)=PRECA   (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          EPREC  (I,J)=EPRECA  (I,J)*DXYP(J)             ! J
-          RUNPSI (I,J)=RUNPSIA (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          SRUNPSI(I,J)=SRUNPSIA(I,J)*DXYP(J)             ! kg
-          ERUNPSI(I,J)=ERUNPSIA(I,J)*DXYP(J)             ! J
-          RSI    (I,J)=RSIA    (I,J)
+          PREC   (I,J)=oPREC   (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
+          EPREC  (I,J)=oEPREC  (I,J)*DXYP(J)             ! J
+          RUNPSI (I,J)=oRUNPSI (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
+          SRUNPSI(I,J)=oSRUNPSI(I,J)*DXYP(J)             ! kg
+          ERUNPSI(I,J)=oERUNPSI(I,J)*DXYP(J)             ! J
+          RSI    (I,J)=oRSI    (I,J)
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-          TRPREC(:,I,J)=TRPRECA(:,I,J)                   ! kg
-          TRUNPSI(:,I,J)=TRUNPSIA(:,I,J)*DXYP(J)         ! kg
+          TRPREC(:,I,J)=oTRPREC(:,I,J)                   ! kg
+          TRUNPSI(:,I,J)=oTRUNPSI(:,I,J)*DXYP(J)         ! kg
 #else
           TRPREC(:,I,J)=0.  ; TRUNPSI(:,I,J)=0.
 #endif
@@ -4340,10 +4409,10 @@ C****
 
       USE OCEAN, only : dxypo 
 
-      USE AFLUXES, only : MOA, UOA1,VOA1, G0MA,S0MA
-     *     , OGEOZ_A, OGEOZ_SV_A
+      USE AFLUXES, only : aMO, aUO1,aVO1, aG0M,aS0M
+     *     , aOGEOZ, aOGEOZ_SV
 #ifdef TRACERS_OCEAN
-     *     , TRMOA
+     *     , aTRMO
 #endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
      *      gtempr
@@ -4384,35 +4453,35 @@ C****
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0.) THEN
-            GO= G0MA(I,J,1)/(MOA(I,J,1)*DXYPO(J))
-            SO= S0MA(I,J,1)/(MOA(I,J,1)*DXYPO(J))
-            TO= TEMGS(GO,SO)
-            GTEMP(1,1,I,J)= TO
-            GTEMPR(1,I,J) = TO+TF
+            GO = aG0M(I,J,1)/(aMO(I,J,1)*DXYPO(J))
+            SO = aS0M(I,J,1)/(aMO(I,J,1)*DXYPO(J))
+            TO = TEMGS(GO,SO)
+            GTEMP(1,1,I,J) = TO
+            GTEMPR(1,I,J)  = TO+TF
             SSS(I,J) = 1d3*SO
-            MLHC(I,J)= MOA(I,J,1)*SHCGS(GO,SO)
+            MLHC(I,J) = aMO(I,J,1)*SHCGS(GO,SO)
 !            IF (LMM(I,J).gt.1) THEN
-              GO2= G0MA(I,J,2)/(MOA(I,J,2)*DXYPO(J))
-              SO2= S0MA(I,J,2)/(MOA(I,J,2)*DXYPO(J))
-              TO= TEMGS(GO2,SO2)
+              GO2 = aG0M(I,J,2)/(aMO(I,J,2)*DXYPO(J))
+              SO2 = aS0M(I,J,2)/(aMO(I,J,2)*DXYPO(J))
+              TO = TEMGS(GO2,SO2)
 !            END IF
             GTEMP(2,1,I,J)= TO
    ! atmospheric grid Ocean height
-            OGEOZA(I,J)=0.5*(OGEOZ_A(I,J)+OGEOZ_SV_A(I,J))
-            UOSURF(I,J)=UOA1(I,J)
-            VOSURF(I,J)=VOA1(I,J)
+            OGEOZA(I,J) = 0.5*(aOGEOZ(I,J)+aOGEOZ_SV(I,J))
+            UOSURF(I,J) = aUO1(I,J)
+            VOSURF(I,J) = aVO1(I,J)
 
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
-            GTRACER(:,1,I,J)=TRMOA(I,J,1,:)/(MOA(I,J,1)*DXYPO(J)-
-     *           S0MA(I,J,1))
+            GTRACER(:,1,I,J)=aTRMO(I,J,1,:)/(aMO(I,J,1)*DXYPO(J)-
+     *           aS0M(I,J,1))
 #else
             GTRACER(:,1,I,J)=trw0(:)
 #endif
 #endif
 
 #ifdef TRACERS_GASEXCH_Natassa
-            GTRACER(:,1,I,J)=TRMOA(I,J,1,:)/(MOA(I,J,1)*DXYPO(J))
+            GTRACER(:,1,I,J)=aTRMO(I,J,1,:)/(aMO(I,J,1)*DXYPO(J))
 #endif
           ELSE
              SSS(I,J)=0.
@@ -4423,15 +4492,15 @@ C****
 C**** do poles
       if (HAVE_NORTH_POLE) then
       IF (FOCEAN(1,JMA).gt.0) THEN
-        UOSURF(1,JMA) = UOA1(IMA,JMA)*COSU(1) + UOA1(IVNP,JMA)*SINU(1)
-        VOSURF(1,JMA) = UOA1(IVNP,JMA)*COSI(1) - UOA1(IMA,JMA)*SINI(1)
+        UOSURF(1,JMA) = aUO1(IMA,JMA)*COSU(1) + aUO1(IVNP,JMA)*SINU(1)
+        VOSURF(1,JMA) = aUO1(IVNP,JMA)*COSI(1) - aUO1(IMA,JMA)*SINI(1)
         DO I=2,IMA
           GTEMP(:,1,I,JMA)=GTEMP(:,1,1,JMA)
           GTEMPR(1,I,JMA) =GTEMPR(1,1,JMA) 
-          SSS(I,JMA)=SSS(1,JMA)
+         SSS(I,JMA)=SSS(1,JMA)
           MLHC(I,JMA)=MLHC(1,JMA)
-          UOSURF(I,JMA) = UOA1(IMA,JMA)*COSU(I)+UOA1(IVNP,JMA)*SINU(I)
-          VOSURF(I,JMA) = UOA1(IVNP,JMA)*COSI(I)-UOA1(IMA,JMA)*SINI(I)
+          UOSURF(I,JMA) = aUO1(IMA,JMA)*COSU(I)+aUO1(IVNP,JMA)*SINU(I)
+          VOSURF(I,JMA) = aUO1(IVNP,JMA)*COSI(I)-aUO1(IMA,JMA)*SINI(I)
           OGEOZA(I,JMA)=OGEOZA(1,JMA)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
@@ -4447,8 +4516,8 @@ C**** do poles
           GTEMPR(1,I,1) =GTEMPR(1,1,1)
           SSS(I,1)=SSS(1,1)
           MLHC(I,1)=MLHC(1,1)
-          UOSURF(I,1) = UOA1(IMA,1)*COSU(1) - UOA1(IVSP,1)*SINU(1)
-          VOSURF(I,0) = UOA1(IVSP,1)*COSI(I) - UOA1(IMA,1)*SINI(I)
+          UOSURF(I,1) = aUO1(IMA,1)*COSU(1) - aUO1(IVSP,1)*SINU(1)
+          VOSURF(I,0) = aUO1(IVSP,1)*COSI(I) - aUO1(IMA,1)*SINI(I)
           OGEOZA(I,1)=OGEOZA(1,1)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
@@ -4808,7 +4877,7 @@ C**** Check
       END SUBROUTINE OG2AG 
 
       SUBROUTINE INT_OG2AG
-!@sum  INT_OG2AG is for interpolationof arrays from ocean grid 
+!@sum  INT_OG2AG is for interpolation of arrays from ocean grid 
 !!      to the atmospheric grid
 !@auth Larissa Nazarenko
 !@ver  1.0
@@ -4822,31 +4891,29 @@ C**** Check
      *     , TRMO_glob
 #endif
 
-      USE AFLUXES, only : MOA_glob, UOA1_glob,VOA1_glob, G0MA_glob
-     *     ,S0MA_glob, OGEOZ_A_glob, OGEOZ_SV_A_glob
+      USE AFLUXES, only : aMO_glob, aUO1_glob,aVO1_glob, aG0M_glob
+     *     , aS0M_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
-     *     , TRMOA_glob
+     *     , aTRMO_glob
 #endif
       integer l 
-
-      write (555,*) ' Subr. OG2AG #1: ', imo, jmo      
 !
 !  NOTE: It is just a coping the arrays on ocean grid 
 !   to the arrays on the atmospheric grid (grids are the same) 
 !
       DO L = 1,2
-        MOA_glob(:,:,L) = MO_glob(:,:,L)
-        G0MA_glob(:,:,L) = G0M_glob(:,:,L)
-        S0MA_glob(:,:,L) = S0M_glob(:,:,L)
+        aMO_glob(:,:,L) = MO_glob(:,:,L)
+        aG0M_glob(:,:,L) = G0M_glob(:,:,L)
+        aS0M_glob(:,:,L) = S0M_glob(:,:,L)
       END DO 
 
-      UOA1_glob(:,:) = UO_glob(:,:,1)
-      VOA1_glob(:,:) = VO_glob(:,:,1)
-      OGEOZ_A_glob(:,:) = OGEOZ_glob(:,:)
-      OGEOZ_SV_A_glob(:,:) = OGEOZ_SV_glob(:,:)
+      aUO1_glob(:,:) = UO_glob(:,:,1)
+      aVO1_glob(:,:) = VO_glob(:,:,1)
+      aOGEOZ_glob(:,:) = OGEOZ_glob(:,:)
+      aOGEOZ_SV_glob(:,:) = OGEOZ_SV_glob(:,:)
 
 #ifdef TRACERS_OCEAN
-      TRMOA_glob(:,:,1,:) = TRMO_glob(:,:,1,:)
+      aTRMO_glob(:,:,1,:) = TRMO_glob(:,:,1,:)
 #endif
       
       RETURN
@@ -4855,7 +4922,7 @@ C**** Check
       SUBROUTINE gather_ocean1 
 
       use domain_decomp, only: pack_data
-      use OCEANR_DIM, only : grid=>ogrid
+      use OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : MO, UO,VO, G0M
      *     , S0M, OGEOZ,OGEOZ_SV
@@ -4868,17 +4935,17 @@ C**** Check
      *     , TRMO_glob
 #endif
 
-      CALL PACK_DATA(grid,   MO   ,    MO_glob)
-      CALL PACK_DATA(grid,   UO   ,    UO_glob)
-      CALL PACK_DATA(grid,   VO   ,    VO_glob)
+      CALL PACK_DATA(ogrid,   MO   ,    MO_glob)
+      CALL PACK_DATA(ogrid,   UO   ,    UO_glob)
+      CALL PACK_DATA(ogrid,   VO   ,    VO_glob)
 
-      CALL PACK_DATA(grid,OGEOZ   , OGEOZ_glob)
-      CALL PACK_DATA(grid,OGEOZ_SV,OGEOZ_SV_glob)
+      CALL PACK_DATA(ogrid,OGEOZ   , OGEOZ_glob)
+      CALL PACK_DATA(ogrid,OGEOZ_SV,OGEOZ_SV_glob)
 
-      CALL PACK_DATA(grid,  G0M   ,   G0M_glob)
-      CALL PACK_DATA(grid,  S0M   ,   S0M_glob)
+      CALL PACK_DATA(ogrid,  G0M   ,   G0M_glob)
+      CALL PACK_DATA(ogrid,  S0M   ,   S0M_glob)
 #ifdef TRACERS_OCEAN
-      CALL PACK_DATA(grid,  TRMO  ,  TRMO_glob)
+      CALL PACK_DATA(ogrid,  TRMO  ,  TRMO_glob)
 #endif
 
       RETURN
@@ -4886,30 +4953,83 @@ C**** Check
 
       SUBROUTINE scatter_ocean1 
 
-      use domain_decomp, only: grid,unpack_data
+      use domain_decomp, only: agrid=>grid,unpack_data
 
-      USE AFLUXES, only : MOA, UOA1,VOA1, G0MA
-     *     , S0MA, OGEOZ_A,OGEOZ_SV_A
-     *     , MOA_glob, UOA1_glob,VOA1_glob, G0MA_glob
-     *     , S0MA_glob, OGEOZ_A_glob, OGEOZ_SV_A_glob
+      USE AFLUXES, only : aMO, aUO1,aVO1, aG0M
+     *     , aS0M, aOGEOZ,aOGEOZ_SV
+     *     , aMO_glob, aUO1_glob,aVO1_glob, aG0M_glob
+     *     , aS0M_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
-     *     , TRMOA, TRMOA_glob
+     *     , aTRMO, aTRMO_glob
 #endif
 
-      CALL UNPACK_DATA(grid,       MOA_glob,  MOA )
-      CALL UNPACK_DATA(grid,       UOA1_glob, UOA1 )
-      CALL UNPACK_DATA(grid,       VOA1_glob, VOA1 )
+      CALL UNPACK_DATA(agrid,        aMO_glob, aMO  )
+      CALL UNPACK_DATA(agrid,       aUO1_glob, aUO1 )
+      CALL UNPACK_DATA(agrid,       aVO1_glob, aVO1 )
 
-      CALL UNPACK_DATA(grid,    OGEOZ_A_glob, OGEOZ_A   )
-      CALL UNPACK_DATA(grid, OGEOZ_SV_A_glob, OGEOZ_SV_A)
+      CALL UNPACK_DATA(agrid,    aOGEOZ_glob, aOGEOZ   )
+      CALL UNPACK_DATA(agrid, aOGEOZ_SV_glob, aOGEOZ_SV)
 
-      CALL UNPACK_DATA(grid,      G0MA_glob,  G0MA )
-      CALL UNPACK_DATA(grid,      S0MA_glob,  S0MA )
+      CALL UNPACK_DATA(agrid,      aG0M_glob,  aG0M )
+      CALL UNPACK_DATA(agrid,      aS0M_glob,  aS0M )
 #ifdef TRACERS_OCEAN
-      CALL UNPACK_DATA(grid,     TRMOA_glob,  TRMOA)
+      CALL UNPACK_DATA(agrid,     aTRMO_glob,  aTRMO)
 #endif
 
       RETURN
       END SUBROUTINE scatter_ocean1
+
+      SUBROUTINE INT_AG2OG_precip(
+     *       aRSI_glob, aPREC_glob,aEPREC_glob
+     *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
+     *     , oRSI_glob, oPREC_glob,oEPREC_glob
+     *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
+#ifdef TRACERS_OCEAN
+     *     , aTRPREC_glob, aTRUNPSI_glob 
+     *     , oTRPREC_glob, oTRUNPSI_glob 
+#endif 
+     *     )     
+!@sum  INT_AG2OG is for interpolation of precipitation arrays 
+!!      from atmospheric grid to the ocean grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE OCEAN, only : imo=>im,jmo=>jm
+
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
+     *        aPREC_glob, aEPREC_glob
+     *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
+     *      , aRSI_glob
+#ifdef TRACERS_OCEAN
+      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: 
+     *        aTRPREC_glob, aTRUNPSI_glob      
+#endif
+
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: 
+     *        oPREC_glob, oEPREC_glob
+     *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
+     *      , oRSI_glob
+#ifdef TRACERS_OCEAN
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: 
+     *        oTRPREC_glob, oTRUNPSI_glob      
+#endif
+
+      oRSI_glob(:,:)     =     aRSI_glob(:,:)
+      oPREC_glob(:,:)    =    aPREC_glob(:,:)
+      oEPREC_glob(:,:)   =   aEPREC_glob(:,:)
+      oRUNPSI_glob(:,:)  =  aRUNPSI_glob(:,:)
+      oSRUNPSI_glob(:,:) = aSRUNPSI_glob(:,:)
+      oERUNPSI_glob(:,:) = aERUNPSI_glob(:,:)
+#ifdef TRACERS_OCEAN
+      oTRPREC_glob(:,:,:)  =  aTRPREC_glob(:,:,:)
+      oTRUNPSI_glob(:,:,:) = aTRUNPSI_glob(:,:,:)
+#endif
+      
+      RETURN
+      END SUBROUTINE INT_AG2OG_precip 
+
 
 

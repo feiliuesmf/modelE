@@ -411,6 +411,7 @@ c??   call ALLOC_GM_COM(grid)
       call ALLOC_KPP_COM(ogrid)
       call alloc_odiag(ogrid)
       call alloc_afluxes(grid)
+      call ALLOC_OFLUXES(ogrid)
 
       return
       end subroutine alloc_ocean
