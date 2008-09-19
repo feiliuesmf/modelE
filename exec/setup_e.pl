@@ -287,6 +287,9 @@ if ( $uname =~ /IRIX64/ ) {
     if ( $MPIDISTR =~ /SCALI/ ) {
 	$mpi_run .= "-inherit_limits ";
     }
+    if ( $MPIDISTR =~ /openmpi/ ) {
+        $mpi_run = "mpirun --mca btl_openib_warn_no_hca_params_found 0 -np \$NP ";
+    }
 }
 
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
