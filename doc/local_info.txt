@@ -48,11 +48,21 @@ Compiler issues:
 ===============
 For off-line fortran compilations use:
    ifort -convert big_endian x.f -o x.exe
+
 Before doing so, load the appropriate modules, currently:
+   /etc/profile.d/modules.sh   ; # bash or ksh or:
+   /etc/profile.d/modules.csh  ; # tcsh or csh
    module load comp/intel-9.1.042
-   module load mpi/scali-5
+   module load mpi/scali-5     ; # for scali mpi (on borga-e...)
+and for openmpi:  (on borgf... or borgg...)
+   module load comp/intel-9.1.052
+   module load mpi/openmpi-1.2.5/intel-9
+
 This is to be put into your startup script and .profile (they are the same if your
 login shell is ksh), so these modules also get loaded when running batch jobs.
+Since openmpi amd scali modules cannot be loaded simultaneously, you may
+have to do your login script load different modules depending on whether
+`hostname` is borg[a-e]* or borg[fg]* .
 
 Big OpenMP jobs may need a stacksize > default=4m : export KMP_STACKSIZE=64m
 
@@ -119,10 +129,11 @@ sftp_help   get password-free access to dirac, other nodes, CVS repository
 run,runpbs  submit 1 or several jobs as a single batch job
   "run" has a systems default alias that may be bypassed typing "unalias run"
   "run" and "runpbs" are identical
-  Usage: runpbs runID fast #_of_cpus #_of_wall_clock_hours
-         if #_of_wall_clock_hours=4, the job goes into the background queue
-  Note: the background queue is closed when the system is busy
-qsubI       get an interactive batch session (for mpi-setups)
+  Usage: runpbs runID [fast|slow|new] #_of_cpus #_of_wall_clock_hours
+  Notes: 1) if #_of_wall_clock_hours=4, the job goes into the background queue -
+            that background queue is often closed when the system is busy
+         2) runpbs runID new ... sends the job to the new 8-processor nodes
+qsubI       get an interactive batch session (args: fast|slow|new #_of_cpus wc_time)
   Note: you may need a modified copy of "run" and "qsubI" if your group is not "a940a"
 ssw         stop a modelE run
 qrsf        query how far modelE-run went
@@ -185,8 +196,8 @@ If you need more than the above options, you may use the command "get_modelErc_s
 to create files named "$HOME/modelErc_version_name". (note: no leading ".")
 You may modify them, rename them, add more samples
 
-use "setErc"  to select the appropriate version
-use "gmake clean vclean" if you switch to a new .modelErc
+use "setErc"  to select the appropriate version - it will also load the appropriate
+modules. Remember:   use "gmake clean vclean" if you switch to a new .modelErc
 
 Old complicated way to start mpi-runs in serial mode (no longer recommended)
 ----------------------------------------------------
