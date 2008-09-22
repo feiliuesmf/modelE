@@ -48,13 +48,13 @@ hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8|
 kprf_arrays_loc_renamer|-r8| hycom_atm|-r8|
 hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
 hycom_scalars|-r8| hycom_dim_glob|-r8|
-hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
+hycom|-r8| OCEAN_hycom|-r8|         ! ocean model - driver
 advfct|-r8|                         ! advection
 archyb|-r8|                         ! continuity eqn.
 barotp|-r8|                         ! barotropic eqn.
 bigrid|-r8|                         ! basin grid
 !blkdat|-r8| 
-blkprf|-r8|             ! block data
+blkprf|-r8|                         ! block data
 cnuity|-r8|                         ! continuity eqn.
 cpler |-r8|                         ! coupler
 diapfx|-r8|                         ! diapycnal diffusion
@@ -71,6 +71,9 @@ sigetc|-r8|                         ! eqn.of state, etc.
 thermf|-r8|                         ! thermal forcing
 trcadv|-r8|                         ! tracer advection
 tsadvc|-r8| advem|-r8|              ! advecting t/s
+mxlayr|-r8|
+krturn|-r8| 
+convec|-r8|
 
 Data input files:
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.) needs GIC, ISTART=2
@@ -207,6 +210,6 @@ nssw=48
 
  &INPUTZ
    YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
-   YEARE=1800,MONTHE=1,DATEE=2,HOURE=0,     KDIAG=13*0,
-   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=1,HOURE=6,IWRITE=1,JWRITE=1,
+   YEARE=1800,MONTHE=1,DATEE=02,HOURE=00,     KDIAG=13*0,
+   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END
