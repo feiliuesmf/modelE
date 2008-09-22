@@ -1,3 +1,4 @@
+#include "hycom_mpi_hacks.h"
       subroutine convec(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9.1 -- cyclic and noncyclic b.c. combined
@@ -6,16 +7,18 @@ c --- convective adjustment. either -th3d- and -thstar- can be used as
 c --- indicators of static instability. switch between the two by
 c --- activating/deactivating lines containing -kappaf-
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH,NORTH
+
       implicit none
-      include 'dimensions.h'
-      include 'dimension2.h'
-      include 'common_blocks.h'
-c
+      integer,intent(IN) :: m,n,mm,nn,k1m,k1n
+      integer i,j,k,l,ja,kn,kp,kbase,kmax
       real q1,q2,sigup,uup,vup,siglo,ulo,vlo,tem,sal,thet,trc(ntrcr),
      .     homog,delp(kdm),dens(kdm),star(kdm),ttem(kdm),ssal(kdm),
      .     trac(kdm,ntrcr),pres(kdm+1),
      .     totem,tosal,tndcyt,tndcys		!  col.integrals (diag.use only)
-      integer kp,kbase,kmax
       real sigocn,kappaf
       external sigocn,kappaf
 c
@@ -30,9 +33,12 @@ cdiag.  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
 cdiag.  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
 cdiag.  p(itest,jtest,k+1)/onem,k=1,kk)
 c
+      CALL HALO_UPDATE(ogrid,th3d  ,FROM=SOUTH)
+
 c$OMP PARALLEL DO PRIVATE(ja,kn,uup,ulo,q1,q2,vup,vlo)
-      do 26 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+c$OMP+ SCHEDULE(STATIC,jchunk)
+      do 26 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
 c --- convection of u
 c
@@ -77,10 +83,10 @@ c$OMP END PARALLEL DO
 c
 c --- convection of thermodynamic variables and tracer
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c$OMP. PRIVATE(kn,kmax,totem,tosal,homog,sigup,siglo,q1,q2,tem,sal,
 c$OMP. trc,thet,kbase,tndcyt,tndcys,ttem,ssal,dens,star,delp,trac,pres)
-      do 1 j=1,jj
+      do 1 j=J_0,J_1
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
 c
@@ -113,38 +119,33 @@ c
       homog=delp(kbase)
       kmax=kbase
       do 6 k=kbase+1,kk
-      if (k.eq.kmax+1 .and. star(k).lt.star(kbase)) then
-        kmax=k
-        sigup=dens(kbase)
-        siglo=dens(k    )
-        q1=max(homog  ,epsil)
-        q2=max(delp(k),epsil)
-        tem=(q1*ttem(kbase)+q2*ttem(k))/(q1+q2)
-        sal=(q1*ssal(kbase)+q2*ssal(k))/(q1+q2)
-        thet=sigocn(tem,sal)
-        homog=homog+delp(k)
-        ttem(kbase)=tem
-        ssal(kbase)=sal
-        dens(kbase)=thet
-        star(kbase)=thet
+      if (star(k).gt.star(kbase)) exit
+      kmax=k
+      sigup=dens(kbase)
+      siglo=dens(k    )
+      q1=max(homog  ,epsil)
+      q2=max(delp(k),epsil)
+      tem=(q1*ttem(kbase)+q2*ttem(k))/(q1+q2)
+      sal=(q1*ssal(kbase)+q2*ssal(k))/(q1+q2)
+      thet=sigocn(tem,sal)
+      homog=homog+delp(k)
+      ttem(kbase)=tem
+      ssal(kbase)=sal
+      dens(kbase)=thet
+      star(kbase)=thet
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ccc     .     +kappaf(tem,sal,pres(kbase))
+ccc     .   +kappaf(tem,sal,pres(kbase))
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if (dotrcr) then
-          if (kbase.eq.1) then
-c --- conv.adjustment starting from layer 1 carries along mixed layer tracer
-            trc(:)=trac(1,:)
-          else
-            trc(:)=(q1*trac(kbase,:)+q2*trac(k,:))/(q1+q2)
-            trac(kbase,:)=trc(:)
-          end if
-        end if
+      if (dotrcr) then
+        trc(:)=(q1*trac(kbase,:)+q2*trac(k,:))/(q1+q2)
+        trac(kbase,:)=trc(:)
+      end if
 c
 cdiag if (i.eq.itest .and. j.eq.jtest) write (lp,100) nstep,i,j,kbase,
-cdiag. k,'  upr,lwr,final dens:',sigup,siglo,dens(k),q2/(q1+q2)
+cdiag. k,'  upr,lwr,final dens:',sigup,siglo,
+cdiag.  dens(k),q2/(q1+q2)
  100    format (i9,2i5,2i3,a,3f8.3,f5.2)
 c
-      end if
  6    continue
 c
       do 7 kp=kbase+1,kmax
