@@ -376,7 +376,9 @@ C**** Local parameters and variables and arguments:
      &          CYCLE
               enddo
               ! don't write same reaction twice:
-              if(k /= 1.and.ndr(k-1) == i.and.newfam /= 0) CYCLE
+              if(k /= 1)then
+                if(ndr(k-1) == i.and.newfam /= 0) CYCLE
+              endif
               ndr(k)=i
               k=k+1
               newfam=1
