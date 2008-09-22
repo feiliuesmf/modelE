@@ -182,7 +182,7 @@ c     data iatest,jatest/33,40/           ! Iceland
       data nflip/0/
 c
       real cnuity_time,tsadvc_time,momtum_time,barotp_time,trcadv_time,
-     .     thermf_time,enloan_time,mxlayr_time,hybgen_time,
+     .     convec_time,thermf_time,enloan_time,mxlayr_time,hybgen_time,
      .     agcm_time,ogcm_time
 #ifdef TRACERS_OceanBiology
       real*4 ocnbio_time,ocnbio_total_time,ocnbio_avg_time
@@ -611,10 +611,10 @@ c
       diag_ape=.false.
 c
       trcadv_time = 0.0
-
+c
       if (dotrcr) then
         call system_clock(before)      ! time elapsed since last system_clock
-
+c
 c --- initialization of tracer transport arrays (incl. dpinit):
         call tradv0(m,mm)
 cdiag print *,'past tradv0'
@@ -637,13 +637,11 @@ c$OMP END PARALLEL DO
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
       end if ! dotrcr  above if block is done only once
-
 c
 #ifdef TRACERS_OceanBiology
       call system_clock(before)      ! time elapsed since last system_clock
       trcout = .true.
-
-
+c
       if (dobio) then
 cdiag  do k=1,kdm
 cdiag  km=k+mm
@@ -660,15 +658,14 @@ cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
 cdiag.     tracer(itest,jtest,k,9)
 cdiag  enddo
 cdiag  call obio_limits('bfre obio_model')
-
-
+c
 #ifdef TRACERS_GASEXCH_ocean
         call scatter_tracer_gasexch_com_arrays
 #endif
         call scatter_obio_forc_arrays
         call obio_model(nn,mm)
         call gather_pCO2
-
+c
 cdiag  do k=1,kdm
 cdiag  km=k+mm
 cdiag   if (k.eq.1)
@@ -686,10 +683,7 @@ cdiag  enddo
 cdiag  call obio_limits('aftr obio_model')
 
       endif
-
-
 #endif
-
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- available potential energy diagnostics:
       if (diag_ape) then
@@ -704,9 +698,9 @@ c
       call system_clock(before)
 
       call cnuity(m,n,mm,nn,k1m,k1n)
-
-      call hycom_arrays_checksum
-
+cdiag print *,'past cnuity'
+c
+CTNL  call hycom_arrays_checksum     ! save CPU's time
       call system_clock(after)
       cnuity_time = real(after-before)/real(rate)
 
@@ -718,7 +712,6 @@ c
       if (trcout) then
         before = after
 c --- long time step tracer advection: build up mass flux time integral
-
         if (n.eq.oddev) then
           call tradv1(n,nn)
         endif
@@ -726,7 +719,8 @@ cdiag print *,'past tradv1'
 c
         if (mod(nstep,trcfrq).eq.0) then
           dotrcr=.true.         !  start tracer advection/turb.mixing cycle
-          write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
+          if (AM_I_ROOT())
+     .    write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
           call tradv2(n,nn)
@@ -762,8 +756,8 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       before = after
-
       call tsadvc(m,n,mm,nn,k1m,k1n)
+cdiag print *,'past tsadvc'
 
       call system_clock(after)
       tsadvc_time = real(after-before)/real(rate)
@@ -781,9 +775,9 @@ ccc      write (string,'(a12,i8)') 'tsadvc, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-
       call momtum(m,n,mm,nn,k1m,k1n)
-
+cdiag print *,'past momtum'
+c
       call system_clock(after)
       momtum_time = real(after-before)/real(rate)
 c
@@ -791,20 +785,21 @@ ccc      write (string,'(a12,i8)') 'momtum, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-
       call barotp(m,n,mm,nn,k1m,k1n)
+cdiag print *,'past barotp'
 
       call system_clock(after)
       barotp_time = real(after-before)/real(rate)
-
 c
 ccc      write (string,'(a12,i8)') 'barotp, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
-c     before = after
-c     call convec(m,n,mm,nn,k1m,k1n)
-c     call system_clock(after)
-c     convec_time = real(after-before)/real(rate)
+      before = after
+      call convec(m,n,mm,nn,k1m,k1n)
+cdiag print *,'past convec'
+c
+      call system_clock(after)
+      convec_time = real(after-before)/real(rate)
 c     call sstbud(2,' convec.adjustmt',temp(1,1,k1n))
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape) then
@@ -821,7 +816,8 @@ c
 c     before = after
 
       call diapfl(m,n,mm,nn,k1m,k1n)
-
+cdiag print *,'past diapfl'
+c
 c     call system_clock(after)
 c     diapfl_time = real(after-before)/real(rate)
 c     call sstbud(3,'   diapyc.mixing',temp(1,1,k1n))
@@ -831,6 +827,8 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call thermf(m,n,mm,nn,k1m,k1n)
+cdiag print *,'past thermf'
+c
       call system_clock(after)
       thermf_time = real(after-before)/real(rate)
 c
@@ -839,15 +837,17 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call eice(m,n,mm,nn,k1m,k1n)
+cdiag print *,'past eice'
       call system_clock(after)
       enloan_time = real(after-before)/real(rate)
 c
       before = after
-c     call mxlayr(m,n,mm,nn,k1m,k1n)
-
-      if (nstep*baclin.gt.12.*3600) then
-         call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hr
+      if (nstep*baclin.le.24.*3600) then
+        call mxlayr(m,n,mm,nn,k1m,k1n)
+      else
+         call mxkprf(m,n,mm,nn,k1m,k1n) !aft 24 hr
       end if
+cdiag print *,'past mxlayr'
 c
       call system_clock(after)
       mxlayr_time = real(after-before)/real(rate)
@@ -887,6 +887,7 @@ c
       before = after
 
       call hybgen(m,n,mm,nn,k1m,k1n)
+cdiag print *,'past hybgen'
 
       call system_clock(after)
       hybgen_time = real(after-before)/real(rate)
@@ -1107,7 +1108,6 @@ c$OMP PARALLEL DO
 c$OMP END PARALLEL DO
 c     call overtn(mm)
 c
-
       write (lp,105) nstep
  105  format (' step',i9,' -- archiving completed --')
 c
@@ -1477,7 +1477,7 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  uflxav_loc, uflxav )
       call pack_data( ogrid,  vflxav_loc, vflxav )
       call pack_data( ogrid,  diaflx_loc, diaflx )
-      call pack_data( ogrid,  sflxav_loc, sflxav )
+      call pack_data( ogrid,  salflav_loc, salflav )
       call pack_data( ogrid,  brineav_loc, brineav )
       call pack_data( ogrid,  eminpav_loc, eminpav )
       call pack_data( ogrid,  surflav_loc, surflav )
@@ -1510,7 +1510,7 @@ c
       do 601 i=1,ii
       eminpav(i,j)=0.
       surflav(i,j)=0.
-       sflxav(i,j)=0.
+       salflav(i,j)=0.
       brineav(i,j)=0.
 c
       ubavav(i,j)=0.
@@ -1639,7 +1639,7 @@ c------------------------------------------------------------------
       call GLOBALSUM( ogrid, thkk, arraySum )   ! sum(thkk(:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
-      call GLOBALSUM( ogrid, dpmixl, arraySum )   ! sum(dpmixl(:,:))
+      call GLOBALSUM( ogrid, sum(dpmixl,dim=3), arraySum )   ! sum(dpmixl(:,:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, srfhgt, arraySum )   ! sum(srfhgt(:,:)) 
@@ -1762,7 +1762,7 @@ c
       call GLOBALSUM( ogrid, sum(diaflx,dim=3), arraySum ) !sum(diaflx(:,:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
-      call GLOBALSUM( ogrid, sflxav, arraysum )   ! sum(sflxav(:,:))
+      call GLOBALSUM( ogrid, salflav, arraysum )   ! sum(salflav(:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, brineav, arraysum )   ! sum(brineav(:,:))
