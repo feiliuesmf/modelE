@@ -135,12 +135,12 @@ c
      .  watcum*thref/(spcifh*avgbot*area*(nstep-nstep0)) *36500.*86400.
       write (lp,'(i9,''e - p residual (mm/year)'',f9.2)') nstep,
      .  empcum/(area*(nstep-nstep0))*86400.*365000.
-      write (lp,'(9x,''resulting saln drift from e-p (psu/century):''
+      write (lp,'(9x,''saln drift resulting from e-p (psu/century):''
      .                                                     ,f9.3)')
      .  -empcum*35./(avgbot*area*(nstep-nstep0)) *36500.*86400.
 css   write (lp,'(i9,''salt residual (T/year)'',3f9.2)') nstep,
 css  .  slfcum*365.*86400.*g/onem
-      write (lp,'(9x,''resulting saln drift from sflx (psu/century):''
+      write (lp,'(7x,''saln drift resulting from salfl (psu/century):''
      .                                                     ,f9.3)')
      .  slfcum*36500.*86400.*g/(avgbot*area*onem)
       write (lp,'(i9,a,3f9.3)') nstep,' mean surf. sig,temp,saln:',

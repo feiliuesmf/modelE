@@ -264,7 +264,7 @@ css#endif
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
+     . ,pbavav,sfhtav,eminpav,surflav,salflav,brineav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
@@ -321,7 +321,7 @@ c
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
+     . ,pbavav,sfhtav,eminpav,surflav,salflav,brineav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
       nstep0=time0*86400./baclin+.0001
@@ -409,7 +409,7 @@ c
      . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
      . ,dpmixl,uflxav,vflxav,diaflx,tracer(:,:,:,1),dpinit,oddev
      . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,sflxav,brineav,dpmxav,oiceav
+     . ,pbavav,sfhtav,eminpav,surflav,salflav,brineav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
       nstep0=time0*86400./baclin+.0001
@@ -677,7 +677,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       tprime(i,j)=huge
 c
       srfhgt(i,j)=zero
-      dpmixl(i,j)=zero
+      dpmixl(i,j,:)=zero
       oice(i,j)=zero
       taux(i,j)=zero
       tauy(i,j)=zero
@@ -695,7 +695,7 @@ c
       oiceav(i,j)=zero
       eminpav(i,j)=zero
       surflav(i,j)=zero
-      sflxav(i,j)=zero
+      salflav(i,j)=zero
       brineav(i,j)=zero
 c
       u  (i,j,:   )=huge

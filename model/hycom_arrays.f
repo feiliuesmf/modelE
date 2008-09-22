@@ -24,7 +24,7 @@ c
      .,thermb(:,:,:)                  ! difference thstar - th3d
      .,psikk(:,:)                         ! init.montg.pot. in bottom layer
      .,thkk(:,:)                          ! init.thstar in bottom layer
-     .,dpmixl(:,:)                        ! Kraus-Turner mixed layer depth
+     .,dpmixl(:,:,:)                      ! Kraus-Turner mixed layer depth
      .,srfhgt(:,:)                        ! sea surface height
 c
 !!      real u,v,dp,dpold,dpu,dpv,p,pu,pv,latij,lonij,corio,potvor,
@@ -59,13 +59,13 @@ c
      .,ubavav(:,:),vbavav(:,:),pbavav(:,:),sfhtav(:,:)
      .,uflxav(:,:,:),vflxav(:,:,:)
      .,diaflx(:,:,:)                    ! time integral of diapyc.flux
-     .,sflxav(:,:),brineav(:,:),eminpav(:,:)
+     .,salflav(:,:),brineav(:,:),eminpav(:,:)
      .,surflav(:,:)
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
 c
 !!      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav
-!!     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,sflxav,brineav,eminpav
+!!     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,salflav,brineav,eminpav
 !!     .    ,surflav,ufxcum,vfxcum,dpinit
 !!     .    ,dpmxav,oiceav
 c
@@ -178,7 +178,7 @@ c
      .,thermb(I_0H:I_1H,J_0H:J_1H,2*kdm) 
      .,psikk(I_0H:I_1H,J_0H:J_1H) 
      .,thkk(I_0H:I_1H,J_0H:J_1H) 
-     .,dpmixl(I_0H:I_1H,J_0H:J_1H) 
+     .,dpmixl(I_0H:I_1H,J_0H:J_1H,2) 
      .,srfhgt(I_0H:I_1H,J_0H:J_1H) ) 
 c 
       allocate( 
@@ -205,7 +205,7 @@ c
      &     ,pbavav(I_0H:I_1H,J_0H:J_1H),sfhtav(I_0H:I_1H,J_0H:J_1H) 
      .,uflxav(I_0H:I_1H,J_0H:J_1H,kdm),vflxav(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,diaflx(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,sflxav(I_0H:I_1H,J_0H:J_1H),brineav(I_0H:I_1H,J_0H:J_1H)
+     .,salflav(I_0H:I_1H,J_0H:J_1H),brineav(I_0H:I_1H,J_0H:J_1H)
      &     ,eminpav(I_0H:I_1H,J_0H:J_1H) 
      .,surflav(I_0H:I_1H,J_0H:J_1H) 
      .,ufxcum(I_0H:I_1H,J_0H:J_1H,kdm),vfxcum(I_0H:I_1H,J_0H:J_1H,kdm)
@@ -291,7 +291,7 @@ c
       thermb = 0
       psikk = 0
       thkk = 0
-      dpmixl = 0
+      dpmixl = 1.    ! TNL: avoid NaN for the first step
       srfhgt = 0
       montg = 0
       defor1 = 0
@@ -332,7 +332,7 @@ c
       uflxav = 0
       vflxav = 0
       diaflx = 0
-      sflxav = 0
+      salflav = 0
       brineav = 0
       eminpav = 0
       surflav = 0

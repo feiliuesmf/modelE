@@ -3,11 +3,11 @@
 c
 c --- micom version 2.9
 c --- hycom version 0.9
-      USE DOMAIN_DECOMP, only : halo_update,NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,NORTH,SOUTH
       USE HYCOM_DIM, only : ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
      &     ,ip,idm,ii1,JDM
      &     ,jchunk
-      USE HYCOM_DIM, only : ogrid,j_0,j_1,j_0h,j_1h
+      USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H
       USE HYCOM_SCALARS, only : acurcy,nstep,delt1,lp,onecm,epsil,thkdff
      &     ,sigjmp,onem
       USE HYCOM_ARRAYS, only : utotn,vtotn,dp,utotm,u,ubavg,scuy,depthu
@@ -83,8 +83,8 @@ c
 c
 
       !write(0,*) "ok ",__FILE__,__LINE__
-      call halo_update(ogrid,dp(:,:,kn),SOUTH)
-      call halo_update(ogrid,pold,SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
+      CALL HALO_UPDATE(ogrid,pold,SOUTH)
 
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
 !!      do 12 j=1,jj
@@ -128,7 +128,7 @@ cddd     . ' cnuity1 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
 c --- advance -dp- field using low-order (diffusive) flux values
 c
-      call halo_update(ogrid,vflux,NORTH)
+      CALL HALO_UPDATE(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 19 j=1,jj
       do 19 j=J_0,J_1
@@ -208,8 +208,8 @@ c --- pos. (neg.) change in -dp- to the sum of all incoming (outgoing) fluxes
 c
       call cpy_p_par(dp(:,:,kn))
 c
-      call halo_update(ogrid,dp(:,:,kn))
-      call halo_update(ogrid,vflux2,NORTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,kn))
+      CALL HALO_UPDATE(ogrid,vflux2,NORTH)
 
 
       !write(922,*) "bounds=",isp,ifp,ilp,ip,j_0,j_1
@@ -260,8 +260,8 @@ c --- this will be used later to restore nondivergence of barotropic flow)
       call cpy_p_par(util1)
       call cpy_p_par(util2)
 c
-      call halo_update(ogrid,util1,SOUTH)
-      call halo_update(ogrid,util2,SOUTH)
+      CALL HALO_UPDATE(ogrid,util1,SOUTH)
+      CALL HALO_UPDATE(ogrid,util2,SOUTH)
 
 c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 29 j=J_0,j_1
@@ -301,7 +301,7 @@ cddd     . ' cnuity2 WRONG uflx k=',k,uflx(ipacs,jpac,k),uflx(iatln,jatl,k)
 c
 c --- evaluate effect of antidiffusive fluxes on -dp- field
 c
-      call halo_update(ogrid,vflux,NORTH)
+      CALL HALO_UPDATE(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 15 j=1,jj
       do 15 j=J_0,J_1
@@ -342,7 +342,7 @@ c --- the sum of diffusive and antidiffusive fluxes obtained so far.
 
 c
       call cpy_p_par(p(:,:,kk+1))
-      call halo_update(ogrid,p(:,:,kk+1),SOUTH)
+      CALL HALO_UPDATE(ogrid,p(:,:,kk+1),SOUTH)
 c
       do 77 k=1,kk
       km=k+mm
@@ -350,7 +350,7 @@ c
 c
       call cpy_p_par(dp(:,:,kn))
 c
-      call halo_update(ogrid,dp(:,:,kn),SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 45 j=J_0,J_1
       !!do 45 j=1,jj
@@ -379,7 +379,7 @@ c
  45   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
 c$OMP END PARALLEL DO
 c
-      call halo_update(ogrid,vflux,NORTH)
+      CALL HALO_UPDATE(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 14 j=1,jj
       do 14 j=J_0,J_1
@@ -460,9 +460,9 @@ c
 c
       call cpy_p_par(dp(:,:,kn))
 c
-      call halo_update(ogrid,dp(:,:,kn),SOUTH)
-      call halo_update(ogrid,util1,SOUTH)
-      call halo_update(ogrid,util3,SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
+      CALL HALO_UPDATE(ogrid,util1,SOUTH)
+      CALL HALO_UPDATE(ogrid,util3,SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SCHEDULE(STATIC,jchunk)
       !!do 21 j=1,jj
       do 21 j=J_0,J_1
@@ -493,7 +493,7 @@ c
  21   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
 c$OMP END PARALLEL DO
 c
-      call halo_update(ogrid,vflux,NORTH)
+      CALL HALO_UPDATE(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 23 j=1,jj
       do 23 j=J_0,J_1
@@ -560,8 +560,8 @@ c
 c
       call cpy_p_par(p(:,:,k))
 c
-      call halo_update(ogrid,p(:,:,k))
-      call halo_update(ogrid,pbot)
+      CALL HALO_UPDATE(ogrid,p(:,:,k))
+      CALL HALO_UPDATE(ogrid,pbot)
 c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,pa,pb) SHARED(k)
 c$OMP+ SCHEDULE(STATIC,jchunk)
       !!do 131 j=1,jj
@@ -616,10 +616,10 @@ c
       call cpy_p_par(util1)
       call cpy_p_par(util2)
 c
-      call halo_update(ogrid,util2,SOUTH)
-      call halo_update(ogrid,pbot,SOUTH)
-      call halo_update(ogrid,p(:,:,k),SOUTH)
-      call halo_update(ogrid,scp2,SOUTH)
+      CALL HALO_UPDATE(ogrid,util2,SOUTH)
+      CALL HALO_UPDATE(ogrid,pbot,SOUTH)
+      CALL HALO_UPDATE(ogrid,p(:,:,k),SOUTH)
+      CALL HALO_UPDATE(ogrid,scp2,SOUTH)
 c$OMP PARALLEL DO PRIVATE(flxhi,flxlo,ja,jb) SCHEDULE(STATIC,jchunk)
 !!! this omp instruction was removed is it correct ? c$OMP. SHARED(k)
       !!do 16 j=1,jj
@@ -684,7 +684,7 @@ c
 c --- at each grid point, determine the ratio of the largest permissible
 c --- mass loss to the sum of all outgoing bolus fluxes
 c
-      call halo_update(ogrid,bolusv(:,:,k),NORTH)
+      CALL HALO_UPDATE(ogrid,bolusv(:,:,k),NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 261 j=1,jj
       do 261 j=J_0,J_1
@@ -703,7 +703,7 @@ c --- limit bolus fluxes (fct-style)
 c
       call cpy_p_par(util2)
 c
-      call halo_update(ogrid,util2,SOUTH)
+      CALL HALO_UPDATE(ogrid,util2,SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 291 j=1,jj
       do 291 j=J_0,J_1
@@ -738,7 +738,7 @@ c --- add bolus component to total mass flux
  291  vflx(i,j,k)=vflx(i,j,k)+bolusv(i,j,k)*dtinv
 c$OMP END PARALLEL DO
 c
-      call halo_update(ogrid,bolusv(:,:,k),NORTH)
+      CALL HALO_UPDATE(ogrid,bolusv(:,:,k),NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 181 j=1,jj
       do 181 j=J_0,J_1
@@ -755,7 +755,7 @@ c
  10   continue
 c
       call cpy_p_par(p(:,:,kk+1))
-      call halo_update(ogrid,p(:,:,kk+1),SOUTH)
+      CALL HALO_UPDATE(ogrid,p(:,:,kk+1),SOUTH)
 c
       do 7 k=1,kk
       kn=k+nn
@@ -766,7 +766,7 @@ c --- restore zero column integral of bolus fluxes by recovering fluxes
 c --- lost in the flux limiting process. treat these as an 'upstream'
 c --- barotropic correction to the bolus fluxes.
 c
-      call halo_update(ogrid,dp(:,:,kn),SOUTH)
+      CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
 c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 145 j=1,jj
       do 145 j=J_0,J_1
@@ -797,7 +797,7 @@ c --- add correction to total mass flux
  145  vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
 c$OMP END PARALLEL DO
 c
-      call halo_update(ogrid,vflux,NORTH)
+      CALL HALO_UPDATE(ogrid,vflux,NORTH)
 c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 182 j=1,jj
       do 182 j=J_0,J_1

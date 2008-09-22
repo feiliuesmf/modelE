@@ -16,10 +16,8 @@ c --- ---------------------
 c --- hybrid grid generator (coordinate restoration exclusively by "dilution")
 c --- ---------------------
 c
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'   ! TNL
-      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja
-!!      include 'common_blocks.h'
+      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja,itest,jtest
+      common/testpt/itest,jtest
 c
       real delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,
      .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,scalt,scals,
@@ -58,17 +56,25 @@ c
 c --- linear taper function for slak
       tapr(q)=1.+9.*max(0.,1.-.02e-4*q)		!  q = pressure (Pa)
 c
-cdiag if (itest.gt.0 .and. jtest.gt.0) then
-cdiag   write (lp,103) nstep,itest,jtest,
-cdiag.  '  entering hybgen:  temp    saln    dens    thkns    dpth',
-cdiag.  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
-cdiag.  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
-cdiag.  p(itest,jtest,k+1)/onem,k=1,kk)
-cdiag   write (lp,106) nstep,itest,jtest,
-cdiag.  '  entering hybgen:  dpthu      u    dpthv      v',
-cdiag.  (k,pu(itest,jtest,k+1)/onem,u(itest,jtest,k+nn),
-cdiag.     pv(itest,jtest,k+1)/onem,v(itest,jtest,k+nn),k=1,kk)
-cdiag end if
+c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
+      do 32 j=J_0,J_1
+      vrbos=.false.
+      do 32 l=1,isp(j)
+      do 32 i=ifp(j,l),ilp(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
+      if (vrbos) write (lp,103) nstep,itest,jtest,
+     .  '  entering hybgen:  temp    saln    dens    thkns    dpth',
+     .  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
+     .  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
+     .  p(itest,jtest,k+1)/onem,k=1,kk)
+      if (vrbos) write (lp,106) nstep,itest,jtest,
+     .  '  entering hybgen:  dpthu      u    dpthv      v',
+     .  (k,pu(itest,jtest,k+1)/onem,u(itest,jtest,k+nn),
+     .     pv(itest,jtest,k+1)/onem,v(itest,jtest,k+nn),k=1,kk)
+ 32   continue
+c$OMP END PARALLEL DO
+ 103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
+ 106  format (i9,2i5,a/(33x,i3,2(f8.1,f8.3)))
 !-------------------------------------------------------------------
        delp=0;dp0=0;dp0abv=0;dpsum=0;zinteg=0;tinteg=0;sinteg=0;
        uvintg=0;
@@ -82,13 +88,7 @@ cdiag end if
        uold=0;vold=0;pold=0;pnew=0;
        trac=0;
 !-------------------------------------------------------------------
-
- 103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
- 106  format (i9,2i5,a/(33x,i3,2(f8.1,f8.3)))
 c
-!!! hack dp0 not defined !!! (not needed any more ?)
-      dp0 = 0
-
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 19 j=J_0,J_1
       do 19 k=1,kk
@@ -126,7 +126,7 @@ c
  3    targt(k)=theta(k)
 c
       vrbos=.false.
-cdiag if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
+      vrbos=i.eq.itest .and. j.eq.jtest
       if (vrbos) then
         write (lp,99) nstep,i,j,'      o l d   p r o f i l e :'
         do k=1,kk,10
@@ -530,7 +530,7 @@ c
 c --- evaluate effect of regridding on tracer field(s)
 c
         vrbos=.false.
-cdiag   if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
+        vrbos=i.eq.itest .and. j.eq.jtest
 c
         pnew(1)=pres(1)
 c
@@ -670,7 +670,7 @@ cc       do 14 l=1,isu(j)
 cc       do 14 i=ifu(j,l),ilu(j,l)
 cc c
 cc       vrbos=.false.
-cc       if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
+cc       vrbos=i.eq.itest .and. j.eq.jtest
 cc c
 cc       pold(1)=p(i,j,1)
 cc       pnew(1)=p(i,j,1)
@@ -706,7 +706,7 @@ cc       do 24 l=1,isv(j)
 cc       do 24 i=ifv(j,l),ilv(j,l)
 cc c
 cc       vrbos=.false.
-cc       if (i.eq.itest .and. j.eq.jtest) vrbos=.true.
+cc       vrbos=i.eq.itest .and. j.eq.jtest
 cc c
 cc       pold(1)=p(i,j,1)
 cc       pnew(1)=p(i,j,1)
@@ -827,17 +827,22 @@ c
 c$OMP END PARALLEL DO
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-cdiag if (itest.gt.0 .and. jtest.gt.0) then
-cdiag   write (lp,103) nstep,itest,jtest,
-cdiag.  '  exiting  hybgen:  temp    saln    dens    thkns    dpth',
-cdiag.  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
-cdiag.  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
-cdiag.  p(itest,jtest,k+1)/onem,k=1,kk)
-cdiag   write (lp,106) nstep,itest,jtest,
-cdiag.  '  exiting  hybgen:  dpthu      u    dpthv      v',
-cdiag.  (k,pu(itest,jtest,k+1)/onem,u(itest,jtest,k+nn),
-cdiag.     pv(itest,jtest,k+1)/onem,v(itest,jtest,k+nn),k=1,kk)
-cdiag end if
+c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
+      do 33 j=J_0,J_1
+      vrbos=.false.
+      do 33 l=1,isp(j)
+      do 33 i=ifp(j,l),ilp(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
+      if (vrbos) write (lp,103) nstep,itest,jtest,
+     .  '  exiting  hybgen:  temp    saln    dens    thkns    dpth',
+     .  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
+     .  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
+     .  p(itest,jtest,k+1)/onem,k=1,kk)
+      if (vrbos) write (lp,106) nstep,itest,jtest,
+     .  '  exiting  hybgen:  dpthu      u    dpthv      v',
+     .  (k,pu(itest,jtest,k+1)/onem,u(itest,jtest,k+nn),
+     .     pv(itest,jtest,k+1)/onem,v(itest,jtest,k+nn),k=1,kk)
+ 33   continue
 c
       if (mod(time+.0001,1.).lt..0002) then
 !nwrk2=0

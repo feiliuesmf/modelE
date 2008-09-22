@@ -305,7 +305,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       tprime(i,j)=huge
 c
       srfhgt(i,j)=zero
-      dpmixl(i,j)=zero
+      dpmixl(i,j,:)= 1.0  ! TNL: avoid NaN on the first step
       oice(i,j)=zero
       taux(i,j)=zero
       tauy(i,j)=zero
@@ -323,7 +323,7 @@ c
       oiceav(i,j)=zero
       eminpav(i,j)=zero
       surflav(i,j)=zero
-      sflxav(i,j)=zero
+      salflav(i,j)=zero
       brineav(i,j)=zero
 c
       do 209 k=1,kk
@@ -536,7 +536,7 @@ c
         if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
      .        glue(i,j)=glufac
       else
-        write (lp,*) 'unable to determine location of Medterranean'
+        write (lp,*) 'unable to determine location of Mediterranean'
         stop '(geopar)'
       end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -109,11 +109,12 @@ c       endif
       endif
 c
 c --- build up time integrals of surface fluxes
-      eminpav(i,j)=eminpav(i,j)+oemnp(i,j)              !m/s
-      surflav(i,j)=surflav(i,j)+surflx(i,j)             !W/m2
-      sflxav(i,j)=sflxav(i,j)+salflx(i,j)+salflx2(i,j)  !g/m2/s
-      brineav(i,j)=brineav(i,j)+osalt(i,j)*1.e3         !g/m2/s 
-     .                 -odmsi(i,j)*saln(i,j,k1n)*fsss   ! ocn salt gain is +
+      eminpav(i,j)=eminpav(i,j)+oemnp(i,j)		!m/s
+      surflav(i,j)=surflav(i,j)+surflx(i,j)		!W/m2
+      salflav(i,j)=salflav(i,j)+salflx(i,j)+salflx2(i,j)!g/m2/s
+      brineav(i,j)=brineav(i,j)+osalt(i,j)*1.e3		!g/m2/s 
+     .                 -odmsi(i,j)*saln(i,j,k1n)*fsss	! ocn salt gain is +
+      oiceav(i,j)=oiceav(i,j)+oice(i,j)
 c
 c --- deposit brine from brntop to brnbot
 c

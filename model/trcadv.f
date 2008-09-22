@@ -240,7 +240,7 @@ c
 cdiag call totals(dp(1,1,1+nn),tracer(1,1,1,1),
 cdiag.            dp(1,1,1+nn),tracer(1,1,1,2),'after fct3d')
 c
-      write (lp,'(a)') 'tracer transport done'
+      if (AM_I_ROOT()) write (lp,'(a)') 'tracer transport done'
 c
       return
       end

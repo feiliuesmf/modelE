@@ -430,7 +430,7 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
 c$OMP END PARALLEL DO
 
       CALL HALO_UPDATE(ogrid,visc, FROM=SOUTH+NORTH)
-ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH+NORTH) ! not used?
+ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH+NORTH)	! not used?
       CALL HALO_UPDATE(ogrid,scqx, FROM=      NORTH)
 
 c
@@ -636,7 +636,7 @@ c$OMP END PARALLEL DO
 
       CALL HALO_UPDATE(ogrid,visc, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,dl2v, FROM=NORTH)
-ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH) ! not used?
+ccc   CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH)		! not used?
 
 c
 c --- longitudinal turb. momentum flux (at mass points)

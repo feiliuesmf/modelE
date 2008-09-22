@@ -37,12 +37,12 @@ c
      .,dpuav_loc => dpuav,dpvav_loc => dpvav 
      .,temav_loc => temav,salav_loc => salav 
      .,th3av_loc => th3av, dpav_loc =>  dpav 
-     .,ubavav_loc => ubavav,vbavav_loc => vbavav,
-     &     pbavav_loc => pbavav,sfhtav_loc => sfhtav 
+     .,ubavav_loc => ubavav,vbavav_loc => vbavav
+     .,pbavav_loc => pbavav,sfhtav_loc => sfhtav 
      .,uflxav_loc => uflxav,vflxav_loc => vflxav 
      .,diaflx_loc => diaflx 
-     .,sflxav_loc => sflxav,brineav_loc => brineav,
-     &     eminpav_loc => eminpav 
+     .,salflav_loc => salflav,brineav_loc => brineav
+     .,eminpav_loc => eminpav 
      .,surflav_loc => surflav 
      .,ufxcum_loc => ufxcum,vfxcum_loc => vfxcum,dpinit_loc => dpinit 
      .,dpmxav_loc => dpmxav,oiceav_loc => oiceav
@@ -167,7 +167,7 @@ c
       public uflxav_loc
       public vflxav_loc
       public diaflx_loc
-      public sflxav_loc
+      public salflav_loc
       public brineav_loc
       public eminpav_loc
       public surflav_loc

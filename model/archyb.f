@@ -200,7 +200,7 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 55 i=ifp(j,l),ilp(j,l)
       eminpav(i,j)=eminpav(i,j)*factor
       surflav(i,j)=surflav(i,j)*factor
-      sflxav(i,j)=sflxav(i,j)*factor
+      salflav(i,j)=salflav(i,j)*factor
       brineav(i,j)=brineav(i,j)*factor
  55   continue
 cc$OMP END PARALLEL DO
@@ -329,7 +329,7 @@ c --- time-averaged surface fluxes:
       write (nop,rec=no) 'hflx W/m2'//intvl,0,real4
       write (lp,100)     'hflx W/m2'//intvl,0,no
       no=no+1
-      call r8tor4(sflxav,real4)
+      call r8tor4(salflav,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'sfx g/m2s'//intvl,0,real4
       write (lp,100)     'sfx g/m2s'//intvl,0,no
@@ -349,7 +349,7 @@ c
       do 601 i=1,ii
       eminpav(i,j)=0.
       surflav(i,j)=0.
-       sflxav(i,j)=0.
+       salflav(i,j)=0.
       brineav(i,j)=0.
 c
       ubavav(i,j)=0.
