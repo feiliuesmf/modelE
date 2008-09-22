@@ -1,34 +1,107 @@
+#include "hycom_mpi_hacks.h"
       subroutine mxlayr(m,n,mm,nn,k1m,k1n)
 c
-c --- hycom version 0.9.5
+c --- hycom version 0.9.6
 c
-       implicit none
-       include 'dimensions.h'
-       include 'common_blocks.h'
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
+     &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,thref,g
+     &     ,spcifh,thkdff,thkmin,baclin
+      USE HYCOM_ARRAYS
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH, GLOBALSUM
+     &     , AM_I_ROOT
+      implicit none
 c
+      integer,intent(IN) :: m,n,mm,nn,k1m,k1n
+      integer i,j,k,l,ja,jb,kn,knp1,itest,jtest
+      common/testpt/itest,jtest
       real turgen,dpth,ekminv,obuinv,ex,alf1,alf2,cp1,cp3,ape,cc4,spe,
      .     em,en,ea1,ea2,em1,em2,em3,em4,em5,ustar3,thkold,thknew,
      .     pnew,q,temdp,saldp,thermg,small,tem,sal,rho,sup,slo,
      .     ttem(kdm),ssal(kdm),dens(kdm),pres(kdm+1),delp(kdm),
      .     sum1,sum2,siglo,zup,zlo,s1,s2,s3,smax,smin,p1,p2,buoyfl,
      .     totem,tosal,tndcyt,tndcys,athird,trac(kdm,ntrcr),
-     .     trcdp(ntrcr),flxhi,flxlo,ctrast
-      integer knp1
+     .     trcdp(ntrcr),flxhi,flxlo,ctrast,pa,pb
+      logical vrbos
       data ctrast/.001/		!  vertical density contrast within mixed layer
       parameter (athird=1./3.)
-      real sig,dsigdt,dsigds
-      external sig,dsigdt,dsigds
+      real sigocn,dsigdt,dsigds
+      external sigocn,dsigdt,dsigds
 c
       data ea1, ea2, em1, em2, em3, em4, em5
      .   /0.60,0.30,0.45,2.60,1.90,2.30,0.60/		! Gaspar coefficients
 c
+c --- advect mixed layer depth with vertically averaged velocity field
+c
+c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
+      do 9 j=J_0,J_1
+      do 9 k=1,kk
+      do 9 l=1,isp(j)
+      do 9 i=ifp(j,l),ilp(j,l)
+ 9    p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
+c$OMP END PARALLEL DO
+c
+      CALL HALO_UPDATE(ogrid,dpmixl,FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,p     ,FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,v     ,FROM=NORTH+SOUTH)
+c
+c$OMP PARALLEL DO PRIVATE(kn,ja,jb,pa,pb) SCHEDULE(STATIC,jchunk)
+      do 2 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
+c
+      do 3 l=1,isu(j)
+      do 3 i=ifu(j,l),ilu(j,l)
+      uflux(i,j)=0.
+      do 4 k=1,kk
+      kn=k+nn
+      pb=min(dpmixl(i,j,m)+dpmixl(i-1,j,m),p(i,j,k+1)+p(i-1,j,k+1))
+      pa=min(dpmixl(i,j,m)+dpmixl(i-1,j,m),p(i,j,k  )+p(i-1,j,k  ))
+      if (pa.eq.pb) exit
+ 4    uflux(i,j)=uflux(i,j)
+     .  +.25*(u(i-1,j,kn)+u(i+1,j,kn)+2.*u(i,j,kn))*(pb-pa)
+ 3    uflux(i,j)=uflux(i,j)*(dpmixl(i,j,m)-dpmixl(i-1,j,m))*scuy(i,j)/
+     .  min(dpmixl(i,j,m)+dpmixl(i-1,j,m),pbot(i,j)+pbot(i-1,j))
+c
+      do 5 l=1,isv(j)
+      do 5 i=ifv(j,l),ilv(j,l)
+      vflux(i,j)=0.
+      do 6 k=1,kk
+      kn=k+nn
+      pb=min(dpmixl(i,j,m)+dpmixl(i,ja ,m),p(i,j,k+1)+p(i,ja ,k+1))
+      pa=min(dpmixl(i,j,m)+dpmixl(i,ja ,m),p(i,j,k  )+p(i,ja ,k  ))
+      if (pa.eq.pb) exit
+ 6    vflux(i,j)=vflux(i,j)
+     .  +.25*(v(i,ja ,kn)+v(i,jb ,kn)+2.*v(i,j,kn))*(pb-pa)
+ 5    vflux(i,j)=vflux(i,j)*(dpmixl(i,j,m)-dpmixl(i,ja ,m))*scvx(i,j)/
+     .  min(dpmixl(i,j,m)+dpmixl(i,ja ,m),pbot(i,j)+pbot(i,ja ))
+ 2    continue
+c$OMP END PARALLEL DO
+c
+      CALL HALO_UPDATE(ogrid,vflux,FROM=NORTH)
+c
+c$OMP PARALLEL DO PRIVATE(jb,thkold) SCHEDULE(STATIC,jchunk)
+      do 13 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
+      do 13 l=1,isp(j)
+      do 13 i=ifp(j,l),ilp(j,l)
+      thkold=dpmixl(i,j,n)
+      dpmixl(i,j,n)=min(pbot(i,j),dpmixl(i,j,n)
+     .   -.5*(uflux(i+1,j)+uflux(i,j)
+     .       +vflux(i,jb )+vflux(i,j))*scp2i(i,j)*delt1)
+ 13   dpmixl(i,j,m)=.5*dpmixl(i,j,m)+.25*(thkold+dpmixl(i,j,n))
+c$OMP END PARALLEL DO
+c
 c$OMP PARALLEL DO PRIVATE(kn,thkold,thknew,q,ttem,ssal,dens,delp,pres,
 c$OMP. totem,tosal,tndcyt,tndcys,temdp,saldp,tem,sal,rho,sup,slo,siglo,
 c$OMP. ustar3,dpth,ekminv,obuinv,ex,alf1,alf2,cp1,cp3,ape,turgen,cc4,
-c$OMP. spe,sum1,sum2,pnew,p1,p2,buoyfl,trac,trcdp)
-      do 1 j=1,jj
+c$OMP. spe,sum1,sum2,pnew,p1,p2,buoyfl,trac,trcdp,vrbos)
+c$OMP+ SCHEDULE(STATIC,jchunk)
+      do 1 j=J_0,J_1
+      vrbos=.false.
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
+cdiag vrbos=i.eq.itest .and. j.eq.jtest
 c
 c --- extract single column from 3-d fields
       pres(1)=p(i,j,1)
@@ -42,9 +115,9 @@ c --- extract single column from 3-d fields
  7    pres(k+1)=pres(k)+delp(k)
 c
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
-cdiag if (i.eq.itest .and. j.eq.jtest) write (lp,103) nstep,itest,jtest,
-cdiag.'  entering mxlayr:  temp    saln    dens    thkns    dpth',(k,
-cdiag.ttem(k),ssal(k),dens(k),delp(k)/onem,pres(k+1)/onem,k=1,kk)
+      if (vrbos) write (lp,103) nstep,itest,jtest,
+     .'  entering mxlayr:  temp    saln    dens    thkns    dpth',(k,
+     .ttem(k),ssal(k),dens(k),delp(k)/onem,pres(k+1)/onem,k=1,kk)
 c
 c --- store 'old' t/s column integral in totem/tosal (diagnostic use only)
       totem=0.
@@ -56,34 +129,36 @@ c --- store 'old' t/s column integral in totem/tosal (diagnostic use only)
 c
 c --- diagnose initial mixed layer depth
 c
-      temdp=ttem(1)*delp(1)
-      saldp=ssal(1)*delp(1)
+cc       temdp=ttem(1)*delp(1)
+cc       saldp=ssal(1)*delp(1)
+cc c
+cc       do 11 k=2,kk
+cc       if (delp(k).le.0.) go to 11
+cc       tem=(temdp+ttem(k)*delp(k))/pres(k+1)
+cc       sal=(saldp+ssal(k)*delp(k))/pres(k+1)
+cc       rho=sigocn(tem,sal)
+cc       if (rho.le.dens(1)+ctrast) then
+cc         temdp=temdp+ttem(k)*delp(k)
+cc         saldp=saldp+ssal(k)*delp(k)
+cc       else
+cc c
+cc c --- old mixed layer depth (thkold) falls into layer -k-. diagnose -thkold-
+cc c --- by requiring that avg. mxlayr density matches surface density + ctrast
+cc c
+cc         q=delp(k)-pres(k+1)*(rho    -dens(1)-ctrast)/
+cc      .                      (dens(k)-dens(1)-ctrast)
+cc         q=max(0.,q)
+cc         thkold=pres(k)+q
+cc         tem=(temdp+ttem(k)*q)/thkold
+cc         sal=(saldp+ssal(k)*q)/thkold
+cc         dens(1)=sigocn(tem,sal)
+cc         go to 12
+cc       end if
+cc  11   continue
+cc       thkold=pres(kk+1)
+cc  12   continue
 c
-      do 11 k=2,kk
-      if (delp(k).le.0.) go to 11
-      tem=(temdp+ttem(k)*delp(k))/pres(k+1)
-      sal=(saldp+ssal(k)*delp(k))/pres(k+1)
-      rho=sig(tem,sal)
-      if (rho.le.dens(1)+ctrast) then
-        temdp=temdp+ttem(k)*delp(k)
-        saldp=saldp+ssal(k)*delp(k)
-      else
-c
-c --- old mixed layer depth (thkold) falls into layer -k-. diagnose -thkold-
-c --- by requiring that avg. mxlayr density matches surface density + ctrast
-c
-        q=delp(k)-pres(k+1)*(rho    -dens(1)-ctrast)/
-     .                      (dens(k)-dens(1)-ctrast)
-        q=max(0.,q)
-        thkold=pres(k)+q
-        tem=(temdp+ttem(k)*q)/thkold
-        sal=(saldp+ssal(k)*q)/thkold
-        dens(1)=sig(tem,sal)
-        go to 12
-      end if
- 11   continue
-      thkold=pres(kk+1)
- 12   continue
+      thkold=max(thkmin*onem,dpmixl(i,j,m))
 c
 c --- ----------------------------------------
 c --- slab mixed layer entrainment/detrainment
@@ -106,19 +181,19 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- option 1 :   k r a u s  -  t u r n e r    mixed-layer t.k.e.  closure
 c
-ccc   em=0.8*exp(-pres(2)/(50.*onem))   !   hadley centre choice (orig.: 1.25)
-ccc   en=0.15                           !   hadley centre choice (orig.: 0.4)
-ccc   thermg=-.5*((en+1.)*buoyfl+(en-1.)*abs(buoyfl))
-ccc   turgen=delt1*(2.*em*g*ustar3/thref+thkold*thermg)/thref**2
+      em=0.8*exp(-pres(2)/(50.*onem))   !   hadley centre choice (orig.: 1.25)
+      en=0.15                           !   hadley centre choice (orig.: 0.4)
+      thermg=-.5*((en+1.)*buoyfl+(en-1.)*abs(buoyfl))
+      turgen=delt1*(2.*em*g*ustar3/thref+thkold*thermg)/thref**2
 c
 c --- find monin-obukhov length in case of receding mixed layer (turgen < 0).
 c --- the monin-obukhov length is found by stipulating turgen = 0.
 c
-ccc   if (turgen.lt.0.) then
-ccc     thknew=-2.*em*g*ustar3/min(-epsil,thref*thermg)
-ccc   else
-ccc     thknew=thkold
-ccc   end if
+      if (turgen.lt.0.) then
+        thknew=-2.*em*g*ustar3/min(-epsil,thref*thermg)
+      else
+        thknew=thkold
+      end if
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
@@ -135,17 +210,16 @@ c
       ape=cp3*ustar3-cp1*dpth*buoyfl
 c
       if(ape.lt.0.) then					! detrainment
-      turgen=(g*delt1/thref**3)*ape
-      thknew=min(thkold,g*cp3/(thref*cp1*max(epsil,obuinv)))
+        turgen=(g*delt1/thref**3)*ape
+        thknew=min(thkold,g*cp3/(thref*cp1*max(epsil,obuinv)))
 c
       else							! entrainment
-      cc4=2.*em4/(em1*em1) * alf1*alf1
-      spe=(em2+em3)*ustar3-0.5*dpth*buoyfl
-      turgen=(g*delt1/thref**3)*(sqrt((.5*ape-cp1*spe)**2
-     .        +2.*cc4*ape*spe)-(.5*ape+cp1*spe))/(cc4-cp1)
-      thknew=thkold
+        cc4=2.*em4/(em1*em1) * alf1*alf1
+        spe=(em2+em3)*ustar3-0.5*dpth*buoyfl
+        turgen=(g*delt1/thref**3)*(sqrt((.5*ape-cp1*spe)**2
+     .          +2.*cc4*ape*spe)-(.5*ape+cp1*spe))/(cc4-cp1)
+        thknew=thkold
       end if
-c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- sum1,sum2 are used to evaluate pot.energy changes during entrainment
@@ -171,22 +245,18 @@ c --- stop iterating for 'thknew' as soon as pnew < k-th interface pressure
  86     continue
       end if
 c
-cdiag if (i.eq.itest .and. j.eq.jtest .and. turgen.lt.0.)
-cdiag.  write (lp,'(i9,2i5,a,f8.2,1p,e13.3)') nstep,itest,jtest,
-cdiag.  '  monin-obukhov length (m),turgen:',thknew/onem,turgen
-c
 c --- move mxlyr depth closer to deepest interface embedded in mixed layer.
 c --- this is to artificially reduce mixing across mixed layer base.
 c
-      do 84 k=2,kk
-      if (thknew.gt.pres(k) .and. thknew.lt.pres(k+1)) then
-        q=(thknew-pres(k))/delp(k)
-        q=q*q
-        q=q*q
+ccc      do 84 k=2,kk
+ccc      if (thknew.gt.pres(k) .and. thknew.lt.pres(k+1)) then
+ccc        q=(thknew-pres(k))/delp(k)
+ccc        q=q*q
+ccc        q=q*q
 ccc        q=0.			! reduce mxlyr depth to nearest interface
-        thknew=pres(k)*(1.-q)+pres(k+1)*q
-      end if
- 84   continue
+ccc        thknew=pres(k)*(1.-q)+pres(k+1)*q
+ccc      end if
+ccc 84   continue
 c
 c --- don't allow mixed layer to get too deep or too shallow.
       thknew=min(pres(kk+1),max(thkmin*onem,delp(1),thknew))
@@ -206,16 +276,14 @@ c
       end if
  15   continue
 c
-cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,'(i9,2i5,a,2f9.3)')
-cdiag.  nstep,i,j,'  old/new mixed layer depth:',thkold/onem,thknew/onem
+      if (vrbos) write (lp,'(i9,2i5,a,2f9.3)')
+     .  nstep,i,j,'  old/new mixed layer depth:',thkold/onem,thknew/onem
 c
 c --- distribute thermohaline forcing over new mixed layer depth
 c
-      tprime(i,j)=ttem(1)+surflx(i,j)*delt1*g/(spcifh*thknew)	!  => sstbud
-c
       ttem(1)=(temdp+surflx(i,j)*delt1*g/spcifh)/thknew
       ssal(1)=(saldp+salflx(i,j)*delt1*g       )/thknew
-      dens(1)=sig(ttem(1),ssal(1))
+      dens(1)=sigocn(ttem(1),ssal(1))
       if (dotrcr) trac(1,:)=trcdp(:)/thknew
 c
 c --- homogenize water mass properties down to new mixed layer depth
@@ -228,22 +296,22 @@ c
         dens(k)=dens(1)
       else if (pres(k).lt.thknew) then
 c
-cdiag     if (i.eq.itest.and.j.eq.jtest)
-cdiag.    write (lp,'(i9,2i5,i3,a,3f9.3,25x,2f9.3)') nstep,i,j,k,
-cdiag.    '  p_k,thknew,p_k+1,t_1,t_k=',pres(k)/onem,thknew/onem,
-cdiag.    pres(k+1)/onem,ttem(1),ttem(k)
+        if (vrbos)
+     .  write (lp,'(i9,2i5,i3,a,3f9.3,25x,2f9.3)') nstep,i,j,k,
+     .   '  p_k,thknew,p_k+1,t_1,t_k=',pres(k)/onem,thknew/onem,
+     .    pres(k+1)/onem,ttem(1),ttem(k)
 c
         q=(thknew-pres(k))/delp(k)
         if (dotrcr) trac(k,:)=trac(1,:)*q+trac(k,:)*(1.-q)
         ttem(k)=ttem(1)*q+ttem(k)*(1.-q)
         ssal(k)=ssal(1)*q+ssal(k)*(1.-q)
-        dens(k)=sig(ttem(k),ssal(k))
+        dens(k)=sigocn(ttem(k),ssal(k))
       end if
  14   continue
 c
-cdiag if (i.eq.itest .and. j.eq.jtest) write (lp,103) nstep,itest,jtest,
-cdiag.'  exiting mxlayr:   temp    saln    dens    thkns    dpth',(k,
-cdiag.ttem(k),ssal(k),dens(k),delp(k)/onem,pres(k+1)/onem,k=1,kk)
+      if (vrbos) write (lp,103) nstep,itest,jtest,
+     .'  exiting mxlayr:   temp    saln    dens    thkns    dpth',(k,
+     .ttem(k),ssal(k),dens(k),delp(k)/onem,pres(k+1)/onem,k=1,kk)
 c
 c --- compare 'old' with 'new' t/s column integral (diagnostic use only)
 c
@@ -276,42 +344,45 @@ c --- put single column back into 3-d fields
       saln(i,j,kn)=ssal(k)
  8    th3d(i,j,kn)=dens(k)
 
- 1    dpmixl(i,j)=thknew
+ 1    dpmixl(i,j,n)=thknew
 c$OMP END PARALLEL DO
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: smooth mixed layer depth
 c
-      q=10.*thkdff
+      q=thkdff*baclin
+      CALL HALO_UPDATE(ogrid,dpmixl,FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja,flxhi,flxlo)
-      do 51 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+c$OMP PARALLEL DO PRIVATE(ja,flxhi,flxlo) SCHEDULE(STATIC,jchunk)
+      do 51 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
 c --- limit fluxes to avoid intersecting the sea floor
       do 50 l=1,isu(j)
       do 50 i=ifu(j,l),ilu(j,l)
-      flxhi= .25*(pbot(i  ,j)-dpmixl(i  ,j))*scp2(i  ,j)
-      flxlo=-.25*(pbot(i-1,j)-dpmixl(i-1,j))*scp2(i-1,j)
+      flxhi= .25*(pbot(i  ,j)-dpmixl(i  ,j,n))*scp2(i  ,j)
+      flxlo=-.25*(pbot(i-1,j)-dpmixl(i-1,j,n))*scp2(i-1,j)
  50   uflux(i,j)=min(flxhi,max(flxlo,
-     .   q*(dpmixl(i-1,j)-dpmixl(i,j))*scuy(i,j)))
+     .   q*(dpmixl(i-1,j,n)-dpmixl(i,j,n))*scuy(i,j)))
 c
       do 51 l=1,isv(j)
       do 51 i=ifv(j,l),ilv(j,l)
-      flxhi= .25*(pbot(i,j  )-dpmixl(i,j  ))*scp2(i,j  )
-      flxlo=-.25*(pbot(i,ja )-dpmixl(i,ja ))*scp2(i,ja )
+      flxhi= .25*(pbot(i,j  )-dpmixl(i,j  ,n))*scp2(i,j  )
+      flxlo=-.25*(pbot(i,ja )-dpmixl(i,ja ,n))*scp2(i,ja )
  51   vflux(i,j)=min(flxhi,max(flxlo,
-     .   q*(dpmixl(i,ja )-dpmixl(i,j))*scvx(i,j)))
+     .   q*(dpmixl(i,ja ,n)-dpmixl(i,j,n))*scvx(i,j)))
 c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(jb)
-      do 38 j=1,jj
-      jb=mod(j     ,jj)+1
+      CALL HALO_UPDATE(ogrid,vflux,FROM=NORTH)
+c
+c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
+      do 38 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
       do 38 l=1,isp(j)
       do 38 i=ifp(j,l),ilp(j,l)
-      dpmixl(i,j)=dpmixl(i,j)-(uflux(i+1,j)-uflux(i,j)
-     .                        +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
- 38   dpmxav(i,j)=dpmxav(i,j)+dpmixl(i,j)
+      dpmixl(i,j,n)=dpmixl(i,j,n)-(uflux(i+1,j)-uflux(i,j)
+     .                            +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
+ 38   dpmxav(i,j)=dpmxav(i,j)+dpmixl(i,j,n)
 c$OMP END PARALLEL DO
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
@@ -322,16 +393,18 @@ c
 c --- homogenize -u- down to new mixed layer depth
 c
       small=1.e-4
+      CALL HALO_UPDATE(ogrid,dpmixl,FROM=SOUTH)
+c
 c$OMP PARALLEL DO PRIVATE(ja,kn,zup,zlo,s1,s2,s3,smax,smin,sup,slo,q,
-c$OMP+ knp1)
-      do 31 j=1,jj
-      ja=mod(j-2+jj,jj)+1
+c$OMP+ knp1) SCHEDULE(STATIC,jchunk)
+      do 31 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
 c
       do 32 l=1,isu(j)
 c
       do 33 i=ifu(j,l),ilu(j,l)
       klist(i,j)=-1
-      util1(i,j)=max(dpu(i,j,k1n),.5*(dpmixl(i,j)+dpmixl(i-1,j)))
+      util1(i,j)=max(dpu(i,j,k1n),.5*(dpmixl(i,j,n)+dpmixl(i-1,j,n)))
       uflux(i,j)=u(i,j,k1n)*dpu(i,j,k1n)
       util2(i,j)=dpu(i,j,k1n)
  33   pu(i,j,2)=dpu(i,j,k1n)
@@ -368,9 +441,9 @@ c --- define 'bounding box'
           sup=s1
           slo=(s2*dpu(i,j,kn)-sup*zup)/zlo
           if (slo.gt.smin-small .and. slo.lt.smax+small) go to 36
-cdiag     write (lp,100) nstep,i,j,'  possible',' error in unmixing u',
-cdiag.      dpu(i,j,kn)/onem,zup/onem,zlo/onem,s1,s2,s3,
-cdiag.      (s2*dpu(i,j,kn)-slo*zlo)/zup,(s2*dpu(i,j,kn)-sup*zup)/zlo
+          write (lp,100) nstep,i,j,'  possible',' error in unmixing u',
+     .      dpu(i,j,kn)/onem,zup/onem,zlo/onem,s1,s2,s3,
+     .      (s2*dpu(i,j,kn)-slo*zlo)/zup,(s2*dpu(i,j,kn)-sup*zup)/zlo
           sup=s2
           slo=s2
         end if
@@ -403,7 +476,7 @@ c
 c
       do 53 i=ifv(j,l),ilv(j,l)
       klist(i,j)=-1
-      util1(i,j)=max(dpv(i,j,k1n),.5*(dpmixl(i,j)+dpmixl(i,ja )))
+      util1(i,j)=max(dpv(i,j,k1n),.5*(dpmixl(i,j,n)+dpmixl(i,ja ,n)))
       vflux(i,j)=v(i,j,k1n)*dpv(i,j,k1n)
       util2(i,j)=dpv(i,j,k1n)
  53   pv(i,j,2)=dpv(i,j,k1n)
@@ -440,9 +513,9 @@ c --- define 'bounding box'
           sup=s1
           slo=(s2*dpv(i,j,kn)-sup*zup)/zlo
           if (slo.gt.smin-small .and. slo.lt.smax+small) go to 56
-cdiag     write (lp,100) nstep,i,j,'  possible',' error in unmixing v',
-cdiag.      dpv(i,j,kn)/onem,zup/onem,zlo/onem,s1,s2,s3,
-cdiag.      (s2*dpv(i,j,kn)-slo*zlo)/zup,(s2*dpv(i,j,kn)-sup*zup)/zlo
+          write (lp,100) nstep,i,j,'  possible',' error in unmixing v',
+     .      dpv(i,j,kn)/onem,zup/onem,zlo/onem,s1,s2,s3,
+     .      (s2*dpv(i,j,kn)-slo*zlo)/zup,(s2*dpv(i,j,kn)-sup*zup)/zlo
           sup=s2
           slo=s2
         end if
@@ -497,3 +570,4 @@ c> June 2002 - fixed bug in sum1/sum2 calculation in loop 85
 c> Sep. 2003 - added statement basing trac(1) on -trcdp-
 c> Sep. 2003 - added logical switch to enable/disable tracer redistribution
 c> Feb. 2005 - added multiple tracer capability
+c> Aug. 2008 - mixed layer depth (2 time slots) remembered and advected
