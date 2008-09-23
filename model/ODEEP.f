@@ -432,19 +432,20 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       LOGICAL QCHECKO
-      INTEGER I,J,J_0,J_1
+      INTEGER I,J,J_0,J_1,J_0H,J_1H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1
+     *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
 C**** Check for NaN/INF in ocean data
-      CALL CHECK3(TOCEAN,3 ,IM,JM,SUBR,'toc')
-      CALL CHECK3B(DTG3  ,IM,J_0,J_1,JM, 1,SUBR,'dtg3')
-      CALL CHECK3(TG3M  ,12,IM,JM,SUBR,'tg3m')
-      CALL CHECK3B(STG3  ,IM,J_0,J_1,JM,1 ,SUBR,'stg3')
-      CALL CHECK3(RTGO,LMOM,IM,JM,SUBR,'rtgo')
+      CALL CHECK3C(TOCEAN,3 ,IM,J_0H,J_1H,SUBR,'toc')
+      CALL CHECK3B(DTG3  ,IM,J_0H,J_1H,JM, 1,SUBR,'dtg3')
+      CALL CHECK3C(TG3M  ,12,IM,J_0H,J_1H,SUBR,'tg3m')
+      CALL CHECK3B(STG3  ,IM,J_0H,J_1H,JM,1 ,SUBR,'stg3')
+      CALL CHECK3C(RTGO,LMOM,IM,J_0H,J_1H,SUBR,'rtgo')
 
       QCHECKO = .FALSE.
 C**** Check for reasonable values for ocean variables
