@@ -26,7 +26,7 @@
       USE LANDICE_COM, only : tlandi,snowli,loc_gla,loc_glg,mdwnimp
      *     ,edwnimp
 #ifdef TRACERS_WATER
-     *     ,trsnowli,trlndi,trli0,trdwnimp
+     *     ,trsnowli,trlndi,trdwnimp
 #endif
       USE FLUXES, only : gtemp,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
@@ -282,7 +282,7 @@ C****
       USE LANDICE, only: ace1li,ace2li,precli
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
-     *     ,trsnowli,trlndi,ntm,trli0,trdwnimp
+     *     ,trsnowli,trlndi,ntm,trdwnimp
 #endif
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
      *     ,jreg,ij_f0li,ij_f1li,ij_erun2
@@ -398,7 +398,7 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
      *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc,ij_li
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi,trli0,trdwnimp
+     *     ,ntm,trsnowli,trlndi,trdwnimp
 #endif
       USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
@@ -629,7 +629,7 @@ C****
       USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp,loc_gla
      *     ,loc_glg
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi,trli0,trdwnimp
+     *     ,ntm,trsnowli,trlndi,trdwnimp
 #endif
       USE FLUXES, only : gmelt,egmelt
 #ifdef TRACERS_WATER  /* TNL: inserted */
