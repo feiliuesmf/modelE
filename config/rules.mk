@@ -142,7 +142,7 @@ ifeq ($(MACHINE),IRIX64)
 else
   LIBS += -L$(NETCDFHOME)/lib -lnetcdf
 endif
-  FFLAGS += -$(I)$(NETCDFHOME)/include
+  FFLAGS += -I$(NETCDFHOME)/include
   INCS += -I$(NETCDFHOME)/include
 endif
 
