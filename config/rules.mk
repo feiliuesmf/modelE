@@ -193,7 +193,7 @@ else
 %.o: %.f
 endif
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
-	$(F90) -c $(FFLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
+	$(F90) -c -o $@ $(FFLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
 	@if [ -s $(DEPENDFILE) ] ; then \
 	for i in \
 	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
@@ -216,7 +216,7 @@ else
 %.o: %.F90
 endif
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
-	$(F90) -c $(F90FLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
+	$(F90) -c -o $@ $(F90FLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
 	@if [ -s $(DEPENDFILE) ] ; then \
 	for i in \
 	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
@@ -239,9 +239,9 @@ endif
 	@echo $(ECHO_FLAGS)  preprocessing $< ... $(MSG) \\c
 	$(CPP) $(CPPFLAGS) $*.f | sed -n '/^#pragma/!p' > $@
 
-%.F90.cpp.f: %.F90
+%.F90.cpp.F90: %.F90
 	@echo $(ECHO_FLAGS)  preprocessing $< ... $(MSG) \\c
-	$(CPP) $(CPPFLAGS) $*.f | sed -n '/^#pragma/!p' > $@
+	$(CPP) $(CPPFLAGS) $*.F90 | sed -n '/^#pragma/!p' > $@
 
 %.f.cpp: %.f
 	@echo preprocessing $<  $(MSG)
