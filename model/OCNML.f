@@ -24,7 +24,7 @@ C****
      *     J_STOP_HALO = J_1H) 
 
 C**** Check for NaN/INF in ocean data
-      CALL CHECK3C(TOCEAN,3,IM,J_OH,J1_H,SUBR,'toc')
+      CALL CHECK3C(TOCEAN,3,IM,J_0H,J_1H,SUBR,'toc')
 
       QCHECKO = .FALSE.
 C**** Check for reasonable values for ocean variables
