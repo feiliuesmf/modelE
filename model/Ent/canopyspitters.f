@@ -144,7 +144,7 @@
       call biophysdrv_setup(ca_umol,ci_umol,
      &     pp%cellptr%TcanopyC,Pa,
      &     min(1.d0,  !RH
-     &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
+     &     pp%cellptr%Qf/QSAT(TcanK,
      &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0)),
      &     psdrvpar)
 !      psdrvpar%rh = min(1.d0,
@@ -177,7 +177,9 @@
      i         ,cop%stressH2O,cop%Sacclim)
 
           call canopyfluxes(dtsec, cop%pft
-     &         ,pp%albedo(1),pp%LAI,cop%LAI,IPAR*4.05 !4.05 see canopyfluxes comments.
+     &         ,pp%albedo(1)
+     &         ,pp%LAI
+     &         ,cop%LAI,IPAR*4.05 !4.05 see canopyfluxes comments.
      &         ,CosZen,fdir
      &         ,Gb
      &         ,psdrvpar
@@ -310,9 +312,10 @@
 !        ci = Ciconc
 !      endif
 
-      Gs = Gsint
       Rd = Rdint
+      Gs = Gsint
       Anet = Atot - Rd
+
       call canopy_transmittance(TRANS_SW,CosZen,fdir,cradpar)
       !Return:  Ci, Gs, Anet
 !#ifdef DEBUG        
