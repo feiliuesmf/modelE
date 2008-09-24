@@ -3462,8 +3462,11 @@ C**** update ocean variables
          S0M(I,J,1) = SO1
          G0M(I,J,:) = G0ML(:)
         GZMO(I,J,:) = GZML(:)
-
-C**** Store mass and energy fluxes for formation of sea ice
+#ifdef TRACERS_OCEAN
+        TRMO(I,J,1,:) = TRO1(:)
+#endif
+ 
+C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
         DMSI(1,I,J)=DMOO*ROCAT(J)
         DMSI(2,I,J)=DMOI*ROCAT(J)
         DHSI(1,I,J)=DEOO*ROCAT(J)
@@ -3471,7 +3474,6 @@ C**** Store mass and energy fluxes for formation of sea ice
         DSSI(1,I,J)=DSOO*ROCAT(J)
         DSSI(2,I,J)=DSOI*ROCAT(J)
 #ifdef TRACERS_OCEAN
-        TRMO(I,J,1,:) = TRO1(:)
         DTRSI(:,1,I,J)=DTROO(:)*ROCAT(J)
         DTRSI(:,2,I,J)=DTROI(:)*ROCAT(J)
 #endif
@@ -4996,7 +4998,9 @@ C**** Check
 
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEAN, only : imo=>im,jmo=>jm
-
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
 
       REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 

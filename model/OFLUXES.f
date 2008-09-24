@@ -82,8 +82,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oTREVAPOR
 !@var TRUNPSI tracer in run off from sea/lake ice after precip (kg/m^2)
 !@var TRUNOSI tracer in run off from sea/lake ice after surface (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: oTRUNOSI
-     &        oTRUNPSI, oTRUNOSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: oTRUNOSI, oTRUNPSI
 !@var TRMELTI tracer from simelt into ocean (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oTRMELTI
 !@var TRPREC tracers in precip (kg)
