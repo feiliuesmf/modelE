@@ -793,4 +793,73 @@ C**** reset implicit accumulators
 
       END SUBROUTINE daily_LI
 
+      SUBROUTINE CHECKLI (SUBR)
+!@sum  CHECKLI checks whether the land ice variables are reasonable.
+!@auth Gavin Schmidt/Gary Russell
+!@ver  1.0 (based on LB265)
+      USE CONSTANT, only : teeny
+      USE MODEL_COM, only : im,jm,qcheck,flice
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
+      USE GEOM, only : imaxj
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm, trname
+#endif
+      USE LANDICE, only : ace1li, ace2li
+      USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp
+#ifdef TRACERS_WATER
+     *     ,trsnowli,trlndi,trdwnimp
+#endif
+      IMPLICIT NONE
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
+      INTEGER I,J,N !@var I,J loop variables
+      CHARACTER*6, INTENT(IN) :: SUBR
+      LOGICAL QCHECKL
+#ifdef TRACERS_WATER
+      integer :: imax,jmax
+      real*8 relerr,errmax
+#endif
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     *               J_STRT_HALO=J_0H,J_STOP_HALO=J_1H,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
+C**** Check for NaN/INF in land ice data 
+      CALL CHECK3C(tlandi,2,IM,J_0H,J_1H,SUBR,'tli')
+      CALL CHECK3B(snowli,IM,J_0H,J_1H,JM,1,SUBR,'sli')
+      CALL CHECK3B(mdwnimp,IM,J_0H,J_1H,JM,1,SUBR,'mdw')
+      CALL CHECK3B(edwnimp,IM,J_0H,J_1H,JM,1,SUBR,'edw')
+
+      QCHECKL = .FALSE.
+#ifdef TRACERS_WATER
+      do n=1,ntm
+C**** Check conservation of water tracers in land ice
+        if (trname(n).eq.'Water') then
+          errmax = 0. ; imax=1 ; jmax=1
+          do j=J_0, J_1
+          do i=1,imaxj(j)
+            if (flice(i,j).eq.0) then
+              relerr=max(
+     *             abs(trlndi(n,i,j)/(ace1li+ace2li)-1.)
+     *             ,abs((trsnowli(n,i,j)-snowli(i,j))/(snowli(i,j)+teeny
+     *             )),abs((trdwnimp(n,i,j)-mdwnimp(i,j))/(mdwnimp(i,j)
+     *             +teeny)))
+            else
+              relerr=abs(trdwnimp(n,i,j)-mdwnimp(i,j))
+            end if
+            if (relerr.gt.errmax) then
+              imax=i ; jmax=j ; errmax=relerr
+            end if
+          end do
+          end do
+          print*,"Relative error in land ice mass after ",trim(subr),":"
+     *         ,imax,jmax,errmax,trlndi(n,imax,jmax),ace1li+ace2li
+     *         ,trsnowli(n,imax,jmax),snowli(imax,jmax),trdwnimp(n,imax
+     *         ,jmax),mdwnimp(imax,jmax)
+        end if
+      end do
+#endif
+
+      IF (QCHECKL)
+     &call stop_model('CHECKLI: Land Ice variables out of bounds',255)
+      RETURN
+C****
+      END SUBROUTINE CHECKLI

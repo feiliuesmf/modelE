@@ -2140,6 +2140,8 @@ C**** Check Lake arrays
         CALL CHECKL(SUBR)
 C**** Check Earth arrays
         CALL CHECKE(SUBR)
+C**** Check Land Ice arrays
+        CALL CHECKLI(SUBR)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** check tracers
         CALL CHECKTR(SUBR)
