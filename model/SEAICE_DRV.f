@@ -15,7 +15,7 @@
 !@calls seaice:prec_si
       USE CONSTANT, only : teeny,grav,tf
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
-     *     ,jday,p,ptop
+     *     ,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
      *     ,gtempr,erunpsi
@@ -108,11 +108,8 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
         FLAG_DSWS(I,J)=FLAG_DSWS(I,J).or.WETSNOW
 C**** reset flag if there was fresh snow (i.e. prcp but no rain!)
         IF (.not. WETSNOW .and. PRCP.gt.0.) FLAG_DSWS(I,J)=.FALSE.
-C**** pond_melt accumulates in melt season only
-        if ((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212)) .or.
-     *       (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) then
-          pond_melt(i,j)=pond_melt(i,j)+0.3d0*RUN0
-        end if
+C**** pond_melt accumulation
+        pond_melt(i,j)=pond_melt(i,j)+0.3d0*RUN0
 
 C**** set gtemp array
         MSI(I,J)=MSI2
@@ -440,9 +437,9 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SEA_ICE
-      USE CONSTANT, only : grav,rhows,rhow
+      USE CONSTANT, only : grav,rhows,rhow,sday
       USE MODEL_COM, only : im,jm,dtsrc,fland,focean
-     *     ,itoice,itlkice,jday,p,ptop
+     *     ,itoice,itlkice,p,ptop
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
      *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss
@@ -453,7 +450,7 @@ C****
 #endif
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
-     *     ,snowice, snow_ice, rhos
+     *     ,snowice, snow_ice, rhos, Ti
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -586,12 +583,21 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         TRSI(:,:,I,J) = TRSIL(:,:)
 #endif
         FLAG_DSWS(I,J)=WETSNOW
-C**** pond_melt accumulates in melt season only
-        if ((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212)) .or.
-     *       (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) then
-          pond_melt(i,j)=pond_melt(i,j)+0.3d0*MELT12
-          pond_melt(i,j)=MIN(pond_melt(i,j),0.5*(MSI2+SNOW+ACE1I))
+C**** pond_melt accumulation
+        pond_melt(i,j)=pond_melt(i,j)+0.3d0*MELT12
+        pond_melt(i,j)=MIN(pond_melt(i,j),0.5*(MSI2+SNOW+ACE1I))
+
+C**** decay is slow if there is some melting, faster otherwise
+        if (MELT12.gt.0) then   ! 30 day decay
+          pond_melt(i,j)=pond_melt(i,j)*(1.-dtsrc/(30.*sday))
+        else                    ! 10 day decay
+          pond_melt(i,j)=pond_melt(i,j)*(1.-dtsrc/(10.*sday))
         end if
+
+C**** saftey valve to ensure that melt ponds eventually disappear (Ti<-10)
+        if (Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),
+     *       1d3*SSIL(1)/(XSI(1)*(SNOW+ACE1I))).lt.-10.) 
+     *       pond_melt(i,j)=0.  ! refreeze
 
 C**** Net fluxes to ocean
         RUNOSI(I,J) = FMOC + RUN  + MFLUX + MSNWIC
@@ -1228,9 +1234,9 @@ C****
 !@sum daily_ice performs ice processes that are needed everyday
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
-      USE MODEL_COM, only : jm,jday
+      USE MODEL_COM, only : jm
       USE GEOM, only : imaxj
-      USE SEAICE_COM, only : flag_dsws,pond_melt,msi,hsi,ssi,rsi,snowi
+      USE SEAICE_COM, only : msi,hsi,ssi,rsi,snowi
 #ifdef TRACERS_WATER
      *     ,trsi
 #endif
@@ -1249,23 +1255,8 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
-C**** Every day adjust pond-melt
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
-
-C**** pond_melt decreases linearly in shoulder season
-        if (J.gt.JM/2 .and. (jday.ge.212 .and. jday.lt.244)) then
-          pond_melt(i,j)=pond_melt(i,j)*(1.-1./(244.-jday))
-        elseif (J.lt.JM/2 .and. (jday.ge.31 .and. jday.lt.60)) then
-          pond_melt(i,j)=pond_melt(i,j)*(1.-1./(60.-jday))
-C**** allow pond_melt to accumulate in melt season only
-C**** otherwise pond_melt is zero
-        elseif (.not.((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212))
-     *         .or. (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) )
-     *         then
-          pond_melt(i,j)=0.
-        end if
-
 C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
