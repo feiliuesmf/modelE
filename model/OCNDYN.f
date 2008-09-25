@@ -3377,18 +3377,21 @@ C**** Surface stress is applied to V component at the North Pole
       USE FLUXES, only : TRGASEX
 #endif
       USE SEAICE_COM, only : rsi
+      USE SEAICE, only : Ei,FSSS
 
 !      use domain_decomp, only : grid, get
       use domain_decomp, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
-      INTEGER I,J
+      INTEGER I,J,L,n
       REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
      *     ,MO1,SO1,ROICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),SRUNO,SRUNI,DSOO
-     *     ,DSOI,POCEAN,POICE
+     *     ,DSOI,POCEAN,POICE,P0L,S0L,G0L,TF0,SI0,EI0,DM0(LMO),DE0(LMO)
+     *     ,DS0(LMO),GF0,GFREZS,TFREZS,TEMGSP,SHCGS,GF00
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1
+      REAL*8, DIMENSION(NTM,LMO) :: DTRO
 #endif
 
       integer ::  J_1, J_0S
@@ -3462,20 +3465,52 @@ C**** update ocean variables
          S0M(I,J,1) = SO1
          G0M(I,J,:) = G0ML(:)
         GZMO(I,J,:) = GZML(:)
+
 #ifdef TRACERS_OCEAN
         TRMO(I,J,1,:) = TRO1(:)
 #endif
- 
-C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
-        DMSI(1,I,J)=DMOO*ROCAT(J)
-        DMSI(2,I,J)=DMOI*ROCAT(J)
-        DHSI(1,I,J)=DEOO*ROCAT(J)
-        DHSI(2,I,J)=DEOI*ROCAT(J)
-        DSSI(1,I,J)=DSOO*ROCAT(J)
-        DSSI(2,I,J)=DSOI*ROCAT(J)
+
+C**** Do sweep through lower layers for any possible ice formation
+C**** Add evenly over open ocean and ice covered areas
+        DM0(:)=0 ; DS0(:)=0. ; DE0(:)=0.
 #ifdef TRACERS_OCEAN
-        DTRSI(:,1,I,J)=DTROO(:)*ROCAT(J)
-        DTRSI(:,2,I,J)=DTROI(:)*ROCAT(J)
+        DTR0(:,:)=0.
+#endif
+        P0L=MO(I,J,1)*GRAV
+        DO L=2,LMM(I,J)
+          G0L=G0M(I,J,L)/(MO(I,J,L)*DXYPJ)
+          S0L=S0M(I,J,L)/(MO(I,J,L)*DXYPJ)
+          P0L=P0L + MO(I,J,L)*GRAV*.5
+          GF00=GFREZS(S0L)
+          GF0=GF00-SHCGS(GF00,S0L)*8.19d-8*P0L  ! ~GFREZSP(S0L,P0L)
+          IF(G0L.lt.GF0) THEN
+            TF0=TFREZS(S0L)-7.53d-8*P0L
+            SI0=FSSS*S0L
+            EI0=Ei(TF0,SI0*1d3)
+            DM0(L)=MO(I,J,L)*(G0L-GF0)/(EI0-GF0)
+            DE0(L)=EI0*DM0(L)
+            DS0(L)=SI0*DM0(L)
+#ifdef TRACERS_OCEAN
+            DTR0(:,L)=TRMO(:,I,J,L)*FRAC(:)*
+     *               (DM0(L)-DS0(L))/(MO(I,J,L)-S0M(I,J,L)*BYDXYPJ)
+            TRMO(:,I,J,L)=TRMO(:,I,J,L)-DTR0(:,L)
+#endif
+            MO(I,J,L) = MO(I,J,L)-DM0(L)
+            S0M(I,J,L)=S0M(I,J,L)-DS0(L)*DXYPJ
+            G0M(I,J,L)=G0M(I,J,L)-DE0(L)*DXYPJ
+          END IF
+        END DO
+
+C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
+        DMSI(1,I,J)=(DMOO+SUM(DM0))*ROCAT(J)
+        DMSI(2,I,J)=(DMOI+SUM(DM0))*ROCAT(J)
+        DHSI(1,I,J)=(DEOO+SUM(DE0))*ROCAT(J)
+        DHSI(2,I,J)=(DEOI+SUM(DE0))*ROCAT(J)
+        DSSI(1,I,J)=(DSOO+SUM(DS0))*ROCAT(J)
+        DSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
+#ifdef TRACERS_OCEAN
+        DTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
+        DTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
 #endif
 
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
