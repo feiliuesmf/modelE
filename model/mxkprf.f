@@ -3338,3 +3338,6 @@ c> Mar. 2004 - added thkriv river support
 c> Mar  2004 - updated hblflg for KPP
 c> Mar. 2005 - added [ts]ofset
 c> Aug. 2008 - added option to switch between KT and Ri#-defined ML depth
+c> Sep. 2008 - Ocean mixing layer depth now based on
+c>      Kraus-Turner parametrisation. Vertical diffusion continues
+c>      to be based on KPP. The core gets from NAVY in June 2008. + MPI
