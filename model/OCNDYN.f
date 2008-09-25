@@ -3385,8 +3385,11 @@ C**** Surface stress is applied to V component at the North Pole
      *     ,DSOI,POCEAN,POICE,P0L,S0L,G0L,TF0,SI0,EI0,DM0(LMO),DE0(LMO)
      *     ,DS0(LMO),GF0,GFREZS,TFREZS,TEMGSP,SHCGS,GF00
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1
-      REAL*8, DIMENSION(NTM,LMO) :: DTRO
+      REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1,FRAC
+      REAL*8, DIMENSION(NTM,LMO) :: DTR0
+#ifdef TRACERS_SPECIAL_O18
+      real*8 fracls
+#endif
 #endif
 
       integer ::  J_1, J_0S
@@ -3470,6 +3473,13 @@ C**** Add evenly over open ocean and ice covered areas
         DM0(:)=0 ; DS0(:)=0. ; DE0(:)=0.
 #ifdef TRACERS_OCEAN
         DTR0(:,:)=0.
+        do n=1,ntm
+#ifdef TRACERS_SPECIAL_O18
+          FRAC(n)=fracls(n)
+#else
+          FRAC(n)=1.
+#endif
+        end do
 #endif
         P0L=MO(I,J,1)*GRAV
         DO L=2,LMM(I,J)
