@@ -836,14 +836,15 @@ C**** Check conservation of water tracers in land ice
           errmax = 0. ; imax=1 ; jmax=1
           do j=J_0, J_1
           do i=1,imaxj(j)
-            if (flice(i,j).eq.0) then
+            if (flice(i,j).gt.0) then
               relerr=max(
      *             abs(trlndi(n,i,j)/(ace1li+ace2li)-1.)
      *             ,abs((trsnowli(n,i,j)-snowli(i,j))/(snowli(i,j)+teeny
      *             )),abs((trdwnimp(n,i,j)-mdwnimp(i,j))/(mdwnimp(i,j)
      *             +teeny)))
             else
-              relerr=abs(trdwnimp(n,i,j)-mdwnimp(i,j))
+              relerr=abs(trdwnimp(n,i,j)-mdwnimp(i,j))/(mdwnimp(i,j)
+     *             +teeny)
             end if
             if (relerr.gt.errmax) then
               imax=i ; jmax=j ; errmax=relerr
