@@ -1781,7 +1781,13 @@ C**** Check polar uniformity
         end do
       end if
 
-C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+C**** Initialise tracer parameters and diagnostics
+C**** MUST be before other init routines
+      call init_tracer
+#endif
+
+C**** Initialise some modules before finalising Land/LI mask
 C**** Initialize ice
       CALL init_ice(iniOCEAN,istart)
 C**** Initialize lake variables (including river directions)
@@ -1832,15 +1838,6 @@ C**** Ensure that no round off error effects land with ice and earth
          FEARTH(2:IM,JM)=FEARTH(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
-
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-C**** Initialise tracer parameters and diagnostics
-       call init_tracer
-#ifdef TRACERS_WATER
-C**** initiallise gtracer over oceans
-       call init_tracer_ocean
-#endif
-#endif
 
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)

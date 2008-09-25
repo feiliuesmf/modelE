@@ -591,11 +591,6 @@ C**** Initialize ocean diagnostics
 C**** Initialize KPP mixing scheme
       call kmixinit(ZE)
 
-#ifdef TRACERS_OCEAN
-C**** Set diagnostics for ocean tracers
-      call init_tracer_ocean
-#endif
-
 C**** Initialize some info passed to atmsophere
       uosurf=0 ; vosurf=0. ; ogeoza=0.
 

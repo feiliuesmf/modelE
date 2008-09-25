@@ -832,10 +832,9 @@ C**** Set fluxed arrays for oceans
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
           SSS(I,J) = SSS0
-! not possible with current ordering in INPUT
-!#ifdef TRACERS_WATER    
-!          gtracer(:,1,i,j)=trw0(:)
-!#endif
+#ifdef TRACERS_WATER    
+          gtracer(:,1,i,j)=trw0(:)
+#endif
         ELSE
           SSS(I,J) = 0.
         END IF
@@ -1322,28 +1321,3 @@ C****
 
       return
       end subroutine tracer_ic_ocean
-
-      subroutine init_tracer_ocean
-!@sum set gtracer for ocean tracer concentration (called every start)
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,focean,itime
-      USE GEOM, only : imaxj
-      USE TRACER_COM, only : trw0,ntm,itime_tr0
-      USE FLUXES, only : gtracer
-      USE DOMAIN_DECOMP, only : grid,get
-      IMPLICIT NONE
-      INTEGER i,j
-      INTEGER :: j_0,j_1
-
-      call get(grid,j_strt=j_0,j_stop=j_1)
-
-      do j=j_0,j_1
-        do i=1,imaxj(j)
-          if (focean(i,j).gt.0) gtracer(:,1,i,j)=trw0(:)
-        end do
-      end do
-
-      return
-      end subroutine init_tracer_ocean
-#endif
-
