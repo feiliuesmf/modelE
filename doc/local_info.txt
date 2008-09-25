@@ -54,16 +54,13 @@ Before doing so, load the appropriate modules, currently:
    /etc/profile.d/modules.csh  ; # tcsh or csh
    module load comp/intel-9.1.042
    module load mpi/scali-5     ; # for scali mpi (on borga-e...)
-and for openmpi:  (on borgf... or borgg...)
+and for openmpi: 
    module load comp/intel-9.1.052
    module load mpi/openmpi-1.2.5/intel-9
 
 This is to be put into your startup script and .profile (they are the same if your
 login shell is ksh), so these modules also get loaded when running batch jobs.
-Since openmpi amd scali modules cannot be loaded simultaneously, you may
-have to do your login script load different modules depending on whether
-`hostname` is borg[a-e]* or borg[fg]* .
-
+"runpbs (=run)" was modified to load the appropriate modules for mpi batch jobs.
 Big OpenMP jobs may need a stacksize > default=4m : export KMP_STACKSIZE=64m
 
 Consistency between serial and parallelized executables:
