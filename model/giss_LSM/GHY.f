@@ -159,7 +159,8 @@ ccc   main accumulators
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
-     &     ,aflmlt,aintercep
+     &     ,aflmlt,aintercep,aevapvg,aevapvs,aevapbs
+     &     ,asrht,atrht,aalbedo
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -236,12 +237,12 @@ ccc   tsn1 is private
 
 ccc fractions of dry,wet,covered by snow canopy
 !@var fd effective fraction of dry canopy (=0 if dew)
-!@var fv effective fraction of wet canopy (=1 if dew)
+!@var fw effective fraction of wet canopy (=1 if dew)
 !@var fd0 actual fraction of dry canopy
-!@var fv0 actual fraction of wet canopy
+!@var fw0 actual fraction of wet canopy
 !@var fm snow masking fraction for canopy (=1 if all snow)
-      real*8 fd,fw,fd0,fw0,fm
-
+      real*8,public :: fd
+      real*8 :: fw,fd0,fw0,fm
 !@var theta fraction of water in the soil ( 1 = 100% )
 !@var f water flux between the layers ( > 0 is up ) (m/s)
 !@var fh heat flux between the layers ( > 0 is up ) (W)
@@ -297,7 +298,8 @@ ccc      real*8 :: evapor(2)
 
 !@var evapdl thanspiration from each soil layer
       real*8 :: evapdl(ngm,2)
-
+!@var albedo
+      real*8 :: albedo_cell
 ccc sensible heat fluxes: these are pure fluxes over m^2
 ccc   i.e. they are not multiplied by any fr_...
 !@var snsh sensible heat from soil to air (bare/vege) no snow (J/s)
@@ -365,6 +367,7 @@ C***
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
+     &     ,aevapvg,aevapvs,aevapbs
      &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
      &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
@@ -379,7 +382,7 @@ C***
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
      &     ,vs,vs0,tprime,qprime
-
+     &     ,asrht,atrht,aalbedo
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
      &     ,betadl,ws_can,shc_can,tg2av,wtr2av,ace2av
@@ -1116,6 +1119,13 @@ ccc   for bare soil drip is precipitation
         enddo
 #endif
       endif
+! The following four lines set the canopy water storage to zero    
+!--------------------------------------------------------------
+!      drips(2) = snowf
+!      htdrips(2) = min( htpr, 0.d0 )
+!      dripw(2) = pr - drips(2)
+!      htdripw(2) = htpr - htdrips(2)
+!--------------------------------------------------------------
       return
       end subroutine drip_from_canopy
 
@@ -1988,17 +1998,6 @@ c**** soils28   common block     9/25/90
 #endif
 
 
-
-
-
-
-
-
-
-      
-
-
-
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
       dtr=dt
@@ -2021,10 +2020,8 @@ ccc get necessary data from ent
 #endif
 
 !!! hack for offline runs (should be disabled in GCM)
-      !print *,"srht before", srht
-      srht = srht*(1.d0 - ghy_albedo( albedo_6b ))
-      !print *,"srht after", srht
-
+      albedo_cell = ghy_albedo( albedo_6b )
+      srht = srht*(1.d0 - albedo_cell)!converts srht to NET (ABSORBED) SW
 
 ccc make sure there are no round-off errors in fraction
       if ( fv < .0001d0 ) fv = 0.d0
@@ -2355,7 +2352,9 @@ c**** reth, and hydra.
         if ( flag == 0 ) goto 778
                          goto 777
       endif
-
+      atrht = trht-(thrm_tot(1)*fb + thrm_tot(2)*fv)! Net LW (flux)[W/m2]
+      asrht = srht                                  ! Net SW (flux)[W/m2]
+      aalbedo = albedo_cell                         ! Instantaneous albedo
 ccc   main fluxes which should conserve water/energy
       atrg = atrg + ( thrm_tot(1)*fb + thrm_tot(2)*fv )*dts
       ashg = ashg + ( snsh_tot(1)*fb + snsh_tot(2)*fv )*dts
@@ -2383,6 +2382,9 @@ ccc   max in the following expression removes extra drip because of dew
 !      aepc=aepc+(epv*fv*dts)
 !      aepb=aepb+(epb*fb*dts)
       aepc=aepc+( epv*(1.d0-fr_snow(2)*fm) + epvs*fr_snow(2)*fm )*fv*dts
+      aevapvg = aevapvg + evapvg*(1.d0-fr_snow(2))*fv*dts
+      aevapvs = aevapvs + evapvs*fr_snow(2)*fv*dts
+      aevapbs = aevapbs + evapbs*fr_snow(2)*fb*dts
 #ifdef EVAP_VEG_GROUND
       ! next line is probably not correct (need to use something more
       ! sophisticated for epvg)
@@ -2391,14 +2393,14 @@ ccc   max in the following expression removes extra drip because of dew
       aepb=aepb+( epb*(1.d0-fr_snow(1)) + epbs*fr_snow(1) )*fb*dts
 #ifdef USE_ENT
       !Ent veg accumulators. nyk
-      agpp = agpp + gpp*dts
+      agpp = agpp + gpp*dts*fd         ! temparary inclusion of fd
       if ( present(entcell) ) then
         call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
      &       soilresp=R_soil, soilcpools=soilCpools)
         !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
         !## Need to pass fr_snow to Ent.
 !        agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
-        arauto = arauto + rauto*dts
+        arauto = arauto + rauto*dts*fd ! temparary inclusion of fd
         aclab = clab            !Instantaneous.
         asoilresp = asoilresp + R_soil*dts !accumulated soil respiration  
         !instantaneous pool/column-integrated soil C_org (g/m2)
@@ -2452,6 +2454,9 @@ c accumulations are collected.
       aruns=rhow*aruns
       arunu=rhow*arunu
       aflmlt=rhow*aflmlt
+      aevapbs=rhow*aevapbs
+      aevapvs=rhow*aevapvs
+      aevapvg=rhow*aevapvg
       aintercep=rhow*aintercep
       aevapw=rhow*aevapw
       aevapd=rhow*aevapd
@@ -2523,6 +2528,9 @@ c zero out accumulations
       aclab=0.d0  ! Ent DGVM
       asoilresp = 0.d0         ! Ent DGVM (soil bgc)
       asoilCpoolsum = 0.d0     ! Ent DGVM (soil bgc)
+      aevapvg=0.d0             ! evap from vegetated soil
+      aevapvs=0.d0             ! evap from snow on vegetation
+      aevapbs=0.d0             ! evap from snow on bare soil
       aevapw=0.d0              ! evap from wet canopy
       aevapd=0.d0              ! evap from dry canopy
       aevapb=0.d0              ! evap from bare soil (no snow)
@@ -2531,6 +2539,9 @@ c zero out accumulations
       aedifs=0.d0              ! heat transport by water
       af0dt=0.d0               ! heat from ground - htpr
       af1dt=0.d0               ! heat from 2-nd soil layer
+      asrht=0.d0
+      atrht=0.d0
+      aalbedo=0.d0
       ! aepp=0.d0 ! not accumulated : computed in accmf
 #ifdef TRACERS_WATER
 ccc   tracers
