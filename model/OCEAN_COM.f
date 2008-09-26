@@ -362,9 +362,6 @@ C****
 
       CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
  
-      write (555,*) ' Subr. alloc_ocean: '
-      write (555,*) ' alloc_ocean: halos', J_0H,J_1H
-
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   VO(IM,J_0H:J_1H,LMO), STAT = IER)

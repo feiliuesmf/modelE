@@ -3352,31 +3352,62 @@ C**** Surface stress is applied to V component at the North Pole
 !@ver  1.0
       USE CONSTANT, only : grav
       USE GEOM, only : dxyp,bydxyp
-      USE OCEAN, only : im,jm,mo,g0m,s0m,focean,gzmo,imaxj,dxypo,bydxypo
-     *     ,lmo,lmm,ratoc,rocat,opress
+
+      USE RESOLUTION, only : IMA=>IM, JMA=>JM 
+
+      USE OCEAN, only : IMO=>IM,JMO=>JM, LMO,LMM
+     *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO
+     *     , RATOC,ROCAT, OPRESS
 #ifdef TRACERS_OCEAN
-     *     ,trmo,ntm
+     *     ,TRMO, NTM
 #endif
-      USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
-     *     ,flowo,eflowo,srunosi,apress,melti,emelti,smelti
+
+      USE DOMAIN_DECOMP, only : agrid=>grid, get, AM_I_ROOT
+     *     , PACK_DATA,UNPACK_DATA, PACK_COLUMN, PACK_BLOCK
+     *     , UNPACK_COLUMN, UNPACK_BLOCK
+      USE OCEANR_DIM, only : ogrid
+
+      USE SEAICE_COM, only : aRSI=>RSI 
+
+      USE FLUXES, only : aSOLAR=>SOLAR, aE0=>E0, aEVAPOR=>EVAPOR
+     *     , aRUNOSI=>RUNOSI,aERUNOSI=>ERUNOSI,aSRUNOSI=>SRUNOSI
+     *     , aFLOWO=>FLOWO,aEFLOWO=>EFLOWO, aAPRESS=>APRESS
+     *     , aMELTI=>MELTI,aEMELTI=>EMELTI,aSMELTI=>SMELTI
+     *     , aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-     *     ,trflowo,trevapor,trunosi,trmelti
+     *     , aTRFLOWO=>TRFLOWO, aTREVAPOR=>TREVAPOR
+     *     , aTRUNOSI=>TRUNOSI, aTRMELTI=>TRMELTI
 #ifdef TRACERS_DRYDEP
-     *     ,trdrydep
+     *     , aTRDRYDEP=>TRDRYDEP
 #endif
 #endif
-     *     ,dtrsi
+     *     , aDTRSI=>DTRSI
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
-      USE FLUXES, only : TRGASEX
+      USE FLUXES, only : aTRGASEX=>TRGASEX
 #endif
-      USE SEAICE_COM, only : rsi
+
       USE SEAICE, only : Ei,FSSS
 
-!      use domain_decomp, only : grid, get
-      use domain_decomp, only : get
-      USE OCEANR_DIM, only : grid=>ogrid
+      USE OFLUXES, only : oRSI, oSOLAR, oE0, oEVAPOR
+     *     , oRUNOSI, oERUNOSI, oSRUNOSI
+     *     , oFLOWO, oEFLOWO, oAPRESS
+     *     , oMELTI, oEMELTI, oSMELTI
+     *     , oDMSI, oDHSI, oDSSI
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+     *     , oTRFLOWO, oTREVAPOR
+     *     , oTRUNOSI, oTRMELTI
+#ifdef TRACERS_DRYDEP
+     *     , oTRDRYDEP
+#endif
+#endif
+     *     , oDTRSI
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      USE OFLUXES, only : oTRGASEX
+#endif
 
       IMPLICIT NONE
       INTEGER I,J,L,n
@@ -3392,13 +3423,158 @@ C**** Surface stress is applied to V component at the North Pole
 #endif
 #endif
 
+!!!   Global arrays on ocean grid
+
+      REAL*8, DIMENSION(IMO,JMO) :: oRSI_glob, oFLOWO_glob,oEFLOWO_glob 
+     *      , oRUNOSI_glob, oSRUNOSI_glob, oERUNOSI_glob, oAPRESS_glob
+     *      , oMELTI_glob, oEMELTI_glob, oSMELTI_glob
+      REAL*8, DIMENSION(3,IMO,JMO) :: oSOLAR_glob
+      REAL*8, DIMENSION(IMO,JMO,1) :: oE0_glob, oEVAPOR_glob 
+      REAL*8, DIMENSION(2,IMO,JMO) :: oDMSI_glob, oDHSI_glob, oDSSI_glob
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRFLOWO_glob 
+     *      , oTRUNOSI_glob, oTRMELTI_glob
+      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTREVAPOR_glob 
+#ifdef TRACERS_DRYDEP
+      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRDRYDEP_glob
+#endif
+#endif
+      REAL*8, DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
+#endif
+
+!!!   Global arrays on atmospheric grid
+
+      INTEGER, PARAMETER :: NSTYPE=4
+      REAL*8, DIMENSION(IMA,JMA) :: aRSI_glob, aFLOWO_glob,aEFLOWO_glob 
+     *      , aRUNOSI_glob, aSRUNOSI_glob, aERUNOSI_glob, aAPRESS_glob
+     *      , aMELTI_glob, aEMELTI_glob, aSMELTI_glob
+      REAL*8, DIMENSION(3,IMA,JMA) :: aSOLAR_glob
+      REAL*8, DIMENSION(IMA,JMA,NSTYPE) :: aE0_glob, aEVAPOR_glob 
+      REAL*8, DIMENSION(2,IMA,JMA) :: aDMSI_glob, aDHSI_glob, aDSSI_glob
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob 
+     *      , aTRUNOSI_glob, aTRMELTI_glob
+      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTREVAPOR_glob 
+#ifdef TRACERS_DRYDEP
+      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRDRYDEP_glob
+#endif
+#endif
+      REAL*8, DIMENSION(NTM,2,IMA,JMA) :: aDTRSI_glob
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
+#endif
+
       integer ::  J_1, J_0S
       logical :: have_south_pole, have_north_pole
 
-      call get (grid, J_STOP=J_1, J_STRT_SKP=J_0S,
+      call get (ogrid, J_STOP=J_1, J_STRT_SKP=J_0S,
      *                have_north_pole=have_north_pole,
      *                have_south_pole=have_south_pole)
 
+      write (555,*) ' Subr. GROUND_OC #1: ', J_0S,J_1      
+
+C***  Gather arrays on atmospheric grid into the global arrays 
+
+      CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
+      CALL PACK_DATA  (agrid,   aFLOWO,   aFLOWO_glob)
+      CALL PACK_DATA  (agrid,  aEFLOWO,  aEFLOWO_glob)
+      CALL PACK_DATA  (agrid,  aRUNOSI,  aRUNOSI_glob)
+      CALL PACK_DATA  (agrid, aSRUNOSI, aSRUNOSI_glob)
+      CALL PACK_DATA  (agrid, aERUNOSI, aERUNOSI_glob)
+      CALL PACK_DATA  (agrid,  aAPRESS,  aAPRESS_glob)
+      CALL PACK_DATA  (agrid,   aMELTI,   aMELTI_glob)
+      CALL PACK_DATA  (agrid,  aEMELTI,  aEMELTI_glob)
+      CALL PACK_DATA  (agrid,  aSMELTI,  aSMELTI_glob)
+      CALL PACK_COLUMN(agrid,   aSOLAR,   aSOLAR_glob)
+      CALL PACK_DATA  (agrid,      aE0,      aE0_glob)
+      CALL PACK_DATA  (agrid,  aEVAPOR,  aEVAPOR_glob)
+      CALL PACK_COLUMN(agrid,    aDMSI,    aDMSI_glob)
+      CALL PACK_COLUMN(agrid,    aDHSI,    aDHSI_glob)
+      CALL PACK_COLUMN(agrid,    aDSSI,    aDSSI_glob)
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      CALL PACK_COLUMN(agrid,  aTRFLOWO,  aTRFLOWO_glob)
+      CALL PACK_COLUMN(agrid,  aTRUNOSI,  aTRUNOSI_glob)
+      CALL PACK_COLUMN(agrid,  aTRMELTI,  aTRMELTI_glob)
+      CALL PACK_BLOCK (agrid, aTREVAPOR, aTREVAPOR_glob)
+      CALL PACK_BLOCK (agrid,    aDTRSI,    aDTRSI_glob)
+#ifdef TRACERS_DRYDEP
+      CALL PACK_BLOCK (agrid, aTRDRYDEP, aTRDRYDEP_glob)
+#endif
+#endif
+#endif      
+#ifdef TRACERS_GASEXCH_Natassa
+      CALL PACK_BLOCK (agrid,  aTRGASEX,  aTRGASEX_glob)
+#endif      
+C* 
+      write (555,*) ' Subr. GROUND_OC #2: ', J_0S,J_1      
+C* 
+C***  Do interpolation to the ocean grid 
+C* 
+      if(AM_I_ROOT()) then
+        call INT_AG2OG_ground(
+     *       aRSI_glob, aFLOWO_glob,aEFLOWO_glob
+     *     , aRUNOSI_glob,aSRUNOSI_glob,aERUNOSI_glob
+     *     , aMELTI_glob,aEMELTI_glob,aSMELTI_glob
+     *     , aAPRESS_glob,aSOLAR_glob,aE0_glob,aEVAPOR_glob
+     *     , oRSI_glob, oFLOWO_glob,oEFLOWO_glob
+     *     , oRUNOSI_glob,oSRUNOSI_glob,oERUNOSI_glob
+     *     , oMELTI_glob,oEMELTI_glob,oSMELTI_glob
+     *     , oAPRESS_glob,oSOLAR_glob,oE0_glob,oEVAPOR_glob
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+     *     , aTRFLOWO_glob, aTRUNOSI_glob 
+     *     , aTRMELTI_glob, aTREVAPOR_glob
+     *     , oTRFLOWO_glob, oTRUNOSI_glob 
+     *     , oTRMELTI_glob, oTREVAPOR_glob
+#ifdef TRACERS_DRYDEP
+     *     , aTRDRYDEP_glob, oTRDRYDEP_glob
+#endif
+#endif      
+#endif 
+#ifdef TRACERS_GASEXCH_Natassa
+     *     , aTRGASEX_glob, oTRGASEX_glob
+#endif      
+     *     )     
+      end if 
+
+      write (555,*) ' Subr. GROUND_OC #3: ', J_0S,J_1      
+
+C***  Scatter the arrays to the ocean grid 
+
+      CALL UNPACK_DATA  (ogrid,     oRSI_glob,     oRSI)
+      CALL UNPACK_DATA  (ogrid,   oFLOWO_glob,   oFLOWO)
+      CALL UNPACK_DATA  (ogrid,  oEFLOWO_glob,  oEFLOWO)
+      CALL UNPACK_DATA  (ogrid,  oRUNOSI_glob,  oRUNOSI)
+      CALL UNPACK_DATA  (ogrid, oSRUNOSI_glob, oSRUNOSI)
+      CALL UNPACK_DATA  (ogrid, oERUNOSI_glob, oERUNOSI)
+      CALL UNPACK_DATA  (ogrid,  oAPRESS_glob,  oAPRESS)
+      CALL UNPACK_DATA  (ogrid,   oMELTI_glob,   oMELTI)
+      CALL UNPACK_DATA  (ogrid,  oEMELTI_glob,  oEMELTI)
+      CALL UNPACK_DATA  (ogrid,  oSMELTI_glob,  oSMELTI)
+      CALL UNPACK_COLUMN(ogrid,   oSOLAR_glob,   oSOLAR)
+      CALL UNPACK_DATA  (ogrid,      oE0_glob,      oE0)
+      CALL UNPACK_DATA  (ogrid,  oEVAPOR_glob,  oEVAPOR)
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      CALL UNPACK_COLUMN(ogrid,  oTRFLOWO_glob,  oTRFLOWO)
+      CALL UNPACK_COLUMN(ogrid,  oTRUNOSI_glob,  oTRUNOSI)
+      CALL UNPACK_COLUMN(ogrid,  oTRMELTI_glob,  oTRMELTI)
+      CALL UNPACK_BLOCK (ogrid, oTREVAPOR_glob, oTREVAPOR)
+#ifdef TRACERS_DRYDEP
+      CALL UNPACK_BLOCK (ogrid, oTRDRYDEP_glob, oTRDRYDEP)
+#endif
+#endif
+#endif      
+#ifdef TRACERS_GASEXCH_Natassa
+      CALL UNPACK_BLOCK (ogrid,  oTRGASEX_glob,  oTRGASEX)
+#endif      
 C****
 C**** Add surface source of fresh water and heat
 C****
@@ -3407,38 +3583,38 @@ C****
         BYDXYPJ=BYDXYPO(J)
       DO I=1,IMAXJ(J)
       IF(FOCEAN(I,J).gt.0.) THEN
-        ROICE = RSI(I,J)
+        ROICE = oRSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-ROICE)
         POICE =FOCEAN(I,J)*ROICE
         DXYPJ=DXYPJ*FOCEAN(I,J)     ! adjust areas for completeness
         BYDXYPJ=BYDXYPJ/FOCEAN(I,J) ! no change to results
 C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
-        RUNO = (FLOWO(I,J)+ MELTI(I,J))/(DXYPJ)-
-     *                                   RATOC(J)*EVAPOR(I,J,1)
-        RUNI = (FLOWO(I,J)+ MELTI(I,J))/(DXYPJ)+
-     *                                   RATOC(J)*RUNOSI(I,J)
-        ERUNO=(EFLOWO(I,J)+EMELTI(I,J))/(DXYPJ)+
-     *                                   RATOC(J)*E0(I,J,1)
-        ERUNI=(EFLOWO(I,J)+EMELTI(I,J))/(DXYPJ)+
-     *                                   RATOC(J)*ERUNOSI(I,J)
-        SRUNO=SMELTI(I,J)/(DXYPJ)
-        SRUNI=SMELTI(I,J)/(DXYPJ)+RATOC(J)*SRUNOSI(I,J)
+        RUNO = (oFLOWO(I,J)+ oMELTI(I,J))/(DXYPJ)-
+     *                                   RATOC(J)*oEVAPOR(I,J,1)
+        RUNI = (oFLOWO(I,J)+ oMELTI(I,J))/(DXYPJ)+
+     *                                   RATOC(J)*oRUNOSI(I,J)
+        ERUNO=(oEFLOWO(I,J)+oEMELTI(I,J))/(DXYPJ)+
+     *                                   RATOC(J)*oE0(I,J,1)
+        ERUNI=(oEFLOWO(I,J)+oEMELTI(I,J))/(DXYPJ)+
+     *                                   RATOC(J)*oERUNOSI(I,J)
+        SRUNO=oSMELTI(I,J)/(DXYPJ)
+        SRUNI=oSMELTI(I,J)/(DXYPJ)+RATOC(J)*oSRUNOSI(I,J)
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
-        SROX(1)=SOLAR(1,I,J)*RATOC(J) ! open water
-        SROX(2)=SOLAR(3,I,J)*RATOC(J) ! through ice
+        SROX(1)=oSOLAR(1,I,J)*RATOC(J) ! open water
+        SROX(2)=oSOLAR(3,I,J)*RATOC(J) ! through ice
         MO1 = MO(I,J,1)
         SO1 = S0M(I,J,1)
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
 #ifdef TRACERS_WATER
-        TRUNO(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(DXYPJ)-
-     *       RATOC(J)*TREVAPOR(:,1,I,J)
+        TRUNO(:)=(oTRFLOWO(:,I,J)+oTRMELTI(:,I,J))/(DXYPJ)-
+     *       RATOC(J)*oTREVAPOR(:,1,I,J)
 #ifdef TRACERS_DRYDEP
-     *       + RATOC(J)*trdrydep(:,1,i,j)
+     *       + RATOC(J)*otrdrydep(:,1,i,j)
 #endif
-        TRUNI(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(DXYPJ)+
-     *       RATOC(J)*TRUNOSI(:,I,J)
+        TRUNI(:)=(oTRFLOWO(:,I,J)+oTRMELTI(:,I,J))/(DXYPJ)+
+     *       RATOC(J)*oTRUNOSI(:,I,J)
 #else
         TRUNO(:)=0. ; TRUNI(:)=0.
 #endif
@@ -3446,7 +3622,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
 #ifdef TRACERS_GASEXCH_Natassa
         !note that TRGASEX is positive down i.e. same sign as
         !TRUNO, while TREVAPOR is positive up.
-        TRUNO(:)=RATOC(J)*TRGASEX(:,1,I,J)
+        TRUNO(:)=RATOC(J)*oTRGASEX(:,1,I,J)
 #endif
 
 #endif
@@ -3507,30 +3683,60 @@ C**** Add evenly over open ocean and ice covered areas
         END DO
 
 C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
-        DMSI(1,I,J)=(DMOO+SUM(DM0))*ROCAT(J)
-        DMSI(2,I,J)=(DMOI+SUM(DM0))*ROCAT(J)
-        DHSI(1,I,J)=(DEOO+SUM(DE0))*ROCAT(J)
-        DHSI(2,I,J)=(DEOI+SUM(DE0))*ROCAT(J)
-        DSSI(1,I,J)=(DSOO+SUM(DS0))*ROCAT(J)
-        DSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
+        oDMSI(1,I,J)=(DMOO+SUM(DM0))*ROCAT(J)
+        oDMSI(2,I,J)=(DMOI+SUM(DM0))*ROCAT(J)
+        oDHSI(1,I,J)=(DEOO+SUM(DE0))*ROCAT(J)
+        oDHSI(2,I,J)=(DEOI+SUM(DE0))*ROCAT(J)
+        oDSSI(1,I,J)=(DSOO+SUM(DS0))*ROCAT(J)
+        oDSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
 #ifdef TRACERS_OCEAN
-        DTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
-        DTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
+        oDTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
+        oDTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
 #endif
 
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
 C**** Updated using latest sea ice (this ensures that total column mass
 C**** is consistent for OGEOZ calculation).
-        OPRESS(I,J) = RATOC(J)*(APRESS(I,J))+GRAV*(
-     *       (1.-RSI(I,J))*DMSI(1,I,J) + RSI(I,J)*DMSI(2,I,J))
+        OPRESS(I,J) = RATOC(J)*(oAPRESS(I,J))+GRAV*(
+     *       (1.-oRSI(I,J))*oDMSI(1,I,J) + oRSI(I,J)*oDMSI(2,I,J))
 
         END IF
       END DO
       END DO
 
-      if(have_south_pole) OPRESS(2:IM,1)  = OPRESS(1,1)
-      if(have_north_pole) OPRESS(2:IM,JM) = OPRESS(1,JM)
+      if(have_south_pole) OPRESS(2:IMO,1)  = OPRESS(1,1)
+      if(have_north_pole) OPRESS(2:IMO,JMO) = OPRESS(1,JMO)
 C****
+C***  Gather arrays on ocean grid into the global arrays 
+
+      CALL PACK_COLUMN (ogrid, oDMSI, oDMSI_glob)
+      CALL PACK_COLUMN (ogrid, oDHSI, oDHSI_glob)
+      CALL PACK_COLUMN (ogrid, oDSSI, oDSSI_glob)
+#ifdef TRACERS_OCEAN
+      CALL PACK_BLOCK  (ogrid, oDTRSI, oDTRSI_glob)
+#endif
+C* 
+C***  Do interpolation to the atmospheric grid 
+C* 
+      if(AM_I_ROOT()) then
+        call INT_OG2AG_ground(
+     *       oDMSI_glob, oDHSI_glob, oDSSI_glob
+     *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
+#ifdef TRACERS_OCEAN
+           , oDTRSI_glob, aDTRSI_glob
+#endif
+     *     )     
+      end if 
+
+C***  Scatter the arrays to the atmospheric grid 
+
+      CALL UNPACK_COLUMN (agrid, aDMSI_glob, aDMSI)
+      CALL UNPACK_COLUMN (agrid, aDHSI_glob, aDHSI)
+      CALL UNPACK_COLUMN (agrid, aDSSI_glob, aDSSI)
+#ifdef TRACERS_OCEAN
+      CALL UNPACK_BLOCK  (agrid, aDTRSI_glob, aDTRSI)
+#endif
+
       RETURN
       END SUBROUTINE GROUND_OC
 
@@ -3675,6 +3881,7 @@ C****
 
       USE DOMAIN_DECOMP, only : get, pack_data,unpack_data
      *     , AM_I_ROOT, agrid=>grid
+     *     , PACK_COLUMN, UNPACK_COLUMN
       USE OCEANR_DIM, only : ogrid
 
       USE GEOM, only : dxyp
@@ -3727,15 +3934,15 @@ C**** save surface variables before any fluxes are added
 C***  Gather the precipitation arrays on atmospheric grid 
 C***    into the global arrays 
 
-      CALL PACK_DATA(agrid,    aPREC,    aPREC_glob)
-      CALL PACK_DATA(agrid,   aEPREC,   aEPREC_glob)
-      CALL PACK_DATA(agrid,  aRUNPSI,  aRUNPSI_glob)
-      CALL PACK_DATA(agrid, aSRUNPSI, aSRUNPSI_glob)
-      CALL PACK_DATA(agrid, aERUNPSI, aERUNPSI_glob)
-      CALL PACK_DATA(agrid,     aRSI,     aRSI_glob)
+      CALL PACK_DATA  (agrid,    aPREC,    aPREC_glob)
+      CALL PACK_DATA  (agrid,   aEPREC,   aEPREC_glob)
+      CALL PACK_DATA  (agrid,  aRUNPSI,  aRUNPSI_glob)
+      CALL PACK_DATA  (agrid, aSRUNPSI, aSRUNPSI_glob)
+      CALL PACK_DATA  (agrid, aERUNPSI, aERUNPSI_glob)
+      CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
 #ifdef TRACERS_OCEAN
-      CALL PACK_DATA(agrid,  aTRPREC,  aTRPREC_glob)
-      CALL PACK_DATA(agrid, aTRUNPSI, aTRUNPSI_glob)
+      CALL PACK_COLUMN(agrid,  aTRPREC,  aTRPREC_glob)
+      CALL PACK_COLUMN(agrid, aTRUNPSI, aTRUNPSI_glob)
 #endif      
 C* 
 C***  Do interpolation to the ocean grid 
@@ -3755,15 +3962,15 @@ C*
       
 C***  Scatter the precipitation arrays to the ocean grid 
 
-      CALL UNPACK_DATA(ogrid,    oPREC_glob,    oPREC)
-      CALL UNPACK_DATA(ogrid,   oEPREC_glob,   oEPREC)
-      CALL UNPACK_DATA(ogrid,  oRUNPSI_glob,  oRUNPSI)
-      CALL UNPACK_DATA(ogrid, oSRUNPSI_glob, oSRUNPSI)
-      CALL UNPACK_DATA(ogrid, oERUNPSI_glob, oERUNPSI)
-      CALL UNPACK_DATA(ogrid,     oRSI_glob,     oRSI)
+      CALL UNPACK_DATA  (ogrid,    oPREC_glob,    oPREC)
+      CALL UNPACK_DATA  (ogrid,   oEPREC_glob,   oEPREC)
+      CALL UNPACK_DATA  (ogrid,  oRUNPSI_glob,  oRUNPSI)
+      CALL UNPACK_DATA  (ogrid, oSRUNPSI_glob, oSRUNPSI)
+      CALL UNPACK_DATA  (ogrid, oERUNPSI_glob, oERUNPSI)
+      CALL UNPACK_DATA  (ogrid,     oRSI_glob,     oRSI)
 #ifdef TRACERS_OCEAN
-      CALL UNPACK_DATA(ogrid,  oTRPREC_glob,  oTRPREC)
-      CALL UNPACK_DATA(ogrid, oTRUNPSI_glob, oTRUNPSI)
+      CALL UNPACK_COLUMN(ogrid,  oTRPREC_glob,  oTRPREC)
+      CALL UNPACK_COLUMN(ogrid, oTRUNPSI_glob, oTRUNPSI)
 #endif      
 C* 
 
@@ -4487,8 +4694,6 @@ C****
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 ! 
       call OG2AG
-
-      write (555,*) ' Subr. TOC2SST #2: ', J_0,J_1      
 C****
 C**** Note that currently everything is on same grid
 C****
@@ -5038,6 +5243,7 @@ C**** Check
 
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEAN, only : imo=>im,jmo=>jm
+
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
@@ -5075,5 +5281,178 @@ C**** Check
       RETURN
       END SUBROUTINE INT_AG2OG_precip 
 
+      SUBROUTINE INT_AG2OG_ground(
+     *       aRSI_glob, aFLOWO_glob,aEFLOWO_glob
+     *     , aRUNOSI_glob,aSRUNOSI_glob,aERUNOSI_glob
+     *     , aMELTI_glob,aEMELTI_glob,aSMELTI_glob
+     *     , aAPRESS_glob,aSOLAR_glob,aE0_glob,aEVAPOR_glob
+     *     , oRSI_glob, oFLOWO_glob,oEFLOWO_glob
+     *     , oRUNOSI_glob,oSRUNOSI_glob,oERUNOSI_glob
+     *     , oMELTI_glob,oEMELTI_glob,oSMELTI_glob
+     *     , oAPRESS_glob,oSOLAR_glob,oE0_glob,oEVAPOR_glob
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+     *     , aTRFLOWO_glob, aTRUNOSI_glob 
+     *     , aTRMELTI_glob, aTREVAPOR_glob
+     *     , oTRFLOWO_glob, oTRUNOSI_glob 
+     *     , oTRMELTI_glob, oTREVAPOR_glob
+#ifdef TRACERS_DRYDEP
+     *     , aTRDRYDEP_glob, oTRDRYDEP_glob
+#endif
+#endif      
+#endif 
+#ifdef TRACERS_GASEXCH_Natassa
+     *     , aTRGASEX_glob, oTRGASEX_glob
+#endif      
+     *     )     
+!@sum  INT_AG2OG is for interpolation of arrays from subr.GROUND_OC 
+!!      from atmospheric grid to the ocean grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE OCEAN, only : imo=>im,jmo=>jm
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      USE TRACER_COM, only: ntm
+#endif
+
+      IMPLICIT NONE
+
+!!!   Global arrays on atmospheric grid
+
+      INTEGER, PARAMETER :: NSTYPE=4
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
+     *        aRSI_glob, aFLOWO_glob,aEFLOWO_glob
+     *      , aRUNOSI_glob, aSRUNOSI_glob, aERUNOSI_glob
+     *      , aMELTI_glob,aEMELTI_glob,aSMELTI_glob, aAPRESS_glob
+      REAL*8, INTENT(IN), DIMENSION(3,IMA,JMA) :: aSOLAR_glob
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA,NSTYPE) :: 
+     *        aE0_glob, aEVAPOR_glob 
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob 
+     *      , aTRUNOSI_glob, aTRMELTI_glob      
+      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: 
+     *        aTREVAPOR_glob 
+#ifdef TRACERS_DRYDEP
+      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: 
+     *        aTRDRYDEP_glob
+#endif
+#endif
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
+#endif
+
+!!!   Global arrays on ocean grid
+
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: 
+     *        oRSI_glob, oFLOWO_glob,oEFLOWO_glob
+     *      , oRUNOSI_glob, oSRUNOSI_glob, oERUNOSI_glob
+     *      , oMELTI_glob,oEMELTI_glob,oSMELTI_glob, oAPRESS_glob
+      REAL*8, INTENT(INOUT), DIMENSION(3,IMO,JMO) :: oSOLAR_glob
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO,1) :: 
+     *        oE0_glob, oEVAPOR_glob 
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: oTRFLOWO_glob
+     *      , oTRUNOSI_glob, oTRMELTI_glob      
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: 
+     *        oTREVAPOR_glob 
+#ifdef TRACERS_DRYDEP
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: 
+     *        oTRDRYDEP_glob
+#endif
+#endif
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
+#endif
+
+      oRSI_glob(:,:)      =     aRSI_glob(:,:)
+      oFLOWO_glob(:,:)    =   aFLOWO_glob(:,:)
+      oEFLOWO_glob(:,:)   =  aEFLOWO_glob(:,:)
+      oRUNOSI_glob(:,:)   =  aRUNOSI_glob(:,:)
+      oSRUNOSI_glob(:,:)  = aSRUNOSI_glob(:,:)
+      oERUNOSI_glob(:,:)  = aERUNOSI_glob(:,:)
+      oMELTI_glob(:,:)    =   aMELTI_glob(:,:)
+      oEMELTI_glob(:,:)   =  aEMELTI_glob(:,:)
+      oSMELTI_glob(:,:)   =  aSMELTI_glob(:,:)
+      oAPRESS_glob(:,:)   =  aAPRESS_glob(:,:)
+      oSOLAR_glob(:,:,:)  =   aSOLAR_glob(:,:,:)
+      oE0_glob(:,:,1)     =      aE0_glob(:,:,1)
+      oEVAPOR_glob(:,:,1) =  aEVAPOR_glob(:,:,1)
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      oTRFLOWO_glob(:,:,:) = aTRFLOWO_glob(:,:,:)
+      oTRUNOSI_glob(:,:,:) = aTRUNOSI_glob(:,:,:)
+      oTRMELTI_glob(:,:,:) = aTRMELTI_glob(:,:,:)
+      oTREVAPOR_glob(:,1,:,:) = aTREVAPOR_glob(:,1,:,:)
+#ifdef TRACERS_DRYDEP
+      oTRDRYDEP_glob(:,1,:,:) = aTRDRYDEP_glob(:,1,:,:)
+#endif
+#endif
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      oTRGASEX_glob(:,1,:,:) = aTRGASEX_glob(:,1,:,:)
+#endif
+      
+      RETURN
+      END SUBROUTINE INT_AG2OG_ground 
+
+      SUBROUTINE INT_OG2AG_ground(
+     *       oDMSI_glob, oDHSI_glob, oDSSI_glob
+     *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
+#ifdef TRACERS_OCEAN
+           , oDTRSI_glob, aDTRSI_glob
+#endif
+     *     )     
+!@sum  INT_AG2OG is for interpolation of arrays from subr.GROUND_OC 
+!!      from ocean grid to the atmospheric grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE OCEAN, only : imo=>im,jmo=>jm, FOCEAN, IMAXJ
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      USE TRACER_COM, only: ntm
+#endif
+
+      IMPLICIT NONE
+
+      INTEGER I,J
+
+!!!   Global arrays on ocean grid
+
+      REAL*8, INTENT(IN), DIMENSION(2,IMO,JMO) :: 
+     *     oDMSI_glob, oDHSI_glob, oDSSI_glob
+#ifdef TRACERS_OCEAN
+      REAL*8, INTENT(IN), DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
+#endif
+
+!!!   Global arrays on atmospheric grid
+
+      REAL*8, INTENT(INOUT), DIMENSION(2,IMA,JMA) :: 
+     *     aDMSI_glob, aDHSI_glob, aDSSI_glob
+#ifdef TRACERS_OCEAN
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,2,IMA,JMA) :: aDTRSI_glob
+#endif
+
+      DO J=1,JMO
+        DO I=1,IMAXJ(J)
+          IF(FOCEAN(I,J).gt.0.) THEN
+            aDMSI_glob(:,I,J) = oDMSI_glob(:,I,J)
+            aDHSI_glob(:,I,J) = oDHSI_glob(:,I,J)
+            aDSSI_glob(:,I,J) = oDSSI_glob(:,I,J)
+#ifdef TRACERS_OCEAN
+            aDTRSI_glob(:,:,I,J) = oDTRSI_glob(:,:,I,J) 
+#endif
+          END IF 
+        END DO
+      END DO
+
+      END SUBROUTINE INT_OG2AG_ground 
 
 

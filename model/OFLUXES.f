@@ -164,8 +164,8 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
 
       !I-J-: arrays
-      ALLOCATE( oE0      ( I_0H:I_1H , J_0H:J_1H , NSTYPE ),
-     &          oEVAPOR  ( I_0H:I_1H , J_0H:J_1H , NSTYPE ),
+      ALLOCATE( oE0      ( I_0H:I_1H , J_0H:J_1H , 1 ),
+     &          oEVAPOR  ( I_0H:I_1H , J_0H:J_1H , 1 ),
      &          oDMUA    ( I_0H:I_1H , J_0H:J_1H , NSTYPE ),
      &          oDMVA    ( I_0H:I_1H , J_0H:J_1H , NSTYPE ),
      &   STAT = IER)
@@ -182,7 +182,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
 #ifdef TRACERS_GASEXCH_Natassa
 
-      ALLOCATE( oTRGASEX( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
+      ALLOCATE( oTRGASEX( NTM , 1 , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
       oTRGASEX=0.     !initialize to zero
 
@@ -190,7 +190,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
 #ifdef TRACERS_WATER
       !(:)-(:)-I-J arrays
-      ALLOCATE( oTREVAPOR( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
+      ALLOCATE( oTREVAPOR( NTM , 1, I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 
 
@@ -207,7 +207,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
-       ALLOCATE(oTRDRYDEP( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
+       ALLOCATE(oTRDRYDEP( NTM , 1 , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
          oTRDRYDEP = 0.   !Initialize to 0.
 #endif
