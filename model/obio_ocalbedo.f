@@ -25,7 +25,7 @@ c  et al., 1996 (JGR)
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
 #else
 #ifdef CHL_from_obio
-      USE obio_incom, only : wfac
+      USE obio_incom, only : wfac, lam
 #endif
 #endif
 #ifdef CHL_from_SeaWIFs
@@ -45,7 +45,10 @@ c  et al., 1996 (JGR)
       real*8, dimension(6), intent(out) :: xocvn
 
       real*8 :: sum1, sum2, part_sum
-      real*8 :: refl, ref
+      real*8 :: ref
+      logical :: obio_reflectance, res
+      integer, parameter :: nlt=33
+      real*8, dimension(nlt) :: refl
 
 !!!!!!!!!!  Boris' part !!!!!!!!!!!!!!!!!
 !@sum Those are the weights which were obtained by normalizing solar flux
@@ -67,10 +70,17 @@ C**** gband is the distribution of the 31 bands for the 6 band GISS code
       integer :: gband(7) = (/ 1, 18, 19, 23, 26, 30, 32 /)
 c      real*8 :: part_sum(6) = (/0.526854,0.0643897,0.196531,0.066281,
 c     .                        0.066922,0.0497974/)
+#ifdef CHL_from_SeaWIFs
+       real*8 :: lam(nlt) = (/ 250, 325, 350, 375, 400
+     .                       , 425, 450, 475, 500, 525
+     .                       , 550, 575, 600, 625, 650
+     .                       , 675, 700, 725, 775, 850
+     .                       , 950,1050,1150,1250,1350
+     .                       ,1450,1550,1650,1750,1900,2200,2900,3700/)
+#endif
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       logical vrbos,hycgr
 
-      integer, parameter :: nlt=33
       real*8 :: pi, rad, roair, rn, rod(nlt),ros(nlt)
       integer :: ngiss
 
@@ -129,18 +139,28 @@ c   Fresnel reflectance for sunz < 40, wind < 2 m/s
 
 c  Reflectance totals
       do nl = 1,nlt
-        rod(nl) = rospd + rof*wfac(nl)
+c      if(vrbos.and..not.hycgr)then
+c          write(*,'(a,i5,7f12.6)') 'ROSP:ocalbedo A:',
+c     .    nl,wfac(nl),rof,rospd,rospd+rof*wfac(nl),
+c     .                    rosps,rosps+rof*wfac(nl)
+c      endif
         ros(nl) = rosps + rof*wfac(nl)
+        rod(nl) = rospd + rof*wfac(nl)
+c      if(vrbos.and..not.hycgr)then
+c          write(*,'(a,i5,8f12.6)')'ocalbedo A1:',
+c     .    nl,wfac(nl),wind,sunz,rof,rospd,rosps,rod(nl),ros(nl)
+c      endif
+
       enddo
 
       if(vrbos.and..not.hycgr)then
-      do nl=1,33
-          write(*,'(a,i5,8d12.4)')'ocalbedo A:', 
-     .    nl,wfac(nl),wind,sunz,rof,rosps,rospd,rod(nl),ros(nl)
+      do nl=1,nlt
+          write(*,'(a,i5,9d12.4)')'ocalbedo: A', 
+     .    nl,lam(nl),wfac(nl),wind,sunz,rof,rospd,rosps,rod(nl),ros(nl)
       enddo
       endif
       if(vrbos.and.hycgr)then
-      do nl=1,33
+      do nl=1,nlt
           write(*,'(a,i5,8d12.4)')'ocalbedo O:', 
      .    nl,wfac(nl),wind,sunz,rof,rosps,rospd,rod(nl),ros(nl)
       enddo
@@ -159,6 +179,13 @@ c  Reflectance totals
 ! c=10.0   0.012881
 ! Average : 0.0214577 
 
+C**** get chlorophyll term
+      ! function obio_reflectance calculates reflectance 
+      ! as a function of chl and wavelength (lam)
+
+      res = obio_reflectance(refl,chl,lam,nlt)
+      if (vrbos) write(*,*)'ocalbedo, refl:',refl
+ 
 !  transition between band33 and band6 approximation
 
 ! loop over giss radiation bands
@@ -166,18 +193,15 @@ c  Reflectance totals
         sum1 = 0.0
         sum2 = 0.0
         do nl=gband(ngiss), gband(ngiss+1)-1 
+          if (refl(nl).lt.0) refl(nl) = 0.0
+          ros(nl) = ros(nl) + refl(nl)
           sum1 = sum1+weight(nl)*rod(nl)
-          sum2 = sum2+weight(nl)*ros(nl)
+          sum2 = sum2+weight(nl)*(ros(nl))
         enddo
         part_sum=sum(weight(gband(ngiss):gband(ngiss+1)-1))
         xocvn(ngiss) = sum1/part_sum
         bocvn(ngiss) = sum2/part_sum
       end do
-
-C**** add chlorophyll term
-      refl = ref(chl)
-      bocvn(1) = bocvn(1) + refl
-      if (vrbos) write(*,*)'ocalbedo, atmos refl,chl:',refl,chl
 
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       return
@@ -190,6 +214,7 @@ C**** add chlorophyll term
       real*8, intent(in) :: chl  !@var chl Chlorohpyll concentration
 
 C**** formula from ??????
+C**** Who knows? - no longer used - rjh 9/25/2008
       if (chl .le. 0.03) then 
         ref = 0.004d0
       else      
