@@ -17,6 +17,8 @@
      & UNPACK_DATAj,write_parallel
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
+      USE GEOM, only: dxyp,bydxyp
+      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
@@ -362,9 +364,9 @@ C**** Define individual tracer characteristics
           call write_parallel(trim(out_line))
           call UNPACK_DATA( grid, N2OICIN_glob, N2OICIN )
           do j=J_0,J_1  ; do i=1,im
-           N2OICINL(:)=N2OICIN(I,J,:)
+           N2OICINL(:)=N2OICIN(i,j,:) ! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PRES,N2OICL,.true.)
-           N2OICX(I,J,:)=N2OICL(:)
+           N2OICX(I,J,:)=N2OICL(:)*am(:,i,j)*dxyp(j)
           end do     ; end do
 #endif
 
@@ -416,9 +418,9 @@ C         Interpolate CH4 altitude-dependence to model resolution:
             call write_parallel(trim(out_line))
             call UNPACK_DATA( grid, CH4ICIN_glob, CH4ICIN )
             do j=J_0,J_1  ; do i=1,im
-             CH4ICINL(:)=CH4ICIN(I,J,:)
+             CH4ICINL(:)=CH4ICIN(I,J,:)! now in PPPM
              CALL LOGPINT(LCOalt,PCOalt,CH4ICINL,LM,PRES,CH4ICL,.true.)
-             CH4ICX(I,J,:)=CH4ICL(:)*scale_ch4_IC_file
+             CH4ICX(I,J,:)=CH4ICL(:)*scale_ch4_IC_file*am(:,i,j)*dxyp(j)
             end do     ; end do
           end if
 #endif /* TRACERS_SPECIAL_Shindell */
@@ -542,9 +544,9 @@ C**** Get solar variability coefficient from namelist if it exits
           call write_parallel(trim(out_line))
           call UNPACK_DATA( grid, OxICIN_glob, OxICIN )
           do j=J_0,J_1  ; do i=1,im
-           OxICINL(:)=OxICIN(I,J,:)
+           OxICINL(:)=OxICIN(I,J,:)! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
-           OxIC(I,J,:)=OxICL(:)
+           OxIC(I,J,:)=OxICL(:)*am(:,i,j)*dxyp(j)
           end do     ; end do
 c         read stratospheric correction from files:
           if(AM_I_ROOT( ))then
@@ -675,9 +677,9 @@ C          read the CFC initial conditions:
           call write_parallel(trim(out_line))
           call UNPACK_DATA( grid, CFCICIN_glob, CFCICIN )
           do j=J_0,J_1  ; do i=1,im
-           CFCICINL(:)=CFCICIN(I,J,:)
+           CFCICINL(:)=CFCICIN(I,J,:)! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PRES,CFCICL,.true.)
-           CFCIC(I,J,:)=CFCICL(:)
+           CFCIC(I,J,:)=CFCICL(:)*am(:,i,j)*dxyp(j)
           end do     ; end do
 #endif
 
