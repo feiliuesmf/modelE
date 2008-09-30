@@ -145,9 +145,9 @@ JPLRX=chem_files/ds4_jpl00_T25_SSS
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
 SPECFJ=chem_files/jv_spec00_25.dat
-N2O_IC=gsin/N2O_IC_M23_4x5_6.17
-CFC_IC=gsin/CFC_IC_M23_4x5_6.17
-CH4_IC=gsin/CH4_IC_M23_4x5_6.17
+N2O_IC=gsin/N2O_IC_M23_4x5_6.17_conc
+CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc
+CH4_IC=gsin/CH4_IC_M23_4x5_6.17_conc
 !-----------------------------------------------
 ATMFJ=chem_files/jv_atms.dat
 DRYCOEFF=chem_files/drydep.coef
@@ -165,7 +165,7 @@ LAI09=chem_files/lai09.global
 LAI10=chem_files/lai10.global
 LAI11=chem_files/lai11.global
 LAI12=chem_files/lai12.global
-Ox_IC=gsin/Ox_init_cond_M23_4x5 !see README in /usr/people/cmrun/gsin
+Ox_IC=gsin/Ox_init_cond_M23_4x5_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
