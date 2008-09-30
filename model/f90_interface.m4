@@ -98,6 +98,12 @@ dnl                which specifies the rank. These may be useful if one
 dnl                needs to deal with arrays of a rank which differs
 dnl                from m4_rank (for example rank=m4_rank-1)
 dnl 
+dnl m4_foreach(`index', (list),`code') - generic loop. Will loop over
+dnl                all variables in the "list" (coma-separated) repeating
+dnl                "code" with macro "index" being expanded to the current
+dnl                variable from the "list".
+dnl 
+dnl 
 dnl               Examples:
 dnl 
 dnl Here is a most trivial example of something useful. It creates
@@ -145,7 +151,8 @@ dnl define some useful functions
 define(`_for',`ifelse($#,0,``$0'',`ifelse(eval($2<=$3),1,
     `pushdef(`$1',$2)$4`'popdef(`$1')$0(`$1',incr($2),$3,`$4')')')')
 
-define(`_foreach', `pushdef(`$1')__foreach($@)popdef(`$1')')
+define(`m4_foreach', `pushdef(`$1')__foreach($@)popdef(`$1')')
+dnl define(`_foreach', `pushdef(`$1')__foreach($@)popdef(`$1')')
 define(`_arg1', `$1')
 define(`__foreach', `ifelse(`$2', `()', `',
   	`define(`$1', _arg1$2)$3`'$0(`$1', (shift$2), `$3')')')
@@ -164,39 +171,39 @@ define(`decl[r8]',`real*8')
 define(`decl[c]',`character')
 define(`decl[l]',`logical')
 
-define(`m4_ext_r',`_for(`x',1,$1,`:ifelse(x,$1,,`,')')')
+define(`m4_ext_r',`_for(`x',1,eval(`$1'),`:ifelse(x,eval(`$1'),,`,')')')
 
-define(`m4_dims_r',`_for(`x',1,$1,`
-     &  $2(1,x):$2(2,x)ifelse(x,$1,,`,')')')
+define(`m4_dims_r',`_for(`x',1,eval(`$1'),`
+     &  $2(1,x):$2(2,x)ifelse(x,eval(`$1'),,`,')')')
 
 dnl define(`m4_shape_r',`_for(`x',1,$1,`
 dnl      &  size($2,x)ifelse(x,$1,,`,')')')
-define(`m4_shape_r',`_for(`x',1,$1,`
-     &  lbound($2,x):ubound($2,x)ifelse(x,$1,,`,')')')
+define(`m4_shape_r',`_for(`x',1,eval(`$1'),`
+     &  lbound($2,x):ubound($2,x)ifelse(x,eval(`$1'),,`,')')')
 
-define(`m4_do_r',`_for(`x',1,$1,`
+define(`m4_do_r',`_for(`x',1,eval(`$1'),`
       do i`'x=$2(1,x),$2(2,x)')')
 
-define(`m4_enddo_r',`_for(`x',1,$1,`
+define(`m4_enddo_r',`_for(`x',1,eval(`$1'),`
       enddo')')
 
-define(`m4_ind_r',`_for(`x',1,$1,`i`'x`'ifelse(x,$1,,`,')')')
+define(`m4_ind_r',`_for(`x',1,eval(`$1'),`i`'x`'ifelse(x,eval(`$1'),,`,')')')
 
 define(`m4_brkts',`ifelse(`$1',`',`',`($@)')')
 
-define(`m4_arr_only',`ifelse(`$1',`0',`',`shift($@)')')
+define(`m4_arr_only',`ifelse(eval(`$1'),`0',`',`shift($@)')')
 
 dnl redefine type list to short type list
 define(`m4_stype_list',
- `shift(_foreach(`_t', (m4_type_list), `,defn(stype[_t])'))')
+ `shift(m4_foreach(`_t', (m4_type_list), `,defn(stype[_t])'))')
 dnl  define(`m4_stype_list',
-dnl  `_foreach(`_t', (m4_type_list), `,YYYdefn(stype[_t])')')
+dnl  `m4_foreach(`_t', (m4_type_list), `,YYYdefn(stype[_t])')')
 
 dnl define main loops over types and ranks
 
-define(`m4_loop_types',`_foreach(`m4_type', (m4_stype_list),`$1')')
+define(`m4_loop_types',`m4_foreach(`m4_type', (m4_stype_list),`$1')')
 
-define(`m4_loop_ranks',`_foreach(`m4_rank', (m4_rank_list),`$1')')
+define(`m4_loop_ranks',`m4_foreach(`m4_rank', (m4_rank_list),`$1')')
 
 define(`m4_loop',`m4_loop_types(`m4_loop_ranks(`$1')')')
 
