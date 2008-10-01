@@ -3903,7 +3903,7 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
      *   PREC,EPREC,RUNPSI,RSI,SRUNPSI,ERUNPSI
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       REAL*8, DIMENSION(NTM,IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
      *   trprec,trunpsi
 #endif
@@ -3911,14 +3911,11 @@ C****
       REAL*8, DIMENSION(IMA,JMA) :: aPREC_glob, aEPREC_glob
      *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
      *      , aRSI_glob
-#ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRPREC_glob, aTRUNPSI_glob      
-#endif
-
       REAL*8, DIMENSION(IMO,JMO) :: oPREC_glob, oEPREC_glob
      *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
      *      , oRSI_glob
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRPREC_glob, aTRUNPSI_glob      
       REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRPREC_glob, oTRUNPSI_glob      
 #endif
 
@@ -3940,7 +3937,7 @@ C***    into the global arrays
       CALL PACK_DATA  (agrid, aSRUNPSI, aSRUNPSI_glob)
       CALL PACK_DATA  (agrid, aERUNPSI, aERUNPSI_glob)
       CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       CALL PACK_COLUMN(agrid,  aTRPREC,  aTRPREC_glob)
       CALL PACK_COLUMN(agrid, aTRUNPSI, aTRUNPSI_glob)
 #endif      
@@ -3953,7 +3950,7 @@ C*
      *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
      *     , oRSI_glob, oPREC_glob,oEPREC_glob
      *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
      *     , aTRPREC_glob, aTRUNPSI_glob 
      *     , oTRPREC_glob, oTRUNPSI_glob 
 #endif 
@@ -3968,7 +3965,7 @@ C***  Scatter the precipitation arrays to the ocean grid
       CALL UNPACK_DATA  (ogrid, oSRUNPSI_glob, oSRUNPSI)
       CALL UNPACK_DATA  (ogrid, oERUNPSI_glob, oERUNPSI)
       CALL UNPACK_DATA  (ogrid,     oRSI_glob,     oRSI)
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       CALL UNPACK_COLUMN(ogrid,  oTRPREC_glob,  oTRPREC)
       CALL UNPACK_COLUMN(ogrid, oTRUNPSI_glob, oTRUNPSI)
 #endif      
@@ -3988,13 +3985,9 @@ C****
           SRUNPSI(I,J)=oSRUNPSI(I,J)*DXYP(J)             ! kg
           ERUNPSI(I,J)=oERUNPSI(I,J)*DXYP(J)             ! J
           RSI    (I,J)=oRSI    (I,J)
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
           TRPREC(:,I,J)=oTRPREC(:,I,J)                   ! kg
           TRUNPSI(:,I,J)=oTRUNPSI(:,I,J)*DXYP(J)         ! kg
-#else
-          TRPREC(:,I,J)=0.  ; TRUNPSI(:,I,J)=0.
-#endif
 #endif
         END DO
       END DO
@@ -4007,7 +4000,7 @@ C****
             G0M(I,J,1)=G0M(I,J,1)+ ((1d0-RSI(I,J))*EPREC(I,J) +
      *           RSI(I,J)*ERUNPSI(I,J))*FOCEAN(I,J)
             S0M(I,J,1)=S0M(I,J,1) + RSI(I,J)*SRUNPSI(I,J)*FOCEAN(I,J)
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
             TRMO(I,J,1,:)=TRMO(I,J,1,:)+((1d0-RSI(I,J))*TRPREC(:,I,J)
      *             +RSI(I,J)*TRUNPSI(:,I,J))*FOCEAN(I,J)
 #endif
@@ -5231,7 +5224,7 @@ C**** Check
      *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
      *     , oRSI_glob, oPREC_glob,oEPREC_glob
      *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
      *     , aTRPREC_glob, aTRUNPSI_glob 
      *     , oTRPREC_glob, oTRUNPSI_glob 
 #endif 
@@ -5253,16 +5246,15 @@ C**** Check
      *        aPREC_glob, aEPREC_glob
      *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
      *      , aRSI_glob
-#ifdef TRACERS_OCEAN
-      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: 
-     *        aTRPREC_glob, aTRUNPSI_glob      
-#endif
 
       REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: 
      *        oPREC_glob, oEPREC_glob
      *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
      *      , oRSI_glob
-#ifdef TRACERS_OCEAN
+
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: 
+     *        aTRPREC_glob, aTRUNPSI_glob      
       REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: 
      *        oTRPREC_glob, oTRUNPSI_glob      
 #endif
@@ -5273,7 +5265,7 @@ C**** Check
       oRUNPSI_glob(:,:)  =  aRUNPSI_glob(:,:)
       oSRUNPSI_glob(:,:) = aSRUNPSI_glob(:,:)
       oERUNPSI_glob(:,:) = aERUNPSI_glob(:,:)
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       oTRPREC_glob(:,:,:)  =  aTRPREC_glob(:,:,:)
       oTRUNPSI_glob(:,:,:) = aTRUNPSI_glob(:,:,:)
 #endif
