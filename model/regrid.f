@@ -113,6 +113,7 @@ ccc    end remove
 
       write(6,*) "THERE"
 
+c     should be pre-computed
       call mpp_sum(area_latband,jm)
 
       call mpp_sum(zonal_mean,jm)
@@ -807,22 +808,6 @@ ccc    end remove
 c      write(6,*) tcub_loc(:,:)
       call parallel_regrid(tcub_loc,tlatlon,alatlon)   
 
-
-c
-c     sum all contributions
-c
-      nij_latlon=im*jm
-      call mpp_sum(tlatlon,nij_latlon)
-      call mpp_sum(alatlon,nij_latlon)
-      
-c
-c     root proc section
-c
-      if (gid .eq. rootpe) then
-      tlatlon(:,:) = tlatlon(:,:)/alatlon(:,:)
-
-c      write(6,*) tlatlon(:,:)
-
       ofi='tstout.nc'
       status = nf_open(trim(ofi),nf_write,fid)
       if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
@@ -830,7 +815,7 @@ c      write(6,*) tlatlon(:,:)
       write(*,*) NF_STRERROR(status)
       status = nf_put_var_double(fid,vid,tlatlon)
       write(*,*) NF_STRERROR(status)
- 0    
+     
       status = nf_close(fid)
       endif
 
@@ -850,7 +835,7 @@ c      write(6,*) tlatlon(:,:)
       real*8 :: tlatlon(im,jm),alatlon(im,jm),
      &     tcub_loc(isd:ied,jsd:jed)
       integer :: loctile  !tile index of current domain
-      integer :: n,icub,jcub,i,j,itile
+      integer :: n,icub,jcub,i,j,itile,nij_latlon
       
       loctile=gid/dom_per_tile
       loctile=loctile+1
@@ -864,8 +849,6 @@ c      write(6,*) 'LOCTILE=',loctile
       do n=1,ncells
         icub=ijcub(1,n)
         jcub=ijcub(2,n)
-        i=ijlatlon(1,n)
-        j=ijlatlon(2,n)
         itile=tile(n)
 c        write(6,*) 'ie, icub, is=',ie,icub,is
 c        write(6,*) 'je, jcub, js=',je,jcub,js
@@ -874,12 +857,32 @@ c        write(6,*) 'je, jcub, js=',je,jcub,js
            if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
      &          ( (jcub .le. je) .and. (jcub .ge. js)) ) then
               write(6,*) 'xg_area',xgrid_area(n)
+              i=ijlatlon(1,n)
+              j=ijlatlon(2,n)
               alatlon(i,j) = alatlon(i,j) + xgrid_area(n)
               tlatlon(i,j) = tlatlon(i,j) + xgrid_area(n)
      &             *tcub_loc(icub,jcub)
            endif
         endif
       enddo
+
+c
+c     sum all contributions
+c
+      nij_latlon=im*jm
+      call mpp_sum(tlatlon,nij_latlon)
+
+c     should be pre-computed in init_regrid
+      call mpp_sum(alatlon,nij_latlon)
+
+c
+c     root proc section
+c
+      if (gid .eq. rootpe) then
+      tlatlon(:,:) = tlatlon(:,:)/alatlon(:,:)
+
+c      write(6,*) tlatlon(:,:)
+
       end subroutine parallel_regrid
 
 
