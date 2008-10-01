@@ -1606,7 +1606,7 @@ C**** Adjust some radiative fluxes for conservation and restartability
 C**** Complications due to ice or water going to earth if lake shrinks
             if (FLAKE(I,J).gt.FLAKE_OLD) ! new lake from Earth frac
      *           call RESET_SURF_FLUXES(I,J,4,1,FLAKE_OLD,FLAKE(I,J))
-            if (FLAKE_OLD.lt.FLAKE(I,J)) then ! lake shrinks
+            if (FLAKE_OLD.gt.FLAKE(I,J)) then ! lake shrinks
 ! originally some open water
               if (PLAKE.gt.0) call RESET_SURF_FLUXES(I,J,1,4,FEARTH_OLD,
      *             FEARTH_OLD+PLAKE-FLAKE(I,J)*(1-RSI(I,J)))
