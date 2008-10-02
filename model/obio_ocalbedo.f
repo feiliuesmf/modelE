@@ -23,12 +23,13 @@ c  et al., 1996 (JGR)
       USE FILEMANAGER
 #ifdef OBIO_RAD_coupling
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
-      USE obio_incom, only : lam
+      !!!USE obio_incom, only : lam
 #else
-#ifdef CHL_from_obio
+#ifdef CHL_from_OBIO
       USE obio_incom, only : wfac, lam
 #endif
 #endif
+
 #ifndef OBIO_RAD_coupling
 #ifdef CHL_from_SeaWIFs
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
@@ -76,7 +77,7 @@ C**** gband is the distribution of the 31 bands for the 6 band GISS code
       integer :: gband(7) = (/ 1, 18, 19, 23, 26, 30, 32 /)
 c      real*8 :: part_sum(6) = (/0.526854,0.0643897,0.196531,0.066281,
 c     .                        0.066922,0.0497974/)
-#ifdef CHL_from_SeaWIFs
+#if (defined CHL_from_SeaWIFs) || (defined CHL_from_OBIO)
        real*8 :: lam(nlt) = (/ 250, 325, 350, 375, 400
      .                       , 425, 450, 475, 500, 525
      .                       , 550, 575, 600, 625, 650

@@ -6,6 +6,8 @@ c
 
       USE FILEMANAGER
 
+      USE hycom_scalars, only: nstep
+
       implicit  none
     
 c:   integer, parameter   :: num=71  ! Change this to nlt -rjh
