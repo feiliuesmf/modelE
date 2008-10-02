@@ -72,7 +72,6 @@ thermf|-r8|                         ! thermal forcing
 trcadv|-r8|                         ! tracer advection
 tsadvc|-r8| advem|-r8|              ! advecting t/s
 mxlayr|-r8|
-krturn|-r8| 
 convec|-r8|
 
 Data input files:
