@@ -60,6 +60,7 @@ cddd     &     scatter_hycom_arrays
       integer iu_bioinit
 
       real rlon,rlat,dicmin,dicmax
+      real zz
 
       character*2 ntchar
       character*80 filename
@@ -184,19 +185,20 @@ c  Create arrays
       do 1000 l=1,isp(j)
       do 1000 i=ifp(j,l),ilp(j,l)
 
+        zz=0.d0
         do k=1,kdm
           !Nitrate
           !read earlier from file
 
+          zz=zz+dpinit(i,j,k)/onem   !depth in m
+
           !Ammonium
           tracer(i,j,k,2) = 0.5
-          if (dpinit(i,j,k)/onem .gt. 4000.) 
-     .                      tracer(i,j,k,2) = Pdeep(2)
+          if (zz.gt.4000.)tracer(i,j,k,2) = Pdeep(2)
 
           !Silica
           !read earlier from file
-!         if (dpinit(i,j,k)/onem .gt. 4000.) 
-!    .                      tracer(i,j,k,2) = Pdeep(3)
+!         if (zz.gt. 4000.)tracer(i,j,k,2) = Pdeep(3)
 
           !Iron
           tracer(i,j,k,4) = Fer(i,j,k)*tracer(i,j,k,1)  !Fung et al. 2000
@@ -211,8 +213,7 @@ c          endif
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
           tracer(i,j,k,4) = max(tracer(i,j,k,4),0.01)
-          if (dpinit(i,j,k)/onem .gt. 4000.) 
-     .                      tracer(i,j,k,4) = Pdeep(4)
+          if (zz.gt. 4000.)tracer(i,j,k,4) = Pdeep(4)
 
           !Herbivores
           do nt = nnut+1,ntyp-nzoo

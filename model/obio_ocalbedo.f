@@ -23,13 +23,19 @@ c  et al., 1996 (JGR)
       USE FILEMANAGER
 #ifdef OBIO_RAD_coupling
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
+      USE obio_incom, only : lam
 #else
 #ifdef CHL_from_obio
       USE obio_incom, only : wfac, lam
 #endif
 #endif
+#ifndef OBIO_RAD_coupling
 #ifdef CHL_from_SeaWIFs
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
+#endif
+#ifdef TRACERS_OceanBiology
+      USE obio_incom, only : wfac, lam
+#endif
 #endif
       implicit none
 

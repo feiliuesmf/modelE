@@ -63,6 +63,11 @@ cddd     &     scatter_hycom_arrays
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 
+#ifndef TRACERS_GASEXCH_ocean_CO2
+#ifdef TRACERS_OceanBiology     !obio but not gasexch
+       real*8, dimension(1) :: tracflx1d   !only one flux in this case
+#endif
+#endif
       character string*80
       character jstring*3
 
@@ -706,7 +711,7 @@ cdiag  endif
      .     nstep,i,j
      .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
      .    ,covice_ij,obio_P(1,1:ntyp),det(1,1:ndet),car(1,1)
-     .    ,dpmixl(i,j)/onem,alk1d(1),pp2tot_day(i,j)
+     .    ,dpmixl(i,j,mm)/onem,alk1d(1),pp2tot_day(i,j)
        endif
 
 !!!!
