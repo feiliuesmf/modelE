@@ -33,7 +33,7 @@ c
       data cv    /   0.0  / ! KPP:     buoyancy frequency ratio (0.0 to use a fn. of N)   
       data c11   /   5.0  / ! KPP:     value for turb velocity scale                      
       data hblflg/   1    / ! KPP:     b. layer interpolation flag (1=lin.,2=quad.)       
-      data niter /   2    / ! KPP:     iterations for semi-implicit soln. (2 recomended)  
+      data niter /   1    / ! KPP:     iterations for semi-implicit soln. (2 recomended)  
       data mxlkpp/ .true./
       data mxlgis/ .false./
       end
