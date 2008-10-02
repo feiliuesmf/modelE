@@ -59,7 +59,7 @@ c:        to lam using Matlab linear interp
       bp550 = 0.416 * chl_in**0.766 ! Loisel & Morel (1998)
 	 
       ! Varying backscattering exponent
-      if(chl_in < 2.0 ) then
+      if(chl_in < 2.0 .AND. chl_in > 0 ) then
          var_exp = 0.5 * (dlog10(chl_in) - 0.3)
       else 
          var_exp = 0.0
