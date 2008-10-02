@@ -5,7 +5,6 @@ cc      call test_zonal_loop()    ! tests parallel zonal mean code, using rolled
 cc      call test_zonal_unrolled() ! tests parallel zonal mean code, using unrolled loops
       call test_regrid()        ! tests parallel regridding code
 cc     call offregrid()    ! tests offline regridding for input file
-cc      call exactregrid()  ! test Gary's exact regridding routine
       end program testregrid
 
 
@@ -130,7 +129,8 @@ c     should be pre-computed
       endif
 
       call mpp_exit()
-
+      deallocate(pelist)
+      deallocate(tcub_loc)
       deallocate(xgrid_area)
       deallocate(ijcub)
       deallocate(ijlatlon)
@@ -267,7 +267,8 @@ c     sum over all domains (not reducing rank)
       endif
 
       call mpp_exit()
-
+      deallocate(pelist)
+      deallocate(tcub_loc)
       deallocate(xgrid_area)
       deallocate(ijcub)
       deallocate(ijlatlon)
@@ -820,6 +821,13 @@ c      write(6,*) tcub_loc(:,:)
       endif
 
       call mpp_exit()
+
+      deallocate(pelist)
+      deallocate(tcub_loc)
+      deallocate(xgrid_area)
+      deallocate(ijcub)
+      deallocate(ijlatlon)
+      deallocate(tile)
 
       end subroutine test_regrid
 
