@@ -3326,9 +3326,11 @@ c --- compute Kraus-Turner mixed layer depth in a single column.
 c --- sign convention: buoyancy flux is positive into the ocean, i.e.,
 c --- surface density increases (column is destabilized) if buoyfl < 0
 c
+      USE HYCOM_DIM
+      USE HYCOM_SCALARS
+      USE HYCOM_ARRAYS
+
       implicit none
-      include 'dimensions.h'
-      include 'common_blocks.h'
 c
       real,intent(IN) :: pres(kdm+1)	! pressure
      .                  ,dens(kdm)	! density
@@ -3336,6 +3338,8 @@ c
      .                  ,buoyfl		! buoyancy flux
      .                  ,u_star		! friction velocity, sqrt(tau/rho)
      .                  ,corpar		! coriolis parameter
+
+      integer k
 c
       real turgen,dpth,ekminv,obuinv,ex,alf1,alf2,cp1,cp3,ape,cc4,spe,
      .     em,en,ea1,ea2,em1,em2,em3,em4,em5,thknew,q,thermg,sum1,sum2,
