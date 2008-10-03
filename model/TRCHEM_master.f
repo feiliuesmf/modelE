@@ -86,7 +86,7 @@ C**** Local parameters and variables and arguments:
 !@var changeClONO2,changeClOx,changeHOCl,changeHCl nighttime changes
 !@var changehetClONO2 nighttime het change in ClONO2 (on sulfate)
 !@var pscX flag for psc existence
-!@var chg106,chg107,chg108,chg109 reaction rates for het rxns on pscs
+!@var chgHT3,chgHT4,chgHT5 reaction rates for het rxns on pscs
 !@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
 !@var rmv dummy variable for halogne removal in trop vs height
 !@var changeL 2D array holds the local change due to chem or strat 
@@ -123,7 +123,7 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_AEROSOLS_SOA
      & changeisopp1g,changeisopp2g,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &  changeOx,fraQ,CH4_569,count_569,thick, changeCO
+     &  changeOx,fraQ,CH4_569,count_569,thick, changeCO,avgIso
 #ifdef TRACERS_HETCHEM
       REAL*8 :: changeN_d1,changeN_d2,changeN_d3
 #endif
@@ -133,16 +133,16 @@ C**** Local parameters and variables and arguments:
 #ifdef SHINDELL_STRAT_CHEM
       REAL*8, DIMENSION(LM)     :: ClOx_old  
       REAL*8 :: CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
-     & changeHOCl,changeHCl,changehetClONO2,pscX,chg106,chg107,
-     & chg108,chg109,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
-     & countTT
+     & changeHOCl,changeHCl,changehetClONO2,pscX,chgHT3,
+     & chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
+     & countTT,bHNO3,mHNO3,HNO3_thresh
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,J3,L2,n2,
      &                             Jqq,Iqq,imonth,m,maxl,iu
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
-      CHARACTER*80              :: ghg_file
+      CHARACTER*80              :: ghg_file,title
       character(len=300)        :: out_line
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -161,13 +161,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      &            countTT_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      &          count_569_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
-      
+
+
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &               HAVE_SOUTH_POLE = have_south_pole,
+     &               HAVE_NORTH_POLE = have_north_pole)
       
       byavog = 1.d0/avog
 #ifdef INITIAL_GHG_SETUP
@@ -306,6 +308,32 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
       end if
 #endif
 
+! Define acetone in terms of Isoprene:
+! NOTE: this must be changed if switching to 2D decomposition
+! as there is a zonal mean here:
+      do j=J_0,J_1
+        avgIso=0.d0
+        do i=1,IMAXJ(j)
+          avgIso=avgIso+trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
+     &    bydxyp(j)*byAM(1,i,j)
+        enddo
+        avgIso=avgIso/real(IMAXJ(j))
+        do i=1,IMAXJ(j)
+          select case(which_trop)
+          case(0); maxl=ltropo(I,J)
+          case(1); maxl=ls1-1
+          case default; call stop_model('which_trop problem',255)
+          end select
+          do L=1,maxl
+            acetone(i,j,L)=max(0.d0, ! in molec/cm3
+     &      (1.25d0*(avgIso-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &      bydxyp(j)*byAM(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+          enddo
+          do L=maxl+1,LM
+            acetone(i,j,L)=0.d0
+          enddo
+        enddo
+      enddo
 
 CCCC!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT,
 CCCC!$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
@@ -318,7 +346,7 @@ CCCC#endif
 CCCC#ifdef SHINDELL_STRAT_CHEM
 CCCC!$OMP* aero, CLTOT, ClOx_old, COLMO2, COLMO3, changeClONO2, changeClOx,
 CCCC!$OMP* changehetClONO2, changeHOCl, changeHCl,
-CCCC!$OMP* chg106, chg107, chg108, chg109, fraQ,
+CCCC!$OMP* chgHT3, chgHT4, chgHT5, fraQ,
 CCCC!$OMP* pscx, rmrclox, rmrbrox, rmrox, rmv,
 CCCC#endif
 CCCC!$OMP* igas, inss, J, jay, L, LL, Lqq, maxl, N, error )
@@ -345,7 +373,7 @@ c Save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)  =TX(I,J,L)
 c Calculate M and set fixed ratios for O2 & H2:
-       y(nM,L)=pres(L)/(ta(L)*1.38d-19)
+       y(nM,L)=pres(L)/(ta(L)*cboltz)
        y(nO2,L)=y(nM,L)*pfix_O2
 #ifdef SHINDELL_STRAT_CHEM
        if(pres2(l) > 20.d0)then
@@ -519,6 +547,7 @@ c       Convert to ppm (units used in fastj)
 #endif
 
         call photoj(I,J) ! CALL THE PHOTOLYSIS SCHEME
+        call photo_acetone(I,J,sza*radian,Jacet) ! simpler calculation for acetone
 
 C Define and alter resulting photolysis coefficients (zj --> ss):
 #ifdef SHINDELL_STRAT_CHEM
@@ -746,8 +775,8 @@ c       calculate change in NO3:
 C       including DMS+NO3 :
      &       - ydms(i,j,l)*rsulf3(i,j,l)*yNO3(I,J,L)
 #ifdef SHINDELL_STRAT_CHEM
-        dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(99,L)*y(nNO2,L))
-     &       *yNO3(I,J,L)+rr(92,L)*y(n_N2O5,L)
+        dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(100,L)*y(nNO2,L))
+     &       *yNO3(I,J,L)+rr(93,L)*y(n_N2O5,L)
 #else
         dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(52,L)*y(nNO2,L))
      &       *yNO3(I,J,L)+rr(46,L)*y(n_N2O5,L)
@@ -782,8 +811,8 @@ C Alkenes, Isoprene, and AlkylNit:
         gprodHNO3=gwprodHNO3*pfactor
 
 #ifdef SHINDELL_STRAT_CHEM
-        gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(99,L)-y(n_N2O5,L)
-     &             *rr(92,L))*dt2
+        gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(100,L)-y(n_N2O5,L)
+     &             *rr(93,L))*dt2
 #else
         gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(52,L)-y(n_N2O5,L)
      &             *rr(46,L))*dt2
@@ -1128,14 +1157,14 @@ CCCCCCCCCCCCCCCC NIGHTTIME STRATOSPHERE CCCCCCCCCCCCCCCCCCCCCCC
 
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
          bypfactor=1.D0/pfactor
-         wprod_sulf=DT2*y(n_N2O5,L)*rr(105,L) !rxn on sulfate & PSCs
+         wprod_sulf=DT2*y(n_N2O5,L)*rr(106,L) !rxn on sulfate & PSCs
          if(wprod_sulf >= 0.5d0*y(n_N2O5,L))wprod_sulf=0.5d0*y(n_N2O5,L)
 
 c        calculate and limit change in NO3:
          dNO3=rr(7,L)*y(nNO2,L)*y(n_Ox,L)-(rr(24,L)*y(nNO2,L)+
      &        2.d0*rr(25,L)*yNO3(I,J,L))*yNO3(I,J,L)
-         dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(99,L)*y(nNO2,L))
-     &        *yNO3(I,J,L)+rr(92,L)*y(n_N2O5,L)
+         dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(100,L)*y(nNO2,L))
+     &        *yNO3(I,J,L)+rr(93,L)*y(n_N2O5,L)
          dNO3=dNO3*dt2
          if(-dNO3 > 0.66d0*yNO3(I,J,L))dNO3=-0.66d0*yNO3(I,J,L)
 
@@ -1160,12 +1189,12 @@ C Alkenes, Isoprene, and AlkylNit:
          if(gwprodHNO3 > 0.5d0*y(n_NOx,L))gwprodHNO3=0.5d0*y(n_NOx,L)
          if(gwprodHNO3 > y(n_HCHO,L))gwprodHNO3=y(n_HCHO,L)
          gprodHNO3=gwprodHNO3*pfactor
-         gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(99,L)-y(n_N2O5,L)
-     &              *rr(92,L))*dt2
+         gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(100,L)-y(n_N2O5,L)
+     &              *rr(93,L))*dt2
          if(gwprodN2O5 > 0.25d0*y(n_NOx,L))gwprodN2O5=0.25d0*y(n_NOx,L)
          if(-gwprodN2O5 > 0.5d0*y(n_N2O5,L))
      &   gwprodN2O5=-0.49d0*y(n_N2O5,L)
-         changeClONO2=y(nClO,L)*rr(103,L)*y(nNO2,L)*dt2
+         changeClONO2=y(nClO,L)*rr(104,L)*y(nNO2,L)*dt2
          if(changeClONO2 >= y(nClO,L))changeClONO2=0.8d0*y(nClO,L)
          if(changeClONO2 >= y(nNO2,L))changeClONO2=0.8d0*y(nNO2,L)
          changeClOx=-changeClONO2
@@ -1211,8 +1240,8 @@ c Ensure nitrogen conservation (presumably dNOx<0, others >0):
          if(-changeNOx > y(n_NOx,L))changeNOx=-.95d0*y(n_NOx,L)
 
 c Heterogeneous reaction ClONO2+H2O on sulfate (and PSCs if present):
-         if(rr(106,L) > 2.d-35)then
-           changehetClONO2=-(rr(106,L)*y(n_ClONO2,L))*dt2
+         if(rr(107,L) > 2.d-35)then
+           changehetClONO2=-(rr(107,L)*y(n_ClONO2,L))*dt2
            if(changehetClONO2 >= 0.5*y(n_ClONO2,L))changehetClONO2=
      &     -0.5d0*y(n_ClONO2,L)
            changeClONO2=changeClONO2+changehetClONO2
@@ -1225,35 +1254,42 @@ c Heterogeneous reaction ClONO2+H2O on sulfate (and PSCs if present):
          changeHCl=0.d0
 
 c Polar Stratospheric Clouds (PSC) Chemistry:
-c 105 N2O5    +H2O     -->HNO3    +HNO3  (calculated above)
-c 106 ClONO2  +H2O     -->HOCl    +HNO3  (calculated above)
-c 107 ClONO2  +HCl     -->Cl      +HNO3  !really makes Cl2
-c 108 HOCl    +HCl     -->Cl      +H2O   !raeally makes Cl2
-c 109 N2O5    +HCl     -->Cl      +HNO3  !really makes ClNO2  2
+c 106 N2O5    +H2O     -->HNO3    +HNO3  (calculated above)
+c 107 ClONO2  +H2O     -->HOCl    +HNO3  (calculated above)
+c 108 ClONO2  +HCl     -->Cl      +HNO3  !really makes Cl2
+c 109 HOCl    +HCl     -->Cl      +H2O   !raeally makes Cl2
+c 110 N2O5    +HCl     -->Cl      +HNO3  !really makes ClNO2  2
 
          pscX=0.d0
          if((pres2(l) <= 150.d0 .and. pres2(l) >= 35.d0) ! certain pres
      &   .and.((lat_dg(J,1)<=-66.).OR.(lat_dg(J,1)>=66.))! near poles
-     &   .and. (ta(l) <= T_thresh))then                  ! cold enough
-           pscX=1.d0
-           chg107=rr(107,L)*y(n_ClONO2,L)*dt2
-           if(chg107 >= 0.4d0*y(n_ClONO2,L))chg107=0.4d0*y(n_ClONO2,L)
-           if(chg107 >= 0.3d0*y(n_HCl,L))chg107=0.3d0*y(n_HCl,L)
-           chg108=rr(108,L)*y(n_HOCl,L)*dt2
-           if(chg108 >= 0.8d0*y(n_HOCl,L))chg108=0.8d0*y(n_HOCl,L)
-           if(chg108 >= 0.3d0*y(n_HCl,L))chg108=0.3d0*y(n_HCl,L)
-           chg109=rr(109,L)*y(n_N2O5,L)*dt2
-           if(chg109 >= 0.5d0*y(n_N2O5,L))chg109=0.5d0*y(n_N2O5,L)
-           if(chg109 >= 0.3d0*y(n_HCl,L))chg109=0.3d0*y(n_HCl,L)
-           changeClONO2=changeClONO2-chg107
-           changeHOCl=changeHOCl-chg108
-           changeN2O5=changeN2O5-chg109
-           changeHCl=changeHCl-chg107-chg108-chg109
-           changeHNO3=changeHNO3+chg107+chg109
-           changeClOx=changeClOx+chg107+chg108+chg109
-c          Note that really the last 3 produce Cl2, not ClOx, and Cl2
-C          at night is stable and doesn't go back into ClONO2, so
-C          should eventually keep track of Cl2/ClOx partitioning!
+     &   .and. (ta(l) <= min(200.d0,T_thresh) ))then     ! cold enough
+          ! HNO3 limit from Hanson & Mauersberger 1988:
+          bHNO3=38.9855d0-11397.d0/ta(L)+0.009179d0*ta(L)
+          mHNO3= -2.7836d0 - 8.8d-4*ta(L)
+          HNO3_thresh=2.69d19/760.d0*10.d0**
+     &    (mHNO3*log10(y(nH2O,L)*760.d0/2.69d19)+bHNO3)
+          if(y(n_HNO3,L) >= HNO3_thresh) then            ! enough HNO3
+            pscX=1.d0
+            chgHT3=rr(108,L)*y(n_ClONO2,L)*dt2
+            if(chgHT3 >= 0.4d0*y(n_ClONO2,L))chgHT3=0.4d0*y(n_ClONO2,L)
+            if(chgHT3 >= 0.3d0*y(n_HCl,L))chgHT3=0.3d0*y(n_HCl,L)
+            chgHT4=rr(109,L)*y(n_HOCl,L)*dt2
+            if(chgHT4 >= 0.8d0*y(n_HOCl,L))chgHT4=0.8d0*y(n_HOCl,L)
+            if(chgHT4 >= 0.3d0*y(n_HCl,L))chgHT4=0.3d0*y(n_HCl,L)
+            chgHT5=rr(110,L)*y(n_N2O5,L)*dt2
+            if(chgHT5 >= 0.5d0*y(n_N2O5,L))chgHT5=0.5d0*y(n_N2O5,L)
+            if(chgHT5 >= 0.3d0*y(n_HCl,L))chgHT5=0.3d0*y(n_HCl,L)
+            changeClONO2=changeClONO2-chgHT3
+            changeHOCl=changeHOCl-chgHT4
+            changeN2O5=changeN2O5-chgHT5
+            changeHCl=changeHCl-chgHT3-chgHT4-chgHT5
+            changeHNO3=changeHNO3+chgHT3+chgHT5
+            changeClOx=changeClOx+chgHT3+chgHT4+chgHT5
+c           Note that really the last 3 produce Cl2, not ClOx, and Cl2
+C           at night is stable and doesn't go back into ClONO2, so
+C           should eventually keep track of Cl2/ClOx partitioning!
+          endif
          endif
 
 c Remove some of the HNO3 formed heterogeneously, as it doesn't come
@@ -1908,6 +1944,48 @@ c Save new tracer Ox field for use in radiation or elsewhere:
 
 
 
+      subroutine photo_acetone(I,J,sza,Jacet)
+!@sum calculate photolysis rate for acetone geometrically
+!@+ taken from the UK Harwell Model
+!@auth Drew Shindell (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on dsf_master_chem_GCM.S)
+!
+      use model_com, only: jday,jhour,LS1,LM
+      use dynamics, only: pmid
+      use geom, only:  lat ! lat is in radians
+      use constant, only: twopi,pi,radian,teeny
+
+!@var dec declination angle of the earth
+!@var lha local hour angle
+!@var CC COS(lat)*COS(dec)
+!@var SS SIN(lat)*SIN(dec)
+
+      real*8, parameter :: C1=9.269d-7,C2=1.563d0,C3=0.301d0
+      real*8 :: dec,lha,CC,SS,sec_func,Jacet0
+      real*8, intent(in):: sza ! passed in radians
+      real*8, dimension(LM), intent(out) :: Jacet
+      integer, intent(in) :: i,j
+      integer :: L
+
+      dec=radian*23.455d0*COS( ((jday-173)*twopi)/365.d0 )
+      lha=twopi*real(jhour)/24.d0
+
+      CC=COS(lat(J))*COS(dec)
+      SS=SIN(lat(J))*SIN(dec)
+
+      sec_func=1.d0/max(teeny,COS(lha)*CC+SS)
+ 
+      Jacet0=max(0.d0,C1*(COS(sza)*C2)*EXP(-1.*C3*sec_func))
+      Jacet(:)=0.d0
+      do L=1,LS1-1
+        Jacet(L)=3.d0*Jacet0/LOG(pmid(L,i,j))
+      enddo
+      
+      return
+      end subroutine photo_acetone
+
+
+
       SUBROUTINE Crates(I,J
 #ifdef SHINDELL_STRAT_CHEM
      &   ,aero
@@ -1928,7 +2006,7 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only : PI
       USE DYNAMICS, only : LTROPO
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
-     &               r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,T_thresh
+     &        cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,T_thresh
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
       USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
@@ -1950,9 +2028,11 @@ C**** Local parameters and variables and arguments:
 !@var rkext aerosol extinction from SAGE obs
 !@var pscEx NAT PSC surface conc per unit volume (cm^2/cm^3)
 !@var Ltop is number of levels with chemistry
-      REAL*8                :: byta,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp
-      INTEGER               :: L,jj,nb,Ltop
-      INTEGER, INTENT(IN)   :: I,J
+!@var beta branching ratio for (HO2+NO) reactions
+!@var pcon variable for some pressure conversions
+      REAL*8 :: byta,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp,beta,pcon
+      INTEGER             :: L,jj,nb,Ltop
+      INTEGER, INTENT(IN) :: I,J
 #ifdef SHINDELL_STRAT_CHEM
 !@var PRES local nominal pressure
 !@var LAXt,LAXb lowest and highest levels to have nonzero 
@@ -1984,6 +2064,7 @@ C**** Local parameters and variables and arguments:
 #endif
       do L=1,Ltop            !  >>> BEGIN ALTITUDE LOOP <<<
         byta=1.d0/ta(L)
+        pcon=y(nM,L)*ta(L)*cboltz/1013.d0
         do jj=1,nr2             ! bimolecular rates start
           IF(ea(jj) /= 0.d0) THEN
             rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
@@ -1991,8 +2072,7 @@ C**** Local parameters and variables and arguments:
             rr(jj,L)=pe(jj)
           END IF
 c         for #13, k=pe*(1+0.6*(Patm/1013)) Patm=[M]*(T*1.38E-19)
-          if(jj == 13) rr(jj,L) =
-     &    pe(jj)*(1.d0+0.6d0*((y(nM,L)*ta(L)*1.38d-19)/1013.d0))
+          if(jj == 13) rr(jj,L) = pe(jj)*(1.d0+0.6d0*pcon)
 c         for reaction #15, k=(kc+kp)fw, kc=rr
           if(jj == 15)then
             rkp=1.7d-33*y(nM,L)*exp(1000.d0*byta)
@@ -2007,6 +2087,20 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
           endif
           if(jj == 29)rr(jj,L)=rr(jj,L)/y(nM,L)!PAN+M really PAN
           if(jj == 42)rr(jj,L)=rr(jj,L)/y(nM,L)!ROR+M really ROR
+!         for #6 & 91 (HO2+NO) calculate branching ratio here          
+!         Butkovskaya et al J.Phys.Chem 2007         
+          if(ta(L)<298.d0)then
+            beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
+          else
+            beta=0.d0
+          endif
+#ifdef SHINDELL_STRAT_CHEM
+          if(jj == 91)rr(jj,L)=rr(jj,L)*beta
+          if(jj ==  6)rr(jj,L)=rr(jj,L)*(1.d0-beta)
+#else
+          if(jj == 45)rr(jj,L)=rr(jj,L)*beta
+          if(jj ==  6)rr(jj,L)=rr(jj,L)*(1.d0-beta)
+#endif
         end do                ! bimolecular rates end
 
 #ifdef SHINDELL_STRAT_CHEM
