@@ -1120,7 +1120,7 @@ C**** Save surface values
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
      *     ,dxypo,cosic,sinic,uo,vo,ramvn,bydts, IVNP
-      USE SEAICE_COM, only : rsi
+
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
      *     ,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
@@ -1131,10 +1131,14 @@ C**** Save surface values
 #ifdef TRACERS_OCEAN
      *     ,trmo1,txmo1,tymo1
 #endif
+
+      USE SEAICE_COM, only : rsi
       USE FLUXES, only : solar,dmua,dmva,dmui,dmvi
+
+      USE OFLUXES, only : oRSI, oSOLAR, oDMUA,oDMVA, oDMUI,oDMVI
+
       USE SW2OCEAN, only : fsr,lsrpd
 
-!      use domain_decomp, only : grid,get
       use domain_decomp, only : get
       USE OCEANR_DIM, only : grid=>ogrid
       use domain_decomp, only : HALO_UPDATE, NORTH, SOUTH
@@ -1198,8 +1202,8 @@ C****
 C**** Outside loop over J
 C**** Processes are checked and applied on every horizontal quarter box.
 C****
-      call halo_update (grid,  VO1, from=south)
-      call halo_update (grid, DMVI, from=south)
+      call halo_update (grid,   VO1, from=south)
+      call halo_update (grid, oDMVI, from=south)
 !$OMP PARALLEL DO  PRIVATE(ANSTR,AKVM,AKVS,AKVG,ALPHADT, BYMML,BYMMLT,
 !$OMP&  BYMML0,BYHWIDE,BYRHO,BYSHC,BO,BOSOL,BETADS,BYDZ2, CORIOL,DBLOC,
 !$OMP&  DBSFC,DELTAE,DELTAM,DELTAS,DELTASR,DM,DTBYDZ,DTBYDZ2,DVSQ,
@@ -1296,20 +1300,20 @@ C**** DMUA/I now defined over whole box, not just surface type
       UISTR = 0
       VISTR = 0
       DO I=1,IM
-        UISTR = UISTR + DMVI(I,JM-1)*COSIC(I)
-        VISTR = VISTR - DMVI(I,JM-1)*SINIC(I)
+        UISTR = UISTR + oDMVI(I,JM-1)*COSIC(I)
+        VISTR = VISTR - oDMVI(I,JM-1)*SINIC(I)
       END DO
       UISTR = UISTR/IM
       VISTR = VISTR/IM
       U2rho = SQRT(
-     *     (DMUA(1,JM,1) + UISTR)**2+
-     *     (DMVA(1,JM,1) + VISTR)**2)*BYDTS
+     *     (oDMUA(1,JM,1) + UISTR)**2+
+     *     (oDMVA(1,JM,1) + VISTR)**2)*BYDTS
 C**** Calculate surface mass, salt and heat fluxes
       DELTAM = (MO(1,JM,1) -  MO1(1,JM))*BYDTS
       DELTAE = (G0ML0(1,1,1) - G0ML(1,1,1))*BYDXYPO(JM)*BYDTS
       DELTAS = (S0ML0(1,1,1) - S0ML(1,1,1))*BYDXYPO(JM)*BYDTS
-      DELTASR= (SOLAR(1,1,JM)*(1d0-RSI(1,JM))+SOLAR(3,1,JM)*RSI(1,JM))
-     *     *BYDTS               ! W/m^2
+      DELTASR= (oSOLAR(1,1,JM)*(1d0-oRSI(1,JM))+oSOLAR(3,1,JM)
+     *     *oRSI(1,JM))*BYDTS               ! W/m^2
 #ifdef TRACERS_OCEAN
       DELTATR(:)=(TRML(1,:,1,1)-TRML1(:,1,1))*BYDXYPO(JM)*BYDTS !kg/m2/s
 #endif
@@ -1348,21 +1352,21 @@ C**** DM[UV]A are defined on t-grid. DM[UV]I defined on u,v grid
 C**** DMUA/I now defined over whole box, not just surface type
       UISTR = 0
       VISTR = 0
-      IF (RSI(I,J).gt.0) THEN
-        IF (LMU(I,J).gt.0)   UISTR = UISTR + DMUI(I,J)
-        IF (LMU(IM1,J).gt.0) UISTR = UISTR + DMUI(IM1,J)
+      IF (oRSI(I,J).gt.0) THEN
+        IF (LMU(I,J).gt.0)   UISTR = UISTR + oDMUI(I,J)
+        IF (LMU(IM1,J).gt.0) UISTR = UISTR + oDMUI(IM1,J)
         ANSTR=1.-SIGN(0.25,LMU(I,J)-0.5)-SIGN(0.25,LMU(IM1,J)-0.5)
         UISTR = UISTR*ANSTR
-        IF (LMV(I,J).gt.0)   VISTR = VISTR + DMVI(I,J)
-        IF (LMV(I,J-1).gt.0) VISTR = VISTR + DMVI(I,J-1)
+        IF (LMV(I,J).gt.0)   VISTR = VISTR + oDMVI(I,J)
+        IF (LMV(I,J-1).gt.0) VISTR = VISTR + oDMVI(I,J-1)
         ANSTR=1.-SIGN(0.25,LMV(I,J)-0.5)-SIGN(0.25,LMV(I,J-1)-0.5)
         VISTR = VISTR*ANSTR
       END IF
-      U2rho = SQRT((DMUA(I,J,1) + UISTR)**2 +
-     *             (DMVA(I,J,1) + VISTR)**2)*BYDTS
+      U2rho = SQRT((oDMUA(I,J,1) + UISTR)**2 +
+     *             (oDMVA(I,J,1) + VISTR)**2)*BYDTS
 C**** Calculate surface mass flux and Solar forcing
       DELTAM = (MO(I,J,1) -  MO1(I,J))*BYDTS ! kg/m^2 s
-      DELTASR = (SOLAR(1,I,J)*(1d0-RSI(I,J))+SOLAR(3,I,J)*RSI(I,J))
+      DELTASR = (oSOLAR(1,I,J)*(1d0-oRSI(I,J))+oSOLAR(3,I,J)*oRSI(I,J))
      *     *BYDTS               ! W/m^2
       KPL(I,J) = 1  ! Initialize mixed layer depth
 

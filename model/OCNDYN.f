@@ -3271,16 +3271,34 @@ C**** Reduce South-North gradient of tracers
 !@sum and the sea ice stress to the layer 1 ocean velocities
 !@auth Gary Russell
 !@ver  1.0
-      USE OCEAN, only : im,jm,ivnp,uo,vo,mo,dxyso,dxyno,dxyvo,
-     *                  lmu,lmv,cosic,sinic,ratoc
-      USE FLUXES, only : dmua,dmva,dmui,dmvi
+      USE RESOLUTION, only : IMA=>IM, JMA=>JM 
 
-!      use domain_decomp, only : grid, get, halo_update, north
-      use domain_decomp, only : get, halo_update, north
-      USE OCEANR_DIM, only : grid=>ogrid
+      USE OCEAN, only : IMO=>IM,JMO=>JM
+     *     , IVNP, UO,VO, MO,DXYSO,DXYNO,DXYVO
+     *     , LMU,LMV, COSIC,SINIC, RATOC
+      USE DOMAIN_DECOMP, only : agrid=>grid, get, halo_update, north
+     *     , PACK_DATA,UNPACK_DATA, AM_I_ROOT
+      USE OCEANR_DIM, only : ogrid
+
+      USE FLUXES, only : aDMUA=>DMUA, aDMVA=>DMVA
+     *     , aDMUI=>DMUI, aDMVI=>DMVI 
+
+      USE OFLUXES, only : oDMUA,oDMVA, oDMUI,oDMVI
 
       IMPLICIT NONE
       INTEGER I,J,IP1
+
+!!!   Global arrays on ocean grid
+
+      REAL*8, DIMENSION(IMO,JMO,1) :: oDMUA_glob, oDMVA_glob
+      REAL*8, DIMENSION(IMO,JMO)   :: oDMUI_glob, oDMVI_glob
+
+!!!   Global arrays on atmospheric grid
+
+      INTEGER, PARAMETER :: NSTYPE=4
+      REAL*8, DIMENSION(IMA,JMA,NSTYPE) :: aDMUA_glob, aDMVA_glob
+      REAL*8, DIMENSION(IMA,JMA)        :: aDMUI_glob, aDMVI_glob  
+
 C****
 C**** All stress now defined for whole box, not just ocn or ice fraction
 C**** FLUXCB  DMUA(1)  U momentum downward into open ocean (kg/m*s)
@@ -3291,56 +3309,79 @@ C****         DMVI     V momentum downward from sea ice (kg/m*s)
 
       integer :: J_0, J_1, J_0S, J_1S  ; logical :: have_north_pole
 
-      call get (grid, J_STRT=J_0, J_STOP=J_1,
-     *                J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     *                have_north_pole=have_north_pole)
+      call get (ogrid, J_STRT=J_0, J_STOP=J_1,
+     *                 J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     *                 have_north_pole=have_north_pole)
+
+C***  Gather arrays on atmospheric grid into the global arrays 
+
+      CALL PACK_DATA  (agrid, aDMUA, aDMUA_glob)
+      CALL PACK_DATA  (agrid, aDMVA, aDMVA_glob)
+      CALL PACK_DATA  (agrid, aDMUI, aDMUI_glob)
+      CALL PACK_DATA  (agrid, aDMVI, aDMVI_glob)
+C* 
+C***  Do interpolation to the ocean grid 
+C* 
+      if(AM_I_ROOT()) then
+        call INT_AG2OG_ostres(
+     *       aDMUA_glob, aDMVA_glob, aDMUI_glob, aDMVI_glob
+     *     , oDMUA_glob, oDMVA_glob, oDMUI_glob, oDMVI_glob
+     *     )     
+      end if 
+
+C***  Scatter the arrays to the ocean grid 
+
+      CALL UNPACK_DATA  (ogrid, oDMUA_glob, oDMUA)
+      CALL UNPACK_DATA  (ogrid, oDMVA_glob, oDMVA)
+      CALL UNPACK_DATA  (ogrid, oDMUI_glob, oDMUI)
+      CALL UNPACK_DATA  (ogrid, oDMVI_glob, oDMVI)
 
 C**** Scale stresses for ocean area
       DO J=J_0,J_1
-        DO I=1,IM
-          DMUA(I,J,1)=RATOC(J)*DMUA(I,J,1)
-          DMVA(I,J,1)=RATOC(J)*DMVA(I,J,1)
-          DMUI(I,J)=RATOC(J)*DMUI(I,J)
-          DMVI(I,J)=RATOC(J)*DMVI(I,J)
+        DO I=1,IMO
+          oDMUA(I,J,1)=RATOC(J)*oDMUA(I,J,1)
+          oDMVA(I,J,1)=RATOC(J)*oDMVA(I,J,1)
+          oDMUI(I,J)=RATOC(J)*oDMUI(I,J)
+          oDMVI(I,J)=RATOC(J)*oDMVI(I,J)
         END DO
       END DO
 C****
 C**** Surface stress is applied to U component
 C****
-      I=IM
+      I=IMO
       DO J=J_0S,J_1S
-      DO IP1=1,IM
+      DO IP1=1,IMO
         IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
-     *       (DMUA(I,J,1) + DMUA(IP1,J,1) + 2d0*DMUI(I,J)) /
+     *       (oDMUA(I,J,1) + oDMUA(IP1,J,1) + 2d0*oDMUI(I,J)) /
      *       (  MO(I,J,1) +   MO(IP1,J,1))
         I=IP1
       END DO
       END DO
       if (have_north_pole) then
-        UO(IM  ,JM,1) = UO(IM  ,JM,1) + DMUA(1,JM,1)/MO(1,JM,1)
-        UO(IVNP,JM,1) = UO(IVNP,JM,1) + DMVA(1,JM,1)/MO(1,JM,1)
+        UO(IMO ,JMO,1) = UO(IMO ,JMO,1) + oDMUA(1,JMO,1)/MO(1,JMO,1)
+        UO(IVNP,JMO,1) = UO(IVNP,JMO,1) + oDMVA(1,JMO,1)/MO(1,JMO,1)
       end if
 C****
 C**** Surface stress is applied to V component
 C****
-      call halo_update(grid, dmva, from=north)
-      call halo_update(grid,   mo, from=north)
-      DO J=J_0S,min(J_1S,JM-2)
-      DO I=1,IM
+      call halo_update(ogrid, odmva, from=north)
+      call halo_update(ogrid,    mo, from=north)
+      DO J=J_0S,min(J_1S,JMO-2)
+      DO I=1,IMO
         IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
-     *       (DMVA(I,J  ,1)*DXYNO(J) + DMVA(I,J+1,1)*DXYSO(J+1)
-     *       +2d0*DMVI(I,J)*DXYVO(J))
+     *       (oDMVA(I,J  ,1)*DXYNO(J) + oDMVA(I,J+1,1)*DXYSO(J+1)
+     *       +2d0*oDMVI(I,J)*DXYVO(J))
      * / (MO(I,J,1)*DXYNO(J) + MO(I,J+1,1)*DXYSO(J+1))
       END DO
       END DO
 C**** Surface stress is applied to V component at the North Pole
       if (have_north_pole) then
-      DO I=1,IM
-        VO(I,JM-1,1) = VO(I,JM-1,1) +
-     *       (DMVA(I,JM-1,1)*DXYNO(JM-1)+
-     *       (DMVA(1,JM,1)*COSIC(I) - DMUA(1,JM,1)*SINIC(I))*DXYSO(JM)
-     *       + 2d0*DMVI(I,JM-1)*DXYVO(JM-1)) /
-     *  (MO(I,JM-1,1)*DXYNO(JM-1) + MO(I,JM,1)*DXYSO(JM))
+      DO I=1,IMO
+        VO(I,JMO-1,1) = VO(I,JMO-1,1) +
+     *    (oDMVA(I,JMO-1,1)*DXYNO(JMO-1)+
+     *    (oDMVA(1,JMO,1)*COSIC(I) - oDMUA(1,JMO,1)*SINIC(I))*DXYSO(JMO)
+     *    + 2d0*oDMVI(I,JMO-1)*DXYVO(JMO-1)) /
+     *  (MO(I,JMO-1,1)*DXYNO(JMO-1) + MO(I,JMO,1)*DXYSO(JMO))
       END DO
       end if
       RETURN
@@ -3477,8 +3518,6 @@ C**** Surface stress is applied to V component at the North Pole
      *                have_north_pole=have_north_pole,
      *                have_south_pole=have_south_pole)
 
-      write (555,*) ' Subr. GROUND_OC #1: ', J_0S,J_1      
-
 C***  Gather arrays on atmospheric grid into the global arrays 
 
       CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
@@ -3513,8 +3552,6 @@ C***  Gather arrays on atmospheric grid into the global arrays
       CALL PACK_BLOCK (agrid,  aTRGASEX,  aTRGASEX_glob)
 #endif      
 C* 
-      write (555,*) ' Subr. GROUND_OC #2: ', J_0S,J_1      
-C* 
 C***  Do interpolation to the ocean grid 
 C* 
       if(AM_I_ROOT()) then
@@ -3543,8 +3580,6 @@ C*
 #endif      
      *     )     
       end if 
-
-      write (555,*) ' Subr. GROUND_OC #3: ', J_0S,J_1      
 
 C***  Scatter the arrays to the ocean grid 
 
@@ -4682,8 +4717,6 @@ C****
       call get (grid, j_strt=j_0, j_stop=j_1,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
-      write (555,*) ' Subr. TOC2SST #1: ', J_0,J_1      
-
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 ! 
       call OG2AG
@@ -4937,19 +4970,31 @@ C****
 !@auth Sukeshi Sheth/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : dtsrc
-      USE OCEAN, only : imaxj,jm,g0m,mo,ze,focean,dxypo,lmm
+      USE RESOLUTION, only : IMA=>IM, JMA=>JM 
+
+      USE OCEAN, only : IMO=>IM,JMO=>JM, LMM, IMAXJ,DXYPO
+     *     , MO, G0M, ZE, FOCEAN
 #ifdef TRACERS_OCEAN
-     *     ,trmo
+     *     , TRMO, NTM
 #endif
-      USE FLUXES, only : gmelt,egmelt
-#ifdef TRACERS_WATER  /* TNL: inserted */
+
+      USE FLUXES, only : aGMELT=>GMELT, aEGMELT=>EGMELT
+#ifdef TRACERS_WATER  
 #ifdef TRACERS_OCEAN
-     *     ,trgmelt
+     *     , aTRGMELT=>TRGMELT 
 #endif
-#endif               /* TNL: inserted */
-!      use domain_decomp, only : grid,get
-      use domain_decomp, only : get
-      USE OCEANR_DIM, only : grid=>ogrid
+#endif              
+
+      USE OFLUXES, only : oGMELT, oEGMELT
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+     *     , oTRGMELT 
+#endif
+#endif              
+ 
+      use domain_decomp, only : agrid=>grid, get, AM_I_ROOT
+     *     , PACK_DATA,UNPACK_DATA, PACK_COLUMN,UNPACK_COLUMN
+      USE OCEANR_DIM, only : ogrid
       USE OCEANRES, only : maxgl
 
       IMPLICIT NONE
@@ -4959,21 +5004,73 @@ C****
 
       integer :: j_0,j_1
 
-      call get (grid, J_STRT=j_0, J_STOP=j_1)
+!!!   Global arrays on ocean grid
+
+      REAL*8, DIMENSION(IMO,JMO) :: oGMELT_glob, oEGMELT_glob
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRGMELT_glob 
+#endif
+#endif              
+
+!!!   Global arrays on atmospheric grid
+
+      REAL*8, DIMENSION(IMA,JMA) :: aGMELT_glob, aEGMELT_glob
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRGMELT_glob 
+#endif
+#endif              
+
+      call get (ogrid, J_STRT=j_0, J_STOP=j_1)
+
+C***  Gather arrays on atmospheric grid into the global arrays 
+
+      CALL PACK_DATA  (agrid,   aGMELT,   aGMELT_glob)
+      CALL PACK_DATA  (agrid,  aEGMELT,  aEGMELT_glob)
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+      CALL PACK_COLUMN(agrid, aTRGMELT, aTRGMELT_glob)
+#endif
+#endif              
+C* 
+C***  Do interpolation to the ocean grid 
+C* 
+      if(AM_I_ROOT()) then
+        call INT_AG2OG_glmelt(
+     *       aGMELT_glob, aEGMELT_glob
+     *     , oGMELT_glob, oEGMELT_glob
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+     *     , aTRGMELT_glob, oTRGMELT_glob
+#endif
+#endif              
+     *     )     
+      end if 
+
+C***  Scatter the arrays to the ocean grid 
+
+      CALL UNPACK_DATA  (ogrid,  oGMELT_glob,  oGMELT)
+      CALL UNPACK_DATA  (ogrid, oEGMELT_glob, oEGMELT)
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+      CALL UNPACK_DATA  (ogrid,  oTRGMELT_glob,  oTRGMELT)
+#endif
+#endif              
 
       DO L=1,MAXGL
 C**** divide over depth and scale for time step
         DO J=j_0,j_1
           DO I=1,IMAXJ(J)
-            IF (FOCEAN(I,J).GT.0. .and. GMELT(I,J).gt.0) THEN
+            IF (FOCEAN(I,J).GT.0. .and. oGMELT(I,J).gt.0) THEN
               DZ=DT*(ZE(L)-ZE(L-1))/(DTsrc*ZE(MIN(MAXGL,LMM(I,J))))
-              MO(I,J,L) = MO(I,J,L)+GMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))
-              G0M(I,J,L)=G0M(I,J,L)+EGMELT(I,J)*DZ
-#ifdef TRACERS_WATER  /* TNL: inserted */
+              MO(I,J,L) =MO(I,J,L)+oGMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))
+              G0M(I,J,L)=G0M(I,J,L)+oEGMELT(I,J)*DZ
+#ifdef TRACERS_WATER  
 #ifdef TRACERS_OCEAN
-              TRMO(I,J,L,:)=TRMO(I,J,L,:)+TRGMELT(:,I,J)*DZ
+              TRMO(I,J,L,:)=TRMO(I,J,L,:)+oTRGMELT(:,I,J)*DZ
 #endif
-#endif               /* TNL: inserted */
+#endif               
             END IF
           END DO
         END DO
@@ -5446,5 +5543,95 @@ C**** Check
       END DO
 
       END SUBROUTINE INT_OG2AG_ground 
+
+      SUBROUTINE INT_AG2OG_ostres(
+     *       aDMUA_glob, aDMVA_glob, aDMUI_glob, aDMVI_glob
+     *     , oDMUA_glob, oDMVA_glob, oDMUI_glob, oDMVI_glob
+     *     )     
+!@sum  INT_AG2OG is for interpolation OSTRES arrays 
+!!      from atmospheric grid to the ocean grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE OCEAN, only : imo=>im,jmo=>jm
+
+      IMPLICIT NONE
+
+      INTEGER, PARAMETER :: NSTYPE=4
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA,NSTYPE) :: 
+     *        aDMUA_glob, aDMVA_glob
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
+     *        aDMUI_glob, aDMVI_glob
+
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO,1) :: 
+     *        oDMUA_glob, oDMVA_glob
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: 
+     *        oDMUI_glob, oDMVI_glob
+
+      oDMUA_glob(:,:,1) = aDMUA_glob(:,:,1)
+      oDMVA_glob(:,:,1) = aDMVA_glob(:,:,1)
+
+      oDMUI_glob(:,:)   = aDMUI_glob(:,:)
+      oDMVI_glob(:,:)   = aDMVI_glob(:,:)
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_ostres 
+
+      SUBROUTINE INT_AG2OG_glmelt(
+     *       aGMELT_glob, aEGMELT_glob
+     *     , oGMELT_glob, oEGMELT_glob
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+     *     , aTRGMELT_glob, oTRGMELT_glob
+#endif
+#endif              
+     *     )     
+!@sum  INT_AG2OG is for interpolation GLMELT arrays 
+!!      from atmospheric grid to the ocean grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE OCEAN, only : imo=>im,jmo=>jm
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      USE TRACER_COM, only: ntm
+#endif
+
+      IMPLICIT NONE
+
+!!!   Global arrays on atmospheric grid
+
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
+     *     aGMELT_glob, aEGMELT_glob
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: aTRGMELT_glob 
+#endif
+#endif              
+
+!!!   Global arrays on ocean grid
+
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: 
+     *     oGMELT_glob, oEGMELT_glob
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: oTRGMELT_glob 
+#endif
+#endif              
+
+      oGMELT_glob(:,:)  =   aGMELT_glob(:,:)
+      oEGMELT_glob(:,:) =  aEGMELT_glob(:,:)
+#ifdef TRACERS_WATER  
+#ifdef TRACERS_OCEAN
+      oTRGMELT_glob(:,:,:) = aTRGMELT_glob(:,:,:)
+#endif
+#endif              
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_glmelt 
+
+
 
 

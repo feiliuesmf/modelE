@@ -166,8 +166,8 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       !I-J-: arrays
       ALLOCATE( oE0      ( I_0H:I_1H , J_0H:J_1H , 1 ),
      &          oEVAPOR  ( I_0H:I_1H , J_0H:J_1H , 1 ),
-     &          oDMUA    ( I_0H:I_1H , J_0H:J_1H , NSTYPE ),
-     &          oDMVA    ( I_0H:I_1H , J_0H:J_1H , NSTYPE ),
+     &          oDMUA    ( I_0H:I_1H , J_0H:J_1H , 1 ),
+     &          oDMVA    ( I_0H:I_1H , J_0H:J_1H , 1 ),
      &   STAT = IER)
 
 
