@@ -111,8 +111,8 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & p_2   =   209,
      & p_3   =   500,
      & p_4   =   209,
-     & n_rx  =   109,
-     & n_bi  =    93,
+     & n_rx  =   110,
+     & n_bi  =    94,
      & n_tri =    11,
      & n_nst =     3,
      & nc     =   53+ntm_soa,     !formerly in param sub
@@ -574,6 +574,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var AER2 fastj2 aerosol profile?
 !@var odcol Optical depth at each model level
 !@var AMF Air mass factor for slab between level and level above
+!@var Jacet photolysis rate for acetone (not done through fastj)
+!@var acetone 3D acetone mixing ratio (static for now)
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
 #ifdef SHINDELL_STRAT_CHEM
@@ -602,7 +604,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 
 C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: DU_O3
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: corrOxIN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: corrOxIN,acetone
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: corrOx
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
@@ -656,7 +658,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(31,18,12)      :: OREF
       REAL*8, DIMENSION(41,18,12)      :: TREF
       REAL*8, DIMENSION(41)            :: BREF
-      REAL*8, DIMENSION(LM)            :: odtmp,ta,pres,TFASTJ 
+      REAL*8, DIMENSION(LM)            :: odtmp,ta,pres,TFASTJ,Jacet
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
       REAL*8, DIMENSION(NWFASTJ,2,NS-3):: QQQ
@@ -732,7 +734,7 @@ C**************  Not Latitude-Dependant ****************************
       use TRCHEM_Shindell_COM, only: DU_O3,corrOxIN,corrOx,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
-     & OxICIN,CH4ICIN,LcorrOx,JPPJ,LCOalt
+     & OxICIN,CH4ICIN,LcorrOx,JPPJ,LCOalt,acetone
 #ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN
@@ -752,6 +754,7 @@ C**************  Not Latitude-Dependant ****************************
       allocate(    corrOxIN(J_0H:J_1H,LcorrOx,12) )
       allocate(      corrOx(J_0H:J_1H,LM,12)      )
       allocate(          ss(JPPJ,LM,IM,J_0H:J_1H) )
+      allocate(     acetone(IM,J_0H:J_1H,LM)      )
       allocate(        yNO3(IM,J_0H:J_1H,LM)      )
       allocate(        pHOx(IM,J_0H:J_1H,LM)      )
       allocate(        pNOx(IM,J_0H:J_1H,LM)      )
