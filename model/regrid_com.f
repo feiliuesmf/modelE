@@ -20,6 +20,11 @@ c      integer,parameter:: im=144,jm=90,ntiles=6,ic=48,jc=48
       end subroutine init_regrid
       end interface 
 
+      interface init_regrid_rootpe
+      subroutine init_regrid_rootpe
+      end subroutine init_regrid_rootpe
+      end interface 
+
       interface init_xgrid_unrolled
       subroutine init_xgrid_unrolled()
       end subroutine init_xgrid_unrolled

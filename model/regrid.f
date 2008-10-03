@@ -807,7 +807,7 @@ ccc    remove these lines - this will be initialize somewhere else
 ccc    end remove
 
 c      write(6,*) tcub_loc(:,:)
-      call parallel_regrid(tcub_loc,tlatlon,alatlon)   
+      call parallel_regrid_cs2ll(tcub_loc,tlatlon,alatlon)   
 
       ofi='tstout.nc'
       status = nf_open(trim(ofi),nf_write,fid)
@@ -818,7 +818,6 @@ c      write(6,*) tcub_loc(:,:)
       write(*,*) NF_STRERROR(status)
      
       status = nf_close(fid)
-      endif
 
       call mpp_exit()
 
@@ -833,7 +832,7 @@ c      write(6,*) tcub_loc(:,:)
 
 
 
-      subroutine parallel_regrid(tcub_loc,tlatlon,alatlon)
+      subroutine parallel_regrid_cs2ll(tcub_loc,tlatlon,alatlon)
       use regrid_com
       use mpp_mod
       use mpp_domains_mod
@@ -843,7 +842,7 @@ c      write(6,*) tcub_loc(:,:)
       real*8 :: tlatlon(im,jm),alatlon(im,jm),
      &     tcub_loc(isd:ied,jsd:jed)
       integer :: loctile  !tile index of current domain
-      integer :: n,icub,jcub,i,j,itile,nij_latlon
+      integer :: n,icub,jcub,i,j,itile,nij_latlon,rootpe
       
       loctile=gid/dom_per_tile
       loctile=loctile+1
@@ -888,11 +887,61 @@ c     root proc section
 c
       if (gid .eq. rootpe) then
       tlatlon(:,:) = tlatlon(:,:)/alatlon(:,:)
+      endif
 
-c      write(6,*) tlatlon(:,:)
+      end subroutine parallel_regrid_cs2ll
+c****
 
-      end subroutine parallel_regrid
 
+
+
+      subroutine root_regrid_ll2cs(tlatlon,tcubglob)
+c
+c     root processor regrids data from lat-lon -> cubbed sphere 
+c
+      use regrid_com
+      use mpp_mod
+      use fv_mp_mod, only : gid
+      implicit none
+      real*8 :: tlatlon(im,jm),tcubglob(1:ic,1:jc,6),
+     &     acubglob(1:ic,1:jc,6)
+      integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl,rootpe
+      
+
+      rootpe=mpp_root_pe()
+      
+      if (gid .eq. rootpe) then
+         
+         acubglob(:,:,:) = 0d0
+         tcubglob(:,:,:) = 0d0
+         
+         do n=1,ncells
+            itile=tile(n)
+            icc=ijcub(1,n)
+            jcc=ijcub(2,n)
+            il=ijlatlon(1,n)
+            jl=ijlatlon(2,n)
+            
+            acubglob(icc,jcc,itile) = acubglob(icc,jcc,itile) 
+     &           + xgrid_area(n)
+            tcubglob(icc,jcc,itile) = tcubglob(icc,jcc,itile) 
+     &           + xgrid_area(n)*tlatlon(il,jl)
+         enddo
+         
+         do itile=1,6
+            do j=1,jc
+               do i=1,ic
+                  tcubglob(i,j,itile) = tcubglob(i,j,itile)
+     &                 /acubglob(i,j,itile)
+               enddo
+            enddo
+         enddo
+         
+      endif
+      
+      end subroutine root_regrid_ll2cs
+c****
+         
 
 
       subroutine init_regrid(pelist)
@@ -1001,6 +1050,85 @@ c
 c**** 
 
 
+
+
+      subroutine init_regrid_rootpe
+c     
+c     Reads regriding file on root proc 
+c     
+      use regrid_com
+      use mpp_mod
+      use mpp_domains_mod
+      use fv_mp_mod, only : gid
+      implicit none
+      include 'netcdf.inc'
+      include 'mpif.h'
+      
+      integer :: status,fid,n,vid,ikey,jlat,rootpe
+      integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
+      integer :: ierr
+      character*200 :: exchfile
+      character(len=10) :: imch,jmch,icch,jcch
+      integer, dimension(:), allocatable :: pelist
+
+      
+      rootpe=mpp_root_pe()
+      
+      if (gid .eq. rootpe) then
+         
+         write(6,*) "GID INIT=",gid
+         
+         write(imch,'(i10)') im
+         write(jmch,'(i10)') jm
+         write(icch,'(i10)') ic
+         write(jcch,'(i10)') jc
+         
+         imch=trim(adjustl(imch))
+         jmch=trim(adjustl(jmch))
+         icch=trim(adjustl(icch))
+         jcch=trim(adjustl(jcch))
+c         exchfile="exexch.nc"
+         exchfile="remap"//trim(imch)//"-"//trim(jmch)
+     *        //"C"//trim(icch)//"-"//trim(jcch)//".nc"
+         write(*,*) "filename=",exchfile
+         
+c     
+c     Read weights
+c     
+         status = nf_open(trim(exchfile),nf_nowrite,fid)
+         if (status .ne. NF_NOERR) write(*,*) 
+     *        "UNABLE TO OPEN REMAP FILE"
+         
+         status = nf_inq_dimid(fid,'ncells',vid)
+         status = nf_inq_dimlen(fid,vid,ncells)
+         
+
+      allocate(xgrid_area(ncells))
+      allocate(ijcub(2,ncells))
+      allocate(ijlatlon(2,ncells))
+      allocate(tile(ncells))
+      
+      status = nf_inq_varid(fid,'xgrid_area',vid)
+      status = nf_get_var_double(fid,vid,xgrid_area)
+      
+      status = nf_inq_varid(fid,'tile1',vid)
+      status = nf_get_var_int(fid,vid,tile)
+      
+      status = nf_inq_varid(fid,'tile1_cell',vid)
+      status = nf_get_var_int(fid,vid,ijcub)
+         
+      status = nf_inq_varid(fid,'tile2_cell',vid)
+      status = nf_get_var_int(fid,vid,ijlatlon)
+         
+      status = nf_close(fid)
+      
+      endif
+      
+      end subroutine init_regrid_rootpe
+c**** 
+
+
+ccc
       subroutine offregrid()
       implicit none
       character*200 :: wtfile,ofile,infi,outfile
@@ -1185,4 +1313,57 @@ c
       
 
       end subroutine offregrid
+c****
+
+
+
+      subroutine parallel_read_regrid(iunit,name,nskip,tcubloc,ipos)
+c     
+c     Read input data on lat-lon grid, regrid to global cubbed sphere grid
+c     then scatter to all subdomains
+c
+      use regrid_com
+
+      use mpp_mod
+      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+      use gatscat_mod
+
+      implicit none
+      integer, intent(in) :: iunit
+      character*16, intent(in) :: name
+      integer, intent(in) :: nskip
+
+      real*8, intent(out) :: tcubloc(is:ie,js:ie) !output regridded and scattered data 
+      real*4 :: tllr4(IM,JM)  ! latlon real*4 data read from input file
+      real*8 :: tdatall(IM,JM)  ! latlon real*8 data 
+      real*4 :: X              !dummy arrays
+      real*8 :: tcubglob(ic,jc)
+      integer, intent(in) :: ipos
+      integer :: n,ierr
+      character*80 :: TITLE     
+
+c need modele.f to call init_regrid_rootpe
+
+      if (gid .eq. 0) then
+         do n=1,ipos-1
+            read(iunit,IOSTAT=ierr)
+         enddo
+         read(iunit,IOSTAT=ierr) TITLE, (X,n=1,nskip), tllr4
+c     convert from real*4 to real*8
+         tdatall=tllr4
+
+c
+c     Regrid from lat-lon to cubbed sphere, form global array
+c
+         call root_regrid_ll2cs(tdatall,tcubglob)
+
+      endif
+
+c
+c     Scatter data to every processor
+c
+      call unpack_data(tcubglob,tcubloc)
+
+      end subroutine parallel_read_regrid
+
 
