@@ -2546,7 +2546,12 @@ C**** special one unique to HTO
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LM
-        jls_power(k) = -1
+        select case(trname(n))
+        case ('Ox')
+          jls_power(k) = 1
+        case default
+          jls_power(k) = -1
+        end select
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
