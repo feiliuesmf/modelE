@@ -19,10 +19,10 @@ Preprocessor Options
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
+!  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 !  OFF #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
-!  OFF #define EDGAR_HYDE_SOURCES       ! use EDGAR-HYDE tracers sources instead
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
@@ -64,6 +64,7 @@ SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL_E1              ! atmospheric pbl
+!! flammability_drv flammability       ! Olga's fire model
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
 ATURB_E1                            ! turbulence in whole atmosphere
 ! DRYCNV                            ! drycnv
@@ -133,7 +134,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 ! choose these for trop-only chem model
 !-----------------------------------------------
 !  MOLEC=chem_files/ds3ch4_moleculesE
-!  JPLRX=chem_files/gs_jpl00_trop_15_fix
+!  JPLRX=chem_files/jpl00_T15trop_SEP08x
 !  JPLPH=chem_files/ds_photlist_trop_15
 !  RATJ=chem_files/ratj.giss_15
 !  SPECFJ=chem_files/jv_spec00_15.dat
@@ -141,7 +142,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 ! choose these for strat+trop chem model
 !-----------------------------------------------
 MOLEC=chem_files/ds4_moleculesE
-JPLRX=chem_files/ds4_jpl00_T25_SSS
+JPLRX=chem_files/jpl00_T25_SEP08
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
 SPECFJ=chem_files/jv_spec00_25.dat
@@ -149,6 +150,7 @@ N2O_IC=gsin/N2O_IC_M23_4x5_6.17_conc
 CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc
 CH4_IC=gsin/CH4_IC_M23_4x5_6.17_conc
 !-----------------------------------------------
+VEG_DENSE=gsin/veg_dense_4x5
 ATMFJ=chem_files/jv_atms.dat
 DRYCOEFF=chem_files/drydep.coef
 VEGTYPE=chem_files/vegtype.global
