@@ -3213,6 +3213,15 @@ c
       units_ij(k) = 'm/s'
       ia_ij(k) = ia_srf
 #endif
+#ifdef CALCULATE_FLAMMABILITY
+      k=k+1        ! flammability of vegetation
+        ij_flam = k
+        write(lname_ij(k),'(a23)')'VEGETATION FLAMMABILITY'
+        units_ij(k) = 'none'
+        write(name_ij(k),'(a5)') 'FLAMM'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.e0
+#endif
 #ifdef HTAP_LIKE_DIAGS
       do L=1,LM
         k=k+1        ! moist convective air mass flux

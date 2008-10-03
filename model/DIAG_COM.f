@@ -411,6 +411,9 @@ C****      names, indices, units, idacc-numbers, etc.
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
 #endif
+#ifdef CALCULATE_FLAMMABILITY
+     &     ,ij_flam
+#endif
 #ifdef HTAP_LIKE_DIAGS
       INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
      &     ,IJ_HUSL
