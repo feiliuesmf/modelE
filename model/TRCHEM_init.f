@@ -7,13 +7,13 @@
 
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
-      USE MODEL_COM, only: Itime, ItimeI, IM, LM
-      USE DOMAIN_DECOMP, ONLY : GET, grid, write_parallel
+      USE MODEL_COM, only: Itime, ItimeI, IM
+      USE DOMAIN_DECOMP, only : GET,grid
       USE TRACER_COM, only: oh_live,no3_live
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &    ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,nr2,nr3,nmm,nhet,
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,nss,pHOx,pOx,pNOx,
-     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N
+     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone
 #ifdef SHINDELL_STRAT_CHEM
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
@@ -25,14 +25,14 @@ C**** GLOBAL parameters and variables:
 
 C**** Local parameters and variables and arguments:
 !@var iu_data temporary unit number
-!@var title read in from file
 !@var i,l loop dummy
-      integer :: iu_data,i,l
-      character*80 :: title
-      INTEGER :: J_0, J_1
+      integer :: iu_data,i,l,j
+      integer :: J_0, J_1, J_0S, J_1S, J_1H, J_0H
+         
+      CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      
 C Read chem diagnostics parameters and molecule names
 C from MOLEC file:
       call openunit('MOLEC',iu_data,.false.,.true.)
@@ -71,6 +71,7 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
         yRXPAR(:,J_0:J_1,:)   =0.d0
         oh_live(:,J_0:J_1,:)  =0.d0
         no3_live(:,J_0:J_1,:) =0.d0
+        acetone(:,J_0:J_1,:)  =0.d0
 #ifdef SHINDELL_STRAT_CHEM
         pClOx(:,J_0:J_1,:)    =1.d0
         pClx(:,J_0:J_1,:)     =0.d0
@@ -99,6 +100,7 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
  110  format(3(///10(a8)),(///5(a8)))
 #endif  /* TRACERS_AEROSOLS_SOA */
 #endif
+     
       return
       END SUBROUTINE cheminit
 
@@ -340,6 +342,7 @@ c Chemical and photolytic production:
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
+      USE DOMAIN_DECOMP, only: write_parallel
       USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, p_4, nfam,
      &                               prnls
 
@@ -421,6 +424,12 @@ c           check that reaction is intrafamily
             enddo
  100  continue
       kdr(ny+1)=k
+
+      if(prnls)then
+        write(*,*) 'nn array size :',k
+        write(out_line,*) 'nn array size :',k
+        call write_parallel(trim(out_line))
+      endif
       
       return
       end SUBROUTINE calcls
