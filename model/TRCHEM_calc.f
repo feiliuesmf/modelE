@@ -39,7 +39,8 @@ C
      &                   ny,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,kss,nps,kps,nds,kds,
-     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop
+     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
+     &                   Jacet,acetone
 #ifdef SHINDELL_STRAT_CHEM
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,T_thresh
@@ -83,8 +84,8 @@ C**** Local parameters and variables and arguments:
       INTEGER :: L,iter,maxl,igas,maxT,Lz
       INTEGER :: J_0, J_1
 #ifdef SHINDELL_STRAT_CHEM
-      INTEGER, PARAMETER :: iHO2NO2form=98,iN2O5form=99,
-     &iPANform=101,iHO2NO2_OH=18,iHO2NO2decomp=91,iN2O5decomp=92
+      INTEGER, PARAMETER :: iHO2NO2form=99,iN2O5form=100,
+     &iPANform=102,iHO2NO2_OH=18,iHO2NO2decomp=92,iN2O5decomp=93
      &,iPANdecomp=29
 !@param JN J around 30 N
 !@param JS J around 30 S
@@ -92,8 +93,8 @@ C**** Local parameters and variables and arguments:
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
 #else
-      INTEGER, PARAMETER :: iHO2NO2form=51,iN2O5form=52,
-     &iPANform=54,iHO2NO2_OH=18,iHO2NO2decomp=45,iN2O5decomp=46
+      INTEGER, PARAMETER :: iHO2NO2form=52,iN2O5form=53,
+     &iPANform=55,iHO2NO2_OH=18,iHO2NO2decomp=46,iN2O5decomp=47
      &,iPANdecomp=29
 #endif
       character(len=300) :: out_line
@@ -108,7 +109,7 @@ C**** Local parameters and variables and arguments:
      & changeA,sumP,tempiter,tempiter2,sumC,sumN,sumH,sumB,sumO,sumA,
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
      & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,byta,
-     & diffCH3O2,fraQ2
+     & diffCH3O2,fraQ2,tempAcet,prodCH3O2
 
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1)
       
@@ -186,11 +187,13 @@ c Set CH3O2 values (concentration = production/specific loss):
         iter=1
         qqqCH3O2=(rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))
      &  *y(n_CH4,L)+rr(23,L)*y(n_CH3OOH,L)*y(nOH,L)
+        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(20,L)*y(nNO,L)+rr(22,L)*y(nHO2,L)
         do while(iter <= 7)
           CH3O2loss=tempiter+rr(27,L)*yCH3O2(I,J,L)
           if(CH3O2loss > 1.d-7)then
-            y(nCH3O2,L)=qqqCH3O2/CH3O2loss
+            y(nCH3O2,L)=prodCH3O2/CH3O2loss
           else
             y(nCH3O2,L)=1.d0
           endif
@@ -199,17 +202,17 @@ c Set CH3O2 values (concentration = production/specific loss):
         
 c Conserve carbon wrt CH3O2 changes:
         diffCH3O2=y(nCH3O2,L)-yCH3O2(I,J,L)
-        if(diffCH3O2 > 0.d0)then
-c         reduce source gases (CH4 and CH3OOH):
-          dest(n_CH4,L)=dest(n_CH4,l)-diffCH3O2
+        if(diffCH3O2 > tempAcet)then
+c         reduce non-acetone source gases (CH4 and CH3OOH):
+          dest(n_CH4,L)=dest(n_CH4,L)-(diffCH3O2-tempAcet)
      &    *(qqqCH3O2-rr(23,L)*y(n_CH3OOH,L)*y(nOH,L))/qqqCH3O2
-          dest(n_CH3OOH,L)=dest(n_CH3OOH,l)-diffCH3O2
+          dest(n_CH3OOH,L)=dest(n_CH3OOH,L)-(diffCH3O2-tempAcet)
      &    *(rr(23,L)*y(n_CH3OOH,L)*y(nOH,L))/qqqCH3O2
-        else if(diffCH3O2 < 0.d0)then
-c         increase product gases:
-          prod(n_HCHO,l)=prod(n_HCHO,l)-diffCH3O2
+        else if(diffCH3O2 < tempAcet)then
+c         increase non-acetone product gases:
+          prod(n_HCHO,L)=prod(n_HCHO,L)-(diffCH3O2-tempAcet)
      &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
-          prod(n_CH3OOH,l)=prod(n_CH3OOH,l)-diffCH3O2
+          prod(n_CH3OOH,L)=prod(n_CH3OOH,L)-(diffCH3O2-tempAcet)
      &    *(rr(22,L)*y(nHO2,L))/CH3O2loss
         end if
         yCH3O2(I,J,L)=y(nCH3O2,L)
@@ -397,10 +400,10 @@ c If BrOx in equil with HOBr or BrONO2, remove from changes:
           prod(n_BrOx,L)=prod(n_BrOx,L)-photrate(24,L)
         endif
         if(-dest(n_BrONO2,L) >= y(n_BrONO2,L).or.
-     &  chemrate(104,L) > 0.5d0*y(n_BrOx,L))then
-          dest(n_BrOx,L)=dest(n_BrOx,L)+chemrate(104,L)
+     &  chemrate(105,L) > 0.5d0*y(n_BrOx,L))then
+          dest(n_BrOx,L)=dest(n_BrOx,L)+chemrate(105,L)
           prod(n_BrOx,L)=prod(n_BrOx,L)-photrate(23,L)
-          dest(n_NOx,L)=dest(n_NOx,L)+chemrate(104,L)
+          dest(n_NOx,L)=dest(n_NOx,L)+chemrate(105,L)
           prod(n_NOx,L)=prod(n_NOx,L)-photrate(23,L)
         endif
         
@@ -411,10 +414,10 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
           prod(n_ClOx,L)=prod(n_ClOx,L)-(photrate(21,L)+chemrate(55,L))
         endif
         if(-dest(n_ClONO2,L) >= y(n_ClONO2,L) .or.
-     &  chemrate(103,L) > 0.8d0*y(n_ClOx,L))then
-          dest(n_ClOx,L)=dest(n_ClOx,L)+chemrate(103,L)
+     &  chemrate(104,L) > 0.8d0*y(n_ClOx,L))then
+          dest(n_ClOx,L)=dest(n_ClOx,L)+chemrate(104,L)
           prod(n_ClOx,L)=prod(n_ClOx,L)-(photrate(22,L)+chemrate(65,L))
-          dest(n_NOx,L)=dest(n_NOx,L)+chemrate(103,L)
+          dest(n_NOx,L)=dest(n_NOx,L)+chemrate(104,L)
           prod(n_NOx,L)=prod(n_NOx,L)-(photrate(22,L)+chemrate(65,L))
         endif
 #endif
@@ -452,7 +455,7 @@ c Calculate ozone change due to within-NOx partitioning:
         if(y(nO1D,L) == 0.) CYCLE
 c       account for NO2 and NO ozone destruction:
         rNO2prod=rr(18,L)*y(nOH,L)*y(n_HO2NO2,L)+
-     &  rr(91,L)*y(n_HO2NO2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
+     &  rr(iHO2NO2decomp,L)*y(n_HO2NO2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
      &  ss(10,L,I,J)*y(n_HO2NO2,L)+ss(23,L,I,J)*y(n_BrONO2,L)
         rNOprod=rr(87,L)*y(n_N2O,L)*y(nO1D,L)
         rNO3prod=rr(65,L)*y(nO,L)*y(n_ClONO2,L)+
@@ -469,9 +472,9 @@ c       add production of NO and NO2 from NO3:
         
 c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
           rNO2frac=(rr(26,L)*y(nO,L)-ss(1,L,I,J))/
-     &    (rr(97,L)*y(nOH,L)+
-     &    rr(98,L)*y(nHO2,L)+rr(99,L)*y(nNO3,L)+
-     &    rr(103,L)*y(nClO,L)+rr(104,L)*y(nBrO,L)+
+     &    (rr(98,L)*y(nOH,L)+
+     &    rr(iHO2NO2form,L)*y(nHO2,L)+rr(iN2O5form,L)*y(nNO3,L)+
+     &    rr(104,L)*y(nClO,L)+rr(105,L)*y(nBrO,L)+
      &    rr(26,L)*y(nO,L)+ss(1,L,I,J))
           Oxcorr(L)=(rNO2prod-rNOprod)*rNO2frac*dt2*y(nNO,L)/y(n_NOx,L)
           if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
@@ -486,8 +489,8 @@ c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
 
 c         account for NO that then goes via NO+O3->NO2+O2
 c         or NO+O+M->NO2+M:
-          rNOfrac=(rr(5,L)*y(nO3,L)+rr(95,L)*y(nO,L))
-          rNOdenom=(rr(5,L)*y(nO3,L)+rr(95,L)*y(nO,L)+
+          rNOfrac=(rr(5,L)*y(nO3,L)+rr(96,L)*y(nO,L))
+          rNOdenom=(rr(5,L)*y(nO3,L)+rr(96,L)*y(nO,L)+
      &    rr(6,L)*y(nHO2,L)+rr(44,L)*y(nXO2N,L)+1.d0)
           if(l <= maxT)then ! Troposphere:
             rNOdenom=rNOdenom+rr(20,L)*yCH3O2(I,J,L)
@@ -779,7 +782,7 @@ c (chem1prn: argument before multip is index = number of call):
           sumN=rr(5,Lz)*y(nNO,Lz)*y(nO3,Lz)+
      &    rr(26,Lz)*y(nNO2,Lz)*y(nO,Lz)+
      &    rr(7,Lz)*y(nNO2,Lz)*y(nO3,Lz)+
-     &    rr(95,Lz)*y(nNO,Lz)*y(nO,Lz)
+     &    rr(96,Lz)*y(nNO,Lz)*y(nO,Lz)
      &    -ss(1,Lz,i,j)*y(nNO2,Lz)
           sumH=rr(2,Lz)*y(nOH,Lz)*y(nO3,Lz)+
      &    rr(4,Lz)*y(nHO2,Lz)*y(nO3,Lz)+
@@ -951,8 +954,8 @@ c Conserve BrOx with respect to HOBr:
 
 c Set BrONO2 to equilibrium when necessary:
          if(igas == n_BrONO2.and.(-dest(igas,L) >= y(n_BrONO2,L).or.
-     &   chemrate(104,L) > 0.5d0*y(n_BrOx,L)))then
-           rnewval=(rr(104,L)*y(nBrO,L)*y(nNO2,L))/
+     &   chemrate(105,L) > 0.5d0*y(n_BrOx,L)))then
+           rnewval=(rr(105,L)*y(nBrO,L)*y(nNO2,L))/
      &     (ss(23,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,igas)=(rnewval-y(n_BrONO2,L))
@@ -963,8 +966,8 @@ c Set BrONO2 to equilibrium when necessary:
 
 c Conserve BrOx with respect to BrONO2:
          if(igas == n_BrOx.and.(-dest(n_BrONO2,L) >= y(n_BrONO2,L).or.
-     &   chemrate(104,L) > 0.5d0*y(n_BrOx,L)))then
-           rnewval=(rr(104,L)*y(nBrO,L)*y(nNO2,L))/
+     &   chemrate(105,L) > 0.5d0*y(n_BrOx,L)))then
+           rnewval=(rr(105,L)*y(nBrO,L)*y(nNO2,L))/
      &     (ss(23,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(n_BrONO2,L))
@@ -975,8 +978,8 @@ c Conserve BrOx with respect to BrONO2:
 
 c Conserve NOx with respect to BrONO2:
          if(igas == n_NOx.and.(-dest(n_BrONO2,L) >= y(n_BrONO2,L).or.
-     &   chemrate(104,L) > 0.5d0*y(n_BrOx,L)))then
-           rnewval=(rr(104,L)*y(nBrO,L)*y(nNO2,L))/
+     &   chemrate(105,L) > 0.5d0*y(n_BrOx,L)))then
+           rnewval=(rr(105,L)*y(nBrO,L)*y(nNO2,L))/
      &     (ss(23,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(n_BrONO2,L))
@@ -987,8 +990,8 @@ c Conserve NOx with respect to BrONO2:
 
 c Set ClONO2 to equilibrium when necessary:
          if(igas == n_ClONO2.and.(-dest(igas,L) >= y(n_ClONO2,L).or.
-     &   chemrate(103,L) > 0.8d0*y(n_ClOx,L)))then
-           rnewval=(rr(103,L)*y(nClO,L)*y(nNO2,L))/
+     &   chemrate(104,L) > 0.8d0*y(n_ClOx,L)))then
+           rnewval=(rr(104,L)*y(nClO,L)*y(nNO2,L))/
      &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,igas)=(rnewval-y(n_ClONO2,L))
@@ -1001,8 +1004,8 @@ c Set ClONO2 to equilibrium when necessary:
 
 c Conserve ClOx with respect to ClONO2:
          if(igas == n_ClOx.and.(-dest(n_ClONO2,L) >= y(n_ClONO2,L).or.
-     &   chemrate(103,L) > 0.8d0*y(n_ClOx,L)))then
-           rnewval=(rr(103,L)*y(nClO,L)*y(nNO2,L))/
+     &   chemrate(104,L) > 0.8d0*y(n_ClOx,L)))then
+           rnewval=(rr(104,L)*y(nClO,L)*y(nNO2,L))/
      &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(n_ClONO2,L))
@@ -1015,8 +1018,8 @@ c Conserve ClOx with respect to ClONO2:
 
 c Conserve NOx with respect to ClONO2:
          if(igas == n_NOx.and.(-dest(n_ClONO2,L) >= y(n_ClONO2,L).or.
-     &   chemrate(103,L) > 0.8d0*y(n_ClOx,L)))then
-           rnewval=(rr(103,L)*y(nClO,L)*y(nNO2,L))/
+     &   chemrate(104,L) > 0.8d0*y(n_ClOx,L)))then
+           rnewval=(rr(104,L)*y(nClO,L)*y(nNO2,L))/
      &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(n_ClONO2,L))
