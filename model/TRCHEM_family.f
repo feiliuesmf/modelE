@@ -31,9 +31,9 @@ C**** Local parameters and variables and arguments:
 
 #ifdef SHINDELL_STRAT_CHEM
       PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
-      iO3form=94
+      iO3form=95
 #else
-      iO3form=47
+      iO3form=48
 #endif
 
       do L=1,lmax
@@ -97,9 +97,9 @@ C**** Local parameters and variables and arguments:
       real*8              :: b,c,p1,p2
       
 #ifdef SHINDELL_STRAT_CHEM
-      iNO2form=95
+      iNO2form=96
 #else
-      iNO2form=48
+      iNO2form=49
 #endif
       select case(which_trop)
       case(0); maxl=ltropo(I,J)
@@ -183,9 +183,9 @@ C**** Local parameters and variables and arguments:
 !@var maxl either LTROPO(I,J) or LS1-1 depending on which_trop dbparam
 !@var PRES local nominal pressure for regional Ox tracers
 #ifdef SHINDELL_STRAT_CHEM
-      integer, parameter :: iH2O2form=96,iHNO3form=97,iHONOform=100
+      integer, parameter :: iH2O2form=97,iHNO3form=98,iHONOform=101
 #else
-      integer, parameter :: iH2O2form=49,iHNO3form=50,iHONOform=53
+      integer, parameter :: iH2O2form=50,iHNO3form=51,iHONOform=54
 #endif
       integer             :: L, maxl 
       integer, intent(IN) :: lmax,I,J
@@ -432,8 +432,8 @@ c Full ClOxfam code from offline photochemistry:
 c Low temperature stabilizes ClO dimer, use [Cl2O2] only for
 c calculating Cl amount, otherwise ignore:
        if(ta(L) <= 220.)then
-         y(nCl2O2,L)=(rr(102,L)*y(nClO,L)*y(nClO,L))/
-     &   (rr(93,L)+ss(20,L,i,j))
+         y(nCl2O2,L)=(rr(103,L)*y(nClO,L)*y(nClO,L))/
+     &   (rr(94,L)+ss(20,L,i,j))
          if(y(nCl2O2,L) > y(nClO,L)) y(nCl2O2,L)=y(nClO,L)
          y(nClO,L)=y(nClO,L)-y(nCl2O2,L)
        endif
@@ -451,7 +451,7 @@ c calculating Cl amount, otherwise ignore:
        F=(rr(53,L)*y(nOH,L)*y(n_HOCl,L)+rr(55,L)*y(nO,L)*
      &   y(n_HOCl,L)+rr(65,L)*y(n_ClONO2,L)*y(nO,L))/y(n_ClOx,L)
        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)+rr(77,L)*
-     &   y(nBrO,L)+2.d0*rr(102,L)*y(nClO,L)+rr(103,L)*y(nNO2,L)
+     &   y(nBrO,L)+2.d0*rr(103,L)*y(nClO,L)+rr(104,L)*y(nNO2,L)
        Q=rr(56,L)*y(nOH,L)
        V=C-D
        X=rr(51,L)*y(nOH,L)*y(nCl2,L)+rr(54,L)*y(nO,L)*
@@ -562,7 +562,7 @@ C**** Local parameters and variables and arguments:
      &  (rr(75,L)+rr(76,L))+2*y(nBrO,L)*rr(78,L)+y(nOH,L)*
      &  rr(80,L)+ss(25,L,i,j)
         c=rr(73,L)*y(nHO2,L)+rr(77,L)*y(nClO,L)+rr(81,L)*
-     &  y(nOH,L)+rr(104,L)*y(nNO2,L)    
+     &  y(nOH,L)+rr(105,L)*y(nNO2,L)    
         d=rr(72,L)*y(nHO2,L)+rr(79,L)*y(n_H2O2,L)
         eq=rr(68,L)*y(n_HBr,L)*y(nOH,L)+rr(84,L)*y(n_HBr,L)*
      &  y(nO,L)+ss(24,L,i,j)*y(n_HOBr,L)
