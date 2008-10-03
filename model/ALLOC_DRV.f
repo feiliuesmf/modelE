@@ -22,6 +22,9 @@ c set-up for MPI implementation
       call alloc_lakes(grid)
       call alloc_lakes_com(grid)
       call alloc_landice_com(grid)
+#ifdef CALCULATE_FLAMMABILITY
+      call alloc_flammability(grid)
+#endif
 #ifdef BIOGENIC_EMISSIONS
       call alloc_biogenic_emis(grid)
 #endif

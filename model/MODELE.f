@@ -468,6 +468,9 @@ C**** CALCULATE SURFACE FLUXES AND EARTH
          CALL CHECKT ('SURFCE')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (5)
+#ifdef CALCULATE_FLAMMABILITY
+      call flammability_drv
+#endif
 C**** CALCULATE ICE DYNAMICS
       CALL DYNSI
 C**** CALCULATE BASE ICE-OCEAN/LAKE FLUXES
@@ -1875,6 +1878,9 @@ C**** Initialize the use of gravity wave drag diagnostics
 C****
       CALL init_GWDRAG
 C
+#ifdef CALCULATE_FLAMMABILITY
+      CALL init_flammability
+#endif
 C**** Initialize nudging
 #ifdef NUDGE_ON
       if (istart.gt.0) CALL NUDGE_INIT
