@@ -758,7 +758,7 @@
       check("sfhtav",sfhtav)
       check("eminpav",eminpav)
       check("surflav",surflav)
-      check("sflxav",sflxav)
+      check("salflav",salflav)
       check("brineav",brineav)
       check("dpmxav",dpmxav)
       check("oiceav",oiceav)
