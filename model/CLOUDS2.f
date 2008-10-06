@@ -48,6 +48,9 @@ C**** parameters and constants
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
+      REAL*8, PARAMETER :: FDDRT=.5d0 !@param FDDRT COND evaporation in downdraft
+      REAL*8, PARAMETER :: FDDET=.25d0 !@param FDDET remainder of downdraft
+      REAL*8, PARAMETER :: DTMIN1=2.d0 !@param DTMIN1 min DT to stop downdraft drop
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
 !@param CCMUL multiplier for convective cloud cover
@@ -441,8 +444,8 @@ c for sulfur chemistry
 #ifdef CLD_AER_CDNC
       INTEGER, PARAMETER :: SNTM=17  !for tracers for CDNC
 #endif
-      INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL
-     *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
+      INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL,LL
+     *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN,LLMIN
 !@var LDRAFT the layer the downdraft orginates
 !@var LEVAP the layer evaporation of precip starts
 !@var LMAX, LMIN the lowest, the highest layer of a convective event
@@ -1728,7 +1731,9 @@ C**** Add plume tracers at LMAX
 C****
 C**** PROCESS OF DOWNDRAFTING
 C****
-      LDMIN=LMIN
+C     LDMIN=LMIN
+      LDMIN=LDRAFT-1
+      LLMIN=LDMIN
       EDRAFT=0.
       IF(ETADN.GT.1d-10) THEN
       CONSUM=0.
@@ -1761,19 +1766,28 @@ C****
       SLH=LHX*BYSHA
       QSATC=QSAT(TNX,LHX,PL(LMIN))
       DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
-      DQRAT=DQ*DDRSUM/(CONSUM+teeny)
+C     DQRAT=DQ*DDRSUM/(CONSUM+teeny)
+      DQRAT=FDDRT
       DO 346 L=LDRAFT,1,-1
       LHX=LHE
       IF (L.GE.LMIN) THEN  ! avoids reference to uninitiallised value
         IF(TPSAV(L).LT.TF) LHX=LHS
       END IF
       SLH=LHX*BYSHA
-C     TNX=SMDN*PLK(L)/DDRAFT
-C     QNX=QMDN/DDRAFT
-C     QSATC=QSAT(TNX,LHX,PL(L))
-C     DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
+      TNX=SMDN*PLK(L)/DDRAFT
+      QNX=QMDN/DDRAFT
+      DQSUM=0.
+      DO 520 N=1,3
+      QSATC=QSAT(TNX,LHX,PL(L))
+      DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
+      TNX=TNX-SLH*DQ
+      QNX=QNX+DQ
+  520 DQSUM=DQSUM+DQ*DDRAFT
+      IF(DQSUM.LT.0.) DQSUM=0.
+      IF(DQSUM.GT.COND(L)) DQSUM=COND(L)
       DQEVP=DQRAT*COND(L)                      ! DQ*DDRAFT
-      IF(DQEVP.GT.COND(L)) DQEVP=COND(L)
+C     IF(DQEVP.GT.COND(L)) DQEVP=COND(L)
+      IF(DQEVP.GT.DQSUM) DQEVP=DQSUM           ! limit evaporation
       IF(DQEVP.GT.SMDN*PLK(L)/SLH) DQEVP=SMDN*PLK(L)/SLH
       IF (L.LT.LMIN) DQEVP=0.
       FSEVP = 0
@@ -1815,6 +1829,10 @@ C**** ENTRAINMENT OF DOWNDRAFTS
         DDRAFT=DDRAFT+DDROLD*ETAL(L)   ! add in entrainment
 C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
         IF(DDRUP.GT.DDRAFT) DDRAFT=DDRUP
+        SMIX=SMDN/(DDRUP+teeny)
+        IF ((SMIX-SM1(L-1)*BYAM(L-1))*PLK(L-1).GE.DTMIN1) THEN
+          DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
+        END IF
         IF(DDRAFT.GT..95d0*(AIRM(L-1)+DMR(L-1)))
      *    DDRAFT=.95d0*(AIRM(L-1)+DMR(L-1))
         EDRAFT=DDRAFT-DDRUP
@@ -1848,7 +1866,7 @@ C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
           DTMOMR(:,L,1:NTX)=DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
 #endif
         ELSE  ! occasionally detrain into environment if ddraft too big
-          FENTRA=EDRAFT/DDRUP  ! < 0
+          FENTRA=EDRAFT/(DDRUP+teeny)  ! < 0
           DSM(L)=DSM(L)-FENTRA*SMDN
           DSMOM(xymoms,L)=DSMOM(xymoms,L)-SMOMDN(xymoms)*FENTRA
           DQM(L)=DQM(L)-FENTRA*QMDN
@@ -1857,7 +1875,7 @@ C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
           QMDN=QMDN*(1+FENTRA)
           SMOMDN(xymoms)= SMOMDN(xymoms)*(1+FENTRA)
           QMOMDN(xymoms)= QMOMDN(xymoms)*(1+FENTRA)
-          DM(L)=DM(L)-EDRAFT
+          DM(L)=DM(L)-EDRAFT       ! EDRAFT is negative here
           DO K=1,KMAX          ! add in momentum detrainment
             UMTEMP=0.7*DDRAFT**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
             VMTEMP=0.7*DDRAFT**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
@@ -1877,10 +1895,12 @@ C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
       ENDIF
 C     IF(L.GT.1) DDM(L-1)=DDRAFT
       LDMIN=L
+      LLMIN=LDMIN        ! save LDMIN for diagnostics
 C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
-      IF (L.LE.LMIN.AND.L.GT.1) THEN
-        SMIX=SMDN/DDRAFT
-        IF (SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
+C     IF (L.LE.LMIN.AND.L.GT.1) THEN
+      IF (L.GT.1) THEN                                             
+        SMIX=SMDN/(DDRAFT+teeny)
+        IF (L.LE.LMIN.AND.SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
       ENDIF
       IF(L.GT.1) THEN
         DDM(L-1)=DDRAFT     ! IF(L.GT.1) DDM(L-1)=DDRAFT
@@ -1925,6 +1945,7 @@ C**** SUBSIDENCE AND MIXING
 C****
 C**** Calculate vertical mass fluxes (Note CM for subsidence is defined
 C**** in opposite sense than normal (positive is down))
+      IF(LDMIN.GT.LMIN) LDMIN=LMIN    ! some loops require LMIN to LMAX
       DO L=0,LDMIN-1
         CM(L) = 0.
       END DO
@@ -1940,7 +1961,8 @@ C**** simple upwind scheme for momentum
       ALPHA=0.
       DO 380 L=LDMIN,LMAX
       CLDM=CCM(L)
-      IF(L.LT.LDRAFT.AND.ETADN.GT.1d-10) CLDM=CCM(L)-DDM(L)
+      IF(L.LT.LDRAFT.AND.L.GE.LLMIN.AND.ETADN.GT.1d-10)
+     *  CLDM=CCM(L)-DDM(L)
       IF(MC1) VSUBL(L)=100.*CLDM*RGAS*TL(L)/(PL(L)*GRAV*DTsrc)
       BETA=CLDM*BYAM(L+1)
       IF(CLDM.LT.0.) BETA=CLDM*BYAM(L)
@@ -1961,6 +1983,7 @@ C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
       SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) + DSMOMR(:,LDMIN:LMAX)
 C****
       nsub = lmax-ldmin+1
+      cmneg=0.      ! initialization
       cmneg(ldmin:lmax)=-cm(ldmin:lmax)
       cmneg(lmax)=0. ! avoid roundoff error (esp. for qlimit)
       call adv1d(sm(ldmin),smom(1,ldmin), f(ldmin),fmom(1,ldmin),
@@ -1982,7 +2005,8 @@ C**** diagnostics
         FCDH=0.
         IF(L.EQ.LMAX) FCDH=CDHSUM-CDHSUM1+CDHM
         FCDH1=0.
-        IF(L.EQ.LDMIN) FCDH1=CDHSUM1-EVPSUM
+C       IF(L.EQ.LDMIN) FCDH1=CDHSUM1-EVPSUM
+        IF(L.EQ.LLMIN) FCDH1=CDHSUM1-EVPSUM
         MCFLX(L)=MCFLX(L)+CCM(L)*FMC1
         DGDSM(L)=DGDSM(L)+(PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
         IF(PLE(LMAX+1).GT.700.d0) DGSHLW(L)=DGSHLW(L)+
@@ -1991,7 +2015,7 @@ C**** diagnostics
      *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
-        DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
+        IF(L.GT.LLMIN) DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
 C       IF(L.EQ.1) THEN
 C         IF(DDMFLX(1).GT.0.) WRITE(6,*) 'DDM TDN1 QDN1=',
 C    *      DDMFLX(1),TDNL(1),QDNL(1)
@@ -2165,6 +2189,8 @@ C**** Q = Q + F(TOLD,PRHEAT,QOLD+EVAP)
       PRECNVL(L+1)=PRECNVL(L+1)+PRCP*BYGRAV
       MCLOUD=0.
       IF(L.LE.LMIN) MCLOUD=2.*FEVAP*AIRM(L)
+C     IF(L.LE.LMIN) MCLOUD=(2.*FEVAP+DDM(L)*BYAM(L+1))*AIRM(L)
+      IF(MCLOUD.GT.AIRM(L)) MCLOUD=AIRM(L)
       TOLD=SMOLD(L)*PLK(L)*BYAM(L)
       TOLD1=SMOLD(L+1)*PLK(L+1)*BYAM(L+1)
 C**** decide whether to melt snow/ice
@@ -2312,7 +2338,8 @@ c     *         ,THLAW
       END IF
 #endif
          FCDH1=0.
-         IF(L.EQ.LDMIN) FCDH1=CDHSUM1-EVPSUM
+C        IF(L.EQ.LDMIN) FCDH1=CDHSUM1-EVPSUM
+         IF(L.EQ.LLMIN) FCDH1=CDHSUM1-EVPSUM
          DPHASE(L)=DPHASE(L)-(SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
          IF(PLE(LMAX+1).GT.700.d0) DPHASHLW(L)=DPHASHLW(L)-
      *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
