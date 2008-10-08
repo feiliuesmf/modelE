@@ -49,7 +49,7 @@ C
 #endif
 
 
-      INTEGER ::  J_1, J_0
+      INTEGER ::  J_1, J_0, I_1, I_0
       INTEGER ::  J_1H, J_0H
       INTEGER ::  J_1S, J_0S
       INTEGER ::  J_1STG, J_0STG
@@ -61,6 +61,8 @@ C
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 
       if(LBASE_MAX.GE.LM) call stop_model('DRYCNV: LBASE_MAX.GE.LM',255)
@@ -68,7 +70,7 @@ C
       ! update w2gcm at 1st GCM layer
       w2gcm=0.d0
       do j=j_0,j_1
-      do i=1,im
+      do i=i_0,i_1
          w2gcm(1,i,j)=w2_l1(i,j)
       end do
       end do
@@ -99,7 +101,7 @@ C****
 C**** MAIN LOOP
 C****
       IM1=IM
-      ILOOP: DO I=1,IMAX
+      ILOOP: DO I=I_0,IMAX
          DO K=1,KMAX
             RA(K)=RAVJ(K,J)
             IDI(K)=IDIJ(K,I,J)
@@ -404,7 +406,7 @@ C**** Save additional changes in KE for addition as heat later
       USE DOMAIN_DECOMP, only : halo_update,checksum
       USE DOMAIN_DECOMP, only : halo_update_column,checksum_column
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
-      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,axyp
       USE DYNAMICS, only : byam,am,dke
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trm,trmom,trname,t_qlimit
@@ -421,7 +423,7 @@ C**** Save additional changes in KE for addition as heat later
       real*8 hemi,trmin
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
      &                       usave,vsave
-      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
+      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG,I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 C****
@@ -432,9 +434,11 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE       )
-  
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
       do j=j_0,j_1
-        do i=1,imaxj(j)
+        do i=i_0,imaxj(j)
           t(i,j,1) = t(i,j,1) + dth1(i,j)
           q(i,j,1) = q(i,j,1) + dq1(i,j)
         end do
@@ -443,12 +447,12 @@ C****
 #ifdef TRACERS_ON
       do n=1,ntm
         do j=j_0,j_1
-          do i=1,imaxj(j)
+          do i=i_0,imaxj(j)
             trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt
             trmin=0.d0
 #ifdef TRACERS_WATER
             IF(tr_wd_TYPE(n).eq.nWATER) trmin = 
-     &      qmin*trw0(n)*am(1,i,j)*dxyp(j)
+     &      qmin*trw0(n)*am(1,i,j)*axyp(i,j)
 #endif
             if (t_qlimit(n).and.trm(i,j,1,n).lt.trmin) then
               if (qcheck) write(99,*) trname(n),I,J,' TR1:',
