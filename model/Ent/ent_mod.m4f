@@ -33,7 +33,7 @@ define(`m4_type_list',`real*8')
       public ent_cell_print
       public ent_initialize
 
-      public ent_set_forcings_single
+      public ent_set_forcings_r8_0
 
       type entcelltype_public
         private
@@ -44,21 +44,21 @@ define(`m4_type_list',`real*8')
 
       !--- consttructor/destructor ---
       interface ent_cell_construct
-        module procedure ent_cell_construct_single
-        module procedure ent_cell_construct_array_1d
-        module procedure ent_cell_construct_array_2d
+      m4_loop(` 
+        module procedure ent_cell_construct_`'m4_suffix`'
+      ')`'
       end interface
 
       interface ent_cell_destruct
-        module procedure ent_cell_destruct_single
-        module procedure ent_cell_destruct_array_1d
-        module procedure ent_cell_destruct_array_2d
+      m4_loop(`
+        module procedure ent_cell_destruct_`'m4_suffix`'
+      ')`'
       end interface
 
       interface ent_cell_nullify
-        module procedure ent_cell_nullify_single
-        module procedure ent_cell_nullify_array_1d
-        module procedure ent_cell_nullify_array_2d
+      m4_loop(`
+        module procedure ent_cell_nullify_`'m4_suffix`'
+      ')`'
       end interface
 
       interface ent_cell_pack
@@ -68,9 +68,9 @@ define(`m4_type_list',`real*8')
 
       !--- passing initial data to ent cells ---
       interface ent_cell_set
-        module procedure ent_cell_set_single
-        module procedure ent_cell_set_array_1d
-        module procedure ent_cell_set_array_2d
+      m4_loop(`
+        module procedure ent_cell_set_`'m4_suffix`'
+      ')`'
       end interface
 
       !--- passing updated prescribed data to ent cells ---
@@ -80,40 +80,40 @@ cddd      end interface ent_cell_update
 
       !--- set forcings / get exports ---
       interface ent_set_forcings
-        module procedure ent_set_forcings_single
-        module procedure ent_set_forcings_array_1d
-        module procedure ent_set_forcings_array_2d
+      m4_loop(`
+        module procedure ent_set_forcings_`'m4_suffix`'
+      ')`'
       end interface
 
       interface ent_get_exports
       m4_loop(`
         module procedure ent_get_exports_`'m4_suffix`'
-         ')`'
+      ')`'
       end interface
 
       !--- run model for fast/medium/slow physics ---
       interface ent_fast_processes
-        module procedure ent_fast_processes_single
-        module procedure ent_fast_processes_array_1d
-        module procedure ent_fast_processes_array_2d
+      m4_loop(`
+        module procedure ent_fast_processes_`'m4_suffix`'
+      ')`'
       end interface
 
       interface ent_run
-        module procedure ent_run_single
-        module procedure ent_run_array_1d
-        module procedure ent_run_array_2d
+      m4_loop(`
+        module procedure ent_run_`'m4_suffix`'
+      ')`'
       end interface
 
       interface ent_vegcover_update
-        module procedure ent_vegcover_update_single
-        module procedure ent_vegcover_update_array_1d
-        module procedure ent_vegcover_update_array_2d
+      m4_loop(`
+        module procedure ent_vegcover_update_`'m4_suffix`'
+      ')`'
       end interface
 
       interface ent_cell_print
-        module procedure ent_cell_print_single
-        module procedure ent_cell_print_array_1d
-        module procedure ent_cell_print_array_2d
+      m4_loop(`
+        module procedure ent_cell_print_`'m4_suffix`'
+      ')`'
       end interface
 
 
@@ -128,8 +128,9 @@ cddd      end interface ent_cell_update
       end interface
 
       interface ent_prescribe_vegupdate
-        module procedure ent_prescribe_vegupdate_1d
-        module procedure ent_prescribe_vegupdate_2d
+      m4_loop(`
+        module procedure ent_prescribe_vegupdate_`'m4_suffix`'
+      ')`'
       end interface
 
 
@@ -231,7 +232,7 @@ m4_loop(`
          
       m4_do(dims)
           ! skip uninitialized cells (no land)
-          if (.not.associated(entcell`'m4_brkts(m4_ind)`'%entcell))cycle
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
 
           if ( present(laidata) ) laidata_1 =>
      &         laidata(:`'m4_comma`'m4_ind)
@@ -249,6 +250,7 @@ m4_loop(`
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
      &         do_giss_albedo_1,
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
+        endif
       m4_enddo
 
       end subroutine ent_prescribe_vegupdate_`'m4_suffix`'
@@ -304,7 +306,7 @@ m4_loop(`
      &     time,config)
       m4_enddo
 
-      end subroutine ent_run_array_2d
+      end subroutine ent_run_`'m4_suffix`'
 ')`'
 
 m4_loop(`
@@ -354,12 +356,6 @@ m4_loop(`
       m4_arr_only(`dims(1,:) = lbound(entcell)')`'
       m4_arr_only(`dims(2,:) = ubound(entcell)')`'
  
-      do j=1,jc
-        do i=1,ic
-          call ent_cell_destruct_single( entcell(i,j) )
-        enddo
-      enddo
-
       m4_do(dims)
         call entcell_destruct( entcell`'m4_brkts(m4_ind)`'%entcell )
       m4_enddo
@@ -429,23 +425,24 @@ m4_loop(`
 
       m4_do(dims)
           !print *,"ent_cell_set_array_2d i,j=",i,j
-        if (.not. associated(entcell`'m4_brkts(m4_ind)`'%entcell)) cycle
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("init_simple_entcell 1",255)
           !call entcell_print(6,entcell`'m4_brkts(m4_ind)`'%entcell)
 
-        call init_simple_entcell( entcell`'m4_brkts(m4_ind)`'%entcell,
-     &       veg_fraction(:`'m4_comma`'m4_ind),pft_population_density,
-     &       leaf_area_index(:`'m4_comma`'m4_ind),
-     &       pft_heights,pft_dbh,pft_crad,
-     &       pft_cpool(:,:`'m4_comma`'m4_ind),
-     &       pft_nmdata,
-     &       pft_froots,
-     &       pft_soil_type,vegalbedo(:,:`'m4_comma`'m4_ind),
-     &       soil_texture(:`'m4_comma`'m4_ind),
-     &       Ci_ini`'m4_brkts(m4_ind)`', CNC_ini`'m4_brkts(m4_ind)`',
-     &       Tcan_ini`'m4_brkts(m4_ind)`', Qf_ini`'m4_brkts(m4_ind)`',
-     &       Tpool_ini(:,:,:,:`'m4_comma`'m4_ind))
+          call init_simple_entcell( entcell`'m4_brkts(m4_ind)`'%entcell,
+     &         veg_fraction(:`'m4_comma`'m4_ind),pft_population_density,
+     &         leaf_area_index(:`'m4_comma`'m4_ind),
+     &         pft_heights,pft_dbh,pft_crad,
+     &         pft_cpool(:,:`'m4_comma`'m4_ind),
+     &         pft_nmdata,
+     &         pft_froots,
+     &         pft_soil_type,vegalbedo(:,:`'m4_comma`'m4_ind),
+     &         soil_texture(:`'m4_comma`'m4_ind),
+     &         Ci_ini`'m4_brkts(m4_ind)`', CNC_ini`'m4_brkts(m4_ind)`',
+     &         Tcan_ini`'m4_brkts(m4_ind)`', Qf_ini`'m4_brkts(m4_ind)`',
+     &         Tpool_ini(:,:,:,:`'m4_comma`'m4_ind))
+        endif
       m4_enddo
 
       end subroutine ent_cell_set_`'m4_suffix`'
@@ -1016,7 +1013,7 @@ m4_loop(`
         !enddo
       !enddo
 
-      end subroutine ent_set_forcings_array_2d
+      end subroutine ent_set_forcings_`'m4_suffix`'
 ')`'
 
 
@@ -1065,6 +1062,7 @@ m4_loop(`
      &     soilcpools
       !----------
       integer n,p,ii
+      m4_arr_only(`integer m4_ind')`'
       m4_arr_only(`integer dims(2,m4_rank)')`'
 
       m4_arr_only(`dims(1,:) = lbound(entcell)')`'
@@ -1076,10 +1074,12 @@ m4_loop(`
      &     canopy_conductance`'m4_brkts(m4_ind)`' = 
      &       entcell`'m4_brkts(m4_ind)`'%entcell%GCANOPY
 
-      if( j > 32768 ) then
+      !!! Nancy, do you really nedd this ???
+      m4_arr_only(`
+      if( i1 > 32768 ) then
         print*,"Nancys compiler needs print stmt in ent_mod here"
       endif
-
+      ')`'
 
       if ( present(shortwave_transmit) )
      &     shortwave_transmit`'m4_brkts(m4_ind)`' = 
@@ -1192,7 +1192,11 @@ m4_loop(`
       m4_arr_only(`dims(2,:) = ubound(entcell)')`'
 
       m4_do(dims)
-          call ent_cell_print_single( iu, entcell`'m4_brkts(m4_ind)`' )
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+          call entcell_print( iu, entcell`'m4_brkts(m4_ind)`'%entcell )
+        else
+          write( iu, *) "ent_cell_print: Empty entcell"
+        endif
       m4_enddo
 
       end subroutine ent_cell_print_`'m4_suffix`'
