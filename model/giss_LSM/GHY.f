@@ -1887,7 +1887,7 @@ c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 #ifdef USE_ENT
-      use ent_mod, only: entcelltype_public, ent_set_forcings_single,
+      use ent_mod, only: entcelltype_public, ent_set_forcings,
      &     ent_get_exports, ent_fast_processes, ent_run
 !@var longi,latj corresponding coordinate of the cell
       type(entcelltype_public) entcell
@@ -2084,7 +2084,7 @@ cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
 cddd     &         vis_rad,direct_vis_rad,cosz1,sbgc_temp,sbgc_moist,
 cddd     &         h(1:ngm,2),fice(1:ngm,2) 
 
-          call ent_set_forcings_single( entcell,
+          call ent_set_forcings( entcell,
      &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
      &         canopy_air_humidity=Qf,  ! qsat(tp(0,2),lhe,pres),
