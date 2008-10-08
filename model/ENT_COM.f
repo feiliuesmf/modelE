@@ -209,7 +209,7 @@
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H, J_1, J_0
+      INTEGER :: J_1H, J_0H, J_1, J_0, I_1H, I_0H, I_1, I_0
       INTEGER :: IER
 
 C****
@@ -217,20 +217,23 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &     J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE(    entcells(im,J_0:J_1),
+      ALLOCATE(    entcells(I_0:I_1,J_0:J_1),
      *         STAT=IER)
       ! initialize ent cells to something meaningful
       !call ent_cell_construct( entcells ) ! moved to init_module_ent
       call ent_cell_nullify( entcells )
 
 
-      ALLOCATE(    vdata(im,J_0H:J_1H,12),
-     *              Cint(im,J_0H:J_1H),
-     *              Qfol(im,J_0H:J_1H),
-     *            cnc_ij(im,J_0H:J_1H),
+      ALLOCATE(    vdata(I_0H:I_1H,J_0H:J_1H,12),
+     *              Cint(I_0H:I_1H,J_0H:J_1H),
+     *              Qfol(I_0H:I_1H,J_0H:J_1H),
+     *            cnc_ij(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
 
       END SUBROUTINE ALLOC_ENT_COM
-

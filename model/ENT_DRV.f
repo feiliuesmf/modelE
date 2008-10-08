@@ -107,7 +107,7 @@ C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
 c**** check whether ground hydrology data exist at this point.
       veg_data_missing = .false.
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
           if (fearth(i,j).gt.0) then
             if ( sum(vdata(i,j,1:12)).eq.0 ) then
               print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:12)
