@@ -277,7 +277,7 @@ c for diagnostics
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
-      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPJ
+      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ
 !@var DCL max level of planetary boundary layer
       INTEGER :: DCL
 
@@ -306,7 +306,7 @@ C**** output variables
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
 CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
-CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypj,DDMFLX
+CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypij,DDMFLX
 CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
 CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
 CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
@@ -315,7 +315,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,UM1,VM1,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
      *  ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
-     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ,DDMFLX,PLAND
+     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPIJ,DDMFLX,PLAND
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
@@ -1260,7 +1260,7 @@ C*** Here are dust particles coated with sulfate
        end select
       END DO      !end of n loop for tracers
 c     if(DSS(5).lt.0.d0)write(6,*)"SO4c1",DSS(1),DSS(4),DSS(5),DSS(6),l
-      CALL GET_CC_CDNC(L,AIRM(L),DXYPJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
+      CALL GET_CC_CDNC(L,AIRM(L),DXYPIJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
       MNdO=MCDNO1
       MNdL=MCDNL1
       MNdI = 0.06417127d0
@@ -1282,7 +1282,7 @@ C** central value of 0.003 for alfa:Rotstayn&Daum, J.Clim,2003,16,21, Nov 2003.
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
+      WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
       DO N=1,NTX
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
@@ -2293,7 +2293,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         precip_mm = PRCP*100.*bygrav
         b_beta_DT = FPLUME
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        WA_VOL= precip_mm*DXYPJ
+        WA_VOL= precip_mm*DXYPIJ
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
@@ -3008,7 +3008,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdL = 174.d0
       SNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
-      CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPJ,
+      CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CLEARA(L),CLDSAVL(L),DSS,SMFPML(L),PL(L),TL(L),OLDCDO(L),
      *OLDCDL(L),VVEL,SME(L),DSU,CDNL1,CDNO1)
       SNdO=CDNO1
@@ -3248,7 +3248,7 @@ c CLDSAVT is current FCLD
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=0.
       IF (WMNEW.GT.teeny) THEN
-        WA_VOL=WMNEW*AIRM(L)*1.D2*BYGRAV*DXYPJ
+        WA_VOL=WMNEW*AIRM(L)*1.D2*BYGRAV*DXYPIJ
       ENDIF
       WMXTR = WMX(L)
       IF (BELOW_CLOUD.and.WMX(L).LT.teeny) THEN
@@ -3256,7 +3256,7 @@ c CLDSAVT is current FCLD
         if (precip_mm.lt.0.) precip_mm=0.
         WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
         if (wmxtr.lt.0.) wmxtr=0.
-        WA_VOL=precip_mm*DXYPJ
+        WA_VOL=precip_mm*DXYPIJ
       ENDIF
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
      * ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX
@@ -3420,7 +3420,7 @@ C    * QL QSAT=',L,TL(L),RH(L),RH1(L),RHW,QL(L),QSATE
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=0.
       IF (WMX(L).GT.teeny) THEN
-        WA_VOL=WMX(L)*AIRM(L)*1.D2*BYGRAV*DXYPJ
+        WA_VOL=WMX(L)*AIRM(L)*1.D2*BYGRAV*DXYPIJ
       ENDIF
 #endif
 C**** adjust gradients down if Q decreases

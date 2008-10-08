@@ -21,7 +21,7 @@
      *     ,pmtop
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
-      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,byaxyp,axyp
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
       USE DOMAIN_DECOMP, ONLY : halo_update_column
@@ -57,12 +57,14 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,w2,uw,vw,wt,wq
       real*8, dimension(lm+1) :: ze
 
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) ::
+      real*8, dimension(lm,grid%i_strt_halo:grid%i_stop_halo,
+     &                     grid%j_strt_halo:grid%j_stop_halo) ::
      &     u_3d_old,rho_3d,rhoe_3d,dz_3d
      &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
      &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
      &    ,wt_3d,v_3d_old
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
      &     tvsurf,uflux_bgrid,vflux_bgrid
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
@@ -97,6 +99,8 @@ C****
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%i_strt
+      I_1 = grid%i_stop
 
       ! Note that lbase_min/max are here for backwards compatibility
       ! with original drycnv. They are only used to determine where the
@@ -108,7 +112,7 @@ C****
 
 !$OMP  PARALLEL DO PRIVATE (L,I,J)
       do j=J_0, J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           !@var tvsurf(i,j) surface virtual temperature
           !@var tsavg(i,j) composite surface air temperature (k)
           tvsurf(i,j)=tsavg(i,j)*(1.d0+deltx*qsavg(i,j))
@@ -155,7 +159,7 @@ C****
 !$OMP*    ) SCHEDULE(DYNAMIC,2)
 
       loop_j_tq: do j=J_0, J_1
-        loop_i_tq: do i=1,imaxj(j)
+        loop_i_tq: do i=I_0,imaxj(j)
 
           do l=1,lm
             u(l)=u_3d_agrid(l,i,j)
@@ -181,7 +185,7 @@ cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
 #ifdef TRACERS_ON
             do nx=1,nta
               n=ntix(nx)
-              trij(l,nx)=trm(i,j,l,n)*byam(l,i,j)*bydxyp(j)
+              trij(l,nx)=trm(i,j,l,n)*byam(l,i,j)*byaxyp(i,j)
 cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
               tr0ij(l,nx)=trij(l,nx)
             end do
@@ -209,7 +213,7 @@ cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
           do nx=1,nta
             n=ntix(nx)
 C**** minus sign needed for ATURB conventions
-            trflx(nx)=-trflux1(i,j,n)*bydxyp(j)/rhoe(1)
+            trflx(nx)=-trflux1(i,j,n)*byaxyp(i,j)/rhoe(1)
           end do
 #endif
 
@@ -396,9 +400,9 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
               n=ntix(nx)
 #ifndef SKIP_TRACER_DIAGS
               tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
-     &             (trij(l,nx)-tr0ij(l,nx))*am(l,i,j)*dxyp(j)
+     &             (trij(l,nx)-tr0ij(l,nx))*am(l,i,j)*axyp(i,j)
 #endif
-              trm(i,j,l,n)=trij(l,nx)*am(l,i,j)*dxyp(j)
+              trm(i,j,l,n)=trij(l,nx)*am(l,i,j)*axyp(i,j)
 cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
             end do
 #endif
@@ -612,11 +616,14 @@ C**** Save additional changes in KE for addition as heat later
       implicit none
 
       integer, intent(in) :: lm
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo),
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo),
      &        intent(in) :: tvsurf
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
+      real*8, dimension(lm,grid%i_strt_halo:grid%i_stop_halo,
+     &                     grid%j_strt_halo:grid%j_stop_halo),
      &        intent(in) :: tv
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
+      real*8, dimension(lm,grid%i_strt_halo:grid%i_stop_halo,
+     &                     grid%j_strt_halo:grid%j_stop_halo),
      &        intent(out) :: rho,rhoe,dz,dze
 
       real*8 :: temp0,temp1,temp1e,pl1,pl,pl1e,ple,plm1e
@@ -644,7 +651,7 @@ C****
 !$OMP*  plm1e)
 !$OMP*    SCHEDULE(DYNAMIC,2)
       do j=J_0, J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           do l=1,lm-1
 
             pl1 =pmid(l+1,i,j)

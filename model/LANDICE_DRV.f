@@ -14,7 +14,7 @@
 !@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm,tf
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
-      USE GEOM, only : dxyp,imaxj
+      USE GEOM, only : axyp,imaxj
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg
@@ -53,12 +53,15 @@
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA_part
       LOGICAL :: do_glmelt
       INTEGER I,J,N
-      INTEGER :: J_0,J_1
+      INTEGER :: I_0,I_1, J_0,J_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
 C**** set GTEMP array for landice
       DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           IF (FLICE(I,J).gt.0) THEN
             GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
             GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
@@ -160,7 +163,7 @@ C**** Antarctica melt area
             IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
      *           .IMU2) THEN
               LOC_GLA(I,J)=.TRUE.
-              FWAREA_part(J)=FWAREA_part(J)+DXYP(J)*FOCEAN(I,J)
+              FWAREA_part(J)=FWAREA_part(J)+AXYP(I,J)*FOCEAN(I,J)
             END IF
           END IF
         END DO
@@ -176,7 +179,7 @@ C**** Greenland melt area
         J=JFW(N)
         If (J >= J_0 .and. J <= J_1) THEN
           LOC_GLG(I,J)=.TRUE.
-          FWAREA_part(J)=FWAREA_part(J)+DXYP(J)*FOCEAN(I,J)
+          FWAREA_part(J)=FWAREA_part(J)+AXYP(I,J)*FOCEAN(I,J)
         END IF
       END DO
       CALL GLOBALSUM(grid, FWAREA_part, FWAREA_NH, all=.true.)
@@ -232,22 +235,22 @@ C**** not used until at least one full year has passed)
 C**** Set GL MELT arrays
 #ifndef SCM
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (LOC_GLA(I,J)) THEN
-             GMELT(I,J) =  ACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J) ! kg
-            EGMELT(I,J) = EACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J) ! J
+             GMELT(I,J) =  ACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! kg
+            EGMELT(I,J) = EACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-            TRGMELT(:,I,J)= TRACCPDA(:)*FAC_SH*DXYP(J)*FOCEAN(I,J)  ! kg
+            TRGMELT(:,I,J)= TRACCPDA(:)*FAC_SH*AXYP(I,J)*FOCEAN(I,J)  ! kg
 #endif
 #endif /* TNL: inserted */
           END IF
           IF (LOC_GLG(I,J)) THEN
-             GMELT(I,J) =  ACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! kg
-            EGMELT(I,J) = EACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! J
+             GMELT(I,J) =  ACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
+            EGMELT(I,J) = EACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-            TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*DXYP(J)*FOCEAN(I,J) ! kg
+            TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
 #endif
 #endif /* TNL: inserted */
           END IF
@@ -274,7 +277,7 @@ C****
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
       USE CONSTANT, only : tf
-      USE GEOM, only : imaxj,dxyp,bydxyp
+      USE GEOM, only : imaxj,axyp,byaxyp
       USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
@@ -291,7 +294,7 @@ C****
       USE DOMAIN_DECOMP, only : GLOBALSUM, CHECKSUM, CHECKSUM_COLUMN
       IMPLICIT NONE
 
-      REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
+      REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPIJ
 #ifdef TRACERS_WATER
 !@var TRSNOW tracer amount in snow (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRSNOW
@@ -306,14 +309,16 @@ C****
 #endif
 C**** Get useful grid parameters
       INTEGER :: I, J, JR
-      INTEGER :: J_0, J_1, J_0H, J_1H
+      INTEGER :: J_0, J_1, J_0H, J_1H ,I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0      , J_STOP=J_1      ,
      &              J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
-      DXYPJ=DXYP(J)
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
+      DXYPIJ=AXYP(I,J)
       PLICE=FLICE(I,J)
       PRCP=PREC(I,J)
       JR=JREG(I,J)
@@ -330,7 +335,7 @@ C**** Get useful grid parameters
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TRPRCP(:)=TRPREC(:,I,J)*BYDXYP(J)
+        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)
 #endif
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP*PLICE
 
@@ -348,13 +353,13 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
         GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 C**** accumulate implicit fluxes for setting ocean balance
-        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
-        EDWNIMP(I,J)=EDWNIMP(I,J)+ERUN2*PLICE*DXYPJ
+        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPIJ
+        EDWNIMP(I,J)=EDWNIMP(I,J)+ERUN2*PLICE*DXYPIJ
 #ifdef TRACERS_WATER
         TRLNDI(:,I,J)=TRLI(:)
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
-        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPJ
+        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPIJ
         IF (SNOW.gt.1d-5) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
@@ -367,10 +372,10 @@ c       AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
 C       AJ(J,J_ERUN ,ITLANDI)=AJ(J,J_ERUN ,ITLANDI)+ERUN0*PLICE ! (Tg=0)
         AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS *PLICE
         AJ(J,J_IMPLH,ITLANDI)=AJ(J,J_IMPLH,ITLANDI)+ERUN2*PLICE
-        AREGJ(JR,J,J_RUN)  =AREGJ(JR,J,J_RUN)  +RUN0 *PLICE*DXYPJ
-c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
-        AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+DIFS *PLICE*DXYPJ
-        AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+ERUN2*PLICE*DXYPJ
+        AREGJ(JR,J,J_RUN)  =AREGJ(JR,J,J_RUN)  +RUN0 *PLICE*DXYPIJ
+c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPIJ ! (Tg=0)
+        AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+DIFS *PLICE*DXYPIJ
+        AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+ERUN2*PLICE*DXYPIJ
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS*PLICE
         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2*PLICE
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
@@ -387,7 +392,7 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
 !@calls LANDICE:LNDICE
       USE CONSTANT, only : tf
       USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice
-      USE GEOM, only : imaxj,dxyp,bydxyp
+      USE GEOM, only : imaxj,axyp,byaxyp
       USE LANDICE, only : lndice,ace1li,ace2li
       USE SEAICE_COM, only : rsi
       USE SEAICE, only : rhos
@@ -417,7 +422,7 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
       USE DOMAIN_DECOMP, only : GLOBALSUM
       IMPLICIT NONE
 
-      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPJ
+      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPIJ
      *     ,SCOVLI
 #ifdef TRACERS_WATER
 !@var TRSNOW tracer amount in snow (kg/m^2)
@@ -432,14 +437,16 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPJ ! (Tg=0)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
       INTEGER I,J,JR
-      INTEGER :: J_0,J_1, J_0H, J_1H
+      INTEGER :: J_0,J_1, J_0H, J_1H ,I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1
      &             ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
-      DXYPJ=DXYP(J)
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
+      DXYPIJ=AXYP(I,J)
       PLICE=FLICE(I,J)
       JR=JREG(I,J)
       RUNOLI(I,J)=0.
@@ -472,13 +479,13 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
         GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 C**** accumulate implicit fluxes for setting ocean balance
-        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPJ
-        EDWNIMP(I,J)=EDWNIMP(I,J)+EDIFS*PLICE*DXYPJ
+        MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPIJ
+        EDWNIMP(I,J)=EDWNIMP(I,J)+EDIFS*PLICE*DXYPIJ
 #ifdef TRACERS_WATER
         TRLNDI(:,I,J)=TRLI(:)
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
-        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPJ
+        TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPIJ
         IF (SNOW.gt.1d-5) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
@@ -489,7 +496,7 @@ C**** ACCUMULATE DIAGNOSTICS
         SCOVLI=0
         IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
         AJ(J,J_RSNOW,ITLANDI)=AJ(J,J_RSNOW,ITLANDI)+SCOVLI
-        AREGJ(JR,J,J_RSNOW)=AREGJ(JR,J,J_RSNOW)+SCOVLI*DXYPJ
+        AREGJ(JR,J,J_RSNOW)=AREGJ(JR,J,J_RSNOW)+SCOVLI*DXYPIJ
         AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
         AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
         AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
@@ -503,12 +510,12 @@ C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_IMPLH,ITLANDI)=AJ(J,J_IMPLH,ITLANDI)+EDIFS *PLICE
         AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS  *PLICE
 
-        AREGJ(JR,J,J_RUN)   =AREGJ(JR,J,J_RUN)   +RUN0  *PLICE*DXYPJ
-        AREGJ(JR,J,J_SNOW)  =AREGJ(JR,J,J_SNOW)  +SNOW  *PLICE*DXYPJ
-        AREGJ(JR,J,J_ACE1)  =AREGJ(JR,J,J_ACE1)  +ACE1LI*PLICE*DXYPJ
-        AREGJ(JR,J,J_ACE2)  =AREGJ(JR,J,J_ACE2)  +ACE2LI*PLICE*DXYPJ
-        AREGJ(JR,J,J_IMPLH) =AREGJ(JR,J,J_IMPLH) +EDIFS *PLICE*DXYPJ
-        AREGJ(JR,J,J_IMPLM) =AREGJ(JR,J,J_IMPLM) +DIFS  *PLICE*DXYPJ
+        AREGJ(JR,J,J_RUN)   =AREGJ(JR,J,J_RUN)   +RUN0  *PLICE*DXYPIJ
+        AREGJ(JR,J,J_SNOW)  =AREGJ(JR,J,J_SNOW)  +SNOW  *PLICE*DXYPIJ
+        AREGJ(JR,J,J_ACE1)  =AREGJ(JR,J,J_ACE1)  +ACE1LI*PLICE*DXYPIJ
+        AREGJ(JR,J,J_ACE2)  =AREGJ(JR,J,J_ACE2)  +ACE2LI*PLICE*DXYPIJ
+        AREGJ(JR,J,J_IMPLH) =AREGJ(JR,J,J_IMPLH) +EDIFS *PLICE*DXYPIJ
+        AREGJ(JR,J,J_IMPLM) =AREGJ(JR,J,J_IMPLM) +DIFS  *PLICE*DXYPIJ
 
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +(EDIFS+F1DT)*PLICE
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
@@ -517,15 +524,15 @@ C**** ACCUMULATE DIAGNOSTICS
 
 C**** Accumulate diagnostics related to iceberg flux here also
       AJ(J,J_RVRD,ITOCEAN) = AJ(J,J_RVRD,ITOCEAN)+(1.-RSI(I,J))
-     *     * GMELT(I,J)*BYDXYP(J)
+     *     * GMELT(I,J)*BYAXYP(I,J)
       AJ(J,J_ERVR,ITOCEAN) = AJ(J,J_ERVR,ITOCEAN)+(1.-RSI(I,J))
-     *     *EGMELT(I,J)*BYDXYP(J)
+     *     *EGMELT(I,J)*BYAXYP(I,J)
       AJ(J,J_RVRD,ITOICE)  = AJ(J,J_RVRD,ITOICE) +    RSI(I,J)
-     *     * GMELT(I,J)*BYDXYP(J)
+     *     * GMELT(I,J)*BYAXYP(I,J)
       AJ(J,J_ERVR,ITOICE)  = AJ(J,J_ERVR,ITOICE) +    RSI(I,J)
-     *     *EGMELT(I,J)*BYDXYP(J)
-      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*BYDXYP(J)
-      AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*BYDXYP(J)
+     *     *EGMELT(I,J)*BYAXYP(I,J)
+      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*BYAXYP(I,J)
+      AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*BYAXYP(I,J)
 
       AREGJ(JR,J,J_RVRD) = AREGJ(JR,J,J_RVRD) +  GMELT(I,J)
       AREGJ(JR,J,J_ERVR) = AREGJ(JR,J,J_ERVR) + EGMELT(I,J)
@@ -534,7 +541,7 @@ C**** Accumulate diagnostics related to iceberg flux here also
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
       TAIJN(I,J,TIJ_RVR,:)=TAIJN(I,J,TIJ_RVR,:)+ TRGMELT(:,I,J)
-     *     *BYDXYP(J)
+     *     *BYAXYP(I,J)
 #endif
 #endif  /* TNL: inserted */
 C****
@@ -556,16 +563,18 @@ C****
 !@var ICE total land ice snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: ICE
       INTEGER I,J
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1 ,I_0,I_1
       LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
         ICE(J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           ICE(J)=ICE(J)+FLICE(I,J)*(ACE1LI+ACE2LI+SNOWLI(I,J))
         END DO
       END DO
@@ -589,17 +598,18 @@ C****
 !@var EICE total land ice energy (J/m^2)
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: EICE
       INTEGER I,J
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1 ,I_0,I_1
       LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
         EICE(J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           EICE(J)=EICE(J)+FLICE(I,J)*((TLANDI(1,I,J)*SHI-LHM)*(ACE1LI
      *         +SNOWLI(I,J))+(TLANDI(2,I,J)*SHI-LHM)*ACE2LI)
         END DO
@@ -617,7 +627,7 @@ C****
       USE CONSTANT, only : edpery,sday,lhm,shi
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
      *     ,itime,itimei,nday,JDperY
-      USE GEOM, only : dxyp,imaxj
+      USE GEOM, only : axyp,imaxj
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg
@@ -653,9 +663,11 @@ C****
       REAL*8 trdwnimp_SH(NTM),trdwnimp_NH(NTM)
 #endif
       REAL*8 :: HSUM(2),GSUM
-      INTEGER :: J_0,J_1,I,J,ITM
+      INTEGER :: J_0,J_1,I_0,I_1,I,J,ITM
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Every year update gmelt factors in order to balance downward
 C**** implicit fluxes. If this is used, then ice sheets/snow are FORCED to
@@ -758,22 +770,22 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
 
 C**** Set GL MELT arrays
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (LOC_GLA(I,J)) THEN
-              GMELT(I,J)  =  ACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J)  ! kg
-              EGMELT(I,J) = EACCPDA*FAC_SH*DXYP(J)*FOCEAN(I,J) ! J
+              GMELT(I,J)  =  ACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J)  ! kg
+              EGMELT(I,J) = EACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-              TRGMELT(:,I,J)=TRACCPDA(:)*FAC_SH*DXYP(J)*FOCEAN(I,J)  ! kg
+              TRGMELT(:,I,J)=TRACCPDA(:)*FAC_SH*AXYP(I,J)*FOCEAN(I,J)  ! kg
 #endif
 #endif    /* TNL: inserted */
           END IF
           IF (LOC_GLG(I,J)) THEN
-             GMELT(I,J) =  ACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! kg
-            EGMELT(I,J) = EACCPDG*FAC_NH*DXYP(J)*FOCEAN(I,J) ! J
+             GMELT(I,J) =  ACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
+            EGMELT(I,J) = EACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-            TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*DXYP(J)*FOCEAN(I,J)  ! kg
+            TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*AXYP(I,J)*FOCEAN(I,J)  ! kg
 #endif
 #endif    /* TNL: inserted */
           END IF
@@ -810,7 +822,7 @@ C**** reset implicit accumulators
      *     ,trsnowli,trlndi,trdwnimp
 #endif
       IMPLICIT NONE
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H,I_0,I_1,njpol
       INTEGER I,J,N !@var I,J loop variables
       CHARACTER*6, INTENT(IN) :: SUBR
       LOGICAL QCHECKL
@@ -821,12 +833,21 @@ C**** reset implicit accumulators
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
      *               J_STRT_HALO=J_0H,J_STOP_HALO=J_1H,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
 C**** Check for NaN/INF in land ice data 
-      CALL CHECK3C(tlandi,2,IM,J_0H,J_1H,SUBR,'tli')
-      CALL CHECK3B(snowli,IM,J_0H,J_1H,JM,1,SUBR,'sli')
-      CALL CHECK3B(mdwnimp,IM,J_0H,J_1H,JM,1,SUBR,'mdw')
-      CALL CHECK3B(edwnimp,IM,J_0H,J_1H,JM,1,SUBR,'edw')
+      CALL CHECK3C(tlandi(:,I_0:I_1,J_0:J_1),2,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'tli')
+      CALL CHECK3B(snowli(I_0:I_1,J_0:J_1) ,I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'sli')
+      CALL CHECK3B(mdwnimp(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'mdw')
+      CALL CHECK3B(edwnimp(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'edw')
 
       QCHECKL = .FALSE.
 #ifdef TRACERS_WATER
@@ -835,7 +856,7 @@ C**** Check conservation of water tracers in land ice
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1
           do j=J_0, J_1
-          do i=1,imaxj(j)
+          do i=I_0,imaxj(j)
             if (flice(i,j).gt.0) then
               relerr=max(
      *             abs(trlndi(n,i,j)/(ace1li+ace2li)-1.)

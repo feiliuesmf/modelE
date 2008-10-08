@@ -4,12 +4,12 @@
       implicit none
       private
 
-      public init_ATMDYN, DYNAM,CALC_TROP,PGRAD_PBL
-     &     ,DISSIP,FILTER,CALC_AMPK,CALC_AMP
-     &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
-     &     ,AFLUX, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
+      public init_ATMDYN, DYNAM,PGRAD_PBL
+     &     ,DISSIP,FILTER
+     &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+     &     ,AFLUX, COMPUTE_MASS_FLUX_DIAGS
      &     ,getTotalEnergy,SDRAG
-     &     ,addEnergyAsDiffuseHeat, addEnergyAsLocalHeat
+     &     ,addEnergyAsLocalHeat
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -220,39 +220,6 @@ C**** Restart after 8 steps due to divergence of solutions
 
       RETURN
       END SUBROUTINE DYNAM
-
-C**** Calculate 3D vertical velocity (take SDA which has units
-C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)
-C**** and convert to WSAVE, units of m/s):
-
-      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
-      use CONSTANT, only: rgas, bygrav
-      !use MODEL_COM, only: NIdyn
-      use DOMAIN_DECOMP, only: grid, GET
-      use GEOM, only: bydxyp
-      use MODEL_COM, only: IM,JM,LM
-
-      real*8, dimension(:, grid%J_STRT_HALO:, :), intent(out) :: WSAVE
-      real*8, dimension(:, grid%J_STRT_HALO:, :), intent(in)  :: SDA, T
-      real*8, dimension(:, :, grid%J_STRT_HALO:), intent(in)  :: PK,PEDN
-      integer, intent(in) :: NIdyn
-
-      integer :: i, l
-      integer :: J_0, J_1
-
-      call get(grid, J_STRT=J_0, J_STOP=J_1)
-
-!$OMP PARALLEL DO PRIVATE (l,i)
-      do l=1,lm-1
-        do i=1,im
-         wsave(i,J_0:J_1,l)=2.*sda(i,J_0:J_1,l)*bydxyp(J_0:J_1)*
-     &   rgas*0.5*(T(i,J_0:J_1,l)*pk(l,i,J_0:J_1)+T(i,J_0:J_1,l+1)*
-     &   pk(l+1,i,J_0:J_1))*bygrav/(NIdyn*pedn(l+1,i,J_0:J_1))
-        end do
-      end do
-!$OMP END PARALLEL DO
-
-      end subroutine COMPUTE_WSAVE
 
       Subroutine compute_mass_flux_diags(PHI, PU, PV, dt)
       use MODEL_COM, only: IM, LM
@@ -1739,130 +1706,6 @@ c**** Extract domain decomposition info
       RETURN
       END SUBROUTINE SHAP1D
 
-      SUBROUTINE CALC_PIJL(lmax,p,pijl)
-!@sum  CALC_PIJL Fills in P as 3-D
-!@auth Jean Lerner
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt
-C****
-      USE DOMAIN_DECOMP, Only : grid, GET
-      implicit none
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: pijl
-      integer :: l,lmax
-
-      do l=1,ls1-1
-        pijl(:,:,l) = p(:,:)
-      enddo
-      do l=ls1,lmax
-        pijl(:,:,l) = PSFMPT
-      enddo
-      return
-      end subroutine calc_pijl
-
-      SUBROUTINE CALC_AMPK(LMAX)
-!@sum  CALC_AMPK calculate air mass and pressure arrays
-!@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : bygrav,kapa
-      USE MODEL_COM, only : im,jm,lm,ls1,p
-      USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
-      USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, SOUTH
-      USE DOMAIN_DECOMP, only : haveLatitude
-      IMPLICIT NONE
-
-      INTEGER :: I,J,L  !@var I,J,L  loop variables
-      INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
-      REAL*8, DIMENSION(LMAX) :: PL,AML,PDSIGL,PMIDL
-      REAL*8, DIMENSION(LMAX+1) :: PEDNL
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_HALO= J_0H,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
-C**** Note that only layers LS1 and below vary as a function of surface
-C**** pressure. Routine should be called with LMAX=LM at start, and
-C**** subsequentaly with LMAX=LS1-1
-C**** Note Air mass is calculated in (kg/m^2)
-
-C**** Fill in polar boxes
-      IF (haveLatitude(grid, J=1)) P(2:IM,1) = P(1,1)
-      IF (haveLatitude(grid, J=JM)) P(2:IM,JM)= P(1,JM)
-      Call HALO_UPDATE(grid, P, FROM=SOUTH)
-
-!$OMP  PARALLEL DO PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
-      DO J=J_0H,J_1 ! filling halo for P is faster than PDSIG
-        DO I=1,IM
-
-          CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
-
-          DO L=1,MIN(LMAX,LM)
-            PLIJ (L,I,J) = PL    (L)
-            PDSIG(L,I,J) = PDSIGL(L)
-            PMID (L,I,J) = PMIDL (L)
-            PEDN (L,I,J) = PEDNL (L)
-            AM   (L,I,J) = AML   (L)
-            PK   (L,I,J) = PMIDL (L)**KAPA
-            PEK  (L,I,J) = PEDNL (L)**KAPA
-            BYAM (L,I,J) = 1./AM(L,I,J)
-          END DO
-
-          IF (LMAX.ge.LM) THEN
-            PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)
-            PEK (LM+1:LMAX+1,I,J) = PEDN(LM+1:LMAX+1,I,J)**KAPA
-          END IF
-          SQRTP(I,J) = SQRT(P(I,J))
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
-
-      RETURN
-      END SUBROUTINE CALC_AMPK
-
-      SUBROUTINE CALC_AMP(p,amp)
-!@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
-!@auth Jean Lerner/Max Kelley
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,ls1,dsig,psf,ptop
-      USE GEOM, only : dxyp
-C****
-      USE DOMAIN_DECOMP, Only : grid, GET
-      implicit none
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: amp
-      integer :: j,l
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
-
-C
-!$OMP  PARALLEL DO PRIVATE(J,L)
-      DO L=1,LM
-        IF(L.LT.LS1) THEN
-ccc   do l=1,ls1-1
-          do j=J_0,J_1
-            amp(:,j,l) = p(:,j)*dxyp(j)*dsig(l)
-          enddo
-ccc   enddo
-        ELSE
-ccc   do l=ls1,lm
-          do j=J_0,J_1
-            amp(:,j,l) = (psf-ptop)*dxyp(j)*dsig(l)
-          enddo
-        END IF
-ccc   enddo
-      enddo
-!$OMP  END PARALLEL DO
-C
-      return
-C****
-      end subroutine calc_amp
-
       SUBROUTINE PGRAD_PBL
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
 !@auth Ye Cheng
@@ -2097,221 +1940,6 @@ C**** (technically we should use U,V from before but this is ok)
       RETURN
       END SUBROUTINE SDRAG
 
-      SUBROUTINE CALC_TROP
-!@sum  CALC_TROP (to calculate tropopause height and layer)
-!@auth J. Lerner
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,t
-      USE GEOM, only : imaxj
-      USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
-      USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
-      USE DOMAIN_DECOMP, Only : grid, GET
-      USE DOMAIN_DECOMP, only : haveLatitude
-      IMPLICIT NONE
-      INTEGER I,J,L,IERR
-      REAL*8, DIMENSION(LM) :: TL
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-
-C**** Find WMO Definition of Tropopause to Nearest L
-!$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
-      do j=J_0,J_1
-      do i=1,imaxj(j)
-        do l=1,lm
-          TL(L)=T(I,J,L)*PK(L,I,J)
-        end do
-        CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J)
-     *       ,IERR)
-        IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
-        AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
-        AIJ(I,J,IJ_TTROP)=AIJ(I,J,IJ_TTROP)+TL(LTROPO(I,J))
-      end do
-      end do
-!$OMP  END PARALLEL DO
-      IF (haveLatitude(grid, J=1)) THEN
-        PTROPO(2:IM,1) = PTROPO(1,1)
-        LTROPO(2:IM,1) = LTROPO(1,1)
-      END IF
-      IF (haveLatitude(grid,J=JM)) THEN
-        PTROPO(2:IM,JM)= PTROPO(1,JM)
-        LTROPO(2:IM,JM)= LTROPO(1,JM)
-      END IF
-
-      END SUBROUTINE CALC_TROP
-
-      SUBROUTINE DISSIP
-!@sum DISSIP adds in dissipated KE as heat locally
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : t
-      USE DYNAMICS, only : dke,pk
-      IMPLICIT NONE
-C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
-
-      call addEnergyAsLocalHeat(DKE, T, PK)
-
-      END SUBROUTINE DISSIP
-
-      subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp,ierr)
-!@sum  tropwmo calculates tropopasue height according to WMO formula
-!@auth D. Nodorp/T. Reichler/C. Land
-!@+    GISS Modifications by Jean Lerner/Gavin Schmidt
-!@ver  1.0
-!@alg  WMO Tropopause Definition
-!@+
-!@+ From A Temperature Lapse Rate Definition of the Tropopause Based on
-!@+ Ozone, J. M. Roe and W. H. Jasperson, 1981
-!@+
-!@+ In the following discussion the lapse rate is defined as -dT/dz.
-!@+
-!@+ The main features of the WMO tropopause definition are as follows:
-!@+ * The first tropopause (i.e., the conventional tropopause) is
-!@+   defined as the lowest level at which the lapse rate decreases to 2
-!@+   K/km or less, and the average lapse rate from this level to any
-!@+   level within the next higher 2 km does not exceed 2 K/km.
-!@+ * If above the first tropopause the average lapse rate between any
-!@+   level and all higher levels within 1 km exceed 3 K/km, then a
-!@+   second tropopause is defined by the same criterion as under the
-!@+   statement above. This tropopause may be either within or above the
-!@+   1 km layer.
-!@+ * A level otherwise satisfying the definition of tropopause, but
-!@+   occuring at an altitude below that of the 500 mb level will not be
-!@+   designated a tropopause unless it is the only level satisfying the
-!@+   definition and the average lapse rate fails to exceed 3 K/km over
-!@+   at least 1 km in any higher layer.
-!@+ * (GISS failsafe) Some cases occur when the lapse rate never falls
-!@+   below 2 K/km. In such cases the failsafe level is that where the
-!@+   lapse rate first falls below 3 K/km. If this still doesn't work
-!@+   (ever?), the level is set to the pressure level below 30mb.
-!@+
-      USE MODEL_COM, only : klev=>lm
-      USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
-      USE DOMAIN_DECOMP, Only : grid, GET
-      implicit none
-
-      real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
-      real*8, intent(out) :: ptropo
-      integer, intent(out) :: ltropp,ierr
-      real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
-!@param zgwmo min lapse rate (* -1) needed for trop. defn. (-K/km)
-!@param zgwmo2 GISS failsafe minimum lapse rate (* -1) (-K/km)
-!@param zdeltaz distance to check for lapse rate changes (km)
-!@param zfaktor factor for caluclating height from pressure (-rgas/grav)
-!@param zplimb min pressure at which to define tropopause (mb)
-      real*8, parameter :: zgwmo  = -2d-3, zgwmo2=-3d-3,
-     *     zdeltaz = 2000.0, zfaktor = -GRAV/RGAS, zplimb=500.
-      real*8 zptph, zp2km, zag, zbg, zasum, zaquer, zptf
-      integer iplimb,iplimt, jk, jj, kcount, ltset,l
-      logical ldtdz
-c****
-c****  2. Calculate the height of the tropopause
-c****  -----------------------------------------
-      ltset = -999
-      ierr=0
-      iplimb=1
-c**** set limits based on pressure
-      do jk=2,klev-1
-        if (papm1(jk-1).gt.600d0) then
-          iplimb=jk
-        else
-          if (papm1(jk).lt.30d0) exit
-        end if
-      end do
-      iplimt=jk
-c****
-c****  2.1 compute dt/dz
-c****  -----------------
-c****       ztm  lineare Interpolation in p**kappa
-c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
-
-      do jk=iplimb+1,iplimt       ! -1 ?????
-        zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
-
-        zpm(jk)=zpmk(jk)**zzkap ! p mitte
-
-        za(jk)=(ptm1(jk-1)-ptm1(jk))/(pk(jk-1)-pk(jk))
-        zb(jk) = ptm1(jk)-(za(jk)*pk(jk))
-
-        ztm(jk)=za(jk)*zpmk(jk)+zb(jk) ! T mitte
-        zdtdz(jk)=zfaktor*zkappa*za(jk)*zpmk(jk)/ztm(jk)
-      end do
-c****
-c****  2.2 First test: valid dt/dz ?
-c****  -----------------------------
-c****
-      do 1000 jk=iplimb+1,iplimt-1
-
-c**** GISS failsafe test
-        if (zdtdz(jk).gt.zgwmo2.and.ltset.ne.1) then
-          ltropp=jk
-          ltset =1
-        end if
-c****
-        if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
-     &       zpm(jk).le.zplimb) then ! zpm not too low
-          ltropp = jk
-          ltset = 1
-c****
-c****  2.3 dtdz is valid > something in German
-c****  ----------------------------------------
-c****    1.lineare in p^kappa (= Dieters neue Methode)
-
-          zag = (zdtdz(jk)-zdtdz(jk+1))/
-     &         (zpmk(jk)-zpmk(jk+1)) ! a-gamma
-          zbg = zdtdz(jk+1) - zag*zpmk(jk+1) ! b-gamma
-          if(((zgwmo-zbg)/zag).lt.0.) then
-            zptf=0.
-          else
-            zptf=1.
-          end if
-          zptph = zptf*abs((zgwmo-zbg)/zag)**zzkap
-          ldtdz=zdtdz(jk+1).lt.zgwmo
-          if(.not.ldtdz) zptph=zpm(jk)
-c****
-c****  2.4 2nd test: dt/dz above 2km must not be lower than -2K/km
-c****  -----------------------------------------------------------
-c****
-          zp2km = zptph + zdeltaz*zpm(jk)
-     &         / ztm(jk)*zfaktor ! p at ptph + 2km
-          zasum = 0.0           ! zdtdz above
-          kcount = 0            ! number of levels above
-c****
-c****  2.5 Test until pm < p2km
-c****  --------------------------
-c****
-          do jj=jk,iplimt-1
-            if(zpm(jj).gt.zptph) cycle ! doesn't happen
-            if(zpm(jj).lt.zp2km) goto 2000 ! ptropo valid
-            zasum = zasum+zdtdz(jj)
-            kcount = kcount+1
-            zaquer = zasum/float(kcount) ! dt/dz mean
-            if(zaquer.le.zgwmo) goto 1000 ! dt/dz above < 2K/1000
-                                          ! discard it
-          end do                ! test next level
-          goto 2000
-        endif
- 1000 continue                  ! next level
- 2000 continue
-
-      if (ltset.eq.-999) then
-        ltropp=iplimt-1  ! default = last level below 30mb
-        print*,"In tropwmo ltropp not set, using default: ltropp ="
-     *       ,ltropp
-        write(6,'(12(I4,5F10.5,/))') (l,ptm1(l),papm1(l),pk(l),zdtdz(l)
-     *       ,zpm(l),l=iplimb+1,iplimt-1)
-        ierr=1
-      end if
-      ptropo = papm1(ltropp)
-c****
-      return
-      end subroutine tropwmo
-
       function getTotalEnergy() result(totalEnergy)
 !@sum  getTotalEnergy returns the sum of kinetic and potential energy.
 !@auth Tom Clune (SIVO)
@@ -2340,30 +1968,17 @@ c****
 
       end function getTotalEnergy
 
-      subroutine addEnergyAsDiffuseHeat(deltaEnergy)
-!@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
-!@auth Tom Clune (SIVO)
-!@ver  1.0
-      use CONSTANT, only: sha, mb2kg
-      use MODEL_COM, only: T, PSF, PMTOP, LM
-      use DYNAMICS, only: PK
-      use DOMAIN_DECOMP, only: grid, get
-      real*8, intent(in) :: deltaEnergy
+      SUBROUTINE DISSIP
+!@sum DISSIP adds in dissipated KE as heat locally
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : t
+      USE DYNAMICS, only : dke,pk
+      IMPLICIT NONE
+C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
-      real*8 :: ediff
-      integer :: l
-      integer :: J_0, J_1
+      call addEnergyAsLocalHeat(DKE, T, PK)
 
-      call get(grid, J_STRT=J_0, J_STOP=J_1)
-
-      ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
-!$OMP  PARALLEL DO PRIVATE (L)
-      do l=1,lm
-        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
-      end do
-!$OMP  END PARALLEL DO
-
-      end subroutine addEnergyAsDiffuseHeat
+      END SUBROUTINE DISSIP
 
 C***** Add in dissipiated KE as heat locally
       subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)

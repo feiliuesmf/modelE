@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE SOMTQ_COM
 !@sum  SOMTQ_COM contains the arrays containing second order moments
 !@auth Gary Russell
@@ -100,9 +101,12 @@
       USE DOMAIN_DECOMP, ONLY: grid
       USE SOMTQ_COM
       implicit none
-      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: t,q
-      REAL*8 :: pmid(lm,im,grid%j_strt_halo:grid%j_stop_halo),
-     *     pedn(lm+1,im,grid%j_strt_halo:grid%j_stop_halo)
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) :: t,q
+      REAL*8 :: pmid(lm,grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo)
+      REAL*8 :: pedn(lm+1,grid%i_strt_halo:grid%i_stop_halo,
+     &                    grid%j_strt_halo:grid%j_stop_halo)
       integer :: i,j,l
       REAL*8 :: rdsig
 
@@ -122,7 +126,7 @@ C****
 
 C**** INITIALIZES VERTICAL SLOPES OF T,Q
       DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           RDSIG=(PMID(1,I,J)-PEDN(2,I,J))/(PMID(1,I,J)-PMID(2,I,J))
           TMOM(MZ,I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
           QMOM(MZ,I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG

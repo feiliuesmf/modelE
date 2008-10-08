@@ -237,49 +237,51 @@ C**** Local variables initialised in init_RAD
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_0H, J_1H
+      INTEGER :: I_0H, I_1H, J_0H, J_1H
       INTEGER :: IER
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE( RQT(LM_REQ, IM, J_0H:J_1H),
-     *     Tchg(LM+LM_REQ, IM, J_0H:J_1H),
-     *     SRHR(0:LM, IM, J_0H:J_1H),
-     *     TRHR(0:LM, IM, J_0H:J_1H),
-     *     TRSURF(4, IM, J_0H:J_1H),
-     *     FSF(4,IM, J_0H:J_1H),
-     *     FSRDIR(IM, J_0H:J_1H),
-     *     SRVISSURF(IM, J_0H:J_1H),
-     *     FSRDIF(IM, J_0H:J_1H),
-     *     DIRNIR(IM, J_0H:J_1H),
-     *     DIFNIR(IM, J_0H:J_1H),
-     *     SRDN(IM, J_0H:J_1H),
-     *     CFRAC(IM, J_0H:J_1H),
-     *     RCLD(LM, IM, J_0H:J_1H),
-     *     O3_tracer_save(LM, IM, J_0H:J_1H),
-     *     rad_to_chem(5, LM, IM, J_0H:J_1H),
-     *     rad_to_file(5, LM, IM, J_0H:J_1H),
-     *     KLIQ(LM,4, IM, J_0H:J_1H),
-     *     COSZ1(IM, J_0H:J_1H),
+      ALLOCATE( RQT(LM_REQ, I_0H:I_1H, J_0H:J_1H),
+     *     Tchg(LM+LM_REQ, I_0H:I_1H, J_0H:J_1H),
+     *     SRHR(0:LM, I_0H:I_1H, J_0H:J_1H),
+     *     TRHR(0:LM, I_0H:I_1H, J_0H:J_1H),
+     *     TRSURF(4, I_0H:I_1H, J_0H:J_1H),
+     *     FSF(4,I_0H:I_1H, J_0H:J_1H),
+     *     FSRDIR(I_0H:I_1H, J_0H:J_1H),
+     *     SRVISSURF(I_0H:I_1H, J_0H:J_1H),
+     *     FSRDIF(I_0H:I_1H, J_0H:J_1H),
+     *     DIRNIR(I_0H:I_1H, J_0H:J_1H),
+     *     DIFNIR(I_0H:I_1H, J_0H:J_1H),
+     *     SRDN(I_0H:I_1H, J_0H:J_1H),
+     *     CFRAC(I_0H:I_1H, J_0H:J_1H),
+     *     RCLD(LM, I_0H:I_1H, J_0H:J_1H),
+     *     O3_tracer_save(LM, I_0H:I_1H, J_0H:J_1H),
+     *     rad_to_chem(5, LM, I_0H:I_1H, J_0H:J_1H),
+     *     rad_to_file(5, LM, I_0H:I_1H, J_0H:J_1H),
+     *     KLIQ(LM,4, I_0H:I_1H, J_0H:J_1H),
+     *     COSZ1(I_0H:I_1H, J_0H:J_1H),
      *     dH2O(J_0H:J_1H, LM, 12),
-     *     ALB(IM, J_0H:J_1H, 9),
+     *     ALB(I_0H:I_1H, J_0H:J_1H, 9),
      *     SINJ(J_0H:J_1H),
      *     COSJ(J_0H:J_1H),
-     &     srnflb_save(Im,J_0H:J_1H,Lm),
-     &     trnflb_save(Im,J_0H:J_1H,Lm),
+     &     srnflb_save(I_0H:I_1H,J_0H:J_1H,Lm),
+     &     trnflb_save(I_0H:I_1H,J_0H:J_1H,Lm),
 #ifdef TRACERS_ON
-     &     ttausv_save(Im,J_0H:J_1H,Ntm,Lm),
-     &     ttausv_cs_save(Im,J_0H:J_1H,Ntm,Lm),
+     &     ttausv_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
+     &     ttausv_cs_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
 #endif
 #ifdef HTAP_LIKE_DIAGS
-     &     ttausv_sum(Im,J_0H:J_1H,Ntm),
+     &     ttausv_sum(I_0H:I_1H,J_0H:J_1H,Ntm),
 #endif
 #ifdef CHL_from_SeaWIFs
-     &         ACHL(IM,J_0H:J_1H),   
-     &         ECHL1(IM,J_0H:J_1H),
-     &         ECHL0(IM,J_0H:J_1H),
-     &         BCHL(IM,J_0H:J_1H),
-     &         CCHL(IM,J_0H:J_1H),
+     &         ACHL(I_0H:I_1H,J_0H:J_1H),   
+     &         ECHL1(I_0H:I_1H,J_0H:J_1H),
+     &         ECHL0(I_0H:I_1H,J_0H:J_1H),
+     &         BCHL(I_0H:I_1H,J_0H:J_1H),
+     &         CCHL(I_0H:I_1H,J_0H:J_1H),
      &         wfac(1:33),
 #endif
 #ifdef OBIO_RAD_coupling

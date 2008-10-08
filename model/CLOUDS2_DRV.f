@@ -20,6 +20,7 @@
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
+     &     ,axyp,byaxyp
       USE RANDOM
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -132,7 +133,7 @@
 #endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subs
-     *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypj,lp50,hcndss
+     *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,lp50,hcndss
      *     ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei
      *     ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
@@ -266,7 +267,9 @@ C        not clear yet whether they still speed things up
       REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
-      REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
+      REAL*8  RNDSS(3,LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
+      integer :: nij_before_j0,nij_after_j1,nij_after_i1
 CRKF...FIX
       REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
@@ -274,7 +277,7 @@ CRKF...FIX
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       REAL*4 WCU500(IM,16),SAVWCU(IM,16,LM),SAVEN1(IM,16,LM),
      *  SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
 
@@ -353,16 +356,19 @@ C**** define local grid
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
 C     Burn some random numbers corresponding to latitudes off
 C     processor
-      CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*LP50*3)
+      CALL BURN_RANDOM(nij_before_j0(J_0)*LP50*3)
 
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      CALL BURN_RANDOM((I_0-1)*LP50*3)
+      DO I=I_0,IMAXJ(J)
         DO L=LP50,1,-1
           DO NR=1,3
             RNDSS(NR,L,I,J) = RANDU(xx)
@@ -370,9 +376,10 @@ C     processor
         END DO
 C     Do not bother to save random numbers for isccp_clouds
       END DO
+      CALL BURN_RANDOM(nij_after_i1(I_1)*LP50*3)
       END DO
 
-      Call BURN_RANDOM(SUM(IMAXJ(J_1+1:JM))*LP50*3)
+      CALL BURN_RANDOM(nij_after_j1(J_1)*LP50*3)
 
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
@@ -447,7 +454,7 @@ C****
        ! Burn random numbers for earlier latitudes here.
        ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
       if (isccp_diags.eq.1) then
-        CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*NCOL*(LM+1))
+        CALL BURN_RANDOM(nij_before_j0(J_0)*NCOL*(LM+1))
       end if
 !$OMP  PARALLEL DO PRIVATE (
 #ifdef TRACERS_ON
@@ -474,10 +481,15 @@ C****
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C
       DO J=J_0,J_1
+
+       ! Burn random numbers for earlier longitudes here.
+       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
+      if (isccp_diags.eq.1) then
+        CALL BURN_RANDOM((I_0-1)*NCOL*(LM+1))
+      end if
 C
 Cred* Reduced Arrays 2
 C
-        DXYPJ=DXYP(J)
       DO L=1,LM
          GZIL(:,L) = GZ(:,J,L)
       END DO
@@ -510,7 +522,8 @@ Cred* end Reduced Arrays 2
 C****
 C**** MAIN I LOOP
 C****
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
+        DXYPIJ=AXYP(I,J)
         JR=JREG(I,J)
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS FOR MSTCNV
@@ -631,8 +644,8 @@ Cred    WML(L)=WM(I,J,L)
         WML(L)=WMIL(I,L)
         QL(L) =Q(I,J,L)
 C**** others
-Cred    SDL(L)=SD_CLOUDS(I,J,L)*BYDXYP(J)
-        SDL(L)=SD_CLDIL(I,L)*BYDXYP(J)
+Cred    SDL(L)=SD_CLOUDS(I,J,L)*BYAXYP(I,J)
+        SDL(L)=SD_CLDIL(I,L)*BYAXYP(I,J)
         TVL(L)=TL(L)*(1.+DELTX*QL(L))
         W2L(L)=W2GCM(L,I,J)
         SAVWL(L)=0.
@@ -801,7 +814,7 @@ C*** End Accumulate 3D convective latent heating
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
         END DO
-        AREGJ(JR,J,J_PRCPMC)=AREGJ(JR,J,J_PRCPMC)+PRCPMC*DXYP(J)
+        AREGJ(JR,J,J_PRCPMC)=AREGJ(JR,J,J_PRCPMC)+PRCPMC*AXYP(I,J)
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
             tmp(IDD_PR)  =+PRCPMC
@@ -901,7 +914,7 @@ C         END DO
 C       END IF
         CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
         FSS(:,I,J)=FSSL(:)
-        AIRX(I,J) = AIRXL*DXYP(J)
+        AIRX(I,J) = AIRXL*AXYP(I,J)
         DO L=1,DCL
           DDML(I,J)=L                    ! the lowest downdraft layer
           IF(DDMFLX(L).GT.0.d0) EXIT
@@ -911,7 +924,7 @@ C       END IF
           QDN1(I,J)=QDNL(DDML(I,J))     ! downdraft humidity
           DDMS(I,J)=-100.*DDMFLX(DDML(I,J))/(GRAV*DTsrc) ! downdraft mass flux
 #ifdef TRACERS_ON
-          TRDN1(:,I,J)=1d-2*TRDNL(:,DDML(I,J))*GRAV*BYDXYP(J) ! downdraft tracer conc
+          TRDN1(:,I,J)=1d-2*TRDNL(:,DDML(I,J))*GRAV*BYAXYP(I,J) ! downdraft tracer conc
 #endif
         END IF
 c       IF (DDMFLX(1).GT.0.) THEN
@@ -1092,7 +1105,7 @@ C**** Accumulate diagnostics of LSCOND
          DO IT=1,NTYPE
            AJ(J,J_PRCPSS,IT)=AJ(J,J_PRCPSS,IT)+PRCPSS*FTYPE(IT,I,J)
          END DO
-         AREGJ(JR,J,J_PRCPSS)=AREGJ(JR,J,J_PRCPSS)+PRCPSS*DXYP(J)
+         AREGJ(JR,J,J_PRCPSS)=AREGJ(JR,J,J_PRCPSS)+PRCPSS*AXYP(I,J)
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              tmp(IDD_PR)  =+PRCPSS
@@ -1140,7 +1153,7 @@ C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
           AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)
         END DO
-        AREGJ(JR,J,J_EPRCP)=AREGJ(JR,J,J_EPRCP)+ENRGP*DXYP(J)
+        AREGJ(JR,J,J_EPRCP)=AREGJ(JR,J,J_EPRCP)+ENRGP*AXYP(I,J)
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
@@ -1224,7 +1237,7 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
 C**** Save area weighted isccp histograms
           n=isccp_reg(j)
           if (n.gt.0) AISCCP_part(:,:,n,J) = AISCCP_part(:,:,n,J) +
-     &         fq_isccp(:,:)*DXYP(j)
+     &         fq_isccp(:,:)*axyp(i,j)
         end if
       end if
 
@@ -1439,14 +1452,14 @@ C**** diagnostics
         if (dowetdep(n)) then
 #ifndef SKIP_TRACER_DIAGS
           if (jls_prec(1,n).gt.0) tajls(j,1,jls_prec(1,n))=tajls(j,1
-     *         ,jls_prec(1,n))+trprec(n,i,j)*bydxyp(j)
+     *         ,jls_prec(1,n))+trprec(n,i,j)*byaxyp(i,j)
           if (jls_prec(2,n).gt.0) tajls(j,1,jls_prec(2,n))=tajls(j,1
-     *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*bydxyp(j)
+     *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*byaxyp(i,j)
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
-     *         trprec(n,i,j)*bydxyp(j)
+     *         trprec(n,i,j)*byaxyp(i,j)
 #ifdef TRACERS_COSMO
           if (n .eq. n_Be7) BE7W_acc(i,j)=BE7W_acc(i,j)+
-     *         trprec(n,i,j)*bydxyp(j)
+     *         trprec(n,i,j)*byaxyp(i,j)
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRDIAG_WETDEPO
@@ -1514,7 +1527,7 @@ c     ..........
               IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
                 SELECT CASE (trname(n))
                 CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-                  tmp(idd_wet)=+trprec(n,i,j)*bydxyp(j)/Dtsrc
+                  tmp(idd_wet)=+trprec(n,i,j)*byaxyp(i,j)/Dtsrc
                   adiurn_part(J,idxd(:),kr)=adiurn_part(J,idxd(:),kr)+
      &                 tmp(idxd(:))
 #ifndef NO_HDIURN
@@ -1584,7 +1597,7 @@ c     ..........
             IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
               SELECT CASE (trname(n))
               CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-                tmp(idd_wet)=+trprec_dust(n,i,j)*bydxyp(j)/Dtsrc
+                tmp(idd_wet)=+trprec_dust(n,i,j)*byaxyp(i,j)/Dtsrc
                 adiurn_part(J,idxd(:),kr)=adiurn_part(J,idxd(:),kr)+
      &               tmp(idxd(:))
 #ifndef NO_HDIURN
@@ -1601,6 +1614,12 @@ c     ..........
 
       END DO
 C**** END OF MAIN LOOP FOR INDEX I
+
+       ! Burn random numbers for later longitudes here.
+       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
+      if (isccp_diags.eq.1) then
+        CALL BURN_RANDOM(nij_after_i1(I_1)*NCOL*(LM+1))
+      end if
 
 C****
 Cred*           Reduced Arrays 3

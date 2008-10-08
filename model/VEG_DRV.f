@@ -43,7 +43,7 @@
       integer, intent(in) :: istart
       logical, intent(in) :: redogh
 
-      INTEGER :: J_1, J_0, J_1H, J_0H
+      INTEGER :: J_1, J_0, J_1H, J_0H, I_1H, I_0H, I_1, I_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -65,6 +65,10 @@ C****
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
 c**** read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
@@ -87,11 +91,11 @@ c**** add data on c4 grass
       if ( read_c4_grass >= 1 ) then
         print *,"Adding c4 grass data"
         call openunit("VEG_C4",iu_VEG,.true.,.true.)
-        allocate( veg_c4(im,J_0H:J_1H) )
+        allocate( veg_c4(I_0H:I_1H,J_0H:J_1H) )
         CALL READT_PARALLEL
      *       (grid,iu_VEG,NAMEUNIT(iu_VEG),0,veg_c4(:,:),1)
         do j=J_0,J_1
-          do i=1,im
+          do i=I_0,I_1
             if (fearth(i,j).gt.0) then
               ! normalize to earth fraction
               vc4 = veg_c4(i,j) / fearth(i,j)
@@ -120,7 +124,7 @@ C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
 c**** check whether ground hydrology data exist at this point.
       veg_data_missing = .false.
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
           if (variable_lk==0) then
             if ( fearth(i,j) <= 0.d0 ) cycle
           else
@@ -256,6 +260,8 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       call  get_param( "variable_lk", variable_lk )
 c****
@@ -279,7 +285,7 @@ c****
         if(j.le.jm/2) then
         else
         end if
-        do i=1,im
+        do i=I_0,I_1
           afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
           if(afb(i,j).gt..999) afb(i,j)=1.
 
@@ -407,9 +413,11 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do j=J_0,J_1
-      do i=1,im
+      do i=I_0,I_1
 
       vdata(i,j,1:12)= (/  0.00000000d+00,  0.00000000d+00,
      &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
@@ -612,7 +620,7 @@ c shc(0,2) is the heat capacity of the canopy
       character*80 title
       real*4 crop4(im,jm)
 
-      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
+      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H, I_0H, I_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -625,6 +633,10 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
 C**** check whether update is needed
       if (year.eq.year_old) return
@@ -633,7 +645,7 @@ C**** first iteration actions:
       if (year_old.lt.0) then
 C****     check whether a no-crops vege-file was used
         do j=J_0S,J_1S
-        do i=1,im
+        do i=I_0,I_1
            if(vdata(i,j,9).gt.0.)
      *     call stop_model('updveg: use no_crops_VEG_file',255)
         end do
@@ -643,10 +655,10 @@ C****     open and read input file
         read(iu) title,crop4
 
         read(title,*) year1
-        Allocate(crop1(IM,J_0H:J_1H), crop2(IM,J_0H:J_1H),
-     &           VDATA0(IM,J_0H:J_1H,12))
-        crop1(:,J_0:J_1)=crop4(:,J_0:J_1)
-        crop2(:,J_0:J_1)=crop4(:,J_0:J_1)
+        Allocate(crop1(I_0H:I_1H,J_0H:J_1H), crop2(I_0H:I_1H,J_0H:J_1H),
+     &           VDATA0(I_0H:I_1H,J_0H:J_1H,12))
+        crop1(I_0:I_1,J_0:J_1)=crop4(I_0:I_1,J_0:J_1)
+        crop2(I_0:I_1,J_0:J_1)=crop4(I_0:I_1,J_0:J_1)
         year2=year1
         if (year1.ge.year)          year2=year+1
 C****     save orig. (no-crop) vdata to preserve restart-independence
@@ -658,7 +670,7 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
          year1 = year2 ; crop1 = crop2
          read (iu,end=10) title,crop4
          read(title,*) year2
-         crop2(:,J_0:J_1) = crop4(:,J_0:J_1)
+         crop2(I_0:I_1,J_0:J_1) = crop4(I_0:I_1,J_0:J_1)
       end do
       wt = (year-year1)/(real(year2-year1,kind=8))
    10 continue
@@ -667,7 +679,7 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
 
 C**** Modify the vegetation fractions
       do j=J_0,J_1
-      do i=1,imaxj(j)
+      do i=I_0,imaxj(j)
          if (crop1(i,j).ge.0.) then
             crops = crop1(i,j) + wt*(crop2(i,j)-crop1(i,j))
             do k=1,12

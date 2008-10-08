@@ -284,23 +284,25 @@ C**** CALCULATE TG2
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
 
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
 
-      ALLOCATE( SNOWLI(IM,J_0H:J_1H),
-     *          TLANDI(2,IM,J_0H:J_1H),
-     *          MDWNIMP(IM,J_0H:J_1H),
-     *          EDWNIMP(IM,J_0H:J_1H),
-     *          LOC_GLA(IM,J_0H:J_1H),
-     *          LOC_GLG(IM,J_0H:J_1H),
+      ALLOCATE( SNOWLI(I_0H:I_1H,J_0H:J_1H),
+     *          TLANDI(2,I_0H:I_1H,J_0H:J_1H),
+     *          MDWNIMP(I_0H:I_1H,J_0H:J_1H),
+     *          EDWNIMP(I_0H:I_1H,J_0H:J_1H),
+     *          LOC_GLA(I_0H:I_1H,J_0H:J_1H),
+     *          LOC_GLG(I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
 #ifdef TRACERS_WATER
-      ALLOCATE( TRSNOWLI(NTM,IM,J_0H:J_1H),
-     *          TRLNDI  (NTM,IM,J_0H:J_1H),
-     *          TRDWNIMP(NTM,IM,J_0H:J_1H),
+      ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H),
+     *          TRLNDI  (NTM,I_0H:I_1H,J_0H:J_1H),
+     *          TRDWNIMP(NTM,I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
 #endif
 

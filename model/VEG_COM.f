@@ -96,34 +96,36 @@
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE(    vdata(im,J_0H:J_1H,12),
-     *              Cint(im,J_0H:J_1H),
-     *              Qfol(im,J_0H:J_1H),
-     *            cnc_ij(im,J_0H:J_1H),
-     *               afr(ngm,im,J_0H:J_1H),
+      ALLOCATE(    vdata(I_0H:I_1H,J_0H:J_1H,12),
+     *              Cint(I_0H:I_1H,J_0H:J_1H),
+     *              Qfol(I_0H:I_1H,J_0H:J_1H),
+     *            cnc_ij(I_0H:I_1H,J_0H:J_1H),
+     *               afr(ngm,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(    ala(3,  im,J_0H:J_1H),
-     *             acs(3,  im,J_0H:J_1H),
-     *          almass(3,  im,J_0H:J_1H),
-     *            alaf(3,11,im,J_0H:J_1H),
-     *           alaif(11,  im,J_0H:J_1H),
+      ALLOCATE(    ala(3,  I_0H:I_1H,J_0H:J_1H),
+     *             acs(3,  I_0H:I_1H,J_0H:J_1H),
+     *          almass(3,  I_0H:I_1H,J_0H:J_1H),
+     *            alaf(3,11,I_0H:I_1H,J_0H:J_1H),
+     *           alaif(11,  I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(   afb(im,J_0H:J_1H),
-     *            avh(im,J_0H:J_1H),
-     *            aalbveg(im,J_0H:J_1H),
-     *            can_w_capacity(im,J_0H:J_1H),
-     *            anm(im,J_0H:J_1H),
-     *            anf(im,J_0H:J_1H),
+      ALLOCATE(   afb(I_0H:I_1H,J_0H:J_1H),
+     *            avh(I_0H:I_1H,J_0H:J_1H),
+     *            aalbveg(I_0H:I_1H,J_0H:J_1H),
+     *            can_w_capacity(I_0H:I_1H,J_0H:J_1H),
+     *            anm(I_0H:I_1H,J_0H:J_1H),
+     *            anf(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
       END SUBROUTINE ALLOC_VEG_COM

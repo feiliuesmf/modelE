@@ -22,7 +22,7 @@
       USE MODEL_COM, only : im,jm,lm,focean,fland,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
-      USE GEOM, only : dxyp, imaxj
+      USE GEOM, only : axyp, imaxj
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
      *     ,lmi, Ei
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
@@ -88,7 +88,7 @@ C     *     ,CRSI,KRSI
       REAL*8 TGAVE,DWTRO,WTR1O,WTR2O
 !@var QTCHNG true if TOCEAN(1) is changed (needed for qflux calculation)
       LOGICAL, INTENT(IN) :: QTCHNG
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I_0, I_1
 C****
 C**** FLAND     LAND COVERAGE (1)
 C****
@@ -102,9 +102,11 @@ C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (FLAND(I,J).GE.1.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
           IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
@@ -157,15 +159,19 @@ C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       INTEGER, SAVE :: IMON = 0
 !@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use
 !@+        of common block OOBS in MODULE STATIC_OCEAN
-      REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
+      REAL*8 :: TEMP_LOCAL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
 
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1, I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       INTEGER :: dummy
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
       IF (KOCEAN.EQ.1) GO TO 500
       if(.not.(end_of_day.or.itime.eq.itimei.or.off_line)) return
 C****
@@ -287,7 +293,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       end if
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           BOST(I,J)=EOST1(I,J)-EOST0(I,J)
           COST(I,J)=3.*(EOST1(I,J)+EOST0(I,J)) - 6.*AOST(I,J)
           BRSI(I,J)=0.
@@ -318,7 +324,7 @@ C**** Calculate OST, RSI and MSI for current day
         ZIMIN=Z1I+Z2OIM
         ZIMAX=2d0
         IF(J.GT.JM/2) ZIMAX=3.5d0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
 C**** OST always uses quadratic fit
             TOCEAN(1,I,J)=AOST(I,J)+BOST(I,J)*TIME
@@ -506,7 +512,7 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
      a           (JDmidOFM(IMON)-JDmidOFM(IMON-1))
 
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
       Z1O(I,J)=min( z12o(i,j) , FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J) )
 
       IF (RSI(I,J)*FOCEAN(I,J).GT.0.and.off_line) THEN
@@ -541,10 +547,10 @@ C**** save diagnostics
             AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)-
      *           FOCEAN(I,J)*RSI(I,J)
      *           *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *           /MSI(I,J))*DXYP(J)
+     *           /MSI(I,J))*AXYP(I,J)
             AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)-
      *           FOCEAN(I,J)*RSI(I,J)
-     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYP(J)
+     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*AXYP(I,J)
 #ifdef TRACERS_WATER
             DO N=1,NTM
               TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
@@ -667,35 +673,37 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE STATIC_OCEAN, only  : KRSI
       USE DOMAIN_DECOMP, only : DIST_GRID,GET
       IMPLICIT NONE
-      INTEGER :: J_0H,J_1H,IER
+      INTEGER :: I_0H,I_1H,J_0H,J_1H,IER
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       CALL GET(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE(TOCEAN(3,IM,J_0H:J_1H),
+      ALLOCATE(TOCEAN(3,I_0H:I_1H,J_0H:J_1H),
      &    STAT=IER)
-!allocALLOCATE(OTA(IM,J_0H:J_1H,4),
-!all &         OTB(IM,J_0H:J_1H,4),
+!allocALLOCATE(OTA(I_0H:I_1H,J_0H:J_1H,4),
+!all &         OTB(I_0H:I_1H,J_0H:J_1H,4),
 !all &    STAT=IER)
-      ALLOCATE(KRSI(IM,J_0H:J_1H),
+      ALLOCATE(KRSI(I_0H:I_1H,J_0H:J_1H),
      &    STAT=IER)
-      ALLOCATE(   !alloc OTC(IM,J_0H:J_1H),
-     &         Z1O(IM,J_0H:J_1H),
-     &         Z1OOLD(IM,J_0H:J_1H),
-     &         Z12O(IM,J_0H:J_1H),
-     &         DM(IM,J_0H:J_1H),
-     &         AOST(IM,J_0H:J_1H),
-     &         EOST1(IM,J_0H:J_1H),
-     &         EOST0(IM,J_0H:J_1H),
-     &         BOST(IM,J_0H:J_1H),
-     &         COST(IM,J_0H:J_1H),
-     &         ARSI(IM,J_0H:J_1H),
-     &         ERSI1(IM,J_0H:J_1H),
-     &         ERSI0(IM,J_0H:J_1H),
-     &         BRSI(IM,J_0H:J_1H),
-     &         CRSI(IM,J_0H:J_1H),
-     &         XZO(IM,J_0H:J_1H),
-     &         XZN(IM,J_0H:J_1H),
+      ALLOCATE(   !alloc OTC(I_0H:I_1H,J_0H:J_1H),
+     &         Z1O(I_0H:I_1H,J_0H:J_1H),
+     &         Z1OOLD(I_0H:I_1H,J_0H:J_1H),
+     &         Z12O(I_0H:I_1H,J_0H:J_1H),
+     &         DM(I_0H:I_1H,J_0H:J_1H),
+     &         AOST(I_0H:I_1H,J_0H:J_1H),
+     &         EOST1(I_0H:I_1H,J_0H:J_1H),
+     &         EOST0(I_0H:I_1H,J_0H:J_1H),
+     &         BOST(I_0H:I_1H,J_0H:J_1H),
+     &         COST(I_0H:I_1H,J_0H:J_1H),
+     &         ARSI(I_0H:I_1H,J_0H:J_1H),
+     &         ERSI1(I_0H:I_1H,J_0H:J_1H),
+     &         ERSI0(I_0H:I_1H,J_0H:J_1H),
+     &         BRSI(I_0H:I_1H,J_0H:J_1H),
+     &         CRSI(I_0H:I_1H,J_0H:J_1H),
+     &         XZO(I_0H:I_1H,J_0H:J_1H),
+     &         XZN(I_0H:I_1H,J_0H:J_1H),
      &    STAT=IER)
 
       call alloc_ODEEP(grid)
@@ -743,10 +751,13 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       INTEGER :: I,J,m,ISTART,ioerr
 !@var z12o_max maximal mixed layer depth (m) for qflux model
       real*8 :: z12o_max
-      real*8 z1ox(im,grid%j_strt_halo:grid%j_stop_halo)
-      integer :: j_0,j_1
+      real*8 z1ox(grid%i_strt_halo:grid%i_stop_halo,
+     &            grid%j_strt_halo:grid%j_stop_halo)
+      integer :: i_0,i_1, j_0,j_1
 
       call get(grid,j_strt=j_0,j_stop=j_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       if (kocean.ge.1) then
 C****   set conservation diagnostic for ocean heat
@@ -808,7 +819,7 @@ C****   find and limit ocean ann max mix layer depths
         do m=1,jmpery
           CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,z1ox,1)
           do j=j_0,j_1
-          do i=1,im
+          do i=i_0,i_1
 ccc         z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )
 ccc     the above line could substitute for next 3 lines w/o any change
             if (focean(i,j).gt.0. .and. z1ox(i,j).gt.z12o_max)
@@ -827,7 +838,7 @@ C****   initialise deep ocean arrays if required
       END IF
 C**** Set fluxed arrays for oceans
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=I_0,I_1
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
@@ -871,9 +882,11 @@ C****
       INTEGER I,J
       LOGICAL, INTENT(IN) :: end_of_day
       REAL*8 ANGLE
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1, I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** update ocean related climatologies
       CALL OCLIM(end_of_day)
@@ -894,7 +907,7 @@ C**** Set fourier coefficients for heat transport calculations
 C**** Only do this at end of the day
       IF (KOCEAN.ge.1.and.end_of_day) THEN
         DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
+          DO I=I_0,IMAXJ(J)
             AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
             AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+TOCEAN(3,I,J)
           END DO
@@ -907,7 +920,7 @@ C**** RESTRUCTURE THE OCEAN LAYERS
 
 C**** set gtemp array for ocean temperature
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
           GTEMPR(1,I,J)    = TOCEAN(1,I,J)+TF
@@ -925,7 +938,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
-      USE GEOM, only : imaxj,dxyp
+      USE GEOM, only : imaxj,axyp
       USE DIAG_COM, only : aj=>aj_loc,j_implm,j_implh,oa,
      *     aregj=>aregj_loc,jreg
       USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
@@ -939,12 +952,14 @@ C****
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,POCEAN,POICE,SNOW
      *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
       INTEGER I,J,JR
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1, I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
         ROICE=RSI(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
@@ -953,8 +968,8 @@ C****
           PRCP=PREC(I,J)
           ENRGP=EPREC(I,J)
           RUN0=RUNPSI(I,J)-SRUNPSI(I,J) ! fresh water runoff
-          SIMELT =(MELTI(I,J)-SMELTI(I,J))/(FOCEAN(I,J)*DXYP(J))
-          ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
+          SIMELT =(MELTI(I,J)-SMELTI(I,J))/(FOCEAN(I,J)*AXYP(I,J))
+          ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*AXYP(I,J))
           OA(I,J,4)=OA(I,J,4)+ENRGP
 
           IF (KOCEAN .ge. 1) THEN
@@ -988,9 +1003,9 @@ C**** Additional mass (precip) is balanced by deep removal
             AJ(J,J_IMPLM,ITOICE) =AJ(J,J_IMPLM,ITOICE) +RUN4 *POICE
             AJ(J,J_IMPLH,ITOICE) =AJ(J,J_IMPLH,ITOICE) +ERUN4*POICE
             AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+
-     &           RUN4 *FOCEAN(I,J)*DXYP(J)
+     &           RUN4 *FOCEAN(I,J)*AXYP(I,J)
             AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+
-     &           ERUN4*FOCEAN(I,J)*DXYP(J)
+     &           ERUN4*FOCEAN(I,J)*AXYP(I,J)
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
@@ -1011,7 +1026,7 @@ C****
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
-      USE GEOM, only : imaxj,dxyp
+      USE GEOM, only : imaxj,axyp
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,jreg,j_implm
      *     ,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
@@ -1030,7 +1045,7 @@ C****
       USE DIAG_COM, only : NREG, KAJ
       IMPLICIT NONE
 C**** grid box variables
-      REAL*8 POCEAN, POICE, DXYPJ, TFO
+      REAL*8 POCEAN, POICE, DXYPIJ, TFO
 C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
@@ -1040,13 +1055,15 @@ C**** output from OSOURC
      *     WTRW
 
       INTEGER I,J,JR
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1, I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
-      DXYPJ=DXYP(J)
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
+        DXYPIJ=AXYP(I,J)
         JR=JREG(I,J)
         ROICE=RSI(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
@@ -1064,8 +1081,8 @@ C**** get ice-ocean fluxes from sea ice routine (no salt)
           FIDT=ERUNOSI(I,J)
 c          SALT=SRUNOSI(I,J)
 C**** get river runoff/iceberg melt flux
-          RVRRUN =( FLOWO(I,J)+ GMELT(I,J))/(FOCEAN(I,J)*DXYPJ)
-          RVRERUN=(EFLOWO(I,J)+EGMELT(I,J))/(FOCEAN(I,J)*DXYPJ)
+          RVRRUN =( FLOWO(I,J)+ GMELT(I,J))/(FOCEAN(I,J)*DXYPIJ)
+          RVRERUN=(EFLOWO(I,J)+EGMELT(I,J))/(FOCEAN(I,J)*DXYPIJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN ! add rvr E to surf. energy budget
 
           IF (KOCEAN .ge. 1) THEN
@@ -1092,9 +1109,9 @@ C**** Ice-covered ocean diagnostics
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4I*POICE
 C**** regional diagnostics
             AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+
-     *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPJ
+     *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPIJ
             AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+
-     *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPJ
+     *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPIJ
             MLHC(I,J)=SHW*WTRW
           ELSE
             ACEFO=0 ; ACEFI=0. ; ENRGFO=0. ; ENRGFI=0.
@@ -1131,7 +1148,7 @@ C****
       USE CONSTANT, only : shw,rhows
       USE MODEL_COM, only : focean,im,jm,itocean,itoice,kocean,itime
      *     ,jmon
-      USE GEOM, only : dxyp,imaxj
+      USE GEOM, only : axyp,imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE SEAICE, only : ace1i,lmi
       USE SEAICE_COM, only : rsi,msi,hsi,ssi,snowi
@@ -1146,15 +1163,17 @@ C****
       USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       INTEGER I,J,JR,N
-      REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
-      INTEGER :: J_0,J_1
+      REAL*8 DXYPIJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
+      INTEGER :: J_0,J_1, I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       IF (KOCEAN.ge.1) THEN     ! qflux model
       DO J=J_0,J_1
-      DXYPJ=DXYP(J)
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
+        DXYPIJ=AXYP(I,J)
         JR=JREG(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
@@ -1194,10 +1213,10 @@ C**** save diagnostics
                 AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)-
      *               FOCEAN(I,J)*RSI(I,J)
      *               *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *               /MSI(I,J))*DXYPJ
+     *               /MSI(I,J))*DXYPIJ
                 AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)-
      *               FOCEAN(I,J)*RSI(I,J)
-     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPJ
+     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPIJ
 #ifdef TRACERS_WATER
                 DO N=1,NTM
                   TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
@@ -1225,9 +1244,9 @@ C**** Ice-covered ocean diagnostics
           AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4*POICE
 C**** regional diagnostics
           AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+RUN4 *FOCEAN(I,J)
-     *         *DXYPJ
+     *         *DXYPIJ
           AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+ERUN4*FOCEAN(I,J)
-     *         *DXYPJ
+     *         *DXYPIJ
         END IF
       END DO
       END DO
@@ -1305,14 +1324,16 @@ C****
       USE DOMAIN_DECOMP, only : grid,get
       IMPLICIT NONE
       INTEGER i,j,n
-      INTEGER :: j_0,j_1
+      INTEGER :: j_0,j_1,i_0,i_1
 
       call get(grid,j_strt=j_0,j_stop=j_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do n=1,ntm
         if (itime.eq.itime_tr0(n)) then
           do j=j_0,j_1
-          do i=1,imaxj(j)
+          do i=I_0,imaxj(j)
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=trw0(n)
           end do
           end do

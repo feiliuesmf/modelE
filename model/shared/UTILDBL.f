@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 !@sum  UTILDBL Model Independent Utilities
 !@auth Original Development Team
 !@ver  1.0
@@ -523,31 +524,31 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       RETURN
       END SUBROUTINE CHECK3
 
-      SUBROUTINE CHECK3B(A,IN,J1,J2,JN,LN,SUBR,FIELD)
+      SUBROUTINE CHECK3B(A,I1,I2,J1,J2,NJPOL,LN,SUBR,FIELD)
 !@sum  CHECK3B Checks for NaN/INF in real 3-D arrays
 !@auth Original development team
 !@ver  1.0
       IMPLICIT NONE
 
 !@var IN,JN,LN size of 3-D array
-      INTEGER, INTENT(IN) :: IN,J1,J2,JN, LN
+      INTEGER, INTENT(IN) :: I1,I2,J1,J2,NJPOL,LN
 !@var SUBR identifies where CHECK3 was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 !@var FIELD identifies the field being tested
       CHARACTER*6, INTENT(IN) :: FIELD
 !@var A array being tested
-      REAL*8, DIMENSION(IN,J1:J2,LN),INTENT(IN) :: A
+      REAL*8, DIMENSION(I1:I2,J1:J2,LN),INTENT(IN) :: A
       LOGICAL :: QCHECK3 = .FALSE.
       INTEGER I,J,L !@var I,J,L loop variables
 
 !$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
       DO L=1,LN
-      DO J=J1,J2
-      DO I=1,IN
+      DO J=J1+NJPOL,J2-NJPOL
+      DO I=I1,I2
         IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.) .or.
      *       ABS(A(I,J,L)) .gt.HUGE(A(I,J,L)) ) THEN
           WRITE (6,*) TRIM(FIELD),': ',I,J,L,A(I,J,L),'after ',SUBR
-          IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
+          QCHECK3 = .TRUE.
         END IF
       END DO
       END DO
@@ -558,31 +559,31 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       RETURN
       END SUBROUTINE CHECK3B
 
-      SUBROUTINE CHECK3C(A,IN,JN,L1,L2,SUBR,FIELD)
+      SUBROUTINE CHECK3C(A,LN,I1,I2,J1,J2,NJPOL,SUBR,FIELD)
 !@sum  CHECK3B Checks for NaN/INF in real 3-D arrays
 !@auth Original development team
 !@ver  1.0
       IMPLICIT NONE
 
 !@var IN,JN,LN size of 3-D array
-      INTEGER, INTENT(IN) :: IN,JN, L1,L2
+      INTEGER, INTENT(IN) :: LN,I1,I2,J1,J2,NJPOL
 !@var SUBR identifies where CHECK3 was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 !@var FIELD identifies the field being tested
       CHARACTER*6, INTENT(IN) :: FIELD
 !@var A array being tested
-      REAL*8, DIMENSION(IN,JN,L1:L2),INTENT(IN) :: A
+      REAL*8, DIMENSION(LN,I1:I2,J1:J2),INTENT(IN) :: A
       LOGICAL :: QCHECK3 = .FALSE.
       INTEGER I,J,L !@var I,J,L loop variables
 
 !$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
-      DO L=L1,L2
-      DO J=1,JN
-      DO I=1,IN
-        IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.) .or.
-     *       ABS(A(I,J,L)) .gt.HUGE(A(I,J,L)) ) THEN
-          WRITE (6,*) TRIM(FIELD),': ',I,J,L,A(I,J,L),'after ',SUBR
-          IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
+      DO J=J1+NJPOL,J2-NJPOL
+      DO I=I1,I2
+      DO L=1,LN
+        IF (.NOT.(A(L,I,J).GT.0..OR.A(L,I,J).LE.0.) .or.
+     *       ABS(A(L,I,J)) .gt.HUGE(A(L,I,J)) ) THEN
+          WRITE (6,*) TRIM(FIELD),': ',L,I,J,A(L,I,J),'after ',SUBR
+          QCHECK3 = .TRUE.
         END IF
       END DO
       END DO
@@ -630,32 +631,32 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       RETURN
       END SUBROUTINE CHECK4
 
-      SUBROUTINE CHECK4B(A,IN,J1,J2,JN,KN,LN,SUBR,FIELD)
+      SUBROUTINE CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
 !@sum  CHECK4 Checks for NaN/INF in real 4-D arrays
 !@auth Original development team
 !@ver  1.0
       IMPLICIT NONE
 
 !@var IN,JN,KN,LN size of 4-D array
-      INTEGER, INTENT(IN) :: IN,J1,J2,JN,KN,LN
+      INTEGER, INTENT(IN) :: I1,I2,J1,J2,NJPOL,KN,LN
 !@var SUBR identifies where CHECK4 was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 !@var FIELD identifies the field being tested
       CHARACTER*6, INTENT(IN) :: FIELD
 !@var A array being tested
-      REAL*8, DIMENSION(IN,J1:J2,KN,LN),INTENT(IN) :: A
+      REAL*8, DIMENSION(I1:I2,J1:J2,KN,LN),INTENT(IN) :: A
       LOGICAL :: QCHECK4 = .FALSE.
       INTEGER I,J,K,L !@var I,J,K,L loop variables
 
 !$OMP PARALLEL DO PRIVATE (L,K,J,I) SHARED (QCHECK4)
       DO L=1,LN
       DO K=1,KN
-      DO J=J1,J2
-      DO I=1,IN
+      DO J=J1+NJPOL,J2-NJPOL
+      DO I=I1,I2
         IF (.NOT.(A(I,J,K,L).GT.0..OR.A(I,J,K,L).LE.0.) .or.
      *       ABS(A(I,J,K,L)) .gt.HUGE(A(I,J,K,L)) ) THEN
           WRITE (6,*) TRIM(FIELD),': ',I,J,K,L,A(I,J,K,L),'after ',SUBR
-          IF (J.LT.JN.AND.J.GT.1) QCHECK4 = .TRUE.
+          QCHECK4 = .TRUE.
         END IF
       END DO
       END DO

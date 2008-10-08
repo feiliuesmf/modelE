@@ -426,7 +426,8 @@ C**** ignore ocean currents for initialisation.
       integer :: iu_CDN
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,4) ::
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,4) ::
      *                                                      tgvdat
 
       integer :: itype  !@var itype surface type
@@ -440,7 +441,7 @@ C**** ignore ocean currents for initialisation.
       real*8, dimension(npbl-1) :: epbl
       real*8 ug,vg
 
-      integer :: J_1, J_0
+      integer :: I_1, I_0, J_1, J_0
       integer :: J_1H, J_0H
 
 C****
@@ -448,6 +449,9 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,       J_STOP=J_1)
+
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
@@ -457,7 +461,7 @@ C things to be done regardless of inipbl
       call sync_param( 'skin_effect', skin_effect )
 
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
 C**** fix roughness length for ocean ice that turned to land ice
           if (snowi(i,j).lt.-1.and.flice(i,j).gt.0) roughl(i,j)=1.84d0
           if (fland(i,j).gt.0.and.roughl(i,j).eq.0) then
@@ -474,7 +478,7 @@ C**** fix roughness length for ocean ice that turned to land ice
       if(.not.inipbl) return
 
       do j=J_0,J_1
-      do i=1,im
+      do i=I_0,I_1
         pland=fland(i,j)
         pwater=1.-pland
         plice=flice(i,j)
@@ -517,7 +521,7 @@ C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
           jlat=j
           coriol=sinp(j)*omega2
 
-          do i=1,imaxj(j)
+          do i=I_0,imaxj(j)
             tgrndv=tgvdat(i,j,itype)
             if (tgrndv.eq.0.) then
               ipbl(itype,i,j)=0
@@ -657,14 +661,16 @@ c ----------------------------------------------------------------------
       IMPLICIT NONE
       integer i,j  !@var i,j loop variable
 
-      integer :: J_1, J_0
+      integer :: J_1, J_0, I_1, I_0
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
 
 c ******* itype=1: Ocean
 
@@ -797,35 +803,47 @@ C**** initialise some pbl common variables
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
-      integer :: I_1, I_0, J_1, J_0, Ilen, Jlen
+      integer :: I_1, I_0, J_1, J_0, njpol
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1,
      *               J_STRT=J_0, J_STOP=J_1)
-
-      Ilen = I_1-I_0+1
-      Jlen = J_1-J_0+1
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
 C**** Check for NaN/INF in boundary layer data
-      CALL CHECK3(wsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'wsavg')
-      CALL CHECK3(tsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tsavg')
-      CALL CHECK3(qsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'qsavg')
-      CALL CHECK3(dclev(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'dclev')
-      CALL CHECK3(usavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'usavg')
-      CALL CHECK3(vsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'vsavg')
-      CALL CHECK3(tauavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tauavg')
-      CALL CHECK3(ustar_pbl(1:4,I_0:I_1,J_0:J_1),Ilen,Jlen,4,SUBR,
-     *           'ustar')
+      CALL CHECK3B(wsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'wsavg')
+      CALL CHECK3B(tsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'tsavg')
+      CALL CHECK3B(qsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'qsavg')
+      CALL CHECK3B(dclev(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'dclev')
+      CALL CHECK3B(usavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'usavg')
+      CALL CHECK3B(vsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'vsavg')
+      CALL CHECK3B(tauavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'tauavg')
+      CALL CHECK3C(ustar_pbl(:,I_0:I_1,J_0:J_1),4,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'ustar')
 
-      CALL CHECK3(uflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'uflux')
-      CALL CHECK3(vflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'vflux')
-      CALL CHECK3(tflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tflux')
-      CALL CHECK3(qflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'qflux')
+      CALL CHECK3B(uflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'uflux')
+      CALL CHECK3B(vflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'vflux')
+      CALL CHECK3B(tflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'tflux')
+      CALL CHECK3B(qflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'qflux')
 
-      CALL CHECK3(tgvavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tgvavg')
-      CALL CHECK3(qgavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'qgavg')
-      CALL CHECK3(w2_l1(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'w2_l1')
+      CALL CHECK3B(tgvavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'tgvavg')
+      CALL CHECK3B(qgavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'qgavg')
+      CALL CHECK3B(w2_l1(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'w2_l1')
 
       END SUBROUTINE CHECKPBL
 

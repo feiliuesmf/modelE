@@ -16,7 +16,7 @@
       USE CONSTANT, only : teeny,grav,tf
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
      *     ,p,ptop
-      USE GEOM, only : imaxj,dxyp,bydxyp
+      USE GEOM, only : imaxj,axyp,byaxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
      *     ,gtempr,erunpsi
 #ifdef TRACERS_WATER
@@ -47,7 +47,7 @@
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      integer :: J_0, J_1, J_0H, J_1H
+      integer :: J_0, J_1, J_0H, J_1H ,I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 
@@ -55,10 +55,12 @@ C****
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Initialize work array
       DO J=J_0, J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
         JR=JREG(I,J)
       POICE=    RSI(I,J) *(1.-FLAND(I,J))
       RUNPSI(I,J)=0
@@ -82,7 +84,7 @@ C**** Initialize work array
         SSIL(:) = SSI(:,I,J)      ! sea ice salt
 #ifdef TRACERS_WATER
         TRSIL(:,:)=TRSI(:,:,I,J)  ! sea ice tracers
-        TRPRCP(:)=TRPREC(:,I,J)*BYDXYP(J)   ! tracer in precip
+        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)   ! tracer in precip
 #endif
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
@@ -135,9 +137,9 @@ c         AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN*POICE       ! ==0
         END IF
 
 C**** Accumulate regional diagnostics
-        AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+RUN0 *POICE*DXYP(J)
-        AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+SRUN0*POICE*DXYP(J)
-c     AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+ERUN *POICE*DXYP(J) ! ==0
+        AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+RUN0 *POICE*AXYP(I,J)
+        AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+SRUN0*POICE*AXYP(I,J)
+c     AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+ERUN *POICE*AXYP(I,J) ! ==0
 
       END IF
 
@@ -161,7 +163,7 @@ C****
 !@calls iceocean,icelake
       USE CONSTANT, only : rhow,rhows,omega,rhoi,shw
       USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
-      USE GEOM, only : sinp,imaxj,dxyp
+      USE GEOM, only : sinp,imaxj,axyp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
 #endif
@@ -192,16 +194,18 @@ C****
       INTEGER N
 #endif
 #endif
-      integer :: J_0, J_1
+      integer :: J_0, J_1 ,I_0,I_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0, J_1
 C**** Coriolis parameter (on tracer grid)
         coriol = ABS(2.*OMEGA*SINP(J))
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF ((FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J).gt.0) THEN
 C**** Set mixed layer conditions
             Tm = GTEMP(1,1,I,J)
@@ -253,8 +257,8 @@ C**** should we calculate ocean rho(Tm,Sm) here?
      *             mflux,hflux)
 
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
-              IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
-                FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J))
+              IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*AXYP(I,J)) THEN
+                FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*AXYP(I,J))
                 IF (hflux.lt.FLUXLIM) hflux = FLUXLIM
                 if (mflux.lt.0) then
                   mflux = 0.
@@ -263,7 +267,7 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
 #endif
                 end if
                 if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
-     *               (RHOW*FLAKE(I,J)*DXYP(J)),FLUXLIM*DTSRC
+     *               (RHOW*FLAKE(I,J)*AXYP(I,J)),FLUXLIM*DTSRC
               END IF
             END IF
             FMSI_IO(I,J) = mflux*dtsrc   ! positive down
@@ -295,7 +299,7 @@ C****
       USE CONSTANT, only : sday,TF
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
-      USE GEOM, only : dxyp,imaxj
+      USE GEOM, only : axyp,imaxj
       USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,
      *     aregj=>aregj_loc,jreg,ij_fwio,ij_htio,ij_stio,aij=>aij_loc
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
@@ -320,18 +324,20 @@ C****
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
       INTEGER I,J,ITYPE,JR,ITYPEO
-      integer :: J_0, J_1
+      integer :: J_0, J_1 ,I_0,I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** CALCULATE LATERAL MELT (ALSO ELIMINATE SMALL AMOUNTS)
 C**** EVERY PHYSICS TIME STEP
       DT=DTsrc
       DO J=J_0, J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
           POCEAN=FOCEAN(I,J)
           RUN0=0. ; ENRGUSED=0. ; SALT=0.
@@ -388,10 +394,10 @@ C**** accumulate diagnostics
      *          *PWATER
            AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+    RUN0*(1.-ROICE)
      *          *PWATER
-           AREGJ(JR,J,J_HMELT)= AREGJ(JR,J,J_HMELT)-ENRGUSED*PWATER ! HMELT
-     *          *DXYP(J)
-           AREGJ(JR,J,J_SMELT)= AREGJ(JR,J,J_SMELT)+SALT*PWATER*DXYP(J) ! SMELT
-           AREGJ(JR,J,J_IMELT)= AREGJ(JR,J,J_IMELT)+RUN0*PWATER*DXYP(J) ! IMELT
+           AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)-ENRGUSED*PWATER ! HMELT
+     *          *AXYP(I,J)
+           AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+SALT*PWATER*AXYP(I,J) ! SMELT
+           AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+RUN0*PWATER*AXYP(I,J) ! IMELT
 C**** Update prognostic sea ice variables + correction for rad. fluxes
             if (roice.gt.rsi(i,j)) ! ice from ocean
      *          call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),ROICE)
@@ -408,11 +414,11 @@ C****
 #endif
           END IF
 C**** Save fluxes (in kg, J etc.), positive into ocean
-          MELTI(I,J) = RUN0*PWATER*DXYP(J)
-          EMELTI(I,J)=-ENRGUSED*PWATER*DXYP(J)
-          SMELTI(I,J)= SALT*PWATER*DXYP(J)
+          MELTI(I,J) = RUN0*PWATER*AXYP(I,J)
+          EMELTI(I,J)=-ENRGUSED*PWATER*AXYP(I,J)
+          SMELTI(I,J)= SALT*PWATER*AXYP(I,J)
 #ifdef TRACERS_WATER
-          TRMELTI(:,I,J)=TRUN0(:)*PWATER*DXYP(J)
+          TRMELTI(:,I,J)=TRUN0(:)*PWATER*AXYP(I,J)
 #endif
 C**** Reset some defaults if all ice is gone
           IF (RSI(I,J).eq.0) THEN
@@ -440,7 +446,7 @@ C****
       USE CONSTANT, only : grav,rhows,rhow,sday
       USE MODEL_COM, only : im,jm,dtsrc,fland,focean
      *     ,itoice,itlkice,p,ptop
-      USE GEOM, only : imaxj,dxyp
+      USE GEOM, only : imaxj,axyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
      *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss
 #ifdef TRACERS_WATER
@@ -480,19 +486,21 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      integer :: J_0, J_1, J_0H, J_1H
+      integer :: J_0, J_1, J_0H, J_1H ,I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GET(grid, J_STRT = J_0,     J_STOP = J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       debug=.false.
 
 C**** Initialize work array
       DO J=J_0, J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
@@ -637,13 +645,13 @@ C**** snow cover diagnostic now matches that seen by the radiation
           AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+(FSOC+SRUN+SFLUX
      *         +SSNWIC)*POICE
 
-          AREGJ(JR,J,J_RSNOW)=AREGJ(JR,J,J_RSNOW)+SCOVI*DXYP(J)
+          AREGJ(JR,J,J_RSNOW)=AREGJ(JR,J,J_RSNOW)+SCOVI*AXYP(I,J)
           AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+(FMOC+ RUN+MFLUX
-     *         +MSNWIC)*POICE*DXYP(J)
+     *         +MSNWIC)*POICE*AXYP(I,J)
           AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+(FHOC+ERUN+HFLUX
-     *         +HSNWIC)*POICE*DXYP(J)
+     *         +HSNWIC)*POICE*AXYP(I,J)
           AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+(FSOC+SRUN+SFLUX
-     *         +SSNWIC)*POICE*DXYP(J)
+     *         +SSNWIC)*POICE*AXYP(I,J)
 
       END IF
 C**** set total atmopsheric pressure anomaly in case needed by ocean
@@ -666,7 +674,7 @@ C****
       USE CONSTANT, only : tf
       USE MODEL_COM, only : im,jm,focean,kocean,fland
      *     ,itocean,itoice,itlake,itlkice,itime
-      USE GEOM, only : imaxj,dxyp
+      USE GEOM, only : imaxj,axyp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
       USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx, tij_seaice
@@ -702,19 +710,21 @@ C****
 C****
 C**** Extract useful local domain parmeters from "grid"
 C****
-      integer :: J_0, J_1, J_0H, J_1H
+      integer :: J_0, J_1, J_0H, J_1H ,I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE   ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE   )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       debug=.false.
 
 C**** Initialize work array
       DO J=J_0, J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
@@ -779,11 +789,11 @@ C**** Ice-covered ocean diagnostics
         AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-ACEFI *POICE
 C**** regional diagnostics
         AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)-
-     *       (ACEFO *POCEAN+ACEFI *POICE)*DXYP(J)
+     *       (ACEFO *POCEAN+ACEFI *POICE)*AXYP(I,J)
         AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)-
-     *       (ENRGFO*POCEAN+ENRGFI*POICE)*DXYP(J)
+     *       (ENRGFO*POCEAN+ENRGFI*POICE)*AXYP(I,J)
         AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)-
-     *       (SALTO *POCEAN+SALTI *POICE)*DXYP(J)
+     *       (SALTO *POCEAN+SALTI *POICE)*AXYP(I,J)
 
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
@@ -826,10 +836,10 @@ C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_ACE2,ITYPE)=AJ(J,J_ACE2,ITYPE)+MSI2   *POICE
         AJ(J,J_SNOW,ITYPE)=AJ(J,J_SNOW,ITYPE)+SNOW   *POICE
         IF (JR.ne.24) THEN
-          AREGJ(JR,J,J_RSI) =AREGJ(JR,J,J_RSI) +      POICE*DXYP(J)
-          AREGJ(JR,J,J_SNOW)=AREGJ(JR,J,J_SNOW)+SNOW *POICE*DXYP(J)
-          AREGJ(JR,J,J_ACE1)=AREGJ(JR,J,J_ACE1)+ACE1I*POICE*DXYP(J)
-          AREGJ(JR,J,J_ACE2)=AREGJ(JR,J,J_ACE2)+MSI2 *POICE*DXYP(J)
+          AREGJ(JR,J,J_RSI) =AREGJ(JR,J,J_RSI) +      POICE*AXYP(I,J)
+          AREGJ(JR,J,J_SNOW)=AREGJ(JR,J,J_SNOW)+SNOW *POICE*AXYP(I,J)
+          AREGJ(JR,J,J_ACE1)=AREGJ(JR,J,J_ACE1)+ACE1I*POICE*AXYP(I,J)
+          AREGJ(JR,J,J_ACE2)=AREGJ(JR,J,J_ACE2)+MSI2 *POICE*AXYP(I,J)
         END IF
         AIJ(I,J,IJ_TSI)=AIJ(I,J,IJ_TSI)+
      *       POICE*(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
@@ -905,11 +915,14 @@ C****
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
       INTEGER I,J
-      integer :: J_0, J_1
+      integer :: I_0, I_1, J_0, J_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
 C****
 C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
 C****
@@ -918,7 +931,7 @@ C****       2  FWSIM  (INSTANTANEOUS AT NOON GMT)
 C****       3  HSIT   (INSTANTANEOUS AT NOON GMT)
 C****
       DO J=J_0, J_1
-        DO I=1,IM
+        DO I=I_0, I_1
           IF (FOCEAN(I,J).gt.0) THEN
             OA(I,J,1)=SNOWI(I,J)
             OA(I,J,2)=FWSIM(I,J)
@@ -957,11 +970,13 @@ C****
       CHARACTER CONPT(NPTS)*10
       INTEGER I,J,istart
       REAL*8 MSI1,TFO
-      integer :: J_0, J_1
+      integer :: I_0, I_1, J_0, J_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** set up a default ice-ocean stress field. This can be changed by
 C**** adjusting oi_ustar0 in the parameter list. If ice dynamics
@@ -979,7 +994,7 @@ C**** Decide whether snow_ice formation is allowed
 C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
       if (istart.lt.9) then
       DO J=J_0, J_1
-      DO I=1,IM
+      DO I=I_0, I_1
         IF (FOCEAN(I,J)+FLAKE0(I,J).eq.0 .and. RSI(i,j).gt.0) RSI(I,J)=0
         IF (RSI(I,J).gt.0 .and. FLAKE0(I,J).gt.0) SSI(:,I,J)=0.
       END DO
@@ -989,7 +1004,7 @@ C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case
         DO J=J_0, J_1
-        DO I=1,IM
+        DO I=I_0, I_1
           IF (RSI(I,J).le.0) THEN
             MSI1        =ACE1I
             MSI(I,J)    =AC2OIM
@@ -1018,7 +1033,7 @@ C****   set defaults for no ice case
       END IF
 C**** set GTEMP etc. array for ice
       DO J=J_0, J_1
-      DO I=1,IM
+      DO I=I_0, I_1
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
      *       )/(XSI(1)*MSI1)) 
@@ -1072,15 +1087,18 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H
+      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
       DO J=J_0,J_1
         ICE(J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           ICE(J)=ICE(J)+RSI(I,J)*(MSI(I,J)+ACE1I+SNOWI(I,J))
      *         *FOCEAN(I,J)
         END DO
@@ -1105,16 +1123,18 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H
+      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
         EICE(J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           EICE(J)=EICE(J)+RSI(I,J)*FOCEAN(I,J)*SUM(HSI(:,I,J))
         END DO
       END DO
@@ -1138,16 +1158,18 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H
+      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
         SALT(J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
             SALT(J)=SALT(J)+FOCEAN(I,J)*RSI(I,J)*SUM(SSI(:,I,J))
           END IF
@@ -1175,16 +1197,18 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H
+      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
         ICE(J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           ICE(J)=ICE(J)+RSI(I,J)*(MSI(I,J)+ACE1I+SNOWI(I,J))
      *         *FLAKE(I,J)
         END DO
@@ -1210,17 +1234,18 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H
+      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
-
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0,J_1
         EICE(J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           EICE(J)=EICE(J)+RSI(I,J)*FLAKE(I,J)*SUM(HSI(:,I,J))
         END DO
       END DO
@@ -1248,15 +1273,17 @@ C****
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
-      INTEGER I,J, J_0, J_1
+      INTEGER I,J, J_0, J_1 ,I_0,I_1
       REAL*8 MSI1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DO J=J_0, J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
 C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J

@@ -53,22 +53,29 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 #endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
+      INTEGER :: I_0H,I_1H, J_0H,J_1H
       INTEGER IER
-#ifdef TRACERS_WATER
-!@var TRLAKE tracer amount in each lake level (kg)
-      ALLOCATE( TRLAKE(NTM,2,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-     * , STAT=IER)
-#endif
 
-      ALLOCATE ( MWL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *           GML(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *           TLAKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *           MLDLK(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *           FLAKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *           TANLK(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *           SVFLAKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+
+      ALLOCATE ( MWL(I_0H:I_1H,J_0H:J_1H),
+     *           GML(I_0H:I_1H,J_0H:J_1H),
+     *           TLAKE(I_0H:I_1H,J_0H:J_1H),
+     *           MLDLK(I_0H:I_1H,J_0H:J_1H),
+     *           FLAKE(I_0H:I_1H,J_0H:J_1H),
+     *           TANLK(I_0H:I_1H,J_0H:J_1H),
+     *           SVFLAKE(I_0H:I_1H,J_0H:J_1H),
      *           STAT=IER
      *            )
+
+#ifdef TRACERS_WATER
+!@var TRLAKE tracer amount in each lake level (kg)
+      ALLOCATE( TRLAKE(NTM,2,I_0H:I_1H,J_0H:J_1H)
+     * , STAT=IER)
+#endif
       RETURN
       END SUBROUTINE ALLOC_LAKES_COM
 
@@ -161,5 +168,3 @@ c            GO TO 10
  10   IOERR=1
       RETURN
       END SUBROUTINE io_lakes
-
-

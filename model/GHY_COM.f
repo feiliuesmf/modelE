@@ -142,27 +142,29 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE(     FEARTH(IM,J_0H:J_1H),
+      ALLOCATE(     FEARTH(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-cddd      ALLOCATE(      WBARE(  NGM,IM,J_0H:J_1H),
-cddd     *               WVEGE(0:NGM,IM,J_0H:J_1H),
-cddd     *              HTBARE(0:NGM,IM,J_0H:J_1H),
-cddd     *              HTVEGE(0:NGM,IM,J_0H:J_1H),
-cddd     *              SNOWBV(    2,IM,J_0H:J_1H),
+cddd      ALLOCATE(      WBARE(  NGM,I_0H:I_1H,J_0H:J_1H),
+cddd     *               WVEGE(0:NGM,I_0H:I_1H,J_0H:J_1H),
+cddd     *              HTBARE(0:NGM,I_0H:I_1H,J_0H:J_1H),
+cddd     *              HTVEGE(0:NGM,I_0H:I_1H,J_0H:J_1H),
+cddd     *              SNOWBV(    2,I_0H:I_1H,J_0H:J_1H),
 cddd     *         STAT=IER)
 
-      ALLOCATE(      W_IJ(0:NGM,LS_NFRAC,IM,J_0H:J_1H),
-     *              HT_IJ(0:NGM,LS_NFRAC,IM,J_0H:J_1H),
-     *              SNOWBV(     LS_NFRAC,IM,J_0H:J_1H),
+      ALLOCATE(      W_IJ(0:NGM,LS_NFRAC,I_0H:I_1H,J_0H:J_1H),
+     *              HT_IJ(0:NGM,LS_NFRAC,I_0H:I_1H,J_0H:J_1H),
+     *              SNOWBV(     LS_NFRAC,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
       !WBARE => W_IJ(1:,1,1:,1:)
@@ -170,47 +172,47 @@ cddd     *         STAT=IER)
       !HTBARE => HT_IJ(1:,1,1:,1:)
       !HTVEGE => HT_IJ(1:,1,1:,1:)
 
-      ALLOCATE(     DZ_IJ(IM,J_0H:J_1H,NGM),
-     *               Q_IJ(IM,J_0H:J_1H,IMT,NGM),
-     *              QK_IJ(IM,J_0H:J_1H,IMT,NGM),
-     *              SL_IJ(IM,J_0H:J_1H),
+      ALLOCATE(     DZ_IJ(I_0H:I_1H,J_0H:J_1H,NGM),
+     *               Q_IJ(I_0H:I_1H,J_0H:J_1H,IMT,NGM),
+     *              QK_IJ(I_0H:I_1H,J_0H:J_1H,IMT,NGM),
+     *              SL_IJ(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(      NSN_IJ(     2,IM,J_0H:J_1H),
-     *              DZSN_IJ(NLSN,2,IM,J_0H:J_1H),
-     *               WSN_IJ(NLSN,2,IM,J_0H:J_1H),
-     *               HSN_IJ(NLSN,2,IM,J_0H:J_1H),
+      ALLOCATE(      NSN_IJ(     2,I_0H:I_1H,J_0H:J_1H),
+     *              DZSN_IJ(NLSN,2,I_0H:I_1H,J_0H:J_1H),
+     *               WSN_IJ(NLSN,2,I_0H:I_1H,J_0H:J_1H),
+     *               HSN_IJ(NLSN,2,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(         FR_SNOW_IJ(2,IM,J_0H:J_1H),
-     *              FR_SNOW_RAD_IJ(2,IM,J_0H:J_1H),
-     *              CANOPY_TEMP_IJ(  IM,J_0H:J_1H),
+      ALLOCATE(         FR_SNOW_IJ(2,I_0H:I_1H,J_0H:J_1H),
+     *              FR_SNOW_RAD_IJ(2,I_0H:I_1H,J_0H:J_1H),
+     *              CANOPY_TEMP_IJ(  I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(      SNOWE(  IM,J_0H:J_1H),
-     *              TEARTH(  IM,J_0H:J_1H),
-     *              WEARTH(  IM,J_0H:J_1H),
-     *             AIEARTH(  IM,J_0H:J_1H),
-     *              SNOAGE(3,IM,J_0H:J_1H),
+      ALLOCATE(      SNOWE(  I_0H:I_1H,J_0H:J_1H),
+     *              TEARTH(  I_0H:I_1H,J_0H:J_1H),
+     *              WEARTH(  I_0H:I_1H,J_0H:J_1H),
+     *             AIEARTH(  I_0H:I_1H,J_0H:J_1H),
+     *              SNOAGE(3,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(     GDEEP(IM,J_0H:J_1H,3),
+      ALLOCATE(     GDEEP(I_0H:I_1H,J_0H:J_1H,3),
      *         STAT=IER)
 
-      ALLOCATE(      TOP_INDEX_IJ(IM,J_0H:J_1H),
-     *                 top_dev_ij(IM,J_0H:J_1H),
-     *                evap_max_ij(IM,J_0H:J_1H),
-     *                  fr_sat_ij(IM,J_0H:J_1H),
-     *                      qg_ij(IM,J_0H:J_1H),
+      ALLOCATE(      TOP_INDEX_IJ(I_0H:I_1H,J_0H:J_1H),
+     *                 top_dev_ij(I_0H:I_1H,J_0H:J_1H),
+     *                evap_max_ij(I_0H:I_1H,J_0H:J_1H),
+     *                  fr_sat_ij(I_0H:I_1H,J_0H:J_1H),
+     *                      qg_ij(I_0H:I_1H,J_0H:J_1H),
      *           STAT=IER)
-      ALLOCATE(     tsns_ij(IM,J_0H:J_1H),
+      ALLOCATE(     tsns_ij(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
 #ifdef USE_ENT
-      ALLOCATE(     aalbveg(im,J_0H:J_1H),
-     *              Ci_ij(im,J_0H:J_1H),
-     *              Qf_ij(im,J_0H:J_1H),
-     *              cnc_ij(im,J_0H:J_1H),
+      ALLOCATE(     aalbveg(I_0H:I_1H,J_0H:J_1H),
+     *              Ci_ij(I_0H:I_1H,J_0H:J_1H),
+     *              Qf_ij(I_0H:I_1H,J_0H:J_1H),
+     *              cnc_ij(I_0H:I_1H,J_0H:J_1H),
      *           STAT=IER)
 #endif
 
@@ -227,17 +229,17 @@ ccc init snow arrays to prevent addressing uninitialized vars
       wsn_ij  (:,:,:,J_0H:J_1H)=0.
 
 #ifdef TRACERS_WATER_OLD
-      ALLOCATE(     TRBARE(NTM,  NGM,IM,J_0H:J_1H),
-     *              TRVEGE(NTM,0:NGM,IM,J_0H:J_1H),
-     *            TRSNOWBV(NTM,    2,IM,J_0H:J_1H),
+      ALLOCATE(     TRBARE(NTM,  NGM,I_0H:I_1H,J_0H:J_1H),
+     *              TRVEGE(NTM,0:NGM,I_0H:I_1H,J_0H:J_1H),
+     *            TRSNOWBV(NTM,    2,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 #endif
 #ifdef TRACERS_WATER
-cddd      ALLOCATE(     TR_WBARE(NTM,  NGM,IM,J_0H:J_1H),
-cddd     *              TR_WVEGE(NTM,0:NGM,IM,J_0H:J_1H),
-      ALLOCATE(      TR_W_IJ(NTM,0:NGM,LS_NFRAC,IM,J_0H:J_1H),
-     *             TR_WSN_IJ(NTM,NLSN,        2,IM,J_0H:J_1H),
-     *             TRSNOWBV0(NTM,             2,IM,J_0H:J_1H),
+cddd      ALLOCATE(     TR_WBARE(NTM,  NGM,I_0H:I_1H,J_0H:J_1H),
+cddd     *              TR_WVEGE(NTM,0:NGM,I_0H:I_1H,J_0H:J_1H),
+      ALLOCATE(      TR_W_IJ(NTM,0:NGM,LS_NFRAC,I_0H:I_1H,J_0H:J_1H),
+     *             TR_WSN_IJ(NTM,NLSN,        2,I_0H:I_1H,J_0H:J_1H),
+     *             TRSNOWBV0(NTM,             2,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 C**** Initialize to zero
       !TR_WBARE(:,:,:,J_0H:J_1H)=0.d0
@@ -388,7 +390,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: W_GLOB,HT_GLOB
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS03"
-      INTEGER :: J_0H, J_1H
+      INTEGER :: I_0H, I_1H, J_0H, J_1H
 
 #ifdef TRACERS_WATER
       integer m
@@ -406,20 +408,25 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       call allocate_me
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
       write(MODULE_HEADER(lhead+1:80),'(a7,i1,a1,i1,a23)')
      *   'R8 dim(',ngm+1,',',LS_NFRAC,',ijm):W,HT, SNWbv(2,ijm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_BLOCK(grid, W_IJ(0:NGM,:,1:IM,J_0H:J_1H) , W_GLOB)
-        CALL PACK_BLOCK(grid, HT_IJ(0:NGM,:,1:IM,J_0H:J_1H),HT_GLOB)
-        CALL PACK_COLUMN(grid, SNOWBV(1:2,1:IM,J_0H:J_1H), SNOWBV_GLOB)
+        CALL PACK_BLOCK(grid, W_IJ(0:NGM,:,I_0H:I_1H,J_0H:J_1H),
+     &       W_GLOB)
+        CALL PACK_BLOCK(grid, HT_IJ(0:NGM,:,I_0H:I_1H,J_0H:J_1H),
+     &       HT_GLOB)
+        CALL PACK_COLUMN(grid, SNOWBV(1:2,I_0H:I_1H,J_0H:J_1H),
+     &       SNOWBV_GLOB)
 #ifdef TRACERS_WATER
         do m=1,LS_NFRAC
           if (AM_I_ROOT()) ptr4 => TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM)
-          CALL PACK_BLOCK(grid, TR_W_IJ(1:NTM,0:NGM,m,1:IM,J_0H:J_1H),
-     &         ptr4 )
+          CALL PACK_BLOCK(grid,
+     &         TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H),ptr4 )
         enddo
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
@@ -449,11 +456,11 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         end if    !...am_i_root
 
         call unpack_block(grid, w_glob,
-     &       w_ij(0:NGM,:,1:IM,J_0H:J_1H))
+     &       w_ij(0:NGM,:,I_0H:I_1H,J_0H:J_1H))
          call unpack_block(grid, ht_glob,
-     &       ht_ij(0:NGM,:,1:IM,J_0H:J_1H))
+     &       ht_ij(0:NGM,:,I_0H:I_1H,J_0H:J_1H))
         call unpack_column(grid, snowbv_glob,
-     &       snowbv(1:2,1:IM,J_0H:J_1H))
+     &       snowbv(1:2,I_0H:I_1H,J_0H:J_1H))
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
@@ -470,7 +477,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
           do m=1,LS_NFRAC
             if (AM_I_ROOT()) ptr4 => TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM)
             CALL UNPACK_BLOCK(grid,ptr4,
-     &           TR_W_IJ(1:NTM,0:NGM,m,1:IM,J_0H:J_1H) )
+     &           TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H) )
           enddo
           CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 

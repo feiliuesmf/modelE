@@ -85,47 +85,49 @@ C**** variables used (and saved) for gravity wave drag calculations
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
 
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
 
-      ALLOCATE(     TTOLD(LM,IM,J_0H:J_1H),
-     *              QTOLD(LM,IM,J_0H:J_1H),
-     *              SVLHX(LM,IM,J_0H:J_1H),
-     *              SVLAT(LM,IM,J_0H:J_1H),
-     *              RHSAV(LM,IM,J_0H:J_1H),
-     *             CLDSAV(LM,IM,J_0H:J_1H),
-     *            CLDSAV1(LM,IM,J_0H:J_1H),
-     *                FSS(LM,IM,J_0H:J_1H),
+      ALLOCATE(     TTOLD(LM,I_0H:I_1H,J_0H:J_1H),
+     *              QTOLD(LM,I_0H:I_1H,J_0H:J_1H),
+     *              SVLHX(LM,I_0H:I_1H,J_0H:J_1H),
+     *              SVLAT(LM,I_0H:I_1H,J_0H:J_1H),
+     *              RHSAV(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CLDSAV(LM,I_0H:I_1H,J_0H:J_1H),
+     *            CLDSAV1(LM,I_0H:I_1H,J_0H:J_1H),
+     *                FSS(LM,I_0H:I_1H,J_0H:J_1H),
 #ifdef CLD_AER_CDNC
-     *             OLDNL(LM,IM,J_0H:J_1H),
-     *             OLDNI(LM,IM,J_0H:J_1H),
-     *             CTEM(LM,IM,J_0H:J_1H),
-     *             CD3D(LM,IM,J_0H:J_1H),
-     *             CL3D(LM,IM,J_0H:J_1H),
-     *             CI3D(LM,IM,J_0H:J_1H),
-     *             CDN3D(LM,IM,J_0H:J_1H),
-     *             CRE3D(LM,IM,J_0H:J_1H),
-     *             CLWP(IM,J_0H:J_1H),
+     *             OLDNL(LM,I_0H:I_1H,J_0H:J_1H),
+     *             OLDNI(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CTEM(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CD3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CL3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CI3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CDN3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CRE3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CLWP(I_0H:I_1H,J_0H:J_1H),
 #endif
-     *              TAUSS(LM,IM,J_0H:J_1H),
-     *              TAUMC(LM,IM,J_0H:J_1H),
-     *              CLDSS(LM,IM,J_0H:J_1H),
-     *              CLDMC(LM,IM,J_0H:J_1H),
-     *             CSIZMC(LM,IM,J_0H:J_1H),
-     *             CSIZSS(LM,IM,J_0H:J_1H),
+     *              TAUSS(LM,I_0H:I_1H,J_0H:J_1H),
+     *              TAUMC(LM,I_0H:I_1H,J_0H:J_1H),
+     *              CLDSS(LM,I_0H:I_1H,J_0H:J_1H),
+     *              CLDMC(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CSIZMC(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CSIZSS(LM,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(     ULS(IM,J_0H:J_1H,LM),
-     *              VLS(IM,J_0H:J_1H,LM),
-     *              UMC(IM,J_0H:J_1H,LM),
-     *              VMC(IM,J_0H:J_1H,LM),
-     *              TLS(IM,J_0H:J_1H,LM),
-     *              QLS(IM,J_0H:J_1H,LM),
-     *              TMC(IM,J_0H:J_1H,LM),
-     *              QMC(IM,J_0H:J_1H,LM),
+      ALLOCATE(     ULS(I_0H:I_1H,J_0H:J_1H,LM),
+     *              VLS(I_0H:I_1H,J_0H:J_1H,LM),
+     *              UMC(I_0H:I_1H,J_0H:J_1H,LM),
+     *              VMC(I_0H:I_1H,J_0H:J_1H,LM),
+     *              TLS(I_0H:I_1H,J_0H:J_1H,LM),
+     *              QLS(I_0H:I_1H,J_0H:J_1H,LM),
+     *              TMC(I_0H:I_1H,J_0H:J_1H,LM),
+     *              QMC(I_0H:I_1H,J_0H:J_1H,LM),
      *         STAT=IER)
 
 !@var FSS initialized to 1.
@@ -137,15 +139,15 @@ C**** variables used (and saved) for gravity wave drag calculations
       OLDNI = 1.d-4
 #endif
 
-      ALLOCATE(     DDM1(IM,J_0H:J_1H),
-     *              AIRX(IM,J_0H:J_1H),
-     *              DDMS(IM,J_0H:J_1H),
-     *              TDN1(IM,J_0H:J_1H),
-     *              QDN1(IM,J_0H:J_1H),
-     *              DDML(IM,J_0H:J_1H),
+      ALLOCATE(     DDM1(I_0H:I_1H,J_0H:J_1H),
+     *              AIRX(I_0H:I_1H,J_0H:J_1H),
+     *              DDMS(I_0H:I_1H,J_0H:J_1H),
+     *              TDN1(I_0H:I_1H,J_0H:J_1H),
+     *              QDN1(I_0H:I_1H,J_0H:J_1H),
+     *              DDML(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(     LMC(2,IM,J_0H:J_1H),
+      ALLOCATE(     LMC(2,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
 C**** Initialise some output used in dynamics

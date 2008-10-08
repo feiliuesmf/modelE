@@ -85,7 +85,7 @@
      &     cmgs_glob, chgs_glob, cqgs_glob
       INTEGER, DIMENSION(:,:,:), allocatable ::  ! (4,IM,JM)
      &     ipbl_glob
-      INTEGER :: J_0, J_1, j_0h, j_1h, n
+      INTEGER :: J_0, J_1, j_0h, j_1h, n, i_0h, i_1h
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
 #ifdef TRACERS_ON
@@ -98,6 +98,8 @@
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
       if(am_i_root()) then
         allocate(uabl_glob(npbl,4,IM,JM))
@@ -114,7 +116,7 @@
 #endif
       endif
 #ifdef TRACERS_ON
-      allocate(trabl_loc(npbl,4,im,j_0h:j_1h))
+      allocate(trabl_loc(npbl,4,i_0h:i_1h,j_0h:j_1h))
 #endif
 
       SELECT CASE (IACTION)
@@ -309,67 +311,69 @@
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE(    uabl(npbl,4,    im,J_0H:J_1H),
-     *             vabl(npbl,4,    im,J_0H:J_1H),
-     *             tabl(npbl,4,    im,J_0H:J_1H),
-     *             qabl(npbl,4,    im,J_0H:J_1H),
-     *             eabl(npbl,4,    im,J_0H:J_1H),
+      ALLOCATE(    uabl(npbl,4,    I_0H:I_1H,J_0H:J_1H),
+     *             vabl(npbl,4,    I_0H:I_1H,J_0H:J_1H),
+     *             tabl(npbl,4,    I_0H:I_1H,J_0H:J_1H),
+     *             qabl(npbl,4,    I_0H:I_1H,J_0H:J_1H),
+     *             eabl(npbl,4,    I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
       qabl=0.  ! initialise to make life easier
 
 #ifdef TRACERS_ON
-      ALLOCATE(    trabl(npbl,ntm,4,im,J_0H:J_1H),
+      ALLOCATE(    trabl(npbl,ntm,4,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 #endif
 
-      ALLOCATE(    cmgs(4,im,J_0H:J_1H),
-     *             chgs(4,im,J_0H:J_1H),
-     *             cqgs(4,im,J_0H:J_1H),
-     *             ipbl(4,im,J_0H:J_1H),
+      ALLOCATE(    cmgs(4,I_0H:I_1H,J_0H:J_1H),
+     *             chgs(4,I_0H:I_1H,J_0H:J_1H),
+     *             cqgs(4,I_0H:I_1H,J_0H:J_1H),
+     *             ipbl(4,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
       ipbl(:,:,J_0H:J_1H) = 0
 
-      ALLOCATE(    roughl(im,J_0H:J_1H),
-     *              wsavg(im,J_0H:J_1H),
-     *              tsavg(im,J_0H:J_1H),
-     *              qsavg(im,J_0H:J_1H),
-     *              dclev(im,J_0H:J_1H),
-     *              usavg(im,J_0H:J_1H),
-     *              vsavg(im,J_0H:J_1H),
-     *             tauavg(im,J_0H:J_1H),
-     *             tgvavg(im,J_0H:J_1H),
-     *              qgavg(im,J_0H:J_1H),
-     *              w2_l1(im,J_0H:J_1H),
+      ALLOCATE(    roughl(I_0H:I_1H,J_0H:J_1H),
+     *              wsavg(I_0H:I_1H,J_0H:J_1H),
+     *              tsavg(I_0H:I_1H,J_0H:J_1H),
+     *              qsavg(I_0H:I_1H,J_0H:J_1H),
+     *              dclev(I_0H:I_1H,J_0H:J_1H),
+     *              usavg(I_0H:I_1H,J_0H:J_1H),
+     *              vsavg(I_0H:I_1H,J_0H:J_1H),
+     *             tauavg(I_0H:I_1H,J_0H:J_1H),
+     *             tgvavg(I_0H:I_1H,J_0H:J_1H),
+     *              qgavg(I_0H:I_1H,J_0H:J_1H),
+     *              w2_l1(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
       w2_l1(:,J_0H:J_1H) =0.
 
-      ALLOCATE(    ustar_pbl(4,im,J_0H:J_1H),
+      ALLOCATE(    ustar_pbl(4,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(    egcm(lm,im,J_0H:J_1H),
-     *            w2gcm(lm,im,J_0H:J_1H),
-     *            t2gcm(lm,im,J_0H:J_1H),
+      ALLOCATE(    egcm(lm,I_0H:I_1H,J_0H:J_1H),
+     *            w2gcm(lm,I_0H:I_1H,J_0H:J_1H),
+     *            t2gcm(lm,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(   uflux(im,J_0H:J_1H),
-     *            vflux(im,J_0H:J_1H),
-     *            tflux(im,J_0H:J_1H),
-     *            qflux(im,J_0H:J_1H),
+      ALLOCATE(   uflux(I_0H:I_1H,J_0H:J_1H),
+     *            vflux(I_0H:I_1H,J_0H:J_1H),
+     *            tflux(I_0H:I_1H,J_0H:J_1H),
+     *            qflux(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
       uflux(:,J_0H:J_1H) = 0. ! define defaults
       vflux(:,J_0H:J_1H) = 0. 
       tflux(:,J_0H:J_1H) = 0. 
       qflux(:,J_0H:J_1H) = 0. 
 
-      ALLOCATE( gustiwind(im,J_0H:J_1H),STAT=IER)
+      ALLOCATE( gustiwind(I_0H:I_1H,J_0H:J_1H),STAT=IER)
       gustiwind(:,J_0H:J_1H) = 0.
 
       END SUBROUTINE ALLOC_PBL_COM

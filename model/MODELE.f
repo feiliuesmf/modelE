@@ -44,9 +44,9 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
-      USE ATMDYN, only : DYNAM,CALC_TROP,PGRAD_PBL,SDRAG
-     &     ,DISSIP,FILTER,CALC_AMPK, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-     &     ,COMPUTE_WSAVE, getTotalEnergy, addEnergyAsDiffuseHeat
+      USE ATMDYN, only : DYNAM,PGRAD_PBL,SDRAG
+     &     ,FILTER,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+     &     ,getTotalEnergy,dissip
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -971,13 +971,13 @@ C****
       USE GHY_COM, only : fearth
       USE SOIL_DRV, only: init_gh
       USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE, HaveLatitude
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
       USE CONSTANT, only : hrday
       USE ESMF_MOD, only: ESMF_Clock
 #endif
-      USE ATMDYN, only : init_ATMDYN,CALC_AMPK
+      USE ATMDYN, only : init_ATMDYN
 #ifdef USE_ENT
       USE ENT_DRV, only : init_module_ent
 #endif
@@ -1022,8 +1022,10 @@ C****    List of parameters that are disregarded at restarts
       integer ISTART_kradia, nl_soil
       character*132 :: bufs
 
+      integer :: nij_before_j0,nij_after_j1,nij_after_i1
+
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 CCCC      INTEGER :: stdin ! used to read 'I' file
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
@@ -1031,6 +1033,9 @@ CCCC      INTEGER :: stdin ! used to read 'I' file
      &               J_STRT_HALO= J_0H, J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
 #ifdef USE_ESMF
       write(6,*) 'mpi-zone',J_0,' - ',J_1
 #endif
@@ -1320,7 +1325,7 @@ C****            not yet implemented but could easily be done  ???
 Csoon   READ (iu_AIC) XLABEL(1:80)
         CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,P,1) ! Psurf
         DO J=J_0,J_1
-          DO I=1,IM
+          DO I=I_0,I_1
             P(I,J)=P(I,J)-PTOP                        ! Psurf -> P
           END DO
         END DO
@@ -1412,7 +1417,7 @@ c      enddo
         CALL CALC_AMPK(LM)
 
         DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
           TAUAVG(I,J)=CDM*WSAVG(I,J)**2
 C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
@@ -1440,7 +1445,7 @@ C**** initialize egcm to be used in ATURB.f
         END DO
 C**** Initialize surface friction velocity
         DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           USTAR_pbl(:,I,J)=WSAVG(I,J)*SQRT(CDM)
         END DO
         END DO
@@ -1528,13 +1533,16 @@ C****        tropospheric temperatures changed by at most 1 degree C
       IF (IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
         DO L=1,LS1-1
-        call burn_random(n=im*(j_0-1))
+        call burn_random(nij_before_j0(J_0))
         DO J=J_0,J_1
-        DO I=1,IM
+        call burn_random((I_0-1))
+        DO I=I_0,I_1
            TIJL=T(I,J,L)*PK(L,I,J)-1.+2*RANDU(X)
            T(I,J,L)=TIJL/PK(L,I,J)
         END DO
+        call burn_random(nij_after_i1(I_1))
         END DO
+        call burn_random(nij_after_j1(J_1))
         END DO
         IF (AM_I_ROOT())
      *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
@@ -1589,7 +1597,7 @@ C****        tropospheric temperatures are changed by at most 1 degree C
           CALL RINIT (IRANDI)
           DO L=1,LS1-1
           DO J=J_0,J_1
-          DO I=1,IM
+          DO I=I_0,I_1
              TIJL=T(I,J,L)*PK(L,I,J)-1.+2*RANDU(X)
              T(I,J,L)=TIJL/PK(L,I,J)
           END DO
@@ -1765,7 +1773,7 @@ C**** Actual array is set from restart file.
       call closeunit(iu_TOPO)
 
 C**** Check polar uniformity
-      if(haveLatitude(grid, J=1 )) then
+      if(have_south_pole) then
         do i=2,im
           if (zatmo(i,1).ne.zatmo(1,1)) then
             print*,"Polar topography not uniform, corrected",i,1
@@ -1774,7 +1782,7 @@ C**** Check polar uniformity
           end if
         end do
       end if
-      if (haveLatitude(grid, J=JM)) then
+      if (have_north_pole) then
         do i=2,im
           if (zatmo(i,jm).ne.zatmo(1,jm)) then
             print*,"Polar topography not uniform, corrected",i,jm
@@ -1807,7 +1815,7 @@ C**** Initialize land ice (must come after oceans)
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
           FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
           IF (FLAKE(I,J).gt.0) THEN
@@ -1943,7 +1951,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
      *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH,ftype
-      USE GEOM, only : areag,dxyp,imaxj
+      USE GEOM, only : areag,dxyp,axyp,imaxj
       USE DYNAMICS, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
       USE RAD_COM, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
@@ -1954,7 +1962,7 @@ C****
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4
       USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM, AM_I_ROOT
-      USE ATMDYN, only : CALC_AMPK
+c      USE ATMDYN, only : CALC_AMPK
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,EDPY,VEDAY
       REAL*8 :: SPRESS(grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -1964,13 +1972,14 @@ C****
       INTEGER n
 #endif
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0S, J_1S, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Tasks to be done at end of day and at each start or restart
 C****
@@ -2040,7 +2049,7 @@ c     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
 
         do l=1,lm
         do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           q(i,j,l)=q(i,j,l)+xCH4*dH2O(j,l,jmon)*byAM(l,i,j)
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
@@ -2049,7 +2058,7 @@ C**** Add water to relevant tracers as well
               select case (tr_wd_type(n))
               case (nWater)    ! water: add CH4-sourced water to tracers
                 trm(i,j,l,n) = trm(i,j,l,n) +
-     +                tr_H2ObyCH4(n)*xCH4*dH2O(j,l,jmon)*dxyp(j)
+     +                tr_H2ObyCH4(n)*xCH4*dH2O(j,l,jmon)*axyp(i,j)
               end select
             end if
           end do
@@ -2090,24 +2099,43 @@ C**** CORRECTED.
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0H, J_1H
+      INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1, I_0H,I_1H, njpol
+      INTEGER :: I_0STG,I_1STG,J_0STG,J_1STG
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+c      I_0STG = grid%I_STRT_STGR
+c      I_1STG = grid%I_STOP_STGR
+      I_0STG = I_0
+      I_1STG = I_1
+      J_0STG = grid%J_STRT_STGR
+      J_1STG = grid%J_STOP_STGR
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
-        CALL CHECK3B(U,IM,J_0H,J_1H,JM,LM,SUBR,'u     ')
-        CALL CHECK3B(V,IM,J_0H,J_1H,JM,LM,SUBR,'v     ')
-        CALL CHECK3B(T,IM,J_0H,J_1H,JM,LM,SUBR,'t     ')
-        CALL CHECK3B(Q,IM,J_0H,J_1H,JM,LM,SUBR,'q     ')
-        CALL CHECK3B(P,IM,J_0H,J_1H,JM,1,SUBR,'p     ')
-        CALL CHECK3B(WM,IM,J_0H,J_1H,JM,LM,SUBR,'wm    ')
+        CALL CHECK3B(U(I_0STG:I_1STG,J_0STG:J_1STG,:),
+     &       I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'u     ')
+        CALL CHECK3B(V(I_0STG:I_1STG,J_0STG:J_1STG,:),
+     &       I_0STG,I_1STG,J_0STG,J_1STG,0,LM,SUBR,'v     ')
+        CALL CHECK3B(T(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
+     &       SUBR,'t     ')
+        CALL CHECK3B(Q(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
+     &       SUBR,'q     ')
+        CALL CHECK3B(P(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &       SUBR,'p     ')
+        CALL CHECK3B(WM(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
+     &       SUBR,'wm    ')
 #ifdef BLK_2MOM
-        CALL CHECK3B(WMICE,IM,J_0H,J_1H,JM,LM,SUBR,'wmice    ')
+        CALL CHECK3B(WMICE(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
+     &       SUBR,'wmice    ')
 #endif
 
         DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
           IF (T(I,J,1)*PK(1,I,J)-TF.gt.50.) print*,SUBR," T BIG ",i,j
      *         ,T(I,J,1:LS1)*PK(1:LS1,I,J)-TF
@@ -2115,7 +2143,7 @@ C**** Check all prog. arrays for Non-numbers
         END DO
         DO L=1,LM
         DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           IF (Q(I,J,L).lt.0.) then
             print*,"After ",SUBR," Q < 0 ",i,j,Q(I,J,L)
             call stop_model('Q<0 in CHECKT',255)
@@ -2219,3 +2247,454 @@ C**** check tracers
       return
       end subroutine print_restart_info
 
+      SUBROUTINE CALC_PIJL(lmax,p,pijl)
+!@sum  CALC_PIJL Fills in P as 3-D
+!@auth Jean Lerner
+!@ver  1.0
+      USE MODEL_COM, only : lm,ls1,psfmpt
+C****
+      USE DOMAIN_DECOMP, Only : grid, GET
+      implicit none
+      REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
+      REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: pijl
+      integer :: l,lmax
+
+      do l=1,ls1-1
+        pijl(:,:,l) = p(:,:)
+      enddo
+      do l=ls1,lmax
+        pijl(:,:,l) = PSFMPT
+      enddo
+      return
+      end subroutine calc_pijl
+
+      SUBROUTINE CALC_AMPK(LMAX)
+!@sum  CALC_AMPK calculate air mass and pressure arrays
+!@auth Jean Lerner/Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : bygrav,kapa
+      USE MODEL_COM, only : im,jm,lm,ls1,p
+      USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
+      USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, SOUTH
+      IMPLICIT NONE
+
+      INTEGER :: I,J,L  !@var I,J,L  loop variables
+      INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
+      REAL*8, DIMENSION(LMAX) :: PL,AML,PDSIGL,PMIDL
+      REAL*8, DIMENSION(LMAX+1) :: PEDNL
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, I_0H, I_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &               J_STRT_HALO= J_0H,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+
+C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
+C**** Note that only layers LS1 and below vary as a function of surface
+C**** pressure. Routine should be called with LMAX=LM at start, and
+C**** subsequentaly with LMAX=LS1-1
+C**** Note Air mass is calculated in (kg/m^2)
+
+C**** Fill in polar boxes
+      IF (have_south_pole) P(2:IM,1) = P(1,1)
+      IF (have_north_pole) P(2:IM,JM)= P(1,JM)
+      Call HALO_UPDATE(grid, P, FROM=SOUTH)
+
+!$OMP  PARALLEL DO PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
+      DO J=J_0H,J_1 ! filling halo for P is faster than PDSIG
+        DO I=I_0H,I_1H
+
+          CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
+
+          DO L=1,MIN(LMAX,LM)
+            PLIJ (L,I,J) = PL    (L)
+            PDSIG(L,I,J) = PDSIGL(L)
+            PMID (L,I,J) = PMIDL (L)
+            PEDN (L,I,J) = PEDNL (L)
+            AM   (L,I,J) = AML   (L)
+            PK   (L,I,J) = PMIDL (L)**KAPA
+            PEK  (L,I,J) = PEDNL (L)**KAPA
+            BYAM (L,I,J) = 1./AM(L,I,J)
+          END DO
+
+          IF (LMAX.ge.LM) THEN
+            PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)
+            PEK (LM+1:LMAX+1,I,J) = PEDN(LM+1:LMAX+1,I,J)**KAPA
+          END IF
+          SQRTP(I,J) = SQRT(P(I,J))
+        END DO
+      END DO
+!$OMP  END PARALLEL DO
+
+      RETURN
+      END SUBROUTINE CALC_AMPK
+
+      SUBROUTINE CALC_AMP(p,amp)
+!@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
+!@auth Jean Lerner/Max Kelley
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm,ls1,dsig,psf,ptop
+      USE GEOM, only : axyp
+C****
+      USE DOMAIN_DECOMP, Only : grid, GET
+      implicit none
+      REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
+      REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: amp
+      integer :: j,l
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+
+C
+!$OMP  PARALLEL DO PRIVATE(J,L)
+      DO L=1,LM
+        IF(L.LT.LS1) THEN
+ccc   do l=1,ls1-1
+          do j=J_0,J_1
+            amp(:,j,l) = p(:,j)*axyp(:,j)*dsig(l)
+          enddo
+ccc   enddo
+        ELSE
+ccc   do l=ls1,lm
+          do j=J_0,J_1
+            amp(:,j,l) = (psf-ptop)*axyp(:,j)*dsig(l)
+          enddo
+        END IF
+ccc   enddo
+      enddo
+!$OMP  END PARALLEL DO
+C
+      return
+C****
+      end subroutine calc_amp
+
+      SUBROUTINE CALC_TROP
+!@sum  CALC_TROP (to calculate tropopause height and layer)
+!@auth J. Lerner
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm,t
+      USE GEOM, only : imaxj
+      USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
+      USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
+      USE DOMAIN_DECOMP, Only : grid, GET
+      IMPLICIT NONE
+      INTEGER I,J,L,IERR
+      REAL*8, DIMENSION(LM) :: TL
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, I_0,I_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C**** Find WMO Definition of Tropopause to Nearest L
+!$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
+      do j=J_0,J_1
+      do i=I_0,imaxj(j)
+        do l=1,lm
+          TL(L)=T(I,J,L)*PK(L,I,J)
+        end do
+        CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J)
+     *       ,IERR)
+        IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
+        AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
+        AIJ(I,J,IJ_TTROP)=AIJ(I,J,IJ_TTROP)+TL(LTROPO(I,J))
+      end do
+      end do
+!$OMP  END PARALLEL DO
+      IF (have_south_pole) THEN
+        PTROPO(2:IM,1) = PTROPO(1,1)
+        LTROPO(2:IM,1) = LTROPO(1,1)
+      END IF
+      IF (have_north_pole) THEN
+        PTROPO(2:IM,JM)= PTROPO(1,JM)
+        LTROPO(2:IM,JM)= LTROPO(1,JM)
+      END IF
+
+      END SUBROUTINE CALC_TROP
+
+
+      subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp,ierr)
+!@sum  tropwmo calculates tropopasue height according to WMO formula
+!@auth D. Nodorp/T. Reichler/C. Land
+!@+    GISS Modifications by Jean Lerner/Gavin Schmidt
+!@ver  1.0
+!@alg  WMO Tropopause Definition
+!@+
+!@+ From A Temperature Lapse Rate Definition of the Tropopause Based on
+!@+ Ozone, J. M. Roe and W. H. Jasperson, 1981
+!@+
+!@+ In the following discussion the lapse rate is defined as -dT/dz.
+!@+
+!@+ The main features of the WMO tropopause definition are as follows:
+!@+ * The first tropopause (i.e., the conventional tropopause) is
+!@+   defined as the lowest level at which the lapse rate decreases to 2
+!@+   K/km or less, and the average lapse rate from this level to any
+!@+   level within the next higher 2 km does not exceed 2 K/km.
+!@+ * If above the first tropopause the average lapse rate between any
+!@+   level and all higher levels within 1 km exceed 3 K/km, then a
+!@+   second tropopause is defined by the same criterion as under the
+!@+   statement above. This tropopause may be either within or above the
+!@+   1 km layer.
+!@+ * A level otherwise satisfying the definition of tropopause, but
+!@+   occuring at an altitude below that of the 500 mb level will not be
+!@+   designated a tropopause unless it is the only level satisfying the
+!@+   definition and the average lapse rate fails to exceed 3 K/km over
+!@+   at least 1 km in any higher layer.
+!@+ * (GISS failsafe) Some cases occur when the lapse rate never falls
+!@+   below 2 K/km. In such cases the failsafe level is that where the
+!@+   lapse rate first falls below 3 K/km. If this still doesn't work
+!@+   (ever?), the level is set to the pressure level below 30mb.
+!@+
+      USE MODEL_COM, only : klev=>lm
+      USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
+      USE DOMAIN_DECOMP, Only : grid, GET
+      implicit none
+
+      real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
+      real*8, intent(out) :: ptropo
+      integer, intent(out) :: ltropp,ierr
+      real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
+!@param zgwmo min lapse rate (* -1) needed for trop. defn. (-K/km)
+!@param zgwmo2 GISS failsafe minimum lapse rate (* -1) (-K/km)
+!@param zdeltaz distance to check for lapse rate changes (km)
+!@param zfaktor factor for caluclating height from pressure (-rgas/grav)
+!@param zplimb min pressure at which to define tropopause (mb)
+      real*8, parameter :: zgwmo  = -2d-3, zgwmo2=-3d-3,
+     *     zdeltaz = 2000.0, zfaktor = -GRAV/RGAS, zplimb=500.
+      real*8 zptph, zp2km, zag, zbg, zasum, zaquer, zptf
+      integer iplimb,iplimt, jk, jj, kcount, ltset,l
+      logical ldtdz
+c****
+c****  2. Calculate the height of the tropopause
+c****  -----------------------------------------
+      ltset = -999
+      ierr=0
+      iplimb=1
+c**** set limits based on pressure
+      do jk=2,klev-1
+        if (papm1(jk-1).gt.600d0) then
+          iplimb=jk
+        else
+          if (papm1(jk).lt.30d0) exit
+        end if
+      end do
+      iplimt=jk
+c****
+c****  2.1 compute dt/dz
+c****  -----------------
+c****       ztm  lineare Interpolation in p**kappa
+c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
+
+      do jk=iplimb+1,iplimt       ! -1 ?????
+        zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
+
+        zpm(jk)=zpmk(jk)**zzkap ! p mitte
+
+        za(jk)=(ptm1(jk-1)-ptm1(jk))/(pk(jk-1)-pk(jk))
+        zb(jk) = ptm1(jk)-(za(jk)*pk(jk))
+
+        ztm(jk)=za(jk)*zpmk(jk)+zb(jk) ! T mitte
+        zdtdz(jk)=zfaktor*zkappa*za(jk)*zpmk(jk)/ztm(jk)
+      end do
+c****
+c****  2.2 First test: valid dt/dz ?
+c****  -----------------------------
+c****
+      do 1000 jk=iplimb+1,iplimt-1
+
+c**** GISS failsafe test
+        if (zdtdz(jk).gt.zgwmo2.and.ltset.ne.1) then
+          ltropp=jk
+          ltset =1
+        end if
+c****
+        if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
+     &       zpm(jk).le.zplimb) then ! zpm not too low
+          ltropp = jk
+          ltset = 1
+c****
+c****  2.3 dtdz is valid > something in German
+c****  ----------------------------------------
+c****    1.lineare in p^kappa (= Dieters neue Methode)
+
+          zag = (zdtdz(jk)-zdtdz(jk+1))/
+     &         (zpmk(jk)-zpmk(jk+1)) ! a-gamma
+          zbg = zdtdz(jk+1) - zag*zpmk(jk+1) ! b-gamma
+          if(((zgwmo-zbg)/zag).lt.0.) then
+            zptf=0.
+          else
+            zptf=1.
+          end if
+          zptph = zptf*abs((zgwmo-zbg)/zag)**zzkap
+          ldtdz=zdtdz(jk+1).lt.zgwmo
+          if(.not.ldtdz) zptph=zpm(jk)
+c****
+c****  2.4 2nd test: dt/dz above 2km must not be lower than -2K/km
+c****  -----------------------------------------------------------
+c****
+          zp2km = zptph + zdeltaz*zpm(jk)
+     &         / ztm(jk)*zfaktor ! p at ptph + 2km
+          zasum = 0.0           ! zdtdz above
+          kcount = 0            ! number of levels above
+c****
+c****  2.5 Test until pm < p2km
+c****  --------------------------
+c****
+          do jj=jk,iplimt-1
+            if(zpm(jj).gt.zptph) cycle ! doesn't happen
+            if(zpm(jj).lt.zp2km) goto 2000 ! ptropo valid
+            zasum = zasum+zdtdz(jj)
+            kcount = kcount+1
+            zaquer = zasum/float(kcount) ! dt/dz mean
+            if(zaquer.le.zgwmo) goto 1000 ! dt/dz above < 2K/1000
+                                          ! discard it
+          end do                ! test next level
+          goto 2000
+        endif
+ 1000 continue                  ! next level
+ 2000 continue
+
+      if (ltset.eq.-999) then
+        ltropp=iplimt-1  ! default = last level below 30mb
+        print*,"In tropwmo ltropp not set, using default: ltropp ="
+     *       ,ltropp
+        write(6,'(12(I4,5F10.5,/))') (l,ptm1(l),papm1(l),pk(l),zdtdz(l)
+     *       ,zpm(l),l=iplimb+1,iplimt-1)
+        ierr=1
+      end if
+      ptropo = papm1(ltropp)
+c****
+      return
+      end subroutine tropwmo
+
+      subroutine addEnergyAsDiffuseHeat(deltaEnergy)
+!@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use CONSTANT, only: sha, mb2kg
+      use MODEL_COM, only: T, PSF, PMTOP, LM
+      use DYNAMICS, only: PK
+      use DOMAIN_DECOMP, only: grid, get
+      implicit none
+      real*8, intent(in) :: deltaEnergy
+
+      real*8 :: ediff
+      integer :: l
+      integer :: I_0, I_1, J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
+!$OMP  PARALLEL DO PRIVATE (L)
+      do l=1,lm
+        T(I_0:I_1,J_0:J_1,L)=T(I_0:I_1,J_0:J_1,L)
+     &       -ediff/PK(L,I_0:I_1,J_0:J_1)
+      end do
+!$OMP  END PARALLEL DO
+
+      end subroutine addEnergyAsDiffuseHeat
+
+C**** Calculate 3D vertical velocity (take SDA which has units
+C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)
+C**** and convert to WSAVE, units of m/s):
+
+      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+      use CONSTANT, only: rgas, bygrav
+      !use MODEL_COM, only: NIdyn
+      use DOMAIN_DECOMP, only: grid, GET
+      use GEOM, only: byaxyp
+      use MODEL_COM, only: IM,JM,LM
+      implicit none
+
+      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO, lm),
+     &     intent(out) :: WSAVE
+      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO, lm),
+     &     intent(in)  :: SDA, T
+      real*8, dimension(lm, grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO),
+     &     intent(in)  :: PK,PEDN
+      integer, intent(in) :: NIdyn
+
+      integer :: i, j, l
+      integer :: I_0, I_1, J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+!$OMP PARALLEL DO PRIVATE (l,i)
+      do l=1,lm-1
+        do j=J_0,J_1
+        do i=I_0,I_1
+         wsave(i,j,l)=2.*sda(i,j,l)*byaxyp(i,j)*
+     &   rgas*0.5*(T(i,j,l)*pk(l,i,j)+T(i,j,l+1)*
+     &   pk(l+1,i,j))*bygrav/(NIdyn*pedn(l+1,i,j))
+        end do
+        end do
+      end do
+!$OMP END PARALLEL DO
+
+      end subroutine COMPUTE_WSAVE
+
+      function nij_before_j0(j0)
+#ifdef CUBED_SPHERE
+      use resolution, only : im,jm
+      use domain_decomp, only : tile
+#else
+      use geom, only : imaxj
+#endif
+      implicit none
+      integer :: nij_before_j0,j0
+#ifdef CUBED_SPHERE
+      nij_before_j0 = im*((tile-1)*jm + (j0-1))
+#else
+      nij_before_j0 = SUM(IMAXJ(1:J0-1))
+#endif
+      return
+      end function nij_before_j0
+
+      function nij_after_j1(j1)
+      use resolution, only : im,jm
+#ifdef CUBED_SPHERE
+      use domain_decomp, only : tile
+#else
+      use geom, only : imaxj
+#endif
+      implicit none
+      integer :: nij_after_j1,j1
+#ifdef CUBED_SPHERE
+      nij_after_j1 = im*((6-tile)*jm + (jm-j1))
+#else
+      nij_after_j1 = SUM(IMAXJ(J1+1:JM))
+#endif
+      return
+      end function nij_after_j1
+
+      function nij_after_i1(i1)
+      use resolution, only : im,jm
+      implicit none
+      integer :: nij_after_i1,i1
+#ifdef CUBED_SPHERE
+      nij_after_i1 = im-i1
+#else
+      nij_after_i1 = 0
+#endif
+      return
+      end function nij_after_i1

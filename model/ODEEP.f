@@ -197,7 +197,8 @@ C**** no output required for rsf files. Only acc files
      *     'R4 RTGO(',lmom,'im,jm)'
 
       allocate(rtgo_glob(LMOM,IM,JM),
-     *     rtgo_loc(LMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO))
+     *     rtgo_loc(LMOM,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                   grid%J_STRT_HALO:grid%J_STOP_HALO))
       SELECT CASE (IACTION)
       CASE (IOWRITE_SINGLE)     ! output to acc file
         call pack_column(grid,rtgo,rtgo_glob)
@@ -432,20 +433,28 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       LOGICAL QCHECKO
-      INTEGER I,J,J_0,J_1,J_0H,J_1H
+      INTEGER I,J,J_0,J_1,J_0H,J_1H,I_0,I_1,njpol
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1
      *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
 C**** Check for NaN/INF in ocean data
-      CALL CHECK3C(TOCEAN,3 ,IM,J_0H,J_1H,SUBR,'toc')
-      CALL CHECK3B(DTG3  ,IM,J_0H,J_1H,JM, 1,SUBR,'dtg3')
-      CALL CHECK3C(TG3M  ,12,IM,J_0H,J_1H,SUBR,'tg3m')
-      CALL CHECK3B(STG3  ,IM,J_0H,J_1H,JM,1 ,SUBR,'stg3')
-      CALL CHECK3C(RTGO,LMOM,IM,J_0H,J_1H,SUBR,'rtgo')
+      CALL CHECK3C(TOCEAN(:,I_0:I_1,J_0:J_1),3,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'toc')
+      CALL CHECK3B(DTG3(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'dtg3')
+      CALL CHECK3B(TG3M(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,12,
+     &     SUBR,'tg3m')
+      CALL CHECK3B(STG3(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1 ,
+     &     SUBR,'stg3')
+      CALL CHECK3C(RTGO(:,I_0:I_1,J_0:J_1),LMOM,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'rtgo')
 
       QCHECKO = .FALSE.
 C**** Check for reasonable values for ocean variables
@@ -517,15 +526,17 @@ C****
       USE ODEEP_COM, only  : lmom,TG3M,RTGO,sTG3,dTG3
       USE DOMAIN_DECOMP, only : DIST_GRID,GET
       IMPLICIT NONE
-      INTEGER :: J_0H,J_1H,IER
+      INTEGER :: J_0H,J_1H,IER,I_0H,I_1H
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       CALL GET(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE(TG3M(IM,J_0H:J_1H,12),
-     &         RTGO(LMOM,IM,J_0H:J_1H),
-     &         sTG3(IM,J_0H:J_1H),
-     &         dTG3(IM,J_0H:J_1H),
+      ALLOCATE(TG3M(I_0H:I_1H,J_0H:J_1H,12),
+     &         RTGO(LMOM,I_0H:I_1H,J_0H:J_1H),
+     &         sTG3(I_0H:I_1H,J_0H:J_1H),
+     &         dTG3(I_0H:I_1H,J_0H:J_1H),
      &    STAT=IER)
 
       END SUBROUTINE ALLOC_ODEEP

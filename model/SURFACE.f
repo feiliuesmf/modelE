@@ -22,7 +22,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE DOMAIN_DECOMP, only : NORTH
       USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
-      USE GEOM, only : dxyp,imaxj,bydxyp,idjj,idij,rapj,kmaxj,sinip
+      USE GEOM, only : axyp,imaxj,byaxyp,idjj,idij,rapj,kmaxj,sinip
      *     ,cosip
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
@@ -161,7 +161,8 @@ cddd#endif
      *     ,FSRI(2),HTLIM,dlwdt
 
       REAL*8 MA1, MSI1
-      REAL*8, DIMENSION(NSTYPE,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+      REAL*8, DIMENSION(NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                         GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     TGRND,TGRN2,TGR4
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: Z2LI3L=Z2LI/(3.*ALAMI0), Z1LIBYL=Z1E/ALAMI0
@@ -231,13 +232,15 @@ C**** some shorthand indices and arrays for diurn diags
       REAL*8,DIMENSION(n_idxd, NDIUPT) :: DIURNSUMd
 #endif
 C****
-      INTEGER :: J_0, J_1, J_0H, J_1H
+      INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,        J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Initialise constant indices
       idx1 = (/ IDD_SPR, (IDD_PT5+ii-1,ii=1,5), (IDD_Q5+ii-1,ii=1,5) /)
@@ -277,7 +280,7 @@ C****
 
 C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=I_0,I_1
         TGRND(2,I,J)=GTEMP(1,2,I,J)
         TGRND(3,I,J)=GTEMP(1,3,I,J)
         TGRN2(2,I,J)=GTEMP(2,2,I,J)
@@ -385,7 +388,7 @@ C**** Start loop over grid points
       POLE= (J.EQ.1 .or. J.EQ.JM)
 
       IM1=IM
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
 
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
 #ifdef TRACERS_WATER
@@ -415,7 +418,7 @@ C**** Set up tracers for PBL calculation if required
         n=ntix(nx)
         if (itime_tr0(n).le.itime .and. needtrs(n)) then
 C**** Calculate first layer tracer concentration
-          pbl_args%trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*bydxyp(j)
+          pbl_args%trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*byaxyp(i,j)
         end if
       end do
 #endif
@@ -457,17 +460,18 @@ C****
       TR4=GTEMPR(1,I,J)**4
       IF (FLAKE(I,J).gt.0) THEN
 C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
-        IF (MWL(I,J).lt.MINMLD*RHOW*FLAKE(I,J)*DXYP(J)) THEN
-          EVAPLIM=MAX(0.5*(MWL(I,J)/(FLAKE(I,J)*DXYP(J))-0.4d0*RHOW),
+        IF (MWL(I,J).lt.MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)) THEN
+          EVAPLIM=MAX(0.5*(MWL(I,J)/(FLAKE(I,J)*AXYP(I,J))-0.4d0*RHOW),
      *         0d0)
         ELSE
-          EVAPLIM=MWL(I,J)/(FLAKE(I,J)*DXYP(J))-(0.5*MINMLD+0.2d0)*RHOW
+          EVAPLIM=MWL(I,J)/(FLAKE(I,J)*AXYP(I,J))
+     &         -(0.5*MINMLD+0.2d0)*RHOW
         END IF
 #ifdef TRACERS_WATER
 C**** limit on tracer evporation from lake
         TEVAPLIM(1:NTX)=EVAPLIM*GTRACER(NTIX(1:NTX),1,I,J)
 #endif
-        HTLIM = GML(I,J)/(FLAKE(I,J)*DXYP(J)) + 0.5*LHM*EVAPLIM
+        HTLIM = GML(I,J)/(FLAKE(I,J)*AXYP(I,J)) + 0.5*LHM*EVAPLIM
         IDTYPE=ITLAKE
         uocean = 0. ; vocean = 0. ! no velocities for lakes
       ELSE
@@ -655,7 +659,7 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
           do nsrc=1,ntsurfsrc(n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
-          trconstflx(nx)=totflux(nx)*bydxyp(j)   ! kg/m^2/s
+          trconstflx(nx)=totflux(nx)*byaxyp(i,j)   ! kg/m^2/s
 #endif /*SKIP_TRACER_SRCS*/
 
 #ifdef TRACERS_WATER
@@ -810,7 +814,7 @@ C**** Limit evaporation if lake mass is at minimum
       IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
      *     (EVAPOR(I,J,1)-DQ1X*MA1).gt.EVAPLIM) THEN
         if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
-     *     ,EVAPOR(I,J,1)-DQ1X*MA1,MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
+     *     ,EVAPOR(I,J,1)-DQ1X*MA1,MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
         DQ1X=(EVAPOR(I,J,1)-EVAPLIM)*BYAM(1,I,J)
         lim_lake_evap=.true.
       ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
@@ -870,7 +874,7 @@ C**** Limit evaporation if lake mass is at minimum
             TEVAP= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
             endif
           END IF
-          TDP = TEVAP*DXYP(J)*ptype
+          TDP = TEVAP*AXYP(I,J)*ptype
           TDT1 = trsrfflx(I,J,n)*DTSURF
 #ifdef WATER_PROPORTIONAL
           if(lim_dew) then
@@ -879,7 +883,7 @@ C**** Limit evaporation if lake mass is at minimum
 #endif
             IF (QCHECK) WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1
      *           ,n),TDT1
-            TEVAP = -(TRM(I,J,1,n)+TDT1)/(DXYP(J)*ptype)
+            TEVAP = -(TRM(I,J,1,n)+TDT1)/(AXYP(I,J)*ptype)
             trsrfflx(I,J,n)= - TRM(I,J,1,n)/DTSURF
           ELSE
             trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
@@ -897,10 +901,10 @@ C****
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
-     .               * dxyp(j)*ptype
+     .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
-     .               * dxyp(j)*ptype*dtsurf
+     .               * axyp(i,j)*ptype*dtsurf
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
           !trgasex is modeled in complete accordance to what Watson is doing
@@ -911,11 +915,11 @@ C****
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
-     .               * dxyp(j)*ptype
+     .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
-     .               * dxyp(j)*ptype*dtsurf
+     .               * axyp(i,j)*ptype*dtsurf
 
 !    . write(*,'(a,3i5,5e12.4)')'SURFACE: ',
 !    .    nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
@@ -942,15 +946,15 @@ C****
         end select
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &       trc_flux*dxyp(j)*ptype
+     &       trc_flux*axyp(i,j)*ptype
         taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &       trc_flux*dxyp(j)*ptype*dtsurf
+     &       trc_flux*axyp(i,j)*ptype*dtsurf
 
 #ifdef TRACERS_AMP
-        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*dxyp(j)*ptype*dtsurf
+        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*axyp(i,j)*ptype*dtsurf
 #else
         tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *       trc_flux*dxyp(j)*ptype*dtsurf   ! why not for all aerosols?
+     *       trc_flux*axyp(i,j)*ptype*dtsurf   ! why not for all aerosols?
 #endif
 #endif
 
@@ -958,9 +962,10 @@ C****
 ! Nadine Unger test code:
         select case (trname(n))
         case ('Isoprene')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+pbl_args%emisop*dxyp(j)*ptype
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+     &         pbl_args%emisop*axyp(i,j)*ptype
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
-     &    pbl_args%emisop*dxyp(j)*ptype*dtsurf
+     &         pbl_args%emisop*axyp(i,j)*ptype*dtsurf
         end select
 #endif
 
@@ -972,13 +977,13 @@ C****
           rts=rhosrf*trs(nx)
           rtsdt=rts*dtsurf                             ! kg*s/m^3
           tdryd=-rtsdt*(pbl_args%dep_vel(n)+pbl_args%gs_vel(n))          ! kg/m2
-          tdd = tdryd*dxyp(j)*ptype                    ! kg
+          tdd = tdryd*axyp(i,j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surfce",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,trs(nx),pbl_args%trtop(nx)
             tdd= -max(trm(i,j,1,n)+td1,0d0)
-            tdryd=tdd/(dxyp(j)*ptype)
+            tdryd=tdd/(axyp(i,j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
@@ -995,9 +1000,9 @@ C****
      *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)
 #endif
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-
-     &         ptype*rtsdt*dxyp(j)*pbl_args%dep_vel(n)
+     &         ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-
-     &         ptype*rtsdt*dxyp(j)* pbl_args%gs_vel(n)
+     &         ptype*rtsdt*axyp(i,j)* pbl_args%gs_vel(n)
         end if
 #endif
       END DO
@@ -1072,14 +1077,14 @@ C****
           AJ(J,J_TG2 ,IDTYPE)=AJ(J,J_TG2 ,IDTYPE)+    TG2*PTYPE
         END IF
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-        AREGJ(JR,J,J_TRHDT)=AREGJ(JR,J,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
-        AREGJ(JR,J,J_SHDT )=AREGJ(JR,J,J_SHDT )+SHDT *PTYPE*DXYP(J)
-        AREGJ(JR,J,J_EVHDT)=AREGJ(JR,J,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
-        AREGJ(JR,J,J_EVAP )=AREGJ(JR,J,J_EVAP )+EVAP *PTYPE*DXYP(J)
+        AREGJ(JR,J,J_TRHDT)=AREGJ(JR,J,J_TRHDT)+TRHDT*PTYPE*AXYP(I,J)
+        AREGJ(JR,J,J_SHDT )=AREGJ(JR,J,J_SHDT )+SHDT *PTYPE*AXYP(I,J)
+        AREGJ(JR,J,J_EVHDT)=AREGJ(JR,J,J_EVHDT)+EVHDT*PTYPE*AXYP(I,J)
+        AREGJ(JR,J,J_EVAP )=AREGJ(JR,J,J_EVAP )+EVAP *PTYPE*AXYP(I,J)
         IF(MODDSF.EQ.0) THEN
-          AREGJ(JR,J,J_TSRF)=AREGJ(JR,J,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
-          AREGJ(JR,J,J_TG1 )=AREGJ(JR,J,J_TG1 )+    TG1*PTYPE*DXYP(J)
-          AREGJ(JR,J,J_TG2 )=AREGJ(JR,J,J_TG2 )+    TG2*PTYPE*DXYP(J)
+          AREGJ(JR,J,J_TSRF)=AREGJ(JR,J,J_TSRF)+(TS-TF)*PTYPE*AXYP(I,J)
+          AREGJ(JR,J,J_TG1 )=AREGJ(JR,J,J_TG1 )+    TG1*PTYPE*AXYP(I,J)
+          AREGJ(JR,J,J_TG2 )=AREGJ(JR,J,J_TG2 )+    TG2*PTYPE*AXYP(I,J)
         END IF
 
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
@@ -1242,12 +1247,12 @@ C**** Save surface tracer concentration whether calculated or not
           else
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *           *bydxyp(j),0d0)*ptype
+     *           *byaxyp(i,j),0d0)*ptype
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *           *bydxyp(j),0d0)*ptype*rhosrf
+     *           *byaxyp(i,j),0d0)*ptype*rhosrf
             trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
-     *           ,1,n))*byam(1,i,j)*bydxyp(j),0d0)*ptype
+     *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype
           end if
 #ifdef TRACERS_GASEXCH_ocean
           if (focean(i,j).gt.0.) then
@@ -1352,7 +1357,6 @@ C****
 C****
 C**** EARTH
 C****
-
       CALL EARTH(NS,MODDSF,MODDD)
 
 C****
@@ -1361,7 +1365,7 @@ C****
 !$OMP  PARALLEL DO PRIVATE (I,J,FTEVAP,FQEVAP,P1K)
 !$OMP*          SCHEDULE(DYNAMIC,2)
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
         FTEVAP=0
         IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
         FQEVAP=0
@@ -1409,6 +1413,7 @@ c****
 
 C**** Call dry convection or aturb depending on rundeck
       CALL ATM_DIFFUS(1,1,dtsurf)
+
 C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****

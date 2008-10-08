@@ -85,7 +85,7 @@ ccc extra stuff which was present in "earth" by default
       use constant, only : rhow
 #endif
       use dynamics, only : byam
-      use geom, only : bydxyp
+      use geom, only : byaxyp
 
       implicit none
       private
@@ -146,7 +146,7 @@ ccc set i,j - independent stuff for tracers
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : sday
       USE model_com,ONLY : jday,jmon,wfcs
-      USE geom,ONLY : dxyp
+      USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth
       USE tracers_dust,ONLY : d_dust,ers_data,hbaij,ricntd,src_fnct
      &     ,frclay,frsilt,dryhr,vtrsh
@@ -171,7 +171,7 @@ C**** Set up tracers for PBL calculation if required
       do nx=1,ntx
         n = ntix(nx)
 C**** Calculate first layer tracer concentration
-        pbl_args%trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*bydxyp(j)
+        pbl_args%trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*byaxyp(i,j)
       end do
 
 ccc tracers variables
@@ -184,7 +184,7 @@ ccc tracers variables
         tr_w(nx,0:ngm,2) = tr_w_ij(n,0:ngm,2,i,j)
         tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
         ! flux in
-        trpr(nx) = (trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s (in precip)
+        trpr(nx) = (trprec(n,i,j)*byaxyp(i,j))/dtsrc ! kg/m^2 s (in precip)
 #ifdef TRACERS_DRYDEP
         trdd(nx) = trdrydep(n,itype,i,j)/dtsrc   ! kg/m^2 s (dry dep.)
 #else
@@ -192,7 +192,7 @@ ccc tracers variables
 #endif
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
-          tr_surf(nx) = trm(i,j,1,n)*bydxyp(j)*rhow/qm1 ! kg/m^3
+          tr_surf(nx) = trm(i,j,1,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
         else
           tr_surf(nx) = 0.
         end if
@@ -231,7 +231,7 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           do nsrc=1,ntsurfsrc(n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
-          pbl_args%trconstflx(nx)=totflux(nx)*bydxyp(j)   ! kg/m^2/s
+          pbl_args%trconstflx(nx)=totflux(nx)*byaxyp(i,j)   ! kg/m^2/s
 #ifdef TRACERS_WATER
 !        end select
         end if
@@ -268,7 +268,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       pbl_args%pevap=pevap(i,j,itype)
 c**** prescribed dust emission
       pbl_args%d_dust(1:Ntm_dust)=d_dust(i,j,1:Ntm_dust,jday)/Sday
-     &     /dxyp(j)/ptype
+     &     /axyp(i,j)/ptype
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       pbl_args%minfr(:)=minfr(i,j,:)
@@ -292,7 +292,7 @@ c**** prescribed dust emission
 #endif
       USE TRACER_COM
  !     use socpbl, only : dtsurf
-      use geom, only : dxyp
+      use geom, only : axyp
       use sle001, only : nsn,fb,fv
 #ifdef TRACERS_GASEXCH_land_CO2
      &     ,agpp,arauto,asoilresp
@@ -344,9 +344,9 @@ ccc tracers
       TRGASEX(n,4,I,J) =
      &     (arauto+asoilresp-agpp)/dtsurf
       trsrfflx(i,j,n)=trsrfflx(i,j,n) +
-     &     (arauto+asoilresp-agpp)/dtsurf *dxyp(j)*ptype
+     &     (arauto+asoilresp-agpp)/dtsurf *axyp(i,j)*ptype
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     &     + (arauto+asoilresp-agpp) * dxyp(j)*ptype
+     &     + (arauto+asoilresp-agpp) * axyp(i,j)*ptype
 #endif
 
 #ifdef TRACERS_WATER
@@ -376,7 +376,7 @@ ccc accumulate tracer evaporation and runoff
         !trunoe(n,i,j) = trunoe(n,i,j) + (aruns+arunu)  !*rhow
         gtracer(n,itype,i,j) = atr_g(nx)   ! /dtsurf
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
+     &       atr_evap(nx)/dtsurf *axyp(i,j)*ptype
       enddo
 #endif
       DO nx=1,ntx
@@ -408,15 +408,15 @@ C**** fixed datasets are used, it can happen over land as well.
         end select
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &       trc_flux*dxyp(j)*ptype
+     &       trc_flux*axyp(i,j)*ptype
         taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &       trc_flux*dxyp(j)*ptype*dtsurf
+     &       trc_flux*axyp(i,j)*ptype*dtsurf
 
 #ifdef TRACERS_AMP
-        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*dxyp(j)*ptype*dtsurf
+        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*axyp(i,j)*ptype*dtsurf
 #else
         tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *       trc_flux*dxyp(j)*ptype*dtsurf   ! why not for all aerosols?
+     *       trc_flux*axyp(i,j)*ptype*dtsurf   ! why not for all aerosols?
 #endif
 
 #endif
@@ -444,24 +444,24 @@ ccc dust emission from earth
 #endif
 #endif
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     &         +pbl_args%dust_flux(n1)*dxyp(j)*ptype
+     &         +pbl_args%dust_flux(n1)*axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(nDustEmij,n))
      &         =taijs(i,j,ijts_isrc(nDustEmij,n))
      &         +pbl_args%dust_flux(n1)
-     &         *dxyp(j)*ptype*dtsurf
+     &         *axyp(i,j)*ptype*dtsurf
           tajls(j,1,jls_isrc(nDustEmjl,n))
      &         =tajls(j,1,jls_isrc(nDustEmjl,n))
-     &         +pbl_args%dust_flux(n1)*dxyp(j)
+     &         +pbl_args%dust_flux(n1)*axyp(i,j)
      &         *ptype*dtsurf
 #ifdef TRACERS_DUST
           IF (imDust == 0) THEN
             taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           =taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           +pbl_args%dust_flux2(n1)
-     &           *dxyp(j)*ptype*dtsurf
+     &           *axyp(i,j)*ptype*dtsurf
             tajls(j,1,jls_isrc(nDustEm2jl,n))
      &           =tajls(j,1,jls_isrc(nDustEm2jl,n))
-     &           +pbl_args%dust_flux2(n1)*dxyp(j)*ptype*dtsurf
+     &           +pbl_args%dust_flux2(n1)*axyp(i,j)*ptype*dtsurf
           END IF
 #endif
 
@@ -475,13 +475,13 @@ ccc accumulate tracer dry deposition
           rts=rhosrf*pbl_args%trs(nx)
           rtsdt=rts*dtsurf                             ! kg*s/m^3
           tdryd=-rtsdt*(pbl_args%dep_vel(n)+pbl_args%gs_vel(n))          ! kg/m2
-          tdd = tdryd*dxyp(j)*ptype                    ! kg
+          tdd = tdryd*axyp(i,j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd earth",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
             tdd= -max(trm(i,j,1,n)+td1,0d0)
-            tdryd= tdd/(dxyp(j)*ptype)
+            tdryd= tdd/(axyp(i,j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
@@ -501,17 +501,18 @@ ccc accumulate tracer dry deposition
      *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)
 #endif
           dtr_dd(j,n,1)=dtr_dd(j,n,1)-
-     &         ptype*rtsdt*dxyp(j)*pbl_args%dep_vel(n)
+     &         ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n)
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-
-     &         ptype*rtsdt*dxyp(j)* pbl_args%gs_vel(n)
+     &         ptype*rtsdt*axyp(i,j)* pbl_args%gs_vel(n)
         end if
 #endif
 #ifdef BIOGENIC_EMISSIONS
         select case (trname(n))
         case ('Isoprene')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+pbl_args%emisop*dxyp(j)*ptype
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+pbl_args%emisop
+     &         *axyp(i,j)*ptype
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
-     &    pbl_args%emisop*dxyp(j)*ptype*dtsurf
+     &    pbl_args%emisop*axyp(i,j)*ptype*dtsurf
         end select
 #endif
       end do
@@ -530,12 +531,12 @@ C**** Save surface tracer concentration whether calculated or not
           else
             taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *           *bydxyp(j),0d0)*ptype
+     *           *byaxyp(i,j),0d0)*ptype
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *           *bydxyp(j),0d0)*ptype*rhosrf
+     *           *byaxyp(i,j),0d0)*ptype*rhosrf
             trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
-     *           ,1,n))*byam(1,i,j)*bydxyp(j),0d0)*ptype
+     *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype
           end if
         end if
       end do
@@ -764,7 +765,7 @@ c****
 #ifdef WATER_PROPORTIONAL
       use tracer_com, only : ntm,trm
       use fluxes, only : gtracer,trevapor,trsrfflx
-      use geom, only : dxyp
+      use geom, only : axyp
       use dynamics, only : am
       use pblcom, only : qabl,trabl
 #endif
@@ -878,12 +879,14 @@ c**** input/output for PBL
 #endif
 
 C****   define local grid
-      integer J_0, J_1, J_0H, J_1H
+      integer J_0, J_1, J_0H, J_1H ,I_0,I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
     ! dtsurf=dtsrc/nisurf
 
@@ -964,7 +967,7 @@ C**** halo update u and v for distributed parallelization
 c**** conditions at the south/north pole
   !    pole= ( j.eq.1 .or. j.eq.jm )
 
-      loop_i: do i=1,imaxj(j)
+      loop_i: do i=I_0,imaxj(j)
 
       pbl_args%dtsurf=dtsrc/nisurf
       pbl_args%hemi=1.
@@ -1317,7 +1320,7 @@ c**** update tracers
 c calculate fluxes of atmosphere-only water tracers.
 c assume 1-way until up/down fluxes of vapor are available
 c as a PBL diagnostic.
-      conc1(1:ntm) = trm(i,j,1,1:ntm)/(q1*dxyp(j)*am(1,i,j)+1d-20)
+      conc1(1:ntm) = trm(i,j,1,1:ntm)/(q1*axyp(i,j)*am(1,i,j)+1d-20)
       do itr=1,ntm
         if(aevap.ge.0.) then
           trconcflx = gtracer(itr,itype,i,j)
@@ -1326,7 +1329,7 @@ c as a PBL diagnostic.
         endif
         trevapor(itr,itype,i,j) = trevapor(itr,itype,i,j) +
      &       aevap*trconcflx
-        trsrfflx(i,j,itr)=trsrfflx(i,j,itr)+dxyp(j)*ptype*
+        trsrfflx(i,j,itr)=trsrfflx(i,j,itr)+axyp(i,j)*ptype*
      &       aevap*trconcflx/(pbl_args%dtsurf)
 c fill in pbl profile in case it is used to initialize
 c another surface type
@@ -1478,7 +1481,7 @@ c***********************************************************************
       use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt
 #endif
       use DOMAIN_DECOMP, only : grid
-      use geom, only : dxyp
+      use geom, only : axyp
       use rad_com, only : trhr,fsf, cosz1
 
       use sle001, only :
@@ -1648,17 +1651,18 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 
 c**** quantities accumulated for regions in diagj
-      aregj(jr,j,j_trhdt)=aregj(jr,j,j_trhdt)+trhdt*ptype*dxyp(j)
-      aregj(jr,j,j_shdt )=aregj(jr,j,j_shdt )+shdt*ptype*dxyp(j)
-      aregj(jr,j,j_evhdt)=aregj(jr,j,j_evhdt)+evhdt*ptype*dxyp(j)
-      aregj(jr,j,j_evap )=aregj(jr,j,j_evap )+aevap*ptype*dxyp(j)
-      aregj(jr,j,j_erun)=aregj(jr,j,j_erun)+(aeruns+aerunu)*ptype*dxyp(j
-     *     )
-      aregj(jr,j,j_run )=aregj(jr,j,j_run )+(aruns+arunu)*ptype*dxyp(j)
+      aregj(jr,j,j_trhdt)=aregj(jr,j,j_trhdt)+trhdt*ptype*axyp(i,j)
+      aregj(jr,j,j_shdt )=aregj(jr,j,j_shdt )+shdt*ptype*axyp(i,j)
+      aregj(jr,j,j_evhdt)=aregj(jr,j,j_evhdt)+evhdt*ptype*axyp(i,j)
+      aregj(jr,j,j_evap )=aregj(jr,j,j_evap )+aevap*ptype*axyp(i,j)
+      aregj(jr,j,j_erun)=aregj(jr,j,j_erun)+(aeruns+aerunu)*ptype*
+     &     axyp(i,j)
+      aregj(jr,j,j_run )=aregj(jr,j,j_run )+(aruns+arunu)*ptype*
+     &     axyp(i,j)
       if ( moddsf == 0 ) then
-        aregj(jr,j,j_tsrf )=aregj(jr,j,j_tsrf )+(ts-tf)*ptype*dxyp(j)
-        aregj(jr,j,j_tg1 ) =aregj(jr,j,j_tg1 ) + tg1   *ptype*dxyp(j)
-        aregj(jr,j,j_tg2 ) =aregj(jr,j,j_tg2 ) + tg2av *ptype*dxyp(j)
+        aregj(jr,j,j_tsrf )=aregj(jr,j,j_tsrf )+(ts-tf)*ptype*axyp(i,j)
+        aregj(jr,j,j_tg1 ) =aregj(jr,j,j_tg1 ) + tg1   *ptype*axyp(i,j)
+        aregj(jr,j,j_tg2 ) =aregj(jr,j,j_tg2 ) + tg2av *ptype*axyp(i,j)
       end if
 
 #ifdef SCM
@@ -1924,8 +1928,8 @@ c**** 11*ngm+1           sl
 
       real*8 :: evap_max_ij_sum
 C**** define local grid
-      integer J_0, J_1
-      integer J_0H, J_1H
+      integer I_0, I_1, J_0, J_1
+      integer I_0H, I_1H, J_0H, J_1H
       logical present_land
       integer init_flake
       integer kk
@@ -1937,6 +1941,10 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -1975,15 +1983,17 @@ c**** read land surface parameters or use defaults
         !!!if (istart.le.0) return ! avoid reading unneeded files
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
-        ALLOCATE(TEMP_LOCAL(IM,J_0H:J_1H,11*NGM+1))
+        ALLOCATE(TEMP_LOCAL(I_0H:I_1H,J_0H:J_1H,11*NGM+1))
         call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
         DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
-         Q_IJ(:,J_0:J_1,:,:) = RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM:) ,
-     *                   (/im,J_1-J_0+1,imt,ngm/) )
-        QK_IJ(:,J_0:J_1,:,:) =
-     *                 RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT:) ,
-     *                   (/im,J_1-J_0+1,imt,ngm/) )
-        SL_IJ(:,J_0:J_1)  = TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
+         Q_IJ(I_0:I_1,J_0:J_1,:,:) =
+     &       RESHAPE( TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM:) ,
+     *                   (/I_1-I_0+1,J_1-J_0+1,imt,ngm/) )
+        QK_IJ(I_0:I_1,J_0:J_1,:,:) =
+     *        RESHAPE( TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM+NGM*IMT:) ,
+     *                   (/I_1-I_0+1,J_1-J_0+1,imt,ngm/) )
+        SL_IJ(I_0:I_1,J_0:J_1)  =
+     &       TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
         DEALLOCATE(TEMP_LOCAL)
         call closeunit (iu_SOIL)
 c**** read topmodel parameters
@@ -2028,7 +2038,7 @@ ccc read and initialize vegetation here
 c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
           present_land = .false.
           if (variable_lk==0) then
             if ( fearth(i,j) > 0.d0 ) present_land = .true.
@@ -2067,7 +2077,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
 
         do j=J_0,J_1
-          do i=1,im
+          do i=I_0,I_1
             w_ij(:,:,i,j)=0.d0
             ht_ij(:,:,i,j)=0.d0
             snowbv(:,i,j)=0.d0
@@ -2085,7 +2095,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
 
 c**** set gtemp array
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tsns_ij(i,j)
             gtempr(4,i,j) =tearth(i,j)+tf
@@ -2097,7 +2107,7 @@ c**** set vegetation temperature to tearth(i,j) if requested
 c**** in this case also set canopy water and water tracers to 0
       if ( reset_canopy_ic .ne. 0 .and. istart < 9 ) then
         do j=J_0,J_1
-          do i=1,im
+          do i=I_0,I_1
             present_land = .false.
             if (variable_lk==0) then
               if ( fearth(i,j) > 0.d0 ) present_land = .true.
@@ -2141,7 +2151,7 @@ ccc to something more appropriate
      &                all=.true.)
       if ( evap_max_ij_sum > im-1.d0 ) then ! old default
         do j=J_0,J_1
-          do i=1,im
+          do i=I_0,I_1
             if ( fearth(i,j) .le. 0.d0 ) cycle
             qg_ij(i,j) = qsat(tsns_ij(i,j)+tf,lhe,pedn(1,i,j))
           enddo
@@ -2158,7 +2168,7 @@ ccc!!! restart file (without snow model data)
 
       if (inisnow) then
         do j=J_0,J_1
-          do i=1,im
+          do i=I_0,I_1
             nsn_ij(:,i,j)     = 1
             dzsn_ij(:,:,i,j)  = 0.d0
             wsn_ij(:,:,i,j)   = 0.d0
@@ -2204,7 +2214,7 @@ c**** remove all land snow from initial conditions
 c**** (useful when changing land/vegetation mask)
       if ( reset_snow_ic .ne. 0 .and. istart < 9 ) then
         do j=J_0,J_1
-          do i=1,im
+          do i=I_0,I_1
             nsn_ij(:, i, j) = 1
             wsn_ij(:, :, i, j) = 0.d0
             hsn_ij(:, :, i, j) = 0.d0
@@ -2217,7 +2227,7 @@ c**** (useful when changing land/vegetation mask)
 !!! hack - remove underwater snow + snow in landice boxes (dealt with separately)
 !!! (should not be present in restart file in the first place!)
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
           if ( fearth(i,j) == 0.d0 ) then
 !            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 ) 
 !      &           print *,"removing snow from ",i,j,
@@ -2234,7 +2244,7 @@ c**** (useful when changing land/vegetation mask)
 c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       fr_snow_rad_ij(:,:,:) = 0.d0
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
           if ( fearth(i,j) > 0.d0 ) then
             do ibv=1,2
               call snow_cover(fr_snow_rad_ij(ibv,i,j),
@@ -2259,7 +2269,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
       do j=J_0,J_1
-        do i=1,im
+        do i=I_0,I_1
           gtracer(:,4,i,j)=0.  ! default
           if (fearth(i,j).le.0.d0) cycle
           !fb=afb(i,j) ; fv=1.-fb
@@ -2499,12 +2509,14 @@ ccc (to make the data compatible with snow model)
       integer i,j
 
 C**** define local grid
-      integer J_0, J_1
+      integer I_0, I_1, J_0, J_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 ccc ugly, should fix later
 #ifdef USE_ENT
@@ -2515,7 +2527,7 @@ ccc ugly, should fix later
 #endif
 
       do j=J_0,J_1
-      do i=1,im
+      do i=I_0,I_1
 
       dz_ij(i,j,1:ngm)= (/  0.99999964d-01,  0.17254400d+00,
      &     0.29771447d+00,  0.51368874d+00,  0.88633960d+00,
@@ -2925,31 +2937,31 @@ cddd      end subroutine retp2
       real*8 relerr, errmax, fb, fv
 
 C**** define local grid
-      integer I_0, I_1
-      integer J_0, J_1
+      integer I_0, I_1, J_0, J_1, njpol
 
       QCHECKL = .false.
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
 c**** check for nan/inf in earth data
-      call check3(w_ij(1:ngm,1,I_0:I_1,J_0:J_1) ,ngm  ,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wb')
-      call check3(w_ij(0:ngm,2,I_0:I_1,J_0:J_1) ,ngm+1,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wv')
-      call check3(ht_ij(0:ngm,1,I_0:I_1,J_0:J_1),ngm+1,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hb')
-      call check3(ht_ij(0:ngm,2,I_0:I_1,J_0:J_1),ngm+1,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hv')
-      call check3(snowbv(1:LS_nfrac,I_0:I_1,J_0:J_1),2    ,
-     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'sn')
+      call check3c(w_ij(1:ngm,1,I_0:I_1,J_0:J_1) ,ngm  ,
+     *                 I_0,I_1,J_0,J_1,njpol,subr,'wb')
+      call check3c(w_ij(0:ngm,2,I_0:I_1,J_0:J_1) ,ngm+1,
+     *                 I_0,I_1,J_0,J_1,njpol,subr,'wv')
+      call check3c(ht_ij(0:ngm,1,I_0:I_1,J_0:J_1),ngm+1,
+     *                 I_0,I_1,J_0,J_1,njpol,subr,'hb')
+      call check3c(ht_ij(0:ngm,2,I_0:I_1,J_0:J_1),ngm+1,
+     *                 I_0,I_1,J_0,J_1,njpol,subr,'hv')
+      call check3c(snowbv(1:LS_nfrac,I_0:I_1,J_0:J_1),2    ,
+     *                 I_0,I_1,J_0,J_1,njpol,subr,'sn')
 
 c**** check for reasonable temperatures over earth
       x=1.001
       do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           if (fearth(i,j).gt.0.) then
             tgl=tearth(i,j)
             wtrl=wearth(i,j)
@@ -2973,7 +2985,7 @@ c**** check tracers
         ! check for neg tracers
         if (t_qlimit(n)) then
           do j=J_0, J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
               if ( minval( tr_w_ij(n,:,:,i,j)   ) < -1.d15 .or.
      &             minval( tr_wsn_ij(n,:,:,i,j) ) < -1.d15 ) then
@@ -2991,7 +3003,7 @@ c**** check tracers
         if (trname(n) == 'Water') then
           errmax = 0. ; imax=1 ; jmax=1
           do j=J_0, J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
               !fb = afb(i,j)
               !fv = 1.d0 - fb
@@ -3023,7 +3035,7 @@ cddd     &         ,w_ij(0:ngm,2,imax,jmax)*rhow
 
           errmax = 0. ; imax=1 ; jmax=1
           do j=J_0, J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
               !fb = afb(i,j)
               !fv = 1.d0 - fb
@@ -3132,11 +3144,13 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       type(t_vegcell) :: vegcell
 #endif
 C**** define local grid
-      integer J_0, J_1
+      integer I_0, I_1, J_0, J_1
       real*8 ws11,ws12
 
 C**** Extract useful local domain parameters from "grid"
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       ! update water and heat in land surface fractions if
       ! lake fraction changed
@@ -3180,7 +3194,7 @@ c**** find leaf-area index & water field capacity for ground layer 1
         else
           northsouth=2          !northern hemisphere
         end if
-        do i=1,im
+        do i=I_0,I_1
           wfcs(i,j)=24.
           ! if (fearth(i,j).gt.0.) then
           !if (focean(i,j) < 1.d0 ) then
@@ -3261,7 +3275,7 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
 
       if (end_of_day) then
         do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
 c****
 c**** increase snow age depending on snoage_def
 c****
@@ -3311,7 +3325,7 @@ c****
 !@auth original development team
 !@ver  1.0
       use model_com, only : itearth
-      use geom, only : imaxj,dxyp
+      use geom, only : imaxj,axyp
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use DOMAIN_DECOMP, only : GLOBALSUM
       use ghy_com, only : snowe, tearth,wearth,aiearth,w_ij
@@ -3332,16 +3346,18 @@ c****
       integer i,j,jr,k
 
 C**** define local grid
-      integer J_0, J_1, J_0H, J_1H
+      integer J_0, J_1, J_0H, J_1H, I_0,I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0      , J_STOP=J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do j=J_0,J_1
-      do i=1,imaxj(j)
+      do i=I_0,imaxj(j)
       pearth=fearth(i,j)
       jr=jreg(i,j)
       if (pearth.gt.0) then
@@ -3371,7 +3387,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 
         !if (snowe(i,j).gt.0.) scove=pearth
         aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
-        aregj(jr,j,j_rsnow)=aregj(jr,j,j_rsnow)+scove*dxyp(j)
+        aregj(jr,j,j_rsnow)=aregj(jr,j,j_rsnow)+scove*axyp(i,j)
         aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
         aij(i,j,ij_snow)=aij(i,j,ij_snow)+snow*pearth
         aij(i,j,ij_rsit)=aij(i,j,ij_rsit)+scove
@@ -3381,11 +3397,11 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aj(j,j_wtr2,itearth)=aj(j,j_wtr2,itearth)+wtr2*pearth
         aj(j,j_ace2,itearth)=aj(j,j_ace2,itearth)+ace2*pearth
         aj(j,j_snow,itearth)=aj(j,j_snow,itearth)+snow*pearth
-        aregj(jr,j,j_snow)=aregj(jr,j,j_snow)+snow*pearth*dxyp(j)
-        aregj(jr,j,j_wtr1)=aregj(jr,j,j_wtr1)+wtr1*pearth*dxyp(j)
-        aregj(jr,j,j_ace1)=aregj(jr,j,j_ace1)+ace1*pearth*dxyp(j)
-        aregj(jr,j,j_wtr2)=aregj(jr,j,j_wtr2)+wtr2*pearth*dxyp(j)
-        aregj(jr,j,j_ace2)=aregj(jr,j,j_ace2)+ace2*pearth*dxyp(j)
+        aregj(jr,j,j_snow)=aregj(jr,j,j_snow)+snow*pearth*axyp(i,j)
+        aregj(jr,j,j_wtr1)=aregj(jr,j,j_wtr1)+wtr1*pearth*axyp(i,j)
+        aregj(jr,j,j_ace1)=aregj(jr,j,j_ace1)+ace1*pearth*axyp(i,j)
+        aregj(jr,j,j_wtr2)=aregj(jr,j,j_wtr2)+wtr2*pearth*axyp(i,j)
+        aregj(jr,j,j_ace2)=aregj(jr,j,j_ace2)+ace2*pearth*axyp(i,j)
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
@@ -3422,7 +3438,7 @@ c****
 !@ver  1.0
       use constant, only : rhow
       use model_com, only : fim, focean, jm, flice
-      use geom, only : imaxj,DXYP
+      use geom, only : imaxj,AXYP
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       !use veg_com, only : afb
       use LAKES_COM, only : flake
@@ -3437,7 +3453,7 @@ c****
       real*8 wij,fb,fv
 
 C**** define local grid
-      integer :: J_0, J_1
+      integer :: J_0, J_1 ,I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
@@ -3446,10 +3462,12 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do j=J_0,J_1
         waterg(j)=0
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           !if (fearth(i,j).gt.0) then
           if( focean(i,j) + flice(i,j) < 1.d0 ) then
             !fb=afb(i,j)
@@ -3462,7 +3480,7 @@ C****
             waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
      &           + flake(i,j)*sum( w_ij(0:ngm,3,i,j) )*rhow
 !!! hack to check remove_extra_snow
-!!!            waterg(j)=waterg(j)+MDWNIMP(i,j)/DXYP(j)
+!!!            waterg(j)=waterg(j)+MDWNIMP(i,j)/axyp(i,j)
           end if
        end do
       end do
@@ -3484,7 +3502,8 @@ c****
       !use LAKES_COM, only : flake
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
-      real*8,dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+      real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      &     intent(in) :: fearth, flake
 !@var waterg zonal ground water (kg/m^2)
       real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO),intent(out)::
@@ -3494,7 +3513,7 @@ c****
       real*8 wij,fb,fv
 
 C**** define local grid
-      integer :: J_0, J_1
+      integer :: J_0, J_1 ,I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
@@ -3503,10 +3522,12 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do j=J_0,J_1
         waterg(j)=0
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           !if (fearth(i,j).gt.0) then
           if( focean(i,j) < 1.d0 ) then
             !fb=afb(i,j)
@@ -3548,7 +3569,7 @@ c****
       real*8 hij,fb,fv
 
 C**** define local grid
-      integer J_0, J_1
+      integer J_0, J_1 ,I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
@@ -3557,10 +3578,12 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do j=J_0,J_1
         heatg(j)=0
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           !if (fearth(i,j).le.0) cycle
           if ( focean(i,j) + flice(i,j) >= 1.d0 ) cycle
           !fb=afb(i,j)
@@ -3606,15 +3629,17 @@ ccc of the 'surface' to check water conservation
 ccc enrgy check not implemented yet ...
 
 C**** define local grid
-      integer J_0, J_1
+      integer J_0, J_1 ,I_0,I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           if ( fearth(i,j) <= 0.d0 ) cycle
 
 ccc just checking ...
@@ -3640,7 +3665,7 @@ ccc just checking ...
       endif
 
       do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
 
           !print *,'fearth = ', i, j, fearth(i,j)
 
@@ -3930,7 +3955,7 @@ cddd      sinday=sin(twopi/edpery*jday)
 #ifdef TRACERS_WATER
      &     ,DTRL
 #endif
-      use GEOM, only : BYDXYP
+      use GEOM, only : BYAXYP
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use soil_drv, only : snow_cover ! conserv_wtg_1
       use snow_drvm, only : snow_cover_same_as_rad
@@ -3954,7 +3979,8 @@ cddd      sinday=sin(twopi/edpery*jday)
       real*8 tmp_before(0:ngm), tmp_after(0:ngm)
       real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     w_before_j, w_after_j
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     fearth_old
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
@@ -4074,13 +4100,13 @@ cddd            endif
 
             sum_water = DMWLDF(i,j)*dfrac/rhow
             if ( sum_water > 1.d-30 ) then
-              ht_per_m3 = DGML(i,j)*BYDXYP(J)/sum_water
+              ht_per_m3 = DGML(i,j)*BYAXYP(I,J)/sum_water
             else
               ht_per_m3 = 0.d0
             endif
 #ifdef TRACERS_WATER
             if ( sum_water > 1.d-30 ) then
-              tr_per_m3(:) = DTRL(:,i,j)*BYDXYP(J)/sum_water
+              tr_per_m3(:) = DTRL(:,i,j)*BYAXYP(I,J)/sum_water
             else
               tr_per_m3(:) = 0.d0
             endif
@@ -4317,7 +4343,7 @@ c**** wearth+aiearth are used in radiation only
 #ifdef TRACERS_WATER
      &     ,TRDWNIMP
 #endif
-      use GEOM, only : DXYP
+      use GEOM, only : AXYP
       use MODEL_COM, only : ITEARTH
       USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,j_implh,j_implm
      *     ,JREG
@@ -4375,14 +4401,14 @@ c     *         w_ij(0:ngm,3,i,j) )*rhow
               dzsn_ij(2:3, ibv, i, j) = (1.d0-eta)*dzsn(2:3)
               ! extra water and energy
               dw = eta*(wsn(2)+wsn(3))*fr_snow*fbv(ibv)*rhow
-              MDWNIMP(i,j) = MDWNIMP(i,j) + dw*fearth(i,j)*DXYP(j)
+              MDWNIMP(i,j) = MDWNIMP(i,j) + dw*fearth(i,j)*axyp(i,j)
               dh = eta*(hsn(2)+hsn(3))*fr_snow*fbv(ibv)
-              EDWNIMP(i,j) = EDWNIMP(i,j) + dh*fearth(i,j)*DXYP(j)
+              EDWNIMP(i,j) = EDWNIMP(i,j) + dh*fearth(i,j)*axyp(i,j)
 #ifdef TRACERS_WATER
               TRDWNIMP(1:ntm,i,j) = TRDWNIMP(1:ntm,i,j) +
      &             eta*(
      &             tr_wsn_ij(1:ntm,2,ibv,i,j)+tr_wsn_ij(1:ntm,3,ibv,i,j)
-     &             )*fbv(ibv)*fearth(i,j)*DXYP(j)
+     &             )*fbv(ibv)*fearth(i,j)*axyp(i,j)
               tr_wsn_ij(1:ntm,2:3,ibv,i,j) =
      &             (1.d0-eta)*tr_wsn_ij(1:ntm,2:3,ibv,i,j)
 #endif
@@ -4391,9 +4417,9 @@ c     *         w_ij(0:ngm,3,i,j) )*rhow
               AJ(J,J_IMPLM,ITEARTH) =
      &             AJ(J,J_IMPLM,ITEARTH) + dw*fearth(i,j)
               AREGJ(JR,J,J_IMPLH) =
-     &             AREGJ(JR,J,J_IMPLH) + dh*fearth(i,j)*DXYP(j)
+     &             AREGJ(JR,J,J_IMPLH) + dh*fearth(i,j)*axyp(i,j)
               AREGJ(JR,J,J_IMPLM) =
-     &             AREGJ(JR,J,J_IMPLM) + dw*fearth(i,j)*DXYP(j)
+     &             AREGJ(JR,J,J_IMPLM) + dw*fearth(i,j)*axyp(i,j)
 
               !print *,"remove_extra_snow", i,j,ibv,wsn_tot,eta,dw,dh
 

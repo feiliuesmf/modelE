@@ -760,22 +760,24 @@ C****
       INTEGER I,J,L,n,imax,jmax,lmax
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
+      integer :: njpol
 
+      njpol = 1
 C**** Check for NaN/INF in ocean data
       IF (QCHECK) THEN
-      CALL CHECK3B(MO  ,IM,1,JM,JM,LMO,SUBR,'mo ')
-      CALL CHECK3B(G0M ,IM,1,JM,JM,LMO,SUBR,'g0m')
-      CALL CHECK3B(GXMO,IM,1,JM,JM,LMO,SUBR,'gxm')
-      CALL CHECK3B(GYMO,IM,1,JM,JM,LMO,SUBR,'gym')
-      CALL CHECK3B(GZMO,IM,1,JM,JM,LMO,SUBR,'gzm')
-      CALL CHECK3B(S0M ,IM,1,JM,JM,LMO,SUBR,'s0m')
-      CALL CHECK3B(SXMO,IM,1,JM,JM,LMO,SUBR,'sxm')
-      CALL CHECK3B(SYMO,IM,1,JM,JM,LMO,SUBR,'sym')
-      CALL CHECK3B(SZMO,IM,1,JM,JM,LMO,SUBR,'szm')
-      CALL CHECK3B(UO  ,IM,1,JM,JM,LMO,SUBR,'uo ')
-      CALL CHECK3B(VO  ,IM,1,JM,JM,LMO,SUBR,'vo ')
+      CALL CHECK3B(MO  ,1,IM,1,JM,NJPOL,LMO,SUBR,'mo ')
+      CALL CHECK3B(G0M ,1,IM,1,JM,NJPOL,LMO,SUBR,'g0m')
+      CALL CHECK3B(GXMO,1,IM,1,JM,NJPOL,LMO,SUBR,'gxm')
+      CALL CHECK3B(GYMO,1,IM,1,JM,NJPOL,LMO,SUBR,'gym')
+      CALL CHECK3B(GZMO,1,IM,1,JM,NJPOL,LMO,SUBR,'gzm')
+      CALL CHECK3B(S0M ,1,IM,1,JM,NJPOL,LMO,SUBR,'s0m')
+      CALL CHECK3B(SXMO,1,IM,1,JM,NJPOL,LMO,SUBR,'sxm')
+      CALL CHECK3B(SYMO,1,IM,1,JM,NJPOL,LMO,SUBR,'sym')
+      CALL CHECK3B(SZMO,1,IM,1,JM,NJPOL,LMO,SUBR,'szm')
+      CALL CHECK3B(UO  ,1,IM,1,JM,NJPOL,LMO,SUBR,'uo ')
+      CALL CHECK3B(VO  ,1,IM,1,JM,NJPOL,LMO,SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK4B(TRMO,IM,1,JM,JM,LMO,NTM,SUBR,'tzm')
+      CALL CHECK4B(TRMO,1,IM,1,JM,NJPOL,LMO,NTM,SUBR,'tzm')
 #endif
 
 C**** Check for variables out of bounds
@@ -908,29 +910,48 @@ C****
       CHARACTER*6, INTENT(IN) :: SUBR
 
 c**** Extract domain decomposition info
-      INTEGER :: J_0S, J_0, J_1, J_0H, J_1H, JM_loc
+      INTEGER :: J_0S, J_0, J_1, J_0H, J_1H, JM_loc, njpol
+      INTEGER :: J_0STG,J_1STG
       CALL GET(grid, J_STRT_SKP = J_0S, J_STRT = J_0, J_STOP = J_1,
      *   J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      J_0STG = grid%J_STRT_STGR
+      J_1STG = grid%J_STOP_STGR
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
 C**** Check for NaN/INF in ocean data
       IF (QCHECK) THEN
       JM_loc = J_1H - J_0H + 1
-      CALL CHECK3B(MO  ,IM,J_0H,J_1H,JM,LMO,SUBR,'mo ')
-      CALL CHECK3B(G0M ,IM,J_0H,J_1H,JM,LMO,SUBR,'g0m')
-      CALL CHECK3B(GXMO,IM,J_0H,J_1H,JM,LMO,SUBR,'gxm')
-      CALL CHECK3B(GYMO,IM,J_0H,J_1H,JM,LMO,SUBR,'gym')
-      CALL CHECK3B(GZMO,IM,J_0H,J_1H,JM,LMO,SUBR,'gzm')
-      CALL CHECK3B(S0M ,IM,J_0H,J_1H,JM,LMO,SUBR,'s0m')
-      CALL CHECK3B(SXMO,IM,J_0H,J_1H,JM,LMO,SUBR,'sxm')
-      CALL CHECK3B(SYMO,IM,J_0H,J_1H,JM,LMO,SUBR,'sym')
-      CALL CHECK3B(SZMO,IM,J_0H,J_1H,JM,LMO,SUBR,'szm')
-      CALL CHECK3B(UO  ,IM,J_0H,J_1H,JM,LMO,SUBR,'uo ')
-      CALL CHECK3B(VO  ,IM,J_0H,J_1H,JM,LMO,SUBR,'vo ')
+      CALL CHECK3B(MO(:,J_0:J_1,:)  ,1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'mo ')
+      CALL CHECK3B(G0M(:,J_0:J_1,:) ,1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'g0m')
+      CALL CHECK3B(GXMO(:,J_0:J_1,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'gxm')
+      CALL CHECK3B(GYMO(:,J_0:J_1,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'gym')
+      CALL CHECK3B(GZMO(:,J_0:J_1,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'gzm')
+      CALL CHECK3B(S0M(:,J_0:J_1,:) ,1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'s0m')
+      CALL CHECK3B(SXMO(:,J_0:J_1,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'sxm')
+      CALL CHECK3B(SYMO(:,J_0:J_1,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'sym')
+      CALL CHECK3B(SZMO(:,J_0:J_1,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'szm')
+      CALL CHECK3B(UO(:,J_0:J_1,:)  ,1,IM,J_0,J_1,NJPOL,LMO,
+     &     SUBR,'uo ')
+      CALL CHECK3B(VO(:,J_0STG:J_1STG,:),1,IM,J_0STG,J_1STG,0,LMO,
+     &     SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK4B(TRMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'trm')
-      CALL CHECK4B(TXMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'txm')
-      CALL CHECK4B(TYMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'tym')
-      CALL CHECK4B(TZMO,IM,J_0H,J_1H,JM,LMO,NTM,SUBR,'tzm')
+      CALL CHECK4B(TRMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
+     &     SUBR,'trm')
+      CALL CHECK4B(TXMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
+     &     SUBR,'txm')
+      CALL CHECK4B(TYMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
+     &     SUBR,'tym')
+      CALL CHECK4B(TZMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
+     &     SUBR,'tzm')
 #endif
 
 C**** Check for variables out of bounds
@@ -4705,7 +4726,7 @@ C****
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
-      integer :: j_0,j_1,n
+      integer :: j_0,j_1,n,i_0,i_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       if (LMO_MIN .lt. 2) then 
@@ -4716,6 +4737,8 @@ C****
 
       call get (grid, j_strt=j_0, j_stop=j_1,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 ! 
@@ -4724,7 +4747,7 @@ C****
 C**** Note that currently everything is on same grid
 C****
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0.) THEN
             GO = aG0M(I,J,1)/(aMO(I,J,1)*DXYPO(J))
             SO = aS0M(I,J,1)/(aMO(I,J,1)*DXYPO(J))

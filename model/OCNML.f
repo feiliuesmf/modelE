@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 !@sum OCNML contains routines used for Qflux mixed layer,no deep diff.
 !@auth G. Schmidt
 !@ver  1.0
@@ -16,20 +17,26 @@
       CHARACTER*6, INTENT(IN) :: SUBR
       LOGICAL QCHECKO
       INTEGER I,J
-      integer :: J_0, J_1, J_0H, J_1H
+      integer :: J_0, J_1, J_0H, J_1H, I_0, I_1, I_0H, I_1H, njpol
 C****
 C**** Extrack useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,  J_STRT_HALO = J_0H,
      *     J_STOP_HALO = J_1H) 
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
 C**** Check for NaN/INF in ocean data
-      CALL CHECK3C(TOCEAN,3,IM,J_0H,J_1H,SUBR,'toc')
+      CALL CHECK3C(TOCEAN(:,I_0:I_1,J_0:J_1),3,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'toc')
 
       QCHECKO = .FALSE.
 C**** Check for reasonable values for ocean variables
       DO J=J_0, J_1
-        DO I=1,IM
+        DO I=I_0, I_1
           IF (FOCEAN(I,J).gt.0 .and. TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1
      *         ,I,J).gt.50.) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J)
@@ -108,7 +115,7 @@ C****
 !@var OCEANE zonal ocean energy (J/M^2)
       REAL*8, DIMENSION(grid%J_STRT_HALO : grid%J_STOP_HALO) :: OCEANE
       INTEGER I,J
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0, I_1
       logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 C****
@@ -117,10 +124,12 @@ C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &          HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       OCEANE=0
       DO J=J_0, J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
             OCEANE(J)=OCEANE(J)+(TOCEAN(1,I,J)*Z1O(I,J)
      *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOWS

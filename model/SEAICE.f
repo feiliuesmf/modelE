@@ -2045,16 +2045,19 @@ C**** albedo calculations
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE( RSI(IM, J_0H:J_1H),
-     *     SNOWI(IM, J_0H:J_1H),
-     *     MSI(IM, J_0H:J_1H),
-     *     pond_melt(IM, J_0H:J_1H),
-     *     flag_dsws(IM, J_0H:J_1H),
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+
+      ALLOCATE( RSI(I_0H:I_1H, J_0H:J_1H),
+     *     SNOWI(I_0H:I_1H, J_0H:J_1H),
+     *     MSI(I_0H:I_1H, J_0H:J_1H),
+     *     pond_melt(I_0H:I_1H, J_0H:J_1H),
+     *     flag_dsws(I_0H:I_1H, J_0H:J_1H),
      *     STAT=IER)
 
 !hack hack hack !!!!!!!! 
@@ -2064,15 +2067,15 @@ C**** albedo calculations
       pond_melt = 0.d0
       flag_dsws  = .false.
 
-      ALLOCATE( HSI(LMI, IM, J_0H:J_1H),
-     *     SSI(LMI, IM, J_0H:J_1H),
+      ALLOCATE( HSI(LMI, I_0H:I_1H, J_0H:J_1H),
+     *     SSI(LMI, I_0H:I_1H, J_0H:J_1H),
      *     STAT=IER)
 
       hsi = 0.d0
       ssi = 0.d0
 
 #ifdef TRACERS_WATER
-      ALLOCATE( TRSI(NTM, LMI, IM, J_0H:J_1H),
+      ALLOCATE( TRSI(NTM, LMI, I_0H:I_1H, J_0H:J_1H),
      *     TRSI0(NTM),
      *     STAT=IER)
       TRSI(:, :, :, J_0H:J_1H) = 0.  ! default to prevent unecessary crash
@@ -2212,24 +2215,34 @@ C**** albedo calculations
       real*8 relerr,errmax
 #endif
 
-      integer :: J_0, J_1, J_0H, J_1H
+      integer :: J_0, J_1, J_0H, J_1H, I_0, I_1, I_0H, I_1H, njpol
 C**** 
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
      *     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      njpol = grid%J_STRT_SKP-grid%J_STRT
 
 C**** Check for NaN/INF in ice data
-      CALL CHECK3B(RSI,IM,J_0H,J_1H,JM,1,SUBR,'rsi   ')
-      CALL CHECK3B(MSI,IM,J_0H,J_1H,JM,1,SUBR,'msi   ')
-      CALL CHECK3C(HSI,LMI,IM,J_0H,J_1H,SUBR,'hsi   ')
-      CALL CHECK3C(SSI,LMI,IM,J_0H,J_1H,SUBR,'ssi   ')
-      CALL CHECK3B(SNOWI,IM,J_0H,J_1H,JM,1,SUBR,'sni   ')
+      CALL CHECK3B(RSI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'rsi   ')
+      CALL CHECK3B(MSI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'msi   ')
+      CALL CHECK3C(HSI(:,I_0:I_1,J_0:J_1),LMI,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'hsi   ')
+      CALL CHECK3C(SSI(:,I_0:I_1,J_0:J_1),LMI,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'ssi   ')
+      CALL CHECK3B(SNOWI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'sni   ')
 
       QCHECKI = .FALSE.
 C**** Check for reasonable values for ice variables
       DO J=J_0, J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (RSI(I,J).lt.0 .or. RSI(I,j).gt.1 .or. MSI(I,J).lt.0) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,RSI,MSI=',I,J,RSI(I,J)
      *           ,MSI(I,J)
@@ -2270,7 +2283,7 @@ c            QCHECKI = .TRUE.
 C**** check negative tracer mass
         if (t_qlimit(n)) then
         do j=J_0, J_1
-          do i=1,imaxj(j)
+          do i=I_0,imaxj(j)
             if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
               do l=1,lmi
                 if (trsi(n,l,i,j).lt.0.) then
@@ -2288,7 +2301,7 @@ C**** Check conservation of water tracers in sea ice
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1
           do j=J_0, J_1
-          do i=1,imaxj(j)
+          do i=I_0,imaxj(j)
             if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
               relerr=max(
      *             abs(trsi(n,1,i,j)-(snowi(i,j)+ace1i)*xsi(1)+ssi(1,i,j

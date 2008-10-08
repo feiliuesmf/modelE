@@ -33,9 +33,11 @@ C****
       IMPLICIT NONE
       SAVE
       REAL*8 ROT1,ROT2
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     COSZ
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO)
      &     , optional :: COSZA
       REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
 C**** ZERO1 HAS TO EQUAL THE CUT-OFF VALUE FOR COSZ USED IN SOLAR
@@ -956,18 +958,21 @@ C**** Read in the factors used for alterations:
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
 !@var TEMP_LOCAL stores ACHL+ECHL1 to avoid the use of common block
-      REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
+      REAL*8 :: TEMP_LOCAL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
 !@var IMON0 current month for CHL climatology reading
       INTEGER, SAVE :: IMON0 = 0
       INTEGER :: LSTMON,I,J
       REAL*8 TIME
 
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1, I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       JDAYR=JDAY
       JYEARR=JYEAR
@@ -1028,7 +1033,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
 
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           BCHL(I,J)=ECHL1(I,J)-ECHL0(I,J)
           CCHL(I,J)=3.*(ECHL1(I,J)+ECHL0(I,J))-6.*ACHL(I,J)
         END DO
@@ -1037,7 +1042,7 @@ C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
 C**** Calculate CHL for current day
       TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
 C**** CHL always uses quadratic fit
             CHL(I,J)=ACHL(I,J)+BCHL(I,J)*TIME
@@ -1062,8 +1067,8 @@ C**** REPLICATE VALUES AT POLE
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha
       USE MODEL_COM
-      USE GEOM, only : dlat_dg, imaxj, dxyp, areag, BYDXYP
-      USE ATMDYN, only : CALC_AMPK
+      USE GEOM, only : dlat_dg, imaxj, dxyp, axyp, areag, BYDXYP
+c      USE ATMDYN, only : CALC_AMPK
       USE RADPAR
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
@@ -1193,29 +1198,37 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
-      REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(4,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                    grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSCRF,TNFSCRF
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
-      REAL*8,DIMENSION(2,NTRACE,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)::
+      REAL*8,DIMENSION(2,NTRACE,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                          grid%J_STRT_HALO:grid%J_STOP_HALO)::
      *     SNFST,TNFST
 !@var snfst_ozone,tnfst_ozone like snfst,tnfst for special case ozone for
 !@+   which ntrace fields are not defined
-      REAL*8,DIMENSION(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8,DIMENSION(2,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                   grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     snfst_ozone,tnfst_ozone
 #ifdef BC_ALB
-      REAL*8,DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                 grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     ALBNBC,NFSNBC
 #endif
 #endif
-      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(LM_REQ,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                         grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRS,SRHRS
-      REAL*8, DIMENSION(0:LM+LM_REQ,IM,
+      REAL*8, DIMENSION(0:LM+LM_REQ,
+     *     grid%I_STRT_HALO:grid%I_STOP_HALO,
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
@@ -1223,11 +1236,13 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
      *     ,LFRC,JTIME,n1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
-     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
+     *     ,TAUMCL,ELHX,CLDCV,DXYPIJ,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
      *     ,tauex5,tauex6,tausct,taugcb,dcdnc
-     *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-     *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,QR(LM,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &            grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,CLDinfo(LM,3,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                   grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 RANDXX ! temporary
       REAL*8 QSAT
 #ifdef BC_ALB
@@ -1241,8 +1256,10 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       LOGICAL NO_CLOUD_ABOVE, set_clayilli,set_claykaol,set_claysmec,
      &     set_claycalc,set_clayquar
 C
-      REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-     *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8  RDSS(LM,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     ,RDMC(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &           grid%J_STRT_HALO:grid%J_STOP_HALO)
 
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       REAL*8, DIMENSION(NLOC_DIU_VAR,
@@ -1260,7 +1277,7 @@ C
 
 
       INTEGER ICKERR,JCKERR,KCKERR
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I_0, I_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8 :: DUM_IL_REQ(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
@@ -1271,6 +1288,8 @@ C
       REAL*8 :: AIL_J70_SUM(IM,LM)
       character(len=300) :: out_line
 
+      integer :: nij_before_j0,nij_after_j1,nij_after_i1
+
 C
 C****
 #ifdef CUBE_GRID
@@ -1278,6 +1297,8 @@ C****
 #else
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
       J_0 = grid%J_STRT
       J_1 = grid%J_STOP
       J_0S = grid%J_STRT_SKP
@@ -1407,10 +1428,10 @@ C****   Calculate mean strat water conc
         DO J=J_0,J_1
           STRJ=0.
           MSTJ=0.
-          DO I=1,IMAXJ(J)
+          DO I=I_0,IMAXJ(J)
             DO L=LTROPO(I,J)+1,LM
-              STRJ=STRJ+Q(I,J,L)*AM(L,I,J)*DXYP(J)
-              MSTJ=MSTJ+AM(L,I,J)*DXYP(J)
+              STRJ=STRJ+Q(I,J,L)*AM(L,I,J)*AXYP(I,J)
+              MSTJ=MSTJ+AM(L,I,J)*AXYP(I,J)
             END DO
           END DO
           IF (J.eq.1 .or. J.eq.JM) THEN
@@ -1430,21 +1451,25 @@ C**** To get parallel consistency also with mpi, force each process
 C**** to generate random numbers for all latitudes (using BURN_RANDOM)
 
 C**** MC clouds are considered as a block for each I,J grid point
-      CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1)))
+
+      CALL BURN_RANDOM(nij_before_j0(J_0))
 
       DO J=J_0,J_1                    ! complete overlap
-      DO I=1,IMAXJ(J)
+      CALL BURN_RANDOM((I_0-1))
+      DO I=I_0,IMAXJ(J)
         RDMC(I,J) = RANDU(X)
       END DO
+      CALL BURN_RANDOM(nij_after_i1(I_1))
       END DO
 
-      CALL BURN_RANDOM(SUM(IMAXJ(J_1+1:JM)))
+      CALL BURN_RANDOM((nij_after_j1(J_1)))
 
 C**** SS clouds are considered as a block for each continuous cloud
-      CALL BURN_RANDOM(SUM(IMAXJ(1:J_0-1))*LM)
+      CALL BURN_RANDOM(nij_before_j0(j_0)*LM)
 
       DO J=J_0,J_1                    ! semi-random overlap
-      DO I=1,IMAXJ(J)
+      CALL BURN_RANDOM((I_0-1)*LM)
+      DO I=I_0,IMAXJ(J)
         NO_CLOUD_ABOVE = .TRUE.
         DO L=LM,1,-1
           IF(TAUSS(L,I,J).le.taulim) CLDSS(L,I,J)=0.
@@ -1462,9 +1487,10 @@ C**** SS clouds are considered as a block for each continuous cloud
           RDSS(L,I,J) = RANDSS
         END DO
       END DO
+      CALL BURN_RANDOM(nij_after_i1(I_1)*LM)
       END DO
 
-      CALL BURN_RANDOM(SUM(IMAXJ(J_1+1:JM))*LM)
+      CALL BURN_RANDOM(nij_after_j1(j_1)*LM)
 
       end if                    ! kradia le 0
 
@@ -1506,7 +1532,7 @@ c      JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
 C****
 C**** MAIN I LOOP
 C****
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
       ILON=INT(.5+(I-.5)*72./IM+.5)  ! lon_index w.r.to 72x46 grid
       L1 = 1                         ! lowest layer above ground
       LMR=LM+LM_REQ                  ! radiation allows var. # of layers
@@ -1644,10 +1670,10 @@ C**** effective cloud cover diagnostics
            AJ(J,J_CLDDEP,IT)=AJ(J,J_CLDDEP,IT)+DEPTH*FTYPE(IT,I,J)
            AJ(J,J_PCLD  ,IT)=AJ(J,J_PCLD  ,IT)+CLDCV*FTYPE(IT,I,J)
          END DO
-         AREGJ(JR,J,J_PCLDSS)=AREGJ(JR,J,J_PCLDSS)+CSS  *DXYP(J)
-         AREGJ(JR,J,J_PCLDMC)=AREGJ(JR,J,J_PCLDMC)+CMC  *DXYP(J)
-         AREGJ(JR,J,J_CLDDEP)=AREGJ(JR,J,J_CLDDEP)+DEPTH*DXYP(J)
-         AREGJ(JR,J,J_PCLD)  =AREGJ(JR,J,J_PCLD)  +CLDCV*DXYP(J)
+         AREGJ(JR,J,J_PCLDSS)=AREGJ(JR,J,J_PCLDSS)+CSS  *AXYP(I,J)
+         AREGJ(JR,J,J_PCLDMC)=AREGJ(JR,J,J_PCLDMC)+CMC  *AXYP(I,J)
+         AREGJ(JR,J,J_CLDDEP)=AREGJ(JR,J,J_CLDDEP)+DEPTH*AXYP(I,J)
+         AREGJ(JR,J,J_PCLD)  =AREGJ(JR,J,J_PCLD)  +CLDCV*AXYP(I,J)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO L=1,LLOW
@@ -1727,16 +1753,16 @@ C**** more than one tracer is lumped together for radiation purposes
           select case (trname(NTRIX(n)))
           case ("OCIA")
             TRACER(L,n)=(trm(i,j,l,n_OCB)+trm(i,j,l,n_OCII)+
-     *           trm(i,j,l,n_OCIA))*BYDXYP(J)
+     *           trm(i,j,l,n_OCIA))*BYAXYP(I,J)
          case ("OCA4")
             TRACER(L,n)=(trm(i,j,l,n_OCI1)+trm(i,j,l,n_OCA1)+
      *          trm(i,j,l,n_OCI2)+trm(i,j,l,n_OCA2)+
      *          trm(i,j,l,n_OCI3)+trm(i,j,l,n_OCA3)+
-     *          trm(i,j,l,n_OCA4))*BYDXYP(J)
+     *          trm(i,j,l,n_OCA4))*BYAXYP(I,J)
           case ("BCIA")
-            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
+            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
           case default
-            TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYDXYP(J)
+            TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYAXYP(I,J)
           end select
         end if
       end do
@@ -1809,7 +1835,7 @@ c to use on-line tracer albedo impact, set Xdalb=0. in rundeck
 C**** set up new lake depth parameter to incr. albedo for shallow lakes
       zlake=0.
       if (plake.gt.0) then
-        zlake = MWL(I,J)/(RHOW*PLAKE*DXYP(J))
+        zlake = MWL(I,J)/(RHOW*PLAKE*AXYP(I,J))
       end if
 C****
       if (kradia .le. 0) then
@@ -2275,11 +2301,11 @@ C**** Save clear sky/tropopause diagnostics here
      *     *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
       END DO
       AREGJ(JR,J,J_CLRTOA)=AREGJ(JR,J,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ
-     *     +1)*CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
+     *     +1)*CSZ2-TRNFLB(LM+LM_REQ+1))*AXYP(I,J)
       AREGJ(JR,J,J_CLRTRP)=AREGJ(JR,J,J_CLRTRP)+OPNSKY*
-     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
+     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J)
       AREGJ(JR,J,J_TOTTRP)=AREGJ(JR,J,J_TOTTRP)+
-     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
+     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J)
 
 C**** Save cloud top diagnostics here
       if (CLDCV.le.0.) go to 590
@@ -2406,14 +2432,14 @@ c     finish J_BRTEMP, J_TRINCG, J_HSURF, J_TRNFP0...
 
 #else
          DO 780 J=J_0,J_1
-         DXYPJ=DXYP(J)
          DO L=1,LM
-           DO I=1,IMAXJ(J)
+           DO I=I_0,IMAXJ(J)
              AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L,I,J)*COSZ2(I,J)
              AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L,I,J)
            END DO
          END DO
-         DO 770 I=1,IMAXJ(J)
+         DO 770 I=I_0,IMAXJ(J)
+         DXYPIJ=AXYP(I,J)
          CSZ2=COSZ2(I,J)
          JR=JREG(I,J)
          DO LR=1,LM_REQ
@@ -2468,29 +2494,29 @@ C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*CSZ2)
      *        * FLAKE(I,J)*RSI(I,J)
 C****
-         AREGJ(JR,J,J_SRINCP0)=AREGJ(JR,J,J_SRINCP0)+(S0*CSZ2)*DXYPJ
+         AREGJ(JR,J,J_SRINCP0)=AREGJ(JR,J,J_SRINCP0)+(S0*CSZ2)*DXYPIJ
          AREGJ(JR,J,J_SRNFP0 )=AREGJ(JR,J,J_SRNFP0 )+(SNFS(3,I,J)*CSZ2)
-     *        *DXYPJ
+     *        *DXYPIJ
          AREGJ(JR,J,J_SRNFP1 )=AREGJ(JR,J,J_SRNFP1 )+(SNFS(2,I,J)*CSZ2)
-     *        *DXYPJ
+     *        *DXYPIJ
          AREGJ(JR,J,J_SRINCG )=AREGJ(JR,J,J_SRINCG )+
-     *        (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPJ
+     *        (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPIJ
          AREGJ(JR,J,J_HATM)=AREGJ(JR,J,J_HATM)-(TNFS(2,I,J)-TNFS(1,I,J))
-     *        *DXYPJ
+     *        *DXYPIJ
          AREGJ(JR,J,J_SRNFG)=AREGJ(JR,J,J_SRNFG) +(SRHR(0,I,J)*CSZ2)
-     *        *DXYPJ
+     *        *DXYPIJ
          AREGJ(JR,J,J_HSURF)=AREGJ(JR,J,J_HSURF) -
-     *        (TNFS(3,I,J)-TNFS(1,I,J))*DXYPJ
-         AREGJ(JR,J,J_BRTEMP)=AREGJ(JR,J,J_BRTEMP)+  BTMPW(I,J)*DXYPJ
-         AREGJ(JR,J,J_TRINCG)=AREGJ(JR,J,J_TRINCG)+ TRINCG(I,J)*DXYPJ
-         AREGJ(JR,J,J_TRNFP0)=AREGJ(JR,J,J_TRNFP0)- TNFS(3,I,J)*DXYPJ
-         AREGJ(JR,J,J_TRNFP1)=AREGJ(JR,J,J_TRNFP1)- TNFS(2,I,J)*DXYPJ
+     *        (TNFS(3,I,J)-TNFS(1,I,J))*DXYPIJ
+         AREGJ(JR,J,J_BRTEMP)=AREGJ(JR,J,J_BRTEMP)+  BTMPW(I,J)*DXYPIJ
+         AREGJ(JR,J,J_TRINCG)=AREGJ(JR,J,J_TRINCG)+ TRINCG(I,J)*DXYPIJ
+         AREGJ(JR,J,J_TRNFP0)=AREGJ(JR,J,J_TRNFP0)- TNFS(3,I,J)*DXYPIJ
+         AREGJ(JR,J,J_TRNFP1)=AREGJ(JR,J,J_TRNFP1)- TNFS(2,I,J)*DXYPIJ
          DO K=2,9
            JK=K+J_PLAVIS-2      ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
              AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J)
            END DO
-           AREGJ(JR,J,JK)=AREGJ(JR,J,JK)+(S0*CSZ2)*ALB(I,J,K)*DXYPJ
+           AREGJ(JR,J,JK)=AREGJ(JR,J,JK)+(S0*CSZ2)*ALB(I,J,K)*DXYPIJ
          END DO
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
@@ -2772,7 +2798,7 @@ C****
 C**** Update radiative equilibrium temperatures
 C****
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           DO LR=1,LM_REQ
             RQT(LR,I,J)=RQT(LR,I,J)+(SRHRS(LR,I,J)*COSZ2(I,J)
      &           +TRHRS(LR,I,J))*NRAD*DTsrc*bysha*byaml00(lr+lm)
@@ -2783,7 +2809,7 @@ C****
 C**** Update other temperatures every physics time step
 C****
   900 DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           DO L=1,LM
             T(I,J,L)=T(I,J,L)+(SRHR(L,I,J)*COSZ1(I,J)+TRHR(L,I,J))*
      *           DTsrc*bysha*byam(l,i,j)/PK(L,I,J)

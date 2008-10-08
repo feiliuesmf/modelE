@@ -714,7 +714,7 @@ c idacc-indices of various processes
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
-      INTEGER :: J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
       LOGICAL, SAVE :: init = .false.
 
@@ -725,9 +725,11 @@ c idacc-indices of various processes
       init = .true.
 
       CALL GET( grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
-      ALLOCATE( ! JREG(IM, J_0H:J_1H),
-     &         SQRTM(IM, J_0H:J_1H),
+      ALLOCATE( ! JREG(I_0H:I_1H, J_0H:J_1H),
+     &         SQRTM(I_0H:I_1H, J_0H:J_1H),
      &         STAT = IER)
 
       ALLOCATE( APJ_loc(J_0H:J_1H, KAPJ),
@@ -738,19 +740,19 @@ c idacc-indices of various processes
      &         AREGJ_loc(NREG,J_0H:J_1H,KAJ),
      &         AJL_loc(J_0H:J_1H, LM, KAJL),
      &         ASJL_loc(J_0H:J_1H,LM_REQ,KASJL),
-     &         AIJ_loc(IM,J_0H:J_1H,KAIJ),
+     &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
      &         AJK_loc(J_0H:J_1H,LM,KAJK),
-     &         Z_inst(KGZ,IM,J_0H:J_1H),
-     &         RH_inst(KGZ,IM,J_0H:J_1H),
-     &         T_inst(KGZ,IM,J_0H:J_1H),
-     &         TSFREZ_loc(IM,J_0H:J_1H,KTSF),
-     &         P_acc(IM,J_0H:J_1H),
-     &         TDIURN(IM,J_0H:J_1H,KTD),
-     &         OA(IM,J_0H:J_1H,KOA),
+     &         Z_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         RH_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         T_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         TSFREZ_loc(I_0H:I_1H,J_0H:J_1H,KTSF),
+     &         P_acc(I_0H:I_1H,J_0H:J_1H),
+     &         TDIURN(I_0H:I_1H,J_0H:J_1H,KTD),
+     &         OA(I_0H:I_1H,J_0H:J_1H,KOA),
      &         STAT = IER)
 
-      ALLOCATE( AIJK_loc(IM,J_0H:J_1H,LM,KAIJK),
-     &         AFLX_ST(LM+LM_REQ+1,IM,J_0H:J_1H,5),
+      ALLOCATE( AIJK_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIJK),
+     &         AFLX_ST(LM+LM_REQ+1,I_0H:I_1H,J_0H:J_1H,5),
      &         STAT = IER)
 
       RETURN
