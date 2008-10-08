@@ -262,7 +262,7 @@ C**** Thus it is only initiallised here for case ii).
 !@var OCEANE zonal ocean energy (J/M^2)
       REAL*8, DIMENSION(grid%J_STRT_HALO : grid%J_STOP_HALO) :: OCEANE
       INTEGER I,J,L
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0,I_1
       logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 C****
@@ -271,10 +271,12 @@ C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &          HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       OCEANE=0
       DO J=J_0, J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
             OCEANE(J)=OCEANE(J)+(TOCEAN(1,I,J)*Z1O(I,J)
      *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOWS
@@ -314,18 +316,20 @@ C****
       REAL*8, PARAMETER :: ALPHA=.5d0
       REAL*8 :: ADTG3
       INTEGER I,J,L
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0,I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C****
 C**** ACCUMULATE OCEAN TEMPERATURE AT MAXIMUM MIXED LAYER
 C****
       DO J=J_0, J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           STG3(I,J)=STG3(I,J)+TOCEAN(3,I,J)
         END DO
       END DO
@@ -335,7 +339,7 @@ C**** DIFFERENCE AND REPLACE THE MONTHLY SUMMED TEMPERATURE
 C****
       IF(JDATE.EQ.1) THEN
       DO J=J_0, J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           DTG3(I,J)=DTG3(I,J)+(STG3(I,J)-TG3M(I,J,JMON))
           TG3M(I,J,JMON)=STG3(I,J)
           STG3(I,J)=0.
@@ -348,7 +352,7 @@ C**** INTO THE THERMOCLINE AND REDUCE THE UPPER TEMPERATURES BY THE
 C**** HEAT THAT IS DIFFUSED DOWNWARD
 C****
       DO J=J_0, J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           IF(FOCEAN(I,J).GT.0.) THEN
 
             ADTG3=DTG3(I,J)*PERDAY
@@ -459,7 +463,7 @@ C**** Check for NaN/INF in ocean data
       QCHECKO = .FALSE.
 C**** Check for reasonable values for ocean variables
       DO J=J_0, J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           IF (TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1,I,J).gt.50.) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J)
             QCHECKO = .TRUE.
