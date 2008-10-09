@@ -1132,9 +1132,6 @@ C**** Save surface values
      *     ,trmo1,txmo1,tymo1
 #endif
 
-      USE SEAICE_COM, only : rsi
-      USE FLUXES, only : solar,dmua,dmva,dmui,dmvi
-
       USE OFLUXES, only : oRSI, oSOLAR, oDMUA,oDMVA, oDMUI,oDMVI
 
       USE SW2OCEAN, only : fsr,lsrpd
