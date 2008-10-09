@@ -39,7 +39,8 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
       REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: AXYP,BYAXYP
+      REAL*8, DIMENSION(:,:), ALLOCATABLE ::
+     &     AXYP,BYAXYP,LAT2D,LON2D,SINLAT2D
 !@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
@@ -98,18 +99,25 @@ C**** some B-grid conservation quantities
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
       REAL*8  :: RAVPO,LAT1,COSP1,DXP1
-      integer :: i_0h,i_1h,j_0h,j_1h
+      integer :: i_0h,i_1h,j_0h,j_1h,i_0,i_1,j_0,j_1
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
       j_0h = grid%j_strt_halo
       j_1h = grid%j_stop_halo
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
 
       allocate(idij(im,im,grid%j_strt_halo:grid%j_stop_halo))
 
       allocate(
      &       axyp(i_0h:i_1h,j_0h:j_1h)
      &    ,byaxyp(i_0h:i_1h,j_0h:j_1h)
+     &    ,lat2d(i_0h:i_1h,j_0h:j_1h)
+     &    ,lon2d(i_0h:i_1h,j_0h:j_1h)
+     &    ,sinlat2d(i_0h:i_1h,j_0h:j_1h)
      &     )
 
 C**** latitudinal spacing depends on whether you have even spacing or
@@ -300,10 +308,18 @@ C**** Conditions at non-polar points
         endif
       END DO
 
+c
+c temporary
+c
       do j=j_0h,j_1h
       do i=i_0h,i_1h
         axyp(i,j) = dxyp(j)
         byaxyp(i,j) = bydxyp(j)
+        lat2d(i,j) = lat(j)
+        sinlat2d(i,j) = sin(lat(j))
+      enddo
+      do i=i_0,i_1
+        lon2d(i,j) = lon(i)
       enddo
       enddo
       

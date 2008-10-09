@@ -24,7 +24,7 @@
 #ifdef SCM
      &                      ,I_TARG,J_TARG
 #endif
-      USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
+      USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinlat2d
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
@@ -212,7 +212,7 @@ c     ELSE
 
 c     ENDIF
 
-      coriol=sinp(j)*omega2
+      coriol=sinlat2d(i,j)*omega2
       qtop=q(i,j,1)
 
       utop=0. ; vtop=0. ;  ug=0. ; vg=0.

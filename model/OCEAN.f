@@ -143,6 +143,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@ver  1.0 (Q-flux ocean or fixed SST)
       USE DOMAIN_DECOMP, only : HERE
       USE DOMAIN_DECOMP, ONLY : GLOBALSUM,AM_I_ROOT
+      USE GEOM, ONLY : lat2d
       IMPLICIT NONE
 
 C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
@@ -322,9 +323,9 @@ C**** Calculate OST, RSI and MSI for current day
   400 TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
       DO J=J_0,J_1
         ZIMIN=Z1I+Z2OIM
-        ZIMAX=2d0
-        IF(J.GT.JM/2) ZIMAX=3.5d0
         DO I=I_0,IMAXJ(J)
+          ZIMAX=2d0
+          IF(lat2d(i,j).GT.0.) ZIMAX=3.5d0 ! northern hemisphere
           IF (FOCEAN(I,J).gt.0) THEN
 C**** OST always uses quadratic fit
             TOCEAN(1,I,J)=AOST(I,J)+BOST(I,J)*TIME

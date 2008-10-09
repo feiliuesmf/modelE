@@ -3102,7 +3102,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
 #ifndef USE_ENT
       use veg_com, only : vdata                 !nyk
 #endif
-      use geom, only : imaxj
+      use geom, only : imaxj,lat2d
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
@@ -3189,12 +3189,12 @@ c**** find leaf-area index & water field capacity for ground layer 1
       sinday=sin(twopi/edpery*jday)
 #endif
       do j=J_0,J_1
-        if(j.le.jm/2) then      !nyk added northsouth
-          northsouth=1          !southern hemisphere
-        else
-          northsouth=2          !northern hemisphere
-        end if
         do i=I_0,I_1
+          if(lat2d(i,j).lt.0.) then !nyk added northsouth
+            northsouth=1            !southern hemisphere
+          else
+            northsouth=2            !northern hemisphere
+          end if
           wfcs(i,j)=24.
           ! if (fearth(i,j).gt.0.) then
           !if (focean(i,j) < 1.d0 ) then

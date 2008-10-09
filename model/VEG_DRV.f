@@ -282,9 +282,6 @@ c****
       can_w_capacity(:,:) = 0.d0
 
       do j=J_0,J_1
-        if(j.le.jm/2) then
-        else
-        end if
         do i=I_0,I_1
           afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
           if(afb(i,j).gt..999) afb(i,j)=1.
