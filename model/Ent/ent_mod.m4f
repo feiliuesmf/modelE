@@ -402,7 +402,7 @@ m4_loop(`
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(out):: entcell`'m4_brkts(m4_ext)`'
+      type(entcelltype_public),intent(inout):: entcell`'m4_brkts(m4_ext)`'
       real*8, dimension(:m4_comma`'m4_ext`')  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index
