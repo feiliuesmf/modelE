@@ -144,15 +144,10 @@ c
       USE HYCOM_CPLER
       implicit none
 c
-!!#include "dimensions.h"
-#include "dimension2.h"
-!!#include "common_blocks.h"
-!!#include "cpl.h"
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb
 !!! afogcm,nsavea should be initialized properly !
       integer :: afogcm=0,nsavea=0,nsaveo
-!!#include "a2o.h"
 #include "kprf_scalars.h"
-!!#include "kprf_arrays.h"
 c
       real sum_,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus

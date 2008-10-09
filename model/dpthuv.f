@@ -9,10 +9,7 @@ c --- version 2.8 -- cyclic and noncyclic b.c. combined
       USE HYCOM_ARRAYS_GLOB
       implicit none
 c
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'   ! TNL
       integer i,j,l,ja,jb
-!!      include 'common_blocks.h'
 c
       real uvdep,a,b,damp
       data damp/5.e-6/		!  inverse time scale for coastal wave damping

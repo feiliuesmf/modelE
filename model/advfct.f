@@ -15,8 +15,6 @@ c
       USE HYCOM_DIM_GLOB
 
       implicit none
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real fld(idm,jdm),u(idm,jdm),v(idm,jdm),scal(idm,jdm),

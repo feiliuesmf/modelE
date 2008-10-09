@@ -11,9 +11,7 @@ c --- ----------------------------------
 c --- define layer depth at  u,v  points
 c --- ----------------------------------
 c
-!!      include 'dimensions.h'
-      include 'dimension2.h'
-!!      include 'common_blocks.h'
+      integer :: i,k,j,l, ja
 c
       integer mmnn,kmn
 c
@@ -66,9 +64,7 @@ c --- ----------------------------------
 c --- define layer depth at  u,v  points
 c --- ----------------------------------
 c
-!!      include 'dimensions.h'
-      include 'dimension2.h'
-!!      include 'common_blocks.h'
+      integer :: i,k,j,l, ja
 c
       integer mmnn,kmn
 c

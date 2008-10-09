@@ -113,10 +113,7 @@ c
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"    ! TNL
       integer i,j
-!!#include "common_blocks.h"
 c
 c --- call this routine from anywhere in the code (from both versions, of
 c --- course) to check whether data stored in 'field' are identical
@@ -166,10 +163,7 @@ c
       subroutine compare_r4(field,mask,what)
       USE HYCOM_DIM_GLOB, only : idm,jdm
 c
-!!#include "dimensions.h"
-!!#include "dimension2.h"    ! TNL
       integer i,j
-!!#include "common_blocks.h"
 c
 c --- call this routine from anywhere in the code (from both versions, of
 c --- course) to check whether data stored in 'field' are identical
@@ -223,10 +217,7 @@ c
       USE HYCOM_SCALARS, only : nstep
       USE HYCOM_ARRAYS_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"    ! TNL
       integer k,m,n,mm,nn,km,kn
-!!#include "common_blocks.h"
 c
       integer iunit,lpunit
       logical slave
@@ -342,10 +333,7 @@ c
       USE HYCOM_SCALARS, only : lp,onem
       USE HYCOM_ARRAYS_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"    ! TNL
       integer i,j,k
-!!#include "common_blocks.h"
 c
       integer mn,ks,iz,jz
 c
@@ -419,8 +407,6 @@ c
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j
 c
       real array(idm,jdm),scale,offset
@@ -473,8 +459,6 @@ c
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j
 c
       real array(idm,jdm),scale,offset
@@ -502,8 +486,6 @@ c --- it only alters -alist- values that don't coincide with -pbot-.
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -565,11 +547,9 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
-      integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
+      integer i,j,l,ia,ib,ja,jb
       real blist(idm,jdm)
       real,parameter :: wgt=.25
 c
@@ -608,8 +588,6 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -651,8 +629,6 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -693,8 +669,6 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,jdm)
@@ -762,8 +736,6 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c 
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
@@ -805,8 +777,6 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
@@ -848,8 +818,6 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real*4,intent(INOUT) :: alist(idm,jdm)
@@ -1026,8 +994,6 @@ c --- this version works for both cyclic-in-j and noncyclic domains
 c
       USE HYCOM_DIM
       implicit none
-!!      include 'dimensions.h'
-!!    include "dimension2.h"    ! TNL
       integer i,j,l,ia,ib,ja,jb
 c
       real,intent(INOUT) :: alist(idm,J_0H:J_1H)

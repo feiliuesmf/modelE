@@ -31,18 +31,8 @@ c --- hycom version 0.9
       USE HYCOM_CPLER, only : tempro2a, ssto2a
       implicit none
 c
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'  ! TNL
       integer i,j,k,l,m,n,mm,ia,ja
-!!      include 'common_blocks.h'
       include 'state_eqn.h'
-!!!! check next two lines
-!!      include 'kprf_arrays.h'
-!!      include 'a2o.h'
-!!      include 'a2o.h' ! looks like not needed
-!!       include 'cpl.h'
-      !! only asst is needed from cpl.h - should be made local
-!!      real*8 asst(iia,jja) ! looks like the only thing needed from cpl.h
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
 #ifdef TRACERS_GASEXCH_ocean

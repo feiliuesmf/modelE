@@ -109,8 +109,6 @@ c
       USE HYCOM_SCALARS, only : thref
       USE HYCOM_ARRAYS_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!      include 'common_blocks.h'
       real t,s,prs,tdif,sdif
 c
       include 'state_eqn.h'
@@ -200,7 +198,6 @@ c --- exchange information across bering strait seam
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!      include 'dimensions.h'
       include 'bering.h'
 c
       real field(idm,jdm),sign
@@ -220,7 +217,6 @@ c
       USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
       USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H,I_0H,I_1H
       implicit none
-!!      include 'dimensions.h'
       include 'bering.h'
 c
       real field(I_0H:I_1H,J_0H:J_1H)
@@ -327,10 +323,7 @@ c
       USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g
       USE HYCOM_ARRAYS_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'      ! TNL
       integer i,j,k,l,n
-!!      include 'common_blocks.h'
 c
       real slithk
       integer nscli,nunit,lgth
@@ -466,10 +459,7 @@ c
       USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g,delt1
       USE HYCOM_ARRAYS_GLOB
       implicit none
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'      ! TNL
       integer i,j,k,l,n
-!!      include 'common_blocks.h'
 c
       real slithk
       integer nscli,nunit,lgth
@@ -613,10 +603,7 @@ c
 c --- compute volume integral of 2 fields (field1,field2), each associated
 c --- with its own layer thickness field (dp1,dp2)
 c
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'      ! TNL
       integer i,j,k,l
-!!      include 'common_blocks.h'
 c
       real dp1(idm,jdm,kdm),dp2(idm,jdm,kdm),field1(idm,jdm,kdm),
      .     field2(idm,jdm,kdm),sum1j(jdm),sum2j(jdm),sum1,sum2
@@ -658,8 +645,6 @@ c
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp
       implicit none
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'      ! TNL
       integer i,j
 c
       integer numcrs,numfin,newrows,icrs,ifin,ieqcrs,ieqfin,

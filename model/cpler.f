@@ -2,7 +2,6 @@
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       implicit none
       private
-!!#include "a2o.h"
 
       public ssto2a,veca2o,flxa2o,veco2a,tempro2a
 
@@ -56,10 +55,7 @@ c     flda: output field onto agcm grid
 c
       !USE HYCOM_DIM_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"  ! TNL
       integer n,ia,ja
-!!#include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
 c
 c$OMP PARALLEL DO
@@ -82,10 +78,7 @@ c --- tauxo/tauyo:output taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)
 c    
       !USE HYCOM_DIM_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"  ! TNL
       integer i,j,l,n
-!!#include "a2o.h"
       real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
      .    ,sward(iio,jjo),eward(iio,jjo),tta,tto
 c
@@ -124,10 +117,7 @@ c     input: flda (W/m*m), output: fldo (W/m*m)
 c
       !USE HYCOM_DIM_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"  ! TNL
       integer i,j,l,n
-!!#include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tta,tto
 c
 c$OMP PARALLEL DO
@@ -152,10 +142,7 @@ c --- tauxa/tauya:output taux (E-ward)/tauy (N-ward) on agcm grid (N/m*m)
 c    
       !USE HYCOM_DIM_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"   ! TNL
       integer i,j,l,n,ia,ja,jb
-!!#include "a2o.h"
       real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
      .      ,nward(iio,jjo),eward(iio,jjo),tta,tto,sine
 c
@@ -212,10 +199,7 @@ c     flda: output field onto agcm grid
 c
       !USE HYCOM_DIM_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"   ! TNL
       integer n,ia,ja
-!!#include "a2o.h"
       real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
 c
 c$OMP PARALLEL DO

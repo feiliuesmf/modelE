@@ -14,10 +14,7 @@ c
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH
       implicit none
-!!      include 'dimensions.h'
-!!      include 'dimension2.h'      ! TNL
       integer i,j,k,l,ja
-!!      include 'common_blocks.h'
 c
       integer kold,knew,ko
 c

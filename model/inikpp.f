@@ -8,11 +8,7 @@ c --- hycom version 2.1
 !     USE KPRF_ARRAYS
       implicit none
 c
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'   ! TNL
       integer i,j
-!!      include 'common_blocks.h'
-!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
       integer    nzehat,nustar
@@ -101,11 +97,7 @@ c
       USE HYCOM_ARRAYS,  only : latij, depths
       USE KPRF_ARRAYS,   only : jerlov_loc, betard, betabl, redfac
       implicit none
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'   ! TNL
       integer i,j,l
-!!      include 'common_blocks.h'
-!!      include 'kprf_arrays.h'
       include 'kprf_scalars.h'
 c
       !write(750,*) isp

@@ -12,8 +12,7 @@ c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp
       implicit none
-!!      include 'dimensions.h'
-      include 'dimension2.h'
+      integer i,j,k,l,ia,ib,ja,jb
 c
       real depth(idm,jdm)
       integer nfill,nzero,jsec,jfrst,jlast
@@ -154,8 +153,7 @@ c
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
-!!      include 'dimensions.h'
-      include 'dimension2.h'
+      integer i,j,k,l
 c
       integer ipt(idm,J_0H:J_1H),if(J_0H:J_1H,ms),il(J_0H:J_1H,ms),
      &     is(J_0H:J_1H)
@@ -205,8 +203,7 @@ c
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
-!!      include 'dimensions.h'
-      include 'dimension2.h'
+      integer i,j,k,l
 c
       integer jpt_loc(idm,J_0H:J_1H),jf(idm,ms),jl(idm,ms),js(idm)
       integer jpt(idm,JDM)

@@ -28,9 +28,6 @@
 
       logical, intent(in) :: iniOCEAN
       integer, intent(in) :: istart
-!!#include "dimensions.h"
-!!#include "dimension2.h"
-!!#include "cpl.h"
       integer i,j
 
       ! move to global atm grid
@@ -174,10 +171,6 @@ c
 #endif
       USE HYCOM_ARRAYS_GLOB
       IMPLICIT NONE
-!!#include "dimensions.h"
-!!#include "dimension2.h"
-!!#include "common_blocks.h"
-!!#include "cpl.h"
       !!! hack
       !!!real asst
 c

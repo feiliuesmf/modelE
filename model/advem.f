@@ -18,8 +18,6 @@ c  scali  - inverse of scal
 c  dt     - temporal increment
 c  fco,fc - depth of the layer at previous and new time step
 c
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'    ! TNL
       integer i,j,l,n,ia,ib,ja,jb
 c
       real fld(idm,J_0H:J_1H),u(idm,J_0H:J_1H),

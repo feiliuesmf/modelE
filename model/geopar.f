@@ -19,13 +19,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_CPLER
       implicit none
       include 'bering.h'
-!!      include 'dimensions.h'
-!!    include 'dimension2.h'   ! TNL
       integer i,j,k,l,n,ia,ib,ja,jb,jp
-!!      include 'common_blocks.h'
-!!      include 'cpl.h' ! apparently not needed ??
-!!!!      include 'a2o.h'
-!!      include 'kprf_arrays.h'
 c
       logical, intent(in) :: iniOCEAN
       real realat,sphdis,glufac,zero

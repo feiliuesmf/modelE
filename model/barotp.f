@@ -12,11 +12,11 @@ c --- version 2.8.2
      &                              gather_hycom_arrays
 
       implicit none
+      integer, intent(in) :: m,n,mm,nn
+      integer             :: k1m,k1n    ! TNL What is it ???
 c
       include 'bering.h'
-!!      include 'dimensions.h'
-      include 'dimension2.h'
-!!      include 'common_blocks.h'
+      integer i,j,k,l,ia,ib,ja,jb
 c
       real q,utndcy,vtndcy,damp,uglue,vglue,
      .     u_ja,u_jb,v_ia,v_ib,dpu_ja,dpu_jb,dpv_ia,dpv_ib,hfharm

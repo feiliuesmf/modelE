@@ -10,10 +10,7 @@ c --- hycom version 0.9
       USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
       implicit none
 c
-!!#include "dimensions.h"
-!!#include "dimension2.h"   ! TNL
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n
-!!#include "common_blocks.h"
 c
       real thknss,radfl,radflw,radfli,vpmx,prcp,prcpw,prcpi,
      .     evap,evapw,evapi,exchng,target,old,

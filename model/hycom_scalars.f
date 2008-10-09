@@ -115,8 +115,6 @@ c
 
 
 c
-!!      include 'dimensions.h'
-!!!!      include 'common_blocks.h'
 c
 c --- layer densities (theta units):
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

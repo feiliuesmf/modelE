@@ -8,11 +8,13 @@ c --- hycom version 0.9 -- cyclic and noncyclic b.c. combined
       USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH,NORTH,
      &                          haveLatitude
       implicit none
+      
+      integer, intent(in) :: m,n,mm,nn
+      integer             :: k1m,k1n      !TNL What is it?
 c
       include 'bering.h'
-!!      include 'dimensions.h'
-      include 'dimension2.h'
-!!      include 'common_blocks.h'
+
+      integer ::  i,j,k,l,ia,ib,ja,jb,jp,km,kn
 c
       real stress(idm,J_0H:J_1H),stresx(idm,J_0H:J_1H),
      .     stresy(idm,J_0H:J_1H),dpmxu(idm,J_0H:J_1H),

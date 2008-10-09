@@ -13,10 +13,7 @@ c
 c
       implicit none
 c
-!!#include "dimensions.h"
-!!#include "dimension2.h"   ! TNL
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n
-!!#include "common_blocks.h"
 c
       real tmelt,thin,rhoice,kice,fusion,saldif,rate,tmxl,dpth,thkmax,
      .     paybak,borrow,total,totalx,qmax,qmx(J_0H:J_1H),heatfx,dtdflx,

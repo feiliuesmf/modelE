@@ -13,11 +13,7 @@ c
       USE HYCOM_ARRAYS_GLOB
 c
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"    ! TNL
       integer i,j,k,l,n,nn,kn
-!!#include "common_blocks.h"
-!!!#include "cpl.h"
 c
       integer no,nop,length,nt
       real factor,vol,tts2,temavg,sst,dpsmo(idm,jdm,kdm)
@@ -382,8 +378,6 @@ c
 c
       USE HYCOM_DIM_GLOB
       implicit none
-!!#include "dimensions.h"
-!!#include "dimension2.h"  ! TNL
       integer i,j
 c
       real real8(idm,jdm)
