@@ -446,6 +446,7 @@ C**** sync radiation parameters from input
       call sync_param( "volc_yr", volc_yr )
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
+      call sync_param( "madaer", madaer )
       call sync_param( "dALBsnX", dALBsnX )
       call sync_param( "albsn_yr", albsn_yr )
       call sync_param( "aermix", aermix , 13 )
@@ -593,7 +594,7 @@ C****                                         even if the year is fixed
 #endif
       KYEARO=O3_yr   ; KJDAYO=0 ;       MADO3M=-1  ! ozone (ann.cycle)
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
-      KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
+      KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
       if(KYEARV.eq.-2000) KYEARV=0
 C**** NO time history (yet), except for ann.cycle, for forcings below;

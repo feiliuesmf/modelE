@@ -3229,7 +3229,7 @@ C-----------------
   230 CONTINUE
 
       IF(MADAER <= 0) GO TO 500
- 
+
       DO NA=1,6
       IF(MADAER.eq.3) THEN
       CALL REPART (A6JDAY2(1,NA,ILON,JLAT),PLBA20,21,    ! in
@@ -3641,7 +3641,41 @@ C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
 
       RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
       END SUBROUTINE UPDAER
-      
+
+      REAL*8 FUNCTION GLOPOP(JYEAR)
+      IMPLICIT none
+
+C     ----------------------------------------------------------------
+C     GLOPOP = normalized global population trend set to unity in 1990
+C              based on UN statistics & population projections to 2050
+C
+C     GLOPOP = 0.000 for 1850 and earlier
+C            = 1.000 for 1990
+C            = 1.658 for 2050 and later
+C     ----------------------------------------------------------------
+
+      INTEGER, intent(in) :: jyear
+      REAL*8 :: GPNORM = 5.27-1.26 ,DNGPOP(21), GPOP(21) = (/
+C               1850                     1900                     1950
+     A          1.26,1.33,1.41,1.49,1.57,1.65,1.75,1.86,2.07,2.30,2.52
+C                                        2000                     2050
+     B              ,3.02,3.70,4.44,5.27,6.06,6.79,7.50,8.11,8.58,8.91/)
+      INTEGER i,iy
+      REAL*8 xy,dy
+
+      DO 110 I=1,21
+      DNGPOP(I)=(GPOP(I)-GPOP(1))/GPNORM
+  110 CONTINUE
+      XY=(JYEAR-1840)/10.D0
+      IY=XY
+      DY=XY-IY
+      if (IY <  1) then ; IY =  1 ; DY = 0 ; endif
+      if (IY > 20) then ; IY = 20 ; DY = 1 ; endif
+      GLOPOP=DNGPOP(IY)+DY*(DNGPOP(IY+1)-DNGPOP(IY))
+      RETURN
+      END FUNCTION GLOPOP
+!!!   GLOPOP and STREND,CTREND(in RAD_UTILS.f) are only needed by UPDAER
+
       SUBROUTINE UPDAER2(JYEARA,JJDAYA)
 
 C     ------------------------------------------------------------------
@@ -3665,7 +3699,7 @@ C     ------------------------------------------------------------------
 
       CHARACTER*80 XTITLE
       CHARACTER*40 :: RDFILE(7) = (/                !  Input file names
-     1            'SUL_Koch2008_kg_m2_72x46x20_1890-2000   '      
+     1            'SUL_Koch2008_kg_m2_72x46x20_1890-2000   '
      2           ,'SSA_Koch2008_kg_m2_72x46x20             '
      3           ,'NIT_Bauer2008_kg_m2_72x46x20_1890-2000  '
      4           ,'OCA_Koch2008_kg_m2_72x46x20_1890-2000   '
@@ -3704,8 +3738,8 @@ C     ------------------------------------------------------------------
       logical qexist
       INTEGER, save :: IFILE=11, IFIRST=1, JYRNOW=0
 
-      INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
-      REAL*8 WTANI,WTOCB,WTBCB,wt75,swti,swtj,cwti,cwtj,xmi,wtmi,wtmj
+      INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iy,jy,iyc,jyc,iyp,jyp
+      REAL*8 wti,wtj,cwti,cwtj,pwti,pwtj,xmi,wtmi,wtmj
       REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
       REAL*8 xsslt,byz ! ,xdust
       IF(IFIRST==1) THEN
@@ -3750,7 +3784,7 @@ C                                       --------------------------------
       DO 106 IDD=1,12
       DO 106 M=1,12
   106 READ (IFILE) XTITLE,BCBDD(:,:,:,M,IDD)
-      call closeunit (ifile)      
+      call closeunit (ifile)
 C**** Prepare for aerosol indirect effect parameterization:
 C     - Collect the monthly aerosol number densities (an) for the time
 C       independent aerosols (desert dust and sea salt)       an:  /cm^3
@@ -3782,8 +3816,8 @@ c      anfix(:,:,0) = anfix(:,:,12) ; md1850(:,:,:,0) = md1850(:,:,:,12)
 
       IFIRST=0
       ENDIF
-
-
+C                                                   0            12
+C     Collect 13 months of data for time period Dec/15/(yr-1)-Dec/15/yr:
 C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
 C     ------------------------------------------------------------------
       if(JYEARA<0) then
@@ -3794,80 +3828,71 @@ C     ------------------------------------------------------------------
 
       IF(JYEARX==JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
 
-      DO 114 M=1,12
-      A6YEAR2(:,:,:,M,1) = 0.
+      DO M=1,12
       A6YEAR2(:,:,:,M,2) = SSADD(:,:,:,M)*1000*DRYM2G(2) !*AERMIX(3)
-      A6YEAR2(:,:,:,M,3) = 0.
-      A6YEAR2(:,:,:,M,4) = 0.
-      A6YEAR2(:,:,:,M,5) = 0.
-      A6YEAR2(:,:,:,M,6) = 0.
-  114 CONTINUE
-!****                                   Define 1849 Background  Dec data
-!      DO N=1,6
-!        A6YEAR2(:,:,:,0,N)=A6YEAR2(:,:,:,12,N)
-!      END DO
+      END DO
+      A6YEAR2(:,:,:,0,2) = A6YEAR2(:,:,:,12,2)
+!****
 
       IF(JYEARX < 1890) THEN   !   (use 1890)
-       DO M=1,12          !    Add time dependent JYEAR SUI,OCI,BCI
-       A6YEAR2(:,:,:,M,1) = A6YEAR2(:,:,:,M,1)+
-     +                 SULDD(:,:,:,M,1)*1000*DRYM2G(1) !*AERMIX( 8)
-       A6YEAR2(:,:,:,M,3) = A6YEAR2(:,:,:,M,3)+
-     +                 NITDD(:,:,:,M,1)*1000*DRYM2G(3) !*AERMIX( 4)
-       A6YEAR2(:,:,:,M,4) = A6YEAR2(:,:,:,M,4)+
-     +                 OCADD(:,:,:,M,1)*1000*DRYM2G(4)  !*AERMIX(10)
-       A6YEAR2(:,:,:,M,5) = A6YEAR2(:,:,:,M,5)+
-     +                 BCADD(:,:,:,M,1)*1000*DRYM2G(5)  !*AERMIX(11)
-       A6YEAR2(:,:,:,M,6) = A6YEAR2(:,:,:,M,6)+
-     +                 BCBDD(:,:,:,M,1)*1000*DRYM2G(6)  !*AERMIX(13)
-       END DO
-      
-       ELSE IF(JYEARX > 2000) THEN   !   (use 1890)
-       DO M=1,12          !    Add time dependent JYEAR SUI,OCI,BCI
-       A6YEAR2(:,:,:,M,1) = A6YEAR2(:,:,:,M,1)+
-     +                 SULDD(:,:,:,M,12)*1000*DRYM2G(1) !*AERMIX( 8)
-       A6YEAR2(:,:,:,M,3) = A6YEAR2(:,:,:,M,3)+
-     +                 NITDD(:,:,:,M,12)*1000*DRYM2G(3) !*AERMIX( 4)
-       A6YEAR2(:,:,:,M,4) = A6YEAR2(:,:,:,M,4)+
-     +                 OCADD(:,:,:,M,12)*1000*DRYM2G(4)  !*AERMIX(10)
-       A6YEAR2(:,:,:,M,5) = A6YEAR2(:,:,:,M,5)+
-     +                 BCADD(:,:,:,M,12)*1000*DRYM2G(5)  !*AERMIX(11)
-       A6YEAR2(:,:,:,M,6) = A6YEAR2(:,:,:,M,6)+
-     +                 BCBDD(:,:,:,M,12)*1000*DRYM2G(6)  !*AERMIX(13)
+       DO M=0,12          !    Add time dependent JYEAR SUI,OCI,BCI
+       N=M    ; if(M==0) N=12
+       A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,1)*1000*DRYM2G(1) !*AERMIX( 8)
+       A6YEAR2(:,:,:,M,3) = NITDD(:,:,:,N,1)*1000*DRYM2G(3) !*AERMIX( 4)
+       A6YEAR2(:,:,:,M,4) = OCADD(:,:,:,N,1)*1000*DRYM2G(4) !*AERMIX(10)
+       A6YEAR2(:,:,:,M,5) = BCADD(:,:,:,N,1)*1000*DRYM2G(5) !*AERMIX(11)
+       A6YEAR2(:,:,:,M,6) = BCBDD(:,:,:,N,1)*1000*DRYM2G(6) !*AERMIX(13)
        END DO
 
-      ELSE IF(JYEARX.ge.1890.and.JYEARX.LE.2000) THEN           
-      IYS=INT((JYEARX-1890)/10.d0)+1
-      JYS=IYS+1
-      SWTJ=(JYEARX-1890)/10.d0-INT((JYEARX-1890)/10.d0)
-      SWTI=1.d0-SWTJ
-c     CALL STREND(JYEARX,IYS,JYS,SWTI,SWTJ)
-      DO 141 M=1,12            !    Add time dependent JYEAR 
-      DO 141 L=1,20            !   AERMIX scalings are removed
-      DO 141 J=1,46
-      DO 141 I=1,72
-      A6YEAR2(I,J,L,M,1)=A6YEAR2(I,J,L,M,1)+1000.D0*DRYM2G(1)*
-     +  (SWTI*SULDD(I,J,L,M,IYS)+SWTJ*SULDD(I,J,L,M,JYS)) !*AERMIX( 8)
-      A6YEAR2(I,J,L,M,3)=A6YEAR2(I,J,L,M,3)+1000.D0*DRYM2G(3)*
-     +  (SWTI*NITDD(I,J,L,M,IYS)+SWTJ*NITDD(I,J,L,M,JYS))
-      A6YEAR2(I,J,L,M,4)=A6YEAR2(I,J,L,M,4)+1000.D0*DRYM2G(4)*
-     +  (SWTI*OCADD(I,J,L,M,IYS)+SWTJ*OCADD(I,J,L,M,JYS))
-      A6YEAR2(I,J,L,M,5)=A6YEAR2(I,J,L,M,5)+1000.D0*DRYM2G(5)*
-     +  (SWTI*BCADD(I,J,L,M,IYS)+SWTJ*BCADD(I,J,L,M,JYS))
-      A6YEAR2(I,J,L,M,6)=A6YEAR2(I,J,L,M,6)+1000.D0*DRYM2G(6)*
-     +  (SWTI*BCBDD(I,J,L,M,IYS)+SWTJ*BCBDD(I,J,L,M,JYS))
-      IF(A6YEAR2(I,J,L,M,1) < 0.) A6YEAR2(I,J,L,M,1)=0.
-      IF(A6YEAR2(I,J,L,M,3) < 0.) A6YEAR2(I,J,L,M,3)=0.
-      IF(A6YEAR2(I,J,L,M,4) < 0.) A6YEAR2(I,J,L,M,4)=0.
-      IF(A6YEAR2(I,J,L,M,5) < 0.) A6YEAR2(I,J,L,M,5)=0.
-      IF(A6YEAR2(I,J,L,M,6) < 0.) A6YEAR2(I,J,L,M,6)=0.
-  141 CONTINUE
+      ELSE IF(JYEARX > 2000) THEN   !   (use 1890)
+       DO M=0,12          !    Add time dependent JYEAR SUI,OCI,BCI
+       N=M   ; if(M==0) N=12
+       iy=12 ; if(M==0) iy=11
+       A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,iy)*1000*DRYM2G(1) !*AERMIX( 8)
+       A6YEAR2(:,:,:,M,3) = NITDD(:,:,:,N,iy)*1000*DRYM2G(3) !*AERMIX( 4)
+       A6YEAR2(:,:,:,M,4) = OCADD(:,:,:,N,iy)*1000*DRYM2G(4) !*AERMIX(10)
+       A6YEAR2(:,:,:,M,5) = BCADD(:,:,:,N,iy)*1000*DRYM2G(5) !*AERMIX(11)
+       A6YEAR2(:,:,:,M,6) = BCBDD(:,:,:,N,iy)*1000*DRYM2G(6) !*AERMIX(13)
+       END DO
+
+      ELSE  !  IF(JYEARX.ge.1890.and.JYEARX.LE.2000) THEN
+       iyc=INT((JYEARX-1890)/10.d0)+1   ! current year
+       jyc=iyc+1
+       cwtj=(JYEARX-1890)/10.d0-INT((JYEARX-1890)/10.d0)
+       cwti=1.d0-cwtj
+       iyp=INT((JYEARX-1891)/10.d0)+1   ! previous year
+       jyp=iyp+1
+       cwtj=(JYEARX-1891)/10.d0-INT((JYEARX-1891)/10.d0)
+       if(JYEARX==1890) then
+        iyp=1 ; jyp=1 ; pwtj=0
+       end if
+       pwti=1.d0-pwtj
+       DO 141 M=0,12            !    Add time dependent JYEAR
+       wti=cwti ; if (m==0) wti=pwti
+       wtj=cwtj ; if (m==0) wtj=pwtj
+       iy =iyc  ; if (m==0) iy =iyp
+       jy =jyc  ; if (m==0) jy =jyp
+       DO 141 L=1,20            !   AERMIX scalings are removed
+       DO 141 J=1,46
+       DO 141 I=1,72
+       A6YEAR2(I,J,L,M,1) = 1000.D0*DRYM2G(1)* ! AERMIX( 8)*
+     +  (WTI*SULDD(I,J,L,M,IY)+WTJ*SULDD(I,J,L,M,JY))
+       A6YEAR2(I,J,L,M,3) = 1000.D0*DRYM2G(3)* ! AERMIX( 4)*
+     +  (WTI*NITDD(I,J,L,M,IY)+WTJ*NITDD(I,J,L,M,JY))
+       A6YEAR2(I,J,L,M,4) = 1000.D0*DRYM2G(4)* ! AERMIX(10)*
+     +  (WTI*OCADD(I,J,L,M,IY)+WTJ*OCADD(I,J,L,M,JY))
+       A6YEAR2(I,J,L,M,5) = 1000.D0*DRYM2G(5)* ! AERMIX(11)*
+     +  (WTI*BCADD(I,J,L,M,IY)+WTJ*BCADD(I,J,L,M,JY))
+       A6YEAR2(I,J,L,M,6) = 1000.D0*DRYM2G(6)* ! AERMIX(13)*
+     +  (WTI*BCBDD(I,J,L,M,IY)+WTJ*BCBDD(I,J,L,M,JY))
+  141  CONTINUE
       ENDIF
       JYRNOW=JYEARX
-c     if(jyeara<0) then  ! cyclic case
-c       DO N=1,6
-c         A6YEAR2(:,:,:,0,N)=A6YEAR2(:,:,:,12,N)
-c       END DO
-c     end if
+      if(jyeara<0) then  ! cyclic case
+        DO N=1,6
+          A6YEAR2(:,:,:,0,N)=A6YEAR2(:,:,:,12,N)
+        END DO
+      end if
 
 C      A6JDAY is interpolated daily from A6YEAR seasonal data via JJDAYA
 C      -----------------------------------------------------------------
@@ -3905,41 +3930,6 @@ c      end do
 
       RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
       END SUBROUTINE UPDAER2
-
-
-
-      REAL*8 FUNCTION GLOPOP(JYEAR)
-      IMPLICIT none
-
-C     ----------------------------------------------------------------
-C     GLOPOP = normalized global population trend set to unity in 1990
-C              based on UN statistics & population projections to 2050
-C
-C     GLOPOP = 0.000 for 1850 and earlier
-C            = 1.000 for 1990
-C            = 1.658 for 2050 and later
-C     ----------------------------------------------------------------
-
-      INTEGER, intent(in) :: jyear
-      REAL*8 :: GPNORM = 5.27-1.26 ,DNGPOP(21), GPOP(21) = (/
-C               1850                     1900                     1950
-     A          1.26,1.33,1.41,1.49,1.57,1.65,1.75,1.86,2.07,2.30,2.52
-C                                        2000                     2050
-     B              ,3.02,3.70,4.44,5.27,6.06,6.79,7.50,8.11,8.58,8.91/)
-      INTEGER i,iy
-      REAL*8 xy,dy
-
-      DO 110 I=1,21
-      DNGPOP(I)=(GPOP(I)-GPOP(1))/GPNORM
-  110 CONTINUE
-      XY=(JYEAR-1840)/10.D0
-      IY=XY
-      DY=XY-IY
-      if (IY <  1) then ; IY =  1 ; DY = 0 ; endif
-      if (IY > 20) then ; IY = 20 ; DY = 1 ; endif
-      GLOPOP=DNGPOP(IY)+DY*(DNGPOP(IY+1)-DNGPOP(IY))
-      RETURN
-      END FUNCTION GLOPOP
 
       SUBROUTINE SETDST
       IMPLICIT NONE
