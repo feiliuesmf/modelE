@@ -1,11 +1,73 @@
 
 c****
-      program testregrid
+cc      program testregrid
 cc      call test_zonal_loop()    ! tests parallel zonal mean code, using rolled loops
 cc      call test_zonal_unrolled() ! tests parallel zonal mean code, using unrolled loops
-      call test_regrid()        ! tests parallel regridding code
+cc      call test_regrid()        ! tests parallel regridding code
 cc     call offregrid()    ! tests offline regridding for input file
-      end program testregrid
+cc      end program testregrid
+
+
+c****
+      subroutine init_grid_temp()
+      use regrid_com
+      use mpp_mod
+      use mpp_domains_mod
+      use fv_mp_mod, only : mp_start,mp_stop,domain_decomp
+      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+      use fv_mp_mod, only : gid, domain
+      use fv_grid_utils_mod, only : grid_utils_init
+      use fv_arrays_mod, only: fv_atmos_type
+      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
+     &     dx, dy, dxa, dya, dxc, dyc, grid_type
+      use fv_control_mod, only : uniform_ppm, c2l_ord
+
+      implicit none
+      integer :: npx,npy,npes,ng,ndims,rootpe
+      integer :: commID
+      integer, dimension(:), allocatable :: pelist
+      integer :: l,npz
+      type(fv_atmos_type) :: atm
+      character*80 :: grid_name = 'Gnomonic'
+      character*120:: grid_file = 'Inline', ofi
+      logical :: non_ortho
+      integer, parameter :: nedge=4 ! number of edges on each face
+      integer :: nij_latlon,nc2,loctile
+      real*8 :: gsum
+      integer :: itile,fid,vid,srt(3),cnt(3),status,ikey,jlat,i,j
+
+c
+c     Initialize grid and domain decomposition
+c
+      call mpp_init(MPP_VERBOSE)
+c code copied from fv_init:
+      npes = mpp_npes()
+      allocate(pelist(npes))
+      call mpp_get_current_pelist( pelist, commID=commID )
+      call mp_start(commID)
+      write(6,*) 'rootpe= ',mpp_root_pe()
+c      npx = 90; npy = npx ! 1x1 resolution
+      npx = 48; npy = npx 
+      
+      ng = 3 ! number of ghost zones required
+      call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
+
+      ndims = 2
+      npz = 5
+      call init_grid(atm,grid_name,grid_file,
+     &     npx+1, npy+1, npz, ndims, ntiles, ng)
+
+      non_ortho=.true.
+      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
+     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
+     &     uniform_ppm, grid_type, c2l_ord)
+
+c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
+
+      rootpe=mpp_root_pe()
+
+      end subroutine init_grid_temp
+c****
 
 
 c****
@@ -318,9 +380,6 @@ c****
      *     //"C"//trim(icch)//"-"//trim(jcch)//".nc"
       write(*,*) "filename=",exchfile
 
-c      exchfile="exexch.nc"
-
-
 c      
 c Read weights
 c
@@ -337,19 +396,29 @@ c     Broadcast value of ncells & Allocate arrays with size
 c     depending on ncells on each processor
       
 
-      write(6,*) "HERE INIT  UNROL"
+      write(6,*) "HERE INIT UNROL"
+      write(6,*) "BEF bcast GID=",gid
 
       call MPI_BCAST( ncells, 1, MPI_INTEGER, rootpe, 
      *     MPI_COMM_WORLD, ierr ) 
 
+      write(6,*) "AFTER BCAST gid  ncells",gid,ncells
 
       allocate(xgrid_area(ncells))
-      allocate(ijcub(2,ncells))
-      allocate(ijlatlon(2,ncells))
-      allocate(tile(ncells))
+      write(6,*) "xgrid ncells=",gid,ncells
 
+      allocate(ijcub(2,ncells))
+      write(6,*) "ijcub ncells=",gid,ncells
+
+      allocate(ijlatlon(2,ncells))
+      write(6,*) "ijlatlon ncells=",gid,ncells
+
+      allocate(tile(ncells))
+      write(6,*) "gid ncells=",gid,ncells 
 
       if (gid .eq. rootpe) then
+         write(6,*) "IN ROOTPE"
+
          status = nf_inq_varid(fid,'xgrid_area',vid)
          status = nf_get_var_double(fid,vid,xgrid_area)
          
@@ -1326,6 +1395,7 @@ c
 
       use mpp_mod
       use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+      use fv_mp_mod, only : gid
       use gatscat_mod
 
       implicit none
@@ -1365,6 +1435,7 @@ c
       call unpack_data(tcubglob,tcubloc)
 
       end subroutine parallel_read_regrid
+c****
 
 
 
