@@ -1,3 +1,7 @@
+! This file uses "f90_interface" m4 macros - plese follow corresponding rules.
+! You can always look at ent_mod.f to see how these macros were
+! expanded (but don't edit that file)
+
 include(f90_interface.m4)
 define(`m4_rank_list',`0,1,2')
 define(`m4_type_list',`real*8')
