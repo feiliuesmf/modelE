@@ -3835,7 +3835,7 @@ C     ------------------------------------------------------------------
 !****
 
       IF(JYEARX < 1890) THEN   !   (use 1890)
-       DO M=0,12          !    Add time dependent JYEAR SUI,OCI,BCI
+       DO M=0,12          !    Set time dependent JYEAR SU,NIT,OC,BC
        N=M    ; if(M==0) N=12
        A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,1)*1000*DRYM2G(1) !*AERMIX( 8)
        A6YEAR2(:,:,:,M,3) = NITDD(:,:,:,N,1)*1000*DRYM2G(3) !*AERMIX( 4)
@@ -3845,7 +3845,7 @@ C     ------------------------------------------------------------------
        END DO
 
       ELSE IF(JYEARX > 2000) THEN   !   (use 1890)
-       DO M=0,12          !    Add time dependent JYEAR SUI,OCI,BCI
+       DO M=0,12          !    Set time dependent JYEAR SU,NIT,OC,BC
        N=M   ; if(M==0) N=12
        iy=12 ; if(M==0) iy=11
        A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,iy)*1000*DRYM2G(1) !*AERMIX( 8)
@@ -3867,7 +3867,7 @@ C     ------------------------------------------------------------------
         iyp=1 ; jyp=1 ; pwtj=0
        end if
        pwti=1.d0-pwtj
-       DO 141 M=0,12            !    Add time dependent JYEAR
+       DO 141 M=0,12      !    Set time dependent JYEAR SU,NIT,OC,BC
        wti=cwti ; if (m==0) wti=pwti
        wtj=cwtj ; if (m==0) wtj=pwtj
        iy =iyc  ; if (m==0) iy =iyp
