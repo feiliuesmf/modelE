@@ -1065,9 +1065,10 @@ C**** REPLICATE VALUES AT POLE
 !@ver  1.0
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
-     *     ,bysha
+     *     ,bysha,pi,radian
       USE MODEL_COM
       USE GEOM, only : dlat_dg, imaxj, dxyp, axyp, areag, BYDXYP
+     &     ,lat2d,lon2d
 c      USE ATMDYN, only : CALC_AMPK
       USE RADPAR
      &  , only :  ! routines
@@ -1520,20 +1521,22 @@ C****
 !$OMP    DO SCHEDULE(DYNAMIC,2)
 !$OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
       DO 600 J=J_0,J_1
+C****
+C**** MAIN I LOOP
+C****
+      DO I=I_0,IMAXJ(J)
 C**** Radiation input files use a 72x46 grid independent of IM and JM
 C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
 c      JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
-      JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5) ! slightly more general
+c      JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5) ! slightly more general
+c      ILON=INT(.5+(I-.5)*72./IM+.5)  ! lon_index w.r.to 72x46 grid
+      ilon = 1 + int( 72d0*lon2d(i,j)/twopi )
+      jlat = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
 #ifdef ALTER_RADF_BY_LAT
       FULGAS(:)=FULGAS_orig(:)*FULGAS_lat(:,JLAT)
       FS8OPX(:)=FS8OPX_orig(:)*FS8OPX_lat(:,JLAT)
       FT8OPX(:)=FT8OPX_orig(:)*FT8OPX_lat(:,JLAT)
 #endif
-C****
-C**** MAIN I LOOP
-C****
-      DO I=I_0,IMAXJ(J)
-      ILON=INT(.5+(I-.5)*72./IM+.5)  ! lon_index w.r.to 72x46 grid
       L1 = 1                         ! lowest layer above ground
       LMR=LM+LM_REQ                  ! radiation allows var. # of layers
       JR=JREG(I,J)
