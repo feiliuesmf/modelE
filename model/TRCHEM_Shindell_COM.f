@@ -66,7 +66,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
-!@param checktracer_on logical to turn on the checktracer call
+!@param checktracer_on integer to turn on the checktracer call
 !@param correct_strat_Ox logical tourn on lower strat Ox corrections
 !@param MWabyMWw ratio of molecular weights of air/water
 !@param O3_1_fact factor to alter surface O3 that is passed to FASTJ
@@ -339,6 +339,7 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                 ,use_rad_ch4       = 0
      &                 ,use_rad_n2o       = 0
      &                 ,use_rad_cfc       = 0
+     &                 ,checktracer_on    = 0
       REAL*8 ::             ch4_init_sh   = 1.750d0,
      &                      ch4_init_nh   = 1.855d0,
      &                      pfix_CH4_S    = 1.75d-6,
@@ -356,7 +357,6 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
 #endif
 
       LOGICAL, PARAMETER :: luselb            = .false.,
-     &                      checktracer_on    = .false.,
      &                      correct_strat_Ox  = .true.
 
 C**************  V  A  R  I  A  B  L  E  S *******************  
