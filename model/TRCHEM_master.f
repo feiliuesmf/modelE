@@ -359,7 +359,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       DO I=1,IMAXJ(J)               ! >>>> MAIN I LOOP BEGINS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      if(checktracer_on) call checktracer(I,J)
+      if(checktracer_on==1) call checktracer(I,J)
       select case(which_trop)
       case(0); maxl=ltropo(I,J)
       case(1); maxl=ls1-1
@@ -887,6 +887,9 @@ c Ensure nitrogen conservation (presumably dNOx<0, others >0):
           rprodN=rprodN+changeAlkylNit
         endif
         if(rprodN > rlossN)then
+          if(rprodN == 0.)then
+            call stop_model('>> rprodN=0',255)
+          endif
           ratioN=-rlossN/rprodN
           if(changeNOx > 0.d0)     changeNOx    =changeNOx   *ratioN
           if(changeHNO3 > 0.d0)    changeHNO3   =changeHNO3  *ratioN
@@ -894,6 +897,9 @@ c Ensure nitrogen conservation (presumably dNOx<0, others >0):
           if(changeAlkylNit > 0.d0)changeAlkylNit=
      &                                           changeAlkylNit*ratioN
         else
+          if(rlossN == 0.)then
+            call stop_model('>> rlossN=0',255)
+          endif
           ratioN=rprodN/(-rlossN)
           if(changeNOx < 0.d0)     changeNOx    =changeNOx   *ratioN
           if(changeHNO3 < 0.d0)    changeHNO3   =changeHNO3  *ratioN
@@ -1309,6 +1315,7 @@ C Make sure nighttime chemistry changes are not too big:
          error=.false.
          if(changeNOx < -1.d15.OR.changeNOx > 1.d15) then
            write(*,*) 'Big chg@ Itime,I,J,L,NOx ',Itime,I,J,L,changeNOx
+           write(*,*) 'rlossN,rprodN,ratioN =',rlossN,rprodN,ratioN
            error=.true.
          end if
          if(changeHNO3 < -1.d15.OR.changeHNO3 > 1.d15) then
@@ -2286,7 +2293,16 @@ C**** Local parameters and variables and arguments:
       DATA checkNeg /.true./
       DATA checkNan /.true./
       DATA checkOx  /.true./
-      DATA checkmax /.false./
+      DATA checkmax /.true./
+      integer,dimension(4) ::  error
+      integer :: is_error
+      character*80, dimension(4) :: message
+
+      message(1)='Ox too big.'
+      message(2)='A tracer is too big.'
+      message(3)='A tracer is negative.'
+      message(4)='A tracer is NaN.'
+      error(:)=0
 
       IF(i == 1.and.j == 1)
      & WRITE(6,*) 'WARNING: checktracer call is active.'
@@ -2296,36 +2312,33 @@ C**** Local parameters and variables and arguments:
       case default; call stop_model('which_trop problem 7',255)
       end select
 
-      IF(checkmax)
-     &call stop_model('checktracer: set tlimit for tracers 11->25',255)
-C     please (re)set tlimit values for tracers 11 through 15 in the
-C     data statement above. Then, please delete the above stop.
-
 C check if ozone gets really big:
        IF(checkOx) THEN
        do L=1,maxL
          if(y(n_Ox,L)/y(nM,L) > 1.d-5) then
            write(6,*)'Ox @ I,J,L,Ox,Itime:',I,J,L,y(n_Ox,L),Itime
-           call stop_model('checktracer: Ox too big in tropo.',255)
+           error(1)=1
          end if
        end do
 #ifdef SHINDELL_STRAT_CHEM
        do L=maxL+1,LM
          if(y(n_Ox,L)/y(nM,L) > 1.5d-5) then
            write(6,*)'Ox @ I,J,L,Ox,Itime:',I,J,L,y(n_Ox,L),Itime
-           call stop_model('checktracer: Ox too big in strato.',255)
+           error(1)=1
          end if
        end do
 #endif
        END IF
        
 c general check on maximum of tracers:
+!!! note, this is only as useful as the limits you set are appropriate!
       IF(checkmax) THEN
       do L=1,LM
        do igas=1,ntm_chem
         if(y(igas,L)/y(nM,L) > tlimit(igas)) then
-          write(6,*) trname(igas),'@ I,J,L,Y :',I,J,L,y(igas,L)
-          call stop_model('checktracer: tracer upper limit',255)
+          write(6,*) trname(igas),'@ I,J,L,Y :',
+     &    I,J,L,y(igas,L)/y(nM,L)
+          error(2)=1
         end if
        end do
       end do
@@ -2338,7 +2351,7 @@ c check for negative tracers:
         if(y(igas,L) < 0.d0) THEN
           write(6,*)trname(igas),
      &    'negative @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
-          call stop_model('checktracer: tracer is negative',255)
+          error(3)=1
         end if
        enddo
       end do
@@ -2351,11 +2364,21 @@ c check for unreal (not-a-number) tracers (maybe SGI only?):
         if(.NOT.(y(igas,L) > 0.d0.OR.y(igas,L) <= 0.d0)) THEN
          write(6,*)trname(igas),
      &   'is not a number @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
-         call stop_model('checktracer: tracer is NaN',255)
+         error(4)=1
         end if
        enddo
       end do
       END IF
+
+      is_error=0
+      do L=1,4
+        if (error(L)>0)then
+          is_error=1
+          write(6,*)trim(message(L))
+        endif
+      enddo
+      if(is_error)call stop_model('error in checktracer',255)
+   
       RETURN
 
       END SUBROUTINE checktracer
