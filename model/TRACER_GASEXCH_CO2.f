@@ -38,6 +38,7 @@
 
       contains
 
+!------------------------------------------------------------------------------
       subroutine alloc_tracer_gasexch_com
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
@@ -51,6 +52,7 @@
       end subroutine alloc_tracer_gasexch_com
 
 
+!------------------------------------------------------------------------------
       subroutine gather_tracer_gasexch_com_arrays
 
       USE HYCOM_DIM, only : ogrid
@@ -60,6 +62,7 @@
 
       end subroutine gather_tracer_gasexch_com_arrays
 
+!------------------------------------------------------------------------------
       subroutine scatter_tracer_gasexch_com_arrays
 
       USE HYCOM_DIM, only : ogrid
@@ -71,7 +74,81 @@
 
       END MODULE TRACER_GASEXCH_COM
 
-c ---------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+      subroutine init_gasexch_co2
+
+!this routine is called from inside OCEAN_hycom.f and only from ROOT 
+!therefore arrays here have to be global
+
+      USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
+      USE HYCOM_DIM, only : ogrid
+      USE hycom_atm, only : GTRACER, focean
+      USE HYCOM_SCALARS, only : nstep
+      USE HYCOM_CPLER, only : ssto2a
+
+      USE PARAM, only: get_param
+
+
+      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+
+      USE TRACER_GASEXCH_COM, only : atrac
+
+      USE obio_com, only : pCO2 !=>pCO2_glob
+      !!!USE obio_com, only : pCO2
+      USE obio_forc, only : atmCO2
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, pack_data, unpack_data
+
+      implicit none
+      real*8, allocatable :: pCO2_glob(:,:)
+      integer nt,i,j
+
+      call get_param("atmCO2",atmCO2)
+
+      if (AM_I_ROOT()) then
+        allocate( pCO2_glob(idm,jdm))
+      endif
+      call pack_data(ogrid, pCO2, pCO2_glob)
+
+      if (AM_I_ROOT()) then
+
+      do j=1,jdm
+      do i=1,idm
+       write(525,'(a,3i5,e12.4)')'inicon, pCO2=',
+     .       nstep,i,j,pCO2(i,j)
+      enddo
+      enddo
+
+      do j=1,jja
+      do i=1,iia
+       write(*,'(a,3i5,e12.4)')'inicon, atrac=',
+     .       nstep,i,j,atrac(i,j,1)
+      enddo
+      enddo
+
+      do j=1,jja
+      do i=1,iia
+      if (focean(i,j).gt.0.) then
+         do nt=1,ntm
+            GTRACER(nt,1,i,j)=atrac(i,j,nt)
+         enddo
+         write(*,'(a,3i5,2e12.4)')'inicon, GTRACER=',
+     .    nstep,i,j,GTRACER(1,1,i,j),atrac(i,j,1)
+      endif
+      enddo
+      enddo
+
+      endif ! i am root
+
+      call unpack_data(ogrid, pCO2_glob, pCO2)
+      if (AM_I_ROOT()) then
+        deallocate(pCO2_glob)
+      endif
+
+
+      end subroutine init_gasexch_co2
+
 c ---------------------------------------------------------------------
 
       SUBROUTINE TRACERS_GASEXCH_CO2_Natassa_PBL(tg1,ws,

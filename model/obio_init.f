@@ -55,7 +55,7 @@ c  Computes constants over entire run of model, reads in required
 c  data files, and otherwise obtains one-time-only information
 c  necessary for the run.
 
-      call get_param("atmCO2",atmCO2)
+      !!!call get_param("atmCO2",atmCO2)
  
 c  Degrees to radians conversion
       pi = dacos(-1.0D0)

@@ -191,6 +191,7 @@ c     data itest,jtest/163,133/
 c     data itest,jtest/104,46/
 c     data itest,jtest/171,1/     !southern hemisphere
       data itest,jtest/122,1/     !greenwich at equator
+      data itest,jtest/160,40/    !southern ocean       
 c
 c ---      equatn   --  the i index of the equator
 c

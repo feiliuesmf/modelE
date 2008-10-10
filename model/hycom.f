@@ -292,6 +292,14 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
               atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
      .             + TRGASEX_loc(nt,1,ia,ja) ! in mol/m2/s
      .             * dtsrc/(real(nhr)*3600.)
+            write(*,'(a,3i5,2e12.4)')'hycom, atracflx: ',
+     .      nstep,ia,ja,TRGASEX_loc(nt,1,ia,ja),atracflx_loc(ia,ja,nt)
+
+!       if (ia.eq.iatest.and.ja.eq.jatest)
+!       if (nstep.eq.25)
+            write(521,'(a,3i5,e12.4)')'hycom, gtrac: ',
+     .      nstep,ia,ja, GTRACER(nt,1,ia,ja)
+
             enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -353,6 +361,12 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
       call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) !tracer flux
+      enddo
+      do j=1,jdm
+      do i=1,idm
+      write(*,'(a,3i5,2e12.4)')'hycom, tracflx: ',
+     .      nstep,i,j,tracflx(i,j,nt)
+      enddo
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -1188,7 +1202,7 @@ c$OMP PARALLEL DO
       !gas exchange flux.
 #ifdef TRACERS_GASEXCH_ocean_CFC
             do nt=1,ntm
-              otrac(i,j,nt)=otrac(i,j,nt)
+              otrac(i,j,nt)=otrac(i,j,nt)  !???? do we need to accumulate here?
      .             +tracer(i,j,1,nt)
      .             *baclin/(3600.*real(nhr))
             enddo
@@ -1197,10 +1211,10 @@ c$OMP PARALLEL DO
       !in this case, the tracer is not really active ocean tracer, because it is being
       !handled by the bgcm and it is only at the surface
             do nt=1,ntm
-              otrac(i,j,nt)=otrac(i,j,nt)
+              otrac(i,j,nt)=otrac(i,j,nt)      !???? do we need to accumulate here?
+                                               !it's ok because otrac_before=0
      .             +pCO2(i,j)   !pCO2 is in ppmv(uatm)
      .             *baclin/(3600.*real(nhr))
-              !write(912,*) pCO2(i,j),baclin,nhr,otrac(i,j,nt)
             enddo
 #endif
           enddo
@@ -1253,7 +1267,6 @@ css   call iceo2a(omlhc,mlhc)
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
       call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
-      !write(911,*) sum(otrac(:,:,nt)), sum(atrac(:,:,nt))
       enddo
 #endif
 #ifdef CHL_from_OBIO
@@ -1284,8 +1297,8 @@ c$OMP PARALLEL DO PRIVATE(tf)
         GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
 !       if (ia.eq.iatest.and.ja.eq.jatest)
 !       if (nstep.eq.25)
-!    .  write(6,'(a,3i5,e12.4)')'hycom, atrac at nstep,i,j=',
-!    .      nstep,ia,ja,atrac(ia,ja,nt)
+            write(521,'(a,3i5,e12.4)')'hycom, atrac: ',
+     .      nstep,ia,ja,atrac(ia,ja,nt)
         enddo
 #endif
         tf=tfrez(sss(ia,ja),0.)

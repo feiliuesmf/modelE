@@ -91,7 +91,7 @@ cddd     &     scatter_hycom_arrays
         !note: we do not initialize obio_P,det and car
         call obio_bioinit(nn)
 
-        diagno_bio=.true.
+        !diagno_bio=.true.
         !write(0,*) "obio: cold init ok"
        endif  ! 
 
@@ -182,6 +182,7 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
        !atmFe(i,j)=0.
 
 !!!!
+!!!#define DEBUG_OBIO_MODEL
 #ifdef DEBUG_OBIO_MODEL
        write(iout,*) "ij",i,j
 #ifdef OBIO_RAD_coupling

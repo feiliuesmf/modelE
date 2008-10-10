@@ -24,6 +24,7 @@
       USE HYCOM_SCALARS, only : delt1, salmin
      &    , nstep0, nstep, time0, time
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
+      USE param
       implicit none
 
       logical, intent(in) :: iniOCEAN
@@ -39,6 +40,7 @@
       
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
+
 c
 c --- increase temp by 2 deg
 c     do 21 j=1,jj
@@ -63,9 +65,6 @@ c
         IF (FOCEAN(I,J).gt.0.) THEN
           GTEMP(1,1,I,J)=asst(I,J)
           gtempr(1,I,J)=atempr(I,J)
-#ifdef TRACERS_GASEXCH_ocean
-        GTRACER(1:ntm,1,I,J)=atrac(I,J,1:ntm)
-#endif
         END IF
       END DO
       END DO
@@ -92,6 +91,11 @@ c
 !!      endif
 
       endif ! AM_I_ROOT
+
+#if defined(TRACERS_GASEXCH_ocean_CO2) && defined(TRACERS_OceanBiology)
+      call init_gasexch_co2
+#endif
+
       call scatter_atm
       call scatter_hycom_arrays
 
@@ -160,7 +164,7 @@ c
       USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
       USE HYCOM_DIM, only : ogrid
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
-     &     ,onem
+     &     ,onem,itest,jtest
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only : atrac
 #endif
@@ -204,12 +208,11 @@ c
         allocate( avgq_glob(idm,jdm,kdm),tirrq3d_glob(idm,jdm,kdm),
      &       ihra_glob(idm,jdm), gcmax_glob(idm,jdm,kdm) )
       endif
-      call pack_data(ogrid, avgq, avgq_glob)
+      call pack_data(ogrid, avgq,    avgq_glob)
       call pack_data(ogrid, tirrq3d, tirrq3d_glob)
-      call pack_data(ogrid, ihra, ihra_glob)
-      call pack_data(ogrid, gcmax, gcmax_glob)
+      call pack_data(ogrid, ihra,    ihra_glob)
+      call pack_data(ogrid, gcmax,   gcmax_glob)
 #endif
-
 
       ! move to global atm grid
       call gather_atm
@@ -236,10 +239,10 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a5)')
-     *     'atrac'
+     *     'atrac'    
 #endif
 #ifdef TRACERS_OceanBiology
-      write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
+      write(*,'(a,i9,f9.0)')'chk OCN BIO write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a23)')
      *     'avgq,gcmax,tirrq3d,ihra'
 #endif
@@ -263,32 +266,32 @@ css#endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1a k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),atrac(10,20,1)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1a k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),atrac(10,20,1)
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -332,13 +335,13 @@ c
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1b k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),atrac(10,20,1)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -349,13 +352,13 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1b k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),atrac(10,20,1)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -366,8 +369,8 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -414,21 +417,20 @@ c
               GO TO 10
             END IF
 
-      go to 222
+      if (nstep.eq.0)go to 222   !for a cold start the AIC file does not have this stuff.
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       write(*,'(a,i9,f9.0)')
      &     'chk GASEXCH read at nstep/day=',nstep0,time0
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst2 k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),atrac(10,20,1)
       enddo
-      write(*,*)'atrac at (36,23) =',atrac(36,23,1)
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -438,13 +440,13 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst2 k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),atrac(10,20,1)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -455,8 +457,8 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-      i=100
-      j=100
+      i=itest
+      j=jtest
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),

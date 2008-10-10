@@ -138,9 +138,9 @@ C****
 #endif
 !!! nstep from hicom is currently not used (and it shouldn't be used outside
 !!! of hycom)
-cddd#ifdef TRACERS_GASEXCH_ocean
-cddd      USE HYCOM_SCALARS, only: nstep
-cddd#endif
+#ifdef TRACERS_GASEXCH_ocean
+      USE HYCOM_SCALARS, only: nstep
+#endif
       USE SOIL_DRV, only: earth
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
@@ -625,6 +625,7 @@ C**** set defaults
           trgrnd(nx)=gtracer(n,itype,i,j)
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
+          write(522,*)  i,j,gtracer(n,itype,i,j)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
@@ -921,9 +922,9 @@ C****
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
      .               * axyp(i,j)*ptype*dtsurf
 
-!    . write(*,'(a,3i5,5e12.4)')'SURFACE: ',
-!    .    nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
-!    .              pbl_args%alpha_gas,trgrnd(nx)
+       write(*,'(a,3i5,6e12.4)')'SURFACE: ',
+     .    nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
+     .              pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
 
 #endif
        END IF
