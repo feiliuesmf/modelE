@@ -46,7 +46,7 @@
      &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry,which_trop,
      &     PI_run,PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other,
      &     PIratio_indus,PIratio_bburn,CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,
-     &     rad_FL,use_rad_ch4
+     &     rad_FL,use_rad_ch4,checktracer_on
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
@@ -200,6 +200,7 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("PIratio_indus",PIratio_indus)
       call sync_param("PIratio_bburn",PIratio_bburn)
       call sync_param("rad_FL",rad_fl)
+      call sync_param("checktracer_on",checktracer_on)
       call sync_param("use_rad_ch4",use_rad_ch4)
 #ifdef SHINDELL_STRAT_CHEM
       call sync_param("use_rad_n2o",use_rad_n2o)
