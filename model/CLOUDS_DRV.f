@@ -27,7 +27,11 @@
      *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
+      USE DIAG_COM, only : 
+#ifdef CUBE_GRID
+     *     zonalmean,area_latband,
+#endif
+     *     aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
      *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
@@ -109,8 +113,8 @@
       USE FILEMANAGER, only: openunit,closeunit
 
 #ifdef CUBE_GRID
-      use zonal_com, only: ic,jc,ndomains,az1=>az12,
-     *     az2=>az22,az3=>az23,keymax,ncells
+      use regrid_com, only: ic,jc,ntiles,az1=>az12,
+     *     az2=>az22,az3=>az32,maxkey,ncells
 #endif
       IMPLICIT NONE
       integer rc
@@ -137,6 +141,8 @@
 
       INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
       INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG,I_0,I_1
+      INTEGER :: iidx1,iidx2
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
@@ -186,7 +192,8 @@ Cred*                   end Reduced Arrays 1
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
+
+c      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
       REAL*8 :: randxx
@@ -210,9 +217,7 @@ C**** Initialize
       idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
       idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
 
-#ifdef CUBE_GRID
-      CALL GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
-#else
+
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H,
@@ -220,7 +225,9 @@ C**** define local grid
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
-#endif
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
 
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
@@ -527,9 +534,9 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
         END DO
 #ifdef CUBE_GRID
         val=PRCPMC*FTYPE(IT,I,J)
-        call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
-     *       az12,az22,az32,azonal(:,J_PRCPMC,IT),area_latband(:),
-     *       keymax)
+        call zonalmean_cs_loop(val,I,J,JC,JM,
+     *       az1,az2,az3,zonalmean(:,J_PRCPMC,IT),area_latband(:),
+     *       maxkey)
 #else
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -547,12 +554,12 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
 #ifdef CUBE_GRID
              DO iidx1=1,n_idx1
              val=tmp(idx1(iidx1))
-             call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
-     *       az12,az22,az32, hdiurn_part(:,idx1(iidx1),KR),
-     *        area_latband(:),keymax)
-             call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
-     *       az12,az22,az32, adiurn_part(:,idx1(iidx1),KR),
-     *        area_latband(:),keymax)
+             call zonalmean_cs_loop(val,I,J,JC,JM,
+     *       az1,az2,az3, hdiurn_part(:,idx1(iidx1),KR),
+     *        area_latband(:),maxkey)
+             call zonalmean_cs_loop(val,I,J,JC,JM,
+     *       az1,az2,az3, adiurn_part(:,idx1(iidx1),KR),
+     *        area_latband(:),maxkey)
              END DO
 #else
             hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
@@ -754,9 +761,9 @@ C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
 #ifdef CUBE_GRID
         val=PRCPSS*FTYPE(IT,I,J)
-        call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
-     *       az12,az22,az32,azonal(:,J_PRCPSS,IT),area_latband(:),
-     *       keymax)
+        call zonalmean_cs_loop(val,I,J,JC,JM,
+     *       az1,az2,az3,zonalmean(:,J_PRCPSS,IT),area_latband(:),
+     *       maxkey)
 #else
          DO IT=1,NTYPE
            AJ(J,J_PRCPSS,IT)=AJ(J,J_PRCPSS,IT)+PRCPSS*FTYPE(IT,I,J)
@@ -772,12 +779,12 @@ C**** Accumulate diagnostics of LSCOND
 #ifdef CUBE_GRID
              DO iidx2=1,n_idx2
              val=tmp(idx2(iidx2))
-             call zonalean_cs_loop(val,I,J,I_1,J_1,JM,
-     *       az12,az22,az32, hdiurn_part(:,idx2(iidx2),KR),
-     *        area_latband(:),keymax)
-             call zonalean_cs_loop(val,I,J,I_1,J_1,JM,
-     *       az12,az22,az32, adiurn_part(:,idx2(iidx2),KR),
-     *        area_latband(:),keymax)
+             call zonalean_cs_loop(val,I,J,JC,JM,
+     *       az1,az2,az3, hdiurn_part(:,idx2(iidx2),KR),
+     *        area_latband(:),maxkey)
+             call zonalean_cs_loop(val,I,J,JC,JM,
+     *       az1,az2,az3, adiurn_part(:,idx2(iidx2),KR),
+     *        area_latband(:),maxkey)
              END DO
 #else
              hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
@@ -811,9 +818,9 @@ cECON *     E,E1,ep,prcpss,lhp(1)
 C**** PRECIPITATION DIAGNOSTICS
 #ifdef CUBE_GRID
         val=ENRGP*FTYPE(IT,I,J)
-        call zonalmean_cs_loop(val,I,J,I_1,J_1,JM,
-     *       az12,az22,az32,azonal(:,J_EPRCP,IT),area_latband(:),
-     *       keymax)
+        call zonalmean_cs_loop(val,I,J,JC,JM,
+     *       az1,az2,az3,zonalmean(:,J_EPRCP,IT),area_latband(:),
+     *       maxkey)
 #else
         DO IT=1,NTYPE
           AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)

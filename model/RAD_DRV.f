@@ -1187,9 +1187,9 @@ c    *     ,SNFST0,TNFST0
 #endif
 #endif
 #ifdef CUBE_GRID
-      use zonal_com, only: ic,jc,ndomains,az1=>azonal1,
-     *     az2=>azonal2,az3=>azonal3,az4=>azonal4,
-     *     az5=>azonal5,keymax,ncells
+      use regrid_com, only: ic,jc,ntiles,az1=>az11,
+     *     az2=>az21,az3=>az31,az4=>az41,
+     *     az5=>az51,maxkey,ncells
 #endif
       IMPLICIT NONE
 C
@@ -1252,7 +1252,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 #endif
 #ifdef CUBE_GRID
       REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: X
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: Xval
 
 #endif
       LOGICAL NO_CLOUD_ABOVE, set_clayilli,set_claykaol,set_claysmec,
@@ -1294,9 +1294,7 @@ C
 
 C
 C****
-#ifdef CUBE_GRID
-      call GET_CUBE(grid,I_STRT=I_0,I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
-#else
+
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -1307,7 +1305,7 @@ C****
       J_1S = grid%J_STOP_SKP
       J_0STG = grid%J_STRT_STGR
       J_1STG = grid%J_STOP_STGR
-#endif
+
 
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -2389,49 +2387,49 @@ C**** ZONAL MEANS FOR CUBED SPHERE
 
 c     Diurn_partb
 
-      X(:,:)= 1.d0-SNFS(3,:,:)/S0
+      Xval(:,:)= 1.d0-SNFS(3,:,:)/S0
 
-      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+      call zonalmean_cs_unrolled(Xval,JM,
      *     az1,az2,az3,az4,az5,
-     *     DIURN_partb(1,:,KR),keymax,0)
+     *     DIURN_partb(1,:,KR),maxkey)
 
-      X(:,:)= 1.d0-ALB(:,:,1)
+      Xval(:,:)= 1.d0-ALB(:,:,1)
 
-      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+      call zonalmean_cs_unrolled(Xval,JM,
      *     az1,az2,az3,az4,az5,
-     *     DIURN_partb(2,:,KR),keymax,0)
+     *     DIURN_partb(2,:,KR),maxkey)
 
-      X(:,:)= (SNFS(3,:,:)-SRHR(0,:,:))*CSZ2(:,:)
+      Xval(:,:)= (SNFS(3,:,:)-SRHR(0,:,:))*CSZ2
 
-      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+      call zonalmean_cs_unrolled(Xval,JM,
      *     az1,az2,az3,az4,az5,
-     *     DIURN_partb(3,:,KR),keymax,0)
+     *     DIURN_partb(3,:,KR),maxkey)
 
 c     end Diurn_partb
 
       do IT=1,NTYPE
-      X(:,:)=S0*CSZ2(:,:)*FTYPE(IT,:,:)
+      Xval(:,:)=S0*CSZ2*FTYPE(IT,:,:)
 
-      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+      call zonalmean_cs_unrolled(Xval,JM,
      *     az1,az2,az3,az4,az5,
-     *     azonal(:,J_SRINCP0,IT),keymax,1)
+     *     zonalmean(:,J_SRINCP0,IT),maxkey)
 
-      X(:,:)=(SNFS(3,:,:)*CSZ2(:,:)*FTYPE(IT,:,:)
+      Xval(:,:)=SNFS(3,:,:)*CSZ2*FTYPE(IT,:,:)
 
-      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
+      call zonalmean_cs_unrolled(Xval,JM,
      *     az1,az2,az3,az4,az5,
-     *     azonal(:,J_SRNFP0,IT),keymax,1)
+     *     zonalmean(:,J_SRNFP0,IT),maxkey)
+
+
+      
+      Xval(:,:)=(SRHR(0,:,:)*CSZ2/
+     *     (ALB(:,:,1)+1.D-20) )*FTYPE(IT,:,:)
+
+      call zonalmean_cs_unrolled(Xval,JM,
+     *     az1,az2,az3,az4,az5,
+     *     zonalmean(:,J_SRINCG,IT),maxkey)
+
       enddo
-
-      X(:,:)=(SNFS(3,:,:)*CSZ2(:,:)*FTYPE(IT,:,:)
-      X(:,:)=(SRHR(0,:,:)*CSZ2(:,:)/
-     *     (ALB(:,:,1)+1.D-20))*FTYPE(IT,:,:)
-
-      call zonalmean_cs(X,I_0,I_1,J_0,J_1,JM,IT,
-     *     az1,az2,az3,az4,az5,
-     *     azonal(:,J_SRINCG,IT),keymax,1)
-      enddo
-
 c     finish J_BRTEMP, J_TRINCG, J_HSURF, J_TRNFP0...
 
 #else

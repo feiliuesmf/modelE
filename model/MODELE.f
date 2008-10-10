@@ -11,6 +11,11 @@ CAOO   Just to test CVS
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT,pack_data
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
+#ifdef CUBE_GRID
+      USE gs_domain_decomp
+      USE regrid_com, only:init_xgrid_unrolled,init_xgrid_loop,
+     &     init_grid_temp
+#endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
       USE RANDOM
@@ -123,16 +128,21 @@ C****
 #else
 C****
 C****
+#ifdef CUBE_GRID
+C**** Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
+      call init_grid_temp()
+
+c**** Initialize gather&scatter
+      call domain_decomp_init
+      call gatscat_init
+
+c***  Initialize exchange grid for zonal means
+      call init_xgrid_unrolled()
+      call init_xgrid_loop()
+#else
       call init_app(grid,im,jm,lm)
 #endif
-
-C****
-C**** Initialize exchange grid for diagnostics
-C****
-#ifdef CUBE_GRID
-      call init_xgrid(im,jm,ic,jc)
 #endif
-
 
 #ifdef TRACERS_ON
 #ifdef RUNTIME_NTM
@@ -928,6 +938,7 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
+
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
@@ -1322,7 +1333,36 @@ C**** Use title of first record to get the date and make sure  ???
 C**** it is consistent with IHRI (at least equal mod 8760)     ???
 C****            not yet implemented but could easily be done  ???
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
-Csoon   READ (iu_AIC) XLABEL(1:80)
+
+#ifdef CUBE_GRID
+      call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),0,P,1) 
+      do J=J_0,J_1
+         do I=I_0,I_1
+            P(i,j)=P(i,j)-PTOP
+         enddo
+      enddo
+      do l=1,LM
+         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+     &        0,U(:,:,L),1) 
+      enddo
+      do l=1,LM
+         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+     &        0,V(:,:,L),1) 
+      enddo
+      do l=1,LM
+         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+     &        0,T(:,:,L),1) 
+      enddo
+      do l=1,LM
+         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+     &        0,Q(:,:,L),1) 
+      enddo
+      
+      call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),0,TSAVG,1) 
+
+c*** temporarily stop here
+      call stop_model('INPUT: start date inconsistent with data',255)
+#else
         CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,P,1) ! Psurf
         DO J=J_0,J_1
           DO I=I_0,I_1
@@ -1343,6 +1383,7 @@ Csoon   READ (iu_AIC) XLABEL(1:80)
         END DO
         CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,TSAVG,1)  ! Tsurf
       END IF
+
 C****
 C**** Derive other data from primary data if necessary - ISTART=1,2
 C****                                                    currently
@@ -1360,6 +1401,9 @@ C****                                                    currently
 
          CALL HALO_UPDATE(grid, U, FROM=NORTH)
          CALL HALO_UPDATE(grid, V, FROM=NORTH)
+#endif
+
+
 #ifdef SCM
         DO J=J_0S,J_1S
         DO I=1,IM
@@ -1763,6 +1807,14 @@ C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
       call openunit("TOPO",iu_TOPO,.true.,.true.)
+#ifdef CUBE_GRID
+      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) 
+      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) 
+      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) 
+      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLICE,1) 
+      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO,1) 
+      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE,2) 
+#else
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) ! Ocean fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) ! Orig. Lake fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) ! Earth frac. (no LI)
@@ -1770,6 +1822,7 @@ C**** Actual array is set from restart file.
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO ,1) ! Topography
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE ,2) ! Lake Depths
       ZATMO(:,J_0:J_1) = ZATMO(:,J_0:J_1)*GRAV                  ! Geopotential
+#endif
       call closeunit(iu_TOPO)
 
 C**** Check polar uniformity

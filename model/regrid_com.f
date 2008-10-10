@@ -1,8 +1,8 @@
       module REGRID_COM
       
       integer  :: ncells
-      integer,parameter:: im=288,jm=180,ntiles=6,ic=48,jc=48
-c      integer,parameter:: im=144,jm=90,ntiles=6,ic=48,jc=48
+c      integer,parameter:: im=288,jm=180,ntiles=6,ic=48,jc=48
+      integer,parameter:: im=144,jm=90,ntiles=6,ic=48,jc=48
       integer,parameter:: dom_per_tile=4   ! #domains per cube face
 
       real*8, allocatable, dimension(:) :: xgrid_area
@@ -23,6 +23,11 @@ c      integer,parameter:: im=144,jm=90,ntiles=6,ic=48,jc=48
       interface init_regrid_rootpe
       subroutine init_regrid_rootpe
       end subroutine init_regrid_rootpe
+      end interface 
+
+      interface init_grid_temp
+      subroutine init_grid_temp
+      end subroutine init_grid_temp
       end interface 
 
       interface init_xgrid_unrolled

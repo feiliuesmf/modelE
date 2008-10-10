@@ -26,7 +26,8 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
 
 #ifdef CUBE_GRID
-      REAL*8, DIMENSION(jm,KAJ, NTYPE), public :: zonalmean
+      real*8, dimension(jm,KAJ, NTYPE), public :: zonalmean
+      real*8, dimension(jm), public :: area_latband
 #endif
 
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
