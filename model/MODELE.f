@@ -2016,6 +2016,9 @@ C****
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4
       USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM, AM_I_ROOT
 c      USE ATMDYN, only : CALC_AMPK
+#ifdef NEW_COSZ
+      use RAD_COSZ0, only : update_dusk
+#endif
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,EDPY,VEDAY
       REAL*8 :: SPRESS(grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -2054,6 +2057,9 @@ C**** Default calculation (no leap, VE=Mar 21 hr 0)
       EDPY=365d0 ; VEDAY=79d0           ! Generic year
       CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
      *     ,RSDIST,SIND,COSD,LAM)
+#ifdef NEW_COSZ
+      call update_dusk
+#endif
 
       IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
 

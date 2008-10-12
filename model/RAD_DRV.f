@@ -9,6 +9,11 @@ C**** semi-random cloud overlap (computed opt.d+diagn)
 C**** to be used with R99E or later radiation  routines.  carbon/2
 C****
 
+#ifdef NEW_COSZ
+      module RAD_COSZ0 ! for dependency checks, not in the include file
+#include "cosz_new.inc"
+      end module RAD_COSZ0
+#else
       module RAD_COSZ0
 
       contains
@@ -321,6 +326,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       END subroutine COSZT
 
       end module RAD_COSZ0
+#endif
 
       SUBROUTINE CALC_ZENITH_ANGLE
 !@sum calculate zenith angle for current time step
@@ -384,6 +390,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #endif
 #ifdef OBIO_RAD_coupling
      *     ,wfac
+#endif
+#ifdef NEW_COSZ
+      use RAD_COSZ0, only : cosz_init
 #endif
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
@@ -560,6 +569,9 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
         SINJ(JM)=SIN(PHIM)
         COSJ(JM)=COS(PHIM)
       END IF
+#ifdef NEW_COSZ
+      call cosz_init
+#endif
 C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
 C****
