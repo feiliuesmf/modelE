@@ -51,7 +51,7 @@ For off-line fortran compilations use:
 
 Before doing so, load the appropriate modules, currently:
    /etc/profile.d/modules.sh   ; # bash or ksh or:
-   /etc/profile.d/modules.csh  ; # tcsh or csh
+   source /etc/profile.d/modules.csh  ; # tcsh or csh
    module load comp/intel-9.1.042
    module load mpi/scali-5     ; # for scali mpi (on borga-e...)
 and for openmpi: 
