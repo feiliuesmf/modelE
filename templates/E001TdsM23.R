@@ -134,7 +134,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 ! choose these for trop-only chem model
 !-----------------------------------------------
 !  MOLEC=chem_files/ds3ch4_moleculesE
-!  JPLRX=chem_files/jpl00_T15trop_SEP08x
+!  JPLRX=chem_files/jpl00_T15trop_SEP08
 !  JPLPH=chem_files/ds_photlist_trop_15
 !  RATJ=chem_files/ratj.giss_15
 !  SPECFJ=chem_files/jv_spec00_15.dat
