@@ -236,4 +236,229 @@ c
       endif
       end subroutine adjust_angles
 
+      subroutine calc_asc(lam,phi,n,acell,scell,ccell)
+c Calculate Area,Sine,Cosine
+c
+c calculates the area and area-averaged sin(lat),cos(lat) of
+c an area whose n vertices lie at lon,lat=lam(1:n),phi(1:n)
+c and whose edges are assumed to be great circles.
+c
+      implicit none
+      integer :: n
+      real*8, dimension(n) :: lam,phi
+      real*8 :: acell,scell,ccell
+      integer :: i,i1,i2
+      real*8 :: gam,eps,x1,x2,asum,c2sum,scsum,phisum
+      asum = 0d0
+      c2sum = 0d0
+      scsum = 0d0
+      phisum = 0d0
+      do i=1,n
+        i1 = i
+        if(i.lt.n) then
+          i2 = i+1
+        else
+          i2 = 1
+        endif
+        if(abs(lam(i1)-lam(i2)).lt.1d-6) cycle
+        call calc_gameps(lam(i1),lam(i2),phi(i1),phi(i2),
+     &       gam,eps)
+        x1 = -eps
+        x2 = lam(i2)-lam(i1)-eps
+        asum = asum + lineint_sinphi(x1,x2,gam)
+        c2sum = c2sum + lineint_cosphi2(x1,x2,gam)
+        scsum = scsum + lineint_sinphicosphi(x1,x2,gam)
+        phisum = phisum + lineint_phi(x1,x2,gam)
+      enddo
+      acell = -asum
+      scell = -.5*c2sum/asum
+      ccell = .5*(phisum+scsum)/asum
+      return
+      end subroutine calc_asc
+
+
+      subroutine calc_asc_pol(lam,phi,acell,scell,ccell)
+c
+c Variant of calc_asc for 4-sided cells having
+c the north or south pole at one corner.
+c
+
+      implicit none
+      real*8, dimension(4) :: lam,phi
+      real*8 :: acell,scell,ccell
+      real*8, dimension(3) :: lamshift,phishift
+      real*8, dimension(5) :: lam5,phi5
+      integer :: i,ii,ipole
+      real*8 :: aeq,atot,ceq,seq
+      real*8 :: pi
+
+      pi = acos(-1d0)
+c
+c place the pole in position 4
+c
+      ipole = 0
+      do i=1,4
+        if(abs(phi(i)-.5*pi).lt.1d-6) then
+          ipole = i
+          exit
+        elseif(abs(phi(i)+.5*pi).lt.1d-6) then
+          ipole = i
+          exit
+        endif
+      enddo
+      if(ipole.eq.0) return
+      ii=0
+      do i=ipole+1,4
+        ii = ii + 1
+        lamshift(ii) = lam(i)
+        phishift(ii) = phi(i)
+      enddo
+      do i=1,ipole-1
+        ii = ii + 1
+        lamshift(ii) = lam(i)
+        phishift(ii) = phi(i)
+      enddo
+
+c
+c calculate the integrals between the equator and the
+c equatorial edges of the cell
+c
+      lam5(1) = lamshift(1)
+      lam5(2) = lamshift(3)
+      phi5(1:2) = 0d0
+      do i=3,5
+        lam5(i) = lamshift(6-i)
+        phi5(i) = phishift(6-i)
+      enddo
+      call calc_asc(lam5,phi5,5,aeq,seq,ceq)
+
+c
+c obtain the properties of this cell as residuals
+c
+      atot = abs(lam5(2)-lam5(1))
+      acell = atot-aeq
+      ccell = (.25*pi*atot-aeq*ceq)/acell
+      if(seq.lt.0.) then ! southern hemisphere
+        scell = (-.5*atot-aeq*seq)/acell
+      else
+        scell = (+.5*atot-aeq*seq)/acell
+      endif
+      return
+      end subroutine calc_asc_pol
+
+      subroutine calc_gameps(lam1,lam2,phi1,phi2,gam,eps)
+c given two latlon positions on a great circle, calculates
+c the functional dependence of latitude upon longitude in
+c the form
+c tan(latitude) = gam*sin(x-eps)
+c where x = longitude minus lam1
+      implicit none
+      real*8 :: lam1,lam2,phi1,phi2,gam,eps
+      real*8 :: dlam,term1
+      dlam = lam2-lam1
+      term1 = tan(phi1)*cos(dlam)-tan(phi2)
+      if(phi1.eq.0. .and. phi2.eq.0.) then
+        eps = 0d0
+      else
+        eps = atan(tan(phi1)*sin(dlam)/term1)
+      endif
+      gam = term1/(cos(eps)*sin(-dlam))
+      return
+      end subroutine calc_gameps
+
+      function lineint_sinphi(x1,x2,gam)
+c
+c integrates the function gam*sin(x)/sqrt(1+(gam*sin(x)**2))
+c from x1 to x2
+c
+      implicit none
+      real*8 :: lineint_sinphi
+      real*8 :: x1,x2,gam
+      real*8 :: a
+      a = sqrt(1./(gam*gam)+1.)
+      if(gam.ge.0.) then
+        lineint_sinphi = asin(cos(x1)/a)-asin(cos(x2)/a)
+      else
+        lineint_sinphi = asin(cos(x2)/a)-asin(cos(x1)/a)
+      endif
+      return
+      end function lineint_sinphi
+
+      function lineint_cosphi2(x1,x2,gam)
+c
+c integrates the function 1/(1+(gam*sin(x)**2))
+c from x1 to x2
+c
+      implicit none
+      real*8 :: lineint_cosphi2
+      real*8 :: x1,x2,gam
+      real*8 :: b
+      b = sqrt(1.+gam*gam)
+      lineint_cosphi2 = (
+     &     atan(b*tan(x2))-atan(b*tan(x1)))/b
+      return
+      end function lineint_cosphi2
+
+      function lineint_sinphicosphi(x1,x2,gam)
+c
+c integrates the function gam*sin(x)/(1+(gam*sin(x)**2))
+c from x1 to x2
+c
+      implicit none
+      real*8 :: lineint_sinphicosphi
+      real*8 :: x1,x2,gam
+      real*8 :: y1,y2,b
+      b = sqrt( (gam*gam)/(gam*gam+1.) )
+      if(gam.ge.0.) then
+        y1 = cos(x1)
+        y2 = cos(x2)
+      else
+        y1 = cos(x2)
+        y2 = cos(x1)
+      endif
+      lineint_sinphicosphi = .5*log(
+     &     ((1d0-b*y2)*(1d0+b*y1))/((1d0+b*y2)*(1d0-b*y1)))/
+     &     sqrt(1.+gam*gam)
+      return
+      end function lineint_sinphicosphi
+
+      function lineint_phi(x1,x2,gam)
+c
+c numerically integrates the function atan(gam*sin(x))
+c from x1 to x2
+c
+      implicit none
+      real*8 :: lineint_phi
+      real*8 :: x1,x2,gam
+      real*8, parameter :: dxmax=.0025d0
+      real*8 :: tmpsum,dx,x,b,bcosx,sinx,cosx,cosx_sv,sindx,cosdx
+      integer :: i,nx
+      if(gam.eq.0.) then
+        lineint_phi = 0.
+      else
+        b = sqrt(gam*gam/(1d0+gam*gam))
+        if(gam.lt.0.) b=-b
+        nx = 10
+        dx = min(dxmax,abs(x2-x1)/nx)
+        nx = max(nx,int(abs(x2-x1)/dx))
+        dx = (x2-x1)/nx
+        x = x1-.5*dx
+        sindx = sin(dx)
+        cosdx = cos(dx)
+        sinx = sin(x)
+        cosx = cos(x)
+        tmpsum = 0d0
+        do i=1,nx
+          x = x+dx
+          cosx_sv = cosx
+          cosx = cosdx*cosx - sindx*sinx
+          sinx = cosdx*sinx + sindx*cosx_sv
+          bcosx = b*cosx
+          tmpsum = tmpsum + x*bcosx/(1d0-bcosx**2)
+        enddo
+        lineint_phi = -dx*tmpsum/sqrt(1d0+gam*gam) +
+     &       x2*atan(gam*sin(x2))-x1*atan(gam*sin(x1))
+      endif
+      end function lineint_phi
+
 !      end module RAD_COSZ0
