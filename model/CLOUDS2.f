@@ -2616,6 +2616,13 @@ c for tracers in general, added by Koch
 !@var CLDSAVT is present cloud fraction, saved for tracer use
 !@var cldprec cloud fraction at lowest precipitating level
       REAL*8 :: cldprec
+cdmk2
+#ifndef NO_WASHOUT_IN_CLOUDS
+!@var tm_temp temporary array for tracer mass after applying other removal
+!@+           and re-evaporation processes to calculate washout in clouds
+      REAL*8,DIMENSION(Lm,Ntm) :: tm_temp
+#endif
+cdmk2
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -3337,10 +3344,10 @@ cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
         IF (TM(L,N).GT.teeny) THEN
           TMFAC=THLAW/TM(L,N)
-          TMFAC2=THWASH/TM(L,N)
+cdmk2     TMFAC2=THWASH/TM(L,N)
         ELSE
           TMFAC=0.
-          TMFAC2=0.
+cdmk2     TMFAC2=0.
         ENDIF
         FPRT=FPR
 c ---------------------- calculate fluxes ------------------------
@@ -3349,7 +3356,27 @@ c ---------------------- calculate fluxes ------------------------
         DTQWT =
      &  FQTOWT*TR_LEF*(TM(L,N)+DTERT)-FWTOQT*TRWML(N,L)*(1.-FPRT)
 #ifndef NO_WASHOUT_IN_CLOUDS
-        dtwrt=fwasht*(tm(l,n)-dtqwt)
+cdmk2 added this:
+c**** washout in clouds
+        tm_temp(l,n)=tm(l,n)-dtqwt-thlaw
+        IF(.NOT.(BELOW_CLOUD.and.WMX(L).lt.teeny)) THEN
+          precip_mm = prebar(l+1)*100.*dtsrc
+          wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
+          IF (precip_mm < 0.) precip_mm=0.
+          IF (wmxtr < 0.) wmxtr=0.
+          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+     &         wmxtr,cldprec,l,tm_temp,trprbar(1,l),thwash,pl(l),ntix) !washout
+c         saves cloud fraction at lowest precipitating level for washout
+          cldprec=cldsavt
+        END IF
+        dtwrt=fwasht*tm_temp(l,n)
+        IF (tm_temp(l,n).GT.teeny) THEN
+          TMFAC2=THWASH/tm_temp(l,n)
+        ELSE
+          TMFAC2=0.
+        ENDIF
+cdmk2
+cdmk2   dtwrt=fwasht*(tm(l,n)-dtqwt)
 #else
         dtwrt=fwasht*tm(l,n)
 #endif
