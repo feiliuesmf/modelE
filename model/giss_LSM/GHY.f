@@ -241,8 +241,7 @@ ccc fractions of dry,wet,covered by snow canopy
 !@var fd0 actual fraction of dry canopy
 !@var fw0 actual fraction of wet canopy
 !@var fm snow masking fraction for canopy (=1 if all snow)
-      real*8,public :: fd
-      real*8 :: fw,fd0,fw0,fm
+      real*8 :: fd,fd0,fw,fw0,fm
 !@var theta fraction of water in the soil ( 1 = 100% )
 !@var f water flux between the layers ( > 0 is up ) (m/s)
 !@var fh heat flux between the layers ( > 0 is up ) (W)
@@ -250,7 +249,7 @@ ccc fractions of dry,wet,covered by snow canopy
 !@var rnff underground runoff (m/s)
 !@var fc water flux at canopy boundaries ( > 0 is up ) (m/s)
 !@var fch heat flux at canopy boundaries ( > 0 is up ) (W)
-      real*8 theta(0:ng,2),f(1:ng,2),fh(1:ng,2),rnf(2),rnff(ng,2)
+      real*8 ::theta(0:ng,2),f(1:ng,2),fh(1:ng,2),rnf(2),rnff(ng,2)
      &     ,fc(0:1),fch(0:1)
 ccc   the following three declarations are various conductivity
 ccc   coefficients (or data needed to compute them)
@@ -851,16 +850,24 @@ c     Get canopy conductivity cnc and gpp
  !!!       trans_sw = .1d0
  !       trans_sw = min( trans_sw, .9d0 )
 
+        ! For Ent simulations cnc includes the effects of water stress
+        ! and wet leaves on conductance 
         betat=cnc/(cnc+cna+1d-12)
         abetat=betat            ! return to old diagnostics
         acna=cna                ! return to old diagnostics
         acnc=cnc                ! return to old diagnostics
-!        agpp=gpp                !nyk 4/25/03.  Put in subroutine accm.
-c       pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
+
+!       pot_evap_can is the transpiration that will occur based on 
+!       atmospheric demand, soil-water availability, and fraction 
+!       of canopy that is wet 
+!        pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
         pot_evap_can = betat*rho3*ch*(
      &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
      &                 -(vs-vs0)*qprime)
         evap_max_dry(ibv) = 0.d0
+
+!       Condition to make sure that only available water is extracted 
+!       from each layer
         if ( betad > 0.d0 .and. pot_evap_can > 0.d0 ) then
           do k=1,n
             evap_max_dry(ibv) = evap_max_dry(ibv)
@@ -2008,6 +2015,7 @@ ccc reset main water/heat fluxes, so they are always initialized
       fh(:,:) = 0.d0
       fc(:) = 0.d0
       fch(:) = 0.d0
+      !print *, 'before ent_get_exports'
 #ifdef USE_ENT
 ccc get necessary data from ent
       call ent_get_exports( entcell,
@@ -2017,6 +2025,7 @@ ccc get necessary data from ent
      &     albedo=albedo_6b
      &     )
       fb = 1.d0 - fv
+      !print *, 'after ent_get_exports'
 #endif
 
 !!! hack for offline runs (should be disabled in GCM)
@@ -2056,6 +2065,7 @@ ccc normal case (both present)
 !!!
       call reth
       call retp
+      !print *, 'after retp'
       tb0=tp(1,1)
       tc0=tp(0,2)
 cddd      print '(a,10(e12.4))', 'ghy_temp_b ',
@@ -2083,7 +2093,6 @@ ccc accm0 was not called here in older version - check
 cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
 cddd     &         vis_rad,direct_vis_rad,cosz1,sbgc_temp,sbgc_moist,
 cddd     &         h(1:ngm,2),fice(1:ngm,2) 
-
           call ent_set_forcings( entcell,
      &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
@@ -2096,18 +2105,19 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
      &         total_visible_rad=vis_rad,
      &         direct_visible_rad=direct_vis_rad,
      &         cos_solar_zenith_angle=cosz1,
+     &         canopy_wet_fraction=fw,
  !    &         soil_water=w(1:ngm,2),
      &         soil_temp=sbgc_temp,
      &         soil_moist=sbgc_moist,
      &         soil_matric_pot=h(1:ngm,2),
      &         soil_ice_fraction=fice(1:ngm,2) 
      &         )
-
+          !print *, 'after ent_set_forcings'
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
           call ent_run( entcell, dt, 0.d0)  ! ent_run
-
+          !print *, 'after ent_run'
 ccc unpack necessary data
           call ent_get_exports( entcell,
      &         canopy_conductance=cnc,
@@ -2117,7 +2127,7 @@ ccc unpack necessary data
 !     &         foliage_humidity=Qf,
      &         canopy_gpp=GPP
      &         )
-
+          !print *, 'after ent_get_exports'
           !print *,"CNS=",cnc
           !print *, "trans_sw", ijdebug, trans_sw, cosz1
 
@@ -2138,8 +2148,8 @@ ccc unpack necessary data
 !        print *,"HGY_COND: ",ijdebug, cnc, betadl, Ci, Qf
 !        print *,"GHY_FORCINGS: ", ijdebug, tp(0,2),
 !     &       vis_rad, direct_vis_rad, cosz1
-
         call evap_limits( .true., dum1, dum2 )
+        !print *, 'after evap_limits'
 #else
         call evap_limits( vegcell, .true., dum1, dum2 )
 #endif
@@ -2180,6 +2190,8 @@ ccc unpack necessary data
         call flg
          ! call check_f11
         call runoff
+        !print *, 'after runoff'
+
 !debug
 !        rnff(:,:) = 0.d0
  !       rnf(:) = 0.d0
@@ -2193,6 +2205,7 @@ ccc unpack necessary data
          ! call check_f11
         !call sinkh
         call flh
+        !print *, 'after flh'
         call flhg
 c     call fhlmt
          ! call check_f11
@@ -2205,7 +2218,6 @@ cddd        write(933,*) "evap fluxes", cnc, evapvg,evapvw,evapvd,evapvs,
 cddd     &       evapb,evapbs
 cddd        write(933,*) "betadl", betadl,betad
 cddd        write(933,*) "runoff fluxes",rnf,rnff
-
 
         call apply_fluxes
 cddd      print '(a,10(e12.4))', 'tr_w_1 '
@@ -2229,7 +2241,6 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 #ifdef USE_ENT
         !Qf=evap_tot(2)/(rho/rhow*ch*vsm)+qs ! - old
         Qf=( evap_tot(2)/(rho/rhow*ch) + (vs-vs0)*qprime )/vs + qs
-
 ! the above formula is based on:
 !        pot_evap_can = betat*rho3*ch*(
 !     &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
@@ -2272,7 +2283,6 @@ C**** finalise surface tracer concentration here
       wsn_in    =wsn
       hsn_in    =hsn
       fr_snow_in=fr_snow
-
 
 #ifdef PRINT_GHY_VARS
        write(933,*) "after"
@@ -2393,14 +2403,14 @@ ccc   max in the following expression removes extra drip because of dew
       aepb=aepb+( epb*(1.d0-fr_snow(1)) + epbs*fr_snow(1) )*fb*dts
 #ifdef USE_ENT
       !Ent veg accumulators. nyk
-      agpp = agpp + gpp*dts*fd         ! temparary inclusion of fd
+      agpp = agpp + gpp*dts        
       if ( present(entcell) ) then
         call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
      &       soilresp=R_soil, soilcpools=soilCpools)
         !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
         !## Need to pass fr_snow to Ent.
 !        agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
-        arauto = arauto + rauto*dts*fd ! temparary inclusion of fd
+        arauto = arauto + rauto*dts
         aclab = clab            !Instantaneous.
         asoilresp = asoilresp + R_soil*dts !accumulated soil respiration  
         !instantaneous pool/column-integrated soil C_org (g/m2)
