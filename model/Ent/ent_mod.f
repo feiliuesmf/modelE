@@ -882,7 +882,7 @@ cddd      end interface ent_cell_update
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(out):: entcell
+      type(entcelltype_public),intent(inout):: entcell
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index
@@ -945,7 +945,7 @@ cddd      end interface ent_cell_update
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(out):: entcell(:)
+      type(entcelltype_public),intent(inout):: entcell(:)
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index
@@ -1010,7 +1010,7 @@ cddd      end interface ent_cell_update
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(out):: entcell(:,:)
+      type(entcelltype_public),intent(inout):: entcell(:,:)
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index

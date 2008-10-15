@@ -3,6 +3,9 @@
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
 endif
+ifndef CONFIG_DIR
+       CONFIG_DIR := $(GISSCLIM_DIR)/config
+endif
 
 #DEPENDS_ON = shared
 
@@ -47,10 +50,10 @@ endif
 
 
 
-include $(GISSCLIM_DIR)/arch/base.mk
+include $(CONFIG_DIR)/base.mk
 #dependencies (should be done later automatically):
 sinclude $(DEPENDFILE)
-include $(GISSCLIM_DIR)/arch/Rules.make
+include $(CONFIG_DIR)/rules.mk
 
 #FFLAGS += -I$(shell pwd)/../shared
 #INCS += -I$(shell pwd)/../shared
