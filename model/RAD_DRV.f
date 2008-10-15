@@ -838,7 +838,11 @@ C****   Read in time history of well-mixed greenhouse gases
         if (H2ObyCH4.ne.0..and.Kradia.le.0) then
 C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call openunit('dH2O',iu,.false.,.true.)
+#ifdef DELAY_QMA_JINTERP
+          call read_qma(iu,plbx)
+#else
           call getqma(iu,lat_dg,plbx,dh2o,lm,jm)
+#endif
           call closeunit(iu)
         end if
       end if
@@ -2928,6 +2932,10 @@ C**** Same for upward thermal
       call write_parallel(trim(out_line),unit=6)
       return
       end SUBROUTINE GHGHST
+
+#ifdef DELAY_QMA_JINTERP
+#include "qma_new.h"
+#endif
 
       subroutine getqma (iu,dglat,plb,dh2o,lm,jm)
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)

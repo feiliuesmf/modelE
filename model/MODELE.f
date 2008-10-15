@@ -2004,7 +2004,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
      *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH,ftype
-      USE GEOM, only : areag,dxyp,axyp,imaxj
+      USE GEOM, only : areag,dxyp,axyp,imaxj,lat2d
       USE DYNAMICS, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
       USE RAD_COM, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
@@ -2020,7 +2020,7 @@ c      USE ATMDYN, only : CALC_AMPK
       use RAD_COSZ0, only : update_dusk
 #endif
       IMPLICIT NONE
-      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,EDPY,VEDAY
+      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,xdH2O,EDPY,VEDAY
       REAL*8 :: SPRESS(grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER i,j,l,iy
       LOGICAL, INTENT(IN) :: end_of_day
@@ -2109,7 +2109,12 @@ c     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
         do l=1,lm
         do j=J_0,J_1
         do i=I_0,imaxj(j)
-          q(i,j,l)=q(i,j,l)+xCH4*dH2O(j,l,jmon)*byAM(l,i,j)
+#ifdef DELAY_QMA_JINTERP
+          call lat_interp_qma(lat2d(i,j),l,jmon,xdH2O)
+#else
+          xdH2O = dH2O(j,l,jmon)
+#endif
+          q(i,j,l)=q(i,j,l)+xCH4*xdH2O*byAM(l,i,j)
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
           do n=1,ntm
@@ -2117,13 +2122,13 @@ C**** Add water to relevant tracers as well
               select case (tr_wd_type(n))
               case (nWater)    ! water: add CH4-sourced water to tracers
                 trm(i,j,l,n) = trm(i,j,l,n) +
-     +                tr_H2ObyCH4(n)*xCH4*dH2O(j,l,jmon)*axyp(i,j)
+     +                tr_H2ObyCH4(n)*xCH4*xdH2O*axyp(i,j)
               end select
             end if
           end do
 #endif
           aj(j,j_h2och4,:)=aj(j,j_h2och4,:)+
-     +                       xCH4*dH2O(j,l,jmon)*ftype(:,i,j)
+     +                       xCH4*xdH2O*ftype(:,i,j)
         end do
         end do
         If (HAVE_NORTH_POLE) q(2:im,jm,l)=q(1,jm,l)
