@@ -362,7 +362,7 @@ clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L *.cpp
 
 vclean:
-	rm -f *.o *.mod *.vo *.inc .depend* *.sig *.sig1 *.smod .obj_list rundeck_opts.h tmp_cpp.h
+	rm -f *.o *.mod *.vo .depend* *.sig *.sig1 *.smod .obj_list rundeck_opts.h tmp_cpp.h
 	$(MAKE) -C $(ESMF_Interface) clean
 ifeq ($(USE_ENT),YES)
 	$(MAKE) -C Ent clean
