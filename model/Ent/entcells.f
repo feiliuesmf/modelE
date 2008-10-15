@@ -95,7 +95,7 @@
       !VEGETATION - EXPORT STATE
       ecp%fv = 0.d0
       ecp%heat_capacity = 0.d0
-
+      ecp%fwet_canopy = 0.d0
       !SOIL - IMPORT
       ecp%soil_Phi = 0.0         !Soil porosity (m3/m3)
       ecp%soildepth = 0.0        !Soil depth (m)

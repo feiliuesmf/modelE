@@ -379,8 +379,9 @@
 
          !- - - - - - Entcell-level variables - - - - - - - - - - - - - - - -
          !* IMPORT/EXPORT - vegetation
-         real*8 :: fv  ! vegetation fraction of entcell
+         real*8 :: fv            ! vegetation fraction of entcell
          real*8 :: heat_capacity ! total veg. heat capacity
+         real*8 :: fwet_canopy   ! fraction of canopy that is wet
          !* IMPORT - SOIL
          real*8 :: soil_Phi      !Soil porosity (m3/m3)
          real*8 :: soil_dry     !Soil wetness "when evapotranspiration stops"

@@ -402,7 +402,8 @@ m4_loop(`
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(inout):: entcell`'m4_brkts(m4_ext)`'
+      type(entcelltype_public),intent(inout)::
+     &                            entcell`'m4_brkts(m4_ext)`'
       real*8, dimension(:m4_comma`'m4_ext`')  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index
@@ -936,6 +937,7 @@ m4_loop(`
      &     total_visible_rad,
      &     direct_visible_rad,
      &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction,
 !     &     soil_temp30cm,
 !     &     soil_moist30cm,
      &     soil_temp,
@@ -956,7 +958,8 @@ m4_loop(`
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     cos_solar_zenith_angle
+     &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction
 !     &     soil_temp30cm,
 !     &     soil_moist30cm
       real*8, dimension(:m4_comma`'m4_ext`'), intent(in) ::
@@ -997,6 +1000,8 @@ m4_loop(`
      &         direct_visible_rad`'m4_brkts(m4_ind)`'
           entcell`'m4_brkts(m4_ind)`'%entcell%CosZen =
      &         cos_solar_zenith_angle`'m4_brkts(m4_ind)`'
+          entcell`'m4_brkts(m4_ind)`'%entcell%fwet_canopy =
+     &         canopy_wet_fraction`'m4_brkts(m4_ind)`'
 !          entcell`'m4_brkts(m4_ind)`'%entcell%Soiltemp =
 !    &      soil_temp30cm`'m4_brkts(m4_ind)`'
 !          entcell`'m4_brkts(m4_ind)`'%entcell%Soilmoist =

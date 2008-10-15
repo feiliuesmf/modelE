@@ -74,7 +74,8 @@
       real*8 :: CosZen !,betad
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
-      real*8 :: Gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+      real*8 :: Gb !Leaf boundary layer conductance of water vapor(mol m-2 s-1)
+      real*8 :: fdry_pft_eff ! pft-specific effective dry canoopy fraction  
       real*8 :: Anet,Atot,Rd    !umol m-2 s-1
       real*8 :: GCANOPY,TRANS_SW ! Ci,NPP !,R_auto
       real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum,
@@ -187,14 +188,26 @@
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
 !     &       ,if_ci)  
 
+          fdry_pft_eff = 1.d0 - pp%cellptr%fwet_canopy
+!         !Uncomment below if we wnat pft-dependence of wet canopy effects 
+!         if (cop%pft == 5.or.cop%pft == 7) then
+!             fdry_pft_eff = (1.d0 - 0.25d0*pp%cellptr%fwet_canopy)
+!         else
+!             fdry_pft_eff = (1.d0 - 0.5d0*pp%cellptr%fwet_canopy)
+!         endif
+ 
          !* Assign outputs to cohort *!
-         !* Multiply in cop%stressH2O
+         !* Multiply in cop%stressH2O and account for wet leaves with
+         !   pp%cellptr%fwet_canopy 
 !          cop%GCANOPY = GCANOPY * 18.d-3 / rhow !Convert mol-H2O m-2 s-1 to m/s
-          cop%GCANOPY = GCANOPY * (gasc*TsurfK)/Pa  !Convert ?mol-H2O m-2 s-1 to m/s
+          cop%GCANOPY = GCANOPY*fdry_pft_eff*(gasc*TsurfK)/Pa  !Convert ?mol-H2O m-2 s-1 to m/s
          ! (mol-H2O m-2 s-1)*(18 g/mol * 1d-3 kg/g) / (rhow kg m-3) = m/s
           cop%Ci = psdrvpar%ci * !ci is in mole fraction
      &         psdrvpar%Pa/(gasc * (psdrvpar%Tc+KELVIN)) !mol m-3
-          cop%GPP = Atot * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
+          cop%GPP = Atot * fdry_pft_eff * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
+          ! UNCOMMENT BELOW if Anet or Rd are used -MJP
+          !Anet = Anet * (1.d0 - pp%cellptr%fwet_canopy)  
+          !Rd = Rd * * (1.d0 - pp%cellptr%fwet_canopy)
         else
           cop%GCANOPY=0.d0 !May want minimum conductance for stems & cuticle.
           cop%Ci = EPS
