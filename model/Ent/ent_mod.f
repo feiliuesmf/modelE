@@ -882,7 +882,8 @@ cddd      end interface ent_cell_update
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(inout):: entcell
+      type(entcelltype_public),intent(inout)::
+     &                            entcell
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index
@@ -945,7 +946,8 @@ cddd      end interface ent_cell_update
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(inout):: entcell(:)
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:)
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index
@@ -1010,7 +1012,8 @@ cddd      end interface ent_cell_update
      &     vegalbedo,
      &     soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
-      type(entcelltype_public),intent(inout):: entcell(:,:)
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:,:)
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
      &     veg_fraction,
      &     leaf_area_index
@@ -1548,6 +1551,7 @@ cddd      end interface ent_cell_update
      &     total_visible_rad,
      &     direct_visible_rad,
      &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction,
 !     &     soil_temp30cm,
 !     &     soil_moist30cm,
      &     soil_temp,
@@ -1568,7 +1572,8 @@ cddd      end interface ent_cell_update
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     cos_solar_zenith_angle
+     &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction
 !     &     soil_temp30cm,
 !     &     soil_moist30cm
       real*8, dimension(:), intent(in) ::
@@ -1609,6 +1614,8 @@ cddd      end interface ent_cell_update
      &         direct_visible_rad
           entcell%entcell%CosZen =
      &         cos_solar_zenith_angle
+          entcell%entcell%fwet_canopy =
+     &         canopy_wet_fraction
 !          entcell%entcell%Soiltemp =
 !    &      soil_temp30cm
 !          entcell%entcell%Soilmoist =
@@ -1642,6 +1649,7 @@ cddd      end interface ent_cell_update
      &     total_visible_rad,
      &     direct_visible_rad,
      &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction,
 !     &     soil_temp30cm,
 !     &     soil_moist30cm,
      &     soil_temp,
@@ -1662,7 +1670,8 @@ cddd      end interface ent_cell_update
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     cos_solar_zenith_angle
+     &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction
 !     &     soil_temp30cm,
 !     &     soil_moist30cm
       real*8, dimension(:,:), intent(in) ::
@@ -1704,6 +1713,8 @@ cddd      end interface ent_cell_update
      &         direct_visible_rad(i1)
           entcell(i1)%entcell%CosZen =
      &         cos_solar_zenith_angle(i1)
+          entcell(i1)%entcell%fwet_canopy =
+     &         canopy_wet_fraction(i1)
 !          entcell(i1)%entcell%Soiltemp =
 !    &      soil_temp30cm(i1)
 !          entcell(i1)%entcell%Soilmoist =
@@ -1738,6 +1749,7 @@ cddd      end interface ent_cell_update
      &     total_visible_rad,
      &     direct_visible_rad,
      &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction,
 !     &     soil_temp30cm,
 !     &     soil_moist30cm,
      &     soil_temp,
@@ -1758,7 +1770,8 @@ cddd      end interface ent_cell_update
      &     wind_speed,
      &     total_visible_rad,
      &     direct_visible_rad,
-     &     cos_solar_zenith_angle
+     &     cos_solar_zenith_angle,
+     &     canopy_wet_fraction
 !     &     soil_temp30cm,
 !     &     soil_moist30cm
       real*8, dimension(:,:,:), intent(in) ::
@@ -1801,6 +1814,8 @@ cddd      end interface ent_cell_update
      &         direct_visible_rad(i1,i2)
           entcell(i1,i2)%entcell%CosZen =
      &         cos_solar_zenith_angle(i1,i2)
+          entcell(i1,i2)%entcell%fwet_canopy =
+     &         canopy_wet_fraction(i1,i2)
 !          entcell(i1,i2)%entcell%Soiltemp =
 !    &      soil_temp30cm(i1,i2)
 !          entcell(i1,i2)%entcell%Soilmoist =
