@@ -9,7 +9,8 @@ endif
 
 #CASE = $(MAKECMDGOALS)
 
-FSRCS = $(shell ls *.f)
+#FSRCS = $(shell ls *.f)
+FSRCS = CONST.f  PARAM.f  PARSER.f  SYSTEM.f  TRIDIAG.f  UTILDBL.f
 
 include $(CONFIG_DIR)/base.mk
 #dependencies (should be done later automatically):
