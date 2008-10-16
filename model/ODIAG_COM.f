@@ -228,23 +228,69 @@ C****
      *     ,conserv_OSL,conserv_OAM
 
 C**** OCEAN MASS
-      CALL conserv_DIAG(M,conserv_OMS,icon_OMS)
+      CALL conserv_ODIAG(M,conserv_OMS,icon_OMS)
 
 C**** OCEAN ANGULAR MOMENTUM
-      CALL conserv_DIAG(M,conserv_OAM,icon_OAM)
+      CALL conserv_ODIAG(M,conserv_OAM,icon_OAM)
 
 C**** OCEAN KINETIC ENERGY
-      CALL conserv_DIAG(M,conserv_OKE,icon_OKE)
+      CALL conserv_ODIAG(M,conserv_OKE,icon_OKE)
 
 C**** OCEAN POTENTIAL ENTHALPY
-      CALL conserv_DIAG(M,conserv_OCE,icon_OCE)
+      CALL conserv_ODIAG(M,conserv_OCE,icon_OCE)
 
 C**** OCEAN SALT
-      CALL conserv_DIAG(M,conserv_OSL,icon_OSL)
+      CALL conserv_ODIAG(M,conserv_OSL,icon_OSL)
 
 C****
       RETURN
       END SUBROUTINE DIAGCO
+
+      SUBROUTINE conserv_ODIAG (M,CONSFN,ICON)
+!@sum  conserv_ODIAG generic routine keeps track of conserved properties
+!@+    (cloned version from AGCM for better regridding)
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : jm
+      USE DOMAIN_DECOMP, only : GET, GRID, CHECKSUMj
+      USE DIAG_COM, only : consrv=>consrv_loc,nofm
+      IMPLICIT NONE
+!@var M index denoting from where routine is called
+      INTEGER, INTENT(IN) :: M
+!@var ICON index for the quantity concerned
+      INTEGER, INTENT(IN) :: ICON
+!@var CONSFN external routine that calculates total conserved quantity
+      EXTERNAL CONSFN
+!@var TOTAL amount of conserved quantity at this time
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TOTAL
+      INTEGER :: I,J,NM,NI
+      INTEGER :: J_0,J_1
+
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1)
+
+C**** NOFM contains the indexes of the CONSRV array where each
+C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
+C**** no calculation is done.
+C**** NOFM(1,ICON) is the index for the instantaneous value.
+      IF (NOFM(M,ICON).gt.0) THEN
+C**** Calculate current value TOTAL
+        CALL CONSFN(TOTAL)
+        NM=NOFM(M,ICON)
+        NI=NOFM(1,ICON)
+C**** Accumulate difference from last time in CONSRV(NM)
+        IF (M.GT.1) THEN
+          DO J=J_0,J_1
+            CONSRV(J,NM)=CONSRV(J,NM)+(TOTAL(J)-CONSRV(J,NI))
+          END DO
+        END IF
+C**** Save current value in CONSRV(NI)
+        DO J=J_0,J_1
+          CONSRV(J,NI)=TOTAL(J)
+        END DO
+      END IF
+      RETURN
+C****
+      END SUBROUTINE conserv_ODIAG
 
       SUBROUTINE init_ODIAG
 !@sum  init_ODIAG initialises ocean diagnostics
