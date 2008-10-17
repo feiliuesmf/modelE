@@ -401,7 +401,7 @@ c -------------------------------------------------------------
       USE PARAM
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
-      USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
+      USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinlat2d
 !      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
 !     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
 
@@ -519,9 +519,8 @@ C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
         call HALO_UPDATE(grid, v, from=NORTH)
         do j=J_0,J_1
           jlat=j
-          coriol=sinp(j)*omega2
-
           do i=I_0,imaxj(j)
+            coriol=sinlat2d(i,j)*omega2
             tgrndv=tgvdat(i,j,itype)
             if (tgrndv.eq.0.) then
               ipbl(itype,i,j)=0
