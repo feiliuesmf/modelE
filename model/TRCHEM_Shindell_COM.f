@@ -150,7 +150,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & NJVAL  =   27,     !formerly read in from jv_spec00_15.dat
      & NLFASTJ=  400,     !400 is arbitrary for now
      & NWFASTJ=   18, 
-     & JPNL   =   23,
+     & JPNL   =   LM,      ! OK? used to be set to 23
      & NCFASTJ2 = 2*LM+2,  ! fastj2
      & NBFASTJ  = LM+1,    ! fastj2
      & MXFASTJ  =  3,      ! fastj2
@@ -195,7 +195,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
      & NLFASTJ=  350,     !350 is arbitrary for now
      & NWFASTJ=   15, 
-     & JPNL   =   12,
+     & JPNL   =   12,     ! change to LS1???
      & n_fam =     4,
      & NP     =    9
 #endif
