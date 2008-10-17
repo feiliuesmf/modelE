@@ -1,13 +1,13 @@
 
 c****
-      program testregrid
+cc      program testregrid
 cc      call test_zonal_loop()    ! tests parallel zonal mean code, using rolled loops
 cc      call test_zonal_unrolled() ! tests parallel zonal mean code, using unrolled loops
 cc      call test_regrid()        ! tests parallel regridding code
 cc     call offregrid()    ! tests offline regridding for input file
 cc      call test_onlineread()
 cc      call test_rr2()
-      end program testregrid
+cc      end program testregrid
 c****
 
 
