@@ -41,6 +41,7 @@ C**** some B-grid conservation quantities
       REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
       REAL*8, DIMENSION(:,:), ALLOCATABLE ::
      &     AXYP,BYAXYP,LAT2D,LON2D,SINLAT2D,COSLAT2D
+     &    ,ddx_ci,ddx_cj,ddy_ci,ddy_cj
 !@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
@@ -119,6 +120,10 @@ C**** some B-grid conservation quantities
      &    ,lon2d(i_0h:i_1h,j_0h:j_1h)
      &    ,sinlat2d(i_0h:i_1h,j_0h:j_1h)
      &    ,coslat2d(i_0h:i_1h,j_0h:j_1h)
+     &    ,ddx_ci(i_0h:i_1h,j_0h:j_1h)
+     &    ,ddx_cj(i_0h:i_1h,j_0h:j_1h)
+     &    ,ddy_ci(i_0h:i_1h,j_0h:j_1h)
+     &    ,ddy_cj(i_0h:i_1h,j_0h:j_1h)
      &     )
 
 C**** latitudinal spacing depends on whether you have even spacing or
@@ -322,6 +327,26 @@ c
       enddo
       do i=i_0,i_1
         lon2d(i,j) = lon(i)
+      enddo
+      enddo
+
+      do j=j_0,j_1
+      do i=i_0,i_1
+        ddx_ci(i,j) =  .5/(radius*dlon*cosp(j))
+        ddx_cj(i,j) = 0.
+        ddy_ci(i,j) = 0.
+        ddy_cj(i,j) =  .5/(radius*dlat)
+c        dloni = lon2d(i+1,j)-lon2d(i-1,j)
+c        dlati = lat2d(i+1,j)-lat2d(i-1,j)
+c        dlonj = lon2d(i,j+1)-lon2d(i,j-1)
+c        dlatj = lat2d(i,j+1)-lat2d(i,j-1)
+c        if(dloni.lt.0.) dloni=dloni+twopi
+c        if(dlonj.lt.0.) dlonj=dlonj+twopi
+c        bydet = 1d0/(dloni*dlatj-dlonj*dlati)
+c        ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
+c        ddx_cj(i,j) = -dlonj*bydet/(radius*coslat2d(i,j))
+c        ddy_ci(i,j) = -dlati*bydet/radius
+c        ddy_cj(i,j) =  dloni*bydet/radius
       enddo
       enddo
       

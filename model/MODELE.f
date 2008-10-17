@@ -49,7 +49,7 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
-      USE ATMDYN, only : DYNAM,PGRAD_PBL,SDRAG
+      USE ATMDYN, only : DYNAM,SDRAG
      &     ,FILTER,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #ifdef TRACERS_ON
      &     ,trdynam
@@ -2009,7 +2009,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
      *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH,ftype
-      USE GEOM, only : areag,dxyp,axyp,imaxj,lat2d
+      USE GEOM, only : areag,axyp,imaxj,lat2d
       USE DYNAMICS, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
       USE RAD_COM, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
@@ -2026,7 +2026,8 @@ c      USE ATMDYN, only : CALC_AMPK
 #endif
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,xdH2O,EDPY,VEDAY
-      REAL*8 :: SPRESS(grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 :: CMASS(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER i,j,l,iy
       LOGICAL, INTENT(IN) :: end_of_day
 #ifdef TRACERS_WATER
@@ -2074,15 +2075,14 @@ C**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
 C****
 C**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
 #ifndef SCM
-      SMASS=0.
       DO J=J_0,J_1
-        SPRESS(J)=0.
-        DO I=1,IM
-          SPRESS(J)=SPRESS(J)+P(I,J)
-        END DO
-        SPRESS(J) = SPRESS(J) * DXYP(J)
+      DO I=I_0,I_1
+        CMASS(I,J)=P(I,J)*AXYP(I,J)
       END DO
-      CALL GLOBALSUM(grid, SPRESS, SMASS, ALL=.TRUE.)
+      END DO
+      if(have_south_pole) cmass(2:im,1)=cmass(1,1)
+      if(have_north_pole) cmass(2:im,jm)=cmass(1,jm)
+      CALL GLOBALSUM(grid, CMASS, SMASS, ALL=.TRUE.)
       PBAR=SMASS/AREAG+PTOP
 C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 C****   except if it was just done (restart from itime=itimei)
@@ -2315,6 +2315,234 @@ C**** check tracers
 
       return
       end subroutine print_restart_info
+
+#ifdef NEW_PGRAD_PBL
+      SUBROUTINE PGRAD_PBL
+!@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
+!@sum  This version works for a nonorthogonal grid
+!@auth M. Kelley
+!@ver  1.0
+C**** As this is written, it must be called after the call to CALC_AMPK
+C**** after DYNAM (since it uses pk/pmid). It would be better if it used
+C**** SPA and PU directly from the dynamics. (Future work).
+      USE CONSTANT, only : rgas,radius
+      USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
+      USE GEOM, only : ddx_ci,ddx_cj,ddy_ci,ddy_cj
+     &     ,cosip,sinip
+      USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
+     *     ,dpdx_by_rho_0,pmid,pk
+      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE
+      IMPLICIT NONE
+      REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
+      real*8 :: dpsi,dpsj,dg1i,dg1j,dgsi,dgsj
+      real*8 :: dpsdx,dpsdy,dg1dx,dg1dy,dgsdx,dgsdy
+      INTEGER I,J,K,IP1,IM1,J1,IM1S,IP1S,IP1E
+
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S, I_0, I_1, I_0H, I_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+      I_0H = GRID%I_STRT_HALO
+      I_1H = GRID%I_STOP_HALO
+
+
+C**** (Pressure gradient)/density at first layer and surface
+C**** to be used in the PBL, at the primary grids
+
+      ! for dPdy/rho at non-pole grids
+      CALL HALO_UPDATE(grid, P)
+      CALL HALO_UPDATE(grid, PHI)
+      CALL HALO_UPDATE(grid, ZATMO)
+
+      IF(I_0H.LT.I_0) THEN      ! halo cells exist in I direction
+        IM1S=I_0-1; IP1S=I_0+1; IP1E=I_1+1
+      ELSE                      ! periodic
+        IM1S=IM-1; IP1S=1; IP1E=IM
+      ENDIF
+
+      DO J=J_0S,J_1S
+      IM1=IM1S
+      I=IM1S+1
+      DO IP1=IP1S,IP1E
+        dpsi = p(ip1,j)-p(im1,j)
+        dg1i = phi(ip1,j,1)-phi(im1,j,1)
+        dgsi = zatmo(ip1,j)-zatmo(im1,j)
+        dpsj = p(i,j+1)-p(i,j-1)
+        dg1j = phi(i,j+1,1)-phi(i,j-1,1)
+        dgsj = zatmo(i,j+1)-zatmo(i,j-1)
+        dpsdx = dpsi*ddx_ci(i,j) + dpsj*ddx_cj(i,j)
+        dpsdy = dpsi*ddy_ci(i,j) + dpsj*ddy_cj(i,j)
+        dg1dx = dg1i*ddx_ci(i,j) + dg1j*ddx_cj(i,j)
+        dg1dy = dg1i*ddy_ci(i,j) + dg1j*ddy_cj(i,j)
+        dgsdx = dgsi*ddx_ci(i,j) + dgsj*ddx_cj(i,j)
+        dgsdy = dgsi*ddy_ci(i,j) + dgsj*ddy_cj(i,j)
+        by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(pmid(1,I,J))
+        DPDX_BY_RHO(I,J)=dpsdx*sig(1)*by_rho1+dg1dx
+        DPDX_BY_RHO_0(I,J)=dpsdx*by_rho1+dgsdx
+        DPDY_BY_RHO(I,J)=dpsdy*sig(1)*by_rho1+dg1dy
+        DPDY_BY_RHO_0(I,J)=dpsdy*by_rho1+dgsdy
+        IM1=I
+        I=IP1
+      ENDDO
+      ENDDO
+
+c
+c the following are for a latlon grid only
+c
+      IF (have_south_pole) THEN
+        hemi = -1.; J1 = 2
+        dpx1=0. ; dpy1=0.
+        dpx0=0. ; dpy0=0.
+        DO K=1,IM
+          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
+          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
+          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
+          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
+        END DO
+        DPDX_BY_RHO(1,1)  =dpx1*BYIM
+        DPDY_BY_RHO(1,1)  =dpy1*BYIM
+        DPDX_BY_RHO_0(1,1)=dpx0*BYIM
+        DPDY_BY_RHO_0(1,1)=dpy0*BYIM
+      END IF
+
+      If (have_north_pole) THEN
+          hemi= 1.; J1=JM-1
+        dpx1=0. ; dpy1=0.
+        dpx0=0. ; dpy0=0.
+        DO K=1,IM
+          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
+          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
+          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
+          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
+        END DO
+        DPDX_BY_RHO(1,JM)  =dpx1*BYIM
+        DPDY_BY_RHO(1,JM)  =dpy1*BYIM
+        DPDX_BY_RHO_0(1,JM)=dpx0*BYIM
+        DPDY_BY_RHO_0(1,JM)=dpy0*BYIM
+      END IF
+
+      END SUBROUTINE PGRAD_PBL
+
+#else
+      SUBROUTINE PGRAD_PBL
+!@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
+!@auth Ye Cheng
+!@ver  1.0
+C**** As this is written, it must be called after the call to CALC_AMPK
+C**** after DYNAM (since it uses pk/pmid). It would be better if it used
+C**** SPA and PU directly from the dynamics. (Future work).
+      USE CONSTANT, only : rgas
+      USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
+      USE GEOM, only : bydyp,bydxp,cosip,sinip
+      USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
+     *     ,dpdx_by_rho_0,pmid,pk
+      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : HALO_UPDATE
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : haveLatitude
+      IMPLICIT NONE
+      REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
+      INTEGER I,J,K,IP1,IM1,J1
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+
+C**** (Pressure gradient)/density at first layer and surface
+C**** to be used in the PBL, at the primary grids
+
+      ! for dPdy/rho at non-pole grids
+      CALL HALO_UPDATE(grid, P,   FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid, ZATMO, FROM=SOUTH+NORTH)
+
+      DO I=1,IM
+        DO J=J_0S,J_1S
+          by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
+          DPDY_BY_RHO(I,J)=(100.*(P(I,J+1)-P(I,J-1))*SIG(1)*by_rho1
+     2         +PHI(I,J+1,1)-PHI(I,J-1,1))*BYDYP(J)*.5d0
+          DPDY_BY_RHO_0(I,J)=(100.*(P(I,J+1)-P(I,J-1))*by_rho1
+     2         +ZATMO(I,J+1)-ZATMO(I,J-1))*BYDYP(J)*.5d0
+        END DO
+      END DO
+
+      ! for dPdx/rho at non-pole grids
+
+      DO J=J_0S,J_1S
+        IM1=IM-1
+        I=IM
+        DO IP1=1,IM
+          by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
+          DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
+     2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
+          DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
+     2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
+          IM1=I
+          I=IP1
+        END DO
+      END DO
+
+      ! at poles
+
+      IF (haveLatitude(grid, J=1)) THEN
+        hemi = -1.; J1 = 2
+        dpx1=0. ; dpy1=0.
+        dpx0=0. ; dpy0=0.
+        DO K=1,IM
+          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
+          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
+          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
+          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
+        END DO
+        DPDX_BY_RHO(1,1)  =dpx1*BYIM
+        DPDY_BY_RHO(1,1)  =dpy1*BYIM
+        DPDX_BY_RHO_0(1,1)=dpx0*BYIM
+        DPDY_BY_RHO_0(1,1)=dpy0*BYIM
+      END IF
+
+      If (haveLatitude(grid, J=JM)) THEN
+          hemi= 1.; J1=JM-1
+        dpx1=0. ; dpy1=0.
+        dpx0=0. ; dpy0=0.
+        DO K=1,IM
+          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
+          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
+          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
+     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
+          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
+     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
+        END DO
+        DPDX_BY_RHO(1,JM)  =dpx1*BYIM
+        DPDY_BY_RHO(1,JM)  =dpy1*BYIM
+        DPDX_BY_RHO_0(1,JM)=dpx0*BYIM
+        DPDY_BY_RHO_0(1,JM)=dpy0*BYIM
+      END IF
+
+      END SUBROUTINE PGRAD_PBL
+#endif
 
       SUBROUTINE CALC_PIJL(lmax,p,pijl)
 !@sum  CALC_PIJL Fills in P as 3-D
