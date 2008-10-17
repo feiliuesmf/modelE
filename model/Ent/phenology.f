@@ -560,29 +560,29 @@ c$$$         end if
          cop%CB_d = 0.d0    
 
          
-         write(990,'(i4,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g)')
-     &        cop%pft,  
-     &        cop%phenofactor_c,
-     &        cop%phenofactor_d,
-     &        cop%phenostatus,
-     &        cop%LAI,
-     &        cop%C_fol,
-     &        cop%C_lab,
-     &        cop%C_sw,
-     &        cop%C_hw,
-     &        cop%C_froot,
-     &        cop%C_croot,
-     &        cop%NPP,
-     &        cop%dbh,
-     &        cop%h,
-     &        cop%CB_d,
-     &        cop%senescefrac,
-     &        cop%cellptr%airtemp_10d,
-     &        cop%cellptr%soiltemp_10d,
-     &        cop%cellptr%paw_10d,
-     &        cop%cellptr%gdd,
-     &        cop%cellptr%ncd,
-     &        cop%cellptr%CosZen
+!         write(990,'(i4,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g)')
+!     &        cop%pft,  
+!     &        cop%phenofactor_c,
+!     &        cop%phenofactor_d,
+!     &        cop%phenostatus,
+!     &        cop%LAI,
+!     &        cop%C_fol,
+!     &        cop%C_lab,
+!     &        cop%C_sw,
+!     &        cop%C_hw,
+!     &        cop%C_froot,
+!     &        cop%C_croot,
+!     &        cop%NPP,
+!     &        cop%dbh,
+!     &        cop%h,
+!     &        cop%CB_d,
+!     &        cop%senescefrac,
+!     &        cop%cellptr%airtemp_10d,
+!     &        cop%cellptr%soiltemp_10d,
+!     &        cop%cellptr%paw_10d,
+!     &        cop%cellptr%gdd,
+!     &        cop%cellptr%ncd,
+!     &        cop%cellptr%CosZen
 
          cop => cop%shorter 
       end do
