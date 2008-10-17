@@ -1418,6 +1418,16 @@ C****                                                    currently
         END DO
         END DO
 #else
+#ifdef CUBED_SPHERE
+c in this case, assume input U/V are on the A grid
+        DO J=J_0S,J_1S
+        DO I=I_0,I_1
+          USAVG(I,J)=U(I,J,1)
+          VSAVG(I,J)=V(I,J,1)
+          WSAVG(I,J)=SQRT(USAVG(I,J)**2+VSAVG(I,J)**2)
+        END DO
+        END DO
+#else
         DO J=J_0S,J_1S
         IM1=IM
         DO I=1,IM
@@ -1429,6 +1439,7 @@ C****                                                    currently
         IM1=I
         END DO
         END DO
+#endif
 #endif
         CDM=.001d0
 
