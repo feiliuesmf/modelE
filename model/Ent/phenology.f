@@ -559,7 +559,7 @@ c$$$         end if
          !zero-out the daily accumulated carbon 
          cop%CB_d = 0.d0    
 
-         
+!This write statement has some syntax error.         
 !         write(990,'(i4,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g)')
 !     &        cop%pft,  
 !     &        cop%phenofactor_c,

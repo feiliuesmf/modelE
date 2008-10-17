@@ -7,7 +7,7 @@
 
 !@auth N. Kiang
 
-!#define OFFLINE TRUE
+!#define ENT_STANDALONE_DIAG TRUE
 
       !Ent MODULES TO USE
       use ent_const
@@ -184,7 +184,7 @@
         pp%age = pp%age + dtsec
 
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
-#ifdef OFFLINE          
+#ifdef  ENT_STANDALONE_DIAG         
         call summarize_patch(pp)
         call ent_diagnostics(patchnum, pp)
 #endif
@@ -205,7 +205,7 @@
       call entcell_print(6, ecp)
 #endif
 
-!#ifdef OFFLINE
+!#ifdef ENT_STANDALONE_DIAG
 !      call ent_diagnostics_entcell(ecp)
 !#endif
 
@@ -245,7 +245,7 @@
         ! if ( dailyupdate ) call litter(pp) 
 
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
-#ifdef OFFLINE          
+#ifdef ENT_STANDALONE_DIAG         
           call summarize_patch(pp)
           call ent_diagnostics(patchnum,pp)
 #endif
