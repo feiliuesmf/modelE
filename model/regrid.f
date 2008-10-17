@@ -1,14 +1,103 @@
 
 c****
-cc      program testregrid
+      program testregrid
 cc      call test_zonal_loop()    ! tests parallel zonal mean code, using rolled loops
 cc      call test_zonal_unrolled() ! tests parallel zonal mean code, using unrolled loops
 cc      call test_regrid()        ! tests parallel regridding code
 cc     call offregrid()    ! tests offline regridding for input file
-cc      end program testregrid
-
-
+cc      call test_onlineread()
+cc      call test_rr2()
+      end program testregrid
 c****
+
+
+      subroutine test_onlineread()
+      USE regrid_com, only:im,jm,ic,jc
+      use mpp_mod
+      use mpp_domains_mod
+      use fv_mp_mod, only : mp_start,mp_stop
+     &     ,fv_domain_decomp=>domain_decomp
+      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
+      use fv_grid_utils_mod, only : cosa_s,sina_s
+     &     ,grid_utils_init
+c     &     ,sw_corner,se_corner,ne_corner,nw_corner
+      use fv_arrays_mod, only: fv_atmos_type
+      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
+     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
+      use fv_control_mod, only : uniform_ppm,c2l_ord
+      use gs_domain_decomp, ng=>halo_width
+      use gatscat_mod
+
+      implicit none
+      integer :: i,j,npz
+      integer :: npes,ndims
+      integer :: commID
+      integer, dimension(:), allocatable :: pelist
+
+      real*8, dimension(:,:), allocatable :: P
+
+      type(fv_atmos_type) :: atm
+      character*80 :: grid_name = 'Gnomonic'
+      character*120:: grid_file = 'Inline'
+      logical :: non_ortho
+      
+      write(6,*) "UNIT TEST : parallel_read_regrid"
+
+c***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
+
+      call mpp_init(MPP_VERBOSE)
+c code copied from fv_init:
+      npes = mpp_npes()
+      allocate(pelist(npes))
+      call mpp_get_current_pelist( pelist, commID=commID )
+      call mp_start(commID)
+c      write(6,*) 'commID ',commID
+      npx = ic; npy = npx ! 1x1 resolution
+      ng = 3 ! number of ghost zones required
+
+      call fv_domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
+c      call mp_stop()
+
+      ndims = 2
+      npz = 5
+      call init_grid(atm,grid_name,grid_file,
+     &     npx+1, npy+1, npz, ndims, ntiles, ng)
+
+      non_ortho=.true.
+      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
+     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
+     &     uniform_ppm, grid_type, c2l_ord)
+
+c***  Initialize gather&scatter
+      call domain_decomp_init
+      write(6,*) "AFT. dpmain_decomp_init"
+      call gatscat_init
+      write(6,*) "AFT. gatscat_init"
+
+
+c***  Initialize exchange grid for zonal means
+      call init_xgrid_loop()
+
+      open(UNIT=10, FILE="AIC.RES_F20.D771201", 
+     *     FORM="UNFORMATTED", 
+     *     STATUS="OLD",CONVERT='BIG_ENDIAN')
+
+      allocate(P(is:ie,js:je))
+      
+      call parallel_read_regrid(10,"AIC",0,P,1)
+      write(6,*) ">>>>>>>>>ARRIJ GID>>>>>>>>>>",gid
+      write(6,*) P(:,:)
+
+      call mpp_exit()
+      deallocate(pelist)
+      deallocate(P)
+
+      end subroutine test_onlineread
+c****
+
+
+
       subroutine init_grid_temp()
       use regrid_com
       use mpp_mod
@@ -21,12 +110,13 @@ c****
       use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
      &     dx, dy, dxa, dya, dxc, dyc, grid_type
       use fv_control_mod, only : uniform_ppm, c2l_ord
+      use gatscat_mod, only : npx,npy
 
       implicit none
-      integer :: npx,npy,npes,ng,ndims,rootpe
+      integer :: npes,ndims,rootpe
       integer :: commID
       integer, dimension(:), allocatable :: pelist
-      integer :: l,npz
+      integer :: l,npz,ng
       type(fv_atmos_type) :: atm
       character*80 :: grid_name = 'Gnomonic'
       character*120:: grid_file = 'Inline', ofi
@@ -47,9 +137,9 @@ c code copied from fv_init:
       call mp_start(commID)
       write(6,*) 'rootpe= ',mpp_root_pe()
 c      npx = 90; npy = npx ! 1x1 resolution
-      npx = 48; npy = npx 
+      npx = ic; npy = npx
       
-      ng = 3 ! number of ghost zones required
+
       call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
 
       ndims = 2
@@ -118,7 +208,7 @@ c code copied from fv_init:
       call mp_start(commID)
       write(6,*) 'rootpe= ',mpp_root_pe()
 c      npx = 90; npy = npx ! 1x1 resolution
-      npx = 48; npy = npx 
+      npx = ic; npy = npx 
       
       ng = 3 ! number of ghost zones required
       call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
@@ -166,17 +256,16 @@ ccc    remove these lines - this will be initialize somewhere else
 c      tcub_loc(:,:)=1  !gid
 ccc    end remove
 
-      call zonalmean_cs_unrolled(tcub_loc(:,:),jm,
-     *       az11(:),az21(:),az31(:),
-     *       az41(:),az51(:),
+      call zonalmean_cs_unrolled(tcub_loc(:,:),
      *       zonal_mean(:),
-     *       area_latband(:),maxkey )
+     *       area_latband(:))
 
       write(6,*) "THERE"
 
 c     should be pre-computed
       call mpp_sum(area_latband,jm)
 
+c     line below should be moved inside zaonal mean routine
       call mpp_sum(zonal_mean,jm)
          
 
@@ -205,11 +294,9 @@ c****
 
       subroutine test_zonal_loop()
       use regrid_com
-
       use mpp_mod
       use mpp_domains_mod
       use fv_mp_mod, only : mp_start,mp_stop,domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
       use fv_mp_mod, only : gid, domain
       use fv_grid_utils_mod, only : grid_utils_init
       use fv_arrays_mod, only: fv_atmos_type
@@ -250,7 +337,7 @@ c code copied from fv_init:
       call mp_start(commID)
       write(6,*) 'rootpe= ',mpp_root_pe()
 c      npx = 90; npy = npx ! 1x1 resolution
-      npx = 48; npy = npx 
+      npx = ic; npy = npx 
       
       ng = 3 ! number of ghost zones required
       call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
@@ -306,9 +393,8 @@ c     zonal mean inside rolled loop
 
       do i=is,ie
          do j=js,je
-            call zonalmean_cs_loop(tcub_loc(i,j),i,j,jc,jm,
-     *           az12(:),az22(:),az32(:),
-     *           zonal_mean(:),area_latband(:),maxkey)
+            call zonalmean_cs_loop(tcub_loc(i,j),i,j,
+     *           zonal_mean(:),area_latband(:))
             enddo
          enddo
 
@@ -321,6 +407,7 @@ c     sum over all domains (not reducing rank)
       if (gid .eq. rootpe) then
       do jlat=1,jm
          if (area_latband(jlat) .gt. 1.d-14) then
+c        line beloz should be moved in the weights inside zonal mean routine
             zonal_mean(jlat)=zonal_mean(jlat)
      *           /area_latband(jlat)
          endif
@@ -683,7 +770,7 @@ c               write(6,*) "index indexc",index,indexc
                      az12(ikey)=index
                      az22(ikey)=jlat
                      az32(ikey)=xgrid_area(n)      
-                     write(6,*) "ikey=",ikey
+c                     write(6,*) "ikey=",ikey
                      ikey=ikey+1
                      checkarea=checkarea+xgrid_area(n)
                   endif
@@ -701,27 +788,23 @@ c****
 
 
 
-      subroutine zonalmean_cs_unrolled(acub,jm,
-     *     az1,az2,az3,az4,az5,zonal_mean,area_latband,maxkey)
+      subroutine zonalmean_cs_unrolled(acub,
+     *     zonal_mean,area_latband)
 c****
 c     Calculate Zonal mean for current domain - cubed sphere version - unrolled loop    
 c
 c     INPUT:    acube          array to be summed
-c               jm             latitude max
-c               azonal1,azonal2,...
-c               azonal3,azonal4,...
-c               azonal5        contains reordered xarea 
-c               maxkey         size of azonal* arrays
+c               zonal_mean
+c               latband_area   area of const. latitute band
 c****
 
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+
+      use regrid_com
       implicit none
       include 'netcdf.inc'
-      integer, intent(in) :: maxkey,jm
-      integer :: az1(maxkey),az2(maxkey),az3(maxkey),az4(maxkey)
-      real*8 :: az5(maxkey)
-      real*8 :: acub(isd:ied,jsd:jed),zonal_mean(jm)
+      real*8 :: acub(isd:ied,jsd:jed)
       real*8 :: area_latband(jm)
+      real*8 :: zonal_mean(jm)
       integer :: ikey,jlat,icub,jcub
 
       do jlat=1,jm
@@ -729,15 +812,15 @@ c         write(*,*) "jlat=",jlat
          zonal_mean(jlat)=0.d0
          area_latband(jlat)=0.d0
          do ikey=1,maxkey
-c            write(*,*) "j=",az1(ikey)
-            if (az1(ikey) .eq. jlat) then
-               icub=az3(ikey)
-               jcub=az4(ikey)
+c            write(*,*) "j=",az11(ikey)
+            if (az11(ikey) .eq. jlat) then
+               icub=az31(ikey)
+               jcub=az41(ikey)
            if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
      &          ( (jcub .le. je) .and. (jcub .ge. js)) ) then
                area_latband(jlat)=area_latband(jlat)
-     *              +az5(ikey)
-               zonal_mean(jlat)=zonal_mean(jlat)+az5(ikey)
+     *              +az51(ikey)
+               zonal_mean(jlat)=zonal_mean(jlat)+az51(ikey)
      *              *acub(icub,jcub)
                endif
             endif
@@ -755,27 +838,21 @@ c****
 
 
 
-      subroutine zonalmean_cs_loop(value,iinput,jinput,jc,jm,
-     *     az1,az2,az3,zonal_mean,area_latband,maxkey)
+      subroutine zonalmean_cs_loop(value,iinput,jinput,
+     *     zonal_mean,area_latband)
 c****
 c     Calculate Zonal mean for current domain - cubed sphere version     
 c
 c     INPUT:    value          value to be added to zonal mean
-c               jm             latitude max
-c               IT             index of quantity
-c               az1,az2,az3    contains reordered xarea 
-c               maxkey         size of az* arrays
+c               iinput, jinput 
+c
 c****
 
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+
+      use regrid_com
       implicit none
       include 'netcdf.inc'
       integer, intent(in) :: iinput,jinput
-      integer, intent(in) :: jc,jm   ! jc=max j index of cube face
-                                     ! jm =max lat for whole globe 
-      integer, intent(in) :: maxkey
-      integer :: az1(maxkey),az2(maxkey)
-      real*8 :: az3(maxkey)
       real*8 :: value,zonal_mean(jm),area_latband(jm),zstore,astore
       integer :: ikey,jlat,current_index,index
 
@@ -785,13 +862,13 @@ c****
       current_index=jc*(iinput-1)+jinput
 
       do ikey=1,maxkey
-         index=az1(ikey)            
+         index=az12(ikey)            
          if (index .eq. current_index) then
-            jlat=az2(ikey) 
+            jlat=az22(ikey) 
             zstore=zonal_mean(jlat)
-            zonal_mean(jlat)=zstore+az3(ikey)*value
+            zonal_mean(jlat)=zstore+az32(ikey)*value
             astore=area_latband(jlat)
-            area_latband(jlat)=astore+az3(ikey)
+            area_latband(jlat)=astore+az32(ikey)
          endif
       enddo
 
@@ -807,7 +884,6 @@ c****
       use mpp_mod
       use mpp_domains_mod
       use fv_mp_mod, only : mp_start,mp_stop,domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
       use fv_mp_mod, only : gid, domain
       use fv_grid_utils_mod, only : grid_utils_init
       use fv_arrays_mod, only: fv_atmos_type
@@ -842,7 +918,6 @@ c code copied from fv_init:
       call mpp_get_current_pelist( pelist, commID=commID )
       call mp_start(commID)
       write(6,*) 'rootpe= ',mpp_root_pe()
-c      npx = 90; npy = npx ! 1x1 resolution
       npx = 48; npy = npx 
       
       ng = 3 ! number of ghost zones required
@@ -861,7 +936,6 @@ c      npx = 90; npy = npx ! 1x1 resolution
 c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
 
       rootpe=mpp_root_pe()
-
 
 c read weights and initialize target array to zero
       call init_regrid(pelist)
@@ -905,7 +979,6 @@ c      write(6,*) tcub_loc(:,:)
       use regrid_com
       use mpp_mod
       use mpp_domains_mod
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
       use fv_mp_mod, only : gid
       implicit none
       real*8 :: tlatlon(im,jm),alatlon(im,jm),
@@ -948,7 +1021,6 @@ c
       nij_latlon=im*jm
       call mpp_sum(tlatlon,nij_latlon)
 
-c     should be pre-computed in init_regrid
       call mpp_sum(alatlon,nij_latlon)
 
 c
@@ -972,15 +1044,14 @@ c
       use mpp_mod
       use fv_mp_mod, only : gid
       implicit none
-      real*8 :: tlatlon(im,jm),tcubglob(1:ic,1:jc,6),
-     &     acubglob(1:ic,1:jc,6)
-      integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl,rootpe
+      real*8 :: tlatlon(im,jm),tcubglob(ic,jc,6),
+     &     acubglob(ic,jc,6)
+      integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl
       
 
-      rootpe=mpp_root_pe()
-      
-      if (gid .eq. rootpe) then
+      if (gid .eq. 0) then
          
+         write(6,*) "IN ROOT REGRID LL2CS"
          acubglob(:,:,:) = 0d0
          tcubglob(:,:,:) = 0d0
          
@@ -1005,7 +1076,7 @@ c
                enddo
             enddo
          enddo
-         
+                  write(6,*) "END ROOT REGRID LL2CS"
       endif
       
       end subroutine root_regrid_ll2cs
@@ -1391,50 +1462,152 @@ c
 c     Read input data on lat-lon grid, regrid to global cubbed sphere grid
 c     then scatter to all subdomains
 c
-      use regrid_com
-
-      use mpp_mod
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid
+      use regrid_com, only :im,jm,ic,jc
       use gatscat_mod
-
+      use fv_mp_mod, only : is,ie,js,je,isd,ied,jsd,jed,gid, domain
       implicit none
       integer, intent(in) :: iunit
       character*16, intent(in) :: name
       integer, intent(in) :: nskip
 
-      real*8, intent(out) :: tcubloc(is:ie,js:ie) !output regridded and scattered data 
+      real*8 :: tcubloc(is:ie,js:je) !output regridded and scattered data 
       real*4 :: tllr4(IM,JM)  ! latlon real*4 data read from input file
       real*8 :: tdatall(IM,JM)  ! latlon real*8 data 
+      real*8 :: tcubglob(ic,jc,6)  ! global array 
       real*4 :: X              !dummy arrays
-      real*8 :: tcubglob(ic,jc)
       integer, intent(in) :: ipos
       integer :: n,ierr
       character*80 :: TITLE     
 
-c need modele.f to call init_regrid_rootpe
-
       if (gid .eq. 0) then
          do n=1,ipos-1
-            read(iunit,IOSTAT=ierr)
+            read(UNIT=iunit,IOSTAT=ierr)
          enddo
-         read(iunit,IOSTAT=ierr) TITLE, (X,n=1,nskip), tllr4
+         read(UNIt=iunit,IOSTAT=ierr) TITLE, (X,n=1,nskip), tllr4
 c     convert from real*4 to real*8
          tdatall=tllr4
 
+c     Regrid from lat-lon to cubbed sphere, form global array
+         call root_regrid_ll2cs(tdatall,tcubglob)
+       endif
+
+
+c     Scatter data to every processor
+
+      write(6,*) "BEFORE UNPACK, gid=",gid
+
+c      write(6,*) tcubglob
+
+      call unpack_data(tcubglob,tcubloc)
+
+      end subroutine parallel_read_regrid
+c****
+
+
+
+      subroutine test_rr2()
+      use regrid_com, only : im,jm,ic,jc
+      use mpp_mod
+      use mpp_domains_mod
+      use fv_mp_mod, only : mp_start,mp_stop
+     &     ,fv_domain_decomp=>domain_decomp
+      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
+      use fv_grid_utils_mod, only : cosa_s,sina_s
+     &     ,grid_utils_init
+c     &     ,sw_corner,se_corner,ne_corner,nw_corner
+      use fv_arrays_mod, only: fv_atmos_type
+      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
+     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
+      use fv_control_mod, only : uniform_ppm,c2l_ord
+      use gs_domain_decomp, ng=>halo_width
+      use gatscat_mod
+
+      implicit none
+      integer :: i,j,npz
+      integer :: npes,ndims
+      integer :: commID
+      integer, dimension(:), allocatable :: pelist
+
+c pack
+      real*8, dimension(:,:), allocatable :: arrij
+      character*80 :: TITLE
+
+      real*4 :: tllr4(IM,JM)  ! latlon real*4 data read from input file
+      real*4 :: X(IM,JM)
+      real*8 :: tdatall(IM,JM)  ! latlon real*8 data 
+      real*8 :: tcubglob(ic,jc,6)  ! global array 
+      integer :: n,ipos,ierr,nskip
+      type(fv_atmos_type) :: atm
+      character*80 :: grid_name = 'Gnomonic'
+      character*120:: grid_file = 'Inline'
+      logical :: non_ortho
+
+      call mpp_init(MPP_VERBOSE)
+c code copied from fv_init:
+      npes = mpp_npes()
+      allocate(pelist(npes))
+      call mpp_get_current_pelist( pelist, commID=commID )
+      call mp_start(commID)
+c      write(6,*) 'commID ',commID
+      npx = ic; npy = npx ! 1x1 resolution
+      ng = 3 ! number of ghost zones required
+
+      call fv_domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
+c      call mp_stop()
+
+      ndims = 2
+      npz = 5
+      call init_grid(atm,grid_name,grid_file,
+     &     npx+1, npy+1, npz, ndims, ntiles, ng)
+
+      non_ortho=.true.
+      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
+     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
+     &     uniform_ppm, grid_type, c2l_ord)
+
+      call domain_decomp_init
+      call gatscat_init
+
+c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
+
+c***  Initialize exchange grid for zonal means
+      call init_xgrid_loop()
+
+      write(6,*) "AFT. init xgrid"
+
+      open(UNIT=10, FILE="AIC.RES_F20.D771201", 
+     *     FORM="UNFORMATTED", 
+     *     STATUS="OLD",CONVERT='BIG_ENDIAN')
+
+      ipos=1
+      nskip=0
+
+      if (gid .eq. 0) then
+         do n=1,ipos-1
+            read(UNIT=10,IOSTAT=ierr)
+         enddo
+         read(UNIT=10,IOSTAT=ierr) TITLE, (X,n=1,nskip), tllr4
+c     convert from real*4 to real*8
+         tdatall=tllr4
+     
 c
 c     Regrid from lat-lon to cubbed sphere, form global array
 c
+
          call root_regrid_ll2cs(tdatall,tcubglob)
 
       endif
 
-c
-c     Scatter data to every processor
-c
-      call unpack_data(tcubglob,tcubloc)
+      allocate(arrij   (is:ie,js:je))
+      
+      call unpack_data(tcubglob,arrij)
+      write(6,*) ">>>>>>>>>ARRIJ GID>>>>>>>>>>",gid
+      write(6,*) arrij
 
-      end subroutine parallel_read_regrid
+      call mpp_exit()
+
+      end subroutine test_rr2
 c****
 
 

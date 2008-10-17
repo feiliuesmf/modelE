@@ -1,5 +1,7 @@
       module REGRID_COM
-      
+
+      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+
       integer  :: ncells
 c      integer,parameter:: im=288,jm=180,ntiles=6,ic=48,jc=48
       integer,parameter:: im=144,jm=90,ntiles=6,ic=48,jc=48
@@ -9,9 +11,9 @@ c      integer,parameter:: im=288,jm=180,ntiles=6,ic=48,jc=48
       integer, allocatable, dimension(:,:) :: ijcub,ijlatlon
       integer, allocatable, dimension(:) :: tile
       
-      integer, pointer, dimension(:) :: az11,az21
-      integer, pointer, dimension(:) :: az31,az41,az12,az22
-      real*8, pointer, dimension(:) :: az51,az32
+      integer, allocatable, dimension(:) :: az11,az21
+      integer, allocatable, dimension(:) :: az31,az41,az12,az22
+      real*8, allocatable, dimension(:) :: az51,az32
       integer :: maxkey
 
       interface init_regrid
@@ -26,7 +28,7 @@ c      integer,parameter:: im=288,jm=180,ntiles=6,ic=48,jc=48
       end interface 
 
       interface init_grid_temp
-      subroutine init_grid_temp
+      subroutine init_grid_temp()
       end subroutine init_grid_temp
       end interface 
 
