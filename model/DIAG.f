@@ -2675,7 +2675,7 @@ C****
       USE TRACER_COM, only : ntm, trm, trname
      *     , mass2vol, n_Ox, n_SO4,
      *     n_SO4_d1,n_SO4_d2,n_SO4_d3,n_clay,n_clayilli,n_sil1quhe,
-     *     n_water, n_HDO, n_Be7, n_NOx
+     *     n_water, n_HDO, n_Be7, n_NOx, n_CO
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      *     ,Ntm_dust
@@ -2793,7 +2793,7 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
         if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *       "ALL") then
           select case (namedd(k)(1:1))
-          case ("U","V","W","C","D","O","B","N","t","q","z","r")
+          case ("U","V","W","C","D","O","B","N","t","q","z","r","n","c")
             ! velocities/tracers on model layers
             kunit=kunit+1
             write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
@@ -2842,7 +2842,7 @@ C****
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
 !@+                    z*, r*, t*, q*  (on any model level, note lowercase)
 !@+                    U*, V*, W*, C*  (on any model level)
-!@+                    O*, N*          (ozone,NOx on any model level)
+!@+                    O*, N*, c*, n*  (Ox, NOx, CO, NO2 on any model level)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4
@@ -2888,6 +2888,9 @@ C****
 #endif
 #ifdef TRACERS_DUST
      &     ,dust_flux2_glob
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only : mNO2
 #endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
@@ -3295,6 +3298,20 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*dxyp(j))
                   end do
                 end do
+              case ("c")                ! CO tracer (ppbv)
+                do j=J_0,J_1
+                  do i=1,imaxj(j)
+                    data(i,j)=1.d9*trm(i,j,kp,n_CO)*mass2vol(n_CO)/
+     *                   (am(kp,i,j)*dxyp(j))
+                  end do
+                end do
+              case ("n")                ! NO2 (not a tracer) (ppmv)
+                do j=J_0,J_1
+                  do i=1,imaxj(j)
+                    data(i,j)=1.d6*mNO2(i,j,kp)*mair/(46.0055
+     *                   *am(kp,i,j)*dxyp(j))
+                  end do
+                end do
 #endif
 #ifdef TRACERS_COSMO
               case ("B")                ! Be7 tracer
@@ -3371,6 +3388,20 @@ C**** get model level
                   do i=1,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_NOx)*mass2vol(n_NOx)/
      *                   (am(l,i,j)*dxyp(j))
+                  end do
+                end do
+              case ("c")                ! CO tracer (ppbv)
+                do j=J_0,J_1
+                  do i=1,imaxj(j)
+                    data(i,j)=1.d9*trm(i,j,l,n_CO)*mass2vol(n_CO)/
+     *                   (am(l,i,j)*dxyp(j))
+                  end do
+                end do
+              case ("n")                ! NO2 (not a tracer) (ppmv)
+                do j=J_0,J_1
+                  do i=1,imaxj(j)
+                    data(i,j)=1.d6*mNO2(i,j,l)*mair/(46.0055
+     *                   *am(l,i,j)*dxyp(j))
                   end do
                 end do
 #endif
