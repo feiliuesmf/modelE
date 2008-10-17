@@ -1613,6 +1613,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         DO N=1,NTM_CHEM
           tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
+
+        ! save NO2 mass for sub-daily diagnosic:
+        mNO2(i,j,L)=y(nNO2,L)*46.0055*DXYP(J)*AM(L,i,j)*bymair/y(nM,L)
+     
 #ifdef TRACERS_HETCHEM
         tr3Dsource(i,j,l,nChemistry,n_N_d1) = changeL(l,n_N_d1) *bydtsrc
         tr3Dsource(i,j,l,nChemistry,n_N_d2) = changeL(l,n_N_d2) *bydtsrc
