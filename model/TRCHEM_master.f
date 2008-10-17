@@ -236,6 +236,11 @@ c Calculation of removal rates on dust surfaces:
       CALL HETCDUST
 #endif
 
+#ifndef SHINDELL_STRAT_CHEM 
+      if(which_trop==0 .or (JPNL<LS1-1.and.which_trop==1))
+     &call stop_model('Are you sure JPNL is right?',255)
+#endif
+
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
 c 30 hours.  That fraction is: dt2/dtscr.  E.g. in the first hour it
@@ -483,7 +488,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      if(MODPHOT == 0)then ! i.e. not every time step
+      if(MODPHOT == 0)then ! i.e. not (necessarily) every time step
 
        ! additional SUNLIGHT criterion (see also fam chem criterion):
        if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
@@ -509,7 +514,7 @@ c       define pressures to be sent to FASTJ (edges):
         END DO
         PFASTJ((2*LM)+2) = 0.1d0*PFASTJ((2*LM)+1)
 C       This is a fudge, so that we don't have to get mesosphere data:
-        PFASTJ((2*LM)+2) = 0.00058d0 ! for 23 layer model...
+        PFASTJ((2*LM)+3) = 0.00058d0 ! for 23 layer model...
 #endif
         
 #ifdef SHINDELL_STRAT_CHEM
@@ -2276,18 +2281,6 @@ C**** Local parameters and variables and arguments:
       INTEGER                  :: L, igas, maxL
       INTEGER, INTENT(IN)      :: I,J
       REAL*8, DIMENSION(ntm_chem) :: tlimit
-      DATA tlimit/
-     &9.d-5,1.d-5,1.d-7,3.d-6,1.d-1,1.d-6,3.d-6,1.d-1,1.d-1,1.d-1,
-     &1.d-1, 1.d-1, 1.d-1, 1.d-1, 1.d-1
-#ifdef TRACERS_AEROSOLS_SOA
-     &,1.d-1, 1.d-1, 1.d-1, 1.d-1
-#endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef SHINDELL_STRAT_CHEM
-     &,1.d-1, 1.d-1, 1.d-1, 1.d-1, 1.d-1
-     &,1.d-1, 1.d-1, 1.d-1, 1.d-1, 1.d-1/
-#else
-     & /
-#endif
     
       LOGICAL :: checkOx, checkmax, checkNeg, checkNan
       DATA checkNeg /.true./
@@ -2298,6 +2291,7 @@ C**** Local parameters and variables and arguments:
       integer :: is_error
       character*80, dimension(4) :: message
 
+      tlimit(:)=1.d-5
       message(1)='Ox too big.'
       message(2)='A tracer is too big.'
       message(3)='A tracer is negative.'
