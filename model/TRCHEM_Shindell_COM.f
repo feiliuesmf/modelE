@@ -406,6 +406,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var prnchg logical: print chemical changes?
 !@var prnls logical: print reaction lists by species?
 !@var yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR?
+!@var mNO2 = 3D mass NO2 field saved for subdaily diagnostic purposes
 !@var yCl2,yCl2O2 3D arrays to remember some non-tracer species...
 !@var NCFASTJ number of levels in the fastj atmosphere
 !@var title_aer_pf titles read from aerosol phase function file
@@ -609,7 +610,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
-     & CH4ICX,dms_offline,so2_offline,yso2,ydms      
+     & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2  
 #ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
 #endif
@@ -734,7 +735,7 @@ C**************  Not Latitude-Dependant ****************************
       use TRCHEM_Shindell_COM, only: DU_O3,corrOxIN,corrOx,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
-     & OxICIN,CH4ICIN,LcorrOx,JPPJ,LCOalt,acetone
+     & OxICIN,CH4ICIN,LcorrOx,JPPJ,LCOalt,acetone,mNO2
 #ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN
@@ -756,6 +757,7 @@ C**************  Not Latitude-Dependant ****************************
       allocate(          ss(JPPJ,LM,IM,J_0H:J_1H) )
       allocate(     acetone(IM,J_0H:J_1H,LM)      )
       allocate(        yNO3(IM,J_0H:J_1H,LM)      )
+      allocate(        mNO2(IM,J_0H:J_1H,LM)      )
       allocate(        pHOx(IM,J_0H:J_1H,LM)      )
       allocate(        pNOx(IM,J_0H:J_1H,LM)      )
       allocate(         pOx(IM,J_0H:J_1H,LM)      )
