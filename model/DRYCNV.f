@@ -19,7 +19,7 @@
       USE TRACER_COM, only: TRM,TRMOM,NTM
       USE TRDIAG_COM, only: TAJLN=>TAJLN_loc,JLNT_TURB
 #endif
-      USE DYNAMICS, only : pk,pdsig,plij,dke,pedn
+      USE DYNAMICS, only : pk,pdsig,plij,pedn
       USE PBLCOM, only : dclev,w2gcm,w2_l1
       IMPLICIT NONE
 
@@ -378,18 +378,6 @@ C**** First half of loop cycle for j=j_1 for internal blocks
 
 C***
 
-C**** Save additional changes in KE for addition as heat later
-!$OMP  PARALLEL DO PRIVATE (L,I,J)
-      DO L=1,LM
-      DO J=J_0STG, J_1STG
-      DO I=1,IM
-        DKE(I,J,L)=DKE(I,J,L)+0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)
-     *       -UT(I,J,L)*UT(I,J,L)-VT(I,J,L)*VT(I,J,L))
-      END DO
-      END DO
-      END DO
-!$OMP  END PARALLEL DO
-
       RETURN
       END SUBROUTINE ATM_DIFFUS
 
@@ -407,7 +395,7 @@ C**** Save additional changes in KE for addition as heat later
       USE DOMAIN_DECOMP, only : halo_update_column,checksum_column
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,axyp
-      USE DYNAMICS, only : byam,am,dke
+      USE DYNAMICS, only : byam,am
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trm,trmom,trname,t_qlimit
 #ifdef TRACERS_WATER
@@ -575,14 +563,5 @@ c***        end do
         ENDIF   !.not. NORTH POLE
 #endif
 
-C**** save change of KE for addition as heat later
-      do j=J_0STG, J_1STG
-        do i=1,im
-          dke(i,j,1)=dke(i,j,1)+0.5*(u(i,j,1)*u(i,j,1)+v(i,j,1)*v(i,j,1)
-     *         -usave(i,j)*usave(i,j)-vsave(i,j)*vsave(i,j))
-        end do
-      end do
-
-c****
       return
       end subroutine apply_fluxes_to_atm

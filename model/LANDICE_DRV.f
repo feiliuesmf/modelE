@@ -561,7 +561,8 @@ C****
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var ICE total land ice snow and ice mass (kg/m^2)
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: ICE
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: ICE
       INTEGER I,J
       INTEGER :: J_0,J_1 ,I_0,I_1
       LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
@@ -573,13 +574,12 @@ C****
       I_1 = grid%I_STOP
 
       DO J=J_0,J_1
-        ICE(J)=0
-        DO I=I_0,IMAXJ(J)
-          ICE(J)=ICE(J)+FLICE(I,J)*(ACE1LI+ACE2LI+SNOWLI(I,J))
-        END DO
+      DO I=I_0,IMAXJ(J)
+        ICE(I,J)=FLICE(I,J)*(ACE1LI+ACE2LI+SNOWLI(I,J))
       END DO
-      IF(HAVE_SOUTH_POLE) ICE(1) =FIM*ICE(1)
-      IF(HAVE_NORTH_POLE) ICE(JM)=FIM*ICE(JM)
+      END DO
+      IF(HAVE_SOUTH_POLE) ICE(2:im,1) =ICE(1,1)
+      IF(HAVE_NORTH_POLE) ICE(2:im,JM)=ICE(1,JM)
       RETURN
 C****
       END SUBROUTINE conserv_MLI
@@ -596,7 +596,8 @@ C****
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var EICE total land ice energy (J/m^2)
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: EICE
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: EICE
       INTEGER I,J
       INTEGER :: J_0,J_1 ,I_0,I_1
       LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
@@ -608,14 +609,13 @@ C****
       I_1 = grid%I_STOP
 
       DO J=J_0,J_1
-        EICE(J)=0
-        DO I=I_0,IMAXJ(J)
-          EICE(J)=EICE(J)+FLICE(I,J)*((TLANDI(1,I,J)*SHI-LHM)*(ACE1LI
+      DO I=I_0,IMAXJ(J)
+        EICE(I,J)=FLICE(I,J)*((TLANDI(1,I,J)*SHI-LHM)*(ACE1LI
      *         +SNOWLI(I,J))+(TLANDI(2,I,J)*SHI-LHM)*ACE2LI)
-        END DO
       END DO
-      IF(HAVE_SOUTH_POLE) EICE(1) =FIM*EICE(1)
-      IF(HAVE_NORTH_POLE) EICE(JM)=FIM*EICE(JM)
+      END DO
+      IF(HAVE_SOUTH_POLE) EICE(2:im,1) =EICE(1,1)
+      IF(HAVE_NORTH_POLE) EICE(2:im,JM)=EICE(1,JM)
       RETURN
 C****
       END SUBROUTINE conserv_HLI

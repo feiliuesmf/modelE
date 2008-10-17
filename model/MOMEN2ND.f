@@ -34,7 +34,7 @@
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv
       USE DYNAMICS, only : t_advecv
-      USE DIAG, only : diagcd
+c      USE DIAG, only : diagcd
       IMPLICIT NONE
       REAL*8 U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      * V(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
@@ -439,7 +439,7 @@ C 310 I=IP1
       END DO
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
-         IF(MRCH.GT.0) CALL DIAGCD (grid,1,U,V,DUT,DVT,DT1,PIT)
+         IF(MRCH.GT.0) CALL DIAGCD (grid,1,U,V,DUT,DVT,DT1)!,PIT)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=J_0S,J_1

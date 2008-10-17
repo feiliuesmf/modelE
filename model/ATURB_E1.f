@@ -22,7 +22,7 @@
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,byaxyp,axyp
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke
+      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
       USE DOMAIN_DECOMP, ONLY : halo_update_column
       USE DOMAIN_DECOMP, ONLY : halo_update
@@ -553,19 +553,6 @@ C     NOT the north pole -- k=3,4 contr. to be added by southern neighbor).
           ENDDO
         ENDDO
       end if
-
-C**** Save additional changes in KE for addition as heat later
-!$OMP  PARALLEL DO PRIVATE (L,I,J)
-      DO L=1,LM
-      DO J=J_0STG, J_1STG
-      DO I=1,IM
-        DKE(I,J,L)=DKE(I,J,L)+0.5*(U_3d(I,J,L)*U_3d(I,J,L)
-     *       +V_3d(I,J,L)*V_3d(I,J,L)-U_3d_old(L,I,J)*U_3d_old(L,I,J)
-     *       -V_3d_old(L,I,J)*V_3d_old(L,I,J))
-      END DO
-      END DO
-      END DO
-!$OMP  END PARALLEL DO
 
       return
       end subroutine atm_diffus

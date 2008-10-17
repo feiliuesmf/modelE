@@ -2044,15 +2044,16 @@ C****
       END  SUBROUTINE PRINTLK
 
       SUBROUTINE conserv_LKM(LKM)
-!@sum  conserv_LKM calculates zonal lake mass
+!@sum  conserv_LKM calculates lake mass
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fland,fim
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE GEOM, only : imaxj,bydxyp
+      USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : mwl,flake
       IMPLICIT NONE
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKM
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKM
       INTEGER :: I,J
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2067,28 +2068,31 @@ C****
 C****
 C**** LAKE MASS (kg/m^2)
 C****
-        DO J=J_0, J_1
-        LKM(J)=0.
-        DO I=I_0,IMAXJ(J)
-          IF (FLAND(I,J)+FLAKE(I,J).gt.0) LKM(J)=LKM(J)+MWL(I,J)
-        END DO
-        LKM(J)=LKM(J)*BYDXYP(J)
-      END DO
-      IF (HAVE_SOUTH_POLE) LKM(1) =FIM*LKM(1)
-      IF (HAVE_NORTH_POLE) LKM(JM)=FIM*LKM(JM)
+      DO J=J_0, J_1
+      DO I=I_0,IMAXJ(J)
+        IF (FLAND(I,J)+FLAKE(I,J).gt.0) THEN
+          LKM(I,J)=MWL(I,J)*BYAXYP(I,J)
+        ELSE
+          LKM(I,J)=0.
+        ENDIF
+      ENDDO
+      ENDDO
+      IF (HAVE_SOUTH_POLE) LKM(2:im,1) =LKM(1,1)
+      IF (HAVE_NORTH_POLE) LKM(2:im,JM)=LKM(1,JM)
       RETURN
       END SUBROUTINE conserv_LKM
 
       SUBROUTINE conserv_LKE(LKE)
-!@sum  conserv_LKE calculates zonal lake energy
+!@sum  conserv_LKE calculates lake energy
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,zatmo,fim,fland
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE GEOM, only : imaxj,bydxyp
+      USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : gml,mwl,flake
       IMPLICIT NONE
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKE
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKE
       INTEGER :: I,J
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2104,14 +2108,16 @@ C****
 C**** LAKE ENERGY (J/m^2) (includes potential energy (DISABLED))
 C****
         DO J=J_0, J_1
-        LKE(J)=0.
         DO I=I_0,IMAXJ(J)
-          IF (FLAND(I,J)+FLAKE(I,J).gt.0) LKE(J)=LKE(J)+GML(I,J)
+          IF (FLAND(I,J)+FLAKE(I,J).gt.0) THEN
+            LKE(I,J)=GML(I,J)*BYAXYP(I,J)
 c     *         +ZATMO(I,J)*MWL(I,J)
+          ELSE
+            LKE(I,J)=0.
+          ENDIF
         END DO
-        LKE(J)=LKE(J)*BYDXYP(J)
       END DO
-      IF (HAVE_SOUTH_POLE) LKE(1)=FIM*LKE(1)
-      IF (HAVE_NORTH_POLE) LKE(JM)=FIM*LKE(JM)
+      IF (HAVE_SOUTH_POLE) LKE(2:im,1) =LKE(1,1)
+      IF (HAVE_NORTH_POLE) LKE(2:im,JM)=LKE(1,JM)
       RETURN
       END SUBROUTINE conserv_LKE

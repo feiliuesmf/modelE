@@ -64,6 +64,8 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DKE
+!@var KEA KE on the A grid (m^2/s^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: KEA ! ke on A grid
 !@var WSAVE vertical velocity (m/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WSAVE
 !@var SMASS local but "SAVE"d array ADVECV in MOMEN2ND made global
@@ -88,7 +90,7 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
      $                     DVT,PUA,PVA,SDA,MB,MA,DKE,WSAVE,SD,PIT,
      $                     SQRTP,PTROPO,LTROPO,PTOLD,DPDX_BY_RHO,
      $                     DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0,
-     $                     PS,SMASS
+     $                     PS,SMASS,KEA
       USE DYNAMICS, only : t_dyn_a, t_dyn_b, t_dyn_c, t_dyn_d
       USE DYNAMICS, only : t_aflux, t_advecm, t_advecv
 
@@ -129,6 +131,7 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
      $                MB(I_0H:I_1H,J_0H:J_1H,LM), 
      $                MA(I_0H:I_1H,J_0H:J_1H,LM), 
      $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                KEA(I_0H:I_1H,J_0H:J_1H,LM), 
      $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM-1), 
      $              PIT(I_0H:I_1H,J_0H:J_1H),
      $              SD(I_0H:I_1H,J_0H:J_1H,LM-1),

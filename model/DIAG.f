@@ -53,10 +53,6 @@ C**** Variables passed from DIAGA to DIAGB
 !@var TJL0 zonal mean temperatures prior to advection
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TJL0
 
-C**** Variables used in DIAG5 calculations
-!@var FCUVA,FCUVB fourier coefficients for velocities
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: FCUVA,FCUVB
-
 C**** Some local constants
 !@var JET, LDEX model levels for various pressures
 !@var LUPA,LDNA shorthand for above/below levels
@@ -73,7 +69,7 @@ C**** Some local constants
       USE DOMAIN_DECOMP, only : GET
       USE DOMAIN_DECOMP, only : DIST_GRID
       USE MODEL_COM, only : im,imh,lm
-      USE DIAG_LOC, only  : W,TX,TJL0,FCUVA,FCUVB
+      USE DIAG_LOC, only  : W,TX,TJL0
       IMPLICIT NONE
       LOGICAL, SAVE :: init=.false.
       INTEGER :: J_1H    , J_0H
@@ -90,9 +86,6 @@ C**** Some local constants
       ALLOCATE( W(IM, J_0H:J_1H, LM), TX(IM, J_0H:J_1H, LM),
      &     STAT = IER)
       ALLOCATE( TJL0(J_0H:J_1H, LM),
-     &     STAT = IER)
-      ALLOCATE( FCUVA(0:IMH, J_0H:J_1H, LM, 2),
-     &          FCUVB(0:IMH, J_0H:J_1H, LM, 2),
      &     STAT = IER)
 
       !hack hack hack!
@@ -2042,125 +2035,12 @@ C****
       RETURN
       END SUBROUTINE DIAGCA
 
-
-      module DIAG
-      contains
-
-      SUBROUTINE DIAGCD (grid,M,UX,VX,DUT,DVT,DT1,PIT)
-!@sum  DIAGCD Keeps track of the conservation properties of angular
-!@+    momentum and kinetic energy inside dynamics routines
-!@auth Gary Russell
-!@ver  1.0
-      USE CONSTANT, only : omega,mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
-      USE GEOM, only : cosv,radius,ravpn,ravps
-      USE DIAG_COM, only : consrv=>consrv_loc
-      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, DIST_GRID
-      USE DOMAIN_DECOMP, only : SOUTH
-      USE GETTIME_MOD
-      IMPLICIT NONE
-C****
-C**** THE PARAMETER M INDICATES WHEN DIAGCD IS BEING CALLED
-C**** M=1  AFTER ADVECTION IN DYNAMICS
-C****   2  AFTER CORIOLIS FORCE IN DYNAMICS
-C****   3  AFTER PRESSURE GRADIENT FORCE IN DYNAMICS
-C****   4  AFTER STRATOS DRAG IN DYNAMICS
-C****   5  AFTER FLTRUV IN DYNAMICS
-C****   6  AFTER GRAVITY WAVE DRAG IN DYNAMICS
-C****
-      TYPE (DIST_GRID), INTENT(IN) :: grid
-!@var M index denoting from where DIAGCD is called
-      INTEGER, INTENT(IN) :: M
-!@var DT1 current time step
-      REAL*8, INTENT(IN) :: DT1
-!@var UX,VX current velocities
-      REAL*8, INTENT(IN),
-     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        UX,VX
-!@var DUT,DVT current momentum changes
-      REAL*8, INTENT(IN),
-     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        DUT,DVT
-!@var PIT current pressure tendency
-      REAL*8, INTENT(IN), OPTIONAL,
-     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PIT
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PI
-      INTEGER :: I,J,L,MBEGIN,N,IP1
-      LOGICAL dopit
-      REAL*8 :: DUTI,DUTIL,RKEI,RKEIL
-      INTEGER, DIMENSION(6) ::
-     *     NAMOFM=(/2,3,4,5,6,7/), NKEOFM=(/14,15,16,17,18,19/)
-
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      CALL GETTIME(MBEGIN)
-
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
-     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               J_STRT_HALO=J_0H,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-C****
-C**** PRESSURE TENDENCY FOR CHANGE BY ADVECTION
-C****
-      IF (M.eq.1) THEN
-        dopit=.true.
-        IF(HAVE_SOUTH_POLE) PI(1)=FIM*PIT(1,1)
-        IF(HAVE_NORTH_POLE) PI(JM)=FIM*PIT(1,JM)
-        DO J=J_0S,J_1S
-          PI(J)=SUM(PIT(:,J))
-        END DO
-      ELSE
-        PI=0.
-        dopit=.false.
-      END IF
-C****
-C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY VARIOUS
-C**** PROCESSES IN DYNAMICS
-C****
-C****
-
-      CALL HALO_UPDATE(grid, PI, FROM=SOUTH)
-
-!$OMP PARALLEL DO PRIVATE (J,L,I,DUTIL,RKEIL,DUTI,RKEI,N)
-      DO J=J_0STG,J_1STG
-        DUTIL=0.
-        RKEIL=0.
-        DO L=1,LM
-          DUTI=0.
-          RKEI=0.
-          DO I=1,IM
-            DUTI=DUTI+DUT(I,J,L)
-            RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
-          END DO
-          DUTIL=DUTIL+DUTI
-          RKEIL=RKEIL+RKEI
-        END DO
-        N=NAMOFM(M)
-        if (dopit) DUTIL=DUTIL+2.*DT1*RADIUS*OMEGA*COSV(J)*
-     *       (PI(J-1)*RAVPN(J-1)+PI(J)*RAVPS(J))
-        CONSRV(J,N)=CONSRV(J,N)+DUTIL*COSV(J)*RADIUS*mb2kg
-        N=NKEOFM(M)
-        CONSRV(J,N)=CONSRV(J,N)+RKEIL*mb2kg
-      END DO
-!$OMP END PARALLEL DO
-C****
-      CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
-      RETURN
-      END SUBROUTINE DIAGCD
-
-      end module DIAG
-
-
       SUBROUTINE conserv_DIAG (M,CONSFN,ICON)
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : jm
-      USE DOMAIN_DECOMP, only : GET, GRID, CHECKSUMj
+      USE DOMAIN_DECOMP, only : GET, GRID
       USE DIAG_COM, only : consrv=>consrv_loc,nofm
       IMPLICIT NONE
 !@var M index denoting from where routine is called
@@ -2170,11 +2050,20 @@ C****
 !@var CONSFN external routine that calculates total conserved quantity
       EXTERNAL CONSFN
 !@var TOTAL amount of conserved quantity at this time
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TOTAL
-      INTEGER :: I,J,NM,NI
-      INTEGER :: J_0,J_1
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TOTAL
+      integer, parameter :: jm_budg=jm ! for now
+      REAL*8, DIMENSION(JM_BUDG) :: TOTALJ
+      INTEGER :: I,J,NM,NI,JB
+      INTEGER :: I_0,I_1, J_0,J_1, J_0B,J_1B
 
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+
+C J_0B, J_1B are the min/max zonal budget latitudes for this processor
+      J_0B = J_0 ! for now
+      J_1B = J_1 ! for now
 
 C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
@@ -2185,135 +2074,28 @@ C**** Calculate current value TOTAL
         CALL CONSFN(TOTAL)
         NM=NOFM(M,ICON)
         NI=NOFM(1,ICON)
+C**** Calculate zonal sums
+        TOTALJ(J_0B:J_1B)=0.
+        DO J=J_0,J_1
+        DO I=I_0,I_1
+          JB = J !JBUDG_OF_IJ(I,J)=J for now
+          TOTALJ(JB) = TOTALJ(JB) + TOTAL(I,J)
+        END DO
+        END DO
 C**** Accumulate difference from last time in CONSRV(NM)
         IF (M.GT.1) THEN
-          DO J=J_0,J_1
-            CONSRV(J,NM)=CONSRV(J,NM)+(TOTAL(J)-CONSRV(J,NI))
+          DO J=J_0B,J_1B
+            CONSRV(J,NM)=CONSRV(J,NM)+(TOTALJ(J)-CONSRV(J,NI))
           END DO
         END IF
 C**** Save current value in CONSRV(NI)
-        DO J=J_0,J_1
-          CONSRV(J,NI)=TOTAL(J)
+        DO J=J_0B,J_1B
+          CONSRV(J,NI)=TOTALJ(J)
         END DO
       END IF
       RETURN
 C****
       END SUBROUTINE conserv_DIAG
-
-
-      SUBROUTINE conserv_AM(AM)
-!@sum  conserv_AM calculates total atmospheric angular momentum
-!@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : omega,radius,mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,ls1,dsig,p,u,psfmpt,pstrat
-      USE GEOM, only : cosv,dxyn,dxys,dxyv
-      USE DOMAIN_DECOMP, only : GET, SOUTH, HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP, only : CHECKSUM
-      IMPLICIT NONE
-
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM,PI
-      INTEGER :: I,IP1,J,L
-      REAL*8 :: UMI,UMIL
-
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-C****
-C**** ANGULAR MOMENTUM
-C****
-      IF(HAVE_SOUTH_POLE) PI(1)=FIM*P(1,1)
-      IF(HAVE_SOUTH_POLE) AM(1)=0.
-      IF(HAVE_NORTH_POLE) PI(JM)=FIM*P(1,JM)
-      DO J=J_0S,J_1S
-        PI(J)=0.
-        DO I=1,IM
-          PI(J)=PI(J)+P(I,J)
-        END DO
-      END DO
-
-      CALL HALO_UPDATE(grid, PI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-
-      DO J=J_0STG,J_1STG
-        UMIL=0.
-        DO L=1,LM
-          UMI=0.
-          I=IM
-          DO IP1=1,IM
-            IF(L.LT.LS1) THEN
-              UMI=UMI+U(I,J,L)*((P(I,J-1)+P(IP1,J-1))*DXYN(J-1)
-     *             +(P(I,J)+P(IP1,J))*DXYS(J))
-            ELSE
-              UMI=UMI+U(I,J,L)*(2.*PSFMPT*DXYV(J))
-            END IF
-            I=IP1
-          END DO
-          UMIL=UMIL+UMI*DSIG(L)
-        END DO
-        AM(J)=(RADIUS*OMEGA*COSV(J)*((PI(J-1)*DXYN(J-1)+PI(J)*DXYS(J))
-     *       +FIM*PSTRAT*DXYV(J))+.5*UMIL)*COSV(J)*RADIUS*mb2kg
-      END DO
-      RETURN
-C****
-      END SUBROUTINE conserv_AM
-
-
-      SUBROUTINE conserv_KE(RKE)
-!@sum  conserv_KE calculates total atmospheric kinetic energy
-!@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
-      USE GEOM, only : dxyn,dxys,dxyv
-      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP, only : SOUTH
-      IMPLICIT NONE
-
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
-      INTEGER :: I,IP1,J,L
-      INTEGER :: J_0STG,J_1STG
-      REAL*8 :: RKEI,RKEIL
-      LOGICAL :: HAVE_SOUTH_POLE
-
-      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
-
-C****
-C**** KINETIC ENERGY
-C****
-
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-
-      IF (HAVE_SOUTH_POLE) RKE(1)=0.
-      DO J=J_0STG,J_1STG
-        RKEIL=0.
-        DO L=1,LM
-          RKEI=0.
-          I=IM
-          DO IP1=1,IM
-            IF(L.LT.LS1) THEN
-              RKEI=RKEI+(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-     *             *((P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J
-     *             ))*DXYS(J))
-            ELSE
-              RKEI=RKEI+(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*
-     *             (2.*PSFMPT*DXYV(J))
-            END IF
-            I=IP1
-          END DO
-          RKEIL=RKEIL+RKEI*DSIG(L)
-        END DO
-        RKE(J)=0.25*RKEIL*mb2kg
-      END DO
-      RETURN
-C****
-      END SUBROUTINE conserv_KE
 
 
       SUBROUTINE conserv_MS(RMASS)
@@ -2322,30 +2104,31 @@ C****
 !@ver  1.0
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,fim,p,pstrat
+      USE GEOM, only : imaxj
       USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RMASS
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RMASS
       INTEGER :: I,J
-      INTEGER :: J_0S,J_1S
+      INTEGER :: J_0,J_1 ,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 C****
 C**** MASS
 C****
-      IF(HAVE_SOUTH_POLE) RMASS(1) =FIM*(P(1,1) +PSTRAT)*mb2kg
-      IF(HAVE_NORTH_POLE) RMASS(JM)=FIM*(P(1,JM)+PSTRAT)*mb2kg
-      DO J=J_0S,J_1S
-        RMASS(J)=FIM*PSTRAT
-        DO I=1,IM
-          RMASS(J)=RMASS(J)+P(I,J)
-        END DO
-        RMASS(J)=RMASS(J)*mb2kg
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        RMASS(I,J)=(P(I,J)+PSTRAT)*mb2kg
       END DO
+      END DO
+      IF(HAVE_SOUTH_POLE) RMASS(2:im,1) =RMASS(1,1)
+      IF(HAVE_NORTH_POLE) RMASS(2:im,JM)=RMASS(1,JM)
       RETURN
 C****
       END SUBROUTINE conserv_MS
@@ -2361,35 +2144,32 @@ C****
       USE DYNAMICS, only : pk,pdsig
       USE DOMAIN_DECOMP, only : GET,GRID
       IMPLICIT NONE
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TPE
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TPE
       INTEGER :: I,J,L
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
-      REAL*8 :: TPEI,TPEIL,SGEOI
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+
 C****
 C**** TOTAL POTENTIAL ENERGY (J/m^2)
 C****
       DO J=J_0,J_1
-        TPEIL=0.
+      DO I=I_0,IMAXJ(J)
+        TPE(I,J)=0.
         DO L=1,LM
-          TPEI=0.
-          DO I=1,IMAXJ(J)
-            TPEI=TPEI+T(I,J,L)*PK(L,I,J)*PDSIG(L,I,J)
-          END DO
-          TPEIL=TPEIL+TPEI
-        END DO
-        SGEOI=0.
-        DO I=1,IMAXJ(J)
-          SGEOI=SGEOI+ZATMO(I,J)*(P(I,J)+PTOP)
-        END DO
-        TPE(J)=(SGEOI+TPEIL*SHA)*mb2kg
-      END DO
-      IF(HAVE_SOUTH_POLE) TPE(1)=FIM*TPE(1)
-      IF(HAVE_NORTH_POLE) TPE(JM)=FIM*TPE(JM)
+          TPE(I,J)=TPE(I,J)+T(I,J,L)*PK(L,I,J)*PDSIG(L,I,J)
+        ENDDO
+        TPE(I,J)=(TPE(I,J)*SHA+ZATMO(I,J)*(P(I,J)+PTOP))*mb2kg
+      ENDDO
+      ENDDO
+      IF(HAVE_SOUTH_POLE) TPE(2:im,1) =TPE(1,1)
+      IF(HAVE_NORTH_POLE) TPE(2:im,JM)=TPE(1,JM)
       RETURN
 C****
       END SUBROUTINE conserv_PE
@@ -2405,27 +2185,32 @@ C****
       USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: WATER
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: WATER
       INTEGER :: I,J,L
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1,I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
       CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+
 C****
 C**** TOTAL WATER MASS (kg/m^2)
 C****
       DO J=J_0,J_1
-        WATER(J) = 0.
+      DO I=I_0,IMAXJ(J)
+        WATER(I,J) = 0.
         DO L=1,LM
-          DO I=1,IMAXJ(J)
-            WATER(J)=WATER(J)+(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
-          END DO
-        END DO
-      END DO
-      IF (HAVE_SOUTH_POLE) WATER(1) = FIM*WATER(1)
-      IF (HAVE_NORTH_POLE) WATER(JM)= FIM*WATER(JM)
+          WATER(I,J)=WATER(I,J)+(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)
+        ENDDO
+        WATER(I,J)=WATER(I,J)*mb2kg
+      ENDDO
+      ENDDO
+      IF (HAVE_SOUTH_POLE) WATER(2:im,1) = WATER(1,1)
+      IF (HAVE_NORTH_POLE) WATER(2:im,JM)= WATER(1,JM)
       RETURN
 C****
       END SUBROUTINE conserv_WM
@@ -2443,128 +2228,40 @@ C****
       USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
       REAL*8, PARAMETER :: HSCALE = 7.8d0 ! km
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: EWATER
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: EWATER
       INTEGER :: I,J,L
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
-      REAL*8 W,EL
+      REAL*8 EL!,W
 
       CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 C****
 C**** TOTAL WATER ENERGY (J/m^2)
 C****
       DO J=J_0,J_1
-        EWATER(J) = 0.
+      DO I=I_0,IMAXJ(J)
+        EWATER(I,J) = 0.
         DO L=1,LM
-          DO I=1,IMAXJ(J)
 c this calculation currently only calculates latent heat
-            W =(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
-            EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
-     *           *mb2kg
-            EWATER(J)=EWATER(J)+EL !+W*(SHV*T(I,J,L)*PK(L,I,J)+GRAV
+c          W =(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
+          EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
+          EWATER(I,J)=EWATER(I,J)+EL !+W*(SHV*T(I,J,L)*PK(L,I,J)+GRAV
 !     *           *HSCALE*LOG(P(I,J)/PMID(L,I,J)))
-          END DO
-        END DO
-      END DO
-      IF(HAVE_SOUTH_POLE) EWATER(1) = FIM*EWATER(1)
-      IF(HAVE_NORTH_POLE) EWATER(JM)= FIM*EWATER(JM)
+        ENDDO
+        EWATER(I,J)=EWATER(I,J)*mb2kg
+      ENDDO
+      ENDDO
+      IF(HAVE_SOUTH_POLE) EWATER(2:im,1) = EWATER(1,1)
+      IF(HAVE_NORTH_POLE) EWATER(2:im,JM)= EWATER(1,JM)
       RETURN
 C****
       END SUBROUTINE conserv_EWM
-
-
-      SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
-      USE MODEL_COM, only : im,imh,jm,lm,fim,
-     &     DSIG,JEQ,LS1,MDIAG,MDYN
-      USE DIAG_COM, only : speca,nspher,klayer
-      USE DIAG_LOC, only : FCUVA,FCUVB
-      USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM, WRITE_PARALLEL
-      USE GETTIME_MOD
-      IMPLICIT NONE
-
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        DUT,DVT
-
-c      REAL*8, DIMENSION(0:IMH,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,2) :: FCUVA,FCUVB
-c      COMMON/WORK7/FCUVA,FCUVB
-
-      INTEGER :: M5,NDT
-
-      REAL*8, DIMENSION(IMH+1) :: X
-      REAL*8, DIMENSION(0:IMH) :: FA,FB
-      REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
-      REAL*8, DIMENSION
-     &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
-
-      INTEGER :: J,J45N,KUV,KSPHER,L,MBEGIN,MKE,N,NM
-      INTEGER :: J_0STG,J_1STG
-
-      CALL GET(GRID,J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG)
-
-      NM=1+IM/2
-      J45N=2.+.75*(JM-1.)
-      MKE=M5
-
-      GO TO (810,810,810,100,100,  100,810),M5
-C****  810 WRITE (6,910) M5
-  810 CALL WRITE_PARALLEL(M5, UNIT=6, format=
-     & "('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5D.  M5=',I5)")
-C****  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5D.  M5=',I5)
-      call stop_model('INCORRECT VALUE OF M5 WHEN CALLING DIAG5D',255)
-C****
-C**** KINETIC ENERGY
-C****
-C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
-  100 CALL GETTIME(MBEGIN)
-      KE(:,:)=0.
-      KE_part(:,:,:)=0.
-
-      DO L=1,LM
-        DO J=J_0STG,J_1STG
-          KSPHER=KLAYER(L)
-          IF (J > JEQ) KSPHER= KSPHER+1
-          DO KUV=1,2 ! loop over u,v
-            IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
-            IF(KUV.EQ.2) CALL FFT(DVT(1,J,L),FA,FB)
-            DO N=1,NM
-              X(N)=.5*FIM*
-     &          (FA(N-1)*FCUVA(N-1,J,L,KUV)+FB(N-1)*FCUVB(N-1,J,L,KUV))
-            ENDDO
-            X(1)=X(1)+X(1)
-            X(NM)=X(NM)+X(NM)
-            IF (J.NE.JEQ) KE_part(:,J,KSPHER)=KE_part(:,J,KSPHER)+
-     &                                        X(:)*DSIG(L)
-            IF (J.EQ.J45N) THEN     ! 45 N
-               KE_part(:,J,KSPHER+2)=KE_part(:,J,KSPHER+2)+X(:)*DSIG(L)
-            ELSE IF (J.EQ.JEQ) THEN ! EQUATOR
-              DO N=1,NM
-                KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+
-     &                                X(N)*DSIG(L)
-                KE_part(N,J,KSPHER  )=KE_part(N,J,KSPHER  )+
-     &                                .5D0*X(N)*DSIG(L)       ! CONTRIB TO SH
-                KE_part(N,J,KSPHER+1)=KE_part(N,J,KSPHER+1)+
-     &                                .5D0*X(N)*DSIG(L)       ! CONTRIB TO NH
-              ENDDO
-              IF (KUV.EQ.2) KSPHER=KSPHER+1
-            ENDIF
-          ENDDO
-        ENDDO
-      ENDDO
-
-      CALL GLOBALSUM(grid, KE_part(1:NM,:,1:NSPHER), KE(1:NM,1:NSPHER),
-     &   ALL=.TRUE.)
-
-      DO 180 KSPHER=1,NSPHER
-      DO 180 N=1,NM
-  180 SPECA(N,MKE,KSPHER)=SPECA(N,MKE,KSPHER)+KE(N,KSPHER)/NDT
-C****
-      CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
-      RETURN
-      END SUBROUTINE DIAG5D
-
 
       SUBROUTINE DIAG5A (M5,NDT)
 C****
@@ -2924,39 +2621,6 @@ C**** ACCUMULATE MEAN KINETIC ENERGY AND MEAN POTENTIAL ENERGY
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG5A
-
-
-      SUBROUTINE DIAG5F(UX,VX)
-C**** FOURIER COEFFICIENTS FOR CURRENT WIND FIELD
-C****
-      USE MODEL_COM, only : im,imh,jm,lm,
-     &     IDACC,MDIAG,MDYN
-      USE DIAG_LOC, only : FCUVA,FCUVB
-      USE DOMAIN_DECOMP, only : GRID,GET
-      USE GETTIME_MOD
-      IMPLICIT NONE
-
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        UX,VX
-c      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
-c      COMMON/WORK7/FCUVA,FCUVB
-      INTEGER :: J,L,MBEGIN
-      INTEGER :: J_0STG, J_1STG
-
-      CALL GET(GRID, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
-      CALL GETTIME(MBEGIN)
-      IDACC(6)=IDACC(6)+1
-      DO L=1,LM
-         DO J=J_0STG,J_1STG
-            CALL FFT(UX(1,J,L),FCUVA(0,J,L,1),FCUVB(0,J,L,1))
-            CALL FFT(VX(1,J,L),FCUVA(0,J,L,2),FCUVB(0,J,L,2))
-         ENDDO
-      ENDDO
-      CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
-
-      RETURN
-      END SUBROUTINE DIAG5F
-
 
       SUBROUTINE DIAG4A
 C****

@@ -3433,11 +3433,11 @@ c****
 
 
       subroutine conserv_wtg(waterg)
-!@sum  conserv_wtg calculates zonal ground water incl snow
+!@sum  conserv_wtg calculates ground water incl snow
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : fim, focean, jm, flice
+      use model_com, only : im, fim, focean, jm, flice
       use geom, only : imaxj,AXYP
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       !use veg_com, only : afb
@@ -3445,8 +3445,9 @@ c****
       use LANDICE_COM,only : MDWNIMP
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
-!@var waterg zonal ground water (kg/m^2)
-      real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO),intent(out)::
+!@var waterg ground water (kg/m^2)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO),intent(out)::
      &     waterg
 
       integer i,j,n
@@ -3466,8 +3467,7 @@ C****
       I_1 = grid%I_STOP
 
       do j=J_0,J_1
-        waterg(j)=0
-        do i=I_0,imaxj(j)
+      do i=I_0,imaxj(j)
           !if (fearth(i,j).gt.0) then
           if( focean(i,j) + flice(i,j) < 1.d0 ) then
             !fb=afb(i,j)
@@ -3477,25 +3477,27 @@ C****
      &       +  fv*sum( w_ij(0:ngm,2,i,j) )
      &       +  fb*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1,i,j))
      &       +  fv*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2,i,j),2,i,j))
-            waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
+            waterg(i,j)=fearth(i,j)*wij*rhow
      &           + flake(i,j)*sum( w_ij(0:ngm,3,i,j) )*rhow
 !!! hack to check remove_extra_snow
 !!!            waterg(j)=waterg(j)+MDWNIMP(i,j)/axyp(i,j)
+          else
+            waterg(i,j)=0
           end if
        end do
       end do
-      if (HAVE_SOUTH_POLE) waterg(1) =fim*waterg(1)
-      if (HAVE_NORTH_POLE) waterg(jm)=fim*waterg(jm)
+      if (HAVE_SOUTH_POLE) waterg(2:im,1) =waterg(1,1)
+      if (HAVE_NORTH_POLE) waterg(2:im,jm)=waterg(1,jm)
 c****
       end subroutine conserv_wtg
 
 
       subroutine conserv_wtg_1(waterg,fearth,flake)
-!@sum  conserv_wtg calculates zonal ground water incl snow
+!@sum  conserv_wtg calculates ground water incl snow
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : fim, focean, im, jm
+      use model_com, only : im, fim, focean, im, jm
       use geom, only : imaxj
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
       !use veg_com, only : afb
@@ -3505,8 +3507,9 @@ c****
       real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      &     intent(in) :: fearth, flake
-!@var waterg zonal ground water (kg/m^2)
-      real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO),intent(out)::
+!@var waterg ground water (kg/m^2)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO),intent(out)::
      &     waterg
 
       integer i,j,n
@@ -3526,7 +3529,6 @@ C****
       I_1 = grid%I_STOP
 
       do j=J_0,J_1
-        waterg(j)=0
         do i=I_0,imaxj(j)
           !if (fearth(i,j).gt.0) then
           if( focean(i,j) < 1.d0 ) then
@@ -3537,24 +3539,26 @@ C****
      &       +  fv*sum( w_ij(0:ngm,2,i,j) )
      &       +  fb*fr_snow_ij(1,i,j)*sum( wsn_ij(1:nsn_ij(1,i,j),1,i,j))
      &       +  fv*fr_snow_ij(2,i,j)*sum( wsn_ij(1:nsn_ij(2,i,j),2,i,j))
-            waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
+            waterg(i,j)=fearth(i,j)*wij*rhow
      &           + flake(i,j)*sum( w_ij(0:ngm,3,i,j) )*rhow
+          else
+            waterg(i,j)=0
           end if
        end do
       end do
 
-      if (HAVE_SOUTH_POLE) waterg(1) =fim*waterg(1)
-      if (HAVE_NORTH_POLE) waterg(jm)=fim*waterg(jm)
+      if (HAVE_SOUTH_POLE) waterg(2:im,1) =waterg(1,1)
+      if (HAVE_NORTH_POLE) waterg(2:im,jm)=waterg(1,jm)
 c****
       end subroutine conserv_wtg_1
 
 
 
       subroutine conserv_htg(heatg)
-!@sum  conserv_htg calculates zonal ground energy incl. snow energy
+!@sum  conserv_htg calculates ground energy incl. snow energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      use model_com, only : fim, focean, jm, flice
+      use model_com, only : im, fim, focean, jm, flice
       use geom, only : imaxj, dxyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth
@@ -3562,8 +3566,9 @@ c****
       use LAKES_COM, only : flake
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
-!@var heatg zonal ground heat (J/m^2)
-      real*8, dimension(grid%j_strt_halo:grid%j_stop_halo) :: heatg
+!@var heatg ground heat (J/m^2)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: heatg
 
       integer i,j
       real*8 hij,fb,fv
@@ -3582,8 +3587,8 @@ C****
       I_1 = grid%I_STOP
 
       do j=J_0,J_1
-        heatg(j)=0
         do i=I_0,imaxj(j)
+          heatg(i,j)=0
           !if (fearth(i,j).le.0) cycle
           if ( focean(i,j) + flice(i,j) >= 1.d0 ) cycle
           !fb=afb(i,j)
@@ -3593,12 +3598,12 @@ C****
      &       +  fv*sum( ht_ij(0:ngm,2,i,j) )
      &       +  fb*fr_snow_ij(1,i,j)*sum( hsn_ij(1:nsn_ij(1,i,j),1,i,j))
      &       +  fv*fr_snow_ij(2,i,j)*sum( hsn_ij(1:nsn_ij(2,i,j),2,i,j))
-          heatg(j)=heatg(j)+fearth(i,j)*hij
+          heatg(i,j)=fearth(i,j)*hij
      &           + flake(i,j)*sum( ht_ij(0:ngm,3,i,j) )
         end do
       end do
-      if (HAVE_SOUTH_POLE) heatg(1) =fim*heatg(1)
-      if (HAVE_NORTH_POLE) heatg(jm)=fim*heatg(jm)
+      if (HAVE_SOUTH_POLE) heatg(2:im,1) =heatg(1,1)
+      if (HAVE_NORTH_POLE) heatg(2:im,jm)=heatg(1,jm)
 c****
 ccc debugging ...
 ccc      print *,'conserv_htg energy ',

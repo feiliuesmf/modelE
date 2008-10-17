@@ -102,7 +102,7 @@ C****
       END SUBROUTINE io_ocean
 
       SUBROUTINE conserv_OCE(OCEANE)
-!@sum  conserv_OCE calculates zonal ocean energy for Qflux ocean
+!@sum  conserv_OCE calculates ocean energy for Qflux ocean
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shw,rhows
@@ -112,8 +112,9 @@ C****
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET
       IMPLICIT NONE
-!@var OCEANE zonal ocean energy (J/M^2)
-      REAL*8, DIMENSION(grid%J_STRT_HALO : grid%J_STOP_HALO) :: OCEANE
+!@var OCEANE ocean energy (J/M^2)
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: OCEANE
       INTEGER I,J
       integer :: J_0, J_1, I_0, I_1
       logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
@@ -127,17 +128,18 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      OCEANE=0
       DO J=J_0, J_1
-        DO I=I_0,IMAXJ(J)
-          IF (FOCEAN(I,J).gt.0) THEN
-            OCEANE(J)=OCEANE(J)+(TOCEAN(1,I,J)*Z1O(I,J)
-     *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOWS
-          END IF
-        END DO
-      END DO
-      IF (HAVE_SOUTH_POLE) OCEANE(1) =FIM*OCEANE(1)
-      IF (HAVE_NORTH_POLE) OCEANE(JM)=FIM*OCEANE(JM)
+      DO I=I_0,IMAXJ(J)
+        IF (FOCEAN(I,J).gt.0) THEN
+          OCEANE(I,J)=(TOCEAN(1,I,J)*Z1O(I,J)
+     *         +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOWS
+        ELSE
+          OCEANE(I,J)=0
+        END IF
+      ENDDO
+      ENDDO
+      IF (HAVE_SOUTH_POLE) OCEANE(2:im,1) =OCEANE(1,1)
+      IF (HAVE_NORTH_POLE) OCEANE(2:im,JM)=OCEANE(1,JM)
 C****
       END SUBROUTINE conserv_OCE
 

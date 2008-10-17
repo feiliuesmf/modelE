@@ -51,7 +51,6 @@ c$$$      USE MODEL_COM, only: clock
 #endif
       USE ATMDYN, only : DYNAM,PGRAD_PBL,SDRAG
      &     ,FILTER,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-     &     ,getTotalEnergy,dissip
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -102,6 +101,7 @@ C**** Command line options
 #endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
+      real*8 :: gettotalenergy ! external for now
 
 C****
 C**** Processing command line options
@@ -348,6 +348,7 @@ C**** Initialize pressure for mass fluxes used by tracers and Q
 
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
+
 #ifdef SCM
       NSTEPSCM = ITIME-ITIMEI
       write(0,*) 'NSTEPSCM ',NSTEPSCM
@@ -426,6 +427,10 @@ C**** calculate zenith angle for current time step
 C****
 C**** INTEGRATE SOURCE TERMS
 C****
+
+c calculate KE before atmospheric column physics
+         call calc_kea_3d(kea)
+
          IDACC(1)=IDACC(1)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          IF (MODD5S.EQ.0) IDACC(8)=IDACC(8)+1
@@ -516,8 +521,8 @@ C**** ADVECT ICE
          CALL CHECKT ('ADVSI ')
 C**** UPDATE DIAGNOSTIC TYPES
          CALL UPDTYPE
-C**** ADD DISSIPATED KE FROM SURFACE CALCULATION BACK AS LOCAL HEAT
-      CALL DISSIP
+C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
+      CALL DISSIP ! uses kea calculated before column physics
          CALL CHECKT ('DISSIP')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
@@ -2644,6 +2649,34 @@ c****
       return
       end subroutine tropwmo
 
+      function getTotalEnergy() result(totalEnergy)
+!@sum  getTotalEnergy returns the sum of kinetic and potential energy.
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use GEOM, only: AXYP, AREAG
+      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
+      REAL*8 :: totalEnergy
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     KEIJ,PEIJ,TEIJ
+      INTEGER :: I,J
+      integer :: I_0, I_1, J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%i_strt
+      I_1 = grid%i_stop
+
+      call conserv_PE(PEIJ)
+      call conserv_KE(KEIJ)
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+        TEIJ(I,J)= (KEIJ(I,J) + PEIJ(I,J)*AXYP(I,J))/AREAG
+      ENDDO
+      ENDDO
+      CALL GLOBALSUM(grid, TEIJ, totalEnergy, ALL=.true.)
+
+      end function getTotalEnergy
+
       subroutine addEnergyAsDiffuseHeat(deltaEnergy)
 !@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
 !@auth Tom Clune (SIVO)
@@ -2672,6 +2705,62 @@ c****
 !$OMP  END PARALLEL DO
 
       end subroutine addEnergyAsDiffuseHeat
+
+      SUBROUTINE DISSIP
+!@sum DISSIP adds in dissipated KE (m^2/s^2) as heat locally
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : t
+      USE DYNAMICS, only : dke,kea,pk
+      IMPLICIT NONE
+C**** temporarily store latest KE in DKE array
+      call calc_kea_3d(dke)
+      dke(:,:,:) = dke(:,:,:) - kea(:,:,:)
+      call addEnergyAsLocalHeat(DKE, T, PK)
+
+      END SUBROUTINE DISSIP
+
+C***** Add in dissipiated KE as heat locally
+      subroutine addEnergyAsLocalHeat(deltaKE, T, PK)!, diagIndex)
+!@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
+!@sum  deltaKE is now on the A grid!!!
+!@auth Tom Clune (SIVO)
+!@ver  1.0
+      use CONSTANT, only: SHA
+      use GEOM, only: IMAXJ
+      use MODEL_COM, only: LM
+      use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
+     &     ,am_i_root
+      use DIAG_COM, only: ajl => ajl_loc
+      implicit none
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &     deltaKE,T
+      real*8, dimension(lm,grid%i_strt_halo:grid%i_stop_halo,
+     &                     grid%j_strt_halo:grid%j_stop_halo) :: PK
+c      integer, optional, intent(in) :: diagIndex
+
+      integer :: i, j, k, l
+      real*8 :: ediff
+      integer :: I_0, I_1, J_0, J_1
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%i_strt
+      I_1 = grid%i_stop
+
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+      DO L=1,LM
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        ediff = deltaKE(I,J,L) / (SHA*PK(L,I,J))
+        T(I,J,L)=T(I,J,L)-ediff
+c        if (present(diagIndex)) then
+c          AJL(J,L,diagIndex) = AJL(J,L,diagIndex) - ediff
+c        end if
+      END DO
+      END DO
+      END DO
+!$OMP  END PARALLEL DO
+      end subroutine addEnergyAsLocalHeat
 
 C**** Calculate 3D vertical velocity (take SDA which has units
 C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)

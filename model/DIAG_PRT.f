@@ -5117,7 +5117,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       CHARACTER*4, PARAMETER :: HEMIS(2) = (/' SH ',' NH '/),
      *     DASH = ('----')
 
-      INTEGER :: j,jhemi,jnh,jp1,jpm,jv1,jvm,jx,n
+      INTEGER :: j,jhemi,jnh,jp1,jpm,jv1,jvm,jx,n,n1
       REAL*8 :: aglob,ahem,days
 
 
@@ -5135,26 +5135,33 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
           END IF
         END DO
       END DO
-C**** CALCULATE FINAL ANGULAR MOMENTUM + KINETIC ENERGY ON VELOCITY GRID
-      DO N=1,25
-        CSJ(1,N)=0.
-        CNSLAT(1,N)=0.
-        DO J=2,JM
-          CSJ(J,N)=CONSRV(J,N)*SCALE_CON(N)/
-     *                         (IDACC(IA_CON(N))+1d-20)
-          CNSLAT(J,N)=CSJ(J,N)/(FIM*DXYV(J))
-          CSJ(J,N)=CSJ(J,N)*WTJ(J,1,2)
-        END DO
-      END DO
 
-      CALL GLOBALSUM(GRID, CSJ(:,1:25),
-     &                     FGLOB(1:25), FHEM(:,1:25), istag=1)
-      FGLOB(1:25)=FGLOB(1:25)/AREAG
-      FHEM(1,1:25)=FHEM(1,1:25)/(.5*AREAG)
-      FHEM(2,1:25)=FHEM(2,1:25)/(.5*AREAG)
+C**** CALCULATE FINAL ANGULAR MOMENTUM + KINETIC ENERGY ON VELOCITY GRID
+c      DO N=1,25
+c        CSJ(1,N)=0.
+c        CNSLAT(1,N)=0.
+c        DO J=2,JM
+c          CSJ(J,N)=CONSRV(J,N)*SCALE_CON(N)/
+c     *                         (IDACC(IA_CON(N))+1d-20)
+c          CNSLAT(J,N)=CSJ(J,N)/(FIM*DXYV(J))
+c          CSJ(J,N)=CSJ(J,N)*WTJ(J,1,2)
+c        END DO
+c      END DO
+
+c      CALL GLOBALSUM(GRID, CSJ(:,1:25),
+c     &                     FGLOB(1:25), FHEM(:,1:25), istag=1)
+c      FGLOB(1:25)=FGLOB(1:25)/AREAG
+c      FHEM(1,1:25)=FHEM(1,1:25)/(.5*AREAG)
+c      FHEM(2,1:25)=FHEM(2,1:25)/(.5*AREAG)
+
+C**** SCALE ANGULAR MOMENTUM AND KINETIC ENERGY BY AREA
+      DO N=1,25
+        CONSRV(:,N) = CONSRV(:,N)/DXYP(:)
+      ENDDO
 
 C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
-      DO N=26,KCMX
+      N1=1
+      DO N=N1,KCMX
          DO J=1,JM
             CSJ(J,N)    = CONSRV(J,N)*SCALE_CON(N)/
      &                           (IDACC(IA_CON(N))+1d-20)
@@ -5162,11 +5169,11 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
             CSJ(J,N)    = CSJ(J,N)*DXYP(J)
          END DO
       END DO
-      CALL GLOBALSUM(GRID, CSJ(:,26:KCMX),
-     &                     FGLOB(26:KCMX), FHEM(:,26:KCMX))
-      FGLOB(26:KCMX)=FGLOB(26:KCMX)/AREAG
-      FHEM(1,26:KCMX)=FHEM(1,26:KCMX)/(.5*AREAG)
-      FHEM(2,26:KCMX)=FHEM(2,26:KCMX)/(.5*AREAG)
+      CALL GLOBALSUM(GRID, CSJ(:,N1:KCMX),
+     &                     FGLOB(N1:KCMX), FHEM(:,N1:KCMX))
+      FGLOB(N1:KCMX)=FGLOB(N1:KCMX)/AREAG
+      FHEM(1,N1:KCMX)=FHEM(1,N1:KCMX)/(.5*AREAG)
+      FHEM(2,N1:KCMX)=FHEM(2,N1:KCMX)/(.5*AREAG)
       AGLOB=1.D-10*AREAG*XWON
       AHEM=1.D-10*(.5*AREAG)*XWON
 C**** LOOP OVER HEMISPHERES
@@ -5185,33 +5192,41 @@ C**** LOOP OVER HEMISPHERES
      *       JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
         JP1=1+(JHEMI-1)*(JEQ-1)
         JPM=JHEMI*(JEQ-1)
-        JV1=2+(JHEMI-1)*(JEQ-2)
-        JVM=JEQ+(JHEMI-1)*(JEQ-2)
-C**** PRODUCE TABLES FOR ANGULAR MOMENTUM AND KINETIC ENERGY
-        WRITE (6,903) (DASH,J=JV1,JVM,INC)
-        WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_DG(JX,2)),JX=JVM,JV1,-INC)
-        WRITE (6,903) (DASH,J=JV1,JVM,INC)
-        DO N=1,25
-          WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
-     *         (MLAT(JX,N),JX=JVM,JV1,-INC)
-        END DO
-        DO J=JV1,JVM
-          MAREA(J)=1.D-10*XWON*FIM*DXYV(J)+.5
-        END DO
-        WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JVM,JV1,-INC)
-C**** PRODUCE TABLES FOR OTHER CONSERVED QUANTITIES
-        WRITE (6,907)
-        WRITE (6,903) (DASH,J=JP1,JPM,INC)
-        WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_DG(JX,1)),JX=JPM,JP1,-INC)
-        WRITE (6,903) (DASH,J=JP1,JPM,INC)
-        DO N=26,KCMX
-          WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
-     *         (MLAT(JX,N),JX=JPM,JP1,-INC)
-        END DO
+
+c        JV1=2+(JHEMI-1)*(JEQ-2)
+c        JVM=JEQ+(JHEMI-1)*(JEQ-2)
+cC**** PRODUCE TABLES FOR ANGULAR MOMENTUM AND KINETIC ENERGY
+c        WRITE (6,903) (DASH,J=JV1,JVM,INC)
+c        WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_DG(JX,2)),JX=JVM,JV1,-INC)
+c        WRITE (6,903) (DASH,J=JV1,JVM,INC)
+c        DO N=1,25
+c          WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
+c     *         (MLAT(JX,N),JX=JVM,JV1,-INC)
+c        END DO
+c        DO J=JV1,JVM
+c          MAREA(J)=1.D-10*XWON*FIM*DXYV(J)+.5
+c        END DO
+c        WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JVM,JV1,-INC)
+
+C**** WRITE TABLES
         DO J=JP1,JPM
           MAREA(J)=1.D-10*XWON*FIM*DXYP(J)+.5
         END DO
-        WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JPM,JP1,-INC)
+        DO N=1,KCMX
+          IF(N.EQ.1 .OR. N.EQ.26) THEN ! AM/KE get their own section
+            WRITE(6,907)
+            WRITE(6,903) (DASH,J=JP1,JPM,INC)
+            WRITE(6,904) HEMIS(JHEMI),
+     &           (NINT(LAT_DG(JX,1)),JX=JPM,JP1,-INC)
+            WRITE(6,903) (DASH,J=JP1,JPM,INC)
+          ENDIF
+          WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
+     *         (MLAT(JX,N),JX=JPM,JP1,-INC)
+          IF(N.EQ.25 .OR. N.EQ.KCMX) THEN ! AM/KE get their own section
+            WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JPM,JP1,-INC)
+          ENDIF
+        END DO
+
       END DO
       RETURN
 C****

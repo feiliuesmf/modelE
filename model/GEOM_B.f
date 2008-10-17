@@ -40,7 +40,7 @@ C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
       REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
       REAL*8, DIMENSION(:,:), ALLOCATABLE ::
-     &     AXYP,BYAXYP,LAT2D,LON2D,SINLAT2D
+     &     AXYP,BYAXYP,LAT2D,LON2D,SINLAT2D,COSLAT2D
 !@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
@@ -118,6 +118,7 @@ C**** some B-grid conservation quantities
      &    ,lat2d(i_0h:i_1h,j_0h:j_1h)
      &    ,lon2d(i_0h:i_1h,j_0h:j_1h)
      &    ,sinlat2d(i_0h:i_1h,j_0h:j_1h)
+     &    ,coslat2d(i_0h:i_1h,j_0h:j_1h)
      &     )
 
 C**** latitudinal spacing depends on whether you have even spacing or
@@ -317,6 +318,7 @@ c
         byaxyp(i,j) = bydxyp(j)
         lat2d(i,j) = lat(j)
         sinlat2d(i,j) = sin(lat(j))
+        coslat2d(i,j) = cos(lat(j))
       enddo
       do i=i_0,i_1
         lon2d(i,j) = lon(i)
