@@ -45,7 +45,7 @@
      *     hdiurn,
 #endif
      *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
-     *     ij_fwoc,p_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
+     *     ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
      *     ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
@@ -1291,6 +1291,7 @@ C**** WRITE TO GLOBAL ARRAYS
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
 C**** accumulate precip specially for SUBDD
       P_acc(I,J)=P_acc(I,J)+PRCP
+      PM_acc(I,J)=PM_acc(I,J)+PRCP-PRECSS(I,J)
 C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)

@@ -2668,7 +2668,7 @@ C****
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,lm,itime
       USE FILEMANAGER, only : openunit, closeunit, nameunit
-      USE DIAG_COM, only : kgz_max,pmname,P_acc
+      USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
       USE PARAM
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACER_DIAGS
@@ -2770,6 +2770,7 @@ C**** define lst
 
 C**** initialise special subdd accumulation
       P_acc=0.
+      PM_acc=0.
 #ifdef TRACERS_COSMO
       BE7W_acc=0.
       BE7D_acc=0.
@@ -2792,7 +2793,8 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
         if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *       "ALL") then
           select case (namedd(k)(1:1))
-          case ("U", "V", "W", "C", "D", "O", "B","N") ! velocities/tracers on model layers
+          case ("U","V","W","C","D","O","B","N","t","q","z","r")
+            ! velocities/tracers on model layers
             kunit=kunit+1
             write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
             call openunit(name,iu_SUBDD(kunit),.true.,.false.)
@@ -2836,7 +2838,9 @@ C****
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
 !@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
+!@+                    MCP, SNOWC, RS, GT1, GTD, GW0, GWD, GI0, GID
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
+!@+                    z*, r*, t*, q*  (on any model level, note lowercase)
 !@+                    U*, V*, W*, C*  (on any model level)
 !@+                    O*, N*          (ozone,NOx on any model level)
 !@+                    D*          (HDO on any model level)
@@ -2856,14 +2860,15 @@ C****
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
      *     ,lhe,rhow,undef,stbo
       USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean
-     *     ,flice,nday
+     *     ,flice,nday,t,q
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
+      USE GHY_COM, only : gdeep
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
 #ifdef CLD_AER_CDNC
      *           ,ctem,cd3d,ci3d,cl3d,cdn3d,cre3d,clwp
 #endif
-      USE DYNAMICS, only : ptropo,am,wsave
+      USE DYNAMICS, only : ptropo,am,wsave,pk,phi,pmid
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp,gtempr
 #ifdef TRACERS_ON
@@ -2887,7 +2892,7 @@ C****
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
-      USE GHY_COM, only : snowe,fearth
+      USE GHY_COM, only : snowe,fearth,wearth,aiearth
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
 #ifdef HTAP_LIKE_DIAGS
      & ,ttausv_sum,ttausv_count,ntrix
@@ -2896,7 +2901,7 @@ C****
       USE RADPAR, only : NTRACE
 #endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
-     *     ,p_acc,pmb
+     *     ,p_acc,pm_acc,pmb
       USE DOMAIN_DECOMP, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -2905,10 +2910,13 @@ C****
       REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       INTEGER :: I,J,K,L,kp,kunit,n,n1,n_fidx
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
-      INTEGER :: J_0,J_1
-      LOGICAL :: polefix
+      INTEGER :: J_0,J_1,J_0S,J_1S
+      LOGICAL :: polefix,have_south_pole,have_north_pole
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
+     &              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &               HAVE_SOUTH_POLE=have_south_pole,
+     &               HAVE_NORTH_POLE=have_north_pole)
 
 #ifdef TRACERS_DUST
       n_fidx=n_clay
@@ -2964,12 +2972,81 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-        case ("QS")             ! surf humidity (kg/kg)
+        case ("GT1")      ! level 1 ground temp (LAND) (C)
+          do j=J_0,J_1
+            do i=1,imaxj(j)
+              if (fearth(i,j).gt.0) then
+                data(i,j)=gtemp(1,4,i,j)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("GTD")   ! avg levels 2-6 ground temp (LAND) (C)
+          do j=J_0,J_1
+            do i=1,imaxj(j)
+              if (fearth(i,j).gt.0) then
+                data(i,j)=gdeep(i,j,1)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("GWD")  ! avg levels 2-6 ground liq water (m)
+          do j=J_0,J_1
+            do i=1,imaxj(j)
+              if (fearth(i,j).gt.0) then
+                data(i,j)=gdeep(i,j,2)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("GID")  ! avg levels 2-6 ground ice (m liq. equiv.)
+          do j=J_0,J_1          
+            do i=1,imaxj(j)
+              if (fearth(i,j).gt.0) then
+                data(i,j)=gdeep(i,j,3)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("GW0")  ! ground lev 1 + canopy liq water (m)
+          do j=J_0,J_1          
+            do i=1,imaxj(j)
+              if (fearth(i,j).gt.0) then
+                data(i,j)=wearth(i,j)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("GI0")  ! ground lev 1 + canopy ice (m liq. equiv.)
+          do j=J_0,J_1
+            do i=1,imaxj(j)
+              if (fearth(i,j).gt.0) then
+                data(i,j)=aiearth(i,j)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("QS")             ! surf spec humidity (kg/kg)
           data=qsavg
+        case ("RS")             ! surf rel humidity
+          do j=J_0,J_1
+            do i=1,imaxj(j)
+              data(i,j)=qsavg(i,j)/qsat(tsavg(i,j),lhe,p(i,j)+ptop)
+            enddo
+          enddo
         case ("PREC")           ! precip (mm/day)
 c          data=sday*prec/dtsrc
           data=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           P_acc=0.
+        case ("MCP")       ! moist conv precip (mm/day)
+          data=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          PM_acc=0.
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
             do i=1,imaxj(j)
@@ -2978,6 +3055,19 @@ c          data=sday*prec/dtsrc
               PLANDI=FLICE(I,J)
               data(i,j)=1d3*(SNOWI(I,J)*POICE+SNOWLI(I,J)*PLANDI+SNOWE(I
      *             ,J)*PEARTH)/RHOW
+            end do
+          end do
+        case ("SNOWC")     ! snow cover (fraction of grid)
+          do j=J_0,J_1
+            do i=1,imaxj(j)
+              data(i,j)=0.d0
+              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              if(SNOWI(I,J) > 0.)data(i,j)=data(i,j)+POICE
+              PEARTH=FEARTH(I,J)
+              if(SNOWE(I,J) > 0.)data(i,j)=data(i,j)+PEARTH
+              PLANDI=FLICE(I,J)
+              if(SNOWLI(I,J) > 0.)data(i,j)=data(i,j)+PLANDI
+              data(i,j)=min(1.d0,data(i,j))
             end do
           end do
         case ("QLAT")           ! latent heat (W/m^2)
@@ -3151,11 +3241,36 @@ C**** get pressure level
           end if
 
 C**** diagnostics on model levels
-        case ("U","V","W","C","O","B","D","N")    ! velocity/clouds/tracers
+        case ("U","V","W","C","O","B","D","N","t","q","z","r") 
+             ! velocity/clouds/tracers, temp,spec.hum.,geo.ht
           if (namedd(k)(2:4) .eq. "ALL") then
             kunit=kunit+1
             do kp=1,LmaxSUBDD
               select case (namedd(k)(1:1))
+              case ("t")        ! temperature (C)
+                if(have_south_pole) data(1:im,1)=
+     &          t(1,1,kp)*pk(kp,1, 1)-tf
+                if(have_north_pole) data(1:im,jm)=
+     &          t(1,jm,kp)*pk(kp,1,jm)-tf
+                data(:,J_0S:J_1S)=
+     &          t(:,J_0S:J_1S,kp)*pk(kp,:,J_0S:J_1S)-tf
+              case ("r")        ! relative humidity
+                if(have_south_pole) data(1:im, 1)=q(1,1,kp)/
+     &          qsat(t(1,1,kp)*pk(kp,1,1),lhe,pmid(kp,1,1))
+                if(have_north_pole) data(1:im,jm)=q(1,jm,kp)/
+     &          qsat(t(1,jm,kp)*pk(kp,1,jm),lhe,pmid(kp,1,jm))
+                do j=J_0S,J_1S; do i=1,im
+                  data(i,j)=q(i,j,kp)/qsat(t(i,j,kp)*pk(kp,i,j),
+     &            lhe,pmid(kp,i,j))
+                enddo         ; enddo
+              case ("q")        ! specific humidity
+                if(have_south_pole) data(1:im, 1)=q(1, 1,kp)
+                if(have_north_pole) data(1:im,jm)=q(1,jm,kp)
+                data(:,J_0S:J_1S)=q(:,J_0S:J_1S,kp)
+              case ("z")        ! geopotential height
+                if(have_south_pole) data(1:im, 1)=phi(1, 1,kp)
+                if(have_north_pole) data(1:im,jm)=phi(1,jm,kp)
+                data(:,J_0S:J_1S)=phi(:,J_0S:J_1S,kp)
               case ("U")        ! E-W velocity
                 data=u(:,:,kp)
               case ("V")        ! N-S velocity
@@ -3210,6 +3325,30 @@ C**** get model level
             if (trim(namedd(k)(2:5)) .eq. lst(l)) then
               kunit=kunit+1
               select case (namedd(k)(1:1))
+              case ("t")        ! temperature (C)
+                if(have_south_pole) data(1:im,1)=
+     &          t(1,1,l)*pk(l,1, 1)-tf
+                if(have_north_pole) data(1:im,jm)=
+     &          t(1,jm,l)*pk(l,1,jm)-tf
+                data(:,J_0S:J_1S)=
+     &          t(:,J_0S:J_1S,l)*pk(l,:,J_0S:J_1S)-tf
+              case ("r")        ! relative humidity
+                if(have_south_pole) data(1:im, 1)=q(1, 1,l)/
+     &          qsat(t(1,1,l)*pk(l,1,1),lhe,pmid(l,1,1))
+                if(have_north_pole) data(1:im,jm)=q(1,jm,l)/
+     &          qsat(t(1,jm,l)*pk(l,1,jm),lhe,pmid(l,1,jm))
+                do j=J_0S,J_1S; do i=1,im
+                  data(i,j)=q(i,j,l)/qsat(t(i,j,l)*pk(l,i,j),
+     &            ,lhe,pmid(l,i,j))
+                enddo         ; enddo
+              case ("q")        ! specific humidity
+                if(have_south_pole) data(1:im, 1)=q(1, 1,l)
+                if(have_north_pole) data(1:im,jm)=q(1,jm,l)
+                data(:,J_0S:J_1S)=q(:,J_0S:J_1S,l)
+              case ("z")        ! geopotential height
+                if(have_south_pole) data(1:im, 1)=phi(1, 1,l)
+                if(have_north_pole) data(1:im,jm)=phi(1,jm,l)
+                data(:,J_0S:J_1S)=phi(:,J_0S:J_1S,l)
               case ("U")        ! U velocity
                 data=u(:,:,l)
               case ("V")        ! V velocity

@@ -245,9 +245,10 @@ C**** Instantaneous constant pressure level fields
 !@var RH_inst saved instantaneous relative hum (at PMB levels)
 !@var T_inst saved instantaneous temperature(at PMB levels)
 !@var P_acc accumulated precip (special for SUBDD)
+!@var PM_acc accumulated moist convective precip (special for SUBDD)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
      &     Z_inst,RH_inst,T_inst
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: P_acc
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: P_acc,PM_acc
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AFLX_ST
 
@@ -710,7 +711,7 @@ c idacc-indices of various processes
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc, AFLX_ST
-     *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc
+     *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
 
 
       IMPLICIT NONE
@@ -748,6 +749,7 @@ c idacc-indices of various processes
      &         T_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         TSFREZ_loc(I_0H:I_1H,J_0H:J_1H,KTSF),
      &         P_acc(I_0H:I_1H,J_0H:J_1H),
+     &         PM_acc(I_0H:I_1H,J_0H:J_1H),
      &         TDIURN(I_0H:I_1H,J_0H:J_1H,KTD),
      &         OA(I_0H:I_1H,J_0H:J_1H,KOA),
      &         STAT = IER)
