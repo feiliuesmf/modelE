@@ -20,6 +20,16 @@ C**** Accumulating_period information
 
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
+
+C**** Define a budget grid (for AJ,AREG,CONSRV diags)
+C**** This is fixed for all grid types and resolutions
+!@param JM_BUDG grid size for budget page diags
+! will be 46 based on basic 4x5 grid
+      INTEGER, PARAMETER, public :: JM_BUDG=JM  ! for temporary continuity
+c!@var DXYP_BUDG area array on budget grid
+c      REAL*8, DIMENSION(JM_BUDG) :: DXYP_BUDG
+
+
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER, public :: KAJ=80
 !@var AJ zonal budget diagnostics for each surface type
@@ -402,24 +412,15 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
      *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON, IJ_SRVDIR, IJ_SRVISSURF
-#ifdef CLD_AER_CDNC
      *     ,IJ_WISUM
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-#endif
-#ifdef CALCULATE_FLAMMABILITY
      &     ,ij_flam
-#endif
-#ifdef HTAP_LIKE_DIAGS
       INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
      &     ,IJ_HUSL
-#endif
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER, public ::
      &   IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
@@ -532,9 +533,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_mcdeep,jl_mcshlw
      *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,jl_dudtvdif
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
-#ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
-#endif
 
 !@var JGRID_U, JGRID_KE latitudes at which U-wind and KE diags are defined
 !@+   (1 for primary latitudes, 2 for secondary latitudes)
@@ -597,10 +596,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJK_W, IJK_PF, IJL_CF ,IJK_UV, IJK_VQ, IJK_VT, IJK_UU,
      *     IJK_VV, IJK_TT
      *    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
-#ifdef CLD_AER_CDNC
      *    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      *    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
-#endif
+
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJKx), public :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics
@@ -643,22 +641,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IDD_VG, IDD_WG, IDD_US, IDD_VS, IDD_WS, IDD_CIA, IDD_RIS,
      *     IDD_RIG, IDD_CM, IDD_CH, IDD_CQ, IDD_EDS, IDD_DBL, IDD_DCF,
      *     IDD_LDC, IDD_PR, IDD_EV, IDD_DMC, IDD_SMC, IDD_CL7, IDD_W,
-     *     IDD_CCV, IDD_SSP, IDD_MCP
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      INTEGER, public ::
-     &     idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
-#endif
-#ifdef TRACERS_DUST
-      INTEGER, public ::
+     *     IDD_CCV, IDD_SSP, IDD_MCP,
+     &     idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh,
      &     idd_u1,idd_v1,idd_uv1,idd_t1,idd_qq1,idd_p1,idd_w1,idd_phi1,
      *     idd_load1,idd_conc1,idd_emis,idd_emis2,idd_tau1,idd_tau_cs1,
      *     idd_sr1,idd_tr1,idd_ws2,idd_ustar,idd_us3,idd_stress,
      *     idd_lmon,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,
      *     idd_tabl1,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,
      *     idd_wet,idd_grav,idd_turb
-#endif
 
 !@var tf_xxx tsfrez diagnostic names
       INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff
@@ -681,6 +671,7 @@ c idacc-indices of various processes
       REAL*8, DIMENSION(LM+LM_REQ), public :: PLM
 !@var P1000K scaling to change reference pressure from 1mb to 1000mb
       REAL*8, public :: P1000K
+CXXXX inci,incj NOT GRID-INDPENDENT
 !@var inci,incj print increments for i and j, so maps/tables fit on page
       integer, parameter, public ::
      &     inci=(im+35)/36,incj=(JM+23)/24, jmby2=jm/2
@@ -1267,3 +1258,75 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       END IF
       return
       end SUBROUTINE aPERIOD
+
+
+C**** Should this be here?
+      SUBROUTINE SET_J_BUDG
+!@sum set_j_budg definition for grid points map to budget-grid zonal means
+!@auth Gavin Schmidt
+      USE GEOM, only : j_budg, lat_dg
+      USE DIAG_COM, only : jm_budg
+      USE DOMAIN_DECOMP, only :GRID,GET
+      IMPLICIT NONE
+!@var I,J are atm grid point values for the accumulation
+      INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
+      INTEGER :: IER
+ 
+C**** define atmospheric grid
+      CALL GET(grid, J_STRT=J_0,J_STOP=J_1, J_STRT_HALO=J_0H,
+     *     J_STOP_HALO=J_1H  ) 
+      I_0H = grid%I_STRT_HALO ; I_1H = grid%I_STOP_HALO
+      I_0 = grid%I_STRT ; I_1 = grid%I_STOP
+
+      ALLOCATE( J_BUDG(I_0H:I_1H, J_0H:J_1H), STAT = IER) 
+
+      DO J=J_0,J_1
+        J_BUDG(I_0:I_1,J)=J   ! temporary
+C**** this should be valid for all lat/lon grids
+c        J_BUDG(I_0:I_1,J)=NINT(1+(lat_dg(J,1)+90)*(JM_BUDG-1)/180.)
+      END DO
+
+      RETURN
+      END SUBROUTINE SET_J_BUDG
+
+      SUBROUTINE INC_AJ(I,J,ITYPE,J_DIAG,ACC)
+!@sum inc_aj grid dependent incrementer for zonal mean budget diags
+!@auth Gavin Schmidt
+      USE DIAG_COM, only : aj=>aj_loc
+      USE GEOM, only : j_budg
+      IMPLICIT NONE
+!@var I,J are atm grid point values for the accumulation
+!@var ITYPE is the surface type
+      INTEGER, INTENT(IN) :: I,J,ITYPE
+!@var J_DIAG is placing of diagnostic element
+      INTEGER, INTENT(IN) :: J_DIAG
+!@var ACC value of the diagnostic to be accumulated
+      REAL*8, INTENT(IN) :: ACC
+
+C**** accumulate I,J value on the budget grid using j_budg to assign
+C**** each point to a zonal mean (not bitwise reprodcible for MPI).
+      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)+ACC
+      
+      RETURN
+      END SUBROUTINE INC_AJ
+
+      SUBROUTINE INC_AREG(I,J,JR,J_DIAG,ACC)
+!@sum inc_areg grid dependent incrementer for regional budget diags
+!@auth Gavin Schmidt
+      USE DIAG_COM, only : aregj=>aregj_loc
+      USE GEOM, only : j_budg
+      IMPLICIT NONE
+!@var I,J are atm grid point values for the accumulation
+!@var JR is the region
+      INTEGER, INTENT(IN) :: I,J,JR
+!@var J_DIAG is placing of diagnostic element
+      INTEGER, INTENT(IN) :: J_DIAG
+!@var ACC value of the diagnostic to be accumulated
+      REAL*8, INTENT(IN) :: ACC
+
+C**** accumulate I,J value on the budget grid using j_budg to assign
+C**** each point to a zonal mean (not bitwise reproducible for MPI).
+      AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)+ACC
+      
+      RETURN
+      END SUBROUTINE INC_AREG

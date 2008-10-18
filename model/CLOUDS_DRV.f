@@ -31,7 +31,7 @@
 #ifdef CUBE_GRID
      *     zonalmean,area_latband,
 #endif
-     *     aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
+     *     aij=>aij_loc,
      *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
@@ -539,10 +539,10 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
      *       maxkey)
 #else
         DO IT=1,NTYPE
-          AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
+          CALL INC_AJ(I,J,IT,J_PRCPMC,PRCPMC*FTYPE(IT,I,J))
         END DO
 #endif
-        AREGJ(JR,J,J_PRCPMC)=AREGJ(JR,J,J_PRCPMC)+PRCPMC*DXYP(J)
+        CALL INC_AREG(I,J,JR,J_PRCPMC,PRCPMC*DXYP(J))
 
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
@@ -766,10 +766,10 @@ C**** Accumulate diagnostics of LSCOND
      *       maxkey)
 #else
          DO IT=1,NTYPE
-           AJ(J,J_PRCPSS,IT)=AJ(J,J_PRCPSS,IT)+PRCPSS*FTYPE(IT,I,J)
+           CALL INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
          END DO
 #endif
-         AREGJ(JR,J,J_PRCPSS)=AREGJ(JR,J,J_PRCPSS)+PRCPSS*DXYP(J)
+         CALL INC_AREG(I,J,JR,J_PRCPSS,PRCPSS*DXYP(J))
 
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
@@ -823,10 +823,10 @@ C**** PRECIPITATION DIAGNOSTICS
      *       maxkey)
 #else
         DO IT=1,NTYPE
-          AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)
+          CALL INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
         END DO
 #endif
-        AREGJ(JR,J,J_EPRCP)=AREGJ(JR,J,J_EPRCP)+ENRGP*DXYP(J)
+        CALL INC_AREG(I,J,JR,J_EPRCP,ENRGP*DXYP(J))
 
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP

@@ -837,7 +837,7 @@ C****
      *        GLOBALSUM, HALO_UPDATE_COLUMN
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
-     *     aj=>aj_loc,aregj=>aregj_loc,jreg,j_rvrd,j_ervr,ij_fwoc
+     *     jreg,j_rvrd,j_ervr,ij_fwoc
       USE GHY_COM, only : fearth
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr
@@ -1043,21 +1043,21 @@ C**** possibly adjust mass (not heat) to allow for balancing of sea level
                 TRFLOWO(:,ID,JD)=TRFLOWO(:,ID,JD)+DTM(:)*FLFAC
 #endif
 C**** accumulate river runoff diags (moved from ground)
-                AJ(JD,J_RVRD,ITOCEAN)=AJ(JD,J_RVRD,ITOCEAN)+
-     *               (1.-RSI(ID,JD))*DMM*BYAXYP(ID,JD)
-                AJ(JD,J_ERVR,ITOCEAN)=AJ(JD,J_ERVR,ITOCEAN)+
-     *               (1.-RSI(ID,JD))*(DGM+DPE)*BYAXYP(ID,JD)
-                AJ(JD,J_RVRD,ITOICE)=AJ(JD,J_RVRD,ITOICE) +
-     *               RSI(ID,JD)*DMM*BYAXYP(ID,JD)
-                AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
-     *               RSI(ID,JD)*(DGM+DPE)*BYAXYP(ID,JD)
+                CALL INC_AJ(ID,JD,ITOCEAN,J_RVRD,(1.-RSI(ID,JD))*DMM*
+     *               BYAXYP(ID,JD))
+                CALL INC_AJ(ID,JD,ITOCEAN,J_ERVR,(1.-RSI(ID,JD))*(DGM
+     *               +DPE)*BYAXYP(ID,JD))
+                CALL INC_AJ(ID,JD,ITOICE,J_RVRD,     RSI(ID,JD) *DMM
+     *               *BYAXYP(ID,JD)) 
+                CALL INC_AJ(ID,JD,ITOICE,J_ERVR,     RSI(ID,JD) *(DGM
+     *               +DPE)*BYAXYP(ID,JD))
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
      *               (DGM+DPE)*BYAXYP(ID,JD)
                 AIJ(ID,JD,IJ_FWOC)=AIJ(ID,JD,IJ_FWOC)+DMM*BYAXYP(ID,JD)
               END IF
               JR=JREG(ID,JD)
-              AREGJ(JR,JD,J_RVRD)=AREGJ(JR,JD,J_RVRD)+DMM
-              AREGJ(JR,JD,J_ERVR)=AREGJ(JR,JD,J_ERVR)+DGM+DPE
+              CALL INC_AREG(ID,JD,JR,J_RVRD,DMM)
+              CALL INC_AREG(ID,JD,JR,J_ERVR,DGM+DPE)
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
 #ifdef TRACERS_WATER
@@ -1096,21 +1096,19 @@ C**** remove pathologically small values
               TLAKE(I,J)=(HLK1*FLAKE(I,J)*AXYP(I,J)+EFLOW(I,J))
      *             /(MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)*SHW)
 C**** accumulate some diagnostics
-              AJ(J,J_RVRD,ITLAKE) =AJ(J,J_RVRD,ITLAKE) + FLOW(I,J)*
-     *             BYAXYP(I,J)*(1.-RSI(I,J))
-              AJ(J,J_ERVR,ITLAKE) =AJ(J,J_ERVR,ITLAKE) +EFLOW(I,J)*
-     *             BYAXYP(I,J)*(1.-RSI(I,J))
-              AJ(J,J_RVRD,ITLKICE)=AJ(J,J_RVRD,ITLKICE)+ FLOW(I,J)*
-     *             BYAXYP(I,J)*RSI(I,J)
-              AJ(J,J_ERVR,ITLKICE)=AJ(J,J_ERVR,ITLKICE)+EFLOW(I,J)*
-     *             BYAXYP(I,J)*RSI(I,J)
+              CALL INC_AJ(I,J,ITLAKE,J_RVRD, FLOW(I,J)*BYAXYP(I,J)*(1.
+     *             -RSI(I,J))) 
+              CALL INC_AJ(I,J,ITLAKE,J_ERVR,EFLOW(I,J)*BYAXYP(I,J)*(1.
+     *             -RSI(I,J))) 
+              CALL INC_AJ(I,J,ITLKICE,J_RVRD, FLOW(I,J)*BYAXYP(I,J)
+     *             *RSI(I,J)) 
+              CALL INC_AJ(I,J,ITLKICE,J_ERVR,EFLOW(I,J)*BYAXYP(I,J)
+     *             *RSI(I,J))
             ELSE
               TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
 C**** accounting fix to ensure river flow with no lakes is counted
-              AJ(J,J_RVRD,ITLAKE)=AJ(J,J_RVRD,ITLAKE)+ FLOW(I,J)
-     *             *BYAXYP(I,J)
-              AJ(J,J_ERVR,ITLAKE)=AJ(J,J_ERVR,ITLAKE)+EFLOW(I,J)
-     *             *BYAXYP(I,J)
+              CALL INC_AJ(I,J,ITLAKE,J_RVRD, FLOW(I,J)*BYAXYP(I,J))
+              CALL INC_AJ(I,J,ITLAKE,J_ERVR,EFLOW(I,J)*BYAXYP(I,J))
             END IF
           END IF
         END DO
@@ -1400,8 +1398,8 @@ C****
      *     ,trdwnimp
 #endif
 
-      USE DIAG_COM, only : aj=>aj_loc,j_run,j_erun,j_imelt,j_hmelt,
-     *     aregj=>aregj_loc,jreg,j_implm,j_implh
+      USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
+     *     ,j_implh 
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH,
      *     GLOBALSUM
       IMPLICIT NONE
@@ -1468,14 +1466,14 @@ C**** calculate associated energy/tracer transfer
 #endif
                     MLDLK(I,J)=MLDLK(I,J)*(1.-FRSAT)
 C**** save some diags
-                    AJ(J, J_RUN,ITLAKE) =AJ(J, J_RUN,ITLAKE) +PLAKE*
-     *                   DMWLDF(I,J)*(new_flake-FLAKE(I,J))
-                    AJ(J, J_RUN,ITLKICE)=AJ(J, J_RUN,ITLKICE)+PLKIC*
-     *                   DMWLDF(I,J)*(new_flake-FLAKE(I,J))
-                    AJ(J,J_ERUN,ITLAKE) =AJ(J,J_ERUN,ITLAKE) +PLAKE*
-     *                   DGML(I,J)*BYAXYP(I,J)
-                    AJ(J,J_ERUN,ITLKICE)=AJ(J,J_ERUN,ITLKICE)+PLKIC*
-     *                   DGML(I,J)*BYAXYP(I,J)
+                    CALL INC_AJ(I,J,ITLAKE, J_RUN,PLAKE*DMWLDF(I,J)
+     *                   *(new_flake-FLAKE(I,J)))
+                    CALL INC_AJ(I,J,ITLKICE,J_RUN,PLKIC*DMWLDF(I,J)
+     *                   *(new_flake-FLAKE(I,J))) 
+                    CALL INC_AJ(I,J,ITLAKE, J_ERUN,PLAKE*DGML(I,J)
+     *                   *BYAXYP(I,J))
+                    CALL INC_AJ(I,J,ITLKICE,J_ERUN,PLKIC*DGML(I,J)
+     *                   *BYAXYP(I,J))
                   else
 C**** this is just here to see whether this ever happens.
                     print*,"dont saturate",i,j,(DMWLDF(I,J)*(new_flake
@@ -1601,19 +1599,15 @@ c     *                   *AXYP(I,J)
                   END DO
 #endif
 C**** save some diags
-                  AJ(J,J_IMPLM,ITLKICE)=AJ(J,J_IMPLM,ITLKICE)+PLKIC*IMLT
-                  AJ(J,J_IMPLH,ITLKICE)=AJ(J,J_IMPLH,ITLKICE)+PLKIC*HMLT
-c                  AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*IMLT
-c                  AJ(J,J_HMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKIC*HMLT
+                  CALL INC_AJ(I,J,ITLKICE,J_IMPLM,PLKIC*IMLT)
+                  CALL INC_AJ(I,J,ITLKICE,J_IMPLH,PLKIC*HMLT)
+c                  CALL INC_AJ(I,J,ITLKICE,J_IMELT,PLKIC*IMLT)
+c                  CALL INC_AJ(I,J,ITLKICE,J_HMELT,PLKIC*HMLT)
 C**** Accumulate regional diagnostics
-c                  AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+PLKIC*IMLT
-c     *                 *AXYP(I,J)
-c                  AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+PLKIC*HMLT
-c     *                 *AXYP(I,J)
-                  AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+PLKIC*IMLT
-     *                 *AXYP(I,J)
-                  AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+PLKIC*HMLT
-     *                 *AXYP(I,J)
+c                  CALL INC_AREG(I,J,JR,J_IMELT,PLKIC*IMLT*AXYP(I,J))
+c                  CALL INC_AREG(I,J,JR,J_HMELT,PLKIC*HMLT*AXYP(I,J))
+                  CALL INC_AREG(I,J,JR,J_IMPLM,PLKIC*IMLT*AXYP(I,J))
+                  CALL INC_AREG(I,J,JR,J_IMPLH,PLKIC*HMLT*AXYP(I,J))
 C****
                   RSI(I,J)=0.
                   SNOWI(I,J)=0.
@@ -1750,15 +1744,13 @@ C**** simelt is given as kg, so divide by area
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))
 #endif
-          AJ(J,J_RUN,ITLAKE) =AJ(J,J_RUN,ITLAKE) -PLICE*RUNOLI(I,J)
-     *         *(1.-RSI(I,J))
-          AJ(J,J_RUN,ITLKICE)=AJ(J,J_RUN,ITLKICE)-PLICE*RUNOLI(I,J)
-     *         *RSI(I,J)
+          CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*RUNOLI(I,J)*(1.-RSI(I,J)))
+          CALL INC_AJ(I,J,ITLKICE,J_RUN,-PLICE*RUNOLI(I,J)   *RSI(I,J))
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
 C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
-          AJ(J,J_RUN,ITLAKE) =AJ(J,J_RUN,ITLAKE)-PLICE*RUNOLI(I,J)
+          CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*RUNOLI(I,J))
         END IF
 
 C**** save area diag
@@ -1792,8 +1784,7 @@ C****
 #endif
 #endif
       USE SEAICE_COM, only : rsi
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,jreg,j_wtr1
-     *     ,j_wtr2,j_run,j_erun
+      USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -1856,21 +1847,18 @@ C**** calculate flux over whole box
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))
 #endif
-          AJ(J,J_RUN,ITLAKE)=AJ(J,J_RUN,ITLAKE)-
-     *         (RUNE*PEARTH+RUNLI*PLICE)*(1.-RSI(I,J))
-          AJ(J,J_RUN,ITLKICE)=AJ(J,J_RUN,ITLKICE)-
-     *         (RUNE*PEARTH+RUNLI*PLICE)*RSI(I,J)
-          AJ(J,J_ERUN,ITLAKE )=AJ(J,J_ERUN,ITLAKE )-ERUNE*PEARTH*
-     *         (1.-RSI(I,J))
-          AJ(J,J_ERUN,ITLKICE)=AJ(J,J_ERUN,ITLKICE)-ERUNE*PEARTH*
-     *         RSI(I,J)
+          CALL INC_AJ(I,J,ITLAKE ,J_RUN ,-(RUNE*PEARTH+RUNLI*PLICE)
+     *         *(1.-RSI(I,J)))
+          CALL INC_AJ(I,J,ITLKICE,J_RUN ,-(RUNE*PEARTH+RUNLI*PLICE)
+     *         *    RSI(I,J))
+          CALL INC_AJ(I,J,ITLAKE ,J_ERUN,-ERUNE*PEARTH*(1.-RSI(I,J)))
+          CALL INC_AJ(I,J,ITLKICE,J_ERUN,-ERUNE*PEARTH*    RSI(I,J))
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
 C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
-          AJ(J,J_RUN,ITLAKE)=AJ(J,J_RUN,ITLAKE)-
-     *         (RUNE*PEARTH+RUNLI*PLICE)
-          AJ(J,J_ERUN,ITLAKE )=AJ(J,J_ERUN,ITLAKE )-ERUNE*PEARTH
+          CALL INC_AJ(I,J,ITLAKE,J_RUN, -(RUNE*PEARTH+RUNLI*PLICE))
+          CALL INC_AJ(I,J,ITLAKE,J_ERUN,-ERUNE*PEARTH)
         END IF
       END IF
 
@@ -1955,16 +1943,14 @@ C**** Resave prognostic variables
         GTEMPR(1,I,J) =TLAKE(I,J)+TF
 
 C**** Open lake diagnostics
-        AJ(J,J_WTR1, ITLAKE)=AJ(J,J_WTR1, ITLAKE)+MLAKE(1)*POLAKE
-        AJ(J,J_WTR2, ITLAKE)=AJ(J,J_WTR2, ITLAKE)+MLAKE(2)*POLAKE
+        CALL INC_AJ(I,J, ITLAKE,J_WTR1,MLAKE(1)*POLAKE)
+        CALL INC_AJ(I,J, ITLAKE,J_WTR2,MLAKE(2)*POLAKE)
 C**** Ice-covered ocean diagnostics
-        AJ(J,J_WTR1, ITLKICE)=AJ(J,J_WTR1, ITLKICE)+MLAKE(1)*PLKICE
-        AJ(J,J_WTR2, ITLKICE)=AJ(J,J_WTR2, ITLKICE)+MLAKE(2)*PLKICE
+        CALL INC_AJ(I,J, ITLKICE,J_WTR1,MLAKE(1)*PLKICE)
+        CALL INC_AJ(I,J, ITLKICE,J_WTR2,MLAKE(2)*PLKICE)
 C**** regional diags
-        AREGJ(JR,J,J_WTR1)=AREGJ(JR,J,J_WTR1)+
-     *       MLAKE(1)*FLAKE(I,J)*AXYP(I,J)
-        AREGJ(JR,J,J_WTR2)=AREGJ(JR,J,J_WTR2)+
-     *       MLAKE(2)*FLAKE(I,J)*AXYP(I,J)
+        CALL INC_AREG(I,J,JR,J_WTR1,MLAKE(1)*FLAKE(I,J)*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_WTR2,MLAKE(2)*FLAKE(I,J)*AXYP(I,J))
 #ifdef TRACERS_WATER
 C**** tracer diagnostics
         TAIJN(I,J,tij_lk1,:)=TAIJN(I,J,tij_lk1,:)+TRLAKEL(:,1) !*PLKICE?

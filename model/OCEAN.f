@@ -32,9 +32,8 @@
 #endif
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp,sss,fwsim,mlhc,gtempr
-      USE DIAG_COM, only : aij=>aij_loc, aregj=>aregj_loc, jreg,ij_smfx
-     *     ,aj=>aj_loc,j_implh, j_implm, j_imelt, j_hmelt, j_smelt, NREG
-     *     , KAJ, ij_fwio
+      USE DIAG_COM, only : aij=>aij_loc, jreg,ij_smfx,j_implh, j_implm,
+     *     j_imelt, j_hmelt, j_smelt, NREG, KAJ, ij_fwio
       IMPLICIT NONE
       SAVE
       logical :: off_line=.false.
@@ -372,18 +371,16 @@ C**** accumulate diagnostics
               AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)-(SNOWI(I,J)+ACE1I
      *             -SUM(SSI(1:2,I,J)))*(RSINEW-RSI(I,J))-(RSINEW*MSINEW
      *             -RSI(I,J)*MSI(I,J))*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
-              AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
-     *             *RSI(I,J)*(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *               /MSI(I,J))
-              AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
-     *             *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*RSI(I,J)
-              AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-FOCEAN(I,J)
-     *             *(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I,J)
-     *             -SUM(SSI(1:2,I,J))
-     *             -SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)))
-              AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-FOCEAN(I,J)
-     *             *(RSINEW-RSI(I,J))*(SUM(HSI(1:2,I,J))+
-     *             SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)))
+              CALL INC_AJ(I,J,ITOICE,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)
+     *             *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))/MSI(I,J)))
+              CALL INC_AJ(I,J,ITOICE,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
+     *             *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
+              CALL INC_AJ(I,J,ITOCEAN,J_IMPLM,-FOCEAN(I,J)*(RSINEW-RSI(I
+     *             ,J))*(MSINEW+ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J))
+     *             -SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J))))
+              CALL INC_AJ(I,J,ITOCEAN,J_IMPLH,-FOCEAN(I,J)*(RSINEW-RSI(I
+     *             ,J))*(SUM(HSI(1:2,I,J))+SUM(HSI(3:4,I,J))*(MSINEW
+     *             /MSI(I,J))) 
 #ifdef TRACERS_WATER
               DO N=1,NTM
                 TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
@@ -533,25 +530,22 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
 C**** save diagnostics
             AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
      *           -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
-            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
-     *           *RSI(I,J)*(MSINEW-MSI(I,J))
-            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
-     *           *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-FOCEAN(I,J)
-     *           *RSI(I,J)*SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-            AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
-     *           *RSI(I,J)*(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *           /MSI(I,J))
-            AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
-     *           *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
+            CALL INC_AJ(I,J,ITOICE,J_IMELT,-FOCEAN(I,J)*RSI(I,J)*(MSINEW
+     *           -MSI(I,J)))
+            CALL INC_AJ(I,J,ITOICE,J_HMELT,-FOCEAN(I,J)*RSI(I,J)
+     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
+            CALL INC_AJ(I,J,ITOICE,J_SMELT,-FOCEAN(I,J)*RSI(I,J)
+     *           *SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.))
+            CALL INC_AJ(I,J,ITOICE,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)*(MSINEW
+     *           -MSI(I,J))*(1.-SUM(SSI(3:4,I,J))/MSI(I,J)))
+            CALL INC_AJ(I,J,ITOICE,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
+     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
             JR=JREG(I,J)
-            AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)-
-     *           FOCEAN(I,J)*RSI(I,J)
+            CALL INC_AREG(I,J,JR,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)
      *           *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *           /MSI(I,J))*AXYP(I,J)
-            AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)-
-     *           FOCEAN(I,J)*RSI(I,J)
-     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*AXYP(I,J)
+     *           /MSI(I,J))*AXYP(I,J))
+            CALL INC_AREG(I,J,JR,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
+     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*AXYP(I,J))
 #ifdef TRACERS_WATER
             DO N=1,NTM
               TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
@@ -940,8 +934,7 @@ C****
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,axyp
-      USE DIAG_COM, only : aj=>aj_loc,j_implm,j_implh,oa,
-     *     aregj=>aregj_loc,jreg
+      USE DIAG_COM, only : j_implm,j_implh,oa,jreg
       USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
      *     ,emelti,smelti,fwsim,gtempr,erunpsi
       USE SEAICE, only : ace1i
@@ -999,14 +992,12 @@ C**** Additional mass (precip) is balanced by deep removal
             END IF
             TGW=ENRGW/(WTRW*SHW)
             TOCEAN(1,I,J)=TGW
-            AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4 *POCEAN
-            AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4*POCEAN
-            AJ(J,J_IMPLM,ITOICE) =AJ(J,J_IMPLM,ITOICE) +RUN4 *POICE
-            AJ(J,J_IMPLH,ITOICE) =AJ(J,J_IMPLH,ITOICE) +ERUN4*POICE
-            AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+
-     &           RUN4 *FOCEAN(I,J)*AXYP(I,J)
-            AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+
-     &           ERUN4*FOCEAN(I,J)*AXYP(I,J)
+            CALL INC_AJ(I,J,ITOCEAN,J_IMPLM, RUN4*POCEAN)
+            CALL INC_AJ(I,J,ITOCEAN,J_IMPLH,ERUN4*POCEAN)
+            CALL INC_AJ(I,J,ITOICE ,J_IMPLM, RUN4*POICE)
+            CALL INC_AJ(I,J,ITOICE ,J_IMPLH,ERUN4*POICE)
+            CALL INC_AREG(I,J,JR,J_IMPLM, RUN4*FOCEAN(I,J)*AXYP(I,J))
+            CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J)*AXYP(I,J))
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
@@ -1028,8 +1019,7 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,axyp
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,jreg,j_implm
-     *     ,j_implh,j_oht,oa
+      USE DIAG_COM, only : jreg,j_implm,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
      *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
@@ -1101,18 +1091,18 @@ C**** Calculate the amount of ice formation
 C**** Resave prognostic variables
             TOCEAN(1,I,J)=TGW
 C**** Open Ocean diagnostics
-            AJ(J,J_OHT  ,ITOCEAN)=AJ(J,J_OHT  ,ITOCEAN)+OTDT  *POCEAN
-            AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4O *POCEAN
-            AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4O*POCEAN
+            CALL INC_AJ(I,J,ITOCEAN,J_OHT  ,  OTDT*POCEAN)
+            CALL INC_AJ(I,J,ITOCEAN,J_IMPLM, RUN4O*POCEAN)
+            CALL INC_AJ(I,J,ITOCEAN,J_IMPLH,ERUN4O*POCEAN)
 C**** Ice-covered ocean diagnostics
-            AJ(J,J_OHT  ,ITOICE)=AJ(J,J_OHT  ,ITOICE)+OTDT  *POICE
-            AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)+RUN4I *POICE
-            AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4I*POICE
+            CALL INC_AJ(I,J,ITOICE,J_OHT  ,  OTDT*POICE)
+            CALL INC_AJ(I,J,ITOICE,J_IMPLM, RUN4I*POICE)
+            CALL INC_AJ(I,J,ITOICE,J_IMPLH,ERUN4I*POICE)
 C**** regional diagnostics
-            AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+
-     *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPIJ
-            AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+
-     *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPIJ
+            CALL INC_AREG(I,J,JR,J_IMPLM,( RUN4O*POCEAN+ RUN4I*POICE)
+     *           *DXYPIJ) 
+            CALL INC_AREG(I,J,JR,J_IMPLH,(ERUN4O*POCEAN+ERUN4I*POICE)
+     *           *DXYPIJ) 
             MLHC(I,J)=SHW*WTRW
           ELSE
             ACEFO=0 ; ACEFI=0. ; ENRGFO=0. ; ENRGFI=0.
@@ -1158,9 +1148,8 @@ C****
       USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx
 #endif
       USE FLUXES, only : fwsim,msicnv,mlhc
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,J_IMPLM,J_IMPLH
-     *     ,jreg,aij=>aij_loc,j_imelt,j_hmelt,j_smelt, ij_fwio, NREG,
-     *     KAJ
+      USE DIAG_COM, only : J_IMPLM,J_IMPLH,jreg,aij=>aij_loc,j_imelt
+     *     ,j_hmelt,j_smelt, ij_fwio, NREG,KAJ
       USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       INTEGER I,J,JR,N
@@ -1200,24 +1189,21 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
 C**** save diagnostics
                 AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
      *               -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
-                AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
-     *               *RSI(I,J)*(MSINEW-MSI(I,J))
-                AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
-     *               *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-                AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-FOCEAN(I,J)
-     *               *RSI(I,J)*SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-                AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
-     *               *RSI(I,J)*(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *               /MSI(I,J))
-                AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
-     *               *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-                AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)-
-     *               FOCEAN(I,J)*RSI(I,J)
+                CALL INC_AJ(I,J,ITOICE,J_IMELT,-FOCEAN(I,J)*RSI(I,J)
+     *               *(MSINEW-MSI(I,J)))
+                CALL INC_AJ(I,J,ITOICE,J_HMELT,-FOCEAN(I,J)*RSI(I,J)
+     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
+                CALL INC_AJ(I,J,ITOICE,J_SMELT,-FOCEAN(I,J)*RSI(I,J)
+     *               *SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
+                CALL INC_AJ(I,J,ITOICE,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)
+     *               *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))/MSI(I,J)))
+                CALL INC_AJ(I,J,ITOICE,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
+     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
+                CALL INC_AREG(I,J,JR,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)
      *               *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *               /MSI(I,J))*DXYPIJ
-                AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)-
-     *               FOCEAN(I,J)*RSI(I,J)
-     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPIJ
+     *               /MSI(I,J))*DXYPIJ)
+                CALL INC_AREG(I,J,JR,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
+     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPIJ)
 #ifdef TRACERS_WATER
                 DO N=1,NTM
                   TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
@@ -1238,16 +1224,14 @@ C**** update heat and salt
           END IF
           MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
 C**** Open Ocean diagnostics
-          AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4 *POCEAN
-          AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4*POCEAN
+          CALL INC_AJ(I,J,ITOCEAN,J_IMPLM, RUN4*POCEAN)
+          CALL INC_AJ(I,J,ITOCEAN,J_IMPLH,ERUN4*POCEAN)
 C**** Ice-covered ocean diagnostics
-          AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)+RUN4 *POICE
-          AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4*POICE
+          CALL INC_AJ(I,J,ITOICE,J_IMPLM, RUN4*POICE)
+          CALL INC_AJ(I,J,ITOICE,J_IMPLH,ERUN4*POICE)
 C**** regional diagnostics
-          AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+RUN4 *FOCEAN(I,J)
-     *         *DXYPIJ
-          AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+ERUN4*FOCEAN(I,J)
-     *         *DXYPIJ
+          CALL INC_AREG(I,J,JR,J_IMPLM, RUN4*FOCEAN(I,J)*DXYPIJ)
+          CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J)*DXYPIJ)
         END IF
       END DO
       END DO

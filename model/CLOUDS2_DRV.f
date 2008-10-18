@@ -31,7 +31,7 @@
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc,
+      USE DIAG_COM, only : aij=>aij_loc,
      *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
@@ -812,9 +812,9 @@ C*** End Accumulate 3D convective latent heating
 #endif
         END DO
         DO IT=1,NTYPE
-          AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
+          CALL INC_AJ(I,J,IT,J_PRCPMC,PRCPMC*FTYPE(IT,I,J))
         END DO
-        AREGJ(JR,J,J_PRCPMC)=AREGJ(JR,J,J_PRCPMC)+PRCPMC*AXYP(I,J)
+        CALL INC_AREG(I,J,JR,J_PRCPMC,PRCPMC*AXYP(I,J))
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
             tmp(IDD_PR)  =+PRCPMC
@@ -1103,9 +1103,9 @@ C**** Error reports
 C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
          DO IT=1,NTYPE
-           AJ(J,J_PRCPSS,IT)=AJ(J,J_PRCPSS,IT)+PRCPSS*FTYPE(IT,I,J)
+           CALL INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
          END DO
-         AREGJ(JR,J,J_PRCPSS)=AREGJ(JR,J,J_PRCPSS)+PRCPSS*AXYP(I,J)
+         CALL INC_AREG(I,J,JR,J_PRCPSS,PRCPSS*AXYP(I,J))
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              tmp(IDD_PR)  =+PRCPSS
@@ -1151,9 +1151,9 @@ cECON *     E,E1,ep,prcpss,lhp(1)
 
 C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
-          AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)
+          CALL INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
         END DO
-        AREGJ(JR,J,J_EPRCP)=AREGJ(JR,J,J_EPRCP)+ENRGP*AXYP(I,J)
+        CALL INC_AREG(I,J,JR,J_EPRCP,ENRGP*AXYP(I,J))
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+

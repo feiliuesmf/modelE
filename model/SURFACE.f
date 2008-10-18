@@ -53,7 +53,7 @@ C****
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args
       USE DIAG_COM, only : oa,aij=>aij_loc
-     *     ,tdiurn,aj=>aj_loc,aregj=>aregj_loc,adiurn,ndiupt,jreg
+     *     ,tdiurn,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc
@@ -1067,25 +1067,25 @@ c    &            i5,f9.4,f9.5,f9.6)
 C****
 C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE
 C****
-        AJ(J,J_EVAP ,IDTYPE)=AJ(J,J_EVAP ,IDTYPE)+ EVAP*PTYPE
-        AJ(J,J_EVHDT,IDTYPE)=AJ(J,J_EVHDT,IDTYPE)+EVHDT*PTYPE
-        AJ(J,J_SHDT ,IDTYPE)=AJ(J,J_SHDT ,IDTYPE)+ SHDT*PTYPE
-        AJ(J,J_TRHDT,IDTYPE)=AJ(J,J_TRHDT,IDTYPE)+TRHDT*PTYPE
+        CALL INC_AJ(I,J,IDTYPE,J_EVAP , EVAP*PTYPE)
+        CALL INC_AJ(I,J,IDTYPE,J_EVHDT,EVHDT*PTYPE)
+        CALL INC_AJ(I,J,IDTYPE,J_SHDT , SHDT*PTYPE)
+        CALL INC_AJ(I,J,IDTYPE,J_TRHDT,TRHDT*PTYPE)
         IF(MODDSF.EQ.0) THEN
-          AJ(J,J_TSRF,IDTYPE)=AJ(J,J_TSRF,IDTYPE)+(TS-TF)*PTYPE
-          AJ(J,J_TYPE,IDTYPE)=AJ(J,J_TYPE,IDTYPE)+        PTYPE
-          AJ(J,J_TG1 ,IDTYPE)=AJ(J,J_TG1 ,IDTYPE)+    TG1*PTYPE
-          AJ(J,J_TG2 ,IDTYPE)=AJ(J,J_TG2 ,IDTYPE)+    TG2*PTYPE
+          CALL INC_AJ(I,J,IDTYPE,J_TSRF,(TS-TF)*PTYPE)
+          CALL INC_AJ(I,J,IDTYPE,J_TYPE,        PTYPE)
+          CALL INC_AJ(I,J,IDTYPE,J_TG1 ,    TG1*PTYPE)
+          CALL INC_AJ(I,J,IDTYPE,J_TG2 ,    TG2*PTYPE)
         END IF
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-        AREGJ(JR,J,J_TRHDT)=AREGJ(JR,J,J_TRHDT)+TRHDT*PTYPE*AXYP(I,J)
-        AREGJ(JR,J,J_SHDT )=AREGJ(JR,J,J_SHDT )+SHDT *PTYPE*AXYP(I,J)
-        AREGJ(JR,J,J_EVHDT)=AREGJ(JR,J,J_EVHDT)+EVHDT*PTYPE*AXYP(I,J)
-        AREGJ(JR,J,J_EVAP )=AREGJ(JR,J,J_EVAP )+EVAP *PTYPE*AXYP(I,J)
+        CALL INC_AREG(I,J,JR,J_TRHDT,TRHDT*PTYPE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_SHDT ,SHDT *PTYPE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_EVHDT,EVHDT*PTYPE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_EVAP ,EVAP *PTYPE*AXYP(I,J))
         IF(MODDSF.EQ.0) THEN
-          AREGJ(JR,J,J_TSRF)=AREGJ(JR,J,J_TSRF)+(TS-TF)*PTYPE*AXYP(I,J)
-          AREGJ(JR,J,J_TG1 )=AREGJ(JR,J,J_TG1 )+    TG1*PTYPE*AXYP(I,J)
-          AREGJ(JR,J,J_TG2 )=AREGJ(JR,J,J_TG2 )+    TG2*PTYPE*AXYP(I,J)
+          CALL INC_AREG(I,J,JR,J_TSRF,(TS-TF)*PTYPE*AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_TG1 ,    TG1*PTYPE*AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_TG2 ,    TG2*PTYPE*AXYP(I,J))
         END IF
 
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ

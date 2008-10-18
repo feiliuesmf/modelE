@@ -28,9 +28,8 @@
      *     ,ntm,trsi
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
-     *     ,jreg,ij_f0oi,j_imelt,j_smelt
-     &     ,ij_fwio,ij_htio,ij_stio
+      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0oi,j_imelt,j_smelt
+     *     ,j_hmelt,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
@@ -123,12 +122,12 @@ C**** set gtemp array
         FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
 C**** Accumulate diagnostics for ice fraction
-        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+RUN0 *POICE
-        AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+SRUN0*POICE
-c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+ERUN *POICE  ! ==0
+       CALL INC_AJ(I,J,ITYPE,J_IMELT,RUN0 *POICE)
+       CALL INC_AJ(I,J,ITYPE,J_SMELT,SRUN0*POICE)
+       CALL INC_AJ(I,J,ITYPE,J_HMELT,ERUN0*POICE)
         IF (FOCEAN(I,J).gt.0) THEN
           AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SRUN0)*POICE
-c         AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN*POICE       ! ==0
+          AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN0*POICE
           AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUN0*POICE
 #ifdef TRACERS_WATER
           TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
@@ -137,9 +136,9 @@ c         AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN*POICE       ! ==0
         END IF
 
 C**** Accumulate regional diagnostics
-        AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+RUN0 *POICE*AXYP(I,J)
-        AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+SRUN0*POICE*AXYP(I,J)
-c     AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+ERUN *POICE*AXYP(I,J) ! ==0
+        CALL INC_AREG(I,J,JR,J_IMELT,RUN0 *POICE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_SMELT,SRUN0*POICE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_HMELT,ERUN0*POICE*AXYP(I,J))
 
       END IF
 
@@ -300,8 +299,8 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : axyp,imaxj
-      USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,
-     *     aregj=>aregj_loc,jreg,ij_fwio,ij_htio,ij_stio,aij=>aij_loc
+      USE DIAG_COM, only : j_imelt,j_hmelt,j_smelt,jreg,ij_fwio,ij_htio
+     *     ,ij_stio,aij=>aij_loc 
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
@@ -385,19 +384,15 @@ C**** accumulate diagnostics
 #endif
             END IF
 
-           AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED*ROICE*PWATER
-           AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+    SALT*ROICE*PWATER
-           AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+    RUN0*ROICE*PWATER
-           AJ(J,J_HMELT,ITYPEO)=AJ(J,J_HMELT,ITYPEO)-ENRGUSED*(1.-ROICE)
-     *          *PWATER
-           AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)+    SALT*(1.-ROICE)
-     *          *PWATER
-           AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+    RUN0*(1.-ROICE)
-     *          *PWATER
-           AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)-ENRGUSED*PWATER ! HMELT
-     *          *AXYP(I,J)
-           AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+SALT*PWATER*AXYP(I,J) ! SMELT
-           AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+RUN0*PWATER*AXYP(I,J) ! IMELT
+           CALL INC_AJ(I,J,ITYPE,J_HMELT,-ENRGUSED*ROICE*PWATER)
+           CALL INC_AJ(I,J,ITYPE,J_SMELT,     SALT*ROICE*PWATER)
+           CALL INC_AJ(I,J,ITYPE,J_IMELT,     RUN0*ROICE*PWATER)
+           CALL INC_AJ(I,J,ITYPEO,J_HMELT,-ENRGUSED*(1.-ROICE)*PWATER)
+           CALL INC_AJ(I,J,ITYPEO,J_SMELT,     SALT*(1.-ROICE)*PWATER)
+           CALL INC_AJ(I,J,ITYPEO,J_IMELT,     RUN0*(1.-ROICE)*PWATER)
+           CALL INC_AREG(I,J,JR,J_HMELT,-ENRGUSED*PWATER*AXYP(I,J))
+           CALL INC_AREG(I,J,JR,J_SMELT,     SALT*PWATER*AXYP(I,J))
+           CALL INC_AREG(I,J,JR,J_IMELT,     RUN0*PWATER*AXYP(I,J))
 C**** Update prognostic sea ice variables + correction for rad. fluxes
             if (roice.gt.rsi(i,j)) ! ice from ocean
      *          call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),ROICE)
@@ -463,8 +458,7 @@ C****
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE LAKES_COM, only : mwl,gml,flake
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
-     *     ,jreg,ij_rsoi,ij_msi
+      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_rsoi,ij_msi
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP, only : GRID
@@ -637,21 +631,18 @@ C**** snow cover diagnostic now matches that seen by the radiation
 #endif
           END IF
 
-          AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
-          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+(FMOC+RUN+MFLUX
-     *         +MSNWIC)*POICE
-          AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+(FHOC+ERUN+HFLUX
-     *         +HSNWIC)*POICE
-          AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+(FSOC+SRUN+SFLUX
-     *         +SSNWIC)*POICE
+          CALL INC_AJ(I,J,ITYPE,J_RSNOW,SCOVI)
+          CALL INC_AJ(I,J,ITYPE,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE)
+          CALL INC_AJ(I,J,ITYPE,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE)
+          CALL INC_AJ(I,J,ITYPE,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
 
-          AREGJ(JR,J,J_RSNOW)=AREGJ(JR,J,J_RSNOW)+SCOVI*AXYP(I,J)
-          AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)+(FMOC+ RUN+MFLUX
-     *         +MSNWIC)*POICE*AXYP(I,J)
-          AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)+(FHOC+ERUN+HFLUX
-     *         +HSNWIC)*POICE*AXYP(I,J)
-          AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)+(FSOC+SRUN+SFLUX
-     *         +SSNWIC)*POICE*AXYP(I,J)
+          CALL INC_AREG(I,J,JR,J_RSNOW,SCOVI*AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE
+     *         *AXYP(I,J)) 
+          CALL INC_AREG(I,J,JR,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE
+     *         *AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE
+     *         *AXYP(I,J))
 
       END IF
 C**** set total atmopsheric pressure anomaly in case needed by ocean
@@ -679,8 +670,7 @@ C****
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
       USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx, tij_seaice
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
-     *     ,jreg,j_rsi,j_ace1,j_ace2,j_snow
+      USE DIAG_COM, only : aij=>aij_loc,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx,ij_fwio,ij_htio,ij_stio
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
@@ -780,20 +770,20 @@ C**** ice formation diagnostics on the atmospheric grid
 #endif
         END IF
 C**** open ocean diagnostics
-        AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)-SALTO *POCEAN
-        AJ(J,J_HMELT,ITYPEO)=AJ(J,J_HMELT,ITYPEO)-ENRGFO*POCEAN
-        AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)-ACEFO *POCEAN
+        CALL INC_AJ(I,J,ITYPEO,J_SMELT,-SALTO *POCEAN)
+        CALL INC_AJ(I,J,ITYPEO,J_HMELT,-ENRGFO*POCEAN)
+        CALL INC_AJ(I,J,ITYPEO,J_IMELT,-ACEFO *POCEAN)
 C**** Ice-covered ocean diagnostics
-        AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)-SALTI *POICE
-        AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGFI*POICE
-        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-ACEFI *POICE
+        CALL INC_AJ(I,J,ITYPE,J_SMELT,-SALTI *POICE)
+        CALL INC_AJ(I,J,ITYPE,J_HMELT,-ENRGFI*POICE)
+        CALL INC_AJ(I,J,ITYPE,J_IMELT,-ACEFI *POICE)
 C**** regional diagnostics
-        AREGJ(JR,J,J_IMELT)=AREGJ(JR,J,J_IMELT)-
-     *       (ACEFO *POCEAN+ACEFI *POICE)*AXYP(I,J)
-        AREGJ(JR,J,J_HMELT)=AREGJ(JR,J,J_HMELT)-
-     *       (ENRGFO*POCEAN+ENRGFI*POICE)*AXYP(I,J)
-        AREGJ(JR,J,J_SMELT)=AREGJ(JR,J,J_SMELT)-
-     *       (SALTO *POCEAN+SALTI *POICE)*AXYP(I,J)
+        CALL INC_AREG(I,J,JR,J_IMELT,-(ACEFO *POCEAN+ACEFI *POICE)
+     *       *AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_HMELT,-(ENRGFO*POCEAN+ENRGFI*POICE)
+     *       *AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_SMELT,-(SALTO *POCEAN+SALTI *POICE)
+     *       *AXYP(I,J))
 
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
@@ -819,8 +809,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         ELSE
 C**** save implicit mass-flux diagnostics
           AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+ROICE*DMIMP
-          AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-(DMIMP-DSIMP)*POICE
-          AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-DHIMP*POICE
+          CALL INC_AJ(I,J,ITOICE,J_IMPLM,-(DMIMP-DSIMP)*POICE)
+          CALL INC_AJ(I,J,ITOICE,J_IMPLH,       -DHIMP *POICE)
         END IF
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
@@ -831,15 +821,15 @@ C**** set gtemp array
         FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
 C**** ACCUMULATE DIAGNOSTICS
-        AJ(J,J_RSI, ITYPE)=AJ(J,J_RSI, ITYPE)+        POICE
-        AJ(J,J_ACE1,ITYPE)=AJ(J,J_ACE1,ITYPE)+ACE1I  *POICE
-        AJ(J,J_ACE2,ITYPE)=AJ(J,J_ACE2,ITYPE)+MSI2   *POICE
-        AJ(J,J_SNOW,ITYPE)=AJ(J,J_SNOW,ITYPE)+SNOW   *POICE
+        CALL INC_AJ(I,J,ITYPE,J_RSI ,      POICE)
+        CALL INC_AJ(I,J,ITYPE,J_ACE1,ACE1I*POICE)
+        CALL INC_AJ(I,J,ITYPE,J_ACE2, MSI2*POICE)
+        CALL INC_AJ(I,J,ITYPE,J_SNOW, SNOW*POICE)
         IF (JR.ne.24) THEN
-          AREGJ(JR,J,J_RSI) =AREGJ(JR,J,J_RSI) +      POICE*AXYP(I,J)
-          AREGJ(JR,J,J_SNOW)=AREGJ(JR,J,J_SNOW)+SNOW *POICE*AXYP(I,J)
-          AREGJ(JR,J,J_ACE1)=AREGJ(JR,J,J_ACE1)+ACE1I*POICE*AXYP(I,J)
-          AREGJ(JR,J,J_ACE2)=AREGJ(JR,J,J_ACE2)+MSI2 *POICE*AXYP(I,J)
+          CALL INC_AREG(I,J,JR,J_RSI ,      POICE*AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_SNOW, SNOW*POICE*AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_ACE1,ACE1I*POICE*AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_ACE2, MSI2*POICE*AXYP(I,J))
         END IF
         AIJ(I,J,IJ_TSI)=AIJ(I,J,IJ_TSI)+
      *       POICE*(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))

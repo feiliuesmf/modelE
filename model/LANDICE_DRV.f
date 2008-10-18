@@ -287,8 +287,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,ntm,trdwnimp
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
-     *     ,jreg,ij_f0li,ij_f1li,ij_erun2
+      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li,ij_erun2
      *     ,ij_runli,j_run,j_implh,j_implm
       USE DOMAIN_DECOMP, only : GRID,GET
       USE DOMAIN_DECOMP, only : GLOBALSUM, CHECKSUM, CHECKSUM_COLUMN
@@ -367,15 +366,15 @@ C**** accumulate implicit fluxes for setting ocean balance
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
-c       AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
-        AJ(J,J_RUN,  ITLANDI)=AJ(J,J_RUN,  ITLANDI)+RUN0 *PLICE
-C       AJ(J,J_ERUN ,ITLANDI)=AJ(J,J_ERUN ,ITLANDI)+ERUN0*PLICE ! (Tg=0)
-        AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS *PLICE
-        AJ(J,J_IMPLH,ITLANDI)=AJ(J,J_IMPLH,ITLANDI)+ERUN2*PLICE
-        AREGJ(JR,J,J_RUN)  =AREGJ(JR,J,J_RUN)  +RUN0 *PLICE*DXYPIJ
-c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPIJ ! (Tg=0)
-        AREGJ(JR,J,J_IMPLM)=AREGJ(JR,J,J_IMPLM)+DIFS *PLICE*DXYPIJ
-        AREGJ(JR,J,J_IMPLH)=AREGJ(JR,J,J_IMPLH)+ERUN2*PLICE*DXYPIJ
+c       CALL INC_AJ(I,J,ITLANDI,J_TYPE,       PLICE)
+        CALL INC_AJ(I,J,ITLANDI,J_RUN ,  RUN0*PLICE)
+C       CALL INC_AJ(I,J,ITLANDI,J_ERUN, ERUN0*PLICE) ! (Tg=0)
+        CALL INC_AJ(I,J,ITLANDI,J_IMPLM, DIFS*PLICE)
+        CALL INC_AJ(I,J,ITLANDI,J_IMPLH,ERUN2*PLICE)
+        CALL INC_AREG(I,J,JR,J_RUN ,  RUN0*PLICE*DXYPIJ)
+c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE*DXYPIJ) ! (Tg=0)
+        CALL INC_AREG(I,J,JR,J_IMPLM, DIFS*PLICE*DXYPIJ)
+        CALL INC_AREG(I,J,JR,J_IMPLH,ERUN2*PLICE*DXYPIJ)
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS*PLICE
         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2*PLICE
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
@@ -396,8 +395,7 @@ c       AREGJ(JR,J,J_ERUN) =AREGJ(JR,J,J_ERUN) +ERUN0*PLICE*DXYPIJ ! (Tg=0)
       USE LANDICE, only : lndice,ace1li,ace2li
       USE SEAICE_COM, only : rsi
       USE SEAICE, only : rhos
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,aij=>aij_loc
-     *     ,jreg,ij_runli,ij_f1li,ij_erun2
+      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li,ij_erun2
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
      *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc,ij_li
@@ -495,27 +493,27 @@ C**** accumulate implicit fluxes for setting ocean balance
 C**** ACCUMULATE DIAGNOSTICS
         SCOVLI=0
         IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
-        AJ(J,J_RSNOW,ITLANDI)=AJ(J,J_RSNOW,ITLANDI)+SCOVLI
-        AREGJ(JR,J,J_RSNOW)=AREGJ(JR,J,J_RSNOW)+SCOVLI*DXYPIJ
+        CALL INC_AJ(I,J,ITLANDI,J_RSNOW,SCOVLI)
+        CALL INC_AREG(I,J,JR,J_RSNOW,SCOVLI*DXYPIJ)
         AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
         AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
         AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
         AIJ(I,J,IJ_LI)  =AIJ(I,J,IJ_LI)  +PLICE
         AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+PLICE*SNOW/RHOS
 
-        AJ(J,J_RUN,ITLANDI)  =AJ(J,J_RUN,ITLANDI)  +RUN0  *PLICE
-        AJ(J,J_SNOW,ITLANDI) =AJ(J,J_SNOW,ITLANDI) +SNOW  *PLICE
-        AJ(J,J_ACE1,ITLANDI) =AJ(J,J_ACE1,ITLANDI) +ACE1LI*PLICE
-        AJ(J,J_ACE2,ITLANDI) =AJ(J,J_ACE2,ITLANDI) +ACE2LI*PLICE
-        AJ(J,J_IMPLH,ITLANDI)=AJ(J,J_IMPLH,ITLANDI)+EDIFS *PLICE
-        AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS  *PLICE
+        CALL INC_AJ(I,J,ITLANDI,J_RUN,   RUN0*PLICE)
+        CALL INC_AJ(I,J,ITLANDI,J_SNOW,  SNOW*PLICE)
+        CALL INC_AJ(I,J,ITLANDI,J_ACE1,ACE1LI*PLICE)
+        CALL INC_AJ(I,J,ITLANDI,J_ACE2,ACE2LI*PLICE)
+        CALL INC_AJ(I,J,ITLANDI,J_IMPLH,EDIFS*PLICE)
+        CALL INC_AJ(I,J,ITLANDI,J_IMPLM, DIFS*PLICE)
 
-        AREGJ(JR,J,J_RUN)   =AREGJ(JR,J,J_RUN)   +RUN0  *PLICE*DXYPIJ
-        AREGJ(JR,J,J_SNOW)  =AREGJ(JR,J,J_SNOW)  +SNOW  *PLICE*DXYPIJ
-        AREGJ(JR,J,J_ACE1)  =AREGJ(JR,J,J_ACE1)  +ACE1LI*PLICE*DXYPIJ
-        AREGJ(JR,J,J_ACE2)  =AREGJ(JR,J,J_ACE2)  +ACE2LI*PLICE*DXYPIJ
-        AREGJ(JR,J,J_IMPLH) =AREGJ(JR,J,J_IMPLH) +EDIFS *PLICE*DXYPIJ
-        AREGJ(JR,J,J_IMPLM) =AREGJ(JR,J,J_IMPLM) +DIFS  *PLICE*DXYPIJ
+        CALL INC_AREG(I,J,JR,J_RUN  ,  RUN0*PLICE*DXYPIJ)
+        CALL INC_AREG(I,J,JR,J_SNOW ,  SNOW*PLICE*DXYPIJ)
+        CALL INC_AREG(I,J,JR,J_ACE1 ,ACE1LI*PLICE*DXYPIJ)
+        CALL INC_AREG(I,J,JR,J_ACE2 ,ACE2LI*PLICE*DXYPIJ)
+        CALL INC_AREG(I,J,JR,J_IMPLH, EDIFS*PLICE*DXYPIJ)
+        CALL INC_AREG(I,J,JR,J_IMPLM,  DIFS*PLICE*DXYPIJ)
 
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +(EDIFS+F1DT)*PLICE
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
@@ -523,19 +521,17 @@ C**** ACCUMULATE DIAGNOSTICS
       END IF
 
 C**** Accumulate diagnostics related to iceberg flux here also
-      AJ(J,J_RVRD,ITOCEAN) = AJ(J,J_RVRD,ITOCEAN)+(1.-RSI(I,J))
-     *     * GMELT(I,J)*BYAXYP(I,J)
-      AJ(J,J_ERVR,ITOCEAN) = AJ(J,J_ERVR,ITOCEAN)+(1.-RSI(I,J))
-     *     *EGMELT(I,J)*BYAXYP(I,J)
-      AJ(J,J_RVRD,ITOICE)  = AJ(J,J_RVRD,ITOICE) +    RSI(I,J)
-     *     * GMELT(I,J)*BYAXYP(I,J)
-      AJ(J,J_ERVR,ITOICE)  = AJ(J,J_ERVR,ITOICE) +    RSI(I,J)
-     *     *EGMELT(I,J)*BYAXYP(I,J)
+      CALL INC_AJ(I,J,ITOCEAN,J_RVRD,(1.-RSI(I,J))* GMELT(I,J)
+     *     *BYAXYP(I,J))
+      CALL INC_AJ(I,J,ITOCEAN,J_ERVR,(1.-RSI(I,J))*EGMELT(I,J)
+     *     *BYAXYP(I,J))
+      CALL INC_AJ(I,J,ITOICE,J_RVRD,RSI(I,J)* GMELT(I,J)*BYAXYP(I,J))
+      CALL INC_AJ(I,J,ITOICE,J_ERVR,RSI(I,J)*EGMELT(I,J)*BYAXYP(I,J))
       AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*BYAXYP(I,J)
       AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*BYAXYP(I,J)
 
-      AREGJ(JR,J,J_RVRD) = AREGJ(JR,J,J_RVRD) +  GMELT(I,J)
-      AREGJ(JR,J,J_ERVR) = AREGJ(JR,J,J_ERVR) + EGMELT(I,J)
+      CALL INC_AREG(I,J,JR,J_RVRD, GMELT(I,J))
+      CALL INC_AREG(I,J,JR,J_ERVR,EGMELT(I,J))
       AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
       AIJ(I,J,IJ_ERVR)=AIJ(I,J,IJ_ERVR) + EGMELT(I,J)
 #ifdef TRACERS_WATER  /* TNL: inserted */

@@ -1142,7 +1142,7 @@ C     OUTPUT DATA
      *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
      *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,aregj=>aregj_loc,jreg,aij=>aij_loc
+      USE DIAG_COM, only : jreg,aij=>aij_loc
      *     ,ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
 #ifndef NO_HDIURN
      *     hdiurn,
@@ -1683,15 +1683,15 @@ C**** save some radiation/cloud fields for wider use
 C**** effective cloud cover diagnostics
          OPNSKY=1.-CLDCV
          DO IT=1,NTYPE
-           AJ(J,J_PCLDSS,IT)=AJ(J,J_PCLDSS,IT)+CSS  *FTYPE(IT,I,J)
-           AJ(J,J_PCLDMC,IT)=AJ(J,J_PCLDMC,IT)+CMC  *FTYPE(IT,I,J)
-           AJ(J,J_CLDDEP,IT)=AJ(J,J_CLDDEP,IT)+DEPTH*FTYPE(IT,I,J)
-           AJ(J,J_PCLD  ,IT)=AJ(J,J_PCLD  ,IT)+CLDCV*FTYPE(IT,I,J)
+           call inc_aj(i,j,it,J_PCLDSS,CSS  *FTYPE(IT,I,J))
+           call inc_aj(i,j,it,J_PCLDMC,CMC  *FTYPE(IT,I,J))
+           call inc_aj(i,j,it,J_CLDDEP,DEPTH*FTYPE(IT,I,J))
+           call inc_aj(i,j,it,J_PCLD  ,CLDCV*FTYPE(IT,I,J))
          END DO
-         AREGJ(JR,J,J_PCLDSS)=AREGJ(JR,J,J_PCLDSS)+CSS  *AXYP(I,J)
-         AREGJ(JR,J,J_PCLDMC)=AREGJ(JR,J,J_PCLDMC)+CMC  *AXYP(I,J)
-         AREGJ(JR,J,J_CLDDEP)=AREGJ(JR,J,J_CLDDEP)+DEPTH*AXYP(I,J)
-         AREGJ(JR,J,J_PCLD)  =AREGJ(JR,J,J_PCLD)  +CLDCV*AXYP(I,J)
+         call inc_areg(i,j,jr,J_PCLDSS,CSS  *AXYP(I,J))
+         call inc_areg(i,j,jr,J_PCLDMC,CMC  *AXYP(I,J))
+         call inc_areg(i,j,jr,J_CLDDEP,DEPTH*AXYP(I,J))
+         call inc_areg(i,j,jr,J_PCLD  ,CLDCV*AXYP(I,J))
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO L=1,LLOW
@@ -2311,20 +2311,19 @@ C**** Save clear sky/tropopause diagnostics here
       AIJ(I,J,IJ_TRNTP)=AIJ(I,J,IJ_TRNTP)+TRNFLB(LTROPO(I,J))
 
       DO IT=1,NTYPE
-        AJ(J,J_CLRTOA,IT)=AJ(J,J_CLRTOA,IT)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
-     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J)
-        AJ(J,J_CLRTRP,IT)=AJ(J,J_CLRTRP,IT)+OPNSKY*(SRNFLB(LTROPO(I,J))
-     *     *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
-        AJ(J,J_TOTTRP,IT)=AJ(J,J_TOTTRP,IT)+(SRNFLB(LTROPO(I,J))
-     *     *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
+        call inc_aj(i,j,it,J_CLRTOA,OPNSKY*(SRNFLB(LM+LM_REQ+1)
+     *       *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J))
+        call inc_aj(i,j,it,J_CLRTRP,OPNSKY*(SRNFLB(LTROPO(I,J))
+     *       *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J))
+        call inc_aj(i,j,it,J_TOTTRP,(SRNFLB(LTROPO(I,J))
+     *       *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J))
       END DO
-      AREGJ(JR,J,J_CLRTOA)=AREGJ(JR,J,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ
-     *     +1)*CSZ2-TRNFLB(LM+LM_REQ+1))*AXYP(I,J)
-      AREGJ(JR,J,J_CLRTRP)=AREGJ(JR,J,J_CLRTRP)+OPNSKY*
-     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J)
-      AREGJ(JR,J,J_TOTTRP)=AREGJ(JR,J,J_TOTTRP)+
-     *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J)
-
+      call inc_areg(i,j,jr,J_CLRTOA,OPNSKY*(SRNFLB(LM+LM_REQ+1)
+     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*AXYP(I,J))
+      call inc_areg(i,j,jr,J_CLRTRP,OPNSKY*(SRNFLB(LTROPO(I,J))
+     *     *CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J))
+      call inc_areg(i,j,jr,J_TOTTRP,(SRNFLB(LTROPO(I,J))
+     *     *CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J))
 C**** Save cloud top diagnostics here
       if (CLDCV.le.0.) go to 590
       AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+plb(ltopcl+1)
@@ -2482,59 +2481,50 @@ c***               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          END DO
 
          DO IT=1,NTYPE
-         AJ(J,J_SRINCP0,IT)=AJ(J,J_SRINCP0,IT)+(S0*CSZ2)*FTYPE(IT,I,J)
-         AJ(J,J_SRNFP0 ,IT)=AJ(J,J_SRNFP0 ,IT)+(SNFS(3,I,J)*CSZ2)*
-     *          FTYPE(IT,I,J)
-         AJ(J,J_SRINCG ,IT)=AJ(J,J_SRINCG ,IT)+(SRHR(0,I,J)*CSZ2/
-     /          (ALB(I,J,1)+1.D-20))*FTYPE(IT,I,J)
-         AJ(J,J_BRTEMP ,IT)=AJ(J,J_BRTEMP ,IT)+BTMPW(I,J) *FTYPE(IT,I,J)
-         AJ(J,J_TRINCG ,IT)=AJ(J,J_TRINCG ,IT)+TRINCG(I,J)*FTYPE(IT,I,J)
-         AJ(J,J_HSURF  ,IT)=AJ(J,J_HSURF  ,IT)-(TNFS(3,I,J)-TNFS(1,I,J))
-     *        *FTYPE(IT,I,J)
-         AJ(J,J_TRNFP0 ,IT)=AJ(J,J_TRNFP0 ,IT)-TNFS(3,I,J)*FTYPE(IT,I,J)
-         AJ(J,J_TRNFP1 ,IT)=AJ(J,J_TRNFP1 ,IT)-TNFS(2,I,J)*FTYPE(IT,I,J)
-         AJ(J,J_SRNFP1 ,IT)=AJ(J,J_SRNFP1 ,IT)+SNFS(2,I,J)*CSZ2
-     *          *FTYPE(IT,I,J)
-         AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-(TNFS(2,I,J)-TNFS(1,I,J))
-     *        *FTYPE(IT,I,J)
+         call inc_aj(I,J,IT,J_SRINCP0,(S0*CSZ2)*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_SRNFP0 ,(SNFS(3,I,J)*CSZ2)*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_SRINCG ,(SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D
+     *        -20))*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_BRTEMP ,BTMPW(I,J) *FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_TRINCG ,TRINCG(I,J)*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_HSURF  ,-(TNFS(3,I,J)-TNFS(1,I,J))
+     *        *FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_TRNFP0 ,-TNFS(3,I,J)*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_TRNFP1 ,-TNFS(2,I,J)*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_SRNFP1 ,SNFS(2,I,J)*CSZ2*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,J_HATM   ,-(TNFS(2,I,J)-TNFS(1,I,J))
+     *        *FTYPE(IT,I,J))
          END DO
 C**** Note: confusing because the types for radiation are a subset
-         AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*CSZ2)
-     *        *FOCEAN(I,J)*(1.-RSI(I,J))
-         AJ(J,J_SRNFG,ITLAKE) =AJ(J,J_SRNFG,ITLAKE) +(FSF(1,I,J)*CSZ2)
-     *        * FLAKE(I,J)*(1.-RSI(I,J))
-         AJ(J,J_SRNFG,ITEARTH)=AJ(J,J_SRNFG,ITEARTH)+(FSF(4,I,J)*CSZ2)
-     *        *FEARTH(I,J)
-         AJ(J,J_SRNFG,ITLANDI)=AJ(J,J_SRNFG,ITLANDI)+(FSF(3,I,J)*CSZ2)
-     *        * FLICE(I,J)
-         AJ(J,J_SRNFG,ITOICE )=AJ(J,J_SRNFG,ITOICE )+(FSF(2,I,J)*CSZ2)
-     *        *FOCEAN(I,J)*RSI(I,J)
-         AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*CSZ2)
-     *        * FLAKE(I,J)*RSI(I,J)
+         call inc_aj(I,J,ITOCEAN,J_SRNFG,(FSF(1,I,J)*CSZ2)*FOCEAN(I,J)
+     *        *(1.-RSI(I,J))) 
+         call inc_aj(I,J,ITLAKE ,J_SRNFG,(FSF(1,I,J)*CSZ2)* FLAKE(I,J)
+     *        *(1.-RSI(I,J))) 
+         call inc_aj(I,J,ITEARTH,J_SRNFG,(FSF(4,I,J)*CSZ2)*FEARTH(I,J))
+         call inc_aj(I,J,ITLANDI,J_SRNFG,(FSF(3,I,J)*CSZ2)* FLICE(I,J))
+         call inc_aj(I,J,ITOICE ,J_SRNFG,(FSF(2,I,J)*CSZ2)*FOCEAN(I,J)
+     *        *RSI(I,J)) 
+         call inc_aj(I,J,ITLKICE,J_SRNFG,(FSF(2,I,J)*CSZ2)* FLAKE(I,J)
+     *        *RSI(I,J))
 C****
-         AREGJ(JR,J,J_SRINCP0)=AREGJ(JR,J,J_SRINCP0)+(S0*CSZ2)*DXYPIJ
-         AREGJ(JR,J,J_SRNFP0 )=AREGJ(JR,J,J_SRNFP0 )+(SNFS(3,I,J)*CSZ2)
-     *        *DXYPIJ
-         AREGJ(JR,J,J_SRNFP1 )=AREGJ(JR,J,J_SRNFP1 )+(SNFS(2,I,J)*CSZ2)
-     *        *DXYPIJ
-         AREGJ(JR,J,J_SRINCG )=AREGJ(JR,J,J_SRINCG )+
-     *        (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPIJ
-         AREGJ(JR,J,J_HATM)=AREGJ(JR,J,J_HATM)-(TNFS(2,I,J)-TNFS(1,I,J))
-     *        *DXYPIJ
-         AREGJ(JR,J,J_SRNFG)=AREGJ(JR,J,J_SRNFG) +(SRHR(0,I,J)*CSZ2)
-     *        *DXYPIJ
-         AREGJ(JR,J,J_HSURF)=AREGJ(JR,J,J_HSURF) -
-     *        (TNFS(3,I,J)-TNFS(1,I,J))*DXYPIJ
-         AREGJ(JR,J,J_BRTEMP)=AREGJ(JR,J,J_BRTEMP)+  BTMPW(I,J)*DXYPIJ
-         AREGJ(JR,J,J_TRINCG)=AREGJ(JR,J,J_TRINCG)+ TRINCG(I,J)*DXYPIJ
-         AREGJ(JR,J,J_TRNFP0)=AREGJ(JR,J,J_TRNFP0)- TNFS(3,I,J)*DXYPIJ
-         AREGJ(JR,J,J_TRNFP1)=AREGJ(JR,J,J_TRNFP1)- TNFS(2,I,J)*DXYPIJ
+         call inc_areg(I,J,JR,J_SRINCP0,(S0*CSZ2)*DXYPIJ)
+         call inc_areg(I,J,JR,J_SRNFP0 ,(SNFS(3,I,J)*CSZ2)*DXYPIJ)
+         call inc_areg(I,J,JR,J_SRNFP1 ,(SNFS(2,I,J)*CSZ2)*DXYPIJ)
+         call inc_areg(I,J,JR,J_SRINCG ,(SRHR(0,I,J)*CSZ2/
+     *        (ALB(I,J,1)+1.D-20))*DXYPIJ)
+         call inc_areg(I,J,JR,J_HATM,-(TNFS(2,I,J)-TNFS(1,I,J))*DXYPIJ)
+         call inc_areg(I,J,JR,J_SRNFG,(SRHR(0,I,J)*CSZ2)*DXYPIJ)
+         call inc_areg(I,J,JR,J_HSURF,-(TNFS(3,I,J)-TNFS(1,I,J))*DXYPIJ)
+         call inc_areg(I,J,JR,J_BRTEMP, BTMPW(I,J)*DXYPIJ)
+         call inc_areg(I,J,JR,J_TRINCG,TRINCG(I,J)*DXYPIJ)
+         call inc_areg(I,J,JR,J_TRNFP0,-TNFS(3,I,J)*DXYPIJ)
+         call inc_areg(I,J,JR,J_TRNFP1,-TNFS(2,I,J)*DXYPIJ)
          DO K=2,9
            JK=K+J_PLAVIS-2      ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
-             AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J)
+             call inc_aj(I,J,IT,JK,(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J))
            END DO
-           AREGJ(JR,J,JK)=AREGJ(JR,J,JK)+(S0*CSZ2)*ALB(I,J,K)*DXYPIJ
+           call inc_areg(I,J,JR,JK,(S0*CSZ2)*ALB(I,J,K)*DXYPIJ)
          END DO
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)

@@ -86,6 +86,9 @@ C**** some B-grid conservation quantities
       integer, parameter :: jg_u=2, jg_ke=2
 
       real*8 :: acor,acor2,polwt
+!@var J_BUDG a mapping array that takes every grid point to the 
+!@+   zonal mean budget array
+      integer, allocatable, dimension(:,:) :: J_BUDG
 
       CONTAINS
 
@@ -314,6 +317,9 @@ C**** Conditions at non-polar points
         endif
       END DO
 
+C**** set up mapping arrays for budget/conserv diags
+      call set_j_budg
+
 c
 c temporary
 c
@@ -354,3 +360,5 @@ c        ddy_cj(i,j) =  dloni*bydet/radius
       END SUBROUTINE GEOM_B
 
       END MODULE GEOM
+
+
