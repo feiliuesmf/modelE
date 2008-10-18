@@ -5252,7 +5252,7 @@ C**** Check
      *       oDMSI_glob, oDHSI_glob, oDSSI_glob
      *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
 #ifdef TRACERS_OCEAN
-           , oDTRSI_glob, aDTRSI_glob
+     *     , oDTRSI_glob, aDTRSI_glob
 #endif
      *     )     
 !@sum  INT_AG2OG is for interpolation of arrays from subr.GROUND_OC 
@@ -5559,7 +5559,7 @@ C***  Scatter the arrays to the ocean grid
 
       USE OFLUXES, only : oDMSI, oDHSI, oDSSI
 #ifdef TRACERS_OCEAN
-     *     , oDTRSI=>DTRSI
+     *     , oDTRSI
 #endif
 
       IMPLICIT NONE
@@ -5605,7 +5605,7 @@ C*
      *       oDMSI_glob, oDHSI_glob, oDSSI_glob
      *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
 #ifdef TRACERS_OCEAN
-           , oDTRSI_glob, aDTRSI_glob
+     *     , oDTRSI_glob, aDTRSI_glob
 #endif
      *     )     
       end if 
