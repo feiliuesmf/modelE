@@ -1,25 +1,10 @@
+#makefile for the component Ent
 .SUFFIXES:
 
-ifndef GISSCLIM_DIR
-       GISSCLIM_DIR := $(shell pwd)/../..
-endif
-ifndef CONFIG_DIR
-       CONFIG_DIR := $(GISSCLIM_DIR)/config
-endif
+SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL
 
-#DEPENDS_ON = shared
-
-#CASE = $(MAKECMDGOALS)
-# online/offline source code
-
-#ifeq ($(ONLINE),YES)
 FSRCS = 
 F90SRCS = 
-#else
-#FSRCS = ent_prog.f gcm_utils.f gcm_system.f \
-#ent_forcings.f ent_prescribed_drv.f
-#F90SRCS = 
-#endif
 
 FSRCS += ent_prescribed_drv.f # needed for lsm_standalone
 
@@ -49,26 +34,19 @@ FSRCS += biophysics.f
 endif
 
 
+ifndef GISSCLIM_DIR
+       GISSCLIM_DIR := $(shell pwd)/../..
+endif
+ifndef CONFIG_DIR
+       CONFIG_DIR := $(GISSCLIM_DIR)/config
+endif
 
 include $(CONFIG_DIR)/base.mk
 #dependencies (should be done later automatically):
 sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
-#FFLAGS += -I$(shell pwd)/../shared
-#INCS += -I$(shell pwd)/../shared
-#ESMF_Interface = ..
-
 ifeq ($(PFT_MODEL),ENT)
 CPPFLAGS += -DPFT_MODEL_ENT
 endif
 
-
-# = $(patsubst %, SRC_%, $(MAKECMDGOALS))
-
-#$(CASE): Makefile $(FSRC)
-#	echo $^
-
-
-#deplist:
-#	echo $(THIS)_dir: $(DEPENDS_ON:=_dir)
