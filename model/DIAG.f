@@ -2861,7 +2861,7 @@ C****
      *     ,lhe,rhow,undef,stbo
       USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean
      *     ,flice,nday,t,q
-      USE GEOM, only : imaxj,dxyp,bydxyp
+      USE GEOM, only : imaxj,axyp,byaxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE GHY_COM, only : gdeep
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
@@ -2910,16 +2910,19 @@ C****
       USE TRACER_COM
 #endif
       IMPLICIT NONE
-      REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
+      REAL*4, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       INTEGER :: I,J,K,L,kp,kunit,n,n1,n_fidx
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
-      INTEGER :: J_0,J_1,J_0S,J_1S
+      INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole
 
       CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
      &              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE=have_south_pole,
      &               HAVE_NORTH_POLE=have_north_pole)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 #ifdef TRACERS_DUST
       n_fidx=n_clay
@@ -2941,7 +2944,7 @@ C**** simple diags (one record per file)
         select case (namedd(k))
         case ("SLP")            ! sea level pressure (mb)
           do j=J_0,J_1
-          do i=1,imaxj(j)
+          do i=I_0,imaxj(j)
             ps=(p(i,j)+ptop)
             zs=bygrav*zatmo(i,j)
             data(i,j)=slp(ps,tsavg(i,j),zs)
@@ -2957,7 +2960,7 @@ C**** simple diags (one record per file)
           data=vsavg
         case ("SST")            ! sea surface temp (C)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
                 data(i,j)=GTEMP(1,1,i,j)
               else
@@ -2967,7 +2970,7 @@ C**** simple diags (one record per file)
           end do
         case ("SIT")            ! surface ice temp (C)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
                 data(i,j)=GTEMP(1,2,i,j)
               else
@@ -2977,7 +2980,7 @@ C**** simple diags (one record per file)
           end do
         case ("GT1")      ! level 1 ground temp (LAND) (C)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=gtemp(1,4,i,j)
               else
@@ -2987,7 +2990,7 @@ C**** simple diags (one record per file)
           end do
         case ("GTD")   ! avg levels 2-6 ground temp (LAND) (C)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=gdeep(i,j,1)
               else
@@ -2997,7 +3000,7 @@ C**** simple diags (one record per file)
           end do
         case ("GWD")  ! avg levels 2-6 ground liq water (m)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=gdeep(i,j,2)
               else
@@ -3007,7 +3010,7 @@ C**** simple diags (one record per file)
           end do
         case ("GID")  ! avg levels 2-6 ground ice (m liq. equiv.)
           do j=J_0,J_1          
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=gdeep(i,j,3)
               else
@@ -3017,7 +3020,7 @@ C**** simple diags (one record per file)
           end do
         case ("GW0")  ! ground lev 1 + canopy liq water (m)
           do j=J_0,J_1          
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=wearth(i,j)
               else
@@ -3027,7 +3030,7 @@ C**** simple diags (one record per file)
           end do
         case ("GI0")  ! ground lev 1 + canopy ice (m liq. equiv.)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=aiearth(i,j)
               else
@@ -3039,7 +3042,7 @@ C**** simple diags (one record per file)
           data=qsavg
         case ("RS")             ! surf rel humidity
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               data(i,j)=qsavg(i,j)/qsat(tsavg(i,j),lhe,p(i,j)+ptop)
             enddo
           enddo
@@ -3052,7 +3055,7 @@ c          data=sday*prec/dtsrc
           PM_acc=0.
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
@@ -3062,7 +3065,7 @@ c          data=sday*prec/dtsrc
           end do
         case ("SNOWC")     ! snow cover (fraction of grid)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               data(i,j)=0.d0
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               if(SNOWI(I,J) > 0.)data(i,j)=data(i,j)+POICE
@@ -3086,7 +3089,7 @@ c          data=sday*prec/dtsrc
           data=TRHR(0,:,:)
         case ("LWU")            ! LW upward flux at surface (W/m^2)
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
@@ -3098,7 +3101,7 @@ c          data=sday*prec/dtsrc
           end do
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
           do j=J_0,J_1     ! sum up all cooling rates + net surface emission
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
@@ -3118,7 +3121,7 @@ c          data=sday*prec/dtsrc
         case ("LCLD")           ! low level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               do l=1,llow
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
@@ -3128,7 +3131,7 @@ c          data=sday*prec/dtsrc
         case ("MCLD")           ! mid level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               do l=llow+1,lmid
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
@@ -3138,7 +3141,7 @@ c          data=sday*prec/dtsrc
         case ("HCLD")           ! high level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
-            do i=1,imaxj(j)
+            do i=I_0,imaxj(j)
               do l=lmid+1,lhi
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
@@ -3206,7 +3209,7 @@ C**** get pressure level
                 data=rh_inst(kp,:,:)
               case ("Q")        ! specific humidity
                 do j=J_0,J_1
-                do i=1,imaxj(j)
+                do i=I_0,imaxj(j)
                   data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
      *                 ,PMB(kp))
                 end do
@@ -3229,7 +3232,7 @@ C**** get pressure level
                 data=rh_inst(kp,:,:)
               case ("Q")        ! specific humidity
                 do j=J_0,J_1
-                do i=1,imaxj(j)
+                do i=I_0,imaxj(j)
                   data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
      *                 ,PMB(kp))
                 end do
@@ -3262,7 +3265,7 @@ C**** diagnostics on model levels
      &          qsat(t(1,1,kp)*pk(kp,1,1),lhe,pmid(kp,1,1))
                 if(have_north_pole) data(1:im,jm)=q(1,jm,kp)/
      &          qsat(t(1,jm,kp)*pk(kp,1,jm),lhe,pmid(kp,1,jm))
-                do j=J_0S,J_1S; do i=1,im
+                do j=J_0S,J_1S; do i=i_0,i_1
                   data(i,j)=q(i,j,kp)/qsat(t(i,j,kp)*pk(kp,i,j),
      &            lhe,pmid(kp,i,j))
                 enddo         ; enddo
@@ -3286,46 +3289,46 @@ C**** diagnostics on model levels
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mass2vol(n_Ox)/
-     *                   (am(kp,i,j)*dxyp(j))
+     *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
               case ("N")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,kp,n_NOx)*mass2vol(n_NOx)/
-     *                   (am(kp,i,j)*dxyp(j))
+     *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
               case ("c")                ! CO tracer (ppbv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d9*trm(i,j,kp,n_CO)*mass2vol(n_CO)/
-     *                   (am(kp,i,j)*dxyp(j))
+     *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*mNO2(i,j,kp)*mair/(46.0055
-     *                   *am(kp,i,j)*dxyp(j))
+     *                   *am(kp,i,j)*axyp(i,j))
                   end do
                 end do
 #endif
 #ifdef TRACERS_COSMO
               case ("B")                ! Be7 tracer
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,kp,n_Be7)* mass2vol(n_Be7)/
-     *                   (am(kp,i,j)*dxyp(j))
+     *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
 #endif
 #ifdef TRACERS_SPECIAL_O18
               case ("D")                ! HDO tracer (permil)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1d3*(trm(i,j,kp,n_HDO)/(trm(i,j,kp,n_water
      *                   )*trw0(n_HDO))-1.)
                   end do
@@ -3354,7 +3357,7 @@ C**** get model level
      &          qsat(t(1,1,l)*pk(l,1,1),lhe,pmid(l,1,1))
                 if(have_north_pole) data(1:im,jm)=q(1,jm,l)/
      &          qsat(t(1,jm,l)*pk(l,1,jm),lhe,pmid(l,1,jm))
-                do j=J_0S,J_1S; do i=1,im
+                do j=J_0S,J_1S; do i=i_0,i_1
                   data(i,j)=q(i,j,l)/qsat(t(i,j,l)*pk(l,i,j),
      &            ,lhe,pmid(l,i,j))
                 enddo         ; enddo
@@ -3378,46 +3381,46 @@ C**** get model level
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_Ox)*mass2vol(n_Ox)/
-     *                   (am(l,i,j)*dxyp(j))
+     *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
               case ("N")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_NOx)*mass2vol(n_NOx)/
-     *                   (am(l,i,j)*dxyp(j))
+     *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
               case ("c")                ! CO tracer (ppbv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d9*trm(i,j,l,n_CO)*mass2vol(n_CO)/
-     *                   (am(l,i,j)*dxyp(j))
+     *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*mNO2(i,j,l)*mair/(46.0055
-     *                   *am(l,i,j)*dxyp(j))
+     *                   *am(l,i,j)*axyp(i,j))
                   end do
                 end do
 #endif
 #ifdef TRACERS_COSMO
               case ("B")                ! Be7 tracer
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_Be7)* mass2vol(n_Be7)/
-     *                   (am(l,i,j)*dxyp(j))
+     *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
 #endif
 #ifdef TRACERS_SPECIAL_O18
               case ("D")                ! HDO tracer (permil)
                 do j=J_0,J_1
-                  do i=1,imaxj(j)
+                  do i=I_0,imaxj(j)
                     data(i,j)=1d3*(trm(i,j,l,n_HDO)/(trm(i,j,l,n_water
      *                   )*trw0(n_HDO))-1.)
                   end do
@@ -3531,7 +3534,7 @@ C**** first set: no 'if' tests
                 DO l=1,LmaxSUBDD
                   data(:,j)=data(:,j)+trm(:,j,l,n1)
                 END DO
-                data(:,j)=data(:,j)*bydxyp(j)
+                data(:,j)=data(:,j)*byaxyp(i,j)
               END DO
 
             end select
@@ -3576,11 +3579,11 @@ C**** other dust special cases
 #ifdef TRACERS_WATER
             IF (dowetdep(n1)) THEN
               DO j=J_0,J_1
-                data(:,j)=trprec(n1,:,j)*bydxyp(j)/Dtsrc
+                data(:,j)=trprec(n1,:,j)*byaxyp(i,j)/Dtsrc
               END DO
 #else
               DO j=J_0,J_1
-                data(:,j)=trprec_dust(n,:,j)*bydxyp(j)/Dtsrc
+                data(:,j)=trprec_dust(n,:,j)*byaxyp(i,j)/Dtsrc
               END DO
 #endif
               polefix=.true.
@@ -3603,15 +3606,16 @@ c****
 
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix
-      use domain_decomp, only : grid,get,writei_parallel,havelatitude
-      real*4, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: data
+      use domain_decomp, only : grid,get,writei_parallel
+      real*4, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: data
       integer kunit
       logical :: polefix
 
 c**** fix polar values
       if (polefix) then
-        if(haveLatitude(grid, J=1 )) data(2:im,1) =data(1,1)
-        if(haveLatitude(grid, J=JM)) data(2:im,jm)=data(1,jm)
+        if(grid%have_south_pole) data(2:im,1) =data(1,1)
+        if(grid%have_north_pole) data(2:im,jm)=data(1,jm)
       end if
       call writei_parallel(grid,iu_subdd(kunit),
      *     nameunit(iu_subdd(kunit)),data,itime)
@@ -3628,7 +3632,7 @@ c**** fix polar values
       USE MODEL_COM, only : u,v,t,p,q,jdate,jhour,ptop,sig
       USE CONSTANT, only : bygrav
       USE domain_decomp,ONLY : am_i_root,get,globalsum,grid
-      USE GEOM, only : imaxj,dxyp,bydxyp
+      USE GEOM, only : imaxj,axyp,byaxyp
       USE DYNAMICS, only : phi,wsave,pek,byam
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
@@ -3659,12 +3663,14 @@ c**** fix polar values
       REAL*8,DIMENSION(n_idxd, NDIUPT) :: diurnsumd
 
 C****   define local grid
-      INTEGER J_0, J_1
+      INTEGER J_0, J_1, I_0, I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL get(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
@@ -3689,7 +3695,7 @@ C****
 !$OMP PARALLEL DO PRIVATE(i,j,kr,n,psk,n1,tmp)
 !$OMP*   SCHEDULE(DYNAMIC,2)
       do j=j_0,j_1
-      do i=1,imaxj(j)
+      do i=I_0,imaxj(j)
       psk=pek(1,i,j)
       do kr=1,ndiupt
         if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
@@ -3715,10 +3721,10 @@ C****
 
               tmp(idd_load1:idd_load1+lmax_dd2-1)
      *             =tmp(idd_load1:idd_load1+lmax_dd2-1)+trm(i,j
-     *             ,1:lmax_dd2,n1)*bydxyp(j)
+     *             ,1:lmax_dd2,n1)*byaxyp(i,j)
               tmp(idd_conc1:idd_conc1+lmax_dd2-1)
      *             =tmp(idd_conc1:idd_conc1+lmax_dd2-1)+trm(i,j
-     *             ,1:lmax_dd2,n1)*byam(1,i,j)*bydxyp(j)
+     *             ,1:lmax_dd2,n1)*byam(1,i,j)*byaxyp(i,j)
               tmp(idd_tau1:idd_tau1+lmax_dd2-1)=tmp(idd_tau1:idd_tau1
      *             +lmax_dd2-1)+ttausv_save(i,j,n1,1:lmax_dd2)
               tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
@@ -3788,11 +3794,14 @@ C****
       REAL*8 PLE_tmp
       CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1, I_0,I_1
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+
 C**** Initialise resolution dependent diagnostic parameters
       call diag_res
 
@@ -4045,7 +4054,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
         CALL reset_DIAG(0)
 C**** Initiallise ice freeze diagnostics at beginning of run
         DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
+          DO I=I_0,IMAXJ(J)
             TSFREZ(I,J,TF_DAY1)=365.
             TSFREZ(I,J,TF_LAST)=365.
             IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
@@ -4123,7 +4132,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 !@ver  1.0
       USE CONSTANT, only : undef
       USE MODEL_COM, only : im,jm,jday,focean
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,lat2d
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
@@ -4136,35 +4145,39 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 #endif
       IMPLICIT NONE
       INTEGER I,J
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       IF (JDAY.EQ.32) THEN
-         DO J=MAX(J_0,1+JM/2),MIN(J_1,JM)
-            DO I=1,IM
-               TSFREZ(I,J,TF_DAY1)=JDAY
-            END DO
-         END DO
-         DO J=MAX(J_0,1),MIN(J_1,JM/2)
-            DO I=1,IM
-               TSFREZ(I,J,TF_LAST)=JDAY
-            END DO
-         END DO
+        DO J=J_0,J_1
+        DO I=I_0,I_1
+          if(lat2d(i,j).gt.0.) then
+            TSFREZ(I,J,TF_DAY1)=JDAY
+          else
+            TSFREZ(I,J,TF_LAST)=JDAY
+          endif
+        ENDDO
+        ENDDO
       ELSEIF (JDAY.EQ.213) THEN
-         DO J=MAX(J_0,1),MIN(J_1,JM/2)
-            DO I=1,IM
-              TSFREZ(I,J,TF_DAY1)=JDAY
-            END DO
-         END DO
+        DO J=J_0,J_1
+        DO I=I_0,I_1
+          if(lat2d(i,j).lt.0.) then
+            TSFREZ(I,J,TF_DAY1)=JDAY
+          endif
+        ENDDO
+        ENDDO
       END IF
 
 C**** set and initiallise freezing diagnostics
 C**** Note that TSFREZ saves the last day of no-ice and some-ice.
 C**** The AIJ diagnostics are set once a year (zero otherwise)
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
-          IF (J.le.JM/2) THEN
+        DO I=I_0,IMAXJ(J)
+          if(lat2d(i,j).lt.0.) then
 C**** initiallise/save South. Hemi. on Feb 28
             IF (JDAY.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
               AIJ(I,J,IJ_LKICE)=1.
@@ -4204,7 +4217,7 @@ C**** set ice on/off days
 
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       DO J=J_0,J_1
-         DO I=1,IM
+         DO I=I_0,I_1
             TDIURN(I,J,1)= 1000.
             TDIURN(I,J,2)=-1000.
             TDIURN(I,J,3)= 1000.
@@ -4355,11 +4368,13 @@ C****
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J
-      INTEGER :: J_0,J_1
+      INTEGER :: J_0,J_1,I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
       DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE,I,J)
           FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
