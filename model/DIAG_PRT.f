@@ -857,7 +857,7 @@ c
       use filemanager
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP, only : GRID
-      USE MODEL_COM, only : im,jm,lm,fim,flice,
+      USE MODEL_COM, only : im,jm,lm,fim,
      &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,itime,itime0,nday,xlabel,lrunid,ntype
       USE GEOM, only : dxyp,lat,lat_dg

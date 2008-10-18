@@ -355,7 +355,7 @@ C****
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE CONSTANT, only : rhoi,grav,omega,rhows
-      USE MODEL_COM, only : im,jm,p,ptop,dts=>dtsrc,focean
+      USE MODEL_COM, only : im,jm,dts=>dtsrc,focean
       USE DOMAIN_DECOMP, only : grid, DIST_GRID, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, SOUTH
       USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj

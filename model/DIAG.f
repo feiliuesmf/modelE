@@ -3073,7 +3073,7 @@ c          data=sday*prec/dtsrc
               if(SNOWE(I,J) > 0.)data(i,j)=data(i,j)+PEARTH
               PLANDI=FLICE(I,J)
               if(SNOWLI(I,J) > 0.)data(i,j)=data(i,j)+PLANDI
-              data(i,j)=min(1.d0,data(i,j))
+              data(i,j)=min(1.0,data(i,j))
             end do
           end do
         case ("QLAT")           ! latent heat (W/m^2)
@@ -3347,20 +3347,21 @@ C**** get model level
               select case (namedd(k)(1:1))
               case ("t")        ! temperature (C)
                 if(have_south_pole) data(1:im,1)=
-     &          t(1,1,l)*pk(l,1, 1)-tf
+     &               t(1,1,l)*pk(l,1, 1)-tf
                 if(have_north_pole) data(1:im,jm)=
-     &          t(1,jm,l)*pk(l,1,jm)-tf
+     &               t(1,jm,l)*pk(l,1,jm)-tf
                 data(:,J_0S:J_1S)=
-     &          t(:,J_0S:J_1S,l)*pk(l,:,J_0S:J_1S)-tf
+     &               t(:,J_0S:J_1S,l)*pk(l,:,J_0S:J_1S)-tf
               case ("r")        ! relative humidity
                 if(have_south_pole) data(1:im, 1)=q(1, 1,l)/
-     &          qsat(t(1,1,l)*pk(l,1,1),lhe,pmid(l,1,1))
+     &               qsat(t(1,1,l)*pk(l,1,1),lhe,pmid(l,1,1))
                 if(have_north_pole) data(1:im,jm)=q(1,jm,l)/
-     &          qsat(t(1,jm,l)*pk(l,1,jm),lhe,pmid(l,1,jm))
+     &               qsat(t(1,jm,l)*pk(l,1,jm),lhe,pmid(l,1,jm))
                 do j=J_0S,J_1S; do i=i_0,i_1
                   data(i,j)=q(i,j,l)/qsat(t(i,j,l)*pk(l,i,j),
-     &            ,lhe,pmid(l,i,j))
-                enddo         ; enddo
+     &                 lhe,pmid(l,i,j))
+                enddo
+              enddo
               case ("q")        ! specific humidity
                 if(have_south_pole) data(1:im, 1)=q(1, 1,l)
                 if(have_north_pole) data(1:im,jm)=q(1,jm,l)
