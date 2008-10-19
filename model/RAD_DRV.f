@@ -1211,8 +1211,9 @@ c    *     ,SNFST0,TNFST0
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 U0GAS,taulim, xdalbs,sumda,tauda,fsnow
-      REAL*8 :: sumda_psum(grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 :: tauda_psum(grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     sumda_psum,tauda_psum
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
@@ -1405,26 +1406,25 @@ C*********************************************************
 
 c**** find scaling factors for surface albedo reduction
       IF (HAVE_SOUTH_POLE) THEN
-         sumda_psum(1)=im*dxyp(1)
-         tauda_psum(1)=im*dxyp(1)*depobc_1990(1,1)
+         sumda_psum(:,1)=axyp(1,1)
+         tauda_psum(:,1)=axyp(1,1)*depobc_1990(1,1)
       End If
       do j=J_0S,J_1S
-c         JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
-         JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5)   ! slightly more general
-         sumda_psum(j)=0
-         tauda_psum(j)=0
-         do i=1,im
-           ILON=INT(.5+(I-.5)*72./IM+.5)
-           fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
-           if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
-           sumda_psum(j) = sumda_psum(j) + dxyp(j)*fsnow
-           tauda_psum(j) = tauda_psum(j) +
-     &          dxyp(j)*fsnow*depobc_1990(ilon,jlat)
-         end do
+      do i=I_0,I_1
+c ilon, jlat are indices w.r.t 72x46 grid
+c      JLAT=INT(1.+(J-1.)*0.25*DLAT_DG+.5)   ! slightly more general
+c      ILON=INT(.5+(I-.5)*72./IM+.5)
+        ilon = 1 + int( 72d0*lon2d(i,j)/twopi )
+        jlat = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
+        fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
+        if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
+        sumda_psum(i,j) = axyp(i,j)*fsnow
+        tauda_psum(i,j) = axyp(i,j)*fsnow*depobc_1990(ilon,jlat)
+      end do
       end do
       IF (HAVE_NORTH_POLE) THEN
-         sumda_psum(JM)=im*dxyp(jm)*rsi(1,jm)
-         tauda_psum(JM)=im*dxyp(jm)*rsi(1,jm)*depobc_1990(1,46)
+         sumda_psum(:,JM)=axyp(1,jm)*rsi(1,jm)
+         tauda_psum(:,JM)=axyp(1,jm)*rsi(1,jm)*depobc_1990(1,46)
       END IF
 #ifdef SCM
       xdalbs = 0.d0
