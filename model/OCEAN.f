@@ -380,7 +380,7 @@ C**** accumulate diagnostics
      *             -SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J))))
               CALL INC_AJ(I,J,ITOCEAN,J_IMPLH,-FOCEAN(I,J)*(RSINEW-RSI(I
      *             ,J))*(SUM(HSI(1:2,I,J))+SUM(HSI(3:4,I,J))*(MSINEW
-     *             /MSI(I,J))) 
+     *             /MSI(I,J))))
 #ifdef TRACERS_WATER
               DO N=1,NTM
                 TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
