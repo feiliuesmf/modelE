@@ -48,14 +48,16 @@
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 ustar1
-      INTEGER :: J_0,J_1
+      INTEGER :: I_0,I_1, J_0,J_1
 
 
       IF (KOCEAN.eq.1) THEN
 
         CALL GET (grid, J_STRT=J_0,   J_STOP=J_1 )
+        I_0 = GRID%I_STRT
+        I_1 = GRID%I_STOP
         DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
 c          UI2rho(I,J) = rhows*(oi_ustar0)**2  ! default
 C**** with wind stress dependence
           if (rsi(i,j)*focean(i,j).gt.0) then
