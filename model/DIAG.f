@@ -106,7 +106,7 @@ C**** Some local constants
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,sinp,bydxyv,rapvn,rapvs
       USE RAD_COM, only : rqt
-      USE DIAG_COM, only : aj=>aj_loc, aregj_loc, jreg,
+      USE DIAG_COM, only : jreg,
      *     apj=>apj_loc, ajl=>ajl_loc,asjl=>asjl_loc,ail,j50n,j70n,j5nuv
      *     ,j5suv,j5s,j5n,aij=>aij_loc,ij_dtdp,ij_dsev,ij_phi1k,ij_pres
      *     ,ij_puq,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
@@ -259,10 +259,9 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
           JR=JREG(I,J)
           DO IT=1,NTYPE
             SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
-            AJ(J,J_TX1,IT)=AJ(J,J_TX1,IT)+(TX(I,J,1)-TF)*FTYPE(IT,I,J)
+            CALL INC_AJ(I,J,IT,J_TX1,(TX(I,J,1)-TF)*FTYPE(IT,I,J))
           END DO
-          AREGJ_LOC(JR,J,J_TX1)=AREGJ_LOC(JR,J,J_TX1)+(TX(I,J,1)-TF)
-     *         *DXYPJ
+          CALL INC_AREG(I,J,JR,J_TX1,(TX(I,J,1)-TF)*DXYPJ)
           PI(J)=PI(J)+P(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
           PS=P(I,J)+PTOP
@@ -365,15 +364,14 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
      &      rgas/grav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
 #endif
             DO IT=1,NTYPE
-              AJ(J,J_TX,IT)=AJ(J,J_TX,IT)+(TX(I,J,L)-TF)*FTYPE(IT,I,J)
-     *             *DBYSD
-              AJ(J,J_QP,IT)=AJ(J,J_QP,IT)+(Q(I,J,L)+WM(I,J,L))*PIJ
-     *             *DSIG(L)*FTYPE(IT,I,J)
+              CALL INC_AJ(I,J,IT,J_TX,(TX(I,J,L)-TF)*FTYPE(IT,I,J)*
+     *             DBYSD)
+              CALL INC_AJ(I,J,IT,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
+     *             *FTYPE(IT,I,J)) 
             END DO
-            AREGJ_LOC(JR,J,J_QP)=AREGJ_LOC(JR,J,J_QP)+(Q(I,J,L)+WM(I,J,L
-     *           ))*PIJ*DSIG(L)*DXYPJ
-            AREGJ_LOC(JR,J,J_TX)=AREGJ_LOC(JR,J,J_TX)+(TX(I,J,L)-TF)
-     *           *DBYSD*DXYPJ
+            CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
+     *           *DXYPJ) 
+            CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*DBYSD*DXYPJ)
             TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
             PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
             SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
@@ -393,8 +391,8 @@ C**** MEAN TROPOSPHERIC NORTHWARD TEMPERATURE GRADIENT
         DO L=1,LS1-1
         DO I=1,IM
         DO IT=1,NTYPE
-          AJ(J,J_DTDJT,IT)=AJ(J,J_DTDJT,IT)+(TX(I,J+1,L)-TX(I,J-1,L))
-     *         *FTYPE(IT,I,J)*DSIG(L)
+          CALL INC_AJ(I,J,IT,J_DTDJT,(TX(I,J+1,L)-TX(I,J-1,L))
+     *         *FTYPE(IT,I,J)*DSIG(L))
         END DO
         END DO
         END DO
@@ -402,8 +400,8 @@ C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
         DO L=LS1,LSTR
         DO I=1,IM
         DO IT=1,NTYPE
-          AJ(J,J_DTDJS,IT)=AJ(J,J_DTDJS,IT)+(TX(I,J+1,L)-TX(I,J-1,L))
-     *         *FTYPE(IT,I,J)*DSIG(L)
+          CALL INC_AJ(I,J,IT,J_DTDJS,(TX(I,J+1,L)-TX(I,J-1,L))
+     *         *FTYPE(IT,I,J)*DSIG(L))
         END DO
         END DO
         END DO
@@ -418,9 +416,9 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
         JR=JREG(I,J)
         SS=(T(I,J,LS1-1)-T(I,J,1))/(PHI(I,J,LS1-1)-PHI(I,J,1)+teeny)
         DO IT=1,NTYPE
-          AJ(J,J_DTDGTR,IT)=AJ(J,J_DTDGTR,IT)+SS*FTYPE(IT,I,J)
+          CALL INC_AJ(I,J,IT,J_DTDGTR,SS*FTYPE(IT,I,J))
         END DO
-        AREGJ_LOC(JR,J,J_DTDGTR)=AREGJ_LOC(JR,J,J_DTDGTR)+SS*DXYPJ
+        CALL INC_AREG(I,J,JR,J_DTDGTR,SS*DXYPJ)
         AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
       END DO
 C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
@@ -429,9 +427,9 @@ C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
         SS=(T(I,J,LSTR)-T(I,J,LS1-1))/((PHI(I,J,LSTR)-PHI(I,J,LS1-1))
      *       +teeny)
         DO IT=1,NTYPE
-          AJ(J,J_DTSGST,IT)=AJ(J,J_DTSGST,IT)+SS*FTYPE(IT,I,J)
+          CALL INC_AJ(I,J,IT,J_DTSGST,SS*FTYPE(IT,I,J))
         END DO
-        AREGJ_LOC(JR,J,J_DTSGST)=AREGJ_LOC(JR,J,J_DTSGST)+SS*DXYPJ
+        CALL INC_AREG(I,J,JR,J_DTSGST,SS*DXYPJ)
       END DO
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
@@ -500,9 +498,9 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
         ROSSX=DYP(J)/(DXYP(J)*SINP(J))
         ELX=1./SINP(J)
         DO IT=1,NTYPE
-          AJ(J,J_RICTR,IT)=AJ(J,J_RICTR,IT)+RI(J)  *SPTYPE(IT,J)
-          AJ(J,J_ROSTR,IT)=AJ(J,J_ROSTR,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
-          AJ(J,J_LTRO ,IT)=AJ(J,J_LTRO ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+          CALL INC_AJ(I,J,IT,J_RICTR,RI(J)  *SPTYPE(IT,J))
+          CALL INC_AJ(I,J,IT,J_ROSTR,UMAX(J)*SPTYPE(IT,J)*ROSSX)
+          CALL INC_AJ(I,J,IT,J_LTRO ,EL(J)  *SPTYPE(IT,J)*ELX)
         END DO
       END DO
 C**** NUMBERS ACCUMULATED OVER THE LOWER STRATOSPHERE
@@ -547,9 +545,9 @@ C**** the different model tops
         ROSSX=DYP(J)/(DXYP(J)*SINP(J))
         ELX=1./SINP(J)
         DO IT=1,NTYPE
-          AJ(J,J_RICST,IT)=AJ(J,J_RICST,IT)+RI(J)  *SPTYPE(IT,J)
-          AJ(J,J_ROSST,IT)=AJ(J,J_ROSST,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
-          AJ(J,J_LSTR ,IT)=AJ(J,J_LSTR ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+          CALL INC_AJ(I,J,IT,J_RICST,RI(J)  *SPTYPE(IT,J))
+          CALL INC_AJ(I,J,IT,J_ROSST,UMAX(J)*SPTYPE(IT,J)*ROSSX)
+          CALL INC_AJ(I,J,IT,J_LSTR ,EL(J)  *SPTYPE(IT,J)*ELX)
         END DO
       END DO
 C****
@@ -567,8 +565,8 @@ C****
         END DO
         GAMX=(TPI(J,1)-TPI(J,LS1-1))/(PHIPI(J,LS1-1)-PHIPI(J,1))
         DO IT=1,NTYPE
-          AJ(J,J_GAMM,IT)=AJ(J,J_GAMM,IT)+GAMM*SPTYPE(IT,J)
-          AJ(J,J_GAM ,IT)=AJ(J,J_GAM ,IT)+GAMX*SPTYPE(IT,J)
+          CALL INC_AJ(I,J,IT,J_GAMM,GAMM*SPTYPE(IT,J))
+          CALL INC_AJ(I,J,IT,J_GAM ,GAMX*SPTYPE(IT,J))
         END DO
       END DO
 C**** DRY ADIABATIC LAPSE RATE
@@ -587,7 +585,7 @@ C**** DRY ADIABATIC LAPSE RATE
         DT2=TIL(J+1)-TIL(J-1)
         GAMC=GAMD+X*DT2/(TIL(J)+TF)
         DO IT=1,NTYPE
-          AJ(J,J_GAMC,IT)=AJ(J,J_GAMC,IT)+GAMC*SPTYPE(IT,J)
+          CALL INC_AJ(I,J,IT,J_GAMC,GAMC*SPTYPE(IT,J))
         END DO
       END DO
 C****
