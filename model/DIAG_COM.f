@@ -1154,8 +1154,15 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       use diag_com
       implicit none
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
+#ifdef CUBE_GRID  ! this will become the general case
+      CALL SUMXPE(AJ_loc, AJ, increment=.false.)
+      CALL SUMXPE(AREGJ_loc, AREGJ, increment=.false.)
+      AJ_loc(:)=0.
+      AREGJ_loc(:)=0.
+#else ! 2 lines below will disapear
       CALL PACK_DATAj(grid, AJ_loc,     AJ)
       CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
+#endif
       CALL PACK_DATAj(grid, APJ_loc,    APJ)
       CALL PACK_DATAj(grid, AJL_loc,    AJL)
       CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
@@ -1270,13 +1277,13 @@ C**** Should this be here?
       SUBROUTINE SET_J_BUDG
 !@sum set_j_budg definition for grid points map to budget-grid zonal means
 !@auth Gavin Schmidt
-      USE GEOM, only : j_budg, lat_dg
+      USE GEOM, only : j_budg, lat_dg, lat2d_dg,lat2d
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP, only :GRID,GET
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
-      INTEGER :: IER
+      INTEGER :: IER,KK,LL
  
 C**** define atmospheric grid
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1, J_STRT_HALO=J_0H,
@@ -1287,9 +1294,11 @@ C**** define atmospheric grid
       ALLOCATE( J_BUDG(I_0H:I_1H, J_0H:J_1H), STAT = IER) 
 
       DO J=J_0H,J_1H
-        J_BUDG(I_0H:I_1H,J)=J   ! temporary
-C**** this should be valid for all lat/lon grids
-c        J_BUDG(I_0H:I_1H,J)=NINT(1+(lat_dg(J,1)+90)*(JM_BUDG-1)/180.)
+c        J_BUDG(I_0H:I_1H,J)=J   ! temporary
+C**** this should be valid for all grids (lat/lon, cubed sphere,...)
+        DO I=I_0,I_1
+           J_BUDG(I,J)=NINT(1+(lat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
+        END DO
       END DO
 
       RETURN
