@@ -1286,10 +1286,10 @@ C**** define atmospheric grid
 
       ALLOCATE( J_BUDG(I_0H:I_1H, J_0H:J_1H), STAT = IER) 
 
-      DO J=J_0,J_1
-        J_BUDG(I_0:I_1,J)=J   ! temporary
+      DO J=J_0H,J_1H
+        J_BUDG(I_0H:I_1H,J)=J   ! temporary
 C**** this should be valid for all lat/lon grids
-c        J_BUDG(I_0:I_1,J)=NINT(1+(lat_dg(J,1)+90)*(JM_BUDG-1)/180.)
+c        J_BUDG(I_0H:I_1H,J)=NINT(1+(lat_dg(J,1)+90)*(JM_BUDG-1)/180.)
       END DO
 
       RETURN
