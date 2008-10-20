@@ -31,6 +31,8 @@ real*8, dimension(nsoa)    :: apartmass,apartmolar
 !modelE!#ifdef SOA_LUMPED_NOX_DEP
 !modelE!real, dimension(nsoa)    :: apartmass_nox,apartmolar_nox
 !modelE!#endif
+!@var  molec2ug converts molec/cm3 to ug/m3. 1/molec2ug converts ug/m3 to molec/cm3
+real*8, dimension(ntm) :: molec2ug
 
 !
 ! soa semivolatile products in aerosol phase
@@ -201,8 +203,6 @@ use CONSTANT, only: avog
 implicit none
 
 integer   :: i,j
-!@var  molec2ug converts molec/cm3 to ug/m3. 1/molec2ug converts ug/m3 to molec/cm3
-real*8, dimension(ntm) :: molec2ug
 !modelE!real*8    :: apartmolar_tot
 
 !
@@ -656,38 +656,38 @@ DO JL=L,L
 ! Calculate final value of partitioning coefficient
 !
 !modelE!#ifdef SOA_FULL
-  kp(n_isopp1a)=kpart(jl,n_isopp1a)/zcoef(imfisop)*mw(n_isopp1a)/meanmw
-  kp(n_isopp2a)=kpart(jl,n_isopp2a)/zcoef(imfisop)*mw(n_isopp2a)/meanmw
+  kp(n_isopp1a)=kpart(jl,whichsoa(n_isopp1a))/zcoef(imfisop)*mw(n_isopp1a)/meanmw
+  kp(n_isopp2a)=kpart(jl,whichsoa(n_isopp2a))/zcoef(imfisop)*mw(n_isopp2a)/meanmw
 !modelE!#endif
-!modelE!  kp(iisopp1a_hox)=kpart(jl,iisopp1a_hox)/zcoef(imfisop)*mw(iisopp1a_hox)/meanmw
-!modelE!  kp(iisopp2a_hox)=kpart(jl,iisopp2a_hox)/zcoef(imfisop)*mw(iisopp2a_hox)/meanmw
+!modelE!  kp(iisopp1a_hox)=kpart(jl,whichsoa(iisopp1a_hox))/zcoef(imfisop)*mw(iisopp1a_hox)/meanmw
+!modelE!  kp(iisopp2a_hox)=kpart(jl,whichsoa(iisopp2a_hox))/zcoef(imfisop)*mw(iisopp2a_hox)/meanmw
 !modelE!#ifdef SOA_FULL
-!modelE!  kp(iapinp1a_nox)=kpart(jl,iapinp1a_nox)/zcoef(imfter)*mw(iapinp1a_nox)/meanmw
-!modelE!  kp(iapinp2a_nox)=kpart(jl,iapinp2a_nox)/zcoef(imfter)*mw(iapinp2a_nox)/meanmw
+!modelE!  kp(iapinp1a_nox)=kpart(jl,whichsoa(iapinp1a_nox))/zcoef(imfter)*mw(iapinp1a_nox)/meanmw
+!modelE!  kp(iapinp2a_nox)=kpart(jl,whichsoa(iapinp2a_nox))/zcoef(imfter)*mw(iapinp2a_nox)/meanmw
 !modelE!#endif
-!modelE!  kp(iapinp1a_hox)=kpart(jl,iapinp1a_hox)/zcoef(imfter)*mw(iapinp1a_hox)/meanmw
-!modelE!  kp(iapinp2a_hox)=kpart(jl,iapinp2a_hox)/zcoef(imfter)*mw(iapinp2a_hox)/meanmw
+!modelE!  kp(iapinp1a_hox)=kpart(jl,whichsoa(iapinp1a_hox))/zcoef(imfter)*mw(iapinp1a_hox)/meanmw
+!modelE!  kp(iapinp2a_hox)=kpart(jl,whichsoa(iapinp2a_hox))/zcoef(imfter)*mw(iapinp2a_hox)/meanmw
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
-!modelE!  kp(ibpinp1a_nox)=kpart(jl,ibpinp1a_nox)/zcoef(imfter)*mw(ibpinp1a_nox)/meanmw
-!modelE!  kp(ibpinp2a_nox)=kpart(jl,ibpinp2a_nox)/zcoef(imfter)*mw(ibpinp2a_nox)/meanmw
+!modelE!  kp(ibpinp1a_nox)=kpart(jl,whichsoa(ibpinp1a_nox))/zcoef(imfter)*mw(ibpinp1a_nox)/meanmw
+!modelE!  kp(ibpinp2a_nox)=kpart(jl,whichsoa(ibpinp2a_nox))/zcoef(imfter)*mw(ibpinp2a_nox)/meanmw
 !modelE!#  endif
-!modelE!  kp(ibpinp1a_hox)=kpart(jl,ibpinp1a_hox)/zcoef(imfter)*mw(ibpinp1a_hox)/meanmw
-!modelE!  kp(ibpinp2a_hox)=kpart(jl,ibpinp2a_hox)/zcoef(imfter)*mw(ibpinp2a_hox)/meanmw
+!modelE!  kp(ibpinp1a_hox)=kpart(jl,whichsoa(ibpinp1a_hox))/zcoef(imfter)*mw(ibpinp1a_hox)/meanmw
+!modelE!  kp(ibpinp2a_hox)=kpart(jl,whichsoa(ibpinp2a_hox))/zcoef(imfter)*mw(ibpinp2a_hox)/meanmw
 !modelE!#endif
 !modelE!#ifdef SOA_FULL
-!modelE!  kp(itolp1a_nox)=kpart(jl,itolp1a_nox)/zcoef(imfaro)*mw(itolp1a_nox)/meanmw
-!modelE!  kp(itolp2a_nox)=kpart(jl,itolp2a_nox)/zcoef(imfaro)*mw(itolp2a_nox)/meanmw
+!modelE!  kp(itolp1a_nox)=kpart(jl,whichsoa(itolp1a_nox))/zcoef(imfaro)*mw(itolp1a_nox)/meanmw
+!modelE!  kp(itolp2a_nox)=kpart(jl,whichsoa(itolp2a_nox))/zcoef(imfaro)*mw(itolp2a_nox)/meanmw
 !modelE!#endif
-!modelE!  kp(itolp1a_hox)=kpart(jl,itolp1a_hox)/zcoef(imfaro)*mw(itolp1a_hox)/meanmw
-!modelE!  kp(itolp2a_hox)=kpart(jl,itolp2a_hox)/zcoef(imfaro)*mw(itolp2a_hox)/meanmw
+!modelE!  kp(itolp1a_hox)=kpart(jl,whichsoa(itolp1a_hox))/zcoef(imfaro)*mw(itolp1a_hox)/meanmw
+!modelE!  kp(itolp2a_hox)=kpart(jl,whichsoa(itolp2a_hox))/zcoef(imfaro)*mw(itolp2a_hox)/meanmw
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
-!modelE!  kp(ixylp1a_nox)=kpart(jl,ixylp1a_nox)/zcoef(imfaro)*mw(ixylp1a_nox)/meanmw
-!modelE!  kp(ixylp2a_nox)=kpart(jl,ixylp2a_nox)/zcoef(imfaro)*mw(ixylp2a_nox)/meanmw
+!modelE!  kp(ixylp1a_nox)=kpart(jl,whichsoa(ixylp1a_nox))/zcoef(imfaro)*mw(ixylp1a_nox)/meanmw
+!modelE!  kp(ixylp2a_nox)=kpart(jl,whichsoa(ixylp2a_nox))/zcoef(imfaro)*mw(ixylp2a_nox)/meanmw
 !modelE!#  endif
-!modelE!  kp(ixylp1a_hox)=kpart(jl,ixylp1a_hox)/zcoef(imfaro)*mw(ixylp1a_hox)/meanmw
-!modelE!  kp(ixylp2a_hox)=kpart(jl,ixylp2a_hox)/zcoef(imfaro)*mw(ixylp2a_hox)/meanmw
+!modelE!  kp(ixylp1a_hox)=kpart(jl,whichsoa(ixylp1a_hox))/zcoef(imfaro)*mw(ixylp1a_hox)/meanmw
+!modelE!  kp(ixylp2a_hox)=kpart(jl,whichsoa(ixylp2a_hox))/zcoef(imfaro)*mw(ixylp2a_hox)/meanmw
 !modelE!#endif
 !
 ! Add previous gas phase (soagas - after destruction), previous particulate phase and soachem in variable soamass (ug m-3)

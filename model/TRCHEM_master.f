@@ -2244,10 +2244,10 @@ c         Reaction 2 on sulfate and PSCs:
       end do                  !  >>> END ALTITUDE LOOP <<<
 #ifdef TRACERS_AEROSOLS_SOA
       do L=1,LM
-        kpart(L,n_isopp1a)=
+        kpart(L,whichsoa(n_isopp1a))=
      &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp1a)),ta(L),
      &              kpart_temp_ref(whichsoa(n_isopp1a)))
-        kpart(L,n_isopp2a)=
+        kpart(L,whichsoa(n_isopp2a))=
      &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp2a)),ta(L),
      &              kpart_temp_ref(whichsoa(n_isopp2a)))
       enddo
