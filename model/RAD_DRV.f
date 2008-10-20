@@ -1147,9 +1147,6 @@ C     OUTPUT DATA
 #ifndef NO_HDIURN
      *     hdiurn,
 #endif
-#ifdef CUBE_GRID
-     *     zonalmean,
-#endif
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
@@ -1201,11 +1198,6 @@ c    *     ,SNFST0,TNFST0
 #ifdef BC_ALB
      *     ,ijts_alb
 #endif
-#endif
-#ifdef CUBE_GRID
-      use regrid_com, only: ic,jc,ntiles,az1=>az11,
-     *     az2=>az21,az3=>az31,az4=>az41,
-     *     az5=>az51,maxkey,ncells
 #endif
       IMPLICIT NONE
 C
@@ -1266,11 +1258,6 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 QSAT
 #ifdef BC_ALB
       REAL*8 dALBsn1
-#endif
-#ifdef CUBE_GRID
-      REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: Xval
-
 #endif
       LOGICAL NO_CLOUD_ABOVE, set_clayilli,set_claykaol,set_claysmec,
      &     set_claycalc,set_clayquar
@@ -2311,12 +2298,12 @@ C**** Save clear sky/tropopause diagnostics here
       AIJ(I,J,IJ_TRNTP)=AIJ(I,J,IJ_TRNTP)+TRNFLB(LTROPO(I,J))
 
       DO IT=1,NTYPE
-        call inc_aj(i,j,it,J_CLRTOA,OPNSKY*(SRNFLB(LM+LM_REQ+1)
-     *       *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J))
-        call inc_aj(i,j,it,J_CLRTRP,OPNSKY*(SRNFLB(LTROPO(I,J))
-     *       *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J))
-        call inc_aj(i,j,it,J_TOTTRP,(SRNFLB(LTROPO(I,J))
-     *       *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J))
+         call inc_aj(i,j,it,J_CLRTOA,OPNSKY*(SRNFLB(LM+LM_REQ+1)
+     *        *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J))
+         call inc_aj(i,j,it,J_CLRTRP,OPNSKY*(SRNFLB(LTROPO(I,J))
+     *        *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J))
+         call inc_aj(i,j,it,J_TOTTRP,(SRNFLB(LTROPO(I,J))
+     *        *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J))
       END DO
       call inc_areg(i,j,jr,J_CLRTOA,OPNSKY*(SRNFLB(LM+LM_REQ+1)
      *     *CSZ2-TRNFLB(LM+LM_REQ+1))*AXYP(I,J))
@@ -2331,35 +2318,35 @@ C**** Save cloud top diagnostics here
 C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
       tauup=0.
       DO L=LM,1,-1
-        taucl=tauwc(l)+tauic(l)
-        taudn=tauup+taucl
-        if (taudn.gt.1.) then
-          aij(i,j,ij_cldcv1)=aij(i,j,ij_cldcv1)+1.
-          wtlin=(1.-tauup)/taucl
-          aij(i,j,ij_cldt1t)=aij(i,j,ij_cldt1t)+( tlb(l+1)-tf +
-     +          (tlb(l)-tlb(l+1))*wtlin )
-          aij(i,j,ij_cldt1p)=aij(i,j,ij_cldt1p)+( plb(l+1)+
-     +          (plb(l)-plb(l+1))*wtlin )
-          go to 590
-        end if
+         taucl=tauwc(l)+tauic(l)
+         taudn=tauup+taucl
+         if (taudn.gt.1.) then
+            aij(i,j,ij_cldcv1)=aij(i,j,ij_cldcv1)+1.
+            wtlin=(1.-tauup)/taucl
+            aij(i,j,ij_cldt1t)=aij(i,j,ij_cldt1t)+( tlb(l+1)-tf +
+     +           (tlb(l)-tlb(l+1))*wtlin )
+            aij(i,j,ij_cldt1p)=aij(i,j,ij_cldt1p)+( plb(l+1)+
+     +           (plb(l)-plb(l+1))*wtlin )
+            go to 590
+         end if
       end do
-  590 continue
-
+ 590  continue
+      
       END DO
-C****
+C**** 
 C**** END OF MAIN LOOP FOR I INDEX
-C****
-  600 CONTINUE
-C****
+C**** 
+ 600  CONTINUE
+C**** 
 C**** END OF MAIN LOOP FOR J INDEX
-C****
+C**** 
 !$OMP  END DO
 !$OMP  END PARALLEL
-
+      
       CALL GLOBALSUM(grid, DIURN_part, DIURNSUM, ALL=.true.)
-
+      
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
-
+      
       DO INCH=1,NRAD
          IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
          IH=IHM
@@ -2371,116 +2358,63 @@ C****
          HDIURN(IHM,idx,:) = HDIURN(IHM,idx,:) + DIURNSUM
 #endif
       END DO
-
+      
 
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
 C**** Now only warning messages are printed for temp errors
-c      IF(ICKERR.GT.0)
+c     IF(ICKERR.GT.0)
 c     &     call stop_model('In Radia: Temperature out of range',11)
-c      IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
+c     IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
       IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime
-     &     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
-     &     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
-     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
-     &     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
-     &     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
-     &     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
-C****   output data: really needed only if kradia=2
-     &     ,srhra,trhra                                ! 2(LM+LM_REQ+1)
+     &     ,T,RQT,TsAvg         ! LM+LM_REQ+1+
+     &     ,QR,P,CLDinfo,rsi,msi ! LM+1+3*LM+1+1+
+     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm) ! (4+)
+     &     ,wsoil,wsavg,snowi,snowli_com,snowe_com ! 1+1+1+1+1+
+     &     ,snoage,fmp_com,flag_dsws,ltropo ! 3+1+.5+.5+
+     &     ,fr_snow_rad_ij,mwl,flake ! 2+1+1
+C**** output data: really needed only if kradia=2
+     &     ,srhra,trhra         ! 2(LM+LM_REQ+1)
      &     ,itime
-C****
+C**** 
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
-C****
+C**** 
       DIURN_partb=0.
-
-#ifdef CUBE_GRID
-
-C**** ZONAL MEANS FOR CUBED SPHERE
-
-c     Diurn_partb
-
-      Xval(:,:)= 1.d0-SNFS(3,:,:)/S0
-
-      call zonalmean_cs_unrolled(Xval,JM,
-     *     az1,az2,az3,az4,az5,
-     *     DIURN_partb(1,:,KR),maxkey)
-
-      Xval(:,:)= 1.d0-ALB(:,:,1)
-
-      call zonalmean_cs_unrolled(Xval,JM,
-     *     az1,az2,az3,az4,az5,
-     *     DIURN_partb(2,:,KR),maxkey)
-
-      Xval(:,:)= (SNFS(3,:,:)-SRHR(0,:,:))*CSZ2
-
-      call zonalmean_cs_unrolled(Xval,JM,
-     *     az1,az2,az3,az4,az5,
-     *     DIURN_partb(3,:,KR),maxkey)
-
-c     end Diurn_partb
-
-      do IT=1,NTYPE
-      Xval(:,:)=S0*CSZ2*FTYPE(IT,:,:)
-
-      call zonalmean_cs_unrolled(Xval,JM,
-     *     az1,az2,az3,az4,az5,
-     *     zonalmean(:,J_SRINCP0,IT),maxkey)
-
-      Xval(:,:)=SNFS(3,:,:)*CSZ2*FTYPE(IT,:,:)
-
-      call zonalmean_cs_unrolled(Xval,JM,
-     *     az1,az2,az3,az4,az5,
-     *     zonalmean(:,J_SRNFP0,IT),maxkey)
-
-
-      
-      Xval(:,:)=(SRHR(0,:,:)*CSZ2/
-     *     (ALB(:,:,1)+1.D-20) )*FTYPE(IT,:,:)
-
-      call zonalmean_cs_unrolled(Xval,JM,
-     *     az1,az2,az3,az4,az5,
-     *     zonalmean(:,J_SRINCG,IT),maxkey)
-
-      enddo
-c     finish J_BRTEMP, J_TRINCG, J_HSURF, J_TRNFP0...
-
-#else
-         DO 780 J=J_0,J_1
+      DO 780 J=J_0,J_1
          DO L=1,LM
-           DO I=I_0,IMAXJ(J)
-             AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L,I,J)*COSZ2(I,J)
-             AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L,I,J)
-           END DO
+            DO I=I_0,IMAXJ(J)
+               AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L,I,J)*COSZ2(I,J)
+               AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L,I,J)
+            END DO
          END DO
          DO 770 I=I_0,IMAXJ(J)
-         DXYPIJ=AXYP(I,J)
-         CSZ2=COSZ2(I,J)
-         JR=JREG(I,J)
-         DO LR=1,LM_REQ
-           ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*CSZ2
-           ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(LR,I,J)
-         END DO
-         DO KR=1,NDIUPT
-           IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+            DXYPIJ=AXYP(I,J)
+            CSZ2=COSZ2(I,J)
+            JR=JREG(I,J)
+            DO LR=1,LM_REQ
+               ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*CSZ2
+               ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(LR,I,J)
+            END DO
+            DO KR=1,NDIUPT
+               IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
 C**** Warning: this replication may give inaccurate results for hours
-C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
-c***             DO INCH=1,NRAD
-c***               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-c***               IH=IHM
-c***               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-               DIURN_partb(1,J,KR)=DIURN_partb(1,J,KR)+
-     +              (1.-SNFS(3,I,J)/S0)
-               DIURN_partb(2,J,KR)=DIURN_partb(2,J,KR)+
-     +              (1.-ALB(I,J,1))
-               DIURN_partb(3,J,KR)=DIURN_partb(3,J,KR)+
-     +              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
-           END IF
-         END DO
-
-         DO IT=1,NTYPE
+C**** 1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
+c***  DO INCH=1,NRAD
+c***  IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+c***  IH=IHM
+c***  IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
+                  DIURN_partb(1,J,KR)=DIURN_partb(1,J,KR)+
+     +                 (1.-SNFS(3,I,J)/S0)
+                  DIURN_partb(2,J,KR)=DIURN_partb(2,J,KR)+
+     +                 (1.-ALB(I,J,1))
+                  DIURN_partb(3,J,KR)=DIURN_partb(3,J,KR)+
+     +                 (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
+               END IF
+            END DO
+            
+      DO IT=1,NTYPE
          call inc_aj(I,J,IT,J_SRINCP0,(S0*CSZ2)*FTYPE(IT,I,J))
          call inc_aj(I,J,IT,J_SRNFP0 ,(SNFS(3,I,J)*CSZ2)*FTYPE(IT,I,J))
          call inc_aj(I,J,IT,J_SRINCG ,(SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D
@@ -2494,7 +2428,7 @@ c***               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
          call inc_aj(I,J,IT,J_SRNFP1 ,SNFS(2,I,J)*CSZ2*FTYPE(IT,I,J))
          call inc_aj(I,J,IT,J_HATM   ,-(TNFS(2,I,J)-TNFS(1,I,J))
      *        *FTYPE(IT,I,J))
-         END DO
+      END DO
 C**** Note: confusing because the types for radiation are a subset
          call inc_aj(I,J,ITOCEAN,J_SRNFG,(FSF(1,I,J)*CSZ2)*FOCEAN(I,J)
      *        *(1.-RSI(I,J))) 
@@ -2721,7 +2655,6 @@ c move this diag outside rad time step for improved averaging
 c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
-#endif
 
       CALL GLOBALSUM(grid, DIURN_partb, DIURNSUMb, ALL=.true.)
 

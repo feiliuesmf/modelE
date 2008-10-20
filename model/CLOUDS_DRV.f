@@ -28,9 +28,6 @@
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
       USE DIAG_COM, only : 
-#ifdef CUBE_GRID
-     *     zonalmean,area_latband,
-#endif
      *     aij=>aij_loc,
      *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
@@ -112,10 +109,6 @@
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 
-#ifdef CUBE_GRID
-      use regrid_com, only: ic,jc,ntiles,az1=>az12,
-     *     az2=>az22,az3=>az32,maxkey,ncells
-#endif
       IMPLICIT NONE
       integer rc
 
@@ -532,16 +525,11 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
           AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
         END DO
-#ifdef CUBE_GRID
-        val=PRCPMC*FTYPE(IT,I,J)
-        call zonalmean_cs_loop(val,I,J,JC,JM,
-     *       az1,az2,az3,zonalmean(:,J_PRCPMC,IT),area_latband(:),
-     *       maxkey)
-#else
+
         DO IT=1,NTYPE
           CALL INC_AJ(I,J,IT,J_PRCPMC,PRCPMC*FTYPE(IT,I,J))
         END DO
-#endif
+
         CALL INC_AREG(I,J,JR,J_PRCPMC,PRCPMC*DXYP(J))
 
         DO KR=1,NDIUPT
@@ -551,22 +539,12 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
             tmp(IDD_MCP) =+PRCPMC
             tmp(IDD_DMC) =+CLDDEPIJ
             tmp(IDD_SMC) =+CLDSLWIJ
-#ifdef CUBE_GRID
-             DO iidx1=1,n_idx1
-             val=tmp(idx1(iidx1))
-             call zonalmean_cs_loop(val,I,J,JC,JM,
-     *       az1,az2,az3, hdiurn_part(:,idx1(iidx1),KR),
-     *        area_latband(:),maxkey)
-             call zonalmean_cs_loop(val,I,J,JC,JM,
-     *       az1,az2,az3, adiurn_part(:,idx1(iidx1),KR),
-     *        area_latband(:),maxkey)
-             END DO
-#else
+
             hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
             adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
      &           tmp(idx1(:))
-#endif
+
           END IF
         END DO
 #ifdef CLD_AER_CDNC
@@ -759,16 +737,11 @@ C**** Error reports
 
 C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
-#ifdef CUBE_GRID
-        val=PRCPSS*FTYPE(IT,I,J)
-        call zonalmean_cs_loop(val,I,J,JC,JM,
-     *       az1,az2,az3,zonalmean(:,J_PRCPSS,IT),area_latband(:),
-     *       maxkey)
-#else
+
          DO IT=1,NTYPE
            CALL INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
          END DO
-#endif
+
          CALL INC_AREG(I,J,JR,J_PRCPSS,PRCPSS*DXYP(J))
 
          DO KR=1,NDIUPT
@@ -776,22 +749,12 @@ C**** Accumulate diagnostics of LSCOND
              tmp(IDD_PR)  =+PRCPSS
              tmp(IDD_ECND)=+HCNDSS
              tmp(IDD_SSP) =+PRCPSS
-#ifdef CUBE_GRID
-             DO iidx2=1,n_idx2
-             val=tmp(idx2(iidx2))
-             call zonalean_cs_loop(val,I,J,JC,JM,
-     *       az1,az2,az3, hdiurn_part(:,idx2(iidx2),KR),
-     *        area_latband(:),maxkey)
-             call zonalean_cs_loop(val,I,J,JC,JM,
-     *       az1,az2,az3, adiurn_part(:,idx2(iidx2),KR),
-     *        area_latband(:),maxkey)
-             END DO
-#else
+
              hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
              adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
      &            tmp(idx2(:))
-#endif
+
            END IF
          END DO
 
@@ -816,16 +779,11 @@ cECON  if (abs(E-E1-ep).gt.0.01) print*,"energy err",i,j,E-E1-ep,
 cECON *     E,E1,ep,prcpss,lhp(1)
 
 C**** PRECIPITATION DIAGNOSTICS
-#ifdef CUBE_GRID
-        val=ENRGP*FTYPE(IT,I,J)
-        call zonalmean_cs_loop(val,I,J,JC,JM,
-     *       az1,az2,az3,zonalmean(:,J_EPRCP,IT),area_latband(:),
-     *       maxkey)
-#else
+
         DO IT=1,NTYPE
           CALL INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
         END DO
-#endif
+
         CALL INC_AREG(I,J,JR,J_EPRCP,ENRGP*DXYP(J))
 
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP

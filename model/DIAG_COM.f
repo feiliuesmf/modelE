@@ -35,11 +35,6 @@ c      REAL*8, DIMENSION(JM_BUDG) :: DXYP_BUDG
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
 
-#ifdef CUBE_GRID
-      real*8, dimension(jm,KAJ, NTYPE), public :: zonalmean
-      real*8, dimension(jm), public :: area_latband
-#endif
-
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
 !@var place so its size could be allocated dynamically and still have
 !@var it preserved from call to call of DIAG5A
