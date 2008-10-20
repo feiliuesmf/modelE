@@ -438,8 +438,9 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       USE PARAM
       IMPLICIT NONE
-      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1
+      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      INTEGER :: JMIN_FILL,JMAX_FILL
 
 c***      Type (ESMF_HaloDirection) :: direction
       Integer :: direction ! ESMF_HaloDirection not yet implemented
@@ -453,7 +454,9 @@ c***      Type (ESMF_HaloDirection) :: direction
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
-
+!@var iwrap true if I direction is periodic and has no halo
+      logical :: iwrap
+      real*8 :: horzdist_2pts ! external function for now
 
       CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
@@ -462,6 +465,9 @@ c***      Type (ESMF_HaloDirection) :: direction
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      iwrap = I_0H == I_0
 
 C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
@@ -670,92 +676,97 @@ C****
 C**** From each box calculate the downstream river box
 C****
       ! odd bounds to fill IFLOW and JFLOW in halo
+      if(have_south_pole) then
+        jmin_fill=2
+      else
+        jmin_fill=J_0H
+      endif
+      if(have_north_pole) then
+        jmax_fill=JM-1
+      else
+        jmax_fill=J_1H
+      endif
 #ifdef SCM
         DO J=J_0H,J_1H
 #else
-        DO J=MAX(2,J_0H), MIN(JM-1,J_1H)
+        DO J=JMIN_FILL,JMAX_FILL
 #endif
-        DO I=1,IM
+        DO I=I_0H,I_1H
+c should put in a check here whether we are at a nonexistent SW/NW/SE/NE
+c halo corner of a cubed sphere face - see later whether necessary here.
           SELECT CASE (KDIREC(I,J))
           CASE (0)
             IFLOW(I,J) = I
             JFLOW(I,J) = J
-            DHORZ(I,J) = 0.5*SQRT(DXP(J)*DXP(J)+DYP(J)*DYP(J))
           CASE (1)
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J+1
-            DHORZ(I,J) = SQRT(DXV(J+1)*DXV(J+1)+DYV(J+1)*DYV(J+1))
-                                ! SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
-            IF(I.eq.IM)  IFLOW(I,J) = 1
+            IF(I.eq.IM .and. iwrap)  IFLOW(I,J) = 1
           CASE (2)
             IFLOW(I,J) = I
             JFLOW(I,J) = J+1
-            DHORZ(I,J) = DYV(J+1)   ! DYV(J)
           CASE (3)
             IFLOW(I,J) = I-1
             JFLOW(I,J) = J+1
-            DHORZ(I,J) = SQRT(DXV(J+1)*DXV(J+1)+DYV(J+1)*DYV(J+1))
-                                ! SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
-            IF(I.eq.1)  IFLOW(I,J) = IM
+            IF(I.eq.1 .and. iwrap)  IFLOW(I,J) = IM
           CASE (4)
             IFLOW(I,J) = I-1
             JFLOW(I,J) = J
-            DHORZ(I,J) = DXP(J)
-            IF(I.eq.1)  IFLOW(I,J) = IM
+            IF(I.eq.1 .and. iwrap)  IFLOW(I,J) = IM
           CASE (5)
             IFLOW(I,J) = I-1
             JFLOW(I,J) = J-1
-            DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
-                            ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
-            IF(I.eq.1)  IFLOW(I,J) = IM
+            IF(I.eq.1 .and. iwrap)  IFLOW(I,J) = IM
           CASE (6)
             IFLOW(I,J) = I
             JFLOW(I,J) = J-1
-            DHORZ(I,J) = DYV(J)    ! DYV(J-1)
           CASE (7)
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J-1
-            DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
-                            ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
-            IF(I.eq.IM)  IFLOW(I,J) = 1
+            IF(I.eq.IM .and. iwrap)  IFLOW(I,J) = 1
           CASE (8)
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J
-            DHORZ(I,J) = DXP(J)
-            IF(I.eq.IM)  IFLOW(I,J) = 1
+            IF(I.eq.IM .and. iwrap)  IFLOW(I,J) = 1
           END SELECT
+
+          if(jflow(i,j).ge.j_0h .and. jflow(i,j).le.j_1h .and.
+     &       iflow(i,j).ge.i_0h .and. iflow(i,j).le.i_1h) then
+            DHORZ(I,J) = horzdist_2pts(i,j,iflow(i,j),jflow(i,j))
+          endif
+
 C****
           SELECT CASE (KD911(I,J))   ! emergency directions
           CASE (1)
             IFL911(I,J) = I+1
             JFL911(I,J) = J+1
-            IF(I.eq.IM)  IFL911(I,J) = 1
+            IF(I.eq.IM .and. iwrap)  IFL911(I,J) = 1
           CASE (2)
             IFL911(I,J) = I
             JFL911(I,J) = J+1
           CASE (3)
             IFL911(I,J) = I-1
             JFL911(I,J) = J+1
-            IF(I.eq.1)  IFL911(I,J) = IM
+            IF(I.eq.1 .and. iwrap)  IFL911(I,J) = IM
           CASE (4)
             IFL911(I,J) = I-1
             JFL911(I,J) = J
-            IF(I.eq.1)  IFL911(I,J) = IM
+            IF(I.eq.1 .and. iwrap)  IFL911(I,J) = IM
           CASE (5)
             IFL911(I,J) = I-1
             JFL911(I,J) = J-1
-            IF(I.eq.1)  IFL911(I,J) = IM
+            IF(I.eq.1 .and. iwrap)  IFL911(I,J) = IM
           CASE (6)
             IFL911(I,J) = I
             JFL911(I,J) = J-1
           CASE (7)
             IFL911(I,J) = I+1
             JFL911(I,J) = J-1
-            IF(I.eq.IM)  IFL911(I,J) = 1
+            IF(I.eq.IM .and. iwrap)  IFL911(I,J) = 1
           CASE (8)
             IFL911(I,J) = I+1
             JFL911(I,J) = J
-            IF(I.eq.IM)  IFL911(I,J) = 1
+            IF(I.eq.IM .and. iwrap)  IFL911(I,J) = 1
           END SELECT
         END DO
       END DO
@@ -826,6 +837,42 @@ C****
  911  FORMAT (72A1)
       END SUBROUTINE init_LAKES
 
+      function horzdist_2pts(i1,j1,i2,j2)
+      use constant, only : radius
+      use geom, only : dxp,dyv,dyp,dxv,lon2d,sinlat2d,coslat2d,axyp
+      implicit none
+      real*8 :: horzdist_2pts
+      integer :: i1,j1,i2,j2
+#ifdef CUBED_SPHERE
+      real*8 :: x1,y1,z1, x2,y2,z2
+      if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
+        horzdist_2pts = SQRT(AXYP(I1,J1))
+      else                      ! use great circle distance
+c MAKE SURE SINLAT,COSLAT ARRAYS ARE HALOED
+        x1 = coslat2d(i1,j1)*cos(lon2d(i1,j1))
+        y1 = coslat2d(i1,j1)*sin(lon2d(i1,j1))
+        z1 = sinlat2d(i1,j1)
+        x2 = coslat2d(i2,j2)*cos(lon2d(i2,j2))
+        y2 = coslat2d(i2,j2)*sin(lon2d(i2,j2))
+        z2 = sinlat2d(i2,j2)
+        horzdist_2pts = radius*acos(x1*x2+y1*y2+z1*z2)
+      endif
+#else
+c perhaps replace these calculations with great circle distances later
+      integer :: jmax
+      jmax = max(j1,j2)
+      if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
+        horzdist_2pts = 0.5*SQRT(DXP(J1)*DXP(J1)+DYP(J1)*DYP(J1))
+      elseif(i1.eq.i2) then ! north-south
+        horzdist_2pts = dyv(jmax)
+      elseif(j1.eq.j2) then ! east-west
+        horzdist_2pts = dxp(j1)
+      else  ! diagonal
+        horzdist_2pts = sqrt(dxv(jmax)*dxv(jmax) + dyv(jmax)*dyv(jmax))
+      endif
+#endif
+      end function horzdist_2pts
+
       SUBROUTINE RIVERF
 !@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gary Russell/Gavin Schmidt
@@ -853,7 +900,9 @@ C****
       USE SEAICE_COM, only : rsi
       IMPLICIT NONE
 
-      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1
+      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
+      logical :: have_pole,have_south_pole,have_north_pole
+      INTEGER :: ILOOP_MIN,ILOOP_MAX,JLOOP_MIN,JLOOP_MAX
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE,KD
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
@@ -881,8 +930,13 @@ C****
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP =J_0S, J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      have_south_pole=grid%have_south_pole
+      have_north_pole=grid%have_north_pole
+      have_pole=have_south_pole .or. have_north_pole
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
       FLOW = 0. ; EFLOW = 0.
       FLOWO = 0. ; EFLOWO = 0.
@@ -923,8 +977,32 @@ C**** Loop now includes polar boxes
 ! If downstream box is outside the interior, cycle - this is dealt with on
 ! a separate PE
 
-      DO JU=MAX(1,J_0H),MIN(JM,J_1H)
-        DO IU=I_0,IMAXJ(JU)
+      if(have_south_pole) then
+        jloop_min=1
+      else
+        jloop_min=j_0h
+      endif
+      if(have_north_pole) then
+        jloop_max=jm
+      else
+        jloop_max=j_1h
+      endif
+      DO JU=JLOOP_MIN,JLOOP_MAX
+        if(i_0.eq.i_0h) then ! no I halo - latlon grid
+          iloop_min=1
+          iloop_max=IMAXJ(JU)
+        else
+          iloop_min=i_0h
+          iloop_max=i_1h
+          if(j.lt.j_0 .or. j.gt.j_1) then
+c avoid nonexistent SW/NW/SE/NE halo corner of a cubed sphere face.
+c instead, mark nonexistent cells with a code in the KDIREC array?
+            iloop_min=max(iloop_min,1)
+            iloop_max=min(iloop_max,im)
+          else
+          endif
+        endif
+        DO IU=ILOOP_MIN,ILOOP_MAX
 C**** determine whether we have an emergency:
 C**** i.e. no outlet, max extent, more than 100m above original height 
           IF (KDIREC(IU,JU).eq.0 .and. FLAKE(IU,JU).gt.0 .and.
@@ -950,6 +1028,7 @@ C****
 
 ! only calculate for downstream interior boxes.
             IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE
+            IF (ID.gt.I_1H .or. ID.lt.I_0H ) CYCLE
 
             rvrfl=.false.
 C**** Check for special case:
@@ -1009,13 +1088,14 @@ c              END IF
 #endif
 
 C**** calculate adjustments for poles
-              IF (JU.eq.1 .or. JU.eq.JM) THEN
-                FLFAC=IM        ! pole exception upstream
-              ELSEIF (JD.eq.1 .or. JD.eq.JM) THEN
-                FLFAC=1d0/real(IM) ! pole exception downstream
-              ELSE
-                FLFAC=1.        ! default
-              END IF
+              FLFAC=1.          ! default
+              if(have_pole) then
+                IF (JU.eq.1 .or. JU.eq.JM) THEN
+                  FLFAC=IM      ! pole exception upstream
+                ELSEIF (JD.eq.1 .or. JD.eq.JM) THEN
+                  FLFAC=1d0/real(IM) ! pole exception downstream
+                END IF
+              endif
 
               IF(FOCEAN(ID,JD).le.0.) THEN
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
