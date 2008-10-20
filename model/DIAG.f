@@ -3240,7 +3240,7 @@ C**** get pressure level
           end if
 
 C**** diagnostics on model levels
-        case ("U","V","W","C","O","B","D","N","t","q","z","r") 
+        case ("U","V","W","C","O","B","D","N","t","q","z","r","c","n")
              ! velocity/clouds/tracers, temp,spec.hum.,geo.ht
           if (namedd(k)(2:4) .eq. "ALL") then
             kunit=kunit+1
