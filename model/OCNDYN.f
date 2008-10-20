@@ -4478,11 +4478,11 @@ C****
       USE MODEL_COM, only : IVSP,IVNP, FOCEAN
       Use GEOM,      only : IMAXJ 
      *        , COSU,SINU, COSI=>COSIP,SINI=>SINIP
-!     *        , DXYPO=>DXYP
+     *        , DXYPO=>aDXYPO
 
-      USE OCEAN, only : dxypo 
+c      USE OCEAN, only : dxypo 
 
-      USE AFLUXES, only : aMO, aUO1,aVO1, aG0M,aS0M
+      USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
      *     , aOGEOZ, aOGEOZ_SV
 #ifdef TRACERS_OCEAN
      *     , aTRMO
@@ -4524,17 +4524,13 @@ C****
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0.) THEN
-            GO = aG0M(I,J,1)/(aMO(I,J,1)*DXYPO(J))
-            SO = aS0M(I,J,1)/(aMO(I,J,1)*DXYPO(J))
-            TO = TEMGS(GO,SO)
+            TO = TEMGS(aG0(I,J,1),aS0(I,J,1))
             GTEMP(1,1,I,J) = TO
             GTEMPR(1,I,J)  = TO+TF
-            SSS(I,J) = 1d3*SO
-            MLHC(I,J) = aMO(I,J,1)*SHCGS(GO,SO)
+            SSS(I,J) = 1d3*aS0(I,J,1)
+            MLHC(I,J) = aMO(I,J,1)*SHCGS(aG0(I,J,1),aS0(I,J,1))
 !            IF (LMM(I,J).gt.1) THEN
-              GO2 = aG0M(I,J,2)/(aMO(I,J,2)*DXYPO(J))
-              SO2 = aS0M(I,J,2)/(aMO(I,J,2)*DXYPO(J))
-              TO = TEMGS(GO2,SO2)
+              TO = TEMGS(aG0(I,J,2),aS0(I,J,2))
 !            END IF
             GTEMP(2,1,I,J)= TO
    ! atmospheric grid Ocean height
@@ -4545,7 +4541,7 @@ C****
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
             GTRACER(:,1,I,J)=aTRMO(I,J,1,:)/(aMO(I,J,1)*DXYPO(J)-
-     *           aS0M(I,J,1))
+     *           aS0(I,J,1))
 #else
             GTRACER(:,1,I,J)=trw0(:)
 #endif
@@ -4957,40 +4953,164 @@ C**** Check
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : im,jm
-      USE OCEANRES,   only : imo,jmo,lmo
+      USE RESOLUTION, only : IMA=>IM, JMA=>JM 
+      USE OCEANRES,   only : IMO, JMO, LMO
 
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      USE TRACER_COM, only: NTM
+#endif
+
+      USE MODEL_COM, ONLY : aFOCEAN=>FOCEAN
       USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
-     *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob
+     *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob, oFOCEAN=>FOCEAN
 #ifdef TRACERS_OCEAN
      *     , TRMO_glob
 #endif
 
-      USE AFLUXES, only : aMO_glob, aUO1_glob,aVO1_glob, aG0M_glob
-     *     , aS0M_glob, aOGEOZ_glob, aOGEOZ_SV_glob
+      USE AFLUXES, only : aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
+     *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
      *     , aTRMO_glob
 #endif
-      integer l 
-!
-!  NOTE: It is just a coping the arrays on ocean grid 
-!   to the arrays on the atmospheric grid (grids are the same) 
-!
+
+      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ
+      Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ
+
+      IMPLICIT NONE
+
+      integer I,J,L, NT 
+
+      REAL*8, DIMENSION(IMA,JMA) :: aFtemp
+      REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
+      REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
+
+      oONES(:,:) = 1.d0
+
+      call HNTR80 (IMO,JMO,0.d0,120.d0, IMA,JMA,0.d0,120.d0, 0.d0)
+
+!!!  Ocean mass for the 1st two layers
+
       DO L = 1,2
-        aMO_glob(:,:,L) = MO_glob(:,:,L)
-        aG0M_glob(:,:,L) = G0M_glob(:,:,L)
-        aS0M_glob(:,:,L) = S0M_glob(:,:,L)
+        oFtemp(:,:) = MO_glob(:,:,L)
+        call HNTR8P (oFOCEAN, oFtemp, aFtemp)
+        aMO_glob(:,:,L) = aFtemp(:,:)
       END DO 
 
-      aUO1_glob(:,:) = UO_glob(:,:,1)
-      aVO1_glob(:,:) = VO_glob(:,:,1)
-      aOGEOZ_glob(:,:) = OGEOZ_glob(:,:)
-      aOGEOZ_SV_glob(:,:) = OGEOZ_SV_glob(:,:)
+!!!  Enthalpy for the 1st two ocean layers
+
+      oFweight(:,:) = MO_glob(:,:,1)*oFOCEAN(:,:) 
+      oFweight(2:IMO,JMO) = oFweight(1,JMO)
+      DO L = 1,2
+        SUM_oG0M = 0.
+        SUM_oFtemp = 0.
+        DO J=1,JMO
+          DO I=1,oIMAXJ(J)
+            IF (oFOCEAN(I,J).gt.0.) THEN
+              oFtemp(I,J) = G0M_glob(I,J,L)/(MO_glob(I,J,L)*oDXYPO(J))
+
+              SUM_oG0M = SUM_oG0M + G0M_glob(I,J,L)
+              SUM_oFtemp = SUM_oFtemp 
+     *          + (oFtemp(I,J)*MO_glob(I,J,L)*oDXYPO(J)*oFOCEAN(I,J))
+
+            END IF
+          END DO
+        END DO
+
+        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+        call HNTR8P (oFweight, oFtemp, aFtemp)
+        aG0_glob(:,:,L) = aFtemp(:,:) 
+
+        SUM_aG0 = 0.
+        DO J=1,JMA
+          DO I=1,aIMAXJ(J)
+            IF (aFOCEAN(I,J).gt.0.) THEN
+              SUM_aG0 = SUM_aG0 
+     *        +(aG0_glob(I,J,L)*aMO_glob(I,J,L)*aDXYPO(J)*aFOCEAN(I,J))
+            END IF
+          END DO
+        END DO
+        write (555,*) ' INT_OG2AG: L,SUM_oG0M,SUM_oFtemp,SUM_aG0 = ',
+     *                             L,SUM_oG0M,SUM_oFtemp,SUM_aG0  
+      END DO 
+
+!!!  Salinity for the 1st two ocean layers
+
+      DO L = 1,2
+        DO J=1,JMO
+          DO I=1,oIMAXJ(J)
+            IF (oFOCEAN(I,J).gt.0.) THEN
+              oFtemp(I,J) = S0M_glob(I,J,L)/(MO_glob(I,J,L)*oDXYPO(J))
+            END IF
+          END DO
+        END DO
+
+        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+        call HNTR8P (oFweight, oFtemp, aFtemp)
+        aS0_glob(:,:,L) = aFtemp(:,:) 
+
+        DO J=1,JMA
+          DO I=1,aIMAXJ(J)
+            IF (aFOCEAN(I,J).gt.0.) THEN
+              diff = oFtemp(i,j) / aFtemp(i,j)-1.d0
+              if (diff .gt. 1.e-15) then
+c                write (555,*) ' INT_OG2AG: L,I,J = ',l, i, j
+c                write (555,*) ' INT_OG2AG:oFtemp,aFtemp,diff=',
+c     *          oFtemp(i,j), aFtemp(i,j), diff 
+              end if
+            END IF
+          END DO
+        END DO
+      END DO 
+
+      call HNTR8P (oFOCEAN, OGEOZ_glob, aOGEOZ_glob)
+      call HNTR8P (oFOCEAN, OGEOZ_SV_glob, aOGEOZ_SV_glob)
 
 #ifdef TRACERS_OCEAN
-      aTRMO_glob(:,:,1,:) = TRMO_glob(:,:,1,:)
+      DO NT = 1,NTM
+        DO J=1,JMO
+          DO I=1,oIMAXJ(J)
+            IF (oFOCEAN(I,J).gt.0.) THEN
+              oFtemp(I,J)=TRMO_glob(I,J,1,NT)/(MO_glob(I,J,1)*oDXYPO(J))
+            END IF
+          END DO
+        END DO
+
+        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+        call HNTR8P (oFweight, oFtemp, aFtemp)        
+
+        aTRMO_glob(:,:,1,NT) = aFtemp(:,:)
+     *                       * (aMO_glob(:,:,1)*aDXYPO(:)*aFOCEAN(:,:))
+      END DO
 #endif
       
+!!!  U velocity for the 1st ocean layer
+
+      call HNTR80 (IMO,JMO,0.5d0,120.d0, IMA,JMA,0.5d0,120.d0, 0.d0)
+
+      UO_glob(2:IMO,JMO,1) = UO_glob(1,JMO,1)
+      call HNTR8  (oONES, UO_glob(1,1,1), aUO1_glob)
+
+!!!  V velocity for the 1st ocean layer
+
+      call HNTR80 (IMO,JMO-1,0.d0,120.d0, IMA,JMA-1,0.d0,120.d0, 0.d0)
+
+      VO_glob(2:IMO,JMO,1) = VO_glob(1,JMO,1)
+      call HNTR8  (oONES, VO_glob(1,1,1), aVO1_glob)
+      aVO1_glob(:,JMA) = 0.d0
+
+        DO J=1,JMA-1
+          DO I=1,aIMAXJ(J)
+            IF (aFOCEAN(I,J).gt.0.) THEN
+              diff = VO_glob(i,j,1) / aVO1_glob(i,j)-1.d0
+              if (diff .gt. 1.e-15) then
+                write (555,*) ' INT_OG2AG: I,J = ', i, j
+                write (555,*) ' INT_OG2AG:VO_glob,aVO1_glob,diff=',
+     *          VO_glob(i,j,1), aVO1_glob(i,j), diff 
+              end if
+            END IF
+          END DO
+        END DO
+
       RETURN
       END SUBROUTINE INT_OG2AG 
 
@@ -5030,25 +5150,25 @@ C**** Check
 
       use domain_decomp, only: agrid=>grid,unpack_data
 
-      USE AFLUXES, only : aMO, aUO1,aVO1, aG0M
-     *     , aS0M, aOGEOZ,aOGEOZ_SV
-     *     , aMO_glob, aUO1_glob,aVO1_glob, aG0M_glob
-     *     , aS0M_glob, aOGEOZ_glob, aOGEOZ_SV_glob
+      USE AFLUXES, only : aMO, aUO1,aVO1, aG0
+     *     , aS0, aOGEOZ,aOGEOZ_SV
+     *     , aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
+     *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
      *     , aTRMO, aTRMO_glob
 #endif
 
-      CALL UNPACK_DATA(agrid,        aMO_glob, aMO  )
-      CALL UNPACK_DATA(agrid,       aUO1_glob, aUO1 )
-      CALL UNPACK_DATA(agrid,       aVO1_glob, aVO1 )
+      CALL UNPACK_DATA(agrid,       aMO_glob, aMO  )
+      CALL UNPACK_DATA(agrid,      aUO1_glob, aUO1 )
+      CALL UNPACK_DATA(agrid,      aVO1_glob, aVO1 )
 
-      CALL UNPACK_DATA(agrid,    aOGEOZ_glob, aOGEOZ   )
-      CALL UNPACK_DATA(agrid, aOGEOZ_SV_glob, aOGEOZ_SV)
+      CALL UNPACK_DATA(agrid,    aOGEOZ_glob, aOGEOZ )
+      CALL UNPACK_DATA(agrid, aOGEOZ_SV_glob, aOGEOZ_SV )
 
-      CALL UNPACK_DATA(agrid,      aG0M_glob,  aG0M )
-      CALL UNPACK_DATA(agrid,      aS0M_glob,  aS0M )
+      CALL UNPACK_DATA(agrid,       aG0_glob, aG0 )
+      CALL UNPACK_DATA(agrid,       aS0_glob, aS0 )
 #ifdef TRACERS_OCEAN
-      CALL UNPACK_DATA(agrid,     aTRMO_glob,  aTRMO)
+      CALL UNPACK_DATA(agrid,     aTRMO_glob, aTRMO )
 #endif
 
       RETURN
@@ -5072,10 +5192,14 @@ C**** Check
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEAN, only : imo=>im,jmo=>jm
 
+      USE tnl_checksum_mod, only: print_checksum, checksum
+
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
+
+      INTEGER I,J
 
       REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
      *        aPREC_glob, aEPREC_glob
@@ -5093,6 +5217,29 @@ C**** Check
       REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: 
      *        oTRPREC_glob, oTRUNPSI_glob      
 #endif
+      REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES
+      REAL*8, DIMENSION(IMO,JMO) :: oFtemp
+      REAL*8  diff
+
+      aONES(:,:) = 1.d0
+
+      call HNTR80 (IMA,JMA,0.d0,120.d0, IMO,JMO,0.d0,120.d0, 0.d0)
+
+      aFtemp(:,:) = aPREC_glob(:,:)
+      call print_checksum(aFtemp,' INT_AG2OG_precip: Global aFtemp = ') 
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oPREC_glob(:,:) = oFtemp(:,:)   
+      call print_checksum(oFtemp,' INT_AG2OG_precip: Global oFtemp = ') 
+c      write (555,*) ' aFtemp = ',aFtemp(1,45),aFtemp(42,45)
+c      write (555,*) ' oFtemp = ',oFtemp(1,45),oFtemp(42,45)
+
+      DO J=1,JMO
+        DO I=1,IMO
+          diff = oFtemp(i,j) - aFtemp(i,j)
+c          if (diff .gt. 1.e-20) 
+c     *      write (555,*) ' i, j, diff = ',i, j, diff 
+        END DO
+      END DO
 
       oRSI_glob(:,:)     =     aRSI_glob(:,:)
       oPREC_glob(:,:)    =    aPREC_glob(:,:)
@@ -5622,5 +5769,234 @@ C***  Scatter the arrays to the atmospheric grid
       RETURN
       END SUBROUTINE OG2AG_oceans 
 
+      Subroutine HNTR80 (IMA,JMA,OFFIA,DLATA,
+     *                   IMB,JMB,OFFIB,DLATB, DATMIS)
+C****
+C**** HNTR80 fills in the common block HNTRCB with coordinate
+C**** parameters that will be used by subsequent calls to HNTR8.
+C**** The 5 Real input values are expected to be Real*8.
+C****
+C**** Input: IMA = number of cells in east-west direction of grid A
+C****        JMA = number of cells in north-south direction of grid A
+C****      OFFIA = number of cells of grid A in east-west direction
+C****              from IDL (180) to western edge of cell IA=1
+C****      DLATA = minutes of latitude for non-polar cells on grid A
+C****        IMB = number of cells in east-west direction of grid B
+C****        JMB = number of cells in north-south direction of grid B
+C****      OFFIB = number of cells of grid B in east-west direction
+C****              from IDL (180) to western edge of cell IB=1
+C****      DLATB = minutes of latitude for non-polar cells on grid B
+C****     DATMIS = missing data value inserted in output array B when
+C****              cell (IB,JB) has integrated value 0 of WTA
+C****
+C**** Output: common block /HNTRCB/
+C**** SINA(JA) = sine of latitude of northern edge of cell JA on grid A
+C**** SINB(JB) = sine of latitude of northern edge of cell JB on grid B
+C**** FMIN(IB) = fraction of cell IMIN(IB) on grid A west of cell IB
+C**** FMAX(IB) = fraction of cell IMAX(IB) on grid A east of cell IB
+C**** GMIN(JB) = fraction of cell JMIN(JB) on grid A south of cell JB
+C**** GMAX(JB) = fraction of cell JMAX(JB) on grid A north of cell JB
+C**** IMIN(IB) = western most cell of grid A that intersects cell IB
+C**** IMAX(IB) = eastern most cell of grid A that intersects cell IB
+C**** JMIN(JB) = southern most cell of grid A that intersects cell JB
+C**** JMAX(JB) = northern most cell of grid A that intersects cell JB
+C****
+      Implicit Real*8 (A-H,O-Z)
+      Parameter (TWOPI=6.283185307179586477d0)
+      Real*8 OFFIA,DLATA, OFFIB,DLATB, DATMIS,DATMCB
+      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
+     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
+     *       DATMCB, INA,JNA, INB,JNB
+C****
+      INA = IMA  ;  JNA = JMA
+      INB = IMB  ;  JNB = JMB
+      DATMCB = DATMIS
+      If (IMA<1 .or. IMA>10800 .or. JMA<1 .or. JMA>5401 .or.
+     *    IMB<1 .or. IMB>10800 .or. JMB<1 .or. JMB>5401)  GoTo 400
+C****
+C**** Partitions in east-west (I) direction
+C**** Domain, around the globe, is scaled to fit from 0 to IMA*IMB
+C****
+      DIA = IMB  !  width of single A grid cell in scaled domain
+      DIB = IMA  !  width of single B grid cell in scaled domain
+      IA  = 1
+      RIA = (IA+OFFIA - IMA)*IMB  !  scaled longitude of eastern edge
+      IB  = IMB
+      Do 150 IBp1=1,IMB
+      RIB = (IBp1-1+OFFIB)*IMA    !  scaled longitude of eastern edge
+  110 If (RIA-RIB)  120,130,140
+  120 IA  = IA  + 1
+      RIA = RIA + DIA
+      GoTo 110
+C**** Eastern edges of cells IA of grid A and IB of grid B coincide
+  130 IMAX(IB) = IA
+      FMAX(IB) = 0
+      IA  = IA  + 1
+      RIA = RIA + DIA
+      IMIN(IBp1) = IA
+      FMIN(IBp1) = 0
+      GoTo 150
+C**** Cell IA of grid A contains western edge of cell IB of grid B
+  140 IMAX(IB) = IA
+      FMAX(IB) = (RIA-RIB)/DIA
+      IMIN(IBp1) = IA
+      FMIN(IBp1) = 1-FMAX(IB)
+  150 IB = IBp1
+      IMAX(IMB) = IMAX(IMB) + IMA
+C       WRITE (0,915) 'IMIN=',IMIN(1:IMB)
+C       WRITE (0,915) 'IMAX=',IMAX(1:IMB)
+C       WRITE (0,916) 'FMIN=',FMIN(1:IMB)
+C       WRITE (0,916) 'FMAX=',FMAX(1:IMB)
+C****
+C**** Partitions in the north-south (J) direction
+C**** Domain is measured in minutes (1/60-th of a degree)
+C****
+      FJEQA = .5*(1+JMA)
+      Do 210 JA=1,JMA-1
+      RJA = (JA+.5-FJEQA)*DLATA  !  latitude in minutes of northern edge
+  210 SINA(JA) = Sin (RJA*TWOPI/(360*60))
+      SINA(0)  = -1
+      SINA(JMA)=  1
+C****
+      FJEQB = .5*(1+JMB)
+      Do 220 JB=1,JMB-1
+      RJB = (JB+.5-FJEQB)*DLATB  !  latitude in minutes of northern edge
+  220 SINB(JB) = Sin (RJB*TWOPI/(360*60))
+      SINB(0)  = -1
+      SINB(JMB)=  1
+C****
+      JMIN(1) = 1
+      GMIN(1) = 0
+      JA = 1
+      Do 350 JB=1,JMB-1
+  310 If (SINA(JA)-SINB(JB))  320,330,340
+  320 JA = JA + 1
+      GoTo 310
+C**** Northern edges of cells JA of grid A and JB of grid B coincide
+  330 JMAX(JB) = JA
+      GMAX(JB) = 0
+      JA = JA + 1
+      JMIN(JB+1) = JA
+      GMIN(JB+1) = 0
+      GoTo 350
+C**** Cell JA of grid A contains northern edge of cell JB of grid B
+  340 JMAX(JB) = JA
+      GMAX(JB) = SINA(JA) - SINB(JB)
+      JMIN(JB+1) = JA
+      GMIN(JB+1) = SINB(JB) - SINA(JA-1)
+  350 Continue
+      JMAX(JMB) = JMA
+      GMAX(JMB) = 0
+C       WRITE (0,915) 'JMIN=',JMIN(1:JMB)
+C       WRITE (0,915) 'JMAX=',JMAX(1:JMB)
+C       WRITE (0,916) 'GMIN=',GMIN(1:JMB)
+C       WRITE (0,916) 'GMAX=',GMAX(1:JMB)
+      Return
+C****
+C**** Invalid parameters or dimensions out of range
+C****
+  400 Write (0,940) IMA,JMA,OFFIA,DLATA, IMB,JMB,OFFIB,DLATB, DATMIS
+      Stop 400
+C****
+C 915 Format (/ 1X,A5 / (20I6))
+C 916 Format (/ 1X,A5 / (20F6.2))
+  940 Format ('0Arguments received by HNTRP0 in order:'/
+     *   2I12,' = IMA,JMA = array dimensions for A grid'/
+     *  E24.8,' = OFFIA   = fractional number of grid cells from',
+     *                    ' IDL to western edge of grid cell I=1'/
+     *  E24.8,' = DLATA   = minutes of latitude for interior grid cell'/
+     *   2I12,' = IMB,JMB = array dimensions for B grid'/
+     *  E24.8,' = OFFIB   = fractional number of grid cells from',
+     *                    ' IDL to western edge of grid cell I=1'/
+     *  E24.8,' = DLATB   = minute of latitude for interior grid cell'/
+     *  E24.8,' = DATMIS  = missing data value to be put in B array',
+     *                    ' when integrated WTA = 0'/
+     *  '0These arguments are invalid or out of range.')
+      End Subroutine HNTR80
+
+      Subroutine HNTR8 (WTA,A,B)
+C****
+C**** HNTR8 performs a horizontal interpolation of per unit area or per
+C**** unit mass quantities defined on grid A, calculating the quantity
+C**** on grid B.  B grid values that cannot be calculated because the
+C**** covering A grid boxes have WTA = 0, are set to the value DATMIS.
+C**** The area weighted integral of the quantity is conserved.
+C**** The 3 Real input values are expected to be Real*8.
+C****
+C**** Input: WTA = weighting array for values on the A grid
+C****          A = per unit area or per unit mass quantity
+C**** Output:  B = horizontally interpolated quantity on B grid
+C****
+      Implicit Real*8 (A-H,O-Z)
+      Real*8 WTA(*), A(*), B(*), DATMIS
+      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
+     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
+     *       DATMIS, IMA,JMA, IMB,JMB
+C****
+C**** Interpolate the A grid onto the B grid
+C****
+      Do 20 JB=1,JMB
+      JAMIN = JMIN(JB)
+      JAMAX = JMAX(JB)
+      Do 20 IB=1,IMB
+      IJB  = IB + IMB*(JB-1)
+      WEIGHT= 0
+      VALUE = 0
+      IAMIN = IMIN(IB)
+      IAMAX = IMAX(IB)
+      Do 10 JA=JAMIN,JAMAX
+      G = SINA(JA)-SINA(JA-1)
+      If (JA==JAMIN)  G = G - GMIN(JB)
+      If (JA==JAMAX)  G = G - GMAX(JB)
+      Do 10 IAREV=IAMIN,IAMAX
+      IA  = 1 + Mod(IAREV-1,IMA)
+      IJA = IA + IMA*(JA-1)
+      F   = 1
+      If (IAREV==IAMIN)  F = F - FMIN(IB)
+      If (IAREV==IAMAX)  F = F - FMAX(IB)
+      WEIGHT = WEIGHT + F*G*WTA(IJA)
+   10 VALUE  = VALUE  + F*G*WTA(IJA)*A(IJA)
+      B(IJB) = DATMIS
+      If (WEIGHT.ne.0)  B(IJB) = VALUE/WEIGHT
+   20 Continue
+      Return
+      End Subroutine HNTR8
+
+      Subroutine HNTR8P (WTA,A,B)
+C****
+C**** HNTR8P is similar to HNTR8 but polar values are replaced by
+C**** their longitudinal mean.
+C**** The 3 Real input values are expected to be Real*8.
+C****
+      Implicit Real*8 (A-H,O-Z)
+      Real*8 WTA(*), A(*), B(*), DATMIS
+      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
+     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
+     *       DATMIS, IMA,JMA, IMB,JMB
+C****
+      Call HNTR8 (WTA,A,B)
+C****
+C**** Replace individual values near the poles by longitudinal mean
+C****
+      Do 40 JB=1,JMB,JMB-1
+      BMEAN  = DATMIS
+      WEIGHT = 0
+      VALUE  = 0
+      Do 10 IB=1,IMB
+      IJB  = IB + IMB*(JB-1)
+      If (B(IJB) == DATMIS)  GoTo 20
+      WEIGHT = WEIGHT + 1
+      VALUE  = VALUE  + B(IJB)
+   10 Continue
+      If (WEIGHT.ne.0)  BMEAN = VALUE/WEIGHT
+   20 Do 30 IB=1,IMB
+      IJB  = IB + IMB*(JB-1)
+   30 B(IJB) = BMEAN
+   40 Continue
+      Return
+      End Subroutine HNTR8P
 
 

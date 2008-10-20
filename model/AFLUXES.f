@@ -13,7 +13,7 @@
 
 ! Arrays  aMO,aUO1,aVO1,aG0M,aS0M,aOGEOZ,aOGEOZ_SV,aTRMO are ocean quantities
 !   after interpolation from ocean to atmospheric grid  
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: aMO, aG0M, aS0M
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: aMO, aG0, aS0
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: aOGEOZ,aOGEOZ_SV
      *      , aUO1,aVO1
 #ifdef TRACERS_OCEAN
@@ -21,7 +21,7 @@
 #endif
 
 ! Global arrays needed for interpolation from ocean to atmospheric grid  
-      REAL*8, DIMENSION(IMA,JMA,2) :: aMO_glob, aG0M_glob, aS0M_glob
+      REAL*8, DIMENSION(IMA,JMA,2) :: aMO_glob, aG0_glob, aS0_glob
       REAL*8, DIMENSION(IMA,JMA)   :: aUO1_glob, aVO1_glob
       REAL*8, DIMENSION(IMA,JMA)   :: aOGEOZ_glob, aOGEOZ_SV_glob 
 #ifdef TRACERS_OCEAN
@@ -50,8 +50,8 @@
       J_1H = grd_dum%J_STOP_HALO
 
       ALLOCATE(  aMO (I_0H:I_1H,J_0H:J_1H,2), STAT = IER)
-      ALLOCATE( aG0M (I_0H:I_1H,J_0H:J_1H,2), STAT = IER)
-      ALLOCATE( aS0M (I_0H:I_1H,J_0H:J_1H,2), STAT = IER)
+      ALLOCATE( aG0  (I_0H:I_1H,J_0H:J_1H,2), STAT = IER)
+      ALLOCATE( aS0  (I_0H:I_1H,J_0H:J_1H,2), STAT = IER)
 
       ALLOCATE( aOGEOZ     (I_0H:I_1H, J_0H:J_1H),
      &          aOGEOZ_SV  (I_0H:I_1H, J_0H:J_1H),
