@@ -97,6 +97,8 @@
       PUBLIC :: GLOBALMIN
 !@var GLOBALMAX determine max value across pes
       PUBLIC :: GLOBALMAX
+!@var SUMXPE sum an array over processors without reducing its rank
+      PUBLIC :: SUMXPE
 !@var ARRAYSCATTER scatter a global array to a decomposed array
       PUBLIC :: ARRAYSCATTER
 !@var ARRAYGATHER gather a decomposed array to a global array
@@ -185,6 +187,15 @@
         MODULE PROCEDURE GLOBALSUM_OTHER_IJK_IK
         MODULE PROCEDURE GLOBALSUM_JK
         MODULE PROCEDURE GLOBALSUM_XXXJ_XXX
+        MODULE PROCEDURE GLOBALSUM_XXXIJ_XXX
+      END INTERFACE
+
+      INTERFACE SUMXPE
+        MODULE PROCEDURE SUMXPE_1D
+        MODULE PROCEDURE SUMXPE_2D
+        MODULE PROCEDURE SUMXPE_3D
+c        MODULE PROCEDURE SUMXPE_4D
+c        MODULE PROCEDURE SUMXPE_5D
       END INTERFACE
 
       INTERFACE ARRAYSCATTER
@@ -1373,6 +1384,105 @@ cddd      ENDIF
 
       END SUBROUTINE FINISH_APP
 
+      SUBROUTINE SUMXPE_1D(arr, arr_master, increment)
+      IMPLICIT NONE
+      REAL*8, DIMENSION(:) :: arr,arr_master
+      logical, intent(in), optional :: increment
+      REAL*8, DIMENSION(:), ALLOCATABLE :: arr_tmp
+      logical :: increment_
+      integer :: ier,arr_size
+      if(present(increment)) then
+        increment_ = increment
+      else
+        increment_ = .false.
+      endif
+#ifdef USE_ESMF
+      arr_size = size(arr)
+      if(increment_) then
+        allocate(arr_tmp(arr_size))
+        call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+        arr_master = arr_master + arr_tmp
+        deallocate(arr_tmp)
+      else
+        call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+      endif
+#else
+      if(increment_) then
+        arr_master = arr_master + arr
+      else
+        arr_master = arr
+      endif
+#endif
+      END SUBROUTINE SUMXPE_1D
+
+      SUBROUTINE SUMXPE_2D(arr, arr_master, increment)
+      IMPLICIT NONE
+      REAL*8, DIMENSION(:,:) :: arr,arr_master
+      logical, intent(in), optional :: increment
+      REAL*8, DIMENSION(:), ALLOCATABLE :: arr_tmp
+      logical :: increment_
+      integer :: ier,arr_size
+      if(present(increment)) then
+        increment_ = increment
+      else
+        increment_ = .false.
+      endif
+#ifdef USE_ESMF
+      arr_size = size(arr)
+      if(increment_) then
+        allocate(arr_tmp(arr_size))
+        call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+        arr_master = arr_master + reshape(arr_tmp,shape(arr))
+        deallocate(arr_tmp)
+      else
+        call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+      endif
+#else
+      if(increment_) then
+        arr_master = arr_master + arr
+      else
+        arr_master = arr
+      endif
+#endif
+      END SUBROUTINE SUMXPE_2D
+
+      SUBROUTINE SUMXPE_3D(arr, arr_master, increment)
+      IMPLICIT NONE
+      REAL*8, DIMENSION(:,:,:) :: arr,arr_master
+      logical, intent(in), optional :: increment
+      REAL*8, DIMENSION(:), ALLOCATABLE :: arr_tmp
+      logical :: increment_
+      integer :: ier,arr_size
+      if(present(increment)) then
+        increment_ = increment
+      else
+        increment_ = .false.
+      endif
+#ifdef USE_ESMF
+      arr_size = size(arr)
+      if(increment_) then
+        allocate(arr_tmp(arr_size))
+        call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+        arr_master = arr_master + reshape(arr_tmp,shape(arr))
+        deallocate(arr_tmp)
+      else
+        call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+      endif
+#else
+      if(increment_) then
+        arr_master = arr_master + arr
+      else
+        arr_master = arr
+      endif
+#endif
+      END SUBROUTINE SUMXPE_3D
+
 !---------------------------
       SUBROUTINE GLOBALSUM_INT_REDUCE(grd_dum, ivar, isum, all)
       IMPLICIT NONE
@@ -1974,6 +2084,46 @@ cddd      ENDIF
 #endif
 
       END SUBROUTINE GLOBALSUM_XXXJ_XXX
+
+      SUBROUTINE GLOBALSUM_XXXIJ_XXX(grd_dum, arr, gsum, all)
+      Type (DIST_GRID), INTENT(IN) :: grd_dum
+      Real*8, INTENT(IN) ::
+     &     arr(:,:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      Real*8, INTENT(Out) :: gsum(:,:,:)
+      Logical, Optional, INTENT(IN) :: all
+
+      INTEGER :: k
+      INTEGER :: ier
+      INTEGER :: i_0, i_1, j_0, j_1, IM, JM
+      REAL*8  :: garr(size(arr,1),size(arr,2),size(arr,3),
+     &     grd_dum%jm_world)
+      REAL*8  :: larr(size(arr,1),size(arr,2),size(arr,3),
+     &     grd_dum%j_strt_halo:grd_dum%j_stop_halo)
+      LOGICAL :: istag_,all_
+
+    ! now local
+#ifdef USE_ESMF
+!     type (ESMF_Grid)                           :: GRID
+#endif
+
+      i_0  = grd_dum%i_strt
+      i_1  = grd_dum%i_stop
+      j_0  = grd_dum%j_strt
+      j_1  = grd_dum%j_stop
+      IM   = grd_dum%IM_WORLD
+      JM   = grd_dum%JM_WORLD
+
+#ifdef USE_MPI
+      larr = sum(arr,4)
+      Call gather(grd_dum, larr, garr, shape(larr), 4, all=all)
+      all_=.false.
+      If (Present(all)) all_=all
+      If (AM_I_ROOT() .or. all_)  gsum = SUM(garr,4)
+#else
+      gsum = SUM(SUM(arr(:,:,:,I_0:I_1,J_0:J_1),4),4)
+#endif
+
+      END SUBROUTINE GLOBALSUM_XXXIJ_XXX
 
       SUBROUTINE BACKSPACE_PARALLEL(IUNIT)
       IMPLICIT NONE
