@@ -64,6 +64,11 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@var LLOW,LMID,LHI max levels for low, mid and high clouds
       INTEGER LLOW,LMID,LHI
 
+!@var ISCCP_REG2D distributed version of ISCCP_REG
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: ISCCP_REG2D
+!@var AISCCP2D AISCCP histogram with I,J dimensions
+      REAL*8, DIMENSION(:,:,:,:,:), ALLOCATABLE :: AISCCP2D
+
       END MODULE CLOUDS_COM
 
       SUBROUTINE ALLOC_CLOUDS_COM(grid)

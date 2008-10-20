@@ -5472,8 +5472,8 @@ C**** KP packs the quantities for postprocessing (skipping unused)
 C**** NORMAL QUANTITIES
             AVE=0.
             DO IH=1,HR_IN_DAY
-              AVE=AVE+ADIURN(IH,KQ,KR)
-              XHOUR(IH)=ADIURN(IH,KQ,KR)*SCALE_DD(KQ)*BYIDAC
+              AVE=AVE+ADIURN(KQ,KR,IH)
+              XHOUR(IH)=ADIURN(KQ,KR,IH)*SCALE_DD(KQ)*BYIDAC
             END DO
             XHOUR(HR_IN_DAY+1)=AVE/FLOAT(HR_IN_DAY)*SCALE_DD(KQ)*BYIDAC
 C**** RATIO OF TWO QUANTITIES
@@ -5481,10 +5481,10 @@ C**** RATIO OF TWO QUANTITIES
             AVEN=0.
             AVED=0.
             DO IH=1,HR_IN_DAY
-              AVEN=AVEN+ADIURN(IH,KQ,KR)
-              AVED=AVED+ADIURN(IH,KQ-1,KR)
-              XHOUR(IH)=ADIURN(IH,KQ,KR)*SCALE_DD(KQ)/
-     *             (ADIURN(IH,KQ-1,KR)+1D-20)
+              AVEN=AVEN+ADIURN(KQ,KR,IH)
+              AVED=AVED+ADIURN(KQ-1,KR,IH)
+              XHOUR(IH)=ADIURN(KQ,KR,IH)*SCALE_DD(KQ)/
+     *             (ADIURN(KQ-1,KR,IH)+1D-20)
             END DO
             XHOUR(HR_IN_DAY+1)=AVEN*SCALE_DD(KQ)/(AVED+1D-20)
           END SELECT
@@ -5577,13 +5577,13 @@ C**** KP packs the quantities for postprocessing (skipping unused)
           CASE DEFAULT
 C**** NORMAL QUANTITIES
             DO IH=1,HR_IN_MONTH
-              XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)*(24./NDAY)
+              XHOUR(IH)=HDIURN(KQ,KR,IH)*SCALE_DD(KQ)*(24./NDAY)
             END DO
 C**** RATIO OF TWO QUANTITIES
           CASE ('LDC')
             DO IH=1,HR_IN_MONTH
-              XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)/
-     *             (HDIURN(IH,KQ-1,KR)+1D-20)
+              XHOUR(IH)=HDIURN(KQ,KR,IH)*SCALE_DD(KQ)/
+     *             (HDIURN(KQ-1,KR,IH)+1D-20)
             END DO
           END SELECT
           DO IS=1,HR_IN_MONTH
@@ -6582,16 +6582,17 @@ cddd#endif
 
       if(am_i_root()) call alloc_diag_com_glob
 
-      CALL PACK_DATAj(GRID, AJ_loc,  AJ)
-      CALL PACK_DATA(GRID, AREGJ_loc,  AREGJ)
-      CALL PACK_DATAj(GRID, APJ_loc, APJ)
-      CALL PACK_DATAj(GRID, AJK_loc, AJK)
-      CALL PACK_DATA (GRID, AIJ_loc, AIJ)
-      CALL PACK_DATA (GRID, AIJK_loc, AIJK)
-      CALL PACK_DATAj(GRID, ASJL_loc, ASJL)
-      CALL PACK_DATAj(GRID, AJL_loc,  AJL)
-      CALL PACK_DATAj(GRID, CONSRV_loc,  CONSRV)
-      CALL PACK_DATA (GRID, TSFREZ_loc,  TSFREZ)
+      call Gather_Diagnostics()
+c      CALL PACK_DATAj(GRID, AJ_loc,  AJ)
+c      CALL PACK_DATA(GRID, AREGJ_loc,  AREGJ)
+c      CALL PACK_DATAj(GRID, APJ_loc, APJ)
+c      CALL PACK_DATAj(GRID, AJK_loc, AJK)
+c      CALL PACK_DATA (GRID, AIJ_loc, AIJ)
+c      CALL PACK_DATA (GRID, AIJK_loc, AIJK)
+c      CALL PACK_DATAj(GRID, ASJL_loc, ASJL)
+c      CALL PACK_DATAj(GRID, AJL_loc,  AJL)
+c      CALL PACK_DATAj(GRID, CONSRV_loc,  CONSRV)
+c      CALL PACK_DATA (GRID, TSFREZ_loc,  TSFREZ)
 
 #ifdef TRACERS_ON
       call gather_trdiag

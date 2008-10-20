@@ -24,6 +24,7 @@
       USE RANDOM
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
+     &     ,isccp_reg2d,aisccp2d
 #ifdef CLD_AER_CDNC
      *     ,oldnl,oldni
      *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
@@ -32,7 +33,8 @@
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
       USE DIAG_COM, only : aij=>aij_loc,
-     *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,aijk=>aijk_loc,
+     *     ajl=>ajl_loc,ail,adiurn=>adiurn_loc,jreg,ij_pscld,
+     &     aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
@@ -42,9 +44,9 @@
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,ij_scldi,
      *     jl_mcshlw,jl_mcdeep,
 #ifndef NO_HDIURN
-     *     hdiurn,
+     *     hdiurn=>hdiurn_loc,
 #endif
-     *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi,
+     *     ntau,npres,aisccp,ij_precmc,ij_cldw,ij_cldi,
      *     ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
      *     ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
 #ifdef CLD_AER_CDNC
@@ -281,47 +283,17 @@ CRKF...FIX
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
 
-#ifndef NO_HDIURN
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: hdiurn_part
-#endif
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: adiurn_part
       INTEGER, PARAMETER :: n_idx1 = 5
       INTEGER, PARAMETER :: n_idx2 = 3
       INTEGER, PARAMETER :: n_idx3 = 6
 #ifdef TRACERS_DUST
       INTEGER,PARAMETER :: n_idxd=1
 #endif
-#ifndef NO_HDIURN
-      REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: hdiurn_temp
-#endif
-      REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: adiurn_temp
-
-      REAL*8, DIMENSION(N_IDX3, NDIUPT) :: ADIURNSUM
-#ifndef NO_HDIURN
-     &     ,HDIURNSUM
-#endif
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
 #ifdef TRACERS_DUST
       INTEGER :: idxd(n_idxd)
-      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: adiurn_tempd
-#ifndef NO_HDIURN
-      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: hdiurn_tempd
-#endif
-      REAL*8, DIMENSION(n_idxd, NDIUPT) :: adiurnsumd
-#ifndef NO_HDIURN
-     &     ,hdiurnsumd
-#endif
 #endif
       REAL*8 :: tmp(NDIUVAR)
-      REAL*8,
-     *  DIMENSION(ntau,npres,nisccp,grid%J_STRT_HALO:grid%J_STOP_HALO)::
-     *     AISCCP_part
       REAL*8 :: AISCCPSUM(ntau,npres,nisccp)
       INTEGER :: ii, ivar
 #ifndef TRACERS_WATER
@@ -333,14 +305,10 @@ CRKF...FIX
 
 C**** Initialize
       AJEQIL(:,:,:)=0.
+      if(isccp_diags.eq.1) AISCCP2D(:,:,:,:,:) = 0d0
 #ifdef TRACERS_SPECIAL_Shindell
       RNOx_lgt(:,:)=0.d0
 #endif
-#ifndef NO_HDIURN
-      hdiurn_part = 0
-#endif
-      adiurn_part = 0
-      AISCCP_part = 0
       idx1 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC /)
       idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
       idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
@@ -816,19 +784,17 @@ C*** End Accumulate 3D convective latent heating
         END DO
         CALL INC_AREG(I,J,JR,J_PRCPMC,PRCPMC*AXYP(I,J))
         DO KR=1,NDIUPT
-          IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-            tmp(IDD_PR)  =+PRCPMC
-            tmp(IDD_ECND)=+HCNDMC
-            tmp(IDD_MCP) =+PRCPMC
-            tmp(IDD_DMC) =+CLDDEPIJ
-            tmp(IDD_SMC) =+CLDSLWIJ
+        IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+          tmp(IDD_PR)  =+PRCPMC
+          tmp(IDD_ECND)=+HCNDMC
+          tmp(IDD_MCP) =+PRCPMC
+          tmp(IDD_DMC) =+CLDDEPIJ
+          tmp(IDD_SMC) =+CLDSLWIJ
+          ADIURN(IDX1(:),KR,IH)=ADIURN(IDX1(:),KR,IH)+TMP(IDX1(:))
 #ifndef NO_HDIURN
-            hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
-     &           tmp(idx1(:))
+          HDIURN(IDX1(:),KR,IHM)=HDIURN(IDX1(:),KR,IHM)+TMP(IDX1(:))
 #endif
-            adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
-     &           tmp(idx1(:))
-          END IF
+        END IF
         END DO
 #ifdef CLD_AER_CDNC
         DO L =1,LM
@@ -1107,17 +1073,15 @@ C**** Accumulate diagnostics of LSCOND
          END DO
          CALL INC_AREG(I,J,JR,J_PRCPSS,PRCPSS*AXYP(I,J))
          DO KR=1,NDIUPT
-           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-             tmp(IDD_PR)  =+PRCPSS
-             tmp(IDD_ECND)=+HCNDSS
-             tmp(IDD_SSP) =+PRCPSS
+         IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+           tmp(IDD_PR)  =+PRCPSS
+           tmp(IDD_ECND)=+HCNDSS
+           tmp(IDD_SSP) =+PRCPSS
+           ADIURN(IDX2(:),KR,IH)=ADIURN(IDX2(:),KR,IH)+TMP(IDX2(:))
 #ifndef NO_HDIURN
-             hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
-     &            tmp(idx2(:))
+           HDIURN(IDX2(:),KR,IHM)=HDIURN(IDX2(:),KR,IHM)+TMP(IDX2(:))
 #endif
-             adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
-     &            tmp(idx2(:))
-           END IF
+         END IF
          END DO
 
 C**** TOTAL PRECIPITATION AND AGE OF SNOW
@@ -1235,9 +1199,8 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
           AIJ(I,J,IJ_MCLDI)=AIJ(I,J,IJ_MCLDI)+sum(fq_isccp(2:ntau,4:5))
           AIJ(I,J,IJ_HCLDI)=AIJ(I,J,IJ_HCLDI)+sum(fq_isccp(2:ntau,1:3))
 C**** Save area weighted isccp histograms
-          n=isccp_reg(j)
-          if (n.gt.0) AISCCP_part(:,:,n,J) = AISCCP_part(:,:,n,J) +
-     &         fq_isccp(:,:)*axyp(i,j)
+          n=isccp_reg2d(i,j)
+          if (n.gt.0) AISCCP2D(:,:,n,I,J) = fq_isccp(:,:)*axyp(i,j)
         end if
       end if
 
@@ -1529,11 +1492,11 @@ c     ..........
                 SELECT CASE (trname(n))
                 CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
                   tmp(idd_wet)=+trprec(n,i,j)*byaxyp(i,j)/Dtsrc
-                  adiurn_part(J,idxd(:),kr)=adiurn_part(J,idxd(:),kr)+
-     &                 tmp(idxd(:))
+                  ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+
+     &                 TMP(IDXD(:))
 #ifndef NO_HDIURN
-                  hdiurn_part(J,idxd(:),kr)=hdiurn_part(J,idxd(:),kr)+
-     &                 tmp(idxd(:))
+                  HDIURN(IDXD(:),KR,IHM)=HDIURN(IDXD(:),KR,IHM)+
+     &                 TMP(IDXD(:))
 #endif
                 END SELECT
               END IF
@@ -1599,11 +1562,11 @@ c     ..........
               SELECT CASE (trname(n))
               CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
                 tmp(idd_wet)=+trprec_dust(n,i,j)*byaxyp(i,j)/Dtsrc
-                adiurn_part(J,idxd(:),kr)=adiurn_part(J,idxd(:),kr)+
-     &               tmp(idxd(:))
+                ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+
+     &               TMP(IDXD(:))
 #ifndef NO_HDIURN
-                hdiurn_part(J,idxd(:),kr)=hdiurn_part(J,idxd(:),kr)+
-     &               tmp(idxd(:))
+                HDIURN(IDXD(:),KR,IHM)=HDIURN(IDXD(:),KR,IHM)+
+     &               TMP(IDXD(:))
 #endif
               END SELECT
             END IF
@@ -1700,68 +1663,13 @@ C Third: Store the accumulations into AIL:
           END DO
         END DO
       END IF
-C**** Accumulate AISCCP array
-      CALL GLOBALSUM(grid,AISCCP_part(1:ntau,1:npres,1:nisccp,:),
-     &     AISCCPSUM(1:ntau,1:npres,1:nisccp))
-      AISCCP(1:ntau,1:npres,1:nisccp) = AISCCP(1:ntau,1:npres,1:nisccp)
-     *     +AISCCPSUM(1:ntau,1:npres,1:nisccp)
 
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX3
-          ivar = idx3(ii)
-          ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
-#ifndef NO_HDIURN
-          HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
-#endif
-        END DO
-      END DO
-      CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX3,:,1:ndiupt),
-     &    ADIURNSUM(1:N_IDX3,1:ndiupt))
-#ifndef NO_HDIURN
-      CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX3,:,1:ndiupt),
-     &    HDIURNSUM(1:N_IDX3,1:ndiupt))
-#endif
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX3
-          ivar = idx3(ii)
-          IF (AM_I_ROOT()) THEN
-            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
-#ifndef NO_HDIURN
-            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
-#endif
-          END IF
-        END DO
-      END DO
-#ifdef TRACERS_DUST
-      IF (adiurn_dust == 1) THEN
-        DO kr=1,ndiupt
-          DO ii=1,n_idxd
-            ivar=idxd(ii)
-            adiurn_tempd(ii,:,kr)=adiurn_part(:,ivar,kr)
-#ifndef NO_HDIURN
-            hdiurn_tempd(ii,:,kr)=hdiurn_part(:,ivar,kr)
-#endif
-          END DO
-        END DO
-        CALL globalsum(grid,adiurn_tempd(1:n_idxd,:,1:ndiupt),
-     &       adiurnsumd(1:n_idxd,1:ndiupt))
-#ifndef NO_HDIURN
-        CALL globalsum(grid,hdiurn_tempd(1:n_idxd,:,1:ndiupt),
-     &       hdiurnsumd(1:n_idxd,1:ndiupt))
-#endif
-        DO kr=1,ndiupt
-          DO ii=1,n_idxd
-            ivar=idxd(ii)
-            IF (AM_I_ROOT()) THEN
-              adiurn(ih,ivar,kr)=adiurn(ih,ivar,kr)+adiurnsumd(ii,kr)
-#ifndef NO_HDIURN
-              hdiurn(ihm,ivar,kr)=hdiurn(ihm,ivar,kr)+hdiurnsumd(ii,kr)
-#endif
-            END IF
-          END DO
-        END DO
-      END IF
-#endif
+
+C**** Accumulate AISCCP array
+      if(isccp_diags.eq.1) then
+        CALL GLOBALSUM(grid,AISCCP2D,AISCCPSUM)
+        AISCCP=AISCCP+AISCCPSUM
+      endif
 
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
@@ -1883,27 +1791,35 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-      USE CONSTANT, only : grav,by3
+      USE CONSTANT, only : grav,by3,radian
       USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
       USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
-      USE GEOM, only : lat_dg
+      USE GEOM, only : lat_dg,lat2d
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau
      *  ,funio_denominator,autoconv_multiplier,radius_multiplier
      *  ,entrainment_cont1,entrainment_cont2
       USE CLOUDS_COM, only : llow,lmid,lhi
+     &     ,isccp_reg2d,aisccp2d
       USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
+     &     ,isccp_diags,ntau,npres
       USE PARAM
       USE FILEMANAGER, only : openunit, closeunit
 
       IMPLICIT NONE
       REAL*8 PLE
-      INTEGER L,J,n,iu_ISCCP
-      INTEGER :: J_0,J_1
+      INTEGER L,I,J,n,iu_ISCCP
+      INTEGER :: I_0,I_1,J_0,J_1, I_0H,I_1H,J_0H,J_1H
       CHARACTER TITLE*80
 
+      I_0 =GRID%I_STRT
+      I_1 =GRID%I_STOP
       J_0 =GRID%J_STRT
       J_1 =GRID%J_STOP
+      I_0H =GRID%I_STRT_HALO
+      I_1H =GRID%I_STOP_HALO
+      J_0H =GRID%J_STRT_HALO
+      J_1H =GRID%J_STOP_HALO
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
@@ -1963,6 +1879,25 @@ C**** Define regions for ISCCP diagnostics
            endif
         enddo
       end do
+
+c allocate/define distributed 2D ISCCP arrays
+c      if (isccp_diags.eq.1) then
+        allocate(isccp_reg2d(i_0h:i_1h,j_0h:j_1h))
+        allocate(aisccp2d(ntau,npres,nisccp,i_0h:i_1h,j_0h:j_1h))
+        aisccp2d = 0d0
+        do j=j_0,j_1
+        do i=i_0,i_1
+          isccp_reg2d(i,j)=0
+          do n=1,nisccp
+           if(dble(nint(lat2d(i,j)/radian)).ge.isccp_late(n) .and.
+     &        dble(nint(lat2d(i,j)/radian)).lt.isccp_late(n+1)) then
+              isccp_reg2d(i,j)=n
+              exit
+           endif
+          enddo
+        enddo
+        enddo
+c      endif
 
 C**** Read in tau/invtau tables for ISCCP calculations
       call openunit("ISCCP",iu_ISCCP,.true.,.true.)

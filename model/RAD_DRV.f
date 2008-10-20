@@ -1143,9 +1143,9 @@ C     OUTPUT DATA
      *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
 #endif
       USE DIAG_COM, only : jreg,aij=>aij_loc
-     *     ,ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,
+     *     ,ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn=>adiurn_loc,ndiuvar,
 #ifndef NO_HDIURN
-     *     hdiurn,
+     *     hdiurn=>hdiurn_loc,
 #endif
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
@@ -1267,19 +1267,12 @@ C
      *     ,RDMC(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &           grid%J_STRT_HALO:grid%J_STOP_HALO)
 
+      REAL*8 :: TMP(NDIUVAR)
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
-      REAL*8, DIMENSION(NLOC_DIU_VAR,
-     &     GRID%J_STRT_HALO:GRID%J_STOP_HALO,NDIUPT) :: DIURN_part
-      REAL*8 :: DIURNSUM(NLOC_DIU_VAR,NDIUPT)
       INTEGER :: idx(NLOC_DIU_VAR)
 
       INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
-      REAL*8, DIMENSION(NLOC_DIU_VARb,
-     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO,NDIUPT) :: DIURN_partb
-      REAL*8 :: DIURNSUMb(NLOC_DIU_VARb,NDIUPT)
       INTEGER :: idxb(NLOC_DIU_VARb)
-
-      REAL*8 :: DIURNSUMc(1,NDIUPT)
 
 
       INTEGER ICKERR,JCKERR,KCKERR
@@ -1298,6 +1291,9 @@ C
 
 C
 C****
+
+      idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
+      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
 
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -1507,8 +1503,6 @@ C****
       ICKERR=0
       JCKERR=0
       KCKERR=0
-      DIURN_part=0.
-      DIURN_partb=0.
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J,JR, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
 !$OMP*   CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,taugcb,
@@ -1710,12 +1704,20 @@ C**** effective cloud cover diagnostics
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
 C**** Warning: this replication may give inaccurate results for hours
 C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
-c***             DO INCH=1,NRAD
-c***               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-c***               IH=IHM
-c***               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-               DIURN_part(1:7,J,KR)=DIURN_part(1:7,J,KR)+TOTCLD(1:7)
-               DIURN_part(8,J,KR)=DIURN_part(8,J,KR)+CLDCV
+             TMP(IDD_CL7:IDD_CL7+6)=TOTCLD(1:7)
+             TMP(IDD_CCV)=CLDCV
+             DO INCH=1,NRAD
+               IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+               IH=IHM
+               IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
+               ADIURN(IDX(:),KR,IH)=ADIURN(IDX(:),KR,IH)+TMP(IDX(:))
+#ifndef NO_HDIURN
+               IHM = IHM+(JDATE-1)*HR_IN_DAY
+               IF(IHM.LE.HR_IN_MONTH) THEN
+                 HDIURN(IDX(:),KR,IHM)=HDIURN(IDX(:),KR,IHM)+TMP(IDX(:))
+               ENDIF
+#endif
+             ENDDO
            END IF
          END DO
       end if ! kradia le 0 (full model)
@@ -2343,22 +2345,6 @@ C****
 !$OMP  END DO
 !$OMP  END PARALLEL
       
-      CALL GLOBALSUM(grid, DIURN_part, DIURNSUM, ALL=.true.)
-      
-      idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
-      
-      DO INCH=1,NRAD
-         IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-         IH=IHM
-         IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-         ADIURN(IH,idx,:) = ADIURN(IH,idx,:) + DIURNSUM
-#ifndef NO_HDIURN
-         IHM = IHM+(JDATE-1)*HR_IN_DAY
-         IF(IHM.GT.HR_IN_MONTH) CYCLE
-         HDIURN(IHM,idx,:) = HDIURN(IHM,idx,:) + DIURNSUM
-#endif
-      END DO
-      
 
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
@@ -2381,7 +2367,6 @@ C**** output data: really needed only if kradia=2
 C**** 
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C**** 
-      DIURN_partb=0.
       DO 780 J=J_0,J_1
          DO L=1,LM
             DO I=I_0,IMAXJ(J)
@@ -2398,20 +2383,24 @@ C****
                ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(LR,I,J)
             END DO
             DO KR=1,NDIUPT
-               IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-C**** Warning: this replication may give inaccurate results for hours
-C**** 1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
-c***  DO INCH=1,NRAD
-c***  IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-c***  IH=IHM
-c***  IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-                  DIURN_partb(1,J,KR)=DIURN_partb(1,J,KR)+
-     +                 (1.-SNFS(3,I,J)/S0)
-                  DIURN_partb(2,J,KR)=DIURN_partb(2,J,KR)+
-     +                 (1.-ALB(I,J,1))
-                  DIURN_partb(3,J,KR)=DIURN_partb(3,J,KR)+
-     +                 (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
-               END IF
+            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+              TMP(IDD_PALB)=(1.-SNFS(3,I,J)/S0)
+              TMP(IDD_GALB)=(1.-ALB(I,J,1))
+              TMP(IDD_ABSA)=(SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
+              DO INCH=1,NRAD
+                IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+                IH=IHM
+                IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
+                ADIURN(IDXB(:),KR,IH)=ADIURN(IDXB(:),KR,IH)+TMP(IDXB(:))
+#ifndef NO_HDIURN
+                IHM = IHM+(JDATE-1)*HR_IN_DAY
+                IF(IHM.LE.HR_IN_MONTH) THEN
+                  HDIURN(IDXB(:),KR,IHM)=HDIURN(IDXB(:),KR,IHM)+
+     &                 TMP(IDXB(:))
+                ENDIF
+#endif
+              ENDDO
+            END IF
             END DO
             
       DO IT=1,NTYPE
@@ -2656,21 +2645,6 @@ c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
 
-      CALL GLOBALSUM(grid, DIURN_partb, DIURNSUMb, ALL=.true.)
-
-      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
-      DO INCH=1,NRAD
-         IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-         IH=IHM
-         IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-         ADIURN(IH,idxb,:) = ADIURN(IH,idxb,:) + DIURNSUMb
-#ifndef NO_HDIURN
-         IHM = IHM+(JDATE-1)*HR_IN_DAY
-         IF(IHM.GT.HR_IN_MONTH) CYCLE
-         HDIURN(IHM,idxb,:) = HDIURN(IHM,idxb,:) + DIURNSUMb
-#endif
-      End Do
-
          DO L=1,LM
            DO I=1,IM
              DUM_IL_REQ(I,J_0:J_1,L)=0.
@@ -2760,24 +2734,19 @@ C****
       END DO
 
 C**** daily diagnostics
-      DIURN_part=0.
       IH=1+JHOUR
       IHM = IH+(JDATE-1)*24
-      DO J=J_0,J_1
-        DO KR=1,NDIUPT
-          IF(J .EQ. IJDD(2,KR)) THEN
-            DIURN_part(1,J,KR)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
-          ENDIF
-        ENDDO
-      ENDDO
-      CALL GLOBALSUM(grid,DIURN_part(1:1,:,1:NDIUPT),
-     &    DIURNSUMc(1:1,1:NDIUPT), ALL=.TRUE.)
-      ADIURN(IH,IDD_ISW,1:NDIUPT)=ADIURN(IH,IDD_ISW,1:NDIUPT)
-     &    + DIURNSUMc(1,1:NDIUPT)
+      DO KR=1,NDIUPT
+        I = IJDD(1,KR)
+        J = IJDD(2,KR)
+        IF ((J >= J_0) .AND. (J <= J_1) .AND.
+     &      (I >= I_0) .AND. (I <= I_1)) THEN
+          ADIURN(IDD_ISW,KR,IH)=ADIURN(IDD_ISW,KR,IH)+S0*COSZ1(I,J)
 #ifndef NO_HDIURN
-      HDIURN(IHM,IDD_ISW,1:NDIUPT)=HDIURN(IHM,IDD_ISW,1:NDIUPT)
-     &    + DIURNSUMc(1,1:NDIUPT)
+          HDIURN(IDD_ISW,KR,IHM)=HDIURN(IDD_ISW,KR,IHM)+S0*COSZ1(I,J)
 #endif
+        ENDIF
+      ENDDO
 
       RETURN
       END SUBROUTINE RADIA

@@ -170,13 +170,15 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       CHARACTER*4, DIMENSION(NDIUPT), public :: NAMDD
 
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
-      REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT), public :: ADIURN
+      REAL*8, DIMENSION(NDIUVAR,NDIUPT,HR_IN_DAY), public :: ADIURN
+     &     ,ADIURN_loc
 !@param HR_IN_MONTH hours in month
       INTEGER, PARAMETER, public :: HR_IN_MONTH=HR_IN_DAY*31
 #ifndef NO_HDIURN
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
-      REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR,NDIUPT), public :: HDIURN
+      REAL*8, DIMENSION(NDIUVAR,NDIUPT,HR_IN_MONTH), public :: HDIURN
+     &     ,HDIURN_loc
 #endif
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
@@ -279,6 +281,8 @@ C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****   9  MIN COMPOSITE TS FOR CURRENT DAY (K)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TDIURN
+      ! REAL*8 :: TDIURN_glob(IM, JM, KTD)
+      REAL*8,allocatable, public :: TDIURN_glob(:,:,:)
 
 !@nlparam KDIAG array of flags to control diagnostics printout
       INTEGER, DIMENSION(13), public :: KDIAG
@@ -322,6 +326,8 @@ C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
       INTEGER, PARAMETER, public :: KOA = 13
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: OA
+      ! REAL*8 :: OA_glob    (IM, JM, KOA)
+      REAL*8,allocatable, public :: OA_glob(:,:,:)
 
 C****
 C**** Information about acc-arrays:
@@ -758,7 +764,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG
       USE DIAG_COM, ONLY : AJ,AREGJ,JREG,APJ,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK
-     *     ,TSFREZ
+     *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
 
       IMPLICIT NONE
       INTEGER :: IER
@@ -783,6 +789,9 @@ c     ALLOCATE( ! JREG(IM, JM))
       ALLOCATE( AIJK(IM,JM,LM,KAIJK),
      &         STAT = IER)
 
+      allocate ( TDIURN_glob(IM, JM, KTD)
+     *     ,OA_glob(IM, JM, KOA))
+
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM_glob
 
@@ -793,7 +802,7 @@ c     ALLOCATE( ! JREG(IM, JM))
       USE DOMAIN_DECOMP, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : AJ,AREGJ,JREG,APJ,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK
-     *     ,TSFREZ
+     *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
 
       IMPLICIT NONE
 
@@ -801,6 +810,8 @@ c     ALLOCATE( ! JREG(IM, JM))
 
 c     DEALLOCATE( ! JREG)
       DEALLOCATE( AJ,AREGJ,APJ,AJL,ASJL,AIJ,CONSRV,AJK, AIJK,TSFREZ )
+
+      deallocate(TDIURN_glob,OA_glob)
 
       RETURN
       END SUBROUTINE DEALLOC_DIAG_COM_glob
@@ -828,14 +839,14 @@ c     DEALLOCATE( ! JREG)
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
 #ifndef NO_HDIURN
-     *     + HR_IN_MONTH*NDIUVAR*NDIUPT
+     *     + NDIUVAR*NDIUPT*HR_IN_MONTH
 #endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       ! REAL*4 AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ),APJ4(JM,KAPJ)
       ! REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
       ! REAL*4 AIL4(IM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
       ! REAL*4 CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
-      ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(HR_IN_DAY,NDIUVAR,NDIUPT)
+      ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
       ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
       ! REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
       ! REAL*4 AISCCP4(ntau,npres,nisccp)
@@ -845,7 +856,7 @@ c     DEALLOCATE( ! JREG)
       REAL*4,allocatable, dimension(:,:) :: APJ4,ENERGY4,CONSRV4,ATPE4
       REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4, AFLX4
 #ifndef NO_HDIURN
-      ! REAL*4 HDIURN4(HR_IN_MONTH,NDIUVAR,NDIUPT)
+      ! REAL*4 HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH)
       REAL*4,allocatable ::  HDIURN4(:,:,:)
 #endif
       integer monac1(12),i_ida,i_xtra,it_check
@@ -864,9 +875,6 @@ c     DEALLOCATE( ! JREG)
       ! REAL*8 :: AFLX_ST_GLOB(LM+LM_REQ+1,IM,JM,5)
       REAL*8,allocatable :: AFLX_ST_GLOB(:,:,:,:)
 
-      ! REAL*8 :: TDIURN_glob(IM, JM, KTD)
-      ! REAL*8 :: OA_glob    (IM, JM, KOA)
-      REAL*8,allocatable :: TDIURN_glob(:,:,:), OA_glob(:,:,:)
       INTEGER :: J_0, J_1
 
       CALL GET( grid, J_STRT=J_0, J_STOP=J_1  )
@@ -942,8 +950,6 @@ C**** The regular model (Kradia le 0)
       i_xtra = i_ida+9 + 5+8+1 + 1
 
       call alloc_diag_com_glob
-      if (AM_I_ROOT()) allocate ( TDIURN_glob(IM, JM, KTD)
-     *                           ,OA_glob(IM, JM, KOA))
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
@@ -1075,12 +1081,10 @@ C**** The regular model (Kradia le 0)
       END SELECT
 
       call dealloc_diag_com_glob
-      if ( am_i_root() ) deallocate(TDIURN_glob, OA_glob)
       RETURN
 
  10   IOERR=1
       call dealloc_diag_com_glob
-      if ( am_i_root() ) deallocate(TDIURN_glob, OA_glob)
       RETURN
 
       Contains
@@ -1093,11 +1097,11 @@ C**** The regular model (Kradia le 0)
         CALL ESMF_BCAST(grid, ENERGY)
         CALL ESMF_BCAST(grid, SPECA )
         CALL ESMF_BCAST(grid, ATPE  )
-        CALL ESMF_BCAST(grid, ADIURN)
+c        CALL ESMF_BCAST(grid, ADIURN)
         CALL ESMF_BCAST(grid, WAVE  )
         CALL ESMF_BCAST(grid, AISCCP)
 #ifndef NO_HDIURN
-        CALL ESMF_BCAST(grid, HDIURN)
+c        CALL ESMF_BCAST(grid, HDIURN)
 #endif
         CALL ESMF_BCAST(grid, it    )
       End Subroutine BCAST_Scalars
@@ -1117,34 +1121,19 @@ C**** The regular model (Kradia le 0)
         CALL UNPACK_DATA(grid,  OA_glob,     OA)
       End Subroutine Scatter_Diagnostics
 
-      Subroutine Gather_Diagnostics()
-        CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
-        CALL PACK_DATAj(grid, AJ_loc,     AJ)
-        CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
-        CALL PACK_DATAj(grid, APJ_loc,    APJ)
-        CALL PACK_DATAj(grid, AJL_loc,    AJL)
-        CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
-        CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
-        CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
-        CALL PACK_DATAj(grid, AJK_loc,    AJK)
-        CALL PACK_DATA(grid,  AIJK_loc,   AIJK)
-        CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
-        CALL PACK_DATA(grid,  OA, OA_glob)
-      End Subroutine Gather_Diagnostics
-
       Subroutine alloc_diag_r4
         allocate (AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ),APJ4(JM,KAPJ))
         allocate (AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL))
         allocate (AIJ4(IM,JM,KAIJ))
         allocate (AIL4(IM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS))
         allocate (CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER))
-        allocate (ATPE4(KTPE,NHEMI),ADIURN4(HR_IN_DAY,NDIUVAR,NDIUPT))
+        allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
         allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
         allocate (AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK))
         allocate (AISCCP4(ntau,npres,nisccp))
         allocate (TSFREZ4(IM,JM,KTSF))
 #ifndef NO_HDIURN
-        allocate (HDIURN4(HR_IN_MONTH,NDIUVAR,NDIUPT))
+        allocate (HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH))
 #endif
       End Subroutine alloc_diag_r4
 
@@ -1159,6 +1148,28 @@ C**** The regular model (Kradia le 0)
 
 
       END SUBROUTINE io_diags
+
+      Subroutine Gather_Diagnostics()
+      use domain_decomp, only : grid,pack_data,pack_dataj,sumxpe
+      use diag_com
+      implicit none
+      CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
+      CALL PACK_DATAj(grid, AJ_loc,     AJ)
+      CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
+      CALL PACK_DATAj(grid, APJ_loc,    APJ)
+      CALL PACK_DATAj(grid, AJL_loc,    AJL)
+      CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
+      CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
+      CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
+      CALL PACK_DATAj(grid, AJK_loc,    AJK)
+      CALL PACK_DATA(grid,  AIJK_loc,   AIJK)
+      CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
+      CALL PACK_DATA(grid,  OA, OA_glob)
+      CALL SUMXPE(ADIURN_loc, ADIURN, increment=.true.)
+      CALL SUMXPE(HDIURN_loc, HDIURN, increment=.true.)
+      ADIURN_loc=0; HDIURN_loc=0
+      return
+      End Subroutine Gather_Diagnostics
 
       SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)
 !@sum  aPERIOD finds a 7 or 12-character name for an accumulation period

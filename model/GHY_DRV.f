@@ -754,10 +754,7 @@ c****
       use snow_drvm, only : snow_cover_same_as_rad
 
       use diag_com , only : HR_IN_DAY,HR_IN_MONTH,NDIUVAR
-     &     ,adiurn,NDIUPT,adiurn_dust
-#ifndef NO_HDIURN
-     &     ,hdiurn
-#endif
+     &     ,NDIUPT,adiurn_dust,ijdd
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
      &     ghy_tracers_save_cell
@@ -830,38 +827,12 @@ c**** input/output for PBL
 #endif
       real*8 qg_sat,ts,qs
 
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: adiurn_part
-#ifndef NO_HDIURN
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: hdiurn_part
-#endif
-      REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: adiurn_temp
-#ifndef NO_HDIURN
-      REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: hdiurn_temp
-#endif
-      REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM
-#ifndef NO_HDIURN
-     *     ,HDIURNSUM
-#endif
       INTEGER :: idx(n_idx)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: adiurn_tempd
-#ifndef NO_HDIURN
-      REAL*8, DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: hdiurn_tempd
-#endif
-      REAL*8, DIMENSION(n_idxd, NDIUPT) :: ADIURNSUMd
-#ifndef NO_HDIURN
-     *     ,HDIURNSUMd
-#endif
       INTEGER :: idxd(n_idxd)
 #endif
-      INTEGER :: ih, ihm, ii, ivar, kr
+      INTEGER :: ii, ivar, kr
 #ifdef TRACERS_DUST
       INTEGER :: n,n1
 #endif
@@ -907,11 +878,6 @@ c****
 C**** halo update u and v for distributed parallelization
        call halo_update(grid, U, from=NORTH)
        call halo_update(grid, V, from=NORTH)
-
-       adiurn_part = 0
-#ifndef NO_HDIURN
-       hdiurn_part = 0
-#endif
 
        idx =
      &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg,
@@ -1292,11 +1258,7 @@ c****
       call ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,pbl_args, pbl_args%dtsurf
-     &     ,adiurn_part
      &     ,idx
-#ifndef NO_HDIURN
-     &     ,hdiurn_part
-#endif
 #ifdef TRACERS_DUST
      &     ,n,n1
 #endif
@@ -1305,6 +1267,26 @@ c****
      &     ,idxd
 #endif
      &     )
+
+c      if ( moddd == 0 ) then
+c        do kr=1,ndiupt
+c          if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
+c            ADIURN(idx(:),kr,ih)=ADIURN(idx(:),kr,ih) + tmp(idx(:))
+c#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+c    (defined TRACERS_QUARZHEM)
+c            ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih) + tmp(idxd(:))
+c#endif
+c
+c#ifndef NO_HDIURN
+c            HDIURN(idx(:),kr,ihm)=HDIURN(idx(:),kr,ihm)+tmp(idx(:))
+c#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+c    (defined TRACERS_QUARZHEM)
+c            HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
+c#endif
+c#endif
+c          endif
+c        enddo
+c      endif
 
 c**** update tracers
 #ifdef TRACERS_ON
@@ -1349,75 +1331,6 @@ c another surface type
       call compute_water_deficit
 #endif
 
-! Accumulate contributions to ADIURN and HDIURN
-      ih=1+jhour
-      ihm = ih+(jdate-1)*24
-
-
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX
-          ivar = idx(ii)
-          ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
-#ifndef NO_HDIURN
-          HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
-#endif
-        END DO
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        IF (adiurn_dust == 1) THEN
-          DO ii=1,n_idxd
-            ivar=idxd(ii)
-            ADIURN_tempd(ii,:,kr)=ADIURN_part(:,ivar,kr)
-#ifndef NO_HDIURN
-            HDIURN_tempd(ii,:,kr)=HDIURN_part(:,ivar,kr)
-#endif
-          END DO
-        END IF
-#endif
-      END DO
-      CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX,:,1:ndiupt),
-     &    ADIURNSUM(1:N_IDX,1:ndiupt))
-#ifndef NO_HDIURN
-      CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX,:,1:ndiupt),
-     &    HDIURNSUM(1:N_IDX,1:ndiupt))
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      IF (adiurn_dust == 1) THEN
-        CALL GLOBALSUM(grid,ADIURN_tempd(1:n_idxd,:,1:ndiupt),
-     &       ADIURNSUMd(1:n_idxd,1:ndiupt))
-#ifndef NO_HDIURN
-        CALL GLOBALSUM(grid,HDIURN_tempd(1:n_idxd,:,1:ndiupt),
-     &       HDIURNSUMd(1:n_idxd,1:ndiupt))
-#endif
-      END IF
-#endif
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX
-          ivar = idx(ii)
-          IF (AM_I_ROOT()) THEN
-            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
-#ifndef NO_HDIURN
-            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
-#endif
-          END IF
-        END DO
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        IF (adiurn_dust == 1) THEN
-          DO ii=1,n_idxd
-            ivar=idxd(ii)
-            IF (AM_I_ROOT()) THEN
-              ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr)+ADIURNSUMd(ii,kr)
-#ifndef NO_HDIURN
-              HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr)+HDIURNSUMd(ii,kr)
-#endif
-            END IF
-          END DO
-        END IF
-#endif
-      END DO
-C
       return
       end subroutine earth
 
@@ -1430,10 +1343,7 @@ c***********************************************************************
 
       subroutine ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg, pbl_args, dtsurf
-     &     ,adiurn_part,idx
-#ifndef NO_HDIURN
-     &     ,hdiurn_part
-#endif
+     &     ,idx
 #ifdef TRACERS_DUST
      &     ,n,n1
 #endif
@@ -1443,7 +1353,10 @@ c***********************************************************************
 #endif
      &     )
 
-      use diag_com , only : aij=>aij_loc
+      use diag_com , only : aij=>aij_loc,adiurn=>adiurn_loc
+#ifndef NO_HDIURN
+     &     ,hdiurn=>hdiurn_loc
+#endif
      *     ,tsfrez=>tsfrez_loc,tdiurn,jreg
      *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
@@ -1516,12 +1429,6 @@ c***********************************************************************
       real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg
       type (t_pbl_args) :: pbl_args
       real*8, intent(in) :: dtsurf
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: adiurn_part
-#ifndef NO_HDIURN
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: hdiurn_part
-#endif
       INTEGER, INTENT(IN) :: idx(:)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1532,7 +1439,7 @@ c***********************************************************************
       real*8 trhdt,tg1,shdt,ptype,srheat,srhdt
       real*8 warmer,spring,trheat,evhdt
       integer, parameter :: itype=4
-      integer :: kr,jr
+      integer :: kr,jr,ih,ihm
 #ifdef TRACERS_DUST
       INTEGER :: n,n1
 #endif
@@ -1563,6 +1470,8 @@ ccc the following values are returned by PBL
       timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
       if(jday.le.31) timez=timez+365.
 
+      ih=1+jhour
+      ihm = ih+(jdate-1)*24
 
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
@@ -1744,13 +1653,6 @@ c**** quantities accumulated hourly for diagDD
             tmp(idd_dbl)=+dbl*ptype
             tmp(idd_ev)=+aevap*ptype
 
-            ADIURN_part(J,idx(:),kr)=ADIURN_part(J,idx(:),kr) +
-     *           tmp(idx(:))
-#ifndef NO_HDIURN
-            HDIURN_part(J,idx(:),kr)=HDIURN_part(J,idx(:),kr) +
-     *           tmp(idx(:))
-#endif
-
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
             IF (adiurn_dust == 1) THEN
@@ -1809,13 +1711,21 @@ c**** quantities accumulated hourly for diagDD
      *             /(pbl_args%gm(1:npbl-1)+1d-20)
 #endif
 
-              ADIURN_part(J,idxd(:),kr)=ADIURN_part(J,idxd(:),kr) +
-     *             tmp(idxd(:))
-#ifndef NO_HDIURN
-              HDIURN_part(J,idxd(:),kr)=HDIURN_part(J,idxd(:),kr) +
-     *             tmp(idxd(:))
-#endif
             END IF
+#endif
+
+            ADIURN(idx(:),kr,ih)=ADIURN(idx(:),kr,ih) + tmp(idx(:))
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+            ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih) + tmp(idxd(:))
+#endif
+
+#ifndef NO_HDIURN
+            HDIURN(idx(:),kr,ihm)=HDIURN(idx(:),kr,ihm)+tmp(idx(:))
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+            HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
+#endif
 #endif
           end if
         end do
@@ -3980,8 +3890,9 @@ cddd      sinday=sin(twopi/edpery*jday)
       real*8 dtr_soil(ntm),dtr_lake(ntm),dtr(ntm),tr_per_m3(ntm)
 #endif
       real*8 tmp_before(0:ngm), tmp_after(0:ngm)
-      real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     w_before_j, w_after_j
+c      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+c     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+c     &     w_before_j, w_after_j
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     fearth_old

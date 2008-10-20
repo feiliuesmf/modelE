@@ -53,7 +53,7 @@ C****
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args
       USE DIAG_COM, only : oa,aij=>aij_loc
-     *     ,tdiurn,adiurn,ndiupt,jreg
+     *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc
@@ -67,7 +67,7 @@ C****
      *     ,ij_gusti,ij_mccon,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh
      *     ,adiurn_dust
 #ifndef NO_HDIURN
-     *     ,hdiurn
+     *     ,hdiurn=>hdiurn_loc
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -207,17 +207,6 @@ C**** some shorthand indices and arrays for diurn diags
 #endif
 #endif
 
-      REAL*8, DIMENSION(n_idx4,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: diurn_part
-      REAL*8,
-     &     DIMENSION(n_idx3,grid%J_STRT_HALO:grid%J_STOP_HALO,NDIUPT)::
-     &     diurn_partb
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      REAL*8,
-     &     DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,NDIUPT) ::
-     &     diurn_partd
-#endif
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
       INTEGER :: idx4(n_idx1+n_idx2)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -225,12 +214,6 @@ C**** some shorthand indices and arrays for diurn diags
       INTEGER :: idxd(n_idxd)
 #endif
       REAL*8 :: tmp(NDIUVAR)
-      REAL*8, DIMENSION(n_idx4, NDIUPT) :: DIURNSUM
-      REAL*8, DIMENSION(n_idx3, NDIUPT) :: DIURNSUMb
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      REAL*8,DIMENSION(n_idxd, NDIUPT) :: DIURNSUMd
-#endif
 C****
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
 
@@ -338,12 +321,6 @@ C**** Set up tracers for PBL calculation if required
       ntx = nx
 #endif
 
-      diurn_part=0
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      if (adiurn_dust == 1) diurn_partd=0.D0
-#endif
-
       Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
@@ -432,8 +409,10 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                tmp(IDD_PT5+ii-1)=PSK*T(I,J,ii)
                tmp(IDD_Q5+ii-1) =Q(I,J,ii)
              end do
-             DIURN_part(1:n_idx1,J,kr)=DIURN_part(1:n_idx1,J,kr)+
-     &            tmp(idx1(:))
+             ADIURN(idx1(:),kr,ih)=ADIURN(idx1(:),kr,ih)+tmp(idx1(:))
+#ifndef NO_HDIURN
+             HDIURN(idx1(:),kr,ihm)=HDIURN(idx1(:),kr,ihm)+tmp(idx1(:))
+#endif
            END IF
          END DO
          END IF
@@ -1175,8 +1154,10 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               tmp(IDD_DBL)=pbl_args%DBL*PTYPE
               tmp(IDD_EV)=EVAP*PTYPE
 
-              DIURN_part(n_idx1+1:n_idx4,J,kr)=
-     &             DIURN_part(n_idx1+1:n_idx4,J,kr)+tmp(idx2(:))
+              ADIURN(idx2(:),kr,ih)=ADIURN(idx2(:),kr,ih)+tmp(idx2(:))
+#ifndef NO_HDIURN
+             HDIURN(idx2(:),kr,ihm)=HDIURN(idx2(:),kr,ihm)+tmp(idx2(:))
+#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1225,7 +1206,11 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
      *               /(pbl_args%gm(1:npbl-1)+1d-20)
 #endif
-                DIURN_partd(:,J,kr)=DIURN_partd(:,J,kr)+tmp(idxd(:))
+                ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih)+tmp(idxd(:))
+#ifndef NO_HDIURN
+                HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+
+     &               tmp(idxd(:))
+#endif
               END IF
 #endif
             END IF
@@ -1324,30 +1309,6 @@ C****
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
 
-      CALL GLOBALSUM(grid, DIURN_part, DIURNSUM)
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      IF (adiurn_dust == 1)
-     &   CALL globalsum(grid,diurn_partd,diurnsumd)
-#endif
-
-      IF (AM_I_ROOT()) THEN
-         ADIURN(ih,idx4,:)=ADIURN(ih,idx4,:)   + DIURNSUM
-#ifndef NO_HDIURN
-         HDIURN(ihm,idx4,:)=HDIURN(ihm,idx4,:) + DIURNSUM
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-         IF (adiurn_dust == 1) THEN
-           adiurn(ih,idxd,:)=adiurn(ih,idxd,:)+diurnsumd
-#ifndef NO_HDIURN
-           hdiurn(ihm,idxd,:)=hdiurn(ihm,idxd,:)+diurnsumd
-#endif
-         END IF
-#endif
-      END IF
-
 
 C****
 C**** dynamic vegetation time step
@@ -1419,31 +1380,23 @@ C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****
       IF(MODDD.EQ.0) THEN
-        DIURN_partb = 0
-
         DO KR=1,NDIUPT
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
 C**** For distributed implementation - ensure point is on local process.
-
           I = IJDD(1,KR)
           J = IJDD(2,KR)
-          IF ((J >= J_0) .AND. (J <= J_1)) THEN
+          IF ((J >= J_0) .AND. (J <= J_1) .AND.
+     &        (I >= I_0) .AND. (I <= I_1)) THEN
             IF(DCLEV(I,J).GT.1.) THEN
               tmp(1)=1.
               tmp(2)=DCLEV(I,J)
-              DIURN_partb(:,J,KR)=DIURN_partb(:,J,KR)+tmp(1:2)
+              ADIURN(idx3(:),kr,ih)=ADIURN(idx3(:),kr,ih)+tmp(1:2)
+#ifndef NO_HDIURN
+              HDIURN(idx3(:),kr,ihm)=HDIURN(idx3(:),kr,ihm)+tmp(1:2)
+#endif
             END IF
           END IF
        END DO
-
-       CALL GLOBALSUM(grid,  DIURN_partb, DIURNSUMb)
-
-       IF (AM_I_ROOT()) THEN
-          ADIURN(ih,idx3,:)=ADIURN(ih,idx3,:)   + DIURNSUMb
-#ifndef NO_HDIURN
-          HDIURN(ihm,idx3,:)=HDIURN(ihm,idx3,:) + DIURNSUMb
-#endif
-       END IF
 
       END IF
 C****

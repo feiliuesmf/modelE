@@ -967,11 +967,6 @@ C****
       REAL*8, DIMENSION(IM) :: PSEC,X1,X1tmp
       REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH,P00,AML,PDSIGL,PMIDL
       REAL*8, DIMENSION(LM+1) :: PEDNL
-c      REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),
-c     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ADIURN_part
-c      REAL*8, DIMENSION(size(hdiurn,1),size(hdiurn,3),
-c     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: HDIURN_part
-c      REAL*8 :: ADIURNSUM,HDIURNSUM
 
       INTEGER ::
      &     I,IH,IHM,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
@@ -1427,9 +1422,9 @@ C**** ACCUMULATE ALL VERTICAL WINDS
 !!          IHM = IH+(JDATE-1)*24
 !!          DO INCH=1,NDAA
 !!            IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
-!!            ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+1.E5*W(I,J,3)
+!!            ADIURN(IDD_W,KR,IH)=ADIURN(IDD_W,KR,IH)+1.E5*W(I,J,3)
 !!   *             /DXYP(J)
-!!            HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+1.E5*W(I,J,3)
+!!            HDIURN(IDD_W,KR,IHM)=HDIURN(IDD_W,KR,IHM)+1.E5*W(I,J,3)
 !!   *             /DXYP(J)
 !!            IH=IH+1
 !!            IHM=IHM+1
@@ -3637,9 +3632,10 @@ c**** fix polar values
       USE DYNAMICS, only : phi,wsave,pek,byam
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
-      USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,ijdd,adiurn
+      USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,ijdd
+     &     ,adiurn=>adiurn_loc
 #ifndef NO_HDIURN
-     &     ,hdiurn
+     &     ,hdiurn=>hdiurn_loc
 #endif
 #ifdef TRACERS_DUST
      *     ,idd_u1,idd_v1,idd_uv1,idd_t1,idd_qq1,idd_p1,idd_w1,idd_phi1
@@ -3659,9 +3655,6 @@ c**** fix polar values
       INTEGER,PARAMETER :: lmax_dd2=11, n_idxd=14*lmax_dd2
       INTEGER :: idxd(n_idxd)
       REAL*8 :: tmp(NDIUVAR)
-      REAL*8,DIMENSION(n_idxd,grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUPT) :: diurn_partd
-      REAL*8,DIMENSION(n_idxd, NDIUPT) :: diurnsumd
 
 C****   define local grid
       INTEGER J_0, J_1, I_0, I_1
@@ -3675,8 +3668,6 @@ C****
 
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
-
-        diurn_partd=0.D0
 
         idxd=(/
      *       (idd_u1+i-1,i=1,lmax_dd2), (idd_v1+i-1,i=1,lmax_dd2),
@@ -3734,7 +3725,10 @@ C****
 
             END DO
 
-            DIURN_partd(:,J,kr)=DIURN_partd(:,J,kr)+tmp(idxd(:))
+            ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih)+tmp(idxd(:))
+#ifndef NO_HDIURN
+            HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
+#endif
 
           END IF
 #endif
@@ -3743,19 +3737,6 @@ C****
       enddo
       enddo
 !$OMP END PARALLEL DO
-
-#ifdef TRACERS_DUST
-      IF (adiurn_dust == 1) THEN
-        CALL globalsum(grid,diurn_partd,diurnsumd)
-
-        IF (AM_I_ROOT()) THEN
-          adiurn(ih,idxd,:)=adiurn(ih,idxd,:)+diurnsumd
-#ifndef NO_HDIURN
-          hdiurn(ihm,idxd,:)=hdiurn(ihm,idxd,:)+diurnsumd
-#endif
-        END IF
-      END IF
-#endif
 
       return
       end subroutine ahourly
@@ -3782,7 +3763,10 @@ C****
       USE DIAG_COM, only : TF_DAY1, TF_LAST, TF_LKON, TF_LKOFF
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
-      USE diag_com,ONLY : adiurn_dust
+      USE diag_com,ONLY : adiurn_dust,adiurn_loc
+#ifndef NO_HDIURN
+     &     ,hdiurn_loc
+#endif
       USE diag_com,only : lh_diags
       USE DIAG_LOC
       USE PARAM
@@ -4074,6 +4058,14 @@ C**** Initiallise ice freeze diagnostics at beginning of run
         END DO
         CALL daily_DIAG
       END IF
+
+c
+c zero out certain non-distributed arrays
+c
+      adiurn_loc = 0
+#ifndef NO_HDIURN
+      hdiurn_loc = 0
+#endif
 
       RETURN
       END SUBROUTINE init_DIAG
