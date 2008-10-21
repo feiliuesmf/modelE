@@ -154,7 +154,8 @@ c**** check whether ground hydrology data exist at this point.
       use constant, only : twopi,one
       use param
       use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
-      use model_com, only : jeq,focean
+      use model_com, only : focean
+      use geom, only : lat2d
       use veg_com !, only : vdata,Cint,Qfol
       use ghy_com, only : ngm,fearth
       use ghy_com, only : dz_ij
@@ -313,7 +314,7 @@ c**** calculate lai, cs coefficicents
           do iv=1,11
             if ( iv==9 .or. iv==10 ) cycle
             phase=twopi*laday(iv)/365.
-            if(j.lt.jeq) phase=phase+twopi/2.
+            if(lat2d(i,j).lt.0.) phase=phase+twopi/2.
             fv=vdata(i,j,iv+1)
             sfv=sfv+fv
             svh=svh+fv*vhght(iv)

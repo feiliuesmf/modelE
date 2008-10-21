@@ -705,7 +705,7 @@ c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx,gasc,stbo
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,jdate
-     *     ,jday,jhour,nday,itime,jeq,u,v
+     *     ,jday,jhour,nday,itime,u,v
      *     ,im,jm
      &     ,Jyear,Jmon,Jday,Jdate,Jhour
 #ifdef SCM
@@ -1385,7 +1385,7 @@ c***********************************************************************
      &     ,grav
 #endif
       use model_com, only : dtsrc,nisurf,jdate
-     *     ,jday,jhour,nday,itime,jeq,modrd,itearth
+     *     ,jday,jhour,nday,itime,modrd,itearth
 #ifdef SCM
      &     ,I_TARG,J_TARG
 #endif
@@ -1394,7 +1394,7 @@ c***********************************************************************
       use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt
 #endif
       use DOMAIN_DECOMP, only : grid
-      use geom, only : axyp
+      use geom, only : axyp,lat2d
       use rad_com, only : trhr,fsf, cosz1
 
       use sle001, only :
@@ -1476,7 +1476,7 @@ ccc the following values are returned by PBL
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
 
-      if(j.lt.jeq)  then
+      if(lat2d(i,j).lt.0.)  then
          warmer=-spring
        else
          warmer=spring
@@ -1782,7 +1782,7 @@ c**** modifications needed for split of bare soils into 2 types
       use DOMAIN_DECOMP, only : GET,READT_PARALLEL, DREAD_PARALLEL
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
       use DOMAIN_DECOMP, only : GLOBALSUM
-      use model_com, only : fearth0,itime,nday,jeq,jyear,fland,flice
+      use model_com, only : fearth0,itime,nday,jyear,fland,flice
      &     ,focean
       use lakes_com, only : flake
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
