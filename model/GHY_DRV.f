@@ -718,7 +718,7 @@ c****
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
       use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
-      use geom, only : imaxj
+      use geom, only : imaxj,lat2d
       use dynamics, only : pmid,pk,pek,pedn,am
       use rad_com, only : trhr,fsf, cosz1,trsurf
 #ifdef USE_ENT
@@ -875,9 +875,6 @@ ccc set i,j - independent stuff for tracers
 c****
 c**** outside loop over j and i, executed once for each grid point
 c****
-C**** halo update u and v for distributed parallelization
-       call halo_update(grid, U, from=NORTH)
-       call halo_update(grid, V, from=NORTH)
 
        idx =
      &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg,
@@ -936,8 +933,7 @@ c**** conditions at the south/north pole
       loop_i: do i=I_0,imaxj(j)
 
       pbl_args%dtsurf=dtsrc/nisurf
-      pbl_args%hemi=1.
-      if(j.le.jm/2) pbl_args%hemi=-1.
+      pbl_args%hemi = sign(1d0,lat2d(i,j))
       pbl_args%pole= ( j.eq.1 .or. j.eq.jm )
 
 c****

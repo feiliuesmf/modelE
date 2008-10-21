@@ -23,7 +23,7 @@ C****
       USE DOMAIN_DECOMP, only : NORTH
       USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp,idjj,idij,rapj,kmaxj,sinip
-     *     ,cosip
+     *     ,cosip,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
@@ -324,8 +324,8 @@ C**** Set up tracers for PBL calculation if required
       Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
-      Call HALO_UPDATE(GRID,u,FROM=SOUTH+NORTH)
-      Call HALO_UPDATE(GRID,v,FROM=SOUTH+NORTH)
+
+      call recalc_agrid_uv
 
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
@@ -658,7 +658,7 @@ C =====================================================================
       pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*MA1/PMID(1,I,J)
       pbl_args%qg_sat = qg_sat
       pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
-      pbl_args%hemi = hemi
+      pbl_args%hemi = sign(1d0,lat2d(i,j))
       pbl_args%pole = pole
       pbl_args%evap_max = 1.
       pbl_args%fr_sat = 1. ! entire surface is saturated

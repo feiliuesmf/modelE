@@ -24,9 +24,10 @@
 #ifdef SCM
      &                      ,I_TARG,J_TARG
 #endif
-      USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinlat2d
+      USE GEOM, only : sinlat2d
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
+     &    ,ua=>ualij,va=>valij
       USE CLOUDS_COM, only : ddm1
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
 #ifdef TRACERS_ON
@@ -215,34 +216,10 @@ c     ENDIF
       coriol=sinlat2d(i,j)*omega2
       qtop=q(i,j,1)
 
-      utop=0. ; vtop=0. ;  ug=0. ; vg=0.
-      ! pole and hemi are determined before pbl is called
-      if (pole) then
-        do k=1,kmaxj(j)
-          utop = utop + rapj(k,j)*(u(idij(k,i,j),idjj(k,j),1)*cosiv(k) -
-     2                        hemi*v(idij(k,i,j),idjj(k,j),1)*siniv(k))
-          vtop = vtop + rapj(k,j)*(v(idij(k,i,j),idjj(k,j),1)*cosiv(k) +
-     2                        hemi*u(idij(k,i,j),idjj(k,j),1)*siniv(k))
-          ug   = ug   + rapj(k,j)*(u(idij(k,i,j),idjj(k,j),L)*cosiv(k) -
-     2                        hemi*v(idij(k,i,j),idjj(k,j),L)*siniv(k))
-          vg   = vg   + rapj(k,j)*(v(idij(k,i,j),idjj(k,j),L)*cosiv(k) +
-     2                        hemi*u(idij(k,i,j),idjj(k,j),L)*siniv(k))
-        end do
-      else
-#ifndef SCM
-        do k=1,kmaxj(j)
-          utop = utop + u(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
-          vtop = vtop + v(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
-          ug   = ug   + u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
-          vg   = vg   + v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
-        end do
-#else
-       utop = u(i,j,1)
-       vtop = v(i,j,1)
-       ug = utop
-       vg = vtop
-#endif
-      endif
+      utop = ua(1,i,j)
+      vtop = va(1,i,j)
+      ug   = ua(L,i,j)
+      vg   = va(L,i,j)
 
       upbl(:)=uabl(:,itype,i,j)
       vpbl(:)=vabl(:,itype,i,j)
@@ -401,7 +378,7 @@ c -------------------------------------------------------------
       USE PARAM
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
-      USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinlat2d
+      USE GEOM, only : imaxj,sinlat2d
 !      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
 !     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
 
@@ -413,6 +390,7 @@ c -------------------------------------------------------------
       USE DOMAIN_DECOMP, only : READT_PARALLEL
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
+     &    ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi,snowi
       USE FLUXES, only : gtemp
 
@@ -514,9 +492,9 @@ C**** fix roughness length for ocean ice that turned to land ice
         else
           elhx=lhs
         endif
-C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
-        call HALO_UPDATE(grid, u, from=NORTH)
-        call HALO_UPDATE(grid, v, from=NORTH)
+
+        call recalc_agrid_uv ! is this the best place for this call?
+
         do j=J_0,J_1
           jlat=j
           do i=I_0,imaxj(j)
@@ -532,42 +510,8 @@ C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION
             psk=pek(1,i,j)    !expbyk(ps)
             qgrnd=qsat(tgrndv,elhx,ps)
 
-            utop = 0. ;  vtop = 0.
-            if (j.eq.1) then
-c ******************************************************************
-c           At the south pole:
-              do k=1,kmaxj(j)
-                utop = utop + (u(idij(k,i,j),idjj(k,j),1)*cosiv(k) +
-     2                    v(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
-                vtop = vtop + (v(idij(k,i,j),idjj(k,j),1)*cosiv(k) -
-     2                    u(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
-              end do
-c ******************************************************************
-
-            else if (j.eq.jm) then
-c ******************************************************************
-c     At the north pole:
-              do k=1,kmaxj(j)
-                utop = utop + (u(idij(k,i,j),idjj(k,j),1)*cosiv(k) -
-     2                    v(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
-                vtop = vtop + (v(idij(k,i,j),idjj(k,j),1)*cosiv(k) +
-     2                    u(idij(k,i,j),idjj(k,j),1)*siniv(k))*rapj(k,j)
-              end do
-c ******************************************************************
-
-            else
-c ******************************************************************
-c     Away from the poles:
-#ifndef SCM
-              do k=1,kmaxj(j)
-                utop = utop + u(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
-                vtop = vtop + v(idij(k,i,j),idjj(k,j),1)*rapj(k,j)
-              end do
-#endif
-c ******************************************************************
-            endif
-
-
+            utop = ua(1,i,j)
+            vtop = va(1,i,j)
             qtop=q(i,j,1)
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
 

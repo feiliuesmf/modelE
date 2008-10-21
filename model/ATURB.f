@@ -27,6 +27,7 @@ cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,byaxyp,axyp
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,pmid
+     &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
       USE DOMAIN_DECOMP, ONLY : halo_update_column
       USE DOMAIN_DECOMP, ONLY : halo_update
@@ -62,7 +63,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       real*8, dimension(lm,grid%i_strt_halo:grid%i_stop_halo,
      &                     grid%j_strt_halo:grid%j_stop_halo) ::
      &     u_3d_old,rho_3d,rhoe_3d,dz_3d
-     &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
+     &    ,dze_3d,t_3d_virtual,km_3d,km_3d_bgrid
      &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
      &    ,wt_3d,v_3d_old
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
@@ -141,7 +142,7 @@ C****
 
       ! get u_3d_agrid and v_3d_agrid
 #ifndef SCM
-      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
+c      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
 #else
       do j=J_0,J_1
          do i=1,imaxj(j)
@@ -966,131 +967,6 @@ C****
 
       return
       end subroutine de_solver_edge
-
-      subroutine ave_uv_to_agrid(u,v,u_a,v_a,lm)
-!@sum Computes u_a,v_a from u and v
-!@var u x-component at secondary grids (B_grid)
-!@var v y-component at secondary grids (B_grid)
-!@var u_a x-component at primary grids (A_grid)
-!@var v_a y-component at primary grids (A_grid)
-!@auth Ye Cheng
-!@ver  1.0
-
-      USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : grid,get,NORTH, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP, only : halo_update
-      USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
-      implicit none
-
-      integer, intent(in) :: lm
-      real*8, dimension(im, grid%j_strt_halo:grid%j_stop_halo,lm),
-     &                  intent(inout) ::  u,v
-      real*8, dimension(lm,im, grid%j_strt_halo:grid%j_stop_halo),
-     &                  intent(out) :: u_a,v_a
-
-      real*8, dimension(im) :: ra
-      integer, dimension(im) :: idj
-      real*8 :: HEMI,u_t,v_t,rak,ck,sk,uk,vk
-      integer :: i,j,l,k,idik,idjk,kmax
-
-      integer :: J_0S,J_1S
-      logical :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
-
-      call get(grid, J_STRT_SKP=J_0S,   J_STOP_SKP=J_1S,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
-!     polar boxes
-
-C**** Update halos of U and V
-      CALL HALO_UPDATE(grid,u, from=NORTH)
-      CALL HALO_UPDATE(grid,v, from=NORTH)
-
-
-      if (HAVE_SOUTH_POLE) then
-        J=1
-        KMAX=KMAXJ(J)
-        HEMI=-1.
-!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            u_t=0.d0; v_t=0.d0
-            DO K=1,KMAX
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJJ(K,J)
-              RAK=RAPJ(K,J)
-              ck=cosiv(k)
-              sk=siniv(k)
-              uk=u(idik,idjk,L)
-              vk=v(idik,idjk,L)
-              u_t=u_t+rak*(uk*ck-hemi*vk*sk)
-              v_t=v_t+rak*(vk*ck+hemi*uk*sk)
-            END DO
-            u_a(l,i,j)=u_t
-            v_a(l,i,j)=v_t
-          END DO
-        END DO
-!$OMP  END PARALLEL DO
-      end if              !south pole
-!
-      if (HAVE_NORTH_POLE) then
-        J=JM
-        KMAX=KMAXJ(J)
-        HEMI=1.
-!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            u_t=0.d0; v_t=0.d0
-            DO K=1,KMAX
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJJ(K,J)
-              RAK=RAPJ(K,J)
-              ck=cosiv(k)
-              sk=siniv(k)
-              uk=u(idik,idjk,L)
-              vk=v(idik,idjk,L)
-              u_t=u_t+rak*(uk*ck-hemi*vk*sk)
-              v_t=v_t+rak*(vk*ck+hemi*uk*sk)
-            END DO
-            u_a(l,i,j)=u_t
-            v_a(l,i,j)=v_t
-          END DO
-        END DO
-!$OMP  END PARALLEL DO
-      end if                !north pole
-
-!     non polar boxes
-C**** Update halos of u and v. (Needed bcs. IDJJ(3:4,J_1S)=J_1S+1)
-C     ---> done by calling routine...
-
-      CALL HALO_UPDATE(grid, u, FROM=NORTH)
-      CALL HALO_UPDATE(grid, v, FROM=NORTH)
-!$OMP  PARALLEL DO PRIVATE (J,I,L,u_t,v_t,K,KMAX,IDJ,RA,IDIK,IDJK,RAK)
-!$OMP*    SCHEDULE(DYNAMIC,2)
-      DO J=J_0S,J_1S
-        KMAX=KMAXJ(J)
-        DO K=1,KMAX
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAPJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            u_t=0.d0; v_t=0.d0
-            DO K=1,KMAX
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJ(K)
-              RAK=RA(K)
-              u_t=u_t+u(IDIK,IDJK,L)*RAK
-              v_t=v_t+v(IDIK,IDJK,L)*RAK
-            END DO
-            u_a(l,i,j)=u_t
-            v_a(l,i,j)=v_t
-          END DO
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
-C****
-      return
-      end subroutine ave_uv_to_agrid
 
       subroutine ave_uv_to_bgrid(u_a,v_a,u,v,lm)
 !@sum Computes u and v from u_a and v_a
