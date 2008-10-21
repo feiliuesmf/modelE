@@ -10,7 +10,7 @@
 #ifdef CLD_AER_CDNC
      *,kapa,mair,gasc
 #endif
-      USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
+      USE MODEL_COM, only : lm,dtsrc,itime,coupled_chem
 #ifdef CLD_AER_CDNC
      * ,ptop,psf,ls1,sig,sige
 #endif
@@ -114,10 +114,10 @@ C**** ISCCP diag related variables
 C**** input variables
       LOGICAL DEBUG
 !@var RA ratio of primary grid box to secondary gridbox
-      REAL*8, DIMENSION(IM) :: RA
+      REAL*8, DIMENSION(:), ALLOCATABLE :: RA !(KMAX) 
 !@var UM,VM,UM1,VM1,U_0,V_0 velocity related variables(UM,VM)=(U,V)*AIRM
-      REAL*8, DIMENSION(IM,LM) :: UM,VM,UM1,VM1
-      REAL*8, DIMENSION(IM,LM) :: U_0,V_0
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: UM,VM,UM1,VM1 !(KMAX,LM)
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: U_0,V_0       !(KMAX,LM)
 
 !@var Miscellaneous vertical arrays set in driver
 !@var PLE pressure at layer edge
@@ -326,7 +326,8 @@ CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
 CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
 CCOMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
-      COMMON/CLDPRV/RA,UM,VM,UM1,VM1,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
+CCOMP* RA,UM,VM,UM1,VM1,U_0,V_0 are no longer part of this COMMON block!
+      COMMON/CLDPRV/PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
      *  ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
      *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPIJ,DDMFLX,PLAND
@@ -373,7 +374,7 @@ C**** functions
 !@var DQSATDT dQSAT/dT
 
       REAL*8, DIMENSION(0:LM) :: CM     !@var CM air mass of subsidence
-      REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN
+      REAL*8, DIMENSION(KMAX) :: UMP,VMP,UMDN,VMDN
 !@var UMP, VMP momentum carried by convective plumes
 !@var UMDN,VMDN dummy variables
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
@@ -578,7 +579,7 @@ c     real*8,dimension(lm,nmodes)   :: naerc
 !@var IERR,LERR error reports from advection
       INTEGER, INTENT(OUT) :: IERR,LERR
 !@var DUM, DVM changes of UM,VM
-      REAL*8, DIMENSION(IM,LM) :: DUM,DVM
+      REAL*8, DIMENSION(KMAX,LM) :: DUM,DVM
 
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
 !@var BELOW_CLOUD logical- is the current level below cloud?
@@ -2018,8 +2019,8 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.,COEFT=2.5
       REAL*8, PARAMETER :: COESIG=1d-3,COEEC=1000.
       INTEGER, PARAMETER :: ERP=2
-      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
-      REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
+      REAL*8, DIMENSION(KMAX) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
+      REAL*8, DIMENSION(KMAX) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
      *     QSATL,RHF,ATH,SQ,ER,QHEAT,
@@ -3963,7 +3964,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.26 2008/10/08 17:39:25 kelley Exp $
+!$Id: CLOUDS2_E1.f,v 1.27 2008/10/21 18:56:59 kelley Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov

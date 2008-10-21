@@ -1715,11 +1715,12 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       USE CONSTANT, only : grav,by3,radian
       USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
       USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
-      USE GEOM, only : lat_dg,lat2d
+      USE GEOM, only : lat_dg,lat2d,kmaxj
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau
      *  ,funio_denominator,autoconv_multiplier,radius_multiplier
      *  ,entrainment_cont1,entrainment_cont2
+     &  ,RA,UM,VM,UM1,VM1,U_0,V_0
       USE CLOUDS_COM, only : llow,lmid,lhi
      &     ,isccp_reg2d,aisccp2d
       USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
@@ -1741,6 +1742,15 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       I_1H =GRID%I_STOP_HALO
       J_0H =GRID%J_STRT_HALO
       J_1H =GRID%J_STOP_HALO
+
+c
+c allocate space for the varying number of staggered
+c wind data to be vertically mixed by clouds on the A grid
+c
+      n = maxval(kmaxj(j_0:j_1))
+      allocate(RA(n))
+      allocate(UM(n,lm),VM(n,lm),UM1(n,lm),VM1(n,lm))
+      allocate(U_0(n,lm),V_0(n,lm))
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
