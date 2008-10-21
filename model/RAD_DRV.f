@@ -1142,8 +1142,8 @@ C     OUTPUT DATA
      *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
      *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
 #endif
-      USE DIAG_COM, only : jreg,aij=>aij_loc
-     *     ,ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn=>adiurn_loc,ndiuvar,
+      USE DIAG_COM, only : jreg,aij=>aij_loc,ail=>ail_loc
+     *     ,ajl=>ajl_loc,asjl=>asjl_loc,adiurn=>adiurn_loc,ndiuvar,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
@@ -1152,9 +1152,9 @@ C     OUTPUT DATA
      *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
-     *     ,ij_srvis,j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n
-     *     ,il_r70n,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
-     *     ,idd_absa,j5s,j5n,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
+     *     ,ij_srvis,j_clrtoa,j_clrtrp,j_tottrp,il_rc
+     *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
+     *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
@@ -1279,12 +1279,6 @@ C
       INTEGER :: J_0, J_1, I_0, I_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      REAL*8 :: DUM_IL_REQ(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
-      REAL*8 :: DUM_IL_J50(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
-      REAL*8 :: DUM_IL_J70(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
-      REAL*8 :: AIL_REQ_SUM(IM,LM)
-      REAL*8 :: AIL_J50_SUM(IM,LM)
-      REAL*8 :: AIL_J70_SUM(IM,LM)
       character(len=300) :: out_line
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
@@ -2645,70 +2639,15 @@ c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
 
-         DO L=1,LM
-           DO I=1,IM
-             DUM_IL_REQ(I,J_0:J_1,L)=0.
-             DO J=max(J_0,J5S), min(J_1,J5N)
-                    DUM_IL_REQ(i,j,l)= (SRHR(L,I,J)*COSZ2(I,J)+
-     &                                  TRHR(L,I,J))*DXYP(J)
-             END DO
-           END DO
-         END DO
-C ESMF: GLOBAL_SUM DUM_IL_REQ over the "J band" j5s-j5n and store in a
-C       second dummy array: AIL_REQ_SUM(I,L) in the root procesor.
-         CALL GLOBALSUM(GRID,DUM_IL_REQ,AIL_REQ_SUM,jband=(/J5S,J5N/))
-C ESMF:     Root processor adds summed terms to the AIL array
-         IF (AM_I_ROOT()) THEN
-           DO L=1,LM
-             DO I=1,IM
-               AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+ AIL_REQ_SUM(I,L)
-             END DO
-           END DO
-         END IF
-C ESMF: For now use global sum in lieu of point to point comm. to get the
-C       50N and 70N diagnostics into the root process....
-C****Accumulate diagnostics for lattitude 50N
-C       Compute each j-term to be acumulated into AIL and store it in a
-C       dummy work array: dum_il_j50
-         DO L=1,LM
-           DO I=1,IM
-           DUM_IL_J50(I,J_0:J_1,L)=0.
-             if (J50N.ge.J_0 .and. J50N.le.J_1) then
-               DUM_IL_J50(I,J50N,L)=DUM_IL_J50(I,J50N,L) +
-     &                               (SRHR(L,I,J50N)*COSZ2(I,J50N)+
-     &                                TRHR(L,I,J50N))*DXYP(J50N)
-             END IF
-           END DO
-         END DO
-         CALL GLOBALSUM(GRID,DUM_IL_J50,AIL_J50_SUM,jband=(/j50n,j50n/))
-         IF (AM_I_ROOT()) THEN
-           DO L=1,LM
-             DO I=1,IM
-               AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+AIL_J50_SUM(I,L)
-             END DO
-           END DO
-         end if
-C****Accumulate diagnostics for lattitude 70N
-C ESMF: Compute each j-term to be acumulated into AIL and store it in a
-C       dummy work array: dum_il_j70
-         DO L=1,LM
-           DO I=1,IM
-           DUM_IL_J70(I,J_0:J_1,L)=0.
-             if (J70N.ge.J_0 .and. J70N.le.J_1) then
-               DUM_IL_J70(I,J70N,L)=DUM_IL_J70(I,J70N,L) +
-     &                               (SRHR(L,I,J70N)*COSZ2(I,J70N)+
-     &                                TRHR(L,I,J70N))*DXYP(J70N)
-             END IF
-           END DO
-         END DO
-         CALL GLOBALSUM(GRID,DUM_IL_J70,AIL_J70_SUM,jband=(/j70n,j70n/))
-         IF (AM_I_ROOT()) THEN
-           DO L=1,LM
-             DO I=1,IM
-               AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+AIL_J70_SUM(I,L)
-             END DO
-           END DO
-         END IF
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+      DO L=1,LM
+        AIL(i,j,l,IL_RC)=AIL(i,j,l,IL_RC)+
+     &       (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*AXYP(I,J)
+      END DO
+      END DO
+      END DO
+
 C****
 C**** Update radiative equilibrium temperatures
 C****

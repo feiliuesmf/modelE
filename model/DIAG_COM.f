@@ -70,17 +70,12 @@ cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
-!@param KAIL number of AIL diagnostics
-      INTEGER, PARAMETER, public :: KAIL=15
-!@var AIL longitude/height diagnostics
-      REAL*8, DIMENSION(IM,LM,KAIL), public :: AIL
-!@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
-      INTEGER, PARAMETER, public :: J50N  = (50.+90.)*(JM-1)/180.+1.5
-      INTEGER, PARAMETER, public :: J70N  = (70.+90.)*(JM-1)/180.+1.5
-      INTEGER, PARAMETER, public :: J5NUV = (90.+5.)*(JM-1.)/180.+2.
-      INTEGER, PARAMETER, public :: J5SUV = (90.-5.)*(JM-1.)/180.+2.
-      INTEGER, PARAMETER, public :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
-      INTEGER, PARAMETER, public :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
+!@param KAIL number of AIL accumulations
+      INTEGER, PARAMETER, public :: KAIL=7
+      INTEGER, PARAMETER, public ::
+     &     IL_U=1,IL_V=2,IL_TX=3,IL_W=4,IL_RH=5,IL_RC=6,IL_MC=7
+!@var AIL 3D accumulations for IL longitude/height diagnostics
+      REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIL,AIL_loc
 
 C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NED number of different energy history diagnostics
@@ -620,15 +615,13 @@ C****      names, indices, units, idacc-numbers, etc.
      &     name_consrv,units_consrv
       character(len=80), dimension(kcon), public :: lname_consrv
 
-      character(len=20), dimension(kail), public :: name_il,units_il
-      character(len=80), dimension(kail), public :: lname_il
-      real*8, dimension(kail), public :: scale_il
-      integer, dimension(kail), public :: ia_il
-!@var IL_xxx names for longitude height diagnostics
-      INTEGER, public ::
-     &     IL_UEQ,IL_VEQ,IL_WEQ,IL_TEQ,IL_QEQ,IL_MCEQ,IL_REQ
-     *     ,IL_W50N,IL_T50N,IL_R50N,IL_U50N,IL_W70N,IL_T70N,IL_R70N
-     *     ,IL_U70N
+!@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
+      INTEGER, PARAMETER, public :: J50N  = (50.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER, public :: J70N  = (70.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER, public :: J5NUV = (90.+5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER, public :: J5SUV = (90.-5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER, public :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
+      INTEGER, PARAMETER, public :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
       character(len=20), dimension(ndiuvar), public :: name_dd,units_dd
       character(len=80), dimension(ndiuvar), public :: lname_dd
@@ -700,9 +693,9 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
-     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG
+     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
-     *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc, AFLX_ST
+     *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc,AIJK_loc,AIL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
 
 
@@ -750,6 +743,9 @@ CXXXX inci,incj NOT GRID-INDPENDENT
      &         AFLX_ST(LM+LM_REQ+1,I_0H:I_1H,J_0H:J_1H,5),
      &         STAT = IER)
 
+
+      ALLOCATE( AIL_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIL))
+
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM
 
@@ -761,9 +757,9 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DOMAIN_DECOMP, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
-     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG
+     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL
       USE DIAG_COM, ONLY : AJ,AREGJ,JREG,APJ,AJL
-     *     ,ASJL,AIJ,CONSRV,AJK, AIJK
+     *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
 
       IMPLICIT NONE
@@ -789,6 +785,9 @@ c     ALLOCATE( ! JREG(IM, JM))
       ALLOCATE( AIJK(IM,JM,LM,KAIJK),
      &         STAT = IER)
 
+      ALLOCATE( AIL(IM,JM,LM,KAIL),
+     &         STAT = IER)
+
       allocate ( TDIURN_glob(IM, JM, KTD)
      *     ,OA_glob(IM, JM, KOA))
 
@@ -801,7 +800,7 @@ c     ALLOCATE( ! JREG(IM, JM))
 !@ver  1.0
       USE DOMAIN_DECOMP, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : AJ,AREGJ,JREG,APJ,AJL
-     *     ,ASJL,AIJ,CONSRV,AJK, AIJK
+     *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
 
       IMPLICIT NONE
@@ -809,7 +808,7 @@ c     ALLOCATE( ! JREG(IM, JM))
       if(.not.AM_I_ROOT()) return
 
 c     DEALLOCATE( ! JREG)
-      DEALLOCATE( AJ,AREGJ,APJ,AJL,ASJL,AIJ,CONSRV,AJK, AIJK,TSFREZ )
+      DEALLOCATE( AJ,AREGJ,APJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,AIL,TSFREZ )
 
       deallocate(TDIURN_glob,OA_glob)
 
@@ -834,7 +833,7 @@ c     DEALLOCATE( ! JREG)
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + JM*NREG*KAJ + JM*KAPJ
      *     + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
-     *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
+     *     IM*JM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
@@ -844,7 +843,7 @@ c     DEALLOCATE( ! JREG)
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       ! REAL*4 AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ),APJ4(JM,KAPJ)
       ! REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
-      ! REAL*4 AIL4(IM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
+      ! REAL*4 AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
       ! REAL*4 CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
       ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
       ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
@@ -852,9 +851,9 @@ c     DEALLOCATE( ! JREG)
       ! REAL*4 AISCCP4(ntau,npres,nisccp)
       ! REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       REAL*4,allocatable, dimension(:,:,:) :: AJ4,AREGJ4, AJL4,ASJL4
-     *            ,AIJ4,AIL4,AJK4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
+     *            ,AIJ4,AJK4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
       REAL*4,allocatable, dimension(:,:) :: APJ4,ENERGY4,CONSRV4,ATPE4
-      REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4, AFLX4
+      REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIL4,AFLX4
 #ifndef NO_HDIURN
       ! REAL*4 HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH)
       REAL*4,allocatable ::  HDIURN4(:,:,:)
@@ -1032,7 +1031,6 @@ C**** The regular model (Kradia le 0)
 
         ! copy or add in to full precision global variables
         ! First "non-distributed" arrays
-          AIL=AIL+AIL4
           ENERGY=ENERGY+ENERGY4
           SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
           WAVE=WAVE+WAVE4
@@ -1051,6 +1049,7 @@ C**** The regular model (Kradia le 0)
           CONSRV= CONSRV + CONSRV4
           AJK   = AJK    + AJK4
           AIJK  = AIJK   + AIJK4
+          AIL   = AIL    + AIL4
 
           IDACC = IDACC + IDAC1
           call dealloc_diag_r4
@@ -1093,7 +1092,7 @@ C**** The regular model (Kradia le 0)
         CALL ESMF_BCAST(grid, keyct )
         CALL ESMF_BCAST(grid, KEYNR )
         CALL ESMF_BCAST(grid, idacc )
-        CALL ESMF_BCAST(grid, AIL   )
+c        CALL ESMF_BCAST(grid, AIL   )
         CALL ESMF_BCAST(grid, ENERGY)
         CALL ESMF_BCAST(grid, SPECA )
         CALL ESMF_BCAST(grid, ATPE  )
@@ -1117,6 +1116,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc)
         CALL UNPACK_DATAj(grid, AJK,    AJK_loc)
         CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc)
+        CALL UNPACK_DATA(grid,  AIL,   AIL_loc)
         CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN)
         CALL UNPACK_DATA(grid,  OA_glob,     OA)
       End Subroutine Scatter_Diagnostics
@@ -1125,7 +1125,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         allocate (AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ),APJ4(JM,KAPJ))
         allocate (AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL))
         allocate (AIJ4(IM,JM,KAIJ))
-        allocate (AIL4(IM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS))
+        allocate (AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS))
         allocate (CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER))
         allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
         allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
@@ -1170,6 +1170,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
       CALL PACK_DATAj(grid, AJK_loc,    AJK)
       CALL PACK_DATA(grid,  AIJK_loc,   AIJK)
+      CALL PACK_DATA(grid,  AIL_loc,   AIL)
       CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
       CALL PACK_DATA(grid,  OA, OA_glob)
       CALL SUMXPE(ADIURN_loc, ADIURN, increment=.true.)

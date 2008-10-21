@@ -33,10 +33,10 @@
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
       USE DIAG_COM, only : aij=>aij_loc,
-     *     ajl=>ajl_loc,ail,adiurn=>adiurn_loc,jreg,ij_pscld,
+     *     ajl=>ajl_loc,ail=>ail_loc,adiurn=>adiurn_loc,jreg,ij_pscld,
      &     aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
-     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
+     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mc,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas,
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
@@ -273,7 +273,6 @@ Cred*                   end Reduced Arrays 1
      &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
 CRKF...FIX
-      REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
@@ -281,7 +280,6 @@ CRKF...FIX
      *  SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      REAL*8  :: AJEQIL_SUM(IM,LM)
 
       INTEGER, PARAMETER :: n_idx1 = 5
       INTEGER, PARAMETER :: n_idx2 = 3
@@ -304,7 +302,6 @@ CRKF...FIX
 #endif
 
 C**** Initialize
-      AJEQIL(:,:,:)=0.
       if(isccp_diags.eq.1) AISCCP2D(:,:,:,:,:) = 0d0
 #ifdef TRACERS_SPECIAL_Shindell
       RNOx_lgt(:,:)=0.d0
@@ -750,9 +747,8 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
           AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+DTOTW(L)*BYDSIG(L)
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
-          IF(J.GE.J5S.AND.J.LE.J5N)     ! add in after parallel region
-     *      AJEQIL(I,J,L) = (DGDSM(L)+DPHASE(L))*
-     *                            (DXYP(J)*BYDSIG(L))
+          AIL(I,J,L,IL_MC) = AIL(I,J,L,IL_MC) +
+     &         (DPHASE(L)+DGDSM(L))*(AXYP(I,J)*BYDSIG(L))
           AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
      &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
           AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
@@ -1639,31 +1635,6 @@ C**** Save the conservation quantities for tracers
       call trac_accum_clouds
 #endif
 #endif
-
-C**** Delayed summations (to control order of summands)
-C
-C First: Set to zero all (non-zero) terms that are not meant to be added in
-C        the global summ into AIL below.
-      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
-        DO I=1,IM
-          IF(LMC(1,I,J).LE.0) THEN
-            AJEQIL(I,J,:)=0.
-          ELSE
-            AJEQIL(I,J,LMC(2,I,J):)=0.
-          END IF
-        END DO
-      END DO
-C Second: Add all contributions to be summed into AIL into a dummy array.
-          CALL GLOBALSUM(GRID,AJEQIL,AJEQIL_SUM,jband=(/J5S,J5N/))
-C Third: Store the accumulations into AIL:
-      IF (AM_I_ROOT()) THEN
-        DO I=1,IM
-          DO L=1,LM
-            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL_SUM(I,L)
-          END DO
-        END DO
-      END IF
-
 
 C**** Accumulate AISCCP array
       if(isccp_diags.eq.1) then

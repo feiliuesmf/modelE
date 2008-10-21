@@ -3584,14 +3584,179 @@ C**** Vertical means
 !@sum  DIAGIL prints out longitude/height diagnostics
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid
-      USE DIAG_COM, only : ail,lm_req,acc_period, qdiag,lname_il,name_il
-     *     ,units_il,scale_il,ia_il,kail,plm,ple,linect
+      USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid,dtsrc
+      USE DIAG_COM, only : ail,lm_req,acc_period, qdiag
+     &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
+     &     ,j5s,j5n,j5suv,j5nuv,j50n,j70n
+     &     ,IL_U,IL_V,IL_TX,IL_W,IL_RH,IL_RC,IL_MC
+      USE CONSTANT, only : grav,rgas,by3,sha,bygrav
+      USE GEOM, only : dxyp
       IMPLICIT NONE
       CHARACTER sname*20,unit*20,lname*80
       REAL*8, DIMENSION(LM) :: ONES
       REAL*8, DIMENSION(IM,LM) :: XIL
-      INTEGER :: K
+      INTEGER, PARAMETER :: KAILX=15
+      character(len=20), dimension(kailx) :: name_il,units_il
+      character(len=80), dimension(kailx) :: lname_il
+      real*8, dimension(kailx) :: scale_il
+      integer, dimension(kailx) :: ia_il,j1_il,j2_il,qty_il
+      real*8 :: bydj,bydjuv,daeq
+      integer :: k,j
+c
+      do k=1,kailx
+         write(name_il(k),'(a3,i3.3)') 'AIL',k
+         lname_il(k) = 'unused'
+         units_il(k) = 'unused'
+         scale_il(k) = 1.
+         ia_il(k)    = 0
+      enddo
+
+C**** some scaling numbers for the equatorial diags.
+      bydj   = 1./REAL(j5n-j5s+1,KIND=8)
+      bydjuv = 1./REAL(j5nuv-j5suv+1,KIND=8)
+      daeq=0.
+      do j=j5s,j5n
+        daeq=daeq+DXYP(J)
+      end do
+C****
+      k=0
+c
+      k = k + 1
+      qty_il(k) = IL_U
+      name_il(k) = 'u_equator'
+      lname_il(k) = 'ZONAL WIND (U COMPONENT) AROUND +/- 5 DEG'
+      units_il(k) = 'm/s'
+      scale_il(k) = bydjuv
+      ia_il(k)    = ia_dga
+      j1_il(k) = j5suv
+      j2_il(k) = j5nuv
+      k = k + 1
+      qty_il(k) = IL_V
+      name_il(k) = 'v_equator'
+      lname_il(k) = 'MERIDIONAL WIND (V COMPONENT) AROUND +/- 5 DEG'
+      units_il(k) = 'm/s'
+      scale_il(k) = bydjuv
+      ia_il(k)    = ia_dga
+      j1_il(k) = j5suv
+      j2_il(k) = j5nuv
+      k = k + 1
+      qty_il(k) = IL_W
+      name_il(k) = 'vvel_equator'
+      lname_il(k) = 'VERTICAL VELOCITY AROUND +/- 5 DEG'
+      units_il(k) = '10**-4 m/s'
+      scale_il(k) = -1d4*RGAS*BYGRAV/daeq
+      ia_il(k)    = ia_dga
+      j1_il(k) = j5s
+      j2_il(k) = j5n
+      k = k + 1
+      qty_il(k) = IL_TX
+      name_il(k) = 'temp_equator'
+      lname_il(k) = 'TEMPERATURE AROUND +/- 5 DEG'
+      units_il(k) = 'C'
+      scale_il(k) = bydj
+      ia_il(k)    = ia_dga
+      j1_il(k) = j5s
+      j2_il(k) = j5n
+      k = k + 1
+      qty_il(k) = IL_RH
+      name_il(k) = 'rh_equator'
+      lname_il(k) = 'RELATIVE HUMIDITY AROUND +/- 5 DEG'
+      units_il(k) = '%'
+      scale_il(k) = 1d2*bydj
+      ia_il(k)    = ia_dga
+      j1_il(k) = j5s
+      j2_il(k) = j5n
+      k = k + 1
+      qty_il(k) = IL_MC
+      name_il(k) = 'mcheat_equator'
+      lname_il(k) = 'MOIST CONVECTIVE HEATING AROUND +/- 5 DEG'
+      units_il(k) = '10**13 WATTS/DSIG'
+      scale_il(k) = 100d-13*SHA/(GRAV*DTsrc)
+      ia_il(k)    = ia_src
+      j1_il(k) = j5s
+      j2_il(k) = j5n
+      k = k + 1
+      qty_il(k) = IL_RC
+      name_il(k) = 'rad_cool_equator'
+      lname_il(k) = 'TOTAL RADIATIVE COOLING AROUND +/- 5 DEG'
+      units_il(k) = '10**13 WATTS/DSIG'
+      scale_il(k) = -1d-13
+      ia_il(k)    = ia_rad
+      j1_il(k) = j5s
+      j2_il(k) = j5n
+      k = k + 1
+      qty_il(k) = IL_W
+      name_il(k) = 'vvel_50N'
+      lname_il(k) = 'VERTICAL VELOCITY AT 50 N'
+      units_il(k) = '10**-4 m/s'
+      scale_il(k) = 1d4*RGAS/(GRAV*DXYP(J50N))
+      ia_il(k)    = ia_dga
+      j1_il(k) = j50n
+      j2_il(k) = j50n
+      k = k + 1
+      qty_il(k) = IL_TX
+      name_il(k) = 'temp_50N'
+      lname_il(k) = 'TEMPERATURE AT 50 N'
+      units_il(k) = 'C'
+      scale_il(k) = 1.
+      ia_il(k)    = ia_dga
+      j1_il(k) = j50n
+      j2_il(k) = j50n
+      k = k + 1
+      qty_il(k) = IL_RC
+      name_il(k) = 'rad_cool_50N'
+      lname_il(k) = 'TOTAL RADIATIVE COOLING AT 50 N'
+      units_il(k) = '10**13 WATTS/UNIT SIGMA'
+      scale_il(k) = 1d-13
+      ia_il(k)    = ia_rad
+      j1_il(k) = j50n
+      j2_il(k) = j50n
+      k = k + 1
+      qty_il(k) = IL_U
+      name_il(k) = 'u_50N'
+      lname_il(k) = 'ZONAL WIND AT 50 N'
+      units_il(k) = 'm/s'
+      scale_il(k) = 0.5
+      ia_il(k)    = ia_dga
+      j1_il(k) = j50n
+      j2_il(k) = j50n+1
+      k = k + 1
+      qty_il(k) = IL_W
+      name_il(k) = 'vvel_70N'
+      lname_il(k) = 'VERTICAL VELOCITY AT 70 N'
+      units_il(k) = '10**-4 m/s'
+      scale_il(k) = -1d4*RGAS/(GRAV*DXYP(J70N))
+      ia_il(k)    = ia_dga
+      j1_il(k) = j70n
+      j2_il(k) = j70n
+      k = k + 1
+      qty_il(k) = IL_TX
+      name_il(k) = 'temp_70N'
+      lname_il(k) = 'TEMPERATURE AT 70 N'
+      units_il(k) = 'C'
+      scale_il(k) = 1.
+      ia_il(k)    = ia_dga
+      j1_il(k) = j70n
+      j2_il(k) = j70n
+      k = k + 1
+      qty_il(k) = IL_RC
+      name_il(k) = 'rad_cool_70N'
+      lname_il(k) = 'TOTAL RADIATIVE COOLING AT 70 N'
+      units_il(k) = '10**13 WATTS/UNIT SIGMA'
+      scale_il(k) = -1d-13
+      ia_il(k)    = ia_rad
+      j1_il(k) = j70n
+      j2_il(k) = j70n
+      k = k + 1
+      qty_il(k) = IL_U
+      name_il(k) = 'u_70N'
+      lname_il(k) = 'ZONAL WIND AT 70 N'
+      units_il(k) = 'm/s'
+      scale_il(k) = 0.5
+      ia_il(k)    = ia_dga
+      j1_il(k) = j70n
+      j2_il(k) = j70n+1
+c
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID)
@@ -3602,12 +3767,13 @@ C**** INITIALIZE CERTAIN QUANTITIES
 
       linect = 65
 
-      DO K=1,KAIL
+      DO K=1,KAILX
         sname=name_il(k)
         lname=lname_il(k)
         unit=units_il(k)
         if (lname.ne.'unused') then
-        XIL=AIL(:,:,K)*SCALE_IL(K)/IDACC(IA_IL(K))
+        XIL=SUM(AIL(:,j1_il(k):j2_il(k),:,qty_il(k)),dim=2)
+     &         *SCALE_IL(K)/IDACC(IA_IL(K))
         SELECT CASE (sname)
 ! Centered in L; secondary grid; hor. mean; vert. sum
         CASE ('u_equator','v_equator','u_70N','u_50N')

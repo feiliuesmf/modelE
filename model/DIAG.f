@@ -107,14 +107,14 @@ C**** Some local constants
      *     ,imaxj,sinp,bydxyv,rapvn,rapvs
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : jreg,
-     *     apj=>apj_loc, ajl=>ajl_loc,asjl=>asjl_loc,ail,j50n,j70n,j5nuv
-     *     ,j5suv,j5s,j5n,aij=>aij_loc,ij_dtdp,ij_dsev,ij_phi1k,ij_pres
+     *     apj=>apj_loc, ajl=>ajl_loc,asjl=>asjl_loc,ail=>ail_loc
+     *     ,aij=>aij_loc,ij_dtdp,ij_dsev,ij_phi1k,ij_pres
      *     ,ij_puq,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
+     &     ,il_u,il_v,il_w,il_tx,il_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
-     *     ,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq,il_qeq,il_w50n
-     *     ,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n,kgz_max,pmb,ght
+     *     ,j_gamc,lstr,kgz_max,pmb,ght
      *     ,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape,jl_uepac,jl_vepac
      *     ,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac,jl_epflxn,jl_epflxv
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
@@ -170,8 +170,6 @@ C**** Some local constants
      *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
 
       REAL*8 QSAT, SLP, PS, ZS
-      REAL*8 :: gsum(IM, LM)
-      REAL*8, dimension(:,:,:), allocatable :: TMP
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -731,52 +729,32 @@ C****
       END DO
       END DO
 
+c
+c accumulate AIL: U,V,T,RH,W
+c
 
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
-     &      jband=(/J5SUV,J5NUV/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_UEQ) =
-     &       AIL(1:IM,1:LM,IL_UEQ)+gsum
-      CALL GLOBALSUM(grid, V(1:IM,:,1:LM), gsum,
-     &       jband=(/J5SUV,J5NUV/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_VEQ) =
-     &       AIL(1:IM,1:LM,IL_VEQ)+gsum
-
-      CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum,
-     &       jband=(/J5S,J5N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_TEQ) =
-     &       AIL(1:IM,1:LM,IL_TEQ)+gsum
-      allocate(TMP(1:IM,
-     &  grid%J_STRT_HALO:grid%J_STOP_HALO,1:LM))
       DO L=1,LM
-      DO J = MAX(J_0,J5S),MIN(J_1,J5N)
+      DO J=J_0STG,J_1STG
       DO I=1,IM
-         TMP(I,J,L) = Q(I,J,L)/QSAT(TX(I,J,L),LHE,PMID(L,I,J))
-      END DO
-      END DO
-      END DO
-      CALL GLOBALSUM(grid, TMP(1:IM,:,1:LM), gsum,
-     &       jband=(/J5S,J5N/))
-      deallocate(TMP)
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_QEQ) =
-     &       AIL(1:IM,1:LM,IL_QEQ)+gsum
-
-      CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum,
-     &       jband=(/J50N,J50N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_T50N)=
-     &       AIL(1:IM,1:LM,IL_T50N)+gsum
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
-     &       jband =(/J50N,J50N+1/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_U50N)=
-     &       AIL(1:IM,1:LM,IL_U50N)+gsum
-
-      CALL GLOBALSUM(grid, TX(1:IM,:,1:LM)-TF, gsum,
-     &       jband=(/J70N,J70N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_T70N)=
-     &       AIL(1:IM,1:LM,IL_T70N)+gsum
-      CALL GLOBALSUM(grid, U(1:IM,:,1:LM), gsum,
-     &       jband =(/J70N,J70N+1/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM,IL_U70N)=
-     &       AIL(1:IM,1:LM,IL_U70N)+gsum
+        AIL(I,J,L,IL_U) = AIL(I,J,L,IL_U) + U(I,J,L)
+        AIL(I,J,L,IL_V) = AIL(I,J,L,IL_V) + V(I,J,L)
+      ENDDO
+      ENDDO
+      DO J=J_0,J_1
+      DO I=1,IM
+        AIL(I,J,L,IL_TX) = AIL(I,J,L,IL_TX) + TX(I,J,L)-TF
+        AIL(I,J,L,IL_RH) = AIL(I,J,L,IL_RH) + 
+     &       Q(I,J,L)/QSAT(TX(I,J,L),LHE,PMID(L,I,J))
+      ENDDO
+      ENDDO
+      ENDDO ! L
+      DO L=1,LM-1
+      DO J=J_0,J_1
+      DO I=1,IM
+        AIL(I,J,L,IL_W) = AIL(I,J,L,IL_W) + W(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
 
 C****
 C**** CERTAIN VERTICAL WIND AVERAGES
@@ -791,18 +769,7 @@ C****
           END DO
         END DO
       END DO
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
-     &     jband=(/J5S,J5N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_WEQ) =
-     &    AIL(1:IM,1:LM-1,IL_WEQ)+gsum(1:IM,1:LM-1)
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
-     &     jband=(/J50N,J50N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W50N) =
-     &     AIL(1:IM,1:LM-1,IL_W50N)+gsum(1:IM,1:LM-1)
-      CALL GLOBALSUM(grid, W(1:IM,:,1:LM-1), gsum(1:IM,1:LM-1),
-     &     jband=(/J70N,J70N/))
-      IF (AM_I_ROOT()) AIL(1:IM,1:LM-1,IL_W70N) =
-     &     AIL(1:IM,1:LM-1,IL_W70N)+gsum(1:IM,1:LM-1)
+
 C****
 C**** ELIASSEN PALM FLUX
 C****
@@ -4091,7 +4058,7 @@ c
 
       AJ_loc=0    ; AREGJ_loc=0
       APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
-      AIL=0   ; ENERGY=0 ; CONSRV_loc=0
+      AIL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AJK_loc=0   ; AIJK_loc=0
 #ifndef NO_HDIURN
       HDIURN=0
