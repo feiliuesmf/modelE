@@ -89,7 +89,8 @@ C**** TAIJN
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
-      INTEGER ijs_flash,ijs_CtoG, ijs_ai, ijs_isoprene
+      INTEGER :: ijs_flash,ijs_CtoG,ijs_ai,ijs_isoprene,ijs_NO2_col,
+     & ijs_NO2_count
       INTEGER, DIMENSION(LM) :: ijs_OH,ijs_NO3,ijs_HO2,ijs_JH2O2
 #ifdef HTAP_LIKE_DIAGS
      & ,ijs_COp,ijs_COd,ijs_Oxp,ijs_Oxd,ijs_CH4d

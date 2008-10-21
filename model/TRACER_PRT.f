@@ -1077,11 +1077,12 @@ C****
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, ijts_index,
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     *     tij_uflx, tij_vflx
+     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
       USE DIAG_SERIAL, only : MAPTXT
+      USE CONSTANT, only : teeny
       IMPLICIT NONE
 
       integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
@@ -1236,12 +1237,23 @@ c       if (itime.lt.itime_tr0(n)) cycle
         if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.
      *    name(k)(1:7).eq.'OH_con_'.or. name(k)(1:8).eq.'NO3_con_'
      *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:8).eq.
-     *    'J(H2O2)_') ijtype(k)=2
+     *    'J(H2O2)_')ijtype(k)=2
+        
+        if (name(k)=='NO2_col_acc_count')then
+          ijtype(k)=2
+          scale(k)=real(idacc(iacc(k)))+teeny
+        endif
+
+        if (name(k).eq.'NO2_10:30_column') then
+          ijtype(k)=3
+          aij1(:,:,k) = aij1(:,:,k)*scale(k)     ! numerator
+          aij2(:,:,k) = taijs(:,:,ijs_NO2_count) ! denominator
+        endif
 
         if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
      *    'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
 
-       if (name(k)(1:4).eq.'DIAM') ijtype(k)=2
+        if (name(k)(1:4).eq.'DIAM') ijtype(k)=2
 
       end do
 

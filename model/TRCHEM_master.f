@@ -15,8 +15,8 @@ c
      &                        GLOBALSUM, PACK_DATA, PACK_DATAj,
      &                        write_parallel
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
-     &                        COUPLED_CHEM
-      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,grav
+     &                        COUPLED_CHEM,JHOUR
+      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,bygrav
       USE DYNAMICS, only    : pedn,LTROPO
       USE FILEMANAGER, only : openunit,closeunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
@@ -47,7 +47,7 @@ c
 #endif
       USE TRDIAG_COM, only    : jls_N2O5sulf,tajls=>tajls_loc,
      & taijs=>taijs_loc,ijs_JH2O2,ijs_NO3,jls_COp,jls_COd,jls_Oxp,
-     & jls_Oxd
+     & jls_Oxd,ijs_NO2_col,ijs_NO2_count
 #ifdef SHINDELL_STRAT_CHEM
      &                           ,jls_ClOcon,jls_H2Ocon
 #endif
@@ -77,7 +77,7 @@ C**** Local parameters and variables and arguments:
 !@var byam75 the reciprocal air mass near 75 hPa level
 !@var average tropospheric ch4 value near 569 hPa level
 !@var PRES2 local nominal pressure for verticle interpolations
-!@var thick thickness of each layer in km
+!@var thick thickness of each layer in various units
 !@var photO2_glob for O2->Ox diagnostic
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var ClTOT total chlorine in all forms (reactive and reservoir)
@@ -139,7 +139,8 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,J3,L2,n2,
-     &                             Jqq,Iqq,imonth,m,maxl,iu
+     &                             Jqq,Iqq,imonth,m,maxl,iu,ih0,ih,
+     &                             istep
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
       CHARACTER*80              :: ghg_file,title
@@ -172,6 +173,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      &               HAVE_NORTH_POLE = have_north_pole)
       
       byavog = 1.d0/avog
+
+! calculate what longitudes to accumulate for 10:30am NO2 diag:
+      istep = NINT(real(IM)/24.) ! number of boxes per hour
+      ! ih0 is westmost I index that hour (careful: integer arith.):
+      ih0 = istep*(10-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
+      if(ih0 < 0) ih0 = IM+ih0  
+
 #ifdef INITIAL_GHG_SETUP
 C-------- special section for ghg runs ---------
       write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
@@ -574,7 +582,8 @@ c           (~200nm):
           enddo
           taijs(i,j,ijs_JH2O2(l))=taijs(i,j,ijs_JH2O2(l))+ss(4,l,i,j)
 #ifdef SHINDELL_STRAT_CHEM
-          thick=1.d-3*rgas/grav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+          thick=
+     &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
           colmO3=colmO3+y(nO3,L)*thick*1.d5
 c SF3 is photolysis of water in Schumann-Runge bands based on:
@@ -659,6 +668,20 @@ C Save 3D radical arrays to pass to aerosol code:
 #ifdef SHINDELL_STRAT_CHEM
       call ClOxfam(LM,I,J,ClOx_old) ! needed something from chemstep.
 #endif
+
+!      Accumulate NO2 10:30am tropospheric column diag in sunlight:
+       do ih=ih0,ih0+istep-1
+         if(i==ih) then
+           do L=1,min(maxl,LTROPO(I,J))
+             thick=1.d2*rgas*bygrav*TX(I,J,L)*
+     &       LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+             taijs(i,j,ijs_NO2_col)=taijs(i,j,ijs_NO2_col)+
+     &       y(nNO2,L)*thick
+             if(L==1)taijs(i,j,ijs_NO2_count)=
+     &       taijs(i,j,ijs_NO2_count) + 1.d0
+           enddo
+         endif
+       enddo
 
 CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
       if(prnchg .and. J == jprn .and. I == iprn) then
@@ -1157,6 +1180,20 @@ C       ACCUMULATE 3D NO3 diagnostic:
         if (yNO3(I,J,L) > 0.d0 .and. yNO3(I,J,L) < 1.d20)
      &  taijs(i,j,ijs_NO3(l))=taijs(i,j,ijs_NO3(l))+yNO3(i,j,l)
      
+!      Accumulate NO2 10:30am tropospheric column diag in darkness:
+         do ih=ih0,ih0+istep-1
+           if(i==ih) then
+             if(L <= LTROPO(I,J))then
+               thick=1.d2*rgas*bygrav*TX(I,J,L)*
+     &         LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+               taijs(i,j,ijs_NO2_col)=taijs(i,j,ijs_NO2_col)+
+     &         y(nNO2,L)*thick
+               if(L==1)taijs(i,j,ijs_NO2_count)=
+     &         taijs(i,j,ijs_NO2_count) + 1.d0
+             endif
+           endif
+         enddo
+
        enddo  ! troposphere loop
 
 CCCCCCCCCCCCCCCC END NIGHTTIME TROPOSPHERE CCCCCCCCCCCCCCCCCCCC
