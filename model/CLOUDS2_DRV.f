@@ -169,6 +169,7 @@ C--- Added by J.W. ending ---C
      *  ,w2gcm
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo
+     &     ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi
       USE GHY_COM, only : snoage,fearth
       USE LAKES_COM, only : flake
@@ -212,14 +213,13 @@ C--- Added by J.W. ending ---C
 #endif
 #endif
 
-!@var UC,VC,UZM,VZM,ULS,VLS,UMC,VMC velocity work arrays
+!@var UC,VC,ULS,VLS,UMC,VMC velocity work arrays
 !@var TLS,QLS,TMC,QMC temperature and humidity work arrays
 !@var FSS fraction of the grid box for large-scale cloud
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      *        :: UC,VC
 C      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
 c     *           ULS,VLS,UMC,VMC,TLS,QLS,TMC,QMC
-      REAL*8, DIMENSION(2,LM) :: UZM,VZM
 
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
@@ -359,7 +359,8 @@ C
 C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
       CALL HALO_UPDATE(grid, U, from= NORTH)
       CALL HALO_UPDATE(grid, V, from= NORTH)
-      
+
+      call recalc_agrid_uv ! may not be necessary - check later
 C
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -373,31 +374,6 @@ C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       TMC=T
       QMC=Q
       FSS=1.
-C**** COMPUTE ZONAL MEAN U AND V AT POLES
-      DO L=1,LM
-        UZM(1,L)=0.
-        UZM(2,L)=0.
-        VZM(1,L)=0.
-        VZM(2,L)=0.
-      ENDDO
-      DO L=1,LM
-        IF(HAVE_SOUTH_POLE) THEN
-          DO I=1,IM
-            UZM(1,L)=UZM(1,L)+UC(I,2,L)
-            VZM(1,L)=VZM(1,L)+VC(I,2,L)
-          ENDDO
-        ENDIF
-        IF(HAVE_NORTH_POLE) THEN
-          DO I=1,IM
-            UZM(2,L)=UZM(2,L)+UC(I,JM,L)
-            VZM(2,L)=VZM(2,L)+VC(I,JM,L)
-          ENDDO
-        ENDIF
-        UZM(1,L)=UZM(1,L)/FIM
-        UZM(2,L)=UZM(2,L)/FIM
-        VZM(1,L)=VZM(1,L)/FIM
-        VZM(2,L)=VZM(2,L)/FIM
-      ENDDO
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 #ifdef TRACERS_ON
@@ -1005,36 +981,10 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         BYDH12=1./DH12
         DTDZS=(THV1-THSV)*BYDH1S
         DTDZ=(THV2-THV1)*BYDH12
-CAOO        IF (J.EQ.1) THEN
-        IF(HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
-          DUDZ=(UZM(1,2)-UZM(1,1))*BYDH12
-          DVDZ=(VZM(1,2)-VZM(1,1))*BYDH12
-          DUDZS=(UZM(1,1)-US)*BYDH1S
-          DVDZS=(VZM(1,1)-VS)*BYDH1S
-        ENDIF
-CAOO        IF (J.EQ.JM) THEN
-        IF(HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
-          DUDZ=(UZM(2,2)-UZM(2,1))*BYDH12
-          DVDZ=(VZM(2,2)-VZM(2,1))*BYDH12
-          DUDZS=(UZM(2,1)-US)*BYDH1S
-          DVDZS=(VZM(2,1)-VS)*BYDH1S
-        ENDIF
-        IF(J.GT.1.AND.J.LT.JM) THEN
-          DUDZ=(UC(IDI(1),IDJ(1),2)+UC(IDI(2),IDJ(2),2)+
-     *         UC(IDI(3),IDJ(3),2)+UC(IDI(4),IDJ(4),2)-
-     *         UC(IDI(1),IDJ(1),1)-UC(IDI(2),IDJ(2),1)-
-     *         UC(IDI(3),IDJ(3),1)-UC(IDI(4),IDJ(4),1))*.25*BYDH12
-          DVDZ=(VC(IDI(1),IDJ(1),2)+VC(IDI(2),IDJ(2),2)+
-     *         VC(IDI(3),IDJ(3),2)+VC(IDI(4),IDJ(4),2)-
-     *         VC(IDI(1),IDJ(1),1)-VC(IDI(2),IDJ(2),1)-
-     *         VC(IDI(3),IDJ(3),1)-VC(IDI(4),IDJ(4),1))*.25*BYDH12
-          DUDZS=(UC(IDI(1),IDJ(1),1)+UC(IDI(2),IDJ(2),1)+
-     *         UC(IDI(3),IDJ(3),1)+UC(IDI(4),IDJ(4),1)-
-     *         4.*US)*.25*BYDH1S
-          DVDZS=(VC(IDI(1),IDJ(1),1)+VC(IDI(2),IDJ(2),1)+
-     *         VC(IDI(3),IDJ(3),1)+VC(IDI(4),IDJ(4),1)-
-     *         4.*VS)*.25*BYDH1S
-        ENDIF
+        DUDZ=(UA(2,I,J)-UA(1,I,J))*BYDH12
+        DVDZ=(VA(2,I,J)-VA(1,I,J))*BYDH12
+        DUDZS=(UA(1,I,J)-US)*BYDH1S
+        DVDZS=(VA(1,I,J)-VS)*BYDH1S
         DUDZG=.1d0*US
         DVDZG=.1d0*VS
         DTDZG=.1d0*(THSV-TGV/PEK(1,I,J))
