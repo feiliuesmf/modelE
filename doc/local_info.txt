@@ -50,17 +50,20 @@ For off-line fortran compilations use:
    ifort -convert big_endian x.f -o x.exe
 
 Before doing so, load the appropriate modules, currently:
-   /etc/profile.d/modules.sh   ; # bash or ksh or:
-   source /etc/profile.d/modules.csh  ; # tcsh or csh
+   /etc/profile.d/modules.sh             ; # bash or ksh or:
+   source /etc/profile.d/modules.csh     ; # tcsh or csh
+and either
    module load comp/intel-9.1.042
-   module load mpi/scali-5     ; # for scali mpi (on borga-e...)
-and for openmpi: 
-   module load comp/intel-9.1.052
+   module load mpi/scali-5               ; # for scali mpi (on borga-e...)
+or  
+   module load comp/intel-9.1.052        ; # for openmpi
    module load mpi/openmpi-1.2.5/intel-9
+This is to be put into your startup script (e.g. .profile if your login shell
+ksh), so these modules also get loaded when running in batch mode.
+"runpbs (=run)" was modified to load the appropriate modules for mpi batch jobs
+even if those commands are missing in the login script. But you still need to set
+them appropriately during the "setup" step.
 
-This is to be put into your startup script and .profile (they are the same if your
-login shell is ksh), so these modules also get loaded when running batch jobs.
-"runpbs (=run)" was modified to load the appropriate modules for mpi batch jobs.
 Big OpenMP jobs may need a stacksize > default=4m : export KMP_STACKSIZE=64m
 
 Consistency between serial and parallelized executables:
@@ -144,13 +147,15 @@ pdE         post-process acc-files (mix of uncompressed and *.gz files is ok)
 pdE_mpi     may be used instead of a "qsubI" then "pdE" combination
 
 jE_to_lpl   extract an aplot-file for a selected field from *.jE* (budg.pg)
-qdf,qdf1    display titles of ij-files,rsf-files
-q4df        display titles,etc of GISS/4D-files
-maxmin      find extremes on ij-files
-maxmin4     find extremes on GISS/4D-files
-maxmin_i    find extremes on subdaily output files
-gm          find global means of ij-files (if last 4 bytes = glob.mean)
-GM          find global means of ij-files (re-computed from data)
+qdf         display titles for ij-files, etc
+qdf1        display titles for rsf-files,acc-files
+q4df        display titles,etc for GISS/4D-files (e.g. *.jk* files) 
+qit         display/check times/multiplicity for subdaily output files
+maxmin      find extremes for ij-files
+maxmin4     find extremes for GISS/4D-files
+maxmin_i    find extremes for subdaily output files
+gm          find global means for ij-files (if last 4 bytes = glob.mean)
+GM          find global means for ij-files (re-computed from data)
 AViewer     plot 72x46 ij-files (color maps)
 
 to_ut       archive directories on dirac
