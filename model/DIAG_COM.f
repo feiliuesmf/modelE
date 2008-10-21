@@ -1154,12 +1154,12 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       use diag_com
       implicit none
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
-#ifdef CUBE_GRID  ! this will become the general case
+#ifdef CUBE_GRID 
       CALL SUMXPE(AJ_loc, AJ, increment=.false.)
       CALL SUMXPE(AREGJ_loc, AREGJ, increment=.false.)
       AJ_loc(:)=0.
       AREGJ_loc(:)=0.
-#else ! 2 lines below will disapear
+#else
       CALL PACK_DATAj(grid, AJ_loc,     AJ)
       CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
 #endif
