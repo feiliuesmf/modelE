@@ -1107,8 +1107,10 @@ c        CALL ESMF_BCAST(grid, HDIURN)
 
       Subroutine Scatter_Diagnostics()
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
+#ifndef CUBE_GRID
         CALL UNPACK_DATAj(grid, AJ,     AJ_loc)
         CALL UNPACK_DATA(grid, AREGJ,  AREGJ_loc)
+#endif
         CALL UNPACK_DATAj(grid, APJ,    APJ_loc)
         CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
         CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)
@@ -1155,8 +1157,8 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       implicit none
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
 #ifdef CUBE_GRID 
-      CALL SUMXPE(AJ_loc, AJ, increment=.false.)
-      CALL SUMXPE(AREGJ_loc, AREGJ, increment=.false.)
+      CALL SUMXPE(AJ_loc, AJ, increment=.true.)
+      CALL SUMXPE(AREGJ_loc, AREGJ, increment=.true.)
       AJ_loc(:)=0.
       AREGJ_loc(:)=0.
 #else

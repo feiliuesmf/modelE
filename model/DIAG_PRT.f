@@ -6813,8 +6813,10 @@ cddd      DEALLOCATE(tmp)
       USE DOMAIN_DECOMP, ONLY : am_i_root
       IMPLICIT NONE
 
+#ifndef CUBE_GRID
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
       CALL UNPACK_DATA(GRID, AREGJ,  AREGJ_loc)
+#endif
       CALL UNPACK_DATAj(GRID, APJ, APJ_loc)
       CALL UNPACK_DATAj(GRID, AJK, AJK_loc)
       CALL UNPACK_DATA (GRID, AIJ, AIJ_loc)
