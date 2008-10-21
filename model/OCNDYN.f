@@ -5192,8 +5192,6 @@ c     *          oFtemp(i,j), aFtemp(i,j), diff
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEAN, only : imo=>im,jmo=>jm
 
-      USE tnl_checksum_mod, only: print_checksum, checksum
-
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
@@ -5226,10 +5224,8 @@ c     *          oFtemp(i,j), aFtemp(i,j), diff
       call HNTR80 (IMA,JMA,0.d0,120.d0, IMO,JMO,0.d0,120.d0, 0.d0)
 
       aFtemp(:,:) = aPREC_glob(:,:)
-      call print_checksum(aFtemp,' INT_AG2OG_precip: Global aFtemp = ') 
       call HNTR8P (aONES, aFtemp, oFtemp)
       oPREC_glob(:,:) = oFtemp(:,:)   
-      call print_checksum(oFtemp,' INT_AG2OG_precip: Global oFtemp = ') 
 c      write (555,*) ' aFtemp = ',aFtemp(1,45),aFtemp(42,45)
 c      write (555,*) ' oFtemp = ',oFtemp(1,45),oFtemp(42,45)
 
