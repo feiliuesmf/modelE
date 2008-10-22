@@ -87,6 +87,7 @@
       PUBLIC :: HALO_UPDATE ! Communicate overlapping portions of subdomains
       PUBLIC :: HALO_UPDATEj ! jx
       PUBLIC :: HALO_UPDATE_COLUMN ! K, I, J
+      PUBLIC :: HALO_UPDATE_BLOCK ! K, L, I, J
 !@var CHECKSUM output a bit-reproducible checksum for an array
       PUBLIC :: CHECKSUM ! Communicate overlapping portions of subdomains
       PUBLIC :: CHECKSUMj! Communicate overlapping portions of subdomains
@@ -152,6 +153,10 @@
         MODULE PROCEDURE INT_HALO_UPDATE_COLUMN_3D  ! M,I,J
         MODULE PROCEDURE HALO_UPDATE_COLUMN_4D  ! M,I,J,K
         MODULE PROCEDURE HALO_UPDATE_COLUMN_7D  ! M1,M2,M3,M4,I,J
+      END INTERFACE
+
+      INTERFACE HALO_UPDATE_BLOCK
+        MODULE PROCEDURE HALO_UPDATE_BLOCK_4D  ! K,L,I,J
       END INTERFACE
 
       INTERFACE CHECKSUM
@@ -974,6 +979,20 @@ cddd      ENDIF
       Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, from)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_4D
+
+      SUBROUTINE HALO_UPDATE_BLOCK_4D(grd_dum, arr, from)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
+      REAL*8,            INTENT(INOUT) ::
+     &               arr(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+      INTEGER, OPTIONAL, INTENT(IN)    :: from
+
+      INTEGER :: L
+
+#ifdef USE_MPI
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 4, from)
+#endif
+      END SUBROUTINE HALO_UPDATE_BLOCK_4D
 
       SUBROUTINE HALO_UPDATE_COLUMN_7D(grd_dum, arr, from)
       IMPLICIT NONE
