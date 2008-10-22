@@ -161,6 +161,11 @@ ccc   diagnostics accumulatars
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
      &     ,aflmlt,aintercep,aevapvg,aevapvs,aevapbs
      &     ,asrht,atrht,aalbedo
+     &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
+     &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
+     &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
+     &     ,aCdeadpool_soilmic,aCdeadpool_slow,aCdeadpool_passive
+
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -301,8 +306,8 @@ ccc      real*8 :: evapor(2)
       real*8 :: albedo_cell
 ccc sensible heat fluxes: these are pure fluxes over m^2
 ccc   i.e. they are not multiplied by any fr_...
-!@var snsh sensible heat from soil to air (bare/vege) no snow (J/s)
-!@var snshs sensible heat from snow to air (bare/vege)  (J/s)
+!@var snsh sensible heat from soil to air (bare/vege) no snow (W/m^2)
+!@var snshs sensible heat from snow to air (bare/vege)  (W/m^2)
 !@var dsnsh_dt d(sensible heat)/d(soil temp) : same for bare/vege/snow
       real*8 :: snsh(2), snshs(2), dsnsh_dt
 
@@ -315,8 +320,8 @@ ccc   i.e. they are not multiplied by any fr_...
       real*8 dripw(2), htdripw(2), drips(2), htdrips(2)
 
 !@var evap_tot total evap. (weighted with fr_snow,fm)(bare/veg)(m/s)
-!@var snsh_tot total sens. heat(weighted with fr_snow,fm)(bare/veg)(m/s)
-!@var thrm_tot total T^4 heat (weighted with fr_snow,fm)(bare/veg)(m/s)
+!@var snsh_tot total sens. heat(weighted with fr_snow,fm)(bare/veg)(W/m^2)
+!@var thrm_tot total T^4 heat (weighted with fr_snow,fm)(bare/veg)(W/m^2)
       real*8 evap_tot(2), snsh_tot(2), thrm_tot(2)
       !!!public evap_tot ! for debug only !
 
@@ -382,6 +387,10 @@ C***
      &     ,flux_snow,wsn_for_tr,trans_sw
      &     ,vs,vs0,tprime,qprime
      &     ,asrht,atrht,aalbedo
+     &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
+     &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
+     &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
+     &     ,aCdeadpool_soilmic,aCdeadpool_slow,aCdeadpool_passive
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
      &     ,betadl,ws_can,shc_can,tg2av,wtr2av,ace2av
@@ -819,6 +828,7 @@ c     fr(k) is the fraction of roots in layer k
 #ifdef USE_ENT
         betad = sum( betadl(1:n) )
         if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
+        abetad = betad
 #else
         betad=0.d0
         do 30 k=1,n
@@ -2410,12 +2420,36 @@ ccc   max in the following expression removes extra drip because of dew
         !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
         !## Need to pass fr_snow to Ent.
 !        agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
+
+!      !Accumulated autotrophic respiration [kg/m2]
         arauto = arauto + rauto*dts
-        aclab = clab            !Instantaneous.
-        asoilresp = asoilresp + R_soil*dts !accumulated soil respiration  
-        !instantaneous pool/column-integrated soil C_org (g/m2)
+
+!      !Instantaneous labile carbon pool [kg/m2]
+        aclab = clab
+
+!      !Accumulated soil respiration [kg C/m2]       
+        asoilresp = asoilresp + R_soil*dts
+
+!      !Instantaneous live carbon pools [g/m2]
+        aClivepool_leaf=soilCpools(CARBON,1,1)
+        aClivepool_froot=soilCpools(CARBON,2,1)
+        aClivepool_wood=soilCpools(CARBON,3,1)
+
+!      !Instantaneous dead carbon pools [g/m2]
+        aCdeadpool_surfmet=soilCpools(CARBON,4,1)!surface metabolic
+        aCdeadpool_surfstr=soilCpools(CARBON,5,1)!surface structural
+        aCdeadpool_soilmet=soilCpools(CARBON,6,1)!soil metabolic
+        aCdeadpool_soilstr=soilCpools(CARBON,7,1)!soil structural
+        aCdeadpool_cwd=soilCpools(CARBON,8,1) !coarse woody debris
+        aCdeadpool_surfmic=soilCpools(CARBON,9,1) !surface microbial
+        aCdeadpool_soilmic=soilCpools(CARBON,10,1)!soil microbial
+        aCdeadpool_slow=soilCpools(CARBON,11,1)!decomp 10yr-scale  o.m pool
+        aCdeadpool_passive=soilCpools(CARBON,12,1)!decomp 100yr-scale o.m pool
+
+!      !Instantaneous pool/column-integrated soil C_org (g/m2)    !
         asoilCpoolsum =
      &       sum( soilCpools(CARBON,NLIVE+1:NPOOLS,1:N_CASA_LAYERS) )
+
       endif
 #else
       !Accumulate GPP, nyk, like evap_tot(2)
@@ -2552,6 +2586,18 @@ c zero out accumulations
       asrht=0.d0
       atrht=0.d0
       aalbedo=0.d0
+      aClivepool_leaf=0.d0
+      aClivepool_froot=0.d0
+      aClivepool_wood=0.d0
+      aCdeadpool_surfmet=0.d0
+      aCdeadpool_surfstr=0.d0
+      aCdeadpool_soilmet=0.d0
+      aCdeadpool_soilstr=0.d0
+      aCdeadpool_cwd=0.d0
+      aCdeadpool_surfmic=0.d0
+      aCdeadpool_soilmic=0.d0
+      aCdeadpool_slow=0.d0
+      aCdeadpool_passive=0.d0
       ! aepp=0.d0 ! not accumulated : computed in accmf
 #ifdef TRACERS_WATER
 ccc   tracers
