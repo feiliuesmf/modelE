@@ -2101,6 +2101,141 @@ C****
       return
       end subroutine recalc_agrid_uv
 
+      subroutine replicate_uv_to_agrid(ur,vr,k,ursp,vrsp,urnp,vrnp)
+      USE MODEL_COM, only : im,jm,lm,u,v
+      USE DOMAIN_DECOMP, only : GRID
+      implicit none
+      integer :: k
+      REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     UR,VR
+      real*8, dimension(im,lm) :: ursp,vrsp,urnp,vrnp
+      integer :: i,j,l
+      integer :: J_0S,J_1S
+      if(k.ne.4)
+     &     call stop_model('incorrect k in replicate_uv_to_agrid',255)
+      J_0S = GRID%J_STRT_SKP
+      J_1S = GRID%J_STOP_SKP
+      do j=j_0s,j_1s
+      do i=2,im
+      do l=1,lm
+        ur(1,l,i,j) = u(i-1,j  ,l)
+        vr(1,l,i,j) = v(i-1,j  ,l)
+        ur(2,l,i,j) = u(i  ,j  ,l)
+        vr(2,l,i,j) = v(i  ,j  ,l)
+        ur(3,l,i,j) = u(i-1,j+1,l)
+        vr(3,l,i,j) = v(i-1,j+1,l)
+        ur(4,l,i,j) = u(i  ,j+1,l)
+        vr(4,l,i,j) = v(i  ,j+1,l)
+      enddo ! l
+      enddo ! i
+      i = 1
+      do l=1,lm
+        ur(1,l,i,j) = u(im ,j  ,l)
+        vr(1,l,i,j) = v(im ,j  ,l)
+        ur(2,l,i,j) = u(i  ,j  ,l)
+        vr(2,l,i,j) = v(i  ,j  ,l)
+        ur(3,l,i,j) = u(im ,j+1,l)
+        vr(3,l,i,j) = v(im ,j+1,l)
+        ur(4,l,i,j) = u(i  ,j+1,l)
+        vr(4,l,i,j) = v(i  ,j+1,l)
+      enddo ! l
+      enddo ! j
+      if(grid%have_south_pole) then
+        ursp(:,:) = u(:,2,:)
+        vrsp(:,:) = v(:,2,:)
+      endif
+      if(grid%have_north_pole) then
+        urnp(:,:) = u(:,jm,:)
+        vrnp(:,:) = v(:,jm,:)
+      endif
+      return
+      end subroutine replicate_uv_to_agrid
+
+      subroutine avg_replicated_duv_to_vgrid(du,dv,k,
+     &     dusp,dvsp,dunp,dvnp)
+      USE MODEL_COM, only : im,jm,lm,u,v
+      USE DOMAIN_DECOMP, only : GRID, HALO_UPDATE_BLOCK,SOUTH
+      implicit none
+      integer :: k
+      REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     DU,DV
+      real*8, dimension(im,lm) :: dusp,dvsp,dunp,dvnp
+      integer :: i,j,l
+      integer :: J_0STG,J_1STG
+      if(k.ne.4) call stop_model(
+     &     'incorrect k in avg_replicated_duv_to_vgrid',255)
+      J_0STG = GRID%J_STRT_STGR
+      J_1STG = GRID%J_STOP_STGR
+      CALL HALO_UPDATE_BLOCK(GRID,DU,FROM=SOUTH)
+      CALL HALO_UPDATE_BLOCK(GRID,DV,FROM=SOUTH)
+c
+c copy circumpolar data into the appropriate spots in du,dv
+c
+      if(grid%have_south_pole) then
+        j=1
+        do i=2,im
+        do l=1,lm
+          du(3,l,i,j) = dusp(i-1,l)
+          du(4,l,i,j) = dusp(i  ,l)
+          dv(3,l,i,j) = dvsp(i-1,l)
+          dv(4,l,i,j) = dvsp(i  ,l)
+        enddo
+        enddo
+        i=1
+        do l=1,lm
+          du(3,l,i,j) = dusp(im ,l)
+          du(4,l,i,j) = dusp(i  ,l)
+          dv(3,l,i,j) = dvsp(im ,l)
+          dv(4,l,i,j) = dvsp(i  ,l)
+        enddo
+c compensate for the factor of 2 in ravj(1).  change ravj(1) later.
+        du(:,:,:,j) = du(:,:,:,j)*.5
+        dv(:,:,:,j) = dv(:,:,:,j)*.5
+      endif
+      if(grid%have_north_pole) then
+        j=jm
+        do i=2,im
+        do l=1,lm
+          du(1,l,i,j) = dunp(i-1,l)
+          du(2,l,i,j) = dunp(i  ,l)
+          dv(1,l,i,j) = dvnp(i-1,l)
+          dv(2,l,i,j) = dvnp(i  ,l)
+        enddo
+        enddo
+        i=1
+        do l=1,lm
+          du(1,l,i,j) = dunp(im ,l)
+          du(2,l,i,j) = dunp(i  ,l)
+          dv(1,l,i,j) = dvnp(im ,l)
+          dv(2,l,i,j) = dvnp(i  ,l)
+        enddo
+c compensate for the factor of 2 in ravj(jm).  change ravj(jm) later.
+        du(:,:,:,j) = du(:,:,:,j)*.5
+        dv(:,:,:,j) = dv(:,:,:,j)*.5
+      endif
+c
+c now do the averaging
+c
+      do j=j_0stg,j_1stg
+      do i=1,im-1
+      do l=1,lm
+        u(i,j,l)=u(i,j,l)+ !.25*
+     &       (du(4,l,i,j-1)+du(3,l,i+1,j-1)+du(2,l,i,j)+du(1,l,i+1,j))
+        v(i,j,l)=v(i,j,l)+ !.25*
+     &       (dv(4,l,i,j-1)+dv(3,l,i+1,j-1)+dv(2,l,i,j)+dv(1,l,i+1,j))
+      enddo ! l
+      enddo ! i
+      i = im
+      do l=1,lm
+        u(i,j,l)=u(i,j,l)+ !.25*
+     &       (du(4,l,i,j-1)+du(3,l,1,j-1)+du(2,l,i,j)+du(1,l,1,j))
+        v(i,j,l)=v(i,j,l)+ !.25*
+     &       (dv(4,l,i,j-1)+dv(3,l,1,j-1)+dv(2,l,i,j)+dv(1,l,1,j))
+      enddo ! l
+      enddo ! j
+      return
+      end subroutine avg_replicated_duv_to_vgrid
+
       SUBROUTINE regrid_btoa_3d(x)
       USE MODEL_COM, only : im,jm,lm,byim
 c      USE GEOM, only : ravps,ravpn

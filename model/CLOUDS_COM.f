@@ -69,6 +69,9 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@var AISCCP2D AISCCP histogram with I,J dimensions
       REAL*8, DIMENSION(:,:,:,:,:), ALLOCATABLE :: AISCCP2D
 
+!@var UKM,VKM arrays for vertical momentum mixing
+      REAL*8, dimension(:,:,:,:), allocatable :: UKM,VKM
+
       END MODULE CLOUDS_COM
 
       SUBROUTINE ALLOC_CLOUDS_COM(grid)

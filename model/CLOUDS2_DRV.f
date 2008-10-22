@@ -24,13 +24,13 @@
       USE RANDOM
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
-     &     ,isccp_reg2d,aisccp2d
+     &     ,isccp_reg2d,aisccp2d,ukm,vkm
 #ifdef CLD_AER_CDNC
      *     ,oldnl,oldni
      *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
-     *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
+     *     ,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
       USE DIAG_COM, only : aij=>aij_loc,
      *     ajl=>ajl_loc,ail=>ail_loc,adiurn=>adiurn_loc,jreg,ij_pscld,
@@ -213,19 +213,18 @@ C--- Added by J.W. ending ---C
 #endif
 #endif
 
-!@var UC,VC,ULS,VLS,UMC,VMC velocity work arrays
 !@var TLS,QLS,TMC,QMC temperature and humidity work arrays
 !@var FSS fraction of the grid box for large-scale cloud
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-     *        :: UC,VC
 C      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-c     *           ULS,VLS,UMC,VMC,TLS,QLS,TMC,QMC
+c     *           TLS,QLS,TMC,QMC
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     *        :: UC  ! still here for jl_dammc diag
 
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
 
       INTEGER I,J,K,L,N,LL  !@var I,J,K,L,N loop variables
-      INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM
+      INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM,KMAX_NONPOLAR
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
@@ -273,9 +272,7 @@ Cred*                   end Reduced Arrays 1
      &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
 CRKF...FIX
-      REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
-      REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+      REAL*8  UKMSP(IM,LM), VKMSP(IM,LM), UKMNP(IM,LM),VKMNP(IM,LM)
       REAL*4 WCU500(IM,16),SAVWCU(IM,16,LM),SAVEN1(IM,16,LM),
      *  SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG,I_0,I_1
@@ -356,19 +353,22 @@ C     But save the current seed in case isccp_routine is activated
       W500P1=0.
       ENTJ=0.
 C
-C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
+C**** UPDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
       CALL HALO_UPDATE(grid, U, from= NORTH)
       CALL HALO_UPDATE(grid, V, from= NORTH)
 
       call recalc_agrid_uv ! may not be necessary - check later
+
+c
+c collect staggered velocities to be mixed into an A-grid array
+c
+      kmax_nonpolar = minval(kmaxj(j_0:j_1))
+      call replicate_uv_to_agrid(ukm,vkm,kmax_nonpolar,
+     &     ukmsp,vkmsp,ukmnp,vkmnp)
+
 C
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
-      VC=V
-      ULS=U
-      VLS=V
-      UMC=U
-      VMC=V
       TLS=T
       QLS=Q
       TMC=T
@@ -626,14 +626,23 @@ C** Add activated fraction, NACTV
 #endif
 
 C**** SURROUNDING WINDS
+
+      if(j.eq.1 .and. have_south_pole) then
+        U_0(1:KMAX,:) = UKMSP(1:KMAX,:)
+        V_0(1:KMAX,:) = VKMSP(1:KMAX,:)
+      elseif(j.eq.jm .and. have_north_pole) then
+        U_0(1:KMAX,:) = UKMNP(1:KMAX,:)
+        V_0(1:KMAX,:) = VKMNP(1:KMAX,:)
+      else
+        U_0(1:KMAX,:) = UKM(1:KMAX,:,I,J)
+        V_0(1:KMAX,:) = VKM(1:KMAX,:,I,J)
+      endif
       DO L=1,LM
         DO K=1,KMAX
-          U_0(K,L) = UC(IDI(K),IDJ(K),L)
-          V_0(K,L) = VC(IDI(K),IDJ(K),L)
           UM(K,L) = U_0(K,L)*AIRM(L)
           VM(K,L) = V_0(K,L)*AIRM(L)
-          UM1(K,L) = U_0(K,L)*AIRM(L)
-          VM1(K,L) = V_0(K,L)*AIRM(L)
+          UM1(K,L) = UM(K,L)
+          VM1(K,L) = VM(K,L)
         END DO
       END DO
 
@@ -930,8 +939,10 @@ C****
       FSSL(:)=FSS(:,I,J)
       DO L=1,LM
         DO K=1,KMAX
-          UM(K,L) = ULS(IDI(K),IDJ(K),L)*AIRM(L)
-          VM(K,L) = VLS(IDI(K),IDJ(K),L)*AIRM(L)
+c          UM(K,L) = ULS(IDI(K),IDJ(K),L)*AIRM(L)
+c          VM(K,L) = VLS(IDI(K),IDJ(K),L)*AIRM(L)
+          UM(K,L) = U_0(K,L)*AIRM(L)
+          VM(K,L) = V_0(K,L)*AIRM(L)
         END DO
       END DO
 C****
@@ -1242,45 +1253,39 @@ Cred    WM(I,J,L)=WMX(L)
         QMOMIL(:,I,L)=QMOM(:,L)*BYAM(L)
         WMIL(I,L)=WMX(L)
 
-C**** UPDATE MODEL WINDS
-CCC     DO K=1,KMAX       !  add in after parallel region (order)
-CCC       U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
-CCC  &         +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
-CCC       V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
-CCC  &         +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
-CCC     ENDDO
-         IF(J.EQ.1)  THEN
+C**** CALCULATE WIND TENDENCIES AND STORE IN UKM,VKM
+         IF(J.EQ.1 .AND. HAVE_SOUTH_POLE)  THEN
             DO K=1,IM ! KMAX
-CCC            UKP1(K,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
+CCC            UKMSP(K,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
 CCC  *           (1.-FSSL(L))-UC(IDI(K),IDJ(K),L)
-CCC            VKP1(K,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
+CCC            VKMSP(K,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
 CCC  *           (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
-               UKP1(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
-     *                   -UC(IDI(K),IDJ(K),L)
-               VKP1(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
-     *                   -VC(IDI(K),IDJ(K),L)
+              UKMSP(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
+     *             -UKMSP(K,L)
+              VKMSP(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
+     *             -VKMSP(K,L)
             END DO
-         ELSE IF(J.EQ.JM)  THEN
+         ELSE IF(J.EQ.JM .AND. HAVE_NORTH_POLE)  THEN
             DO K=1,IM ! KMAX
-CCC            UKPJM(K,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
+CCC            UKMNP(K,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
 CCC  *           (1.-FSSL(L))-UC(IDI(K),IDJ(K),L)
-CCC            VKPJM(K,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
+CCC            VKMNP(K,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
 CCC  *           (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
-              UKPJM(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
-     *                   -UC(IDI(K),IDJ(K),L)
-              VKPJM(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
-     *                   -VC(IDI(K),IDJ(K),L)
+              UKMNP(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
+     *             -UKMNP(K,L)
+              VKMNP(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
+     *             -VKMNP(K,L)
             END DO
          ELSE
-            DO K=1,4 ! KMAX
+            DO K=1,KMAX
 CCC           UKM(K,I,J,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
 CCC  *           (1.-FSSL(L))-UC(IDI(K),IDJ(K),L)
 CCC           VKM(K,I,J,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
 CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
-            UKM(K,I,J,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
-     *                   -UC(IDI(K),IDJ(K),L)
-            VKM(K,I,J,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
-     *                   -VC(IDI(K),IDJ(K),L)
+            UKM(K,L,I,J)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
+     *             -UKM(K,L,I,J)
+            VKM(K,L,I,J)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
+     *             -VKM(K,L,I,J)
             END DO
          END IF
       ENDDO
@@ -1593,101 +1598,22 @@ C**** Accumulate AISCCP array
       endif
 
 C
-C     NOW REALLY UPDATE THE MODEL WINDS
-c
+C     NOW UPDATE THE MODEL WINDS
 C
-CAOO      J=1
 #ifndef SCM
-      IF(HAVE_SOUTH_POLE) THEN
-        DO K=1,IM ! KMAXJ(J)
-          IDI(K)=IDIJ(K,1,1)
-          IDJ(K)=IDJJ(K,1)
-        END DO
-        DO L=1,LM
-          DO K=1,IM ! KMAXJ(J)
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
-          END DO
-        END DO
-      ENDIF
-          CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
-          CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
-C
-!$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
-      DO L=1,LM
-        if (.not. HAVE_SOUTH_POLE) then
-
-C**** ....then, accumulate neighbors contribution to
-C**** U,V, at the J=J_0 (B-grid) corners --i.e.do a
-C**** K=3,4 iterations on the newly updated J=J_0-1 box.
-          J=J_0-1
-          DO K=3,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=3,4 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        end if           !NOT SOUTH POLE
-        DO J=J_0S,J_1-1       !J_1 updated below
-          DO K=1,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=1,4 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        END DO
-C**** First half of loop cycle for j=j_1 for internal blocks
-        IF (.not. HAVE_NORTH_POLE) then
-          J=J_1
-          DO K=1,2  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=1,2 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        ENDIF
-      END DO       !LM
-
-!$OMP  END PARALLEL DO
+      call avg_replicated_duv_to_vgrid(ukm,vkm,kmax_nonpolar,
+     &     ukmsp,vkmsp,ukmnp,vkmnp)
 #else
       I=I_TARG
       J=J_TARG
       DO L=1,LM
          DO K=1,2 ! KMAXJ(J)
-            U(I,J,L)=U(I,J,L)+UKM(K,I,J,L)
-            V(I,J,L)=V(I,J,L)+VKM(K,I,J,L)
+            U(I,J,L)=U(I,J,L)+UKM(K,L,I,J)
+            V(I,J,L)=V(I,J,L)+VKM(K,L,I,J)
          END DO
       END DO
 #endif
 
-C
-CAOO      J=JM
-      IF(HAVE_NORTH_POLE) THEN
-        DO K=1,IM  !  KMAXJ(J)
-          IDI(K)=IDIJ(K,1,JM)
-          IDJ(K)=IDJJ(K,JM)
-        END DO
-        DO L=1,LM
-          DO K=1,IM  !  KMAXJ(J)
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)
-          END DO
-        END DO
-      END IF
-
-C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
@@ -1722,7 +1648,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
      *  ,entrainment_cont1,entrainment_cont2
      &  ,RA,UM,VM,UM1,VM1,U_0,V_0
       USE CLOUDS_COM, only : llow,lmid,lhi
-     &     ,isccp_reg2d,aisccp2d
+     &     ,isccp_reg2d,aisccp2d,UKM,VKM
       USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
      &     ,isccp_diags,ntau,npres
       USE PARAM
@@ -1751,6 +1677,9 @@ c
       allocate(RA(n))
       allocate(UM(n,lm),VM(n,lm),UM1(n,lm),VM1(n,lm))
       allocate(U_0(n,lm),V_0(n,lm))
+      n = minval(kmaxj(j_0:j_1))
+      allocate(UKM(n,lm,i_0h:i_1h,j_0h:j_1h),
+     &         VKM(n,lm,i_0h:i_1h,j_0h:j_1h))
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
