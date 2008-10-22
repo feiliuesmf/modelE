@@ -7436,7 +7436,7 @@ C**** set some defaults
             g=13 ; itcon_3Dsrc(1,N) = g
             qcon(itcon_3Dsrc(1,N)) = .true.
             conpts(g-12) = 'L1 overwriting'
-            qsum(itcon_3Dsrc(1,N)) = .false.
+            qsum(itcon_3Dsrc(1,N)) = .true.
 
           case ('Water','H2O18', 'HDO', 'H2O17' )
             itcon_mc(n) = 13
