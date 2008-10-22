@@ -363,7 +363,8 @@ c        ddy_cj(i,j) =  dloni*bydet/radius
 
 C**** set up mapping arrays for budget/conserv diags
       call set_j_budg   !called after lat2d_dg is initialized
-      
+      call set_wtbudg() !sets area weights
+ 
       DO J=1,JM
         LATN = DLAT*(J+.5-FJEQ)  ;  If(J==JM) LATN =  TWOPI/4
         LATS = DLAT*(J-.5-FJEQ)  ;  If(J==1 ) LATS = -TWOPI/4

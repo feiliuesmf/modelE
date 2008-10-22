@@ -28,7 +28,11 @@ C**** This is fixed for all grid types and resolutions
       INTEGER, PARAMETER, public :: JM_BUDG=JM  ! for temporary continuity
 c!@var DXYP_BUDG area array on budget grid
 c      REAL*8, DIMENSION(JM_BUDG) :: DXYP_BUDG
-
+c**** area of zig-zag bands on budget grid
+      REAL*8, ALLOCATABLE, DIMENSION(:), public :: axypband_loc,
+     &   axypband
+c**** area weight for zig-zag diagnostics on budget grid
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: wtbudg
 
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER, public :: KAJ=80
@@ -723,9 +727,16 @@ CXXXX inci,incj NOT GRID-INDPENDENT
      &         CONSRV_loc(J_0H:J_1H, KCON),
      &         STAT = IER)
 
-      ALLOCATE(AJ_loc(J_0H:J_1H, KAJ, NTYPE),
-     &         AREGJ_loc(NREG,J_0H:J_1H,KAJ),
-     &         AJL_loc(J_0H:J_1H, LM, KAJL),
+      ALLOCATE(
+#ifdef CUBE_GRID    ! global-size arrays
+     &     AJ_loc(JM_BUDG, KAJ, NTYPE),
+     &     AREGJ_loc(NREG,JM_BUDG,KAJ),
+     &     AJL_loc(JM_BUDJ, LM, KAJL),
+#else               ! distributed arrays
+     &     AJ_loc(J_0H:J_1H, KAJ, NTYPE),   
+     &     AREGJ_loc(NREG,J_0H:J_1H,KAJ),
+     &     AJL_loc(J_0H:J_1H, LM, KAJL),
+#endif
      &         ASJL_loc(J_0H:J_1H,LM_REQ,KASJL),
      &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
      &         AJK_loc(J_0H:J_1H,LM,KAJK),
@@ -761,6 +772,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       USE DIAG_COM, ONLY : AJ,AREGJ,JREG,APJ,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
+     *     ,JM_BUDG
 
       IMPLICIT NONE
       INTEGER :: IER
@@ -772,9 +784,9 @@ c     ALLOCATE( ! JREG(IM, JM))
      &         CONSRV(JM, KCON),
      &         STAT = IER)
 
-      ALLOCATE(AJ(JM, KAJ, NTYPE),
-     &         AREGJ(NREG,JM,KAJ),
-     &         AJL(JM, LM, KAJL),
+      ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE), !AJ, AREGJ and AJL are defined on budget grid, JM -> JM_BUDG. 
+     &         AREGJ(NREG,JM_BUDG,KAJ),
+     &         AJL(JM_BUDG, LM, KAJL),
      &         ASJL(JM,LM_REQ,KASJL),
      &         AIJ(IM,JM,KAIJ),
      &         AJK(JM,LM,KAJK),
@@ -1110,9 +1122,9 @@ c        CALL ESMF_BCAST(grid, HDIURN)
 #ifndef CUBE_GRID
         CALL UNPACK_DATAj(grid, AJ,     AJ_loc)
         CALL UNPACK_DATA(grid, AREGJ,  AREGJ_loc)
+        CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
 #endif
         CALL UNPACK_DATAj(grid, APJ,    APJ_loc)
-        CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
         CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)
         CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
         CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc)
@@ -1159,14 +1171,16 @@ c        CALL ESMF_BCAST(grid, HDIURN)
 #ifdef CUBE_GRID 
       CALL SUMXPE(AJ_loc, AJ, increment=.true.)
       CALL SUMXPE(AREGJ_loc, AREGJ, increment=.true.)
+      CALL SUMXPE(AJL_loc, AJL, increment=.true.)
       AJ_loc(:)=0.
       AREGJ_loc(:)=0.
+      AJK_loc(:)=0.
 #else
       CALL PACK_DATAj(grid, AJ_loc,     AJ)
       CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
+      CALL PACK_DATAj(grid, AJL_loc,    AJL)
 #endif
       CALL PACK_DATAj(grid, APJ_loc,    APJ)
-      CALL PACK_DATAj(grid, AJL_loc,    AJL)
       CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
       CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
       CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
@@ -1276,6 +1290,38 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       end SUBROUTINE aPERIOD
 
 
+      subroutine set_wtbudg()
+C**** Precomputes area weights for zonal means on budget grid
+      USE GEOM, only : j_budg, axyp
+      USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc
+      USE DOMAIN_DECOMP, only :GRID,GET
+      IMPLICIT NONE
+      INTEGER :: I,J,J_0,J_1,I_0,I_1
+      INTEGER :: IER
+      
+      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT ; I_1 = grid%I_STOP
+
+      ALLOCATE( wtbudg(I_0:I_1, J_0:J_1), STAT = IER)  !deallocated near very end, stays in memory all the time
+
+#ifdef CUBE_GRID   !temporary
+c**** Compute area weights of zig-zag grid cells
+      allocate(axypband(JM_BUDG),axypband_loc(JM_BUDG))
+      call set_zzarea()
+      do J=J_0,J_1
+         do I=J_0,I_1
+            wtbudg(I,J)=axyp(I,J)/axypband(J_BUDG(I,J))
+         enddo
+      enddo
+#else
+      wtbudg(:,:)=1.  !on lat-lon gird, area weighting performed at print time
+      write(6,*) "WTBUDG=1"
+#endif
+        
+      RETURN
+      END SUBROUTINE set_wtbudg
+
+
 C**** Should this be here?
       SUBROUTINE SET_J_BUDG
 !@sum set_j_budg definition for grid points map to budget-grid zonal means
@@ -1310,7 +1356,7 @@ C**** this should be valid for all grids (lat/lon, cubed sphere,...)
       SUBROUTINE INC_AJ(I,J,ITYPE,J_DIAG,ACC)
 !@sum inc_aj grid dependent incrementer for zonal mean budget diags
 !@auth Gavin Schmidt
-      USE DIAG_COM, only : aj=>aj_loc
+      USE DIAG_COM, only : aj=>aj_loc, wtbudg
       USE GEOM, only : j_budg
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
@@ -1323,8 +1369,10 @@ C**** this should be valid for all grids (lat/lon, cubed sphere,...)
 
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reprodcible for MPI).
-      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)+ACC
-      
+c      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)+ACC
+      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)
+     &     +wtbudg(I,J)*ACC     !wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
+
       RETURN
       END SUBROUTINE INC_AJ
 
@@ -1348,3 +1396,33 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       
       RETURN
       END SUBROUTINE INC_AREG
+
+
+      subroutine set_zzarea()
+c***  pre-computes area of zig-zag bands accross processors. Several
+c***  processos can contribute to same zig-zag band  
+      use GEOM, only: J_BUDG,axyp
+      use DIAG_COM, only : axypband_loc,axypband,JM_BUDG
+      USE DOMAIN_DECOMP, only :grid,GET,sumxpe
+      IMPLICIT NONE
+      INTEGER :: I,J,J_0,J_1,I_0,I_1
+      logical :: increment
+
+      CALL GET(grid, J_STRT=J_0,J_STOP=J_1) 
+      I_0 = grid%I_STRT ; I_1 = grid%I_STOP
+      
+      axypband_loc(:)=0.0
+
+      do J=J_0,J_1
+         do I=I_0,I_1
+            axypband_loc(J_BUDG(I,J))=axypband_loc(J_BUDG(I,J))
+     &       +axyp(I,J)            
+         enddo
+      enddo
+
+      increment = .false.
+      call SUMXPE(axypband_loc,axypband,increment)   !summing global area
+
+      end subroutine set_zzarea
+c*
+
