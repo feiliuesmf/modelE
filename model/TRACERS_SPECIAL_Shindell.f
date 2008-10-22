@@ -210,7 +210,7 @@ C****
 C**** Right now, there is just one L=1 source that changes 
 C**** linearly in time (at 1% increase per year)
 
-      USE MODEL_COM, only: itime,itime0,DTsrc,im,jm
+      USE MODEL_COM, only: itime,itimei,DTsrc,im,jm
       USE GEOM, only: dxyp,IMAXJ  
       USE DYNAMICS, only: am
       USE TRACER_COM, only: trname,trm,n_GLT,vol2mass
@@ -238,7 +238,7 @@ C initial source is an overwriting of GLTic pppv, then add
 C 1% every year, linearly in time. (note: vol2mass should
 C just be 1 for this tracer, but kept it in here, in case
 C we change that.)
-      new_mr = GLTic*(1.d0 + Itime*DTsrc*by_s_in_yr*1.d-2)! pppv
+      new_mr = GLTic*(1.d0+(Itime-ItimeI)*DTsrc*by_s_in_yr*1.d-2) !pppv
       do j=J_0,J_1; do i=1,imaxj(j)
         new_mass=new_mr*vol2mass(n_GLT)*am(1,i,j)*DXYP(j) ! kg
         tr3Dsource(i,j,1,1,n_GLT)=(new_mass-trm(i,j,1,n_GLT))*bydtsrc
