@@ -24,6 +24,7 @@
       REAL*8, DIMENSION(IMA,JMA,2) :: aMO_glob, aG0_glob, aS0_glob
       REAL*8, DIMENSION(IMA,JMA)   :: aUO1_glob, aVO1_glob
       REAL*8, DIMENSION(IMA,JMA)   :: aOGEOZ_glob, aOGEOZ_SV_glob 
+      REAL*8, DIMENSION(IMA,JMA)   :: aFOCEAN_glob
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(IMA,JMA,1,NTM) :: aTRMO_glob
 #endif

@@ -4960,13 +4960,13 @@ C**** Check
       USE TRACER_COM, only: NTM
 #endif
 
-      USE MODEL_COM, ONLY : aFOCEAN=>FOCEAN
       USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
      *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob, oFOCEAN=>FOCEAN
 #ifdef TRACERS_OCEAN
      *     , TRMO_glob
 #endif
 
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
       USE AFLUXES, only : aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
      *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
@@ -4984,6 +4984,8 @@ C**** Check
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
       REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
 
+
+
       oONES(:,:) = 1.d0
 
       call HNTR80 (IMO,JMO,0.d0,120.d0, IMA,JMA,0.d0,120.d0, 0.d0)
@@ -4995,6 +4997,8 @@ C**** Check
         call HNTR8P (oFOCEAN, oFtemp, aFtemp)
         aMO_glob(:,:,L) = aFtemp(:,:)
       END DO 
+
+      call HNTR8P (oFOCEAN, oFOCEAN, aFOCEAN)
 
 !!!  Enthalpy for the 1st two ocean layers
 
@@ -5026,10 +5030,22 @@ C**** Check
             IF (aFOCEAN(I,J).gt.0.) THEN
               SUM_aG0 = SUM_aG0 
      *        +(aG0_glob(I,J,L)*aMO_glob(I,J,L)*aDXYPO(J)*aFOCEAN(I,J))
+              diff = oFtemp(i,j) / aFtemp(i,j)-1.d0
+              if (diff .gt. 1.e-20) then
+c                write (555,*) ' INT_OG2AG#1: L,I,J = ',l, i, j
+c                write (555,*) ' INT_OG2AG#1:oFtemp,aFtemp,diff=',
+c     *          oFtemp(i,j), aFtemp(i,j), diff 
+c                write (555,*) ' INT_OG2AG#1:oFOCEAN,aFOCEAN=',
+c     *          oFOCEAN(i,j), aFOCEAN(i,j) 
+c                write (555,*) ' INT_OG2AG#1:oMO_glob,aMO_glob=',
+c     *          MO_glob(i,j,L), aMO_glob(i,j,L) 
+c                write (555,*) ' INT_OG2AG#1:oDXYPO,aDXYPO=',
+c     *          oDXYPO(j), aDXYPO(j) 
+              end if
             END IF
           END DO
         END DO
-        write (555,*) ' INT_OG2AG: L,SUM_oG0M,SUM_oFtemp,SUM_aG0 = ',
+        write (555,*) ' INT_OG2AG#2: L,SUM_oG0M,SUM_oFtemp,SUM_aG0 = ',
      *                             L,SUM_oG0M,SUM_oFtemp,SUM_aG0  
       END DO 
 
@@ -5103,9 +5119,9 @@ c     *          oFtemp(i,j), aFtemp(i,j), diff
             IF (aFOCEAN(I,J).gt.0.) THEN
               diff = VO_glob(i,j,1) / aVO1_glob(i,j)-1.d0
               if (diff .gt. 1.e-15) then
-                write (555,*) ' INT_OG2AG: I,J = ', i, j
-                write (555,*) ' INT_OG2AG:VO_glob,aVO1_glob,diff=',
-     *          VO_glob(i,j,1), aVO1_glob(i,j), diff 
+c                write (555,*) ' INT_OG2AG: I,J = ', i, j
+c                write (555,*) ' INT_OG2AG:VO_glob,aVO1_glob,diff=',
+c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff 
               end if
             END IF
           END DO
@@ -5116,19 +5132,23 @@ c     *          oFtemp(i,j), aFtemp(i,j), diff
 
       SUBROUTINE gather_ocean1 
 
-      use domain_decomp, only: pack_data
+      use domain_decomp, only: agrid=>grid, pack_data
       use OCEANR_DIM, only : ogrid
 
+      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
       USE OCEAN, only : MO, UO,VO, G0M
      *     , S0M, OGEOZ,OGEOZ_SV
 #ifdef TRACERS_OCEAN
      *     , TRMO
 #endif
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
       USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
      *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
      *     , TRMO_glob
 #endif
+
+      CALL PACK_DATA(agrid, aFOCEAN_loc, aFOCEAN)
 
       CALL PACK_DATA(ogrid,   MO   ,    MO_glob)
       CALL PACK_DATA(ogrid,   UO   ,    UO_glob)
