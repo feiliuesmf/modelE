@@ -728,11 +728,11 @@ CXXXX inci,incj NOT GRID-INDPENDENT
      &         STAT = IER)
 
       ALLOCATE(
-#ifdef CUBE_GRID    ! global-size arrays
+#ifdef CUBE_GRID    /* global-size arrays */
      &     AJ_loc(JM_BUDG, KAJ, NTYPE),
      &     AREGJ_loc(NREG,JM_BUDG,KAJ),
      &     AJL_loc(JM_BUDJ, LM, KAJL),
-#else               ! distributed arrays
+#else               /* distributed arrays */
      &     AJ_loc(J_0H:J_1H, KAJ, NTYPE),   
      &     AREGJ_loc(NREG,J_0H:J_1H,KAJ),
      &     AJL_loc(J_0H:J_1H, LM, KAJL),
@@ -1304,7 +1304,7 @@ C**** Precomputes area weights for zonal means on budget grid
 
       ALLOCATE( wtbudg(I_0:I_1, J_0:J_1), STAT = IER)  !deallocated near very end, stays in memory all the time
 
-#ifdef CUBE_GRID   !temporary
+#ifdef CUBE_GRID   /* temporary */
 c**** Compute area weights of zig-zag grid cells
       allocate(axypband(JM_BUDG),axypband_loc(JM_BUDG))
       call set_zzarea()
