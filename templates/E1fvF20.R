@@ -26,6 +26,7 @@ MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
+ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_INTERFACE			    ! interface to ESMF component for finite volume dycore
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
