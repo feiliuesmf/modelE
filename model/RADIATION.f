@@ -3793,25 +3793,27 @@ C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 
 !!!   call openunit (RDFILE(5),ifile,.true.,.true.) !neglect desert dust
 !!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
-      xsslt=aermix(3)/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
+      xsslt=1.d0/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
+c za720 should be changed to be consistent with top of level 5 in 20L
       byz = 1d-6/za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
-c      DO M=1,12
+       DO M=1,12
 !!!     READ (IFILE) XTITLE,mddust
-c      DO J=1,46
-c      DO I=1,72
-c        anfix(i,j,m) = 0. !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-c     +               +    byz * SUM(PREDD(I,J,1:la720,M,3)) * Xsslt
+       DO J=1,46
+       DO I=1,72
+c SUM to L=5 for low clouds only
+c Using 1890 not 1850 values here
+         anfix(i,j,m) = 0. !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
+     +               +    byz * SUM(SSADD(I,J,1:5,M)) * Xsslt
 C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
-c        md1850(1,i,j,m) = byz * SUM(AERMIX(1)*PREDD(I,J,1:La720,M,1) +
-c     +                              AERMIX(2)*PREDD(I,J,1:La720,M,2))
-c        md1850(2,i,j,m) = byz * SUM(AERMIX(4)*PREDD(I,J,1:La720,M,4))
-c        md1850(3,i,j,m) = byz * SUM(AERMIX(5)*PREDD(I,J,1:La720,M,5) +
-c     +                              AERMIX(6)*PREDD(I,J,1:La720,M,6))
-c        md1850(4,i,j,m) = byz * SUM(AERMIX(7)*PREDD(I,J,1:La720,M,7))
-c      end do
-c      end do
-c      end do
-c      anfix(:,:,0) = anfix(:,:,12) ; md1850(:,:,:,0) = md1850(:,:,:,12)
+        md1850(1,i,j,m) = byz * SUM(SULDD(I,J,1:5,M,1))
+        md1850(2,i,j,m) = byz * SUM(NITDD(I,J,1:5,M,1))
+        md1850(3,i,j,m) = byz * SUM(OCADD(i,j,1:5,m,1)) 
+        md1850(4,i,j,m) = byz *(SUM(BCBDD(I,J,1:5,M,1))
+     *                         +SUM(BCADD(I,J,1:5,M,1)))
+      end do
+      end do
+      end do
+      anfix(:,:,0) = anfix(:,:,12) ; md1850(:,:,:,0) = md1850(:,:,:,12)
 !!!   call closeunit (ifile)
 
       IFIRST=0
@@ -3857,7 +3859,7 @@ C     ------------------------------------------------------------------
 
       ELSE  !  IF(JYEARX.ge.1890.and.JYEARX.LE.2000) THEN
        iyc=INT((JYEARX-1890)/10.d0)+1   ! current year
-       jyc=iyc+1
+       jyc=min(12,iyc+1)                ! have only 12 decades
        cwtj=(JYEARX-1890)/10.d0-INT((JYEARX-1890)/10.d0)
        cwti=1.d0-cwtj
        iyp=INT((JYEARX-1891)/10.d0)+1   ! previous year
@@ -3912,21 +3914,20 @@ C      -----------------------------------------------------------------
   510 CONTINUE
 
 C**** Needed for aerosol indirect effect parameterization in GCM
-c this needs to be re-done DMK
-c      byz=1d-9/za720
-c      do j=1,46
-c      do i=1,72
+      byz=1d-9/za720
+      do j=1,46
+      do i=1,72
 C**** sea salt, desert dust
-c         anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
+        anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
-c        mdpi(:,i,j) = WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-c        mdcur(1,i,j) = SUM (A6JDAY(1:La720,1,I,J)) * byz/drym2g(1)
-c        mdcur(2,i,j) = SUM (A6JDAY(1:La720,3,I,J)) * byz/drym2g(3)
-c        mdcur(3,i,j) = SUM (A6JDAY(1:La720,4,I,J)) * byz/drym2g(4)
-c        mdcur(4,i,j) = SUM (A6JDAY(1:La720,6,I,J)) * byz/drym2g(6)
-c        mdcur(5,i,j) = SUM (A6JDAY(1:La720,5,I,J)) * byz/drym2g(5)
-c      end do
-c      end do
+        mdpi(:,i,j) = WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
+        mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J)) * byz/drym2g(1)
+        mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J)) * byz/drym2g(3)
+        mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J)) * byz/drym2g(4)
+        mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J)) * byz/drym2g(6)
+        mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J)) * byz/drym2g(5)
+      end do
+      end do
 
       RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
       END SUBROUTINE UPDAER2

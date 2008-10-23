@@ -1033,7 +1033,7 @@ c set cyclic conditions on eastern and western boundary
 !@auth Gavin Schmidt (based on code from J. Zhang)
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH,GLOBALSUM
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE,am_i_root
-      USE MODEL_COM, only : itime
+      USE MODEL_COM, only : itime,qcheck
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
      *        ,uvm,dxu,dyu,amass
       IMPLICIT NONE
@@ -1127,7 +1127,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
         if(debug.and.am_i_root()) write(0,*) itime,kki,4d4*rms/area
       end if
 
-      if (kki > 2 .and. rms > rms0) then
+      if (kki > 2 .and. rms > rms0 .and. qcheck) then
         debug=.true.
         if(am_i_root())
      *    write(0,*) 'VPICEDYN rms rose, kki:',itime,kki,

@@ -584,7 +584,7 @@ C****
       DO LR=LM+1,LMR
         PLB0(LR-LM) = PLB(LR+1)
       END DO
-      call reterp(vcdnc,pcdnc,7, cdncl,plb,llow+2)
+      cdncl=0 ; call reterp(vcdnc,pcdnc,7, cdncl,plb,llow+2)
 
       KTREND=1   !  GHgas trends are determined by input file
 !note KTREND=0 is a possible but virtually obsolete option
@@ -592,6 +592,7 @@ C****
 C             Model Add-on Data of Extended Climatology Enable Parameter
 C     MADO3M  = -1   Reads                      Ozone data the GCM way
 C     MADAER  =  1   Reads   Tropospheric Aerosol climatology 1850-2050
+C     MADAER  =  3   uses Koch,Bauer 2008 aerosol climatology 1890-2000
 C     MADDST  =  1   Reads   Dust-windblown mineral climatology   RFILE6
 C     MADVOL  =  1   Reads   Volcanic 1950-00 aerosol climatology RFILE7
 C     MADEPS  =  1   Reads   Epsilon cloud heterogeniety data     RFILE8
@@ -711,6 +712,9 @@ C**** define weighting (only used for clays so far)
       call stop_model('SULF_ONLY_AEROSOLS and TRACERS_NITRATE on',255)
 #else
       NTRACE=7
+      if (rad_interact_tr.gt.0) then ! turn off default dust
+        FS8OPX(3) = 0. ; FT8OPX(3) = 0.
+      end if
       TRRDRY(1:NTRACE)=(/.15d0,.44d0, 1.7d0, .2d0, .08d0, .08d0,0.15d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4, 5,6,3/)
@@ -1084,8 +1088,8 @@ C**** REPLICATE VALUES AT POLE
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
       USE MODEL_COM
-      USE GEOM, only : dlat_dg, imaxj, dxyp, axyp, areag, BYAXYP
-     &     ,lat2d,lon2d
+      USE GEOM, only : dlat_dg, imaxj, dxyp, axyp, areag, BYDXYP
+     &     ,lat2d,lon2d,byaxyp
 c      USE ATMDYN, only : CALC_AMPK
       USE RADPAR
      &  , only :  ! routines
@@ -1753,18 +1757,17 @@ C**** more than one tracer is lumped together for radiation purposes
         if (NTRIX(n).gt.0) then
           select case (trname(NTRIX(n)))
           case ("OCIA")
-            TRACER(L,n)=(trm(i,j,l,n_OCB)+trm(i,j,l,n_OCII)+
+           TRACER(L,n)=(trm(i,j,l,n_OCB)+trm(i,j,l,n_OCII)+
      *           trm(i,j,l,n_OCIA))*BYAXYP(I,J)
-         case ("OCA4")
-            TRACER(L,n)=(trm(i,j,l,n_OCI1)+trm(i,j,l,n_OCA1)+
+          case ("OCA4")
+           TRACER(L,n)=(trm(i,j,l,n_OCI1)+trm(i,j,l,n_OCA1)+
      *          trm(i,j,l,n_OCI2)+trm(i,j,l,n_OCA2)+
      *          trm(i,j,l,n_OCI3)+trm(i,j,l,n_OCA3)+
      *          trm(i,j,l,n_OCA4))*BYAXYP(I,J)
           case ("BCIA")
-            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*
-     *                  BYAXYP(I,J)
+           TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
           case default
-            TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYAXYP(I,J)
+           TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYAXYP(I,J)
           end select
         end if
       end do
