@@ -1792,7 +1792,7 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
       USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
      *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2,mass2vol
-      USE CLOUDS, only: PL,NTIX,NTX,DXYPJ
+      USE CLOUDS, only: PL,NTIX,NTX,DXYPIJ
       USE MODEL_COM, only: dtsrc,coupled_chem
 c
       IMPLICIT NONE
@@ -1864,7 +1864,7 @@ c
 c First allow for formation of sulfate from SO2 and H2O2. Then remaining
 c  gases may be allowed to dissolve (amount given by tr_left)
 C H2O2 + SO2 -> H2O + SO3 -> H2SO4
-      amass=airm(l)*mb2kg*DXYPJ
+      amass=airm(l)*mb2kg*DXYPIJ
       Ppas = PL(L)*1.D2
       tfac = (1./temp - by298k)*bygasc  !mol/J
 c  cloud liquid water content
