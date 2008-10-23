@@ -52,14 +52,16 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_SPECIAL_Shindell */
 !@var ntm_shindell_strat: Number of SHINDELL_STRAT_CHEM tracers.
 #ifdef SHINDELL_STRAT_CHEM
-#ifdef SHINDELL_STRAT_EXTRA
-      integer, parameter :: ntm_shindell_strat=11
-#else
       integer, parameter :: ntm_shindell_strat=10
-#endif  /* SHINDELL_STRAT_EXTRA */
 #else
       integer, parameter :: ntm_shindell_strat=0
 #endif  /* SHINDELL_STRAT_CHEM */
+!@var ntm_shindell_extra: Number of SHINDELL_STRAT_EXTRA tracers.
+#ifdef SHINDELL_STRAT_EXTRA
+      integer, parameter :: ntm_shindell_extra=1
+#else
+      integer, parameter :: ntm_shindell_extra=0
+#endif  /* SHINDELL_STRAT_EXTRA */
 !@var ntm_koch: Number of TRACERS_AEROSOLS_Koch tracers.
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
@@ -194,7 +196,8 @@ C**** Each tracer has a variable name and a unique index
      *                          ntm_water+ntm_koch+ntm_dust+ntm_het+
      *                          ntm_nitrate+ntm_cosmo+ntm_om_sp+
      *                          ntm_minerals+ntm_quarzhem+
-     *                          ntm_ocean+ntm_air+ntm_chem+ntm_amp
+     *                          ntm_ocean+ntm_air+ntm_chem+ntm_amp+
+     *                          ntm_shindell_extra
 
 C**** Each tracer has a variable name and a unique index
 C**** The chemistry species need to be declared first, until the
