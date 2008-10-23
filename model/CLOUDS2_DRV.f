@@ -19,8 +19,7 @@
       USE DOMAIN_DECOMP, only : GLOBALSUM,AM_I_ROOT
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
-      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
-     &     ,axyp,byaxyp
+      USE GEOM, only : imaxj,kmaxj,ravj,axyp,byaxyp
       USE RANDOM
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -217,8 +216,10 @@ C--- Added by J.W. ending ---C
 !@var FSS fraction of the grid box for large-scale cloud
 C      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
 c     *           TLS,QLS,TMC,QMC
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-     *        :: UC  ! still here for jl_dammc diag
+
+      REAL*8, DIMENSION(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     &     :: UASV              ! for U tendency diagnostic
 
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
@@ -233,7 +234,6 @@ c     *           TLS,QLS,TMC,QMC
 !@var LP600 layer near 600 mb
 !@var LERR,IERR error reporting
       INTEGER :: LERR, IERR
-      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
@@ -275,7 +275,7 @@ CRKF...FIX
       REAL*8  UKMSP(IM,LM), VKMSP(IM,LM), UKMNP(IM,LM),VKMNP(IM,LM)
       REAL*4 WCU500(IM,16),SAVWCU(IM,16,LM),SAVEN1(IM,16,LM),
      *  SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG,I_0,I_1
+      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       INTEGER, PARAMETER :: n_idx1 = 5
@@ -315,7 +315,6 @@ C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
       I_0 = grid%I_STRT
@@ -368,7 +367,6 @@ c
 
 C
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
-      UC=U
       TLS=T
       QLS=Q
       TMC=T
@@ -404,7 +402,7 @@ C****
 !$OMP*  tmp,ALPHAS,ALPHA1,ALPHA2,AT,BYDH1S,BYDH12, CC,CONV,CTP,
 !$OMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
-!$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,IPRES,
+!$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IPRES,
 #ifdef TRACERS_SPECIAL_Shindell
 !$OMP*  Lfreeze,
 #endif
@@ -517,8 +515,6 @@ C--- Added by J.W. ending ---C
 #endif
       DO K=1,KMAX
         RA(K)=RAVJ(K,J)
-        IDI(K)=IDIJ(K,I,J)
-        IDJ(K)=IDJJ(K,J)
       END DO
 C**** PRESSURES, AND PRESSURE TO THE KAPA
       PL(:) =PMID(:,I,J)
@@ -1615,16 +1611,16 @@ C
 #endif
 
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
+      UASV(:,I_0:I_1,J_0S:J_1S) = UA(:,I_0:I_1,J_0S:J_1S)
+      call recalc_agrid_uv ! add option for tendency computation?
+      DO J=J_0S,J_1S
+      DO I=I_0,I_1
       DO L=1,LM
-      DO J=J_0STG,J_1STG
-      DO I=1,IM
          AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
-     &         (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
+     &         (UA(L,I,J)-UASV(L,I,J))*PDSIG(L,I,J)
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 
       if (isccp_diags.eq.1) CALL RINIT(seed) ! reset random number sequ.
 
