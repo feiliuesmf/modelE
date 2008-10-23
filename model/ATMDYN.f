@@ -2101,6 +2101,135 @@ C****
       return
       end subroutine recalc_agrid_uv
 
+      subroutine regrid_atov_1d(u_a,v_a,uv1d)
+      USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP, only : grid,halo_update,SOUTH
+      USE GEOM, only : rapvs,rapvn,cosiv,siniv
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo)  ::
+     &          u_a,v_a
+      real*8, dimension(2*im*(1+grid%j_stop_stgr-grid%j_strt_stgr)),
+     &        intent(out) :: uv1d
+      real*8 :: hemi
+      integer :: i,ip1,j,n
+      real*8, dimension(im) :: usouth,vsouth,unorth,vnorth
+      integer :: j_0stg, j_1stg
+      j_0stg = grid%j_strt_stgr
+      j_1stg = grid%j_stop_stgr
+      CALL HALO_UPDATE(grid,U_A,from=SOUTH)
+      CALL HALO_UPDATE(grid,V_A,from=SOUTH)
+      j=j_0stg-1
+      if(j.eq.1) then
+        hemi = -1.
+        usouth(:)=2.*(u_a(1,j)*cosiv(:)+v_a(1,j)*siniv(:)*hemi)
+        vsouth(:)=2.*(v_a(1,j)*cosiv(:)-u_a(1,j)*siniv(:)*hemi)
+      else
+        i=im
+        do ip1=1,im
+          usouth(i)=(u_a(i,j)+u_a(ip1,j))
+          vsouth(i)=(v_a(i,j)+v_a(ip1,j))
+          i=ip1
+        enddo
+      endif
+      n = 0
+      do j=j_0stg,j_1stg
+        if(j.lt.jm) then
+          i=im
+          do ip1=1,im
+            unorth(i)=(u_a(i,j)+u_a(ip1,j))
+            vnorth(i)=(v_a(i,j)+v_a(ip1,j))
+            i=ip1
+          enddo
+        else
+          hemi = +1.
+          unorth(:)=2.*(u_a(1,j)*cosiv(:)+v_a(1,j)*siniv(:)*hemi)
+          vnorth(:)=2.*(v_a(1,j)*cosiv(:)-u_a(1,j)*siniv(:)*hemi)
+        endif
+        do i=1,im
+          n = n + 1
+          uv1d(n) = rapvn(j-1)*usouth(i)+rapvs(j)*unorth(i)
+          n = n + 1
+          uv1d(n) = rapvn(j-1)*vsouth(i)+rapvs(j)*vnorth(i)
+          usouth(i) = unorth(i)
+          vsouth(i) = vnorth(i)
+        enddo
+      enddo
+      return
+      end subroutine regrid_atov_1d
+      subroutine get_nuv(nuv)
+      use model_com, only : im
+      USE DOMAIN_DECOMP, only : GRID
+      implicit none
+      integer :: nuv
+      nuv = 2*im*(1+grid%j_stop_stgr-grid%j_strt_stgr)
+      return
+      end subroutine get_nuv
+      subroutine get_vpkey_of_n(n,vpkey)
+      implicit none
+      integer :: n,vpkey
+      vpkey = 1+(n-1)/2
+      return
+      end subroutine get_vpkey_of_n
+      subroutine get_regrid_info_for_n(n,ilist,jlist,wts,nnbr)
+      use model_com, only : im
+      use geom, only : rapvn,rapvs
+      implicit none
+      integer :: n
+      integer, dimension(4) :: ilist,jlist
+      real*8, dimension(4) :: wts
+      integer :: nnbr
+      integer :: iv,jv,ivp1
+      call get_ivjv_of_n(n,iv,jv)
+      nnbr = 4
+      ivp1 = iv+1 - im*(iv/im)
+      ilist(1:4) = (/ iv, ivp1, iv, ivp1 /)
+      jlist(1:4) = (/ jv-1, jv-1, jv, jv /)
+      wts(1:4) = (/ rapvn(jv-1), rapvn(jv-1), rapvs(jv), rapvs(jv) /)
+      return
+      end subroutine get_regrid_info_for_n
+      subroutine get_uv_of_n(n,uv)
+      use model_com, only : im,lm,u,v
+      use domain_decomp, only : am_i_root
+      implicit none
+      integer :: n
+      real*8, dimension(lm) :: uv
+      integer :: iv,jv
+      call get_ivjv_of_n(n,iv,jv)
+      if(mod(n,2).eq.1) then
+        uv(1:lm) = u(iv,jv,1:lm)
+      else
+        uv(1:lm) = v(iv,jv,1:lm)
+      endif
+      return
+      end subroutine get_uv_of_n
+      subroutine store_uv_of_n(n,uv)
+      use model_com, only : im,lm,u,v
+      implicit none
+      integer :: n
+      real*8, dimension(lm) :: uv
+      integer :: iv,jv
+      call get_ivjv_of_n(n,iv,jv)
+      if(mod(n,2).eq.1) then
+        u(iv,jv,1:lm) = uv(1:lm)
+      else
+        v(iv,jv,1:lm) = uv(1:lm)
+      endif
+      return
+      end subroutine store_uv_of_n
+      subroutine get_ivjv_of_n(n,iv,jv)
+      use model_com, only : im
+      USE DOMAIN_DECOMP, only : GRID
+      implicit none
+      integer :: n
+      integer :: iv,jv
+      integer :: nv,njm1
+      nv = 1+(n-1)/2
+      njm1 = (nv-1)/im
+      jv = grid%j_strt_stgr + njm1
+      iv = nv - njm1*im
+      return
+      end subroutine get_ivjv_of_n
+
       subroutine replicate_uv_to_agrid(ur,vr,k,ursp,vrsp,urnp,vrnp)
       USE MODEL_COM, only : im,jm,lm,u,v
       USE DOMAIN_DECOMP, only : GRID

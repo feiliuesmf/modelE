@@ -6,8 +6,7 @@
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from diffB347D6M20)
 !@cont atm_diffus,getdz,dout,de_solver_main,de_solver_edge,l_gcm,k_gcm,
-!@+    e_gcm,find_pbl_top,zze,ave_uv_to_agrid,
-!@+    ave_uv_to_bgrid,ave_s_to_bgrid,apply_fluxes_to_atm
+!@+    e_gcm,find_pbl_top,zze,apply_fluxes_to_atm
 !@var lbase_min/max levels through which to apply turbulence (dummy)
 !@var dtime time step
 
@@ -25,12 +24,10 @@
 #endif
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
-      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,byaxyp,axyp
+      USE GEOM, only : imaxj,byaxyp,axyp
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,pmid
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
-      USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
-      USE DOMAIN_DECOMP, ONLY : halo_update_column
-      USE DOMAIN_DECOMP, ONLY : halo_update
+      USE DOMAIN_DECOMP, ONLY : grid, get, halo_update_column
       USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc
      *     ,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
@@ -62,13 +59,14 @@ cc      USE SOMTQ_COM, only : tmom,qmom
 
       real*8, dimension(lm,grid%i_strt_halo:grid%i_stop_halo,
      &                     grid%j_strt_halo:grid%j_stop_halo) ::
-     &     u_3d_old,rho_3d,rhoe_3d,dz_3d
-     &    ,dze_3d,t_3d_virtual,km_3d,km_3d_bgrid
-     &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
-     &    ,wt_3d,v_3d_old
+     &     rho_3d,rhoe_3d,dz_3d,dze_3d,km_3d,t_3d_virtual
+     &     ,uasv ! for wind tendency diagnostic
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) ::
-     &     tvsurf,uflux_bgrid,vflux_bgrid,dz0
+     &     tvsurf,dz0
+      real*8, dimension((1+grid%i_stop_halo-grid%i_strt_halo)*
+     &                  (1+grid%j_stop_halo-grid%j_strt_halo)*2) ::
+     &     uvflux_vgrid
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
       real*8 :: uflx,vflx,tvflx,qflx,tvs
@@ -89,15 +87,20 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
       integer nta,nx,ntix(ntm)
 #endif
 
+c vars for velocity diffusion
+      real*8, dimension(lm) :: uv,uv0
+      integer, dimension(4) :: ilist,jlist
+      real*8, dimension(4) :: wts
+      integer :: nuv,vpkey,vpkey_last,nnbr
+
       INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -178,6 +181,7 @@ c      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
           do l=1,lm
             u(l)=u_3d_agrid(l,i,j)
             v(l)=v_3d_agrid(l,i,j)
+            uasv(l,i,j) = u_3d_agrid(l,i,j)
             ! virtual potential temp. referenced at 1 mb
             t(l)=t_3d_virtual(l,i,j)
             q(l)=q_3d(i,j,l)
@@ -453,161 +457,141 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
      &         ,uflx,vflx,tvflx,qflx,dbl,ldbl,i,j,lm)
           endif
 
+#ifdef SCM
+c diffuse velocities on the primary grid in single-column model
+          flux_top=0.
+          do l=2,lm-1
+            p4(l)=0.d0
+          end do
+          u0(:) = u(:)
+          v0(:) = v(:)
+          flux_bot=rhoe(1)*uflux1(i,j)
+          call de_solver_main(u,u0,km,p4,
+     &       rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
+          flux_bot=rhoe(1)*vflux1(i,j)
+          call de_solver_main(v,v0,km,p4,
+     &       rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
+          u_3d(i,j,:) = u(:)
+          v_3d(i,j,:) = v(:)
+#endif
+
         end do loop_i_tq
       end do loop_j_tq
 !$OMP  END PARALLEL DO
 
-      ! integrate U,V equations at bgrids
+
 #ifndef SCM
-      call ave_uv_to_bgrid(uflux1,vflux1,uflux_bgrid,vflux_bgrid,1)
-      call ave_s_to_bgrid(km_3d,dz_3d,dze_3d,rho_3d,rhoe_3d,
-     &  km_3d_bgrid,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,
-     &  rhoe_3d_bgrid,lm)
-#else
-      do j=J_0,J_1
-         do i=1,imaxj(j)
-            uflux_bgrid(i,j) = uflux1(i,j)
-            vflux_bgrid(i,j) = vflux1(i,j)
-            do L=1,LM
-               km_3d_bgrid(L,i,j) = km_3d(L,i,j)
-               dz_3d_bgrid(L,i,j) = dz_3d(L,i,j)
-               dze_3d_bgrid(L,i,j) = dze_3d(L,i,j)
-               rho_3d_bgrid(L,i,j) = rho_3d(L,i,j)
-               rhoe_3d_bgrid(L,i,j) = rhoe_3d(L,i,j)
-            enddo
-         enddo
-      enddo
-#endif 
+c
+c integrate differential eqns for U and V on velocity grid
+c
+
+c
+c first, fill poles for km,rho,dz to make life easier.
+c
+      if(have_south_pole) then
+        j=1
+        do i=2,im
+        do l=1,lm
+          km_3d(l,i,j)   = km_3d(l,1,j)
+          dz_3d(l,i,j)   = dz_3d(l,1,j)
+          dze_3d(l,i,j)  = dze_3d(l,1,j)
+          rho_3d(l,i,j)  = rho_3d(l,1,j)
+          rhoe_3d(l,i,j) = rhoe_3d(l,1,j)
+        enddo
+        enddo
+      endif
+      if(have_north_pole) then
+        j=jm
+        do i=2,im
+        do l=1,lm
+          km_3d(l,i,j)   = km_3d(l,1,j)
+          dz_3d(l,i,j)   = dz_3d(l,1,j)
+          dze_3d(l,i,j)  = dze_3d(l,1,j)
+          rho_3d(l,i,j)  = rho_3d(l,1,j)
+          rhoe_3d(l,i,j) = rhoe_3d(l,1,j)
+        enddo
+        enddo
+      endif
 
 
-!$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,rho,rhoe,u0,v0,km,dze,dz,
-!$OMP*   bydzerho,rhoebydz,uflx,vflx,p4,flux_bot,flux_top)
-!$OMP*    SHARED(dtime)
-!$OMP*    SCHEDULE(DYNAMIC,2)
-      loop_j_uv: do j=J_0STG, J_1STG
-        loop_i_uv: do i=1,im
+      CALL HALO_UPDATE_COLUMN(grid, km_3d)
+      CALL HALO_UPDATE_COLUMN(grid, dz_3d)
+      CALL HALO_UPDATE_COLUMN(grid, dze_3d)
+      CALL HALO_UPDATE_COLUMN(grid, rho_3d)
+      CALL HALO_UPDATE_COLUMN(grid, rhoe_3d)
 
+c
+c put A-grid surface stresses on the velocity grid
+c
+      call regrid_atov_1d(uflux1,vflux1,uvflux_vgrid)
+
+      do l=2,lm-1
+        p4(l)=0.d0
+      end do
+      flux_top=0.d0
+
+c
+c loop over U,V data
+c
+      vpkey_last = -1000
+      call get_nuv(nuv)
+      do n=1,nuv
+c copy 3D velocity to 1D array
+        call get_uv_of_n(n,uv)
+        uv0(:) = uv(:)
+        call get_vpkey_of_n(n,vpkey)
+        if(vpkey.ne.vpkey_last) then
+c we have moved to a new velocity point.
+c interpolate a-grid rho,km,dz to the new point.
+          call get_regrid_info_for_n(n,ilist,jlist,wts,nnbr)
           do l=1,lm
-            u(l)=u_3d(i,j,l)
-            v(l)=v_3d(i,j,l)
-            rho(l)=rho_3d_bgrid(l,i,j)
-            rhoe(l)=rhoe_3d_bgrid(l,i,j)
-            u0(l)=u(l)
-            v0(l)=v(l)
-            u_3d_old(l,i,j)=u(l)
-            v_3d_old(l,i,J)=v(l)
-            km(l)=km_3d_bgrid(l,i,j)
-            dze(l)=dze_3d_bgrid(l,i,j)
-            dz(l)=dz_3d_bgrid(l,i,j)
+            rho(l)=0d0
+            rhoe(l)=0d0
+            km(l)=0d0
+            dze(l)=0d0
+            dz(l)=0d0
+          enddo
+          do k=1,nnbr
+            i = ilist(k)
+            j = jlist(k)
+            do l=1,lm
+              rho(l) =rho(l) +wts(k)*rho_3d(l,i,j)
+              rhoe(l)=rhoe(l)+wts(k)*rhoe_3d(l,i,j)
+              km(l)  =km(l)  +wts(k)*km_3d(l,i,j)
+              dze(l) =dze(l) +wts(k)*dze_3d(l,i,j)
+              dz(l)  =dz(l)  +wts(k)*dz_3d(l,i,j)
+            enddo
+          enddo
+          do l=1,lm
             bydzerho(l)=1.d0/(dze(l)*rho(l))
-          end do
+          enddo
           rhoebydz(1)=0.
           do l=1,lm-1
             rhoebydz(l+1)=rhoe(l+1)/dz(l)
-          end do
+          enddo
+        endif
+c perform the diffusion
+        flux_bot=rhoe(1)*uvflux_vgrid(n)
+        call de_solver_main(uv,uv0,km,p4,
+     &       rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
+c store the updated velocity
+        call store_uv_of_n(n,uv)
+        vpkey_last = vpkey
+      enddo
+#endif
 
-          uflx=uflux_bgrid(i,j)
-          vflx=vflux_bgrid(i,j)
-
-          ! integrate differential eqns for U and V
-          do l=2,lm-1
-              p4(l)=0.d0
-          end do
-          flux_bot=rhoe(1)*uflx
-          flux_top=0.d0
-          call de_solver_main(u,u0,km,p4,
-     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
-          flux_bot=rhoe(1)*vflx
-          call de_solver_main(v,v0,km,p4,
-     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
-
-          ! update u and v
-          do l=1,lm
-            u_3d(i,j,l)= u(l)
-            v_3d(i,j,l)= v(l)
-          end do
-
-        end do loop_i_uv
-      end do loop_j_uv
-!$OMP  END PARALLEL DO
-
-      CALL HALO_UPDATE(grid, u_3d, from=NORTH)
-
-C**** Use halo values of plij from southern neighbor to complete that
-C     neighbor's update of AJL in this process (i.e. using PLIJ
-C     contribution at J_0-1 to finish accumulation into AJL(J_0,:,:) )
-        CALL HALO_UPDATE_COLUMN(grid, PLIJ, from=SOUTH)
-
-! ACCUMULATE DIAGNOSTICS for u and v
-C*** Adapt  use of idjj stencil to do correct calculation in distributed
-C    parallel version.
-
-C Contribution at southern border
-      IF (HAVE_SOUTH_POLE) THEN
-        J=1
-      ELSE
-        J=J_0H
-      END IF
-
-      KMAX=KMAXJ(J)
-      DO I=1,IMAXJ(J)
-        DO L=1,LM
-          DO K=1,KMAX
-            RAK=RAVJ(K,J)
-            IDIK=IDIJ(K,I,J)
-            IDJK=IDJJ(K,J)
-            IF (IDJK >= J_0)
-     &        AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
-     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(L,IDIK,IDJK))*PLIJ(L,I,J)*RAK
-          ENDDO
-        ENDDO
-      ENDDO
-
-      do j=J_0S,J_1-1
-        KMAX=KMAXJ(J)
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=1,KMAX
-              RAK=RAVJ(K,J)
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJJ(K,J)
-              AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
-     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(L,IDIK,IDJK))*PLIJ(L,I,J)*RAK
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-
-C**** J_1 computation (add only k=1,2 contributions to ajl when j_1 is
-C     NOT the north pole -- k=3,4 contr. to be added by southern neighbor).
-      if (HAVE_NORTH_POLE) THEN
-        J=JM
-        KMAX=KMAXJ(J)
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=1,KMAX
-              RAK=RAVJ(K,J)
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJJ(K,J)
-              AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
-     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(L,IDIK,IDJK))*PLIJ(L,I,J)*RAK
-            ENDDO
-          ENDDO
-        ENDDO
-      else
-        J=J_1
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=1,2
-              RAK=RAVJ(K,J)
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJJ(K,J)
-              AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
-     &        +(U_3d(IDIK,IDJK,L)-u_3d_old(L,IDIK,IDJK))*PLIJ(L,I,J)*RAK
-            ENDDO
-          ENDDO
-        ENDDO
-      end if
+c
+c wind tendency diagnostic on the A grid
+c
+      call recalc_agrid_uv ! add option for tendency computation?
+      DO J=J_0S,J_1S
+      DO I=I_0,I_1
+      DO L=1,LM
+         AJL(J,L,JL_DAMDC)=AJL(J,L,JL_DAMDC)+
+     &         (u_3d_agrid(L,I,J)-uasv(L,I,J))*PLIJ(L,I,J)
+      END DO
+      END DO
+      END DO
 
       return
       end subroutine atm_diffus
@@ -967,293 +951,6 @@ C****
 
       return
       end subroutine de_solver_edge
-
-      subroutine ave_uv_to_bgrid(u_a,v_a,u,v,lm)
-!@sum Computes u and v from u_a and v_a
-!@var u_a x-component of wind at primary grids (A_grid)
-!@var v_a y-component of wind at primary grids (A_grid)
-!@var u x-component of wind at secondary grids (B_grid)
-!@var v y-component of wind at secondary grids (B_grid)
-!@auth Ye Cheng
-!@ver  1.0
-
-      USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : grid, get
-      USE DOMAIN_DECOMP, only : halo_update_column
-      USE DOMAIN_DECOMP, only : halo_update
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH
-      USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj,cosiv,siniv
-
-      implicit none
-
-      integer, intent(in) :: lm
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo)  ::
-     &          u_a,v_a
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm),
-     &        intent(out) :: u,v
-
-      real*8, dimension(im) :: ra
-      integer, dimension(im) :: idj
-      real*8 :: HEMI,rak,ck,sk,uk,vk
-      integer :: i,j,l,k,idik,idjk,kmax
-      integer :: j_0, j_1, j_0s, j_1S
-      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      call get(grid, J_STRT=J_0,   J_STOP=J_1,
-     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
-
-
-      u=0.d0; v=0.d0
-      CALL HALO_UPDATE_COLUMN(grid,U_A, from=SOUTH)
-      CALL HALO_UPDATE_COLUMN(grid,V_A, from=SOUTH)
-
-      if (HAVE_SOUTH_POLE) then
-        J=1
-        KMAX=KMAXJ(J)
-        HEMI=-1.
-        DO I=1,IMAXJ(J)
-        DO L=1,LM
-        DO K=1,KMAX
-          IDIK=IDIJ(K,I,J)
-          IDJK=IDJJ(K,J)
-          RAK=RAVJ(K,J)
-          ck=cosiv(k)
-          sk=siniv(k)
-          uk=u_a(L,I,J)
-          vk=v_a(L,I,J)
-          U(IDIK,IDJK,L)=U(IDIK,IDJK,L)+RAK*(UK*CK+VK*SK*HEMI)
-          V(IDIK,IDJK,L)=V(IDIK,IDJK,L)+RAK*(VK*CK-UK*SK*HEMI)
-        END DO
-        END DO
-        END DO
-      Else
-! carry over from southern neighbor
-        J=J_0-1
-        DO K=3,4
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAVJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=3,4
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJ(K)
-              RAK=RA(K)
-              U(IDIK,IDJK,L)=U(IDIK,IDJK,L)+RAK*U_A(L,I,J)
-              V(IDIK,IDJK,L)=V(IDIK,IDJK,L)+RAK*V_A(L,I,J)
-            END DO
-          END DO
-        END DO
-      end if ! south pole
-
-      if (HAVE_NORTH_POLE) then
-        J=JM
-        KMAX=KMAXJ(J)
-        HEMI=1.
-        DO I=1,IMAXJ(J)
-        DO L=1,LM
-        DO K=1,KMAX
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJJ(K,J)
-              RAK=RAVJ(K,J)
-              ck=cosiv(k)
-              sk=siniv(k)
-              uk=u_a(L,I,J)
-              vk=v_a(L,I,J)
-          U(IDIK,IDJK,L)=U(IDIK,IDJK,L)+RAK*(UK*CK+VK*SK*HEMI)
-          V(IDIK,IDJK,L)=V(IDIK,IDJK,L)+RAK*(VK*CK-UK*SK*HEMI)
-        END DO
-        END DO
-        END DO
-      end if     !north pole
-
-!     non polar boxes (skip J_1 box --> computed below)
-      DO J=J_0S,J_1-1
-        KMAX=KMAXJ(J)
-        DO K=1,KMAX
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAVJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-        DO L=1,LM
-        DO K=1,KMAX
-          IDIK=IDIJ(K,I,J)
-          IDJK=IDJ(K)
-          RAK=RA(K)
-          U(IDIK,IDJK,L)=U(IDIK,IDJK,L)+RAK*U_A(L,I,J)
-          V(IDIK,IDJK,L)=V(IDIK,IDJK,L)+RAK*V_A(L,I,J)
-        END DO
-        END DO
-        END DO
-      END DO
-
-c**** J_1 box
-      if (.not. HAVE_NORTH_POLE) then
-        J=J_1
-        DO K=1,2
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAVJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=1,2
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJ(K)
-              RAK=RA(K)
-              U(IDIK,IDJK,L)=U(IDIK,IDJK,L)+RAK*U_A(L,I,J)
-              V(IDIK,IDJK,L)=V(IDIK,IDJK,L)+RAK*V_A(L,I,J)
-            END DO
-          END DO
-        END DO
-      end if
-
-
-      return
-      end subroutine ave_uv_to_bgrid
-
-      subroutine ave_s_to_bgrid(s1,s2,s3,s4,s5,
-     &  sb1,sb2,sb3,sb4,sb5,lm)
-!@sum Computes s_b from s
-!@var s  scalar at primary grid (A_grid)
-!@var sb scalar at secondary grid (B_grid)
-!@auth Ye Cheng
-!@ver  1.0
-
-      USE MODEL_COM, only : im,jm
-      USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj
-      USE DOMAIN_DECOMP, only : grid,get,NORTH,SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
-
-      implicit none
-
-      integer, intent(in) :: lm
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo)
-     &         ::  s1,s2,s3,s4,s5
-      real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo),
-     &        intent(out) :: sb1,sb2,sb3,sb4,sb5
-
-      real*8, dimension(im) :: ra
-      integer, dimension(im) :: idj
-      integer :: idik,idjk,kmax
-      integer :: i,j,l,k
-      real*8 :: rak
-
-C*** GET USEFUL DOMAIN DECOMPOSITION PARAMETERS
-      integer :: J_0,J_1
-      logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-      SB1=0.;SB2=0.;SB3=0.;SB4=0.;SB5=0.
-C*** Adapt  use of idjj stencil to do correct calculation in distributed
-C    parallel version.
-C   ......first skip j_1 (do later below)
-
-      CALL HALO_UPDATE_COLUMN(grid, S1, from=SOUTH)
-      CALL HALO_UPDATE_COLUMN(grid, S2, from=SOUTH)
-      CALL HALO_UPDATE_COLUMN(grid, S3, from=SOUTH)
-      CALL HALO_UPDATE_COLUMN(grid, S4, from=SOUTH)
-      CALL HALO_UPDATE_COLUMN(grid, S5, from=SOUTH)
-
-      If (.not. HAVE_SOUTH_POLE) THEN
-        j = J_0-1
-        KMAX=KMAXJ(J)
-        DO K=3,4
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAVJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=3,4
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJ(K)
-              RAK=RA(K)
-              SB1(L,IDIK,IDJK)=SB1(L,IDIK,IDJK)+RAK*S1(L,I,J)
-              SB2(L,IDIK,IDJK)=SB2(L,IDIK,IDJK)+RAK*S2(L,I,J)
-              SB3(L,IDIK,IDJK)=SB3(L,IDIK,IDJK)+RAK*S3(L,I,J)
-              SB4(L,IDIK,IDJK)=SB4(L,IDIK,IDJK)+RAK*S4(L,I,J)
-              SB5(L,IDIK,IDJK)=SB5(L,IDIK,IDJK)+RAK*S5(L,I,J)
-            END DO
-          END DO
-        END DO
-      End If
-
-      DO j=J_0,J_1-1
-        KMAX=KMAXJ(J)
-        DO K=1,KMAX
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAVJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=1,KMAX
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJ(K)
-              RAK=RA(K)
-              SB1(L,IDIK,IDJK)=SB1(L,IDIK,IDJK)+RAK*S1(L,I,J)
-              SB2(L,IDIK,IDJK)=SB2(L,IDIK,IDJK)+RAK*S2(L,I,J)
-              SB3(L,IDIK,IDJK)=SB3(L,IDIK,IDJK)+RAK*S3(L,I,J)
-              SB4(L,IDIK,IDJK)=SB4(L,IDIK,IDJK)+RAK*S4(L,I,J)
-              SB5(L,IDIK,IDJK)=SB5(L,IDIK,IDJK)+RAK*S5(L,I,J)
-            END DO
-          END DO
-        END DO
-      END DO
-C**** J_1 computation (add only k=1,2 contributions to ajl when j_1 is
-C     NOT the north pole -- k=3,4 contr. to be added by southern neighbor).
-      if (HAVE_NORTH_POLE) THEN
-        J=JM
-        KMAX=KMAXJ(J)
-        DO K=1,KMAX
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAVJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=1,KMAX
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJ(K)
-              RAK=RA(K)
-              SB1(L,IDIK,IDJK)=SB1(L,IDIK,IDJK)+RAK*S1(L,I,J)
-              SB2(L,IDIK,IDJK)=SB2(L,IDIK,IDJK)+RAK*S2(L,I,J)
-              SB3(L,IDIK,IDJK)=SB3(L,IDIK,IDJK)+RAK*S3(L,I,J)
-              SB4(L,IDIK,IDJK)=SB4(L,IDIK,IDJK)+RAK*S4(L,I,J)
-              SB5(L,IDIK,IDJK)=SB5(L,IDIK,IDJK)+RAK*S5(L,I,J)
-            END DO
-          END DO
-        END DO
-      else
-        J=J_1
-        DO K=1,2
-          IDJ(K)=IDJJ(K,J)
-          RA(K)=RAVJ(K,J)
-        END DO
-        DO I=1,IMAXJ(J)
-          DO L=1,LM
-            DO K=1,2
-              IDIK=IDIJ(K,I,J)
-              IDJK=IDJ(K)
-              RAK=RA(K)
-              SB1(L,IDIK,IDJK)=SB1(L,IDIK,IDJK)+RAK*S1(L,I,J)
-              SB2(L,IDIK,IDJK)=SB2(L,IDIK,IDJK)+RAK*S2(L,I,J)
-              SB3(L,IDIK,IDJK)=SB3(L,IDIK,IDJK)+RAK*S3(L,I,J)
-              SB4(L,IDIK,IDJK)=SB4(L,IDIK,IDJK)+RAK*S4(L,I,J)
-              SB5(L,IDIK,IDJK)=SB5(L,IDIK,IDJK)+RAK*S5(L,I,J)
-            END DO
-          END DO
-        END DO
-      end if
-
-C**** Use halo values of S1 -- S5 from southern neighbor to complete that
-C     neighbor's updates of SB1 -- SB5  in this process (i.e. using S[n]
-C     contribution at J_0 -1 to finish accumulation into SB[n](:,:,J_0) )
-C**** Halo updates from the south
-
-      return
-      end subroutine ave_s_to_bgrid
 
       subroutine apply_fluxes_to_atm
 !@sum dummy subroutine - replaces the real one needed by DRYCNV

@@ -3566,17 +3566,17 @@ c
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
-      jgrid_jl(k) = jgrid_u
+      jgrid_jl(k) = 1
 c
       k=k+1
       jl_dammc = k
-      sname_jl(k) = 'dudt_mc' !          'DU(MC)*P (UV GRID)'
+      sname_jl(k) = 'dudt_mc' !          'DU(MC)*P'
       lname_jl(k) = 'CHANGE OF U-WIND BY MOIST CONV'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
-      jgrid_jl(k) = jgrid_u
+      jgrid_jl(k) = 1
 c
       k=k+1
       jl_40 = k
