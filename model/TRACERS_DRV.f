@@ -787,7 +787,7 @@ C This number wasn't adjusted when the vegetation source was added.
       case ('isopp1g')
           n_isopp1g = n
           n_soa_i = n_isopp1g        !the first from the soa species
-          ntm_power(n) = -12
+          ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
           tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
@@ -799,7 +799,7 @@ C This number wasn't adjusted when the vegetation source was added.
 
       case ('isopp1a')
           n_isopp1a = n
-          ntm_power(n) = -12
+          ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
           trpdens(n) = 1.5d3         !kg/m3
@@ -809,7 +809,7 @@ C This number wasn't adjusted when the vegetation source was added.
 
       case ('isopp2g')
           n_isopp2g = n
-          ntm_power(n) = -12
+          ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
           tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
@@ -822,7 +822,7 @@ C This number wasn't adjusted when the vegetation source was added.
       case ('isopp2a')
           n_isopp2a = n
           n_soa_e = n_isopp2a        !the last from the soa species
-          ntm_power(n) = -12
+          ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
           trpdens(n) = 1.5d3         !kg/m3
@@ -2121,7 +2121,7 @@ C****
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CO2n Ocean source'
         sname_ijts(k) = 'CO2n_Ocean_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -2134,7 +2134,7 @@ C****
         sname_jls(k) = 'Layer_1_source_of_'//trname(n)
         lname_jls(k) = 'CFCn CFC-GRID SOURCE, LAYER 1'
         jls_ltop(k) = 1
-        jls_power(k) = -3.
+        jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
         ijts_isrc(1,n) = k
@@ -2142,7 +2142,7 @@ C****
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CFCn Ocean source'
         sname_ijts(k) = 'CFCn_Ocean_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -2153,7 +2153,7 @@ C****
         sname_jls(k) = 'Layer_1_source_of_'//trname(n)
         lname_jls(k) = trim(trname(n))//' CFC-GRID SOURCE, LAYER 1'
         jls_ltop(k) = 1
-        jls_power(k) = -3.
+        jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('Rn222')
@@ -2171,7 +2171,7 @@ C****
         sname_jls(k) = 'Ground_Source_of_'//trname(n)
         lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
         jls_ltop(k) = 1
-        jls_power(k) = -10.
+        jls_power(k) = -10
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 ! keep AIJ and AJL CO2 sources in same order !!
@@ -2235,7 +2235,7 @@ C****
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LM
-        jls_power(k) = -1.
+        jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
@@ -2243,7 +2243,7 @@ C****
         lname_jls(k) =
      &  'CHANGE OF '//trname(n)//' BY OVERWRITE'
         jls_ltop(k) = 1 ! really L=1 overwrite only
-        jls_power(k) = -1.
+        jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
@@ -2304,14 +2304,14 @@ C****
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY'
         jls_ltop(k) = LTOP
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(nStratwrite,n) = k
         sname_jls(k) = 'overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY OVERWRITE'
         jls_ltop(k) = LM
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #else
         k = k + 1
@@ -2514,7 +2514,7 @@ C**** special one unique to HTO
 !        sname_jls(k) = 'chemistry_nitrat_of'//trname(n)
 !        lname_jls(k) = 'CHANGE OF HNO3 BY NITRAT C'
 !        jls_ltop(k) = LTOP
-!        jls_power(k) = 0.
+!        jls_power(k) = 0
 !        units_jls(k) = unit_string(jls_power(k),'kg/s')
 !#endif
 
@@ -2525,7 +2525,7 @@ C**** special one unique to HTO
         sname_jls(k) = 'L1_overwrite_soure_'//trname(n)
         lname_jls(k) = trname(n)//'L1 overwrite source'
         jls_ltop(k) = 1
-        jls_power(k) = -5.
+        jls_power(k) = -5
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 
@@ -2564,7 +2564,7 @@ C**** special one unique to HTO
           lname_jls(k) =
      &    'CHANGE OF '//trname(n)//' BY OVERWRITE'
           jls_ltop(k) = LM
-          jls_power(k) = -1.
+          jls_power(k) = -1
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         case ('CFC','BrOx','ClOx')  ! L=1 overwrite only.
           k = k + 1
@@ -2573,7 +2573,7 @@ C**** special one unique to HTO
           lname_jls(k) =
      &    'CHANGE OF '//trname(n)//' BY OVERWRITE'
           jls_ltop(k) = 1 ! L=1 overwrite only
-          jls_power(k) = -1.
+          jls_power(k) = -1
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
         select case(trname(n))
@@ -2583,14 +2583,14 @@ C**** special one unique to HTO
           sname_jls(k) = 'lightning_source_of'//trname(n)
           lname_jls(k) = 'CHANGE OF '//trname(n)//' BY LIGHTNING'
           jls_ltop(k) = LM
-          jls_power(k) = -2.
+          jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
           k = k + 1
           jls_3Dsource(nAircraft,n) = k
           sname_jls(k) = 'aircraft_source_of'//trname(n)
           lname_jls(k) = 'CHANGE OF '//trname(n)//' BY AIRCRAFT'
           jls_ltop(k) = LM
-          jls_power(k) = -2.
+          jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
 #ifdef GFED_3D_BIOMASS
@@ -2601,7 +2601,7 @@ C**** special one unique to HTO
           sname_jls(k) = 'bburn_source_of'//trname(n)
           lname_jls(k) = 'CHANGE OF '//trname(n)//' BY BIOMASS BURNING'
           jls_ltop(k) = LM
-          jls_power(k) = -2.
+          jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
 #endif
@@ -2718,42 +2718,42 @@ c gravitational settling of MSA
         sname_jls(k) = 'E95_Fos_Fuel_Source_of_'//trname(n)
         lname_jls(k) = 'SO2 E95 fossil fuel source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(2,n) = k
         sname_jls(k) = 'E95_Industrial_Source_of_'//trname(n)
         lname_jls(k) = 'SO2 E95 Industrial Processes source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(3,n) = k
         sname_jls(k) = 'E95_Waste_hl_source_'//trname(n)
         lname_jls(k) = 'SO2 E95 Waste Handling source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(4,n) = k
         sname_jls(k) = 'E95_Biofuel_source_of_'//trname(n)
         lname_jls(k) = 'SO2 E95 Biofuel source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(5,n) = k
         sname_jls(k) = 'E95_Ag_waste_burn_source_of_'//trname(n)
         lname_jls(k) = 'SO2 E95 Agricultural Waste Burning source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(6,n) = k
         sname_jls(k) = 'E95_Biomass_burn_source_of_'//trname(n)
         lname_jls(k) = 'SO2 E95 Biomass burning source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #else
 c industrial source
@@ -2873,42 +2873,42 @@ c stratiform cloud phase source of SO4
         sname_jls(k) = 'E95_Fos_Fuel_Source_of_'//trname(n)
         lname_jls(k) = 'SO4 E95 fossil fuel source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(2,n) = k
         sname_jls(k) = 'E95_Industrial_Source_of_'//trname(n)
         lname_jls(k) = 'SO4 E95 Industrial Processes source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(3,n) = k
         sname_jls(k) = 'E95_Waste_hl_source_'//trname(n)
         lname_jls(k) = 'SO4 E95 Waste Handling source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(4,n) = k
         sname_jls(k) = 'E95_Biofuel_source_of_'//trname(n)
         lname_jls(k) = 'SO4 E95 Biofuel source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(5,n) = k
         sname_jls(k) = 'E95_Ag_waste_burn_source_'//trname(n)
         lname_jls(k) = 'SO4 E95 Agricultural Waste Burning source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(6,n) = k
         sname_jls(k) = 'E95_Biomass_burn_source_'//trname(n)
         lname_jls(k) = 'SO4 E95 Biomass burning source'
         jls_ltop(k) = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #else
 c industrial source
@@ -3361,7 +3361,7 @@ c        jls_grav(n) = k   ! special array grav. settling sinks
 c        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
 c        lname_jls(k) = 'LOSS OF DUST BY SETTLING'
 c        jls_ltop(k) = lm
-c        jls_power(k) = -11.
+c        jls_power(k) = -11
 c        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       end select
@@ -3477,7 +3477,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'ClO_conc'
         lname_jls(k) = 'ClO concentration'
         jls_ltop(k)  = LTOP
-        jls_power(k) = -11.
+        jls_power(k) = -11
         scale_jls(k) = byim
         units_jls(k) = unit_string(jls_power(k),'V/V air')
         k = k + 1
@@ -3485,7 +3485,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'H2O_conc'
         lname_jls(k) = 'H2O concentration'
         jls_ltop(k)  = LTOP
-        jls_power(k) = -7.
+        jls_power(k) = -7
         scale_jls(k) = byim
         units_jls(k) = unit_string(jls_power(k),'V/V air')
         k = k + 1
@@ -3493,7 +3493,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'H2O_chem'
         lname_jls(k) = 'H2O change due to chemistry'
         jls_ltop(k)  = LTOP
-        jls_power(k) = -4.
+        jls_power(k) = -4
         scale_jls(k) = byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
@@ -3502,7 +3502,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'Ox_chem_prod'
         lname_jls(k) = 'Ox production due to chemistry'
         jls_ltop(k)  = LTOP
-        jls_power(k) = 1.
+        jls_power(k) = 1
         scale_jls(k) = byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -3510,7 +3510,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'Ox_chem_dest'
         lname_jls(k) = 'Ox destruction due to chemistry'
         jls_ltop(k)  = LTOP
-        jls_power(k) = 1.
+        jls_power(k) = 1
         scale_jls(k) = byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -3518,7 +3518,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'CO_chem_prod'
         lname_jls(k) = 'CO production due to chemistry'
         jls_ltop(k)  = LTOP
-        jls_power(k) = 0.
+        jls_power(k) = 0
         scale_jls(k) = byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -3526,7 +3526,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'CO_dest_prod'
         lname_jls(k) = 'CO destruction due to chemistry'
         jls_ltop(k)  = LTOP
-        jls_power(k) = 0.
+        jls_power(k) = 0
         scale_jls(k) = byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -3534,7 +3534,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'OH_conc'
         lname_jls(k) = 'OH concentration'
         jls_ltop(k)  = LTOP
-        jls_power(k) = 5.
+        jls_power(k) = 5
         scale_jls(k) = byim
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3')
 c
@@ -3543,7 +3543,7 @@ c
         sname_jls(k) = 'H2O_mr'
         lname_jls(k) = 'H2O mixing ratio (weighted by daylight)'
         jls_ltop(k)  = LTOP
-        jls_power(k) = -4.
+        jls_power(k) = -4
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'parts/vol')
 c
@@ -3552,7 +3552,7 @@ c
         sname_jls(k) = 'daylight'   ! not output
         lname_jls(k) = 'Daylight weighting'
         jls_ltop(k)  = 1
-        jls_power(k) = 0.
+        jls_power(k) = 0
         scale_jls(k) = 100.*byim
         units_jls(k) = unit_string(jls_power(k),'%')
 c
@@ -3561,7 +3561,7 @@ c
         sname_jls(k) = 'N2O5_sulf'
         lname_jls(k) = 'N2O5 sulfate sink'
         jls_ltop(k)  = LTOP
-        jls_power(k) = -2.
+        jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 #endif  /* TRACERS_SPECIAL_Shindell */
@@ -3652,7 +3652,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'ocean_gas_exc_'//trname(n)
         lname_ijts(k) = 'Ocean gas exchange CO2'
-        ijts_power(k) = -11.
+        ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -3689,7 +3689,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Rn222 L 1 SOURCE'
         sname_ijts(k) = 'Rn222_SOURCE_Layer_1'
-        ijts_power(k) = -21.
+        ijts_power(k) = -21
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -3701,7 +3701,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Fossil_fuel_source_'//trname(n)
         lname_ijts(k) = 'CO2 Fossil fuel src'
-        ijts_power(k) = -11.
+        ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -3710,7 +3710,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'fertilization_sink_'//trname(n)
         lname_ijts(k) = 'CO2 fertilization'
-        ijts_power(k) = -11.
+        ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -3719,7 +3719,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Northern_forest_regrowth_'//trname(n)
         lname_ijts(k) = 'CO2 North forest regrowth'
-        ijts_power(k) = -11.
+        ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -3728,7 +3728,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Land_Use_Modification_'//trname(n)
         lname_ijts(k) = 'CO2 from Land use mods'
-        ijts_power(k) = -11.
+        ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -3737,7 +3737,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Ecosystem_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ecosystem exch'
-        ijts_power(k) = -11.
+        ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -3746,7 +3746,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Ocean_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ocean exchange'
-        ijts_power(k) = -11.
+        ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -3769,7 +3769,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -3778,7 +3778,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
         sname_ijts(k) = trname(n)//'_overw'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -3798,7 +3798,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -3855,7 +3855,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         select case(trname(n))
@@ -3868,7 +3868,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Overwrite'
           sname_ijts(k) = trname(n)//'_overw'
-          ijts_power(k) = -12.
+          ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end select
@@ -3880,7 +3880,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Lightning Source'
           sname_ijts(k) = trname(n)//'_lightning'
-          ijts_power(k) = -12.
+          ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
           k = k + 1
@@ -3889,7 +3889,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Aircraft Source'
           sname_ijts(k) = trname(n)//'_aircraft'
-          ijts_power(k) = -12.
+          ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         case('Ox')
@@ -3899,7 +3899,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -3908,7 +3908,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
         end select
@@ -3921,7 +3921,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Biomass Burning Source'
           sname_ijts(k) = trname(n)//'_bburn'
-          ijts_power(k) = -12.
+          ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end select
@@ -3936,7 +3936,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' chemical source'
         sname_ijts(k) = trim(trname(n))//'_chemical_source'
-        ijts_power(k) = -17
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif  /* TRACERS_AEROSOLS_SOA*/
@@ -3960,7 +3960,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -3969,7 +3969,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
         sname_ijts(k) = trname(n)//'_overw'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #else 
@@ -4105,7 +4105,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Tropospheric Chemistry'
         sname_ijts(k) = 'CH4_trop_chem'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -4114,7 +4114,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Stratospheric Chemistry'
         sname_ijts(k) = 'CH4_strat_chem'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -4126,7 +4126,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 deposition, layer 1'
         sname_ijts(k) = 'O3_deposition_L1'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -4135,7 +4135,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 Stratospheric Chem.'
         sname_ijts(k) = 'O3_strat_chem'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -4144,7 +4144,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 Tropo. Chem. Production'
         sname_ijts(k) = 'O3_trop_chem_prod'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
@@ -4153,7 +4153,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 Tropo. Chemistry Loss'
         sname_ijts(k) = 'O3_trop_chem_loss'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -4173,7 +4173,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//'L1 overwrite source'
         sname_ijts(k) = trname(n)//'L1_overwrite'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -4185,7 +4185,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Industrial source'
         sname_ijts(k) = 'BC_Industrial_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -4194,7 +4194,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'    ! 'BCII Aging sink'
         sname_ijts(k) = 'unused'    ! 'BCII_Aging_sink'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -4205,7 +4205,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Aging source'
         sname_ijts(k) = 'BC_Aging_Source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -4214,7 +4214,7 @@ c put in chemical production
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BCIA Aircraft source'
         sname_ijts(k) = 'BCIA_Aircraft_src'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef BC_ALB
@@ -4225,7 +4225,7 @@ c         ijts_index(k) = n
 c         ia_ijts(k) = ia_rad
 c         lname_ijts(k) = 'BC impact on grain size'
 c         sname_ijts(k) = 'grain_BC'
-c         ijts_power(k) = -9.
+c         ijts_power(k) = -9
 c         units_ijts(k) = unit_string(ijts_power(k),' ')
 c         scale_ijts(k) = 10.**(-ijts_power(k))
 c BC impact on albedo 
@@ -4235,7 +4235,7 @@ c BC impact on albedo
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'BC impact on albedo (%)'
           sname_ijts(k) = 'alb_BC'
-          ijts_power(k) = -12.
+          ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c SW forcing from albedo change
@@ -4245,7 +4245,7 @@ c SW forcing from albedo change
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCalb SW radiative forcing'
         sname_ijts(k) = 'swf_BCALB'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -4258,7 +4258,7 @@ c BCI optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'BCI optical thickness'
           sname_ijts(k) = 'tau_BCI'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c BCI clear sky optical thickness
@@ -4268,7 +4268,7 @@ c BCI clear sky optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'BCI clr sky optical thickness'
           sname_ijts(k) = 'tau_CS_BCI'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
         ELSE
@@ -4285,7 +4285,7 @@ c extinction optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -4301,7 +4301,7 @@ c clear sky extinction optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -4316,7 +4316,7 @@ c scattering optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -4332,7 +4332,7 @@ c clear sky scattering optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -4347,7 +4347,7 @@ c scattering asymmetry factor in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -4363,7 +4363,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           END DO
@@ -4375,7 +4375,7 @@ c BCI shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI SW radiative forcing'
         sname_ijts(k) = 'swf_BCI'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCI longwave radiative forcing
@@ -4385,7 +4385,7 @@ c BCI longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI LW radiative forcing'
         sname_ijts(k) = 'lwf_BCI'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCI shortwave surface radiative forcing
@@ -4395,7 +4395,7 @@ c BCI shortwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI SW surface rad forcing'
         sname_ijts(k) = 'swf_srf_BCI'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCI longwave radiative forcing
@@ -4405,7 +4405,7 @@ c BCI longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI LW surface rad forcing'
         sname_ijts(k) = 'lwf_srf_BCI'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 
@@ -4416,7 +4416,7 @@ c BCI clear sky shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_BCI'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCI longwave radiative forcing
@@ -4426,7 +4426,7 @@ c BCI longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCI'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -4437,7 +4437,7 @@ c BCI longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Biomass source'
         sname_ijts(k) = 'BC_Biomass_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
@@ -4449,7 +4449,7 @@ c BCB optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'BCB optical thickness'
           sname_ijts(k) = 'tau_BCB'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c BCB clear sky optical thickness
@@ -4459,7 +4459,7 @@ c BCB clear sky optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'BCB clr sky optical thickness'
           sname_ijts(k) = 'tau_CS_BCB'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
         ELSE
@@ -4476,7 +4476,7 @@ c extinction optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -4492,7 +4492,7 @@ c clear sky extinction optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -4507,7 +4507,7 @@ c scattering optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -4523,7 +4523,7 @@ c clear sky scattering optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -4538,7 +4538,7 @@ c scattering asymmetry factor in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -4554,7 +4554,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_'
      &           ,TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           END DO
@@ -4566,7 +4566,7 @@ c BCB shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB SW radiative forcing'
         sname_ijts(k) = 'swf_BCB'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCB longwave radiative forcing
@@ -4576,7 +4576,7 @@ c BCB longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB LW radiative forcing'
         sname_ijts(k) = 'lwf_BCB'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCB shortwave surface radiative forcing
@@ -4586,7 +4586,7 @@ c BCB shortwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_BCB'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCB longwave surface radiative forcing
@@ -4596,7 +4596,7 @@ c BCB longwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_BCB'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCB clear sky shortwave radiative forcing
@@ -4606,7 +4606,7 @@ c BCB clear sky shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_BCB'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c BCB clear sky longwave radiative forcing
@@ -4616,7 +4616,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCB'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -4628,7 +4628,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC Industrial source'
         sname_ijts(k) = 'OC_Industrial_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -4637,7 +4637,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -4646,7 +4646,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'       ! 'OCII Aging sink'
         sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -4657,7 +4657,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -4666,7 +4666,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) =  TRIM(trname(n))//' Emissions'
         sname_ijts(k) = TRIM(trname(n))//'_emissions'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -4675,7 +4675,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'       ! 'OCII Aging sink'
         sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       case ('OCI1','OCI2')
@@ -4685,7 +4685,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) =  TRIM(trname(n))//' Emissions'
         sname_ijts(k) = TRIM(trname(n))//'_emissions'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
@@ -4694,7 +4694,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'       ! 'Aging sink'
         sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       case ('OCA4')
@@ -4704,7 +4704,7 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) =  TRIM(trname(n))//' Emissions'
         sname_ijts(k) = TRIM(trname(n))//'_emissions'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_OM_SP
@@ -4716,7 +4716,7 @@ c OC optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = TRIM(trname(n))//' optical thickness'
           sname_ijts(k) = 'tau_'//TRIM(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky optical thickness
@@ -4726,7 +4726,7 @@ c OC clear sky optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
           sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
         ELSE
@@ -4743,7 +4743,7 @@ c extinction optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -4759,7 +4759,7 @@ c clear sky extinction optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -4774,7 +4774,7 @@ c scattering optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -4790,7 +4790,7 @@ c clear sky scattering optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -4805,7 +4805,7 @@ c scattering asymmetry factor in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -4821,7 +4821,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           END DO
@@ -4833,7 +4833,7 @@ c OC shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC longwave radiative forcing
@@ -4843,7 +4843,7 @@ c OC longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC shortwave surface radiative forcing
@@ -4853,7 +4853,7 @@ c OC shortwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW surf rad forcing'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC longwave surface radiative forcing
@@ -4863,7 +4863,7 @@ c OC longwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW surf rad forcing'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky shortwave radiative forcing
@@ -4873,7 +4873,7 @@ c OC clear sky shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky longwave radiative forcing
@@ -4883,7 +4883,7 @@ c OC clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -4894,7 +4894,7 @@ c OC clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = TRIM(trname(n))//' Aging source'
         sname_ijts(k) = TRIM(trname(n))//'_Aging_Source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -4907,7 +4907,7 @@ c OC optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = TRIM(trname(n))//' optical thickness'
           sname_ijts(k) = 'tau_'//TRIM(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky optical thickness
@@ -4917,7 +4917,7 @@ c OC clear sky optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
           sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
         ELSE
@@ -4934,7 +4934,7 @@ c extinction optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -4950,7 +4950,7 @@ c clear sky extinction optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -4965,7 +4965,7 @@ c scattering optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -4981,7 +4981,7 @@ c clear sky scattering optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -4996,7 +4996,7 @@ c scattering asymmetry factor in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -5012,7 +5012,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           END DO
@@ -5024,7 +5024,7 @@ c OC shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC longwave radiative forcing
@@ -5034,7 +5034,7 @@ c OC longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC shortwave surface radiative forcing
@@ -5044,7 +5044,7 @@ c OC shortwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW surf rad forcing'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC longwave surface radiative forcing
@@ -5054,7 +5054,7 @@ c OC longwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW surf rad forcing'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky shortwave radiative forcing
@@ -5064,7 +5064,7 @@ c OC clear sky shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c OC clear sky longwave radiative forcing
@@ -5074,7 +5074,7 @@ c OC clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -5085,7 +5085,7 @@ c OC clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC Biomass source'
         sname_ijts(k) = 'OC_Biomass_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -5096,7 +5096,7 @@ c OC clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'DMS Ocean source'
         sname_ijts(k) = 'DMS_Ocean_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -5106,7 +5106,7 @@ c OC clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'DMS Chem sink'
         sname_ijts(k) = 'DMS_Chem_sink'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -5118,7 +5118,7 @@ c put in chemical production of MSA
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'MSA Chemical source'
         sname_ijts(k) = 'MSA_Chemical_source'
-        ijts_power(k) = -17.
+        ijts_power(k) = -17
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -5130,7 +5130,7 @@ c production of SO2 from volcanic emissions
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from volcanos'
         sname_ijts(k) = 'SO2_source_from_volcanos'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c production of SO2 from aircraft
@@ -5140,7 +5140,7 @@ c production of SO2 from aircraft
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from aircraft'
         sname_ijts(k) = 'SO2_source_from_aricraft'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c emissions of biomass SO2
@@ -5150,7 +5150,7 @@ c emissions of biomass SO2
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Biomass SO2 source'
         sname_ijts(k) = 'SO2_source_from_biomass'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c put in production of SO2 from DMS
@@ -5160,7 +5160,7 @@ c put in production of SO2 from DMS
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from DMS'
         sname_ijts(k) = 'SO2_source_from_DMS'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c put in chemical loss of SO2
@@ -5170,7 +5170,7 @@ c put in chemical loss of SO2
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 Chemical sink'
         sname_ijts(k) = 'SO2_chem_sink'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef EDGAR_1995
@@ -5236,7 +5236,7 @@ c emissions of industrial SO2
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO2 source'
         sname_ijts(k) = 'SO2_source_from_industry'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -5248,7 +5248,7 @@ c put in production of SO4 from gas phase
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 gas phase source'
         sname_ijts(k) = 'SO4_gas_phase_source'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef EDGAR_1995
@@ -5314,7 +5314,7 @@ c SO4 from industrial emissions
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO4 source'
         sname_ijts(k) = 'SO4_source_from_industry'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -5326,7 +5326,7 @@ c put in source of SO4 from aqueous chem
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 aqueous chem source'
         sname_ijts(k) = 'SO4_aq_chem_source'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         IF (diag_rad /= 1) THEN
@@ -5337,7 +5337,7 @@ c SO4 optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'SO4 optical thickness'
           sname_ijts(k) = 'tau_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c SO4 clear sky optical thickness
@@ -5347,7 +5347,7 @@ c SO4 clear sky optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'SO4 clr sky optical thickness'
           sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
         ELSE
@@ -5364,7 +5364,7 @@ c extinction optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -5380,7 +5380,7 @@ c clear sky extinction optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -5395,7 +5395,7 @@ c scattering optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -5411,7 +5411,7 @@ c clear sky scattering optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -5426,7 +5426,7 @@ c scattering asymmetry factor in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -5442,7 +5442,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           END DO
@@ -5454,7 +5454,7 @@ c SO4 shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 SW radiative forcing'
         sname_ijts(k) = 'swf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SO4 longwave radiative forcing
@@ -5464,7 +5464,7 @@ c SO4 longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 LW radiative forcing'
         sname_ijts(k) = 'lwf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SO4 shortwave surface radiative forcing
@@ -5474,7 +5474,7 @@ c SO4 shortwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SO4 longwave surface radiative forcing
@@ -5484,7 +5484,7 @@ c SO4 longwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SO4 clear sky shortwave radiative forcing
@@ -5494,7 +5494,7 @@ c SO4 clear sky shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SO4 clear sky longwave radiative forcing
@@ -5504,7 +5504,7 @@ c SO4 clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -5518,7 +5518,7 @@ c production of NH3 from all emissions
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'NH3 source from emission'
         sname_ijts(k) = 'NH3_source_from_emission'
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -5530,7 +5530,7 @@ c NO3 optical thickness
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 optical thickness'
         sname_ijts(k) = 'tau_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c NO3 clear sky optical thickness
@@ -5540,7 +5540,7 @@ c NO3 clear sky optical thickness
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 clr sky optical thickness'
         sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c NO3 shortwave radiative forcing
@@ -5550,7 +5550,7 @@ c NO3 shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 SW radiative forcing'
         sname_ijts(k) = 'swf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c NO3 longwave radiative forcing
@@ -5560,7 +5560,7 @@ c NO3 longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 LW radiative forcing'
         sname_ijts(k) = 'lwf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c NO3 shortwave surface radiative forcing
@@ -5570,7 +5570,7 @@ c NO3 shortwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c NO3 longwave surface radiative forcing
@@ -5580,7 +5580,7 @@ c NO3 longwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c NO3 clear sky shortwave radiative forcing
@@ -5590,7 +5590,7 @@ c NO3 clear sky shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c NO3 clear sky longwave radiative forcing
@@ -5600,7 +5600,7 @@ c NO3 clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c#endif
@@ -5623,7 +5623,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'AMP_src_'//trim(trname(n))
          sname_ijts(k) = 'AMP_src_'//trim(trname(n))
-         ijts_power(k) = -15.
+         ijts_power(k) = -15
          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
        k = k + 1
@@ -5632,7 +5632,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P1_Nucl_'//trim(trname(n))
          sname_ijts(k) = 'P1_Nucl_'//trim(trname(n))
-         ijts_power(k) = -11.
+         ijts_power(k) = -11
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
@@ -5641,7 +5641,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P2_Coag_'//trim(trname(n))
          sname_ijts(k) = 'P2_Coag_'//trim(trname(n))
-         ijts_power(k) = -11.
+         ijts_power(k) = -11
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
@@ -5650,7 +5650,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P3_Cond_'//trim(trname(n))
          sname_ijts(k) = 'P3_Cond_'//trim(trname(n))
-         ijts_power(k) = -11.
+         ijts_power(k) = -11
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
@@ -5659,7 +5659,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P4_Incld_NIMC_'//trim(trname(n))
          sname_ijts(k) = 'P4_Incld_NIMC_'//trim(trname(n))
-         ijts_power(k) = -11.
+         ijts_power(k) = -11
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
@@ -5668,7 +5668,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P5_IMLoss_NIAC_'//trim(trname(n))
          sname_ijts(k) = 'P5_IMLoss_NIAC_'//trim(trname(n))
-         ijts_power(k) = -11.
+         ijts_power(k) = -11
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
@@ -5677,7 +5677,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P6_Mode_Trans_'//trim(trname(n))
          sname_ijts(k) = 'P6_Mode_Trans_'//trim(trname(n))
-         ijts_power(k) = -11.
+         ijts_power(k) = -11
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
@@ -5686,7 +5686,7 @@ c#endif
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P7_Total_Change_'//trim(trname(n))
          sname_ijts(k) = 'P7_Total_Change_'//trim(trname(n))
-         ijts_power(k) = -11.
+         ijts_power(k) = -11
          units_ijts(k) = unit_string(ijts_power(k),' ')
          scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -5699,7 +5699,7 @@ c chemical production of SO4 from SO2 on dust
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d1 Chemical source'
         sname_ijts(k) = 'SO4d1_Chemical_source'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       case ('SO4_d2')
@@ -5710,7 +5710,7 @@ c chemical production of SO4 from SO2 on dust
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d2 Chemical source'
         sname_ijts(k) = 'SO4d2_Chemical_source'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       case ('SO4_d3')
@@ -5721,7 +5721,7 @@ c chemical production of SO4 from SO2 on dust
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d3 Chemical source'
         sname_ijts(k) = 'SO4d3_Chemical_source'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -5733,7 +5733,7 @@ c put in production of H2O2 from gas phase
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'H2O2 gas phase source'
         sname_ijts(k) = 'H2O2_gas_phase_source'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c put in production of H2O2 from gas phase
@@ -5743,7 +5743,7 @@ c put in production of H2O2 from gas phase
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'H2O2 gas phase sink'
         sname_ijts(k) = 'H2O2_gas_phase_sink'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -5790,7 +5790,7 @@ c source of Pb210 from Rn222 decay
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'seasalt1 Ocean source'
         sname_ijts(k) = 'seasalt1_Ocean_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
@@ -5802,7 +5802,7 @@ c ss1 optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'ss1 optical thickness'
           sname_ijts(k) = 'tau_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c ss1 clear sky optical thickness
@@ -5812,7 +5812,7 @@ c ss1 clear sky optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'ss1 clr sky optical thickness'
           sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
         ELSE
@@ -5829,7 +5829,7 @@ c extinction optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -5845,7 +5845,7 @@ c clear sky extinction optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -5860,7 +5860,7 @@ c scattering optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -5876,7 +5876,7 @@ c clear sky scattering optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -5891,7 +5891,7 @@ c scattering asymmetry factor in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -5907,7 +5907,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           END DO
@@ -5919,7 +5919,7 @@ c SS shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS SW radiative forcing'
         sname_ijts(k) = 'swf_SS'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SS longwave radiative forcing
@@ -5929,7 +5929,7 @@ c SS longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS LW radiative forcing'
         sname_ijts(k) = 'lwf_SS'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SS shortwave surface radiative forcing
@@ -5939,7 +5939,7 @@ c SS shortwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_SS'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SS longwave surface radiative forcing
@@ -5949,7 +5949,7 @@ c SS longwave surface radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_SS'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SS clear sky shortwave radiative forcing
@@ -5959,7 +5959,7 @@ c SS clear sky shortwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_SS'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c SS clear sky longwave radiative forcing
@@ -5969,7 +5969,7 @@ c SS clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_SS'
-        ijts_power(k) = -2.
+        ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -5980,7 +5980,7 @@ c SS clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'seasalt2 Ocean source'
         sname_ijts(k) = 'seasalt2_Ocean_source'
-        ijts_power(k) = -12.
+        ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
@@ -5992,7 +5992,7 @@ c ss2 optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'ss2 optical thickness'
           sname_ijts(k) = 'tau_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c ss2 clear sky optical thickness
@@ -6002,7 +6002,7 @@ c ss2 clear sky optical thickness
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'ss2 clr sky optical thickness'
           sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
         ELSE
@@ -6019,7 +6019,7 @@ c extinction optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -6035,7 +6035,7 @@ c clear sky extinction optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -6050,7 +6050,7 @@ c scattering optical thickness in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -6066,7 +6066,7 @@ c clear sky scattering optical thickness in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -4.
+            ijts_power(k) = -4
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -6081,7 +6081,7 @@ c scattering asymmetry factor in six solar bands
             WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -6097,7 +6097,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &           LEN_TRIM(trname(n)),')'
             WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &           TRIM(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           END DO
@@ -6117,7 +6117,7 @@ c clear sky scattering asymmetry factor in six solar bands
         sname_ijts(k)=TRIM(trname(n))//'_emission'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_DUST
@@ -6128,7 +6128,7 @@ c clear sky scattering asymmetry factor in six solar bands
         sname_ijts(k)=TRIM(trname(n))//'_emission2'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         END IF
@@ -6140,7 +6140,7 @@ c clear sky scattering asymmetry factor in six solar bands
         sname_ijts(k)=TRIM(trname(n))//'_turb_depo'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -6151,7 +6151,7 @@ c clear sky scattering asymmetry factor in six solar bands
         sname_ijts(k)=TRIM(trname(n))//'_wet_depo'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -6165,7 +6165,7 @@ c dust optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'1 optical thickness'
             sname_ijts(k) = 'tau_'//trim(trname(n))//'1'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
             k = k + 1
@@ -6174,7 +6174,7 @@ c dust optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'2 optical thickness'
             sname_ijts(k) = 'tau_'//trim(trname(n))//'2'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
             k = k + 1
@@ -6183,7 +6183,7 @@ c dust optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'3 optical thickness'
             sname_ijts(k) = 'tau_'//trim(trname(n))//'3'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
             k = k + 1
@@ -6192,7 +6192,7 @@ c dust optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'4 optical thickness'
             sname_ijts(k) = 'tau_'//trim(trname(n))//'4'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c dust clear sky optical thickness of four clay sub size classes
@@ -6202,7 +6202,7 @@ c dust clear sky optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'1 CS optical thickness'
             sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'1'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
             k = k + 1
@@ -6211,7 +6211,7 @@ c dust clear sky optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'2 CS optical thickness'
             sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'2'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
             k = k + 1
@@ -6220,7 +6220,7 @@ c dust clear sky optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'3 CS optical thickness'
             sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'3'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
             k = k + 1
@@ -6229,7 +6229,7 @@ c dust clear sky optical thickness of four clay sub size classes
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//'4 CS optical thickness'
             sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'4'
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           ELSE
@@ -6248,7 +6248,7 @@ c extinction optical thickness in six solar bands for four clay sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
      &               TRIM(trname(n)),n1
-                ijts_power(k) = -4.
+                ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands for four clay
@@ -6265,7 +6265,7 @@ c sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &               TRIM(trname(n)),n1
-                ijts_power(k) = -4.
+                ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands for four clay sub classes
@@ -6281,7 +6281,7 @@ c scattering optical thickness in six solar bands for four clay sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
      &               TRIM(trname(n)),n1
-                ijts_power(k) = -4.
+                ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands for four clay
@@ -6298,7 +6298,7 @@ c sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &               TRIM(trname(n)),n1
-                ijts_power(k) = -4.
+                ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands for four clay sub classes
@@ -6314,7 +6314,7 @@ c scattering asymmetry factor in six solar bands for four clay sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
      &               TRIM(trname(n)),n1
-                ijts_power(k) = -2.
+                ijts_power(k) = -2
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands for four clay
@@ -6331,7 +6331,7 @@ c sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &               TRIM(trname(n)),n1
-                ijts_power(k) = -2.
+                ijts_power(k) = -2
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
               END DO
@@ -6344,7 +6344,7 @@ c dust shortwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'1 SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6353,7 +6353,7 @@ c dust shortwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'2 SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6362,7 +6362,7 @@ c dust shortwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'3 SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6371,7 +6371,7 @@ c dust shortwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'4 SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing of four clay sub size classes
@@ -6381,7 +6381,7 @@ c dust longwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'1 LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6390,7 +6390,7 @@ c dust longwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'2 LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6399,7 +6399,7 @@ c dust longwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'3 LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6408,7 +6408,7 @@ c dust longwave radiative forcing of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'4 LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c dust shortwave radiative forcing at surface of four clay sub size classes
@@ -6418,7 +6418,7 @@ c dust shortwave radiative forcing at surface of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'1 SW Surf radiative forcing'
           sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6427,7 +6427,7 @@ c dust shortwave radiative forcing at surface of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'2 SW Surf radiative forcing'
           sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6436,7 +6436,7 @@ c dust shortwave radiative forcing at surface of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'3 SW Surf radiative forcing'
           sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6445,7 +6445,7 @@ c dust shortwave radiative forcing at surface of four clay sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'4 SW Surf radiative forcing'
           sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing at surface of four sub size classes
@@ -6455,7 +6455,7 @@ c dust longwave radiative forcing at surface of four sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'1 LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6464,7 +6464,7 @@ c dust longwave radiative forcing at surface of four sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'2 LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6473,7 +6473,7 @@ c dust longwave radiative forcing at surface of four sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'3 LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
@@ -6482,7 +6482,7 @@ c dust longwave radiative forcing at surface of four sub size classes
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//'4 LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
         CASE('Silt1','Silt2','Silt3','Silt4',
@@ -6499,7 +6499,7 @@ c dust optical thickness
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//' optical thickness'
             sname_ijts(k) = 'tau_'//trim(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
 c dust clear sky optical thickness
@@ -6509,7 +6509,7 @@ c dust clear sky optical thickness
             ia_ijts(k) = ia_rad
             lname_ijts(k) = trim(trname(n))//' CS optical thickness'
             sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-            ijts_power(k) = -2.
+            ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
           ELSE
@@ -6527,7 +6527,7 @@ c extinction optical thickness in six solar bands
      &             LEN_TRIM(trname(n)),')'
               WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
      &             TRIM(trname(n))
-              ijts_power(k) = -4.
+              ijts_power(k) = -4
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky extinction optical thickness in six solar bands
@@ -6543,7 +6543,7 @@ c clear sky extinction optical thickness in six solar bands
      &             LEN_TRIM(trname(n)),')'
               WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &             TRIM(trname(n))
-              ijts_power(k) = -4.
+              ijts_power(k) = -4
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering optical thickness in six solar bands
@@ -6559,7 +6559,7 @@ c scattering optical thickness in six solar bands
      &             LEN_TRIM(trname(n)),')'
               WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
      &             TRIM(trname(n))
-              ijts_power(k) = -4.
+              ijts_power(k) = -4
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering optical thickness in six solar bands
@@ -6575,7 +6575,7 @@ c clear sky scattering optical thickness in six solar bands
      &             LEN_TRIM(trname(n)),')'
               WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &             TRIM(trname(n))
-              ijts_power(k) = -4.
+              ijts_power(k) = -4
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
 c scattering asymmetry factor in six solar bands
@@ -6591,7 +6591,7 @@ c scattering asymmetry factor in six solar bands
      &             LEN_TRIM(trname(n)),')'
               WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
      &             TRIM(trname(n))
-              ijts_power(k) = -2.
+              ijts_power(k) = -2
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky scattering asymmetry factor in six solar bands
@@ -6607,7 +6607,7 @@ c clear sky scattering asymmetry factor in six solar bands
      &             LEN_TRIM(trname(n)),')'
               WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &             TRIM(trname(n))
-              ijts_power(k) = -2.
+              ijts_power(k) = -2
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
             END DO
@@ -6619,7 +6619,7 @@ c dust shortwave radiative forcing
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing
@@ -6629,7 +6629,7 @@ c dust longwave radiative forcing
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c dust shortwave radiative forcing at surface
@@ -6639,7 +6639,7 @@ c dust shortwave radiative forcing at surface
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' SW Surf radiative forcing'
           sname_ijts(k) = 'swf_surf_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
 c dust longwave radiative forcing at surface
@@ -6649,7 +6649,7 @@ c dust longwave radiative forcing at surface
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
         END SELECT
@@ -6666,7 +6666,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_cond_mc'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6676,7 +6676,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_downeva_mc'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6685,7 +6685,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_conclw_mc'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6694,7 +6694,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_precip_mc'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6704,7 +6704,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_reevap_mc'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6713,7 +6713,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_washout_mc'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6722,7 +6722,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_washout_ls'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6731,7 +6731,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_precip_ls'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6740,7 +6740,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_conclw_ls'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6750,7 +6750,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_reevap_ls'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6759,7 +6759,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_clwevap_ls'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k=k+1
@@ -6768,7 +6768,7 @@ c**** additional wet deposition diagnostics
         sname_ijts(k)=TRIM(trname(n))//'_cond_ls'
         ijts_index(k)=n
         ia_ijts(k)=ia_src
-        ijts_power(k) = -13.
+        ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       END IF
@@ -6785,7 +6785,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'Aerosol Index'
           sname_ijts(k) = 'ain_CSN'
-          ijts_power(k) = -2.
+          ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
          ENDIF
@@ -6797,7 +6797,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Lightning Flash Rate'
         sname_ijts(k) = 'lightning_flash'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
@@ -6806,7 +6806,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Cloud to Ground Lightning Flash Rate'
         sname_ijts(k) = 'CtoG_flash'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef BIOGENIC_EMISSIONS
@@ -6816,7 +6816,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Interactive isoprene source'
         sname_ijts(k) = 'Int_isop'
-        ijts_power(k) = -10.
+        ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
@@ -6828,7 +6828,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a19,i2.2)') 'OH mixing ratio  L=',L
           write(sname_ijts(k),'(a7,i2.2)') 'OH_vmr_',L
-          ijts_power(k) = -10.
+          ijts_power(k) = -10
           units_ijts(k) = unit_string(ijts_power(k),'V/V air')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -6840,7 +6840,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a19,i2.2)') 'OH concentration L=',L
           write(sname_ijts(k),'(a7,i2.2)') 'OH_con_',L
-          ijts_power(k) = 5.
+          ijts_power(k) = 5
           units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -6852,7 +6852,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a20,i2.2)') 'NO3 concentration L=',L
           write(sname_ijts(k),'(a8,i2.2)') 'NO3_con_',L
-          ijts_power(k) = 5.
+          ijts_power(k) = 5
           units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -6863,7 +6863,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a20,i2.2)') 'HO2 concentration L=',L
           write(sname_ijts(k),'(a8,i2.2)') 'HO2_con_',L
-          ijts_power(k) = 7.
+          ijts_power(k) = 7
           units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -6874,7 +6874,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a23,i2.2)') 'H2O2 photolysis rate L=',L
           write(sname_ijts(k),'(a8,i2.2)') 'J(H2O2)_',L
-          ijts_power(k) = 2.
+          ijts_power(k) = 2
           units_ijts(k) = unit_string(ijts_power(k),'s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -6886,7 +6886,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a21,i2.2)') 'CO production rate L=',L
           write(sname_ijts(k),'(a7,i2.2)') 'COprod_',L
-          ijts_power(k) = 0.
+          ijts_power(k) = 0
           units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       end do
@@ -6897,7 +6897,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a22,i2.2)') 'CO destruction rate L=',L
           write(sname_ijts(k),'(a7,i2.2)') 'COdest_',L
-          ijts_power(k) = 0.
+          ijts_power(k) = 0
           units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       end do
@@ -6908,7 +6908,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a21,i2.2)') 'Ox production rate L=',L
           write(sname_ijts(k),'(a7,i2.2)') 'Oxprod_',L
-          ijts_power(k) = 0.
+          ijts_power(k) = 0
           units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       end do
@@ -6919,7 +6919,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a22,i2.2)') 'Ox destruction rate L=',L
           write(sname_ijts(k),'(a7,i2.2)') 'Oxdest_',L
-          ijts_power(k) = 0.
+          ijts_power(k) = 0
           units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       end do
@@ -6930,7 +6930,7 @@ C**** (not necessary associated with a particular tracer)
           ia_ijts(k) = ia_src
           write(lname_ijts(k),'(a23,i2.2)') 'CH4 destruction rate L=',L
           write(sname_ijts(k),'(a8,i2.2)') 'CH4dest_',L
-          ijts_power(k) = 0.
+          ijts_power(k) = 0
           units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       end do
@@ -6941,7 +6941,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         write(lname_ijts(k),'(a31)')'NO2 tropospheric column 10:30am'
         write(sname_ijts(k),'(a16)') 'NO2_10:30_column'
-        ijts_power(k) = 15.
+        ijts_power(k) = 15
         units_ijts(k) = unit_string(ijts_power(k),'molecules/cm2')
         scale_ijts(k) = 10.**(-ijts_power(k))
       k = k + 1
@@ -6950,7 +6950,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src ! overridden in TRACER_PRT...
         write(lname_ijts(k),'(a27)')'NO2 trop column accum count'
         write(sname_ijts(k),'(a17)')'NO2_col_acc_count'
-        ijts_power(k) = 0.
+        ijts_power(k) = 0
         units_ijts(k) = unit_string(ijts_power(k),'number of accum')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif  /* TRACERS_SPECIAL_Shindell */
@@ -6992,7 +6992,7 @@ c         ijts_index(k) = n
 c         ia_ijts(k) = ia_rad
 c         write(lname_ijts(k),'(a12,i2.2)') trname(n)' tau L=    ',L
 c         write(sname_ijts(k),'(a12,i2.2)') 'tau_3D_'//trname(n) ,L
-c         ijts_power(k) = -2.
+c         ijts_power(k) = -2
 c         units_ijts(k) = unit_string(ijts_power(k),' ')
 c         scale_ijts(k) = 10.**(-ijts_power(k))
 c     end do
@@ -7009,7 +7009,7 @@ c     end do
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'Emission_'//trim(trname(n))
          sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -15.
+         ijts_power(k) = -15
          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c Surface industrial emissions
@@ -7019,7 +7019,7 @@ c Surface industrial emissions
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Surf_src_'//trim(trname(n))
         sname_ijts(k) = 'Surf_src_'//trim(trname(n))
-        ijts_power(k) = -15.
+        ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c- 3D sources diagnostic
@@ -7030,7 +7030,7 @@ c- 3D sources diagnostic
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'Emission_'//trim(trname(n))
          sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -15.
+         ijts_power(k) = -15
          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c- interactive sources diagnostic
@@ -7041,7 +7041,7 @@ c- interactive sources diagnostic
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'Emission_'//trim(trname(n))
          sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -15.
+         ijts_power(k) = -15
          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c- 3D diagnostic per mode
@@ -7056,7 +7056,7 @@ c- 3D diagnostic per mode
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a13,i2.2)') TRIM(trname(n))//'DIAM L=',L
          write(sname_ijts(k),'(a13,i2.2)') 'DIAM___'//TRIM(trname(n)),L
-         ijts_power(k) = -2.
+         ijts_power(k) = -2
          units_ijts(k) = unit_string(ijts_power(k),'m')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -7067,7 +7067,7 @@ c- 3D diagnostic per mode
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a13,i2.2)') TRIM(trname(n))//'ACTI L=',L
          write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_'//TRIM(trname(n)),L
-         ijts_power(k) = -2.
+         ijts_power(k) = -2
          units_ijts(k) = unit_string(ijts_power(k),'Numb.')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -7081,7 +7081,7 @@ c - Tracer independent Diagnostic
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a13,i2.2)') 'N_SSA ACTI L=',L
          write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_N_SSA_',L
-         ijts_power(k) = -2.
+         ijts_power(k) = -2
          units_ijts(k) = unit_string(ijts_power(k),'Numb.')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -7092,7 +7092,7 @@ c - Tracer independent Diagnostic
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a13,i2.2)') 'N_SSC ACTI L=',L
          write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_N_SSC_',L
-         ijts_power(k) = -2.
+         ijts_power(k) = -2
          units_ijts(k) = unit_string(ijts_power(k),'Numb.')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -7103,7 +7103,7 @@ c - Tracer independent Diagnostic
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a13,i2.2)') 'N_SSA DIAM L=',L
          write(sname_ijts(k),'(a13,i2.2)') 'DIAM___N_SSA_',L
-         ijts_power(k) = -2.
+         ijts_power(k) = -2
          units_ijts(k) = unit_string(ijts_power(k),'m')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -7114,7 +7114,7 @@ c - Tracer independent Diagnostic
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a13,i2.2)') 'N_SSC DIAM L=',L
          write(sname_ijts(k),'(a13,i2.2)') 'DIAM___N_SSC_',L
-         ijts_power(k) = -2.
+         ijts_power(k) = -2
          units_ijts(k) = unit_string(ijts_power(k),'m')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -7125,7 +7125,7 @@ c - Tracer independent Diagnostic
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a10,i2.2)') 'N_SSA_1_L=',L
          write(sname_ijts(k),'(a8,i2.2)')  'N_SSA_1_L_',L
-         ijts_power(k) = -10.
+         ijts_power(k) = -10
          units_ijts(k) = unit_string(ijts_power(k),'Numb.')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
@@ -7136,7 +7136,7 @@ c - Tracer independent Diagnostic
          ia_ijts(k) = ia_src
          write(lname_ijts(k),'(a10,i2.2)') 'N_SSC_1_L=',L
          write(sname_ijts(k),'(a8,i2.2)')  'N_SSC_1_L_',L
-         ijts_power(k) = -10.
+         ijts_power(k) = -10
          units_ijts(k) = unit_string(ijts_power(k),'Numb.')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
