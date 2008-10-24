@@ -19,7 +19,11 @@ RUNDECK = $(DECKS_DIR)/$(RUN).R
 OBJ_DIR = .
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
+ifneq ($(NEW_MAKEFILE_FORMAT),YES)
 GCMLIB = $(BIN_DIR)/$(RUN).a
+else
+GCMLIB = $(addprefix $(MODEL_DIR)/,$(shell cat $(MODEL_DIR)/.liblist))
+endif
 
 DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
 
@@ -125,8 +129,10 @@ mkdeep.o: $(GCMLIB)
 $(BIN_DIR)/mkdeep.exe: mkdeep.o $(GCMLIB)
 	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
+ifneq ($(NEW_MAKEFILE_FORMAT),YES)
 $(GCMLIB): FORCE
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN)
+endif
 
 status:
 	echo "AUX build successful"
