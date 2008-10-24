@@ -76,7 +76,7 @@ depend: $(RUN).mk
 
 gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR)
 	$(MAKE) -C $(MODEL_DIR) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
-	mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
+	-mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
 
 setup: gcm
 	$(MAKE) setup_script RUN=$(RUN)
