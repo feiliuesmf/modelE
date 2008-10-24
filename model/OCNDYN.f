@@ -3810,15 +3810,15 @@ C**** of fluxes is necessary anyway
 C****
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
-          PREC   (I,J)=oPREC   (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          EPREC  (I,J)=oEPREC  (I,J)*DXYP(J)             ! J
-          RUNPSI (I,J)=oRUNPSI (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          SRUNPSI(I,J)=oSRUNPSI(I,J)*DXYP(J)             ! kg
-          ERUNPSI(I,J)=oERUNPSI(I,J)*DXYP(J)             ! J
+          PREC   (I,J)=oPREC   (I,J)         ! kg/m^2
+          EPREC  (I,J)=oEPREC  (I,J)         ! J
+          RUNPSI (I,J)=oRUNPSI (I,J)         ! kg/m^2
+          SRUNPSI(I,J)=oSRUNPSI(I,J)         ! kg
+          ERUNPSI(I,J)=oERUNPSI(I,J)         ! J
           RSI    (I,J)=oRSI    (I,J)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-          TRPREC(:,I,J)=oTRPREC(:,I,J)                   ! kg
-          TRUNPSI(:,I,J)=oTRUNPSI(:,I,J)*DXYP(J)         ! kg
+          TRPREC(:,I,J)=oTRPREC(:,I,J)       ! kg
+          TRUNPSI(:,I,J)=oTRUNPSI(:,I,J)     ! kg
 #endif
         END DO
       END DO
@@ -5212,6 +5212,11 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEAN, only : imo=>im,jmo=>jm
 
+      USE OCEAN, only : oDXYPO=>DXYPO
+      Use GEOM,  only : aDXYP=>DXYP, aDXYPO
+
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
+
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
@@ -5243,29 +5248,73 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
 
       call HNTR80 (IMA,JMA,0.d0,120.d0, IMO,JMO,0.d0,120.d0, 0.d0)
 
-      aFtemp(:,:) = aPREC_glob(:,:)
+      DO J = 1,JMA
+        aFtemp(:,J) = aPREC_glob(:,J)*aDXYP(J)/aDXYPO(J)    ! kg/m^2
+      END DO
       call HNTR8P (aONES, aFtemp, oFtemp)
-      oPREC_glob(:,:) = oFtemp(:,:)   
-c      write (555,*) ' aFtemp = ',aFtemp(1,45),aFtemp(42,45)
-c      write (555,*) ' oFtemp = ',oFtemp(1,45),oFtemp(42,45)
+      oPREC_glob(:,:) = oFtemp(:,:)                         ! kg/m^2 
+
+      DO J = 1,JMA
+        aFtemp(:,J) = aEPREC_glob(:,J)*aDXYP(J)/aDXYPO(J)   ! J/m^2
+      END DO
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      DO J = 1,JMO
+        oEPREC_glob(:,J) = oFtemp(:,J)*oDXYPO(J)            ! J  
+      END DO
+
+      DO J = 1,JMA
+        aFtemp(:,J) = aRUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J)  ! kg/m^2
+      END DO
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oRUNPSI_glob(:,:) = oFtemp(:,:)                       ! kg/m^2
+
+      DO J = 1,JMA
+        aFtemp(:,J) = aSRUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J) ! kg/m^2
+      END DO
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      DO J = 1,JMO
+        oSRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
+      END DO
+
+      DO J = 1,JMA
+        aFtemp(:,J) = aERUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J) ! J/m^2
+      END DO
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      DO J = 1,JMO
+        oERUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! J   
+      END DO
+
+      DO J = 1,JMA
+        aFtemp(:,J) = aRSI_glob(:,J)*aDXYP(J)/aDXYPO(J)    
+      END DO
+      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      oRSI_glob(:,:) = oFtemp(:,:)                         
 
       DO J=1,JMO
         DO I=1,IMO
           diff = oFtemp(i,j) - aFtemp(i,j)
-c          if (diff .gt. 1.e-20) 
-c     *      write (555,*) ' i, j, diff = ',i, j, diff 
+          if (diff .gt. 1.e-20) 
+     *      write (555,*) ' INT_AG2OG_precip: i, j, aFtemp, oFtemp, 
+     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff 
         END DO
       END DO
 
-      oRSI_glob(:,:)     =     aRSI_glob(:,:)
-      oPREC_glob(:,:)    =    aPREC_glob(:,:)
-      oEPREC_glob(:,:)   =   aEPREC_glob(:,:)
-      oRUNPSI_glob(:,:)  =  aRUNPSI_glob(:,:)
-      oSRUNPSI_glob(:,:) = aSRUNPSI_glob(:,:)
-      oERUNPSI_glob(:,:) = aERUNPSI_glob(:,:)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      oTRPREC_glob(:,:,:)  =  aTRPREC_glob(:,:,:)
-      oTRUNPSI_glob(:,:,:) = aTRUNPSI_glob(:,:,:)
+      DO J = 1,JMA
+        aFtemp(:,J) = aTRPREC_glob(:,J)/aDXYPO(J)           ! kg/m^2    
+      END DO
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      DO J = 1,JMO
+        oTRPREC_glob(:,J) = oFtemp(:,J)*oDXYPO(J)           ! kg                          
+      END DO
+
+      DO J = 1,JMA
+        aFtemp(:,J) = aTRUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J) ! kg/m^2
+      END DO
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      DO J = 1,JMO
+        oTRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
+      END DO
 #endif
       
       RETURN
