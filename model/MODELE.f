@@ -980,6 +980,7 @@ C****
 #endif
       USE DIAG_COM, only : acc_period,monacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
+      USE GEOM,only : lat2d,lon2d
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
      &  ,egcm,w2gcm,tgvavg,qgavg
@@ -1028,6 +1029,13 @@ C****
       type (ESMF_Clock) :: clock
       integer :: minti,minte
       character(len=1) :: suffix
+#endif
+#ifdef RECT_REG   !regions defined as rectangles
+      integer, dimension(23) :: NRECT
+      character*4, dimension(23,6) :: CORLON,CORLAT 
+      integer, dimension(23,6) :: ICORLON,ICORLAT   !lat-lon coordinates of rect. corners 
+      integer :: IREG,IRECT
+      character*80:: title
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1812,8 +1820,59 @@ C****
         CALL CALC_AMPK(LM)
 
 C****   READ SPECIAL REGIONS FROM UNIT 29
+#ifndef RECT_REG
         call openunit("REG",iu_REG,.true.,.true.)
         READ(iu_REG) TITREG,JREG,NAMREG
+#else
+c**** Regions are defined in input file as union of rectangles
+c**** independant of resolution & grid type
+        
+        call openunit("REG",iu_REG,.false.,.true.)
+        READ(iu_REG,'(A80)') TITLE !read title
+        READ (iu_REG,'(I2)') (NRECT(I), I=1,23 ) !#of rectangles per region
+        READ (iu_REG,'(A4,1X,A4)') (NAMREG(1,I),NAMREG(2,I),I=1,23) !Read region name
+        
+c**** Read cordinates of rectangles
+c**** (NWcorner long, NW corner lat, SE corner long, SE corner lat)(1:23)
+c**** 0555 = no rectangle
+        READ (iu_REG,'(11(A4,1X),A4)') (      
+     &       CORLON(I,1),CORLAT(I,1),
+     &       CORLON(I,2),CORLAT(I,2),
+     &       CORLON(I,3),CORLAT(I,3),
+     &       CORLON(I,4),CORLAT(I,4),
+     &       CORLON(I,5),CORLAT(I,5),
+     &       CORLON(I,6),CORLAT(I,6), I=1,23)
+ 
+c**** Convert to integer
+        do i=1,23
+           do j=1,6
+              read(CORLON(I,J),'(I4)') ICORLON(I,J)  
+              read(CORLAT(I,J),'(I4)') ICORLAT(I,J)
+              write(*,*) ICORLON(I,J)," ",ICORLAT(I,J)
+           enddo
+        enddo
+c**** determine if (i,j) cell is inside a rectangular region
+        do j=J_0,J_1
+           do i=I_0,I_1
+              do ireg=1,23
+                 do irect=1,NRECT(ireg)
+                    if ( (lat2d(i,j) >= ICORLAT(ireg,2*irect-1) )
+     &                   .and.
+     &                   (lat2d(i,j) <= ICORLAT(ireg,2*irect) )
+     &                   .and.
+     &                   (lon2d(i,j) <= ICORLON(ireg,2*irect-1) )
+     &                   .and.
+     &                   (lon2d(i,j) >= ICORLON(ireg,2*irect) ) ) then
+                       JREG(i,j)=ireg
+                    else
+                       JREG(i,j)=24
+                    endif
+                 enddo
+              enddo
+              write(*,*) "i,j, jreg",i,j,jreg(i,j)
+           enddo
+        enddo
+#endif
         IF (AM_I_ROOT())
      &       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
         call closeunit(iu_REG)
