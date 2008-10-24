@@ -3,6 +3,10 @@
 #
 
 .PHONY:
+ifdef MOD_DIR
+VPATH = $(MOD_DIR)
+endif
+
 #VPATH = $(MODULES_CMPLR_OPT)
 #VPATH = /usr/local/unsupported/esmf/1.0.3-551/include
 ######  Some user customizable settings:   ########
@@ -56,6 +60,19 @@ CPPFLAGS =
 I = I
 # by default assume that fortran compiler can do cpp
 EXTERNAL_CPP = NO
+# by default assume that we build 64-bit code with gcc-like compiler
+CFLAGS = -O2 -m64
+# define default name for m4
+M4 = m4
+# default runlib
+RANLIB = ranlib
+
+# RFLAGS returns rundeck options for the current object (i.e. for $*)
+# it has effect only of OBJ_LIST_O is defined
+RFLAGS = $(shell perl \
+-e '$$_="$(OBJ_LIST_O)"; m/\b$* *\|([^|]*)\|/; print " $$1";' \
+)
+
 
 # check consistency of compilation flugs and redefine some
 # flags if necessary
@@ -151,6 +168,13 @@ FFLAGS += -$(I)$(ESMF_Interface)
 F90FLAGS += -$(I)$(ESMF_Interface)
 CPPFLAGS += $(INCS)
 
+# path to the modules dir if present
+ifdef MOD_DIR
+  FFLAGS += -$(I)$(MOD_DIR)
+  F90FLAGS += -$(I)$(MOD_DIR)
+endif
+
+
 ifeq ($(COMPARE_MODULES_HACK),NO)
 CMP_MOD = cmp -s
 endif
@@ -167,8 +191,11 @@ endif
 #
 # Pattern  rules
 #
-
+ifneq ($(NEW_MAKEFILE_FORMAT),YES)
 *.mod: .obj_list
+else
+*.mod: .current_options
+endif
 
 %.mod:
 	@echo checking $@
