@@ -9,6 +9,12 @@ SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 DECKS_DIR = $(shell pwd)
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 CONFIG_DIR = $(MODEL_E_ROOT)/config
+TEMPLATES_DIR = $(MODEL_E_ROOT)/templates
+
+RUNSRC  = E1M20
+RUN     =
+RUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).R
+RUNDECK = $(DECKS_DIR)/$(RUN).R
 
 USER = $(shell whoami)
 HOMEDIR = $(wildcard ~)
@@ -21,6 +27,8 @@ NPES = 1
 include $(SCRIPTS_DIR)/modelErc
 # configuration file with user-defined options:
 sinclude $(MODELERC)
+export COMPILER
+export NEW_MAKEFILE_FORMAT
 
 ifeq ($(VERBOSE_OUTPUT),NO)
   MAKEFLAGS=-s
@@ -46,14 +54,29 @@ rundeck:
 	then echo '$(RUN).R already exists in repository'; \
 	echo 'use OVERWRITE=YES to overwrite'; \
 	exit 1; fi
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
+	#$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
+	@if [ ! -s $(RUNDECKSRC) ]; then \
+	echo 'Source rundeck $(RUNDECKSRC) does not exist'; exit 1; fi
+	@if [ "$(RUN)" = "" ]; then \
+	echo 'You should specify run name on a command line (i.e. RUN=...)'; \
+	exit 1; fi
+	@echo '---- Regenerating Rundeck $(RUNDECK) from default ($(RUNDECKSRC)) ----'
+	@if [ $(RUNDECK) != $(RUNDECKSRC) ]; then  \
+	sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) > $(RUNDECK); \
+	fi;
+	@echo '---------             Rundeck  created               ---------' 
 	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
 	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R      #just in case ...
 	@echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R
 
-gcm $(BIN_DIR)/$(RUN).exe depend:
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+depend: $(RUN).mk
+	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+
+
+gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR)
+	$(MAKE) -C $(MODEL_DIR) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
 
 setup: gcm
 	$(MAKE) setup_script RUN=$(RUN)
@@ -143,6 +166,7 @@ setup_gfdl: gcm $(SETUP_GFDL)
 
 
 aux:
+	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 	$(MAKE) -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 auxqflux: aux
@@ -151,7 +175,7 @@ auxqflux: aux
 auxdeep: aux
 	$(MAKE) odeep -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
-clean vclean:
+clean vclean clean_all:
 	$(MAKE) -C $(MODEL_DIR) $@
 	$(MAKE) -C $(AUX_DIR) $@
 
@@ -232,3 +256,16 @@ src_cpp_dir:
 etags:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
+$(RUN).mk: $(RUN).R
+	$(SCRIPTS_DIR)/r_to_mk.pl $< > $@
+
+sinclude $(DECKS_DIR)/$(RUN).mk
+
+FSRCS = $(addsuffix .f,$(strip $(OBJ_LIST)))
+
+echo:
+	echo XX$(strip $(OBJ_LIST))XX
+	echo XX$(FSRCS)XX
+
+$(BIN_DIR):
+	mkdir $(BIN_DIR)
