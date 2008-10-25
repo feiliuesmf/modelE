@@ -1796,10 +1796,12 @@ c**** modifications needed for split of bare soils into 2 types
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
 #ifndef USE_ENT
-      use veg_drv, only : init_vegetation
+      use veg_drv, only : init_vegetation, veg_set_cell
       use veg_com, only : vdata
       use veg_com, only : ala
+      use vegetation, only : t_vegcell
 #endif
+
       implicit none
 
       real*8, intent(in) :: dtsurf
@@ -1839,6 +1841,10 @@ C**** define local grid
       integer kk
       integer :: reset_canopy_ic=0, reset_snow_ic=0
       real*8 :: aa, ht_cap_can, fice_can, fb, fv
+      real*8 :: ws_can, shc_can
+#ifndef USE_ENT
+      type (t_vegcell) vegcell
+#endif
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -1988,9 +1994,36 @@ c**** recompute ground hydrology data if necessary (new soils data)
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 
-            call old_gic_2_modele(
-     &           w_ij(:,:,i,j), ht_ij(:,:,i,j),snowbv(:,i,j),
-     &           wearth(i,j), aiearth(i,j), tearth(i,j), snowe(i,j) )
+cddd            call old_gic_2_modele(
+cddd     &           w_ij(:,:,i,j), ht_ij(:,:,i,j),snowbv(:,i,j),
+cddd     &           wearth(i,j), aiearth(i,j), tearth(i,j), snowe(i,j) )
+
+#ifdef USE_ENT
+            !!! probably will not work
+         call stop_model("reset_canopy_ic not implemented for Ent",255)
+!            call ent_get_exports( entcells(i,j),
+!     &           canopy_heat_capacity=shc_can )
+!     &           canopy_saturated_capacity=ws_can )
+#else
+            call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
+            ws_can = vegcell%ws_can
+            shc_can = vegcell%shc_can
+#endif
+
+            call tp_sat_2_ht_w(
+     &           w_ij(:,:,i,j), ht_ij(:,:,i,j),
+     &           nsn_ij    (1:2, i, j),
+     &           dzsn_ij   (1:nlsn, 1:2, i, j),
+     &           wsn_ij    (1:nlsn, 1:2, i, j),
+     &           hsn_ij    (1:nlsn, 1:2, i, j),
+     &           fr_snow_ij(1:2, i, j),
+
+     &           earth_sat(:,:,i,j), earth_ice(:,:,i,j),
+     &           earth_tp(:,:,i,j),  snowbv(:,i,j),
+
+     &           ws_can, shc_can,
+     &           q_ij(i,j,:,:), dz_ij(i,j,:)
+     &           )
 
           end do
         end do
@@ -2217,6 +2250,104 @@ ccc still not quite correct (assumes fw=1)
      &     "conversion old_gic_2_modele not supported yet",255)
 
       end subroutine old_gic_2_modele
+
+
+      subroutine tp_sat_2_ht_w(
+     &     w, ht,
+     &     nsn, dzsn, wsn, hsn, fr_snow,
+
+     &     earth_sat, earth_ice,
+     &     earth_tp, snowd,
+
+     &     ws_can, shc_can,
+     &     q, dz )
+
+      use constant, only : rhow
+     &     ,shi_kg=>shi,lhm
+      use snow_model, only: snow_redistr, snow_fraction
+      use ghy_com, only : ngm
+      use sle001, only : get_soil_properties
+      !-- out
+      real*8, intent(out) :: w(:,:), ht(:,:)
+      real*8, intent(out) :: dzsn(:,:), wsn(:,:), hsn(:,:), fr_snow(:)
+      integer, intent(out) :: nsn(:)
+      !-- in
+      real*8, intent(in) :: earth_sat(:,:), earth_ice(:,:),earth_tp(:,:)
+      real*8, intent(in) ::  snowd(:)
+      real*8, intent(in) :: ws_can, shc_can
+      real*8, intent(in) :: q(:,:), dz(:)
+      !--- local
+!@var shi heat capacity of pure ice (J/m^3 C)
+      real*8, parameter :: shi= shi_kg * rhow
+!@var fsn latent heat of melt (J/m^3)
+      real*8, parameter :: fsn= lhm * rhow
+      real*8 thetm(ngm,2), thets(ngm,2), shc(ngm,2), tsn1(2)
+      integer ibv, k
+
+c for canopy:
+      w(0,2) = ws_can*earth_sat(0,2)
+      call temperature_to_heat( ht(0,2),
+     &     earth_tp(k,ibv), earth_ice(k,ibv), w(0,2), shc_can )
+
+c outer loop over ibv
+      do ibv=1,2
+
+        call get_soil_properties( q, dz,
+     &     thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
+
+c initialize soil (w, ht) from earth_*
+        do k=1,ngm
+          w(k,ibv) = thets(k,ibv)*dz(k)*earth_sat(k,ibv)
+          call temperature_to_heat(ht(k,ibv),
+     &         earth_tp(k,ibv), earth_ice(k,ibv), w(k,ibv), shc(k,ibv) )
+        enddo
+
+c initalize all cases to nsn=1
+        nsn(ibv)=1
+
+c start with no snow
+        dzsn(1,ibv)=0.d0
+        wsn(1,ibv)=0.d0
+        hsn(1,ibv)=0.d0
+        tsn1(ibv)=0.d0
+        fr_snow(ibv) = 0.d0
+
+        if ( snowd(ibv) <= 0.d0 ) cycle
+
+c if there is a snow put it all in the first layer (assume rho_snow = 200)
+        dzsn(1,ibv)=snowd(ibv) * 5.d0
+        wsn(1,ibv)=snowd(ibv)
+        fr_snow(ibv) = 1.d0
+
+c set snow temperature to temperature of first soil layer (or 0)
+        tsn1(ibv) = min( earth_tp(1,ibv), 0.d0 )
+
+c use snow temperature to get the heat of the snow
+        call temperature_to_heat(hsn(1,ibv),
+     &         tsn1(ibv), 1.d0, wsn(1,ibv), 0.d0)
+
+          ! hack to get identical results ??? (need this ??)
+        hsn(1,ibv)=tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+
+        call snow_fraction(dzsn(:,ibv), nsn(ibv), 0.d0, 0.d0,
+     &       1.d0, fr_snow(ibv) )
+        call snow_redistr(dzsn(:,ibv), wsn(:,ibv), hsn(:,ibv),
+     &       nsn(ibv), 1.d0/fr_snow(ibv) )
+
+!!! debug : check if  snow is redistributed correctly
+        if ( dzsn(1,ibv) > 0.d0 .and. dzsn(1,ibv) < .099d0) then
+          call stop_model("set_snow: error in dz",255)
+        endif
+
+        if ( dzsn(1,ibv) > 0.d0 ) then
+          if (  wsn(1,ibv)/dzsn(1,ibv)  < .1d0)
+     &         call stop_model("set_snow: error in dz",255)
+        endif
+
+      enddo  ! ibv
+
+      return
+      end subroutine tp_sat_2_ht_w
 
 
       subroutine set_snow1( w, ht, snowd, q, dz,

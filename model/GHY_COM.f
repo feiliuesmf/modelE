@@ -73,6 +73,15 @@ C**** replacements for GDATA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: AIEARTH
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
 
+C**** arrays needed to restart from a "new" GIC
+!@var earth_sat saturation of each soil layer (1 - completely saturated)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: earth_sat
+!@var earth_ice fraction of frozen water in the layer
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: earth_ice
+!@var earth_tp temperature of layer (C)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: earth_tp
+
+
 !@var GDEEP keeps average (2:n) values of temperature, water and ice
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GDEEP
 
