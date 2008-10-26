@@ -931,7 +931,7 @@ C****
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       !USE PARSER
-      USE CONSTANT, only : grav,kapa,sday,by3
+      USE CONSTANT, only : grav,kapa,sday,by3,twopi
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth0,fland
      *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia
      *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,ptop
@@ -1035,7 +1035,7 @@ C****
       character*4, dimension(23,6) :: CORLON,CORLAT 
       integer, dimension(23,6) :: ICORLON,ICORLAT   !lat-lon coordinates of rect. corners 
       integer :: IREG,IRECT
-      character*80:: title
+      real*8::lon,lat
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1828,7 +1828,7 @@ c**** Regions are defined in input file as union of rectangles
 c**** independant of resolution & grid type
         
         call openunit("REG",iu_REG,.false.,.true.)
-        READ(iu_REG,'(A80)') TITLE !read title
+        READ(iu_REG,'(A80)') TITREG !read title
         READ (iu_REG,'(I2)') (NRECT(I), I=1,23 ) !#of rectangles per region
         READ (iu_REG,'(A4,1X,A4)') (NAMREG(1,I),NAMREG(2,I),I=1,23) !Read region name
         
@@ -1848,24 +1848,32 @@ c**** Convert to integer
            do j=1,6
               read(CORLON(I,J),'(I4)') ICORLON(I,J)  
               read(CORLAT(I,J),'(I4)') ICORLAT(I,J)
-              write(*,*) ICORLON(I,J)," ",ICORLAT(I,J)
+c              write(*,*) ICORLON(I,J)," ",ICORLAT(I,J)
            enddo
         enddo
-c**** determine if (i,j) cell is inside a rectangular region
-        do j=J_0,J_1
-           do i=I_0,I_1
+
+c**** JREG is a global array visible from every proc.
+      JREG(:,:)=24
+
+c**** determine which cell is inside a rectangular region
+        do j=1,JM
+           do i=1,IM
+              lon=360.*lon2d(i,j)/twopi-180.
+              lat=360.*lat2d(i,j)/twopi
               do ireg=1,23
                  do irect=1,NRECT(ireg)
-                    if ( (lat2d(i,j) >= ICORLAT(ireg,2*irect-1) )
+c                    write(*,*) "lats->",lat," ",ICORLAT(ireg,2*irect-1),
+c     &              ICORLAT(ireg,2*irect)
+c                    write(*,*) "lons->",lon," ",ICORLON(ireg,2*irect-1),
+c     &              ICORLON(ireg,2*irect)
+                    if ( (lat <= ICORLAT(ireg,2*irect-1) )
      &                   .and.
-     &                   (lat2d(i,j) <= ICORLAT(ireg,2*irect) )
+     &                   (lat >= ICORLAT(ireg,2*irect) )
      &                   .and.
-     &                   (lon2d(i,j) <= ICORLON(ireg,2*irect-1) )
+     &                   (lon >= ICORLON(ireg,2*irect-1) )
      &                   .and.
-     &                   (lon2d(i,j) >= ICORLON(ireg,2*irect) ) ) then
+     &                   (lon <= ICORLON(ireg,2*irect) ) ) then
                        JREG(i,j)=ireg
-                    else
-                       JREG(i,j)=24
                     endif
                  enddo
               enddo
@@ -1873,8 +1881,14 @@ c**** determine if (i,j) cell is inside a rectangular region
            enddo
         enddo
 #endif
-        IF (AM_I_ROOT())
-     &       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
+        IF (AM_I_ROOT()) then
+            WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
+         do i=1,IM
+           do j=1,JM
+         write(*,*) "i,j, jreg",i,j,jreg(i,j)
+           enddo 
+         enddo
+        endif 
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
 
