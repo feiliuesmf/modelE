@@ -520,9 +520,10 @@ c       define pressures to be sent to FASTJ (edges):
         DO LL=3,(2*LM)+1,2
           PFASTJ(LL) = PEDN((LL+1)/2,I,J)
         END DO
-        PFASTJ((2*LM)+2) = 0.1d0*PFASTJ((2*LM)+1)
+CC      PFASTJ((2*LM)+2) = 0.1d0*PFASTJ((2*LM)+1)
 C       This is a fudge, so that we don't have to get mesosphere data:
-        PFASTJ((2*LM)+3) = 0.00058d0 ! for 23 layer model...
+        PFASTJ((2*LM)+2) = 0.00058d0 ! for 23 layer model...
+        PFASTJ((2*LM)+3) = 0.00028d0 ! for 23 layer model...
 #endif
         
 #ifdef SHINDELL_STRAT_CHEM
