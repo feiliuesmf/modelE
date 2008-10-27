@@ -553,45 +553,25 @@
 !################# NPP STORAGE ALLOCATION ######################################
       subroutine Allocate_NPP_to_labile(dtsec,cop)
 !@sum Allocate_NPP_storage.  Allocates C_lab.
-!@sum If NPP is negative then C_lab is reduced by all of NPP, and if C_lab is
-!@sum is not enough, then the other biomass pools are reduced to compensate.
-!@sum Does not adjust LAI - TEMPORARY HACK.
+!@sum This allows C_lab to go negative at the half-hourly time scale, 
+!@sum which prognostic growth/allocation will compensate for by senescence and
+!@sum and translocation from senesced pools.
+!@sum For prescribed LAI, C_lab provides a measure of the imbalance between 
+!@sum the biophysics and prescribed LAI.
+
       implicit none
       real*8 :: dtsec
       type(cohort) :: cop
-      !---Local-----
-      real*8 :: Cdiff
-#ifdef PFT_MODEL_ENT
-      if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
-     &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
-        !Don't let C_lab go below zero.
-        cop%C_lab = EPS
-      else 
-        cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)
-      endif
-#else
+
       !* Accumulate uptake.*!
-      if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
-     &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
-        !Don't let C_lab go below zero.
-        cop%C_lab = EPS
-        !* NYK - TEMPORARY HACK - SHOULD CALL STRESS SUBROUTINE FOR SENESCENCE.
-        !*       Needs checks for negative NPP loss greater than C pools.
-        Cdiff = cop%NPP*dtsec/cop%n + (cop%C_lab - EPS)
-        cop%C_fol = cop%C_fol + 0.33d0*Cdiff
-        cop%C_froot = cop%C_froot + 0.33d0*Cdiff
-        cop%C_sw = cop%C_sw + 0.33d0*Cdiff
-        !cop%LAI = !should update
-      else
-        if (cop%NPP.gt.0.d0) then
-          cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
-          cop%pptr%Reproduction(cop%pft) = 
-     &         cop%pptr%Reproduction(cop%pft) + 0.2d0*cop%NPP*dtsec !(kg/m2-patch) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
-        else !Negative NPP is taken only from C_lab
-          cop%C_lab = cop%C_lab + cop%NPP*dtsec/cop%n !(kg/individual)          
-        endif
-      endif
-#endif
+!      if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
+!     &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
+!        !Don't let C_lab go below zero.
+!        cop%C_lab = EPS
+!      else 
+        cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
+!      endif
+
       end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
 

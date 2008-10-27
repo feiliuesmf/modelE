@@ -525,6 +525,11 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       subroutine prescr_plant_cpools(pft, lai, h, dbh, popdens, cpool )
       !* Calculate plant carbon pools for single plant (g-C/plant)
       !* After Moorcroft, et al. (2001). No assignment of LABILE pool here.
+      !* Coarse root fraction is estimated from Zerihun (2007) for Pinus radiata
+      !*  at h=20 m for evergr, 50% wood is carbon, and their relation:
+      !*  CR(kg-C/tree) = 0.5*CR(kg/tree) = 0.5*exp(-4.4835)*(dbh**2.5064).
+      !*  The ratio of CR(kg-C/tree)/HW(kg-C/tree) at h=20 m is ~0.153.
+      !*  This is about the same as the ratio of their CR biomass/AG biomass.
       integer,intent(in) :: pft !plant functional type
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
@@ -536,11 +541,12 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
-      if (pft.ne.GRASSC3) then  !Woody
+!      if (pft.ne.GRASSC3) then  !Woody
+      if (pfpar(pft)%woody .eq. 1) then !Woody
         cpool(SW) = 0.128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
-        cpool(CR) = 0.d0        !dummy
+        cpool(CR) =  0.153d0*cpool(HW) !Estimated from Zerihun (2007)
       else
         cpool(SW) = 0.d0
         cpool(HW) = 0.d0

@@ -125,8 +125,8 @@
       use patches
       use biophysics, only : photosynth_cond
       use growthallometry, only : uptake_N
-      use phenology, only : litter
       use soilbgc, only : soil_bgc
+!      use phenology, only : litter
       use phenology, only : clim_stats, pheno_update, veg_update
       use phenology, only : veg_init !KIM-temp.
       use canopyrad, only : recalc_radpar
@@ -173,7 +173,7 @@
           if (dailyupdate) then
             call pheno_update(dtsec,pp)
             call veg_update(dtsec,pp)
-            call litter(pp) 
+            !call litter(pp) !Litter is now called within veg_update
 
           end if
         endif
@@ -220,7 +220,7 @@
       use soilbgc, only : soil_bgc
       use patches, only : summarize_patch
       use entcells, only : summarize_entcell, entcell_print
-      use phenology,only : litter !### Igor won't like this here.
+!      use phenology,only : litter !### Igor won't like this here.
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp

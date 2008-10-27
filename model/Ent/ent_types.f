@@ -27,6 +27,7 @@
       type pftype
          !Constant parameters specific to vegetation type
          integer :: pst ! Photosynth type 1=C3, 2=C4
+         integer :: woody !Woody, 0=NO, 1=YES.
          real*8 :: hwilt  !Wilting point matric potential (m)
          real*8 :: sstar  !Rel. soil moist at stress onset (Rodriguez-Iturbe)
          real*8 :: swilt  !Normalized soil water at wilting point (dim'less)
@@ -164,7 +165,7 @@
          !* PHYSIOLOGICAL STATUS *!  !NYK
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
          real*8,pointer :: stressH2Ol(:) !Water stress in layers.
-         real*8 :: senescefrac  !Fraction of biomass undergoing senescence to litterfall.
+         real*8 :: senescefrac  !Net fraction of foliage that is litterfall.
       end type cohort
 
 !****************************************************************************

@@ -79,7 +79,7 @@ can!#define DEBUG 1
       real*8,intent(out) :: gsout, Aout, Rdout !ci in psp
       integer,intent(in) :: sunlitshaded
       !---Local---
-      real*8 :: ci, cs
+      real*8 :: ci!, cs
       real*8,parameter :: LOW_LIGHT_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
       
 !      if (IPAR.lt.LOW_LIGHT_LIMIT) then
