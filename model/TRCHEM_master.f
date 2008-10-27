@@ -245,7 +245,7 @@ c Calculation of removal rates on dust surfaces:
 #endif
 
 #ifndef SHINDELL_STRAT_CHEM 
-      if(which_trop==0 .or (JPNL<LS1-1.and.which_trop==1))
+      if(which_trop==0 .or. (JPNL<LS1-1.and.which_trop==1))
      &call stop_model('Are you sure JPNL is right?',255)
 #endif
 
