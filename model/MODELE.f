@@ -1030,7 +1030,7 @@ C****
       integer :: minti,minte
       character(len=1) :: suffix
 #endif
-#ifdef RECT_REG   !regions defined as rectangles
+#ifdef RECT_REG  /* regions defined as rectangles */
       integer, dimension(23) :: NRECT
       character*4, dimension(23,6) :: CORLON,CORLAT 
       integer, dimension(23,6) :: ICORLON,ICORLAT   !lat-lon coordinates of rect. corners 
