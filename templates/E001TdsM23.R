@@ -134,6 +134,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 !-----------------------------------------------
 ! choose these for trop-only chem model
 !-----------------------------------------------
+! Note in the paramters, also set fix_CH4_chemistry=0 please
 !  MOLEC=chem_files/ds3ch4_moleculesE
 !  JPLRX=chem_files/jpl00_T15trop_SEP08
 !  JPLPH=chem_files/ds_photlist_trop_15
