@@ -12,11 +12,13 @@
 
       public init_module_ent, update_vegetation_data
 
+      logical :: initialized = .false.
+
       contains
 
 
 
-      subroutine init_module_ent(iniENT, Jday, Jyear, focean1)
+      subroutine init_module_ent(iniENT_in, Jday, Jyear, focean1)
 !@sum initializes vegetation
       use param
       use ent_com, only : entcells,Cint,Qfol,cnc_ij
@@ -24,7 +26,7 @@
       use model_com, only : focean, FLICE
       use DOMAIN_DECOMP, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
-      logical, intent(inout) :: iniENT
+      logical, intent(in) :: iniENT_in
       real*8, intent(in) :: focean1(:,:)
       !---
       integer I_0, I_1, J_0, J_1, i, j
@@ -32,6 +34,12 @@
       ! passed to ent (and used there)
       integer cond_scheme, vegCO2X_off, crops_yr, read_c4_grass
       integer :: force_init_ent=0
+      logical iniENT
+
+      if ( initialized ) return
+      initialized = .true.
+
+      iniENT = iniENT_in
 
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               I_STRT     =I_0,    I_STOP     =I_1)

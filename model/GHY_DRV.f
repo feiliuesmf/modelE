@@ -1788,7 +1788,9 @@ c**** modifications needed for split of bare soils into 2 types
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
       use fluxes, only : gtracer
+#ifndef USE_ENT
       use veg_com, only:  avh !,afb
+#endif
 #endif
       use fluxes, only : gtemp,gtempr
       use ghy_com
@@ -1800,6 +1802,10 @@ c**** modifications needed for split of bare soils into 2 types
       use veg_com, only : vdata
       use veg_com, only : ala
       use vegetation, only : t_vegcell
+#else
+      use ent_drv, only : init_module_ent
+      use ent_mod
+      use ent_com, only : entcells
 #endif
 
       implicit none
@@ -1845,6 +1851,7 @@ C**** define local grid
 #ifndef USE_ENT
       type (t_vegcell) vegcell
 #endif
+      real*8 height_can
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -2203,6 +2210,10 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       call compute_water_deficit
 #endif
 
+#ifdef USE_ENT
+      CALL init_module_ent(ISTART.LE.2, Jday, Jyear, FOCEAN)
+#endif
+
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
       do j=J_0,J_1
@@ -2211,7 +2222,14 @@ ccc still not quite correct (assumes fw=1)
           if (fearth(i,j).le.0.d0) cycle
           !fb=afb(i,j) ; fv=1.-fb
           call get_fb_fv( fb, fv, i, j )
-          fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
+#ifdef USE_ENT
+      call ent_get_exports( entcells(i,j),
+     &     canopy_height=height_can
+     &     )
+#else
+      height_can = avh(i,j)
+#endif
+          fm=1.d0-exp(-snowbv(2,i,j)/((height_can*spgsn) + 1d-12))
           if ( fm < 1.d-3 ) fm=0.d0
           wsoil_tot=fb*( w_ij(1,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
      &     + wsn_ij(1,1,i,j)*fr_snow_ij(1,i,j) )
