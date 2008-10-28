@@ -698,6 +698,8 @@ c     write(0,*) 'SCM no diags   print_diags'
 
       IF (AM_I_ROOT()) THEN
 
+      call certain_wind_averages
+
       IF (KDIAG(1).LT.9) CALL DIAGJ
       IF (KDIAG(2).LT.9) CALL DIAGJK
       IF (KDIAG(10).LT.9) CALL DIAGIL
@@ -6832,5 +6834,52 @@ cddd      DEALLOCATE(tmp)
       if(am_i_root()) call dealloc_diag_com_glob
 
       END SUBROUTINE DIAG_SCATTER
+
+      subroutine certain_wind_averages
+      use diag_com, only : im,jm,lm,ail,ajl
+     &     ,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac,jl_wwpac
+     &     ,il_u,il_v,il_w
+      implicit none
+      INTEGER, PARAMETER ::
+     *     I150E = IM*(180+150)/360+1, ! WEST EDGE OF 150 EAST
+     *     I110W = IM*(180-110)/360+1, ! WEST EDGE OF 110 WEST
+     *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
+      integer :: i,j,l
+C****
+C**** CERTAIN HORIZONTAL WIND AVERAGES
+C****
+      ajl(:,:,jl_uepac) = 0d0
+      ajl(:,:,jl_vepac) = 0d0
+      ajl(:,:,jl_uwpac) = 0d0
+      ajl(:,:,jl_vwpac) = 0d0
+      DO L=1,LM
+      DO J=1,JM
+      DO I=I135W,I110W      ! EAST PACIFIC
+        AJL(J,L,JL_UEPAC)=AJL(J,L,JL_UEPAC)+AIL(I,J,L,IL_U)
+        AJL(J,L,JL_VEPAC)=AJL(J,L,JL_VEPAC)+AIL(I,J,L,IL_V)
+      END DO
+      DO I=I150E,IM             ! WEST PACIFIC
+        AJL(J,L,JL_UWPAC)=AJL(J,L,JL_UWPAC)+AIL(I,J,L,IL_U)
+        AJL(J,L,JL_VWPAC)=AJL(J,L,JL_VWPAC)+AIL(I,J,L,IL_V)
+      END DO
+      END DO
+      END DO
+C****
+C**** CERTAIN VERTICAL WIND AVERAGES
+C****
+      ajl(:,:,jl_wepac) = 0d0
+      ajl(:,:,jl_wwpac) = 0d0
+      DO L=1,LM-1
+        DO J=1,JM
+          DO I=I135W,I110W      ! EAST PACIFIC
+            AJL(J,L,JL_WEPAC)=AJL(J,L,JL_WEPAC)+AIL(I,J,L,IL_W)
+          END DO
+          DO I=I150E,IM         ! WEST PACIFIC
+            AJL(J,L,JL_WWPAC)=AJL(J,L,JL_WWPAC)+AIL(I,J,L,IL_W)
+          END DO
+        END DO
+      END DO
+      return
+      end subroutine certain_wind_averages
 
       END MODULE DIAG_SERIAL

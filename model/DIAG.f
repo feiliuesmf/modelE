@@ -115,8 +115,8 @@ C**** Some local constants
      &     ,il_u,il_v,il_w,il_tx,il_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
      *     ,j_gamc,lstr,kgz_max,pmb,ght
-     *     ,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape,jl_uepac,jl_vepac
-     *     ,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac,jl_epflxn,jl_epflxv
+     *     ,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
+     *     ,jl_epflxn,jl_epflxv
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
 #ifdef HTAP_LIKE_DIAGS
@@ -164,10 +164,6 @@ C**** Some local constants
       LOGICAL qpress,qabove
       INTEGER nT,nQ,nRH
       REAL*8, PARAMETER :: EPSLON=1.
-      INTEGER, PARAMETER ::
-     *     I150E = IM*(180+150)/360+1, ! WEST EDGE OF 150 EAST
-     *     I110W = IM*(180-110)/360+1, ! WEST EDGE OF 110 WEST
-     *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
 
       REAL*8 QSAT, SLP, PS, ZS
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
@@ -717,21 +713,6 @@ C**** CALCULATE APE
   761 AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+
      &        (THSQJL(J,L)-2.*THJL(J,L)*THGM(L)+THGM(L)*THGM(L)*
      *  FIM)/GMEANL
-C****
-C**** CERTAIN HORIZONTAL WIND AVERAGES
-C****
-      DO L=1,LM
-      DO J=J_0STG,J_1STG
-      DO I=I135W,I110W      ! EAST PACIFIC
-        AJL(J,L,JL_UEPAC)=AJL(J,L,JL_UEPAC)+U(I,J,L)
-        AJL(J,L,JL_VEPAC)=AJL(J,L,JL_VEPAC)+V(I,J,L)
-      END DO
-      DO I=I150E,IM             ! WEST PACIFIC
-        AJL(J,L,JL_UWPAC)=AJL(J,L,JL_UWPAC)+U(I,J,L)
-        AJL(J,L,JL_VWPAC)=AJL(J,L,JL_VWPAC)+V(I,J,L)
-      END DO
-      END DO
-      END DO
 
 c
 c accumulate AIL: U,V,T,RH,W
@@ -759,20 +740,6 @@ c
       ENDDO
       ENDDO
       ENDDO
-
-C****
-C**** CERTAIN VERTICAL WIND AVERAGES
-C****
-      DO L=1,LM-1
-        DO J=J_0S,J_1S
-          DO I=I135W,I110W      ! EAST PACIFIC
-            AJL(J,L,JL_WEPAC)=AJL(J,L,JL_WEPAC)+W(I,J,L)
-          END DO
-          DO I=I150E,IM         ! WEST PACIFIC
-            AJL(J,L,JL_WWPAC)=AJL(J,L,JL_WWPAC)+W(I,J,L)
-          END DO
-        END DO
-      END DO
 
 C****
 C**** ELIASSEN PALM FLUX
