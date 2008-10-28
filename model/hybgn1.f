@@ -42,8 +42,8 @@ c
       character info*16
       data uvscl/0.02/			!  2 cm/s
       data scalt,scals/-30.,10./
-      parameter (slak=.5/86400.)	! intfc nudging time scale: 2 days
-ccc   parameter (slak=1./86400.)	! intfc nudging time scale: 1 day
+ccc   parameter (slak=1.)	        ! intfc nudging time scale: instantaneous
+      parameter (slak=1./86400.)	! intfc nudging time scale: 1 day
 c
       data (dplist(k),k=1,kdm)/
 c    .    5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,14.9,15.0,15.0,
@@ -997,7 +997,7 @@ c --- ynew(nmax) - function values after advection (overwriting of -y- allowed)
 c
       implicit none
       integer nmax,ndim,n,na,nb,m
-      parameter (ndim=25)
+      parameter (ndim=30)
       real x(nmax+1),dx(nmax+1),y(nmax),ynew(nmax),
      .     xtmp(ndim+1),ytmp(ndim),yold(ndim),athird,a,b,c,
      .     wdth,slab,dxnew,acurcy,total,tndcy,onemu,scale,yl,yr
