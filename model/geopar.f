@@ -217,8 +217,6 @@ c
       scq2i(i,j)=1./scq2(i,j)
       end if
 c
-      if (i.eq.71.and.j.eq.91) write(*,*)i,j,' scp=',scp2(i,j)
-      if (i.eq.65.and.j.eq.136) write(*,*)i,j,' scp=',scp2(i,j)
  56   continue
 c$OMP END PARALLEL DO
 c
@@ -236,8 +234,8 @@ c
      .,lonij(ipacs,jpac,3),lonij(iatls,jatl,3)
      .,lonij(ipacn,jpac,3),lonij(iatln,jatl,3)
 c
-      write(*,'(a,2f8.2)') 'lat/lon of Bering Strait:'
-     .   ,latij(ipacs,jpac,3),lonij(ipacs,jpac,3)
+      write(*,'(a,3f8.2)') 'lat/lon/depth of Bering Strait:'
+     . ,latij(ipacs,jpac,3),lonij(ipacs,jpac,3),depths(ipacs,jpac)
 c     write (lp,'('' shown below: coriolis parameter'')')
 c     call zebra(corio,idm,ii,jj)
 c     write (lp,'('' shown below: grid cell size'')')
@@ -529,6 +527,12 @@ c
       else if (jdm.eq.180) then         !  2.0 deg, equator at i=115:
         if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
      .        glue(i,j)=glufac
+c
+      else if (jdm.eq.360) then         !  2.0 deg, equator at i=115:
+        if ((i.ge. 180 .and. i.le. 198 .and. j.le.  37)
+     . .or. (i .ge.188 .and. i.le. 191 .and. j.ge. 356))
+     .        glue(i,j)=glufac
+c
       else
         write (lp,*) 'unable to determine location of Mediterranean'
         stop '(geopar)'
@@ -555,13 +559,24 @@ c
 
 !!! it would be cleaner to move the following part to cpler.f -IA
 
-      if (iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.10249200 .or.
+      if((iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.10249200 .or.
      .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.10249200 .or.
-     .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.2079936 ) then
-        print *,' wrong coupler=',iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
+     .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.2079936)
+     .                                      .and.jjo.eq.180)then
+        write(lp,*)'wrong 2deg cpler=',
+     .   iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
      .  ,iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8)
      .  ,iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8)
-        stop ' wrong size in flxa2o'
+        stop ' wrong size in 2deg flxa2o'
+      elseif((iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.83034720 .or.
+     .        iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.83034720 .or.
+     .        iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.10005120)
+     .                                      .and.jjo.eq.360)then
+        write(lp,*)'wrong 1deg cpler=',
+     .   iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
+     .  ,iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8)
+     .  ,iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8)
+        stop ' wrong size in 1deg flxa2o'
       endif
 c
       open(14,file=flnma2o,form='unformatted',status='old',
@@ -593,16 +608,23 @@ c
       read(22) iz,jz,coso,sino
       close(22)
       if (iz.ne.idm .or. jz.ne.jdm) then
-        print *,' iz,jz=',iz,jz
+        write(lp,*) ' iz,jz=',iz,jz
         stop '(wrong iz/jz in cososino.8bin)'
       endif
 c
-c --- 1:8: NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
+c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       open (34,file=flnmbas,form='formatted',status='old')
-      do n=1,2
-      read(34,*)
-      read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
-      enddo 
+      if (jjo.eq.180) then
+        do n=1,2
+        read(34,*)
+        read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
+        enddo 
+      elseif (jjo.eq.360) then
+        do n=1,3
+        read(34,*)
+        read(34,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)
+        enddo 
+      endif
       close(34)
 c
       endif ! AM_I_ROOT
