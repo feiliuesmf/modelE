@@ -9078,16 +9078,13 @@ c read in DMS source
       if (imAER.ne.1) then !initialize interactive DMS (non-AeroCom)
 
           DMSinput(:,:,:)= 0.d0
-        call openunit('DMS_SEA',mon_unit,.false.,.true.)
-        DO 8 mm=1,12
-        READ(mon_unit,*) mont
+       call openunit('DMS_SEA',mon_unit,.false.,.true.)
       do
-       READ(mon_unit,901) ii,jj,dmsconc
+       READ(mon_unit,901) ii,jj,mm,dmsconc
        IF (II.EQ.0) exit
        if (jj<j_0 .or. jj>j_1) cycle
        DMSinput(ii,jj,mm)=dmsconc
       end do
-  8    continue
         call closeunit(mon_unit)
 
       else  ! AEROCOM DMS
@@ -9103,7 +9100,7 @@ c read in DMS source
          status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
          DMS_AER(:,J_0:J_1,:) = DMS_AER_global(:,J_0:J_1,:)
       endif
- 901  FORMAT(3X,2(I4),E11.3,5F9.2)
+ 901  FORMAT(3X,3(I4),E11.3)
 c read in AEROCOM seasalt
       if (imAER.eq.1) then
          status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
@@ -9196,18 +9193,18 @@ C    Initialize:
 c Biomass for AeroCom
 c change to use generally
 c     if (imAER.eq.1) then
-c#ifndef EDGAR_1995
-c      so2_biosrc_3D(:,:,:,:)= 0.d0
-c     call openunit('SO2_BIOMASS',iuc,.false.)
-c     do
-c     read(iuc,*) ii,jj,mmm,ll,carbstuff
-c     if (ii.eq.0) exit
-c     if (jj<j_0 .or. jj>j_1) cycle
-c     if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-c     SO2_biosrc_3D(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
-c     end do
-c     call closeunit(iuc)
-c#endif
+#ifndef EDGAR_1995
+       so2_biosrc_3D(:,:,:,:)= 0.d0
+      call openunit('SO2_BIOMASS',iuc,.false.)
+      do
+      read(iuc,*) ii,jj,mmm,ll,carbstuff
+      if (ii.eq.0) exit
+      if (jj<j_0 .or. jj>j_1) cycle
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      SO2_biosrc_3D(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
+      end do
+      call closeunit(iuc)
+#endif
 c
       if (imAER.eq.1) then
 c volcano - explosive, for AeroCom
@@ -9367,13 +9364,11 @@ c Terpenes
       if (imAER.ne.1) then
         OCT_src(:,:,:)=0.d0
       call openunit('TERPENE',mon_unit,.false.,.true.)
-      do mm=1,12
       do
-      read(mon_unit,*) ii,jj,carbstuff
+      read(mon_unit,*) ii,jj,mm,carbstuff
       if (ii.eq.0) exit
       if (jj<j_0 .or. jj>j_1) cycle
       OCT_src(ii,jj,mm)=carbstuff
-      end do
       end do
       call closeunit(mon_unit)
 c units are mg Terpene/m2/month
@@ -9634,19 +9629,20 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('SO2')
         call read_hist_SO2(iact)
-        call get_aircraft_SO2   ! this does SO2 and BCIA
+cdmk turning off aircraft until I have 2x2.5
+c       call get_aircraft_SO2   ! this does SO2 and BCIA
         case ('BCII')  !this does BC and OC
         call read_hist_BCOC(iact)
-c       case ('BCB')  ! this does BCB and OCB
-c       call get_hist_BM(iact)
+        case ('BCB')  ! this does BCB and OCB and SO2
+        call get_hist_BM(iact)
         case ('NH3')
         call read_hist_NH3(iact)
         end select
         end do
         endif
-c       if (imAER.eq.0.or.imAER.eq.2) then ! biomass
-        call get_hist_BM(iact)
-c       endif
+        if (imAER.eq.0.or.imAER.eq.2) then ! biomass
+         call get_hist_BM(iact)
+        endif
 c      if (COUPLED_CHEM.ne.1) call get_O3_offline
 #endif
 #ifdef TRACERS_OM_SP

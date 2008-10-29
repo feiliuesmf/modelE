@@ -612,15 +612,15 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
 
       if (iact.eq.0) then
       so2_biosrc_3D(:,:,:,:)= 0.d0
-      call openunit('SO2_BIOMASS',iuc,.false.,.true.)
-      do
-      read(iuc,*) ii,jj,mm,ll,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      SO2_biosrc_3D(ii,jj,ll,mm)=carbstuff/(sday*30.4d0)
-      end do
-      call closeunit(iuc)
+c     call openunit('SO2_BIOMASS',iuc,.false.,.true.)
+c     do
+c     read(iuc,*) ii,jj,mm,ll,carbstuff
+c     if (ii.eq.0) exit
+c     if (jj<j_0 .or. jj>j_1) cycle
+c     if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+c     SO2_biosrc_3D(ii,jj,ll,mm)=carbstuff/(sday*30.4d0)
+c     end do
+c     call closeunit(iuc)
       if (imAER.eq.1) go to 33
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
@@ -685,11 +685,12 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
        else
        ihyr=aer_int_yr
        endif
+       if (ihyr.lt.1875) ihyr=1875
 
        BCBt_src(:,:)=BCB_src(:,:,1,jmon)
        OCBt_src(:,:)=OCB_src(:,:,1,jmon)
        SO2t_src(:,:,:)=SO2_biosrc_3D(:,:,:,jmon)
-       if (ihyr.le.2000.and.imAER.eq.3) then
+       if (ihyr.le.2001.and.imAER.eq.3) then
        tfac=0.5d0*(1.d0+real(ihyr-1875)/125.d0)
        do j=MAX(j_0,15),MIN(j_1,29)
        BCBt_src(:,j)=BCB_src(:,j,1,jmon)*tfac
@@ -728,6 +729,7 @@ c historic BC emissions
       else
       ihyr=aer_int_yr
       endif
+      if (ihyr.lt.1850) ihyr=1850
 c if run just starting or if it is a new year
 c   then open new files
       if (iact.eq.0.or.jday.eq.1) then
@@ -791,21 +793,23 @@ c   then open new files
       jb1=1980
       jb2=1990
       irr=14
-      else if (ihyr.ge.1990.and.ihyr.le.2000) then
+      else if (ihyr.ge.1990.and.ihyr.le.2001) then
       jb1=1990
       jb2=2000
       irr=15
       endif
       call openunit('BC_INDh',iuc, .false.,.true.)
-      do ip=1,22754 !14040
+      do 
       read(iuc,*) ii,jj,iy,xbcff
+      IF (iy.EQ.0) exit
       if (jj<j_0 .or. jj>j_1) cycle
       hbc_all(ii,jj,iy)=xbcff
       end do
       call closeunit(iuc)
       call openunit('OC_INDh',iuc, .false.,.true.)
-      do ip=1,19676 !14040
+      do 
       read(iuc,*) ii,jj,iy,xbcff
+      IF (iy.EQ.0) exit
       if (jj<j_0 .or. jj>j_1) cycle
       hoc_all(ii,jj,iy)=xbcff
       end do
@@ -856,6 +860,7 @@ c historic BC emissions
       else
       ihyr=aer_int_yr
       endif
+       if (ihyr.lt.1890) ihyr=1890
 c if run just starting or if it is a new year
 c   then open new files
       if (iact.eq.0.or.jday.eq.1) then
@@ -901,14 +906,15 @@ c   then open new files
       jb1=1980
       jb2=1990
       irr=10
-      else if (ihyr.ge.1990.and.ihyr.le.2000) then
+      else if (ihyr.ge.1990.and.ihyr.le.2001) then
       jb1=1990
       jb2=2000
       irr=11
       endif
       call openunit('SO2_INDh',iuc, .false.,.true.)
-      do ip=1,10661
+      do 
       read(iuc,*) ii,jj,iy,xso2ff
+      if (iy.eq.0) exit
       if (jj<j_0 .or. jj>j_1) cycle
       hso2_all(ii,jj,iy)=xso2ff
       end do
@@ -957,6 +963,7 @@ c historic BC emissions
       else
       ihyr=aer_int_yr
       endif
+        if (ihyr.lt.1890) ihyr=1890
 c if run just starting or if it is a new year
 c   then open new files
       if (iact.eq.0.or.jday.eq.1) then
@@ -1000,11 +1007,11 @@ c   then open new files
       jb1=1970
       jb2=1980
       irr=9
-      else if (ihyr.ge.1980.and.ihyr.le.2000) then
+      else if (ihyr.ge.1980.and.ihyr.le.1990) then
       jb1=1980
       jb2=1990
       irr=10
-      else if (ihyr.ge.1990.and.ihyr.le.2000) then
+      else if (ihyr.ge.1990.and.ihyr.le.2001) then
       jb1=1990
       jb2=2000
       irr=11
@@ -1328,41 +1335,48 @@ ccOMP END PARALLEL DO
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
-         if(AM_I_ROOT( ))then
-        call openunit('AER_CHEM',iuc,.true.,.true.)
-        do ii=1,jmon
-          read(iuc) ichemi
-          read(iuc) ohr_globm
-          read(iuc) dho2r_globm
-          read(iuc) perjr_globm
-          read(iuc) tno3r_globm
-c         ohr_glob(:,:,:,ii)=ohr_globm(:,:,:)
-c         dho2r_glob(:,:,:,ii)=dho2r_globm(:,:,:)
-c         perjr_glob(:,:,:,ii)=perjr_globm(:,:,:)
-c         tno3r_glob(:,:,:,ii)=tno3r_globm(:,:,:)
-        end do
+cdmk turning these off til I have 2x2.5
+c        if(AM_I_ROOT( ))then
+c       call openunit('AER_CHEM',iuc,.true.,.true.)
+c       do ii=1,jmon
+c         read(iuc) ichemi
+c         read(iuc) ohr_globm
+c         read(iuc) dho2r_globm
+c         read(iuc) perjr_globm
+c         read(iuc) tno3r_globm
+c         ichemi=1
+c         ohr_globm=1
+c         dho2r_globm=1
+c         perjr_globm=1
+c         tno3r_globm=1
+cc         ohr_glob(:,:,:,ii)=ohr_globm(:,:,:)
+cc         dho2r_glob(:,:,:,ii)=dho2r_globm(:,:,:)
+cc         perjr_glob(:,:,:,ii)=perjr_globm(:,:,:)
+cc         tno3r_glob(:,:,:,ii)=tno3r_globm(:,:,:)
+c        end do
 cDMK I could move these loops outside AM_I_ROOT
-        call closeunit(iuc)
-        endif
-        
-        call UNPACK_DATA( grid, ohr_globm, ohr )
-        call UNPACK_DATA( grid, dho2r_globm, dho2r )
-        call UNPACK_DATA( grid, perjr_globm, perjr )
-        call UNPACK_DATA( grid, tno3r_globm, tno3r )
-
-         if(AM_I_ROOT( ))then
-        call openunit('AER_OH_STRAT',iuc2,.true.,.true.)
-        do ii=1,jmon  !12
-        do ll=1,lm
-         read(iuc2) ohsr_real
-          ohsr_glob(:,:,ll)=ohsr_real(:,:)*1.D5
-        end do
-        end do
-        call closeunit(iuc2)
-        endif
-        call UNPACK_DATA( grid, ohsr_glob, ohsr )
-c       ifirst=.false.
+c       call closeunit(iuc)
 c       endif
+        
+c       call UNPACK_DATA( grid, ohr_globm, ohr )
+c       call UNPACK_DATA( grid, dho2r_globm, dho2r )
+c       call UNPACK_DATA( grid, perjr_globm, perjr )
+c       call UNPACK_DATA( grid, tno3r_globm, tno3r )
+
+c        if(AM_I_ROOT( ))then
+c       call openunit('AER_OH_STRAT',iuc2,.true.,.true.)
+c       do ii=1,jmon  !12
+c       do ll=1,lm
+c        read(iuc2) ohsr_real
+c         ohsr_glob(:,:,ll)=ohsr_real(:,:)*1.D5
+c       end do
+c       end do
+c       call closeunit(iuc2)
+c       endif
+c       call UNPACK_DATA( grid, ohsr_glob, ohsr )
+cdmk turning these off because I don't have 2x2.5
+cc       ifirst=.false.
+cc       endif
 c I have to read in every timestep unless I can find a better way
 c
 c skip poles because there was a bug in the input file over the pole
@@ -1652,7 +1666,7 @@ c H2O2 losses:5 and 6
 c     use RAD_COM, only: cosz1
       implicit none
       real*8 ang1,xnair,vlon,vlat,ctime,timec,p1,p2,p3,fact,rad,
-     *  rad1,rad2,rad3,stfac
+     *  rad1,rad2,rad3,stfac,vlat_inc,vlon_inc
       real*8, DIMENSION(IM,JM) :: suncos,tczen
       integer i,j,hrstrt,jdstrt,ihr,l,j_0,j_1,j_0h,j_1h,
      * j_0s,j_1s 
@@ -1668,11 +1682,13 @@ c     use RAD_COM, only: cosz1
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 C*
+      vlat_inc=176.d0/real(jm-2.d0)
+      vlon_inc=360.d0/real(im)
       DO 100 j = j_0,j_1
       DO 100 i = 1,im
 C*** Calculate cos theta (RAD) at the beginning of the time step (RAD)
-      vlon = 180.d0 - (i-1)*5.d0
-      vlat=-90.d0+(j-1)*4.d0
+      vlon = 180.d0 - (i-1)*vlon_inc
+      vlat=-90.d0+(j-1)*vlat_inc
       if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
       if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
 c      if (j.eq.1) vlat=-88.d0
@@ -1705,8 +1721,8 @@ C----------------------------------------------------------------------
            do i = 1, im
              tczen(i,j) = 0.
              nradn(i,j)=0
-             vlon = 180.d0 - (i-1)*5.d0
-             vlat=-90.d0+(j-1)*4.d0
+             vlon = 180.d0 - (i-1)*vlon_inc
+             vlat=-90.d0+(j-1)*vlat_inc
       if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
       if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
 c             if (j.eq.1) vlat=-88.d0
@@ -2085,21 +2101,21 @@ c
       bcice=0.
       fb=afb(i,j)
       fv=1.-fb
-       if (wsn_ij(1,1,i,j).gt.0.)  then
-       bcsnowb=tr_wsn_ij(n_BCII,1,1,i,j)+
+      if (wsn_ij(1,1,i,j).gt.0.)  then
+      bcsnowb=tr_wsn_ij(n_BCII,1,1,i,j)+
      *  tr_wsn_ij(n_BCIA,1,1,i,j)+tr_wsn_ij(n_BCB,1,1,i,j)
-       sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
-       endif
-       if (wsn_ij(1,2,i,j).gt.0.)  then
-       bcsnowv=tr_wsn_ij(n_BCII,1,2,i,j)+
+      sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
+      endif
+      if (wsn_ij(1,2,i,j).gt.0.)  then
+      bcsnowv=tr_wsn_ij(n_BCII,1,2,i,j)+
      *  tr_wsn_ij(n_BCIA,1,2,i,j)+tr_wsn_ij(n_BCB,1,2,i,j)
-       sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
-       endif
-       scon=(fb*sconb+fv*sconv)*1.D9   !kg/kg to ppmw
-       if (snowi(i,j).gt.0.) then
-       icon=(gtracer(n_BCII,2,i,j)+gtracer(n_BCIA,2,i,j)+
+      sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
+      endif
+      scon=(fb*sconb+fv*sconv)*1.D9   !kg/kg to ppmw
+      if (snowi(i,j).gt.0.) then
+      icon=(gtracer(n_BCII,2,i,j)+gtracer(n_BCIA,2,i,j)+
      *  gtracer(n_BCB,2,i,j))*1.d9
-       endif
+      endif
        bcc=DMAX1(icon,scon)
        call GRAINS(i,j,rads)
 
