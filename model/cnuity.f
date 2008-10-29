@@ -16,7 +16,6 @@ c --- hycom version 0.9
      &     ,util3,pbot,diaflx,bolusu,bolusv
       implicit none
 c
-      include 'bering.h'
       integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ib,ja,jb
 c
       integer mask(idm,J_0H:J_1H),jcyc,iz,jz,iter

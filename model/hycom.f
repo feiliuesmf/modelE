@@ -211,8 +211,8 @@ c
 
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
-cdiag write(*,'(a,i8,7i5,a)')'chk =',
-cdiag.    Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
+cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
+cdiag.        ,Jday,Jdate,Jhour,amon
 c
       if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
@@ -295,7 +295,7 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
             write(*,'(a,3i5,2e12.4)')'hycom, atracflx: ',
      .      nstep,ia,ja,TRGASEX_loc(nt,1,ia,ja),atracflx_loc(ia,ja,nt)
 
-!       if (ia.eq.iatest.and.ja.eq.jatest)
+!       if (ia.eq.iatest.and.ja.eq.jatest) 
 !       if (nstep.eq.25)
             write(521,'(a,3i5,e12.4)')'hycom, gtrac: ',
      .      nstep,ia,ja, GTRACER(nt,1,ia,ja)
@@ -323,20 +323,8 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
  29   continue
 c$OMP END PARALLEL DO
 
-c
-c     ia=iatest
-c     ja=jatest
-c     write(402,'(a,2i3/13es12.3 )') 'emnp=',ia,ja
-c    .,aemnp(ia,ja)
-c    .,(prec(ia,ja)-evapor(ia,ja,1))*(1.-rsi(ia,ja))         ! open water
-c    .,(flowo(ia,ja)+gmelt(ia,ja)+melti(ia,ja))/(dxyp(ja)*focean(ia,ja))!ocn/ice
-c    .,(runosi(ia,ja)+runpsi(ia,ja))*rsi(ia,ja)
-c    .  ,prec(ia,ja),evapor(ia,ja,1),rsi(ia,ja)
-c    .  ,flowo(ia,ja),gmelt(ia,ja),melti(ia,ja),dxyp(ja),focean(ia,ja)
-c    .  ,runosi(ia,ja),runpsi(ia,ja)
-c
       call gather2_atm
-
+c
       nsavea=nsavea+1
 
       if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) goto 9666
@@ -471,8 +459,8 @@ c
       write (lp,'(i4,'' barotropic steps per baroclinic time step'')')
      .  lstep
       write (lp,*) "time0/nstep0=",time0,nstep0
-      write (lp,'(''ogcm exchange w. agcm every step,hr'',2i5)')
-     .  nstepi,nhr
+      write (lp,'(a,i4,a,i4,a)') "ogcm exchange w. agcm every",nstepi,
+     .   " steps, i.e.",nhr," hr"
       endif ! AM_I_ROOT
 c
 c --- set up parameters defining the geographic environment
@@ -495,7 +483,7 @@ c
       mixfrq=int(43200./baclin+.0001)
       trcfrq=int(43200./baclin+.0001)
       if (AM_I_ROOT())
-     &  write (lp,'(a,2i4)') 'trcfrq set to',trcfrq
+     &  write (lp,'(a,i4,a)') 'trcfrq set to',trcfrq,' steps'
 
       if (trcout) dotrcr=.true.
 c
@@ -851,10 +839,10 @@ cdiag print *,'past eice'
       enloan_time = real(after-before)/real(rate)
 c
       before = after
-      if (nstep*baclin.le.24.*3600) then
+      if (nstep*baclin.le.12.*3600) then
         call mxlayr(m,n,mm,nn,k1m,k1n)
       else
-         call mxkprf(m,n,mm,nn,k1m,k1n) !aft 24 hr
+         call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hrs
       end if
 cdiag print *,'past mxlayr'
 c

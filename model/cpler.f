@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       module hycom_cpler
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       implicit none
@@ -26,7 +27,12 @@
 
 
       integer nwgta2o,nwgta2o2,nwgto2a
-      parameter (nwgta2o=18,nwgta2o2=18,nwgto2a=39)
+#ifdef HYCOM_RESOLUTION_2deg
+      parameter (nwgta2o=18,nwgta2o2=18,nwgto2a=39)      ! 2deg: 195x180
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
+      parameter (nwgta2o=37,nwgta2o2=37,nwgto2a=48)      ! 1deg: 387x360
+#endif
 c
       real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o2)
      .    ,wlisto2a(iia,jja,nwgto2a)

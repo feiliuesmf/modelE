@@ -197,8 +197,9 @@ c
 c --- exchange information across bering strait seam
 c
       USE HYCOM_DIM_GLOB
+      USE HYCOM_SCALARS, only : ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
+
       implicit none
-      include 'bering.h'
 c
       real field(idm,jdm),sign
 c
@@ -216,8 +217,9 @@ c --- exchange information across bering strait seam
 c
       USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
       USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H,I_0H,I_1H
+      USE HYCOM_SCALARS, only : ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
+
       implicit none
-      include 'bering.h'
 c
       real field(I_0H:I_1H,J_0H:J_1H)
       real a(1),b(1)
@@ -279,8 +281,9 @@ c ---     field(iatls,jatl) = - field(ipacn,jpac)
 c
       USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
       USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H,I_0H,I_1H
+      USE HYCOM_SCALARS, only : ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
+
       implicit none
-      include 'bering.h'
 c
       real field(I_0H:I_1H,J_0H:J_1H)
       real a(1),b(1)

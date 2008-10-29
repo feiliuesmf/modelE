@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 !global ?
       subroutine geopar(iniOCEAN)
 c
@@ -13,12 +14,11 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,pi,area,avgbot,huge,flnmlat,flnmdep
      &     ,flnma2o,flnmo2a,flnmo2a_e,flnmo2a_n,flnmcoso,flnmbas
-     &     ,flnma2o_tau
+     &     ,flnma2o_tau,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
       implicit none
-      include 'bering.h'
       integer i,j,k,l,n,ia,ib,ja,jb,jp
 c
       logical, intent(in) :: iniOCEAN
@@ -29,6 +29,12 @@ c
 c --- 'glufac' = regional viscosity enhancement factor
       data glufac/3./
       data zero/0./
+#ifdef HYCOM_RESOLUTION_2deg
+       integer, parameter :: nsize1=10249200, nsize2=2079936
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
+       integer, parameter :: nsize1=83034720, nsize2=10005120
+#endif
 
       !write(0,*) "ok ",__FILE__,__LINE__
 c
@@ -519,24 +525,15 @@ c --- add glue in coastal areas
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- add glue to mediterranean:
-      if (jdm.eq.256) then              !  1.4 deg, equator at i=64:
-        if ((i.ge.  29 .and. i.le.  41 .and. j.le.  26)
-     . .or. (i .ge. 36 .and. i.le.  37 .and. j.ge. 253))
-     .        glue(i,j)=glufac
-c
-      else if (jdm.eq.180) then         !  2.0 deg, equator at i=115:
+#ifdef HYCOM_RESOLUTION_2deg
         if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
      .        glue(i,j)=glufac
-c
-      else if (jdm.eq.360) then         !  2.0 deg, equator at i=115:
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
         if ((i.ge. 180 .and. i.le. 198 .and. j.le.  37)
      . .or. (i .ge.188 .and. i.le. 191 .and. j.ge. 356))
      .        glue(i,j)=glufac
-c
-      else
-        write (lp,*) 'unable to determine location of Mediterranean'
-        stop '(geopar)'
-      end if
+#endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  154  continue
 c$OMP END PARALLEL DO
@@ -556,27 +553,17 @@ c     open(301,file='agcmgdsz.8bin',status='unknown',form='unformatted')
 c     write(301)dxyp
 c     close(301)
 c
-
 !!! it would be cleaner to move the following part to cpler.f -IA
 
-      if((iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.10249200 .or.
-     .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.10249200 .or.
-     .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.2079936)
-     .                                      .and.jjo.eq.180)then
-        write(lp,*)'wrong 2deg cpler=',
-     .   iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
+      if (iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.nsize1 .or.
+     .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.nsize1 .or.
+     .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.nsize2) then
+        write(lp,'(a,3i12,a,3i12)') 'wrong size in cpler '
+     .  ,iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
      .  ,iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8)
      .  ,iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8)
-        stop ' wrong size in 2deg flxa2o'
-      elseif((iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.83034720 .or.
-     .        iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.83034720 .or.
-     .        iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.10005120)
-     .                                      .and.jjo.eq.360)then
-        write(lp,*)'wrong 1deg cpler=',
-     .   iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
-     .  ,iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8)
-     .  ,iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8)
-        stop ' wrong size in 1deg flxa2o'
+     .  ,' should be ',nsize1,nsize1,nsize2
+        stop ' wrong size in cpler'
       endif
 c
       open(14,file=flnma2o,form='unformatted',status='old',
@@ -614,19 +601,19 @@ c
 c
 c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       open (34,file=flnmbas,form='formatted',status='old')
-      if (jjo.eq.180) then
+#ifdef HYCOM_RESOLUTION_2deg
         do n=1,2
         read(34,*)
         read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
         enddo 
-      elseif (jjo.eq.360) then
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
         do n=1,3
         read(34,*)
         read(34,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)
         enddo 
-      endif
+#endif
       close(34)
-c
       endif ! AM_I_ROOT
       return
       end

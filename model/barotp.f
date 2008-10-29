@@ -5,7 +5,8 @@ c --- version 2.8.2
       USE HYCOM_DIM, only : jj,isp,ifp,ilp,iu,isu,ifu,ilu,iv,isv
      &     ,ifv,ilv,ii
      &     ,jchunk, ogrid,J_0,J_1,I_0H,I_1H,J_0H,J_1H
-      USE HYCOM_SCALARS, only : lstep,wbaro,dlt,slip,thref,veldff,nstep
+      USE HYCOM_SCALARS, only : lstep,wbaro,dlt,slip,thref,veldff,nstep,
+     &                          ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH
       USE HYCOM_ARRAYS_GLOB, only : scatter_hycom_arrays,
@@ -14,8 +15,6 @@ c --- version 2.8.2
       implicit none
       integer, intent(in) :: m,n,mm,nn
       integer             :: k1m,k1n    ! TNL What is it ???
-c
-      include 'bering.h'
       integer i,j,k,l,ia,ib,ja,jb
 c
       real q,utndcy,vtndcy,damp,uglue,vglue,
@@ -147,7 +146,8 @@ c
       if(doThis) then
       !mkb: obtain these on root and do this only on root
       if (abs(ubavg(ipacs,jpac,nl)+ubavg(iatln,jatl,nl)).gt.
-     .    abs(ubavg(ipacs,jpac,nl)-ubavg(iatln,jatl,nl))*1.e-12)
+     .    abs(ubavg(ipacs,jpac,nl)-ubavg(iatln,jatl,nl))*1.e-12
+     .                                            .and.beropn)
      .  write(*,'(2i4,a,1p,2e15.7)') nstep,lll,' barotp WRONG ubavg_nl '
      .  ,ubavg(ipacs,jpac,nl),ubavg(iatln,jatl,nl)
       endif  ! doThis

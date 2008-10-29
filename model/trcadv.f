@@ -53,7 +53,10 @@ c
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
+!!      include 'dimensions.h'
+!!    include 'dimension2.h'      ! TNL
       integer i,j,k,l,n,nn
+!!      include 'common_blocks.h'
 c
       if (n.ne.oddev) then
         write (lp,'(2(a,i2/))')
@@ -96,8 +99,10 @@ c
      &     tracer_loc => tracer, dpinit_loc => dpinit
       USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH
       implicit none
-      include 'bering.h'
+!!      include 'dimensions.h'
+!!    include 'dimension2.h'      ! TNL
       integer i,j,k,l,n,nn,ib,jb
+!!      include 'common_blocks.h'
 c
       real vertfx(idm,J_0H:J_1H,kdm),hordiv(idm,J_0H:J_1H,kdm),
      .     coldiv(idm),verdiv,q,fluxdv,thkchg 
@@ -259,6 +264,8 @@ c
       USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH, SOUTH,
      &                         haveLatitude, GLOBALSUM, esmf_bcast
       implicit none
+!!      include 'dimensions.h'
+!!    include 'dimension2.h'      ! TNL
       integer i,j,k,l,ia,ib,ja,jb
 c
       real fld(idm,J_0H:J_1H,kdm),u(idm,J_0H:J_1H,kdm),

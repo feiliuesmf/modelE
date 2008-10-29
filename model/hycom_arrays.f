@@ -5,7 +5,6 @@ c   ----------------------------------------------------------------------------
 
       implicit none
 
-!!      include 'bering.h'
 c
 !!      c o m m o n
       real, allocatable ::

@@ -9,8 +9,7 @@ c-----------------------------------------------------------------------------
 
       public alloc_hycom_dim,init_hycom_grid
 
-      public idm,jdm,kdm,ms,iia,jja,iio,jjo,ntrcr,ii,jj,kk,ii1
-      public equato,iold
+      public ntrcr,ii,jj,kk,ii1
       public I_0,  I_1,  J_0,  J_1, I_0H, I_1H, J_0H, J_1H
       public aI_0, aI_1, aJ_0, aJ_1,aI_0H,aI_1H,aJ_0H,aJ_1H
       public ogrid, aGrid
@@ -22,11 +21,16 @@ c-----------------------------------------------------------------------------
      .ifv,ilv,isv,jfv,jlv,jsv,
      .msk
 
-      integer idm,jdm,kdm,ms,iia,jja,iio,jjo,iold
-      real equato
-      parameter (idm=195,jdm=180,kdm=20,ms=15,equato=115.
-     .          ,iold=181)
-      parameter (iia=72,jja=46,iio=idm,jjo=jdm)
+#ifdef HYCOM_RESOLUTION_2deg
+      integer, public, parameter :: idm=195,jdm=180,kdm=20,ms=15
+     .                             ,iold=181
+      integer, public, parameter :: iia=72,jja=46,iio=idm,jjo=jdm
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
+      integer, public, parameter :: idm=387,jdm=360,kdm=26,ms=15
+     .                             ,iold=359
+      integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
+#endif
 
 #ifdef TRACERS_OceanBiology
       integer, parameter :: ntrcr = 15

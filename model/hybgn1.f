@@ -1,4 +1,5 @@
 #include "hycom_mpi_hacks.h"
+#include "rundeck_opts.h"
       subroutine hybgen(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9.12
@@ -45,13 +46,24 @@ c
 ccc   parameter (slak=1.)	        ! intfc nudging time scale: instantaneous
       parameter (slak=1./86400.)	! intfc nudging time scale: 1 day
 c
-      data (dplist(k),k=1,kdm)/
+#ifdef HYCOM_RESOLUTION_2deg
+      data dplist/
 c    .    5.0, 7.6, 9.8,11.6,13.0,14.0,14.6,14.9,15.0,15.0,
 c    .   15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0/     !  265.5 total
      .     5., 7., 9.,11.,13.,15.,17.,19., 21., 23.,
      .    25.,27.,29.,32.,37.,46.,63.,96.,161.,290./            !  946
 c    .     5., 7., 9.,11.,13.,15.,17., 19., 21., 23.,
 c    .    25.,27.,30.,35.,44.,61.,94.,159.,288.,545./           !  1448
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
+      data dplist/
+     .     5.,  7.,  9., 11., 13., 15., 17., 19., 21., 23., 
+     .    25., 27., 29., 31., 33., 35., 38., 42., 47., 53., 
+     .    60., 68., 77., 87., 98.,110./
+c    .     5.,  7.,  9., 11., 13., 15., 17., 19., 21., 23.,
+c    .    25., 28., 32., 37., 43., 50., 58., 67., 77., 88.,
+c    .   100.,113.,127.,142.,158.,175./
+#endif
 c
 c --- linear taper function for slak
       tapr(q)=1.+9.*max(0.,1.-.02e-4*q)		!  q = pressure (Pa)
@@ -889,14 +901,13 @@ c --- output variables:
 c --- ynew(nmax) - function values after advection (overwriting of -y- allowed)
 c
       implicit none
-      integer nmax,ndim,n
-      parameter (nmax=3,ndim=3)
+      integer nmax,n
+      parameter (nmax=3)
       real x(nmax+1),dx(nmax+1),y(nmax),ynew(nmax),total,tndcy,scale,
-     .     ytmp(ndim),wdth,slab,dxnew,acurcy,a,b,c,athird,onemu,yl,yr
+     .     ytmp(nmax),wdth,slab,dxnew,acurcy,a,b,c,athird,onemu,yl,yr
       logical diagno
       data acurcy/1.e-11/,onemu/.098/
       parameter (athird=1./3.)
-      if (ndim.lt.nmax) stop '(ndim too small in ppmad3)'
 c
       total=0.
       scale=1.e-99
@@ -996,15 +1007,13 @@ c --- output variables:
 c --- ynew(nmax) - function values after advection (overwriting of -y- allowed)
 c
       implicit none
-      integer nmax,ndim,n,na,nb,m
-      parameter (ndim=30)
+      integer nmax,n,na,nb,m
       real x(nmax+1),dx(nmax+1),y(nmax),ynew(nmax),
-     .     xtmp(ndim+1),ytmp(ndim),yold(ndim),athird,a,b,c,
+     .     xtmp(nmax+1),ytmp(nmax),yold(nmax),athird,a,b,c,
      .     wdth,slab,dxnew,acurcy,total,tndcy,onemu,scale,yl,yr
       logical diagno
       data acurcy/1.e-12/,onemu/.098/
       parameter (athird=1./3.)
-      if (ndim.lt.nmax) stop '(ndim too small in ppmadv)'
 c
       total=0.
       scale=1.e-99

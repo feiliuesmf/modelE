@@ -111,10 +111,33 @@ c
 !!     .            ,flnmo2a_e,flnmo2a_n
 
 
-
-
-
+c --- opening the bering strait requires information exchange across a
+c --- 'u' face represented in 2 different locations in the tri-pole grid.
+c --- the 2 locations are the northern tip of the bering 'inlet' (truncated
+c --- bering channel) on the pacific side and the southern (i.e., upper)
+c --- tip of the bering inlet in the panam pole patch
 c
+c --- ipacn,jpac:  grid point north of inlet head on pacific side
+c --- ipacs,jpac:  grid point south of inlet head on pacific side
+c --- iatln,jatl:  grid point north of inlet head on arctic ocean side
+c --- iatls,jatl:  grid point south of inlet head on arctic ocean side
+c
+c --- thus, the pairs [(ipacn,jpac),(iatln,jatl)],[(ipacs,jpac),(iatls,jatl)]
+c --- refer to identical grid cells in physical space.
+c
+      logical, public, parameter :: beropn=.true.	!  true if bering strait open
+#ifdef HYCOM_RESOLUTION_2deg
+      integer, public, parameter :: ipacn=67,ipacs=68,jpac= 95
+      integer, public, parameter :: iatln= 2,iatls= 1,jatl=156
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
+      integer, public, parameter :: ipacn=137,ipacs=138,jpac=189
+      integer, public, parameter :: iatln= 2,iatls= 1,jatl=312
+#endif
+c-----------------------------------------------------------------------------
+c
+!!      include 'dimensions.h'
+!!!!      include 'common_blocks.h'
 c
 c --- layer densities (theta units):
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -130,15 +153,31 @@ ccc   data theta/31.20,32.51,33.54,34.35,34.99,35.50,35.91,36.24,
 ccc  .           36.50,36.70,36.85,36.96,37.04,37.10,37.15,37.20/    !medium
 c     data theta/31.85,33.22,34.26,35.04,35.62,36.05,36.37,36.61,
 c    .           36.79,36.92,37.01,37.07,37.11,37.14,37.17,37.20/    !heavy
+#ifdef HYCOM_RESOLUTION_2deg
       data theta/
      .  28.50,29.71,30.82,31.83,32.74,33.55,34.26,34.87,35.38,35.80,
      .  36.14,36.41,36.62,36.78,36.90,36.99,37.07,37.16,37.28,37.45/  !vhv
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
+      data theta/
+     .  28.89,30.07,31.11,32.02,32.81,33.49,34.07,34.56,34.97,35.31
+     . ,35.59,35.82,36.01,36.17,36.31,36.44,36.56,36.67,36.77,36.86
+     . ,36.94,37.01,37.07,37.12,37.16,37.20/          ! md
+#endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
+c --- 'equatn' = the i index of the equator
+#ifdef HYCOM_RESOLUTION_2deg
       data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
+      data equatn/122./
+#endif
+#ifdef HYCOM_RESOLUTION_1deg
+      data baclin,batrop/1800., 50./,diagfq/365./          ! 1deg full global
+      data equatn/243./
+#endif
 c
 c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (m/s) for momentum dissipation
@@ -186,16 +225,7 @@ c --- 'epsil'  = small nonzero number used to prevent division by zero
       data airdns/1.2/,evaplh/2.47e6/,thref/1.e-3/,epsil/1.e-11/
 c
 c --- 'itest,jtest' = grid point where detailed diagnostics are desired
-c     data itest,jtest/174,41/
-c     data itest,jtest/163,133/
-c     data itest,jtest/104,46/
-c     data itest,jtest/171,1/     !southern hemisphere
-      data itest,jtest/122,1/     !greenwich at equator
-      data itest,jtest/160,40/    !southern ocean       
-c
-c ---      equatn   --  the i index of the equator
-c
-      data equatn/122./
+      data itest,jtest/-1,-1/
 c
 c ---  s w i t c h e s    (if set to .true., then...)
 c --- thermo      use thermodynamic forcing functions
