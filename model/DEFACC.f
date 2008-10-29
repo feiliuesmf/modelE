@@ -3370,7 +3370,7 @@ c
       lname_jl(k) = 'AVAILABLE POTENTIAL ENERGY'
       units_jl(k) = 'm^2/s^2'
       scale_jl(k) = .5*RGAS*BYIM
-      ia_jl(k) = ia_dga
+      ia_jl(k) = ia_d5s
       jgrid_jl(k) = 1
 c
       k=k+1

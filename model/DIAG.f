@@ -106,7 +106,7 @@ C**** Some local constants
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,sinp,bydxyv,rapvn,rapvs
       USE RAD_COM, only : rqt
-      USE DIAG_COM, only : jreg,
+      USE DIAG_COM, only : ia_dga,jreg,
      *     apj=>apj_loc, ajl=>ajl_loc,asjl=>asjl_loc,ail=>ail_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_dsev,ij_phi1k,ij_pres
      *     ,ij_puq,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
@@ -115,7 +115,7 @@ C**** Some local constants
      &     ,il_u,il_v,il_w,il_tx,il_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
      *     ,j_gamc,lstr,kgz_max,pmb,ght
-     *     ,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
+     *     ,jl_dtdyn,jl_zmfntmom,jl_totntmom
      *     ,jl_epflxn,jl_epflxv
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
@@ -131,15 +131,12 @@ C**** Some local constants
       USE DOMAIN_DECOMP, only : AM_I_ROOT
       USE GETTIME_MOD
       IMPLICIT NONE
-      REAL*8, DIMENSION(LM) :: GMEAN
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     &     GMEAN_part
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
       REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        SPTYPE
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        THJL,THSQJL,SPI,PHIPI,TPI
+     &        SPI,PHIPI,TPI
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
@@ -149,14 +146,12 @@ C**** Some local constants
       INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        THGM_part
-      REAL*8, DIMENSION(LM):: THGM,PI0,AMI,DPI,PMI
+      REAL*8, DIMENSION(LM):: PI0,AMI,DPI,PMI
       REAL*8, DIMENSION(LM+1):: PLEI
       REAL*8 ::
      &     BBYGV,BYSDSG,DLNP,DLNP12,DLNP23,DBYSD,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,
-     *     ESEPS,FPHI,GAMC,GAMM,GAMX,GMEANL,P4,P4I,
+     *     ESEPS,FPHI,GAMC,GAMM,GAMX,P4,P4I,
      &     PDN,PE,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
      *     PKE,PL,PRT,PU4I,PUV4I,PV4I,PVTHP,
      *     ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THMN,TPIL,
@@ -178,7 +173,7 @@ C**** Some local constants
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
-      IDACC(4)=IDACC(4)+1
+      IDACC(ia_dga)=IDACC(ia_dga)+1
 
       BYSDSG=1./(1.-SIGE(LM+1))
       DLNP12=LOG(REQ_FAC_M(1)/REQ_FAC_M(2))  ! LOG(.75/.35)
@@ -663,56 +658,6 @@ C****
       END DO
       END DO
       END DO
-C****
-C**** AVAILABLE POTENTIAL ENERGY
-C****
-C**** SET UP FOR CALCULATION
-      DO 710 L=1,LM
-  710 GMEAN_part(:,L)=0.
-      DO 740 J=J_0,J_1
-      DO 720 I=1,IMAXJ(J)
-  720 SQRTP(I)=SQRT(P(I,J))
-C**** GMEAN CALCULATED FOR EACH LAYER, THJL, THSQJL ARRAYS FILLED
-      DO 730 L=1,LM
-      LDN=LDNA(L)
-      LUP=LUPA(L)
-      THJL(J,L)=0.
-      THSQJL(J,L)=0.
-      DO 730 I=1,IMAXJ(J)
-      THJL(J,L)=THJL(J,L)+T(I,J,L)*SQRTP(I)
-      THSQJL(J,L)=THSQJL(J,L)+T(I,J,L)*T(I,J,L)*P(I,J)
-  730 GMEAN_part(J,L)=GMEAN_part(J,L)+
-     *     (SIG(L)*P(I,J)+PTOP)*(T(I,J,LUP)-T(I,J,LDN))*
-     *     DXYP(J)/(P(I,J)*PK(L,I,J))
-  740 CONTINUE
-C**** CALCULATE APE
-      DO 760 L=1,LM
-      IF(HAVE_SOUTH_POLE) THEN
-        THJL(1,L)=THJL(1,L)*FIM
-        THSQJL(1,L)=THSQJL(1,L)*FIM
-      ENDIF
-      IF(HAVE_NORTH_POLE) THEN
-        THJL(JM,L)=THJL(JM,L)*FIM
-        THSQJL(JM,L)=THSQJL(JM,L)*FIM
-      ENDIF
-      THGM_part(:,L)=0.
-      DO J=J_0,J_1
-        THGM_part(J,L)=THJL(J,L)*DXYP(J)
-      ENDDO
-  760 continue
-
-      CALL GLOBALSUM(grid,THGM_part(:,1:LM),THGM(1:LM),ALL=.TRUE.)
-      THGM=THGM/AREAG
-      CALL GLOBALSUM(grid,GMEAN_part(:,1:LM),GMEAN(1:LM),ALL=.TRUE.)
-
-      DO 761 L=1,LM
-      LP1=LUPA(L)
-      LM1=LDNA(L)
-      GMEANL=GMEAN(L)/((SIG(LM1)-SIG(LP1))*AREAG)
-      DO 761 J=J_0,J_1
-  761 AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+
-     &        (THSQJL(J,L)-2.*THJL(J,L)*THGM(L)+THGM(L)*THGM(L)*
-     *  FIM)/GMEANL
 
 c
 c accumulate AIL: U,V,T,RH,W
@@ -869,7 +814,8 @@ C****
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DIAG_COM, only : ajk=>ajk_loc,aijk=>aijk_loc,speca,nspher,  ! adiurn,hdiurn
+      USE DIAG_COM, only : ia_dga
+     &    ,ajk=>ajk_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,ijk_r,ijk_w,ijk_pf,
      *      ijk_uv,ijk_vt,ijk_vq,ijk_vv,ijk_uu,ijk_tt,
@@ -1002,7 +948,7 @@ CW169 FORMAT(1X,'1616--',3I5,3E15.2)
       AJK(J,K,JK_RH)=AJK(J,K,JK_RH)+RHPI
       AJK(J,K,JK_CLDH2O)=AJK(J,K,JK_CLDH2O)+WMPI
          TJK(J,K)=THPI/(DPI+teeny)
-         IF (IDACC(4).EQ.1) AJK(J,K,JK_TINST)=TJK(J,K)
+         IF (IDACC(ia_dga).EQ.1) AJK(J,K,JK_TINST)=TJK(J,K)
          AJK(J,K,JK_TOTDTDT)=TJK(J,K)-AJK(J,K,JK_TINST)
   170 CONTINUE
 C****
@@ -1268,7 +1214,7 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
          VJK(J,K)=PVI/DPI
          PSIJK(J,K)=SHETH(K)/DPI
          UVJK(J,K)=(PUVI-PUI*PVI/DPI)/DPI
-         IF (IDACC(4).EQ.1) AJK(J,K,JK_UINST)=UJK(J,K)
+         IF (IDACC(ia_dga).EQ.1) AJK(J,K,JK_UINST)=UJK(J,K)
          AJK(J,K,JK_TOTDUDT)=UJK(J,K)-AJK(J,K,JK_UINST)
   350 AJK(J,K,JK_SHETH)=AJK(J,K,JK_SHETH)+SHETH(K)
   390 CONTINUE
@@ -2227,9 +2173,10 @@ C****
       USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,IDACC,JEQ,LS1,MDIAG,
      &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
-      USE GEOM, only : AREAG,DXYN,DXYP,DXYS
+      USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
       USE DIAG_COM, only : speca,atpe,nspher,kspeca,klayer
-      USE DIAG_COM, only : SQRTM
+      USE DIAG_COM, only : SQRTM,ajl=>ajl_loc,jl_ape
+      USE DIAG_LOC, only : lupa,ldna
       USE DYNAMICS, only : sqrtp,pk
       USE DOMAIN_DECOMP, only : GRID,GET,CHECKSUM,HALO_UPDATE, AM_I_ROOT
       USE DOMAIN_DECOMP, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
@@ -2248,7 +2195,7 @@ C****
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: TPE_psum
 CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
 
-      REAL*8, DIMENSION(LM) :: THJSP,THJNP,THGM
+      REAL*8, DIMENSION(LM) :: THGM,GMEAN
 
       INTEGER, PARAMETER :: IZERO=0
 
@@ -2258,11 +2205,13 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
       INTEGER :: I,IJL2,IP1,J,J45N,JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
      &     LUP,MAPE,MKE,MNOW,MTPE,N,NM
 
-      REAL*8 :: GMEAN(LM),GMTMP,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
-      REAL*8 :: THGSUM_part(grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 :: GMSUM(grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
+      REAL*8 :: SQRTPG,SUMI,SUMT
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     &     GMEAN_part
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &        THGM_part
 
-      INTEGER :: J_0S,J_1S,J_0STG,J_1STG
+      INTEGER :: J_0S,J_1S,J_0STG,J_1STG,J_0,J_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 #ifdef SCM
@@ -2274,6 +2223,8 @@ c     write(0,*) 'SCM no diags    DIAG5A'
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      J_0=GRID%J_STRT
+      J_1=GRID%J_STOP
 
       SQRTPG = SQRT(PSFMPT)
       NM=1+IM/2
@@ -2384,95 +2335,92 @@ C**** POTENTIAL ENERGY
 C****
   296 CONTINUE
 
-      APE(:,:)=0.
-C**** CURRENT AVAILABLE POTENTIAL ENERGY
 
-      DO L = 0, LM
-        LDN = MAX(L - 1, 1)
-        LUP = MIN(L + 1,LM)
-
-        IF (L < LM) THEN
-          IF(LUP.GE.LS1) THEN
-            IF(HAVE_SOUTH_POLE) THJSP(LUP) = T(1,1,LUP)*SQRTPG
-            IF(HAVE_NORTH_POLE) THJNP(LUP) = T(1,JM,LUP)*SQRTPG
-          ELSE
-            IF(HAVE_SOUTH_POLE) THJSP(LUP)=T(1,1,LUP)*SQRTP(1,1)
-            IF(HAVE_NORTH_POLE) THJNP(LUP)=T(1,JM,LUP)*SQRTP(1,JM)
-          ENDIF
-          IF(HAVE_SOUTH_POLE) THGSUM_part(1)  = FIM*THJSP(LUP)*DXYP(1)
-          IF(HAVE_NORTH_POLE) THGSUM_part(JM) = FIM*THJNP(LUP)*DXYP(JM)
-
-          DO J=J_0S,J_1S
-            THJSUM=0.
-            DO I=1,IM
-              THJSUM=THJSUM+T(I,J,LUP)*SQRTP(I,J)
-            ENDDO
-            THGSUM_part(J) = THJSUM*DXYP(J)
+C****
+C**** AVAILABLE POTENTIAL ENERGY
+C****
+C**** Calculate global means for each layer of
+C**** pot. temp (thgm) and static stability (gmean)
+C****
+      DO L=1,LM
+        LDN=LDNA(L)
+        LUP=LUPA(L)
+        DO J=J_0,J_1
+          GMEAN_part(J,L)=0.
+          THGM_part(J,L)=0.
+          DO I=1,IMAXJ(J)
+            THGM_part(J,L)=THGM_part(J,L)+T(I,J,L)*SQRTP(I,J)
+            GMEAN_part(J,L)=GMEAN_part(J,L)+
+     *           (P(I,J)*SIG(L)+PTOP)*(T(I,J,LUP)-T(I,J,LDN))
+     *           /(P(I,J)*PK(L,I,J))
           ENDDO
-
-          CALL GLOBALSUM(grid, THGSUM_part, THGSUM, ALL=.TRUE.)
-          THGM(LUP)=THGSUM/AREAG
-
-        End IF
-
-        IF (LUP < 2) CYCLE
-
-        VAR(2:NM,1:2,L)=0.
-        VAR_part(:,:,L,:)=0
+          GMEAN_part(J,L)=GMEAN_part(J,L)*DXYP(J)
+          THGM_part(J,L)=THGM_part(J,L)*DXYP(J)
+        ENDDO
         IF(HAVE_SOUTH_POLE) THEN
-          VAR_part(1,1,L,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
-         GMSUM(1,L)=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*
-     *         (SIG(L)*P(1,1)+PTOP)/
-     *         (SQRTP(1,1)*P(1,1)*PK(L,1,1)))*FIM
-        END IF
+          THGM_part(1,L)=THGM_part(1,L)*FIM
+          GMEAN_part(1,L)=GMEAN_part(1,L)*FIM
+        ENDIF
         IF(HAVE_NORTH_POLE) THEN
-          VAR_part(1,2,L,JM)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
-          GMSUM(JM,L)=((THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
-     *       (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
-        END IF
+          THGM_part(JM,L)=THGM_part(JM,L)*FIM
+          GMEAN_part(JM,L)=GMEAN_part(JM,L)*FIM
+        ENDIF
+      ENDDO
 
-        DO J=J_0S,J_1S
+      CALL GLOBALSUM(grid,THGM_part(:,1:LM),THGM(1:LM),ALL=.TRUE.)
+      THGM=THGM/AREAG
+      CALL GLOBALSUM(grid,GMEAN_part(:,1:LM),GMEAN(1:LM),ALL=.TRUE.)
+      DO L=1,LM
+        LDN=LDNA(L)
+        LUP=LUPA(L)
+        GMEAN(L)=AREAG*(SIG(LDN)-SIG(LUP))/GMEAN(L)
+      ENDDO
+      
+      APE(:,:)=0.
 
+C**** SPECTRAL ANALYSIS OF AVAILABLE POTENTIAL ENERGY
+
+      DO L = 1, LM
+        LDN=LDNA(L)
+        LUP=LUPA(L)
+
+        DO J=J_0,J_1
+          VAR_part(:,:,L,J)=0
           IF (J < JEQ) THEN
             JHEMI = 1
           ELSE
             JHEMI = 2
           END IF
 
-          GMTMP = 0
           DO I=1,IM
             X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
-            GMTMP=GMTMP+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
-     *           (P(I,J)*PK(L,I,J))
           END DO
-          GMSUM(J,L) = GMTMP * DXYP(J)
+
+          if(m5.eq.7) then
+            AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+SUM(X*X)*GMEAN(L)
+          endif
+
+          IF(J.EQ.1 .or. J.EQ.JM) THEN
+            VAR_part(1,JHEMI,L,J)=.5*(X(1)**2)*DXYP(1)*FIM
+            cycle ! skip poles for spectral analysis
+          END IF
+
           CALL FFTE (X,Xtmp)
           X=Xtmp
-          DO N=1,NM
-            VAR_part(N,JHEMI,L,J)=VAR_part(N,JHEMI,L,J)+X(N)*DXYP(J)
-          END DO
+          VAR_part(1:NM,JHEMI,L,J)=X(1:NM)*DXYP(J)
           IF (J == JEQ-1) THEN
-            DO N=1,NM
-              VAR_part(N,3,L,J)=X(N)*DXYP(J)
-            END DO
+            VAR_part(1:NM,3,L,J)=X(1:NM)*DXYP(J)
+          ELSEIF (J == J45N-1) THEN
+            VAR_part(1:NM,4,L,J)=X(1:NM)*DXYP(J)
           END IF
-          IF (J == J45N-1) THEN
-            DO N=1,NM
-              VAR_part(N,4,L,J)=X(N)*DXYP(J)
-            END DO
-          END IF
-        END DO
+        END DO ! J
+      END DO ! L
 
-      END DO
-
-      CALL GLOBALSUM(grid, GMSUM, GMEAN)
       CALL GLOBALSUM(grid, VAR_part, VAR)
 
       IF (AM_I_ROOT()) THEN
         DO L = 1, LM
-          LDN = MAX(L - 1, 1)
-          LUP = MIN(L + 1,LM)
-          GMEAN(L)=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN(L)
+          GMEAN(L)=DSIG(L)*GMEAN(L)
           KS=KLAYER(L)
           DO JHEMI=1,4
             DO N=1,NM
@@ -2482,6 +2430,7 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
           END DO
         END DO
       END IF
+
 C**** CURRENT TOTAL POTENTIAL ENERGY
  450  CONTINUE
 
