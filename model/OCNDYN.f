@@ -2656,15 +2656,13 @@ c adv1d advects tracers in j-direction using the lin ups scheme
 c--------------------------------------------------------------
       use ocean, only: im,jm,lmo,lmm,focean
 
-!      USE DOMAIN_DECOMP, only: grid, GET
       USE DOMAIN_DECOMP, only: GET
       USE OCEANR_DIM, only : grid=>ogrid
 
       USE DOMAIN_DECOMP, only: NORTH, SOUTH
       USE DOMAIN_DECOMP, only: HALO_UPDATE, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP, only: CHECKSUM
       implicit none
-      !
+
 !@var s mean tracer amount (kg or J)
 !@var sx,sy,sz lin tracer moments (kg or J)
 !@var f tracer flux (diagnostic output) (kg or J)
@@ -5094,8 +5092,12 @@ c     *          oFtemp(i,j), aFtemp(i,j), diff
         oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
         call HNTR8P (oFweight, oFtemp, aFtemp)        
 
-        aTRMO_glob(:,:,1,NT) = aFtemp(:,:)
-     *                       * (aMO_glob(:,:,1)*aDXYPO(:)*aFOCEAN(:,:))
+        DO J=1,JMA
+          DO I=1,aIMAXJ(J)
+            aTRMO_glob(I,J,1,NT) = aFtemp(I,J)
+     *           * (aMO_glob(I,J,1)*aDXYPO(J)*aFOCEAN(I,J))
+          END DO
+        END DO
       END DO
 #endif
       
@@ -5239,6 +5241,7 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
      *        aTRPREC_glob, aTRUNPSI_glob      
       REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: 
      *        oTRPREC_glob, oTRUNPSI_glob      
+      INTEGER N
 #endif
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
@@ -5272,6 +5275,7 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
         aFtemp(:,J) = aSRUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J) ! kg/m^2
       END DO
       call HNTR8P (aONES, aFtemp, oFtemp)
+
       DO J = 1,JMO
         oSRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
       END DO
@@ -5300,20 +5304,22 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
       END DO
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+      DO N=1,NTM
       DO J = 1,JMA
-        aFtemp(:,J) = aTRPREC_glob(:,J)/aDXYPO(J)           ! kg/m^2    
+        aFtemp(:,J) = aTRPREC_glob(N,:,J)/aDXYPO(J)           ! kg/m^2    
       END DO
       call HNTR8P (aONES, aFtemp, oFtemp)
       DO J = 1,JMO
-        oTRPREC_glob(:,J) = oFtemp(:,J)*oDXYPO(J)           ! kg                          
+        oTRPREC_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)           ! kg
       END DO
 
       DO J = 1,JMA
-        aFtemp(:,J) = aTRUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J) ! kg/m^2
+        aFtemp(:,J) = aTRUNPSI_glob(N,:,J)*aDXYP(J)/aDXYPO(J) ! kg/m^2
       END DO
       call HNTR8P (aONES, aFtemp, oFtemp)
       DO J = 1,JMO
-        oTRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
+        oTRUNPSI_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
+      END DO
       END DO
 #endif
       
@@ -5592,7 +5598,6 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
       REAL*8, DIMENSION(3,IMA,JMA) :: aSOLAR_glob
       REAL*8, DIMENSION(IMA,JMA,NSTYPE) :: aE0_glob, aEVAPOR_glob
      *      , aDMUA_glob, aDMVA_glob 
-      REAL*8, DIMENSION(2,IMA,JMA) :: aDMSI_glob, aDHSI_glob, aDSSI_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob 
@@ -5626,7 +5631,6 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
       REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRDRYDEP_glob
 #endif
 #endif
-      REAL*8, DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
