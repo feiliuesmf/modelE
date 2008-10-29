@@ -66,9 +66,6 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oRSI
 
 #ifdef TRACERS_ON
-!@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: oGTRACER
-
 
 #ifdef TRACERS_GASEXCH_Natassa
 !@var TRGASEX  tracer gas exchange over each type (kg/m^2)
@@ -176,10 +173,6 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 #ifdef TRACERS_ON
 
       !:-:-I-J arrays
-      ALLOCATE( oGTRACER ( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
-     &  STAT = IER)
-      oGTRACER=0.
-
 #ifdef TRACERS_GASEXCH_Natassa
 
       ALLOCATE( oTRGASEX( NTM , 1 , I_0H:I_1H , J_0H:J_1H ),
