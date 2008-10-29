@@ -1,14 +1,15 @@
 
-c****
+c**** COMMENT program when linked with MODELE
 cc      program testregrid
 cc      call test_zonal_loop()    ! tests parallel zonal mean code, using rolled loops
 cc      call test_zonal_unrolled() ! tests parallel zonal mean code, using unrolled loops
 cc      call test_regrid()        ! tests parallel regridding code
-cc     call offregrid()    ! tests offline regridding for input file
+cc      call offregrid()    ! tests offline regridding for input file
 cc      call test_or()
 cc      call test_onlineread()
 cc      call test_rr2()
 cc        call exact_regrid()
+cc      call test_add_dd()
 cc      end program testregrid
 c****
 
@@ -26,7 +27,6 @@ c****
 
       real*8, dimension(:,:), allocatable :: P
 
-      write(*,*) "TESTOR"
 c***
       call init_grid_temp()
 
@@ -1541,6 +1541,41 @@ c      write(6,*) tcubglob
 c****
 
 
+      subroutine dread_regrid_parallel(iunit,name,tcubloc)
+c     
+c     Read input data on lat-lon grid, regrid to global cubbed sphere grid
+c     then scatter to all subdomains
+c
+      use regrid_com, only :im,jm,ic,jc
+      use gatscat_mod
+      use fv_mp_mod, only : is,ie,js,je,isd,ied,jsd,jed,gid,domain
+      implicit none
+      integer, intent(in) :: iunit
+      character*16, intent(in) :: name
+      real*8 :: tcubloc(is:ie,js:je) !output regridded and scattered data 
+      real*4 :: tllr4(IM,JM)  ! latlon real*4 data read from input file
+      real*8 :: tdatall(IM,JM)  ! latlon real*8 data 
+      real*8 :: tcubglob(ic,jc,6)  ! global array 
+      real*4 :: X              !dummy arrays
+      integer :: ierr
+
+      if (gid .eq. 0) then
+         read(UNIt=iunit,IOSTAT=ierr) tllr4
+c     convert from real*4 to real*8
+         tdatall=tllr4
+c     Regrid from lat-lon to cubbed sphere, form global array
+         call root_regrid_ll2cs(tdatall,tcubglob)
+       endif
+
+c     Scatter data to every processor
+      write(6,*) "BEFORE UNPACK, gid=",gid
+c      write(6,*) tcubglob
+      call unpack_data(tcubglob,tcubloc)
+      write(6,*) tcubloc
+      end subroutine dread_regrid_parallel
+c****
+
+
 
       subroutine test_rr2()
       use regrid_com, only : im,jm,ic,jc
@@ -2401,3 +2436,104 @@ C     N = NMofGH(G,H) + 1
    20 M = N
       Return
       End
+
+
+
+      subroutine test_add_dd()
+C**** This code calculates the summation of an array of real numbers with
+C**** different number of processors using double-double precision. 
+C**** Based on Yun He and Chris Ding, NERSC. 
+C**** Modified complex->complex*16, cmplx->dcmplx, 
+C**** MPI_REAL->MPI_REAL8, MPI_COMPLEX->MPI_DOUBLE_COMPLEX
+
+      implicit none
+      include 'mpif.h'
+      integer i, imt, jmt
+      integer :: myPE, totPEs, stat(MPI_STATUS_SIZE), ierr
+      integer :: start, end, num, MPI_SUMDD, itype
+      external add_DD
+      real*8, dimension(:), allocatable:: array, local_array
+      complex*16 :: local_sum, global_sum
+
+      call MPI_INIT(ierr)
+      call MPI_COMM_RANK( MPI_COMM_WORLD, myPE, ierr )
+      call MPI_COMM_SIZE( MPI_COMM_WORLD, totPEs, ierr )
+
+C  operator MPI_SUMDD is created based on an external function add_dd
+      call MPI_OP_CREATE(add_DD, .TRUE., MPI_SUMDD, ierr)
+
+C  matrix size, my application data is saved in a 1-D array format.
+      imt = 120
+      jmt = 64
+
+C  calculate number of data for each processor
+      num = imt*jmt/totPEs + 1
+      write(*,*) 'myPE=', myPE, ' num=', num
+      allocate (local_array(num))
+
+C  read data and patch zero for PE 0 
+      
+      if (myPE .eq. 0) then
+         allocate(array(num*totPEs))
+         open(10, file ='etaana.dat', status='unknown')
+         do i= 1, imt*jmt
+            read(10,*) array(i)
+         enddo
+         close(10)
+         do i=imt*jmt+1,num*totPEs
+            array(i)=0.0d0
+         enddo
+         
+      endif 
+
+C  I need to scatter the global array on PE0 to everybody
+C  each processor owns a subsection, and calculate the local_sum
+
+      call MPI_SCATTER(array, num, MPI_REAL8,
+     &                 local_array, num, MPI_REAL8, 0,
+     &                 MPI_COMM_WORLD, ierr)
+
+      if (myPE .eq. 0) deallocate (array) 
+
+C  Each processor calculates the local_sum of its own section first. 
+C  Complex number is defined to represent local_sum and local_sum err.
+      local_sum = 0.0
+      do i = 1, num
+         call add_DD(dcmplx(local_array(i), 0.0d0), local_sum, 1)
+      enddo
+      deallocate (local_array)
+      write(*,*) local_sum
+
+C  add all local_sums on each PE to PE0 with MPI_SUMDD.
+C  global_sum is a complex number, represents final (sum, error).
+      call MPI_REDUCE (local_sum, global_sum, 1, MPI_DOUBLE_COMPLEX, 
+     &     MPI_SUMDD,
+     &     0, MPI_COMM_WORLD, ierr)
+
+      if (myPE.eq.0) then
+         write(*,*)'quad precision sum, error= ', global_sum
+      endif
+
+      call MPI_FINALIZE(ierr)
+
+      end subroutine test_add_dd
+
+
+      subroutine add_DD (dda, ddb)
+c   Compute dda + ddb using double-double arithmetics
+      implicit none
+      real*8 e, t1, t2
+      complex*16 dda, ddb
+
+      t1 = real(dda) + real(ddb)
+      e = t1 - real(dda)
+      t2 = ((real(ddb) - e) + (real(dda) - (t1 - e)))
+     &     +imag(dda) + imag(ddb)
+      ddb = dcmplx ( t1 + t2, t2 - ((t1 + t2) - t1) )
+
+      return
+      end
+
+
+
+
