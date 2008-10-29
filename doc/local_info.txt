@@ -44,6 +44,18 @@ Unresolved bugs:
 - serial and parallel versions do not always give the same result
      hint: see next section (Consistency ...)
 
+- intel mpi: the model is unable to complete the first iteration - it stalls
+
+- scali mpi: cannot be used on the new 8-cpu nodes
+
+- openmpi: may be used on all nodes, HOWEVER: 
+   - stack limit default is too small and has to be reset AFTER mpirun
+     (-inherit_limits does not work yet)
+   - there also seems to be a memory leak type problem that severly limits
+     wall clock time (for E1M20, a 5-hour limit seems to work)
+   - We did not find out yet how to bundle openmpi jobs; the scali mpi trick
+     does not work !
+
 Compiler issues:
 ===============
 For off-line fortran compilations use:
