@@ -140,7 +140,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_QUARZHEM */
 !@var ntm_ocean: Number of TRACERS_OCEAN tracers.
 #ifdef TRACERS_OCEAN
-      integer, parameter :: ntm_ocean=1
+      integer, parameter :: ntm_ocean=0
 #else
       integer, parameter :: ntm_ocean=0
 #endif  /* TRACERS_OCEAN */
@@ -290,8 +290,6 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_AGE_OCEAN
      *     'Age     ',
-#else
-     *     'Water   ',
 #endif  /* TRACERS_AGE_OCEAN */
 #endif  /* TRACERS_OCEAN */
 #if defined TRACERS_AIR || defined HTAP_LIKE_DIAGS
