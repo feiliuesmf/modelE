@@ -1026,7 +1026,8 @@ C****
           IF (KD.gt.0 .or. (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))
      *         THEN
 
-! only calculate for downstream interior boxes.
+! only calculate for downstream interior + halo boxes.
+! this allows for calcs of halo -> interior & interior-> halo flow
             IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE
             IF (ID.gt.I_1H .or. ID.lt.I_0H ) CYCLE
 
@@ -1097,7 +1098,11 @@ C**** calculate adjustments for poles
                 END IF
               endif
 
-              IF(FOCEAN(ID,JD).le.0.) THEN
+! check to ensure that arrays outside the interior are not updated. 
+              IF (JD.ge.J_0 .and. JD.le.J_1 .and.
+     *            ID.ge.I_0 .and. ID.le.I_1) THEN
+
+              IF (FOCEAN(ID,JD).le.0.) THEN
                 DPE=0.  ! DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
 
                 FLOW(ID,JD)  =  FLOW(ID,JD) +  DMM     *FLFAC
@@ -1144,6 +1149,7 @@ C**** accumulate river runoff diags (moved from ground)
               TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:)+DTM(:)
      *             *BYAXYP(ID,JD)
 #endif
+            END IF  ! check on interior points
             END IF
           END IF
         END DO
@@ -1196,7 +1202,7 @@ C**** accounting fix to ensure river flow with no lakes is counted
 
       CALL PRINTLK("RV")
 C**** Set GTEMP array for lakes
-        DO J=J_0, J_1
+      DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
