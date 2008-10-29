@@ -11,13 +11,13 @@
       USE TRACER_COM, only: NTM
 #endif
 
-! Arrays  aMO,aUO1,aVO1,aG0M,aS0M,aOGEOZ,aOGEOZ_SV,aTRMO are ocean quantities
+! Arrays  aMO,aUO1,aVO1,aG0M,aS0M,aOGEOZ,aOGEOZ_SV,aTRAC are ocean quantities
 !   after interpolation from ocean to atmospheric grid  
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: aMO, aG0, aS0
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: aOGEOZ,aOGEOZ_SV
      *      , aUO1,aVO1
 #ifdef TRACERS_OCEAN
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: aTRMO
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: aTRAC
 #endif
 
 ! Global arrays needed for interpolation from ocean to atmospheric grid  
@@ -26,7 +26,7 @@
       REAL*8, DIMENSION(IMA,JMA)   :: aOGEOZ_glob, aOGEOZ_SV_glob 
       REAL*8, DIMENSION(IMA,JMA)   :: aFOCEAN_glob
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(IMA,JMA,1,NTM) :: aTRMO_glob
+      REAL*8, DIMENSION(IMA,JMA,NTM) :: aTRAC_glob
 #endif
 
       END MODULE AFLUXES
@@ -61,7 +61,7 @@
      &   STAT=IER )
 
 #ifdef TRACERS_OCEAN
-      ALLOCATE(aTRMO(I_0H:I_1H,J_0H:J_1H,1,NTM), STAT = IER)
+      ALLOCATE(aTRAC(I_0H:I_1H,J_0H:J_1H,NTM), STAT = IER)
 #endif
 
       END SUBROUTINE ALLOC_AFLUXES

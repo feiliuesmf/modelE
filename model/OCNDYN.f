@@ -4483,7 +4483,7 @@ c      USE OCEAN, only : dxypo
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
      *     , aOGEOZ, aOGEOZ_SV
 #ifdef TRACERS_OCEAN
-     *     , aTRMO
+     *     , aTRAC
 #endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
      *      gtempr
@@ -4498,7 +4498,7 @@ c      USE OCEAN, only : dxypo
 
       IMPLICIT NONE
       INTEGER I,J
-      REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
+      REAL*8 TEMGS,shcgs,TO
       integer :: j_0,j_1,n,i_0,i_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -4538,15 +4538,14 @@ C****
 
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
-            GTRACER(:,1,I,J)=aTRMO(I,J,1,:)/(aMO(I,J,1)*DXYPO(J)-
-     *           aS0(I,J,1))
+            GTRACER(:,1,I,J)=aTRAC(I,J,:)
 #else
             GTRACER(:,1,I,J)=trw0(:)
 #endif
 #endif
 
 #ifdef TRACERS_GASEXCH_Natassa
-            GTRACER(:,1,I,J)=aTRMO(I,J,1,:)/(aMO(I,J,1)*DXYPO(J))
+            GTRACER(:,1,I,J)=aTRAC(I,J,:)
 #endif
           ELSE
              SSS(I,J)=0.
@@ -4968,7 +4967,7 @@ C**** Check
       USE AFLUXES, only : aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
      *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
-     *     , aTRMO_glob
+     *     , aTRAC_glob
 #endif
 
       USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ
@@ -4981,8 +4980,6 @@ C**** Check
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
       REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
-
-
 
       oONES(:,:) = 1.d0
 
@@ -5080,11 +5077,14 @@ c     *          oFtemp(i,j), aFtemp(i,j), diff
       call HNTR8P (oFOCEAN, OGEOZ_SV_glob, aOGEOZ_SV_glob)
 
 #ifdef TRACERS_OCEAN
+C**** surface tracer concentration
       DO NT = 1,NTM
         DO J=1,JMO
           DO I=1,oIMAXJ(J)
             IF (oFOCEAN(I,J).gt.0.) THEN
               oFtemp(I,J)=TRMO_glob(I,J,1,NT)/(MO_glob(I,J,1)*oDXYPO(J))
+            ELSE
+              oFtemp(I,J)=0.
             END IF
           END DO
         END DO
@@ -5092,12 +5092,7 @@ c     *          oFtemp(i,j), aFtemp(i,j), diff
         oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
         call HNTR8P (oFweight, oFtemp, aFtemp)        
 
-        DO J=1,JMA
-          DO I=1,aIMAXJ(J)
-            aTRMO_glob(I,J,1,NT) = aFtemp(I,J)
-     *           * (aMO_glob(I,J,1)*aDXYPO(J)*aFOCEAN(I,J))
-          END DO
-        END DO
+        aTRAC_glob(:,:,NT)=aFtemp(:,:)
       END DO
 #endif
       
@@ -5177,7 +5172,7 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
      *     , aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
      *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
-     *     , aTRMO, aTRMO_glob
+     *     , aTRAC, aTRAC_glob
 #endif
 
       CALL UNPACK_DATA(agrid,       aMO_glob, aMO  )
@@ -5190,7 +5185,7 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
       CALL UNPACK_DATA(agrid,       aG0_glob, aG0 )
       CALL UNPACK_DATA(agrid,       aS0_glob, aS0 )
 #ifdef TRACERS_OCEAN
-      CALL UNPACK_DATA(agrid,     aTRMO_glob, aTRMO )
+      CALL UNPACK_DATA(agrid,     aTRAC_glob, aTRAC )
 #endif
 
       RETURN
