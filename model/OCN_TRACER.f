@@ -29,7 +29,6 @@
 #endif
 #ifdef TRACERS_WATER
      *     ,trsist
-      USE FLUXES, only : gtracer
 #endif
       USE FILEMANAGER, only : openunit,closeunit
 
@@ -70,13 +69,7 @@ C**** only TRACERS_WATER is true.
           tymo(:,:,:,n)=0.
           tzmo(:,:,:,n)=0.
 #endif
-#ifdef TRACERS_WATER
-          do j=J_0,J_1
-          do i=1,im
-            if (focean(i,j).gt.0) gtracer(n,1,i,j)=0.
-          end do
-          end do
-#endif
+
         case ('Water', 'H2O18', 'HDO', 'H2O17' )
 #if (defined TRACERS_OCEAN) && (defined TRACERS_SPECIAL_O18)
 C**** Open ic file for isotope tracers
@@ -273,15 +266,6 @@ C**** Check
      *             ,oc_tracer_mean(n)
             end if
           end if
-
-#ifdef TRACERS_WATER
-          do j=J_0,J_1
-            do i=1,im
-              if (focean(i,j).gt.0) gtracer(n,1,i,j)=trmo(i,j,1,n)/
-     *              (mo(i,j,1)*dxypo(j)-s0m(i,j,1))
-            end do
-          end do
-#endif
 #endif
 C****
 #ifdef TRACERS_AGE_OCEAN
@@ -294,6 +278,9 @@ C****
         write(6,*) trname(n)," tracer initialised in ocean"
         end if
       end do
+
+C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
+      CALL TOC2SST
 
       return
  800  write(6,*) "Error reading input file H2O18ic"

@@ -4539,6 +4539,7 @@ C****
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
             GTRACER(:,1,I,J)=aTRAC(I,J,:)
+            if (i.eq.65.and.j.eq.38) print*,"gtrc",gtracer(:,1,i,j)
 #else
             GTRACER(:,1,I,J)=trw0(:)
 #endif
@@ -5082,7 +5083,8 @@ C**** surface tracer concentration
         DO J=1,JMO
           DO I=1,oIMAXJ(J)
             IF (oFOCEAN(I,J).gt.0.) THEN
-              oFtemp(I,J)=TRMO_glob(I,J,1,NT)/(MO_glob(I,J,1)*oDXYPO(J))
+              oFtemp(I,J)=TRMO_glob(I,J,1,NT)/(MO_glob(I,J,1)*oDXYPO(J)
+     *             -S0M_glob(I,J,1))
             ELSE
               oFtemp(I,J)=0.
             END IF
