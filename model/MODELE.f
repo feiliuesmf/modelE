@@ -13,8 +13,9 @@ CAOO   Just to test CVS
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
 #ifdef CUBE_GRID
       USE gs_domain_decomp
-      USE regrid_com, only:init_xgrid_unrolled,init_xgrid_loop,
+      USE regrid_com, only:init_xgrid_loop,
      &     init_grid_temp
+      USE gatscat_mod, only:gatscat_init
 #endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
@@ -136,8 +137,7 @@ c**** Initialize gather&scatter
       call domain_decomp_init
       call gatscat_init
 
-c***  Initialize exchange grid for zonal means
-      call init_xgrid_unrolled()
+c***  Initialize exchange grid
       call init_xgrid_loop()
 #else
       call init_app(grid,im,jm,lm)
@@ -150,7 +150,6 @@ c***  Initialize exchange grid for zonal means
       call read_tracer_config
 #endif
 #endif
-
       call alloc_drv()
 C****
 C**** INITIALIZATIONS
@@ -1033,8 +1032,8 @@ C****
 #ifdef RECT_REG  /* regions defined as rectangles */
       integer, dimension(23) :: NRECT
       character*4, dimension(23,6) :: CORLON,CORLAT 
-      integer, dimension(23,6) :: ICORLON,ICORLAT   !lat-lon coordinates of rect. corners 
-      integer :: IREG,IRECT
+      real*8, dimension(23,6) :: DCORLON,DCORLAT   !lat-lon coordinates of rect. corners 
+      integer :: ireg,irect,icorlon,icorlat
       real*8::lon,lat
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
@@ -1336,6 +1335,7 @@ C**** Read in ground initial conditions
      *          WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           call stop_model("INPUT: GIC READ IN ERROR",255)
         end if
+
         call closeunit (iu_GIC)
       END IF
 C****
@@ -1348,33 +1348,34 @@ C****            not yet implemented but could easily be done  ???
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
 
 #ifdef CUBE_GRID
-      call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),0,P,1) 
+      write(6,*) "bef readt regrd"
+      call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),0,P,1) 
       do J=J_0,J_1
          do I=I_0,I_1
             P(i,j)=P(i,j)-PTOP
          enddo
       enddo
       do l=1,LM
-         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
      &        0,U(:,:,L),1) 
       enddo
       do l=1,LM
-         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
      &        0,V(:,:,L),1) 
       enddo
       do l=1,LM
-         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
      &        0,T(:,:,L),1) 
       enddo
       do l=1,LM
-         call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
      &        0,Q(:,:,L),1) 
       enddo
       
-      call parallel_read_regrid(iu_AIC,NAMEUNIT(iu_AIC),0,TSAVG,1) 
+      call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),0,TSAVG,1) 
 
 c*** temporarily stop here
-      call stop_model('INPUT: start date inconsistent with data',255)
+      call stop_model('readt regrid parallel test STOP',255)
 #else
         CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,P,1) ! Psurf
         DO J=J_0,J_1
@@ -1846,9 +1847,10 @@ c**** 0555 = no rectangle
 c**** Convert to integer
         do i=1,23
            do j=1,6
-              read(CORLON(I,J),'(I4)') ICORLON(I,J)  
-              read(CORLAT(I,J),'(I4)') ICORLAT(I,J)
-c              write(*,*) ICORLON(I,J)," ",ICORLAT(I,J)
+              read(corlon(i,j),'(I4)') icorlon
+              dcorlon(i,j) =icorlon
+              read(corlat(i,j),'(I4)') icorlat
+              dcorlat(i,j) =icorlat
            enddo
         enddo
 
@@ -1862,17 +1864,13 @@ c**** determine which cell is inside a rectangular region
               lat=360.*lat2d(i,j)/twopi
               do ireg=1,23
                  do irect=1,NRECT(ireg)
-c                    write(*,*) "lats->",lat," ",ICORLAT(ireg,2*irect-1),
-c     &              ICORLAT(ireg,2*irect)
-c                    write(*,*) "lons->",lon," ",ICORLON(ireg,2*irect-1),
-c     &              ICORLON(ireg,2*irect)
-                    if ( (lat <= ICORLAT(ireg,2*irect-1) )
+                    if ( (lat <= dcorlat(ireg,2*irect-1) )
      &                   .and.
-     &                   (lat >= ICORLAT(ireg,2*irect) )
+     &                   (lat >= dcorlat(ireg,2*irect) )
      &                   .and.
-     &                   (lon >= ICORLON(ireg,2*irect-1) )
+     &                   (lon >= dcorlon(ireg,2*irect-1) )
      &                   .and.
-     &                   (lon <= ICORLON(ireg,2*irect) ) ) then
+     &                   (lon <= dcorlon(ireg,2*irect) ) ) then
                        JREG(i,j)=ireg
                     endif
                  enddo
@@ -1897,12 +1895,12 @@ C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
       call openunit("TOPO",iu_TOPO,.true.,.true.)
 #ifdef CUBE_GRID
-      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) 
-      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) 
-      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) 
-      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLICE,1) 
-      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO,1) 
-      call parallel_read_regrid(iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE,2) 
+      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) 
+      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) 
+      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) 
+      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLICE,1) 
+      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO,1) 
+      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE,2) 
 #else
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) ! Ocean fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) ! Orig. Lake fraction

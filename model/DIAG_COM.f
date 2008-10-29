@@ -697,7 +697,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
-     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL
+     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc,AIJK_loc,AIL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
@@ -731,7 +731,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 #ifdef CUBE_GRID    /* global-size arrays */
      &     AJ_loc(JM_BUDG, KAJ, NTYPE),
      &     AREGJ_loc(NREG,JM_BUDG,KAJ),
-     &     AJL_loc(JM_BUDJ, LM, KAJL),
+     &     AJL_loc(JM_BUDG, LM, KAJL),
 #else               /* distributed arrays */
      &     AJ_loc(J_0H:J_1H, KAJ, NTYPE),   
      &     AREGJ_loc(NREG,J_0H:J_1H,KAJ),
@@ -1172,9 +1172,9 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL SUMXPE(AJ_loc, AJ, increment=.true.)
       CALL SUMXPE(AREGJ_loc, AREGJ, increment=.true.)
       CALL SUMXPE(AJL_loc, AJL, increment=.true.)
-      AJ_loc(:)=0.
-      AREGJ_loc(:)=0.
-      AJK_loc(:)=0.
+      AJ_loc(:,:,:)=0.
+      AREGJ_loc(:,:,:)=0.
+      AJK_loc(:,:,:)=0.
 #else
       CALL PACK_DATAj(grid, AJ_loc,     AJ)
       CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)

@@ -5,9 +5,50 @@ cc      call test_zonal_loop()    ! tests parallel zonal mean code, using rolled
 cc      call test_zonal_unrolled() ! tests parallel zonal mean code, using unrolled loops
 cc      call test_regrid()        ! tests parallel regridding code
 cc     call offregrid()    ! tests offline regridding for input file
+cc      call test_or()
 cc      call test_onlineread()
 cc      call test_rr2()
+cc        call exact_regrid()
 cc      end program testregrid
+c****
+
+
+      subroutine test_or()
+      USE regrid_com, only:im,jm,ic,jc
+      use mpp_mod
+      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+      use gatscat_mod
+
+      implicit none
+      integer :: i,j,npz
+      integer :: npes,ndims
+      integer :: commID
+
+      real*8, dimension(:,:), allocatable :: P
+
+      write(*,*) "TESTOR"
+c***
+      call init_grid_temp()
+
+c***  Initialize gather&scatter
+      call domain_decomp_init
+      call gatscat_init
+c***  Initialize exchange grid for zonal means
+      call init_xgrid_loop()
+
+      open(UNIT=10, FILE="AIC.RES_F20.D771201", 
+     *     FORM="UNFORMATTED", 
+     *     STATUS="OLD",CONVERT='BIG_ENDIAN')
+
+      allocate(P(is:ie,js:je))
+      
+      call readt_regrid_parallel(10,"AIC",0,P,1)
+      write(6,*) P(:,:)
+
+      call mpp_exit()
+      deallocate(P)
+
+      end subroutine test_or
 c****
 
 
@@ -42,7 +83,7 @@ c     &     ,sw_corner,se_corner,ne_corner,nw_corner
       character*120:: grid_file = 'Inline'
       logical :: non_ortho
       
-      write(6,*) "UNIT TEST : parallel_read_regrid"
+      write(6,*) "UNIT TEST : readt_regrid_parallel"
 
 c***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
 
@@ -85,7 +126,7 @@ c***  Initialize exchange grid for zonal means
 
       allocate(P(is:ie,js:je))
       
-      call parallel_read_regrid(10,"AIC",0,P,1)
+      call readt_regrid_parallel(10,"AIC",0,P,1)
       write(6,*) ">>>>>>>>>ARRIJ GID>>>>>>>>>>",gid
       write(6,*) P(:,:)
 
@@ -99,48 +140,53 @@ c****
 
 
       subroutine init_grid_temp()
-      use regrid_com
+
+      USE regrid_com, only:im,jm,ic,jc
       use mpp_mod
       use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop,domain_decomp
+      use fv_mp_mod, only : mp_start,mp_stop
+     &     ,fv_domain_decomp=>domain_decomp
       use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain
-      use fv_grid_utils_mod, only : grid_utils_init
+      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
+      use fv_grid_utils_mod, only : cosa_s,sina_s
+     &     ,grid_utils_init
+c     &     ,sw_corner,se_corner,ne_corner,nw_corner
       use fv_arrays_mod, only: fv_atmos_type
       use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type
-      use fv_control_mod, only : uniform_ppm, c2l_ord
-      use gatscat_mod, only : npx,npy
+     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
+      use fv_control_mod, only : uniform_ppm,c2l_ord
+      use gs_domain_decomp, ng=>halo_width
+      use gatscat_mod
 
       implicit none
-      integer :: npes,ndims,rootpe
+      integer :: i,j,npz
+      integer :: npes,ndims
       integer :: commID
       integer, dimension(:), allocatable :: pelist
-      integer :: l,npz,ng
+
+      real*8, dimension(:,:), allocatable :: P
+
       type(fv_atmos_type) :: atm
       character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline', ofi
+      character*120:: grid_file = 'Inline'
       logical :: non_ortho
-      integer, parameter :: nedge=4 ! number of edges on each face
-      integer :: nij_latlon,nc2,loctile
-      real*8 :: gsum
-      integer :: itile,fid,vid,srt(3),cnt(3),status,ikey,jlat,i,j
+      
+      write(6,*) "UNIT TEST : readt_regrid_parallel"
 
-c
-c     Initialize grid and domain decomposition
-c
+c***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
+
       call mpp_init(MPP_VERBOSE)
 c code copied from fv_init:
       npes = mpp_npes()
       allocate(pelist(npes))
       call mpp_get_current_pelist( pelist, commID=commID )
       call mp_start(commID)
-      write(6,*) 'rootpe= ',mpp_root_pe()
-c      npx = 90; npy = npx ! 1x1 resolution
-      npx = ic; npy = npx
-      
+c      write(6,*) 'commID ',commID
+      npx = ic; npy = npx ! 1x1 resolution
+      ng = 3 ! number of ghost zones required
 
-      call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
+      call fv_domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
+c      call mp_stop()
 
       ndims = 2
       npz = 5
@@ -151,10 +197,6 @@ c      npx = 90; npy = npx ! 1x1 resolution
       call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
      &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
      &     uniform_ppm, grid_type, c2l_ord)
-
-c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
-
-      rootpe=mpp_root_pe()
 
       end subroutine init_grid_temp
 c****
@@ -1457,7 +1499,7 @@ c****
 
 
 
-      subroutine parallel_read_regrid(iunit,name,nskip,tcubloc,ipos)
+      subroutine readt_regrid_parallel(iunit,name,nskip,tcubloc,ipos)
 c     
 c     Read input data on lat-lon grid, regrid to global cubbed sphere grid
 c     then scatter to all subdomains
@@ -1486,21 +1528,16 @@ c
          read(UNIt=iunit,IOSTAT=ierr) TITLE, (X,n=1,nskip), tllr4
 c     convert from real*4 to real*8
          tdatall=tllr4
-
 c     Regrid from lat-lon to cubbed sphere, form global array
          call root_regrid_ll2cs(tdatall,tcubglob)
        endif
 
-
 c     Scatter data to every processor
-
       write(6,*) "BEFORE UNPACK, gid=",gid
-
 c      write(6,*) tcubglob
-
       call unpack_data(tcubglob,tcubloc)
-
-      end subroutine parallel_read_regrid
+      write(6,*) tcubloc
+      end subroutine readt_regrid_parallel
 c****
 
 
@@ -1639,8 +1676,10 @@ C****
 c     *    GM = 72, !  number of cells in longitude, multiple of 8
 c     *    HM = 46, !  number of cells in latitude, must be even
 c     *    GM = 144, !  number of cells in longitude, multiple of 8
-     *    GM = 288, !  number of cells in longitude, multiple of 8
-     *    HM = 180, !  number of cells in latitude, must be even
+c     *    GM = 288, !  number of cells in longitude, multiple of 8
+c     *    HM = 180, !  number of cells in latitude, must be even
+     *    GM = 72, !  number of cells in longitude, multiple of 8
+     *    HM = 46, !  number of cells in latitude, must be even
      *    IM = 48, !  number of linear cells on cube face, must be even
 c     *  NMX1 = 32, !  maximum number of Ns for line intersections
      *  NMX1 = 96, !  maximum number of Ns for line intersections
@@ -2111,7 +2150,7 @@ C**** Check global area of Excahnge grid cells
   820 Write (0,*) 'SofN is correct.'
 
 C***  Output data in netcdf file
-      ofi='/Users/dgueyffier/fregrid/exexch.nc'
+      ofi='exexch.nc'
       
       status = nf_open(trim(ofi),nf_write,fid)
       if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)

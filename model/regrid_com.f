@@ -4,7 +4,8 @@
 
       integer  :: ncells
 c      integer,parameter:: im=288,jm=180,ntiles=6,ic=48,jc=48
-      integer,parameter:: im=144,jm=90,ntiles=6,ic=48,jc=48
+c      integer,parameter:: im=144,jm=90,ntiles=6,ic=48,jc=48
+      integer,parameter:: im=72,jm=46,ntiles=6,ic=48,jc=48
       integer,parameter:: dom_per_tile=4   ! #domains per cube face
 
       real*8, allocatable, dimension(:) :: xgrid_area
