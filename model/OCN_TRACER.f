@@ -41,14 +41,15 @@
       USE OCEAN, only : scatter_ocean, gather_ocean
 
       IMPLICIT NONE
-      integer n,i,j,l,k,nst,i1,j1,i2,j2
+      integer n,i,j,l,nst,i1,j1,i2,j2
 #ifdef TRACERS_SPECIAL_O18
-      real*8 t01,t02
       integer iu_O18ic,ip1,im1
       character*80 title
       real*4, dimension(im,jm,lmo) :: t0m4,tzm4
-      real*8 fwm,trsum,wsum,tratio,afac,frac_tr
+      real*8 fwm,afac
 #endif
+      real*8 t01,t02,trsum,wsum,tratio,frac_tr
+
       real*8 :: OTRACJ(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
       CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S, J_STRT = J_0,
@@ -169,6 +170,7 @@ C**** Multiply ratios by freshwater mass
             end do
             end do
           end do
+#endif
 
 C**** Initiallise strait values based on adjacent ocean boxes
           call gather_ocean(1)  ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
@@ -271,7 +273,7 @@ C**** Check
      *             ,oc_tracer_mean(n)
             end if
           end if
-#endif
+
 #ifdef TRACERS_WATER
           do j=J_0,J_1
             do i=1,im
