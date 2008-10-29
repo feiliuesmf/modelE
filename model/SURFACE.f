@@ -216,7 +216,7 @@ C**** some shorthand indices and arrays for diurn diags
       REAL*8 :: tmp(NDIUVAR)
 C****
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
-
+      LOGICAL :: debug
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -371,6 +371,9 @@ C**** Start loop over grid points
 #ifdef TRACERS_WATER
       tevaplim = 0.
 #endif
+
+c      debug=i.eq.65.and.j.eq.38
+
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****

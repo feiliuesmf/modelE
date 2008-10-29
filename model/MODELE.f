@@ -1875,7 +1875,7 @@ c**** determine which cell is inside a rectangular region
                     endif
                  enddo
               enddo
-              write(*,*) "i,j, jreg",i,j,jreg(i,j)
+c              write(*,*) "i,j, jreg",i,j,jreg(i,j)
            enddo
         enddo
 #endif
@@ -1883,7 +1883,7 @@ c**** determine which cell is inside a rectangular region
             WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
          do i=1,IM
            do j=1,JM
-         write(*,*) "i,j, jreg",i,j,jreg(i,j)
+c         write(*,*) "i,j, jreg",i,j,jreg(i,j)
            enddo 
          enddo
         endif 
