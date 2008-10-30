@@ -225,17 +225,18 @@ $flag_missing_data_files = 0;
 
 foreach $_ ( @data_files ) {
     ($name, $dest) = split /\s*=\s*/;
-    if ( ! -e "$GCMSEARCHPATH/$dest" ) {
-	print "$dest not found in $GCMSEARCHPATH\n";
+    if ( $dest !~ /^\// ) { $dest = "$GCMSEARCHPATH/$dest"; }
+    if ( ! -e "$dest" ) {
+	print "$dest not found\n";
 	$flag_missing_data_files = 1;
 	#exit 1;
     }
     if ( $name !~ /^(AIC|OIC|GIC)$/ ) {
-	print RUNIDLN "ln -s $GCMSEARCHPATH/$dest $name\n";
+	print RUNIDLN "ln -s $dest $name\n";
 	print RUNIDULN "rm $name\n";
     } else {
-	`ln -sf $GCMSEARCHPATH/$dest $name` ; 
-	print "using $GCMSEARCHPATH/$dest for IC only\n";
+	`ln -sf $dest $name` ; 
+	print "using $dest for IC only\n";
     }
 }
 
