@@ -39,6 +39,8 @@
          real*8 :: woodage !CASA Turnover time of stems (years)
          real*8 :: lit_C2N !CASA litcn_casa (C:N ratio) IS THIS FOLIAGE&ROOTS?
          real*8 :: lignin  !CASA lignin (UNITS?  lignin content of ??)
+         real*8 :: croot_ratio !Coarse roots:Stem mass woody ratio
+
          !Phenology parameter - KIM
          !* Parameter for phenology
          !phenotype - phenological types

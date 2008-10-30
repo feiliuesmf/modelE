@@ -569,6 +569,11 @@
 !        !Don't let C_lab go below zero.
 !        cop%C_lab = EPS
 !      else 
+!     !* old setup 
+!      cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
+!      cop%pptr%Reproduction(cop%pft) = 
+!     &     cop%pptr%Reproduction(cop%pft) + 0.2d0*cop%NPP*dtsec !(kg/m2-patch) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
+
         cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
 !      endif
 
@@ -602,9 +607,10 @@
       Resp_sw = 0.012D-6 *  !kg-C/m2/s
      &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996)
      &     330.d0,TcanopyK,cop%n) 
-      Resp_lab = 0.012D-6 * !kg-C/m2/s
-     &     Resp_can_maint(cop%pft,cop%C_lab, !Storage
-     &     C2N,TcanopyK,cop%n)
+      Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
+!      Resp_lab = 0.012D-6 * !kg-C/m2/s
+!     &     Resp_can_maint(cop%pft,cop%C_lab, !Storage - MAY BE NON-RESPIRING
+!      &     C2N,TcanopyK,cop%n)
       !* Assume root C:N same as foliage C:N
       Resp_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
      &     C2N,TcanopyK,cop%n)

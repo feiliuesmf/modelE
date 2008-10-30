@@ -546,7 +546,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
         cpool(SW) = 0.128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
-        cpool(CR) =  0.153d0*cpool(HW) !Estimated from Zerihun (2007)
+        cpool(CR) =  pfpar(pft)%croot_ratio*cpool(HW) !Estimated from Zerihun (2007)
       else
         cpool(SW) = 0.d0
         cpool(HW) = 0.d0

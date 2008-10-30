@@ -99,7 +99,7 @@
       !airtemp_par: base temperature to estimate growing degree day (gdd) (degree C)
       real*8, parameter :: airtemp_par = 5.d0 
 
-      real*8 :: gdd_threshold
+!      real*8 :: gdd_threshold
 
       real*8 :: sandfrac, clayfrac
       real*8 :: smpsat, bch
@@ -261,9 +261,9 @@ c$$$      real*8, parameter :: tsoil_threshold2 = 2.d0
 
       integer :: phenostatus
       
-      real*8 :: pawmin,pawmax,pawres
+!      real*8 :: pawmin,pawmax,pawres
 
-      logical :: temp_limit, light_limit, water_limit
+      logical :: temp_limit, water_limit !, light_limit
       logical :: woody
       logical :: fall
 
@@ -423,7 +423,7 @@ c$$$      real*8, parameter :: tsoil_threshold2 = 2.d0
       ! CB_d daily carbon balance (gC/individual)
       real*8 :: CB_d
       real*8 :: laipatch
-      real*8 :: C_fol_max
+!      real*8 :: C_fol_max
       real*8 :: qf
       real*8 :: dCrepro
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
@@ -789,7 +789,7 @@ c$$$         end if
       real*8 :: turnoverdtleaf !Closs amount from intrinsic turnover of biomass pool.
       real*8 :: turnoverdtfroot !Closs amount from intrinsic turnover of biomass pool.
       real*8 :: turnoverdtwood !Closs amount from intrinsic turnover of biomass pool.
-      real*8 :: turnoverdttotal!Total
+!      real*8 :: turnoverdttotal!Total
       real*8 :: loss_leaf, loss_froot, loss_hw,loss_croot, loss_live !g-C/individual
       real*8 :: adj !Adjustment to keep loss less than C_lab
 

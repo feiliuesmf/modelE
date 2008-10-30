@@ -233,8 +233,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       type(cohort),pointer :: cop
       real*8 :: laipatch
       real*8 :: cpool(N_BPOOLS)
-      real*8 :: lai_old,lai_new
-      real*8 :: C_fol_old,C_froot_old,C_hw_old,C_croot_old
+      real*8 :: lai_new
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
 
 !      write(779,*) __FILE__,__LINE__
@@ -275,7 +274,6 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8,intent(in) :: lai_new
       real*8,intent(inout) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
        !-------local-----
-      real*8 :: laipatch
       real*8 :: cpool(N_BPOOLS)
       real*8 :: lai_old
       real*8 :: C_fol_old,C_froot_old,C_hw_old,C_croot_old
