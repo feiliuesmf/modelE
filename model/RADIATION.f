@@ -3873,19 +3873,20 @@ C     ------------------------------------------------------------------
        wtj=cwtj ; if (m==0) wtj=pwtj
        iy =iyc  ; if (m==0) iy =iyp
        jy =jyc  ; if (m==0) jy =jyp
+       N=M      ; if(M==0) N=12
        DO 141 L=1,20            !   AERMIX scalings are removed
        DO 141 J=1,46
        DO 141 I=1,72
        A6YEAR2(I,J,L,M,1) = 1000.D0*DRYM2G(1)* ! AERMIX( 8)*
-     +  (WTI*SULDD(I,J,L,M,IY)+WTJ*SULDD(I,J,L,M,JY))
+     +  (WTI*SULDD(I,J,L,N,IY)+WTJ*SULDD(I,J,L,N,JY))
        A6YEAR2(I,J,L,M,3) = 1000.D0*DRYM2G(3)* ! AERMIX( 4)*
-     +  (WTI*NITDD(I,J,L,M,IY)+WTJ*NITDD(I,J,L,M,JY))
+     +  (WTI*NITDD(I,J,L,N,IY)+WTJ*NITDD(I,J,L,N,JY))
        A6YEAR2(I,J,L,M,4) = 1000.D0*DRYM2G(4)* ! AERMIX(10)*
-     +  (WTI*OCADD(I,J,L,M,IY)+WTJ*OCADD(I,J,L,M,JY))
+     +  (WTI*OCADD(I,J,L,N,IY)+WTJ*OCADD(I,J,L,N,JY))
        A6YEAR2(I,J,L,M,5) = 1000.D0*DRYM2G(5)* ! AERMIX(11)*
-     +  (WTI*BCADD(I,J,L,M,IY)+WTJ*BCADD(I,J,L,M,JY))
+     +  (WTI*BCADD(I,J,L,N,IY)+WTJ*BCADD(I,J,L,N,JY))
        A6YEAR2(I,J,L,M,6) = 1000.D0*DRYM2G(6)* ! AERMIX(13)*
-     +  (WTI*BCBDD(I,J,L,M,IY)+WTJ*BCBDD(I,J,L,M,JY))
+     +  (WTI*BCBDD(I,J,L,N,IY)+WTJ*BCBDD(I,J,L,N,JY))
   141  CONTINUE
       ENDIF
       JYRNOW=JYEARX
