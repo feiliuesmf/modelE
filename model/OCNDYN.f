@@ -3428,16 +3428,16 @@ C**** Surface stress is applied to V component at the North Pole
 #endif
 #endif
 
-      integer ::  J_1, J_0S
+      integer ::  J_1, J_0
       logical :: have_south_pole, have_north_pole
 
-      call get (ogrid, J_STOP=J_1, J_STRT_SKP=J_0S,
+      call get (ogrid, J_STOP=J_1, J_STRT=J_0,
      *                have_north_pole=have_north_pole,
      *                have_south_pole=have_south_pole)
 C****
 C**** Add surface source of fresh water and heat
 C****
-      DO J=J_0S,J_1
+      DO J=J_0,J_1
         DXYPJ=DXYPO(J)
         BYDXYPJ=BYDXYPO(J)
       DO I=1,IMAXJ(J)
@@ -3531,9 +3531,9 @@ C**** Add evenly over open ocean and ice covered areas
             DE0(L)=EI0*DM0(L)
             DS0(L)=SI0*DM0(L)
 #ifdef TRACERS_OCEAN
-            DTR0(:,L)=TRMO(:,I,J,L)*FRAC(:)*
+            DTR0(:,L)=TRMO(I,J,L,:)*FRAC(:)*
      *               (DM0(L)-DS0(L))/(MO(I,J,L)-S0M(I,J,L)*BYDXYPJ)
-            TRMO(:,I,J,L)=TRMO(:,I,J,L)-DTR0(:,L)
+            TRMO(I,J,L,:)=TRMO(I,J,L,:)-DTR0(:,L)
 #endif
             MO(I,J,L) = MO(I,J,L)-DM0(L)
             S0M(I,J,L)=S0M(I,J,L)-DS0(L)*DXYPJ
@@ -3730,12 +3730,12 @@ C****
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
 
       IMPLICIT NONE
-      REAL*8, DIMENSION(IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
-     *   PREC,EPREC,RUNPSI,RSI,SRUNPSI,ERUNPSI
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      REAL*8, DIMENSION(NTM,IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
-     *   trprec,trunpsi
-#endif
+c      REAL*8, DIMENSION(IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
+c     *   PREC,EPREC,RUNPSI,RSI,SRUNPSI,ERUNPSI
+c#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+c      REAL*8, DIMENSION(NTM,IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
+c     *   trprec,trunpsi
+c#endif
 
       REAL*8, DIMENSION(IMA,JMA) :: aPREC_glob, aEPREC_glob
      *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
@@ -3806,32 +3806,32 @@ C**** build in enough code to allow a different ocean grid.
 C**** Since the geometry differs on B and C grids, some processing
 C**** of fluxes is necessary anyway
 C****
-      DO J=J_0,J_1
-        DO I=1,IMAXJ(J)
-          PREC   (I,J)=oPREC   (I,J)         ! kg/m^2
-          EPREC  (I,J)=oEPREC  (I,J)         ! J
-          RUNPSI (I,J)=oRUNPSI (I,J)         ! kg/m^2
-          SRUNPSI(I,J)=oSRUNPSI(I,J)         ! kg
-          ERUNPSI(I,J)=oERUNPSI(I,J)         ! J
-          RSI    (I,J)=oRSI    (I,J)
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-          TRPREC(:,I,J)=oTRPREC(:,I,J)       ! kg
-          TRUNPSI(:,I,J)=oTRUNPSI(:,I,J)     ! kg
-#endif
-        END DO
-      END DO
+c      DO J=J_0,J_1
+c        DO I=1,IMAXJ(J)
+c          PREC   (I,J)=oPREC   (I,J)         ! kg/m^2
+c          EPREC  (I,J)=oEPREC  (I,J)         ! J
+c          RUNPSI (I,J)=oRUNPSI (I,J)         ! kg/m^2
+c          SRUNPSI(I,J)=oSRUNPSI(I,J)         ! kg
+c          ERUNPSI(I,J)=oERUNPSI(I,J)         ! J
+c          RSI    (I,J)=oRSI    (I,J)
+c#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+c          TRPREC(:,I,J)=oTRPREC(:,I,J)       ! kg
+c          TRUNPSI(:,I,J)=oTRUNPSI(:,I,J)     ! kg
+c#endif
+c        END DO
+c      END DO
 C****
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
-          IF(FOCEAN(I,J).gt.0. .and. PREC(I,J).gt.0.)  THEN
-            MO (I,J,1)= MO(I,J,1) + ((1d0-RSI(I,J))*PREC(I,J) +
-     *           RSI(I,J)*RUNPSI(I,J))*FOCEAN(I,J)
-            G0M(I,J,1)=G0M(I,J,1)+ ((1d0-RSI(I,J))*EPREC(I,J) +
-     *           RSI(I,J)*ERUNPSI(I,J))*FOCEAN(I,J)
-            S0M(I,J,1)=S0M(I,J,1) + RSI(I,J)*SRUNPSI(I,J)*FOCEAN(I,J)
+          IF(FOCEAN(I,J).gt.0. .and. oPREC(I,J).gt.0.)  THEN
+            MO (I,J,1)= MO(I,J,1) + ((1d0-oRSI(I,J))*oPREC(I,J) +
+     *           oRSI(I,J)*oRUNPSI(I,J))*FOCEAN(I,J)
+            G0M(I,J,1)=G0M(I,J,1)+ ((1d0-oRSI(I,J))*oEPREC(I,J) +
+     *           oRSI(I,J)*oERUNPSI(I,J))*FOCEAN(I,J)
+            S0M(I,J,1)=S0M(I,J,1) + oRSI(I,J)*oSRUNPSI(I,J)*FOCEAN(I,J)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-            TRMO(I,J,1,:)=TRMO(I,J,1,:)+((1d0-RSI(I,J))*TRPREC(:,I,J)
-     *             +RSI(I,J)*TRUNPSI(:,I,J))*FOCEAN(I,J)
+            TRMO(I,J,1,:)=TRMO(I,J,1,:)+((1d0-oRSI(I,J))*oTRPREC(:,I,J)
+     *             +oRSI(I,J)*oTRUNPSI(:,I,J))*FOCEAN(I,J)
 #endif
           END IF
         END DO
@@ -4539,7 +4539,6 @@ C****
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
             GTRACER(:,1,I,J)=aTRAC(I,J,:)
-            if (i.eq.65.and.j.eq.38) print*,"gtrc",gtracer(:,1,i,j)
 #else
             GTRACER(:,1,I,J)=trw0(:)
 #endif
@@ -4971,8 +4970,8 @@ C**** Check
      *     , aTRAC_glob
 #endif
 
-      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ
-      Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ
+      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLAT=>DLAT
+      Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ,aDLAT=>DLAT
 
       IMPLICIT NONE
 
@@ -4984,7 +4983,7 @@ C**** Check
 
       oONES(:,:) = 1.d0
 
-      call HNTR80 (IMO,JMO,0.d0,120.d0, IMA,JMA,0.d0,120.d0, 0.d0)
+      call HNTR80 (IMO,JMO,0.d0,60.*oDLAT, IMA,JMA,0.d0,60.*aDLAT, 0.d0)
 
 !!!  Ocean mass for the 1st two layers
 
@@ -5100,14 +5099,16 @@ C**** surface tracer concentration
       
 !!!  U velocity for the 1st ocean layer
 
-      call HNTR80 (IMO,JMO,0.5d0,120.d0, IMA,JMA,0.5d0,120.d0, 0.d0)
+      call HNTR80 (IMO,JMO,0.5d0,60.*oDLAT, IMA,JMA,0.5d0,60.*aDLAT, 0
+     *.d0)
 
       UO_glob(2:IMO,JMO,1) = UO_glob(1,JMO,1)
       call HNTR8  (oONES, UO_glob(1,1,1), aUO1_glob)
 
 !!!  V velocity for the 1st ocean layer
 
-      call HNTR80 (IMO,JMO-1,0.d0,120.d0, IMA,JMA-1,0.d0,120.d0, 0.d0)
+      call HNTR80 (IMO,JMO-1,0.d0,60.*oDLAT, IMA,JMA-1,0.d0,60.*aDLAT, 0
+     *     .d0)
 
       VO_glob(2:IMO,JMO,1) = VO_glob(1,JMO,1)
       call HNTR8  (oONES, VO_glob(1,1,1), aVO1_glob)
@@ -5211,8 +5212,8 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEAN, only : imo=>im,jmo=>jm
 
-      USE OCEAN, only : oDXYPO=>DXYPO
-      Use GEOM,  only : aDXYP=>DXYP, aDXYPO
+      USE OCEAN, only : oDXYPO=>DXYPO,oDLAT=>DLAT
+      Use GEOM,  only : aDXYP=>DXYP, aDXYPO,aDLAT=>DLAT
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
@@ -5246,7 +5247,7 @@ c     *          VO_glob(i,j,1), aVO1_glob(i,j), diff
 
       aONES(:,:) = 1.d0
 
-      call HNTR80 (IMA,JMA,0.d0,120.d0, IMO,JMO,0.d0,120.d0, 0.d0)
+      call HNTR80 (IMA,JMA,0.d0,60.*aDLAT, IMO,JMO,0.d0,60.*oDLAT, 0.d0)
 
       DO J = 1,JMA
         aFtemp(:,J) = aPREC_glob(:,J)*aDXYP(J)/aDXYPO(J)    ! kg/m^2
