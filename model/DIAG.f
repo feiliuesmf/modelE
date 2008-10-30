@@ -3643,11 +3643,11 @@ C****
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
      *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,lonlat_to_ij
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
-      USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD, ISCCP_DIAGS
+      USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD,LLDD, ISCCP_DIAGS
       USE DIAG_COM, only : monacc, acc_period, keyct, KEYNR, PLE
       USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
       USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
@@ -3667,7 +3667,7 @@ C****
       USE DOMAIN_DECOMP, only: GRID,GET,WRITE_PARALLEL
       IMPLICIT NONE
       integer, intent(in) :: istart,num_acc_files
-      INTEGER I,J,L,K,KL,ioerr,months,years,mswitch,ldate
+      INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
      *     ,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
       REAL*8 PLE_tmp
       CHARACTER CONPT(NPTS)*10
@@ -3680,11 +3680,29 @@ C****
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 C**** Initialise resolution dependent diagnostic parameters
       call diag_res
+#else
+c defaults for diurnal diagnostics
+      NAMDD = (/ 'AUSD', 'MWST', 'SAHL', 'EPAC' /)      
+      LLDD = RESHAPE( (/  ! taken from the 4x5 resolution
+     &      132.5, -26.,
+     &      -97.5,  42.,
+     &        2.5,  14.,
+     &     -117.5,  -2.
+     &     /),(/2,4/))
+      call sync_param( "LLDD", LLDD(1:2,1), 2*NDIUPT )
+      do n=1,ndiupt
+        call lonlat_to_ij(lldd(1,n),ijdd(1,n))
+      enddo
+#endif
 
       call sync_param( "NAMDD", NAMDD, NDIUPT )
+c if people still want to specify dd points as ij, let them
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
+
       call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
       call sync_param( "lh_diags",lh_diags)

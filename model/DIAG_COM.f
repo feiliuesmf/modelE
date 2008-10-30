@@ -167,6 +167,9 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@+       defaults set in DIAG_RES (depends on resolution)
       INTEGER, DIMENSION(2,NDIUPT), public :: IJDD
       CHARACTER*4, DIMENSION(NDIUPT), public :: NAMDD
+!@dbparam LLDD (lon,lat)-coords (deg) of boxes w/diurnal cycle diag
+!@+       defaults set in init_DIAG
+      REAL*8, DIMENSION(2,NDIUPT), public :: LLDD
 
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
       REAL*8, DIMENSION(NDIUVAR,NDIUPT,HR_IN_DAY), public :: ADIURN

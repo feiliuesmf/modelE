@@ -30,10 +30,6 @@
      &     'AUS2', 'AUS3', 'AF12', 'AF13', 'ASA3',
      &     'AF14', 'ASA4', 'AUS4', 'AME2', 'AF15',
      &     'AME3', 'AF16', 'AF17', 'AF18' /)
-#else
-      IJDD = RESHAPE( (/  63,17,  17,34,  37,27,  13,23 /),
-     *       (/2,NDIUPT/))
-      NAMDD= (/ 'AUSD', 'MWST', 'SAHL', 'EPAC' /)
 #endif
 
       RETURN
