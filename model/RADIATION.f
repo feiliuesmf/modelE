@@ -3849,12 +3849,11 @@ C     ------------------------------------------------------------------
       ELSE IF(JYEARX > 2000) THEN   !   (use 1890)
        DO M=0,12          !    Set time dependent JYEAR SU,NIT,OC,BC
        N=M   ; if(M==0) N=12
-       iy=12 ; if(M==0) iy=11
-       A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,iy)*1000*DRYM2G(1) !*AERMIX( 8)
-       A6YEAR2(:,:,:,M,3) = NITDD(:,:,:,N,iy)*1000*DRYM2G(3) !*AERMIX( 4)
-       A6YEAR2(:,:,:,M,4) = OCADD(:,:,:,N,iy)*1000*DRYM2G(4) !*AERMIX(10)
-       A6YEAR2(:,:,:,M,5) = BCADD(:,:,:,N,iy)*1000*DRYM2G(5) !*AERMIX(11)
-       A6YEAR2(:,:,:,M,6) = BCBDD(:,:,:,N,iy)*1000*DRYM2G(6) !*AERMIX(13)
+       A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,12)*1000*DRYM2G(1) !*AERMIX( 8)
+       A6YEAR2(:,:,:,M,3) = NITDD(:,:,:,N,12)*1000*DRYM2G(3) !*AERMIX( 4)
+       A6YEAR2(:,:,:,M,4) = OCADD(:,:,:,N,12)*1000*DRYM2G(4) !*AERMIX(10)
+       A6YEAR2(:,:,:,M,5) = BCADD(:,:,:,N,12)*1000*DRYM2G(5) !*AERMIX(11)
+       A6YEAR2(:,:,:,M,6) = BCBDD(:,:,:,N,12)*1000*DRYM2G(6) !*AERMIX(13)
        END DO
 
       ELSE  !  IF(JYEARX.ge.1890.and.JYEARX.LE.2000) THEN
@@ -3864,7 +3863,7 @@ C     ------------------------------------------------------------------
        cwti=1.d0-cwtj
        iyp=INT((JYEARX-1891)/10.d0)+1   ! previous year
        jyp=iyp+1
-       cwtj=(JYEARX-1891)/10.d0-INT((JYEARX-1891)/10.d0)
+       pwtj=(JYEARX-1891)/10.d0-INT((JYEARX-1891)/10.d0)
        if(JYEARX==1890) then
         iyp=1 ; jyp=1 ; pwtj=0
        end if
