@@ -376,6 +376,19 @@ C**** set up mapping arrays for budget/conserv diags
       RETURN
       END SUBROUTINE GEOM_B
 
+      subroutine lonlat_to_ij(ll,ij)
+c converts lon,lat=ll(1:2) into model i,j=ij(1:2)
+c this version is for the latlon grid.  ll are in degrees east.
+      implicit none
+      real*8, intent(in) :: ll(2)
+      integer, intent(out) :: ij(2)
+      real*8 :: dlon_dg
+      dlon_dg = 360./dble(im)
+      ij(1) = im/2 + (ll(1)+.5*dlon_dg+.01)/dlon_dg
+      ij(2) = jm/2 + (ll(2)+.5*dlat_dg+.01)/dlat_dg
+      return
+      end subroutine lonlat_to_ij
+
       END MODULE GEOM
 
 
