@@ -1725,6 +1725,7 @@ C****
      &     IDACC,JEQ,LS1,MDIAG,P,U,V
       USE DYNAMICS, only : PHI
       USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
+     &     ,ia_12hr
       USE DIAG_LOC, only : ldex
       USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM
       IMPLICIT NONE
@@ -1751,8 +1752,8 @@ c     write(0,*) 'SCM no diags   DIAG7A '
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
-      IDACC9=IDACC(9)+1
-      IDACC(9)=IDACC9
+      IDACC9=IDACC(ia_12hr)+1
+      IDACC(ia_12hr)=IDACC9
       IF (IDACC9.GT.Max12HR_sequ) RETURN
 
       WAVE_part(:,:,:,1:6,:)=0.

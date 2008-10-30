@@ -2666,6 +2666,7 @@ C**** FOURIER COEFFICIENTS FOR CURRENT WIND FIELD
 C****
       USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,MDIAG,MDYN
+      USE DIAG_COM, only : ia_d5f
       USE ATMDYN, only : FCUVA,FCUVB
       USE DOMAIN_DECOMP, only : GRID,GET
       USE GETTIME_MOD
@@ -2680,7 +2681,7 @@ c      COMMON/WORK7/FCUVA,FCUVB
 
       CALL GET(GRID, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
       CALL GETTIME(MBEGIN)
-      IDACC(6)=IDACC(6)+1
+      IDACC(ia_d5f)=IDACC(ia_d5f)+1
       DO L=1,LM
          DO J=J_0STG,J_1STG
             CALL FFT(UX(1,J,L),FCUVA(0,J,L,1),FCUVB(0,J,L,1))

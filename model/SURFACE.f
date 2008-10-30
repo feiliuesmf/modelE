@@ -52,7 +52,7 @@ C****
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args
-      USE DIAG_COM, only : oa,aij=>aij_loc
+      USE DIAG_COM, only : ia_srf,oa,aij=>aij_loc
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
@@ -296,7 +296,7 @@ C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
       DO NS=1,NIsurf
          MODDSF=MOD(NSTEPS+NS-1,NDASF*NIsurf+1)
-         IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
+         IF(MODDSF.EQ.0) IDACC(ia_srf)=IDACC(ia_srf)+1
          MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
 C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.

@@ -27,7 +27,8 @@ CAOO   Just to test CVS
       USE TRACER_COM, only: mtradv
 #endif
 #endif
-      USE DIAG_COM, only : oa,monacc,koa,acc_period
+      USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
+     &     ,oa,monacc,koa,acc_period
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       USE DIAG_SERIAL, only : print_diags
@@ -336,7 +337,7 @@ C****
       CALL CHECKT ('DYNAM0')
       if (kradia.le.0) then                   ! full model,kradia le 0
          MODD5D=MOD(Itime-ItimeI,NDA5D)
-         IF (MODD5D.EQ.0) IDACC(7)=IDACC(7)+1
+         IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
@@ -430,9 +431,9 @@ C****
 c calculate KE before atmospheric column physics
          call calc_kea_3d(kea)
 
-         IDACC(1)=IDACC(1)+1
+         IDACC(ia_src)=IDACC(ia_src)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
-         IF (MODD5S.EQ.0) IDACC(8)=IDACC(8)+1
+         IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
 
@@ -529,7 +530,7 @@ C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
 
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
-           IDACC(10)=IDACC(10)+1
+           IDACC(ia_filt)=IDACC(ia_filt)+1
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
            CALL DIAGCA (1)
            CALL FILTER

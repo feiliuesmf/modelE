@@ -1146,7 +1146,7 @@ C     OUTPUT DATA
      *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
      *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
 #endif
-      USE DIAG_COM, only : jreg,aij=>aij_loc,ail=>ail_loc
+      USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,ail=>ail_loc
      *     ,ajl=>ajl_loc,asjl=>asjl_loc,adiurn=>adiurn_loc,ndiuvar,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
@@ -1360,7 +1360,7 @@ C****   Find arrays derived from P : PEdn and PK (forcing experiments)
       end if
 
       IF (MODRD.NE.0) GO TO 900
-      IDACC(2)=IDACC(2)+1
+      IDACC(ia_rad)=IDACC(ia_rad)+1
 C****
 C**** Interface with radiation routines, done only every NRAD time steps
 C****
