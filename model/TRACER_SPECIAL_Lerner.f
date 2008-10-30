@@ -1191,7 +1191,7 @@ C****
       module lhntr_com
 !@sum LHNTR routines from LHNTR.GRD for Linear Horizontal Interpolation
 !@auth G. Russell, modified by J. Lerner for modelE
-      IMPLICIT REAL*8 (A-H,O-Z)
+      IMPLICIT NONE
       REAL*8 OFFIA,DIVJA,OFFIB,DIVJB,SKIB,SKIP
       REAL*8 WWEST(720),WSOUTH(361)
       INTEGER*4 IWEST(720),IEAST(720),JSOUTH(361),JNORTH(361)
@@ -1215,6 +1215,9 @@ C****   Longitude = -180 + 360*(I-.5+OFFI)/IM
 C****   Latitude  =  -90 + 180*(J-.5+OFFJ)/DIVJ
 C****
 C****
+      INTEGER :: IMA,JMA,IMB,JMB,IB,JB
+      REAL*8 :: OFFIA,DIVJA,OFFIB,DIVJB,SKIB,RIMA,RIA,RJA,FJAEQ,FJBEQ
+
       SKIP = SKIB
       IF(IMB.LT.1 .OR. IMB.GT.720 .OR.
      *   JMB.LT.1 .OR. JMB.GT.361)  GO TO 300
@@ -1287,7 +1290,8 @@ C**** Input: WTA = weighting array for values on the A grid
 C****          A = per unit mass or per unit area quantity
 C**** Output:  B = linearly interpolated quantity on B grid
 C****
-      IMPLICIT REAL*8 (A-H,O-Z)
+      INTEGER :: IMA,JMA,IMB,JMB,JB,JS,JN,IB,IW,IE
+      REAL*8 :: WEIGHT,VALUE,BMEAN
       REAL*8 WTA(IMA,JMA),A(IMA,JMA),B(IMB,JMB)
       QMPOLE = .FALSE.
       DO 510 JB=1,JMB
