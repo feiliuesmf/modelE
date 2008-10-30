@@ -1727,15 +1727,14 @@ C****
       USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
      &     ,ia_12hr
       USE DIAG_LOC, only : ldex
-      USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM
+      USE DOMAIN_DECOMP, only : GRID,GET,SUMXPE,AM_I_ROOT
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
-      REAL*8, DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP,
-     & grid%J_STRT_HALO:grid%J_STOP_HALO) :: WAVE_part
       INTEGER, PARAMETER :: KM=6,KQMAX=12
       INTEGER :: NMAX=nwav_dag
-      REAL*8, DIMENSION(IM,KM) :: HTRD
+      REAL*8, DIMENSION(IM,KM) :: HTRD,HTRD_loc
+      REAL*8, DIMENSION(IM,LM) :: UEQ,UEQ_loc,VEQ,VEQ_loc
       REAL*8, DIMENSION(KM), PARAMETER ::
      &     PMB=(/922.,700.,500.,300.,100.,10./),
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
@@ -1756,28 +1755,32 @@ c     write(0,*) 'SCM no diags   DIAG7A '
       IDACC(ia_12hr)=IDACC9
       IF (IDACC9.GT.Max12HR_sequ) RETURN
 
-      WAVE_part(:,:,:,1:6,:)=0.
       IF(J_0 <= JEQ .and. JEQ <= J_1) THEN
+        UEQ_loc=U(:,JEQ,:)
+        VEQ_loc=V(:,JEQ,:)
+      ELSE
+        UEQ_loc=0d0
+        VEQ_loc=0d0
+      ENDIF
+
+      CALL SUMXPE(UEQ_loc, UEQ)
+      CALL SUMXPE(VEQ_loc, VEQ)
+
+      IF(AM_I_ROOT()) THEN
         DO KQ=1,3
-          CALL FFT (U(1,JEQ,LDEX(KQ)),AN,BN)
+          CALL FFT(UEQ(1,LDEX(KQ)),AN,BN)
           DO N=1,NMAX
-            WAVE_part(1,IDACC9,N,2*KQ-1,JEQ)=AN(N)
-            WAVE_part(2,IDACC9,N,2*KQ-1,JEQ)=BN(N)
+            WAVE(1,IDACC9,N,2*KQ-1)=AN(N)
+            WAVE(2,IDACC9,N,2*KQ-1)=BN(N)
           ENDDO
-          CALL FFT (V(1,JEQ,LDEX(KQ)),AN,BN)
+          CALL FFT(VEQ(1,LDEX(KQ)),AN,BN)
           DO N=1,NMAX
-            WAVE_part(1,IDACC9,N,2*KQ,JEQ)=AN(N)
-            WAVE_part(2,IDACC9,N,2*KQ,JEQ)=BN(N)
+            WAVE(1,IDACC9,N,2*KQ)=AN(N)
+            WAVE(2,IDACC9,N,2*KQ)=BN(N)
           ENDDO
         ENDDO
       ENDIF
 
-      CALL GLOBALSUM(grid, WAVE_part(1,IDACC9:IDACC9,1:NMAX,1:6,:),
-     &    WAVE(1,IDACC9:IDACC9,1:NMAX,1:6), ALL=.TRUE.)
-      CALL GLOBALSUM(grid, WAVE_part(2,IDACC9:IDACC9,1:NMAX,1:6,:),
-     &    WAVE(2,IDACC9:IDACC9,1:NMAX,1:6), ALL=.TRUE.)
-
-      WAVE_part(:,:,:,7:,:)=0.
       IF(J_0 <= J50N .and. J50N <= J_1) THEN
         DO 150 I=1,IM
           PIJ50N=P(I,J50N)
@@ -1792,24 +1795,28 @@ c          IF(L.GE.LS1) PIJ50N=PSFMPT
           IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
 C**** ASSUME THAT PHI IS LINEAR IN LOG P
           SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
- 140      HTRD(I,K)=(PHI(I,J50N,L)+SLOPE*LOG(PMB(K)/PL))*BYGRAV-GHT(K)
+ 140      HTRD_loc(I,K)=
+     &         (PHI(I,J50N,L)+SLOPE*LOG(PMB(K)/PL))*BYGRAV-GHT(K)
           IF (K.GE.KM) GO TO 150
           K=K+1
           IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
           GO TO 140
  150    CONTINUE
+      ELSE
+        HTRD_loc(:,:)=0d0
+      ENDIF
+
+      CALL SUMXPE(HTRD_loc, HTRD)
+
+      IF(AM_I_ROOT()) THEN
         DO KQ=7,KQMAX
           CALL FFT(HTRD(1,KQ-6),AN,BN)
           DO N=1,NMAX
-            WAVE_part(1,IDACC9,N,KQ,J50N)=AN(N)
-            WAVE_part(2,IDACC9,N,KQ,J50N)=BN(N)
+            WAVE(1,IDACC9,N,KQ)=AN(N)
+            WAVE(2,IDACC9,N,KQ)=BN(N)
           END DO
         END DO
       ENDIF
-      CALL GLOBALSUM(grid, WAVE_part(1,IDACC9:IDACC9,1:NMAX,7:KQMAX,:),
-     &    WAVE(1,IDACC9:IDACC9,1:NMAX,7:KQMAX), ALL=.TRUE.)
-      CALL GLOBALSUM(grid, WAVE_part(2,IDACC9:IDACC9,1:NMAX,7:KQMAX,:),
-     &    WAVE(2,IDACC9:IDACC9,1:NMAX,7:KQMAX), ALL=.TRUE.)
 
       CALL TIMER (MNOW,MDIAG)
       RETURN
