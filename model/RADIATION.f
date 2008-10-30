@@ -3807,7 +3807,7 @@ c Using 1890 not 1850 values here
 C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
         md1850(1,i,j,m) = byz * SUM(SULDD(I,J,1:5,M,1))
         md1850(2,i,j,m) = byz * SUM(NITDD(I,J,1:5,M,1))
-        md1850(3,i,j,m) = byz * SUM(OCADD(i,j,1:5,m,1)) 
+        md1850(3,i,j,m) = byz * SUM(OCADD(i,j,1:5,m,1))
         md1850(4,i,j,m) = byz *(SUM(BCBDD(I,J,1:5,M,1))
      *                         +SUM(BCADD(I,J,1:5,M,1)))
       end do
@@ -3828,7 +3828,7 @@ C     ------------------------------------------------------------------
         JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
       end if
 
-      IF(JYEARX==JYRNOW) GO TO 500    ! Get A6JDAY from current A6YEAR
+      IF(JYEARX==JYRNOW) GO TO 500    ! Get A6JDAY2 from current A6YEAR2
 
       DO M=1,12
       A6YEAR2(:,:,:,M,2) = SSADD(:,:,:,M)*1000*DRYM2G(2) !*AERMIX(3)
@@ -3896,7 +3896,7 @@ C     ------------------------------------------------------------------
         END DO
       end if
 
-C      A6JDAY is interpolated daily from A6YEAR seasonal data via JJDAYA
+C      A6JDAY2 is interpolated daily from A6YEAR2 seasonal data via JJDAYA
 C      -----------------------------------------------------------------
 
   500 CONTINUE
@@ -3921,11 +3921,11 @@ C**** sea salt, desert dust
         anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
         mdpi(:,i,j) = WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-        mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J)) * byz/drym2g(1)
-        mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J)) * byz/drym2g(3)
-        mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J)) * byz/drym2g(4)
-        mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J)) * byz/drym2g(6)
-        mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J)) * byz/drym2g(5)
+        mdcur(1,i,j) = SUM (A6JDAY2(1:5,1,I,J)) * byz/drym2g(1)
+        mdcur(2,i,j) = SUM (A6JDAY2(1:5,3,I,J)) * byz/drym2g(3)
+        mdcur(3,i,j) = SUM (A6JDAY2(1:5,4,I,J)) * byz/drym2g(4)
+        mdcur(4,i,j) = SUM (A6JDAY2(1:5,6,I,J)) * byz/drym2g(6)
+        mdcur(5,i,j) = SUM (A6JDAY2(1:5,5,I,J)) * byz/drym2g(5)
       end do
       end do
 
