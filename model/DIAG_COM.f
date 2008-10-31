@@ -1193,8 +1193,11 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
       CALL PACK_DATA(grid,  OA, OA_glob)
       CALL SUMXPE(ADIURN_loc, ADIURN, increment=.true.)
+      ADIURN_loc=0
+#ifndef NO_HDIURN
       CALL SUMXPE(HDIURN_loc, HDIURN, increment=.true.)
-      ADIURN_loc=0; HDIURN_loc=0
+      HDIURN_loc=0
+#endif
       return
       End Subroutine Gather_Diagnostics
 
