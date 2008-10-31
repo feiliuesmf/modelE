@@ -17,9 +17,9 @@ C**** as though they were 1/IM of their actual area
       REAL*8, PARAMETER :: DLON = TWOPI*BYIM
 C**** For the wonderland model set DLON=DLON/3
 c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
-!@param  DLAT,DLAT_DG grid spacing in latitude (rad,deg)
-      REAL*8  :: DLAT,DLAT_DG
-!@param  FJEQ equatorial value of J
+!@var DLAT,DLAT_DG,DLATM grid spacing in latitude (rad,deg,minutes)
+      REAL*8  :: DLAT,DLAT_DG, DLATM
+!@param FJEQ equatorial value of J
       REAL*8, PARAMETER :: FJEQ=.5*(1+JM)
 !@var  J1U index of southernmost latitude (currently 2, later 1)
       INTEGER, parameter :: J1U = 2
@@ -139,10 +139,11 @@ C**** some B-grid conservation quantities
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
 
-      DLAT_DG=180./JM                     ! even spacing (default)
-      IF (JM.eq.46) DLAT_DG=180./(JM-1)   ! 1/2 box at pole for 4x5
-cc    IF (JM.eq.24) DLAT_DG=180./(JM-1)   ! 1/2 box at pole, orig 8x10
-      IF (JM.eq.24) DLAT_DG=180./(JM-1.5) ! 1/4 box at pole, 'real' 8x10
+      DLAT_DG=180./REAL(JM)                   ! even spacing (default)
+      IF (JM.eq.46) DLAT_DG=180./REAL(JM-1)   ! 1/2 box at pole for 4x5
+cc    IF (JM.eq.24) DLAT_DG=180./REAL(JM-1)   ! 1/2 box at pole, orig 8x10
+      IF (JM.eq.24) DLAT_DG=180./REAL(JM-1.5) ! 1/4 box at pole, 'real' 8x10
+      DLATM=60.*DLAT_DG
       DLAT=DLAT_DG*radian
       LAT(1)  = -.25*TWOPI
       LAT(JM) = -LAT(1)
