@@ -404,13 +404,16 @@ else
 .SUFFIXES:
 .PHONY: FORCE
 
-AVAILABLE_COMPONENTS = ESMF_Interface # fvcubed_dycore
+AVAILABLE_COMPONENTS = ESMF_Interface Ent giss_LSM shared solvers # fvcubed_dycore
 
 export MOD_DIR := $(shell pwd)/mod
+export INCLUDE_DIR := $(shell pwd)/include
 export GISSCLIM_DIR := $(shell pwd)/..
 export CONFIG_DIR := $(GISSCLIM_DIR)/config
 export SCRIPTS_DIR := $(GISSCLIM_DIR)/exec
 export COMPILER
+
+export RUN_H = $(INCLUDE_DIR)/rundeck_opts.h
 
 sinclude $(DECKS_DIR)/$(RUN).mk
 
@@ -429,7 +432,7 @@ $(1)_dir: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
 	@echo "===> component $(1) ok"
 	@echo
 
-$(1)_dep: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
+$(1)_dep: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%) $(RUN_H)
 	$(MAKE) -C $(1) depend $(OPTS_$(1))
 
 endef
@@ -450,7 +453,7 @@ depend_all: $(COMPONENTS:=_dep)
 FSRCS = $(addsuffix .f,$(strip $(OBJ_LIST)))
 
 include $(CONFIG_DIR)/base.mk
-sinclude $(DEPENDFILE)
+#sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
 
@@ -486,19 +489,20 @@ echo_vars:
 	$(MAKE) main
 
 clean_all: clean
+	-rm -f $(RUN_H)
 	for i in $(AVAILABLE_COMPONENTS) ; do \
 	  $(MAKE) -C $$i clean ; done
 
-rundeck_opts.h: $(DECKS_DIR)/$(RUN).mk
+$(RUN_H): $(DECKS_DIR)/$(RUN).mk
 	perl -e '$$_="$(CPP_OPTIONS)"; s/ *\#/\n\#/g; print "$$_\n";' \
-	 > rundeck_opts.h.tmp
-	if ! cmp -s rundeck_opts.h.tmp rundeck_opts.h ; then \
-	  mv rundeck_opts.h.tmp rundeck_opts.h ; \
+	 > rundeck_opts.tmp
+	if ! cmp -s rundeck_opts.tmp $(RUN_H) ; then \
+	  mv rundeck_opts.tmp $(RUN_H) ; \
 	else \
-	  rm rundeck_opts.h.tmp ; \
+	  rm rundeck_opts.tmp ; \
 	fi
 
-$(DEPENDFILE): rundeck_opts.h
+$(DEPENDFILE): $(RUN_H)
 
 $(LIB):
 
