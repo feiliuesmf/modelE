@@ -3560,10 +3560,6 @@ C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
         oDTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
         oDTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
 #endif
-      if (i.eq.13.and.j.eq.43) print*,"dtr",odmsi(1,i,j)-odssi(1,i,j)
-     *,odtrsi(1,1,i,j),odmsi(2,i,j)-odssi(2,i,j),odtrsi(2,1,i,j),dmoo
-     *-dsoo,dtroo(1),dmoi-dsoi,dtroi(1),(l,dm0(l)-ds0(l),dtr0(1,l),l=2
-     *,lmm(i,j))
 
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
 C**** Updated using latest sea ice (this ensures that total column mass
