@@ -1648,6 +1648,10 @@ c**** quantities accumulated hourly for diagDD
             tmp(idd_eds)=+khs*ptype
             tmp(idd_dbl)=+dbl*ptype
             tmp(idd_ev)=+aevap*ptype
+            ADIURN(idx(:),kr,ih)=ADIURN(idx(:),kr,ih) + tmp(idx(:))
+#ifndef NO_HDIURN
+            HDIURN(idx(:),kr,ihm)=HDIURN(idx(:),kr,ihm)+tmp(idx(:))
+#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1706,22 +1710,11 @@ c**** quantities accumulated hourly for diagDD
               tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
      *             /(pbl_args%gm(1:npbl-1)+1d-20)
 #endif
-
-            END IF
-#endif
-
-            ADIURN(idx(:),kr,ih)=ADIURN(idx(:),kr,ih) + tmp(idx(:))
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-            ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih) + tmp(idxd(:))
-#endif
-
+              ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih) + tmp(idxd(:))
 #ifndef NO_HDIURN
-            HDIURN(idx(:),kr,ihm)=HDIURN(idx(:),kr,ihm)+tmp(idx(:))
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-            HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
+              HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
 #endif
+            END IF
 #endif
           end if
         end do
