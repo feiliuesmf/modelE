@@ -10,7 +10,7 @@ C****
 C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
-      Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO        
+      Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : ntm
 #endif
@@ -19,23 +19,22 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       Implicit None
       Integer*4,Parameter ::
      *  IVSP = 3*IM/4,      !  V at south pole is stored in U(IVSP,1)
-     *  IVNP =   IM/4,      !  V at north pole is stored in U(IVNP,JM)
-     *  JLATD = 180/(JM-1)  !  LATitudinal spacing in degrees
-      Real*8,Parameter ::
-     *  DLON  = TWOPI/IM,        !  LONgitudinal spacing in radians
-     *  DLAT  = TWOPI*JLATD/360, !  LATitudinal spacing in radians
-     *  FJEQ  = .5*(1+JM)        !  J coordinate of the EQuator
+     *  IVNP =   IM/4       !  V at north pole is stored in U(IVNP,JM)
       REAL*8, PARAMETER :: FIM=IM, BYIM=1./FIM
 
+!@dbparam OBottom_drag use ocean bottom drag routine (default=1)
+!@dbparam OCoastal_drag use ocean coastal drag routine (default=1)
       Integer*4 ::
-     *  OBottom_drag = 1,  !  @dbparam use ocean bottom drag routine
-     *  OCoastal_drag = 1  !  @dbparam use ocean coastal drag routine
+     *     OBottom_drag = 1,    
+     *     OCoastal_drag = 1
 
-      REAL*8 ::
-     *     oc_salt_mean = -999. ! @dbparam mean salinity of ocean (if set)
+!@dbparam oc_mean_salinity define mean salinity of ocean (if set)
+!@dbparam oc_tracer_mean mean tracer ratio of ocean 
+!@+       (in permil for water isotopes)
+      REAL*8 :: 
+     *     oc_salt_mean = -999. 
 #ifdef TRACERS_OCEAN
-     *     , oc_tracer_mean(ntm) = -999. ! @dbparam mean tracer ratio of ocean
-                                         ! Note: in permil for water isotopes
+     *     , oc_tracer_mean(ntm) = -999. 
 #endif 
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)
@@ -53,6 +52,11 @@ C**** Global arrays needed for i/o, GM,straits,odiff ?
      *       VONP(LMO)  !  V component at north pole, points down 0 (GM)
 
 C**** ocean geometry (should this be in a separate module?)
+      Real*8 
+     *     DLON,   !@var DLON longitudinal spacing in radians
+     *     DLAT,   !@var DLAT latitudinal spacing in radians
+     *     DLATM,  !@var DLATM latitudinal spacing in minutes
+     *     FJEQ    !@var FJEQ location of equator in grid units 
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: COSVO

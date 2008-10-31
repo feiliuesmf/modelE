@@ -3540,8 +3540,8 @@ C**** Add evenly over open ocean and ice covered areas
             DS0(L)=SI0*DM0(L)
 #ifdef TRACERS_OCEAN
             DTR0(:,L)=TRMO(I,J,L,:)*FRAC(:)*
-     *               (DM0(L)-DS0(L))/(MO(I,J,L)-S0M(I,J,L)*BYDXYPJ)
-            TRMO(I,J,L,:)=TRMO(I,J,L,:)-DTR0(:,L)
+     *               (DM0(L)-DS0(L))/(MO(I,J,L)*DXYPJ-S0M(I,J,L))
+            TRMO(I,J,L,:)=TRMO(I,J,L,:)-DTR0(:,L)*DXYPJ
 #endif
             MO(I,J,L) = MO(I,J,L)-DM0(L)
             S0M(I,J,L)=S0M(I,J,L)-DS0(L)*DXYPJ
@@ -3560,6 +3560,10 @@ C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
         oDTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
         oDTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
 #endif
+      if (i.eq.13.and.j.eq.43) print*,"dtr",odmsi(1,i,j)-odssi(1,i,j)
+     *,odtrsi(1,1,i,j),odmsi(2,i,j)-odssi(2,i,j),odtrsi(2,1,i,j),dmoo
+     *-dsoo,dtroo(1),dmoi-dsoi,dtroi(1),(l,dm0(l)-ds0(l),dtr0(1,l),l=2
+     *,lmm(i,j))
 
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
 C**** Updated using latest sea ice (this ensures that total column mass
@@ -3867,7 +3871,7 @@ C**** Mass variation is included
 C****
       USE CONSTANT, only :twopi,rhows,omega,radius
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,
-     *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,
+     *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,DLAT,
      *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
@@ -3904,7 +3908,7 @@ C**** Local variables
 
       REAL*8, INTENT(IN) :: DTDIFF
       REAL*8, SAVE :: BYDXYPJM
-      REAL*8 DSV,DSP,VLAT,DLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
+      REAL*8 DSV,DSP,VLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
       INTEGER I,J,L,IP1,IM1,II
 
 !     domain decomposition
@@ -3968,7 +3972,6 @@ C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
         KYVXV(J)=KHV(J)*DYVO(J)*BYDXV(J)
         KXVYP(J)=KHP(J)*DXVO(J)*BYDYP(J)
 C**** Discretisation errors need TANP/V to be defined like this
-        DLAT = TWOPI*NINT(360d0/(JM-1))/720d0
         TANP(J)=TAN(RLAT(J))*TAN(0.5*DLAT)/(RADIUS*0.5*DLAT)
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
         TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
@@ -4978,24 +4981,22 @@ C**** Check
      *     , aTRAC_glob
 #endif
 
-      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLAT=>DLAT
-      Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ,aDLAT=>DLAT
+      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM
+      Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ,aDLATM=>DLATM
 
       IMPLICIT NONE
 
       integer I,J,L, NT 
 
-      REAL*8, PARAMETER :: dLATMO=30.d0*NINT(360.d0/JMO),
-     *                     dLATMA=30.d0*NINT(360.d0/JMA)
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
       REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
 
-      write (555,*) ' INT_OG2AG#1: dLATMO,dLATMA= ',dLATMO,dLATMA
+      write (555,*) ' INT_OG2AG#1: dLATMO,aDLATM= ',oDLATM,aDLATM
 
       oONES(:,:) = 1.d0
 
-      call HNTR80 (IMO,JMO,0.d0,dLATMO, IMA,JMA,0.d0,dLATMA, 0.d0)
+      call HNTR80 (IMO,JMO,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
 
 !!!  Ocean mass for the 1st two layers
 
@@ -5098,13 +5099,13 @@ C**** surface tracer concentration
       
 !!!  U velocity for the 1st ocean layer
 
-      call HNTR80 (IMO,JMO,0.5d0,dLATMO, IMA,JMA,0.5d0,dLATMA, 0.d0)
+      call HNTR80 (IMO,JMO,0.5d0,oDLATM, IMA,JMA,0.5d0,aDLATM, 0.d0)
 
       call HNTR8  (oONES, UO_glob(1,1,1), aUO1_glob)
 
 !!!  V velocity for the 1st ocean layer
 
-      call HNTR80 (IMO,JMO-1,0.d0,dLATMO, IMA,JMA-1,0.d0,dLATMA, 0.d0)
+      call HNTR80 (IMO,JMO-1,0.d0,oDLATM, IMA,JMA-1,0.d0,aDLATM, 0.d0)
 
       call HNTR8  (oONES, VO_glob(1,1,1), aVO1_glob)
       aVO1_glob(:,JMA) = 0.d0
@@ -5202,8 +5203,8 @@ C**** surface tracer concentration
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEAN, only : imo=>im,jmo=>jm
 
-      USE OCEAN, only : oDXYPO=>DXYPO,oDLAT=>DLAT
-      Use GEOM,  only : aDXYP=>DXYP, aDXYPO,aDLAT=>DLAT
+      USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM
+      Use GEOM,  only : aDXYP=>DXYP, aDXYPO,aDLATM=>DLATM
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
@@ -5213,9 +5214,6 @@ C**** surface tracer concentration
       IMPLICIT NONE
 
       INTEGER I,J, N
-
-      REAL*8, PARAMETER :: dLATMO=30.d0*NINT(360.d0/JMO),
-     *                     dLATMA=30.d0*NINT(360.d0/JMA)
 
       REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
      *        aPREC_glob, aEPREC_glob
@@ -5237,11 +5235,11 @@ C**** surface tracer concentration
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
       REAL*8  diff
 
-      write (555,*) ' INT_AG2OG_precip#1: dLATMO,dLATMA= ',dLATMO,dLATMA
+      write (555,*) ' INT_AG2OG_precip#1: oDLATM,aDLATM= ',oDLATM,aDLATM
 
       aONES(:,:) = 1.d0
 
-      call HNTR80 (IMA,JMA,0.d0,dLATMA, IMO,JMO,0.d0,dLATMO, 0.d0)
+      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
 
       DO J = 1,JMA
         aFtemp(:,J) = aPREC_glob(:,J)*aDXYP(J)/aDXYPO(J)    ! kg/m^2
@@ -5366,8 +5364,10 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
       USE TRACER_COM, only: ntm
 #endif
 
-      USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ
-      Use GEOM,  only : aDXYP=>DXYP, aDXYPO, aIMAXJ=>IMAXJ
+      USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
+     *     oDLATM=>DLATM
+      Use GEOM,  only : aDXYP=>DXYP, aDXYPO, aIMAXJ=>IMAXJ,
+     *     aDLATM=>DLATM
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
@@ -5378,9 +5378,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
 !!!   Global arrays on atmospheric grid
 
       INTEGER, PARAMETER :: NSTYPE=4
-
-      REAL*8, PARAMETER :: dLATMO=30.d0*NINT(360.d0/JMO),
-     *                     dLATMA=30.d0*NINT(360.d0/JMA)
 
       REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
      *        aRSI_glob, aFLOWO_glob,aEFLOWO_glob
@@ -5437,11 +5434,11 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
       REAL*8  diff, SUM_oFtemp, SUM_aFtemp, SUM_aORIG
 
-      write (555,*) ' INT_AG2OG_occeans#1:dLATMO,dLATMA= ',dLATMO,dLATMA
+      write (555,*) ' INT_AG2OG_occeans#1:oDLATM,aDLATM= ',oDLATM,aDLATM
 
       aONES(:,:) = 1.d0
 
-      call HNTR80 (IMA,JMA,0.d0,dLATMA, IMO,JMO,0.d0,dLATMO, 0.d0)
+      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
 
       DO J = 1,JMA
         aFtemp(:,J) = aRSI_glob(:,J)*aDXYP(J)/aDXYPO(J)    
@@ -5788,7 +5785,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
      *     , aRUNOSI=>RUNOSI,aERUNOSI=>ERUNOSI,aSRUNOSI=>SRUNOSI
      *     , aFLOWO=>FLOWO,aEFLOWO=>EFLOWO, aAPRESS=>APRESS
      *     , aMELTI=>MELTI,aEMELTI=>EMELTI,aSMELTI=>SMELTI
-     *     , aDMSI=>DMSI, aDHSI=>DHSI, aDSSI=>DSSI
      *     , aDMUA=>DMUA, aDMVA=>DMVA, aDMUI=>DMUI, aDMVI=>DMVI
      *     , aGMELT=>GMELT, aEGMELT=>EGMELT
 #ifdef TRACERS_OCEAN
@@ -5800,7 +5796,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
      *     , aTRDRYDEP=>TRDRYDEP
 #endif
 #endif
-     *     , aDTRSI=>DTRSI
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       USE FLUXES, only : aTRGASEX=>TRGASEX
@@ -5810,7 +5805,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
      *     , oRUNOSI, oERUNOSI, oSRUNOSI
      *     , oFLOWO, oEFLOWO, oAPRESS
      *     , oMELTI, oEMELTI, oSMELTI
-     *     , oDMSI, oDHSI, oDSSI
      *     , oDMUA,oDMVA, oDMUI,oDMVI
      *     , oGMELT, oEGMELT
 #ifdef TRACERS_OCEAN
@@ -5822,7 +5816,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
      *     , oTRDRYDEP
 #endif
 #endif
-     *     , oDTRSI
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       USE OFLUXES, only : oTRGASEX
@@ -5840,7 +5833,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
       REAL*8, DIMENSION(3,IMA,JMA) :: aSOLAR_glob
       REAL*8, DIMENSION(IMA,JMA,NSTYPE) :: aE0_glob, aEVAPOR_glob
      *      , aDMUA_glob, aDMVA_glob 
-      REAL*8, DIMENSION(2,IMA,JMA) :: aDMSI_glob, aDHSI_glob, aDSSI_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob 
@@ -5850,7 +5842,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
       REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRDRYDEP_glob
 #endif
 #endif
-      REAL*8, DIMENSION(NTM,2,IMA,JMA) :: aDTRSI_glob
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
@@ -5874,7 +5865,6 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
       REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRDRYDEP_glob
 #endif
 #endif
-      REAL*8, DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
@@ -5908,7 +5898,6 @@ C***  Gather arrays on atmospheric grid into the global arrays
       CALL PACK_COLUMN(agrid,  aTRUNOSI,  aTRUNOSI_glob)
       CALL PACK_COLUMN(agrid,  aTRMELTI,  aTRMELTI_glob)
       CALL PACK_BLOCK (agrid, aTREVAPOR, aTREVAPOR_glob)
-      CALL PACK_BLOCK (agrid,    aDTRSI,    aDTRSI_glob)
 #ifdef TRACERS_DRYDEP
       CALL PACK_BLOCK (agrid, aTRDRYDEP, aTRDRYDEP_glob)
 #endif

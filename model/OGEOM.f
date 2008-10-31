@@ -5,10 +5,10 @@ C****
 !@sum  GEOMO Calculates the spherical geometry for the C grid
 !@auth Gary Russell
 !@ver  2.0
-      Use CONSTANT, Only: TWOPI,RADIUS,OMEGA
+      Use CONSTANT, Only: TWOPI,RADIUS,OMEGA,PI
 
       Use GEOM,  Only: DXYPA=>DXYP, zDXYPA=>BYDXYP
-      Use OCEAN, Only: IM,JM, DLON,DLAT,FJEQ, 
+      Use OCEAN, Only: IM,JM,DLON,DLAT,DLATM,FJEQ,
      *                 DXYP=>DXYPO, DXYVO, DXYS=>DXYSO, DXYN=>DXYNO,
      *                 DXP=>DXPO, DYP=>DYPO, DXV=>DXVO, DYV=>DYVO,
      *                 RLAT, COSV=>COSVO, SINP=>SINPO, COSP=>COSPO,
@@ -18,12 +18,23 @@ C****
      *                 J1O, JMPF=>J40S, IMAXJ
       Implicit None
       Integer*4 I,J
-      Real*8 LATS, !  LATitude in radians at South edge of primary cell
-     *       LATN, !  LATitude in radians at North edge of primary cell
-     *       SINS, !  SINe of LATS
-     *       SINN, !  SINe of LATN
-     *       PCOS, !  = s[cos(LAT)^2 dLAT] / S[cos(LAT) dLAT]
-     *   PLAT(JM)  !  = s[LAT cos(LAT) dLAT] / S[cos(LAT) dLAT]
+      Real*8 LATS, !@var LATS LATitude in radians at South edge of primary cell
+     *       LATN, !@var LATN LATitude in radians at North edge of primary cell
+     *       SINS, !@var SINS SINe of LATS
+     *       SINN, !@var SINN SINe of LATN
+     *       PCOS, !@var PCOS = s[cos(LAT)^2 dLAT] / S[cos(LAT) dLAT]
+     *   PLAT(JM)  !@var PLAT = s[LAT cos(LAT) dLAT] / S[cos(LAT) dLAT]
+
+C**** Define some key values that depend on resolution (and grid)
+      DLON   = TWOPI/IM
+      FJEQ   = .5*(1+JM)
+      IF (JM.eq.46) THEN ! half polar box
+        DLAT = NINT(180./(JM-1))*TWOPI/360.
+        DLATM= NINT(30d0*360d0/(JM-1))
+      ELSE      ! even spacing (i.e. 2x2.5, 1Qx1)
+        DLAT = PI/REAL(JM)
+        DLATM= NINT(30d0*360d0/REAL(JM))
+      END IF
 C****
 C**** Calculate geometric parameters defined at V latitudes
 C****
