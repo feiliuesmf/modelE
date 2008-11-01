@@ -14,7 +14,7 @@ ifndef CONFIG_DIR
 endif
 
 include $(CONFIG_DIR)/base.mk
-sinclude $(DEPENDFILE)
+#sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
 #hack: compile for Ent by default

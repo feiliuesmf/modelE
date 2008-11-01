@@ -100,6 +100,10 @@ c**** Added decks parameter cond_scheme  5/1/03 nyk
 c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
 #include "rundeck_opts.h"
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
 
 !#define EVAP_VEG_GROUND
 !#define RAD_VEG_GROUND
@@ -108,7 +112,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
-      !use ghy_com, only : ngm, imt, nlsn, LS_NFRAC !, wsn_max
+      use ghy_h, only : ngm, imt, nlsn, LS_NFRAC
      
 #ifdef TRACERS_WATER
      *     ,ntixw
@@ -124,9 +128,6 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 c**** public functions:
       public hl0, set_snow, advnc, evap_limits, xklh
       public get_soil_properties
-
-! stupp from ghy_com
-      integer, parameter, public :: ngm=6, imt=5, nlsn=3, LS_NFRAC=3
 
 ccc   physical constants and global model parameters
 ccc   converting constants from 1/kg to 1/m^3
@@ -153,8 +154,9 @@ ccc   data needed for debugging
 ccc   public data
 ccc   main accumulators
       real*8, public :: atrg,ashg,aevap,alhg,aruns,arunu,aeruns,aerunu
-!@var tbcs surface temperature (C)
-      real*8, public ::  tbcs
+!@var tbcs radiative surface temperature (C)
+!@var tsns sensible surface temperature (C)
+      real*8, public ::  tbcs, tsns
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
@@ -246,7 +248,8 @@ ccc fractions of dry,wet,covered by snow canopy
 !@var fd0 actual fraction of dry canopy
 !@var fw0 actual fraction of wet canopy
 !@var fm snow masking fraction for canopy (=1 if all snow)
-      real*8 :: fd,fd0,fw,fw0,fm
+      real*8 fd,fw,fd0,fw0,fm
+
 !@var theta fraction of water in the soil ( 1 = 100% )
 !@var f water flux between the layers ( > 0 is up ) (m/s)
 !@var fh heat flux between the layers ( > 0 is up ) (W)
@@ -254,7 +257,7 @@ ccc fractions of dry,wet,covered by snow canopy
 !@var rnff underground runoff (m/s)
 !@var fc water flux at canopy boundaries ( > 0 is up ) (m/s)
 !@var fch heat flux at canopy boundaries ( > 0 is up ) (W)
-      real*8 ::theta(0:ng,2),f(1:ng,2),fh(1:ng,2),rnf(2),rnff(ng,2)
+      real*8 theta(0:ng,2),f(1:ng,2),fh(1:ng,2),rnf(2),rnff(ng,2)
      &     ,fc(0:1),fch(0:1)
 ccc   the following three declarations are various conductivity
 ccc   coefficients (or data needed to compute them)
@@ -380,7 +383,7 @@ C***
      &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
      &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
      &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
-     &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
+     &     ,snshs,srht,tbcs,tsns,theta,thetm,thets,thrm_tot,thrmsn !thm
      &     ,top_index,top_stdev,tp,trht,ts,tsn1,w,ws,wsn,xinfc,xk
      &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
@@ -2025,22 +2028,24 @@ ccc reset main water/heat fluxes, so they are always initialized
       fh(:,:) = 0.d0
       fc(:) = 0.d0
       fch(:) = 0.d0
-      !print *, 'before ent_get_exports'
 #ifdef USE_ENT
 ccc get necessary data from ent
       call ent_get_exports( entcell,
      &     canopy_max_H2O=ws_can,
      &     canopy_heat_capacity=shc_can,
      &     fraction_of_vegetated_soil=fv,
+     &     canopy_height=height_can
      &     albedo=albedo_6b
      &     )
       fb = 1.d0 - fv
-      !print *, 'after ent_get_exports'
+      snowm = height_can*.1d0 ! snow masking depth
 #endif
 
+#ifdef OFFLINE_RUN
 !!! hack for offline runs (should be disabled in GCM)
       albedo_cell = ghy_albedo( albedo_6b )
       srht = srht*(1.d0 - albedo_cell)!converts srht to NET (ABSORBED) SW
+#endif
 
 ccc make sure there are no round-off errors in fraction
       if ( fv < .0001d0 ) fv = 0.d0
@@ -2075,7 +2080,6 @@ ccc normal case (both present)
 !!!
       call reth
       call retp
-      !print *, 'after retp'
       tb0=tp(1,1)
       tc0=tp(0,2)
 cddd      print '(a,10(e12.4))', 'ghy_temp_b ',
@@ -2122,12 +2126,12 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
      &         soil_matric_pot=h(1:ngm,2),
      &         soil_ice_fraction=fice(1:ngm,2) 
      &         )
-          !print *, 'after ent_set_forcings'
+
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dt, 0.d0)  ! ent_run
-          !print *, 'after ent_run'
+          call ent_run( entcell, dt, 0.d0) 
+
 ccc unpack necessary data
           call ent_get_exports( entcell,
      &         canopy_conductance=cnc,
@@ -2137,7 +2141,7 @@ ccc unpack necessary data
 !     &         foliage_humidity=Qf,
      &         canopy_gpp=GPP
      &         )
-          !print *, 'after ent_get_exports'
+
           !print *,"CNS=",cnc
           !print *, "trans_sw", ijdebug, trans_sw, cosz1
 
@@ -2158,8 +2162,8 @@ ccc unpack necessary data
 !        print *,"HGY_COND: ",ijdebug, cnc, betadl, Ci, Qf
 !        print *,"GHY_FORCINGS: ", ijdebug, tp(0,2),
 !     &       vis_rad, direct_vis_rad, cosz1
+
         call evap_limits( .true., dum1, dum2 )
-        !print *, 'after evap_limits'
 #else
         call evap_limits( vegcell, .true., dum1, dum2 )
 #endif
@@ -2200,8 +2204,6 @@ ccc unpack necessary data
         call flg
          ! call check_f11
         call runoff
-        !print *, 'after runoff'
-
 !debug
 !        rnff(:,:) = 0.d0
  !       rnf(:) = 0.d0
@@ -2215,7 +2217,6 @@ ccc unpack necessary data
          ! call check_f11
         !call sinkh
         call flh
-        !print *, 'after flh'
         call flhg
 c     call fhlmt
          ! call check_f11
@@ -2528,6 +2529,9 @@ ccc   h0=-thrm(2)+srht+trht
       abetap=max(abetap,zero)
 ccc   computing surface temperature from thermal radiation fluxes
       tbcs = sqrt(sqrt( atrg/(dt*stbo) )) - tfrz
+ccc   computing surface temperature from sensible heat fluxes (inst.)
+      tsns = ( ( snsh_tot(1)*fb + snsh_tot(2)*fv )
+     &     /(sha*rho*ch) + (vs-vs0)*tprime )/vs + ts - tfrz
 ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
       tg2av=0.d0
       wtr2av=0.d0
