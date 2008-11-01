@@ -3,7 +3,7 @@
 
 SUPPORTED_OPTIONS = ESMF
 
-FSRCS = CONST.f  PARAM.f  PARSER.f  SYSTEM.f  TRIDIAG.f  UTILDBL.f
+FSRCS = CONST.f  PARAM.f  PARSER.f  SYSTEM.f  UTILDBL.f
 
 
 ifndef GISSCLIM_DIR
@@ -14,7 +14,7 @@ ifndef CONFIG_DIR
 endif
 
 include $(CONFIG_DIR)/base.mk
-sinclude $(DEPENDFILE)
+#sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
 CPPFLAGS += -I$(GISSCLIM_DIR)/include
