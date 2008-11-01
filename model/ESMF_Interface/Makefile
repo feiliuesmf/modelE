@@ -25,6 +25,7 @@ else
 SUPPORTED_OPTIONS =
 
 F90SRCS = ESMF_MOD.F90 assert.F90 ESMF_CUSTOM_MOD.F90
+FSRCS = DOMAIN_DECOMP.f
 
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
@@ -34,7 +35,7 @@ ifndef CONFIG_DIR
 endif
 
 include $(CONFIG_DIR)/base.mk
-sinclude $(DEPENDFILE)
+#sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
 no_default:
