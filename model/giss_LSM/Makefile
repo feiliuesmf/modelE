@@ -20,4 +20,7 @@ include $(CONFIG_DIR)/rules.mk
 #hack: compile for Ent by default
 CPPFLAGS += -DUSE_ENT
 
+ifeq ($(OFFLINE_RUN),YES)
+CPPFLAGS += -DOFFLINE_RUN
+endif
 

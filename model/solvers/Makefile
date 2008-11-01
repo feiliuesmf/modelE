@@ -17,3 +17,7 @@ include $(CONFIG_DIR)/base.mk
 #sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
+ifeq ($(OFFLINE_RUN),YES)
+CPPFLAGS += -DOFFLINE_RUN
+endif
+
