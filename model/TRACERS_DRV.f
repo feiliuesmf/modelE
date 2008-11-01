@@ -9624,6 +9624,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         end select
       end do
 #endif
+
         if (imAER.eq.3) then !historic
         do n=1,ntm
         select case (trname(n))
@@ -9633,7 +9634,11 @@ cdmk turning off aircraft until I have 2x2.5
 c       call get_aircraft_SO2   ! this does SO2 and BCIA
         case ('BCII')  !this does BC and OC
         call read_hist_BCOC(iact)
+        case ('M_BC1_BC')  !this does BC and OC
+        call read_hist_BCOC(iact)
         case ('BCB')  ! this does BCB and OCB and SO2
+        call get_hist_BM(iact)
+        case ('M_BOC_BC')  ! this does BCB and OCB and SO2
         call get_hist_BM(iact)
         case ('NH3')
         call read_hist_NH3(iact)
