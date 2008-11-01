@@ -43,7 +43,7 @@ endif
 
 include $(CONFIG_DIR)/base.mk
 #dependencies (should be done later automatically):
-sinclude $(DEPENDFILE)
+#sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
 ifeq ($(PFT_MODEL),ENT)
