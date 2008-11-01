@@ -425,10 +425,10 @@ $(1)_dir: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
 	@echo
 	@echo "===> building component $(1)"
 	$(MAKE) -C $(1) $(OPTS_$(1))
-	mv -f .liblist .liblist_tmp
-	echo $(1)/lib.a > .liblist
-	cat .liblist_tmp >> .liblist
-	rm -f .liblist_tmp
+#	mv -f .liblist .liblist_tmp
+	echo $(1)/lib.a >> .liblist
+#	cat .liblist_tmp >> .liblist
+#	rm -f .liblist_tmp
 	@echo "===> component $(1) ok"
 	@echo
 
@@ -462,7 +462,7 @@ include $(CONFIG_DIR)/rules.mk
 
 #$(OBJS): $(COMPONENTS:=_dir)
 
-COMPLIBS = $(shell cat .liblist)
+COMPLIBS = $(shell perl -e 'print reverse <>;' < .liblist)
 
 do_components: $(COMPONENTS:=_dir)
 
