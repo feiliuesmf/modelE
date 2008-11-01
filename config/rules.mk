@@ -164,14 +164,20 @@ endif
 endif
 
 # access new interfaces in sub-directory.
+#ifdef ESMF_Interface
 FFLAGS += -$(I)$(ESMF_Interface)
 F90FLAGS += -$(I)$(ESMF_Interface)
+#endif
 CPPFLAGS += $(INCS)
 
 # path to the modules dir if present
 ifdef MOD_DIR
   FFLAGS += -$(I)$(MOD_DIR)
   F90FLAGS += -$(I)$(MOD_DIR)
+endif
+
+ifdef INCLUDE_DIR
+  CPPFLAGS += -I$(INCLUDE_DIR)
 endif
 
 

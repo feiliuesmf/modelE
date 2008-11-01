@@ -12,6 +12,8 @@ DECKS_DIR = $(MODEL_E_ROOT)/decks
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 ESMF_Interface=$(MODEL_DIR)/ESMF_Interface
 CONFIG_DIR = $(MODEL_E_ROOT)/config
+MOD_DIR = $(MODEL_DIR)/mod
+INCLUDE_DIR = $(MODEL_DIR)/mod
 
 RUN     =
 RUNDECK = $(DECKS_DIR)/$(RUN).R
@@ -25,7 +27,7 @@ else
 GCMLIB = $(addprefix $(MODEL_DIR)/,$(shell cat $(MODEL_DIR)/.liblist))
 endif
 
-DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
+#DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
 
 # getting options from configuration files
 # default modelE configuration file:
@@ -45,11 +47,11 @@ include $(CONFIG_DIR)/rules.mk
 
 # look for .mod files in MODEL_DIR
 ifeq ($(COMPILER),Absoft)
-FFLAGS += -p $(MODEL_DIR) -I$(MODEL_DIR)
-F90FLAGS += -p $(MODEL_DIR) -I$(MODEL_DIR)
+FFLAGS += -p $(MOD_DIR) -I$(MODEL_DIR)
+F90FLAGS += -p $(MOD_DIR) -I$(MODEL_DIR)
 else
-FFLAGS += -I$(MODEL_DIR)
-F90FLAGS += -I$(MODEL_DIR)
+FFLAGS += -I$(MOD_DIR) -I$(MODEL_DIR)
+F90FLAGS += -I$(MOD_DIR) -I$(MODEL_DIR)
 endif
 
 #

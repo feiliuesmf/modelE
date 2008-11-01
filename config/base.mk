@@ -13,7 +13,7 @@ sinclude $(MODELERC)
 #LIB_DIR = $(GISSCLIM_DIR)/lib
 
 #hack : make sure that ESMF_Interface is set
-ESMF_Interface = .
+#ESMF_Interface = .
 
 # the name for main target:
 THIS := $(shell basename `pwd`)
@@ -48,9 +48,16 @@ $(LIB): $(OBJS)
 	-cp -p $(MODS) $(MOD_DIR)
 #	cp $(LIB) $(LIB_DIR)
 
+#rundeck_opts.h: $(DECKS_DIR)/$(RUN).mk
+#	perl -e '$$_="$(CPP_OPTIONS)"; s/ *\#/\n\#/g; print "$$_\n";' \
+#	 > rundeck_opts.h.tmp
+#	if ! cmp -s rundeck_opts.h.tmp rundeck_opts.h ; then \
+#	  mv rundeck_opts.h.tmp rundeck_opts.h ; \
+#	else \
+#	  rm rundeck_opts.h.tmp ; \
+#	fi
 
-
-$(DEPENDFILE): $(FFSRCS) .current_options     # $(RUNDECK) $(FSRCS) $(RUN_H)
+$(DEPENDFILE): $(FFSRCS) .current_options $(RUN_H)   # $(RUNDECK) $(FSRCS) $(RUN_H)
 	@echo
 	@echo '--------          Rebuilding Dependencies  in        ---------'
 	@echo '--' `pwd`
@@ -80,7 +87,7 @@ endif
 	@echo
 
 clean:
-	-rm lib.a *.o *.mod *.smod .depend* .current_options
+	-rm -f lib.a *.o *.mod *.smod .depend* .current_options
 
 deplist:
 	echo $(THIS)_dir: $(DEPENDS_ON:=_dir)
@@ -109,3 +116,7 @@ endef
 CURRENT_OPTIONS =
 $(foreach v,$(SUPPORTED_OPTIONS) FFSRCS, \
   $(eval $(call PROGRAM_opt_list,$(v))))
+
+ifneq ($(MAKECMDGOALS),clean)
+sinclude $(DEPENDFILE)
+endif
