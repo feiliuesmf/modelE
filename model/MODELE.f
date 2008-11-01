@@ -13,9 +13,9 @@ CAOO   Just to test CVS
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
 #ifdef CUBE_GRID
       USE gs_domain_decomp
-      USE regrid_com, only:init_xgrid_loop,
-     &     init_grid_temp
+      USE regrid_com, only:init_regrid
       USE gatscat_mod, only:gatscat_init
+      USE DOMAIN_DECOMP, ONLY : init_csgrid_debug
 #endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
@@ -131,15 +131,15 @@ C****
 C****
 C****
 #ifdef CUBE_GRID
-C**** Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
-      call init_grid_temp()
+C**** Temporarily use instanciation of cubed sphere grid through fv_grid_tools_mod's init_grid()
+      call init_csgrid_debug()
 
 c**** Initialize gather&scatter
       call domain_decomp_init
       call gatscat_init
 
 c***  Initialize exchange grid
-      call init_xgrid_loop()
+      call init_regrid()
 #else
       call init_app(grid,im,jm,lm)
 #endif
@@ -1323,6 +1323,7 @@ C**** Set flag to initialise pbl and snow variables
         iniENT = .TRUE.
 #endif
         if (istart.eq.1) redogh=.true.
+#ifndef CUBE_GRID
 C**** Read in ground initial conditions
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
@@ -1332,13 +1333,14 @@ C**** Read in ground initial conditions
         call io_soils  (iu_GIC,ioreadnt,ioerr)
         call io_landice(iu_GIC,ioreadnt,ioerr)
         if (ioerr.eq.1) then
-          IF (AM_I_ROOT())
+          if (AM_I_ROOT())
      *          WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           call stop_model("INPUT: GIC READ IN ERROR",255)
         end if
 
         call closeunit (iu_GIC)
-      END IF
+#endif
+      END IF 
 C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
 C****

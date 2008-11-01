@@ -1297,7 +1297,8 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
 
 
       subroutine set_wtbudg()
-C**** Precomputes area weights for zonal means on budget grid
+!@sum Precomputes area weights for zonal means on budget grid
+!auth Denis Gueyffier
       USE GEOM, only : j_budg, axyp
       USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc
       USE DOMAIN_DECOMP, only :GRID,GET
@@ -1405,8 +1406,9 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 
 
       subroutine set_zzarea()
-c***  pre-computes area of zig-zag bands accross processors. Several
-c***  processos can contribute to same zig-zag band  
+!@sum  pre-computes area of zig-zag bands accross processors. Several
+!@+    processos can contribute to same zig-zag band  
+!@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : axypband_loc,axypband,JM_BUDG
       USE DOMAIN_DECOMP, only :grid,GET,sumxpe

@@ -1,690 +1,23 @@
+      subroutine init_xgrid_zonal()
 
-c**** COMMENT program when linked with MODELE
-cc      program testregrid
-cc      call test_zonal_loop()    ! tests parallel zonal mean code, using rolled loops
-cc      call test_zonal_unrolled() ! tests parallel zonal mean code, using unrolled loops
-cc      call test_regrid()        ! tests parallel regridding code
-cc      call offregrid()    ! tests offline regridding for input file
-cc      call test_or()
-cc      call test_onlineread()
-cc      call test_rr2()
-cc        call exact_regrid()
-cc      call test_add_dd()
-cc      end program testregrid
-c****
-
-
-      subroutine test_or()
-      USE regrid_com, only:im,jm,ic,jc
-      use mpp_mod
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use gatscat_mod
-
-      implicit none
-      integer :: i,j,npz
-      integer :: npes,ndims
-      integer :: commID
-
-      real*8, dimension(:,:), allocatable :: P
-
-c***
-      call init_grid_temp()
-
-c***  Initialize gather&scatter
-      call domain_decomp_init
-      call gatscat_init
-c***  Initialize exchange grid for zonal means
-      call init_xgrid_loop()
-
-      open(UNIT=10, FILE="AIC.RES_F20.D771201", 
-     *     FORM="UNFORMATTED", 
-     *     STATUS="OLD",CONVERT='BIG_ENDIAN')
-
-      allocate(P(is:ie,js:je))
-      
-      call readt_regrid_parallel(10,"AIC",0,P,1)
-      write(6,*) P(:,:)
-
-      call mpp_exit()
-      deallocate(P)
-
-      end subroutine test_or
-c****
-
-
-      subroutine test_onlineread()
-      USE regrid_com, only:im,jm,ic,jc
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop
-     &     ,fv_domain_decomp=>domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
-      use fv_grid_utils_mod, only : cosa_s,sina_s
-     &     ,grid_utils_init
-c     &     ,sw_corner,se_corner,ne_corner,nw_corner
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
-      use fv_control_mod, only : uniform_ppm,c2l_ord
-      use gs_domain_decomp, ng=>halo_width
-      use gatscat_mod
-
-      implicit none
-      integer :: i,j,npz
-      integer :: npes,ndims
-      integer :: commID
-      integer, dimension(:), allocatable :: pelist
-
-      real*8, dimension(:,:), allocatable :: P
-
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline'
-      logical :: non_ortho
-      
-      write(6,*) "UNIT TEST : readt_regrid_parallel"
-
-c***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
-
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-c      write(6,*) 'commID ',commID
-      npx = ic; npy = npx ! 1x1 resolution
-      ng = 3 ! number of ghost zones required
-
-      call fv_domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
-c      call mp_stop()
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, ntiles, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-c***  Initialize gather&scatter
-      call domain_decomp_init
-      write(6,*) "AFT. dpmain_decomp_init"
-      call gatscat_init
-      write(6,*) "AFT. gatscat_init"
-
-
-c***  Initialize exchange grid for zonal means
-      call init_xgrid_loop()
-
-      open(UNIT=10, FILE="AIC.RES_F20.D771201", 
-     *     FORM="UNFORMATTED", 
-     *     STATUS="OLD",CONVERT='BIG_ENDIAN')
-
-      allocate(P(is:ie,js:je))
-      
-      call readt_regrid_parallel(10,"AIC",0,P,1)
-      write(6,*) ">>>>>>>>>ARRIJ GID>>>>>>>>>>",gid
-      write(6,*) P(:,:)
-
-      call mpp_exit()
-      deallocate(pelist)
-      deallocate(P)
-
-      end subroutine test_onlineread
-c****
-
-
-
-      subroutine init_grid_temp()
-
-      USE regrid_com, only:im,jm,ic,jc
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop
-     &     ,fv_domain_decomp=>domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
-      use fv_grid_utils_mod, only : cosa_s,sina_s
-     &     ,grid_utils_init
-c     &     ,sw_corner,se_corner,ne_corner,nw_corner
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
-      use fv_control_mod, only : uniform_ppm,c2l_ord
-      use gs_domain_decomp, ng=>halo_width
-      use gatscat_mod
-
-      implicit none
-      integer :: i,j,npz
-      integer :: npes,ndims
-      integer :: commID
-      integer, dimension(:), allocatable :: pelist
-
-      real*8, dimension(:,:), allocatable :: P
-
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline'
-      logical :: non_ortho
-      
-      write(6,*) "UNIT TEST : readt_regrid_parallel"
-
-c***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
-
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-c      write(6,*) 'commID ',commID
-      npx = ic; npy = npx ! 1x1 resolution
-      ng = 3 ! number of ghost zones required
-
-      call fv_domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
-c      call mp_stop()
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, ntiles, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-      end subroutine init_grid_temp
-c****
-
-
-c****
-      subroutine test_zonal_unrolled()
-      use regrid_com
-
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop,domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain
-      use fv_grid_utils_mod, only : grid_utils_init
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type
-      use fv_control_mod, only : uniform_ppm, c2l_ord
-
-      implicit none
-      include 'netcdf.inc'
-      integer :: npx,npy,npes,ng,ndims,rootpe
-      integer :: commID
-      integer, dimension(:), allocatable :: pelist
-
-      integer :: l,npz
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline', ofi
-      logical :: non_ortho
-      integer, parameter :: nedge=4 ! number of edges on each face
-      integer :: nij_latlon,nc2,loctile
-      real*8 :: gsum
-
-      real*8, allocatable :: tcub_loc(:,:)
-      real*8 :: tcub(ic,jc)
-      real*8 :: area_latband(jm),zonal_mean(jm)
-      integer :: itile,fid,vid,srt(3),cnt(3),status,ikey,jlat,i,j
-      character*200 :: infi,infile
-      character*1 :: istr 
-
-c
-c     Initialize grid and domain decomposition
-c
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-      write(6,*) 'rootpe= ',mpp_root_pe()
-c      npx = 90; npy = npx ! 1x1 resolution
-      npx = ic; npy = npx 
-      
-      ng = 3 ! number of ghost zones required
-      call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, ntiles, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
-
-      rootpe=mpp_root_pe()
-
-c
-c     Initialize exchange grid and extract information
-c
-      call init_xgrid_unrolled()
-
-      write(6,*) "HERE"
-
-ccc    remove these lines - this will be initialize somewhere else
-      allocate(tcub_loc(isd:ied,jsd:jed))
-
-      infi='atmos_daily.tile'
-      loctile=gid/dom_per_tile
-      loctile=loctile+1
-      write(istr,'(i1)') loctile
-      infile=trim(infi)//istr//'.nc'
-      write(*,*) infile
-      status = nf_open(trim(infile),nf_nowrite,fid)
-      write(*,*) "status=",status
-      status = nf_inq_varid(fid,'t_surf',vid)
-      if (status .ne. NF_NOERR) write(*,*) "ERROR"
-      srt = (/ 1, 1, 1 /)
-      cnt = (/ ic, jc, 1 /)
-      status = nf_get_vara_double(fid,vid,srt,cnt,tcub(1,1))
-      status = nf_close(fid)
-      tcub_loc(is:ie,js:je)=tcub(is:ie,js:je)
-
-c      tcub_loc(:,:)=1  !gid
-ccc    end remove
-
-      call zonalmean_cs_unrolled(tcub_loc(:,:),
-     *       zonal_mean(:),
-     *       area_latband(:))
-
-      write(6,*) "THERE"
-
-c     should be pre-computed
-      call mpp_sum(area_latband,jm)
-
-c     line below should be moved inside zaonal mean routine
-      call mpp_sum(zonal_mean,jm)
-         
-
-      if (gid .eq. rootpe) then
-      do jlat=1,jm
-         if (area_latband(jlat) .gt. 1.d-14) then
-            zonal_mean(jlat)=zonal_mean(jlat)
-     *           /area_latband(jlat)
-         endif
-         write(*,*) "zonal_mean unrolled=",zonal_mean(jlat)
-      enddo
-      endif
-
-      call mpp_exit()
-      deallocate(pelist)
-      deallocate(tcub_loc)
-      deallocate(xgrid_area)
-      deallocate(ijcub)
-      deallocate(ijlatlon)
-      deallocate(tile)
-
-      end subroutine test_zonal_unrolled
-c****
-
-
-
-      subroutine test_zonal_loop()
-      use regrid_com
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop,domain_decomp
-      use fv_mp_mod, only : gid, domain
-      use fv_grid_utils_mod, only : grid_utils_init
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type
-      use fv_control_mod, only : uniform_ppm, c2l_ord
-
-      implicit none
-      include 'netcdf.inc'
-      integer :: npx,npy,npes,ng,ndims,rootpe
-      integer :: commID
-      integer, dimension(:), allocatable :: pelist
-
-      integer :: l,npz
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline', ofi
-      logical :: non_ortho
-      integer, parameter :: nedge=4 ! number of edges on each face
-      integer :: nij_latlon,nc2,loctile
-      real*8 :: gsum
-
-      real*8, allocatable :: tcub_loc(:,:)
-      real*8 :: tcub(ic,jc)
-      real*8 :: area_latband(jm),zonal_mean(jm)
-      integer :: itile,fid,vid,srt(3),cnt(3),status,ikey,jlat,i,j
-      character*200 :: infi,infile
-      character*1 :: istr 
-
-c
-c     Initialize grid and domain decomposition
-c
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-      write(6,*) 'rootpe= ',mpp_root_pe()
-c      npx = 90; npy = npx ! 1x1 resolution
-      npx = ic; npy = npx 
-      
-      ng = 3 ! number of ghost zones required
-      call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, ntiles, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
-
-      rootpe=mpp_root_pe()
-
-c
-c     Initialize exchange grid and extract information
-c
-      call init_xgrid_loop()
-
-      write(6,*) "HERE"
-
-ccc    remove these lines - this will be initialize somewhere else
-      allocate(tcub_loc(isd:ied,jsd:jed))
-
-      infi='atmos_daily.tile'
-      loctile=gid/dom_per_tile
-      loctile=loctile+1
-      write(istr,'(i1)') loctile
-      infile=trim(infi)//istr//'.nc'
-      write(*,*) infile
-      status = nf_open(trim(infile),nf_nowrite,fid)
-      write(*,*) "status=",status
-      status = nf_inq_varid(fid,'t_surf',vid)
-      if (status .ne. NF_NOERR) write(*,*) "ERROR"
-      srt = (/ 1, 1, 1 /)
-      cnt = (/ ic, jc, 1 /)
-      status = nf_get_vara_double(fid,vid,srt,cnt,tcub(1,1))
-      status = nf_close(fid)
-      tcub_loc(is:ie,js:je)=tcub(is:ie,js:je)
-
-c      tcub_loc(:,:)=1  !gid
-ccc    end remove
-
-
-c     zonal mean inside rolled loop
-
-      area_latband(:)=0.0
-      zonal_mean(:)=0.0
-
-      do i=is,ie
-         do j=js,je
-            call zonalmean_cs_loop(tcub_loc(i,j),i,j,
-     *           zonal_mean(:),area_latband(:))
-            enddo
-         enddo
-
-c     sum over all domains (not reducing rank)
-
-      call mpp_sum(area_latband,jm)
-      call mpp_sum(zonal_mean,jm)
-
-
-      if (gid .eq. rootpe) then
-      do jlat=1,jm
-         if (area_latband(jlat) .gt. 1.d-14) then
-c        line beloz should be moved in the weights inside zonal mean routine
-            zonal_mean(jlat)=zonal_mean(jlat)
-     *           /area_latband(jlat)
-         endif
-         write(*,*) "zonal_mean rolled=",zonal_mean(jlat)
-      enddo
-      endif
-
-      call mpp_exit()
-      deallocate(pelist)
-      deallocate(tcub_loc)
-      deallocate(xgrid_area)
-      deallocate(ijcub)
-      deallocate(ijlatlon)
-      deallocate(tile)
-
-      end subroutine test_zonal_loop
-c****
-
-
-
-
-      subroutine init_xgrid_unrolled()
-c****
-c     Initialize exchange grid for unrolled loops
-c****
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : gid
+!@sum Initialize exchange grid for constant latitude band zonal means (not zigzags)
+!@auth Denis Gueyffier
 
       use regrid_com
-      implicit none
-      include 'netcdf.inc'
-      include 'mpif.h'
-
-      integer :: status,fid,n,vid,ikey,jlat,nc2,rootpe
-      integer :: itile,j,idomain,loctile,ierr,icc,jcc
-      character*200 :: exchfile
-      real*8 :: checkarea
-      character(len=10) :: imch,jmch,icch,jcch 
-       
-      rootpe=mpp_root_pe()
-      
-      if (gid .eq. rootpe) then
-      write(*,*) "im, jm , ic , jc=",im,jm,ic,jc
-
-      write(imch,'(i10)') im
-      write(jmch,'(i10)') jm
-      write(icch,'(i10)') ic
-      write(jcch,'(i10)') jc
-
-      imch=trim(adjustl(imch))
-      jmch=trim(adjustl(jmch))
-      icch=trim(adjustl(icch))
-      jcch=trim(adjustl(jcch))
-
-      exchfile="remap"//trim(imch)//"-"//trim(jmch)
-     *     //"C"//trim(icch)//"-"//trim(jcch)//".nc"
-      write(*,*) "filename=",exchfile
-
-c      
-c Read weights
-c
-      status = nf_open(trim(exchfile),nf_nowrite,fid)
-      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN REMAP FILE"
- 
-      status = nf_inq_dimid(fid,'ncells',vid)
-      status = nf_inq_dimlen(fid,vid,ncells)
-
-      endif
-            
-c     
-c     Broadcast value of ncells & Allocate arrays with size 
-c     depending on ncells on each processor
-      
-
-      write(6,*) "HERE INIT UNROL"
-      write(6,*) "BEF bcast GID=",gid
-
-      call MPI_BCAST( ncells, 1, MPI_INTEGER, rootpe, 
-     *     MPI_COMM_WORLD, ierr ) 
-
-      write(6,*) "AFTER BCAST gid  ncells",gid,ncells
-
-      allocate(xgrid_area(ncells))
-      write(6,*) "xgrid ncells=",gid,ncells
-
-      allocate(ijcub(2,ncells))
-      write(6,*) "ijcub ncells=",gid,ncells
-
-      allocate(ijlatlon(2,ncells))
-      write(6,*) "ijlatlon ncells=",gid,ncells
-
-      allocate(tile(ncells))
-      write(6,*) "gid ncells=",gid,ncells 
-
-      if (gid .eq. rootpe) then
-         write(6,*) "IN ROOTPE"
-
-         status = nf_inq_varid(fid,'xgrid_area',vid)
-         status = nf_get_var_double(fid,vid,xgrid_area)
-         
-         status = nf_inq_varid(fid,'tile1',vid)
-         status = nf_get_var_int(fid,vid,tile)
-         
-         status = nf_inq_varid(fid,'tile1_cell',vid)
-         status = nf_get_var_int(fid,vid,ijcub)
-         
-         status = nf_inq_varid(fid,'tile2_cell',vid)
-         status = nf_get_var_int(fid,vid,ijlatlon)
-         
-         status = nf_close(fid)
-      endif
-
-
-c
-c     Broadcast x-grid area and indices to all procs
-c
-      nc2=2*ncells
-     
-      call MPI_BCAST( xgrid_area, ncells, MPI_DOUBLE_PRECISION,
-     *     rootpe, MPI_COMM_WORLD, ierr ) 
-
-      call MPI_BCAST( ijcub, nc2, MPI_INTEGER, rootpe, 
-     *     MPI_COMM_WORLD, ierr ) 
-
-      call MPI_BCAST( ijlatlon, nc2, MPI_INTEGER, rootpe, 
-     *     MPI_COMM_WORLD, ierr ) 
-
-      call MPI_BCAST( tile, ncells, MPI_INTEGER, rootpe, 
-     *     MPI_COMM_WORLD, ierr ) 
-
-
-c**** 
-c*     In order to speed up zonal mean calculation
-c*     we create an associative array (equivalent to a C++ multimap)
-c*     to store association between latitude index and (i,j,xcell_index,xarea)
-c*     The array is local to each domain - for the moment we 
-c*     assume 1 domain per cube face
-c*
-c*     array az11 : ikey->latitude_index
-c*     array az21 : ikey->xcell_index
-c*     array az31:  ikey->i
-c*     array az41:  ikey->j
-c      array az51:  ikey->xcell_area
-c*     keymax:         max(ikey)
-c****
-
-c     find current face
-      loctile=gid/dom_per_tile
-      loctile=loctile+1
-
-      write(*,*) "LOCTILE=",loctile
-
-c     calculate maxkey = size of azonal 
-      
-      ikey=1
-      do jlat=1,jm
-         do n=1,ncells
-            itile=tile(n)
-            if (itile .eq. loctile) then
-               j=ijlatlon(2,n)
-               if (j .eq. jlat) then
-                  ikey=ikey+1
-               endif
-            endif
-         enddo
-      enddo
-      
-      maxkey=ikey-1
-       
-      allocate(az11(maxkey))
-      allocate(az21(maxkey))
-      allocate(az31(maxkey))
-      allocate(az41(maxkey))
-      allocate(az51(maxkey))
-
-
-      az11(:)=0
-      az21(:)=0
-      az31(:)=0
-      az41(:)=0
-      az51(:)=0.d0
-
-      checkarea=0.d0
-      ikey=1
-      do jlat=1,jm
-         do n=1,ncells
-            itile=tile(n)
-            if (itile .eq. loctile) then
-               j=ijlatlon(2,n)
-               if (j .eq. jlat) then
-                  icc=ijcub(1,n)
-                  jcc=ijcub(2,n)
-                  az11(ikey)=j
-                  az21(ikey)=n
-                  az31(ikey)=icc
-                  az41(ikey)=jcc
-                  az51(ikey)=xgrid_area(n)
-                  checkarea=checkarea+xgrid_area(n)
-                  ikey=ikey+1
-               endif
-            endif
-         enddo
-      enddo
-
-      write(*,*) "checkarea=",checkarea
-
-      end subroutine init_xgrid_unrolled
-
-
-
-      subroutine init_xgrid_loop()
-c****
-c     Initialize exchange grid inside do loop
-c****
-      use regrid_com
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : gid
 
       implicit none
       include 'netcdf.inc'
       include 'mpif.h'
 
-      integer :: status,fid,n,vid,ikey,jlat,nc,nc2,rootpe,
-     *     loctile,ierr,icc,jcc
+      integer :: status,fid,n,vid,ikey,jlat,nc,nc2,
+     *     ierr,icc,jcc
       integer :: itile,j,idomain,iic,jjc,index,indexc
       character*200 :: exchfile
       real*8 :: checkarea
       character(len=10) :: imch,jmch,icch,jcch 
 
-      write(*,*) "im, jm , ic , jc=",im,jm,ic,jc
-
-      write(imch,'(i10)') im
-      write(jmch,'(i10)') jm
+      write(imch,'(i10)') ilonm
+      write(jmch,'(i10)') jlatm
       write(icch,'(i10)') ic
       write(jcch,'(i10)') jc
 
@@ -716,9 +49,7 @@ c
       allocate(ijlatlon(2,ncells))
       allocate(tile(ncells))
       
-      rootpe=mpp_root_pe()
-      
-      if (gid .eq. rootpe) then
+      if (AM_I_ROOT()) then   
          status = nf_inq_varid(fid,'xgrid_area',vid)
          status = nf_get_var_double(fid,vid,xgrid_area)
          
@@ -742,15 +73,15 @@ c
       write(6,*) "BEFMPI ROLLED"
 
       call MPI_BCAST( xgrid_area, ncells, MPI_DOUBLE_PRECISION,
-     *     rootpe, MPI_COMM_WORLD, ierr ) 
+     *     0, MPI_COMM_WORLD, ierr ) 
 
-      call MPI_BCAST( ijcub, nc2, MPI_INTEGER, rootpe, 
+      call MPI_BCAST( ijcub, nc2, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
 
-      call MPI_BCAST( ijlatlon, nc2, MPI_INTEGER, rootpe, 
+      call MPI_BCAST( ijlatlon, nc2, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
 
-      call MPI_BCAST( tile, ncells, MPI_INTEGER, rootpe, 
+      call MPI_BCAST( tile, ncells, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
 
       write(6,*) "AFT BCAST ROLLED"
@@ -762,17 +93,14 @@ c*     array az22 : ikey->jlat
 c*     array az32 : ikey->xgrid_area
 c****
 
-c     find current face
-      loctile=gid/dom_per_tile
-      loctile=loctile+1
-
+      
 c     calculate maxkey = size of azonal 
  
       ikey=1
-      do jlat=1,jm
+      do jlat=1,jlatm
          do n=1,ncells
             itile=tile(n)
-            if (itile .eq. loctile) then
+            if (itile .eq. mytile) then
                j=ijlatlon(2,n)
                if (j .eq. jlat) then
                   ikey=ikey+1
@@ -801,8 +129,7 @@ c     calculate maxkey = size of azonal
             index=(iic-1)*jc+jjc
             do n=1,ncells
                itile=tile(n)
-c               write(6,*) "itile loctile",itile,loctile
-               if (itile .eq. loctile) then
+               if (itile .eq. mytile) then
                   icc=ijcub(1,n)
                   jcc=ijcub(2,n)
                   indexc=(icc-1)*jc+jcc
@@ -823,79 +150,22 @@ c                     write(6,*) "ikey=",ikey
       write(*,*) "ikey=",ikey-1
       write(*,*) "->checkarea=",checkarea
       
-
-      end subroutine init_xgrid_loop
+      end subroutine init_xgrid_zonal
 c****
 
 
-
-
-      subroutine zonalmean_cs_unrolled(acub,
+      subroutine zonalmean_band(value,iinput,jinput,
      *     zonal_mean,area_latband)
-c****
-c     Calculate Zonal mean for current domain - cubed sphere version - unrolled loop    
-c
-c     INPUT:    acube          array to be summed
-c               zonal_mean
-c               latband_area   area of const. latitute band
-c****
 
-
-      use regrid_com
-      implicit none
-      include 'netcdf.inc'
-      real*8 :: acub(isd:ied,jsd:jed)
-      real*8 :: area_latband(jm)
-      real*8 :: zonal_mean(jm)
-      integer :: ikey,jlat,icub,jcub
-
-      do jlat=1,jm
-c         write(*,*) "jlat=",jlat
-         zonal_mean(jlat)=0.d0
-         area_latband(jlat)=0.d0
-         do ikey=1,maxkey
-c            write(*,*) "j=",az11(ikey)
-            if (az11(ikey) .eq. jlat) then
-               icub=az31(ikey)
-               jcub=az41(ikey)
-           if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
-     &          ( (jcub .le. je) .and. (jcub .ge. js)) ) then
-               area_latband(jlat)=area_latband(jlat)
-     *              +az51(ikey)
-               zonal_mean(jlat)=zonal_mean(jlat)+az51(ikey)
-     *              *acub(icub,jcub)
-               endif
-            endif
-         enddo
-      enddo
-
-c
-c     TODO : might be accelerated using matrix-matrix product, kronecker matrix operator and precomputed
-c     matrices...Still need to find the right formula 
-c
-       
-      end subroutine zonalmean_cs_unrolled
-c****
-
-
-
-
-      subroutine zonalmean_cs_loop(value,iinput,jinput,
-     *     zonal_mean,area_latband)
-c****
-c     Calculate Zonal mean for current domain - cubed sphere version     
-c
-c     INPUT:    value          value to be added to zonal mean
-c               iinput, jinput 
-c
-c****
-
+!@sum  Calculate zonal mean using latitute band algorithm (not zigzags on budget grid)
+!@auth Denis Gueyffier
 
       use regrid_com
       implicit none
       include 'netcdf.inc'
       integer, intent(in) :: iinput,jinput
-      real*8 :: value,zonal_mean(jm),area_latband(jm),zstore,astore
+      real*8 :: value,zonal_mean(jlatm),area_latband(jlatm),
+     & zstore,astore
       integer :: ikey,jlat,current_index,index
 
       if ( ( (iinput .le. ie) .and. (iinput .ge. is)) .and.
@@ -916,124 +186,21 @@ c****
 
       endif
 
-      end subroutine zonalmean_cs_loop
-c****
-
-
-
-      subroutine test_regrid()
-      use regrid_com
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop,domain_decomp
-      use fv_mp_mod, only : gid, domain
-      use fv_grid_utils_mod, only : grid_utils_init
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type
-      use fv_control_mod, only : uniform_ppm, c2l_ord
-
-      implicit none
-      include 'netcdf.inc'
-
-      real*8 :: tlatlon(im,jm),alatlon(im,jm)
-      integer :: i,j,n,itile,rootpe,ierr
-      integer :: nfaces,npx,npy,npes,ng,ndims
-      integer :: commID, status, fid, vid
-      integer, dimension(:), allocatable :: pelist
-      real*8, dimension(:,:), allocatable :: tcub_loc
-
-      integer :: l,npz
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline', ofi
-      logical :: non_ortho
-      integer, parameter :: nedge=4 ! number of edges on each face
-      integer :: nij_latlon,nc2
-      real*8 :: gsum
-
-
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-      write(6,*) 'rootpe= ',mpp_root_pe()
-      npx = 48; npy = npx 
-      
-      ng = 3 ! number of ghost zones required
-      call domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, ntiles, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
-
-      rootpe=mpp_root_pe()
-
-c read weights and initialize target array to zero
-      call init_regrid(pelist)
-
-c
-c     local section 
-c
-
-ccc    remove these lines - this will be initialize somewhere else
-      allocate(tcub_loc(isd:ied,jsd:jed))
-      tcub_loc(:,:)=gid
-ccc    end remove
-
-c      write(6,*) tcub_loc(:,:)
-      call parallel_regrid_cs2ll(tcub_loc,tlatlon,alatlon)   
-
-      ofi='tstout.nc'
-      status = nf_open(trim(ofi),nf_write,fid)
-      if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-      status = nf_inq_varid(fid,'lwup_sfc',vid)
-      write(*,*) NF_STRERROR(status)
-      status = nf_put_var_double(fid,vid,tlatlon)
-      write(*,*) NF_STRERROR(status)
-     
-      status = nf_close(fid)
-
-      call mpp_exit()
-
-      deallocate(pelist)
-      deallocate(tcub_loc)
-      deallocate(xgrid_area)
-      deallocate(ijcub)
-      deallocate(ijlatlon)
-      deallocate(tile)
-
-      end subroutine test_regrid
-
+      end subroutine zonalmean_band
+c*
 
 
       subroutine parallel_regrid_cs2ll(tcub_loc,tlatlon,alatlon)
+
+!@sum  Parallel regriding from cubed-sphere to lat-lon grid
+!@auth Denis Gueyffier
+
       use regrid_com
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : gid
       implicit none
-      real*8 :: tlatlon(im,jm),alatlon(im,jm),
+      real*8 :: tlatlon(ilonm,jlatm),alatlon(ilonm,jlatm),
      &     tcub_loc(isd:ied,jsd:jed)
-      integer :: loctile  !tile index of current domain
-      integer :: n,icub,jcub,i,j,itile,nij_latlon,rootpe
+      integer :: n,icub,jcub,i,j,itile,nij_latlon
       
-      loctile=gid/dom_per_tile
-      loctile=loctile+1
-
-c      write(6,*) 'GIIIDD=',gid
-c      write(6,*) 'LOCTILE=',loctile
-
       alatlon(:,:) = 0d0
       tlatlon(:,:) = 0d0
 
@@ -1044,7 +211,7 @@ c      write(6,*) 'LOCTILE=',loctile
 c        write(6,*) 'ie, icub, is=',ie,icub,is
 c        write(6,*) 'je, jcub, js=',je,jcub,js
 
-        if (itile .eq. loctile) then
+        if (itile .eq. mytile) then
            if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
      &          ( (jcub .le. je) .and. (jcub .ge. js)) ) then
               write(6,*) 'xg_area',xgrid_area(n)
@@ -1060,39 +227,36 @@ c        write(6,*) 'je, jcub, js=',je,jcub,js
 c
 c     sum all contributions
 c
-      nij_latlon=im*jm
-      call mpp_sum(tlatlon,nij_latlon)
 
-      call mpp_sum(alatlon,nij_latlon)
+      call SUMXPE(tlatlon)
+      call SUMXPE(alatlon)
 
 c
 c     root proc section
 c
-      if (gid .eq. rootpe) then
-      tlatlon(:,:) = tlatlon(:,:)/alatlon(:,:)
+
+      if (AM_I_ROOT()) then   
+         tlatlon(:,:) = tlatlon(:,:)/alatlon(:,:)
       endif
 
       end subroutine parallel_regrid_cs2ll
-c****
-
+c*
 
 
 
       subroutine root_regrid_ll2cs(tlatlon,tcubglob)
-c
-c     root processor regrids data from lat-lon -> cubbed sphere 
-c
+
+!@sum  Root processor regrids data from lat-lon -> cubbed sphere 
+!@auth Denis Gueyffier
+
       use regrid_com
-      use mpp_mod
-      use fv_mp_mod, only : gid
       implicit none
-      real*8 :: tlatlon(im,jm),tcubglob(ic,jc,6),
+      real*8 :: tlatlon(ilonm,jlatm),tcubglob(ic,jc,6),
      &     acubglob(ic,jc,6)
       integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl
-      
 
-      if (gid .eq. 0) then
-         
+
+      if (AM_I_ROOT()) then   
          write(6,*) "IN ROOT REGRID LL2CS"
          acubglob(:,:,:) = 0d0
          tcubglob(:,:,:) = 0d0
@@ -1122,51 +286,56 @@ c
       endif
       
       end subroutine root_regrid_ll2cs
-c****
+c*
          
+      subroutine init_regrid()
 
+!@sum  Reads regriding file on root proc then broadcasts the 
+!@+    x-grid data to all procs. It also initializes variables 
+!@+    and provides single point of access 
+!@+    to grid data through reference to dist_grid.
+!@auth Denis Gueyffier
 
-      subroutine init_regrid(pelist)
-c     
-c     Reads regriding file on root proc then
-c     broadcasts the data on all procs
-c     
       use regrid_com
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : gid
       implicit none
       include 'netcdf.inc'
       include 'mpif.h'
       
-      integer :: status,fid,n,vid,ikey,jlat,rootpe
+      integer :: status,fid,n,vid,ikey,jlat
       integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
       integer :: ierr
       character*200 :: exchfile
       character(len=10) :: imch,jmch,icch,jcch
-      integer, dimension(:), allocatable :: pelist
 
-      
-      rootpe=mpp_root_pe()
-      
-      if (gid .eq. rootpe) then
-         
-         write(6,*) "GID INIT=",gid
-         
-         write(imch,'(i10)') im
-         write(jmch,'(i10)') jm
+c     set variables ("Constructor")
+      is=grid%I_STRT
+      ie=grid%I_STOP
+      isd=grid%I_STRT_HALO
+      ied=grid%I_STOP_HALO
+
+      js=grid%J_STRT
+      je=grid%J_STOP
+      jsd=grid%J_STRT_HALO
+      jed=grid%J_STOP_HALO
+
+      call MPI_COMM_RANK(MPI_COMM_WORLD,gid,ierr) ! will soon be replaced by gid = grid%dd2d%gid
+c      call MPI_COMM_SIZE(MPI_COMM_WORLD,totPEs,ierr)
+
+      mytile=(gid/dom_per_tile)+1   ! will soon be mytile=grid%dd2d%mytile
+
+c
+      if (AM_I_ROOT()) then   
+         write(imch,'(i10)') ilonm
+         write(jmch,'(i10)') jlatm
          write(icch,'(i10)') ic
          write(jcch,'(i10)') jc
-         
          imch=trim(adjustl(imch))
          jmch=trim(adjustl(jmch))
          icch=trim(adjustl(icch))
          jcch=trim(adjustl(jcch))
-c         exchfile="exexch.nc"
          exchfile="remap"//trim(imch)//"-"//trim(jmch)
      *        //"C"//trim(icch)//"-"//trim(jcch)//".nc"
          write(*,*) "filename=",exchfile
-         
 c     
 c     Read weights
 c     
@@ -1176,37 +345,29 @@ c
          
          status = nf_inq_dimid(fid,'ncells',vid)
          status = nf_inq_dimlen(fid,vid,ncells)
-         
       endif
             
-c     
 c     Broadcast value of ncells & Allocate arrays with size 
 c     depending on ncells on each processor
-      
 
-      call MPI_BCAST( ncells, 1, MPI_INTEGER, rootpe, 
+      call MPI_BCAST( ncells, 1, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
-
-      write(6,*) "ncells GID", ncells,gid
 
       allocate(xgrid_area(ncells))
       allocate(ijcub(2,ncells))
       allocate(ijlatlon(2,ncells))
       allocate(tile(ncells))
-      
-      if (gid .eq. rootpe) then
+
+
+      if (AM_I_ROOT()) then   
          status = nf_inq_varid(fid,'xgrid_area',vid)
          status = nf_get_var_double(fid,vid,xgrid_area)
-         
          status = nf_inq_varid(fid,'tile1',vid)
          status = nf_get_var_int(fid,vid,tile)
-         
          status = nf_inq_varid(fid,'tile1_cell',vid)
          status = nf_get_var_int(fid,vid,ijcub)
-         
          status = nf_inq_varid(fid,'tile2_cell',vid)
          status = nf_get_var_int(fid,vid,ijlatlon)
-         
          status = nf_close(fid)
       endif
       
@@ -1215,103 +376,25 @@ c     Broadcast x-grid area and indices to all procs
 c
       nc2=2*ncells
      
-
       call MPI_BCAST( xgrid_area, ncells, MPI_DOUBLE_PRECISION,
-     *     rootpe, MPI_COMM_WORLD, ierr ) 
-
-      call MPI_BCAST( ijcub, nc2, MPI_INTEGER, rootpe, 
+     *     0, MPI_COMM_WORLD, ierr ) 
+      call MPI_BCAST( ijcub, nc2, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
-
-      call MPI_BCAST( ijlatlon, nc2, MPI_INTEGER, rootpe, 
+      call MPI_BCAST( ijlatlon, nc2, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
-
-      call MPI_BCAST( tile, ncells, MPI_INTEGER, rootpe, 
+      call MPI_BCAST( tile, ncells, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
 
       end subroutine init_regrid
-c**** 
+c*
 
 
 
-
-      subroutine init_regrid_rootpe
-c     
-c     Reads regriding file on root proc 
-c     
-      use regrid_com
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : gid
-      implicit none
-      include 'netcdf.inc'
-      include 'mpif.h'
-      
-      integer :: status,fid,n,vid,ikey,jlat,rootpe
-      integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
-      integer :: ierr
-      character*200 :: exchfile
-      character(len=10) :: imch,jmch,icch,jcch
-      integer, dimension(:), allocatable :: pelist
-
-      
-      rootpe=mpp_root_pe()
-      
-      if (gid .eq. rootpe) then
-         
-         write(6,*) "GID INIT=",gid
-         
-         write(imch,'(i10)') im
-         write(jmch,'(i10)') jm
-         write(icch,'(i10)') ic
-         write(jcch,'(i10)') jc
-         
-         imch=trim(adjustl(imch))
-         jmch=trim(adjustl(jmch))
-         icch=trim(adjustl(icch))
-         jcch=trim(adjustl(jcch))
-c         exchfile="exexch.nc"
-         exchfile="remap"//trim(imch)//"-"//trim(jmch)
-     *        //"C"//trim(icch)//"-"//trim(jcch)//".nc"
-         write(*,*) "filename=",exchfile
-         
-c     
-c     Read weights
-c     
-         status = nf_open(trim(exchfile),nf_nowrite,fid)
-         if (status .ne. NF_NOERR) write(*,*) 
-     *        "UNABLE TO OPEN REMAP FILE"
-         
-         status = nf_inq_dimid(fid,'ncells',vid)
-         status = nf_inq_dimlen(fid,vid,ncells)
-         
-
-      allocate(xgrid_area(ncells))
-      allocate(ijcub(2,ncells))
-      allocate(ijlatlon(2,ncells))
-      allocate(tile(ncells))
-      
-      status = nf_inq_varid(fid,'xgrid_area',vid)
-      status = nf_get_var_double(fid,vid,xgrid_area)
-      
-      status = nf_inq_varid(fid,'tile1',vid)
-      status = nf_get_var_int(fid,vid,tile)
-      
-      status = nf_inq_varid(fid,'tile1_cell',vid)
-      status = nf_get_var_int(fid,vid,ijcub)
-         
-      status = nf_inq_varid(fid,'tile2_cell',vid)
-      status = nf_get_var_int(fid,vid,ijlatlon)
-         
-      status = nf_close(fid)
-      
-      endif
-      
-      end subroutine init_regrid_rootpe
-c**** 
-
-
-ccc
       subroutine offregrid()
+
+!@sum  offline regridding of input files
+!@auth Denis Gueyffier (based on earlier version by Max Kelley)
+
       implicit none
       character*200 :: wtfile,ofile,infi,outfile
       character*200 :: outunformat1,outunformat2,outunformat3 
@@ -1322,15 +405,15 @@ ccc
 
       include 'netcdf.inc'
       integer, parameter :: ncells=31344,nmax=500
-      integer, parameter :: im=72,jm=46,imc=48,jmc=48
+      integer, parameter :: ilonm=72,jlatm=46,imc=48,jmc=48
       real*8 :: xgrid_area(ncells),tot_area
       real*8 :: tcub(imc,jmc,6),acub(imc,jmc,6),area_tile(6)
-      real*8 :: tll(im,jm,nmax)
+      real*8 :: tll(ilonm,jlatm,nmax)
       integer :: tile(ncells)
       integer, dimension(2,ncells) :: ijcub,ijlatlon
       integer :: status,vid,fid,itile,srt(2),cnt(2),n,i,j,ic,jc,il,jl
       character*80 TITLE(nmax)
-      real*4 data(im,jm,nmax),tout(imc,jmc,6)
+      real*4 data(ilonm,jlatm,nmax),tout(imc,jmc,6)
       integer iu1,iu2,iu3,iu4,iu5,iu6,irec,recmax,ir,iunit
 
 c read weights
@@ -1362,8 +445,8 @@ c Read data on latlon grid
  
       write(*,*) TITLE(irec)
 
-      do i=1,im
-         do j=1,jm
+      do i=1,ilonm
+         do j=1,jlatm
             tll(i,j,irec)= data(i,j,irec)
          enddo
       enddo
@@ -1458,7 +541,6 @@ c
             outfile=trim(ofile)//ostr//'-'//trim(irstr)
      *           //'.nc'
             
-            write(*,*) "ni=",im," nj=",jm
             write(*,*) "outfile =",outfile
             status = nf_open(trim(outfile),nf_write,fid)
             if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
@@ -1492,36 +574,35 @@ c
       close(iu4)
       close(iu5)
       close(iu6)
-      
-
+   
       end subroutine offregrid
-c****
-
+c*
 
 
       subroutine readt_regrid_parallel(iunit,name,nskip,tcubloc,ipos)
-c     
-c     Read input data on lat-lon grid, regrid to global cubbed sphere grid
-c     then scatter to all subdomains
-c
-      use regrid_com, only :im,jm,ic,jc
+
+!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
+!@+    then scatter to all subdomains
+!@auth Denis Gueyffier
+
+      use regrid_com, only :ilonm,jlatm,ic,jc,gid,AM_I_ROOT
       use gatscat_mod
-      use fv_mp_mod, only : is,ie,js,je,isd,ied,jsd,jed,gid, domain
       implicit none
       integer, intent(in) :: iunit
       character*16, intent(in) :: name
       integer, intent(in) :: nskip
 
       real*8 :: tcubloc(is:ie,js:je) !output regridded and scattered data 
-      real*4 :: tllr4(IM,JM)  ! latlon real*4 data read from input file
-      real*8 :: tdatall(IM,JM)  ! latlon real*8 data 
+      real*4 :: tllr4(ilonm,jlatm)  ! latlon real*4 data read from input file
+      real*8 :: tdatall(ilonm,jlatm)  ! latlon real*8 data 
       real*8 :: tcubglob(ic,jc,6)  ! global array 
       real*4 :: X              !dummy arrays
       integer, intent(in) :: ipos
       integer :: n,ierr
       character*80 :: TITLE     
 
-      if (gid .eq. 0) then
+
+      if (AM_I_ROOT()) then   
          do n=1,ipos-1
             read(UNIT=iunit,IOSTAT=ierr)
          enddo
@@ -1533,33 +614,33 @@ c     Regrid from lat-lon to cubbed sphere, form global array
        endif
 
 c     Scatter data to every processor
-      write(6,*) "BEFORE UNPACK, gid=",gid
 c      write(6,*) tcubglob
       call unpack_data(tcubglob,tcubloc)
       write(6,*) tcubloc
       end subroutine readt_regrid_parallel
-c****
+c*
+
 
 
       subroutine dread_regrid_parallel(iunit,name,tcubloc)
-c     
-c     Read input data on lat-lon grid, regrid to global cubbed sphere grid
-c     then scatter to all subdomains
-c
-      use regrid_com, only :im,jm,ic,jc
+     
+!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
+!@+    then scatter to all subdomains
+!@auth Denis Gueyffier
+
+      use regrid_com, only :ilonm,jlatm,ic,jc,AM_I_ROOT
       use gatscat_mod
-      use fv_mp_mod, only : is,ie,js,je,isd,ied,jsd,jed,gid,domain
       implicit none
       integer, intent(in) :: iunit
       character*16, intent(in) :: name
       real*8 :: tcubloc(is:ie,js:je) !output regridded and scattered data 
-      real*4 :: tllr4(IM,JM)  ! latlon real*4 data read from input file
-      real*8 :: tdatall(IM,JM)  ! latlon real*8 data 
+      real*4 :: tllr4(ilonm,jlatm)  ! latlon real*4 data read from input file
+      real*8 :: tdatall(ilonm,jlatm)  ! latlon real*8 data 
       real*8 :: tcubglob(ic,jc,6)  ! global array 
       real*4 :: X              !dummy arrays
       integer :: ierr
-
-      if (gid .eq. 0) then
+   
+      if (AM_I_ROOT()) then   
          read(UNIt=iunit,IOSTAT=ierr) tllr4
 c     convert from real*4 to real*8
          tdatall=tllr4
@@ -1568,119 +649,11 @@ c     Regrid from lat-lon to cubbed sphere, form global array
        endif
 
 c     Scatter data to every processor
-      write(6,*) "BEFORE UNPACK, gid=",gid
 c      write(6,*) tcubglob
       call unpack_data(tcubglob,tcubloc)
       write(6,*) tcubloc
       end subroutine dread_regrid_parallel
-c****
-
-
-
-      subroutine test_rr2()
-      use regrid_com, only : im,jm,ic,jc
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop
-     &     ,fv_domain_decomp=>domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
-      use fv_grid_utils_mod, only : cosa_s,sina_s
-     &     ,grid_utils_init
-c     &     ,sw_corner,se_corner,ne_corner,nw_corner
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
-      use fv_control_mod, only : uniform_ppm,c2l_ord
-      use gs_domain_decomp, ng=>halo_width
-      use gatscat_mod
-
-      implicit none
-      integer :: i,j,npz
-      integer :: npes,ndims
-      integer :: commID
-      integer, dimension(:), allocatable :: pelist
-
-c pack
-      real*8, dimension(:,:), allocatable :: arrij
-      character*80 :: TITLE
-
-      real*4 :: tllr4(IM,JM)  ! latlon real*4 data read from input file
-      real*4 :: X(IM,JM)
-      real*8 :: tdatall(IM,JM)  ! latlon real*8 data 
-      real*8 :: tcubglob(ic,jc,6)  ! global array 
-      integer :: n,ipos,ierr,nskip
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline'
-      logical :: non_ortho
-
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-c      write(6,*) 'commID ',commID
-      npx = ic; npy = npx ! 1x1 resolution
-      ng = 3 ! number of ghost zones required
-
-      call fv_domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
-c      call mp_stop()
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, ntiles, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-      call domain_decomp_init
-      call gatscat_init
-
-c      write(6,*) 'indices', is, ie, js, je, isd, ied, jsd, jed
-
-c***  Initialize exchange grid for zonal means
-      call init_xgrid_loop()
-
-      write(6,*) "AFT. init xgrid"
-
-      open(UNIT=10, FILE="AIC.RES_F20.D771201", 
-     *     FORM="UNFORMATTED", 
-     *     STATUS="OLD",CONVERT='BIG_ENDIAN')
-
-      ipos=1
-      nskip=0
-
-      if (gid .eq. 0) then
-         do n=1,ipos-1
-            read(UNIT=10,IOSTAT=ierr)
-         enddo
-         read(UNIT=10,IOSTAT=ierr) TITLE, (X,n=1,nskip), tllr4
-c     convert from real*4 to real*8
-         tdatall=tllr4
-     
-c
-c     Regrid from lat-lon to cubbed sphere, form global array
-c
-
-         call root_regrid_ll2cs(tdatall,tcubglob)
-
-      endif
-
-      allocate(arrij   (is:ie,js:je))
-      
-      call unpack_data(tcubglob,arrij)
-      write(6,*) ">>>>>>>>>ARRIJ GID>>>>>>>>>>",gid
-      write(6,*) arrij
-
-      call mpp_exit()
-
-      end subroutine test_rr2
-c****
+c*
 
 
 
@@ -1777,28 +750,31 @@ C**** EGAs ungrouped
       Real*8 ::
      *  SofN(NMAX)  !  spherical area of N-th EGA
       EndModule LLvsCS
+c*
 
       subroutine exact_regrid()
-C****
-C**** Longitude-Latitude grid cells intersect Cube-Sphere grid cells
-C**** on a sphere, their common areas being formed by polygons.
-C**** The set of such polygons is called the Exchange grid.
-C**** This program calculates the area of each Exchange grid cell.
-C****
-C**** Output of this program is the Exchange grid areas (Sof..) and
-C**** their associated numbered grid cells on the Longitude-Latitude
-C**** grid (G,H) or the Cube-Sphere grid (I,J,K).
-C**** Longitudinal numbering of grid cells is rather arbitrary and can
-C**** be modified by rotating the G's or the faces of the cube.
-C**** In the comments embedded in this program, it is assumed that
-C**** Face 1 of the cube projects onto longitudes between 45 W and 45 E
-C**** and that the western edges of cells with G = 1 coincide with the
-C**** International Date Line.  If Face 1 projects onto longitudes
-C**** between 135 E and 135 W and the western edges of cells with G = 1
-C**** coincide with the Greenwich Meridian, then the output arrays
-C**** (Sof.., G, H, I, J, K) are still correct and do not need to be
-C**** modified (although the embedded comments are not correct).
-C****
+
+!@sum Longitude-Latitude grid cells intersect Cube-Sphere grid cells
+!@+   on a sphere, their common areas being formed by polygons.
+!@+   The set of such polygons is called the Exchange grid.
+!@+   This program calculates the area of each Exchange grid cell.
+!@+
+!@+   Output of this program is the Exchange grid areas (Sof..) and
+!@+   their associated numbered grid cells on the Longitude-Latitude
+!@+   grid (G,H) or the Cube-Sphere grid (I,J,K).
+!@+   Longitudinal numbering of grid cells is rather arbitrary and can
+!@+   be modified by rotating the G's or the faces of the cube.
+!@+   In the comments embedded in this program, it is assumed that
+!@+   Face 1 of the cube projects onto longitudes between 45 W and 45 E
+!@+   and that the western edges of cells with G = 1 coincide with the
+!@+   International Date Line.  If Face 1 projects onto longitudes
+!@+   between 135 E and 135 W and the western edges of cells with G = 1
+!@+   coincide with the Greenwich Meridian, then the output arrays
+!@+   (Sof.., G, H, I, J, K) are still correct and do not need to be
+!@+   modified (although the embedded comments are not correct).
+
+!@auth Gary Russell
+
       Use LLvsCS
       Implicit Integer*4 (G-N), Real*16 (A-F,O-Z)
       integer :: fid,vid,intshift
@@ -2436,15 +1412,38 @@ C     N = NMofGH(G,H) + 1
    20 M = N
       Return
       End
+c*
 
 
 
-      subroutine test_add_dd()
-C**** This code calculates the summation of an array of real numbers with
-C**** different number of processors using double-double precision. 
-C**** Based on Yun He and Chris Ding, NERSC. 
-C**** Modified complex->complex*16, cmplx->dcmplx, 
-C**** MPI_REAL->MPI_REAL8, MPI_COMPLEX->MPI_DOUBLE_COMPLEX
+      subroutine add_DD (dda, ddb)
+
+!@sum  Compute dda + ddb using double-double arithmetics
+!@auth Denis Gueyffier, adapted from  Yun He and Chris Ding, 
+!@auth Journal of Supercomputing, 2001
+      implicit none
+      real*8 e, t1, t2
+      complex*16 dda, ddb
+
+      t1 = real(dda) + real(ddb)
+      e = t1 - real(dda)
+      t2 = ((real(ddb) - e) + (real(dda) - (t1 - e)))
+     &     +imag(dda) + imag(ddb)
+      ddb = dcmplx ( t1 + t2, t2 - ((t1 + t2) - t1) )
+
+      return
+      end
+
+
+
+
+      subroutine globaladd_dd()
+!@sum This code calculates a reproducible globalsum 
+!@+   independent on number of processors using double-double precision method
+!@+   complex->complex*16, cmplx->dcmplx, 
+!@+   MPI_REAL->MPI_REAL8, MPI_COMPLEX->MPI_DOUBLE_COMPLEX
+!@auth Denis Gueyffier, based on Yun He and Chris Ding, 
+!@+   Journal of Supercomputing, 2001
 
       implicit none
       include 'mpif.h'
@@ -2462,17 +1461,14 @@ C**** MPI_REAL->MPI_REAL8, MPI_COMPLEX->MPI_DOUBLE_COMPLEX
 C  operator MPI_SUMDD is created based on an external function add_dd
       call MPI_OP_CREATE(add_DD, .TRUE., MPI_SUMDD, ierr)
 
-C  matrix size, my application data is saved in a 1-D array format.
       imt = 120
       jmt = 64
 
-C  calculate number of data for each processor
       num = imt*jmt/totPEs + 1
       write(*,*) 'myPE=', myPE, ' num=', num
       allocate (local_array(num))
 
-C  read data and patch zero for PE 0 
-      
+C  read data for root proc 
       if (myPE .eq. 0) then
          allocate(array(num*totPEs))
          open(10, file ='etaana.dat', status='unknown')
@@ -2483,18 +1479,15 @@ C  read data and patch zero for PE 0
          do i=imt*jmt+1,num*totPEs
             array(i)=0.0d0
          enddo
-         
       endif 
 
-C  I need to scatter the global array on PE0 to everybody
-C  each processor owns a subsection, and calculate the local_sum
-
+C  scatter array
       call MPI_SCATTER(array, num, MPI_REAL8,
-     &                 local_array, num, MPI_REAL8, 0,
-     &                 MPI_COMM_WORLD, ierr)
+     &     local_array, num, MPI_REAL8, 0,
+     &     MPI_COMM_WORLD, ierr)
 
       if (myPE .eq. 0) deallocate (array) 
-
+      
 C  Each processor calculates the local_sum of its own section first. 
 C  Complex number is defined to represent local_sum and local_sum err.
       local_sum = 0.0
@@ -2507,8 +1500,7 @@ C  Complex number is defined to represent local_sum and local_sum err.
 C  add all local_sums on each PE to PE0 with MPI_SUMDD.
 C  global_sum is a complex number, represents final (sum, error).
       call MPI_REDUCE (local_sum, global_sum, 1, MPI_DOUBLE_COMPLEX, 
-     &     MPI_SUMDD,
-     &     0, MPI_COMM_WORLD, ierr)
+     &     MPI_SUMDD, 0, MPI_COMM_WORLD, ierr)
 
       if (myPE.eq.0) then
          write(*,*)'quad precision sum, error= ', global_sum
@@ -2516,24 +1508,4 @@ C  global_sum is a complex number, represents final (sum, error).
 
       call MPI_FINALIZE(ierr)
 
-      end subroutine test_add_dd
-
-
-      subroutine add_DD (dda, ddb)
-c   Compute dda + ddb using double-double arithmetics
-      implicit none
-      real*8 e, t1, t2
-      complex*16 dda, ddb
-
-      t1 = real(dda) + real(ddb)
-      e = t1 - real(dda)
-      t2 = ((real(ddb) - e) + (real(dda) - (t1 - e)))
-     &     +imag(dda) + imag(ddb)
-      ddb = dcmplx ( t1 + t2, t2 - ((t1 + t2) - t1) )
-
-      return
-      end
-
-
-
-
+      end subroutine globaladd_dd
