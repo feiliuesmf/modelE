@@ -3064,6 +3064,7 @@ C                                                                -------
 
       SUBROUTINE SETAER( GETAER_flag )
 cc    INCLUDE  'rad00def.radCOMMON.f'
+      USE MODEL_COM, only :LM
       IMPLICIT NONE
       INTEGER, optional :: GETAER_flag
 C     ---------------------------------------------------------------
@@ -3100,6 +3101,8 @@ C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8 ATAULX(LX,6),TTAULX(LX,ITRMAX),SRBGQL,FAC
+      REAL*8, DIMENSION(LM,6)  :: EXT,SCT,GCB
+      REAL*8, DIMENSION(LM,33) :: TAB
       INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
       if ( present(GETAER_flag) ) goto 200
@@ -3280,6 +3283,20 @@ C-----------------
   360 CONTINUE
 
   500 CONTINUE
+
+#ifdef TRACERS_AMP
+      CALL SETAMP(EXT,SCT,GCB,TAB)
+       do L = L1,LM  !radiation has 3 extra levels on the top - aerosol are zero
+c SW
+         SRBEXT(l,:) = EXT(l,:) * FSTOPX(1)
+         SRBSCT(l,:) = SCT(l,:) * FSTOPX(1)
+         SRBGCB(l,:) = GCB(l,:) * FSTOPX(1)
+c LW
+         TRBALK(l,:) = TAB(l,:) * FTTOPX(1)
+       enddo   
+#endif
+
+#ifndef TRACERS_AMP
       IF(NTRACE <= 0) RETURN
 
 C     ------------------------------------------------------------------
@@ -3326,7 +3343,7 @@ C     ------------------------------------------------------------------
       RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FTXTAU*FTTOPX(NT)
       TRBALK(L,:)=TRBALK(L,:)+TRTQAB(:,NRHNAN(L,NA),NT)*RHFTAU ! 1:33
   750 CONTINUE
-
+#endif
       RETURN
       END SUBROUTINE SETAER
 

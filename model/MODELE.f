@@ -2048,6 +2048,7 @@ C**** Initialize nudging
       CALL SETUP_KCI
       CALL SETUP_NPFMASS
       CALL SETUP_DIAM
+      CALL SETUP_RAD
 #endif
 C****
       if(istart.gt.0) CALL RINIT (IRAND)

@@ -5,23 +5,36 @@
       USE TRACER_COM
       USE AERO_CONFIG, ONLY: NMODES
       USE AERO_PARAM,  ONLY: NEMIS_SPCS
+      USE MODEL_COM,   ONLY: LM
       IMPLICIT NONE
       SAVE
 
 C**************  Latitude-Dependant (allocatable) *******************
+      ! Mie lookup tables
+      REAL*8, DIMENSION(17,15,6,23)      :: AMP_EXT, AMP_ASY, AMP_SCA   !(17,15,6,12) (IM,RE,lambda,size)
+      REAL*8, DIMENSION(17,15,23)        :: AMP_Q55
+      ! 1 Dim arrays for Radiation
+      REAL*8, DIMENSION(LM,nmodes)       :: Reff_LEV, NUMB_LEV
+      COMPLEX*8, DIMENSION(LM,nmodes,6)  :: RindexAMP
+      REAL*8, DIMENSION(LM,nmodes,7)      :: dry_Vf_LEV
+
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: MASSH2O    ![ug/m^3](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_dens   !density(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: DTR_AMPe   !(jm,ntmAMP) ! Emission diagnostic - hardcoded to 10 in TRDIAG
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMP    !(7,jm,ntmAMP)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMPm   !(2,jm,ntmAMP)	  
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NUMB_SS  ! Sea salt number concentration [#/gb]
 #ifdef BLK_2MOM
       REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: NACTC      ! = 1.0D-30  ![#/m3](l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: NAERC      ! = 1.0D-30  ![#/m3](l,nmodes)
 #endif
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: DTR_AMPe   !(jm,ntmAMP) ! Emission diagnostic - hardcoded to 10 in TRDIAG
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMP    !(7,jm,ntmAMP)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMPm   !(2,jm,ntmAMP)
+
+
 !-------------------------------------------------------------------------------------------------------------------------
 !     The array VDDEP_AERO(X,Y,Z,I,1) contains current values for the dry deposition velocities 
 !     for aerosol number concentrations for mode I. 
@@ -90,6 +103,8 @@ C**************  Latitude-Dependant (allocatable) *******************
       INTEGER:: j,l,i,n,J_0, J_1
 C**** functions
       REAL(8):: QSAT
+c***  daily output
+      character*30 diam_1
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
 #ifndef  TRACERS_SPECIAL_Shindell
@@ -101,11 +116,14 @@ C**** functions
       VDDEP_AERO(:,J_0:J_1,:,:) = 0.d0 
       DIAM(:,J_0:J_1,:,:)       = 0.d0
       AMP_dens(:,J_0:J_1,:,:)   = 0.d0
-      AMP_TR_MM(:,J_0:J_1,:,:)   = 0.d0
+      AMP_TR_MM(:,J_0:J_1,:,:)  = 0.d0
+      NUMB_SS(:,J_0:J_1,:,:)    = 0.d0
 #ifdef BLK_2MOM
       NACTC(:,:)=0.d0
       NAERC(:,:)=0.d0
 #endif
+
+
 
 
       DO L=1,LM                            
@@ -193,6 +211,11 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
      *        -trm(i,j,l,n)) /dtsrc
           endif   
        ENDDO
+
+       NUMB_SS(i,j,l,1) = AERO(22) *AVOL
+       NUMB_SS(i,j,l,2) = AERO(25) *AVOL ! but has only tiny number in it
+    
+
       tr3Dsource(i,j,l,1,n_H2SO4) =((GAS(1)*AVOL *1.d-9)
      *        -trm(i,j,l,n_H2SO4)) /dtsrc 
       tr3Dsource(i,j,l,1,n_NH3)   =((GAS(3)*AVOL *1.d-9)
@@ -273,7 +296,6 @@ c    *AERO(AMP_AERO_MAP(n)),
 c    *trm(i,j,l,n),AVOL,i,j,l,n,NACTC(l,n)
 c     enddo
 #endif
-
       ENDDO !i
       ENDDO !j
       ENDDO !l
@@ -298,6 +320,9 @@ c     enddo
       CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
        end select
       enddo
+
+c      diam_1='diam_1'
+c      call INST_ncoutd(diam_1,DIAM(:,:,:,1))
 
       RETURN
       END SUBROUTINE MATRIX_DRV
@@ -401,18 +426,24 @@ c -----------------------------------------------------------------
       allocate(  DTR_AMPm(2,J_0H:J_1H,ntmAMP)  )
       allocate(  DTR_AMP(7,J_0H:J_1H,ntmAMP)   )
       allocate(  DIAM(IM,J_0H:J_1H,LM,nmodes)  )
+      allocate(  MASSH2O(IM,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_TR_MM(IM,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_dens(IM,J_0H:J_1H,LM,nmodes)  )
       allocate(  NACTV(IM,J_0H:J_1H,LM,nmodes) )
       allocate(  VDDEP_AERO(IM,J_0H:J_1H,nmodes,2))
-      
+      allocate(  NUMB_SS(IM,J_0H:J_1H,LM,2))
+
+      NACTV   = 1.0D-30
+      DIAM    = 1.0D-30
+      MASSH2O = 1.0D-30
+             
 #ifdef BLK_2MOM
       NACTV      = 1.0D-30
       allocate(  NACTC(LM,nmodes) )
       NACTC      = 1.0D-30
       allocate(  NAERC(LM,nmodes) )
       NAERC      = 1.0D-30
-#endif
+#endif    
       return
       end subroutine alloc_tracer_amp_com
       

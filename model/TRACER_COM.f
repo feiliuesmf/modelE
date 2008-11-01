@@ -728,7 +728,7 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
      *     n_M_MXX_SU=0,n_M_MXX_BC=0,n_M_MXX_OC=0,n_M_MXX_DU=0,
      *     n_M_MXX_SS=0,n_N_MXX_1 =0,n_M_OCS_SU=0,n_M_OCS_OC=0,
      *     n_N_OCS_1=0,n_M_SSS_SS=0,n_M_SSS_SU=0,
-     *     n_H2SO4=0
+     *     n_H2SO4=0, n_N_SSA_1=0, n_N_SSC_1=0
 
 C**** standard tracer and tracer moment arrays
 

@@ -399,6 +399,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
+#ifdef TRACERS_AMP
+      USE AERO_CONFIG, only: nmodes
+#endif
       IMPLICIT NONE
 
       INTEGER J,L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
@@ -664,6 +667,19 @@ caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
+#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
+      if (rad_interact_tr.gt.0) then  
+C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
+        FS8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0 , 1d0/)
+        FT8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
+      end if
+      NTRACE=0
+      NTRIX(1:NMODES)=
+     *     (/ n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
+     *        n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
+     *        n_N_BC2_1 ,n_N_BC3_1,
+     *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+#endif
 #ifdef TRACERS_OM_SP
       if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
         FS8OPX = (/1d0, 1d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
@@ -1202,6 +1218,9 @@ c    *     ,SNFST0,TNFST0
 #ifdef BC_ALB
      *     ,ijts_alb
 #endif
+#endif
+#ifdef TRACERS_AMP
+      USE AERO_CONFIG, only: nmodes
 #endif
       IMPLICIT NONE
 C
@@ -1773,6 +1792,10 @@ C**** more than one tracer is lumped together for radiation purposes
       end do
 #endif
 
+#ifdef TRACERS_AMP
+      CALL SETAMP_LEV(i,j,l)
+#endif
+
       END DO
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
@@ -1974,6 +1997,18 @@ c     NFSNBC(I,J)=SRNFLB(LFRC)
 c set for BC-albedo effect
       dALBsn=dALBsn1
 #endif
+#ifdef TRACERS_AMP
+       FSTOPX(:) = 1-onoff !turns off online tracer
+       FTTOPX(:) = 1-onoff !
+       CALL RCOMPX
+       n = 1
+       SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+       TNFST(1,n,I,J)=TRNFLB(1)
+       SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
+       TNFST(2,n,I,J)=TRNFLB(LFRC)
+       FSTOPX(:) = onoff !turns on online tracer
+       FTTOPX(:) = onoff !
+#endif
 C**** Optional calculation of CRF using a clear sky calc.
       if (cloud_rad_forc.gt.0) then
         FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
@@ -2001,7 +2036,12 @@ C*****************************************************
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)
+    (defined TRACERS_OM_SP)    || (defined TRACERS_AMP)
+
+#ifdef TRACERS_AMP
+      NTRACE = nmodes
+#endif
+
 C**** Save optical depth diags
       do n=1,NTRACE
         IF (ntrix(n) > 0) THEN
@@ -2052,7 +2092,11 @@ C**** Save optical depth diags
               END DO
             END IF
           CASE DEFAULT
+c#ifdef TRACERS_AMP
+c            IF (diag_rad == 1) THEN !susa just for now to have tau and TauEXT testing
+c#else
             IF (diag_rad /= 1) THEN
+c#endif
               if (ijts_tau(1,NTRIX(n)).gt.0)
      &             taijs(i,j,ijts_tau(1,NTRIX(n)))
      &             =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
@@ -2466,7 +2510,8 @@ C**** CRF diags if required
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_AMP)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes
@@ -2475,6 +2520,10 @@ C**** diagnostic sign changes
 C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
+#ifdef  TRACERS_AMP
+            ntrace = 1
+            ntrix(1) = 1
+#endif  
          if (ntrace.gt.0) then
 #ifdef BC_ALB
       if (ijts_alb(1,n_BCIA).gt.0)
