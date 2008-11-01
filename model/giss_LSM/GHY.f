@@ -1935,6 +1935,7 @@ c**** soils28   common block     9/25/90
       real*8 dum1, dum2, dumrad
       real*8 :: no_data(1) = -1.d30
       real*8 :: sbgc_temp(1), sbgc_moist(1)
+      real*8 :: height_can
       real*8 :: albedo_6b(6)
 
 
@@ -2034,7 +2035,7 @@ ccc get necessary data from ent
      &     canopy_max_H2O=ws_can,
      &     canopy_heat_capacity=shc_can,
      &     fraction_of_vegetated_soil=fv,
-     &     canopy_height=height_can
+     &     canopy_height=height_can,
      &     albedo=albedo_6b
      &     )
       fb = 1.d0 - fv
