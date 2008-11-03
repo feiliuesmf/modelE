@@ -39,9 +39,8 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_lerner=0
 #endif  /* TRACERS_SPECIAL_Lerner */
 !@var ntm_water: Number of TRACERS_WATER tracers.
-#if (defined TRACERS_WATER) || (defined TRACERS_AMP)
-      integer, parameter :: ntm_water=0
-csusa
+#if (defined TRACERS_WATER) 
+      integer, parameter :: ntm_water=1
 #else
       integer, parameter :: ntm_water=0
 #endif  /* TRACERS_WATER */
@@ -233,7 +232,7 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
 #endif  /* SHINDELL_STRAT_CHEM */
 #endif  /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_WATER
-     *    'Water   ',
+csusa     *    'Water   ',
 #endif  /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_O18
      *     'H2O18   ','HDO     ', 'H2O17   ',
