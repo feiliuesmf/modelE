@@ -1,6 +1,7 @@
-E1arobio1.R GISS Model E  2007 modelE              aromanou 08/08/08
+E1arobiot.R GISS Model E  2007 modelE              aromanou 10/01/08
 
-E1arobio1: obio + gas exch + radiation coupling + pco2 online
+E1arobiot: obio + gas exch + radiation coupling + pco2 online
+         modelE has new KPP-KRT mixing scheme
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
          no indirect effects, no snow albedo reduction
@@ -14,15 +15,16 @@ filters: U,V in E-W direction (after every dynamics time step)
          sea level pressure (after every physics time step)
 
 Preprocessor Options
-#define TRACERS_ON                  ! include tracers code
-#define TRACERS_GASEXCH_ocean       ! special tracers to be passed to ocean
-#define TRACERS_GASEXCH_ocean_CO2   ! special tracers to be passed to ocean
+#define HYCOM_RESOLUTION_2deg
+!!!!#define TRACERS_ON                  ! include tracers code
+!!!!#define TRACERS_GASEXCH_ocean       ! special tracers to be passed to ocean
+!!!!#define TRACERS_GASEXCH_ocean_CO2   ! special tracers to be passed to ocean
 #define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
 #define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
 #define pCO2_ONLINE                 ! pCO2_seawater computed online      
 !!!!#define CHL_from_OBIO               ! interactive CHL 
 !!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs
-!!!!#define TRACERS_GASEXCH_ocean_CFC   ! special tracers to be passed to ocean
+!!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -81,15 +83,17 @@ thermf|-r8|                         ! thermal forcing
 trcadv|-r8|                         ! tracer advection
 tsadvc|-r8| advem|-r8|              ! advecting t/s
 advc1d|-r8|                         ! tracer transport
+mxlayr|-r8|
+convec|-r8|
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TRACER_COM TRACERS_DRV              ! configurable tracer code
-TRACERS                             ! generic tracer code
-TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
+!!!TRACER_COM TRACERS_DRV              ! configurable tracer code
+!!!TRACERS                             ! generic tracer code
+!!!TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 !!OCN_TRACER
 !!!!!!!use part below only for Natassa's gas exchange experiments !!!!!!
-!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
-TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
+!!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
+!!!TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
 !!!!!!!!!!!!!!!!!!!!!! end  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!ocean biology based on Watson Gregg's model!!!!!!!!!!!!!!
@@ -111,12 +115,15 @@ obio_ptend|-r8|                     !
 obio_update|-r8|                    ! 
 obio_carbon|-r8|                    ! 
 obio_trint|-r8|                     ! 
+obio_reflectance|-r8|
 
 
 Data input files:
-!!AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.) needs GIC, ISTART=2
-!AIC=1JAN1830.rsfE1fzhy0_obio       ! initial conditions from Shana's 30yr run
-AIC=1JAN1830.rsfE1fzhy0             ! ISTART=5; initial conditions from Shana's 30yr run
+!!AIC=AIC.RES_M20A.D771201        ! initial conditions (atm.) needs GIC, ISTART=2
+!!AIC=1JAN1830.rsfE1fzhy0_obio    ! initial conditions from Shana's 30yr run
+!!AIC=1JAN1830.rsfE1fzhy0         ! ISTART=5; initial conditions from Shana's 30yr run
+!!AIC=1JAN1830.rsfEnt2cvs_icdiag    ! ISTART=5; initial conditions from Nick's 30yr KPP-KT run
+AIC=1JAN1830.rsfEnt2cvs           ! ISTART=5; initial conditions from Nick's 30yr KPP-KT run
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 VEG=V72X46.1.cor2_no_crops.ext 
@@ -190,7 +197,7 @@ CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
 
 
 Label and Namelist:
-E1arobio1 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobiot (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 
@@ -269,7 +276,7 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=48
 
 !parameters that affect CO2 gas exchange
-atmCO2=368.6      !uatm for year 2000
+atmCO2=368.6      !uatm for year 2000 
 &&END_PARAMETERS
 
  &INPUTZ
