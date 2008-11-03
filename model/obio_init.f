@@ -294,9 +294,11 @@ c      hc = 1.0/(h*c)
 
 c  Read in factors to compute average irradiance
 ! (this part originally done inside obio_edeu)
+      if (AM_I_ROOT()) then
       print*, '    '
       print*,'Reading factors for mean irradiance at depth...'
       print*,'nh,nch,ncd=',nh,nch,ncd
+      endif
 
       call openunit('facirr',iu_fac)
       do icd=1,ncd
@@ -310,9 +312,11 @@ c  Read in factors to compute average irradiance
        enddo
       enddo
       call closeunit(iu_fac)
+      if (AM_I_ROOT()) then
       print*,'nstep, facirr(10,18,1)=',nstep,facirr4(10,18,1,1)
       print*,'nstep, facirr(10,18,1)=',nstep,facirr(10,18,1,1)
       print*, '    '
+      endif
 
 #ifndef OBIO_RAD_coupling
 !ifst part from ocalbedo.f
@@ -369,9 +373,11 @@ c  Read in factors to compute average irradiance
 !      open(4,file='/explore/nobackup/aromanou/pco2.tbl.asc'
 !    .       ,status='old')
 
-       call openunit('pco2table',iu_bio)
+      call openunit('pco2table',iu_bio)
+      if (AM_I_ROOT()) then
       print*, '    '
        print*, 'obio_init, pco2tbl: ',nta,ndic,nsal,nt0
+      endif
        do nl=1,nta
         do k=1,ndic
          do j=1,nsal
@@ -382,16 +388,20 @@ c  Read in factors to compute average irradiance
         enddo
        enddo
        call closeunit(iu_bio)
+      if (AM_I_ROOT()) then
        print*,'BIO: read pCO2 table: ',
      .        pco2tab(1,1,1,1),pco2tab(50,10,100,100)
       print*, '    '
+      endif
 #endif
 #endif
 
 #ifdef OBIO_RAD_coupling
+      if (AM_I_ROOT()) then
       print*, '    '
       print*, 'reading Eda and Esa spectral ratios.....'
       print*, '    '
+      endif
       open(unit=iu_bio,file='eda_esa_ratios',status='unknown')
       do ichan=1,nlt
        read(iu_bio,'(3f13.8)')dummy,eda_frac(ichan),esa_frac(ichan)
@@ -399,9 +409,11 @@ c  Read in factors to compute average irradiance
       close(iu_bio)
 #else
 !read in light (this will be changed later to be passed from atmosphere
+      if (AM_I_ROOT()) then
       print*, '    '
       print*, 'reading OASIM data.....'
       print*, '    '
+      endif
 
 #ifndef OBIO_SPEED_HACKS
       ALLOCATE (Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12))
@@ -428,9 +440,11 @@ c  Read in factors to compute average irradiance
 #endif  /*OBIO_RAD_coupling*/
 
 !read in atmospheric iron deposition (this will also be changed later...)
+      if (AM_I_ROOT()) then
       print*, '    '
       print*, 'reading iron data.....'
       print*, '    '
+      endif
 
       if (IRON_from.eq.0) then
 !     open(unit=iu_bio,file='atmFedirect0'
@@ -477,6 +491,7 @@ cdiag   enddo
       endif
 
 ! printout some key information
+      if (AM_I_ROOT()) then
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
@@ -508,6 +523,7 @@ cdiag   enddo
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
+      endif
 
       return
       end
@@ -555,7 +571,8 @@ c
 
 !--------------------------------------------------------------
       lgth=len_trim(filename)
-      print*, 'obio_init: reading from file...',filename(1:lgth)
+      if (AM_I_ROOT())
+     .print*, 'obio_init: reading from file...',filename(1:lgth)
       call openunit(filename,iu_file,.false.,.true.)
 
 !NOTE: data starts from Greenwich

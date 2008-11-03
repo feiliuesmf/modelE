@@ -21,6 +21,7 @@ c  Derive surface reflectance as a function of solz and wind
 c  Includes spectral dependence of foam reflectance derived from Frouin
 c  et al., 1996 (JGR)
       USE FILEMANAGER
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
 #ifdef OBIO_RAD_coupling
       USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
       USE obio_incom, only : lam
@@ -188,7 +189,14 @@ C**** get chlorophyll term
       ! as a function of chl and wavelength (lam)
 
       res = obio_reflectance(refl,chl,lam,nlt)
-      if (vrbos) write(*,*)'ocalbedo, refl:',refl
+ccc   if (vrbos) write(*,*)'ocalbedo, refl:',refl
+      if (vrbos) then
+      do nl=1,nlt
+      write(*,'(a,i5,3e12.4,1x,l1)')'ocalbedo, aftr refl ',
+     .   nl,chl,lam(nl),refl(nlt),res
+      enddo
+      endif
+
  
 !  transition between band33 and band6 approximation
 

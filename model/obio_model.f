@@ -123,10 +123,12 @@ cddd     &     scatter_hycom_arrays
        !else
        !  hour_of_day=hour_of_day+1
        !endif
-
+ 
+      if (AM_I_ROOT()) then
        write(lp,'(a,i15,1x,f9.3,2x,3i5)')
      .    'BIO: nstep,time,day_of_month,hour_of_day,jday=',
      .    nstep,time,day_of_month,hour_of_day,jday
+      endif
 
          ihr0 = int(hour_of_day/2)
 
@@ -680,6 +682,7 @@ cdiag     endif
        do nt=1,nchl
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
+       if (vrbos) write(*,*)'obio_model, tot_chlo= ',tot_chlo(i,j)
 
        !compute total primary production per day
         if (hour_of_day.eq.1) then

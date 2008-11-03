@@ -298,7 +298,9 @@ c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
       call scatter_tracer
 
 c  Light saturation data
+      if (AM_I_ROOT()) then
       write(6,*)'Light saturation data...'
+      endif
       avgq = 0.0
 
       do j=j_0,j_1
@@ -312,7 +314,9 @@ c  Light saturation data
       enddo
 
 c  Coccolithophore max growth rate
+      if (AM_I_ROOT()) then
       write(6,*)'Coccolithophore max growth rate...'
+      endif
       do j=j_0,j_1
        do k=1,kdm
         do l=1,isp_l(j)
@@ -344,7 +348,8 @@ cdiag   enddo
 cdiag call closeunit(iu_bioinit)
 cdiag enddo
 
-      print*,'COLD INITIALIZATION'
+      if (AM_I_ROOT())
+     .print*,'COLD INITIALIZATION'
       call obio_trint(nn)
 
       return
@@ -656,6 +661,7 @@ c     input: flda (W/m*m), output: fldo (W/m*m)
 c
 
       USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
       USE hycom_arrays_glob, only : dpinit
@@ -694,7 +700,8 @@ c
 
       !read no3 files from Watson and convert to ascii
       lgth=len_trim(filename)
-      print*, 'bioinit: reading from file...',filename(1:lgth)
+      if (AM_I_ROOT())
+     .print*, 'bioinit: reading from file...',filename(1:lgth)
       call openunit(filename,iu_file,.false.,.true.)
 
 !NOTE: data starts from Greenwich
