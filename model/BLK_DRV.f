@@ -1,6 +1,10 @@
 #include "rundeck_opts.h"
 
       module mo_bulk2m_driver_gcm
+!@sum 2-moment bulk cloud microphysics scheme                                
+!@contains routines to calculate cloud and ice crystal number, autoconversion, phase-interactions 
+!@auth Surabi Menon and Igor Sednev ; based on Morrison's 2008 scheme in CCSM
+!@as in Morrison and Gettelman, 2008, J Clim 21, 15, 3642-3659 and Gettelman et al. 2008, J Clim,21,3660-3679
       USE resolution,ONLY: im,jm,lm
       IMPLICIT NONE
       PRIVATE
@@ -448,6 +452,7 @@ C Include file: blk_add01.f
 C========================================================================
       LOGICAL FUNCTION hugh_constants_init() RESULT (la)
       IMPLICIT NONE
+      USE CONSTANT, only: pi,rhow,r->rgas,rv->rvap,cp->sha,g->grav 
         CHARACTER*21 :: sname='hugh_constants_init: '
         la     = .true.
 C Set constants
@@ -462,12 +467,12 @@ c fallspeed parameters (V=aD^b)
 	   bs = 0.41
 	   br = 0.8
 c constants and parameters
-	   pi = 4.0d0*datan(1.0d0)
-	   r = 287.15d0
-	   rv = 465.5d0
-	   cp = 1005.0d0
+!	   pi = 4.0d0*datan(1.0d0)
+!	   r = 287.15d0
+!	   rv = 465.5d0
+!	   cp = 1005.0d0
 	   rhosu = 85000./(287.15*273.15)
-	   rhow = 997.
+!	   rhow = 997.
 	   rhoi = 500.
 	   rhosn = 100.
 	   aimm = 0.66
@@ -485,7 +490,7 @@ Cigs
 	   f2s = 0.28 
 	   f1r = 0.78
 	   f2r = 0.32
-	   g = 9.806
+!	   g = 9.806
 	   qsmall = 1.e-20
 	   nsmall = 1.e-20
 
@@ -534,7 +539,7 @@ c latent heat of sublimation
 c heat of fusion
 	    xlf(k)  = xxls(k)-xxlv(k)
 c viscosity of air
-c schmidt number
+c schmit number
 	      mu(k) = 1.496E-6*tk3d(k)**1.5/(tk3d(k)+120.)/rho(k)	
 	      sc(k) = mu(k)/Dv(k)
 c psychometic corrections
@@ -3036,7 +3041,7 @@ c.......................................................................
 c self-collection of cloud droplets
 c from Beheng(1994)
 c from numerical simulation of the stochastic collection equation
-c as descrined above for autoconversion
+c as described above for autoconversion
 	   if_drop_self: if (ldrop_self) then
 	     ncagg(k) = -5.5d16/rho(k)*pgam(k)**(-0.63)*
      1             (1.0d-3*rho(k)*qc3d(k))**2
