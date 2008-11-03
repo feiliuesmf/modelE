@@ -39,8 +39,9 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_lerner=0
 #endif  /* TRACERS_SPECIAL_Lerner */
 !@var ntm_water: Number of TRACERS_WATER tracers.
-#ifdef TRACERS_WATER
-      integer, parameter :: ntm_water=1
+#if (defined TRACERS_WATER) || (defined TRACERS_AMP)
+      integer, parameter :: ntm_water=0
+csusa
 #else
       integer, parameter :: ntm_water=0
 #endif  /* TRACERS_WATER */
@@ -73,7 +74,7 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_koch=0
 #endif  /* TRACERS_AEROSOLS_Koch */
 !@var ntm_dust: Number of TRACERS_DUST tracers.
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
 #ifdef TRACERS_DUST_Silt4
       integer, parameter :: ntm_dust=5
 #else
@@ -82,6 +83,7 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_dust=0
 #endif  /* TRACERS_DUST */
+
 !@var ntm_het: Number of TRACERS_HETCHEM tracers.
 #ifdef TRACERS_HETCHEM
 #ifdef TRACERS_NITRATE
@@ -191,6 +193,9 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_chem=ntm_shindell_trop+
      *                               ntm_shindell_strat+
      *                               ntm_soa
+#ifdef TRACERS_AMP
+      integer, parameter :: ntm=ntm_amp
+#else
 !@param ntm number of tracers
       integer, parameter :: ntm=ntm_O18+ntm_gasexch+ntm_lerner+
      *                          ntm_water+ntm_koch+ntm_dust+ntm_het+
@@ -198,7 +203,7 @@ C**** Each tracer has a variable name and a unique index
      *                          ntm_minerals+ntm_quarzhem+
      *                          ntm_ocean+ntm_air+ntm_chem+ntm_amp+
      *                          ntm_shindell_extra
-
+#endif
 C**** Each tracer has a variable name and a unique index
 C**** The chemistry species need to be declared first, until the
 C**** do igas=1,ntm_chem instances get corrected.
