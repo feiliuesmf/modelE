@@ -232,7 +232,7 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
 #endif  /* SHINDELL_STRAT_CHEM */
 #endif  /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_WATER
-csusa     *    'Water   ',
+     *    'Water   ',
 #endif  /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_O18
      *     'H2O18   ','HDO     ', 'H2O17   ',
