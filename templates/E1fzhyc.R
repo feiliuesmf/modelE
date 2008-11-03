@@ -14,6 +14,7 @@ filters: U,V in E-W direction (after every dynamics time step)
 Preprocessor Options
 ! #define TRACERS_ON                  ! include tracers code
 ! #define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
+#define HYCOM_RESOLUTION_2deg         ! use 2deg resolution for HYCOM ocean
 #define TRACERS_HYCOM_Ventilation
 End Preprocessor Options
 
@@ -209,7 +210,7 @@ nssw=48
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
-   YEARE=1800,MONTHE=1,DATEE=02,HOURE=00,     KDIAG=13*0,
-   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
+   YEARI=1800,MONTHI=01,DATEI=01,HOURI=00, ! IYEAR1=YEARI (default) or earlier
+   YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,     KDIAG=13*0,
+   ISTART=2,IRANDI=0,YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END
