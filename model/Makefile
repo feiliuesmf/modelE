@@ -216,6 +216,8 @@ MODS = $(shell [ -s $(DEPENDFILE) ] && perl \
 endif
 endif
 
+ESMF_Interface=$(shell pwd)/ESMF_Interface
+export
 
 #
 #include rules here
@@ -296,8 +298,6 @@ $(RUN_H): $(RUNDECK) FORCE
 $(BIN_DIR):
 	mkdir $(BIN_DIR)
 
-ESMF_Interface=$(shell pwd)/ESMF_Interface
-export
 esmf_interface: $(wildcard ESMF_Interface/*.F90)
 	$(MAKE) -C $(ESMF_Interface) all RFLAGS=""
 
