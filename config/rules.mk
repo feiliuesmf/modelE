@@ -287,6 +287,12 @@ endif
 %.o: %.c
 	cc -c -O2 -m64 $*.c
 
+ifneq ($(MACHINE),IRIX64)
+%.f: %.m4f
+	m4 $*.m4f > $*.f
+endif
+
+
 
 # end of Pattern  rules
 
