@@ -2083,6 +2083,10 @@ ccc normal case (both present)
       call retp
       tb0=tp(1,1)
       tc0=tp(0,2)
+!!! hack to compute time step before evap_limits ...
+        evapb = 1.d0 ; epb=1.d0
+        evapvw = 1.d0 ; evapvd = 1.d0 ; epv = 1.d0
+
 cddd      print '(a,10(e12.4))', 'ghy_temp_b ',
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 ccc accm0 was not called here in older version - check
@@ -2092,6 +2096,22 @@ ccc accm0 was not called here in older version - check
         if(nit.gt.limit)go to 900
         call hydra
         !call qsbal
+        call sensible_heat
+        call xklh
+!!! hack to compute time step before evap_limits ...
+!        evapb = 1.d0 ; epb=1.d0
+!        evapvw = 1.d0 ; evapvd = 1.d0 ; epv = 1.d0
+        call gdtm(dtm)
+        !print *,'dtm ', ijdebug, dtm
+!hh        if ( dtm >= dtr ) then
+!hh          dts = dtr
+!hh          dtr = 0.d0
+!hh        else
+!hh          dts = min( dtm, dtr*0.5d0 )
+!hh          dtr=dtr-dts
+!hh        endif
+
+
 !debug
 !        fm = 1.d0
 !!!
@@ -2168,7 +2188,7 @@ ccc unpack necessary data
 #else
         call evap_limits( vegcell, .true., dum1, dum2 )
 #endif
-        call sensible_heat
+!hh        call sensible_heat
 !debug debug!
 !        evapb = 0.d0
 !        evapbs = evapbs * .1
@@ -2184,8 +2204,8 @@ ccc unpack necessary data
 !         endif
 !!!
 
-        call xklh
-        call gdtm(dtm)
+!hh        call xklh
+!hh        call gdtm(dtm)
         !print *,'dtm ', ijdebug, dtm
         if ( dtm >= dtr ) then
           dts = dtr
