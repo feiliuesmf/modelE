@@ -1335,48 +1335,40 @@ ccOMP END PARALLEL DO
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
-cdmk turning these off til I have 2x2.5
-c        if(AM_I_ROOT( ))then
-c       call openunit('AER_CHEM',iuc,.true.,.true.)
-c       do ii=1,jmon
-c         read(iuc) ichemi
-c         read(iuc) ohr_globm
-c         read(iuc) dho2r_globm
-c         read(iuc) perjr_globm
-c         read(iuc) tno3r_globm
-c         ichemi=1
-c         ohr_globm=1
-c         dho2r_globm=1
-c         perjr_globm=1
-c         tno3r_globm=1
-cc         ohr_glob(:,:,:,ii)=ohr_globm(:,:,:)
-cc         dho2r_glob(:,:,:,ii)=dho2r_globm(:,:,:)
-cc         perjr_glob(:,:,:,ii)=perjr_globm(:,:,:)
-cc         tno3r_glob(:,:,:,ii)=tno3r_globm(:,:,:)
-c        end do
+         if(AM_I_ROOT( ))then
+        call openunit('AER_CHEM',iuc,.true.,.true.)
+        do ii=1,jmon
+          read(iuc) ichemi
+          read(iuc) ohr_globm
+          read(iuc) dho2r_globm
+          read(iuc) perjr_globm
+          read(iuc) tno3r_globm
+c         ohr_glob(:,:,:,ii)=ohr_globm(:,:,:)
+c         dho2r_glob(:,:,:,ii)=dho2r_globm(:,:,:)
+c         perjr_glob(:,:,:,ii)=perjr_globm(:,:,:)
+c         tno3r_glob(:,:,:,ii)=tno3r_globm(:,:,:)
+        end do
 cDMK I could move these loops outside AM_I_ROOT
-c       call closeunit(iuc)
-c       endif
+        call closeunit(iuc)
+        endif
         
-c       call UNPACK_DATA( grid, ohr_globm, ohr )
-c       call UNPACK_DATA( grid, dho2r_globm, dho2r )
-c       call UNPACK_DATA( grid, perjr_globm, perjr )
-c       call UNPACK_DATA( grid, tno3r_globm, tno3r )
+        call UNPACK_DATA( grid, ohr_globm, ohr )
+        call UNPACK_DATA( grid, dho2r_globm, dho2r )
+        call UNPACK_DATA( grid, perjr_globm, perjr )
+        call UNPACK_DATA( grid, tno3r_globm, tno3r )
 
-c        if(AM_I_ROOT( ))then
-c       call openunit('AER_OH_STRAT',iuc2,.true.,.true.)
-c       do ii=1,jmon  !12
-c       do ll=1,lm
-c        read(iuc2) ohsr_real
-c         ohsr_glob(:,:,ll)=ohsr_real(:,:)*1.D5
-c       end do
-c       end do
-c       call closeunit(iuc2)
-c       endif
-c       call UNPACK_DATA( grid, ohsr_glob, ohsr )
-cdmk turning these off because I don't have 2x2.5
-cc       ifirst=.false.
-cc       endif
+         if(AM_I_ROOT( ))then
+        call openunit('AER_OH_STRAT',iuc2,.true.,.true.)
+        do ii=1,jmon  !12
+        do ll=1,lm
+         read(iuc2) ohsr_real
+          ohsr_glob(:,:,ll)=ohsr_real(:,:)*1.D5
+        end do
+        end do
+        call closeunit(iuc2)
+        endif
+        call UNPACK_DATA( grid, ohsr_glob, ohsr )
+
 c I have to read in every timestep unless I can find a better way
 c
 c skip poles because there was a bug in the input file over the pole
