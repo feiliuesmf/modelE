@@ -148,7 +148,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nM=        53+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ   =   28,
      & NJVAL  =   27,     !formerly read in from jv_spec00_15.dat
-     & NLFASTJ=  400,     !400 is arbitrary for now
+     & NLFASTJ=  600,     !600 is arbitrary for now
      & NWFASTJ=   18, 
      & JPNL   =   LM,      ! OK? used to be set to 23
      & NCFASTJ2 = 2*LM+2,  ! fastj2
@@ -193,7 +193,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nM=        35+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ   =   16,
      & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
-     & NLFASTJ=  350,     !350 is arbitrary for now
+     & NLFASTJ=  450,     !450 is arbitrary for now
      & NWFASTJ=   15, 
      & JPNL   =   12,     ! change to LS1???
      & n_fam =     4,
@@ -331,6 +331,7 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam PIratio_CFC preindustrial ratio for CFC ICs and L=1 overwrite
 !@dbparam rad_FL whether(>0) or not(=0) to have fastj photon flux vary 
 !@+       with model time (JYEAR, JMON, JDAY) 
+!@dbparam PltOx for pres<PltOx Ox, NOx, ClOx, and BrOx get overwritten
 
       INTEGER ::        fix_CH4_chemistry = 0
      &                 ,which_trop        = 0
@@ -354,6 +355,7 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
 #ifdef SHINDELL_STRAT_CHEM
      &                     ,PIratio_N2O   = 0.896d0
      &                     ,PIratio_CFC   = 0.000d0
+     &                     ,PltOx         = 0.100d0
 #endif
 
       LOGICAL, PARAMETER :: luselb            = .false.,
