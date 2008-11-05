@@ -8,7 +8,7 @@ c
 c --- this version works for both cyclic and noncyclic domains.
 c --- land barrier at i=ii and/or j=jj signals closed-basin conditions
 c
-      !USE DOMAIN_DECOMP, only : HALO_UPDATE
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, pack_data
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp
       implicit none
@@ -16,6 +16,7 @@ c
 c
       real depth(idm,jdm)
       integer nfill,nzero,jsec,jfrst,jlast
+      integer, allocatable :: ip_glob(:,:)
       character fmt*12,char2*2
       data fmt/'(i4,1x,75i1)'/
 c
@@ -130,13 +131,22 @@ c --- determine loop indices for mass and velocity points
 c
 c --- write out  -ip-  array
 c --- data are written in strips 75 points wide
-      jsec=(jj-1)/75
-cddd      do 9 jfrst=0,75*jsec,75
-cddd      jlast=min(jj,jfrst+75)
-cddd      write (char2,'(i2)') jlast-jfrst
-cddd      fmt(8:9)=char2
-cddd      write (lp,'(''ip array, cols'',i5,'' --'',i5)') jfrst+1,jlast
-cddd 9    write (lp,fmt) (i,(10*ip(i,j),j=jfrst+1,jlast),i=1,ii)
+      if (AM_I_ROOT()) then
+        allocate( ip_glob(idm,jdm) )
+      endif
+      call pack_data(ogrid, ip, ip_glob)
+
+      if (AM_I_ROOT()) then
+        jsec=(jj-1)/75
+        do 9 jfrst=0,75*jsec,75
+          jlast=min(jj,jfrst+75)
+          write (char2,'(i2)') jlast-jfrst
+          fmt(8:9)=char2
+          write (lp,'(''ip array, cols'',i5,'' --'',i5)') jfrst+1,jlast
+          write (lp,fmt) (i,(10*ip_glob(i,j),j=jfrst+1,jlast),i=1,ii)
+ 9    continue  
+      deallocate( ip_glob )
+      endif
 c
       return
       end
