@@ -1861,7 +1861,8 @@ cddd      end interface ent_cell_update
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
      &     soilresp,
-     &     soilcpools
+     &     soilcpools,
+     &     leaf_area_index
      &     )
       type(entcelltype_public), intent(in) :: entcell
       real*8,  optional, intent(out) ::
@@ -1878,7 +1879,8 @@ cddd      end interface ent_cell_update
      &     canopy_heat_capacity,
      &     canopy_height,
      &     fraction_of_vegetated_soil,
-     &     soilresp
+     &     soilresp,
+     &     leaf_area_index
       real*8, dimension(:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -1996,6 +1998,10 @@ cddd      end interface ent_cell_update
         enddo
       endif
 
+      if ( present(leaf_area_index) )
+     &     leaf_area_index = 
+     &     entcell%entcell%LAI
+
       
 
       end subroutine ent_get_exports_r8_0
@@ -2018,7 +2024,8 @@ cddd      end interface ent_cell_update
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
      &     soilresp,
-     &     soilcpools
+     &     soilcpools,
+     &     leaf_area_index
      &     )
       type(entcelltype_public), intent(in) :: entcell(:)
       real*8, dimension(:), optional, intent(out) ::
@@ -2035,7 +2042,8 @@ cddd      end interface ent_cell_update
      &     canopy_heat_capacity,
      &     canopy_height,
      &     fraction_of_vegetated_soil,
-     &     soilresp
+     &     soilresp,
+     &     leaf_area_index
       real*8, dimension(:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2157,6 +2165,10 @@ cddd      end interface ent_cell_update
         enddo
       endif
 
+      if ( present(leaf_area_index) )
+     &     leaf_area_index(i1) = 
+     &     entcell(i1)%entcell%LAI
+
       
       enddo
 
@@ -2180,7 +2192,8 @@ cddd      end interface ent_cell_update
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
      &     soilresp,
-     &     soilcpools
+     &     soilcpools,
+     &     leaf_area_index
      &     )
       type(entcelltype_public), intent(in) :: entcell(:,:)
       real*8, dimension(:,:), optional, intent(out) ::
@@ -2197,7 +2210,8 @@ cddd      end interface ent_cell_update
      &     canopy_heat_capacity,
      &     canopy_height,
      &     fraction_of_vegetated_soil,
-     &     soilresp
+     &     soilresp,
+     &     leaf_area_index
       real*8, dimension(:,:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2319,6 +2333,10 @@ cddd      end interface ent_cell_update
          end do
         enddo
       endif
+
+      if ( present(leaf_area_index) )
+     &     leaf_area_index(i1,i2) = 
+     &     entcell(i1,i2)%entcell%LAI
 
       
       enddo
