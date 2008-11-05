@@ -357,7 +357,7 @@ ccc tracers output:
 #ifdef USE_ENT
 ccc the following variables are needed for the interface with 
 ccc dynamic vegetation module, i.e. Ent
-      real*8, public :: Ci,cnc
+      real*8, public :: Ci,cnc,lai
 #endif
 
 ccc the data below this line is not in GHYTPC yet !
@@ -763,7 +763,7 @@ ccc   local variables
 #endif
       real*8 v_qprime    ! local variable
 #ifdef EVAP_VEG_GROUND
-      real*8 evap_max_vegsoil
+      real*8 evap_max_vegsoil, ch_vg, eta
 #endif
 c     cna is the conductance of the atmosphere
       cna=ch*vs
@@ -952,6 +952,9 @@ c     epvs = rho3*cna*(qvs-qs)
 
 #ifdef EVAP_VEG_GROUND
 c     epvg  = rho3*cna*(qvg-qs) ! actually not correct !
+      ! use alpha=1 , sai=.2  (no reason, just need to set it to something)
+      eta = exp( -lai - .2d0 )
+      ch_vg = ch*eta + .0025d0*(1.d0-eta)
       epvg  = rho3*ch*( vs*(qvg-qs)-v_qprime )
 #endif
 
@@ -2160,7 +2163,8 @@ ccc unpack necessary data
      &         shortwave_transmit=TRANS_SW,
      &         leafinternal_CO2=Ci,
 !     &         foliage_humidity=Qf,
-     &         canopy_gpp=GPP
+     &         canopy_gpp=GPP,
+     &         leaf_area_index=lai
      &         )
 
           !print *,"CNS=",cnc
@@ -2178,6 +2182,7 @@ ccc unpack necessary data
           Ci = 0.d0
 !          Qf = 0.d0
           GPP = 0.d0
+          lai = 0.d0
         endif
 
 !        print *,"HGY_COND: ",ijdebug, cnc, betadl, Ci, Qf
