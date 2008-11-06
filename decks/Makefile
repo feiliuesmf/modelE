@@ -30,6 +30,12 @@ sinclude $(MODELERC)
 export COMPILER
 export NEW_MAKEFILE_FORMAT
 
+V =
+
+ifeq ($(NEW_MAKEFILE_FORMAT),YES)
+V = -f make_subdirs.mk
+endif
+
 ifeq ($(VERBOSE_OUTPUT),NO)
   MAKEFLAGS=-s
 endif
@@ -41,7 +47,7 @@ RUNSRC = E1M20
 ALIAS_LIST = CMPE001 qc
 
 help:
-	$(MAKE) -C $(MODEL_DIR) help
+	$(MAKE) -C $(MODEL_DIR) $(V) help
 
 sinclude $(CONFIG_DIR)/rules.mk
 
@@ -54,7 +60,7 @@ rundeck:
 	then echo '$(RUN).R already exists in repository'; \
 	echo 'use OVERWRITE=YES to overwrite'; \
 	exit 1; fi
-	#$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
+	#$(MAKE) -C $(MODEL_DIR) $(V) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
 	@if [ ! -s $(RUNDECKSRC) ]; then \
 	echo 'Source rundeck $(RUNDECKSRC) does not exist'; exit 1; fi
 	@if [ "$(RUN)" = "" ]; then \
@@ -71,18 +77,18 @@ rundeck:
 	    >> $(DECKS_REPOSITORY)/$(RUN).R
 
 depend: $(RUN).mk
-	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $(V) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 
 gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR)
-	$(MAKE) -C $(MODEL_DIR) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $(V) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 	-mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
 
 setup: gcm
 	$(MAKE) setup_script RUN=$(RUN)
 
 tests: 
-	$(MAKE) -C $(MODEL_DIR) unit_tests
+	$(MAKE) -C $(MODEL_DIR) $(V) unit_tests
 
 setup_nocomp:
 	@[ -d $(BIN_DIR) ] || mkdir $(BIN_DIR)
@@ -166,7 +172,7 @@ setup_gfdl: gcm $(SETUP_GFDL)
 
 
 aux:
-	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $(V) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 	$(MAKE) -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 auxqflux: aux
@@ -176,7 +182,7 @@ auxdeep: aux
 	$(MAKE) odeep -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 clean vclean clean_all:
-	$(MAKE) -C $(MODEL_DIR) $@
+	$(MAKE) -C $(MODEL_DIR) $(V) $@
 	$(MAKE) -C $(AUX_DIR) $@
 
 exe: gcm
@@ -234,7 +240,7 @@ unalias:
 	for i in $(ALIAS_LIST); do rm -f $$i; done
 
 htmldoc:
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $(V) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 config configure:
 	@if [ -f $(MODELERC) -a $(OVERWRITE) != YES ]; then \
@@ -251,10 +257,10 @@ update:
 	$(MAKE) -C $(MODEL_E_ROOT) $@ RELEASE=$(RELEASE)
 
 src_cpp_dir:
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $(V) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 etags:
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $(V) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 $(RUN).mk: $(RUN).R
 	$(SCRIPTS_DIR)/r_to_mk.pl $< > $@
