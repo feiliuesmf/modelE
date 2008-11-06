@@ -141,6 +141,6 @@ status:
 clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L rundeck_opts.h
 
-vclean:
+clean_all vclean:
 	rm -f *.o *.mod *.vo *.inc .depend* *.sig
 
