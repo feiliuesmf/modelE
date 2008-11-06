@@ -9815,8 +9815,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('SO2')
         call read_hist_SO2(iact)
-cdmk turning off aircraft until I have 2x2.5
-c       call get_aircraft_SO2   ! this does SO2 and BCIA
+        call get_aircraft_SO2   ! this does SO2 and BCIA
         case ('BCII')  !this does BC and OC
         call read_hist_BCOC(iact)
         case ('M_BC1_BC')  !this does BC and OC
@@ -10343,7 +10342,6 @@ c!OMSP
          do j=J_0,J_1
           trsource(:,j,1,n) = OCI_src(:,j,1)+OCT_src(:,j,jmon)
          end do
-
 #endif
 #endif
       end select
@@ -10807,7 +10805,9 @@ C**** Apply chemistry and overwrite changes:
 
 #endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
+
        call aerosol_gas_chem
+
        call apply_tracer_3Dsource(2,n_H2SO4) ! H2SO4 chem prod
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
        call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem source
@@ -10822,8 +10822,7 @@ C**** Apply chemistry and overwrite changes:
 #ifdef  TRACERS_SPECIAL_Shindell
         tr3Dsource(:,J_0:J_1,:,3,n_HNO3)  = 0.d0! Aerosol Mirophysics
 #endif
-
-       call MATRIX_DRV
+        call MATRIX_DRV
 
       DO n=1,ntmAMP
        call apply_tracer_3Dsource(1,n) ! Aerosol Mirophysics
