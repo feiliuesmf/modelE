@@ -2107,13 +2107,13 @@ ccc accm0 was not called here in older version - check
 !        evapvw = 1.d0 ; evapvd = 1.d0 ; epv = 1.d0
         call gdtm(dtm)
         !print *,'dtm ', ijdebug, dtm
-!hh        if ( dtm >= dtr ) then
-!hh          dts = dtr
-!hh          dtr = 0.d0
-!hh        else
-!hh          dts = min( dtm, dtr*0.5d0 )
-!hh          dtr=dtr-dts
-!hh        endif
+        if ( dtm >= dtr ) then
+          dts = dtr
+          dtr = 0.d0
+        else
+          dts = min( dtm, dtr*0.5d0 )
+          dtr=dtr-dts
+        endif
 
 
 !debug
@@ -2155,7 +2155,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dt, 0.d0) 
+          call ent_run( entcell, dts, 0.d0) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
@@ -2213,13 +2213,13 @@ ccc unpack necessary data
 !hh        call xklh
 !hh        call gdtm(dtm)
         !print *,'dtm ', ijdebug, dtm
-        if ( dtm >= dtr ) then
-          dts = dtr
-          dtr = 0.d0
-        else
-          dts = min( dtm, dtr*0.5d0 )
-          dtr=dtr-dts
-        endif
+!hh        if ( dtm >= dtr ) then
+!hh          dts = dtr
+!hh          dtr = 0.d0
+!hh        else
+!hh          dts = min( dtm, dtr*0.5d0 )
+!hh          dtr=dtr-dts
+!hh        endif
 !!!
  !       drips = 0
  !       dripw = 0
