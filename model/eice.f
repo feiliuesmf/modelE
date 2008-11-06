@@ -8,7 +8,7 @@ c
       USE HYCOM_DIM,only : isp,ifp,ilp,kk,idm,jchunk,
      *                     J_0,J_1,J_0H,J_1H
       USE HYCOM_SCALARS, only : thkmin,onem,lp,nstep,delt1,g,spcifh
-     &     ,equatn,epsil
+     &     ,equatn,epsil,itest,jtest
       USE HYCOM_ARRAYS
 c
       implicit none
@@ -21,8 +21,7 @@ c
      .     salflx2(idm,J_0H:J_1H),top,bot,
      .     thkinv,brntop,brnbot
       integer imx(J_0H:J_1H),jmx(J_0H:J_1H),k1
-      logical dosmoo,pump
-      data pump/.true./
+      logical dosmoo,pump,vrbos
 c
 c --- tmelt  = melting point (deg)
 c --- thin   = min. ice thickness (m)
@@ -54,12 +53,14 @@ c
       total=0.
       totalx=0.
       dosmoo=.false.
-c$OMP PARALLEL DO PRIVATE(tmxl,tmelt,borrow,paybak,saldif,dpth
-c$OMP+  ,top,bot,thkinv,kn) SCHEDULE(STATIC,jchunk)
+c$OMP PARALLEL DO PRIVATE(kn,tmxl,tmelt,borrow,paybak,saldif,dpth,
+c$OMP+ top,bot,thkinv,vrbos,pump) SCHEDULE(STATIC,jchunk)
 c$OMP+ REDUCTION(+:total) SHARED(dosmoo,equatn)
       do 10 j=J_0,J_1
       do 10 l=1,isp(j)
       do 10 i=ifp(j,l),ilp(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
+      pump=i.gt.equatn
 cdiag total=total+thkice(i,j)*scp2(i,j)
 c
       saldif=max(0.,saln(i,j,k1n)-10.)
@@ -94,15 +95,8 @@ c --- corrections and generalisation (see Schmidt et al, 2004)
 c       odhsi(i,j)=odmsi(i,j)*Ei(tmelt,fsss*saln(i,j,k1n)) ! ohmsi: J/m2/sec
 c       odssi(i,j)=odmsi(i,j)*fsss*saln(i,j,k1n)           ! odssi: kg/m2/sec
 
-        salflx2(i,j)=                            ! salflx: g/m2/sec 
-     .               odmsi(i,j)*saln(i,j,k1n)*(1.-fsss)
+        salflx2(i,j)=odmsi(i,j)*saln(i,j,k1n)*(1.-fsss)    ! g/m2/sec
 c
-c       if (i.eq.itest .and. j.eq.jtest) then
-c       write(*,'(2i3,a,f6.2,4f10.4,6f6.2)')
-c    .   i,j,' ch1 ic/fx/br/odm/sst/tml/tm/s/ds/sf='
-c    .  ,oice(i,j),oflxa2o(i,j),borrow,odmsi(i,j)
-c    .  ,temp(i,j,k1n),tmxl,tmelt,saln(i,j,k1n)
-c       endif
       endif
 c
 c --- build up time integrals of surface fluxes
@@ -115,27 +109,36 @@ c --- build up time integrals of surface fluxes
 c
 c --- deposit brine from brntop to brnbot
 c
-      if (salflx2(i,j).gt.0..and.i.gt.equatn.and.pump) then
+      if (vrbos .and. pump) write (lp,103) nstep,i,j,
+     . '  entering eice:  temp    saln    dens    thkns    dpth',
+     .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
+     .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
+ 103  format (i9,2i5,a/(i34,2f8.3,f8.3,f8.2,f8.1))
+c
+      if (salflx2(i,j).gt.0. .and. pump) then
         bot=min(brnbot*onem,    pbot(i,j))
         top=min(brntop*onem,.75*pbot(i,j))
         thkinv=1./(bot-top)
         do 11 k=1,kk
         kn=k+nn
  11     saln(i,j,kn)=saln(i,j,kn)+salflx2(i,j)*delt1*g*thkinv
-     .     *max(0.,(min(p(i,j,k+1),bot)-max(p(i,j,k),top)+epsil)
-     .       /(dp(i,j,kn)+epsil))
+crb  .     *max(0.,(min(p(i,j,k+1),bot)-max(p(i,j,k),top)+epsil)
+crb  .       /(dp(i,j,kn)+epsil))
+     .     *max(0.,min(p(i,j,k+1),bot)-max(p(i,j,k),top))
+     .       /max(dp(i,j,kn),epsil)
       else
         salflx(i,j)=salflx(i,j)+salflx2(i,j)
       end if
+c
+      if (vrbos .and. pump) write (lp,103) nstep,i,j,
+     . '  exiting  eice:  temp    saln    dens    thkns    dpth',
+     .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
+     .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
+ 3    continue
+c$OMP END PARALLEL DO
+
  10   continue
 c$OMP END PARALLEL DO
-c
-c     i=itest
-c     j=jtest
-c     write(*,'(a,/,7e11.2)')
-c    .   'chk oflx  emnp  salt  ice  taux  tauy  u*',
-c    .  oflxa2o(i,j),oemnp(i,j),osalt(i,j),oice(i,j),
-c    .   taux(i,j),tauy(i,j),ustar(i,j)
 c
       return
       end
