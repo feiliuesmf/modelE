@@ -19,6 +19,7 @@ c
      .     homog,delp(kdm),dens(kdm),star(kdm),ttem(kdm),ssal(kdm),
      .     trac(kdm,ntrcr),pres(kdm+1),
      .     totem,tosal,tndcyt,tndcys		!  col.integrals (diag.use only)
+      logical vrbos
       real sigocn,kappaf
       external sigocn,kappaf
 c
@@ -27,15 +28,22 @@ c --- convective adjustment
 c --- ---------------------
 c
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
-cdiag if (itest.gt.0 .and. jtest.gt.0) write (lp,103) nstep,itest,jtest,
-cdiag.  '  entering convec:  temp    saln    dens    thkns    dpth',
-cdiag.  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
-cdiag.  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
-cdiag.  p(itest,jtest,k+1)/onem,k=1,kk)
+
+c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
+      do 2 j=J_0,J_1
+      do 2 l=1,isp(j)
+      do 2 i=ifp(j,l),ilp(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
+      if (vrbos) write (lp,103) nstep,i,j,
+     . '  entering convec:  temp    saln    dens    thkns    dpth',
+     .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
+     .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
+ 2    continue
+c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,th3d  ,FROM=SOUTH)
 
-c$OMP PARALLEL DO PRIVATE(ja,kn,uup,ulo,q1,q2,vup,vlo)
+c$OMP PARALLEL DO PRIVATE(ja,kn,uup,ulo,q1,q2,vup,vlo,vrbos)
 c$OMP+ SCHEDULE(STATIC,jchunk)
       do 26 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -47,6 +55,7 @@ c
 c
       do 16 l=1,isu(j)
       do 16 i=ifu(j,l),ilu(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
       if (th3d(i  ,j,kn).le.th3d(i  ,j,kn-1) .or.
      .    th3d(i-1,j,kn).le.th3d(i-1,j,kn-1)) then
         uup=u(i,j,kn-1)
@@ -55,8 +64,8 @@ c
         q2=max(dpu(i,j,kn  ),epsil)
         u(i,j,kn  )=(q1*u(i,j,kn-1)+q2*u(i,j,kn))/(q1+q2)
         u(i,j,kn-1)=u(i,j,kn)
-cdiag   if (i.eq.itest .and. j.eq.jtest) write (lp,100) nstep,i,j,1,k,
-cdiag.    '  upr,lwr,final u:',uup,ulo,u(i,j,kn),q2/(q1+q2)
+        if (vrbos) write (lp,100) nstep,i,j,1,k,
+     .    '  upr,lwr,final u:',uup,ulo,u(i,j,kn),q2/(q1+q2)
       end if
  16   continue
 c
@@ -67,6 +76,7 @@ c
 c
       do 26 l=1,isv(j)
       do 26 i=ifv(j,l),ilv(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
       if (th3d(i,j  ,kn).le.th3d(i,j  ,kn-1) .or.
      .    th3d(i,ja ,kn).le.th3d(i,ja ,kn-1)) then
         vup=v(i,j,kn-1)
@@ -75,8 +85,8 @@ c
         q2=max(dpv(i,j,kn  ),epsil)
         v(i,j,kn  )=(q1*v(i,j,kn-1)+q2*v(i,j,kn))/(q1+q2)
         v(i,j,kn-1)=v(i,j,kn)
-cdiag   if (i.eq.itest .and. j.eq.jtest) write (lp,100) nstep,i,j,1,k,
-cdiag.    '  upr,lwr,final v:',vup,vlo,v(i,j,kn),q2/(q1+q2)
+        if (vrbos) write (lp,100) nstep,i,j,1,k,
+     .    '  upr,lwr,final v:',vup,vlo,v(i,j,kn),q2/(q1+q2)
       end if
  26   continue
 c$OMP END PARALLEL DO
@@ -84,11 +94,13 @@ c
 c --- convection of thermodynamic variables and tracer
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-c$OMP. PRIVATE(kn,kmax,totem,tosal,homog,sigup,siglo,q1,q2,tem,sal,
-c$OMP. trc,thet,kbase,tndcyt,tndcys,ttem,ssal,dens,star,delp,trac,pres)
+c$OMP+ PRIVATE(kn,kmax,totem,tosal,homog,sigup,siglo,q1,q2,tem,sal,
+c$OMP+ trc,thet,kbase,tndcyt,tndcys,ttem,ssal,dens,star,delp,trac,
+c$OMP+ pres,vrbos)
       do 1 j=J_0,J_1
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
 c
 c --- extract single column from 3-d mesh
 c
@@ -141,9 +153,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         trac(kbase,:)=trc(:)
       end if
 c
-cdiag if (i.eq.itest .and. j.eq.jtest) write (lp,100) nstep,i,j,kbase,
-cdiag. k,'  upr,lwr,final dens:',sigup,siglo,
-cdiag.  dens(k),q2/(q1+q2)
+      if (vrbos) write (lp,100) nstep,i,j,kbase,
+     . k,'  upr,lwr,final dens:',sigup,siglo,
+     .  dens(k),q2/(q1+q2)
  100    format (i9,2i5,2i3,a,3f8.3,f5.2)
 c
  6    continue
@@ -188,11 +200,17 @@ c
  1    continue
 c$OMP END PARALLEL DO
 c
-cdiag if (itest.gt.0 .and. jtest.gt.0) write (lp,103) nstep,itest,jtest,
-cdiag.  '  exiting  convec:  temp    saln    dens    thkns    dpth',
-cdiag.  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
-cdiag.  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
-cdiag.  p(itest,jtest,k+1)/onem,k=1,kk)
+c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
+      do 3 j=J_0,J_1
+      do 3 l=1,isp(j)
+      do 3 i=ifp(j,l),ilp(j,l)
+      vrbos=i.eq.itest .and. j.eq.jtest
+      if (vrbos) write (lp,103) nstep,i,j,
+     . '  exiting  convec:  temp    saln    dens    thkns    dpth',
+     .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
+     .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
+ 3    continue
+c$OMP END PARALLEL DO
 c
       return
       end

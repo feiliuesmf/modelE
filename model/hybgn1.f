@@ -70,19 +70,18 @@ c --- linear taper function for slak
 c
 c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 32 j=J_0,J_1
-      vrbos=.false.
       do 32 l=1,isp(j)
       do 32 i=ifp(j,l),ilp(j,l)
       vrbos=i.eq.itest .and. j.eq.jtest
-      if (vrbos) write (lp,103) nstep,itest,jtest,
+      if (vrbos) write (lp,103) nstep,i,j,
      .  '  entering hybgen:  temp    saln    dens    thkns    dpth',
-     .  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
-     .  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
-     .  p(itest,jtest,k+1)/onem,k=1,kk)
-      if (vrbos) write (lp,106) nstep,itest,jtest,
+     .  (k,temp(i,j,k+nn),saln(i,j,k+nn),
+     .  th3d(i,j,k+nn),dp(i,j,k+nn)/onem,
+     .  p(i,j,k+1)/onem,k=1,kk)
+      if (vrbos) write (lp,106) nstep,i,j,
      .  '  entering hybgen:  dpthu      u    dpthv      v',
-     .  (k,pu(itest,jtest,k+1)/onem,u(itest,jtest,k+nn),
-     .     pv(itest,jtest,k+1)/onem,v(itest,jtest,k+nn),k=1,kk)
+     .  (k,pu(i,j,k+1)/onem,u(i,j,k+nn),
+     .     pv(i,j,k+1)/onem,v(i,j,k+nn),k=1,kk)
  32   continue
 c$OMP END PARALLEL DO
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
@@ -137,7 +136,6 @@ c
       pres(k+1)=pres(k)+dp(i,j,kn)
  3    targt(k)=theta(k)
 c
-      vrbos=.false.
       vrbos=i.eq.itest .and. j.eq.jtest
       if (vrbos) then
         write (lp,99) nstep,i,j,'      o l d   p r o f i l e :'
@@ -541,7 +539,6 @@ c
 c
 c --- evaluate effect of regridding on tracer field(s)
 c
-        vrbos=.false.
         vrbos=i.eq.itest .and. j.eq.jtest
 c
         pnew(1)=pres(1)
@@ -681,7 +678,6 @@ cc c
 cc       do 14 l=1,isu(j)
 cc       do 14 i=ifu(j,l),ilu(j,l)
 cc c
-cc       vrbos=.false.
 cc       vrbos=i.eq.itest .and. j.eq.jtest
 cc c
 cc       pold(1)=p(i,j,1)
@@ -717,7 +713,6 @@ cc c
 cc       do 24 l=1,isv(j)
 cc       do 24 i=ifv(j,l),ilv(j,l)
 cc c
-cc       vrbos=.false.
 cc       vrbos=i.eq.itest .and. j.eq.jtest
 cc c
 cc       pold(1)=p(i,j,1)
@@ -841,19 +836,18 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 33 j=J_0,J_1
-      vrbos=.false.
       do 33 l=1,isp(j)
       do 33 i=ifp(j,l),ilp(j,l)
       vrbos=i.eq.itest .and. j.eq.jtest
-      if (vrbos) write (lp,103) nstep,itest,jtest,
+      if (vrbos) write (lp,103) nstep,i,j,
      .  '  exiting  hybgen:  temp    saln    dens    thkns    dpth',
-     .  (k,temp(itest,jtest,k+nn),saln(itest,jtest,k+nn),
-     .  th3d(itest,jtest,k+nn),dp(itest,jtest,k+nn)/onem,
-     .  p(itest,jtest,k+1)/onem,k=1,kk)
-      if (vrbos) write (lp,106) nstep,itest,jtest,
+     .  (k,temp(i,j,k+nn),saln(i,j,k+nn),
+     .  th3d(i,j,k+nn),dp(i,j,k+nn)/onem,
+     .  p(i,j,k+1)/onem,k=1,kk)
+      if (vrbos) write (lp,106) nstep,i,j,
      .  '  exiting  hybgen:  dpthu      u    dpthv      v',
-     .  (k,pu(itest,jtest,k+1)/onem,u(itest,jtest,k+nn),
-     .     pv(itest,jtest,k+1)/onem,v(itest,jtest,k+nn),k=1,kk)
+     .  (k,pu(i,j,k+1)/onem,u(i,j,k+nn),
+     .     pv(i,j,k+1)/onem,v(i,j,k+nn),k=1,kk)
  33   continue
 c
       if (mod(time+.0001,1.).lt..0002) then

@@ -45,21 +45,20 @@ c
  108  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
  109  format (i9,2i5,a/(33x,i3,f8.3,f8.1,3x,f8.3,f8.1))
  110  format (i9,2i5,a/(33x,i3,f8.3,1es11.3))
-!$OMP   PARALLEL DO
+!$OMP   PARALLEL DO PRIVATE(vrbos)
 !$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
-       vrbos=.false.
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
-cdiag    vrbos=i.eq.itest .and. j.eq.jtest
-         if (vrbos) write (lp,108) nstep,itest,jtest,
-     . '  entering mxkprf:  temp    saln    dens    thkns    dpth',(k,
-     .     temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
+         vrbos=i.eq.itest .and. j.eq.jtest
+         if (vrbos) write (lp,108) nstep,i,j,
+     . '  entering mxkprf:  temp    saln    dens    thkns    dpth',
+     .     (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .      dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
-cdiag    if (vrbos .and. dotrcr) write (lp,110) nstep,itest,jtest,
+cdiag    if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
 cdiag. '  entering mxkprf:  thkns   tracer1    tracer2    tracer3',
 cdiag.     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
-cdiag    if (vrbos) write (lp,109) nstep,itest,jtest,
+cdiag    if (vrbos) write (lp,109) nstep,i,j,
 cdiag. '  entering mxkprf:    u     dp_u         v     dp_v',(k,
 cdiag.     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
 cdiag.      dpv(i,j,k+nn)/onem,k=1,kk)
@@ -131,7 +130,6 @@ c
 c$OMP PARALLEL DO PRIVATE(jb,thkold,pres,dens,tem,sal,buoyfl,vrbos)
 c$OMP+    SCHEDULE(STATIC,jchunk)
       do 13 j=J_0,J_1
-      vrbos=.false.
       jb = PERIODIC_INDEX(j+1, jj)
       do 13 l=1,isp(j)
       do 13 i=ifp(j,l),ilp(j,l)
@@ -233,7 +231,7 @@ c
 c --- diagnose new mixed layer depth based on density jump criterion
 !$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,
 !$OMP&                      sigmlj,thsur,thtop,alfadt,betads,zintf,
-!$OMP&                      thjmp,thloc)
+!$OMP&                      thjmp,thloc,vrbos)
 !$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
@@ -242,6 +240,7 @@ c ---       depth of mixed layer base set to interpolated depth where
 c ---       the density jump is equivalent to a tmljmp temperature jump.
 c ---       this may not vectorize, but is used infrequently.
             do i=ifp(j,l),ilp(j,l)
+              vrbos=i.eq.itest .and. j.eq.jtest
               if (locsig) then
                 sigmlj = -tmljmp*dsiglocdt(temp(i,j,k1n),
      &                                     saln(i,j,k1n),p(i,j,1))
@@ -250,7 +249,7 @@ c ---       this may not vectorize, but is used infrequently.
               endif
               sigmlj = max(sigmlj,tmljmp*0.03)  !cold-water fix
 *
-              if (i.eq.itest.and.j.eq.jtest) then
+              if (vrbos) then
                 write (lp,'(i9,2i5,i3,a,2f7.4)')
      &            nstep,i,j,k,
      &            '   sigmlj =',
@@ -288,7 +287,7 @@ c ---       this may not vectorize, but is used infrequently.
                 thjmp(k) = max(thloc(k)-thsur,
      &                         thjmp(k-1)) !stable profile simplifies the code
 *
-                if (i.eq.itest.and.j.eq.jtest) then
+                if (vrbos) then
                   write (lp,'(i9,2i5,i3,a,2f7.3,f7.4,f9.2)')
      &              nstep,i,j,k,
      &              '   th,thsur,jmp,zc =',
@@ -402,11 +401,12 @@ c
 c
 c --- calculate bulk mixed layer t, s, theta
 c
-!$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,delp)
+!$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,delp,vrbos)
 !$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
             do i=ifp(j,l),ilp(j,l)
+              vrbos=i.eq.itest .and. j.eq.jtest
               dpmixl(i,j,n)=min(dpmixl(i,j,n),p(i,j,kk+1))
               dpmixl(i,j,m)=    dpmixl(i,j,n)
               delp=min(p(i,j,2),dpmixl(i,j,n))
@@ -423,7 +423,7 @@ c
               smix(i,j)=smix(i,j)/dpmixl(i,j,n)
               thmix(i,j)=sigocn(tmix(i,j),smix(i,j))
 *
-              if (i.eq.itest.and.j.eq.jtest) then
+              if (vrbos) then
                 write (lp,'(i9,2i5,i3,a,f9.2)')
      &            nstep,i,j,k,
      &            '   dpmixl =',
@@ -481,21 +481,20 @@ c
 !$OMP   END PARALLEL DO
       endif                                           ! diagno
 c
-!$OMP   PARALLEL DO
+!$OMP   PARALLEL DO PRIVATE(vrbos)
 !$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
-       vrbos=.false.
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
-cdiag    vrbos=i.eq.itest .and. j.eq.jtest
-         if (vrbos) write (lp,108) nstep,itest,jtest,
+         vrbos=i.eq.itest .and. j.eq.jtest
+         if (vrbos) write (lp,108) nstep,i,j,
      .'   exiting mxkprf:  temp    saln    dens    thkns    dpth',(k,
      .     temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .      dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
-cdiag    if (vrbos .and. dotrcr) write (lp,110) nstep,itest,jtest,
+cdiag    if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
 cdiag.'   exiting mxkprf:  thkns   tracer1    tracer2    tracer3',
 cdiag.     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
-cdiag    if (vrbos) write (lp,109) nstep,itest,jtest,
+cdiag    if (vrbos) write (lp,109) nstep,i,j,
 cdiag.'   exiting mxkprf:    u     dp_u         v     dp_v',(k,
 cdiag.     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
 cdiag.      dpv(i,j,k+nn)/onem,k=1,kk)

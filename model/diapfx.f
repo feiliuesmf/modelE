@@ -43,10 +43,9 @@ c$OMP. flngth,flxu,flxl,pdot,clipt,clips,cliptr,ka,kan,delp,amount,
 c$OMP. qmax,qmin,tndcyt,tndcys,tndtra,scale,clip,event,vrbos)
 c$OMP. SCHEDULE(STATIC,jchunk)
       do 31 j=J_0, J_1
-      vrbos=.false.
       do 31 l=1,isp(j)
       do 31 i=ifp(j,l),ilp(j,l)
-cdiag vrbos=i.eq.itest .and. j.eq.jtest
+      vrbos=i.eq.itest .and. j.eq.jtest
 c
 c --- t/s conservation diagnostics (optional):
       totem=0.
