@@ -982,6 +982,7 @@ c     evapvw is wet evaporation from canopy (from interception)
         evapvs = max( evapvs, -qm1dt )
 #ifdef EVAP_VEG_GROUND
         evapvg = min(epvg,evap_max_vegsoil)
+        evapvg = min(evapvg,evap_max(ibv) - evapvd*fd)
         ! keep evapv <= epv
         evapvg = min( evapvg, epv - evapvd*fd - evapvw*fw )
         evapvg = max( evapvg, 0.d0 )
