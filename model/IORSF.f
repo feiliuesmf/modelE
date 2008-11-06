@@ -92,3 +92,30 @@ C**** return maximum time
 
       RETURN
       END SUBROUTINE io_rsf
+
+      subroutine read_ground_ic
+!@sum   read_ground_ic read initial conditions file for
+!@+     sea ice, land surface, land ice.  Transplanted from INPUT.
+!@auth  M. Kelley
+!@ver   1.0
+!@calls io_seaice,io_earth,io_soils,io_landice
+      use model_com, only : ioreadnt
+      use filemanager, only : openunit,closeunit
+      use domain_decomp, only : am_i_root
+      implicit none
+      integer :: iu_GIC,ioerr
+      call openunit("GIC",iu_GIC,.true.,.true.)
+      ioerr=-1
+      read(iu_GIC) ! ignore first line (ocean ic done in init_OCEAN)
+      call io_seaice (iu_GIC,ioreadnt,ioerr)
+      call io_earth  (iu_GIC,ioreadnt,ioerr)
+      call io_soils  (iu_GIC,ioreadnt,ioerr)
+      call io_landice(iu_GIC,ioreadnt,ioerr)
+      if (ioerr.eq.1) then
+        if (AM_I_ROOT())
+     *       WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
+        call stop_model("INPUT: GIC READ IN ERROR",255)
+      end if
+      call closeunit (iu_GIC)
+      return
+      end subroutine read_ground_ic
