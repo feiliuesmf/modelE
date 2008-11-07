@@ -109,7 +109,7 @@ C**** ISCCP diag related variables
 C**** input variables
       LOGICAL DEBUG
 !@var RA ratio of primary grid box to secondary gridbox
-      REAL*8, DIMENSION(:), ALLOCATABLE :: RA !(KMAX) 
+      REAL*8, DIMENSION(:), ALLOCATABLE :: RA !(KMAX)
 !@var UM,VM,UM1,VM1,U_0,V_0 velocity related variables(UM,VM)=(U,V)*AIRM
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: UM,VM,UM1,VM1 !(KMAX,LM)
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: U_0,V_0       !(KMAX,LM)
@@ -806,6 +806,7 @@ C****
       ITYPE=2                        ! always 2 types of clouds:
 C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
       FCTYPE=1.
+      FMP2=FMP2*min(1d0,DTsrc/3600.d0)    ! use 1 hr adjustment tim
 
       DO 570 IC=1,ITYPE
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
@@ -879,7 +880,7 @@ C     ENDIF
       WMAX=50.
       LHX=LHE
       MPLUME=MIN(AIRM(LMIN),AIRM(LMIN+1))
-      FMP2=FMP2*min(1d0,DTsrc/3600.d0)    ! use 1 hr adjustment time
+C     FMP2=FMP2*min(1d0,DTsrc/3600.d0)    ! use 1 hr adjustment time
       IF(MPLUME.GT.FMP2) MPLUME=FMP2
 C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
 C     for SCM running with Dry Convection instead of ATURB - WTURB
@@ -1899,7 +1900,7 @@ C     IF(L.GT.1) DDM(L-1)=DDRAFT
       LLMIN=LDMIN        ! save LDMIN for diagnostics
 C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
 C     IF (L.LE.LMIN.AND.L.GT.1) THEN
-      IF (L.GT.1) THEN                                             
+      IF (L.GT.1) THEN
         SMIX=SMDN/(DDRAFT+teeny)
         IF (L.LE.LMIN.AND.SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
       ENDIF
