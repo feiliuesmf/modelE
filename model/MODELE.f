@@ -809,7 +809,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,NIsurf,iyear1
      $     ,LS1,IRAND,ItimeI,PSTRAT,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,COUPLED_CHEM,dt
+     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,VSDRAGL,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
      &     ,do_polefix,pednl00,pmidl00,ij_debug
       USE RAD_COM, only : calc_orb_par,paleo_orb_yr,calc_orb_par_sp,
@@ -884,6 +884,12 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
          WRITE(6,*) "Levels for  LSDRAG =",LSDRAG ,"->",LM
          WRITE(6,*) "Levels for LPSDRAG =",LPSDRAG,"->",LM," near poles"
          WRITE(6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)
+      end if
+C**** Another tuning factor for SDRAG                                           
+      VSDRAGL=1.                                                                
+      call sync_param( "VSDRAGL", VSDRAGL, lm-ls1+1 )                           
+      if (AM_I_ROOT()) then                                                     
+         WRITE(6,*) "VSDRAGL coefficients:",VSDRAGL(LS1:LM)                     
       end if
 
 C**** Determine if FLTRUV is called.

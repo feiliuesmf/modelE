@@ -1722,7 +1722,7 @@ c**** Extract domain decomposition info
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,sha
       USE MODEL_COM, only : im,jm,lm,ls1,u,v,t,q,x_sdrag,csdragl,lsdrag
-     *     ,lpsdrag,ang_sdrag,itime,Wc_Jdrag,wmax
+     *     ,lpsdrag,ang_sdrag,itime,Wc_Jdrag,wmax,vsdragl
       USE GEOM, only : cosv,imaxj,kmaxj,idij,idjj,rapj,dxyv,dxyn,dxys
      *     ,rapvs,rapvn
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtsdrg
@@ -1792,7 +1792,7 @@ C**** then finding the drag and applying it to the reduced winds
         IF (cd_lin) CDN=(X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj))*xjud
         DPS= (PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*RAPVN(J-1)+
      *       (PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*RAPVS(J)
-        X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV/DPS
+        X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*VSDRAGL(L)/DPS
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
         AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
