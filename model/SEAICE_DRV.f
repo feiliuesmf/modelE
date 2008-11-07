@@ -13,10 +13,11 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : teeny,grav,tf
+      USE CONSTANT, only : teeny,grav,tf,byGRAV
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
-     *     ,p,ptop
+     *     ,p,ptop,ZATMO
       USE GEOM, only : imaxj,axyp,byaxyp
+      Use PBLCOM,    Only: TSAVG
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
      *     ,gtempr,erunpsi
 #ifdef TRACERS_WATER
@@ -34,6 +35,7 @@
       USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
 
+      REAL*8, EXTERNAL :: SLP
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,POICE,SRUN0,ERUN0
 #ifdef TRACERS_WATER
@@ -142,9 +144,9 @@ C**** Accumulate regional diagnostics
 
       END IF
 
-C**** Calculate pressure anomaly at surface
-      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+
-     *     RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+C**** Calculate pressure (Pa-101325) beneath atmos and sea-ice for ocean
+      APRESS(I,J) = 100 * SLP(P(I,J)+PTOP,TSAVG(I,J),ZATMO(I,J)*byGRAV)
+     +            + RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV - 101325
 
       END DO
       END DO
@@ -438,9 +440,10 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SEA_ICE
-      USE CONSTANT, only : grav,rhows,rhow,sday
+      USE CONSTANT, only : grav,byGRAV,rhows,rhow,sday
       USE MODEL_COM, only : im,jm,dtsrc,fland,focean
-     *     ,itoice,itlkice,p,ptop
+     *     ,itoice,itlkice,p,ptop,ZATMO
+      Use PBLCOM,    Only: TSAVG
       USE GEOM, only : imaxj,axyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
      *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss
@@ -465,6 +468,7 @@ C****
       USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
 
+      REAL*8, EXTERNAL :: SLP
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,POICE,PWATER,SCOVI
@@ -645,9 +649,10 @@ C**** snow cover diagnostic now matches that seen by the radiation
      *         *AXYP(I,J))
 
       END IF
-C**** set total atmopsheric pressure anomaly in case needed by ocean
-      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *     *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+
+C**** Calculate pressure (Pa-101325) beneath atmos and sea-ice for ocean
+      APRESS(I,J) = 100 * SLP(P(I,J)+PTOP,TSAVG(I,J),ZATMO(I,J)*byGRAV)
+     +            + RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV - 101325
 
       END DO
       END DO
