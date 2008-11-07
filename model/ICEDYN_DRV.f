@@ -760,9 +760,8 @@ C****
 !@+    At some point this will change (USIDT/VSIDT on ice grid, and RSI
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : grav,byGRAV,tf
-      USE MODEL_COM, only : im,jm,focean,p,ptop,kocean,ZATMO
-      USE PBLCOM,        Only : TSAVG
+      USE CONSTANT, only : grav,tf
+      USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
@@ -786,7 +785,6 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE DIAG_COM, only : oa
       IMPLICIT NONE
 !      REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
-      REAL*8, EXTERNAL :: SLP
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     FASI, FXSI, FYSI, FAW
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
@@ -808,7 +806,6 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       REAL*8 SFASI,DMHSI,ASI,YRSI,XRSI,FRSI,SICE,TMP,TICE,ENRG
 !@var MHS mass/heat/salt content of sea ice
       REAL*8 MHS(NTRICE,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 PSL 
 C****
 C**** FLUXCB  USIDT  U compon of time integrated sea ice velocity (m)
 C****         VSIDT  V compon of time integrated sea ice velocity (m)
@@ -1322,10 +1319,9 @@ C**** Set atmospheric arrays
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-C**** Calculate pressure (Pa-101325) beneath atmos and sea-ice for ocean
-              PSL = SLP (P(I,J)+PTOP,TSAVG(I,J),ZATMO(I,J)*byGRAV) ! mb
-              APRESS(I,J) = 100*PSL - 101325 +
-     +                      RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+C**** set total atmopsheric pressure anomaly in case needed by ocean
+              APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
+     *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
               GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I))
      *             ,1d3*SSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I)))
               GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I))
