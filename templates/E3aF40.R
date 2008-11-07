@@ -110,6 +110,9 @@ PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
+! vsdragl is a tuning coefficient for SDRAG starting at LS1
+! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
+vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83,1.
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 

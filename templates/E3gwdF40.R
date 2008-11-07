@@ -1,5 +1,8 @@
-E3F40.R GISS Model E  1979 ocn/atm                   rar 03/04
+E3gwdF40.R GISS Model E  1979 ocn/atm                    jal 11/08
 
+E3gwdF40: Includes stratopsheric dynamics (gravity waves,etc.).  Here only the
+          mountain and deformation waves are turned on. 
+          Parameter vsdragl turns off sdrag except in top 4 layers.
 E3F40: replace this section by a description of what distinguishes this run ?
        Use as many lines as you need. Look carefully at all the possible    ?
        choices, particularly the lines containing '?'.
@@ -18,13 +21,14 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_F40  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
+RES_stratF40  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
+STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
@@ -91,10 +95,11 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_144x90.ij.ext
+ZVAR=ZVAR2X25A     ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-E3F40 (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn; use up to 72 (or 80) columns and ??
+E3gwdF40 (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn; use up to 72 (or 80) columns and ??
 up to 60 (or 52) columns here to describe your run)?<--col 53  to  72-->to 80-->
 DTFIX=180.
 &&PARAMETERS
@@ -113,7 +118,22 @@ Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 ! vsdragl is a tuning coefficient for SDRAG starting at LS1
 ! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
-vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83,1.
+vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1. 
+
+! Gravity wave parameters
+PBREAK = 200.  ! The level for GW breaking above.                               
+DEFTHRESH=0.000045 !the default is 15d-6                                        
+PCONPEN=400.   ! penetrating convection defn for GWDRAG                         
+CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
+CSHEAR=10.     ! Shear drag coefficient                                         
+CMTN=0.25      ! default is 0.5                                                 
+CDEF=1.5       ! deformation drag coefficient                                   
+XCDNST=400.,10000.   ! strat. gw drag parameters
+QGWMTN=1 ! mountain waves ON
+QGWDEF=1 ! deformation waves ON
+QGWSHR=0 ! shear drag OFF
+QGWCNV=0 ! convective drag OFF
+
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
