@@ -834,6 +834,7 @@ C**** Rundeck parameters:
       call sync_param( "PP_SDRAG", PP_SDRAG )
       call sync_param( "ANG_SDRAG", ANG_SDRAG )
       call sync_param( "Wc_Jdrag", Wc_Jdrag )
+      call sync_param( "VSDRAGL", VSDRAGL, lm-ls1+1 )                           
       call sync_param( "wmax", wmax )
       call sync_param( "do_polefix", do_polefix )
       call sync_param( "NDASF", NDASF )
@@ -860,7 +861,7 @@ C**** Rundeck parameters:
       call sync_param( "calc_orb_par_sp", calc_orb_par_sp )
       call sync_param( "paleo_orb_par", paleo_orb_par, 3 )
 
-C**** Non-Rundeck parameters
+C**** Parameters derived from Rundeck parameters:
 
 C**** Calculate levels for application of SDRAG: LSDRAG,LPSDRAG->LM i.e.
 C**** all levels above and including P_SDRAG mb (PP_SDRAG near poles)
@@ -884,12 +885,6 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
          WRITE(6,*) "Levels for  LSDRAG =",LSDRAG ,"->",LM
          WRITE(6,*) "Levels for LPSDRAG =",LPSDRAG,"->",LM," near poles"
          WRITE(6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)
-      end if
-C**** Another tuning factor for SDRAG                                           
-      VSDRAGL=1.                                                                
-      call sync_param( "VSDRAGL", VSDRAGL, lm-ls1+1 )                           
-      if (AM_I_ROOT()) then                                                     
-         WRITE(6,*) "VSDRAGL coefficients:",VSDRAGL(LS1:LM)                     
       end if
 
 C**** Determine if FLTRUV is called.
