@@ -100,6 +100,8 @@ c$$$#endif
       real*8 :: wmax=200.d0
 !@dbparam do_polefix if =1 : u,v tendencies are corrected near the pole
       INTEGER :: do_polefix=1     ! default is to enable corrections
+!@dbparam VSDRAGL ???
+      real*8 :: VSDRAGL(LS1:LM)
 
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
