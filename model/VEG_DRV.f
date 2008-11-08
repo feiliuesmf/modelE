@@ -602,6 +602,7 @@ c shc(0,2) is the heat capacity of the canopy
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
+     &     ,readt_parallel,backspace_parallel
       use veg_com, only : vdata
       USE GEOM, only : imaxj
       use veg_drv, only : upd_gh
@@ -616,7 +617,6 @@ c shc(0,2) is the heat capacity of the canopy
       save   year1,year2,year_old,vdata0,crop1,crop2,iu      ! to limit i/o
 
       character*80 title
-      real*4 crop4(im,jm)
 
       INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H, I_0H, I_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -648,16 +648,17 @@ C****     check whether a no-crops vege-file was used
      *     call stop_model('updveg: use no_crops_VEG_file',255)
         end do
         end do
-C****     open and read input file
-        call openunit('CROPS',iu,.true.,.true.)
-        read(iu) title,crop4
-
-        read(title,*) year1
         Allocate(crop1(I_0H:I_1H,J_0H:J_1H), crop2(I_0H:I_1H,J_0H:J_1H),
      &           VDATA0(I_0H:I_1H,J_0H:J_1H,12))
-        crop1(I_0:I_1,J_0:J_1)=crop4(I_0:I_1,J_0:J_1)
-        crop2(I_0:I_1,J_0:J_1)=crop4(I_0:I_1,J_0:J_1)
-        year2=year1
+
+C****     open and read first record of input file
+        call openunit('CROPS',iu,.true.,.true.)
+        read(iu) title
+        read(title,*) year1
+        call backspace_parallel(iu)
+        call readt_parallel(grid,iu,nameunit(iu),0,crop1,1)
+
+        year2 = year1; crop2 = crop1
         if (year1.ge.year)          year2=year+1
 C****     save orig. (no-crop) vdata to preserve restart-independence
         vdata0 = vdata
@@ -666,12 +667,14 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
       wt=0.
       do while (year2.lt.year)
          year1 = year2 ; crop1 = crop2
-         read (iu,end=10) title,crop4
+         read(iu,end=10) title
          read(title,*) year2
-         crop2(I_0:I_1,J_0:J_1) = crop4(I_0:I_1,J_0:J_1)
+         call backspace_parallel(iu)
+         call readt_parallel(grid,iu,nameunit(iu),0,crop2,1)
       end do
       wt = (year-year1)/(real(year2-year1,kind=8))
    10 continue
+
       if (AM_I_ROOT()) write(6,*)
      *     'Using crops data from year',year1+wt*(year2-year1)
 
