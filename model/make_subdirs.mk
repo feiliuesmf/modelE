@@ -90,7 +90,7 @@ echo_vars:
 	$(MAKE1) main
 
 clean_all: clean
-	-rm -f $(RUN_H)
+	-rm -f $(RUN_H) $(MOD_DIR)/*.mod
 	for i in $(AVAILABLE_COMPONENTS) ; do \
 	  $(MAKE) -C $$i clean ; done
 
