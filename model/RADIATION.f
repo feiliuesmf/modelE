@@ -334,6 +334,7 @@ C            RADDAT_AERCLD_MIEPAR          read from            radfile3
      F             ,TRCQEX(33,15),TRCQSC(33,15),TRCQCB(33,15),REFC15(15)
      G             ,TRCQAL(33,15),VEFC15(15)   ,VEFA11(   11),VEFB10(10)
      H             ,SRDQEX( 6,25),SRDQSC( 6,25),SRDQCB( 6,25),Q55D25(25)
+     .             ,YRDQEX( 6,25),YRDQSC( 6,25),YRDQCB( 6,25),Y55D25(25)
      I             ,TRDQEX(33,25),TRDQSC(33,25),TRDQCB(33,25),REFD25(25)
      J             ,TRDQAL(33,25),VEFD25(25)
      K         ,SRVQEX( 6,20,6),SRVQSC( 6,20,6),SRVQCB( 6,20,6)
@@ -764,6 +765,12 @@ C                         CLAY                  SILT
 !nu  *  ,FSDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 !nu  *  ,FTDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 
+!@var DUSTAB: specifies relative mixture of particles with Sinyuk 2003
+!@+   and Patterson 1977 SW properties.
+!@+   DUSTAB=1.0: all particles have Sinyuk 2003 properties
+!@+   DUSTAB=0.0: all particles have Patterson 1977 properties
+      real*8, parameter :: DUSTAB = 0.5
+
 C-----------------------------------------------------------------------
 C     GHG 1980 Reference Concentrations and Vertical Profile Definitions
 C-----------------------------------------------------------------------
@@ -887,7 +894,7 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
       INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,KK,NN,IYEAR,IMONTH,JJDAYS,JYEARS
      *     ,JJDAYG,JYEARG,yr2S0i
       REAL*8 :: WAVNA,WAVNB,PFWI,TKOFPF,SUMV,EPK,EPL,DEP,SFNORM,D,O,Q,S
-     *     ,OCM,WCM
+     *     ,OCM,WCM,YQSCCB
 !@var GTAU,TGDATA temporary array to read data and pass it to RAD_UTILS
       REAL*8 :: GTAU(51,11,143),TGDATA(122,13)
 
@@ -1237,11 +1244,11 @@ C                        Sinyuk Desert Dust 25 sizes, Mie parameter data
 C                        -----------------------------------------------
 
       DO 347 N=1,25
-      READ (NRFU,3001) (SRDQEX(K,N),K=1,6)
-      READ (NRFU,3001) (SRDQSC(K,N),K=1,6)
-      READ (NRFU,3001) (SRDQCB(K,N),K=1,6)
+      READ (NRFU,3001) (YRDQEX(K,N),K=1,6)
+      READ (NRFU,3001) (YRDQSC(K,N),K=1,6)
+      READ (NRFU,3001) (YRDQCB(K,N),K=1,6)
   347 CONTINUE
-      READ (NRFU,3008) (Q55D25(N),N=1,25)
+      READ (NRFU,3008) (Y55D25(N),N=1,25)
       READ (NRFU,3009) (REFD25(N),N=1,25)
       READ (NRFU,3010) (VEFD25(N),N=1,25)
       DO 348 N=1,25
@@ -1253,6 +1260,20 @@ C                        -----------------------------------------------
   348 CONTINUE
 
       TRDQAB(:,:)=TRDQEX(:,:)-TRDQSC(:,:)  !  used in writer only
+
+!-----------------------------------------------------------------------
+!     Create external mixture of Patterson and Sinyuk dust particles
+
+      DO 352 L=1,25
+      DO 351 K=1,6
+      YQSCCB= YRDQSC(K,N)*YRDQCB(K,N)*DUSTAB
+     *      + SRDQSC(K,N)*SRDQCB(K,N)*(1.d0-DUSTAB)
+      SRDQEX(K,N)=DUSTAB*YRDQEX(K,N)+(1.d0-DUSTAB)*SRDQEX(K,N)
+      SRDQSC(K,N)=DUSTAB*YRDQSC(K,N)+(1.d0-DUSTAB)*SRDQSC(K,N)
+      SRDQCB(K,N)=YQSCCB/(1.d-10+SRDQSC(K,N))
+ 351  CONTINUE
+      Q55D25(N)=DUSTAB*Y55D25(N)+(1.d0-DUSTAB)*Q55D25(N)
+ 352  CONTINUE
 
 C-----------------------------------------------------------------------
 CR(6) DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
