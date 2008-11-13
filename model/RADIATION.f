@@ -1263,7 +1263,7 @@ C                        -----------------------------------------------
 
 !-----------------------------------------------------------------------
 !     Create external mixture of Patterson and Sinyuk dust particles
-
+      do n=1,25
       DO 352 L=1,25
       DO 351 K=1,6
       YQSCCB= YRDQSC(K,N)*YRDQCB(K,N)*DUSTAB
@@ -1274,6 +1274,7 @@ C                        -----------------------------------------------
  351  CONTINUE
       Q55D25(N)=DUSTAB*Y55D25(N)+(1.d0-DUSTAB)*Q55D25(N)
  352  CONTINUE
+      enddo
 
 C-----------------------------------------------------------------------
 CR(6) DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
