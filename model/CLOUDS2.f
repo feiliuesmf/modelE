@@ -50,7 +50,7 @@ C**** parameters and constants
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
       REAL*8, PARAMETER :: FDDRT=.5d0 !@param FDDRT COND evaporation in downdraft
       REAL*8, PARAMETER :: FDDET=.25d0 !@param FDDET remainder of downdraft
-      REAL*8, PARAMETER :: DTMIN1=2.d0 !@param DTMIN1 min DT to stop downdraft drop
+      REAL*8, PARAMETER :: DTMIN1=1.d0 !@param DTMIN1 min DT to stop downdraft drop
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
 !@param CCMUL multiplier for convective cloud cover
@@ -468,8 +468,8 @@ c for sulfur chemistry
      *     ,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA,FEVAP,FLEFT
      *     ,FQCOND,FQEVP,FPRCP,FSEVP,FSSUM     !  ,HEAT1
      *     ,PRCP,FQCONDV
-     *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
-     *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
+     *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP,WMIX,DMMIX
+     *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ,SVMIX,SVM1
      *     ,SUMDP,DDRUP,EDRAFT,DDROLD,CONTCE,HDEP,TVP,W2TEM
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
      *     ,FCONV_tmp,FSUB_tmp,FSSL_tmp
@@ -812,6 +812,7 @@ C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DO L=1,LM
         COND(L)=0.
+        VLAT(L)=LHE
         CDHEAT(L)=0.
         CONDP(L)=0.
         CONDP1(L)=0.
@@ -942,6 +943,7 @@ C        MC1=.FALSE.
          MPLUME=MPLUM1*FCTYPE
       DO L=1,LM
         COND(L)=0.
+        VLAT(L)=LHE
         CDHEAT(L)=0.
         CONDP(L)=0.
         CONDP1(L)=0.
@@ -1091,6 +1093,7 @@ C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       TP=SMP*PLK(L)/MPLUME
       TPSAV(L)=TP
       IF(TPSAV(L-1).GE.TF.AND.TPSAV(L).LT.TF) LFRZ=L-1
+      LHX=LHE                        ! needed
       IF(TP.LT.TI) LHX=LHS
       QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
       IF(QMP.LT.QSATMP) GO TO 340
@@ -1448,11 +1451,14 @@ C     IF(ETADN.GT.1d-10) GO TO 291 ! comment out for multiple downdrafts
       QMIX=.5*(QUP+QMP/MPLUME)
 C     WMIX=.5*(WMUP+WMDN)
 C     SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
-C     DMMIX=(SVUP-SVMIX)*PLK(L)+
-C    *  SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
-C     IF(DMMIX.LT.1d-10) GO TO 291
-      IF(SMIX.GE.SUP) CDHDRT=CDHDRT+CDHEAT(L)
-      IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
+      SVMIX=SMIX*(1.+DELTX*QMIX)
+      SVUP=SUP*(1.+DELTX*QUP)
+      DMMIX=(SVUP-SVMIX)*PLK(L)
+C    *  +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
+      IF(DMMIX.LT.1d-10) CDHDRT=CDHDRT+CDHEAT(L)
+      IF(DMMIX.LT.1d-10) GO TO 291  the mixture is buoyant
+C     IF(SMIX.GE.SUP) CDHDRT=CDHDRT+CDHEAT(L)
+C     IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
 C     IF(PL(L).GT.700.) GO TO 291   ! do we need this condition?
       LDRAFT=L                      ! the highest downdraft level
       ETADN=.20d0      ! reduce ETADN to improve computational stability
@@ -1832,7 +1838,11 @@ C**** ENTRAINMENT OF DOWNDRAFTS
 C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
         IF(DDRUP.GT.DDRAFT) DDRAFT=DDRUP
         SMIX=SMDN/(DDRUP+teeny)
-        IF ((SMIX-SM1(L-1)*BYAM(L-1))*PLK(L-1).GE.DTMIN1) THEN
+        QMIX=QMDN/(DDRUP+teeny)
+        SVMIX=SMIX*(1.+DELTX*QMIX)*PLK(L-1)
+        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        IF ((SVMIX-SVM1).GE.DTMIN1) THEN
+C       IF ((SMIX-SM1(L-1)*BYAM(L-1))*PLK(L-1).GE.DTMIN1) THEN
           DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
         END IF
         IF(DDRAFT.GT..95d0*(AIRM(L-1)+DMR(L-1)))
@@ -1902,7 +1912,11 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
 C     IF (L.LE.LMIN.AND.L.GT.1) THEN
       IF (L.GT.1) THEN
         SMIX=SMDN/(DDRAFT+teeny)
-        IF (L.LE.LMIN.AND.SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
+        QMIX=QMDN/(DDRAFT+teeny)
+        SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX)
+        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        IF (L.LE.LMIN.AND.SVMIX.GE.SVM1) GO TO 345
+C       IF (L.LE.LMIN.AND.SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
       ENDIF
       IF(L.GT.1) THEN
         DDM(L-1)=DDRAFT     ! IF(L.GT.1) DDM(L-1)=DDRAFT
