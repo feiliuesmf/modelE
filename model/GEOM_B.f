@@ -109,8 +109,7 @@ C**** some B-grid conservation quantities
      *       SINS, !  SINe of LATS
      *       SINN  !  SINe of LATN
 
-      integer :: i_0h,i_1h,j_0h,j_1h,i_0,i_1,j_0,j_1
-      integer jj ! hack
+      integer :: i_0h,i_1h,j_0h,j_1h,i_0,i_1,j_0,j_1,j_0s,j_1s
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
@@ -120,6 +119,8 @@ C**** some B-grid conservation quantities
       i_1 = grid%i_stop
       j_0 = grid%j_strt
       j_1 = grid%j_stop
+      j_0s = grid%j_strt_skp
+      j_1s = grid%j_stop_skp
 
       allocate(idij(im,im,grid%j_strt_halo:grid%j_stop_halo))
 
@@ -329,10 +330,8 @@ C**** Conditions at non-polar points
 c
 c temporary
 c
-      do jj=j_0h,j_1h
+      do j=max(1,j_0h),min(jm,j_1h)
       do i=i_0h,i_1h
-        j = max(1,jj)  !! this is a hack 
-        j = min(jm,j) !! please check if that''s what you meant IA
         axyp(i,j) = dxyp(j)
         byaxyp(i,j) = bydxyp(j)
         lat2d(i,j) = lat(j)
@@ -345,10 +344,8 @@ c
       enddo
       enddo
 
-      do j=j_0,j_1
+      do j=j_0s,j_1s
       do i=i_0,i_1
-       ! please fix !
-       if (j>1 .and. j<jm) then
         ddx_ci(i,j) =  .5/(radius*dlon*cosp(j))
         ddx_cj(i,j) = 0.
         ddy_ci(i,j) = 0.
@@ -364,12 +361,6 @@ c        ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
 c        ddx_cj(i,j) = -dlonj*bydet/(radius*coslat2d(i,j))
 c        ddy_ci(i,j) = -dlati*bydet/radius
 c        ddy_cj(i,j) =  dloni*bydet/radius
-       else
-        ddx_ci(i,j) = 1.d30
-        ddy_cj(i,j) = 1.d30
-        ddx_cj(i,j) = 0.
-        ddy_ci(i,j) = 0.
-       endif
       enddo
       enddo
 
