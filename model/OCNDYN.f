@@ -4480,10 +4480,8 @@ C****
       USE RESOLUTION, only : ima=>im,jma=>jm 
       USE OCEANRES,   only : LMO_MIN
 
-      USE MODEL_COM, only : IVSP,IVNP, FOCEAN
-      Use GEOM,      only : IMAXJ 
-     *        , COSU,SINU, COSI=>COSIP,SINI=>SINIP
-     *        , DXYPO=>aDXYPO
+      USE MODEL_COM, only : FOCEAN
+      Use GEOM,      only : IMAXJ, DXYPO=>aDXYPO
 
 c      USE OCEAN, only : dxypo 
 
@@ -4563,15 +4561,13 @@ C****
 C**** do poles
       if (HAVE_NORTH_POLE) then
       IF (FOCEAN(1,JMA).gt.0) THEN
-        UOSURF(1,JMA) = aUO1(IMA,JMA)*COSU(1) + aUO1(IVNP,JMA)*SINU(1)
-        VOSURF(1,JMA) = aUO1(IVNP,JMA)*COSI(1) - aUO1(IMA,JMA)*SINI(1)
         DO I=2,IMA
           GTEMP(:,1,I,JMA)=GTEMP(:,1,1,JMA)
           GTEMPR(1,I,JMA) =GTEMPR(1,1,JMA) 
-         SSS(I,JMA)=SSS(1,JMA)
+          SSS(I,JMA)=SSS(1,JMA)
           MLHC(I,JMA)=MLHC(1,JMA)
-          UOSURF(I,JMA) = aUO1(IMA,JMA)*COSU(I)+aUO1(IVNP,JMA)*SINU(I)
-          VOSURF(I,JMA) = aUO1(IVNP,JMA)*COSI(I)-aUO1(IMA,JMA)*SINI(I)
+          UOSURF(I,JMA) = UOSURF(1,JMA)
+          VOSURF(I,JMA) = VOSURF(1,JMA) 
           OGEOZA(I,JMA)=OGEOZA(1,JMA)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
@@ -4587,8 +4583,8 @@ C**** do poles
           GTEMPR(1,I,1) =GTEMPR(1,1,1)
           SSS(I,1)=SSS(1,1)
           MLHC(I,1)=MLHC(1,1)
-          UOSURF(I,1) = aUO1(IMA,1)*COSU(1) - aUO1(IVSP,1)*SINU(1)
-          VOSURF(I,0) = aUO1(IVSP,1)*COSI(I) - aUO1(IMA,1)*SINI(I)
+          UOSURF(I,1) = UOSURF(1,1)
+          VOSURF(I,1) = VOSURF(1,1) 
           OGEOZA(I,1)=OGEOZA(1,1)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
@@ -4956,6 +4952,7 @@ C**** Check
 !!      to the atmospheric grid
 !@auth Larissa Nazarenko
 !@ver  1.0
+      USE MODEL_COM, only : 
 
       USE RESOLUTION, only : IMA=>IM, JMA=>JM 
       USE OCEANRES,   only : IMO, JMO, LMO
@@ -4977,12 +4974,14 @@ C**** Check
      *     , aTRAC_glob
 #endif
 
-      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM
+      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM,
+     *     IVSP, IVNP
       Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ,aDLATM=>DLATM
+     *     , COSU,SINU, COSI=>COSIP,SINI=>SINIP
 
       IMPLICIT NONE
 
-      integer I,J,L, NT 
+      integer I,J,L, NT ,im1
 
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
@@ -5093,18 +5092,65 @@ C**** surface tracer concentration
       END DO
 #endif
       
-!!!  U velocity for the 1st ocean layer
+!!!  U velocity for the 1st ocean layer. 
 
+!!!  shift by half box to get A grid values ??
+c      call HNTR80 (IMO,JMO,0.5d0,oDLATM, IMA,JMA,0d0,aDLATM, 0.d0) ??
       call HNTR80 (IMO,JMO,0.5d0,oDLATM, IMA,JMA,0.5d0,aDLATM, 0.d0)
 
       call HNTR8  (oONES, UO_glob(1,1,1), aUO1_glob)
 
 !!!  V velocity for the 1st ocean layer
 
+
+!!!  shift by half box to get A grid values ??
+c      call HNTR80 (IMO,JMO-1,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0) ??
       call HNTR80 (IMO,JMO-1,0.d0,oDLATM, IMA,JMA-1,0.d0,aDLATM, 0.d0)
 
       call HNTR8  (oONES, VO_glob(1,1,1), aVO1_glob)
       aVO1_glob(:,JMA) = 0.d0
+
+C**** cut and paste of SURFACE code to put aUO1, aVO1 on the atm A grid
+C**** could be improved by adjustment of interpolation?
+C**** poles
+      IF (aFOCEAN(1,JMA).gt.0.) THEN
+        aUO1_glob(1,JMA)=aUO1_glob(IMA,JMA)*COSU(1)+aUO1_glob(IVNP,JMA)
+     *       *SINU(1)
+        aVO1_glob(1,JMA)=aUO1_glob(IVNP,JMA)*COSI(1)-aUO1_glob(IMA,JMA)
+     *       *SINI(1)
+      END IF
+      IF (aFOCEAN(1,1).gt.0.) THEN
+        aUO1_glob(1,1)=aUO1_glob(IMA ,1)*COSU(1)-aUO1_glob(IVSP,1)
+     *       *SINU(1)
+        aVO1_glob(1,1)=aUO1_glob(IVSP,1)*COSI(I)-aUO1_glob(IMA ,1)
+     *       *SINI(I)
+      END IF
+
+      do j=2,jma-1
+        im1=ima
+        do i=1,ima
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(i,j) = 0.5*(aUO1_glob(i,j)+aUO1_glob(im1,j))
+          ELSE
+            aFtemp(i,j) = 0.
+          END IF
+          im1=i
+        end do
+      end do
+      aUO1_glob(:,2:jma-1)= aFtemp(:,2:jma-1)
+
+      do j=2,jma-1
+        im1=ima
+        do i=1,ima
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(i,j) = 0.5*(aVO1_glob(i,j)+aVO1_glob(i,j-1))
+          ELSE
+            aFtemp(i,j) = 0.
+          END IF
+          im1=i
+        end do
+      end do
+      aVO1_glob(:,2:jma-1)= aFtemp(:,2:jma-1)
 
       RETURN
       END SUBROUTINE INT_OG2AG 

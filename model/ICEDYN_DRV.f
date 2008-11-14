@@ -530,7 +530,7 @@ c**** set north pole
 
 c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
-C**** NOTE: UOSURF, VOSURF are expected to be on the C-grid
+C**** NOTE: UOSURF, VOSURF are expected to be on the A-grid
 
 C**** Update halo for USI,UOSURF,PGFU
       CALL HALO_UPDATE(grid, USI   , from=NORTH    )
@@ -541,10 +541,12 @@ C**** Update halo for USI,UOSURF,PGFU
         im1=im
         do i=1,im
           UIB  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1))   ! iceC--> iceB
-          GWATX(i,j)=0.5*(UOSURF(im1,j)+UOSURF(im1,j+1)) ! ocnC--> iceB
+          GWATX(i,j)=0.25*(UOSURF(im1,j)+UOSURF(im1,j+1)+UOSURF(i,j)
+     *         +UOSURF(i,j+1)) ! atmA -> iceB
           PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! atmC--> iceB
           VIB  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))
-          GWATY(i,j)=0.5*(VOSURF(im1,j)+VOSURF(i,j))
+          GWATY(i,j)=0.25*(VOSURF(im1,j)+VOSURF(im1,j+1)+VOSURF(i,j)
+     *         +VOSURF(i,j+1))
           PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))
           im1=i
         enddo
@@ -747,10 +749,10 @@ C**** Update halos for FOCEAN, and RSI
         ICIJ(1,JM,IJ_RSI) =ICIJ(1,JM,IJ_RSI) +RSI(1,JM)
         ICIJ(1,JM,IJ_PICE)=ICIJ(1,JM,IJ_PICE)+RSI(1,JM)*press(1,JM)
       END IF
-C**** Set uisurf,visurf for use in atmospheric drag calculations
-      uisurf=usi
-      visurf=vsi
+C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
+      call get_uisurf(usi,vsi,uisurf,visurf)
 C****
+      RETURN
       END SUBROUTINE DYNSI
 
       SUBROUTINE ADVSI
@@ -1414,8 +1416,7 @@ C**** Initiallise ice dynamics if ocean model needs initialising
       end if
 
 C**** set uisurf,visurf for atmopsherice drag calculations
-      uisurf=usi
-      visurf=vsi
+      call get_uisurf(usi,vsi,uisurf,visurf)
 
 C**** set properties for ICIJ diagnostics
       k=0
@@ -1684,3 +1685,54 @@ C****
       RETURN
       END SUBROUTINE diag_ICEDYN
 
+      SUBROUTINE GET_UISURF(USI,VSI,UISURF,VISURF)
+!@sum calculate atmos. A grid winds from ice dynam grid
+!@auth Gavin Schmidt
+C**** temporary assumption that ice velocities are on atmos B grid 
+      USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP, only : get,grid,HALO_UPDATE,SOUTH,NORTH
+      USE GEOM, only : imaxj,idjj,idij,rapj,kmaxj,sinip,cosip
+      IMPLICIT NONE
+      REAL*8, INTENT(IN), DIMENSION(IM,
+     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: USI,VSI
+      REAL*8, INTENT(OUT), DIMENSION(IM,
+     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: UISURF,VISURF
+      INTEGER :: I_0,I_1,J_0,J_1,I,J,K,IM1
+      LOGICAL :: pole
+      REAL*8 :: hemi
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
+
+C**** go from ice C to atm A
+      do j=J_0,J_1
+        IM1=IM
+        do i=I_0,IMAXJ(J)
+          POLE= (J.EQ.1 .or. J.EQ.JM)
+          HEMI=1.
+          IF(J.LE.JM/2) HEMI=-1.
+C**** Note that usi,vsi start with j=1, (not j=2 as in atm winds)
+          if (pole) then
+            uisurf(i,j) = 0. ; visurf(i,j) = 0.
+            do k=1,kmaxj(j)
+              uisurf(i,j) = uisurf(i,j) + rapj(k,j)*(usi(idij(k,i,j)
+     *             ,idjj(k,j)-1)*cosip(k)-hemi*vsi(idij(k,i,j),idjj(k
+     *             ,j)-1)*sinip(k))
+              visurf(i,j) = visurf(i,j) + rapj(k,j)*(vsi(idij(k,i,j)
+     *             ,idjj(k,j)-1)*cosip(k)+hemi*usi(idij(k,i,j),idjj(k
+     *             ,j)-1)*sinip(k))
+            end do
+          else
+            uisurf(i,j) = 0.5*(usi(i,j)+usi(im1,j))
+            visurf(i,j) = 0.5*(vsi(i,j)+vsi(i,j-1))
+          end if
+          IM1=I
+        end do
+      end do
+
+      RETURN
+      END SUBROUTINE GET_UISURF

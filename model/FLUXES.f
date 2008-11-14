@@ -101,9 +101,13 @@ C**** sea ice melt and iceberg/glacial melt.
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSS
 !@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MLHC
-!@var UOSURF, VOSURF ocean surface velocity (Atm C grid) (m/s)
+!@var UOSURF, VOSURF ocean surface velocity (Atm A grid) (m/s)
+!@+   components defined along true N/S and E/W directions
+!@+   At the NP, U points from 90E to 90W, V from IDL to GM
+!@+   At the SP, U points from 9OW to 90E, V from GM to IDL 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF
-!@var UISURF, VISURF dynamic ice surface velocity (Atm C grid) (m/s)
+!@var UISURF, VISURF dynamic ice surface velocity (Atm A grid) (m/s)
+!@+   directions as for UOSURF/VOSURF
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UISURF,VISURF
 !@var APRESS total atmos + sea ice pressure (at base of sea ice) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: APRESS

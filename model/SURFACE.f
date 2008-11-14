@@ -19,8 +19,7 @@ C****
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
-      USE DOMAIN_DECOMP, only : NORTH
+      USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM
       USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp,idjj,idij,rapj,kmaxj,sinip
      *     ,cosip,lat2d
@@ -321,10 +320,6 @@ C**** Set up tracers for PBL calculation if required
       ntx = nx
 #endif
 
-      Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
-      Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
-      Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
-
       call recalc_agrid_uv
 
 C****
@@ -459,21 +454,9 @@ C**** limit on tracer evporation from lake
       ELSE
         IDTYPE=ITOCEAN
         if (UOdrag.eq.1) then ! use uocean for drag calculation
-C**** Convert UOSURF,VOSURF from C grid to A grid
-C**** Note that uosurf,vosurf start with j=1, (not j=2 as in atm winds)
-          if (j==1) then
-            uocean = uosurf(im,1)   ; vocean = uosurf(ivsp,1)
-          else if (j==jm) then
-            uocean = uosurf(im,jm)  ; vocean = uosurf(ivnp,jm)
-          else
-#ifdef SCM
+C**** UOSURF,VOSURF are on atm A grid
             uocean = uosurf(i,j)
             vocean = vosurf(i,j)
-#else
-            uocean = 0.5*(uosurf(i,j)+uosurf(im1,j))
-            vocean = 0.5*(vosurf(i,j)+vosurf(i,j-1))
-#endif
-          end if
         else
           uocean=0. ; vocean=0.
         end if
@@ -503,27 +486,8 @@ C****
       ELSE
         IDTYPE=ITOICE
         if (UOdrag.eq.1) then ! use ice velocities in drag calculation
-C**** Convert UISURF,VISURF from C grid to A grid
-C**** Note that uisurf,visurf start with j=1, (not j=2 as in atm winds)
-          if (pole) then
-            uocean = 0. ; vocean = 0.
-            do k=1,kmaxj(j)
-              uocean = uocean + rapj(k,j)*(uisurf(idij(k,i,j),idjj(k,j)
-     *             -1)*cosip(k)-hemi*visurf(idij(k,i,j),idjj(k,j)-1)
-     *             *sinip(k))
-              vocean = vocean + rapj(k,j)*(visurf(idij(k,i,j),idjj(k,j)
-     *             -1)*cosip(k)+hemi*uisurf(idij(k,i,j),idjj(k,j)-1)
-     *             *sinip(k))
-            end do
-          else
-#ifdef SCM
             uocean = uisurf(i,j)
             vocean = visurf(i,j)
-#else
-            uocean = 0.5*(uisurf(i,j)+uisurf(im1,j))
-            vocean = 0.5*(visurf(i,j)+visurf(i,j-1))
-#endif
-          end if
         else
           uocean = 0. ; vocean =0.
         end if
