@@ -1456,7 +1456,7 @@ C     SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
       DMMIX=(SVUP-SVMIX)*PLK(L)
 C    *  +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
       IF(DMMIX.LT.1d-10) CDHDRT=CDHDRT+CDHEAT(L)
-      IF(DMMIX.LT.1d-10) GO TO 291  the mixture is buoyant
+      IF(DMMIX.LT.1d-10) GO TO 291  ! the mixture is buoyant
 C     IF(SMIX.GE.SUP) CDHDRT=CDHDRT+CDHEAT(L)
 C     IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
 C     IF(PL(L).GT.700.) GO TO 291   ! do we need this condition?
