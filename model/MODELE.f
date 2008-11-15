@@ -15,7 +15,6 @@ CAOO   Just to test CVS
       USE gs_domain_decomp
       USE regrid_com, only:init_regrid
       USE gatscat_mod, only:gatscat_init
-      USE DOMAIN_DECOMP, ONLY : init_csgrid_debug
 #endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
