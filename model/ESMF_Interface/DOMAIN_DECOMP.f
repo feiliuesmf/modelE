@@ -11,6 +11,8 @@
 #define USE_MPI
 #endif
 
+#define DECOMP
+
 #ifdef USE_ESMF
       use ESMF_Mod
 #endif
@@ -396,14 +398,6 @@ c        MODULE PROCEDURE SUMXPE_5D
          module procedure RECV_FROM_J_1D
          module procedure IRECV_FROM_J_0D
       end interface
-
-#ifdef CUBE_GRID
-!@var temporary initialization of cs grid. Used for debugging only.
-      PUBLIC init_csgrid_debug
-      interface init_csgrid_debug
-      module procedure init_csgrid_debug 
-      end interface
-#endif
 
       ! Direction bits
       PUBLIC :: NORTH, SOUTH
@@ -5935,71 +5929,6 @@ cddd      End If
 !-------------------------------------------------------------------------------
 #endif
 
-#ifdef CUBE_GRID
-      subroutine init_csgrid_debug()
-
-!@sum  temporary instanciation of CS grid and domain decomp. using direct
-!@+    access to MPP. Used only for debugging purpose.
-!@auth Denis Gueyffier
-
-      USE regrid_com, only:ilonm,jlatm,ic,jc
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop
-     &     ,fv_domain_decomp=>domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
-      use fv_grid_utils_mod, only : cosa_s,sina_s
-     &     ,grid_utils_init
-c     &     ,sw_corner,se_corner,ne_corner,nw_corner
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
-      use fv_control_mod, only : uniform_ppm,c2l_ord
-      use gs_domain_decomp, ng=>halo_width
-      use gatscat_mod
-
-      implicit none
-      integer :: i,j,npz
-      integer :: npes,ndims
-      integer :: commID
-      integer, dimension(:), allocatable :: pelist
-
-      real*8, dimension(:,:), allocatable :: P
-
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline'
-      logical :: non_ortho
-
-c***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
-
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-c      write(6,*) 'commID ',commID
-      npx = ic; npy = npx ! 1x1 resolution
-      ng = 3 ! number of ghost zones required
-
-      call fv_domain_decomp(npx+1,npy+1,ntiles,ng,grid_type)
-c      call mp_stop()
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, ntiles, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-      end subroutine init_csgrid_debug
-c****
-#endif
 
       END MODULE DOMAIN_DECOMP
 
