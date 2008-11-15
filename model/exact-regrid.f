@@ -1,5 +1,3 @@
-C ifort exact-netcdf.f -o exactex -m64 -I/usr/local/netcdf-64bits-ifort-gcc/include -L/usr/local/netcdf-64bits-ifort-gcc/lib -lnetcdf
-
 C**** EXCHANGE.F    Cube - Sphere intersection points    2008/09/10
 C****
       Module LLvsCS  !  Longitude-Latitude grid vs Cube-Sphere grid
@@ -27,8 +25,10 @@ C****
 c     *    GM = 72, !  number of cells in longitude, multiple of 8
 c     *    HM = 46, !  number of cells in latitude, must be even
 c     *    GM = 144, !  number of cells in longitude, multiple of 8
-     *    GM = 288, !  number of cells in longitude, multiple of 8
-     *    HM = 180, !  number of cells in latitude, must be even
+c     *    GM = 288, !  number of cells in longitude, multiple of 8
+c     *    HM = 180, !  number of cells in latitude, must be even
+     *    GM = 72, !  number of cells in longitude, multiple of 8
+     *    HM = 46, !  number of cells in latitude, must be even
      *    IM = 48, !  number of linear cells on cube face, must be even
 c     *  NMX1 = 32, !  maximum number of Ns for line intersections
      *  NMX1 = 96, !  maximum number of Ns for line intersections
@@ -91,28 +91,31 @@ C**** EGAs ungrouped
       Real*8 ::
      *  SofN(NMAX)  !  spherical area of N-th EGA
       EndModule LLvsCS
+c*
 
-      Program MAIN
-C****
-C**** Longitude-Latitude grid cells intersect Cube-Sphere grid cells
-C**** on a sphere, their common areas being formed by polygons.
-C**** The set of such polygons is called the Exchange grid.
-C**** This program calculates the area of each Exchange grid cell.
-C****
-C**** Output of this program is the Exchange grid areas (Sof..) and
-C**** their associated numbered grid cells on the Longitude-Latitude
-C**** grid (G,H) or the Cube-Sphere grid (I,J,K).
-C**** Longitudinal numbering of grid cells is rather arbitrary and can
-C**** be modified by rotating the G's or the faces of the cube.
-C**** In the comments embedded in this program, it is assumed that
-C**** Face 1 of the cube projects onto longitudes between 45 W and 45 E
-C**** and that the western edges of cells with G = 1 coincide with the
-C**** International Date Line.  If Face 1 projects onto longitudes
-C**** between 135 E and 135 W and the western edges of cells with G = 1
-C**** coincide with the Greenwich Meridian, then the output arrays
-C**** (Sof.., G, H, I, J, K) are still correct and do not need to be
-C**** modified (although the embedded comments are not correct).
-C****
+      subroutine exact_regrid()
+
+!@sum Longitude-Latitude grid cells intersect Cube-Sphere grid cells
+!@+   on a sphere, their common areas being formed by polygons.
+!@+   The set of such polygons is called the Exchange grid.
+!@+   This program calculates the area of each Exchange grid cell.
+!@+
+!@+   Output of this program is the Exchange grid areas (Sof..) and
+!@+   their associated numbered grid cells on the Longitude-Latitude
+!@+   grid (G,H) or the Cube-Sphere grid (I,J,K).
+!@+   Longitudinal numbering of grid cells is rather arbitrary and can
+!@+   be modified by rotating the G's or the faces of the cube.
+!@+   In the comments embedded in this program, it is assumed that
+!@+   Face 1 of the cube projects onto longitudes between 45 W and 45 E
+!@+   and that the western edges of cells with G = 1 coincide with the
+!@+   International Date Line.  If Face 1 projects onto longitudes
+!@+   between 135 E and 135 W and the western edges of cells with G = 1
+!@+   coincide with the Greenwich Meridian, then the output arrays
+!@+   (Sof.., G, H, I, J, K) are still correct and do not need to be
+!@+   modified (although the embedded comments are not correct).
+
+!@auth Gary Russell
+
       Use LLvsCS
       Implicit Integer*4 (G-N), Real*16 (A-F,O-Z)
       integer :: fid,vid,intshift
@@ -499,7 +502,7 @@ C**** Check global area of Excahnge grid cells
   820 Write (0,*) 'SofN is correct.'
 
 C***  Output data in netcdf file
-      ofi='/Users/dgueyffier/fregrid/exexch.nc'
+      ofi='exexch.nc'
       
       status = nf_open(trim(ofi),nf_write,fid)
       if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
@@ -750,3 +753,4 @@ C     N = NMofGH(G,H) + 1
    20 M = N
       Return
       End
+c*

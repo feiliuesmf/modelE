@@ -394,8 +394,6 @@ c        line beloz should be moved in the weights inside zonal mean routine
 c****
 
 
-
-
       subroutine test_regrid()
       use regrid_com
       use mpp_mod
