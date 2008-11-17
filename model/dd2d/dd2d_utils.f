@@ -600,7 +600,11 @@ c allocate send/receive buffers for halo updates
 c assume a maximum halo width of 3, maximum nl*nk=1000
 c
       n = 3*(7+grid%ie-grid%is)*1000
-      allocate(bufsend(n),bufrecv(n))
+      if(.not.allocated(bufsend) .or. n.gt.size(bufsend)) then
+        if(allocated(bufsend)) deallocate(bufsend)
+        if(allocated(bufrecv)) deallocate(bufrecv)
+        allocate(bufsend(n),bufrecv(n))
+      endif
 
       return
       end subroutine init_dd2d_grid
