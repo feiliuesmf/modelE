@@ -32,9 +32,10 @@
 !@+        valid longitudes at jlat.
 !@+
 !@+     sum_zonal(cs2ll,jlat,nl,arr,arrsum)
-!@+        sums local array arr(isd:ied,1:nl) over longitude and places
-!@+        the result in arrsum(1:nl) on every processor having
-!@+        latitude index jlat.  Sums are only between the
+!@+        sums local array arr(isd:ied,1:nl) over longitude and
+!@+        combines the partial sum with those from other processors
+!@+        having latitude index jlat, placing the result arrsum(1:nl)
+!@+        on every processor at jlat. Partial sums are only between the
 !@+        first and last valid longitudes at jlat.
 !@+
 !@+     interp_xy_4D(grid,cs2ll,arrcs,arrll,nl,nk)
