@@ -1109,6 +1109,7 @@ ccc stuff needed for dynamic vegetation
 !        print *,i,j
 !      endif
       call get_fb_fv( fb, fv, i, j )
+      !write(401,*) "cdh", i,j,cdh
       call advnc(
 #ifdef USE_ENT
      &     entcells(i,j), Ca,
@@ -1200,6 +1201,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
 c**** snowe used in RADIATION
       snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+      !if ( j>23 ) write(995,*) i,j, snowe(i,j)
 c**** tearth used only internaly in GHY_DRV
       tearth(i,j) = tbcs
       tsns_ij(i,j) = tsns
@@ -2279,11 +2281,12 @@ ccc still not quite correct (assumes fw=1)
       use ghy_com, only : ngm
       use sle001, only : get_soil_properties
       !-- out
-      real*8, intent(out) :: w(:,:), ht(:,:)
+      real*8, intent(out) :: w(0:,:), ht(0:,:)
       real*8, intent(out) :: dzsn(:,:), wsn(:,:), hsn(:,:), fr_snow(:)
       integer, intent(out) :: nsn(:)
       !-- in
-      real*8, intent(in) :: earth_sat(:,:), earth_ice(:,:),earth_tp(:,:)
+      real*8, intent(in) :: earth_sat(0:,:), earth_ice(0:,:),
+     &      earth_tp(0:,:)
       real*8, intent(in) ::  snowd(:)
       real*8, intent(in) :: ws_can, shc_can
       real*8, intent(in) :: q(:,:), dz(:)
