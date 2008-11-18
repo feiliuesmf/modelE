@@ -13,8 +13,8 @@ CAOO   Just to test CVS
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
 #ifdef CUBE_GRID
       USE gs_domain_decomp
-      USE regrid_com, only:init_regrid
-      USE gatscat_mod, only:gatscat_init
+      USE regrid_com, only : x_2grids,ilonm,jlatm,isd,jsd,ied,jed
+      USE gatscat_mod, only : gatscat_init
 #endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
@@ -100,6 +100,11 @@ C**** Command line options
       CHARACTER*20 :: bname='kuku.txt'
       CHARACTER*15 :: sname='MODELE_mainV3: '
 #endif
+#ifdef CUBE_GRID
+      type (x_2grids) :: x2grids   ! container for exchange grid
+      real*8, dimension(:,:), allocatable :: tcub_loc
+      real*8, dimension(ilonm,jlatm) :: alatlon, tlatlon
+#endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
       real*8 :: gettotalenergy ! external for now
@@ -137,8 +142,11 @@ c**** Initialize gather&scatter
       call domain_decomp_init
       call gatscat_init
 
-c***  Initialize exchange grid
-      call init_regrid()
+c***  Initialize exchange grid and test regriding routines, DEBUG only
+      call init_regrid(x2grids,288,180,1,48,48,6)
+c      allocate(tcub_loc(isd:ied,jsd:jed))
+c      tcub_loc(:,:)= gid
+c      call regrid_cs2ll_exact(x2grids,tcub_loc,tlatlon,alatlon)
 #else
       call init_app(grid,im,jm,lm)
 #endif

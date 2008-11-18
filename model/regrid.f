@@ -1,4 +1,5 @@
-      subroutine init_xgrid_zonal()
+      subroutine init_xgrid_zonal(x2grids,imsource,jmsource,
+     &     ntilessource,imtarget,jmtarget,ntilestarget)
 
 !@sum Initialize exchange grid for constant latitude band zonal means (not zigzags)
 !@auth Denis Gueyffier
@@ -7,6 +8,16 @@
       include 'netcdf.inc'
       include 'mpif.h'
 
+      type (x_2grids), intent(inout) :: x2grids
+      integer, intent(in) :: imsource,jmsource,imtarget,jmtarget
+      integer, intent(in) :: ntilessource,ntilestarget
+      real*8,  allocatable, dimension(:) :: xgrid_area  !local variable
+      integer, allocatable, dimension(:) :: tile        !local variable
+      integer, allocatable, dimension(:,:) :: ijcub     !local variable
+      integer, allocatable, dimension(:,:) :: ijlatlon  !local variable
+      integer :: ncells                                 !local variable
+      integer :: maxkey                                 !local variable
+
       integer :: status,fid,n,vid,ikey,jlat,nc,nc2,
      *     ierr,icc,jcc
       integer :: itile,j,idomain,iic,jjc,index,indexc
@@ -14,16 +25,34 @@
       real*8 :: checkarea
       character(len=10) :: imch,jmch,icch,jcch 
 
-      write(imch,'(i10)') ilonm
-      write(jmch,'(i10)') jlatm
-      write(icch,'(i10)') ic
-      write(jcch,'(i10)') jc
+c         write(imch,'(i10)') ilonm
+c         write(jmch,'(i10)') jlatm
+c         write(icch,'(i10)') ic
+c         write(jcch,'(i10)') jc
 
+      x2grids%imsource=imsource
+      x2grids%jmsource=jmsource
+      x2grids%ntilessource=ntilessource
+      x2grids%imtarget=imtarget
+      x2grids%jmtarget=jmtarget
+      x2grids%ntilestarget=ntilestarget
+
+      write(imch,'(i10)') imsource
+      write(jmch,'(i10)') jmsource
+      write(icch,'(i10)') imtarget
+      write(jcch,'(i10)') jmtarget
       imch=trim(adjustl(imch))
       jmch=trim(adjustl(jmch))
       icch=trim(adjustl(icch))
       jcch=trim(adjustl(jcch))
-
+      exchfile="remap"//trim(imch)//"-"//trim(jmch)
+     *     //"C"//trim(icch)//"-"//trim(jcch)//".nc"
+      write(*,*) "filename=",exchfile
+      imch=trim(adjustl(imch))
+      jmch=trim(adjustl(jmch))
+      icch=trim(adjustl(icch))
+      jcch=trim(adjustl(jcch))
+      
       exchfile="remap"//trim(imch)//"-"//trim(jmch)
      *     //"C"//trim(icch)//"-"//trim(jcch)//".nc"
       write(*,*) "-->filename=",exchfile
@@ -50,6 +79,7 @@ c
       if (AM_I_ROOT()) then   
          status = nf_inq_varid(fid,'xgrid_area',vid)
          status = nf_get_var_double(fid,vid,xgrid_area)
+
          
          status = nf_inq_varid(fid,'tile1',vid)
          status = nf_get_var_int(fid,vid,tile)
@@ -64,7 +94,7 @@ c
       endif
 
 c
-c     Broadcast x-grid area and indices to all procs
+c     Broadcast x_grid area and indices to all procs
 c
       nc2=2*ncells
      
@@ -86,9 +116,9 @@ c
 c****
 c*     ikey=ikey+1
 c*     index=(iic-1)*jcmax+jjc
-c*     array az12 : ikey->index
-c*     array az22 : ikey->jlat
-c*     array az32 : ikey->xgrid_area
+c*     array index_from_key : ikey->index
+c*     array jlat_from_key : ikey->jlat
+c*     array xarea_from_key : ikey->xgrid_area
 c****
 
       
@@ -108,17 +138,18 @@ c     calculate maxkey = size of azonal
       enddo
       
       maxkey=ikey-1
-
- 
-      allocate(az12(maxkey))
-      allocate(az22(maxkey))
-      allocate(az32(maxkey))
+      x2grids%xgrid%maxkey=maxkey
+      x2grids%xgrid%ncells=ncells
+    
+      allocate(x2grids%xgrid%index_from_key(maxkey))
+      allocate(x2grids%xgrid%jlat_from_key(maxkey))
+      allocate(x2grids%xgrid%xarea_from_key(maxkey))
 
       write(6,*) "AFT ALOC ROLLED, maxkey",maxkey
 
-      az12(:)=0
-      az22(:)=0
-      az32(:)=0.d0
+      x2grids%xgrid%index_from_key(:)=0
+      x2grids%xgrid%jlat_from_key(:)=0
+      x2grids%xgrid%xarea_from_key(:)=0.d0
 
       checkarea=0.d0
       ikey=1
@@ -134,9 +165,9 @@ c     calculate maxkey = size of azonal
 c               write(6,*) "index indexc",index,indexc
                   if ( index .eq. indexc ) then
                      jlat=ijlatlon(2,n)
-                     az12(ikey)=index
-                     az22(ikey)=jlat
-                     az32(ikey)=xgrid_area(n)      
+                     x2grids%xgrid%index_from_key(ikey)=index
+                     x2grids%xgrid%jlat_from_key(ikey)=jlat
+                     x2grids%xgrid%xarea_from_key(ikey)=xgrid_area(n)    
 c                     write(6,*) "ikey=",ikey
                      ikey=ikey+1
                      checkarea=checkarea+xgrid_area(n)
@@ -147,12 +178,17 @@ c                     write(6,*) "ikey=",ikey
       enddo
       write(*,*) "ikey=",ikey-1
       write(*,*) "->checkarea=",checkarea
+
+      deallocate(xgrid_area)
+      deallocate(ijcub)
+      deallocate(ijlatlon)
+      deallocate(tile)
       
       end subroutine init_xgrid_zonal
 c****
 
 
-      subroutine zonalmean_band(value,iinput,jinput,
+      subroutine zonalmean_band(x2grids,value,iinput,jinput,
      *     zonal_mean,area_latband)
 
 !@sum  Calculate zonal mean using latitute band algorithm (not zigzags on budget grid)
@@ -161,6 +197,7 @@ c****
       use regrid_com
       implicit none
       include 'netcdf.inc'
+      type (x_2grids), intent(in) :: x2grids
       integer, intent(in) :: iinput,jinput
       real*8 :: value,zonal_mean(jlatm),area_latband(jlatm),
      & zstore,astore
@@ -171,14 +208,16 @@ c****
 
       current_index=jc*(iinput-1)+jinput
 
-      do ikey=1,maxkey
-         index=az12(ikey)            
+      do ikey=1,x2grids%xgrid%maxkey
+         index=x2grids%xgrid%index_from_key(ikey)            
          if (index .eq. current_index) then
-            jlat=az22(ikey) 
+            jlat=x2grids%xgrid%jlat_from_key(ikey) 
             zstore=zonal_mean(jlat)
-            zonal_mean(jlat)=zstore+az32(ikey)*value
+            zonal_mean(jlat)=zstore
+     &           +x2grids%xgrid%xarea_from_key(ikey)*value
             astore=area_latband(jlat)
-            area_latband(jlat)=astore+az32(ikey)
+            area_latband(jlat)=astore
+     &           +x2grids%xgrid%xarea_from_key(ikey)
          endif
       enddo
 
@@ -188,12 +227,14 @@ c****
 c*
 
 
-      subroutine parallel_regrid_cs2ll(tcub_loc,tlatlon,alatlon)
+      subroutine parallel_regrid_cs2ll(x2grids,tcub_loc,   !make it generic, remove cs2ll from proc. name
+     &     tlatlon,alatlon)
 
 !@sum  Parallel regriding from cubed-sphere to lat-lon grid
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
+      type (x_2grids), intent(in) :: x2grids
       real*8 :: tlatlon(ilonm,jlatm),alatlon(ilonm,jlatm)
       real*8 :: tcub_loc(isd:ied,jsd:jsd)
       integer :: n,icub,jcub,i,j,itile,nij_latlon
@@ -201,22 +242,23 @@ c*
       alatlon(:,:) = 0.d0
       tlatlon(:,:) = 0.d0
 
-      do n=1,ncells
-        icub=ijcub(1,n)
-        jcub=ijcub(2,n)
-        itile=tile(n)
+      do n=1,x2grids%xgrid%ncells
+        icub=x2grids%xgrid%ijcub(1,n)
+        jcub=x2grids%xgrid%ijcub(2,n)
+        itile=x2grids%xgrid%tile(n)
 c        write(6,*) 'ie, icub, is=',ie,icub,is
 c        write(6,*) 'je, jcub, js=',je,jcub,js
 
         if (itile .eq. mytile) then
            if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
      &          ( (jcub .le. je) .and. (jcub .ge. js)) ) then
-c              write(6,*) 'xg_area',xgrid_area(n)
-              i=ijlatlon(1,n)
-              j=ijlatlon(2,n)
-              alatlon(i,j) = alatlon(i,j) + xgrid_area(n)
-              tlatlon(i,j) = tlatlon(i,j) + xgrid_area(n)
-     &             *tcub_loc(icub,jcub)
+c     write(6,*) 'xg_area',x2grids%xgrid%xgrid_area(n)
+              i=x2grids%xgrid%ijlatlon(1,n)
+              j=x2grids%xgrid%ijlatlon(2,n)
+              alatlon(i,j) = alatlon(i,j) + 
+     &             x2grids%xgrid%xgrid_area(n)
+              tlatlon(i,j) = tlatlon(i,j) + 
+     &             x2grids%xgrid%xgrid_area(n)*tcub_loc(icub,jcub)
            endif
         endif
       enddo
@@ -241,14 +283,13 @@ c
          enddo
       enddo
 
-
       endif
 
       end subroutine parallel_regrid_cs2ll
 c*
 
 
-      subroutine regrid_cs2ll_exact(tcub_loc,tlatlon,alatlon)
+      subroutine regrid_cs2ll_exact(x2grids,tcub_loc,tlatlon,alatlon)
  
 !@sum  Parallel regriding from cubed-sphere to lat-lon grid
 !@+    version using double-double arithmetics for reproducible results
@@ -257,6 +298,7 @@ c*
       use regrid_com
       implicit none
       include 'netcdf.inc'
+      type (x_2grids), intent(in) :: x2grids
       real*8 :: tlatlon(ilonm,jlatm),alatlon(ilonm,jlatm)
       real*8 :: tcub_loc(isd:ied,jsd:jsd)
       real*8 :: tlatlon_dbg(ilonm,jlatm),
@@ -283,26 +325,26 @@ c*
       alatlon_dbg(:,:) = 0d0
       tlatlon_dbg(:,:) = 0d0
 
-      do n=1,ncells
-        icub=ijcub(1,n)
-        jcub=ijcub(2,n)
-        itile=tile(n)
+      do n=1,x2grids%xgrid%ncells
+        icub=x2grids%xgrid%ijcub(1,n)
+        jcub=x2grids%xgrid%ijcub(2,n)
+        itile=x2grids%xgrid%tile(n)
 
         if (itile .eq. mytile) then
            if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
      &          ( (jcub .le. je) .and. (jcub .ge. js)) ) then
 c              write(*,*) "inside ie ,is , je, js"
-              i=ijlatlon(1,n)
-              j=ijlatlon(2,n)
+              i=x2grids%xgrid%ijlatlon(1,n)
+              j=x2grids%xgrid%ijlatlon(2,n)
               
               alatlon_tmp(1)=alatlon_dd(i,j)
-              xarea_dd(1)=dcmplx(xgrid_area(n), 0.d0)
+              xarea_dd(1)=dcmplx(x2grids%xgrid%xgrid_area(n), 0.d0)
               call add_dd(xarea_dd,alatlon_tmp,1) 
               alatlon_dd(i,j)=alatlon_tmp(1)     !OK
               
-
               tlatlon_tmp(1)=tlatlon_dd(i,j)
-              call dxd(xgrid_area(n),tcub_loc(icub,jcub),tmp_dd)
+              call dxd(x2grids%xgrid%xgrid_area(n),
+     &             tcub_loc(icub,jcub),tmp_dd)
               tmp_dd_vec(1)=tmp_dd
               call add_dd(tmp_dd_vec,tlatlon_tmp,1)   
               tlatlon_dd(i,j)=tlatlon_tmp(1)
@@ -319,7 +361,9 @@ c              alatlon_dd(i,j)=dcmplx(1.0d0,0.0d0) !remove this, debug only
 
       call sumxpe2d_exact(tlatlon_dd)
       call sumxpe2d_exact(alatlon_dd)
-      write(*,*) "counting"
+
+c      write(*,*) "counting"
+
 c
 c      call sumxpe(tlatlon_dbg)
 c      call sumxpe(alatlon_dbg)
@@ -330,7 +374,7 @@ c     root proc section
 c
 
       if (AM_I_ROOT()) then   
-      write(*,*) "HERE"
+         write(*,*) "HERE"
          do j=1,jlatm
             do i=1,ilonm
                tlatlon(i,j)=real(tlatlon_dd(i,j))
@@ -338,39 +382,40 @@ c
             enddo
          enddo
          tlatlon(:,:) = tlatlon(:,:)/alatlon(:,:)
-
-c         tlatlon_dbg(:,:) = tlatlon_dbg(:,:)
+         
+c     tlatlon_dbg(:,:) = tlatlon_dbg(:,:)
 c     &          /alatlon_dbg(:,:)
-
-
-c         do j=1,jlatm
-c            do i=1,ilonm
-c               write(*,*) "tlat",tlatlon(i,j)
+         
+         
+         do j=1,jlatm
+            do i=1,ilonm
+               write(*,*) "tlat",tlatlon(i,j)
 c     &              ,tlatlon_dbg(i,j),"<<<"
-c            enddo
-c         enddo
-
-c      ofi='tstout.nc'
-c      status = nf_open(trim(ofi),nf_write,fid)
-c      if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-c      status = nf_inq_varid(fid,'lwup_sfc',vid)
-c      write(*,*) NF_STRERROR(status)
-c      status = nf_put_var_double(fid,vid,tlatlon)
-c      write(*,*) "STATUS",NF_STRERROR(status),"<<"
-c     
-c      status = nf_close(fid)
+            enddo
+         enddo
+         
+c         ofi='tstout.nc'
+c         status = nf_open(trim(ofi),nf_write,fid)
+c         if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+c         status = nf_inq_varid(fid,'lwup_sfc',vid)
+c         write(*,*) NF_STRERROR(status)
+c         status = nf_put_var_double(fid,vid,tlatlon)
+c         write(*,*) "STATUS",NF_STRERROR(status),"<<"
+c         
+c         status = nf_close(fid)
       endif
 
       end subroutine regrid_cs2ll_exact
 c*
 
 
-      subroutine root_regrid_ll2cs(tlatlon,tcubglob)
+      subroutine root_regrid_ll2cs(x2grids,tlatlon,tcubglob)
 
 !@sum  Root processor regrids data from lat-lon -> cubbed sphere 
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
+      type (x_2grids), intent(in) :: x2grids
       real*8 :: tlatlon(ilonm,jlatm),tcubglob(ic,jc,6),
      &     acubglob(ic,jc,6)
       integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl
@@ -381,17 +426,17 @@ c*
          acubglob(:,:,:) = 0d0
          tcubglob(:,:,:) = 0d0
          
-         do n=1,ncells
-            itile=tile(n)
-            icc=ijcub(1,n)
-            jcc=ijcub(2,n)
-            il=ijlatlon(1,n)
-            jl=ijlatlon(2,n)
+         do n=1,x2grids%xgrid%ncells
+            itile=x2grids%xgrid%tile(n)
+            icc=x2grids%xgrid%ijcub(1,n)
+            jcc=x2grids%xgrid%ijcub(2,n)
+            il=x2grids%xgrid%ijlatlon(1,n)
+            jl=x2grids%xgrid%ijlatlon(2,n)
             
             acubglob(icc,jcc,itile) = acubglob(icc,jcc,itile) 
-     &           + xgrid_area(n)
+     &           + x2grids%xgrid%xgrid_area(n)
             tcubglob(icc,jcc,itile) = tcubglob(icc,jcc,itile) 
-     &           + xgrid_area(n)*tlatlon(il,jl)
+     &           + x2grids%xgrid%xgrid_area(n)*tlatlon(il,jl)
          enddo
          
          do itile=1,6
@@ -402,31 +447,45 @@ c*
                enddo
             enddo
          enddo
-                  write(6,*) "END ROOT REGRID LL2CS"
+         write(6,*) "END ROOT REGRID LL2CS"
       endif
       
       end subroutine root_regrid_ll2cs
 c*
-         
-      subroutine init_regrid()
 
-!@sum  Reads regriding file on root proc then broadcasts the 
-!@+    x-grid data to all procs. It also initializes variables 
-!@+    and provides single point of access 
-!@+    to grid data through reference to dist_grid.
+         
+      subroutine init_regrid(x2grids,imsource,jmsource,
+     &     ntilessource,imtarget,jmtarget,ntilestarget)
+
+!@sum  Reads regriding file on root proc, broadcasts the 
+!@+    x_grid data to all processes then instanciates locally
+!@+    the regrid derived type (regrid type=x_grid plus extra info about
+!@+    source and target grids). It also initializes domain decomposition
+!@+    variables through dist_grid derived type. Will soon use dd2d 
+!@+    derived type in place of dist_grid.
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
       include 'netcdf.inc'
       include 'mpif.h'
-      
+c      type (dist_grid), intent(in) :: grid
+      type (x_2grids), intent(inout) :: x2grids
+      type (x_grid) :: xgrid
+      real*8,  allocatable, dimension(:) :: xgrid_area  !local variable
+      integer, allocatable, dimension(:) :: tile        !local variable
+      integer, allocatable, dimension(:,:) :: ijcub     !local variable
+      integer, allocatable, dimension(:,:) :: ijlatlon  !local variable
+      integer :: ncells                                 !local variable
+      integer, intent(in) :: imsource,jmsource,imtarget,jmtarget
+      integer, intent(in) :: ntilessource,ntilestarget
       integer :: status,fid,n,vid,ikey,jlat
       integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
       integer :: ierr
       character*200 :: exchfile
       character(len=10) :: imch,jmch,icch,jcch
 
-c remove lines below when cs will be instanciated inside DOMAIN_DECOMP.f
+
+c modify lines below when we begin using derived type dd2d 
 #ifndef CUBE_GRID  
 c     set variables ("Constructor")
       is=grid%I_STRT
@@ -445,12 +504,25 @@ c      call MPI_COMM_SIZE(MPI_COMM_WORLD,totPEs,ierr)
       mytile=(gid/dom_per_tile)+1   ! will soon be mytile=grid%dd2d%mytile
 #endif
 
+      x2grids%imsource=imsource
+      x2grids%jmsource=jmsource
+      x2grids%ntilessource=ntilessource
+      x2grids%imtarget=imtarget
+      x2grids%jmtarget=jmtarget
+      x2grids%ntilestarget=ntilestarget
+
+
 c
       if (AM_I_ROOT()) then   
-         write(imch,'(i10)') ilonm
-         write(jmch,'(i10)') jlatm
-         write(icch,'(i10)') ic
-         write(jcch,'(i10)') jc
+c         write(imch,'(i10)') ilonm
+c         write(jmch,'(i10)') jlatm
+c         write(icch,'(i10)') ic
+c         write(jcch,'(i10)') jc
+
+         write(imch,'(i10)') imsource
+         write(jmch,'(i10)') jmsource
+         write(icch,'(i10)') imtarget
+         write(jcch,'(i10)') jmtarget
          imch=trim(adjustl(imch))
          jmch=trim(adjustl(jmch))
          icch=trim(adjustl(icch))
@@ -494,7 +566,7 @@ c     depending on ncells on each processor
       endif
       
 c
-c     Broadcast x-grid area and indices to all procs
+c     Broadcast x_grid area and indices to all procs
 c
       nc2=2*ncells
      
@@ -507,209 +579,37 @@ c
       call MPI_BCAST( tile, ncells, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
 
+      allocate(x2grids%xgrid%xgrid_area(ncells))
+      allocate(x2grids%xgrid%ijcub(2,ncells))
+      allocate(x2grids%xgrid%ijlatlon(2,ncells))
+      allocate(x2grids%xgrid%tile(ncells))
+
+      x2grids%xgrid%xgrid_area(:)=xgrid_area(:)
+      x2grids%xgrid%ijcub(:,:)=ijcub(:,:)
+      x2grids%xgrid%ijlatlon(:,:)=ijlatlon(:,:)
+      x2grids%xgrid%tile(:)=tile(:)
+      x2grids%xgrid%ncells=ncells
+
+      deallocate(xgrid_area)
+      deallocate(ijcub)
+      deallocate(ijlatlon)
+      deallocate(tile)
+
       end subroutine init_regrid
 c*
 
 
-
-      subroutine offregrid()
-
-!@sum  offline regridding of input files
-!@auth Denis Gueyffier (based on earlier version by Max Kelley)
-
-      implicit none
-      character*200 :: wtfile,ofile,infi,outfile
-      character*200 :: outunformat1,outunformat2,outunformat3 
-      character*200 :: outunformat4,outunformat5,outunformat6
-
-      character*1 :: ostr
-      character*3 :: irstr
-
-      include 'netcdf.inc'
-      integer, parameter :: ncells=31344,nmax=500
-      integer, parameter :: ilonm=72,jlatm=46,imc=48,jmc=48
-      real*8 :: xgrid_area(ncells),tot_area
-      real*8 :: tcub(imc,jmc,6),acub(imc,jmc,6),area_tile(6)
-      real*8 :: tll(ilonm,jlatm,nmax)
-      integer :: tile(ncells)
-      integer, dimension(2,ncells) :: ijcub,ijlatlon
-      integer :: status,vid,fid,itile,srt(2),cnt(2),n,i,j,ic,jc,il,jl
-      character*80 TITLE(nmax)
-      real*4 data(ilonm,jlatm,nmax),tout(imc,jmc,6)
-      integer iu1,iu2,iu3,iu4,iu5,iu6,irec,recmax,ir,iunit
-
-c read weights
-      wtfile='remapC48N4x5.nc'
-      status = nf_open(trim(wtfile),nf_nowrite,fid)
-      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN REMAP FILE"
-      status = nf_inq_varid(fid,'xgrid_area',vid)
-      status = nf_get_var_double(fid,vid,xgrid_area)
-      status = nf_inq_varid(fid,'tile1',vid)
-      status = nf_get_var_int(fid,vid,tile)
-      status = nf_inq_varid(fid,'tile1_cell',vid)
-      status = nf_get_var_int(fid,vid,ijcub)
-      status = nf_inq_varid(fid,'tile2_cell',vid)
-      status = nf_get_var_int(fid,vid,ijlatlon)
-      status = nf_close(fid)
-
-
-c Read data on latlon grid
-      infi='/Users/dgueyffier/fregrid/V72X46.1.cor2_no_crops.ext'
-      iunit=15
-
-      open( iunit, FILE=infi, 
-     &     FORM='unformatted', STATUS='old')
-
-      irec=1
-
-      do
-      read(unit=iunit,END=30) TITLE(irec), data(:,:,irec)
- 
-      write(*,*) TITLE(irec)
-
-      do i=1,ilonm
-         do j=1,jlatm
-            tll(i,j,irec)= data(i,j,irec)
-         enddo
-      enddo
-
-      irec=irec+1
-
-      enddo
- 30   continue
-
-      close(iunit)
-
-      write(*,*) "HERE"
-      recmax=irec
-c
-c     prepare unformatted output
-c     
-      ofile='/Users/dgueyffier/fregrid/output_fregrid/outll4x5-'
-      outunformat1=trim(ofile)//'1.dat'            
-      outunformat2=trim(ofile)//'2.dat'            
-      outunformat3=trim(ofile)//'3.dat'            
-      outunformat4=trim(ofile)//'4.dat'            
-      outunformat5=trim(ofile)//'5.dat'            
-      outunformat6=trim(ofile)//'6.dat'            
-      iu1=21
-      iu2=22
-      iu3=23
-      iu4=24
-      iu5=25
-      iu6=26
-      
-      open( iu1, FILE=outunformat1, 
-     &     FORM='unformatted', STATUS='new')
-      open( iu2, FILE=outunformat2, 
-     &     FORM='unformatted', STATUS='new')
-      open( iu3, FILE=outunformat3, 
-     &     FORM='unformatted', STATUS='new')
-      open( iu4, FILE=outunformat4, 
-     &     FORM='unformatted', STATUS='new')
-      open( iu5, FILE=outunformat5, 
-     &     FORM='unformatted', STATUS='new')
-      open( iu6, FILE=outunformat6, 
-     &     FORM='unformatted', STATUS='new')
-      
-      do ir=1,recmax
-         
-c     Regrid
-         acub(:,:,:) = 0d0
-         tcub(:,:,:) = 0d0
-         area_tile(:) = 0d0
-         do n=1,ncells
-            itile=tile(n)
-            ic=ijcub(1,n)
-            jc=ijcub(2,n)
-            il=ijlatlon(1,n)
-            jl=ijlatlon(2,n)
-c     write(*,*) tll(il,jl)
-            area_tile(itile) = area_tile(itile) + xgrid_area(n)
-            acub(ic,jc,itile) = acub(ic,jc,itile) + xgrid_area(n)
-            tcub(ic,jc,itile) = tcub(ic,jc,itile) 
-     &           + xgrid_area(n)*tll(il,jl,ir)
-         enddo
-         do itile=1,6
-            do j=1,jmc
-               do i=1,imc
-                  tcub(i,j,itile) = tcub(i,j,itile)/acub(i,j,itile)
-               enddo
-            enddo
-         enddo
-
-c     Output area of each tile
-         tot_area=0d0
-         do itile=1,6
-            write(*,*) "area tile",itile,"=",area_tile(itile)
-            tot_area=tot_area+area_tile(itile)
-         enddo
-         
-         write(*,*) "tot area=",tot_area
-         
-c         
-c     Write to netcdf output file
-c         
-         
-         do itile=1,6
-            write(ostr,'(i1)') itile
-            if (ir .lt. 10) then
-               write(irstr,'(i1)') ir
-            elseif (ir .lt. 100) then
-               write(irstr,'(i2)') ir
-            else
-               write(irstr,'(i3)') ir
-            endif
-            outfile=trim(ofile)//ostr//'-'//trim(irstr)
-     *           //'.nc'
-            
-            write(*,*) "outfile =",outfile
-            status = nf_open(trim(outfile),nf_write,fid)
-            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-            status = nf_inq_varid(fid,'zsurf',vid)
-            write(*,*) NF_STRERROR(status)
-            status = nf_put_var_double(fid,vid,tcub(:,:,itile))
-            write(*,*) NF_STRERROR(status)
-            status = nf_close(fid)
-            
-         enddo
-
-c
-c     write to unformated output
-c
-
-         tout(:,:,:)=tcub(:,:,:)
-
-         write(unit=iu1) TITLE(ir), tout(:,:,1)
-         write(unit=iu2) TITLE(ir), tout(:,:,2)
-         write(unit=iu3) TITLE(ir), tout(:,:,3)
-         write(unit=iu4) TITLE(ir), tout(:,:,4)
-         write(unit=iu5) TITLE(ir), tout(:,:,5)
-         write(unit=iu6) TITLE(ir), tout(:,:,6)
-         write(*,*) "ir=",ir
-                 
-      enddo
-
-      close(iu1)
-      close(iu2)
-      close(iu3)
-      close(iu4)
-      close(iu5)
-      close(iu6)
-   
-      end subroutine offregrid
-c*
-
-
-      subroutine readt_regrid_parallel(iunit,name,nskip,tcubloc,ipos)
+      subroutine readt_regrid_parallel(x2grids,iunit,name,nskip,
+     &     tcubloc,ipos)
 
 !@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
 !@+    then scatter to all subdomains
 !@auth Denis Gueyffier
 
-      use regrid_com, only :ilonm,jlatm,ic,jc,gid,AM_I_ROOT
+      use regrid_com, only :ilonm,jlatm,ic,jc,gid,AM_I_ROOT,x_2grids
       use gatscat_mod
       implicit none
+      type (x_2grids), intent(in) :: x2grids
       integer, intent(in) :: iunit
       character*16, intent(in) :: name
       integer, intent(in) :: nskip
@@ -732,7 +632,7 @@ c*
 c     convert from real*4 to real*8
          tdatall=tllr4
 c     Regrid from lat-lon to cubbed sphere, form global array
-         call root_regrid_ll2cs(tdatall,tcubglob)
+         call root_regrid_ll2cs(x2grids,tdatall,tcubglob)
        endif
 
 c     Scatter data to every processor
@@ -743,15 +643,16 @@ c      write(6,*) tcubglob
 c*
 
 
-      subroutine dread_regrid_parallel(iunit,name,tcubloc)
+      subroutine dread_regrid_parallel(x2grids,iunit,name,tcubloc)
      
 !@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
 !@+    then scatter to all subdomains
 !@auth Denis Gueyffier
 
-      use regrid_com, only :ilonm,jlatm,ic,jc,AM_I_ROOT
+      use regrid_com, only :ilonm,jlatm,ic,jc,AM_I_ROOT,x_2grids
       use gatscat_mod
       implicit none
+      type (x_2grids), intent(in) :: x2grids
       integer, intent(in) :: iunit
       character*16, intent(in) :: name
       real*8 :: tcubloc(is:ie,js:je) !output regridded and scattered data 
@@ -766,7 +667,7 @@ c*
 c     convert from real*4 to real*8
          tdatall=tllr4
 c     Regrid from lat-lon to cubbed sphere, form global array
-         call root_regrid_ll2cs(tdatall,tcubglob)
+         call root_regrid_ll2cs(x2grids,tdatall,tcubglob)
        endif
 
 c     Scatter data to every processor
@@ -937,44 +838,6 @@ C  global_sum is a complex number, represents final (sum, error).
 c*
 
 
-      subroutine test_regrid_exact
-!@sum  Parallel regriding from cubed-sphere to lat-lon grid
-!@+    version using double-double arithmetics for reproducible results
-!@+    independent of #procs
-!@auth Denis Gueyffier
-
-      use regrid_com
-      implicit none
-      include 'mpif.h'
-      integer i, sizearr
-      integer :: myPE, totPEs, stat(MPI_STATUS_SIZE), ierr
-      integer :: MPI_SUMDD
-      external add_DD
-      complex*16, dimension(:), allocatable:: array, local_array
-      
-      call MPI_COMM_RANK( MPI_COMM_WORLD, myPE, ierr )
-      call MPI_COMM_SIZE( MPI_COMM_WORLD, totPEs, ierr )
-      call MPI_OP_CREATE(add_DD, .TRUE., MPI_SUMDD, ierr)
-
-      sizearr = 100
-
-      write(*,*) 'myPE=', myPE
-      allocate(local_array(sizearr),array(sizearr))
-      
-      do i=1,sizearr
-         local_array(i)=dcmplx(1.0d0,0.d0)
-      enddo
-
-      call MPI_REDUCE(local_array, array, sizearr, 
-     &     MPI_DOUBLE_COMPLEX,
-     &     MPI_SUMDD, 0, MPI_COMM_WORLD, ierr)
-      
-      if (myPE .eq. 0)  write(*,*) "root_array",array
-      
-      end subroutine test_regrid_exact
-c*
-
-
       subroutine sumxpe2d_exact(arr)
 !@sum This code calculates a reproducible non rank reducing sum 
 !@+   independent on number of processors using double-double arithmetics
@@ -1009,6 +872,7 @@ c      write(*,*) "arr=",arr(:,:)
       deallocate(arr_rsh) 
     
       end subroutine sumxpe2d_exact
+c*
 
 
       subroutine init_csgrid_debug()
