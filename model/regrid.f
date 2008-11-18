@@ -459,7 +459,7 @@ c*
 
 !@sum  Reads regriding file on root proc, broadcasts the 
 !@+    x_grid data to all processes then instanciates locally
-!@+    the regrid derived type (regrid type=x_grid plus extra info about
+!@+    the x_2grids derived type (x_2grids type=x_grid plus info about
 !@+    source and target grids). It also initializes domain decomposition
 !@+    variables through dist_grid derived type. Will soon use dd2d 
 !@+    derived type in place of dist_grid.

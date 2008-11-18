@@ -4,7 +4,7 @@
 !@+ 
 !@+    We define the x_grid container which stores information and data about the 
 !@+    exchange grid. This data is common to the source and target grids
-!@+    We also define the x_2grids container which stores an exchange grid
+!@+    We also define the x_2grids type which contains an x_grid (exchange grid)
 !@+    plus info about the direction of the remapping and about the resolution 
 !@+    of the source and target grids
 !@+ 
@@ -36,6 +36,7 @@ ccc   variable members
       private :: xgrid
       public :: regrid
 
+ccc   derived types
       type x_grid   ! stores x-grid information common to source and target grids
       integer  :: ncells
       real*8,  allocatable, dimension(:) :: xgrid_area
