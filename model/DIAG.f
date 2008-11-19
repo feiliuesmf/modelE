@@ -656,6 +656,7 @@ C****
         THETA=THBAR(T(I,J,L+1),T(I,J,L))
         W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
       END DO
+       if(J==1.or.J==JM) W(2:IM,J,L) = W(1,J,L)
       END DO
       END DO
 
