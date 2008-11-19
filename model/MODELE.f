@@ -13,7 +13,7 @@ CAOO   Just to test CVS
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
 #ifdef CUBE_GRID
       USE gs_domain_decomp
-      USE regrid_com, only : x_2grids,ilonm,jlatm,isd,jsd,ied,jed
+      USE regrid_com, only : x_2grids,isd,jsd,ied,jed
       USE gatscat_mod, only : gatscat_init
 #endif
       USE DYNAMICS
@@ -101,9 +101,9 @@ C**** Command line options
       CHARACTER*15 :: sname='MODELE_mainV3: '
 #endif
 #ifdef CUBE_GRID
-      type (x_2grids) :: x2grids   ! container for exchange grid
-      real*8, dimension(:,:), allocatable :: tcub_loc
-      real*8, dimension(ilonm,jlatm) :: alatlon, tlatlon
+      type (x_2grids) :: xcs2ll
+      real*8, dimension(:,:), allocatable :: tsource
+      real*8, dimension(:,:), allocatable :: ttarget,atarget
 #endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
@@ -142,11 +142,13 @@ c**** Initialize gather&scatter
       call domain_decomp_init
       call gatscat_init
 
-c***  Initialize exchange grid and test regriding routines, DEBUG only
-      call init_regrid(x2grids,288,180,1,48,48,6)
-c      allocate(tcub_loc(isd:ied,jsd:jed))
-c      tcub_loc(:,:)= gid
-c      call regrid_cs2ll_exact(x2grids,tcub_loc,tlatlon,alatlon)
+c***  Initialize exchange grid object and test regriding routines, DEBUG only
+      call init_regrid(xcs2ll,48,48,6,288,180,1)
+      allocate(tsource(isd:ied,jsd:jed))
+      tsource(:,:)=1-gid
+      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget),
+     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget) )
+      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
 #else
       call init_app(grid,im,jm,lm)
 #endif
@@ -1006,7 +1008,9 @@ C****
 #ifdef USE_ENT
       USE ENT_DRV, only : init_module_ent
 #endif
-
+#ifdef CUBE_GRID
+      USE regrid_com, only : x_2grids
+#endif
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_REG,iu_RSF unit numbers for input files
@@ -1055,7 +1059,9 @@ C****    List of parameters that are disregarded at restarts
       character*132 :: bufs
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
-
+#ifdef CUBE_GRID
+      type (x_2grids) :: xll2cs
+#endif
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -1287,6 +1293,7 @@ C****                                                               ****
 C***********************************************************************
 C**** get unit for atmospheric initial conditions if needed
       IF (ISTART.gt.1) call openunit("AIC",iu_AIC,.true.,.true.)
+c      write(*,*) "ISTART=",ISTART
 C****
 C**** Set quantities that are derived from the namelist parameters
 C****
@@ -1333,8 +1340,9 @@ C**** Set flag to initialise pbl and snow variables
         if (istart.eq.1) redogh=.true.
 
 C**** Read in ground initial conditions
+#ifndef CUBE_GRID
         call read_ground_ic() ! code moved to IORSF
-
+#endif
       END IF 
 C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
@@ -1346,31 +1354,36 @@ C****            not yet implemented but could easily be done  ???
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
 
 #ifdef CUBE_GRID
-      write(6,*) "bef readt regrd"
-      call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),0,P,1) 
+      write(*,*) "bef readt regrd"
+
+
+      call init_regrid(xll2cs,72,46,1,48,48,6)
+
+      call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),0,P,1)
       do J=J_0,J_1
          do I=I_0,I_1
             P(i,j)=P(i,j)-PTOP
          enddo
       enddo
       do l=1,LM
-         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
      &        0,U(:,:,L),1) 
       enddo
       do l=1,LM
-         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
      &        0,V(:,:,L),1) 
       enddo
       do l=1,LM
-         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
      &        0,T(:,:,L),1) 
       enddo
       do l=1,LM
-         call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),
+         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
      &        0,Q(:,:,L),1) 
       enddo
       
-      call readt_regrid_parallel(iu_AIC,NAMEUNIT(iu_AIC),0,TSAVG,1) 
+      call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),0,
+     &     TSAVG,1) 
 
 c*** temporarily stop here
       call stop_model('readt regrid parallel test STOP',255)

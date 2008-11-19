@@ -23,9 +23,6 @@ ccc end remove
       integer ::  is,ie,js,je,isd,ied,jsd,jed,gid,mytile
 #endif
 
-      integer,parameter:: ilonm=288,jlatm=180,ntiles=6,ic=48,jc=48
-c      integer,parameter:: ilonm=144,jlatm=90,ntiles=6,ic=48,jc=48
-c      integer,parameter:: ilonm=72,jlatm=46,ntiles=6,ic=48,jc=48
       integer,parameter:: dom_per_tile=4   ! #domains per cube face
 
 ccc   routine members
