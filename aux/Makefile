@@ -24,7 +24,7 @@ BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 ifneq ($(NEW_MAKEFILE_FORMAT),YES)
 GCMLIB = $(BIN_DIR)/$(RUN).a
 else
-GCMLIB = $(addprefix $(MODEL_DIR)/,$(shell cat $(MODEL_DIR)/.liblist))
+GCMLIB = $(addprefix $(MODEL_DIR)/,$(shell perl -e 'print reverse <>;' < $(MODEL_DIR)/.liblist))
 endif
 
 #DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
@@ -37,7 +37,9 @@ sinclude ~/.modelErc
 
 
 # list of targets to be built by default
-all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/RMS $(BIN_DIR)/CMPE002 $(BIN_DIR)/CMPE002P $(BIN_DIR)/rsf2gic $(BIN_DIR)/ext_gic status
+all: $(BIN_DIR)/CMPE002 $(BIN_DIR)/CMPE002P $(BIN_DIR)/RMS $(BIN_DIR)/rsf2gic $(BIN_DIR)/ext_gic status
+qc: $(BIN_DIR)/qc
+CMPE001:  $(BIN_DIR)/CMPE001
 qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 # $(BIN_DIR)/rsfE001.addO.exe $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_strat_rsf $(BIN_DIR)/conv_gic !! all obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
