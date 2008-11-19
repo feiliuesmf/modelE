@@ -1,7 +1,7 @@
 # makefile for the component giss_LSM
 .SUFFIXES:
 
-SUPPORTED_OPTIONS = ESMF
+SUPPORTED_OPTIONS = ESMF USE_ENT OFFLINE_RUN
 
 FSRCS = GHY.f GHY_H.f SNOW_DRV.f SNOW.f
 
@@ -17,8 +17,11 @@ include $(CONFIG_DIR)/base.mk
 #sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
-#hack: compile for Ent by default
+ifeq ($(USE_ENT),YES)
 CPPFLAGS += -DUSE_ENT
+else
+FSRCS += VEGETATION.f
+endif
 
 ifeq ($(OFFLINE_RUN),YES)
 CPPFLAGS += -DOFFLINE_RUN
