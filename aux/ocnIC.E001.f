@@ -26,6 +26,7 @@ C****
       USE SEAICE_COM, only : snowi,msi,ssi
       USE FLUXES, only : sss
       USE FILEMANAGER
+      USE GEOM
       implicit none
       integer i, j, k, m, last_day, kday, jday0, IH,
      *     months, month, iu_TOPO, iu_MLMAX, iu_SNOW, iu_OCNOUT
