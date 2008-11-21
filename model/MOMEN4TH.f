@@ -31,7 +31,7 @@ cddd      END subroutine init_MOM
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
-      USE DIAG, only : diagcd
+      !USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, only : grid, NORTH, SOUTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, GET
       USE DOMAIN_DECOMP, only : haveLatitude
