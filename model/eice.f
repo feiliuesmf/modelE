@@ -134,8 +134,6 @@ c
      . '  exiting  eice:  temp    saln    dens    thkns    dpth',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
- 3    continue
-c$OMP END PARALLEL DO
 
  10   continue
 c$OMP END PARALLEL DO
