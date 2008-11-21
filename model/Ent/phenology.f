@@ -39,6 +39,7 @@
 
       use ent_const
       use ent_pfts
+      use entcells
 
       implicit none
       save
@@ -55,6 +56,8 @@
       pp%cellptr%soiltemp_10d = 0.0d0
       pp%cellptr%airtemp_10d = 0.0d0
       pp%cellptr%paw_10d = 0.50d0
+
+      !call entcell_print( 6, pp%cellptr )
 
       cop => pp%tallest   
 
@@ -814,7 +817,11 @@ c$$$         end if
       loss_hw = cop%C_hw * turnoverdtwood
       loss_croot = cop%C_croot * turnoverdtwood
       loss_live = loss_leaf + loss_froot
-      adj = min(1.d0,(cop%C_lab-EPS)/(loss_live))
+      if ( loss_live .ne. 0.d0 ) then
+        adj = min(1.d0,(cop%C_lab-EPS)/(loss_live))
+      else 
+        adj = 0.d0
+      endif
       loss_leaf = adj*loss_leaf
       loss_froot = adj*loss_froot
 
@@ -868,8 +875,12 @@ c$$$         end if
       cop%C_lab = cop%C_lab - l_fract*(loss_leaf + loss_froot) 
      &     - loss_hw - loss_croot
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
-      cop%senescefrac = l_fract *
+      if ( C_fol_old > 0.d0 ) then
+        cop%senescefrac = l_fract *
      &     (max(0.d0,C_fol_old - cop%C_fol) + loss_leaf)/C_fol_old
+      else
+        cop%senescefrac = 0.d0
+      endif
       !* Return Clossacc
       end subroutine litter_cohort
 

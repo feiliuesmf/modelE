@@ -330,16 +330,20 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8,intent(out) :: Je_light !Light-limited assimilation rate (umol m-2 s-1)
       !---Local------
       real*8,parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
-      real*8 :: a1, e1, f1
+      real*8 :: a1, e1, f1, ci, A
 
       !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
       a1 = pspar%PARabsorb*IPAR*alpha
       e1 = 1.d0
       f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
-      Cip = Pa * 1d-06 * ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
+      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci,A)
+      Cip = Pa * 1d-06 * ci
+      !Cip = Pa * 1d-06 * ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
 !      Cip = Pa * 1d-06 * 350.d0 * .7d0  !###Dummy check @350 ppm
-      Je_light = Je(IPAR,Cip,pspar)
+      Je_light = A + Rd
+      !Je_light = Je(IPAR,Cip,pspar)
+      !write(845,*) A + Rd - Je_light, ci, A
 
 #ifdef DEBUG_ENT
       write(996,*) ca,rh,gb,IPAR, Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
@@ -357,7 +361,8 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: Jc_RuBP
 
       Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
-     &     (Cip + pspar%Kc*(1 + O2/Ko))
+     &     (Cip + pspar%Kc*(1 + O2/pspar%Ko))
+!!!old     &     (Cip + pspar%Kc*(1 + O2/Ko))
       end function Jc
 !-----------------------------------------------------------------------------
       subroutine Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2, Cip, Jc_RuBP)
@@ -376,16 +381,21 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8,intent(out) :: Cip !Leaf internal CO2 partial pressure (Pa)
       real*8,intent(out) :: Jc_RuBP !RuBP-limited assimilation rate (umol m-2 s-1)
       !---Local------
-      real*8 :: a1, e1, f1
+      real*8 :: a1, e1, f1, ci, A
 
       !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
       a1 = pspar%Vcmax
       e1 = 1.d0
+!!!just for test      f1 = pspar%Kc*(1.d0 + O2/Ko) * 1.d06/Pa  !umol/mol
       f1 = pspar%Kc*(1.d0 + O2/pspar%Ko) * 1.d06/Pa  !umol/mol
 
-      Cip = Pa * 1d-06 * ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
+      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci, A)
+      Cip = Pa * 1d-06 * ci
+      !Cip = Pa * 1d-06 * ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
       !Cip = Pa *1.D-06 * 350.d0 *.7d0 !Dummy prescribed ci.
-      Jc_RuBP = Jc(Cip,O2,pspar)
+      Jc_RuBP = A + Rd
+      !Jc_RuBP = Jc(Cip,O2,pspar)
+      !write(844,*) A + Rd - Jc_RuBP, ci, A
 
 #ifdef DEBUG_ENT
       write(993,*) ca,rh,gb,Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
@@ -430,11 +440,11 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       b = pspar%b
       rb = 1/gb
 
-      X = (b*1.37d0*rb)**2.d0 - (m*rh - 1.65d0)*1.37d0*rb
+      X = (b*1.37d0*rb)**2 - (m*rh - 1.65d0)*1.37d0*rb
       Y = ca*(m*rh - 1.65d0) - b*2.d0*1.37d0*rb*ca
       Z = b*1.37d0*rb - m*rh
       W = -b*ca
-      T = b*(ca**2.d0)
+      T = b*(ca**2)
 
       Js_sucrose = Js(pspar)
       Anet = Js_sucrose - Rd
@@ -475,8 +485,8 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
       end function Tresponse
 !=================================================
-      real*8 function ci_cubic_old(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
-     &     Result(ci)
+
+      subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci,A)
       !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
       !@sum ci (umol/mol)
       !@sum For the case of assimilation being of the form:
@@ -494,206 +504,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: a1              !Coefficient in linear Farquhar equ.
       real*8 :: e1              !Coefficient in linear Farquhar equ.
       real*8 :: f1              !Coefficient in linear Farquhar equ.
-      type(photosynthpar) :: pspar
-      !----Local----
-      real*8 :: X, Y, Z, W, T   !Expressions from the quadratic of Assim.
-      real*8 :: rb
-      real*8 :: m
-      real*8 :: b
-      real*8 :: gammam
-      real*8 :: c3, c2, c1, c   !Coefficients of the cubic of ci (c3*ci^3 + c2*ci^2 + c1*ci + c)
-
-      real*8 :: c_1, c_2, c_3, e, fmol, gamol, a, C3_, A_,cs_,A_1,rs_
-      real*8 :: res_, C6, Ra,A_2,cixx(3),K, ci_
-      integer :: nroots, i
-      rb = 1/gb
-      m = pspar%m
-      b = pspar%b
-      gammam = pspar%Gammastar * 1.d06/Pa !Convert Pa to umol/mol
-
-#define USE_IGORS_CUBIC
-#ifndef USE_IGORS_CUBIC
-
-      X = b*(1.37d0*rb)**2.d0 - (m*rh - 1.65d0)*1.37d0*rb 
-      Y = ca*(m*rh - 1.65d0) - b*2.d0*1.37d0*rb*ca 
-      Z = b*1.37d0*rb - m*rh
-      W = -b*ca
-      T = b*(ca**2.d0)
-      
-      c3 = e1*(Z*(a1 - Rd*e1) + W*e1)
-      c2 = X *(a1-Rd*e1)**2.d0
-     &     - Z*e1*( a1*gammam + Rd*f1) + (Y*e1 + Z*f1)* (a1 - Rd*e1)
-     &     + W*2.d0*e1*f1 + T*e1**2.d0 
-      c1 =  X *(-2.d0*(a1**2.d0)*gammam 
-     &     - 2.d0*Rd*a1*(f1 - e1*gammam)
-     &     + 2.d0*(Rd**2.d0)*e1*f1)
-     &     + Y*f1*(a1 - Rd*e1) - (Y*e1 + Z*f1)*( a1*gammam + Rd) 
-     &     + W*f1**2.d0 + T*2.d0*e1*f1 
-      c  = X * ( (a1*gammam)**2.d0 + 2.d0*Rd*a1*f1*gammam 
-     &     + (Rd*f1)**2.d0)
-     &     - Y*f1*( a1*gammam + Rd*f1) + T*f1**2.d0
-
-      !ci = cubicroot(c3, c2, c1, c)
-      call cubicroot(c3, c2, c1, c, cixx, nroots)
-      if ( nroots<1 ) call stop_model("ci_cubic: no solution",255)
-      ci = maxval( cixx(1:3) )
-
-!#DEBUG
-      cs_ = ca - A_*C3_*rb
-      write(992,*) "A,ca,cs,gs, pspar%pft, cixx,ci",
-     &     a1*(ci - gamol)/(e1*ci + f1) - Rd, ca,cs_,
-     &     m * (a1*(ci - gamol)/(e1*ci + f1) - Rd)*rh/cs_ + b,
-     &     pspar%pft, cixx,ci
-
-#else
-      e = e1
-      fmol = f1
-      gamol = gammam
-      a = a1
-      C3_ =1.37d0
-      C6 = 1.65d0
-      Ra = C3_*rb
-
-      c = -((ca*fmol + a*gamol*Ra + fmol*Ra*Rd)*
-     -     (b*(ca*fmol + a*gamol*Ra + fmol*Ra*Rd) + 
-     -       (a*gamol + fmol*Rd)*(C6 - m*rh)))
-
-      c1 = 2*a**2*gamol*Ra*(C6 + b*Ra - m*rh) + 
-     -   a*(2*b*ca*fmol*Ra - 2*b*ca*e*gamol*Ra + b*fmol*gamol*Ra + 
-     -      2*b*fmol*Ra**2*Rd - 2*b*e*gamol*Ra**2*Rd + 
-     -      C6*(fmol - e*gamol)*(ca + 2*Ra*Rd) - ca*fmol*m*rh + 
-     -      ca*e*gamol*m*rh - fmol*gamol*m*rh - 2*fmol*m*Ra*Rd*rh + 
-     -      2*e*gamol*m*Ra*Rd*rh) + 
-     -   fmol*(-(b*(ca + Ra*Rd)*(2*ca*e - fmol + 2*e*Ra*Rd)) - 
-     -      Rd*(2*C6*ca*e + 2*C6*e*Ra*Rd - 2*ca*e*m*rh + fmol*m*rh - 
-     -         2*e*m*Ra*Rd*rh))
-
-      c2 = -(a**2*Ra*(C6 + b*Ra - m*rh)) + 
-     -   a*(2*b*ca*e*Ra - b*fmol*Ra + b*e*gamol*Ra + 2*b*e*Ra**2*Rd + 
-     -      C6*e*(ca + 2*Ra*Rd) - ca*e*m*rh + fmol*m*rh - e*gamol*m*rh - 
-     -      2*e*m*Ra*Rd*rh) - e*
-     -    (b*(ca + Ra*Rd)*(ca*e - 2*fmol + e*Ra*Rd) + 
-     -      Rd*(C6*ca*e + C6*e*Ra*Rd - ca*e*m*rh + 2*fmol*m*rh -
-     &     e*m*Ra*Rd*rh)
-     -      )
-
-      c3 = e*(b*(ca*e - a*Ra + e*Ra*Rd) + m*(a - e*Rd)*rh)
-
-      !ci = cubicroot(c3, c2, c1, c)
-      call cubicroot(c3, c2, c1, c, cixx, nroots)
-      if ( nroots<1 ) call stop_model("ci_cubic: no solution",255)
-      ci = maxval( cixx(1:nroots) )
-
-      !!print *,"ci, A", ci, a*(ci - gamol)/(e*ci + fmol) - Rd
-      !!print *,"cs ",ca- (a*(ci - gamol)/(e*ci + fmol) - Rd)*1.37d0*rb
-      !!print *,"m,rh,b,rb",m,rh,b,rb
-#endif
-
-!#define DEBUG_CUBIC
-#ifdef DEBUG_CUBIC
-      e = e1
-      fmol = f1
-      gamol = gammam
-      a = a1
-      C3_ =1.37d0
-      C6 = 1.65d0
-      Ra = C3_*rb
-
-      !!! uncomment these 3 lines to check all roots
-      !c_1 = ci
-      !do i=1,nroots
-      !ci = cixx(i)
-      print *,"-----------------"
-      print *,"a,gammamol,fmol,Rd,e", a,gamol,fmol,Rd,e
-      print *,"ci", ci
-
-      print *,(ci - gamol),(e*ci + fmol),a,Rd
-      print *,"m,rh,b,rb",m,rh,b,rb
-      A_ = a*(ci - gamol)/(e*ci + fmol) - Rd
-      cs_ = ca - A_*C3_*rb
-      rs_ = 1./(m*A_*rh/cs_ + b)
-      A_1 = (cs_ - ci)/(C6*rs_)
-      A_2 = (ca-cs_)/(C3_*rb)
-
-      print *,"cs", cs_ !, ca-a*Ra, ca - A_*C3_*rb
-      print *,"ca", ca !, C6*(ca-a*Ra)/(m*rh*a)
-      print *,"rs", rs_ !, C6*(ca-a*Ra)/(m*rh*a)
-      print *,"AAAA", A_
-!      print *,"RES_A",     A_*C6/(ca-A_*Ra-ci)-m*A_*rh/(ca-A_*Ra)-b
-!     &     , -A_*C6/(ca-A_*Ra-ci)-m*A_*rh/(ca-A_*Ra)-b
-
-      ! residual for Igor's cubic
-      res_ = -(a**2*(ci - gamol)**2*Ra*(C6 + b*Ra - m*rh)) - 
-     -   a*(ci*e + fmol)*(ci - gamol)*
-     -    (-2*b*ca*Ra + b*ci*Ra - 2*b*Ra**2*Rd - C6*(ca + 2*Ra*Rd) + 
-     -      ca*m*rh - ci*m*rh + 2*m*Ra*Rd*rh) - 
-     -   (ci*e + fmol)**2*(b*(ca + Ra*Rd)*(ca - ci + Ra*Rd) + 
-     -      Rd*(C6*ca + C6*Ra*Rd - ca*m*rh + ci*m*rh - m*Ra*Rd*rh))
-!      print *,"RES= ", res_, c + c1*ci + c2*ci**2 + c3*ci**3
-!      print '(a,i3,i3,4e15.4)',"PLOT", i, pspar%pft, ci, A_, cs_, rs_
-!      write(994,*) "A_1,A2,cs,rs,res_,i, pspar%pft, ci, A_, cs_, rs_",
-!     &     A_1,A_2,cs_,rs_,res_,i, pspar%pft, ci, A_, cs_, rs_
-      !!! uncomment these 2 lines to check all roots
-      !enddo
-      !ci = c_1
-#endif
-
-!#define USE_IGORS_CUBIC_2
-#ifdef USE_IGORS_CUBIC_2
-      b = b/C6
-      K = m * rh / C6
-
-      Y=fmol/e
-      X= -a/e * (gamol+fmol/e)
-      Z= a/e -Rd
-
-      c = -(b*Ca*(X + (Ca + Y)*Z))
-      c1 = Ca*Z - K*(X + Ca*Z + Y*Z) + 
-     -   b*(Ca**2 + Ca*(Y + 2*Ra*Z) + Ra*(X + Y*Z))
-      c2 = Ca*(-1 + K - 2*b*Ra) + K*(Y + Ra*Z) - Ra*(b*Y + Z + b*Ra*Z)
-      c3 = Ra*(1 - K + b*Ra)
-
-      call cubicroot(c3, c2, c1, c, cixx, nroots)
-      print *,"NNNN ",cixx(1:nroots)
-      !print *,"UUUU", A_1-cixx(2)
-
-      call Baldocchi(c3,c2,c1,c)
-
-       !if ( a/e -Rd < 0 ) then
-       !  write(502,'(20f15.6)') a1,e1,gamol,f1,Rd,K,b,Ca,Ra
-       !endif
-
-
-#endif
-
-#ifdef DEBUG
-      write(994,*) 'rb,m,b,ca,gammam,X,Y,Z,W,T,a1,e1,f1,
-     & c3,c2,c1,c,ci,expr(ci)',
-     &     rb,m,b,ca,gammam,X,Y,Z,W,T,a1,e1,f1,c3,c2,c1,c,ci,
-     &     c3*(ci**3.d0) + c2*(ci**2.d0) + c1*ci + c
-#endif
-      ! testing new solution for "ci"
-      !ci_ = ci_cubic1(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
-      end function ci_cubic_old
-
-      real*8 function ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)Result(ci)
-      !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
-      !@sum ci (umol/mol)
-      !@sum For the case of assimilation being of the form:
-      !@sum         A = a*(Cip - Gammastar)/(e*Cip + f) - Rd
-      !@sum Numerator and denominator are converted from (Pa/Pa) to (umol mol-1)/(umol mol-1)
-      !@sum         A = a1*(ci - gammamol) /(e1*ci + fmol) - Rd
-      !@sum where gammamol = Gammastar*1d06/Pa, fmol = f1 = f*1d06/Pa
-
-      implicit none
-      real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
-      real*8 :: rh              !Relative humidity
-      real*8 :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8 :: Pa              !Pressure (Pa)
-      real*8 :: Rd              !Leaf mitochondrial respiration (umol m-2 s-1)
-      real*8 :: a1              !Coefficient in linear Farquhar equ.
-      real*8 :: e1              !Coefficient in linear Farquhar equ.
-      real*8 :: f1              !Coefficient in linear Farquhar equ.
+      real*8, intent(out) :: ci, A
       type(photosynthpar) :: pspar
       !----Local----
       real*8, parameter :: S_ATM=1.37d0  ! diffusivity ratio H2O/CO2 (atmosph.)
@@ -701,7 +512,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: Ra, b, K, gamol, A_d_asymp
       real*8 :: X, Y, Z, Y1  ! tmp vars
       real*8 :: c3, c2, c1, c   !Coefficients of the cubic of ci (c3*ci^3 + c2*ci^2 + c1*ci + c)
-      real*8 :: cixx(3), A ! solutions of cubic
+      real*8 :: cixx(3) ! solutions of cubic
       real*8 :: cs, Rs ! needed to compute ci
       integer :: nroots, i
 
@@ -785,7 +596,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       if ( cs < 0.d0 ) call stop_model("ci_cubic: q: cs<0",255)
       !!print *,'QQQQ ',A,ci
 
-      end function ci_cubic
+      end subroutine ci_cubic
 
 
       subroutine Baldocchi(c3,c2,c1,c)

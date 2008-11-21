@@ -212,6 +212,7 @@
           cop%GCANOPY=0.d0 !May want minimum conductance for stems & cuticle.
           cop%Ci = EPS
           cop%GPP = 0.d0
+          TRANS_SW = 1.d0
         endif
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
@@ -233,12 +234,17 @@
 
       !* Patch-level OUTPUTS *!
       pp%GCANOPY = GCANOPYsum
-      pp%Ci = Ciavg/pp%LAI
+      if ( pp%LAI > 0.d0 ) then
+        pp%Ci = Ciavg/pp%LAI
+      else
+        pp%Ci = 0.d0
+      endif
       pp%GPP = GPPsum
       pp%NPP = NPPsum
       pp%R_auto = R_autosum
       pp%R_root = R_rootsum
-      pp%TRANS_SW = TRANS_SW 
+      pp%TRANS_SW = TRANS_SW ! looks like a hack which will not work for
+                             ! multiple cohorts...
 
       !* Accumulate uptake. 
       !* Respiration should be from leaves and not draw down C_lab. ## Need to allocate respiration to leaves.##
