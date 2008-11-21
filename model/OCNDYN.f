@@ -3556,9 +3556,20 @@ C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
         oDHSI(2,I,J)=(DEOI+SUM(DE0))*ROCAT(J)
         oDSSI(1,I,J)=(DSOO+SUM(DS0))*ROCAT(J)
         oDSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
+
+c        oDMSI(1,I,J)=DMOO+SUM(DM0)                                    !  kg/m^2
+c        oDMSI(2,I,J)=DMOI+SUM(DM0)                                    !  kg/m^2
+c        oDHSI(1,I,J)=DEOO+SUM(DE0)                                    !  J/m^2
+c        oDHSI(2,I,J)=DEOI+SUM(DE0)                                    !  J/m^2
+c        oDSSI(1,I,J)=DSOO+SUM(DS0)                                    !  kg/m^2
+c        oDSSI(2,I,J)=DSOI+SUM(DS0)                                    !  kg/m^2
+
 #ifdef TRACERS_OCEAN
-        oDTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
-        oDTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
+c        oDTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
+c        oDTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
+
+        oDTRSI(:,1,I,J)=DTROO(:)+SUM(DTR0(:,:),DIM=2)
+        oDTRSI(:,2,I,J)=DTROI(:)+SUM(DTR0(:,:),DIM=2)
 #endif
 
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
@@ -5273,13 +5284,14 @@ C**** poles
       REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: 
      *        oTRPREC_glob, oTRUNPSI_glob      
 #endif
-      REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES
+      REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES, aFweight
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
       REAL*8  diff
 
       write (555,*) ' INT_AG2OG_precip#1: oDLATM,aDLATM= ',oDLATM,aDLATM
 
       aONES(:,:) = 1.d0
+      aFweight(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction 
 
       call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
 
@@ -5287,14 +5299,14 @@ C**** poles
         aFtemp(:,J) = aPREC_glob(:,J)*aDXYP(J)/aDXYPO(J)    ! kg/m^2
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
+      call HNTR8P (aFweight, aFtemp, oFtemp)
       oPREC_glob(:,:) = oFtemp(:,:)                         ! kg/m^2 
 
       DO J = 1,JMA
         aFtemp(:,J) = aEPREC_glob(:,J)*aDXYP(J)/aDXYPO(J)   ! J/m^2
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
+      call HNTR8P (aFweight, aFtemp, oFtemp)
       DO J = 1,JMO
         oEPREC_glob(:,J) = oFtemp(:,J)*oDXYPO(J)            ! J  
       END DO
@@ -5303,14 +5315,14 @@ C**** poles
         aFtemp(:,J) = aRUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J)  ! kg/m^2
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       oRUNPSI_glob(:,:) = oFtemp(:,:)                       ! kg/m^2
 
       DO J = 1,JMA
         aFtemp(:,J) = aSRUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J) ! kg/m^2
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       DO J = 1,JMO
         oSRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
       END DO
@@ -5319,7 +5331,7 @@ C**** poles
         aFtemp(:,J) = aERUNPSI_glob(:,J)*aDXYP(J)/aDXYPO(J) ! J/m^2
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       DO J = 1,JMO
         oERUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! J   
       END DO
@@ -5328,17 +5340,8 @@ C**** poles
         aFtemp(:,J) = aRSI_glob(:,J)*aDXYP(J)/aDXYPO(J)    
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oRSI_glob(:,:) = oFtemp(:,:)                         
-
-      DO J=1,JMO
-        DO I=1,IMO
-          diff = oFtemp(i,j) - aFtemp(i,j)
-c          if (diff .gt. 1.e-20) 
-c     *      write (555,*) ' INT_AG2OG_precip: i, j, aFtemp, oFtemp, 
-c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff 
-        END DO
-      END DO
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
@@ -5346,7 +5349,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         aFtemp(:,J) = aTRPREC_glob(N,:,J)/aDXYPO(J)           ! kg/m^2    
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
+      call HNTR8P (aFweight, aFtemp, oFtemp)
       DO J = 1,JMO
         oTRPREC_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)           ! kg                          
       END DO
@@ -5355,7 +5358,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         aFtemp(:,J) = aTRUNPSI_glob(N,:,J)*aDXYP(J)/aDXYPO(J) ! kg/m^2
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       DO J = 1,JMO
         oTRUNPSI_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
       END DO
@@ -5472,13 +5475,14 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
 #endif
-      REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES
+      REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES, aOOCN
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
       REAL*8  diff, SUM_oFtemp, SUM_aFtemp, SUM_aORIG
 
       write (555,*) ' INT_AG2OG_occeans#1:oDLATM,aDLATM= ',oDLATM,aDLATM
 
       aONES(:,:) = 1.d0
+      aOOCN(:,:) = 1.d0 - aRSI_glob(:,:)
 
       call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
 
@@ -5486,7 +5490,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         aFtemp(:,J) = aRSI_glob(:,J)*aDXYP(J)/aDXYPO(J)    
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oRSI_glob(:,:) = oFtemp(:,:)                         
 
       DO J=1,JMA
@@ -5497,7 +5501,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oFLOWO_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2
 
       DO J=1,JMA
@@ -5508,7 +5512,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oEFLOWO_glob(:,:) = oFtemp(:,:)                                 !  J/m^2
 
       DO J=1,JMA
@@ -5519,7 +5523,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oMELTI_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2
 
       DO J=1,JMA
@@ -5530,7 +5534,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oEMELTI_glob(:,:) = oFtemp(:,:)                                 !  J/m^2
 
       DO J=1,JMA
@@ -5541,7 +5545,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oSMELTI_glob(:,:) = oFtemp(:,:)                                 !  kg/m^2
 
       DO J=1,JMA
@@ -5552,7 +5556,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       oRUNOSI_glob(:,:) = oFtemp(:,:)                                 !  kg/m^2
 
       DO J=1,JMA
@@ -5563,7 +5567,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       oERUNOSI_glob(:,:) = oFtemp(:,:)                                !  J/m^2
 
       DO J=1,JMA
@@ -5574,7 +5578,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       oSRUNOSI_glob(:,:) = oFtemp(:,:)                                !  kg/m^2
 
       DO J=1,JMA
@@ -5585,7 +5589,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aOOCN, aFtemp, oFtemp)
       oE0_glob(:,:,1) = oFtemp(:,:)                                   !  J/m^2
 
       DO J=1,JMA
@@ -5596,66 +5600,69 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aOOCN, aFtemp, oFtemp)
       oEVAPOR_glob(:,:,1) = oFtemp(:,:)                               !  kg/m^2
 
-      DO N=1,3,2
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aSOLAR_glob(N,I,J)*(aDXYP(J)/aDXYPO(J))     !  J/m^2
+            aFtemp(I,J) = aSOLAR_glob(1,I,J)*(aDXYP(J)/aDXYPO(J))     !  J/m^2
           END IF 
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      oSOLAR_glob(N,:,:) = oFtemp(:,:)                                !  J/m^2
-      END DO
+      call HNTR8P (aOOCN, aFtemp, oFtemp)
+      oSOLAR_glob(1,:,:) = oFtemp(:,:)                                !  J/m^2
 
-      SUM_aORIG  = 0.
-      SUM_aFtemp = 0.
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aSOLAR_glob(3,I,J)*(aDXYP(J)/aDXYPO(J))     !  J/m^2
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
+      oSOLAR_glob(3,:,:) = oFtemp(:,:)                                !  J/m^2
+
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aAPRESS_glob(I,J)*(aDXYP(J)/aDXYPO(J))      !  Pa
-            SUM_aORIG  = SUM_aORIG + aAPRESS_glob(I,J)
-            SUM_aFtemp = SUM_aFtemp
-     *        + aFtemp(I,J)*aDXYPO(J)*aFOCEAN(I,J)
           END IF 
         END DO
       END DO
-
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oAPRESS_glob(:,:) = oFtemp(:,:)                                 !  Pa 
 
-      SUM_oFtemp = 0.
-      DO J=1,JMO
-        DO I=1,oIMAXJ(J)
-          IF (oFOCEAN(I,J).gt.0.) THEN
-            SUM_oFtemp = SUM_oFtemp
-     *        + oFtemp(I,J)*oDXYPO(J)*oFOCEAN(I,J)
-            diff = oFtemp(i,j) / aFtemp(i,j)-1.d0
-            if (diff .gt. 1.e-20) then
-              write (555,*) ' INT_AG2OG_oceans#2: I,J,N = ', i, j,N 
-              write (555,*) ' INT_AG2OG_oceans#2:oFtemp,aFtemp,diff=',
-     *          oFtemp(i,j), aFtemp(i,j), diff 
-              end if
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aGMELT_glob(I,J)/(aDXYPO(J)*aFOCEAN(I,J))   !  kg/m^2   
           END IF 
         END DO
       END DO
-      write (555,*) ' INT_AG2OG_oceans#3: 
-     *  SUM_aORIG,SUM_aFtemp,SUM_oFtemp = ',
-     *  SUM_aORIG,SUM_aFtemp,SUM_oFtemp                             
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oGMELT_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2  
+
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aEGMELT_glob(I,J)/aDXYPO(J)                 !  J/m^2   
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oEGMELT_glob(:,:) = oFtemp(:,:)*oDXYPO(J)                       !  J  
 
       oDMUA_glob(:,:,1)   = aDMUA_glob(:,:,1)
       oDMVA_glob(:,:,1)   = aDMVA_glob(:,:,1)
 
       oDMUI_glob(:,:)     = aDMUI_glob(:,:)
       oDMVI_glob(:,:)     = aDMVI_glob(:,:)
-
-      oGMELT_glob(:,:)    = aGMELT_glob(:,:)
-      oEGMELT_glob(:,:)   = aEGMELT_glob(:,:)
 
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
@@ -5668,7 +5675,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oTRFLOWO_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
       END DO
 
@@ -5681,7 +5688,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oTRMELTI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
       END DO
 
@@ -5694,7 +5701,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       oTRUNOSI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
       END DO
 
@@ -5707,11 +5714,24 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aOOCN, aFtemp, oFtemp)
       oTREVAPOR_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
       END DO
 
-      oTRGMELT_glob(:,:,:) = aTRGMELT_glob(:,:,:)
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTRGMELT_glob(N,I,J)/aDXYPO(J)                 !  kg/m^2   
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      DO J = 1,JMO
+        oTRGMELT_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)                     !  kg  
+      END DO
+      END DO
 
 #ifdef TRACERS_DRYDEP
       DO N=1,NTM
@@ -5723,7 +5743,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oTRDRYDEP_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
       END DO
 #endif
@@ -5739,7 +5759,7 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      call HNTR8P (aONES, aFtemp, oFtemp)
       oTRGASEX_glob(N,1,:,:) = oFtemp(:,:)                               !  kg/m^2
       END DO
 #endif
@@ -5759,16 +5779,21 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : ima=>im,jma=>jm 
-      USE OCEAN, only : imo=>im,jmo=>jm, FOCEAN, IMAXJ
+      USE RESOLUTION, only : IMA=>IM,JMA=>JM 
+      USE OCEAN, only : IMO=>IM,JMO=>JM, oFOCEAN=>FOCEAN,  
+     *     oDXYPO=>DXYPO, oIMAXJ=>IMAXJ, oDLATM=>DLATM
+
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
 #endif
 
+      USE GEOM,  only : aDXYP=>DXYP,aDXYPO, aIMAXJ=>IMAXJ, aDLATM=>DLATM
+
       IMPLICIT NONE
 
-      INTEGER I,J
+      INTEGER I,J, N, NT
 
 !!!   Global arrays on ocean grid
 
@@ -5786,17 +5811,86 @@ c     *      diff = ',i,j,aFtemp(i,j),oFtemp(i,j),diff
       REAL*8, INTENT(INOUT), DIMENSION(NTM,2,IMA,JMA) :: aDTRSI_glob
 #endif
 
+      REAL*8, DIMENSION(IMA,JMA) :: aFtemp
+      REAL*8, DIMENSION(IMO,JMO) :: oFtemp
+
+      call HNTR80 (IMO,JMO,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
+
+      DO N=1,2
       DO J=1,JMO
-        DO I=1,IMAXJ(J)
-          IF(FOCEAN(I,J).gt.0.) THEN
-            aDMSI_glob(:,I,J) = oDMSI_glob(:,I,J)
-            aDHSI_glob(:,I,J) = oDHSI_glob(:,I,J)
-            aDSSI_glob(:,I,J) = oDSSI_glob(:,I,J)
-#ifdef TRACERS_OCEAN
-            aDTRSI_glob(:,:,I,J) = oDTRSI_glob(:,:,I,J) 
-#endif
+        DO I=1,oIMAXJ(J)
+          IF (oFOCEAN(I,J).gt.0.) THEN
+            oFtemp(I,J) = oDMSI_glob(N,I,J)                           !  kg/m^2   
           END IF 
         END DO
+      END DO
+      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+c            aDMSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  kg/m^2  
+            aDMSI_glob(N,I,J) = aFtemp(I,J)      !  kg/m^2  
+          END IF 
+        END DO
+      END DO
+
+      DO J=1,JMO
+        DO I=1,oIMAXJ(J)
+          IF (oFOCEAN(I,J).gt.0.) THEN
+            oFtemp(I,J) = oDHSI_glob(N,I,J)                           !  J/m^2   
+          END IF 
+        END DO
+      END DO
+      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+c            aDHSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  J/m^2  
+            aDHSI_glob(N,I,J) = aFtemp(I,J)      !  J/m^2  
+          END IF 
+        END DO
+      END DO
+
+      DO J=1,JMO
+        DO I=1,oIMAXJ(J)
+          IF (oFOCEAN(I,J).gt.0.) THEN
+            oFtemp(I,J) = oDSSI_glob(N,I,J)                           !  kg/m^2   
+          END IF 
+        END DO
+      END DO
+      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+c            aDSSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  kg/m^2  
+            aDSSI_glob(N,I,J) = aFtemp(I,J)      !  kg/m^2  
+          END IF 
+        END DO
+      END DO
+
+#ifdef TRACERS_OCEAN
+      DO NT=1,NTM
+      DO J=1,JMO
+        DO I=1,oIMAXJ(J)
+          IF (oFOCEAN(I,J).gt.0.) THEN
+            oFtemp(I,J) = oDTRSI_glob(NT,N,I,J)                       !  kg/m^2   
+          END IF 
+        END DO
+      END DO
+      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aDTRSI_glob(NT,N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))  !  kg/m^2  
+          END IF 
+        END DO
+      END DO
+      END DO
+#endif
       END DO
 
       END SUBROUTINE INT_OG2AG_oceans 
@@ -6039,9 +6133,12 @@ C***  Scatter the arrays to the ocean grid
 #endif
 
       USE DOMAIN_DECOMP, only : agrid=>grid, AM_I_ROOT
-     *     , PACK_COLUMN, UNPACK_COLUMN
+     *     , PACK_COLUMN, UNPACK_COLUMN, PACK_DATA
      *     , PACK_BLOCK, UNPACK_BLOCK
       USE OCEANR_DIM, only : ogrid
+
+      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_OCEAN
@@ -6072,6 +6169,8 @@ C***  Scatter the arrays to the ocean grid
 
 C***  Gather the arrays for the sea ice on atm. grid 
 C***    since they were already filled in for LAKES
+
+      CALL PACK_DATA  (agrid, aFOCEAN_loc, aFOCEAN)
 
       CALL PACK_COLUMN(agrid,    aDMSI,    aDMSI_glob)
       CALL PACK_COLUMN(agrid,    aDHSI,    aDHSI_glob)
