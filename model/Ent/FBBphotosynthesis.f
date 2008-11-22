@@ -127,7 +127,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
         !---Local----
 !      type(photosynthpar) :: pspar !Moved to global to module.
       real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa) Not exactly .209*101325.
-      real*8 :: Cip,Cie,Cic,Cis !Leaf internal CO2 (Pa)
+      real*8 :: cie, cic, cis   !Leaf internal CO2 (umol mol-1)
       real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
@@ -135,9 +135,9 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 !      call calc_Pspar(pft, Pa, Tl, O2pres, pspar) !Moved up a module to reduce computation.
       Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
 
-      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, Cie, Je1)
-      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, Cic, Jc1)
-      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, Cis, Js1)
+      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
+      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
+      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
 
       Atot = min(Je1, Jc1, Js1)
       if (Atot.lt.0.d0) then 
@@ -150,19 +150,23 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       endif
 
       if (Atot.eq.Je1) then
-        Cip = Cie
+        ci = cie
+        !write(830,*) 1
       else if (Atot.eq.Jc1) then
-        Cip = Cic
+        ci = cic
+        !write(830,*) 2
       else if (Atot.eq.Js1) then
-        Cip = Cis
+        ci = cis
+        !write(830,*) 3
       else !Atot was set to 0.d0 due to low light
-        Cip = max(0.d0, Cie)
+        ci = max(0.d0, cie)
+        !write(830,*) 4
       endif
 
       Anet = Atot - Rd
       cs = ca - Anet*1.37d0/gb
       gs = BallBerry(Anet, rh, cs, pspar)
-      ci = Cip/Pa*1d6
+      !ci = Cip/Pa*1d6
 
 !#ifdef DEBUG
 !      if (sunlitshaded.eq.1) then
@@ -176,83 +180,6 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end subroutine Photosynth_analyticsoln
 !-----------------------------------------------------------------------------
 
-      subroutine Collatz(dtsec,pft,IPAR,cs,Tl,Pa,rh,ci,gs,Anet,Sacclim)
-!@sum Coupled photosynthesis/stomatal conductance at the leaf level
-!@sum after Collatz, G.J., et.al. (1991) AgForMet 54:107-136
-      implicit none
-      integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
-      real*8,intent(in) :: IPAR            !Incident PAR (umol m-2 s-1) 
-      real*8,intent(in) :: dtsec
-      !If PAR is not directly available, the following conversions may be
-      !used:
-      !  From total shortwave (W m-2) to PAR (umol m-2 s-1) (Monteith & Unsworth):
-      !          PAR(umol m-2 s-1) = 2.3(umol/J)*SW(W m-2)
-      !  From PAR (W m-2) to PAR (umol m-2 s-1) (U.Maryland, Dept. of Met., PAR Project),
-      !  suggest nominal 485 nm for conversion, which gives:
-      !          PAR(umol m-2 s-1) = 4.05(umol/J) * PAR(W m-2)
-
-      !real*8,intent(in) :: ca   !Ambient air CO2 concentration (umol mol-1)      
-      real*8,intent(in) :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
-      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
-      real*8,intent(in) :: rh   !Relative humidity
-      real*8,intent(in) :: Pa   !Pressure (Pa)
-      real*8,intent(in) :: Sacclim ! state of acclimation/frost hardiness [deg C]
-      !real*8,intent(in) :: gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8 :: ci              !Leaf internal CO2 mole fraction  (umol mol-1)
-      real*8,intent(out) :: gs !Leaf stomatal conductance (mol-H2O m-2 s-1)
-      real*8,intent(out) :: Anet !Leaf net photosynthesis (CO2 uptake, micromol m-2 s-1)
-      !-----Local-----------------
-      type(photosynthpar) :: pspar
-      real*8 :: stressH2O 
-!      type(metdatatype) :: mdat
-      real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa)
-      real*8 :: Atot            !Gross assimilation (umol m-2 s-1)
-!      real*8 :: Rd              !Dark or maintenance respiration (umol m-2 s-1)
-      !ci should be intialized. For rule of thumb, initialize to
-      ! initial ci = 0.7*ca
-
-!      call load_metdata(IPAR,ca,Ta,rh,O2conc)
-
-      stressH2O = 1.d0 !Dummy no stress
-      call calc_Pspar(dtsec, pft, Pa, Tl, O2pres, stressH2O, Sacclim)
-
-      Atot = Farquhar(IPAR,ci*Pa*1.d-06,O2pres,Tl,pspar) 
-      Anet = Atot - Respveg(pspar%Nleaf,Tl)
-
-      gs = BallBerry(Anet, rh, cs, pspar)
-
-!      if (if_ci.eq.1) ci = calc_ci(ca, gb, gs, Anet, IPAR, pspar)
-
-      !Solving:
-      !    Stomates adjust to control the gradient of ci to cs, so the coupled
-      !photosynthesis/conductance model is generally solved by iterating
-      !to obtain consistent Anet, gs, cs, and ci, and also rh at the leaf 
-      !surface.  
-      !    As this can be computationally intensive, an alternative is to
-      !place bounds on how quickly gs can change (biologically measured).
-      !Anet would not be affected, since it depends only on light, Vcmax, and
-      !ci; however, ci would be affected.
-
-      
-      end subroutine Collatz
-
-!-----------------------------------------------------------------------------
-!      subroutine load_metdata(IPAR,ca,Ta,rh,O2concmol,mdat)
-!      implicit none
-!      real*8 :: IPAR !Incident PAR (umol m-2 s-1)
-!      real*8 :: ca   !Ambient air CO2 concentration (umol mol-1)
-!      real*8 :: Ta   !Ambient air temperature (Celsius)
-!      real*8 :: rh   !Relative humidity
-!      real*8 :: O2concmol !O2 mole fraction in leaf (mmol mol-1)
-!
-!      mdat%IPAR = IPAR
-!      mdat%ca = ca
-!      mdat%Ta = Ta
-!      mdat%rh = rh
-!      mdat%O2concmol = O2concmol
-!
-!      end subroutine load_metdata
-!-----------------------------------------------------------------------------
 
       function Respveg(Nleaf,Tl) Result(Rd)
       !@sum Respveg Autotrophic respiration (umol-CO2 m-2[leaf] s-1)
@@ -299,22 +226,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end function calc_CO2compp
 !-----------------------------------------------------------------------------
 
-      function Je(IPAR,Cip,pspar) Result(Je_light)
-!@sum Photosynthetic rate limited by light electron transport (umol m-2 s-1)
-      implicit none
-      real*8 :: IPAR !Incident PAR (umol m-2 s-1)
-      real*8 :: Cip  !Leaf internal CO2 partial pressure (Pa)
-      type(photosynthpar) :: pspar
-      real*8 :: Je_light !Electron-transport limited rate of photosynth (umol m-2 s-1)
-      !----Local---------
-      real*8,parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
-
-      Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
-     &     (Cip+2*pspar%Gammastar)
-
-      end function Je
-!-----------------------------------------------------------------------------
-      subroutine Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, Cip, Je_light)
+      subroutine Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, ci, Je_light)
       !@sum Ci_Je Analytical solution for Ci assuming Je is most limiting, 
       !@sum then calculation of Je.
       implicit none
@@ -326,11 +238,15 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       type(photosynthpar) :: pspar
       real*8,intent(in) :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
       !---------------
-      real*8,intent(out) :: Cip !Leaf internal CO2 partial pressure (Pa)
+      real*8,intent(out) :: ci !Leaf internal CO2 concentration (umol mol-1)
       real*8,intent(out) :: Je_light !Light-limited assimilation rate (umol m-2 s-1)
       !---Local------
       real*8,parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
-      real*8 :: a1, e1, f1, ci, A
+      real*8 :: a1, e1, f1, A
+
+      ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
+      ! Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
+      !            (Cip+2*pspar%Gammastar)
 
       !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
       a1 = pspar%PARabsorb*IPAR*alpha
@@ -338,12 +254,8 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
       call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci,A)
-      Cip = Pa * 1d-06 * ci
-      !Cip = Pa * 1d-06 * ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
 !      Cip = Pa * 1d-06 * 350.d0 * .7d0  !###Dummy check @350 ppm
       Je_light = A + Rd
-      !Je_light = Je(IPAR,Cip,pspar)
-      !write(845,*) A + Rd - Je_light, ci, A
 
 #ifdef DEBUG_ENT
       write(996,*) ca,rh,gb,IPAR, Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
@@ -352,20 +264,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end subroutine Ci_Je
 !-----------------------------------------------------------------------------
 
-      function Jc(Cip,O2,pspar) Result (Jc_RuBP)
-!@sum Photosynthetic rate limited by RuBP saturation
-      implicit none
-      real*8 :: Cip  !Leaf internal CO2 partial pressure (Pa)
-      real*8 :: O2  !O2 partial pressure in leaf (Pa)
-      type(photosynthpar) :: pspar
-      real*8 :: Jc_RuBP
-
-      Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
-     &     (Cip + pspar%Kc*(1 + O2/pspar%Ko))
-!!!old     &     (Cip + pspar%Kc*(1 + O2/Ko))
-      end function Jc
-!-----------------------------------------------------------------------------
-      subroutine Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2, Cip, Jc_RuBP)
+      subroutine Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2, ci, Jc_RuBP)
       !@sum Ci_Jc Analytical solution for Ci assuming Jc is most limiting.
       !@sum then calculation of Jc.
       implicit none
@@ -378,24 +277,23 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
       real*8 :: O2              !O2 partial pressure in leaf (Pa)
       !---------------
-      real*8,intent(out) :: Cip !Leaf internal CO2 partial pressure (Pa)
+      real*8,intent(out) :: ci !Leaf internal CO2 concentration (umol mol-1)
       real*8,intent(out) :: Jc_RuBP !RuBP-limited assimilation rate (umol m-2 s-1)
       !---Local------
-      real*8 :: a1, e1, f1, ci, A
+      real*8 :: a1, e1, f1, A
+
+      ! Photosynthetic rate limited by RuBP saturation
+      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
+      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
 
       !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
       a1 = pspar%Vcmax
       e1 = 1.d0
-!!!just for test      f1 = pspar%Kc*(1.d0 + O2/Ko) * 1.d06/Pa  !umol/mol
       f1 = pspar%Kc*(1.d0 + O2/pspar%Ko) * 1.d06/Pa  !umol/mol
 
       call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci, A)
-      Cip = Pa * 1d-06 * ci
-      !Cip = Pa * 1d-06 * ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar)
       !Cip = Pa *1.D-06 * 350.d0 *.7d0 !Dummy prescribed ci.
       Jc_RuBP = A + Rd
-      !Jc_RuBP = Jc(Cip,O2,pspar)
-      !write(844,*) A + Rd - Jc_RuBP, ci, A
 
 #ifdef DEBUG_ENT
       write(993,*) ca,rh,gb,Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
@@ -404,18 +302,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end subroutine Ci_Jc
 !-----------------------------------------------------------------------------
 
-      function Js(pspar) Result(Js_sucrose)
-!@sum Photosynthetic rate limited by "utilization of photosynthetic products."
-!@sum (umol m-2 s-1)
-      implicit none
-      type(photosynthpar) :: pspar
-      real*8 :: Js_sucrose
-
-      Js_sucrose = pspar%Vcmax/2.d0
-      end function Js
-!-----------------------------------------------------------------------------
-      
-      subroutine Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, Cip, Js_sucrose)
+      subroutine Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, ci, Js_sucrose)
       !@sum Ci_Js Calculates Cip and Js, 
       !@sum Photosynthetic rate limited by "utilization of photosynthetic products."
 
@@ -427,7 +314,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: Pa              !Pressure (Pa)
       type(photosynthpar) :: pspar
       real*8 :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
-      real*8 :: Cip
+      real*8 :: ci              !Leaf internal CO2 concentration (umol mol-1)
       real*8 :: Js_sucrose !umol m-2 s-1
       !---Local----
       real*8 :: X,Y,Z,W,T       !Expressions from solving cubic equ. of ci.
@@ -435,6 +322,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: m               !Slope of Ball-Berry
       real*8 :: b               !Intercept of Ball-Berry
       real*8 :: rb              !Leaf boundary layer resistance = 1/gb
+      real*8 cs,gs
 
       m = pspar%m
       b = pspar%b
@@ -446,9 +334,18 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       W = -b*ca
       T = b*(ca**2)
 
-      Js_sucrose = Js(pspar)
+      !Js_sucrose = Js(pspar)
+      !Photosynthetic rate limited by "utilization of photosynthetic products"
+      ! (umol m-2 s-1)
+      Js_sucrose = pspar%Vcmax/2.d0
       Anet = Js_sucrose - Rd
-      Cip = Pa * 1.d-06 * (-1.d0*((X*Anet + Y)*Anet + T )/(Z*Anet + W))
+      ci = -1.d0*((X*Anet + Y)*Anet + T )/(Z*Anet + W)
+
+      ! the following solution seems to be more straightforward
+      !cs = ca - Anet/(gb/1.37d0)
+      !gs = m*Anet*rh/cs + b
+      !write(833,*) ci, cs - Anet/(gs/1.65d0),cs
+      !ci = cs - Anet/(gs/1.65d0)
 
       end subroutine Ci_Js
 !-----------------------------------------------------------------------------
@@ -599,54 +496,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end subroutine ci_cubic
 
 
-      subroutine Baldocchi(c3,c2,c1,c)
-      real*8, intent(in) :: c3,c2,c1,c
-      !---
-      real*8 p,q,r, Q_,R_,thet, x1,x2,x3
-
-      p = c2/c3
-      q = c1/c3
-      r = c/c3
-
-      Q_ = (p**2 - 3.d0*q)/9.d0
-      R_ = ( 2*p**3 - 9*p*q + 27*r )/54.d0
-
-      if ( Q_ < 0.d0 ) then
-        print *,"BBBB"," OOPS1"
-        return
-      endif
-
-      if ( R_**2 > Q_**3 ) then
-        print *,"BBBB"," OOPS2"
-        return
-      endif
-
-      thet = acos(R_/sqrt(Q_**3))
-
-      x1 = -2.d0 * sqrt(Q_) * cos((thet     )/3.d0) - p/3.d0
-      x2 = -2.d0 * sqrt(Q_) * cos((thet+2*Pi)/3.d0) - p/3.d0
-      x3 = -2.d0 * sqrt(Q_) * cos((thet+4*Pi)/3.d0) - p/3.d0
-
-      print *,"BBBB", x1,x2,x3
-      
-cddd
-cddd      p = (e*bet + fmol*thet - a*alf + e*alf*Rd)/(e*alf)
-cddd      q = (e*gam + fmol*gam/Ca - a*bet + a*gamol*thet
-cddd     &     + e*Rd*bet + Rd*fmol*thet)
-cddd     &     /(e*alf)
-cddd      r = (-a*gam + a*gamol*gam/Ca + e*Rd*gam + Rd*fmol*gam/Ca)/(e*alf)
-cddd
-cddd
-cddd
-cddd      p = (e*bet + b*thet - a*alf + e*alf*Rd)/(e*alf)
-cddd      q = (e*gam + b*gam/Ca - alf*bet + a*d*thet + e*Rd*bet + Rd*b*thet)
-cddd     &     /(e*alf)
-cddd      r = (-a*gam + a*d*gam
-cddd
-      end subroutine Baldocchi
-
 !=================================================
-      !real*8 function cubicroot(a,b,c,d) Result(x)
       subroutine cubicroot(a,b,c,d,x,n) 
       !* solve cubic equation: a x^3 + b x^2 + c x + d = 0 *!
       !* Written by Igor Aleinov from solution by Cardano in
@@ -666,10 +516,6 @@ cddd
 
       if (abs(a) < (abs(b)+abs(c)+abs(d))*EPS0 ) then
         if (abs(b) < (abs(c)+abs(d))*EPS0) then
-#ifdef DEBUG_RZTOOLS
-          write(*,*) "Cardano: linear eq: 1 solution"
-          write(*,*) "Cardano:   c= %g  d= %g\n", c, d
-#endif
           if (abs(c) < abs(d)*EPS0) then
             write(*,*) "Internal Error in Cardano: no solution."
             stop
@@ -811,78 +657,6 @@ cddd
       end subroutine calc_Pspar
 
 !-----------------------------------------------------------------------------
-
-      function Farquhar(IPAR,Cip,O2,Tl,pspar) Result(Assim)
-!@sum Photosynthesis at the leaf level (umol m-2 s-1)
-!@sum after Farquhar, et al.(1980) Planta, 149:78-90.
-      implicit none
-      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1)
-      real*8,intent(in) :: Cip  !Leaf internal CO2 partial pressure (Pa)
-      real*8,intent(in) :: O2   !Leaf internal O2 partial pressure (Pa)
-      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
-      type(photosynthpar) :: pspar
-      real*8 :: Assim !Leaf GPP (positive into leaf) (umol m-2 s-1)
-      !----Local-----
-      real*8 :: Je1, Jc1, Js1
-      !Assume pspar already calculated.
-      !call calc_Pspar(pft, Tl, pspar)
-
-      Je1 = Je(IPAR,Cip,pspar)
-      Jc1 = Jc(Cip,O2,pspar)
-      Js1 = Js(pspar)
-      Assim = min(Je1, Jc1, Js1)
-!#ifdef DEBUG
-!      write(997,*) IPAR, Cip, O2,pspar%Gammastar,pspar%Vcmax,
-!     &     Tl,Je1,Jc1,Js1,Assim
-!#endif
-      !Assim = min(Je(IPAR,Cip,pspar), Jc(Cip,O2,pspar), Js(pspar))
-
-      end function Farquhar
-
-!-----------------------------------------------------------------------------
-
-
-      function Farquhar_standalone(dtsec,pft,IPAR,ca,Tl,rh,Pa,gb,ci,gs
-     i    ,Sacclim )
-     o     Result(Anet)
-!@sum Photosynthesis at the leaf level.
-!@sum after Farquhar, et al.(1980) Planta, 149:78-90.
-!@sum Standalone version.  Can be called directly from external program.
-
-      implicit none
-      integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
-      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1) 
-      real*8,intent(in) :: ca   !Ambient air CO2 concentration (umol mol-1)
-      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
-      real*8,intent(in) :: rh   !Relative humidity
-      real*8,intent(in) :: Pa   !Pressure (Pa)
-      real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8,intent(in) :: Sacclim ! state of acclimation/frost hardiness
-      real*8,intent(in) :: dtsec ! timestep size [sec]
-      real*8,intent(inout) :: ci !Leaf internal CO2 mole fraction  (umol mol-1)
-      real*8,intent(out) :: gs  !Leaf stomatal conductance (mol-H2O m-2 s-1)
-      real*8 :: Anet            !Leaf net photosynthesis (CO2 uptake, micromol m-2 s-1)
-      !-----Local-----------------
-      type(photosynthpar) :: pspar
-      real*8 :: stressH2O 
-!      type(metdatatype) :: mdat
-      real*8,parameter :: O2conc=209 !O2 mole fraction in leaf (mmol mol-1)
-      real*8 :: cs     !CO2 concentration at leaf surface (umol mol-1)
-
-      !ci should be intialized. For rule of thumb, initialize to
-      ! initial ci = 0.7*ca
-
-      cs = ca      !Assign CO2 concentration at leaf surface
-                   !More rigorously, cs should also be solved for.
-      stressH2O = 1.d0 !Dummy no stress
-      call calc_Pspar(dtsec,pft,Pa,Tl,O2conc*Pa*1.d-06,stressH2O
-     i         ,Sacclim)
-      Anet = Farquhar(IPAR,ci*Pa*1.d-06,O2conc*Pa*1.d-06,Tl,pspar) 
-     &     - Respveg(pspar%Nleaf,Tl)
-
-      end function Farquhar_standalone
-!-----------------------------------------------------------------------------
-
       function BallBerry(Anet, rh, cs, pspar) Result (gsw)
 !@sum Ball-Berry (1987) model of leaf stomatal conductance of 
 !@sum water vapor, gsw (mol m-2 s-1)      
@@ -902,39 +676,226 @@ cddd
       end function BallBerry
 
 !-----------------------------------------------------------------------------
+cddd      function Je(IPAR,Cip,pspar) Result(Je_light)
+cddd!@sum Photosynthetic rate limited by light electron transport (umol m-2 s-1)
+cddd      implicit none
+cddd      real*8 :: IPAR !Incident PAR (umol m-2 s-1)
+cddd      real*8 :: Cip  !Leaf internal CO2 partial pressure (Pa)
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: Je_light !Electron-transport limited rate of photosynth (umol m-2 s-1)
+cddd      !----Local---------
+cddd      real*8,parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
+cddd
+cddd      Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
+cddd     &     (Cip+2*pspar%Gammastar)
+cddd
+cddd      end function Je
+!-----------------------------------------------------------------------------
+cddd      function Jc(Cip,O2,pspar) Result (Jc_RuBP)
+cddd!@sum Photosynthetic rate limited by RuBP saturation
+cddd      implicit none
+cddd      real*8 :: Cip  !Leaf internal CO2 partial pressure (Pa)
+cddd      real*8 :: O2  !O2 partial pressure in leaf (Pa)
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: Jc_RuBP
+cddd
+cddd      Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
+cddd     &     (Cip + pspar%Kc*(1 + O2/pspar%Ko))
+cddd!!!old     &     (Cip + pspar%Kc*(1 + O2/Ko))
+cddd      end function Jc
+!-----------------------------------------------------------------------------
+cddd      function Js(pspar) Result(Js_sucrose)
+cddd!@sum Photosynthetic rate limited by "utilization of photosynthetic products."
+cddd!@sum (umol m-2 s-1)
+cddd      implicit none
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: Js_sucrose
+cddd
+cddd      Js_sucrose = pspar%Vcmax/2.d0
+cddd      end function Js
+!-----------------------------------------------------------------------------
+cddd      subroutine Collatz(dtsec,pft,IPAR,cs,Tl,Pa,rh,ci,gs,Anet,Sacclim)
+cddd!@sum Coupled photosynthesis/stomatal conductance at the leaf level
+cddd!@sum after Collatz, G.J., et.al. (1991) AgForMet 54:107-136
+cddd      implicit none
+cddd      integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
+cddd      real*8,intent(in) :: IPAR            !Incident PAR (umol m-2 s-1) 
+cddd      real*8,intent(in) :: dtsec
+cddd      !If PAR is not directly available, the following conversions may be
+cddd      !used:
+cddd      !  From total shortwave (W m-2) to PAR (umol m-2 s-1) (Monteith & Unsworth):
+cddd      !          PAR(umol m-2 s-1) = 2.3(umol/J)*SW(W m-2)
+cddd      !  From PAR (W m-2) to PAR (umol m-2 s-1) (U.Maryland, Dept. of Met., PAR Project),
+cddd      !  suggest nominal 485 nm for conversion, which gives:
+cddd      !          PAR(umol m-2 s-1) = 4.05(umol/J) * PAR(W m-2)
+cddd
+cddd      !real*8,intent(in) :: ca   !Ambient air CO2 concentration (umol mol-1)      
+cddd      real*8,intent(in) :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
+cddd      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
+cddd      real*8,intent(in) :: rh   !Relative humidity
+cddd      real*8,intent(in) :: Pa   !Pressure (Pa)
+cddd      real*8,intent(in) :: Sacclim ! state of acclimation/frost hardiness [deg C]
+cddd      !real*8,intent(in) :: gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+cddd      real*8 :: ci              !Leaf internal CO2 mole fraction  (umol mol-1)
+cddd      real*8,intent(out) :: gs !Leaf stomatal conductance (mol-H2O m-2 s-1)
+cddd      real*8,intent(out) :: Anet !Leaf net photosynthesis (CO2 uptake, micromol m-2 s-1)
+cddd      !-----Local-----------------
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: stressH2O 
+cddd!      type(metdatatype) :: mdat
+cddd      real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa)
+cddd      real*8 :: Atot            !Gross assimilation (umol m-2 s-1)
+cddd!      real*8 :: Rd              !Dark or maintenance respiration (umol m-2 s-1)
+cddd      !ci should be intialized. For rule of thumb, initialize to
+cddd      ! initial ci = 0.7*ca
+cddd
+cddd!      call load_metdata(IPAR,ca,Ta,rh,O2conc)
+cddd
+cddd      stressH2O = 1.d0 !Dummy no stress
+cddd      call calc_Pspar(dtsec, pft, Pa, Tl, O2pres, stressH2O, Sacclim)
+cddd
+cddd      Atot = Farquhar(IPAR,ci*Pa*1.d-06,O2pres,Tl,pspar) 
+cddd      Anet = Atot - Respveg(pspar%Nleaf,Tl)
+cddd
+cddd      gs = BallBerry(Anet, rh, cs, pspar)
+cddd
+cddd!      if (if_ci.eq.1) ci = calc_ci(ca, gb, gs, Anet, IPAR, pspar)
+cddd
+cddd      !Solving:
+cddd      !    Stomates adjust to control the gradient of ci to cs, so the coupled
+cddd      !photosynthesis/conductance model is generally solved by iterating
+cddd      !to obtain consistent Anet, gs, cs, and ci, and also rh at the leaf 
+cddd      !surface.  
+cddd      !    As this can be computationally intensive, an alternative is to
+cddd      !place bounds on how quickly gs can change (biologically measured).
+cddd      !Anet would not be affected, since it depends only on light, Vcmax, and
+cddd      !ci; however, ci would be affected.
+cddd
+cddd      
+cddd      end subroutine Collatz
 
-      function calc_ci(ca,gb, gs,Anet,IPAR,pspar) Result(ci)
-!@sum Leaf internal CO2 conc (umol mol-1) assuming diffusive flux of CO2
-!@sum is at steady-state with biochemical uptake by photosynthesis and
-!@sum that there is zero leaf boundary layer resistance (infinite gb),
-!@sum and that there is no leaf cuticular conductance of CO2.
-!@sum Full equation:  ci = ca - Anet*(1.6/gb + 1.4/gs)
-!@sum 1.6 = ratio of diffusivities of CO2 and water vapor in laminar flow
-!@sum       in the leaf boundary layer
-!@sum 1.4 = ratio of diffusivities of CO2 and water vapor in still air at
-!@sum       the leaf surface
-!@sum (Monteith, 1995;  Kiang, 2002)
-      implicit none
+!-----------------------------------------------------------------------------
+!      subroutine load_metdata(IPAR,ca,Ta,rh,O2concmol,mdat)
+!      implicit none
+!      real*8 :: IPAR !Incident PAR (umol m-2 s-1)
+!      real*8 :: ca   !Ambient air CO2 concentration (umol mol-1)
+!      real*8 :: Ta   !Ambient air temperature (Celsius)
+!      real*8 :: rh   !Relative humidity
+!      real*8 :: O2concmol !O2 mole fraction in leaf (mmol mol-1)
+!
+!      mdat%IPAR = IPAR
+!      mdat%ca = ca
+!      mdat%Ta = Ta
+!      mdat%rh = rh
+!      mdat%O2concmol = O2concmol
+!
+!      end subroutine load_metdata
+!-----------------------------------------------------------------------------
 
-      real*8 :: ca !Ambient air CO2 mole fraction at surface reference height (umol mol-1)
-      real*8 :: gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8 :: gs !Stomatal conductance of water vapor(mol m-2 s-1)
-      real*8 :: Anet !Leaf net assimilation of CO2 (umol m-2 s-1)
-      real*8 :: IPAR !Incident PAR (umol m-2 s-1)
-      type(photosynthpar) :: pspar
-      real*8 :: ci !Leaf internal CO2 mole fraction (umol mol-1)
-      !----Local------
-      real*8,parameter :: MINPARMOL=50.d0  !(umol m-2 s-1)
+cddd      function Farquhar(IPAR,Cip,O2,Tl,pspar) Result(Assim)
+cddd!@sum Photosynthesis at the leaf level (umol m-2 s-1)
+cddd!@sum after Farquhar, et al.(1980) Planta, 149:78-90.
+cddd      implicit none
+cddd      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1)
+cddd      real*8,intent(in) :: Cip  !Leaf internal CO2 partial pressure (Pa)
+cddd      real*8,intent(in) :: O2   !Leaf internal O2 partial pressure (Pa)
+cddd      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: Assim !Leaf GPP (positive into leaf) (umol m-2 s-1)
+cddd      !----Local-----
+cddd      real*8 :: Je1, Jc1, Js1
+cddd      !Assume pspar already calculated.
+cddd      !call calc_Pspar(pft, Tl, pspar)
+cddd
+cddd      Je1 = Je(IPAR,Cip,pspar)
+cddd      Jc1 = Jc(Cip,O2,pspar)
+cddd      Js1 = Js(pspar)
+cddd      Assim = min(Je1, Jc1, Js1)
+cddd!#ifdef DEBUG
+cddd!      write(997,*) IPAR, Cip, O2,pspar%Gammastar,pspar%Vcmax,
+cddd!     &     Tl,Je1,Jc1,Js1,Assim
+cddd!#endif
+cddd      !Assim = min(Je(IPAR,Cip,pspar), Jc(Cip,O2,pspar), Js(pspar))
+cddd
+cddd      end function Farquhar
+cddd
+cddd!-----------------------------------------------------------------------------
+cddd
+cddd
+cddd      function Farquhar_standalone(dtsec,pft,IPAR,ca,Tl,rh,Pa,gb,ci,gs
+cddd     i    ,Sacclim )
+cddd     o     Result(Anet)
+cddd!@sum Photosynthesis at the leaf level.
+cddd!@sum after Farquhar, et al.(1980) Planta, 149:78-90.
+cddd!@sum Standalone version.  Can be called directly from external program.
+cddd
+cddd      implicit none
+cddd      integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
+cddd      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1) 
+cddd      real*8,intent(in) :: ca   !Ambient air CO2 concentration (umol mol-1)
+cddd      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
+cddd      real*8,intent(in) :: rh   !Relative humidity
+cddd      real*8,intent(in) :: Pa   !Pressure (Pa)
+cddd      real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+cddd      real*8,intent(in) :: Sacclim ! state of acclimation/frost hardiness
+cddd      real*8,intent(in) :: dtsec ! timestep size [sec]
+cddd      real*8,intent(inout) :: ci !Leaf internal CO2 mole fraction  (umol mol-1)
+cddd      real*8,intent(out) :: gs  !Leaf stomatal conductance (mol-H2O m-2 s-1)
+cddd      real*8 :: Anet            !Leaf net photosynthesis (CO2 uptake, micromol m-2 s-1)
+cddd      !-----Local-----------------
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: stressH2O 
+cddd!      type(metdatatype) :: mdat
+cddd      real*8,parameter :: O2conc=209 !O2 mole fraction in leaf (mmol mol-1)
+cddd      real*8 :: cs     !CO2 concentration at leaf surface (umol mol-1)
+cddd
+cddd      !ci should be intialized. For rule of thumb, initialize to
+cddd      ! initial ci = 0.7*ca
+cddd
+cddd      cs = ca      !Assign CO2 concentration at leaf surface
+cddd                   !More rigorously, cs should also be solved for.
+cddd      stressH2O = 1.d0 !Dummy no stress
+cddd      call calc_Pspar(dtsec,pft,Pa,Tl,O2conc*Pa*1.d-06,stressH2O
+cddd     i         ,Sacclim)
+cddd      Anet = Farquhar(IPAR,ci*Pa*1.d-06,O2conc*Pa*1.d-06,Tl,pspar) 
+cddd     &     - Respveg(pspar%Nleaf,Tl)
+cddd
+cddd      end function Farquhar_standalone
+cddd!-----------------------------------------------------------------------------
+cddd
 
-      if (IPAR.lt.MINPARMOL) then  !Stomates closed
-        ci = ca - Anet*1.6d0/pspar%b
-      else
-        ci = ca - Anet*(1.6d0/gb + 1.4d0/gs)
-      endif
-
-      if (ci.lt.ciMIN) ci = ciMIN  !Keep positive definite.
-
-      end function calc_ci
+cddd      function calc_ci(ca,gb, gs,Anet,IPAR,pspar) Result(ci)
+cddd!@sum Leaf internal CO2 conc (umol mol-1) assuming diffusive flux of CO2
+cddd!@sum is at steady-state with biochemical uptake by photosynthesis and
+cddd!@sum that there is zero leaf boundary layer resistance (infinite gb),
+cddd!@sum and that there is no leaf cuticular conductance of CO2.
+cddd!@sum Full equation:  ci = ca - Anet*(1.6/gb + 1.4/gs)
+cddd!@sum 1.6 = ratio of diffusivities of CO2 and water vapor in laminar flow
+cddd!@sum       in the leaf boundary layer
+cddd!@sum 1.4 = ratio of diffusivities of CO2 and water vapor in still air at
+cddd!@sum       the leaf surface
+cddd!@sum (Monteith, 1995;  Kiang, 2002)
+cddd      implicit none
+cddd
+cddd      real*8 :: ca !Ambient air CO2 mole fraction at surface reference height (umol mol-1)
+cddd      real*8 :: gb !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+cddd      real*8 :: gs !Stomatal conductance of water vapor(mol m-2 s-1)
+cddd      real*8 :: Anet !Leaf net assimilation of CO2 (umol m-2 s-1)
+cddd      real*8 :: IPAR !Incident PAR (umol m-2 s-1)
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: ci !Leaf internal CO2 mole fraction (umol mol-1)
+cddd      !----Local------
+cddd      real*8,parameter :: MINPARMOL=50.d0  !(umol m-2 s-1)
+cddd
+cddd      if (IPAR.lt.MINPARMOL) then  !Stomates closed
+cddd        ci = ca - Anet*1.6d0/pspar%b
+cddd      else
+cddd        ci = ca - Anet*(1.6d0/gb + 1.4d0/gs)
+cddd      endif
+cddd
+cddd      if (ci.lt.ciMIN) ci = ciMIN  !Keep positive definite.
+cddd
+cddd      end function calc_ci
 
 !-----------------------------------------------------------------------------
 
