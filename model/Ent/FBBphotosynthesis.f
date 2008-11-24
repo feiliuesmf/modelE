@@ -106,6 +106,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end subroutine pscondleaf
 
 !-----------------------------------------------------------------------------
+
       subroutine Photosynth_analyticsoln(pft,IPAR,ca,ci,Tl,Pa,rh,gb,
      o     gs,Atot,Rd,sunlitshaded)
       !@sum Photosynth_cubic Farquhar photosynthesis and Ball-Berry conductance
@@ -131,53 +132,144 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
+      real*8 :: Ae, Ac, As
+      real*8 :: a1,f1,e1
+      real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
 
-!      call calc_Pspar(pft, Pa, Tl, O2pres, pspar) !Moved up a module to reduce computation.
       Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
 
-      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
-      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
-      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
+!      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
+      ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
+      ! Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
+      !            (Cip+2*pspar%Gammastar)
 
-      Atot = min(Je1, Jc1, Js1)
-      if (Atot.lt.0.d0) then 
+      !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
+      a1 = pspar%PARabsorb*IPAR*alpha
+      e1 = 1.d0
+      f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
+
+      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae)
+
+!      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
+      ! Photosynthetic rate limited by RuBP saturation
+      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
+      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
+
+      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
+      a1 = pspar%Vcmax
+      e1 = 1.d0
+      f1 = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa  !umol/mol
+
+      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac)
+
+!      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
+      !Photosynthetic rate limited by "utilization of photosynthetic products"
+      ! (umol m-2 s-1)
+      !Js_sucrose = pspar%Vcmax/2.d0
+      As = pspar%Vcmax/2.d0 - Rd
+
+      Anet = min(Ae, Ac, As)
+      Atot = Anet + Rd
+
+      if (Atot.lt.0.d0) then
+        ! can only happen if ca < Gammastar . Does it make sense?
 #ifdef OFFLINE
-        write(997,*) "Error, Atot<0.0:",Je1,Jc1,Js1,ca,gb,rh,IPAR,Pa,
+        write(997,*) "Error, Atot<0.0:",Ae,Ac,As,ca,gb,rh,IPAR,Pa,
      &       pspar,sunlitshaded
 #endif
         Atot = 0.d0
-!        return
+        Anet = - Rd
+        ci = pspar%Gammastar * 1.d06/Pa
+        return
       endif
 
-      if (Atot.eq.Je1) then
-        ci = cie
-        !write(830,*) 1
-      else if (Atot.eq.Jc1) then
-        ci = cic
-        !write(830,*) 2
-      else if (Atot.eq.Js1) then
-        ci = cis
-        !write(830,*) 3
-      else !Atot was set to 0.d0 due to low light
-        ci = max(0.d0, cie)
-        !write(830,*) 4
-      endif
-
-      Anet = Atot - Rd
       cs = ca - Anet*1.37d0/gb
       gs = BallBerry(Anet, rh, cs, pspar)
-      !ci = Cip/Pa*1d6
+      ci = cs - Anet/(gs/1.65d0)
 
-!#ifdef DEBUG
-!      if (sunlitshaded.eq.1) then
-!        write(991,*) IPAR, Cip/Pa*1d6, Cie/Pa*1d6,Cic/Pa*1d6,Cis/Pa*1d6,
-!     &       Je1, Jc1, Js1, Atot, Rd, cs, gs, ca,gb,rh,IPAR,Pa, pspar
-!      else
-!        write(992,*) IPAR, Cip/Pa*1d6, Cie/Pa*1d6,Cic/Pa*1d6,Cis/Pa*1d6,
-!     &       Je1, Jc1, Js1, Atot, Rd, cs, gs, pspar%Gammastar
-!      endif
-!#endif
       end subroutine Photosynth_analyticsoln
+
+
+!-----------------------------------------------------------------------------
+cddd      subroutine Photosynth_analyticsoln1(pft,IPAR,ca,ci,Tl,Pa,rh,gb,
+cddd     o     gs,Atot,Rd,sunlitshaded)
+cddd      !@sum Photosynth_cubic Farquhar photosynthesis and Ball-Berry conductance
+cddd      !@sum and autotrophic respiration.  ci is solved for analytically for each
+cddd      !@sum of the limiting cases.
+cddd      implicit none
+cddd      integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
+cddd      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1) 
+cddd      real*8,intent(in) :: ca   !Ambient air CO2 mole fraction (umol mol-1)      
+cddd      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
+cddd      real*8,intent(in) :: rh   !Relative humidity
+cddd      real*8,intent(in) :: Pa   !Pressure (Pa)
+cddd      real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+cddd      real*8,intent(out) :: ci   !Leaf internal CO2 concentration (umol mol-1)      
+cddd      real*8,intent(out) :: gs  !Leaf stomatal conductance (mol-H2O m-2 s-1)
+cddd      real*8,intent(out) :: Atot !Leaf gross photosynthesis (CO2 uptake, micromol m-2 s-1)
+cddd      real*8,intent(out) :: Rd  !Dark = above-ground growth + maintenance respiration (umol m-2 s-1)
+cddd      integer,intent(in) :: sunlitshaded !For diagnostic outputs only.
+cddd        !---Local----
+cddd!      type(photosynthpar) :: pspar !Moved to global to module.
+cddd      real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa) Not exactly .209*101325.
+cddd      real*8 :: cie, cic, cis   !Leaf internal CO2 (umol mol-1)
+cddd      real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
+cddd      real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
+cddd      real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
+cddd
+cddd!      call calc_Pspar(pft, Pa, Tl, O2pres, pspar) !Moved up a module to reduce computation.
+cddd      Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
+cddd
+cddd      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
+cddd      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
+cddd      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
+cddd
+cddd      Atot = min(Je1, Jc1, Js1)
+cddd      if (Atot.lt.0.d0) then 
+cddd#ifdef OFFLINE
+cddd        write(997,*) "Error, Atot<0.0:",Je1,Jc1,Js1,ca,gb,rh,IPAR,Pa,
+cddd     &       pspar,sunlitshaded
+cddd#endif
+cddd        Atot = 0.d0
+cddd!        return
+cddd      endif
+cddd
+cddd      if (Atot.eq.Je1) then
+cddd        ci = cie
+cddd        write(830,*) 1
+cddd      else if (Atot.eq.Jc1) then
+cddd        ci = cic
+cddd        write(830,*) 2
+cddd      else if (Atot.eq.Js1) then
+cddd        ci = cis
+cddd        write(830,*) 3
+cddd      else !Atot was set to 0.d0 due to low light
+cddd        ci = max(0.d0, cie)
+cddd        write(830,*) 4
+cddd      endif
+cddd
+cddd      Anet = Atot - Rd
+cddd      cs = ca - Anet*1.37d0/gb
+cddd      gs = BallBerry(Anet, rh, cs, pspar)
+cddd      !ci = Cip/Pa*1d6
+cddd
+cddd      ! the following solution seems to be more straightforward
+cddd      !cs = ca - Anet/(gb/1.37d0)
+cddd      !gs = m*Anet*rh/cs + b
+cddd      write(833,*) ci, cs - Anet/(gs/1.65d0),Anet
+cddd      ci = cs - Anet/(gs/1.65d0)
+cddd
+cddd
+cddd!#ifdef DEBUG
+cddd!      if (sunlitshaded.eq.1) then
+cddd!        write(991,*) IPAR, Cip/Pa*1d6, Cie/Pa*1d6,Cic/Pa*1d6,Cis/Pa*1d6,
+cddd!     &       Je1, Jc1, Js1, Atot, Rd, cs, gs, ca,gb,rh,IPAR,Pa, pspar
+cddd!      else
+cddd!        write(992,*) IPAR, Cip/Pa*1d6, Cie/Pa*1d6,Cic/Pa*1d6,Cis/Pa*1d6,
+cddd!     &       Je1, Jc1, Js1, Atot, Rd, cs, gs, pspar%Gammastar
+cddd!      endif
+cddd!#endif
+cddd      end subroutine Photosynth_analyticsoln1
 !-----------------------------------------------------------------------------
 
 
@@ -226,128 +318,128 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end function calc_CO2compp
 !-----------------------------------------------------------------------------
 
-      subroutine Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, ci, Je_light)
-      !@sum Ci_Je Analytical solution for Ci assuming Je is most limiting, 
-      !@sum then calculation of Je.
-      implicit none
-      real*8,intent(in) :: ca              !Ambient air CO2 concentration (umol mol-1)
-      real*8,intent(in) :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8,intent(in) :: rh              !Relative humidity
-      real*8,intent(in) :: IPAR            !Incident PAR (umol m-2 s-1)
-      real*8,intent(in) :: Pa              !
-      type(photosynthpar) :: pspar
-      real*8,intent(in) :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
-      !---------------
-      real*8,intent(out) :: ci !Leaf internal CO2 concentration (umol mol-1)
-      real*8,intent(out) :: Je_light !Light-limited assimilation rate (umol m-2 s-1)
-      !---Local------
-      real*8,parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
-      real*8 :: a1, e1, f1, A
-
-      ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
-      ! Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
-      !            (Cip+2*pspar%Gammastar)
-
-      !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
-      a1 = pspar%PARabsorb*IPAR*alpha
-      e1 = 1.d0
-      f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
-
-      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci,A)
-!      Cip = Pa * 1d-06 * 350.d0 * .7d0  !###Dummy check @350 ppm
-      Je_light = A + Rd
-
-#ifdef DEBUG_ENT
-      write(996,*) ca,rh,gb,IPAR, Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
-     &     pspar%Gammastar,Cip, Je_light
-#endif
-      end subroutine Ci_Je
-!-----------------------------------------------------------------------------
-
-      subroutine Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2, ci, Jc_RuBP)
-      !@sum Ci_Jc Analytical solution for Ci assuming Jc is most limiting.
-      !@sum then calculation of Jc.
-      implicit none
-      real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
-      real*8 :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8 :: rh              !Relative humidity
-      real*8 :: IPAR            !Incident PAR (umol m-2 s-1)
-      real*8 :: Pa              !Pressure (Pa)
-      type(photosynthpar) :: pspar
-      real*8 :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
-      real*8 :: O2              !O2 partial pressure in leaf (Pa)
-      !---------------
-      real*8,intent(out) :: ci !Leaf internal CO2 concentration (umol mol-1)
-      real*8,intent(out) :: Jc_RuBP !RuBP-limited assimilation rate (umol m-2 s-1)
-      !---Local------
-      real*8 :: a1, e1, f1, A
-
-      ! Photosynthetic rate limited by RuBP saturation
-      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
-      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
-
-      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
-      a1 = pspar%Vcmax
-      e1 = 1.d0
-      f1 = pspar%Kc*(1.d0 + O2/pspar%Ko) * 1.d06/Pa  !umol/mol
-
-      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci, A)
-      !Cip = Pa *1.D-06 * 350.d0 *.7d0 !Dummy prescribed ci.
-      Jc_RuBP = A + Rd
-
-#ifdef DEBUG_ENT
-      write(993,*) ca,rh,gb,Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
-     &     pspar%Gammastar,Cip, Jc_RuBP
-#endif      
-      end subroutine Ci_Jc
-!-----------------------------------------------------------------------------
-
-      subroutine Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, ci, Js_sucrose)
-      !@sum Ci_Js Calculates Cip and Js, 
-      !@sum Photosynthetic rate limited by "utilization of photosynthetic products."
-
-      implicit none
-      real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
-      real*8 :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8 :: rh              !Relative humidity
-      real*8 :: IPAR            !Incident PAR (umol m-2 s-1)
-      real*8 :: Pa              !Pressure (Pa)
-      type(photosynthpar) :: pspar
-      real*8 :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
-      real*8 :: ci              !Leaf internal CO2 concentration (umol mol-1)
-      real*8 :: Js_sucrose !umol m-2 s-1
-      !---Local----
-      real*8 :: X,Y,Z,W,T       !Expressions from solving cubic equ. of ci.
-      real*8 :: Anet            !umol m-2 s-1
-      real*8 :: m               !Slope of Ball-Berry
-      real*8 :: b               !Intercept of Ball-Berry
-      real*8 :: rb              !Leaf boundary layer resistance = 1/gb
-      real*8 cs,gs
-
-      m = pspar%m
-      b = pspar%b
-      rb = 1/gb
-
-      X = (b*1.37d0*rb)**2 - (m*rh - 1.65d0)*1.37d0*rb
-      Y = ca*(m*rh - 1.65d0) - b*2.d0*1.37d0*rb*ca
-      Z = b*1.37d0*rb - m*rh
-      W = -b*ca
-      T = b*(ca**2)
-
-      !Js_sucrose = Js(pspar)
-      !Photosynthetic rate limited by "utilization of photosynthetic products"
-      ! (umol m-2 s-1)
-      Js_sucrose = pspar%Vcmax/2.d0
-      Anet = Js_sucrose - Rd
-      ci = -1.d0*((X*Anet + Y)*Anet + T )/(Z*Anet + W)
-
-      ! the following solution seems to be more straightforward
-      !cs = ca - Anet/(gb/1.37d0)
-      !gs = m*Anet*rh/cs + b
-      !write(833,*) ci, cs - Anet/(gs/1.65d0),cs
-      !ci = cs - Anet/(gs/1.65d0)
-
-      end subroutine Ci_Js
+cddd      subroutine Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, ci, Je_light)
+cddd      !@sum Ci_Je Analytical solution for Ci assuming Je is most limiting, 
+cddd      !@sum then calculation of Je.
+cddd      implicit none
+cddd      real*8,intent(in) :: ca              !Ambient air CO2 concentration (umol mol-1)
+cddd      real*8,intent(in) :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+cddd      real*8,intent(in) :: rh              !Relative humidity
+cddd      real*8,intent(in) :: IPAR            !Incident PAR (umol m-2 s-1)
+cddd      real*8,intent(in) :: Pa              !
+cddd      type(photosynthpar) :: pspar
+cddd      real*8,intent(in) :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
+cddd      !---------------
+cddd      real*8,intent(out) :: ci !Leaf internal CO2 concentration (umol mol-1)
+cddd      real*8,intent(out) :: Je_light !Light-limited assimilation rate (umol m-2 s-1)
+cddd      !---Local------
+cddd      real*8,parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
+cddd      real*8 :: a1, e1, f1, A
+cddd
+cddd      ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
+cddd      ! Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
+cddd      !            (Cip+2*pspar%Gammastar)
+cddd
+cddd      !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
+cddd      a1 = pspar%PARabsorb*IPAR*alpha
+cddd      e1 = 1.d0
+cddd      f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
+cddd
+cddd      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci,A)
+cddd!      Cip = Pa * 1d-06 * 350.d0 * .7d0  !###Dummy check @350 ppm
+cddd      Je_light = A + Rd
+cddd
+cddd#ifdef DEBUG_ENT
+cddd      write(996,*) ca,rh,gb,IPAR, Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
+cddd     &     pspar%Gammastar,Cip, Je_light
+cddd#endif
+cddd      end subroutine Ci_Je
+cddd!-----------------------------------------------------------------------------
+cddd
+cddd      subroutine Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2, ci, Jc_RuBP)
+cddd      !@sum Ci_Jc Analytical solution for Ci assuming Jc is most limiting.
+cddd      !@sum then calculation of Jc.
+cddd      implicit none
+cddd      real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
+cddd      real*8 :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+cddd      real*8 :: rh              !Relative humidity
+cddd      real*8 :: IPAR            !Incident PAR (umol m-2 s-1)
+cddd      real*8 :: Pa              !Pressure (Pa)
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
+cddd      real*8 :: O2              !O2 partial pressure in leaf (Pa)
+cddd      !---------------
+cddd      real*8,intent(out) :: ci !Leaf internal CO2 concentration (umol mol-1)
+cddd      real*8,intent(out) :: Jc_RuBP !RuBP-limited assimilation rate (umol m-2 s-1)
+cddd      !---Local------
+cddd      real*8 :: a1, e1, f1, A
+cddd
+cddd      ! Photosynthetic rate limited by RuBP saturation
+cddd      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
+cddd      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
+cddd
+cddd      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
+cddd      a1 = pspar%Vcmax
+cddd      e1 = 1.d0
+cddd      f1 = pspar%Kc*(1.d0 + O2/pspar%Ko) * 1.d06/Pa  !umol/mol
+cddd
+cddd      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci, A)
+cddd      !Cip = Pa *1.D-06 * 350.d0 *.7d0 !Dummy prescribed ci.
+cddd      Jc_RuBP = A + Rd
+cddd
+cddd#ifdef DEBUG_ENT
+cddd      write(993,*) ca,rh,gb,Pa,Rd,a1,e1,f1,pspar%m,pspar%b,
+cddd     &     pspar%Gammastar,Cip, Jc_RuBP
+cddd#endif      
+cddd      end subroutine Ci_Jc
+cddd!-----------------------------------------------------------------------------
+cddd
+cddd      subroutine Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, ci, Js_sucrose)
+cddd      !@sum Ci_Js Calculates Cip and Js, 
+cddd      !@sum Photosynthetic rate limited by "utilization of photosynthetic products."
+cddd
+cddd      implicit none
+cddd      real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
+cddd      real*8 :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+cddd      real*8 :: rh              !Relative humidity
+cddd      real*8 :: IPAR            !Incident PAR (umol m-2 s-1)
+cddd      real*8 :: Pa              !Pressure (Pa)
+cddd      type(photosynthpar) :: pspar
+cddd      real*8 :: Rd              !Maintenance or mitochondrial respiration (umol-CO2 m-2[leaf] s-1)
+cddd      real*8 :: ci              !Leaf internal CO2 concentration (umol mol-1)
+cddd      real*8 :: Js_sucrose !umol m-2 s-1
+cddd      !---Local----
+cddd      real*8 :: X,Y,Z,W,T       !Expressions from solving cubic equ. of ci.
+cddd      real*8 :: Anet            !umol m-2 s-1
+cddd      real*8 :: m               !Slope of Ball-Berry
+cddd      real*8 :: b               !Intercept of Ball-Berry
+cddd      real*8 :: rb              !Leaf boundary layer resistance = 1/gb
+cddd      real*8 cs,gs
+cddd
+cddd      m = pspar%m
+cddd      b = pspar%b
+cddd      rb = 1/gb
+cddd
+cddd      X = (b*1.37d0*rb)**2 - (m*rh - 1.65d0)*1.37d0*rb
+cddd      Y = ca*(m*rh - 1.65d0) - b*2.d0*1.37d0*rb*ca
+cddd      Z = b*1.37d0*rb - m*rh
+cddd      W = -b*ca
+cddd      T = b*(ca**2)
+cddd
+cddd      !Js_sucrose = Js(pspar)
+cddd      !Photosynthetic rate limited by "utilization of photosynthetic products"
+cddd      ! (umol m-2 s-1)
+cddd      Js_sucrose = pspar%Vcmax/2.d0
+cddd      Anet = Js_sucrose - Rd
+cddd      ci = -1.d0*((X*Anet + Y)*Anet + T )/(Z*Anet + W)
+cddd
+cddd      ! the following solution seems to be more straightforward
+cddd      cs = ca - Anet/(gb/1.37d0)
+cddd      gs = m*Anet*rh/cs + b
+cddd      write(834,*) ci, cs - Anet/(gs/1.65d0),cs
+cddd      !ci = cs - Anet/(gs/1.65d0)
+cddd
+cddd      end subroutine Ci_Js
 !-----------------------------------------------------------------------------
       
       function arrhenius(Tcelsius,c1,c2) Result(arrh)
@@ -383,7 +475,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       end function Tresponse
 !=================================================
 
-      subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,ci,A)
+      subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,A)
       !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
       !@sum ci (umol/mol)
       !@sum For the case of assimilation being of the form:
@@ -401,7 +493,7 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: a1              !Coefficient in linear Farquhar equ.
       real*8 :: e1              !Coefficient in linear Farquhar equ.
       real*8 :: f1              !Coefficient in linear Farquhar equ.
-      real*8, intent(out) :: ci, A
+      real*8, intent(out) :: A
       type(photosynthpar) :: pspar
       !----Local----
       real*8, parameter :: S_ATM=1.37d0  ! diffusivity ratio H2O/CO2 (atmosph.)
@@ -410,8 +502,9 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: X, Y, Z, Y1  ! tmp vars
       real*8 :: c3, c2, c1, c   !Coefficients of the cubic of ci (c3*ci^3 + c2*ci^2 + c1*ci + c)
       real*8 :: cixx(3) ! solutions of cubic
-      real*8 :: cs, Rs ! needed to compute ci
+!      real*8 :: cs, Rs ! needed to compute ci
       integer :: nroots, i
+!      real*8 ci
 
       Ra = 1/gb * S_ATM
       b = pspar%b / S_STOM
@@ -461,13 +554,13 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
         endif
 
         if ( A >= 0 ) then
-          cs = ca - A*Ra
-          Rs = 1.d0 / (K*A/cs + b)
-          ci = cs - A*Rs
-          ! just in case, check consistency
-          if ( ci < 0.d0 ) call stop_model("ci_cubic: ci<0",255)
-          if ( cs < 0.d0 ) call stop_model("ci_cubic: cs<0",255)
-          !!print *,'QQQQ ',A,ci
+cddd          cs = ca - A*Ra
+cddd          Rs = 1.d0 / (K*A/cs + b)
+cddd          ci = cs - A*Rs
+cddd          ! just in case, check consistency
+cddd          if ( ci < 0.d0 ) call stop_model("ci_cubic: ci<0",255)
+cddd          if ( cs < 0.d0 ) call stop_model("ci_cubic: cs<0",255)
+cddd          !!print *,'QQQQ ',A,ci
           return
         endif
 
@@ -484,14 +577,14 @@ cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       if (  c1*c1 - 4.d0*c2*c < 0.d0 )
      &     call stop_model("ci_cubic: no solution to quadratic",255)
       A = ( - c1 - sqrt( c1*c1 - 4.d0*c2*c ) ) / ( 2.d0 * c2 )
-      cs = ca - A*Ra
-      Rs = 1.d0 / ( b)
-      ci = cs - A*Rs
-      !!print *,"q ", ci, cs, A, Rs, Ra
-      ! just in case, check consistency
-      if ( ci < 0.d0 ) call stop_model("ci_cubic: q: ci<0",255)
-      if ( cs < 0.d0 ) call stop_model("ci_cubic: q: cs<0",255)
-      !!print *,'QQQQ ',A,ci
+cddd      cs = ca - A*Ra
+cddd      Rs = 1.d0 / ( b)
+cddd      ci = cs - A*Rs
+cddd      !!print *,"q ", ci, cs, A, Rs, Ra
+cddd      ! just in case, check consistency
+cddd      if ( ci < 0.d0 ) call stop_model("ci_cubic: q: ci<0",255)
+cddd      if ( cs < 0.d0 ) call stop_model("ci_cubic: q: cs<0",255)
+cddd      !!print *,'QQQQ ',A,ci
 
       end subroutine ci_cubic
 
