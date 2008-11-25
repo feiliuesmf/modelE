@@ -3550,19 +3550,19 @@ C**** Add evenly over open ocean and ice covered areas
         END DO
 
 C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
-        oDMSI(1,I,J)=(DMOO+SUM(DM0))*ROCAT(J)
-        oDMSI(2,I,J)=(DMOI+SUM(DM0))*ROCAT(J)
-        oDHSI(1,I,J)=(DEOO+SUM(DE0))*ROCAT(J)
-        oDHSI(2,I,J)=(DEOI+SUM(DE0))*ROCAT(J)
-        oDSSI(1,I,J)=(DSOO+SUM(DS0))*ROCAT(J)
-        oDSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
+c        oDMSI(1,I,J)=(DMOO+SUM(DM0))*ROCAT(J)
+c        oDMSI(2,I,J)=(DMOI+SUM(DM0))*ROCAT(J)
+c        oDHSI(1,I,J)=(DEOO+SUM(DE0))*ROCAT(J)
+c        oDHSI(2,I,J)=(DEOI+SUM(DE0))*ROCAT(J)
+c        oDSSI(1,I,J)=(DSOO+SUM(DS0))*ROCAT(J)
+c        oDSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
 
-c        oDMSI(1,I,J)=DMOO+SUM(DM0)                                    !  kg/m^2
-c        oDMSI(2,I,J)=DMOI+SUM(DM0)                                    !  kg/m^2
-c        oDHSI(1,I,J)=DEOO+SUM(DE0)                                    !  J/m^2
-c        oDHSI(2,I,J)=DEOI+SUM(DE0)                                    !  J/m^2
-c        oDSSI(1,I,J)=DSOO+SUM(DS0)                                    !  kg/m^2
-c        oDSSI(2,I,J)=DSOI+SUM(DS0)                                    !  kg/m^2
+        oDMSI(1,I,J)=DMOO+SUM(DM0)                                    !  kg/m^2
+        oDMSI(2,I,J)=DMOI+SUM(DM0)                                    !  kg/m^2
+        oDHSI(1,I,J)=DEOO+SUM(DE0)                                    !  J/m^2
+        oDHSI(2,I,J)=DEOI+SUM(DE0)                                    !  J/m^2
+        oDSSI(1,I,J)=DSOO+SUM(DS0)                                    !  kg/m^2
+        oDSSI(2,I,J)=DSOI+SUM(DS0)                                    !  kg/m^2
 
 #ifdef TRACERS_OCEAN
 c        oDTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
@@ -5829,8 +5829,8 @@ C**** poles
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-c            aDMSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  kg/m^2  
-            aDMSI_glob(N,I,J) = aFtemp(I,J)      !  kg/m^2  
+            aDMSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  kg/m^2  
+c            aDMSI_glob(N,I,J) = aFtemp(I,J)      !  kg/m^2  
           END IF 
         END DO
       END DO
@@ -5847,8 +5847,8 @@ c            aDMSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  kg/m^2
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-c            aDHSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  J/m^2  
-            aDHSI_glob(N,I,J) = aFtemp(I,J)      !  J/m^2  
+            aDHSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  J/m^2  
+c            aDHSI_glob(N,I,J) = aFtemp(I,J)      !  J/m^2  
           END IF 
         END DO
       END DO
@@ -5865,8 +5865,8 @@ c            aDHSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  J/m^2
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-c            aDSSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  kg/m^2  
-            aDSSI_glob(N,I,J) = aFtemp(I,J)      !  kg/m^2  
+            aDSSI_glob(N,I,J) = aFtemp(I,J)*(aDXYPO(J)/aDXYP(J))      !  kg/m^2  
+c            aDSSI_glob(N,I,J) = aFtemp(I,J)      !  kg/m^2  
           END IF 
         END DO
       END DO
