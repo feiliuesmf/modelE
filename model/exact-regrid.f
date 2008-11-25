@@ -27,9 +27,9 @@ c     *    HM = 46, !  number of cells in latitude, must be even
 c     *    GM = 144, !  number of cells in longitude, multiple of 8
 c     *    GM = 288, !  number of cells in longitude, multiple of 8
 c     *    HM = 180, !  number of cells in latitude, must be even
-     *    GM = 72, !  number of cells in longitude, multiple of 8
-     *    HM = 46, !  number of cells in latitude, must be even
-     *    IM = 48, !  number of linear cells on cube face, must be even
+     *    GM = 360, !  number of cells in longitude, multiple of 8
+     *    HM = 180, !  number of cells in latitude, must be even
+     *    IM = 90, !  number of linear cells on cube face, must be even
 c     *  NMX1 = 32, !  maximum number of Ns for line intersections
      *  NMX1 = 96, !  maximum number of Ns for line intersections
 c     *  NMX2 = 256,   !  maximum number of Ns for polygons in cell
@@ -93,7 +93,7 @@ C**** EGAs ungrouped
       EndModule LLvsCS
 c*
 
-      subroutine exact_regrid()
+      subroutine accurate_xgrid()
 
 !@sum Longitude-Latitude grid cells intersect Cube-Sphere grid cells
 !@+   on a sphere, their common areas being formed by polygons.

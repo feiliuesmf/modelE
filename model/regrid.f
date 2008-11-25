@@ -112,9 +112,9 @@ c
 c****
 c*     ikey=ikey+1
 c*     index=(iic-1)*jcmax+jjc
-c*     array index_from_key : ikey->index
-c*     array jlat_from_key : ikey->jlat
-c*     array xarea_from_key : ikey->xgrid_area
+c*     array index_key : ikey->index
+c*     array jlat_key : ikey->jlat
+c*     array xarea_key : ikey->xgrid_area
 c****
 
       
@@ -138,15 +138,15 @@ c     calculate maxkey = size of azonal
       x2grids%xgrid%maxkey=maxkey
       x2grids%xgrid%ncells=ncells
     
-      allocate(x2grids%xgrid%index_from_key(maxkey))
-      allocate(x2grids%xgrid%jlat_from_key(maxkey))
-      allocate(x2grids%xgrid%xarea_from_key(maxkey))
+      allocate(x2grids%xgrid%index_key(maxkey))
+      allocate(x2grids%xgrid%jlat_key(maxkey))
+      allocate(x2grids%xgrid%xarea_key(maxkey))
 
       write(6,*) "AFT ALOC ROLLED, maxkey",maxkey
 
-      x2grids%xgrid%index_from_key(:)=0
-      x2grids%xgrid%jlat_from_key(:)=0
-      x2grids%xgrid%xarea_from_key(:)=0.d0
+      x2grids%xgrid%index_key(:)=0
+      x2grids%xgrid%jlat_key(:)=0
+      x2grids%xgrid%xarea_key(:)=0.d0
 
       checkarea=0.d0
       ikey=1
@@ -164,9 +164,9 @@ c     calculate maxkey = size of azonal
 c               write(6,*) "index indexc",index,indexc
                   if ( index .eq. indexc ) then
                      jlat=ijlatlon(2,n)
-                     x2grids%xgrid%index_from_key(ikey)=index
-                     x2grids%xgrid%jlat_from_key(ikey)=jlat
-                     x2grids%xgrid%xarea_from_key(ikey)=xgrid_area(n)    
+                     x2grids%xgrid%index_key(ikey)=index
+                     x2grids%xgrid%jlat_key(ikey)=jlat
+                     x2grids%xgrid%xarea_key(ikey)=xgrid_area(n)    
 c                     write(6,*) "ikey=",ikey
                      ikey=ikey+1
                      checkarea=checkarea+xgrid_area(n)
@@ -209,15 +209,15 @@ c****
       current_index=x2grids%jmsource*(iinput-1)+jinput
 
       do ikey=1,x2grids%xgrid%maxkey
-         index=x2grids%xgrid%index_from_key(ikey)            
+         index=x2grids%xgrid%index_key(ikey)            
          if (index .eq. current_index) then
-            jlat=x2grids%xgrid%jlat_from_key(ikey) 
+            jlat=x2grids%xgrid%jlat_key(ikey) 
             zstore=zonal_mean(jlat)
             zonal_mean(jlat)=zstore
-     &           +x2grids%xgrid%xarea_from_key(ikey)*value
+     &           +x2grids%xgrid%xarea_key(ikey)*value
             astore=area_latband(jlat)
             area_latband(jlat)=astore
-     &           +x2grids%xgrid%xarea_from_key(ikey)
+     &           +x2grids%xgrid%xarea_key(ikey)
          endif
       enddo
 
@@ -236,12 +236,14 @@ c*
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
+      include 'netcdf.inc'
       type (x_2grids), intent(in) :: x2grids
       real*8 :: tsource(isd:ied,jsd:jed)
       real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget)
-      
-      integer :: n,icub,jcub,i,j,itile,nij_latlon
+      integer :: n,icub,jcub,i,j,itile,ilon,jlat,ikey
+      character*120:: ofi
+      integer ::  status, fid, vid
        
       if ( (x2grids%ntilessource .eq. 6) .and.   !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
@@ -249,29 +251,21 @@ c*
          atarget(:,:) = 0.d0
          ttarget(:,:) = 0.d0
 
-         do n=1,x2grids%xgrid%ncells
-            icub=x2grids%xgrid%ijcub(1,n)
-            jcub=x2grids%xgrid%ijcub(2,n)
-            itile=x2grids%xgrid%tile(n)
+         do ikey=1,x2grids%xgrid%maxkey
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
             
-            if (itile .eq. mytile) then
-               if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
-     &              ( (jcub .le. je) .and. (jcub .ge. js)) ) then
-
-                  i=x2grids%xgrid%ijlatlon(1,n)
-                  j=x2grids%xgrid%ijlatlon(2,n)
-
-                  atarget(i,j) = atarget(i,j) + 
-     &                 x2grids%xgrid%xgrid_area(n)
-                  ttarget(i,j) = ttarget(i,j) + 
-     &                 x2grids%xgrid%xgrid_area(n)
-     &                 * tsource(icub,jcub)
-
-               endif
-            endif
+            atarget(ilon,jlat) = atarget(ilon,jlat) + 
+     &           x2grids%xgrid%xarea_key(ikey)
+            ttarget(ilon,jlat) = ttarget(ilon,jlat) + 
+     &           x2grids%xgrid%xarea_key(ikey)
+     &           * tsource(icub,jcub) 
          enddo
-      
-c     
+         
+c
 c     sum all contributions
 c     
          call SUMXPE(ttarget)
@@ -282,6 +276,15 @@ c     root proc section
 c     
          if (AM_I_ROOT()) then   
             ttarget(:,:) = ttarget(:,:)/atarget(:,:)
+
+            ofi='tstout.nc'
+            status = nf_open(trim(ofi),nf_write,fid)
+            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+            status = nf_inq_varid(fid,'lwup_sfc',vid)
+            write(*,*) NF_STRERROR(status)
+            status = nf_put_var_double(fid,vid,ttarget)
+            write(*,*) "STATUS",NF_STRERROR(status),"<<"
+            status = nf_close(fid)
          endif
          
       endif  !cs2ll
@@ -306,77 +309,66 @@ c*
      &     atarget_dd(x2grids%imtarget,x2grids%jmtarget)
       complex*16 :: ttarget_tmp(1),tmp_dd,atarget_tmp(1),xarea_dd(1),
      &     tmp_dd_vec(1)
-      integer :: n,icub,jcub,i,j,itile
+      integer :: n,icub,jcub,i,j,itile,ilon,jlat,ikey,imlon,jmlat
       character*120:: ofi
       integer ::  status, fid, vid
      
 
       if ( (x2grids%ntilessource .eq. 6) .and. !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
- 
-         write(*,*) "LL2CS 6 1"
-         do j=1,x2grids%jmtarget
-            do i=1,x2grids%imtarget
+
+         imlon=x2grids%imtarget 
+         jmlat=x2grids%jmtarget
+         
+         do j=1,jmlat
+            do i=1,imlon
                atarget_dd(i,j) = dcmplx(0.d0,0.d0)
                ttarget_dd(i,j) = dcmplx(0.d0,0.d0)
             enddo
          enddo
-         
 
-         do n=1,x2grids%xgrid%ncells
-            icub=x2grids%xgrid%ijcub(1,n)
-            jcub=x2grids%xgrid%ijcub(2,n)
-            itile=x2grids%xgrid%tile(n)
-         
-c            write(*,*) "icub ,jcub, itile=",icub,jcub,itile
-   
-            if (itile .eq. mytile) then
-               if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
-     &              ( (jcub .le. je) .and. (jcub .ge. js)) ) then
+         write(*,*) "maxkey==",x2grids%xgrid%maxkey
 
-                  write(*,*) "i,j=",i,j
-                  i=x2grids%xgrid%ijlatlon(1,n)
-                  j=x2grids%xgrid%ijlatlon(2,n)
-                  atarget_tmp(1)=atarget_dd(i,j)
-                  xarea_dd(1)=dcmplx(x2grids%xgrid%xgrid_area(n)
-     &                 , 0.d0)
-                  call add_dd(xarea_dd,atarget_tmp,1) 
-                  atarget_dd(i,j)=atarget_tmp(1) !OK
-                  
-                  ttarget_tmp(1)=ttarget_dd(i,j)
-                  call dxd(x2grids%xgrid%xgrid_area(n),
-     &                 tsource(icub,jcub),tmp_dd)
-                  tmp_dd_vec(1)=tmp_dd
-                  call add_dd(tmp_dd_vec,ttarget_tmp,1)   
-                  ttarget_dd(i,j)=ttarget_tmp(1)
-               endif
-            endif
+         do ikey=1,x2grids%xgrid%maxkey
+
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
+          
+            atarget_tmp(1)=atarget_dd(ilon,jlat)
+            xarea_dd(1)=dcmplx(x2grids%xgrid%xarea_key(ikey)
+     &           , 0.d0)
+            call add_dd(xarea_dd,atarget_tmp,1) 
+            atarget_dd(ilon,jlat)=atarget_tmp(1) !OK
+
+            ttarget_tmp(1)=ttarget_dd(ilon,jlat)
+            call dxd(x2grids%xgrid%xarea_key(ikey),
+     &           tsource(icub,jcub),tmp_dd)
+            tmp_dd_vec(1)=tmp_dd
+            call add_dd(tmp_dd_vec,ttarget_tmp,1)   
+            ttarget_dd(ilon,jlat)=ttarget_tmp(1)
+
          enddo
+      
+         call sumxpe2d_exact(ttarget_dd,imlon,jmlat)
+         call sumxpe2d_exact(atarget_dd,imlon,jmlat)
          
-         call sumxpe2d_exact(ttarget_dd,x2grids%imtarget,
-     &        x2grids%jmtarget)
-         call sumxpe2d_exact(atarget_dd,x2grids%imtarget,
-     &        x2grids%jmtarget)
-         
+         write(*,*) "MYTILE",mytile
 c     
 c     root proc section
 c     
 
          if (AM_I_ROOT()) then   
-            do j=1,x2grids%jmtarget
-               do i=1,x2grids%imtarget
+            do j=1,jmlat
+               do i=1,imlon
                   ttarget(i,j)=real(ttarget_dd(i,j))
                   atarget(i,j)=real(atarget_dd(i,j))
                enddo
             enddo
             
             ttarget(:,:) = ttarget(:,:)/atarget(:,:)
-            
-            do j=1,x2grids%jmtarget
-               do i=1,x2grids%imtarget
-c                  write(*,*) "ttarg",ttarget(i,j)
-               enddo
-            enddo
             
             ofi='tstout.nc'
             status = nf_open(trim(ofi),nf_write,fid)
@@ -393,24 +385,24 @@ c                  write(*,*) "ttarg",ttarget(i,j)
 c*
 
 
-      subroutine root_regrid(x2grids,tsource,ttarget)
+      subroutine root_regrid(x2gridsroot,tsource,ttarget)
 
 !@sum  Root processor regrids data from source grid to target grid
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
-      type (x_2grids), intent(in) :: x2grids
-      real*8 :: tsource(x2grids%imsource,x2grids%jmsource,
-     &     x2grids%ntilessource)
-      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget,
-     &     x2grids%ntilestarget)
-     &     ,atarget(x2grids%imtarget,x2grids%jmtarget,
-     &     x2grids%ntilestarget)
+      type (x_2gridsroot), intent(in) :: x2gridsroot
+      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,
+     &     x2gridsroot%ntilessource)
+      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,
+     &     x2gridsroot%ntilestarget)
+     &     ,atarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,
+     &     x2gridsroot%ntilestarget)
       integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl
 
 
-      if ((x2grids%ntilessource .eq. 1) .and. 
-     &     (x2grids%ntilestarget .eq. 6)) then
+      if ((x2gridsroot%ntilessource .eq. 1) .and. 
+     &     (x2gridsroot%ntilestarget .eq. 6)) then
          
 c     ll2cs
          
@@ -419,22 +411,23 @@ c     ll2cs
             atarget(:,:,:) = 0.d0
             ttarget(:,:,:) = 0.d0
             
-            do n=1,x2grids%xgrid%ncells
-               itile=x2grids%xgrid%tile(n)
-               icc=x2grids%xgrid%ijcub(1,n)
-               jcc=x2grids%xgrid%ijcub(2,n)
-               il=x2grids%xgrid%ijlatlon(1,n)
-               jl=x2grids%xgrid%ijlatlon(2,n)
+            do n=1,x2gridsroot%xgridroot%ncells
+               itile=x2gridsroot%xgridroot%tile(n)
+               icc=x2gridsroot%xgridroot%ijcub(1,n)
+               jcc=x2gridsroot%xgridroot%ijcub(2,n)
+               il=x2gridsroot%xgridroot%ijlatlon(1,n)
+               jl=x2gridsroot%xgridroot%ijlatlon(2,n)
                
                atarget(icc,jcc,itile) = atarget(icc,jcc,itile) 
-     &              + x2grids%xgrid%xgrid_area(n)
+     &              + x2gridsroot%xgridroot%xgrid_area(n)
                ttarget(icc,jcc,itile) = ttarget(icc,jcc,itile) 
-     &              + x2grids%xgrid%xgrid_area(n)*tsource(il,jl,1)
+     &              + x2gridsroot%xgridroot%xgrid_area(n)
+     &              *tsource(il,jl,1)
             enddo
             
-            do itile=1,x2grids%ntilestarget
-               do j=1,x2grids%jmtarget
-                  do i=1,x2grids%imtarget
+            do itile=1,x2gridsroot%ntilestarget
+               do j=1,x2gridsroot%jmtarget
+                  do i=1,x2gridsroot%imtarget
                      ttarget(i,j,itile) = ttarget(i,j,itile)
      &                    /atarget(i,j,itile)
                   enddo
@@ -446,7 +439,7 @@ c     ll2cs
       endif
       
       end subroutine root_regrid
-c     *
+c*
 
          
       subroutine init_regrid(x2grids,imsource,jmsource,
@@ -466,6 +459,196 @@ c     *
 c      type (dist_grid), intent(in) :: grid
       type (x_2grids), intent(inout) :: x2grids
       type (x_grid) :: xgrid
+      real*8,  allocatable, dimension(:) :: xgrid_area  !local variable
+      integer, allocatable, dimension(:) :: tile        !local variable
+      integer, allocatable, dimension(:,:) :: ijcub     !local variable
+      integer, allocatable, dimension(:,:) :: ijlatlon  !local variable
+      integer :: ncells                                 !local variable
+      integer, intent(in) :: imsource,jmsource,imtarget,jmtarget
+      integer, intent(in) :: ntilessource,ntilestarget
+      integer :: status,fid,n,vid,ikey,jlat
+      integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
+      integer :: ierr,i,icub,jcub,maxkey
+      character*200 :: exchfile
+      character(len=10) :: imch,jmch,icch,jcch
+
+
+c modify lines below when we begin using derived type dd2d 
+#ifndef CUBE_GRID  
+c     set variables ("Constructor")
+      is=grid%I_STRT
+      ie=grid%I_STOP
+      isd=grid%I_STRT_HALO
+      ied=grid%I_STOP_HALO
+
+      js=grid%J_STRT
+      je=grid%J_STOP
+      jsd=grid%J_STRT_HALO
+      jed=grid%J_STOP_HALO
+
+      call MPI_COMM_RANK(MPI_COMM_WORLD,gid,ierr) ! will soon be replaced by gid = grid%dd2d%gid
+c      call MPI_COMM_SIZE(MPI_COMM_WORLD,totPEs,ierr)
+
+      mytile=(gid/dom_per_tile)+1   ! will soon be mytile=grid%dd2d%mytile
+#endif
+
+      x2grids%imsource=imsource
+      x2grids%jmsource=jmsource
+      x2grids%ntilessource=ntilessource
+      x2grids%imtarget=imtarget
+      x2grids%jmtarget=jmtarget
+      x2grids%ntilestarget=ntilestarget
+
+c
+      if (AM_I_ROOT()) then   
+
+         write(imch,'(i10)') imsource
+         write(jmch,'(i10)') jmsource
+         write(icch,'(i10)') imtarget
+         write(jcch,'(i10)') jmtarget
+         imch=trim(adjustl(imch))
+         jmch=trim(adjustl(jmch))
+         icch=trim(adjustl(icch))
+         jcch=trim(adjustl(jcch))
+         exchfile="remap"//trim(imch)//"-"//trim(jmch)
+     *        //"C"//trim(icch)//"-"//trim(jcch)//".nc"
+         write(*,*) "filename=",exchfile
+c     
+c     Read weights
+c     
+         status = nf_open(trim(exchfile),nf_nowrite,fid)
+         if (status .ne. NF_NOERR) write(*,*) 
+     *        "UNABLE TO OPEN REMAP FILE"
+         
+         status = nf_inq_dimid(fid,'ncells',vid)
+         status = nf_inq_dimlen(fid,vid,ncells)
+      endif
+            
+c     Broadcast value of ncells & Allocate arrays with size 
+c     depending on ncells on each processor
+
+      call MPI_BCAST( ncells, 1, MPI_INTEGER, 0, 
+     *     MPI_COMM_WORLD, ierr ) 
+
+      allocate(xgrid_area(ncells))
+      allocate(ijcub(2,ncells))
+      allocate(ijlatlon(2,ncells))
+      allocate(tile(ncells))
+
+
+      if (AM_I_ROOT()) then   
+         status = nf_inq_varid(fid,'xgrid_area',vid)
+         status = nf_get_var_double(fid,vid,xgrid_area)
+         status = nf_inq_varid(fid,'tile1',vid)
+         status = nf_get_var_int(fid,vid,tile)
+         status = nf_inq_varid(fid,'tile1_cell',vid)
+         status = nf_get_var_int(fid,vid,ijcub)
+         status = nf_inq_varid(fid,'tile2_cell',vid)
+         status = nf_get_var_int(fid,vid,ijlatlon)
+         status = nf_close(fid)
+      endif
+      
+c
+c     Broadcast x_grid area and indices to all procs
+c
+      nc2=2*ncells
+     
+      call MPI_BCAST( xgrid_area, ncells, MPI_DOUBLE_PRECISION,
+     *     0, MPI_COMM_WORLD, ierr ) 
+      call MPI_BCAST( ijcub, nc2, MPI_INTEGER, 0, 
+     *     MPI_COMM_WORLD, ierr ) 
+      call MPI_BCAST( ijlatlon, nc2, MPI_INTEGER, 0, 
+     *     MPI_COMM_WORLD, ierr ) 
+      call MPI_BCAST( tile, ncells, MPI_INTEGER, 0, 
+     *     MPI_COMM_WORLD, ierr ) 
+
+      
+      
+      if ((ntilessource .eq. 6) .and. (ntilestarget .eq. 1)) then   !cs2ll
+         
+c     fill x2grids with values local to the domain
+c     first calculate maxkey
+         
+         ikey=1
+         do n=1,ncells
+            icub=ijcub(1,n)
+            jcub=ijcub(2,n)
+            itile=tile(n)
+            if (itile .eq. mytile) then
+               if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
+     &              ( (jcub .le. je) .and. (jcub .ge. js)) ) then
+                  ikey=ikey+1
+               endif
+            endif
+         enddo
+         
+         maxkey=ikey-1
+         
+         write(*,*) "maxkey=",maxkey
+
+         allocate(x2grids%xgrid%icub_key(maxkey),
+     &        x2grids%xgrid%jcub_key(maxkey),
+     &        x2grids%xgrid%ilon_key(maxkey),
+     &        x2grids%xgrid%jlat_key(maxkey),
+     &        x2grids%xgrid%xarea_key(maxkey),
+     &        x2grids%xgrid%itile_key(maxkey)
+     &        ) 
+         
+         ikey=1
+         
+         do n=1,ncells
+            icub=ijcub(1,n)
+            jcub=ijcub(2,n)
+            itile=tile(n)
+            
+            if (itile .eq. mytile) then
+               if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
+     &              ( (jcub .le. je) .and. (jcub .ge. js)) ) then
+                  x2grids%xgrid%icub_key(ikey)=icub
+                  x2grids%xgrid%jcub_key(ikey)=jcub
+                  x2grids%xgrid%ilon_key(ikey)=ijlatlon(1,n)
+                  x2grids%xgrid%jlat_key(ikey)=ijlatlon(2,n)
+                  x2grids%xgrid%xarea_key(ikey)=xgrid_area(n)
+                  x2grids%xgrid%itile_key(ikey)=tile(n)
+                  ikey=ikey+1
+               endif
+            endif
+         enddo
+
+         x2grids%xgrid%maxkey=maxkey
+         
+      else if ((ntilessource .eq. 1) .and. (ntilestarget .eq. 6)) then !ll2cs
+         ikey=1
+
+         
+      endif    
+         deallocate(xgrid_area)
+         deallocate(ijcub)
+         deallocate(ijlatlon)
+         deallocate(tile)
+         
+     
+      
+      end subroutine init_regrid
+c*
+
+
+      subroutine init_regrid_root(x2gridsroot,imsource,jmsource,
+     &     ntilessource,imtarget,jmtarget,ntilestarget)
+
+!@sum  Reads regriding file on root proc, broadcasts the 
+!@+    x_grid data to all processes then instanciates locally
+!@+    the x_2grids derived type (x_2grids type=x_grid plus info about
+!@+    source and target grids). It also initializes domain decomposition
+!@+    variables through dist_grid derived type. Will soon use dd2d 
+!@+    derived type in place of dist_grid.
+!@auth Denis Gueyffier
+      use regrid_com
+      implicit none
+      include 'netcdf.inc'
+      include 'mpif.h'
+      type (x_2gridsroot), intent(inout) :: x2gridsroot
+      type (x_gridroot) :: xgridroot
       real*8,  allocatable, dimension(:) :: xgrid_area  !local variable
       integer, allocatable, dimension(:) :: tile        !local variable
       integer, allocatable, dimension(:,:) :: ijcub     !local variable
@@ -499,12 +682,12 @@ c      call MPI_COMM_SIZE(MPI_COMM_WORLD,totPEs,ierr)
       mytile=(gid/dom_per_tile)+1   ! will soon be mytile=grid%dd2d%mytile
 #endif
 
-      x2grids%imsource=imsource
-      x2grids%jmsource=jmsource
-      x2grids%ntilessource=ntilessource
-      x2grids%imtarget=imtarget
-      x2grids%jmtarget=jmtarget
-      x2grids%ntilestarget=ntilestarget
+      x2gridsroot%imsource=imsource
+      x2gridsroot%jmsource=jmsource
+      x2gridsroot%ntilessource=ntilessource
+      x2gridsroot%imtarget=imtarget
+      x2gridsroot%jmtarget=jmtarget
+      x2gridsroot%ntilestarget=ntilestarget
 
 
 c
@@ -570,48 +753,49 @@ c
       call MPI_BCAST( tile, ncells, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
 
-      allocate(x2grids%xgrid%xgrid_area(ncells))
-      allocate(x2grids%xgrid%ijcub(2,ncells))
-      allocate(x2grids%xgrid%ijlatlon(2,ncells))
-      allocate(x2grids%xgrid%tile(ncells))
+      allocate(x2gridsroot%xgridroot%xgrid_area(ncells))
+      allocate(x2gridsroot%xgridroot%ijcub(2,ncells))
+      allocate(x2gridsroot%xgridroot%ijlatlon(2,ncells))
+      allocate(x2gridsroot%xgridroot%tile(ncells))
 
-      x2grids%xgrid%xgrid_area(:)=xgrid_area(:)
-      x2grids%xgrid%ijcub(:,:)=ijcub(:,:)
-      x2grids%xgrid%ijlatlon(:,:)=ijlatlon(:,:)
-      x2grids%xgrid%tile(:)=tile(:)
-      x2grids%xgrid%ncells=ncells
+      x2gridsroot%xgridroot%xgrid_area(:)=xgrid_area(:)
+      x2gridsroot%xgridroot%ijcub(:,:)=ijcub(:,:)
+      x2gridsroot%xgridroot%ijlatlon(:,:)=ijlatlon(:,:)
+      x2gridsroot%xgridroot%tile(:)=tile(:)
+      x2gridsroot%xgridroot%ncells=ncells
 
       deallocate(xgrid_area)
       deallocate(ijcub)
       deallocate(ijlatlon)
       deallocate(tile)
 
-      end subroutine init_regrid
+      end subroutine init_regrid_root
 c*
 
 
-      subroutine readt_regrid_parallel(x2grids,iunit,name,nskip,
+
+      subroutine readt_regrid_parallel(x2gridsroot,iunit,name,nskip,
      &     ttargloc,ipos)
 
 !@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
 !@+    then scatter to all subdomains
 !@auth Denis Gueyffier
 
-      use regrid_com, only :gid,AM_I_ROOT,x_2grids
+      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
       use gatscat_mod
       implicit none
-      type (x_2grids), intent(in) :: x2grids
+      type (x_2gridsroot), intent(in) :: x2gridsroot
       integer, intent(in) :: iunit
       character*16, intent(in) :: name
       integer, intent(in) :: nskip
 
       real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
-      real*4 :: tsource4(x2grids%imsource,x2grids%jmsource,   ! real*4 data read from input file
-     &     x2grids%ntilessource) 
-      real*8 :: tsource(x2grids%imsource,x2grids%jmsource,  
-     &     x2grids%ntilessource) 
-      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget,  
-     &     x2grids%ntilestarget)
+      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
+     &     x2gridsroot%ntilessource) 
+      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
+     &     x2gridsroot%ntilessource) 
+      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
+     &     x2gridsroot%ntilestarget)
       real*4 :: X              
       integer, intent(in) :: ipos
       integer :: n,ierr
@@ -626,7 +810,7 @@ c*
 c     convert from real*4 to real*8
          tsource=tsource4
 c     Regrid, form global array
-         call root_regrid(x2grids,tsource,ttarget)
+         call root_regrid(x2gridsroot,tsource,ttarget)
        endif
 
 c     Scatter data to every processor
@@ -636,26 +820,26 @@ c     Scatter data to every processor
 c*
 
 
-      subroutine dread_regrid_parallel(x2grids,iunit,name,ttargloc)
+      subroutine dread_regrid_parallel(x2gridsroot,iunit,name,ttargloc)
      
 !@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
 !@+    then scatter to all subdomains
 !@auth Denis Gueyffier
 
-      use regrid_com, only :gid,AM_I_ROOT,x_2grids
+      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
       use gatscat_mod
       implicit none
-      type (x_2grids), intent(in) :: x2grids
+      type (x_2gridsroot), intent(in) :: x2gridsroot
       integer, intent(in) :: iunit
       character*16, intent(in) :: name
 
       real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
-      real*4 :: tsource4(x2grids%imsource,x2grids%jmsource,   ! real*4 data read from input file
-     &     x2grids%ntilessource) 
-      real*8 :: tsource(x2grids%imsource,x2grids%jmsource,  
-     &     x2grids%ntilessource) 
-      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget,  
-     &     x2grids%ntilestarget)
+      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
+     &     x2gridsroot%ntilessource) 
+      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
+     &     x2gridsroot%ntilessource) 
+      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
+     &     x2gridsroot%ntilestarget)
       real*4 :: X              
       integer :: n,ierr
 
@@ -667,7 +851,7 @@ c*
 c     convert from real*4 to real*8
          tsource=tsource4
 c     Regrid, form global array
-         call root_regrid(x2grids,tsource,ttarget)
+         call root_regrid(x2gridsroot,tsource,ttarget)
        endif
 
 c     Scatter data to every processor

@@ -14,8 +14,6 @@
       use DOMAIN_DECOMP, only: grid,dist_grid,AM_I_ROOT,SUMXPE
 #endif
 #ifdef CUBE_GRID
-ccc Remove lines below when cs is instanciated inside DOMAIN_DECOMP.f
-      use mpp_mod,only : mpp_sum
       use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
       use fv_mp_mod, only : gid, domain, mytile=>tile
 ccc end remove
@@ -24,29 +22,39 @@ ccc end remove
 #endif
 
       integer,parameter:: dom_per_tile=4   ! #domains per cube face
+      integer, parameter :: nrecmax=100 ! max #records in input files
 
 ccc   routine members
-      public :: init_regrid
-      public :: init_csgrid_debug
+c      public :: init_regrid
+c      public :: init_csgrid_debug
 
 ccc   variable members
       private :: xgrid
-      public :: regrid
+      public :: x_2grids
 
 ccc   derived types
       type x_grid   ! stores x-grid information common to source and target grids
-      integer  :: ncells
-      real*8,  allocatable, dimension(:) :: xgrid_area
-      integer, allocatable, dimension(:) :: tile
-      integer, allocatable, dimension(:,:) :: ijcub
-      integer, allocatable, dimension(:,:) :: ijlatlon
-      
-      integer, allocatable, dimension(:) :: index_from_key
-      integer, allocatable, dimension(:) :: jlat_from_key
-      real*8,  allocatable, dimension(:) :: xarea_from_key
+                    ! x_grid is distributed and contains data local to each domain
+      integer, allocatable, dimension(:) :: index_key
+      integer, allocatable, dimension(:) :: icub_key
+      integer, allocatable, dimension(:) :: jcub_key
+      integer, allocatable, dimension(:) :: ilon_key
+      integer, allocatable, dimension(:) :: jlat_key
+      real*8, allocatable, dimension(:) :: xarea_key
+      integer, allocatable, dimension(:) :: itile_key
       integer :: maxkey      
+      integer :: ncells
       end type x_grid
 
+      type x_gridroot   ! stores x-grid information common to source and target grids
+                        ! x_grid data is global and stays on root proc
+      integer  :: ncells
+      integer, allocatable, dimension(:,:) :: ijcub
+      integer, allocatable, dimension(:,:) :: ijlatlon
+      real*8, allocatable, dimension(:) :: xgrid_area
+      integer, allocatable, dimension(:) :: tile
+      integer :: maxkey      
+      end type x_gridroot
 
       type x_2grids   ! stores x-grid info plus source and target grid info 
       type (x_grid) :: xgrid
@@ -57,5 +65,15 @@ ccc   derived types
       integer :: imtarget      ! im for target grid
       integer :: jmtarget      ! jm for target grid
       end type x_2grids
+
+      type x_2gridsroot   ! stores x-grid info plus source and target grid info 
+      type (x_gridroot) :: xgridroot
+      integer :: ntilessource  ! #tiles of source grid (1 for latlon, 6 for cubed sphere)
+      integer :: ntilestarget  ! #tiles of target grid (1 for latlon, 6 for cubed sphere)
+      integer :: imsource      ! im for source grid
+      integer :: jmsource      ! jm for source grid
+      integer :: imtarget      ! im for target grid
+      integer :: jmtarget      ! jm for target grid
+      end type x_2gridsroot
 
       end module REGRID_COM
