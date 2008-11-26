@@ -50,8 +50,10 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
+
       USE ATMDYN, only : DYNAM,SDRAG
-     &     ,FILTER,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+     &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -161,12 +163,23 @@ c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 #endif
 #endif
 
+#ifndef ADIABATIC
+
+C****
+C**** Initialize exchange grid for diagnostics
+C****
+#ifdef USE_FVCUBED
+      call init_xgrid(im,jm,ic,jc)
+#endif
+
+
 #ifdef TRACERS_ON
 #ifdef RUNTIME_NTM
 ! allocation of tracer arrays in physics modules needs to know NTM
       call read_tracer_config
 #endif
 #endif
+
       call alloc_drv()
 C****
 C**** INITIALIZATIONS
@@ -197,13 +210,15 @@ c        print *,sname,'Before:istart,ifile = ',istart,ifile
 c        print *,sname,'Before:im,jm        = ',im,jm
 #endif
 
-
+#endif
 
 #ifdef USE_FVCORE
       CALL INPUT (istart,ifile,clock)
 #else
       CALL INPUT (istart,ifile)
 #endif
+
+#ifndef ADIABATIC
 
 C**** Set run_status to "run in progress"
       if(istart > 0) call write_run_status("Run in progress...",1)
@@ -256,6 +271,8 @@ C**** INITIALIZE TIME PARAMETERS
       end if
       CALL UPDTYPE
 
+#endif
+
 C****
 C**** Initialize FV dynamical core (ESMF component) if requested
 C****
@@ -268,6 +285,7 @@ C****
      *   '0NASA/GISS Climate Model (re)started',
      *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
      *   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
+
          CALL TIMER (MNOW,MELSE)
 C****
 C**** Open and position output history files if needed
@@ -297,6 +315,8 @@ C****
 
 
       DO WHILE (Itime.lt.ItimeE)
+
+#ifndef ADIABATIC
 
 c$$$         call test_save(__LINE__, itime)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
@@ -381,6 +401,10 @@ c    &               U(I_TARG,J_TARG,L),V(I_TARG,J_TARG,L)
 c     enddo
 #endif
 
+! ADIABATIC
+#endif
+! ADIABATIC
+
 
 #ifndef USE_FVCORE
       CALL DYNAM()
@@ -397,6 +421,9 @@ c     enddo
          endif
 
 #endif
+
+#ifndef ADIABATIC
+
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
@@ -753,6 +780,13 @@ C**** Flag to continue run has been turned off
       END IF
 
 c$$$      call test_save(__LINE__, itime-1)
+
+! ADIABATIC
+#else
+      Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
+#endif
+! ADIABATIC
+
       END DO
 
       call gettime(tloopend)
@@ -762,6 +796,8 @@ c$$$      call test_save(__LINE__, itime-1)
 C****
 C**** END OF MAIN LOOP
 C****
+
+#ifndef ADIABATIC
 
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
@@ -795,6 +831,8 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      &     'Terminated normally (reached maximum time)',13)
 #ifdef BLK_2MOM
       ldummy=cleanup_bulk2m_driver()
+#endif
+
 #endif
 
       CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
@@ -1283,6 +1321,7 @@ C***********************************************************************
         end do
         GO TO 500
       end if
+
       if (istart.ge.9 .or. Kradia.gt.0) go to 400
 C***********************************************************************
 C****                                                               ****
@@ -1335,6 +1374,7 @@ C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
 C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
 C****
+
       IF (ISTART.LE.2) THEN
 
 C**** Set flag to initialise pbl and snow variables
@@ -1346,20 +1386,23 @@ C**** Set flag to initialise pbl and snow variables
 #endif
         if (istart.eq.1) redogh=.true.
 
-C**** Read in ground initial conditions
 #ifndef CUBE_GRID
+C**** Read in ground initial conditions
         call read_ground_ic() ! code moved to IORSF
 #endif
-      END IF 
+
+      END IF
+
 C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
 C****
       IF (ISTART.EQ.2) THEN
+#ifndef NO_LAND_SURFACE
 C**** Use title of first record to get the date and make sure  ???
 C**** it is consistent with IHRI (at least equal mod 8760)     ???
 C****            not yet implemented but could easily be done  ???
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
-
+Csoon   READ (iu_AIC) XLABEL(1:80)
 #ifdef CUBE_GRID
 
       call init_regrid_root(xll2csroot,72,46,1,48,48,6)
@@ -1537,7 +1580,10 @@ C**** Initialize surface friction velocity
         END DO
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
         call tq_zmom_init(t,q,PMID,PEDN)
+#endif
+
       END IF
+
 C****
 C**** I.C from possibly older/incomplete MODEL OUTPUT, ISTART=3-8
 C****
@@ -1594,6 +1640,7 @@ c        iniPBL=.TRUE.           ! Special for non-0k
         iniPBL=.TRUE.
         if (ioerr.eq.1) goto 800
       END SELECT
+
 C**** Check consistency of starting time
       IF (ISTART.ge.3) THEN
         IF( (MOD(IHRI-IHRX,8760).ne.0) ) THEN
@@ -1603,6 +1650,8 @@ C**** Check consistency of starting time
          call stop_model('INPUT: start date inconsistent with data',255)
         ENDIF
       END IF
+
+#ifndef NO_LAND_SURFACE
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
 
@@ -1633,6 +1682,8 @@ C****        tropospheric temperatures changed by at most 1 degree C
         IF (AM_I_ROOT())
      *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
+#endif
+
 C**** Close "AIC" here if it was opened
       IF (ISTART.gt.1) call closeunit(iu_AIC)
 
@@ -1831,6 +1882,7 @@ C**** Set julian date information
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
+#ifndef NO_LAND_SURFACE
 C****
 C**** READ IN TIME-INDEPENDENT ARRAYS
 C****
@@ -2019,6 +2071,7 @@ C****
 #ifdef USE_ENT
       CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
 #endif
+
       if (Kradia.gt.0) then   !  radiative forcing run
         !CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
         !CALL init_module_ent(iniENT,grid,jday,dxyp)
@@ -2036,6 +2089,10 @@ C****
       end if                  !  Kradia>0; radiative forcing run
 !      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
 !      CALL init_module_ent(iniENT,grid,jday,dxyp)
+#endif
+
+#ifndef ADIABATIC
+
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
@@ -2064,6 +2121,7 @@ C**** Initialize nudging
       CALL SETUP_DIAM
       CALL SETUP_RAD
 #endif
+
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
@@ -2080,6 +2138,8 @@ C****
          WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
          WRITE (6,*) "PLbot=",PLbot
       end if
+#endif
+
 C****
       RETURN
 C****
