@@ -485,22 +485,22 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       ! The initialization should proceed prior to any grid computations.
       SUBROUTINE INIT_APP(grd_dum,IM,JM,LM, J_SCM)
       USE FILEMANAGER, Only : openunit
-#ifndef USE_MPP
-      USE ESMF_CUSTOM_MOD, Only: Initialize_App
+
 #ifdef USE_ESMF
+      USE ESMF_CUSTOM_MOD, Only: Initialize_App
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
 !AOO      USE ESMF_CUSTOM_MOD, Only: modelE_grid
-#endif
+
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM, JM, LM
       INTEGER, OPTIONAL, INTENT(IN) :: J_SCM ! single column model
-#ifndef USE_MPP
       INTEGER             :: rc
       INTEGER             :: pet
       CHARACTER(LEN=20) :: buffer
 
+#ifndef USE_MPP
 #ifdef USE_ESMF
       ! Initialize ESMF
       Call Initialize_App(IM, JM, LM,rc=rc)
@@ -526,7 +526,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
 
 #ifdef USE_ESMF
-      call INIT_GRID(grd_dum,IM,JM,LM,vm=vm)
+      call INIT_GRID(grd_dum,IM,JM,LM,vm=vm,CREATE_CAP=.true.)
       Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0,vm=vm)
       WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
@@ -545,8 +545,17 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       MY_PET=mpp_pe()
       NPES=mpp_npes()
       root=mpp_root_pe()
-      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
+
+#ifdef USE_ESMF
+      ! Initialize ESMF
+      Call Initialize_App(IM, JM, LM,rc=rc)
+      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
+
+      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
+#endif
+      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM,CREATE_CAP=.true.)
       call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
+    ! grid_TRANS = grd_dum
 #endif
 
 #ifdef DEBUG_DECOMP
@@ -566,11 +575,14 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       END SUBROUTINE DESTROY_GRID
 
 #ifdef USE_ESMF
-      SUBROUTINE INIT_GRID(grd_dum,IM,JM, LM,width,vm,J_SCM,bc_periodic)
+      SUBROUTINE INIT_GRID(grd_dum,IM,JM, LM,width,vm,J_SCM,bc_periodic,
+     &                     CREATE_CAP)
       USE ESMF_CUSTOM_MOD, Only : modelE_vm
 #else
-      SUBROUTINE INIT_GRID(grd_dum,IM,JM,LM,width,J_SCM,bc_periodic)
+      SUBROUTINE INIT_GRID(grd_dum,IM,JM,LM,width,J_SCM,bc_periodic,
+     &                     CREATE_CAP)
 #endif
+
       USE FILEMANAGER, Only : openunit
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
@@ -578,6 +590,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER, OPTIONAL, INTENT(IN) :: J_SCM ! single column model
       INTEGER, OPTIONAL :: width
       LOGICAL, OPTIONAL, INTENT(IN) :: bc_periodic
+      LOGICAL, OPTIONAL, INTENT(IN) :: CREATE_CAP
       integer, parameter :: numDims=2
 #ifdef USE_ESMF
       TYPE (ESMF_VM), INTENT(IN), Target, Optional :: vm
@@ -593,6 +606,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: width_
       INTEGER :: pet
 #ifdef USE_ESMF
+      TYPE(ESMF_Grid), external :: AppGridCreateF
+      TYPE(ESMF_Config) :: cf
       TYPE(ESMF_VM), Pointer :: vm_
       Type (ESMF_DELayout)::layout
       REAL*8 :: deltaZ
@@ -605,6 +620,9 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_MPP
       integer :: npx, npy, ng
       integer :: isd, ied , jsd, jed
+#ifdef USE_ESMF
+      integer, allocatable            :: IMS(:), JMS(:)
+#endif
 #endif
 
       grid_size(1)=IM;   grid_size(2)=JM
@@ -778,6 +796,68 @@ cddd      ENDIF
       Deallocate(AI)
 #endif
 
+#ifdef USE_MPP
+
+#if defined(USE_FVCUBED) && defined(USE_ESMF)
+
+      if (present(CREATE_CAP)) then
+         if (CREATE_CAP) then
+            cf = load_cap_config('cap.rc',IM,JM,LM,1,NPES)
+          ! vm_ => modelE_vm
+          ! If (Present(vm)) vm_ => vm
+          ! print*, 'Started AppGridCreateF'
+          ! grd_dum%ESMF_GRID = AppGridCreateF(cf, vm_, rc)
+          ! call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
+          ! print*, 'Finished AppGridCreateF'
+         endif
+      endif
+#endif
+
+#  ifdef USE_ESMF
+      grd_dum%ESMF_GRID = ESMF_GridCreateHorzLatLonUni(counts=grid_size,
+     &     minGlobalCoordPerDim=range_min,
+     &     maxGlobalCoordPerDim=range_max,
+     &     horzStagger=ESMF_GRID_HORZ_STAGGER_A,
+     &     name="source grid", rc=rc)
+
+      if (LM > 1) then
+         deltaZ = 1.0d0
+         call ESMF_GridAddVertHeight(grd_dum%ESMF_GRID,
+     &         delta=(/(deltaZ, L=1,LM) /),
+     &    vertStagger=ESMF_GRID_VERT_STAGGER_TOP,
+     &    rc=rc)
+         if (rc /= ESMF_SUCCESS)
+     &        call stop_model('Failure when adding vert grid cooords.',
+     &        255)
+      end if
+
+      allocate( IMS(0:0) ); allocate( JMS(0:NPES-1) );
+      IMS(0)=im;
+      do p=0, npes-1
+        JMS(p) = grd_dum%dj_map(p)
+      end do
+      write(*,*)'mkbhat: IMS are ',IMS
+      write(*,*)'mkbhat: JMS are ',JMS
+
+      vm_ => modelE_vm
+      If (Present(vm)) vm_ => vm
+
+      ! The default layout is not what we want - it splits in the "I" direction.
+      layout = ESMF_DELayoutCreate(vm_, deCountList = (/ 1, NPES /))
+      Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
+     &     delayout = layout, 
+     &     countsPerDEDim1=ims, 
+     &     countsPerDEDim2=jms, rc=rc)
+      call ESMF_GridValidate(grd_dum%ESMF_GRID, rc=rc)
+      deallocate(ims); deallocate(jms);
+
+      call ESMF_GridGet(grd_dum%esmf_grid, delayout=layout, rc=rc)
+!     Call ESMF_GRID_BOUNDS(grd_dum, RANK_LON, RANK_LAT,
+!    &        I0_DUM, I1_DUM, J0_DUM, J1_DUM)
+!     write(*,*)'esmf-bounds',my_pet,I0_DUM, I1_DUM, J0_DUM, J1_DUM
+#  endif
+
+#endif
       END SUBROUTINE INIT_GRID
 
 #ifdef USE_MPP
@@ -5782,6 +5862,43 @@ cddd      End If
         usableFrom = ALL
         if (present(fromDirection)) usableFrom = fromDirection
       end function usableFrom
+
+#ifdef USE_ESMF
+
+  !----------------------------
+      function load_cap_config(config_file,IM,JM,LM,NP_X,NP_Y) 
+     &         result( config )
+         use ESMF_mod
+         use FILEMANAGER    
+         character(len=*), parameter :: Iam=
+     &               "DOMAIN_DECOMP::load_cap_config"
+         character(len=*), intent(in) :: config_file
+         integer,          intent(in) :: IM,JM,LM,NP_X,NP_Y
+         type (esmf_config)           :: config
+    
+         integer :: rc, iunit
+         type (ESMF_VM) :: vm
+    
+         config = esmf_configcreate(rc=rc)
+   
+   !     print*, 'load_cap_config: ', IM, JM, LM, NP_X, NP_Y
+ 
+         call openunit(config_file, iunit, qbin=.false., qold=.false.)
+         write(iunit,*)'IM:  ', IM
+         write(iunit,*)'JM:  ', JM
+         write(iunit,*)'LM:  ', LM
+         write(iunit,*)'NX:  ', NP_X
+         write(iunit,*)'NY:  ', NP_Y
+         call closeUnit(iunit)
+
+         Call ESMF_VMGetGlobal(vm, rc)
+         call esmF_VMbarrier(vm, rc)
+         call esmf_configloadfile(config, config_file, rc=rc)
+         
+       end function load_cap_config
+  !----------------------------
+
+#endif
 
 #ifdef USE_MPP
 !------------------------------------------------------------------------------

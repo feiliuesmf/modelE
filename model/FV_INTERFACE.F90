@@ -103,9 +103,15 @@ module FV_INTERFACE_MOD
   Real*8, parameter :: PRESSURE_UNIT_FV    =    1 ! 1 pa
   Real*8, parameter :: PRESSURE_UNIT_RATIO = PRESSURE_UNIT_GISS/PRESSURE_UNIT_FV
 
+#ifdef USE_FVCUBED
+  character(len=*), parameter :: FVCORE_INTERNAL_RESTART = 'dyncore_internal_restart'
+  character(len=*), parameter :: FVCORE_IMPORT_RESTART   = 'dyncore_import_restart'
+  character(len=*), parameter :: FVCORE_LAYOUT           = 'fvcore_layout.rc'
+#else
   character(len=*), parameter :: FVCORE_INTERNAL_RESTART = 'fv_internal_restart.dat'
   character(len=*), parameter :: FVCORE_IMPORT_RESTART   = 'fv_import_restart.dat'
   character(len=*), parameter :: FVCORE_LAYOUT           = 'fv_layout.rc'
+#endif
 
   character(len=*), parameter :: TENDENCIES_FILE = 'tendencies_checkpoint'
 
@@ -116,8 +122,13 @@ contains
 
   subroutine Initialize_fv(fv, istart, vm, grid, clock, config_file)
     use resolution, only: IM, LM
+#ifdef USE_FVCUBED
+    use FVCubed_dycore_GridCompMod, only: SetServices
+    use MAPL_BaseMod, only: GEOS_FieldCreate=>MAPL_FieldCreate
+#else
     use fvdycore_gridcompmod, only: SetServices
     use GEOS_BaseMod, only: GEOS_FieldCreate
+#endif
     use DOMAIN_DECOMP, only : modelE_grid => grid, get
 
     type (fv_core),    intent(inout) :: fv
@@ -161,10 +172,13 @@ contains
     VERIFY_(rc)
 
 
+
+#ifdef CREATE_FV_RESTART
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
     ! create one based upon modelE's internal state.
     call create_restart_file(fv, istart, cf, clock)
+#endif
 
 !   print*,'calling fv initialize'
     call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
@@ -324,6 +338,7 @@ contains
          &   fv % dT_old(IM,J_0:J_1,LM), &
          &   fv % PE_old(IM,J_0:J_1,LM+1))
 
+#ifdef FVCUBED_SKIPPED_THIS
     select case (istart)
     case (:initial_start)
        ! Do a cold start.  Set Old = Current.
@@ -353,6 +368,7 @@ contains
 !!  case default
 !!     call stop_model('ISTART option not supported',istart)
     end select
+#endif
 
   contains
 
@@ -459,7 +475,7 @@ contains
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
     USE MODEL_COM, only : NIdyn, DT, DTSRC
     USE SOMTQ_COM, only: QMOM, TMOM, MZ
-    USE ATMDYN, only: CALC_AMP, CALC_PIJL, COMPUTE_MASS_FLUX_DIAGS
+    USE ATMDYN, only:  COMPUTE_MASS_FLUX_DIAGS
     USE DYNAMICS, only: MA, PHI, GZ
     USE DYNAMICS, ONLY: PU, PV, CONV
     USE DYNAMICS, ONLY: SD, PUA, PVA, SDA
@@ -472,6 +488,7 @@ contains
     integer :: L,istep, NS, NIdyn_fv
     integer :: rc
 
+#ifdef FVCUBED_SKIPPED_THIS
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
     CALL CALC_PIJL(LM,P,PIJL)
@@ -479,6 +496,8 @@ contains
     Call Copy_modelE_to_FV_import(fv)
 
     call clear_accumulated_mass_fluxes()
+#endif
+
     ! Run dycore
     NIdyn_fv = DTsrc / (DT)
     do istep = 1, NIdyn_fv
@@ -490,6 +509,7 @@ contains
        call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
        call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
 
+#ifdef FVCUBED_SKIPPED_THIS
        call accumulate_mass_fluxes(fv)
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
 
@@ -500,6 +520,8 @@ contains
 
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
+#endif
+
     end do
 
     gz  = phi
@@ -507,7 +529,11 @@ contains
   end subroutine run_fv
 
   subroutine checkpoint(fv, clock, fv_fname, fv_dfname)
+#ifdef USE_FVCUBED
+    use MAPL_mod, only: GEOS_RecordPhase=>MAPL_RecordPhase
+#else
     use GEOS_mod, only: GEOS_RecordPhase
+#endif
     use DOMAIN_DECOMP, only: AM_I_ROOT
     Type (FV_Core),    intent(inout) :: fv
     type (esmf_clock), intent(in) :: clock
@@ -645,11 +671,19 @@ contains
     VERIFY_(rc)
 
     call openunit(config_file, iunit, qbin=.false., qold=.false.)
+#ifdef USE_FVCUBED
+    write(iunit,*)'DYNAMICS_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
+    write(iunit,*)'#DYNAMICS_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
+!!$ write(iunit,*)'DYNAMICS_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
+!!$ write(iunit,*)'DYNAMICS_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
+    write(iunit,*)'DYNAMICS_LAYOUT:                    ', FVCORE_LAYOUT
+#else
     write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
     write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
 !!$    write(iunit,*)'FVCORE_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
 !!$    write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
     write(iunit,*)'FVCORE_LAYOUT_FILE:               ', FVCORE_LAYOUT
+#endif
     write(iunit,*)'RUN_DT:                           ', DT
     call closeUnit(iunit)
 
@@ -663,7 +697,11 @@ contains
 
   Subroutine Create_Restart_File(fv, istart, cf, clock)
     USE DOMAIN_DECOMP, ONLY: GRID, GET, AM_I_ROOT
+#ifdef USE_FVCUBED
+    Use MAPL_IOMod, only: GETFILE, Free_file, GEOS_VarWrite=>MAPL_VarWrite, Write_parallel
+#else
     Use GEOS_IOMod, only: GETFILE, Free_file, GEOS_VarWrite, Write_parallel
+#endif
     USE RESOLUTION, only: IM, JM, LM, LS1
     Use MODEL_COM, only: sige, sig, Ptop, DT, PMTOP
     Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
@@ -694,8 +732,13 @@ contains
        Call Write_Layout(FVCORE_LAYOUT, fv)
     End If
 
+#ifdef USE_FVCUBED
+    Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='DYNAMICS_INTERNAL_RESTART_FILE:', &
+         & default=FVCORE_INTERNAL_RESTART,rc=rc)
+#else
     Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
+#endif
 
     if(istart .ge. extend_run) then
     ! Check to see if restart file exists
@@ -791,33 +834,46 @@ contains
       real*8 :: sig(:), sige(:)
       real*8 :: ptop, kapa
 
-      Integer :: L, L_fv
       Integer :: j_0, j_1, j_0h, j_1h
-      Integer :: J
+      Integer :: I,J,L,L_fv
       Real*8, Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
 
       !    Request local bounds from modelE grid.
       Call GET(grid, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
       PE = -99999
-      Allocate(pe_trans(IM,LM+1,j_0h:j_1h),pk(IM,j_0h:j_1h,LM+1), peln(IM,LM+1,j_0h:j_1h))
+      PKZ = -99999
 
       Call ConvertPressure_GISS2FV(EdgePressure_GISS(), PE(:,j_0:j_1,:))
 
+      !Allocate(pe_trans(IM,LM+1,j_0h:j_1h),pk(IM,j_0h:j_1h,LM+1), peln(IM,LM+1,j_0h:j_1h))
       ! Compute PKZ - Consistent mean for p^kappa
       ! use pkez() routine within the FV dycore component.
+      !
+      !Do j = j_0, j_1
+      !   PE_trans(:,:,j) = PE(:,j,:)
+      !END DO
+      !pk=0
+      !peln=0
+      !pkz=0
+      !
+      !CALL pkez(1, IM, LM, J_0, J_1, 1, LM, 1, IM, PE_trans(:,:,j_0:j_1), &
+      !     &  PK(:,j_0:j_1,:), KAPA, LM+1-LS1, PELN(:,:,j_0:j_1), pkz(:,j_0:j_1,:), .true.)
+      !deallocate(pe_trans, pk, peln)
 
-      Do j = j_0, j_1
-         PE_trans(:,:,j) = PE(:,j,:)
-      END DO
-      pk=0
-      peln=0
-      pkz=0
-
-      CALL pkez(1, IM, LM, J_0, J_1, 1, LM, 1, IM, PE_trans(:,:,j_0:j_1), &
-           &  PK(:,j_0:j_1,:), KAPA, LM+1-LS1, PELN(:,:,j_0:j_1), pkz(:,j_0:j_1,:), .true.)
-
-      deallocate(pe_trans, pk, peln)
+      Allocate(pk(IM,j_0h:j_1h,LM+1))
+      PK(:,J_0:J_1,:) = PE**KAPA
+      do l=1,LM
+        do j=j_0,j_1
+          do i=1,IM
+            if (PE(i,j,l+1)-PE(i,j,l) /= 0.0) then
+               PKZ(i,j,l) = ( PK(i,j,l+1)-PK(i,j,l) ) / &
+                            ( KAPA*log( PE(i,j,l+1)-PE(i,j,l) ) )
+            endif
+          enddo
+        enddo
+      enddo 
+      deallocate(pk)
 
     End Subroutine ComputePressureLevels
 
@@ -875,6 +931,17 @@ contains
            &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 
       unit = GetFile(fname, form="formatted", rc=rc)
+#ifdef USE_FVCUBED
+      Write(unit,*)'      npx: ',IM
+      Write(unit,*)'      npy: ',JM/6
+      Write(unit,*)'      npz: ',LM
+      Write(unit,*)'       dt: ',DT
+      Write(unit,*)'   nsplit: ',0
+      Write(unit,*)'       nq: ',1
+      Write(unit,*)'   npes_x: ',1
+      Write(unit,*)'   npes_y: ',1
+      Write(unit,*)' consv_te: ',0.
+#else
       write(unit,*)' # empty line #'
       Write(unit,*)'xy_yz_decomp:',1,npes,npes,1
       Write(unit,*)'    im: ',IM
@@ -888,6 +955,7 @@ contains
       Write(unit,'(a,100(1x,I3))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
       Write(unit,'(a,100(1x,I3))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
       Write(unit,*)'   kmyz: ',LM
+#endif
       Call Free_File(unit)
 
       Deallocate(AI)
@@ -1071,7 +1139,6 @@ contains
     Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
     Use MODEL_COM, only : Ptop, P
     USE DOMAIN_DECOMP, only: grid, GET, SOUTH, NORTH, HALO_UPDATE
-    Use ATMDYN, only: CALC_AMPK
     USE GEOM
     Type (FV_CORE) :: fv
     real*4, Dimension(:,:,:), Pointer :: U_a, V_a, T_fv, PLE
