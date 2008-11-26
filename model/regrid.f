@@ -239,8 +239,10 @@ c*
       include 'netcdf.inc'
       type (x_2grids), intent(in) :: x2grids
       real*8 :: tsource(isd:ied,jsd:jed)
-      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget)
-     &     ,atarget(x2grids%imtarget,x2grids%jmtarget)
+      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+     &     ,atarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
       integer :: n,icub,jcub,i,j,itile,ilon,jlat,ikey
       character*120:: ofi
       integer ::  status, fid, vid
@@ -248,8 +250,8 @@ c*
       if ( (x2grids%ntilessource .eq. 6) .and.   !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
          
-         atarget(:,:) = 0.d0
-         ttarget(:,:) = 0.d0
+         atarget(:,:,1) = 0.d0
+         ttarget(:,:,1) = 0.d0
 
          do ikey=1,x2grids%xgrid%maxkey
             icub=x2grids%xgrid%icub_key(ikey)
@@ -258,9 +260,9 @@ c*
             jlat=x2grids%xgrid%jlat_key(ikey)
             itile=x2grids%xgrid%itile_key(ikey)
             
-            atarget(ilon,jlat) = atarget(ilon,jlat) + 
+            atarget(ilon,jlat,1) = atarget(ilon,jlat,1) + 
      &           x2grids%xgrid%xarea_key(ikey)
-            ttarget(ilon,jlat) = ttarget(ilon,jlat) + 
+            ttarget(ilon,jlat,1) = ttarget(ilon,jlat,1) + 
      &           x2grids%xgrid%xarea_key(ikey)
      &           * tsource(icub,jcub) 
          enddo
@@ -275,19 +277,44 @@ c
 c     root proc section
 c     
          if (AM_I_ROOT()) then   
-            ttarget(:,:) = ttarget(:,:)/atarget(:,:)
-
-            ofi='tstout.nc'
-            status = nf_open(trim(ofi),nf_write,fid)
-            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-            status = nf_inq_varid(fid,'lwup_sfc',vid)
-            write(*,*) NF_STRERROR(status)
-            status = nf_put_var_double(fid,vid,ttarget)
-            write(*,*) "STATUS",NF_STRERROR(status),"<<"
-            status = nf_close(fid)
+            ttarget(:,:,1) = ttarget(:,:,1)/atarget(:,:,1)
+            
+         ofi='tstout.nc'
+         status = nf_open(trim(ofi),nf_write,fid)
+         if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+         status = nf_inq_varid(fid,'lwup_sfc',vid)
+         write(*,*) NF_STRERROR(status)
+         status = nf_put_var_double(fid,vid,ttarget)
+         write(*,*) "STATUS",NF_STRERROR(status),"<<"
+         status = nf_close(fid)
          endif
+
+      else if ( (x2grids%ntilessource .eq. 1) .and. !ll2cs
+     &        (x2grids%ntilestarget .eq. 6) ) then
+         atarget(:,:,:) = 0.d0
+         ttarget(:,:,:) = 0.d0
+
+         do ikey=1,x2grids%xgrid%maxkey
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
+            
+            atarget(icub,jcub,itile) = atarget(icub,jcub,itile) + 
+     &           x2grids%xgrid%xarea_key(ikey)
+            ttarget(icub,jcub,itile) = ttarget(icub,jcub,itile) + 
+     &           x2grids%xgrid%xarea_key(ikey)
+     &           * tsource(ilon,jlat) 
+         enddo
          
-      endif  !cs2ll
+c
+c     sum all contributions
+c     
+         call SUMXPE(ttarget)
+         call SUMXPE(atarget)         
+
+      endif                     !ll2cs
 
       end subroutine parallel_regrid
 c*
@@ -303,10 +330,15 @@ c*
       include 'netcdf.inc'
       type (x_2grids), intent(in) :: x2grids
       real*8 :: tsource(isd:ied,jsd:jed)
-      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget),
-     &     atarget(x2grids%imtarget,x2grids%jmtarget)
-      complex*16 :: ttarget_dd(x2grids%imtarget,x2grids%jmtarget),
-     &     atarget_dd(x2grids%imtarget,x2grids%jmtarget)
+      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+     &     ,atarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+      complex*16 :: ttarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget),
+     &     atarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+
       complex*16 :: ttarget_tmp(1),tmp_dd,atarget_tmp(1),xarea_dd(1),
      &     tmp_dd_vec(1)
       integer :: n,icub,jcub,i,j,itile,ilon,jlat,ikey,imlon,jmlat
@@ -322,8 +354,8 @@ c*
          
          do j=1,jmlat
             do i=1,imlon
-               atarget_dd(i,j) = dcmplx(0.d0,0.d0)
-               ttarget_dd(i,j) = dcmplx(0.d0,0.d0)
+               atarget_dd(i,j,1) = dcmplx(0.d0,0.d0)
+               ttarget_dd(i,j,1) = dcmplx(0.d0,0.d0)
             enddo
          enddo
 
@@ -337,23 +369,23 @@ c*
             jlat=x2grids%xgrid%jlat_key(ikey)
             itile=x2grids%xgrid%itile_key(ikey)
           
-            atarget_tmp(1)=atarget_dd(ilon,jlat)
+            atarget_tmp(1)=atarget_dd(ilon,jlat,1)
             xarea_dd(1)=dcmplx(x2grids%xgrid%xarea_key(ikey)
      &           , 0.d0)
             call add_dd(xarea_dd,atarget_tmp,1) 
-            atarget_dd(ilon,jlat)=atarget_tmp(1) !OK
+            atarget_dd(ilon,jlat,1)=atarget_tmp(1) !OK
 
-            ttarget_tmp(1)=ttarget_dd(ilon,jlat)
+            ttarget_tmp(1)=ttarget_dd(ilon,jlat,1)
             call dxd(x2grids%xgrid%xarea_key(ikey),
      &           tsource(icub,jcub),tmp_dd)
             tmp_dd_vec(1)=tmp_dd
             call add_dd(tmp_dd_vec,ttarget_tmp,1)   
-            ttarget_dd(ilon,jlat)=ttarget_tmp(1)
+            ttarget_dd(ilon,jlat,1)=ttarget_tmp(1)
 
          enddo
       
-         call sumxpe2d_exact(ttarget_dd,imlon,jmlat)
-         call sumxpe2d_exact(atarget_dd,imlon,jmlat)
+         call sumxpe2d_exact(ttarget_dd,imlon,jmlat,1)
+         call sumxpe2d_exact(atarget_dd,imlon,jmlat,1)
          
          write(*,*) "MYTILE",mytile
 c     
@@ -363,12 +395,12 @@ c
          if (AM_I_ROOT()) then   
             do j=1,jmlat
                do i=1,imlon
-                  ttarget(i,j)=real(ttarget_dd(i,j))
-                  atarget(i,j)=real(atarget_dd(i,j))
+                  ttarget(i,j,1)=real(ttarget_dd(i,j,1))
+                  atarget(i,j,1)=real(atarget_dd(i,j,1))
                enddo
             enddo
             
-            ttarget(:,:) = ttarget(:,:)/atarget(:,:)
+            ttarget(:,:,1) = ttarget(:,:,1)/atarget(:,:,1)
             
             ofi='tstout.nc'
             status = nf_open(trim(ofi),nf_write,fid)
@@ -561,7 +593,6 @@ c
      *     MPI_COMM_WORLD, ierr ) 
       call MPI_BCAST( tile, ncells, MPI_INTEGER, 0, 
      *     MPI_COMM_WORLD, ierr ) 
-
       
       
       if ((ntilessource .eq. 6) .and. (ntilestarget .eq. 1)) then   !cs2ll
@@ -618,16 +649,47 @@ c     first calculate maxkey
          x2grids%xgrid%maxkey=maxkey
          
       else if ((ntilessource .eq. 1) .and. (ntilestarget .eq. 6)) then !ll2cs
+         
          ikey=1
-
+         do n=1,ncells
+            jlat=ijlatlon(2,n)
+            if ( (jlat .le. je) .and. (jlat .ge. js) ) then !js = J_0, je=J_1
+               ikey=ikey+1
+            endif
+         enddo
+         
+         maxkey=ikey-1
+         
+         write(*,*) "maxkey=",maxkey
+         
+         allocate(x2grids%xgrid%icub_key(maxkey),
+     &        x2grids%xgrid%jcub_key(maxkey),
+     &        x2grids%xgrid%ilon_key(maxkey),
+     &        x2grids%xgrid%jlat_key(maxkey),
+     &        x2grids%xgrid%xarea_key(maxkey),
+     &        x2grids%xgrid%itile_key(maxkey)
+     &        ) 
+         
+         ikey=1
+         do n=1,ncells
+            jlat=ijlatlon(2,n)
+            if ( (jlat .le. je) .and. (jlat .ge. js) ) then !js = J_0, je=J_1
+               x2grids%xgrid%icub_key(ikey)=icub
+               x2grids%xgrid%jcub_key(ikey)=jcub
+               x2grids%xgrid%ilon_key(ikey)=ijlatlon(1,n)
+               x2grids%xgrid%jlat_key(ikey)=ijlatlon(2,n)
+               x2grids%xgrid%xarea_key(ikey)=xgrid_area(n)
+               x2grids%xgrid%itile_key(ikey)=tile(n)
+               ikey=ikey+1
+            endif
+         enddo
          
       endif    
-         deallocate(xgrid_area)
-         deallocate(ijcub)
-         deallocate(ijlatlon)
-         deallocate(tile)
-         
-     
+      
+      deallocate(xgrid_area)
+      deallocate(ijcub)
+      deallocate(ijlatlon)
+      deallocate(tile)
       
       end subroutine init_regrid
 c*
@@ -1023,7 +1085,7 @@ c*
 
 
 
-      subroutine sumxpe2d_exact(arr,iarr,jarr)
+      subroutine sumxpe2d_exact(arr,iarr,jarr,ntile)
 !@sum This code calculates a reproducible non rank reducing sum 
 !@+   independent on number of processors using double-double arithmetics
 !@auth Denis Gueyffier
@@ -1032,8 +1094,8 @@ c*
       integer :: ierr,arr_size,myPE
       integer :: MPI_SUMDD
       external add_DD
-      integer, intent(in) :: iarr,jarr
-      complex*16, dimension(iarr,jarr) :: arr
+      integer, intent(in) :: iarr,jarr,ntile
+      complex*16, dimension(iarr,jarr,ntile) :: arr
       complex*16, dimension(:),allocatable ::arr_rsh,arr_tmp
 
       call MPI_COMM_RANK( MPI_COMM_WORLD, myPE, ierr )

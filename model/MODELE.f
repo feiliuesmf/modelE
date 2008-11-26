@@ -103,7 +103,7 @@ C**** Command line options
 #ifdef CUBE_GRID
       type (x_2grids) :: xcs2ll
       real*8, dimension(:,:), allocatable :: tsource
-      real*8, dimension(:,:), allocatable :: ttarget,atarget
+      real*8, dimension(:,:,:), allocatable :: ttarget,atarget
 #endif
       integer :: L
       real*8 :: initialTotalEnergy, finalTotalEnergy
@@ -135,20 +135,27 @@ C****
 C****
 C****
 #ifdef CUBE_GRID
-C**** Temporarily use instanciation of cubed sphere grid through fv_grid_tools_mod's init_grid()
-      call init_csgrid_debug()
+C**** Temporarily use instantiation of cubed sphere grid through fv_grid_tools_mod's init_grid()
+      call init_csgrid_debug
 
 c**** Initialize gather&scatter
       call domain_decomp_init
       call gatscat_init
 
 c***  Initialize exchange grid object and test regriding routines, DEBUG only
+c      call regrid_input
+
       call init_regrid(xcs2ll,48,48,6,288,180,1)
       allocate(tsource(isd:ied,jsd:jed))
-      tsource(:,:)=1-gid
-      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget),
-     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget) )
+      tsource(:,:)=20*gid+15
+      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
+      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+     &     xcs2ll%ntilestarget),
+     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+     &     xcs2ll%ntilestarget) )
       call regrid_exact(xcs2ll,tsource,ttarget,atarget)
+c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
+
 #else
       call init_app(grid,im,jm,lm)
 #endif
@@ -1009,7 +1016,7 @@ C****
       USE ENT_DRV, only : init_module_ent
 #endif
 #ifdef CUBE_GRID
-      USE regrid_com, only : x_2grids
+      USE regrid_com, only : x_2gridsroot
 #endif
       IMPLICIT NONE
       CHARACTER(*) :: ifile
@@ -1060,7 +1067,7 @@ C****    List of parameters that are disregarded at restarts
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
 #ifdef CUBE_GRID
-      type (x_2grids) :: xll2cs
+      type (x_2gridsroot) :: xll2csroot
 #endif
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0,I_1
@@ -1354,36 +1361,35 @@ C****            not yet implemented but could easily be done  ???
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
 
 #ifdef CUBE_GRID
-      write(*,*) "bef readt regrd"
 
+      call init_regrid_root(xll2csroot,72,46,1,48,48,6)
 
-      call init_regrid(xll2cs,72,46,1,48,48,6)
-
-      call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),0,P,1)
+      call readt_regrid_parallel(xll2csroot,iu_AIC,NAMEUNIT(iu_AIC)
+     &     ,0,P,1)
       do J=J_0,J_1
          do I=I_0,I_1
             P(i,j)=P(i,j)-PTOP
          enddo
       enddo
       do l=1,LM
-         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
-     &        0,U(:,:,L),1) 
+         call readt_regrid_parallel(xll2csroot,iu_AIC,
+     &    NAMEUNIT(iu_AIC),0,U(:,:,L),1) 
       enddo
       do l=1,LM
-         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
-     &        0,V(:,:,L),1) 
+         call readt_regrid_parallel(xll2csroot,iu_AIC,
+     &    NAMEUNIT(iu_AIC),0,V(:,:,L),1) 
       enddo
       do l=1,LM
-         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
-     &        0,T(:,:,L),1) 
+         call readt_regrid_parallel(xll2csroot,iu_AIC,
+     &    NAMEUNIT(iu_AIC),0,T(:,:,L),1) 
       enddo
       do l=1,LM
-         call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),
-     &        0,Q(:,:,L),1) 
+         call readt_regrid_parallel(xll2csroot,iu_AIC,
+     &        NAMEUNIT(iu_AIC),0,Q(:,:,L),1) 
       enddo
       
-      call readt_regrid_parallel(xll2cs,iu_AIC,NAMEUNIT(iu_AIC),0,
-     &     TSAVG,1) 
+      call readt_regrid_parallel(xll2csroot,iu_AIC,
+     &     NAMEUNIT(iu_AIC),0,TSAVG,1) 
 
 c*** temporarily stop here
       call stop_model('readt regrid parallel test STOP',255)
