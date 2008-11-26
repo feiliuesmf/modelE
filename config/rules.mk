@@ -84,6 +84,10 @@ ifeq ($(FVCORE),YES)
 MPI = YES
 endif
 
+ifeq ($(FVCUBED),YES)
+MPI = YES
+endif
+
 # hack to keep Intel8 name valid (only temporarily)
 ifeq ($(COMPILER),Intel8)
 COMPILER=intel
@@ -105,9 +109,9 @@ include $(CONFIG_DIR)/compiler.$(COMPILER).mk
 
 ifeq ($(MPP),YES)  
 CPPFLAGS += -DUSE_MPP
-FFLAGS += -I/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/include
-F90FLAGS += -I/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/include
-LIBS += -L/gpfsm/dnb1/mbhat/Mk_mpp/fvdycore2/GISS/lib -lfvdycoreShared 
+FFLAGS += -I$(MPPDIR)/include
+F90FLAGS += -I$(MPPDIR)/include
+LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
 LIBS += -lfmpi -lmpi
 endif
 
@@ -122,14 +126,27 @@ ifeq ($(FVCORE),YES)
      FVCORE_ROOT = false
   endif
   CPPFLAGS += -DUSE_FVCORE
-  FVINC = -I$(FVCORE_ROOT)/$(UNAME)/include
+  FVINC = -I$(FVCORE_ROOT)/$(MACHINE)/include
   INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio_r8 $(FVINC)/GMAO_cfio_r8 $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASELIBDIR)/include
-  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio_r8 -lGMAO_cfio_r8 -lGEOS_Shared -lGEOS_Base -L$(BASELIBDIR)/lib
+  LIBS += -L$(FVCORE_ROOT)/$(MACHINE)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio_r8 -lGMAO_cfio_r8 -lGEOS_Shared -lGEOS_Base -L$(BASELIBDIR)/lib
 #  LIBS += -L${BASELIBDIR} -lesmf  -lmpi -lmpi++ -lstdc++  -lpthread ${NETCDF_STUBS} -lrt -lc
   LIBS += -L${BASELIBDIR}/lib -lesmf
 endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
+endif
+
+
+ifeq ($(FVCUBED),YES)
+  ifndef FVCUBED_ROOT
+     FVCUBED_ROOT = false
+  endif
+  CPPFLAGS += -DUSE_FVCUBED -DUSE_FVCORE -DCUBE_GRID -DCUBED_SPHERE
+  FVINC = -I$(FVCUBED_ROOT)/$(MACHINE)/include
+  INCS += $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp  -I$(BASELIBDIR)/include/esmf
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -L$(BASELIBDIR)/lib -lesmf
+else
+  CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART 
 endif
 
 
