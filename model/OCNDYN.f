@@ -5656,7 +5656,9 @@ C**** poles
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
-      oEGMELT_glob(:,:) = oFtemp(:,:)*oDXYPO(JMA)  !!! please check !!                     !  J  
+      DO J = 1,JMO
+        oEGMELT_glob(:,J) = oFtemp(:,J)*oDXYPO(J)                     !  J  
+      END DO
 
       oDMUA_glob(:,:,1)   = aDMUA_glob(:,:,1)
       oDMVA_glob(:,:,1)   = aDMVA_glob(:,:,1)
