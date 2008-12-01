@@ -91,7 +91,7 @@
 #endif
 #endif
 #ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only : BE7W_acc 
+      USE COSMO_SOURCES, only : BE7W_acc
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
@@ -166,7 +166,7 @@ C--- Added by J.W. ending ---C
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
-      USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
+      USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda        
      *     ,ltropo
      &     ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi
@@ -433,7 +433,8 @@ C
          GZIL(:,L) = GZ(:,J,L)
       END DO
       DO L=1,LM
-         SD_CLDIL(:,L) = SD_CLOUDS(:,J,L)
+C        SD_CLDIL(:,L) = SD_CLOUDS(:,J,L)
+         SD_CLDIL(:,L) = SDA(:,J,L)/DTsrc    ! averaged SD
       END DO
       DO L=1,LM
          WMIL(:,L) = WM(:,J,L)
@@ -453,8 +454,8 @@ Cred* end Reduced Arrays 2
       dtr_wt(j,:)=0.D0
 #endif
 #endif
-#ifdef TRACERS_AMP  	 
-      AQsulfRATE(:,j,:) = 0.d0 	 
+#ifdef TRACERS_AMP
+      AQsulfRATE(:,j,:) = 0.d0
 #endif
 #endif
       kmax = kmaxj(j)
@@ -527,7 +528,7 @@ C**** PRESSURES, AND PRESSURE TO THE KAPA
       if (SCM_ATURB_FLAG.eq.0) then
 c****     for SCM run with DRY convection - zero out WTURB
           WTURB(:) = 0.d0
-      else     
+      else
 c****     for SCM run with ATURB
           WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
       endif
@@ -551,7 +552,7 @@ c       if(l.eq.2)write(6,*)"CTEM_DRV",CTEML(L),SME(L),OLDCDL(L)
         CDN3DL(:)=CDN3D(:,I,J)
         CRE3DL(:)=CRE3D(:,I,J)
         SMLWP=CLWP(I,J)
-#ifdef TRACERS_AMP    
+#ifdef TRACERS_AMP
 C**not sure if this needed
 #ifdef BLK_2MOM
        do n=1,nmodes
@@ -683,7 +684,7 @@ cECON     *     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
 C**** MOIST CONVECTION
 
       CALL MSTCNV(IERR,LERR,i,j)
-    
+
 cECON  E1 = ( sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum((WML(:)*(LHE
 cECON *     -SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))*AIRM(:)))*100.*BYGRAV
 
@@ -1351,7 +1352,7 @@ C**** TRACERS: Use only the active ones
           endif
           end if
 #endif
-#ifdef TRACERS_AMP          
+#ifdef TRACERS_AMP
            if (trname(n).eq."M_ACC_SU") then
            AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
            endif
