@@ -166,7 +166,7 @@ C--- Added by J.W. ending ---C
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
-      USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda        
+      USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda
      *     ,ltropo
      &     ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi
@@ -1640,6 +1640,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
       USE GEOM, only : lat_dg,lat2d,kmaxj
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
+     *  ,U00a,U00b       ! tuning knobs to replace U00ice and U00wtrX
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau
      *  ,funio_denominator,autoconv_multiplier,radius_multiplier
      *  ,entrainment_cont1,entrainment_cont2
@@ -1680,6 +1681,8 @@ c
 
       call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
+      call sync_param( 'U00a', U00a )
+      call sync_param( 'U00b', U00b )
       call sync_param( "LMCM", LMCM )
       call sync_param( "HRMAX", HRMAX )
       call sync_param( "RICldX", RICldX )
