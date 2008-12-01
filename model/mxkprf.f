@@ -762,7 +762,7 @@ c
         beta_r = 2.0/onem
 CTNL    beta_b = ( akpar(i,j,lm0)*wm0+akpar(i,j,lm1)*wm1
 CTNL &            +akpar(i,j,lm2)*wm2+akpar(i,j,lm3)*wm3)/onem
-CTNL    beta_b = akpar(i,j,jmon)/onem
+        beta_b = akpar(i,j,jmon)/onem
         beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
         frac_r = 1.0 - frac_b
@@ -2067,7 +2067,7 @@ c
         beta_r = 2.0/onem
 CTNL    beta_b = ( akpar(i,j,lm0)*wm0+akpar(i,j,lm1)*wm1
 CTNL &            +akpar(i,j,lm2)*wm2+akpar(i,j,lm3)*wm3)/onem
-CTNL    beta_b = akpar(i,j,jmon)/onem
+        beta_b = akpar(i,j,jmon)/onem
         beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
         frac_r = 1.0 - frac_b
