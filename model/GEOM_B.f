@@ -102,7 +102,7 @@ C**** some B-grid conservation quantities
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
-      REAL*8  :: RAVPO,LAT1,COSP1,DXP1
+      REAL*8  :: RAVPO,LAT1,COSP1,DXP1, SINV,SINVm1
 
       Real*8 LATS, !  LATitude in radians at South edge of primary cell
      *       LATN, !  LATitude in radians at North edge of primary cell
@@ -184,26 +184,32 @@ C****
       END DO
       DYP(1)  = RADIUS*(LAT(2)-LAT(1)-0.5*DLAT)
       DYP(JM) = RADIUS*(LAT(JM)-LAT(JM-1)-0.5*DLAT)
-      DXYP(1) = .5*DXV(2)*DYP(1)
+
+      SINV    = Sin (DLAT*(1+.5-FJEQ))
+      DXYP(1) = RADIUS*RADIUS*DLON*(SINV+1)
       BYDXYP(1) = 1./DXYP(1)
-      DXYP(JM)= .5*DXV(JM)*DYP(JM)
+
+      SINVm1  = Sin (DLAT*(JM-.5-FJEQ))
+      DXYP(JM)= RADIUS*RADIUS*DLON*(1-SINVm1)
       BYDXYP(JM) = 1./DXYP(JM)
+
       DXYS(1)  = 0.
       DXYS(JM) = DXYP(JM)
       DXYN(1)  = DXYP(1)
       DXYN(JM) = 0.
       polwt = (cosv(3)-cosv(2))/(cosv(3)-polwt)
-      AREAG = DXYP(1)+DXYP(JM)
       DO J=2,JM-1
         DYP(J)  =  radius*dlat !.5*(DYV(J)+DYV(J+1))
-        DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
+        SINVm1  = Sin (DLAT*(J-.5-FJEQ))
+        SINV    = Sin (DLAT*(J+.5-FJEQ))
+        DXYP(J) = RADIUS*RADIUS*DLON*(SINV-SINVm1)
+
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
         DXYN(J) = .5*DXYP(J)
-        AREAG = AREAG+DXYP(J)
       END DO
+      AREAG = 2*TWOPI*RADIUS*RADIUS
       BYDYP(:) = 1.D0/DYP(:)
-      AREAG = AREAG*FIM
       RAVPS(1)  = 0.
       RAPVS(1)  = 0.
       RAVPN(JM) = 0.
