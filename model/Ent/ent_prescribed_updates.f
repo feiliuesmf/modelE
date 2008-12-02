@@ -23,7 +23,6 @@
       type(entcelltype) :: ecp
       real*8,intent(in) :: laidata(N_PFT) !@var LAI for all PFT's 
       !-----Local---------
-      real*8, parameter :: dt = 1800.d0 !seconds, time step
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
       real*8 laipatch, lai_old,lai_new
