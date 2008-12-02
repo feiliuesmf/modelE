@@ -77,6 +77,10 @@ C**** Set-able variables
       REAL*8 :: U00wtrX = 1.0d0     ! default
 !@dbparam U00ice critical humidity for ice cloud condensation
       REAL*8 :: U00ice = .7d0       ! default
+!@dbparam U00a tuning knob for U00 above 850 mb without moist convection
+!@dbparam U00b tuning knob for U00 below 850 mb and in convective regions
+      REAL*8 :: U00a = 0.55d0       ! default
+      REAL*8 :: U00b = 1.00d0       ! default
 !@dbparam funio_denominator funio denominator
       REAL*8 :: funio_denominator=15.d0  ! default
 !@dbparam autoconv_multiplier autoconversion rate multiplier
@@ -114,7 +118,7 @@ C**** ISCCP diag related variables
 C**** input variables
       LOGICAL DEBUG
 !@var RA ratio of primary grid box to secondary gridbox
-      REAL*8, DIMENSION(:), ALLOCATABLE :: RA !(KMAX) 
+      REAL*8, DIMENSION(:), ALLOCATABLE :: RA !(KMAX)
 !@var UM,VM,UM1,VM1,U_0,V_0 velocity related variables(UM,VM)=(U,V)*AIRM
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: UM,VM,UM1,VM1 !(KMAX,LM)
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: U_0,V_0       !(KMAX,LM)
@@ -494,7 +498,7 @@ C** Once you save the right dependency (cp amp_aerosol.mod amp_aerosol.modsave)
 C** recomment the declaration below and use the full USE AMP_AEROSOL stmt and after gmake clean vclean
 C** you will need to cp amp_aerosol.modsave as amp_aerosol.mod
 C** This fix is till MATRIX dependencies solved
-c     real*8,dimension(lm,nmodes)   :: naerc 
+c     real*8,dimension(lm,nmodes)   :: naerc
       integer                   ::nm
 #endif
 #endif
@@ -2641,11 +2645,11 @@ c       nprc               ! change n autoconversion of droplets:
      * -execute_bulk2m_driver('get','nprc')
 c       nnuccc             ! change n due to con droplets freez
      * -execute_bulk2m_driver('get','nnuccc')
-c       nnucci             ! change n due to imm droplets freez 
+c       nnucci             ! change n due to imm droplets freez
      * -execute_bulk2m_driver('get','nnucci')
-c 
+c
      *              )*dtB2M
-c 
+c
 c Droplet content
         mdrop=mdrop+(
 c       mpccn              ! change q droplets activation
@@ -2720,15 +2724,15 @@ c
          write(6,*)"stop BLK: npccn,nprc,nnuccc,nnucci"
      *,l,npccn*1.e-6,nprc*1.e-6,nnuccc*1.e-6,nnucci*1.e-6
          endif
-c      
+c
 c kg/kg
-c      
+c
          mpccn  =              ! change q droplets activation
      *    execute_bulk2m_driver('get','mpccn')*dtB2M
          mprc   =              ! change q autoconversion of droplets:
      *   -execute_bulk2m_driver('get','mprc')*dtB2M
          mnuccc =              ! change q due to con droplets freez
-     *   -execute_bulk2m_driver('get','mnuccc')*dtB2M 
+     *   -execute_bulk2m_driver('get','mnuccc')*dtB2M
          mnucci =              ! change q due to imm droplets freez
      *   -execute_bulk2m_driver('get','mnucci')*dtB2M
 
@@ -3038,7 +3042,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
      *       PRECNVL(L+1)*BYDTsrc)
 #ifdef CLD_AER_CDNC
 C** Choice of 2 different routines to get the autoconversion rate
-#ifdef BLK_2MOM    
+#ifdef BLK_2MOM
 C*** using an alternate QAUT definition based on Beheng (1994)
         CM=QAUT_B2M/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
      *     PRECNVL(L+1)*BYDTsrc)
@@ -3803,7 +3807,7 @@ c      nnucmt              ! change n cont freezing Meyer's (prim ice nuc)
 
        SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
        if(SNDI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
-      OLDCDL(L) = SNd      
+      OLDCDL(L) = SNd
       OLDCDI(L) = SNdI
 #ifdef TRACERS_AMP
        nactc(l,1:nmodes) =  naero(mkx,1:nmodes)
@@ -3811,7 +3815,7 @@ c      do nm=1,nmodes
 c        if(nactc(l,nm).gt.0.)
 c    *   write(6,*)"NMOD1",nactc(l,nm),l,nm
 c       enddo
-#endif 
+#endif
 c      if(L.eq.1) write(6,*)"6_LO check BLK_2M",SNd,SNdI
 c To get effective radii in micron
       rablk=execute_bulk2m_driver('get','value','ec')  ! [micron]
@@ -3964,7 +3968,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.27 2008/10/21 18:56:59 kelley Exp $
+!$Id: CLOUDS2_E1.f,v 1.28 2008/12/02 14:33:49 cdmsy Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
