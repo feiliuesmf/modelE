@@ -715,6 +715,8 @@ cddd      !!print *,'QQQQ ',A,ci
 !      real*8,parameter :: Ko              !Michaelis-Menten constant for O2 (Pa)
 !      real*8,parameter :: KcQ10           !Kc Q10 exponent
 !      real*8,parameter :: KoQ10           !Ko Q10 exponent
+
+      !#### THIS SHOULD GO IN A FROST HARDINESS SUBROUTINE IN PHENOLOGY ###
       Tacclim = -5.93d0 ! Site specific thres. temp.: state of photosyn.acclim
                         ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
       a_const = 0.0595  ! Site specific; conversion (1/Sacclim_max)=1/16.8115
@@ -723,11 +725,13 @@ cddd      !!print *,'QQQQ ',A,ci
       if (Sacclim > Tacclim) then ! photosynthesis occurs 
          facclim = a_const * (Sacclim-Tacclim) 
          if (facclim > 1.d0) facclim = 1.d0
-      elseif (Sacclim < -1E10)then !UNDEFINED
+!      elseif (Sacclim < -1E10)then !UNDEFINED
+      elseif (Sacclim.eq.UNDEF)then !UNDEFINED
          facclim = 1.d0   ! no acclimation for this pft and/or simualtion
       else
          facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
       endif
+      !######### END FROST HARDINESS SECTION ###############################
 
       p = pft
       pspar%pft = pft
@@ -735,7 +739,6 @@ cddd      !!print *,'QQQQ ',A,ci
 !      pspar%Vcmax = pftpar(p)%Vcmax/(1 + exp((-220.e03+703.*(Tl+Kelvin))
 !     &     /(Rgas*(Tl+Kelvin))))
       pspar%Vcmax = pftpar(p)%Vcmax * Q10fn(2.21d0, Tl)* facclim
-
       pspar%Kc = Kc*Q10fn(KcQ10,Tl) !(Collatz, eq. A12)
       pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
       pspar%Gammastar = calc_CO2compp(O2pres,Tl) !(Pa) (Collatz)

@@ -14,6 +14,7 @@
       implicit none
       
       public photosynth_cond !This is interface for Ent.
+      public Resp_can_growth
       !public canopyfluxes
 
 !      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
@@ -75,7 +76,7 @@
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
       real*8 :: Gb !Leaf boundary layer conductance of water vapor(mol m-2 s-1)
-      real*8 :: fdry_pft_eff ! pft-specific effective dry canoopy fraction  
+      real*8 :: fdry_pft_eff ! pft-specific effective dry canoopy fraction   
       real*8 :: Anet,Atot,Rd    !umol m-2 s-1
       real*8 :: GCANOPY,TRANS_SW ! Ci,NPP !,R_auto
       real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum,
@@ -188,7 +189,11 @@
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
 !     &       ,if_ci)  
 
-          fdry_pft_eff = 1.d0 - pp%cellptr%fwet_canopy
+          if (pfpar(cop%pft)%leaftype.eq.BROADLEAF) then
+            fdry_pft_eff = 1.d0
+          else 
+            fdry_pft_eff = 1.d0 - pp%cellptr%fwet_canopy
+          endif
 !         !Uncomment below if we wnat pft-dependence of wet canopy effects 
 !         if (cop%pft == 5.or.cop%pft == 7) then
 !             fdry_pft_eff = (1.d0 - 0.25d0*pp%cellptr%fwet_canopy)
@@ -205,9 +210,10 @@
           cop%Ci = psdrvpar%ci * !ci is in mole fraction
      &         psdrvpar%Pa/(gasc * (psdrvpar%Tc+KELVIN)) !mol m-3
           cop%GPP = Atot * fdry_pft_eff * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
+
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
-          !Anet = Anet * (1.d0 - pp%cellptr%fwet_canopy)  
-          !Rd = Rd * * (1.d0 - pp%cellptr%fwet_canopy)
+          Anet = cop%GPP - Rd
+          !Rd = Rd * fdry_pft_eff  !Assume respiration rate is not affected.
         else
           cop%GCANOPY=0.d0 !May want minimum conductance for stems & cuticle.
           cop%Ci = EPS
@@ -623,7 +629,7 @@
       Resp_maint = Resp_root + Resp_fol + Resp_sw + Resp_lab
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
 
-      !* Growth respiration
+      !* Growth respiration tied to GPP
       Resp_growth = 0.012D-6 * Resp_can_growth(cop%pft, 
      &     cop%GPP/0.012D-6,(Resp_maint)/0.012D-6 )
 
@@ -698,7 +704,7 @@
 
 !---------------------------------------------------------------------!
       real*8 function Resp_can_growth(pft,Acan,Rmaint) Result(R_growth)
-      !Canopy growth respiration (umol/m2/s)
+      !Canopy growth respiration (umol/m2/s) (Actually, whatever units are input).
       !Based on photosynthetic activity. From CLM3.0.= 0.25*(Acan-Rmaint)
       !Fixed to min 0.d0 like ED2. - NYK
       integer :: pft
@@ -707,7 +713,7 @@
       real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33
 
 !      growth_r = pfpar(pft)%r * 0.5d0    !Factor 0.5 gives growth_r=0.3 for C3 grass.
-      growth_r = 0.3d0   
+      growth_r = 0.25d0   
       R_growth = max(0.d0, growth_r * (Acan - Rmaint))
       end function Resp_can_growth
 

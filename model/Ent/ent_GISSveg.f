@@ -12,10 +12,10 @@
      &     prescr_veg_albedo,prescr_calc_rootprof,
      &     prescr_calcconst, prescr_calc_lai
      &     ,alamax !For temporary phenology
-      public prescr_calc_shc,prescr_plant_cpools
+      public prescr_calc_shc,prescr_plant_cpools, prescr_init_Clab
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
-     &     ,prescr_get_soilcolor
+     &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
 
 !*********************************************************************
 !--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
@@ -381,22 +381,29 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8,intent(out) :: popdata(N_COVERTYPES)
       !---Local-----------
       integer :: n,pft
-      real*8 :: Blmax, wooddens
 
       popdata(:) = 0.0 !Zero initialize, and zero bare soil.
       do pft=1,N_PFT
         n = pft + COVEROFFSET
-        if (pft.eq.GRASSC3) then
-          popdata(n) = 10.0      !Grass ##HACK
-        else
-          wooddens = wooddensity_gcm3(pft)
-          Blmax = 0.0419 * ((dbhdata(n))**1.56) * (wooddens**0.55)
-          popdata(n) = (alamax(n)/pfpar(pft)%sla)/Blmax
-          !print*,'pft,wooddens,Blmax,popd',pft,wooddens,Blmax,popdata(n)
-        endif
+        popdata(n) = popdensity(pft,dbhdata(n))
       enddo
-
       end subroutine prescr_get_pop
+
+!*************************************************************************
+      real*8 function popdensity(pft,dbh) Result(popdens)
+      integer,intent(in) :: pft
+      real*8, intent(in) :: dbh
+      !---Local-----------
+      real*8 :: Blmax, wooddens
+
+      if (pfpar(pft)%woody.eq.0) then
+        popdens = 10.d0       !Grass ##HACK See Stampfli et al 2008 (~25 seedlings/m2 for cover %1-10, but big range)
+      else
+        wooddens = wooddensity_gcm3(pft)
+        Blmax = 0.0419d0 * (dbh**1.56d0) * (wooddens**0.55d0)
+        popdens = (alamax(pft+COVEROFFSET)/pfpar(pft)%sla)/Blmax
+      endif
+      end function popdensity
 
 !*************************************************************************
 
@@ -410,7 +417,7 @@ c**** calculate root fraction afr averaged over vegetation types
       wddata(:) = 0.0 !Zero initialize.
       do pft = 1,N_PFT
         n = pft + COVEROFFSET
-        if (pft.ne.GRASSC3) then !Woody
+        if (pfpar(pft)%woody.eq.1) then !Woody
           if (pft.eq.TUNDRA) then
             wddata(n) = ED_woodydiameter(pft,hdata(n)) * 20 !FUDGE UNTIL HAVE MIXED CANOPIES
           else                  !Most trees
@@ -467,6 +474,7 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
       !----Local------
+!      real*8 :: cpoolHW !Dummy check in case compile assignment tardy.
 
       ! just in case, set to 0 to avoid possible NaNs
       cpool(:) = 0.d0 !g-C/individual plant
@@ -479,16 +487,28 @@ c**** calculate root fraction afr averaged over vegetation types
         cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
+ !       cpoolHW  = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
+!     &       (wooddensity_gcm3(pft)**0.931d0) *1d3
         cpool(CR) = pfpar(pft)%croot_ratio*cpool(HW) !Estimated from Zerihun (2007)
       else
         cpool(SW) = 0.d0
         cpool(HW) = 0.d0
         cpool(CR) = 0.d0
       endif
-      !write(97,*) pft, lai, h, dbh, popdens, cpool
 
       end subroutine prescr_plant_cpools
 
+!*************************************************************************
+      subroutine prescr_init_Clab(pft,n,cpool)
+!@sum prescr_init_Clab - Initializes labile carbon pool to half mass of alamax.
+      implicit none
+      integer, intent(in) :: pft
+      real*8, intent(in) :: n !Density (#/m^2)
+      real*8, intent(inout) :: cpool(N_BPOOLS) !g-C/pool/plant
+      
+      cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/pfpar(pft)%sla/n*1d3 !g-C/individ.
+
+      end subroutine prescr_init_Clab
 !*************************************************************************
 
       real*8 function wooddensity_gcm3(pft) Result(wooddens)
@@ -510,7 +530,7 @@ c**** calculate root fraction afr averaged over vegetation types
      &     ,2, 2, 2, 2 /)
 
       soil_color(:) = soil_color_prescribed(:)
-
+      
       end subroutine prescr_get_soilcolor
 !*************************************************************************
       end module ent_prescr_veg

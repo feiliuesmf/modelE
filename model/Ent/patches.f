@@ -190,7 +190,7 @@
          pp%Tpool(CARBON,LEAF,ia) = pp%Tpool(CARBON,LEAF,ia)
      &        + cop%C_fol * cop%n    
          pp%Tpool(CARBON,WOOD,ia) = pp%Tpool(CARBON,WOOD,ia)  !note: phenology.f uses C_croot instead of C_sw -PK 7/07
-     &       + (cop%C_sw + cop%C_hw)* cop%n 
+     &       + (cop%C_sw + cop%C_hw + cop%C_croot)* cop%n 
         else    
          pp%Tpool(CARBON,LEAF,ia) = 0.d0  
          pp%Tpool(CARBON,WOOD,ia) = 0.d0

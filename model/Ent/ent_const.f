@@ -112,7 +112,20 @@
       integer,parameter :: N_PFT = 8
       integer,parameter :: N_OTHER = 2 ! algae, c4 grass
 #endif
+      !************************************************
+      !* GENERIC VEGETATION CONSTANTS                 *
+      !************************************************
+      !* leaftype in pftype *!
+      integer,parameter :: BROADLEAF = 1
+      integer,parameter :: NEEDLELEAF = 2
+      integer,parameter :: MONOCOT = 3 !NOT CROPS
 
+      !* phenotype in pftype *!
+      integer,parameter :: EVERGREEN = 1
+      integer,parameter :: COLDDECID = 2
+      integer,parameter :: DROUGHTDECID = 3
+      integer,parameter :: COLDDROUGHTDECID = 4
+    
       !************************************************
       !*  GISS SOIL CONSTANTS                         *
       !************************************************

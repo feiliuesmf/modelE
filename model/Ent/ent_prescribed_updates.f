@@ -1,6 +1,9 @@
       module ent_prescribed_updates
 !@sum Routines for updating prescribed vegetation. These routines
 !@+   work on entcell level or lower.
+
+!#define DEBUG TRUE  !NYK
+
       use ent_types
 
       implicit none
@@ -20,6 +23,7 @@
       type(entcelltype) :: ecp
       real*8,intent(in) :: laidata(N_PFT) !@var LAI for all PFT's 
       !-----Local---------
+      real*8, parameter :: dt = 1800.d0 !seconds, time step
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
       real*8 laipatch, lai_old,lai_new
@@ -48,7 +52,7 @@
           laipatch = laipatch + cop%lai
           cop => cop%shorter
         enddo
-        call litter_patch(pp,Clossacc) !Daily time step
+        call litter_patch(pp,Clossacc) 
         pp%LAI = laipatch
         pp => pp%younger
       enddo
@@ -57,11 +61,14 @@
 
 
       subroutine entcell_update_height( ecp,
-     i    hdata)
+     i    hdata,init)
 !@sum sets prescribed LAI over the cell
-      use ent_prescr_veg, only : prescr_plant_cpools
+      use ent_prescr_veg, only : prescr_plant_cpools, popdensity,
+     &     ED_woodydiameter
+      use ent_pfts
       type(entcelltype) :: ecp
       real*8,intent(in) :: hdata(N_PFT) !@var LAI for all PFT's 
+      logical,intent(in) :: init
       !-----Local---------
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
@@ -77,6 +84,14 @@
           C_hw_old = cop%C_hw
           C_croot_old = cop%C_croot
           cop%h = hdata(cop%pft)
+
+          if (pfpar(cop%pft)%woody) then !update dbhuse
+            cop%dbh = ED_woodydiameter(cop%pft,cop%h)
+            if (init) then !Set population density
+              cop%n = popdensity(cop%pft,cop%dbh) 
+            endif
+          endif
+
           !* Update biomass pools except for C_lab.
           call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
      &         cop%dbh, cop%n, cpool )
@@ -148,7 +163,7 @@
 
       subroutine entcell_vegupdate(entcell, hemi, jday
      &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
-     &     ,laidata, hdata, albedodata, cropsdata )
+     &     ,laidata, hdata, albedodata, cropsdata, init )
 !@sum updates corresponding data on entcell level (and down). 
 !@+   everything except entcell is optional. coordinate-dependent
 !@+   is given pointer attribute to provide a way to tell the 
@@ -157,7 +172,7 @@
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell!,entcell_extract_pfts
       use ent_prescr_veg, only : prescr_calc_shc, prescr_veg_albedo
-
+      implicit none
       type(entcelltype) :: entcell
       integer,intent(in) :: jday
       integer,intent(in) :: hemi
@@ -168,6 +183,7 @@
       real*8,  pointer :: hdata(:)  !Array of length N_PFT
       real*8,  pointer :: albedodata(:,:)
       real*8,  pointer :: cropsdata
+      logical, intent(in) :: init
       !----Local------
       type(patch),pointer :: pp
 
@@ -177,7 +193,7 @@
      &       call entcell_update_lai_poolslitter(entcell, laidata)
 
         if ( associated(hdata) )
-     &       call entcell_update_height(entcell, hdata)
+     &       call entcell_update_height(entcell, hdata, init)
         
         if ( associated(albedodata) )
      &       call entcell_update_albedo(entcell, albedodata)
@@ -235,25 +251,34 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: cpool(N_BPOOLS)
       real*8 :: lai_new
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
-
-!      write(779,*) __FILE__,__LINE__
-!     &   ,hemi,present(laidata)
+      real*8 :: resp_growth_root !g-C/individ/s
+      real*8 :: resp_growth_patch, resp_growth_root_patch !kg-C/m/s
 
       if (ASSOCIATED(pp)) then
         !* LAI *AND* BIOMASS - carbon pools *!
         laipatch = 0.d0         !Initialize for summing
         cpool(:) = 0.d0
         Clossacc(:,:,:) = 0.d0
+        resp_growth_patch = 0.d0
+        resp_growth_root = 0.d0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
           if ( do_giss_lai ) then
             lai_new = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
-            call prescr_veglitterupdate_cohort(cop,lai_new,Clossacc)
+            call prescr_veglitterupdate_cohort(cop,
+     &           lai_new,Clossacc)
             laipatch = laipatch + cop%LAI
           endif
+         !* Summarize for patch level. - NOTE:This is total flux, not just the growth increment.
+         resp_growth_patch = resp_growth_patch + cop%R_auto
+         resp_growth_root_patch = resp_growth_root_patch + cop%R_root
+
           cop => cop%shorter
         end do
-        call litter_patch(pp,Clossacc) !Daily time step
+        pp%R_auto = resp_growth_patch !Total flux includes growth increment.
+        pp%R_root = resp_growth_root !Total flux includes growth increment.
+        pp%NPP = pp%GPP - resp_growth_patch
+        call litter_patch(pp,Clossacc) !Update Tpools following litter accumulation. Daily time step
         pp%LAI = laipatch
 
         !* ALBEDO *! - Moved these lines to entcell_vegupdate.
@@ -270,6 +295,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 !@sum pools, litter, senescefrac. - NYK
       use phenology, only : litter_cohort
       use ent_prescr_veg, only :prescr_plant_cpools
+      implicit none
       type(cohort),pointer :: cop
       real*8,intent(in) :: lai_new
       real*8,intent(inout) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
@@ -277,7 +303,13 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: cpool(N_BPOOLS)
       real*8 :: lai_old
       real*8 :: C_fol_old,C_froot_old,C_hw_old,C_croot_old
-     
+      real*8 :: resp_growth, resp_growth_root
+      real*8 :: i2a  !Convert g-C/individual to kg-C/m^2
+#ifdef DEBUG
+      integer :: i
+      real*8 :: Csum
+#endif
+
       lai_old = cop%LAI
       C_fol_old = cop%C_fol
       C_froot_old = cop%C_froot
@@ -295,11 +327,25 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       cop%C_croot = cpool(CR)
 
       !* Update litter, C_lab, senescefrac
-      call litter_cohort(
+      call litter_cohort(SDAY,
      i     C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     cop,Clossacc)
+        !*## DEBUG ##*!
+#ifdef DEBUG
+      Csum = 0.d0
+      do i=1,NPOOLS
+        Csum = Csum + Clossacc(CARBON,i,1)
+      enddo
+      write(999,*) Csum
+#endif
+        
       
       cop%Ntot = cop%nm * cop%LAI !This should eventually go into N allocation routine if dynamic nm.
+
+      i2a = 1d-3*cop%n          !Convert g-C/individual to kg-C/m^2
+      cop%R_auto = cop%R_auto + i2a*resp_growth
+      cop%R_root = cop%R_root + i2a*resp_growth_root
+      cop%NPP = cop%NPP - i2a*resp_growth
  
       end subroutine prescr_veglitterupdate_cohort
 !******************************************************************************

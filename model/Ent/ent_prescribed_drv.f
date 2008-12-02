@@ -49,10 +49,13 @@
       logical,intent(in) :: do_soilinit
       !-----Local------
 !      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
+#ifndef SOILCARB_SITE
       real*4 :: soilC_data(N_CASA_LAYERS,IM,JM)
-      integer :: iu_SOILCARB
       character*80 :: title
-      integer :: n,nn,p, i
+      integer :: nn
+#endif
+      integer :: iu_SOILCARB
+      integer :: n,p, i
       real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
       real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
 
@@ -136,6 +139,7 @@
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
      &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
      &     Tpooldata,do_soilinit)
+      implicit none
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
@@ -154,6 +158,7 @@
      &     I0:I1,J0:J1):: Tpooldata !in g/m2 -PK
       logical,intent(in) :: do_soilinit
       !-----Local------
+      integer :: i
 
       call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
       call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
@@ -161,14 +166,19 @@
       call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
 
       call prescr_get_hdata(hdata) !height
+      print *,'hdata',hdata
       call prescr_get_initnm(nmdata) !nm
       call prescr_get_rootprof(rootprofdata)
       call prescr_get_woodydiameter(hdata,dbhdata)
+      print *,"dbhdata",dbhdata
       call prescr_get_pop(dbhdata,popdata)
       print *,"popdata",popdata
       call prescr_get_crownrad(popdata,craddata)
       call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &     laidata,hdata,dbhdata,popdata,cpooldata)
+      do i=1,N_COVERTYPES
+        print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
+      end do
       call prescr_get_soilcolor(soil_color)
       call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
@@ -366,12 +376,11 @@
       end subroutine prescr_veg_albedodata
 
 !**************************************************************************
-
       subroutine prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &     laidata, hdata, dbhdata, popdata, cpooldata)
       !*  Calculate per plant carbon pools (g-C/plant).
       !*  After Moorcroft, et al. (2001).
-
+      implicit none
       integer,intent(in) :: IM,JM,I0,I1,J0,J1
       real*8,intent(in) :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
       real*8,intent(in) :: hdata(N_COVERTYPES)
@@ -380,21 +389,23 @@
       real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
       !Array: 1-foliage, 2-sapwood, 3-hardwood, 4-labile,5-fine root, 6-coarse root
       !----Local----
-      integer :: n,pft !@var pft vegetation type
+      integer :: p,pft !@var pft vegetation type
       integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
       integer i,j,jeq
 
       jeq = JM/2
+      print *,"Got here in prescr_get_carbonplant"
 
-      cpooldata(:,:,:,:) = 0.0  !Zero initialize
+      cpooldata(:,:,:,:) = 0.d0  !Zero initialize
       do j=J0,J1
         hemi = 1
         if (j <= jeq) hemi = -1
         do i=I0,I1
           do pft=1,N_PFT
-            n = pft + COVEROFFSET
-            call prescr_plant_cpools(pft,laidata(n,i,j),hdata(n),
-     &           dbhdata(n), popdata(n),cpooldata(n,:,i,j))
+            p = pft + COVEROFFSET
+            call prescr_plant_cpools(pft,laidata(p,i,j),hdata(p),
+     &           dbhdata(p), popdata(p),cpooldata(p,:,i,j))
+            call prescr_init_Clab(pft,popdata(p),cpooldata(p,:,i,j))
           enddo
         enddo
       enddo

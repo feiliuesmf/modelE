@@ -27,7 +27,8 @@
       type pftype
          !Constant parameters specific to vegetation type
          integer :: pst ! Photosynth type 1=C3, 2=C4
-         integer :: woody !Woody, 0=NO, 1=YES.
+         logical :: woody !Woody, FALSE=NO, TRUE=YES.
+         integer :: leaftype !1=broadleaf, 2=needleleaf, 3=monocot (not crops)
          real*8 :: hwilt  !Wilting point matric potential (m)
          real*8 :: sstar  !Rel. soil moist at stress onset (Rodriguez-Iturbe)
          real*8 :: swilt  !Normalized soil water at wilting point (dim'less)
@@ -42,10 +43,10 @@
          real*8 :: croot_ratio !Coarse roots:Stem mass woody ratio
 
          !Phenology parameter - KIM
-         !* Parameter for phenology
-         !phenotype - phenological types
-         !          - evergreen (1), cold deciduous (2), drought deciduous (3), 
-         !            both cold and drought deciduous (4)
+         !* Parameter for phenology 
+         !phenotype - phenological types - See CONFLICTS in ent_pfts_ENT.f.
+!     !          - evergreen (1), cold deciduous (2), drought deciduous (3), 
+!     !            both cold and drought deciduous (4)
          integer :: phenotype !phenological types
          !* Parameters for plant allomteries
          real*8 :: b1Cf !para 1 for allometric relation btw DBH & foliage C 

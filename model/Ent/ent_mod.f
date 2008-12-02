@@ -231,7 +231,7 @@ cddd      end interface ent_cell_update
       subroutine ent_prescribe_vegupdate_r8_0(entcell
      &     ,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
-     &     laidata, hdata, albedodata, cropsdata)
+     &     laidata, hdata, albedodata, cropsdata, init)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
 !@+   set a flag requesting certain action like do_giss_phenology.
@@ -250,6 +250,7 @@ cddd      end interface ent_cell_update
       real*8, intent(in), optional, target ::
      &     albedodata(:,:)
       real*8, intent(in), optional, target :: cropsdata 
+      logical, intent(in) :: init !If initialization call.
       !---
       !!!real*8, allocatable :: cropsdata_loc(:,:)
       real*8, pointer :: laidata_1(:), hdata_1(:),
@@ -307,7 +308,7 @@ cddd      end interface ent_cell_update
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
      &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,init)
         endif
       
 
@@ -316,7 +317,7 @@ cddd      end interface ent_cell_update
       subroutine ent_prescribe_vegupdate_r8_1(entcell
      &     ,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
-     &     laidata, hdata, albedodata, cropsdata)
+     &     laidata, hdata, albedodata, cropsdata, init)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
 !@+   set a flag requesting certain action like do_giss_phenology.
@@ -335,6 +336,7 @@ cddd      end interface ent_cell_update
       real*8, intent(in), optional, target ::
      &     albedodata(:,:,:)
       real*8, intent(in), optional, target :: cropsdata (:)
+      logical, intent(in) :: init
       !---
       !!!real*8, allocatable :: cropsdata_loc(:,:)
       real*8, pointer :: laidata_1(:), hdata_1(:),
@@ -393,7 +395,7 @@ cddd      end interface ent_cell_update
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
      &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,init)
         endif
       
       enddo
@@ -403,7 +405,7 @@ cddd      end interface ent_cell_update
       subroutine ent_prescribe_vegupdate_r8_2(entcell
      &     ,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
-     &     laidata, hdata, albedodata, cropsdata)
+     &     laidata, hdata, albedodata, cropsdata,init)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
 !@+   set a flag requesting certain action like do_giss_phenology.
@@ -422,6 +424,7 @@ cddd      end interface ent_cell_update
       real*8, intent(in), optional, target ::
      &     albedodata(:,:,:,:)
       real*8, intent(in), optional, target :: cropsdata (:,:)
+      logical, intent(in) :: init
       !---
       !!!real*8, allocatable :: cropsdata_loc(:,:)
       real*8, pointer :: laidata_1(:), hdata_1(:),
@@ -481,7 +484,7 @@ cddd      end interface ent_cell_update
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
      &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1)
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,init)
         endif
       
       enddo
@@ -957,7 +960,7 @@ cddd      end interface ent_cell_update
      &     pft_crad,
      &     pft_nmdata,
      &     pft_population_density
-      real*8, dimension(:,:,:) :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:,:,:) :: pft_cpool !Carbon pools in individuals
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n

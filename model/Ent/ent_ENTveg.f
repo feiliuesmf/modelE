@@ -15,7 +15,7 @@
       public prescr_calc_shc,prescr_plant_cpools
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
-     &     ,prescr_get_soilcolor
+     &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
 
 !*********************************************************************
 !* Ent PFTs
@@ -449,29 +449,35 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
 !*************************************************************************
 
       subroutine prescr_get_pop(dbhdata,popdata)
-      !* Return array of GISS vegetation population density (#/m2)
+      !* Return array of GISS-derived vegetation population density (#/m2)
       !* Derived from Moorcroft, et al. (2001)
       real*8,intent(in) :: dbhdata(N_COVERTYPES)
       real*8,intent(out) :: popdata(N_COVERTYPES)
       !---Local-----------
       integer :: n,pft
-      real*8 :: Blmax, wooddens
 
       popdata(:) = 0.0 !Zero initialize, and zero bare soil.
       do pft=1,N_PFT
         n = pft + COVEROFFSET
-        if ((pft.eq.GRASSC3).or.(pft.eq.GRASSC4).or.(pft.eq.GRASSC3PER))
-     &       then
-          popdata(n) = 1.0      !Grass is just a large ensemble
-        else
-          wooddens = wooddensity_gcm3(pft)
-          Blmax = 0.0419 * ((dbhdata(n))**1.56) * (wooddens**0.55)
-          popdata(n) = (alamax(n)/pfpar(pft)%sla)/Blmax
-          !print*,'pft,wooddens,Blmax,popd',pft,wooddens,Blmax,popdata(n)
-        endif
+        popdata(n) = popdensity(pft,dbhdata(n))
       enddo
-
       end subroutine prescr_get_pop
+
+!*************************************************************************
+     real*8 function popdensity(pft,dbh) Result(popdens)
+      integer,intent(in) :: pft
+      real*8, intent(in) :: dbh
+      !---Local-----------
+      real*8 :: Blmax, wooddens
+
+      if (pfpar(pft)%woody.eq.0) then
+        popdens = 10.d0       !Grass ##HACK See Stampfli et al 2008 (~25 seedlings/m2 for cover %1-10, but big range)
+      else
+        wooddens = wooddensity_gcm3(pft)
+        Blmax = 0.0419d0 * (dbh**1.56d0) * (wooddens**0.55d0)
+        popdens = (alamax(pft+COVEROFFSET)/pfpar(pft)%sla)/Blmax
+      endif
+      end function popdensity
 
 !*************************************************************************
 
@@ -485,7 +491,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       wddata(:) = 0.0 !Zero initialize.
       do pft = 1,N_PFT
         n = pft + COVEROFFSET
-        if (pft.ne.GRASSC3) then !Woody
+        if (pfpar(pft)%woody)) then !Woody
           wddata(n) = ED_woodydiameter(pft,hdata(n))
         endif
       enddo
@@ -541,8 +547,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
-!      if (pft.ne.GRASSC3) then  !Woody
-      if (pfpar(pft)%woody .eq. 1) then !Woody
+      if (pfpar(pft)%woody) then !Woody
         cpool(SW) = 0.128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3

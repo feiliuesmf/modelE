@@ -153,21 +153,21 @@
         patchnum = patchnum + 1
         call photosynth_cond(dtsec, pp)
 
-        if(config%do_phenology.or.config%do_frost_hardiness)then
-          if (time .EQ. 0.d0) then !temporarily
+        if(config%do_phenology)then
+          if (time .EQ. 0.d0) then !######## temporarily #############
              call veg_init(pp)
           end if
-          if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
-            dailyupdate=.true.
-          else 
-            dailyupdate=.false.
-          end if
-          call clim_stats(dtsec,pp,config,dailyupdate)
         endif
 
+        if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
+          dailyupdate=.true.
+        else 
+          dailyupdate=.false.
+        end if
+
+        call clim_stats(dtsec,pp,config,dailyupdate)
+
         if (config%do_phenology) then
-
-
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
           if (dailyupdate) then
@@ -367,7 +367,7 @@
       endif
 !      write(999,*) pp%cellptr%Soilmp, pp%Soilmoist
 !     &     ,pp%cellptr%betad, pp%cellptr%betadl
-
+!      write(994,*) pp%cellptr%GCANOPY
       end subroutine ent_diagnostics
           !*********************************************************!
 
