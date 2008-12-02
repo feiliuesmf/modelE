@@ -252,6 +252,8 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
       !*********************************************************************   
       subroutine pheno_update(dtsec, pp)
 !@sum Update statstics for phneology_update    
+      use ent_const
+
       real*8,intent(in) :: dtsec           !dt in seconds
       type(patch) :: pp
       !--Local-----
@@ -307,18 +309,21 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
          pft=cop%pft
          phenotype=pfpar(pft)%phenotype
 
-         if (phenotype .eq. 1) then !Cold-deciduous woody plants
+         if (phenotype .eq. COLDDECID) then 
             temp_limit = .true.
             water_limit = .false.
-         else if (phenotype .eq. 2) then !Drought-deciduous woody plants
+         else if (phenotype .eq. DROUGHTDECID) then 
             temp_limit = .true.
             water_limit = .true.
-         else if (phenotype .ge. 3) then !Herbaceous plants
+         else if (phenotype .eq. EVERGREEN) then
+            temp_limit = .false.
+            water_limit = .false.
+         else !any of cold and drought deciduous
             temp_limit = .true.
             water_limit = .true.            
          end if
 
-         woody = pfpar(cop%pft)%woody
+         woody = pfpar(pft)%woody
 
          if (temp_limit .and. woody) then
             if ((.not. fall) .and.
@@ -400,7 +405,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
 !@sum LAI, senescefrac, DBH, height 
 !@sum carbon pools of foliage, sapwood, fineroot, hardwood, coarseroot
 !@sum AND growth respiration from growth and tissue turnnover
-      
+      use ent_const
       use ent_prescr_veg
       implicit none
       type(patch),pointer :: pp 
@@ -456,7 +461,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
          h = cop%h
          nplant = cop%n
          woody = pfpar(pft)%woody
-         annual = pfpar(pft)%annual
+         annual = (pfpar(pft)%phenotype .eq. ANNUAL)
        
          if (woody) then 
             qsw = pfpar(pft)%sla*iqsw
@@ -464,7 +469,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
             qsw=0.0d0           !no allocation to the wood
          end if
          
-         if (annual) then
+         if (annual .and. pfpar(pft)%leaftype .eq. MONOCOT) then
             qf = q * phenofactor 
          else
             qf = q 

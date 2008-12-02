@@ -45,14 +45,12 @@
          !Phenology parameter - KIM
          !* Parameter for phenology 
          !phenotype - phenological type
-         !            evergreen (0), 
-         !            cold deciduous (1), 
-         !            drought deciduous (2), 
-         !            cold/drought deciduous (3),
-         !            cold-adopted  (4),
-         !            arid-adopted  (5)
+         !            evergreen (1), 
+         !            cold deciduous (2), 
+         !            drought deciduous (3), 
+         !            cold/drought deciduous (4),
+         !            annual  (5)
          integer :: phenotype !phenological types
-         logical :: annual !Annual, FALSE = NO, TRUE=YES.   
          !* Parameters for plant allomteries
          real*8 :: b1Cf !para 1 for allometric relation btw DBH & foliage C 
          real*8 :: b2Cf !para 2 for allometric relation btw DBH & foliage C

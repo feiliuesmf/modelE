@@ -125,6 +125,7 @@
       integer,parameter :: COLDDECID = 2
       integer,parameter :: DROUGHTDECID = 3
       integer,parameter :: COLDDROUGHTDECID = 4
+      integer,parameter :: ANNAUL = 5 
     
       !************************************************
       !*  GISS SOIL CONSTANTS                         *
