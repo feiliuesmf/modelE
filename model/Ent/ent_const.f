@@ -146,56 +146,6 @@
       integer,parameter :: RP = 7 !REPRODUCTION
       !************************************************************************
       !************************************************************************
-      !* GROWTH MODEL CONSTANTS - phenology & carbon allocation 
-      !l_fract: fraction of leaves retained after leaf fall (unitless)
-      real*8, parameter :: l_fract = 0.50d0 
-      !growth_r:  fraction of biomass pool required for growth respiration to grow that biomass.
-!      real*8, parameter :: growth_r = 0.30d0 !Check same as canopyspitters.f Respiration_autotrophic
-      !q: ratio of root to leaf biomass (unitless)
-      real*8, parameter :: q=1.0d0 
-      !iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m)
-      !3900.0: leaf area per sapwood area (m2/m2) 
-      !1000.0: sapwood density (kg/m3)
-      !2.0:  biomass per carbon (kg/kgC)
-      !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
-      real*8, parameter :: iqsw=1000.0d0/3900.0d0/2.0d0
-      !hw_fract: ratio of above ground stem to total stem (stem plus structural roots)
-      real*8, parameter :: hw_fract = 0.70d0 
-      !C2B: ratio of biomass to carbon (kg-Biomass/kg-Carbon)
-      real*8, parameter :: C2B = 2.0d0 
-      !airtemp_par
-      real*8, parameter :: airtemp_par = 5.d0 
-      !temperature constrain for cold-deciduous PFTs (Botta et al. 1997)
-      ! gdd_par1/2/3: paramters to estimate the threshold for gdd
-      ! gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)    
-      real*8, parameter :: gdd_par1 = -68.d0 
-      real*8, parameter :: gdd_par2 = 638.d0
-      real*8, parameter :: gdd_par3 = -0.01d0 
-      !gdd_length
-      real*8, parameter :: gdd_length = 50.d0
-      !airt_threshold
-      real*8, parameter :: airt_max_w = 15.d0
-      real*8, parameter :: airt_min_w = 5.d0
-      !ld_threshold (minute): light length constraint for cold-deciduous woody PFTs (White et al. 1997)
-      real*8, parameter :: ld_threshold = 655.d0
-      !tsoil_threshold1, tsoil_threshold2 : soil temperature constraint for cold-deciduous woody PFTs (White et al. 1997)
-!      real*8, parameter :: tsoil_threshold1 = 11.15d0
-!      real*8, parameter :: tsoil_threshold2 = 2.d0
-      !ddfacu: the rate of leaf fall (1/day) (IBIS)
-      real*8, parameter :: ddfacu = 1.d0/15.d0
-      !paw_: water threshold (unitless)  
-      !_w for woody & _h for herbaceous      
-      real*8, parameter :: paw_max_w = 0.3d0
-      real*8, parameter :: paw_min_w = 0.0d0
-      real*8, parameter :: paw_res_w = 0.25d0
-      real*8, parameter :: paw_max_h = 0.3d0
-      real*8, parameter :: paw_min_h = 0.2d0
-      real*8, parameter :: paw_res_h = 1.0d0
-      !r_fract: fraction of excess c going to seed reproduction 
-      real*8, parameter :: r_fract = 0.3d0
-      !c_fract: fraction of excess c going to clonal reproduction - only for herbaceous
-      real*8, parameter :: c_fract = 0.7d0 
-      !************************************************************************
       !* CASA SOIL CONSTANTS
       !* THESE SHOULD GO IN THE CASA MODULE BUT NEED TO BE USED IN ENT_TYPES.F
       !* Array sizes
