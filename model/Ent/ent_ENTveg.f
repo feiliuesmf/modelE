@@ -464,13 +464,13 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       end subroutine prescr_get_pop
 
 !*************************************************************************
-     real*8 function popdensity(pft,dbh) Result(popdens)
+      real*8 function popdensity(pft,dbh) Result(popdens)
       integer,intent(in) :: pft
       real*8, intent(in) :: dbh
       !---Local-----------
       real*8 :: Blmax, wooddens
 
-      if (pfpar(pft)%woody.eq.0) then
+      if (.not.pfpar(pft)%woody) then
         popdens = 10.d0       !Grass ##HACK See Stampfli et al 2008 (~25 seedlings/m2 for cover %1-10, but big range)
       else
         wooddens = wooddensity_gcm3(pft)
@@ -491,7 +491,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       wddata(:) = 0.0 !Zero initialize.
       do pft = 1,N_PFT
         n = pft + COVEROFFSET
-        if (pfpar(pft)%woody)) then !Woody
+        if (pfpar(pft)%woody) then !Woody
           wddata(n) = ED_woodydiameter(pft,hdata(n))
         endif
       enddo

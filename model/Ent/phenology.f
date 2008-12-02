@@ -272,8 +272,8 @@ c$$$      real*8, parameter :: tsoil_threshold2 = 2.d0
 !      real*8 :: pawmin,pawmax,pawres
 
       logical :: temp_limit, water_limit !, light_limit
-      logical :: woody
       logical :: fall
+      logical :: woody
 
       soiltemp_10d = pp%cellptr%soiltemp_10d
       airtemp_10d = pp%cellptr%airtemp_10d
@@ -312,11 +312,6 @@ c$$$      real*8, parameter :: tsoil_threshold2 = 2.d0
             water_limit = .true.            
          end if
 
-!         if ((pft .ge. 11) .and. (pft .le. 15)) then !Herbaceous plants 
-!            woody = .false.
-!         else
-!            woody = .true.
-!         end if
          woody = pfpar(cop%pft)%woody
 
          if (temp_limit .and. woody) then
@@ -454,19 +449,8 @@ c$$$      real*8, parameter :: tsoil_threshold2 = 2.d0
          dbh = cop%dbh
          h = cop%h
          nplant = cop%n
-
-!         if ((pft .ge. 11) .and. (pft .le. 15)) then !Herbaceous plants 
-!            woody = .false.
-!         else !Woody
-!            woody = .true.
-!         end if
-         woody = pfpar(cop%pft)%woody
-
-         if (pft .eq. 13) then !C3 annual grass
-            annual = .true.
-         else 
-            annual = .false. 
-         end if
+         woody = pfpar(pft)%woody
+         annual = pfpar(pft)%annual
        
          if (woody) then 
             qsw = pfpar(pft)%sla*iqsw
@@ -708,10 +692,9 @@ c$$$         end if
       real*8 :: dCswdCdead
 
       !herbaceous
-      r_fract = 0.3d0
-      c_fract = 0.7d0 
-!      if (pft .ge. 11 .and. pft .le. 15) then !grasses/crops(?) 
-      if (.not.pfpar(pft)%woody) then !herbaceous
+      if (.not.pfpar(pft)%woody) then 
+         r_fract = 0.3d0
+         c_fract = 0.7d0 
          if (C_lab .gt. 0.d0 )then
             qs = 0.d0  !no structural pools
             gr_fract = 1.d0 - (r_fract + c_fract)
@@ -720,9 +703,9 @@ c$$$         end if
             gr_fract = 1.d0
          end if
       !woody
-      r_fract = 0.3d0
-      c_fract = 0.0d0 
       else
+         r_fract = 0.3d0
+         c_fract = 0.0d0 
          if (C_fol .gt. 0.d0 .and. 
      &       Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
             if (dbh .le. maxdbh(pft))then
@@ -1139,7 +1122,7 @@ c$$$         end if
       real*8 function maxdbh(pft)
       integer,intent(in) :: pft       
 
-      if (pft .ge. 11 .and. pft .le. 15) then !grasses/crops 
+      if (.not.pfpar(pft)%woody) then !grasses/crops 
          maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
      &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
       else !woody   
