@@ -12,7 +12,7 @@
      &     prescr_veg_albedo,prescr_calc_rootprof,
      &     prescr_calcconst, prescr_calc_lai
      &     ,alamax !For temporary phenology.
-      public prescr_calc_shc,prescr_plant_cpools
+      public prescr_calc_shc,prescr_plant_cpools, prescr_init_Clab
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
@@ -561,6 +561,17 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
 
       end subroutine prescr_plant_cpools
 
+!*************************************************************************
+      subroutine prescr_init_Clab(pft,n,cpool)
+!@sum prescr_init_Clab - Initializes labile carbon pool to half mass of alamax.
+      implicit none
+      integer, intent(in) :: pft
+      real*8, intent(in) :: n !Density (#/m^2)
+      real*8, intent(inout) :: cpool(N_BPOOLS) !g-C/pool/plant
+      
+      cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/pfpar(pft)%sla/n*1d3 !g-C/individ.
+
+      end subroutine prescr_init_Clab
 !*************************************************************************
 
       real*8 function wooddensity_gcm3(pft) Result(wooddens)
