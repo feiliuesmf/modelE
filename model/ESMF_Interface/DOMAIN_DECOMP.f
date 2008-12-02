@@ -5496,9 +5496,8 @@ C--------------------------------
       Integer :: new_type
 
       Integer :: stride, n_blocks, blocklen
-      Integer :: ext_lb
-      Integer :: base_byte_len, new_len
-      INTEGER(KIND=MPI_ADDRESS_KIND) disp(2)
+      Integer :: new_len
+      INTEGER(KIND=MPI_ADDRESS_KIND) disp(2), ext_lb, base_byte_len
       Integer :: vtype1, vtype2
       Integer :: ier
 
