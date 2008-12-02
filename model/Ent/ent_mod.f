@@ -250,13 +250,14 @@ cddd      end interface ent_cell_update
       real*8, intent(in), optional, target ::
      &     albedodata(:,:)
       real*8, intent(in), optional, target :: cropsdata 
-      logical, intent(in) :: init !If initialization call.
+      logical, intent(in), optional :: init !If initialization call.
       !---
       !!!real*8, allocatable :: cropsdata_loc(:,:)
       real*8, pointer :: laidata_1(:), hdata_1(:),
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
       logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+      logical :: init_1
       
       
 
@@ -281,6 +282,7 @@ cddd      end interface ent_cell_update
       do_giss_albedo_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
+      init_1 = .false.
 
       ! now set optional arguments
       if ( present(do_giss_phenology) )
@@ -288,6 +290,7 @@ cddd      end interface ent_cell_update
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
       if ( present(jday) ) jday_1 = jday
+      if ( present(init) ) init_1 = init
          
       
           ! skip uninitialized cells (no land)
@@ -308,7 +311,8 @@ cddd      end interface ent_cell_update
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
      &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,init)
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
+     &         init_1)
         endif
       
 
@@ -336,13 +340,14 @@ cddd      end interface ent_cell_update
       real*8, intent(in), optional, target ::
      &     albedodata(:,:,:)
       real*8, intent(in), optional, target :: cropsdata (:)
-      logical, intent(in) :: init
+      logical, intent(in), optional :: init !If initialization call.
       !---
       !!!real*8, allocatable :: cropsdata_loc(:,:)
       real*8, pointer :: laidata_1(:), hdata_1(:),
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
       logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+      logical :: init_1
       integer i1
       integer dims(2,1)
 
@@ -367,6 +372,7 @@ cddd      end interface ent_cell_update
       do_giss_albedo_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
+      init_1 = .false.
 
       ! now set optional arguments
       if ( present(do_giss_phenology) )
@@ -374,6 +380,7 @@ cddd      end interface ent_cell_update
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
       if ( present(jday) ) jday_1 = jday
+      if ( present(init) ) init_1 = init
          
       
       do i1=dims(1,1),dims(2,1)
@@ -395,7 +402,8 @@ cddd      end interface ent_cell_update
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
      &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,init)
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
+     &         init_1)
         endif
       
       enddo
@@ -405,7 +413,7 @@ cddd      end interface ent_cell_update
       subroutine ent_prescribe_vegupdate_r8_2(entcell
      &     ,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
-     &     laidata, hdata, albedodata, cropsdata,init)
+     &     laidata, hdata, albedodata, cropsdata, init)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
 !@+   set a flag requesting certain action like do_giss_phenology.
@@ -424,13 +432,14 @@ cddd      end interface ent_cell_update
       real*8, intent(in), optional, target ::
      &     albedodata(:,:,:,:)
       real*8, intent(in), optional, target :: cropsdata (:,:)
-      logical, intent(in) :: init
+      logical, intent(in), optional :: init !If initialization call.
       !---
       !!!real*8, allocatable :: cropsdata_loc(:,:)
       real*8, pointer :: laidata_1(:), hdata_1(:),
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
       logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+      logical :: init_1
       integer i1,i2
       integer dims(2,2)
 
@@ -455,6 +464,7 @@ cddd      end interface ent_cell_update
       do_giss_albedo_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
+      init_1 = .false.
 
       ! now set optional arguments
       if ( present(do_giss_phenology) )
@@ -462,6 +472,7 @@ cddd      end interface ent_cell_update
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
       if ( present(jday) ) jday_1 = jday
+      if ( present(init) ) init_1 = init
          
       
       do i1=dims(1,1),dims(2,1)
@@ -484,7 +495,8 @@ cddd      end interface ent_cell_update
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
      &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,init)
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
+     &         init_1)
         endif
       
       enddo
@@ -960,7 +972,7 @@ cddd      end interface ent_cell_update
      &     pft_crad,
      &     pft_nmdata,
      &     pft_population_density
-      real*8, dimension(:,:,:,:) :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:,:) :: pft_cpool !Carbon pools in individuals
       real*8, dimension(:,:)  :: pft_froots
       integer, dimension(:)  :: pft_soil_type
       real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
