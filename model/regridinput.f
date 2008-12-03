@@ -11,14 +11,13 @@ ccc   regrid boundary condition files
       if (AM_I_ROOT()) then
 c      call regridTOPO(xll2cs)
 c      call regridOSST(xll2cs)
-      call regridSICE(xll2cs)
+c      call regridSICE(xll2cs)
 c      call regridCDN(xll2cs)
 c      call regridVEG(xll2cs)
 c      call regridRVR(xll2cs)            ! empty for the moment
 c      call regridCROPS(xll2cs)
 c      call regridTOPINDEX(xll2cs)
-c      call regridSOIL(xll2cs)
-
+      call regridSOIL(xll2cs)
 ccc   Then regrid Initial Condition 
 ccc   If restart != 2 then IC should already be on CS grid
 c      if (restart .neq. 2) then
@@ -101,10 +100,10 @@ c
 
 
       subroutine regridSICE(x2grids)
-c 	SICE : 1x1 by Gary on Athena clima1/OBS/AMIP/1x1
-c 	Also ICE_1x1_HadISST from Hadley (Jeff Jonas) - check if this  
-c 	has been interpolated from lower resolution 
-c       /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
+c     SICE : 1x1 by Gary on Athena clima1/OBS/AMIP/1x1
+c     Also ICE_1x1_HadISST from Hadley (Jeff Jonas) - check if this  
+c     has been interpolated from lower resolution 
+c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
 
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
@@ -115,7 +114,7 @@ c       /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
      &     SICEend(x2grids%imsource,x2grids%jmsource)
       integer iu_SICE,i,j,k
 
-c      call openunit ("SICE",iu_SICE,.true.,.true.) 
+c     call openunit ("SICE",iu_SICE,.true.,.true.) 
 
       name="SICE4X5.B.1993-2002avg.Hadl1.1"
       open (iu_SICE, FILE=name,FORM='unformatted', STATUS='old')
@@ -135,52 +134,47 @@ c      enddo
       end subroutine regridSICE
 
 
+
       subroutine regridCDN(x2grids)
-c	Jeff uses CDN=AL30RL360X180N.rep
+c     Jeff uses CDN=AL30RL360X180N.rep
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
-      type (x_2grids), intent(in) :: x2grids
+      type (x_2gridsroot), intent(in) :: x2grids
       character*80 TITLE,name
-      real*4 CDN(x2grids%imsource,x2grids%jmsource)
-      integer iu_CDN,i,j,k	
-
-c      call openunit ("CDN",iu_CDN,.true.,.true.)
+      integer iu_CDN
 
       name="CD4X500S.ext"
       open (iu_CDN, FILE=name,FORM='unformatted', STATUS='old')
 
       call read_regrid_write_4D_1R(x2grids,name,iu_CDN)
-      
-      call closeunit(iu_CDN)
+      close(iu_CDN)
       
       end subroutine regridCDN
-c
+c*
+
 
 
       subroutine regridVEG(x2grids)
 c     Jeff uses VEG=V360X180_no_crops.rep
 c	It is identical to V144X90_no_crops.ext (144X90 data 
 c	was just transfered to 360X180 grid without any change)
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
-      type (x_2grids), intent(in) :: x2grids
-      character*80 TITLE
-      real*4 VEG(x2grids%imsource,x2grids%jmsource)
-      integer iu_VEG,i,j,k	
+      type (x_2gridsroot), intent(in) :: x2grids
+      character*80 TITLE,name
+      integer iu_VEG
+	
+      name="V72X46.1.cor2_no_crops.ext"
 
+      open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
 
-      call openunit ("VEG",iu_VEG,.true.,.true.)
-      read(iu_veg) TITLE,VEG 
-      
-      write(*,*) TITLE
-      write(*,*) VEG(:,:)
-      
-      call closeunit(iu_VEG)
+      call read_regrid_write_4D_1R_rmax(x2grids,name,iu_VEG,10)
+           
+      close(iu_VEG)
       
       end subroutine regridVEG
-c
+c*
 
 
       subroutine regridRVR(x2grids)
@@ -188,42 +182,34 @@ c	empty for the moment
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
-      type (x_2grids), intent(in) :: x2grids
-      character*80 TITLE
-      real*4 RVR(x2grids%imsource,x2grids%jmsource)
-      integer iu_RVR,i,j,k	
+      type (x_2gridsroot), intent(inout) :: x2grids
+      character*80 TITLE,name
+      integer iu_RVR
 
-      call openunit ("RVR",iu_RVR,.true.,.true.)
-      read(iu_RVR) TITLE,RVR 
-      
-      write(*,*) TITLE
-      write(*,*) RVR(:,:)
-
-      call closeunit(iu_RVR)
+ccc   EMPTY FOR THE MOMENT
    
       end subroutine regridRVR
 c*
 
 
       subroutine regridCROPS(x2grids)
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
-      type (x_2grids), intent(in) :: x2grids
-      character*80 TITLE
-      real*4 CROPS(x2grids%imsource,x2grids%jmsource)
-      integer iu_CROPS,i,j,k	
+      type (x_2gridsroot), intent(inout) :: x2grids
+      character*80 name
+      integer iu_CROPS
 
+      name="CROPS_72X46N.cor4.ext"
 
-      call openunit("CROPS",iu_CROPS,.true.,.true.)
-      read(iu_CROPS) TITLE,CROPS 
-      
-      write(*,*) TITLE
-      write(*,*) CROPS(:,:)
-      call closeunit(iu_CROPS)
+      open(iu_CROPS,FILE=name,FORM='unformatted', STATUS='old')
+
+      call read_regrid_write_4D_1R(x2grids,name,iu_CROPS)
+
+      close(iu_CROPS)
 
       end subroutine regridCROPS
 c*
+
 
 
       subroutine regridTOPINDEX(x2grids)
@@ -236,19 +222,17 @@ c     direct transfer from top_index_144x90.ij.ext
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
-      type (x_2grids), intent(in) :: x2grids
-      character*80 TITLE
-      real*4 TOP_INDEX(x2grids%imsource,x2grids%jmsource)
-      integer i,j,k,iu_TOP_INDEX
+      type (x_2gridsroot), intent(in) :: x2grids
+      character*80 TITLE,name
+      integer iu_TOP_INDEX
      
-      call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
+      name="top_index_72x46.ij.ext"
+
+      open(iu_TOP_INDEX,FILE=name,FORM='unformatted', STATUS='old')
       
-      read(iu_TOP_INDEX) TITLE,TOP_INDEX 
+      call read_regrid_write_4D_1R(x2grids,name,iu_TOP_INDEX)
       
-      write(*,*) TITLE
-      write(*,*) TOP_INDEX(:,:)
-      
-      call closeunit(iu_TOP_INDEX)
+      close(iu_TOP_INDEX)
       
       end subroutine regridTOPINDEX
 c*
@@ -258,20 +242,90 @@ c*
       subroutine regridSOIL(x2grids)
 c     Jeff uses SOIL=S360X180_0098M.rep
 
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
-      type (x_2grids), intent(in) :: x2grids
-      character*80 TITLE
-      real*4 SOIL(x2grids%imsource,x2grids%jmsource)
-      integer iu_SOIL,i,j,k	
+      type (x_2gridsroot), intent(in) :: x2grids
+      real*4, allocatable :: dz(:,:,:),ftext(:,:,:,:),
+     &     ftextk(:,:,:,:),sl(:,:)
+      real*4, allocatable :: dzout(:,:,:,:),ftextout(:,:,:,:,:),
+     &     ftextkout(:,:,:,:,:),slout(:,:,:)
+      real*8, allocatable :: tsource(:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:)
+      character*80 TITLE,name,outunformat
+      integer iu_SOIL,iuout,ims,jms,nts,imt,jmt,ntt,i,j,k,l
 
-      call openunit ("SOIL",iu_SOIL,.true.,.true.)
-      read(iu_SOIL) TITLE,SOIL 
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+
+      write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
+
+      name="S4X50093.ext"
+
+      open(iu_SOIL,FILE=name,FORM='unformatted', STATUS='old')
+
+      allocate (dz(ims,jms,6),ftext(ims,jms,6,5),
+     &     ftextk(ims,jms,6,5),sl(ims,jms),
+     &     dzout(imt,jmt,6,ntt),ftextout(imt,jmt,6,5,ntt),
+     &     ftextkout(imt,jmt,6,5,ntt),
+     &     slout(imt,jmt,ntt))
+
+      allocate (tsource(ims,jms,nts),
+     &     ttargglob(imt,jmt,ntt) )
+
+      read(iu_SOIL) dz,ftext,ftextk,sl
+
+      close(iu_SOIL)
       
-      write(*,*) TITLE
-      write(*,*) SOIL(:,:)
-      call closeunit(iu_SOIL)
+      outunformat=trim(name)//".CS"
+      
+      write(*,*) outunformat
+
+      write(*,*) dz
+      iuout=20
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+
+      do k=1,6
+         do j=1,jms
+            do i=1,ims
+               tsource(i,j,1)=dz(i,j,k)
+            enddo
+         enddo
+         call root_regrid(x2grids,tsource,ttargglob)
+         write(*,*) "k=",k
+         dzout(:,:,k,:)=ttargglob(:,:,:)
+      enddo
+
+      do k=1,6
+         do l=1,5
+            tsource(:,:,1)=ftext(:,:,k,l)
+            call root_regrid(x2grids,tsource,ttargglob)
+            ftextout(:,:,k,l,:)=ttargglob(:,:,:)
+         enddo
+      enddo
+
+
+      do k=1,6
+         do l=1,5
+            tsource(:,:,1)=ftextk(:,:,k,l)
+            call root_regrid(x2grids,tsource,ttargglob)
+            ftextkout(:,:,k,l,:)=ttargglob(:,:,:)
+         enddo
+      enddo
+
+      tsource(:,:,1)=sl(:,:)
+      call root_regrid(x2grids,tsource,ttargglob)
+      slout(:,:,:)=ttargglob(:,:,:)
+      
+      write(unit=iuout) dzout,ftextout,ftextkout,slout
+
+      close(iuout)
       
       end subroutine regridSOIL
 c*
@@ -341,6 +395,7 @@ c*
 
       do
          read(unit=iuin,END=30) TITLE(irec), data(:,:,:,irec)
+         write(*,*) "TITLE, irec",TITLE(irec),irec
          tsource(:,:,:,irec)= data(:,:,:,irec)
          irec=irec+1
       enddo
@@ -394,14 +449,14 @@ c*
       subroutine read_regrid_write_4D_1R(x2grids,name,iuin)
       use regrid_com
       type(x_2gridsroot), intent(in) :: x2grids
+      character*80, intent(in) :: name
       integer, intent(in) :: iuin
-      character*80 name
       integer :: iuout
       real*8, allocatable :: tsource(:,:,:,:)
       real*8, allocatable :: ttargglob(:,:,:)
       real*4, allocatable :: tout(:,:,:)
       character*80 :: TITLE(nrecmax),outunformat
-      integer :: maxrec
+      integer :: maxrec,irec
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -417,8 +472,9 @@ c*
      &     tout(imt,jmt,ntt))
       tsource(:,:,:,:)=0.0
       
+
       call read_recs_1R(tsource,iuin,TITLE,
-     &     maxrec,ims,jms,nts)
+     &        maxrec,ims,jms,nts)
       
       write(*,*) "maxrec",maxrec
       
@@ -436,7 +492,7 @@ c*
          write(*,*) "TITLE",TITLE(ir)
 c         write(*,*) "TOUT>>",tout(:,:,:),"<<<"
       enddo
-      
+
       close(iuout) 
 
       deallocate(tsource,ttargglob,tout)
@@ -445,10 +501,74 @@ c         write(*,*) "TOUT>>",tout(:,:,:),"<<<"
 c*
 
 
-      subroutine read_regrid_write_4D_2R(x2grids,name,iuin)
+
+      subroutine read_regrid_write_4D_1R_rmax(x2grids,name,iuin,rmax)
+      use regrid_com
+      type(x_2gridsroot), intent(in) :: x2grids
+      character*80, intent(in) :: name
+      integer, intent(in) :: iuin
+      integer, intent(in):: rmax
+      integer :: iuout
+      real*8, allocatable :: tsource(:,:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:)
+      real*4, allocatable :: tout(:,:,:),data(:,:,:,:)
+      character*80 :: TITLE(nrecmax),outunformat
+      integer :: maxrec,irec
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
+     &     ims,jms,nts,imt,jmt,ntt
+      allocate (tsource(ims,jms,nts,nrecmax),
+     &     ttargglob(imt,jmt,ntt),
+     &     tout(imt,jmt,ntt),
+     &     data(ims,jms,nts,nrecmax) )
+      tsource(:,:,:,:)=0.0
+      data(:,:,:,:)=0.0
+      
+
+      do irec=1,rmax
+         read(unit=iuin) TITLE(irec), data(:,:,:,irec)
+         write(*,*) "TITLE, irec",TITLE(irec),irec
+         tsource(:,:,:,irec)= data(:,:,:,irec)
+      enddo
+      maxrec=rmax
+            
+      write(*,*) "maxrec",maxrec
+      
+      outunformat=trim(name)//".CS"
+      
+      write(*,*) outunformat
+      iuout=20
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+
+      do ir=1,maxrec
+         call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
+         tout(:,:,:)=ttargglob(:,:,:)
+         write(unit=iuout) TITLE(ir),tout(:,:,:)
+         write(*,*) "TITLE",TITLE(ir)
+c         write(*,*) "TOUT>>",tout(:,:,:),"<<<"
+      enddo
+
+      close(iuout) 
+
+      deallocate(tsource,ttargglob,tout)
+
+      end subroutine read_regrid_write_4D_1R_rmax
+c*
+
+
+      subroutine read_regrid_write_4D_2R(x2grids,name,iuin,rmax)
       use regrid_com
       type(x_2gridsroot), intent(in) :: x2grids
       integer, intent(in) :: iuin
+      integer, intent(in), optional :: rmax
       character*80 name
       integer :: iuout
       real*8, allocatable :: tsource1(:,:,:,:),tsource2(:,:,:,:)
