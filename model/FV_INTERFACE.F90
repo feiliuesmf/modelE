@@ -313,10 +313,10 @@ contains
     Type (FV_Core) :: fv
     integer, intent(in) :: istart
 
-    Integer :: J_0H, J_1H, J_0, J_1
+    Integer :: I_0, I_1, J_0H, J_1H, J_0, J_1
     integer :: iunit
 
-    Call Get(grid, J_strt_halo=J_0H, J_stop_halo=J_1H, &
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_strt_halo=J_0H, J_stop_halo=J_1H, &
          & J_STRT=J_0, J_STOP=J_1)
 
     ! 1) Link/copy modelE data to import state
@@ -332,11 +332,11 @@ contains
     VERIFY_(rc)
 
     ! 2) Allocate space for storing old values from which to compute tendencies
-    Allocate(fv % U_old(IM,J_0:J_1,LM), &
-         &   fv % V_old(IM,J_0:J_1,LM), &
-         &   fv % dPT_old(IM,J_0:J_1,LM), &
-         &   fv % dT_old(IM,J_0:J_1,LM), &
-         &   fv % PE_old(IM,J_0:J_1,LM+1))
+    Allocate(fv % U_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv % V_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv % dPT_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv % dT_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv % PE_old(I_0:I_1,J_0:J_1,LM+1))
 
 #ifdef FVCUBED_SKIPPED_THIS
     select case (istart)
@@ -347,8 +347,8 @@ contains
        fv % dtdt=0
        fv % dpedt=0
 
-       fv % U_old = U(:,J_0:J_1,:)
-       fv % V_old = V(:,J_0:J_1,:)
+       fv % U_old = U(I_0:I_1,J_0:J_1,:)
+       fv % V_old = V(I_0:I_1,J_0:J_1,:)
        fv % dPT_old = DeltPressure_DryTemp_GISS()
        fv % dT_old = DryTemp_GISS()
        fv % PE_old   = EdgePressure_GISS()
@@ -385,7 +385,7 @@ contains
 
       if (AM_I_ROOT()) read(iunit) globalArr
       call unpack_data(grid, globalArr, padArr)
-      arr(:,:,:) = padArr(:,j_0:j_1,:)
+      arr(:,:,:) = padArr(I_0:I_1,j_0:j_1,:)
 
       deallocate(padArr)
       deallocate(globalArr)
@@ -434,14 +434,14 @@ contains
     Implicit None
     Type (FV_CORE) :: fv
 
-    Integer :: J_0, J_1
+    Integer :: I_0, I_1, J_0, J_1
     Integer :: J_0h, J_1h
-    Call Get(grid, j_strt=j_0, j_stop=j_1)
+    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! U, V
-    DUT(:,J_0:J_1,:) = Tendency(U(:,J_0:J_1,:), fv % U_old(:,J_0:J_1,:))
-    DVT(:,J_0:J_1,:) = Tendency(V(:,J_0:J_1,:), fv % V_old(:,J_0:J_1,:))
-    call ConvertUV_GISS2FV(DUT(:,J_0:J_1,:), DVT(:,J_0:J_1,:), fv % dudt, fv % dvdt)
+    DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), fv % U_old(I_0:I_1,J_0:J_1,:))
+    DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), fv % V_old(I_0:I_1,J_0:J_1,:))
+    call ConvertUV_GISS2FV(DUT(I_0:I_1,J_0:J_1,:), DVT(I_0:I_1,J_0:J_1,:), fv % dudt, fv % dvdt)
 
     ! delta pressure weighted Temperature
     fv  %  dtdt = reverse(DeltPressure_GISS() * Tendency(DryTemp_GISS(), fv % dT_old)) * &
@@ -588,15 +588,15 @@ contains
       real*8, intent(in) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
       real*8, allocatable :: globalArr(:,:,:)
-      integer :: j_0, j_1
+      integer :: I_0, I_1, j_0, j_1
       integer :: j_0h, j_1h
 
-      Call Get(grid, j_strt=j_0, j_stop=j_1, &
+      Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
            & j_strt_halo = j_0h, j_stop_halo = j_1h)
       allocate(globalArr(IM,JM,size(arr,3)))
       allocate(padArr(1:IM,j_0h:j_1h, size(arr,3)))
 
-      padArr(:,j_0:j_1,:) = arr(:,:,:)
+      padArr(I_0:I_1,j_0:j_1,:) = arr(:,:,:)
       call pack_data(grid, padArr, globalArr)
       if (AM_I_ROOT()) write(iunit) globalArr
 
@@ -717,7 +717,7 @@ contains
     Integer :: unit
 
     Integer, Parameter :: N_TRACERS = 0
-    Integer :: j_0, j_1, j_0h, j_1h, L
+    Integer :: I_0, I_1, j_0, j_1, j_0h, j_1h, L
     Logical :: exist
 
     Real*8 :: ak(size(sige)), bk(size(sige))
@@ -772,32 +772,32 @@ contains
     Call WRITE_PARALLEL( ak, unit)
     Call WRITE_PARALLEL( bk, unit)
 
-    Call GET(grid, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
+    Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
     ! 4) 3D fields velocities
-    Allocate(U_d(IM, J_0:J_1, LM))
-    Allocate(V_d(IM, J_0:J_1, LM))
+    Allocate(U_d(I_0:I_1, J_0:J_1, LM))
+    Allocate(V_d(I_0:I_1, J_0:J_1, LM))
 
     write(*,*)'Calling ComputeRestartVelocities()'
     Call ComputeRestartVelocities(unit, grid, U, V, U_d, V_d)
 
 !!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
 
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(:,J_0:J_1,:))
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(:,J_0:J_1,:))
+    Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(I_0:I_1,J_0:J_1,:))
+    Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(I_0:I_1,J_0:J_1,:))
 
     Deallocate(V_d)
     Deallocate(U_d)
 
     ! Compute potential temperature from modelE (1 mb -> 1 pa ref)
-    Allocate(PT(IM, J_0:J_1, LM))
-    Call ConvertPotTemp_GISS2FV(VirtualTemp(T(:,J_0:J_1,:), Q(:,J_0:J_1,:)), PT)
+    Allocate(PT(I_0:I_1, J_0:J_1, LM))
+    Call ConvertPotTemp_GISS2FV(VirtualTemp(T(I_0:I_1,J_0:J_1,:), Q(I_0:I_1,J_0:J_1,:)), PT)
     Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
     Deallocate(PT)
 
     ! Compute PE, PKZ from modelE
-    Allocate(PKZ(IM, J_0:J_1, LM))
-    Allocate(PE(IM, J_0:J_1, LM+1))
+    Allocate(PKZ(I_0:I_1, J_0:J_1, LM))
+    Allocate(PE(I_0:I_1, J_0:J_1, LM+1))
     Call ComputePressureLevels(unit, grid, VirtualTemp(T, Q), P, SIG, SIGE, Ptop, KAPA, PE, PKZ )
 
     Call GEOS_VarWrite(unit, grid % ESMF_GRID, PE)
@@ -834,12 +834,12 @@ contains
       real*8 :: sig(:), sige(:)
       real*8 :: ptop, kapa
 
-      Integer :: j_0, j_1, j_0h, j_1h
+      Integer :: I_0, I_1, j_0, j_1, j_0h, j_1h
       Integer :: I,J,L,L_fv
       Real*8, Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
 
       !    Request local bounds from modelE grid.
-      Call GET(grid, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
+      Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
       PE = -99999
       PKZ = -99999
@@ -862,10 +862,10 @@ contains
       !deallocate(pe_trans, pk, peln)
 
       Allocate(pk(IM,j_0h:j_1h,LM+1))
-      PK(:,J_0:J_1,:) = PE**KAPA
+      PK(I_0:I_1,J_0:J_1,:) = PE**KAPA
       do l=1,LM
         do j=j_0,j_1
-          do i=1,IM
+          do i=I_0,I_1
             if (PE(i,j,l+1)-PE(i,j,l) /= 0.0) then
                PKZ(i,j,l) = ( PK(i,j,l+1)-PK(i,j,l) ) / &
                             ( KAPA*log( PE(i,j,l+1)-PE(i,j,l) ) )
@@ -1008,7 +1008,7 @@ contains
 
       tmom = 0 ! except for vertical slopes:
       DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           RDSIG=(PMID(1,I,J)-PEDN(2,I,J))/(PMID(1,I,J)-PMID(2,I,J))
           TMOM(MZ,I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
           DO L=2,LM-1
@@ -1045,7 +1045,7 @@ contains
 
       qmom = 0 ! except for vertical slopes:
       DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           RDSIG=(PMID(1,I,J)-PEDN(2,I,J))/(PMID(1,I,J)-PMID(2,I,J))
           QMOM(MZ,I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
           IF(Q(I,J,1)+QMOM(MZ,I,J,1).LT.0.) QMOM(MZ,I,J,1)=-Q(I,J,1)
@@ -1097,11 +1097,11 @@ contains
     REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
 
-    INTEGER :: J_0,J_1
-    Call Get(grid, J_STRT=J_0, J_STOP=J_1)
+    INTEGER :: I_0, I_1, J_0,J_1
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     PKZ = PKZ_GISS()
-    T_dry = PKZ * T(:,J_0:J_1,:)
+    T_dry = PKZ * T(I_0:I_1,J_0:J_1,:)
 
   end function DryTemp_GISS
 
@@ -1114,18 +1114,18 @@ contains
 
     Integer :: nq
 
-    Integer :: j_0, j_1
+    Integer :: I_0, I_1, j_0, j_1
 
-    Call Get(grid, j_strt=j_0, j_stop=j_1)
+    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! 1) Link/copy modelE data to import state
-    fv % phis=ZATMO(:,j_0:j_1)
+    fv % phis=ZATMO(I_0:I_1,j_0:j_1)
 #ifdef NO_FORCING
     fv % phis = 0
 #endif
 
     ! Moisture
-    fv % Q = Reverse(Q(:,j_0:j_1,:))
+    fv % Q = Reverse(Q(I_0:I_1,j_0:j_1,:))
 #ifdef NO_FORCING
     fv % Q = 0
 #endif
@@ -1160,9 +1160,9 @@ contains
       VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,V_a,'V',rc=rc)
       VERIFY_(rc)
-    call Regrid_A_to_B(Reverse(U_a), Reverse(V_a), U(:,J_0:J_1,:), V(:,J_0:J_1,:))
-    fv % U_old = U(:,J_0:J_1,:)
-    fv % V_old = V(:,J_0:J_1,:)
+    call Regrid_A_to_B(Reverse(U_a), Reverse(V_a), U(I_0:I_1,J_0:J_1,:), V(I_0:I_1,J_0:J_1,:))
+    fv % U_old = U(I_0:I_1,J_0:J_1,:)
+    fv % V_old = V(I_0:I_1,J_0:J_1,:)
 
     ! Potential temperature (save dry Temperature for computing tendencies)
     !----------------------------------------------------------------------
@@ -1177,7 +1177,7 @@ contains
 
     call ConvertPressure_FV2GISS(PLE, fv % PE_old)
     ! Just need surface pressure - Ptop
-    P(:,J_0:J_1) = fv % PE_old(:,:,1) - Ptop
+    P(I_0:I_1,J_0:J_1) = fv % PE_old(:,:,1) - Ptop
     CALL CALC_AMPK(LS1-1)
 
     ! Preserve state information for later computation of tendencies.
@@ -1185,7 +1185,7 @@ contains
     fv % dPT_old = DeltPressure_DryTemp_GISS()
 
 #if defined(USE_FV_Q)
-    Q(:,j_0:j_1,:) = Reverse(fv % Q)
+    Q(I_0:I_1,j_0:j_1,:) = Reverse(fv % Q)
 #endif
 
   End Subroutine Copy_FV_export_to_modelE
@@ -1284,14 +1284,14 @@ contains
 
     Real*8, allocatable, dimension(:,:,:) :: Ua_halo, Va_halo
     Integer :: i,j,k,ip1
-    integer :: j_0stgr, j_1stgr,J_0h,J_1h,J_0,J_1
+    integer :: I_0, I_1, j_0stgr, j_1stgr,J_0h,J_1h,J_0,J_1
 
-    Call Get(grid, J_STRT_STGR=j_0stgr, J_STOP_STGR=j_1stgr, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, &
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT_STGR=j_0stgr, J_STOP_STGR=j_1stgr, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, &
          & J_STRT=J_0, J_STOP=J_1)
     Allocate(Ua_halo(IM,J_0h:J_1h,LM), Va_halo(IM,J_0h:J_1h,LM))
 
-    Ua_halo(:,J_0:J_1,:) = U_a
-    Va_halo(:,J_0:J_1,:) = V_a
+    Ua_halo(I_0:I_1,J_0:J_1,:) = U_a
+    Va_halo(I_0:I_1,J_0:J_1,:) = V_a
 
     Call Halo_Update(grid, Ua_halo,FROM=SOUTH)
     Call Halo_Update(grid, Va_halo,FROM=SOUTH)
@@ -1328,17 +1328,17 @@ contains
     Real*8, allocatable, dimension(:,:,:) :: Ub_halo, Vb_halo
 
     Integer :: i,j,k,im1
-    integer :: j_0, j_1, j_0s, j_1s, j_0h, j_1h
+    integer :: I_0, I_1, j_0, j_1, j_0s, j_1s, j_0h, j_1h
     logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-    Call Get(grid, J_STRT=J_0, J_STOP=J_1, J_STRT_SKP=J_0s, J_STOP_SKP=J_1S, &
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, J_STRT_SKP=J_0s, J_STOP_SKP=J_1S, &
          & HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE, &
          & J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
     Allocate(Ub_halo(IM,J_0h:J_1h,LM), Vb_halo(IM,J_0h:J_1h,LM))
 
-    Ub_halo(:,J_0:J_1,:) = U_b
-    Vb_halo(:,J_0:J_1,:) = V_b
+    Ub_halo(I_0:I_1,J_0:J_1,:) = U_b
+    Vb_halo(I_0:I_1,J_0:J_1,:) = V_b
 
     Call Halo_Update(grid, Ub_halo,FROM=NORTH)
     Call Halo_Update(grid, Vb_halo,FROM=NORTH)
@@ -1360,7 +1360,7 @@ contains
 
     ! Polar conditions are a bit more complicated
     ! First determine an "absolute" U, V at the pole, then use sin/cos to
-    ! map to the indidual longitudes.
+    ! map to the individual longitudes.
 
     If (HAVE_SOUTH_POLE) then
        Call FixPole(U_b(:,2,:), V_b(:,2,:), U_a(:,1,:), V_a(:,1,:))
@@ -1656,7 +1656,7 @@ contains
     implicit none
     type (FV_core) :: fv
     real*4, Dimension(:,:,:), Pointer :: PLE, mfx_X, mfx_Y, mfx_Z
-    integer :: J_0, J_1
+    integer :: I_0, I_1, J_0, J_1
     integer :: J_0S, J_1S
     integer :: J_0H, J_1H
     integer :: i,im1,j,l,k
@@ -1680,7 +1680,7 @@ contains
 
     DTfac = DT
 
-    Call Get(grid, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
+    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
          & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
          & HAVE_NORTH_POLE = HAVE_NORTH_POLE, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
@@ -1717,8 +1717,8 @@ contains
     enddo
        cose(1) = cose(2)
 
-    PU(1:IM,J_0:J_1,1:LM) = mfx_X
-    PV(1:IM,J_0:J_1,1:LM) = mfx_Y
+    PU(I_0:I_1,J_0:J_1,1:LM) = mfx_X
+    PV(I_0:I_1,J_0:J_1,1:LM) = mfx_Y
 
 #ifdef NO_MASS_FLUX
     mfx_X = 0
@@ -1732,10 +1732,10 @@ contains
 ! Adjust area scale factors between FV and GISS
     do l=1,lm
        do j=j_0,j_1
-          do i=1,im
+          do i=I_0,I_1
              PU(i,j,l) = PU(i,j,l)*DYP(j)/(radius*dlat)
           enddo
-          do i=1,im
+          do i=I_0,I_1
              PV(i,j,l) = PV(i,j,l)*DXV(j)/(cose(j)*radius*dlon)
           enddo
        enddo
@@ -1743,8 +1743,8 @@ contains
 ! Shift C-grid PU to Eastward orientation for GISS
     do l=1,lm
        do j=j_0,j_1
-          im1 = 1
-          do i=im,1,-1
+          im1 = I_0
+          do i=I_1,I_0,-1
              TMPim1(i) = PU(im1,j,l)
              im1 = i
           enddo
@@ -1755,26 +1755,26 @@ contains
     do l=0,lm
        do j=j_0,j_1
           area = DXYP(j)
-          do i=1,im
+          do i=I_0,I_1
              mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (mb m^2/s)
           enddo
        enddo
     enddo
-    SD(1:IM,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
+    SD(I_0:I_1,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
     ! Surface Pressure tendency - vert integral of horizontal convergence
-    PIT(1:IM,J_0:J_1) = mfx_Z(:,:,0) + sum(SD(1:IM,J_0:J_1,1:LM-1),3)
+    PIT(I_0:I_1,J_0:J_1) = mfx_Z(:,:,0) + sum(SD(I_0:I_1,J_0:J_1,1:LM-1),3)
 
     deallocate ( sine )
     deallocate ( cosp )
     deallocate ( cose )
 
     ! Recopy into CONV to support prior usage
-    CONV(:,J_0:J_1,1) = PIT(:,J_0:J_1)
-    CONV(:,J_0:J_1,2:LM) = SD(:,J_0:J_1,1:LM-1)
+    CONV(I_0:I_1,J_0:J_1,1) = PIT(I_0:I_1,J_0:J_1)
+    CONV(I_0:I_1,J_0:J_1,2:LM) = SD(I_0:I_1,J_0:J_1,1:LM-1)
 
-    PUA(:,J_0:J_1,:) = PUA(:,J_0:J_1,:) + PU(:,J_0:J_1,:)*DTfac
-    PVA(:,J_0:J_1,:) = PVA(:,J_0:J_1,:) + PV(:,J_0:J_1,:)*DTfac
-    SDA(:,J_0:J_1,1:LM-1) = SDA(:,J_0:J_1,1:LM-1) + SD(:,J_0:J_1,1:LM-1)*DTfac
+    PUA(I_0:I_1,J_0:J_1,:) = PUA(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
+    PVA(I_0:I_1,J_0:J_1,:) = PVA(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
+    SDA(I_0:I_1,J_0:J_1,1:LM-1) = SDA(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
 
   end subroutine accumulate_mass_fluxes
 
@@ -2044,14 +2044,14 @@ contains
 
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
 
-    INTEGER :: L, j_0, j_1
+    INTEGER :: L, j_0, j_1, I_0, I_1
 
-    call get(grid, J_STRT=J_0, J_STOP=J_1)
+    call get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do L = 1, LM
 
        If (L < LS1) THEN
-          PKZ(:,:,L) = (SIG(L)*P(:,J_0:J_1) + Ptop) ** KAPA
+          PKZ(:,:,L) = (SIG(L)*P(I_0:I_1,J_0:J_1) + Ptop) ** KAPA
        Else
           PKZ(:,:,L) = (SIG(L)*PSFMPT + Ptop) ** KAPA
        End IF
@@ -2069,11 +2069,11 @@ contains
     REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
 
-    INTEGER :: J_0,J_1
-    Call Get(grid, J_STRT=J_0, J_STOP=J_1)
+    INTEGER :: I_0, I_1, J_0,J_1
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     PKZ = PKZ_GISS()
-    T_dry = PKZ * T(:,J_0:J_1,:)
+    T_dry = PKZ * T(I_0:I_1,J_0:J_1,:)
 
   end function DryTemp_GISS
 
