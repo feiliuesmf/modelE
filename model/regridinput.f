@@ -9,7 +9,7 @@ c      call init_regrid(xll2cs,360,180,1,90,90,6)
 ccc   regrid boundary condition files 
       write(*,*) "IN REGRID INPUT"
       if (AM_I_ROOT()) then
-c      call regridTOPO(xll2cs)
+      call regridTOPO(xll2cs)
 c      call regridOSST(xll2cs)
 c      call regridSICE(xll2cs)
 c      call regridCDN(xll2cs)
@@ -17,7 +17,7 @@ c      call regridVEG(xll2cs)
 c      call regridRVR(xll2cs)            ! empty for the moment
 c      call regridCROPS(xll2cs)
 c      call regridTOPINDEX(xll2cs)
-      call regridSOIL(xll2cs)
+c      call regridSOIL(xll2cs)
 ccc   Then regrid Initial Condition 
 ccc   If restart != 2 then IC should already be on CS grid
 c      if (restart .neq. 2) then
@@ -38,15 +38,14 @@ c
       implicit none
       character*80 :: TITLE,name
       type (x_2gridsroot), intent(inout) :: x2grids
-      real*4 FOCEAN(x2grids%imsource,x2grids%jmsource),
-     &     FLAKE(x2grids%imsource,x2grids%jmsource),
-     &     FGRND(x2grids%imsource,x2grids%jmsource),
-     &     FGICE(x2grids%imsource,x2grids%jmsource),
-     &     ZATMO(x2grids%imsource,x2grids%jmsource)
-      integer :: iu_TOPO,i,j,irec,iunit
+      real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
+      integer :: iu_TOPO,i,j,k,irec,iunit,imt,jmt,ntt,maxrec
 
-      
-c      call openunit("TOPO",iu_TOPO,.true.,.true.)
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      allocate( ttargglob(imt,jmt,ntt,nrecmax),ones(imt,jmt,ntt) )
 
       name="Z72X46N.cor4_nocasp"
 
@@ -54,12 +53,38 @@ c      call openunit("TOPO",iu_TOPO,.true.,.true.)
 
       write(*,*) "iu_TOPO",iu_TOPO
 
-      call read_regrid_write_4D_1R(x2grids,name,iu_TOPO)
+      call read_regrid_4D_1R(x2grids,iu_TOPO,ttargglob,maxrec)
 
-c     TODO: CONSISTENCY CHECK FOCEAN+FLAKE+FGRND+FGICE=1 .AND. FOCEAN=0 OR 1
-c     ALSO IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
+
+c     CONSISTENCY CHECKS: 1) FOCEAN+FLAKE+FGRND+FGICE=1 
+c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
+
+      ones(:,:,:)=ttargglob(:,:,:,1)
+     &     +ttargglob(:,:,:,2)
+     &     +ttargglob(:,:,:,3)
+     &     +ttargglob(:,:,:,4)
+      
+      if (any( abs(ones(1:imt,1:jmt,1:ntt) - 1.0) .gt. 1.d-6 ) ) then 
+         write(*,*) "WARNING FOCEAN+FLAKE+FGRND+FGICE=1 BROKEN"
+      endif
+
+      do k=1,ntt
+         do j=1,jmt
+            do i=1,imt
+               if ( (ttargglob(i,j,k,1) .gt. 1.e-6) .and.
+     &              (ttargglob(i,j,k,2) .gt. 1.e-6 ) ) then
+                  write(*,*) "FGRND=FGRND+FLAKE, FLAKE=0"
+                  ttargglob(i,j,k,3)=ttargglob(i,j,k,2)
+     &                 +ttargglob(i,j,k,3)
+                  ttargglob(i,j,k,2)=0.0
+               endif
+            enddo
+         enddo
+      enddo
 
       close(iu_TOPO)
+
+      deallocate(ttargglob,ones)
       
       end subroutine regridTOPO 
 c*
@@ -240,8 +265,9 @@ c*
 
       
       subroutine regridSOIL(x2grids)
+c
 c     Jeff uses SOIL=S360X180_0098M.rep
-
+c
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -333,8 +359,9 @@ c*
       
 
       subroutine regridGIC(x2grids)
+c
 c     Jeff uses GIC=GIC.360X180.DEC01.1.rep
-
+c
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
@@ -356,8 +383,9 @@ c*
 
 
       subroutine regridAIC(x2grids)
+c
 c     Jeff uses AIC=AIC.RES_X40.D771201N.rep
-
+c
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
@@ -448,6 +476,7 @@ c*
 
       subroutine read_regrid_write_4D_1R(x2grids,name,iuin)
       use regrid_com
+      implicit none
       type(x_2gridsroot), intent(in) :: x2grids
       character*80, intent(in) :: name
       integer, intent(in) :: iuin
@@ -456,7 +485,7 @@ c*
       real*8, allocatable :: ttargglob(:,:,:)
       real*4, allocatable :: tout(:,:,:)
       character*80 :: TITLE(nrecmax),outunformat
-      integer :: maxrec,irec
+      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -472,7 +501,6 @@ c*
      &     tout(imt,jmt,ntt))
       tsource(:,:,:,:)=0.0
       
-
       call read_recs_1R(tsource,iuin,TITLE,
      &        maxrec,ims,jms,nts)
       
@@ -504,6 +532,7 @@ c*
 
       subroutine read_regrid_write_4D_1R_rmax(x2grids,name,iuin,rmax)
       use regrid_com
+      implicit none
       type(x_2gridsroot), intent(in) :: x2grids
       character*80, intent(in) :: name
       integer, intent(in) :: iuin
@@ -513,7 +542,7 @@ c*
       real*8, allocatable :: ttargglob(:,:,:)
       real*4, allocatable :: tout(:,:,:),data(:,:,:,:)
       character*80 :: TITLE(nrecmax),outunformat
-      integer :: maxrec,irec
+      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -561,6 +590,44 @@ c         write(*,*) "TOUT>>",tout(:,:,:),"<<<"
       deallocate(tsource,ttargglob,tout)
 
       end subroutine read_regrid_write_4D_1R_rmax
+c*
+
+
+      subroutine read_regrid_4D_1R(x2grids,iuin,ttargglob,maxrec)
+      use regrid_com
+      implicit none
+      type(x_2gridsroot), intent(in) :: x2grids
+      integer, intent(in) :: iuin
+      integer, intent(inout) :: maxrec
+      real*8, allocatable :: tsource(:,:,:,:)
+      real*8 :: ttargglob(x2grids%imtarget,x2grids%jmtarget,
+     &     x2grids%ntilestarget,nrecmax)
+      character*80 :: TITLE(nrecmax)
+      integer :: ir,ims,jms,nts
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+
+      allocate (tsource(ims,jms,nts,nrecmax))
+      tsource(:,:,:,:)=0.
+      ttargglob(:,:,:,:)=0.
+
+            
+      call read_recs_1R(tsource,iuin,TITLE,
+     &        maxrec,ims,jms,nts)
+      
+      write(*,*) "maxrec",maxrec
+      
+      do ir=1,maxrec
+         call root_regrid(x2grids,tsource(:,:,:,ir),
+     &        ttargglob(:,:,:,ir))
+         write(*,*) "TITLE",TITLE(ir)
+      enddo
+
+      deallocate(tsource)
+
+      end subroutine read_regrid_4D_1R
 c*
 
 
