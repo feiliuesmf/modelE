@@ -107,19 +107,32 @@ include $(CONFIG_DIR)/compiler.$(COMPILER).mk
 #NETCDF_STUBS=-lnetcdf_stubs
 #endif
 
-ifeq ($(MPP),YES)  
-CPPFLAGS += -DUSE_MPP
-FFLAGS += -I$(MPPDIR)/include
-F90FLAGS += -I$(MPPDIR)/include
-LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
-LIBS += -lfmpi -lmpi
-endif
 
 # include ESMF library if necessary
 ifeq ($(ESMF),YES)
   include $(CONFIG_DIR)/ESMF.default.mk
 endif
 
+ifeq ($(FVCUBED),YES)
+  ifndef FVCUBED_ROOT
+     FVCUBED_ROOT = false
+  endif
+  
+  # Cubed-sphere requires FVCORE and MPP enabled
+  FVCORE=YES
+  MPP=YES
+
+  # For now, cubed-sphere testing requires ADIABATIC and AQUA_PLANET
+  ADIABATIC=YES
+  AQUA_PLANET=YES
+
+  CPPFLAGS += -DUSE_FVCUBED -DCUBE_GRID -DCUBED_SPHERE
+  FVINC = -I$(FVCUBED_ROOT)/$(MACHINE)/include
+  INCS += $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp  -I$(BASELIBDIR)/include/esmf
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -L$(BASELIBDIR)/lib -lesmf
+else
+  CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART 
+endif
 
 ifeq ($(FVCORE),YES)
   ifndef FVCORE_ROOT
@@ -136,19 +149,13 @@ ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
 endif
 
-
-ifeq ($(FVCUBED),YES)
-  ifndef FVCUBED_ROOT
-     FVCUBED_ROOT = false
-  endif
-  CPPFLAGS += -DUSE_FVCUBED -DUSE_FVCORE -DCUBE_GRID -DCUBED_SPHERE
-  FVINC = -I$(FVCUBED_ROOT)/$(MACHINE)/include
-  INCS += $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp  -I$(BASELIBDIR)/include/esmf
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -L$(BASELIBDIR)/lib -lesmf
-else
-  CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART 
+ifeq ($(MPP),YES)  
+CPPFLAGS += -DUSE_MPP
+FFLAGS += -I$(MPPDIR)/include
+F90FLAGS += -I$(MPPDIR)/include
+LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
+LIBS += -lfmpi -lmpi
 endif
-
 
 ifeq ($(USE_ENT),YES)
   CPPFLAGS += -DUSE_ENT
@@ -156,6 +163,13 @@ ifeq ($(USE_ENT),YES)
   F90FLAGS += -$(I)Ent
 endif
 
+ifeq ($(ADIABATIC),YES)
+  CPPFLAGS += -DADIABATIC
+endif
+
+ifeq ($(AQUA_PLANET),YES)
+  CPPFLAGS += -DNO_LAND_SURFACE
+endif
 
 ifeq ($(MPI),YES)
   ifeq ($(MPIDISTR),)
