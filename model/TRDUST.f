@@ -32,7 +32,7 @@
 #endif
 
 c**** input
-      snowe=pbl_args%snowe
+      snowe=pbl_args%snow
       vtrsh=pbl_args%vtrsh
 #ifdef TRACERS_DUST_CUB_SAH
       dryhr=pbl_args%dryhr

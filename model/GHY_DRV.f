@@ -252,7 +252,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      pbl_args%snowe=snowe(i,j)
+      pbl_args%snow=snowe(i,j)
       pbl_args%wearth=wearth(i,j)
       pbl_args%aiearth=aiearth(i,j)
       pbl_args%wfcs=wfcs(i,j)
@@ -279,9 +279,9 @@ c**** prescribed dust emission
 
       subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf,rhosrf,pbl_args
 #ifdef INTERACTIVE_WETLANDS_CH4
-     & ,ra_temp,ra_sat,ra_gwet
+     &     ,ra_temp,ra_sat,ra_gwet
 #endif
-     & )
+     &     )
 !@sum tracers code to be called after the i,j cell is processed
       use model_com, only : itime,qcheck,nisurf
       use pbl_drv, only : t_pbl_args
