@@ -3,6 +3,8 @@
 !@sum Routines to simulate soil biogeochemistry:
 !@sum microbial dynamics, C & N pools, respiration and N fluxes.
 
+#define DEBUG TRUE
+
       use ent_const
       use ent_types
       use ent_pfts
@@ -54,7 +56,7 @@
       call casa_bgfluxes(dtsec, Soilmoist,  ivt    
      &                 , Soiltemp, clayfrac, sandfrac, siltfrac
      &                 , Tpool, Cflux)
-     
+
       !* Convert Cflux from gC/m2/s to kgC/m2/s 
       !* and assign patch soil_resp, Tpool 
       pp%Soil_resp = Cflux*1.d-3 
@@ -64,6 +66,11 @@
 #ifdef DEBUG
       call print_Tpool(Tpool)
       print *,'casa outputs: soil_resp(kgC/m2/s)=',pp%soil_resp
+
+      if (Cflux.lt.0.d0) then
+        write(990,*) "negative Soil resp:",pp%Soil_resp,Soilmoist,
+     &       Tpool(CARBON,:,:)
+      endif
 #endif
 
       end subroutine soil_bgc
@@ -87,7 +94,6 @@
       
 ! i/o
       real*8,intent(inout) :: Tpool(PTRACE,NPOOLS,N_CASA_LAYERS)  !total plant and soil C,N pools, depth-structured
-
 ! output
       real*8,intent(out) :: Cflux      !total respiration flux to atm (gC/m2/s) !main output from this routine -PK 6/15/06
 
@@ -117,7 +123,7 @@
       real*8 :: poolsum                 !accumulates Resp
 
 !!! HACK  set Closs to something so that 1:NLIVE are initialized
-!!! please fix!
+!!! please fix! ??
       Closs(:,:,:) = 0.d0
       
 ! define rate coefs fact_soilmic, fact_slow, fact_passive (from casatci.F) -PK 5/25/06

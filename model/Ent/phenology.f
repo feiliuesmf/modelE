@@ -226,8 +226,10 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
 !**************************************************************
 
          if (config%do_frost_hardiness) then
-            if ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
-     &          (pfpar(cop%pft)%leaftype.eq.NEEDLELEAF)) then
+            if (((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
+     &          (pfpar(cop%pft)%leaftype.eq.NEEDLELEAF)).or.
+     &          (pfpar(cop%pft)%phenotype.eq.COLDDECID).or.
+     &          (pfpar(cop%pft)%phenotype.eq.COLDDROUGHTDECID)) then
                call photosyn_acclim(dtsec,airtemp_10d,cop%Sacclim) 
             else
                cop%Sacclim = 25.d0 !Force no cold hardening, mild temperature.
@@ -445,7 +447,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       real*8 :: resp_auto_patch, resp_root_patch !kg-C/m/s
       logical :: woody
-      logical :: annual
+      logical :: is_annual
 
       laipatch = 0.d0
       Clossacc(:,:,:) = 0.d0 !Initialize
@@ -461,7 +463,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
          h = cop%h
          nplant = cop%n
          woody = pfpar(pft)%woody
-         annual = (pfpar(pft)%phenotype .eq. ANNUAL)
+         is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
        
          if (woody) then 
             qsw = pfpar(pft)%sla*iqsw
@@ -469,7 +471,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
             qsw=0.0d0           !no allocation to the wood
          end if
          
-         if (annual .and. pfpar(pft)%leaftype .eq. MONOCOT) then
+         if (is_annual .and. pfpar(pft)%leaftype .eq. MONOCOT) then
             qf = q * phenofactor 
          else
             qf = q 
@@ -738,9 +740,9 @@ c$$$         end if
 
       end subroutine growth_cpools_structural
       !*********************************************************************
-      subroutine senesce_cpools(annual, C_fol_old,C_fol,Cactive,
+      subroutine senesce_cpools(is_annual, C_fol_old,C_fol,Cactive,
      &                          senescefrac, dC_lab)
-      logical, intent(in) :: annual  !NOT USED
+      logical, intent(in) :: is_annual  !NOT USED
       real*8, intent(in) :: C_fol_old
       real*8, intent(in) :: C_fol
       !real*8, intent(in) :: C_lab
@@ -830,7 +832,7 @@ c$$$         end if
       loss_live = loss_leaf + loss_froot
 
       if ( loss_live .ne. 0.d0 ) then
-        adj = min(1.d0,(cop%C_lab-EPS)/(loss_live))
+        adj = min(1.d0,max(0.d0,(cop%C_lab-EPS)/(loss_live)))
       else 
         adj = 0.d0
       endif
@@ -923,7 +925,6 @@ c$$$         end if
       do i=1,NPOOLS
         Csum = Csum + Clossacc(CARBON,i,1)
       enddo
-!      write(998,*)'Csum:',Clossacc(CARBON,:,1),Csum
 
       if ( C_fol_old > 0.d0 ) then
         cop%senescefrac = l_fract *
