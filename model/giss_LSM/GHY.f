@@ -107,6 +107,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
 !#define EVAP_VEG_GROUND
 !#define RAD_VEG_GROUND
+!#define INTERCEPT_TEMPORAL
 
       module sle001
 
@@ -415,6 +416,8 @@ ccc   external functions
 
       contains
 
+!-----------------------------------------------------------------------
+
       subroutine reth
 !@sum computes theta(:,:), snowd(:), fm, fw, fd
 c**** revises values of theta based upon w.
@@ -469,6 +472,8 @@ c**** correct fraction of wet canopy by snow fraction
       fd0=fd
       return
       end subroutine reth
+
+!-----------------------------------------------------------------------
 
       subroutine hydra
 !@sum computes matr. potential h(k,ibv) and H2O condactivity xk(k,ibv)
@@ -599,6 +604,8 @@ c     add gravitational potential to hl
       return
       end subroutine hydra
 
+!-----------------------------------------------------------------------
+
       subroutine hl0
 c**** hl0 sets up a table of theta values as a function of matric
 c**** potential, h.  h is tabulated in a geometric series from
@@ -716,6 +723,7 @@ c     solve for alph0 in s=((1+alph0)**n-1)/alph0
       return
       end subroutine hl0
 
+!-----------------------------------------------------------------------
 
       subroutine evap_limits(
 #ifndef USE_ENT
@@ -1016,6 +1024,7 @@ c     compute transpiration for separate layers (=0 for bare soil)
 cccccccccccccccccccccccccccccccccccccccc
       end subroutine evap_limits
 
+!-----------------------------------------------------------------------
 
       subroutine sensible_heat
 !@sum computes sensible heat for bare/vegetated soil and snow
@@ -1043,6 +1052,7 @@ c     dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
 
       end subroutine sensible_heat
 
+!-----------------------------------------------------------------------
 
 c      subroutine qsbal
 c**** finds qs that balances fluxes.
@@ -1075,16 +1085,20 @@ c**** evaps - evaporation from snow from canopy, m s-1
 c**** betad - dry canopy beta, based on roots
 c****
 
+!-----------------------------------------------------------------------
 
       subroutine drip_from_canopy
 !@sum computes the flux of drip water (and its heat cont.) from canopy
 !@+   the drip water is split into liquid water dripw() and snow drips()
 !@+   for bare soil fraction the canopy is transparent
       use snow_drvm, only : snow_cover_same_as_rad
-      real*8 ptmp,ptmps,pfac,pm,pmax
-      real*8 snowf,snowfs,dr,drs
-      integer ibv
-      real*8 melt_w, melt_h
+      real*8,parameter:: tau_storm=3600 ! assumed mean storm duration
+      real*8 :: f_prev_wet,pr_dry,wc_add,wc_new
+      real*8 :: ptmp,ptmps,pfac,pm,pmax
+      real*8 :: snowf,snowfs,dr,drs
+      real*8 :: melt_w, melt_h
+      integer :: ibv
+
 c     calculate snow fall.  snowf is snow fall, m s-1 of water depth.
       snowf=0.d0
       if(htpr.lt.0.d0)snowf=min(-htpr/fsn,pr)
@@ -1095,7 +1109,22 @@ c     snowfs is the large scale snow fall.
         ptmps=prs-snowfs
         ptmps=ptmps-evapvw*fw
         ptmp=pr-prs-(snowf-snowfs)
-c     use effects of subgrid scale precipitation to calculate drip
+
+#ifdef INTERCEPT_TEMPORAL
+!     Fraction of precipiation that falls onto leaves previously wetted
+        f_prev_wet = 1.d0-(dts/tau_storm)
+!     Adjust to avoid unrealistic amounts of drip at storm onset
+        if (fw < prfr) then
+           f_prev_wet = f_prev_wet * fw / prfr
+        endif
+        pr_dry = (1.d0-f_prev_wet)*pr*(1.d0 - fw)*dts
+        wc_add =(1.d0-f_prev_wet)* prfr * (ws(0,2)-w(0,2))
+
+        wc_new = w(0,2) + min(pr_dry,wc_add)
+        dr = pr - (wc_new - w(0,2))/dts
+        dripw(2) = dr
+#else
+!      Use effects of subgrid scale precipitation to calculate drip
         pm=1d-6
         pmax=fd0*pm
         drs=max(ptmps-pmax,zero)
@@ -1108,13 +1137,14 @@ c     use effects of subgrid scale precipitation to calculate drip
             dr=ptmp+ptmps-pmax
           endif
         endif
-ccc   make sure "dr" makes sense
+!      Place limits on canopy drip, dr
         dr = min( dr, pr-snowf-evapvw*fw )
         dr = max( dr, pr-snowf-evapvw*fw - (ws(0,2)-w(0,2))/dts )
         dr = max( dr, 0.d0 )    ! just in case (probably don''t need it)
         dripw(2) = dr
+#endif
         htdripw(2) = shw*dr*max(tp(0,2),0.d0) !don''t allow it to freeze
-        ! snow falls through the canopy
+!      Snow falls through the canopy
         drips(2) = snowf
         htdrips(2) = min ( htpr, 0.d0 ) ! liquid H20 is 0 C, so no heat
       else  ! no vegetated fraction
@@ -1123,7 +1153,7 @@ ccc   make sure "dr" makes sense
         drips(2) = 0.d0
         htdrips(2) = 0.d0
       endif
-ccc   for bare soil drip is precipitation
+!     for bare soil drip is precipitation
       drips(1) = snowf
       htdrips(1) = min( htpr, 0.d0 )
       dripw(1) = pr - drips(1)
@@ -1143,32 +1173,28 @@ ccc   for bare soil drip is precipitation
         enddo
 #endif
       endif
-! The following four lines set the canopy water storage to zero    
-!--------------------------------------------------------------
-!      drips(2) = snowf
-!      htdrips(2) = min( htpr, 0.d0 )
-!      dripw(2) = pr - drips(2)
-!      htdripw(2) = htpr - htdrips(2)
-!--------------------------------------------------------------
+
       return
       end subroutine drip_from_canopy
 
+!-----------------------------------------------------------------------
 
       subroutine flg
 !@sum computes the water fluxes at the surface
 
-c     bare soil
+!     bare soil
       if ( process_bare ) then
         f(1,1) = -flmlt(1)*fr_snow(1) - flmlt_scale(1)
      &       - (dripw(1)-evapb)*(1.d0-fr_snow(1))
       endif
       if ( process_vege ) then
-c     upward flux from wet canopy
+!     upward flux from wet canopy
         fc(0) = -pr+evapvw*fw*(1.d0-fm*fr_snow(2))
                                 ! snow masking of pr is ignored since
                                 ! it is not included into drip
         fc(1) = -dripw(2) - drips(2)
-c     vegetated soil
+
+!     vegetated soil
 !!! flux down from canopy is not -f(1,2) any more !!
 !!! it is =  -dripw(2) - drips(2)
 !!! f(1,2) is a flux up from tyhe soil
@@ -1176,7 +1202,7 @@ c     vegetated soil
      &       - (dripw(2)-evapvg)*(1.d0-fr_snow(2))
       endif
 
-c     compute evap_tot for accumulators
+!     compute evap_tot for accumulators
       evap_tot(1) = evapb*(1.d0-fr_snow(1)) + evapbs*fr_snow(1)
       evap_tot(2) = (evapvw*fw + evapvd*fd)*(1.d0-fr_snow(2)*fm)
      &     + evapvs*fr_snow(2)*fm + evapvg*(1.d0-fr_snow(2))
@@ -1184,6 +1210,7 @@ c     compute evap_tot for accumulators
       return
       end subroutine flg
 
+!-----------------------------------------------------------------------
 
       subroutine flhg
 !@sum calculates the ground heat fluxes (to the surface)
@@ -1263,6 +1290,7 @@ c     compute total sensible heat
       return
       end subroutine flhg
 
+!-----------------------------------------------------------------------
 
       subroutine runoff
 c**** calculates surface and underground runoffs.
@@ -1340,6 +1368,7 @@ c         print *, xkus(k,ibv),w(k,ibv),ws(k,ibv),dz(k),top_index
       return
       end subroutine runoff
 
+!-----------------------------------------------------------------------
 
       subroutine fllmt
 c**** places limits on the soil water fluxes
@@ -1441,6 +1470,7 @@ cddd      enddo
       return
       end subroutine fllmt
 
+!-----------------------------------------------------------------------
 
       subroutine xklh( xklh0_flag )
 c**** evaluates the heat conductivity between layers
@@ -1552,6 +1582,7 @@ c hcwt''s are the heat conductivity weighting factors
       return
       end subroutine xklh
 
+!-----------------------------------------------------------------------
 
       subroutine fl
 !@sum computes water flux between the layers
@@ -1582,6 +1613,7 @@ c**** put infiltration maximum into xinfc
       return
       end subroutine fl
 
+!-----------------------------------------------------------------------
 
       subroutine flh
 c**** evaluates the heat flux between layers
@@ -1616,6 +1648,7 @@ c total heat flux is heat carried by water flow plus heat conduction
       return
       end subroutine flh
 
+!-----------------------------------------------------------------------
 
       subroutine retp
 c**** evaluates the temperatures in the soil layers based on the
@@ -1692,6 +1725,7 @@ ccc should be removed when program is rewritten in a more clean way...
       return
       end subroutine retp
 
+!-----------------------------------------------------------------------
 
       subroutine apply_fluxes
 !@sum apply computed fluxes to adwance w and h
@@ -1744,6 +1778,7 @@ ccc check for under/over-saturation
       return
       end subroutine apply_fluxes
 
+!-----------------------------------------------------------------------
 
       subroutine get_soil_properties( q_in, dz_in,
      &     thets_out, thetm_out, shc_out )
@@ -1772,6 +1807,7 @@ ccc check for under/over-saturation
       
       end subroutine get_soil_properties
 
+!-----------------------------------------------------------------------
 
       subroutine init_step
 !@sum set some variables which have to be set once per time step
@@ -1855,6 +1891,7 @@ c htprs is the heat of large scale precipitation
 c****
       end subroutine init_step
 
+!-----------------------------------------------------------------------
 
       function ghy_albedo( albedo_6b ) result(alb)
       real*8 albedo_6b(:), alb
@@ -2368,6 +2405,7 @@ C**** finalise surface tracer concentration here
      &     'advnc: time step too short - see soil_outw and fort.99',255)
       end subroutine advnc
 
+!-----------------------------------------------------------------------
 
       subroutine accm(
 #ifdef USE_ENT
@@ -2640,6 +2678,8 @@ ccc   tracers
       return
       end subroutine accm
 
+!-----------------------------------------------------------------------
+
       subroutine gdtm(dtm)
 c**** calculates the maximum time step allowed by stability
 c**** considerations.
@@ -2729,6 +2769,7 @@ c****
       return
       end subroutine gdtm
 
+!-----------------------------------------------------------------------
 
       subroutine outw(i)
 c**** prints current state of soil for one grid box
@@ -2852,7 +2893,9 @@ c**** more outw outputs
 1049  format(1x,i3,f7.3,f5.1,f6.3,1p,6pf10.4,6pf10.4,10x,10x,
      *     0pf7.4,0pf7.4,1x,-6pf10.4,0pf10.4,-6pf10.4,3(2pf5.1))
       end subroutine outw
-c****
+
+!-----------------------------------------------------------------------
+
       subroutine wtab
 c**** returns water table zw for ibv=1 and 2.d0
 c**** input:
@@ -2893,6 +2936,7 @@ c     write(6,*) 'denom',denom
       return
       end subroutine wtab
 
+!-----------------------------------------------------------------------
 
       subroutine snow
       use snow_drvm, only: snow_drv
@@ -2947,6 +2991,8 @@ ccc output
       evapvs = evapsn(2)
 
       end subroutine snow
+
+!-----------------------------------------------------------------------
 
       subroutine set_snow
 !@sum set_snow extracts snow from the first soil layer and initializes
@@ -3094,6 +3140,7 @@ ccc (to make the data compatible with snow model)
       return
       end subroutine set_snow
 
+!-----------------------------------------------------------------------
 
 #ifdef TRACERS_WATER
       subroutine check_wc(wc)
@@ -3136,6 +3183,7 @@ ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
 
       end subroutine ghy_tracers_drydep
 
+!-----------------------------------------------------------------------
 
       subroutine ghy_tracers
 ccc will need the following data from GHY:
@@ -3613,6 +3661,7 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
       end subroutine ghy_tracers
 #endif
 
+!-----------------------------------------------------------------------
 
       subroutine check_water( flag )
       integer flag
@@ -3669,6 +3718,7 @@ c    &       'GHY: water conservation problem in veg. soil',255)
 
       end subroutine check_water
 
+!-----------------------------------------------------------------------
 
       subroutine check_energy( flag )
       integer flag
@@ -3729,6 +3779,7 @@ c    &       'GHY: water conservation problem in veg. soil',255)
 
       end subroutine check_energy
 
+!-----------------------------------------------------------------------
 
       subroutine restrict_snow (wsn_max)
 !@sum remove the snow in excess of WSN_MAX and dump its water into
