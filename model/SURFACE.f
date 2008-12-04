@@ -78,8 +78,8 @@ C****
      *     ,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,idd_tabl1
      *     ,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,idd_grav,idd_turb
 #endif
-      USE LANDICE, only : z1e,z2li,hc1li,hc2li
-      USE LANDICE_COM, only : snowli
+      USE LANDICE, only : z1e,z2li,hc1li,hc2li,ace1li,ace2li,snmin
+      USE LANDICE_COM, only : snowli,trlndi
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,solar_ice_frac
      *     ,tfrez,dEidTi,alami
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws,ssi
@@ -177,7 +177,7 @@ c
       integer n,nx,nsrc
       real*8, dimension(ntm) :: trs,trsfac,trconstflx
       integer ntix(ntm), ntx
-      real*8, dimension(ntm) :: trgrnd
+      real*8, dimension(ntm) :: trgrnd,trgrnd2
       real*8 trc_flux
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim
@@ -338,7 +338,7 @@ C****
 !$OMP*  THV1,TG,TG1,TG2,TR4,TRHDT,TRHEAT,Z1BY6L,dlwdt,
 !$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,WS0,QSRF,pbl_args,jr,tmp
 #if defined(TRACERS_ON)
-!$OMP*  ,n,nx,nsrc,totflux,trs,trsfac,trconstflx,trgrnd
+!$OMP*  ,n,nx,nsrc,totflux,trs,trsfac,trconstflx,trgrnd,trgrnd2
 !$OMP*  ,trc_flux
 #if defined(TRACERS_WATER)
 !$OMP*  ,tevaplim,tevap,TEV,dTQS,TDP,TDT1,frac
@@ -535,6 +535,11 @@ C****
       HCG1=HC1LI+SNOW*SHI
       ELHX=LHS
       uocean = 0. ; vocean = 0. ! no land ice velocity
+#ifdef TRACERS_WATER
+      do nx=1,ntx
+        trgrnd2(nx)=TRLNDI(ntix(nx),I,J)/(ACE1LI+ACE2LI)
+      end do
+#endif
       END IF
 
       endif
@@ -571,7 +576,7 @@ C**** set defaults
           trgrnd(nx)=gtracer(n,itype,i,j)
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-          write(522,*)  i,j,gtracer(n,itype,i,j)
+c          write(522,*)  i,j,gtracer(n,itype,i,j)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
@@ -634,10 +639,12 @@ C =====================================================================
       pbl_args%psurf = PS
       pbl_args%trhr0 = TRHR(0,I,J)
       pbl_args%ocean = (ITYPE.eq.1 .and. FOCEAN(I,J).gt.0)
+      pbl_args%snow = SNOW
 #ifdef TRACERS_ON
       pbl_args%trs(1:ntm) = trs(1:ntm)
       pbl_args%trsfac(1:ntm) = trsfac(1:ntm)
       pbl_args%trconstflx(1:ntm) = trconstflx(1:ntm)
+      pbl_args%trgrnd2(1:ntm) = trgrnd2(1:ntm)
       pbl_args%ntix(1:ntm) = ntix(1:ntm)
       pbl_args%ntx = ntx
 #endif
@@ -795,7 +802,11 @@ C****
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
-              TEVAP=EVAP*trgrnd(nx)
+              IF (EVAP.le.SNOW .or. SNOW.lt.SNMIN .or. ITYPE.eq.2) THEN
+                TEVAP=EVAP*trgrnd(nx)
+              ELSE ! special treatment for landice when EVAP>SNOW>SNMIN
+                TEVAP=SNOW*(trgrnd(nx)-trgrnd2(nx))+EVAP*trgrnd2(nx)
+              END IF
             ELSE                ! DEW (fractionates)
 #ifdef TRACERS_SPECIAL_O18
               IF (TG1.gt.0) THEN
@@ -1291,7 +1302,7 @@ C****
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
-!$OMP  PARALLEL DO PRIVATE (I,J,FTEVAP,FQEVAP,P1K)
+!$OMP  PARALLEL DO PRIVATE (I,J,N,FTEVAP,FQEVAP,P1K)
 !$OMP*          SCHEDULE(DYNAMIC,2)
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)

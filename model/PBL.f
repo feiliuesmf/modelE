@@ -13,6 +13,7 @@
       USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx,tf
      &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo
       USE SEAICE, only : tfrez
+      USE LANDICE, only : snmin
 #ifdef TRACERS_ON
 #ifdef RUNTIME_NTM
       USE TRACER_COM, only : maxntm
@@ -78,7 +79,7 @@
 c**** t_pbl_args is a derived type structure which contains all
 c**** input/output arguments for PBL
 c**** Please, use this structure to pass all your arguments to PBL
-c**** Don''t use global variables for that purpose !
+c**** Do not use global variables for that purpose !
       type t_pbl_args
         ! input:
         real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi,tr4
@@ -86,7 +87,7 @@ c**** Don''t use global variables for that purpose !
         real*8 tg,elhx,qsol,sss_loc
         logical :: pole,ocean,ddml_eq_1
         ! inout:
-        real*8 gusti,tdns,qdns,tprime,qprime
+        real*8 gusti,tdns,qdns,tprime,qprime,snow
         ! output:
         real*8 us,vs,ws,tsv,qsrf,cm,ch,cq,dskin,ws0
         ! the following args needed for diagnostics
@@ -97,11 +98,12 @@ c**** while local arrays in PBL code have dim 1:ntx
 c**** Tracer input/output
 !@var trtop,trs tracer mass ratio in level 1/surface
 !@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var trgrnd2 factor for correction to landice evap
 !@var ntx number of tracers that need pbl calculation
 !@var ntix index array to map local tracer number to global
 !@var trprime anomalous tracer concentration in downdraft
         real*8, dimension(maxntm) :: trtop,trs,trsfac,trconstflx
-        real*8, dimension(maxntm) :: trdn1,trprime
+        real*8, dimension(maxntm) :: trdn1,trprime,trgrnd2
         integer ntx
         integer, dimension(maxntm) :: ntix
 #ifdef TRACERS_SPECIAL_O18
@@ -114,11 +116,10 @@ c**** Tracer input/output
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c**** input
-!@var pbl_args%snowe earth snow amount [kg/m^2]
 !@var pbl_args%wearth earth water of first layer [kg/m^2]
 !@var pbl_args%aiearth earth ice of first layer [kg/m^2]
 !@var pbl_args%wfcs water field capacity of first ground layer [kg/m^2]
-        REAL*8 :: snowe,wearth,aiearth,wfcs
+        REAL*8 :: wearth,aiearth,wfcs
 !@var pbl_args%ers_data ERS data
 !@var pbl_args%src_fnct distribution of preferred sources
         REAL*8 :: ers_data,src_fnct
@@ -397,25 +398,25 @@ c**** other local vars
       real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1
       real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
-      real*8 :: tr_dens, tr_radius ! variable tracer density and size
       integer :: i,iter,ierr  !@var i,iter loop variable
 C****
       REAL*8,DIMENSION(n) :: z
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
-      REAL*8 :: lmonin
+      REAL*8 :: lmonin,snow
 #ifdef TRACERS_ON
       real*8, dimension(n,ntm) :: trsave
-      real*8 trcnst,trsf,cqsave,byrho,rh1
+      real*8 trcnst,trsf,cqsave,byrho,rh1,evap
       real*8, dimension(n-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
 #ifdef TRACERS_SPECIAL_O18
-      real*8 :: trc1,trs1   ! could be passed out....
+      real*8 :: trc1,trs1,trc2   ! could be passed out....
       real*8 :: fac_cq_tr(ntm)
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
       real*8 vgs
+      real*8 :: tr_dens, tr_radius ! variable tracer density and size
       logical hydrate
 #endif
 #endif
@@ -652,6 +653,7 @@ C**** First, define some useful quantities
       byrho=1d0/rhosrf
       tg1 = tgskin-tf ! re-calculate ground T (C)
       rh1=q(1)/qsat(ts,lhe,psurf) ! rel. hum. at surface (wrt water)
+      evap=-cq*rhosrf*(ws*(q(1)-qgrnd)+(ws-ws0)*qprime)  ! net evap
 
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
@@ -670,9 +672,6 @@ C**** for all dry deposited tracers
 #endif
 C**** loop over tracers
       do itr=1,pbl_args%ntx
-c     set tracer size and density (not necessarily constant anymore)
-        tr_radius = trnradius(pbl_args%ntix(itr))
-        tr_dens =   trndens(pbl_args%ntix(itr))
 C**** Define boundary conditions
 
 C****   1) default air mass tracers
@@ -692,6 +691,14 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
             trsf=pbl_args%trsfac(itr)*cqsave*ws
           end if
 #ifdef TRACERS_SPECIAL_O18
+          if (itype.eq.3) then  ! posible correction for large E over LI
+            if (evap.gt.pbl_args%snow .and. pbl_args%snow.gt.snmin) then
+              trc2 = (pbl_args%snow*pbl_args%trconstflx(itr)+(evap ! weighted mean tracer conc
+     *             -pbl_args%snow)*pbl_args%trgrnd2(itr))/evap 
+              trcnst=cqsave*(trc2*ws*qgrnd_sat-
+     *             (ws-ws0)*pbl_args%trdn1(itr))
+            end if
+          end if
 C**** get fractionation for isotopes
           call get_frac(itype,ws,tg1,q(1),qgrnd_sat
      &         ,pbl_args%ntix(itr),fac_cq_tr(itr),trc1,trs1)
@@ -707,6 +714,10 @@ C****   3) dry deposited tracers (including gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(pbl_args%ntix(itr))) then
 C****   get settling velocity
+
+c****   set tracer size and density (not constant anymore)
+        tr_radius = trnradius(pbl_args%ntix(itr))
+        tr_dens =   trndens(pbl_args%ntix(itr))
 
 C**** need to hydrate the sea salt before determining settling
           hydrate = (trname(pbl_args%ntix(itr)).eq.'seasalt1'.or.
@@ -826,9 +837,6 @@ ccc dust emission from earth
         END SELECT
 #endif
 
-
-
-
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifndef TRACERS_GASEXCH_CO2_Igor /* hack for testing land-only */
@@ -850,8 +858,6 @@ ccc dust emission from earth
       ENDIF
 #endif /* TRACERS_GASEXCH_ocean_CFC */
 #endif /* TRACERS_GASEXCH_ocean */
-
-
 
 C**** solve tracer transport equation
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf

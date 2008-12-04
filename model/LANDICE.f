@@ -24,6 +24,8 @@
       REAL*8, PARAMETER :: ACE2LI = Z2LI*RHOI
 !@var HC2LI heat capacity of second layer land ice (J/m^2)
       REAL*8, PARAMETER :: HC2LI = ACE2LI*SHI
+!@param SNMIN snow minimum used in some tracer calculations (kg/m2)
+      REAL*8, PARAMETER :: SNMIN = 1d-5
 !@dbparam glmelt_on determines whether glacial melt is used for oceans
       INTEGER :: glmelt_on = 1 ! yes w/ann adjustment (2: yes but fixed)
 !@dbparam glmelt_fac_nh is a factor to multiply glacial melt by in NH

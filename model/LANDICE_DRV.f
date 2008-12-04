@@ -17,7 +17,7 @@
       USE GEOM, only : axyp,imaxj
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
-     *     ,eaccpdg
+     *     ,eaccpdg,snmin
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,traccpda,traccpdg
@@ -36,7 +36,7 @@
 #endif
 #endif
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only :  trglac
+      USE TRACER_COM, only :  trglac,trw0
 #endif
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
@@ -67,7 +67,7 @@ C**** set GTEMP array for landice
             GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef TRACERS_WATER
             if (istart.ge.9) then
-            IF (SNOWLI(I,J).gt.1d-5) THEN
+            IF (SNOWLI(I,J).gt.SNMIN) THEN
               GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
             ELSE
               GTRACER(:,3,I,J)=TRLNDI(:,I,J)/(ACE1LI+ACE2LI)
@@ -282,7 +282,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
 #endif
-      USE LANDICE, only: ace1li,ace2li,precli
+      USE LANDICE, only: ace1li,ace2li,precli,snmin
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,ntm,trdwnimp
@@ -359,7 +359,7 @@ C**** accumulate implicit fluxes for setting ocean balance
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
         TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPIJ
-        IF (SNOW.gt.1d-5) THEN
+        IF (SNOW.gt.SNMIN) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
           GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
@@ -392,7 +392,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE*DXYPIJ) ! (Tg=0)
       USE CONSTANT, only : tf
       USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE LANDICE, only : lndice,ace1li,ace2li
+      USE LANDICE, only : lndice,ace1li,ace2li,snmin
       USE SEAICE_COM, only : rsi
       USE SEAICE, only : rhos
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li,ij_erun2
@@ -484,7 +484,7 @@ C**** accumulate implicit fluxes for setting ocean balance
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
         TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPIJ
-        IF (SNOW.gt.1d-5) THEN
+        IF (SNOW.gt.SNMIN) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
           GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
@@ -644,7 +644,6 @@ C****
 #endif
 #endif    /* TNL: inserted */
 #ifdef TRACERS_WATER
-     *     ,gtracer
       USE TRACER_COM, only :  trw0, nWater, trname
 #endif
       USE PARAM
