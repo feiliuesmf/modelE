@@ -166,19 +166,19 @@
       call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
 
       call prescr_get_hdata(hdata) !height
-      print *,'hdata',hdata
+      !print *,'hdata',hdata
       call prescr_get_initnm(nmdata) !nm
       call prescr_get_rootprof(rootprofdata)
       call prescr_get_woodydiameter(hdata,dbhdata)
-      print *,"dbhdata",dbhdata
+      !print *,"dbhdata",dbhdata
       call prescr_get_pop(dbhdata,popdata)
-      print *,"popdata",popdata
+      !print *,"popdata",popdata
       call prescr_get_crownrad(popdata,craddata)
       call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &     laidata,hdata,dbhdata,popdata,cpooldata)
-      do i=1,N_COVERTYPES
-        print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
-      end do
+      !do i=1,N_COVERTYPES
+      !  print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
+      !end do
       call prescr_get_soilcolor(soil_color)
       call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
@@ -219,10 +219,10 @@
       call openunit("VEG",iu_VEG,.true.,.true.)
 
       do k=1,N_COVERTYPES-N_OTHER  !## Skip algae and grac4 #HACK
-        print *,k
+        !print *,k
         read(iu_VEG) title , buf
         vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
-        print *,"read VEG:", title
+        !print *,"read VEG:", title
       end do
       !print *,"vdata", vdata(:,I0:I1,J0:J1) !#DEBUG
       call closeunit(iu_VEG)
