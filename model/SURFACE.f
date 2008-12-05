@@ -79,7 +79,10 @@ C****
      *     ,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,idd_grav,idd_turb
 #endif
       USE LANDICE, only : z1e,z2li,hc1li,hc2li,ace1li,ace2li,snmin
-      USE LANDICE_COM, only : snowli,trlndi
+      USE LANDICE_COM, only : snowli
+#ifdef TRACERS_WATER
+     *     ,trlndi
+#endif      
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,solar_ice_frac
      *     ,tfrez,dEidTi,alami
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws,ssi
