@@ -3,7 +3,7 @@
 !@sum Routines to simulate soil biogeochemistry:
 !@sum microbial dynamics, C & N pools, respiration and N fluxes.
 
-#define DEBUG TRUE
+!#define DEBUG TRUE
 
       use ent_const
       use ent_types
@@ -218,7 +218,8 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
         !**functions f(RWC), Rh from DelGrosso et al. (Biogeoch. 73, 2005)** -PK 2/07
 !           bgmoist(:) = 5.d0 *
 !     &                 (0.287d0+(atan(PI*0.009d0*(Wlim(:)-17.47d0)))/PI)
-           bgmoist(:) = min(1.d0,0.01d0 + (1-0.01d0)/(0.7-0.d0)*Wlim(:)) !linear - NK
+           bgmoist(:) = min(1.d0,0.01d0 + 
+     &                     (1.d0-0.01d0)/(0.7-0.d0)*Wlim(:)) !linear - NK
            atmp(:) = bgtemp(:) * bgmoist(:)
 
 *---Step 1b: DETERMINE loss of C FROM EACH DEAD POOL (donor) PER TIMESTEP
