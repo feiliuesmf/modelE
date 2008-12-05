@@ -3332,16 +3332,16 @@ C**** Scale stresses for ocean area
       DO J=J_0,J_1
         DO I=1,IMO
 c          oDMUA(I,J,1)=RATOC(J)*oDMUA(I,J,1)
-          oDMVA(I,J,1)=RATOC(J)*oDMVA(I,J,1)
+c          oDMVA(I,J,1)=RATOC(J)*oDMVA(I,J,1)
           oDMUI(I,J)=RATOC(J)*oDMUI(I,J)
           oDMVI(I,J)=RATOC(J)*oDMVI(I,J)
         END DO
       END DO
 
-      write (666,*) ' OSTRES: RATOC(18),UO(48,18,1)= ',
-     *  RATOC(18),UO(48,18,1)
-      write (666,*) ' OSTRES: oDMUA(48,18,1)= ',
-     * oDMUA(48,18,1),oDMUA(49,18,1),0.5*(oDMUA(48,18,1)+oDMUA(49,18,1))
+      write (666,*) ' OSTRES: RATOC(7),UO(55,7,1)= ',
+     *  RATOC(7),UO(55,7,1)
+      write (666,*) ' OSTRES: oDMUA(55,7,1),oDMVA(55,7,1)= ',
+     *  oDMUA(55,7,1),oDMVA(55,7,1)
 C****
 C**** Surface stress is applied to U component
 C****
@@ -3349,7 +3349,7 @@ C****
       DO J=J_0S,J_1S
       DO IP1=1,IMO
         IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
-     *       2d0*(oDMUA(I,J,1) + oDMUI(I,J)) /
+     *       (oDMUA(I,J,1) + oDMUA(IP1,J,1) + 2d0*oDMUI(I,J)) /
      *       (  MO(I,J,1) +   MO(IP1,J,1))
         I=IP1
       END DO
@@ -5403,7 +5403,7 @@ C**** poles
 #endif
 
       USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
-     *     oDLATM=>DLATM, oSINU=>SINU, oCOSU=>COSU
+     *     oDLATM=>DLATM, oSINI=>SINIC, oCOSI=>COSIC
       Use GEOM,  only : aDXYP=>DXYP, aDXYPO, aIMAXJ=>IMAXJ,
      *     aDLATM=>DLATM, aSINI=>SINIP, aCOSI=>COSIP
 
@@ -5653,10 +5653,10 @@ C**** poles
         oEGMELT_glob(:,J) = oFtemp(:,J)*oDXYPO(J)                     !  J  
       END DO
 
-      aDMUAsp = aDMUA_glob(1,1,1)*(aDXYP(1)/aDXYPO(1))
-      aDMVAsp = aDMVA_glob(1,1,1)*(aDXYP(1)/aDXYPO(1))
-      aDMUAnp = aDMUA_glob(1,JMA,1)*(aDXYP(JMA)/aDXYPO(JMA))
-      aDMVAnp = aDMVA_glob(1,JMA,1)*(aDXYP(JMA)/aDXYPO(JMA))
+      aDMUAsp = aDMUA_glob(1,1,1)
+      aDMVAsp = aDMVA_glob(1,1,1)
+      aDMUAnp = aDMUA_glob(1,JMA,1)
+      aDMVAnp = aDMVA_glob(1,JMA,1)
 
       aFtemp(:,1  ) = aDMUAsp*aCOSI(:) - aDMVAsp*aSINI(:)
       aFtemp(:,JMA) = aDMUAnp*aCOSI(:) + aDMVAnp*aSINI(:)
@@ -5664,32 +5664,42 @@ C**** poles
       DO J=2,JMA-1
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aDMUA_glob(I,J,1)*(aDXYP(J)/aDXYPO(J))      !  kg/m s
+            aFtemp(I,J) = aDMUA_glob(I,J,1)                           !  kg/m s
           END IF 
         END DO
       END DO
-      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.5d0,oDLATM, 0.d0)
-      call HNTR8  (aONES, aFtemp, oDMUA_glob)  !!  A-grid => U-grid
+      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
+      call HNTR8  (aONES, aFtemp, oDMUA_glob)          !!  A-grid => A-grid
       
-      oDMUAsp =  SUM(oDMUA_glob(:,  1,1)*oCOSU(:))*2/IMO
-      oDMVAsp = -SUM(oDMUA_glob(:,  1,1)*oSINU(:))*2/IMO
-      oDMUAnp =  SUM(oDMUA_glob(:,JMO,1)*oCOSU(:))*2/IMO
-      oDMVAnp =  SUM(oDMUA_glob(:,JMO,1)*oSINU(:))*2/IMO
+      oDMUAsp =  SUM(oDMUA_glob(:,  1,1)*oCOSI(:))*2/IMO
+      oDMVAsp = -SUM(oDMUA_glob(:,  1,1)*oSINI(:))*2/IMO
+      oDMUAnp =  SUM(oDMUA_glob(:,JMO,1)*oCOSI(:))*2/IMO
+      oDMVAnp =  SUM(oDMUA_glob(:,JMO,1)*oSINI(:))*2/IMO
 
-      oDMUA_glob(IMO  ,1  ,1) = oDMUAsp
-      oDMUA_glob(IVSPO,1  ,1) = oDMVAsp
-      oDMUA_glob(IMO  ,JMO,1) = oDMUAnp
-      oDMUA_glob(IVNPO,JMO,1) = oDMVAnp
+      oDMUA_glob(1,  1,1) = oDMUAsp
+      oDMUA_glob(1,JMO,1) = oDMUAnp
 
-      write (666,*) ' INT_AG2OG_oceans:RATOC(18)= ',aDXYP(18)/aDXYPO(18)
-      write (666,*) ' INT_AG2OG_oceans: aFtemp(48,18)= ', 
-     *  aFtemp(48,18),aFtemp(49,18),0.5*(aFtemp(48,18)+aFtemp(49,18))
-      write (666,*) ' INT_AG2OG_oceans: oDMUA_glob(48,18,1)= ',
-     *  oDMUA_glob(48,18,1)
+      aFtemp(:,  1) = aDMVAsp*aCOSI(:) + aDMUAsp*aSINI(:)
+      aFtemp(:,JMA) = aDMVAnp*aCOSI(:) - aDMUAnp*aSINI(:)
+
+      DO J=2,JMA-1
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aDMVA_glob(I,J,1)                           !  kg/m s
+          END IF 
+        END DO
+      END DO
+      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
+      call HNTR8  (aONES, aFtemp, oDMVA_glob)          !!  A-grid => A-grid
+
+      oDMVA_glob(1,  1,1) = oDMVAsp
+      oDMVA_glob(1,JMO,1) = oDMVAnp
+
+      write (666,*) ' INT_AG2OG_oceans:RATOC(18)= ',aDXYP(7)/aDXYPO(7)
+      write (666,*) ' INT_AG2OG_oceans: 
+     *  oDMUA_glob(55,7,1),oDMVA_glob(55,7,1)= ',
+     *  oDMUA_glob(55,7,1),oDMVA_glob(55,7,1)
  
-c      oDMUA_glob(:,:,1)   = aDMUA_glob(:,:,1)
-      oDMVA_glob(:,:,1)   = aDMVA_glob(:,:,1)
-
       oDMUI_glob(:,:)     = aDMUI_glob(:,:)
       oDMVI_glob(:,:)     = aDMVI_glob(:,:)
 
