@@ -188,20 +188,19 @@
       !----Local------
       type(patch),pointer :: pp
 
-      if (.not.do_giss_lai) then  !* Prescribed non-GISS veg structure.
-      ! update with external data first
-        if ( associated(hdata) )
-     &       call entcell_update_height(entcell, hdata, init)
+      ! update with external data if required
+      if ( associated(hdata) )
+     &     call entcell_update_height(entcell, hdata, init)
         
-        if ( associated(laidata) )
-     &       call entcell_update_lai_poolslitter(entcell,laidata,init)
+      if ( associated(laidata) )
+     &     call entcell_update_lai_poolslitter(entcell,laidata,init)
 
-        if ( associated(albedodata) )
-     &       call entcell_update_albedo(entcell, albedodata)
+      if ( associated(albedodata) )
+     &     call entcell_update_albedo(entcell, albedodata)
         
-        if ( associated(cropsdata) )
-     &       call entcell_update_crops(entcell, cropsdata)
-      endif
+      if ( associated(cropsdata) )
+     &     call entcell_update_crops(entcell, cropsdata)
+
       ! and then do GISS phenology if required
       if ( do_giss_phenology ) then  !do_giss_phenology is redundant with do_giss_lai.
         if ( hemi<-2 .or. jday <-2 )
