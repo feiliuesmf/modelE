@@ -904,6 +904,17 @@ c$$$         end if
       !C_sw =  No litter from sapwood
       !C_hw replenished from C_lab: no change
       !C_croot replenished from C_lab: no change
+
+      !########### HACK ###################################################
+      !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
+      !#### GROWTH RESPIRATION FROM CHANGE IN LAI NEEDS TO BE SAVED AS 
+      !#### A RESTART VARIABLE IN ORDER TO SEND THAT FLUX TO THE ATMOSPHERE.
+      !#### SINCE WE DON'T HAVE TIME TO REDO RESTARTS BEFORE AGU,
+      !#### THIS HACK HERE SETS GROWTH RESPIRATION FROM CHANGED LAI TO ZERO.
+      resp_growth = 0.d0
+      resp_growth_root = 0.d0
+      !############ END HACK ##############################################
+
       cop%C_lab = cop%C_lab - l_fract*(loss_leaf + loss_froot) 
      &     - loss_hw - loss_croot - resp_growth
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
@@ -912,7 +923,7 @@ c$$$         end if
       i2a = 1d-3*cop%n          !Convert g-C/individual to kg-C/m^2
       cop%R_auto = cop%R_auto + i2a*resp_growth
       cop%R_root = cop%R_root + i2a*resp_growth_root
-      cop%NPP = cop%NPP - cop%R_auto
+      cop%NPP = cop%GPP - cop%R_auto
       if (C_fol_old.eq.0.d0) then
         cop%senescefrac = 0.d0
       else

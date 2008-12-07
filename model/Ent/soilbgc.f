@@ -3,8 +3,6 @@
 !@sum Routines to simulate soil biogeochemistry:
 !@sum microbial dynamics, C & N pools, respiration and N fluxes.
 
-!#define DEBUG TRUE
-
       use ent_const
       use ent_types
       use ent_pfts
@@ -46,13 +44,6 @@
       Tpool(:,:,:) = pp%Tpool(:,:,:) !Added - NYK 7/27/06
 !       print *, __FILE__,__LINE__,'Tpool=',Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
       
-#ifdef DEBUG
-      print *,'casa inputs: dt= ',dtsec,'soilmoist=',soilmoist     
-     &       ,'ivt=',ivt,'soiltemp=',soiltemp 
-     &       ,'clay=',clayfrac,'sand=',sandfrac,'silt=',siltfrac
-      call print_Tpool(Tpool)
-#endif
-     
       call casa_bgfluxes(dtsec, Soilmoist,  ivt    
      &                 , Soiltemp, clayfrac, sandfrac, siltfrac
      &                 , Tpool, Cflux)
@@ -62,16 +53,6 @@
       pp%Soil_resp = Cflux*1.d-3 
       pp%Tpool(:,:,:) = Tpool(:,:,:)
 !       print *, __FILE__,__LINE__,'pp%Tpool=',pp%Tpool(CARBON,:,:) !***test*** -PK 7/24/07  
-
-#ifdef DEBUG
-      call print_Tpool(Tpool)
-      print *,'casa outputs: soil_resp(kgC/m2/s)=',pp%soil_resp
-
-      if (Cflux.lt.0.d0) then
-        write(990,*) "negative Soil resp:",pp%Soil_resp,Soilmoist,
-     &       Tpool(CARBON,:,:)
-      endif
-#endif
 
       end subroutine soil_bgc
 

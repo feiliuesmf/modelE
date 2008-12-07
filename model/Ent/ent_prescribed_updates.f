@@ -166,6 +166,7 @@
      &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
      &     ,laidata, hdata, albedodata, cropsdata, init )
 !@sum updates corresponding data on entcell level (and down). 
+!@+   DAILY TIME STEP ASSUMED.
 !@+   everything except entcell is optional. coordinate-dependent
 !@+   is given pointer attribute to provide a way to tell the 
 !@+   program that an argument is actually optional and missing
@@ -196,10 +197,10 @@
      &     call entcell_update_lai_poolslitter(entcell,laidata,init)
 
       if ( associated(albedodata) )
-     &     call entcell_update_albedo(entcell, albedodata)
-        
+     &       call entcell_update_albedo(entcell, albedodata)
+
       if ( associated(cropsdata) )
-     &     call entcell_update_crops(entcell, cropsdata)
+     &       call entcell_update_crops(entcell, cropsdata)
 
       ! and then do GISS phenology if required
       if ( do_giss_phenology ) then  !do_giss_phenology is redundant with do_giss_lai.
@@ -268,7 +269,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
             call prescr_veglitterupdate_cohort(cop,
      &           lai_new,Clossacc,.false.)
             laipatch = laipatch + cop%LAI
-          endif
+         endif
          !* Summarize for patch level. - NOTE:This is total flux, not just the growth increment.
          resp_growth_patch = resp_growth_patch + cop%R_auto
          resp_growth_root_patch = resp_growth_root_patch + cop%R_root
