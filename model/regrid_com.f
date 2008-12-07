@@ -4,31 +4,23 @@
 !@+ 
 !@+    We define the x_grid container which stores information and data about the 
 !@+    exchange grid. This data is common to the source and target grids
+!@+    see http://www.gfdl.noaa.gov/~vb/gridstd/gridstdse2.html#x4-160002.7
+!@     for precise definition of the concept of exchange grid
 !@+    We also define the x_2grids type which contains an x_grid (exchange grid)
 !@+    plus info about the direction of the remapping and about the resolution 
 !@+    of the source and target grids
 !@+ 
 !@auth Denis Gueyffier (dgueyffier@nasa.giss.gov)
 
-#ifndef DECOMP
-      use DOMAIN_DECOMP, only: grid,dist_grid,AM_I_ROOT,SUMXPE
-#endif
-#ifdef CUBE_GRID
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain, mytile=>tile
-ccc end remove
-#else
+
+      use DOMAIN_DECOMP, only: AM_I_ROOT,SUMXPE
+      use dd2d_utils, only : dd2d_grid
+
       integer ::  is,ie,js,je,isd,ied,jsd,jed,gid,mytile
-#endif
 
       integer,parameter:: dom_per_tile=4   ! #domains per cube face
-      integer, parameter :: nrecmax=100 ! max #records in input files
+      integer, parameter :: nrecmax=200 ! max #records in input files
 
-ccc   routine members
-c      public :: init_regrid
-c      public :: init_csgrid_debug
-
-ccc   variable members
       private :: xgrid
       public :: x_2grids
 

@@ -12,9 +12,8 @@ CAOO   Just to test CVS
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT,pack_data
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
 #ifdef CUBE_GRID
-      USE gs_domain_decomp
-      USE regrid_com, only : x_2grids,isd,jsd,ied,jed
-      USE gatscat_mod, only : gatscat_init
+      USE regrid_com, only : x_2grids,isd,jsd,ied,jed,gid
+      use dd2d_utils
 #endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
@@ -104,6 +103,7 @@ C**** Command line options
 #endif
 #ifdef CUBE_GRID
       type (x_2grids) :: xcs2ll
+      type (dd2d_grid) :: dd2d
       real*8, dimension(:,:), allocatable :: tsource
       real*8, dimension(:,:,:), allocatable :: ttarget,atarget
 #endif
@@ -134,30 +134,24 @@ C****
       call sync_param( "J_TARG", J_TARG )
       call init_app(grid,im,jm,lm,J_TARG)
 #else
-C****
-C****
 #ifdef CUBE_GRID
-C**** Temporarily use instantiation of cubed sphere grid through fv_grid_tools_mod's init_grid()
-      call init_csgrid_debug
+c***  instanciate CS grid and transfer basic domain decomposition 
+c***  info to dd2d structure ( DEBUG ONLY ) 
+      call init_csgrid_debug(dd2d,48,48)
 
-c**** Initialize gather&scatter
-      call domain_decomp_init
-      call gatscat_init
-
-c***  Initialize exchange grid object and test regriding routines, DEBUG only
+c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
 c      call regrid_input
 
-      call init_regrid(xcs2ll,48,48,6,288,180,1)
+      call init_regrid(xcs2ll,dd2d,48,48,6,288,180,1)
       allocate(tsource(isd:ied,jsd:jed))
-      tsource(:,:)=20*gid+15
+      tsource(:,:)=-200*gid+15
       write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
       allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
      &     xcs2ll%ntilestarget),
      &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
      &     xcs2ll%ntilestarget) )
-      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
-c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
-
+c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
+      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 #else
       call init_app(grid,im,jm,lm)
 #endif
@@ -1403,40 +1397,7 @@ C**** it is consistent with IHRI (at least equal mod 8760)     ???
 C****            not yet implemented but could easily be done  ???
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
 Csoon   READ (iu_AIC) XLABEL(1:80)
-#ifdef CUBE_GRID
 
-      call init_regrid_root(xll2csroot,72,46,1,48,48,6)
-
-      call readt_regrid_parallel(xll2csroot,iu_AIC,NAMEUNIT(iu_AIC)
-     &     ,0,P,1)
-      do J=J_0,J_1
-         do I=I_0,I_1
-            P(i,j)=P(i,j)-PTOP
-         enddo
-      enddo
-      do l=1,LM
-         call readt_regrid_parallel(xll2csroot,iu_AIC,
-     &    NAMEUNIT(iu_AIC),0,U(:,:,L),1) 
-      enddo
-      do l=1,LM
-         call readt_regrid_parallel(xll2csroot,iu_AIC,
-     &    NAMEUNIT(iu_AIC),0,V(:,:,L),1) 
-      enddo
-      do l=1,LM
-         call readt_regrid_parallel(xll2csroot,iu_AIC,
-     &    NAMEUNIT(iu_AIC),0,T(:,:,L),1) 
-      enddo
-      do l=1,LM
-         call readt_regrid_parallel(xll2csroot,iu_AIC,
-     &        NAMEUNIT(iu_AIC),0,Q(:,:,L),1) 
-      enddo
-      
-      call readt_regrid_parallel(xll2csroot,iu_AIC,
-     &     NAMEUNIT(iu_AIC),0,TSAVG,1) 
-
-c*** temporarily stop here
-      call stop_model('readt regrid parallel test STOP',255)
-#else
         CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,P,1) ! Psurf
         DO J=J_0,J_1
           DO I=I_0,I_1
@@ -1475,7 +1436,6 @@ C****                                                    currently
 
          CALL HALO_UPDATE(grid, U, FROM=NORTH)
          CALL HALO_UPDATE(grid, V, FROM=NORTH)
-#endif
 
 
 #ifdef SCM
@@ -1963,14 +1923,7 @@ C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
       call openunit("TOPO",iu_TOPO,.true.,.true.)
-#ifdef CUBE_GRID
-      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) 
-      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) 
-      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) 
-      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,FLICE,1) 
-      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO,1) 
-      call readt_regrid_parallel(iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE,2) 
-#else
+
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) ! Ocean fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) ! Orig. Lake fraction
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) ! Earth frac. (no LI)
@@ -1978,7 +1931,7 @@ C**** Actual array is set from restart file.
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO ,1) ! Topography
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE ,2) ! Lake Depths
       ZATMO(:,J_0:J_1) = ZATMO(:,J_0:J_1)*GRAV                  ! Geopotential
-#endif
+
       call closeunit(iu_TOPO)
 
 C**** Check polar uniformity

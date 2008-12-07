@@ -439,17 +439,19 @@ c*
 c     ll2cs
          
          if (AM_I_ROOT()) then   
-            write(6,*) "ROOT REGRID LL2CS"
+            write(*,*) "ROOT REGRID LL2CS"
+ 
             atarget(:,:,:) = 0.d0
             ttarget(:,:,:) = 0.d0
             
+
             do n=1,x2gridsroot%xgridroot%ncells
                itile=x2gridsroot%xgridroot%tile(n)
                icc=x2gridsroot%xgridroot%ijcub(1,n)
                jcc=x2gridsroot%xgridroot%ijcub(2,n)
                il=x2gridsroot%xgridroot%ijlatlon(1,n)
                jl=x2gridsroot%xgridroot%ijlatlon(2,n)
-               
+
                atarget(icc,jcc,itile) = atarget(icc,jcc,itile) 
      &              + x2gridsroot%xgridroot%xgrid_area(n)
                ttarget(icc,jcc,itile) = ttarget(icc,jcc,itile) 
@@ -474,23 +476,25 @@ c     ll2cs
 c*
 
          
-      subroutine init_regrid(x2grids,imsource,jmsource,
+      subroutine init_regrid(x2grids,dd2d,imsource,jmsource,
      &     ntilessource,imtarget,jmtarget,ntilestarget)
 
 !@sum  Reads regriding file on root proc, broadcasts the 
 !@+    x_grid data to all processes then instanciates locally
 !@+    the x_2grids derived type (x_2grids type=x_grid plus info about
 !@+    source and target grids). It also initializes domain decomposition
-!@+    variables through dist_grid derived type. Will soon use dd2d 
+!@+    variables through dist_grid derived type. It uses Max's dd2d 
 !@+    derived type in place of dist_grid.
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
       include 'netcdf.inc'
       include 'mpif.h'
-c      type (dist_grid), intent(in) :: grid
+
       type (x_2grids), intent(inout) :: x2grids
       type (x_grid) :: xgrid
+      type (dd2d_grid), intent(in) :: dd2d
+
       real*8,  allocatable, dimension(:) :: xgrid_area  !local variable
       integer, allocatable, dimension(:) :: tile        !local variable
       integer, allocatable, dimension(:,:) :: ijcub     !local variable
@@ -504,25 +508,19 @@ c      type (dist_grid), intent(in) :: grid
       character*200 :: exchfile
       character(len=10) :: imch,jmch,icch,jcch
 
-
-c modify lines below when we begin using derived type dd2d 
-#ifndef CUBE_GRID  
 c     set variables ("Constructor")
-      is=grid%I_STRT
-      ie=grid%I_STOP
-      isd=grid%I_STRT_HALO
-      ied=grid%I_STOP_HALO
+      is=dd2d%is
+      ie=dd2d%ie
+      isd=dd2d%isd
+      ied=dd2d%ied
 
-      js=grid%J_STRT
-      je=grid%J_STOP
-      jsd=grid%J_STRT_HALO
-      jed=grid%J_STOP_HALO
+      js=dd2d%js
+      je=dd2d%je
+      jsd=dd2d%jsd
+      jed=dd2d%jed
 
-      call MPI_COMM_RANK(MPI_COMM_WORLD,gid,ierr) ! will soon be replaced by gid = grid%dd2d%gid
-c      call MPI_COMM_SIZE(MPI_COMM_WORLD,totPEs,ierr)
-
-      mytile=(gid/dom_per_tile)+1   ! will soon be mytile=grid%dd2d%mytile
-#endif
+      gid=dd2d%gid
+      mytile=dd2d%tile
 
       x2grids%imsource=imsource
       x2grids%jmsource=jmsource
@@ -615,7 +613,7 @@ c     first calculate maxkey
          
          maxkey=ikey-1
          
-         write(*,*) "maxkey=",maxkey
+         write(*,*) "gid maxkey=",gid,maxkey
 
          allocate(x2grids%xgrid%icub_key(maxkey),
      &        x2grids%xgrid%jcub_key(maxkey),
@@ -702,8 +700,7 @@ c*
 !@+    x_grid data to all processes then instanciates locally
 !@+    the x_2grids derived type (x_2grids type=x_grid plus info about
 !@+    source and target grids). It also initializes domain decomposition
-!@+    variables through dist_grid derived type. Will soon use dd2d 
-!@+    derived type in place of dist_grid.
+!@+    variables through dist_grid derived type.  
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
@@ -724,25 +721,6 @@ c*
       character*200 :: exchfile
       character(len=10) :: imch,jmch,icch,jcch
 
-
-c modify lines below when we begin using derived type dd2d 
-#ifndef CUBE_GRID  
-c     set variables ("Constructor")
-      is=grid%I_STRT
-      ie=grid%I_STOP
-      isd=grid%I_STRT_HALO
-      ied=grid%I_STOP_HALO
-
-      js=grid%J_STRT
-      je=grid%J_STOP
-      jsd=grid%J_STRT_HALO
-      jed=grid%J_STOP_HALO
-
-      call MPI_COMM_RANK(MPI_COMM_WORLD,gid,ierr) ! will soon be replaced by gid = grid%dd2d%gid
-c      call MPI_COMM_SIZE(MPI_COMM_WORLD,totPEs,ierr)
-
-      mytile=(gid/dom_per_tile)+1   ! will soon be mytile=grid%dd2d%mytile
-#endif
 
       x2gridsroot%imsource=imsource
       x2gridsroot%jmsource=jmsource
@@ -836,91 +814,89 @@ c*
 
 
 
-      subroutine readt_regrid_parallel(x2gridsroot,iunit,name,nskip,
-     &     ttargloc,ipos)
-
-!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
-!@+    then scatter to all subdomains
-!@auth Denis Gueyffier
-
-      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
-      use gatscat_mod
-      implicit none
-      type (x_2gridsroot), intent(in) :: x2gridsroot
-      integer, intent(in) :: iunit
-      character*16, intent(in) :: name
-      integer, intent(in) :: nskip
-
-      real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
-      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
-     &     x2gridsroot%ntilessource) 
-      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
-     &     x2gridsroot%ntilessource) 
-      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
-     &     x2gridsroot%ntilestarget)
-      real*4 :: X              
-      integer, intent(in) :: ipos
-      integer :: n,ierr
-      character*80 :: TITLE     
-
-
-      if (AM_I_ROOT()) then   
-         do n=1,ipos-1
-            read(UNIT=iunit,IOSTAT=ierr)
-         enddo
-         read(UNIt=iunit,IOSTAT=ierr) TITLE, (X,n=1,nskip), tsource4
-c     convert from real*4 to real*8
-         tsource=tsource4
-c     Regrid, form global array
-         call root_regrid(x2gridsroot,tsource,ttarget)
-       endif
-
-c     Scatter data to every processor
-      call unpack_data(ttarget,ttargloc)
-      write(6,*) "TTARGLOC>>>",ttargloc,"<<<<"
-      end subroutine readt_regrid_parallel
+c      subroutine readt_regrid_parallel(x2gridsroot,iunit,name,nskip,
+c     &     ttargloc,ipos)
+c
+c!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
+c!@+    then scatter to all subdomains
+c!@auth Denis Gueyffier
+c
+c      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
+c      use gatscat_mod
+c      implicit none
+c      type (x_2gridsroot), intent(in) :: x2gridsroot
+c      integer, intent(in) :: iunit
+c      character*16, intent(in) :: name
+c      integer, intent(in) :: nskip
+c
+c      real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
+c      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
+c     &     x2gridsroot%ntilessource) 
+c      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
+c     &     x2gridsroot%ntilessource) 
+c      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
+c     &     x2gridsroot%ntilestarget)
+c      real*4 :: X              
+c      integer, intent(in) :: ipos
+c      integer :: n,ierr
+c      character*80 :: TITLE     
+c
+c
+c      if (AM_I_ROOT()) then   
+c         do n=1,ipos-1
+c            read(UNIT=iunit,IOSTAT=ierr)
+c         enddo
+c         read(UNIt=iunit,IOSTAT=ierr) TITLE, (X,n=1,nskip), tsource4
+cc     convert from real*4 to real*8
+c         tsource=tsource4
+cc     Regrid, form global array
+c         call root_regrid(x2gridsroot,tsource,ttarget)
+c       endif
+c
+cc     Scatter data to every processor
+c      call unpack_data(ttarget,ttargloc)
+c      write(6,*) "TTARGLOC>>>",ttargloc,"<<<<"
+c      end subroutine readt_regrid_parallel
 c*
 
 
-      subroutine dread_regrid_parallel(x2gridsroot,iunit,name,ttargloc)
-     
-!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
-!@+    then scatter to all subdomains
-!@auth Denis Gueyffier
-
-      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
-      use gatscat_mod
-      implicit none
-      type (x_2gridsroot), intent(in) :: x2gridsroot
-      integer, intent(in) :: iunit
-      character*16, intent(in) :: name
-
-      real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
-      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
-     &     x2gridsroot%ntilessource) 
-      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
-     &     x2gridsroot%ntilessource) 
-      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
-     &     x2gridsroot%ntilestarget)
-      real*4 :: X              
-      integer :: n,ierr
-
-
-
-   
-      if (AM_I_ROOT()) then   
-         read(UNIt=iunit,IOSTAT=ierr) tsource4
-c     convert from real*4 to real*8
-         tsource=tsource4
-c     Regrid, form global array
-         call root_regrid(x2gridsroot,tsource,ttarget)
-       endif
-
-c     Scatter data to every processor
-      call unpack_data(ttarget,ttargloc)
-      write(6,*) "TTARGLOC>>>",ttargloc,"<<<<"
-
-      end subroutine dread_regrid_parallel
+c      subroutine dread_regrid_parallel(x2gridsroot,iunit,name,ttargloc)
+c     
+c!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
+c!@+    then scatter to all subdomains
+c!@auth Denis Gueyffier
+c
+c      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
+c      use gatscat_mod
+c      implicit none
+c      type (x_2gridsroot), intent(in) :: x2gridsroot
+c      integer, intent(in) :: iunit
+c      character*16, intent(in) :: name
+c
+c      real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
+c      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
+c     &     x2gridsroot%ntilessource) 
+c      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
+c     &     x2gridsroot%ntilessource) 
+c      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
+c     &     x2gridsroot%ntilestarget)
+c      real*4 :: X              
+c      integer :: n,ierr
+c
+c  
+c      if (AM_I_ROOT()) then   
+c         read(UNIt=iunit,IOSTAT=ierr) tsource4
+cc     convert from real*4 to real*8
+c         tsource=tsource4
+cc     Regrid, form global array
+c         call root_regrid(x2gridsroot,tsource,ttarget)
+c       endif
+c
+cc     Scatter data to every processor
+c      call unpack_data(ttarget,ttargloc)
+c      write(6,*) "TTARGLOC>>>",ttargloc,"<<<<"
+c
+c      end subroutine dread_regrid_parallel
 c*
 
 
@@ -1121,12 +1097,13 @@ c      write(*,*) "arr=",arr(:,:)
       end subroutine sumxpe2d_exact
 c*
 
-      subroutine init_csgrid_debug()
+      subroutine init_csgrid_debug(dd2d,imc,jmc)
 
 !@sum  temporary instanciation of CS grid and domain decomp. using direct
 !@+    access to MPP. Used only for debugging purpose.
 !@auth Denis Gueyffier
 
+      use dd2d_utils
       use mpp_mod
       use mpp_domains_mod
       use fv_mp_mod, only : mp_start,mp_stop
@@ -1140,17 +1117,16 @@ c     &     ,sw_corner,se_corner,ne_corner,nw_corner
       use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
      &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
       use fv_control_mod, only : uniform_ppm,c2l_ord
-      use gs_domain_decomp, ng=>halo_width
-      use gatscat_mod
-
+      
       implicit none
       integer :: i,j,npz
       integer :: npes,ndims
       integer :: commID
       integer, dimension(:), allocatable :: pelist
-
+      integer :: ng, imc,jmc
       real*8, dimension(:,:), allocatable :: P
 
+      type (dd2d_grid), intent(inout) :: dd2d
       type(fv_atmos_type) :: atm
       character*80 :: grid_name = 'Gnomonic'
       character*120:: grid_file = 'Inline'
@@ -1165,21 +1141,29 @@ c code copied from fv_init:
       call mpp_get_current_pelist( pelist, commID=commID )
       call mp_start(commID)
 c      write(6,*) 'commID ',commID
-      npx = 48; npy = npx ! 1x1 resolution
+      
       ng = 3 ! number of ghost zones required
 
-      call fv_domain_decomp(npx+1,npy+1,6,ng,grid_type)
+      call fv_domain_decomp(imc+1,jmc+1,6,ng,grid_type)
 c      call mp_stop()
 
       ndims = 2
       npz = 5
       call init_grid(atm,grid_name,grid_file,
-     &     npx+1, npy+1, npz, ndims, 6, ng)
+     &     imc+1, jmc+1, npz, ndims, 6, ng)
 
       non_ortho=.true.
-      call grid_utils_init(Atm, npx+1, npy+1, npz, Atm%grid, Atm%agrid,
+      call grid_utils_init(Atm, imc+1, jmc+1, npz, Atm%grid, Atm%agrid,
      &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
      &     uniform_ppm, grid_type, c2l_ord)
+
+c**   transfering domain decomposition info to Max's dd2d derived type
+      call init_dd2d_grid(
+     &     imc,jmc,6, 
+     &     is,ie,js,je,isd,ied,jsd,jed,dd2d)
+      
+      write(*,*) "is,ie,js,je,isd,ied,jsd,jed==",
+     &     is,ie,js,je,isd,ied,jsd,jed
 
       end subroutine init_csgrid_debug
 c****
