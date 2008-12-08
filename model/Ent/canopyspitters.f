@@ -149,6 +149,7 @@
      &     pp%cellptr%Qf/QSAT(TcanK,
      &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0)),
      &     psdrvpar)
+
 !      psdrvpar%rh = min(1.d0,
 !     &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
 !     &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0))
@@ -424,7 +425,7 @@
       !Spitters parameters
      i     Lcum                 !Cumulative LAI from top of canopy (m2/m2)
      i     ,crp                !Canopy radiation parameters 
-     i     ,psp                 !Photosynthesis met drivers
+     i     ,psd                 !Photosynthesis met drivers
      i     ,Gb                  !Leaf boundary layer conductance (mol/m2/s)
      o     ,Alayer              !Leaf Net assimilation of CO2 in layer (umol m-2 s-1)
      o     ,gslayer            !Leaf Conductance of water vapor in layer (mol m-2 s-1)
@@ -432,7 +433,7 @@
       implicit none
       real*8,intent(in) :: Lcum
       type(canraddrv) :: crp
-      type(psdrvtype) :: psp
+      type(psdrvtype) :: psd
       real*8,intent(in) :: Gb
       !real*8,intent(in):: cs,Tl,Pa,rh
       !real*8,intent(inout) :: ci
@@ -456,10 +457,10 @@
       !Calculate photosynthesis and stomatal conductance.
 !      write(991,*) 'sunlit'
       sunlitshaded = 1
-      call pscondleaf(crp%pft,Isl,psp,Gb,gssl,Asl,Rdsl,sunlitshaded)
+      call pscondleaf(crp%pft,Isl,psd,Gb,gssl,Asl,Rdsl,sunlitshaded)
 !      write(992,*) 'shaded'
       sunlitshaded = 2
-      call pscondleaf(crp%pft,Ish,psp,Gb,gssh,Ash,Rdsh,sunlitshaded)
+      call pscondleaf(crp%pft,Ish,psd,Gb,gssh,Ash,Rdsh,sunlitshaded)
       !call Collatz(crp%pft, Isl,cs,Tl,rh, Pa,ci,gssl,Asl)
       !call Collatz(crp%pft, Ish,cs,Tl,rh, Pa,ci,gssh,Ash)
                    
@@ -467,7 +468,7 @@
       gslayer = fsl*gssl + (1.0d0 - fsl)*gssh
       Rdlayer = fsl*Rdsl + (1.0d0 - fsl)*Rdsh
 !#ifdef DEBUG
-!      write(998,*) Lcum,crp,Isl,Ish,fsl,psp,gssl,gssh,Asl,Ash,Rdsl,Rdsh
+!      write(998,*) Lcum,crp,Isl,Ish,fsl,psd,gssl,gssh,Asl,Ash,Rdsl,Rdsh
 !#endif
       end subroutine photosynth_sunshd
 

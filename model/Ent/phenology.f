@@ -911,8 +911,8 @@ c$$$         end if
       !#### A RESTART VARIABLE IN ORDER TO SEND THAT FLUX TO THE ATMOSPHERE.
       !#### SINCE WE DON'T HAVE TIME TO REDO RESTARTS BEFORE AGU,
       !#### THIS HACK HERE SETS GROWTH RESPIRATION FROM CHANGED LAI TO ZERO.
-      resp_growth = 0.d0
-      resp_growth_root = 0.d0
+!      resp_growth = 0.d0
+!      resp_growth_root = 0.d0
       !############ END HACK ##############################################
 
       cop%C_lab = cop%C_lab - l_fract*(loss_leaf + loss_froot) 

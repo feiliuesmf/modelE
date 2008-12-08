@@ -69,38 +69,38 @@ can!#define DEBUG 1
 
       end subroutine biophysdrv_setup
 !-----------------------------------------------------------------------------
-      subroutine pscondleaf(pft,IPAR,psp,Gb,gsout,Aout,Rdout
+      subroutine pscondleaf(pft,IPAR,psd,Gb,gsout,Aout,Rdout
      &     ,sunlitshaded)
       implicit none
       integer,intent(in) :: pft
       real*8,intent(in) :: IPAR !umol m-2 s-1
-      type(psdrvtype) :: psp
+      type(psdrvtype) :: psd
       real*8,intent(in) :: Gb !mol m-2 s-1
-      real*8,intent(out) :: gsout, Aout, Rdout !ci in psp
+      real*8,intent(out) :: gsout, Aout, Rdout !ci in psd
       integer,intent(in) :: sunlitshaded
       !---Local---
       real*8 :: ci!, cs
       real*8,parameter :: LOW_LIGHT_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
       
 !      if (IPAR.lt.LOW_LIGHT_LIMIT) then
-!        Rdout = Respveg(pftpar(pft)%Nleaf,psp%Tc)  !Should be only leaf respiration!
+!        Rdout = Respveg(pftpar(pft)%Nleaf,psd%Tc)  !Should be only leaf respiration!
 !        Aout = 0.d0
 !        cs = ca - (Aout-Rdout)*1.37d0/Gb
 !        gsout = pftpar(pft)%b
-!        psp%ci = ca             !Dummy assignment, no need to solve for ci 
+!        psd%ci = ca             !Dummy assignment, no need to solve for ci 
 !      else
 cddd      print *,"called Photosynth_analyticsoln",
-cddd     &     pft,IPAR,psp%ca,ci,
-cddd     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded
+cddd     &     pft,IPAR,psd%ca,ci,
+cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
-        call Photosynth_analyticsoln(pft,IPAR,psp%ca,ci,
-     &     psp%Tc,psp%Pa,psp%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
-        psp%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
+        call Photosynth_analyticsoln(pft,IPAR,psd%ca,ci,
+     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
+        psd%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
 !      endif
         
       !Biological limits for gs - cuticular conductance?
-      if(gsout.lt.(0.00006d0*psp%Pa/(gasc*(psp%Tc+KELVIN)))) then
-        gsout=0.00006d0*psp%Pa/(gasc*(psp%Tc+KELVIN))
+      if(gsout.lt.(0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN)))) then
+        gsout=0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN))
       endif
 
       end subroutine pscondleaf
@@ -546,6 +546,8 @@ cddd      end subroutine Ci_Js
         enddo
         if ( A == 1.d30 )  then
           print *," m,rh,b,Ra:",pspar%m,rh,b,Ra
+          print *,"ca,gb,Pa:",ca,gb,Pa
+          print *,"pspar:",pspar
           print *," A_d_asymp,K,gamol,f1,a1,e1,Rd",
      &         A_d_asymp,K,gamol,f1,a1,e1,Rd
           print *,"c3,c2,c1,c", c3,c2,c1,c

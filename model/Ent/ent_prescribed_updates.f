@@ -77,6 +77,7 @@
 
       cpool(:) = 0.d0
       pp => ecp%oldest      
+
       do while ( associated(pp) )
         cop => pp%tallest
         do while ( associated(cop) )
@@ -95,6 +96,7 @@
           !* Update biomass pools except for C_lab.
           call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
      &         cop%dbh, cop%n, cpool )
+
           cop%C_fol = cpool(FOL)
           cop%C_sw = cpool(SW)
           cop%C_hw = cpool(HW)
@@ -105,6 +107,7 @@
      &         cop%C_lab = cop%C_lab - max(0.d0,cop%C_hw - C_hw_old)
      &         - max(0.d0,cop%C_sw - C_sw_old) 
      &         - max(0.d0,cop%C_croot-C_croot_old)
+
           cop => cop%shorter
         enddo
         pp => pp%younger
@@ -189,42 +192,52 @@
       !----Local------
       type(patch),pointer :: pp
 
-      ! update with external data if required
-      if ( associated(hdata) )
-     &     call entcell_update_height(entcell, hdata, init)
-        
-      if ( associated(laidata) )
-     &     call entcell_update_lai_poolslitter(entcell,laidata,init)
+      !* 1. Update crops to get right patch/cover distribution.
+      !*     NOTE:  CARBON CONSERVATION NEEDDS TO BE CALCULATED FOR CHANGING VEG/CROP COVER!!!
+      !* 2. Update height to get any height growth (with GISS veg, height is static)
+      !* 3. Update LAI, and accumulate litter from new LAI and growth/senescence.
+      !*       Cohort litter is accumulated to the patch level.
+      !*    3a. If external LAI, then litter is calculated based on that external LAI change.
+      !*    3b. If GISS prescribed LAI, then new LAI is calculated, and then litter.
+      !* 4. Update albedo based on new vegetation structure.
 
-      if ( associated(albedodata) )
-     &       call entcell_update_albedo(entcell, albedodata)
+      !* VEGETATION STRUCTURE AND LITTER *!
+      ! veg structure update with external data if provided
+      if (.not.do_giss_lai) then
 
-      if ( associated(cropsdata) )
+        if ( associated(cropsdata) )
      &       call entcell_update_crops(entcell, cropsdata)
 
-      ! and then do GISS phenology if required
-      if ( do_giss_phenology ) then  !do_giss_phenology is redundant with do_giss_lai.
+        if ( associated(hdata) )
+     &       call entcell_update_height(entcell, hdata, init)
+
+        if ( associated(laidata) )
+     &       call entcell_update_lai_poolslitter(entcell,laidata,init)
+
+      endif
+      ! or veg structure from prescribed GISS LAI phenology 
+      if ( do_giss_phenology ) then !do_giss_phenology is redundant with do_giss_lai.
         if ( hemi<-2 .or. jday <-2 )
      &       call stop_model("entcell_vegupdate: needs hemi,jday",255)
         pp => entcell%oldest
         do while (ASSOCIATED(pp))
-          !* LAI, SENESCEFRAC *!
-          call prescr_phenology(jday,hemi, pp, do_giss_lai)
-          !* ALBEDO *!
-          if ( ASSOCIATED(pp%tallest).and.do_giss_albedo ) then ! update if have vegetation or not prognostic albedo
-            call prescr_veg_albedo(hemi, pp%tallest%pft, 
-     &           jday, pp%albedo)
-          endif
-          !call summarize_patch(pp) !* Redundant because summarize_entcell is called.
+        !* LAI, SENESCEFRAC *!
+          if (do_giss_lai) 
+     &         call prescr_phenology(jday,hemi, pp, do_giss_lai)
+         !call summarize_patch(pp) !* Redundant because summarize_entcell is called.
           pp => pp%younger
         end do
-      else !KIM - if do_phenology==.true., still need to prescribe the albedo.
+      endif
+
+      !* ALBEDO *!
+      if ( associated(albedodata) ) then
+        call entcell_update_albedo(entcell, albedodata)
+      else
         do while (ASSOCIATED(pp))
-          !* ALBEDO *!
-          if ( ASSOCIATED(pp%tallest).and.do_giss_albedo ) then ! update if have vegetation or not prognostic albedo
-            call prescr_veg_albedo(hemi, pp%tallest%pft, 
-     &           jday, pp%albedo)
-          endif
+          ! update if have vegetation or not prognostic albedo
+          if ( ASSOCIATED(pp%tallest).and.do_giss_albedo )
+     &         call prescr_veg_albedo(hemi, pp%tallest%pft, 
+     &         jday, pp%albedo)
           pp => pp%younger
         end do
       endif
@@ -273,7 +286,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         resp_growth_root = 0.d0
         cop => pp%tallest
         do while (ASSOCIATED(cop))
-          if ( do_giss_lai ) then
+          if ( do_giss_lai ) then  !This if statement is now redundant
             lai_new = prescr_calc_lai(cop%pft+COVEROFFSET, jday, hemi)
             call prescr_veglitterupdate_cohort(cop,
      &           lai_new,Clossacc,.false.)
@@ -360,6 +373,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       cop%R_auto = cop%R_auto + i2a*resp_growth
       cop%R_root = cop%R_root + i2a*resp_growth_root
       cop%NPP = cop%NPP - i2a*resp_growth
+      cop%LAI = lai_new  
  
       end subroutine prescr_veglitterupdate_cohort
 !******************************************************************************
