@@ -177,7 +177,7 @@
       integer, intent(in) :: jday !@jday julian day
       real*8, intent(out) :: albedo(N_BANDS) !@albedo returned albedo
       !----------Local----------
-      integer, parameter :: NV=12
+      integer, parameter :: NV=N_COVERTYPES
       !@var SEASON julian day for start of season (used for veg albedo calc)
 C                      1       2       3       4
 C                    WINTER  SPRING  SUMMER  AUTUMN
