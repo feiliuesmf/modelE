@@ -295,6 +295,8 @@
       ALLOCATE(cropdata(I0:I1,J0:J1))
 
       !* Loop *!
+!!! hack --> remove crops
+!!!      cropdata(:,:) = 0.d0
       call prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata) !crop fraction
 
       !* If cropdata was prepared somewhere else, then cover is as simple as
@@ -304,7 +306,7 @@
         do i=I0,I1
           if ( cropdata(i,j) == 1.d0 ) then
             vegdata(:,i,j) = 0.d0
-            vegdata(:,i,j) = 1.d0
+            vegdata(CROPS+COVEROFFSET,i,j) = 1.d0
           else
             crops_old = vegdata(CROPS+COVEROFFSET,i,j)
             if ( crops_old == 1.d0 ) then
