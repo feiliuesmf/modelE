@@ -218,6 +218,15 @@
           !call summarize_patch(pp) !* Redundant because summarize_entcell is called.
           pp => pp%younger
         end do
+      else !KIM - if do_phenology==.true., still need to prescribe the albedo.
+        do while (ASSOCIATED(pp))
+          !* ALBEDO *!
+          if ( ASSOCIATED(pp%tallest).and.do_giss_albedo ) then ! update if have vegetation or not prognostic albedo
+            call prescr_veg_albedo(hemi, pp%tallest%pft, 
+     &           jday, pp%albedo)
+          endif
+          pp => pp%younger
+        end do
       endif
 
       call summarize_entcell(entcell)
