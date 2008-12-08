@@ -396,7 +396,7 @@ c**** calculate root fraction afr averaged over vegetation types
       !---Local-----------
       real*8 :: Blmax, wooddens
 
-      if (pfpar(pft)%woody.eq.0) then
+      if (pfpar(pft)%woody) then
         popdens = 10.d0       !Grass ##HACK See Stampfli et al 2008 (~25 seedlings/m2 for cover %1-10, but big range)
       else
         wooddens = wooddensity_gcm3(pft)
@@ -417,7 +417,7 @@ c**** calculate root fraction afr averaged over vegetation types
       wddata(:) = 0.0 !Zero initialize.
       do pft = 1,N_PFT
         n = pft + COVEROFFSET
-        if (pfpar(pft)%woody.eq.1) then !Woody
+        if (pfpar(pft)%woody) then !Woody
           if (pft.eq.TUNDRA) then
             wddata(n) = ED_woodydiameter(pft,hdata(n)) * 20 !FUDGE UNTIL HAVE MIXED CANOPIES
           else                  !Most trees
@@ -483,7 +483,7 @@ c**** calculate root fraction afr averaged over vegetation types
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
 !      if (pft.ne.GRASSC3) then  !Woody
-      if (pfpar(pft)%woody .eq. 1) then !Woody
+      if (pfpar(pft)%woody ) then !Woody
         cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
