@@ -728,7 +728,7 @@ C**** define weighting (only used for clays so far)
       call stop_model('SULF_ONLY_AEROSOLS and TRACERS_NITRATE on',255)
 #else
       NTRACE=7
-      if (rad_interact_tr.gt.0) then ! turn off default dust
+      if (rad_interact_tr.gt.0) then ! turn off default nitrate
         FS8OPX(3) = 0. ; FT8OPX(3) = 0.
       end if
       TRRDRY(1:NTRACE)=(/.15d0,.44d0, 1.7d0, .2d0, .08d0, .08d0,0.15d0/)
