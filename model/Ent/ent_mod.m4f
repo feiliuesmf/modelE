@@ -922,6 +922,9 @@ m4_loop(`
       call copy_vars( buf(dc:), nn,  c%C_croot ,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%N_croot ,  flag ); dc = dc + nn
 
+      ! diags and hacks (added dec 9 2008)
+      call copy_vars( buf(dc:), nn,  c%C_growth,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_total ,  flag ); dc = dc + nn
       n = dc
 
       end subroutine copy_cohort_vars
@@ -1051,7 +1054,8 @@ m4_loop(`
      &     vegetation_fractions,
      &     soilresp,
      &     soilcpools,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
      &     )
       type(entcelltype_public), intent(in) :: entcell`'m4_brkts(m4_ext)
       real*8, m4_arr_only(`dimension(m4_ext),') optional, intent(out) ::
@@ -1069,7 +1073,8 @@ m4_loop(`
      &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     soilresp,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
       real*8, dimension(:m4_comma`'m4_ext`'), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -1194,6 +1199,10 @@ m4_loop(`
       if ( present(leaf_area_index) )
      &     leaf_area_index`'m4_brkts(m4_ind)`' = 
      &     entcell`'m4_brkts(m4_ind)`'%entcell%LAI
+
+      if ( present(C_total) )
+     &     C_total`'m4_brkts(m4_ind)`' = 
+     &     entcell`'m4_brkts(m4_ind)`'%entcell%C_total
 
       m4_enddo
 

@@ -808,6 +808,7 @@ c$$$         end if
       real*8 :: resp_growth,resp_growth_root !g-C/individ/ms/s
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
       real*8 :: Csum
+      real*8 :: dC_total
       
       Closs(:,:,:) = 0.d0
       !Clossacc(:,:,:) = 0.d0 !Initialized outside of this routine
@@ -916,7 +917,26 @@ c$$$         end if
       !############ END HACK ##############################################
 
       cop%C_lab = cop%C_lab - l_fract*(loss_leaf + loss_froot) 
-     &     - loss_hw - loss_croot - resp_growth
+     &     - loss_hw - loss_croot ! - resp_growth !!! moved -resp_growth to canopyspitters
+      cop%C_growth = resp_growth*cop%n*1.d-3
+      dC_total = 0.d0
+      do i=1,N_CASA_LAYERS 
+        dC_total = dC_total - Closs(CARBON,LEAF,i) -
+     &       Closs(CARBON,FROOT,i) - Closs(CARBON,WOOD,i)
+      enddo
+
+#ifdef RESTRICT_LITTER_FLUX
+      if ( dC_total < 0.d0 .and. dC_total + cop%C_total < 0.d0 ) then
+        Closs(CARBON,:,:) = Closs(CARBON,:,:)
+     &       *max( 0.d0, -cop%C_total/dC_total )
+        cop%C_total = min(0.d0, cop%C_total)
+      else
+        cop%C_total = cop%C_total + dC_total
+      endif
+#esle
+      cop%C_total = cop%C_total + dC_total
+#endif
+
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
 
       !* Update cohort fluxes with growth respiration *!

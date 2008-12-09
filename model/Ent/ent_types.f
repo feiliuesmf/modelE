@@ -172,6 +172,9 @@
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
          real*8,pointer :: stressH2Ol(:) !Water stress in layers.
          real*8 :: senescefrac  !Net fraction of foliage that is litterfall.
+         ! diags and hacks
+         real*8 :: C_total
+         real*8 :: C_growth
       end type cohort
 
 !****************************************************************************
@@ -300,6 +303,9 @@
          real*8 :: dpdt              !Rate of change of patch area
          real*8 :: dwdt              !Rate of change of available soil water
 #endif
+         ! diags and hacks
+         real*8 :: C_total
+         real*8 :: C_growth
       end type patch
 
 
@@ -440,6 +446,9 @@
          real*8 :: light
          real*8 :: light_prev
 
+         ! diags and hacks
+         real*8 :: C_total
+         real*8 :: C_growth
       end type entcelltype
 
 

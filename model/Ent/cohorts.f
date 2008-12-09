@@ -271,6 +271,10 @@ cddd      end subroutine init_cohort_defaults
       cop%stressH2O = 1.d0 !Default no stress.
       cop%stressH2Ol(:) = 1.d0 !Default no stress.
       cop%senescefrac = 0.d0
+
+      !* diags and hacks
+      cop%C_total = 0.d0
+      cop%C_growth = 0.d0
       end subroutine zero_cohort
 
 

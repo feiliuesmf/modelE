@@ -1546,6 +1546,9 @@ cddd      end interface ent_cell_update
       call copy_vars( buf(dc:), nn,  c%C_croot ,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%N_croot ,  flag ); dc = dc + nn
 
+      ! diags and hacks (added dec 9 2008)
+      call copy_vars( buf(dc:), nn,  c%C_growth,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_total ,  flag ); dc = dc + nn
       n = dc
 
       end subroutine copy_cohort_vars
@@ -1877,7 +1880,8 @@ cddd      end interface ent_cell_update
      &     vegetation_fractions,
      &     soilresp,
      &     soilcpools,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
      &     )
       type(entcelltype_public), intent(in) :: entcell
       real*8,  optional, intent(out) ::
@@ -1895,7 +1899,8 @@ cddd      end interface ent_cell_update
      &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     soilresp,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
       real*8, dimension(:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2017,6 +2022,10 @@ cddd      end interface ent_cell_update
      &     leaf_area_index = 
      &     entcell%entcell%LAI
 
+      if ( present(C_total) )
+     &     C_total = 
+     &     entcell%entcell%C_total
+
       
 
       end subroutine ent_get_exports_r8_0
@@ -2040,7 +2049,8 @@ cddd      end interface ent_cell_update
      &     vegetation_fractions,
      &     soilresp,
      &     soilcpools,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
      &     )
       type(entcelltype_public), intent(in) :: entcell(:)
       real*8, dimension(:), optional, intent(out) ::
@@ -2058,7 +2068,8 @@ cddd      end interface ent_cell_update
      &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     soilresp,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
       real*8, dimension(:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2184,6 +2195,10 @@ cddd      end interface ent_cell_update
      &     leaf_area_index(i1) = 
      &     entcell(i1)%entcell%LAI
 
+      if ( present(C_total) )
+     &     C_total(i1) = 
+     &     entcell(i1)%entcell%C_total
+
       
       enddo
 
@@ -2208,7 +2223,8 @@ cddd      end interface ent_cell_update
      &     vegetation_fractions,
      &     soilresp,
      &     soilcpools,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
      &     )
       type(entcelltype_public), intent(in) :: entcell(:,:)
       real*8, dimension(:,:), optional, intent(out) ::
@@ -2226,7 +2242,8 @@ cddd      end interface ent_cell_update
      &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     soilresp,
-     &     leaf_area_index
+     &     leaf_area_index,
+     &     C_total
       real*8, dimension(:,:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2352,6 +2369,10 @@ cddd      end interface ent_cell_update
       if ( present(leaf_area_index) )
      &     leaf_area_index(i1,i2) = 
      &     entcell(i1,i2)%entcell%LAI
+
+      if ( present(C_total) )
+     &     C_total(i1,i2) = 
+     &     entcell(i1,i2)%entcell%C_total
 
       
       enddo

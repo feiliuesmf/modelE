@@ -200,6 +200,9 @@
        end do  !N_CASA_LAYERS
         !* Tpool(NITROGEN,:,:) gets updated in casa_bgfluxes.f
 
+       pp%C_total = pp%C_total + cop%C_total
+       pp%C_growth = pp%C_growth + cop%C_growth
+
         cop => cop%shorter
       end do    !loop through cohorts
 
@@ -291,6 +294,9 @@
       pp%N_up = 0.d0
       pp%betad = 0.d0
       pp%betadl(:) = 0.d0
+      ! diags and hacks
+      pp%C_total = 0.d0
+      pp%C_growth = 0.d0
       end subroutine zero_patch_cohortsum
       !*********************************************************************
 

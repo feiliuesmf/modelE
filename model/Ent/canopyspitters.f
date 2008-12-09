@@ -227,6 +227,9 @@
 
         call Allocate_NPP_to_labile(dtsec, cop)
 
+        ! update total carbon
+        cop%C_total = cop%C_total + cop%NPP*dtsec
+
         !* pp cohort flux summaries
         GCANOPYsum = GCANOPYsum + cop%GCANOPY
         Ciavg = Ciavg + cop%Ci*cop%LAI
@@ -603,7 +606,7 @@
       type(cohort),pointer :: cop
       !----Local-----
       real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
-      real*8 ::Resp_growth, C2N, TcanopyK
+      real*8 ::Resp_growth, C2N, TcanopyK, Resp_growth_1
 
       !NOTE: NEED TO FIX Canopy maintenance respiration for different
       !C:N ratios for the different pools.
@@ -634,8 +637,12 @@
       Resp_growth = 0.012D-6 * Resp_can_growth(cop%pft, 
      &     cop%GPP/0.012D-6,(Resp_maint)/0.012D-6 )
 
+      !* actual growth respiration
+      Resp_growth_1 = cop%C_growth/(24.d0*3600.d0)
+      !cop%C_growth = cop%C_growth - Resp_growth_1*dtsec 
+
       !* Total respiration : maintenance + growth
-      cop%R_auto =  Resp_maint + Resp_growth
+      cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 

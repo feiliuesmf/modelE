@@ -257,6 +257,10 @@
         if ( associated( pp%tallest ) ) ecp%fv = ecp%fv + pp%area
         !ecp%heat_capacity = !Currently imported
 
+        !* daigs and hacks
+        ecp%C_total = ecp%C_total + pp%C_total*pp%area
+        ecp%C_growth = ecp%C_growth + pp%C_growth*pp%area
+       
         pp => pp%younger
       end do
       
