@@ -338,10 +338,10 @@ C**** FOR END OF YEAR, USE FIRST RECORD
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
-        do l=1,lm
+        do l=1,lm-nstrtc
           frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
         end do
-        do l=1,lm
+        do l=1,lm-nstrtc
           frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
         end do
 
@@ -919,10 +919,10 @@ C****
 
       adj_wet = 0
       do J=J_0,J_1
-         if ( (J>15) .AND. (J<=JM-15) ) then
+         if ( (J>j/3) .AND. (J<=JM-j/3) ) then   !!! low latitudes
             adj_wet(J) = 1.761
          else
-            adj_wet(J) = 0.6585
+            adj_wet(J) = 0.6585                  !!! high latitudes
          endif
       end do
 
@@ -1343,6 +1343,7 @@ C**** Output: temporary file for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
 C****    CHECK IT with checkfile=.true.!!!
       USE MODEL_COM, only: im,jm,lm,psf,pmidl00
+      USE GEOM, only : DLAT_DG
       USE FILEMANAGER, only: openunit,closeunit
       USE lhntr_com, only: LHNTR,LHNTR0
       implicit none
@@ -1353,7 +1354,7 @@ C****    CHECK IT with checkfile=.true.!!!
       logical :: debug=.true.,checkfile=.false.
       real*4 tau,fold(kmo,lmo)   ,rlat(jm)
       real*8 wta(kmo),foldlm(kmo,lm),
-     *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
+     *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm),divj
       real*8 :: sigo(lmo) = (/.974264d0,.907372d0,.796957d0,.640124d0,
      *    .470418d0,.318899d0,.195759d0,.094938d0,.016897d0/)
 
@@ -1367,7 +1368,8 @@ C****    CHECK IT with checkfile=.true.!!!
         if (pnew(l).lt.pold(lmo)) go to 10
     5 continue
    10 continue
-      call LHNTR0(imo,jmo,-.25d0,22.5d0, im,jm,0.d0,45.d0,0.d0)
+      divj = 180./dlat_dg !divj is number of whole grid boxes from SP to NP
+      call LHNTR0(imo,jmo,-.25d0,22.5d0, im,jm,0.d0,divj,0.d0)
 
       call openunit('OHCH4_FRQ_temporary',interp_file,.true.)
 C**** outer loop over tau
