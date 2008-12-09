@@ -9855,7 +9855,7 @@ C**** at the start of any day
       USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, write_parallel
      * ,AM_I_ROOT
 
-      USE GEOM, only: dxyp,areag,lat_dg,lon_dg,imaxj
+      USE GEOM, only: dxyp,areag,lat_dg,lon_dg,imaxj,lon_to_i,lat_to_j
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
@@ -9900,13 +9900,16 @@ C**** at the start of any day
       real*8  :: trsource_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(ntm) :: trsource_glbavg
 #endif
+#ifdef TRACERS_SPECIAL_Lerner
+      INTEGER ie,iw,js,jn
+#endif
 
-      INTEGER J_0, J_1
+      INTEGER I_0, I_1, J_0, J_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
 
       bydt = 1./DTsrc
 C**** All sources are saved as kg/s
@@ -9947,91 +9950,112 @@ c     the area sums (sarea).
 
 C**** Source over United States and Canada
         source = .37d0*anngas*steppy
+        ie = lon_to_i(-70.d0)
+        iw = lon_to_i(-125.d0)
+        jn = lat_to_j(50.d0)
+        js = lat_to_j(30.d0)
+        if (AM_I_ROOT()) write(*,*)'US :ie,iw,jn,js',ie,iw,jn,js
         sarea_prt(:)  = 0.
-        do j=MAX(31,J_0),MIN(35,J_1)
-          do i=12,22
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
             sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=J_0,J_1     ! 31,35
-          if (nint(lat_dg(j,1)).ge.28 .and. nint(lat_dg(j,1)).le.48)
-     *         then
-            do i=12,22
-              trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
-            enddo
-          end if
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
         enddo
 C**** Source over Europe and Russia
         source = .37d0*anngas*steppy
+        ie = lon_to_i(45.d0)
+        iw = lon_to_i(-10.d0)
+        jn = lat_to_j(65.d0)
+        js = lat_to_j(35.d0)
         sarea_prt(:)  = 0.
-        do j=MAX(33,J_0),MIN(39,J_1)
-          do i=35,45
+        if (AM_I_ROOT()) write(*,*)'EU:ie,iw,jn,js',ie,iw,jn,js
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
             sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=J_0,J_1     ! 33,39
-          if (nint(lat_dg(j,1)).ge.36 .and. nint(lat_dg(j,1)).le.64)
-     *         then
-          do i=35,45
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
             trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
           enddo
-          end if
         enddo
 C**** Source over Far East
         source = .13d0*anngas*steppy
+        ie = lon_to_i(150.d0)
+        iw = lon_to_i(120.d0)
+        jn = lat_to_j(45.d0)
+        js = lat_to_j(20.d0)
+        if (AM_I_ROOT()) write(*,*)'FE:ie,iw,jn,js',ie,iw,jn,js
         sarea_prt  = 0.
-        do j=MAX(29,J_0),MIN(34,J_1)
-          do i=61,66
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
             sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=J_0,J_1     ! 29,34
-          if (nint(lat_dg(j,1)).ge.20 .and. nint(lat_dg(j,1)).le.44)
-     *         then
-          do i=61,66
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
             trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
           enddo
-          end if
         enddo
 C**** Source over Middle East
         source = .05d0*anngas*steppy
+        ie = lon_to_i(75.d0)
+        iw = lon_to_i(30.d0)
+        jn = lat_to_j(35.d0)
+        js = lat_to_j(15.d0)
+        if (AM_I_ROOT()) write(*,*)'ME:ie,iw,jn,js',ie,iw,jn,js
         sarea_prt  = 0.
-        do j=MAX(28,J_0),MIN(32,J_1)
-          do i=43,51
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
             sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=J_0,J_1     ! 28,32
-          if (nint(lat_dg(j,1)).ge.16 .and. nint(lat_dg(j,1)).le.36)
-     *         then
-          do i=43,51
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
             trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
           enddo
-          end if
         enddo
 C**** Source over South America
         source = .04d0*anngas*steppy
-c        do j=J_0,J_1   ! example coding
-c        if (nint(lat_dg(j,1)).ge.-24 .and. nint(lat_dg(j,1)).le.-20)
-c     *         then
-        i=27; j=18
-        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = 0.5*source
-        i=28; j=18
-        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = 0.5*source
-c        end if
-c        end do
+        ie = lon_to_i(-40.d0)
+        iw = lon_to_i(-50.d0)
+        j = lat_to_j(-23.d0) 
+        if (AM_I_ROOT()) write(*,*)'SA:ie,iw,j',ie,iw,j
+        sarea_prt  = 0.
+        if (j >= J_0 .and. j <= J_1) then
+          do i=max(iw,i_0),min(ie,i_1)
+            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
+          enddo
+        end if
+        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
+        if (j >= J_0 .and. j <= J_1) then
+          do i=max(iw,i_0),min(ie,i_1)
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
+        end if
 C**** Source over South Africa
         source = .02d0*anngas*steppy
-        i=42; j=17
-        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
+        j = lat_to_j(-34.d0) 
+        i = lon_to_i(20.d0)
+        if (AM_I_ROOT()) write(*,*)'SF:i,j',i,j
+        IF (j >= J_0 .and. j <= J_1 .and.
+     *      i >= I_0 .and. i <= i_1) trsource(i,j,1,n) = source
 C**** Source over Australia and New Zealand
         source = .02d0*anngas*steppy
-        i=66; j=15
-        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
+        j = lat_to_j(-34.d0) 
+        i = lon_to_i(150.d0)
+        if (AM_I_ROOT()) write(*,*)'AU:i,j',i,j
+        IF (j >= J_0 .and. j <= J_1 .and.
+     *      i >= I_0 .and. i <= i_1) trsource(i,j,1,n) = source
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
         !print out global average for each time step before weighing

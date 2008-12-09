@@ -398,6 +398,29 @@ c this version is for the latlon grid.  ll are in degrees east.
       return
       end subroutine lonlat_to_ij
 
+      function lon_to_I(deg)
+c converts longitude into model i
+c this version is for the latlon grid.  DEG is in degrees east.
+      implicit none
+      integer lon_to_I
+      real*8, intent(in) :: DEG
+      real*8 :: dlon_dg
+      dlon_dg = 360./dble(im)
+      lon_to_I = im/2 + (DEG+.5*dlon_dg+.01)/dlon_dg
+      return
+      end function lon_to_I
+
+      function lat_to_J(deg)
+c converts latitude into model j
+c this version is for the latlon grid.
+      implicit none
+      integer lat_to_J
+      real*8, intent(in) :: DEG
+      real*8 :: dlon_dg
+      lat_to_J = jm/2 + (DEG+.5*dlat_dg+.01)/dlat_dg
+      return
+      end function lat_to_J
+
       END MODULE GEOM
 
 
