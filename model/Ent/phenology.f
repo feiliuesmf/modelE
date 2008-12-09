@@ -140,7 +140,7 @@
 
 !      real*8 :: gdd_threshold
 
-      real*8 :: sandfrac, clayfrac
+      real*8 :: sand, clay
       real*8 :: smpsat, bch
       real*8 :: watsat, watdry 
       real*8 :: paw
@@ -160,11 +160,11 @@
 
       real*8 :: zweight
       
-      sandfrac = pp%cellptr%soil_texture(1)
-      clayfrac = pp%cellptr%soil_texture(3)
-      smpsat = -10.d0 * ( 10.d0**(1.88d0-0.0131d0*sandfrac) )
-      bch = 2.91d0 + 0.159d0*clayfrac
-      watsat = 0.489d0 - 0.00126d0*sandfrac 
+      sand = pp%cellptr%soil_texture(1)*100.d0
+      clay = pp%cellptr%soil_texture(3)*100.d0
+      smpsat = -10.d0 * ( 10.d0**(1.88d0-0.0131d0*sand) )
+      bch = 2.91d0 + 0.159d0*clay
+      watsat = 0.489d0 - 0.00126d0*sand 
       watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch) 
   
 c$$$      smpsc = -200000.d0 !grass
