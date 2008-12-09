@@ -4992,10 +4992,10 @@ C**** Check
      *     , aTRAC_glob
 #endif
 
-      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM,
-     *     IVSP, IVNP
+      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM
+     *     , IVSPO=>IVSP, IVNPO=>IVNP, oCOSU=>COSU,oSINU=>SINU
       Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ,aDLATM=>DLATM
-     *     , COSU,SINU, COSI=>COSIP,SINI=>SINIP
+     *     , aCOSI=>COSIP,aSINI=>SINIP
 
       IMPLICIT NONE
 
@@ -5003,6 +5003,8 @@ C**** Check
 
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
+      REAL*8  oVOsp, oVOnp      
+      REAL*8  aUO1sp, aVO1sp, aUO1np, aVO1np 
       REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
 
       write (555,*) ' INT_OG2AG#1: dLATMO,aDLATM= ',oDLATM,aDLATM
@@ -5112,63 +5114,30 @@ C**** surface tracer concentration
       
 !!!  U velocity for the 1st ocean layer. 
 
-!!!  shift by half box to get A grid values ??
-c      call HNTR80 (IMO,JMO,0.5d0,oDLATM, IMA,JMA,0d0,aDLATM, 0.d0) ??
-      call HNTR80 (IMO,JMO,0.5d0,oDLATM, IMA,JMA,0.5d0,aDLATM, 0.d0)
+      oVOsp = UO_glob(IVSPO,  1,1)
+      oVOnp = UO_glob(IVNPO,JMO,1)
 
-      call HNTR8  (oONES, UO_glob(1,1,1), aUO1_glob)
+      UO_glob(:,  1,1) = UO_glob(IMO,  1,1)*oCOSU(:) - oVOsp*oSINU(:)
+      UO_glob(:,JMO,1) = UO_glob(IMO,JMO,1)*oCOSU(:) + oVOnp*oSINU(:)
+
+      call HNTR80 (IMO,JMO,0.5d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
+      call HNTR8  (oONES, UO_glob(1,1,1), aUO1_glob)  !!  U-grid => A-grid
+
+      aUO1sp = SUM(aUO1_glob(:,  1)*aCOSI(:))*2/IMA
+      aVO1sp = SUM(aUO1_glob(:,  1)*aSINI(:))*2/IMA
+      aUO1np = SUM(aUO1_glob(:,JMA)*aCOSI(:))*2/IMA
+      aVO1np = SUM(aUO1_glob(:,JMA)*aSINI(:))*2/IMA
+
+      aUO1_glob(1,  1) = aUO1sp
+      aUO1_glob(1,JMA) = aUO1np
 
 !!!  V velocity for the 1st ocean layer
 
+      call HNTR80 (IMO,JMO-1,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
+      call HNTR8  (oONES, VO_glob(1,1,1), aVO1_glob)  !!  V-grid => A-grid
 
-!!!  shift by half box to get A grid values ??
-c      call HNTR80 (IMO,JMO-1,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0) ??
-      call HNTR80 (IMO,JMO-1,0.d0,oDLATM, IMA,JMA-1,0.d0,aDLATM, 0.d0)
-
-      call HNTR8  (oONES, VO_glob(1,1,1), aVO1_glob)
-      aVO1_glob(:,JMA) = 0.d0
-
-C**** cut and paste of SURFACE code to put aUO1, aVO1 on the atm A grid
-C**** could be improved by adjustment of interpolation?
-C**** poles
-      IF (aFOCEAN(1,JMA).gt.0.) THEN
-        aUO1_glob(1,JMA)=aUO1_glob(IMA,JMA)*COSU(1)+aUO1_glob(IVNP,JMA)
-     *       *SINU(1)
-        aVO1_glob(1,JMA)=aUO1_glob(IVNP,JMA)*COSI(1)-aUO1_glob(IMA,JMA)
-     *       *SINI(1)
-      END IF
-      IF (aFOCEAN(1,1).gt.0.) THEN
-        aUO1_glob(1,1)=aUO1_glob(IMA ,1)*COSU(1)-aUO1_glob(IVSP,1)
-     *       *SINU(1)
-        aVO1_glob(1,1)=aUO1_glob(IVSP,1)*COSI(I)-aUO1_glob(IMA ,1)
-     *       *SINI(I)
-      END IF
-
-      do j=2,jma-1
-        im1=ima
-        do i=1,ima
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(i,j) = 0.5*(aUO1_glob(i,j)+aUO1_glob(im1,j))
-          ELSE
-            aFtemp(i,j) = 0.
-          END IF
-          im1=i
-        end do
-      end do
-      aUO1_glob(:,2:jma-1)= aFtemp(:,2:jma-1)
-
-      do j=2,jma-1
-        im1=ima
-        do i=1,ima
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(i,j) = 0.5*(aVO1_glob(i,j)+aVO1_glob(i,j-1))
-          ELSE
-            aFtemp(i,j) = 0.
-          END IF
-          im1=i
-        end do
-      end do
-      aVO1_glob(:,2:jma-1)= aFtemp(:,2:jma-1)
+      aVO1_glob(1,  1) = aVO1sp
+      aVO1_glob(1,JMA) = aVO1np
 
       RETURN
       END SUBROUTINE INT_OG2AG 
