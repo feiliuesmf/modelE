@@ -28,6 +28,7 @@
       type(cohort), pointer :: cop !@var current cohort
       real*8 laipatch, lai_old,lai_new
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
+      integer :: i
 
       laipatch = 0.d0
       Clossacc(:,:,:) = 0.d0
@@ -276,6 +277,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       real*8 :: resp_growth_root !g-C/individ/s
       real*8 :: resp_growth_patch, resp_growth_root_patch !kg-C/m/s
+      integer :: i
 
       if (ASSOCIATED(pp)) then
         !* LAI *AND* BIOMASS - carbon pools *!
@@ -330,10 +332,10 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: C_fol_old,C_froot_old,C_hw_old,C_croot_old
       real*8 :: resp_growth, resp_growth_root
       real*8 :: i2a  !Convert g-C/individual to kg-C/m^2
-#ifdef DEBUG
+!#ifdef DEBUG
       integer :: i
       real*8 :: Csum
-#endif
+!#endif
 
       lai_old = cop%LAI
       C_fol_old = cop%C_fol
@@ -358,13 +360,14 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
      &       cop,Clossacc)
       endif
         !*## DEBUG ##*!
-#ifdef DEBUG
+!#ifdef DEBUG
       Csum = 0.d0
       do i=1,NPOOLS
         Csum = Csum + Clossacc(CARBON,i,1)
       enddo
-      write(999,*) Csum
-#endif
+      !write(999,*) Csum
+      cop%N_up = Csum !####### HACK ## TEMPORARY USE OF UNUSED VARIABLE ###-NK
+!#endif
         
       
       cop%Ntot = cop%nm * cop%LAI !This should eventually go into N allocation routine if dynamic nm.

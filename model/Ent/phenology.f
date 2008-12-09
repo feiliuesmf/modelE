@@ -10,6 +10,7 @@
       public veg_init
       public clim_stats
       public pheno_update
+!      public frost_hardiness  !DEPENDENCY ISSUES WITH BIOPHYSICS
       public veg_update !may change the name into veg_update 
       public litter_cohort, litter_patch   !Now called from veg_update
       private growth_cpools_active
@@ -21,7 +22,7 @@
       !* GROWTH MODEL CONSTANTS - phenology & carbon allocation 
       !l_fract: fraction of leaves retained after leaf fall (unitless)
       real*8, parameter :: l_fract = 0.50d0 
-      !growth_r:  fraction of biomass pool required for growth respiration to grow that biomass.
+      !growth_r:  fraction of biomass pool required for growth respration to grow that biomass.
 !      real*8, parameter :: growth_r = 0.30d0 !Check same as canopyspitters.f Respiration_autotrophic
       !q: ratio of root to leaf biomass (unitless)
       real*8, parameter :: q=1.0d0 
@@ -809,7 +810,8 @@ c$$$         end if
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
       real*8 :: Csum
       real*8 :: dC_total
-      
+      real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
+
       Closs(:,:,:) = 0.d0
       !Clossacc(:,:,:) = 0.d0 !Initialized outside of this routine
 
@@ -821,9 +823,10 @@ c$$$         end if
 !      print *, 'from litter(pheno*.f): fracrootCASA(:) =', fracrootCASA !***test*** -PK 11/27/06  
 
       !* NLIVE POOLS *! 
-      turnoverdtleaf = annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-      turnoverdtfroot = annK(pft,FROOT)*SDAY
-      turnoverdtwood = 1.d0-exp(-annK(pft,WOOD)*SDAY) !Sapwood not hardwood
+      facclim = frost_hardiness(cop%Sacclim)
+      turnoverdtleaf = facclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
+      turnoverdtfroot = facclim*annK(pft,FROOT)*SDAY
+      turnoverdtwood = facclim*(1.d0-exp(-annK(pft,WOOD)*SDAY)) !Sapwood not hardwood
       !* Turnover draws down C_lab. *!
       !* Calculate adjustment factor if loss amount is too large for C_lab.
       loss_leaf = C_fol_old * turnoverdtleaf 
@@ -898,7 +901,7 @@ c$$$         end if
         Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
      &       + Closs(CARBON,WOOD,i)
       end do                    !loop through CASA layers-->cumul litter per pool per layer -PK
-       
+      print *,"Clossacc",Clossacc(CARBON,:,:)
       !* Update cohort pools *!
       !C_fol replenished from C_lab: no change
       !C_froot replenished from C_lab: no change
@@ -1251,4 +1254,30 @@ c$$$         end if
      &         * exp(pfpar(pft)%b2Ht * dbh)
       end function dHdDBH
 !*************************************************************************
+      real*8 function frost_hardiness(Sacclim) Result(facclim)
+!@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
+!@sum  due to frost hardiness phenology.
+      real*8,intent(in) :: Sacclim 
+      !----Local-----
+      real*8,parameter :: Tacclim=-5.93d0 ! threshold temperature for photosynthesis [deg C]
+                        ! Site specific thres. temp.: state of photosyn.acclim
+                        ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
+      real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
+                        ! Site specific; conversion (1/Sacclim_max)=1/16.8115
+                        ! estimated by using the max S from Hyytiala 1998
+!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
+
+      if (Sacclim > Tacclim) then ! photosynthesis occurs 
+         facclim = a_const * (Sacclim-Tacclim) 
+         if (facclim > 1.d0) facclim = 1.d0
+!      elseif (Sacclim < -1E10)then !UNDEFINED
+      elseif (Sacclim.eq.UNDEF)then !UNDEFINED
+         facclim = 1.d0   ! no acclimation for this pft and/or simualtion
+      else
+         facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
+      endif
+
+      end function frost_hardiness
+!*************************************************************************
+
       end module phenology

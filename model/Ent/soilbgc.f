@@ -175,9 +175,11 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 * mimic calculation of bevap in surphy.F to get Wlim
 * but use Soilmoist,Soiltemp instead of h2osoi,tsoi 
 *   watdry = water content when evapotranspiration stops = wp
-            watsat = 0.489d0 - 0.00126d0*sandfrac 
-            smpsat = -10.d0 * ( 10.d0**(1.88d0-0.0131d0*sandfrac) )
-            bch = 2.91d0 + 0.159d0*clayfrac
+! Equations take soil textures in percents rather than fractions.
+            watsat = 0.489d0 - 0.00126d0*(sandfrac*100.d0)
+            smpsat = -10.d0 * ( 10.d0**(1.88d0-
+     &           (0.0131d0*sandfrac*100.d0)) )
+            bch = 2.91d0 + 0.159d0*(clayfrac*100.d0)
             watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
             watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
 !! 03/11/21 note: there are no limits on Wlim, except if Soiltemp < 0
@@ -189,7 +191,8 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !     &                   (watopt-watdry), 1.d0)
         !**function RWC from DelGrosso et al., 2005** -PK 2/07
 !               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
-               Wlim(n) = (Soilmoist(n)-watdry)/(watsat - watdry) !Made this REW instead of Wlim - NK
+               Wlim(n) = max(0.01d0,
+     &             (Soilmoist(n)-watdry)/(watsat - watdry)) !Made this REW instead of Wlim - NK
             else
                Wlim = 0.01d0
             end if

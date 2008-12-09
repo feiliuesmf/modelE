@@ -697,6 +697,7 @@ cddd      !!print *,'QQQQ ',A,ci
       !@sum is GLOBAL TO MODULE.
       !@sum Later need to replace these with von Caemmerer book Arrhenius
       !@sum function sensitivities (her Table 2.3)
+!      use phenology, only : frost_hardiness ! REPEAT: dependency issues
       implicit none
       integer,intent(in) :: pft   !Plant functional type, 1=C3 grassland
       real*8,intent(in) :: dtsec
@@ -710,30 +711,13 @@ cddd      !!print *,'QQQQ ',A,ci
 
       !----Local-----
       real*8 :: facclim ! acclimation/forst hardiness factor [-]
-      real*8 :: Tacclim ! threshold temperature for photosynthesis [deg C]
-      real*8 :: a_const ! factor to convert from Sacclim [degC] to facclim [-]
       !Below parameters are declared at top of module, though only used here.
 !      real*8,parameter :: Kc              !Michaelis-Menten constant for CO2 (Pa)
 !      real*8,parameter :: Ko              !Michaelis-Menten constant for O2 (Pa)
 !      real*8,parameter :: KcQ10           !Kc Q10 exponent
 !      real*8,parameter :: KoQ10           !Ko Q10 exponent
 
-      !#### THIS SHOULD GO IN A FROST HARDINESS SUBROUTINE IN PHENOLOGY ###
-      Tacclim = -5.93d0 ! Site specific thres. temp.: state of photosyn.acclim
-                        ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
-      a_const = 0.0595  ! Site specific; conversion (1/Sacclim_max)=1/16.8115
-                        ! estimated by using the max S from Hyytiala 1998
-
-      if (Sacclim > Tacclim) then ! photosynthesis occurs 
-         facclim = a_const * (Sacclim-Tacclim) 
-         if (facclim > 1.d0) facclim = 1.d0
-!      elseif (Sacclim < -1E10)then !UNDEFINED
-      elseif (Sacclim.eq.UNDEF)then !UNDEFINED
-         facclim = 1.d0   ! no acclimation for this pft and/or simualtion
-      else
-         facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
-      endif
-      !######### END FROST HARDINESS SECTION ###############################
+      facclim = frost_hardiness(Sacclim)
 
       p = pft
       pspar%pft = pft
@@ -996,6 +980,33 @@ cddd
 cddd      end function calc_ci
 
 !-----------------------------------------------------------------------------
+!*************************************************************************
+      !##### Due to dependency issues, this function is repeated in phenology.f
+      !##### Need to put common functions in a different module for both.
+      real*8 function frost_hardiness(Sacclim) Result(facclim)
+!@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
+!@sum  due to frost hardiness phenology.
+      real*8,intent(in) :: Sacclim 
+      !----Local-----
+      real*8,parameter :: Tacclim=-5.93d0 ! threshold temperature for photosynthesis [deg C]
+                        ! Site specific thres. temp.: state of photosyn.acclim
+                        ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
+      real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
+                        ! Site specific; conversion (1/Sacclim_max)=1/16.8115
+                        ! estimated by using the max S from Hyytiala 1998
+!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
+
+      if (Sacclim > Tacclim) then ! photosynthesis occurs 
+         facclim = a_const * (Sacclim-Tacclim) 
+         if (facclim > 1.d0) facclim = 1.d0
+!      elseif (Sacclim < -1E10)then !UNDEFINED
+      elseif (Sacclim.eq.UNDEF)then !UNDEFINED
+         facclim = 1.d0   ! no acclimation for this pft and/or simualtion
+      else
+         facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
+      endif
+
+      end function frost_hardiness
 
       end module photcondmod
 

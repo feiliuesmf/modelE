@@ -361,7 +361,11 @@
      &     pp%TRANS_SW,
      &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
      &     pp%NPP,pp%CO2flux,pp%GCANOPY,
-     &     tmp_senescefrac,tmp_Sacclim,pp%c_total,pp%c_growth
+     &     tmp_senescefrac,tmp_Sacclim,pp%c_total,
+!### HACK: c_growth is Igor's hack to store daily growth respiration somewhere
+!### HACK: N_up is temporarily litterfall, using unused variable -NK
+     &     pp%c_growth,pp%N_up  
+
       if (pp%GPP.lt.0.d0) then
         print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
       endif
