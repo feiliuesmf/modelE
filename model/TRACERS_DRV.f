@@ -9900,10 +9900,7 @@ C**** at the start of any day
       real*8  :: trsource_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(ntm) :: trsource_glbavg
 #endif
-#ifdef TRACERS_SPECIAL_Lerner
       INTEGER ie,iw,js,jn
-#endif
-
       INTEGER I_0, I_1, J_0, J_1
 
 C****
