@@ -3353,7 +3353,7 @@ C****
       DO I=1,IMO
         IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
      *       (oDMVA(I,J  ,1)*DXYNO(J) + oDMVA(I,J+1,1)*DXYSO(J+1)
-     *       +2d0*oDMVI(I,J)*DXYVO(J))
+     *      + oDMVI(I,J)*DXYVO(J))  !!  2d0*oDMVI(I,J)*DXYVO(J) - error 
      * / (MO(I,J,1)*DXYNO(J) + MO(I,J+1,1)*DXYSO(J+1))
       END DO
       END DO
@@ -3363,7 +3363,7 @@ C**** Surface stress is applied to V component at the North Pole
         VO(I,JMO-1,1) = VO(I,JMO-1,1) +
      *    (oDMVA(I,JMO-1,1)*DXYNO(JMO-1)+
      *    (oDMVA(1,JMO,1)*COSIC(I) - oDMUA(1,JMO,1)*SINIC(I))*DXYSO(JMO)
-     *    + 2d0*oDMVI(I,JMO-1)*DXYVO(JMO-1)) /
+     *   + oDMVI(I,JMO-1)*DXYVO(JMO-1)) /  !!  2d0*oDMVI(I,JMO-1)*DXYVO(JMO-1) - error
      *  (MO(I,JMO-1,1)*DXYNO(JMO-1) + MO(I,JMO,1)*DXYSO(JMO))
       END DO
       end if
@@ -5651,7 +5651,6 @@ C**** surface tracer concentration
 
       oDMVA_glob(1,  1,1) = oDMVAsp
       oDMVA_glob(1,JMO,1) = oDMVAnp
-
 
       aDMUIsp = 0.0  !!  aDMUI_glob(  IMA,  1)
       aDMVIsp = 0.0  !!  aDMVI_glob(IVSPA,  1)
