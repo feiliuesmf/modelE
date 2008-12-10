@@ -1163,7 +1163,7 @@ C     OUTPUT DATA
      *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
 #endif
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,ail=>ail_loc
-     *     ,ajl=>ajl_loc,asjl=>asjl_loc,adiurn=>adiurn_loc,ndiuvar,
+     *     ,asjl=>asjl_loc,adiurn=>adiurn_loc,ndiuvar,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
@@ -1625,11 +1625,11 @@ C**** Determine large scale and moist convective cloud cover for radia
           TAUSSL=TAUSS(L,I,J)*(1.+dod_cdncl(l))
           shl(L)=QSS
           CSS=1.
-          AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
+          call inc_ajl(i,j,l,jl_sscld,css)
         END IF
         IF (CLDMC(L,I,J).GT.RDMC(I,J)) THEN
           CMC=1.
-          AJL(J,L,JL_MCCLD)=AJL(J,L,JL_MCCLD)+CMC
+          call inc_ajl(i,j,l,jl_mccld,cmc)
           DEPTH=DEPTH+PDSIG(L,I,J)
           IF(TAUMC(L,I,J).GT.TAUSSL) THEN
             TAUMCL=TAUMC(L,I,J)
@@ -1641,7 +1641,7 @@ C**** Determine large scale and moist convective cloud cover for radia
         IF(TAUSSL+TAUMCL.GT.0.) THEN
              CLDCV=1.
           TOTCLD(L)=1.
-          AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
+          call inc_ajl(i,j,l,jl_totcld,1d0)
 C**** save 3D cloud fraction as seen by radiation
           if(cldx>0) AIJK(I,J,L,IJL_CF)=AIJK(I,J,L,IJL_CF)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
@@ -1650,11 +1650,11 @@ C**** save 3D cloud fraction as seen by radiation
             IF(SVLAT(L,I,J).EQ.LHE) THEN
               TAUWC(L)=cldx*TAUMCL
               OPTDW=OPTDW+TAUWC(L)
-              AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
+              call inc_ajl(i,j,l,jl_wcld,1d0)
             ELSE
               TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
-              AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
+              call inc_ajl(i,j,l,jl_icld,1d0)
             END IF
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
@@ -1662,17 +1662,17 @@ C**** save 3D cloud fraction as seen by radiation
             IF(SVLHX(L,I,J).EQ.LHE) THEN
               TAUWC(L)=cldx*TAUSSL
               OPTDW=OPTDW+TAUWC(L)
-              AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
+              call inc_ajl(i,j,l,jl_wcld,1d0)
             ELSE
               TAUIC(L)=cldx*TAUSSL
               OPTDI=OPTDI+TAUIC(L)
-              AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
+              call inc_ajl(i,j,l,jl_icld,1d0)
             END IF
           END IF
-          AJL(j,l,jl_wcod) =AJL(j,l,jl_wcod)+tauwc(l)
-          AJL(j,l,jl_icod) =AJL(j,l,jl_icod)+tauic(l)
-          AJL(j,l,jl_wcsiz)=AJL(j,l,jl_wcsiz)+sizewc(l)*tauwc(l)
-          AJL(j,l,jl_icsiz)=AJL(j,l,jl_icsiz)+sizeic(l)*tauic(l)
+          call inc_ajl(i,j,l,jl_wcod,tauwc(l))
+          call inc_ajl(i,j,l,jl_icod,tauic(l))
+          call inc_ajl(i,j,l,jl_wcsiz,sizewc(l)*tauwc(l))
+          call inc_ajl(i,j,l,jl_icsiz,sizeic(l)*tauic(l))
         END IF
 C**** save some radiation/cloud fields for wider use
         RCLD(L,I,J)=TAUWC(L)+TAUIC(L)
@@ -2410,13 +2410,11 @@ C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C**** 
       DO 780 J=J_0,J_1
-         DO L=1,LM
-            DO I=I_0,IMAXJ(J)
-               AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L,I,J)*COSZ2(I,J)
-               AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L,I,J)
-            END DO
-         END DO
          DO 770 I=I_0,IMAXJ(J)
+            do l=1,lm
+              call inc_ajl(i,j,l,jl_srhr,SRHR(L,I,J)*COSZ2(I,J))
+              call inc_ajl(i,j,l,jl_trcr,TRHR(L,I,J))
+            enddo
             DXYPIJ=AXYP(I,J)
             CSZ2=COSZ2(I,J)
             JR=JREG(I,J)

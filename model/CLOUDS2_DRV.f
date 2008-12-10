@@ -32,7 +32,7 @@
      *     ,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
       USE DIAG_COM, only : aij=>aij_loc,
-     *     ajl=>ajl_loc,ail=>ail_loc,adiurn=>adiurn_loc,jreg,ij_pscld,
+     *     ail=>ail_loc,adiurn=>adiurn_loc,jreg,ij_pscld,
      &     aijk=>aijk_loc,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mc,
@@ -721,24 +721,23 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
         AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
 #endif
+
         HCNDMC=0.
         DO L=1,LMCMAX
           HCNDMC=HCNDMC+DGDSM(L)+DPHASE(L)
-          AJL(J,L,JL_MCHR)=AJL(J,L,JL_MCHR)+DGDSM(L)*BYDSIG(L)
-          AJL(J,L,JL_MCHPHAS)=AJL(J,L,JL_MCHPHAS)+DPHASE(L)*BYDSIG(L)
-          AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+DTOTW(L)*BYDSIG(L)
+          call inc_ajl(i,j,l,jl_mchr,DGDSM(L)*BYDSIG(L))
+          call inc_ajl(i,j,l,jl_mchphas,DPHASE(L)*BYDSIG(L))
+          call inc_ajl(i,j,l,jl_mcdtotw,DTOTW(L)*BYDSIG(L))
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AIL(I,J,L,IL_MC) = AIL(I,J,L,IL_MC) +
      &         (DPHASE(L)+DGDSM(L))*(AXYP(I,J)*BYDSIG(L))
-          AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
-     &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
-          AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
-     &         (DQCOND(L)-DGDQM(L))*BYDSIG(L)
-          AJL(J,L,JL_MCSHLW)=AJL(J,L,JL_MCSHLW)+
-     &         (DPHASHLW(L)+DGSHLW(L))*BYDSIG(L)
-          AJL(J,L,JL_MCDEEP)=AJL(J,L,JL_MCDEEP)+
-     &         (DPHADEEP(L)+DGDEEP(L))*BYDSIG(L)
+          call inc_ajl(i,j,l,jl_mcheat,(DPHASE(L)+DGDSM(L))*BYDSIG(L))
+          call inc_ajl(i,j,l,jl_mcdry,(DQCOND(L)-DGDQM(L))*BYDSIG(L))
+          call inc_ajl(i,j,l,jl_mcshlw,
+     &         (DPHASHLW(L)+DGSHLW(L))*BYDSIG(L))
+          call inc_ajl(i,j,l,jl_mcdeep,
+     &         (DPHADEEP(L)+DGDEEP(L))*BYDSIG(L))
 C*** Begin Accumulate 3D convective latent heating
          if(lh_diags.eq.1) then
           AIJK(I,J,L,IJL_MCTLH)=AIJK(I,J,L,IJL_MCTLH)+
@@ -749,10 +748,10 @@ C*** Begin Accumulate 3D convective latent heating
      &         (DPHASHLW(L)+DGSHLW(L))
          endif
 C*** End Accumulate 3D convective latent heating
-          AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
-          AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
-          AJL(J,L,JL_MCDFLX)=AJL(J,L,JL_MCDFLX)+DDMFLX(L)
-          AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
+         call inc_ajl(i,j,l,jl_mcmflx,MCFLX(L))
+         call inc_ajl(i,j,l,jl_cldmc,CLDMCL(L))
+         call inc_ajl(i,j,l,jl_mcdflx,DDMFLX(L))
+         call inc_ajl(i,j,l,jl_csizmc,CSIZEL(L)*CLDMCL(L))
 #ifdef HTAP_LIKE_DIAGS
           AIJ(I,J,IJ_MCamFX(L))=AIJ(I,J,IJ_MCamFX(L))+MCFLX(L)
 #endif
@@ -783,7 +782,7 @@ C*** End Accumulate 3D convective latent heating
          AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)
          AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)
          AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)
-         AJL(J,L,JL_CNUMWM)=AJL(J,L,JL_CNUMWM)+ACDNWM(L)
+         call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L))
 c        write(6,*)"IJL_REWM",AIJK(I,J,L,IJL_REWM),I,J,L,
 c    *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
         ENDIF
@@ -792,7 +791,7 @@ c    *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)
          AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)
          AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)
-         AJL(J,L,JL_CNUMIM)=AJL(J,L,JL_CNUMIM)+ACDNIM(L)
+         call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L))
          AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)
          AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)
          AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)
@@ -1226,17 +1225,17 @@ C**** update running-average of precipitation (in mm/day):
 #endif
 
       DO L=1,LM
-        AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+SSHR(L)
+        call inc_ajl(i,j,l,JL_SSHR,SSHR(L))
 C*** Begin Accumulate 3D heating by large scale condensation --
        if(lh_diags.eq.1) then
         AIJK(I,J,L,IJL_LLH)=AIJK(I,J,L,IJL_LLH)+SSHR(L)
        endif
 C*** End Accumulate 3D heating by large scale condensation --
-        AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
-        AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
-        AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
+       call inc_ajl(i,j,l,JL_MCLDHT,DCTEI(L))
+       call inc_ajl(i,j,l,JL_RHE,RH1(L))
+       call inc_ajl(i,j,l,JL_CLDSS,CLDSSL(L))
+       call inc_ajl(i,j,l,JL_CSIZSS,CSIZEL(L)*CLDSSL(L))
 c       write(6,*) "CTEM_DRV",CTEML(L),CTEM(I,J,L),L,I,J
-        AJL(J,L,JL_CSIZSS)=AJL(J,L,JL_CSIZSS)+CSIZEL(L)*CLDSSL(L)
 
         T(I,J,L)=TH(L)*FSSL(L)+TMC(I,J,L)*(1.-FSSL(L))
         Q(I,J,L)=QL(L)*FSSL(L)+QMC(I,J,L)*(1.-FSSL(L))
@@ -1295,7 +1294,7 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
           AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)
           AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)
           AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)
-          AJL(J,L,JL_CNUMWS)=AJL(J,L,JL_CNUMWS)+ACDNWS(L)
+          call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L))
 c     if(AIJ(I,J,IJ_3dNWS).gt.0.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS(L),NLSW,itime,l
          ENDIF
@@ -1304,7 +1303,7 @@ c    * ,ACDNWS(L),NLSW,itime,l
          AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)
          AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)
          AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)
-         AJL(J,L,JL_CNUMIS)=AJL(J,L,JL_CNUMIS)+ACDNIS(L)
+         call inc_ajl(i,j,l,JL_CNUMIS,ACDNIS(L))
          AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L)
          AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)
          AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)
@@ -1617,8 +1616,8 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       DO J=J_0S,J_1S
       DO I=I_0,I_1
       DO L=1,LM
-         AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
-     &         (UA(L,I,J)-UASV(L,I,J))*PDSIG(L,I,J)
+        call inc_ajl(i,j,l,JL_DAMMC,
+     &       (UA(L,I,J)-UASV(L,I,J))*PDSIG(L,I,J))
       END DO
       END DO
       END DO

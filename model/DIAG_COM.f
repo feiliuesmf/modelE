@@ -1404,6 +1404,22 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       RETURN
       END SUBROUTINE INC_AREG
 
+      SUBROUTINE INC_AJL(I,J,L,JL_INDEX,ACC)
+!@sum inc_ajl adds ACC located at atmospheric gridpoint I,J,L
+!@+   to the latitude-height zonal sum AJL(J,L,JL_INDEX).
+!@+   This is a trivial version for the latlon grid.
+!@auth M. Kelley
+      USE DIAG_COM, only : ajl=>ajl_loc
+      IMPLICIT NONE
+!@var I,J,L atm gridpoint indices for the accumulation
+      INTEGER, INTENT(IN) :: I,J,L
+!@var JL_INDEX index of the diagnostic being accumulated
+      INTEGER, INTENT(IN) :: JL_INDEX
+!@var ACC increment of the diagnostic being accumulated
+      REAL*8, INTENT(IN) :: ACC
+      AJL(J,L,JL_INDEX) = AJL(J,L,JL_INDEX) + ACC
+      RETURN
+      END SUBROUTINE INC_AJL
 
       subroutine set_zzarea()
 !@sum  pre-computes area of zig-zag bands accross processors. Several

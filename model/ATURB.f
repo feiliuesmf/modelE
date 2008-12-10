@@ -28,8 +28,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,pmid
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP, ONLY : grid, get, halo_update_column
-      USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc
-     *     ,jl_trbke,jl_trbdlht
+      USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
       USE TRDIAG_COM, only: tajln=>tajln_loc,jlnt_turb
@@ -433,11 +432,11 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
             ! t2_3d(l,i,j)=t2(l)  ! not in use
             km_3d(l,i,j)=km(l)
             ! ACCUMULATE DIAGNOSTICS for t and q
-            AJL(J,L,JL_TRBHR)=AJL(J,L,JL_TRBHR)
-     2                 +(tijl-t0ijl)*PK(L,I,J)*PLIJ(L,I,J)
-            AJL(J,L,JL_TRBDLHT)=AJL(J,L,JL_TRBDLHT)
-     2                 +(q(l)-q0(l))*PDSIG(L,I,J)*LHE/SHA
-            AJL(J,L,JL_TRBKE)=AJL(J,L,JL_TRBKE)+e(l)
+            call inc_ajl(i,j,l,JL_TRBHR,
+     &           (tijl-t0ijl)*PK(L,I,J)*PLIJ(L,I,J))
+            call inc_ajl(i,j,l,JL_TRBDLHT,
+     &           (q(l)-q0(l))*PDSIG(L,I,J)*LHE/SHA)
+            call inc_ajl(i,j,l,JL_TRBKE,e(l))
 #ifdef TRACERS_ON
             do nx=1,nta
               n=ntix(nx)
@@ -587,8 +586,8 @@ c
       DO J=J_0S,J_1S
       DO I=I_0,I_1
       DO L=1,LM
-         AJL(J,L,JL_DAMDC)=AJL(J,L,JL_DAMDC)+
-     &         (u_3d_agrid(L,I,J)-uasv(L,I,J))*PLIJ(L,I,J)
+        call inc_ajl(i,j,l,JL_DAMDC,
+     &       (u_3d_agrid(L,I,J)-uasv(L,I,J))*PLIJ(L,I,J))
       END DO
       END DO
       END DO
