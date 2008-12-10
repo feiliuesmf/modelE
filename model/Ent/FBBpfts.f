@@ -97,8 +97,8 @@
      &     ),
      &     pspartype(1          !5. DECIDFOREST
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
-     &     ,60.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
-!     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
+!     &     ,60.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
+     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
 !     &     ,63.d0               !Vcmax for Walker Branch spp, Wilson et al (2001) PlantCellEnv.  Quercus prinus 63, Quercus alba 60, Acer Rubrum 37, Acer saccharum 42, Nyssa sylvatica 39.  These average to 51.
      &     ,9.d0               !m, CLM BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
@@ -117,7 +117,8 @@
      &     ),
      &     pspartype(1          !7. TROPRAINF
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BET & BDT tropical, Table 3.1 (Oleson, et al 2004)
-     &     ,75.d0               !Vmax25, CLM BET tropical 75, BDT tropical 40, Table 8.2 (Oleson, et al 2004). ED is only 12.5 umol m-2 s-1, Reich 25.
+!     &     ,75.d0               !Vmax25, CLM BET tropical 75, BDT tropical 40, Table 8.2 (Oleson, et al 2004). ED is only 12.5 umol m-2 s-1, Reich 25.
+     &     ,54.d0               !Estimate at 90% height of canopy. Tapajos National Forest, Domingues et al. (2005).  Range:  10.1-105.7 umol m-2 s-1.
      &     ,9.d0               !m, CLM BET & BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,8.0d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (16 mg-N/g-leaf)/(200 cm2/g-leaf)=8 g-N/m2-leaf

@@ -191,7 +191,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !     &                   (watopt-watdry), 1.d0)
         !**function RWC from DelGrosso et al., 2005** -PK 2/07
 !               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
-               Wlim(n) = max(0.01d0,
+               Wlim(n) = max(0.0d0,
      &             (Soilmoist(n)-watdry)/(watsat - watdry)) !Made this REW instead of Wlim - NK
             else
                Wlim = 0.01d0
