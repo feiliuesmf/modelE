@@ -126,7 +126,11 @@ ifeq ($(FVCUBED),YES)
   ADIABATIC=YES
   AQUA_PLANET=YES
 
-  CPPFLAGS += -DUSE_FVCUBED -DCUBE_GRID -DCUBED_SPHERE
+  CPPFLAGS += -DUSE_FVCUBED 
+
+  # For now, cubed-sphere tests do not build with CUBE_GRID and CUBED_SPHERE directives
+  # CPPFLAGS += -DCUBE_GRID -DCUBED_SPHERE
+
   FVINC = -I$(FVCUBED_ROOT)/$(MACHINE)/include
   INCS += $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp  -I$(BASELIBDIR)/include/esmf
   LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -L$(BASELIBDIR)/lib -lesmf

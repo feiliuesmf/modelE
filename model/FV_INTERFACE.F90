@@ -125,11 +125,13 @@ contains
 #ifdef USE_FVCUBED
     use FVCubed_dycore_GridCompMod, only: SetServices
     use MAPL_BaseMod, only: GEOS_FieldCreate=>MAPL_FieldCreate
+    Use MAPL_IOMod, only: GETFILE, Free_file
 #else
     use fvdycore_gridcompmod, only: SetServices
     use GEOS_BaseMod, only: GEOS_FieldCreate
+    use GEOS_IOMod, only: GETFILE, Free_file
 #endif
-    use DOMAIN_DECOMP, only : modelE_grid => grid, get
+    use DOMAIN_DECOMP, only : modelE_grid => grid, get, AM_I_ROOT
 
     type (fv_core),    intent(inout) :: fv
     integer,           intent(in) :: istart
@@ -172,6 +174,10 @@ contains
     VERIFY_(rc)
 
 
+    ! 1) Create layout resource file - independent of actual restart file.
+    If (AM_I_ROOT()) Then
+       Call Write_Layout(FVCORE_LAYOUT, fv)
+    End If
 
 #ifdef CREATE_FV_RESTART
     ! The FV components requires its own restart file for managing
@@ -221,6 +227,53 @@ contains
     VERIFY_(rc)
 
     contains
+
+    Subroutine write_layout(fname, fv)
+      USE RESOLUTION, only: IM, JM, LM, LS1
+      Use MODEL_COM,  only: DT
+      character(len=*), intent(in) :: fname
+      type (fv_core), intent(in)   :: fv
+
+      Type (esmf_axisindex), pointer :: AI(:,:)
+      Integer :: unit
+      Integer :: npes
+
+      call esmf_vmget(fv % vm, petcount = npes, rc=rc)
+      Allocate(AI(npes,3))
+      call esmf_gridgetallaxisindex(fv % grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
+           &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
+
+      unit = GetFile(fname, form="formatted", rc=rc)
+#ifdef USE_FVCUBED
+      Write(unit,*)'      npx: ',IM
+      Write(unit,*)'      npy: ',JM/6
+      Write(unit,*)'      npz: ',LM
+      Write(unit,*)'       dt: ',DT
+      Write(unit,*)'   nsplit: ',0
+      Write(unit,*)'       nq: ',1
+      Write(unit,*)'   npes_x: ',1
+      Write(unit,*)'   npes_y: ',1
+      Write(unit,*)' consv_te: ',0.
+#else
+      write(unit,*)' # empty line #'
+      Write(unit,*)'xy_yz_decomp:',1,npes,npes,1
+      Write(unit,*)'    im: ',IM
+      Write(unit,*)'    jm: ',JM
+      Write(unit,*)'    km: ',LM
+      Write(unit,*)'    dt: ',DT
+      Write(unit,*)'nsplit: ',0
+      Write(unit,*)' ntotq: ',1
+      Write(unit,*)'    nq: ',1
+      Write(unit,*)'  imxy: ',IM
+      Write(unit,'(a,100(1x,I3))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
+      Write(unit,'(a,100(1x,I3))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
+      Write(unit,*)'   kmyz: ',LM
+#endif
+      Call Free_File(unit)
+
+      Deallocate(AI)
+
+    End Subroutine write_layout
 
     subroutine allocateFvExport3D ( state, name )
     type(ESMF_State),  intent(INOUT) :: state
@@ -726,12 +779,6 @@ contains
     real*8, allocatable, dimension(:,:,:) :: V_d
     real*8, allocatable, dimension(:,:,:) :: PE, PKZ, PT
 
-
-    ! 1) Create layout resource file - independent of actual restart file.
-    If (AM_I_ROOT()) Then
-       Call Write_Layout(FVCORE_LAYOUT, fv)
-    End If
-
 #ifdef USE_FVCUBED
     Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='DYNAMICS_INTERNAL_RESTART_FILE:', &
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
@@ -915,52 +962,6 @@ contains
 
     End Subroutine Compute_ak_bk
 
-    Subroutine write_layout(fname, fv)
-      USE RESOLUTION, only: IM, JM, LM, LS1
-      Use MODEL_COM,  only: DT
-      character(len=*), intent(in) :: fname
-      type (fv_core), intent(in)   :: fv
-
-      Type (esmf_axisindex), pointer :: AI(:,:)
-      Integer :: unit
-      Integer :: npes
-
-      call esmf_vmget(fv % vm, petcount = npes, rc=rc)
-      Allocate(AI(npes,3))
-      call esmf_gridgetallaxisindex(fv % grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
-           &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
-
-      unit = GetFile(fname, form="formatted", rc=rc)
-#ifdef USE_FVCUBED
-      Write(unit,*)'      npx: ',IM
-      Write(unit,*)'      npy: ',JM/6
-      Write(unit,*)'      npz: ',LM
-      Write(unit,*)'       dt: ',DT
-      Write(unit,*)'   nsplit: ',0
-      Write(unit,*)'       nq: ',1
-      Write(unit,*)'   npes_x: ',1
-      Write(unit,*)'   npes_y: ',1
-      Write(unit,*)' consv_te: ',0.
-#else
-      write(unit,*)' # empty line #'
-      Write(unit,*)'xy_yz_decomp:',1,npes,npes,1
-      Write(unit,*)'    im: ',IM
-      Write(unit,*)'    jm: ',JM
-      Write(unit,*)'    km: ',LM
-      Write(unit,*)'    dt: ',DT
-      Write(unit,*)'nsplit: ',0
-      Write(unit,*)' ntotq: ',1
-      Write(unit,*)'    nq: ',1
-      Write(unit,*)'  imxy: ',IM
-      Write(unit,'(a,100(1x,I3))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
-      Write(unit,'(a,100(1x,I3))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
-      Write(unit,*)'   kmyz: ',LM
-#endif
-      Call Free_File(unit)
-
-      Deallocate(AI)
-
-    End Subroutine write_layout
 
     Subroutine write_start_date(clock, unit)
       Type (ESMF_Clock), Intent(In) :: clock

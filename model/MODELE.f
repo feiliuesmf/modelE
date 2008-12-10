@@ -403,17 +403,21 @@ c     enddo
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
-      ! Using FV instead
-         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
+
+#ifndef USE_FVCUBED
+     ! Using FV instead
+        IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
+#endif
       call Run(fv, clock)
 
-      CALL SDRAG (DTsrc)
-         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
-           call DIAGA
-           call DIAGB
-           call EPFLUX (U,V,T,P)
-         endif
-
+#ifndef USE_FVCUBED
+     CALL SDRAG (DTsrc)
+        if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
+          call DIAGA
+          call DIAGB
+          call EPFLUX (U,V,T,P)
+        endif
+#endif
 #endif
 
 #ifndef ADIABATIC
@@ -1380,7 +1384,7 @@ C**** Set flag to initialise pbl and snow variables
 #endif
         if (istart.eq.1) redogh=.true.
 
-#ifndef CUBE_GRID
+#if !defined (CUBE_GRID) && !defined(NO_LAND_SURFACE)
 C**** Read in ground initial conditions
         call read_ground_ic() ! code moved to IORSF
 #endif
