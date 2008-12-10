@@ -405,13 +405,13 @@ c     enddo
 #else
 
 #ifndef USE_FVCUBED
-     ! Using FV instead
+      ! Using FV instead
         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
 #endif
       call Run(fv, clock)
 
 #ifndef USE_FVCUBED
-     CALL SDRAG (DTsrc)
+      CALL SDRAG (DTsrc)
         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
           call DIAGA
           call DIAGB
