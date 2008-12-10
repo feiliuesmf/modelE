@@ -3225,6 +3225,7 @@ C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
         END IF
       ELSE
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
+        QHEAT(L)=0.
         IF (WMX(L).GT.0.) THEN
           SLH=LHX*BYSHA
           DQSUM=0.
@@ -3236,13 +3237,13 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
           TNX=TNX-SLH*DQ
           QNX=QNX+DQ
   550     DQSUM=DQSUM+DQ
-          IF(DQSUM.LT.0d0) DQSUM=0d0
-          IF(DQSUM.GT.WMX(L)) DQSUM=WMX(L)
-          TL(L)=TL(L)-SLH*DQSUM
-          QL(L)=QL(L)+DQSUM
-          WMX(L)=WMX(L)-DQSUM*FSSL(L)   ! partial evaporation
-          PREP(L)=WMX(L)*BYDTsrc        ! precip out cloud water
-          WMPR(L)=PREP(L)*DTsrc              ! precip water
+          DWDT=DQSUM*FSSL(L)
+          IF(DWDT.LT.0d0) DWDT=0d0
+          IF(DWDT.GT.WMX(L)) DWDT=WMX(L)
+C**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
+          QHEAT(L)=-DWDT*LHX*BYDTsrc      
+          PREP(L)=MAX(0d0,(WMX(L)-DWDT)*BYDTsrc) ! precip out cloud water
+          WMPR(L)=PREP(L)*DTsrc ! precip water (for opt. depth calculation)
 #ifdef SCM
             if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
                PRESAV(L)=PREP(L)*DTsrc
@@ -3253,7 +3254,7 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
         IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
      *       ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
-        QHEAT(L)=-CLEARA(L)*FSSL(L)*ER(L)
+        QHEAT(L)=QHEAT(L)-CLEARA(L)*FSSL(L)*ER(L)
         WMNEW=0.
       END IF
 
