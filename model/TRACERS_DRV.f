@@ -9893,6 +9893,7 @@ C**** at the start of any day
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,scca(im)
       REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      INTEGER ie,iw,js,jn
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer :: i_ocmip,imax
@@ -9900,7 +9901,6 @@ C**** at the start of any day
       real*8  :: trsource_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(ntm) :: trsource_glbavg
 #endif
-      INTEGER ie,iw,js,jn
       INTEGER I_0, I_1, J_0, J_1
 
 C****
@@ -9951,7 +9951,6 @@ C**** Source over United States and Canada
         iw = lon_to_i(-125.d0)
         jn = lat_to_j(50.d0)
         js = lat_to_j(30.d0)
-        if (AM_I_ROOT()) write(*,*)'US :ie,iw,jn,js',ie,iw,jn,js
         sarea_prt(:)  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
@@ -9971,7 +9970,6 @@ C**** Source over Europe and Russia
         jn = lat_to_j(65.d0)
         js = lat_to_j(35.d0)
         sarea_prt(:)  = 0.
-        if (AM_I_ROOT()) write(*,*)'EU:ie,iw,jn,js',ie,iw,jn,js
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
             sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
@@ -9989,7 +9987,6 @@ C**** Source over Far East
         iw = lon_to_i(120.d0)
         jn = lat_to_j(45.d0)
         js = lat_to_j(20.d0)
-        if (AM_I_ROOT()) write(*,*)'FE:ie,iw,jn,js',ie,iw,jn,js
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
@@ -10008,7 +10005,6 @@ C**** Source over Middle East
         iw = lon_to_i(30.d0)
         jn = lat_to_j(35.d0)
         js = lat_to_j(15.d0)
-        if (AM_I_ROOT()) write(*,*)'ME:ie,iw,jn,js',ie,iw,jn,js
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
@@ -10026,7 +10022,6 @@ C**** Source over South America
         ie = lon_to_i(-40.d0)
         iw = lon_to_i(-50.d0)
         j = lat_to_j(-23.d0) 
-        if (AM_I_ROOT()) write(*,*)'SA:ie,iw,j',ie,iw,j
         sarea_prt  = 0.
         if (j >= J_0 .and. j <= J_1) then
           do i=max(iw,i_0),min(ie,i_1)
@@ -10043,14 +10038,12 @@ C**** Source over South Africa
         source = .02d0*anngas*steppy
         j = lat_to_j(-34.d0) 
         i = lon_to_i(20.d0)
-        if (AM_I_ROOT()) write(*,*)'SF:i,j',i,j
         IF (j >= J_0 .and. j <= J_1 .and.
      *      i >= I_0 .and. i <= i_1) trsource(i,j,1,n) = source
 C**** Source over Australia and New Zealand
         source = .02d0*anngas*steppy
         j = lat_to_j(-34.d0) 
         i = lon_to_i(150.d0)
-        if (AM_I_ROOT()) write(*,*)'AU:i,j',i,j
         IF (j >= J_0 .and. j <= J_1 .and.
      *      i >= I_0 .and. i <= i_1) trsource(i,j,1,n) = source
 
