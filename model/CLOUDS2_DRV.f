@@ -264,8 +264,12 @@ C****
 C
 Cred*                       Reduced Arrays 1                 *********
 C        not clear yet whether they still speed things up
-      REAL*8  GZIL(IM,LM), SD_CLDIL(IM,LM), WMIL(IM,LM)
-      REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) ::
+     &     GZIL,SD_CLDIL,WMIL
+C      REAL*8  GZIL(IM,LM), SD_CLDIL(IM,LM), WMIL(IM,LM)
+      real*8, dimension(NMOM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) ::
+     &     TMOMIL,QMOMIL
+c      REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -430,20 +434,14 @@ C
 Cred* Reduced Arrays 2
 C
       DO L=1,LM
-         GZIL(:,L) = GZ(:,J,L)
+      DO I=I_0,I_1
+        GZIL(I,L) = GZ(I,J,L)
+C        SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
+        SD_CLDIL(I,L) = SDA(I,J,L)/DTsrc ! averaged SD
+        WMIL(I,L) = WM(I,J,L)
+        TMOMIL(:,I,L) = T3MOM(:,I,J,L)
+        QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
       END DO
-      DO L=1,LM
-C        SD_CLDIL(:,L) = SD_CLOUDS(:,J,L)
-         SD_CLDIL(:,L) = SDA(:,J,L)/DTsrc    ! averaged SD
-      END DO
-      DO L=1,LM
-         WMIL(:,L) = WM(:,J,L)
-      END DO
-      DO L=1,LM
-         TMOMIL(:,:,L) = T3MOM(:,:,J,L)
-      END DO
-      DO L=1,LM
-         QMOMIL(:,:,L) = Q3MOM(:,:,J,L)
       END DO
 Cred* end Reduced Arrays 2
 #ifdef TRACERS_ON
@@ -1536,13 +1534,11 @@ C****
 Cred*           Reduced Arrays 3
 C****
          DO L=1,LM
-            WM(:,J,L) = WMIL(:,L)
+         DO I=I_0,I_1
+            WM(I,J,L) = WMIL(I,L)
+            T3MOM(:,I,J,L) = TMOMIL(:,I,L)
+            Q3MOM(:,I,J,L) = QMOMIL(:,I,L)
          END DO
-         DO L=1,LM
-            T3MOM(:,:,J,L) = TMOMIL(:,:,L)
-         END DO
-         DO L=1,LM
-            Q3MOM(:,:,J,L) = QMOMIL(:,:,L)
          END DO
 Cred*       end Reduced Arrays 3
       END DO
