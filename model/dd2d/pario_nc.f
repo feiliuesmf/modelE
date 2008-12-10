@@ -42,6 +42,7 @@ c
         module procedure write_nc_0D_int
         module procedure write_nc_1D_int
         module procedure write_nc_2D_int
+        module procedure write_nc_3D_int
       end interface write_data
       interface read_data
         module procedure read_nc_0D
@@ -53,6 +54,7 @@ c
         module procedure read_nc_0D_int
         module procedure read_nc_1D_int
         module procedure read_nc_2D_int
+        module procedure read_nc_3D_int
       end interface read_data
 
       public :: defvar
@@ -292,6 +294,15 @@ c
       arr = iarr
       call write_data(grid,fid,varname,arr)
       end subroutine write_nc_2D_int
+      subroutine write_nc_3D_int(grid,fid,varname,iarr)
+      integer :: fid
+      character(len=*) :: varname
+      type(dd2d_grid), intent(in) :: grid
+      integer :: iarr(:,:,:)
+      real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
+      arr = iarr
+      call write_data(grid,fid,varname,arr)
+      end subroutine write_nc_3D_int
 
       subroutine read_nc_0D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
@@ -338,6 +349,21 @@ c
       call read_data(grid,fid,varname,arr,bcast_all=bc_all)
       if(grid%am_i_globalroot .or. bc_all) iarr = arr
       end subroutine read_nc_2D_int
+      subroutine read_nc_3D_int(grid,fid,varname,iarr,bcast_all)
+      integer :: fid
+      character(len=*) :: varname
+      type(dd2d_grid), intent(in) :: grid
+      integer :: iarr(:,:,:)
+      logical, intent(in), optional :: bcast_all
+      real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
+      logical :: bc_all
+      bc_all=.false.
+      if(present(bcast_all)) then
+        if(bcast_all) bc_all=.true.
+      endif
+      call read_data(grid,fid,varname,arr,bcast_all=bc_all)
+      if(grid%am_i_globalroot .or. bc_all) iarr = arr
+      end subroutine read_nc_3D_int
 
       subroutine defvar_0D(grid,fid,arr,varinfo)
       real*8 :: arr
@@ -488,6 +514,7 @@ c
           endif
           dname=varinfo(l1:l2)
           dsize = shp_in(xdim)
+          write(*,*) vname," ",dname," ",dsize
           if(dname(1:6).eq.'dist_i') then
             dname=dname(6:len_trim(dname))
             dsize = im_in
