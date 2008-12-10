@@ -881,6 +881,29 @@ c$$$         end if
      &       * fracrootCASA(i) 
      &       * (loss_froot + max(0.d0,-dC_froot))
 
+      enddo
+
+      dC_total = 0.d0
+      do i=1,N_CASA_LAYERS 
+        dC_total = dC_total - Closs(CARBON,LEAF,i) -
+     &       Closs(CARBON,FROOT,i) - Closs(CARBON,WOOD,i)
+      enddo
+      dC_total = dC_total*1.d-3  ! convert it to kg
+
+#ifdef RESTRICT_LITTER_FLUX
+      if ( dC_total < 0.d0 .and. dC_total + cop%C_total < 0.d0 ) then
+        Closs(CARBON,:,:) = Closs(CARBON,:,:)
+     &       *max( 0.d0, -cop%C_total/dC_total )
+        cop%C_total = min(0.d0, cop%C_total)
+      else
+        cop%C_total = cop%C_total + dC_total
+      endif
+#else
+      cop%C_total = cop%C_total + dC_total
+#endif
+
+      do i=1,N_CASA_LAYERS
+
         !* Accumulate *!
         Clossacc(CARBON,LEAF,i) = Clossacc(CARBON,LEAF,i)
      &       + Closs(CARBON,LEAF,i)
@@ -919,26 +942,9 @@ c$$$         end if
 !      resp_growth_root = 0.d0
       !############ END HACK ##############################################
 
-      cop%C_lab = cop%C_lab - l_fract*(loss_leaf + loss_froot) 
+      cop%C_lab = cop%C_lab - (1.d0-l_fract)*(loss_leaf + loss_froot) 
      &     - loss_hw - loss_croot ! - resp_growth !!! moved -resp_growth to canopyspitters
       cop%C_growth = resp_growth*cop%n*1.d-3
-      dC_total = 0.d0
-      do i=1,N_CASA_LAYERS 
-        dC_total = dC_total - Closs(CARBON,LEAF,i) -
-     &       Closs(CARBON,FROOT,i) - Closs(CARBON,WOOD,i)
-      enddo
-
-#ifdef RESTRICT_LITTER_FLUX
-      if ( dC_total < 0.d0 .and. dC_total + cop%C_total < 0.d0 ) then
-        Closs(CARBON,:,:) = Closs(CARBON,:,:)
-     &       *max( 0.d0, -cop%C_total/dC_total )
-        cop%C_total = min(0.d0, cop%C_total)
-      else
-        cop%C_total = cop%C_total + dC_total
-      endif
-#esle
-      cop%C_total = cop%C_total + dC_total
-#endif
 
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
 
