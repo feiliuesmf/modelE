@@ -1163,7 +1163,7 @@ C     OUTPUT DATA
      *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
 #endif
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,ail=>ail_loc
-     *     ,asjl=>asjl_loc,adiurn=>adiurn_loc,ndiuvar,
+     *     ,adiurn=>adiurn_loc,ndiuvar,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
@@ -2419,8 +2419,8 @@ C****
             CSZ2=COSZ2(I,J)
             JR=JREG(I,J)
             DO LR=1,LM_REQ
-               ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*CSZ2
-               ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(LR,I,J)
+              call inc_asjl(i,j,lr,3,SRHRS(LR,I,J)*CSZ2)
+              call inc_asjl(i,j,lr,4,TRHRS(LR,I,J))
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
