@@ -2483,8 +2483,10 @@ ccc   max in the following expression removes extra drip because of dew
       clab = 0.d0 ;  rauto = 0.d0 ; R_soil = 0.d0 
       soilCpools(:,:,:) = 0.d0
       if ( present(entcell) ) then
+      if ( process_vege ) then
         call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
      &       soilresp=R_soil, soilcpools=soilCpools)
+      endif
       endif
         !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
         !## Need to pass fr_snow to Ent.
