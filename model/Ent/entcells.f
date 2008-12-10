@@ -77,6 +77,9 @@
       ecp%lambda1(:) = 0.d0
       ecp%disturbance_rate(:) = 0.d0
 
+      ecp%C_total = 0.d0
+      ecp%C_growth = 0.d0
+
 !      ecp%soil_type - meaning at this level?
 
       end subroutine zero_entcell_patchsum
@@ -137,6 +140,9 @@
       ecp%ld = 0.0d0  !day length (min)
       ecp%light = 0.0d0
       ecp%light_prev = 0.0d0 
+
+      ecp%C_total = 0.d0
+      ecp%C_growth = 0.d0
 
       end subroutine zero_entcell
 !**************************************************************************

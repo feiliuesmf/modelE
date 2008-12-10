@@ -193,6 +193,10 @@
       cop%CB_d = CB_d
 !      cop%stressH2O = stressH2O      !Calculated in biophysics
 !      cop%stressH2Ol = stressH2Ol    !Calculated in biophysics
+      !* diags and hacks
+      cop%C_total = 0.d0
+      cop%C_growth = 0.d0
+
       end subroutine assign_cohort
       !*********************************************************************
 !!! basically replaced with cohort_construct()
