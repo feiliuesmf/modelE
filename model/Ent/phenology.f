@@ -530,7 +530,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
          !senesce and accumulate litter: turnover + C_lab change + growth respiration
          !senescefrac returned is fraction of foliage that is litter.
          call litter_cohort(SDAY,
-     i        C_fol_old,C_froot_old,C_hw_old,C_croot_old,
+     i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc)
          Cactive = cop%C_fol + cop%C_froot + cop%C_sw
 
@@ -778,7 +778,7 @@ c$$$         end if
 
       !*********************************************************************
       subroutine litter_cohort(dt,
-     i        C_fol_old,C_froot_old,C_hw_old,C_croot_old,
+     i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc)
       !* Determine litter from cohort carbon pools and accumulate litter into
       !* Clossacc array.  
@@ -792,7 +792,8 @@ c$$$         end if
       use cohorts, only : calc_CASArootfrac 
       use biophysics, only: Resp_can_growth
       real*8,intent(in) :: dt !seconds, time since last call
-      real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old
+      real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
+     &     C_sw_old
       type(cohort),pointer :: cop
       real*8,intent(inout) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       !--Local-----------------
@@ -804,7 +805,7 @@ c$$$         end if
       real*8 :: turnoverdtwood !Closs amount from intrinsic turnover of biomass pool.
 !      real*8 :: turnoverdttotal!Total
       real*8 :: loss_leaf, loss_froot, loss_hw,loss_croot, loss_live !g-C/individual
-      real*8 :: dC_fol, dC_froot, dC_hw, dC_croot !g-C/individual
+      real*8 :: dC_fol, dC_froot, dC_hw, dC_sw, dC_croot !g-C/individual
       real*8 :: adj !Adjustment to keep loss less than C_lab
       real*8 :: resp_growth,resp_growth_root !g-C/individ/ms/s
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
@@ -846,6 +847,7 @@ c$$$         end if
       dC_fol = cop%C_fol-C_fol_old
       dC_froot = cop%C_froot - C_froot_old
       dC_hw = cop%C_hw - C_hw_old
+      dC_sw = cop%C_sw - C_sw_old
       dC_croot = cop%C_croot - C_croot_old
       resp_growth_root =  Resp_can_growth(cop%pft,
      &     loss_froot+loss_croot  !Turnover growth
@@ -944,15 +946,20 @@ c$$$         end if
 
       cop%C_lab = cop%C_lab - (1.d0-l_fract)*(loss_leaf + loss_froot) 
      &     - loss_hw - loss_croot ! - resp_growth !!! moved -resp_growth to canopyspitters
+     &     - max(0.d0, dC_fol) - max(0.d0,dC_froot) - max(0.d0,dC_hw)
+     &     - max(0.d0,dC_croot)
+     &     + l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) )
+     &     - dC_sw
       cop%C_growth = resp_growth*cop%n*1.d-3
 
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
 
       !* Update cohort fluxes with growth respiration *!
-      i2a = 1d-3*cop%n          !Convert g-C/individual to kg-C/m^2
-      cop%R_auto = cop%R_auto + i2a*resp_growth
-      cop%R_root = cop%R_root + i2a*resp_growth_root
-      cop%NPP = cop%GPP - cop%R_auto
+! this doesn't belong here
+cddd      i2a = 1d-3*cop%n          !Convert g-C/individual to kg-C/m^2
+cddd      cop%R_auto = cop%R_auto + i2a*resp_growth
+cddd      cop%R_root = cop%R_root + i2a*resp_growth_root
+cddd      cop%NPP = cop%GPP - cop%R_auto
       if (C_fol_old.eq.0.d0) then
         cop%senescefrac = 0.d0
       else

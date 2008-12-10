@@ -74,7 +74,7 @@
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
       real*8 :: cpool(N_BPOOLS)
-      real*8 :: C_sw_old, C_hw_old,C_croot_old
+      real*8 :: C_sw_old, C_hw_old,C_croot_old,C_fol_old,C_froot_old
 
       cpool(:) = 0.d0
       pp => ecp%oldest      
@@ -82,8 +82,10 @@
       do while ( associated(pp) )
         cop => pp%tallest
         do while ( associated(cop) )
+          C_fol_old = cop%C_fol
           C_sw_old = cop%C_sw
           C_hw_old = cop%C_hw
+          C_froot_old = cop%C_froot
           C_croot_old = cop%C_croot
           cop%h = hdata(cop%pft)
 
@@ -103,11 +105,21 @@
           cop%C_hw = cpool(HW)
           cop%C_froot = cpool(FR)
           cop%C_croot = cpool(CR)
+cddd          !* Update C_lab
+cddd          if (.not.init) 
+cddd     &         cop%C_lab = cop%C_lab - max(0.d0,cop%C_hw - C_hw_old)
+cddd     &         - max(0.d0,cop%C_sw - C_sw_old) 
+cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
+
+          !!! you don't dump C anywhere else, so make sure it all goes back to cop%C_lab
           !* Update C_lab
           if (.not.init) 
-     &         cop%C_lab = cop%C_lab - max(0.d0,cop%C_hw - C_hw_old)
-     &         - max(0.d0,cop%C_sw - C_sw_old) 
-     &         - max(0.d0,cop%C_croot-C_croot_old)
+     &         cop%C_lab = cop%C_lab
+     &         - (cop%C_fol - C_fol_old)
+     &         - (cop%C_sw - C_sw_old)
+     &         - (cop%C_hw - C_hw_old)
+     &         - (cop%C_froot - C_froot_old)
+     &         - (cop%C_croot - C_croot_old)
 
           cop => cop%shorter
         enddo
@@ -329,7 +341,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
        !-------local-----
       real*8 :: cpool(N_BPOOLS)
       real*8 :: lai_old
-      real*8 :: C_fol_old,C_froot_old,C_hw_old,C_croot_old
+      real*8 :: C_fol_old,C_froot_old,C_hw_old,C_croot_old,C_sw_old
       real*8 :: resp_growth, resp_growth_root
       real*8 :: i2a  !Convert g-C/individual to kg-C/m^2
 !#ifdef DEBUG
@@ -341,6 +353,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       C_fol_old = cop%C_fol
       C_froot_old = cop%C_froot
       C_hw_old = cop%C_hw
+      C_sw_old = cop%C_sw
       C_croot_old = cop%C_croot
       cop%LAI = lai_new
  
@@ -356,7 +369,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       !* Update litter, C_lab, senescefrac
       if (.not.init) then
         call litter_cohort(SDAY,
-     i       C_fol_old,C_froot_old,C_hw_old,C_croot_old,
+     i       C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &       cop,Clossacc)
       endif
         !*## DEBUG ##*!
