@@ -1,6 +1,8 @@
-      subroutine regrid_input
+      subroutine regrid_input(dd2d)
       use regrid_com
+      use dd2d_utils
       implicit none
+      type (dd2d_grid), intent(in) :: dd2d
       type (x_2gridsroot) :: xll2cs
 
       call init_regrid_root(xll2cs,72,46,1,48,48,6)
@@ -9,7 +11,7 @@ c      call init_regrid(xll2cs,360,180,1,90,90,6)
 ccc   regrid boundary condition files 
       write(*,*) "IN REGRID INPUT"
       if (AM_I_ROOT()) then
-c         call regridTOPO(xll2cs)
+         call regridTOPO(xll2cs)
 c         call regridOSST(xll2cs)
 c         call regridSICE(xll2cs)
 c         call regridCDN(xll2cs)
@@ -19,9 +21,9 @@ c         call regridCROPS(xll2cs)
 c         call regridTOPINDEX(xll2cs)
 c         call regridSOIL(xll2cs)
 ccc   Then regrid Initial Condition 
-         call regridGIC(xll2cs)
-c         call regridAIC(xll2cs)
       endif
+c         call regridGIC(xll2cs,dd2d)
+c         call regridAIC(xll2cs)
 
       end subroutine regrid_input
 c     *
@@ -29,23 +31,29 @@ c     *
 
       subroutine regridTOPO(x2grids)
 c
-c     Jeff posted Z1X1N and Z1X1N_MODELE on Discover
+c     for 1x1 resolution : Jeff posted Z1X1N and Z1X1N_MODELE on Discover
 c
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
-      character*80 :: TITLE,name
+      include 'netcdf.inc'
+      character*80 :: TITLE,name,ncfile
       type (x_2gridsroot), intent(inout) :: x2grids
       real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
-      integer :: iu_TOPO,i,j,k,irec,iunit,imt,jmt,ntt,maxrec
+      integer :: iu_TOPO,i,j,k,irec,iunit,imt,jmt,ntt,maxrec,status,
+     &     vid,fid
 
       imt=x2grids%imtarget
       jmt=x2grids%jmtarget
       ntt=x2grids%ntilestarget
 
+      write(*,*) "imt jmt ntt",imt,jmt,ntt
+
       allocate( ttargglob(imt,jmt,ntt,nrecmax),ones(imt,jmt,ntt) )
 
       name="Z72X46N.cor4_nocasp"
+
+      write(*,*) name
 
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
 
@@ -81,6 +89,27 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
       enddo
 
       close(iu_TOPO)
+ 
+      ncfile="topo6tiles.nc"
+
+      status = nf_open(trim(ncfile),nf_write,fid)
+      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN FILE"
+      status = nf_inq_varid(fid,'zatmo',vid)
+      write(*,*) NF_STRERROR(status)
+      status = nf_put_var_double(fid,vid,ttargglob(:,:,:,1))
+      write(*,*) "STATUS",NF_STRERROR(status),"<<"
+      status = nf_close(fid)
+
+      ncfile="topo.nc"
+
+      status = nf_open(trim(ncfile),nf_write,fid)
+      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN FILE"
+      status = nf_inq_varid(fid,'zatmo',vid)
+      write(*,*) NF_STRERROR(status)
+      status = nf_put_var_double(fid,vid,ttargglob(:,:,2,1))
+      write(*,*) "STATUS",NF_STRERROR(status),"<<"
+      status = nf_close(fid)
+
       deallocate(ttargglob,ones)
       
       end subroutine regridTOPO 
@@ -89,7 +118,7 @@ c*
 
 
       subroutine regridOSST(x2grids)
-c     OSST: 1x1 by Gary on Athena clima1/OBS/AMIP/1x1
+c     for 1x1 resolution :  Gary on Athena clima1/OBS/AMIP/1x1
 c     Also SST1x1_HadISST from Hadley (Jeff Jonas) - check if this  
 c     has been interpolated from lower resolution 
 
@@ -117,7 +146,7 @@ c
 
 
       subroutine regridSICE(x2grids)
-c     SICE : 1x1 by Gary on Athena clima1/OBS/AMIP/1x1
+c     for 1x1 resolution: Gary on Athena clima1/OBS/AMIP/1x1
 c     Also ICE_1x1_HadISST from Hadley (Jeff Jonas) - check if this  
 c     has been interpolated from lower resolution 
 c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
@@ -147,7 +176,7 @@ c     call openunit ("SICE",iu_SICE,.true.,.true.)
 
 
       subroutine regridCDN(x2grids)
-c     Jeff uses CDN=AL30RL360X180N.rep
+c     for 1x1 resolution: Jeff uses CDN=AL30RL360X180N.rep
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
@@ -167,7 +196,7 @@ c*
 
 
       subroutine regridVEG(x2grids)
-c     Jeff uses VEG=V360X180_no_crops.rep
+c     for 1x1 resolution: Jeff uses VEG=V360X180_no_crops.rep
 c	It is identical to V144X90_no_crops.ext (144X90 data 
 c	was just transfered to 360X180 grid without any change)
       use regrid_com
@@ -252,7 +281,7 @@ c*
       
       subroutine regridSOIL(x2grids)
 c
-c     Jeff uses SOIL=S360X180_0098M.rep
+c     for 1x1 resolution: Jeff uses SOIL=S360X180_0098M.rep
 c
       use regrid_com
       implicit none
@@ -342,14 +371,22 @@ c*
       
       
 
-      subroutine regridGIC(x2grids)
+
+      subroutine regridGIC(x2grids,dd2d)
 c
-c     Jeff uses GIC=GIC.360X180.DEC01.1.rep
+c     for 1x1 resolution: Jeff uses GIC=GIC.360X180.DEC01.1.rep
 c
       USE FILEMANAGER, only : openunit,closeunit
+      use DOMAIN_DECOMP,only : am_i_root
       use regrid_com
+      use dd2d_utils
+      use pario, only : defvar,write_data
+
       implicit none
+      include 'netcdf.inc'
+
       type (x_2gridsroot), intent(in) :: x2grids
+      type (dd2d_grid), intent(in) :: dd2d
       real*8, allocatable :: Tocn(:,:,:),MixLD(:,:)        ! OCN01
       real*8, allocatable :: F(:,:),H(:,:,:),snw(:,:),msi(:,:),
      &     ssi(:,:,:),pond_melt(:,:)
@@ -364,7 +401,7 @@ c
       real*8, allocatable :: F_out(:,:,:),H_out(:,:,:,:),
      &     snw_out(:,:,:),msi_out(:,:,:),ssi_out(:,:,:,:),
      &     pond_melt_out(:,:,:)
-      logical, allocatable :: flag_dsws_out(:,:,:)                ! SICE02
+      integer, allocatable :: flag_dsws_out(:,:,:)                ! SICE02
       real*8, allocatable :: snowe_out(:,:,:),Te_out(:,:,:),
      &     WTRe_out(:,:,:), ICEe_out(:,:,:),SNOage_out(:,:,:,:),
      &     evmax_out(:,:,:),fsat_out(:,:,:),gq_out(:,:,:)         ! EARTH01
@@ -375,8 +412,9 @@ c
       real*8, allocatable :: tsource(:,:,:)
       real*8, allocatable :: ttargglob(:,:,:)
       character*80 TITLEOCN01,TITLESICE02,TITLEEARTH01,TITLESOILS02,
-     &     TITLEGLAIC01,name,outunformat
-      integer iu_GIC,iuout,ims,jms,nts,imt,jmt,ntt,i,j,k,l
+     &     TITLEGLAIC01,name,outunformat,outnc
+      integer :: iu_GIC,iuout,ims,jms,nts,imt,jmt,ntt
+      integer :: i,j,k,l,fid,status,ntiles,im,jm,d2,d3
      
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -432,7 +470,7 @@ c
 
       close(iu_GIC)
       
-      
+            
       outunformat=trim(name)//".CS"
       
       write(*,*) outunformat
@@ -495,9 +533,31 @@ c
       call root_regrid(x2grids,tsource,ttargglob)
       pond_melt_out(:,:,:)=ttargglob(:,:,:)
 
-      tsource(:,:,1)=flag_dsws(:,:)
+      do j=1,jms
+         do i=1,ims
+            if (flag_dsws(i,j) .eq. .true.) then
+               tsource(i,j,1)=1.d0
+            else
+               tsource(i,j,1)=0.d0
+            endif
+         enddo
+      enddo
+
       call root_regrid(x2grids,tsource,ttargglob)
-      flag_dsws_out(:,:,:)=ttargglob(:,:,:)
+
+c***  Compatibility
+      do k=1,6
+         do j=1,jms
+            do i=1,ims
+               if (ttargglob(i,j,k) .ge. 0.5d0) then
+                  flag_dsws_out(i,j,k)=1
+               else
+                  flag_dsws_out(i,j,k)=0
+               endif
+            enddo
+         enddo
+      enddo
+
 
       tsource(:,:,1)=snowe(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
@@ -608,16 +668,13 @@ c
          T_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
-      write(iuout) TITLEOCN01, Tocn_out,MixLD_out
-      write(iuout) TITLESICE02, F_out,H_out,snw_out,msi_out,ssi_out,
-     &     pond_melt_out,flag_dsws_out
-      write(iuout) TITLEEARTH01, snowe_out,Te_out,WTRe_out, ICEe_out,
-     &     SNOage_out,evmax_out,fsat_out,gq_out
-      write(iuout) TITLESOILS02, Wb_out,Wv_out,HTb_out,HTv_out,
-     &     SNWbv_out
-      write(iuout) TITLEGLAIC01, SNOW_out,T_out
+
+c***  Write Netcdf file
+#ifdef TRACERS_WATER
+      write(*,*) "STOP TRACERS WATER NOT IMPLEMENTED IN regridinput"
+      stop
+#endif      
       
-      close(iuout)
 
       deallocate (Tocn,MixLD,F,H,snw,msi,
      &     ssi,pond_melt,flag_dsws,
@@ -625,6 +682,90 @@ c
      &     SNOage,evmax,fsat,gq,
      &     Wb,Wv,HTb,HTv, 
      &     SNWbv,SNOW,T )
+
+      deallocate (tsource,ttargglob)     
+      
+      outnc=trim(name)//"-CS.nc"
+      write(*,*) outnc
+
+      if (am_i_root()) then
+         status = nf_create(outnc,nf_clobber,fid)
+         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
+      endif
+
+    
+c***  Define OCN variables
+      call defvar(dd2d,fid,Tocn_out,'tocean_glob(d3,im,jm,tile)')
+      call defvar(dd2d,fid,MixLD_out,'z1o_glob(im,jm,tile)')
+c***  Define SICE variables
+      call defvar(dd2d,fid,F_out,'rsi_glob(im,jm,tile)')
+      call defvar(dd2d,fid,H_out,'hsi_glob(lmi,im,jm,tile)')
+      call defvar(dd2d,fid,snw_out,'snowi_glob(im,jm,tile)')
+      call defvar(dd2d,fid,msi_out,'msi_glob(im,jm,tile)')
+      call defvar(dd2d,fid,ssi_out,'ssi_glob(lmi,im,jm,tile)')
+      call defvar(dd2d,fid,pond_melt_out,
+     &     'pond_melt_glob(im,jm,tile)')
+      call defvar(dd2d,fid,flag_dsws_out,
+     &     'flag_dsws_glob(im,jm,tile)')
+c***  Define EARTH variables
+      call defvar(dd2d,fid,snowe_out,'snowe_glob(im,jm,tile)')
+      call defvar(dd2d,fid,Te_out,'tearth_glob(im,jm,tile)')
+      call defvar(dd2d,fid,WTRe_out,'wearth_glob(im,jm,tile)')
+      call defvar(dd2d,fid,ICEe_out,'aiearth_glob(im,jm,tile)')
+      call defvar(dd2d,fid,SNOage_out,'snoage_glob(d3,im,jm,tile)')
+      call defvar(dd2d,fid,evmax_out,
+     &     'evap_max_ij_glob(im,jm,tile)')
+      call defvar(dd2d,fid,fsat_out,'fr_sat_ij_glob(im,jm,tile)')
+      call defvar(dd2d,fid,gq_out,'qg_ij_glob(im,jm,tile)')
+c***  Define SOIL variables     ! this is the old SOIL02 version, implement the new version
+      call defvar(dd2d,fid,Wb_out,'wb_glob(ngm,im,jm,tile)')
+      call defvar(dd2d,fid,Wv_out,
+     &     'wv_glob(zero_to_ngm,im,jm,tile)')
+      call defvar(dd2d,fid,HTb_out,
+     &     'htb_glob(zero_to_ngm,im,jm,tile)')
+      call defvar(dd2d,fid,HTv_out,
+     &     'htv_glob(zero_to_ngm,im,jm,tile)')
+      call defvar(dd2d,fid,SNWbv_out,
+     &     'snowbv_glob(ls_nfrac,im,jm,tile)')
+c***  Define GLAIC variables
+      call defvar(dd2d,fid,SNOW_out,'snowli_glob(im,jm,tile)')
+      call defvar(dd2d,fid,T_out,'tlandi_glob(d2,im,jm,tile)')
+      
+      if (am_i_root()) then
+         status = nf_enddef(fid)
+         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
+      endif
+
+c***  Write OCN variables
+      call write_data(dd2d,fid,'tocean_glob',Tocn_out)
+      call write_data(dd2d,fid,'z1o_glob',MixLD_out)
+c***  Write SICE variables
+      call write_data(dd2d,fid,'rsi_glob',F_out)
+      call write_data(dd2d,fid,'hsi_glob',H_out)
+      call write_data(dd2d,fid,'snowi_glob',snw_out)
+      call write_data(dd2d,fid,'msi_glob',msi_out)
+      call write_data(dd2d,fid,'ssi_glob',ssi_out)
+      call write_data(dd2d,fid,'pond_melt_glob',pond_melt_out)
+      call write_data(dd2d,fid,'flag_dsws_glob',flag_dsws_out)
+c***  Write EARTH variables
+      call write_data(dd2d,fid,'snowe_glob',snowe_out)
+      call write_data(dd2d,fid,'tearth_glob',Te_out)
+      call write_data(dd2d,fid,'wearth_glob',WTRe_out)
+      call write_data(dd2d,fid,'aiearth_glob',ICEe_out)
+      call write_data(dd2d,fid,'snoage_glob',SNOage_out)
+      call write_data(dd2d,fid,'evap_max_ij_glob',evmax_out)
+      call write_data(dd2d,fid,'fr_sat_ij_glob',fsat_out)
+      call write_data(dd2d,fid,'qg_ij_glob',gq_out)
+c***  Write SOIL variables     ! this is the old SOIL02 version, implement the new version
+      call write_data(dd2d,fid,'wb_glob',Wb_out)
+      call write_data(dd2d,fid,'wv_glob',Wv_out)
+      call write_data(dd2d,fid,'htb_glob',HTb_out)
+      call write_data(dd2d,fid,'htv_glob',HTv_out)
+      call write_data(dd2d,fid,'snowbv_glob',SNWbv_out)
+c***  Write GLAIC variables
+      call write_data(dd2d,fid,'snowli_glob',SNOW_out)
+      call write_data(dd2d,fid,'tlandi_glob',T_out)
+
 
       deallocate (Tocn_out,MixLD_out,F_out,H_out,
      &     snw_out,msi_out,ssi_out,pond_melt_out,
@@ -634,7 +775,8 @@ c
      &     HTb_out,HTv_out,SNWbv_out,
      &     SNOW_out,T_out )
 
-      deallocate (tsource,ttargglob)
+      
+       if(am_i_root()) status = nf_close(fid)
 
       end subroutine regridGIC
 c*
@@ -643,7 +785,7 @@ c*
 
       subroutine regridAIC(x2grids)
 c
-c     Jeff uses AIC=AIC.RES_X40.D771201N.rep
+c     for 1x1 resolution : Jeff uses AIC=AIC.RES_X40.D771201N.rep
 c
       USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
