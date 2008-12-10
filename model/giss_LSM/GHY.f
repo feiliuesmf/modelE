@@ -2480,9 +2480,12 @@ ccc   max in the following expression removes extra drip because of dew
 #ifdef USE_ENT
       !Ent veg accumulators. nyk
       agpp = agpp + gpp*dts        
+      clab = 0.d0 ;  rauto = 0.d0 ; R_soil = 0.d0 
+      soilCpools(:,:,:) = 0.d0
       if ( present(entcell) ) then
         call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
      &       soilresp=R_soil, soilcpools=soilCpools)
+      endif
         !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
         !## Need to pass fr_snow to Ent.
 !        agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
@@ -2515,8 +2518,6 @@ ccc   max in the following expression removes extra drip because of dew
 !      !Instantaneous pool/column-integrated soil C_org (g/m2)    !
         asoilCpoolsum =
      &       sum( soilCpools(CARBON,NLIVE+1:NPOOLS,1:N_CASA_LAYERS) )
-
-      endif
 #else
       !Accumulate GPP, nyk, like evap_tot(2)
       agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
