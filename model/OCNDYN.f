@@ -3328,20 +3328,6 @@ C****         DMVI     V momentum downward from sea ice (kg/m*s)
      *                 J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      *                 have_north_pole=have_north_pole)
 
-C**** Scale stresses for ocean area
-      DO J=J_0,J_1
-        DO I=1,IMO
-c          oDMUA(I,J,1)=RATOC(J)*oDMUA(I,J,1)
-c          oDMVA(I,J,1)=RATOC(J)*oDMVA(I,J,1)
-          oDMUI(I,J)=RATOC(J)*oDMUI(I,J)
-          oDMVI(I,J)=RATOC(J)*oDMVI(I,J)
-        END DO
-      END DO
-
-      write (666,*) ' OSTRES: RATOC(7),UO(55,7,1)= ',
-     *  RATOC(7),UO(55,7,1)
-      write (666,*) ' OSTRES: oDMUA(55,7,1),oDMVA(55,7,1)= ',
-     *  oDMUA(55,7,1),oDMVA(55,7,1)
 C****
 C**** Surface stress is applied to U component
 C****
@@ -3382,7 +3368,6 @@ C**** Surface stress is applied to V component at the North Pole
       END DO
       end if
 
-      write (666,*) ' OSTRES, before RETURN: UO(48,18,1)= ',UO(48,18,1)
       RETURN
       END SUBROUTINE OSTRES
 
@@ -5366,15 +5351,18 @@ C**** surface tracer concentration
 
       USE RESOLUTION, only : IMA=>IM,JMA=>JM 
       USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP, IVNPO=>IVNP
+      USE MODEL_COM, only : IVSPA=>IVSP, IVNPA=>IVNP
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
 #endif
 
       USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
-     *     oDLATM=>DLATM, oSINI=>SINIC, oCOSI=>COSIC
+     *     oDLATM=>DLATM, oSINI=>SINIC, oCOSI=>COSIC, 
+     *     oCOSU=>COSU,oSINU=>SINU
       Use GEOM,  only : aDXYP=>DXYP, aDXYPO, aIMAXJ=>IMAXJ,
-     *     aDLATM=>DLATM, aSINI=>SINIP, aCOSI=>COSIP
+     *     aDLATM=>DLATM, aSINI=>SINIP, aCOSI=>COSIP, 
+     *     aSINU=>SINU, aCOSU=>COSU
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
@@ -5441,9 +5429,9 @@ C**** surface tracer concentration
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
       REAL*8  aDMUAsp, aDMVAsp, aDMUAnp, aDMVAnp 
       REAL*8  oDMUAsp, oDMVAsp, oDMUAnp, oDMVAnp 
+      REAL*8  aDMUIsp, aDMVIsp, aDMUInp, aDMVInp 
+      REAL*8  oDMUIsp, oDMVIsp, oDMUInp, oDMVInp 
       REAL*8  diff, SUM_oFtemp, SUM_aFtemp, SUM_aORIG
-
-      write (555,*) ' INT_AG2OG_occeans#1:oDLATM,aDLATM= ',oDLATM,aDLATM
 
       aONES(:,:) = 1.d0
       aOOCN(:,:) = 1.d0 - aRSI_glob(:,:)
@@ -5664,13 +5652,38 @@ C**** surface tracer concentration
       oDMVA_glob(1,  1,1) = oDMVAsp
       oDMVA_glob(1,JMO,1) = oDMVAnp
 
-      write (666,*) ' INT_AG2OG_oceans:RATOC(18)= ',aDXYP(7)/aDXYPO(7)
-      write (666,*) ' INT_AG2OG_oceans: 
-     *  oDMUA_glob(55,7,1),oDMVA_glob(55,7,1)= ',
-     *  oDMUA_glob(55,7,1),oDMVA_glob(55,7,1)
- 
-      oDMUI_glob(:,:)     = aDMUI_glob(:,:)
-      oDMVI_glob(:,:)     = aDMVI_glob(:,:)
+
+      aDMUIsp = 0.0  !!  aDMUI_glob(  IMA,  1)
+      aDMVIsp = 0.0  !!  aDMVI_glob(IVSPA,  1)
+      aDMUInp = 0.0  !!  aDMUI_glob(  IMA,JMA)
+      aDMVInp = 0.0  !!  aDMVI_glob(IVNPA,JMA)
+
+      aFtemp(:,  1) = 0.0  !!  aDMUIsp*aCOSU(:) - aDMVIsp*aSINU(:)
+      aFtemp(:,JMA) = 0.0  !!  aDMUInp*aCOSU(:) + aDMVInp*aSINU(:)
+
+      DO J=2,JMA-1
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aDMUI_glob(I,J)                           !  kg/m s
+          END IF 
+        END DO
+      END DO
+      call HNTR80 (IMA,JMA,.5d0,aDLATM, IMO,JMO,.5d0,oDLATM, 0.d0)
+      call HNTR8  (aONES, aFtemp, oDMUI_glob)          !!  U-grid => U-grid
+
+      oDMUIsp = 0.0  !!   SUM(oDMUI_glob(:,  1)*oCOSU(:))*2/IMO
+      oDMVIsp = 0.0  !!  -SUM(oDMUI_glob(:,  1)*oSINU(:))*2/IMO
+      oDMUInp = 0.0  !!   SUM(oDMUI_glob(:,JMO)*oCOSU(:))*2/IMO
+      oDMVInp = 0.0  !!   SUM(oDMUI_glob(:,JMO)*oSINU(:))*2/IMO
+
+      oDMUI_glob(  IMO,  1) = oDMUIsp
+      oDMUI_glob(IVSPO,  1) = oDMUIsp
+      oDMUI_glob(  IMO,JMO) = oDMUInp
+      oDMUI_glob(IVNPO,  1) = oDMUInp
+
+      call HNTR80 (IMA,JMA-1,0.d0,aDLATM, IMO,JMO-1,0.d0,oDLATM, 0.d0)
+      call HNTR8  (aONES, aDMVI_glob, oDMVI_glob)      !!  V-grid => V-grid
+      oDMVI_glob(:,JMO) = 0.0                          !!  should not be used
 
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
