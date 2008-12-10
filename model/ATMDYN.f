@@ -2572,6 +2572,1284 @@ c      end module DIAG
       return
       end subroutine regrid_to_primary_1d
 
+
+      SUBROUTINE DIAGB
+!@sum DIAGB calculate constant pressure diagnostics from within DYNAM
+C****
+C**** CONTENTS OF AJK(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
+C****   See jks_defs for contents
+C****
+C**** CONTENTS OF AIJK(I,J,K,N)   (SUM OVER TIME OF)
+C****   See ijks_defs for contents
+C****
+      USE CONSTANT, only : lhe,omega,sha,tf,teeny
+      USE MODEL_COM, only :
+     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,jdate,
+     &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
+      USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
+     &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
+      USE DIAG_COM, only : ia_dga
+     &    ,ajk=>ajk_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
+     &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
+     *     ,ijk_dse,klayer,idd_w,ijdd,ijk_r,ijk_w,ijk_pf,
+     *      ijk_uv,ijk_vt,ijk_vq,ijk_vv,ijk_uu,ijk_tt,
+     &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
+     &      JK_RH,JK_U,JK_V,JK_ZMFKE,JK_TOTKE,JK_ZMFNTSH,
+     &      JK_TOTNTSH,JK_ZMFNTGEO,JK_TOTNTGEO,JK_ZMFNTLH,
+     &      JK_TOTNTLH,JK_ZMFNTKE,JK_TOTNTKE,JK_ZMFNTMOM,JK_TOTNTMOM,
+     &      JK_P2KEDPGF,JK_DPSQR,JK_NPTSAVG,
+     &      JK_VVEL,JK_ZMFVTDSE,JK_TOTVTDSE,JK_ZMFVTLH,JK_TOTVTLH,
+     &      JK_VTGEOEDDY,JK_BAREKEGEN,JK_POTVORT,JK_VTPV,
+     &      JK_VTPVEDDY,JK_NPTSAVG1,JK_TOTVTKE,
+     &      JK_VTAMEDDY,JK_TOTVTAM,JK_SHETH,JK_DUDTMADV,JK_DTDTMADV,
+     &      JK_DUDTTEM,JK_DTDTTEM,JK_EPFLXNCP,JK_EPFLXVCP,
+     &      JK_UINST,JK_TOTDUDT,JK_TINST,
+     &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
+      USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
+      USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : HALO_UPDATEj
+      USE DOMAIN_DECOMP, only : SOUTH, NORTH, GLOBALSUM
+      USE GETTIME_MOD
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
+      REAL*8, DIMENSION
+     &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &     ZX,STB,UDX
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &     STJK,DPJK,UJK,VJK,WJK,TJK,
+     &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
+      REAL*8, DIMENSION(IM) :: PSEC,X1,X1tmp
+      REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH,P00,AML,PDSIGL,PMIDL
+      REAL*8, DIMENSION(LM+1) :: PEDNL
+
+      INTEGER ::
+     &     I,IH,IHM,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
+     &     JHEMI,K,KDN,KR,KS,KS1,KSPHER,KUP,KX,L,
+     &     LUP,MBEGIN,N,NM,KM
+
+      REAL*8 ::
+     &     BYDP,BYFIM,DP,DPDN,DP4,
+     &     DPE,DPI,DPK,DPSQI,DPUP,DPUV,DUTI,DUTK,DVTI,DVTK,FIMI,
+     &     PAI,PAK,PDN,PHIPI,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
+     &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
+     &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
+     &     PZV4I,QK,QKI,QLH,QPI,QSATL,RHPI,SDK,
+     &     SMALL,SP,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
+     &     UDUTI,    UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
+     &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
+     &     WTI,WU4I,WUP,WZI,ZK,ZKI
+     &     ,AMRHT,AMRHQ,AMUV,AMVQ,AMVT,AMUU,AMVV,AMTT
+
+      REAL*8, PARAMETER :: BIG=1.E20
+      REAL*8 :: QSAT
+      REAL*8 :: pm_ge_ps(im,grid%j_strt_halo:grid%j_stop_halo,lm)
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GETTIME(MBEGIN)
+
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               J_STRT_HALO=J_0H,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      pm_ge_ps(:,:,:)=-1.
+C****
+C**** INTERNAL QUANTITIES T,TH,Q,RH
+C****
+      KM=LM
+      QLH=LHE
+      DO 170 J=J_0,J_1
+      DO 170 K=1,KM
+      DPI=0.
+      TPI=0.
+      PHIPI=0.
+      QPI=0.
+      WMPI=0.
+      THPI=0.
+      RHPI=0.
+      FIMI=0.
+      DO 160 I=1,IMAXJ(J)
+C**** FIND L=L(K) AND LUP=L(K+1) S.T. P(LUP).GT.P(K+1)
+      SP=PLIJ(K,I,J)
+      call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
+
+      PS=SP+PTOP
+      IF (PM(K+1).GE.PS) GO TO 160
+      L=1
+      PDN=PS
+      IF (PM(K).GE.PS) GO TO 120
+      PDN=PM(K)
+  110 IF (PM(K).GT.PEDNL(L+1)) GO TO 120
+      L=L+1
+      GO TO 110
+  120 LUP=L
+  130 IF (PM(K+1).GE.PEDNL(LUP+1)) GO TO 140
+      LUP=LUP+1
+      GO TO 130
+  140 CONTINUE
+C**** ACCUMULATE HERE
+      DPI=DPI+PDN-PM(K+1)
+      FIMI=FIMI+1.
+  150 PUP=PEDNL(L+1)
+      IF (LUP.EQ.L) PUP=PM(K+1)
+      DP=PDN-PUP
+      TPI=TPI+(TX(I,J,L)-TF)*DP
+      PHIPI=PHIPI+PHI(I,J,L)*DP
+      QPI=QPI+Q(I,J,L)*DP
+      WMPI=WMPI+WM(I,J,L)*DP
+CW       IF(WMPI.GT.1.E-3) WRITE(6,169) I,J,L,DP,WM(I,J,L),WMPI
+CW169 FORMAT(1X,'1616--',3I5,3E15.2)
+      THPI=THPI+T(I,J,L)*DP
+      QSATL=QSAT(TX(I,J,L),QLH,PMIDL(L))
+      IF (QSATL.GT.1.) QSATL=1.
+      RHPI=RHPI+Q(I,J,L)*DP/QSATL
+      IF (L.EQ.LUP) GO TO 160
+      L=L+1
+      PDN=PEDNL(L)
+      GO TO 150
+  160 CONTINUE
+      AJK(J,K,JK_NPTSAVG1)=AJK(J,K,JK_NPTSAVG1)+FIMI
+      AJK(J,K,JK_DPA)=AJK(J,K,JK_DPA)+DPI
+      AJK(J,K,JK_TEMP)=AJK(J,K,JK_TEMP)+TPI
+      AJK(J,K,JK_HGHT)=AJK(J,K,JK_HGHT)+PHIPI
+      AJK(J,K,JK_Q)=AJK(J,K,JK_Q)+QPI
+      AJK(J,K,JK_THETA)=AJK(J,K,JK_THETA)+THPI
+      AJK(J,K,JK_RH)=AJK(J,K,JK_RH)+RHPI
+      AJK(J,K,JK_CLDH2O)=AJK(J,K,JK_CLDH2O)+WMPI
+         TJK(J,K)=THPI/(DPI+teeny)
+         IF (IDACC(ia_dga).EQ.1) AJK(J,K,JK_TINST)=TJK(J,K)
+         AJK(J,K,JK_TOTDTDT)=TJK(J,K)-AJK(J,K,JK_TINST)
+  170 CONTINUE
+C****
+C**** CALCULATE STABILITY AT ODD LEVELS ON PU GRID
+C****
+      DO 230 J=J_0,J_1
+      I=IMAXJ(J)
+      DO 230 IP1=1,IMAXJ(J)
+      SP=.5*(P(I,J)+P(IP1,J))
+      call calc_vert_amp(SP,LS1-1,P00,AML,PDSIGL,PEDNL,PMIDL)
+
+      DO 175 L=1,LS1-1
+      PLO(L)=PMIDL(L)
+  175 PL(L)=PEDNL(L)
+      DO 180 L=1,LM-1
+      DTH(L)=(T(I,J,L)+T(IP1,J,L)-T(I,J,L+1)-T(IP1,J,L+1))/
+     *  (2.*(PLO(L)-PLO(L+1)))
+  180 CONTINUE
+      DO 220 K=1,KM
+      STB(I,J,K)=0.
+      IF (PM(K+1).GE.PL(1)) GO TO 220
+      PMK=PMO(K)
+      IF (PM(K).GT.PL(1)) PMK=.5*(SP+PTOP+PM(K+1))
+      L=2
+      IF (PMK.GE.PL(2)) GO TO 210
+  190 LUP=L+1
+      IF (L.EQ.LM) GO TO 210
+      IF (PMK.GE.PL(LUP)) GO TO 200
+      L=LUP
+      GO TO 190
+  200 DPUP=PMK-PL(LUP)
+      DPDN=PL(L)-PMK
+      STB(I,J,K)=(DTH(L-1)*DPUP+DTH(L)*DPDN)/(DPUP+DPDN+teeny)
+      GO TO 220
+C**** SPECIAL CASES,  L=2, L=LM
+  210 STB(I,J,K)=DTH(L-1)
+  220 CONTINUE
+  230 I=IP1
+C**** CALCULATE STJK; THE MEAN STATIC STABILITY
+      DO 260 J=J_0,J_1
+      DO 260 K=1,KM
+      STJK(J,K)=0.
+      DPJK(J,K)=0.
+      I=IMAXJ(J)
+      DO 250 IP1=1,IMAXJ(J)
+      PS=.5*(P(I,J)+P(IP1,J))+PTOP
+      IF (PM(K+1).GT.PS) GO TO 250
+      STJK(J,K)=STJK(J,K)+STB(I,J,K)
+      DPJK(J,K)=DPJK(J,K)+1.
+  250 I=IP1
+      STJK(J,K)=STJK(J,K)/(DPJK(J,K)+teeny)
+      SMALL=.0001
+      IF (ABS(STJK(J,K)).LT.SMALL) STJK(J,K)=-SMALL
+  260 CONTINUE
+C****
+C**** CONSTANT PRESSURE DIAGNOSTICS:  FLUX, ENERGY, ANGULAR MOMENTUM
+C****
+      ZX(:,:,:)=0.
+      IF(HAVE_SOUTH_POLE) THEN
+        UDX(:,1,:)=0.
+      ENDIF
+
+C Needs to check later if all these halo calls are necessary.
+C DIAGA may have contained relevant halo calls
+C and since DIAGB is called immediately after DIAGA
+C there may not be a need for these calls if
+C the concerned arrays have not been updated
+C from the previous halo call.
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, T, FROM=SOUTH)
+      CALL HALO_UPDATEj(grid, STJK, FROM=SOUTH)
+c***      DO L=1,LM
+c***         CALL HALO_UPDATE(grid, STJK(:,L), FROM=SOUTH)
+c***      END DO
+
+      DO 390 J=J_0STG,J_1STG
+      I=IM
+      DO 280 IP1=1,IM
+      PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
+     *        (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
+      call calc_vert_amp(PSEC(I),LM,P00,AML,PDSIGL,PEDNL,PMIDL)
+
+      DO  K=1,KM
+        UDX(I,J,K)=0.
+      END DO
+      DO L=1,LM
+        DUT(I,J,L)=DUT(I,J,L)/(PDSIGL(L)*DXYV(J))
+        DVT(I,J,L)=DVT(I,J,L)/(PDSIGL(L)*DXYV(J))
+      END DO
+c      DO 275 L=1,LS1-1
+c      DUT(I,J,L)=DUT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
+c  275 DVT(I,J,L)=DVT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
+c      DO 276 L=LS1,LM
+c      DUT(I,J,L)=DUT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
+c  276 DVT(I,J,L)=DVT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
+  280 I=IP1
+      DO 350 K=1,KM
+      DPI=0.
+      DPSQI=0.
+      FIMI=0.
+      PUI=0.
+      PVI=0.
+      PWWI=0.
+      PT4I=0.
+      PTV4I=0.
+      PZ4I=0.
+      PZV4I=0.
+      PQ4I=0.
+      PQV4I=0.
+      PWWVI=0.
+      PUVI=0.
+      DVTI=0.
+      VDVTI=0.
+      DUTI=0.
+      UDUTI=0.
+      PS4I=0.
+      PSV4I=0.
+      I=IM
+      DO 340 IP1=1,IM
+      SP=PSEC(I)
+      call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
+      PS=SP+PTOP
+      DO 286 L=1,LS1-1
+  286 PL(L)=PEDNL(L)
+      IF (PM(K+1).GE.PS) THEN
+        pm_ge_ps(i,j,k) = 1.
+        UDX(I,J,K)=BIG
+      ELSE
+        L=1
+        PDN=PS
+        IF (PM(K).GE.PS) GO TO 300
+        PDN=PM(K)
+  290   IF (PM(K).GT.PL(L+1)) GO TO 300
+        L=L+1
+        GO TO 290
+  300   LUP=L
+  310   IF (PM(K+1).GE.PL(LUP+1)) GO TO 320
+        LUP=LUP+1
+        GO TO 310
+  320   CONTINUE
+        DPK=PDN-PM(K+1)
+        PUK=0.
+        PVK=0.
+        PT4K=0.
+        PZ4K=0.
+        PQ4K=0.
+        DUTK=0.
+        DVTK=0.
+        PS4K=0.
+C**** FOR AMIP
+        AMVQ=0.
+        AMVT=0.
+        AMUU=0.
+        AMVV=0.
+        AMUV=0.
+        AMTT=0.
+C**** END AMIP
+C**** INTERPOLATE HERE
+  330 PUP=PL(L+1)
+      IF (LUP.EQ.L) PUP=PM(K+1)
+      DP=PDN-PUP
+      DP4=.25*DP
+      PUK=PUK+DP*U(I,J,L)
+      PVK=PVK+DP*V(I,J,L)
+      PT4K=PT4K+(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))*DP4
+      PZ4K=PZ4K+(PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L))
+     &     *DP4
+      PQ4K=PQ4K+(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))*DP4
+      DUTK=DUTK+DP*DUT(I,J,L)
+      DVTK=DVTK+DP*DVT(I,J,L)
+      PS4K=PS4K+(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))*DP4
+C**** FOR AMIP 2
+      AMRHT=.25*(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))
+      AMRHQ=.25*(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))
+      AMVQ=AMVQ+DP*V(I,J,L)*AMRHQ
+      AMVT=AMVT+DP*V(I,J,L)*AMRHT
+      AMUU=AMUU+DP*U(I,J,L)*U(I,J,L)
+      AMVV=AMVV+DP*V(I,J,L)*V(I,J,L)
+      AMUV=AMUV+DP*U(I,J,L)*V(I,J,L)
+      AMTT=AMTT+DP*AMRHT*AMRHT
+C**** END AMIP
+      IF (LUP.EQ.L) GO TO 332
+      L=L+1
+      PDN=PL(L)
+      GO TO 330
+C**** ACCUMULATE HERE
+  332 FIMI=FIMI+1.
+      DPI=DPI+DPK
+      DPSQI=DPSQI+DPK*DPK
+      IF (DPK.LT.teeny) DPK=teeny
+      BYDP=1./DPK
+      PUI=PUI+PUK
+      PVI=PVI+PVK
+      PWWI=PWWI+BYDP*(PUK*PUK+PVK*PVK)
+      PWWVI=PWWVI+BYDP*BYDP*(PUK*PUK+PVK*PVK)*PVK
+      PUVI=PUVI+BYDP*PUK*PVK
+      PT4I=PT4I+PT4K
+      PTV4I=PTV4I+BYDP*PT4K*PVK
+      PZ4I=PZ4I+PZ4K
+      PZV4I=PZV4I+BYDP*PZ4K*PVK
+      PQ4I=PQ4I+PQ4K
+      PQV4I=PQV4I+BYDP*PQ4K*PVK
+      DVTI=DVTI+DVTK
+      VDVTI=VDVTI+BYDP*PVK*DVTK
+      DUTI=DUTI+DUTK
+      UDUTI=UDUTI+BYDP*PUK*DUTK
+!!    IF(SKIPSE.EQ.1.) GO TO 334
+      AIJK(I,J,K,IJK_U)  =AIJK(I,J,K,IJK_U)  +PUK
+      AIJK(I,J,K,IJK_V)  =AIJK(I,J,K,IJK_V)  +PVK
+      AIJK(I,J,K,IJK_DSE)=AIJK(I,J,K,IJK_DSE)+SHA*PT4K+PZ4K
+      AIJK(I,J,K,IJK_DP) =AIJK(I,J,K,IJK_DP) +DPK
+      AIJK(I,J,K,IJK_T)  =AIJK(I,J,K,IJK_T)  +PT4K
+      AIJK(I,J,K,IJK_Q)  =AIJK(I,J,K,IJK_Q)  +PQ4K
+      AIJK(I,J,K,IJK_R)  =AIJK(I,J,K,IJK_R)  +
+     *     PQ4K/QSAT(PT4K/DPK,LHE,PMO(K))
+      AIJK(I,J,K,IJK_PF)  =AIJK(I,J,K,IJK_PF)+1.
+C     *  *  *  FOR AMIP 2  *  *  *
+      AIJK(I,J,K,IJK_UV)=AIJK(I,J,K,IJK_UV)+AMUV
+      AIJK(I,J,K,IJK_VQ)=AIJK(I,J,K,IJK_VQ)+AMVQ
+      AIJK(I,J,K,IJK_VT)=AIJK(I,J,K,IJK_VT)+AMVT
+      AIJK(I,J,K,IJK_UU)=AIJK(I,J,K,IJK_UU)+AMUU
+      AIJK(I,J,K,IJK_VV)=AIJK(I,J,K,IJK_VV)+AMVV
+      AIJK(I,J,K,IJK_TT)=AIJK(I,J,K,IJK_TT)+AMTT
+C**** END AMIP
+C**** EDDY TRANSPORT OF THETA;  VORTICITY
+  334   PS4I=PS4I+PS4K
+        PSV4I=PSV4I+BYDP*PVK*PS4K
+        UDX(I,J,K)=BYDP*PUK*DXV(J)
+!ESMF   IF (UDX(I,J-1,K).LT.BIG) ZX(I,J-1,K)=UDX(I,J,K)-UDX(I,J-1,K)
+!ESMF   IF (UDX(I,J-1,K).GE.BIG) ZX(I,J-1,K)=0.
+!ESMF   IF (ZX(I,J-1,K).GE.BIG) ZX(I,J-1,K)=0.
+      END IF                            !---> (PM(K+1).GE.PS)
+
+  340 I=IP1     !-->END I Loop (IP1) from IM to IM-1 (1-IM).
+      DPM(K)=DPI/(FIMI+teeny)
+      DPJK(J,K)=DPI
+      AJK(J,K,JK_DPB)=AJK(J,K,JK_DPB)+DPI
+      AJK(J,K,JK_DPSQR)=AJK(J,K,JK_DPSQR)+DPSQI
+      AJK(J,K,JK_NPTSAVG)=AJK(J,K,JK_NPTSAVG)+FIMI
+      IF (DPI.LT.teeny) DPI=teeny
+      AJK(J,K,JK_U)=AJK(J,K,JK_U)+PUI
+      AJK(J,K,JK_V)=AJK(J,K,JK_V)+PVI
+      AJK(J,K,JK_ZMFKE)=AJK(J,K,JK_ZMFKE)+(PUI*PUI+PVI*PVI)/DPI
+      AJK(J,K,JK_TOTKE)=AJK(J,K,JK_TOTKE)+PWWI
+      AJK(J,K,JK_ZMFNTSH)=AJK(J,K,JK_ZMFNTSH)+PT4I*PVI/DPI
+      AJK(J,K,JK_TOTNTSH)=AJK(J,K,JK_TOTNTSH)+PTV4I
+      AJK(J,K,JK_ZMFNTGEO)=AJK(J,K,JK_ZMFNTGEO)+PZ4I*PVI/DPI
+      AJK(J,K,JK_TOTNTGEO)=AJK(J,K,JK_TOTNTGEO)+PZV4I
+      AJK(J,K,JK_ZMFNTLH)=AJK(J,K,JK_ZMFNTLH)+PQ4I*PVI/DPI
+      AJK(J,K,JK_TOTNTLH)=AJK(J,K,JK_TOTNTLH)+PQV4I
+      AJK(J,K,JK_ZMFNTKE)=AJK(J,K,JK_ZMFNTKE)+PWWI*PVI/DPI
+      AJK(J,K,JK_TOTNTKE)=AJK(J,K,JK_TOTNTKE)+PWWVI
+      AJK(J,K,JK_ZMFNTMOM)=AJK(J,K,JK_ZMFNTMOM)+PUI*PVI/DPI
+      AJK(J,K,JK_TOTNTMOM)=AJK(J,K,JK_TOTNTMOM)+PUVI
+      AJK(J,K,JK_P2KEDPGF)=AJK(J,K,JK_P2KEDPGF)+VDVTI+UDUTI-
+     *   (PUI*DUTI+PVI*DVTI)/DPI
+      SHETH(K)=(PSV4I-PS4I*PVI/DPI)*DXYV(J)/(STJK(J-1,K)*DXYN(J-1)+
+     *   STJK(J,K)*DXYS(J))
+         UJK(J,K)=PUI/DPI
+         VJK(J,K)=PVI/DPI
+         PSIJK(J,K)=SHETH(K)/DPI
+         UVJK(J,K)=(PUVI-PUI*PVI/DPI)/DPI
+         IF (IDACC(ia_dga).EQ.1) AJK(J,K,JK_UINST)=UJK(J,K)
+         AJK(J,K,JK_TOTDUDT)=UJK(J,K)-AJK(J,K,JK_UINST)
+  350 AJK(J,K,JK_SHETH)=AJK(J,K,JK_SHETH)+SHETH(K)
+  390 CONTINUE
+
+C**** ZX for distributed parallelization
+c****
+      CALL HALO_UPDATE( grid, UDX, from=NORTH )
+      CALL HALO_UPDATE( grid, pm_ge_ps, from=NORTH)
+
+      DO J=J_0,J_1S
+        DO K=1,KM
+          DO I=1,IM
+            if (pm_ge_ps(i,j+1,k) < 0) then
+            IF (UDX(I,J,K).LT.BIG ) ZX(I,J,K)=-UDX(I,J,K)+UDX(I,J+1,K)
+            IF (UDX(I,J,K).GE.BIG)  ZX(I,J,K)=0.
+            IF (ZX(I,J,K).GE.BIG)   ZX(I,J,K)=0
+            end if
+          END DO
+        END DO
+      END DO
+C****
+C**** alternate vertical mass flux diagnostic (from SD)
+C****
+      DO J=J_0,J_1
+        W(:,J,:)=0.
+      END DO
+C**** interpolate SD to constant pressure
+      DO J=J_0,J_1
+        I=IM
+        DO IP1=1,IM
+          DO K=1,KM-1
+            DPK=0.
+            SDK=0.
+            SP=P(I,J)
+            DO L=1,LS1-1
+              PL(L)=PEDN(L,I,J)   ! SP*SIGE(L)+PTOP
+            END DO
+            IF (PM(K+1).GE.SP+PTOP) GO TO 860
+            L=1
+            PDN=SP+PTOP
+            IF (PM(K).GE.SP+PTOP) GO TO 820
+            PDN=PM(K)
+ 810        IF (PM(K).GT.PL(L+1)) GO TO 820
+            L=L+1
+            GO TO 810
+ 820        LUP=L
+ 830        IF (PM(K+1).GE.PL(LUP+1)) GO TO 840
+            LUP=LUP+1
+            GO TO 830
+ 840        CONTINUE
+C**** INTERPOLATE HERE
+ 850        PUP=PL(L+1)
+            IF (LUP.EQ.L) PUP=PM(K+1)
+            DPK=DPK+(PDN-PUP)
+            SDK=SDK+(PDN-PUP)*SD(I,J,L)
+            IF (LUP.EQ.L) GO TO 860
+            L=L+1
+            PDN=PL(L)
+            GO TO 850
+ 860        CONTINUE
+C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
+            W(I,J,K)=0.
+            IF (DPK.gt.0) THEN
+              AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+SDK*BYDXYP(J)/DPK
+              W(I,J,K)=SDK/DPK
+            END IF
+          END DO
+          I=IP1
+        END DO
+      END DO
+
+C**** ACCUMULATE ALL VERTICAL WINDS
+!!    DO 558 J=J_0,J_1
+!!    DO 558 I=1,IM
+!!    DO KR=1,NDIUPT
+!!       IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+!!*** Warning:     This diagnostic has 3 flaws   (?)
+!!***          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
+!!***          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
+!!***              some hours are skipped once in a while
+!!***          3 - Some of the first Ndaa hours are skipped at the
+!!***              beginning of a month and overcounted at the end;
+!!***              this happens to balance out, if and only if
+!!***              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
+!!***          In addition, IHM occasionally is out-of-bounds.
+!!          IH=JHOUR+1
+!!          IHM = IH+(JDATE-1)*24
+!!          DO INCH=1,NDAA
+!!            IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
+!!            ADIURN(IDD_W,KR,IH)=ADIURN(IDD_W,KR,IH)+1.E5*W(I,J,3)
+!!   *             /DXYP(J)
+!!            HDIURN(IDD_W,KR,IHM)=HDIURN(IDD_W,KR,IHM)+1.E5*W(I,J,3)
+!!   *             /DXYP(J)
+!!            IH=IH+1
+!!            IHM=IHM+1
+!!          END DO
+!!       END IF
+!!    END DO
+!!558 CONTINUE
+
+      DO 565 J=J_0,J_1
+      DO 565 K=1,KM
+      WI=0.
+      DO I=1,IMAXJ(J)
+        WI=WI+W(I,J,K)
+      END DO
+  565 AJK(J,K,JK_VVEL)=AJK(J,K,JK_VVEL)+WI
+C****
+C**** ACCUMULATE T,Z,Q VERTICAL TRANSPORTS
+C****
+      DO 610 J=J_0,J_1
+      DO 610 K=2,KM
+      WI=0.
+      TKI=0.
+      QKI=0.
+      ZKI=0.
+      WTI=0.
+      WQI=0.
+      WZI=0.
+         THKI=0.
+         WTHI=0.
+      FIMI=0.
+      DO 600 I=1,IMAXJ(J)
+      SP=P(I,J)
+      DO 569 L=1,LS1-1
+  569 PLO(L)=PMID(L,I,J)    ! SP*SIG(L)+PTOP
+      IF (PM(K).GE.SP+PTOP) GO TO 600
+      L=1
+      IF (PM(K).GE.PLO(1)) GO TO 580
+  570 LUP=L+1
+      IF (L.EQ.LM) GO TO 580
+      IF (PM(K).GE.PLO(LUP)) GO TO 575
+      L=LUP
+      GO TO 570
+  575 DPUP=PM(K)-PLO(LUP)
+      DPDN=PLO(L)-PM(K)
+      BYDP=1./(DPDN+DPUP)
+      TK=BYDP*(TX(I,J,L)*DPUP+TX(I,J,LUP)*DPDN)
+      QK=Q(I,J,L)*Q(I,J,LUP)/(BYDP*(Q(I,J,L)*DPDN+Q(I,J,LUP)*DPUP)+
+     *  teeny)
+      ZK=BYDP*(PHI(I,J,L)*DPUP+PHI(I,J,LUP)*DPDN)
+         THK=BYDP*(T(I,J,L)*DPUP+T(I,J,LUP)*DPDN)
+      GO TO 590
+C**** SPECIAL CASES;  L=1, L=LM
+  580 TK=TX(I,J,L)
+      QK=Q(I,J,L)
+      ZK=PHI(I,J,L)
+         THK=T(I,J,L)
+C**** MERIDIONAL AVERAGING
+  590 WI=WI+W(I,J,K)
+      TKI=TKI+TK
+      QKI=QKI+QK
+      ZKI=ZKI+ZK
+      WTI=WTI+W(I,J,K)*TK
+      WQI=WQI+W(I,J,K)*QK
+      WZI=WZI+W(I,J,K)*ZK
+         THKI=THKI+THK
+         WTHI=WTHI+W(I,J,K)*THK
+      FIMI=FIMI+1.
+  600 CONTINUE
+      BYFIM=teeny
+      IF (FIMI.GT.teeny) BYFIM=1./FIMI
+      AJK(J,K-1,JK_ZMFVTDSE)=AJK(J,K-1,JK_ZMFVTDSE)+
+     &     BYFIM*(SHA*TKI+ZKI)*WI
+      AJK(J,K-1,JK_TOTVTDSE)=AJK(J,K-1,JK_TOTVTDSE)+SHA*WTI+WZI
+      AJK(J,K-1,JK_ZMFVTLH)=AJK(J,K-1,JK_ZMFVTLH)+BYFIM*QKI*WI
+      AJK(J,K-1,JK_TOTVTLH)=AJK(J,K-1,JK_TOTVTLH)+WQI
+      AJK(J,K-1,JK_VTGEOEDDY)=AJK(J,K-1,JK_VTGEOEDDY)+WZI-BYFIM*WI*ZKI
+C     AJK(J,K-1,JK_BAREKEGEN)=AJK(J,K-1,JK_BAREKEGEN)+WTI-BYFIM*WI*TKI
+         WJK(J,K)=BYFIM*WI/DXYP(J)
+         WTJK(J,K)=BYFIM*(WTHI-BYFIM*WI*THKI)/DXYP(J)
+         AJK(J,K-1,JK_EDDVTPT)=AJK(J,K-1,JK_EDDVTPT)+WTJK(J,K)
+  610 CONTINUE
+C****
+C**** BAROCLINIC EDDY KINETIC ENERGY GENERATION
+C****
+      DO 630 J=J_0,J_1
+      DO 630 K=1,KM
+      FIMI=0.
+      W2I=0.
+      PAI=0.
+      WPA2I=0.
+      DO 626 I=1,IMAXJ(J)
+      SP=P(I,J)
+      DO 611 L=1,LS1-1
+  611 PL(L)=PEDN(L,I,J)    ! SP*SIGE(L)+PTOP
+      PS=SP+PTOP
+      IF (PM(K+1).GE.PS) GO TO 626
+      L=1
+      PDN=PS
+      IF (PM(K).GE.PS) GO TO 614
+      PDN=PM(K)
+  612 IF (PM(K).GT.PL(L+1)) GO TO 614
+      L=L+1
+      GO TO 612
+  614 LUP=L
+  616 IF (PM(K+1).GE.PL(LUP+1)) GO TO 618
+      LUP=LUP+1
+      GO TO 616
+  618 CONTINUE
+      PTK=0.
+C**** INTERPOLATE HERE
+  620 PUP=PL(L+1)
+      IF (LUP.EQ.L) PUP=PM(K+1)
+      DP=PDN-PUP
+      PTK=PTK+DP*TX(I,J,L)
+      IF (LUP.EQ.L) GO TO 622
+      L=L+1
+      PDN=PL(L)
+      GO TO 620
+C**** ACCUMULATE HERE
+  622 FIMI=FIMI+1.
+      WUP=0.
+      IF (K.LT.KM) WUP=W(I,J,K+1)
+      W2I=W2I+W(I,J,K)+WUP
+      PY=PMO(K)
+      IF (PM(K).GE.PS) PY=.5*(PS+PM(K+1))
+      PAK=PTK/PY
+      PAI=PAI+PAK
+      WPA2I=WPA2I+(W(I,J,K)+WUP)*PAK
+  626 CONTINUE
+  630 AJK(J,K,JK_BAREKEGEN)=AJK(J,K,JK_BAREKEGEN)-
+     &     (WPA2I-W2I*PAI/(FIMI+teeny))
+C****
+C**** ACCUMULATE UV VERTICAL TRANSPORTS
+C****
+C**** DOUBLE POLAR WINDS
+      DO 640 K=1,KM
+        IF(HAVE_SOUTH_POLE) THEN
+          WSP=2.*W(1,1,K)/FIM
+          DO I=1,IM
+            W(I,1,K)=WSP
+          ENDDO
+        ENDIF
+        IF(HAVE_NORTH_POLE) THEN
+          WNP=2.*W(1,JM,K)/FIM
+          DO I=1,IM
+            W(I,JM,K)=WNP
+          ENDDO
+        ENDIF
+  640 CONTINUE
+
+C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, W, FROM=SOUTH)
+
+      DO 710 J=J_0STG,J_1STG
+      UEARTH=RADIUS*OMEGA*COSV(J)
+      I=IM
+      DO 650 IP1=1,IM
+      PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
+  650 I=IP1
+      DO 710 K=2,KM
+      W4I=0.
+      UKI=0.
+      WU4I=0.
+      WKE4I=0.
+      FIMI=0.
+      I=IM
+      DO 700 IP1=1,IM
+      SP=PSEC(I)
+      DO 660 L=1,LS1-1
+  660 PLO(L)=SP*SIG(L)+PTOP
+      IF (PM(K).GE.SP+PTOP) GO TO 700
+      L=1
+      IF (PM(K).GE.PLO(1)) GO TO 680
+  670 LUP=L+1
+      IF (L.EQ.LM) GO TO 680
+      IF (PM(K).GE.PLO(LUP)) GO TO 675
+      L=LUP
+      GO TO 670
+  675 DPUP=PM(K)-PLO(LUP)
+      DPDN=PLO(L)-PM(K)
+      BYDP=1./(DPDN+DPUP)
+      UK=BYDP*(U(I,J,L)*DPUP+U(I,J,LUP)*DPDN)
+      VK=BYDP*(V(I,J,L)*DPUP+V(I,J,LUP)*DPDN)
+      GO TO 690
+C**** SPECIAL CASES;  L=1,L=LM
+  680 UK=U(I,J,L)
+      VK=V(I,J,L)
+C**** MERIDIONAL AVERAGING
+  690 W4=.25*(W(I,J-1,K)+W(IP1,J-1,K)+W(I,J,K)+W(IP1,J,K))
+      W4I=W4I+W4
+      UKI=UKI+UK
+      WU4I=WU4I+W4*UK
+      WKE4I=WKE4I+W4*(UK*UK+VK*VK)
+      FIMI=FIMI+1.
+  700 I=IP1
+      BYFIM=1./(FIMI+teeny)
+         WUJK(J,K)=(WU4I-W4I*UKI*BYFIM)*BYFIM*BYDXYV(J)
+      AJK(J,K-1,JK_TOTVTKE)=AJK(J,K-1,JK_TOTVTKE)+WKE4I
+      AJK(J,K-1,JK_VTAMEDDY)=AJK(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
+  710 AJK(J,K-1,JK_TOTVTAM)=AJK(J,K-1,JK_TOTVTAM)+WU4I   !+W4I*UEARTH
+C****
+C**** POTENTIAL VORTICITY AND VERTICAL TRANSPORT OF POT. VORT.
+C****
+      DO 760 J=J_0S,J_1S
+      JHEMI=1
+      IF (J.LT.1+JM/2) JHEMI=-1
+      DO 730 K=1,KM
+      PVI=0.
+      DO 720 I=1,IM
+      DUT(I,J,K)=JHEMI*STB(I,J,K)*(ZX(I,J,K)-FCOR(J))
+  720 PVI=PVI+DUT(I,J,K)
+  730 AJK(J,K,JK_POTVORT)=AJK(J,K,JK_POTVORT)+PVI
+      DO 760 K=2,KM
+      W2I=0.
+      PV2I=0.
+      WPV4I=0.
+      FIMI=0.
+      I=IM
+      DO 740 IP1=1,IM
+      PS=.5*(P(I,J)+P(IP1,J))+PTOP
+      IF (PM(K).GE.PS) GO TO 740
+      W2=.5*(W(I,J,K)+W(IP1,J,K))
+      W2I=W2I+W2
+      PV2=.5*(DUT(I,J,K-1)+DUT(I,J,K))
+      PV2I=PV2I+PV2
+      WPV4I=WPV4I+W2*PV2
+      FIMI=FIMI+1.
+  740 I=IP1
+      AJK(J,K-1,JK_VTPV)=AJK(J,K-1,JK_VTPV)+WPV4I
+  760 AJK(J,K-1,JK_VTPVEDDY)=AJK(J,K-1,JK_VTPVEDDY)+
+     &     WPV4I-W2I*PV2I/(FIMI+teeny)
+C****
+C**** SPECIAL MEAN/EDDY DIAGNOSTICS ARE CALCULATED
+C****
+      DO 770 J=J_0STG,J_1STG
+      DO 765 K=2,KM
+      DPE=PMO(K)-PMO(K-1)
+      UP(J,K)=(UJK(J,K)-UJK(J,K-1))/DPE
+  765 PSIP(J,K)=(PSIJK(J,K)-PSIJK(J,K-1))/DPE
+      UP(J,1)=UP(J,2)
+      PSIP(J,1)=PSIP(J,2)
+  770 CONTINUE
+      DO 780 K=1,KM
+      KUP=K+1
+      IF (K.EQ.KM) KUP=KM
+      KDN=K-1
+      IF (K.EQ.1) KDN=1
+
+      CALL HALO_UPDATEj(grid, TJK, FROM=SOUTH)
+c***      DO L=1,LM
+c***         CALL HALO_UPDATE(grid, TJK(:,L), FROM=SOUTH)
+c***      END DO
+
+      DO 780 J=J_0STG,J_1STG
+      TY(J,K)=(TJK(J,K)-TJK(J-1,K))/DYV(J)
+C**** E-P FLUX NORTHWARD COMPONENT
+      AJK(J,K,JK_EPFLXNCP)=AJK(J,K,JK_EPFLXNCP)+
+     &     PSIJK(J,K)*(UJK(J,KUP)-UJK(J,KDN))/
+     *  (PMO(KUP)-PMO(KDN))-UVJK(J,K)
+  780 CONTINUE
+
+      CALL HALO_UPDATEj(grid, PSIJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, UJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, VJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, WJK, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, UP, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, TY, FROM=NORTH)
+      CALL HALO_UPDATEj(grid, PSIP, FROM=NORTH)
+
+c***      DO L=1,LM
+c***         CALL HALO_UPDATE(grid, PSIJK(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, UJK(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, VJK(:,L), FROM=NORTH)
+c***         If (L > 1) THEN
+c***           CALL HALO_UPDATE(grid, WJK(:,L), FROM=NORTH)
+c***         END IF
+c***         CALL HALO_UPDATE(grid, UP(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, TY(:,L), FROM=NORTH)
+c***         CALL HALO_UPDATE(grid, PSIP(:,L), FROM=NORTH)
+c***      END DO
+
+      DO 800 J=J_0S,J_1S
+      DO 800 K=2,KM-1
+      UY=(UJK(J+1,K)*DXV(J+1)-UJK(J,K)*DXV(J)-FCOR(J))/DXYP(J)
+      PSIY=(PSIJK(J+1,K)*DXV(J+1)-PSIJK(J,K)*DXV(J))/DXYP(J)
+C**** ZONAL MEAN MOMENTUM EQUATION   (MEAN ADVECTION)
+      AJK(J,K,JK_DUDTMADV)=AJK(J,K,JK_DUDTMADV)-
+     &     .5*UY*(VJK(J,K)+VJK(J+1,K))-
+     *  .25*((UP(J+1,K+1)+UP(J,K+1))*WJK(J,K+1)+(UP(J+1,K)+UP(J,K))*
+     *   WJK(J,K))
+C**** ZONAL MEAN HEAT EQUATION   (MEAN ADVECTION)
+      AJK(J,K,JK_DTDTMADV)=AJK(J,K,JK_DTDTMADV)-
+     &     .5*(TY(J,K)*VJK(J,K)+TY(J+1,K)*VJK(J+1,K))
+     *  -.5*STJK(J,K)*(WJK(J,K+1)+WJK(J,K))
+C**** LAGRANGIAN MEAN MOMENTUM EQUATION  (MEAN ADVECTION)
+      VSTAR=.5*(VJK(J,K)+VJK(J+1,K)-.5*(PSIP(J,K)+PSIP(J,K+1)
+     *  +PSIP(J+1,K)+PSIP(J+1,K+1)))
+      WSTAR=.5*(WJK(J,K)+WJK(J,K+1))+PSIY
+      AJK(J,K,JK_DUDTTEM)=AJK(J,K,JK_DUDTTEM)-
+     &     UY*VSTAR-.25*(UP(J,K)+UP(J+1,K)+
+     *  UP(J,K+1)+UP(J+1,K+1))*WSTAR
+      AJK(J,K,JK_DTDTTEM)=AJK(J,K,JK_DTDTTEM)-
+     &     .5*(TY(J+1,K)+TY(J,K))*VSTAR-
+     *  STJK(J,K)*WSTAR
+C**** VERTICAL E-P FLUX
+      AJK(J,K-1,JK_EPFLXVCP)=AJK(J,K-1,JK_EPFLXVCP)-
+     &     WUJK(J,K)-.5*PSIJK(J,K)*UY
+      AJK(J,K,JK_EPFLXVCP)=AJK(J,K,JK_EPFLXVCP)-.5*PSIJK(J,K)*UY
+  800 CONTINUE
+C****
+C**** SPECTRAL ANALYSIS OF KINETIC ENERGIES AT CONSTANT PRESSURE
+C****
+      IZERO=0
+      NM=1+IM/2
+      J45N=2+.75*(JM-1.)
+c      KS1=LS1
+C**** TOTAL THE KINETIC ENERGIES
+      KE(:,:)=0.
+      KE_part(:,:,:)=0.
+
+C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      DO J=J_0STG,J_1STG
+        I=IM
+        DO IP1=1,IM
+          PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
+     *            (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
+          I=IP1
+        ENDDO
+        DO K=1,KM
+          KSPHER=KLAYER(K)
+          IF (J.GT.JEQ) KSPHER=KSPHER+1
+          DO KX=IZERO,LM,LM
+            DO I=1,IM
+              DPUV=0.
+              SP=PSEC(I)
+              call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
+              DO 2025 L=1,LS1-1
+              PLO(L)=PMIDL(L)   !SP*SIG(L)+PTOP                       ! PL or PLO ??
+ 2025         PL(L)=PEDNL(L)    !SP*SIGE(L)+PTOP                       ! PLE or PL ??
+              PS=SP+PTOP
+              IF (PM(K+1).GE.PLO(1)) GO TO 2090           ! really ?? not PL?
+              L=1
+              PDN=PS
+              IF (PM(K).GE.PLO(1)) GO TO 2040             ! really ?? not PL?
+              PDN=PM(K)
+ 2030         IF (PM(K).GT.PL(L+1)) GO TO 2040
+              L=L+1
+              GO TO 2030
+ 2040         LUP=L
+ 2050         IF (PM(K+1).GE.PL(LUP+1)) GO TO 2060
+              LUP=LUP+1
+              GO TO 2050
+ 2060         CONTINUE
+C**** ACCUMULATE HERE
+              SQRTDP=SQRT(PDN-PM(K+1))
+ 2070         PUP=PL(L+1)
+              IF (LUP.EQ.L) PUP=PM(K+1)
+              DP=PDN-PUP
+              IF(KX.EQ.IZERO) DPUV=DPUV+DP*U(I,J,L)
+              IF(KX.EQ.LM)    DPUV=DPUV+DP*V(I,J,L)
+              IF (LUP.EQ.L) GO TO 2080
+              L=L+1
+              PDN=PL(L)
+              GO TO 2070
+ 2080         IF (SQRTDP.EQ.0.) SQRTDP=teeny
+              DPUV=DPUV/SQRTDP
+ 2090         X1(I)=DPUV
+            ENDDO
+            CALL FFTE (X1,X1tmp)
+            X1=X1tmp
+            IF (J.NE.JEQ) THEN
+              DO N=1,NM
+                KE_part(N,J,KSPHER)=KE_part(N,J,KSPHER)+X1(N)*DXYV(J)
+              ENDDO
+              IF (J.EQ.J45N) THEN
+                DO N=1,NM
+                  KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+
+     &                                  X1(N)*DXYV(J)
+                ENDDO
+              ENDIF
+            ELSE
+              DO N=1,NM
+                KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+
+     &                                X1(N)*DXYV(J)
+                KE_part(N,J,KSPHER  )=KE_part(N,J,KSPHER)+
+     &                                .5D0*X1(N)*DXYV(J)
+                KE_part(N,J,KSPHER+1)=KE_part(N,J,KSPHER+1)+
+     &                                .5D0*X1(N)*DXYV(J)
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+      ENDDO
+
+      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.)
+
+      DO 2150 KS=1,NSPHER
+      DO 2150 N=1,NM
+ 2150 SPECA(N,18,KS)=SPECA(N,18,KS)+KE(N,KS)
+C**** ACCUMULATE TIME USED IN DIAGA
+      CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
+      RETURN
+      END SUBROUTINE DIAGB
+
+      SUBROUTINE DIAG5A (M5,NDT)
+C****
+C**** THIS DIAGNOSTICS ROUTINE PRODUCES A SPECTRAL ANALYSIS OF KINETIC
+C**** AND AVAILABLE POTENTIAL ENERGIES AND THEIR TRANSFER RATES BY
+C**** VARIOUS ATMOSPHERIC PROCESSES.
+C****
+C**** THE PARAMETER M INDICATES WHAT IS STORED IN SPECA(N,M,KSPHER),
+C**** IT ALSO INDICATES WHEN DIAG5A IS BEING CALLED.
+C**** M=1  MEAN STANDING KINETIC ENERGY            BEFORE SOURCES
+C****   2  MEAN KINETIC ENERGY                     BEFORE DYNAMICS
+C****   3  MEAN POTENTIAL ENERGY
+C****   4  CONVERSION OF K.E. BY ADVECTION         AFTER ADVECTION
+C****   5  CONVERSION OF K.E. BY CORIOLIS FORCE    AFTER CORIOLIS TERM
+C****   6  CONVERSION FROM P.E. INTO K.E.          AFTER PRESS GRAD FORC
+C****   7  CHANGE OF K.E. BY DYNAMICS              AFTER DYNAMICS
+C****   8  CHANGE OF P.E. BY DYNAMICS
+C****   9  CHANGE OF K.E. BY CONDENSATION          AFTER CONDENSATION
+C****  10  CHANGE OF P.E. BY CONDENSATION
+C****  11  CHANGE OF P.E. BY RADIATION             AFTER RADIATION
+C****  12  CHANGE OF K.E. BY SURFACE               AFTER SURFACE
+C****  13  CHANGE OF P.E. BY SURFACE
+C****  14  CHANGE OF K.E. BY FILTER                AFTER FILTER
+C****  15  CHANGE OF P.E. BY FILTER
+C****  16  CHANGE OF K.E. BY DAILY                 AFTER DAILY
+C****  17  CHANGE OF P.E. BY DAILY
+C****  18  UNUSED
+C****  19  LAST KINETIC ENERGY
+C****  20  LAST POTENTIAL ENERGY
+C****
+      USE CONSTANT, only : sha
+      USE MODEL_COM, only : im,imh,jm,lm,fim,
+     &     DSIG,IDACC,JEQ,LS1,MDIAG,
+     &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
+      USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
+      USE DIAG_COM, only : speca,atpe,nspher,kspeca,klayer
+      USE DIAG_COM, only : SQRTM,ajl=>ajl_loc,jl_ape
+      USE DIAG_LOC, only : lupa,ldna
+      USE DYNAMICS, only : sqrtp,pk
+      USE DOMAIN_DECOMP, only : GRID,GET,CHECKSUM,HALO_UPDATE, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
+
+      IMPLICIT NONE
+      INTEGER :: M5,NDT
+      REAL*8, DIMENSION(IM) :: X, Xtmp
+      REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
+      REAL*8, DIMENSION
+     &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
+      REAL*8, DIMENSION(IMH+1,4,LM) :: VAR
+      REAL*8, DIMENSION(IMH+1,4,LM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     &     :: VAR_part
+      REAL*8, DIMENSION(2) :: TPE
+      REAL*8               :: TPE_sum
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: TPE_psum
+CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
+
+      REAL*8, DIMENSION(LM) :: THGM,GMEAN
+
+      INTEGER, PARAMETER :: IZERO=0
+
+      INTEGER, DIMENSION(KSPECA), PARAMETER ::
+     &     MTPEOF=(/0,0,1,0,0,0,0,2,0,3,  4,0,5,0,6,0,7,0,0,8/)
+
+      INTEGER :: I,IJL2,IP1,J,J45N,JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
+     &     LUP,MAPE,MKE,MNOW,MTPE,N,NM
+
+      REAL*8 :: SQRTPG,SUMI,SUMT
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     &     GMEAN_part
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &        THGM_part
+
+      INTEGER :: J_0S,J_1S,J_0STG,J_1STG,J_0,J_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+#ifdef SCM
+c     write(0,*) 'SCM no diags    DIAG5A'
+      return
+#endif
+
+      CALL GET(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      J_0=GRID%J_STRT
+      J_1=GRID%J_STOP
+
+      SQRTPG = SQRT(PSFMPT)
+      NM=1+IM/2
+      J45N=2.+.75*(JM-1.)
+      IJL2=IM*JM*LM*2
+
+      MKE=M5
+      MAPE=M5
+C****
+C**** Note: KSPHER has been re-arranged from previous models to better
+C****       deal with optionally resolved stratosphere. The higher
+C****       values are only used if the model top is high enough.
+C****
+C**** KSPHER=1 SOUTHERN TROPOSPHERE         2 NORTHERN TROPOSPHERE
+C****        3 EQUATORIAL TROPOSPHERE       4 45 DEG NORTH TROPOSPHERE
+C****
+C****        5 SOUTHERN LOW STRATOSPHERE    6 NORTHERN LOW STRATOSPHERE
+C****        7 EQUATORIAL LOW STRATOSPHERE  8 45 DEG NORTH LOW STRATOSPH
+C****
+C****        9 SOUTHERN MID STRATOSPHERE   10 NORTHERN MID STRATOSPHERE
+C****       11 EQUATORIAL MID STRATOSPHERE 12 45 DEG NORTH MID STRATOSPH
+C****
+C****       13 SOUTHERN UPP STRATOSPHERE   14 NORTHERN UPP STRATOSPHERE
+C****       15 EQUATORIAL UPP STRATOSPHERE 16 45 DEG NORTH UPP STRATOSPH
+C****
+      GO TO (200,200,810,810,810,  810,200,810,205,810,
+     *       296,205,810,205,810,  205,810,810,810,810),M5
+
+C***  810 WRITE (6,910) M5
+  810 CALL WRITE_PARALLEL(M5, UNIT=6, format=
+     & "('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)")
+C****  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)
+      call stop_model('INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.',255)
+C**** MASS FOR KINETIC ENERGY
+  200 CONTINUE
+
+      I=IM
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      DO J=J_0STG,J_1STG
+        DO  IP1=1,IM
+          SQRTM(I,J)=SQRT(.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+
+     *         P(IP1,J-1))*DXYN(J-1)))
+          I=IP1
+        END DO
+      END DO
+
+C****
+  205 CONTINUE
+
+      MAPE=MKE+1
+      KE(:,:)=0.
+      KE_part(:,:,:)=0.
+C**** CURRENT KINETIC ENERGY
+      DO L=1,LM
+        DO J=J_0STG,J_1STG
+          IF (J <= JEQ) THEN
+            KSPHER=KLAYER(L)
+          ELSE
+            KSPHER=KLAYER(L)+1
+          END IF
+          DO K = IZERO,LM,LM
+            IF(K.EQ.IZERO)X(1:IM)=U(1:IM,J,L)*SQRTM(1:IM,J)
+            IF(K.EQ.LM)   X(1:IM)=V(1:IM,J,L)*SQRTM(1:IM,J)
+            CALL FFTE (X,Xtmp)
+            X=Xtmp
+            IF (J.EQ.JEQ) THEN
+              DO N=1,NM
+                KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+X(N)*DSIG(L)
+                KE_part(N,J,KSPHER  )=KE_part(N,J,KSPHER  )+
+     &                                .5D0*X(N)*DSIG(L)
+                KE_part(N,J,KSPHER+1)=KE_part(N,J,KSPHER+1)+
+     &                                .5D0*X(N)*DSIG(L)
+              ENDDO
+cgsfc              IF(K.EQ.LM)KSPHER=KSPHER+1
+            ELSE
+              DO N=1,NM
+                KE_part(N,J,KSPHER)=KE_part(N,J,KSPHER)+X(N)*DSIG(L)
+              ENDDO
+              IF (J.EQ.J45N) THEN
+                DO N=1,NM
+                  KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+
+     &                                X(N)*DSIG(L)
+                ENDDO
+              ENDIF
+            ENDIF
+          ENDDO
+        ENDDO
+      ENDDO
+
+      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.)
+
+      IF (NDT /= 0) THEN
+C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY
+        DO KS=1,NSPHER
+          DO N=1,NM
+           SPECA(N,MKE,KS)=SPECA(N,MKE,KS)+(KE(N,KS)-SPECA(N,19,KS))/NDT
+          END DO
+        END DO
+      END IF
+      DO KS=1,NSPHER
+        DO N=1,NM
+          SPECA(N,19,KS)=KE(N,KS)
+        END DO
+      END DO
+
+C****
+C**** POTENTIAL ENERGY
+C****
+  296 CONTINUE
+
+
+C****
+C**** AVAILABLE POTENTIAL ENERGY
+C****
+C**** Calculate global means for each layer of
+C**** pot. temp (thgm) and static stability (gmean)
+C****
+      DO L=1,LM
+        LDN=LDNA(L)
+        LUP=LUPA(L)
+        DO J=J_0,J_1
+          GMEAN_part(J,L)=0.
+          THGM_part(J,L)=0.
+          DO I=1,IMAXJ(J)
+            THGM_part(J,L)=THGM_part(J,L)+T(I,J,L)*SQRTP(I,J)
+            GMEAN_part(J,L)=GMEAN_part(J,L)+
+     *           (P(I,J)*SIG(L)+PTOP)*(T(I,J,LUP)-T(I,J,LDN))
+     *           /(P(I,J)*PK(L,I,J))
+          ENDDO
+          GMEAN_part(J,L)=GMEAN_part(J,L)*DXYP(J)
+          THGM_part(J,L)=THGM_part(J,L)*DXYP(J)
+        ENDDO
+        IF(HAVE_SOUTH_POLE) THEN
+          THGM_part(1,L)=THGM_part(1,L)*FIM
+          GMEAN_part(1,L)=GMEAN_part(1,L)*FIM
+        ENDIF
+        IF(HAVE_NORTH_POLE) THEN
+          THGM_part(JM,L)=THGM_part(JM,L)*FIM
+          GMEAN_part(JM,L)=GMEAN_part(JM,L)*FIM
+        ENDIF
+      ENDDO
+
+      CALL GLOBALSUM(grid,THGM_part(:,1:LM),THGM(1:LM),ALL=.TRUE.)
+      THGM=THGM/AREAG
+      CALL GLOBALSUM(grid,GMEAN_part(:,1:LM),GMEAN(1:LM),ALL=.TRUE.)
+      DO L=1,LM
+        LDN=LDNA(L)
+        LUP=LUPA(L)
+        GMEAN(L)=AREAG*(SIG(LDN)-SIG(LUP))/GMEAN(L)
+      ENDDO
+      
+      APE(:,:)=0.
+
+C**** SPECTRAL ANALYSIS OF AVAILABLE POTENTIAL ENERGY
+
+      DO L = 1, LM
+        LDN=LDNA(L)
+        LUP=LUPA(L)
+
+        DO J=J_0,J_1
+          VAR_part(:,:,L,J)=0
+          IF (J < JEQ) THEN
+            JHEMI = 1
+          ELSE
+            JHEMI = 2
+          END IF
+
+          DO I=1,IM
+            X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
+          END DO
+
+          if(m5.eq.7) then
+            AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+SUM(X*X)*GMEAN(L)
+          endif
+
+          IF(J.EQ.1 .or. J.EQ.JM) THEN
+            VAR_part(1,JHEMI,L,J)=.5*(X(1)**2)*DXYP(1)*FIM
+            cycle ! skip poles for spectral analysis
+          END IF
+
+          CALL FFTE (X,Xtmp)
+          X=Xtmp
+          VAR_part(1:NM,JHEMI,L,J)=X(1:NM)*DXYP(J)
+          IF (J == JEQ-1) THEN
+            VAR_part(1:NM,3,L,J)=X(1:NM)*DXYP(J)
+          ELSEIF (J == J45N-1) THEN
+            VAR_part(1:NM,4,L,J)=X(1:NM)*DXYP(J)
+          END IF
+        END DO ! J
+      END DO ! L
+
+      CALL GLOBALSUM(grid, VAR_part, VAR)
+
+      IF (AM_I_ROOT()) THEN
+        DO L = 1, LM
+          GMEAN(L)=DSIG(L)*GMEAN(L)
+          KS=KLAYER(L)
+          DO JHEMI=1,4
+            DO N=1,NM
+              APE(N,KS)=APE(N,KS)+VAR(N,JHEMI,L)*GMEAN(L)
+            END DO
+            KS=KS+1
+          END DO
+        END DO
+      END IF
+
+C**** CURRENT TOTAL POTENTIAL ENERGY
+ 450  CONTINUE
+
+      IF (HAVE_SOUTH_POLE) THEN
+        J=1
+        SUMT=0
+        DO L=1, LM
+          SUMT=SUMT + T(1,J,L)*PK(L,1,J)*DSIG(L)
+        END DO
+        TPE_psum(J)=FIM*DXYP(J)*(ZATMO(1,J)*(P(1,J)+PTOP)+
+     *       SUMT*SHA*P(1,J))
+      END IF
+      IF (HAVE_NORTH_POLE) THEN
+        J=JM
+        SUMT=0
+        DO L=1, LM
+          SUMT=SUMT + T(1,J,L)*PK(L,1,J)*DSIG(L)
+        END DO
+        TPE_psum(J)=FIM*DXYP(J)*(ZATMO(1,J)*(P(1,J)+PTOP)+
+     *       SUMT*SHA*P(1,J))
+      END IF
+      DO J=J_0S, J_1S
+        SUMI=0
+        DO I=1,IM
+          SUMT=0
+          DO L=1,LM
+            SUMT=SUMT + T(I,J,L)*PK(L,I,J)*DSIG(L)
+          END DO
+          SUMI=SUMI+ZATMO(I,J)*(P(I,J)+PTOP)+SUMT*SHA*P(I,J)
+        END DO
+        TPE_psum(J) = SUMI*DXYP(J)
+      END DO
+      CALL GLOBALSUM(grid, TPE_psum, TPE_sum, TPE)
+
+      IF (NDT /= 0) THEN
+        MTPE=MTPEOF(MAPE)
+
+C**** TRANSFER RATES AS DIFFERENCES FOR POTENTIAL ENERGY
+        DO KS=1,NSPHER
+          DO N=1,NM
+        SPECA(N,MAPE,KS)=SPECA(N,MAPE,KS)+(APE(N,KS)-SPECA(N,20,KS))/NDT
+          END DO
+        END DO
+
+        ATPE(MTPE,1)=ATPE(MTPE,1)+(TPE(1)-ATPE(8,1))/NDT
+        ATPE(MTPE,2)=ATPE(MTPE,2)+(TPE(2)-ATPE(8,2))/NDT
+      END IF
+      DO KS=1,NSPHER
+        DO N=1,NM
+          SPECA(N,20,KS)=APE(N,KS)
+        END DO
+      END DO
+      ATPE(8,1)=TPE(1)
+      ATPE(8,2)=TPE(2)
+
+      IF (M5.EQ.2) THEN
+C**** ACCUMULATE MEAN KINETIC ENERGY AND MEAN POTENTIAL ENERGY
+        DO KS=1,NSPHER
+        DO N=1,NM
+          SPECA(N,2,KS)=SPECA(N,2,KS)+KE(N,KS)
+          SPECA(N,3,KS)=SPECA(N,3,KS)+APE(N,KS)
+        END DO
+        END DO
+        ATPE(1,1)=ATPE(1,1)+TPE(1)
+        ATPE(1,2)=ATPE(1,2)+TPE(2)
+      END IF
+
+      CALL TIMER (MNOW,MDIAG)
+      RETURN
+      END SUBROUTINE DIAG5A
+
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
       USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,JEQ,LS1,MDIAG,MDYN
@@ -2692,6 +3970,113 @@ c      COMMON/WORK7/FCUVA,FCUVB
 
       RETURN
       END SUBROUTINE DIAG5F
+
+      SUBROUTINE DIAG7A
+C****
+C**** THIS ROUTINE ACCUMULATES A TIME SEQUENCE FOR SELECTED
+C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
+C****
+      USE CONSTANT, only : grav,bygrav
+      USE MODEL_COM, only : im,imh,jm,lm,
+     &     IDACC,JEQ,LS1,MDIAG,P,U,V
+      USE DYNAMICS, only : PHI
+      USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
+     &     ,ia_12hr
+      USE DIAG_LOC, only : ldex
+      USE DOMAIN_DECOMP, only : GRID,GET,SUMXPE,AM_I_ROOT
+      IMPLICIT NONE
+
+      REAL*8, DIMENSION(0:IMH) :: AN,BN
+      INTEGER, PARAMETER :: KM=6,KQMAX=12
+      INTEGER :: NMAX=nwav_dag
+      REAL*8, DIMENSION(IM,KM) :: HTRD,HTRD_loc
+      REAL*8, DIMENSION(IM,LM) :: UEQ,UEQ_loc,VEQ,VEQ_loc
+      REAL*8, DIMENSION(KM), PARAMETER ::
+     &     PMB=(/922.,700.,500.,300.,100.,10./),
+     &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
+      REAL*8, DIMENSION(LM) :: P00,AML,PDSIGL,PMIDL
+      REAL*8, DIMENSION(LM+1) :: PEDNL
+      REAL*8 :: PIJ50N,PL,PLM1,SLOPE
+      INTEGER I,IDACC9,K,KQ,L,MNOW,N
+      INTEGER :: J_0, J_1
+
+#ifdef SCM
+c     write(0,*) 'SCM no diags   DIAG7A '
+      return
+#endif
+
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+
+      IDACC9=IDACC(ia_12hr)+1
+      IDACC(ia_12hr)=IDACC9
+      IF (IDACC9.GT.Max12HR_sequ) RETURN
+
+      IF(J_0 <= JEQ .and. JEQ <= J_1) THEN
+        UEQ_loc=U(:,JEQ,:)
+        VEQ_loc=V(:,JEQ,:)
+      ELSE
+        UEQ_loc=0d0
+        VEQ_loc=0d0
+      ENDIF
+
+      CALL SUMXPE(UEQ_loc, UEQ)
+      CALL SUMXPE(VEQ_loc, VEQ)
+
+      IF(AM_I_ROOT()) THEN
+        DO KQ=1,3
+          CALL FFT(UEQ(1,LDEX(KQ)),AN,BN)
+          DO N=1,NMAX
+            WAVE(1,IDACC9,N,2*KQ-1)=AN(N)
+            WAVE(2,IDACC9,N,2*KQ-1)=BN(N)
+          ENDDO
+          CALL FFT(VEQ(1,LDEX(KQ)),AN,BN)
+          DO N=1,NMAX
+            WAVE(1,IDACC9,N,2*KQ)=AN(N)
+            WAVE(2,IDACC9,N,2*KQ)=BN(N)
+          ENDDO
+        ENDDO
+      ENDIF
+
+      IF(J_0 <= J50N .and. J50N <= J_1) THEN
+        DO 150 I=1,IM
+          PIJ50N=P(I,J50N)
+          call calc_vert_amp(PIJ50N,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
+          K=1
+          L=1
+          PL=PMIDL(1)    ! SIG(1)*P(I,J50N)+PTOP
+ 130      L=L+1
+c          IF(L.GE.LS1) PIJ50N=PSFMPT
+          PLM1=PL
+          PL=PMIDL(L)    ! SIG(L)*PIJ50N+PTOP
+          IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
+C**** ASSUME THAT PHI IS LINEAR IN LOG P
+          SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
+ 140      HTRD_loc(I,K)=
+     &         (PHI(I,J50N,L)+SLOPE*LOG(PMB(K)/PL))*BYGRAV-GHT(K)
+          IF (K.GE.KM) GO TO 150
+          K=K+1
+          IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
+          GO TO 140
+ 150    CONTINUE
+      ELSE
+        HTRD_loc(:,:)=0d0
+      ENDIF
+
+      CALL SUMXPE(HTRD_loc, HTRD)
+
+      IF(AM_I_ROOT()) THEN
+        DO KQ=7,KQMAX
+          CALL FFT(HTRD(1,KQ-6),AN,BN)
+          DO N=1,NMAX
+            WAVE(1,IDACC9,N,KQ)=AN(N)
+            WAVE(2,IDACC9,N,KQ)=BN(N)
+          END DO
+        END DO
+      ENDIF
+
+      CALL TIMER (MNOW,MDIAG)
+      RETURN
+      END SUBROUTINE DIAG7A
 
       module ATMDYN_QDYNAM
       USE ATMDYN
