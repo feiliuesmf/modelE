@@ -892,6 +892,7 @@ c$$$         end if
       enddo
       dC_total = dC_total*1.d-3  ! convert it to kg
 
+!#define RESTRICT_LITTER_FLUX
 #ifdef RESTRICT_LITTER_FLUX
       if ( dC_total < 0.d0 .and. dC_total + cop%C_total < 0.d0 ) then
         Closs(CARBON,:,:) = Closs(CARBON,:,:)
@@ -926,7 +927,7 @@ c$$$         end if
         Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
      &       + Closs(CARBON,WOOD,i)
       end do                    !loop through CASA layers-->cumul litter per pool per layer -PK
-      print *,"Clossacc",Clossacc(CARBON,:,:)
+      !print *,"Clossacc",Clossacc(CARBON,:,:)
       !* Update cohort pools *!
       !C_fol replenished from C_lab: no change
       !C_froot replenished from C_lab: no change
