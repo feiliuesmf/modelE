@@ -440,7 +440,7 @@ C****
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : grav,rhows,rhow,sday
       USE MODEL_COM, only : im,jm,dtsrc,fland,focean
-     *     ,itoice,itlkice,p,ptop
+     *     ,itoice,itlkice,p,ptop,jhour,jday
       USE GEOM, only : imaxj,axyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
      *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss
@@ -495,6 +495,9 @@ C****
 C**** Initialize work array
       DO J=J_0, J_1
       DO I=I_0,IMAXJ(J)
+c      debug=(i.eq.7.and.j.eq.42).or.(i.eq.30.and.j.eq.45).or.
+c     *        (i.eq.1.and.j.eq.46)
+c      debug=i.eq.40.and.j.eq.41
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
@@ -542,14 +545,25 @@ C**** Initialize work array
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
         AIJ(I,J,IJ_MSI) =AIJ(I,J,IJ_MSI) + (ACE1I+MSI2)*POICE
 
+c        if (debug) write(6,'(A,2I4,4F11.6)') "si0",i,j,SNOW,1d3*SSIL(1)
+c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
+c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
+c        if (debug) print*,"si0",i,j,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,
+c     *       EVAP,SROX,SNOW+ACE1I-SSIL(1)-SSIL(2) !, TRSIL(1,1)+TRSIL(1,2)
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
 #ifdef TRACERS_WATER
      *       ,TRSIL,TREVAP,FTROC,TRRUN
 #endif
      *       ,FMOC,FHOC,FSOC,RUN,ERUN,SRUN,WETSNOW,MELT12)
+c        if (debug)  write(6,'(A,2I4,4F11.6)') "si1",i,j,SNOW,1d3*SSIL(1)
+c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
+c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
+c        if (debug) print*,"si1",i,j,SNOW,HSIL,SSIL,MSI2,FMOC,FHOC,FSOC,
+c     *       RUN,ERUN,SRUN,WETSNOW,MELT12,SNOW
+c     $       +ACE1I-SSIL(1)-SSIL(2) !, TRSIL(1,1)+TRSIL(1,2)
 
 C**** Decay sea ice salinity
-        if (.not. qsfix .and. FOCEAN(I,J).gt.0) then
+        if (FOCEAN(I,J).gt.0) then
           CALL SSIDEC(SNOW,MSI2,HSIL,SSIL,DTsrc,MELT12,
 #ifdef TRACERS_WATER
      *         TRSIL,TRFLUX,
@@ -562,6 +576,11 @@ C**** Decay sea ice salinity
 #endif
         end if
 
+c        if (debug)  write(6,'(A,2I4,4F11.6)') "si2",i,j,SNOW,1d3*SSIL(1)
+c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
+c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
+c        if (debug) print*,"si2",i,j,SNOW,HSIL,SSIL,MSI2,MFLUX,HFLUX,
+c     *       SFLUX,SNOW+ACE1I-SSIL(1)-SSIL(2) !, TRSIL(1,1)+TRSIL(1,2)
 C**** Calculate snow-ice possibility
         if (snow_ice .eq. 1 .and. FOCEAN(I,J).gt.0) then
           call snowice(Tm,Sm,SNOW,MSI2,HSIL,SSIL,qsfix,
@@ -575,6 +594,11 @@ C**** Calculate snow-ice possibility
           TRSNWIC = 0.
 #endif
         end if
+c        if (debug)  write(6,'(A,2I4,4F11.6)') "si3",i,j,SNOW,1d3*SSIL(1)
+c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
+c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
+c        if (debug) print*,"si3",i,j,SNOW,HSIL,SSIL,MSI2, MSNWIC,HSNWIC,
+c     *       SSNWIC,SNOW+ACE1I-SSIL(1)-SSIL(2) ! ,TRSIL(1,1)+TRSIL(1,2),
 
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J)=SNOW
@@ -600,6 +624,11 @@ C**** saftey valve to ensure that melt ponds eventually disappear (Ti<-10)
         if (Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),
      *       1d3*SSIL(1)/(XSI(1)*(SNOW+ACE1I))).lt.-10.) 
      *       pond_melt(i,j)=0.  ! refreeze
+
+c        if (debug) write(6,'(A,4I4,4F11.6)') "ponds",i,j,jday,jhour,
+c     *       melt12,pond_melt(i,j),ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),
+c     *         1d3*SSIL(1)/(XSI(1)*(SNOW+ACE1I))),
+c     *         1d3*(SSIL(1)+SSIL(2))/ACE1I
 
 C**** Net fluxes to ocean
         RUNOSI(I,J) = FMOC + RUN  + MFLUX + MSNWIC
@@ -715,6 +744,9 @@ C****
 C**** Initialize work array
       DO J=J_0, J_1
       DO I=I_0,IMAXJ(J)
+
+c         debug=i.eq.40.and.j.eq.41
+
       PWATER=FOCEAN(I,J)+FLAKE(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
@@ -941,7 +973,7 @@ C****
       USE CONSTANT, only : rhows,tf
       USE MODEL_COM, only : im,jm,kocean,focean,flake0
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
-     *     ,lmi,snow_ice,Ti,Ei
+     *     ,lmi,snow_ice,Ti,Ei,seaice_thermo
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -980,6 +1012,9 @@ C**** Default is 2.5d-8, but could be changed by a factor of 2.
 
 C**** Decide whether snow_ice formation is allowed
       call sync_param("snow_ice",snow_ice)
+
+C**** Define the ice thermodynamics (SI or BP)
+      call sync_param("seaice_thermo",seaice_thermo)
 
 C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
       if (istart.lt.9) then
