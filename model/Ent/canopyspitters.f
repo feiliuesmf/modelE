@@ -149,6 +149,14 @@
      &     pp%cellptr%Qf/QSAT(TcanK,
      &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0)),
      &     psdrvpar)
+!----------------------
+! STOMATAL SUICIDE TEST
+!      call biophysdrv_setup(ca_umol,ci_umol,
+!     &     pp%cellptr%TcanopyC,Pa,
+!     &     1.d0,!RH for stomotal suicide test
+!     &     psdrvpar)
+!----------------------
+
 
 !      psdrvpar%rh = min(1.d0,
 !     &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
@@ -191,16 +199,14 @@
 !     &       ,if_ci)  
 
           if (pfpar(cop%pft)%leaftype.eq.BROADLEAF) then
+            ! stomata on underside of leaves so max stomatal blocking = 0
             fdry_pft_eff = 1.d0
-          else 
+          elseif(pfpar(cop%pft)%leaftype.eq.NEEDLELEAF) then
+            ! Bosveld & Bouten (2003) max stomatal blocking = 1/3
+            fdry_pft_eff = 1.d0 - min(pp%cellptr%fwet_canopy, 0.333d0)
+          else  
             fdry_pft_eff = 1.d0 - pp%cellptr%fwet_canopy
           endif
-!         !Uncomment below if we wnat pft-dependence of wet canopy effects 
-!         if (cop%pft == 5.or.cop%pft == 7) then
-!             fdry_pft_eff = (1.d0 - 0.25d0*pp%cellptr%fwet_canopy)
-!         else
-!             fdry_pft_eff = (1.d0 - 0.5d0*pp%cellptr%fwet_canopy)
-!         endif
  
          !* Assign outputs to cohort *!
          !* Multiply in cop%stressH2O and account for wet leaves with
