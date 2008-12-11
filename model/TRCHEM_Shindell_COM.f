@@ -100,6 +100,8 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@+     for 1995 (pppv). 
 !@param fact_cfc ratio of our default CFC L=1 overwriting to the 
 !@+     radiation's 1995 L=1 CFC11+CFC12 value.
+!@param PSClatS SH latitude limit for PSCs
+!@param PSClatN NH latitude limit for PSCs
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & JCOlat =   19,
@@ -235,7 +237,7 @@ C ----------------------------------------------
      
       REAL*8, PARAMETER ::  O3MULT       = 2.14d-2,
      &                      BYO3MULT     = 1./O3MULT,
-     &                      T_thresh     = 203.d0,
+     &                      T_thresh     = 200.d0,
      &                      pfix_O2      = 0.209476d0,
      &                      pfix_H2      = 560.d-9,
      &                      pfix_Aldehyde= 2.d-9,
@@ -305,6 +307,8 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
      *     ,45.,50.,60.,70.,80.,90.,110.,125.,140.,165.,175.,180.,170.
      *     ,165.,150./)
      
+!@dbparam Tpsc_offset_N NH offset for the above T_thresh
+!@dbparam Tpsc_offset_S SH offset for the above T_thresh
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
 !@dbparam fix_CH4_chemistry (1=YES 0=NO) whether or not to used a fixed
@@ -356,6 +360,10 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                     ,PIratio_N2O   = 0.896d0
      &                     ,PIratio_CFC   = 0.000d0
      &                     ,PltOx         = 0.100d0
+     &                     ,Tpsc_offset_N = 0.d0
+     &                     ,Tpsc_offset_S = 0.d0
+     &                     ,PSClatS       = -30.d0
+     &                     ,PSClatN       =  30.d0
 #endif
 
       LOGICAL, PARAMETER :: luselb            = .false.,
@@ -579,6 +587,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var AMF Air mass factor for slab between level and level above
 !@var Jacet photolysis rate for acetone (not done through fastj)
 !@var acetone 3D acetone mixing ratio (static for now)
+!@var pscX column logical for the existance of polar strat clouds(PSCs)
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
 #ifdef SHINDELL_STRAT_CHEM
@@ -695,6 +704,9 @@ C**************  Not Latitude-Dependant ****************************
 #endif
 
       LOGICAL                      :: fam,prnrts,prnchg,prnls      
+#ifdef SHINDELL_STRAT_CHEM
+      LOGICAL, DIMENSION(LM)       :: pscX
+#endif
 
       CHARACTER*20, DIMENSION(NP)  :: title_aer_pf !formerly TITLEA( )
       CHARACTER*78                 :: TITLE0

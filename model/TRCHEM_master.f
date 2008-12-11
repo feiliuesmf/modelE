@@ -65,9 +65,7 @@ C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
 !@param JN J around 30 N
 !@param JS J around 30 S
-!@param JNN,JSS Js for "high-lat" definition
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
-      INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
       REAL*8, PARAMETER  :: bymair = 1.d0/mair
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
@@ -85,7 +83,6 @@ C**** Local parameters and variables and arguments:
 !@var CH4FACT, r179 for setting CH4 ICs and strat distribution
 !@var changeClONO2,changeClOx,changeHOCl,changeHCl nighttime changes
 !@var changehetClONO2 nighttime het change in ClONO2 (on sulfate)
-!@var pscX flag for psc existence
 !@var chgHT3,chgHT4,chgHT5 reaction rates for het rxns on pscs
 !@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
 !@var rmv dummy variable for halogne removal in trop vs height
@@ -133,9 +130,9 @@ C**** Local parameters and variables and arguments:
 #ifdef SHINDELL_STRAT_CHEM
       REAL*8, DIMENSION(LM)     :: ClOx_old  
       REAL*8 :: CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
-     & changeHOCl,changeHCl,changehetClONO2,pscX,chgHT3,
+     & changeHOCl,changeHCl,changehetClONO2,chgHT3,
      & chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
-     & countTT,bHNO3,mHNO3,HNO3_thresh
+     & countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,J3,L2,n2,
@@ -419,9 +416,9 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
          yso2(i,j,l)=so2_offline(i,j,l)*1.0D-12*y(nM,L)
        endif
 
+#ifndef SHINDELL_STRAT_CHEM
 c If desired, fix the methane concentration used in chemistry:
 C WHY IS THIS NECESSARY ANY MORE, NOW THAT GET_CH4_IC IS CALLED?
-#ifndef SHINDELL_STRAT_CHEM
        if(fix_CH4_chemistry == 1) THEN
          if(J < JEQ)then ! SH
            y(n_CH4,L)=y(nM,L)*pfix_CH4_S
@@ -631,6 +628,29 @@ C                 BEGIN CHEMISTRY                                C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 
+#ifdef SHINDELL_STRAT_CHEM
+      ! Check for PSC's existance. 
+      pscX(:)=.false.
+      do L=1,LM 
+        if(pres2(L) <= 250.d0 .and. pres2(L) >= 30.d0)then    ! pres crit for now
+          if(lat_dg(J,1)<=PSClatS.or.lat_dg(J,1)>=PSClatN)then! lat crit for now
+            if(lat_dg(J,1)<=PSClatS)then
+              Ttemp=ta(L)+Tpsc_offset_S
+            else if(lat_dg(J,1)>=PSClatN)then
+              Ttemp=ta(L)+Tpsc_offset_N
+            endif
+            if(Ttemp <= T_thresh)then                      ! cold enough forya?
+              bHNO3=38.9855d0-11397.d0/Ttemp+0.009179d0*Ttemp ! H2O and HNO3
+              mHNO3= -2.7836d0 - 8.8d-4*Ttemp                 ! criteria from
+              HNO3_thresh=2.69d19/760.d0*10.d0**              ! Hanson+Mauersberger
+     &        (mHNO3*log10(y(nH2O,L)*760.d0/2.69d19)+bHNO3)   ! 1988
+              if(y(n_HNO3,L) >= HNO3_thresh) pscX(L)=.true.! <-- yes PSC
+            endif ! temperature
+          endif   ! lat
+        endif     ! pressure
+      enddo       ! L
+#endif
+     
 c Calculate the chemical reaction rates:
       call Crates (I,J
 #ifdef SHINDELL_STRAT_CHEM
@@ -1308,45 +1328,30 @@ c 107 ClONO2  +H2O     -->HOCl    +HNO3  (calculated above)
 c 108 ClONO2  +HCl     -->Cl      +HNO3  !really makes Cl2
 c 109 HOCl    +HCl     -->Cl      +H2O   !raeally makes Cl2
 c 110 N2O5    +HCl     -->Cl      +HNO3  !really makes ClNO2  2
-
-         pscX=0.d0
-         if((pres2(l) <= 150.d0 .and. pres2(l) >= 35.d0) ! certain pres
-     &   .and.((lat_dg(J,1)<=-66.).OR.(lat_dg(J,1)>=66.))! near poles
-     &   .and. (ta(l) <= min(200.d0,T_thresh) ))then     ! cold enough
-          ! HNO3 limit from Hanson & Mauersberger 1988:
-          bHNO3=38.9855d0-11397.d0/ta(L)+0.009179d0*ta(L)
-          mHNO3= -2.7836d0 - 8.8d-4*ta(L)
-          HNO3_thresh=2.69d19/760.d0*10.d0**
-     &    (mHNO3*log10(y(nH2O,L)*760.d0/2.69d19)+bHNO3)
-          if(y(n_HNO3,L) >= HNO3_thresh) then            ! enough HNO3
-            pscX=1.d0
-            chgHT3=rr(108,L)*y(n_ClONO2,L)*dt2
-            if(chgHT3 >= 0.4d0*y(n_ClONO2,L))chgHT3=0.4d0*y(n_ClONO2,L)
-            if(chgHT3 >= 0.3d0*y(n_HCl,L))chgHT3=0.3d0*y(n_HCl,L)
-            chgHT4=rr(109,L)*y(n_HOCl,L)*dt2
-            if(chgHT4 >= 0.8d0*y(n_HOCl,L))chgHT4=0.8d0*y(n_HOCl,L)
-            if(chgHT4 >= 0.3d0*y(n_HCl,L))chgHT4=0.3d0*y(n_HCl,L)
-            chgHT5=rr(110,L)*y(n_N2O5,L)*dt2
-            if(chgHT5 >= 0.5d0*y(n_N2O5,L))chgHT5=0.5d0*y(n_N2O5,L)
-            if(chgHT5 >= 0.3d0*y(n_HCl,L))chgHT5=0.3d0*y(n_HCl,L)
-            changeClONO2=changeClONO2-chgHT3
-            changeHOCl=changeHOCl-chgHT4
-            changeN2O5=changeN2O5-chgHT5
-            changeHCl=changeHCl-chgHT3-chgHT4-chgHT5
-            changeHNO3=changeHNO3+chgHT3+chgHT5
-            changeClOx=changeClOx+chgHT3+chgHT4+chgHT5
-c           Note that really the last 3 produce Cl2, not ClOx, and Cl2
-C           at night is stable and doesn't go back into ClONO2, so
-C           should eventually keep track of Cl2/ClOx partitioning!
-          endif
-         endif
-
-c Remove some of the HNO3 formed heterogeneously, as it doesn't come
-c back to the gas phase:
-         if(pres2(L) < 245.d0 .and. pres2(L) >= 31.6d0 .and.
-     &   (J <= JSS+1.or.J >= JNN+1) .and. ta(L) <= T_thresh)then
+         if(pscX(L)) then  ! PSCs exist
+           chgHT3=rr(108,L)*y(n_ClONO2,L)*dt2
+           if(chgHT3 >= 0.4d0*y(n_ClONO2,L))chgHT3=0.4d0*y(n_ClONO2,L)
+           if(chgHT3 >= 0.3d0*y(n_HCl,L))chgHT3=0.3d0*y(n_HCl,L)
+           chgHT4=rr(109,L)*y(n_HOCl,L)*dt2
+           if(chgHT4 >= 0.8d0*y(n_HOCl,L))chgHT4=0.8d0*y(n_HOCl,L)
+           if(chgHT4 >= 0.3d0*y(n_HCl,L))chgHT4=0.3d0*y(n_HCl,L)
+           chgHT5=rr(110,L)*y(n_N2O5,L)*dt2
+           if(chgHT5 >= 0.5d0*y(n_N2O5,L))chgHT5=0.5d0*y(n_N2O5,L)
+           if(chgHT5 >= 0.3d0*y(n_HCl,L))chgHT5=0.3d0*y(n_HCl,L)
+           changeClONO2=changeClONO2-chgHT3
+           changeHOCl=changeHOCl-chgHT4
+           changeN2O5=changeN2O5-chgHT5
+c          Note that really the following 3 produce Cl2, not ClOx, and Cl2
+C          at night is stable and doesn't go back into ClONO2, so
+C          should eventually keep track of Cl2/ClOx partitioning!
+           changeHCl=changeHCl-chgHT3-chgHT4-chgHT5
+           changeHNO3=changeHNO3+chgHT3+chgHT5
+           changeClOx=changeClOx+chgHT3+chgHT4+chgHT5
+c          Remove some of the HNO3 formed heterogeneously, as it
+c          doesn't come back to the gas phase:
            changeHNO3 = changeHNO3 - 3.0d-3*y(n_HNO3,L)
          endif
+
          if(aero(L)  /=  0)
      &   changeHNO3 = changeHNO3 -1.2d-4*y(n_HNO3,L)
          if(aero(L)  /=  0.and.pres2(L) <= 50.d0.and.pres2(L) > 38.d0)
@@ -1428,7 +1433,7 @@ c -- ClOx --   (ClOx from gas and het phase rxns)
            changeL(l,n_ClOx) = 1.d0 - trm(i,j,l,n_ClOx)
            changeClOx=changeL(L,n_ClOx)*mass2vol(n_ClOx)*bypfactor
          END IF
-         if(pscX > 0.9d0)then
+         if(pscX(L))then
 c -- HOCl --   (HOCl from het phase rxns)
            changeL(L,n_HOCl)=changeHOCl*pfactor*vol2mass(n_HOCl)
            IF((trm(i,j,l,n_HOCl)+changeL(l,n_HOCl)) < 1.d0) THEN
@@ -1441,7 +1446,7 @@ c -- HCl --   (HCl from het phase rxns)
              changeL(l,n_HCl) = 1.d0 - trm(i,j,l,n_HCl)
              changeHCl=changeL(L,n_HCl)*mass2vol(n_HCl)*bypfactor
            END IF
-         endif  ! pscX > 0.9
+         endif  ! PSCs exist
 
 CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
          if(prnchg .and. J == jprn .and. I == iprn .and. L == lprn)then
@@ -1449,7 +1454,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
            write(out_line,*) 'dark, SALBFJ,sza,I,J,L,Itime= ',
      &     ALB(I,J,1),sza,I,J,L,Itime
            call write_parallel(trim(out_line),crit=jay)
-           if(pscX > 0.9d0)then
+           if(pscX(L))then
              write(out_line,*) 'There are PSCs, T =',ta(L)
              call write_parallel(trim(out_line),crit=jay)
            else
@@ -1550,8 +1555,8 @@ c Tropospheric halogen sink Br & Cl :
           changeL(L,n_BrONO2)=-trm(I,J,L,n_BrONO2)*0.9d0
         END IF
 
-c Set CLTOT based on CFCs (3.3 ppbv yield from complete oxidation of
-c 1.8 ppbv CFC plus 0.5 ppbv background) :
+c Set CLTOT based on CFCs (3.0 ppbv yield from complete oxidation of
+c 1.8 ppbv CFC plus 0.8 ppbv background) :
         if(L > maxl)then
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
@@ -1564,10 +1569,9 @@ c 1.8 ppbv CFC plus 0.5 ppbv background) :
      &    mass2vol(n_HOCl)*BYDXYP(J)*BYAM(L,I,J)
           y(n_ClONO2,L)=(trm(I,J,L,n_ClONO2)+changeL(L,n_ClONO2))*
      &    y(nM,L)*mass2vol(n_ClONO2)*BYDXYP(J)*BYAM(L,I,J)
-
-          CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(3.3d0/1.8d0)*
+          CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
      &    y(n_CFC,1)/(1.8d-9*y(nM,1)))
-          CLTOT=CLTOT+0.5d-9
+          CLTOT=CLTOT+0.8d-9
           CLTOT=CLTOT*y(nM,L)/
      &    (y(n_ClOx,L)+y(n_HCl,L)+y(n_HOCl,L)+y(n_ClONO2,L))
           if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then  
@@ -1776,7 +1780,7 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
       CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PRES2,BrOxalt,.true.)
       CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PRES2,ClOxalt,.true.)
       do L=LS1,LM
-       if(pres2(L) < 0.1)then
+       if(pres2(L) < pltOx)then
         do j=J_0,J_1         
           do i=1,IMAXJ(j)
             ! -- Ox --
@@ -2060,7 +2064,11 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only : PI
       USE DYNAMICS, only : LTROPO
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
-     &        cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,T_thresh
+     &        cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop
+#ifdef SHINDELL_STRAT_CHEM
+     &        ,pscX
+#endif
+
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
       USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
@@ -2072,9 +2080,7 @@ C**** GLOBAL parameters and variables:
 C**** Local parameters and variables and arguments:
 !@param JN J around 30 N
 !@param JS J around 30 S
-!@param JNN,JSS Js for "high-lat" definition
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
-      INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
 !@var I,J passed horizontal position indicies
 !@var dd,pp,fw,rkp,rk2,rk3M,nb,rrrr,temp dummy "working" variables
 !@var L,jj dummy loop variables
@@ -2247,13 +2253,11 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
            
           if(rkext(l) /= 0.)aero(l) = 1
 
-c         PSCs: (pressure < 245mb and pressure > 5mb here):
-          !NAT PSC surface conc per unit volume (cm^2/cm^3)
-          pscEx(l)=0.d0
-          if(pres(l) >= 31.6d0.and.ta(l) <= T_thresh .and.
-     &    ((lat_dg(J,1) <= -66.).OR.(lat_dg(J,1) >= 66.)))then
-            pscEx(l)=2.d-6 
-            if(ta(l) <= T_thresh-7.d0)pscEx(l)=pscEx(l)*1.d1
+          ! NAT PSC surface conc per unit volume (cm^2/cm^3)
+          if(pscX(l))then
+            pscEx(l)=2.d-6
+          else
+            pscEx(l)=0.d0
           endif
 
 c         Reaction 1 on sulfate and PSCs:      

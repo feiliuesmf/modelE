@@ -51,7 +51,8 @@
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
-     &     use_rad_n2o,use_rad_cfc,cfc_rad95
+     &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
+     &     Tpsc_offset_S
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
@@ -207,6 +208,9 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("use_rad_cfc",use_rad_cfc)
       call sync_param("PIratio_N2O",PIratio_N2O)
       call sync_param("PIratio_CFC",PIratio_CFC)
+      call sync_param("PltOx",PltOx)
+      call sync_param("Tpsc_offset_N",Tpsc_offset_N)
+      call sync_param("Tpsc_offset_S",Tpsc_offset_S)
 #endif
 #ifdef BIOGENIC_EMISSIONS
       call sync_param("base_isopreneX",base_isopreneX)

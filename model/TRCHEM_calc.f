@@ -43,8 +43,8 @@ C
      &                   Jacet,acetone
 #ifdef SHINDELL_STRAT_CHEM
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
-     &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,T_thresh
-     &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2
+     &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr
+     &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa
@@ -89,9 +89,7 @@ C**** Local parameters and variables and arguments:
      &,iPANdecomp=29
 !@param JN J around 30 N
 !@param JS J around 30 S
-!@param JNN,JSS Js for "high-lat" definition
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
-      INTEGER, PARAMETER :: JNN = 5*JM/6, JSS= JM/6 + 1
 #else
       INTEGER, PARAMETER :: iHO2NO2form=52,iN2O5form=53,
      &iPANform=55,iHO2NO2_OH=18,iHO2NO2decomp=46,iN2O5decomp=47
@@ -1328,9 +1326,7 @@ c         rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
 c Remove some of the HNO3 formed heterogeneously, as it doesn't come
 c back to the gas phase:
       do L=1,maxL
-        IF(PRES(L)<245.d0 .and. PRES(L)>=31.6d0 .and.
-     &  (J<=JSS+1 .or. J>=JNN+1) .and. ta(L)<=T_thresh)
-     &  changeL(L,n_HNO3)=changeL(L,n_HNO3)-
+        if(pscX(L)) changeL(L,n_HNO3)=changeL(L,n_HNO3)-
      &  2.0d-3*y(n_HNO3,L)*(dxyp(J)*rMAbyM(L))*vol2mass(n_HNO3)
       enddo
 #endif
