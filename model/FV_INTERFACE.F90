@@ -246,7 +246,7 @@ contains
       unit = GetFile(fname, form="formatted", rc=rc)
 #ifdef USE_FVCUBED
       Write(unit,*)'      npx: ',IM
-      Write(unit,*)'      npy: ',JM/6
+      Write(unit,*)'      npy: ',JM
       Write(unit,*)'      npz: ',LM
       Write(unit,*)'       dt: ',DT
       Write(unit,*)'   nsplit: ',0

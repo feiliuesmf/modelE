@@ -20,6 +20,7 @@
 
 #ifdef USE_MPP
       use mpp_mod,         only : mpp_pe, mpp_npes, mpp_root_pe
+      use mpp_mod,         only : mpp_error, NOTE, FATAL
       use mpp_domains_mod, only : mpp_domains_init, MPP_DOMAIN_TIME
       use mpp_domains_mod, only : mpp_domains_set_stack_size
       use mpp_domains_mod, only : mpp_define_layout, mpp_define_mosaic
@@ -77,7 +78,7 @@
 !@+   routine components
       PUBLIC :: DIST_GRID
 !@var  grid Default decomposition; globally accessible for convenience.
-      PUBLIC :: grid, grid_TRANS
+      PUBLIC :: grid
 !@var INIT_APP Initialize default decomposition
       PUBLIC :: INIT_APP
       PUBLIC :: INIT_GRID
@@ -528,12 +529,10 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_ESMF
       call INIT_GRID(grd_dum,IM,JM,LM,vm=vm,CREATE_CAP=.true.)
       Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
-      call INIT_GRID(grid_TRANS,JM,IM,LM,width=0,vm=vm)
       WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
      &     RANK_LON
 #else
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
-      call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
 #endif
 #endif
 
@@ -554,8 +553,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
 #endif
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM,CREATE_CAP=.true.)
-      call INIT_GRID(grid_TRANS,JM,IM,LM,width=0)
-    ! grid_TRANS = grd_dum
 #endif
 
 #ifdef DEBUG_DECOMP
@@ -605,6 +602,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER :: J0_DUM, J1_DUM
       INTEGER :: width_
       INTEGER :: pet
+      INTEGER :: NTILES
 #ifdef USE_ESMF
       TYPE(ESMF_Grid), external :: AppGridCreateF
       TYPE(ESMF_Config) :: cf
@@ -625,7 +623,11 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
 #endif
 
+#ifdef USE_FVCUBED
+      grid_size(1)=IM;   grid_size(2)=JM*6
+#else
       grid_size(1)=IM;   grid_size(2)=JM
+#endif
       range_min(1)=0.;   range_min(2)=-90.
       range_max(1)=360.; range_max(2)=90.
 
@@ -689,8 +691,15 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       else
          grd_dum % BC_PERIODIC = .false.
       endif
+#ifdef USE_FVCUBED
       npx=IM+1; npy=JM+1; ng = width_;
-      call init_domain(grd_dum%domain,npx,npy,ng,grd_dum%bc_periodic)
+      ntiles=6
+#else
+      npx=IM+1; npy=JM+1; ng = width_;
+      ntiles=1
+#endif
+      call init_domain(grd_dum%domain,npx,npy,ntiles,ng,
+     &                 grd_dum%bc_periodic)
       RANK_LON=0
       RANK_LAT=mpp_pe()
       my_pet = mpp_pe()
@@ -796,24 +805,23 @@ cddd      ENDIF
       Deallocate(AI)
 #endif
 
-#ifdef USE_MPP
-
-#if defined(USE_FVCUBED) && defined(USE_ESMF)
+#ifdef USE_MPP && USE_ESMF
+# ifdef USE_FVCUBED
 
       if (present(CREATE_CAP)) then
          if (CREATE_CAP) then
-            cf = load_cap_config('cap.rc',IM,JM,LM,1,NPES)
-          ! vm_ => modelE_vm
-          ! If (Present(vm)) vm_ => vm
-          ! print*, 'Started AppGridCreateF'
-          ! grd_dum%ESMF_GRID = AppGridCreateF(cf, vm_, rc)
-          ! call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
-          ! print*, 'Finished AppGridCreateF'
+            cf = load_cap_config('cap.rc',IM,JM*6,LM,1,NPES)
+            vm_ => modelE_vm
+            If (Present(vm)) vm_ => vm
+            print*, 'Started AppGridCreateF'
+            grd_dum%ESMF_GRID = AppGridCreateF(cf, vm_, rc)
+            call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
+            print*, 'Finished AppGridCreateF'
          endif
       endif
-#endif
 
-#  ifdef USE_ESMF
+# else
+
       grd_dum%ESMF_GRID = ESMF_GridCreateHorzLatLonUni(counts=grid_size,
      &     minGlobalCoordPerDim=range_min,
      &     maxGlobalCoordPerDim=range_max,
@@ -855,9 +863,10 @@ cddd      ENDIF
 !     Call ESMF_GRID_BOUNDS(grd_dum, RANK_LON, RANK_LAT,
 !    &        I0_DUM, I1_DUM, J0_DUM, J1_DUM)
 !     write(*,*)'esmf-bounds',my_pet,I0_DUM, I1_DUM, J0_DUM, J1_DUM
-#  endif
 
+# endif
 #endif
+
       END SUBROUTINE INIT_GRID
 
 #ifdef USE_MPP
@@ -5903,16 +5912,16 @@ cddd      End If
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: domain_decomp_new --- SPMD parallel decompostion/communication module
+! !MODULE: init_domain --- MPP SPMD parallel decompostion/communication module
 !-------------------------------------------------------------------------------
 ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv !
 !
-!     domain_decomp :: Setup domains
+!     init_domain :: Setup MPP domains
 !
-      subroutine init_domain(domain,npx,npy,ng,bc_periodic)
+      subroutine init_domain(domain,npx,npy,ntiles,ng,bc_periodic)
 
       type(domain2D) :: domain
-      integer, intent(IN)  :: npx,npy,ng
+      integer, intent(IN)  :: npx,npy,ntiles,ng
       logical :: bc_periodic
 
       integer :: npes, grid_type
@@ -5921,7 +5930,7 @@ cddd      End If
 
       integer :: ios,nx,ny,n,num_alloc
       character(len=32) :: type
-      integer :: num_contact, ntiles, npes_per_tile, tile
+      integer :: num_contact, npes_per_tile, tile
       integer, allocatable, dimension(:)  :: npes_tile, tile1, tile2
       integer, allocatable, dimension(:)  :: istart1,iend1,jstart1,jend1
       integer, allocatable, dimension(:)  :: istart2,iend2,jstart2,jend2
@@ -5929,11 +5938,6 @@ cddd      End If
       integer :: is, ie, js, je, isd, ied, jsd, jed
 
       npes = mpp_npes()
-      if ( bc_periodic ) then
-        grid_type = 4
-      else
-        grid_type = 7
-      end if
       nx = npx-1
       ny = npy-1
 
@@ -5941,22 +5945,58 @@ cddd      End If
 
       call mpp_domains_set_stack_size(1500000)
 
-      select case (grid_type)
+      select case(ntiles)
+      case ( 1 )  ! Lat-Lon "cyclic"
+
+       if ( bc_periodic ) then
+         grid_type = 4
+       else
+         grid_type = 7
+       end if
+
+       select case (grid_type)
         case (4)   ! Cartesian, double periodic
-          ntiles = 1
           num_contact = 2
           npes_per_tile = npes/ntiles
           call mpp_define_layout( (/1,npx-1,1,npy-1/), npes_per_tile, 
      &      layout )
           layout = (/1,npes_per_tile/) ! force decomp only in Lat-Direction
         case (7)   ! Cartesian, channel, non-periodic
-          ntiles = 1
           num_contact = 1
           npes_per_tile = npes/ntiles
           call mpp_define_layout( (/1,npx-1,1,npy-1/), npes_per_tile,
      &     layout )
           layout = (/1,npes_per_tile/) ! force decomp only in Lat-Direction
+       end select
+
+      case ( 6 )  ! Cubed-Sphere
+
+         num_contact = 12
+         !--- cubic grid always have six tiles, so npes should be multiple of 6
+         if( mod(npes,ntiles) .NE. 0 .OR. npx-1 .NE. npy-1) then
+               call mpp_error(NOTE,'init_domain: Cubic_grid mosaic')
+               return
+         end if
+         npes_per_tile = npes/ntiles
+         call  mpp_define_layout( (/1,npx-1,1,npy-1/), npes_per_tile, 
+     &      layout )
+
+         if ( (npx/layout(1) < ng) .or. (npy/layout(2) < ng) ) then
+               write(*,310) layout(1), layout(2),
+     &                      npx/layout(1), npy/layout(2)
+ 310           format('Invalid layout, NPES_X:',i4.4,'NPES_Y:',i4.4,
+     &                'ncells_X:',i4.4,'ncells_Y:',i4.4)
+               call mpp_error(FATAL, 'init_domain:Invalid layout')
+         endif
+
+         layout = (/layout(1),layout(2)/)
+
+      case default
+
+            call mpp_error(FATAL, 'init_domain: no such test: '//type)
+
       end select
+
 
       allocate( layout2D(2,ntiles), global_indices(4,ntiles) )
       allocate( npes_tile(ntiles) )
@@ -5975,7 +6015,11 @@ cddd      End If
       allocate( istart2(num_alloc), iend2(num_alloc) )
       allocate( jstart2(num_alloc), jend2(num_alloc) )
 
-      select case (grid_type)
+      select case(ntiles)
+      case ( 1 )  ! Lat-Lon "cyclic"
+
+       type ='Lat-Lon'
+       select case (grid_type)
         case (4)   ! Cartesian, double periodic
           !--- Contact line 1, between tile 1 (EAST) and tile 1 (WEST)
           tile1(1) = 1; tile2(1) = 1
@@ -5997,7 +6041,7 @@ cddd      End If
      &         pe_start=pe_start, pe_end=pe_end, symmetry=.true.,
      &      shalo = ng, nhalo = ng, whalo = ng, ehalo = ng, name = type)
 
-        case (7)   ! Cartesian, channel
+         case (7)   ! Cartesian, channel
           !--- Contact line 1, between tile 1 (EAST) and tile 1 (WEST)
           tile1(1) = 1; tile2(1) = 1
           istart1(1) = nx; iend1(1) = nx;
@@ -6010,6 +6054,72 @@ cddd      End If
      &         jstart2, jend2,
      &         pe_start=pe_start, pe_end=pe_end, symmetry=.true.,
      &      shalo = ng, nhalo = ng, whalo = ng, ehalo = ng, name = type)
+         end select
+
+        case ( 6 )  ! Cubed-Sphere
+         type="Cubic-Grid"
+         !--- Contact line 1, between tile 1 (EAST) and tile 2 (WEST)
+         tile1(1) = 1; tile2(1) = 2
+         istart1(1) = nx; iend1(1) = nx; jstart1(1) = 1;  jend1(1) = ny
+         istart2(1) = 1;  iend2(1) = 1;  jstart2(1) = 1;  jend2(1) = ny
+         !--- Contact line 2, between tile 1 (NORTH) and tile 3 (WEST)
+         tile1(2) = 1; tile2(2) = 3
+         istart1(2) = 1;  iend1(2) = nx; jstart1(2) = ny; jend1(2) = ny
+         istart2(2) = 1;  iend2(2) = 1;  jstart2(2) = ny; jend2(2) = 1
+         !--- Contact line 3, between tile 1 (WEST) and tile 5 (NORTH)
+         tile1(3) = 1; tile2(3) = 5
+         istart1(3) = 1;  iend1(3) = 1;  jstart1(3) = 1;  jend1(3) = ny
+         istart2(3) = nx; iend2(3) = 1;  jstart2(3) = ny; jend2(3) = ny
+         !--- Contact line 4, between tile 1 (SOUTH) and tile 6 (NORTH)
+         tile1(4) = 1; tile2(4) = 6
+         istart1(4) = 1;  iend1(4) = nx; jstart1(4) = 1;  jend1(4) = 1
+         istart2(4) = 1;  iend2(4) = nx; jstart2(4) = ny; jend2(4) = ny
+         !--- Contact line 5, between tile 2 (NORTH) and tile 3 (SOUTH)
+         tile1(5) = 2; tile2(5) = 3
+         istart1(5) = 1;  iend1(5) = nx; jstart1(5) = ny; jend1(5) = ny
+         istart2(5) = 1;  iend2(5) = nx; jstart2(5) = 1;  jend2(5) = 1
+         !--- Contact line 6, between tile 2 (EAST) and tile 4 (SOUTH)
+         tile1(6) = 2; tile2(6) = 4
+         istart1(6) = nx; iend1(6) = nx; jstart1(6) = 1;  jend1(6) = ny
+         istart2(6) = nx; iend2(6) = 1;  jstart2(6) = 1;  jend2(6) = 1
+         !--- Contact line 7, between tile 2 (SOUTH) and tile 6 (EAST)
+         tile1(7) = 2; tile2(7) = 6
+         istart1(7) = 1;  iend1(7) = nx; jstart1(7) = 1;  jend1(7) = 1
+         istart2(7) = nx; iend2(7) = nx; jstart2(7) = ny; jend2(7) = 1
+         !--- Contact line 8, between tile 3 (EAST) and tile 4 (WEST)
+         tile1(8) = 3; tile2(8) = 4
+         istart1(8) = nx; iend1(8) = nx; jstart1(8) = 1;  jend1(8) = ny
+         istart2(8) = 1;  iend2(8) = 1;  jstart2(8) = 1;  jend2(8) = ny
+         !--- Contact line 9, between tile 3 (NORTH) and tile 5 (WEST)
+         tile1(9) = 3; tile2(9) = 5
+         istart1(9) = 1;  iend1(9) = nx; jstart1(9) = ny; jend1(9) = ny
+         istart2(9) = 1;  iend2(9) = 1;  jstart2(9) = ny; jend2(9) = 1
+         !--- Contact line 10, between tile 4 (NORTH) and tile 5 (SOUTH)
+         tile1(10) = 4; tile2(10) = 5
+         istart1(10) = 1;  iend1(10) = nx 
+         jstart1(10) = ny; jend1(10) = ny
+         istart2(10) = 1;  iend2(10) = nx 
+         jstart2(10) = 1;  jend2(10) = 1
+         !--- Contact line 11, between tile 4 (EAST) and tile 6 (SOUTH)
+         tile1(11) = 4; tile2(11) = 6
+         istart1(11) = nx; iend1(11) = nx
+         jstart1(11) = 1;  jend1(11) = ny
+         istart2(11) = nx; iend2(11) = 1  
+         jstart2(11) = 1;  jend2(11) = 1
+         !--- Contact line 12, between tile 5 (EAST) and tile 6 (WEST)
+         tile1(12) = 5; tile2(12) = 6
+         istart1(12) = nx; iend1(12) = nx
+         jstart1(12) = 1;  jend1(12) = ny
+         istart2(12) = 1;  iend2(12) = 1
+         jstart2(12) = 1;  jend2(12) = ny
+ 
+         call mpp_define_mosaic(global_indices, layout2D, domain, 
+     &                        ntiles, num_contact, tile1, tile2, 
+     &                        istart1, iend1, jstart1, jend1,
+     &                        istart2, iend2, jstart2, jend2, 
+     &                        pe_start=pe_start, pe_end=pe_end,
+     &                        symmetry=.true., shalo = ng, nhalo = ng,
+     &                        whalo = ng, ehalo = ng, name = type)
 
       end select
 

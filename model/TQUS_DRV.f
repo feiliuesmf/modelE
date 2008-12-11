@@ -521,7 +521,7 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      USE DOMAIN_DECOMP, only : GRID, GRID_TRANS, GET, GLOBALSUM
+      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
       use DOMAIN_DECOMP, only : AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY : TRANSP, TRANSPOSE_COLUMN
       use CONSTANT, only : teeny
