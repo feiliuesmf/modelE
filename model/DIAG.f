@@ -108,21 +108,20 @@ C**** Some local constants
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : ia_dga,jreg,
      *     apj=>apj_loc, ajl=>ajl_loc,asjl=>asjl_loc,ail=>ail_loc
-     *     ,aij=>aij_loc,ij_dtdp,ij_dsev,ij_phi1k,ij_pres
-     *     ,ij_puq,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
+     *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres
+     *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,il_u,il_v,il_w,il_tx,il_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
      *     ,j_gamc,lstr,kgz_max,pmb,ght
-     *     ,jl_dtdyn,jl_zmfntmom,jl_totntmom
-     *     ,jl_epflxn,jl_epflxv
+     *     ,jl_dtdyn
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
 #ifdef HTAP_LIKE_DIAGS
      *     ,ij_templ,ij_gridh,ij_husl
 #endif
-      USE DYNAMICS, only : pk,phi,pmid,plij, pit,SD,pedn,am
+      USE DYNAMICS, only : pk,phi,pmid,plij, SD,pedn,am
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE,
@@ -140,22 +139,21 @@ C**** Some local constants
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
-      REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP
 
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
-      INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
+      INTEGER :: I,IM1,J,K,L,JR,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
       REAL*8, DIMENSION(LM):: PI0,AMI,DPI,PMI
       REAL*8, DIMENSION(LM+1):: PLEI
       REAL*8 ::
      &     BBYGV,BYSDSG,DLNP,DLNP12,DLNP23,DBYSD,
-     &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,
-     *     ESEPS,FPHI,GAMC,GAMM,GAMX,P4,P4I,
-     &     PDN,PE,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
-     *     PKE,PL,PRT,PU4I,PUV4I,PV4I,PVTHP,
-     *     ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THMN,TPIL,
-     *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI,TIJK,QIJK
+     &     DLNS,DS,DT2,DU,DV,DXYPJ,ELX,
+     *     ESEPS,GAMC,GAMM,GAMX,
+     &     PDN,PE,PHIRI,PIBYIM,PIJ,
+     *     PKE,PL,PRT,
+     *     ROSSX,SS,THETA,TPIL,
+     *     TZL,UAMAX,X,THI,TIJK,QIJK
       LOGICAL qpress,qabove
       INTEGER nT,nQ,nRH
       REAL*8, PARAMETER :: EPSLON=1.
@@ -236,6 +234,7 @@ C****
           I=IP1
         END DO
       END DO
+
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
@@ -581,71 +580,16 @@ C**** DRY ADIABATIC LAPSE RATE
           CALL INC_AJ(I,J,IT,J_GAMC,GAMC*SPTYPE(IT,J))
         END DO
       END DO
-C****
-C**** EASTWARD TRANSPORTS
-C****
-
-      CALL HALO_UPDATE(grid, U, FROM=NORTH)
-
-      DO L=1,LM
-      DO J=J_0S,J_1S
-      I=IM
-      DO IP1=1,IM
-        AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
-     *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)*.125
-        I=IP1
-      END DO
-      END DO
-      END DO
-C****
-C**** MOMENTUM, KINETIC ENERGY, NORTHWARD TRANSPORTS, ANGULAR MOMENTUM
-C****
-
-!Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
-!Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL HALO_UPDATE_COLUMN(grid, PLIJ, FROM=SOUTH)
-!Not necessary here, done above      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
-!Not necessary here, done above      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
 
       DO J=J_0STG,J_1STG
-      P4I=0.
-      I=IM
-      DO IP1=1,IM
-        P4=P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J)
-        P4I=P4I+P4
+      DO I=1,IM
         AIJ(I,J,IJ_UJET)=AIJ(I,J,IJ_UJET)+U(I,J,JET)
         AIJ(I,J,IJ_VJET)=AIJ(I,J,IJ_VJET)+V(I,J,JET)
-        I=IP1
-      END DO
-      APJ(J,2)=APJ(J,2)+P4I*.25
-      DO L=1,LM
-        PU4I=0.
-        PV4I=0.
-        PUV4I=0.
-        I=IM
-        DO IP1=1,IM
-          P4=PLIJ(L,I,J-1)+PLIJ(L,IP1,J-1)+PLIJ(L,I,J)+PLIJ(L,IP1,J)
-          IF(L.EQ.LS1) P4I=FIM*P4
-          PU4I=PU4I+P4*U(I,J,L)
-          PV4I=PV4I+P4*V(I,J,L)
-          PUV4I=PUV4I+P4*U(I,J,L)*V(I,J,L)
-          T4=TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L)
-          Z4=PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L)
-          AIJ(I,J,IJ_DSEV)=AIJ(I,J,IJ_DSEV)+P4*(SHA*T4+Z4)*V(I,J,L)
-     *         *DSIG(L)*DXV(J)*0.0625d0
-          SP2=PLIJ(L,IP1,J-1)+PLIJ(L,IP1,J)
-          AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+.125*SP2
-     *         *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
-          I=IP1
-        END DO
-        AJL(J,L,JL_ZMFNTMOM)=AJL(J,L,JL_ZMFNTMOM)+.25*PU4I*PV4I/P4I
-        AJL(J,L,JL_TOTNTMOM)=AJL(J,L,JL_TOTNTMOM)+.25*PUV4I
-      END DO
-      END DO
+      ENDDO
+      ENDDO
+
 C****
-C**** EVEN LEVEL GEOPOTENTIALS, VERTICAL WINDS AND VERTICAL TRANSPORTS
+C**** CONVERT VERTICAL WINDS TO UNITS PROPORTIONAL TO M/S
 C****
       DO L=1,LM-1
       DO J=J_0,J_1
@@ -686,94 +630,6 @@ c
       ENDDO
       ENDDO
       ENDDO
-
-C****
-C**** ELIASSEN PALM FLUX
-C****
-C**** NORTHWARD TRANSPORT
-!Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
-!Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, T, FROM=SOUTH)
-
-      DO 868 J=J_0STG,J_1STG
-      I=IM
-      DO 862 IP1=1,IM
-      PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
-     *        (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
-  862 I=IP1
-      DO 868 L=1,LM
-      DUDP=0.
-      DTHDP=0.
-      UMN=0.
-      THMN=0.
-      LDN=LDNA(L)
-      LUP=LUPA(L)
-      I=IM
-      DO 864 IP1=1,IM
-      DUDP=DUDP+U(I,J,LUP)-U(I,J,LDN)
-      DTHDP=DTHDP+T(I,J,LUP)+T(I,J-1,LUP)-T(I,J,LDN)-T(I,J-1,LDN)
-      UMN=UMN+U(I,J,L)
-      THMN=THMN+T(I,J,L)+T(I,J-1,L)
-      THSEC(I)=T(I,J,L)+T(IP1,J,L)+T(I,J-1,L)+T(IP1,J-1,L)
-  864 I=IP1
-      UMN=UMN*BYIM
-      THMN=2.*THMN/FIM
-      FPHI=0.
-      SMALL=.0002*FIM*T(1,J,L)
-c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
-      IF (DTHDP.LT.SMALL) DTHDP=SMALL
-      DO 866 I=1,IM
-      SP=PSEC(I)
-      IF(L.GE.LS1) SP=PSFMPT
-  866 FPHI=FPHI+SP*V(I,J,L)*(.5*(THSEC(I)-THMN)*DUDP/DTHDP
-     *   -U(I,J,L)+UMN)
-  868 AJL(J,L,JL_EPFLXN)=AJL(J,L,JL_EPFLXN)+FPHI
-C**** VERTICAL TRANSPORT
-!Not necessary here, done above      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
-!Not necessary here, done above      CALL HALO_UPDATE(grid, U, FROM=NORTH)
-      CALL HALO_UPDATE(grid, V, FROM=NORTH)
-
-      DO 878 J=J_0S,J_1S
-      PITMN=0.
-      DO 870 I=1,IM
-  870 PITMN=PITMN+PIT(I,J)
-      PITMN=PITMN/FIM
-      DO 878 L=1,LM-1
-      IF(L.GE.LS1-1) PITMN=0.
-      THMN=0.
-      SDMN=0.
-      DTHDP=0.
-      DO 872 I=1,IM
-      DTHDP=DTHDP+T(I,J,L+1)-T(I,J,L)
-      THMN=THMN+T(I,J,L+1)+T(I,J,L)
-  872 SDMN=SDMN+SD(I,J,L)
-      SMALL=.0001*FIM*T(1,J,L+1)
-c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
-      IF (DTHDP.LT.SMALL) DTHDP=SMALL
-      THMN=THMN/FIM
-      SDMN=SDMN/FIM
-      DUDX=0.
-      PVTHP=0.
-      SDPU=0.
-      IM1=IM
-      DO 874 I=1,IM
-      DUDX=DUDX+DXV(J+1)*(U(I,J+1,L)+U(I,J+1,L+1))-DXV(J)*
-     *   (U(I,J,L)+U(I,J,L+1))
-      UPE=U(IM1,J,L)+U(IM1,J+1,L)+U(I,J,L)+U(I,J+1,L)+
-     *    U(IM1,J,L+1)+U(IM1,J+1,L+1)+U(I,J,L+1)+U(I,J+1,L+1)
-      VPE=V(IM1,J,L)+V(IM1,J+1,L)+V(I,J,L)+V(I,J+1,L)+
-     *    V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
-      DP=(SIG(L)-SIG(L+1))*P(I,J)
-      IF(L.GE.LS1) DP=(SIG(L)-SIG(L+1))*PSFMPT
-      IF(L.EQ.LS1-1) DP=P(I,J)*SIG(L)-PSFMPT*SIG(LS1)
-      PVTHP=PVTHP+DP*VPE*(T(I,J,L)+T(I,J,L+1)-THMN)
-      PITIJ=PIT(I,J)
-      IF(L.GE.LS1-1) PITIJ=0.
-      SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
-  874 IM1=I
-      AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+.25*
-     &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU)
-  878 CONTINUE
 
 C**** ACCUMULATE TIME USED IN DIAGA
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)

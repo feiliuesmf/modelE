@@ -2572,7 +2572,6 @@ c      end module DIAG
       return
       end subroutine regrid_to_primary_1d
 
-
       SUBROUTINE DIAGB
 !@sum DIAGB calculate constant pressure diagnostics from within DYNAM
 C****
@@ -2586,6 +2585,7 @@ C****
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,jdate,
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
+     &     ,psfmpt
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DIAG_COM, only : ia_dga
@@ -2605,10 +2605,15 @@ C****
      &      JK_DUDTTEM,JK_DTDTTEM,JK_EPFLXNCP,JK_EPFLXVCP,
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
+     &     ,ajl=>ajl_loc,jl_epflxn,jl_epflxv,jl_zmfntmom,jl_totntmom
+     &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
+     &     ,apj=>apj_loc
       USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
+     &     ,pit
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
+     &     ,ldna,lupa
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP, only : HALO_UPDATEj
+      USE DOMAIN_DECOMP, only : HALO_UPDATEj, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP, only : SOUTH, NORTH, GLOBALSUM
       USE GETTIME_MOD
       IMPLICIT NONE
@@ -2642,6 +2647,12 @@ C****
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
      &     ,AMRHT,AMRHQ,AMUV,AMVQ,AMVT,AMUU,AMVV,AMTT
 
+c local vars for transplanted DIAGA calculations
+      real*8 :: dudp,dthdp,umn,thmn,pitmn,fphi,sdmn,dudx,pvthp,sdpu
+     &     ,upe,vpe,pitij, p4i,p4,pu4i,pv4i,puv4i,t4,z4,sp2
+      integer :: ldn
+      real*8, dimension(im) :: thsec
+
       REAL*8, PARAMETER :: BIG=1.E20
       REAL*8 :: QSAT
       REAL*8 :: pm_ge_ps(im,grid%j_strt_halo:grid%j_stop_halo,lm)
@@ -2656,6 +2667,158 @@ C****
      &               J_STRT_HALO=J_0H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+
+
+C****
+C**** EASTWARD TRANSPORTS (TRANSPLANTED FROM DIAGA)
+C****
+
+      CALL HALO_UPDATE(grid, U, FROM=NORTH)
+
+      DO L=1,LM
+      DO J=J_0S,J_1S
+      I=IM
+      DO IP1=1,IM
+        AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
+     *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)*.125
+        I=IP1
+      END DO
+      END DO
+      END DO
+
+C****
+C**** NORTHWARD TRANSPORTS (TRANSPLANTED FROM DIAGA)
+C****
+
+      CALL HALO_UPDATE_COLUMN(grid, PLIJ, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
+
+      DO J=J_0STG,J_1STG
+      P4I=0.
+      I=IM
+      DO IP1=1,IM
+        P4=P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J)
+        P4I=P4I+P4
+        I=IP1
+      END DO
+      APJ(J,2)=APJ(J,2)+P4I*.25
+      DO L=1,LM
+        PU4I=0.
+        PV4I=0.
+        PUV4I=0.
+        I=IM
+        DO IP1=1,IM
+          P4=PLIJ(L,I,J-1)+PLIJ(L,IP1,J-1)+PLIJ(L,I,J)+PLIJ(L,IP1,J)
+          IF(L.EQ.LS1) P4I=FIM*P4
+          PU4I=PU4I+P4*U(I,J,L)
+          PV4I=PV4I+P4*V(I,J,L)
+          PUV4I=PUV4I+P4*U(I,J,L)*V(I,J,L)
+          T4=TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L)
+          Z4=PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L)
+          AIJ(I,J,IJ_DSEV)=AIJ(I,J,IJ_DSEV)+P4*(SHA*T4+Z4)*V(I,J,L)
+     *         *DSIG(L)*DXV(J)*0.0625d0
+          SP2=PLIJ(L,IP1,J-1)+PLIJ(L,IP1,J)
+          AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+.125*SP2
+     *         *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
+          I=IP1
+        END DO
+        AJL(J,L,JL_ZMFNTMOM)=AJL(J,L,JL_ZMFNTMOM)+.25*PU4I*PV4I/P4I
+        AJL(J,L,JL_TOTNTMOM)=AJL(J,L,JL_TOTNTMOM)+.25*PUV4I
+      END DO
+      END DO
+
+
+
+C****
+C**** ELIASSEN PALM FLUX ON MODEL LAYERS (TRANSPLANTED FROM DIAGA)
+C****
+C**** NORTHWARD COMPONENT
+      CALL HALO_UPDATE(grid, T, FROM=SOUTH)
+
+      DO 868 J=J_0STG,J_1STG
+      I=IM
+      DO 862 IP1=1,IM
+      PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
+     *        (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
+  862 I=IP1
+      DO 868 L=1,LM
+      DUDP=0.
+      DTHDP=0.
+      UMN=0.
+      THMN=0.
+      LDN=LDNA(L)
+      LUP=LUPA(L)
+      I=IM
+      DO 864 IP1=1,IM
+      DUDP=DUDP+U(I,J,LUP)-U(I,J,LDN)
+      DTHDP=DTHDP+T(I,J,LUP)+T(I,J-1,LUP)-T(I,J,LDN)-T(I,J-1,LDN)
+      UMN=UMN+U(I,J,L)
+      THMN=THMN+T(I,J,L)+T(I,J-1,L)
+      THSEC(I)=T(I,J,L)+T(IP1,J,L)+T(I,J-1,L)+T(IP1,J-1,L)
+  864 I=IP1
+      UMN=UMN*BYIM
+      THMN=2.*THMN/FIM
+      FPHI=0.
+      SMALL=.0002d0*FIM*T(1,J,L)
+c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
+      IF (DTHDP.LT.SMALL) DTHDP=SMALL
+      DO 866 I=1,IM
+      SP=PSEC(I)
+      IF(L.GE.LS1) SP=PSFMPT
+  866 FPHI=FPHI+SP*V(I,J,L)*(.5*(THSEC(I)-THMN)*DUDP/DTHDP
+     *   -U(I,J,L)+UMN)
+  868 AJL(J,L,JL_EPFLXN)=AJL(J,L,JL_EPFLXN)+FPHI
+
+C**** VERTICAL COMPONENT
+      CALL HALO_UPDATE(grid, V, FROM=NORTH)
+
+      DO 878 J=J_0S,J_1S
+      PITMN=0.
+      DO 870 I=1,IM
+  870 PITMN=PITMN+PIT(I,J)
+      PITMN=PITMN/FIM
+      DO 878 L=1,LM-1
+      IF(L.GE.LS1-1) PITMN=0.
+      THMN=0.
+      SDMN=0.
+      DTHDP=0.
+      DO 872 I=1,IM
+      DTHDP=DTHDP+T(I,J,L+1)-T(I,J,L)
+      THMN=THMN+T(I,J,L+1)+T(I,J,L)
+  872 SDMN=SDMN+SD(I,J,L)
+      SMALL=.0001d0*FIM*T(1,J,L+1)
+c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
+      IF (DTHDP.LT.SMALL) DTHDP=SMALL
+      THMN=THMN/FIM
+      SDMN=SDMN/FIM
+      DUDX=0.
+      PVTHP=0.
+      SDPU=0.
+      IM1=IM
+      DO 874 I=1,IM
+      DUDX=DUDX+DXV(J+1)*(U(I,J+1,L)+U(I,J+1,L+1))-DXV(J)*
+     *   (U(I,J,L)+U(I,J,L+1))
+      UPE=U(IM1,J,L)+U(IM1,J+1,L)+U(I,J,L)+U(I,J+1,L)+
+     *    U(IM1,J,L+1)+U(IM1,J+1,L+1)+U(I,J,L+1)+U(I,J+1,L+1)
+      VPE=V(IM1,J,L)+V(IM1,J+1,L)+V(I,J,L)+V(I,J+1,L)+
+     *    V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
+      DP=(SIG(L)-SIG(L+1))*P(I,J)
+      IF(L.GE.LS1) DP=(SIG(L)-SIG(L+1))*PSFMPT
+      IF(L.EQ.LS1-1) DP=P(I,J)*SIG(L)-PSFMPT*SIG(LS1)
+      PVTHP=PVTHP+DP*VPE*(T(I,J,L)+T(I,J,L+1)-THMN)
+      PITIJ=PIT(I,J)
+      IF(L.GE.LS1-1) PITIJ=0.
+      SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
+  874 IM1=I
+      AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+.25*
+     &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU)
+  878 CONTINUE
+
+c
+c END OF CALCULATIONS MOVED FROM DIAGA
+c
 
       pm_ge_ps(:,:,:)=-1.
 C****
