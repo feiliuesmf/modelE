@@ -14,7 +14,6 @@ c-----------------------------------------------------------------------
          name_j(k) = 'J_'//trim(name_j(k))
          name_reg(k) = 'reg_'//trim(name_reg(k))
       enddo
-      call pj_defs
       call jl_defs
       call sjl_defs
       call ij_defs
@@ -3923,6 +3922,24 @@ c
       scale_jl(k) = byim
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_dpa = k
+      sname_jl(k) = 'jl_dpa'
+      lname_jl(k) = 'MASS AT PRIMARY GRID CELLS'
+      units_jl(k) = 'mb'
+      scale_jl(k) = 1. ! not printed
+      ia_jl(k) = ia_dga
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_dpb = k
+      sname_jl(k) = 'jl_dpb'
+      lname_jl(k) = 'MASS AT SECONDARY LATITUDES' ! in DIAGB
+      units_jl(k) = 'mb'
+      scale_jl(k) = 1. ! not printed
+      ia_jl(k) = ia_dga
+      jgrid_jl(k) = 2
 
 
       if (AM_I_ROOT()) then
@@ -4846,33 +4863,6 @@ c
       end if
       return
       end subroutine wave_defs
-
-
-      subroutine pj_defs
-      use DIAG_COM
-      implicit none
-      integer :: k
-c
-      do k=1,kapj
-         write(name_pj(k),'(a3,i3.3)') 'APJ',k
-         lname_pj(k) = 'unused'
-         units_pj(k) = 'unused'
-      enddo
-c
-      k=0
-c
-      k=k+1
-      name_pj(k) = 'APJ1'
-      lname_pj(k) = 'P'
-      units_pj(k) = '100 PA'
-c
-      k=k+1
-      name_pj(k) = 'APJ2'
-      lname_pj(k) = '4*P4I (UV GRID)'
-      units_pj(k) = '100 PA'
-c
-      return
-      end subroutine pj_defs
 
       subroutine tsf_defs
       use DIAG_COM

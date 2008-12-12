@@ -1751,9 +1751,12 @@ C**** INITIALIZE CERTAIN QUANTITIES
       DO 50 J=2,JM
       DXCOSV(J)=DXV(J)*COSV(J)
    50 CONTINUE
+
       DO J=1,JM
-        BYP(J,1)=IDACC(ia_dga)/(APJ(J,1)+teeny)
-        BYPV(J,1)=IDACC(ia_dga)/(APJ(J,2)+teeny)
+c        BYP(J,1)=IDACC(ia_dga)/(APJ(J,1)+teeny)
+c        BYPV(J,1)=IDACC(ia_dga)/(APJ(J,2)+teeny)
+        BYP(J,1)=IDACC(ia_dga)/(SUM(AJL(J,1:LS1-1,JL_DPA))+teeny)
+        BYPV(J,1)=IDACC(ia_dga)/(SUM(AJL(J,1:LS1-1,JL_DPB))+teeny)
       ENDDO
       DO L=2,LS1-1
          BYP(:,L) = BYP(:,1)
@@ -1763,10 +1766,13 @@ C**** INITIALIZE CERTAIN QUANTITIES
         BYP(:,L) = ONESPO(:)*BYIM/PSFMPT
         BYPV(:,L) = ONES(1:JM)*BYIM/PSFMPT
       ENDDO
-      DO L=1,LM
-        BYPDSIG(:,L) = BYP(:,L)*BYDSIG(L)
-        BYPVDSIG(:,L) = BYPV(:,L)*BYDSIG(L)
-      ENDDO
+c      DO L=1,LM
+c        BYPDSIG(:,L) = BYP(:,L)*BYDSIG(L)
+c        BYPVDSIG(:,L) = BYPV(:,L)*BYDSIG(L)
+c      ENDDO
+      BYPDSIG(:,:) = IDACC(ia_dga)/(AJL(:,:,JL_DPA)+teeny)
+      BYPVDSIG(:,:) = IDACC(ia_dga)/(AJL(:,:,JL_DPB)+teeny)
+
       LINECT=65
 C      WRITE (6,901)
       write(6,*) ' DEG K/DAY  = 0.01*SDAY*GRAV/SHA (= 8.445) W/(m^2*mb)'
@@ -2914,9 +2920,9 @@ C**** scale with density for m^2/s^2 unit. Note that RHO is really a JK.
       DO L=1,LM
       BUP=AJL(J,L,JL_EPFLXV)*BYDAPO(J)
       AX(J,L)=BYDAPO(J)*
-     &     (AJL(J+1,L,JL_EPFLXN)*DXV(J+1)/APJ(J+1,2)-
-     &      AJL(J  ,L,JL_EPFLXN)*DXV(J) /APJ(J  ,2))
-     *   +.5*(BUP-BDN)/(DSIG(L)*APJ(J,1))
+     &     (AJL(J+1,L,JL_EPFLXN)*DXV(J+1)*BYPV(J+1,1)-
+     &      AJL(J  ,L,JL_EPFLXN)*DXV(J)*BYPV(J,1))/IDACC(IA_DGA)
+     *   +.5*(BUP-BDN)*BYP(J,1)/(DSIG(L)*IDACC(IA_DGA))
       BDN=BUP
       ENDDO
       ENDDO
@@ -6734,7 +6740,7 @@ cddd#else
 cddd      USE VEG_COM,   only : vdata
 cddd#endif
       USE DIAG_COM, only : AIJ,  AIJ_loc, AJ,   AJ_loc, AREGJ,
-     *     AREGJ_loc, APJ, APJ_loc, AJK,  AJK_loc, AIJK, AIJK_loc,
+     *     AREGJ_loc, AJK,  AJK_loc, AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
      *     TSFREZ_loc, WT_IJ
       USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
@@ -6809,7 +6815,7 @@ cddd      DEALLOCATE(tmp)
 
       SUBROUTINE DIAG_SCATTER
       USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc, AREGJ, AREGJ_loc,
-     *     APJ, APJ_loc, AJK, AJK_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
+     *     AJK, AJK_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
      *     AJL,  AJL_loc, CONSRV, CONSRV_loc, TSFREZ, TSFREZ_loc
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       USE DOMAIN_DECOMP, ONLY : am_i_root
@@ -6819,7 +6825,6 @@ cddd      DEALLOCATE(tmp)
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
       CALL UNPACK_DATA(GRID, AREGJ,  AREGJ_loc)
 #endif
-      CALL UNPACK_DATAj(GRID, APJ, APJ_loc)
       CALL UNPACK_DATAj(GRID, AJK, AJK_loc)
       CALL UNPACK_DATA (GRID, AIJ, AIJ_loc)
       CALL UNPACK_DATA (GRID, AIJK, AIJK_loc)

@@ -54,11 +54,6 @@ c**** area weight for zig-zag diagnostics on budget grid
 cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
       INTEGER, DIMENSION(IM,JM), public :: JREG
 
-!@param KAPJ number of zonal pressure diagnostics
-      INTEGER, PARAMETER, public :: KAPJ=2
-!@var APJ zonal pressure diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: APJ,APJ_loc
-
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
       INTEGER, PARAMETER, public :: KAJL=70+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
@@ -374,8 +369,6 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, public :: k_j_out
 
       character(len=20), dimension(kaj), public :: name_reg
-      character(len=20), dimension(kapj), public :: name_pj,units_pj
-      character(len=80), dimension(kapj), public :: lname_pj
 
 !@var IJ_xxx AIJ diagnostic names
       INTEGER, public ::
@@ -537,6 +530,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,jl_dudtvdif
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
+     &     ,jl_dpa,jl_dpb
 
 !@var JGRID_U, JGRID_KE latitudes at which U-wind and KE diags are defined
 !@+   (1 for primary latitudes, 2 for secondary latitudes)
@@ -699,9 +693,9 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       USE DOMAIN_DECOMP, ONLY : GET
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
-      USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
+      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL,JM_BUDG
-      USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,APJ_loc,AJL_loc
+      USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc,AIJK_loc,AIL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
 
@@ -726,8 +720,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
      &         SQRTM(I_0H:I_1H, J_0H:J_1H),
      &         STAT = IER)
 
-      ALLOCATE( APJ_loc(J_0H:J_1H, KAPJ),
-     &         CONSRV_loc(J_0H:J_1H, KCON),
+      ALLOCATE( CONSRV_loc(J_0H:J_1H, KCON),
      &         STAT = IER)
 
       ALLOCATE(
@@ -770,9 +763,9 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       USE RESOLUTION, ONLY : IM,JM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DOMAIN_DECOMP, Only : AM_I_ROOT
-      USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
+      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL
-      USE DIAG_COM, ONLY : AJ,AREGJ,JREG,APJ,AJL
+      USE DIAG_COM, ONLY : AJ,AREGJ,JREG,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
      *     ,JM_BUDG
@@ -783,8 +776,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       if(.not.AM_I_ROOT()) return
 
 c     ALLOCATE( ! JREG(IM, JM))
-      ALLOCATE( APJ(JM, KAPJ),
-     &         CONSRV(JM, KCON),
+      ALLOCATE( CONSRV(JM, KCON),
      &         STAT = IER)
 
       ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE), !AJ, AREGJ and AJL are defined on budget grid, JM -> JM_BUDG. 
@@ -814,7 +806,7 @@ c     ALLOCATE( ! JREG(IM, JM))
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE DOMAIN_DECOMP, Only : AM_I_ROOT
-      USE DIAG_COM, ONLY : AJ,AREGJ,JREG,APJ,AJL
+      USE DIAG_COM, ONLY : AJ,AREGJ,JREG,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
 
@@ -823,7 +815,7 @@ c     ALLOCATE( ! JREG(IM, JM))
       if(.not.AM_I_ROOT()) return
 
 c     DEALLOCATE( ! JREG)
-      DEALLOCATE( AJ,AREGJ,APJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,AIL,TSFREZ )
+      DEALLOCATE( AJ,AREGJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,AIL,TSFREZ )
 
       deallocate(TDIURN_glob,OA_glob)
 
@@ -846,7 +838,7 @@ c     DEALLOCATE( ! JREG)
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
-      INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + JM*NREG*KAJ + JM*KAPJ
+      INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + JM*NREG*KAJ
      *     + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*JM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
@@ -856,7 +848,7 @@ c     DEALLOCATE( ! JREG)
      *     + NDIUVAR*NDIUPT*HR_IN_MONTH
 #endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
-      ! REAL*4 AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ),APJ4(JM,KAPJ)
+      ! REAL*4 AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ)
       ! REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
       ! REAL*4 AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
       ! REAL*4 CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
@@ -867,7 +859,7 @@ c     DEALLOCATE( ! JREG)
       ! REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       REAL*4,allocatable, dimension(:,:,:) :: AJ4,AREGJ4, AJL4,ASJL4
      *            ,AIJ4,AJK4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
-      REAL*4,allocatable, dimension(:,:) :: APJ4,ENERGY4,CONSRV4,ATPE4
+      REAL*4,allocatable, dimension(:,:) :: ENERGY4,CONSRV4,ATPE4
       REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIL4,AFLX4
 #ifndef NO_HDIURN
       ! REAL*4 HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH)
@@ -974,7 +966,7 @@ C**** The regular model (Kradia le 0)
 
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc, AJ,AREGJ,APJ,AJL,ASJL,AIJ,
+     *     idacc, AJ,AREGJ,AJL,ASJL,AIJ,
      *     AIL, ENERGY,CONSRV,
      *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #ifndef NO_HDIURN
@@ -991,7 +983,7 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,
      *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
-     *     REAL(AJ,KIND=4),REAL(AREGJ,KIND=4),REAL(APJ,KIND=4),
+     *     REAL(AJ,KIND=4),REAL(AREGJ,KIND=4),
      *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),
      *     REAL(AIJ,KIND=4),REAL(AIL,KIND=4),
      *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
@@ -1013,7 +1005,7 @@ C**** The regular model (Kradia le 0)
       CASE (ioread)           ! input from restart file
         if (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *       idacc, AJ,AREGJ,APJ,AJL,ASJL,AIJ,AIL,
+     *       idacc, AJ,AREGJ,AJL,ASJL,AIJ,AIL,
      *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #ifndef NO_HDIURN
      *       HDIURN,
@@ -1033,7 +1025,7 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) Then
           call alloc_diag_r4
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
-     *         idac1, AJ4,AREGJ4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4
+     *         idac1, AJ4,AREGJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4
      *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
 #ifndef NO_HDIURN
      *       HDIURN4,
@@ -1057,7 +1049,6 @@ C**** The regular model (Kradia le 0)
           TSFREZ= TSFREZ4       ! not accumulated
           AJ    = AJ     + AJ4
           AREGJ = AREGJ  + AREGJ4
-          APJ   = APJ    + APJ4
           AJL   = AJL    + AJL4
           ASJL  = ASJL   + ASJL4
           AIJ   = AIJ    + AIJ4
@@ -1127,7 +1118,6 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         CALL UNPACK_DATA(grid, AREGJ,  AREGJ_loc)
         CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
 #endif
-        CALL UNPACK_DATAj(grid, APJ,    APJ_loc)
         CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)
         CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
         CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc)
@@ -1139,7 +1129,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       End Subroutine Scatter_Diagnostics
 
       Subroutine alloc_diag_r4
-        allocate (AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ),APJ4(JM,KAPJ))
+        allocate (AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ))
         allocate (AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL))
         allocate (AIJ4(IM,JM,KAIJ))
         allocate (AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS))
@@ -1155,7 +1145,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       End Subroutine alloc_diag_r4
 
       Subroutine dealloc_diag_r4
-        deallocate (AJ4,AREGJ4,APJ4,  AJL4,ASJL4,AIJ4,AIL4)
+        deallocate (AJ4,AREGJ4,  AJL4,ASJL4,AIJ4,AIL4)
         deallocate (ENERGY4,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4)
         deallocate (AJK4,AIJK4, AISCCP4,TSFREZ4)
 #ifndef NO_HDIURN
@@ -1183,7 +1173,6 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
       CALL PACK_DATAj(grid, AJL_loc,    AJL)
 #endif
-      CALL PACK_DATAj(grid, APJ_loc,    APJ)
       CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
       CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
       CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)

@@ -2607,7 +2607,7 @@ C****
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
      &     ,ajl=>ajl_loc,jl_epflxn,jl_epflxv,jl_zmfntmom,jl_totntmom
      &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
-     &     ,apj=>apj_loc
+     &     ,jl_dpb
       USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
      &     ,pit
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
@@ -2703,7 +2703,11 @@ C****
         P4I=P4I+P4
         I=IP1
       END DO
-      APJ(J,2)=APJ(J,2)+P4I*.25
+c      APJ(J,2)=APJ(J,2)+P4I*.25
+      AJL(J,1:LS1-1,JL_DPB) = AJL(J,1:LS1-1,JL_DPB) +
+     &     DSIG(1:LS1-1)*P4I*.25
+      AJL(J,LS1:LM,JL_DPB) = AJL(J,LS1:LM,JL_DPB) +
+     &     DSIG(LS1:LM)*PSFMPT*FIM
       DO L=1,LM
         PU4I=0.
         PV4I=0.

@@ -574,7 +574,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,dsig,dtsrce=>dtsrc,fim
      *     ,idacc,ndaa,ls1,pmidl00,pdsigl00
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
-      USE DIAG_COM, only : ajl,kajl,kep,apj
+      USE DIAG_COM, only : ajl,kajl,kep,jl_dpb
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
      &     ,jl_dumcdrgm10,jl_dumcdrgp10
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
@@ -647,7 +647,7 @@ c GISS-ESMF EXCEPTIONAL CASE: OK AS A CONSTANT ON EACH PE
 !     end do
       DO L=1,LS1-1
       DO J=2,JM
-        BYDPJL(J,L)=(FIM*IDACC(4))/(0.25*DSIG(L)*APJ(J,2)+1.D-20)
+        BYDPJL(J,L)=(FIM*IDACC(4))/(AJL(J,L,JL_DPB)+1.D-20)
       END DO
       END DO
       DO L=LS1,LM

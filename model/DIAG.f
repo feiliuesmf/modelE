@@ -9,9 +9,6 @@
 C**** AJ(J,N)  (ZONAL SUM OVER LONGITUDE AND TIME)
 C****   See j_defs for contents
 C****                                                             IDACC
-C**** CONTENTS OF APJ(J,N)  (SUM OVER LONGITUDE AND TIME OF)
-C****   1  P (100 PA)                                              4 DA
-C****   2  4*P4I (100 PA)  (UV GRID)                               4 DA
 C****
 C**** CONTENTS OF AJL(J,L,N)  (SUM OVER LONGITUDE AND TIME OF)
 C****   See jl_defs for contents
@@ -103,11 +100,11 @@ C**** Some local constants
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
-      USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
-     *     ,imaxj,sinp,bydxyv,rapvn,rapvs
+      USE GEOM, only : sinp,cosp,dlat,dxyp,axyp,dyp,fcor
+     *     ,imaxj,rapvn,rapvs
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : ia_dga,jreg,
-     *     apj=>apj_loc, ajl=>ajl_loc,asjl=>asjl_loc,ail=>ail_loc
+     *     ajl=>ajl_loc,ail=>ail_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres
      *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
@@ -115,7 +112,7 @@ C**** Some local constants
      &     ,il_u,il_v,il_w,il_tx,il_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
      *     ,j_gamc,lstr,kgz_max,pmb,ght
-     *     ,jl_dtdyn
+     *     ,jl_dtdyn,jl_dpa
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
 #ifdef HTAP_LIKE_DIAGS
@@ -147,10 +144,10 @@ C**** Some local constants
       REAL*8, DIMENSION(LM):: PI0,AMI,DPI,PMI
       REAL*8, DIMENSION(LM+1):: PLEI
       REAL*8 ::
-     &     BBYGV,BYSDSG,DLNP,DLNP12,DLNP23,DBYSD,
+     &     BBYGV,BYSDSG,DLNP,DLNP01,DLNP12,DLNP23,DBYSD,
      &     DLNS,DS,DT2,DU,DV,DXYPJ,ELX,
      *     ESEPS,GAMC,GAMM,GAMX,
-     &     PDN,PE,PHIRI,PIBYIM,PIJ,
+     &     PDN,PE,PHI_REQ,PIBYIM,PIJ,
      *     PKE,PL,PRT,
      *     ROSSX,SS,THETA,TPIL,
      *     TZL,UAMAX,X,THI,TIJK,QIJK
@@ -159,7 +156,7 @@ C**** Some local constants
       REAL*8, PARAMETER :: EPSLON=1.
 
       REAL*8 QSAT, SLP, PS, ZS
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GETTIME(MBEGIN)
@@ -167,13 +164,15 @@ C**** Some local constants
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               J_STRT_HALO=J_0H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
       IDACC(ia_dga)=IDACC(ia_dga)+1
 
       BYSDSG=1./(1.-SIGE(LM+1))
+      DLNP01=LOG(pmidl00(lm)/PLM(LM+1))
       DLNP12=LOG(REQ_FAC_M(1)/REQ_FAC_M(2))  ! LOG(.75/.35)
       DLNP23=LOG(REQ_FAC_M(2)/REQ_FAC_M(3))  ! LOG(.35/.1)
 C****
@@ -239,11 +238,11 @@ C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
       DO J=J_0,J_1
-        DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
         PI(J)=0.
         SPTYPE(:,J)=0
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
+          DXYPJ=AXYP(I,J)
           JR=JREG(I,J)
           DO IT=1,NTYPE
             SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
@@ -258,9 +257,13 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
           AIJ(I,J,IJ_RH1)=AIJ(I,J,IJ_RH1)+Q(I,J,1)/QSAT(TX(I,J,1),LHE,
      *        PMID(1,I,J))
         END DO
-        APJ(J,1)=APJ(J,1)+PI(J)
+c        APJ(J,1)=APJ(J,1)+PI(J)
+        AJL(J,1:LS1-1,JL_DPA) = AJL(J,1:LS1-1,JL_DPA) +
+     &       DSIG(1:LS1-1)*PI(J)
+        AJL(J,LS1:LM,JL_DPA) = AJL(J,LS1:LM,JL_DPA) +
+     &       DSIG(LS1:LM)*PSFMPT*IMAXJ(J)
 C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           K=1
           L=1
           rh_inst(:,i,j) = undef ; t_inst(:,i,j) = undef
@@ -334,14 +337,14 @@ C**** END AMIP
 
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       DO J=J_0,J_1
-        DXYPJ=DXYP(J)
         DO L=1,LM
           TPI(J,L)=0.
           PHIPI(J,L)=0.
           SPI(J,L)=0.
           THI=0.
           DBYSD=DSIG(L)*BYSDSG
-          DO I=1,IMAXJ(J)
+          DO I=I_0,IMAXJ(J)
+            DXYPJ=AXYP(I,J)
             JR=JREG(I,J)
             PIJ=PLIJ(L,I,J)
             AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
@@ -394,51 +397,48 @@ C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
         END DO
         END DO
       END DO
+
 C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
 C****
       DO J=J_0,J_1
-      DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
-      DO I=1,IMAXJ(J)
-        JR=JREG(I,J)
-        SS=(T(I,J,LS1-1)-T(I,J,1))/(PHI(I,J,LS1-1)-PHI(I,J,1)+teeny)
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_DTDGTR,SS*FTYPE(IT,I,J))
+        DO I=I_0,IMAXJ(J)
+          DXYPJ=AXYP(I,J)
+          JR=JREG(I,J)
+          SS=(T(I,J,LS1-1)-T(I,J,1))/(PHI(I,J,LS1-1)-PHI(I,J,1)+teeny)
+          DO IT=1,NTYPE
+            CALL INC_AJ(I,J,IT,J_DTDGTR,SS*FTYPE(IT,I,J))
+          END DO
+          CALL INC_AREG(I,J,JR,J_DTDGTR,SS*DXYPJ)
+          AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
         END DO
-        CALL INC_AREG(I,J,JR,J_DTDGTR,SS*DXYPJ)
-        AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
-      END DO
 C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
-      DO I=1,IMAXJ(J)
-        JR=JREG(I,J)
-        SS=(T(I,J,LSTR)-T(I,J,LS1-1))/((PHI(I,J,LSTR)-PHI(I,J,LS1-1))
-     *       +teeny)
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_DTSGST,SS*FTYPE(IT,I,J))
+        DO I=1,IMAXJ(J)
+          JR=JREG(I,J)
+          SS=(T(I,J,LSTR)-T(I,J,LS1-1))/((PHI(I,J,LSTR)-PHI(I,J,LS1-1))
+     *         +teeny)
+          DO IT=1,NTYPE
+            CALL INC_AJ(I,J,IT,J_DTSGST,SS*FTYPE(IT,I,J))
+          END DO
+          CALL INC_AREG(I,J,JR,J_DTSGST,SS*DXYPJ)
         END DO
-        CALL INC_AREG(I,J,JR,J_DTSGST,SS*DXYPJ)
-      END DO
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
 C****
-      DO LR=1,LM_REQ
-        TRI(LR)=0.
-        DO I=1,IMAXJ(J)
-          TRI(LR)=TRI(LR)+RQT(LR,I,J)
+        DO I=I_0,IMAXJ(J)
+          DO LR=1,LM_REQ
+            TRI(LR)=RQT(LR,I,J)
+            call inc_asjl(i,j,lr,1,RQT(LR,I,J)-TF)
+          END DO
+          PHI_REQ=PHI(I,J,LM)
+          PHI_REQ=PHI_REQ+RGAS*.5*(TX(I,J,LM)+TRI(1))*DLNP01
+          call inc_asjl(i,j,1,2,PHI_REQ)
+          PHI_REQ=PHI_REQ+RGAS*.5*(TRI(1)+TRI(2))*DLNP12
+          call inc_asjl(i,j,2,2,PHI_REQ)
+          PHI_REQ=PHI_REQ+RGAS*.5*(TRI(2)+TRI(3))*DLNP23
+          call inc_asjl(i,j,3,2,PHI_REQ)
         END DO
-        ASJL(J,LR,1)=ASJL(J,LR,1)+(TRI(LR)-TF*IMAXJ(J))
-      END DO
-      PHIRI=0.
-      DO I=1,IMAXJ(J)
-        PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(1,I,J))
-     *       *LOG(pmidl00(lm)/PLM(LM+1)))
-      END DO
-      ASJL(J,1,2)=ASJL(J,1,2)+PHIRI
-      PHIRI=PHIRI+RGAS*.5*(TRI(1)+TRI(2))*DLNP12
-      ASJL(J,2,2)=ASJL(J,2,2)+PHIRI
-      PHIRI=PHIRI+RGAS*.5*(TRI(2)+TRI(3))*DLNP23
-      ASJL(J,3,2)=ASJL(J,3,2)+PHIRI
       END DO
 
 C****
@@ -593,7 +593,7 @@ C**** CONVERT VERTICAL WINDS TO UNITS PROPORTIONAL TO M/S
 C****
       DO L=1,LM-1
       DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
+      DO I=I_0,IMAXJ(J)
         PIJ=PLIJ(L,I,J)
         PE=SIGE(L+1)*PIJ+PTOP
         PKE=PE**KAPA
@@ -616,7 +616,7 @@ c
       ENDDO
       ENDDO
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=I_0,I_1
         AIL(I,J,L,IL_TX) = AIL(I,J,L,IL_TX) + TX(I,J,L)-TF
         AIL(I,J,L,IL_RH) = AIL(I,J,L,IL_RH) + 
      &       Q(I,J,L)/QSAT(TX(I,J,L),LHE,PMID(L,I,J))
@@ -625,7 +625,7 @@ c
       ENDDO ! L
       DO L=1,LM-1
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=I_0,I_1
         AIL(I,J,L,IL_W) = AIL(I,J,L,IL_W) + W(I,J,L)
       ENDDO
       ENDDO
@@ -2473,7 +2473,7 @@ c
       end if
 
       AJ_loc=0    ; AREGJ_loc=0
-      APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
+      AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AJK_loc=0   ; AIJK_loc=0
 #ifndef NO_HDIURN
