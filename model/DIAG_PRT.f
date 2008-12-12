@@ -6853,36 +6853,42 @@ cddd      DEALLOCATE(tmp)
 C****
 C**** CERTAIN HORIZONTAL WIND AVERAGES
 C****
-      ajl(:,:,jl_uepac) = 0d0
-      ajl(:,:,jl_vepac) = 0d0
-      ajl(:,:,jl_uwpac) = 0d0
-      ajl(:,:,jl_vwpac) = 0d0
       DO L=1,LM
       DO J=1,JM
-      DO I=I135W,I110W      ! EAST PACIFIC
-        AJL(J,L,JL_UEPAC)=AJL(J,L,JL_UEPAC)+AIL(I,J,L,IL_U)
-        AJL(J,L,JL_VEPAC)=AJL(J,L,JL_VEPAC)+AIL(I,J,L,IL_V)
-      END DO
-      DO I=I150E,IM             ! WEST PACIFIC
-        AJL(J,L,JL_UWPAC)=AJL(J,L,JL_UWPAC)+AIL(I,J,L,IL_U)
-        AJL(J,L,JL_VWPAC)=AJL(J,L,JL_VWPAC)+AIL(I,J,L,IL_V)
-      END DO
+        ajl(j,l,jl_uepac) = 0d0
+        ajl(j,l,jl_vepac) = 0d0
+        DO I=I135W,I110W        ! EAST PACIFIC
+          AJL(J,L,JL_UEPAC)=AJL(J,L,JL_UEPAC)+AIL(I,J,L,IL_U)
+          AJL(J,L,JL_VEPAC)=AJL(J,L,JL_VEPAC)+AIL(I,J,L,IL_V)
+        END DO
+        ajl(j,l,jl_uepac) = ajl(j,l,jl_uepac)/(1+I110W-I135W)
+        ajl(j,l,jl_vepac) = ajl(j,l,jl_vepac)/(1+I110W-I135W)
+        ajl(j,l,jl_uwpac) = 0d0
+        ajl(j,l,jl_vwpac) = 0d0
+        DO I=I150E,IM           ! WEST PACIFIC
+          AJL(J,L,JL_UWPAC)=AJL(J,L,JL_UWPAC)+AIL(I,J,L,IL_U)
+          AJL(J,L,JL_VWPAC)=AJL(J,L,JL_VWPAC)+AIL(I,J,L,IL_V)
+        END DO
+        ajl(j,l,jl_uwpac) = ajl(j,l,jl_uwpac)/(1+IM-I150E)
+        ajl(j,l,jl_vwpac) = ajl(j,l,jl_vwpac)/(1+IM-I150E)
       END DO
       END DO
 C****
 C**** CERTAIN VERTICAL WIND AVERAGES
 C****
-      ajl(:,:,jl_wepac) = 0d0
-      ajl(:,:,jl_wwpac) = 0d0
       DO L=1,LM-1
-        DO J=1,JM
-          DO I=I135W,I110W      ! EAST PACIFIC
-            AJL(J,L,JL_WEPAC)=AJL(J,L,JL_WEPAC)+AIL(I,J,L,IL_W)
-          END DO
-          DO I=I150E,IM         ! WEST PACIFIC
-            AJL(J,L,JL_WWPAC)=AJL(J,L,JL_WWPAC)+AIL(I,J,L,IL_W)
-          END DO
+      DO J=1,JM
+        ajl(j,l,jl_wepac) = 0d0
+        DO I=I135W,I110W        ! EAST PACIFIC
+          AJL(J,L,JL_WEPAC)=AJL(J,L,JL_WEPAC)+AIL(I,J,L,IL_W)
         END DO
+        ajl(j,l,jl_wepac) = ajl(j,l,jl_wepac)/(1+I110W-I135W)
+        ajl(j,l,jl_wwpac) = 0d0
+        DO I=I150E,IM           ! WEST PACIFIC
+          AJL(J,L,JL_WWPAC)=AJL(J,L,JL_WWPAC)+AIL(I,J,L,IL_W)
+        END DO
+        ajl(j,l,jl_wwpac) = ajl(j,l,jl_wwpac)/(1+IM-I150E)
+      END DO
       END DO
       return
       end subroutine certain_wind_averages

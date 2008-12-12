@@ -45,7 +45,8 @@ c#endif
 !@+   diags are printed out in the order they are defined
 !@auth G. Schmidt/M. Kelley
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
-      use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige,kocean,qcheck
+     &     ,radian,radius
+      use MODEL_COM, only : jm,lm,ls1,dtsrc,sige,kocean,qcheck
       use DIAG_COM
       use DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
@@ -451,7 +452,8 @@ c
       lname_j(k) = 'STRATO TEMP CHANGE PER DEGREE LATITUDE'
       units_j(k) = 'deg C/deg lat'
       stitle_j(k)= '0DT/DLAT(STRAT) '
-      scale_j(k) = .5D2*(JM-1.)/((SIGE(LS1)-SIGE(LSTR+1)+1d-12)*180.)
+c      scale_j(k) = .5D2*(JM-1.)/((SIGE(LS1)-SIGE(LSTR+1)+1d-12)*180.)
+      scale_j(k) = 100.*radius*radian
       ia_j(k) = ia_dga
 c
       k=k+1
@@ -460,7 +462,8 @@ c
       lname_j(k) = 'TROPO TEMP CHANGE PER DEGREE LATITUDE'
       units_j(k) = 'deg C/deg lat'
       stitle_j(k)= ' DT/DLAT(TROPO) '
-      scale_j(k) = .5d2*(JM-1.)/((SIGE(1)-SIGE(LS1))*180.)
+c      scale_j(k) = .5d2*(JM-1.)/((SIGE(1)-SIGE(LS1))*180.)
+      scale_j(k) = 100.*radius*radian
       ia_j(k) = ia_dga
 c
       k=k+1
@@ -487,7 +490,7 @@ c
       lname_j(k) = 'STRATOSPHERIC RICHARDSON NUMBER'
       units_j(k) = '1'
       stitle_j(k)= '0RICH NUM(STRAT)'
-      scale_j(k) = 16.*RGAS
+      scale_j(k) = 1.
       ia_j(k) = ia_dga
 c
       k=k+1
@@ -496,43 +499,43 @@ c
       lname_j(k) = 'TROPOSPHERIC RICHARDSON NUMBER'
       units_j(k) = '1'
       stitle_j(k)= ' RICH NUM(TROPO)'
-      scale_j(k) = 16.*RGAS
+      scale_j(k) = 1.
       ia_j(k) = ia_dga
 c
       k=k+1
-      J_ROSST = k ! 4*UMAX/(DX*SINJ)  (STRATOSPHERE)              4 DA
+      J_ROSST = k ! UMAX/(FCOR)  (STRATOSPHERE)              4 DA
       name_j(k) = 'ross_num_strat'
       lname_j(k) = 'STRATOSPHERIC ROSSBY NUMBER'
       units_j(k) = '1'
       stitle_j(k)= ' ROSS NUM(STRAT)'
-      scale_j(k) = .5/(2.*OMEGA*FIM)
+      scale_j(k) = 1./(L_ROSSBY_NUMBER)
       ia_j(k) = ia_dga
 c
       k=k+1
-      J_ROSTR = k ! 4*UMAX/(DX*SINJ)  (TROPOSPHERE)               4 DA
+      J_ROSTR = k ! UMAX/(FCOR)  (TROPOSPHERE)               4 DA
       name_j(k) = 'ross_num_trop'
       lname_j(k) = 'TROPOSPHERIC ROSSBY NUMBER'
       units_j(k) = '1'
       stitle_j(k)= ' ROSS NUM(TROPO)'
-      scale_j(k) = .5/(2.*OMEGA*FIM)
+      scale_j(k) = 1./(L_ROSSBY_NUMBER)
       ia_j(k) = ia_dga
 c
       k=k+1
-      J_LSTR  = k ! SQRT(DTH/DLNP)/SINJ  (STRATOSPHERE)           4 DA
+      J_LSTR  = k ! SQRT(DPHI*DLOGTH)/SINJ  (STRATOSPHERE)           4 DA
       name_j(k) = 'ross_radius_strat'
       lname_j(k) = 'ROSSBY RADIUS IN THE STRATOSPHERE'
-      units_j(k) = '10**5 m'
-      stitle_j(k)= ' L(STRAT)(10**5)'
-      scale_j(k) = 1d-5*SQRT(RGAS)/(2.*OMEGA)
+      units_j(k) = '10**6 m'
+      stitle_j(k)= ' L(STRAT)(10**6)'
+      scale_j(k) = 1d-6!/(2.*OMEGA)
       ia_j(k) = ia_dga
 c
       k=k+1
-      J_LTRO  = k ! SQRT(DTH/DLNP)/SINJ  (TROPOSPHERE)            4 DA
+      J_LTRO  = k ! SQRT(DPHI*DLOGTH)/SINJ  (TROPOSPHERE)            4 DA
       name_j(k) = 'ross_radius_trop'
       lname_j(k) = 'ROSSBY RADIUS IN THE TROPOSPHERE'
-      units_j(k) = '10**5 m'
-      stitle_j(k)=  ' L(TROP) (10**5)'
-      scale_j(k) = 1d-5*SQRT(RGAS)/(2.*OMEGA)
+      units_j(k) = '10**6 m'
+      stitle_j(k)=  ' L(TROP) (10**6)'
+      scale_j(k) = 1d-6!/(2.*OMEGA)
       ia_j(k) = ia_dga
 c
       k=k+1
@@ -1607,8 +1610,8 @@ c
       name_ij(k) = 'ujet'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
-      igrid_ij(k) = 2
-      jgrid_ij(k) = 2
+      igrid_ij(k) = 1 ! now using a-grid winds
+      jgrid_ij(k) = 1
       ir_ij(k) = ir_m38_106
 c
       k=k+1 !
@@ -1618,8 +1621,8 @@ c
       name_ij(k) = 'vjet'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
-      igrid_ij(k) = 2
-      jgrid_ij(k) = 2
+      igrid_ij(k) = 1 ! now using a-grid winds
+      jgrid_ij(k) = 1
       ir_ij(k) = ir_m38_106
 c
       k=k+1 !
@@ -3586,27 +3589,27 @@ c
       k=k+1
       jl_uepac = k
       sname_jl(k) = 'u_epac' !
-      lname_jl(k) = 'U WIND AVERAGED OVER I,EAST PACIFIC'
+      lname_jl(k) = 'U WIND AVERAGED OVER EAST PACIFIC'
       units_jl(k) = '10^-1 m/s'
-      scale_jl(k) = .2E+1
+      scale_jl(k) = 10.
       ia_jl(k) = ia_dga
-      jgrid_jl(k) = 2
+      jgrid_jl(k) = 1
 c
       k=k+1
       jl_vepac = k
       sname_jl(k) = 'v_epac' !
       lname_jl(k) = 'V WIND AVERAGED OVER EAST PACIFIC'
       units_jl(k) = '10^-1 m/s'
-      scale_jl(k) = .2E+1
+      scale_jl(k) = 10.
       ia_jl(k) = ia_dga
-      jgrid_jl(k) = 2
+      jgrid_jl(k) = 1
 c
       k=k+1
       jl_wepac = k
       sname_jl(k) = 'vvel_epac' !
       lname_jl(k) = 'VERTICAL VELOCITY FOR EAST PACIFIC'
       units_jl(k) = '10**-5 m/s'
-      scale_jl(k) = -1.D5*RGAS/(5.*GRAV)
+      scale_jl(k) = -1.D5*RGAS/(GRAV)
       ia_jl(k) = ia_dga
       jgrid_jl(k) = 1
 c
@@ -3615,26 +3618,26 @@ c
       sname_jl(k) = 'u_wpac' !
       lname_jl(k) = 'U WIND AVERAGED OVER WEST PACIFIC'
       units_jl(k) = '10^-1 m/s'
-      scale_jl(k) = .2E+1
+      scale_jl(k) = 10.
       ia_jl(k) = ia_dga
-      jgrid_jl(k) = 2
+      jgrid_jl(k) = 1
 c
       k=k+1
       jl_vwpac = k
       sname_jl(k) = 'v_wpac' !
       lname_jl(k) = 'V WIND AVERAGED OVER WEST PACIFIC'
       units_jl(k) = 'm/s'
-      scale_jl(k) = .2d0
+      scale_jl(k) = 1.
       pow_jl(k) = -1
       ia_jl(k) = ia_dga
-      jgrid_jl(k) = 2
+      jgrid_jl(k) = 1
 c
       k=k+1
       jl_wwpac = k
       sname_jl(k) = 'vvel_wpac' !
       lname_jl(k) = 'VERTICAL VELOCITY FOR WEST PACIFIC'
       units_jl(k) = '10**-5 m/s'
-      scale_jl(k) = -1.D5*RGAS/(5.*GRAV)
+      scale_jl(k) = -1.D5*RGAS/(GRAV)
       ia_jl(k) = ia_dga
       jgrid_jl(k) = 1
 c

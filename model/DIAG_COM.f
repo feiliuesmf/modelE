@@ -681,6 +681,8 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 !@var ZOC, ZOC1 ocean depths for diagnostics (m) (ONLY FOR DEEP OCEAN)
       REAL*8, public :: ZOC(LMOMAX) = 0. , ZOC1(LMOMAX+1) = 0.
 
+!@param L_ROSSBY_NUMBER length scale for budget-page Rossby number
+      real*8, parameter, public :: l_rossby_number=1d6 ! 1000 km
 
       END MODULE DIAG_COM
 

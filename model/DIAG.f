@@ -47,8 +47,6 @@ C**** Variables passed from DIAGA to DIAGB
 !@var W,TX vertical velocity and in-situ temperature calculations
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: W
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TX
-!@var TJL0 zonal mean temperatures prior to advection
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TJL0
 
 C**** Some local constants
 !@var JET, LDEX model levels for various pressures
@@ -65,11 +63,11 @@ C**** Some local constants
       SUBROUTINE ALLOC_DIAG_LOC(grid)
       USE DOMAIN_DECOMP, only : GET
       USE DOMAIN_DECOMP, only : DIST_GRID
-      USE MODEL_COM, only : im,imh,lm
-      USE DIAG_LOC, only  : W,TX,TJL0
+      USE MODEL_COM, only : lm
+      USE DIAG_LOC, only  : W,TX
       IMPLICIT NONE
       LOGICAL, SAVE :: init=.false.
-      INTEGER :: J_1H    , J_0H
+      INTEGER :: I_0H,I_1H,J_0H,J_1H
       INTEGER :: IER
       TYPE(DIST_GRID) :: grid
 
@@ -79,10 +77,11 @@ C**** Some local constants
       init = .true.
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = GRID%I_STRT_HALO
+      I_1H = GRID%I_STOP_HALO
 
-      ALLOCATE( W(IM, J_0H:J_1H, LM), TX(IM, J_0H:J_1H, LM),
-     &     STAT = IER)
-      ALLOCATE( TJL0(J_0H:J_1H, LM),
+      ALLOCATE( W(I_0H:I_1H, J_0H:J_1H, LM),
+     &         TX(I_0H:I_1H, J_0H:J_1H, LM),
      &     STAT = IER)
 
       !hack hack hack!
@@ -96,15 +95,15 @@ C**** Some local constants
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,tf
-     *     ,rvap,gamd,teeny,undef
+     *     ,rvap,gamd,teeny,undef,radius,omega
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
-      USE GEOM, only : sinp,cosp,dlat,dxyp,axyp,dyp,fcor
-     *     ,imaxj,rapvn,rapvs
+      USE GEOM, only : sinlat2d,coslat2d,sinp,cosp,dlat,axyp
+     *     ,imaxj,ddy_ci,ddy_cj
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : ia_dga,jreg,
-     *     ajl=>ajl_loc,ail=>ail_loc
+     *     ail=>ail_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres
      *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
@@ -119,55 +118,55 @@ C**** Some local constants
      *     ,ij_templ,ij_gridh,ij_husl
 #endif
       USE DYNAMICS, only : pk,phi,pmid,plij, SD,pedn,am
+     &     ,ua=>ualij,va=>valij
       USE PBLCOM, only : tsavg
-      USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
-      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE,
-     &                          CHECKSUM_COLUMN, HALO_UPDATE_COLUMN,
-     &                          GRID, SOUTH, NORTH, GLOBALSUM
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DIAG_LOC, only : w,tx,jet
+      USE DOMAIN_DECOMP, only : GET, HALO_UPDATE,
+     &                          GRID, SOUTH, NORTH
       USE GETTIME_MOD
       IMPLICIT NONE
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &        TIL,UI,UMAX,PI,EL,RI,DUDVSQ
-      REAL*8, DIMENSION(NTYPE,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &        SPTYPE
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        SPI,PHIPI,TPI
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &        PUV
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     TX_TROP,TX_STRAT
       REAL*8, DIMENSION(LM_REQ) :: TRI
 
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JR,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
-      REAL*8, DIMENSION(LM):: PI0,AMI,DPI,PMI
       REAL*8, DIMENSION(LM+1):: PLEI
       REAL*8 ::
      &     BBYGV,BYSDSG,DLNP,DLNP01,DLNP12,DLNP23,DBYSD,
-     &     DLNS,DS,DT2,DU,DV,DXYPJ,ELX,
+     &     DXYPJ,
      *     ESEPS,GAMC,GAMM,GAMX,
-     &     PDN,PE,PHI_REQ,PIBYIM,PIJ,
-     *     PKE,PL,PRT,
-     *     ROSSX,SS,THETA,TPIL,
-     *     TZL,UAMAX,X,THI,TIJK,QIJK
+     &     PDN,PE,PHI_REQ,PIJ,
+     *     PKE,PL,PRT,W2MAX,RICHN,
+     *     ROSSN,ROSSL,BYFCOR,BYBETA,BYBETAFAC,NH,SS,THETA,
+     *     TZL,X,TIJK,QIJK,DTXDY
       LOGICAL qpress,qabove
       INTEGER nT,nQ,nRH
       REAL*8, PARAMETER :: EPSLON=1.
 
       REAL*8 QSAT, SLP, PS, ZS
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, I_0,I_1
+      INTEGER :: J_0, J_1, J_0S, J_1S, I_0,I_1,I_0H,I_1H
+     &     ,IM1S,IP1S,IP1E
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GETTIME(MBEGIN)
 
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
+      I_0H = GRID%I_STRT_HALO
+      I_1H = GRID%I_STOP_HALO
+
+c
+c get winds on the atmospheric primary grid
+c
+      call recalc_agrid_uv
 
       IDACC(ia_dga)=IDACC(ia_dga)+1
 
@@ -213,43 +212,28 @@ C****
           END DO
         END DO
       ENDIF          ! HAVE_NORTH_POLE
-      DO L=1,LM
-        DO J=J_0S,J_1S
-          DO I=1,IM
-            TX(I,J,L)=T(I,J,L)*PK(L,I,J)
-          END DO
-        END DO
-      END DO
-C****
-C**** CALCULATE PUV, THE MASS WEIGHTED PRESSURE
-C****
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
-      DO J=J_0STG,J_1STG
-        I=IM
-        DO IP1=1,IM
-          PUV(I,J)=RAPVN(J-1)*(P(I,J-1)+P(IP1,J-1))+
-     *             RAPVS(  J)*(P(I,  J)+P(IP1,  J))
-          I=IP1
+      DO L=1,LM
+      DO J=J_0S,J_1S
+        DO I=I_0,I_1
+          TX(I,J,L)=T(I,J,L)*PK(L,I,J)
         END DO
       END DO
+      END DO
+
 
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
       DO J=J_0,J_1
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
-        PI(J)=0.
-        SPTYPE(:,J)=0
         DO I=I_0,IMAXJ(J)
           DXYPJ=AXYP(I,J)
           JR=JREG(I,J)
           DO IT=1,NTYPE
-            SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
             CALL INC_AJ(I,J,IT,J_TX1,(TX(I,J,1)-TF)*FTYPE(IT,I,J))
           END DO
           CALL INC_AREG(I,J,JR,J_TX1,(TX(I,J,1)-TF)*DXYPJ)
-          PI(J)=PI(J)+P(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
           PS=P(I,J)+PTOP
           ZS=BYGRAV*ZATMO(I,J)
@@ -258,10 +242,6 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
      *        PMID(1,I,J))
         END DO
 c        APJ(J,1)=APJ(J,1)+PI(J)
-        AJL(J,1:LS1-1,JL_DPA) = AJL(J,1:LS1-1,JL_DPA) +
-     &       DSIG(1:LS1-1)*PI(J)
-        AJL(J,LS1:LM,JL_DPA) = AJL(J,LS1:LM,JL_DPA) +
-     &       DSIG(LS1:LM)*PSFMPT*IMAXJ(J)
 C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
         DO I=I_0,IMAXJ(J)
           K=1
@@ -338,15 +318,14 @@ C**** END AMIP
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       DO J=J_0,J_1
         DO L=1,LM
-          TPI(J,L)=0.
-          PHIPI(J,L)=0.
-          SPI(J,L)=0.
-          THI=0.
           DBYSD=DSIG(L)*BYSDSG
           DO I=I_0,IMAXJ(J)
             DXYPJ=AXYP(I,J)
             JR=JREG(I,J)
             PIJ=PLIJ(L,I,J)
+            call inc_ajl(i,j,l,jl_dpa,pij*dsig(l))
+c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
+            call inc_ajl(i,j,l,jl_dtdyn,t(i,j,l))
             AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
 #ifdef HTAP_LIKE_DIAGS
             AIJ(I,J,IJ_TEMPL(L))=AIJ(I,J,IJ_TEMPL(L))+TX(I,J,L)
@@ -363,40 +342,10 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
             CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
      *           *DXYPJ) 
             CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*DBYSD*DXYPJ)
-            TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
-            PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
-            SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
-            THI=THI+T(I,J,L)
           END DO
-          AJL(J,L,JL_DTDYN)=AJL(J,L,JL_DTDYN)+THI-TJL0(J,L)
         END DO
       END DO
 
-C****
-C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
-C****
-      CALL HALO_UPDATE(grid, TX, FROM=NORTH+SOUTH)
-
-      DO J=J_0S,J_1S
-C**** MEAN TROPOSPHERIC NORTHWARD TEMPERATURE GRADIENT
-        DO L=1,LS1-1
-        DO I=1,IM
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_DTDJT,(TX(I,J+1,L)-TX(I,J-1,L))
-     *         *FTYPE(IT,I,J)*DSIG(L))
-        END DO
-        END DO
-        END DO
-C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
-        DO L=LS1,LSTR
-        DO I=1,IM
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_DTDJS,(TX(I,J+1,L)-TX(I,J-1,L))
-     *         *FTYPE(IT,I,J)*DSIG(L))
-        END DO
-        END DO
-        END DO
-      END DO
 
 C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
@@ -414,7 +363,7 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
           AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
         END DO
 C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
-        DO I=1,IMAXJ(J)
+        DO I=I_0,IMAXJ(J)
           JR=JREG(I,J)
           SS=(T(I,J,LSTR)-T(I,J,LS1-1))/((PHI(I,J,LSTR)-PHI(I,J,LS1-1))
      *         +teeny)
@@ -423,6 +372,7 @@ C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
           END DO
           CALL INC_AREG(I,J,JR,J_DTSGST,SS*DXYPJ)
         END DO
+
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
 C****
@@ -444,147 +394,143 @@ C****
 C****
 C**** RICHARDSON NUMBER , ROSSBY NUMBER , RADIUS OF DEFORMATION
 C****
-C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
-      DO J=J_0STG,J_1STG
-        DUDVSQ(J)=0.
-        UMAX(J)=0.
-        DO I=1,IM
-          DU=U(I,J,LS1-1)-U(I,J,1)
-          DV=V(I,J,LS1-1)-V(I,J,1)
-          DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
-        END DO
-      END DO
 
-      CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
+c
+c Spatial mean Rossby number is computed using the spatial mean of
+c column-maximum wind speeds.
+c
+c Spatial mean Rossby radius is computed using the spatial mean of
+c min(N*H/f,sqrt(N*H/beta)) where H is the either the depth of
+c the troposphere or the lower stratosphere. (N*H)**2 is taken as
+c log(theta2/theta1)*grav*H where theta2,theta1 are the potential
+c temperatures at the top/bottom of the troposphere or lower stratosphere.
+c f is the coriolis parameter and beta its latitudinal derivative.
+c
+c The Richardson number is not being computed.  It is set to 99 or 999
+c to flag that it is missing.  For the large vertical ranges of these
+c calculations, it should be replaced by something like the ratio of
+c available mechanical energy to the work required to homogenize
+c potential temperature.
+c
 
-      DO J=J_0S,J_1S
-        PIBYIM=PI(J)*BYIM
-        call calc_vert_amp(PIBYIM,LS1-1,PI0,AMI,DPI,PLEI,PMI)
-
-        DLNP=LOG(PMI(1)/PMI(LS1-1))
-        DLNS=LOG(SPI(J,LS1-1)/SPI(J,1))
-        DS=SPI(J,LS1-1)-SPI(J,1)
-        EL(J)=SQRT(DLNS/DLNP)
-        RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
-      END DO
-      DO L=1,LS1-1
-        DO J=J_0STG,J_1STG
-          UI(J)=0.
-          DO I=1,IM
-            UI(J)=UI(J)+U(I,J,L)
-          END DO
-        END DO
-
-        CALL HALO_UPDATE(grid, UI, FROM=NORTH)
-
-        DO J=J_0S,J_1S
-          UAMAX=ABS(UI(J)+UI(J+1))
-          IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
-        END DO
-      END DO
-      DO J=J_0S,J_1S
-        ROSSX=DYP(J)/(DXYP(J)*SINP(J))
-        ELX=1./SINP(J)
-        I=1 ! UNTIL THIS BECOMES AN I,J LOOP
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_RICTR,RI(J)  *SPTYPE(IT,J))
-          CALL INC_AJ(I,J,IT,J_ROSTR,UMAX(J)*SPTYPE(IT,J)*ROSSX)
-          CALL INC_AJ(I,J,IT,J_LTRO ,EL(J)  *SPTYPE(IT,J)*ELX)
-        END DO
-      END DO
-C**** NUMBERS ACCUMULATED OVER THE LOWER STRATOSPHERE
-C**** LSTR is approx. 10mb level. This maintains consistency over
-C**** the different model tops
-      DO J=J_0STG,J_1STG
-        DUDVSQ(J)=0.
-        UMAX(J)=0.
-        DO I=1,IM
-          DU=U(I,J,LSTR)-U(I,J,LS1-1)
-          DV=V(I,J,LSTR)-V(I,J,LS1-1)
-          DUDVSQ(J)=DUDVSQ(J)+(DU*DU+DV*DV)*PUV(I,J)
-        END DO
-      END DO
-
-      CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
-
-      DO J=J_0S,J_1S
-        PIBYIM=PI(J)*BYIM
-        DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/pmidl00(LSTR))
-        DLNS=LOG(SPI(J,LSTR)/SPI(J,LS1-1))
-        DS=SPI(J,LSTR)-SPI(J,LS1-1)
-        EL(J)=SQRT(DLNS/DLNP)
-        RI(J)=DS*DLNP/(.5*(DUDVSQ(J)+DUDVSQ(J+1)))
-      END DO
-      DO L=LS1,LSTR
-        DO J=J_0STG,J_1STG
-          UI(J)=0.
-          DO I=1,IM
-            UI(J)=UI(J)+U(I,J,L)
-          END DO
-        END DO
-
-        CALL HALO_UPDATE(grid, UI, FROM=NORTH)
-
-        DO J=J_0S,J_1S
-          UAMAX=ABS(UI(J)+UI(J+1))
-          IF (UAMAX.GT.UMAX(J)) UMAX(J)=UAMAX
-        END DO
-      END DO
-      DO J=J_0S,J_1S
-        ROSSX=DYP(J)/(DXYP(J)*SINP(J))
-        ELX=1./SINP(J)
-        I=1 ! UNTIL THIS BECOMES AN I,J LOOP
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_RICST,RI(J)  *SPTYPE(IT,J))
-          CALL INC_AJ(I,J,IT,J_ROSST,UMAX(J)*SPTYPE(IT,J)*ROSSX)
-          CALL INC_AJ(I,J,IT,J_LSTR ,EL(J)  *SPTYPE(IT,J)*ELX)
-        END DO
-      END DO
-C****
-C**** MEAN TROPOSPHERIC LAPSE RATES:  MOIST CONVECTIVE, ACTUAL,
-C****    DRY ADIABATIC
-C****
       X=RGAS*LHE*LHE/(SHA*RVAP)
-      DO J=J_0,J_1
-        GAMM=0.
-        DO L=1,LS1-1
-          TZL=TPI(J,L)/PI(J)+TF
-          PRT=(SIG(L)*PI(J)*BYIM+PTOP)*RGAS*TZL
-          ESEPS=QSAT(TZL,LHE,ONE)
-          GAMM=GAMM+(PRT+LHE*ESEPS)/(PRT+X*ESEPS/TZL)*DSIG(L)
-        END DO
-        GAMX=(TPI(J,1)-TPI(J,LS1-1))/(PHIPI(J,LS1-1)-PHIPI(J,1))
-        I=1 ! UNTIL THIS BECOMES AN I,J LOOP
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_GAMM,GAMM*SPTYPE(IT,J))
-          CALL INC_AJ(I,J,IT,J_GAM ,GAMX*SPTYPE(IT,J))
-        END DO
-      END DO
-C**** DRY ADIABATIC LAPSE RATE
-      DO J=J_0,J_1
-        TPIL=0.
-        DO L=1,LS1-1
-          TPIL=TPIL+TPI(J,L)*DSIG(L)
-        END DO
-        TIL(J)=TPIL/(PI(J)*(SIGE(1)-SIGE(LS1)))
-      END DO
+      bybetafac = radius/(2.*omega)
 
-      CALL HALO_UPDATE(grid, TIL, FROM=NORTH+SOUTH)
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+
+        byfcor = 1d0/(2.*omega*abs(sinlat2d(i,j))+teeny)
+        bybeta = bybetafac/(coslat2d(i,j)+teeny)
+c troposphere
+        w2max = maxval(ua(1:ls1-1,i,j)**2+va(1:ls1-1,i,j)**2)+teeny
+        rossn = sqrt(w2max)*byfcor
+        nh = sqrt((phi(i,j,ls1-1)-phi(i,j,1))*
+     &       log(t(i,j,ls1-1)/t(i,j,1)))
+        rossl = min(nh*byfcor,sqrt(nh*bybeta))
+        richn = 99d0 ! for now
+
+c lapse rates
+        gamx = (tx(i,j,1)-tx(i,j,ls1-1))/
+     &       (phi(i,j,ls1-1)-phi(i,j,1))
+        gamm=0.
+        do l=1,ls1-1
+          tzl=tx(i,j,l)
+          prt=(sig(l)*p(i,j)+ptop)*rgas*tzl
+          eseps=qsat(tzl,lhe,one)
+          gamm=gamm+dsig(l)*(prt+lhe*eseps)/(prt+x*eseps/tzl)
+        end do
+
+        do it=1,ntype
+          call inc_aj(i,j,it,j_rostr,rossn*ftype(it,i,j))
+          call inc_aj(i,j,it,j_ltro,rossl*ftype(it,i,j))
+          call inc_aj(i,j,it,j_rictr,richn*ftype(it,i,j))
+
+          call inc_aj(i,j,it,j_gam ,gamx*ftype(it,i,j))
+          call inc_aj(i,j,it,j_gamm,gamm*ftype(it,i,j))
+
+        end do
+
+c stratosphere
+        w2max = maxval(ua(ls1:lstr,i,j)**2+va(ls1:lstr,i,j)**2)
+        rossn = sqrt(w2max)*byfcor
+        nh = sqrt((phi(i,j,lstr)-phi(i,j,ls1))*
+     &       log(t(i,j,lstr)/t(i,j,ls1)))
+        rossl = min(nh*byfcor,sqrt(nh*bybeta))
+        richn = 999d0 ! for now
+        do it=1,ntype
+          call inc_aj(i,j,it,j_rosst,rossn*ftype(it,i,j))
+          call inc_aj(i,j,it,j_lstr,rossl*ftype(it,i,j))
+          call inc_aj(i,j,it,j_ricst,richn*ftype(it,i,j))
+        end do
+
+      ENDDO
+      ENDDO
+
+C****
+C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
+C**** GAMC, THE DYNAMICALLY DETERMINED LAPSE RATE IN THE EXTRATROPICS
+C****
+      do j=j_0,j_1
+      do i=i_0,i_1
+        tx_trop(i,j) = 0.
+        tx_strat(i,j) = 0.
+      enddo
+      enddo
+      do l=1,ls1-1
+      do j=j_0,j_1
+      do i=i_0,i_1
+        tx_trop(i,j) = tx_trop(i,j) + tx(i,j,l)*dsig(l)
+      enddo
+      enddo
+      enddo
+      do l=ls1,lstr
+      do j=j_0,j_1
+      do i=i_0,i_1
+        tx_strat(i,j) = tx_strat(i,j) + tx(i,j,l)*dsig(l)
+      enddo
+      enddo
+      enddo
+      do j=j_0,j_1
+      do i=i_0,i_1
+        tx_trop(i,j) = tx_trop(i,j)/(SIGE(1)-SIGE(LS1))
+        tx_strat(i,j) = tx_strat(i,j)/(SIGE(LS1)-SIGE(LSTR+1)+1d-12)
+      enddo
+      enddo
+
+      call halo_update(grid, tx_trop)
+      call halo_update(grid, tx_strat)
+
+      if(i_0h.lt.i_0) then      ! halo cells exist in i direction
+        im1s=i_0-1; ip1s=i_0+1; ip1e=i_1+1
+      else                      ! periodic
+        im1s=im-1; ip1s=1; ip1e=im
+      endif
+      do j=j_0s,j_1s
+        im1=im1s
+        i=im1s+1
+        do ip1=ip1s,ip1e
+          dtxdy = (tx_trop(ip1,j)-tx_trop(im1,j))*ddy_ci(i,j)
+     &          + (tx_trop(i,j+1)-tx_trop(i,j-1))*ddy_cj(i,j)
+          gamc = gamd+grav*radius*dtxdy*sinlat2d(i,j)/
+     &         (rgas*tx_trop(i,j)*(coslat2d(i,j)+.001))
+          do it=1,ntype
+            call inc_aj(i,j,it,j_dtdjt,dtxdy*ftype(it,i,j))
+            call inc_aj(i,j,it,j_gamc,gamc*ftype(it,i,j))
+          enddo
+          dtxdy = (tx_strat(ip1,j)-tx_strat(im1,j))*ddy_ci(i,j)
+     &          + (tx_strat(i,j+1)-tx_strat(i,j-1))*ddy_cj(i,j)
+          do it=1,ntype
+            call inc_aj(i,j,it,j_dtdjs,dtxdy*ftype(it,i,j))
+          enddo
+          im1=i
+          i=ip1
+        enddo
+      enddo
 
       DO J=J_0S,J_1S
-        X=SINP(J)*GRAV/(COSP(J)*RGAS*2.*DLAT)
-        DT2=TIL(J+1)-TIL(J-1)
-        GAMC=GAMD+X*DT2/(TIL(J)+TF)
-        I=1 ! UNTIL THIS BECOMES AN I,J LOOP
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_GAMC,GAMC*SPTYPE(IT,J))
-        END DO
-      END DO
-
-      DO J=J_0STG,J_1STG
-      DO I=1,IM
-        AIJ(I,J,IJ_UJET)=AIJ(I,J,IJ_UJET)+U(I,J,JET)
-        AIJ(I,J,IJ_VJET)=AIJ(I,J,IJ_VJET)+V(I,J,JET)
+      DO I=I_0,I_1
+        AIJ(I,J,IJ_UJET)=AIJ(I,J,IJ_UJET)+UA(JET,I,J)
+        AIJ(I,J,IJ_VJET)=AIJ(I,J,IJ_VJET)+VA(JET,I,J)
       ENDDO
       ENDDO
 
@@ -600,7 +546,8 @@ C****
         THETA=THBAR(T(I,J,L+1),T(I,J,L))
         W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
       END DO
-       if(J==1.or.J==JM) W(2:IM,J,L) = W(1,J,L)
+       if(have_south_pole .and. J==1) W(2:IM,J,L) = W(1,J,L)
+       if(have_north_pole .and. J==JM) W(2:IM,J,L) = W(1,J,L)
       END DO
       END DO
 
@@ -609,10 +556,10 @@ c accumulate AIL: U,V,T,RH,W
 c
 
       DO L=1,LM
-      DO J=J_0STG,J_1STG
-      DO I=1,IM
-        AIL(I,J,L,IL_U) = AIL(I,J,L,IL_U) + U(I,J,L)
-        AIL(I,J,L,IL_V) = AIL(I,J,L,IL_V) + V(I,J,L)
+      DO J=J_0S,J_1S
+      DO I=I_0,I_1
+        AIL(I,J,L,IL_U) = AIL(I,J,L,IL_U) + UA(L,I,J)
+        AIL(I,J,L,IL_V) = AIL(I,J,L,IL_V) + VA(L,I,J)
       ENDDO
       ENDDO
       DO J=J_0,J_1
@@ -637,18 +584,19 @@ C**** ACCUMULATE TIME USED IN DIAGA
   999 FORMAT (' DTHETA/DP IS TOO SMALL AT J=',I4,' L=',I4,2F15.6)
 
       ENTRY DIAGA0
-C****
-C**** INITIALIZE TJL0 ARRAY (FROM PRIOR TO ADVECTION)
-C****
+c increment ajl(jl_dtdyn) by -t before dynamics.
+c ajl(jl_dtdyn) will be incremented by +t after the dynamics, giving
+c the tendency.
+
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
       DO L=1,LM
       DO J=J_0,J_1
-        THI=0.
-        DO I=1,IMAXJ(J)
-          THI=THI+T(I,J,L)
-        END DO
-        TJL0(J,L)=THI
+      DO I=I_0,IMAXJ(J)
+        call inc_ajl(i,j,l,jl_dtdyn,-t(i,j,l))
+      END DO
       END DO
       END DO
       RETURN

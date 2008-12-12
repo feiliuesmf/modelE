@@ -2670,6 +2670,10 @@ c local vars for transplanted DIAGA calculations
 
 
 
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      call halo_update(grid, tx)
+
+
 C****
 C**** EASTWARD TRANSPORTS (TRANSPLANTED FROM DIAGA)
 C****
@@ -2958,11 +2962,11 @@ C and since DIAGB is called immediately after DIAGA
 C there may not be a need for these calls if
 C the concerned arrays have not been updated
 C from the previous halo call.
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, T, FROM=SOUTH)
+c      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+c      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
+c      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+c      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
+c      CALL HALO_UPDATE(grid, T, FROM=SOUTH)
       CALL HALO_UPDATEj(grid, STJK, FROM=SOUTH)
 c***      DO L=1,LM
 c***         CALL HALO_UPDATE(grid, STJK(:,L), FROM=SOUTH)
