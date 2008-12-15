@@ -20,7 +20,7 @@
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DXYP,BYDXYP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DXYP, BYDXYP
 
 
       SUBROUTINE GEOM_CS
@@ -41,7 +41,7 @@ C**** some B-grid conservation quantities
       allocate(lat2d_deg(i0h:i1h, j0h:j1h)
       allocate(lon2d(i0h:i1h, j0h:j1h)
       allocate(sinlat2d(i0h:i1h, j0h:j1h)
-      allocate(coslon2d(i0h:i1h, j0h:j1h)
+      allocate(coslat2d(i0h:i1h, j0h:j1h)
 
       allocate(DXYP(i0h:i1h, j0h:j1h)
       allocate(BYDXYP(i0h:i1h, j0h:j1h)
