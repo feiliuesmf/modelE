@@ -35,21 +35,21 @@ C**** some B-grid conservation quantities
       use DOMAIN_DECOMP, only: grid, get
       implicit none
 
-      integer :: i0, i1
-      integer :: j0, j1
+      integer :: i0h, i1h
+      integer :: j0h, j1h
       
-      call get(grid, J_STRT=j0, J_STOP=j1, I_STRT=i0, I_STOP=i1)
+      call get(grid, J_STRT_HALO=j0h, J_STOP_HALO=j1h, I_STRT_HALO=i0h, I_STOP_HALO=i1h)
 
-      allocate(LAT(i0:i1, j0:j1)
-      allocate(LON(i0:i1, j0:j1)
-      allocate(DXYP(i0:i1, j0:j1)
-      allocate(BYDXYP(i0:i1, j0:j1)
+      allocate(LAT(i0h:i1h, j0h:j1h)
+      allocate(LON(i0h:i1h, j0h:j1h)
+      allocate(DXYP(i0h:i1h, j0h:j1h)
+      allocate(BYDXYP(i0h:i1h, j0h:j1h)
 
       AREAG = 2 * TWOPI * RADIUS*RADIUS
 
       ! From FV CS grid
-      LAT = CSgrid(:,:,1)
-      LON = CSgrid(:,:,2)
+      LON = CSgrid(:,:,1)
+      LAT = CSgrid(:,:,2)
       DXYP = area(:,:)
       BYDXYP = 1/DXYP
 
