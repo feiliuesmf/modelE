@@ -162,7 +162,7 @@ c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
 C****
 C**** Initialize exchange grid for diagnostics
 C****
-#ifdef USE_FVCUBED
+#ifdef CUBE_GRID
       call init_xgrid(im,jm,ic,jc)
 #endif
 
@@ -174,7 +174,12 @@ C****
 #endif
 #endif
 
+#endif ! ADIABATIC
+
       call alloc_drv()
+
+#ifndef ADIABATIC
+
 C****
 C**** INITIALIZATIONS
 C****
@@ -204,7 +209,7 @@ c        print *,sname,'Before:istart,ifile = ',istart,ifile
 c        print *,sname,'Before:im,jm        = ',im,jm
 #endif
 
-#endif
+#endif ! ADIABATIC
 
 #ifdef USE_FVCORE
       CALL INPUT (istart,ifile,clock)

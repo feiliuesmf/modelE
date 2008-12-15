@@ -391,7 +391,6 @@ contains
          &   fv % dT_old(I_0:I_1,J_0:J_1,LM), &
          &   fv % PE_old(I_0:I_1,J_0:J_1,LM+1))
 
-#ifdef FVCUBED_SKIPPED_THIS
     select case (istart)
     case (:initial_start)
        ! Do a cold start.  Set Old = Current.
@@ -421,7 +420,6 @@ contains
 !!  case default
 !!     call stop_model('ISTART option not supported',istart)
     end select
-#endif
 
   contains
 
@@ -545,11 +543,11 @@ contains
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
     CALL CALC_PIJL(LM,P,PIJL)
+#endif
 
     Call Copy_modelE_to_FV_import(fv)
 
     call clear_accumulated_mass_fluxes()
-#endif
 
     ! Run dycore
     NIdyn_fv = DTsrc / (DT)
@@ -562,7 +560,6 @@ contains
        call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
        call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
 
-#ifdef FVCUBED_SKIPPED_THIS
        call accumulate_mass_fluxes(fv)
        call Copy_FV_export_to_modelE(fv) ! inside loop to accumulate PUA,PVA,SDA
 
@@ -572,6 +569,7 @@ contains
 #endif
 
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
+#ifdef FVCUBED_SKIPPED_THIS
        call compute_mass_flux_diags(phi, pu, pv, dt)
 #endif
 

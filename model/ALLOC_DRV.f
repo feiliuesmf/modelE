@@ -7,6 +7,9 @@ c set-up for MPI implementation
 
       call alloc_dynamics(grid)
       call alloc_model_com(grid)
+      call alloc_smomtq(grid)
+
+#ifndef ADIABATIC
       call alloc_fluxes(grid)
       call alloc_clouds_com(grid)
       call alloc_ghy_com(grid)
@@ -15,13 +18,13 @@ c set-up for MPI implementation
       call alloc_icedyn_com(grid)
       call alloc_diag_com(grid)
       call alloc_diag_loc(grid)
-      call alloc_smomtq(grid)
       call alloc_strat_com(grid)
       call alloc_seaice_com(grid)
       call alloc_rad_com(grid)
       call alloc_lakes(grid)
       call alloc_lakes_com(grid)
       call alloc_landice_com(grid)
+#endif
 #ifdef CALCULATE_FLAMMABILITY
       call alloc_flammability(grid)
 #endif
