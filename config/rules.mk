@@ -149,7 +149,7 @@ ifeq ($(FVCORE),YES)
   INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio_r8 $(FVINC)/GMAO_cfio_r8 $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASELIBDIR)/include
   LIBS += -L$(FVCORE_ROOT)/$(MACHINE)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio_r8 -lGMAO_cfio_r8 -lGEOS_Shared -lGEOS_Base -L$(BASELIBDIR)/lib
 #  LIBS += -L${BASELIBDIR} -lesmf  -lmpi -lmpi++ -lstdc++  -lpthread ${NETCDF_STUBS} -lrt -lc
-  LIBS += -L${BASELIBDIR}/lib -lesmf
+  LIBS += -L${BASELIBDIR}/lib -lesmf -lstdc++ -lrt
 endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
